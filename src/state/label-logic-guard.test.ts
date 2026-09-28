@@ -11,12 +11,12 @@ import {
   collectLabelEntityResolvers, scanLabelResolverCalls,
   scanLabelKeyedIndex,
   collectFacesDAffichage, scanFaceDAffichageIdentite, scanFaceDeDonneeString, scanLiantsLitterauxDesFaces,
-  contexteDeLaGarde, scanLabelLogicFichier, scanLabelLogicCorpus, dettesParVolet,
+  contexteDeLaGarde, corpusDeLaGarde, scanLabelLogicFichier, scanLabelLogicCorpus, dettesParVolet, clesInterditesAuStock,
 } from '../../scripts/guards/lib/labelLogic.mjs';
-import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
+import { listerArbre } from '../../scripts/guards/lib/lister.mjs';
 import { couvertureDuBalayage } from '../../scripts/guards/lib/stock.mjs';
-import { skillRefLabel } from '../data';
-import { parseSkillRef } from '../ui/editor/refFormatLivre';
+import { skillRefLabel, talentRefLabel, talents } from '../data';
+import { parseSkillRef, parseTalentRef } from '../ui/editor/refFormatLivre';
 
 /**
  * Garde-fou « logique par LABEL interdite » (#142, #289, #909, #1988 §7 ; doctrine CLAUDE.md bloc
@@ -38,7 +38,7 @@ const ROOT = fileURLToPath(new URL('../..', import.meta.url)); // src/state/ →
 /** Le balayage de la garde sur le vrai corpus — mémoïsé : l'inventaire, le cliquet du stock et celui
  *  des coutures périmées jugent le MÊME balayage. */
 let _garde: ReturnType<typeof scanLabelLogicCorpus> | null = null;
-const garde = (): ReturnType<typeof scanLabelLogicCorpus> => (_garde ??= scanLabelLogicCorpus(readCorpus([CORPUS_RACINE], { tests: true })));
+const garde = (): ReturnType<typeof scanLabelLogicCorpus> => (_garde ??= scanLabelLogicCorpus(corpusDeLaGarde()));
 const cleDe = (s: { rel: string; line: number }): string => ratchetShortKey(s);
 
 describe('garde « logique par libellé » : un corpus, une composition, deux statuts de site', () => {
@@ -58,6 +58,34 @@ describe('garde « logique par libellé » : un corpus, une composition, deux st
     expect(drift, drift.join('\n')).toEqual([]);
   });
 
+  it('VOLETS SANS STOCK : aucune clé du stock ne porte `label-logic` ni `label-as-id-arg`, quel que soit le fichier', () => {
+    const interdites = clesInterditesAuStock();
+    expect(interdites, interdites.join('\n')).toEqual([]);
+    expect(clesInterditesAuStock({
+      'src/ui/sonde.tsx#label-logic': 1, 'src/data/sonde.ts#label-as-id-arg': 1, 'src/ui/sonde.tsx#label-literal': 1,
+    }).map((e) => e.split(' : ')[0])).toEqual(['src/ui/sonde.tsx#label-logic', 'src/data/sonde.ts#label-as-id-arg']);
+    expect(ecartsAuxDettesDeLibelle(new Map([['src/ui/sonde.tsx#label-logic', 1]]))).toHaveLength(1);
+  });
+
+  it('chaque rubrique du stock nomme son ticket `#N`', () => {
+    const rel = 'scripts/guards/lib/labelLogic.mjs';
+    const texte = readFileSync(join(ROOT, rel), 'utf8');
+    const sf = ts.createSourceFile(rel, texte, ts.ScriptTarget.Latest, true, ts.ScriptKind.JS);
+    const decl = sf.statements.filter(ts.isVariableStatement).flatMap((st) => [...st.declarationList.declarations])
+      .find((d) => ts.isIdentifier(d.name) && d.name.text === 'DETTES_DE_LIBELLE');
+    const objet = decl?.initializer;
+    if (!objet || !ts.isObjectLiteralExpression(objet)) throw new Error('DETTES_DE_LIBELLE introuvable en littéral objet');
+    expect(objet.properties.length).toBe(Object.keys(DETTES_DE_LIBELLE).length);
+    let rubrique = '';
+    const sansTicket: string[] = [];
+    for (const p of objet.properties) {
+      const commentaires = ts.getLeadingCommentRanges(texte, p.getFullStart()) ?? [];
+      if (commentaires.length > 0) rubrique = commentaires.map((c) => texte.slice(c.pos, c.end)).join('\n');
+      if (!/#\d+/.test(rubrique)) sansTicket.push(p.name?.getText(sf) ?? '?');
+    }
+    expect(sansTicket, 'Dette(s) sans ticket : la rubrique qui les précède doit nommer le `#N` qui les tue').toEqual([]);
+  });
+
   it('CLIQUET des coutures : toute entrée de RATCHET_EXCEPTIONS désigne un site vu', () => {
     const vus = new Set(garde().sites.map(cleDe));
     const perimees = Object.keys(RATCHET_EXCEPTIONS).filter((k) => !vus.has(k));
@@ -71,6 +99,10 @@ describe('garde « logique par libellé » : un corpus, une composition, deux st
     expect(estDansLeCorpus('src/state/label-logic-guard.test.ts')).toBe(false);
     expect(estDansLeCorpus('scripts/guards/lib/labelLogic.mjs')).toBe(false);
     expect(estDansLeCorpus('src/data/trappings.json')).toBe(false);
+    expect(estDansLeCorpus('src/vite-env.d.ts')).toBe(false);
+    // `estDansLeCorpus` sur l'arbre BRUT désigne exactement le corpus lu (`corpusDeLaGarde`).
+    const brut = listerArbre(join(ROOT, CORPUS_RACINE)).map((r: string) => `${CORPUS_RACINE}/${r}`).filter(estDansLeCorpus);
+    expect(brut).toEqual([...garde().fichiers].sort());
   });
 
   it('CÂBLAGE : la composition par fichier porte CHAQUE volet, hors de tout dossier privilégié', () => {
@@ -176,6 +208,23 @@ describe('coutures légitimes : chaque entrée de RATCHET_EXCEPTIONS est jugée 
     expect(collectLabelEntityResolvers(readFileSync(join(ROOT, 'src/data/index.ts'), 'utf8')).has('qualityIdByLabel')).toBe(true);
   });
 
+  /** Ce que FAIT chaque parseur de saisie qui porte une couture : il relit le texte que l'affichage
+   *  compose et rend l'id d'origine — sur toute la donnée quand elle s'énumère. */
+  const ALLER_RETOUR: Record<string, () => void> = {
+    parseSkillRef: () => {
+      for (const ref of [
+        { id: 'corps-a-corps', spec: 'fleau', value: 50 },
+        { id: 'savoir', choix: true as const, value: 30 },
+      ]) expect(parseSkillRef(skillRefLabel(ref))).toEqual(ref);
+    },
+    parseTalentRef: () => {
+      const faux = talents.filter(({ id }) => JSON.stringify(parseTalentRef(talentRefLabel({ id }))) !== JSON.stringify({ id }))
+        .map(({ id }) => `${id} → ${JSON.stringify(parseTalentRef(talentRefLabel({ id })))}`);
+      expect(talents.length).toBeGreaterThan(0);
+      expect(faux, faux.join('\n')).toEqual([]);
+    },
+  };
+
   it('`refFormatLivre` : chaque site est dans le parseur de SAISIE, qui rend un id — l’aller-retour affichage → saisie tient', () => {
     const rel = 'src/ui/editor/refFormatLivre.ts';
     const lignes = readFileSync(join(ROOT, rel), 'utf8').split('\n');
@@ -184,14 +233,13 @@ describe('coutures légitimes : chaque entrée de RATCHET_EXCEPTIONS est jugée 
     for (const cle of sites) {
       const decl = declarationDe(rel, Number(cle.split(':')[1]));
       const lecteurs = new Set(lignes.flatMap((l, i) => (new RegExp(`\\b${decl}\\(`).test(l) && declarationDe(rel, i + 1) !== decl ? [declarationDe(rel, i + 1)] : [])));
-      const porteurs = /^parse/.test(decl) ? [decl] : [...lecteurs];
+      const porteurs = decl in ALLER_RETOUR ? [decl] : [...lecteurs];
       expect(porteurs.length, `${cle} : \`${decl}\` n'est lu par aucun parseur`).toBeGreaterThan(0);
-      for (const p of porteurs) expect(p, `${cle} : \`${decl}\` est lu hors des parseurs de saisie`).toMatch(/^parse\w*Ref$/);
+      for (const p of porteurs) {
+        expect(ALLER_RETOUR[p], `${cle} : \`${p}\` n'a aucun aller-retour affichage → saisie prouvé`).toBeDefined();
+        ALLER_RETOUR[p]();
+      }
     }
-    for (const ref of [
-      { id: 'corps-a-corps', spec: 'fleau', value: 50 },
-      { id: 'savoir', choix: true as const, value: 30 },
-    ]) expect(parseSkillRef(skillRefLabel(ref))).toEqual(ref);
   });
 });
 
@@ -465,7 +513,7 @@ describe('garde-fou « logique par LIBELLÉ hors du champ label » (#142 LOT 7)'
     expect(scanLabelLiteralCompare('fixture.ts', src)).toEqual([]);
   });
 
-  it('CONTRE-ÉPREUVES de FORME du littéral : identifiant de code en casse de chameau, jeton de grammaire entre accolades', () => {
+  it('CONTRE-ÉPREUVES de FORME du littéral : nom de type d’erreur, jeton de grammaire entre accolades', () => {
     // Les deux faux positifs mesurés sur `src/data` à l’ouverture du corpus : `DOMException.name` (`fsPersist.ts`)
     // et le segment de chemin `{clé}` de la grammaire des schémas (`collection-cle.ts`).
     const src = [
@@ -475,6 +523,8 @@ describe('garde-fou « logique par LIBELLÉ hors du champ label » (#142 LOT 7)'
     ].join('\n');
     expect(scanLabelLiteralCompare('fixture.ts', src)).toEqual([]);
     expect(scanLabelLiteralCompare('fixture.ts', "const t = w.tier === 'Bronze';\nconst u = w.loc === 'Tête';").map((f) => f.line)).toEqual([1, 2]);
+    // Seul le NOM d'un type d'erreur échappe : un libellé en casse de chameau (`HarvestSize`) reste vu.
+    expect(scanLabelLiteralCompare('fixture.ts', "const petit = h.size === 'InfMoyenne';").map((f) => f.rule)).toEqual(['label-literal']);
   });
 });
 
@@ -539,6 +589,14 @@ describe('garde-fou « index keyé par un LIBELLÉ, construit dans le moteur » 
   });
 
 
+  it('scanLabelKeyedIndex : une CLÉ COMPOSITE bâtie par une chaîne de méthodes sur une paire par libellé est vue', () => {
+    const src = [
+      "export const IDX = new Map(xs.map((x) => [[x.label, x.kind].join(':'), x.id]));",
+      "export const IDX = Object.fromEntries(xs.map((x) => [[x.label, x.tier].join('|'), x]));",
+    ].join('\n');
+    expect(scanLabelKeyedIndex('fixture.ts', src).map((f) => f.line)).toEqual([1, 2]);
+  });
+
   it('CONTRE-ÉPREUVE : un tableau d’AFFICHAGE qui commence par un libellé, receveur d’une méthode, sous un `map`', () => {
     const src = "const rows = t.rows.map((r) => ({ v: [r.label, suffixe].filter(Boolean).join(' ') }));";
     expect(scanLabelKeyedIndex('fixture.ts', src)).toEqual([]);
@@ -599,7 +657,7 @@ describe('garde de FACE D’AFFICHAGE (#1988 §7)', () => {
   const identite = (src: string, rel = 'src/ui/sonde.tsx') => scanFaceDAffichageIdentite(rel, src, FACES).map((f) => f.line);
 
   it('les faces sont COLLECTÉES par leur type de retour, sur le corpus de la garde', () => {
-    const faces = collectFacesDAffichage(readCorpus([CORPUS_RACINE], { tests: true }).filter(({ rel }) => estDansLeCorpus(rel)));
+    const faces = collectFacesDAffichage(corpusDeLaGarde());
     for (const f of ['t', 'dataLabel', 'refLabel', 'trappingRefLabel', 'mutationTablePlayerLabel', 'specLabel', 'conditionLabel']) {
       expect(faces.has(f), `la face \`${f}\` doit être COLLECTÉE par son type de retour`).toBe(true);
     }

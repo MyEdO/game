@@ -22,6 +22,9 @@ export interface ReadCorpusOptions {
  *  agrégé une base vide resterait muette derrière une base peuplée. */
 export function readCorpus(dirs: string[], opts?: ReadCorpusOptions): readonly CorpusFile[];
 
+/** Fichier de déclaration `.d.ts`, hors de tout corpus lu ici (en-tête de `sourceCorpus.mjs`). */
+export function estDeclaration(nom: string): boolean;
+
 /** Relâche tous les corpus mémoïsés : la lecture suivante retourne au disque. Le relâchement est
  *  TOTAL (toutes les clés, pas une) et l'IDENTITÉ des tableaux et des entrées est perdue — les mémos
  *  par identité des appelants repartent de zéro. Les tests de `sourceCorpus.mjs` l'appellent. */

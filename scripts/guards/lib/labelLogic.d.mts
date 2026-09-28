@@ -29,8 +29,12 @@ export const DISPLAY_KEY_TEMPLATE_RX: RegExp;
 export function scanLabelLogic(relPath: string, contenu: string): Finding[];
 export function collectIdParamFunctions(contenu: string): Map<string, number>;
 export function collectDeclaredNames(contenu: string): Set<string>;
-export function scanLabelAsIdArg(relPath: string, contenu: string, idParamFns: Map<string, number>): Finding[];
-export function effectiveIdParamFns(contenu: string, globalIdParamFns: Map<string, number>): Map<string, number>;
+/** Recherche nom → rang du paramètre `id` (une `Map` en est une). */
+export interface RangsDuParametreId {
+  get(nom: string): number | undefined;
+}
+export function scanLabelAsIdArg(relPath: string, contenu: string, idParamFns: RangsDuParametreId): Finding[];
+export function effectiveIdParamFns(contenu: string, globalIdParamFns: RangsDuParametreId): RangsDuParametreId;
 export const CORPUS_RACINE: string;
 export function estDansLeCorpus(rel: string): boolean;
 export const RATCHET_EXCEPTIONS: Record<string, string>;
@@ -40,6 +44,9 @@ export function scanLabelLiteralCompare(relPath: string, contenu: string): Label
 export const DETTES_DE_LIBELLE: Readonly<Record<string, number>>;
 export function cleDeDette(site: { rel: string; rule: string }): string;
 export function fichierDeDette(cle: string): string;
+export const VOLETS_SANS_STOCK: ReadonlySet<string>;
+export function stockDe(cle: string): number;
+export function clesInterditesAuStock(stock?: Readonly<Record<string, number>>): string[];
 /** Finding « retour d'APPEL comparé à un littéral FR » (#1694 B3). */
 export interface LabelCallLiteralFinding {
   line: number;
@@ -80,9 +87,11 @@ export function scanFaceDAffichageIdentite(relPath: string, contenu: string, fac
 export function scanFaceDeDonneeString(relPath: string, contenu: string): FaceFinding[];
 export function scanLiantsLitterauxDesFaces(relPath: string, contenu: string): FaceFinding[];
 
-/** Contexte inter-fichiers de la garde, collecté sur le corpus. */
+/** Le corpus de la garde lu sur le disque (`readCorpus` de `src/`). */
+export function corpusDeLaGarde(): readonly { rel: string; text: string }[];
+/** Contexte inter-fichiers de la garde, sur le corpus ; les rangs du paramètre `id` à la demande. */
 export interface GardeContexte {
-  idParamFns: Map<string, number>;
+  idParamFns: RangsDuParametreId;
   faces: Map<string, string>;
   resolveurs: Set<string>;
 }

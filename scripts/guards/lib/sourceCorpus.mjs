@@ -57,6 +57,9 @@ const ROOT = fileURLToPath(new URL('../../../', import.meta.url)).replace(/[\\/]
  *  d'autres extensions (`.d.mts` de `scripts/`, `.d.cts`) restent dans les corpus qui les demandent. */
 const EST_DECLARATION = /\.d\.ts$/;
 
+/** @param {string} nom chemin ou nom de fichier @returns {boolean} */
+export const estDeclaration = (nom) => EST_DECLARATION.test(nom);
+
 /** Chemin POSIX depuis la racine du dépôt (`src/state`, `../Temp/xyz` pour une racine hors dépôt). */
 const posixDepuisRacine = (p) => relative(ROOT, p).split('\\').join('/');
 
@@ -89,7 +92,7 @@ export function readCorpus(dirs, { exts = ['.ts', '.tsx'], tests = false } = {})
   const garde = (nom) =>
     exts.some((e) => nom.endsWith(e)) &&
     (tests || !estFichierVitest(nom)) &&
-    !EST_DECLARATION.test(nom);
+    !estDeclaration(nom);
   const parBase = bases.map((base) => listerArbre(base, { filtre: garde }));
   const vide = parBase.findIndex((noms) => noms.length === 0);
   if (vide >= 0) {

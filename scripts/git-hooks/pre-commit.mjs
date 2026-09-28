@@ -6,7 +6,7 @@
 // `test:raw`, `test:recette`, `agents:check`, et le LINT des fichiers stagés (≈ 4 s / 20 fichiers).
 // CE QUI N'EST PAS JOUÉ ICI : ni typecheck, ni suite Vitest, ni les scanners de corpus entier — ils
 // coûtent des dizaines de secondes et restent à la CI. La durée totale est imprimée en fin de hook.
-// Contrat : BLOQUE (exit 1) sur pierre tombale et logique-par-label (tolérance zéro, arbre à zéro) ;
+// Contrat : BLOQUE (exit 1) sur pierre tombale et logique-par-label (dette neuve au-dessus du stock) ;
 // les excuses sans tag bloquent quand EXCUSE_GUARD_ACTIVE est vrai, sinon elles rejoignent le canal
 // non bloquant. Ce canal (affirmations RAW, revendications d'autorité, hardcode réactif) est trié par
 // la baseline nominative `scripts/guards/lib/decisions-baseline.json` : NOUVEAU en tête, sites déjà
@@ -22,8 +22,7 @@ import {
   scanTombstones, scanExcuses, scanRawClaims, scanDecisionClaims, scanLegacyVocabHorsStock, EXCUSE_GUARD_ACTIVE,
   estFichierScanne, loadDecisionsBaseline, partitionBaseline, formatBaselineReport,
 } from '../guards/lib/commentPoison.mjs';
-import { contexteDeLaGarde, scanLabelLogicFichier, dettesParVolet, ecartsAuxDettesDeLibelle } from '../guards/lib/labelLogic.mjs';
-import { readCorpus } from '../guards/lib/sourceCorpus.mjs';
+import { contexteDeLaGarde, corpusDeLaGarde, scanLabelLogicFichier, dettesParVolet, ecartsAuxDettesDeLibelle, clesInterditesAuStock } from '../guards/lib/labelLogic.mjs';
 import { emojisIn } from '../guards/lib/emojiAffordance.mjs';
 import { scanHardcode } from '../guards/lib/hardcode.mjs';
 import { scanRollSeamExclusivity } from '../guards/lib/rollSeamExclusivity.mjs';
@@ -72,7 +71,7 @@ const TSX_CLI = existsSync(tsxIn(ROOT)) ? tsxIn(ROOT) : tsxIn(HOOK_TREE);
 // Garde « logique par libellé » (#142, #909, #1988 §7) : le contexte INTER-FICHIERS (déclarations à
 // paramètre `id`, faces d'affichage, résolveurs par libellé) se collecte sur le corpus de la lib —
 // déclaration et appel vivent dans des fichiers différents —, même contexte que le test.
-const GARDE_LIBELLE = contexteDeLaGarde(readCorpus(['src'], { tests: true }));
+const GARDE_LIBELLE = contexteDeLaGarde(corpusDeLaGarde());
 // Périmètre de `scanHardcode` : celui de `combat-hardcode-guard.test.ts` (`SCAN_DIRS`).
 const hardcodeRe = /^src\/(?:engine|state)\//;
 
@@ -85,6 +84,9 @@ const staged = argFiles.length
 const offenders = [];
 // #1679 L1c — le contenu d'un arbre de travail imbriqué n'appartient pas à un commit du dépôt hôte.
 for (const x of scanArbresImbriques(staged, { racine: ROOT })) offenders.push(x.detail);
+// Garde « logique par libellé » : un volet sans stock (`VOLETS_SANS_STOCK`) porté par une clé du stock
+// bloque, quel que soit le fichier stagé — même fonction que le test.
+offenders.push(...clesInterditesAuStock());
 // Signaux non bloquants, en OBJETS `{ file, line, detail }` : ils passent par la baseline
 // nominative (`decisions-baseline.json`) avant impression, qui les range en NOUVEAU / BASELINE.
 const warnings = [];
@@ -99,8 +101,8 @@ for (const f of staged) {
   // Familles de COMMENTAIRES (tombale / excuse / vocabulaire de l'ancien état / revendications RAW / revendications d'autorité) : tests compris,
   // « le poison écrit dans un test est du poison » (commentPoison.mjs). Familles CODE (label-logic,
   // hardcode, emoji, seam de jet, rng) : leur périmètre canonique EXCLUT les fichiers de test — ce
-  // sont eux qui plantent les FIXTURES littérales de ces gardes (label-logic-guard.test.ts EXCLUDED,
-  // combat-hardcode-guard.test.ts EXCLUDED, roll-seam-exclusivity-guard.test.ts EXCLUDED,
+  // sont eux qui plantent les FIXTURES littérales de ces gardes (corpus `estDansLeCorpus` de
+  // labelLogic.mjs, combat-hardcode-guard.test.ts EXCLUDED, roll-seam-exclusivity-guard.test.ts EXCLUDED,
   // no-emoji-affordance.test.ts EXCLUDED) — un fichier de test stagé ne doit PAS y rougir.
   const isTestFile = estFichierVitest(rel);
   let text;

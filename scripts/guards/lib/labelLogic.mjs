@@ -1,9 +1,10 @@
 // Mécanique de scan du garde-fou « logique par LABEL interdite » (#142, doctrine CLAUDE.md bloc
 // agents). Module ESM pur (opère sur du texte source), consommé par
-// src/state/label-logic-guard.test.ts ET par le hook pre-commit (scripts/git-hooks/pre-commit.mjs) —
-// SOURCE UNIQUE du corpus (`estDansLeCorpus`), du contexte inter-fichiers (`contexteDeLaGarde`) et
-// de la composition des volets (`scanLabelLogicFichier`, en fin de fichier), pour que les deux
-// consommateurs ne divergent jamais.
+// src/state/label-logic-guard.test.ts, le hook pre-commit (scripts/git-hooks/pre-commit.mjs) ET le
+// hook au stylo (scripts/hooks/poison-postcheck.mjs) — SOURCE UNIQUE du corpus (`estDansLeCorpus`),
+// du contexte inter-fichiers (`contexteDeLaGarde`), de la composition des volets
+// (`scanLabelLogicFichier`, en fin de fichier) et des volets sans stock (`clesInterditesAuStock`),
+// pour que les trois consommateurs ne divergent jamais.
 import { parUnitesDeCode } from './lister.mjs';
 import { scriptKindDe } from './dialecte.mjs';
 import tsModule from 'typescript';
@@ -15,6 +16,7 @@ const ts = tsModule;
 // `registryIdBranch.mjs` : le suivi d'alias `const k = def.id` y existe déjà, on l'importe.
 import { Scopes, bindingNames, unwrap, isEntryLiteral, EQUALITY_OPS } from './registryIdBranch.mjs';
 import { estFichierVitest } from './fichierVitest.mjs';
+import { estDeclaration, readCorpus } from './sourceCorpus.mjs';
 // Vue CODE des volets lexicaux (lignes et colonnes préservées) — `codeSeul.mjs`, #1790.
 import { codeSeul } from './codeSeul.mjs';
 
@@ -133,11 +135,12 @@ export function hasDisplayCollectionKey(line) {
  * apparaisse sur la même ligne (ex. `const lbl = x.label; regex.test(lbl)`) échappe au scan — à
  * détecter par revue de code, pas par cette garde mécanique.
  *
- * Chaque finding porte sa `rule` : les règles `.label` HISTORIQUES (#142) valent `label-logic` et
- * restent à TOLÉRANCE ZÉRO ; la règle `display-key` (#598, champ d'affichage interpolé en CLÉ) est
- * distinguée pour que l'appelant puisse lui adosser un baseline SANS relâcher les premières.
+ * Chaque finding porte sa `rule`, qui entre dans la clé du stock `DETTES_DE_LIBELLE` : les règles
+ * `.label` HISTORIQUES (#142) valent `label-logic`, volet SANS stock (`VOLETS_SANS_STOCK`) ; les règles
+ * `collection-key` (#602) et `display-key` (#598) sont distinguées pour qu'une dette y soit stockée
+ * SANS amnistier au passage une `label-logic`.
  * @param {string} relPath @param {string} contenu
- * @returns {{ line: number, detail: string, rule: 'label-logic' | 'display-key' }[]}
+ * @returns {{ line: number, detail: string, rule: 'label-logic' | 'collection-key' | 'display-key' }[]}
  */
 export function scanLabelLogic(relPath, contenu) {
   const findings = [];
@@ -181,14 +184,15 @@ const DOM_VOCAB_FIELDS = new Set(['key', 'code', 'tagName']);
  *  ASCII minuscules (`tres-longue`, `mains-nues`, `disc`) — la convention est tenue par les
  *  registres et par `slugId`. Une MAJUSCULE INITIALE, un ACCENT ou une ESPACE ne peuvent donc pas
  *  appartenir à un id : c'est du libellé. Le critère est structurel (forme du texte), pas une liste.
- *  Deux formes de CODE échappent au critère, par leur forme aussi : un identifiant en casse de
- *  chameau à bosse interne (`'AbortError'` de `DOMException.name`, `'ArrowLeft'`, `'KeyE'` — aucun
- *  libellé français ne porte de majuscule interne sans espace), et un jeton de grammaire entre
- *  accolades (`'{clé}'`, segment de chemin de `src/data/schemas/grammaire/descente.ts`).
+ *  Deux formes de CODE échappent au critère, par leur forme aussi : le NOM d'un type d'erreur
+ *  (`'AbortError'` de `DOMException.name`, `fsPersist.ts` — un identifiant en casse de chameau fini
+ *  par `Error`, vocabulaire des normes ECMAScript/WebIDL), et un jeton de grammaire entre accolades
+ *  (`'{clé}'`, segment de chemin de `src/data/schemas/grammaire/descente.ts`). Toute AUTRE casse de
+ *  chameau reste un libellé candidat : `'InfMoyenne'` (`HarvestSize`) en est un.
  *  @param {string} text @returns {boolean} */
 export function isLabelLiteral(text) {
   if (text.length < 2) return false;
-  if (/^[A-Z][a-z]+(?:[A-Z][a-z]*)+$/.test(text) || /^\{[^{}\s]+\}$/.test(text)) return false;
+  if (/^[A-Z][A-Za-z]*Error$/.test(text) || /^\{[^{}\s]+\}$/.test(text)) return false;
   return /^\p{Lu}/u.test(text) || /[À-ɏ]/.test(text) || /\s/.test(text);
 }
 
@@ -451,10 +455,12 @@ export function scanCallResultLiteralCompare(relPath, contenu) {
  * `fichier#règle` (la `rule` du site, `cleDeDette`) → compte des sites que la garde voit (TOUS volets,
  * `scanLabelLogicFichier`) hors des coutures légitimes de `RATCHET_EXCEPTIONS`. Ce ne sont pas des
  * exemptions — aucun de ces sites n'est légitime : chacun meurt par sa migration vers un id, sous le
- * ticket nommé en regard. Jamais `fichier:ligne` : la ligne dérive à chaque commit voisin et le cliquet
- * crierait à faux. La RÈGLE est dans la clé pour qu'une dette ne passe pas d'un volet à l'autre d'un même
- * fichier à compte constant, et pour que la porte des stocks nominatifs (`stocksNominatifs.mjs`, une
- * entrée par clé qui nomme un fichier) voie chaque (fichier, volet) neuf.
+ * ticket `#N` que nomme la rubrique qui le précède (test « chaque rubrique du stock nomme son
+ * ticket »). Les volets de `VOLETS_SANS_STOCK` n'y entrent jamais. Jamais `fichier:ligne` : la ligne
+ * dérive à chaque commit voisin et le cliquet crierait à faux. La RÈGLE est dans la clé pour qu'une
+ * dette ne passe pas d'un volet à l'autre d'un même fichier à compte constant, et pour que la porte
+ * des stocks nominatifs (`stocksNominatifs.mjs`, une entrée par clé qui nomme un fichier) voie chaque
+ * (fichier, volet) neuf.
  *
  * CLIQUET STRICT, dans les DEUX sens et par clé : un compte SUPÉRIEUR échoue (dette neuve), un compte
  * INFÉRIEUR échoue aussi (dette soldée → l'entrée se met à jour, ou disparaît, dans le MÊME geste).
@@ -463,20 +469,20 @@ export function scanCallResultLiteralCompare(relPath, contenu) {
  * @type {Readonly<Record<string, number>>}
  */
 export const DETTES_DE_LIBELLE = {
-  // Axe Disponibilité (LDB 59) — `Availability` EST le libellé ; `src/engine/disponibilite.ts` porte
+  // #2104 — Axe Disponibilité (LDB 59) — `Availability` EST le libellé ; `src/engine/disponibilite.ts` porte
   // le type, la table ET le prédicat `isTradable` (source unique de la comparaison aux 4 classes),
   // ses consommateurs suivent.
   'src/engine/activities.ts#label-literal': 1,
   'src/engine/activities.ts#label-record': 1,
   'src/engine/disponibilite.ts#label-literal': 1,
-  // Axes de récolte (Rareté / Danger / Taille / Conservation) — quatre vocabulaires FR en clés de table.
+  // #2104 — Axes de récolte (Rareté / Danger / Taille / Conservation) — quatre vocabulaires FR en clés de table.
   'src/engine/harvest.ts#label-literal': 1,
   'src/engine/harvest.ts#label-record': 4,
-  // Axe Statut social (Bronze/Argent/Or) — `Status.tier` porte le libellé, lu du texte des carrières.
+  // #2104 — Axe Statut social (Bronze/Argent/Or) — `Status.tier` porte le libellé, lu du texte des carrières.
   'src/engine/creation.ts#label-literal': 2,
   'src/engine/social.ts#label-literal': 2,
   'src/ui/creator/CharacterCreator.tsx#label-literal': 2,
-  // Statut d'un indice de campagne (révélé/réfuté) — porté par la donnée de scène et les sauvegardes.
+  // #2104 — Statut d'un indice de campagne (révélé/réfuté) — porté par la donnée de scène et les sauvegardes.
   'src/state/clues.ts#label-literal': 2,
   'src/state/combatEffects.ts#label-literal': 1,
   'src/ui/CarnetScreen.tsx#label-literal': 3,
@@ -497,6 +503,26 @@ export const DETTES_DE_LIBELLE = {
   'src/gameIso/rig/anim/spellClips.ts#label-entity-resolver-call': 1,
 };
 
+/** Volets SANS stock : aucune clé de `DETTES_DE_LIBELLE` ne peut les porter, quel que soit le
+ *  fichier — `label-logic` (règles `.label` de #142) et `label-as-id-arg` (libellé passé où la
+ *  déclaration attend un `id`). Pour eux le stock admis est 0 (`stockDe`), et une clé qui les
+ *  porterait est un écart (`clesInterditesAuStock`). */
+export const VOLETS_SANS_STOCK = new Set(['label-logic', 'label-as-id-arg']);
+
+/** Stock ADMIS pour une clé `fichier#règle` : 0 pour un volet de `VOLETS_SANS_STOCK`, quoi
+ *  qu'écrive `DETTES_DE_LIBELLE`. @param {string} cle @returns {number} */
+export function stockDe(cle) {
+  return VOLETS_SANS_STOCK.has(regleDeDette(cle)) ? 0 : DETTES_DE_LIBELLE[cle] ?? 0;
+}
+
+/** Clés du stock qui portent un volet sans stock, en phrases prêtes à afficher — la porte que le
+ *  test ET le hook pre-commit jouent. @param {Record<string, number>} [stock] @returns {string[]} */
+export function clesInterditesAuStock(stock = DETTES_DE_LIBELLE) {
+  return Object.keys(stock)
+    .filter((cle) => VOLETS_SANS_STOCK.has(regleDeDette(cle)))
+    .map((cle) => `${cle} : le volet « ${regleDeDette(cle)} » n'a pas de stock (VOLETS_SANS_STOCK) — retirer la clé de DETTES_DE_LIBELLE et migrer le site vers un id STABLE.`);
+}
+
 /** Clé de dette d'un site : `fichier#règle`. @param {{ rel: string, rule: string }} site @returns {string} */
 export function cleDeDette(site) {
   return `${site.rel}#${site.rule}`;
@@ -505,6 +531,11 @@ export function cleDeDette(site) {
 /** Le fichier d'une clé de dette. @param {string} cle @returns {string} */
 export function fichierDeDette(cle) {
   return cle.slice(0, cle.lastIndexOf('#'));
+}
+
+/** La règle (volet) d'une clé de dette. @param {string} cle @returns {string} */
+function regleDeDette(cle) {
+  return cle.slice(cle.lastIndexOf('#') + 1);
 }
 
 /** Écarts aux dettes pour un jeu de comptes MESURÉS (`fichier#règle` → nombre, `dettesParVolet`) :
@@ -518,19 +549,19 @@ export function ecartsAuxDettesDeLibelle(measured, { hausseSeule = false } = {})
   const entries = measured instanceof Map ? [...measured] : Object.entries(measured);
   const out = [];
   for (const [cle, n] of entries) {
-    const stock = DETTES_DE_LIBELLE[cle] ?? 0;
+    const stock = stockDe(cle);
     if (n > stock) out.push(`${cle} : ${n} logique(s) par LIBELLÉ, stock = ${stock} — migrer vers un id STABLE (le libellé est de l'AFFICHAGE).`);
     else if (n < stock && !hausseSeule) out.push(`${cle} : ${n} logique(s) par LIBELLÉ, stock = ${stock} — dette SOLDÉE, mettre DETTES_DE_LIBELLE à jour dans le même geste.`);
   }
   return out;
 }
 
-// ── Index CONSTRUIT sur un champ d'AFFICHAGE, dans le moteur/store (#909) ───────────────────────
+// ── Index CONSTRUIT sur un champ d'AFFICHAGE, hors de la couture de chargement (#909) ────────────
 // `scanLabelLogic` ne juge que l'INTERROGATION d'une collection par `.label` : la REMPLIR depuis du
 // texte y est tolérée (contre-épreuve `NAME_TO_GROUP[norm(t.label)] = …`), la conversion label→id
 // étant licite — mais à UN endroit : « Seule couture tolérée : la conversion label→id au CHARGEMENT
-// des données, dans `src/data/index.ts` uniquement » (CLAUDE.md § Pour TOUT agent). Dans
-// `src/engine`/`src/state`, la même construction est donc la faute, et elle était MUETTE : le
+// des données, dans `src/data/index.ts` uniquement » (CLAUDE.md § Pour TOUT agent). Partout
+// ailleurs dans `src/`, la même construction est donc la faute, et elle était MUETTE : le
 // `Record` `QUALITY_DESC` (`engine/qualities/describe.ts`) a vécu keyé par LIBELLÉ, bâti par
 // `Object.fromEntries(… .map((q) => [q.label, q.desc]))` puis LU via une variable
 // (`QUALITY_DESC[key]`) — hors de portée d'un scan syntaxique (cf. LIMITE CONNUE de `scanLabelLogic`).
@@ -538,9 +569,11 @@ export function ecartsAuxDettesDeLibelle(measured, { hausseSeule = false } = {})
 const DISPLAY_FIELD_NAME_RX = new RegExp('^' + DISPLAY_FIELD + '$');
 
 /** Lignes des PAIRES `[x.label, …]` d'une construction de STRUCTURE : le tableau vit sous un appel
- *  `map`/`fromEntries` ou un `new Map`/`new Set`, et n'est pas lui-même le RECEVEUR d'une méthode —
- *  `[a.label, b.label].join(', ')`, `[r.label, suffixe].filter(Boolean).join(' ')` sont des tableaux
- *  d'AFFICHAGE, aucune clé n'y naît. @param {string} relPath @param {string} contenu @returns {Set<number>} */
+ *  `map`/`fromEntries` ou un `new Map`/`new Set`. Receveur d'une chaîne de méthodes, il n'est une clé
+ *  que si le RÉSULTAT de la chaîne est l'élément 0 d'une paire de la construction
+ *  (`[[x.label, x.kind].join(':'), x.id]`) — `[a.label, b.label].join(', ')`,
+ *  `{ v: [r.label, suffixe].filter(Boolean).join(' ') }` sont des tableaux d'AFFICHAGE, aucune clé n'y
+ *  naît. @param {string} relPath @param {string} contenu @returns {Set<number>} */
 function lignesDePaireParLibelle(relPath, contenu) {
   const lignes = new Set();
   if (!/\.(?:label|name)\b/.test(contenu)) return lignes;
@@ -555,11 +588,27 @@ function lignesDePaireParLibelle(relPath, contenu) {
     }
     return false;
   };
+  /** Le résultat de la chaîne de méthodes dont `n` est le receveur (`n` lui-même s'il n'en est pas un). */
+  const resultatDeChaine = (n) => {
+    let cur = n;
+    let chaine = false;
+    for (;;) {
+      const p = cur.parent;
+      if (ts.isParenthesizedExpression(p) || ts.isAsExpression(p) || ts.isNonNullExpression(p)) cur = p;
+      else if (ts.isPropertyAccessExpression(p) && p.expression === cur && ts.isCallExpression(p.parent) && p.parent.expression === p) {
+        cur = p.parent;
+        chaine = true;
+      } else return chaine ? cur : n;
+    }
+  };
+  const estPaire = (a) => ts.isArrayLiteralExpression(a) && a.elements.length >= 2;
   const voir = (n) => {
-    if (ts.isArrayLiteralExpression(n) && n.elements.length >= 2) {
+    if (estPaire(n)) {
       const cle = unwrap(n.elements[0]);
-      const receveur = ts.isPropertyAccessExpression(n.parent) && n.parent.expression === n;
-      if (!receveur && ts.isPropertyAccessExpression(cle) && DISPLAY_FIELD_NAME_RX.test(cle.name.text) && sousUneConstruction(n)) lignes.add(ligneDe(sf, n));
+      const resultat = resultatDeChaine(n);
+      const paire = resultat === n ? n : resultat.parent;
+      const enCle = resultat === n || (estPaire(paire) && paire.elements[0] === resultat);
+      if (enCle && ts.isPropertyAccessExpression(cle) && DISPLAY_FIELD_NAME_RX.test(cle.name.text) && sousUneConstruction(paire)) lignes.add(ligneDe(sf, n));
     }
     ts.forEachChild(n, voir);
   };
@@ -812,11 +861,14 @@ function isLabelArg(arg) {
  * pas `.label`). Couvre aussi les enrobages triviaux (`??`, `as`, `!`, template, `String(...)`,
  * méthode de chaîne pure — `isLabelArg`) et les appels de MÉTHODE dont le nom n'est pas une méthode
  * de collection connue (`COLLECTION_METHOD_NAMES` — `set` SEUL, mesuré #142 LOT 6bis).
- * @param {string} relPath @param {string} contenu @param {Map<string, number>} idParamFns
+ * Le rang du paramètre `id` n'est demandé à `idParamFns` que pour un appel dont un argument passe
+ * `isLabelArg` (condition nécessaire d'un site) : un contexte PARESSEUX ne calcule que ces noms-là.
+ * @param {string} relPath @param {string} contenu @param {RangsDuParametreId} idParamFns
  * @returns {{ line: number, detail: string, rule: 'label-as-id-arg' }[]}
  */
 export function scanLabelAsIdArg(relPath, contenu, idParamFns) {
   const findings = [];
+  if (!contenu.includes('.label')) return findings;
   const body = codeSeul(contenu);
   const lines = contenu.split('\n');
   // `(?:(\w+)\.)?` = receveur optionnel d'un appel de méthode (`teamOf.set(`, `helpers.bodyShapeOf(`) —
@@ -832,13 +884,14 @@ export function scanLabelAsIdArg(relPath, contenu, idParamFns) {
     // …` d'un helper de rig, #142 LOT 6) collisionnerait sinon avec CHAQUE `set(...)` de tout le
     // store. Limite DOCUMENTÉE et mesurée : ces noms restent hors de portée, receveur ou pas.
     if (COLLECTION_METHOD_NAMES.has(fnName)) continue;
-    const idx = idParamFns.get(fnName);
-    if (idx === undefined) continue;
     const openIdx = m.index + m[0].length - 1;
     const closeIdx = matchClosingParen(body, openIdx);
     if (closeIdx < 0) continue;
-    const inner = body.slice(openIdx + 1, closeIdx);
-    const arg = splitCallArgs(inner)[idx];
+    const args = splitCallArgs(body.slice(openIdx + 1, closeIdx));
+    if (!args.some(isLabelArg)) continue;
+    const idx = idParamFns.get(fnName);
+    if (idx === undefined) continue;
+    const arg = args[idx];
     if (arg && isLabelArg(arg)) {
       const line = lineOf(body, m.index);
       findings.push({ line, detail: (lines[line - 1] || '').trim(), rule: 'label-as-id-arg' });
@@ -847,27 +900,60 @@ export function scanLabelAsIdArg(relPath, contenu, idParamFns) {
   return findings;
 }
 
-/** Map EFFECTIVE (locale + globale) pour un fichier donné : un nom d'ID_PARAM_FNS global MASQUÉ par
- *  une déclaration homonyme LOCALE (shadowing, `collectDeclaredNames`) cède la place à la locale
- *  (#142 LOT 6bis).
- *  @param {string} contenu @param {Map<string, number>} globalIdParamFns @returns {Map<string, number>} */
+/** Recherche nom → rang du paramètre `id` (une `Map` en est une). @typedef {{ get(nom: string): number | undefined }} RangsDuParametreId */
+
+/** Rangs EFFECTIFS (locaux + globaux) pour un fichier donné : un nom global MASQUÉ par une
+ *  déclaration homonyme LOCALE (shadowing, `collectDeclaredNames`) cède la place à la locale
+ *  (#142 LOT 6bis). Les déclarations locales ne se lisent qu'à la première demande.
+ *  @param {string} contenu @param {RangsDuParametreId} globalIdParamFns @returns {RangsDuParametreId} */
 export function effectiveIdParamFns(contenu, globalIdParamFns) {
-  const local = collectIdParamFunctions(contenu);
-  const localNames = collectDeclaredNames(contenu);
-  const eff = new Map(local);
-  for (const [name, idx] of globalIdParamFns) if (!localNames.has(name)) eff.set(name, idx);
-  return eff;
+  let local;
+  let localNames;
+  return {
+    get(nom) {
+      local ??= collectIdParamFunctions(contenu);
+      localNames ??= collectDeclaredNames(contenu);
+      if (local.has(nom)) return local.get(nom);
+      return localNames.has(nom) ? undefined : globalIdParamFns.get(nom);
+    },
+  };
+}
+
+/** Rangs du paramètre `id` sur un CORPUS, calculés À LA DEMANDE et mémoïsés : pour un nom, la
+ *  PREMIÈRE déclaration dans l'ordre du corpus (`collectIdParamFunctions` du premier fichier qui le
+ *  déclare avec un paramètre `id`). Un fichier dont le texte ne porte aucune TÊTE possible du nom —
+ *  les trois formes de `findDeclarationHeads`, `function nom`, `const|let nom =`, `nom(` non précédé
+ *  de `.`/mot — ne peut pas le déclarer : il n'est pas analysé (`x.includes(` n'en est pas une).
+ *  @param {{ rel: string, text: string }[]} corpus @returns {RangsDuParametreId} */
+function rangsDuCorpus(corpus) {
+  const parFichier = new Map();
+  const memo = new Map();
+  return {
+    get(nom) {
+      if (memo.has(nom)) return memo.get(nom);
+      const tete = new RegExp(`function\\s+${nom}\\b|(?:const|let)\\s+${nom}\\s*=|(?<![.\\w$])${nom}\\s*(?:<[^>]*>)?\\s*\\(`);
+      let rang;
+      for (let i = 0; i < corpus.length && rang === undefined; i++) {
+        if (!corpus[i].text.includes(nom) || !tete.test(corpus[i].text)) continue;
+        if (!parFichier.has(i)) parFichier.set(i, collectIdParamFunctions(corpus[i].text));
+        rang = parFichier.get(i).get(nom);
+      }
+      memo.set(nom, rang);
+      return rang;
+    },
+  };
 }
 
 
 /** Le CORPUS de la garde, tous volets confondus (lignes, stock, face) — défini ICI seulement : tout
- *  `src/` `.ts`/`.tsx` hors instruments Vitest. Le statut d'un site ne dépend jamais de son dossier :
+ *  `src/` `.ts`/`.tsx` hors instruments Vitest et hors déclarations `.d.ts` — les deux exclusions de
+ *  `readCorpus` (`sourceCorpus.mjs`), par les MÊMES prédicats. Le statut d'un site ne dépend jamais de son dossier :
  *  couture légitime (`RATCHET_EXCEPTIONS`), dette au stock (`DETTES_DE_LIBELLE`), ou faute. */
 export const CORPUS_RACINE = 'src';
 
 /** @param {string} rel chemin POSIX relatif à la racine du projet @returns {boolean} */
 export function estDansLeCorpus(rel) {
-  return rel.startsWith(`${CORPUS_RACINE}/`) && /\.tsx?$/.test(rel) && !estFichierVitest(rel);
+  return rel.startsWith(`${CORPUS_RACINE}/`) && /\.tsx?$/.test(rel) && !estFichierVitest(rel) && !estDeclaration(rel);
 }
 
 /** COUTURES LÉGITIMES — `fichier:ligne` (relatif à `src/`) → justification. N'y entrent que la couture
@@ -1357,19 +1443,24 @@ export function scanLiantsLitterauxDesFaces(relPath, contenu) {
   return findings;
 }
 
-/** Contexte INTER-FICHIERS de la garde, collecté sur le corpus : rang du paramètre `id` par nom de
- *  fonction (`collectIdParamFunctions`, première déclaration rencontrée), faces d'affichage
- *  (`collectFacesDAffichage`), résolveurs par libellé de `src/data/index.ts` (`collectLabelEntityResolvers`).
- *  @param {{ rel: string, text: string }[]} fichiers @returns {GardeContexte} */
-export function contexteDeLaGarde(fichiers) {
-  const corpus = fichiers.filter(({ rel }) => estDansLeCorpus(rel));
-  const idParamFns = new Map();
-  for (const { text } of corpus) for (const [nom, idx] of collectIdParamFunctions(text)) if (!idParamFns.has(nom)) idParamFns.set(nom, idx);
-  const index = corpus.find(({ rel }) => rel === 'src/data/index.ts');
-  return { idParamFns, faces: collectFacesDAffichage(corpus), resolveurs: index ? collectLabelEntityResolvers(index.text) : new Set() };
+/** Le corpus de la garde, lu sur le disque : `readCorpus` de `src/` (sans instruments Vitest ni `.d.ts`,
+ *  soit `estDansLeCorpus`) — la lecture du test, du hook pre-commit et du hook au stylo.
+ *  @returns {readonly { rel: string, text: string }[]} */
+export function corpusDeLaGarde() {
+  return readCorpus([CORPUS_RACINE]);
 }
 
-/** @typedef {{ idParamFns: Map<string, number>, faces: Map<string, string>, resolveurs: Set<string> }} GardeContexte */
+/** Contexte INTER-FICHIERS de la garde, sur le corpus : rang du paramètre `id` par nom de fonction
+ *  (`rangsDuCorpus`, à la demande), faces d'affichage (`collectFacesDAffichage`), résolveurs par
+ *  libellé de `src/data/index.ts` (`collectLabelEntityResolvers`).
+ *  @param {readonly { rel: string, text: string }[]} fichiers @returns {GardeContexte} */
+export function contexteDeLaGarde(fichiers) {
+  const corpus = fichiers.filter(({ rel }) => estDansLeCorpus(rel));
+  const index = corpus.find(({ rel }) => rel === 'src/data/index.ts');
+  return { idParamFns: rangsDuCorpus(corpus), faces: collectFacesDAffichage(corpus), resolveurs: index ? collectLabelEntityResolvers(index.text) : new Set() };
+}
+
+/** @typedef {{ idParamFns: RangsDuParametreId, faces: Map<string, string>, resolveurs: Set<string> }} GardeContexte */
 
 /**
  * TOUS les volets de la garde sur UN fichier — la seule composition, appelée par le test (corpus
@@ -1393,7 +1484,7 @@ export function scanLabelLogicFichier(rel, text, ctx) {
     ...scanLiantsLitterauxDesFaces(rel, text),
   ].map((f) => {
     const site = { rel, ...f };
-    const statut = ratchetShortKey(site) in RATCHET_EXCEPTIONS ? 'couture' : cleDeDette(site) in DETTES_DE_LIBELLE ? 'dette' : 'nu';
+    const statut = ratchetShortKey(site) in RATCHET_EXCEPTIONS ? 'couture' : stockDe(cleDeDette(site)) > 0 ? 'dette' : 'nu';
     return { ...site, statut };
   });
 }
