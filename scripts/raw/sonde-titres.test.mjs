@@ -10,6 +10,7 @@ import { infidelite, reparerLivre } from './reparer-titres.mjs'
 import { decoupeDe, gabaritTitreDe, livreExtraitDe, nomsDeLaListe, pdfDe, readText } from './_lib.mjs'
 import { ecartDeRegeneration, lireEntreesDeSite, texteEnPlace } from '../guards/lib/stockDeSites.mjs'
 import { lignes } from './lib/colonnes.mjs'
+import { echapperRegex } from '../../src/lib/regex.ts'
 import { pageCrb } from './lib/fixtures/page-crb.mjs'
 
 const GABARIT = {
@@ -700,7 +701,7 @@ test('#1820 stock COMMITTÉ de la sonde (CRB) : chaque site émis hors `colonne`
 test('une mesure incomplète refuse, rien n’est écrit', () => {
   const phrase = 'core-rulebook-5e — NON SONDABLE (PDF absent)'
   for (const r of regenerations({ mesures: [], manque: [phrase] })) {
-    assert.match(ecartDeRegeneration(r, texteEnPlace(r.chemin)) ?? '', new RegExp(`mesure incomplète[^]*${phrase.replace(/[()]/g, '\\$&')}`))
+    assert.match(ecartDeRegeneration(r, texteEnPlace(r.chemin)) ?? '', new RegExp(`mesure incomplète[^]*${echapperRegex(phrase)}`))
   }
 })
 

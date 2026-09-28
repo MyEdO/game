@@ -224,7 +224,7 @@ test('CLÔTURE — aucun module atteint par une racine du registre, hors des glo
  *  (il POSE le listing), la reproduction du filtre de Vitest (`toLocaleLowerCase`) et l'oracle naïf du
  *  banc de `sourceCorpus` (marche témoin indépendante de `listerArbre`). */
 const EXEMPTIONS_DU_MUR = [
-  'scripts/guards/lib/sourceCorpus.test.mjs:33',
+  'scripts/guards/lib/sourceCorpus.test.mjs:37',
   'scripts/docs/lib/enregistreur-lectures.mjs:81', 'scripts/docs/lib/enregistreur-lectures.mjs:87',
   'scripts/docs/lib/enregistreur-lectures.mjs:111', 'scripts/docs/lib/enregistreur-lectures.mjs:119',
   'scripts/docs/lib/enregistreur-lectures.mjs:123', 'scripts/docs/lib/enregistreur-lectures.mjs:133',

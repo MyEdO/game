@@ -7,11 +7,11 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  sitesDuChapitre, scanAllBooks, scanBookDir, jetonDeLigne, refDeSuite, ecartDuStock,
+  sitesDuChapitre, scanAllBooks, scanBookDir, jetonDeLigne, refDeSuite,
   comptesParLivre, regenerations, STOCK_PATH,
 } from './check-source-puces.mjs'
 import { ecartDeRegeneration, entreesRegenerees, lireEntreesDeSite, texteEnPlace } from '../guards/lib/stockDeSites.mjs'
-import { CHAMPS_DE_CLE, cleDeSite, champsAveugles } from '../guards/lib/stock.mjs'
+import { CHAMPS_DE_CLE, cleDeSite, champsAveugles, ecartDuVolet } from '../guards/lib/stock.mjs'
 import { BOOKS } from './_lib.mjs'
 
 /** PLAFOND du stock — il vit ICI, jamais dans la garde ni dans la lib (`guards/lib/stock.mjs`) :
@@ -134,7 +134,7 @@ test('COUVERTURE : le balayage voit TOUT le registre — chaque livre est class�
 })
 
 test('stock COMMITTÉ : chaque site mesuré y a son entrée, et aucune entrée n’est soldée', () => {
-  const { neuves, perimees } = ecartDuStock(scanAllBooks(), lireEntreesDeSite(STOCK_PATH))
+  const { neuves, perimees } = ecartDuVolet({ sites: scanAllBooks(), stock: lireEntreesDeSite(STOCK_PATH), ou: 'source-puces-stock.json' })
   assert.deepEqual(neuves, [], `site(s) hors du stock :\n${neuves.join('\n')}`)
   assert.deepEqual(perimees, [], `entrée(s) SOLDÉE(s) à retirer :\n${perimees.join('\n')}`)
 })

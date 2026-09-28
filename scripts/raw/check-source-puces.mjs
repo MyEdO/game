@@ -116,10 +116,6 @@ export function scanAllBooks(books = BOOKS) {
   return out
 }
 
-/** ÉCART au stock, dans les deux sens. */
-export const ecartDuStock = (sites, stock) =>
-  ecartDuVolet({ sites, stock, ou: 'source-puces-stock.json' })
-
 /** Compte des sites par LIVRE (`dir` du registre), dans l'ordre du registre. */
 export function comptesParLivre(sites, books = BOOKS) {
   const parDir = new Map(books.map(([abbr, dir]) => [`${String(dir).split('\\').join('/').replace(/\/$/, '')}/`, abbr]))
@@ -160,7 +156,7 @@ function main() {
     `puces lues comme un jeton : ${sites.length} site(s) sur ${new Set(sites.map((s) => s.file)).size} chapitre(s)` +
       ` — ${parLivre.join(', ') || 'aucun livre porteur'}`,
   )
-  const { neuves, perimees } = ecartDuStock(sites, stock)
+  const { neuves, perimees } = ecartDuVolet({ sites, stock, ou: 'source-puces-stock.json' })
   for (const l of [...neuves, ...perimees]) console.error(l)
   if (neuves.length || perimees.length) {
     console.error(`\nstock : ${stock.length} entrée(s), ${neuves.length} neuve(s), ${perimees.length} soldée(s).`)
