@@ -58,7 +58,10 @@ n'exclut pas un usage indirect hors des modules racines déclarés).
 | `CadrePied / CadreFermer` |  | U | U |  | U |  | U | U | U | U | U | U | U | U | U | U |
 | `Planche` |  |  |  |  |  |  |  | U |  |  |  |  |  |  |  |  |
 | `Modal` |  | U | U |  | U |  | U | U | U | U | U | U | U | U | U | U |
-| `useFocusEmprunte / focusSansIntention / poserFocus / visibleFocusables` |  | U | U |  | U |  | U | U | U | U | U | U | U | U | U | U |
+| `BoiteAncree / usePlacementAncre / placerAncre` |  | U | U |  | U |  | U | U | U | U | U | U | U | U | U | U |
+| `useInfobulle` |  | U | U |  | U |  | U | U | U | U | U | U | U | U | U | U |
+| `CodexRef / CodexTitre` |  | U | U |  | U |  | U | U | U | U | U | U | U | U | U | U |
+| `useFocusEmprunte / SURFACE / focusSansIntention / poserFocus / visibleFocusables` |  | U | U |  | U |  | U | U | U | U | U | U | U | U | U | U |
 | `useDismissLayer / dialogueDuDessus / surfaceFocalisee` |  | U | U |  | U |  | U | U | U | U | U | U | U | U | U | U |
 | `RollShell` |  | U | U |  | U |  | U | U | U | U | U | U | U |  |  |  |
 | `RollRow` |  | U | U |  | U |  | U | U | U | U | U | U | U |  |  |  |
@@ -165,6 +168,7 @@ n'exclut pas un usage indirect hors des modules racines déclarés).
 | `Coins` |  |  |  |  | U |  | U | U | U | U | U |  | U |  | U |  |
 | `applyAttackResult / jouerLApresCoup / APRES_COUP / SuiteDeCoup / SuiteDeDefense` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 | `accesBase / brancherBasesSimulees` |  |  |  |  |  |  |  |  |  |  |  |  |  |  | U | U |
+| `coupeAuMot` |  | U | U |  | U |  | U | U | U | U | U | U | U | U | U | U |
 | `echapperRegex` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | `alternationDe` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | `alternationDeRegex` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
@@ -280,4 +284,4 @@ unique ne « possède » légitimement ; à trier au fil de l'eau, pas un échec
 - `src/state/sceneEdit.testkit.ts`
 - `src/state/turnEconomy.ts`
 - `src/state/viewLevel.ts`
-<!-- sources-empreinte: 2da0494f800aba90397c6b023e34bd842db9ace6 (1852 fichiers, 2 dossiers) corps: 1b353631f2acbb833c7af0fddc6e9d3abdadf403 -->
+<!-- sources-empreinte: 4d1574fb5fdbe3bbabc19fcabb560668ad2792b8 (1855 fichiers, 2 dossiers) corps: c59225b55dc01aa6156806a975455167622ee30c -->
