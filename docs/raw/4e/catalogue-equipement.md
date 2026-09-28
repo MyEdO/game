@@ -256,12 +256,12 @@ Le bon sens dicte généralement le nombre de petits objets qu'une personne peut
 
 Les Personnages qui dépassent leur capacité d'Encombrement peuvent être ralentis, et seront fatigués par le voyage. La réduction de Mouvement et la Fatigue du voyage résultant de l'Encombrement se cumulent avec toutes les pénalités d'Armure. De plus, chaque fois que vous gagnez un État *Exténué* en étant Surchargé, pour une raison autre que la Surcharge, gagnez +1 État supplémentaire.
 
-| Enc                          | Pénalité                                                                                     |  |  |  |  |
-|------------------------------|----------------------------------------------------------------------------------------------|--|--|--|--|
-| Jusqu'à la limite            | Pas de pénalité                                                                              |  |  |  |  |
-|                              | Jusqu'au double de la limite -1 Mouvement (min : 3), -10 en<br>Agilité, +1 Fatigue du voyage |  |  |  |  |
-| Jusqu'au triple de la limite | -2 Mouvement (min : 2), -20 en<br>Agilité, +2 Fatigue du voyage                              |  |  |  |  |
-| Plus de x 3                  | Vous ne pouvez pas vous déplacer.                                                            |  |  |  |  |
+| Enc                          | Pénalité                                                        |
+|------------------------------|-----------------------------------------------------------------|
+| Jusqu'à la limite            | Pas de pénalité                                                 |
+| Jusqu'au double de la limite | -1 Mouvement (min : 3), -10 en Agilité, +1 Fatigue du voyage |
+| Jusqu'au triple de la limite | -2 Mouvement (min : 2), -20 en Agilité, +2 Fatigue du voyage |
+| Plus de x 3                  | Vous ne pouvez pas vous déplacer.                               |
 
 ### **Encombrement et Attributs**
 
@@ -7485,4 +7485,4 @@ Les armes possédant l'Atout *Tir de zone* tirent un nuage de projectiles qui se
 - 0 **Portée Extrême :** comme pour Portée Courte à Longue, mais réduit les Dégâts de l'arme de (Indice).
 
 <span id="page-106-0" data-folio="103"></span>
-<!-- sources-empreinte: adf8a995ff702d8ded3bfaf1106437064229a167 (141 fichiers, 20 dossiers) corps: 06d4e29f66017434a39d40137a850a34e6dae4ae -->
+<!-- sources-empreinte: 3633649b02d2eff11b8eb0d9475c0825b2095b9b (141 fichiers, 20 dossiers) corps: 677c32d6d0f7ade886adaa711b20c44e6942e0fe -->

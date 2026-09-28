@@ -465,7 +465,7 @@ sont les datasets qui couvrent ≥ 50 % de ses valeurs résolvantes. Une valeur 
 vers un dataset HORS de ces cibles est AMBIGUË : elle compte encore comme référence, mais le
 dataset atteint n’est pas celui que le site vise — c’est là qu’une collision d’ids peut mentir.
 
-**206** valeurs ambiguës, **948** occurrences. Les 40 plus fréquentes :
+**211** valeurs ambiguës, **953** occurrences. Les 40 plus fréquentes :
 
 | Dataset | Champ | Clé | Valeur | Résout vers | Cibles majoritaires du site | Occurrences |
 |---|---|---|---|---|---|---|
@@ -619,7 +619,7 @@ nombre d’entrées qui la portent.
 | `src/data/qualityTypes.json` | array | liste | entité | 2 | `id`:string(2) `label`:string(2) `type`:string(2) |
 | `src/data/raceAppearance.json` | array | liste | entité | 21 | `colors`:object(4) `dropHeadgear`:boolean(1) `extremites`:string(3) `eyes`:object(1) `featureKeys`:array(13) `gabarit`:string(21) `gabaritOverride`:object(6) `head`:string(13) `id`:string(21) `label`:string(21) `legs`:string(3) `palette`:object(20) `paletteF`:object(5) `parts`:object(1) `pose`:object(9) `sex`:string(1) `tenue`:string(21) `tirageIndividuel`:object(1) `type`:string(21) |
 | `src/data/raw.manifest.json` | array | liste | entité | 12 | `bloque`:string(4) `id`:string(12) `label`:string(12) `ticket`:string(10) `type`:string(12) |
-| `src/data/regles.json` | array | liste | entité | 86 | `desc`:string(85) `descRef`:object(1) `id`:string(86) `label`:string(86) `source`:object(86) `type`:string(86) |
+| `src/data/regles.json` | array | liste | entité | 86 | `desc`:string(21) `descRef`:object(65) `id`:string(86) `label`:string(86) `source`:object(86) `type`:string(86) |
 | `src/data/reglesOptionnelles.json` | array | liste | entité | 87 | `action`:object(1) `default`:boolean/number/string(87) `group`:string(87) `hint`:string(87) `id`:string(87) `kind`:string(87) `label`:string(87) `maison`:string(33) `max`:number(29) `min`:number(29) `options`:array(12) `ref`:string(87) `source`:object(54) `step`:number(19) `type`:string(87) |
 | `src/data/rencontres-edoc.json` | object | pipe à la racine | config | 1 | `die`:string(1) `id`:string(1) `label`:string(1) `source`:object(1) `tables`:object(1) `type`:string(1) |
 | `src/data/renduMonte.json` | object | pipe à la racine | config | 1 | `harnaisParDefaut`:string(1) `id`:string(1) `label`:string(1) `type`:string(1) |
@@ -681,15 +681,16 @@ Signatures distinctes d’entrée de document : **641**. Les 40 plus fréquentes
 | `cn,curated,desc,duration,ecole,effects,family,id,label,range,source,subType,target,type` | 136 |
 | `career,characteristics,id,label,level,skills,source,status,talents,trappings,type` | 135 |
 | `appearance,char,folder,followsCharacterRules,id,label,optionals,skills,source,spells,talents,title,traits,trappings,type` | 123 |
-| `desc,id,label,source,type` | 112 |
 | `availability,categorie,damage,enc,id,label,loc,pa,price,qualities,reach,source,subType,type` | 95 |
 | `concept,fichier,id,label,perimetre,type,verrou` | 93 |
 | `desc,id,label,max,rand,source,specs,test,type` | 83 |
 | `class,desc,id,label,labelF,rand,source,type` | 72 |
 | `cn,desc,duration,ecole,effects,family,id,label,range,source,subType,target,type` | 67 |
 | `availability,categorie,damage,desc,enc,id,label,loc,pa,price,qualities,reach,source,subType,type` | 66 |
+| `descRef,id,label,source,type` | 65 |
 | `id,label,type` | 60 |
 | `desc,id,label,parent,prefix,source,suffix,type` | 55 |
+| `desc,id,label,source,type` | 48 |
 | `appearance,char,desc,folder,grantGroups,id,label,optionals,skills,source,spells,talents,title,traits,trappings,type` | 44 |
 | `appearance,char,desc,folder,harvest,id,label,optionals,skills,source,spells,talents,title,traits,trappings,type` | 42 |
 | `alsoIn,cn,curated,desc,domainId,duration,ecole,effects,family,id,label,range,source,subType,target,type` | 42 |
@@ -714,7 +715,6 @@ Signatures distinctes d’entrée de document : **641**. Les 40 plus fréquentes
 | `form,id,kind,label,rule,ruleCategory,source,template,type` | 20 |
 | `die,id,label,rows,source,type` | 20 |
 | `desc,id,label,max,passive,rand,source,specs,test,type` | 20 |
-| `desc,effects,id,label,source,type` | 19 |
 
 ### 2.3 Divergences nominatives d’enveloppe (strate Document)
 
@@ -734,7 +734,7 @@ dialogue) n’est sommé de rien : on n’y compte que les clés DIVERGENTES.
 | prose | `desc` | cible | 40 | activities.json(62) astrology.json(5) axes.json(9) books.json(18) careers.json(108) characteristics.json(19) classes.json(9) creatures.json(196) crew-roles.json(9) domains.json(14) etats.json(21) gods.json(40) … |
 | prose | `text` | divergente | 0 | — |
 | prose | `description` | divergente | 0 | — |
-| adresse de prose | `descRef` | cible (`object`) | 2 | psychology.json(9) regles.json(1) |
+| adresse de prose | `descRef` | cible (`object`) | 2 | psychology.json(9) regles.json(65) |
 | type de document | `type` | cible (`string`) | 126 | actions.json(55) activities.json(63) advancementCosts.json(15) ambiance.json(1) arcane-phenomena.json(1) artillery-misfire.json(1) astrology.json(5) axes.json(9) books.json(30) breath-types.json(6) buildings.json(7) calendarIntercalary.json(6) … |
 | source | `source` | cible (`object`) | 75 | actions.json(12) activities.json(63) advancementCosts.json(15) artillery-misfire.json(1) astrology.json(5) calendarIntercalary.json(6) calendarMonths.json(12) calendarWeekdays.json(8) careerLevels.json(432) careers.json(108) characteristics.json(19) classes.json(9) … |
 | maison | `maison` | cible (`string`) | 23 | actions.json(30) activities.json(9) axes.json(9) buildings.json(7) creatures.json(1) crew-roles.json(7) defauts-de-compilation.json(1) etats.json(1) naval-traits.json(3) props.json(41) reglesOptionnelles.json(33) semences-de-scene.json(1) … |
@@ -1137,8 +1137,8 @@ Une CIBLE à `0` est une forme visée que rien n’écrit encore — elle se lit
 | prix | `dice` | declaree | 1 |
 | de | `n,sides` | cible | 121 |
 | de | `n,plus,sides` | cible | 19 |
-| adresse | `book,ch,parts` | cible | 10 |
-| fragment | `b0,b1,sec,secOcc,sum+…` | cible | 10 |
+| adresse | `book,ch,parts` | cible | 74 |
+| fragment | `b0,b1,sec,secOcc,sum+…` | cible | 76 |
 | fragment | `col,row,sec,secOcc,sum+…` | cible | 0 |
 | formule | `sum` | cible | 13 |
 | formule | `sinPoints` | cible | 10 |
@@ -1171,7 +1171,7 @@ Statuts : **cible** = forme visée, rien à migrer (liste FIGÉE au stock `STRUC
 **historique** = graphie connue à éteindre par un lot L1-L5 · **declaree** = forme volontairement
 conservée · **divergente** = graphie inconnue du lexique.
 
-Lignes concept × dataset × champ × forme : **873** (cible 434 · declaree 6 · historique 128 · divergente 305). Objets JSON parcourus : **49363**, dont **31727** portent une forme
+Lignes concept × dataset × champ × forme : **873** (cible 434 · declaree 6 · historique 128 · divergente 305). Objets JSON parcourus : **49493**, dont **31857** portent une forme
 mesurée. Champs porteurs de référence MESURÉS : **87**.
 
 Entrées de racine sans concept de valeur : **4145** sur **4232** —
@@ -1814,23 +1814,23 @@ Reconnu par : son noyau `n` `sides`
 
 ### 3.6 adresse d’un passage du Source (`descRef`) — `adresse` (strate Valeur)
 
-2 ligne(s), 10 occurrence(s).
+2 ligne(s), 74 occurrence(s).
 Reconnu par : son noyau `book` `ch` `parts`
 
 | Famille | Champ | Forme | Statut | Dataset | Occurrences | Cibles résolues | Note |
 |---|---|---|---|---|---|---|---|
 | entité | `descRef` | `book,ch,parts` | cible | `psychology.json` | 9 | — | livre + chapitre + fragments — `descRefSchema`, épique #1388 §2.2 |
-| entité | `descRef` | `book,ch,parts` | cible | `regles.json` | 1 | — | livre + chapitre + fragments — `descRefSchema`, épique #1388 §2.2 |
+| entité | `descRef` | `book,ch,parts` | cible | `regles.json` | 65 | — | livre + chapitre + fragments — `descRefSchema`, épique #1388 §2.2 |
 
 ### 3.7 fragment d’une adresse de prose (suite de blocs, ou cellule de table) — `fragment` (strate Valeur)
 
-2 ligne(s), 10 occurrence(s).
+2 ligne(s), 76 occurrence(s).
 Reconnu par : son noyau `sec` `secOcc` `sum`
 
 | Famille | Champ | Forme | Statut | Dataset | Occurrences | Cibles résolues | Note |
 |---|---|---|---|---|---|---|---|
 | entité | `parts` | `b0,b1,sec,secOcc,sum+…` | cible | `psychology.json` | 9 | — | suite contiguë `b0..b1` des blocs d’une section (`FragmentBlocs`) |
-| entité | `parts` | `b0,b1,sec,secOcc,sum+…` | cible | `regles.json` | 1 | — | suite contiguë `b0..b1` des blocs d’une section (`FragmentBlocs`) |
+| entité | `parts` | `b0,b1,sec,secOcc,sum+…` | cible | `regles.json` | 67 | — | suite contiguë `b0..b1` des blocs d’une section (`FragmentBlocs`) |
 
 ### 3.8 formule de quantité (Formula, engine/ops.ts) — `formule` (strate Valeur)
 
@@ -2536,7 +2536,7 @@ un nom de concept est réservé à son type), pas en curant un contenu ni en pos
 | `tavernGames.json` | `test` | `skill` | clé réservée | 1 |
 | `trappings.json` | `test` | `label,noSupport,skill` | clé réservée | 1 |
 
-Au-delà des orphelines, **13703** objets sur **49363** ne sont portés par AUCUNE
+Au-delà des orphelines, **13703** objets sur **49493** ne sont portés par AUCUNE
 strate : ils n’annoncent aucune référence, ne portent aucune valeur du lexique et ne sont pas des
 documents. Les GRAPHIES de référence les ont quittés (une enveloppe `{ref:{…}}` ou une dotation
 `{text}` sous un champ porteur mesuré est une FORME, §3.1). Restent trois familles : les CHARGES UTILES pures
@@ -4798,4 +4798,4 @@ Source UNIQUE `ANGLES_MORTS_SLOTS` (`scripts/docs/lib/structures-lexique.mts`).
 - Une occurrence dont AUCUNE case ne porte de chaîne n’est jamais ATTEINTE, quel que soit le schéma : aucune n’est un slot, et son couple reste au stock `SLOTS_SANS_DECLARATION`. Mesuré le 2026-09-23 : 14 `{choice:[…]}` de `careerLevels.json | trappings` (les feuilles comptent sous `careerLevels.json | choice`), 19 `{random:N}` de `species.json | talents`, 2 `{random:N}` de `species.json | of`, et 1 occurrence de `creatures.json | spec` dont la seule case est une clé de `CLES_DE_SPECIALISATION`. Stock nominatif `SLOTS_INATTEIGNABLES`, qui ne fait que décroître.
 - Une référence portée par une CLÉ de record (`z.record(idDe(…), …)`) est un slot `{}` du §6.1, jamais une case du scan, qui n’observe que des valeurs : mesuré le 2026-09-23, 6 slots `ship-criticals.json › tablesDeChute[].bandes[].hauteurs{}` (`shipStation`), sans couple touché.
 
-<!-- sources-empreinte: d8ed81471bde0976bc55de06907c2e04bb6d4215 (396 fichiers, 10 dossiers) corps: f6865326a47cfd1dd89c5e544c222ba94b5d5f4b -->
+<!-- sources-empreinte: 30e726013d2d61c9b020d3666d2135a07769c8f8 (396 fichiers, 10 dossiers) corps: 35e67ae5d998e00529d66713e81ae264b24c3a70 -->
