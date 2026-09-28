@@ -179,14 +179,35 @@ describe('unions partagées moteur ⇄ schémas de donnée (#1440)', () => {
 
   it('ce que le COMPILATEUR borne déjà n’est pas une recopie — et rien d’autre ne se blanchit', () => {
     const forme = (text: string) => scanConstructionsReservees(fixture(text), CANONS);
-    expect(forme(`const s = availabilitySchema.extract([
-      'Limitée',
-      'Rare',
-    ]);`), 'sélection zod sur un schéma DU canon').toEqual([]);
     expect(forme(`const s = grilleMaison.extract(['Limitée', 'Rare']);`), 'même appel sur un récepteur ÉTRANGER : rien n’est prouvé').toHaveLength(1);
     expect(forme(`const t: Record<Availability, number> = { Commune: 0, Limitée: 1, Rare: 2, Exotique: 3 };`), 'table exhaustive keyée par l’union NOMMÉE').toEqual([]);
     expect(forme(`const t: Record<string, number> = { Commune: 0, Limitée: 1, Rare: 2, Exotique: 3 };`), 'Record<string, …> n’exige aucune exhaustivité').toHaveLength(1);
     expect(forme(`const t = { Commune: 0, Limitée: 1 } as Record<Availability, number>;`), 'une ASSERTION ne vérifie pas les clés manquantes').toHaveLength(1);
+  });
+
+  /** Le récepteur d'une sélection se juge par sa LIAISON d'import (`estSelectionDerivee`) : chaque
+   *  forme, et le nombre de recopies attendues (`0` blanchie, `1` vue, HORS DE PORTÉE compris). */
+  const SELECTIONS: readonly (readonly [string, string, number])[] = [
+    ['schéma DU canon importé', `import { availabilitySchema } from '../grammaire/valeurs';
+const s = availabilitySchema.extract([
+  'Limitée',
+  'Rare',
+]);`, 0],
+    ['schéma du canon importé RENOMMÉ', `import { availabilitySchema as palier } from '../grammaire/valeurs';
+const s = palier.extract(['Limitée', 'Rare']).optional();`, 0],
+    ['HOMONYME local du schéma, sans import', `const availabilitySchema = grilleMaison;
+const s = availabilitySchema.extract(['Limitée', 'Rare']);`, 1],
+    ['homonyme importé d’un AUTRE module', `import { availabilitySchema } from '../defs/disponibilite';
+const s = availabilitySchema.extract(['Limitée', 'Rare']);`, 1],
+    ['HORS DE PORTÉE : par un espace de noms', `import * as v from '../grammaire/valeurs';
+const s = v.availabilitySchema.extract(['Limitée', 'Rare']);`, 1],
+    ['HORS DE PORTÉE : par un alias local', `import { availabilitySchema } from '../grammaire/valeurs';
+const alias = availabilitySchema;
+const s = alias.extract(['Limitée', 'Rare']);`, 1],
+  ];
+
+  it.each(SELECTIONS)('sélection zod — %s', (_forme, text, recopies) => {
+    expect(scanConstructionsReservees({ rel: 'src/data/schemas/defs/fixture.ts', text }, CANONS)).toHaveLength(recopies);
   });
 
   it('`estTableTotale` : une table keyée par une union FERMÉE sous son type déclaré, jamais sous une assertion', () => {

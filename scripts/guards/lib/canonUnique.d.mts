@@ -26,7 +26,7 @@ export interface Trouvaille {
   detail: string;
 }
 
-export const SCHEMAS_DU_CANON: string[];
+export const SCHEMAS_DU_CANON: Readonly<Record<string, readonly string[]>>;
 export function estTableTotale(valeur: ts.Expression): boolean;
 export const FORMES_DE_RECOPIE: readonly string[];
 export function recopieDeCanon(p: {

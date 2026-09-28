@@ -1415,6 +1415,15 @@
     "verrou": "unions-canon.test.ts, grid.test.ts, cle-de-site-guard.test.ts, ts-program-fabrique-guard.test.ts"
   },
   {
+    "id": "tsProgram",
+    "type": "primitives.manifest",
+    "label": "repoProgram/virtualProgram/parsedProgram/VIRTUAL_ROOT",
+    "fichier": "scripts/guards/lib/tsProgram.mjs",
+    "concept": "fabriques de ts.Program : dépôt avec recouvrement, sources en mémoire, arbre déjà parsé",
+    "perimetre": "toute garde ou tout générateur qui a besoin d'un vérificateur de types",
+    "verrou": "ts-program-fabrique-guard.test.ts, analyse-retention-guard.test.ts"
+  },
+  {
     "id": "lecturesDeLArt",
     "type": "primitives.manifest",
     "label": "LECTURES_DE_L_ART",

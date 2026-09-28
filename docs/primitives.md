@@ -27,7 +27,7 @@ manifeste est invisible ici, et rien ne la révèle sauf le hook `new-src-file-g
 mord qu'à la CRÉATION d'un `.tsx` de `src/ui`/`src/gameIso` — un module `.ts`, un fichier antérieur
 au hook, ou une primitive née ailleurs n'y passent jamais.
 
-153 primitives.
+154 primitives.
 
 | Besoin | Primitive | Fichier | CSS possédé | Périmètre | Verrou |
 |---|---|---|---|---|---|
@@ -176,6 +176,7 @@ au hook, ou une primitive née ailleurs n'y passent jamais.
 | texte découpé en segments TONÉS PAR CAMP : les noms cités en gras, allié ou ennemi | `TeamSegments` | `src/ui/TeamSegments.tsx` | `src/ui/styles/team-segments.css` | journal de combat, ligne de récap, fil d’événements | les deux vocabulaires de segments (NarratedSegment, RecapSegment) passent par ce rendu |
 | fusion à trois voies d'un texte par `git merge-file` | `threeWay` | `scripts/git-hooks/three-way.mjs` | — | pilotes de fusion des docs dérivés et des stocks de sites | merge-docs.test.mjs, merge-stocks.test.mjs |
 | table de négoce : colonnes de stats, prix, action par rangée, groupes de rubrique | `TradeTable` | `src/ui/TradeTable.tsx` | — | marchand, port, marché terrestre | réflexe avant tout tableau d’achat/vente recodé |
+| fabriques de ts.Program : dépôt avec recouvrement, sources en mémoire, arbre déjà parsé | `repoProgram/virtualProgram/parsedProgram/VIRTUAL_ROOT` | `scripts/guards/lib/tsProgram.mjs` | — | toute garde ou tout générateur qui a besoin d'un vérificateur de types | ts-program-fabrique-guard.test.ts, analyse-retention-guard.test.ts |
 | appui long 450 ms tactile et souris, geste secondaire d’une alvéole | `useLongPress` | `src/ui/useLongPress.ts` | — | alvéoles de la console de combat | réflexe avant tout minuteur de pression recodé |
 | ramener un élément en vue dans son conteneur défilant : 'nearest' par défaut, 'smooth' seulement hors prefers-reduced-motion, appel protégé (scrollIntoView absent en jsdom) | `useRamenerEnVue / ramenerEnVue` | `src/ui/useRamenerEnVue.ts` | — | rangée qui roule, acteur au trait de la frise, détail empilé du master-detail, badge de zone de la fiche | aucun `scrollIntoView` écrit à la main : le geste, ses défauts et la préférence système vivent en UN point |
 | rangée de commandes de CAMÉRA : orientation, affichage, zoom — chacune vissée sur la peau partagée « tôle » | `ViewControls` | `src/ui/ViewControls.tsx` | `src/ui/styles/view-controls.css` | éditeur de scène et galerie QC — sur l'écran de jeu la caméra se pilote au geste et au clavier, sans plaque | src/ui/camera-sans-plaque.test.ts — montée dans l'éditeur, jamais dans le HUD de jeu |
@@ -184,4 +185,4 @@ au hook, ou une primitive née ailleurs n'y passent jamais.
 | identifiant et ordre canonique des trois vues (`View` en dérive) ; libellé d'affichage d'une vue, lu par les planches QC | `VIEWS/VIEW_LABEL` | `src/gameIso/rig/facing.ts` | — | tout art orienté, toute table ou liste de vues, les colonnes des planches QC | lectures-de-l-art-guard.test.ts (VIEWS), unions-canon.test.ts |
 | sceau de cire et plaque d’élu scellée | `WaxSeal/SealedPlaque` | `src/ui/WaxSeal.tsx` | — | tuiles de sélection, plaques d’élu | — |
 | rose des vents : direction + force du vent | `WindRose` | `src/ui/WindRose.tsx` | `src/ui/styles/gauges.css` | voyage en mer, dossier de navire | — |
-<!-- sources-empreinte: a8fe73bd243976acd2988bddbbd3999ecc18ee40 (8 fichiers, 0 dossiers) corps: 7982d4b507b7ed710ffebe9192112e002b18794f -->
+<!-- sources-empreinte: 2fb7397cb11a9d18804b1f6c9c7b2bff985fdcf8 (8 fichiers, 0 dossiers) corps: cba6d65ea77a2de71b624079f22b6a8fd657e609 -->
