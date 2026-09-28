@@ -35,7 +35,7 @@ import type { Combatant } from '../engine/types';
 const HUMAIN = 'humains-reiklander';
 
 function heroSolo(speciesId = HUMAIN, seed = 4): Combatant {
-  const h = createHero({ speciesId, careerId: 'soldat', label: 'H', rng: makeRNG(seed) });
+  const h = createHero({ speciesId, careerId: 'soldat', label: 'H', seed });
   h.corruption = 6;
   useGame.setState({ battle: null, party: [h], pendingCascade: null, suspendedCascades: [] });
   return useGame.getState().party[0];

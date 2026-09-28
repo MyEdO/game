@@ -5,7 +5,7 @@ import { MINUTES_PER_DAY } from '../engine/clock';
 import { useModalA11y } from './Modal';
 import { ramenerEnVue } from './useRamenerEnVue';
 import { Tabs } from './Tabs';
-import { isWeaponActive, weaponHands, isOffHandEligible, maxEncumbrance, totalEncumbrance } from '../engine/items';
+import { isWeaponActive, setADeuxMains, isOffHandEligible, maxEncumbrance, totalEncumbrance } from '../engine/items';
 import { OptionChooser } from './OptionChooser';
 import { ItemInstance, Combatant, CharKey, CHAR_KEYS } from '../engine/types';
 import { effectiveChar, bonus } from '../engine/characteristics';
@@ -24,8 +24,7 @@ import { rule } from '../engine/policy';
 import { canAfford, toMoney, formatMoney } from '../engine/money';
 import { bourseOf } from '../state/bourseFlow';
 import { learnableSpells, canCastFromGrimoire, carriedGrimoire, casterTalents } from '../engine/grimoire';
-import { spellSupport } from '../engine/spellspec';
-import { spellEffectOps } from '../state/flow';
+import { spellSupportOf } from '../engine/spellspec';
 import { careers, findSpellById, findStarById, spells as allSpells, speciesSingular, findSpeciesById, findCareerById, careerLabelFor, findClassById, findTrappingById, libelleOuAbsence } from '../data';
 import { heroStatusLabel } from './CharCard';
 import { MetalStatus } from './MetalStatus';
@@ -349,7 +348,7 @@ function SpellbookSection({ hero }: { hero: Combatant }) {
       <div className="spell-list">
         {spells.map((sp) => {
           const offensive = isMagicMissile(sp);
-          const support = spellSupport(spellEffectOps(sp.effects), sp, offensive);
+          const support = spellSupportOf(sp);
           const castBlocked = enCombat ? RAISON_HORS_COMBAT : castBlockedBy(hero, castInfoIsPrayer(sp) ? 'priere' : 'langue');
           return (
             <div className="spell-row" key={sp.label} title={support !== 'mecanique' ? 'Tout ou partie de l’effet est journalisé (« arbitrage MJ ») — pas encore mécanisé (cf. docs/sorts-implementation.md).' : undefined}>
@@ -511,8 +510,7 @@ function HandPicker({ hero, it }: { hero: Combatant; it: ItemInstance }) {
   if (!lo) return null;
   const isMain = lo.main === it.uid;
   const isOff = lo.off === it.uid;
-  const mainItem = lo.main ? (hero.items ?? []).find((i) => i.uid === lo.main) : undefined;
-  const mainTwoH = mainItem ? weaponHands(mainItem) === 2 : false;
+  const mainTwoH = setADeuxMains(hero, lo);
   const offOk = isOffHandEligible(it) && !mainTwoH;
   return (
     <div className="ir-hand" title="Régler la main qui tient cette arme (set actif)">
@@ -663,14 +661,17 @@ function SlotChoiceRow({
   onPick,
 }: {
   entry: string;
-  options: { key: string; display?: string; owned: boolean; hint?: string }[];
+  /** `cost` : coût propre de l'option (sinon `acquireCost`) ; `maxReached` : non achetable, désignable si possédée. */
+  options: { key: string; display?: string; owned: boolean; hint?: string; cost?: number; maxReached?: boolean }[];
   acquireCost: number;
   afford: (c: number) => boolean;
   onPick: (key: string, owned: boolean) => void;
 }) {
   const [choice, setChoice] = useState('');
   const opt = options.find((o) => o.key === choice);
-  const cost = opt?.owned ? 0 : acquireCost;
+  const optCost = opt?.cost ?? acquireCost;
+  const cost = opt?.owned ? 0 : optCost;
+  const bloquee = !!opt && !opt.owned && !!opt.maxReached;
   return (
     <div className="adv-row acquire">
       <span className="adv-name">
@@ -683,11 +684,12 @@ function SlotChoiceRow({
             {o.display ?? o.key}
             {o.hint ? ` ${o.hint}` : ''}
             {o.owned ? ' (possédé)' : ''}
+            {o.maxReached ? ' (Maxi atteint)' : ''}
           </option>
         ))}
       </select>
-      <button className="btn small" disabled={!opt || !afford(cost)} onClick={() => opt && onPick(opt.key, opt.owned)}>
-        {opt?.owned ? 'Désigner · 0 PX' : `Acquérir · ${acquireCost} PX`}
+      <button className="btn small" disabled={!opt || bloquee || !afford(cost)} onClick={() => opt && onPick(opt.key, opt.owned)}>
+        {opt?.owned ? 'Désigner · 0 PX' : `Acquérir · ${optCost} PX`}
       </button>
     </div>
   );
@@ -806,7 +808,7 @@ export function AdvancementPanel({ hero }: { hero: Combatant }) {
               entry={t.entry}
               acquireCost={t.nextCost}
               afford={afford}
-              options={(t.options ?? []).map((o) => ({ key: o.refKey, display: o.display, owned: o.owned }))}
+              options={(t.options ?? []).map((o) => ({ key: o.refKey, display: o.display, owned: o.owned, cost: o.nextCost, maxReached: o.maxReached }))}
               onPick={(key, owned) => {
                 const { id, spec } = parseRefKey(key);
                 if (owned) designateCareerSlot(hero.id, t.slotKey, id, spec);
@@ -828,7 +830,7 @@ export function AdvancementPanel({ hero }: { hero: Combatant }) {
           <AdvSection title="Sorts — mémorisation" count={learnable.length}>
             <div className="adv-grid">
               {learnable.map(({ spell, cost }) => {
-                const support = spellSupport(spellEffectOps(spell.effects), spell, isMagicMissile(spell));
+                const support = spellSupportOf(spell);
                 return (
                 <div className="adv-row acquire" key={spell.label} title={support !== 'mecanique' ? 'Tout ou partie de l’effet est journalisé (« arbitrage MJ ») — pas encore mécanisé.' : undefined}>
                   <span className="adv-name">

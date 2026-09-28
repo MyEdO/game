@@ -1,24 +1,22 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from '../../state/store';
+import { lancerScenario } from '../../state/scenarioFlow';
 import { testScenarios } from './index';
 import { seedBattleRng } from '../../state/battleRng';
-import { distributeCredit, partyMoneyTotal } from '../../state/bourseFlow';
+import { partyMoneyTotal } from '../../state/bourseFlow';
 import { findSpell } from '../../data';
 import { knowsCastingSkill, isArcaneSpell, isMagicMissile } from '../../engine/magic';
 import { spellEffectOps } from '../../engine/flowCore';
 import { avanceEtapeCascade, draineCascade } from '../../state/cascadeTestKit';
 
 const scen = testScenarios.find((s) => s.id === 'voyage-maritime')!;
+const scenConstruit = scen.construire();
 const get = () => useGame.getState();
 
-/** Lance le scénario EXACTEMENT comme le menu (setParty → loadProject → money → vessel). */
+/** Lance le scénario par le lanceur du menu (`lancerScenario`). */
 function launch(seed = 1) {
   seedBattleRng(seed);
-  const g = get();
-  g.setParty(scen.makeParty());
-  g.loadProject([scen.scene, ...(scen.extraScenes ?? [])], scen.scene.id, scen.worldMap ?? null);
-  if (scen.money) distributeCredit(get, useGame.setState, scen.money); // bourses du groupe (SOCLE POSSESSIONS #531)
-  if (scen.vessel) useGame.setState({ vessel: scen.vessel });
+  lancerScenario(get, useGame.setState, scen);
   // La carte d'ENTRÉE de zone est une étape d'AFFICHAGE de cascade (#942 L8) : comme toute fenêtre de
   // cascade, elle gèle les actions du bord (`startTravel` compris) tant qu'elle n'est pas acquittée.
   // Le scénario l'acquitte donc, comme un joueur, AVANT d'appareiller.
@@ -55,18 +53,18 @@ function sailToPort(maxSteps = 400): string[] {
 describe('Scénario Voyage maritime — enregistrement & carte', () => {
   it('est dans la section Naval, avec route MARITIME (milles) entre 2 ports dont un à phare + le navire de campagne', () => {
     expect(scen.category).toBe('naval');
-    expect(scen.vessel?.vehicleId).toBe('cogue');
-    const route = scen.worldMap!.routes.find((r) => r.id === 'route-marienburg')!;
+    expect(scenConstruit.vessel?.vehicleId).toBe('cogue');
+    const route = scenConstruit.worldMap!.routes.find((r) => r.id === 'route-marienburg')!;
     expect(route.sea).toBe(true);
     expect(route.modes).toContain('mer');
-    const marienburg = scen.worldMap!.places.find((p) => p.id === 'p-marienburg')!;
+    const marienburg = scenConstruit.worldMap!.places.find((p) => p.id === 'p-marienburg')!;
     expect(marienburg.port).toBeTruthy();
     expect(marienburg.port!.lighthouse).toBe(true);
-    expect(scen.extraScenes?.some((s) => s.id === 'test-mer-arrivee')).toBe(true);
+    expect(scenConstruit.extraScenes?.some((s) => s.id === 'test-mer-arrivee')).toBe(true);
   });
 
   it('cap EST — vent de dos sur les dominantes d\'ouest (MDG 13 l.253), jamais de face permanent (#408)', () => {
-    const route = scen.worldMap!.routes.find((r) => r.id === 'route-marienburg')!;
+    const route = scenConstruit.worldMap!.routes.find((r) => r.id === 'route-marienburg')!;
     expect(route.seaHeading).toBe('est');
   });
 });
@@ -78,14 +76,10 @@ describe('Scénario Voyage maritime — durée bornée sur un échantillon de se
    *  « plusieurs jours » attendus. Cap EST (vent de dos dominant) : plafond large pour couvrir la
    *  variance légitime des tempêtes (RAW), mais qui aurait échoué sur l'ancien cap.
    *
-   *  MESURE du 2026-09-05 (#1599), sur les 15 seeds, avec les rôles filtrés par `isOutOfAction`
-   *  (LDB 16 : un KO ne tient pas de poste) et la réserve d'eau re-dérivée de MDG 14 l.242
-   *  (« Un tonneau contient 145 litres d'eau. Un membre d'équipage boit 2 à 3 litres d'eau par
-   *  jour. » — 20 tonneaux, 19 hommes à 3 L/jour) :
-   *  [2,875 · 2,875 · 1,875 · 2,875 · 10,875 · 4,875 · 5,875 · 3,875 · 1,875 · 1,875 · 1,875 · 1,875
-   *   · 2,875 · 1,875 · 4,875], max 10,875 (seed 5), moyenne 3,542. Les mêmes 15 valeurs à 600 L
-   *  qu'à 2 900 L : la soif n'était sur le chemin d'aucune de ces traversées (seule la seed 5 vidait
-   *  les tonneaux, au 10ᵉ jour, sans changer sa durée). Le plafond de 42 j n'est donc pas serré : il
+   *  MESURE du 2026-09-27 (#1897 ; MDG 13 l.272, l.294 ; MDG 14 l.242) :
+   *  [2,875 · 1,875 · 1,875 · 1,875 · 10,875 · 3,875 · 1,875 · 13,875 · 2,875 · 1,875 · 1,875 · 1,875
+   *   · 1,875 · 1,875 · 2,875], max 13,875 (seed 8), moyenne 3,608 ; équipages décalés (graines
+   *  +1 / +2 / +7000) : max 13,875 / 16,875 / 21,875. Le plafond de 42 j n'est donc pas serré : il
    *  reste la borne qui aurait ROUGI sur l'ancien cap ouest. */
   it('aucune des 15 premières seeds ne dépasse 42 jours de mer (l\'ancien cap ouest atteignait 106,875)', () => {
     const days: number[] = [];
@@ -102,7 +96,7 @@ describe('Scénario Voyage maritime — durée bornée sur un échantillon de se
 });
 
 describe('Scénario Voyage maritime — beat de Magie des mers (lancer en mer)', () => {
-  const navi = scen.makeParty().find((h) => h.id === 'mar-navi')!;
+  const navi = scen.construire().party.find((h) => h.id === 'mar-navi')!;
 
   it('le Navigateur est un Astromancien : il maîtrise l’incantation et connaît Bienfait de Bel Shanaar', () => {
     expect(knowsCastingSkill(navi, 'langue', 'magick')).toBe(true); // incantation des Arcanes

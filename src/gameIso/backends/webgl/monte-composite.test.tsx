@@ -5,11 +5,10 @@
  * du builder (`buildTokens`) → les poses d'acteur (`actorPoses`, ce que `MondeDeCampagne` appelle) → les
  * sujets (`actorBillboards`).
  *
- * ORACLE RE-DÉRIVÉ (C5a) : la parité géométrique se jugeait contre le corps AFFINE (`MountedToken`),
- * mort avec sa voie. Son rôle — un second appelant INDÉPENDANT de la loi de selle — est repris ici :
- * le banc re-dérive le couple attendu à partir des fonctions PURES du rig (`resolveRender`/`planById`
+ * ORACLE RE-DÉRIVÉ : le banc est un second appelant INDÉPENDANT de la loi de selle ; il re-dérive le
+ * couple attendu à partir des fonctions PURES du rig (`resolveRender`/`planById`
  * → os de la monture, `actorDrawInputs` + `mountedRest` → os du cavalier, `seatRiderOnMount` → le
- * composite), exactement comme le composant le faisait sans ses hooks. Ce qu'il mesure reste la
+ * composite), comme le composant, sans ses hooks. Ce qu'il mesure reste la
  * CHAÎNE : que le pipeline volumique porte au couple la bonne monture, le bon cavalier, la bonne vue,
  * la bonne échelle et les bonnes options de gabarit.
  */
@@ -51,7 +50,7 @@ const cavalier = (patch: Partial<Combatant> = {}): Combatant => ({
   id: 'h1', label: 'Cavalier', kind: 'hero', pos: { x: 1, y: 1 }, size: 'moyenne',
   wounds: { current: 12, max: 12 }, weapons: [], characteristics: {}, advantage: 0,
   conditions: [], armour: {}, skills: [], talents: [], movement: 4, career: 'soldat',
-  species: 'Humain', appearance: { species: 'Humain', sex: 'M', build: 0.5 }, mountId: 'm1', ...patch,
+  species: 'humain', appearance: { species: 'humain', sex: 'M', build: 0.5 }, mountId: 'm1', ...patch,
 } as unknown as Combatant);
 
 const battleOf = (combatants: Combatant[]): BattleState => ({ combatants } as unknown as BattleState);
@@ -240,11 +239,11 @@ describe('Couple monté — UN billboard composite (monture + cavalier)', () => 
 });
 
 /**
- * CÂBLAGE DU CANAL DONNÉE (#1128 L4) : la monture est rendue PORTÉE — ses opts de gabarit passent par
+ * CÂBLAGE DU CANAL DONNÉE (#1128) : la monture est rendue PORTÉE — ses opts de gabarit passent par
  * `mountedPlanOpts`, donc son harnachement vient de la DONNÉE. Mesuré sur le fragment RENDU du couple,
  * pas sur la fonction seule : un call-site retombé sur `planOptsForRecord` rendrait la bête à cru sans
- * qu'aucun test de la couture ne bronche. (Ce banc vivait sur le corps affine `MountedToken`, mort à
- * C5a — il mesure le MÊME canal sur le sujet volumique, seul rendu du couple.)
+ * qu'aucun test de la couture ne bronche. Il mesure ce canal sur le sujet volumique, seul rendu du
+ * couple.
  *
  * Le témoin est le REFUS VISIBLE (#223) d'un set non cuit pour l'espèce portée (blaireau, ADE I 07
  * l.48) : sa caisse d'alarme est posée sur le `tronc` en clé NUE, donc lisible dans les 3 vues.

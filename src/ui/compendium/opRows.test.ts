@@ -7,7 +7,7 @@ import type { GameOp } from '../../engine/ops';
 import { newOp, OP_LABEL, OP_REF_FIELDS, opRefValue, opWithRefValue } from '../editor/GameOpEditor';
 import { datasetArray } from '../../data/overrides';
 import { opRow, opRows, tableRows } from './opRows';
-import { humanizeOp } from './humanize';
+import { humanizeFormula, humanizeOp } from './humanize';
 import { codexLookupById } from './registry';
 import { characteristics, talents, skills, traits, psychologies, etats, trappings, maladies, symptoms, creatures, mutations, findSymptomById, effectTables } from '../../data';
 import type { CharKey } from '../../engine/types';
@@ -98,8 +98,8 @@ describe('opRows — renderer JOUEUR de GameOp[] (#495)', () => {
     { kind: 'moveMod', category: 'characteristics', build: () => ({ op: 'moveMod', mod: -1 }) },
     { kind: 'moveScale', category: 'characteristics', build: () => ({ op: 'moveScale', num: 1, den: 2 }) },
     { kind: 'wounds', category: 'characteristics', build: () => ({ op: 'wounds', amount: 1 }) },
-    { kind: 'grantTalent', category: 'talents', build: () => ({ op: 'grantTalent', talentId: talents[0].id }) },
-    { kind: 'grantCareerTalent', category: 'talents', build: () => ({ op: 'grantCareerTalent', talentId: talents[0].id }) },
+    { kind: 'grantTalent', category: 'talents', build: () => ({ op: 'grantTalent', talent: { id: talents[0].id } }) },
+    { kind: 'grantCareerTalent', category: 'talents', build: () => ({ op: 'grantCareerTalent', talent: { id: talents[0].id } }) },
     { kind: 'grantCareerSkill', category: 'skills', build: () => ({ op: 'grantCareerSkill', skill: { id: skills[0].id } }) },
     { kind: 'skillMod', category: 'skills', build: () => ({ op: 'skillMod', skill: { id: skills[0].id }, mod: -10 }) },
     { kind: 'skillDRBonus', category: 'skills', build: () => ({ op: 'skillDRBonus', skill: { id: skills[0].id }, bonus: 1 }) },
@@ -258,11 +258,31 @@ describe('opRows — renderer JOUEUR de GameOp[] (#495)', () => {
       const mutation = mutations.find((m) => m.id === mutationId)!;
       const op = (mutation.passive ?? []).find((o) => o.op === 'grantTalent')!;
       expect(op, mutationId).toBeTruthy();
-      expect((op as { spec?: string }).spec, `${mutationId} : la donnée porte l'ID, jamais le libellé`)
+      expect(op.op === 'grantTalent' ? op.talent.spec : undefined, `${mutationId} : la donnée porte l'ID, jamais le libellé`)
         .toMatch(/^[a-z-]+$/);
       const row = opRow(op);
       expect(row.t).toBe('ref');
       if (row.t === 'ref') expect(row.show).toBe(libelle);
     }
+  });
+});
+
+describe('opRow — grantTrait à Portée (LDB 85 l.209 ; LDB 79 l.142)', () => {
+  it('la rangée montre la Portée de l’op', () => {
+    const row = opRow({ op: 'grantTrait', traitId: 'langue-prehensile', indice: 5, range: 12 });
+    expect(row.t).toBe('ref');
+    if (row.t === 'ref') { expect(row.show).toBe('Langue préhensile +5 (12)'); expect(row.badge).toBeUndefined(); }
+  });
+
+  it('une attaque rend son Indice littéral en « +Dégâts »', () => {
+    const row = opRow({ op: 'grantTrait', traitId: 'morsure', indice: 4 });
+    expect(row.t).toBe('ref');
+    if (row.t === 'ref') { expect(row.show).toBe('Morsure +4'); expect(row.badge).toBeUndefined(); }
+  });
+
+  it('un Indice Formula reste en badge', () => {
+    const row = opRow({ op: 'grantTrait', traitId: 'vol', indice: { charOf: 'agilite' } });
+    expect(row.t).toBe('ref');
+    if (row.t === 'ref') { expect(row.show).toBe('Vol'); expect(row.badge).toBe(humanizeFormula({ charOf: 'agilite' })); }
   });
 });

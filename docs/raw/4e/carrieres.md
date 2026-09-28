@@ -493,7 +493,7 @@ Détails complets par niveau (compétences/talents/possessions) → [`catalogue-
 **Sources RAW** : `MDG 09 l.3-30` + `l.57-757`
 **Voir aussi** : [Index des carrières](#index-des-carrières) · [Carrières norses (MDG)](#carrières-norses-mdg) · [`talents.md`](talents.md) (Chanson de marin, Commandant d'équipe, Commandant émérite)
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 9` (l.3-30, l.59, l.626, l.718) → `ShantyModal`, `rollCrewRole`, `forceCrewRole`, `CreatorDraft`, `CrewContributor`, `CombatFeature`, `QUART_MINUTES`, `SHANTY_LABEL`, `applyShantyToCrew`, `Condition`, +34 — `src/data/careerLevels.json`, `src/data/careers.json`, `src/data/flow-stakes.json`, `src/data/progression-schemas.derived.json` ⚠hors-app, `src/data/talents.json`, `src/engine/combatFeatures/dispatch.ts`, +16 fichiers
+- `MDG 9` (l.3-30, l.59, l.626, l.718) → `ShantyModal`, `rollCrewRole`, `forceCrewRole`, `CreatorDraft`, `CombatFeature`, `CrewContributor`, `QUART_MINUTES`, `SHANTY_LABEL`, `applyShantyToCrew`, `Condition`, +34 — `src/data/careerLevels.json`, `src/data/careers.json`, `src/data/flow-stakes.json`, `src/data/progression-schemas.derived.json` ⚠hors-app, `src/data/talents.json`, `src/engine/combatFeatures/dispatch.ts`, +16 fichiers
 - sans code : `MDG 9` (l.134)
 
 ---
@@ -517,7 +517,7 @@ Une chanson de marin affecte un équipage entier. Le Personnage doit trouver un 
 **Sources RAW** : `MDG 09 l.32-54`
 **Voir aussi** : [Classe Côtier (MDG)](#classe-côtier-mdg) · [Chansons de marins (MDG)](#chansons-de-marins-mdg) · [`talents.md`](talents.md)
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 9` (l.32-54) → `ShantyModal`, `rollCrewRole`, `forceCrewRole`, `CrewContributor`, `CombatFeature`, `QUART_MINUTES`, `SHANTY_LABEL`, `applyShantyToCrew`, `Condition`, `endShanty`, +20 — `src/data/careerLevels.json`, `src/data/careers.json`, `src/data/flow-stakes.json`, `src/data/progression-schemas.derived.json` ⚠hors-app, `src/data/talents.json`, `src/engine/combatFeatures/dispatch.ts`, +14 fichiers
+- `MDG 9` (l.32-54) → `ShantyModal`, `rollCrewRole`, `forceCrewRole`, `CombatFeature`, `CrewContributor`, `QUART_MINUTES`, `SHANTY_LABEL`, `applyShantyToCrew`, `Condition`, `endShanty`, +20 — `src/data/careerLevels.json`, `src/data/careers.json`, `src/data/flow-stakes.json`, `src/data/progression-schemas.derived.json` ⚠hors-app, `src/data/talents.json`, `src/engine/combatFeatures/dispatch.ts`, +14 fichiers
 
 ---
 
@@ -608,7 +608,7 @@ Ces Carrières sont les Carrières **existantes** (LDB + Côtiers), réinterpré
 
 Règles de création d'un Personnage norse, **en remplacement** des règles Reiklander (LDB p. 36) (`MDG 07 l.222-260`).
 
-À la création, un Personnage norse peut sélectionner **3 Compétences à +5 Augmentations chacune** et **3 Compétences à +3 Augmentations chacune** ; les Talents aléatoires se tirent au tableau LDB p. 36 (relance si déjà possédé) ; langue maternelle = **Norse** (`MDG 07 l.226`).
+À la création, un Personnage norse peut sélectionner **3 Compétences à +5 Augmentations chacune** et **3 Compétences à +3 Augmentations chacune** ; les Talents aléatoires se tirent au tableau LDB p. 36 (« Si vous tombez sur un Talent que vous possédez déjà, vous pouvez relancer. » `LDB 05 l.484`) ; langue maternelle = **Norse** (`MDG 07 l.226`).
 
 Trois origines humaines norses (`MDG 07 l.228-246`) :
 
@@ -623,6 +623,7 @@ Trois origines humaines norses (`MDG 07 l.228-246`) :
 **Sources RAW** : `MDG 07 l.222-260`
 **Voir aussi** : [Carrières norses (MDG)](#carrières-norses-mdg) · [Trait Marque de Khorne (MDG)](#trait-marque-de-khorne-mdg)
 **Implémente :** _(généré — `npm run raw:implemente`)_
+- `LDB 5` (l.484) → `SPECIES_SKILLS_PLUS5`, `SPECIES_SKILLS_PLUS3`, `ChoixDeCreation`, `CreatorDraft`, `libreDEspece`, `speciesSkillDefaults`, `mouvement`, `rollRandomTalent`, `resolveSpeciesTalents`, `TalentDEspece`, +13 — `src/data/characteristics.json`, `src/data/schemas/defs/talents.ts`, `src/engine/character.ts`, `src/ui/creator/CharacterCreator.tsx`, `src/ui/creator/draft.ts`
 - `MDG 7` (l.222-260) → `hiddenGroupsOf`, `TraitInstance`, `passiveCastPenalties`, `careerTalentAdditions`, `traitGrantedTalents`, `effectiveTalents`, `humains-bjornling-norse`, `humains-sarl-norse`, `humains-skaeling-norse`, `norsca`, +5 — `src/data/creatures.json`, `src/data/index.ts`, `src/data/mutations.json`, `src/data/skills.json`, `src/data/species.json`, `src/data/talents.json`, +5 fichiers
 
 ---

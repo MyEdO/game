@@ -12,7 +12,7 @@ import { cascadeAppliers } from './cascade';
 import { WATER_EXPOSURE } from '../data';
 import { autoExposureMods, sourceExposureMod, drawWaterDisease, isWounded } from '../engine/waterExposure';
 import { createHero } from '../engine/character';
-import { makeRNG, type RNG } from '../engine/dice';
+import { type RNG } from '../engine/dice';
 import { seedBattleRng } from './battleRng';
 import type { Combatant } from '../engine/types';
 
@@ -22,7 +22,7 @@ const seq = (vals: number[]): RNG => {
 };
 
 function hero(name: string, over: Partial<Combatant> = {}): Combatant {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: name, rng: makeRNG(1) });
+  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: name, seed: 17 });
   return { ...h, id: name, ...over } as Combatant;
 }
 

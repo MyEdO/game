@@ -8,6 +8,7 @@
 import { d100, d10, type RNG } from './dice';
 import { AVAILABILITIES, type Availability, type TestedAvailability } from './types';
 import { disponibilite as dispoJson } from '../data/index';
+import { memoParVersion } from '../data/versionDataset';
 import { rule } from './policy';
 import { t } from '../i18n';
 
@@ -16,9 +17,9 @@ export interface CatalogItem { id: string; label: string; availability: Availabi
 export interface StockLine { id: string; label: string; qty: number; test?: { roll: number; target: number } }
 
 /** % de Disponibilité (réussite si d100 ≤ %). Donnée : `src/data/disponibilite.json` (LDB 59 l.25-30). */
-export const DISPO_PCT: Record<TestedAvailability, Record<Settlement, number>> = Object.fromEntries(
+export const dispoPct = memoParVersion('disponibilite', () => Object.fromEntries(
   dispoJson.dispoPct.map((e) => [e.availability, e.pct]),
-) as Record<TestedAvailability, Record<Settlement, number>>;
+) as Record<TestedAvailability, Record<Settlement, number>>);
 
 /** Quantité en Cité (LDB 59 l.34) — non chiffrée par le RAW : règle éditable `market-cite-stock`. */
 function citeQty(): number {
@@ -64,7 +65,7 @@ export function rollAvailability(av: Availability, settlement: Settlement, rng: 
   if (av === 'Exotique') return { inStock: false, qty: 0 };
   // « Les pourcentages de Disponibilité peuvent être augmentés de +10 % ou +20 % » (LDB 59 l.50) —
   // recherche active (personnage assidu / Carrière cohérente / journée entière + Ragot).
-  const target = Math.min(99, DISPO_PCT[av][settlement] + Math.max(0, pctBonus));
+  const target = Math.min(99, dispoPct()[av][settlement] + Math.max(0, pctBonus));
   const roll = d100(rng);
   if (roll > target) return { inStock: false, qty: 0, test: { roll, target } };
   return { inStock: true, qty: Math.max(1, classQty(av, baseQty(settlement, rng))), test: { roll, target } };
@@ -104,17 +105,17 @@ export function priceAfterHalvings(baseBrass: number, halvings: number): number 
 /** RATIOS DE TROC (LDB 59 l.68-76) : `[objets échangés : objets acquis]` selon les deux Disponibilités.
  *  Lecture : donné (ligne) vs acquis (colonne). Ex. Commune → Exotique = 8 : 1 (il faut 8 unités de
  *  l'objet commun pour 1 unité de l'objet exotique). Donnée : `src/data/disponibilite.json`. */
-export const BARTER_RATIOS: Record<Availability, Record<Availability, [number, number]>> = Object.fromEntries(
+export const barterRatios = memoParVersion('disponibilite', () => Object.fromEntries(
   dispoJson.barterRatios.map((row) => [
     row.give,
     Object.fromEntries(Object.entries(row.ratios).map(([get, r]) => [get, [r.give, r.get]])),
   ]),
-) as Record<Availability, Record<Availability, [number, number]>>;
+) as Record<Availability, Record<Availability, [number, number]>>);
 
 /** Ratio de Troc (LDB 59 l.66-76) : combien d'unités de l'objet DONNÉ contre combien d'unités de
  *  l'objet ACQUIS, d'après leurs Disponibilités. `{ give, get }` = les deux membres du ratio. */
 export function barterRatio(give: Availability, get: Availability): { give: number; get: number } {
-  const [g, a] = BARTER_RATIOS[give][get];
+  const [g, a] = barterRatios()[give][get];
   return { give: g, get: a };
 }
 

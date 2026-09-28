@@ -15,11 +15,12 @@ import type { Combatant } from '../../engine/types';
 const GUNNER_IDS = [`pregen-${PREGEN.soldat}`, `pregen-${PREGEN.chasseur}`];
 
 const scen = testScenarios.find((s) => s.id === 'combat-naval')!;
+const scenConstruit = scen.construire();
 
 /** Reconstruit le roster d'entités du scénario (ids déterministes `enemy-enc-naval-<i>` — cogue, pirates
  *  ET la barge AMIE), par la fiche que `combatSlice` spawne au démarrage (`ficheDEntite`). */
 function spawnRoster(): Combatant[] {
-  const ents = scen.scene.entities
+  const ents = scenConstruit.scene.entities
     .filter((e) => e.id.startsWith('enemy-enc-naval-'))
     .sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }));
   return ents.map(ficheDEntite);
@@ -32,7 +33,7 @@ function spawnRoster(): Combatant[] {
  * référence `enemy-enc-naval-1..3` ; la barge amie est l'index 4, côté 'ally', avec ses 2 postes de pierrier).
  */
 describe('Scène compilée par buildScene — équivalence de map', () => {
-  const scene = scen.scene;
+  const scene = scenConstruit.scene;
   it('dimensions 18×12, terrain planches, échelle par défaut (2 m/case, non forcée)', () => {
     expect(scene.dimensions).toEqual({ w: 18, h: 12 });
     expect(layerTiles(scene, 0).every((t) => t === 'planches')).toBe(true);
@@ -119,7 +120,7 @@ describe('Scénario Bataille navale — chaîne navale jouable', () => {
  */
 describe('Artillerie jouable — 2 héros SERVENT un poste de pierrier (pas d’inventaire)', () => {
   it('applyShipPostes pose le mannedPoste sur le Soldat + le Chasseur, et l’attaque « Servir » apparaît', () => {
-    const party = scen.makeParty();
+    const party = scen.construire().party;
     const all = [...party, ...spawnRoster()];
     applyShipPostes(all); // comme combatSlice au démarrage
     const gunners = party.filter((h) => h.mannedPoste);
@@ -136,13 +137,13 @@ describe('Artillerie jouable — 2 héros SERVENT un poste de pierrier (pas d’
   });
 
   it('les 2 autres héros (Tueur + Sorcier) ne servent AUCUN poste — ils aborderont', () => {
-    const party = scen.makeParty();
+    const party = scen.construire().party;
     applyShipPostes([...party, ...spawnRoster()]);
     expect(party.filter((h) => !h.mannedPoste).length).toBe(2);
   });
 
   it('la bordée tribord PEUT TIRER sur la cogue (cap Nord = octant tribord + munition de siège + chargé)', () => {
-    const party = scen.makeParty();
+    const party = scen.construire().party;
     const all = [...party, ...spawnRoster()];
     applyShipPostes(all);
     const gunner = party.find((h) => h.mannedPoste)!;

@@ -46,6 +46,31 @@ export const LABEL_EQ_RX = /\.label\s*===|===\s*[\w.]+\.label\b/;
  *  qui distingue des cas par IDENTITÉ de libellé plutôt que par `id` stable. */
 export const LABEL_PREDICATE_RX = /\.test\([^)]*\.label\b|\.label\.(?:match|includes|startsWith|endsWith|test|search|indexOf)\(/;
 
+// Espèce en RÉCEPTEUR : identifiant `species*` (`species`, `x.species`, `speciesId`), accès indexé
+// `x['species']`, ou groupe parenthésé qui la contient (`(x.species ?? '')`, `String(x.species)`) —
+// un appel `f({ species })` n'en est pas un.
+const ESPECE = String.raw`(?:\bspecies\w*|\[\s*['"]species\w*['"]\s*\])`;
+const RECEPTEUR_ESPECE = String.raw`(?:${ESPECE}|(?:(?<![\w$\])\]])|\bString)\([^()]*\bspecies[^()]*\))`;
+const LITTERAUX = String.raw`(?:'[^']*'|"[^"]*")(?:\s*,\s*(?:'[^']*'|"[^"]*"))*\s*,?`;
+
+/** PRÉDICAT de MOTIF sur une espèce : méthode de chaîne prédicative sur son récepteur (`!`/`?.`
+ *  compris, après `split`/`toLowerCase`/`toUpperCase` éventuels), `.test(` d'une regex, liste
+ *  LITTÉRALE d'ids qui la teste (`[…].includes`, `new Set([…]).has`), comparaison à un littéral (hors
+ *  `typeof`). L'appartenance d'une espèce se lit dans sa DONNÉE (`grantGroups`, `groupsFor`), jamais
+ *  dans la forme de son id ni de son libellé (#1897). Une liste NOMMÉE (`allowed.includes(x.species)`)
+ *  et un prédicat sur un alias (`const s = species.toLowerCase()`) échappent : lexicalement
+ *  indiscernables d'un lookup par id. */
+export const SPECIES_PREDICATE_RX = new RegExp(
+  [
+    String.raw`${RECEPTEUR_ESPECE}\s*!?(?:\??\.(?:split|toLowerCase|toUpperCase)\([^()]*\))*\??\.(?:match|includes|startsWith|endsWith|test|search|indexOf)\(`,
+    String.raw`\.test\([^)]*\bspecies`,
+    String.raw`\[\s*${LITTERAUX}\s*\]\s*\.(?:includes|indexOf)\([^)]*\bspecies`,
+    String.raw`new Set\(\s*\[\s*${LITTERAUX}\s*\]\s*\)\s*\.has\([^)]*\bspecies`,
+    String.raw`(?<!\btypeof\s+[\w$.?]*)${ESPECE}\s*[!=]==?\s*['"]`,
+    String.raw`['"]\s*[!=]==?\s*[\w$.?]*${ESPECE}`,
+  ].join('|'),
+);
+
 /** `switch` sur `.label` : un aiguillage par libellé est la même famille de logique-par-label qu'une
  *  carte `BY_LABEL`, juste écrite en `switch`. */
 export const LABEL_SWITCH_RX = /switch\s*\([^)]*\.label\b/;
@@ -145,6 +170,7 @@ export function scanLabelLogic(relPath, contenu) {
       BY_LABEL_RX.test(line) ||
       LABEL_EQ_RX.test(line) ||
       LABEL_PREDICATE_RX.test(line) ||
+      SPECIES_PREDICATE_RX.test(line) ||
       LABEL_SWITCH_RX.test(line) ||
       SLUG_FROM_LABEL_RX.test(line);
     // Une ligne qui viole les DEUX est rapportée sous `label-logic` (la règle la plus stricte prime,
@@ -548,11 +574,9 @@ export function scanLabelKeyedIndex(relPath, contenu) {
 }
 
 /**
- * Stock VIDE : la règle est à tolérance ZÉRO sur tout `STRICT_DIRS`. Les deux index mesurés à sa pose
- * (2026-09-08) sont migrés dans le même geste — `weaponGroupIdByWeaponLabel` et le couple
- * `conditionIds`/`conditionIdInText` portent désormais la couture dans `src/data/index.ts`. Cliquet
- * strict dans les DEUX sens comme `LABEL_LITERAL_STOCK` : une entrée neuve se migre, jamais
- * s'inscrit. @type {Readonly<Record<string, number>>}
+ * Stock VIDE : la règle est à tolérance ZÉRO sur tout `STRICT_DIRS`. Cliquet strict dans les DEUX
+ * sens comme `LABEL_LITERAL_STOCK` : une entrée neuve se migre, jamais s'inscrit.
+ * @type {Readonly<Record<string, number>>}
  */
 export const LABEL_KEYED_INDEX_STOCK = {};
 
@@ -892,46 +916,33 @@ export function ratchetShortKey(finding) {
 }
 
 // ── Résolution d'ENTITÉ depuis un LIBELLÉ, appelée hors de sa seule couture légitime (#909) ────────
-// La comparaison `.label === label` d'un résolveur (`findCreature`, `findSpell`…) vit DANS
+// La comparaison `.label === label` d'un résolveur (`findSpell`, `findTalent`…) vit DANS
 // `src/data/index.ts`, seul fichier où `isCorpusExcluded`/`STRICT_DIRS` la tolère. Les scans
 // ci-dessus ne voient QUE cette comparaison textuelle — pas le fait d'INVOQUER un tel résolveur
 // depuis `src/engine`/`src/state`, où le paramètre reçu est déjà, la plupart du temps, un id : y
-// appeler `findCreature(x)` bascule quand même toute la résolution sur le texte d'affichage.
+// appeler `findSpell(x)` bascule quand même toute la résolution sur le texte d'affichage.
 //
 // Reconnaissance du résolveur — critères structurels, jamais une liste de noms :
 //  1. déclaré et exporté dans `src/data/index.ts` (seul fichier où la légitimité existe, doctrine
 //     CLAUDE.md — un résolveur par label ailleurs serait une AUTRE faute, hors périmètre #909) ;
-//  2. il RÉSOUT par libellé, sous l'une des deux formes que porte ce fichier :
+//  2. il RÉSOUT par libellé, sous l'une des trois formes que porte ce fichier :
 //     a. fonction/flèche dont le paramètre s'appelle EXACTEMENT `label` et dont le type de retour est
-//        une entité de catalogue — `XxxData` (`CreatureData`/`SpellData`/`TalentData`/`SkillData`/
-//        `StarData`/`DomainData`/`TrappingData`), convention RÉELLE des interfaces app-owned ;
+//        une entité de catalogue — `XxxData` (`SpellData`, `TalentData`…), convention des
+//        interfaces app-owned ;
 //     b. ALIAS d'un binding construit par `indexParChamp(cle, entrees, (e) => e.label…)` — l'index
-//        vif rend l'ENTRÉE elle-même, donc l'alias résout l'entité par son libellé exactement comme
-//        (a). C'est la forme prise par `findDomain` (`index.ts:2738-2739`) quand son corps fléché a
-//        cédé la place à l'index vif : un critère qui ne juge que la FORME SYNTAXIQUE (flèche avec
-//        corps) devenait muet sur un résolveur inchangé pour l'appelant.
-// Choix MESURÉ plutôt qu'une liste : une liste nommée sur les 3 résolveurs cités par le ticket
-// (`findCreature`/`findSpell`/`findTrappingByLabel`) aurait manqué `findStar`/`findDomain`/
-// `findSkill`/`findTalent` — QUATRE résolveurs de MÊME forme, présents dans le corpus réel,
-// jamais mentionnés au brief. Le critère de FORME les retrouve tous, sans toucher cette lib au
-// prochain résolveur qui suivra la même convention.
+//        vivant rend l'ENTRÉE elle-même, donc l'alias résout l'entité par son libellé exactement comme
+//        (a) : un critère qui ne jugerait que la FORME SYNTAXIQUE (flèche avec corps) serait muet sur
+//        ce résolveur, inchangé pour l'appelant.
+//     c. fonction/flèche à paramètre `label` dont le NOM suit `…By…Label` (`traitIdByLabel`…) : la
+//        conversion libellé→id est la même résolution, elle rend l'id au lieu de l'entrée (#1924).
+// Critère de FORME plutôt qu'une liste de noms : une liste manque tout résolveur de même forme
+// qu'elle ne nomme pas ; la forme retrouve le prochain sans toucher cette lib.
 //
 // CE QUE CE CRITÈRE NE VOIT PAS (faux négatifs assumés) :
 //  - un paramètre nommé autrement que `label` pile (`labelText`, `lbl`, `name` — `speciesSingular`
 //    prend `label` mais ne RÉSOUT rien, il reformate ; son retour `string` l'exclut déjà) ;
-//  - un retour qui ne suit pas la convention `XxxData` — c'est VOULU : `charKeyByLabel` (→ `CharKey`)
-//    et `conditionIdByLabel`/`weaponGroupIdByLabel` (→ `string`) sont des conversions label→id/enum,
-//    la couture TOLÉRÉE par la doctrine (CLAUDE.md), pas des résolutions d'ENTITÉ — les exclure est
-//    le fond de la distinction, pas un oubli ;
+//  - un retour hors `XxxData` sous un nom hors `…By…Label` ;
 //  - un résolveur déclaré hors de `src/data/index.ts` (hors périmètre par construction, cf. ci-dessus).
-//
-// ANCIEN CAS REPÉRÉ, SOLDÉ 2026-07-27 : `src/engine/careerSlots.ts:339`/`talentEffects.ts:78`
-// appelaient `findTalent(splitLabel(label).name)` — le paramètre n'était pas un `label` d'ENTITÉ
-// mais un FRAGMENT DE TEXTE issu de `splitLabel` (parsing d'une spécialisation d'auteur), la même
-// couture d'AUTHORING que celle documentée pour `slugId(p.name)` plus haut. Le scan ne pouvait pas
-// le distinguer structurellement — soldé en déplaçant la couture vers `talentIdByLabel`
-// (`src/data/index.ts`, retour `string` ≠ `XxxData`, hors du critère ci-dessus) au lieu de
-// documenter une exception permanente ; les deux sites n'appellent plus `findTalent`.
 
 /** Le type est-il une TypeReference (traversant les unions) dont le nom se termine par `Data` —
  *  convention réelle des interfaces de catalogue app-owned de ce dépôt ? @param {ts.TypeNode=} t */
@@ -946,7 +957,7 @@ function isExported(node) {
   return (node.modifiers ?? []).some((m) => m.kind === ts.SyntaxKind.ExportKeyword);
 }
 
-/** L'initialiseur est-il un INDEX VIF keyé par le LIBELLÉ — `indexParChamp(cle, entrees, (e) =>
+/** L'initialiseur est-il un INDEX VIVANT keyé par le LIBELLÉ — `indexParChamp(cle, entrees, (e) =>
  *  e.label…)` (`src/data/versionDataset.ts`) ? Cet accesseur rend l'ENTRÉE de catalogue elle-même
  *  (`(k) => T | undefined`) : le binding qui le tient RÉSOUT une entité par son libellé, quelle que
  *  soit la forme sous laquelle un export le publie ensuite. La clef est lue par son CORPS (`d.label`,
@@ -968,7 +979,7 @@ function isLabelKeyedIndex(init) {
 
 /** Les bindings qui TIENNENT une résolution par libellé : index keyé par label, ou ALIAS NU d'un tel
  *  binding — les déclarations étant en ordre, une chaîne d'alias suit (même mécanique d'héritage par
- *  alias que `nomsVifsDuFichier`, `bindingsVifs.mjs`).
+ *  alias que `nomsVivantsDuFichier`, `bindingsVivants.mjs`).
  *  @param {ts.SourceFile} sf @returns {Set<string>} */
 function labelKeyedBindings(sf) {
   const noms = new Set();
@@ -990,9 +1001,11 @@ function labelKeyedBindings(sf) {
  * Résolveurs d'entité par libellé déclarés dans `src/data/index.ts` — fonction nommée exportée
  * (`export function findX(label: string): XData {…}`) ou const fléchée exportée
  * (`export const findX = (label: …): XData | undefined => …`), premier paramètre nommé `label`,
- * retour `XxxData` (cf. en-tête ci-dessus pour la doctrine du critère) ; OU export qui ALIASE un
- * binding keyé par le libellé (`export const findDomain: … = domaineParLabel;`, où `domaineParLabel
- * = indexParChamp('domains', domains, (d) => d.label)`) — la résolution est la même, seule la forme
+ * retour `XxxData` (cf. en-tête ci-dessus pour la doctrine du critère) — ou retour d'un IDENTIFIANT
+ * (`traitIdByLabel(label): string`, nom en `…By…Label`, #1924 : la conversion libellé→id est la même
+ * résolution, elle rend l'id au lieu de l'entrée) ; OU export qui ALIASE un
+ * binding keyé par le libellé (`export const findX: … = xParLabel;`, où `xParLabel
+ * = indexParChamp('x', entrees, (e) => e.label)`) — la résolution est la même, seule la forme
  * syntaxique diffère.
  * @param {string} contenu — contenu de `src/data/index.ts` @returns {Set<string>}
  */
@@ -1001,9 +1014,10 @@ export function collectLabelEntityResolvers(contenu) {
   const names = new Set();
   const parLabel = labelKeyedBindings(sf);
   const hasLabelFirstParam = (params) => params.length >= 1 && ts.isIdentifier(params[0].name) && params[0].name.text === 'label';
+  const resout = (nom, type) => isEntityDataType(type) || /By\w*Label$/.test(nom);
   const visit = (node) => {
     if (ts.isFunctionDeclaration(node) && node.name && isExported(node)
-      && hasLabelFirstParam(node.parameters) && isEntityDataType(node.type)) {
+      && hasLabelFirstParam(node.parameters) && resout(node.name.text, node.type)) {
       names.add(node.name.text);
     }
     if (ts.isVariableStatement(node) && isExported(node)) {
@@ -1011,7 +1025,7 @@ export function collectLabelEntityResolvers(contenu) {
         if (!ts.isIdentifier(d.name)) continue;
         const init = d.initializer && unwrap(d.initializer);
         if (init && (ts.isArrowFunction(init) || ts.isFunctionExpression(init))
-          && hasLabelFirstParam(init.parameters) && isEntityDataType(init.type)) {
+          && hasLabelFirstParam(init.parameters) && resout(d.name.text, init.type)) {
           names.add(d.name.text);
         }
         if (init && ts.isIdentifier(init) && parLabel.has(init.text)) names.add(d.name.text);

@@ -1,9 +1,10 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { classifyEnemy, enemyRigProfile, entityRigProfile } from './enemyProfile';
 import { combatantOverlays } from './parts/combatantVisuals';
-import { creatures } from '../../data';
+import { creatures, DEFAULT_RACE_ID } from '../../data';
+import { setDataset } from '../../data/overrides';
 import { mutationById } from '../../data/mutations';
-import { raceById, DEFAULT_RACE_ID } from './races';
+import { raceById } from './races';
 import { bipedDef } from './creatures';
 import { baseSpeciesOf } from './skeletons';
 import { resolveParts } from './parts/resolve';
@@ -11,6 +12,11 @@ import { viewOrFront } from './parts/types';
 import { CLAWFOOT, MAIN_GRIFFUE } from './parts/bodies/extremites';
 import { armourPart } from './parts/equipment';
 import { spawnEnemy } from '../../state/spawn';
+import { hairstylesForSex } from './parts/hairstyles';
+import { COIFFURE_HORS_POOL } from './parts/cosmetic';
+import { resetDiagOnce, withDiagSubject } from './devDiag';
+import { resolveRig } from './composeRig';
+import { bonesToSvg } from './renderBones';
 import type { Combatant, Weapon, ItemInstance, ArmourPoints } from '../../engine/types';
 
 const noArmour: ArmourPoints = { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 };
@@ -276,5 +282,65 @@ describe('entityRigProfile (entité de scène, ambiance hors combat)', () => {
     expect(entityRigProfile(id, 1, { enrolled: true })!.equip.weapons.length).toBeGreaterThan(0); // enrôlée → kit
     expect(entityRigProfile(id, 1)!.equip.weapons).toEqual([]); // ambiance (défaut non enrôlée) → mains libres
     expect(entityRigProfile(id, 1)!.equip.armour).toEqual([]);
+  });
+});
+
+/** Sexe et coiffure posés par deux couches différentes (`rigAppearance`) : `coiffureRetombee` (#1897). */
+describe('coiffure du record, sexe de l’entité — la coiffure retombe', () => {
+  it('coiffure F au record + `sex: M` sur l’entité → coiffure par défaut de l’espèce et du sexe rendus, jamais la chevelure d’erreur', () => {
+    const avant = [...creatures];
+    const rendu = (p: NonNullable<ReturnType<typeof entityRigProfile>>) => bonesToSvg(resolveRig(p.appearance, p.equip, {}, p.tenue, 'front', []));
+    const attendu = rendu(entityRigProfile('villageois', 1, { sex: 'M' })!);
+    setDataset('creatures', creatures.map((c) => (c.id === 'villageois'
+      ? { ...c, appearance: { ...c.appearance!, sex: 'F' as const, hairstyle: 'queue-de-cheval-haute-f' } }
+      : c)));
+    try {
+      expect(entityRigProfile('villageois', 1)!.appearance).toMatchObject({ sex: 'F', hairstyle: 'queue-de-cheval-haute-f' });
+      const p = entityRigProfile('villageois', 1, { sex: 'M' })!;
+      expect(p.appearance.sex).toBe('M');
+      expect(p.appearance.hairstyle).toBeUndefined();
+      expect(rendu(p)).not.toContain(COIFFURE_HORS_POOL);
+      expect(rendu(p)).toBe(attendu);
+      // La contradiction posée par UNE couche reste une faute de donnée VISIBLE (le schéma la nomme).
+      expect(rendu(entityRigProfile('villageois', 1, { sex: 'M', hairstyle: 'queue-de-cheval-haute-f' })!)).toContain(COIFFURE_HORS_POOL);
+    } finally {
+      setDataset('creatures', avant);
+    }
+  });
+  it('le retrait se DIT : un avertissement console nomme le sujet, la coiffure retirée et le sexe posé au-dessus', () => {
+    const avant = [...creatures];
+    setDataset('creatures', creatures.map((c) => (c.id === 'villageois'
+      ? { ...c, appearance: { ...c.appearance!, sex: 'F' as const, hairstyle: 'queue-de-cheval-haute-f' } }
+      : c)));
+    resetDiagOnce();
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      withDiagSubject('scene-x/pnj-1', () => entityRigProfile('villageois', 1, { sex: 'M' }));
+      expect(warn.mock.calls.map((c) => String(c[0]))).toEqual([
+        "[rig] « scene-x/pnj-1 » : coiffure « queue-de-cheval-haute-f » (sexe : Féminin) retirée au rendu — une couche d'apparence plus haute pose le sexe Masculin.",
+      ]);
+      warn.mockClear();
+      withDiagSubject('scene-x/pnj-2', () => entityRigProfile('villageois', 1));
+      expect(warn).not.toHaveBeenCalled();
+    } finally {
+      warn.mockRestore();
+      resetDiagOnce();
+      setDataset('creatures', avant);
+    }
+  });
+});
+
+/** L'override d'apparence du combattant (`spawnEnemy`) porte TOUTE l'apparence d'auteur posée — pas une
+ *  liste de champs tenue à la main : un PNJ dont la seule surcharge est une coiffure la garde en combat. */
+describe('spawnEnemy — une coiffure seule traverse jusqu’au rendu du combattant', () => {
+  it('coiffure imposée seule : le profil de combat la porte et le rig change', () => {
+    const sansCoiffure = spawnEnemy({ ref: 'mutant' }, 'pnj-coiffe', { x: 0, y: 0 });
+    const avant = enemyRigProfile(sansCoiffure)!;
+    const coiffure = hairstylesForSex(avant.appearance.sex)[1].id;
+    const coiffe = spawnEnemy({ ref: 'mutant' }, 'pnj-coiffe', { x: 0, y: 0 }, { appearance: { hairstyle: coiffure } });
+    const apres = enemyRigProfile(coiffe)!;
+    expect(apres.appearance.hairstyle).toBe(coiffure);
+    const rendu = (p: typeof apres) => bonesToSvg(resolveRig(p.appearance, p.equip, {}, p.tenue, 'front', []));
+    expect(rendu(apres)).not.toBe(rendu(avant));
   });
 });

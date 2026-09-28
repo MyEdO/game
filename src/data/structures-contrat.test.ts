@@ -1,15 +1,20 @@
 import { afterAll, describe, expect, it } from 'vitest';
 import { execFileSync } from 'node:child_process';
-import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { z } from 'zod';
 import { listerArbre } from '../../scripts/guards/lib/lister.mjs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { detenteur } from '../detenteur.testkit';
+import { tableTotale } from '../lib/tableTotale';
 import {
   classerValeur,
+  listerDocuments,
   mesurerEnveloppe,
   scanDuCorpus,
   scannerDonnees,
   scannerRedeclarations,
+  type Redeclaration,
 } from '../../scripts/docs/lib/structures-scan.mjs';
 import { regenerations, sitesHorsStrate } from '../../scripts/guards/lib/horsStrateAudit';
 import { HORS_STRATE_RATCHET } from '../../scripts/guards/lib/horsStrateStock.mjs';
@@ -27,7 +32,9 @@ import {
   RX_CLE_REFERENCE,
   signature,
 } from '../../scripts/docs/lib/structures-lexique.mjs';
-import { CLES_ENVELOPPE } from './schemas/grammaire/document';
+import { CLES_ENVELOPPE, document, type Exposition } from './schemas/grammaire/document';
+import { marquerCollection, marqueDeRecord } from './schemas/grammaire/collection-cle';
+import type { SchemaDef } from './schemas/types';
 
 /**
  * Clés que `document()` pose sur TOUT document, sans qu'aucun def ne les demande — DÉRIVÉES de
@@ -83,9 +90,9 @@ const GARDE = {
 const ROOT = execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim();
 /** Le DÉCLARÉ couvre les DEUX racines (#1466 L1a) — jointure par BASENAME, comme le scan key.
  *  UN seul scan pour tout le fichier : le test consomme la mesure, il ne relit jamais les JSON. La
- *  composition defs → familles/enums → scan vit dans `scanDuCorpus` (`structures-scan.mts`), et
- *  c'est la MÊME que lisent `build-structures.mts` et `horsStrateAudit.ts`. */
-const { declares: DECLARES, familles: FAMILLES, choix: CHOIX, scan } = scanDuCorpus(ROOT);
+ *  composition defs + enums → scan vit dans `scanDuCorpus` (`structures-scan.mts`), et c'est la
+ *  MÊME que lisent `build-structures.mts` et `horsStrateAudit.ts`. */
+const { defs: DEFS, declares: DECLARES, choix: CHOIX, scan } = scanDuCorpus(ROOT);
 const { redeclarations } = scannerRedeclarations(ROOT);
 
 /** Un ensemble de lignes en texte, trié — les diffs de vitest restent lisibles. */
@@ -160,8 +167,7 @@ const cleOrphelineObservee = (o: Parameters<typeof cleOrpheline>[0]) => cleOrphe
  * `npx tsx scripts/guards/lib/regenStock.mts scripts/guards/lib/horsStrateAudit.ts` depuis la mesure
  * `scan.invisibles` que ce
  * fichier consomme. La traduction en sites est UNIQUE (`horsStrateAudit.ts`), l'écart est jugé par
- * `ecartDuVolet` ci-dessous, et le DÉFAUT D'INSTRUMENT qui fait bouger ce stock sans qu'un octet de
- * donnée change (`PROFONDEUR_MEMO`, `zod-introspect.mts`) est dit en tête du stock.
+ * `ecartDuVolet` ci-dessous.
  * Le COMPTE d'occurrences de chaque signature vit dans `docs/structures-donnees.md` (table bornée
  * par `MARQUE_HORS_STRATE`), que `build-structures.mts` rend depuis le disque du jour.
  */
@@ -215,8 +221,7 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
     expect(
       lignes(neuves),
       'signature(s) HORS STRATE NEUVE(s) — une structure neuve se pose à la forme CIBLE du lexique ' +
-        '(`scripts/docs/lib/structures-lexique.mts`), elle n’entre pas au stock. Une paire périmée/neuve d’un ' +
-        'MÊME dataset sans un octet de donnée changé est le bruit d’instrument dit en tête du stock.',
+        '(`scripts/docs/lib/structures-lexique.mts`), elle n’entre pas au stock.',
     ).toEqual([]);
     expect(
       lignes(perimees),
@@ -466,7 +471,11 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       // entrées « Choc au bras » (AA 07 l.113, LDB 18 l.88) que le moteur portait au site d'appel.
       // Elle ne blanchit AUCUN étalement : la graphie naît avec le terme, et `minimum` ne nomme que
       // lui (`atLeast`, lui, est déjà le seuil d'un palier et d'une Condition — il n'entre pas au noyau).
-      ['STRUCTURES_CIBLES', STRUCTURES_CIBLES.length, 40],
+      // Cliquet REMONTÉ 40 → 42 (#1897) : `source | book,page,quote` et `source | book,note,page,quote`,
+      // CIBLES au seul site `alsoIn` — l'emplacement secondaire et sa preuve (`secondarySourceRefSchema`).
+      // 10 lignes `source | alsoIn` (69 occurrences) sortent de `STRUCTURES_FORMES` ; aucune donnée
+      // n'est réécrite.
+      ['STRUCTURES_CIBLES', STRUCTURES_CIBLES.length, 42],
       // Cliquet DESCENDU 671 → 670 (#1467) : le statbloc à `size` d'`arene-projet.json` quitte
       // ce stock — le profil embarqué s'ANNONCE (`type: 'statblock'`) et sa forme est déclarée champ par
       // champ (`defs-scenes/communs.ts`), donc sa signature n'est plus lue comme une référence non
@@ -605,7 +614,9 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       // et `buildBoardingScene` portaient EN DUR, devenus mesurables et refinés au parse
       // (`idDe('terrain')`). MÊMES forme et solde que `semences-de-scene.json › terrain` (#1716) : les
       // quatre lignes meurent d'un seul geste au lot L3.
-      ['STRUCTURES_FORMES', STRUCTURES_FORMES.length, 471],
+      // Cliquet DESCENDU 471 → 459 (#1473 R1) : 12 lignes `reference` sortent — `char` (`charKeySchema`)
+      // et `act` y sont des littéraux d'enum DÉCLARÉS que `choixDeclares` atteint sans borne.
+      ['STRUCTURES_FORMES', STRUCTURES_FORMES.length, 459],
       // 8ᵉ stock, né du volet A : les clés déclarées jamais observées des DEUX racines (dont 5
       // apportées par les 4 projets de scène qui entrent au déclaré).
       // Cliquet DESCENDU 24 → 23 (#1467 L1b V-FLIP-ENTITE-c) : `creatures.json › group` est SOLDÉ —
@@ -779,7 +790,9 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       // sortir 7 lignes sans le resserrer), et `diligence-projet.json › ouverture` sort à son tour —
       // le concept `ouverture` la CLASSE, et le classement précède la route orpheline. Un optionnel
       // peuplé (`source`) ne partage donc plus une même porte en deux buckets : la PROJECTION réunit.
-      ['STRUCTURES_ORPHELINES', STRUCTURES_ORPHELINES.length, 97],
+      // Cliquet REMONTÉ 97 → 99 (#1473 R1) : les 2 objets `etats.json › value` sortis de la forme
+      // `char+…` ci-dessus, mêmes objets, autre stock.
+      ['STRUCTURES_ORPHELINES', STRUCTURES_ORPHELINES.length, 99],
       // Cliquet DESCENDU 403 → 400 (L2 #1548, commit 3c) : 5 signatures d'op portant le `spec` FRÈRE
       // s'éteignent (`bonus,op,skill,spec` de spells/tables, `blocked,op,rounds,skill`/`mod,op,rounds,skill`
       // de spells dont le `skill: "all"` disparaît au profit de l'ABSENCE) et 2 se fondent dans des
@@ -900,7 +913,12 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       // (« surpris à mendier », `l.99`) et `condition {id, op}` dans `tables.json`. Les deux autres ops du
       // train rejoignent des signatures DÉJÀ stockées (`rollTable` 12 → 13 ; `wounds` à mitigations
       // déclarées 5 → 6). Cf. `STRUCTURES_OPS` ci-dessus.
-      'L1c #1468': 398,
+      // … puis 398 → 393 (#1473 train 2a) : les 13 lignes `op,talentId`/`op,spec,talentId` des ops de Talent deviennent 8 lignes `op,talent` (`refOuSpec('talent')`).
+      // … puis 393 → 394 (#1957, 2026-09-24) : la signature `grantTrait {indice, op, range,
+      // traitId}` de `tables.json` — la Langue préhensile de l'Allure démoniaque de Slaanesh porte sa
+      // Portée en `range` (`LDB 85` l.209) et non plus en `arg`. Même op, une ligne de plus
+      // (`arg,indice,op,traitId` 3 → 2 dans ce dataset), aucune occurrence en plus.
+      'L1c #1468': 394,
       // L1d #1469 : 62 → 61 (#1552) — « La Diligence » CITE son folio à la racine
       // (`ennemi-dans-l-ombre` 12, la référence que son bloc narratif portait déjà en profondeur) ;
       // sa ligne « source | clé absente » est SOLDÉE.
@@ -915,7 +933,7 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       // … puis 55 → 53 (#1686) : les TROIS lignes « `source` absente » des catalogues de matières
       // (`propMaterials`/`roofMaterials`/`reliefMaterials`) en font seulement UNE — les trois documents
       // fusionnent en `materials.json`, mêmes 16 entrées, un seul porteur de la divergence.
-      'L1d #1469': 53 /* 56→55 : la ligne d'enveloppe « `source` absente » de `props.json` meurt (#1680 ligne 5). PORTÉE EXACTE, à ne pas surestimer : elle s'éteint par `satisfaitAutrement = parCle.has(def.alternative)` (`scripts/docs/lib/structures-scan.mts:1081`) — la divergence est relevée PAR DOCUMENT, et la présence de la clé alternative `maison` sur AU MOINS UNE entrée suffit à l'éteindre pour tout le document. Ce ne sont donc PAS les 123 entrées qui deviennent sourcées : 41 portent `maison` (celles qui portent une RÈGLE — `light`/`cover`/`opaque` — que `affinerEntree` exige), 82 restent muettes et le demeurent légitimement (leur contenu est de l'art). Le +2 antérieur (alsoIn creatures/species posés par e89a836d3 SANS leur ligne de stock, sillage C1 #1457) reste à SOLDER par la vague L1d (#1469) */,
+      'L1d #1469': 43 /* 53→43 (#1897) : les 10 lignes `source | alsoIn` sortent, l'emplacement secondaire et sa preuve `quote` étant CIBLES au site `alsoIn` (`SITE_EMPLACEMENT_SECONDAIRE`) — le +2 ci-dessous (creatures/species) est soldé avec elles. 56→55 : la ligne d'enveloppe « `source` absente » de `props.json` meurt (#1680 ligne 5). PORTÉE EXACTE, à ne pas surestimer : elle s'éteint par `satisfaitAutrement = parCle.has(def.alternative)` (`scripts/docs/lib/structures-scan.mts:1081`) — la divergence est relevée PAR DOCUMENT, et la présence de la clé alternative `maison` sur AU MOINS UNE entrée suffit à l'éteindre pour tout le document. Ce ne sont donc PAS les 123 entrées qui deviennent sourcées : 41 portent `maison` (celles qui portent une RÈGLE — `light`/`cover`/`opaque` — que `affinerEntree` exige), 82 restent muettes et le demeurent légitimement (leur contenu est de l'art). */,
       // L2 #1463 : 57 → 48 (commit 3b) — les 9 lignes de référence de Compétence à graphie `skillId`
       // (donnée + defs) meurent ; ce qui reste du lot est la référence PLATE `skill: "<id>"` des ops.
       // … puis 48 → 18 (commit 3c) : cette référence PLATE MEURT à SON TOUR — 30 lignes s'éteignent avec
@@ -1014,18 +1032,10 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       // catalogue de BÂTIMENTS passé en donnée (`buildings.json › roofMaterial` et `› features`,
       // `diligence-projet.json › style` ; `arene-projet.json › style` s'éteint). MÊME graphie que leurs
       // sœurs déjà stockées ici : elles s'éteindront avec elles, d'un seul geste.
-      // #1687 (2026-09-11) : 394 → 391 — TROIS lignes MEURENT, aucune ne naît, et ce n'est PAS une
-      // migration : les graphies `arene-projet.json › effect` `lodging,type` (1), `phase,type` (2) et
-      // `type+…` (1) vivent sous `.scenes[].dialogues[].nodes[].choices[].flow.steps[]` et
-      // `.scenes[].triggers[].flow.steps[]` — jamais sous `interact` — et leur donnée n'a pas bougé d'un
-      // octet. Cause MESURÉE (quatre scans {defs} × {données}) : ce que `choixDeclares('arene-projet.json')`
-      // ATTEINT change — `phase` et `lodging` sont déclarés à HEAD comme ici (`defs-scenes/effets.ts`), mais
-      // la marche de l'instrument est mémoïsée et bornée (`PROFONDEUR_MEMO = 12`, borne atteignante :
-      // 452 clés à 12 contre 488 à 20), donc le chemin par lequel un nœud est atteint décide s'il est vu —
-      // et `interact` (court) cède à `usable → refine → actions[] → flow` (profond). `ouvreReference`
-      // (`structures-scan.mts:501`) ne tenant pas un littéral d'enum DÉCLARÉ pour une clé étrangère, ces 4
-      // objets cessent d'être des références et passent au dénominateur HORS STRATE (ils y sont
-      // quatre ENTRÉES de `scripts/guards/lib/horsStrateStock.mjs`, dont l'en-tête nomme ce défaut).
+      // #1687 (2026-09-11) : 394 → 391 — TROIS lignes MEURENT sans un octet de donnée changé :
+      // `arene-projet.json › effect` `lodging,type` (1), `phase,type` (2) et `type+…` (1), dont
+      // `choixDeclares` (`zod-introspect.mts`) atteint le littéral d'enum DÉCLARÉ ; `ouvreReference`
+      // (`structures-scan.mts`) ne l'ouvre pas en référence.
       // #1716 (2026-09-18) : 391 → 394 — TROIS lignes de référence NEUVES, posant en DONNÉE ce que
       // `emptyScene` (`state/scene.ts`) choisissait en littéraux : `semences-de-scene.json › terrain`
       // (id nu du sol dont la couche 0 est remplie), `› reliefDefaults` et `› roofDefaults` (les deux
@@ -1036,7 +1046,15 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       // trois terrains que le COMPILATEUR (`state/mapSpec.ts`, `buildBoardingScene`) choisissait en
       // littéraux. Ids nus scalaires, MÊME graphie que `semences-de-scene.json › terrain` : même lot,
       // même extinction.
-      'L3 #1463': 397,
+      // #1473 R1 : 397 → 385 — DOUZE lignes `char+…`/`act+…` sortent sans un octet de donnée changé :
+      // `char` et `act` sont des littéraux d'enum DÉCLARÉS, que `choixDeclares` atteint depuis que sa
+      // descente n'est plus bornée.
+      // #1473 R1-bis : 385 → 384 — `sea-weather.json › spec` (record `{ projectiles: 'poudre-noire' }`)
+      // meurt : la spécialisation vit DANS la référence de `skills[]` (`refOuSpec('skill')`).
+      // #1473 train 2a : 384 → 372 — les 13 lignes `reference` à clé `talentId` (ops de Talent, `axes.json ›
+      // talents`) meurent avec la graphie `talent: { id, spec? }` / `{ id, spec? }` ; l'homonyme `talent`
+      // (objet des ops / chaîne nue de 79 sites) entre, +1.
+      'L3 #1463': 372,
       // L4 #1463 : 220 → 219 (commit 3b) — les deux formes de `activities.json › skills` fusionnent en
       // une seule dès que la référence sort de leur signature.
       // … puis 219 → 221 (#674) : le Test quotidien de la Pneumonie compte DEUX fois — sa forme en
@@ -1087,7 +1105,7 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       // graphie propriétaire (−2), et le nœud partagé rend UNE forme par document porteur
       // (`symptoms.json › test {difficulty}` 3, `maladies.json › test {difficulty}` 1, +2) : solde 0.
       // Le terrain gagné est de SIGNATURE, pas de compte — les deux lignes neuves portent l'exacte
-      // `difficulty` du `flowTestSchema`, la MÊME que `criticals.json › test` depuis B2a, là où la
+      // `difficulty` du `flowTestSchema`, la MÊME que `criticals.json › test`, là où la
       // graphie propriétaire projetait `difficulty+…`. Le décompte L3 (−2), lui, baisse.
       // … #1657 : 85 → 84. Les DEUX formes de nœud `test` de `criticals.json` en font seulement UNE : les 38 rangées qui ne nommaient PAS leur Compétence rejoignent `difficulty,skill`
       // (1 → 39), la seule graphie que la porte sache tester. Ce que le silence coûtait : le moteur
@@ -1112,7 +1130,8 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       // `prosthesisTraining` ×3 ; 29 occurrences).
       // … puis 98 → 97 (#1633) — `diligence-projet.json › ouverture` sort : le concept `ouverture` de
       // la strate `Document` la classe à sa forme CIBLE, elle n'annonce plus rien qu'elle ne résolve.
-      '#1553': 97,
+      // … puis 97 → 99 (#1473 R1) — les 2 objets `etats.json › value` quittent la forme `char+…` de `L3 #1463`.
+      '#1553': 99,
     };
     expect(
       Object.keys(plafonds).sort(),
@@ -1464,15 +1483,10 @@ describe('les concepts d’ENVELOPPE (strate `Document`) se reconnaissent au NOY
     "const url = (p) => pathToFileURL(join(R, p)).href;",
     "const SCAN = url('scripts/docs/lib/structures-scan.mjs');",
     "const lexique = await import(url('scripts/docs/lib/structures-lexique.mjs'));",
-    "const { defsDeDocument } = await import(url('scripts/docs/lib/slots-registre.mjs'));",
-    "const { choixDeclares, introspecterDefs } = await import(url('scripts/docs/lib/zod-introspect.mjs'));",
-    'const defs = defsDeDocument();',
-    'const familles = new Map(introspecterDefs(defs).map((d) => [d.file, d.famille]));',
-    'const choix = choixDeclares(defs);',
-    'const avec = (await import(SCAN)).scannerDonnees(R, familles, choix);',
+    'const avec = (await import(SCAN)).scanDuCorpus(R).scan;',
     "const retires = lexique.CONCEPTS.filter((c) => c.strate === 'Document');",
     'for (const c of retires) lexique.CONCEPTS.splice(lexique.CONCEPTS.indexOf(c), 1);',
-    "const sans = (await import(SCAN + '?sansDocument')).scannerDonnees(R, familles, choix);",
+    "const sans = (await import(SCAN + '?sansDocument')).scanDuCorpus(R).scan;",
     "const site = (x) => x.dataset + ' › ' + x.champ;",
     "const kf = (f) => f.concept + ' | ' + site(f) + ' | ' + f.signature + ' | ' + f.occurrences;",
     "const ki = (i) => site(i) + ' | ' + i.signature + ' | ' + i.occurrences;",
@@ -1670,50 +1684,19 @@ describe('l’enveloppe : ce qu’un document doit porter (contrats positifs)', 
   });
 
   it('§5 : les Conditions retirées du compte d’ops sont celles qui PORTAIENT un `op`', () => {
-    // #862 : +3 ops authorées (re-ciblage `[removeTrait, grantTrait]` de Haine sporadique, État Exténué
-    // du réveil du Désespoir).
-    // #674 : +2 ops authorées (`aggravateSymptom` + son échelon `grantSymptom`, cycle quotidien de la
-    // Pneumonie, EDOC 08 l.104-108).
-    // #1657 : +70 ops authorées — la colonne « Blessures » d'Aux Armes (AA 07 l.40) était
-    // construite en TypeScript (`{op:'wounds', amount}` fabriqué au vol par l'ancien lecteur AA) ;
-    // elle descend en DONNÉE avec sa mitigation écrite. 70 rangées la portent (les 6 autres valent
-    // « T » et ne posent aucune op).
-    // #1657 : +6 ops authorées — les 6 rangées MDG dont le Test ne vivait qu'en prose `note`
-    // (MDG 13 l.730/734/736/738/751/756) posent chacune l'État À Terre de leur échec ; le coup certain
-    // du Gouvernail fluvial (MSRC 07 l.86) troque son `shrapnel: 1` contre une op `wounds`, à somme
-    // nulle sur ce compte (l'op naît, l'Indice n'en était pas une).
-    // #1657 : +5 ops `fall` (MDG 13 l.678-688) — les 5 rangées du gréement font TOMBER, et la
-    // hauteur se lit dans la table par (Taille de coque × station), jamais authorée au site.
-    // #1653 train A : +1 op authorée — la CAUSE récurrente de « Purifier la chair » (LDB 40 l.75) est une
-    // seconde op `condition` de la même rangée, pas un champ de plus sur la première.
-    // #1661 : +1 op authorée — le 2ᵉ État Hémorragique de Taillade (`AA 08 l.87`), MÊME op `condition`
-    // que l'État automatique du Critique, portée par la branche `yes` du choix.
-    // #1599 : +2 ops authorées — les États PORTÉS par un canal passif s'écrivent en DONNÉE : l'État
-    // *Inconscient* du palier Grave de la Fièvre (LDB 20 l.170) et l'État *Exténué* du Malaise (l.188),
-    // qui cessent d'être des drapeaux nommés dans le moteur. Le palier S'AJOUTANT à `passive` au lieu de
-    // le remplacer, aucune pénalité n'est recopiée : les 6 charMod de `severePassive` se DÉPLACENT vers
-    // `passiveBySeverity.moderee`, le total ne les compte pas deux fois.
-    // #1612 (2026-09-06) : 2272 → 2279 — +7 objets à `op`, tous posés par Mendier et sa table MAISON.
-    // Côté `activities.json` : 2 `money` (le gain horaire, le sou de consolation), 1 `rollTable` (la
-    // bande d'Échec Stupéfiant renvoie aux ennuis), 1 `statusMod` (« surpris à mendier », `l.99`).
-    // Côté `tables.json` : 1 `money` (l'AMENDE des gardes locaux — `LDB 09 l.97` nomme l'ennui sans le
-    // chiffrer, le montant vit en règle optionnelle `mendier-amende-sous`), 1 `condition` et 1 `wounds`
-    // (la rançon des autres mendiants).
-    // #1678 (2026-09-20) : 2279 → 2280 — le verrou de TYPE d'À Terre (`LDB 18 l.15`) descend en DONNÉE
-    // (`etats.json › lockedUntil`) : c'est un `compare`, et son `op` compte ici.
-    expect(scan.totalConditionsAvecOp + scan.totalOps, 'objets portant un `op` = ops de jeu + Conditions à `op`.').toBe(2280);
-    // #684 L4+solde : +2 Conditions sans `op` — le MÊME drapeau de révélation d'Altdorf porté par ses
-    // deux axes sur la carte du chapitre 1 : le `when` du LIEU et le `when` de la ROUTE.
-    // #717 : +1 Condition sans `op` — le `when` de la CLÔTURE du chapitre 1 (`narratif.cloture`), le
-    // MÊME drapeau de révélation d'Altdorf que les deux axes de carte ci-dessus, sur un troisième
-    // porteur : le fait de donnée qui dit « le chapitre se ferme ».
-    // #684+#717 sur « La Barge du Sel » : +3 Conditions sans `op` — les MÊMES trois porteurs, un
-    // chapitre plus loin (le `when` du LIEU de l'îlot et celui de sa ROUTE, sur le drapeau du cap ;
-    // le `when` de la CLÔTURE, sur le drapeau d'accostage).
-    // #1612 (2026-09-06) : +3 Conditions sans `op` — celles de l'Activité Mendier : le `when`
-    // `visiblePassive` de son modificateur d'apparence, et les DEUX nœuds de l'exemption de son dé de
-    // monde (`not` + le `status` qu'il enveloppe, `LDB 09 l.99`).
-    expect(scan.totalConditionsSansOp, 'des Conditions sans `op` n’ont jamais été comptées en op : elles ne se « retirent » pas.').toBe(194);
+    let objetsAOp = 0;
+    const marche = (v: unknown): void => {
+      if (Array.isArray(v)) { v.forEach(marche); return; }
+      if (!v || typeof v !== 'object') return;
+      if (typeof (v as { op?: unknown }).op === 'string') objetsAOp += 1;
+      Object.values(v).forEach(marche);
+    };
+    for (const d of listerDocuments(ROOT)) marche(JSON.parse(readFileSync(join(ROOT, d.chemin), 'utf8')));
+    expect(objetsAOp, 'la marche brute ne voit aucun `op` : l’égalité ci-dessous ne mesurerait rien.').toBeGreaterThan(0);
+    expect(
+      scan.totalConditionsAvecOp + scan.totalOps,
+      'ops de jeu + Conditions à `op` = objets portant un `op` chaîne (marche brute des documents du scan) : une Condition sans `op` comptée en op, ou un `op` qui échappe aux deux, rompt l’égalité.',
+    ).toBe(objetsAOp);
   });
 });
 
@@ -1727,7 +1710,7 @@ describe('`{text}` : la forme DÉCLARÉE ne couvre que l’irréductible narrati
     const copie = mkdtempSync(join(tmpdir(), 'structures-text-'));
     try {
       for (const racine of ['src/data', 'src/scenes']) cpSync(join(ROOT, racine), join(copie, racine), { recursive: true });
-      const temoin = scannerDonnees(copie, FAMILLES, CHOIX);
+      const temoin = scannerDonnees(copie, DEFS, CHOIX);
       expect(temoin.formes.length, 'la COPIE non mutée ne mesure pas comme l’arbre.').toBe(scan.formes.length);
       expect(forme(temoin, 'text'), 'la forme `text` déclarée a disparu du témoin.').toMatchObject({ statut: 'declaree' });
       expect(
@@ -1749,7 +1732,7 @@ describe('`{text}` : la forme DÉCLARÉE ne couvre que l’irréductible narrati
         { text: 'Assistant' },
       ];
       writeFileSync(chemin, JSON.stringify(niveaux), 'utf8');
-      const apres = scannerDonnees(copie, FAMILLES, CHOIX);
+      const apres = scannerDonnees(copie, DEFS, CHOIX);
 
       expect(
         forme(apres, 'text (résolvable)')?.occurrences,
@@ -1774,7 +1757,7 @@ describe('contrôle POSITIF côté DONNÉE : le détecteur MORD (#1465 F21)', ()
     const copie = mkdtempSync(join(tmpdir(), 'structures-contrat-'));
     try {
       for (const racine of ['src/data', 'src/scenes']) cpSync(join(ROOT, racine), join(copie, racine), { recursive: true });
-      const temoin = scannerDonnees(copie, FAMILLES, CHOIX);
+      const temoin = scannerDonnees(copie, DEFS, CHOIX);
       const cleF = (f: { concept: string; dataset: string; champ: string; signature: string; statut: string; occurrences: number }) =>
         `${f.concept} | ${f.dataset} | ${f.champ} | ${f.signature} | ${f.statut} | ${f.occurrences}`;
       const cleO = (o: { dataset: string; champ: string; signature: string; motif: string }) =>
@@ -1792,7 +1775,7 @@ describe('contrôle POSITIF côté DONNÉE : le détecteur MORD (#1465 F21)', ()
       axes[0].casses = [{ machinId: 'ceci-n-existe-pas' }]; // FK morte : clé …Id qui ne résout vers rien
       writeFileSync(chemin, JSON.stringify(axes), 'utf8');
 
-      const apres = scannerDonnees(copie, FAMILLES, CHOIX);
+      const apres = scannerDonnees(copie, DEFS, CHOIX);
       const formesNeuves = apres.formes.filter((f) => !temoin.formes.some((g) => cleF(g) === cleF(f))).map(cleF);
       const orphelinesNeuves = apres.orphelines.filter((o) => !temoin.orphelines.some((q) => cleO(q) === cleO(o))).map(cleO);
       const opsNeuves = apres.ops.filter((o) => !temoin.ops.some((q) => cleOpSonde(q) === cleOpSonde(o))).map(cleOpSonde);
@@ -1819,6 +1802,7 @@ describe('contrôle POSITIF côté DONNÉE : le détecteur MORD (#1465 F21)', ()
  * `entries` — les clés du record disparaîtraient de l'index des ids, en silence.
  */
 describe('régime `valeurs` : le scan descend dans `entries` d’un record ENVELOPPÉ', () => {
+  const expositionDeSonde: Exposition = { codex: { keys: ['sondes'] }, edit: { dataset: 'sonde.json' } };
   it('une clé d’`entries` entre à l’index (collision avec `teintesJeu.json`) ; l’enveloppe n’y entre pas', () => {
     const copie = mkdtempSync(join(tmpdir(), 'structures-record-'));
     try {
@@ -1830,8 +1814,8 @@ describe('régime `valeurs` : le scan descend dans `entries` d’un record ENVEL
         JSON.stringify({ id: 'sonde-record', type: 'sondeRecord', label: 'Sonde record', entries: { 'zone-marche': '#123456' } }),
         'utf8',
       );
-      const famillesSonde = new Map([...FAMILLES, ['sonde-record.json', 'record']]);
-      const apres = scannerDonnees(copie, famillesSonde, CHOIX);
+      const sonde = document('sondeRecord', 'record', {}, {}, expositionDeSonde, { valeurRecord: z.string() });
+      const apres = scannerDonnees(copie, [...DEFS, { file: 'sonde-record.json', root: 'src/data', famille: 'record', schema: sonde.schema }], CHOIX);
       const collision = apres.index.collisions.find((c) => c.id === 'zone-marche');
       expect(collision?.datasets, 'la clé d’`entries` n’est pas indexée : le régime `valeurs` n’est pas descendu sous l’enveloppe.').toEqual([
         'sonde-record.json',
@@ -1848,19 +1832,74 @@ describe('régime `valeurs` : le scan descend dans `entries` d’un record ENVEL
 });
 
 /**
- * LES TROIS CONTREFACTUELS DE REDÉCLARATION — un seul sous-processus, trois verdicts (#1654,
+ * COLLECTION À CLÉ DÉCLARÉE (#1897) : une carte de record que le schéma MARQUE (`marquerCollection`)
+ * n'est jamais hors strate — ni invisible, ni orpheline — et le classement valeur/référence la lit
+ * comme tout objet (`TERMES_COLLECTION_A_CLE`, `scripts/docs/lib/structures-lexique.mts`).
+ */
+describe('collection à clé déclarée : la carte d’un record MARQUÉ n’est jamais hors strate', () => {
+  const expositionDeSonde: Exposition = { codex: { keys: ['sondes'] }, edit: { dataset: 'sonde.json' } };
+  const carte = <S extends z.ZodType>(s: S) => marquerCollection(s, marqueDeRecord());
+  const cotes = z.strictObject({ a: z.number(), b: z.number() });
+  const renvois = z.strictObject({ a: z.string(), b: z.string() });
+  const x = document(
+    'x',
+    'config',
+    { t: carte(cotes), tNue: cotes, r: carte(renvois), u: carte(z.strictObject({ fooId: z.string() })) },
+    { t: { label: 'T' }, tNue: { label: 'T nue' }, r: { label: 'R' }, u: { label: 'U' } },
+    expositionDeSonde,
+  );
+  const alpha = document('alpha', 'entite', {}, {}, expositionDeSonde);
+  const DEFS_FIXTURE: SchemaDef[] = [
+    { file: 'x.json', root: 'src/data', famille: 'config', schema: x.schema },
+    { file: 'alpha.json', root: 'src/data', famille: 'entite', schema: alpha.schema },
+  ];
+  const dossier = mkdtempSync(join(tmpdir(), 'structures-collection-'));
+  afterAll(() => rmSync(dossier, { recursive: true, force: true }));
+  mkdirSync(join(dossier, 'src/data'), { recursive: true });
+  mkdirSync(join(dossier, 'src/scenes'), { recursive: true });
+  cpSync(join(ROOT, 'src/data/schemas/grammaire'), join(dossier, 'src/data/schemas/grammaire'), { recursive: true });
+  writeFileSync(join(dossier, 'src/data/alpha.json'), JSON.stringify([{ id: 'renvoi-un', maison: 'sonde' }, { id: 'renvoi-deux', maison: 'sonde' }]));
+  writeFileSync(
+    join(dossier, 'src/data/x.json'),
+    JSON.stringify({
+      id: 'x',
+      maison: 'sonde',
+      t: { a: 1, b: 2 },
+      tNue: { a: 3, b: 4 },
+      r: { a: 'renvoi-un', b: 'renvoi-deux' },
+      u: { fooId: 'renvoi-absent' },
+    }),
+  );
+  const fixture = scannerDonnees(dossier, DEFS_FIXTURE);
+  const brut = fixture.brutParNom.get('x.json') as Record<string, object>;
+  const invisible = (champ: string) => fixture.invisibles.filter((i) => i.dataset === 'x.json' && i.champ === champ).map((i) => i.signature);
+
+  it('la carte marquée est une collection relevée et n’est pas invisible ; sa jumelle NON marquée l’est', () => {
+    expect(invisible('t'), 'la carte `t`, déclarée collection à clé, est comptée hors strate.').toEqual([]);
+    expect(fixture.collections.filter((c) => c.dataset === 'x.json').map((c) => c.cle)).toEqual(['x.json#t', 'x.json#r', 'x.json#u']);
+    expect(invisible('tNue'), 'contrôle : la même forme SANS marque reste hors strate.').toEqual(['a,b']);
+    expect(fixture.objets.collectionsACle).toBe(3);
+  });
+
+  it('une carte marquée dont les valeurs RÉSOLVENT reste PORTEUR de références, case par case', () => {
+    expect([...(fixture.referencesParPorteur.get(brut.r)?.keys() ?? [])].sort(), 'le classement a sauté la carte marquée.').toEqual(['a', 'b']);
+  });
+
+  it('une carte marquée dont une clé `…Id` ne résout pas n’est pas orpheline', () => {
+    expect(fixture.orphelines.filter((o) => o.dataset === 'x.json').map((o) => `${o.champ} | ${o.signature}`)).toEqual([]);
+    expect(invisible('u')).toEqual([]);
+  });
+});
+
+/**
+ * LES TROIS CONTREFACTUELS DE REDÉCLARATION — une copie `avant`, trois verdicts (#1654,
  * #1463 L-gram-3).
  *
- * SOUS-PROCESSUS + racines SÉPARÉES, obligatoires : les caches de parse du scanner (`CACHE_SOURCE`,
- * `CACHE_LITTERAUX`, `scripts/docs/lib/structures-scan.mts`) sont module-level et ne sont JAMAIS
- * invalidés (angle mort déclaré au lexique) — une mutation mesurée dans le processus de la suite,
- * ou sur la MÊME racine, mesurerait le premier état lu et mentirait.
- *
- * Ce qui se BATCHE : le pilote est le même scan, et la racine `avant` est la même copie des defs +
- * de la grammaire pour les trois — trois `tsx` (~1,7 s de démarrage chacun) et trois scans de
- * `avant` rendaient trois fois les mêmes chiffres. Ce qui reste TROIS contrats : les `apres` sont
- * des mutations DISTINCTES (une def de sonde injectée ; `avail` re-tapé ; `price` re-tapé), chacune
- * sur sa racine, et chaque `it` lit SON verdict.
+ * Ce qui se BATCHE : la racine `avant` est la même copie des defs + de la grammaire pour les trois,
+ * scannée une fois. Ce qui reste TROIS contrats : les `apres` sont des mutations DISTINCTES (une def
+ * de sonde injectée ; `avail` re-tapé ; `price` re-tapé), chacune sur SA racine — `avant` reste
+ * intacte —, et chaque `it` lit SON verdict. Le scan tourne dans le processus de la suite : il ne
+ * tient aucun état entre deux racines (`structures-scan.mts`, `sourceDe`).
  */
 type VerdictRedecl = {
   avant: number; apres: number; litterauxAvant: number; litterauxApres: number; nees: string[]; perdues: string[];
@@ -1896,59 +1935,41 @@ const MUTATIONS: Record<string, (defs: string) => void> = {
   ),
 };
 
-const PILOTE_REDECL = [
-  "import { pathToFileURL } from 'node:url';",
-  "import { join } from 'node:path';",
-  'const [avantRoot, ...variantes] = process.argv.slice(2);',
-  "const SCAN = pathToFileURL(join(process.cwd(), 'scripts/docs/lib/structures-scan.mjs')).href;",
-  'const { scannerRedeclarations } = await import(SCAN);',
-  "const cle = (r) => r.def + ' | ' + (r.champ || '(racine)') + ' | ' + r.signature + ' | ' + r.concept + ' | ' + r.statut + ' | ' + r.commun;",
-  'const avant = scannerRedeclarations(avantRoot);',
-  'const clesAvant = avant.redeclarations.map(cle);',
-  'const out = {};',
-  'for (const v of variantes) {',
-  "  const coupe = v.indexOf('=');",
-  '  const apres = scannerRedeclarations(v.slice(coupe + 1));',
-  '  const clesApres = apres.redeclarations.map(cle);',
-  '  out[v.slice(0, coupe)] = {',
-  '    avant: avant.redeclarations.length,',
-  '    apres: apres.redeclarations.length,',
-  '    litterauxAvant: avant.totalLitteraux,',
-  '    litterauxApres: apres.totalLitteraux,',
-  '    nees: clesApres.filter((k) => !clesAvant.includes(k)).sort(),',
-  '    perdues: clesAvant.filter((k) => !clesApres.includes(k)).sort(),',
-  '  };',
-  '}',
-  "process.stdout.write('<<<DIFF>>>' + JSON.stringify(out));",
-].join('\n');
+/** Clé d'une redéclaration : ce que la comparaison `avant`/`apres` tient pour identique. */
+const cleRedecl = (r: Redeclaration) =>
+  `${r.def} | ${r.champ || '(racine)'} | ${r.signature} | ${r.concept} | ${r.statut} | ${r.commun}`;
 
-let verdictsRedecl: Record<string, VerdictRedecl> | undefined;
-let dossierRedecl: string | undefined;
-afterAll(() => {
-  if (dossierRedecl) rmSync(dossierRedecl, { recursive: true, force: true });
-});
-
-/** Le verdict d'UNE mutation. Le pilote est joué au premier appel, une fois pour le run. */
-function verdictRedecl(nom: string): VerdictRedecl {
-  if (!verdictsRedecl) {
-    const dossier = (dossierRedecl = mkdtempSync(join(tmpdir(), 'structures-redecl-')));
+/** Les verdicts des trois mutations, mesurés au premier appel sur des copies retirées aussitôt. */
+const verdictsRedecl = detenteur((): Record<string, VerdictRedecl> => {
+  const dossier = mkdtempSync(join(tmpdir(), 'structures-redecl-'));
+  try {
     for (const racine of ['avant', ...Object.keys(MUTATIONS)]) {
       for (const sous of ['defs', 'grammaire']) {
         cpSync(join(ROOT, 'src/data/schemas', sous), join(dossier, racine, 'src/data/schemas', sous), { recursive: true });
       }
     }
     for (const [cle, muter] of Object.entries(MUTATIONS)) muter(join(dossier, cle, 'src/data/schemas/defs'));
-    const pilote = join(dossier, 'pilote.mjs');
-    writeFileSync(pilote, PILOTE_REDECL, 'utf8');
-    const sortie = execFileSync(
-      process.execPath,
-      ['--import', 'tsx', pilote, join(dossier, 'avant'), ...Object.keys(MUTATIONS).map((cle) => `${cle}=${join(dossier, cle)}`)],
-      { cwd: ROOT, encoding: 'utf8' },
-    ).split('<<<DIFF>>>');
-    verdictsRedecl = JSON.parse(sortie[sortie.length - 1]) as Record<string, VerdictRedecl>;
+    const avant = scannerRedeclarations(join(dossier, 'avant'));
+    const clesAvant = avant.redeclarations.map(cleRedecl);
+    return tableTotale(Object.keys(MUTATIONS), (cle) => {
+      const apres = scannerRedeclarations(join(dossier, cle));
+      const clesApres = apres.redeclarations.map(cleRedecl);
+      return {
+        avant: avant.redeclarations.length,
+        apres: apres.redeclarations.length,
+        litterauxAvant: avant.totalLitteraux,
+        litterauxApres: apres.totalLitteraux,
+        nees: clesApres.filter((k) => !clesAvant.includes(k)).sort(),
+        perdues: clesAvant.filter((k) => !clesApres.includes(k)).sort(),
+      };
+    });
+  } finally {
+    rmSync(dossier, { recursive: true, force: true });
   }
-  return verdictsRedecl[nom]!;
-}
+});
+
+/** Le verdict d'UNE mutation. */
+const verdictRedecl = (nom: string): VerdictRedecl => verdictsRedecl()[nom]!;
 
 /**
  * CONTRÔLE POSITIF du scan AST des redéclarations (#1654) — le détecteur MORD.

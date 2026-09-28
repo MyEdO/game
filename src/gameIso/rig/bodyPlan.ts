@@ -10,16 +10,16 @@ import type { BonePose } from './poses';
 import type { ResolvedBone } from './composeRig';
 import type { View } from './facing';
 import type { Palette } from './palette';
-import type { Appearance } from './appearance';
+import { asRigSpeciesId, type Appearance, type RigSpeciesId } from './appearance';
 import type { EquipCtx } from './parts/equipment';
 import { PLAN_LIST } from './plans/_registry.generated';
 import { defById, speciesScale } from './creatures';
-import { findCreatureById, findTrappingById, findVehicleById } from '../../data';
+import { findCreatureById, findTrappingById, findVehicleById, DEFAULT_RACE_ID } from '../../data';
 import { isSwarm } from '../../engine/traits/dispatch';
-import { DEFAULT_RACE_ID } from './races';
 import { diagOnce, diagSubject } from './devDiag';
 import { eyesArtFromKeys } from './parts/eyes';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
+import { fauteDEspece, estFormeDeNuee } from '../../data/schemas/grammaire/art';
 
 /** Identifiant de gabarit — chaîne libre dérivée des `plans/defs/` (data-driven : chaque plan
  *  déclare son `id`). Le monolithique n'est PAS un BodyPlan (repli hors registre). */
@@ -130,13 +130,22 @@ export function planOptsForRecord(recordId: string | undefined, override?: Entit
  *  espèce du RECORD (`findCreatureById(id).appearance.species`) → bipède Humain. Trait Nuée → 'swarm'.
  *  PLUS aucun repli par libellé/nom d'auteur (le 3ᵉ arg ne sert qu'au record + match véhicule).
  *  3ᵉ arg = `id` de créature (scènes/spawn) ; une ESPÈCE explicite passe par le 1er arg (cf. resolveSpecies). */
-export interface RenderResolution {
-  kind: 'rig' | 'plan';
-  plan: BodyPlanId;
-  species: string;
-  scale: number;
-  /** `species` est la race par DÉFAUT d'une donnée sans espèce (ni explicite, ni record, ni affût, ni véhicule). */
-  repli?: true;
+export type RenderResolution =
+  | {
+    kind: 'rig';
+    plan: 'biped';
+    /** Espèce d'origine CODE : l'espèce d'auteur est jugée ici, en amont (`fauteDEspece`). */
+    species: RigSpeciesId;
+    scale: number;
+    /** `species` est la race par DÉFAUT d'une donnée sans espèce (ni explicite, ni record, ni affût, ni véhicule). */
+    repli?: true;
+  }
+  | { kind: 'plan'; plan: BodyPlanId; species: string; scale: number };
+
+/** Corps d'ERREUR (`plans/defs/manquant.ts`) d'une espèce d'auteur que le rendu refuse, `faute` nommée. */
+function especeManquante(espece: string, sujet: string | undefined, faute: string): RenderResolution {
+  if (import.meta.env?.DEV) diagOnce(`bodyPlan:manquant:${sujet ?? diagSubject()}:${espece}`, () => console.error(`[bodyPlan] « ${sujet ?? (diagSubject() || '(sans réf)')} » : ${faute}`));
+  return { kind: 'plan', plan: 'manquant', species: espece, scale: 1 };
 }
 export function resolveRender(species: string | undefined, traits: import('../../engine/statEntry').TraitList | undefined, idOrName: string | undefined): RenderResolution {
   // Véhicule À COQUE → gabarit routé par la PROPULSION (`hull.propulsion`), DATA-DRIVEN. Prioritaire (un
@@ -158,6 +167,11 @@ export function resolveRender(species: string | undefined, traits: import('../..
     if (import.meta.env?.DEV) diagOnce(`bodyPlan:propulsion:${idOrName}`, () => console.error(`[bodyPlan] véhicule « ${idOrName} » : propulsion « ${prop} » sans gabarit de rendu — donnée à corriger.`));
   }
   const rec = findCreatureById(idOrName);
+  // Espèce d'AUTEUR (argument explicite ou `appearance.species` du record) : jugée contre le domaine de
+  // saisie du schéma, jamais rendue en l'art d'une autre espèce.
+  const resolved = species ?? rec?.appearance?.species;
+  const faute = resolved === undefined ? null : fauteDEspece(resolved);
+  if (resolved && faute) return especeManquante(resolved, idOrName, faute);
   // Nuée NON typée (aucune espèce de forme) → forme GÉNÉRIQUE (DEFAULT_FORM de composeSwarm via '').
   // Ce défaut vaut pour LA VOIE bodyPlan : `src/gameIso/usePlanAnim.ts:113` retombe, lui, sur la 1re
   // forme du registre (`species || plan.speciesNames()[0]`) — divergence latente consignée à #1537.
@@ -165,15 +179,15 @@ export function resolveRender(species: string | undefined, traits: import('../..
   if (isSwarm(traits)) {
     // Même résolution que la branche bipède : espèce explicite → espèce du RECORD → défaut Nuée.
     // (Sans ça, une Nuée au record typé — « Nuée de squigs » → Squig — perdait son espèce.)
-    const sp = species ?? rec?.appearance?.species ?? swarmSp;
+    const sp = resolved ?? swarmSp;
     return { kind: 'plan', plan: 'swarm', species: sp, scale: speciesScale(sp) };
   }
   // Résolution par la DONNÉE : espèce EXPLICITE (arg) → espèce du record, jamais un repli par libellé.
-  const resolved = species ?? rec?.appearance?.species;
   if (resolved) {
+    if (estFormeDeNuee(resolved)) return especeManquante(resolved, idOrName, `espèce « ${resolved} » : forme de nuée sans le trait Nuée — le personnage s'affiche en silhouette d'erreur.`);
     const d = defById(resolved);
     if (d && d.plan !== 'biped') return { kind: 'plan', plan: d.plan, species: resolved, scale: speciesScale(resolved) };
-    return { kind: 'rig', plan: 'biped', species: resolved, scale: speciesScale(resolved) };
+    return { kind: 'rig', plan: 'biped', species: asRigSpeciesId(resolved), scale: speciesScale(resolved) };
   }
   // Engin de siège : `idOrName` n'est PAS une créature mais un TRAPPING à art d'affût (`siegeRig`, ex.
   // 'baliste'/'canon-petit') → ce rig pilote la silhouette (plan 'engin'). L'apparence est DÉRIVÉE de la
@@ -184,7 +198,7 @@ export function resolveRender(species: string | undefined, traits: import('../..
       const d = defById(siegeRig);
       if (d && d.plan !== 'biped') return { kind: 'plan', plan: d.plan, species: siegeRig, scale: speciesScale(siegeRig) };
       if (import.meta.env?.DEV) diagOnce(`bodyPlan:siegeRig:${siegeRig}`, () => console.error(`[bodyPlan] affût « ${siegeRig} » : aucune def de rendu (plan non bipède) — l'engin serait dessiné en humanoïde ; def à ajouter dans creatures/defs.`));
-      return { kind: 'rig', plan: 'biped', species: siegeRig, scale: speciesScale(siegeRig) };
+      return { kind: 'rig', plan: 'biped', species: asRigSpeciesId(siegeRig), scale: speciesScale(siegeRig) };
     }
   }
   // Record sans espèce mais trait Nuée (les records Nuée, si le caller n'a pas passé les traits).
@@ -194,5 +208,5 @@ export function resolveRender(species: string | undefined, traits: import('../..
   // DÉCLARÉE en donnée (`speciesRace.json`), visiblement fausse, jamais une espèce inventée en code.
   const sujet = idOrName ?? diagSubject(); // sans réf, le sujet est celui posé par l'appelant (scène/entité)
   if (import.meta.env?.DEV) diagOnce(`bodyPlan:espece:${sujet}`, () => console.error(`[bodyPlan] « ${sujet || '(sans réf)'} » : aucune espèce résolue (ni Espèce explicite, ni record de créature) — donnée à corriger.`));
-  return { kind: 'rig', plan: 'biped', species: DEFAULT_RACE_ID, scale: speciesScale(DEFAULT_RACE_ID), repli: true };
+  return { kind: 'rig', plan: 'biped', species: asRigSpeciesId(DEFAULT_RACE_ID), scale: speciesScale(DEFAULT_RACE_ID), repli: true };
 }

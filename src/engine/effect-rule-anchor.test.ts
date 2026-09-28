@@ -143,12 +143,12 @@ const BASELINE: string[] = [
   'engine/shipCritical.ts | extra.ops | { rng }', // ops d'un critique de navire supplémentaire
   'state/aiSpellValue.ts | [op] | { caster: c, rng: STATIC_RNG }', // simulation d'IA sur un CLONE — jamais affichée au joueur
   'state/combatEffects.ts | e.ops | { rng: battleRng() }', // ops d'un Souffle de zone (effet de scène)
-  'state/combatFlow.ts | crit.ops | { rng: battleRng(), now: get().gameTime, location: loc }', // ops d'une Blessure critique en combat
+  'state/combatFlow.ts | crit.ops | { rng: battleRng(), now: get().gameTime, location: loc, surLigne }', // ops d'une Blessure critique en combat
   'state/combatFlow.ts | outcome.ops | { rng: battleRng() }', // ops de l'issue d'une manœuvre
   'state/interludeFlow.ts | ops | { rng: battleRng(), now: get().gameTime }', // issues DIFFÉRÉES à la clôture d'un interlude
   'state/medicFlow.ts | penalty | { rng: battleRng(), now, defaultUntilTime: now + d10(battleRng()) * 24 * 60 }', // pénalité posée par un soin raté
   'state/seaVoyageFlow.ts | p.scaldOps | { rng: battleRng(), now: get().gameTime }', // brûlure de vapeur (scaldOps) d'une pièce de machine
-  "state/seaVoyageFlow.ts | [{ op: 'grantTalent', talentId: 'chanceux' }] | { label: event.label, rng, defaultUntilTime: until }", // Talent Chanceux octroyé par un événement de bord
+  "state/seaVoyageFlow.ts | [{ op: 'grantTalent', talent: { id: 'chanceux' } }] | { label: event.label, rng, defaultUntilTime: until }", // Talent Chanceux octroyé par un événement de bord
   "state/seaVoyageFlow.ts | [ { op: 'skillDRBonus', skill: { id: 'focalisation' }, bonus: 2 }, { op: 'skillDRBonus', skill: { id: 'guerison' }, bonus: 2 }, { op: 'skillDRBonus', skill: { id: 'resistance' }, bonus: 2 }, ] | { label: event.label, rng, defaultUntilTime: until }", // bonus de DR octroyés par un événement de bord
   'state/travelFlow.ts | r.entry.occupantOps | { rng: battleRng() }', // ops subies par l'occupant d'une rencontre de voyage
   'state/travelPostes.ts | [op] | ', // Exténué du Test de résistance de traversée (État : ancré par son condId)

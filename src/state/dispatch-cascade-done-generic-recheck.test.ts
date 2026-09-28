@@ -2,7 +2,6 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { seedBattleRng } from './battleRng';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import type { Combatant } from '../engine/types';
 import type { PendingCascade } from './pendings';
 
@@ -33,7 +32,7 @@ describe('dispatchCascadeDone — re-check TOUT-PURPOSE de checkBattleOver (#345
 
   it('cascade purpose "test" (hypothétique) close en combat, dernier ennemi déjà mort → la Victoire s\'enchaîne (pas d\'écrasement, pas de silence)', () => {
     seedBattleRng(3);
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     const heroClone = { ...hero, kind: 'hero' as const };
     useGame.setState({
       party: [hero],

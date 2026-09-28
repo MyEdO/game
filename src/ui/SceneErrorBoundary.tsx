@@ -14,6 +14,10 @@ export interface SceneErrorBoundaryProps {
    *  peut avoir un état corrompu). Fournie = un simple retour au rendu normal (réessaie les
    *  enfants sans recharger) — le crash de rendu ne touche pas le store, la session survit. */
   onRetry?: () => void;
+  /** CLÉ DE REPRISE : sa première valeur NEUVE (identité) après un crash relève le rendu, sans geste —
+   *  la donnée qui a fait tomber les enfants a changé, ils se réessaient. Absente = seul le bouton
+   *  relève. */
+  cleDeReprise?: unknown;
 }
 
 interface State {
@@ -37,6 +41,10 @@ export class SceneErrorBoundary extends Component<SceneErrorBoundaryProps, State
   componentDidCatch(error: unknown, info: { componentStack: string }): void {
     console.error('SceneErrorBoundary : crash de rendu', error, info.componentStack);
     recordError(error instanceof Error ? error.message : String(error), error instanceof Error ? error.stack : info.componentStack);
+  }
+
+  componentDidUpdate(prev: SceneErrorBoundaryProps): void {
+    if (this.state.crashed && prev.cleDeReprise !== this.props.cleDeReprise) this.setState({ crashed: false });
   }
 
   handleRetry = (): void => {

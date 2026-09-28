@@ -1,3 +1,4 @@
+import '../node-requis.mjs';
 import { readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -14,5 +15,5 @@ export async function injectProjectCredo(surface, scriptUrl = import.meta.url, o
   output.write(credo);
 }
 
-if (fileURLToPath(import.meta.url) === process.argv[1])
+if (import.meta.main)
   injectProjectCredo(process.argv[2]).catch((error) => { process.stderr.write(`${error.message}\n`); process.exitCode = 1; });

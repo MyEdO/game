@@ -7,18 +7,16 @@
  * 2026-08-23-specs-frenchy-vers-catalogue.mjs` (l.237), et la garde `src/data/refs-migrated.test.ts`.
  * Une marche dupliquée entre le geste et sa garde, c'est une garde qui mesure autre chose que le geste.
  *
- * Module ESM chargé par Node nu — typé par `skillSpecWalk.d.mts`. Son seul import hors `node:` est la
- * maison du NUMÉRO DE CHAPITRE (`src/data/source/decoupe.ts`), module PUR à syntaxe effaçable que le
- * dépôt charge déjà tel quel sous Node nu comme sous vitest.
+ * Module ESM chargé par Node nu — typé par `skillSpecWalk.d.mts`. Ses imports hors `node:` sont la
+ * maison du NUMÉRO DE CHAPITRE (`src/data/source/decoupe.ts`) et le repli des libellés
+ * (`src/lib/normalize.ts`), modules PURS à syntaxe effaçable que le dépôt charge tels quels sous Node
+ * nu comme sous vitest.
  */
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { estNomDExtraction, numeroDuFichier } from '../../../src/data/source/decoupe.ts';
-
-/** Casse/accents neutralisés — comparaison de LIBELLÉS uniquement. */
-export function norm(s) {
-  return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
-}
+import { norm } from '../../../src/lib/normalize.ts';
+import { sourceDirOf } from '../../raw/_lib.mjs';
 
 /** Sentinelle « (Au choix) » : un emplacement de spéc, pas une spéc. */
 export function isSentinel(s) {
@@ -59,17 +57,6 @@ export function skillArraysOf(entry) {
   };
   walk(entry, null);
   return out;
-}
-
-/**
- * Dossier d'extraction d'un livre, quel que soit le champ qui le porte : `dir` pour les livres de
- * l'Atlas RAW (`scripts/raw/_lib.mjs#BOOKS` les exige, pont folio compris), `extractionDir`
- * pour une extraction citable HORS Atlas (`frenchy-bzh`). Une seule lecture, partagée par le
- * périmètre `extractedBooks` et par le volet « dossier FR réclamé » de la garde.
- */
-export function sourceDirOf(book) {
-  const d = book?.dir ?? book?.extractionDir;
-  return typeof d === 'string' && d ? d : null;
 }
 
 /** Un chapitre d'extraction est un `NN - ….md` à la racine du dossier du livre. */

@@ -6,13 +6,14 @@ import './combatFlow'; // charge les clôtures que le combat enregistre (`ouvrir
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { scanRollSeamExclusivity, ROLL_SEAM_RX, scanPendingJetFabrication, engineRollerExports, engineHomonyms, scanEngineDelegatedRoll, scanDesHorsPorte, engineDiceRollers } from '../../scripts/guards/lib/rollSeamExclusivity.mjs';
+import { scanRollSeamExclusivity, ROLL_SEAM_RX, scanPendingJetFabrication, engineRollerExports, engineHomonyms, scanEngineDelegatedRoll, scanDesHorsPorte, engineDiceRollers, AMORCE_DES } from '../../scripts/guards/lib/rollSeamExclusivity.mjs';
 import { rollSeamExcluded, ROLL_SEAM_PHASE2_STOCK, WORLD_DIE_SUBTRACTED_STOCK, PENDING_JET_FABRICATION_STOCK, ENGINE_DELEGATED_ROLL_STOCK, DES_HORS_PORTE_STOCK, SEAM_CALLERS } from '../../scripts/guards/lib/rollSeamWhitelist.mjs';
-import { scanBattleRngEngineLeak } from '../../scripts/guards/lib/battleRngEngineLeak.mjs';
+import { contexteDeScanRng, scanBattleRngEngineLeak } from '../../scripts/guards/lib/battleRngEngineLeak.mjs';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { tableDesExports } from '../../scripts/guards/lib/canonUnique.mjs';
 import { battleRngEngineLeakExcluded } from '../../scripts/guards/lib/battleRngEngineLeakWhitelist.mjs';
 import { estFichierVitest } from '../../scripts/guards/lib/fichierVitest.mjs';
+import { detenteur } from '../detenteur.testkit';
 
 /**
  * Garde-fou « exclusivité du seam de jet » (#274, DERNIER verrou du programme #276).
@@ -49,13 +50,11 @@ const corpus = () => readCorpus(SCAN_DIRS, { tests: true });
 /** Sites de roulage brut du corpus entier, mode `includeExcluded` — SUR-ENSEMBLE dont la forme NUE du
  *  garde est le sous-ensemble sans `excludedBy` (rollSeamExclusivity.mjs, `opts.includeExcluded`) :
  *  un seul parcours nourrit le garde d'exclusivité ET le compteur (M). */
-let _sites: Map<string, { line: number; detail: string; excludedBy?: string }[]> | null = null;
-function sitesByFile(): Map<string, { line: number; detail: string; excludedBy?: string }[]> {
-  if (_sites) return _sites;
+const sitesByFile = detenteur(() => {
   const m = new Map<string, { line: number; detail: string; excludedBy?: string }[]>();
   for (const { rel, text } of corpus()) m.set(rel, scanRollSeamExclusivity(rel, text, { includeExcluded: true }));
-  return (_sites = m);
-}
+  return m;
+});
 
 function countsByFile(): Record<string, number> {
   const counts: Record<string, number> = {};
@@ -309,9 +308,10 @@ describe('garde-fou « seam de jet » — exclusivité de rollTest/d100/TestOutc
 describe('garde-fou « rng vivant → résolveur moteur » — un flux state/** ne peut plus appeler un resolveXxx(…) moteur avec battleRng() en direct (#370)', () => {
   it('aucun fichier hors whitelist ne remet un rng vivant à un résolveur moteur', () => {
     const offenders: string[] = [];
+    const passage = contexteDeScanRng();
     for (const { rel, text } of corpus()) {
       if (estFichierVitest(rel) || battleRngEngineLeakExcluded(rel)) continue;
-      const findings = scanBattleRngEngineLeak(rel, text);
+      const findings = scanBattleRngEngineLeak(rel, text, passage);
       for (const x of findings) offenders.push(`${rel}:${x.line} [rng vivant → ${x.name}] ${x.detail}`);
     }
     expect(
@@ -451,13 +451,11 @@ function prodFiles(...dirs: string[]): { rel: string; text: string }[] {
 
 /** Rouleurs d'engine DÉRIVÉS (clôture transitive) — mémoïsés : 4 `it` de deux `describe` les
  *  demandent, la dérivation reparse tout `src/engine` à chaque appel. */
-let _rollers: ReturnType<typeof engineRollerExports> | null = null;
-const rollers = () => (_rollers ??= engineRollerExports(prodFiles('src/engine')));
-/** Table `{ module: [rouleurs] }` de (D), lue par `scanEngineDelegatedRoll` — mémoïsée, comme `rollers()`. */
-let _delegues: Record<string, string[]> | null = null;
+const rollers = detenteur(() => engineRollerExports(prodFiles('src/engine')));
+/** Table `{ module: [rouleurs] }` de (D), lue par `scanEngineDelegatedRoll` — détenue, comme `rollers()`. */
+const delegues = detenteur(() => tableDesExports(prodFiles('src/engine'), rollers().keys()));
 /** Table d'une fixture de (D) : le module de `resolveClash`. */
 const MASS_BATTLE = { 'src/engine/massBattle.ts': ['resolveClash'] };
-const delegues = () => (_delegues ??= tableDesExports(prodFiles('src/engine'), rollers().keys()));
 
 type Stock = Map<string, { n: number; kind: string; why: string }>;
 
@@ -952,8 +950,7 @@ describe('CLIQUET 2 — une étape-JET ne se monte plus à la main, même sans a
  */
 describe('garde SŒUR « dés hors porte » (#1508) — un dé qui tombe hors de la porte est compté nominativement', () => {
   /** Rouleurs DIRECTS de `src/engine` (un hop) — mémoïsés, comme `rollers()`. */
-  let _des: Readonly<Record<string, readonly string[]>> | null = null;
-  const desRollers = () => (_des ??= engineDiceRollers(prodFiles('src/engine')));
+  const desRollers = detenteur(() => engineDiceRollers(prodFiles('src/engine')));
 
   /** Mesure du corpus de PRODUCTION hors moteur et hors noyau du seam. */
   function mesureDesHorsPorte(): Map<string, number> {
@@ -986,6 +983,13 @@ describe('garde SŒUR « dés hors porte » (#1508) — un dé qui tombe hors de
     // n'est ni consommé en seuil ni en table ici : il le compte comme forgeage de Test).
     const exclusivite = cas.map(([nom, src]) => [nom, scanRollSeamExclusivity('src/state/faux.ts', src).length] as const);
     expect(exclusivite).toEqual([['d100', 1], ['d10', 0], ['rollDice', 0], ['rollExpr', 0], ['deMonde', 0]]);
+  });
+
+  it('AMORCE COMPLÈTE : tout export de `src/engine/dice.ts` qui tire un dé est une primitive de `AMORCE_DES`', () => {
+    const dice = prodFiles('src/engine').filter((f) => f.rel === 'src/engine/dice.ts');
+    expect(dice).toHaveLength(1);
+    const horsAmorce = (engineDiceRollers(dice)['src/engine/dice.ts'] ?? []).filter((n) => !AMORCE_DES.includes(n));
+    expect(horsAmorce, 'primitive de dé absente de `AMORCE_DES` (scripts/guards/lib/rollSeamExclusivity.mjs)').toEqual([]);
   });
 
   it('MORSURE : un `d10` NEUF dans un applier de `src/state` est vu (fail-closed)', () => {
@@ -1092,8 +1096,10 @@ describe('garde SŒUR « dés hors porte » (#1508) — un dé qui tombe hors de
 // #1508 — LE SIGNAL « DIFFÉRÉ » NE TOMBE JAMAIS PAR TERRE
 // ---------------------------------------------------------------------------------------------
 
-/** Les fonctions qui appliquent des Effets/des ops et rendent `Applique` (`state/combatEffects`). */
-const POINTS_DAPPLICATION = ['applyEffects', 'applyEffectsLoot', 'applyLeafOps', 'runFlow'];
+/** Les fonctions qui appliquent des Effets/des ops et rendent `Applique` (`state/combatEffects` ; et
+ *  les deux points d'application de COMBAT dont la grappe de dés part à la porte — `state/combatFlow`
+ *  `applyOups`/`applyBladeTrap`, #1508 T3b-4). */
+const POINTS_DAPPLICATION = ['applyEffects', 'applyEffectsLoot', 'applyLeafOps', 'runFlow', 'applyOups', 'applyBladeTrap'];
 /** Les CONSOMMATEURS nommés — recevoir le retour en argument de l'un d'eux EST le consommer. */
 const CONSOMMATEURS = ['jouerFlowEntier', 'nePeutPasDifferer', 'cloturer'];
 

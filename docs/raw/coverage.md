@@ -15,9 +15,9 @@
 
 - **Cœur 4e** : ✅ 40 traités par une fiche · 📖 33 transcrits par un catalogue seul (jamais traités) · 🟡 0 effleurés · ⬜ 1 trous, sur 74 chapitres-règles (hors artefacts OCR).
 - **Cœur 5e** : ✅ 33 traités par une fiche · 📖 0 transcrits par un catalogue seul (jamais traités) · 🟡 17 effleurés · ⬜ 67 trous, sur 117 chapitres-règles (hors artefacts OCR).
-- **Livres sans cœur déclaré** : ✅ 48 traités par une fiche · 📖 45 transcrits par un catalogue seul (jamais traités) · 🟡 2 effleurés · ⬜ 0 trous, sur 95 chapitres-règles (hors artefacts OCR).
+- **Livres sans cœur déclaré** : ✅ 49 traités par une fiche · 📖 45 transcrits par un catalogue seul (jamais traités) · 🟡 2 effleurés · ⬜ 0 trous, sur 96 chapitres-règles (hors artefacts OCR).
 
-Section-granulaire (niveau de heading ADAPTATIF par livre — H2 pour AA/VDM/ADE I/ADE II/EDO, H3 pour LDB/CRB/MCLB/ACE/ZI/MDG/EDOC/MSRC/NADJ/MSR/PDT, H4 pour AU1, #604), ventilation DÉRIVÉE (jamais un compte recopié) sur 3848 section(s) non couvertes par une fiche : **639 transcrite(s) en catalogue** (recopiées, pas traitées) · **2470 hors-règle** (chapitre explicitement exclu) · **58 bruit de scénario** (livres de teneur `scenario` AU1/EDO/MSR/PDT : prose de campagne, aucune règle) · **681 candidat(s) trou de règle** (reste : LDB/CRB/AA/VDM/ADE I/ADE II/MCLB/ACE/ZI/MDG/EDOC/MSRC/NADJ — livres de règles et compagnons mixtes, où une section vide peut cacher une vraie règle non couverte) — et 12 titre(s) de chapitre enfoui(s) détecté(s) (titre orné rétrogradé par l'extraction). Ce chiffre reste un PLANCHER : les sections couvertes par une fiche (✅ au niveau section) ne sont pas dénombrées ici (volume, cf. #604 DoD « la sortie ne liste pas l'exhaustif »). Réfs folio (`ABBR NN p.X`, #606) : 2 ignorée(s) proprement (ancre absente/ambiguë/hors-chapitre). Par livre : LDB ✅40·📖33·🟡0·⬜1 · CRB ✅33·📖0·🟡17·⬜67 · AA ✅9·📖4·🟡0·⬜0 · VDM ✅4·📖10·🟡0·⬜0 · ADE I ✅0·📖2·🟡0·⬜0 · ADE II ✅3·📖3·🟡0·⬜0 · MCLB ✅0·📖5·🟡0·⬜0 · ACE ✅1·📖2·🟡0·⬜0 · ZI ✅4·📖10·🟡0·⬜0 · MDG ✅8·📖2·🟡0·⬜0 · EDOC ✅4·📖0·🟡1·⬜0 · MSRC ✅3·📖4·🟡1·⬜0 · AU1 ✅1·📖0·🟡0·⬜0 · NADJ ✅6·📖0·🟡0·⬜0 · EDO ✅3·📖0·🟡0·⬜0 · MSR ✅0·📖1·🟡0·⬜0 · PDT ✅2·📖2·🟡0·⬜0.
+Section-granulaire (niveau de heading ADAPTATIF par livre — H2 pour AA/VDM/ADE I/ADE II/EDO, H3 pour LDB/CRB/MCLB/ACE/ZI/MDG/EDOC/MSRC/NADJ/MSR/PDT, H4 pour AU1, #604), ventilation DÉRIVÉE (jamais un compte recopié) sur 3844 section(s) non couvertes par une fiche : **639 transcrite(s) en catalogue** (recopiées, pas traitées) · **2463 hors-règle** (chapitre explicitement exclu) · **61 bruit de scénario** (livres de teneur `scenario` AU1/EDO/MSR/PDT : prose de campagne, aucune règle) · **681 candidat(s) trou de règle** (reste : LDB/CRB/AA/VDM/ADE I/ADE II/MCLB/ACE/ZI/MDG/EDOC/MSRC/NADJ — livres de règles et compagnons mixtes, où une section vide peut cacher une vraie règle non couverte) — et 12 titre(s) de chapitre enfoui(s) détecté(s) (titre orné rétrogradé par l'extraction). Ce chiffre reste un PLANCHER : les sections couvertes par une fiche (✅ au niveau section) ne sont pas dénombrées ici (volume, cf. #604 « la sortie ne liste pas l'exhaustif »). Réfs folio (`ABBR NN p.X`, #606) : 2 ignorée(s) proprement (ancre absente/ambiguë/hors-chapitre). Par livre : LDB ✅40·📖33·🟡0·⬜1 · CRB ✅33·📖0·🟡17·⬜67 · AA ✅9·📖4·🟡0·⬜0 · VDM ✅4·📖10·🟡0·⬜0 · ADE I ✅0·📖2·🟡0·⬜0 · ADE II ✅3·📖3·🟡0·⬜0 · MCLB ✅0·📖5·🟡0·⬜0 · ACE ✅1·📖2·🟡0·⬜0 · ZI ✅4·📖10·🟡0·⬜0 · MDG ✅8·📖2·🟡0·⬜0 · EDOC ✅4·📖0·🟡1·⬜0 · MSRC ✅3·📖4·🟡1·⬜0 · AU1 ✅1·📖0·🟡0·⬜0 · NADJ ✅6·📖0·🟡0·⬜0 · EDO ✅4·📖0·🟡0·⬜0 · MSR ✅0·📖1·🟡0·⬜0 · PDT ✅2·📖2·🟡0·⬜0.
 
 ## LDB — ✅ 40 · 📖 33 · 🟡 0 · ⬜ 1
 
@@ -27,7 +27,7 @@ Section-granulaire (niveau de heading ADAPTATIF par livre — H2 pour AA/VDM/ADE
 | 02 | Introduction | ➖ hors-règle | |
 | 03 | *(artefact OCR)* | ➖ | |
 | 04 | Cités et villes | ✅ | 7 (4e/creation.md ×7) |
-| 05 | Points de vue | ✅ | 90 (4e/creation.md ×52) |
+| 05 | Points de vue | ✅ | 91 (4e/creation.md ×52) |
 | 06 | *(artefact OCR)* | ➖ | |
 | 07 | Carrieres | ✅ | 83 (4e/avancement.md ×61) |
 | 08 | Statut | ✅ | 26 (4e/carrieres.md ×22) |
@@ -1871,7 +1871,7 @@ Section-granulaire (niveau de heading ADAPTATIF par livre — H2 pour AA/VDM/ADE
   - ⬜ l.133-140 « L'IMPÉRATRICE ÉCARLATE » — candidat trou de règle, 0 réf
   - ⬜ l.141-146 « LES PIERRES » — candidat trou de règle, 0 réf
 
-## EDO — ✅ 3 · 📖 0 · 🟡 0 · ⬜ 0
+## EDO — ✅ 4 · 📖 0 · 🟡 0 · ⬜ 0
 
 | Ch. | Titre | État | refs (propriétaire) |
 |---|---|---|---|
@@ -1886,7 +1886,7 @@ Section-granulaire (niveau de heading ADAPTATIF par livre — H2 pour AA/VDM/ADE
 | 09 | Chapitre 9 - L'heure fatidique | ✅ | 3 (4e/combat.md ×3) |
 | 10 | APPENDICE 1 - Un guide de Bogenhafen | ➖ hors-règle | |
 | 11 | APPENDICE 2 - Nouvelles regles | ✅ | 19 (4e/combat.md ×19) |
-| 12 | Annexe 3 - Documents et aides de jeux | ➖ hors-règle | |
+| 12 | Annexe 3 - Documents et aides de jeux | ✅ | 39 (4e/deplacement.md ×39) |
 
 **Sections trouées/cataloguées/enfouies** (niveau de heading H2) :
 
@@ -1957,6 +1957,10 @@ Section-granulaire (niveau de heading ADAPTATIF par livre — H2 pour AA/VDM/ADE
   - 📖 l.103-106 « MALADIE ET INFECTION » — transcrit en catalogue, jamais traité, 0 réf
   - 📖 l.107-120 « Litanie de la Pestilence » — transcrit en catalogue, jamais traité, 0 réf
   - 📖 l.247-266 « ANNEAU D'OPSIANON » — transcrit en catalogue, jamais traité, 0 réf
+- **EDO 12** (Annexe 3 - Documents et aides de jeux) :
+  - ⬜ l.3-10 « ANNEXE 3 : » — bruit de scénario, 0 réf
+  - ⬜ l.49-59 « L'HARMONIE DES SPHÈRES » — bruit de scénario, 0 réf
+  - ⬜ l.434-503 « INDEX DES PNJ » — bruit de scénario, 0 réf
 
 ## MSR — ✅ 0 · 📖 1 · 🟡 0 · ⬜ 0
 
@@ -2132,4 +2136,4 @@ Section-granulaire (niveau de heading ADAPTATIF par livre — H2 pour AA/VDM/ADE
   - ⬜ l.9-10 « La Compétence » — bruit de scénario, 0 réf
 - **PDT 13** (POINTS D'EXPERIENCE) :
   - ⬜ l.81-82 « ANNEXE V » — bruit de scénario, 0 réf
-<!-- sources-empreinte: 8c78d70b89d144b6aa2fdb65b78616943d239b15 (468 fichiers, 20 dossiers) corps: 68da134e8850e56817c6d43437db4250ebb073f4 -->
+<!-- sources-empreinte: c65ee3024685a9bd91848f6b31218f129f590ca9 (470 fichiers, 20 dossiers) corps: a45356c9e88d474ec361115bad5ac1051b1c2b6d -->

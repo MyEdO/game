@@ -408,7 +408,7 @@ describe('site d’un défaut de CALQUE — le calque est DÉRIVÉ, la correctio
     return {
       sourceDir: dir,
       walledGrids: { z0: raw },
-      zoneLayers: { z0: zonesFromSeeds(GRILLE, 'vide', { ',': 'dalle' }, SEEDS) },
+      zoneLayers: () => ({ z0: zonesFromSeeds(GRILLE, 'vide', { ',': 'dalle' }, SEEDS) }),
       zoneSeeds: { z0: SEEDS },
     };
   }

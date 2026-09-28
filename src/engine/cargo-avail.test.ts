@@ -26,7 +26,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { rollSeasonalCargo, type CargoDef } from './cargo';
-import { CARGOES } from './seaVoyage';
+import { cargoes } from './seaVoyage';
 import type { RNG } from './dice';
 
 const seq = (...vals: number[]): RNG => {
@@ -54,7 +54,7 @@ describe('rollSeasonalCargo — la table couvre, ou elle se NOMME (#1659)', () =
   });
 
   it('le catalogue maritime authoré ne lève JAMAIS : les 100 jets d’une colonne rendent une cargaison (MDG 15 l.406-418)', () => {
-    const catalogue = [...CARGOES];
+    const catalogue = [...cargoes()];
     for (let r = 1; r <= 100; r++) expect(rollSeasonalCargo(catalogue, 'automne', seq(r)).id).toBeTruthy();
     // Les deux bouts imprimés de la colonne d'automne : 01-18 Céréales, 91-00 Pièces détachées.
     expect(rollSeasonalCargo(catalogue, 'automne', seq(1)).id).toBe('cereales');

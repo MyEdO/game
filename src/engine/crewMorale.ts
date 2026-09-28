@@ -18,7 +18,8 @@ import crewMoraleJson from '../data/crew-morale.json';
 import { findTableEntry } from './tables';
 import { rollExpr, type RNG, defaultRNG } from './dice';
 import { rollTest, easeDifficulty } from './tests';
-import { bestForSkills, type SkillRef } from './skills';
+import { bestForSkills } from './skills';
+import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { talentTestSLBonus } from './magic';
 import { skillDRBonus } from './ops';
 import { rule } from './policy';
@@ -324,7 +325,7 @@ export function crewTestModOf(c: Combatant): number {
  *  (optionnel) : sens NARRATIVEMENT sollicité par CE Test précis (ex. Vigie qui « voit la lumière d'un
  *  phare », MDG 13 l.337 — visuel, transmis par l'appelant) ; restreint les `skillMod` sense-scopés
  *  (Surdité, LDB 18) via `testValue`. Absent = comportement historique. PUR. */
-export function crewRoleValue(crew: Combatant, role: CrewRoleData, sense?: PairedSense): { value: number; used?: SkillRef } {
+export function crewRoleValue(crew: Combatant, role: CrewRoleData, sense?: PairedSense): { value: number; used?: RefDesignee } {
   const b = bestForSkills([crew], role.skills ?? [], undefined, sense);
   return { value: (b?.value ?? 0) + crewTestModOf(crew), used: b?.skillId ? { id: b.skillId, spec: b.spec } : undefined };
 }

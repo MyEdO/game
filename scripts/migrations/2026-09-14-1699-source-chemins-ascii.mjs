@@ -12,7 +12,7 @@
  * `00 - Index.md` changent par la CIBLE de leurs liens relatifs (pas 4 ci-dessous). Sans ce pas, le
  * renommage tuerait 196 liens VIVANTS (mesure : 196 cibles non ASCII, 196 vivantes avant) dans la
  * vérité citable du dépôt. Ces index sont des TOC DÉRIVÉES — `buildFolioToc`
- * (`scripts/raw/folio-bootstrap.mjs:95-104`) régénère la ligne `- [titre](<NN - Titre.md>)` depuis les
+ * (`buildFolioToc`, `scripts/raw/folio-bootstrap.mjs`) régénère la ligne `- [titre](<NN - Titre.md>)` depuis les
  * noms de fichiers —, et seule leur cible bouge : ni prose, ni libellé.
  *
  * LES PAS, dans l'ordre, tous idempotents :
@@ -38,10 +38,10 @@
  *     couverts par le pas 5 comme `scripts/raw/folio-gaps-stock.json` l'est déjà.
  *
  * `--dry` PAR DÉFAUT (rien n'est écrit, le plan est imprimé) ; `--apply` écrit.
- * PÉRIMÈTRE DU REJEU : `scripts/migrations/replay.mjs:110` (`PERIMETRE`) ne couvre PAS `Source/` — l'idempotence de
+ * PÉRIMÈTRE DU REJEU : `PERIMETRE` (`scripts/migrations/replay.mjs`) ne couvre PAS `Source/` — l'idempotence de
  * cette migration tient par CONSTRUCTION (plus aucun chemin non ASCII = plus aucun geste), pas par
  * la porte. Sur un EXPORT hors dépôt (`migrations:replay:head`, `estUnDepot` faux,
- * `replay.mjs:121-124`), `git ls-files` ne peut rien lister : la migration le DIT et rend 0 geste,
+ * `replay.mjs`), `git ls-files` ne peut rien lister : la migration le DIT et rend 0 geste,
  * exit 0, sans planter.
  *
  * TROIS ANGLES MORTS NOMMÉS de la réécriture par chemin complet, corrigés À LA MAIN dans le même lot :
@@ -51,7 +51,7 @@
  *    (`ROOT / "Source" / "<Livre>.pdf"` en Python) — `scripts/art-ref/ldb_extract.py:40` et
  *    `scripts/art-ref/ldb_map.py:29`, qui nomment le PDF que le pas 3 renomme ;
  *  - un chemin DANS L'HISTOIRE (`git show <sha>^:<path>`) ne doit surtout PAS être translittéré : il
- *    nomme un fichier tel qu'il était à ce commit — `scripts/raw/reanchor-split.mjs:24` (la réécriture
+ *    nomme un fichier tel qu'il était à ce commit — `scripts/raw/reanchor-split.mjs` (la réécriture
  *    l'avait cassé par son PRÉFIXE de dossier ; mesuré par `npm run raw:reanchor-split`). Depuis, ce
  *    fichier est dans `PORTEURS_DE_NOMS_FIGES` : la passe par NOM NU l'atteindrait aussi.
  *
@@ -458,5 +458,4 @@ function main() {
   if (r.collisions.length) process.exitCode = 1;
 }
 
-const isMain = process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1];
-if (isMain) main();
+if (import.meta.main) main();

@@ -3,5 +3,5 @@
 # Le pilote merge-docs.mjs (.gitattributes) a retenu la version « ours » des docs générés ; la
 # valeur juste vient de `npm run docs:build`. Logique dans docs-rebuild.mjs (partagée avec
 # post-rewrite). Contrat de post-hook : ne fait jamais échouer l'opération qui vient d'avoir lieu.
-node "$(dirname "$0")/docs-rebuild.mjs" || true
+node "$(dirname "$0")/../node-requis.mjs" </dev/null && node "$(dirname "$0")/docs-rebuild.mjs" || true
 exit 0

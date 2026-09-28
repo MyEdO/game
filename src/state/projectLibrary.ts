@@ -1,23 +1,17 @@
-import { parseProject, exigerUnRefus, refusDeForme, type ProjectDoc } from './worldMap';
+import { parseProject, exigerUnRefus, refusDeForme, type PROJECT_MIGRATIONS, type ProjectDoc } from './worldMap';
 import type { NarratifBlock } from './campaignNarratif';
 import type { GameState } from './store';
+import { accesBase, idbDisponible, type BaseIdb } from '../lib/indexedDb';
+import { stockageWeb } from '../lib/stockageWeb';
 
 /** Un projet éditeur SÉRIALISÉ en localStorage. Même forme que `ProjectDoc` (SOURCE UNIQUE du schéma
  *  de projet, jamais un littéral `schema`/champs dupliqués), mais RELÂCHÉE pour le stock legacy : un
- *  projet enregistré avant #765 est un schema 2 sans `narratif`, un projet enregistré avant #1467 est
- *  un schema 3 aux anciens rôles de prose ou un schema 4 à poche `meta`, un projet enregistré avant
- *  #1552 est un schema ≤ 6 sans `type` ni identité requise, un projet enregistré avant #1691 est un
- *  schema 7 dont les scènes n'ont pas de matières de relief, un projet enregistré avant #1715 est un
- *  schema 8 dont les scènes n'ont pas de toiture par défaut, un projet enregistré pendant #1687 est
- *  un schema 9 dont les décors à places ne sont pas activés, ou un schema 10 dont les décors
- *  fouillables portent encore un champ `interact`, un projet enregistré avant #877 est un schema 11
- *  dont un décor peut ne NOMMER aucun type, un projet enregistré avant #1882 est un schema 12 dont
- *  un personnage peut ne NOMMER aucune fiche, un projet enregistré avant la T2d de #1882 est un schema 13
- *  dont un effet peut porter une réf. de créature ou de véhicule VIDE. La montée au format courant se fait au CHARGEMENT via
- *  `parseProject` (chaîne 2→3→4→5→6→7→8→9→10→11→12→13→14), jamais dans ce module — et c'est là, pas ici,
+ *  projet enregistré à un format antérieur peut manquer de `narratif`, de `type` ou d'identité. Son
+ *  `schema` est le courant ou tout format que `PROJECT_MIGRATIONS` sait monter. La montée au format
+ *  courant se fait au CHARGEMENT via `parseProject`, jamais dans ce module — et c'est là, pas ici,
  *  que l'absence d'identité se fait REFUSER. */
 export type StoredProject = Omit<ProjectDoc, 'schema' | 'narratif' | 'type' | 'id' | 'label' | 'versionContenu'> & {
-  schema: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14;
+  schema: ProjectDoc['schema'] | keyof typeof PROJECT_MIGRATIONS;
   narratif?: NarratifBlock;
   type?: 'projet';
   id?: string;
@@ -129,132 +123,20 @@ const TOMBSTONE_KEY = 'wfrp4.editor-projects.tombstones.v1';
  *  plusieurs projets dans le même magasin. */
 const LOCAL_MIRROR_ENTRY_LIMIT = 500_000;
 
-function storage(): Storage | null {
-  try {
-    return globalThis.localStorage ?? null;
-  } catch {
-    return null; // accès refusé (mode privé strict, iframe sandbox…)
-  }
-}
-
-/** Bibliothèque persistée : source de vérité IndexedDB (`backend`) + un MIROIR localStorage tenu à
- *  jour à chaque écriture (borné PAR PROJET par `LOCAL_MIRROR_ENTRY_LIMIT`). `initLibrary` réconcilie
- *  les deux par id à chaque démarrage — c'est CE mécanisme, rejoué à chaque boot (jamais un flag
- *  one-shot), qui absorbe aussi bien la migration initiale que la reprise d'un `backend.put`
- *  précédemment en échec (#776). */
-export interface IdbBackend {
-  getAll(): Promise<SavedProject[]>;
-  put(entry: SavedProject): Promise<void>;
-  delete(id: string): Promise<void>;
-  clear(): Promise<void>;
-}
-
-const DB = 'wfrp4-library';
 const STORE = 'projects';
-const IDB_OPEN_TIMEOUT_MS = 3000;
 
-/** Ouverture bas niveau de la connexion IndexedDB, injectable (`__setOpenIdbRequestForTest`) pour
- *  exercer en test le repli sur bloqué/délai sans navigateur réel (jsdom n'a pas `indexedDB`). */
-let openIdbRequest: () => IDBOpenDBRequest = () => indexedDB.open(DB, 1);
-let openIdbRequestOverridden = false;
-
-export function __setOpenIdbRequestForTest(fn: (() => IDBOpenDBRequest) | null): void {
-  openIdbRequest = fn ?? (() => indexedDB.open(DB, 1));
-  openIdbRequestOverridden = fn !== null;
-}
-
-/** `indexedDB` réellement disponible (navigateur), ou couture de test active (backend ou ouverture
- *  substitués) — dans les deux cas la couche IndexedDB doit être exercée plutôt que court-circuitée. */
-let backendOverridden = false;
-
-function hasIdb(): boolean {
-  return backendOverridden || openIdbRequestOverridden || typeof indexedDB !== 'undefined';
-}
-
-/** N'attend jamais indéfiniment : un `open` qui ne déclenche ni succès/erreur ni `blocked` avant
- *  `IDB_OPEN_TIMEOUT_MS` (edge d'upgrade coincé) rejette quand même, pour que tout appelant retombe
- *  sur son repli localStorage plutôt que de geler `main.tsx` avant le premier rendu (#776). */
-function idb(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    const req = openIdbRequest();
-    let settled = false;
-    const timer = setTimeout(() => {
-      if (settled) return;
-      settled = true;
-      reject(new Error('IndexedDB open : délai dépassé'));
-    }, IDB_OPEN_TIMEOUT_MS);
-    req.onupgradeneeded = () => req.result.createObjectStore(STORE, { keyPath: 'id' });
-    req.onblocked = () => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timer);
-      reject(new Error('IndexedDB open : bloqué par une autre connexion ouverte'));
-    };
-    req.onsuccess = () => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timer);
-      resolve(req.result);
-    };
-    req.onerror = () => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timer);
-      reject(req.error);
-    };
-  });
-}
-
-const realIdbBackend: IdbBackend = {
-  async getAll() {
-    if (!hasIdb()) return [];
-    const db = await idb();
-    return new Promise((resolve, reject) => {
-      const r = db.transaction(STORE, 'readonly').objectStore(STORE).getAll();
-      r.onsuccess = () => resolve(r.result as SavedProject[]);
-      r.onerror = () => reject(r.error);
-    });
-  },
-  async put(entry) {
-    if (!hasIdb()) return;
-    const db = await idb();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE, 'readwrite');
-      tx.objectStore(STORE).put(entry);
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
-    });
-  },
-  async delete(id) {
-    if (!hasIdb()) return;
-    const db = await idb();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE, 'readwrite');
-      tx.objectStore(STORE).delete(id);
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
-    });
-  },
-  async clear() {
-    if (!hasIdb()) return;
-    const db = await idb();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE, 'readwrite');
-      tx.objectStore(STORE).clear();
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
-    });
-  },
+/** Montée de `wfrp4-library`. */
+export const upgradeBibliotheque: BaseIdb['upgrade'] = (db) => {
+  db.createObjectStore(STORE, { keyPath: 'id' });
 };
 
-/** Substitution de la couche IndexedDB entière, injectable (`__setIdbBackendForTest`) pour exercer en
- *  test la migration, la reprise partielle et l'échec d'écriture sans reproduire l'API IndexedDB. */
-let backend: IdbBackend = realIdbBackend;
-
-export function __setIdbBackendForTest(b: IdbBackend | null): void {
-  backend = b ?? realIdbBackend;
-  backendOverridden = b !== null;
-}
+/** Bibliothèque persistée : source de vérité IndexedDB (base `wfrp4-library`) + un MIROIR localStorage
+ *  tenu à jour à chaque écriture (borné PAR PROJET par `LOCAL_MIRROR_ENTRY_LIMIT`). `initLibrary`
+ *  réconcilie les deux par id à chaque démarrage — c'est CE mécanisme, rejoué à chaque boot (jamais un
+ *  flag one-shot), qui absorbe aussi bien la migration initiale que la reprise d'une écriture IndexedDB
+ *  précédemment en échec (#776). */
+const bibliotheque = accesBase({ nom: 'wfrp4-library', version: 1, upgrade: upgradeBibliotheque });
+const projets = bibliotheque.magasin<SavedProject, string>(STORE);
 
 /** Cache mémoire = source SYNC servie au picker/éditeur/tests. `null` tant qu'`initLibrary` n'a rien chargé. */
 let cache: SavedProject[] | null = null;
@@ -302,7 +184,7 @@ export function remapProjectNamesDeep(node: unknown): unknown {
  *  emprunte ce repli (`initLibrary` sans IndexedDB, son `catch`, et `projectsLoad` avant tout chargement) :
  *  ne JAMAIS lire `KEY` sans repasser par cette fonction (#776 pt.2). */
 function readLocalStorage(): SavedProject[] {
-  const s = storage();
+  const s = stockageWeb('localStorage');
   if (!s) return [];
   try {
     const raw = s.getItem(KEY);
@@ -319,7 +201,7 @@ function readLocalStorage(): SavedProject[] {
 }
 
 /** Écrit le miroir localStorage (best-effort, borné PAR ENTRÉE par `LOCAL_MIRROR_ENTRY_LIMIT`) : un
- *  `backend.put` qui échouerait en silence laisse quand même le projet retrouvable au reload via ce
+ *  écriture IndexedDB qui échouerait en silence laisse quand même le projet retrouvable au reload via ce
  *  miroir (#776 pt.1) — sauf le projet visé ici, dont l'id est retourné dans `skipped` (jamais
  *  laissé en version PÉRIMÉE dans le miroir : une entrée trop grosse est retirée de la liste écrite,
  *  pas ignorée en conservant une copie ancienne). Si la liste filtrée dépasse quand même le quota
@@ -329,7 +211,7 @@ function readLocalStorage(): SavedProject[] {
  *  refusé, ou l'écriture échoue même pour une liste vide) — les deux font grossir `skipped`, mais
  *  seule la 2de justifie un message qui ne parle PAS de volume de campagne (#776 pt.3). */
 function writeLocalMirror(list: SavedProject[]): { skipped: Set<string>; storageUnavailable: boolean } {
-  const s = storage();
+  const s = stockageWeb('localStorage');
   if (!s) return { skipped: new Set(list.map((e) => e.id)), storageUnavailable: true };
   const sized = list.map((e) => {
     let json: string;
@@ -377,7 +259,7 @@ function writeLocalMirror(list: SavedProject[]): { skipped: Set<string>; storage
 let pendingTombstones = new Set<string>();
 
 function readTombstones(): Set<string> {
-  const s = storage();
+  const s = stockageWeb('localStorage');
   let persisted = new Set<string>();
   if (s) {
     try {
@@ -394,7 +276,7 @@ function readTombstones(): Set<string> {
 }
 
 function writeTombstones(ids: Set<string>): boolean {
-  const s = storage();
+  const s = stockageWeb('localStorage');
   if (!s) {
     pendingTombstones = new Set(ids);
     return false;
@@ -430,25 +312,25 @@ function isSavedProject(e: unknown): e is SavedProject {
  * localStorage. À AWAITER une fois au démarrage (`main.tsx`) AVANT le premier rendu. NE REJETTE JAMAIS :
  * toute erreur retombe sur la lecture localStorage. Réconciliation PAR ID à chaque appel (jamais un flag
  * one-shot) : les entrées présentes en localStorage mais absentes d'IndexedDB (migration initiale,
- * `backend.put` précédemment en échec) sont recopiées ; les id tombés en `TOMBSTONE_KEY` (supprimés) sont
+ * écriture IndexedDB précédemment en échec) sont recopiées ; les id tombés en `TOMBSTONE_KEY` (supprimés) sont
  * exclus et leur suppression IndexedDB retentée — jamais ressuscités (#776 pt.2). Une tombe dont la
  * suppression IndexedDB vient d'aboutir ici est purgée du registre (elle ne sert plus à rien, #776 pt.2).
  */
 export async function initLibrary(): Promise<void> {
   try {
-    if (!hasIdb()) {
+    if (!idbDisponible()) {
       cache = readLocalStorage();
       return;
     }
     const tombstones = readTombstones();
-    const stored = (remapProjectNamesDeep(await backend.getAll()) as unknown[])
+    const stored = (remapProjectNamesDeep(await projets.lireTout()) as unknown[])
       .filter(isSavedProject) as SavedProject[];
     const legacy = readLocalStorage();
     const storedIds = new Set(stored.map((e) => e.id));
     const toMigrate = legacy.filter((e) => !storedIds.has(e.id) && !tombstones.has(e.id));
     const toPurge = stored.filter((e) => tombstones.has(e.id));
-    await Promise.allSettled(toMigrate.map((e) => backend.put(e)));
-    const purgeResults = await Promise.allSettled(toPurge.map((e) => backend.delete(e.id)));
+    await Promise.allSettled(toMigrate.map((e) => projets.ecrire(e)));
+    const purgeResults = await Promise.allSettled(toPurge.map((e) => projets.supprimer(e.id)));
     const purgedFromRetry = toPurge
       .filter((_, i) => purgeResults[i].status === 'fulfilled')
       .map((e) => e.id);
@@ -495,7 +377,7 @@ export async function projectSave(entry: SavedProject): Promise<LibraryWriteOutc
   const tombstones = readTombstones();
   if (tombstones.delete(entry.id)) writeTombstones(tombstones);
   try {
-    await backend.put(entry);
+    await projets.ecrire(entry);
     return { ok: true };
   } catch (err) {
     console.error(
@@ -545,7 +427,7 @@ export async function projectRemove(id: string): Promise<LibraryWriteOutcome> {
   tombstones.add(id);
   const tombstoned = writeTombstones(tombstones);
   try {
-    await backend.delete(id);
+    await projets.supprimer(id);
     return { ok: true };
   } catch (err) {
     console.error(
@@ -575,11 +457,11 @@ export async function __resetLibraryForTest(): Promise<void> {
   cache = null;
   pendingTombstones = new Set();
   try {
-    const s = storage();
+    const s = stockageWeb('localStorage');
     s?.removeItem(KEY);
     s?.removeItem(TOMBSTONE_KEY);
   } catch {
     // accès refusé : rien à nettoyer côté localStorage.
   }
-  await backend.clear().catch(() => { /* idb absent en jsdom */ });
+  await bibliotheque.vider();
 }

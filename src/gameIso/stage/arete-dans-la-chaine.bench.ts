@@ -11,7 +11,7 @@
  * sans horloge (`arete-dans-la-chaine.test.ts`). Ce qu'ils prennent est du TEMPS, et un temps mesure
  * l'ordonnanceur de la machine qui joue : le même balayage vaut 2,8 µs au calme et 7,1 µs sous la
  * suite complète. Une suite qui rougit sous charge et verdit sur une machine rapide ne prouve rien —
- * ce fichier est donc hors de `npm test` et de la CI (`vite.config.ts:71` n'inclut que
+ * ce fichier est donc hors de `npm test` et de la CI (`scripts/guards/lib/racinesDeLaSuite.mjs` n'inclut que
  * `*.test.{ts,tsx}`), et se joue à la demande par `npm run bench`.
  *
  * Le montage est celui du contrat : `arete-dans-la-chaine.fixture.ts`.

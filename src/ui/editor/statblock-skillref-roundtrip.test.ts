@@ -5,9 +5,9 @@
  * où la forme demande un id.
  *
  * CE QUI REFUSE LA SENTINELLE, ET OÙ : `ref.ts#SENTINELLE_DE_SPEC`, un refus NOMINATIF du schéma
- * dans `noeudASpecialisation`, posé AVANT le court-circuit des types à spécialisations ouvertes.
- * La Compétence est justement l'un d'eux (`TYPES.skill.specsOpen`), donc le garde-fou « spéc hors
- * catalogue » ne l'atteint PAS : sans ce refus propre, `{ id: 'savoir', spec: 'au choix' }` parse.
+ * dans `noeudASpecialisation`, posé AVANT le court-circuit des entrées à spécialisation ouverte.
+ * `savoir` est l'une d'elles (`ref.ts#entreeOuverte`), donc le garde-fou « spéc hors catalogue » ne
+ * l'atteint PAS : sans ce refus propre, `{ id: 'savoir', spec: 'au choix' }` parse.
  * Le refus est verrouillé par `src/data/spec-pool-contrat.test.ts` ; ici on garde la porte TEXTE.
  * `LDB 09 l.40`.
  */

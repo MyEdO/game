@@ -14,14 +14,14 @@
  *  - la classification `spellSupport` : ses issues lues au type de retour de `src/engine/spellspec.ts`.
  * La part ÉDITORIALE (ordre de la curation, pièges de vocabulaire, doctrine verbatim) vit ICI.
  *
- * Mode --check (chaîné dans npm run docs:check) : régénère en mémoire, compare au .md committé,
- * exit 1 si diff — jamais d'écriture en mode --check.
+ * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/empreinte-sources.mjs), rejoué par `build-all.mjs`.
  *
  *   node scripts/docs/build-sort.mjs
  */
 import { readFileSync, existsSync } from 'node:fs'
 import ts from 'typescript'
-import { emitOrCheck, loadSource, renderFields, jsdocRole } from './lib/jsdocUnion.mjs'
+import { loadSource, renderFields, jsdocRole } from './lib/jsdocUnion.mjs'
+import { ecrireOuVerifier } from './lib/empreinte-sources.mjs'
 
 const OUTIL = 'build-sort'
 const DEF = 'src/data/schemas/defs/spells.ts'
@@ -195,15 +195,17 @@ const CLASSES = (() => {
   if (!fn?.type || !ts.isUnionTypeNode(fn.type)) abandon(`\`spellSupport\` n'expose plus un type de retour en union dans ${SPEC}`)
   return fn.type.types.filter((t) => ts.isLiteralTypeNode(t) && ts.isStringLiteral(t.literal)).map((t) => t.literal.text)
 })()
-const LIGNE_SPEC = SPEC_SF.getLineAndCharacterOfPosition(
-  (() => {
-    let fn
-    SPEC_SF.forEachChild((n) => {
-      if (ts.isFunctionDeclaration(n) && n.name?.text === 'spellSupport') fn = n
-    })
-    return fn.name.getStart(SPEC_SF)
-  })(),
-).line + 1
+/** Ligne de la déclaration de fonction `nom` dans `spellspec.ts`. */
+const ligneDe = (nom) => {
+  let fn
+  SPEC_SF.forEachChild((n) => {
+    if (ts.isFunctionDeclaration(n) && n.name?.text === nom) fn = n
+  })
+  if (!fn) abandon(`\`${nom}\` n'est plus déclarée dans ${SPEC}`)
+  return SPEC_SF.getLineAndCharacterOfPosition(fn.name.getStart(SPEC_SF)).line + 1
+}
+const LIGNE_SPEC = ligneDe('spellSupport')
+const LIGNE_SPEC_OF = ligneDe('spellSupportOf')
 
 // ── Gardes : chemin ancré + intitulé RÉEL de leur `describe(...)` ─────────────────────────────────
 
@@ -300,10 +302,8 @@ ${tableFormes(CIBLE, PAR_CIBLE)}
 ${tableFormes(DUREE, PAR_DUREE)}
 
 \`value\`/\`n\`/\`meters\` sont des \`Formula\` (\`src/engine/ops.ts\`) : littéral \`number\`,
-\`{charOf}\` (« (Force Mentale) ») ou \`{bonusOf}\` (« (Bonus de FM) »). Les \`parseSpellRange\`/
-\`parseSpellTarget\`/\`parseSpellDuration\` ne servent qu'à la MIGRATION prose → structure
-(authoring), jamais au runtime ni à l'affichage — l'affichage est dérivé par
-\`src/engine/spellRangeFormat.ts\`. Pour un sort neuf : écrire directement la forme structurée.
+\`{charOf}\` (« (Force Mentale) ») ou \`{bonusOf}\` (« (Bonus de FM) »). L'affichage est dérivé
+par \`src/engine/spellRangeFormat.ts\`. Pour un sort neuf : écrire directement la forme structurée.
 
 ## 3. Effets mécaniques — \`effects\`
 
@@ -336,13 +336,14 @@ Rituel (\`ritual\`) — ${RITUELS} entrées aujourd'hui :
 
 ${table(RUBRIQUES, ['Rubrique', 'Rôle'], (r) => `| \`${r.nom}\` | ${plat(r.role ?? '—')} |`)}
 
-## 5. Classification mécanique — \`spellSupport\`
+## 5. Classification mécanique — \`spellSupportOf\`
 
-\`spellSupport(ops, spell, missile)\` (\`${SPEC}:${LIGNE_SPEC}\`) rend l'une des
-${CLASSES.length} issues ${CLASSES.map((c) => `\`${c}\``).join(' / ')}. Elle alimente le tableau de bord et le
-badge affiché en jeu. \`ops\` est l'union des feuilles du Flow pour la cible ET pour le lanceur : un
+\`spellSupportOf(spell)\` (\`${SPEC}:${LIGNE_SPEC_OF}\`) est le point d'entrée : il rend l'une des
+${CLASSES.length} issues ${CLASSES.map((c) => `\`${c}\``).join(' / ')} d'un sort de la donnée. Elle alimente le tableau de
+bord et le badge affiché en jeu. Il compose \`spellSupport(ops, spell, missile)\` (\`${SPEC}:${LIGNE_SPEC}\`) :
+\`ops\` est l'union des feuilles du Flow pour la cible ET pour le lanceur (\`spellEffectOps\`) — un
 effet de lanceur (téléportation, poussée, chaîne, invocation, zone, vol de vie) compte autant qu'un
-effet de cible.
+effet de cible —, \`missile\` vient d'\`isMagicMissile\`.
 
 ## 6. Curer un sort narratif → mécanique
 
@@ -365,7 +366,7 @@ ${table(GARDES_MESUREES, ['Garde', 'Ce qu’elle verrouille (son propre `describ
 typées — une valeur mal formée casse la compilation avant le runtime.
 `
 
-emitOrCheck({
+ecrireOuVerifier({
   out,
   path: 'docs/ajouter-un-sort.md',
   check: process.argv.includes('--check'),

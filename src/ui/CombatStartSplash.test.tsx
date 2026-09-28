@@ -12,7 +12,6 @@ import { useGame } from '../state/store';
 import { seedBattleRng } from '../state/battleRng';
 import { testScene } from '../scenes/test-fixture';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { COND, hasCondition } from '../engine/conditions';
 import { CombatStartSplash } from './CombatStartSplash';
 
@@ -30,11 +29,11 @@ const mot = () => host.querySelector('.combat-splash .display-title');
 
 /** Ouvre le combat de la fixture ; `surprise` rend la rencontre EMBUSQUÉE (le groupe est surpris). */
 function ouvrir(surprise?: 'party') {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   // Guetteur aveugle : l'opposition de Surprise est perdue quel que soit le dé.
   const guetteur = { ...hero, skills: [], characteristics: { ...hero.characteristics, initiative: 1 } };
   useGame.setState({ party: [guetteur] });
-  useGame.getState().startScene({ ...testScene, encounters: testScene.encounters.map((e) => ({ ...e, surprise })) });
+  useGame.getState().startScene({ ...testScene(), encounters: testScene().encounters.map((e) => ({ ...e, surprise })) });
   act(() => { useGame.getState().startCombat('enc-mutants'); });
 }
 

@@ -24,8 +24,10 @@ import ts from 'typescript';
 import { join, relative } from 'node:path';
 import { ast } from './dialecte.mjs';
 import { sAppliqueA } from './sourceCorpus.mjs';
-import { RACINE } from './bindingsVifs.mjs';
+import { RACINE } from './bindingsVivants.mjs';
 import { resolveImport } from './importGraph.mjs';
+// Clôture statique chargeable sous un Node refusé : scripts/node-requis.mjs (#1801).
+const { echapperRegex } = await import('../../../src/lib/regex.ts');
 
 /** @param {ts.SourceFile} sf @param {ts.Node} n @returns {number} ligne 1-based */
 const lineOf = (sf, n) => sf.getLineAndCharacterOfPosition(n.getStart(sf)).line + 1;
@@ -344,27 +346,29 @@ export const CONSTRUCTION_DE_TABLE_TOTALE = Object.freeze({
   },
 });
 
-/** Liaisons d'import de tête d'un fichier, par nom LOCAL, mémoïsées sur le `SourceFile`.
- * @type {WeakMap<ts.SourceFile, Map<string, { module: string | null, nom: string }>>} */
-const LIAISONS = new WeakMap();
-
-/** @param {ts.SourceFile} sf @returns {Map<string, { module: string | null, nom: string }>} */
-function liaisonsDe(sf) {
-  let l = LIAISONS.get(sf);
-  if (l) return l;
-  l = new Map();
+/** L'import de tête de `sf` qui lie le nom LOCAL `identifiant` : son spécificateur, non résolu, et le
+ *  nom qu'il importe (`'default'`, `'*'`, ou le nom exporté).
+ * @param {string} identifiant @param {ts.SourceFile} sf @returns {{ spec: string, nom: string } | null} */
+function liaisonDe(identifiant, sf) {
   for (const st of sf.statements) {
     if (!ts.isImportDeclaration(st) || !ts.isStringLiteral(st.moduleSpecifier) || !st.importClause) continue;
-    const abs = resolveImport(join(RACINE, sf.fileName), st.moduleSpecifier.text);
-    const module = abs ? relative(RACINE, abs).split('\\').join('/') : null;
+    const spec = st.moduleSpecifier.text;
     const clause = st.importClause;
-    if (clause.name) l.set(clause.name.text, { module, nom: 'default' });
+    if (clause.name?.text === identifiant) return { spec, nom: 'default' };
     const b = clause.namedBindings;
-    if (b && ts.isNamespaceImport(b)) l.set(b.name.text, { module, nom: '*' });
-    if (b && ts.isNamedImports(b)) for (const el of b.elements) l.set(el.name.text, { module, nom: (el.propertyName ?? el.name).text });
+    if (b && ts.isNamespaceImport(b) && b.name.text === identifiant) return { spec, nom: '*' };
+    if (b && ts.isNamedImports(b)) {
+      for (const el of b.elements) if (el.name.text === identifiant) return { spec, nom: (el.propertyName ?? el.name).text };
+    }
   }
-  LIAISONS.set(sf, l);
-  return l;
+  return null;
+}
+
+/** Le module, relatif à la racine, qu'un spécificateur de `sf` désigne (`resolveImport`), ou `null`.
+ * @param {string} spec @param {ts.SourceFile} sf @returns {string | null} */
+function moduleDe(spec, sf) {
+  const abs = resolveImport(join(RACINE, sf.fileName), spec);
+  return abs ? relative(RACINE, abs).split('\\').join('/') : null;
 }
 
 /**
@@ -379,8 +383,9 @@ function liaisonsDe(sf) {
  *   ne se résout pas (paquet, alias `@/`, fichier absent).
  */
 export function origineImportee(identifiant, sf) {
-  const o = liaisonsDe(sf).get(identifiant);
-  return o && o.module ? { module: o.module, nom: o.nom } : null;
+  const l = liaisonDe(identifiant, sf);
+  const module = l && moduleDe(l.spec, sf);
+  return module ? { module, nom: l.nom } : null;
 }
 
 /**
@@ -394,13 +399,18 @@ export function origineImportee(identifiant, sf) {
  */
 export function estAppelDeclare(appel, sf, fonctions) {
   const e = appel.expression;
-  let cible = null;
-  if (ts.isIdentifier(e)) cible = origineImportee(e.text, sf);
-  else if (ts.isPropertyAccessExpression(e) && ts.isIdentifier(e.expression)) {
-    const ns = origineImportee(e.expression.text, sf);
-    if (ns && ns.nom === '*') cible = { module: ns.module, nom: e.name.text };
+  let liaison = null;
+  let nom = null;
+  if (ts.isIdentifier(e)) {
+    liaison = liaisonDe(e.text, sf);
+    nom = liaison?.nom ?? null;
+  } else if (ts.isPropertyAccessExpression(e) && ts.isIdentifier(e.expression)) {
+    liaison = liaisonDe(e.expression.text, sf);
+    nom = liaison?.nom === '*' ? e.name.text : null;
   }
-  return cible && (fonctions[cible.module] ?? []).includes(cible.nom) ? cible.nom : null;
+  if (!liaison || nom === null || !Object.values(fonctions).some((noms) => noms.includes(nom))) return null;
+  const module = moduleDe(liaison.spec, sf);
+  return module && (fonctions[module] ?? []).includes(nom) ? nom : null;
 }
 
 /**
@@ -447,9 +457,6 @@ function nomDe(e) {
   return null;
 }
 
-/** Échappe un texte pour un motif de regex. @param {string} s */
-const echappe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
 /**
  * Mécanique de la CLÉ D'UN SITE DE STOCK ÉCRITE EN LIGNE, construction réservée. Le prédicat APLATIT
  * chaque littéral de chaîne, gabarit sans substitution et gabarit (une substitution devient `⟨nom⟩`,
@@ -474,13 +481,13 @@ const echappe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
  */
 export function cleEnLigne({ nom, champsDeGroupe, occurrence, separateur, separateurDeRemede, fonctionsDeCle }) {
   const ph = (n) => `⟨${n}⟩`;
-  const S = echappe(separateur);
+  const S = echapperRegex(separateur);
   const champs = [...champsDeGroupe, occurrence];
   /** @type {[string, RegExp][]} */
   const regles = [
-    ['clé à occurrence', new RegExp(`${S}[^]*?${S}(\\d+|${echappe(ph(occurrence))})(?=$|${echappe(separateurDeRemede)})`)],
-    ['champ puis occurrence', new RegExp(`(${champs.map((c) => echappe(ph(c))).join('|')})${S}${echappe(ph(occurrence))}`)],
-    ['clé de groupe', new RegExp(champsDeGroupe.map((c) => echappe(ph(c))).join(S))],
+    ['clé à occurrence', new RegExp(`${S}[^]*?${S}(\\d+|${echapperRegex(ph(occurrence))})(?=$|${echapperRegex(separateurDeRemede)})`)],
+    ['champ puis occurrence', new RegExp(`(${champs.map((c) => echapperRegex(ph(c))).join('|')})${S}${echapperRegex(ph(occurrence))}`)],
+    ['clé de groupe', new RegExp(champsDeGroupe.map((c) => echapperRegex(ph(c))).join(S))],
     ['clé tronquée', new RegExp(`${S}[^]*?${S}$`)],
   ];
   const nomsDeCle = Object.values(fonctionsDeCle).flat();

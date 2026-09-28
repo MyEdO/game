@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { bonus } from '../engine/characteristics';
 import { startCascade } from './cascade';
 import { spyApplier } from './cascadeTestKit';
@@ -25,7 +24,7 @@ import './travelPostes'; // enregistre l'applier de BANDE de voyage `weatherResi
  */
 
 const bandHero = (id: string, over: Partial<Combatant> = {}): Combatant => {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: id, rng: makeRNG(2) });
+  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: id, seed: 2 });
   h.id = id;
   h.characteristics.endurance = 43; // Bonus d'Endurance = 4 (DR imposé de la Résistance)
   Object.assign(h, over);

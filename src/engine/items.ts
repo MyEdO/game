@@ -22,7 +22,7 @@ import { slugId } from '../data/slug';
 import { craftEncDelta } from './qualities/craftEconomy';
 import { hasQuality, qualityIndice, resolveQualities, magazineSize } from './qualities/dispatch';
 import { itemCapability } from './capabilities';
-import { loadRegister, type WeaponLoadState } from './weaponLoad';
+import { loadRegister, objetSourceDeLArme, type WeaponLoadState } from './weaponLoad';
 
 let uidCounter = 0;
 export function newUid(): string {
@@ -416,13 +416,24 @@ export function emptyArmour(ap = 0): ArmourPoints {
  *  d'ennemis, armes synthétiques) : Groupe « Deux-mains » typé (`subType==='deux-mains'`). Aucun parse
  *  de chaîne d'affichage. */
 export function weaponHands(it: { hands?: 1 | 2; subType?: string }, ctx?: { mounted?: boolean }): 1 | 2 {
-  // Cavalerie « (2M) » (LDB 62 l.142-143) : MONTÉE, l'arme est maniée à UNE main (l'autre tient les rênes) ;
-  // utilisée À PIED, « toutes les armes à deux mains du Groupe Cavalerie sont aussi considérées comme des
-  // armes à Deux Mains ». La donnée porte `hands:2` d'origine (= le profil à pied) ; on n'allège à 1 que monté.
+  // LDB 62 l.143 « Quand elles ne sont pas utilisées ainsi, toutes les armes à deux mains issues du Groupe
+  // d'armes de Cavalerie sont aussi considérées comme des armes à Deux Mains. » La donnée porte `hands:2`.
   if (ctx?.mounted && it.subType === 'cavalerie' && it.hands === 2) return 1;
   if (it.hands === 1 || it.hands === 2) return it.hands;
   if (it.subType === 'deux-mains') return 2; // Groupe « Deux-mains » (id stable, donnée typée)
   return 1;
+}
+
+/** Mains qu'occupe l'arme `it` tenue par `c` : le fait monté du porteur (`c.mountId`) entre dans
+ *  `weaponHands` (LDB 62 l.143). */
+export function mainsDuPorteur(c: Combatant, it: { hands?: 1 | 2; subType?: string }): 1 | 2 {
+  return weaponHands(it, { mounted: !!c.mountId });
+}
+
+/** La main principale du set `lo` tient une arme à deux mains pour son porteur `c` (plus de main secondaire). */
+export function setADeuxMains(c: Combatant, lo: WeaponLoadout): boolean {
+  const main = lo.main ? (c.items ?? []).find((i) => i.uid === lo.main) : undefined;
+  return !!main && mainsDuPorteur(c, main) === 2;
 }
 
 /** Arme éligible à la MAIN SECONDAIRE (LDB 14 l.138 : « une arme de combat rapproché à une main OU un
@@ -528,6 +539,69 @@ export function unarmedWeapon(resolveTrapping: TrappingResolver = findTrappingBy
   return { ..._unarmed, hand: 'main' };
 }
 
+/** L'arme NATURELLE (`Weapon.natural`) d'un op `grantNaturalWeapon`, pour ses deux sources : passive
+ *  (trait, mutation : `recomputeLoadout`) et Sort (`ops.ts`, effet actif). Les attaques naturelles des
+ *  Traits de créature ont leur propre construction (`creatureEquip.weaponFromTrait`, `LDB 85 l.35`). */
+export function armeNaturelleAccordee(
+  op: { label: string; attackKind?: string; subType?: string; plusBF?: boolean; bare?: boolean; qualities?: string[] },
+  flat: number,
+  extra: Pick<WeaponSpec, 'uid' | 'source'>,
+): Weapon {
+  return buildWeapon({
+    label: op.label, attackKind: op.attackKind, subType: op.subType, natural: true,
+    damage: { plusBF: op.plusBF !== false, flat, bare: op.bare ? true : undefined },
+    qualities: (op.qualities ?? []).map((id) => ({ id })), ...extra,
+  });
+}
+
+/** Une VRAIE arme tenue : ni attaque NATURELLE (`Weapon.natural`), ni Mains nues (`isUnarmed`). */
+export function estUneVraieArme(w: Weapon): boolean {
+  return !w.natural && !isUnarmed(w);
+}
+
+/** Le combattant tient-il une VRAIE arme (`estUneVraieArme`) ? */
+export function tientUneArme(weapons: Weapon[]): boolean {
+  return weapons.some(estUneVraieArme);
+}
+
+/** Mains nues (`LDB 62 l.28`) du combattant qui PERD son arme (`lacherLArme`) ou dont le set n'en tient
+ *  aucune (`recomputeLoadout`). `tenue` : le prédicat, évalué par l'appelant sur les armes TENUES. */
+export function mainsNuesSiDesarme(weapons: Weapon[], tenue: boolean = tientUneArme(weapons)): void {
+  if (!tenue && !weapons.some(isUnarmed)) weapons.push(unarmedWeapon());
+}
+
+/** RE-DÉRIVE l'arme TENUE depuis son OBJET SOURCE (`objetSourceDeLArme`) après une mutation de cet objet —
+ *  chemin UNIQUE : objet détruit → `lacherLArme` ; objet de l'inventaire → `recomputeLoadout` ; pièce du
+ *  poste servi → `mannedPosteWeapon` remplace la SEULE arme de la pièce, jamais un recalcul qui écraserait
+ *  les armes d'un statbloc. Arme sans objet : rien à re-dériver. */
+export function rederiverLArmeTenue(c: Combatant, weapon: Weapon): void {
+  const it = objetSourceDeLArme(c, weapon);
+  if (!it) return;
+  if (it.destroyed) { lacherLArme(c, weapon); return; }
+  if ((c.items ?? []).includes(it)) { recomputeLoadout(c); return; }
+  const w = c.mannedPoste ? mannedPosteWeapon(c, c.mannedPoste) : undefined;
+  if (!w) { lacherLArme(c, weapon); return; }
+  c.weapons = c.weapons.map((x) => (x.uid === w.uid ? w : x));
+}
+
+/** L'arme QUITTE les mains, quelle qu'en soit la cause (`LDB 60 l.50`, `LDB 14 l.34`, `LDB 62 l.280`,
+ *  `AA 10 l.274-276`). Objet de l'inventaire : ses emplacements de set se vident et `recomputeLoadout`
+ *  re-dérive. Sinon (statbloc, pièce de poste) : elle sort de `c.weapons`, keyée par `uid` (`buildWeapon`
+ *  le pose toujours ; l'arme tirée peut être une COPIE). */
+export function lacherLArme(c: Combatant, weapon: Weapon): void {
+  const it = objetSourceDeLArme(c, weapon);
+  if (it && (c.items ?? []).includes(it)) {
+    for (const lo of c.loadouts ?? []) {
+      if (lo.main === it.uid) lo.main = undefined;
+      if (lo.off === it.uid) lo.off = undefined;
+    }
+    recomputeLoadout(c);
+    return;
+  }
+  c.weapons = c.weapons.filter((w) => w !== weapon && (weapon.uid == null || w.uid !== weapon.uid));
+  mainsNuesSiDesarme(c.weapons);
+}
+
 /** Libellé AUTO d'un set d'armes, DÉRIVÉ de son CONTENU (façon Dragon Age / Pillars) : nom de l'arme
  *  `main` (+ « + » nom de l'`off` quand il y en a une), ou « Mains nues » si le set est vide. Les noms sont
  *  lus dans l'inventaire du combattant (`c.items`). Remplace l'affichage du champ `name` (« Set I/II »). PUR. */
@@ -602,10 +676,10 @@ export function weaponFromItem(it: ItemInstance, hand?: 'main' | 'off', ctx?: { 
  *  tag `hand`) ; si aucun loadout, ensureDefaultLoadout en crée un automatiquement — UN SEUL modèle. */
 export function recomputeLoadout(c: Combatant): void {
   const items = c.items ?? [];
-  // Auto-prune : un slot référençant une arme qui a quitté l'inventaire (vente/transfert/perte) OU qui est
-  // DÉTRUITE (Incident de Tir / usure, LDB 14/62) est vidé, sur TOUS les loadouts — évite les références
-  // orphelines (et nettoie le slot d'une arme cassée, plus rééquipable telle quelle).
-  const slotDead = (uid?: string) => uid != null && !items.some((i) => i.uid === uid && !i.destroyed);
+  // Auto-prune : un slot référençant une arme ABSENTE de l'inventaire (vente/transfert/perte), DÉTRUITE
+  // (Incident de Tir / usure, LDB 14/62) ou RANGÉE dans un contenant (`inside`) est vidé, sur TOUS les
+  // loadouts : l'arme n'est plus en main.
+  const slotDead = (uid?: string) => uid != null && !items.some((i) => i.uid === uid && !i.destroyed && !i.inside);
   for (const lo of c.loadouts ?? []) {
     if (slotDead(lo.main)) lo.main = undefined;
     if (slotDead(lo.off)) lo.off = undefined;
@@ -614,7 +688,7 @@ export function recomputeLoadout(c: Combatant): void {
     if (it.destroyed) return null; // arme détruite : inutilisable (LDB 14 — Incident de Tir)
     if (requiresCrewedPoste(it)) return null; // machine de guerre à Équipe (ADE II 8 l.233) : pas de loadout solo, doit être SERVIE en poste
     const mounted = !!c.mountId; // Cavalerie (2M) à pied → vraies 2 mains (LDB 62 l.142-143)
-    if (weaponHands(it, { mounted }) === 2 && cannotWieldTwoHanded(c)) return null; // amputation : pas d'arme à 2 mains (LDB 18 l.263)
+    if (mainsDuPorteur(c, it) === 2 && cannotWieldTwoHanded(c)) return null; // amputation : pas d'arme à 2 mains (LDB 18 l.263)
     return weaponFromItem(it, hand, { mounted });
   };
 
@@ -645,13 +719,13 @@ export function recomputeLoadout(c: Combatant): void {
   }
   // Le SET ACTIF tient-il une arme ? (mesuré ICI : seules les armes issues des slots main/off comptent —
   // les armes naturelles/dérivées/de poste ajoutées plus bas ne « désarment » ni n'« arment » un set.)
-  const setHoldsWeapon = weapons.length > 0;
+  const setHoldsWeapon = tientUneArme(weapons);
 
   // Armes DÉRIVÉES d'un objet ÉQUIPÉ (prothèse-arme, LDB 73 : le Crochet « est considéré comme une
   // Dague » en mêlée) — DÉCLARATIF sur le trapping (`derivedWeapon`).
   for (const i of items) {
-    const dw = i.equipped && i.trappingId ? findTrappingById(i.trappingId)?.derivedWeapon : undefined;
-    if (dw) weapons.push({ hand: 'main', ...dw });
+    const dw = i.equipped && !i.destroyed && i.trappingId ? findTrappingById(i.trappingId)?.derivedWeapon : undefined;
+    if (dw) weapons.push({ hand: 'main', ...dw, derivedFromItem: i.uid });
   }
   // Armes NATURELLES portées en DONNÉE par le `passive` d'une source — trait (Tentacules, LDB 85 l.405) ou
   // mutation (Tentacule épais → trait ; LDB 19 : « Compte comme une Arme de Créature »). Op `grantNaturalWeapon`,
@@ -664,11 +738,7 @@ export function recomputeLoadout(c: Combatant): void {
   for (const ops of naturalWeaponPassives) for (const op of ops ?? []) {
     if (op.op !== 'grantNaturalWeapon') continue;
     const flat = (typeof op.damage === 'number' ? op.damage : 0) + (op.damagePlus ?? 0);
-    weapons.push({ hand: 'main', ...buildWeapon({
-      label: op.label, attackKind: op.attackKind, subType: op.subType,
-      damage: { plusBF: op.plusBF !== false, flat, bare: op.bare ? true : undefined },
-      qualities: (op.qualities ?? []).map((id) => ({ id })), uid: op.uid ?? { prefix: 'nat' },
-    }) });
+    weapons.push({ hand: 'main', ...armeNaturelleAccordee(op, flat, { uid: op.uid ?? { prefix: 'nat' } }) });
   }
   // Armes NATURELLES accordées par un Sort (op `grantNaturalWeapon` — Dent et griffe : Morsure/Arme ;
   // Incarnation de Wyssan) : attaques ADDITIONNELLES tant que l'effet dure (retirées au recompute
@@ -691,7 +761,7 @@ export function recomputeLoadout(c: Combatant): void {
   // d'une seule arme à distance, même avec une main libre) n'en porte PAS : l'attaque passe par les armes
   // du set, le joueur commute lui-même (arbitrage user 2026-08-17, #1348 —
   // `docs/plans/2026-08-16-spec-hud-combat.md` § « ARBITRAGE SET STRICT », verbatim au ticket).
-  if (!setHoldsWeapon) weapons.push(unarmedWeapon());
+  mainsNuesSiDesarme(weapons, setHoldsWeapon);
 
   const armour = wornArmourPoints(items);
   // Mutations de Corruption (LDB 19) : PA NATURELS additifs (Peau d'acier +2 partout,
@@ -770,7 +840,7 @@ export function ensureDefaultLoadout(c: Combatant): void {
   if (melee.length) {
     const main = [...melee].sort((a, b) => damageScore(b.damage) - damageScore(a.damage))[0];
     set1.main = main.uid;
-    if (weaponHands(main) === 1) set1.off = melee.find((i) => i.uid !== main.uid && weaponHands(i) === 1)?.uid;
+    if (mainsDuPorteur(c, main) === 1) set1.off = melee.find((i) => i.uid !== main.uid && mainsDuPorteur(c, i) === 1)?.uid;
   }
   const set2: WeaponLoadout = { id: `lo-${++loadoutCounter}`, main: ranged[0]?.uid };
   c.loadouts = [set1, set2];
@@ -801,18 +871,19 @@ export function loadoutSetActive(c: Combatant, id: string): void {
 }
 
 /** Assigne (ou retire si `uid` null) une arme à un slot. Une arme à 2 mains en `main` vide le slot `off` ;
- *  une même arme ne peut occuper les DEUX mains (l'assigner à une main la retire de l'autre). */
+ *  une même arme ne peut occuper les DEUX mains (l'assigner à une main la retire de l'autre). L'objet mis
+ *  en main sort de son contenant (`inside`), comme à l'équipement (`partyFlow.applyToggleEquip`) : un objet
+ *  rangé n'est pas en main (`recomputeLoadout`, `slotDead`). */
 export function loadoutSetSlot(c: Combatant, id: string, slot: 'main' | 'off', uid: string | null): void {
   const lo = c.loadouts?.find((l) => l.id === id);
   if (!lo) return;
   lo[slot] = uid ?? undefined;
   if (uid) {
+    const it = (c.items ?? []).find((i) => i.uid === uid);
+    if (it) it.inside = undefined;
     const other = slot === 'main' ? 'off' : 'main';
     if (lo[other] === uid) lo[other] = undefined; // une arme ne peut pas être tenue des deux mains à la fois
-    if (slot === 'main') {
-      const it = (c.items ?? []).find((i) => i.uid === uid);
-      if (it && weaponHands(it) === 2) lo.off = undefined; // 2 mains → pas de secondaire
-    }
+    if (slot === 'main' && setADeuxMains(c, lo)) lo.off = undefined; // 2 mains → pas de secondaire
   }
 }
 

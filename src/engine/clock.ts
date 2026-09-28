@@ -2,16 +2,10 @@
  * Calendrier impérial WFRP4 (CI) — pur, sans état. Le CONTENU (mois, jours intercalaires, jours de
  * semaine, phases du jour) vit en DONNÉE ÉDITABLE (datasets `calendarMonths`/`calendarIntercalary`/
  * `calendarWeekdays`/`calendarPhases`, éditables au Codex). Ce module ne porte que la MÉCANIQUE
- * temporelle + les scalaires de config (époque, fenêtre de nuit). Source FR vérifiée (EiS Annexe 3
- * l.20/34/68 croisée ADE II/Middenheim/VO ; cf. plan #T1) :
+ * temporelle + les scalaires de config (époque, fenêtre de nuit). EDO 12 l.13, l.17, l.19-30, l.32-47, l.60-203.
  *
- * Année = 400 jours (orbite de Mallus autour de Söll) ; 6 intercalaires INCLUS dans les 400 → les 12
- * mois somment à 394 = 2 mois à 32 j (Nachhexen & Nachgeheim, après les 2 lunes pleines) + 10 à 33 j.
- * Les jours intercalaires sont HORS du cycle hebdomadaire (« the eight-day weeks bridge the months
- * uninterrupted, even if a week is broken by a festival »).
- *
- * Les tables étant éditables, la DÉRIVATION (slots de l'année) est recalculée à la volée, mémoïsée sur
- * une signature du contenu (mois + intercalaires) → une édition au Codex prend effet immédiatement.
+ * La DÉRIVATION (slots de l'année) est mémoïsée par `memoParVersion` sur les versions de
+ * `calendarMonths` et `calendarIntercalary` (`src/data/versionDataset.ts`).
  * Les datasets-tableaux sont mutés EN PLACE (splice) → les réfs exportées (`IMPERIAL_MONTHS`,
  * `DAY_PHASES`, `WEEKDAYS`) restent valides et live.
  */
@@ -52,19 +46,11 @@ function buildYearData() {
   };
 }
 
-/** Dérivation MÉMOÏSÉE sur la signature de contenu des tables → recalcul auto à l'édition au Codex. */
-let _yearCache: ReturnType<typeof buildYearData> | null = null;
-let _yearSig = '';
-function yearData() {
-  const sig = JSON.stringify([calendarMonths, calendarIntercalary]);
-  if (sig !== _yearSig) { _yearSig = sig; _yearCache = buildYearData(); }
-  return _yearCache!;
-}
+/** Dérivation MÉMOÏSÉE sur la version des tables (`memoParVersion`) → recalcul à l'édition au Codex. */
+const yearData = memoParVersion(['calendarMonths', 'calendarIntercalary'], buildYearData);
 
 /** Nombre de jours dans l'année impériale (live — dérivé des tables). */
 export const daysPerYear = (): number => yearData().daysPerYear;
-/** Compat : valeur au CHARGEMENT (400) — l'affichage/tests ; le calcul de date utilise `yearData()` live. */
-export const DAYS_PER_YEAR = yearData().daysPerYear;
 
 export interface ImperialDate {
   year: number;
@@ -140,7 +126,7 @@ export const DAY_PHASES: { id: DayPhaseId; start: number; label: string; icon: s
  *
  * Le résolveur VALIDE (fail-fast) : il ne retombe sur rien. Un repli positionnel désignerait une
  * AUTRE phase que celle demandée et rendrait une heure fausse en silence — une donnée amputée pète
- * ici, au chargement du module.
+ * ici, à la première lecture de son ancre.
  */
 export function ancreDePhase(phases: readonly { id: string; start: number }[], id: DayPhaseId): number {
   const phase = phases.find((p) => p.id === id);
@@ -180,18 +166,18 @@ export function minutesUntilNext(currentMinutes: number, targetMinuteOfDay: numb
 }
 
 /** Heure de l'aube (minutes-de-jour) — fin d'une nuit de sommeil ; cible du « Dormir ». */
-export const DAWN_MINUTE = ancreDePhase(DAY_PHASES, 'aube'); // 05:00
+export const dawnMinute = memoParVersion('calendarPhases', () => ancreDePhase(DAY_PHASES, 'aube'));
 
 /** Heure du crépuscule (minutes-de-jour) — fin d'une journée de voyage AVANT la halte de nuit : le
  *  jour de navigation (fluvial/maritime) s'arrête ici, puis la nuit de sommeil enjambe minuit jusqu'à
  *  l'aube — un seul franchissement de jour par cycle voyage+nuit (aligné sur le voyage terrestre). */
-export const DUSK_MINUTE = ancreDePhase(DAY_PHASES, 'crepuscule'); // 18:00
+export const duskMinute = memoParVersion('calendarPhases', () => ancreDePhase(DAY_PHASES, 'crepuscule'));
 
-/** Créneau de DÉPART d'un voyage terrestre/fluvial : de l'aube au crépuscule (`[DAWN, DUSK)`). Sert à
+/** Créneau de DÉPART d'un voyage terrestre/fluvial : de l'aube au crépuscule (`[dawnMinute, duskMinute)`). Sert à
  *  la porte de départ maison (canon muet — arbitrage #340) : partir de nuit propose « Attendre l'aube ». */
 export function isTravelDaylight(minutes: number): boolean {
   const m = minuteOfDay(minutes);
-  return m >= DAWN_MINUTE && m < DUSK_MINUTE;
+  return m >= dawnMinute() && m < duskMinute();
 }
 
 /** Jour courant de l'horloge (index de jour absolu depuis l'époque). */

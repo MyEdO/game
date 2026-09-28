@@ -28,52 +28,16 @@
 import { tableTotale } from '../../../src/lib/tableTotale.ts';
 import { strict as assert } from 'node:assert';
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { listerDossier } from '../../guards/lib/lister.mjs';
-import { joue } from './joue.mjs';
+import { FORME_PROJET, serialise } from './croissance.mjs';
+import { depot, efface, joue, lireArbre, lireDans, rienTouche } from './joue.mjs';
 
 const RACINE = fileURLToPath(new URL('../../../', import.meta.url));
 const MIGRATION = '2026-09-10-1687-usable-sieges.mjs';
 const PROPS = 'src/data/props.json';
-
-const lire = (rel) => fs.readFileSync(path.join(RACINE, rel), 'utf8');
-/** Formatage canonique d'un document de projet de scène. */
-const serialise = (doc) => `${JSON.stringify(doc, null, 1)}\n`;
-
-const ANTIDATE = new Date('2000-01-01T00:00:00Z');
-
-/** Dépôt jetable portant EXACTEMENT les fichiers demandés, plus la migration. Le catalogue de décors
- *  est une ENTRÉE de la migration : à défaut d'être fourni par le scénario, l'arbre le prête. */
-function depot(fichiers) {
-  const racine = fs.mkdtempSync(path.join(os.tmpdir(), 'migr-1687-'));
-  const avant = new Map();
-  const tous = { [PROPS]: lire(PROPS), ...fichiers };
-  for (const [rel, texte] of Object.entries(tous)) {
-    const cible = path.join(racine, rel);
-    fs.mkdirSync(path.dirname(cible), { recursive: true });
-    fs.writeFileSync(cible, texte, 'utf8');
-    fs.utimesSync(cible, ANTIDATE, ANTIDATE);
-    avant.set(rel, texte);
-  }
-  return { racine, avant };
-}
-
-const efface = (racine) => fs.rmSync(racine, { recursive: true, force: true });
-
-/** Les fichiers posés sont INTACTS (octet + horodatage). */
-function rienTouche(racine, avant) {
-  const fautes = [];
-  for (const [rel, texte] of avant) {
-    const cible = path.join(racine, rel);
-    if (!fs.existsSync(cible)) { fautes.push(`${rel} : SUPPRIMÉ`); continue; }
-    if (fs.readFileSync(cible, 'utf8') !== texte) fautes.push(`${rel} : octet DIVERGENT`);
-    if (fs.statSync(cible).mtimeMs !== ANTIDATE.getTime()) fautes.push(`${rel} : horodatage remonté (écriture)`);
-  }
-  return fautes;
-}
 
 /** Les projets de scène de l'arbre (listage par la primitive `listerDossier` — ordre total ; une
  *  entrée qui n'est pas un dossier de campagne ne porte aucun document et tombe au filtre). */
@@ -86,7 +50,7 @@ assert.ok(PROJETS.length > 0, 'aucun projet de scène — la fixture ne mesure r
  *  chemin qui lui est propre : un banc qui importerait le dériveur de la migration mesurerait
  *  seulement sa cohérence avec elle-même. */
 const TYPES = new Set(
-  JSON.parse(lire(PROPS)).filter((p) => Array.isArray(p?.seatSlots) && p.seatSlots.length).map((p) => p.id),
+  JSON.parse(lireArbre(PROPS)).filter((p) => Array.isArray(p?.seatSlots) && p.seatSlots.length).map((p) => p.id),
 );
 assert.ok(TYPES.size > 0, 'aucun type de décor à places au catalogue — la fixture ne mesure rien');
 
@@ -94,8 +58,8 @@ const estSiege = (e) => e?.kind === 'prop' && TYPES.has(e?.ref);
 const entitesDe = (doc) => doc.scenes.flatMap((s) => (Array.isArray(s.entities) ? s.entities : []));
 
 /** Cardinaux LUS sur les documents migrés — jamais récités. */
-const SCENES_PAR_PROJET = tableTotale(PROJETS, (rel) => JSON.parse(lire(rel)).scenes.length);
-const SIEGES_PAR_PROJET = tableTotale(PROJETS, (rel) => entitesDe(JSON.parse(lire(rel))).filter(estSiege).length);
+const SCENES_PAR_PROJET = tableTotale(PROJETS, (rel) => JSON.parse(lireArbre(rel)).scenes.length);
+const SIEGES_PAR_PROJET = tableTotale(PROJETS, (rel) => entitesDe(JSON.parse(lireArbre(rel))).filter(estSiege).length);
 const SIEGES = Object.values(SIEGES_PAR_PROJET).reduce((n, v) => n + v, 0);
 assert.ok(SIEGES > 0, 'aucune entité à places dans les projets livrés — la fixture ne mesure rien');
 
@@ -106,7 +70,7 @@ const PORTEUR = PROJETS.find((rel) => SIEGES_PAR_PROJET[rel] > 0);
 const SCHEMA_AVANT = 9;
 const SCHEMA_APRES = 10;
 for (const rel of PROJETS) {
-  const doc = JSON.parse(lire(rel));
+  const doc = JSON.parse(lireArbre(rel));
   // L'arbre a PASSÉ ce bump : son numéro est à la cible ou au-delà. Le FIGER à un numéro exact
   // rendrait ce banc rouge à chaque bump ultérieur d'un document que ce passage ne possède plus.
   assert.ok(
@@ -120,7 +84,7 @@ for (const rel of PROJETS) {
 /** PROJECTION INVERSE d'un projet : `usable` retiré de chaque entité à places, `schema` rendu à la
  *  forme d'entrée. */
 function projetAvant(rel) {
-  const doc = JSON.parse(lire(rel));
+  const doc = JSON.parse(lireArbre(rel));
   const scenes = doc.scenes.map((s) => (
     Array.isArray(s.entities)
       ? { ...s, entities: s.entities.map((e) => (estSiege(e) ? (({ usable: _pose, ...reste }) => reste)(e) : e)) }
@@ -133,7 +97,7 @@ function projetAvant(rel) {
  *  réduite à ce que CE passage pose (vide) et son `schema` à la cible. La position de la clé est
  *  celle de l'arbre, garantie en QUEUE par le scénario (h). */
 function projetApres(rel) {
-  const doc = JSON.parse(lire(rel));
+  const doc = JSON.parse(lireArbre(rel));
   const scenes = doc.scenes.map((s) => (
     Array.isArray(s.entities)
       ? { ...s, entities: s.entities.map((e) => (estSiege(e) ? { ...e, usable: {} } : e)) }
@@ -142,10 +106,11 @@ function projetApres(rel) {
   return { ...doc, schema: SCHEMA_APRES, scenes };
 }
 
-const depotScenes = (fabrique) => depot(tableTotale(PROJETS, (rel) => fabrique(rel)));
+const depotScenes = (fabrique) =>
+  depot({ [PROPS]: lireArbre(PROPS), ...tableTotale(PROJETS, (rel) => fabrique(rel)) });
 
 test('(a) ALLER-RETOUR : l’état d’avant projeté → chaque projet BYTE-IDENTIQUE à l’état d’arrivée', (t) => {
-  const d = depotScenes((rel) => serialise(projetAvant(rel)));
+  const d = depotScenes((rel) => serialise(projetAvant(rel), FORME_PROJET));
   t.after(() => efface(d.racine));
 
   const { code, sortie } = joue(d.racine, MIGRATION);
@@ -155,12 +120,12 @@ test('(a) ALLER-RETOUR : l’état d’avant projeté → chaque projet BYTE-IDE
       sortie.includes(`${rel} — schema ${SCHEMA_AVANT} → ${SCHEMA_APRES}, usable posés : ${SIEGES_PAR_PROJET[rel]}`),
       `${rel} : le bump ou la pose ne DIT pas son compte : ${sortie.slice(0, 1200)}`,
     );
-    assert.equal(fs.readFileSync(path.join(d.racine, rel), 'utf8'), serialise(projetApres(rel)), `${rel} produit ≠ état d’arrivée`);
+    assert.equal(lireDans(d.racine, rel), serialise(projetApres(rel), FORME_PROJET), `${rel} produit ≠ état d’arrivée`);
   }
 });
 
 test('(b) REJEU sur arbre migré : sortie 0, rien d’écrit', (t) => {
-  const d = depotScenes((rel) => lire(rel));
+  const d = depotScenes((rel) => lireArbre(rel));
   t.after(() => efface(d.racine));
 
   const { code, sortie } = joue(d.racine, MIGRATION);
@@ -175,8 +140,8 @@ test('(b) REJEU sur arbre migré : sortie 0, rien d’écrit', (t) => {
 test('(c) `usable` de FORME inattendue (une chaîne) → sortie 1 NOMMANT l’entité, rien d’écrit', (t) => {
   let vise = null;
   const d = depotScenes((rel) => {
-    const doc = JSON.parse(lire(rel));
-    if (rel !== PORTEUR) return serialise(doc);
+    const doc = JSON.parse(lireArbre(rel));
+    if (rel !== PORTEUR) return serialise(doc, FORME_PROJET);
     const scenes = doc.scenes.map((s) => {
       if (!Array.isArray(s.entities)) return s;
       return {
@@ -188,7 +153,7 @@ test('(c) `usable` de FORME inattendue (une chaîne) → sortie 1 NOMMANT l’en
         }),
       };
     });
-    return serialise({ ...doc, scenes });
+    return serialise({ ...doc, scenes }, FORME_PROJET);
   });
   t.after(() => efface(d.racine));
 
@@ -220,7 +185,7 @@ test('(e) CARDINAL DÉPLACÉ (une Scène retirée) : le passage PASSE, sans reca
   assert.ok(sansPlaces, 'aucun projet sans place à amputer — le scénario toucherait aussi aux places');
   const d = depotScenes((rel) => {
     const doc = projetAvant(rel);
-    return serialise(rel === sansPlaces ? { ...doc, scenes: doc.scenes.slice(1) } : doc);
+    return serialise(rel === sansPlaces ? { ...doc, scenes: doc.scenes.slice(1) } : doc, FORME_PROJET);
   });
   t.after(() => efface(d.racine));
 
@@ -236,7 +201,7 @@ test('(e bis) CARDINAL DÉPLACÉ (un siège retiré) : le passage PASSE et pose 
   let ampute = false;
   const d = depotScenes((rel) => {
     const doc = projetAvant(rel);
-    if (rel !== PORTEUR) return serialise(doc);
+    if (rel !== PORTEUR) return serialise(doc, FORME_PROJET);
     const scenes = doc.scenes.map((s) => {
       if (!Array.isArray(s.entities)) return s;
       return {
@@ -248,7 +213,7 @@ test('(e bis) CARDINAL DÉPLACÉ (un siège retiré) : le passage PASSE et pose 
         }),
       };
     });
-    return serialise({ ...doc, scenes });
+    return serialise({ ...doc, scenes }, FORME_PROJET);
   });
   t.after(() => efface(d.racine));
 
@@ -267,7 +232,7 @@ test('(f) BORNE HAUTE OUVERTE : un `schema` FUTUR traverse en NO-OP nommé — a
   // part comme il est venu :
   // c'est ce que le rejeu de la chaîne (`npm run migrations:replay`) exige de tout passage dépassé.
   const futur = SCHEMA_APRES + 7;
-  const d = depotScenes((rel) => serialise({ ...JSON.parse(lire(rel)), schema: futur }));
+  const d = depotScenes((rel) => serialise({ ...JSON.parse(lireArbre(rel)), schema: futur }, FORME_PROJET));
   t.after(() => efface(d.racine));
 
   const { code, sortie } = joue(d.racine, MIGRATION);
@@ -283,7 +248,7 @@ test('(f) BORNE HAUTE OUVERTE : un `schema` FUTUR traverse en NO-OP nommé — a
 
 test('(f bis) `schema` ANTÉRIEUR à la chaîne → sortie 1 NOMMANT le numéro : la borne BASSE est close aussi', (t) => {
   const ancien = SCHEMA_AVANT - 1;
-  const d = depotScenes((rel) => serialise({ ...projetAvant(rel), schema: ancien }));
+  const d = depotScenes((rel) => serialise({ ...projetAvant(rel), schema: ancien }, FORME_PROJET));
   t.after(() => efface(d.racine));
 
   const { code, sortie } = joue(d.racine, MIGRATION);
@@ -296,10 +261,10 @@ test('(f bis) `schema` ANTÉRIEUR à la chaîne → sortie 1 NOMMANT le numéro 
 });
 
 test('(g) CATALOGUE MUET (aucun type à places) → sortie 1 demandant l’arbitrage, rien d’écrit', (t) => {
-  const sansPlaces = JSON.parse(lire(PROPS)).map(({ seatSlots: _p, ...reste }) => reste);
+  const sansPlaces = JSON.parse(lireArbre(PROPS)).map(({ seatSlots: _p, ...reste }) => reste);
   const d = depot({
     [PROPS]: `${JSON.stringify(sansPlaces, null, 1)}\n`,
-    ...tableTotale(PROJETS, (rel) => serialise(projetAvant(rel))),
+    ...tableTotale(PROJETS, (rel) => serialise(projetAvant(rel), FORME_PROJET)),
   });
   t.after(() => efface(d.racine));
 
@@ -316,7 +281,7 @@ test('(h) PARITÉ au RÉEL : sur les projets LIVRÉS, chaque entité à places p
   // (`editEntity`, `src/state/sceneEdit.ts`).
   const fautes = [];
   for (const rel of PROJETS) {
-    const doc = JSON.parse(lire(rel));
+    const doc = JSON.parse(lireArbre(rel));
     for (const e of entitesDe(doc)) {
       // Une entité SANS place peut porter une enveloppe `usable` (d'autres capacités y vivent) ;
       // ce qu'elle ne peut pas porter, c'est l'ASSISE — la seule que CE passage active, et qui se

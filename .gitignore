@@ -78,3 +78,7 @@ wrangler-*.err
 
 # Bytecode Python (scripts d'extraction)
 __pycache__/
+
+# Captures d'écran personnelles de l'utilisateur, hors contenu du dépôt
+/rogue trader/
+/tmp/

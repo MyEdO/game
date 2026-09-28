@@ -26,8 +26,11 @@ const woundsOf = (id: string) => flowOps(findSpellById(id)?.effects).find((o) =>
 // desc ; BE = règle universelle LDB 13 (s'applique, ≠ défaut bypass de l'op). frenchy ayant ses propres
 // trads, les références (condition « Étourdi ») sont résolues par id STABLE (`sonne`), pas par le libellé.
 describe('sorts à dégâts FIXES (frenchy) — VERBATIM desc + BE selon LDB 13 (id-based)', () => {
-  it('Projectile Mineur : 3 PD ; BE+PA appliqués (aucune mention d’armure)', () => {
-    expect(woundsOf('projectile-mineur')).toMatchObject({ op: 'wounds', amount: 3, ignoreAP: false, ignoreTB: false });
+  it('« Projectile Mineur » est Fléchette (VO *Dart*) : Projectile magique, dégâts NON fixes (LDB 47 l.182)', () => {
+    const fl = findSpellById('flechette')!;
+    expect(fl.missile).toBe(true);
+    expect(woundsOf('flechette')).toBeUndefined();
+    expect(findSpellById('projectile-mineur')).toBeUndefined();
   });
   it('Langue Acérée : 11 PD, ignore l’armure (« pas d’armure ») ; BE appliqué', () => {
     expect(woundsOf('langue-aceree')).toMatchObject({ op: 'wounds', amount: 11, ignoreAP: true, ignoreTB: false });

@@ -1,5 +1,6 @@
 import { tableTotale } from '../lib/tableTotale';
 import { describe, it, expect, afterEach } from 'vitest';
+import type { RefASpecialisation } from '../data/schemas/grammaire/ref';
 import { makeRNG, roll } from './dice';
 import { setRule, resetRule } from './policy';
 import { CHAR_KEYS, CharKey } from './types';
@@ -80,7 +81,7 @@ describe('applyStarOps — effet d\'un signe aux ATTRIBUTS DE DÉPART (ADE II 3 
 
   it('applique les charMod (±carac) — Wymund : +2 Soc, +2 I, -3 Int', () => {
     const chars = baseChars();
-    const talents: string[] = [];
+    const talents: RefASpecialisation[] = [];
     applyStarOps('wymund-l-anachorete', chars, (t) => talents.push(t)); // id STABLE
     expect(chars.sociabilite).toBe(32);
     expect(chars.initiative).toBe(32);
@@ -90,10 +91,16 @@ describe('applyStarOps — effet d\'un signe aux ATTRIBUTS DE DÉPART (ADE II 3 
 
   it('octroie le Talent + applique la pénalité — Mummit le Fou : Chanceux, -3 FM', () => {
     const chars = baseChars();
-    const talents: string[] = [];
+    const talents: RefASpecialisation[] = [];
     applyStarOps('mummit-le-fou', chars, (t) => talents.push(t)); // id STABLE
     expect(chars['force-mentale']).toBe(27);
-    expect(talents).toEqual(['Chanceux']);
+    expect(talents).toEqual([{ id: 'chanceux' }]);
+  });
+
+  it('un Talent octroyé « Au choix » est un emplacement `choix`, à l\'adresse de son op — Les Deux Bœufs', () => {
+    const recus: [RefASpecialisation, number][] = [];
+    applyStarOps('les-deux-boeufs', baseChars(), (t, k) => recus.push([t, k]));
+    expect(recus).toEqual([[{ id: 'maitre-artisan', choix: true }, 1]]);
   });
 
   it('signe inconnu = aucun effet (pas d\'appel à addTalent)', () => {
@@ -161,7 +168,7 @@ describe('Gnome jouable — règle optionnelle (NADJ 14 l.5)', () => {
   });
 });
 
-describe('Tableau des Classes et Carrières aléatoires (LDB 05 l.197+)', () => {
+describe('Tableau des Classes et Carrières aléatoires (LDB 05 l.214+)', () => {
   it('rollCareer : la borne renvoie des carrières TOUTES accessibles à l\'espèce', () => {
     const sylvain = findSpeciesById('elfes-sylvains')!;
     for (let seed = 1; seed <= 20; seed++) {
@@ -209,7 +216,7 @@ describe('Richesse initiale (LDB 05 l.578-583)', () => {
   });
 });
 
-describe('Détails (LDB 05 l.691-744)', () => {
+describe('Détails (LDB 05 l.701-768)', () => {
   it('âge/taille dans les bornes par espèce', () => {
     const human = findSpeciesById('humains-reiklander')!;
     const dwarf = findSpeciesById('nains')!;

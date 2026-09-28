@@ -23,7 +23,7 @@ const GUARD_CREATURE = 'predateur-sanglant';
 const CANCEL_FLAG = 'ghur-source-securisee';
 
 const guardian = (over: Partial<Combatant> = {}): Combatant => ({
-  id: 'gardien', name: 'Prédateur sanglant', kind: 'enemy', creatureId: GUARD_CREATURE, porteurDeFiche: { ref: GUARD_CREATURE },
+  id: 'gardien', label: 'Prédateur sanglant', kind: 'enemy', creatureId: GUARD_CREATURE, porteurDeFiche: { ref: GUARD_CREATURE },
   characteristics: { 'capacite-de-combat': 56, 'capacite-de-tir': 0, force: 75, endurance: 62, initiative: 45, agilite: 49, dexterite: 15, intelligence: 0, 'force-mentale': 0, sociabilite: 0 },
   wounds: { current: 0, max: 104, base: 104 }, advantage: 0, conditions: [], skills: [], talents: [],
   traits: [{ id: 'gardien-eternel' }], weapons: [], armour: { corps: 0 }, pos: { x: 6, y: 6 }, dead: true,
@@ -59,6 +59,13 @@ describe('Trait Gardien éternel — reconstitution différée (op scheduleRespa
     expect(days).toBeLessThanOrEqual(10); // d10
     expect(se[0].respawn?.summon.porteur).toEqual({ ref: GUARD_CREATURE }); // « self » → la fiche du défunt (son porteur)
     expect(se[0].cancelFlag).toBe(CANCEL_FLAG); // précautions désamorçables
+  });
+
+  it('un défunt sans porteur de fiche est REFUSÉ, nommé : aucune reconstitution programmée', () => {
+    const c = guardian({ porteurDeFiche: undefined });
+    const h = harness({ battle: battle([c]) });
+    expect(() => notifySlain(h.get as never, h.set as never, c)).toThrow(/« gardien » n'a été spawné d'aucune fiche/);
+    expect(h.state().scheduledEffects).toHaveLength(0);
   });
 
   it('sans le trait → aucune reconstitution programmée à la mort', () => {

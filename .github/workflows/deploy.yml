@@ -20,7 +20,7 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
-      # Le typage est jugé par sa gate, ici comme dans ci.yml:52 — `build` ne construit que le bundle,
+      # Le typage est jugé par sa gate, ici comme dans ci.yml (step `npm run typecheck`) — `build` ne construit que le bundle,
       # et la prod ne part jamais d'un commit non typé.
       - run: npm run typecheck
       - run: npm run build

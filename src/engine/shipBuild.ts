@@ -30,10 +30,11 @@
 import shipConstructionJson from '../data/ship-construction.json';
 import steamBreakdownJson from '../data/steam-breakdown.json';
 import { findTableEntry, findTableEntryIndex, tableOuverte } from './tables';
+import { memoParVersion } from '../data/versionDataset';
 import { roll as rollDice, type RNG, defaultRNG } from './dice';
 import { rollTest } from './tests';
 import type { CharKey, Difficulty } from './types';
-import type { SkillRef } from './skills';
+import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { findVehicleById } from '../data';
 import type { ShipSize, NavalInstall, InstallBand } from '../data';
 import type { Combatant } from './types';
@@ -83,9 +84,9 @@ const DATA = shipConstructionJson as unknown as {
  *  Triée par borne basse : les DEUX bornes étant authorées, l'ordre des rangées au Codex ne décide
  *  plus du résultat. La contiguïté, elle, est tenue en donnée (`ecartsDeCouverture`,
  *  `src/data/schemas/defs/ship-construction.ts`). */
-const STANDARD_LOOKUP = tableOuverte(
+const standardLookup = memoParVersion('shipHullSizes', () => tableOuverte(
   [...DATA.standard].sort((a, b) => a.lengthM.min - b.lengthM.min).map((row) => ({ ...row.lengthM, size: row.size })),
-);
+));
 
 /**
  * Taille MDG d'un navire d'après sa LONGUEUR (tableau standard, ch.12 l.120-129 : 1-10 m Minuscule …
@@ -100,13 +101,14 @@ const STANDARD_LOOKUP = tableOuverte(
  * PUR.
  */
 export function shipSizeOfLength(lengthM: number): ShipSize {
-  const i = findTableEntryIndex(STANDARD_LOOKUP, lengthM);
+  const lookup = standardLookup();
+  const i = findTableEntryIndex(lookup, lengthM);
   if (i < 0) {
     throw new Error(
       `shipSizeOfLength : la longueur ${lengthM} m ne tombe dans aucune bande de la colonne « Taille » (MDG 12 l.122-129) — le tableau couvre les longueurs ENTIÈRES à partir de 1 m, sans plafond.`,
     );
   }
-  return STANDARD_LOOKUP[i].size;
+  return lookup[i].size;
 }
 
 /**
@@ -280,7 +282,7 @@ export interface SteamBreakdownEntry {
   engineDestroyed?: boolean;
   hullCritical?: boolean;
   compartmentDamage?: number;
-  restart?: { skill?: SkillRef; char?: CharKey; difficulty: Difficulty; extendedDR?: number }[];
+  restart?: { skill?: RefDesignee; char?: CharKey; difficulty: Difficulty; extendedDR?: number }[];
 }
 
 export const STEAM_BREAKDOWNS = steamBreakdownJson as SteamBreakdownEntry[];

@@ -7,7 +7,7 @@
 import { tableTotale } from '../../../lib/tableTotale';
 import { z } from 'zod';
 import { talentRefSchema, traitInstanceSchema } from '../grammaire/reference';
-import { refOuSpec } from '../grammaire/ref';
+import { refOuSpec, refs } from '../grammaire/ref';
 import type { SkillRef } from '../../index';
 import { charStatKeySchema, sizeCategorySchema } from '../grammaire/valeurs';
 
@@ -22,7 +22,12 @@ export type WallSide = z.infer<typeof wallSideSchema>;
  *  la réf de la grammaire (`spec` XOR `choix`) + la valeur de Test IMPRIMÉE. La FORME de sortie est
  *  ANNOTÉE (patron `AxesData`, `defs/axes.ts`) : `refOuSpec` déclare `RefASpecialisation` et n'y porte
  *  pas l'`extra` du porteur — sans cette annotation, `value` disparaîtrait du type inferé de la scène. */
-export const skillRefSchema: z.ZodType<SkillRef> = refOuSpec('skill', { value: z.number() }) as z.ZodType<SkillRef>;
+export const competenceChiffreeSchema: z.ZodType<SkillRef> = refOuSpec('skill', { value: z.number() }) as z.ZodType<SkillRef>;
+
+/** `CustomStatblock.spells` — ids de `spells.json` : la porte est la fabrique canonique (`refs('spell')`),
+ *  la FORME DE SORTIE est DÉCLARÉE nue (patron `couvertureSchema`, `./scene.ts`) — le type moteur
+ *  `CustomStatblock` porte des ids nus (`byId`, `src/data/index.ts`), l'éditeur les saisit au `<select>`. */
+const sortsConnusSchema: z.ZodType<string[], string[]> = refs('spell');
 
 /** `CustomStatblock.char` — `Partial<Record<CharKey | 'M' | 'B', number>>` : toutes les clés sont
  *  FERMÉES et chacune est facultative (un profil n'imprime que ce que le livre imprime). Écrit en objet
@@ -47,8 +52,8 @@ export const customStatblockSchema = z.strictObject({
   traits: z.array(traitInstanceSchema).optional(),
   size: sizeCategorySchema.optional(),
   groups: z.array(z.string()).optional(),
-  spells: z.array(z.string()).optional(),
-  skills: z.array(skillRefSchema).optional(),
+  spells: sortsConnusSchema.optional(),
+  skills: z.array(competenceChiffreeSchema).optional(),
   talents: z.array(talentRefSchema).optional(),
   randomChars: z.boolean().optional(),
   inert: z.boolean().optional(),

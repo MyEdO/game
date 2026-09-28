@@ -29,9 +29,12 @@
  */
 import seaWeatherJson from '../data/sea-weather.json';
 import { findTableEntry } from './tables';
+import { basculesDeForce } from './forceDuVent';
+import { memoParVersion } from '../data/versionDataset';
 import { d10, type RNG, defaultRNG } from './dice';
 import { WORK_PERIOD_HOURS } from './seaNavigation';
 import type { Difficulty } from './types';
+import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import type { Season } from './travelStages';
 import { rule } from './policy';
 
@@ -52,7 +55,7 @@ export interface SeaWeather {
 }
 
 interface WeatherRow { min: number; max: number; precipitations: string; temperature: string; visibilite: string; vent: string }
-interface PrecipitationDef { id: string; label: string; desc?: string; skillMods?: { skills: string[]; spec?: Record<string, string>; mod: number }[]; otherMod?: number }
+interface PrecipitationDef { id: string; label: string; desc?: string; skillMods?: { skills: RefDesignee[]; mod: number }[]; otherMod?: number }
 interface TemperatureDef { id: string; label: string; testEveryHours?: number; difficulty?: Difficulty; exposure?: 'chaleur' | 'froid'; litresParJour?: number }
 interface VisibilityDef { id: string; label: string; drPenalty?: number; beyondM?: number }
 /** Cellule du tableau EFFET DU VENT : % voiles / % autres, ou Encalminé / Affaler / Virement de bord. */
@@ -66,6 +69,8 @@ const DATA = seaWeatherJson as unknown as {
   temperatures: TemperatureDef[];
   visibilites: VisibilityDef[];
   vents: { id: string; label: string }[];
+  windTickThreshold: number;
+  windTicksPerDay: number;
   roseDesVents: { min: number; max: number; direction: string }[];
   effetDuVent: Record<string, Record<WindAspect, WindEffectCell>>;
   effetDuVentClinfoc: Record<string, Record<WindAspect, WindEffectCell>>;
@@ -75,7 +80,7 @@ const DATA = seaWeatherJson as unknown as {
 };
 
 /** Ordre croissant des forces de vent (pour le cran ±1 de la mise à jour, l.272). */
-export const WIND_FORCES: SeaWindForceId[] = DATA.vents.map((v) => v.id as SeaWindForceId);
+export const windForces = memoParVersion('seaWeather', (): SeaWindForceId[] => DATA.vents.map((v) => v.id as SeaWindForceId));
 
 /** Lookup STRICT d'une fiche de `sea-weather.json` — FAIL-FAST NOMINATIF (patron
  *  `data/overrides.ts::miscastEntries`, frère terrestre `travelStages.ts::weatherCondition`) : un `!`
@@ -129,17 +134,14 @@ export function windAspect(heading: WindDirection, windFrom: WindDirection): Win
   return opposite[heading] === windFrom ? 'arriere' : 'lateral';
 }
 
-/** Mise à jour du vent « à l'aube, à midi, au crépuscule et à minuit » (l.272) : 1d10, sur 1 le vent
- *  change d'un cran (50/50 forcir/mollir ; bornes : Calme plat → Légère brise, Violente tempête →
- *  Vent violent). PUR — renvoie la nouvelle force. */
+/** UNE mise à jour de la force du vent (l.272). PUR. */
 export function tickWindForce(current: SeaWindForceId, rng: RNG = defaultRNG): SeaWindForceId {
-  if (d10(rng) !== 1) return current;
-  const i = WIND_FORCES.indexOf(current);
-  const up = d10(rng) <= 5;
-  // Bornes RAW : « Le Calme plat ne peut devenir qu'une Légère brise et une Violente tempête ne peut
-  // devenir qu'un Vent violent » (l.272) — le cran aux bornes est FORCÉ, pas annulé.
-  const next = i === 0 ? 1 : i === WIND_FORCES.length - 1 ? WIND_FORCES.length - 2 : i + (up ? 1 : -1);
-  return WIND_FORCES[next];
+  return basculesDeForce(windForces(), current, DATA.windTickThreshold, 1, () => d10(rng));
+}
+
+/** Force du vent au terme d'une journée : `windTicksPerDay` mises à jour (l.272). PUR. */
+export function tickWindForceDay(current: SeaWindForceId, rng: RNG = defaultRNG): SeaWindForceId {
+  return basculesDeForce(windForces(), current, DATA.windTickThreshold, DATA.windTicksPerDay, () => d10(rng));
 }
 
 /** Gréement du navire modulant l'EFFET DU VENT : `clinfoc` = tableau ALTERNATIF de l'Amélioration Clinfoc
@@ -179,20 +181,13 @@ export function visibilityDRPenalty(vis: SeaVisibilityId, distanceM: number): nu
   return def.drPenalty != null && def.beyondM != null && distanceM > def.beyondM ? def.drPenalty : 0;
 }
 
-/** Modificateur de Précipitations sur un Test de compétence `skillId` (l.187-201) — 0 si non listé
- *  (le « −10 sur tous les autres Tests » des Très abondantes passe par `otherMod`). `spec` = Groupe
- *  d'arme du Test (ex. `poudre-noire`) : quand `skillMods[].spec[skillId]` exige une spécialisation
- *  (Projectiles (Poudre noire) seul, pas Projectiles (Arc)), le mod ne s'applique que si `spec` matche —
- *  sinon le Test tombe dans `otherMod` comme n'importe quel Test non listé. PUR. */
+/** Modificateur de Précipitations sur un Test de Compétence `skillId` (spécialisation `spec`), l.187-201.
+ *  Une référence SANS `spec` couvre toute spécialisation ; une référence AVEC `spec` ne couvre que
+ *  celle-là. Hors liste : `otherMod`, sinon 0. PUR. */
 export function precipitationSkillMod(precip: SeaPrecipitationId, skillId: string, spec?: string): number {
   const def = precipitationDef(precip);
-  for (const m of def.skillMods ?? []) {
-    if (!m.skills.includes(skillId)) continue;
-    const requiredSpec = m.spec?.[skillId];
-    if (requiredSpec != null && requiredSpec !== spec) continue;
-    return m.mod;
-  }
-  return def.otherMod ?? 0;
+  const couvre = (r: RefDesignee): boolean => r.id === skillId && (r.spec == null || r.spec === spec);
+  return def.skillMods?.find((m) => m.skills.some(couvre))?.mod ?? def.otherMod ?? 0;
 }
 
 /** Litres d'eau à boire PAR JOUR et par membre d'équipage : la bande de Température (Caniculaire 4 L,

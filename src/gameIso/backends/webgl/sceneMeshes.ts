@@ -25,7 +25,7 @@ import { buildProps } from '../../builders/props';
 import { buildTokens } from '../../builders/tokens';
 import { teamRingDecor } from '../../builders/dynamicMarks';
 import { estPropVolumique, type CellSide, type Face, type PropEl, type RoofEl, type SceneEl, type TokenEl, type WallEl } from '../../builders/types';
-import { findPropById, findPropMaterialById, matieresDe } from '../../../data';
+import { findPropById, findPropMaterialById, matieresDe, refEstVolumique } from '../../../data';
 import { roofMaterial } from '../../catalog/roofs';
 import { toitureEffective } from '../../../state/sceneEdit';
 import type { PropVertexRange } from './spriteRaycast';
@@ -346,7 +346,7 @@ const REF_NON_NOMMEE = '[sans type]';
 function propVolumeSignature(scene: Scene): string {
   const parts: string[] = [];
   for (const ent of scene.entities) {
-    if (ent.kind !== 'prop' || !findPropById(ent.ref)?.volume) continue;
+    if (ent.kind !== 'prop' || !refEstVolumique(ent.ref)) continue;
     parts.push(`${ent.id}|${ent.ref}|${ent.pos.x},${ent.pos.y}|${ent.z ?? 0}|${ent.facing ?? 'S'}`);
   }
   return parts.join(';');

@@ -30,16 +30,14 @@
 import { readFileSync, readdirSync } from 'node:fs'
 import { Buffer } from 'node:buffer'
 import { resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { cliquetsDuMessage } from './lib/stocksNominatifs.mjs'
 
 /**
- * Plafond du contexte permanent, en OCTETS. MESURE du 2026-09-21 sur `chantier/1847` : la règle 4 de
- * `CLAUDE.md` porte la HAUTEUR réelle à côté de la largeur (#1847, utilisateur 2026-09-20 : « S'il faut
- * modifier claude, faisons ca »). Il ne se relève qu'en le DISANT au message de commit (`CLIQUET: scripts/guards/budget-contexte.mjs +N — <motif>`),
- * et il s'abaisse à chaque allègement.
+ * Plafond du contexte permanent, en OCTETS : la MESURE de l'arbre. Il ne se relève qu'en le DISANT au
+ * message de commit (`CLIQUET: scripts/guards/budget-contexte.mjs +N — <motif>`), et il s'abaisse à
+ * chaque allègement.
  */
-export const PLAFOND_OCTETS = 26951
+export const PLAFOND_OCTETS = 26698
 
 /** Le fichier qui PORTE le plafond : c'est lui que le `CLIQUET:` d'un message de commit nomme. */
 export const PORTEUR_DU_PLAFOND = 'scripts/guards/budget-contexte.mjs'
@@ -219,7 +217,7 @@ export function refusDeBudget({ mesure, reference, plafond, message }) {
 }
 
 // ── Driver (n'exécute QUE lancé en direct, jamais à l'import d'un test) ────────────────────────
-if (process.argv[1] && resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url))) {
+if (import.meta.main) {
   const mesure = mesurerBudget(process.cwd())
   for (const p of mesure.postes) process.stdout.write(`${String(p.octets).padStart(6)}  ${p.nom}\n`)
   process.stdout.write(

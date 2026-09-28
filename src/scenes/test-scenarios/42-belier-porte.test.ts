@@ -11,6 +11,7 @@ import { pushSlot } from '../../state/siegePush';
 import { hoverTargeting } from '../../state/targeting';
 import type { Combatant } from '../../engine/types';
 import { chebyshev } from '../../engine/grid';
+const scenarioConstruit = scenario.construire();
 
 /**
  * BÉLIER — PORTE : consommateur LIVE du modèle ENGIN DE SIÈGE CREWÉ (poste `ShipPoste`, ADE II 8
@@ -22,8 +23,8 @@ import { chebyshev } from '../../engine/grid';
  * (ADE II 8 l.258, Lot 2 #156) : mouvement simple plafonné, formation rigide, seuil de pousseurs.
  */
 function startBelier(): { soldat: Combatant; crew: Combatant[]; ram: Combatant; porte: Combatant } {
-  useGame.setState({ party: scenario.makeParty() });
-  useGame.getState().startScene(scenario.scene);
+  useGame.setState({ party: scenario.construire().party });
+  useGame.getState().startScene(scenarioConstruit.scene);
   useGame.getState().startCombat('siege-belier');
   useGame.getState().confirmRoundStart();
   vi.clearAllTimers();
@@ -47,7 +48,7 @@ describe('Bélier — porte (belier-porte) : engin de siège CREWÉ, jamais une 
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 
   it("scène : une porte-de-ville brèchable sur l'arête N de (5,4), formation ALIGNÉE en x, à 3 cases de la porte", () => {
-    const s = scenario.scene;
+    const s = scenarioConstruit.scene;
     expect(s.dimensions).toEqual({ w: 10, h: 15 });
     const gate = s.walls!.find((w) => w.structure === 'porte-de-ville');
     expect(gate).toMatchObject({ x: 5, y: 4, side: 'N' });

@@ -19,7 +19,6 @@ import * as THREE from 'three';
 import { emptyScene, sceneMetresPerTile, type Scene } from '../../state/scene';
 import { DIR8_ORDER, type Dir8 } from '../../state/dir8';
 import { createHero } from '../../engine/character';
-import { makeRNG } from '../../engine/dice';
 import type { Rot } from '../../geometry/iso';
 import type { BillboardPropEl } from '../builders/types';
 import type { ActorPose, SceneBillboardEls, TintAt } from '../backends/webgl/sceneMeshes';
@@ -76,7 +75,7 @@ const SCENE: Scene = emptyScene(12, 12);
 const MPT = sceneMetresPerTile(SCENE);
 const TINT: TintAt = () => 1;
 const KEEP = () => true;
-const HÉROS = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', rng: makeRNG(1) });
+const HÉROS = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
 
 /** Un acteur au cap SUD, et un décor orienté : l'un juge la vue d'entité, l'autre le cran d'atlas. */
 const ACTEURS: ActorPose[] = [{ c: HÉROS, x: 4, y: 4, z: 0, facing: 'S' }];

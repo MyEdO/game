@@ -26,20 +26,15 @@ import { listerArbre } from '../../scripts/guards/lib/lister.mjs';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { fileURLToPath } from 'node:url';
 import trappings from './trappings.json';
+import { replier } from '../lib/ordre.mjs';
 
 const DATA_DIR = fileURLToPath(new URL('.', import.meta.url));
 const SCENES_DIR = join(DATA_DIR, '..', 'scenes');
 
-/** Clé de rapprochement d'un libellé : sans accents/casse, sans suffixe entre parenthèses
+/** Clé de rapprochement d'un libellé : `replier`, sans suffixe entre parenthèses
  *  (« Ration (1 jour) » ⇄ « Ration »), espaces normalisés. */
 function key(label: string): string {
-  return label
-    .normalize('NFD')
-    .replace(/\p{Diacritic}/gu, '')
-    .toLowerCase()
-    .replace(/\([^)]*\)/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
+  return replier(label).replace(/\([^)]*\)/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
 type Trapping = { id: string; label: string; formChoices?: string[] };

@@ -8,6 +8,7 @@ import { rigSpeciesId } from '../../data';
 import { WorldMap } from '../../state/worldMap';
 import { buildScene } from '../../state/mapSpec';
 import type { TestScenario } from './_shared';
+import type { Scene } from '../../state/scene';
 
 /**
  * « Voyage & temps long » : tout le temps long en un trajet. Réunit le Voyage & Nourriture (carte du
@@ -25,20 +26,20 @@ const skill = (c: Combatant, skillId: string, advances: number, spec?: string, c
  *  parler le bilan de nuit (blessée, sans rations, Vérole contagieuse, cauchemars). */
 function groupe(): Combatant[] {
   // Chasseur — Plein air (Survie) : sa réussite dispense le groupe d'Exposition. Porte les rations du groupe.
-  const bjorn = createHero({ speciesId: 'humains-reiklander', careerId: 'chasseur', label: 'Bjorn (test)', motivation: 'Test', rng: makeRNG(2401), id: 'bjorn' });
+  const bjorn = createHero({ speciesId: 'humains-reiklander', careerId: 'chasseur', label: 'Bjorn (test)', motivation: 'Test', seed: 2401, id: 'bjorn' });
   bjorn.travelRole = 'plein-air';
   skill(bjorn, 'survie-en-exterieur', 60);
   bjorn.items = [...(bjorn.items ?? []), itemFromTrappingById('ration')!, itemFromTrappingById('ration')!, itemFromTrappingById('ration')!];
   bjorn.appearance = { species: rigSpeciesId('humains-reiklander'), sex: 'M', build: 0.55 };
 
   // Éclaireuse — Rester aux aguets (Perception) : le groupe ne peut être surpris cette Étape.
-  const mira = createHero({ speciesId: 'humains-reiklander', careerId: 'eclaireur', label: 'Mira (test)', motivation: 'Test', rng: makeRNG(2402), id: 'mira' });
+  const mira = createHero({ speciesId: 'humains-reiklander', careerId: 'eclaireur', label: 'Mira (test)', motivation: 'Test', seed: 2402, id: 'mira' });
   mira.travelRole = 'rester-aux-aguets';
   skill(mira, 'perception', 50);
   mira.appearance = { species: rigSpeciesId('humains-reiklander'), sex: 'F', build: 0.42 };
 
   // Érudit — Établir des cartes (Métier Cartographe) : Test étendu cumulé ; PX pour l'Apprentissage (interlude).
-  const aldric = createHero({ speciesId: 'humains-reiklander', careerId: 'erudit', label: 'Aldric (test)', motivation: 'Test', rng: makeRNG(2403), id: 'aldric' });
+  const aldric = createHero({ speciesId: 'humains-reiklander', careerId: 'erudit', label: 'Aldric (test)', motivation: 'Test', seed: 2403, id: 'aldric' });
   aldric.travelRole = 'etablir-cartes';
   skill(aldric, 'metier', 70, 'Cartographe', 'dexterite');
   aldric.xp = 300;
@@ -46,7 +47,7 @@ function groupe(): Combatant[] {
 
   // Soldate — Approvisionnement (Survie FAIBLE → Rencontres dangereuses) ET « mauvais état » : blessée,
   // SANS rations (faim RAW), Vérole Urticante contagieuse (LDB 20), cauchemars (Test de Calme/nuit).
-  const greta = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Greta Hartmann', motivation: 'Ramener sa compagnie vivante — quel qu’en soit le prix.', rng: makeRNG(1502), id: 'greta' });
+  const greta = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Greta Hartmann', motivation: 'Ramener sa compagnie vivante — quel qu’en soit le prix.', seed: 1502, id: 'greta' });
   greta.travelRole = 'approvisionnement';
   skill(greta, 'survie-en-exterieur', 0);
   greta.wounds.current = Math.max(1, greta.wounds.max - 6);
@@ -59,7 +60,7 @@ function groupe(): Combatant[] {
 }
 
 // ── Scènes : village de départ (auberge), hameau, bourg, cité d'arrivée (interlude), embuscade ──
-const village = buildScene({
+const construireVillage = (): Scene => buildScene({
   id: 'test-voyage-village',
   label: 'Village de Weiler',
   desc: 'Arène de test.',
@@ -88,7 +89,7 @@ const village = buildScene({
           desc: 'Une table, une chope, un lit ? Tout se paie, mais tout est bon.',
           choices: [
             { label: 'Prendre des chambres pour la nuit.', flow: flowFromEffects([{ type: 'rest', lodging: 'auberge' }]) },
-            { label: 'Juste un repas (4 sous).', cost: { brass: 4 }, flow: flowFromEffects([{ type: 'mealParty' }]) },
+            { label: 'Juste un repas.', cost: { brass: 4 }, flow: flowFromEffects([{ type: 'mealParty' }]) },
             { label: 'Une autre fois. (Partir)' },
           ],
         },
@@ -97,7 +98,7 @@ const village = buildScene({
   ],
 });
 
-const hameau = buildScene({
+const construireHameau = (): Scene => buildScene({
   id: 'test-voyage-hameau',
   label: 'Hameau de Federholz',
   desc: 'Arène de test.',
@@ -108,7 +109,7 @@ const hameau = buildScene({
   startMessage: 'Vous voilà à Federholz. (Reprenez la carte pour repartir — la LONGUE route d’Altdorf part d’ici.)',
 });
 
-const bourg = buildScene({
+const construireBourg = (): Scene => buildScene({
   id: 'test-voyage-bourg',
   label: 'Bourg de Steinbruck',
   desc: 'Arène de test.',
@@ -119,7 +120,7 @@ const bourg = buildScene({
 });
 
 // Cité d'arrivée + INTERLUDE (Entre deux aventures) : marcher sur le cercle ouvre les Activités.
-const cite = buildScene({
+const construireCite = (): Scene => buildScene({
   id: 'test-voyage-cite',
   label: 'Altdorf, la capitale',
   desc: 'Arène de test.',
@@ -144,7 +145,7 @@ const cite = buildScene({
   ],
 });
 
-const embuscade = buildScene({
+const construireEmbuscade = (): Scene => buildScene({
   id: 'test-voyage-embuscade',
   label: 'Sous-bois — embuscade',
   desc: 'Arène de test.',
@@ -163,7 +164,7 @@ const embuscade = buildScene({
 });
 
 // ── Carte du monde : Weiler ↔ Federholz (piste dangereuse), Weiler ↔ Steinbruck (diligence), longue route ──
-const carte: WorldMap = {
+const construireCarte = (): WorldMap => ({
   id: 'test-voyage-carte',
   label: 'Marches de Weiler (test)',
   places: [
@@ -209,7 +210,7 @@ const carte: WorldMap = {
       ambush: { scene: 'test-voyage-embuscade', encounter: 'enc-vembuscade' },
     },
   ],
-};
+});
 
 export const scenario: TestScenario = {
   id: 'voyage',
@@ -226,10 +227,12 @@ export const scenario: TestScenario = {
     'les Activités d’Altdorf (ACE Annexe I : Pénitence, Entraînement inhabituel, Tester des objets, Mécénat, ' +
     'Recherche universitaire), gatées `where`, y deviennent atteignables.',
   partyNote: 'Bjorn (plein air) · Mira (aguets) · Aldric (cartographe, 300 PX) · Greta (fourrage faible, blessée, Vérole, cauchemars)',
-  makeParty: groupe,
-  scene: village,
-  extraScenes: [hameau, bourg, cite, embuscade],
-  worldMap: carte,
+  construire: () => ({
+    party: groupe(),
+    scene: construireVillage(),
+    extraScenes: [construireHameau(), construireBourg(), construireCite(), construireEmbuscade()],
+    worldMap: construireCarte(),
+  }),
   rules: { 'travel-etapes': true }, // mode Étapes EDOC pré-activé (coupable au panneau Règles maison)
   money: { gold: 6, silver: 10, brass: 0 },
 };

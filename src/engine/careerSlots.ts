@@ -1,18 +1,11 @@
 /**
- * Emplacements de carrière & spécialisations — RAW :
+ * Emplacements de carrière & spécialisations.
  *
- *  - Compétences groupées (LDB 09 l.33-43) : chaque Spécialisation est UNE Compétence distincte
- *    (l.42, ex. Sigrid). Quand l'entrée de carrière porte « (Au choix) », le joueur choisit la
- *    Spécialisation AU MOMENT où il alloue une Augmentation (l.38, ex. Théodora).
- *  - Talents (LDB 10 l.13-20) : la parenthèse est une « utilisation » distincte — Sens aiguisé
- *    (Vue) ≠ Sens aiguisé (Goût) ; le Maxi (1 ou « Bonus de X ») se compte par spécialisation.
- *  - Disponibilité (LDB 07) : Compétences cumulatives sur les niveaux ≤ courant (l.78),
- *    Talents du niveau courant uniquement (l.100).
+ *  - Disponibilité : Compétences LDB 07 l.76 ; Talents LDB 07 l.103.
+ *  - Compétences groupées : LDB 09 l.34-44.
+ *  - Talents, utilisation et Maxi : LDB 10 l.17-18 ; `grantsArcaneDomain` : LDB 46 l.177.
  *
- * Modèle des emplacements « (Au choix) » : chaque entrée de liste d'un Niveau de Carrière est un
- * EMPLACEMENT (slot). Le livre fixe QUOI est disponible (Compétences/Talents ci-dessus) mais reste
- * muet sur COMMENT un slot à choix se résout en jeu — le modèle ci-dessous est maison (LDB 07/09/10
- * — silence, valeur maison) :
+ * Modèle maison des emplacements « (Au choix) » (LDB 07/09/10 — silence, valeur maison) :
  *  - un slot se « désigne » sur une spec concrète gratuitement (la désignation ne donne rien, elle
  *    déclare ce que le slot couvre, éventuellement un talent déjà possédé via l'espèce) ; acheter
  *    via un slot libre le désigne automatiquement ;
@@ -27,9 +20,10 @@
  * l'assistant de création (`draft`/`CharacterCreator`) travaille sur des LIBELLÉS concrets (clés de
  * `specChoices`), le Codex sur la prose — c'est leur modèle, pas un chemin de résolution de règle.
  */
-import { Combatant, CharKey, CHAR_LABELS } from './types';
+import { Combatant, CharKey, CHAR_LABELS, type TalentInstance } from './types';
 import { bonus } from './characteristics';
-import { findTalentById, findDomainById, findSpeciesById, advancementLabel, refLabel, wildcardSpecIds, talentIdByLabel, CareerLevelData, type AdvancementRef } from '../data';
+import { byId, specPoolOf, levelsForCareer, findTalentById, findDomainById, findSpeciesById, advancementLabel, refLabel, CareerLevelData, type AdvancementRef } from '../data';
+import { entreeOuverte, refusDeSpec, type RefDesignee } from '../data/schemas/grammaire/ref';
 import { domainSpellsKnown } from './grimoire';
 import { splitLabel } from './statEntry';
 import { effectiveEntry } from './variants';
@@ -55,7 +49,8 @@ export interface SlotOption {
 }
 
 export interface CareerSlot {
-  /** Clé stable de désignation : `${level}:${kind}:${index}:${résumé}`. */
+  /** Clé stable de désignation : `${level}:${kind}:${index}:${résumé}`, le résumé fait des ids des
+   *  options (`resumeDesOptions`). */
   key: string;
   level: number;
   kind: 'skill' | 'talent';
@@ -106,23 +101,19 @@ export function parseEntry(raw: string): SlotOption[] {
 }
 
 /**
- * Specs valides d'un libellé à joker (« (Au choix) ») — SOURCE UNIQUE, partagée par le CRÉATEUR (dont
- * l'étape de dépense de PX) ET l'AVANCEMENT. Le pool DÉRIVE de `specPoolOf` (SSOT `SPEC_SOURCES`) : un
- * domaine `specsSource` (Corps à corps/Projectiles → Groupes d'arme filtrés par `combat` ; Focalisation →
- * Vents ; Magie des Arcanes → Domaines arcanes ; Béni/Invocation/Magie du Chaos → cultes filtrés par
- * Bénédictions/Miracles/Sorts du Chaos) énumère son registre ; sinon les ids des `specs[]` inline. Les
- * valeurs sont des IDS (jamais le libellé FR d'affichage) — c'est la `spec` PERSISTÉE de l'instance créée.
- * Une entrée `SpecEntry.pool: false` reste VALIDE mais n'est pas proposée ici (`LDB 09 l.40`).
- * `[]` si le nom ne porte aucune spec.
+ * Pool de spécialisations PROPOSÉES par une option joker — SOURCE UNIQUE : la liste restreinte
+ * `specOptions` (« (A ou B) »), sinon `specPoolOf` de la def, résolue par `optionId` + `kind`. Valeurs
+ * = ids de spec. `[]` si la def ne porte aucune spec ou n'est pas au catalogue.
  */
-export function wildcardSpecs(name: string): string[] {
-  return wildcardSpecIds(name);
+export function wildcardSpecs(o: Pick<SlotOption, 'optionId' | 'specOptions'>, kind: 'skill' | 'talent'): string[] {
+  if (o.specOptions) return o.specOptions;
+  const def = o.optionId == null ? undefined : defDeJoker(kind, o.optionId);
+  return def ? specPoolOf(def) : [];
 }
 
-/** Libellé concret d'un talent/compétence : « Nom » ou « Nom (Spec) ». AFFICHAGE seulement — ne
- *  JAMAIS l'utiliser comme identité/clé de désignation (cf. `refKey`). */
-export function concreteLabel(name: string, spec?: string): string {
-  return spec ? `${name} (${spec})` : name;
+/** Def (Compétence/Talent) d'une option par son id STABLE. */
+function defDeJoker(kind: 'skill' | 'talent', id: string) {
+  return kind === 'skill' ? byId('skill', id) : findTalentById(id);
 }
 
 /**
@@ -162,7 +153,7 @@ export function parseAdvancement(entry: string): AdvancementRef {
 }
 
 /** `AdvancementRef` STRUCTURÉ → `SlotOption[]` — lecture DIRECTE de la donnée (id→libellé via `refLabel`,
- *  jamais de re-parse de prose). `label` reste un LIBELLÉ (consommé par `findSkill`/`concreteLabel`).
+ *  jamais de re-parse de prose). `label` reste un LIBELLÉ d'affichage.
  *  Remplace le round-trip `advancementLabel(ref) → parseEntry(prose)`. */
 export function slotOptionsFromRef(category: string, a: AdvancementRef): SlotOption[] {
   if ('id' in a) {
@@ -181,12 +172,40 @@ function slotsOfLevel(level: CareerLevelData, kind: 'skill' | 'talent'): CareerS
     const options = slotOptionsFromRef(cat, ref); // DIRECT depuis la structure (zéro re-parse)
     const entry = advancementLabel(cat, ref); // libellé d'AFFICHAGE seulement (formateur)
     const needsChoice = options.length > 1 || options.some((o) => o.wildcard);
-    const summary = options.map((o) => o.label).join('|');
-    return { key: `${level.level}:${kind}:${i}:${summary}`, level: level.level, kind, entry, options, needsChoice };
+    return { key: `${positionDeSlot(level.level, kind, i)}:${resumeDesOptions(options)}`, level: level.level, kind, entry, options, needsChoice };
   });
 }
 
-/** Slots de COMPÉTENCES disponibles au niveau `level` : cumul des niveaux ≤ courant (LDB 07 l.78). */
+/** Position d'un emplacement dans les listes de carrière — le préfixe de sa clé. */
+function positionDeSlot(level: number, kind: 'skill' | 'talent', i: number): string {
+  return `${level}:${kind}:${i}`;
+}
+
+/** Résumé d'un emplacement en ids : `refKey` de chaque option, un joker marqué `*`. */
+function resumeDesOptions(options: SlotOption[]): string {
+  return options.map((o) => `${refKey(o.optionId ?? '', o.spec)}${o.wildcard ? '*' : ''}`).join('+');
+}
+
+/** Position (`niveau:type:index`) d'une clé d'emplacement, quel que soit son résumé. */
+function positionDeCle(cle: string): string {
+  return cle.split(':').slice(0, 3).join(':');
+}
+
+/**
+ * Clés de `careerSlotChoices` au résumé en ids (`resumeDesOptions`) : chaque clé prend celle de
+ * l'emplacement de la donnée du jour à la même position (`positionDeCle`). Idempotent ; une clé sans
+ * emplacement à sa position est gardée telle quelle (`designationsFor` ne la lit pas). Aucun libellé lu.
+ */
+export function migrerClesDEmplacement(choix: Record<string, Record<string, string>>): Record<string, Record<string, string>> {
+  return Object.fromEntries(Object.entries(choix).map(([career, stored]) => {
+    const levels = levelsForCareer(career);
+    const top = Math.max(0, ...levels.map((l) => l.level));
+    const parPosition = new Map([...skillSlots(levels, top), ...talentSlotsUpTo(levels, top)].map((s) => [positionDeCle(s.key), s.key]));
+    return [career, Object.fromEntries(Object.entries(stored).map(([cle, v]) => [parPosition.get(positionDeCle(cle)) ?? cle, v]))];
+  }));
+}
+
+/** Slots de COMPÉTENCES disponibles au niveau `level` : cumul des niveaux ≤ courant (LDB 07 l.76). */
 export function skillSlots(levels: CareerLevelData[], level: number): CareerSlot[] {
   return levels.filter((l) => l.level <= level).flatMap((l) => slotsOfLevel(l, 'skill'));
 }
@@ -208,29 +227,37 @@ export function availableChars(levels: CareerLevelData[], level: number): CharKe
 }
 
 /** Une (id, spec) concrète est-elle couverte par CE slot (désignations ignorées) ? Compare par
- *  `optionId` STABLE — jamais par libellé (i18n-safe). */
+ *  `optionId` STABLE — jamais par libellé (i18n-safe). Un joker exige une spec : Compétence `LDB 09 l.40`, Talent `LDB 10 l.17`.
+ *  La spec d'un joker doit être ADMISE par l'entrée (`refusDeSpec`, le prédicat du schéma) et, pour un
+ *  joker restreint ou une entrée FERMÉE (`entreeOuverte`), appartenir au pool du joker (`wildcardSpecs`). */
 export function slotCovers(slot: CareerSlot, optionId: string, spec?: string): boolean {
   return slot.options.some((o) => {
     if (o.optionId !== optionId) return false;
     if (!o.wildcard) return (o.spec ?? '') === (spec ?? '');
-    if (o.specOptions) return spec != null && o.specOptions.includes(spec);
-    return true; // joker plein : toute spec du groupe (y compris sans spec)
+    if (spec == null || refusDeSpec(slot.kind, optionId, spec) !== null) return false;
+    return (!o.specOptions && entreeOuverte(slot.kind, optionId)) || wildcardSpecs(o, slot.kind).includes(spec);
   });
 }
 
 /** Désignations d'un héros pour une carrière : slotKey → clé d'identité `refKey(id, spec)`
- *  (OPAQUE — jamais un libellé concret ; l'affichage se fait via `refLabel`/`specLabel`). */
+ *  (OPAQUE — jamais un libellé concret ; l'affichage se fait via `refLabel`/`specLabel`). Une
+ *  désignation persistée que son emplacement ne couvre pas (`slotCovers`) n'est pas lue : l'emplacement
+ *  redevient à désigner. */
 export function designationsFor(hero: Combatant, career: string): Record<string, string> {
-  return hero.careerSlotChoices?.[career] ?? {};
+  const stored = hero.careerSlotChoices?.[career] ?? {};
+  const levels = levelsForCareer(career);
+  const top = Math.max(0, ...levels.map((l) => l.level));
+  const slots = new Map([...skillSlots(levels, top), ...talentSlotsUpTo(levels, top)].map((s) => [s.key, s]));
+  return Object.fromEntries(Object.entries(stored).filter(([slotKey, key]) => {
+    const slot = slots.get(slotKey);
+    if (!slot) return true;
+    const { id, spec } = parseRefKey(key);
+    return slotCovers(slot, id, spec);
+  }));
 }
 
-/**
- * Références (id+spec, encodées en `refKey`) déjà « prises » par les slots d'une carrière
- * (désignations + entrées explicites) — un nouveau slot ne peut pas reprendre l'une d'elles
- * (arbitrage : au niveau 2, un nouveau « Sens aiguisé (Au choix) » ne peut pas re-désigner la
- * spec du slot du niveau 1). Un slot explicite SANS `optionId` (tirage aléatoire, « N Talent
- * aléatoire ») n'a pas d'identité réelle → n'occupe rien (jamais repris de toute façon).
- */
+/** Références (`refKey`) tenues par des emplacements d'une carrière : désignations et entrées
+ *  explicites ; un emplacement tiré sans `optionId` n'en tient aucune (LDB 05 l.535). */
 export function takenRefs(slots: CareerSlot[], designations: Record<string, string>): Set<string> {
   const taken = new Set<string>(Object.values(designations));
   for (const s of slots) {
@@ -242,6 +269,14 @@ export function takenRefs(slots: CareerSlot[], designations: Record<string, stri
   return taken;
 }
 
+/** Références tenues par les AUTRES emplacements du niveau de `slot` (`takenRefs`) : le pool libre
+ *  d'un joker en est privé (LDB 05 l.535 ; LDB 08 l.140). */
+export function prisParLesAutres(slot: CareerSlot, allSlots: CareerSlot[], designations: Record<string, string>): Set<string> {
+  const autres = allSlots.filter((s) => s.level === slot.level && s.key !== slot.key);
+  const cles = new Set(autres.map((s) => s.key));
+  return takenRefs(autres, Object.fromEntries(Object.entries(designations).filter(([k]) => cles.has(k))));
+}
+
 export type InCareerStatus = 'explicit' | 'designated' | 'free' | null;
 
 /**
@@ -249,7 +284,7 @@ export type InCareerStatus = 'explicit' | 'designated' | 'free' | null;
  *  - 'explicit'   : une entrée sans choix le couvre exactement ;
  *  - 'designated' : un slot à choix lui est désigné ;
  *  - 'free'       : un slot à choix NON désigné peut le couvrir (l'achat désignera) et le
- *                   libellé n'est pas déjà pris par un autre slot de la carrière ;
+ *                   libellé n'est pas déjà pris par un autre slot de son niveau (`prisParLesAutres`) ;
  *  - null         : hors carrière.
  */
 export function inCareerStatus(
@@ -266,28 +301,47 @@ export function inCareerStatus(
   for (const s of slots) {
     if (s.needsChoice && designations[s.key] === key) return 'designated';
   }
-  const taken = takenRefs(allSlotsForUniqueness, designations);
-  if (taken.has(key)) return null; // pris par un AUTRE slot (sinon retourné ci-dessus)
-  for (const s of slots) {
-    if (s.needsChoice && !designations[s.key] && slotCovers(s, optionId, spec)) return 'free';
-  }
-  return null;
+  return freeSlotFor(slots, designations, optionId, spec, allSlotsForUniqueness) ? 'free' : null;
 }
 
-/** Premier slot à choix non désigné pouvant couvrir (optionId, spec) — pour l'auto-désignation. */
+/** Motif pour lequel (optionId, spec) n'entre dans aucun emplacement : `absent` (aucune option de
+ *  cet id), `sansSpec` (seuls des jokers le portent, sans spécialisation), `nonCouvert` (sinon). */
+export type RefusDEmplacement = 'absent' | 'sansSpec' | 'nonCouvert';
+
+/** `inCareerStatus`, ou le motif de son `null` — une seule lecture pour qui construit (`createHero`)
+ *  et qui valide avant de construire (créateur). */
+export function statutOuRefus(
+  slots: CareerSlot[],
+  designations: Record<string, string>,
+  optionId: string,
+  spec?: string,
+  allSlotsForUniqueness: CareerSlot[] = slots,
+): Exclude<InCareerStatus, null> | RefusDEmplacement {
+  const status = inCareerStatus(slots, designations, optionId, spec, allSlotsForUniqueness);
+  if (status) return status;
+  const options = slots.flatMap((s) => s.options).filter((o) => o.optionId === optionId);
+  if (!options.length) return 'absent';
+  if (spec == null && options.every((o) => o.wildcard)) return 'sansSpec';
+  return 'nonCouvert';
+}
+
+/** Premier slot à choix non désigné pouvant couvrir (optionId, spec), qu'aucun autre slot de son
+ *  niveau ne tient (`prisParLesAutres`) — pour l'auto-désignation. */
 export function freeSlotFor(
   slots: CareerSlot[],
   designations: Record<string, string>,
   optionId: string,
   spec?: string,
+  allSlots: CareerSlot[] = slots,
 ): CareerSlot | undefined {
-  return slots.find((s) => s.needsChoice && !designations[s.key] && slotCovers(s, optionId, spec));
+  const key = refKey(optionId, spec);
+  return slots.find((s) => s.needsChoice && !designations[s.key] && slotCovers(s, optionId, spec) && !prisParLesAutres(s, allSlots, designations).has(key));
 }
 
 /**
  * Désigne un slot sur une (id, spec) concrète (mute le héros). Gratuit — déclare seulement ce que
  * le slot couvre. Refuse : (id, spec) non couverte par le slot, ou déjà prise par un autre slot de
- * la carrière (désignation OU entrée explicite). La désignation stockée est la clé OPAQUE
+ * son niveau (`prisParLesAutres`). La désignation stockée est la clé OPAQUE
  * `refKey(optionId, spec)` — jamais un libellé concret (i18n-safe).
  */
 export function designateSlot(
@@ -304,9 +358,7 @@ export function designateSlot(
   if (designations[slot.key] && designations[slot.key] !== key) {
     return { ok: false, reason: t('slot.alreadyDesignated') };
   }
-  const others = { ...designations };
-  delete others[slot.key];
-  if (takenRefs(allSlots, others).has(key)) {
+  if (prisParLesAutres(slot, allSlots, designations).has(key)) {
     return { ok: false, reason: t('slot.takenByOther') };
   }
   hero.careerSlotChoices = {
@@ -317,17 +369,15 @@ export function designateSlot(
 }
 
 /**
- * Maxi d'un Talent (LDB 10 « Schéma des Talents ») par son `id` STABLE : 1, « Bonus de X »
- * (recalculé sur les Caractéristiques courantes) ou illimité (« Aucun »/absent). Le Maxi se
- * compte PAR spécialisation (côté appelant : le libellé concret porte la spec). Le Maxi lu est celui
- * de l'entrée EFFECTIVE (`effectiveEntry`, `src/engine/variants.ts`) : une variante réglée qui
- * republie « Maxi » (AA 13 l.54-59, l.70-74) fait autorité sur la forme de base.
+ * Maxi d'un Talent par son `id` STABLE (LDB 10 l.18) : 1, Bonus de Caractéristique (LDB 05 l.406)
+ * ou illimité (absent). Lu sur l'entrée EFFECTIVE (`effectiveEntry`, `src/engine/variants.ts` ;
+ * AA 13 l.54-59, l.70-74).
  */
-export function talentMaxById(hero: Combatant, talentId: string): number | null {
+export function talentMaxById(hero: Pick<Combatant, 'characteristics'>, talentId: string): number | null {
   const max = effectiveEntry(findTalentById(talentId))?.max;
-  if (max == null) return null; // sans limite
+  if (max == null) return null;
   if (typeof max === 'number') return max;
-  return bonus(hero.characteristics[max.bonusOf]); // Maxi = Bonus de carac (valeur de base du héros)
+  return bonus(hero.characteristics[max.bonusOf]); // LDB 07 l.47 : `characteristics` porte les Augmentations (`buyCharAdvance`)
 }
 
 /** Affichage FR du Maxi d'un talent (Compendium), DÉRIVÉ de la donnée structurée, jamais stocké en chaîne. */
@@ -336,19 +386,52 @@ export function talentMaxLabel(max: number | { bonusOf: CharKey } | null): strin
   return typeof max === 'number' ? String(max) : t('slot.maxBonusOf', { char: CHAR_LABELS[max.bonusOf] });
 }
 
-/** Maxi par LIBELLÉ — bord authoring/tests : résout l'id (nom seul) puis délègue. */
-export function talentMax(hero: Combatant, label: string): number | null {
-  const id = talentIdByLabel(splitLabel(label).name);
-  return talentMaxById(hero, id);
+/** Acquisitions déjà faites du Talent, TOUTES utilisations confondues (LDB 10 l.17-18, l.548) — lues par
+ *  le Maxi (LDB 10 l.18) et le coût (LDB 07 l.105, l.156). `spec` ne sert qu'à un Talent `grantsArcaneDomain` :
+ *  chaque Domaine est un Talent (LDB 46 l.177), le nombre de Domaines relevant de `arcaneDomainGate`. */
+export function talentAcquisitions(hero: Pick<PorteurDeTalents, 'talents'>, talentId: string, spec?: string): number {
+  const parDomaine = findTalentById(talentId)?.grantsArcaneDomain === true;
+  return (hero.talents ?? [])
+    .filter((t) => t.talentId === talentId && (!parDomaine || (t.spec ?? '') === (spec ?? '')))
+    .reduce((n, t) => n + t.times, 0);
 }
 
-/** Le héros a-t-il atteint le Maxi de ce Talent, par `(talentId, spec)` — identité STABLE, jamais
- *  un libellé re-parsé. */
-export function talentMaxReached(hero: Combatant, talentId: string, spec?: string): boolean {
+/** Le héros a-t-il atteint le Maxi de ce Talent (`talentAcquisitions`). */
+export function talentMaxReached(hero: PorteurDeTalents, talentId: string, spec?: string): boolean {
   const max = talentMaxById(hero, talentId);
-  if (max == null) return false;
-  const times = hero.talents.find((t) => t.talentId === talentId && (t.spec ?? '') === (spec ?? ''))?.times ?? 0;
-  return times >= max;
+  return max != null && talentAcquisitions(hero, talentId, spec) >= max;
+}
+
+/** Ce que l'acquisition d'un Talent lit et écrit sur son porteur. */
+export type PorteurDeTalents = Pick<Combatant, 'characteristics'> & { talents?: TalentInstance[] };
+
+/** L'instance `x` est-elle le Talent `ref` (id et spécialisation) ? */
+export const estLInstanceDe = (ref: RefDesignee) => (x: TalentInstance): boolean => x.talentId === ref.id && (x.spec ?? '') === (ref.spec ?? '');
+
+/**
+ * ACQUISITION d'une instance de Talent — seule couture qui écrit `talents` : le Maxi borne (`LDB 10
+ * l.18`, `talentMaxReached`), puis l'instance existante gagne un `times`, ou une instance neuve est
+ * posée. Rend `false`, sans rien écrire, quand le Maxi est atteint.
+ */
+export function acquerirTalent(porteur: PorteurDeTalents, ref: RefDesignee): boolean {
+  if (talentMaxReached(porteur, ref.id, ref.spec)) return false;
+  const talents = porteur.talents ?? [];
+  const meme = estLInstanceDe(ref);
+  porteur.talents = talents.some(meme)
+    ? talents.map((x) => (meme(x) ? { ...x, times: x.times + 1 } : x))
+    : [...talents, { talentId: ref.id, ...(ref.spec ? { spec: ref.spec } : {}), times: 1 }];
+  return true;
+}
+
+/** INVERSE d'`acquerirTalent` : l'instance perd un `times`, et disparaît au dernier. */
+export function retirerTalent(porteur: PorteurDeTalents, ref: RefDesignee): void {
+  const talents = porteur.talents ?? [];
+  const meme = estLInstanceDe(ref);
+  const instance = talents.find(meme);
+  if (!instance) return;
+  porteur.talents = instance.times > 1
+    ? talents.map((x) => (meme(x) ? { ...x, times: x.times - 1 } : x))
+    : talents.filter((x) => !meme(x));
 }
 
 /** `VDM 02 l.190-192` (texte identique `LDB 46 l.177`). Voir `arcaneDomainCap`/`arcaneDomainGate`. */

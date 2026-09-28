@@ -20,7 +20,6 @@ import { useGame } from './store';
 import { applySurprise, approachFearTrigger, resolveFreeAttacks } from './combatFlow';
 import { applyTriggeredEffects } from './triggeredEffects';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { seedBattleRng } from './battleRng';
 import { hasCondition, addCondition, isOutOfAction, COND } from '../engine/conditions';
 import { surfaceOf } from './rollSeam';
@@ -41,9 +40,9 @@ const g = useGame.getState;
  * possession posée n'est pas la même).
  */
 function setupCoop(opts: { gmSeat?: number; vivants?: number } = {}): { H: Combatant; E: Combatant[] } {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   useGame.setState({ party: [hero] });
-  g().startScene(testScene);
+  g().startScene(testScene());
   g().startCombat('enc-mutants');
   g().confirmRoundStart();
   vi.clearAllTimers();

@@ -10,17 +10,23 @@ import { isMerScene, sceneMetresPerTile } from '../../state/scene';
 import { chebyshev } from '../../state/path';
 import { runEnemyAI, checkBattleOver } from '../../state/combatFlow';
 import type { Combatant, ShipPoste } from '../../engine/types';
+import { fr } from '../../i18n/messages/fr';
+const scenarioConstruit = scenario.construire();
 
 /** Lance le scénario duel dans le store (comme `__wfrp.scenario`), Round 1 acquitté, RNG SEMÉE. */
 function launch(seed: number) {
   const g = useGame.getState();
   g.seedRng(seed);
   seedBattleRng(seed);
-  g.setParty(scenario.makeParty());
-  g.startScene(scenario.scene);
+  g.setParty(scenario.construire().party);
+  g.startScene(scenarioConstruit.scene);
   g.startCombat('duel');
   if (useGame.getState().pendingRoundStart) useGame.getState().confirmRoundStart();
 }
+
+/** Gabarit d'un message du catalogue en RegExp (les `{param}` deviennent `.*`). */
+const gabarit = (cle: 'cs.bordee' | 'cs.bordeeManque'): RegExp =>
+  new RegExp(`^${fr[cle].split(/\{[a-z]+\}/).map((m) => m.replace(/[.*+?^$()|[\]\\]/g, '\\$&')).join('.*')}$`);
 
 const rangeM = (p: ShipPoste) => (typeof p.item.range === 'number' ? p.item.range : 0);
 const ship = (id: string): Combatant => useGame.getState().battle!.combatants.find((c) => c.id === id)!;
@@ -113,7 +119,7 @@ describe('Duel naval (échelle Mer) — modèle DEUX-ÉCHELLES jouable (MDG 13-1
     expect(useGame.getState().battle!.over).toBeTruthy();
   });
 
-  it('IA DE COQUE (runShipAI) : cogue alignée & à portée → BORDÉE réelle sur le Grimm (dégâts sur la coque joueur)', () => {
+  it('IA DE COQUE (runShipAI) : cogue alignée & à portée → BORDÉE décidée et résolue ; la coque joueur perd des Blessures ssi le Test d’équipage réussit', () => {
     // Rapproche et aligne manuellement la cogue en batterie tribord sur le Grimm, puis fais tourner l'IA de coque.
     const b = useGame.getState().battle!;
     const grimm = ship('grimm-duel'), cogue = ship('cogue-duel');
@@ -121,8 +127,12 @@ describe('Duel naval (échelle Mer) — modèle DEUX-ÉCHELLES jouable (MDG 13-1
     cogue.pos = { x: 8, y: 3 }; // 4 cases au nord (40 m < 75 m) → dans l'arc + à portée
     useGame.setState({ facing: { ...useGame.getState().facing, 'cogue-duel': 'E' }, battle: { ...b, turn: b.order.indexOf('cogue-duel') } }); // au tour de la cogue ; cap E → le Grimm plein SUD tombe en TRIBORD
     const before = grimm.wounds.current;
-    // `runEnemyAI` sur la coque ennemie (aiDriven par défaut) → décision naval headless (ici : BORDÉE).
     runEnemyAI(useGame.getState, useGame.setState, 'cogue-duel');
-    expect(ship('grimm-duel').wounds.current).toBeLessThan(before); // la bordée a touché la coque joueur
+    // Issue du Test d'équipage des Artilleurs : la ligne de journal de `applyBatteryVolley` (combatSlice.ts).
+    const deLaCogue = useGame.getState().journal.filter((l) => l.includes(`${cogue.label} sur ${grimm.label}`));
+    const reussies = deLaCogue.filter((l) => gabarit('cs.bordee').test(l));
+    const manquees = deLaCogue.filter((l) => gabarit('cs.bordeeManque').test(l));
+    expect(reussies.length + manquees.length, 'une et une seule bordée décidée et résolue').toBe(1);
+    expect(ship('grimm-duel').wounds.current < before).toBe(reussies.length === 1);
   });
 });

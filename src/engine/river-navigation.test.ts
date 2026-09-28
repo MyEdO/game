@@ -7,7 +7,7 @@ import { RULE_REF } from './ruleRefs';
 import {
   rollRiverWind, tickRiverWind, riverWindEffect, savoirVoiesFluvialesBonus, riverPilotSkill,
   riverControlKept, rowingAgilityFactor, riverDayKm, riverDriftKm, navPenaltyMods,
-  CAPSIZE_RIGHT_DIFFICULTY, CAPSIZE_RIGHT_CUMULATIVE, capsizeSinkTurns, holeSinkMinutes,
+  capsizeRightDifficulty, capsizeRightCumulative, capsizeSinkTurns, holeSinkMinutes,
   riverCritical, resolveRiverImpact, rollBarrage, echouageDamage, findRiverPeril, RIVER_PERILS,
 } from './riverNavigation';
 import { rollShipCritical } from './shipCritical';
@@ -50,7 +50,7 @@ describe('Table des vents (MSRC 7 l.21-33)', () => {
 
 describe('Navigation & rame (l.11-17)', () => {
   it('Savoir (Voies fluviales) → +1 DR si la Compétence est ACQUISE (avances > 0), sinon 0 (l.13)', () => {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'batelier', label: 'B', motivation: 'x', rng: makeRNG(1) });
+    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'batelier', label: 'B', motivation: 'x', seed: 1 });
     expect(savoirVoiesFluvialesBonus(h)).toBe(0);
     h.skills.push({ id: 'savoir', spec: 'voies-fluviales', characteristic: 'intelligence', advances: 10 });
     expect(savoirVoiesFluvialesBonus(h)).toBe(1);
@@ -102,11 +102,11 @@ describe('Navigation & rame (l.11-17)', () => {
 
 describe('Chavirage & naufrage (note 4 l.40 ; l.101-103)', () => {
   it('redressement : la cible du 1ᵉʳ Round est la Navigation Accessible (+20), sans malus', () => {
-    expect(CAPSIZE_RIGHT_DIFFICULTY).toBe('accessible');
+    expect(capsizeRightDifficulty()).toBe('accessible');
   });
 
   it('chaque Round échoué ajoute −5 à la cible du suivant (note 4, l.40)', () => {
-    expect(CAPSIZE_RIGHT_CUMULATIVE).toBe(-5);
+    expect(capsizeRightCumulative()).toBe(-5);
   });
 
   it('temporisation du naufrage : chavirage = BE tours ; coque percée = E minutes (l.40 / l.103)', () => {

@@ -2,13 +2,14 @@
  * Avancement par Points d'Expérience (PX) — Livre de base, « Carrières » (LDB 07) l.35-109.
  *
  * Les Augmentations s'achètent UNE PAR UNE : le coût de la prochaine dépend du nombre déjà
- * acheté pour cette Caractéristique / Compétence (LDB 07 l.47/80). Toutes les valeurs sont copiées
+ * acheté pour cette Caractéristique / Compétence (LDB 07 l.45/78). Toutes les valeurs sont copiées
  * VERBATIM du Tableau de Coût des Augmentations (LDB 07 l.51-70) — aucune invention.
  */
 import { Combatant, CharKey } from './types';
-import { CareerSlot, parseRefKey } from './careerSlots';
+import { CareerSlot, acquerirTalent, parseRefKey, talentAcquisitions } from './careerSlots';
 import advancementCostsJson from '../data/advancementCosts.json';
 import { findTableEntry, tableOuverte } from './tables';
+import { memoParVersion } from '../data/versionDataset';
 import { t } from '../i18n';
 
 /**
@@ -38,20 +39,19 @@ const ADVANCE_COST_TABLE: AdvanceCostBand[] = advancementCostsJson as AdvanceCos
 /** La table telle que `findTableEntry` la lit : la borne OUVERTE de la dernière bande devient son
  *  infini. Aucun plafond n'est écrit en donnée — c'est le lookup qui ouvre, pas la source, et il est
  *  le tronc commun des tables ouvertes (`tableOuverte`, `./tables`). */
-const ADVANCE_COST_LOOKUP = tableOuverte(ADVANCE_COST_TABLE);
+const advanceCostLookup = memoParVersion('advancementCosts', () => tableOuverte(ADVANCE_COST_TABLE));
 
 /** Coût en PX de la PROCHAINE Augmentation (la N+1ᵉ), `advancesAlready` = N déjà achetées.
  *  Hors carrière, le coût est DOUBLÉ (LDB 07 l.91). `discount` : « 5 PX de moins par
  *  Augmentation » des talents Maître artisan / Oreille absolue / etc. (LDB 10) quand la
  *  Compétence ajoutée est déjà incluse dans la Carrière — appliqué in-carrière seulement. */
 export function advanceCost(advancesAlready: number, kind: 'characteristic' | 'skill', inCareer = true, discount = 0): number {
-  const band = findTableEntry(ADVANCE_COST_LOOKUP, advancesAlready);
+  const band = findTableEntry(advanceCostLookup(), advancesAlready);
   const base = kind === 'characteristic' ? band.coutCarac : band.coutCompetence;
   return inCareer ? Math.max(1, base - discount) : base * 2;
 }
 
-/** Coût en PX de la prochaine Augmentation de Talent : 100 + 100 × (Augmentations déjà achetées)
- *  pour ce Talent (LDB 07 l.105). 1ʳᵉ = 100, 2ᵉ = 200, 3ᵉ = 300. */
+/** Coût en PX de la prochaine Augmentation de Talent : LDB 07 l.105, l.156. */
 export function talentCost(timesAlready: number): number {
   return 100 * (timesAlready + 1);
 }
@@ -89,15 +89,13 @@ export function buySkillAdvance(hero: Combatant, skillId: string, spec: string |
 /** Achète UNE Augmentation de Talent (le crée à `times` 1 s'il est absent, sinon +1) si les PX
  *  suffisent. Identité STABLE par `talentId` + `spec` (déjà résolus par l'appelant ; jamais un
  *  libellé). Les Talents hors carrière ne sont pas achetables (LDB 07 l.93) et le Maxi doit être respecté
- *  (LDB 10) — vérifiés par l'appelant (`talentMaxReached`) ; ici on applique le coût standard. */
+ *  (LDB 10 l.18) : le hors-carrière est vérifié par l'appelant, le Maxi par `acquerirTalent`. Coût : LDB 07
+ *  l.105, l.156, `talentAcquisitions`. */
 export function buyTalent(hero: Combatant, talentId: string, spec?: string): AdvanceResult {
-  const existing = hero.talents.find((t) => t.talentId === talentId && (t.spec ?? '') === (spec ?? ''));
-  const already = existing?.times ?? 0;
-  const cost = talentCost(already);
+  const cost = talentCost(talentAcquisitions(hero, talentId, spec));
   if ((hero.xp ?? 0) < cost) return { ok: false, cost, reason: t('adv.notEnoughXp') };
+  if (!acquerirTalent(hero, { id: talentId, spec })) return { ok: false, cost, reason: t('adv.talentMax') };
   hero.xp = (hero.xp ?? 0) - cost;
-  if (existing) existing.times += 1;
-  else hero.talents.push({ talentId, spec, times: 1 });
   return { ok: true, cost };
 }
 

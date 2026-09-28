@@ -12,15 +12,15 @@
  * Patron retenu : « éditorial EN DUR dans le générateur » (scripts/docs/build-sources-vf.mjs),
  * avec la passerelle TS de `scripts/docs/build-donnees.mjs` pour l'exposition.
  *
- * Mode --check (chaîné dans npm run docs:check) : régénère en mémoire, compare au .md committé,
- * exit 1 avec message actionnable si diff — jamais d'écriture en mode --check.
+ * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/empreinte-sources.mjs), rejoué par `build-all.mjs`.
  *
  *   node scripts/docs/build-codex-relations.mjs
  */
 import { readFileSync, existsSync } from 'node:fs'
 import { sortieOutilLocal } from '../lancer-local.mjs'
 import ts from 'typescript'
-import { emitOrCheck, loadSource, jsdocBody } from './lib/jsdocUnion.mjs'
+import { loadSource, jsdocBody } from './lib/jsdocUnion.mjs'
+import { ecrireOuVerifier } from './lib/empreinte-sources.mjs'
 import { fileExports } from './lib/engineExports.mjs'
 import { parUnitesDeCode } from '../guards/lib/lister.mjs'
 
@@ -50,10 +50,10 @@ const EXPOSITION = JSON.parse(
 /** Route d'édition d'un def, dans le vocabulaire de `document()` — jamais un libellé inventé. */
 function routeEdition(edit) {
   if (!edit) return '—'
+  if ('none' in edit) return 'aucune'
   if (edit.dataset) return `dataset \`${edit.dataset}\``
   if (edit.object) return `objet \`${edit.object}\``
-  if (edit.niche) return `niché (${edit.niche.categories.length} catégorie(s))`
-  if ('none' in edit) return 'aucune'
+  if (edit.niche) return `niché (${Object.keys(edit.niche.categories).length} catégorie(s))`
   abandon(`route d'édition inconnue : ${JSON.stringify(edit)}`)
 }
 
@@ -320,8 +320,8 @@ argument de la fabrique \`document()\` (\`src/data/schemas/grammaire/document.ts
   document, soit \`{ exempt: { kind, raison, ticket? } }\` : une exemption MOTIVÉE. La fabrique
   refuse un \`codex\` sans clés ni exemption motivée.
 - \`edit\` — ce que l'ÉDITEUR édite : \`{ dataset }\`, \`{ object: 'single' | 'record' }\`,
-  \`{ niche: { categories } }\` (les clés Codex du document routées comme datasets, chacune éditant
-  UN champ tableau — le fichier parent est réécrit au save), ou \`{ none: raison }\`. La fabrique
+  \`{ niche: { categories } }\` (chaque clé Codex du document routée comme dataset, vers la suite
+  nichée de la collection qu'elle édite — le fichier parent est réécrit au save), ou \`{ none: raison }\`. La fabrique
   refuse les quatre absents.
 
 Les ROUTES D'ÉDITION du Codex sont DÉRIVÉES de ces déclarations (#1472) :
@@ -411,7 +411,7 @@ Regrouper une catégorie = poser \`cluster: '…'\` sur son littéral dans \`COD
 ${TESTS.map((t) => `- \`npx vitest run ${t}\``).join('\n')}
 `
 
-emitOrCheck({
+ecrireOuVerifier({
   out,
   path: 'docs/codex-relations.md',
   check: process.argv.includes('--check'),

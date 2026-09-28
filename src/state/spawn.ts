@@ -5,7 +5,7 @@
 import { Combatant, Characteristics, CHAR_KEYS, BodyShape, SkillInstance, TalentInstance, type AuthoredShipPoste, type NavalTraitRef } from '../engine/types';
 import { skillCharacteristicById } from '../engine/character';
 import { isOptionalNote, type TraitInstance, type TraitList, type OptionalEntry, type OptionalSwap } from '../engine/statEntry';
-import { findCreatureById, byId, findTalentById, findSpellById, findVehicleById, findTrappingById, refEntiteResolue, specPoolOf, CreatureData, type SkillData, type SkillRef, type TalentRef } from '../data';
+import { findCreatureById, byId, findTalentById, findVehicleById, findTrappingById, refEntiteResolue, specPoolOf, CreatureData, type SkillData, type SkillRef, type TalentRef } from '../data';
 import { vehicleCombatant } from '../engine/vehicle';
 import { inanimateCombatant } from '../engine/inanimate';
 import { hullArmourBonus, hullNavalTraits } from '../engine/navalTraits';
@@ -187,7 +187,7 @@ export interface SpawnExtras {
   /** OPTIONNELS choisis (LDB 76 l.45) : `TraitInstance` ordinaires (fusionnés avant dérivation) OU
    *  NOTES composées (joker « tous les traits », variante « swap » qui RETIRE des Traits + octroie un bonus). */
   optionals?: OptionalEntry[];
-  /** Sorts connus (la donnée bestiaire n'en liste pas — choix d'auteur). */
+  /** Sorts connus choisis par l'auteur (`combat.spells`) — priment sur ceux de la créature. */
   spells?: string[];
   /** Caractéristiques aléatoires (LDB 77 l.108). */
   randomChars?: boolean;
@@ -303,10 +303,9 @@ export function creatureToCombatant(creature: CreatureData, id: string, pos: { x
     ...(isMindless(traits) ? { psychImmune: true } : {}), // Fabriqué : Tests d'Int/FM/Soc auto-réussis (LDB 85 l.142)
     ...spawnMutations(traits, id), // Mutation / Corruption mentale : tirage au spawn (LDB 85)
     // Sorts : ceux de la DONNÉE (PNJ nommés — Eusapia en a 12), surchargés par le choix d'auteur.
-    // Combatant.spells = IDS de sort (runtime) : créature = ids des refs ; choix d'auteur = ids (filtrés valides).
-    ...(extras?.spells?.length
-      ? { spells: extras.spells.filter((id) => !!findSpellById(id)) }
-      : creature.spells.length ? { spells: creature.spells.map((s) => s.id) } : {}),
+    // Combatant.spells = IDS de sort, prouvés par le schéma de scène (`refs('spell')`) : au parse, et à
+    // `validateScene` pour une scène vivante de l'éditeur.
+    ...(extras?.spells?.length ? { spells: extras.spells } : creature.spells.length ? { spells: creature.spells } : {}),
     groups: groupsFor({ extras: creature.grantGroups, traits, talents }), // Groupes DÉCLARÉS par l'entrée (`grantGroups` : catégorie + dieu du Chaos) + Traits (`capabilities.grantGroups`) + culte (Talent de Prière, P3)
     traits, // conservés (facultatifs inclus) → attaques gratuites de créature en combat
     skills,
@@ -367,7 +366,7 @@ export function statblockToCombatant(sb: CustomStatblock, id: string, pos: { x: 
     ...(swarm ? { swarm: true, psychImmune: true } : {}), // Nuée : ignore la Psychologie (LDB 85 l.253)
     ...(isMindless(traits) ? { psychImmune: true } : {}), // Fabriqué : Tests d'Int/FM/Soc auto-réussis (LDB 85 l.142)
     ...spawnMutations(traits, id), // Mutation / Corruption mentale : tirage au spawn (LDB 85)
-    ...(sb.spells?.length ? { spells: sb.spells.filter((id) => !!findSpellById(id)) } : {}), // ids d'auteur (filtrés valides)
+    ...(sb.spells?.length ? { spells: sb.spells } : {}), // ids d'auteur, prouvés par le schéma de scène (`refs('spell')`) : au parse, et à `validateScene` pour une scène vivante
     groups: groupsFor({ extras: sb.groups, traits, talents }), // extras manuels (déjà des ids) + traits (Mort-vivant…) + religieux (Talent Béni) — espèce/carrière non portées par le statbloc (P3)
     traits, // structurés → attaques gratuites + lecture sans re-parsing
     skills,
@@ -440,9 +439,7 @@ export function spawnEnemy(
   // rendu dérivé du nom inchangé.
   const a = opts?.appearance;
   if (a?.species) c.species = a.species; // espèce/race d'auteur → rig en combat comme en exploration
-  if (a && (a.species || a.monster || a.features || a.colors || a.parts || a.eyes || a.sex || a.build !== undefined || a.seed !== undefined || a.armurePortee !== undefined)) {
-    c.appearanceOverride = a;
-  }
+  if (a && Object.values(a).some((v) => v !== undefined)) c.appearanceOverride = a;
   // Tenue éditée (libellé) → portée par le rig (via Combatant.career, qui sert de tenue) en
   // combat comme en exploration.
   if (a?.tenue) c.career = a.tenue;

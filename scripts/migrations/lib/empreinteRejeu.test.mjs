@@ -11,7 +11,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { execFileSync, spawn } from 'node:child_process'
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { basename, dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -19,6 +19,7 @@ import { blobsDe, comparer, empreinteDe, fichiersDe, rapportDEcart } from './emp
 import { PERIMETRE, mesurerParGit } from '../replay.mjs'
 import { RACINE_DES_EXPORTS, effacerExport, exportsDuProcessus, rejeuSurExport } from '../replay-head.mjs'
 import { instanceDeDepot } from '../../guards/lib/depotGabarit.mjs'
+import { efface } from './joue.mjs'
 
 const ICI = dirname(fileURLToPath(import.meta.url))
 
@@ -75,8 +76,6 @@ function depot(migrations = {}) {
   return instanceDeDepot({ fichiers, message: 'fondation' }).racine
 }
 
-const jeter = (racine) => rmSync(racine, { recursive: true, force: true })
-
 test('migration NON IDEMPOTENTE : le rejeu sur EXPORT sort ROUGE et NOMME la donnée réécrite', () => {
   const racine = depot({ '2026-09-03-fixture-non-idempotente.mjs': MIGRATION_NON_IDEMPOTENTE })
   try {
@@ -85,7 +84,7 @@ test('migration NON IDEMPOTENTE : le rejeu sur EXPORT sort ROUGE et NOMME la don
     assert.match(dit, /DONNÉE RÉÉCRITE/)
     assert.match(dit, /src\/data\/props\.json/)
   } finally {
-    jeter(racine)
+    efface(racine)
   }
 })
 
@@ -97,7 +96,7 @@ test('migration qui CRÉE un document : le rejeu sur EXPORT le nomme comme FICHI
     assert.match(dit, /FICHIER NEUF/)
     assert.match(dit, /src\/data\/neuf\.json/)
   } finally {
-    jeter(racine)
+    efface(racine)
   }
 })
 
@@ -107,7 +106,7 @@ test('migration IDEMPOTENTE (réécriture à l’octet) : le rejeu sur EXPORT pa
     const { rouges } = rejeuSurExport({ cwd: racine, ecrire: () => {} })
     assert.deepEqual(rouges, [])
   } finally {
-    jeter(racine)
+    efface(racine)
   }
 })
 
@@ -120,7 +119,7 @@ test('l’export est celui de l’ARBRE du sha : un fichier modifié NON COMMIT�
     const { rouges } = rejeuSurExport({ cwd: racine, ecrire: () => {} })
     assert.deepEqual(rouges, [])
   } finally {
-    jeter(racine)
+    efface(racine)
   }
 })
 
@@ -137,7 +136,7 @@ test('un export d’un AUTRE processus est INVISIBLE : la racine est partagée, 
     assert.deepEqual(exportsDuProcessus(), [], 'le voisin entre dans notre lecture')
     assert.deepEqual(exportsDuProcessus(99999), ['deadbeef-99999'], 'interrogé par SON pid, le voisin doit se voir')
   } finally {
-    rmSync(etranger, { recursive: true, force: true })
+    efface(etranger)
   }
 })
 
@@ -153,7 +152,7 @@ test('l’export est EFFACÉ à la fin, même quand le rejeu sort rouge', () => 
     assert.equal(existsSync(dossier), false)
     assert.deepEqual(exportsDuProcessus(), avant)
   } finally {
-    jeter(racine)
+    efface(racine)
   }
 })
 
@@ -173,7 +172,7 @@ test('mesure par `git diff` HORS dépôt : ROUGE NOMMÉ, jamais « INCHANGÉ » 
     assert.ok(!/INCHANGÉ/.test(dit), 'un arbre hors dépôt ne se déclare pas « INCHANGÉ »')
     assert.ok(!/rien n’a bougé/.test(dit), 'un arbre hors dépôt ne se déclare pas « rien n’a bougé »')
   } finally {
-    rmSync(dehors, { recursive: true, force: true })
+    efface(dehors)
   }
 })
 
@@ -187,7 +186,7 @@ test('empreinteDe / blobsDe : mêmes chemins, mêmes sha sur un arbre non touch�
     assert.equal(empreinte.get('src/data/props.json'), blobs.get('src/data/props.json'))
     assert.deepEqual(comparer(blobs, empreinte), { reecrits: [], neufs: [], disparus: [] })
   } finally {
-    jeter(racine)
+    efface(racine)
   }
 })
 
@@ -220,7 +219,7 @@ test('fichiersDe : chemins en « / », TRIÉS en unités de code, dossiers absen
     for (const f of ['src/data/b.json', 'src/data/a.json', 'src/data/sous/c.json']) writeFileSync(join(racine, f), '{}\n')
     assert.deepEqual(fichiersDe(racine, PERIMETRE), ['src/data/a.json', 'src/data/b.json', 'src/data/sous/c.json'])
   } finally {
-    rmSync(racine, { recursive: true, force: true })
+    efface(racine)
   }
 })
 
@@ -232,7 +231,7 @@ test('le rejeu sur export ne LAISSE aucune trace dans le dépôt source', () => 
     assert.equal(readFileSync(join(racine, 'src/data/props.json'), 'utf8'), avant)
     assert.equal(git(racine)(['status', '--porcelain']), '')
   } finally {
-    jeter(racine)
+    efface(racine)
   }
 })
 
@@ -260,7 +259,7 @@ test('un `.mjs` du dossier SANS préfixe daté est ROUGE et NOMMÉ — jamais sa
     assert.match(dit, /sans préfixe daté — ni migration, ni module de la porte/)
     assert.ok(!dit.includes('modules de la porte : corrige-props.mjs'), 'un inclassable n’est pas un module de la porte')
   } finally {
-    jeter(racine)
+    efface(racine)
   }
 })
 
@@ -272,7 +271,7 @@ test('les modules de la porte, eux, sont HORS rejeu sans rougir', () => {
     assert.deepEqual(rouges, [])
     assert.match(lues.join('\n'), /\(hors rejeu, modules de la porte : replay\.mjs\)/)
   } finally {
-    jeter(racine)
+    efface(racine)
   }
 })
 
@@ -319,7 +318,7 @@ test('deux rejeux CONCURRENTS sur le même sha : deux exits 0, deux dossiers, to
       assert.deepEqual(exportsDuProcessus(pid), [], `le rejeu ${pid} laisse un export derrière lui`)
     }
   } finally {
-    jeter(racine)
+    efface(racine)
   }
 })
 
@@ -337,7 +336,7 @@ test('une entrée FICHIER du périmètre est vue des DEUX côtés — aucun « d
     const ecart = comparer(blobsDe(racine, sha, perimetre), empreinteDe(racine, perimetre))
     assert.deepEqual(ecart, { reecrits: [], neufs: [], disparus: [] })
   } finally {
-    jeter(racine)
+    efface(racine)
   }
 })
 
@@ -353,7 +352,7 @@ test('l’effacement d’un export REFUSE tout voisin de `…/wr` — préfixe d
       assert.throws(() => effacerExport(voisin), /refus d’effacer/, `${voisin} doit être refusé`)
       assert.equal(existsSync(join(voisin, 'temoin.txt')), true, `${voisin} doit être intact`)
     } finally {
-      rmSync(voisin, { recursive: true, force: true })
+      efface(voisin)
     }
   }
   // …et il accepte bien un export réel, sous la racine.

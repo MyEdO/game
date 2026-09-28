@@ -55,17 +55,23 @@ function typeReferencesRng(t) {
   return false;
 }
 
-/** @type {Record<string, string[]> | null} */
-let _resolveurs = null;
+/** Contexte d'un PASSAGE de scan : la table des résolveurs à RNG (`resolveursARng`), bâtie au premier
+ *  fichier qui la demande. Objet de l'appelant, qui le passe à chaque fichier d'un même passage et le
+ *  lâche ensuite (`tsProgram.mjs`, en-tête).
+ *  @returns {{ resolveurs: Record<string, string[]> | null }} */
+export function contexteDeScanRng() {
+  return { resolveurs: null };
+}
 
 /**
  * TABLE des résolveurs à RNG : `tableDesExports` des fichiers de `src/engine` hors fichiers Vitest, lus
- * au premier appel, restreinte aux exports `resolve[A-Z]…` dont un paramètre est typé `RNG` sur la
- * déclaration (réexportations comprises, par leur nom d'origine).
+ * au premier appel du passage, restreinte aux exports `resolve[A-Z]…` dont un paramètre est typé `RNG`
+ * sur la déclaration (réexportations comprises, par leur nom d'origine).
+ * @param {{ resolveurs: Record<string, string[]> | null }} ctx
  * @returns {Record<string, string[]>}
  */
-function resolveursARng() {
-  if (_resolveurs) return _resolveurs;
+function resolveursARng(ctx) {
+  if (ctx.resolveurs) return ctx.resolveurs;
   const moteur = readCorpus(['src/engine']);
   const exporte = (n) => n.modifiers?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword);
   const noms = new Set();
@@ -82,7 +88,7 @@ function resolveursARng() {
       for (const [nom, params] of decls) if (/^resolve[A-Z]/.test(nom) && params.some((p) => typeReferencesRng(p.type))) noms.add(nom);
     }
   }
-  return (_resolveurs = tableDesExports(moteur, noms));
+  return (ctx.resolveurs = tableDesExports(moteur, noms));
 }
 
 /**
@@ -98,12 +104,13 @@ function resolveursARng() {
  * ne le voit pas ; `detail` est la ligne de la vue CODE SEUL (`codeSeul.mjs`). Ce que ce contrat
  * garde est mesuré par les deux cas #1788 de `src/state/roll-seam-exclusivity-guard.test.ts`.
  * @param {string} relPath @param {string} contenu
+ * @param {{ resolveurs: Record<string, string[]> | null }} [ctx] contexte du passage (`contexteDeScanRng`)
  * @returns {{ line: number, name: string, detail: string }[]}
  */
-export function scanBattleRngEngineLeak(relPath, contenu) {
+export function scanBattleRngEngineLeak(relPath, contenu, ctx = contexteDeScanRng()) {
   if (!/\bbattleRng\b/.test(contenu) || !/\bresolve[A-Z]/.test(contenu)) return [];
   const sf = ast({ rel: relPath, text: contenu });
-  const table = resolveursARng();
+  const table = resolveursARng(ctx);
   /** @type {{ line: number, name: string }[]} */
   const appels = [];
   let vivant = false;

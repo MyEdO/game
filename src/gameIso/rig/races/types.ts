@@ -2,6 +2,7 @@ import type { BoneId } from '../bones';
 import type { View } from '../facing';
 import type { PaletteDeclaree, Palette } from '../palette';
 import type { GabaritDef } from '../gabarits/types';
+import type { Sexe } from '../../../data/schemas/grammaire/valeurs';
 
 /** Trait de corps d'une race, ancré à un os, éventuellement échelonné à la taille de l'os. */
 export interface RaceFeature {
@@ -37,7 +38,7 @@ export interface RaceDef {
   // Défauts d'espèce :
   tenue?: string;              // tenue par défaut
   colors?: Palette;             // surcharges de palette
-  sex?: 'M' | 'F';              // sexe forcé
+  sex?: Sexe;              // sexe forcé
   parts?: { cheveux?: number; visage?: number }; // coiffure/visage épinglés
   scale?: number;               // échelle globale du pion en jeu (Géant)
   /** yeux de race par défaut — CLÉS du catalogue d'yeux (`EYE_OPTIONS`, ex. 'rouge' pour le Vampire),

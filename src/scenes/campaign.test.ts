@@ -1,12 +1,14 @@
 import { describe, it, expect } from 'vitest';
-import { areneCampaign, builtinCampaigns, campagneDuJeu, campagneDuPaquet, copieDuJeu, documentDuJeu, type BuiltinCampaign } from './campaign';
-import { parseProject } from '../state/worldMap';
-import { emptyScene } from '../state/scene';
+import {
+  allBuiltinCampaigns, areneCampaign, builtinCampaigns, campagneALancer, campagneDuJeu, copieDuJeu, documentDuJeu, paquetDuJeu,
+  type BuiltinCampaign,
+} from './campaign';
+import { parseProject, ProjetRefuse } from '../state/worldMap';
 import { allAxes } from '../data';
 import areneProjet from './arene/arene-projet.json';
 
 /**
- * Registre des campagnes BUILT-IN (#211) : « Nouvelle partie → Changer » les liste toutes via
+ * Registre des campagnes du jeu (#211) : « Nouvelle partie → Changer » les liste toutes via
  * `CampaignSelect` (`ui/PartyScreen.tsx`), au MÊME mécanisme que les projets publiés de l'éditeur
  * (`pendingCampaign` + `loadProject`) — jamais un chemin parallèle.
  */
@@ -14,17 +16,44 @@ describe('builtinCampaigns — registre des campagnes exposées au picker', () =
   it('« Le Loup et la Saumure » y est enregistrée, projet valide', () => {
     const loup = builtinCampaigns.find((c) => c.id === 'loup-et-saumure');
     expect(loup).toBeTruthy();
-    expect(loup!.scenes.length).toBeGreaterThan(0);
-    expect(loup!.startSceneId).toBe(loup!.scenes[0].id);
-    expect(loup!.worldMap).toBeTruthy();
+    const lancee = campagneDuJeu(loup!);
+    expect(lancee.scenes.length).toBeGreaterThan(0);
+    expect(lancee.startSceneId).toBe(lancee.scenes[0].id);
+    expect(lancee.worldMap).toBeTruthy();
   });
 
-  it('chaque campagne BUILT-IN a un id/nom uniques et une scène de départ RÉELLE', () => {
-    const ids = builtinCampaigns.map((c) => c.id);
+  it('chaque campagne du jeu a un id unique', () => {
+    const ids = allBuiltinCampaigns.map((c) => c.id);
     expect(new Set(ids).size).toBe(ids.length);
-    for (const c of builtinCampaigns) {
-      expect(c.scenes.some((s) => s.id === c.startSceneId), `${c.id} : startSceneId résout une scène`).toBe(true);
-    }
+  });
+});
+
+/** #1692 : à l'import, une campagne du jeu n'est que son identité et son paquet NON PARSÉ ; la porte
+ *  `parseProject` se passe au geste. */
+describe('campagne du jeu — identité à l’import, paquet parsé au geste', () => {
+  it('l’identité est lue à la racine du paquet, le paquet est le JSON commité lui-même', () => {
+    expect(areneCampaign.paquet).toBe(areneProjet);
+    expect(areneCampaign.id).toBe(areneProjet.id);
+    expect(areneCampaign.label).toBe(areneProjet.label);
+    expect(areneCampaign.icon).toBe(areneProjet.icon);
+    expect(Object.keys(areneCampaign).sort()).toEqual(['icon', 'id', 'label', 'maison', 'paquet', 'type', 'versionContenu']);
+  });
+
+  it('un paquet que la porte refuse : jouer, ouvrir et exporter lèvent `ProjetRefuse`', () => {
+    const [premiere, ...autres] = areneProjet.scenes;
+    const refusee: BuiltinCampaign = {
+      ...areneCampaign,
+      paquet: { ...areneProjet, scenes: [{ ...premiere, entities: [...premiere.entities, { id: 'x', kind: 'prop', ref: 'decor-inconnu', pos: { x: 0, y: 0 } }] }, ...autres] },
+    };
+    expect(() => campagneDuJeu(refusee)).toThrow(ProjetRefuse);
+    expect(() => copieDuJeu(refusee)).toThrow(ProjetRefuse);
+    expect(() => documentDuJeu(refusee)).toThrow(ProjetRefuse);
+  });
+
+  it('sans choix, « Lancer » lance l’Arène par `campagneDuJeu` ; un choix est lancé tel quel', () => {
+    expect(campagneALancer(null)).toEqual(campagneDuJeu(areneCampaign));
+    const choisie = campagneDuJeu(builtinCampaigns[0]);
+    expect(campagneALancer(choisie)).toBe(choisie);
   });
 });
 
@@ -32,37 +61,27 @@ describe('builtinCampaigns — registre des campagnes exposées au picker', () =
  *  présent seulement s'il est déclaré. */
 describe('activeAxes — porté du paquet à la campagne lancée', () => {
   const axes = allAxes.filter((a) => !a.core).map((a) => a.id);
+  const avecAxes: BuiltinCampaign = { ...areneCampaign, paquet: { ...areneProjet, activeAxes: axes } as BuiltinCampaign['paquet'] };
 
   it('le registre porte des axes hors socle', () => {
     expect(axes.length).toBeGreaterThan(0);
   });
 
-  it('un paquet qui en déclare : la dérivation les garde', () => {
-    const paquet = parseProject({ ...areneProjet, activeAxes: axes });
-    expect(campagneDuPaquet(paquet, 'arene-projet.json').activeAxes).toEqual(axes);
-  });
-
   it('un paquet qui n’en déclare pas : aucune clé `activeAxes`', () => {
-    expect('activeAxes' in areneCampaign).toBe(false);
     expect('activeAxes' in campagneDuJeu(areneCampaign)).toBe(false);
   });
 
   it('une campagne du jeu qui en déclare : la fabrique les transmet', () => {
-    const c: BuiltinCampaign = { ...areneCampaign, activeAxes: axes };
-    expect(campagneDuJeu(c).activeAxes).toEqual(axes);
+    expect(campagneDuJeu(avecAxes).activeAxes).toEqual(axes);
   });
 
-  it('une campagne du jeu qui en déclare : sa COPIE ouverte à l’éditeur les porte, en copie', () => {
-    const c: BuiltinCampaign = { ...areneCampaign, activeAxes: axes };
-    const copie = copieDuJeu(c);
-    expect(copie.activeAxes).toEqual(axes);
-    expect(copie.activeAxes).not.toBe(c.activeAxes);
+  it('une campagne du jeu qui en déclare : sa COPIE ouverte à l’éditeur les porte', () => {
+    expect(copieDuJeu(avecAxes).activeAxes).toEqual(axes);
     expect('activeAxes' in copieDuJeu(areneCampaign)).toBe(false);
   });
 
   it('une campagne du jeu qui en déclare : son EXPORT les écrit, et le document repasse la porte avec eux', () => {
-    const c: BuiltinCampaign = { ...areneCampaign, activeAxes: axes };
-    const doc = documentDuJeu(c);
+    const doc = documentDuJeu(avecAxes);
     expect(doc.activeAxes).toEqual(axes);
     expect(parseProject(doc).activeAxes).toEqual(axes);
     expect('activeAxes' in documentDuJeu(areneCampaign)).toBe(false);
@@ -71,30 +90,26 @@ describe('activeAxes — porté du paquet à la campagne lancée', () => {
 
 /** `copieDuJeu` : ce que l'éditeur OUVRE d'une campagne du jeu (#367). */
 describe('copieDuJeu — la copie d’une campagne du jeu', () => {
-  const scene = (id: string) => ({ ...emptyScene(4, 4), id, label: id });
-  const c: BuiltinCampaign = { ...areneCampaign, scenes: [scene('s1'), scene('s2'), scene('s3')], startSceneId: 's2' };
+  const paquet = paquetDuJeu(areneCampaign);
 
-  it('le départ est la scène `startSceneId`, le reste garde son ordre', () => {
-    const copie = copieDuJeu(c);
-    expect(copie.depart.id).toBe('s2');
-    expect(copie.autresScenes.map((s) => s.id)).toEqual(['s1', 's3']);
+  it('le départ est la première scène du paquet, le reste garde son ordre', () => {
+    const copie = copieDuJeu(areneCampaign);
+    expect(copie.depart.id).toBe(paquet.scenes[0].id);
+    expect(copie.autresScenes.map((s) => s.id)).toEqual(paquet.scenes.slice(1).map((s) => s.id));
   });
 
-  it('tout est copié en profondeur : l’édition ne touche jamais la campagne', () => {
-    const copie = copieDuJeu(c);
-    expect(copie.depart).not.toBe(c.scenes[1]);
-    expect(copie.depart).toEqual(c.scenes[1]);
-    expect(copie.narratif).not.toBe(c.narratif);
-    expect(copie.worldMap).not.toBe(c.worldMap);
-    expect(copie.worldMap).toEqual(c.worldMap);
+  it('tout est copié en profondeur : deux ouvertures ne partagent aucun nœud', () => {
+    const a = copieDuJeu(areneCampaign);
+    const b = copieDuJeu(areneCampaign);
+    expect(a.depart).toEqual(b.depart);
+    expect(a.depart).not.toBe(b.depart);
+    expect(a.narratif).not.toBe(b.narratif);
+    expect(a.worldMap).not.toBe(b.worldMap);
+    expect(a.worldMap).toEqual(paquet.worldMap);
   });
 
-  it('l’identité est entière, sans le `label`', () => {
-    const { scenes: _sc, startSceneId: _st, worldMap: _wm, narratif: _na, label: _lb, ...identite } = c;
-    expect(copieDuJeu(c).identite).toEqual(identite);
-  });
-
-  it('un départ absent des scènes LÈVE', () => {
-    expect(() => copieDuJeu({ ...c, startSceneId: 'absente' })).toThrow(/« absente »/);
+  it('l’identité est celle du paquet parsé, entière, sans le `label`', () => {
+    const { scenes: _sc, worldMap: _wm, activeAxes: _aa, narratif: _na, label: _lb, ...identite } = paquet;
+    expect(copieDuJeu(areneCampaign).identite).toEqual(identite);
   });
 });

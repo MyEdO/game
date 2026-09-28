@@ -1,8 +1,9 @@
 import { makeShowcaseParty } from '../../data/pregens';
-import { diligenceCampaign } from '../campaign';
+import { diligenceCampaign, paquetDuJeu } from '../campaign';
 import type { Scene, SceneEntity } from '../../state/scene';
 import { assignSeat, seatSlotsOf } from '../../state/seating';
 import type { TestScenario } from './_shared';
+import type { Sexe } from '../../data/schemas/grammaire/valeurs';
 
 /** Où le groupe entre : au milieu de la salle, entre les tables (zone `zone-S-z0`) — case LIBRE, hors
  *  du passage d'entrée traversant (colonne 12), hors de l'allée de service du tenancier (à l'ouest du
@@ -15,7 +16,7 @@ interface Convive {
   id: string;
   label: string;
   species: string;
-  sex: 'M' | 'F';
+  sex: Sexe;
   tenue: string;
 }
 
@@ -90,7 +91,6 @@ function meublerDeGens(depart: Scene): Scene {
   return scene;
 }
 
-const scene = meublerDeGens(poserDepart(diligenceCampaign.scenes[0]));
 
 export const scenario: TestScenario = {
   id: 'diligence-salle-pleine',
@@ -100,6 +100,5 @@ export const scenario: TestScenario = {
   title: 'La Diligence — salle pleine',
   tests: 'La salle meublée VUE HABITÉE : 16 convives authorés assis, un par place des 3 tables rondes et des 2 tables murales, chacun posé sur l’abord effectif de sa place.',
   partyNote: 'Groupe vitrine (Soldat / Tueur / Sorcier / Chasseur) — départ au milieu de la salle, aucun combat.',
-  makeParty: makeShowcaseParty,
-  scene,
+  construire: () => ({ party: makeShowcaseParty(), scene: meublerDeGens(poserDepart(paquetDuJeu(diligenceCampaign).scenes[0])) }),
 };

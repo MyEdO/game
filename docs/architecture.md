@@ -79,7 +79,7 @@ src/data/                   NOTRE base APP-OWNED (JSON commité, éditable dans 
                             `versionDataset.ts`) — l'identité du tableau ne bougeant jamais, cette version
                             est le SEUL témoin qu'un lecteur indexé peut consulter. Tout index de niveau
                             module se bâtit donc par `indexParId`/`indexParChamp`/`memoParVersion`
-                            (#1692) ; deux gardes structurelles le tiennent : `index-vif-guard.test.ts`
+                            (#1692) ; deux gardes structurelles le tiennent : `index-vivant-guard.test.ts`
                             (aucun index figé à l'import sur un dataset du seam) et
                             `seam-ecriture-guard.test.ts` (aucun `push`/`splice` hors `overrides.ts`)
   schemas/                    CONTRAT de la donnée. Chaque dataset a UN def (`defs/<nom>.ts`,
@@ -142,6 +142,21 @@ scripts/migrations/         Migrations de donnée REJOUABLES (une par lot, daté
                             jetable de la tête, mesuré par EMPREINTE (`lib/empreinteRejeu.mjs` —
                             hors dépôt, `git diff` bascule en `--no-index` et rend un faux vert), et
                             le hook `pre-push` l'arme dès que la plage poussée touche le périmètre
+src/lib/                     Couche NEUTRE, en amont de `engine`, `data`, `state` et `ui` : ce que
+                            plusieurs couches emploient sans qu’aucune ne le possède. `normalize.ts` :
+                            normalisation d'un nom (`norm`).
+                            `regex.ts` : échapper une chaîne pour une regex (`echapperRegex`), alternation
+                            de chaînes ou de fragments de regex (`alternationDe`, `alternationDeRegex`),
+                            `espacesExtensibles`. Module PUR, sans import : Node nu le charge aussi, par
+                            son chemin relatif, extension comprise.
+                            `indexedDb.ts` : bases IndexedDB (disponibilité, ouverture bornée #776 par
+                            `{ nom, version, upgrade }`, une connexion par opération) et leur poignée
+                            `accesBase` (magasins typés, `vider`) ; doublure `indexedDb.testkit.ts`
+                            (`brancherBasesSimulees`).
+                            `stockageWeb.ts` : accès protégé au `localStorage` et au `sessionStorage`
+                            (`stockageWeb`).
+                            `fileIo.ts` : téléchargement d'un texte (`downloadText`), nom de fichier
+                            sûr (`fileSlug`).
 src/geometry/                Géométrie/simulation PURE partagée `state` ⇄ `gameIso` (#161 : `state` en a
                             besoin pour SA PROPRE logique — curseur de combat, IA, cadence des beats —
                             pas seulement le rendu ; zéro dépendance framework). `iso.ts` : projection
@@ -322,7 +337,7 @@ src/state/
                               `assignSeat`/`releaseSeat` et l'élagage (`pruneSeatAssignments`,
                               `releaseUnavailableSeats`). PUR : aucun store, aucun rendu, aucun `gameIso`
   projectLibrary.ts           Bibliothèque des projets de campagne de l'éditeur (`SavedProject`).
-                              Backend IndexedDB (db `wfrp4-library`, store `projects`, une source de
+                              Base IndexedDB `wfrp4-library` par `accesBase` (magasin `projects`, source de
                               vérité — supporte les grandes campagnes qui dépassent le quota
                               localStorage, #766). `projectsLoad`/`publishedProjects` SYNC
                               (cache mémoire) ; `projectSave`/`projectRemove` ASYNC (persistance
@@ -417,7 +432,7 @@ src/scenes/                 Documents de scène + campaign.ts (campagne = l'Arè
                             projet v2 {scenes, worldMap} — 20 scènes : Bourg+intérieurs, 13 zones, 3 expéditions,
                             embuscade ; AUTHORING par `scripts/arene/generate.mjs`, cartes ASCII → JSON canonique
                             qui RESTE la source éditable dans l'éditeur)
-                            + test-fixture.ts (scène neutre `testScene` + rencontre `enc-mutants` des tests de combat)
+                            + test-fixture.ts (fabrique de scène neutre `testScene()` + rencontre `enc-mutants` des tests de combat)
 src/state/asciiMap.ts       AUTHORING de map en ASCII — la MÉTHODE À PRIVILÉGIER pour tout contenu de
                             map (scène/scénario) plutôt que poser les tuiles une à une. `parseAsciiRows(rows,
                             base, legend)` → {w,h,tiles} (1 char = 1 tuile) ; `parseWalledAscii` (box-drawing

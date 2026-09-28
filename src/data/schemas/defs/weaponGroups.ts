@@ -43,6 +43,8 @@ const doc = document(
     codex: { keys: ['weaponGroups'] },
     edit: { dataset: 'weaponGroups' },
   },
+  // `combat` : univers des sources `weaponGroupsMelee`/`weaponGroupsRanged` (`grammaire/sourcesDeSpecs.ts`).
+  { espace: { discriminant: 'combat' } },
 );
 
 export const schema = doc.schema;

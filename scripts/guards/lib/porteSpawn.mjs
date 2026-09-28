@@ -11,7 +11,7 @@
 // rien à voir : le processus a tourné et a rendu un code (`e.status`) — c'est le VERDICT du garde —, ou
 // il n'a même pas démarré (`e.code` = `ENAMETOOLONG`, `ENOENT`, `E2BIG`…) — c'est une porte EN PANNE.
 // Les confondre fait mentir la porte : elle accuse le doc alors que le garde ne s'est jamais exécuté.
-// Même discipline que `absentDeLIndex` (scripts/docs/check-docs-vs-head.mjs:47-51).
+// Même discipline que `absentDeLIndex` (scripts/docs/check-docs-vs-head.mjs).
 
 const ANTISLASH = String.fromCharCode(92)
 

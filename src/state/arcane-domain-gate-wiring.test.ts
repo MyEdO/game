@@ -28,6 +28,22 @@ function elfProphete(over: Partial<Combatant> = {}): Combatant {
   } as Combatant;
 }
 
+// Carrière « Sorcier » Niveau 2 : emplacement « Magie des Arcanes (Au choix) », non désigné.
+function sorcierHumain(): Combatant {
+  const w = pregen(PREGEN.sorcier);
+  return {
+    ...w,
+    species: 'humains-reiklander',
+    career: 'sorcier',
+    careerLevel: 2,
+    careerSlotChoices: {},
+    talents: [{ talentId: 'magie-des-arcanes', spec: 'feu', times: 1 }],
+    skills: [{ id: 'focalisation', spec: 'feu', characteristic: 'force-mentale', advances: 5 }],
+    spells: [],
+    xp: 500,
+  };
+}
+
 beforeEach(() => {
   useGame.setState({ battle: null, party: [], journal: [] });
   useGame.getState().seedRng(1);
@@ -54,5 +70,26 @@ describe('buyTalent — arcaneDomainGate câblé (VDM 02 l.190-192)', () => {
     const after = useGame.getState().party[0];
     expect(after.talents.some((t) => t.talentId === 'magie-des-arcanes' && t.spec === 'cieux')).toBe(true);
     expect(after.xp).toBe(400); // 500 − 100 PX (première acquisition)
+  });
+});
+
+describe('buyTalent — Maxi de Magie des Arcanes compté par Domaine (LDB 46 l.177)', () => {
+  it('ACCEPTE un Domaine sombre (Nécromancie) en plus de Feu', () => {
+    const h = sorcierHumain();
+    useGame.setState({ party: [h] });
+    useGame.getState().buyTalent(h.id, 'magie-des-arcanes', 'necromancie');
+    const after = useGame.getState().party[0];
+    expect(after.talents.some((t) => t.talentId === 'magie-des-arcanes' && t.spec === 'necromancie')).toBe(true);
+    expect(after.xp).toBe(400);
+  });
+
+  it('REFUSE un Domaine déjà tenu (Maxi 1, LDB 10 l.682)', () => {
+    const h = sorcierHumain();
+    useGame.setState({ party: [h] });
+    useGame.getState().buyTalent(h.id, 'magie-des-arcanes', 'feu');
+    const after = useGame.getState().party[0];
+    expect(after.talents.find((t) => t.talentId === 'magie-des-arcanes' && t.spec === 'feu')?.times).toBe(1);
+    expect(after.xp).toBe(500);
+    expect(useGame.getState().journal.join('\n')).toMatch(/Maxi atteint/);
   });
 });

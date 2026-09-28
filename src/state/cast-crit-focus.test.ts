@@ -9,14 +9,16 @@ import { useGame } from './store';
 import { draineEtLit, avanceEtapeCascade } from './cascadeTestKit';
 import { applyCast, checkFocusInterruption, openCastCascade } from './combatFlow';
 import { pregen, PREGEN } from '../data/pregens';
+import { createHero } from '../engine/character';
 import { findSpell, findEffectTableById } from '../data';
 import { setRule, resetRule } from '../engine/policy';
 import { seedBattleRng } from './battleRng';
 import type { Combatant } from '../engine/types';
 import type { CastResult } from '../engine/magic';
 
+/** Sorcier sans Talent aléatoire (`talentsRolled: false`) : aucun tirage ne touche la FM. */
 function wiz() {
-  const w = pregen(PREGEN.sorcier);
+  const w = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', seed: PREGEN.sorcier, careerTalent: { id: 'magie-mineure' }, talentsRolled: false });
   const sk = w.skills.find((s) => s.id === 'langue');
   if (sk) sk.advances = Math.max(sk.advances, 10);
   return w;
@@ -119,7 +121,6 @@ describe('Incantation CRITIQUE (LDB 46 l.26-32)', () => {
 describe('Focalisation CRITIQUE (l.185-186)', () => {
   it('double réussi → le sort est lançable au prochain Round (focus.dr = NI) + Imparfaite Mineure', () => {
     const w = wiz();
-    w.talents = w.talents.filter((t) => t.talentId !== 'harmonisation-aethyrique'); // le pré-tiré l'a déjà
     w.spells = ['armure-aethyrique', ...(w.spells ?? [])];
     w.skills.push({ id: 'focalisation', characteristic: 'force-mentale', advances: 8 } as never);
     useGame.setState({ party: [w] as Combatant[] });
@@ -137,7 +138,6 @@ describe('Focalisation CRITIQUE (l.185-186)', () => {
   it('option VDM : DR bonus = Bonus de Force Mentale, sort NON complété au NI', () => {
     setRule('magic-vdm-incantation', true);
     const w = wiz();
-    w.talents = w.talents.filter((t) => t.talentId !== 'harmonisation-aethyrique');
     w.spells = ['manifestation-de-demon-mineur', ...(w.spells ?? [])];
     w.skills.push({ id: 'focalisation', characteristic: 'force-mentale', advances: 8 } as never);
     w.characteristics['force-mentale'] = 35; // BFM 3
@@ -171,7 +171,6 @@ describe('Focalisation CRITIQUE (l.185-186)', () => {
   it('option VDM : la Focalisation Critique d’un Sort de Feu marque le lanceur (Marques d’Aqshy)', () => {
     setRule('magic-vdm-incantation', true);
     const w = wiz();
-    w.talents = w.talents.filter((tal) => tal.talentId !== 'harmonisation-aethyrique');
     w.spells = ['cauteriser'];
     w.skills.push({ id: 'focalisation', characteristic: 'force-mentale', advances: 8 } as never);
     useGame.setState({ party: [w] as Combatant[] });

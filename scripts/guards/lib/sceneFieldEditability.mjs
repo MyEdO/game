@@ -121,7 +121,7 @@ const FRONTIERE = [
  * phase qui le tue — `.claude/skills/orchestrer-des-agents/SKILL.md` § Brief).
  * Clé = `<nom du export const>.<champ>` pour un shape zod, `<Type>.<champ>` pour un corps manuscrit.
  */
-export const FOSSILES = ['sceneEntitySchema.foot'];
+export const FOSSILES = ['baseDEntiteSchema.foot'];
 
 /** Nom du `export const xSchema` dont le shape porte cette déclaration de propriété — chaînes
  *  `.optional()`/`.array()` traversées. Un littéral INLINE ne nomme rien. */
@@ -145,19 +145,12 @@ const schemaOwner = (decl) => {
 const norm = (p) => p.replace(/\\/g, '/');
 
 /** Le Program du dépôt pour le PÉRIMÈTRE de cette garde — les fichiers scannés (interface, pont,
- *  pipeline) plus le document et son schéma —, MÉMOÏSÉ PAR RACINE : c'est tout ce que cette
- *  fonction ajoute à la fabrique `repoProgram`. Le mémo vit ICI et pas dans la fabrique : la suite
- *  de cette garde redemande le même Program cinq fois (audit, portée, gate `@fossile`) et chaque
- *  construction coûte ~8 s, là où la fabrique ne doit rien retenir pour ses autres consommateurs. */
-const PROGRAM_CACHE = new Map();
-
-export function programmeMemoise(root) {
+ *  pipeline) plus le document et son schéma. Aucune rétention (`tsProgram.mjs`, en-tête). */
+export function programmeDuPerimetre(root) {
   const key = norm(path.resolve(root));
-  const hit = PROGRAM_CACHE.get(key);
-  if (hit) return hit;
   // Racines = les fichiers SCANNÉS plus le schéma ; TypeScript tire leur fermeture d'imports, donc
   // les types restent complets tout en évitant de compiler le dépôt entier.
-  const program = repoProgram(key, (fileNames) =>
+  return repoProgram(key, (fileNames) =>
     fileNames.filter((f) => {
       const rel = path.relative(key, f);
       return (
@@ -166,8 +159,6 @@ export function programmeMemoise(root) {
       );
     })
   );
-  PROGRAM_CACHE.set(key, program);
-  return program;
 }
 
 function sceneSourceFile(program, root) {
@@ -665,10 +656,10 @@ export function uiReachableScopes(checker, program, root) {
 /**
  * Audite le dépôt : pour chaque champ du document de scène, qui l'écrit et par quel chemin.
  * @param {string} root racine du dépôt
- * @param {import('typescript').Program} [program] programme déjà construit (preuves en mémoire)
+ * @param {import('typescript').Program} [program] programme déjà construit — absent, bâti pour CET appel
  * @returns {{ id: string, owner: string, field: string, at: string, authors: string[], pipeline: string[] }[]}
  */
-export function auditSceneFieldEditability(root, program = programmeMemoise(root)) {
+export function auditSceneFieldEditability(root, program = programmeDuPerimetre(root)) {
   const checker = program.getTypeChecker();
   const scope = sceneScope(program, root);
   const declToId = new Map(scope.map((e) => [e.decl, e.id]));

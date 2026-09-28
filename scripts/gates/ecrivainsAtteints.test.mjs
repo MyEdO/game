@@ -142,33 +142,6 @@ const ATTENDU = {
     // fait `migrations:replay` — elle est en `--dry` et n'écrit rien. L'arbre n'est jamais touché.
     'scripts/migrations/2026-09-14-1699-source-chemins-ascii.mjs',
     'scripts/migrations/lib/1699-source-chemins-ascii.test.mjs',
-    // +1 le 2026-09-22 (#1873) : le banc de la migration #1825 des stocks de l'Atlas ; son dépôt
-    // jetable vit sous `os.tmpdir()`, l'arbre n'est jamais écrit.
-    'scripts/migrations/lib/1825-stocks-atlas-chemins-par-coeur.test.mjs',
-    // +3 le 2026-09-05 : morsure des portes des trois migrations #1686 (ids composés,
-    // fusion des matières, purge de `structureAppearance.material`) ; leur dépôt jetable vit
-    // sous `os.tmpdir()`, l'arbre n'est jamais écrit.
-    'scripts/migrations/lib/1686-ardoise-portes.test.mjs',
-    'scripts/migrations/lib/1686-materials-portes.test.mjs',
-    'scripts/migrations/lib/1686-structure-material-portes.test.mjs',
-    // +1 le 2026-09-07 (#1691) : morsure des portes des deux migrations #1691 (relief) ; son
-    // dépôt jetable vit sous `os.tmpdir()`, l'arbre n'est jamais écrit.
-    'scripts/migrations/lib/1691-relief-portes.test.mjs',
-    // +1 le 2026-09-09 (#1715 volet b) : morsure des portes de la migration #1715 (toiture par défaut
-    // de la scène) ; son dépôt jetable vit sous `os.tmpdir()`, l'arbre n'est jamais écrit.
-    'scripts/migrations/lib/1715-roof-defaults-portes.test.mjs',
-    // +1 le 2026-09-10 (#1687) : morsure des portes de la migration #1687 (activation des
-    // décors à places) ; son dépôt jetable vit sous `os.tmpdir()`, l'arbre n'est jamais écrit.
-    'scripts/migrations/lib/1687-usable-sieges-portes.test.mjs',
-    // +1 le 2026-09-23 (#1343) : morsure des portes de la migration #877 (ref de décor
-    // nommée) ; son dépôt jetable vit sous `os.tmpdir()`, l'arbre n'est jamais écrit.
-    'scripts/migrations/lib/877-ref-de-decor-portes.test.mjs',
-    // +1 le 2026-09-23 (#1882) : morsure des portes de la migration #1882 (fiche de personnage
-    // nommée) ; son dépôt jetable vit sous `os.tmpdir()`, l'arbre n'est jamais écrit.
-    'scripts/migrations/lib/1882-fiche-de-personnage-portes.test.mjs',
-    // +1 le 2026-09-24 (#1882 T2d) : morsure des portes de la migration 13 → 14 (réf. vivantes d'effet
-    // semées) ; son dépôt jetable vit sous `os.tmpdir()`, l'arbre n'est jamais écrit.
-    'scripts/migrations/lib/1882-refs-vivantes-portes.test.mjs',
     // +2 le 2026-09-18 (#1812) : le mode CROISSANCE fait grandir les documents d'un EXPORT jetable
     // (`os.tmpdir()`, `replay-head.mjs:exporter`) avant de rejouer les migrations — l'arbre n'est
     // jamais écrit, et son banc travaille sur un dépôt `mkdtemp`.
@@ -178,7 +151,15 @@ const ATTENDU = {
     'scripts/migrations/lib/idempotence-ordre-des-cles.test.mjs',
     // +1 le 2026-09-22 (#1873) : `joue.mjs` COPIE la migration jouée dans le dépôt jetable que lui donne
     // chaque banc de migration (`copyFileSync`, sous `os.tmpdir()`) ; l'arbre n'est jamais écrit.
+    // −8 le 2026-09-23 (#1897) : les bancs de migration fabriquent leur dépôt jetable par `joue.mjs`
+    // (`depot`, `efface`), unique écrivain de la famille ; −2 le 2026-09-24 (#1897) : les bancs #877
+    // et #1882 de `main` passent au même régime à la fusion ; −1 le 2026-09-26 (#1897) : le banc
+    // `1882-refs-vivantes-portes` de `main` aussi. +1 le 2026-09-23 (#1897) : son banc
+    // `joue.test.mjs` réécrit (`writeFileSync`) les fichiers du dépôt jetable de `depot()` pour faire
+    // mordre `crees`/`rienTouche` ; ce dépôt vit sous `os.tmpdir()` (`efface` en `t.after`), l'arbre
+    // n'est jamais écrit.
     'scripts/migrations/lib/joue.mjs',
+    'scripts/migrations/lib/joue.test.mjs',
     'scripts/migrations/replay-head.mjs',
     'scripts/raw/build-implemente.mjs',
     'scripts/test/verrou.mjs',
@@ -195,11 +176,11 @@ const ATTENDU = {
     //   journal en mémoire, verdicts, mise en forme) et ses étapes sur des `ctx` FACTICES, dans des
     //   racines jetables (mkdtemp sous os.tmpdir(), rmSync en finally — d'où ses imports d'écriture).
     //   Les écritures réelles de `publier.mjs` sont son journal `node_modules/.cache/publication/` et
-    //   le commit des docs DÉRIVÉS — toutes deux derrière sa porte `estMain` (scripts/ops/publier.mjs,
+    //   le commit des docs DÉRIVÉS — toutes deux derrière sa porte `import.meta.main` (scripts/ops/publier.mjs,
     //   dernière ligne), jamais depuis la gate.
     // · `build-all.mjs`, `empreinte-sources.mjs` et `purgerPerimes.mjs` sont atteints PAR
     //   `publier.mjs`, qui n'en importe que des CONSTANTES et des fonctions pures (`GENERATORS`,
-    //   `SOURCES_LUES`) ; leurs écritures vivent derrière leurs propres portes `isMain`, ou sous
+    //   `SOURCES_LUES`) ; leurs écritures vivent derrière leurs propres portes `import.meta.main`, ou sous
     //   `node_modules/.cache`.
     'scripts/docs/build-all.mjs',
     'scripts/docs/lib/empreinte-sources.mjs',
@@ -226,13 +207,13 @@ const ATTENDU = {
     'scripts/ops/knip-exports-ratchet.mjs',
     // +2 le 2026-09-16 (#1776) : le ruleset `main` (`scripts/ops/ruleset-main.mjs`).
     // · `ruleset-main.mjs` n'écrit QUE le corps du ruleset dans un fichier d'`os.tmpdir()`, pour le
-    //   passer à `gh api --input` (ruleset-main.mjs:117-120) — et seulement depuis `executer`, que
+    //   passer à `gh api --input` (`executer` de ruleset-main.mjs) — et seulement depuis `executer`, que
     //   les tests n'appellent jamais : ils ne jouent que `corpsDuRuleset`, `contextesRequis` et
     //   `refusGh`, tous PURS.
     // · `ruleset-main.test.mjs` écrit ses fixtures `ci.yml` sous `os.tmpdir()` (`mkdtempSync`) ; sa
     //   seule lecture de l'arbre réel est `jobsCi({ cwd: RACINE })` (ruleset-main.test.mjs:27), qui
     //   ne fait que LIRE `.github/workflows/ci.yml`.
-    // Même mesure que la raison `test:ops` d'`ECRIT_LU` (scripts/gates/toutes.mjs:129-150).
+    // Même mesure que la raison `test:ops` d'`ECRIT_LU` (`ECRIT_LU`, scripts/gates/toutes.mjs).
     'scripts/ops/ruleset-main.mjs',
     'scripts/ops/ruleset-main.test.mjs',
     // +1 le 2026-09-16 (#1779) : le banc du signaleur pose le CORPS du rapport (`--body-file` de `gh`)
@@ -242,6 +223,10 @@ const ATTENDU = {
   ],
   'test:runner': [
     'scripts/lancer-local.test.mjs',
+    // +1 le 2026-09-24 (#1801) : la porte de version de Node se prouve sur un FAUX ARBRE
+    // (`mkdtempSync` + `writeFileSync`/`copyFileSync` sous os.tmpdir(), `rmSync` en finally) — un
+    // `engines.node` intenable ne se fabrique pas autrement ; l'arbre du dépôt n'est jamais écrit.
+    'scripts/node-requis.test.mjs',
     'scripts/test/run-capture.test.mjs',
     'scripts/test/run-isolation.test.mjs',
     'scripts/test/verrou.mjs',
@@ -259,6 +244,9 @@ const ATTENDU = {
     // n'est jamais écrit.
     'scripts/docs/lib/chemin-mesure.test.mjs',
     'scripts/docs/lib/empreinte-sources.mjs',
+    // +1 le 2026-09-23 (#1801) : le banc de `ecrireOuVerifier` joue la primitive sur un doc JETABLE
+    // (`mkdtempSync` + `writeFileSync` sous `os.tmpdir()`) ; l'arbre n'est jamais écrit.
+    'scripts/docs/lib/empreinte-sources.test.mjs',
     // +2 le 2026-09-14 (#1759) : le test de contrat importe `installer` pour
     // monter l'enveloppe de `fs` à nu (la casse d'un chemin lu se juge sans sous-processus).
     // L'écriture de ce module est la sienne propre — `<WFRP_LECTURES_SORTIE>.<pid>.json`, derrière la
@@ -266,6 +254,10 @@ const ATTENDU = {
     // sous os.tmpdir().
     'scripts/docs/lib/enregistreur-lectures.mjs',
     'scripts/docs/lib/enregistreur-lectures.test.mjs',
+    // +1 le 2026-09-23 (#1801) : le banc de la simulation win32 forge un dépôt JETABLE (`mkdtempSync`
+    // + `mkdirSync`/`writeFileSync` sous `os.tmpdir()`, `rmSync` en finally) — ce que voit un module
+    // selon son LIEU exige de vrais fichiers à charger ; l'arbre n'est jamais écrit.
+    'scripts/docs/lib/plateforme-win32.test.mjs',
     // +1 le 2026-09-07 (#1709) : `build-all-check.test.mjs` et `check-plans-anchors.test.mjs`
     // prennent leurs dépôts jetables à la fixture partagée, qui n'écrit que sous `os.tmpdir()`.
     'scripts/guards/lib/depotGabarit.mjs',
@@ -282,10 +274,8 @@ const ATTENDU = {
     'scripts/test/verrou.mjs',
   ],
   build: [],
-  'docs:check': ['scripts/docs/build-all.mjs', 'scripts/docs/lib/empreinte-sources.mjs'],
+  'docs:check:tout': ['scripts/docs/build-all.mjs', 'scripts/docs/lib/empreinte-sources.mjs'],
   'docs:empreinte': ['scripts/docs/build-all.mjs', 'scripts/docs/lib/empreinte-sources.mjs'],
-  'raw:coverage': ['scripts/docs/lib/empreinte-sources.mjs'],
-  'raw:reconcile': ['scripts/docs/lib/empreinte-sources.mjs', 'scripts/raw/build-implemente.mjs'],
   'test:raw': [
     'scripts/docs/lib/empreinte-sources.mjs',
     // +1 le 2026-09-20 (#1825) : le banc du contrat d'acceptation de l'Atlas IMPORTE
@@ -296,11 +286,6 @@ const ATTENDU = {
     'scripts/raw/anchor-fill.mjs',
     'scripts/raw/build-implemente.mjs',
     'scripts/raw/build-implemente.test.mjs',
-    // +1 le 2026-09-20 (#1825) : le banc de l'aiguillage des catalogues FORGE un dépôt
-    // (`mkdtempSync` + `mkdirSync`/`writeFileSync`, `rmSync` en finally, sous `os.tmpdir()`) pour
-    // mesurer ce que la magie `:(glob)` porte — l'arbre du dépôt ne peut pas discriminer les deux
-    // grammaires de glob. Aucune écriture DANS l'arbre : même classe que `check-source-format.test.mjs`.
-    'scripts/raw/catalogues-aiguillage.test.mjs',
     'scripts/raw/check-code-refs.test.mjs',
     'scripts/raw/check-entity-in-chapter.test.mjs',
     'scripts/raw/check-folio-continuity.test.mjs',
@@ -336,7 +321,7 @@ const ATTENDU = {
     // +1 le 2026-09-21 (#1739 S1) : `recouper-source.test.mjs` importe le re-coupeur des `.md` en
     // service pour éprouver son cœur PUR (`recouper`, `planDe`, `contenuDe`, `indexDe`, `recalerStock`)
     // sur un livre FORGÉ en mémoire ; ses `writeFileSync`/`rmSync` vivent dans `main()`, sous sa porte
-    // `estMain` (recouper-source.mjs:397) — déclarés en `ecritFerme` de `test:raw` (ECRIT_LU).
+    // `import.meta.main` (`main` de recouper-source.mjs) — déclarés en `ecritFerme` de `test:raw` (ECRIT_LU).
     'scripts/raw/recouper-source.mjs',
     // +3 le 2026-09-20 (#1825) : les deux bancs neufs posent leurs fixtures (catalogue à bloc
     // préservé, fiche d'un autre cœur) sous `mkdtempSync` de os.tmpdir(), `rmSync` en finally ;
@@ -351,7 +336,7 @@ const ATTENDU = {
     // +4 le 2026-09-20 (#1825) : la FABRIQUE d'Atlas jetable et les deux bancs qui la
     // prennent posent leur arborescence sous `mkdtempSync` de os.tmpdir(), `rmSync` en finally ;
     // l'écrivain du bloc des cœurs est ACQUIS parce que son banc l'importe — son `writeFileSync`
-    // vit dans `main()`, sous sa porte `isMain` (build-atlas-index.mjs), et le cas `--check` le
+    // vit dans `main()`, sous sa porte `import.meta.main` (build-atlas-index.mjs), et le cas `--check` le
     // LANCE dans un arbre JETABLE dont il est le cwd.
     'scripts/raw/_lib.test.mjs',
     'scripts/raw/atlasFixture.mjs',
@@ -382,7 +367,7 @@ const ATTENDU = {
     // seul écrivain, la CLI `pdf-de.mjs`, n'est pas importé (le banc la LANCE, sans argument).
     'scripts/raw/pdf-de.test.mjs',
     // +1 le 2026-09-23 (#1739) : la réparation du mobilier de page, ACQUISE par l'import de son banc —
-    // son unique `writeFileSync` vit dans `main()`, derrière `isMain` ET `--apply` ; le banc n'appelle
+    // son unique `writeFileSync` vit dans `main()`, derrière `import.meta.main` ET `--apply` ; le banc n'appelle
     // que ses fonctions PURES sur des textes en mémoire, l'arbre n'est jamais écrit.
     'scripts/raw/reparer-mobilier.mjs',
     // +1 le 2026-09-23 (#1739) : la sonde des titres d'entrée, ACQUISE par l'import de son banc — elle
@@ -390,17 +375,18 @@ const ATTENDU = {
     // le dépôt ; le banc n'appelle que ses fonctions PURES sur des fixtures, l'arbre n'est jamais écrit.
     'scripts/raw/sonde-titres.mjs',
     // +1 le 2026-09-24 (#1739) : la réparation des titres d'entrée, ACQUISE par l'import de son banc —
-    // son unique `writeFileSync` vit dans `main()`, derrière `isMain` ET `--apply` ; le banc n'appelle
+    // son unique `writeFileSync` vit dans `main()`, derrière `import.meta.main` ET `--apply` ; le banc n'appelle
     // que son cœur PUR (`reparerLivre`, `infidelite`) sur un livre forgé en mémoire.
     'scripts/raw/reparer-titres.mjs',
   ],
   'raw:check-refs': [],
-  // +1 le 2026-09-11 (#925) : la gate enchaîne `citation-graphy-guard.mjs`, qui IMPORTE
-  // `fieldBlockMask` de `build-implemente.mjs` (frontière du bloc de champ généré, source unique) ;
-  // la réécriture des fiches de ce module vit derrière sa porte `isMain` (build-implemente.mjs:670).
-  // Mesure du 2026-09-11 (`scripts/docs/lib/enregistreur-lectures.mjs` en `--import` sur le CLI) :
-  // 4 137 lectures, ZÉRO écriture.
-  'raw:check-code-refs': ['scripts/raw/build-implemente.mjs'],
+  // La gate enchaîne `citation-graphy-guard.mjs`, qui IMPORTE `fieldBlockMask` de
+  // `build-implemente.mjs` (frontière du bloc de champ généré, source unique, #925) ; la réécriture
+  // des fiches de ce module vit derrière sa porte `import.meta.main` (`main` de build-implemente.mjs).
+  // Mesurée par `scripts/docs/lib/enregistreur-lectures.mjs` en `--import` sur le CLI : ZÉRO écriture.
+  // `build-implemente.mjs` importe `declarerCorpsPerime` du socle d'empreinte (#1801), dont
+  // l'écrivain (`ecrireDoc`) n'est appelé que par un générateur — la gate n'en appelle aucun.
+  'raw:check-code-refs': ['scripts/docs/lib/empreinte-sources.mjs', 'scripts/raw/build-implemente.mjs'],
   // La garde des renvois d'ancre de l'Atlas (#1824) n'atteint AUCUN module écrivain : elle lit les
   // pages, calcule leurs ancres et rend son verdict — l'outil qui répare vit à côté
   // (scripts/raw/reparer-ancres.mjs), et c'est LUI qui importe la garde, jamais l'inverse.
@@ -410,7 +396,6 @@ const ATTENDU = {
   'raw:check-source-format': [],
   'raw:check-source-puces': [],
   'raw:check-renvois': [],
-  'raw:reanchor': ['scripts/docs/lib/empreinte-sources.mjs', 'scripts/raw/reanchor.mjs'],
   'server:typecheck': [],
 }
 
@@ -432,8 +417,8 @@ test('la sonde n’est pas AVEUGLE : elle voit les écrivains connus, et ignore 
   const mesure = ecrivainsParGate(RACINE)
   // Trois vérités indépendantes, chacune vérifiable à la main.
   assert.ok(
-    mesure['raw:coverage'].includes('scripts/docs/lib/empreinte-sources.mjs'),
-    '`ecrireDoc` est le seam par lequel raw:coverage écrit docs/raw/coverage.md',
+    mesure['docs:check:tout'].includes('scripts/docs/lib/empreinte-sources.mjs'),
+    '`ecrireOuVerifier` est le seam par lequel tout générateur écrit sa cible',
   )
   assert.ok(
     mesure['test:hooks'].includes('scripts/hooks/new-src-file-guard.test.mjs'),

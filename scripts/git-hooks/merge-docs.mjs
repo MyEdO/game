@@ -19,14 +19,14 @@
 //                   puis entrant, puis ancêtre — une section AJOUTÉE par l'entrant garde donc SON
 //                   champ. Conflit résiduel = divergence de prose, donc humain : marqueurs écrits
 //                   dans %A et exit 1.
+import '../node-requis.mjs'
 import { readFileSync, writeFileSync } from 'node:fs'
-import { resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { threeWay } from './three-way.mjs'
+// Clôture statique chargeable sous un Node refusé : scripts/node-requis.mjs (#1801).
 // Frontière du champ dérivé : SOURCE UNIQUE partagée avec le générateur (scripts/raw/build-implemente.mjs).
-import { NOT_IMPL, parseFiche } from '../raw/build-implemente.mjs'
+const { NOT_IMPL, parseFiche } = await import('../raw/build-implemente.mjs')
 // Blocs préservés des catalogues : SOURCE UNIQUE partagée avec le générateur.
-import { BLOCK_START, extractPreservedBlocks } from '../raw/build-catalogs.mjs'
+const { BLOCK_START, extractPreservedBlocks } = await import('../raw/build-catalogs.mjs')
 
 export const FAMILIES = ['generes', 'catalogue', 'fiche-raw']
 
@@ -132,5 +132,4 @@ function main(argv) {
   return 0
 }
 
-const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)
-if (isMain) process.exit(main(process.argv.slice(2)))
+if (import.meta.main) process.exit(main(process.argv.slice(2)))

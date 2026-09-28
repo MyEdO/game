@@ -8,7 +8,7 @@
  *
  * COUCHE : cuire des scènes est un objet de RENDU, pas de donnée — c'est pourquoi cette fixture vit
  * sous `gameIso/`, d'où les builders et `state/` sont importables (`src/data` n'importe ni l'un ni
- * l'autre, cf. `no-restricted-imports`, #1709).
+ * l'autre, cf. le mur `murs/purete-imports`, #1709).
  */
 import { readFileSync } from 'node:fs';
 import { parseProject } from '../../state/worldMap';
@@ -34,6 +34,6 @@ export const bakerLesScenes = (scenes: readonly Scene[]): number => {
 
 /** Éléments de DÉCOR réellement émis par le bake (décor authoré + décor de tuile) : chacun coûte un
  *  nombre BORNÉ de lectures de l'index `props` (recette, volume, matières). C'est la grandeur à
- *  laquelle le surcoût d'une lecture vive se compare. */
+ *  laquelle le surcoût d'une lecture vivante se compare. */
 export const emisDeDecor = (scenes: readonly Scene[]): number =>
   scenes.reduce((n, s) => n + buildProps(s).length, 0);

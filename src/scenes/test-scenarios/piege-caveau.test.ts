@@ -5,6 +5,7 @@ import { useGame } from '../../state/store';
 import { runFlow, assignGearAt } from '../../state/combatEffects';
 import { layerTiles } from '../../state/scene';
 import { scenario } from './piege-caveau';
+const scenarioConstruit = scenario.construire();
 
 /**
  * « Le Caveau piégé » est du CONTENU pur (données éditeur), désormais produit par `buildScene(MapSpec)`
@@ -14,7 +15,7 @@ import { scenario } from './piege-caveau';
  * correctement, et la dalle piégée est bien un Test à branches.
  */
 describe('Scénario « Le Caveau piégé » : vitrine Flow + Condition', () => {
-  const scene = scenario.scene;
+  const scene = scenarioConstruit.scene;
   const herse = scene.triggers.find((t) => t.id === 'herse')!;
   const dalle = scene.triggers.find((t) => t.id === 'dalle-piegee')!;
   const withKey = [{ items: [{ label: 'Clé en fer' }] }];
@@ -53,7 +54,7 @@ describe('Scénario « Le Caveau piégé » : vitrine Flow + Condition', () => {
   it('le levier pose son flag (runtime) ; la clé donne « Clé en fer » lu par la herse (hasItem)', () => {
     const levier = scene.entities.find((e) => e.id === 'levier')!;
     const cle = scene.entities.find((e) => e.id === 'cle')!;
-    useGame.setState({ battle: null, flags: {}, party: scenario.makeParty(), scene });
+    useGame.setState({ battle: null, flags: {}, party: scenario.construire().party, scene });
     runFlow(useGame.getState, useGame.setState, levier.usable!.actions![0].flow);
     expect(useGame.getState().flags.levier_tire).toBe(true);
     // la fouille de la clé donne l'objet « Clé en fer » — c'est lui que la condition hasItem de la herse lit.
@@ -62,7 +63,7 @@ describe('Scénario « Le Caveau piégé » : vitrine Flow + Condition', () => {
 
   it('le coffre donne une ARME de catalogue (LDB 62 l.125-127), Précise et non identifiée, tenable en main', () => {
     const tresor = scene.entities.find((e) => e.id === 'tresor')!;
-    useGame.setState({ battle: null, flags: {}, party: scenario.makeParty(), scene, pendingLoot: null });
+    useGame.setState({ battle: null, flags: {}, party: scenario.construire().party, scene, pendingLoot: null });
     runFlow(useGame.getState, useGame.setState, tresor.usable!.actions![0].flow);
     const gear = useGame.getState().pendingLoot!.gear;
     expect(gear.length).toBe(1);

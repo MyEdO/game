@@ -108,7 +108,7 @@ describe('op grantTalent — talents temporisés (Flambeau de Vertu / Cœurs ard
     const c = dummy({});
     const ogre = dummy({ id: 'o', causesPeur: 2, groups: ['Ogre'] });
     expect(fearSourceFor(c, ogre)?.kind).toBe('peur'); // avant le sort : la Peur mord
-    applyOps(c, [{ op: 'grantTalent', talentId: 'sans-peur' }], { label: 'Flambeau de Vertu', defaultDurationRounds: 1 });
+    applyOps(c, [{ op: 'grantTalent', talent: { id: 'sans-peur' } }], { label: 'Flambeau de Vertu', defaultDurationRounds: 1 });
     expect(fearImmuneVs(c, ogre)).toBe(true); // le talent (temporisé) est détecté
     expect(sansPeurVs(c, ogre)).toBe(true);
     // RAW (LDB 10 l.1051) : Sans Peur n'immunise PAS d'office — la source RESTE détectée, le porteur
@@ -129,7 +129,7 @@ describe('op grantTalent — talents temporisés (Flambeau de Vertu / Cœurs ard
   it('Cœur vaillant accordé (Cœurs ardents) : la capacité braveheart est active via featuresOf', async () => {
     const { featuresOf } = await import('../engine/combatFeatures/dispatch');
     const c = dummy({});
-    applyOps(c, [{ op: 'grantTalent', talentId: 'coeur-vaillant' }], { label: 'Cœurs ardents', defaultDurationRounds: 3 });
+    applyOps(c, [{ op: 'grantTalent', talent: { id: 'coeur-vaillant' } }], { label: 'Cœurs ardents', defaultDurationRounds: 3 });
     expect(featuresOf(c).some(({ def }) => def.braveheart)).toBe(true);
   });
 });

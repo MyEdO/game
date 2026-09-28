@@ -111,7 +111,7 @@ describe('parseProject — validation du format projet v2', () => {
   it('#217 : MapPlace.port.ref inconnue → erreur EXPLICITE (fail-fast, jamais un port silencieusement vide)', () => {
     const mapBadRef = { id: 'm', label: 'Côte', places: [{ id: 'l1', label: 'Nulle-part', pos: { x: 50, y: 50 }, scene: 's1', port: { ref: 'port-qui-n-existe-pas' } }], routes: [] };
     const doc = { schema: 2, meta: metaAnterieure, scenes: [scene('s1')], worldMap: mapBadRef as never };
-    expect(() => parseProject(JSON.parse(JSON.stringify(doc)))).toThrow(/worldMap\.places\.0\.port\.ref: .*« port-qui-n-existe-pas » absent de naval-ports\.json/);
+    expect(() => parseProject(JSON.parse(JSON.stringify(doc)))).toThrow(/worldMap › places « l1 » › port\.ref: « port-qui-n-existe-pas » est absent du catalogue des ports \(naval-ports\.json\)/);
   });
 
   it('resolvePortRef : sans ref, retourne le port TEL QUEL (même référence)', () => {
@@ -301,6 +301,6 @@ describe('parseProject — porte de schéma', () => {
 
   it('`encounters[].enemies` (forme ANTÉRIEURE) est refusé PAR SON NOM, jamais absorbé en silence', () => {
     const doc = { schema: 2, meta: metaAnterieure, scenes: [{ ...scene('s1'), encounters: [{ id: 'e1', enemies: [{ ref: 'gobelin', count: 2 }] }] }] };
-    expect(() => parseProject(doc)).toThrow(/scenes\.0\.encounters\.0: Clé non reconnue : "enemies"/);
+    expect(() => parseProject(doc)).toThrow(/scenes « s1 » › encounters « e1 »: Clé non reconnue : "enemies"/);
   });
 });

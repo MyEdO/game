@@ -34,7 +34,7 @@ export function setPickProbe(p: PickProbe | null): void {
 import { portRepairVessel, portCareenVessel, portInstallUpgrade, damageVesselHull, setVesselHull } from './seaVoyageFlow';
 import { seaBoardEventById } from '../engine/seaVoyage';
 import { beginShipwreck } from './shipwreck';
-import { placeOfScene, placeById, routesEtat, visiblePlaces, documentDeProjet, MAISON_PROJET_AUTHORE, type MapRoute, type WorldMap } from './worldMap';
+import { placeOfScene, placeById, routesEtat, visiblePlaces, documentDeProjet, exigerUnRefus, MAISON_PROJET_AUTHORE, type MapRoute, type WorldMap } from './worldMap';
 import { buildRiverDayCascade } from './riverVoyageFlow';
 import { findVehicleById } from '../data';
 import { estAbsent } from './terrain';
@@ -49,7 +49,7 @@ import { setAiTrace } from './ai';
 import { viewYawDeg } from './stageYaw';
 import { gearFromEffects, nePeutPasDifferer } from './combatEffects';
 import { pushChoice } from './rollSeam';
-import { trappings, findCreatureById } from '../data';
+import { trappings, findCreatureById, findTraitById } from '../data';
 import { creatureToCombatant } from './spawn';
 import type { PendingBladeTrap } from './pendings';
 import { bus, EVT } from './bus';
@@ -58,10 +58,12 @@ import { isOutOfAction, addCondition, syncDerivedConditions } from '../engine/co
 import { contractDisease, tickDisease } from '../engine/disease';
 import { battleRng } from './battleRng';
 import { applyOps } from '../engine/ops';
+import { acquerirTalent } from '../engine/careerSlots';
+import { grantTrait } from '../engine/grantedTraits';
 import { parseQualityInstance } from '../engine/qualities/normalize';
 import { formatImperial } from '../engine/clock';
 import { testScenarios, type TestScenario } from '../scenes/test-scenarios';
-import { builtinCampaigns, allBuiltinCampaigns, campagneDuJeu } from '../scenes/campaign';
+import { builtinCampaigns, allBuiltinCampaigns, campagneDuJeu, lancerCampagne } from '../scenes/campaign';
 import { projectsLoad, projectSave, type SavedProject } from './projectLibrary';
 import { emptyNarratif } from './campaignNarratif';
 import { makeShowcaseParty } from '../data/pregens';
@@ -79,7 +81,8 @@ import { willAutoResolve } from './combatAuto';
 import { aiDriven, combatAdvanceBlocked } from './combatGate';
 import type { Combatant } from '../engine/types';
 import { makeRNG } from '../engine/dice';
-import { partyMoneyTotal, creditBourse, distributeCredit, condCtx } from './bourseFlow';
+import { partyMoneyTotal, distributeCredit, condCtx } from './bourseFlow';
+import { demarrerScenario, poserScenario } from './scenarioFlow';
 import { t } from '../i18n';
 import { diamondCorners, type Dims } from '../geometry/iso';
 import { chebyshev } from '../engine/grid';
@@ -87,6 +90,7 @@ import { actionsDe } from './usable';
 import { attendreEntreeEnScene, EntreeEnSceneNonAtteinte } from './entreeEnScene';
 import { scheduleFlowTimer } from './combatTimers';
 import { editeur, type CommandesEditeur } from './editeurBridge';
+import { stockageWeb } from '../lib/stockageWeb';
 
 /** Trace du DERNIER Test résolu (`resolveTest`, `EVT.TEST_RESOLVED`) — observation pure pour la
  *  recette navigateur (`__wfrp.lastRoll()`), JAMAIS dans l'état de jeu persisté (module DEV seul,
@@ -139,7 +143,7 @@ function routesRendues(map: WorldMap, sceneId: string | undefined): { route: Map
  *                           groupe canonique (`makeShowcaseParty`, MÊME 4 piliers que l'Arène — les
  *                           campagnes built-in ne portent pas leurs propres pré-tirés, seul le picker
  *                           `PartyScreen` propose `pregens.json` en libre-service), `setPendingCampaign` +
- *                           `loadProject` (MÊME chemin que le picker `CampaignSelect`), écran 'campaign'.
+ *                           `lancerCampagne` (MÊME chemin que « Lancer » de `PartyScreen`), écran 'campaign'.
  *                           `sceneId` (optionnel) démarre ailleurs qu'à l'entrée par défaut de la
  *                           campagne. `seed` (optionnel) ré-ensemence le RNG de bataille AVANT le
  *                           chargement (déterminisme des rencontres). Sans arg : liste les ids.
@@ -412,18 +416,9 @@ function coerceSetting(d: SettingDef, value: RuleValue): { v: RuleValue } | { er
 const LAST_SCENARIO_KEY = 'wfrp.dev.lastScenario';
 type LastScenario = { id: string; seed?: number };
 
-/** sessionStorage quand il existe et répond (module chargé aussi hors navigateur : tests en env node). */
-function scenarioMemory(): Storage | null {
-  try {
-    return typeof sessionStorage === 'undefined' ? null : sessionStorage;
-  } catch {
-    return null;
-  }
-}
-
 function rememberScenario(entry: LastScenario): void {
   try {
-    scenarioMemory()?.setItem(LAST_SCENARIO_KEY, JSON.stringify(entry));
+    stockageWeb('sessionStorage')?.setItem(LAST_SCENARIO_KEY, JSON.stringify(entry));
   } catch {
     // stockage refusé (quota / navigation privée) : la reprise n'est qu'un confort de recette
   }
@@ -432,7 +427,7 @@ function rememberScenario(entry: LastScenario): void {
 function recallScenario(): LastScenario | null {
   let raw: string | null;
   try {
-    raw = scenarioMemory()?.getItem(LAST_SCENARIO_KEY) ?? null;
+    raw = stockageWeb('sessionStorage')?.getItem(LAST_SCENARIO_KEY) ?? null;
   } catch {
     return null;
   }
@@ -490,10 +485,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
     clearAiTurnLog(); // trace IA vierge pour ce scénario
     const s = g();
     if (seed != null) s.seedRng(seed);
-    if (sc.rules) for (const [rid, v] of Object.entries(sc.rules)) setRule(rid, v);
-    s.setParty(sc.makeParty());
-    if (sc.extraScenes?.length || sc.worldMap || sc.narratif) s.loadProject([sc.scene, ...(sc.extraScenes ?? [])], sc.scene.id, sc.worldMap ?? null, sc.narratif);
-    else s.startScene(sc.scene);
+    const construit = poserScenario(g, sc);
     // Un plateau VIDE est un refus, jamais un silence : la recette qui continue dessus attribue son
     // rouge au geste suivant. « Vide » se mesure sur la scène ACTIVE du store après chargement —
     // aucune scène (`scene` nul) ou aucune entité peuplée (`scene.entities`, la population que lisent
@@ -509,20 +501,9 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
     // La MÉMOIRE d'onglet ne retient qu'un lancement qui a passé les deux refus : mémoriser avant le
     // chargement ferait rejouer en boucle un scénario qui jette à `resumeLastScenario()`.
     rememberScenario(seed != null ? { id: sc.id, seed } : { id: sc.id });
-    const scLead = g().party[0];
-    if (sc.money && scLead) creditBourse(g, useGame.setState, scLead.id, sc.money); // seed de bourse du scénario (après le reset du lancement)
-    if (sc.vessel) useGame.setState({ vessel: sc.vessel }); // navire de campagne (voyage/combat maritime)
-    if (sc.autoCombat) g().startCombat(sc.autoCombat);
+    demarrerScenario(g, useGame.setState, sc, construit);
     if (g().pendingRoundStart) g().confirmRoundStart();
-    if (sc.massBattle) {
-      // Interlude AVANT la bataille (ADE II 8 l.65) : son budget d'Activités (max 3) est celui dans
-      // lequel puise la préparation. La préparation se joue DANS le menu d'interlude (« Interlude c'est
-      // interlude ») — `startMassBattle` reste donc sur l'écran d'interlude tant qu'un interlude est ouvert.
-      if (sc.interludeWeeks) g().startInterlude(sc.interludeWeeks);
-      g().startMassBattle(sc.massBattle);
-      return `✓ bataille de masse « ${sc.title} » lancée${sc.interludeWeeks ? ' (préparation dans le menu d\'interlude)' : ''}`;
-    }
-    s.setScreen('campaign');
+    if (construit.massBattle) return `✓ bataille de masse « ${sc.title} » lancée${g().interlude ? ' (préparation dans le menu d\'interlude)' : ''}`;
     return `✓ scénario « ${sc.title} » lancé${sc.autoCombat ? ' (combat direct, prêt à jouer)' : ''}`;
   };
   return {
@@ -999,19 +980,26 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
     /** Charge une CAMPAGNE BUILT-IN sans dérouler le character creator ×4 à la main :
      *  __wfrp.campaign('loup-et-saumure', 42). Sans argument : liste les ids. `sceneId` (optionnel)
      *  démarre ailleurs qu'à l'entrée par défaut. MÊME chemin que le picker `PartyScreen` (`setParty` +
-     *  `setPendingCampaign` + `loadProject`) — jamais une reconstruction parallèle de l'état. */
+     *  `setPendingCampaign` + `lancerCampagne`) — jamais une reconstruction parallèle de l'état. */
     campaign: (id?: string, seed?: number, sceneId?: string) => {
       if (!id) return builtinCampaigns.map((c) => `${c.id} — ${c.label}`);
       const c = builtinCampaigns.find((b) => b.id === id);
       if (!c) return `✗ « ${id} » introuvable — ids : ${builtinCampaigns.map((b) => b.id).join(', ')}`;
-      if (sceneId !== undefined && !c.scenes.some((sc) => sc.id === sceneId)) {
-        return `✗ scène « ${sceneId} » introuvable dans « ${id} » — ids : ${c.scenes.map((sc) => sc.id).join(', ')}`;
+      let lancee: ReturnType<typeof campagneDuJeu>;
+      try {
+        lancee = campagneDuJeu(c);
+      } catch (err) {
+        exigerUnRefus(err);
+        return `✗ campagne « ${c.label} » refusée — ${err.message}`;
+      }
+      if (sceneId !== undefined && !lancee.scenes.some((sc) => sc.id === sceneId)) {
+        return `✗ scène « ${sceneId} » introuvable dans « ${id} » — ids : ${lancee.scenes.map((sc) => sc.id).join(', ')}`;
       }
       const s = g();
       if (seed != null) s.seedRng(seed);
       s.setParty(makeShowcaseParty()); // campagnes built-in sans pré-tirés propres — groupe canonique (4 piliers)
-      s.setPendingCampaign(campagneDuJeu(c));
-      s.loadProject(c.scenes, sceneId ?? c.startSceneId, c.worldMap ?? null, c.narratif);
+      s.setPendingCampaign(lancee);
+      lancerCampagne(g, lancee, sceneId);
       s.setScreen('campaign');
       const after = useGame.getState();
       return `✓ campagne « ${c.label} » chargée (${after.party.length} héros, scène « ${after.scene?.id} »)`;
@@ -1449,13 +1437,41 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
      *  'magie-du-chaos', { spec: 'tzeentch' })`). */
     talent: (id: string, talentId: string, opts: number | { spec?: string; times?: number } = 1) => {
       const { spec, times } = typeof opts === 'number' ? { spec: undefined, times: opts } : { spec: opts.spec, times: opts.times ?? 1 };
-      const grant = (c: Combatant): Combatant =>
-        c.id === id ? { ...c, talents: [...(c.talents ?? []), { talentId, times, ...(spec != null ? { spec } : {}) }] } : c;
+      const grant = (c: Combatant): Combatant => {
+        if (c.id !== id) return c;
+        const acquis = { ...c };
+        for (let i = 0; i < times; i++) acquerirTalent(acquis, { id: talentId, ...(spec != null ? { spec } : {}) });
+        return acquis;
+      };
       useGame.setState((s) => ({
         party: s.party.map(grant),
         battle: s.battle ? { ...s.battle, combatants: s.battle.combatants.map(grant) } : s.battle,
       }));
-      return `✓ ${id} → ${talentId}${spec ? ` (spec ${spec})` : ''}`;
+      const pose = actorIn(useGame.getState(), id)?.talents?.find((t) => t.talentId === talentId && (t.spec ?? null) === (spec ?? null));
+      return pose
+        ? `✓ ${id} → ${talentId}${spec ? ` (spec ${spec})` : ''} ×${pose.times}`
+        : `✗ ${id} : « ${talentId} » non acquis (Maxi atteint ou combattant absent)`;
+    },
+
+    /** RECETTE : pose un Trait de créature sur un combattant, hors combat compris (ex. Marque de Tzeentch
+     *  pour dérouler ses Talents de carrière à l'avancement). Passe par `grantTrait`
+     *  (`engine/grantedTraits.ts`), le noyau de l'op homonyme et d'`attachMutation`. `opts` : `arg`
+     *  (Cible, Domaine…) et `value` (indice). Rend l'état RÉEL relu au store. */
+    trait: (id: string, traitId: string, opts: { arg?: string; value?: number } = {}) => {
+      if (!findTraitById(traitId)) return `✗ trait « ${traitId} » inconnu`;
+      const instance = { id: traitId, ...(opts.arg != null ? { arg: opts.arg } : {}), ...(opts.value != null ? { value: opts.value } : {}) };
+      const grant = (c: Combatant): Combatant => {
+        if (c.id !== id) return c;
+        const porteur = { ...c };
+        grantTrait(porteur, instance);
+        return porteur;
+      };
+      useGame.setState((s) => ({
+        party: s.party.map(grant),
+        battle: s.battle ? { ...s.battle, combatants: s.battle.combatants.map(grant) } : s.battle,
+      }));
+      const pose = actorIn(useGame.getState(), id)?.traits?.some((t) => t.id === traitId && (t.arg ?? null) === (opts.arg ?? null));
+      return pose ? `✓ ${id} → trait ${traitId}${opts.arg ? ` (${opts.arg})` : ''}` : `✗ ${id} : trait « ${traitId} » non posé (combattant absent)`;
     },
 
     /** RECETTE : simule une CHARGE de `enemyId` sur un héros (défaut : le plus proche) — déclenche le

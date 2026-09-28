@@ -134,7 +134,7 @@ const doc = document(
   },
   {
     codex: { keys: ['landCargo'] },
-    edit: { niche: { categories: ['landCargo'] } },
+    edit: { niche: { categories: { landCargo: 'cargoes' } } },
   },
 );
 

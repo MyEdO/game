@@ -76,7 +76,6 @@ export const GRAMMAIRE_STOCK = {
   'src/data/schemas/defs-scenes/effets.ts:startPursuitSchema|alias|skill': e('Effet `startPursuit` désignant la Compétence de course par `skill`.', L2),
 
   // ── Graphies historiques de RÉFÉRENCE à une autre entité (`ref`, `talentId`, `trappingId`) ────
-  'src/data/schemas/defs/axes.ts:talentRefSchema|alias|talentId': e('Réf de Talent d’un axe de profil en `{talentId, spec}`.', L3),
   'src/data/schemas/defs/reglesOptionnelles.ts:doc|alias|ref': e('Règle optionnelle désignant l’entité concernée par une enveloppe `ref`.', L3),
   'src/data/schemas/defs/river-perils.ts:doc.perils|alias|ref': e('Péril fluvial désignant son entité (créature/structure) par une enveloppe `ref`.', L3),
   'src/data/schemas/defs/traumas.ts:rigSchema.byProsthesis|alias|trappingId': e('Rig de trauma keyé par `trappingId` (prothèse) — graphie d’objet de catalogue.', L3),
@@ -84,12 +83,12 @@ export const GRAMMAIRE_STOCK = {
   'src/data/schemas/defs-scenes/effets.ts:giveTrappingSchema|alias|trappingId': e('Effet `giveTrapping` désignant l’objet donné par `trappingId` (migration de LIBELLÉ soldée en T3-b, la graphie reste).', L3),
   'src/data/schemas/defs-scenes/effets.ts:pursuitFoeSchema|alias|ref': e('Adversaire de Poursuite désignant sa fiche (bête ou statbloc) par l’enveloppe `ref` — la MÊME `livingRefSchema` que `givePossession`.', L3),
   'src/data/schemas/defs-scenes/effets.ts:givePossessionSchema|alias|ref': e('Effet `givePossession` désignant la possession par une enveloppe `ref`.', L3),
-  'src/data/schemas/defs-scenes/scene.ts:sceneEntitySchema|alias|ref': e('Entité de scène désignant son modèle (créature/prop) par une enveloppe `ref`.', L3),
+  'src/data/schemas/defs-scenes/scene.ts:brancheDEntite|alias|ref': e('Entité de scène désignant son modèle (créature/prop) par une enveloppe `ref`.', L3),
   'src/data/schemas/defs-scenes/worldmap.ts:portProfileSchema|alias|ref': e('Profil de port désignant son entité par une enveloppe `ref`.', L3),
 
   // ── Formes de VALEUR re-tapées (monnaie, dé, cellule de grille) ───────────────────────────────
   'src/data/schemas/defs-scenes/effets.ts:zoneBlastSchema.center|redeclaration|cell2Schema {x,y}': e('Centre d’une zone d’effet re-tapé `{x, y}` — la cellule de grille est `cell2Schema`.', L4),
-  'src/data/schemas/defs-scenes/scene.ts:sceneEntitySchema.pos|redeclaration|cell2Schema {x,y}': e('Position d’une entité de scène re-tapée `{x, y}`.', L4),
+  'src/data/schemas/defs-scenes/scene.ts:baseDEntiteSchema.pos|redeclaration|cell2Schema {x,y}': e('Position d’une entité de scène re-tapée `{x, y}`.', L4),
   'src/data/schemas/defs-scenes/worldmap.ts:placePoiSchema.pos|redeclaration|cell2Schema {x,y}': e('Position d’un point d’intérêt : point CONTINU PLAN-LOCAL 0-100 (worldmap.ts:84), forme propre au worldMap — PAS une cell2 (la cellule de grille est un indice DISCRET). À REQUALIFIER au lot L4 valeurs : « composer `cell2Schema` » y serait sémantiquement FAUX, il faut une forme de point normalisé à la grammaire.', L4),
   'src/data/schemas/defs-scenes/worldmap.ts:mapPlaceSchema.pos|redeclaration|cell2Schema {x,y}': e('Position d’un lieu de la carte du monde : point en % du CANEVAS, forme propre au worldMap — PAS une cell2. MÊME requalification que `placePoiSchema.pos` au lot L4 valeurs.', L4),
 

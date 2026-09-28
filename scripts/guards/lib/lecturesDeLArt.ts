@@ -36,6 +36,7 @@ import { recopieDeCanon, type ConstructionGardee } from './canonUnique.mjs';
 import { CLES } from '../../../src/gameIso/rig/clesDePalette';
 import { ROLES_DE_GAMME, SUFFIXE_DE_ROLE } from '../../../src/data/palette.types';
 import { VIEWS } from '../../../src/gameIso/rig/facing';
+import { echapperRegex } from '../../../src/lib/regex';
 
 /** Ce module, dans le foyer de chaque construction. */
 export const MODULE = 'scripts/guards/lib/lecturesDeLArt.ts';
@@ -55,8 +56,6 @@ function motifDeRegex(n: ts.Node, sf: ts.SourceFile): string | null {
   return null;
 }
 
-const echappe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
 /** Construction réservée lue sur le motif d'une regex. */
 function regexReservee(nom: string, lit: RegExp, detail: string, indice: (texte: string) => boolean): Omit<ConstructionGardee, 'foyer'> {
   return {
@@ -71,7 +70,7 @@ function regexReservee(nom: string, lit: RegExp, detail: string, indice: (texte:
 
 /** `@` suivi d'une classe ouverte sur une lettre, de `\w`, d'une substitution, ou d'un groupe ouvert
  *  sur l'un d'eux ou sur une clé de `CLES`. */
-const JETON = new RegExp(String.raw`@(\[a-zA-Z|\\w|\$\{|\((\?:)?(\[a-zA-Z|\\w|\$\{|(${CLES.map(echappe).join('|')})\b))`);
+const JETON = new RegExp(String.raw`@(\[a-zA-Z|\\w|\$\{|\((\?:)?(\[a-zA-Z|\\w|\$\{|(${CLES.map(echapperRegex).join('|')})\b))`);
 
 const REGEX_DE_JETON = {
   ...regexReservee('REGEX_DE_JETON', JETON, 'regex de jeton (`TOKEN_RE`, `tokensOf`, `replaceTokens`, `palette.ts`)', (t) => t.includes('@')),
@@ -81,7 +80,7 @@ const REGEX_DE_JETON = {
 /** Les suffixes de rôle, lus dans la table. */
 const SUFFIXES: readonly string[] = Object.values(SUFFIXE_DE_ROLE);
 const estSuffixe = (s: string) => SUFFIXES.includes(s);
-const COMMENCE_PAR_UN_SUFFIXE = new RegExp(`^(${SUFFIXES.map(echappe).join('|')})(?!\\w)`);
+const COMMENCE_PAR_UN_SUFFIXE = new RegExp(`^(${SUFFIXES.map(echapperRegex).join('|')})(?!\\w)`);
 
 /** Au moins deux suffixes DISTINCTS dans une alternance `(…|…)` ou une classe `[…]` du motif. */
 function suffixesEnAlternance(motif: string): boolean {

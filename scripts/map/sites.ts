@@ -61,8 +61,9 @@ export function codedSites(source: MapSource): Sites {
   /** Le calque de zones est DÉRIVÉ (`zonesFromSeeds`) : aucun char n'existe dans un fichier source. Le
    *  site d'un défaut de calque est donc la CASE, plus le char de la pièce et sa PREMIÈRE GRAINE — la
    *  ligne qu'on va éditer étant celle de la graine, pas celle du calque. */
+  const zoneLayers = source.zoneLayers?.();
   const zoneSite = (x: number, y: number, z: number): Site | null => {
-    const ch = source.zoneLayers?.[`z${z}`]?.split('\n')[y]?.[x];
+    const ch = zoneLayers?.[`z${z}`]?.split('\n')[y]?.[x];
     if (!ch) return null;
     const seed = source.zoneSeeds?.[`z${z}`]?.find((s) => s.char === ch)?.at[0];
     const piece = seed ? `graine ${ch}@${seed[0]},${seed[1]}` : `hors pièce : aucune graine n’atteint cette case`;

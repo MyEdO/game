@@ -8,7 +8,6 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { applyCriticalToTarget } from './combatFlow';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { seedBattleRng } from './battleRng';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
@@ -50,7 +49,7 @@ describe('routage des révélations (spec coop §4bis)', () => {
   });
 
   it('un HÉROS subit le Critique → séquence inline (panneau grave)', () => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(3) });
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 3 });
     const log: string[] = [];
     applyCriticalToTarget(hero, 'corps', true, 0, log, useGame.setState,
       { ctx: { attackerId: 'e1', attackerKind: 'enemy' }, get: useGame.getState });
@@ -64,9 +63,9 @@ describe('entretien de fin de Round — partition héros/ennemis (spec coop §4b
   beforeEach(() => {
     vi.useFakeTimers();
     seedBattleRng(7);
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', rng: makeRNG(3) });
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
     useGame.setState({ party: [hero], battle: null, pendingCascade: null, pendingRoundStart: null });
-    useGame.getState().startScene(testScene);
+    useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');
     useGame.getState().confirmRoundStart();
     vi.clearAllTimers();

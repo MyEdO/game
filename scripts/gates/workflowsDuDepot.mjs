@@ -24,8 +24,8 @@ export const SIGNALEUR = 'scripts/ops/signaler-rouge.mjs'
 /** Ce que chaque état MESURE sur le YAML. Un état sans mesure n'existe pas. */
 export const ETATS = Object.freeze({
   porte:
-    'le workflow EST la porte : la porte au push consulte ses courses (scripts/git-hooks/pre-push.mjs:150 ' +
-    '→ coursesCi, dont le défaut est PORTE) et le ruleset `main` exige ses jobs',
+    'le workflow EST la porte : la porte au push consulte ses courses (scripts/git-hooks/pre-push.mjs ' +
+    '→ `coursesCi`, dont le défaut est PORTE) et le ruleset `main` exige ses jobs',
   autosignale:
     `le workflow se nomme lui-même en rougissant : un step qui joue MÊME sur rouge (\`if\` portant ` +
     `\`always()\`, \`!cancelled()\` ou \`failure()\` non nié, jamais sous \`success()\`) EXÉCUTE ` +
@@ -43,8 +43,8 @@ export const WORKFLOWS = Object.freeze({
   'ci.yml': {
     etat: 'porte',
     raison:
-      'la porte au push lit ses courses pour le sha poussé — scripts/git-hooks/pre-push.mjs:150 passe ' +
-      'par scripts/guards/lib/coursesCi.mjs, dont le workflow par défaut EST PORTE — et le ruleset ' +
+      'la porte au push lit ses courses pour le sha poussé — scripts/git-hooks/pre-push.mjs appelle ' +
+      '`coursesCi` (scripts/guards/lib/coursesCi.mjs), dont le workflow par défaut EST PORTE — et le ruleset ' +
       '`main` en fait ses checks requis',
   },
   'canari.yml': {
@@ -104,7 +104,7 @@ export function stepsDu(texte) {
 
 /**
  * Clés de premier niveau du bloc `on:` d'un workflow. PUR — même lecture ligne à ligne que
- * `scripts/docs/build-reprise.mjs:157-159`.
+ * `scripts/docs/build-reprise.mjs`.
  * @param {string} texte @returns {string[]}
  */
 export function declencheursDe(texte) {

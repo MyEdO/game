@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { Combatant } from './types';
 import {
-  talentCharBonus,
+  talentCharBonusById,
   applyTalentAcquisition,
   extraWounds,
   heroMaxWounds,
@@ -35,20 +35,20 @@ const hero = (over: Partial<Combatant> = {}): Combatant =>
 
 describe('« +5 à votre Caractéristique de départ » (LDB 10 — ne compte pas comme Augmentation)', () => {
   it('mapping addCharacteristic → clé courte pour les 10 talents', () => {
-    expect(talentCharBonus('Guerrier né')).toBe('capacite-de-combat');
-    expect(talentCharBonus('Tireur de précision')).toBe('capacite-de-tir');
-    expect(talentCharBonus('Très fort')).toBe('force');
-    expect(talentCharBonus('Très résistant')).toBe('endurance');
-    expect(talentCharBonus('Vivacité')).toBe('initiative');
-    expect(talentCharBonus('Réflexes foudroyants')).toBe('agilite');
-    expect(talentCharBonus('Doigts de fée')).toBe('dexterite');
-    expect(talentCharBonus('Perspicace')).toBe('intelligence');
-    expect(talentCharBonus('Imperturbable')).toBe('force-mentale');
-    expect(talentCharBonus('Affable')).toBe('sociabilite');
-    expect(talentCharBonus('Baratiner')).toBe(null);
+    expect(talentCharBonusById('guerrier-ne')).toBe('capacite-de-combat');
+    expect(talentCharBonusById('tireur-de-precision')).toBe('capacite-de-tir');
+    expect(talentCharBonusById('tres-fort')).toBe('force');
+    expect(talentCharBonusById('tres-resistant')).toBe('endurance');
+    expect(talentCharBonusById('vivacite')).toBe('initiative');
+    expect(talentCharBonusById('reflexes-foudroyants')).toBe('agilite');
+    expect(talentCharBonusById('doigts-de-fee')).toBe('dexterite');
+    expect(talentCharBonusById('perspicace')).toBe('intelligence');
+    expect(talentCharBonusById('imperturbable')).toBe('force-mentale');
+    expect(talentCharBonusById('affable')).toBe('sociabilite');
+    expect(talentCharBonusById('baratiner')).toBe(null);
     // addCharacteristic non-Caractéristique (Blessure, Chance…) → pas de +5.
-    expect(talentCharBonus('Dur à cuire')).toBe(null);
-    expect(talentCharBonus('Chanceux')).toBe(null);
+    expect(talentCharBonusById('dur-a-cuire')).toBe(null);
+    expect(talentCharBonusById('chanceux')).toBe(null);
   });
   it('applyTalentAcquisition : +5 passif, valeur effective = 35, AUCUNE Augmentation comptée', () => {
     const h = hero({ talents: [{ talentId: 'tres-fort', times: 1 }] });

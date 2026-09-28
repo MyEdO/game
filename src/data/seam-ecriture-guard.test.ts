@@ -16,20 +16,23 @@
  * forme qu'il trouve : dans un worker où la mutation précède, c'est la forme fautive qu'il restaure.
  *
  * Périmètre : tout `src/**` en `.ts(x)`, TESTS COMPRIS (c'est là que vivaient les écritures sauvages).
- * Vocabulaire IMPORTÉ du seam (`bindingsVifs`, dérivé du littéral `ARRAYS` d'`overrides.ts` et des
- * résolveurs de `src/data`), et un nom n'est retenu que s'il est IMPORTÉ par le fichier (ou exporté
- * par le module propriétaire) : un `props` local d'une scène n'est pas le dataset `props`.
+ * Vocabulaire IMPORTÉ du seam (`bindingsVivants`, dérivé des littéraux `ARRAYS` et `OBJECTS`
+ * d'`overrides.ts`, des documents qui portent une clé de dataset — `documentsDesRacinesVivantes`, lus sur
+ * le module généré `src/data/schemas/_racines-vivantes.generated.ts`, dont tout import direct est la
+ * racine vivante — et des résolveurs de `src/data`), et un nom n'est retenu que s'il est IMPORTÉ par le
+ * fichier (ou exporté par le module propriétaire) : un `props` local d'une scène n'est pas le dataset
+ * `props`.
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { bindingsVifs, ecrituresHorsSeam, fichiersSources, fichiersDuSeam, RACINE } from '../../scripts/guards/lib/bindingsVifs.mjs';
+import { bindingsVivants, ecrituresHorsSeam, fichiersSources, fichiersDuSeam, RACINE } from '../../scripts/guards/lib/bindingsVivants.mjs';
 
 describe('#1692 — aucune écriture de dataset hors du seam `overrides.ts`', () => {
-  const parBinding = bindingsVifs();
+  const parBinding = bindingsVivants();
   const seam = fichiersDuSeam();
 
-  it('aucun `push`/`splice`/`sort`… ni écriture PAR INDEX, ni mutation d’une ENTRÉE vive, tests compris', () => {
+  it('aucun `push`/`splice`/`sort`… ni écriture PAR INDEX, ni mutation d’une ENTRÉE vivante, tests compris', () => {
     const fautifs = fichiersSources()
       .filter((f) => !seam.has(f))
       .flatMap((f) => ecrituresHorsSeam(f, readFileSync(join(RACINE, f), 'utf8'), parBinding));
@@ -45,6 +48,23 @@ describe('#1692 — aucune écriture de dataset hors du seam `overrides.ts`', ()
     expect(ecrituresHorsSeam('copie.ts', homonymeLocal, parBinding)).toEqual([]);
     const renomme = `import { props as propsData } from '../data';\npropsData.splice(0, 1);\n`;
     expect(ecrituresHorsSeam('copie.ts', renomme, parBinding)).toHaveLength(1);
+  });
+
+  it('CONTRÔLE POSITIF : un dataset-OBJET (`setObjectDataset`) est surveillé comme un dataset-tableau', () => {
+    const parChamp = `import { GRAPPLE } from '../data';\nGRAPPLE.label = 'X';\n`;
+    expect(ecrituresHorsSeam('copie.ts', parChamp, parBinding)).toHaveLength(1);
+    const parAssign = `import { details } from '../data';\nObject.assign(details, { x: 1 });\n`;
+    expect(ecrituresHorsSeam('copie.ts', parAssign, parBinding)).toHaveLength(1);
+  });
+
+  it('CONTRÔLE POSITIF : un nom importé d’un JSON qui porte une clé de dataset est le dataset, où qu’il soit importé', () => {
+    const parChamp = `import sizesJson from '../data/sizes.json';\nsizesJson.label = 'X';\n`;
+    expect(ecrituresHorsSeam('src/engine/copie.ts', parChamp, parBinding)).toHaveLength(1);
+    // CLÉ ≠ NOM DE FICHIER : `arcane-phenomena.json` porte `arcanePhenomena`.
+    const parAlias = `import arcaneJson from '../../data/arcane-phenomena.json';\nconst DATA = arcaneJson as ArcaneData;\nexport const niveaux = DATA.saturationLevels;\nniveaux.sort((a, b) => a.order - b.order);\n`;
+    expect(ecrituresHorsSeam('src/engine/magie/copie.ts', parAlias, parBinding)).toHaveLength(1);
+    const sansCle = `import actionsJson from '../data/actions.json';\nactionsJson.push(a);\n`;
+    expect(ecrituresHorsSeam('src/engine/copie.ts', sansCle, parBinding)).toEqual([]);
   });
 
   it('CONTRÔLE POSITIF : l’ÉCRITURE PAR INDEX est vue elle aussi (elle ne passe par aucune méthode)', () => {
@@ -78,7 +98,7 @@ describe('#1692 — aucune écriture de dataset hors du seam `overrides.ts`', ()
     // (b) CHAÎNE DIRECTE : aucune variable ne nomme l'entrée, l'appel est la base de l'écriture.
     const parChaine = `import { findConditionById } from '../data';\nfindConditionById('brise')!.perStack = false;\n`;
     expect(ecrituresHorsSeam('copie.ts', parChaine, parBinding)).toHaveLength(1);
-    // (c) RÉAFFECTATION : le nom devient vif dans la portée qui le déclare.
+    // (c) RÉAFFECTATION : le nom devient vivant dans la portée qui le déclare.
     const parReaffectation = `import { findConditionById } from '../data';\nlet ed = null;\ned = findConditionById('brise');\ned.perStack = false;\n`;
     expect(ecrituresHorsSeam('copie.ts', parReaffectation, parBinding)).toHaveLength(1);
   });
@@ -87,7 +107,7 @@ describe('#1692 — aucune écriture de dataset hors du seam `overrides.ts`', ()
     // Même nom, deux origines : `c` résolu du dataset au niveau module, `c` de boucle dans la fonction.
     const ombre = `import { findCreatureById } from '../data';\nconst c = findCreatureById('x')!;\nfunction f(heroes) {\n  for (const c of heroes) { c.hunger = 1; }\n}\n`;
     expect(ecrituresHorsSeam('copie.ts', ombre, parBinding)).toEqual([]);
-    // Et la COPIE d'une entrée n'est plus l'entrée : l'écrire ne touche aucune donnée vive.
+    // Et la COPIE d'une entrée n'est plus l'entrée : l'écrire ne touche aucune donnée vivante.
     const copie = `import { findCreatureById } from '../data';\nconst c = { ...findCreatureById('x')! };\nc.label = 'X';\n`;
     expect(ecrituresHorsSeam('copie.ts', copie, parBinding)).toEqual([]);
   });

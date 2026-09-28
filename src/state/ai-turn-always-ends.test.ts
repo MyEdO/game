@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { scenario } from '../scenes/test-scenarios/42-belier-porte';
 import { runEnemyAI } from './combatFlow';
+const scenarioConstruit = scenario.construire();
 
 /**
  * Soft-lock recette (cluster bélier-porte #196-#199) — quand le DERNIER ennemi vivant meurt mais que
@@ -17,8 +18,8 @@ describe('un tour IA se termine TOUJOURS, même sans adversaire vivant et combat
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 
   it('gobelin (dernier ennemi) mort, porte intacte : le tour du servant du bélier se clôt (advanceTurn), le combat continue', () => {
-    useGame.setState({ party: scenario.makeParty() });
-    useGame.getState().startScene(scenario.scene);
+    useGame.setState({ party: scenario.construire().party });
+    useGame.getState().startScene(scenarioConstruit.scene);
     useGame.getState().startCombat('siege-belier');
     useGame.getState().confirmRoundStart();
     vi.clearAllTimers();

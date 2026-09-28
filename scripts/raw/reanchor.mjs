@@ -1,18 +1,20 @@
 // Ré-ancrage des citations de l'Atlas RAW — garde déterministe rejouable.
 // Pour chaque réf `<ABRÉV> NN l.X[-Y]` ATTACHÉE à une citation verbatim « … », on relocalise la
 // citation par MATCH EXACT (normalisé, accents conservés) dans le `.md` source courant, et on
-// vérifie/répare le numéro de ligne (la ré-extraction Marker a fait dériver les anciennes lignes).
+// vérifie/répare le numéro de ligne (une ré-extraction Marker fait dériver les lignes).
 //   node scripts/raw/reanchor.mjs            → rapport + GATE (exit 1 sur dérive/ambigu/hausse ❌)
 //   node scripts/raw/reanchor.mjs --apply    → réécrit en place les dérives HIGH (citation unique)
+//   node scripts/raw/reanchor.mjs --check    → même GATE, puis `ecrireOuVerifier` sur le rapport
+//     (refusé avec `--apply`/`--remap`, qui réécrivent les FICHES). Le rapport décrit les fiches TELLES
+//     QUE LE DISQUE LES PORTE : après `--apply`/`--remap`, il se rend d'un balayage de plus, sans mode.
 // ✅ ligne juste · 🔧 dérive HIGH (auto) · 🟡 ambigu (MEDIUM, manuel) · ❌ introuvable (LOW) ·
 // ➖ synthèse (réf sans citation).
-// GATE (#434 défaut 1 — « une réf verte peut pointer sur le mauvais texte ») : ce script ne se
-// contente plus de MESURER, il BLOQUE sur ses propres verdicts :
+// GATE (#434, « une réf verte peut pointer sur le mauvais texte ») : le script BLOQUE sur ses propres
+// verdicts :
 //   - 🔧 DRIFT (hors --apply) : dérive réparable non appliquée → doc périmée, comme `docs:systemes
 //     --check` — zéro tolérance, il suffit de lancer --apply.
-//   - 🟡 MEDIUM : c'est CE verdict qui a produit le bug réel (ZI 13 l.954 auto-résolu vers le
-//     candidat le plus proche, alors que le vrai texte vivait en ZI 2 l.68) — zéro tolérance
-//     (seuil ZÉRO : aucun ambigu toléré, mesure à 0 aujourd'hui), jamais d'auto-résolution.
+//   - 🟡 MEDIUM : zéro tolérance, jamais d'auto-résolution — le candidat le plus proche d'une
+//     citation ambiguë n'est pas forcément le texte cité.
 //   - ❌ LOW : la réf MENT (citation introuvable à la ligne annoncée) — cliquet NOMINATIF PAR SITE
 //     (`scripts/raw/reanchor-low-stock.json`, écart `ecartDuVolet` de `scripts/guards/lib/stock.mjs`, clé
 //     `fiche :: réf citée :: occurrence`) : un site NEUF est une régression à corriger ou à déclarer,
@@ -28,11 +30,11 @@ import { writeFileSync } from 'node:fs'
 import { listerDossier } from '../guards/lib/lister.mjs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { BOOKS, esc, chapterFile, livreDuSigle, normalize, ELLIPSIS_SENTINEL as SENT, pagesDeLAtlas, readText } from './_lib.mjs'
+import { allAbbrAlternation, chapterFile, livreDuSigle, normalize, ELLIPSIS_SENTINEL as SENT, pagesDeLAtlas, readText } from './_lib.mjs'
 import { graphieDuFichier } from '../../src/data/source/decoupe.ts'
 import { ecartDuVolet } from '../guards/lib/stock.mjs'
 import { SOUS_LOT, lireEntreesDeSite } from '../guards/lib/stockDeSites.mjs'
-import { ecrireDoc } from '../docs/lib/empreinte-sources.mjs'
+import { ecrireOuVerifier } from '../docs/lib/empreinte-sources.mjs'
 import { carteDuFichier, destinEnTexte } from './lib/carte-lignes.mjs'
 
 const APPLY = process.argv.includes('--apply')
@@ -41,6 +43,7 @@ const APPLY = process.argv.includes('--apply')
 // lancer AVANT de committer la Source (une fois committée, HEAD == arbre → carte identité → no-op).
 // Une réf dont la ligne est supprimée ou tombe dans un hunk ambigu est RAPPORTÉE, jamais réécrite.
 const REMAP = process.argv.includes('--remap')
+const CHECK = process.argv.includes('--check')
 const MIN_QUOTE_LEN = 24   // ancre verbatim < 24 car. → trop générique, on n'ancre pas
 export const RAWDIR = 'docs/raw'
 export const LOW_STOCK_PATH = join(dirname(fileURLToPath(import.meta.url)), 'reanchor-low-stock.json')
@@ -59,8 +62,9 @@ const QUOI =
 // jamais des citations vivantes à ré-ancrer.
 export const CLASSES = ['fiche', 'catalogue']
 
-// Réf unifiée (abrévs de BOOKS, plus longue d'abord ; capture chapitre + début + suffixe -Y/+n).
-const ABBR_ALT = BOOKS.map(([a]) => esc(a)).sort((a, b) => b.length - a.length).join('|')
+// Réf de chapitre `<ABRÉV> NN l.X[-Y][+n]` sur `allAbbrAlternation` (`_lib.mjs`) : capture sigle,
+// chapitre, ligne et suffixe.
+const ABBR_ALT = allAbbrAlternation()
 const refRe = () => new RegExp(`\\b(${ABBR_ALT}) (\\d+) l\\.(\\d+)((?:[-+]\\d+)*)`, 'g')
 
 // ---------- index ligne↔offset d'un chapitre source ----------
@@ -335,13 +339,13 @@ export const regenerations = (lowRows = scan().lowRows) => [{
 }]
 
 // ---------- rapport Markdown (aucun effet de bord de `scan` — écrit ici uniquement) ----------
-function buildReport(result, { apply, remap }) {
-  const { DOCS, tally, sections, nonRemappees, totalRefs, totalQuotes, appliedTotal, remappedTotal } = result
+function buildReport(result) {
+  const { DOCS, tally, sections, totalRefs, totalQuotes } = result
   const out = ['# Atlas RAW — Ré-ancrage des citations', '',
     '> Déterministe (`node scripts/raw/reanchor.mjs` ; `--apply` réécrit les dérives HIGH). GATE (#434) :',
     '> exit 1 sur dérive non appliquée, ambiguïté, ou hausse de réf FAUSSE (❌) — voir en-tête du script.',
     '> Pour chaque citation verbatim « … » d\'une fiche, on relocalise le texte dans le `.md` source',
-    '> courant et on vérifie le n° de ligne cité. ✅ juste · 🔧 dérive corrigée (HIGH, unique) · 🟡 ambigu',
+    '> courant et on vérifie le n° de ligne cité. ✅ juste · 🔧 dérive (HIGH, unique : `--apply` la corrige) · 🟡 ambigu',
     '> (MEDIUM, manuel) · ❌ introuvable (LOW, paraphrase/mauvais chapitre) · ➖ synthèse (réf sans citation).', '']
   const MARK = { OK: '✅', DRIFT: '🔧', MEDIUM: '🟡', LOW: '❌', RANGE: '➖', 'PAST-EOF': '⛔', 'NO-SOURCE': '⚠️', 'NON-REMAP': '🧭' }
   for (const { file, rows } of sections) {
@@ -349,32 +353,34 @@ function buildReport(result, { apply, remap }) {
     for (const r of rows) out.push(`| \`${r.full}\` | ${MARK[r.status]} ${r.status} | ${r.detail} |`)
     out.push('')
   }
-  const driftLabel = apply ? `🔧 ${appliedTotal} corrigées` : `🔧 ${tally.DRIFT} dérives (relancer --apply)`
-  const remapLabel = remap ? ` · 🧭 ${remappedTotal} synthèses ré-ancrées (diff), ${nonRemappees.length} non portées` : ''
   out.splice(6, 0,
-    `**Bilan : ✅ ${tally.OK} · ${driftLabel} · 🟡 ${tally.MEDIUM} ambigus · ❌ ${tally.LOW} introuvables · ➖ ${tally.RANGE} synthèses${remapLabel}** ` +
+    `**Bilan : ✅ ${tally.OK} · 🔧 ${tally.DRIFT} dérives (relancer --apply) · 🟡 ${tally.MEDIUM} ambigus · ❌ ${tally.LOW} introuvables · ➖ ${tally.RANGE} synthèses** ` +
     `(⛔ ${tally['PAST-EOF']} hors-fichier · ⚠️ ${tally['NO-SOURCE']} sans source) sur ${totalRefs} réfs · ${totalQuotes} citations · ${DOCS.length} fiches.`, '')
   return out.join('\n')
 }
 
 function main() {
+  if (CHECK && (APPLY || REMAP)) {
+    console.error('raw:reanchor — REFUS : `--check` compare sans écrire, `--apply`/`--remap` réécrivent les fiches de l’Atlas — jamais les deux ensemble.')
+    process.exitCode = 1
+    return
+  }
   const result = scan(RAWDIR, { apply: APPLY, remap: REMAP })
   const { tally, totalRefs, totalQuotes, appliedTotal, remappedTotal, DOCS, lowRows, nonRemappees } = result
-  ecrireDoc(join(RAWDIR, 'reanchor.md'), buildReport(result, { apply: APPLY, remap: REMAP }))
 
   const driftLabel = APPLY ? `🔧 ${appliedTotal} corrigées` : `🔧 ${tally.DRIFT} dérives (relancer --apply)`
   const remapLabel = REMAP ? ` · 🧭 ${remappedTotal} synthèses ré-ancrées (diff), ${nonRemappees.length} non portées` : ''
   console.log(`ré-ancrage : ✅ ${tally.OK} · ${driftLabel} · 🟡 ${tally.MEDIUM} · ❌ ${tally.LOW} · ➖ ${tally.RANGE}${remapLabel} (⛔${tally['PAST-EOF']} ⚠️${tally['NO-SOURCE']})`)
   console.log(`${totalQuotes} citations vérifiées sur ${totalRefs} réfs (${DOCS.length} fiches)` + (REMAP ? ` — ${remappedTotal} synthèses ré-ancrées par diff` : APPLY ? ` — ${appliedTotal} réécrites` : tally.DRIFT ? ` — relancer avec --apply pour corriger ${tally.DRIFT} dérives` : ''))
 
-  // ---------- GATE (#434 défaut 1) ----------
+  // ---------- GATE (#434) ----------
   let fail = false
   if (!APPLY && tally.DRIFT > 0) {
     console.log(`RÉGRESSION — ${tally.DRIFT} dérive(s) 🔧 non appliquée(s) : relancer --apply avant de committer.`)
     fail = true
   }
   if (tally.MEDIUM > 0) {
-    console.log(`RÉGRESSION — ${tally.MEDIUM} réf(s) ambiguë(s) 🟡 : trancher manuellement (jamais d'auto-résolution, cf. #434 défaut 1).`)
+    console.log(`RÉGRESSION — ${tally.MEDIUM} réf(s) ambiguë(s) 🟡 : trancher manuellement (jamais d'auto-résolution, cf. #434).`)
     fail = true
   }
   if (nonRemappees.length) {
@@ -396,8 +402,15 @@ function main() {
     fail = true
   }
   if (fail) process.exitCode = 1
+
+  const rapport = join(RAWDIR, 'reanchor.md')
+  ecrireOuVerifier({
+    out: buildReport(APPLY || REMAP ? scan(RAWDIR) : result),
+    path: rapport,
+    check: CHECK,
+    staleMsg: `raw:reanchor — ${rapport} est PÉRIMÉ (fiche de l'Atlas ou Source changée).`,
+    rerunMsg: '  → relancer `npm run raw:reanchor` et committer le résultat.',
+  })
 }
 
-import { resolve } from 'node:path'
-const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)
-if (isMain) main()
+if (import.meta.main) main()

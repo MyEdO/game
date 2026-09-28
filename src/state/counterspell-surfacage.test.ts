@@ -5,7 +5,6 @@ import { intentAllowedFor, influencesLocally, canFixDie } from './netOwnership';
 import { seedBattleRng } from './battleRng';
 import { setDesFixes } from '../engine/fixedDie';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
 import type { GameState } from './store';
@@ -22,11 +21,11 @@ const NET0 = { mode: 'local' as const, mySeat: 0, gmSeat: undefined, ownership: 
 function setup() {
   const hero = createHero({
     speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W',
-    careerTalent: 'Magie mineure', rng: makeRNG(707),
+    careerTalent: { id: 'magie-mineure' }, seed: 707,
   });
   hero.spells = ['flechette'];
   useGame.setState({ party: [hero] });
-  useGame.getState().startScene(testScene);
+  useGame.getState().startScene(testScene());
   useGame.getState().startCombat('enc-mutants');
   useGame.getState().confirmRoundStart();
   vi.clearAllTimers();
@@ -136,7 +135,7 @@ describe('#1028 — Contre-sort : la POSSESSION décide du surfaçage, jamais le
 
   it('D — Sort ENNEMI (IA) : chaque contre-lanceur héros garde SA rangée, à SON siège', () => {
     useGame.getState().seedRng(3);
-    const w2 = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W2', careerTalent: 'Magie mineure', rng: makeRNG(101) });
+    const w2 = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W2', careerTalent: { id: 'magie-mineure' }, seed: 101 });
     w2.spells = ['flechette'];
     const { H, E } = setup();
     const b = useGame.getState().battle!;

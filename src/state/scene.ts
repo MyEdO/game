@@ -175,7 +175,7 @@ export interface SceneEntity {
     /** OPTIONNELS choisis (LDB 76 l.45) : `TraitInstance` fusionnés au spawn OU notes composées
      *  (joker « tous les traits », variante « swap » retirant des Traits + octroyant un bonus, ZI). */
     optionals?: import('../engine/statEntry').OptionalEntry[];
-    /** Sorts connus (ids de spells.json, créature `ref`) — choix d'auteur (la donnée bestiaire n'en liste pas). */
+    /** Sorts connus (ids de spells.json) — choix d'auteur, remplace ceux de la créature `ref` (`src/state/spawn.ts` › `spells`). */
     spells?: string[];
     /** Caractéristiques aléatoires au spawn (LDB 77 l.108 : −10 + 2d10, graine stable par id). */
     randomChars?: boolean;
@@ -858,32 +858,25 @@ function stripLegacyFoot(e: SceneEntity): SceneEntity {
 }
 
 /**
- * Complète les COLLECTIONS requises d'une Scène absentes sur un document ANCIEN (le schéma de
- * `ProjectDoc` — `worldMap.ts` `PROJECT_MIGRATIONS` — ne bump qu'aux ruptures de FORME du document ;
- * `Scene` a gagné des champs collection non-optionnels au fil du temps sans bump de schéma, un projet
- * sauvegardé avant ne les porte pas). Point d'entrée UNIQUE du chargement de projet (`parseProject`) :
- * jamais un `?? []` saupoudré côté consommateur (`validateScene` et le runtime supposent ces
- * collections présentes). Assainit aussi les FLOWS portés (triggers/dialogues/rencontres/entités) —
- * purge des nœuds `null` inexprimables (`sanitizeSceneFlow`) ; une réf pendante ou un Flow entièrement
- * absent reste rapportée par `validateScene`, jamais réparée en silence. PUR — ne mute pas `s`. */
+ * Complète les COLLECTIONS qu'une Scène PROUVÉE peut omettre (optionnelles à `sceneSchema`, requises
+ * sur `Scene`), et assainit les FLOWS portés (triggers/dialogues/rencontres/entités) — purge des nœuds
+ * `null` inexprimables (`sanitizeSceneFlow`) ; une réf pendante ou un Flow entièrement absent reste
+ * rapportée par `validateScene`, jamais réparée en silence. Appelée APRÈS la porte du schéma, par
+ * `parseProject` (`projetSchema`) et `migreSceneDeProjet` (`sceneSchema`) (`worldMap.ts`) : jamais
+ * un `?? []` saupoudré côté consommateur. PUR — ne mute pas `s`. */
 export function normalizeScene(s: Scene): Scene {
   return {
     ...s,
-    // La scène S'ANNONCE (#1552) : un enregistrement du filet de crash (`state/editorAutosave.ts`,
-    // magasin SANS axe de version) écrit avant ce lot porte une `Scene` muette, que le
-    // « Restaurer » puis un « Enregistrer » recoucheraient telle quelle dans un projet en `schema`
-    // courant — donc SANS migration au rechargement, et refusée par `parseProject`.
-    type: 'scene',
-    layers: s.layers ?? emptyScene(s.dimensions?.w, s.dimensions?.h).layers,
+    layers: s.layers ?? emptyScene(s.dimensions.w, s.dimensions.h).layers,
     entities: (s.entities ?? []).map((e) => stripLegacyFoot(
       e.usable?.actions
       ? { ...e, usable: { ...e.usable, actions: e.usable.actions.map((a) => ({ ...a, flow: sanitizeSceneFlow(a.flow) as Flow })) } }
       : e)),
     dialogues: (s.dialogues ?? []).map((d) => ({
       ...d,
-      nodes: (d.nodes ?? []).map((n) => ({
+      nodes: d.nodes.map((n) => ({
         ...n,
-        choices: (n.choices ?? []).map((c) => (c.flow ? { ...c, flow: sanitizeSceneFlow(c.flow) } : c)),
+        choices: n.choices.map((c) => (c.flow ? { ...c, flow: sanitizeSceneFlow(c.flow) } : c)),
       })),
     })),
     triggers: (s.triggers ?? []).map((t) => ({ ...t, flow: sanitizeSceneFlow(t.flow) as Flow })),

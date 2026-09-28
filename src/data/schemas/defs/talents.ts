@@ -14,9 +14,9 @@
  * `min(1)` » — est PURGÉE par la migration de ce lot ; exiger `desc` ici refuserait cette entrée.
  */
 import { z } from 'zod';
-import { charKeySchema, combatFeatureSchema, sizeCategorySchema, specEntrySchema, specsSourceSchema } from '../grammaire/valeurs';
+import { charKeySchema, combatFeatureSchema, sizeCategorySchema, specsSchema, specsSourceSchema } from '../grammaire/valeurs';
 import { document } from '../grammaire/document';
-import { gameOpSchema, conditionSchema, triggeredEffectSchema } from '../grammaire/mecanique';
+import { conditionSchema, mecaniqueDe, triggeredEffectSchema } from '../grammaire/mecanique';
 import { refOuSpec } from '../grammaire/ref';
 
 export const file = 'talents.json';
@@ -73,7 +73,7 @@ const doc = document(
   {
     max: z.union([z.number(), z.strictObject({ bonusOf: charKeySchema }), z.null()]),
     test: talentTestSchema.nullable(),
-    specs: z.array(specEntrySchema).optional(),
+    specs: specsSchema.optional(),
     size: sizeCategorySchema.optional(),
     specsSource: specsSourceSchema.optional(),
     /** Le `spec` de ce Talent nomme un CULTE (`gods.json`) : ses `grantGroups` sont accordés au
@@ -81,13 +81,16 @@ const doc = document(
     grantSpecGroups: z.literal(true).optional(),
     /** Le `spec` de ce Talent nomme un Domaine arcanique (`DomainData.id`) que son porteur PRATIQUE : il
      *  compte alors dans les Domaines tenus et sous le plafond d'apprentissage (`LDB 46 l.177`, repris
-     *  `VDM 02 l.190-192`) — lu par `heldArcaneDomains` (engine/careerSlots). Distinct de `specsSource`,
-     *  qui ne décrit que le POOL de spécialisations proposé. */
+     *  `VDM 02 l.190-192`) — lu par `heldArcaneDomains` et `arcaneDomainGate` (engine/careerSlots, câblé
+     *  à l'achat par `buyTalent`, state/partyFlow). Son Maxi se compte alors PAR Domaine
+     *  (`talentMaxReached`, `LDB 46 l.177`). Distinct de `specsSource`, qui ne décrit que le POOL de
+     *  spécialisations proposé. */
     grantsArcaneDomain: z.literal(true).optional(),
     specsOpen: z.boolean().optional(),
     rand: z.number().nullable(),
     effects: z.array(triggeredEffectSchema).optional(),
-    passive: z.array(gameOpSchema).optional(),
+    /** Désignateur : `careerSkillAdditions` (`engine/talentEffects.ts`), la spec du Talent porteur. */
+    passive: z.array(mecaniqueDe({ 'grantCareerSkill.skill': 'specOuChoixFacultatifs' }).gameOp).optional(),
     combat: combatFeatureSchema.optional(),
     // Contenu de RÉFÉRENCE (PNJ/campagne, RAW cité par entrée) : hors graphe d'obtenabilité (#326).
     codexOnly: z.literal(true).optional(),
@@ -117,7 +120,8 @@ const doc = document(
     codex: { keys: ['talents'] },
     edit: { dataset: 'talents' },
   },
-  { exiges: ['source'], variantes: VARIANT_RESOLVED_FIELDS },
+  // `specsOpen` : lu par `entreeOuverte` (`grammaire/ref.ts`).
+  { exiges: ['source'], variantes: VARIANT_RESOLVED_FIELDS, espace: { marqueurs: ['specsOpen'] } },
 );
 
 export const schema = doc.schema;

@@ -75,7 +75,7 @@ const CLES: Record<string, string> = {
   "nightStakes": '54a15ad6883f8c31',
   "voyageStakes": '9ce6e042bf3b10d8',
   "flowStakes": '5991b421e4d718b4',
-  "combatStakes": 'db6c17396c10c31b',
+  "combatStakes": '3118d89c497c1439',
   "races": '0728d04812275962',
   "careers": '128ef2031ede96cd',
   "characteristics": '532e47bfff4a9328',
@@ -105,7 +105,9 @@ const CLES: Record<string, string> = {
   "maneuvers": '30d7e463b2575792',
   "psychologie": '2287ac1af26a59cb',
   "domains": '4e7ed40a32f916d6',
-  "spells": '81267fd5d0e86a78',
+  // #1897 : 54 sorts du livre fan fusionnés dans l'entrée qui les double (ids retirés), 4 créés, et
+  // 52 entrées absorbantes gagnent `alsoIn` — empreinte recalée à la MESURE.
+  "spells": 'a5cea4643778e1ce',
   "gods": 'd49beaef5ebba230',
   "ventsTourbillonnants": '9a979156867c5f47',
   // +1 : Chien de trait, EDOC 07 folio 22, #673.

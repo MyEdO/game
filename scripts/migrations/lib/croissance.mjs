@@ -35,7 +35,7 @@ import path from 'node:path';
 import { listerDossier } from '../../guards/lib/lister.mjs';
 import { pagesDeLAtlas } from '../../raw/_lib.mjs';
 import { comparer, empreinteDe } from './empreinteRejeu.mjs';
-import { ATTENDU_ROUGE, PERIMETRE } from '../replay.mjs';
+import { PERIMETRE } from '../replay.mjs';
 
 /** Les migrations DATÉES d'un dossier — le périmètre que `replay.mjs` rejoue. */
 export function migrationsDatees(dossier) {
@@ -93,20 +93,21 @@ export const SANS_CROISSANCE = {
   'src/data/raw.manifest.json': 'chaque entrée désigne un topic ou une fiche EXISTANTE de `docs/raw/` — 2026-08-28-l1b-10b-rawmanifest-label.mjs:23',
 };
 
+/** Forme canonique d'un `src/data/*.json`. */
+export const FORME_DATA = { indent: 2, nl: false };
+/** Forme canonique d'un document de projet de scène. */
+export const FORME_PROJET = { indent: 1, nl: true };
+
 /** Les formes canoniques admises d'un document JSON du dépôt : `{ indent, nl }`. */
-const FORMES = [
-  { indent: 2, nl: false },
-  { indent: 2, nl: true },
-  { indent: 1, nl: true },
-  { indent: 1, nl: false },
-];
+const FORMES = [FORME_DATA, { indent: 2, nl: true }, FORME_PROJET, { indent: 1, nl: false }];
+
+/** Le texte de `doc` sous la forme `{ indent, nl }`. */
+export const serialise = (doc, forme) => JSON.stringify(doc, null, forme.indent) + (forme.nl ? '\n' : '');
 
 /** La forme canonique de `brut`, ou `null` s'il n'en porte AUCUNE (on n'y touche alors pas). */
 function formeDe(brut, doc) {
-  return FORMES.find((f) => brut === JSON.stringify(doc, null, f.indent) + (f.nl ? '\n' : '')) ?? null;
+  return FORMES.find((f) => brut === serialise(doc, f)) ?? null;
 }
-
-const serialise = (doc, forme) => JSON.stringify(doc, null, forme.indent) + (forme.nl ? '\n' : '');
 
 /** Suffixe des entrées fabriquées — reconnaissable à l'œil dans un stderr de refus. */
 export const SUFFIXE = '-croissance';
@@ -239,12 +240,6 @@ export function rejouerEnCroissance({ racine, ecrire = () => {} }) {
     const dit = `${r.stdout ?? ''}${r.stderr ?? ''}`.trim();
     if (r.status === 0) {
       ecrire(`  ✓ ${f} — exit 0`);
-      continue;
-    }
-    if (ATTENDU_ROUGE[f]) {
-      // Rouge DÉJÀ déclaré, avec sa raison mesurée et son échéance, chez `replay.mjs` : une seule
-      // liste pour les deux portes.
-      ecrire(`  · ${f} — exit ${r.status} [rouge ATTENDU de replay.mjs]`);
       continue;
     }
     const nus = refusSansReference(dit, porteRef);

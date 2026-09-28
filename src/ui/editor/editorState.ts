@@ -492,12 +492,12 @@ export function deleteSel(scene: Scene, sel: Sel): Scene {
   return scene;
 }
 
-/** Change le TYPE de décor d'une entité `prop` (avec ses défauts de pose, `propRefPatch`) et traverse
- *  le seam d'assise : le nouveau type n'offre pas les places de l'ancien, elles tombent dans la MÊME
+/** Change le TYPE de décor d'une entité `prop` (avec ses défauts de pose et son cap admis,
+ *  `propRefPatch`) et traverse le seam d'assise : le nouveau type n'offre pas les places de l'ancien, elles tombent dans la MÊME
  *  mutation. */
 export function changePropRef(scene: Scene, propId: string, ref: string): Scene {
   const ent = scene.entities.find((e) => e.id === propId && e.kind === 'prop');
-  return ent ? editEntity(scene, propId, propRefPatch(ref, ent.usable)) : scene;
+  return ent ? editEntity(scene, propId, propRefPatch(ref, ent)) : scene;
 }
 
 /** Arête la plus proche du centre de la case, depuis l'offset (ox,oy) ∈ [-0.5,0.5] du pointeur. */

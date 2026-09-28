@@ -3,6 +3,7 @@ import { buildScene } from '../../state/mapSpec';
 import { flowFromEffects } from '../../state/flow';
 import type { NarratifBlock } from '../../state/campaignNarratif';
 import type { TestScenario } from './_shared';
+import type { Scene } from '../../state/scene';
 
 /**
  * Recette du carnet d'enquête (#670, mécanique MAISON — aucune règle RAW) : une affaire, deux
@@ -10,7 +11,7 @@ import type { TestScenario } from './_shared';
  * décor qui écarte l'autre indice comme fausse piste. Prose de FIXTURE (test-scenario dev, pas du
  * contenu de campagne livré) — sert de terrain à la recette navigateur du Carnet (autre lot).
  */
-const narratif: NarratifBlock = {
+const construireNarratif = (): NarratifBlock => ({
   affaires: [{ id: 'aff-marchand-disparu', titre: 'Le marchand disparu' }],
   indices: [
     {
@@ -33,9 +34,9 @@ const narratif: NarratifBlock = {
   ],
   presetsPnj: [],
   objets: [],
-};
+});
 
-const scene = buildScene({
+const construireScene = (): Scene => buildScene({
   id: 'test-enquete-carnet-comptoir',
   label: 'Comptoir marchand — enquête',
   desc: 'Arène de test.',
@@ -97,7 +98,5 @@ export const scenario: TestScenario = {
     'Mécanique MAISON du carnet (#670) : `revealClue` première révélation (dialogue, premier stade) ' +
     'et mise à jour (stade explicite), `discreditClue` (déclencheur de zone, fausse piste écartée).',
   partyNote: 'Pré-tirés',
-  makeParty: () => makePregens(),
-  scene,
-  narratif,
+  construire: () => ({ party: makePregens(), scene: construireScene(), narratif: construireNarratif() }),
 };

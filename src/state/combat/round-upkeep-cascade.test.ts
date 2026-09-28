@@ -32,9 +32,9 @@ describe('Upkeep de fin de Round — héros en cascade, ennemis en silence', () 
   });
 
   function setup() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
-    useGame.getState().startScene(testScene);
+    useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');
     useGame.getState().confirmRoundStart();
     vi.clearAllTimers();

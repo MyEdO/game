@@ -59,37 +59,37 @@ describe('paquet de campagne schema 3 — bloc narratif', () => {
   it('(b) LÈVE si indice.affaireId ne résout aucune affaire', () => {
     const n = validNarratif();
     n.indices[0].affaireId = 'af-fantome';
-    expect(() => parseProject(doc(n))).toThrow(/référence une affaire inconnue/);
+    expect(() => parseProject(doc(n))).toThrow(/narratif › indices « in-quai » › affaireId: affaire inconnue « af-fantome »/);
   });
 
   it('(c) LÈVE si preset.base ne résout aucune créature globale (FK `creatures.json`)', () => {
     const n = validNarratif();
     n.presetsPnj[0].base = 'creature-inexistante';
-    expect(() => parseProject(doc(n))).toThrow(/id « creature-inexistante » absent de creatures\.json/);
+    expect(() => parseProject(doc(n))).toThrow(/« creature-inexistante » est absent du catalogue des créatures \(creatures\.json\)/);
   });
 
   it('(c2) LÈVE si un preset PNJ sans base a un profil sans « char »', () => {
     const n = validNarratif();
     n.presetsPnj.push({ id: 'pnj-adhoc', profil: { label: 'Sans base' } as NarratifBlock['presetsPnj'][number]['profil'] });
-    expect(() => parseProject(doc(n))).toThrow(/sans base et sans « char »/);
+    expect(() => parseProject(doc(n))).toThrow(/narratif › presetsPnj « pnj-adhoc » › profil\.char: « char » absent d’un profil sans base/);
   });
 
   it('(c3) LÈVE si un preset PNJ n\'a ni base ni profil', () => {
     const n = validNarratif();
     n.presetsPnj.push({ id: 'pnj-vide' });
-    expect(() => parseProject(doc(n))).toThrow(/n'a ni base ni profil/);
+    expect(() => parseProject(doc(n))).toThrow(/narratif › presetsPnj « pnj-vide »: ni base ni profil/);
   });
 
   it('(d) LÈVE si indice.refs pointe un indice inconnu', () => {
     const n = validNarratif();
     n.indices[1].refs = ['in-fantome'];
-    expect(() => parseProject(doc(n))).toThrow(/référence un indice inconnu/);
+    expect(() => parseProject(doc(n))).toThrow(/narratif › indices « ru-taverne » › refs\.0: indice inconnu « in-fantome »/);
   });
 
   it('(e) LÈVE si deux entrées du narratif partagent le même id', () => {
     const n = validNarratif();
     n.affaires.push({ id: 'af-sel', titre: 'Doublon' });
-    expect(() => parseProject(doc(n))).toThrow(/id d'affaire dupliqué/);
+    expect(() => parseProject(doc(n))).toThrow(/narratif › affaires « af-sel »: « af-sel » dupliqué/);
   });
 
   it('(f) LÈVE (message clair NOMMANT le champ, pas TypeError) si un doc schema 3 natif n\'a pas de bloc narratif', () => {

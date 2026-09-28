@@ -2,6 +2,7 @@ import type { GameState, RevealEntry } from './store';
 import type { Get, Set as SetFn } from './flowTypes';
 import { armChapterRecapIfDue } from './chapitreRecap';
 import type { LootGear, CascadeStep, CascadeStepMeta, CascadeTableDone, Cloture, PendingCascade, PendingTest, ScheduledEffect } from './pendings';
+import { ouvrirDialogue } from './dialogue';
 import { revealToStep } from './revealStep';
 import { Combatant, CHAR_LABELS, type ModLine } from '../engine/types';
 import { RULE_REF } from '../engine/ruleRefs';
@@ -460,12 +461,12 @@ export function applyLeafOps(get: Get, set: SetFn, c: Combatant, e: EffectOp, ba
 
 /**
  * REFUS NOMMÉ d'un contexte que la reprise ne saurait pas rebâtir (#1508) — les hooks classés
- * `OPS_CTX_HORS_CANAL` (`onCondition`, `onCorruptionExposure`, `onOpposingAdvantage`) ne survivent ni à
+ * `OPS_CTX_HORS_CANAL` (`onCondition`, `onCorruptionExposure`, `onOpposingAdvantage`, `surLigne`) ne survivent ni à
  * une sauvegarde ni au réseau, et aucun chemin nommé ne les redonne. Une feuille qui en porte un ne se
  * DIFFÈRE donc pas : elle lève ICI plutôt que de s'appliquer plus tard AMPUTÉE.
  *
  * Mesuré : aucune donnée du dépôt n'atteint la porte avec l'un d'eux (ils naissent d'`endOfRound`, de
- * l'interlude et du bus de triggers, qui n'appellent pas `applyLeafOps`). Le jour où l'un y arrive,
+ * l'interlude, du bus de triggers et du site du Critique, qui n'appellent pas `applyLeafOps`). Le jour où l'un y arrive,
  * c'est un fait à instruire, pas une perte à découvrir au journal.
  */
 function refuserSiHorsCanal(ctx: OpsCtx): void {
@@ -1267,6 +1268,9 @@ export interface EffectHandler<T extends Effect = Effect> {
   apply(e: T, env: EffectEnv): EffectApplyResult;
   /** Réfs cassées / valeurs invalides. Absent = rien à valider. */
   refs?(e: T, ctx: EffectRefCtx): EffectRefIssue[];
+  /** Le dialogue de la scène que cet effet OUVRE — `validateScene` avertit d'un dialogue qu'aucun
+   *  ouvreur ne cite. Absent = l'effet n'en ouvre aucun. */
+  ouvreDialogue?(e: T): string;
 }
 
 /** Noms des maladies câblées (LDB 20) — défaut de la fabrique `inflictDisease.make`. */
@@ -1346,9 +1350,10 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     make: () => ({ type: 'startDialogue', dialogue: '' }),
     apply: (e, env) => {
       const dlg = env.get().scene?.dialogues.find((d) => d.id === e.dialogue);
-      if (dlg) env.set({ dialogue: { dialogue: dlg, nodeId: dlg.start, speakerId: e.speakerId } });
+      if (dlg) env.set({ dialogue: ouvrirDialogue(env.get(), dlg, e.speakerId) });
     },
     refs: (e, ctx) => ctx.dialogueIds.has(e.dialogue) ? [] : [{ level: 'error', message: `Effet → dialogue inexistant « ${e.dialogue} »` }],
+    ouvreDialogue: (e) => e.dialogue,
   },
   endDialogue: {
     group: 'Narration', label: 'Fermer le dialogue', icon: 'ui/close',
@@ -1966,8 +1971,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     make: () => ({ type: 'interlude', weeks: 1 }),
     apply: (e, env) => {
       // « Entre deux aventures » (LDB 22-23) — via l'action store (pas d'import direct : cycle).
-      // Règle optionnelle (LDB 21 l.108-110) : tout le chapitre est facultatif → désactivable.
-      if (rule('interlude-enabled')) env.get().startInterlude(e.weeks ?? 1);
+      env.get().startInterlude(e.weeks ?? 1);
     },
   },
   setTime: {
@@ -2028,7 +2032,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     group: 'Navigation', label: 'Doter le groupe d\'un navire (MDG 13-15)', icon: 'travel/anchor',
     make: () => ({ type: 'setVessel', vehicleId: navireSeme(), morale: MORALE_BASE }),
     apply: (e, env) => {
-      // Pose le NAVIRE DE CAMPAGNE (`state.vessel`) — comme le champ de scénario `TestScenario.vessel`,
+      // Pose le NAVIRE DE CAMPAGNE (`state.vessel`) — comme le champ de scénario `ScenarioConstruit.vessel`,
       // mais authorable. Moral neuf par défaut (MORALE_BASE) ; coque intacte sauf `hull*` authoré.
       const v = findVehicleById(e.vehicleId);
       if (!v?.ship) return; // ref invalide (validée par `refs`) : no-op
@@ -2101,7 +2105,6 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       if (hasHullWrite) setVesselHull(env.get, env.set, hullCurrent!, hullMax!);
       env.log(t('eff.vesselDone', { parts: parts.join(', ') }));
     },
-    refs: () => [],
   },
 
   // ── Combat & social ────────────────────────────────────────────────────
@@ -2212,12 +2215,8 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       // l'a alors résolu que depuis `party`), pas de pseudo-combat inventé pour ce cas.
       get().oocCastSpell(caster.id, spell.id, target.id);
     },
-    refs: (e) => {
-      const issues: EffectRefIssue[] = [];
-      if (!e.casterId) issues.push({ level: 'error', message: 'Effet Incanter : lanceur manquant' });
-      if (!e.spellId || !findSpellById(e.spellId)) issues.push({ level: 'error', message: `Effet Incanter : sort inexistant « ${e.spellId} »` });
-      return issues;
-    },
+    // `spellId` : prouvé au schéma (`castSpellSchema`, `idDe('spell')`) ; `casterId` y est une chaîne libre.
+    refs: (e) => (e.casterId ? [] : [{ level: 'error', message: 'Effet Incanter : lanceur manquant' }]),
   },
 
   // ── Tests ──────────────────────────────────────────────────────────────

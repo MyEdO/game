@@ -13,8 +13,8 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { listerArbre } from '../../scripts/guards/lib/lister.mjs';
-import { join } from 'node:path';
+import { dossierDesProjetsLivres, listerProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs';
+import { basename, join } from 'node:path';
 import { useGame } from './store';
 import { draineCascade } from './cascadeTestKit';
 import { createHero } from '../engine/character';
@@ -37,6 +37,9 @@ import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
 import type { WorldMap } from './worldMap';
 
+/** Humains (Reiklander), « Affable *ou* Perspicace » (LDB 05 l.490) : Perspicace, la Sociabilité reste nue. */
+const PERSPICACE = { 'espece:talents:0': { id: 'perspicace' } };
+
 const ROOT = join(import.meta.dirname, '..', '..');
 
 /** Le gain RAW de Mendier, tel qu'authoré : (Bonus de Sociabilité × DR) × heures. */
@@ -48,7 +51,7 @@ const GAIN: Formula = {
 };
 
 function heros(soc: number): Combatant {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Mendiant', rng: makeRNG(1) });
+  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Mendiant', seed: 1, speciesTalentChoices: PERSPICACE });
   h.characteristics.sociabilite = soc;
   return h;
 }
@@ -130,16 +133,16 @@ describe('Exemption de Statut (LDB 09 l.99) — DÉRIVÉE du registre des carri�
   it('aucune étape de monde pour une Carrière sans ressources ; UNE pour les autres', () => {
     const def = activityById('mendier')!;
     for (const id of sansRessources) {
-      const h = createHero({ speciesId: 'humains-reiklander', careerId: id, label: id, rng: makeRNG(1) });
+      const h = createHero({ speciesId: 'humains-reiklander', careerId: id, label: id, seed: 1, speciesTalentChoices: PERSPICACE });
       expect(buildActivityWorldRollSteps(def, h), `exempté : ${id}`).toEqual([]);
     }
-    const soldat = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'S', rng: makeRNG(1) });
+    const soldat = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'S', seed: 1, speciesTalentChoices: PERSPICACE });
     expect(buildActivityWorldRollSteps(def, soldat)).toHaveLength(1);
   });
 
   it('l’exemption lit le Statut d’ENTRÉE de la carrière, pas l’avancement du porteur', () => {
     const def = activityById('mendier')!;
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'mendiant', label: 'M', rng: makeRNG(1) });
+    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'mendiant', label: 'M', seed: 1, speciesTalentChoices: PERSPICACE });
     h.careerLevel = 4; // le Mendiant monté en grade reste d'une Carrière sans ressources
     expect(buildActivityWorldRollSteps(def, h)).toEqual([]);
   });
@@ -264,16 +267,11 @@ describe('Lieu — Mendier se fait « dans les rues » (LDB 09 l.97), donc PARTO
   /** Les lieux de carte RÉELLEMENT livrés, DÉRIVÉS des projets de campagne — jamais une liste tenue
    *  à la main : une campagne neuve entre dans la mesure sans toucher ce test. */
   function lieuxLivres(): { projet: string; id: string }[] {
-    const scenes = join(ROOT, 'src/scenes');
-    // Les projets vivent à la PROFONDEUR 1 (`<campagne>/<x>-projet.json`) : on n'entre que dans les
-    // dossiers de premier niveau, et on ne retient que leurs fichiers directs.
-    return listerArbre(scenes, {
-      descendre: (rel) => !rel.includes('/'),
-      filtre: (rel) => rel.split('/').length === 2 && rel.endsWith('-projet.json'),
-    })
-      .map((rel) => rel.split('/'))
-      .flatMap(([dossier, fichier]) => {
-        const projet = JSON.parse(readFileSync(join(scenes, dossier, fichier), 'utf8')) as
+    const scenes = dossierDesProjetsLivres(ROOT);
+    return listerProjetsLivres(ROOT)
+      .flatMap((rel) => {
+        const fichier = basename(rel);
+        const projet = JSON.parse(readFileSync(join(scenes, rel), 'utf8')) as
           { worldMap?: { places?: { id: string }[] } };
         return (projet.worldMap?.places ?? []).map((p) => ({ projet: fichier, id: p.id }));
       });
@@ -302,7 +300,7 @@ describe('Mendier de bout en bout (bandes de DR, LDB 09 l.97)', () => {
   const carte = (): WorldMap => ({
     id: 'w', label: 'Carte',
     places: [{
-      id: 'halle', label: 'La Halle', pos: { x: 10, y: 10 }, scene: testScene.id,
+      id: 'halle', label: 'La Halle', pos: { x: 10, y: 10 }, scene: testScene().id,
       market: { taille: 2, richesse: 2, produits: [] } as never,
     }],
     routes: [],
@@ -311,10 +309,10 @@ describe('Mendier de bout en bout (bandes de DR, LDB 09 l.97)', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.clearAllTimers();
-    const a = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', rng: makeRNG(1) });
+    const a = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1, speciesTalentChoices: PERSPICACE });
     a.characteristics.sociabilite = 45; // Bonus de Sociabilité = 4
     useGame.setState({ party: [a], battle: null, interlude: null, bank: [], pendingActivity: null, journal: [], pendingCascade: null });
-    useGame.getState().startScene(testScene);
+    useGame.getState().startScene(testScene());
     useGame.setState({ worldMap: carte() });
     vi.clearAllTimers();
     useGame.getState().seedRng(13);
@@ -491,7 +489,7 @@ describe('Dé de MONDE « surpris à mendier » (LDB 09 l.99) — par la PORTE, 
 
   it('la cible de l’étape EST la règle optionnelle (aucune constante au moteur)', () => {
     const def = activityById('mendier')!;
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'S', rng: makeRNG(1) });
+    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'S', seed: 1, speciesTalentChoices: PERSPICACE });
     setRule('mendier-surpris-pct', 35);
     const [step] = buildActivityWorldRollSteps(def, h);
     expect(step.target).toBe(35);

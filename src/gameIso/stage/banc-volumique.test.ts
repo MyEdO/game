@@ -64,7 +64,7 @@ const texte = (rel: string): string => sources(SRC).find((f) => f.rel === rel)!.
 
 /** Les fichiers de PRODUCTION d'une racine : aucun INSTRUMENT joué par Vitest — ni suite (`vitest
  *  run`) ni banc (`vitest bench`) —, et le harnais lui-même exclu. Un banc importe l'API `bench` de
- *  vitest par construction et aucun bundle de jeu ne l'embarque (`vite.config.ts:71` ne le joue même
+ *  vitest par construction et aucun bundle de jeu ne l'embarque (`scripts/guards/lib/racinesDeLaSuite.mjs` ne le joue même
  *  pas en suite). La FORME du cliquet, jamais une liste de fichiers : le banc N+1 est couvert sans
  *  qu'on y revienne. Le prédicat vit en UN exemplaire, `scripts/guards/lib/fichierVitest.mjs`
  *  (#1788) : toute garde dont le périmètre est « la production » le consomme. */

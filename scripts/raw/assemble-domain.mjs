@@ -9,8 +9,7 @@
 // même domaine sans qu'aucun run n'écrase la fiche de l'autre.
 // Usage : node scripts/raw/assemble-domain.mjs <output.json> [Titre si mono]
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
-import { join, resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { join } from 'node:path'
 import { ancresDePage } from './lib/ancres.mjs'
 
 export const RAWDIR = 'docs/raw'
@@ -180,5 +179,4 @@ function main() {
     console.log(`wrote ${r.path.replace(/\\/g, '/')} — ${r.topics} topics (cœur ${r.coeur})`)
 }
 
-const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)
-if (isMain) main()
+if (import.meta.main) main()

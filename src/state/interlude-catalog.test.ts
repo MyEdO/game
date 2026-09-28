@@ -12,7 +12,6 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { draineCascade } from './cascadeTestKit';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { toBrass, fromBrass, PA_PER_CO } from '../engine/money';
 import { partyMoneyTotal, creditBourse } from './bourseFlow';
 import { hasCondition } from '../engine/conditions';
@@ -22,7 +21,7 @@ import type { WorldMap } from './worldMap';
 
 const ALTDORF_MAP: WorldMap = {
   id: 'w', label: 'Monde de test',
-  places: [{ id: 'altdorf', label: 'Altdorf', pos: { x: 50, y: 50 }, scene: testScene.id }],
+  places: [{ id: 'altdorf', label: 'Altdorf', pos: { x: 50, y: 50 }, scene: testScene().id }],
   routes: [],
 };
 
@@ -30,9 +29,9 @@ describe('Catalogue d’Activités d’interlude (ACE Annexe I, data-driven)', (
   beforeEach(() => {
     vi.useFakeTimers();
     vi.clearAllTimers();
-    const a = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', rng: makeRNG(1) });
+    const a = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
     useGame.setState({ party: [a], battle: null, interlude: null, bank: [], pendingOrders: [], pendingActivity: null, pendingCorruption: null, journal: [] });
-    useGame.getState().startScene(testScene);
+    useGame.getState().startScene(testScene());
     vi.clearAllTimers();
     useGame.setState({ worldMap: ALTDORF_MAP });
     creditBourse(useGame.getState, useGame.setState, useGame.getState().party[0].id, fromBrass(5000));

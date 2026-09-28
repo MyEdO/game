@@ -15,7 +15,6 @@ import { join } from 'node:path';
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
 import { useGame, type BattleState } from '../state/store';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import type { WorldMap } from '../state/worldMap';
 import type { NarratifBlock } from '../state/campaignNarratif';
 import { testScene } from '../scenes/test-fixture';
@@ -31,7 +30,7 @@ let root: Root;
 /** État NEUTRE d'exploration : rien qui puisse offrir un ouvreur conditionnel. */
 function explorationNue() {
   useGame.setState({
-    scene: testScene, mode: 'exploration', battle: null, povActive: false,
+    scene: testScene(), mode: 'exploration', battle: null, povActive: false,
     worldMap: null, travelPlan: null, vessel: null, campaignNarratif: null,
     port: null, landMarket: null, travelRecap: null,
   });
@@ -47,7 +46,7 @@ function monter() {
 
 /** Combat en cours (un héros, son tour) : la console de combat prend le pont. */
 function enCombat() {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', rng: makeRNG(7) });
+  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 7 });
   h.id = 'h1';
   h.pos = { x: 5, y: 5 };
   useGame.setState({
@@ -80,7 +79,7 @@ describe('Zone 11 — barre haute d’exploration DÉGRAISSÉE', () => {
     expect(topbar!.querySelector('.worldmap-btn'), 'aucun ouvreur d’écran ne flotte plus dans la barre haute').toBeNull();
     // Ce qui RESTE : le menu et le nom du lieu (l'objectif est nul sans pile d'objectifs).
     expect(topbar!.querySelector('.game-menu')).not.toBeNull();
-    expect(topbar!.querySelector('[data-hud="place"]')!.textContent).toBe(testScene.label);
+    expect(topbar!.querySelector('[data-hud="place"]')!.textContent).toBe(testScene().label);
   });
 });
 
@@ -128,7 +127,7 @@ describe('Zone 11 — les 7 ouvreurs vivent SUR le pont, avec leurs conditions',
       useGame.setState({
         worldMap: {
           id: 'carte', label: 'Carte', routes: [],
-          places: [{ id: 'lieu', label: 'Terrain de test', pos: { x: 50, y: 50 }, scene: testScene.id }],
+          places: [{ id: 'lieu', label: 'Terrain de test', pos: { x: 50, y: 50 }, scene: testScene().id }],
         } satisfies WorldMap,
       });
     });

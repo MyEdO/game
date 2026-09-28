@@ -5,8 +5,7 @@
 // Silencieux quand rien de pertinent n'a bougé (aucune source de doc dans le lot fusionné/rebasé).
 import { execFileSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
-import { join, resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { join } from 'node:path'
 import { SOURCES_LUES } from '../docs/build-all.mjs'
 
 const git = (args, cwd) => execFileSync('git', args, { cwd, encoding: 'utf8' })
@@ -77,5 +76,4 @@ function main() {
   process.stderr.write(`docs régénérés : à committer (${changed.length}) :\n${changed.map((f) => `  ${f}`).join('\n')}\n`)
 }
 
-const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)
-if (isMain) main()
+if (import.meta.main) main()

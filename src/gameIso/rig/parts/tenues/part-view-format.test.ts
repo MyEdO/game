@@ -35,7 +35,7 @@ import {
   PART_VIEW_RATCHET,
   PART_VIEW_ALIAS_RATCHET,
 } from '../../../../../scripts/guards/lib/rigPartViewStock.mjs';
-import { cleDeSite, ecartDuVolet, type EntreeDeSite, type Site } from '../../../../../scripts/guards/lib/stock.mjs';
+import { cleDeSite, ecartDuVolet, remedeNomme, type EntreeDeSite, type Site } from '../../../../../scripts/guards/lib/stock.mjs';
 
 const STOCK = 'scripts/guards/lib/rigPartViewStock.mjs';
 
@@ -127,24 +127,23 @@ describe('morsure : les évasions connues rougissent (#551)', () => {
     occurrence: 1,
   });
   /** Une ligne de remède CONTIENT-elle la clé attendue ? (le remède décore la clé d'une phrase) */
-  const porte = (lignes: string[], cle: string) => lignes.some((l) => l.includes(cle));
 
   it('un alias enveloppé dans un <g> inerte rougit (le <g> ne porte aucune géométrie)', () => {
-    expect(porte(aliasNeuves(`<g>${target.front}</g>`), KEY)).toBe(true);
+    expect(remedeNomme(aliasNeuves(`<g>${target.front}</g>`), KEY)).toBe(true);
   });
 
   it('un alias maquillé par un espace final rougit', () => {
-    expect(porte(aliasNeuves(`${target.front} `), KEY)).toBe(true);
+    expect(remedeNomme(aliasNeuves(`${target.front} `), KEY)).toBe(true);
   });
 
   it('un alias maquillé par un commentaire SVG rougit', () => {
-    expect(porte(aliasNeuves(`<!-- dos --> ${target.front}`), KEY)).toBe(true);
+    expect(remedeNomme(aliasNeuves(`<!-- dos --> ${target.front}`), KEY)).toBe(true);
   });
 
   it('un alias RECOLORÉ (géométrie du front, autre remplissage) rougit — la comparaison de chaînes le ratait', () => {
     const recolore = replaceTokens(target.front, (key) => `@${gammeDe(key, 'ombre')}`);
     expect(recolore, 'le support de morsure ne porte aucun jeton').not.toBe(target.front);
-    expect(porte(aliasNeuves(recolore), KEY)).toBe(true);
+    expect(remedeNomme(aliasNeuves(recolore), KEY)).toBe(true);
   });
 
   it('un slot d\'ARMURE front-only NEUF rougit (le registre des armures est bien dans le périmètre)', () => {
@@ -155,7 +154,7 @@ describe('morsure : les évasions connues rougissent (#551)', () => {
     const neuves = ratchet(format, PART_VIEW_RATCHET).neuves;
     // Le site neuf NOMME le def d'armure à ouvrir, pas seulement la clé de slot.
     const fichier = fichierDeDef(REGISTRE_ARMURES, plaque as unknown as (typeof ARMOUR_DEFS)[number]);
-    expect(porte(neuves, cleDeSite({ fichier, ref: 'armure:plaque:torse', occurrence: 1 }))).toBe(true);
+    expect(remedeNomme(neuves, cleDeSite({ fichier, ref: 'armure:plaque:torse', occurrence: 1 }))).toBe(true);
   });
 
   /** ALLONGER le stock ne s'échange plus contre un plafond relevé : une entrée de plus se DÉCLARE,
@@ -167,7 +166,7 @@ describe('morsure : les évasions connues rougissent (#551)', () => {
       fichier: 'src/gameIso/rig/parts/tenues/defs/TenueQuiNExistePas.ts', ref: 'gonflement:bras', occurrence: 1,
     }];
     const { perimees } = ratchet(format, gonfle);
-    expect(porte(perimees, cleDeSite(gonfle[gonfle.length - 1]))).toBe(true);
-    expect(porte(perimees, 'entrée SOLDÉE')).toBe(true);
+    expect(remedeNomme(perimees, cleDeSite(gonfle[gonfle.length - 1]))).toBe(true);
+    expect(remedeNomme(perimees, 'entrée SOLDÉE')).toBe(true);
   });
 });

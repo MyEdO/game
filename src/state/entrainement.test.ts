@@ -16,9 +16,9 @@ import { testScene } from '../scenes/test-fixture';
 function setup() {
   vi.useFakeTimers();
   vi.clearAllTimers();
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   useGame.setState({ party: [h], battle: null, interlude: null, bank: [], pendingOrders: [], pendingActivity: null, journal: [] });
-  useGame.getState().startScene(testScene);
+  useGame.getState().startScene(testScene());
   vi.clearAllTimers();
   creditBourse(useGame.getState, useGame.setState, h.id, fromBrass(20000));
   useGame.getState().seedRng(13);

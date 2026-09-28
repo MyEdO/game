@@ -1,7 +1,6 @@
-// Ré-ancrage des réfs `AA 01 l.X` / `ZI 01 l.X` de l'Atlas RAW, orphelines depuis le commit
-// 77dab03c (« chore(source): folio imprimé baké dans les 6 scans + découpe en chapitres ») qui a
-// supprimé les 2 fichiers mono-bloc ci-dessous au profit des fichiers-chapitres actuels (#454, défaut B).
-// Ancre au TEXTE (jamais un offset arithmétique, réfuté — cf. ticket) : pour chaque borne de ligne
+// Ré-ancrage des réfs `AA 01 l.X` / `ZI 01 l.X` de l'Atlas RAW, qui visent les fichiers mono-bloc de
+// `SPLIT_SOURCES`, remplacés par les fichiers-chapitres au commit `SPLIT_SOURCE_SHA` (#454).
+// Ancre au TEXTE, jamais un offset arithmétique : pour chaque borne de ligne
 // d'une réf `AA/ZI 01 l.X[-Y|+n…]`, on relit le texte de la ligne X dans le fichier d'ORIGINE
 // (`git show <SPLIT_SOURCE_SHA>^:<path>`), on le retrouve par MATCH EXACT (normalize() de _lib.mjs)
 // dans les fichiers-chapitres actuels du même livre, et on réécrit la réf sur le chapitre/ligne trouvés.
@@ -9,7 +8,8 @@
 //   node scripts/raw/reanchor-split.mjs --apply     → réécrit en place docs/raw/*.md
 import { writeFileSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
-import { esc, livreDuSigle, normalize, pagesDeLAtlas, readText } from './_lib.mjs'
+import { livreDuSigle, normalize, pagesDeLAtlas, readText } from './_lib.mjs'
+import { echapperRegex } from '../../src/lib/regex.ts'
 import { graphieDuFichier, numeroDuFichier } from '../../src/data/source/decoupe.ts'
 import { RAWDIR, CLASSES } from './check-refs.mjs'
 
@@ -26,10 +26,9 @@ export const SPLIT_SOURCES = [
 const MAX_CTX = 8 // rayon max (voisins non-vides) pour lever une ambiguïté de citation dupliquée
 
 // Réfs `AA/ZI 01 l.X` dont la ligne d'ORIGINE citée ne correspond PAS au sujet du topic qui la cite
-// (constaté par relecture manuelle — le décalage préexiste au split, défaut A, hors périmètre #454
-// défaut B) : le ré-ancrage mécanique « au texte » les relocaliserait avec succès mais vers un
-// contenu tout aussi hors-sujet. Exclues du ré-ancrage automatique pour ne pas maquiller le défaut
-// derrière une réf qui a l'air juste ; laissées dead pour signalement humain (voir rendu du ticket).
+// (relecture manuelle ; le décalage précède le découpage, #454) : le ré-ancrage « au texte » les
+// relocaliserait vers un contenu tout aussi hors-sujet. Exclues du ré-ancrage automatique pour ne pas
+// maquiller le défaut derrière une réf qui a l'air juste ; rendues NON RÉSOLUES au rapport.
 export const KNOWN_PREEXISTING_MISMATCH = new Set([
   'ZI 01 l.79-80', // topic "Redoutable (Indice)" ; l.79-80 d'origine = titre "L'OMBRE DU FLEUVE"
 ])
@@ -181,12 +180,12 @@ export function scanAndApply(rawDir, classes, sources, apply) {
       const lines = readText(path).split('\n')
       const editsByRow = new Map()
       for (let row = 0; row < lines.length; row++) {
-        const re = new RegExp(`\\b(${esc(source.abbr)}) (\\d+) l\\.(\\d+)((?:[-+]\\d+)*)`, 'g')
+        const re = new RegExp(`\\b(${echapperRegex(source.abbr)}) (\\d+) l\\.(\\d+)((?:[-+]\\d+)*)`, 'g')
         let m
         while ((m = re.exec(lines[row]))) {
           if (Number(m[2]) !== Number(source.oldNN)) continue
           if (KNOWN_PREEXISTING_MISMATCH.has(m[0])) {
-            unresolved.push({ doc, row: row + 1, ref: m[0], reason: 'citation déjà hors-sujet avant le split (défaut A, hors périmètre) — exclue du ré-ancrage auto' })
+            unresolved.push({ doc, row: row + 1, ref: m[0], reason: 'citation déjà hors-sujet avant le découpage (#454) — exclue du ré-ancrage auto' })
             continue
           }
           const result = reanchorRef(origKeys, m[3], m[4] || '', bookIndex)
@@ -224,7 +223,4 @@ function main() {
   for (const u of unresolved) console.log(`  docs/raw/${u.doc}:${u.row} — \`${u.ref}\` — ${u.reason}`)
 }
 
-import { resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
-const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)
-if (isMain) main()
+if (import.meta.main) main()

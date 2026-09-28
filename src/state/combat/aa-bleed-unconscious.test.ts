@@ -3,7 +3,6 @@ import { useGame } from '../store';
 import '../combatFlow'; // effet de bord : enregistre les hooks de fin de Round (dont `aa-bleed-unconscious`)
 import { runCombatHooks, type CombatHookCtx } from '../combatHooks';
 import { createHero } from '../../engine/character';
-import { makeRNG } from '../../engine/dice';
 import { seedBattleRng } from '../battleRng';
 import { ev } from '../combatLog';
 import { addCondition, hasCondition, COND } from '../../engine/conditions';
@@ -30,9 +29,9 @@ describe('#38 — chute Inconscient par perte de sang AA (Aux Armes AA 07 l.5)',
   });
 
   function setup() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
-    useGame.getState().startScene(testScene);
+    useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');
     useGame.getState().confirmRoundStart();
     vi.clearAllTimers();

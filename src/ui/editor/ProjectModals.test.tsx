@@ -54,6 +54,27 @@ describe('OpenProjectModal — section « Campagnes du jeu » (#367)', () => {
     container.remove();
   });
 
+  it('sortie visible : « Fermer » dans la zone d’actions appelle onClose (le refus s’y affiche)', async () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root: Root = createRoot(container);
+    const onClose = vi.fn();
+    try {
+      await act(async () => {
+        root.render(<OpenProjectModal onScenario={() => {}} onProject={() => {}} onBuiltin={() => {}} onClose={onClose} />);
+      });
+      const fermer = document.querySelector('[role="dialog"] .modal-actions button') as HTMLButtonElement | null;
+      expect(fermer?.textContent).toBe('Fermer');
+      await act(async () => fermer!.click());
+      expect(onClose).toHaveBeenCalledTimes(1);
+    } finally {
+      await act(async () => {
+        root.unmount();
+      });
+      container.remove();
+    }
+  });
+
   it('« Scénarios de test » : l’icône de chaque scénario est DESSINÉE, jamais son id écrit en texte', () => {
     const container = document.createElement('div');
     container.innerHTML = renderToStaticMarkup(
@@ -99,7 +120,7 @@ function rendu(doc: unknown, geste: GesteDePorte) {
   try {
     parseProject(doc);
   } catch (e) {
-    return refusDeLaPorteDuProjet(e, doc, geste);
+    return refusDeLaPorteDuProjet(e, geste);
   }
   throw new Error('la porte a laissé passer le document');
 }
@@ -134,9 +155,11 @@ describe('refusDeLaPorteDuProjet — UN traducteur, qui classe les fautes par CH
     );
   });
 
-  it('ouverture d’un contenu fautif : la scène et l’entité NOMMÉES, jamais le rapport brut', () => {
+  it('ouverture d’un contenu fautif : la scène et l’entité NOMMÉES par leur libellé, le décor UNE fois', () => {
     const r = rendu(decorSansType(projet()), 'ouverture');
-    expect(r.message).toMatch(/^Ouverture refusée : ce projet ne peut pas être ouvert\. Faute : scène « Salle du banc », entité « Le tonneau » — .*« ref » absente/);
+    expect(r.message).toBe(
+      'Ouverture refusée : ce projet ne peut pas être ouvert. Faute : Scènes « Salle du banc » › entities « Le tonneau » › ref — « ref » absente — un décor NOMME son type au catalogue (props.json)',
+    );
   });
 
   it('les fautes suivantes sont COMPTÉES', () => {
@@ -149,7 +172,7 @@ describe('refusDeLaPorteDuProjet — UN traducteur, qui classe les fautes par CH
     const doc = { ...decorSansType(projet()), versionContenu: 'un' };
     const r = rendu(doc, 'import');
     expect(r.detail).toMatch(/^ {2}- versionContenu: /m);
-    expect(r.detail).toMatch(/^ {2}- scenes\.0\.entities\.0/m);
+    expect(r.detail).toMatch(/^ {2}- scenes « s1 » › entities « p0 » › ref: /m);
   });
 
   it('une SEULE faute : le message la reprend entière, aucun détail', () => {
@@ -180,7 +203,7 @@ describe('refusDeLaPorteDuProjet — UN traducteur, qui classe les fautes par CH
 
   it('une erreur qui n’est PAS un refus de la porte remonte telle quelle', () => {
     const bug = new TypeError('bug');
-    expect(() => refusDeLaPorteDuProjet(bug, null, 'import')).toThrow(bug);
+    expect(() => refusDeLaPorteDuProjet(bug, 'import')).toThrow(bug);
   });
 
   it('refus HORS porte : le verbe du geste, par la même table', () => {

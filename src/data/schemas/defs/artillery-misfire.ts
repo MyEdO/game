@@ -31,7 +31,7 @@ const doc = document(
   {},
   {
     codex: { keys: ['artilleryMisfire'] },
-    edit: { niche: { categories: ['artilleryMisfire'] } },
+    edit: { niche: { categories: { artilleryMisfire: 'entries' } } },
   },
   { rangee: artilleryMisfireEntrySchema, deDeTirage: true },
 );

@@ -15,7 +15,7 @@ import { buildScene } from '../../src/state/mapSpec.ts';
 import { documentDeProjet } from '../../src/state/worldMap.ts';
 import { emptyNarratif } from '../../src/state/campaignNarratif.ts';
 import { findCreatureById, byId, findSpellById, findTraitById, findTrappingById, findVehicleById, species as SPECIES_CATALOG } from '../../src/data/index.ts';
-import { creatureSpeciesOptions } from '../../src/gameIso/rig/creatures/index.ts';
+import { fauteDEspece } from '../../src/data/schemas/grammaire/art.ts';
 import { wardrobeKeyResolves } from '../../src/gameIso/rig/parts/career.ts';
 
 // ── VALIDATION id-only, à l'AUTHORING ───────────────────────────────────────────────────────
@@ -41,17 +41,12 @@ function spellId(id) {
   if (findSpellById(id)) return id;
   throw new Error(`campagne : sort introuvable « ${id} » — attendu un id de spells.json (Compendium → Sorts).`);
 }
-// Vocabulaire d'`appearance.species` : ids STABLES de species.json (espèces jouables) ∪ ids de def rig
-// (DEF_BY_ID, monstres/races non-jouables). Un LIBELLÉ n'est PAS un id — cf. `CLAUDE.md` § Pour TOUT agent.
-const SPECIES_IDS = new Set(SPECIES_CATALOG.map((s) => s.id));
-const RIG_DEF_IDS = new Set(creatureSpeciesOptions().map((o) => o.id));
-/** `appearance.species` : id STABLE (species.json OU def rig). Valide → passe ; tout le reste → throw. */
+/** `appearance.species` : id du domaine de saisie (`fauteDEspece`, `grammaire/art.ts`). Valide → passe ;
+ *  tout le reste → throw. */
 function speciesId(id) {
-  if (SPECIES_IDS.has(id) || RIG_DEF_IDS.has(id)) return id;
-  throw new Error(
-    `campagne : appearance.species introuvable « ${id} » — attendu un id de species.json ` +
-      `(${[...SPECIES_IDS].join(', ')}) ou un id de def rig (ex. ${[...RIG_DEF_IDS].slice(0, 8).join(', ')}…).`,
-  );
+  const faute = fauteDEspece(id);
+  if (faute === null) return id;
+  throw new Error(`campagne : appearance.species — ${faute}`);
 }
 /** `appearance.tenue` : id STABLE de garde-robe (tenue ∪ carrière ∪ classe ∪ 'nu'). Valide → passe ;
  *  tout le reste → throw (chercher au Compendium → Carrières / au registre des tenues). */
@@ -136,7 +131,9 @@ function validateFlowRefs(node) {
  *  réfs par ids stables des rencontres et des flows sont validées SUR LE SPEC avant compilation.
  *  `hidden` (défaut false = VISIBLE, RAW : le groupe voit
  *  ses adversaires) pose `combat.hiddenUntilCombat` sur les entités enrôlées. */
-export function scene({ id, label, desc, ambiance = 'exterieur', weather, music, startMessage, rows, base, legend, metresPerTile, rest, entities = [], architecture = [], walls = [], terrainRects = [], effectZones = [], dialogues = [], triggers = [], encounters = [], entryPoints, flags = {} }) {
+export function scene({ id, label, desc, ambiance = 'exterieur', weather, music, startMessage, rows, base, legend, metresPerTile, rest, entities = [], architecture = [], walls = [], terrainRects = [], effectZones = [], dialogues = [], triggers = [], encounters = [], entryPoints, flags = {}, ...inconnues }) {
+  const cles = Object.keys(inconnues);
+  if (cles.length) throw new Error(`campagne : scène « ${id} » — option(s) inconnue(s) de scene() : ${cles.join(', ')}.`);
   const spec = {
     id,
     label,

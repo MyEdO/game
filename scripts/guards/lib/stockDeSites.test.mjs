@@ -20,7 +20,7 @@ import { lotDeLaLigne, regenererStock } from './regenStock.mts'
 import { constructionsReserveesDuCorpus, scanConstructionsReservees, ECRITURE_DE_STOCK_JSON } from './canonUnique.mjs'
 import { listerDossier } from './lister.mjs'
 import { corpusDesGardes } from './commentPoison.mjs'
-import { RACINE } from './bindingsVifs.mjs'
+import { RACINE } from './bindingsVivants.mjs'
 
 const ICI = fileURLToPath(new URL('.', import.meta.url))
 const REGEN = join(ICI, 'regenStock.mts')

@@ -267,6 +267,10 @@ export function nombresAccrus(observe, stock, ou) {
   return out;
 }
 
+/** Une ligne de remède de `ecartDuVolet` NOMME-t-elle cette clé ? (le remède décore la clé d'une phrase)
+ *  @param {readonly string[]} lignes @param {string} cle @returns {boolean} */
+export const remedeNomme = (lignes, cle) => lignes.some((l) => l.includes(cle))
+
 /**
  * REFUS de croissance d'une régénération de stock : la phrase à afficher quand une entrée MESURÉE est
  * neuve ou accrue au regard du stock en place (`estNeuveOuAccrue`), `null` sinon. Lu par les deux

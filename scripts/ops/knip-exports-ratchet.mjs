@@ -118,4 +118,4 @@ function main() {
   console.log(`exports morts : ${total} (gelés, ${Object.keys(counts).length} fichiers) — aucun nouveau`)
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) main()
+if (import.meta.main) main()

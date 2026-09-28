@@ -37,7 +37,7 @@ function setup(acted: boolean, heros = 1, gmSeat?: number) {
     movementUsed: 0, movedPreAction: false, acted, log: [], over: null,
   } as unknown as BattleState;
   useGame.setState({
-    battle, mode: 'battle', scene: testScene, pendingDefense: null, pendingAttack: null, pendingCascade: null,
+    battle, mode: 'battle', scene: testScene(), pendingDefense: null, pendingAttack: null, pendingCascade: null,
     net: { ...useGame.getState().net, mode: 'local', mySeat: 0, gmSeat, ownership: {} },
   });
   return { enemy, hero: herosList[0], heros: herosList };

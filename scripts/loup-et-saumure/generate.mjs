@@ -18,7 +18,7 @@
  */
 import { writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 import { scene, hero, NPC, P, flowOf, flagWhen, testNode, poste, resetIds, projectDoc } from '../campagne/lib.mjs';
 import { dailyWaterLitres } from '../../src/engine/seaWeather.ts';
 import { itemFromTrappingById } from '../../src/engine/items.ts';
@@ -318,7 +318,7 @@ scenes.push(scene({
           choices: [
             { label: 'S’enquérir du fret', next: 'kr-fret' },
             {
-              label: 'L’observer discrètement (Intuition)',
+              label: 'L’observer discrètement',
               flow: testNode(
                 { skill: { id: 'intuition' }, difficulty: 'difficile', label: 'Intuition — quelque chose cloche chez Kramer', stake: { authored: 'Percer le masque de Dame Kramer : vous la soupçonnez pour la suite du voyage ; raté, elle passe pour une négociante ordinaire.' } },
                 // Révélation VISIBLE au moment (modale document) + flag + archive au journal.
@@ -510,7 +510,7 @@ scenes.push(scene({
           "Kramer était « à terre toute la nuit ».",
         choices: [
           {
-            label: 'L’interroger sur sa nuit (Intuition)',
+            label: 'L’interroger sur sa nuit',
             flow: testNode(
               { skill: { id: 'intuition' }, difficulty: 'difficile', label: 'Intuition — la nuit du chat', stake: { authored: 'La coincer sur son alibi : démasquée, le sabotage du Grimm cesse ; raté, elle garde les mains libres et le navire continue de souffrir.' } },
               // Démasquage : dénouement VISIBLE (document) + le sabotage CESSE (adjustVessel { saboteurDR: 0 }
@@ -536,7 +536,7 @@ scenes.push(scene({
         desc: "« Calfeutrons la coque avant de reprendre la mer, capitaine — la traversée l'a mise à mal. »",
         choices: [
           {
-            label: 'Superviser la réparation (Test étendu de Métier (Charpentier), 5 DR)',
+            label: 'Superviser la réparation',
             flow: flowOf([{ type: 'extendedTest', skill: { id: 'metier', spec: 'charpentier' }, difficulty: 'intermediaire', label: 'Réparation temporaire du Grimm', targetDR: 5, flag: 'ls_coque_reparee' }]),
             next: 'rp1',
           },
@@ -750,7 +750,7 @@ return projectDoc({
 /** Chemin de l'artefact écrit par le CLI — lu aussi par la garde byte-stable. */
 export const OUT = join(dirname(fileURLToPath(import.meta.url)), '../../src/scenes/loup-et-saumure/loup-et-saumure-projet.json');
 
-if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (import.meta.main) {
   const doc = build();
   writeFileSync(OUT, JSON.stringify(doc, null, 1) + '\n');
   console.log(`loup-et-saumure-projet.json : ${doc.scenes.length} scènes, ${doc.worldMap.places.length} lieux, ${doc.worldMap.routes.length} routes.`);

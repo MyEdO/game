@@ -2,7 +2,6 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { checkBattleOver } from './combatFlow';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { testScene } from '../scenes/test-fixture';
 import { buildEncounter } from './encounterAuthoring';
 import { validateScene } from './validateScene';
@@ -17,12 +16,12 @@ import type { Possession } from '../engine/possession';
  */
 
 function makeHero() {
-  return createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+  return createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
 }
 
 function startFixtureCombat(hero: ReturnType<typeof makeHero>, possessions: Possession[]) {
   useGame.setState({ party: [hero], battle: null });
-  useGame.getState().startScene(testScene); // reset qui vide `possessions` (seedStartingPossessions) — injecter APRÈS
+  useGame.getState().startScene(testScene()); // reset qui vide `possessions` (seedStartingPossessions) — injecter APRÈS
   useGame.setState({ possessions });
   useGame.getState().startCombat('enc-mutants');
 }
@@ -128,9 +127,9 @@ function cavalerieScene(preMonte: boolean): { scene: Scene; montureId: string; c
     ],
   });
   const scene: Scene = {
-    ...testScene,
+    ...testScene(),
     id: 'test-cavalerie',
-    entities: [...testScene.entities.filter((e) => e.kind === 'heroStart'), ...enc.entities],
+    entities: [...testScene().entities.filter((e) => e.kind === 'heroStart'), ...enc.entities],
     encounters: [enc.encounter],
   };
   return { scene, montureId: enc.entities[0].id, cavalierId: enc.entities[1].id };

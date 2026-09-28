@@ -1,8 +1,7 @@
 /**
  * TRANSLITTÉRATION ASCII d'un NOM de fichier ou de dossier de `Source/` (#1699) — UNE fonction, la
- * seule. Les scripts de découpe l'appellent à l'ÉCRITURE (`split-mdg.mjs`, `split-vdm.mjs`,
- * `marker-split.mjs`), la migration du lot l'applique au stock existant, et la garde d'hygiène de
- * `Source/` refuse tout chemin suivi qui n'en sort pas.
+ * seule. Les scripts de découpe l'appellent à l'ÉCRITURE, la migration l'applique au stock existant,
+ * et la garde d'hygiène de `Source/` refuse tout chemin suivi qui n'en sort pas.
  *
  * Verbatim utilisateur (2026-09-06) : « Tu sais nos fichiers aujourd'hui peuvent etre déplacé, par
  * contre les caracteres accentués c'est un soucis ».
@@ -16,7 +15,7 @@
  *
  * Règles, dans l'ordre :
  *   0. NFC d'abord (le disque NTFS rend « Boîte » en décomposé : `i` + U+0302) ;
- *   1. `’` `‘` → `'` ; `“` `”` → `"` (préventif : aucun n'est mesuré sous `Source/` aujourd'hui) ;
+ *   1. `’` `‘` → `'` ; `“` `”` → `"` (préventif) ;
  *   2. `«` `»` SUPPRIMÉS avec l'espace adjacent CÔTÉ INTÉRIEUR — « L'abominable » → L'abominable
  *      (l'espace extérieur reste : il sépare deux mots du nom) ;
  *   3. `—` `–` → `-` ; `…` → `...` ;
@@ -25,8 +24,8 @@
  *   6. NFD puis retrait des combinants : `é` → `e`, `À` → `A`, `Ö` → `O` ;
  *   7. espaces de fin retirés (y compris avant l'extension) ; un titre de chapitre qui se VIDE
  *      (`12 - ￼.md` → `12 - .md`) devient `12 - Sans titre.md`. Le nom RESTE dans la forme
- *      canonique `NN - <titre>.md` : sept scanners du dépôt la tiennent pour acquise
- *      (`scripts/raw/_lib.mjs:198`, `scripts/raw/folio-bootstrap.mjs:96`…) et `buildFolioToc`
+ *      canonique `NN - <titre>.md` : des scanners du dépôt la tiennent pour acquise
+ *      (`scripts/raw/_lib.mjs:495`, `buildFolioToc` de `scripts/raw/folio-bootstrap.mjs`…) et `buildFolioToc`
  *      SUPPRIMERAIT de l'index un `12.md` hors forme. Le titre posé est le seul mot injecté, et il
  *      l'est parce que la forme l'exige — pas pour décrire le chapitre ;
  *   8. tout résidu hors ASCII imprimable (0x20-0x7E) → `throw` ; un nom qui se réduit au VIDE aussi.

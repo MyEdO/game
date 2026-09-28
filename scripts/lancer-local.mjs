@@ -17,7 +17,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { execFileSync, spawn } from 'node:child_process'
-import { fileURLToPath, pathToFileURL } from 'node:url'
+import { fileURLToPath } from 'node:url'
 import { separerInvocation } from './guards/lib/invocation.mjs'
 import { refusOutillageLocal } from './outillage-local.mjs'
 import { codeEnfant } from './test/partition.mjs'
@@ -86,7 +86,7 @@ export function sortieOutilLocal(racine, paquet, bin, args) {
 /** Dossier des binaires de l'arbre — le SEUL `node_modules/.bin` que voit l'enfant. */
 export const binLocal = (racine) => path.join(racine, 'node_modules', '.bin')
 
-if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (import.meta.main) {
   const RACINE = fileURLToPath(new URL('..', import.meta.url))
   const invocation = separerInvocation(process.argv.slice(2), { options: ['--cwd'] })
   if (!invocation) {

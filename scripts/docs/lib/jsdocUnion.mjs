@@ -1,12 +1,11 @@
 // Socle PARTAGÉ des générateurs de doc « vocabulaire » (#298bis) : lecture d'une union discriminée
 // TypeScript par AST (`ts.createSourceFile` — jamais de regex sur les accolades, les unions imbriquent
-// des littéraux d'objet et des intersections), extraction du JSDoc de chaque membre, et écriture/
-// vérification du .md généré. Consommé par scripts/docs/build-effects.mjs (union `Effect` de
-// src/state/scene.ts) et scripts/docs/build-vocabulaire.mjs (unions `GameOp` de src/engine/ops.ts,
+// des littéraux d'objet et des intersections) et extraction du JSDoc de chaque membre. Consommé par
+// scripts/docs/build-effects.mjs (union `Effect` de src/state/scene.ts) et
+// scripts/docs/build-vocabulaire.mjs (unions `GameOp` de src/engine/ops.ts,
 // `Condition`/`Flow`/`EffectTrigger`/`EffectTargeting` de src/engine/flowCore.ts).
 import ts from 'typescript'
-import { readFileSync, existsSync } from 'node:fs'
-import { apercuDivergences, ecrireDoc, retirerPied } from './empreinte-sources.mjs'
+import { readFileSync } from 'node:fs'
 
 /** Abréviations FR à ne PAS prendre pour une fin de phrase (« ex. », « l. », « p. »… — sinon un
  *  « (ex. » tronque le rôle en pleine parenthèse ouverte). */
@@ -71,6 +70,12 @@ export function aliasDoc(text, alias, sf) {
   return jsdocBody(text.slice(alias.getFullStart(), alias.getStart(sf)))
 }
 
+/** Le champ est-il une EXCLUSION (`champ?: never`) — l'interdit d'un membre d'union exclusive, jamais
+ *  un champ qu'il porte ? */
+function estExclusion(prop) {
+  return prop.type?.kind === ts.SyntaxKind.NeverKeyword
+}
+
 /**
  * Membres d'une union discriminée, avec leur JSDoc.
  * `discriminant` : nom de la propriété littérale qui NOMME le membre (`type`, `op`, `kind`).
@@ -97,6 +102,7 @@ export function readUnionMembers(sf, text, alias, discriminant, tool, opts = {})
         name = prop.type.literal.text
         continue
       }
+      if (estExclusion(prop)) continue
       fields.push(pname + (prop.questionToken ? '?' : ''))
     }
     if (!name) {
@@ -166,31 +172,6 @@ export function renderFields(fieldGroups) {
   return nonEmpty.map((g) => g.map((f) => `\`${f}\``).join(', ')).join(' \\| ')
 }
 
-/**
- * Écrit le .md — ou, en mode `--check` (chaîné dans `npm run docs:check`), régénère en mémoire,
- * compare au committé et sort en erreur ACTIONNABLE. Jamais d'écriture en mode `--check`.
- * C'est la garde d'exhaustivité : une entrée ajoutée à l'union sans régénération = CI rouge.
- * Le rouge NOMME sa cause : `apercuDivergences` imprime la première divergence et l'aperçu borné
- * des suivantes, des deux côtés — un « PÉRIMÉ » seul se diagnostique de mémoire.
- */
-export function emitOrCheck({ out, path, check, staleMsg, rerunMsg, okMsg, writeMsg }) {
-  if (check) {
-    // Le pied « sources-empreinte » est posé APRÈS coup par build-all.mjs (#1679 L1b) : le générateur
-    // ne le connaît pas, la comparaison porte donc sur le corps.
-    const current = existsSync(path) ? retirerPied(readFileSync(path, 'utf8')) : null
-    if (current !== out) {
-      console.error(staleMsg)
-      console.error(apercuDivergences(out, current))
-      console.error(rerunMsg)
-      process.exit(1)
-    }
-    console.log(okMsg)
-  } else {
-    ecrireDoc(path, out)
-    console.log(writeMsg)
-  }
-}
-
 // ── Lecture d'une union discriminée exprimée en SCHÉMAS zod ──────────────────────────────────────
 // Même contrat que `readUnionMembers` (rendre `[{ name, fieldGroups, role }]` dans l'ordre de
 // l'union), mais la source est un `z.discriminatedUnion('type', [ …identifiants… ])` dont chaque
@@ -241,6 +222,41 @@ export function indexerConstantes(fichiers) {
 }
 
 /**
+ * Déclaration RÉELLE d'une constante d'index dont l'initialiseur est un ACCÈS DE PROPRIÉTÉ
+ * (`export const x = FAMILLE.x`, `mecaniqueDe`, `src/data/schemas/grammaire/mecanique.ts`) : le
+ * vérificateur de types suit le membre jusqu'à la `const` qui le porte, à toute profondeur. Programme
+ * restreint au fichier de l'entrée (`noResolve`) : seule la bibliothèque standard s'y ajoute.
+ * Rend `{ decl, statement, sf, text }` ; l'entrée elle-même si son initialiseur n'est pas un accès.
+ */
+function declarationReelle(entree, programmes) {
+  const init = entree.decl.initializer
+  if (!init || !ts.isPropertyAccessExpression(init)) return entree
+  let programme = programmes.get(entree.chemin)
+  if (!programme) {
+    programme = ts.createProgram({
+      rootNames: [entree.chemin],
+      options: { noResolve: true, noEmit: true, target: ts.ScriptTarget.ES2022, skipLibCheck: true },
+    })
+    programmes.set(entree.chemin, programme)
+  }
+  const checker = programme.getTypeChecker()
+  const sf = programme.getSourceFile(entree.chemin)
+  const trouver = (n) => (n.pos === init.pos && n.end === init.end && ts.isPropertyAccessExpression(n) ? n : ts.forEachChild(n, trouver))
+  let acces = trouver(sf)
+  if (!acces) throw new Error(`declarationReelle — l'accès « ${init.getText()} » de « ${entree.decl.name.getText()} » est introuvable dans le programme de ${entree.chemin}`)
+  for (;;) {
+    let symbole = checker.getSymbolAtLocation(acces.name)
+    const porteur = symbole?.declarations?.[0]
+    if (porteur && ts.isShorthandPropertyAssignment(porteur)) symbole = checker.getShorthandAssignmentValueSymbol(porteur)
+    else if (porteur && ts.isPropertyAssignment(porteur) && ts.isIdentifier(porteur.initializer)) symbole = checker.getSymbolAtLocation(porteur.initializer)
+    const decl = symbole?.valueDeclaration
+    if (!decl || !ts.isVariableDeclaration(decl) || !ts.isVariableStatement(decl.parent.parent)) return null
+    if (decl.initializer && ts.isPropertyAccessExpression(decl.initializer)) { acces = decl.initializer; continue }
+    return { decl, statement: decl.parent.parent, sf: decl.getSourceFile(), text: decl.getSourceFile().text }
+  }
+}
+
+/**
  * Membres d'un `z.discriminatedUnion(discriminant, [ … ])` déclaré sous le nom `alias`.
  * `index` vient d'`indexerConstantes` (le socle des fichiers où vivent les schémas de membre).
  * Rend `{ rows, rawCount }` — même forme que `readUnionMembers`.
@@ -257,6 +273,7 @@ export function readZodUnionMembers(index, alias, discriminant, tool, opts = {})
     process.exit(1)
   }
   const membres = appel.arguments[1].elements
+  const programmes = new Map()
 
   const rows = []
   for (const m of membres) {
@@ -264,7 +281,8 @@ export function readZodUnionMembers(index, alias, discriminant, tool, opts = {})
       console.error(`${tool} — membre de « ${alias} » qui n'est pas un identifiant de schéma (kind ${ts.SyntaxKind[m.kind]})`)
       process.exit(1)
     }
-    const cible = index.get(m.text)
+    const entree = index.get(m.text)
+    const cible = entree && declarationReelle(entree, programmes)
     if (!cible) {
       console.error(`${tool} — membre « ${m.text} » de « ${alias} » : schéma introuvable dans les fichiers indexés`)
       process.exit(1)

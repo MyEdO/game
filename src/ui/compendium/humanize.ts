@@ -15,7 +15,7 @@
  */
 import type { Flow, Condition, EffectOp } from '../../state/flow';
 import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
-import { senseSchema } from '../../data/schemas/grammaire/mecanique';
+import { armourBypassCategorieSchema, loseTurnWhatSchema, senseSchema, zoneShapeSchema } from '../../data/schemas/grammaire/mecanique';
 import { INDICE_TEMPLATE, type ActorRef, type CompareOp, type CompareSubject } from '../../engine/flowCore';
 import { estCausePersistante, type GameOp, type Formula, type ResolveWindow } from '../../engine/ops';
 import type { Camp, Relation } from '../../engine/relations';
@@ -27,7 +27,7 @@ import { formatMoney } from '../../engine/money';
 import { rule, ruleDef } from '../../engine/policy';
 import {
   conditionLabel, psychologyLabel, groupLabel, symptomLabel, creatureLabel,
-  diseaseLabel, refLabel, qualityRefLabel, talentConcrete,
+  diseaseLabel, refLabel, qualityRefLabel,
 } from '../../data';
 import { findFallTable } from '../../data/shipCriticals';
 
@@ -88,9 +88,9 @@ export function humanizeQuantite(f: Formula): { valeur: string; note: string } {
  *  COLLECTÉES (le nombre s'imprime nu) ; nul = chacune se nomme sur place. PURE. */
 function formuleEnMots(f: Formula, regles: string[] | null): string {
   if (typeof f === 'number') return String(f);
-  // Placeholder RUNTIME baké ('$indice' — Redoutable ZI, substitué à l'attache) qui peut atteindre
+  // Placeholder RUNTIME baké (`INDICE_TEMPLATE` — Redoutable ZI, substitué à l'attache) qui peut atteindre
   // l'affichage : jamais un objet Formula, donc gardé AVANT les `in` (mirroir de `resolveFormula`).
-  if (typeof f !== 'object' || f === null) return String(f) === '$indice' ? "l'Indice" : String(f);
+  if (typeof f !== 'object' || f === null) return String(f) === INDICE_TEMPLATE ? "l'Indice" : String(f);
   if ('bonusOf' in f) return `le Bonus de ${CHAR_LABELS[f.bonusOf]}`;
   if ('charOf' in f) return `la ${CHAR_LABELS[f.charOf]}`;
   if ('dice' in f) return `${f.dice.n}d${f.dice.sides}${f.dice.plus ? `+${f.dice.plus}` : ''}`;
@@ -275,10 +275,9 @@ export function humanizeCondition(c: Condition, neg = false): string {
 
 const RESOURCE_LABEL = { fortune: 'Chance', fate: 'Destin' } as const;
 const ATTR_LABEL = { wounds: 'Blessures', fortune: 'Chance', resolve: 'Détermination' } as const;
-const ARMOUR_BYPASS_CAT_LABEL = { all: "toute l'armure", metal: 'le métal', leather: 'le cuir', nonMagic: 'le non-magique', nonMetal: 'le non-métal' } as const;
 /** Libellé JOUEUR du volet matériau d'`armourPierce.bypass` (LDB 62 l.270) — `undefined`/nombre = pas de volet matériau. */
 const armourBypassCatLabel = (b: ArmourBypass | undefined): string | undefined =>
-  typeof b === 'string' ? ARMOUR_BYPASS_CAT_LABEL[b] : undefined;
+  typeof b === 'string' ? libelleDeValeur(armourBypassCategorieSchema, b) : undefined;
 
 /** ÉCHELLE « par DR » d'une quantité d'op (`PerSL`) en clair joueur — « +1 par DR d'échec » (Terreur,
  *  LDB 21 l.54), « +1 par 2 DR ». SOURCE UNIQUE de cette phrase : la chip d'une op qui la porte
@@ -386,13 +385,13 @@ export function humanizeOp(o: GameOp): string {
     }
     case 'statusMod': return `${typeof o.amount === 'number' && o.amount < 0 ? 'perd' : 'gagne'} ${humanizeFormula(o.amount)} Standing pour la prochaine aventure`;
     case 'grantReverseToken': return `peut inverser ${o.skill ? refLabel('skills', o.skill) : 'un Test concernant sa cible'} une fois pendant sa prochaine aventure`;
-    case 'grantTrait': return `gagne le Trait ${formatTrait({ id: o.traitId, arg: o.arg })}${o.indice != null ? ` ${humanizeFormula(o.indice)}` : ''}${pendantRounds(o.durationRounds)}`;
+    case 'grantTrait': return `gagne le Trait ${formatTrait({ id: o.traitId, arg: o.arg, ...(typeof o.indice === 'number' ? { value: o.indice } : {}), range: o.range })}${o.indice != null && typeof o.indice !== 'number' ? ` ${humanizeFormula(o.indice)}` : ''}${pendantRounds(o.durationRounds)}`;
     case 'removeTrait': return `perd le Trait ${formatTrait({ id: o.traitId })}`;
     case 'grantPsychTrait': return `gagne l'état psychologique ${psychologyLabel(o.psychType)}${o.cible ? ` (${o.cible})` : ''}`;
     case 'removePsychTrait': return `perd ${o.psychType ? `l'état psychologique ${psychologyLabel(o.psychType)}` : 'un état psychologique au choix'}`;
-    case 'grantTalent': return `gagne le Talent ${talentConcrete(o)}`;
+    case 'grantTalent': return `gagne le Talent ${refLabel('talents', o.talent)}`;
     case 'grantCareerSkill': return `ajoute ${refLabel('skills', o.skill)} à ses carrières`;
-    case 'grantCareerTalent': return `ajoute le Talent ${refLabel('talents', { id: o.talentId, spec: o.spec })} à ses carrières`;
+    case 'grantCareerTalent': return `ajoute le Talent ${refLabel('talents', o.talent)} à ses carrières`;
     case 'augmentWeapon': return `voit son arme enchantée${o.addQualities?.length ? ` (${o.addQualities.map((id) => qualityRefLabel({ id })).join(', ')})` : ''}${o.damageBonus != null ? ` +${humanizeFormula(o.damageBonus)} Dégâts` : ''}`;
     case 'cureDisease': return `guérit ${o.count ?? 1} maladie(s)`;
     case 'reduceDiseaseDays': return `raccourcit ${o.disease ? diseaseLabel(o.disease) : 'une maladie'} de ${o.dice ? `${o.dice.n}d${o.dice.sides}` : (o.days ?? 1)} jour(s)`;
@@ -418,7 +417,7 @@ export function humanizeOp(o: GameOp): string {
     case 'castWard': return `impose −20 aux Tests de magie dans un rayon ${deFormule(o.radius)} m`;
     case 'suffocate': return `est soumis aux règles de la Suffocation`;
     case 'arrowWard': return "détruit les projectiles organiques qui entrent dans la Zone d'Effet";
-    case 'domeWard': return `érige un dôme sur la Zone d'Effet : elle octroie le Trait ${formatWardSave(o.traitId, humanizeFormula(o.indice))} contre les attaques magiques ou à distance venant de l'extérieur`;
+    case 'domeWard': return `érige un dôme sur la Zone d'Effet : elle octroie le Trait ${formatWardSave({ kind: 'trait', id: o.traitId }, humanizeFormula(o.indice))} contre les attaques magiques ou à distance venant de l'extérieur`;
     case 'attackWardFM': return `ne peut être attaqué qu'après un Test de Force Mentale réussi`;
     case 'martyr': return `reçoit à leur place les Dégâts subis par ses protégés`;
     case 'noBreath': return `n'a plus besoin de respirer`;
@@ -442,7 +441,7 @@ export function humanizeOp(o: GameOp): string {
     case 'charDamage': return `perd ${humanizeFormula(o.amount)} en ${CHAR_LABELS[o.char]} (définitivement)`;
     case 'summon': return `invoque ${humanizeFormula(o.count)}× ${creatureLabel(o.ref)}${o.allyOfCaster === false ? ' (hostile)' : ''}`;
     case 'scheduleRespawn': return `se reconstitue (${creatureLabel(o.ref)}) après ${humanizeFormula(o.delayDays)} jour(s)`;
-    case 'zone': return `pose ${o.shape === 'wall' ? `un mur ${deFormule(o.lengthMeters ?? 2)} m` : `un disque ${deFormule(o.radiusMeters ?? 2)} m`}`;
+    case 'zone': return `pose un ${libelleDeValeur(zoneShapeSchema, o.shape)} ${deFormule((o.shape === 'wall' ? o.lengthMeters : o.radiusMeters) ?? 2)} m`;
     case 'polymorph': return `se métamorphose en ${creatureLabel(o.ref)}`;
     case 'transform': return `se transforme (${creatureLabel(o.morphRef ?? o.tag)})`;
     case 'endTransform': return `retrouve sa forme initiale`;
@@ -470,7 +469,7 @@ export function humanizeOp(o: GameOp): string {
     case 'disarm': return `lâche l'objet tenu dans une main`;
     case 'handGate': return `doit réussir un Test avant d'agir de cette main`;
     case 'senseLoss': return `perd ${libelleDeValeur(senseSchema, o.sense)}`;
-    case 'loseTurn': return `perd ${o.what === 'action' ? 'son Action' : o.what === 'movement' ? 'son Mouvement' : 'son Action et son Mouvement'}`;
+    case 'loseTurn': return `perd ${o.what ? libelleDeValeur(loseTurnWhatSchema, o.what) : 'son Action et son Mouvement'}`;
     case 'actGate': return `doit réussir un Test de ${CHAR_LABELS[o.char]} chaque Round pour agir`;
     case 'diseaseTestMod': return `${o.amount >= 0 ? 'gagne' : 'subit'} ${o.amount >= 0 ? '+' : ''}${o.amount} aux Tests de maladie`;
     case 'suppressSymptom': return `voit le symptôme ${symptomLabel(o.symptomId)} suspendu`;

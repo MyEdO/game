@@ -1,9 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { cosmeticPart } from './cosmetic';
+import { cosmeticPart, apparenceSuivante } from './cosmetic';
+import { hairstylesForSex } from './hairstyles';
+import type { EntityAppearance } from '../../../engine/authoringAppearance';
 import { genericPart } from './generic';
 import { viewOrFront } from './types';
+import type { Sexe } from '../../../data/schemas/grammaire/valeurs';
 
-const sv = (slot: 'visage' | 'cheveux', sp: string, sex: 'M' | 'F', idx: number) =>
+const sv = (slot: 'visage' | 'cheveux', sp: string, sex: Sexe, idx: number) =>
   viewOrFront(cosmeticPart(slot, sp, sex, idx), 'front');
 
 describe('cosmeticPart', () => {
@@ -67,5 +70,40 @@ describe('genericPart', () => {
   it('tete (couvre-chef) et arme sont vides par défaut (tête nue / mains nues)', () => {
     expect(viewOrFront(genericPart('tete'), 'front')).toBe('');
     expect(viewOrFront(genericPart('arme'), 'front')).toBe('');
+  });
+});
+
+/** Patron `propRefPatch` (`ui/editor/propDefaults.ts`) : un geste d'édition ne crée pas la faute. */
+describe('apparenceSuivante — l’unique mutation d’une apparence depuis un écran', () => {
+  const coiffureM = hairstylesForSex('M')[0].id;
+  const coiffureF = hairstylesForSex('F')[0].id;
+
+  it('coiffure M puis sexe F : la coiffure retombe, le reste est gardé', () => {
+    const a: EntityAppearance = { sex: 'M', hairstyle: coiffureM, build: 0.4 };
+    expect(apparenceSuivante(a, { sex: 'F' })).toEqual({ sex: 'F', build: 0.4 });
+  });
+
+  it('coiffure F choisie sur une apparence M : la coiffure ET son sexe sont posés', () => {
+    const a: EntityAppearance = { sex: 'M', build: 0.4 };
+    expect(apparenceSuivante(a, { hairstyle: coiffureF })).toEqual({ sex: 'F', build: 0.4, hairstyle: coiffureF });
+  });
+
+  it('aucune coiffure : la clé est retirée, le sexe reste', () => {
+    const a: EntityAppearance = { sex: 'M', hairstyle: coiffureM };
+    expect(apparenceSuivante(a, { hairstyle: undefined })).toStrictEqual({ sex: 'M' });
+  });
+
+  it('les sous-objets (couleurs, mutations, yeux) se fusionnent, ils ne s’écrasent pas', () => {
+    const a: EntityAppearance = { colors: { peau: '#111111' }, monster: { tete: 'chien' }, eyes: { G: 'chat' } };
+    expect(apparenceSuivante(a, { colors: { cheveux: '#222222' }, monster: { cornes: true }, eyes: { D: 'verre' } })).toEqual({
+      colors: { peau: '#111111', cheveux: '#222222' },
+      monster: { tete: 'chien', cornes: true },
+      eyes: { G: 'chat', D: 'verre' },
+    });
+  });
+
+  it('une liste de traits vidée disparaît', () => {
+    const a: EntityAppearance = { features: ['crocs'] };
+    expect(apparenceSuivante(a, { features: [] })).toStrictEqual({});
   });
 });

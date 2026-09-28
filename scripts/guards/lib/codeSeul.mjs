@@ -6,7 +6,7 @@
 // n'exécute rien, et l'oblige alors à une liste de sites tolérés — c'est-à-dire à une garde qui
 // valide des défauts. Le blanchiment est donc un prérequis de toute garde lexicale, en UN
 // exemplaire. Il ne vit PAS dans `sourceCorpus.mjs` : cette lib-là LIT et MÉMOÏSE, sa frontière
-// écrite (`sourceCorpus.mjs:8`) lui interdit d'interpréter — blanchir EST une lecture lexicale.
+// écrite (en-tête de `sourceCorpus.mjs`) lui interdit d'interpréter — blanchir EST une lecture lexicale.
 //
 // CONTRAT :
 //  - LIGNES PRÉSERVÉES, et COLONNES aussi : chaque caractère retiré devient une espace, tout `\n`

@@ -1,5 +1,6 @@
 import { careers, findCareerById } from '../../../data';
 import { memoParVersion } from '../../../data/versionDataset';
+import { parLibelle } from '../../../lib/ordre.mjs';
 import {
   TENUE_BY_ID, CLASS_TENUE_BY_ID, TENUE_PALETTE_BY_ID, CLASS_PALETTE_BY_ID,
   TENUE_OVERLAYS_BY_ID, CLASS_OVERLAYS_BY_ID,
@@ -40,7 +41,7 @@ export function tenueForClass(classId: string): TenueSet {
 
 /** Options du sélecteur de tenue (affiche le LIBELLÉ, stocke l'ID) — tenues spécifiques (dont « Nu »). */
 export function tenueOptions(): { id: string; label: string }[] {
-  return SPECIFIC_TENUES.slice().sort((a, b) => a.label.localeCompare(b.label, 'fr'));
+  return SPECIFIC_TENUES.slice().sort((a, b) => parLibelle(a.label, b.label));
 }
 const TENUE_LABEL_BY_ID: Record<string, string> = Object.fromEntries(SPECIFIC_TENUES.map((t) => [t.id, t.label]));
 /** Libellé d'affichage d'un id de tenue (ou l'id en repli). */

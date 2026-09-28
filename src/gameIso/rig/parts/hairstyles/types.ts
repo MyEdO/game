@@ -1,3 +1,4 @@
+import type { Sexe } from '../../../../data/schemas/grammaire/valeurs';
 import type { ViewSet } from '../types';
 
 /**
@@ -21,4 +22,4 @@ export type HairArt = ViewSet & { behind?: Partial<ViewSet>; drop?: Partial<View
  * d'authoring, non consommée par la résolution (choix par sexe+ordre, jamais par nom). Ajouter une
  * coiffure = déposer un fichier.
  */
-export type HairstyleDef = { id: string; label: string; sex: 'M' | 'F'; order: number } & HairArt;
+export type HairstyleDef = { id: string; label: string; sex: Sexe; order: number } & HairArt;

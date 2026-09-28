@@ -2,14 +2,13 @@
 // rubrique, description d'une ligne, règle d'or, pièges d'homonymes) vit dans
 // src/data/donnees.manifest.json ; tout ce que l'arbre permet de DÉRIVER (liste des fichiers réels,
 // nombre d'entrées, présence d'un schéma zod, complétude du manifeste) est CALCULÉ ici. Sortie :
-// docs/donnees.md. Re-run : node scripts/docs/build-donnees.mjs (npm run docs:donnees). Mode --check
-// (chaîné dans npm run docs:check) : régénère en mémoire, compare au .md committé, exit 1 avec
-// message actionnable si diff — jamais d'écriture en mode --check. Mécanique d'émission partagée :
-// emitOrCheck (scripts/docs/lib/jsdocUnion.mjs), patron `scripts/docs/build-systemes.mjs`.
+// docs/donnees.md. Re-run : node scripts/docs/build-donnees.mjs (npm run docs:donnees).
+// Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/empreinte-sources.mjs), rejoué par `build-all.mjs`.
+// Patron : `scripts/docs/build-systemes.mjs`.
 import { readFileSync, existsSync } from 'node:fs'
 import { listerDossier } from '../guards/lib/lister.mjs'
 import { sortieOutilLocal } from '../lancer-local.mjs'
-import { emitOrCheck } from './lib/jsdocUnion.mjs'
+import { ecrireOuVerifier } from './lib/empreinte-sources.mjs'
 import { FOLIO_RATCHET } from '../guards/lib/folioRatchetStock.mjs'
 
 const DATA_DIR = 'src/data'
@@ -99,10 +98,10 @@ function expositionOf(jsonFile) {
   const codex = 'exempt' in expo.codex
     ? `exempt (${expo.codex.exempt.kind}${expo.codex.exempt.ticket ? `, ${expo.codex.exempt.ticket}` : ''})`
     : expo.codex.keys.map((k) => `\`${k}\``).join(' · ')
-  const edit = 'dataset' in expo.edit ? `dataset \`${expo.edit.dataset}\``
+  const edit = 'none' in expo.edit ? `aucune (${expo.edit.none})${expo.edit.dataset ? ` — dataset \`${expo.edit.dataset}\`` : ''}`
+    : 'dataset' in expo.edit ? `dataset \`${expo.edit.dataset}\``
     : 'object' in expo.edit ? `objet ${expo.edit.object}`
-    : 'niche' in expo.edit ? `niché (${expo.edit.niche.categories.map((c) => `\`${c}\``).join(' · ')})`
-    : `aucune (${expo.edit.none})`
+    : `niché (${Object.keys(expo.edit.niche.categories).map((c) => `\`${c}\``).join(' · ')})`
   return `${codex} — ${edit}`
 }
 
@@ -389,14 +388,18 @@ out += [
   "",
   "**Les 4 exports plats du contrat `gen`** : tout def qui appelle `document(` exporte `file`, `schema`,",
   "`famille` et `meta` **À PLAT**. Le générateur de registre est TEXTUEL (lecture par regex, jamais un",
-  "import) — la sanction diffère donc PAR EXPORT, et une seule est silencieuse :",
+  "import) ; son lecteur UNIQUE, `lireExports` de `scripts/gen-registry.mjs` (formes `FORMES_D_EXPORT`),",
+  "lit `file` et `famille` à la seule forme `export const X = '…';` (guillemet SIMPLE littéral) et `meta` à",
+  "la présence de `export const meta` :",
   "",
-  "- `file` non conforme au filtre `scripts/gen-registry.mjs:370` (`^export const file = '`, guillemet",
-  "  SIMPLE littéral) : le def est **ÉCARTÉ du registre, en silence** — double quote, `: string` annoté,",
-  "  littéral gabarit et `= doc.file` compilent tous et sortent pourtant du registre. Seul cet export",
-  "  décide de l'appartenance au registre.",
-  "- `meta` non plat : le def **RESTE au registre** et perd son entrée `meta` (invisible de `presents()`,",
-  "  `scripts/gen-registry.mjs:382`) — l'atelier retombe sur la clé technique, sans qu'aucun gate rougisse.",
+  "- `file`, `famille` ou `meta` hors de sa forme canonique (guillemets doubles, `: string` annoté,",
+  "  `as const`, littéral gabarit, `= doc.file`, destructuration, `export { … }`) : `npm run gen` **LÈVE**",
+  "  en nommant le def et l'export — aucun def n'est écarté en silence",
+  "  (`src/data/schemas/gen-registry-lecteur.test.ts`).",
+  "- `file` absent : le module n'est pas une entrée du registre (module de FORME partagé, `genOne` de",
+  "  `scripts/gen-registry.mjs`). Seul cet export décide de l'appartenance au registre.",
+  "- `meta` absent : le def **RESTE au registre** sans entrée `meta` (`presents` de `genOne`) — l'atelier",
+  "  retombe sur la clé technique ; seule la garde ci-dessous l'exige.",
   "- `schema`/`famille` destructurés (`export const { schema } = doc`) **COMPILERAIENT** : la",
   "  destructuration crée un vrai nom importable. La garde n'y protège pas la compilation mais la",
   "  CONVENTION — forme plate unique, lisible par un codemod.",
@@ -409,12 +412,15 @@ out += [
   "`src/data/schemas/validate.ts`) : les gardes de libellés et le CLIQUET de couverture vivent dans",
   "`src/ui/compendium/libelles-de-champs.test.tsx` — les CHIFFRES y sont, jamais recopiés ici.",
   "",
-  "**Registres GÉNÉRÉS** — `_registry.generated.ts`, `_registry-scenes.generated.ts` et",
-  "`_ids.generated.ts`, par `node scripts/gen-registry.mjs` (`npm run gen`). Ne JAMAIS éditer à la main.",
+  "**Registres GÉNÉRÉS** — `_registry.generated.ts` et `_registry-scenes.generated.ts` par",
+  "`scripts/gen-registry.mjs` (phase 1 de `npm run gen`) ; `_ids.generated.ts` (l'INDEX DES IDS,",
+  "`IDS_PAR_ESPACE`), `_cles-de-dataset.generated.ts` (`CLES_DE_DATASET`) et",
+  "`_racines-vivantes.generated.ts` (`RACINES_VIVANTES`, l'image de `DATASET_FICHIER_DERIVE`) par",
+  "`scripts/gen-espaces.mts` (phase 2). Ne JAMAIS éditer à la main.",
   "`DEFS_DE_DOCUMENT` (`src/data/schemas/validate.ts`) est l'union des deux registres.",
   "",
   "Un def de `src/data/schemas/defs-scenes/` suit la même fabrique ; son `file` est le **chemin RELATIF à",
-  "`src/scenes`** (`arene/arene-projet.json`), jamais un basename, et les quatre defs de projet partagent",
+  "`src/scenes`** (`arene/arene-projet.json`), jamais un basename, et les defs de projet partagent",
   "le même `projetSchema` (`src/data/schemas/defs-scenes/projet.ts`), composé des formes de scène",
   "(`scene.ts`), de carte du monde (`worldmap.ts`) et du bloc narratif (`narratif.ts`).",
   "",
@@ -489,7 +495,7 @@ if (errors.length) {
 }
 
 const CHECK = process.argv.includes('--check')
-emitOrCheck({
+ecrireOuVerifier({
   out,
   path: 'docs/donnees.md',
   check: CHECK,

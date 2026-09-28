@@ -6,13 +6,18 @@
 //      ext4 (ordre d'un hash), qui la porte réellement. Le test est ici pour y être JOUÉ, pas pour
 //      être vert sur cette machine.
 //  (b) MUR        : toute racine du registre des générateurs (`GENERATORS` ∪ `NON_GENERATOR_CHECKS`,
-//      `scripts/docs/build-all.mjs`) est SOUS un des globs `files:` du bloc « ordre total » de
-//      `eslint.config.js` — les globs se LISENT depuis la config, jamais recopiés ici.
-//  (c) CLÔTURE    : sur la clôture d'imports NON bornée de ces racines (`clotureDImports`, donc
-//      `scripts/**` compris — `closureOf` est bornée à `src/` et ne verrait pas les libs de garde
-//      atteintes par un générateur, dont `fieldConsumers.mjs`, le fichier de l'incident fondateur),
-//      aucun module ne cite un des cinq noms de listing hors `lister.mjs`. Ce volet couvre ce que le
-//      lint ne sait PAS exprimer : un module ATTEINT qui vit hors des globs du mur.
+//      `scripts/docs/build-all.mjs`) est SOUS les globs `files:` de chaque bloc du mur « ordre total »
+//      de `eslint.config.js` — les globs se LISENT depuis la config, jamais recopiés ici. Chaque règle
+//      du mur y est déclarée par UN seul bloc, en `error` (UNICITÉ) ; aucun ignore global ne couvre un
+//      fichier sous le mur (IGNORES) ; les seuls commentaires ESLint qui l'éteignent sont les exemptions
+//      nommées (DIRECTIVES).
+//  (c) CLÔTURE    : chaque module de la clôture d'imports NON bornée de ces racines (`clotureDImports`,
+//      donc `scripts/**` compris — `closureOf` est bornée à `src/` et ne verrait pas les libs de garde
+//      atteintes par un générateur, dont `fieldConsumers.mjs`, le fichier de l'incident fondateur) qui
+//      vit HORS des globs du mur est linté par ESLint, la config du dépôt surmontée de
+//      `REGLES_ORDRE_TOTAL` (les règles des deux blocs du mur, lues dans `eslint.config.js`) : les formes
+//      que le mur ferme s'expriment UNE fois, dans ses sélecteurs. Ce que le mur refuse dans un de ces
+//      modules est nommé `fichier:ligne: message`.
 //  (d) MOTIF     : `correspondGlob` lit un motif aux règles du PATHSPEC git — `*` ne franchit pas un
 //      `/`, `**` vaut ZÉRO ou plusieurs dossiers. Le cas qui fait la fonction : une cible de
 //      générateur descendue d'un dossier (`docs/raw/<coeur>/catalogue-*.md`). Et l'ACCORD des deux
@@ -21,39 +26,36 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
-import { dirname, join, resolve } from 'node:path'
+import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { listerDossier, listerArbre, parUnitesDeCode, parLibelle, correspondGlob } from './lister.mjs'
 import { clotureDImports } from './importGraph.mjs'
+import { norm } from '../../../src/lib/normalize.ts'
+import { scriptKindDe } from './dialecte.mjs'
 import { ciblesSurDisque, GENERATORS, NON_GENERATOR_CHECKS } from '../../docs/build-all.mjs'
-import configEslint from '../../../eslint.config.js'
+import { ESLint } from 'eslint'
+import configEslint, { REGLES_ORDRE_TOTAL } from '../../../eslint.config.js'
+
+/** Le parseur des commentaires ESLint, résolu DEPUIS `eslint` : la copie de `@eslint/plugin-kit` que le
+ *  linter charge lui-même (`lib/languages/js/source-code/source-code.js`), jamais une autre. */
+const { ConfigCommentParser } = createRequire(import.meta.resolve('eslint'))('@eslint/plugin-kit')
 
 const RACINE_DEPOT = fileURLToPath(new URL('../../../', import.meta.url)).replace(/[\\/]$/, '')
 
-/** Les 5 portes de listing de `node:fs` que le mur ferme. */
-const NOMS_DE_LISTING = ['readdirSync', 'readdir', 'opendirSync', 'opendir', 'globSync']
-const RE_LISTING = new RegExp(`\\b(${NOMS_DE_LISTING.join('|')})\\b`)
-const SOURCE_DU_LECTEUR = 'scripts/guards/lib/lister.mjs'
-
-/** Le bloc « ordre total » de la config ESLint réelle, reconnu à son sélecteur de listing. */
-function blocDuMur() {
-  const bloc = configEslint.find((c) => {
-    const regles = c?.rules?.['no-restricted-syntax']
-    return Array.isArray(regles) && regles.some((r) => String(r?.selector ?? '').includes('readdirSync'))
-  })
-  assert.ok(bloc, 'bloc lint « ordre total » introuvable dans eslint.config.js (renommé ? sélecteur changé ?)')
+/** Le bloc de la config ESLint réelle qui déclare cette règle du mur — UN seul (volet UNICITÉ). */
+function blocDe(regle) {
+  const bloc = configEslint.find((c) => c?.rules && regle in c.rules)
+  assert.ok(bloc, `\`${regle}\` n’est déclarée par aucun bloc d’eslint.config.js`)
   return bloc
 }
-
-/** Un glob ESLint de la forme `dossier/**` ou un chemin exact. */
-const couvrePar = (glob) => {
-  const motif = glob
-    .split('/')
-    .map((seg) => (seg === '**' ? '.*' : seg.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '[^/]*')))
-    .join('/')
-  return new RegExp(`^${motif}$`)
-}
+/** Les blocs du mur de l'ordre total, un par règle de `REGLES_ORDRE_TOTAL`. */
+const blocsDuMur = () => Object.keys(REGLES_ORDRE_TOTAL).map(blocDe)
+const couvre = (bloc, rel) => bloc.files.some((g) => correspondGlob(rel, g))
+const exempte = (bloc, rel) => (bloc.ignores ?? []).some((g) => correspondGlob(rel, g))
+/** Sous le mur ENTIER (chaque règle l'arme) : la clôture des générateurs. */
+const sousLeMurEntier = (rel) => blocsDuMur().every((c) => couvre(c, rel) && !exempte(c, rel))
 
 const racinesDuRegistre = () => [...new Set([...GENERATORS.map((g) => g.script), ...NON_GENERATOR_CHECKS])].sort()
 
@@ -132,6 +134,20 @@ test('`parLibelle` — ordre TOTAL et DÉTERMINISTE : deux libellés de même cl
   assert.deepEqual([...mots].sort(parUnitesDeCode).sort(parLibelle), attendu)
 })
 
+test('`parLibelle` — les LIGATURES que NFD ne décompose pas se replient (`œ` → `oe`), `norm` compose le même repli', () => {
+  assert.deepEqual(['Orateur', 'Œil du chasseur', 'Obstiné'].sort(parLibelle), ['Obstiné', 'Œil du chasseur', 'Orateur'])
+  assert.deepEqual(['Criminel', 'Combat déloyal', 'Cœur vaillant'].sort(parLibelle), ['Cœur vaillant', 'Combat déloyal', 'Criminel'])
+  assert.equal(norm('  Cœur '), 'coeur')
+})
+
+test('`parLibelle` — la PONCTUATION se classe après l’espace, avant tout chiffre et toute lettre (apostrophe, guillemets, tiret demi-cadratin, barre)', () => {
+  assert.deepEqual(['Le Prévôt arrive', 'L’étreinte de Morr'].sort(parLibelle), ['L’étreinte de Morr', 'Le Prévôt arrive'])
+  assert.deepEqual(['Rat géant', '« Prototype » du Clan Skryre'].sort(parLibelle), ['« Prototype » du Clan Skryre', 'Rat géant'])
+  assert.deepEqual(['61–65', '6–10'].sort(parLibelle), ['6–10', '61–65'])
+  assert.deepEqual(['Lire/Écrire', 'Lire sur les lèvres'].sort(parLibelle), ['Lire sur les lèvres', 'Lire/Écrire'], 'la ponctuation suit l’espace')
+  assert.deepEqual(['Lire/Écrire', 'Lire\u202Fsur les lèvres'].sort(parLibelle), ['Lire\u202Fsur les lèvres', 'Lire/Écrire'], 'une espace fine insécable est une espace')
+})
+
 test('`absent` — `vide` rend `[]` sur un dossier absent, `lever` (défaut) lève', () => {
   const absent = join(tmpdir(), 'lister-absent-' + process.pid)
   assert.deepEqual(listerDossier(absent, { absent: 'vide' }), [])
@@ -140,19 +156,18 @@ test('`absent` — `vide` rend `[]` sur un dossier absent, `lever` (défaut) lè
 
 // --- (b) MUR : la portée du lint COUVRE le registre ---------------------------------------------
 
-test('MUR — toute racine du registre des générateurs est sous un glob du bloc lint « ordre total »', () => {
-  const globs = blocDuMur().files.map(couvrePar)
-  const hors = racinesDuRegistre().filter((r) => !globs.some((re) => re.test(r)))
+test('MUR — toute racine du registre des générateurs est sous les globs de chaque bloc du mur « ordre total »', () => {
+  const hors = racinesDuRegistre().filter((r) => !sousLeMurEntier(r))
   assert.deepEqual(
     hors,
     [],
-    `générateur N+1 hors du mur : ajoute son dossier au bloc « ordre total » de eslint.config.js —\n  ${hors.join('\n  ')}`,
+    `générateur N+1 hors du mur : ajoute son glob à \`GLOBS_GENERATEURS\` d’eslint.config.js (il arme les deux blocs du mur) —\n  ${hors.join('\n  ')}`,
   )
 })
 
-// --- (c) CLÔTURE : ce que le lint ne sait pas exprimer -------------------------------------------
+// --- (c) CLÔTURE : les modules atteints hors des globs, lintés par les règles du mur -------------
 
-test('CLÔTURE — aucun module atteint par une racine du registre ne liste un dossier hors `lister.mjs`', () => {
+test('CLÔTURE — aucun module atteint par une racine du registre, hors des globs du mur, n’enfreint ses règles', async () => {
   const precedent = process.cwd()
   process.chdir(RACINE_DEPOT)
   let cloture
@@ -163,8 +178,8 @@ test('CLÔTURE — aucun module atteint par une racine du registre ne liste un d
   }
   // Contrôle de MESURE par DEUX témoins NOMMÉS, un de chaque côté de la frontière que ce volet existe
   // pour franchir : une lib de `scripts/` (ce que `closureOf`, bornée à `src/`, ne rend JAMAIS — et
-  // c'est par là que l'incident #1620 est entré) et un module de `src/`. Jamais un SEUIL sur la
-  // taille de la clôture : ce nombre est vivant, il se démode sans rien prouver.
+  // c'est par là que l'incident #1620 est entré) et un module de `src/`, hors des globs du mur. Jamais
+  // un SEUIL sur la taille de la clôture : ce nombre est vivant, il se démode sans rien prouver.
   for (const temoin of ['scripts/guards/lib/fieldConsumers.mjs', 'src/data/index.ts']) {
     assert.ok(
       cloture.includes(temoin),
@@ -172,21 +187,172 @@ test('CLÔTURE — aucun module atteint par une racine du registre ne liste un d
     )
   }
 
-  const sites = []
-  for (const rel of cloture) {
-    if (rel === SOURCE_DU_LECTEUR) continue
-    let texte
-    try { texte = readFileSync(resolve(RACINE_DEPOT, rel), 'utf8') } catch { continue }
-    texte.split('\n').forEach((ligne, i) => {
-      if (RE_LISTING.test(ligne)) sites.push(`${rel}:${i + 1}: ${ligne.trim().slice(0, 140)}`)
-    })
-  }
-  assert.deepEqual(
-    sites,
-    [],
-    `listing hors du lecteur à ordre total (`
-      + `passer par \`listerDossier\`/\`listerArbre\` de ${SOURCE_DU_LECTEUR}) :\n  ${sites.join('\n  ')}`,
+  // Une table `.json` de la clôture n'a pas de code à linter (dialecte `JSON`, `dialecte.mjs`) ; la
+  // source du mur, exemptée au fichier, n'est pas relintée.
+  const JSON_ = scriptKindDe('.json')
+  const horsDuMur = cloture.filter(
+    (rel) => scriptKindDe(rel) !== JSON_ && !blocsDuMur().every((c) => couvre(c, rel)) && !blocsDuMur().some((c) => exempte(c, rel)),
   )
+  assert.ok(horsDuMur.includes('src/data/index.ts'), 'le témoin `src/data/index.ts` n’est plus linté par ce volet')
+  const sonde = sondeDesDirectives(Object.keys(REGLES_ORDRE_TOTAL))
+  const eslint = new ESLint({
+    cwd: RACINE_DEPOT,
+    overrideConfig: [
+      { files: horsDuMur, linterOptions: { reportUnusedDisableDirectives: 'off' }, rules: REGLES_ORDRE_TOTAL },
+      sonde.bloc(horsDuMur),
+    ],
+  })
+  const sites = []
+  for (const { filePath, messages, suppressedMessages } of await eslint.lintFiles(horsDuMur)) {
+    const rel = filePath.slice(RACINE_DEPOT.length + 1).split('\\').join('/')
+    for (const m of messages) {
+      // Un module NON linté (ignoré, illisible au parseur) rend un message sans `ruleId` : il est nommé,
+      // jamais compté pour conforme.
+      if (m.ruleId === null || m.ruleId in REGLES_ORDRE_TOTAL) sites.push(`${rel}:${m.line}: ${m.message}`)
+    }
+    // Une directive ÉTEINT le mur sans le faire parler : hors des globs, aucune exemption n'est nommée.
+    for (const m of suppressedMessages) {
+      if (m.ruleId in REGLES_ORDRE_TOTAL) sites.push(`${rel}:${m.line}: (éteint par une directive) ${m.message}`)
+    }
+  }
+  // Un commentaire de configuration `/* eslint <mur>: … */` éteint le mur sans message ni suppression.
+  for (const site of sonde.vues) sites.push(`${site}: (commentaire ESLint qui éteint le mur)`)
+  assert.deepEqual(sites, [], `module de la clôture hors des globs du mur qui enfreint ses règles :\n  ${sites.join('\n  ')}`)
+})
+
+/** Les exemptions AU SITE du mur de l'ordre total, nommées : le crochet de l'enregistreur de lectures
+ *  (il POSE le listing), la reproduction du filtre de Vitest (`toLocaleLowerCase`) et l'oracle naïf du
+ *  banc de `sourceCorpus` (marche témoin indépendante de `listerArbre`). */
+const EXEMPTIONS_DU_MUR = [
+  'scripts/guards/lib/sourceCorpus.test.mjs:33',
+  'scripts/docs/lib/enregistreur-lectures.mjs:81', 'scripts/docs/lib/enregistreur-lectures.mjs:87',
+  'scripts/docs/lib/enregistreur-lectures.mjs:111', 'scripts/docs/lib/enregistreur-lectures.mjs:119',
+  'scripts/docs/lib/enregistreur-lectures.mjs:123', 'scripts/docs/lib/enregistreur-lectures.mjs:133',
+  'scripts/docs/lib/enregistreur-lectures.mjs:139',
+  'scripts/test/partition.mjs:172', 'scripts/test/partition.mjs:177',
+]
+
+/** Sonde des commentaires ESLint qui ÉTEIGNENT l'une de ces règles, lus par la grammaire d'ESLint
+ *  elle-même (`SourceCode#getDisableDirectives`/`applyInlineConfig`, `ConfigCommentParser#parseListConfig`
+ *  de la copie de `@eslint/plugin-kit` que charge le linter) : la directive `eslint-disable…` qui la
+ *  nomme ou n'en nomme aucune (elle éteint tout), et le commentaire de configuration
+ *  `/* eslint <règle>: … *\/` qui la redéclare (sévérité ou options) ; `eslint-enable` n'éteint rien. `bloc(fichiers)` est le bloc de config à greffer au lint ; `vues` reçoit les
+ *  sites `rel:ligne`. */
+function sondeDesDirectives(regles) {
+  const parseur = new ConfigCommentParser()
+  const vues = []
+  const lire = {
+    create(ctx) {
+      const rel = ctx.filename.slice(RACINE_DEPOT.length + 1).split('\\').join('/')
+      const sc = ctx.sourceCode
+      for (const d of sc.getDisableDirectives().directives) {
+        if (d.type === 'enable') continue
+        const noms = Object.keys(parseur.parseListConfig(d.value))
+        if (noms.length === 0 || noms.some((n) => regles.includes(n))) vues.push(`${rel}:${d.node.loc.start.line}`)
+      }
+      for (const { config, loc } of sc.applyInlineConfig().configs) {
+        if (Object.keys(config.rules ?? {}).some((n) => regles.includes(n))) vues.push(`${rel}:${loc.start.line}`)
+      }
+      return {}
+    },
+  }
+  const bloc = (fichiers) => ({ files: fichiers, plugins: { sonde: { rules: { lire } } }, rules: { 'sonde/lire': 'error' } })
+  return { vues, bloc }
+}
+
+/** La config du dépôt SANS ses règles : ses parseurs lisent chaque dialecte, ses ignores globaux restent,
+ *  seule la sonde tourne. Sûr tant qu'aucun bloc à `rules` n'a d'`ignores` sans `files` (réduit, il
+ *  deviendrait un ignore global) : asserté ici, à chaque lecture. */
+function sansRegles(config = configEslint) {
+  assert.ok(!config.some((c) => c?.rules && c.ignores && !c.files), 'réduire à `rules` près un bloc à `rules` et `ignores` sans `files` en ferait un ignore global')
+  return config.map(({ rules: _regles, ...bloc }) => bloc)
+}
+const lintSonde = (sonde, fichiers) =>
+  new ESLint({ cwd: RACINE_DEPOT, overrideConfigFile: true, overrideConfig: [...sansRegles(), sonde.bloc(fichiers)] })
+
+/** Un commentaire ESLint s'ouvre par le mot `eslint` (`parseDirective`, `shared/directives.js`) : un
+ *  source qui ne le porte pas n'en a aucun. */
+const porteCommentaireEslint = (texte) => texte.includes('eslint')
+
+/** Les fichiers de code qu'arme au moins une règle du mur, marchés depuis les racines que ses globs
+ *  nomment (premier segment de chaque glob). */
+function fichiersSousLeMur() {
+  const blocs = blocsDuMur()
+  const racines = [...new Set(blocs.flatMap((c) => c.files.map((g) => g.split('/')[0])))].sort(parUnitesDeCode)
+  return racines
+    .flatMap((racine) => listerArbre(join(RACINE_DEPOT, racine), { descendre: (r) => r !== 'node_modules' }).map((r) => `${racine}/${r}`))
+    .filter((rel) => scriptKindDe(rel) !== scriptKindDe('.json') && blocs.some((c) => couvre(c, rel) && !exempte(c, rel)))
+}
+
+test('UNICITÉ — chaque règle du mur est déclarée par UN SEUL bloc d’eslint.config.js, en `error`, avec ses options', () => {
+  for (const [regle, valeur] of Object.entries(REGLES_ORDRE_TOTAL)) {
+    const blocs = configEslint.flatMap((c, i) => (c?.rules && regle in c.rules
+      ? [`bloc ${i} [${(c.files ?? ['(tous les fichiers)']).join(', ')}] → ${JSON.stringify(c.rules[regle]).slice(0, 60)}`]
+      : []))
+    assert.equal(blocs.length, 1, `\`${regle}\` déclarée par ${blocs.length} blocs — un bloc postérieur qui la redéclare (\`off\`, \`warn\`, d’autres options) éteint le mur :\n  ${blocs.join('\n  ')}`)
+    assert.equal(blocDe(regle).rules[regle], valeur, `\`${regle}\` : son bloc ne pose pas la valeur de \`REGLES_ORDRE_TOTAL\``)
+    assert.equal(valeur[0], 'error', `\`${regle}\` n’est pas en \`error\``)
+  }
+})
+
+test('IGNORES — aucun ignore GLOBAL d’eslint.config.js ne couvre un fichier sous le mur', async () => {
+  // ESLint décide de ce qu'est un ignore global : la config du dépôt sans ses règles (`sansRegles`, qui
+  // n'en crée aucun) arme tout fichier (`files: ['**']`) — un fichier qu'elle ignore l'est par un ignore
+  // global, jamais faute de bloc.
+  const lecteur = (config) => new ESLint({ cwd: RACINE_DEPOT, overrideConfigFile: true, overrideConfig: [...sansRegles(config), { files: ['**'] }] })
+  const reel = lecteur(configEslint)
+  const ignores = []
+  for (const rel of fichiersSousLeMur()) if (await reel.isPathIgnored(join(RACINE_DEPOT, rel))) ignores.push(rel)
+  assert.deepEqual(ignores, [], `fichier sous le mur éteint par un ignore global :\n  ${ignores.join('\n  ')}`)
+  // Deux ignores globaux plantés DANS la config lue, nu et à `basePath` (champ méta de
+  // `@eslint/config-array`).
+  const temoin = 'scripts/docs/build-all.mjs'
+  const plante = async (bloc) => lecteur([...configEslint, bloc]).isPathIgnored(join(RACINE_DEPOT, temoin))
+  assert.equal(await plante({ ignores: [temoin] }), true, 'le lecteur ne voit plus un ignore global planté')
+  assert.equal(await plante({ basePath: 'scripts', ignores: ['docs/build-all.mjs'] }), true, 'le lecteur ne voit pas un ignore global à `basePath`')
+})
+
+test('DIRECTIVES — sous les globs du mur, les seules directives qui l’éteignent sont les exemptions nommées', async () => {
+  const regles = Object.keys(REGLES_ORDRE_TOTAL)
+  const sousLeMur = fichiersSousLeMur()
+  for (const temoin of ['scripts/docs/build-all.mjs', 'src/eslint-ordre-total-et-purete.test.ts']) {
+    assert.ok(sousLeMur.includes(temoin), `la marche des globs du mur ne voit plus \`${temoin}\``)
+  }
+  const porteurs = sousLeMur.filter((rel) => porteCommentaireEslint(readFileSync(join(RACINE_DEPOT, rel), 'utf8')))
+  const sonde = sondeDesDirectives(regles)
+  const lint = lintSonde(sonde, porteurs)
+  // Un porteur ignoré ou illisible au parseur tairait ses directives : il est nommé.
+  const ignores = []
+  for (const rel of porteurs) if (await lint.isPathIgnored(join(RACINE_DEPOT, rel))) ignores.push(`${rel}: ignoré`)
+  assert.deepEqual(ignores, [])
+  const resultats = await lint.lintFiles(porteurs)
+  assert.deepEqual(resultats.flatMap((r) => r.messages.filter((m) => m.fatal).map((m) => `${r.filePath}:${m.line}: ${m.message}`)), [])
+  assert.deepEqual(sonde.vues.sort(parUnitesDeCode), [...EXEMPTIONS_DU_MUR].sort(parUnitesDeCode))
+  // La lecture des directives se prouve sur un cas planté de chaque forme, sous les globs du mur, après
+  // le filtre des porteurs.
+  const PLANTE = 'scripts/docs/zz-plante-directives.mjs'
+  const plante = async (code) => {
+    if (!porteCommentaireEslint(code)) return []
+    const s = sondeDesDirectives(regles)
+    await lintSonde(s, [PLANTE]).lintText(code, { filePath: join(RACINE_DEPOT, PLANTE) })
+    return s.vues.map((v) => Number(v.slice(PLANTE.length + 1)))
+  }
+  assert.deepEqual(await plante('// eslint-disable-next-line murs/marques -- autre mur\nx()\n'), [])
+  assert.deepEqual(await plante('// eslint-disable-next-line murs/ordre-total-locale -- r\nx()\n'), [1])
+  assert.deepEqual(await plante('// eslint-disable-next-line murs/ordre-total-locale --- raison\nx()\n'), [1])
+  assert.deepEqual(await plante('// eslint-disable-next-line "murs/ordre-total-locale"\nx()\n'), [1])
+  assert.deepEqual(await plante('a()\n// eslint-disable-next-line\nx()\n'), [2])
+  assert.deepEqual(await plante('/* eslint-disable murs/marques, murs/ordre-total */\nx()\n'), [1])
+  assert.deepEqual(await plante('/* eslint-enable */\nx()\n'), [], 'une réactivation n’éteint rien')
+  assert.deepEqual(await plante('/* eslint-enable murs/ordre-total-locale */\nx()\n'), [])
+  assert.deepEqual(await plante('const s = `/* eslint murs/ordre-total-locale: off */`\n'), [], 'une chaîne n’est pas une directive')
+  // Le commentaire de CONFIGURATION redéclare le mur (sévérité ou options) : il l'éteint sans rien supprimer.
+  assert.deepEqual(await plante('/* eslint murs/ordre-total-locale: "off" */\nx()\n'), [1])
+  assert.deepEqual(await plante('/* eslint "murs/ordre-total-locale": "off" */\nx()\n'), [1])
+  assert.deepEqual(await plante('/* eslint "murs\\u002fordre-total-locale": "off" */\nx()\n'), [1], 'échappement JSON')
+  assert.deepEqual(await plante('/*eslint no-console: 0, "murs/ordre-total-imports": ["error", {}] */\nx()\n'), [1])
+  assert.deepEqual(await plante('/* eslint murs/marques: "off" */\nx()\n'), [])
+  assert.deepEqual(await plante('/* eslint no-console: off -- murs/ordre-total-locale: y */\nx()\n'), [], 'la justification n’est pas une règle')
 })
 
 // ── (d) MOTIF ──────────────────────────────────────────────────────────────────────────

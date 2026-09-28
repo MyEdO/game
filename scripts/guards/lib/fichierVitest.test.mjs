@@ -21,7 +21,7 @@ import {
 
 test('estFichierVitest : les deux formes JOUÉES sont des instruments', () => {
   for (const rel of [
-    'src/data/index-vif-guard.test.ts',
+    'src/data/index-vivant-guard.test.ts',
     'src/ui/roll-display-contract.test.tsx',
     'src/gameIso/stage/versionDataset.bench.ts',
     'src/gameIso/stage/arete-dans-la-chaine.bench.ts',
@@ -40,7 +40,7 @@ test('estFichierVitest : la production et ce qui RESSEMBLE à un instrument n’
   for (const rel of [
     'src/gameIso/stage/versionDataset.ts',
     'src/gameIso/stage/versionDataset.fixture.ts',
-    'src/data/index-vif-guard.test.ts.bak',
+    'src/data/index-vivant-guard.test.ts.bak',
     'src/engine/types.d.ts',
     'src/data/overrides.json',
     'benchmarks.ts',
@@ -60,7 +60,7 @@ test('EST_FICHIER_VITEST : la regexp exportée est sans état — deux appels re
 })
 
 test('estSuiteVitest : une SUITE oui, un BANC non — le sens « les tests seulement »', () => {
-  for (const rel of ['src/data/index-vif-guard.test.ts', 'src/ui/a.test.tsx', 'scripts/g.test.mjs', 'p.test.mts'])
+  for (const rel of ['src/data/index-vivant-guard.test.ts', 'src/ui/a.test.tsx', 'scripts/g.test.mjs', 'p.test.mts'])
     assert.equal(estSuiteVitest(rel), true, `suite : ${rel}`)
   for (const rel of ['src/gameIso/stage/versionDataset.bench.ts', 'banc.bench.tsx', 'scripts/qc/planche.bench.mjs']) {
     assert.equal(estSuiteVitest(rel), false, `un banc n’est pas une suite : ${rel}`)
@@ -76,7 +76,7 @@ test('les deux prédicats se DÉRIVENT des fragments exportés — une source, q
   assert.equal(EST_FICHIER_VITEST.source, `${SUFFIXE_INSTRUMENT}$`)
   // Un fragment est une SOURCE de regex, sans ancre : composable à gauche comme à droite.
   const dansUnChemin = new RegExp(`^src/.+${SUFFIXE_SUITE}$`)
-  assert.equal(dansUnChemin.test('src/data/index-vif-guard.test.ts'), true)
+  assert.equal(dansUnChemin.test('src/data/index-vivant-guard.test.ts'), true)
   assert.equal(dansUnChemin.test('scripts/g.test.mjs'), false)
   // Le fragment d'INSTRUMENT accepte les deux formes, celui de SUITE une seule.
   assert.equal(new RegExp(`${SUFFIXE_INSTRUMENT}$`).test('a.bench.mts'), true)

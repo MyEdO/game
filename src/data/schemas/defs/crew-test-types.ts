@@ -6,6 +6,7 @@
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { sourceRefSchema } from '../grammaire/valeurs';
+import { listeCle } from '../grammaire/collection-cle';
 
 export const file = 'crew-test-types.json';
 export const famille = 'config';
@@ -14,7 +15,7 @@ const doc = document(
   'crew-test-types',
   famille,
   {
-  types: z.array(
+  types: listeCle(
     z.strictObject({
       id: z.string(),
       label: z.string(),
@@ -30,6 +31,7 @@ const doc = document(
       steering: z.boolean().optional(),
       source: sourceRefSchema,
     }),
+    'id',
   ),
   },
   {
@@ -40,7 +42,7 @@ const doc = document(
   },
   {
     codex: { keys: ['crewTestTypes'] },
-    edit: { niche: { categories: ['crewTestTypes'] } },
+    edit: { niche: { categories: { crewTestTypes: 'types' } } },
   },
 );
 

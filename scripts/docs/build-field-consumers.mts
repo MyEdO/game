@@ -1,8 +1,7 @@
 /**
  * Rapport des CONSOMMATEURS PAR CHAMP — GÉNÉRÉ. Sortie : docs/consommateurs-de-champs.md.
  * Re-run : `npx tsx scripts/docs/build-field-consumers.mts` (`npm run docs:field-consumers`).
- * Mode --check (chaîné dans `npm run docs:check`) : régénère en mémoire, compare au .md committé,
- * exit 1 si diff — jamais d'écriture en mode --check.
+ * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/empreinte-sources.mjs), rejoué par `build-all.mjs`.
  *
  * Objet (#903) — la mesure INVERSE de `build-entity-orphans.mjs` : celui-ci répond « qui cite cet
  * ID d'ENTITÉ de catalogue ? », celui-ci répond « qui LIT ce CHAMP d'un TYPE de donnée structuré ? ».
@@ -81,9 +80,9 @@
  *     ex. `difficultySchema`, `charKeySchema`) : aucun champ objet à consommer, hors du périmètre
  *     de la question « qui lit CE CHAMP ? ».
  */
-import { join, resolve } from 'node:path'
+import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { emitOrCheck } from './lib/jsdocUnion.mjs'
+import { ecrireOuVerifier } from './lib/empreinte-sources.mjs'
 import { listProdFiles, scanFieldReads, fieldOwnership, groupByField } from '../guards/lib/fieldConsumers.mjs'
 import { TARGETS, fieldsOf } from '../guards/lib/fieldConsumerTargets.mjs'
 
@@ -255,17 +254,17 @@ export function buildFieldConsumersMd(files: string[] = listProdFiles(SRC_DIR)):
   out += `(\`src/data/index.ts\`, SOURCE UNIQUE du libellé affiché d'une \`TrappingRef\`) `
   out += specDansLeRendu
     ? `LIT \`ref.spec\` : une SECONDE définition du rendu « base (spec) », qui appartient à \`refConcrete\`.\n`
-    : `ne lit PAS \`ref.spec\` — le rendu « base (spec) » passe par \`refConcrete\`, partagée par toute \`Ref\`.\n`
+    : `ne lit PAS \`ref.spec\` — le rendu « base (spec) » passe par \`refConcrete\`, partagée par toute \`RefDesignee\`.\n`
 
   // `zeros` sort NOMMÉ (`Type.champ`) : le cliquet de `src/data/field-consumers.test.ts` compare
   // cette liste à la sienne, écrite en dur — aucun re-parsing du `.md`, dont la table est un RENDU.
   return { md: out, byType, totalFields, totalUnread, zeros }
 }
 
-/** CLI : écriture du `.md`, ou `--check` (chaîné dans `npm run docs:check`). */
-if (process.argv[1] && resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url))) {
+/** CLI : écriture du `.md`, ou `--check` : `ecrireOuVerifier`, rejoué par `build-all.mjs`. */
+if (import.meta.main) {
   const { md, totalFields, totalUnread } = buildFieldConsumersMd()
-  emitOrCheck({
+  ecrireOuVerifier({
     out: md,
     path: OUT,
     check: process.argv.includes('--check'),

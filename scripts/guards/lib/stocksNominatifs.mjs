@@ -123,7 +123,7 @@ import { enteteDeHunk } from './hunks.mjs'
 const PORTEURS = [
   // Les SUITES des deux racines : une racine COMPOSÉE avec le suffixe de suite du prédicat partagé
   // (`fichierVitest.mjs`). Un BANC en est absent à dessein : son index FIGÉ est le témoin qu'il
-  // compare au vif, pas un stock nominatif à migrer.
+  // compare au vivant, pas un stock nominatif à migrer.
   new RegExp(String.raw`^src\/.+` + SUFFIXE_SUITE + '$'),
   /^scripts\/guards\/lib\/.+\.mjs$/,
   new RegExp(String.raw`^scripts\/.+` + SUFFIXE_SUITE + '$'),

@@ -12,7 +12,7 @@
  *
  * COURBE (MAISON, assumée) — aucune simulation astronomique : le canon est muet sur l'heure du lever
  * et du coucher (`engine/clock.ts`, `DAY_PHASES`). Une seule arche, symétrique autour de MIDI :
- *  - lever à `DAWN_MINUTE` (05:00, la donnée éditable `calendarPhases`), coucher à son symétrique
+ *  - lever à `dawnMinute` (05:00, la donnée éditable `calendarPhases`), coucher à son symétrique
  *    (19:00) ; hors de cette fenêtre, AUCUN soleil (`null`) — la nuit est gouvernée par les paliers de
  *    `lightLevels.json` (`ambientScalar`), pas par une directionnelle rasante ;
  *  - élévation `MAX·cos(t·π/2)` avec `t ∈ [−1,1]` (−1 = lever, 0 = midi, +1 = coucher) : nulle aux deux
@@ -25,7 +25,7 @@
  * `northDeg` est la rotation HORAIRE, vue du dessus, du nord réel par rapport à ce `−z` : elle s'ajoute
  * au relèvement du soleil. `northDeg = 0` = le nord implicite d'aujourd'hui.
  */
-import { DAWN_MINUTE, MINUTES_PER_DAY } from '../../../engine/clock';
+import { dawnMinute, MINUTES_PER_DAY } from '../../../engine/clock';
 import { isIndoor, type Scene } from '../../../state/scene';
 import { SUN_ELEVATION_DEG } from './sceneMeshes';
 
@@ -38,7 +38,7 @@ export const SOLAR_NOON_MINUTE = 12 * 60;
 export const SUN_JEU_MAX_ELEVATION_DEG = SUN_ELEVATION_DEG / Math.cos(Math.PI / 4);
 
 /** Demi-arche (minutes) : de MIDI au coucher, soit autant que du lever à midi. */
-export const SUN_JEU_HALF_ARC_MIN = SOLAR_NOON_MINUTE - DAWN_MINUTE;
+export const sunJeuHalfArcMin = (): number => SOLAR_NOON_MINUTE - dawnMinute();
 
 /** Soleil de jeu à un instant donné. `dir` est la direction unitaire du POINT OÙ IL EST (même
  *  convention que `SUN_AZIMUTH`, le soleil de planche), en repère three (x = est, y = haut, z = sud). */
@@ -59,7 +59,7 @@ const minuteOfDay = (minutes: number) => ((minutes % MINUTES_PER_DAY) + MINUTES_
  *  heure qui n'est pas un nombre fini, qui poserait la lampe en `NaN` (une `DirectionalLight` à position
  *  non finie ne rend plus rien, sans une ligne de console). */
 export function sunJeu(gameTime: number, northDeg = 0): SunJeu | null {
-  const t = (minuteOfDay(gameTime) - SOLAR_NOON_MINUTE) / SUN_JEU_HALF_ARC_MIN;
+  const t = (minuteOfDay(gameTime) - SOLAR_NOON_MINUTE) / sunJeuHalfArcMin();
   if (!Number.isFinite(t) || t < -1 || t > 1) return null;
   const elevationDeg = SUN_JEU_MAX_ELEVATION_DEG * Math.cos((t * Math.PI) / 2);
   const nord = Number.isFinite(northDeg) ? northDeg : 0;

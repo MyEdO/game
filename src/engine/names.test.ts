@@ -9,7 +9,7 @@ import { makeRNG } from './dice';
 import { generateName } from './names';
 import { names as N } from '../data';
 import speciesJson from '../data/species.json';
-import type { RaceKey } from '../data/schemas/grammaire/valeurs';
+import { sexeSchema, type RaceKey } from '../data/schemas/grammaire/valeurs';
 const startsWithOne = (name: string, pool: string[]) => pool.some((p) => name.startsWith(p + ' '));
 const endsWithOne = (name: string, pool: string[]) => pool.some((p) => name.endsWith(' ' + p));
 /** Banque d'une race, retrouvée par son id — `names.json` est une LISTE de documents (#1467 L1b). */
@@ -62,7 +62,7 @@ describe('generateName — banque names.json + canon nain (LDB 05 l.627-633)', (
     const species = speciesJson as { label: string; refChar: RaceKey }[];
     for (const sp of species) {
       expect(N.find((n) => n.id === sp.refChar), `${sp.label} → refChar ${JSON.stringify(sp.refChar)} absent de names.json`).toBeTruthy();
-      for (const sex of ['M', 'F'] as const) {
+      for (const sex of sexeSchema.options) {
         const n = generateName(sp.refChar, sex, makeRNG(11));
         expect(n, `${sp.label} (${sp.refChar}) ${sex}`).toBeTruthy();
         expect(n!.split(' ').length).toBeGreaterThanOrEqual(2);

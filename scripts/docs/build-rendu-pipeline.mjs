@@ -14,15 +14,15 @@
  *  - la population des CATALOGUES de matériaux.
  * La part ÉDITORIALE (contrat de perf, doctrine, « où ajouter… ») vit ICI, en dur.
  *
- * Mode --check (chaîné dans npm run docs:check) : régénère en mémoire, compare au .md committé,
- * exit 1 si diff — jamais d'écriture en mode --check.
+ * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/empreinte-sources.mjs), rejoué par `build-all.mjs`.
  *
  *   node scripts/docs/build-rendu-pipeline.mjs
  */
 import { readFileSync, existsSync, statSync } from 'node:fs'
 import { listerDossier, listerArbre } from '../guards/lib/lister.mjs'
 import ts from 'typescript'
-import { emitOrCheck, loadSource, firstSentence, jsdocBody } from './lib/jsdocUnion.mjs'
+import { loadSource, firstSentence, jsdocBody } from './lib/jsdocUnion.mjs'
+import { ecrireOuVerifier } from './lib/empreinte-sources.mjs'
 import { fileExports } from './lib/engineExports.mjs'
 
 const OUTIL = 'build-rendu-pipeline'
@@ -408,7 +408,7 @@ ${table(CATALOGUES, ['Catalogue', 'Entrées'], (c) => `| \`${c.p}\` | ${c.entree
   SVG avec sa profondeur de tri.
 `
 
-emitOrCheck({
+ecrireOuVerifier({
   out,
   path: 'docs/rendu-pipeline.md',
   check: process.argv.includes('--check'),

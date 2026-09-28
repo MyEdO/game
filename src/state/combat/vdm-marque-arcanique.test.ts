@@ -4,7 +4,6 @@ import { applyMiscast } from '../combatFlow';
 import { seedBattleRng } from '../battleRng';
 import { draineCascade } from '../cascadeTestKit';
 import { createHero } from '../../engine/character';
-import { makeRNG } from '../../engine/dice';
 import { setRule, resetRule } from '../../engine/policy';
 import { hasTalent, talentTestSLBonus } from '../../engine/magic';
 import { effectiveTalents } from '../../engine/talentEffects';
@@ -40,9 +39,9 @@ describe('Marque Arcanique — le Talent marqué est RÉELLEMENT possédé', () 
   });
 
   function setup(): Combatant {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'Mage', rng: makeRNG(3) });
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'Mage', seed: 3 });
     useGame.setState({ party: [hero] });
-    useGame.getState().startScene(testScene);
+    useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');
     useGame.getState().confirmRoundStart();
     vi.clearAllTimers();
@@ -72,7 +71,7 @@ describe('Marque Arcanique — le Talent marqué est RÉELLEMENT possédé', () 
     const seed = seedYieldingMark();
     const H = setup();
     // Témoin AVANT : rien n'est possédé, aucun +DR.
-    expect(hasTalent(H, 'Empreint de Hysh')).toBe(false);
+    expect(hasTalent(H, 'empreint-de-hysh')).toBe(false);
     expect(talentTestSLBonus(H, { skill: 'recherche' })).toBe(0);
 
     seedBattleRng(seed);
@@ -80,7 +79,7 @@ describe('Marque Arcanique — le Talent marqué est RÉELLEMENT possédé', () 
     draineCascade(useGame.getState);
 
     const marque = live(H.id);
-    expect(hasTalent(marque, 'Empreint de Hysh')).toBe(true);
+    expect(hasTalent(marque, 'empreint-de-hysh')).toBe(true);
     expect(talentTestSLBonus(marque, { skill: 'recherche' })).toBe(1);
     expect(talentTestSLBonus(marque, { skill: 'natation' })).toBe(0);
     // La Marque est DÉFINITIVE : acquisition structurelle, pas un effet actif qui expire.

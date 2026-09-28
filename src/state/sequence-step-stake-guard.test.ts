@@ -22,6 +22,7 @@ import { describe, it, expect } from 'vitest';
 import ts from 'typescript';
 import { join, sep } from 'node:path';
 import { readCorpus, type CorpusFile } from '../../scripts/guards/lib/sourceCorpus.mjs';
+import { detenteur } from '../detenteur.testkit';
 
 const SRC = join(process.cwd(), 'src');
 const STATE = join(SRC, 'state');
@@ -76,16 +77,18 @@ export function appelsDeMonteur(src: string, nom = 'sonde.ts'): AppelDeMonteur[]
 }
 
 describe('cliquet AST — une étape de SÉQUENCE qui lance dit son enjeu (#1279)', () => {
-  const mesure = fichiersDeSequence().map(({ abs, text }) => ({ f: abs, appels: appelsDeMonteur(text, abs) }));
+  const mesure = detenteur(() =>
+    fichiersDeSequence().map(({ abs, text }) => ({ f: abs, appels: appelsDeMonteur(text, abs) })),
+  );
 
   it('la COUVERTURE est peuplée : les familles de séquence sont bien vues', () => {
-    expect(mesure.length, 'aucun fichier n’enregistre de séquence — le scan mesurerait le vide').toBeGreaterThan(0);
-    expect(mesure.some((m) => m.appels.length > 0), 'aucun monteur trouvé : l’AST ne voit rien').toBe(true);
+    expect(mesure().length, 'aucun fichier n’enregistre de séquence — le scan mesurerait le vide').toBeGreaterThan(0);
+    expect(mesure().some((m) => m.appels.length > 0), 'aucun monteur trouvé : l’AST ne voit rien').toBe(true);
   });
 
   it('AUCUNE étape lançante sans enjeu — par la FORME, sans baseline', () => {
     const muettes: string[] = [];
-    for (const { f, appels } of mesure) {
+    for (const { f, appels } of mesure()) {
       for (const a of appels) {
         if (!MONTEURS_LANCANTS.includes(a.monteur as typeof MONTEURS_LANCANTS[number])) continue;
         if (!a.litteral) continue; // déclaration indirecte : mesurée par le test suivant
@@ -101,7 +104,7 @@ describe('cliquet AST — une étape de SÉQUENCE qui lance dit son enjeu (#1279
    *  mort. La garde exige que cette forme n'existe pas. */
   it('aucune étape lançante déclarée INDIRECTEMENT (le scan lit des déclarations)', () => {
     const indirectes: string[] = [];
-    for (const { f, appels } of mesure) {
+    for (const { f, appels } of mesure()) {
       for (const a of appels) {
         if (!MONTEURS_LANCANTS.includes(a.monteur as typeof MONTEURS_LANCANTS[number])) continue;
         if (!a.litteral) indirectes.push(`${keyOf(f)}:${a.ligne} — ${a.monteur}`);
@@ -115,7 +118,7 @@ describe('cliquet AST — une étape de SÉQUENCE qui lance dit son enjeu (#1279
    *  vaudrait rien (une exemption qui ne porte sur aucun site est une phrase, pas une règle). */
   it('PARTITION : les familles montent AUSSI des étapes sans jet et des rangées — exemptées, et vues', () => {
     const par = new Map<string, number>();
-    for (const { appels } of mesure) for (const a of appels) par.set(a.monteur, (par.get(a.monteur) ?? 0) + 1);
+    for (const { appels } of mesure()) for (const a of appels) par.set(a.monteur, (par.get(a.monteur) ?? 0) + 1);
     const lancantes = MONTEURS_LANCANTS.reduce((n, m) => n + (par.get(m) ?? 0), 0);
     const rangees = MONTEURS_DE_RANGEE.reduce((n, m) => n + (par.get(m) ?? 0), 0);
     const sansJet = MONTEURS_SANS_JET.reduce((n, m) => n + (par.get(m) ?? 0), 0);

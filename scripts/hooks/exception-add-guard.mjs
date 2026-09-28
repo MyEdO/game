@@ -3,9 +3,8 @@
 // table d'exceptions de garde, ou qui AUGMENTE une baseline de cliquet, exige sa confirmation
 // explicite. Les re-pointages (clé remplacée, compte constant) et les RETRAITS passent sans
 // friction. Opposable aux sessions ET aux sous-agents.
+import '../node-requis.mjs'
 import { readFileSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
-import { resolve } from 'node:path'
 import { SUFFIXE_SUITE } from '../guards/lib/fichierVitest.mjs'
 import { cheminDEcriture } from './solde-ticket-guard.mjs'
 
@@ -122,8 +121,7 @@ export function readWrite(input) {
 }
 
 // ── Driver stdin (n'exécute QUE lancé en direct, jamais à l'import du module de test) ─────────────
-const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)
-if (isMain) {
+if (import.meta.main) {
   let raw = ''
   process.stdin.setEncoding('utf8')
   for await (const chunk of process.stdin) raw += chunk

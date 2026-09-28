@@ -12,4 +12,4 @@ metadata:
 ```
 Get-WinEvent -FilterHashtable @{LogName='System'; StartTime=(Get-Date).Date} | Where-Object { $_.ProviderName -eq 'Microsoft-Windows-Kernel-Power' -and $_.Id -in 506,507 } | Select TimeCreated,Id
 ```
-Fenêtre du « pendu » entre un 506 (entrée) et un 507 (sortie) → rien à corriger dans l'outil : rejouer (`--reprendre`) et prévenir aussitôt les sessions qui attendaient le push (l'ordre de publication convenu est périmé). Autre cause d'un Monitor muet : [[env-garde-memoire-harnais-gates-serie-detachees]] (garde-mémoire du harnais).
+Fenêtre du « pendu » entre un 506 (entrée) et un 507 (sortie) → rien à corriger dans l'outil : rejouer (`--reprendre`) et prévenir aussitôt les sessions qui attendaient le push (l'ordre de publication convenu est périmé). Autre cause d'un Monitor muet : [[env-gates-serie-detachees]] (garde-mémoire du harnais).

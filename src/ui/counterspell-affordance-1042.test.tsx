@@ -43,7 +43,7 @@ function monter(parts: unknown[]) {
   useGame.setState({
     battle: { combatants: [A, B, E], order: ['E', 'A', 'B'], baseOrder: ['E', 'A', 'B'], turn: 0, round: 1, action: null, selectedSpellId: null,
       reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null } as unknown as BattleState,
-    mode: 'battle', scene: testScene, net: SOLO as never, party: [A, B],
+    mode: 'battle', scene: testScene(), net: SOLO as never, party: [A, B],
     pendingDefense: null, pendingAttack: null, pendingCascade: null, pendingCastOpposition: null,
     pendingCast: { casterId: 'E', targetId: 'A', spellId: 'drain', missile: false, focused: false, counterspellRouted: true, result: ENEMY_CAST } as never,
     pendingCounterspell: { participants: parts } as never,

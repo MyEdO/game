@@ -79,10 +79,10 @@ describe('#1318 E4/C4-δ2 — parité « le moteur ne nomme plus d’id, l’ent
     // n'importe quelle clé : la liaison clé ↔ valeur ATTEIGNABLE de la règle se vérifie donc ici, en
     // dérivant les valeurs du registre des règles (jamais une liste recopiée).
     const atteignables = (ruleId: string): string[] => {
-      const def = ruleDef(ruleId);
-      if (!def) return [];
-      if (def.kind === 'flag') return ['true', 'false'];
-      if (def.kind === 'mode') return (def.options ?? []).map(String);
+      const regle = ruleDef(ruleId);
+      if (!regle) return [];
+      if (regle.kind === 'flag') return ['true', 'false'];
+      if (regle.kind === 'mode') return (regle.options ?? []).map(String);
       return []; // `param` : aucun ensemble fermé de valeurs — une carac par valeur numérique n'aurait pas de sens
     };
     const fautives = skills.flatMap((s) =>

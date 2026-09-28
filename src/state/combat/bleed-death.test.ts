@@ -4,7 +4,6 @@ import '../combatFlow'; // effet de bord : enregistre les hooks de fin de Round 
 import { runCombatHooks, type CombatHookCtx } from '../combatHooks';
 import { resolveRoundBoundary } from '../combatFlow';
 import { createHero } from '../../engine/character';
-import { makeRNG } from '../../engine/dice';
 import { seedBattleRng } from '../battleRng';
 import { ev } from '../combatLog';
 import { addCondition, stacks, COND } from '../../engine/conditions';
@@ -29,9 +28,9 @@ describe('Mort par Hémorragique en combat (LDB 16 l.105) — hook bleed-death +
   });
 
   function setup() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
-    useGame.getState().startScene(testScene);
+    useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');
     useGame.getState().confirmRoundStart();
     vi.clearAllTimers();

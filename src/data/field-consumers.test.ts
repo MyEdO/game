@@ -5,6 +5,7 @@ import { buildFieldConsumersMd } from '../../scripts/docs/build-field-consumers.
 import { TARGETS, fieldsOf } from '../../scripts/guards/lib/fieldConsumerTargets.mjs';
 import { listProdFiles, scanFieldReads, fieldOwnership, groupByField } from '../../scripts/guards/lib/fieldConsumers.mjs';
 import { virtualProgram, VIRTUAL_ROOT } from '../../scripts/guards/lib/tsProgram.mjs';
+import { detenteur } from '../detenteur.testkit';
 
 /**
  * Garde du rapport « consommateurs par champ » (#903 — `scripts/docs/build-field-consumers.mts`,
@@ -24,9 +25,8 @@ const ROOT = fileURLToPath(new URL('../../', import.meta.url));
  *  assertions qui le lisent (cas fondateur, déterminisme, champs recouvrés, cliquet des « 0 lecteur »).
  *  Il coûte ~17 s et ~1,3 Go (Program du dépôt, 1 952 fichiers) : d'où les timeouts explicites posés
  *  sur les `it` qui le paient. PARESSEUX : payé au 1ᵉʳ `it` qui le demande, jamais à la collecte de
- *  vitest. */
-let _rapport: ReturnType<typeof buildFieldConsumersMd> | null = null;
-const rapport = () => (_rapport ??= buildFieldConsumersMd());
+ *  vitest (#1801). */
+const rapport = detenteur(buildFieldConsumersMd);
 
 /**
  * L'ÉCART entre DEUX rendus du rapport, en une phrase — vide = identiques. Trois cas NOMMÉS, mordus
@@ -96,7 +96,7 @@ describe('cas fondateur #903 — qui lit TrappingRef.spec ?', () => {
    * `qualityChoice`, et `itemFromTrappingRef` (`src/engine/items.ts`) qui la MATÉRIALISE sur
    * l'`ItemInstance` — sans quoi la spécialisation se perd entre la dotation et le sac (#1463
    * L-ref-1). Le RENDU, lui, n'en est pas un : « base (spec) » passe par `refConcrete`
-   * (`src/data/index.ts`), SOURCE UNIQUE partagée par toute `Ref` dont le paramètre est un `Ref` —
+   * (`src/data/index.ts`), SOURCE UNIQUE partagée par toute référence, son paramètre est un `RefDesignee` —
    * un lecteur mesuré dans `data/index.ts` signalerait une SECONDE définition du rendu, et c'est ce
    * que cette garde refuse. La preuve d'AFFICHAGE vit sur la donnée réelle
    * (`src/data/dotations-catalogue.test.ts`, `src/engine/integration-creation.test.ts`).
@@ -166,7 +166,7 @@ describe('DÉTERMINISME cross-OS — le rapport ne dépend pas du système de fi
  */
 const RECOUVRES: readonly (readonly [string, string, string])[] = [
   ['DetailRecipe', 'tintVar', 'src/gameIso/authoring/detailSvg.ts @detailPatternDefs'],
-  ['EntityAppearance', 'armurePortee', 'src/state/spawn.ts @spawnEnemy'],
+  ['EntityAppearance', 'armurePortee', 'src/gameIso/rig/enemyProfile.ts @armour, src/ui/compendium/CodexEdit.tsx @AppearanceField'],
   ['CritEscalation', 'onRepeat', 'src/engine/critical.ts @repeat'],
   ['Amputation', 'timing', 'src/engine/critical.ts @resolveCritique, src/ui/compendium/registry.ts @meta'],
   ['FlowTest', 'opposed', 'src/state/combat/triggeredTest.ts @opp'],

@@ -3,7 +3,7 @@
 // rajouter d'autres options, je ne veux pas voir une suite d'id. Soit la cadence n'a rien a faire
 // dans policy, soit faut lui mettre un flag » — un code qui traite N entrées d'un registre de façon
 // uniforme ne teste JAMAIS l'identité d'une entrée : le comportement particulier est un ATTRIBUT
-// DÉCLARÉ sur l'entrée, lu comme n'importe quel champ (`def.kind`, `def.options`…).
+// DÉCLARÉ sur l'entrée, lu comme n'importe quel champ (`regle.kind`, `regle.options`…).
 //
 // ⚠ Distincte de `labelLogic.mjs` (logique keyée par LABEL au lieu de l'id) : ici, keyer par id est
 // tout aussi fautif — dans un code générique, on ne key pas, on lit un champ.
@@ -36,25 +36,18 @@ const ts = tsModule;
  *  `src/gameIso` et `src/data` portent les ROUTAGES D'ART et les registres chargés (le dépôt a déjà
  *  payé un routage d'art d'arme par id) ; `scripts` porte les compilateurs d'authoring, qui écrivent
  *  de la donnée de scène — un branchement par id y produit du contenu non généralisable. */
-/** Dernier arbre construit (chemin ET contenu) — les deux scans d'un même fichier se suivent sur le
- *  corpus, l'analyse syntaxique est donc faite UNE fois pour deux : 1,7 s économisée sur les 2 116
- *  fichiers de `SCAN_DIRS`, mesuré le 2026-08-23. Cache de taille UN : rien ne s'accumule, et la
- *  clé porte le CONTENU — une fixture au chemin d'un fichier réel ne peut pas hériter de son arbre.
- *  @type {{ rel: string, src: string, sf: import('typescript').SourceFile } | null} */
-let _dernierArbre = null;
-
-/** @param {string} relPath @param {string} contenu @returns {import('typescript').SourceFile} */
-function arbreDe(relPath, contenu) {
-  if (_dernierArbre && _dernierArbre.rel === relPath && _dernierArbre.src === contenu) return _dernierArbre.sf;
-  const sf = ts.createSourceFile(relPath, contenu, ts.ScriptTarget.Latest, true, scriptKindDe(relPath));
-  _dernierArbre = { rel: relPath, src: contenu, sf };
-  return sf;
-}
 
 export const SCAN_DIRS = ['src/ui', 'src/engine', 'src/state', 'src/gameIso', 'src/data', 'scripts'];
 
 /** Extensions scannées : TypeScript du jeu ET JavaScript d'outillage (`scripts/**` est en `.mjs`). */
 export const SCAN_EXTS = ['.ts', '.tsx', '.mts', '.mjs', '.js'];
+
+/** Arbre syntaxique d'un fichier, bâti à chaque appel : l'appelant qui passe les deux scans sur le
+ *  même fichier le tient et le leur passe (`tsProgram.mjs`, en-tête, pour la durée de vie).
+ *  @param {string} relPath @param {string} contenu @returns {import('typescript').SourceFile} */
+export function arbreDe(relPath, contenu) {
+  return ts.createSourceFile(relPath, contenu, ts.ScriptTarget.Latest, true, scriptKindDe(relPath));
+}
 
 /**
  * Fichiers HORS périmètre, par FORME et non par nom d'offenseur :
@@ -103,14 +96,13 @@ export const EQUALITY_OPS = new Set([
 
 /**
  * Mots RÉSERVÉS du vocabulaire `GameOp` (`src/engine/ops.ts`) — liste FERMÉE, tenue à la main :
- *  - `''` : sentinelle « pas d'id » ;
- *  - `'self'` : le PORTEUR de l'op (`{ op:'scheduleRespawn', ref:'self' }`, `{ stacks:'self' }`,
- *    `on`/`near` en donnée). MESURÉ le 2026-08-17 : aucune entrée de `src/data/*.json` ne porte
- *    `"id": "self"` — c'est un mot du vocabulaire, jamais l'identité d'une entrée de registre.
+ *  - `''` : sentinelle « pas d'id ».
+ * Une valeur réservée NOMMÉE par une constante du moteur (`SELF_REF`, `src/engine/ops.ts`) n'y entre
+ * pas : le code la lit par sa constante, et son littéral comparé à un id est compté comme tout autre.
  * Un littéral de cette liste ne DÉSIGNE aucune entrée : le comparer n'est pas un branchement par id.
  * Toute entrée de plus se mesure sur `ops.ts` ET sur les registres avant d'être ajoutée ici.
  */
-export const OP_VOCABULARY = new Set(['', 'self']);
+export const OP_VOCABULARY = new Set(['']);
 
 /** Littéral qui DÉSIGNE une entrée de registre : chaîne littérale hors `OP_VOCABULARY`. */
 export function isEntryLiteral(node) {
@@ -336,8 +328,8 @@ function collectLiteralHolders(sf) {
  *    stable, forme recommandée par la doctrine — la réaction PAR-NOM d'entité relève, elle, de la
  *    garde `hardcode.mjs` (`hasTalent`/`hasTraitKey`/`hasCondition` à argument littéral) ;
  *  - une entrée tenue par une constante de MODULE (`FORTUNE.id === x`) : code non générique ;
- *  - un mot du VOCABULAIRE `GameOp` (`id === ''`, `op.ref === 'self'` — `OP_VOCABULARY`) : il ne
- *    désigne aucune entrée de registre ;
+ *  - un mot du VOCABULAIRE `GameOp` (`id === ''` — `OP_VOCABULARY`) : il ne désigne aucune entrée
+ *    de registre ;
  *  - une collection de VOCABULAIRE FERMÉ (`const WAIST_BONES: BoneId[]` — `VOCABULARY_TYPES`) : ses
  *    membres sont bornés par une union de littéraux déclarée, pas par un registre de données ;
  *  - les TESTS et les MIGRATIONS (`isRegistryIdBranchExcluded`).
@@ -357,10 +349,10 @@ function collectLiteralHolders(sf) {
  * Est en revanche SUIVI l'ALIAS d'identité (`const k = def.id; k === 'x'`, `switch (k)`), évasion la
  * plus probable en pratique : la liaison hérite le kind `IDENTITY`, indépendamment de son nom.
  * @param {string} relPath @param {string} contenu
+ * @param {import('typescript').SourceFile} [sf] arbre de `contenu` déjà bâti (`arbreDe`)
  * @returns {{ line: number, detail: string, rule: 'id-equality'|'id-switch'|'id-membership'|'id-record' }[]}
  */
-export function scanRegistryIdBranch(relPath, contenu) {
-  const sf = arbreDe(relPath, contenu);
+export function scanRegistryIdBranch(relPath, contenu, sf = arbreDe(relPath, contenu)) {
   const { collections, records } = collectLiteralHolders(sf);
   const lines = contenu.split('\n');
   const findings = [];
@@ -490,10 +482,10 @@ export function countRegistryIdBranch(rel, contenu) {
  * Compté par NŒUD et non par ligne (contrairement au garde principal) : `id === 'a' ? … : id === 'b'`
  * sur une seule ligne pèse deux comparaisons, et n'en éteindre qu'une doit se voir.
  * @param {string} relPath @param {string} contenu
+ * @param {import('typescript').SourceFile} [sf] arbre de `contenu` déjà bâti (`arbreDe`)
  * @returns {{ line: number, detail: string }[]}
  */
-export function scanRawIdEqualities(relPath, contenu) {
-  const sf = arbreDe(relPath, contenu);
+export function scanRawIdEqualities(relPath, contenu, sf = arbreDe(relPath, contenu)) {
   const lines = contenu.split('\n');
   const findings = [];
 

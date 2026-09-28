@@ -1,8 +1,9 @@
 // LITTÉRAL DE CHAÎNE JS entre guillemets simples : le seul échappeur ÉCRIT du dépôt (#2007). Ses
-// consommateurs : l'écrivain des stocks `.mjs` (`FORMAT_MJS`, `stockDeSites.mjs`) et le générateur
-// des registres (`scripts/gen-registry.mjs`). `JSON.stringify` écrit aussi un littéral JS valide, entre
-// guillemets doubles, par la plateforme : ce n'est pas une règle d'échappement du dépôt. Garde :
-// `litteralJs.test.mjs` (construction `ECHAPPEUR_DE_LITTERAL`, `canonUnique.mjs`).
+// consommateurs : l'écrivain des stocks `.mjs` (`FORMAT_MJS`, `stockDeSites.mjs`) et les générateurs
+// des registres (`scripts/gen-registry.mjs`) et des espaces (`scripts/gen-espaces.mts`).
+// `JSON.stringify` écrit aussi un littéral JS valide, entre guillemets doubles, par la plateforme : ce
+// n'est pas une règle d'échappement du dépôt. Garde : `litteralJs.test.mjs` (construction
+// `ECHAPPEUR_DE_LITTERAL`, `canonUnique.mjs`).
 
 const ECHAPPES = new Map([
   ['\\', '\\\\'],

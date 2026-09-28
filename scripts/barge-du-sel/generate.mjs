@@ -15,7 +15,7 @@
  */
 import { writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 import { scene, hero, P, flowOf, poste, resetIds, projectDoc, flagWhen } from '../campagne/lib.mjs';
 import { itemFromTrappingById } from '../../src/engine/items.ts';
 import { emptyNarratif } from '../../src/state/campaignNarratif.ts';
@@ -320,7 +320,7 @@ return projectDoc({
 /** Chemin de l'artefact écrit par le CLI — lu aussi par la garde byte-stable. */
 export const OUT = join(dirname(fileURLToPath(import.meta.url)), '../../src/scenes/barge-du-sel/barge-du-sel-projet.json');
 
-if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (import.meta.main) {
   const doc = build();
   writeFileSync(OUT, JSON.stringify(doc, null, 1) + '\n');
   console.log(`barge-du-sel-projet.json : ${doc.scenes.length} scènes, ${doc.worldMap.places.length} lieux, ${doc.worldMap.routes.length} routes.`);

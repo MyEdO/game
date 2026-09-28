@@ -2,8 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
-import { estSuiteVitest } from '../scripts/guards/lib/fichierVitest.mjs';
+import { fichiersDeLaSuite } from '../scripts/guards/lib/suiteVitest.mjs';
 
 /**
  * Garde-fou `isolate: false` × mock de MODULE — la suite tourne avec `test.isolate: false`
@@ -24,15 +23,6 @@ import { estSuiteVitest } from '../scripts/guards/lib/fichierVitest.mjs';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url)); // racine du projet (src/ → ..)
 
-/** Racines scannées — miroir de `test.include` (vite.config.ts), verrouillé par le test de dérive.
- *  Une racine du miroir qui DISPARAÎT fait LEVER `readCorpus` (refus du vide, par base) : la garde
- *  rougit en nommant la racine, au lieu de scanner un périmètre amputé en silence. */
-const INCLUDE_ROOTS: { dir: string; glob: string }[] = [
-  { dir: 'src', glob: 'src/**/*.test.{ts,tsx}' },
-  { dir: 'server/src', glob: 'server/src/**/*.test.ts' },
-  { dir: 'scripts/map', glob: 'scripts/map/**/*.test.ts' },
-];
-
 const VI = 'vi';
 /** Appels de mock de MODULE (composés, cf. #828) — la famille dont la liaison dépend de l'ordre. */
 const MODULE_MOCK_CALLS = [`${VI}.mock(`, `${VI}.doMock(`];
@@ -44,15 +34,6 @@ export function moduleMockHits(source: string, label: string): string[] {
     for (const call of MODULE_MOCK_CALLS) if (line.includes(call)) out.push(`${label}:${i + 1} → ${line.trim()}`);
   });
   return out;
-}
-
-/** Les fichiers de TEST des racines du miroir, avec leur chemin POSIX depuis la racine du dépôt. */
-function scanIncludedTests(): { rel: string; text: string }[] {
-  return INCLUDE_ROOTS.flatMap(({ dir }) =>
-    readCorpus([dir], { tests: true })
-      .filter(({ rel }) => estSuiteVitest(rel))
-      .map(({ rel, text }) => ({ rel, text })),
-  );
 }
 
 const VITE_CONFIG = readFileSync(join(ROOT, 'vite.config.ts'), 'utf8');
@@ -70,12 +51,6 @@ describe('garde-fou — mock de module interdit tant que la suite partage son gr
     ).toBe(true);
   });
 
-  it('le périmètre scanné est celui de `test.include` — toute dérive de config casse ici', () => {
-    for (const r of INCLUDE_ROOTS) expect(VITE_CONFIG).toContain(`'${r.glob}'`);
-    const declared = VITE_CONFIG.match(/include:\s*\[([^\]]*)\]/)?.[1] ?? '';
-    expect(declared.match(/'[^']+'/g) ?? []).toHaveLength(INCLUDE_ROOTS.length); // un glob = une racine scannée
-  });
-
   it('cas planté : un appel de mock de module est détecté avec son `fichier:ligne` (preuve TDD)', () => {
     const planted = ['const x = 1;', `${VI}.mock('./career', () => ({}));`].join('\n');
     expect(moduleMockHits(planted, 'plante.test.ts')[0]).toContain('plante.test.ts:2');
@@ -90,7 +65,7 @@ describe('garde-fou — mock de module interdit tant que la suite partage son gr
   it('aucun fichier de test du périmètre ne mocke de module', () => {
     if (!ISOLATE_FALSE) return; // suite isolée par fichier : la liaison redevient déterministe
     const offenders: string[] = [];
-    for (const { rel, text } of scanIncludedTests()) offenders.push(...moduleMockHits(text, rel));
+    for (const { rel, text } of fichiersDeLaSuite()) offenders.push(...moduleMockHits(text, rel));
     expect(offenders, `Mock de module sous \`isolate: false\` — la liaison dépend de l'ordre des fichiers du worker.\nEnregistrer la donnée fabriquée dans le registre lu à l'appel (patron \`withTenue\`, resolve-membre.test.ts) :\n${offenders.join('\n')}`).toEqual([]);
   });
 });

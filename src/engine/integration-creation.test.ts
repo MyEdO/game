@@ -17,8 +17,8 @@ import { bonus } from './characteristics';
 describe('création ↔ Magie (grimoire, LDB 10/41/46)', () => {
   it('un Prêtre créé (Béni) reçoit AUTOMATIQUEMENT les six Bénédictions de son culte (LDB 41)', () => {
     const h = createHero({
-      speciesId: 'humains-reiklander', careerId: 'pretre', label: 'P', rng: makeRNG(7),
-      careerTalent: 'Béni (Sigmar)', // libellé d'affichage en entrée → résolu en id `sigmar` (resolveSpecId)
+      speciesId: 'humains-reiklander', careerId: 'pretre', label: 'P', seed: 7,
+      careerTalent: { id: 'beni', spec: 'sigmar' },
     });
     expect(casterTalents(h).some((t) => t.kind === 'beni' && t.spec === 'sigmar')).toBe(true);
     for (const b of blessingsOf('sigmar')) expect(h.spells).toContain(b); // « reçoit les SIX »
@@ -26,8 +26,8 @@ describe('création ↔ Magie (grimoire, LDB 10/41/46)', () => {
 
   it('un Sorcier créé (Magie mineure) peut mémoriser des sorts via le grimoire (coûts par bandes)', () => {
     const h = createHero({
-      speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'S', rng: makeRNG(7),
-      careerTalent: 'Magie mineure', // le talent de carrière choisi (1 seul au Niveau 1)
+      speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'S', seed: 7,
+      careerTalent: { id: 'magie-mineure' }, // le talent de carrière choisi (1 seul au Niveau 1)
     });
     expect(casterTalents(h).some((t) => t.kind === 'mineure')).toBe(true);
     const learnable = learnableSpells(h);
@@ -41,8 +41,8 @@ describe('création ↔ Magie (grimoire, LDB 10/41/46)', () => {
 describe('création ↔ règles 2.5 (registre combatFeatures, LDB 10)', () => {
   it('un Ratier créé (Coup puissant, Frappe assommante) résout dans le registre des talents câblés', () => {
     const h = createHero({
-      speciesId: 'humains-reiklander', careerId: 'ratier', label: 'R', rng: makeRNG(7),
-      careerTalent: 'Coup puissant',
+      speciesId: 'humains-reiklander', careerId: 'ratier', label: 'R', seed: 7,
+      careerTalent: { id: 'coup-puissant' },
     });
     expect(h.talents.some((t) => talentConcrete(t) === 'Coup puissant')).toBe(true);
     expect(featuresOf(h).some(({ def }) => def.meleeDamageBonus)).toBe(true); // câblé, pas juste affiché
@@ -52,7 +52,7 @@ describe('création ↔ règles 2.5 (registre combatFeatures, LDB 10)', () => {
 describe('création ↔ Voyage & Nourriture (#T2, LDB 18 l.337-343)', () => {
   it('les Rations des trappings de classe sont vues par le système de faim et consommées', () => {
     // Classe « Ruraux » (Villageois…) : « Rations (1 jour) » dans les trappings de classe.
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'villageois', label: 'V', rng: makeRNG(7) });
+    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'villageois', label: 'V', seed: 7 });
     const before = rationCount(h);
     expect(before).toBeGreaterThan(0); // le créateur produit des objets compatibles isRation
     const r = dailyFoodUpkeep(h, 50, bonus(h.characteristics.endurance), makeRNG(1));
@@ -70,7 +70,7 @@ describe('création ↔ Voyage & Nourriture (#T2, LDB 18 l.337-343)', () => {
  * ref forgée : c'est entre la ref résolue et l'objet de sac que la spécialisation se perdait.
  */
 describe('création ↔ dotation spécialisée (LDB 08 l.1130)', () => {
-  const ecuyer = () => createHero({ speciesId: 'humains-reiklander', careerId: 'chevalier', label: 'E', rng: makeRNG(7) });
+  const ecuyer = () => createHero({ speciesId: 'humains-reiklander', careerId: 'chevalier', label: 'E', seed: 7 });
 
   it('l’Écuyer sort du créateur avec la spéc PORTÉE PAR L’OBJET, et l’affiche', () => {
     const outils = (ecuyer().items ?? []).find((i) => i.trappingId === 'outils-professionnels');

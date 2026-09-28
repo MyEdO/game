@@ -8,7 +8,7 @@
  * dépendance du projet, vérifié — aucun `fireEvent` nulle part dans `src/`) :
  * `createRoot`/`act`/`element.dispatchEvent(new KeyboardEvent(...))`, cf. `MasterDetail.test.tsx`.
  *
- * Fixture déterministe (seed 27, espèce/carrière par défaut de `CharacterCreator.test.tsx`) :
+ * Fixture déterministe (seed 7, espèce/carrière par défaut de `CharacterCreator.test.tsx`) :
  * après `rollDraftTalents`, les 4 talents de carrière niveau 1 de l'Agitateur sont Baratiner /
  * Faire la manche / Lire·Écrire (déjà possédé via le tirage aléatoire de race → MAXI atteint,
  * `talentMaxReached`) / Sociable — un cas réel, pas fabriqué.
@@ -26,8 +26,8 @@ beforeAll(() => {
 
 const SP = allSpecies.find((s) => s.source.book === 'livre-de-base')!;
 const CAREER = careersForSpecies(SP.refCareer)[0]!;
-/** seed 27 — Lire/Écrire (index 2) est MAXI atteint (déjà possédé via le tirage aléatoire de race). */
-const fixture = () => rollDraftTalents(withCareer(withSpecies(newDraft(27), SP.id), CAREER.id));
+/** seed 7 — Lire/Écrire (index 2) est MAXI atteint (déjà possédé via le tirage aléatoire de race). */
+const fixture = () => rollDraftTalents(withCareer(withSpecies(newDraft(7), SP.id), CAREER.id));
 
 describe('CharacterCreator — roving clavier du radiogroup « Talent de carrière » (#519)', () => {
   let container: HTMLDivElement;
@@ -76,13 +76,13 @@ describe('CharacterCreator — roving clavier du radiogroup « Talent de carriè
     expect(rs[0].tabIndex).toBe(0); // rien d'élu au montage → 1ʳᵉ entrée FOCALISABLE par défaut
     press(rs[0], 'ArrowRight');
     rs = radios();
-    expect(draft.careerTalent).toBe('Faire la manche'); // index 1, sélection suit le focus
+    expect(draft.careerTalent).toEqual({ id: 'faire-la-manche' }); // index 1, sélection suit le focus
     expect(rs[1].tabIndex).toBe(0);
     expect(document.activeElement).toBe(rs[1]);
     // 2ᵉ ArrowRight : l'index 2 (Lire/Écrire) est DISABLED — le roving doit le SAUTER, jamais s'y arrêter.
     press(rs[1], 'ArrowRight');
     rs = radios();
-    expect(draft.careerTalent).toBe('Sociable'); // saute Lire/Écrire (maxed), atterrit sur l'entrée suivante
+    expect(draft.careerTalent).toEqual({ id: 'sociable' }); // saute Lire/Écrire (maxed), atterrit sur l'entrée suivante
     expect(rs[3].tabIndex).toBe(0);
     expect(document.activeElement).toBe(rs[3]); // le focus RÉEL atterrit sur l'entrée suivante, jamais l'entrée disabled
     expect(rs[2].getAttribute('tabindex')).toBeNull(); // l'entrée disabled ne reçoit AUCUN tabindex du roving
@@ -93,11 +93,11 @@ describe('CharacterCreator — roving clavier du radiogroup « Talent de carriè
     let rs = radios();
     press(rs[0], 'ArrowLeft'); // recule depuis le début → boucle en fin de liste (Sociable, index 3)
     rs = radios();
-    expect(draft.careerTalent).toBe('Sociable');
+    expect(draft.careerTalent).toEqual({ id: 'sociable' });
     press(rs[3], 'ArrowLeft');
     rs = radios();
     // recule depuis Sociable (3) : l'index 2 (Lire/Écrire) est disabled → saute à Faire la manche (1)
-    expect(draft.careerTalent).toBe('Faire la manche');
+    expect(draft.careerTalent).toEqual({ id: 'faire-la-manche' });
     expect(rs[1].tabIndex).toBe(0);
   });
 
@@ -106,11 +106,11 @@ describe('CharacterCreator — roving clavier du radiogroup « Talent de carriè
     let rs = radios();
     press(rs[0], 'End');
     rs = radios();
-    expect(draft.careerTalent).toBe('Sociable'); // dernière entrée ACTIVABLE (index 3, jamais Lire/Écrire)
+    expect(draft.careerTalent).toEqual({ id: 'sociable' }); // dernière entrée ACTIVABLE (index 3, jamais Lire/Écrire)
     expect(rs[3].tabIndex).toBe(0);
     press(rs[3], 'Home');
     rs = radios();
-    expect(draft.careerTalent).toBe('Baratiner');
+    expect(draft.careerTalent).toEqual({ id: 'baratiner' });
     expect(rs[0].tabIndex).toBe(0);
   });
 

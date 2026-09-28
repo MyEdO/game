@@ -1,5 +1,4 @@
-// LECTEUR UNIQUE DE `.github/workflows/ci.yml` (#1776). Module FEUILLE : il n'importe que Node et la
-// constante SANS DÉPENDANCE du pathspec des catalogues (`scripts/raw/gate-catalogues.mjs`).
+// LECTEUR UNIQUE DE `.github/workflows/ci.yml` (#1776). Module FEUILLE : il n'importe que Node.
 //
 // `ci.yml` EST la porte — une gate neuve y est un step, et rien d'autre ne la récite. Ce module rend
 // ce que le fichier DIT, à trois lecteurs : `scripts/gates/toutes.mjs` (le rejeu local),
@@ -7,7 +6,10 @@
 // checks requis du ruleset, par `jobsCi`).
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { COMMANDE_GATE_CATALOGUES } from '../raw/gate-catalogues.mjs'
+
+/** Commande EXACTE du step final « Arbre inchangé » de `ci.yml` et `canari.yml` — le filet des
+ *  écrivains par nature (`genAll()` de `build` et de la suite) : l'arbre du runner reste le commit. */
+export const COMMANDE_ARBRE_INCHANGE = 'git status --porcelain && test -z "$(git status --porcelain)"'
 
 /**
  * Steps de `ci.yml` qui ne sont PAS une gate locale, chacun avec sa raison. La liste est exhaustive
@@ -17,12 +19,8 @@ import { COMMANDE_GATE_CATALOGUES } from '../raw/gate-catalogues.mjs'
 export const CI_SEULEMENT = {
   'npm ci': 'installation des dépendances du runner — rien à rejouer sur l’arbre local',
   'npm --prefix server ci': 'install serveur — posée une fois localement par `npm install`',
-  "npm run gen && git diff --exit-code -- '*.generated.ts'":
-    'mutant : régénère puis git diff, donc injouable comme gate — `npm run gates` le joue tel quel AVANT ' +
-    'ses lanes et REFUSE si un registre bouge (scripts/gates/toutes.mjs), parce que la suite et `build` ' +
-    'appellent tous deux `genAll()` et écriraient les mêmes fichiers en même temps',
-  [COMMANDE_GATE_CATALOGUES]:
-    'mutant : régénère puis git diff — `npm run gates` le couvre par la même phase préalable',
+  [COMMANDE_ARBRE_INCHANGE]:
+    'le lanceur local juge le même invariant par `photoArbre` (scripts/gates/toutes.mjs)',
   'node scripts/gates/classerPush.mjs >> "$GITHUB_OUTPUT"':
     'classe le push (documentaire / produit, #1738) et ne mesure rien du contenu : il décide QUELS ' +
     'steps jouent, il n’est pas lui-même une gate — localement `npm run gates` rejoue TOUT, sans classement',

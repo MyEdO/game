@@ -3,10 +3,9 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { PortraitTile } from './PortraitTile';
 import { iconSvg } from './Icon';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import type { Combatant } from '../engine/types';
 
-const base = () => createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', rng: makeRNG(3) });
+const base = () => createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 3 });
 
 describe('PortraitTile', () => {
   it('jauge HORIZONTALE : pleine et verte à PV max', () => {

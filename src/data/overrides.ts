@@ -5,9 +5,11 @@
  *  - l'éditeur de données in-app (preview live avant écriture disque) ;
  *  - la future couche de surcharges PAR CAMPAGNE (apply au chargement, reset à la sortie).
  *
- * Couvre les datasets-TABLEAUX (`ARRAYS`) ET les datasets-OBJETS uniques (`OBJECTS`, E3b) :
- * `details` (objet de config imbriqué), fiches de règle uniques. Tous mutés EN PLACE,
- * jamais réassignés → les consommateurs gardent la même référence et voient l'édition en direct.
+ * Couvre les datasets-TABLEAUX (`ARRAYS`) et les datasets-OBJETS uniques (`OBJECTS`), tous mutés EN
+ * PLACE, jamais réassignés → les consommateurs gardent la même référence et voient l'édition en direct.
+ * Chaque clé de dataset (`CLES_DE_DATASET`) désigne une collection de la RACINE VIVANTE de son fichier
+ * (`RACINES_VIVANTES`, `collectionDuDataset`) : ce que le save sérialise, et ce que le régime vivant des
+ * ids navigue.
  */
 import { tableTotale } from '../lib/tableTotale';
 import {
@@ -16,7 +18,7 @@ import {
   materials, terrains, buildings,
   pregens, oups, interludeEvents, peripeties, details, semencesDeScene, defautsDeCompilation, names, allAxes,
   calendarMonths, calendarIntercalary, calendarWeekdays, calendarPhases, weather, weatherConditions, symptoms,
-  massBattleWarMachines, massBattleStructures, massBattleHazards, massBattleMightModifiers, massBattlePowerEstimate, massBattleData,
+  massBattleWarMachines, massBattleStructures, massBattleHazards, massBattleMightModifiers, massBattlePowerEstimate,
   vehicles, celestialHouses, groups, psychologies, seaShanties, crewRoles, crewTestTypes, shipStations, NAVAL_TRAITS,
   WATER_EXPOSURE, navalPorts,
   navalProgression, seaNavigation, seaPerils, seaWeather, shipConstruction,
@@ -28,7 +30,7 @@ import {
 // pas la façade `index.ts`) — importés DIRECTEMENT ici (même patron que `massBattle*` ci-dessus, qui
 // vient déjà d'`engine/massBattle.ts`). Le module JSON est un singleton ESM : cette référence EST la
 // même que celle lue par le moteur → l'édition Codex (splice en place) reste visible en jeu.
-import type { RefASpecialisation } from './schemas/grammaire/ref';
+import type { RefDesignee } from './schemas/grammaire/ref';
 import { versDisque } from './schemas/grammaire/prose';
 import { ACTIVITIES } from '../engine/activities';
 import { MOUNT_PROFILES } from '../engine/mountTravel';
@@ -41,26 +43,19 @@ import { CARGO_ENTRIES, type CargoEntry, MANANN_FACTORS, BOARD_EVENTS, PORT_EVEN
 import { RIVER_PERILS } from '../engine/riverNavigation';
 import { MORALE_FACTORS, MORALE_BANDS } from '../engine/crewMorale';
 import { STEAM_BREAKDOWNS } from '../engine/shipBuild';
-import weatherRawJson from './weather.json';
-import crewTestTypesRawJson from './crew-test-types.json';
-import landCargoRawJson from './land-cargo.json';
-import seaCargoRawJson from './sea-cargo.json';
-import riverPerilsRawJson from './river-perils.json';
-import crewMoraleRawJson from './crew-morale.json';
-import { DATASET_FICHIER_DERIVE } from './schemas/exposition-derivee';
-import { poserSourceDIdsVivants } from './schemas/grammaire/idsVivants';
-import { bumperDataset } from './versionDataset';
-import { DEFS_DE_DOCUMENT } from './schemas/validate';
+import { DATASET_FICHIER_DERIVE, DATASET_SUITE_DERIVE, DATASETS_EDITABLES_DERIVE } from './schemas/exposition-derivee';
+import { poserRegimeVivant } from './schemas/grammaire/idsVivants';
+import { atteindre, idsDeLEspace, lectureDeLEspace, type AccesAuxDocuments } from './schemas/grammaire/collection-cle';
+import { lireCleDEspace } from './schemas/grammaire/cle-d-espace';
+import { SCHEMA_DEFS } from './schemas/_registry.generated';
+import { RACINES_VIVANTES } from './schemas/_racines-vivantes.generated';
+import { CLES_DE_DATASET, type CleDeDataset } from './schemas/_cles-de-dataset.generated';
+import { bumperDataset, memoParVersion } from './versionDataset';
 import { critiqueEntries, type CritEntry } from './criticals';
 import { SHIP_CRITICAL_TABLES, RIVER_CRIT_SET } from './shipCriticals';
 import type { GameOp } from '../engine/ops';
 import type { SourceRef } from './schemas/grammaire/valeurs';
-import criticalsRawJson from './criticals.json';
 import traumasRawJson from './traumas.json';
-import shipCriticalsRawJson from './ship-criticals.json';
-import riverCriticalsRawJson from './river-criticals.json';
-import rencontresRawJson from './rencontres-edoc.json';
-import seaEventsRawJson from './sea-events.json';
 // #422 : famille RÈGLES LDB — Coût des Augmentations (07), % de Disponibilité (59), Accidents de
 // Conduite d'attelage (09) et Ivresse (09) NICHÉS dans un objet `{table,source}` (même patron que
 // `incidents-monture.json`/`problemes-vehicule.json`), Surchargé par palier (61).
@@ -90,16 +85,6 @@ import type { SaturationLevel, WindSaturationEffects, ArcanePhenomenon, ArcaneTa
 // datasets migrés du CODE en donnée, MÊME module JSON singleton que leur lecteur moteur.
 import { OPTIONAL_RULES } from '../engine/policy';
 import surincantationRawJson from './surincantation.json';
-// #1467 L1b V-FLIP-TABLE : les 7 documents dont le tableau ÉDITÉ est NICHÉ sous leur enveloppe — la
-// racine à réécrire au save est le DOCUMENT entier, jamais le tableau nu (5 clefs y étaient sans
-// root déclaré et auraient écrasé leur enveloppe ; 2 documents deviennent éditables ici).
-import monturesRawJson from './montures.json';
-import incidentsMontureRawJson from './incidents-monture.json';
-import problemesVehiculeRawJson from './problemes-vehicule.json';
-import structureCriticalsRawJson from './structure-criticals.json';
-import obsessionsRawJson from './obsessions.json';
-import artilleryMisfireRawJson from './artillery-misfire.json';
-import ventsTourbillonnantsRawJson from './vents-tourbillonnants.json';
 import { ARTILLERY_MISFIRE } from './artilleryMisfire';
 
 /** Entrée d'une table de miscast (`entries` d'un document de `miscast.json`) — DIALECTE compilé (PAS
@@ -109,11 +94,11 @@ import { ARTILLERY_MISFIRE } from './artilleryMisfire';
 export interface MiscastRowEntry {
   id: string; min: number; max: number; label: string;
   ops?: Record<string, unknown>[];
-  test?: { skill?: RefASpecialisation; characteristic?: string; difficulty: string; onFail: Record<string, unknown>[]; onFailHard?: { dr: number; ops: Record<string, unknown>[] } };
+  test?: { skill?: RefDesignee; characteristic?: string; difficulty: string; onFail: Record<string, unknown>[]; onFailHard?: { dr: number; ops: Record<string, unknown>[] } };
   reroll?: 'majeure' | 'mineure-x2';
   source?: SourceRef;
 }
-/** Les DOCUMENTS de `miscast.json` (un par tableau tirable) — la racine sérialisée au save. */
+/** Les DOCUMENTS de `miscast.json` (un par tableau tirable). */
 const miscastRoot = miscastRawJson as unknown as { id: string; entries: MiscastRowEntry[] }[];
 /** Rangées LIVE d'UN tableau, par id de DOCUMENT — FAIL-FAST : un id absent laisserait une catégorie
  *  Codex sur un tableau vide, sans un mot. */
@@ -161,13 +146,13 @@ const ARRAYS = {
   characteristics, species, classes, careers, careerLevels, skills, talents, etats, maladies, traits,
   qualities, qualitySubtypes, qualityTypes, mutations, mutationTables, trappings, weaponGroups, breathTypes, damageTypes, creatures, spells, maneuvers, domains, lightLevels, lightTones, props, eyes, hairs, stars, locations, books, raceAppearance, gods, structures,
   // Matières du monde (#1686) : UN document, le domaine PORTÉ par l'entrée. Ce binding EST le seam de
-  // mutation en place, et c'est lui qui rend vive la lecture des vues par domaine (`matieresDe`,
+  // mutation en place, et c'est lui qui rend vivante la lecture des vues par domaine (`matieresDe`,
   // `src/data/index.ts`) : une matière retouchée se voit au rendu sans rechargement. Son def déclare
   // `exposition.edit` = `dataset` : la clé a sa route de sauvegarde vers `materials.json`,
   // et l'onglet Codex « Matières » l'édite.
   materials,
   // Terrains du monde (#1690) : UN document, règle et rendu dans la même entrée. Ce binding EST le
-  // seam de mutation en place, et c'est lui qui rend vive la lecture de la façade `src/state/terrain`
+  // seam de mutation en place, et c'est lui qui rend vivante la lecture de la façade `src/state/terrain`
   // et du catalogue `gameIso/catalog/terrain` — tous deux indexent le TABLEAU et revérifient son
   // contenu à chaque accès (`indexDesTerrains`), un splice étant invisible à l'identité du tableau.
   terrains,
@@ -191,7 +176,7 @@ const ARRAYS = {
   tavernGames: TAVERN_GAMES, obsessions: OBSESSIONS as unknown as { min: number; max: number; label: string }[],
   structureCriticals: STRUCTURE_CRITICALS, traumas,
   // Catalogues de cargaison : le dataset éditable est le tableau BRUT du JSON (marchandises ET
-  // marqueurs de l'Index), pas la vue filtrée `CARGOES`/`LAND_CARGOES` — sinon une réécriture du
+  // marqueurs de l'Index), pas la vue filtrée `cargoes`/`landCargoes` — sinon une réécriture du
   // dataset perdrait les marqueurs. Le Compendium, lui, n'affiche que les marchandises (filtre à la
   // VUE, `ui/compendium/registry.ts`).
   landCargo: LAND_CARGO_ENTRIES as LandCargoEntry[], seaCargo: CARGO_ENTRIES as CargoEntry[], riverPerils: RIVER_PERILS,
@@ -215,11 +200,8 @@ const ARRAYS = {
   // Longs voyages en mer (MDG 15) : Humeur de Manann (facteurs) + Événements de bord/de port —
   // 3 tableaux frères NICHÉS dans `sea-events.json`.
   seaManannFactors: MANANN_FACTORS, seaBoardEvents: BOARD_EVENTS, seaPortEvents: PORT_EVENTS,
-  // #422 : Ports (MDG 15), Progression de navire (MDG 13) et 3 sous-tableaux de
-  // Construction navale (MDG 12) — `navalPorts` est DÉJÀ un tableau racine ; les 4 autres sont des
-  // sous-tableaux NICHÉS dans un objet-config parent (`navalProgression.entries`, `shipConstruction.*`,
-  // même patron que `seaManannFactors`/`seaBoardEvents`/`seaPortEvents` ci-dessus) — `NESTED_ARRAY_ROOT`
-  // réécrit le PARENT entier au save.
+  // #422 : Ports (MDG 15), Progression de navire (MDG 13), Construction navale (MDG 12) — les 4
+  // derniers NICHÉS dans leur document, dont la racine vivante est réécrite au save.
   navalPorts,
   navalProgression: navalProgression.entries,
   shipHullSizes: shipConstruction.standard,
@@ -268,11 +250,10 @@ interface ArcanePhenomenaFile {
 }
 const arcanePhenomenaFile = arcanePhenomenaRawJson as unknown as ArcanePhenomenaFile;
 
-/** Datasets-OBJETS uniques (E3b) : pas un tableau d'entités mais UN objet de config (`details`) ou
- *  une fiche de règle UNIQUE (`waterExposure`, MSRC 16 — #157 suite). Mutés
- *  EN PLACE (mêmes garanties que les tableaux) → preview live + écriture disque par l'éditeur du Codex.
- *  Le fichier disque est `<clé>.json` par défaut (`details.json`) ou l'override
- *  `OBJECT_FILE` pour une clé dont le nom diverge du fichier (`waterExposure` → `water-exposure.json`). */
+/** Datasets-OBJETS uniques : pas un tableau d'entités mais UN objet de config (`details`) ou une fiche
+ *  de règle UNIQUE (`waterExposure`, MSRC 16). Mutés EN PLACE (mêmes garanties que les tableaux) →
+ *  preview live + écriture disque par l'éditeur du Codex. Le fichier disque est celui du def qui
+ *  déclare leur route `object` (`DATASET_FICHIER_DERIVE`). */
 const OBJECTS = {
   details, waterExposure: WATER_EXPOSURE,
   // #1716 : semences d'une scène NEUVE (`emptyScene`) — objet de config unique, même patron que `details`.
@@ -306,22 +287,9 @@ export function datasetObject<K extends ObjectDatasetKey>(key: K): (typeof OBJEC
   return OBJECTS[key];
 }
 
-/** Fichier disque d'un dataset-OBJET dont la clé JS diverge du nom de fichier (tout fichier de
- *  `src/data` est kebab-case) — pendant, pour `OBJECTS`, de la dérivation `DATASET_FICHIER_DERIVE`.
- *  Absente d'ici → `<clé>.json` (défaut historique, zéro changement pour `details`). */
-const OBJECT_FILE: Partial<Record<ObjectDatasetKey, string>> = {
-  waterExposure: 'water-exposure.json',
-  seaNavigation: 'sea-navigation.json',
-  seaPerils: 'sea-perils.json',
-  seaWeather: 'sea-weather.json',
-  riverNavigation: 'river-navigation.json',
-  arcanePhenomena: 'arcane-phenomena.json',
-  semencesDeScene: 'semences-de-scene.json',
-  defautsDeCompilation: 'defauts-de-compilation.json',
-};
-/** Fichier disque d'un dataset-objet (`<clé>.json` par défaut, ou l'override `OBJECT_FILE`). */
+/** Fichier disque d'un dataset-objet : celui du def qui déclare sa route `object`. */
 export function datasetObjectFile(key: ObjectDatasetKey): string {
-  return OBJECT_FILE[key] ?? `${key}.json`;
+  return DATASET_FICHIER_DERIVE[key];
 }
 
 /** Seeds immuables (clone du JSON d'origine), capturés à l'init du module — pour `resetData()`. */
@@ -337,93 +305,10 @@ export function setDataset<K extends DatasetKey>(key: K, next: readonly (typeof 
   bumperDataset(key);
 }
 
-/** Datasets-tableaux NICHÉS sous une enveloppe ou dans un fichier-objet PARTAGÉ : `mass-battle.json`
- *  porte 5 tableaux frères dans UN seul fichier. Mêmes garanties de mutation en place que `ARRAYS`
- *  (`setDataset` fonctionne tel quel sur ces clés), mais le CONTENU à sérialiser au save diverge : il
- *  faut réécrire le PARENT ENTIER (`massBattleData`), sous peine d'écraser les tableaux frères — ou
- *  l'enveloppe du document — avec un tableau nu. `datasetSerializeRoot` retombe sur le tableau lui-même
- *  pour toute clé absente d'ici. Cette table ne porte QUE la racine à sérialiser : le FICHIER, lui,
- *  se DÉRIVE du def porteur (`DATASET_FICHIER_DERIVE`, #1530), source unique de `datasetFile`. */
-const NESTED_ARRAY_ROOT: Partial<Record<DatasetKey, { root: () => unknown }>> = {
-  massBattleWarMachines: { root: () => massBattleData },
-  massBattleStructures: { root: () => massBattleData },
-  massBattleHazards: { root: () => massBattleData },
-  massBattleMightModifiers: { root: () => massBattleData },
-  massBattlePowerEstimate: { root: () => massBattleData },
-  // Blessures critiques, LES DEUX jeux (#1657) : rangées NICHÉES dans l'un des 8 documents-tables
-  // de `criticals.json` — réécrire la LISTE entière au save (les 7 documents frères doivent survivre),
-  // même patron que `miscast.json`.
-  criticalsTete: { root: () => criticalsRawJson },
-  criticalsBras: { root: () => criticalsRawJson },
-  criticalsCorps: { root: () => criticalsRawJson },
-  criticalsJambe: { root: () => criticalsRawJson },
-  aaCriticalsTete: { root: () => criticalsRawJson },
-  aaCriticalsBras: { root: () => criticalsRawJson },
-  aaCriticalsCorps: { root: () => criticalsRawJson },
-  aaCriticalsJambe: { root: () => criticalsRawJson },
-  // Critiques de coque (MDG 13, navire) : 5 Localisations NICHÉES dans `ship-criticals.json`.
-  shipCriticalsCargaison: { root: () => shipCriticalsRawJson },
-  shipCriticalsGreement: { root: () => shipCriticalsRawJson },
-  shipCriticalsCoque: { root: () => shipCriticalsRawJson },
-  shipCriticalsAvirons: { root: () => shipCriticalsRawJson },
-  shipCriticalsEquipements: { root: () => shipCriticalsRawJson },
-  // Critiques de coque (MSRC 7, fluvial) : 5 Localisations NICHÉES dans `river-criticals.json`.
-  riverCriticalsGreement: { root: () => riverCriticalsRawJson },
-  riverCriticalsAvirons: { root: () => riverCriticalsRawJson },
-  riverCriticalsGouvernail: { root: () => riverCriticalsRawJson },
-  riverCriticalsCoque: { root: () => riverCriticalsRawJson },
-  riverCriticalsSuperstructure: { root: () => riverCriticalsRawJson },
-  // Rencontres de voyage (EDOC 8) : 3 catégories NICHÉES dans `rencontres-edoc.json`.
-  rencontresPositives: { root: () => rencontresRawJson },
-  rencontresFortuites: { root: () => rencontresRawJson },
-  rencontresDangereuses: { root: () => rencontresRawJson },
-  // Longs voyages en mer (MDG 15) : 3 tableaux frères NICHÉS dans `sea-events.json`.
-  seaManannFactors: { root: () => seaEventsRawJson },
-  seaBoardEvents: { root: () => seaEventsRawJson },
-  seaPortEvents: { root: () => seaEventsRawJson },
-  // #422 : Progression de navire (1 tableau NICHÉ dans `naval-progression.json`) et 3 sous-tableaux
-  // de Construction navale NICHÉS dans `ship-construction.json` — réécrire le PARENT entier au save.
-  navalProgression: { root: () => navalProgression },
-  shipHullSizes: { root: () => shipConstruction },
-  shipSpeedTraits: { root: () => shipConstruction },
-  shipConstructionTraits: { root: () => shipConstruction },
-  // #422 : Accidents de Conduite d'attelage / Ivresse — tableau NICHÉ sous `entries` dans
-  // `driving-mishap.json`/`drunkenness.json`, réécrire le PARENT entier au save (l'enveloppe doit survivre).
-  drivingMishap: { root: () => drivingMishapRawJson },
-  drunkenness: { root: () => drunkennessRawJson },
-  // #422 (FINAL) : miscast — rangées NICHÉES dans l'un des 5 documents de `miscast.json`,
-  // réécrire la LISTE entière au save (les 4 documents frères doivent survivre).
-  miscastMinor: { root: () => miscastRoot },
-  miscastMajor: { root: () => miscastRoot },
-  miscastWrath: { root: () => miscastRoot },
-  // V9 #1318 : Tableau de Surincantation NICHÉ sous `entries` — réécrire le PARENT entier au save
-  // (l'enveloppe du document doit survivre à l'édition des rangées).
-  surincantation: { root: () => surincantationRawJson },
-  // #1467 L1b V-FLIP-TABLE : les 14 documents uniques de la vague portent une ENVELOPPE (id/type/
-  // label/source). Sans entrée ici, `datasetSerializeRoot` rendait le TABLEAU NU et le save écrasait
-  // l'enveloppe — 5 clés étaient dans ce cas. Les 2 dernières naissent éditables avec leur entrée.
-  montures: { root: () => monturesRawJson },
-  incidentsMonture: { root: () => incidentsMontureRawJson },
-  problemesVehicule: { root: () => problemesVehiculeRawJson },
-  structureCriticals: { root: () => structureCriticalsRawJson },
-  obsessions: { root: () => obsessionsRawJson },
-  artilleryMisfire: { root: () => artilleryMisfireRawJson },
-  ventsTourbillonnants: { root: () => ventsTourbillonnantsRawJson },
-  // #1530 : clés dont le tableau est NICHÉ sous l'enveloppe de son document — sans root ici, le save
-  // sérialisait le tableau NU par-dessus le document (l'enveloppe et les tableaux frères mouraient).
-  weather: { root: () => weatherRawJson },
-  weatherConditions: { root: () => weatherRawJson },
-  crewTestTypes: { root: () => crewTestTypesRawJson },
-  landCargo: { root: () => landCargoRawJson },
-  seaCargo: { root: () => seaCargoRawJson },
-  riverPerils: { root: () => riverPerilsRawJson },
-  crewMoraleFactors: { root: () => crewMoraleRawJson },
-  crewMoraleBands: { root: () => crewMoraleRawJson },
-};
-/** Fichier disque d'un dataset-tableau (`<clé>.json` par défaut ; le fichier PARENT pour un tableau niché). */
+/** Fichier disque d'un dataset-tableau ÉDITABLE : celui du document qui le porte (`DATASET_FICHIER_DERIVE`). */
 export function datasetFile(key: DatasetKey): string {
   const fichier = DATASET_FICHIER_DERIVE[key];
-  if (fichier === undefined) {
+  if (fichier === undefined || !DATASETS_EDITABLES_DERIVE.has(key)) {
     throw new Error(
       `datasetFile('${key}') : aucun document de \`SCHEMA_DEFS\` ne déclare l'édition de ce dataset ` +
         `(\`exposition.edit\` = dataset ou niche) — sans route d'édition déclarée il n'y a pas de fichier ` +
@@ -433,40 +318,71 @@ export function datasetFile(key: DatasetKey): string {
   return fichier;
 }
 
+/** Schéma de chaque document de `src/data` : ses marques de collection guident la navigation. */
+const SCHEMA_DU_FICHIER = new Map(SCHEMA_DEFS.map((d) => [d.file, d.schema] as const));
+
+/** Les documents VIVANTS : schéma et racine vivante de chaque fichier qui porte une clé de dataset
+ *  (`RACINES_VIVANTES`) ; `undefined` ailleurs, où l'INDEX DES IDS généré fait foi. */
+const accesVivant: AccesAuxDocuments = (fichier) =>
+  fichier in RACINES_VIVANTES ? { schema: SCHEMA_DU_FICHIER.get(fichier), racine: RACINES_VIVANTES[fichier] } : undefined;
+
 /**
- * SOURCE VIVANTE DES IDS (#1686) — le second régime de `_ids.generated.ts`, posé ICI parce que
- * c'est ici que vivent les bindings mutés en place : une entité créée ou renommée à l'atelier est
- * référençable par la donnée AVANT tout `npm run gen` (`ref.ts` lit ce seam à chaque validation).
- *
- * PÉRIMÈTRE : les datasets-TABLEAUX dont un def déclare le fichier (`DATASET_FICHIER_DERIVE`), NICHÉS
- * EXCLUS — un tableau niché (`mass-battle.json` en porte 5, `criticals.json` 8) n'est pas la liste
- * d'entrées de son document, et son fichier désigne le PARENT. Un fichier revendiqué par DEUX
- * datasets non nichés serait une ambiguïté : elle lève, nommément. Hors périmètre, `ref.ts` retombe
- * sur le registre généré — le régime d'avant, inchangé.
+ * COLLECTION d'une clé de dataset, sur la racine vivante de son fichier (`DATASET_FICHIER_DERIVE`) —
+ * trois cas : route `dataset` ou `none` + `dataset`, la liste marquée de la racine (suite `''`) ; route
+ * `niche`, la collection au bout de la suite que déclare `niche.categories` ; route `object`, la
+ * RACINE elle-même. La co-descente ne valide pas : un arbre invalide se navigue (`atteindre`).
  */
-const ENTREES_VIVES: Record<string, () => readonly Record<string, unknown>[]> = {};
-for (const cle of DATASET_KEYS) {
+export function collectionDuDataset(cle: CleDeDataset): unknown {
   const fichier = DATASET_FICHIER_DERIVE[cle];
-  if (fichier === undefined || NESTED_ARRAY_ROOT[cle]) continue;
-  if (ENTREES_VIVES[fichier]) {
-    throw new Error(
-      `ids vivants : le fichier '${fichier}' est revendiqué par DEUX datasets-tableaux non nichés — ` +
-        `un fichier, une liste d'entrées : trancher au def (\`exposition.edit\`).`,
-    );
-  }
-  ENTREES_VIVES[fichier] = () => ARRAYS[cle] as unknown as readonly Record<string, unknown>[];
+  const racine = RACINES_VIVANTES[fichier];
+  const suite = DATASET_SUITE_DERIVE[cle];
+  return suite === undefined ? racine : atteindre(SCHEMA_DU_FICHIER.get(fichier), racine, suite)?.valeur;
 }
-poserSourceDIdsVivants({
-  entrees: (fichier) => ENTREES_VIVES[fichier]?.(),
-  discriminantDe: (fichier) => DEFS_DE_DOCUMENT.find((d) => d.file === fichier)?.discriminant,
-});
+
+/** Les clés de dataset de chaque fichier : une écriture sur l'une change la racine du fichier. */
+const CLES_DU_FICHIER = new Map<string, CleDeDataset[]>();
+for (const cle of CLES_DE_DATASET) {
+  const fichier = DATASET_FICHIER_DERIVE[cle];
+  CLES_DU_FICHIER.set(fichier, [...(CLES_DU_FICHIER.get(fichier) ?? []), cle]);
+}
+
+type LectureVivante = { readonly ids: ReadonlySet<string> } | { readonly univers: string } | undefined;
+
+/** Lecture vivante de chaque espace, mémorisée par la version des clés de dataset de son fichier. */
+const LECTURES_VIVANTES = new Map<string, () => LectureVivante>();
+
+/** La lecture vivante de l'espace `cle` (`lectureDeLEspace` sur les racines vivantes, ids en ensemble) ;
+ *  `undefined` hors des fichiers qui portent une clé de dataset. */
+function lectureVivante(cle: string): LectureVivante {
+  let lire = LECTURES_VIVANTES.get(cle);
+  if (!lire) {
+    const cles = CLES_DU_FICHIER.get(lireCleDEspace(cle).fichier);
+    if (!cles) return undefined;
+    lire = memoParVersion(cles, () => {
+      const lecture = lectureDeLEspace(cle, accesVivant);
+      return lecture && ('ids' in lecture ? { ids: new Set(lecture.ids) } : lecture);
+    });
+    LECTURES_VIVANTES.set(cle, lire);
+  }
+  return lire();
+}
+
+/**
+ * RÉGIME VIVANT DES IDS (#1686, #1463) — le second régime de `_ids.generated.ts` : les ids de
+ * l'espace `cle` sur les racines vivantes (`lectureVivante`, le calcul de la phase 2 de `npm run gen`),
+ * si bien qu'une entité créée ou renommée à l'atelier est référençable par la donnée AVANT tout
+ * `npm run gen`. L'univers d'une `specsSource` se suit (`idsDeLEspace`) à SA lecture, datée par son
+ * propre fichier.
+ */
+const idsVivantsDeLEspace = (cle: string): ReadonlySet<string> | undefined => idsDeLEspace(cle, lectureVivante);
+poserRegimeVivant(idsVivantsDeLEspace);
 
 /** Ce dataset a-t-il une route d'ÉDITION déclarée ? (sinon `datasetFile` refuse — #1530) */
 export function datasetEditable(key: DatasetKey): boolean {
-  return DATASET_FICHIER_DERIVE[key] !== undefined;
+  return DATASETS_EDITABLES_DERIVE.has(key);
 }
-/** Racine à SÉRIALISER au save (le tableau lui-même par défaut ; l'objet PARENT entier pour un tableau
- *  niché — ses tableaux frères doivent survivre à l'édition d'un seul), en FORME DISQUE.
+/** Racine à SÉRIALISER au save : la racine VIVANTE du fichier du dataset (`RACINES_VIVANTES`) — ses
+ *  collections sœurs et son enveloppe survivent à l'édition d'une seule —, en FORME DISQUE.
  *
  *  `versDisque` est la porte UNIQUE entre la forme RUNTIME (le `desc` d'une entrée adressée est
  *  matérialisé par le plugin `wfrp:prose-source` au chargement du module JSON) et la forme DISQUE
@@ -474,7 +390,7 @@ export function datasetEditable(key: DatasetKey): boolean {
  *  livre DANS la donnée, et le schéma la refuserait. Elle rend une COPIE — le dataset vivant n'est
  *  jamais amputé. */
 export function datasetSerializeRoot(key: DatasetKey): unknown {
-  return versDisque(NESTED_ARRAY_ROOT[key]?.root() ?? datasetArray(key));
+  return versDisque(RACINES_VIVANTES[DATASET_FICHIER_DERIVE[key]]);
 }
 
 /** Racine à SÉRIALISER au save d'un dataset-OBJET (fiches de règle, `details`…), en FORME DISQUE —
@@ -482,7 +398,7 @@ export function datasetSerializeRoot(key: DatasetKey): unknown {
  *  `datasetObject` sert la lecture RUNTIME (même référence que la façade) : la sortie disque passe
  *  par ici, sinon un `desc` matérialisé repartirait dans la donnée et le schéma refuserait le save. */
 export function datasetObjectSerializeRoot(key: ObjectDatasetKey): unknown {
-  return versDisque(datasetObject(key));
+  return versDisque(RACINES_VIVANTES[DATASET_FICHIER_DERIVE[key]]);
 }
 
 const isPlainObject = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);

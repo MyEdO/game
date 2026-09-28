@@ -3,7 +3,6 @@ import { occupied } from './combatGeometry';
 import { placeCombatant } from './spawn';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { testScene } from '../scenes/test-fixture';
 import { emptyScene, type Scene, type Terrain } from './scene';
 import type { BattleState } from './store';
@@ -75,9 +74,9 @@ describe('spawn — la SceneEntity.z se propage en Combatant.pos.z', () => {
 
   it('une entité enrôlée à z:1 → son Combattant a pos.z===1 ; un ennemi au sol n’a PAS de z', () => {
     useGame.getState().seedRng(1);
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
-    const scene = structuredClone(testScene);
+    const scene = structuredClone(testScene());
     const ent = scene.entities.find((e) => e.id === 'enemy-enc-mutants-0')!;
     ent.z = 1; // posté sur une couche supérieure
     useGame.getState().startScene(scene);
@@ -95,9 +94,9 @@ describe('startCombat — partyPos.z (étage du groupe) se propage aux Combattan
 
   it('groupe posté à z=1 → tous les héros placés ont pos.z===1 (pas téléportés au rez)', () => {
     useGame.getState().seedRng(1);
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
-    const scene = structuredClone(testScene);
+    const scene = structuredClone(testScene());
     useGame.getState().startScene(scene);
     useGame.setState({ partyPos: { ...useGame.getState().partyPos, z: 1 } });
     useGame.getState().startCombat('enc-mutants');
@@ -110,9 +109,9 @@ describe('startCombat — partyPos.z (étage du groupe) se propage aux Combattan
 
   it('groupe au rez (z absent) → héros placés SANS z (byte-identique, non-régression)', () => {
     useGame.getState().seedRng(1);
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
-    const scene = structuredClone(testScene);
+    const scene = structuredClone(testScene());
     useGame.getState().startScene(scene);
     useGame.getState().startCombat('enc-mutants');
     useGame.getState().confirmRoundStart();

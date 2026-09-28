@@ -8,7 +8,9 @@ import { describe, expect, it } from 'vitest';
 import { validateScene, type Warning } from './validateScene';
 import { emptyScene, type Scene, type WallSeg } from './scene';
 import { RefIrresoluble, spawnEnemy } from './spawn';
-import { creatures, siegeEngines, vehicles } from '../data';
+import { flowFromEffects } from './flow';
+import { creatures, siegeEngines, spells, vehicles } from '../data';
+import { resetData, setDataset } from '../data/overrides';
 import type { MapPlace, WorldMap } from './worldMap';
 
 /** Ids LUS AUX REGISTRES (jamais un littéral : le bestiaire et les catalogues vivent). */
@@ -86,7 +88,7 @@ describe('une RÉF de créature que le spawn ne résout pas est une erreur, pas 
     const errs = validateScene([s]).filter((w) => w.level === 'error');
     expect(errs).toHaveLength(1);
     expect(errs[0].refId).toBe('e-1');
-    expect(errs[0].message).toContain('créature inexistante « gobelin-des-cavernes-oublie »');
+    expect(errs[0].message).toContain('« gobelin-des-cavernes-oublie » ni créature, ni coque de véhicule, ni engin de siège');
   });
 
   it('PARITÉ avec le spawn : les 3 branches du faisceau passent la validation ET se spawnent ; une réf fausse est dite ET lève', () => {
@@ -113,7 +115,7 @@ describe('une RÉF de créature que le spawn ne résout pas est une erreur, pas 
       statblock: { type: 'statblock', label: 'Brigand', char: { B: 10 } },
     });
     expect(validateScene([custom]).filter((w) => w.level === 'error').map((w) => w.message))
-      .toEqual(['e-1 → créature inexistante « gobelin-des-cavernes-oublie »']);
+      .toEqual(['e-1 › ref : « gobelin-des-cavernes-oublie » ni créature, ni coque de véhicule, ni engin de siège']);
   });
 
   it('un PNJ nommé (`presetId`) passe sans réf ; sa réf MORTE est dite (#1882)', () => {
@@ -130,19 +132,27 @@ describe('une RÉF de créature que le spawn ne résout pas est une erreur, pas 
     const morte = scene();
     morte.entities.push({ id: 'p-1', kind: 'prop', pos: { x: 2, y: 2 }, ref: 'tonneau-imaginaire' });
     expect(validateScene([morte]).filter((w) => w.level === 'error').map((w) => w.message))
-      .toEqual(['p-1 → décor inexistant « tonneau-imaginaire »']);
+      .toEqual(['p-1 › ref : « tonneau-imaginaire » est absent du catalogue des décors (props.json).']);
 
     const sansType = scene();
     sansType.entities.push({ id: 'p-2', kind: 'prop', pos: { x: 2, y: 2 } });
     expect(validateScene([sansType]).filter((w) => w.level === 'error').map((w) => w.message))
-      .toEqual(['p-2 : décor « p-2 » : « ref » absente — un décor NOMME son type au catalogue (props.json)']);
+      .toEqual(['p-2 › ref : « ref » absente — un décor NOMME son type au catalogue (props.json)']);
+  });
+
+  it('un décor LIBELLÉ se nomme UNE fois, par son libellé, et la faute se rattache à son id (#1897)', () => {
+    const nomme = scene();
+    nomme.entities.push({ id: 'p-1', kind: 'prop', pos: { x: 2, y: 2 }, label: 'Tonneau' });
+    expect(validateScene([nomme]).filter((w) => w.level === 'error')).toEqual([
+      expect.objectContaining({ scope: 'entity', refId: 'p-1', message: 'Tonneau › ref : « ref » absente — un décor NOMME son type au catalogue (props.json)' }),
+    ]);
   });
 
   it('un PERSONNAGE sans fiche est une erreur nommée ; chaque porteur SEUL (réf, statbloc, preset) la lève (#1882)', () => {
     const sansFiche = scene();
     sansFiche.entities.push({ id: 'e-1', kind: 'personnage', pos: { x: 2, y: 2 }, label: 'Aubergiste' });
     expect(validateScene([sansFiche]).filter((w) => w.level === 'error').map((w) => `${w.refId} ${w.message}`))
-      .toEqual(['e-1 Aubergiste : personnage « e-1 » : « ref », « statblock », « presetId » absents — un personnage NOMME sa fiche (bestiaire, statbloc ou preset de PNJ)']);
+      .toEqual(['e-1 Aubergiste › ref : « ref », « statblock », « presetId » absents — un personnage NOMME sa fiche (bestiaire, statbloc ou preset de PNJ)']);
 
     for (const porteur of [
       { ref: REF_CREATURE },
@@ -159,7 +169,7 @@ describe('une RÉF de créature que le spawn ne résout pas est une erreur, pas 
     const vide = scene();
     vide.entities.push({ id: 'e-1', kind: 'personnage', pos: { x: 2, y: 2 }, ref: '' });
     expect(validateScene([vide]).filter((w) => w.level === 'error').map((w) => w.message))
-      .toEqual(['e-1 : personnage « e-1 » : « ref », « statblock », « presetId » absents — un personnage NOMME sa fiche (bestiaire, statbloc ou preset de PNJ)']);
+      .toEqual(['e-1 › ref : « ref », « statblock », « presetId » absents — un personnage NOMME sa fiche (bestiaire, statbloc ou preset de PNJ)']);
   });
 });
 
@@ -252,5 +262,47 @@ describe('un combattant de rencontre occupe SON EMPREINTE, pas seulement son anc
       statblock: { type: 'statblock', label: 'Ogre', char: { B: 10 }, size: 'grande' },
     });
     expect(de(s, 'entity')).toEqual([]);
+  });
+});
+
+describe('le SCHÉMA de scène se joue sur une scène VIVANTE (#877, #1897)', () => {
+  /** Un personnage de la scène qui porte un sort d'auteur absent de `spells.json`. */
+  const aSortMort = (): Scene => {
+    const s = scene();
+    s.entities.push({ id: 'mage', kind: 'personnage', label: 'Mage', pos: { x: 2, y: 2 }, ref: REF_CREATURE, combat: { spells: ['sort-fantome'] } });
+    return s;
+  };
+  const erreurs = (s: Scene) => validateScene([s]).filter((w) => w.level === 'error');
+
+  it('un SORT d’auteur mort est une erreur, rattachée à son entité', () => {
+    expect(erreurs(aSortMort())).toEqual([{
+      level: 'error', sceneId: 'S', scope: 'entity', refId: 'mage',
+      message: 'Mage › combat.spells.0 : « sort-fantome » est absent du catalogue des sorts (spells.json).',
+    }]);
+  });
+
+  it('le verdict d’une scène INCHANGÉE suit le catalogue : une écriture au seam le re-date', () => {
+    const s = aSortMort();
+    expect(erreurs(s)).toHaveLength(1);
+    try {
+      setDataset('spells', [...spells, { ...spells[0], id: 'sort-fantome' }]);
+      expect(erreurs(s)).toEqual([]);
+    } finally {
+      resetData();
+    }
+    expect(erreurs(s)).toHaveLength(1);
+  });
+});
+
+describe('une réf que le SCHÉMA d’un effet prouve se dit UNE fois — aucun hook `refs` ne la redouble', () => {
+  it('`castSpell` au sort mort : une seule erreur, celle du schéma', () => {
+    const s = scene();
+    s.triggers.push({
+      id: 't-sort', rect: { x: 0, y: 0, w: 1, h: 1 },
+      flow: flowFromEffects([{ type: 'castSpell', casterId: 'start', spellId: 'sort-mort', mode: 'jet' }]),
+    });
+    const fautes = validateScene([s]).filter((w) => w.message.includes('sort-mort'));
+    expect(fautes.map((w) => w.message)).toHaveLength(1);
+    expect(fautes[0].message).toContain('absent du catalogue des sorts');
   });
 });

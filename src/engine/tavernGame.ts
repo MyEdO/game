@@ -16,7 +16,7 @@
 import { RNG, defaultRNG } from './dice';
 import { rollTest, resolveOpposed, TestResult } from './tests';
 import { Difficulty, CharKey } from './types';
-import type { SkillRef } from './skills';
+import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { rule } from './policy';
 import type {
   SequencePhases, SequencePotRules, SequenceRoundOps, SequenceTableRow, SequenceSide, SequenceVolleyRules,
@@ -33,7 +33,7 @@ export interface TavernGame {
   desc: string;
   /** Référence de la Compétence du jeu (`{ id, spec? }`, skills.json) — l'appelant calcule la valeur.
    *  ABSENTE = aucune Compétence indiquée → Pari (variante rapide, l.11). */
-  skill?: SkillRef;
+  skill?: RefDesignee;
   /** Caractéristique du jeu quand il ne repose pas (ou pas seulement) sur une Compétence (Bras de fer = F,
    *  Bête = CT, Alvatafl/Cerevis = Int/I). Sert à l'appelant pour calculer la valeur. */
   characteristic?: CharKey;
@@ -41,7 +41,7 @@ export interface TavernGame {
    *  `NADJ 16 l.11` mot à mot (la Compétence indiquée ; Pari si aucune n'est indiquée) — une
    *  Caractéristique n'est PAS une Compétence, donc le Bras de fer tombe sur Pari par défaut. Poser
    *  ici `{ char: 'force', maison: '…' }` est la lecture d'esprit, éditable au Codex et taguée. */
-  fastSkill?: { skill?: SkillRef; char?: CharKey; maison: string };
+  fastSkill?: { skill?: RefDesignee; char?: CharKey; maison: string };
   /** Mode : `opposed` (un Test opposé, +DR l'emporte — variante rapide) ou `extended` (Test opposé étendu
    *  jusqu'à `target` DR cumulés — Bras de fer, l.34). */
   mode?: 'opposed' | 'extended';
@@ -79,7 +79,7 @@ export interface TavernGame {
    *  pas QUI choisit : le choix va au JOUEUR (credo « pas de MJ », jamais un défaut silencieux). La
    *  PREMIÈRE option est celle que jouent les porteurs qu'aucun siège ne tient, et les figurants. */
   options?: {
-    skill?: SkillRef; char?: CharKey; difficulty: Difficulty;
+    skill?: RefDesignee; char?: CharKey; difficulty: Difficulty;
     /** Ce Test est-il un Test de COMBAT ? — c'est lui qui décide si l'Avantage s'y applique : « +10 à
      *  un Test de Combat ou de Psychologie approprié » (`LDB 14 l.215`). Middenball l.121 renvoie aux
      *  « règles habituelles relatives à l'Avantage » : Corps à corps (Bagarre) en est un, Athlétisme
@@ -154,7 +154,7 @@ export function tavernFastRegime(): boolean {
  * toujours (`tavernTestSpec`/`tavernGameValue`, `state/tavernFlow.ts`).
  */
 export function fastTavernGame(g: TavernGame): TavernGame {
-  const test: { skill?: SkillRef; char?: CharKey } = g.fastSkill ?? { skill: g.skill ?? { id: 'pari' } };
+  const test: { skill?: RefDesignee; char?: CharKey } = g.fastSkill ?? { skill: g.skill ?? { id: 'pari' } };
   return {
     id: g.id,
     label: g.label,

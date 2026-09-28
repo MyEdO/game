@@ -40,7 +40,7 @@ function cloneFromCreature(creatureId: string): CustomStatblock | null {
     // CustomStatblock stocke des REFS structurées (comme le bestiaire) — ids, pas libellés (multilangue).
     ...(c.skills.length ? { skills: c.skills } : {}), // déjà SkillRef[]
     ...(c.talents.length ? { talents: c.talents } : {}), // déjà TalentRef[]
-    ...(c.spells.length ? { spells: c.spells.map((s) => s.id) } : {}), // Ref[] → ids
+    ...(c.spells.length ? { spells: c.spells } : {}),
   };
 }
 

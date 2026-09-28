@@ -62,11 +62,11 @@ un def qui change d'exposition change cette colonne au prochain `npm run docs:do
 ### Magie & religion
 | Fichier | Contient | Exposition (Codex — édition) |
 |---|---|---|
-| `spells.json` | Sorts, bénédictions, miracles (`effects`) (576 entrée(s)) | `spells` — dataset `spells` |
+| `spells.json` | Sorts, bénédictions, miracles (`effects`) (526 entrée(s)) | `spells` — dataset `spells` |
 | `domains.json` | Domaines de magie (Vents) (20 entrée(s)) | `domains` — dataset `domains` |
 | `gods.json` | Dieux (bénédictions/miracles rattachés) (41 entrée(s)) | `gods` — dataset `gods` |
 | `miscast.json` | Tables d'Incident magique — 5 documents : Imparfaites Mineures/Majeures (LDB), leurs révisions VDM, Colère des dieux (5 entrée(s)) | `miscastMinor` · `miscastMajor` · `miscastWrath` — niché (`miscastMinor` · `miscastMajor` · `miscastWrath`) |
-| `breath-types.json` | Types de Souffle (feu, froid, corrosif…) (6 entrée(s)) | exempt (vocabulaire-app-interne) — aucune (aucune catégorie Codex ne l’expose, donc aucun formulaire d’atelier ne l’édite) |
+| `breath-types.json` | Types de Souffle (feu, froid, corrosif…) (6 entrée(s)) | exempt (vocabulaire-app-interne) — aucune (aucune catégorie Codex ne l’expose, donc aucun formulaire d’atelier ne l’édite) — dataset `breathTypes` |
 | `vents-tourbillonnants.json` | Table d10 de force des Vents (option `vents-tourbillonnants`, LDB 46 l.179-190) (objet à sous-catalogues) | `ventsTourbillonnants` — niché (`ventsTourbillonnants`) |
 | `arcane-phenomena.json` | Magie ENVIRONNEMENTALE (VDM 14, folios 189-199) : paliers de Saturation, Effets de Saturation par Vent, phénomènes arcaniques (lignes de force, pierres gardiennes, Grand Vortex, nexus, appuis arcaniques, Tempête de Magie, Corruption), tables de Corruption chaotique/nécromantique et de Flux magique — option `magic-vdm-environnementale` (objet à sous-catalogues) | `arcanePhenomena` — objet single |
 | `surincantation.json` | TABLEAU DE SURINCANTATION (VDM 02 l.207-215, folio 23) : palier de DR dépensés sur une colonne → Cible additionnelle, Dégât en plus, Portée/ZdE/Durée multipliées — lu par `src/engine/overcast.ts` sous l'option `magic-vdm-incantation` (objet à sous-catalogues) | `surincantation` — niché (`surincantation`) |
@@ -76,7 +76,7 @@ un def qui change d'exposition change cette colonne au prochain `npm run docs:do
 |---|---|---|
 | `actions.json` | Registre des ACTIONS de combat (id stable → libellé, icône, coût, règle Codex, surface, gate/candidates/run) (55 entrée(s)) | exempt (vocabulaire-app-interne) — aucune (registre de routage édité au fichier — absent de `CodexEdit.CATEGORY_DATASET`) |
 | `qualities.json` | Atouts/défauts d'arme & armure (`belier`, `siege`… = la QUALITÉ, pas l'arme) (59 entrée(s)) | `qualities` — dataset `qualities` |
-| `qualityTypes.json` · `qualitySubtypes.json` | atout/defaut · arme/armure/objet (2 entrée(s) · 3 entrée(s)) | exempt (vocabulaire-app-interne) — aucune (aucune catégorie Codex ne l’expose, donc aucun formulaire d’atelier ne l’édite) ; exempt (vocabulaire-app-interne) — aucune (aucune catégorie Codex ne l’expose, donc aucun formulaire d’atelier ne l’édite) |
+| `qualityTypes.json` · `qualitySubtypes.json` | atout/defaut · arme/armure/objet (2 entrée(s) · 3 entrée(s)) | exempt (vocabulaire-app-interne) — aucune (aucune catégorie Codex ne l’expose, donc aucun formulaire d’atelier ne l’édite) — dataset `qualityTypes` ; exempt (vocabulaire-app-interne) — aucune (aucune catégorie Codex ne l’expose, donc aucun formulaire d’atelier ne l’édite) — dataset `qualitySubtypes` |
 | `weaponGroups.json` | Groupes d'armes (Base, Escrime, Parade…) (38 entrée(s)) | `weaponGroups` — dataset `weaponGroups` |
 | `maneuvers.json` | Manœuvres (attaques spéciales : morsure, souffle…) (20 entrée(s)) | `maneuvers` — dataset `maneuvers` |
 | `criticals.json` | Blessures critiques par localisation — 8 documents-tables, un par jeu × Localisation (base · variante *Aux Armes*) (8 entrée(s)) | `criticalsTete` · `criticalsBras` · `criticalsCorps` · `criticalsJambe` · `aaCriticalsTete` · `aaCriticalsBras` · `aaCriticalsCorps` · `aaCriticalsJambe` — niché (`criticalsTete` · `criticalsBras` · `criticalsCorps` · `criticalsJambe` · `aaCriticalsTete` · `aaCriticalsBras` · `aaCriticalsCorps` · `aaCriticalsJambe`) |
@@ -85,7 +85,7 @@ un def qui change d'exposition change cette colonne au prochain `npm run docs:do
 | `grapple.json` | Lutte / empoignade (objet à sous-catalogues) | `grapple` — objet single |
 | `regles.json` | Procédures / options de jeu au texte VERBATIM (Sombre Pacte, modes d'attaque/défense, Empoignade, Focalisation étendue, Ragot au marché…) — routées en tooltip `CodexRef` (catégorie Codex `regles`), jamais une paraphrase de règle (#392) (86 entrée(s)) | `regles` — aucune (exposé au Codex en LECTURE seule — aucune clé de `CodexEdit.CATEGORY_DATASET` ne le route vers un formulaire d’atelier) |
 | `reglesOptionnelles.json` | Registre des RÈGLES OPTIONNELLES (« règles maison ») : id STABLE (clé de surcharge, de persistance et de `variants[].when.rule`), libellé/aide/groupe d'affichage, forme du contrôle auto-rendu (`flag`/`param`/`mode`), défaut et bornes, action de jeu attachée — lu par `src/engine/policy.ts` (`rule(id)`), rendu par le panneau in-game (87 entrée(s)) | `reglesOptionnelles` — dataset `reglesOptionnelles` |
-| `damage-types.json` | Types de dégâts (poison, feu, électrique) (4 entrée(s)) | exempt (vocabulaire-app-interne) — aucune (aucune catégorie Codex ne l’expose, donc aucun formulaire d’atelier ne l’édite) |
+| `damage-types.json` | Types de dégâts (poison, feu, électrique) (4 entrée(s)) | exempt (vocabulaire-app-interne) — aucune (aucune catégorie Codex ne l’expose, donc aucun formulaire d’atelier ne l’édite) — dataset `damageTypes` |
 | `sizes.json` · `encumbranceTiers.json` | Barèmes par Taille (modif. au tir · Enc à bord · côté d'empreinte) · paliers d'Encombrement (objet à sous-catalogues · 4 entrée(s)) | `sizes` — objet single ; `encumbranceTiers` — dataset `encumbranceTiers` |
 | `etats.json` | États / Conditions (À terre, Aveuglé…) (21 entrée(s)) | `etats` — dataset `etats` |
 | `psychology.json` | États psychologiques (Peur, Terreur, Frénésie…) (9 entrée(s)) | `psychologies` — dataset `psychologies` |
@@ -102,15 +102,15 @@ un def qui change d'exposition change cette colonne au prochain `npm run docs:do
 | `water-exposure.json` | Exposition à l'eau (noyade, maladies) (objet à sous-catalogues) | `waterExposure` — objet single |
 | `obsessions.json` · `drunkenness.json` | Obsessions (table) · ivresse (table) (objet à sous-catalogues · objet à sous-catalogues) | `obsessions` — niché (`obsessions`) ; `drunkenness` — niché (`drunkenness`) |
 | `night-stakes.json` | Enjeu VERBATIM par `kind` d'étape de la cascade de nuit (#331) — ce que l'échec coûte, lu par `nightStakeRef` (`src/data/index.ts`, appelé par `src/state/restFlow.ts`) (15 entrée(s)) | `nightStakes` — dataset `nightStakes` |
-| `voyage-stakes.json` | Enjeu par `kind` d'étape de cascade de VOYAGE (#1117) — GABARIT de descripteur mécanique dont les trous `{nom}` reçoivent les valeurs calculées du flux, lu par `voyageStake` (`src/data/index.ts`) (42 entrée(s)) | `voyageStakes` — aucune (exposé au Codex en LECTURE seule — aucune clé de `CodexEdit.CATEGORY_DATASET` ne le route vers un formulaire d’atelier) |
-| `flow-stakes.json` | Enjeu d'un JET DE MODALE MONO (#1117), keyé par l'id de jet `{flow, phase}` — descripteur mécanique + foyer de règle (entité porteuse) ou catégorie de l'entrée jouée, lu par `flowStakeRef`/`resolveStake` (`src/data/index.ts`) (34 entrée(s)) | `flowStakes` — aucune (exposé en LECTURE seule au Codex (catégorie `flowStakes`) — absent de `CodexEdit.CATEGORY_DATASET`) |
-| `combat-stakes.json` | Enjeu d'une étape de cascade de COMBAT (#1117), keyé par le `kind` de son applier — descripteur mécanique + foyer de règle (entité porteuse) ou catégorie de l'entrée jouée, lu par `combatStakeRef`/`resolveStake` (`src/data/index.ts`) (37 entrée(s)) | `combatStakes` — aucune (exposé en LECTURE seule au Codex (catégorie `combatStakes`) — absent de `CodexEdit.CATEGORY_DATASET`) |
+| `voyage-stakes.json` | Enjeu par `kind` d'étape de cascade de VOYAGE (#1117) — GABARIT de descripteur mécanique dont les trous `{nom}` reçoivent les valeurs calculées du flux, lu par `voyageStake` (`src/data/index.ts`) (42 entrée(s)) | `voyageStakes` — aucune (exposé au Codex en LECTURE seule — aucune clé de `CodexEdit.CATEGORY_DATASET` ne le route vers un formulaire d’atelier) — dataset `voyageStakes` |
+| `flow-stakes.json` | Enjeu d'un JET DE MODALE MONO (#1117), keyé par l'id de jet `{flow, phase}` — descripteur mécanique + foyer de règle (entité porteuse) ou catégorie de l'entrée jouée, lu par `flowStakeRef`/`resolveStake` (`src/data/index.ts`) (34 entrée(s)) | `flowStakes` — aucune (exposé en LECTURE seule au Codex (catégorie `flowStakes`) — absent de `CodexEdit.CATEGORY_DATASET`) — dataset `flowStakes` |
+| `combat-stakes.json` | Enjeu d'une étape de cascade de COMBAT (#1117), keyé par le `kind` de son applier — descripteur mécanique + foyer de règle (entité porteuse) ou catégorie de l'entrée jouée, lu par `combatStakeRef`/`resolveStake` (`src/data/index.ts`) (38 entrée(s)) | `combatStakes` — aucune (exposé en LECTURE seule au Codex (catégorie `combatStakes`) — absent de `CodexEdit.CATEGORY_DATASET`) — dataset `combatStakes` |
 
 ### Objets & équipement
 | Fichier | Contient | Exposition (Codex — édition) |
 |---|---|---|
 | `trappings.json` | **Équipement PORTÉ** : armes, armures, objets tenus/portés. **ATTENTION — PAS** les machines de guerre. (441 entrée(s)) | `trappings` · `siegeEngines` — dataset `trappings` |
-| `disponibilite.json` | Tables numériques de « Faire son marché » (LDB 59) : `dispoPct` (% de Disponibilité par taille de colonie) + `barterRatios` (RATIOS DE TROC) — consommées par `src/engine/disponibilite.ts` (`DISPO_PCT`/`BARTER_RATIOS`) (objet à sous-catalogues) | `disponibilite` — objet single |
+| `disponibilite.json` | Tables numériques de « Faire son marché » (LDB 59) : `dispoPct` (% de Disponibilité par taille de colonie) + `barterRatios` (RATIOS DE TROC) — consommées par `src/engine/disponibilite.ts` (`dispoPct`/`barterRatios`) (objet à sous-catalogues) | `disponibilite` — objet single |
 
 ### Bestiaire
 | Fichier | Contient | Exposition (Codex — édition) |
@@ -162,7 +162,7 @@ Le **bloc `narratif`** d'un paquet de campagne schema 3 (`NarratifBlock`, `src/s
 |---|---|---|
 | `raceAppearance.json` | Apparence par race (gabarit, palette, tenue) — rig (21 entrée(s)) | `raceAppearance` — dataset `raceAppearance` |
 | `structureAppearance.json` | Apparence de structure (murs, portes) (18 entrée(s)) | exempt (vocabulaire-app-interne) — aucune (presets de rendu édités au fichier — absent de `CodexEdit.CATEGORY_DATASET`) |
-| `props.json` | Props de décor (leurs matières vivent dans `materials.json`) (124 entrée(s)) | exempt (vocabulaire-app-interne) — aucune (édité à la PALETTE de décor de l’éditeur de carte, jamais par une catégorie du Codex) |
+| `props.json` | Props de décor (leurs matières vivent dans `materials.json`) (124 entrée(s)) | exempt (vocabulaire-app-interne) — aucune (catalogue d’art, édité au fichier `src/data/props.json` — aucun écran ne l’écrit (la palette de l’éditeur de carte le LIT)) — dataset `props` |
 | `decorPalette.json` | Palette de couleurs de décor (objet à sous-catalogues) | exempt (vocabulaire-app-interne) — aucune (palette d'art éditée au fichier (aucun écran d'atelier ne l'expose)) |
 | `teintesJeu.json` | TEINTES DE JEU du terrain — surbrillances tactiques (portées, zones, bandes de tir, anneaux de cible, halos, télégraphes) et identité d'unité (anneaux réservés, équipes, une couleur par héros), `id → #rrggbb` groupé par préfixe ; servi aux peintres par `src/gameIso/highlightTints.ts` et `src/gameIso/teamColors.ts` (objet à sous-catalogues) | exempt (vocabulaire-app-interne) — aucune (palette de rendu éditée au fichier (aucun écran d'atelier ne l'expose)) |
 | `materials.json` | LES matières du monde — un document, le domaine (`prop` décor volumique · `roof` toiture · `relief`) porté par l'entrée (16 entrée(s)) | `materials` — dataset `materials` |
@@ -170,14 +170,14 @@ Le **bloc `narratif`** d'un paquet de campagne schema 3 (`NarratifBlock`, `src/s
 | `semences-de-scene.json` | LES semences d'une scène NEUVE (#1716) — ambiance, mètres par case, éclairage, sol de départ, matières de relief et toiture par défaut ; objet unique lu par `emptyScene` (`src/state/scene.ts`, dérivées `DEFAULT_RELIEF_DEFAULTS`/`DEFAULT_ROOF_DEFAULTS`/`DEFAULT_TERRAIN`). Les MIGRATIONS de projet ne la lisent PAS : elles reposent la valeur gelée de leur lot (objet à sous-catalogues) | `semencesDeScene` — objet single |
 | `defauts-de-compilation.json` | LES défauts du COMPILATEUR de scène (#1716) — ce que `buildScene` pose quand une section d'un `MapSpec` laisse le terrain implicite : sol du chemin de ronde et masse d'une `cells` d'enceinte (`src/state/mapSpec.ts`), tuile de pont d'une scène de bord (`buildBoardingScene`, `src/state/seaVoyageFlow.ts`). Objet unique, distinct des SEMENCES (créer une scène) — compiler une déclaration déjà écrite (objet à sous-catalogues) | `defautsDeCompilation` — objet single |
 | `buildings.json` | LES types de bâtiment — empreinte offerte à la pose, couverture par défaut des nappes de toit, ornements d'identité posés en billboard ; lu par la façade `src/state/buildings.ts` (7 entrée(s)) | `buildings` — dataset `buildings` |
-| `ambiance.json` · `lightLevels.json` · `lightTones.json` | Ambiance lumineuse (`iso`/`pov`) · niveaux de lumière · TONS de lumière (#1245 : apparence d'une source ponctuelle — couleur, part d'intensité, vacillement ; référencés par `tone`, défaut `flamme`) (objet à sous-catalogues · 5 entrée(s) · 4 entrée(s)) | exempt (vocabulaire-app-interne) — aucune (aucune catégorie Codex ne l’expose, donc aucun formulaire d’atelier ne l’édite) ; exempt (vocabulaire-app-interne) — aucune (aucune catégorie Codex ne l’expose, donc aucun formulaire d’atelier ne l’édite) ; exempt (vocabulaire-app-interne) — aucune (aucune catégorie Codex ne l’expose, donc aucun formulaire d’atelier ne l’édite) |
+| `ambiance.json` · `lightLevels.json` · `lightTones.json` | Ambiance lumineuse (`iso`/`pov`) · niveaux de lumière · TONS de lumière (#1245 : apparence d'une source ponctuelle — couleur, part d'intensité, vacillement ; référencés par `tone`, défaut `flamme`) (objet à sous-catalogues · 5 entrée(s) · 4 entrée(s)) | exempt (vocabulaire-app-interne) — aucune (aucune catégorie Codex ne l’expose, donc aucun formulaire d’atelier ne l’édite) ; exempt (vocabulaire-app-interne) — aucune (aucune catégorie Codex ne l’expose, donc aucun formulaire d’atelier ne l’édite) — dataset `lightLevels` ; exempt (vocabulaire-app-interne) — aucune (aucune catégorie Codex ne l’expose, donc aucun formulaire d’atelier ne l’édite) — dataset `lightTones` |
 | `renduMonte.json` | Réglage MAISON du rendu du couple MONTÉ (#1128) — `harnaisParDefaut` : id du set d'équipement (registre `src/gameIso/rig/quadruped/harnais/`) apposé à une monture PORTÉE dont le record ne déclare pas de `appearance.harnais` (LDB 08 l.557), lu par `DEFAUT_HARNAIS_MONTE` (objet à sous-catalogues) | exempt (vocabulaire-app-interne) — aucune (aucune catégorie Codex ne l’expose, donc aucun formulaire d’atelier ne l’édite) |
 
 ### Méta
 | Fichier | Contient | Exposition (Codex — édition) |
 |---|---|---|
 | `books.json` | **Registre des livres sources** — le champ `abr` est l'abréviation CANONIQUE (voir §B) (30 entrée(s)) | `books` — dataset `books` |
-| `primitives.manifest.json` · `systemes.manifest.json` | Manifestes TOOLING (#298, vocabulaire app-interne, pas RAW) — sources de `docs/systemes.md` (`npm run docs:systemes`, `scripts/docs/build-systemes.mjs`) (128 entrée(s) · 16 entrée(s)) | exempt (vocabulaire-app-interne) — aucune (aucune catégorie Codex ne l’expose, donc aucun formulaire d’atelier ne l’édite) ; exempt (vocabulaire-app-interne) — aucune (aucune catégorie Codex ne l’expose, donc aucun formulaire d’atelier ne l’édite) |
+| `primitives.manifest.json` · `systemes.manifest.json` | Manifestes TOOLING (#298, vocabulaire app-interne, pas RAW) — sources de `docs/systemes.md` (`npm run docs:systemes`, `scripts/docs/build-systemes.mjs`) (143 entrée(s) · 16 entrée(s)) | exempt (vocabulaire-app-interne) — aucune (aucune catégorie Codex ne l’expose, donc aucun formulaire d’atelier ne l’édite) ; exempt (vocabulaire-app-interne) — aucune (aucune catégorie Codex ne l’expose, donc aucun formulaire d’atelier ne l’édite) |
 | `raw.manifest.json` | Manifeste éditorial du champ Implémente de l'Atlas RAW (généré par `scripts/raw/build-implemente.mjs`, #487) : par topic, ticket de dette ou raison de blocage — la SEULE surface écrite à la main du champ (12 entrée(s)) | exempt (vocabulaire-app-interne) — aucune (aucune catégorie Codex ne l’expose, donc aucun formulaire d’atelier ne l’édite) |
 | `donnees.manifest.json` | Manifeste éditorial de cet atlas (#903, rangement par rubrique, description, règle d'or, pièges d'homonymes) — source de `docs/donnees.md` (`npm run docs:donnees`, `scripts/docs/build-donnees.mjs`) (objet à sous-catalogues) | exempt (vocabulaire-app-interne) — aucune (aucune catégorie Codex ne l’expose, donc aucun formulaire d’atelier ne l’édite) |
 
@@ -265,15 +265,15 @@ Le **bloc `narratif`** d'un paquet de campagne schema 3 (`NarratifBlock`, `src/s
   `src/data/variants-integrity.test.ts`) — `talents.json` résout quatre champs, UNE CITATION PAR LIGNE,
   chacune à côté du SYMBOLE qu'elle porte (lignes MESURÉES à la génération, `citeLigne`) :
 
-  - `desc`/`source` — Codex, `effectiveEntry`, `src/ui/compendium/registry.ts:1496`
-  - `test` — `talentTestSLBonus`, `src/engine/magic.ts:359`
-  - `max` — `talentMaxById`, `src/engine/careerSlots.ts:326`
+  - `desc`/`source` — Codex, `effectiveEntry`, `src/ui/compendium/registry.ts:1490`
+  - `test` — `talentTestSLBonus`, `src/engine/magic.ts:358`
+  - `max` — `talentMaxById`, `src/engine/careerSlots.ts:376`
   - `combat` — `featuresOf`, `src/engine/combatFeatures/dispatch.ts:52`
   - `combat` — `castingKindOf`, `src/engine/combatFeatures/dispatch.ts:18`
 
   `traits.json` ne résout, lui, que deux champs :
 
-  - `desc`/`source` — Codex, `effectiveEntry`, `src/ui/compendium/registry.ts:633`
+  - `desc`/`source` — Codex, `effectiveEntry`, `src/ui/compendium/registry.ts:627`
 
   `passive` et `effects` en sont EXCLUS — le moteur les lit sur
   l'entrée brute (`src/engine/talentEffects.ts`, `src/engine/traits/dispatch.ts`) ; un champ n'entre
@@ -401,14 +401,18 @@ pas exigible (vocabulaires d'app, documents dont la source vit en profondeur) so
 
 **Les 4 exports plats du contrat `gen`** : tout def qui appelle `document(` exporte `file`, `schema`,
 `famille` et `meta` **À PLAT**. Le générateur de registre est TEXTUEL (lecture par regex, jamais un
-import) — la sanction diffère donc PAR EXPORT, et une seule est silencieuse :
+import) ; son lecteur UNIQUE, `lireExports` de `scripts/gen-registry.mjs` (formes `FORMES_D_EXPORT`),
+lit `file` et `famille` à la seule forme `export const X = '…';` (guillemet SIMPLE littéral) et `meta` à
+la présence de `export const meta` :
 
-- `file` non conforme au filtre `scripts/gen-registry.mjs:370` (`^export const file = '`, guillemet
-  SIMPLE littéral) : le def est **ÉCARTÉ du registre, en silence** — double quote, `: string` annoté,
-  littéral gabarit et `= doc.file` compilent tous et sortent pourtant du registre. Seul cet export
-  décide de l'appartenance au registre.
-- `meta` non plat : le def **RESTE au registre** et perd son entrée `meta` (invisible de `presents()`,
-  `scripts/gen-registry.mjs:382`) — l'atelier retombe sur la clé technique, sans qu'aucun gate rougisse.
+- `file`, `famille` ou `meta` hors de sa forme canonique (guillemets doubles, `: string` annoté,
+  `as const`, littéral gabarit, `= doc.file`, destructuration, `export { … }`) : `npm run gen` **LÈVE**
+  en nommant le def et l'export — aucun def n'est écarté en silence
+  (`src/data/schemas/gen-registry-lecteur.test.ts`).
+- `file` absent : le module n'est pas une entrée du registre (module de FORME partagé, `genOne` de
+  `scripts/gen-registry.mjs`). Seul cet export décide de l'appartenance au registre.
+- `meta` absent : le def **RESTE au registre** sans entrée `meta` (`presents` de `genOne`) — l'atelier
+  retombe sur la clé technique ; seule la garde ci-dessous l'exige.
 - `schema`/`famille` destructurés (`export const { schema } = doc`) **COMPILERAIENT** : la
   destructuration crée un vrai nom importable. La garde n'y protège pas la compilation mais la
   CONVENTION — forme plate unique, lisible par un codemod.
@@ -421,12 +425,15 @@ méta sans champ correspondant est refusée. C'est le canal registre → atelier
 `src/data/schemas/validate.ts`) : les gardes de libellés et le CLIQUET de couverture vivent dans
 `src/ui/compendium/libelles-de-champs.test.tsx` — les CHIFFRES y sont, jamais recopiés ici.
 
-**Registres GÉNÉRÉS** — `_registry.generated.ts`, `_registry-scenes.generated.ts` et
-`_ids.generated.ts`, par `node scripts/gen-registry.mjs` (`npm run gen`). Ne JAMAIS éditer à la main.
+**Registres GÉNÉRÉS** — `_registry.generated.ts` et `_registry-scenes.generated.ts` par
+`scripts/gen-registry.mjs` (phase 1 de `npm run gen`) ; `_ids.generated.ts` (l'INDEX DES IDS,
+`IDS_PAR_ESPACE`), `_cles-de-dataset.generated.ts` (`CLES_DE_DATASET`) et
+`_racines-vivantes.generated.ts` (`RACINES_VIVANTES`, l'image de `DATASET_FICHIER_DERIVE`) par
+`scripts/gen-espaces.mts` (phase 2). Ne JAMAIS éditer à la main.
 `DEFS_DE_DOCUMENT` (`src/data/schemas/validate.ts`) est l'union des deux registres.
 
 Un def de `src/data/schemas/defs-scenes/` suit la même fabrique ; son `file` est le **chemin RELATIF à
-`src/scenes`** (`arene/arene-projet.json`), jamais un basename, et les quatre defs de projet partagent
+`src/scenes`** (`arene/arene-projet.json`), jamais un basename, et les defs de projet partagent
 le même `projetSchema` (`src/data/schemas/defs-scenes/projet.ts`), composé des formes de scène
 (`scene.ts`), de carte du monde (`worldmap.ts`) et du bloc narratif (`narratif.ts`).
 
@@ -495,4 +502,4 @@ se met à ressembler à une clé de l'autre sans être le couple ponté sanction
 >    scope ».
 > 5. **Vérifie** : canonicaliser via `serializeDataset`, puis `npm test` + `npm run typecheck` verts ;
 >    recette navigateur si l'élément est visible au Codex/éditeur.
-<!-- sources-empreinte: e201d24136c6285b5127e64f66f03c593f991478 (379 fichiers, 2 dossiers) corps: e3b124229ebcdbe3ac08563d61008b7ae8e1f600 -->
+<!-- sources-empreinte: 097b89c0db07391a4ae801ff34974e8d75be7e1d (386 fichiers, 2 dossiers) corps: f56387323f8539ac5238fa06cd38c65a90cac525 -->

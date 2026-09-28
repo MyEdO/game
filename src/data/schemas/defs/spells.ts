@@ -205,6 +205,7 @@ const doc = document(
   {
     exiges: ['desc', 'source'],
     variantes: VARIANT_RESOLVED_FIELDS,
+    espace: { discriminant: 'family' },
     /**
      * Un État PORTÉ (`carried`, #1695 — LDB 48 l.495 « qui persistent tous pour la durée du Sort »)
      * tient sa durée de l'effet actif du Sort. Un Sort à Durée INSTANTANÉE ou ABSENTE n'en pose

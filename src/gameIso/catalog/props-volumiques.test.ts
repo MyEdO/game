@@ -1,6 +1,6 @@
 import { tableTotale } from '../../lib/tableTotale';
 import { describe, expect, it } from 'vitest';
-import { propSvg } from './decor';
+import { missingPropSvg, propSvg } from './decor';
 import { scenarioEntities } from '../../scenes/opera/furnished';
 import { buildOperaFloorplan } from '../../scenes/opera/floorplan';
 import { findPropById, props } from '../../data';
@@ -15,8 +15,8 @@ import { emptyScene, sceneMetresPerTile, type Scene, type SceneEntity } from '..
 import { sceneEntitySchema } from '../../data/schemas/defs-scenes/scene';
 import { validateScene } from '../../state/validateScene';
 import { DIR4_ORDER, type Dir4 } from '../../state/dir8';
-import { memoByRef } from '../../state/sceneMemo';
 import { readCorpus } from '../../../scripts/guards/lib/sourceCorpus.mjs';
+import { detenteur } from '../../detenteur.testkit';
 
 /**
  * LE DÉCOR VOLUMIQUE — les refs de `props.json` dont le corps MONDE est leur recette, et dont le SVG
@@ -59,10 +59,8 @@ interface DecorAuthore { source: string; id: string; kind?: string; ref?: string
  * a exactement la même frontière, pour la même raison.
  */
 const CORPUS_SCENES = () => readCorpus(['src/scenes'], { exts: ['.json'], tests: true });
-/** Le dépouillement d'un corpus donné, retenu par l'IDENTITÉ de ce corpus (`memoByRef`) : `readCorpus`
- *  rend le MÊME tableau gelé à chaque appel de la même clé, donc la moisson ne se refait pas d'un `it`
- *  à l'autre — et une relecture disque (`viderCorpus`) rend un tableau neuf, donc une moisson neuve. */
-const moisson = memoByRef((corpus: ReturnType<typeof CORPUS_SCENES>): DecorAuthore[] => {
+/** Le dépouillement d'un corpus donné. */
+function moissonDe(corpus: ReturnType<typeof CORPUS_SCENES>): DecorAuthore[] {
   const out: DecorAuthore[] = [];
   const recolte = (o: unknown, fichier: string): void => {
     if (!o || typeof o !== 'object') return;
@@ -77,12 +75,11 @@ const moisson = memoByRef((corpus: ReturnType<typeof CORPUS_SCENES>): DecorAutho
   };
   for (const f of corpus) recolte(JSON.parse(f.text), f.rel.replace(/^src\/scenes\//, ''));
   const mptOpera = sceneMetresPerTile(buildOperaFloorplan());
-  for (const e of scenarioEntities as unknown as DecorAuthore[]) out.push({ ...e, source: SOURCE_TS, mpt: mptOpera });
+  for (const e of scenarioEntities() as unknown as DecorAuthore[]) out.push({ ...e, source: SOURCE_TS, mpt: mptOpera });
   return out;
-});
-function entitesAuthorees(): DecorAuthore[] {
-  return moisson(CORPUS_SCENES());
 }
+/** La moisson, une fois par fichier (#1801). */
+const entitesAuthorees = detenteur(() => moissonDe(CORPUS_SCENES()));
 
 /** Emprise d'une primitive (`empriseLocaleM`, la seule) : sa boîte englobante au sol ramenée en CASES
  *  (la recette est en mètres, #1507 — c'est l'échelle de la scène qui la ramène à la grille) et ses
@@ -319,7 +316,7 @@ describe('décor volumique — chaque recette du catalogue, sa vignette et son c
   /**
    * CAPS MESURÉS : les QUATRE cardinaux, pour TOUTE recette. Les diagonales n'ont pas à être mesurées —
    * elles sont refusées À LA DONNÉE par le schéma de scène (`src/data/schemas/defs-scenes/scene.ts`,
-   * `superRefine` de `sceneEntitySchema` sur `PROPS_VOLUMIQUES`), et le chargement d'un projet en
+   * `superRefine` de `sceneEntitySchema`, marqueur `volume` de `defs/props.ts`), et le chargement d'un projet en
    * meurt (`parseProject`).
    *
    * Ce que cette mesure suit, c'est la POSE dans le monde : le corps cuit part de l'ANCRE de
@@ -410,9 +407,11 @@ describe('décor volumique — chaque recette du catalogue, sa vignette et son c
  *   1. SCHÉMA (bloquant) : `sceneEntitySchema` refuse au parse, `parseProject` lève ;
  *   2. VALIDATEUR (signalant) : `validateScene` nomme l'entité à l'éditeur — il n'interdit rien, il
  *      montre (le panneau d'avertissements d'`Editor.tsx` est son seul consommateur) ;
- *   3. ÉDITEUR : le sélecteur d'orientation n'offre pas la diagonale (`Inspector.tsx`, testé chez lui) ;
- *   4. ÉMETTEUR : `buildProps` lève, invariant interne — si une donnée fautive arrivait quand même,
- *      le monde ne se cuit pas en silence.
+ *   3. ÉDITEUR : le sélecteur d'orientation n'offre pas la diagonale (`Inspector.tsx`), et changer le
+ *      type d'un décor fait retomber un cap refusé au cap d'identité (`changePropRef`) — testés chez eux ;
+ *   4. ÉMETTEUR : `buildProps` est TOTAL — une donnée fautive arrivée quand même (autosave, scène déjà
+ *      chargée) sort en billboard d'ERREUR (#877), jamais dans l'art de son type, et le monde de
+ *      l'éditeur survit pour que l'auteur lise la faute au validateur.
  */
 describe('décor volumique — le cap DIAGONAL est refusé de bout en bout', () => {
   const entiteBrute = (ref: string, facing: string) =>
@@ -434,19 +433,24 @@ describe('décor volumique — le cap DIAGONAL est refusé de bout en bout', () 
     const scene = sceneWith(propEntity({ id: 'e-1', ref: 'table-ronde-4-tabourets', pos: { x: 2, y: 2 }, facing: 'N' }));
     const diagonale = { ...scene, entities: [{ ...scene.entities[0], facing: 'NE' as const }] };
     expect(validateScene([diagonale]).filter((w) => w.level === 'error').map((w) => w.message)).toEqual([
-      "e-1 : décor volumique « table-ronde-4-tabourets » au cap NE — un décor volumique ne prend qu'un cap cardinal (N/E/S/O)",
+      "e-1 › facing : décor volumique « table-ronde-4-tabourets » au cap NE — un décor volumique ne prend qu'un cap cardinal (N/E/S/O)",
     ]);
     expect(validateScene([scene])).toEqual([]);
   });
 
-  it('4. ÉMETTEUR : `buildProps` lève sur un volumique en diagonale, et cuit un billboard au même cap', () => {
+  it('4. ÉMETTEUR : `buildProps` ne lève pas, le volumique en diagonale sort en billboard d’ERREUR, un billboard au même cap garde son art', () => {
     const scene = sceneWith(propEntity({ id: 'e-1', ref: 'table-ronde-4-tabourets', pos: { x: 2, y: 2 }, facing: 'N' }));
     const diagonale = { ...scene, entities: [{ ...scene.entities[0], facing: 'NE' as const }] };
-    expect(() => buildProps(diagonale)).toThrow(
-      "décor volumique « table-ronde-4-tabourets » (e-1) : cap NE — un décor volumique ne prend qu'un cap cardinal (N/E/S/O)",
+    const [fautif] = buildProps(diagonale).filter((el) => el.entId === 'e-1');
+    expect(estPropVolumique(fautif), 'un corps tourné de 45° ne se cuit pas').toBe(false);
+    expect(fautif.ref, 'le type n’est pas dessiné : l’art billboard d’un volumique ferait passer la faute pour une pose').toBeUndefined();
+    expect(propSvg(fautif.ref)).toBe(missingPropSvg(undefined));
+    expect(validateScene([diagonale]).map((w) => w.message)).toContain(
+      "e-1 › facing : décor volumique « table-ronde-4-tabourets » au cap NE — un décor volumique ne prend qu'un cap cardinal (N/E/S/O)",
     );
     const billboard = sceneWith({ ...propEntity({ id: 'e-2', ref: 'brasero', pos: { x: 2, y: 2 }, facing: 'N' }), facing: 'NE' } as SceneEntity);
-    expect(() => buildProps(billboard)).not.toThrow();
+    const [braise] = buildProps(billboard).filter((el) => el.entId === 'e-2');
+    expect(braise.ref).toBe('brasero');
   });
 });
 

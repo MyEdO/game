@@ -1,9 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-import { listerArbre } from '../../scripts/guards/lib/lister.mjs';
+import { listerProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs';
 import { schema as propsSchema } from './schemas/defs/props';
-import { PROPS_VOLUMIQUES } from './schemas/_ids.generated';
 import { props, matieresDe, findPropMaterialById, findPropById } from './index';
 import { aretesNonAppariees, CAP_IDENTITE_PROP, empreinteDeriveeDuProp, placesLocalesDuProp, polygonesDePrimitive, sommetLocal, validatePropCatalog, type PropData, type PropPrimitive } from './props.types';
 import { sceneMetresPerTile } from '../state/scene';
@@ -347,16 +345,13 @@ describe('validatePropCatalog — invariants de données du décor', () => {
    * effective d'un décor à recette s'en déduit, et avec elle la case de chaque siège et de chaque
    * abord). Le juger à la seule échelle par défaut laisse passer ce qu'une scène LIVRÉE fait vraiment :
    * la barge du sel et le Loup & Saumure sont à 10 m/case, où tout meuble à N places tient sur une case.
-   * La liste est DÉRIVÉE des documents (glob des `*-projet.json`) plus le défaut du monde — une scène
+   * La liste est DÉRIVÉE des documents (les projets livrés, `projetsLivres.mjs`) plus le défaut du monde — une scène
    * qui adopte une nouvelle échelle entre sous garde par sa seule déclaration.
    */
   const ECHELLES_EN_USAGE = (() => {
     const vues = new Set<number>([MPT]);
     const racine = new URL('../scenes/', import.meta.url);
-    const projets = listerArbre(fileURLToPath(racine), {
-      descendre: (rel) => !rel.includes('/'),
-      filtre: (rel) => rel.includes('/') && rel.endsWith('-projet.json'),
-    });
+    const projets = listerProjetsLivres();
     for (const rel of projets) {
       const doc = JSON.parse(readFileSync(new URL(rel, racine), 'utf8')) as { scenes?: { metresPerTile?: number }[] };
       for (const sc of doc.scenes ?? []) if (typeof sc.metresPerTile === 'number') vues.add(sc.metresPerTile);
@@ -494,29 +489,6 @@ describe('AXE — un cylindre dit son axe, et un cylindre couché ne passe pas s
       expect.stringMatching(/^x: primitive box « bois-chene » — descend à -0\.3\d* m, sous le sol de sa case$/),
       expect.stringMatching(/^x: approche « place-1 » \(0,0\) tombe sur la case \(0,0\) de l’empreinte 1×1/),
     ]);
-  });
-});
-
-/**
- * REGISTRE GÉNÉRÉ des décors À RECETTE (`PROPS_VOLUMIQUES`, `schemas/_ids.generated.ts`) — le
- * canal par lequel le schéma de scène sait, au parse, qu'un `ref` désigne un volume. Ce contrat le tient ÉGAL à
- * la mesure sur `props.json` : une recette ajoutée sans `npm run gen` est rouge ici, et le verrou de
- * cap du schéma ne peut donc pas se périmer en silence.
- */
-describe('PROPS_VOLUMIQUES — le registre généré == la mesure sur props.json', () => {
-  it('exactement les ids qui portent des primitives, triés', () => {
-    const mesure = props
-      .filter((p) => (p.volume?.primitives.length ?? 0) > 0)
-      .map((p) => p.id)
-      .sort();
-    expect(mesure.length, 'aucune recette : ce contrat mesurerait du néant').toBeGreaterThan(10);
-    expect([...PROPS_VOLUMIQUES]).toEqual(mesure);
-  });
-
-  it('un décor SANS recette n’y figure pas (le registre n’est pas la liste des props)', () => {
-    const billboards = props.filter((p) => !p.volume?.primitives.length).map((p) => p.id);
-    expect(billboards.length).toBeGreaterThan(10);
-    expect(billboards.filter((id) => PROPS_VOLUMIQUES.includes(id))).toEqual([]);
   });
 });
 

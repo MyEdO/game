@@ -87,12 +87,6 @@ describe('validateEntry — #173 : réf par ID écrasée par un LIBELLÉ (datali
     expect(errs.some((e) => /castBonus\.perCondition.*introuvable/.test(e))).toBe(true);
   });
 
-  it('pregens.pettySpells reste l’exception DOCUMENTÉE (libellés de sorts mineurs, résolus par la fabrique, #421) — jamais flaggé', () => {
-    const pregens = datasetArray('pregens') as unknown as Entry[];
-    const withSpells = pregens.find((p) => Array.isArray(p.pettySpells) && (p.pettySpells as string[]).length > 0)!;
-    expect(validateEntry('pregens', withSpells, pregens, pregens.indexOf(withSpells))).toEqual([]);
-  });
-
   it('sweep GÉNÉRAL — TOUTE la donnée committée (tous les datasets éditables) résout déjà : round-trip = préserve la résolvabilité', () => {
     // Round-trip de TOUTE la donnée éditable : chaque réf résout déjà (aucun orphelin toléré) —
     // les dotations véhicules (barque/charrette/diligence) sont migrées en `{vehicleId}` (#610).

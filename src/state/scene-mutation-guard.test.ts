@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { scanSceneMutation } from '../../scripts/guards/lib/sceneMutation.mjs';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
+import { detenteur } from '../detenteur.testkit';
 
 /**
  * Garde-fou « immutabilité de la scène du store » — `src/state/vision.ts` et
@@ -18,9 +19,9 @@ import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
  * du store) — d'où l'exclusion des fichiers `*.test.ts(x)`.
  *
  * `src/scenes/test-scenarios/**` EXCLU, ARGUMENTÉ (pas une baseline muette) : ces fichiers
- * CONSTRUISENT une `Scene` fraîche au chargement du module (`arena()`/`buildScene`) et la mutent
+ * CONSTRUISENT une `Scene` fraîche dans leur fabrique `construire` (`arena()`/`buildScene`) et la mutent
  * IMPÉRATIVEMENT pendant sa propre phase d'AUTHORING — avant toute exposition au store (elle n'est
- * assignée à `TestScenario.scene`, puis chargée via `set({ scene })`, qu'une fois COMPLÈTE).
+ * rendue en `ScenarioConstruit.scene`, puis chargée via `set({ scene })`, qu'une fois COMPLÈTE).
  * `setEncounters` (`_shared.ts`) documente ce choix explicitement (« Mutation EN PLACE : les
  * scénarios construisent leur scène impérativement »). L'objet n'est donc JAMAIS un porteur de la
  * scène DU STORE au moment de la mutation — l'invariant ne s'y applique pas. Testé plus bas : si
@@ -33,10 +34,8 @@ const AUTHORING_EXCLUDED = (rel: string) => rel.startsWith('src/scenes/test-scen
 /** Corpus SCANNÉ une fois pour les deux assertions (l'invariant et la réalité de son exclusion) :
  *  les `.ts(x)` de `src/**` hors tests, rendus par la primitive de marche `readCorpus`, avec leurs
  *  sites de mutation, chemin RELATIF POSIX. Mémoïsation PARESSEUSE — la collecte Vitest ne paie
- *  rien, le premier `it` qui mesure paie le scan. */
-let _sites: { rel: string; findings: { line: number; detail: string }[] }[] | null = null;
-const sites = () =>
-  (_sites ??= readCorpus(['src']).map(({ rel, text }) => ({ rel, findings: scanSceneMutation(rel, text) })));
+ *  rien, le premier `it` qui mesure paie le scan (#1801). */
+const sites = detenteur(() => readCorpus(['src']).map(({ rel, text }) => ({ rel, findings: scanSceneMutation(rel, text) })));
 
 describe('garde-fou « immutabilité de la scène du store » (AST, tolérance zéro)', () => {
   it('aucun code de src/** (hors authoring de test-scenarios) ne mute un champ d’un porteur de `scene` en place', () => {

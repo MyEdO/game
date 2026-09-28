@@ -3,7 +3,7 @@ import { polymorphOps } from './polymorph';
 import { applyOps } from './ops';
 import { effectiveChar } from './characteristics';
 import { endOfRound } from './conditions';
-import { findCreatureById } from '../data';
+import { creatures, findCreatureById, findTraitById } from '../data';
 import { hasTraitKey } from './traits/dispatch';
 import type { Combatant } from './types';
 
@@ -39,5 +39,19 @@ describe('polymorphOps — Forme bestiale (Ours)', () => {
     expect(effectiveChar(c, 'force')).toBe(30); // base restaurée
     expect(effectiveChar(c, 'agilite')).toBe(40);
     expect(hasTraitKey(c.traits, 'morsure')).toBe(false); // Trait retiré
+  });
+});
+
+describe('polymorphOps — Portée des Traits transférés (LDB 85 l.209)', () => {
+  it('chaque Trait transférable à Portée d’une créature la porte dans son grantTrait', () => {
+    const avecPortee = creatures.flatMap((cr) =>
+      (cr.traits ?? []).filter((t) => t.range != null && !findTraitById(t.id)?.nonTransferable).map((t) => ({ creature: cr.id, trait: t.id, range: t.range })),
+    );
+    expect(avecPortee).not.toHaveLength(0);
+    const c = dummy({});
+    const perdues = avecPortee.filter(({ creature, trait, range }) =>
+      !polymorphOps(c, creature).some((o) => o.op === 'grantTrait' && o.traitId === trait && o.range === range),
+    );
+    expect(perdues).toEqual([]);
   });
 });

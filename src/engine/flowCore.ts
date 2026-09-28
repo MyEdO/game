@@ -27,7 +27,7 @@ import type { CharKey, Difficulty, EffectSource, HitLocation } from './types';
 import { relationBetween, type Camp, type Relation } from './relations';
 import { groupMatch } from './groups';
 import { opDemandeUnDe, type GameOp, type PairedSense } from './ops';
-import type { SkillRef } from './skills';
+import type { RefDesignee } from '../data/schemas/grammaire/ref';
 // Type SEUL (effacé à la compilation — aucun cycle runtime) : `StakeRef` est la forme canonique de la
 // zone d'enjeu, et la redéclarer ici serait la 2ᵉ source du même vocabulaire que #1117 combat.
 import type { StakeRef } from '../data';
@@ -400,7 +400,7 @@ export interface FlowTest {
   /** Compétence testée (XOR `characteristic`) — référence EMBOÏTÉE `{ id, spec? }`. La `spec` cible
    *  QUELLE instance est testée quand le héros en possède plusieurs (Métier (Serrurier), Savoir (Magie)…) ;
    *  sinon la première suffit. */
-  skill?: SkillRef;
+  skill?: RefDesignee;
   /** Sens SOLLICITÉ par ce Test de Perception (LDB 18) — authoré sur le nœud de test d'une scène/dialogue :
    *  `'vue'` (repérer un mouvement, lire, guetter l'horizon) ou `'ouie'` (écouter à une porte, entendre une
    *  approche). Restreint le malus de Surdité (`skillMod{sense:'ouie'}`) au seul Test auditif, symétrique à
@@ -509,6 +509,12 @@ export type Flow<E = EffectOp> =
  *  nœud n'est PAS offert (`resolveFlowChoice`) — jamais un coût 0. */
 export const INDICE_TEMPLATE = '$indice';
 export type IndiceTemplate = typeof INDICE_TEMPLATE;
+
+/** TEMPLATE d'instance d'un champ d'op : l'ARGUMENT de l'entité PORTEUSE (trait Maladie « (peste) » →
+ *  `exposeDisease{disease: ARG_TEMPLATE}`), substitué par `withArg` (`state/triggeredEffects`) avant
+ *  exécution. Même mécanisme qu'`INDICE_TEMPLATE`, pour l'arg au lieu de l'Indice. */
+export const ARG_TEMPLATE = '$arg';
+export type ArgTemplate = typeof ARG_TEMPLATE;
 
 /** Le NŒUD `test` seul — la forme UNIQUE du jet en donnée (jet + conséquence des deux branches), telle
  *  qu'un porteur l'épingle hors d'un Flow complet (rangée de Critique, cycle de maladie). */

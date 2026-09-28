@@ -1,7 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { rosterLoad, rosterAdd, rosterRemove, rosterUpdate, rosterExport, rosterImport, RosterEntry } from './roster';
 import { Combatant } from '../engine/types';
+import { detachMutation } from '../engine/corruption';
 import { skillBaseValue } from '../engine/skills';
+import { findSpellById } from '../data';
+import { SORTS_FUSIONNES_1897 } from '../data/sortsFusionnes';
+import { FORMAT_DES_CHOIX } from '../engine/character';
+import { skillSlots, talentSlotsUpTo } from '../engine/careerSlots';
+import { levelsForCareer } from '../data';
 
 /** Fake Storage minimal — l'environnement de test est `node` (pas de localStorage). */
 function fakeStorage(): Storage {
@@ -92,21 +98,24 @@ describe('roster — persistance des personnages créés', () => {
     expect((list[0].hero as unknown as { name?: string }).name).toBeUndefined();
   });
 
-  it('rosterLoad rejoue la migration name→label (#608 Lot B) sur un `draft` ANCIEN FORMAT (speciesId+careerId présents)', () => {
+  it('rosterLoad ÉCARTE un `draft` sans format (choix en libellés, #1923) : le héros reste, le brouillon ne se relit pas', () => {
+    const ancien = { speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'Ancien', careerTalent: 'Magie mineure', pettySpells: ['Putréfaction'] };
+    const actuel = { v: FORMAT_DES_CHOIX, speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'Actuel', careerTalent: { id: 'magie-mineure' }, pettySpells: ['putrefaction'] };
+    const v2 = { ...actuel, v: 2, label: 'Tirages de Talents par id (#1897)' };
     localStorage.setItem(
       'wfrp4.roster.v1',
       JSON.stringify([
-        {
-          hero: { id: 'legacy2', label: 'Déjà migré', kind: 'hero' },
-          wealth: { gold: 0, silver: 0, brass: 0 },
-          draft: { speciesId: 'humain', careerId: 'soldat', name: 'Ancien Nom Draft' },
-        },
+        { hero: { id: 'avant', label: 'Héros intact', kind: 'hero' }, wealth: { gold: 0, silver: 0, brass: 0 }, draft: ancien },
+        { hero: { id: 'apres', label: 'Héros', kind: 'hero' }, wealth: { gold: 0, silver: 0, brass: 0 }, draft: actuel },
+        { hero: { id: 'format-2', label: 'Héros v2', kind: 'hero' }, wealth: { gold: 0, silver: 0, brass: 0 }, draft: v2 },
       ]),
     );
-    const list = rosterLoad();
-    expect(list).toHaveLength(1);
-    expect(list[0].draft?.label).toBe('Ancien Nom Draft');
-    expect((list[0].draft as unknown as { name?: string })?.name).toBeUndefined();
+    const [avant, apres, format2] = rosterLoad();
+    expect(avant.hero.label).toBe('Héros intact');
+    expect(avant.draft).toBeUndefined();
+    expect(apres.draft).toEqual(actuel);
+    expect(format2.hero.label).toBe('Héros v2');
+    expect(format2.draft).toBeUndefined();
   });
 
   it('sans localStorage (environnement sans stockage) : load → [], add/remove ne jettent pas', () => {
@@ -239,5 +248,208 @@ describe('roster — remap `skillId`→`id` des Compétences persistées (#1548 
     expect((un[0].hero.skills as unknown as Record<string, unknown>[])[0]).toEqual({ id: 'resistance', characteristic: 'endurance', advances: 20 });
     rosterAdd(un[0]); // ré-écrit puis relit : 2e passage
     expect(rosterLoad()[0].hero.skills).toEqual(un[0].hero.skills);
+  });
+});
+
+/** #1897 : 54 ids de sort du livre fan sont FUSIONNÉS dans l'entrée qui les double (`SORTS_FUSIONNES_1897`).
+ *  Un héros exporté ou gardé au roster avant le lot porte l'ancien id : aux DEUX canaux il désigne
+ *  l'entrée absorbante, jamais un sort que `findSpellById` ne résout plus. */
+describe('roster — ids de sort FUSIONNÉS remappés (#1897, les DEUX canaux)', () => {
+  const heros = (id: string) => ({ id, label: 'Apprenti d’avant le lot', kind: 'hero', spells: ['alarme', 'alerte', 'flamme', 'choc'], skills: [], talents: [] });
+
+  beforeEach(() => {
+    (globalThis as { localStorage?: Storage }).localStorage = fakeStorage();
+  });
+  afterEach(() => {
+    delete (globalThis as { localStorage?: Storage }).localStorage;
+  });
+
+  it('(a) un export v4 CHARGE avec ses sorts vivants, dédoublonnés à la fusion', () => {
+    const res = rosterImport(JSON.stringify({ kind: 'wfrp4-hero', v: 4, hero: heros('h-export'), wealth: { gold: 0, silver: 0, brass: 0 } }));
+    expect(res.error).toBeUndefined();
+    expect(res.entry!.hero.spells).toEqual(['alerte', 'flamme-magique', 'choc']);
+    expect(res.entry!.hero.spells!.every((id) => findSpellById(id))).toBe(true);
+  });
+
+  it('(b) une entrée localStorage d’avant le lot est remappée à la lecture, et une 2ᵉ lecture ne change rien', () => {
+    localStorage.setItem('wfrp4.roster.v1', JSON.stringify([{ hero: heros('h-prelot'), wealth: { gold: 0, silver: 0, brass: 0 } }]));
+    const un = rosterLoad();
+    expect(un[0].hero.spells).toEqual(['alerte', 'flamme-magique', 'choc']);
+    rosterAdd(un[0]);
+    expect(rosterLoad()[0].hero.spells).toEqual(['alerte', 'flamme-magique', 'choc']);
+  });
+
+  /** Toutes les places d'un id de sort dans un héros (`Combatant`, `src/engine/types.ts`), chacune
+   *  garnie d'un id FUSIONNÉ ; à côté, des chaînes HOMONYMES hors place de sort (`bouclier` objet,
+   *  case d'objet `q-objet-bouclier`) qui doivent traverser intactes. */
+  const heroAToutesLesPlaces = (id: string) => ({
+    id, label: 'Sorcier d’avant le lot', kind: 'hero', skills: [], talents: [],
+    spells: ['alarme', 'projectile'],
+    componentSpells: ['projectile'],
+    focus: { spell: 'projectile', dr: 2 },
+    ritual: { spellId: 'alarme', drDone: 0, drTarget: 3 },
+    dispel: { spellId: 'alarme', spellCasterId: 'x', total: 1 },
+    summon: { byId: 'x', spellId: 'nuee' },
+    activeEffects: [{ id: 'e', sourceSpellId: 'soins', spell: { spellId: 'soins', ni: 0, casterId: id, label: 'Soins' } }],
+    barre: { capacites: { 0: { actionId: 'lancer-sort', cle: 'sort-projectile' }, 1: { actionId: 'objet', cle: 'q-objet-bouclier' } } },
+    items: [{ trappingId: 'bouclier' }],
+  });
+  const FUSIONNES = Object.keys(SORTS_FUSIONNES_1897).join('|');
+  /** Les ids fusionnés qui SURVIVENT dans le héros sérialisé, à une place de sort (`sort-` compris). */
+  const survivants = (hero: unknown): string[] =>
+    JSON.stringify(hero).match(new RegExp(`"(?:sort-)?(?:${FUSIONNES})"`, 'g'))?.filter((m) => m !== '"bouclier"') ?? [];
+  const attendu = {
+    spells: ['alerte', 'carreau'],
+    componentSpells: ['carreau'],
+    focus: { spell: 'carreau', dr: 2 },
+    ritual: { spellId: 'alerte', drDone: 0, drTarget: 3 },
+    dispel: { spellId: 'alerte', spellCasterId: 'x', total: 1 },
+    summon: { byId: 'x', spellId: 'menace-rampante' },
+    activeEffects: [{ id: 'e', sourceSpellId: 'benediction-de-guerison', spell: { spellId: 'benediction-de-guerison', ni: 0, casterId: 'h', label: 'Soins' } }],
+    barre: { capacites: { 0: { actionId: 'lancer-sort', cle: 'sort-carreau' }, 1: { actionId: 'objet', cle: 'q-objet-bouclier' } } },
+    items: [{ trappingId: 'bouclier' }],
+  };
+
+  it('(c) un export v4 : AUCUN id fusionné ne survit, à aucune place de sort du héros ; les homonymes hors place traversent', () => {
+    const res = rosterImport(JSON.stringify({ kind: 'wfrp4-hero', v: 4, hero: heroAToutesLesPlaces('h'), wealth: { gold: 0, silver: 0, brass: 0 } }));
+    expect(res.error).toBeUndefined();
+    expect(survivants(res.entry!.hero)).toEqual([]);
+    expect(res.entry!.hero).toMatchObject(attendu);
+  });
+
+  it('(d) le repli `rosterLoad` : AUCUN id fusionné ne survit, à aucune place de sort du héros', () => {
+    localStorage.setItem('wfrp4.roster.v1', JSON.stringify([{ hero: heroAToutesLesPlaces('h'), wealth: { gold: 0, silver: 0, brass: 0 } }]));
+    const [entree] = rosterLoad();
+    expect(survivants(entree.hero)).toEqual([]);
+    expect(entree.hero).toMatchObject(attendu);
+  });
+});
+
+describe('roster — clés d’emplacement de carrière en ids (#1924, les DEUX canaux)', () => {
+  // Soldat, Niveau 1 : « Musicien (Tambour ou Fifre) », 7e Compétence. Clé d'avant : résumé en libellés.
+  const cleEnLibelles = '1:skill:6:Musicien';
+  const cleEnIds = () => {
+    const levels = levelsForCareer('soldat');
+    return [...skillSlots(levels, 4), ...talentSlotsUpTo(levels, 4)].find((s) => s.key.startsWith('1:skill:6:'))!.key;
+  };
+  const heros = (id: string) => ({ id, label: 'Soldat', kind: 'hero', skills: [], talents: [], careerSlotChoices: { soldat: { [cleEnLibelles]: 'musicien|tambour' } } });
+
+  beforeEach(() => {
+    (globalThis as { localStorage?: Storage }).localStorage = fakeStorage();
+  });
+  afterEach(() => {
+    delete (globalThis as { localStorage?: Storage }).localStorage;
+  });
+
+  it('la clé d’après résume l’emplacement en ids, jamais en libellés', () => {
+    expect(cleEnIds()).toBe('1:skill:6:musicien*');
+  });
+  it('(a) un export v5 charge avec ses désignations aux clés en ids', () => {
+    const res = rosterImport(JSON.stringify({ kind: 'wfrp4-hero', v: 5, hero: heros('h-export'), wealth: { gold: 0, silver: 0, brass: 0 } }));
+    expect(res.entry?.hero.careerSlotChoices).toEqual({ soldat: { [cleEnIds()]: 'musicien|tambour' } });
+  });
+  it('(b) une entrée localStorage d’avant le lot est réécrite à la lecture, et une 2e lecture ne change rien', () => {
+    localStorage.setItem('wfrp4.roster.v1', JSON.stringify([{ hero: heros('h-local'), wealth: { gold: 0, silver: 0, brass: 0 } }]));
+    const une = rosterLoad();
+    expect(une[0].hero.careerSlotChoices).toEqual({ soldat: { [cleEnIds()]: 'musicien|tambour' } });
+    localStorage.setItem('wfrp4.roster.v1', JSON.stringify(une));
+    expect(rosterLoad()).toEqual(une);
+  });
+});
+
+/** #1473 (train 2a) : les ops de Talent s'écrivent `talent: { id, spec? }`. Un héros exporté ou gardé au
+ *  roster avant le lot porte `talentId` dans les ops de ses armes, effets et traumatismes : aux DEUX
+ *  canaux elles passent à la graphie que `engine/ops.ts` lit. */
+describe('roster — graphie `talent: { id, spec? }` des ops de Talent (#1473, les DEUX canaux)', () => {
+  const heros = (id: string) => ({
+    id, label: 'Répurgateur', kind: 'hero', skills: [], talents: [],
+    weapons: [{ label: 'Épée', passive: [{ op: 'grantTalent', talentId: 'chanceux' }] }],
+    activeEffects: [{ id: 'e', opsPerRound: [{ op: 'grantTalent', talentId: 'sens-aiguise', spec: 'odorat' }] }],
+    traumas: [{ id: 't', ops: [{ op: 'grantCareerTalent', talentId: 'chanceux' }], recoveryPenalty: [{ op: 'grantTalent', talent: { id: 'chanceux' } }] }],
+  });
+  const attendu = {
+    weapons: [{ label: 'Épée', passive: [{ op: 'grantTalent', talent: { id: 'chanceux' } }] }],
+    activeEffects: [{ id: 'e', opsPerRound: [{ op: 'grantTalent', talent: { id: 'sens-aiguise', spec: 'odorat' } }] }],
+    traumas: [{ id: 't', ops: [{ op: 'grantCareerTalent', talent: { id: 'chanceux' } }], recoveryPenalty: [{ op: 'grantTalent', talent: { id: 'chanceux' } }] }],
+  };
+
+  beforeEach(() => {
+    (globalThis as { localStorage?: Storage }).localStorage = fakeStorage();
+  });
+  afterEach(() => {
+    delete (globalThis as { localStorage?: Storage }).localStorage;
+  });
+
+  it('(a) un export v6 charge avec ses ops de Talent à la graphie `talent`, aucun `talentId` ne survit', () => {
+    const res = rosterImport(JSON.stringify({ kind: 'wfrp4-hero', v: 6, hero: heros('h-export'), wealth: { gold: 0, silver: 0, brass: 0 } }));
+    expect(res.error).toBeUndefined();
+    expect(res.entry!.hero).toMatchObject(attendu);
+    expect(JSON.stringify(res.entry!.hero)).not.toContain('talentId');
+  });
+  it('(b) une entrée localStorage d’avant le lot est réécrite à la lecture, et une 2e lecture ne change rien', () => {
+    localStorage.setItem('wfrp4.roster.v1', JSON.stringify([{ hero: heros('h-local'), wealth: { gold: 0, silver: 0, brass: 0 } }]));
+    const une = rosterLoad();
+    expect(une[0].hero).toMatchObject(attendu);
+    localStorage.setItem('wfrp4.roster.v1', JSON.stringify(une));
+    expect(rosterLoad()).toEqual(une);
+  });
+});
+
+/** #1473 (train 2a) : `detachMutation` ne retire que les `talentsAcquis` de la mutation attachée
+ *  (`engine/corruption.ts`). Une mutation attachée avant le lot porte ses `grantTalent` en `talentId`
+ *  et aucune `talentsAcquis`, et l'attache d'alors posait une instance NEUVE du Talent, doublon compris : la
+ *  relecture fusionne les instances et reconstitue ce que le détachement d'alors retirait. */
+describe('roster — `talentsAcquis` d’une mutation attachée avant le lot (#1473, les DEUX canaux)', () => {
+  const mutationDAvant = (talentId: string) => ({ id: 'bras-tentaculaire', label: 'Bras tentaculaire', desc: '', kind: 'physique', roll: 1, passive: [{ op: 'grantTalent', talentId }] });
+  const heros = (id: string, mutations: unknown[]) => ({ id, label: 'Mutant', kind: 'hero', skills: [], talents: [{ talentId: 'chanceux', times: 1 }], mutations });
+
+  beforeEach(() => {
+    (globalThis as { localStorage?: Storage }).localStorage = fakeStorage();
+  });
+  afterEach(() => {
+    delete (globalThis as { localStorage?: Storage }).localStorage;
+  });
+
+  it('(a) un export v6 : la mutation reçoit ses `talentsAcquis`, et son détachement retire le Talent', () => {
+    const res = rosterImport(JSON.stringify({ kind: 'wfrp4-hero', v: 6, hero: heros('h-export', [mutationDAvant('chanceux')]), wealth: { gold: 0, silver: 0, brass: 0 } }));
+    const hero = res.entry!.hero;
+    expect(hero.mutations).toMatchObject([{ passive: [{ op: 'grantTalent', talent: { id: 'chanceux' } }], talentsAcquis: [{ id: 'chanceux' }] }]);
+    detachMutation(hero, hero.mutations![0]);
+    expect(hero.talents).toEqual([]);
+  });
+  it('(b) le repli `rosterLoad` : même reconstitution, et une 2e lecture ne change rien', () => {
+    localStorage.setItem('wfrp4.roster.v1', JSON.stringify([{ hero: heros('h-local', [mutationDAvant('chanceux')]), wealth: { gold: 0, silver: 0, brass: 0 } }]));
+    const une = rosterLoad();
+    expect(une[0].hero.mutations).toMatchObject([{ talentsAcquis: [{ id: 'chanceux' }] }]);
+    localStorage.setItem('wfrp4.roster.v1', JSON.stringify(une));
+    expect(rosterLoad()).toEqual(une);
+  });
+  it('(c) une mutation d’APRÈS le lot sans `talentsAcquis` (rien acquis) la garde vide, et un Talent non porté n’est pas reconstitué', () => {
+    const apres = { ...mutationDAvant('chanceux'), passive: [{ op: 'grantTalent', talent: { id: 'chanceux' } }] };
+    localStorage.setItem('wfrp4.roster.v1', JSON.stringify([{ hero: heros('h', [apres, { ...mutationDAvant('sens-aiguise'), id: 'autre' }]), wealth: { gold: 0, silver: 0, brass: 0 } }]));
+    const [entree] = rosterLoad();
+    expect(entree.hero.mutations!.map((m) => m.talentsAcquis)).toEqual([undefined, undefined]);
+  });
+  /** Le détachement d'avant le lot (`git show origin/main:src/engine/corruption.ts`, `detachMutation`) :
+   *  une instance retirée par `grantTalent` de la mutation. */
+  it('(d) Talent de carrière DOUBLÉ par l’ancienne attache : les instances fusionnent, le détachement en rend une', () => {
+    const doublon = { ...heros('h', [mutationDAvant('chanceux')]), talents: [{ talentId: 'chanceux', times: 1 }, { talentId: 'chanceux', times: 1 }] };
+    localStorage.setItem('wfrp4.roster.v1', JSON.stringify([{ hero: doublon, wealth: { gold: 0, silver: 0, brass: 0 } }]));
+    const [{ hero }] = rosterLoad();
+    expect(hero.talents).toEqual([{ talentId: 'chanceux', times: 2 }]);
+    detachMutation(hero, hero.mutations![0]);
+    expect(hero.talents).toEqual([{ talentId: 'chanceux', times: 1 }]);
+  });
+  it('(e) une mutation qui octroie DEUX fois le Talent, trois instances : le détachement en laisse une', () => {
+    const deuxFois = { ...mutationDAvant('chanceux'), passive: [{ op: 'grantTalent', talentId: 'chanceux' }, { op: 'grantTalent', talentId: 'chanceux' }] };
+    const trois = { ...heros('h', [deuxFois]), talents: [1, 2, 3].map(() => ({ talentId: 'chanceux', times: 1 })) };
+    const res = rosterImport(JSON.stringify({ kind: 'wfrp4-hero', v: 6, hero: trois, wealth: { gold: 0, silver: 0, brass: 0 } }));
+    const hero = res.entry!.hero;
+    detachMutation(hero, hero.mutations![0]);
+    expect(hero.talents).toEqual([{ talentId: 'chanceux', times: 1 }]);
+  });
+  it('(f) des `mutations` mal formées ne font pas perdre le roster : l’entrée se relit', () => {
+    localStorage.setItem('wfrp4.roster.v1', JSON.stringify([{ hero: { ...heros('h-mal', []), mutations: {} }, wealth: { gold: 0, silver: 0, brass: 0 } }, { hero: heros('h-nul', [null]), wealth: { gold: 0, silver: 0, brass: 0 } }]));
+    expect(rosterLoad().map((e) => e.hero.id)).toEqual(['h-mal', 'h-nul']);
   });
 });

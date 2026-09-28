@@ -9,6 +9,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSyn
 import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
+import { SURFACE_CLAUDE, SURFACE_CODEX, aplatirHooks } from '../agents/compat-core.mjs'
 import { evaluate, enteteSupersession, estLigneEntete, lignesAjoutees, estFicheMemoire } from './memoire-tombale-guard.mjs'
 import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 
@@ -196,11 +197,10 @@ test('DRIVER : une fiche `.claude/memory/` HORS de tout dépôt (scratchpad) →
 })
 
 test('les DEUX surfaces câblent le garde sur Write, Edit et ctx_patch', () => {
-  for (const surface of ['.claude/settings.json', '.codex/hooks.json']) {
-    const config = JSON.parse(readFileSync(join(REPO, surface), 'utf8'))
-    const matchers = (config.hooks?.PreToolUse ?? [])
-      .filter((e) => (e.hooks ?? []).some((h) => String(h.command ?? '').includes('memoire-tombale-guard.mjs')))
-      .map((e) => String(e.matcher ?? ''))
+  for (const surface of [SURFACE_CLAUDE, SURFACE_CODEX]) {
+    const matchers = aplatirHooks(JSON.parse(readFileSync(join(REPO, surface), 'utf8')), surface)
+      .filter((h) => h.phase === 'PreToolUse' && h.script === 'memoire-tombale-guard.mjs')
+      .map((h) => h.matcher)
     assert.ok(matchers.length > 0, surface + ' : hook non câblé')
     for (const canal of ['Write', 'Edit', 'mcp__lean-ctx__ctx_patch'])
       assert.ok(matchers.some((m) => m.split('|').includes(canal)), surface + ' : canal ' + canal + ' non matché')

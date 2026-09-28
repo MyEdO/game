@@ -4,7 +4,7 @@ import { MasterDetail } from './MasterDetail';
 import { Icon } from './Icon';
 import { ListRow } from './ListRow';
 import { useGame } from '../state/store';
-import { downloadText, fileSlug } from '../state/fileIo';
+import { downloadText, fileSlug } from '../lib/fileIo';
 import { parseProject, documentDeProjet, type ProjectDoc } from '../state/worldMap';
 import {
   projectsLoad, projectSave, projectRemove, nomDeProjet, documentDeLEntree, campagneDeLEntree, playerEntryError, refusJoueur,
@@ -99,7 +99,7 @@ function entryLabel(e: Entry): string {
   return nomDeProjet(e.kind === 'builtin' ? e.bc.label : e.sp.label);
 }
 function entrySceneCount(e: Entry): number {
-  return e.kind === 'builtin' ? e.bc.scenes.length : e.sp.project.scenes.length;
+  return e.kind === 'builtin' ? e.bc.paquet.scenes.length : e.sp.project.scenes.length;
 }
 
 export function CampaignLibraryScreen({ onClose }: { onClose: () => void }) {

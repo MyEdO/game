@@ -34,6 +34,7 @@ import { scheduleFlowTimer, clearTrackedTimer } from './combatTimers';
 
 import type { Get, Set } from './flowTypes';
 import { t } from '../i18n';
+import { stockageWeb } from '../lib/stockageWeb';
 
 /** Le nom d'un siège de coop : celui que le joueur a donné, sinon « Hôte » (siège 0) ou « Joueur n » (#1906) —
  *  SOURCE UNIQUE, jamais « L'hôte » pour un invité. */
@@ -312,7 +313,7 @@ export function netJoin(get: Get, set: Set, codeRaw: string, name: string): Prom
   if (get().net.mode !== 'local') return Promise.resolve(t('coop.alreadyInSession'));
   const code = codeRaw.trim().toUpperCase();
   if (!/^[A-Z0-9]{6}$/.test(code)) return Promise.resolve(t('coop.badCode'));
-  const stored = sessionStorage.getItem(tokenKey(code)) ?? undefined;
+  const stored = stockageWeb('sessionStorage')?.getItem(tokenKey(code)) ?? undefined;
   return new Promise((resolve) => {
     let settled = false;
     const fail = (msg: string) => {
@@ -340,7 +341,7 @@ export function netJoin(get: Get, set: Set, codeRaw: string, name: string): Prom
     };
     rg.onReconnected = () => guest?.rejoin();
     rg.onSeated = (seat) => {
-      sessionStorage.setItem(tokenKey(code), rg.token);
+      stockageWeb('sessionStorage')?.setItem(tokenKey(code), rg.token);
       if (settled) return; // reprise en cours de partie : déjà câblé
       settled = true;
       clearTrackedTimer(timeout);

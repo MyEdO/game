@@ -4,15 +4,13 @@
 //   déclaré  → scripts/docs/lib/zod-introspect.mts (les 120 schémas du registre)
 //   lexique  → scripts/docs/lib/structures-lexique.mts (concepts FERMÉS, une entrée = un concept)
 // Sortie : docs/structures-donnees.md. Re-run : npx tsx scripts/docs/build-structures.mts
-// (npm run docs:structures). Mode --check (chaîné dans npm run docs:check) : régénère en mémoire,
-// compare au .md committé, exit 1 avec message actionnable si diff — jamais d'écriture en --check.
+// (npm run docs:structures).
+// Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/empreinte-sources.mjs), rejoué par `build-all.mjs`.
 //
 // Le doc est la carte de PILOTAGE du chantier #1463 : le stock nominatif décroissant qu'il
 // alimente vit dans scripts/guards/lib/structuresStock.mjs (garde src/data/structures-contrat.test.ts).
 import { execFileSync } from 'node:child_process';
-import { emitOrCheck } from './lib/jsdocUnion.mjs';
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { ecrireOuVerifier } from './lib/empreinte-sources.mjs';
 import {
   scanDuCorpus,
   scannerRedeclarations,
@@ -28,19 +26,13 @@ import {
   LOTS_DE_PEUPLEMENT,
   MANDAT_SLOTS,
   ROLES_ENVELOPPE,
+  TERMES_COLLECTION_A_CLE,
   clesDuRole,
 } from './lib/structures-lexique.mjs';
-import {
-  champDuPath,
-  champsJoints,
-  champsSansSlot,
-  estTypeDuRegistre,
-  idsDuType,
-  slotsDeclares,
-  valeursAuPath,
-} from './lib/slots-registre.mjs';
+import { champsJoints, champsSansSlot, registreDesSlots, slotsDuParse } from './lib/slots-registre.mjs';
+import { collectionsDesDocuments } from '../../src/data/schemas/grammaire/collection-cle';
 import { effectSchema } from '../../src/data/schemas/defs-scenes/effets';
-import { defDe, enfantsDe } from '../../src/data/schemas/grammaire/slots';
+import { defDe, descendre, enfantsDe } from '../../src/data/schemas/grammaire/descente';
 
 const OUT = 'docs/structures-donnees.md';
 const ROOT = execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim();
@@ -62,16 +54,19 @@ const SECTION = {
 
 const echappe = (s: string) => String(s).replace(/\|/g, '\\|');
 
-/** Discriminants DÉCLARÉS des options d'`effectSchema` (le `z.lazy` est déroulé par `enfantsDe`). */
+/** Discriminants DÉCLARÉS des options de la première union sous `effectSchema` (`descendre`). */
 function discriminantsDeffet(): string[] {
-  const def = defDe(effectSchema)!;
-  const cible = def.type === 'lazy' ? enfantsDe(def)[0]?.noeud : effectSchema;
-  const options = defDe(cible)?.options ?? [];
-  return options.flatMap((o) => {
-    const litteral = defDe(o)?.shape?.type;
+  let union: unknown;
+  descendre([effectSchema], ({ noeud, def }) => {
+    if (def.type !== 'union') return;
+    union = noeud;
+    return 'arreter';
+  });
+  const options = enfantsDe(union).filter((e) => e.segment.startsWith('|'));
+  return options.flatMap(({ noeud }) => {
+    const litteral = enfantsDe(noeud).find((e) => e.cle === 'type')?.noeud;
     const d = defDe(litteral);
-    const brut = d?.values ?? d?.value;
-    const valeurs = Array.isArray(brut) ? brut : brut instanceof Set ? [...brut] : [brut];
+    const valeurs = Array.isArray(d?.values) ? d.values : [];
     return valeurs.filter((v): v is string => typeof v === 'string');
   });
 }
@@ -86,7 +81,7 @@ function variantesDeffetJamaisPosees(): string[] {
     if (typeof v === 'string') posees.add(v);
     for (const enfant of Object.values(n as Record<string, unknown>)) marche(enfant);
   };
-  for (const d of listerDocuments(ROOT)) marche(JSON.parse(readFileSync(join(ROOT, d.chemin), 'utf8')));
+  for (const brut of scan.brutParNom.values()) marche(brut);
   return discriminantsDeffet().filter((t) => !posees.has(t)).sort();
 }
 const tableau = (entetes: string[], lignes: (string | number)[][]) =>
@@ -134,11 +129,7 @@ out += tableau(
   const orphelins = scan.documents.filter((d) => !parFichierDeclare.has(d.nom));
   out += `Documents qu’AUCUNE def ne déclare : **${orphelins.length}**`;
   out += `${orphelins.length ? ` — ${orphelins.map((d) => `\`${d.chemin}\``).join(' ')}` : ''}.\n`;
-  const tronquees = declares.filter((d) => d.tronquee);
-  out += `Defs dont le relevé déclaré est TRONQUÉ par la borne d’introspection : **${tronquees.length}**`;
-  out += `${tronquees.length ? ` — ${tronquees.map((d) => `\`${d.file}\``).join(' ')}` : ''}. Au-delà de la\n`;
-  out += 'borne, `classeZod`/`clesDeclarees` écrivent le marqueur `(profondeur)` au lieu de la forme : la\n';
-  out += 'troncature se COMPTE ici, elle ne se tait pas.\n\n';
+  out += '\n';
 }
 
 out += '### 1bis. Index des ids (le cœur du détecteur)\n\n';
@@ -176,6 +167,14 @@ out += '#### Résolutions AMBIGUËS (la collision qui MORD)\n\n';
 }
 
 // ---------------------------------------------------------------------------
+out += '### 1ter. Collections à clé (déclarées au schéma, relevées par la co-descente)\n\n';
+{
+  const collections = collectionsDesDocuments(DEFS, scan.brutParNom);
+  out += 'Termes : source UNIQUE `TERMES_COLLECTION_A_CLE` (`scripts/docs/lib/structures-lexique.mts`).\n\n';
+  out += TERMES_COLLECTION_A_CLE.map(([terme, definition]) => `- **${terme}** — ${definition}`).join('\n');
+  out += `\n\nCollections à clé relevées dans les documents des deux racines : **${collections.length}**, dont **${collections.filter((c) => c.marque.espace).length}** espaces de noms.\n\n`;
+}
+
 out += '## 2. Enveloppe des documents\n\n';
 out += '### 2.1 Un document, sa racine, ses clés de premier niveau\n\n';
 out += 'Racine JSON = forme réelle du fichier ; famille déclarée = ce que dit son schéma zod (vide si le\n';
@@ -571,69 +570,57 @@ out += tableau(
 
 // ---------------------------------------------------------------------------
 out += '## 6. Slots DÉCLARÉS × réfs OBSERVÉES (registre des slots)\n\n';
-out += 'Le côté DÉCLARÉ des références : un slot par référence RÉELLE, à son path exact, lu PAR MARCHE des\n';
-out += 'schémas des deux racines (`slotsDe`, `src/data/schemas/grammaire/slots.ts`). Son enforcement vit\n';
+out += 'Le côté DÉCLARÉ des références est ce que le PARSE valide : chaque document est parsé par son schéma\n';
+out += 'réel au PARSE DE MESURE (`reperesDuParse`, `src/data/schemas/grammaire/ref.ts`), et chaque case\n';
+out += '`(porteur, clé)` dont la valeur est validée par `idDe` est un SLOT, avec son type. Son enforcement vit\n';
 out += 'dans `src/data/slots-contrat.test.ts`.\n\n';
 out += `${MANDAT_SLOTS}\n\n`;
 {
-  const slots = slotsDeclares(DEFS);
-  const parEspece = new Map<string, number>();
-  for (const s of slots) parEspece.set(s.espece, (parEspece.get(s.espece) ?? 0) + 1);
-  const documents = new Map<string, unknown>();
-  for (const d of listerDocuments(ROOT)) documents.set(d.nom, JSON.parse(readFileSync(join(ROOT, d.chemin), 'utf8')));
+  const slots = slotsDuParse(scan, DEFS);
+  const lignes = registreDesSlots(scan, slots);
 
-  out += `Slots déclarés : **${slots.length}** — `;
-  out += [...parEspece].map(([e, n]) => `espèce \`${e}\` **${n}**`).join(', ') + '.\n\n';
+  out += `Slots déclarés : **${slots.length}**, sur **${lignes.length}** paths de donnée.\n\n`;
 
-  out += '### 6.1 Slots RÉSOLUBLES (espèce `id`, type du registre `_ids.generated`)\n\n';
-  out += 'Pour chacun, les valeurs POSÉES à ce path dans le document, et leur résolution contre le registre\n';
-  out += 'des ids. Une valeur non résolue est un rouge NOMINATIF de la garde, jamais une ligne de stock.\n\n';
+  out += '### 6.1 Registre des slots — une ligne par (document, path, type)\n\n';
+  out += 'Le path est celui de la DONNÉE, indices normalisés en `[]` ; une référence portée par une CLÉ de\n';
+  out += 'record s’y écrit `{}`. « Valeurs » : les slots de la ligne, chacun validé contre le registre des ids au\n';
+  out += 'parse. « Couples touchés » : les couples `(dataset, champ)` que le scan attribue aux occurrences dont\n';
+  out += 'ces slots sont des cases (jointure par occurrence) — « — » quand ils n’en touchent aucune.\n\n';
   out += tableau(
-    ['Dataset', 'Path déclaré', 'Champ projeté', 'Type', 'Cardinalité', 'Valeurs posées', 'Résolues'],
-    slots
-      .filter((s) => s.espece === 'id')
-      .map((s) => {
-        const valeurs = documents.has(s.dataset) ? valeursAuPath(documents.get(s.dataset), s.path) : [];
-        const resolues = estTypeDuRegistre(s.type)
-          ? valeurs.filter((v) => (idsDuType(s.type as never) as readonly string[]).includes(v.valeur)).length
-          : 0;
-        return [
-          `\`${s.dataset}\``,
-          `\`${s.path}\``,
-          `\`${champDuPath(s.path)}\``,
-          `\`${s.type ?? '—'}\``,
-          s.cardinalite,
-          valeurs.length,
-          `${resolues} / ${valeurs.length}`,
-        ];
-      }),
+    ['Dataset', 'Path', 'Type', 'Valeurs', 'Couples touchés'],
+    lignes.map((l) => [
+      `\`${l.dataset}\``,
+      `\`${l.path}\``,
+      `\`${l.type}\``,
+      l.valeurs,
+      l.couples.length ? l.couples.map((k) => `\`${k}\``).join(' ') : '—',
+    ]),
   );
 
-  const joints = champsJoints(scan.formes, slots);
-  out += `Champs porteurs de réfs OBSERVÉES que le déclaré ATTEINT : **${joints.length}** — `;
+  const joints = champsJoints(scan, slots);
+  out += `Couples porteurs de réfs OBSERVÉES dont le déclaré ATTEINT toutes les occurrences : **${joints.length}** — `;
   out += `${joints.map((k) => `\`${k}\``).join(' ') || '—'}. Une jointure VIDE rendrait ce volet muet :\n`;
   out += 'la garde l’exige NON VIDE.\n\n';
 
   out += '### 6.2 Couverture — réfs observées qu’AUCUN slot ne déclare\n\n';
   out += 'La dette d’ADOPTION du registre : un `(dataset, champ)` porteur de références mesurées (strate\n';
-  out += '`Référence`) que le déclaré n’atteint par aucun slot. Stock `SLOTS_SANS_DECLARATION`\n';
+  out += '`Référence`) dont une occurrence au moins n’est pas ATTEINTE — une de ses cases n’est pas un slot. Stock `SLOTS_SANS_DECLARATION`\n';
   out += '(`scripts/guards/lib/slotsStock.mjs`, garde `src/data/slots-contrat.test.ts`) — il se solde concept\n';
   out += 'par concept en L2/L3 (#1473), et ne fait que DÉCROÎTRE.\n\n';
-  const sansSlot = champsSansSlot(scan.formes, slots);
+  const sansSlot = champsSansSlot(scan, slots);
   out += `**${sansSlot.length}** couples (dataset, champ) sans slot déclaré.\n\n`;
   out += tableau(
-    ['Dataset', 'Champ', 'Occurrences observées'],
-    sansSlot.map((c) => [`\`${c.dataset}\``, `\`${c.champ}\``, c.occurrences]),
+    ['Dataset', 'Champ', 'Occurrences observées', 'Atteintes'],
+    sansSlot.map((c) => [`\`${c.dataset}\``, `\`${c.champ}\``, c.occurrences, c.atteintes]),
   );
 
   out += '### 6.3 Angles morts DÉCLARÉS de ce volet\n\n';
-  out += `Source UNIQUE \`ANGLES_MORTS_SLOTS\` (\`scripts/docs/lib/structures-lexique.mts\`) — l’espèce \`acteur\`\n`;
-  out += `pèse **${parEspece.get('acteur') ?? 0}** slots sur ${slots.length}.\n\n`;
+  out += 'Source UNIQUE `ANGLES_MORTS_SLOTS` (`scripts/docs/lib/structures-lexique.mts`).\n\n';
   out += ANGLES_MORTS_SLOTS.map((a) => `- ${a}`).join('\n');
   out += '\n\n';
 }
 
-emitOrCheck({
+ecrireOuVerifier({
   out,
   path: OUT,
   check: process.argv.includes('--check'),

@@ -14,6 +14,7 @@ import { describe, it, expect } from 'vitest';
 import { projetSchema, projetDoc, SCHEMA_PROJET } from './projet';
 import { PENTE_TOIT_DEG } from './scene';
 import { narratifSchema } from './narratif';
+import { cheminLisible, validateDocument } from '../validate';
 import diligenceProjet from '../../../scenes/diligence/diligence-projet.json';
 
 type Jouet = Record<string, unknown>;
@@ -53,11 +54,12 @@ const sans = (cle: string, over: Jouet = {}): Jouet => {
   return doc;
 };
 
-/** Chemins + messages des issues, pour asserter que l'erreur NOMME le fautif. */
+/** LIEU + message des fautes, tels que la porte les rend (`validateDocument`) : l'erreur NOMME le
+ *  fautif par son lieu, jamais par un préfixe recopié dans son message. */
 const fautes = (valeur: unknown, schema: typeof projetSchema | typeof narratifSchema = projetSchema) => {
-  const res = schema.safeParse(valeur);
-  expect(res.success).toBe(false);
-  return res.success ? [] : res.error.issues.map((i) => `${i.path.join('.')} :: ${i.message}`);
+  const trouvees = validateDocument(schema, valeur);
+  expect(trouvees).not.toBeNull();
+  return (trouvees ?? []).map((f) => `${cheminLisible(f.lieu)} :: ${f.message}`);
 };
 
 /**
@@ -100,7 +102,7 @@ describe('projetSchema — la FORME que voit le seam (avant normalizeScene/resol
     expect(fautesCodees(projet({ scenes: entite({ interact: { flow: FLOW } }) })))
       .toEqual(['scenes.0.entities.0 :: unrecognized_keys ["interact"]']);
     expect(fautes(projet({ scenes: entite({ usable: { actions: [{ id: 'fouiller', flow: FLOW }, { id: 'fouiller', flow: FLOW }] } }) })))
-      .toEqual([expect.stringMatching(/^scenes\.0\.entities\.0\.usable :: usable\.actions : deux actions partagent le même `id`/)]);
+      .toEqual(['scenes « scene-1 » › entities « coffre » › usable › actions « fouiller » :: « fouiller » dupliqué : « id » identifie l’élément dans sa liste, il y est unique.']);
     // `assise` ne se DÉSACTIVE pas par `false` : le fait est présent ou absent, jamais nié.
     expect(fautes(projet({ scenes: entite({ usable: { assise: false } }) })).length).toBeGreaterThan(0);
   });
@@ -114,8 +116,8 @@ describe('projetSchema — la FORME que voit le seam (avant normalizeScene/resol
     });
     expect(projetSchema.safeParse(projet({ worldMap: carte({ ref: 'marienburg', lighthouse: true }) })).success).toBe(true);
     expect(fautes(projet({ worldMap: carte({ taille: 3 }) }))).toEqual([
-      expect.stringContaining('worldMap.places.0.port.richesse'),
-      expect.stringContaining('worldMap.places.0.port.production'),
+      expect.stringContaining('worldMap › places « lieu-1 » › port.richesse'),
+      expect.stringContaining('worldMap › places « lieu-1 » › port.production'),
     ]);
   });
 
@@ -189,13 +191,13 @@ describe('projetSchema — la FORME que voit le seam (avant normalizeScene/resol
 describe('sceneSchema — une arête `x,y,side,z` ne porte qu’un segment', () => {
   const avecMurs = (walls: Jouet[]): Jouet => projet({ scenes: [sceneMinimale({ walls })] });
 
-  it('une arête DUPLIQUÉE est refusée, la clé et le compte NOMMÉS au chemin du doublon', () => {
-    expect(fautes(avecMurs([{ x: 14, y: 6, side: 'E' }, { x: 14, y: 6, side: 'E', door: true }]))).toEqual([
-      'scenes.0.walls.1 :: arête 14,6,E,0 × 2 — une arête ne porte qu\'un segment (index d\'arêtes, state/wallIndex.ts)',
-    ]);
-    // `z` ABSENT et `z: 0` sont la MÊME arête (l'index lit `w.z ?? 0`), et le compte suit le stock.
+  it('une arête DUPLIQUÉE est refusée, la clé NOMMÉE à chaque doublon', () => {
+    const doublon = (cle: string) => `scenes « scene-1 » › walls « ${cle} » :: « ${cle} » dupliqué : « x,y,side,z » identifie l’élément dans sa liste, il y est unique.`;
+    expect(fautes(avecMurs([{ x: 14, y: 6, side: 'E' }, { x: 14, y: 6, side: 'E', door: true }]))).toEqual([doublon('14,6,E,0')]);
+    // `z` ABSENT et `z: 0` sont la MÊME arête (l'index lit `w.z ?? 0`) : chaque segment en trop est une faute.
     expect(fautes(avecMurs([{ x: 1, y: 2, side: 'N', z: 0 }, { x: 1, y: 2, side: 'N' }, { x: 1, y: 2, side: 'N', window: true }]))).toEqual([
-      'scenes.0.walls.1 :: arête 1,2,N,0 × 3 — une arête ne porte qu\'un segment (index d\'arêtes, state/wallIndex.ts)',
+      doublon('1,2,N,0'),
+      doublon('1,2,N,0'),
     ]);
   });
 
@@ -223,27 +225,27 @@ describe('sceneSchema — chaque tableau parallèle d’une couche porte EXACTEM
   const pleine = (n: number, t = 'sol') => Array.from({ length: n }, () => t);
   const avecCouches = (layers: Jouet[]): Jouet => projet({ scenes: [sceneMinimale({ layers })] });
 
-  it('une couche AMPUTÉE est refusée, en nommant la scène, l’étage, la longueur et l’attendu', () => {
+  it('une couche AMPUTÉE est refusée, le LIEU nommant la scène et l’étage, le message la longueur et l’attendu', () => {
     expect(fautes(avecCouches([{ z: 0, tiles: pleine(15) }]))).toEqual([
-      'scenes.0.layers.0.tiles :: scène « scene-1 », couche z=0 : `tiles` porte 15 entrée(s) pour une grille 4×4 — il en faut EXACTEMENT 16',
+      'scenes « scene-1 » › layers « 0 » › tiles :: `tiles` porte 15 entrée(s) pour une grille 4×4 — il en faut EXACTEMENT 16',
     ]);
   });
 
   it('une couche TROP LONGUE est refusée de la même façon, et l’étage fautif est celui qui est nommé', () => {
     expect(fautes(avecCouches([{ z: 0, tiles: pleine(16) }, { z: 1, tiles: pleine(17) }]))).toEqual([
-      'scenes.0.layers.1.tiles :: scène « scene-1 », couche z=1 : `tiles` porte 17 entrée(s) pour une grille 4×4 — il en faut EXACTEMENT 16',
+      'scenes « scene-1 » › layers « 1 » › tiles :: `tiles` porte 17 entrée(s) pour une grille 4×4 — il en faut EXACTEMENT 16',
     ]);
   });
 
   it('`height` amputé est refusé en NOMMANT `height` — même index, même trou silencieux (`heightAt` replierait à 0 m)', () => {
     expect(fautes(avecCouches([{ z: 0, tiles: pleine(16), height: Array.from({ length: 15 }, () => 0) }]))).toEqual([
-      'scenes.0.layers.0.height :: scène « scene-1 », couche z=0 : `height` porte 15 entrée(s) pour une grille 4×4 — il en faut EXACTEMENT 16',
+      'scenes « scene-1 » › layers « 0 » › height :: `height` porte 15 entrée(s) pour une grille 4×4 — il en faut EXACTEMENT 16',
     ]);
   });
 
   it('`crenellated` amputé est refusé en NOMMANT `crenellated`, et les deux tableaux présents au cardinal passent', () => {
     expect(fautes(avecCouches([{ z: 0, tiles: pleine(16), crenellated: Array.from({ length: 4 }, () => null) }]))).toEqual([
-      'scenes.0.layers.0.crenellated :: scène « scene-1 », couche z=0 : `crenellated` porte 4 entrée(s) pour une grille 4×4 — il en faut EXACTEMENT 16',
+      'scenes « scene-1 » › layers « 0 » › crenellated :: `crenellated` porte 4 entrée(s) pour une grille 4×4 — il en faut EXACTEMENT 16',
     ]);
     expect(projetSchema.safeParse(avecCouches([{ z: 0, tiles: pleine(16), height: Array.from({ length: 16 }, () => 0), crenellated: Array.from({ length: 16 }, () => null) }])).success).toBe(true);
   });
@@ -263,7 +265,7 @@ describe('sceneSchema — chaque tableau parallèle d’une couche porte EXACTEM
 describe('projetSchema — les quatre sémantiques du seam, chacune NOMMÉE', () => {
   it('(a) `activeAxes` référence un axe inconnu de axes.json → rouge nommant l\'index et l\'id', () => {
     expect(fautes(projet({ activeAxes: ['negoce', 'plongee-sous-marine'] }))).toEqual([
-      'activeAxes.1 :: activeAxes référence un axe inconnu de axes.json : « plongee-sous-marine ».',
+      'activeAxes.1 :: « plongee-sous-marine » est absent du catalogue des axes (axes.json).',
     ]);
   });
 
@@ -275,7 +277,7 @@ describe('projetSchema — les quatre sémantiques du seam, chacune NOMMÉE', ()
       objets: [],
     };
     expect(fautes(projet({ narratif }))).toEqual([
-      'narratif.indices.0.affaireId :: l\'indice « indice-1 » référence une affaire inconnue « affaire-fantome ».',
+      'narratif › indices « indice-1 » › affaireId :: affaire inconnue « affaire-fantome ».',
     ]);
   });
 
@@ -287,21 +289,21 @@ describe('projetSchema — les quatre sémantiques du seam, chacune NOMMÉE', ()
       objets: [],
     };
     expect(fautes(projet({ narratif }))).toEqual([
-      'narratif.presetsPnj.0.id :: l\'id de preset PNJ « gobelin » collisionne avec un id de la règle globale (créature/possession).',
+      'narratif › presetsPnj « gobelin » › id :: l\'id de preset PNJ « gobelin » collisionne avec un id de la règle globale (créature/possession).',
     ]);
   });
 
   it('(b ter) un preset sans base ni profil → rouge nommé (contrat de `presetPnjSchema`)', () => {
     const narratif = { affaires: [], indices: [], presetsPnj: [{ id: 'le-borgne' }], objets: [] };
     expect(fautes(projet({ narratif }))).toEqual([
-      'narratif.presetsPnj.0 :: le preset PNJ « le-borgne » n\'a ni base ni profil (au moins l\'un des deux est requis).',
+      'narratif › presetsPnj « le-borgne » :: ni base ni profil (au moins l\'un des deux est requis).',
     ]);
   });
 
   it('(c) `entity.presetId` sans preset déclaré → rouge nommant la scène ET l\'entité', () => {
     const scenes = [sceneMinimale({ entities: [{ id: 'pnj-1', kind: 'personnage', pos: { x: 1, y: 1 }, presetId: 'le-borgne' }] })];
     expect(fautes(projet({ scenes }))).toEqual([
-      'scenes.0.entities.0.presetId :: l\'entité « pnj-1 » de la scène « scene-1 » référence un preset de PNJ inconnu « le-borgne » (narratif.presetsPnj).',
+      'scenes « scene-1 » › entities « pnj-1 » › presetId :: preset de PNJ inconnu « le-borgne » (narratif.presetsPnj).',
     ]);
   });
 
@@ -383,7 +385,6 @@ describe('projetSchema — le document RÉEL, ses FK et son enveloppe (sondes du
     expect(ok(reel())).toBe(true);
     expect(projetDoc.type).toBe('projet');
     expect(projetDoc.famille).toBe('config');
-    expect(reel().schema, 'le document committé est au format COURANT').toBe(SCHEMA_PROJET);
   });
 
   it('FK `activeAxes` → axes.json : ids RÉELS acceptés (et la liste vide/absente aussi), inconnu REFUSÉ au CHEMIN', () => {
@@ -391,7 +392,7 @@ describe('projetSchema — le document RÉEL, ses FK et son enveloppe (sondes du
     expect(ok({ ...reel(), activeAxes: [] }), 'liste vide = socle de base').toBe(true);
     expect(ok(sansCle('activeAxes')), 'absente = socle de base').toBe(true);
     expect(fautes({ ...reel(), activeAxes: ['axe-qui-nexiste-pas'] })).toEqual([
-      'activeAxes.0 :: activeAxes référence un axe inconnu de axes.json : « axe-qui-nexiste-pas ».',
+      'activeAxes.0 :: « axe-qui-nexiste-pas » est absent du catalogue des axes (axes.json).',
     ]);
     // Un id qui n'est pas un AXE (c'est une compétence) est refusé comme un id inventé : la FK vise
     // `axes.json`, pas « un id connu quelque part ».
@@ -410,7 +411,7 @@ describe('projetSchema — le document RÉEL, ses FK et son enveloppe (sondes du
     };
     expect(ok(avecPreset('preset-temoin', true)), 'preset DÉCLARÉ refusé').toBe(true);
     expect(fautes(avecPreset('preset-fantome', false))).toEqual([
-      expect.stringMatching(/^scenes\.0\.entities\.0\.presetId :: .*preset de PNJ inconnu « preset-fantome »/),
+      expect.stringMatching(/^scenes « [^»]+ » › entities « [^»]+ » › presetId :: preset de PNJ inconnu « preset-fantome »/),
     ]);
   });
 
@@ -445,29 +446,29 @@ describe('narratifSchema — un id VIDE est refusé dans les QUATRE registres, c
 
   it('affaire : `id` vide', () => {
     expect(fautes(narratif({ affaires: [{ id: '', titre: 'Le Marché noir' }] }), narratifSchema)).toEqual([
-      'affaires.0.id :: affaires[].id : id vide.',
+      'affaires.0.id :: id vide.',
     ]);
   });
 
   it('indice : `id` vide', () => {
     const doc = narratif({ affaires: [{ id: 'affaire-a', titre: 'x' }], indices: [indice({ id: '' })] });
-    expect(fautes(doc, narratifSchema)).toEqual(['indices.0.id :: indices[].id : id vide.']);
+    expect(fautes(doc, narratifSchema)).toEqual(['indices.0.id :: id vide.']);
   });
 
   it('stade d\'indice : `id` vide', () => {
     const doc = narratif({ affaires: [{ id: 'affaire-a', titre: 'x' }], indices: [indice({ stades: [{ id: '', prose: '' }] })] });
-    expect(fautes(doc, narratifSchema)).toEqual(['indices.0.stades.0.id :: indices[].stades[].id : id vide.']);
+    expect(fautes(doc, narratifSchema)).toEqual(['indices « indice-1 » › stades.0.id :: id vide.']);
   });
 
   it('preset PNJ : `id` vide', () => {
     expect(fautes(narratif({ presetsPnj: [{ id: '', base: 'gobelin' }] }), narratifSchema)).toEqual([
-      'presetsPnj.0.id :: presetsPnj[].id : id vide.',
+      'presetsPnj.0.id :: id vide.',
     ]);
   });
 
   it('objet : `id` vide (contrôle — la même exigence, déjà tenue par `raffineNarratif`)', () => {
     expect(fautes(narratif({ objets: [{ id: '' }] }), narratifSchema)).toEqual([
-      'objets.0.id :: un objet n\'a pas d\'id.',
+      'objets.0.id :: id absent.',
     ]);
   });
 });

@@ -9,7 +9,7 @@ import { tableTotale } from '../../lib/tableTotale';
 import { useEffect, useMemo, useState } from 'react';
 import { datasetArray, setDataset, datasetObject, datasetObjectSerializeRoot, setObjectDataset, datasetFile, datasetSerializeRoot, datasetObjectFile, type DatasetKey, type ObjectDatasetKey } from '../../data/overrides';
 import { CATEGORY_DATASET_DERIVE, OBJECT_CATEGORY_DERIVE } from '../../data/schemas/exposition-derivee';
-import type { SkillRef } from '../../engine/skills';
+import type { RefDesignee } from '../../data/schemas/grammaire/ref';
 import type { SteamBreakdownEntry } from '../../engine/shipBuild';
 import { serializeDataset } from '../../data/serialize';
 import { validateDataset, metaPourFichier, chargeDiscriminee, brouillonNeuf, noeudDuChamp, noeudObjet, schemaForFile } from '../../data/schemas/validate';
@@ -31,14 +31,15 @@ import { NumberField } from '../NumberField';
 import { PlageField, type PlageValue } from '../PlageField';
 import { GatedAction } from '../GatedAction';
 import { raceKeySchema } from '../../data/schemas/grammaire/valeurs';
-import { MonsterPartsFields } from '../editor/MonsterPartsFields';
+import { MonsterPartsFields, ReglagesApparence } from '../editor/MonsterPartsFields';
 import { FlowEditor, NoeudTestField, type NoeudTest } from '../editor/FlowEditor';
 import { ctxDeCatalogue } from '../editor/EffectList';
 import { GameOpEditor, FormulaField, opsMissingRefs } from '../editor/GameOpEditor';
 import type { GameOp } from '../../engine/ops';
 import type { ConsumableDuration } from '../../engine/consumables';
 import { JsonField } from '../editor/JsonField';
-import { creatureSpeciesOptions, QUAD_SPECIES, WINGED_SPECIES } from '../../gameIso/rig/creatures';
+import { QUAD_SPECIES, WINGED_SPECIES } from '../../gameIso/rig/creatures';
+import { apparenceSuivante } from '../../gameIso/rig/parts/cosmetic';
 import { CreaturePreview } from './CreaturePreview';
 import { porteurDApercu } from './apercuPorteur';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
@@ -54,13 +55,14 @@ import type { PsychTrait } from '../../engine/psychology';
 import { SymptomsField, SymptomTickField, DiseaseDailyTestField, type DiseaseDailyTest, ShipCrewHitField, type ShipCrewHitValue, TalentTestField, CombatField, AdvancementRefField, TrappingRefField, CharKeysField, DispoSaisonniereField, DomainEffectsField, TraitListField, OptionalsListField, HarvestField, SpecsField, RuleValueField, RuleActionField, type RuleShape } from './StructFields';
 import type { OptionalRule } from '../../engine/policy';
 import type { TraitInstance, OptionalEntry } from '../../engine/statEntry';
+import { isSwarm } from '../../engine/traits/dispatch';
 import type { DomainData } from '../../data';
 import type { CharKey, Difficulty } from '../../engine/types';
 import { CHAR_KEYS, CHAR_LABELS, DIFFICULTY_LABELS, HIT_LOCATION_LABELS } from '../../engine/types';
 import type { DiseaseSymptom } from '../../engine/disease';
 import type { CombatFeature } from '../../engine/combatFeatures/types';
 import type { AdvancementRef, TrappingRef, TalentTest, SpecEntry, WaterExposureData, WaterExposureModifier } from '../../data';
-import { skillRefLabel, talentRefLabel, type SkillRef as SkillRefLivre, type TalentRef } from '../../data';
+import { skillRefLabel, talentRefLabel, type SkillRef, type TalentRef } from '../../data';
 import { specsSourceSchema, symptomSeveritySchema } from '../../data/schemas/grammaire/valeurs';
 import { parseSkillRef, parseTalentRef } from '../editor/refFormatLivre';
 import type { SecondaryRef, Variant } from '../../data/schemas/grammaire/valeurs';
@@ -144,8 +146,7 @@ type Entry = Record<string, unknown>;
 /** ids d'un champ-liste de refs — descend dans les branches `of` d'un `{pick}` (`AdvancementRef`) et
  *  dans le `choice` d'une `TrappingRef` ; ignore les `{text}` narratifs et jokers. Une CHAÎNE BRUTE (ex.
  *  `criticalsTete.traumas: string[]`) est traitée comme un id DIRECT (#173 : ces listes référencent
- *  leur dataset par id, jamais par libellé — cf. `STRING_LIST_LABEL_EXCEPTIONS` pour l'unique
- *  contre-exemple documenté). */
+ *  leur dataset par id, jamais par libellé). */
 function refIdsIn(v: unknown): string[] {
   if (!Array.isArray(v)) return [];
   const out: string[] = [];
@@ -160,14 +161,6 @@ function refIdsIn(v: unknown): string[] {
   }
   return out;
 }
-
-/** (categorie.champ) où un champ-liste de CHAÎNES de `REF_LIST_DATASET` porte légitimement des
- *  LIBELLÉS et non des ids — SEULE exception connue : `pregens.pettySpells` (libellés d'AUTHORING de
- *  sorts de Magie mineure, validés + résolus en id par la fabrique du pré-tiré, `src/data/pregens.ts`
- *  fonction `buildPregenHero` — #421 ; jamais relu par id depuis le JSON). Toute autre liste de
- *  chaînes d'un champ-réf DOIT contenir des ids qui résolvent (#173 : un éditeur par datalist-de-
- *  labels y écrivait un libellé, cassant `traumaFicheById` au runtime — cf. `criticalsTete.traumas`). */
-const STRING_LIST_LABEL_EXCEPTIONS = new Set(['pregens.pettySpells']);
 
 /** Champs-réf NICHÉS (une valeur ou une liste, sous un sous-objet/sous-tableau — hors de portée de
  *  `REF_LIST_DATASET`, qui ne regarde QUE les champs top-level de `entry`) : même garantie de
@@ -198,10 +191,9 @@ export function validateEntry(categoryKey: string, entry: Entry, entries: Entry[
   // que le navigateur du Codex et l'éditeur utilisent pour retrouver l'entrée.
   if (!entryKey(entry).trim()) errors.push('libellé vide');
   // Refs résolvables : chaque `{id}` (ou chaîne directe) d'un champ-réf doit exister dans son dataset —
-  // détecté par nom de champ (table unique), sauf la contre-exception déclarée ci-dessus.
+  // détecté par nom de champ (table unique).
   for (const [field, ds] of Object.entries(REF_LIST_DATASET)) {
     if (!(field in entry)) continue;
-    if (STRING_LIST_LABEL_EXCEPTIONS.has(`${categoryKey}.${field}`)) continue;
     const known = new Set((datasetArray(ds) as { id?: string }[]).map((e) => e.id).filter(Boolean));
     for (const id of refIdsIn(entry[field])) {
       if (id === '') errors.push(`${field} : réf à choisir (${ds})`);
@@ -317,7 +309,7 @@ export function dedicatedFieldKeys(categoryKey: string): Set<string> {
   if (['traits', 'qualities', 'mutations', 'talents', 'etats', 'trappings', 'psychologies', 'navalTraits'].includes(categoryKey)) add('passive');
   if (categoryKey === 'structures' || categoryKey === 'races') add('traits'); // {id,value?}[] → réutilise TraitListField (comme creatures) — Trait racial d'espèce (encombrance/consommation), #572
   if (categoryKey === 'crewRoles') add('skills'); // {id,spec?}[] → éditeur dédié (SkillSpecListField)
-  if (categoryKey === 'axes') add('skills', 'talents'); // #409 : {id,spec?}[]/{talentId,spec?}[] → SkillSpecListField/TalentSpecListField
+  if (categoryKey === 'axes') add('skills', 'talents'); // #409 : {id,spec?}[] → SkillSpecListField/TalentSpecListField
   if (categoryKey === 'traumas') add('prosthesis'); // {trappingId,cancels}[] → éditeur dédié (ProsthesisField)
   if (CRITICAL_CATEGORIES.includes(categoryKey)) add('traumas', 'test'); // string[] d'ids → TraumaListField (#173) ; `test` → FlowEditor (#1682)
   if (categoryKey === 'steamBreakdowns') add('restart'); // {skill:{id,spec?},difficulty,extendedDR?}[] → éditeur dédié
@@ -451,11 +443,17 @@ export function CodexEdit({ categoryKey, label, id, onClose, isNew }: CodexEditP
   const [needsGrant, setNeedsGrant] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [msg, setMsg] = useState('');
-  // Refus de SCHÉMA (contrat de donnée #176) : message champ-par-champ (formatZodError) quand la donnée
+  const fsApi = fs.fsApiDisponible();
+  // Refus de SCHÉMA (contrat de donnée #176) : message champ-par-champ (validateDataset) quand la donnée
   // sérialisée ne parse pas son schéma zod — l'écriture disque est bloquée. Effacé à toute ré-édition.
   const [schemaError, setSchemaError] = useState<string | null>(null);
 
-  useEffect(() => { fs.restoreDataDir().then((r) => { if (r) { setDir(r.handle); setNeedsGrant(!r.granted); } }); }, []);
+  useEffect(() => {
+    fs.restoreDataDir().then(
+      (r) => { if (r) { setDir(r.handle); setNeedsGrant(!r.granted); } },
+      (e) => setMsg(`Échec de la reconnexion à src/data : ${String(e)}`),
+    );
+  }, []);
   useEffect(() => { setEntry(structuredClone(src.initial)); setDirty(false); setMsg(''); setSchemaError(null); }, [src]);
 
   // L'apparence (MonsterPartsFields) ET les EFFETS d'un sort (FlowEditor) ont leur éditeur dédié — on les
@@ -480,7 +478,7 @@ export function CodexEdit({ categoryKey, label, id, onClose, isNew }: CodexEditP
   const isStructure = categoryKey === 'structures';
   // Rôle d'équipage (`crewRoles`, #157) : `skills` = {id,spec?}[] → éditeur dédié.
   const hasCrewSkills = categoryKey === 'crewRoles';
-  // Axe de forces (`axes`, #409) : `skills`/`talents` = {id,spec?}[]/{talentId,spec?}[] → éditeurs dédiés
+  // Axe de forces (`axes`, #409) : `skills`/`talents` = {id,spec?}[] → éditeurs dédiés
   // (SkillSpecListField, réutilisé tel quel côté Compétences ; TalentSpecListField, même patron côté Talents).
   const hasAxes = categoryKey === 'axes';
   // Traumatisme (`traumas`, #157) : `prosthesis` (prothèses annulatrices, LDB 73) = {trappingId,cancels}[].
@@ -579,7 +577,7 @@ export function CodexEdit({ categoryKey, label, id, onClose, isNew }: CodexEditP
   // (`Field` → `GenericArrayField`, `field.noeud`) : c'est le nœud qui porte le libellé des VALEURS
   // (`enumNomme`, #1694), donc le `select` nommé à toute profondeur du sous-formulaire.
   const noeudDe = (champ: string): unknown => noeudDuChamp(src.file, champ);
-  // Un document DISCRIMINÉ (`SchemaDef.discriminant`) présente la charge du CAS de l'entrée — jamais
+  // Un document DISCRIMINÉ (`espace.discriminant` de sa racine, `partitionDeCharge`) présente la charge du CAS de l'entrée — jamais
   // l'union des cas (mesuré sur `materials.json` : union 28 clés, 7 portées par une matière `prop`).
   // Le discriminant lui-même reste à l'écran : c'est en le changeant qu'on change de cas.
   const charge = useMemo(() => chargeDiscriminee(src.file, entry), [src.file, entry]);
@@ -624,7 +622,7 @@ export function CodexEdit({ categoryKey, label, id, onClose, isNew }: CodexEditP
     setSchemaError(null);
     const text = serializeDataset(root);
     try {
-      if (fs.FS_API && dir && !needsGrant) { await fs.writeFile(dir, src.file, text); setMsg(`Enregistré ${src.file} — Vite recharge…`); }
+      if (fsApi && dir && !needsGrant) { await fs.writeFile(dir, src.file, text); setMsg(`Enregistré ${src.file} — Vite recharge…`); }
       else { fs.downloadFallback(src.file, text); setMsg(`Téléchargé ${src.file} — reposez-le dans src/data/`); }
       setDirty(false);
     } catch (e) { setMsg(`Échec : ${String(e)}`); }
@@ -633,10 +631,16 @@ export function CodexEdit({ categoryKey, label, id, onClose, isNew }: CodexEditP
   return (
     <div className="codex-edit">
       <div className="codex-edit-bar">
-        {!fs.FS_API && <span className="de-warn">FS Access indisponible — sauvegarde par téléchargement</span>}
-        {fs.FS_API && !dir && <button className="btn small" onClick={() => fs.connectDataDir().then((h) => { setDir(h); setNeedsGrant(false); }).catch(() => {})}><Icon id="file/folder" size="sm" /> Connecter src/data…</button>}
-        {fs.FS_API && dir && needsGrant && <button className="btn small" onClick={() => dir && fs.grantPermission(dir).then((ok) => ok && setNeedsGrant(false))}>Autoriser l'écriture</button>}
-        {fs.FS_API && dir && !needsGrant && <span className="de-ok"><Icon id="file/folder" size="sm" /> connecté</span>}
+        {!fsApi && <span className="de-warn">FS Access indisponible — sauvegarde par téléchargement</span>}
+        {fsApi && !dir && <button className="btn small" onClick={() => fs.connectDataDir().then(
+          (h) => { if (h) { setDir(h); setNeedsGrant(false); } },
+          (e) => setMsg(`Échec de la connexion à src/data : ${String(e)}`),
+        )}><Icon id="file/folder" size="sm" /> Connecter src/data…</button>}
+        {fsApi && dir && needsGrant && <button className="btn small" onClick={() => fs.grantPermission(dir).then(
+          (ok) => { if (ok) setNeedsGrant(false); },
+          (e) => setMsg(`Échec de l’autorisation d’écriture dans src/data : ${String(e)}`),
+        )}>Autoriser l'écriture</button>}
+        {fsApi && dir && !needsGrant && <span className="de-ok"><Icon id="file/folder" size="sm" /> connecté</span>}
         <span className="de-spacer" />
         {msg && <span className="de-msg">{msg}</span>}
         <button className="btn small" onClick={onClose}>Fermer</button>
@@ -653,7 +657,7 @@ export function CodexEdit({ categoryKey, label, id, onClose, isNew }: CodexEditP
         </ul>
       )}
       <div className="codex-edit-form">
-        {hasAppearance && <AppearanceField label={String(entry.label ?? label)} porteur={porteurDApercu(categoryKey)} value={entry.appearance as EntityAppearance | undefined} onChange={(v) => edit('appearance', v)} />}
+        {hasAppearance && <AppearanceField label={String(entry.label ?? label)} porteur={porteurDApercu(categoryKey)} nuee={categoryKey === 'creatures' && isSwarm(entry.traits as TraitInstance[] | undefined)} value={entry.appearance as EntityAppearance | undefined} onChange={(v) => edit('appearance', v)} />}
         {isSpell && <SpellEffectsField value={entry.effects as Flow | undefined} onChange={(v) => edit('effects', v)} />}
         {CRITICAL_CATEGORIES.includes(categoryKey) && (
           <NoeudTestField
@@ -795,7 +799,7 @@ export function CodexEdit({ categoryKey, label, id, onClose, isNew }: CodexEditP
             <LignesFormatLivreField
               label="Compétences"
               hint="(une par ligne, format livre « Compétence (Spéc) Valeur » : « Langue (Magick) 63 », « Savoir (Au choix) 65 », « Métier (Armurier ou Forgeron) 50 », « Esquive 48 » — la valeur est le Test FINAL)"
-              value={refsEnLignes(entry.skills as SkillRefLivre[] | undefined, skillRefLabel)}
+              value={refsEnLignes(entry.skills as SkillRef[] | undefined, skillRefLabel)}
               onCommit={(t) => edit('skills', lignesEnRefs(t, parseSkillRef))}
             />
             <LignesFormatLivreField
@@ -810,9 +814,9 @@ export function CodexEdit({ categoryKey, label, id, onClose, isNew }: CodexEditP
         {isTrait && <TraitSchemaField entry={entry} edit={edit} />}
         {isStructure && <TraitListField label="Atouts" hint="(Résistant/Impénétrable — ADE II 8)" value={entry.traits as TraitInstance[] | undefined} onChange={(v) => edit('traits', v)} />}
         {isRace && <TraitListField label="Trait racial" hint="(#572 — Ogre : encombrance/consommation ×2 ; Taille = talent Massif/Petit)" value={entry.traits as TraitInstance[] | undefined} onChange={(v) => edit('traits', v)} />}
-        {hasCrewSkills && <SkillSpecListField value={entry.skills as SkillRef[] | undefined} onChange={(v) => edit('skills', v)} />}
-        {hasAxes && <SkillSpecListField hint="compétences contribuant à l'axe (facultatif)" value={entry.skills as SkillRef[] | undefined} onChange={(v) => edit('skills', v)} />}
-        {hasAxes && <TalentSpecListField value={entry.talents as { talentId: string; spec?: string }[] | undefined} onChange={(v) => edit('talents', v)} />}
+        {hasCrewSkills && <SkillSpecListField value={entry.skills as RefDesignee[] | undefined} onChange={(v) => edit('skills', v)} />}
+        {hasAxes && <SkillSpecListField hint="compétences contribuant à l'axe (facultatif)" value={entry.skills as RefDesignee[] | undefined} onChange={(v) => edit('skills', v)} />}
+        {hasAxes && <TalentSpecListField value={entry.talents as RefDesignee[] | undefined} onChange={(v) => edit('talents', v)} />}
         {hasConsumable && <GenericArrayField noeud={noeudDe('prosthesisTraining')} label="prosthesisTraining (paliers d’entraînement — PX, libellé joueur, tranche rachetée, aspect levé)" value={entry.prosthesisTraining as Record<string, unknown>[] | undefined} onChange={(v) => edit('prosthesisTraining', v.length ? v : undefined)} />}
         {hasProsthesis && <ProsthesisField value={entry.prosthesis as { trappingId: string; cancels: 'all' | 'movement' }[] | undefined} onChange={(v) => edit('prosthesis', v.length ? v : undefined)} />}
         {hasTraumaList && <TraumaListField value={entry.traumas as string[] | undefined} onChange={(v) => edit('traumas', v.length ? v : undefined)} />}
@@ -873,43 +877,29 @@ export function CodexEdit({ categoryKey, label, id, onClose, isNew }: CodexEditP
   );
 }
 
-/** Éditeur d'apparence par défaut d'une créature (bloc `appearance` UNIFIÉ) — réutilise la brique
- *  partagée `MonsterPartsFields` (espèce + parts/couleurs/coiffure/tenue/harnachement/yeux). Édite le VRAI record
- *  `creatures.json` ; le rig le lit comme couche de défaut → l'apparence en jeu reflète l'édition. */
-function AppearanceField({ label, porteur, value, onChange }: { label: string; porteur?: string; value: EntityAppearance | undefined; onChange: (v: EntityAppearance) => void }) {
+/** Apparence par défaut d'une créature (bloc `appearance`, #1897). */
+function AppearanceField({ label, porteur, nuee, value, onChange }: { label: string; porteur?: string; nuee: boolean; value: EntityAppearance | undefined; onChange: (v: EntityAppearance) => void }) {
   const a = value ?? {};
-  const patch = (p: Partial<EntityAppearance>) => onChange({ ...a, ...p });
   // Le harnachement est un canal du pipeline QUADRUPÈDE (quad ∪ ailé) : hors de ces gabarits, la
   // clé serait de la donnée absurde, ignorée au rendu — le sélecteur n'est donc pas offert.
   const quadrupede = !!a.species && (a.species in QUAD_SPECIES || a.species in WINGED_SPECIES);
   return (
-    <div className="ed-field ed-appearance">
-      <span>apparence par défaut (rig) — éditée sur le record, reflétée en jeu</span>
-      <CreaturePreview label={label} appearance={a} porteur={porteur} />{/* aperçu LIVE : se met à jour à chaque modification */}
-      <label className="ed-subfield">
-        Espèce
-        <select value={a.species ?? ''} onChange={(e) => patch({ species: e.target.value || undefined })}>
-          <option value="">(par défaut : Humain)</option>
-          {creatureSpeciesOptions().map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
-        </select>
-      </label>
+    <>
+      <div className="ed-field">
+        <span>Apparence</span>
+        <CreaturePreview label={label} appearance={a} porteur={porteur} />{/* aperçu LIVE : se met à jour à chaque modification */}
+        <ReglagesApparence appearance={a} onChange={onChange} reglages={['species', 'sex', 'build', 'hairstyle']} nuee={nuee} />
+        <label className="dr">
+          <input type="checkbox" checked={!!a.armurePortee} onChange={(e) => onChange(apparenceSuivante(a, { armurePortee: e.target.checked || undefined }))} />
+          {' '}Armure du profil visible sur la figurine
+        </label>
+      </div>
       <MonsterPartsFields
-        monster={a.monster} colors={a.colors} sex={a.sex} build={a.build} hairstyle={a.hairstyle} tenue={a.tenue} harnais={a.harnais} eyes={a.eyes} features={a.features}
-        onMonster={(p) => patch({ monster: { ...(a.monster ?? {}), ...p } })}
-        onColors={(p) => patch({ colors: { ...(a.colors ?? {}), ...p } })}
-        onSex={(s) => patch({ sex: s })}
-        onBuild={(b) => patch({ build: b })}
-        onHairstyle={(id) => patch({ hairstyle: id })}
-        onTenue={(c) => patch({ tenue: c })}
-        onHarnais={quadrupede ? (id) => patch({ harnais: id }) : undefined}
-        onEyes={(p) => patch({ eyes: { ...(a.eyes ?? {}), ...p } })}
-        onFeatures={(f) => patch({ features: f.length ? f : undefined })}
+        appearance={a}
+        onChange={onChange}
+        reglages={quadrupede ? ['monster', 'eyes', 'features', 'tenue', 'harnais', 'colors'] : ['monster', 'eyes', 'features', 'tenue', 'colors']}
       />
-      <label className="dr">
-        <input type="checkbox" checked={!!a.armurePortee} onChange={(e) => patch({ armurePortee: e.target.checked || undefined })} />
-        {' '}Armure du statblock VISIBLE (portée) — sinon les PA (trait Armure) restent mécaniques purs, sans art
-      </label>
-    </div>
+    </>
   );
 }
 
@@ -1130,7 +1120,7 @@ function TraitSchemaField({ entry, edit }: { entry: Entry; edit: (key: string, v
 /** Compétences d'un Rôle d'équipage (`crewRoles.skills`, MDG 14, #157) OU d'un axe de forces
  *  (`axes.skills`, #409) : `{id,spec?}[]` — plusieurs Compétences candidates possibles (`hint`
  *  précise la sémantique par appelant : « la meilleure retenue » pour un rôle, dérivation pour un axe). */
-function SkillSpecListField({ value, onChange, hint = 'compétences du rôle (au moins une ; « au choix » si plusieurs — la meilleure est retenue)' }: { value: SkillRef[] | undefined; onChange: (v: SkillRef[]) => void; hint?: string }) {
+function SkillSpecListField({ value, onChange, hint = 'compétences du rôle (au moins une ; « au choix » si plusieurs — la meilleure est retenue)' }: { value: RefDesignee[] | undefined; onChange: (v: RefDesignee[]) => void; hint?: string }) {
   const list = value ?? [];
   const skillOpts = datasetArray('skills') as { id: string; label: string }[];
   const set = (next: typeof list) => onChange(next);
@@ -1152,9 +1142,9 @@ function SkillSpecListField({ value, onChange, hint = 'compétences du rôle (au
   );
 }
 
-/** Talents contribuant à un axe de forces (`axes.talents`, #409) : `{talentId,spec?}[]` — MÊME patron
+/** Talents contribuant à un axe de forces (`axes.talents`, #409) : `{id,spec?}[]` — MÊME patron
  *  que `SkillSpecListField` (Compétences), sur le dataset `talents`. */
-function TalentSpecListField({ value, onChange }: { value: { talentId: string; spec?: string }[] | undefined; onChange: (v: { talentId: string; spec?: string }[]) => void }) {
+function TalentSpecListField({ value, onChange }: { value: RefDesignee[] | undefined; onChange: (v: RefDesignee[]) => void }) {
   const list = value ?? [];
   const talentOpts = datasetArray('talents') as { id: string; label: string }[];
   const set = (next: typeof list) => onChange(next);
@@ -1163,15 +1153,15 @@ function TalentSpecListField({ value, onChange }: { value: { talentId: string; s
       <span>talents contribuant à l'axe (facultatif)</span>
       {list.map((s, i) => (
         <div className="tf-row" key={i}>
-          <select value={s.talentId} onChange={(e) => set(list.map((x, j) => (j === i ? { ...x, talentId: e.target.value } : x)))}>
-            {!s.talentId && <option value="">— (choisir un talent) —</option>}
+          <select value={s.id} onChange={(e) => set(list.map((x, j) => (j === i ? { ...x, id: e.target.value } : x)))}>
+            {!s.id && <option value="">— (choisir un talent) —</option>}
             {talentOpts.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
           </select>
           <input placeholder="spécialisation (facultatif)" value={s.spec ?? ''} onChange={(e) => set(list.map((x, j) => (j === i ? { ...x, spec: e.target.value || undefined } : x)))} />
           <button className="btn small danger" title="Retirer" onClick={() => set(list.filter((_, j) => j !== i))}>✕</button>
         </div>
       ))}
-      <button className="btn small" onClick={() => set([...list, { talentId: '' }])}>+ Talent</button>
+      <button className="btn small" onClick={() => set([...list, { id: '' }])}>+ Talent</button>
     </div>
   );
 }
@@ -1479,7 +1469,7 @@ function ActivityTestField({ entry, edit }: { entry: Entry; edit: (key: string, 
         ))}
       </div>
       <span>Test « posté » — compétence(s) « au choix » + caractéristique de repli + Difficulté (laisser vide = Activité SANS Test)</span>
-      <SkillSpecListField value={entry.skills as SkillRef[] | undefined} onChange={(v) => edit('skills', v.length ? v : undefined)} />
+      <SkillSpecListField value={entry.skills as RefDesignee[] | undefined} onChange={(v) => edit('skills', v.length ? v : undefined)} />
       <div className="tf-row">
         <label className="dr">Caractéristique (repli)
           <select value={(entry.char as string) ?? ''} onChange={(e) => edit('char', e.target.value || undefined)}>

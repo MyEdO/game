@@ -137,14 +137,31 @@ export interface CriticalResolved {
   log: string;
 }
 
+/** Champs que le bandeau de la modale de Coup Critique sait restituer, par op. */
+const CHAMPS_DU_BANDEAU: Partial<Record<GameOp['op'], readonly string[]>> = {
+  wounds: ['op', 'amount', 'ignoreTB', 'ignoreAP'],
+  condition: ['op', 'id', 'value'],
+};
+
+/** Op que le bandeau de la modale de Coup Critique (`critImmediateSummary`) restitue EN ENTIER :
+ *  Blessures chiffrées ignorant BE et PA, ou État de valeur chiffrée (ou absente), sans aucun autre
+ *  champ. Toute autre op est une ligne d'effet de la modale. */
+export function opRestitueeParLeBandeau(o: GameOp): boolean {
+  const champs = CHAMPS_DU_BANDEAU[o.op];
+  if (!champs || !Object.keys(o).every((k) => champs.includes(k))) return false;
+  if (o.op === 'wounds') return typeof o.amount === 'number' && o.ignoreTB !== false && o.ignoreAP !== false;
+  return o.op === 'condition' && (o.value === undefined || typeof o.value === 'number');
+}
+
 /** Récapitulatif d'AFFICHAGE d'un effet immédiat (PB totaux + États) extrait des `ops` — pour la
  *  révélation de Coup Critique (modale enrichie), SANS dupliquer la donnée. */
 export function critImmediateSummary(ops: GameOp[]): { woundsLost: number; conditions: { id: string; value: number }[] } {
   let woundsLost = 0;
   const conditions: { id: string; value: number }[] = [];
   for (const o of ops) {
-    if (o.op === 'wounds' && typeof o.amount === 'number') woundsLost += o.amount;
-    else if (o.op === 'condition') conditions.push({ id: o.id, value: typeof o.value === 'number' ? o.value : 1 });
+    if (!opRestitueeParLeBandeau(o)) continue;
+    if (o.op === 'wounds') woundsLost += o.amount as number;
+    else if (o.op === 'condition') conditions.push({ id: o.id, value: (o.value as number | undefined) ?? 1 }); // défaut de l'op (`applyOps`, `condition`)
   }
   return { woundsLost, conditions };
 }

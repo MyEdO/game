@@ -7,7 +7,7 @@
 import type { CharKey, Combatant } from '../types';
 import { TRAITS, TraitDef } from './registry';
 import { parseStatEntry, isOptionalNote, type TraitInstance, type TraitList, type OptionalEntry } from '../statEntry';
-import { traitIdByLabel, findTraitById, SPEC_SOURCES, type SpecsSource, type TraitCapabilities, type TraitData } from '../../data';
+import { traitIdByLabel, findTraitById, findQualityById, SPEC_SOURCES, type SpecsSource, type TraitCapabilities, type TraitData } from '../../data';
 import { slugId } from '../../data/slug';
 import type { PassiveMod } from '../ops';
 import { t, type MsgKey } from '../../i18n';
@@ -24,7 +24,7 @@ export function canonTraitId(text: string): string {
 }
 
 /** Idem, mais `undefined` si le texte ne nomme AUCUN trait du registre (le repli par slug masquerait
- *  l'inconnu là où l'appelant doit le distinguer — cf. `parseTrait`). */
+ *  l'inconnu là où l'appelant doit le distinguer). */
 export function knownTraitId(text: string): string | undefined {
   return traitIdByLabel(text);
 }
@@ -135,24 +135,6 @@ export function traitArgSkeleton(def: Pick<TraitData, 'indice' | 'specsSource' |
   return parts.length ? parts.join(' ') : undefined;
 }
 
-export interface ParsedTrait {
-  /** `id` STABLE du trait de registre (slug, « demoniaque »). */
-  id: string;
-  /** Indice numérique (« Démoniaque 8+ » → 8, « Vol 100 » → 100, « Toile 40 » → 40). */
-  indice?: number;
-  /** Argument entre parenthèses (« Immunité (Poison) » → « Poison »). */
-  arg?: string;
-}
-
-/** Normalise une chaîne de trait via le parseur PARTAGÉ `parseStatEntry`, puis matche le trait du
- *  registre par `id` (casse ignorée). L'Indice = valeur non signée de fin (« Démoniaque 8+ », « Vol 100 »),
- *  sinon le bonus signé (« Arme +7 ») pour les traits d'attaque. */
-export function parseTrait(raw: string): ParsedTrait | null {
-  const p = parseStatEntry(raw);
-  const id = knownTraitId(p.name);
-  return id && TRAITS()[id] ? { id, indice: p.indice ?? p.bonus, arg: p.arg } : null;
-}
-
 export interface ResolvedTrait {
   /** `id` STABLE du trait (slug, identique à `TraitInstance.id`). */
   id: string;
@@ -253,11 +235,22 @@ export function markMutationsAtSpawn(traits: TraitList | undefined): NonNullable
 }
 
 // ── Mathématique de combat ────────────────────────────────────────────────────────────────────────
-/** NOTATION RAW d'une sauvegarde « 1d10 ≥ Indice » — `LDB 47 l.410` écrit « Protection (6+) ».
- *  GRAPHIE UNIQUE du seuil, partout où il s'affiche (journal de combat, Codex, atelier d'op) : le nom du
- *  Trait, son Indice, le « + ». L'Indice peut être une `Formula` déjà résumée (atelier). */
-export function formatWardSave(traitId: string, indice: number | string): string {
-  return `${traitLabelById(traitId)} (${indice}+)`;
+/** CE QUI OFFRE une sauvegarde « 1d10 ≥ Indice » — un TRAIT du porteur (Démoniaque `LDB 85 l.98`,
+ *  Protection `LDB 85 l.278`, celui qu'un Dôme octroie `LDB 47 l.410`) ou une QUALITÉ de l'objet
+ *  (Solide `LDB 60 l.30`, contre la cassure instantanée). Id STABLE + son dataset : la LOGIQUE ne
+ *  connaît que ces deux-là, la graphie se rend ici. JSON-sérialisable (il voyage sur l'étape). */
+export interface SourceDeSauvegarde {
+  kind: 'trait' | 'qualite';
+  id: string;
+}
+
+/** NOTATION RAW d'une sauvegarde « 1d10 ≥ Indice » — `LDB 47 l.410` écrit « Protection (6+) »,
+ *  `LDB 60 l.32` « Solide 3 […] un Test de Sauvegarde de 7+ ». GRAPHIE UNIQUE du seuil, partout où il
+ *  s'affiche (journal de combat, Codex, atelier d'op) : le nom de la SOURCE, son Indice, le « + ».
+ *  L'Indice peut être une `Formula` déjà résumée (atelier). */
+export function formatWardSave(source: SourceDeSauvegarde, indice: number | string): string {
+  const label = source.kind === 'trait' ? traitLabelById(source.id) : (findQualityById(source.id)?.label ?? source.id);
+  return `${label} (${indice}+)`;
 }
 
 /** Sauvegardes « 1d10 ≥ Indice → coup ignoré » (Démoniaque 8+, Protection N). Liste des seuils. */

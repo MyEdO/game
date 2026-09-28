@@ -12,13 +12,13 @@
  * `online ? … : tout`, `mode === 'local' || …`).
  *
  * POLICE (pas verrou) : `ownsLocally` reste exporté par `netOwnership` (6 consommateurs internes) et
- * ré-exporté par `netFlow` — l'import ne peut donc pas être MURÉ. Une règle `no-restricted-imports`
+ * ré-exporté par `netFlow` — l'import ne peut donc pas être MURÉ. Le mur d'import `murs/possession`
  * (`eslint.config.js`) l'interdit sous `src/ui/**` HORS ce module ; elle échoue la CI, elle
  * n'empêche pas d'écrire la ligne. Mesurée par `ownership-lint.test.ts` sur la config RÉELLE.
  */
 import { useGame } from '../state/store';
 import type { GameState } from '../state/store';
-import { ownsLocally, WORLD_STEP_OWNER } from '../state/netOwnership';
+import { ownsLocally, ownsGroupDecision, groupDecisionSeat } from '../state/netOwnership';
 import { modalOwnerOf, pickActiveModalKey, voyageHubActive } from '../state/modalArbiter';
 import { willAutoResolve } from '../state/combatAuto';
 
@@ -63,34 +63,17 @@ export function useOwns(): (combatantId: string | undefined) => boolean {
 }
 
 /**
- * DÉCISION DE GROUPE — le geste qui n'appartient à AUCUN combattant : le jeton unique d'exploration
- * (dialogue, interaction d'entité). Son routage d'intent est `seat === (net.gmSeat ?? 0)`
- * (`ROUTES`, `state/netOwnership` : `chooseDialogue`/`closeDialogue`/`interactEntity`) — c'est
- * exactement ce que `seatOwns` rend sur le sentinel MONDE (`WORLD_STEP_OWNER` : le siège MJ quand il
- * existe, l'hôte sinon). La porte DÉLÈGUE donc au même routage plutôt que de recopier la formule :
- * afficher le choix et l'exécuter répondent par la même table de vérité. SOLO : toujours vrai.
- *
- * COUPLAGE ASSUMÉ : l'égalité route-du-dialogue ⇄ sentinel MONDE est une COÏNCIDENCE de formule, pas
- * une dépendance déclarée — si la route du dialogue divergeait, l'affordance suivrait le sentinel, pas
- * la route. `ownership.test.tsx` (« la porte rend le MÊME verdict qu'`intentAllowedFor` ») verrouille
- * cette égalité sur les 3 intents du jeton, siège par siège.
+ * DÉCISION DE GROUPE — le geste qui n'appartient à AUCUN combattant (dialogue, interaction d'entité).
+ * Le prédicat et le siège qu'il nomme vivent avec le ROUTAGE (`state/netOwnership`) : les touches
+ * `dialogue-choice-N` (`state/keybindings`) les consomment aussi, et `src/state` ne peut pas lire
+ * `src/ui`. La porte les ré-expose ici pour que l'UI garde UN seul point d'entrée de possession.
  */
-export function ownsGroupDecision(s: GameState): boolean {
-  return ownsLocal(s, WORLD_STEP_OWNER);
-}
+export { ownsGroupDecision, groupDecisionSeat };
 
 /** Vue LIVE de la décision de groupe pour une fenêtre (même abonnement que `useOwns`). */
 export function useOwnsGroupDecision(): boolean {
   useGame((s) => s.net);
   return ownsGroupDecision(useGame.getState());
-}
-
-/**
- * Le siège qui tient la décision de groupe (0 = l'hôte) — pour NOMMER celui qu'on attend dans
- * l'affordance de spectateur ; le verdict, lui, se demande à `ownsGroupDecision`.
- */
-export function groupDecisionSeat(s: GameState): number {
-  return s.net.gmSeat ?? 0;
 }
 
 /** Vue RÉSEAU minimale : ce que le prédicat consulte quand aucun combat n'est ouvert. */

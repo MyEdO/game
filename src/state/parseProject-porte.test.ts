@@ -8,12 +8,12 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, it, expect } from 'vitest';
-import { listerArbre } from '../../scripts/guards/lib/lister.mjs';
+import { listerProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs';
 import { parseProject, ProjetRefuse, CURRENT_PROJECT_SCHEMA } from './worldMap';
 import { emptyScene } from './scene';
 
 const SCENES_DIR = join(__dirname, '../scenes');
-const PAQUETS = listerArbre(SCENES_DIR, { filtre: (rel) => rel.endsWith('-projet.json') }).map((rel) => join(SCENES_DIR, rel));
+const PAQUETS = listerProjetsLivres().map((rel) => join(SCENES_DIR, rel));
 
 /** Gel PROFOND : toute écriture de la porte sur son entrée lève (module ESM = mode strict). */
 function gele<T>(o: T): T {

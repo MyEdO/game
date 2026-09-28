@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import React from 'react';
 import { CreaturePreview } from './CreaturePreview';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
+import { hairstylesForSex } from '../../gameIso/rig/parts/hairstyles';
 
 const render = (label: string, appearance?: EntityAppearance) =>
   renderToStaticMarkup(React.createElement(CreaturePreview, { label, appearance }));
@@ -34,5 +35,13 @@ describe('CreaturePreview — aperçu rendu de créature (Codex / éditeur)', ()
     } finally {
       diag.mockRestore();
     }
+  });
+});
+
+describe('CreaturePreview — l’apparence ENTIÈRE atteint le rig, sans liste de champs', () => {
+  it('une coiffure imposée change l’aperçu', () => {
+    const sans = render('Mutant', { species: 'humain', sex: 'M' });
+    const avec = render('Mutant', { species: 'humain', sex: 'M', hairstyle: hairstylesForSex('M')[1].id });
+    expect(avec).not.toBe(sans);
   });
 });

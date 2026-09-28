@@ -14,7 +14,6 @@ import { useGame } from './store';
 import './combatFlow';
 import { aiCreatureFreeAttacks, maybeHeroCleave } from './combatFlow';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { seedBattleRng } from './battleRng';
 import { testScene } from '../scenes/test-fixture';
 import { resetCadence } from '../engine/cadence';
@@ -29,9 +28,9 @@ const NET0 = g().net;
 
 /** Combat RÉEL à deux sièges : le siège 1 (invité) possède H[0] ; l'hôte (siège 0) rend l'état. */
 function coop(vivants = 1): { H: Combatant[]; E: Combatant[] } {
-  const party = [createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H0', rng: makeRNG(1) })];
+  const party = [createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H0', seed: 1 })];
   set({ party });
-  g().startScene(testScene);
+  g().startScene(testScene());
   g().startCombat('enc-mutants');
   g().confirmRoundStart();
   vi.clearAllTimers();

@@ -105,9 +105,9 @@ export const CHAPTER_BOUNDARY_FOLIO_RE = () => new RegExp(`\\b(${allAbbrAlternat
 // mémoïsé par clé (dossiers + extensions). Ce qui coûtait n'était pas l'I/O (~2 s) mais le RE-SCAN
 // du même corpus par famille, sept fois (mesure #1709 : 18,9 s pour 3 743 fichiers de `src/`).
 // MÉMO : il porte le RÉSULTAT de la passe, pas le texte lu (`readCorpus`, scripts/guards/lib) ;
-// même condition de licéité — l'arbre scanné est STATIQUE pendant un run (les gates écrivantes
-// jouent en série avant les lectrices, `scripts/gates/toutes.mjs` `AVANT_LES_LANES`). Les familles
-// rendues sont GELÉES, comme le corpus de `readCorpus` (`sourceCorpus.mjs:96,100`) : un `push`/`sort`
+// même condition de licéité — l'arbre scanné est STATIQUE pendant un run (aucune gate n'écrit dans
+// l'arbre, `photoArbre` de `scripts/gates/toutes.mjs` le vérifie). Les familles
+// rendues sont GELÉES, comme le corpus de `readCorpus` (`sourceCorpus.mjs`) : un `push`/`sort`
 // d'appelant ne peut pas s'écrire dans le mémo.
 // LECTEUR : la marche reste `fichiersCitants` (sur `listerArbre`) et non `readCorpus`, parce que ce garde
 // scanne des corpus que ce dernier ne sait pas dire — une base à 0 fichier (il la refuse, par base)
@@ -389,8 +389,8 @@ const QUOI =
   "ou texte de la citation, occurrence dans ce fichier) — jamais un numéro de ligne, qui dérive à " +
   "chaque édition. La FAMILLE est un champ de l'entrée, jamais une rubrique : une famille vidée " +
   "disparaît sans laisser de coquille. Le lot et la date d'une entrée sont ceux du geste qui l'a " +
-  "DIFFÉRÉE (#1898 : sites de src/gameIso/rig/**, tenus par le fil de la palette des rigs, #1882, et " +
-  "de src/data/spells.json, tenus par le fil des sorts, #1897). Se solde en corrigeant la citation, " +
+  "DIFFÉRÉE (#1898 : sites de src/gameIso/rig/**, tenus par le fil de la palette des rigs, #1882). Se " +
+  "solde en corrigeant la citation, " +
   "PUIS en régénérant ce fichier (`npx tsx scripts/guards/lib/regenStock.mts " +
   "scripts/raw/citation-graphy-guard.mjs`), qui en retire l'entrée ; un site DIFFÉRÉ y entre par " +
   "`--lot <#N>` : la garde refuse tout site NEUF et toute entrée devenue caduque (cliquet à double " +
@@ -479,5 +479,4 @@ function main() {
   if (src.length || docs.length || implProse.length || stockFail || unknownAbbr.length || multiFolioSplit.length) process.exitCode = 1
 }
 
-const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)
-if (isMain) main()
+if (import.meta.main) main()

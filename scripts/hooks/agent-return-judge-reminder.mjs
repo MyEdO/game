@@ -1,5 +1,6 @@
 // Hook PostToolUse (matcher: Agent) : injecte au retour de chaque agent le rappel des étapes de
 // vérification adversariale dues avant tout commit. Le verrou bloquant vit dans solde-ticket-guard.
+import '../node-requis.mjs';
 process.stdin.resume();
 process.stdin.on('data', () => {});
 process.stdin.on('end', () => {

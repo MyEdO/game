@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from '../../state/store';
 import { scenario } from './19-grimpant';
 import { runEnemyAI } from '../../state/combatFlow';
+const scenarioConstruit = scenario.construire();
 
 /**
  * GRIMPANT (#504) : preuve LIVE sur la scène RÉELLE du scénario — l'araignée géante (Trait Grimpant)
@@ -9,8 +10,8 @@ import { runEnemyAI } from '../../state/combatFlow';
  * et arrive au contact du Chasseur en peu de tours (anti-grind).
  */
 function startGrimpant(): { spider: import('../../engine/types').Combatant } {
-  useGame.setState({ party: scenario.makeParty() });
-  useGame.getState().startScene(scenario.scene);
+  useGame.setState({ party: scenario.construire().party });
+  useGame.getState().startScene(scenarioConstruit.scene);
   useGame.getState().startCombat('enc-grimpant');
   useGame.getState().confirmRoundStart();
   vi.clearAllTimers();
@@ -24,11 +25,11 @@ describe('Grimpant — l’araignée escalade (grimpant)', () => {
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 
   it('scène : plateau à 4 m, une seule arête climb au pied (5,3), Chasseur posté dessus (5,1)', () => {
-    const s = scenario.scene;
+    const s = scenarioConstruit.scene;
     expect(s.dimensions).toEqual({ w: 10, h: 10 });
     const climb = s.walls!.find((w) => w.climb);
     expect(climb).toMatchObject({ x: 5, y: 3, side: 'N' });
-    expect(useGame.getState().party ?? scenario.makeParty()).toBeTruthy();
+    expect(useGame.getState().party ?? scenario.construire().party).toBeTruthy();
   });
 
   it('l’araignée (Trait Grimpant) franchit la falaise SANS Test et atteint le plateau en ≤ 2 tours (anti-grind)', () => {

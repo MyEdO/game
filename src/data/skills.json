@@ -53,6 +53,15 @@
       {
         "id": "redaction",
         "label": "Rédaction"
+      },
+      {
+        "id": "dessin",
+        "label": "Dessin",
+        "source": {
+          "book": "ennemi-dans-l-ombre-compagnon",
+          "page": 34,
+          "note": "EDOC 08 l.161"
+        }
       }
     ],
     "desc": "Créez des œuvres d'art avec le moyen d'expression de votre choix.\n\nNe pas avoir accès aux Outils de la profession appropriés entraînera une pénalité à vos Tests. Le DR obtenu détermine la qualité de l'œuvre finale. Un Test étendu peut être nécessaire pour la réalisation d'une œuvre d'art complexe ou de grande taille. La Compétence Art est peu utilisée en combat, mais les bustes de marbre peuvent faire de formidables armes improvisées.",
@@ -1743,6 +1752,15 @@
           "note": "frenchy.bzh 46 l.110"
         },
         "pool": false
+      },
+      {
+        "id": "apothicaire",
+        "label": "Apothicaire",
+        "source": {
+          "book": "livre-de-base",
+          "page": 135,
+          "note": "LDB 10 l.239"
+        }
       }
     ],
     "desc": "Posséder une Compétence Savoir signifie que vous avez officiellement étudié, ou avez appris d'une façon ou d'une autre, une branche de connaissances avancées. Vous possédez des données approfondies dans une spécialisation et n'avez donc pas besoin d'effectuer de Test pour que le MJ vous donne les éléments d'information utiles. Si vous recherchez des informations spécifiques moins connues, vous aurez besoin d'effectuer un Test de Savoir, modifié selon la nature obscure de l'information, où les DR indiqueront de combien de détails vous vous souvenez.\n\nEn combat, un Test de Savoir réussi peut éventuellement vous accorder +1 Avantage (avec l'accord de votre MJ). Par exemple, Savoir (Géologie) peut vous donner un Avantage si vous combattez dans une caverne, ou Savoir (Ingénierie) peut vous aider si vous combattez un ennemi armé d'un appareil mécanique complexe. Vous pouvez continuer à renforcer votre Avantage lors des tours ultérieurs, à condition que les circonstances le permettent (déterminé par le MJ) et que vous ne soyez pas interrompu ; de cette façon, vous pouvez gagner un maximum d'Avantages, égal à votre Bonus d'Intelligence.",

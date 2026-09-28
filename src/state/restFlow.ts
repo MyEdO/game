@@ -49,7 +49,7 @@ import { toBrass, fromBrass, formatMoney, priceToMoney, type Money } from '../en
 import { payFromGroup } from './bourseFlow';
 import { findTrappingById, nightStakeRef, refLabel, type StakeRef } from '../data';
 import { diseaseLabel } from '../data';
-import { minutesUntilNext, DAWN_MINUTE, MINUTES_PER_DAY } from '../engine/clock';
+import { minutesUntilNext, dawnMinute, MINUTES_PER_DAY } from '../engine/clock';
 import { runDailyUpkeep, dayIndex } from './upkeep';
 import { continueTravelAfterNight } from './travelFlow';
 import { bus, EVT } from './bus';
@@ -164,7 +164,7 @@ export function sleepParty(
   // Le bilan de nuit LISTE l'entretien quotidien (rations/faim, maladies, convalescence) — le
   // journal seul ne suffit pas. Portrait attribué par préfixe « Nom… » quand la ligne le porte.
   const from = get().gameTime;
-  const toDawn = minutesUntilNext(from, DAWN_MINUTE);
+  const toDawn = minutesUntilNext(from, dawnMinute());
   const firstNight = toDawn === 0 ? MINUTES_PER_DAY : toDawn;
   for (let night = 0; night < n; night++) {
     const before = get().gameTime;
@@ -494,7 +494,7 @@ export function buildNightCascade(get: Get, set: Set, p: PendingRest, opts: { fe
   const log: string[] = [];
   const from = get().gameTime;
   // La nuit passe — une journée de repos se termine à l'AUBE.
-  const toDawn = minutesUntilNext(from, DAWN_MINUTE);
+  const toDawn = minutesUntilNext(from, dawnMinute());
   set({ gameTime: from + (toDawn === 0 ? MINUTES_PER_DAY : toDawn) });
   bus.emit(EVT.TIME_ADVANCED, { minutes: get().gameTime - from });
   set({ lastNightDay: dayIndex(get().gameTime) }); // nuit JOUÉE (#340) — désamorce la privation de sommeil

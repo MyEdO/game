@@ -1,0 +1,900 @@
+{
+ "A ou B d'espèce + joker Savoir": {
+  "id": "temoin",
+  "species": "humains-reiklander",
+  "career": "erudit",
+  "characteristics": {
+   "capacite-de-combat": 27,
+   "capacite-de-tir": 29,
+   "force": 32,
+   "endurance": 36,
+   "initiative": 33,
+   "agilite": 33,
+   "dexterite": 33,
+   "intelligence": 33,
+   "force-mentale": 37,
+   "sociabilite": 38
+  },
+  "charAdvances": {},
+  "talents": [
+   {
+    "talentId": "affable",
+    "times": 1
+   },
+   {
+    "talentId": "destinee",
+    "times": 1
+   },
+   {
+    "talentId": "sixieme-sens",
+    "times": 1
+   },
+   {
+    "talentId": "reflexes-foudroyants",
+    "times": 1
+   },
+   {
+    "talentId": "perspicace",
+    "times": 1
+   }
+  ],
+  "skills": [
+   {
+    "id": "divertissement",
+    "spec": "narration",
+    "characteristic": "sociabilite",
+    "advances": 5
+   },
+   {
+    "id": "langue",
+    "spec": "classique",
+    "characteristic": "intelligence",
+    "advances": 5
+   },
+   {
+    "id": "marchandage",
+    "characteristic": "sociabilite",
+    "advances": 5
+   },
+   {
+    "id": "pari",
+    "characteristic": "intelligence",
+    "advances": 5
+   },
+   {
+    "id": "ragot",
+    "characteristic": "sociabilite",
+    "advances": 5
+   },
+   {
+    "id": "recherche",
+    "characteristic": "intelligence",
+    "advances": 5
+   },
+   {
+    "id": "resistance-a-l-alcool",
+    "characteristic": "endurance",
+    "advances": 0
+   },
+   {
+    "id": "savoir",
+    "spec": "histoire",
+    "characteristic": "intelligence",
+    "advances": 10
+   },
+   {
+    "id": "calme",
+    "characteristic": "force-mentale",
+    "advances": 5
+   },
+   {
+    "id": "charme",
+    "characteristic": "sociabilite",
+    "advances": 5
+   },
+   {
+    "id": "commandement",
+    "characteristic": "sociabilite",
+    "advances": 5
+   },
+   {
+    "id": "corps-a-corps",
+    "spec": "base",
+    "characteristic": "capacite-de-combat",
+    "advances": 3
+   },
+   {
+    "id": "evaluation",
+    "characteristic": "intelligence",
+    "advances": 3
+   },
+   {
+    "id": "langue",
+    "spec": "bretonnien",
+    "characteristic": "intelligence",
+    "advances": 3
+   }
+  ],
+  "spells": [],
+  "items": [
+   "vetements",
+   "dague",
+   "bourse",
+   "besace",
+   "necessaire-d-ecriture",
+   "feuille-de-parchemin",
+   "necessaire-d-ecriture"
+  ],
+  "wounds": {
+   "current": 12,
+   "max": 12,
+   "base": 12
+  },
+  "fate": 2,
+  "resilience": 1,
+  "xp": 50,
+  "size": "moyenne",
+  "groups": [
+   "humain"
+  ],
+  "designations": {
+   "erudit": [
+    "savoir|histoire"
+   ]
+  }
+ },
+ "joker de Métier espèce × carrière + Maître artisan": {
+  "id": "temoin",
+  "species": "humains-middenheim",
+  "career": "artisan",
+  "characteristics": {
+   "capacite-de-combat": 33,
+   "capacite-de-tir": 29,
+   "force": 36,
+   "endurance": 35,
+   "initiative": 34,
+   "agilite": 32,
+   "dexterite": 34,
+   "intelligence": 37,
+   "force-mentale": 31,
+   "sociabilite": 40
+  },
+  "charAdvances": {},
+  "talents": [
+   {
+    "talentId": "destinee",
+    "times": 1
+   },
+   {
+    "talentId": "savoir-vivre",
+    "spec": "guildes",
+    "times": 1
+   },
+   {
+    "talentId": "maitre-artisan",
+    "spec": "alchimiste",
+    "times": 1
+   },
+   {
+    "talentId": "bonnes-jambes",
+    "times": 1
+   },
+   {
+    "talentId": "tireur-de-precision",
+    "times": 1
+   },
+   {
+    "talentId": "maitre-artisan",
+    "spec": "forgeron",
+    "times": 1
+   }
+  ],
+  "skills": [
+   {
+    "id": "athletisme",
+    "characteristic": "agilite",
+    "advances": 5
+   },
+   {
+    "id": "calme",
+    "characteristic": "force-mentale",
+    "advances": 10
+   },
+   {
+    "id": "discretion",
+    "spec": "urbaine",
+    "characteristic": "agilite",
+    "advances": 5
+   },
+   {
+    "id": "esquive",
+    "characteristic": "agilite",
+    "advances": 5
+   },
+   {
+    "id": "evaluation",
+    "characteristic": "intelligence",
+    "advances": 0
+   },
+   {
+    "id": "metier",
+    "spec": "forgeron",
+    "characteristic": "dexterite",
+    "advances": 15
+   },
+   {
+    "id": "resistance",
+    "characteristic": "endurance",
+    "advances": 10
+   },
+   {
+    "id": "resistance-a-l-alcool",
+    "characteristic": "endurance",
+    "advances": 0
+   },
+   {
+    "id": "metier",
+    "spec": "alchimiste",
+    "characteristic": "dexterite",
+    "advances": 0
+   },
+   {
+    "id": "charme",
+    "characteristic": "sociabilite",
+    "advances": 5
+   },
+   {
+    "id": "divertissement",
+    "spec": "chant",
+    "characteristic": "sociabilite",
+    "advances": 3
+   },
+   {
+    "id": "ragot",
+    "characteristic": "sociabilite",
+    "advances": 3
+   },
+   {
+    "id": "marchandage",
+    "characteristic": "sociabilite",
+    "advances": 3
+   }
+  ],
+  "spells": [],
+  "items": [
+   "cape",
+   "vetements",
+   "dague",
+   "chapeau",
+   "bourse",
+   "besace",
+   "craie",
+   "justaucorps-de-cuir",
+   "chiffons"
+  ],
+  "wounds": {
+   "current": 12,
+   "max": 12,
+   "base": 12
+  },
+  "fate": 2,
+  "resilience": 1,
+  "xp": 50,
+  "size": "moyenne",
+  "groups": [
+   "humain"
+  ],
+  "designations": {
+   "artisan": [
+    "maitre-artisan|forgeron",
+    "metier|forgeron"
+   ]
+  }
+ },
+ "signe astral à Talent « Au choix »": {
+  "id": "temoin",
+  "species": "nains",
+  "career": "artisan",
+  "characteristics": {
+   "capacite-de-combat": 41,
+   "capacite-de-tir": 34,
+   "force": 36,
+   "endurance": 40,
+   "initiative": 35,
+   "agilite": 23,
+   "dexterite": 49,
+   "intelligence": 35,
+   "force-mentale": 47,
+   "sociabilite": 17
+  },
+  "charAdvances": {},
+  "talents": [
+   {
+    "talentId": "costaud",
+    "times": 1
+   },
+   {
+    "talentId": "obstine",
+    "times": 1
+   },
+   {
+    "talentId": "impitoyable",
+    "times": 1
+   },
+   {
+    "talentId": "resistance-a-la-magie",
+    "times": 1
+   },
+   {
+    "talentId": "vision-nocturne",
+    "times": 1
+   },
+   {
+    "talentId": "tres-fort",
+    "times": 1
+   },
+   {
+    "talentId": "maitre-artisan",
+    "spec": "brasseur",
+    "times": 1
+   }
+  ],
+  "skills": [
+   {
+    "id": "athletisme",
+    "characteristic": "agilite",
+    "advances": 5
+   },
+   {
+    "id": "calme",
+    "characteristic": "force-mentale",
+    "advances": 10
+   },
+   {
+    "id": "discretion",
+    "spec": "urbaine",
+    "characteristic": "agilite",
+    "advances": 5
+   },
+   {
+    "id": "esquive",
+    "characteristic": "agilite",
+    "advances": 5
+   },
+   {
+    "id": "evaluation",
+    "characteristic": "intelligence",
+    "advances": 8
+   },
+   {
+    "id": "metier",
+    "spec": "brasseur",
+    "characteristic": "dexterite",
+    "advances": 5
+   },
+   {
+    "id": "resistance",
+    "characteristic": "endurance",
+    "advances": 5
+   },
+   {
+    "id": "resistance-a-l-alcool",
+    "characteristic": "endurance",
+    "advances": 5
+   },
+   {
+    "id": "corps-a-corps",
+    "spec": "base",
+    "characteristic": "capacite-de-combat",
+    "advances": 5
+   },
+   {
+    "id": "divertissement",
+    "spec": "narration",
+    "characteristic": "sociabilite",
+    "advances": 5
+   },
+   {
+    "id": "intimidation",
+    "characteristic": "force",
+    "advances": 3
+   },
+   {
+    "id": "langue",
+    "spec": "khazalid",
+    "characteristic": "intelligence",
+    "advances": 3
+   }
+  ],
+  "spells": [],
+  "items": [
+   "cape",
+   "vetements",
+   "dague",
+   "chapeau",
+   "bourse",
+   "besace",
+   "craie",
+   "justaucorps-de-cuir",
+   "chiffons"
+  ],
+  "wounds": {
+   "current": 16,
+   "max": 16,
+   "base": 16
+  },
+  "fate": 0,
+  "resilience": 2,
+  "xp": 50,
+  "size": "moyenne",
+  "groups": [
+   "nain"
+  ],
+  "designations": {
+   "artisan": [
+    "metier|brasseur"
+   ]
+  }
+ },
+ "Magie mineure": {
+  "id": "temoin",
+  "species": "humains-reiklander",
+  "career": "sorcier",
+  "characteristics": {
+   "capacite-de-combat": 28,
+   "capacite-de-tir": 39,
+   "force": 28,
+   "endurance": 39,
+   "initiative": 29,
+   "agilite": 25,
+   "dexterite": 30,
+   "intelligence": 31,
+   "force-mentale": 30,
+   "sociabilite": 30
+  },
+  "charAdvances": {},
+  "talents": [
+   {
+    "talentId": "perspicace",
+    "times": 1
+   },
+   {
+    "talentId": "destinee",
+    "times": 1
+   },
+   {
+    "talentId": "sens-de-l-orientation",
+    "times": 1
+   },
+   {
+    "talentId": "doigts-de-fee",
+    "times": 1
+   },
+   {
+    "talentId": "tres-fort",
+    "times": 1
+   },
+   {
+    "talentId": "magie-mineure",
+    "times": 1
+   }
+  ],
+  "skills": [
+   {
+    "id": "corps-a-corps",
+    "spec": "armes-d-hast",
+    "characteristic": "capacite-de-combat",
+    "advances": 5
+   },
+   {
+    "id": "corps-a-corps",
+    "spec": "base",
+    "characteristic": "capacite-de-combat",
+    "advances": 8
+   },
+   {
+    "id": "esquive",
+    "characteristic": "agilite",
+    "advances": 5
+   },
+   {
+    "id": "focalisation",
+    "spec": "cieux",
+    "characteristic": "force-mentale",
+    "advances": 5
+   },
+   {
+    "id": "intuition",
+    "characteristic": "initiative",
+    "advances": 5
+   },
+   {
+    "id": "langue",
+    "spec": "magick",
+    "characteristic": "intelligence",
+    "advances": 5
+   },
+   {
+    "id": "perception",
+    "characteristic": "initiative",
+    "advances": 5
+   },
+   {
+    "id": "savoir",
+    "spec": "magie",
+    "characteristic": "intelligence",
+    "advances": 5
+   },
+   {
+    "id": "calme",
+    "characteristic": "force-mentale",
+    "advances": 5
+   },
+   {
+    "id": "charme",
+    "characteristic": "sociabilite",
+    "advances": 5
+   },
+   {
+    "id": "commandement",
+    "characteristic": "sociabilite",
+    "advances": 5
+   },
+   {
+    "id": "evaluation",
+    "characteristic": "intelligence",
+    "advances": 3
+   },
+   {
+    "id": "langue",
+    "spec": "bretonnien",
+    "characteristic": "intelligence",
+    "advances": 3
+   }
+  ],
+  "spells": [
+   "putrefaction",
+   "choc"
+  ],
+  "items": [
+   "vetements",
+   "dague",
+   "bourse",
+   "besace",
+   "necessaire-d-ecriture",
+   "feuille-de-parchemin",
+   "grimoire",
+   "baton-de-combat"
+  ],
+  "wounds": {
+   "current": 12,
+   "max": 12,
+   "base": 12
+  },
+  "fate": 2,
+  "resilience": 1,
+  "xp": 50,
+  "size": "moyenne",
+  "groups": [
+   "humain"
+  ],
+  "designations": {
+   "sorcier": [
+    "focalisation|cieux"
+   ]
+  }
+ },
+ "Béni": {
+  "id": "temoin",
+  "species": "humains-reiklander",
+  "career": "pretre",
+  "characteristics": {
+   "capacite-de-combat": 23,
+   "capacite-de-tir": 35,
+   "force": 29,
+   "endurance": 24,
+   "initiative": 33,
+   "agilite": 33,
+   "dexterite": 31,
+   "intelligence": 28,
+   "force-mentale": 28,
+   "sociabilite": 34
+  },
+  "charAdvances": {},
+  "talents": [
+   {
+    "talentId": "affable",
+    "times": 1
+   },
+   {
+    "talentId": "destinee",
+    "times": 1
+   },
+   {
+    "talentId": "costaud",
+    "times": 1
+   },
+   {
+    "talentId": "doigts-de-fee",
+    "times": 1
+   },
+   {
+    "talentId": "artiste",
+    "spec": "calligraphie",
+    "times": 1
+   },
+   {
+    "talentId": "beni",
+    "spec": "ulric",
+    "times": 1
+   }
+  ],
+  "skills": [
+   {
+    "id": "athletisme",
+    "characteristic": "agilite",
+    "advances": 5
+   },
+   {
+    "id": "calme",
+    "characteristic": "force-mentale",
+    "advances": 10
+   },
+   {
+    "id": "intuition",
+    "characteristic": "initiative",
+    "advances": 5
+   },
+   {
+    "id": "perception",
+    "characteristic": "initiative",
+    "advances": 5
+   },
+   {
+    "id": "priere",
+    "characteristic": "sociabilite",
+    "advances": 5
+   },
+   {
+    "id": "recherche",
+    "characteristic": "intelligence",
+    "advances": 5
+   },
+   {
+    "id": "resistance",
+    "characteristic": "endurance",
+    "advances": 5
+   },
+   {
+    "id": "savoir",
+    "spec": "theologie",
+    "characteristic": "intelligence",
+    "advances": 5
+   },
+   {
+    "id": "art",
+    "spec": "calligraphie",
+    "characteristic": "dexterite",
+    "advances": 0
+   },
+   {
+    "id": "charme",
+    "characteristic": "sociabilite",
+    "advances": 5
+   },
+   {
+    "id": "commandement",
+    "characteristic": "sociabilite",
+    "advances": 5
+   },
+   {
+    "id": "corps-a-corps",
+    "spec": "base",
+    "characteristic": "capacite-de-combat",
+    "advances": 3
+   },
+   {
+    "id": "evaluation",
+    "characteristic": "intelligence",
+    "advances": 3
+   },
+   {
+    "id": "langue",
+    "spec": "bretonnien",
+    "characteristic": "intelligence",
+    "advances": 3
+   }
+  ],
+  "spells": [
+   "benediction-de-bataille",
+   "benediction-de-courage",
+   "benediction-de-puissance",
+   "benediction-de-sauvagerie",
+   "benediction-de-tenacite",
+   "benediction-de-vigueur"
+  ],
+  "items": [
+   "vetements",
+   "dague",
+   "bourse",
+   "besace",
+   "necessaire-d-ecriture",
+   "feuille-de-parchemin",
+   "symbole-religieux",
+   "robes"
+  ],
+  "wounds": {
+   "current": 8,
+   "max": 8,
+   "base": 8
+  },
+  "fate": 2,
+  "resilience": 1,
+  "xp": 50,
+  "size": "moyenne",
+  "groups": [
+   "humain",
+   "ulricain"
+  ],
+  "designations": {
+   "pretre": [
+    "beni|ulric"
+   ]
+  }
+ },
+ "A ou B à joker d'espèce + Talent aléatoire": {
+  "id": "temoin",
+  "species": "halflings-piedpaille",
+  "career": "erudit",
+  "characteristics": {
+   "capacite-de-combat": 28,
+   "capacite-de-tir": 45,
+   "force": 20,
+   "endurance": 36,
+   "initiative": 35,
+   "agilite": 28,
+   "dexterite": 34,
+   "intelligence": 33,
+   "force-mentale": 44,
+   "sociabilite": 38
+  },
+  "charAdvances": {},
+  "talents": [
+   {
+    "talentId": "petit",
+    "times": 1
+   },
+   {
+    "talentId": "resistance",
+    "spec": "corruption",
+    "times": 1
+   },
+   {
+    "talentId": "sens-aiguise",
+    "spec": "gout",
+    "times": 1
+   },
+   {
+    "talentId": "vision-nocturne",
+    "times": 1
+   },
+   {
+    "talentId": "maitre-artisan",
+    "spec": "tanneur",
+    "times": 1
+   },
+   {
+    "talentId": "fuite",
+    "times": 1
+   },
+   {
+    "talentId": "lire-ecrire",
+    "times": 1
+   }
+  ],
+  "skills": [
+   {
+    "id": "divertissement",
+    "spec": "narration",
+    "characteristic": "sociabilite",
+    "advances": 5
+   },
+   {
+    "id": "langue",
+    "spec": "classique",
+    "characteristic": "intelligence",
+    "advances": 5
+   },
+   {
+    "id": "marchandage",
+    "characteristic": "sociabilite",
+    "advances": 5
+   },
+   {
+    "id": "pari",
+    "characteristic": "intelligence",
+    "advances": 5
+   },
+   {
+    "id": "ragot",
+    "characteristic": "sociabilite",
+    "advances": 5
+   },
+   {
+    "id": "recherche",
+    "characteristic": "intelligence",
+    "advances": 5
+   },
+   {
+    "id": "resistance-a-l-alcool",
+    "characteristic": "endurance",
+    "advances": 5
+   },
+   {
+    "id": "savoir",
+    "spec": "droit",
+    "characteristic": "intelligence",
+    "advances": 5
+   },
+   {
+    "id": "metier",
+    "spec": "tanneur",
+    "characteristic": "dexterite",
+    "advances": 5
+   },
+   {
+    "id": "discretion",
+    "spec": "rurale",
+    "characteristic": "agilite",
+    "advances": 5
+   },
+   {
+    "id": "charme",
+    "characteristic": "sociabilite",
+    "advances": 5
+   },
+   {
+    "id": "escamotage",
+    "characteristic": "dexterite",
+    "advances": 3
+   },
+   {
+    "id": "perception",
+    "characteristic": "initiative",
+    "advances": 3
+   },
+   {
+    "id": "evaluation",
+    "characteristic": "intelligence",
+    "advances": 3
+   }
+  ],
+  "spells": [],
+  "items": [
+   "vetements",
+   "dague",
+   "bourse",
+   "besace",
+   "necessaire-d-ecriture",
+   "feuille-de-parchemin",
+   "necessaire-d-ecriture"
+  ],
+  "wounds": {
+   "current": 10,
+   "max": 10,
+   "base": 10
+  },
+  "fate": 0,
+  "resilience": 2,
+  "xp": 50,
+  "size": "petite",
+  "groups": [
+   "halfling"
+  ],
+  "designations": {
+   "erudit": [
+    "savoir|droit"
+   ]
+  }
+ }
+}

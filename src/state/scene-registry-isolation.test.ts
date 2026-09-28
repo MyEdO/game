@@ -7,8 +7,7 @@ import { emptyScene } from './scene';
  * garde POSITIVE, à lire avant d'écrire un test qui enregistre une scène.
  *
  * Le `sceneRegistry` (`state/store`) est un singleton de module partagé par tous les fichiers d'un
- * worker (`isolate: false`). La sentinelle le rend à ses scènes `campaign` par défaut APRÈS CHAQUE
- * TEST : aucune scène enregistrée par un test ne fuit vers un autre fichier — mais un enregistrement
+ * worker (`isolate: false`). La sentinelle le VIDE APRÈS CHAQUE TEST : aucune scène enregistrée par un test ne fuit vers un autre fichier — mais un enregistrement
  * fait EN TÊTE DE FICHIER (module, `beforeAll`) ne survit qu'au PREMIER test du fichier. Un fichier
  * qui a besoin du registre sur PLUSIEURS tests (ré)enregistre en `beforeEach` (patron :
  * `shipwreck.test.ts`, via `freshState`).

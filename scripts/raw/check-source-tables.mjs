@@ -27,7 +27,7 @@
 // Re-run    : node scripts/raw/check-source-tables.mjs
 // Régénérer : npx tsx scripts/guards/lib/regenStock.mts scripts/raw/check-source-tables.mjs [--lot <#N …>] — le
 // lot est REQUIS dès qu'une entrée NEUVE naît (politique `SOUS_LOT`, scripts/guards/lib/stockDeSites.mjs)
-import { join, dirname, resolve } from 'node:path'
+import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { listerDossier } from '../guards/lib/lister.mjs'
 import { BOOKS, readText } from './_lib.mjs'
@@ -357,5 +357,4 @@ function main() {
   process.exitCode = 1
 }
 
-const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)
-if (isMain) main()
+if (import.meta.main) main()

@@ -48,8 +48,8 @@ describe('testValue — Intimidation : caractéristique alternative (LDB 09 l.29
   it('AUCUNE option du panneau n’est MORTE : chaque option écrite par `setRule` change réellement le Test', () => {
     // Le stock d'options vient du registre, jamais d'une liste recopiée : une 5ᵉ option non déclarée sur
     // l'entrée `skills.json` rougit ICI (c'est ainsi que « FM »/« Int » ont été trouvées inertes).
-    const def = ruleDef('test-intimidation-char')!;
-    const rendu = tableTotale(def.options ?? [], (o) => {
+    const regle = ruleDef('test-intimidation-char')!;
+    const rendu = tableTotale(regle.options ?? [], (o) => {
       setRule('test-intimidation-char', o);
       return testValue(c(), 'intimidation');
     });

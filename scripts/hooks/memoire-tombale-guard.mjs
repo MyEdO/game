@@ -21,9 +21,8 @@
 // prescrit (re-sauver la fiche entière) se ferait refuser par les lignes qu'elle conserve.
 // CONSÉQUENCE DITE : replacer le MÊME en-tête dans `old_string` le rend silencieux — la ligne n'est
 // plus ajoutée. Le garde arbitre l'ÉCRITURE d'un en-tête, il n'inspecte pas la fiche existante.
+import '../node-requis.mjs'
 import { readFileSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
-import { resolve } from 'node:path'
 import { cheminDEcriture } from './solde-ticket-guard.mjs'
 
 /** Ligne débarrassée de ses ornements de tête (citation, puce, titre, gras, avertissement). */
@@ -118,8 +117,7 @@ export function evaluate(input, lireDisque = () => '') {
 }
 
 // ── Driver stdin (n'exécute QUE lancé en direct, jamais à l'import du module de test) ─────────────
-const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)
-if (isMain) {
+if (import.meta.main) {
   let raw = ''
   process.stdin.setEncoding('utf8')
   for await (const chunk of process.stdin) raw += chunk

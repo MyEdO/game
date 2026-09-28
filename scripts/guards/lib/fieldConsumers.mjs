@@ -52,7 +52,7 @@ import tsModule from 'typescript'
 // (2026-08-23) : sous Vitest, un `ts.x` de visiteur AST se relit sur l'objet d'import de vite-node.
 const ts = tsModule
 import { join, relative, resolve, sep } from 'node:path'
-import { listerArbre } from './lister.mjs'
+import { listerArbre, parUnitesDeCode } from './lister.mjs'
 import { estFichierVitest } from './fichierVitest.mjs'
 import { repoProgram } from './tsProgram.mjs'
 
@@ -364,7 +364,7 @@ export function scanFieldReads(cibleVisee, fields, files, rootDir, cache = new M
   // celui de `program.getSourceFiles()` — racines puis dépendances, donc dépendant du parcours du
   // système de fichiers ET du graphe d'imports. Trier ICI rend le « premier site » d'un champ
   // (l'exemple publié par le rapport) égal au MINIMUM de cet ordre, sur toute machine.
-  hits.sort((a, b) => (a.file < b.file ? -1 : a.file > b.file ? 1 : a.line - b.line))
+  hits.sort((a, b) => parUnitesDeCode(a.file, b.file) || a.line - b.line)
   return hits
 }
 

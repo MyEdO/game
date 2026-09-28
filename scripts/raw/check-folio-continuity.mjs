@@ -22,7 +22,7 @@
 // Régénération (`regenerations`, politique `DECROISSANT`) :
 //   npx tsx scripts/guards/lib/regenStock.mts scripts/raw/check-folio-continuity.mjs
 import { listerDossier } from '../guards/lib/lister.mjs'
-import { join, dirname, resolve } from 'node:path'
+import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { BOOKS, readText } from './_lib.mjs'
 // Cet instrument juge la FORME de tout ce qui est servi, l'index COMPRIS : son stock le nomme sous
@@ -338,5 +338,4 @@ function main() {
   if (koGaps || koEmpty) process.exitCode = 1
 }
 
-const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)
-if (isMain) main()
+if (import.meta.main) main()

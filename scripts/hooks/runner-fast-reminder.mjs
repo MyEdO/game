@@ -4,6 +4,7 @@
 // décision) : le hook n'émet qu'un contexte additionnel quand la commande contourne la porte du
 // dépôt. La reconnaissance d'un APPEL (par opposition à une commande qui MENTIONNE le motif) vit
 // dans `scripts/guards/lib/appelsRunners.mjs`, partagée avec `scripts/hooks/codeur-gates-guard.mjs`.
+import '../node-requis.mjs'
 import { appelleTscNu, appelleVitestNu } from '../guards/lib/appelsRunners.mjs'
 
 let brut = ''

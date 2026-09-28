@@ -64,7 +64,7 @@ const doc = document(
   },
   {
     codex: { keys: ['combatStakes'] },
-    edit: { none: 'exposé en LECTURE seule au Codex (catégorie `combatStakes`) — absent de `CodexEdit.CATEGORY_DATASET`' },
+    edit: { none: 'exposé en LECTURE seule au Codex (catégorie `combatStakes`) — absent de `CodexEdit.CATEGORY_DATASET`', dataset: 'combatStakes' },
   },
   {
     exiges: ['source'],

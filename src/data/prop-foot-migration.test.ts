@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { listerArbre } from '../../scripts/guards/lib/lister.mjs';
+import { listerProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs';
 import { props, findPropById } from './index';
 import { normalizeScene, emptyScene, sceneMetresPerTile, type Scene, type SceneEntity } from '../state/scene';
 import { empreinteDuProp } from './props.types';
@@ -49,8 +49,8 @@ const propFootTable = (): [string, number, number][] =>
 const SCENES_DIR = join(__dirname, '../scenes');
 const ARENE_JSON = join(SCENES_DIR, 'arene/arene-projet.json');
 
-/** Tous les `.json` de `src/scenes` (récursif). */
-const sceneJsonFiles = (): string[] => listerArbre(SCENES_DIR, { filtre: (rel) => rel.endsWith('.json') });
+/** Les projets livrés (`projetsLivres.mjs`), relatifs à `src/scenes`. */
+const sceneJsonFiles = (): string[] => listerProjetsLivres();
 
 /** `<fichier>/<scène>/<entité>` pour chaque entité portant un `foot` d'INSTANCE dans un document BRUT. */
 function entitesAvecFoot(doc: unknown, fichier: string): string[] {
@@ -71,7 +71,7 @@ const entitesAvecFootDansLesJson = (): string[] =>
 const areneDoc = parseProject(JSON.parse(readFileSync(ARENE_JSON, 'utf8')));
 const OPERA = 'opera/furnished';
 const entitiesOf = (scene: string): SceneEntity[] =>
-  scene === OPERA ? scenarioEntities : areneDoc.scenes.find((s) => s.id === scene)!.entities;
+  scene === OPERA ? scenarioEntities() : areneDoc.scenes.find((s) => s.id === scene)!.entities;
 /** L'ÉCHELLE de la scène PORTEUSE : l'empreinte d'un décor à recette en dépend (#1509). Lue à sa
  *  source unique (`sceneMetresPerTile`), jamais écrite en littéral. */
 const mptDe = (scene: string): number =>
@@ -164,7 +164,7 @@ describe('migration de l’empreinte : du legacy d’instance au catalogue de ty
    *  chargement, une assertion posée APRÈS lui serait verte sur un fichier sali. */
   it('plus AUCUNE instance authorée ne porte d’empreinte propre — mesuré sur le JSON BRUT', () => {
     expect(entitesAvecFootDansLesJson()).toEqual([]);
-    expect(scenarioEntities.filter((e) => 'foot' in e).map((e) => `${OPERA}/${e.id}`)).toEqual([]);
+    expect(scenarioEntities().filter((e) => 'foot' in e).map((e) => `${OPERA}/${e.id}`)).toEqual([]);
   });
 
   it('le verrou MORD : un JSON sali est rapporté (il ne passe pas sous la normalisation)', () => {

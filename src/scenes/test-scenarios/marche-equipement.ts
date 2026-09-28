@@ -1,11 +1,11 @@
 import { createHero } from '../../engine/character';
-import { makeRNG } from '../../engine/dice';
 import { itemFromTrappingById, recomputeLoadout } from '../../engine/items';
 import { trappings, rigSpeciesId } from '../../data';
 import { Combatant } from '../../engine/types';
 import { flowFromEffects } from '../../state/flow';
 import { buildScene } from '../../state/mapSpec';
 import type { TestScenario } from './_shared';
+import type { Scene } from '../../state/scene';
 
 /**
  * « Marché & équipement » : tout le cycle objets en une échoppe. Réunit le Marchand (Acheter/Vendre/
@@ -18,7 +18,7 @@ import type { TestScenario } from './_shared';
 /** Négociant : épée magique NON identifiée (qualité cachée + skin), maille endommagée, dague à vendre,
  *  selle et harnais (charger une monture/déplacer vers la mule, DoD Possessions testable). */
 function negociant(): Combatant {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Négociant (test)', motivation: 'Test', rng: makeRNG(2510), id: 'test-negociant' });
+  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Négociant (test)', motivation: 'Test', seed: 2510, id: 'test-negociant' });
   // Épée bâtarde « légendaire » : qualité MAGIQUE cachée (« De plaies atroces », ADE II) + skin bleuté ;
   // identified:false → masquée tant qu'une Évaluation ne l'a pas révélée (mais ACTIVE en combat).
   const epee = itemFromTrappingById('epee-batarde')!;
@@ -39,7 +39,7 @@ function negociant(): Combatant {
 
 /** Maître d'armes : sac garni pour l'écran d'EMPLACEMENTS (couches d'armure LDB 63 + 2 sets d'armes + cape). */
 function maitreArmes(): Combatant {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: "Maître d'armes (test)", motivation: 'Test', rng: makeRNG(2606), id: 'test-equipement' });
+  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: "Maître d'armes (test)", motivation: 'Test', seed: 2606, id: 'test-equipement' });
   const take = (label: string, equipped = false) => {
     const id = trappings.find((t) => t.label === label)!.id; // libellé → id de catalogue
     const it = itemFromTrappingById(id)!;
@@ -67,7 +67,7 @@ function maitreArmes(): Combatant {
   return h;
 }
 
-const scene = buildScene({
+const construireScene = (): Scene => buildScene({
   id: 'test-marchand',
   label: 'Marché & équipement',
   desc: 'Arène de test.',
@@ -139,8 +139,7 @@ export const scenario: TestScenario = {
     'panneau marchand : ratio de Disponibilité, échange objet↔objet sans argent) ; Aubergiste → jeux de taverne ' +
     '(Effet openTavernGames, option `tavern-games` pré-activée, NADJ 16).',
   partyNote: 'Négociant (épée non identifiée + maille endommagée + dague) + Maître d’armes (sac garni)',
-  makeParty: () => [negociant(), maitreArmes()],
   // Jeux de taverne pré-activés (NADJ 16) — modifiable au panneau Règles maison, comme le Voyage par Étapes.
   rules: { 'tavern-games': true },
-  scene,
+  construire: () => ({ party: [negociant(), maitreArmes()], scene: construireScene() }),
 };

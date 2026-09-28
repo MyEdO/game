@@ -47,6 +47,13 @@ jobs:
       # premier rouge SKIPPE les 20 suivants et un run ne rend qu'un verdict sur 21 (runs 33717131460
       # et 33719038837). Le job reste rouge dès qu'un step l'est — jamais de `continue-on-error`, qui
       # rendrait le step VERT. Seul l'échec de l'installation coupe la suite : rien ne s'y jouerait.
+      # Chaque dérivé committé (`GENERATORS`, scripts/docs/build-all.mjs) REJOUÉ EN ENTIER en `--check` :
+      # la fraîcheur par le pied est aveugle à la plateforme qui a rendu un corps (#1801). PREMIÈRE
+      # gate : `npm test` et `npm run build` passent par `vite.config.ts`, dont `buildStart` appelle
+      # `genAll()` et réécrit les `*.generated.ts` ; jouée après eux, elle vérifierait un registre
+      # déjà réécrit.
+      - if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: npm run docs:check:tout
       - if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: npm run agents:check
       - if: ${{ !cancelled() && steps.install.outcome == 'success' }}
@@ -55,7 +62,7 @@ jobs:
         run: npm run test:hooks
       - if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: npm run test:ops
-      - if: ${{ steps.classer.outputs.produit != 'false' && !cancelled() && steps.install.outcome == 'success' }}
+      - if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: npm run test:runner
       - if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: npm run test:docs
@@ -63,13 +70,6 @@ jobs:
         run: npm run deps:unused
       - if: ${{ steps.classer.outputs.produit != 'false' && !cancelled() && steps.install.outcome == 'success' }}
         run: npm run test:recette
-      # src/data/*.json sont la SOURCE app-owned (commitée) — plus de régénération build:data.
-      - name: Dérive des registres générés
-        # Glob sur TOUS les fichiers générés, pas les seuls `_registry` : `_ids.generated.ts`,
-        # `_registry-scenes.generated.ts` et `qualityId.generated.ts` en tombaient dehors, si bien
-        # qu'une recette ajoutée sans `npm run gen` périmait le registre en silence (#1680).
-        if: ${{ steps.classer.outputs.produit != 'false' && !cancelled() && steps.install.outcome == 'success' }}
-        run: npm run gen && git diff --exit-code -- '*.generated.ts'
       - if: ${{ steps.classer.outputs.produit != 'false' && !cancelled() && steps.install.outcome == 'success' }}
         run: npm run typecheck
       - if: ${{ steps.classer.outputs.produit != 'false' && !cancelled() && steps.install.outcome == 'success' }}
@@ -82,18 +82,9 @@ jobs:
       # `test:map` reste dans package.json : il sert à jouer CE dossier seul.
       - if: ${{ steps.classer.outputs.produit != 'false' && !cancelled() && steps.install.outcome == 'success' }}
         run: npm run build
-      - if: ${{ !cancelled() && steps.install.outcome == 'success' }}
-        run: npm run docs:check
       # Pied « sources-empreinte » de chaque doc dérivé confronté aux blobs de l'INDEX (#1679 L1b).
       - if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: npm run docs:empreinte
-      - name: Fraîcheur des catalogues Atlas RAW
-        if: ${{ steps.classer.outputs.produit != 'false' && !cancelled() && steps.install.outcome == 'success' }}
-        run: npm run raw:catalogs && git diff --exit-code -- ':(glob)docs/raw/**/catalogue-*.md'
-      - if: ${{ steps.classer.outputs.produit != 'false' && !cancelled() && steps.install.outcome == 'success' }}
-        run: npm run raw:coverage
-      - if: ${{ steps.classer.outputs.produit != 'false' && !cancelled() && steps.install.outcome == 'success' }}
-        run: npm run raw:reconcile
       - if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: npm run test:raw
       - if: ${{ steps.classer.outputs.produit != 'false' && !cancelled() && steps.install.outcome == 'success' }}
@@ -113,11 +104,14 @@ jobs:
       - if: ${{ steps.classer.outputs.produit != 'false' && !cancelled() && steps.install.outcome == 'success' }}
         run: npm run raw:check-renvois
       - if: ${{ steps.classer.outputs.produit != 'false' && !cancelled() && steps.install.outcome == 'success' }}
-        run: npm run raw:reanchor
-      - if: ${{ steps.classer.outputs.produit != 'false' && !cancelled() && steps.install.outcome == 'success' }}
         run: npm --prefix server ci
       - if: ${{ steps.classer.outputs.produit != 'false' && !cancelled() && steps.install.outcome == 'success' }}
         run: npm run server:typecheck
+      # Filet des écrivains par nature (`genAll()` de `build` et de la suite) : aucun step ne laisse
+      # l'arbre du runner différent du commit. Classé `CI_SEULEMENT` (scripts/gates/gatesDeCi.mjs).
+      - name: Arbre inchangé
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: git status --porcelain && test -z "$(git status --porcelain)"
 
   # Les migrations de donnée sont REJOUABLES : rejouées sur l'arbre courant, elles ne réécrivent
   # RIEN. Job DÉDIÉ (il écrit dans l'arbre du runner, jamais dans celui du job `build`). JAMAIS de

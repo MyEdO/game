@@ -49,6 +49,12 @@ export const roll = (n: number, sides: number, rng: RNG = defaultRNG) => {
   return total;
 };
 
+/** Flux RNG DÉRIVÉ d'une graine racine : un flux par chemin de segments (`${graine}:${segment}…`), si
+ *  bien que deux étapes ne se partagent jamais un tirage et qu'un tirage ne dépend pas de ceux d'avant. */
+export function fluxDerive(graine: number, ...segments: readonly (string | number)[]): RNG {
+  return makeRNG(hashSeed([graine, ...segments].join(':')));
+}
+
 /**
  * LE d100 DE L'ENVIRONNEMENT — le dé que le MONDE lance (chance d'occurrence d'un péril, contenu
  * narratif d'une conséquence, descente de sous-table). PRIMITIVE de moteur, pas une porte : elle

@@ -952,6 +952,7 @@ test('stocks `.mjs` de garde à la forme NOMINATIVE — la porte voit CHAQUE ent
     'quadDecoStock.mjs',
     'folioLineAlignStock.mjs',
     'horsStrateStock.mjs',
+    'spellNarratifStock.mjs',
   ]) {
     assert.ok(
       convertis.includes(nom),
@@ -981,7 +982,7 @@ test('stock `.mjs` nominatif — une entrée AJOUTÉE est vue par la porte de pl
   const f = 'scripts/guards/lib/paletteLiteralStock.mjs'
   const entree = (occ) => `  { fichier: 'src/gameIso/rig/parts/tenues/defs/Bailli.ts', ref: 'bailli:torse:front', occurrence: ${occ} },`
   const image = (...lignes) => [
-    "/** @type {import('./stock.mjs').EntreeNominative[]} */",
+    "/** @type {import('./stock.mjs').EntreeDeSite[]} */",
     'export const PALETTE_LITERAL_RATCHET = [', ...lignes, ']', '',
   ].join('\n')
   const avant = image(entree(1))
@@ -1175,9 +1176,8 @@ test('argument — sept FAÇADES d’une ligne ne cachent pas un stock qui NOMME
 })
 
 // FRONTIÈRE mesurée : un ÉLÉMENT de stock qui nomme son fichier À TRAVERS un appel reste une
-// entrée — `scripts/test/run.test.mjs:69` (`node: [abs('src/i18n/labels.test.ts'), …]`) et
-// `scripts/hooks/settings-guard-canaux.test.mjs:27` (`[join(REPO, '.claude', 'settings.json'), …]`)
-// sont des stocks nominatifs à part entière. La règle porte sur le PORTEUR en position d'argument :
+// entrée — `scripts/test/run.test.mjs:78` (`node: [abs('src/i18n/labels.test.ts'), …]`) est un
+// stock nominatif à part entière. La règle porte sur le PORTEUR en position d'argument :
 // il n'est exempt que s'il ne nomme AUCUN fichier — un élément qui en nomme un le rend porteur.
 test('argument — un ÉLÉMENT de stock qui nomme son fichier via un appel reste une entrée', () => {
   assert.deepEqual(

@@ -8,7 +8,7 @@ import { stepInteraction, tableStepDef } from './cascade';
 import { avanceEtapeCascade, draineCascade } from './cascadeTestKit';
 import { canFixDie } from './netOwnership';
 import {
-  rollMiscast, miscastTableId, miscastRowAt, MISCAST_TABLE_ROWS, MISCAST_TABLE_LABELS, type MiscastSeverity,
+  rollMiscast, miscastTableId, miscastRowAt, MISCAST_TABLES, type MiscastSeverity,
 } from '../engine/miscast';
 import { hasBookMarker } from '../data/bookMarker';
 import { hasCondition } from '../engine/conditions';
@@ -60,7 +60,7 @@ function joueEnRetenant(max = 30): { des: number[]; lignes: string[] } {
 }
 
 function mageSolo(seed = 3): Combatant {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'Mage', rng: makeRNG(seed) });
+  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'Mage', seed });
   h.wounds.max = 200;
   h.wounds.current = 200;
   useGame.setState({ battle: null, party: [h], pendingCascade: null, suspendedCascades: [], pendingLogQueue: [] });
@@ -94,12 +94,12 @@ describe('Imparfaite/Colère — le tirage en étape à table (#942 L6)', () => 
   });
 
   it('registre : une entrée par table RÉELLE de miscast.json, lignes projetées de la DONNÉE (par référence)', () => {
-    for (const [id, rows] of Object.entries(MISCAST_TABLE_ROWS)) {
+    for (const { id, label, entries: rows } of MISCAST_TABLES) {
       const def = tableStepDef(id)!;
       expect(def, `table « ${id} » non enregistrée`).toBeDefined();
       expect(def.rows).toBe(rows); // par RÉFÉRENCE : zéro duplication de fourchettes
       expect(def.die).toBe(100);
-      expect(def.label).toBe(MISCAST_TABLE_LABELS[id]);
+      expect(def.label).toBe(label);
       // Surface JOUEUR : aucun libellé ne porte de référence de livre (`docs/charte-ui.md`).
       expect(hasBookMarker(def.label), `provenance dans « ${def.label} »`).toBe(false);
       const row = rows[0];

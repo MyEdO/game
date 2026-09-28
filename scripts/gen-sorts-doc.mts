@@ -7,17 +7,14 @@
  * dans SpellData (spells.json) — plus de src/data/spellspecs/. La colonne « Curé »
  * lit s.curated directement depuis la donnée JSON.
  *
- * Mode --check (chaîné dans npm run docs:check) : régénère en mémoire, compare au
- * .md committé, exit 1 avec message actionnable si diff — jamais d'écriture en --check.
- * Composé via `emitOrCheck` de scripts/docs/lib/jsdocUnion.mjs.
+ * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/empreinte-sources.mjs), rejoué par `build-all.mjs`.
  *
  *   npx tsx scripts/gen-sorts-doc.mts
  */
 import { spells } from '../src/data';
-import { spellSupport } from '../src/engine/spellspec';
-import { isMagicMissile } from '../src/engine/magic';
-import { spellOps } from '../src/state/flow';
-import { emitOrCheck } from './docs/lib/jsdocUnion.mjs';
+import { spellSupportOf } from '../src/engine/spellspec';
+import { spellEffectOps } from '../src/engine/flowCore';
+import { ecrireOuVerifier } from './docs/lib/empreinte-sources.mjs';
 import { parLibelle } from './guards/lib/lister.mjs';
 
 const ICON = { mecanique: '✅', partiel: '🟡', narratif: '📜' } as const;
@@ -60,11 +57,8 @@ for (const [group, list] of [...groups.entries()].sort(([a], [b]) => parLibelle(
   lines.push('| Sort | État | Curé | Reste à mécaniser (journalisé en jeu) |');
   lines.push('|---|---|---|---|');
   for (const s of [...list].sort((a, b) => parLibelle(a.label, b.label))) {
-    // Les EFFETS (ops) vivent sur `SpellData.effects` (Flow) ; on les extrait par cible.
-    const ops = [...spellOps(s.effects, 'target'), ...spellOps(s.effects, 'caster')];
-    // Support mécanique = TOUTES les ops (target + caster) : un effet de lanceur (téléportation/poussée/
-    // chaîne/invocation/zone/vol de vie) compte autant qu'un effet de cible (parité avec le runtime).
-    const support = spellSupport(ops, s, isMagicMissile(s));
+    const ops = spellEffectOps(s.effects);
+    const support = spellSupportOf(s);
     totals[support]++;
     if (s.curated) totals.curated++;
     const reste = ops
@@ -86,7 +80,7 @@ lines.splice(10, 0,
 const out = lines.join('\n');
 const summary = `${spells.length} sorts — ✅ ${totals.mecanique} · 🟡 ${totals.partiel} · 📜 ${totals.narratif} · curés ${totals.curated}`;
 const path = 'docs/sorts-implementation.md';
-emitOrCheck({
+ecrireOuVerifier({
   out,
   path,
   check: process.argv.includes('--check'),

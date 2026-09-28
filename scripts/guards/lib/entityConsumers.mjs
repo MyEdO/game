@@ -68,7 +68,8 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { listerArbre, listerDossier } from './lister.mjs';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
+import { dossierDesProjetsLivres, listerProjetsLivres } from './projetsLivres.mjs';
 import { estFichierVitest } from './fichierVitest.mjs';
 import { DECROISSANT } from './stockDeSites.mjs';
 
@@ -196,15 +197,11 @@ function fichiersDeProduction(srcDir) {
   return listerArbre(srcDir, { filtre: (rel) => /\.(ts|tsx)$/.test(rel) && !estFichierVitest(rel) });
 }
 
-/** Documents de PROJET de scène (`src/scenes/<projet>/<projet>-projet.json`), découverts par
- *  STRUCTURE (tout sous-dossier de `src/scenes`, tout fichier `*-projet.json`) — jamais une liste de
- *  chemins en dur : une liste à tenir manque le prochain projet en silence, fail-OPEN. */
+/** Documents de PROJET de scène : le corpus des projets livrés (`projetsLivres.mjs`), sous la racine
+ *  dont `srcDir` est le `src`. */
 function sceneProjectFiles(srcDir) {
-  const dir = join(srcDir, 'scenes');
-  return listerArbre(dir, {
-    descendre: (rel) => !rel.includes('/'),
-    filtre: (rel) => rel.includes('/') && rel.endsWith('-projet.json'),
-  }).map((rel) => join(dir, rel));
+  const racine = dirname(srcDir);
+  return listerProjetsLivres(racine).map((rel) => join(dossierDesProjetsLivres(racine), rel));
 }
 
 /** FRONTIÈRE « déclaré SIEN » vs « référencé » d'un document de scène — symétrique du
@@ -287,8 +284,7 @@ export const isConsumed = (corpus, id) => corpus.includes(`"${id}"`) || corpus.i
 
 /** Entités de catalogue MÉTA — une ligne de TABLE RAW transcrite en entrée de catalogue pour son
  *  vocabulaire de tirage (ex. `talents:talent-aleatoire`, LDB 10 p.132 : motif « N Talent(s)
- *  aléatoire(s) » consommé par `RANDOM_ENTRY_RE`/`resolveSpeciesTalents`,
- *  `src/engine/character.ts:117,198,206`), jamais une entité POSSÉDABLE. Source UNIQUE de ce fait
+ *  aléatoire(s) » consommé par `resolveSpeciesTalents`, `src/engine/character.ts`), jamais une entité POSSÉDABLE. Source UNIQUE de ce fait
  *  structurel, consommée par LES DEUX gardes qui le traitaient jusqu'ici par deux déclarations
  *  séparées (`src/data/entity-orphans.test.ts` — via `entityOrphanStock.mjs` — ET
  *  `src/data/obtainability-guard.test.ts`) : ni l'une ni l'autre ne re-déclare le fait chez elle.

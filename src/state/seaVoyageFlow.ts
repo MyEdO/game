@@ -62,13 +62,13 @@ import { applyOps, type PairedSense } from '../engine/ops';
 import { damageHull, healHull } from './shipDamage';
 import { itemCapability } from '../engine/capabilities';
 import { isRation } from '../engine/provisions';
-import { toDate, MINUTES_PER_DAY, minutesUntilNext, DUSK_MINUTE } from '../engine/clock';
+import { toDate, MINUTES_PER_DAY, minutesUntilNext, duskMinute } from '../engine/clock';
 import { seasonOfMonth } from '../engine/travelStages';
 import {
-  rollSeaWeather, rollWindDirection, windAspect, tickWindForce, windEffect, windAdjustedM,
-  seaWeatherLabel, dailyWaterLitres, temperatureDef, seaExposureTestsPerDay, AFFALER_RULES, WIND_FORCES,
+  rollSeaWeather, rollWindDirection, windAspect, tickWindForceDay, windEffect, windAdjustedM,
+  seaWeatherLabel, dailyWaterLitres, temperatureDef, seaExposureTestsPerDay, AFFALER_RULES, windForces,
   precipitationSkillMod, precipitationDef,
-  type SeaWeather, type WindDirection,
+  type SeaWeather, type WindDirection, type WindAspect,
 } from '../engine/seaWeather';
 import {
   seaMilesPerDay, orientationOutcome, rollCourseChange, foulingEffects, rollWeeklyFouling,
@@ -87,6 +87,7 @@ import {
 } from '../engine/seaVoyage';
 import { navalMoveMod, navalTestTypeDR, navalNavTestDR, shipHasNavalTrait, hullNavalTraits, vesselNavalTraits } from '../engine/navalTraits';
 import { rule } from '../engine/policy';
+import { groupsFor } from '../engine/groups';
 import { seaAutoResolves, voyageDayEntry, DEFAULT_VOYAGE_ORDERS, type VoyageOrders, type VoyageCadence } from './voyageCadence';
 import { crewRoleValue, crewTestModParts, moraleBand, crewTalentDR, UNDERCREW_DR, capToSuccesMinime, crewTestSuccess, SUCCES_MINIME_CAP } from '../engine/crewMorale';
 import { beginShipwreck } from './shipwreck';
@@ -103,21 +104,15 @@ import type { PendingSteamSave, CascadeStep, CascadeStepMeta } from './pendings'
 import type { Get, Set } from './flowTypes';
 import type { CampaignVessel } from './store';
 import { openPartyTest, openWorldTest, composeRollLabel, openSequence, freeCons, rollLine, rollStep, monoStep, tableStep, bandStep, buildBand, choiceStep, openChoice, pousseSi, type RollRequest, type Consequence, type FreeConsLine, type BuiltCascadeStep } from './rollSeam';
-import { registerCascadeApplier, registerCascadeSuccessRule, registerTableStep, startCascade, runCascadeImmediate, pushStep } from './cascade';
+import { registerCascadeApplier, registerCascadeSuccessRule, registerTableStepFamily, startCascade, runCascadeImmediate, pushStep, type TableStepDef } from './cascade';
+import { memoParVersion } from '../data/versionDataset';
 import { exposureWaveBand } from './nightBands';
 import { dataLabel } from '../data';
 // Tuile de PONT d'une scène de bord : défaut de compilation (`defauts-de-compilation.json`), éditable
 // au Codex — la scène d'abordage est compilée, elle n'authore pas son sol.
 import { defautsDeCompilation } from '../data';
 import { t, t as tr } from '../i18n'; // `tr` : alias pour les portées où `t` est un identifiant local (résultat de jet)
-import type { WindAspect } from '../engine/seaWeather';
 
-/** Libellé de l'ASPECT du vent — `windAspect` rend un ID (`face`/`arriere`/`lateral`), que le flux
- *  collait derrière « vent » (« vent arriere »). Résolveur TOTAL : aucun repli-id. */
-const SEA_ASPECT_KEY = { face: 'sv.windFace', arriere: 'sv.windArriere', lateral: 'sv.windLateral' } as const;
-function seaAspectLabel(aspect: WindAspect): string {
-  return t(SEA_ASPECT_KEY[aspect]);
-}
 import { stepPrecision, idDansLaSequence } from './rollSeam';
 import { actorIn, garanti } from './combatants';
 import type { PlayerText } from '../i18n/playerText';
@@ -169,7 +164,7 @@ export interface SeaVoyageState {
   /** PROCÈS-VERBAL structuré du jour (couche `voyageCadence`) : une ligne de JET par Test d'équipage de
    *  ROUTINE auto-résolu en route COMMANDÉE — « aucun jet silencieux » (rendu par `MultiRollList`). */
   entries?: NightEntry[];
-  /** Milles parcourus AUJOURD'HUI (fixés par la Progression). */
+  /** Milles parcourus AUJOURD'HUI le long du trajet : Progression, ou dérive SIGNÉE (MDG 13 l.294). */
   milesToday: number;
   /** Blessures de coque AU LEVER du jour — sert au DELTA du jour clos (`SeaRecapChrome.hullDelta`) :
    *  la chronique d'un jour PASSÉ raconte ce que la journée a coûté à la coque, l'état COURANT restant
@@ -428,7 +423,7 @@ export function spoilVesselCargoOnLeak(get: Get, set: Set): string[] {
 /** M de VOYAGE du jour (ch.13/15) : M du gréement + Lissage (`navalMoveMod`) + Salissures + événement,
  *  puis EFFET DU VENT (%, Clinfoc — ch.13 l.274/ch.12 l.254). `null` = les voiles n'avancent pas
  *  (Encalminé / Affaler) — Propulsion à vapeur : M 4 constant, insensible au vent (ch.12 l.311). */
-function effectiveSeaM(get: Get): { m: number | null; sail: boolean; mode: PropulsionKind | null; label: string; affaler: boolean } {
+function effectiveSeaM(get: Get): { m: number | null; sail: boolean; mode: PropulsionKind | null; affaler: boolean } {
   const plan = get().travelPlan!;
   const sea = plan.sea!;
   const hull = plan.vehicle!;
@@ -436,7 +431,7 @@ function effectiveSeaM(get: Get): { m: number | null; sail: boolean; mode: Propu
   const traits = hullNavalTraits(hull);
   const vessel = get().vessel;
   if (shipHasNavalTrait(traits, 'propulsion-a-vapeur')) {
-    return { m: 4, sail: false, mode: null, label: t('sv.steamMode'), affaler: false }; // MDG 12 l.311
+    return { m: 4, sail: false, mode: null, affaler: false }; // MDG 12 l.311
   }
   const propulsion = vesselPropulsion(vd);
   const sail = propulsion?.mode === 'voile';
@@ -456,8 +451,7 @@ function effectiveSeaM(get: Get): { m: number | null; sail: boolean; mode: Propu
   const cell = windEffect(sea.weather.vent, aspect, rigging);
   const m = windAdjustedM(Math.max(0, baseM), cell, sail);
   const affaler = !!(cell.affaler && sail);
-  const label = cell.encalmine && sail ? t('sv.becalmed') : affaler ? t('sv.strikeSails') : seaAspectLabel(aspect);
-  return { m, sail, mode: propulsion?.mode ?? null, label, affaler };
+  return { m, sail, mode: propulsion?.mode ?? null, affaler };
 }
 
 // ── Test d'équipage de VOYAGE (hors combat — l'équipage = les PJ) ────────────────────────────────
@@ -811,11 +805,18 @@ function buildSeaDayCascade(get: Get, set: Set): { steps: BuiltCascadeStep[]; lo
   const effAfterAffaler = effectiveSeaM(get);
   if (sea.sailsDown || effAfterAffaler.m === null) {
     const anchored = shipHasNavalTrait(hullNavalTraits(plan.vehicle!), 'ancre');
-    const drift = anchored ? 0 : Math.round(seaMilesPerDay(4, true) * (AFFALER_RULES.driftPctOfSpeed / 100));
-    tell(get, set, [!sea.sailsDown
-      ? t('sv.becalmedLine', { suite: anchored ? t('sv.fragAnchorDown') : t('sv.fragDrift', { drift }) })
-      : t('sv.sailsDownLine', { suite: anchored ? t('sv.fragAnchorWait') : t('sv.fragWindPush', { drift }) })]);
-    patchSea(get, set, { milesToday: 0 });
+    if (!sea.sailsDown) {
+      const drift = anchored ? 0 : Math.round(seaMilesPerDay(4, true) * (AFFALER_RULES.driftPctOfSpeed / 100));
+      tell(get, set, [t('sv.becalmedLine', { suite: anchored ? t('sv.fragAnchorDown') : t('sv.fragDrift', { drift }) })]);
+      patchSea(get, set, { milesToday: 0 });
+    } else {
+      // MDG 13 l.294 ; l.262-270.
+      const windDrift = anchored ? 0 : Math.round(seaMilesPerDay(cruiseM(plan.vehicle!), true) * (AFFALER_RULES.driftPctOfSpeed / 100));
+      const sens = DRIFT_ALONG_ROUTE[windAspect(sea.heading, sea.windFrom)];
+      const credited = Math.max(-plan.kmDone, sens * windDrift);
+      tell(get, set, [t('sv.sailsDownLine', { suite: anchored ? t('sv.fragAnchorWait') : t('sv.fragWindPush', { drift: windDrift, effet: t(DRIFT_EFFECT_KEY[sens], { miles: Math.abs(credited) }) }) })]);
+      patchSea(get, set, { milesToday: credited });
+    }
     steps.push(...buildPostProgressionSteps(get, set));
     return { steps, log: [] };
   }
@@ -835,6 +836,10 @@ function buildSeaDayCascade(get: Get, set: Set): { steps: BuiltCascadeStep[]; lo
   }
   return { steps, log: [] };
 }
+
+/** Sens de la dérive sous le vent le long du trajet, par aspect du vent (MDG 13 l.262-270, l.294). */
+const DRIFT_ALONG_ROUTE: Record<WindAspect, -1 | 0 | 1> = { arriere: 1, lateral: 0, face: -1 };
+const DRIFT_EFFECT_KEY = { 1: 'sv.driftAhead', 0: 'sv.driftAbeam', [-1]: 'sv.driftBack' } as const;
 
 /** Un jour de voyage maritime est-il de PURE ROUTINE (aucune décision susceptible de survenir) ? Une
  *  crise en cours, une infestation active, ou une route à embuscade NON ENCORE déclenchée forcent
@@ -1120,16 +1125,17 @@ function buildSeaBoardEventStep(get: Get): BuiltCascadeStep | undefined {
 
 const SEA_BOARD_EVENT_KIND = 'seaBoardEvent';
 const SEA_BOARD_EVENT_STEP_ID = 'sea-board-event';
-const SEA_BOARD_EVENT_TABLE = 'sea-board-events';
+export const SEA_BOARD_EVENT_TABLE = 'sea-board-events';
 
 // Table DÉRIVÉE du catalogue (`sea-events.json` : chaque entrée porte déjà `min`/`max`/`id`) — aucune
-// plage réécrite à la main.
-registerTableStep(SEA_BOARD_EVENT_TABLE, {
+// plage réécrite à la main ; FAMILLE (`registerTableStepFamily`) mémoïsée sur `seaBoardEvents`.
+const tableDesEvenementsDeBord = memoParVersion('seaBoardEvents', () => new Map<string, TableStepDef>([[SEA_BOARD_EVENT_TABLE, {
   label: t('step.seaBoardEvent'),
   die: 100,
   rows: BOARD_EVENTS.map((e) => ({ id: e.id, min: e.min, max: e.max })),
   lines: (die) => [t('sv.boardEventLine', { label: findTableEntry(BOARD_EVENTS, die).label })],
-});
+}]]));
+registerTableStepFamily(tableDesEvenementsDeBord);
 
 registerCascadeApplier(SEA_BOARD_EVENT_KIND, (get, set, step) => {
   const tiree = step.table?.result;
@@ -1376,18 +1382,18 @@ function buildBarrelSteps(get: Get, sea: SeaVoyageState, vessel: CampaignVessel 
   return out;
 }
 
-/** Immunité elfe au mal de mer (MDG 14 l.215) — keyée sur l'id STABLE d'espèce (`hauts-elfes`/
- *  `elfes-sylvains`, `src/data/species.json`), jamais le libellé. */
-const isElfSpecies = (species: string | undefined): boolean => !!species?.includes('elfes');
+/** Immunité elfe au mal de mer (MDG 14 l.215) : groupe `elfe` de l'espèce (`grantGroups`). */
+const isElfSpecies = (species: string | undefined): boolean => groupsFor({ speciesId: species }).includes('elfe');
 
 /** Mal de mer (MDG 14 l.211-222) — DEUX déclencheurs INDÉPENDANTS, cumulables le même jour : premier
  *  jour de CETTE traversée (`daysAtSea === 0` — proxy : le moteur ne porte aucun état par-personnage
  *  « a déjà navigué », le RAW parle de « la première fois qu'ils entreprennent un voyage en mer ») et
- *  mauvais temps (Vent violent ou plus, l.218, `WIND_FORCES`). Les Personnages elfes sont IMMUNISÉS
+ *  mauvais temps (Vent violent ou plus, l.218, `windForces`). Les Personnages elfes sont IMMUNISÉS
  *  (l.215) : jamais testés, aucune étape posée. */
 function buildSeasicknessSteps(get: Get, sea: SeaVoyageState): BuiltCascadeStep[] {
   const firstDay = sea.daysAtSea === 0;
-  const badWeather = WIND_FORCES.indexOf(sea.weather.vent) >= WIND_FORCES.indexOf('vent-violent');
+  const forces = windForces();
+  const badWeather = forces.indexOf(sea.weather.vent) >= forces.indexOf('vent-violent');
   if (!firstDay && !badWeather) return [];
   const appeles = get().party.filter((h) => !h.dead && !isElfSpecies(h.species) && contractionDue(h, 'mal-de-mer'));
   if (!appeles.length) return [];
@@ -1533,7 +1539,7 @@ export function continueSeaDayAfterScorbut(get: Get, set: Set, doneSteps?: Casca
   // convalescence) n'est jamais roulé ici (sinon la Faim s'installe avant le repas) : il se résout dans
   // la cascade de nuit (`buildNightCascade`), APRÈS `feedFromMeal`.
   const arrived = plan.km - Math.min(plan.km, plan.kmDone + sea.milesToday) < 1e-9;
-  const dayMinutes = arrived ? 24 * 60 : minutesUntilNext(get().gameTime, DUSK_MINUTE);
+  const dayMinutes = arrived ? 24 * 60 : minutesUntilNext(get().gameTime, duskMinute());
   set({ gameTime: get().gameTime + dayMinutes });
   bus.emit(EVT.TIME_ADVANCED, { minutes: dayMinutes });
 
@@ -1672,11 +1678,10 @@ export function continueSeaDayAfterExhaustion(get: Get, set: Set, doneSteps?: Ca
     milesLeft: Math.max(0, Math.round(plan.km - kmDone)),
     daysLeft: Math.max(0, Math.ceil(Math.max(0, plan.km - kmDone) / seaMilesPerDay(cruiseM(hull), true))),
   };
-  // Météo du LENDEMAIN (ch.13 l.164) + direction du vent (rose, l.250) — force du vent : celle du jour
-  // qui s'achève, mise à jour (l.272, résumée en un cran par jour à l'échelle voyage).
+  // Météo du LENDEMAIN (ch.13 l.164), direction du vent (l.250), force du vent (l.272).
   const season = seasonOfMonth(toDate(get().gameTime).month);
   let weather = rollSeaWeather(season, rng);
-  weather = { ...weather, vent: tickWindForce(sea.weather?.vent ?? weather.vent, rng) };
+  weather = { ...weather, vent: tickWindForceDay(sea.weather?.vent ?? weather.vent, rng) };
   let windFrom = rollWindDirection(rng);
   // Verrous d'événement (Bruine / Beau temps / Ciel dégagé / Calme plat, ch.15).
   let lock = sea.weatherLock;
@@ -2558,11 +2563,11 @@ function resolveBoardEvent(get: Get, set: Set, event: SeaEventDef, rng: RNG, rol
       break;
     }
     case 'chance-navigateur': {
-      // « Le capitaine gagne 1 niveau du Talent Chanceux pour les 1d10 prochains jours. »
+      // MDG 15 l.233
       const captain = partyAssisted(get().party, 'commandement');
       if (captain) {
         const until = get().gameTime + num('days', d10(rng)) * 24 * 60;
-        for (const l of applyOps(captain.actor, [{ op: 'grantTalent', talentId: 'chanceux' }], { label: event.label, rng, defaultUntilTime: until })) tell(get, set, [l]);
+        for (const l of applyOps(captain.actor, [{ op: 'grantTalent', talent: { id: 'chanceux' } }], { label: event.label, rng, defaultUntilTime: until })) tell(get, set, [l]);
         set({ party: [...get().party] });
       }
       break;

@@ -180,17 +180,24 @@ export const HOOKS_MONO_SURFACE = new Map([
   [`SessionStart${NUL}${NUL}bootstrap-conteneur.mjs`, SURFACE_CLAUDE],
 ]);
 
+/**
+ * Les hooks d'une surface, à plat : un par commande, `script` = le module de `scripts/hooks/` que la
+ * commande lance (`undefined` si elle n'en lance aucun).
+ * @param {{ hooks?: Record<string, Array<{ matcher?: string, hooks?: Array<{ command?: string, timeout?: number, statusMessage?: string }> }>> }} value
+ * @param {string} surface
+ */
+export const aplatirHooks = (value, surface) => Object.entries(value.hooks ?? {}).flatMap(([phase, groups]) =>
+  groups.flatMap((group, groupIndex) => (group.hooks ?? []).map((hook, hookIndex) => {
+    const command = hook.command ?? '';
+    const script = /scripts[\\/]hooks[\\/]([\w.-]+\.mjs)/.exec(command)?.[1];
+    return { phase, matcher: group.matcher ?? '', script, timeout: hook.timeout, statusMessage: hook.statusMessage, command, surface, path: `${surface}.hooks.${phase}[${groupIndex}].hooks[${hookIndex}]` };
+  })));
+
 export function validateHookParity(claudeSettings, codexHooks) {
-  const forbiddenEverywhere = /\bcat\b|\/dev\/null|[<>]|\|\||&&/;
+  const forbiddenEverywhere = /\bcat\b|\/dev\/null|[<>;|]|&&/;
   const forbiddenOnCodex = /CLAUDE_PROJECT_DIR/;
-  const flatten = (value, surface) => Object.entries(value.hooks ?? {}).flatMap(([phase, groups]) =>
-    groups.flatMap((group, groupIndex) => (group.hooks ?? []).map((hook, hookIndex) => {
-      const command = hook.command ?? '';
-      const script = /scripts[\\/]hooks[\\/]([\w.-]+\.mjs)/.exec(command)?.[1];
-      return { phase, matcher: group.matcher ?? '', script, timeout: hook.timeout, command, surface, path: `${surface}.hooks.${phase}[${groupIndex}].hooks[${hookIndex}]` };
-    })));
-  const left = flatten(claudeSettings, SURFACE_CLAUDE);
-  const right = flatten(codexHooks, SURFACE_CODEX);
+  const left = aplatirHooks(claudeSettings, SURFACE_CLAUDE);
+  const right = aplatirHooks(codexHooks, SURFACE_CODEX);
   const isForbidden = (hook) => forbiddenEverywhere.test(hook.command) || (hook.surface === SURFACE_CODEX && forbiddenOnCodex.test(hook.command));
   const diagnostics = [...left, ...right].filter((hook) => isForbidden(hook) || !hook.script)
     .map((hook) => ({ family: 'hook', destination: hook.path, type: 'reference', message: `commande non portable: ${hook.command}` }));

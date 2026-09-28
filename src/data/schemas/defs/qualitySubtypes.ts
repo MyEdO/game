@@ -22,7 +22,7 @@ const doc = document(
           'vocabulaire de catégorisation des Qualités/Défauts (Arme/Armure/Objet) — consommé par `qualitySubtypeLabel`, pas une fiche autonome.',
       },
     },
-    edit: { none: 'aucune catégorie Codex ne l’expose, donc aucun formulaire d’atelier ne l’édite' },
+    edit: { none: 'aucune catégorie Codex ne l’expose, donc aucun formulaire d’atelier ne l’édite', dataset: 'qualitySubtypes' },
   },
 );
 

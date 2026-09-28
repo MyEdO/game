@@ -2,8 +2,8 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { makeRNG } from './dice';
 import { AVAILABILITIES } from './types';
 import {
-  rollAvailability, rollStock, fullStock, DISPO_PCT, type CatalogItem,
-  barterRatio, BARTER_RATIOS, availabilityAfterHalvings, priceAfterHalvings, availabilitySearchBonus,
+  rollAvailability, rollStock, fullStock, dispoPct, type CatalogItem,
+  barterRatio, barterRatios, availabilityAfterHalvings, priceAfterHalvings, availabilitySearchBonus,
   isTradable, outOfTradeReason,
 } from './disponibilite';
 import dispoJson from '../data/disponibilite.json';
@@ -11,8 +11,8 @@ import { setRule, resetRule } from './policy';
 
 describe('disponibilite — Disponibilité RAW (LDB 59 l.13-34, p.290-291)', () => {
   it('table RAW : Limitée 30/60/90, Rare 15/30/45', () => {
-    expect(DISPO_PCT.Limitée).toEqual({ village: 30, ville: 60, cite: 90 });
-    expect(DISPO_PCT.Rare).toEqual({ village: 15, ville: 30, cite: 45 });
+    expect(dispoPct().Limitée).toEqual({ village: 30, ville: 60, cite: 90 });
+    expect(dispoPct().Rare).toEqual({ village: 15, ville: 30, cite: 45 });
   });
   it('Commune → toujours en stock (sans Test)', () => {
     const r = rollAvailability('Commune', 'village', makeRNG(1));
@@ -107,10 +107,10 @@ describe('disponibilite — Baisse des prix : Disponibilité acheteur (LDB 59 l.
 
 describe('disponibilite — Troc (LDB 59 l.64-76)', () => {
   it('table RATIOS DE TROC recopiée verbatim', () => {
-    expect(BARTER_RATIOS.Commune.Exotique).toEqual([8, 1]);
-    expect(BARTER_RATIOS.Exotique.Commune).toEqual([1, 8]);
-    expect(BARTER_RATIOS.Limitée.Rare).toEqual([2, 1]);
-    expect(BARTER_RATIOS.Rare.Limitée).toEqual([1, 2]);
+    expect(barterRatios().Commune.Exotique).toEqual([8, 1]);
+    expect(barterRatios().Exotique.Commune).toEqual([1, 8]);
+    expect(barterRatios().Limitée.Rare).toEqual([2, 1]);
+    expect(barterRatios().Rare.Limitée).toEqual([1, 2]);
   });
   it('barterRatio : 8 unités communes contre 1 exotique ; réflexivité même Disponibilité = 1:1', () => {
     expect(barterRatio('Commune', 'Exotique')).toEqual({ give: 8, get: 1 });

@@ -49,7 +49,7 @@ const dlgHub = {
         { label: 'L’échelle de l’arène.', icon: 'action/attack', next: 'echelle' },
         { label: 'Les contrats d’expédition.', icon: 'file/document', next: 'contrats' },
         {
-          label: 'Crocheter le vieux coffre du maître (Test de Crochetage).',
+          label: 'Crocheter le vieux coffre du maître.',
           icon: 'ui/lock',
           when: flagWhen('!coffre_pris'),
           flow: testNode(
@@ -195,7 +195,7 @@ const dlgTaverne = {
         { label: 'Voir le garde-manger (rations, vivres, pintes).', icon: 'rest/stew', flow: flowOf([{ type: 'openMerchant', entityId: 'taverniere' }]) },
         {
           // Repas de MIDI (sans dormir) : prix de groupe d'auteur — la nuit passe par la modale de Repos.
-          label: 'Repas chaud pour le groupe — 4 pa.',
+          label: 'Repas chaud pour le groupe.',
           icon: 'rest/stew',
           cost: { silver: 4 },
           flow: flowOf([{ type: 'mealParty' }, { type: 'journal', desc: 'Ragoût, pain noir et bière : le groupe est nourri pour la journée.' }]),
@@ -262,13 +262,13 @@ const dlgFrere = {
           ]),
         },
         {
-          label: 'Faire un don au tronc — 1 co.',
+          label: 'Faire un don au tronc.',
           icon: 'resource/gold-purse',
           cost: { gold: 1 },
           flow: flowOf([{ type: 'journal', desc: 'La pièce sonne au fond du tronc. Frère Anselm hoche la tête, sincèrement ému.' }]),
         },
         {
-          label: 'Piller le tronc des offrandes (Test de Discrétion).',
+          label: 'Piller le tronc des offrandes.',
           icon: 'action/pick-up',
           when: flagWhen('!tronc_pille'),
           flow: testNode(

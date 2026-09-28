@@ -20,7 +20,7 @@
  * consulte DÉJÀ en premier. Une catégorie sans déclaration (créatures) garde le diagnostic : chez elle,
  * une espèce introuvable reste un défaut de donnée.
  */
-import { DEFAULT_RACE_ID } from '../../gameIso/rig/races';
+import { DEFAULT_RACE_ID } from '../../data';
 
 /** Espèce du porteur par défaut : la race par défaut DÉCLARÉE en donnée (`speciesRace.json`). */
 export const PORTEUR_PAR_DEFAUT: string = DEFAULT_RACE_ID;

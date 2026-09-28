@@ -18,6 +18,22 @@ describe('validateScene', () => {
     expect(validateScene([base()])).toEqual([]);
   });
 
+  /** Ids d'ART d'auteur jugés au schéma (`grammaire/art.ts`, #1897) : l'espèce et la coiffure. */
+  it('apparence : espèce hors domaine, coiffure inconnue, sans sexe ou de l’autre sexe → erreur nominative', () => {
+    const avec = (appearance: object) => {
+      const s = base();
+      s.entities.push({ id: 'pnj', kind: 'personnage', ref: 'humain', pos: { x: 1, y: 1 }, appearance });
+      return msgs(validateScene([s]).filter((x) => x.scope === 'entity' && x.refId === 'pnj' && x.level === 'error'));
+    };
+    expect(avec({ species: 'zorglub' })).toEqual(["pnj › appearance.species : espèce « zorglub » inconnue : ni espèce jouable, ni espèce dessinée — le personnage s'affiche en silhouette d'erreur."]);
+    expect(avec({ hairstyle: 'zzz', sex: 'M' })).toEqual(['pnj › appearance.hairstyle : coiffure « zzz » inconnue : absente du catalogue des coiffures.']);
+    expect(avec({ hairstyle: 'queue-de-cheval-haute-f' })).toEqual(['pnj › appearance.hairstyle : coiffure « queue-de-cheval-haute-f » (sexe : Féminin) imposée sans sexe posé — poser le sexe Féminin, ou retirer la coiffure.']);
+    expect(avec({ hairstyle: 'queue-de-cheval-haute-f', sex: 'M' })).toEqual(['pnj › appearance.hairstyle : coiffure « queue-de-cheval-haute-f » (sexe : Féminin) imposée sur le sexe Masculin.']);
+    // Domaine admis : espèce jouable, def de créature, forme de nuée ; coiffure au sexe posé.
+    for (const ok of [{ species: 'humains-reiklander' }, { species: 'amibe' }, { species: 'rats' }, { hairstyle: 'queue-de-cheval-haute-f', sex: 'F' }])
+      expect(avec(ok), JSON.stringify(ok)).toEqual([]);
+  });
+
   it("dialogueId d'entité inexistant → erreur", () => {
     const s = base();
     s.entities.push({ id: 'e-0', kind: 'personnage', ref: 'humain', pos: { x: 1, y: 1 }, dialogueId: 'manque' });
@@ -35,7 +51,7 @@ describe('validateScene', () => {
     const s = base();
     s.entities.push({ id: 'table', kind: 'prop', pos: { x: 1, y: 1 }, ref: 'table-ronde-4-tabourets', facing: 'NE' });
     const w = validateScene([s]).filter((x) => x.scope === 'entity' && x.refId === 'table' && x.level === 'error');
-    expect(msgs(w)).toEqual(['table : décor volumique « table-ronde-4-tabourets » au cap NE — un décor volumique ne prend qu\'un cap cardinal (N/E/S/O)']);
+    expect(msgs(w)).toEqual(['table › facing : décor volumique « table-ronde-4-tabourets » au cap NE — un décor volumique ne prend qu\'un cap cardinal (N/E/S/O)']);
 
     const cardinal = base();
     cardinal.entities.push({ id: 'table', kind: 'prop', pos: { x: 1, y: 1 }, ref: 'table-ronde-4-tabourets', facing: 'E' });
@@ -163,13 +179,15 @@ describe('validateScene', () => {
     }];
     // Couche d'étage NON cotée : plancher, murs et toiture de l'étage retombent tous au rez.
     expect(validateScene([s]).some((w) => w.scope === 'architecture' && w.refId === 'toit' && w.level === 'error' && /plancher/.test(w.message))).toBe(true);
+    // Une scène validée est IMMUABLE (`memoByRefDeps`) : chaque cotation est une COPIE.
+    const cotee = (hauteurs: Record<number, number>): Scene => ({
+      ...s,
+      layers: s.layers.map((layer) => (layer.z in hauteurs ? { ...layer, height: new Array(25).fill(hauteurs[layer.z]) } : layer)),
+    });
     // CONTRE-ÉPREUVE : cotée au sommet des murs du rez, la même masse ne dit plus rien.
-    s.layers.find((layer) => layer.z === 1)!.height = new Array(25).fill(METRES_PER_LEVEL);
-    expect(validateScene([s]).filter((w) => w.scope === 'architecture')).toEqual([]);
+    expect(validateScene([cotee({ 1: METRES_PER_LEVEL })]).filter((w) => w.scope === 'architecture')).toEqual([]);
     // RELIEF LIBRE : bâtiment sur une BUTTE — les deux couches montent ensemble, l'empilement tient.
-    s.layers.find((layer) => layer.z === 0)!.height = new Array(25).fill(6);
-    s.layers.find((layer) => layer.z === 1)!.height = new Array(25).fill(6 + METRES_PER_LEVEL);
-    expect(validateScene([s]).filter((w) => w.scope === 'architecture')).toEqual([]);
+    expect(validateScene([cotee({ 0: 6, 1: 6 + METRES_PER_LEVEL })]).filter((w) => w.scope === 'architecture')).toEqual([]);
   });
 
   it('architecture : refuse ids dupliqués, arêtes invalides et valeurs de masse incohérentes', () => {
@@ -190,13 +208,13 @@ describe('validateScene', () => {
   });
 
   it.each([
-    ['offset négatif', { offset: -0.1 }],
-    ['offset supérieur à 1', { offset: 1.1 }],
-    ['offset non fini', { offset: Number.NaN }],
-    ['largeur nulle', { width: 0 }],
-    ['largeur négative', { width: -1 }],
-    ['largeur non finie', { width: Number.POSITIVE_INFINITY }],
-  ])('architecture : refuse une feature avec %s', (_label, patch) => {
+    ['offset négatif', { offset: -0.1 }, /offset/],
+    ['offset supérieur à 1', { offset: 1.1 }, /offset/],
+    ['offset non fini', { offset: Number.NaN }, /offset/],
+    ['largeur nulle', { width: 0 }, /largeur/],
+    ['largeur négative', { width: -1 }, /largeur/],
+    ['largeur non finie', { width: Number.POSITIVE_INFINITY }, /width/],
+  ])('architecture : refuse une feature avec %s', (_label, patch, champ) => {
     const s = base();
     s.architecture = [{
       id: 'corps', style: 'maison', storeys: [], masses: [],
@@ -206,7 +224,7 @@ describe('validateScene', () => {
       }],
     }];
     expect(validateScene([s]).some((warning) =>
-      warning.scope === 'architecture' && warning.refId === 'feature' && /offset|largeur/.test(warning.message))).toBe(true);
+      warning.scope === 'architecture' && warning.refId === 'feature' && champ.test(warning.message))).toBe(true);
   });
 
   it('architecture : expose une cible d’éditeur stable pour partie, feature et masse invalides', () => {
@@ -472,12 +490,9 @@ describe('validateScene', () => {
 
   it('musique de scène inconnue au registre → avertissement ; piste réelle / silence / auto = OK', () => {
     const s = base();
-    s.music = { ambient: 'piste-fantome', combat: 'musique-combat' };
-    expect(msgs(validateScene([s])).some((m) => /Musique .*piste-fantome/.test(m))).toBe(true);
-    s.music = { ambient: null, combat: 'musique-combat' }; // silence + piste réelle
-    expect(validateScene([s])).toEqual([]);
-    s.music = undefined; // automatique
-    expect(validateScene([s])).toEqual([]);
+    expect(msgs(validateScene([{ ...s, music: { ambient: 'piste-fantome', combat: 'musique-combat' } }])).some((m) => /Musique .*piste-fantome/.test(m))).toBe(true);
+    expect(validateScene([{ ...s, music: { ambient: null, combat: 'musique-combat' } }])).toEqual([]); // silence + piste réelle
+    expect(validateScene([{ ...s, music: undefined }])).toEqual([]); // automatique
   });
 });
 
@@ -545,12 +560,27 @@ describe('validateScene — POI de plan (#345 phase 5)', () => {
     expect(w.filter((x) => x.level === 'error')).toEqual([]);
   });
 
-  it('id de POI dupliqué (même lieu) → erreur', () => {
+  it('id de POI dupliqué (même lieu) → erreur du SCHÉMA de carte, le POI répété nommé par son libellé', () => {
     const w = validateScene([base()], wm([
       { id: 'poi-1', label: 'A', pos: { x: 1, y: 1 }, sceneId: 'A' },
       { id: 'poi-1', label: 'B', pos: { x: 2, y: 2 }, serviceKind: 'auberge' },
-    ]));
-    expect(msgs(w).some((m) => /id dupliqué/.test(m))).toBe(true);
+    ], [{ kind: 'auberge' }]));
+    expect(w.filter((x) => x.level === 'error')).toEqual([
+      expect.objectContaining({ scope: 'worldMap', refId: 'poi-1', message: 'B : « poi-1 » dupliqué : « id » identifie l’élément dans sa liste, il y est unique.' }),
+    ]);
+  });
+
+  it('id de POI dupliqué d’un lieu à l’AUTRE → erreur de carte, l’id et le lieu qui le porte déjà sont le sujet', () => {
+    const w = validateScene([base()], {
+      id: 'w', label: 'Carte', routes: [],
+      places: [
+        { ...place([{ id: 'poi-1', label: 'A', pos: { x: 1, y: 1 }, sceneId: 'A' }]), id: 'lieu-1', label: 'Lieu 1' },
+        { ...place([{ id: 'poi-1', label: 'B', pos: { x: 2, y: 2 }, sceneId: 'A' }]), id: 'lieu-2', label: 'Lieu 2' },
+      ],
+    });
+    expect(w.filter((x) => x.level === 'error')).toEqual([
+      expect.objectContaining({ scope: 'worldMap', refId: 'poi-1', message: 'B : POI « poi-1 » déjà posé au lieu « lieu-1 » : un id de POI est unique sur la carte.' }),
+    ]);
   });
 
   it('ni scène ni service (cible absente) → erreur EXCLUSIVE', () => {

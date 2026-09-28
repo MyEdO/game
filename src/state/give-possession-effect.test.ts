@@ -7,11 +7,10 @@ import { useGame } from './store';
 import { applyEffects } from './combatFlow';
 import { EFFECT_HANDLERS } from './combatEffects';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 
 describe('Effet givePossession (#617/#618 Lot 1)', () => {
   beforeEach(() => {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [h], journal: [], possessions: [] });
   });
 

@@ -11,8 +11,7 @@
 // rendre ce qu'il ferait. Idempotent — une seconde passe ne réécrit rien.
 // Usage : node scripts/raw/reparer-ancres.mjs [--dry] [--apply]
 import { writeFileSync } from 'node:fs'
-import { join, resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { join } from 'node:path'
 import { pagesAvecAncres, renvoisMorts, RAWDIR } from './check-ancres.mjs'
 
 /** Les DEUX étages de pliage, dans l'ordre où on les essaie — le plus fidèle d'abord. */
@@ -98,5 +97,4 @@ export function reparer(argv = process.argv.slice(2), rawDir = RAWDIR) {
   return bilan
 }
 
-const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)
-if (isMain) reparer()
+if (import.meta.main) reparer()

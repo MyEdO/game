@@ -18,12 +18,12 @@ export interface SchemaDef {
   /** Racine du dataset — émise par `scripts/gen-registry.mjs`, jamais déclarée par le def. */
   root: RacineDocument;
   /** Schéma zod STRICT du dataset (racine = le tableau/objet exact du JSON). */
-  schema: z.ZodTypeAny;
+  schema: z.ZodType;
   /**
    * Famille du document, MESURÉE sur la structure réelle du dataset et déclarée par son def : elle
    * dit si le document porte des ids de premier niveau (`entite`/`record`) ou n'en porte aucun par
-   * construction (`config`). `scripts/gen-registry.mjs` en fait un contrat FERMÉ contre
-   * `IDS_PAR_DATASET`. En L1b (#1467) la déclaration migre dans l'appel `document(type, famille, …)`.
+   * construction (`config`). `document()` marque la racine d'un document `entite`/`record` ESPACE DE NOMS
+   * (`grammaire/collection-cle.ts`), que la phase 2 de `npm run gen` indexe (`IDS_PAR_ESPACE`).
    */
   famille: FamilleDocument;
   /**
@@ -40,21 +40,4 @@ export interface SchemaDef {
    * scènes) ; `deriveExposition` (`exposition-derivee.ts`) ne dérive de routes que depuis `SCHEMA_DEFS`.
    */
   exposition?: Exposition;
-  /**
-   * Champ DISCRIMINANT du document — celui dont la valeur PARTITIONNE ses entrées (`domain` pour
-   * `materials.json`, #1686). OPTIONNEL : porté par les seuls defs qui exportent `discriminant`.
-   * Émis par `scripts/gen-registry.mjs` depuis ce MÊME export, qui alimente aussi la table
-   * `IDS_PAR_DISCRIMINANT` (`_ids.generated.ts`) : le registre est la source unique AU RUNTIME du
-   * discriminant d'un dataset (recalcul en mémoire de l'éditeur compris), le fichier généré d'ids
-   * n'en étant que la projection figée au commit.
-   */
-  discriminant?: string;
-  /**
-   * CHARGE du document par VALEUR de son discriminant : les clés de charge admises quand `discriminant`
-   * vaut cette valeur (#1686). OPTIONNEL, porté par les seuls defs qui exportent `chargeParDiscriminant`.
-   * C'est ce que l'atelier PRÉSENTE d'une entrée (`chargeDiscriminee`, `validate.ts`, lue par
-   * `src/ui/compendium/CodexEdit.tsx`) : sans lui, un document disjoint ferait éditer à chaque entrée
-   * l'UNION des clés de toutes les autres.
-   */
-  chargeParDiscriminant?: Readonly<Record<string, readonly string[]>>;
 }

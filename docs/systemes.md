@@ -85,6 +85,9 @@ n'exclut pas un usage indirect hors des modules racines déclarés).
 | `ItemIcon` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | `MediaSelect` |  |  |  |  |  |  |  |  |  |  |  |  |  |  | U |  |
 | `gen-registry (_registry.generated)` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| `import.meta.main` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| `descendre/enfantsDe` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
+| `coDescendre/ouverts/pasDeDonnee` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 | `MenuCard/MenuSection/MenuButton/MenuToggle` |  |  |  |  |  |  |  |  | U |  |  |  |  | U |  |  |
 | `ScreenMeta` |  |  |  |  | U |  | U | U |  |  | U |  |  |  | U |  |
 | `Tabs` |  |  |  |  | U |  | U | U |  | U | U |  |  |  | U | U |
@@ -117,6 +120,7 @@ n'exclut pas un usage indirect hors des modules racines déclarés).
 | `PlaqueRow/PlaqueGrid` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | `CreatorStepFrame` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | `Band` |  |  |  |  | U |  | U |  | U | U |  |  |  |  | U |  |
+| `ReglagesApparence/MonsterPartsFields` |  |  |  |  |  |  |  |  |  |  |  |  |  |  | U | U |
 | `HeroSheet` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | `DesignGallery` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | `Stack/Row/Grid/Split` |  | U | U |  | U |  | U | U | U | U | U | U | U | U | U | U |
@@ -139,7 +143,7 @@ n'exclut pas un usage indirect hors des modules racines déclarés).
 | `SpectatorChip` |  |  |  |  |  |  |  |  | U | U |  |  |  |  |  |  |
 | `GearAssignList` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | `RewardRecap` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| `SceneErrorBoundary` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| `SceneErrorBoundary` |  |  |  |  |  |  |  |  |  |  |  |  |  |  | U |  |
 | `LogDrawer` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | `InspectPanel` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | `EquipmentPanel` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
@@ -154,7 +158,12 @@ n'exclut pas un usage indirect hors des modules racines déclarés).
 | `ViewControls` |  |  |  |  |  |  |  |  |  |  |  |  |  |  | U |  |
 | `DrBar` |  | U | U |  | U |  | U | U | U | U | U | U | U |  |  |  |
 | `Coins` |  |  |  |  | U |  | U | U | U | U | U |  | U |  | U |  |
-| `jouerLaSuiteDuCoup / SuiteDeCoup / SuiteDeDefense` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
+| `applyAttackResult / jouerLApresCoup / APRES_COUP / SuiteDeCoup / SuiteDeDefense` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
+| `accesBase / brancherBasesSimulees` |  |  |  |  |  |  |  |  |  |  |  |  |  |  | U | U |
+| `echapperRegex` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| `alternationDe` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| `alternationDeRegex` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| `espacesExtensibles` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | `CLES/communes/vocabulaire` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 | `PaletteDeclaree/PaletteDeCouchePortee` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 | `paletteDEspeceSchema` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
@@ -182,11 +191,18 @@ n'exclut pas un usage indirect hors des modules racines déclarés).
 | `LECTURES_DE_L_ART` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | `garde de la clé de site` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | `estArtDuRig/PERIMETRE_DES_GARDES/corpusDesGardes/LEGACY_VOCAB_FAMILIES` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| `reponsesDuNoeud/testAnnonce/ouvrirDialogue` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
+| `surfaceTientLaMain/SURFACES_HORS_PENDING` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
+| `parUnitesDeCode/parLibelle/replier` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
+| `stockageWeb` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
+| `PlayerText` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
+| `dataLabel` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 
 ## Primitives jamais adoptées par un système déclaré
 
 - `ItemIcon` (src/ui/ItemIcon.tsx) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
 - `gen-registry (_registry.generated)` (scripts/gen-registry.mjs) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
+- `import.meta.main` (scripts/guards/lib/pointDEntree.mjs) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
 - `useLongPress` (src/ui/useLongPress.ts) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
 - `CreatorDice` (src/ui/creator/CreatorDice.tsx) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
 - `CharacterPreview` (src/ui/CharacterPreview.tsx) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
@@ -205,7 +221,6 @@ n'exclut pas un usage indirect hors des modules racines déclarés).
 - `CombatStartSplash` (src/ui/CombatStartSplash.tsx) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
 - `GearAssignList` (src/ui/GearAssignList.tsx) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
 - `RewardRecap` (src/ui/RewardRecap.tsx) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
-- `SceneErrorBoundary` (src/ui/SceneErrorBoundary.tsx) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
 - `LogDrawer` (src/ui/LogDrawer.tsx) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
 - `InspectPanel` (src/ui/InspectPanel.tsx) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
 - `EquipmentPanel` (src/ui/EquipmentPanel.tsx) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
@@ -215,6 +230,10 @@ n'exclut pas un usage indirect hors des modules racines déclarés).
 - `InitiativeStrip` (src/ui/InitiativeStrip.tsx) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
 - `PartyDock` (src/ui/PartyDock.tsx) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
 - `ObjectiveBanner` (src/ui/ObjectiveBanner.tsx) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
+- `echapperRegex` (src/lib/regex.ts) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
+- `alternationDe` (src/lib/regex.ts) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
+- `alternationDeRegex` (src/lib/regex.ts) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
+- `espacesExtensibles` (src/lib/regex.ts) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
 - `isDrawnView` (scripts/guards/lib/partViewAudit.ts) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
 - `SEPARATEUR_DE_CLE/SEPARATEUR_DE_REMEDE/CHAMPS_DE_GROUPE/CHAMP_D_OCCURRENCE/CHAMPS_DE_CLE/CHAMPS_REQUIS/CHAMPS_D_ECHEANCE/CHAMPS_DE_SITE_OBSERVE/EntreeDeSite/Site/Echeance/cleDeSite/groupeDeSite/estEntreeDeSite/estNeuveOuAccrue/sitesEnEntrees/survieDeLecheance` (scripts/guards/lib/stock.mjs) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
 - `FORMAT_MJS/FORMAT_JSON/FORMATS/formatDe/parCleDeSite/lireStockJson/lireEntreesDeSite/texteDeStock/texteEnPlace/entreesRegenerees/comptesParFamille/DECROISSANT/SOUS_LOT/REMESURE/texteRegenere/ecartDeRegeneration/RegenerationDeStock/CollectionRegeneree/PolitiqueDeCroissance` (scripts/guards/lib/stockDeSites.mjs) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
@@ -235,7 +254,7 @@ Portée : fichiers top-level (hors `*.test.ts`) non atteints par la closure d'im
 manifeste. Informatif — inclut les infra partagées (store, types, helpers transverses) qu'aucun système
 unique ne « possède » légitimement ; à trier au fil de l'eau, pas un échec bloquant de ce script.
 
-18 fichier(s) :
+19 fichier(s) :
 
 - `src/engine/axes.ts`
 - `src/engine/mountedManeuvers.ts`
@@ -252,7 +271,8 @@ unique ne « possède » légitimement ; à trier au fil de l'eau, pas un échec
 - `src/state/offresUtilisables.ts`
 - `src/state/preferences.ts`
 - `src/state/registreOffres.ts`
+- `src/state/scenarioFlow.ts`
 - `src/state/sceneEdit.testkit.ts`
 - `src/state/turnEconomy.ts`
 - `src/state/viewLevel.ts`
-<!-- sources-empreinte: ee4eef20fb718c4c6b87a2db8151aff0a7fe21db (1827 fichiers, 2 dossiers) corps: db691347686459963a40eda8e04c90adc9093b4d -->
+<!-- sources-empreinte: 1fe368e5cb86265ef89f37c7322eeee2721dce22 (1846 fichiers, 2 dossiers) corps: abf6e17ea0581f88b5f5e1a75b421a17aa65e9bb -->

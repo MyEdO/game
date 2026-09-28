@@ -237,7 +237,7 @@ export function commitsDe(ref, n, opts = {}) {
  * parce que cette valeur sert de `cwd` et de préfixe de cible. `normaliserRacine` (qui abaisse la
  * casse) ne sert ici qu'aux COMPARAISONS ; l'employer sur la valeur casserait tout chemin
  * case-sensible (mesure du 2026-09-14 : `mkdtempSync` rend 8/8 suffixes porteurs d'une majuscule, et
- * `test:ops` tourne sur `ubuntu-latest`, .github/workflows/ci.yml:10,35).
+ * `test:ops` tourne sur `ubuntu-latest`, `runs-on` du job `build` de .github/workflows/ci.yml).
  * @param {string} cwd @param {typeof lireGit} [git]
  * @returns {{disponible:true, valeur:string}|{disponible:false, raison:string}}
  */

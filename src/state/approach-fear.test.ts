@@ -11,7 +11,6 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { useGame } from './store';
 import { approachFearTrigger, advanceTurn, finishPlayerAction } from './combatFlow';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { testScene } from '../scenes/test-fixture';
 import './combat/triggeredTest'; // effet de bord : applier `triggeredTest` + appliers de cascade
 import { seedBattleRng } from './battleRng';
@@ -199,9 +198,9 @@ describe('Approche du HÉROS vers un ennemi qui le craint (LDB 21 l.27)', () => 
 
   /** Champ de bataille RÉEL (scène + combat + tour du héros) : un ennemi craint le héros, à l'est. */
   function field() {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 2 });
     useGame.setState({ party: [h] });
-    useGame.getState().startScene(testScene);
+    useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');
     useGame.getState().confirmRoundStart();
     const b = useGame.getState().battle!;
@@ -215,6 +214,7 @@ describe('Approche du HÉROS vers un ennemi qui le craint (LDB 21 l.27)', () => 
     E.characteristics['force-mentale'] = 1; // Calme ~imbattable à rater
     H.pos = { x: 6, y: 10 };
     const turn = b.order.indexOf(H.id);
+    expect(turn, 'prémisse : le héros ouvre le round (graine 2)').toBe(0);
     useGame.setState({
       battle: { ...b, turn, action: null, acted: false, movementUsed: 0, movedPreAction: false },
       net: { ...useGame.getState().net, ...NET_SOLO },

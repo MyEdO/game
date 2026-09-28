@@ -11,7 +11,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, it, expect } from 'vitest';
-import { listerArbre } from '../../scripts/guards/lib/lister.mjs';
+import { listerProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs';
 import { parseProject } from '../state/worldMap';
 import { ficheDEntite } from '../state/sceneNpc';
 import { useGame } from '../state/store';
@@ -29,8 +29,8 @@ const legende = (label: string): boolean => label.trim().replace(ARTICLE, '').sp
 
 /** Chaque paquet de scènes avec le bloc narratif qui résout ses presets de PNJ. */
 function paquets(): { scenes: Scene[]; narratif?: NarratifBlock }[] {
-  const out: { scenes: Scene[]; narratif?: NarratifBlock }[] = testScenarios.map((s) => ({ scenes: [s.scene, ...(s.extraScenes ?? [])], narratif: s.narratif }));
-  for (const rel of listerArbre(__dirname, { filtre: (r: string) => r.endsWith('-projet.json') }))
+  const out: { scenes: Scene[]; narratif?: NarratifBlock }[] = testScenarios.map((s) => s.construire()).map((c) => ({ scenes: [c.scene, ...(c.extraScenes ?? [])], narratif: c.narratif }));
+  for (const rel of listerProjetsLivres())
     out.push(parseProject(JSON.parse(readFileSync(join(__dirname, rel), 'utf8'))));
   return out;
 }

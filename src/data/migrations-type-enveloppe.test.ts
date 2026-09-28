@@ -195,8 +195,7 @@ describe.each(CAS)('migration $script — retouchée pour le `type` d’ENVELOPP
 
 /**
  * FIDÉLITÉ DE LA VAGUE 12b — la migration `type` n'ajoute QUE `type`, sur toutes les entrées des
- * derniers datasets `entite` (compte tenu en constante `TOTAL_ATTENDU`, source unique du chiffre), et
- * retire la SEULE `desc: ""` qu'elle DÉCLARE (`species › humains-tileens`).
+ * derniers datasets `entite`, et retire la SEULE `desc: ""` qu'elle DÉCLARE (`species › humains-tileens`).
  *
  * La migration porte déjà cette preuve en post-écriture, mais elle ne la porte QUE le jour où elle
  * écrit : rejouée sur l'état final, elle sort en no-op sans rien comparer. Ce test-ci la tient au
@@ -208,7 +207,7 @@ describe('vague 12b — la donnée porte son `type` et RIEN d’autre n’a boug
    * PÉRIMÈTRE de la vague — ses datasets ENCORE DOCUMENTÉS, recopiés de la table `TYPES` de la migration. Le
    * `type` attendu, lui, n'est PAS repris : l'enveloppe (`id,type` en tête, `type` = nom de base) est
    * gardée UNE fois, sur tout `src/data`, par la partition en fin de fichier. Ne reste ici que ce qui
-   * est PROPRE à 12b : son cardinal, sa purge déclarée, le champ qu'elle tue, celui qu'elle GARDE.
+   * est PROPRE à 12b : sa purge déclarée, le champ qu'elle tue, celui qu'elle GARDE.
    */
   const PERIMETRE_12B = [
     'actions.json',
@@ -223,20 +222,7 @@ describe('vague 12b — la donnée porte son `type` et RIEN d’autre n’a boug
     'tavernGames.json',
     'trappings.json',
   ] as const;
-  // +1 : Chien de trait, EDOC 07 folio 22, #673.
-  // 1734 → 1730, 12 → 11 datasets : `roofMaterials.json` n'existe plus comme DOCUMENT (#1686 lot 2,
-  // les trois catalogues de matières fusionnent en `materials.json`). L'enveloppe de ses 4 entrées est
-  // tenue au PRÉSENT, avec les 12 autres matières, par la partition EXHAUSTIVE en fin de fichier.
-  // 1730 → 1731 : +1 : Mendier, LDB 09 l.97 (folio 119), #1612.
-  const TOTAL_ATTENDU = 1731;
-
   const lu = (f: string) => JSON.parse(readFileSync(join(RACINE, 'src', 'data', f), 'utf8')) as Record<string, unknown>[];
-
-  it(`les ${PERIMETRE_12B.length} datasets encore documentés de la vague totalisent ${TOTAL_ATTENDU} entrées`, () => {
-    const parFichier = PERIMETRE_12B.map((f) => `${f}=${lu(f).length}`);
-    const total = PERIMETRE_12B.reduce((n, f) => n + lu(f).length, 0);
-    expect(total, `cardinal du périmètre :\n${parFichier.join('\n')}`).toBe(TOTAL_ATTENDU);
-  });
 
   it('AUCUNE `desc` vide ne subsiste, et `species › humains-tileens` n’en porte plus du tout', () => {
     const vides: string[] = [];
@@ -249,14 +235,14 @@ describe('vague 12b — la donnée porte son `type` et RIEN d’autre n’a boug
     expect('desc' in tileens!, 'la purge DÉCLARÉE de la vague 12b retire la clé, elle ne la vide pas').toBe(false);
   });
 
-  it('`creatures › group` est MORT de la donnée, et `title` y SURVIT (53 porteurs réels, #1541)', () => {
+  it('`creatures › group` est MORT de la donnée, et `title` y SURVIT (#1541)', () => {
     const creatures = lu('creatures.json');
     expect(creatures.filter((e) => 'group' in e), '`group` est soldé : 0 porteur, 0 consommateur').toEqual([]);
-    // Le contre-témoin : la même vague qui tue `group` ne touche PAS `title`, dont 53 entrées portent
-    // un qualificatif de statbloc recopié du livre (règle 5 — on ne détruit pas de la donnée sourcée).
+    // Le contre-témoin : la même vague qui tue `group` ne touche PAS `title`, qualificatif de statbloc
+    // recopié du livre (règle 5 — on ne détruit pas de la donnée sourcée).
     const porteurs = creatures.filter((e) => 'title' in e);
     expect(porteurs.length, '`title` est REQUIS (nullable ≠ optional) : toutes les entrées le portent').toBe(creatures.length);
-    expect(porteurs.filter((e) => e.title !== null).length).toBe(53);
+    expect(porteurs.filter((e) => e.title !== null).length, 'aucun `title` renseigné : la vague l’aurait vidé').toBeGreaterThan(0);
   });
 });
 

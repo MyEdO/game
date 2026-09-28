@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
 import { itemFromTrappingById } from '../engine/items';
-import { makeRNG } from '../engine/dice';
 import { toBrass } from '../engine/money';
 import { partyMoneyTotal } from './bourseFlow';
 import type { MerchantState } from './merchantFlow';
@@ -10,7 +9,7 @@ import type { MerchantState } from './merchantFlow';
 // Panier de VENTE (#22b) : parité avec l'achat, sans dupliquer la logique (prix via `sellGain`).
 describe('Panier de vente (#22b)', () => {
   function setup() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     const a = itemFromTrappingById('hallebarde')!;
     const b = itemFromTrappingById('dague')!;
     hero.items = [a, b];

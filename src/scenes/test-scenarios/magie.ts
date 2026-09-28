@@ -3,7 +3,9 @@ import { buildScene } from '../../state/mapSpec';
 import { flowFromEffects } from '../../state/flow';
 import { clone, makePriest, makeSorceress, makeFlagellant } from './_casters';
 import type { TestScenario } from './_shared';
+import type { Scene } from '../../state/scene';
 import type { Combatant, CharKey } from '../../engine/types';
+import { sexeSchema } from '../../data/schemas/grammaire/valeurs';
 
 /**
  * « Magie en combat » : LA grande bataille magique, qui réunit le concile (toutes les familles curées),
@@ -12,7 +14,7 @@ import type { Combatant, CharKey } from '../../engine/types';
  * la fiche d'Aelindra (PX), traverser l'Influence corruptrice (exposition → mutation possible), puis
  * franchir la ligne pour engager le combat.
  */
-const scene = buildScene({
+const construireScene = (): Scene => buildScene({
   id: 'test-magie',
   label: 'Magie en combat',
   desc: 'Arène de test.',
@@ -110,7 +112,7 @@ function makeMagicParty(): Combatant[] {
   // Varie l'apparence des prêtres (sinon clones visuels de la même base) — alterne sexe et carrure.
   priests.forEach((pr, i) => {
     if (!pr.appearance) return;
-    pr.appearance.sex = i % 2 ? 'F' : 'M';
+    pr.appearance.sex = sexeSchema.options[i % sexeSchema.options.length];
     pr.appearance.build = 0.5 + (i % 4) * 0.06;
   });
 
@@ -134,7 +136,6 @@ export const scenario: TestScenario = {
     'clic-case + Surincantation, Péché → Colère (Prêtre, 3 Péchés), Corruption (zone de Malepierre → mutation, ' +
     'Aelindra proche du seuil), mémorisation aux PX, Psychologie (Peur/Terreur de l’Envoûteuse).',
   partyNote: 'Aelindra (Haute Sorcière + Nécromancie) + 10 Prêtres (un par dieu de combat) + flagellant + Tueur',
-  makeParty: makeMagicParty,
-  scene,
+  construire: () => ({ party: makeMagicParty(), scene: construireScene() }),
   // pas d'autoCombat : exploration (mémorisation, exposition à la Corruption) PUIS combat via le trigger.
 };

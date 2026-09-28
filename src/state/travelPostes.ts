@@ -20,7 +20,7 @@ import {
   travelActivitySpec, applyTravelActivityResult, aggregateActivityOutcomes, activityById,
   type ActivityDef, type TravelActivityResult,
 } from '../engine/activities';
-import type { SkillRef } from '../engine/skills';
+import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { refLabel, weatherStakeRef, voyageStakeRef } from '../data';
 import { stageEncounterCategory } from '../engine/travelEncounter';
 import { rollEncounter, type EncounterCategory } from '../engine/travelTables';
@@ -79,7 +79,7 @@ export interface StageContext {
 }
 
 /** Reconstruit une réf de compétence libre depuis le meta sérialisé d'une étape. */
-function freeSkillFromMeta(meta?: CascadeStepMeta): SkillRef | undefined {
+function freeSkillFromMeta(meta?: CascadeStepMeta): RefDesignee | undefined {
   const id = meta?.freeSkillId;
   return typeof id === 'string' ? { id, spec: typeof meta?.freeSkillSpec === 'string' ? meta.freeSkillSpec : undefined } : undefined;
 }
@@ -206,7 +206,7 @@ export function buildStageSteps(get: Get, set: Set, weather: Weather, season: Se
  *   - Exténué (EDOC 8 l.133) → op `condition` APPLIQUÉ par `applyOps`, ligne DÉRIVÉE via `opConsequenceLine` ;
  *   - issues individuelles (Récupérer/Pratiquer/Recueillir infos) → notes narratives.
  *  Partagé par le pas d'affichage (`stagePoste`, sans Test) et le pas BATCH (`stagePosteBatch`, avec Test). */
-function applyPoste(get: Get, set: Set, hero: Combatant, def: ActivityDef, freeSkill: SkillRef | undefined, roll: { roll: number; target: number; sl: number; success: boolean } | null): Consequence[] {
+function applyPoste(get: Get, set: Set, hero: Combatant, def: ActivityDef, freeSkill: RefDesignee | undefined, roll: { roll: number; target: number; sl: number; success: boolean } | null): Consequence[] {
   const spec = travelActivitySpec(hero, def, { freeSkill });
   const r = applyTravelActivityResult({ ...spec, actorId: hero.id }, def, roll);
   const plan = get().travelPlan;

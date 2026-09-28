@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { reverseGroups, bookContents, labelIndex, tokenizeLinks } from './relations';
 import { invalidateCodexLookup } from './registry';
 import { setDataset } from '../../data/overrides';
+import { replier } from '../../lib/ordre.mjs';
 import { creatures, traits, gods, trappings, skills, talents, careerLevels, etats, locations, characteristics, findCareerById, findLocationById } from '../../data';
 
 /** Un groupe inverse de catégorie `cat` contient-il `label` ? */
@@ -21,7 +22,7 @@ describe('relations — graphe inverse id-based', () => {
 
   it('sort → culte qui l’accorde (inversion de gods.blessings/miracles), avec détail', () => {
     const g = gods.find((x) => x.blessings.length > 0)!;
-    const spellId = g.blessings[0].id;
+    const spellId = g.blessings[0];
     const groups = reverseGroups('spells', spellId);
     const godGroup = groups.find((gr) => gr.category === 'gods');
     expect(godGroup?.referrers.some((r) => r.label === g.label && r.detail === 'Bénédiction')).toBe(true);
@@ -94,7 +95,7 @@ describe('relations — graphe inverse id-based', () => {
 
   it('tokenizeLinks lie le vocabulaire de règles, écarte soi-même et l’inconnu', () => {
     // Une compétence dont le libellé est auto-liable (≥4, non ambigu) doit être tokenisée en lien.
-    const s = skills.find((x) => x.label.length >= 4 && labelIndex().get(x.label.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase())?.category === 'skills')!;
+    const s = skills.find((x) => x.label.length >= 4 && labelIndex().get(replier(x.label))?.category === 'skills')!;
     const toks = tokenizeLinks(`Effectuez un Test de ${s.label} pour réussir.`);
     const link = toks.find((t) => typeof t === 'object' && t.label === s.label);
     expect(link).toBeTruthy();
@@ -109,7 +110,7 @@ describe('relations — graphe inverse id-based', () => {
     const idx = labelIndex();
     const t = traits.find((x) => x.label.length >= 4)!;
     // Un libellé unique se résout vers sa catégorie ; un libellé absent → undefined.
-    const hit = idx.get(t.label.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase());
+    const hit = idx.get(replier(t.label));
     // (peut être absent si homonyme entre catégories — mais alors c'est volontairement écarté, pas une fausse résolution)
     if (hit) expect(hit.label).toBe(t.label);
     expect([...idx.keys()].every((k) => k.length >= 4)).toBe(true);
@@ -265,7 +266,6 @@ describe('relations — graphe inverse id-based', () => {
     const traitId = c.traits[0].id;
     const renamed = `${c.label} (renommé-test-relations)`;
     const before = [...creatures]; // snapshot des références d'origine pour restauration
-    const fold = (s: string): string => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
     try {
       // Index construits sur l'ancienne donnée.
       expect(groupHas(reverseGroups('traits', traitId), 'creatures', c.label)).toBe(true);
@@ -278,7 +278,7 @@ describe('relations — graphe inverse id-based', () => {
       expect(groupHas(groups, 'creatures', renamed)).toBe(true);
       expect(groupHas(groups, 'creatures', c.label)).toBe(false);
       // Et l'index de libellés (auto-liage), dérivé du catalogue, suit aussi : nouveau libellé résolu.
-      expect(labelIndex().get(fold(renamed))?.label).toBe(renamed);
+      expect(labelIndex().get(replier(renamed))?.label).toBe(renamed);
     } finally {
       setDataset('creatures', before);
       invalidateCodexLookup();

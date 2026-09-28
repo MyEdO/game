@@ -164,7 +164,7 @@ describe('craftCatalog / orderCatalog', () => {
 });
 
 describe('learnableTalents — « un Talent en dehors de votre Carrière » (ch.23 l.59)', () => {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'T', rng: makeRNG(7) });
+  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'T', seed: 1 });
   it('exclut les talents de la Carrière courante (eux passent par l’Avancement)', () => {
     const labels = learnableTalents(hero).map((t) => t.label);
     // « Guerrier né » est un talent du Soldat Niveau 1 (Recrue) → exclu de l'Apprentissage.
@@ -182,8 +182,10 @@ describe('learnableTalents — « un Talent en dehors de votre Carrière » (ch.
     const lt = learnableTalents(hero);
     const fresh = lt.find((x) => !hero.talents.some((t) => talentConcrete(t) === x.label))!;
     expect(fresh.xpCost).toBe(100); // 1re acquisition
-    // Chanceux est déjà pris 1× (tirage de création) → la 2e acquisition coûte 200 PX.
-    expect(lt.find((x) => x.label === 'Chanceux')!.xpCost).toBe(200);
+    // Un Talent déjà pris 1× (tirage de création) → la 2e acquisition coûte 200 PX.
+    const deja = lt.find((x) => hero.talents.some((t) => talentConcrete(t) === x.label && t.times === 1));
+    expect(deja, 'prémisse : un Talent acquis une fois à la création reste apprenable').toBeDefined();
+    expect(deja!.xpCost).toBe(200);
     expect(fresh.tutorMinBrass).toBe(tutorCostRange(fresh.xpCost).minBrass);
     expect(tutorCostRange(250)).toEqual({ minBrass: 3 * 2 * 12, maxBrass: 3 * 20 * 12 }); // 3 tranches
   });
@@ -231,13 +233,13 @@ describe('catalogue d’Activités data-driven (activities.json)', () => {
     expect(carto.extended?.drPerStage).toBe(2);
     expect(carto.skills).toEqual([
       { id: 'metier', spec: 'cartographe' },
-      { id: 'art', spec: 'Dessin' },
+      { id: 'art', spec: 'dessin' },
     ]);
   });
 });
 
 describe('resolveTravelActivity — résolveur PUR par POSTE (un héros désigné, EDOC 8 l.131)', () => {
-  const mk = () => createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', rng: makeRNG(3) });
+  const mk = () => createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
 
   it('Activité SANS Test (Récupérer) : succès direct + stageOutcome pour l’acteur désigné', () => {
     const hero = mk();
@@ -260,14 +262,14 @@ describe('resolveTravelActivity — résolveur PUR par POSTE (un héros désign�
   it('compétence « au choix » spec-aware : la MEILLEURE de L’ACTEUR l’emporte (Cartographe vs Dessin)', () => {
     const hero = mk();
     hero.skills.push({ id: 'metier', spec: 'cartographe', characteristic: 'dexterite', advances: 60 });
-    hero.skills.push({ id: 'art', spec: 'Dessin', characteristic: 'dexterite', advances: 10 });
+    hero.skills.push({ id: 'art', spec: 'dessin', characteristic: 'dexterite', advances: 10 });
     const r = resolveTravelActivity(hero, activityById('etablir-cartes')!, makeRNG(5), { stages: 3 });
     // cible = meilleure des DEUX spec de l'acteur (Cartographe +60 > Dessin +10), Difficulté Intermédiaire (+0).
     // Les specs se demandent par ID (#1341) : par libellé, `testValue` ne trouvait RIEN et l'attendu
     // tombait sur la caractéristique nue — l'égalité tenait entre deux valeurs FAUSSES.
     const expected = Math.max(
       testValue(hero, 'metier', undefined, 'cartographe'),
-      testValue(hero, 'art', undefined, 'Dessin'), // `art` n'a pas d'id `dessin` au catalogue (dit au rendu)
+      testValue(hero, 'art', undefined, 'dessin'),
     );
     expect(r.target).toBe(expected);
     expect(r.drTarget).toBe(6); // Test étendu : drPerStage(2) × Étapes(3)
@@ -279,15 +281,16 @@ describe('resolveTravelActivity — résolveur PUR par POSTE (un héros désign�
   });
 
   it('le modificateur de compétence (météo) décale la cible du Test', () => {
-    const hero = mk();
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 2 });
     const a = resolveTravelActivity(hero, activityById('plein-air')!, makeRNG(7), { skillMod: 0 });
     const b = resolveTravelActivity(hero, activityById('plein-air')!, makeRNG(7), { skillMod: -30 });
+    expect(b.target, 'prémisse : la cible −30 reste au-dessus du plancher de 1').toBeGreaterThan(1);
     expect((a.target ?? 0) - (b.target ?? 0)).toBe(30); // même jet, cible −30
   });
 });
 
 describe('postes d’Étape : assignation héros → Activité + agrégation (EDOC 8 l.131)', () => {
-  const mk = (n: string) => createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: n, rng: makeRNG(3) });
+  const mk = (n: string) => createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: n, seed: 3 });
 
   it('toute issue d’ACTIVITÉ de voyage a une classification d’agrégation', () => {
     for (const a of activitiesFor('voyage')) {
@@ -324,7 +327,7 @@ describe('postes d’Étape : assignation héros → Activité + agrégation (ED
 });
 
 describe('rôle de marche persistant (travelRole) — « les mêmes au même poste »', () => {
-  const mk = (n: string) => createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: n, rng: makeRNG(3) });
+  const mk = (n: string) => createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: n, seed: 3 });
 
   it('defaultTravelRole : poste où la meilleure compétence du héros est la plus haute', () => {
     const guetteur = mk('G');
@@ -485,7 +488,7 @@ describe('entrainementTutorCost — « PX + 1D10 sous de cuivre » (LDB 23 l.132
 
 describe('entrainementOptions — Compétences/Caractéristiques HORS carrière seulement (LDB 23 l.130-136)', () => {
   it('exclut les Caractéristiques DE la carrière (Soldat : CC/End/FM), inclut les autres, PX déjà doublé hors carrière (LDB 07 l.91)', () => {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     const opts = entrainementOptions(h);
     const chars = opts.filter((o) => o.kind === 'characteristic');
     expect(chars.every((o) => !o.advanced)).toBe(true);
@@ -499,7 +502,7 @@ describe('entrainementOptions — Compétences/Caractéristiques HORS carrière 
     expect(soc!.xpCost).toBeGreaterThan(0);
   });
   it('marque `advanced` pour les Compétences Avancées, jamais pour une Compétence de Base', () => {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     const opts = entrainementOptions(h);
     const skillOpts = opts.filter((o) => o.kind === 'skill');
     expect(skillOpts.length).toBeGreaterThan(0);

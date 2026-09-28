@@ -83,10 +83,11 @@ const VITEST_SANS_BILAN = TRACE(
   "process.stderr.write('No test files found, exiting with code 1\\n')\n" + 'process.exit(1)\n',
 )
 
-/** `--coverage` force le lancement mono-processus (drapeau global à un seul processus). `coeurs`
- *  force la machine VUE par le lanceur (même levier qu'au chemin partagé) : les bornes de charge en
- *  dépendent, un cas qui laisse parler le matériel du runner mesure la machine, pas le lanceur. */
-function lance(base, args = [], coeurs) {
+/** `--coverage` force le lancement mono-processus (drapeau global à un seul processus). `coeurs` et
+ *  `memoireMo` forcent la machine VUE par le lanceur (même levier qu'au chemin partagé) : les bornes
+ *  de charge en dépendent, un cas qui laisse parler le matériel du runner mesure la machine, pas le
+ *  lanceur. Des cœurs forcés sans mémoire forcée gardent une mémoire qui ne borne pas. */
+function lance(base, args = [], coeurs, memoireMo = 65536) {
   const trace = join(base, 'argv.json')
   const run = spawnSync(process.execPath, [join(base, 'scripts', 'test', 'run.mjs'), '--coverage', ...args], {
     cwd: base,
@@ -96,7 +97,9 @@ function lance(base, args = [], coeurs) {
       FORCE_COLOR: '3',
       TRACE_ARGV: trace,
       ...SANS_VERROU,
-      ...(coeurs === undefined ? {} : { WFRP_TEST_COEURS: String(coeurs) }),
+      ...(coeurs === undefined
+        ? {}
+        : { WFRP_TEST_COEURS: String(coeurs), WFRP_TEST_MEMOIRE_MO: String(memoireMo) }),
     },
   })
   const cache = join(base, 'node_modules', '.cache')
@@ -141,10 +144,14 @@ test('capture : en-tête d’emblée, sortie tee-ée, `status:` en queue, chemin
  *  `status:` dernière du fichier. Un pont d'outillage qui tronque la queue garde ainsi la mesure. */
 function verifierOrdreDiag({ run, capture, chemin }) {
   const diagSortie = run.stdout.split('\n').filter((l) => l.startsWith('[diag] '))
-  assert.equal(diagSortie.length, 3, `bloc [diag] absent ou incomplet en sortie : ${run.stdout}`)
-  assert.match(diagSortie[0], /^\[diag\] machine : \d+ cœurs · [\d.]+ Go · (mono|partagé) \(seuil 7\) · maxWorkers=/)
+  assert.equal(diagSortie.length, 4, `bloc [diag] absent ou incomplet en sortie : ${run.stdout}`)
+  assert.match(
+    diagSortie[0],
+    /^\[diag\] machine : \d+ cœurs · [\d.]+ Go · disponible [\d.]+ Go → (\d+ workers? portés?|mémoire insuffisante pour un worker \(\d+ Mo < \d+ Mo\)) · réserve de [12] parents? · borné par (cœurs|(mémoire|plancher) \(\d+ cœurs servis\)) · (mono|partagé) \(seuil 7\) · maxWorkers=/,
+  )
   assert.match(diagSortie[1], /^\[diag\] mémoire système max : [\d.]+ Go \/ [\d.]+ Go \(\d+ %\) · rss lanceur max \d+ Mo · fenêtre [\d.]+ s$/)
   assert.match(diagSortie[2], /^\[diag\] sentinelles : act hors act \d+ · /)
+  assert.match(diagSortie[3], /^\[diag\] tas max d'un worker : (non relevé|\d+ Mo) \/ \d+ Mo/)
   assert.equal(run.stdout.trimEnd().split('\n').pop(), `capture : ${chemin}`)
   assert.ok(run.stdout.indexOf('[diag] machine') < run.stdout.indexOf('capture : '), 'résumé avant [diag]')
 
@@ -194,10 +201,13 @@ test('bornes de charge : paire injectée par défaut, JAMAIS doublée si l’app
   const sansBorne = fauxDepot(VITEST_VERT)
   const petiteMachine = fauxDepot(VITEST_VERT)
   const avecBorne = fauxDepot(VITEST_VERT)
+  const memoirePauvre = fauxDepot(VITEST_VERT)
   try {
     assert.deepEqual(lance(sansBorne, [], 16).argv.slice(0, 3), ['run', '--minWorkers=1', '--maxWorkers=4'])
     // Plafond `min(4, cœurs − 1)` sur le chemin RÉEL du lanceur, pas seulement dans la fonction pure.
     assert.deepEqual(lance(petiteMachine, [], 4).argv.slice(0, 3), ['run', '--minWorkers=1', '--maxWorkers=3'])
+    // La mémoire disponible borne sur le chemin RÉEL : 5 000 Mo ne portent pas un worker, le plancher en sert un.
+    assert.deepEqual(lance(memoirePauvre, [], 16, 5000).argv.slice(0, 3), ['run', '--minWorkers=1', '--maxWorkers=1'])
 
     const borne = lance(avecBorne, ['--minWorkers=2'], 16)
     assert.equal(borne.run.status, 0, `run en échec : ${borne.run.stdout}${borne.run.stderr}`)
@@ -206,14 +216,14 @@ test('bornes de charge : paire injectée par défaut, JAMAIS doublée si l’app
     const maxs = borne.argv.filter((a) => /^--max-?[wW]orkers(=|$)/.test(a))
     assert.equal(maxs.length, 0, `borne injectée par-dessus : ${borne.argv.join(' ')}`)
   } finally {
-    for (const base of [sansBorne, petiteMachine, avecBorne]) rmSync(base, { recursive: true, force: true })
+    for (const base of [sansBorne, petiteMachine, avecBorne, memoirePauvre]) rmSync(base, { recursive: true, force: true })
   }
 })
 
 // ── Chemin PARTAGÉ (deux processus Vitest) ────────────────────────────────────────────────────
 // Les trois cas ci-dessus forcent `--coverage`, donc le lancement MONO : le chemin réellement servi
-// par `npm test` (le partage node/jsdom) n'était couvert par aucun d'eux. `WFRP_TEST_COEURS` force
-// le seuil de partage, sinon le verdict dépendrait du nombre de cœurs du runner.
+// par `npm test` (le partage node/jsdom) n'était couvert par aucun d'eux. `WFRP_TEST_COEURS` et
+// `WFRP_TEST_MEMOIRE_MO` forcent le seuil de partage, sinon le verdict dépendrait du runner.
 const VITEST_SPLIT =
   "import fs from 'node:fs'\n" +
   'const argv = process.argv.slice(2)\n' +
@@ -243,6 +253,7 @@ test('partage node/jsdom : DEUX processus, sorties préfixées par côté, les d
         ...process.env,
         TRACE_ARGV: trace,
         WFRP_TEST_COEURS: '16',
+        WFRP_TEST_MEMOIRE_MO: '65536',
         ...SANS_VERROU,
         TRACE_FICHIERS: JSON.stringify([cote.node, cote.jsdom].map((p) => p.split('\\').join('/'))),
       },

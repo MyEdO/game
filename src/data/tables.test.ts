@@ -5,7 +5,7 @@ import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
 import { fileURLToPath } from 'node:url';
 import { effectTables, findEffectTableById, mutationTables } from './index';
 import { TABLE_ORPHAN_RATCHET } from '../../scripts/guards/lib/tableConsumerStock.mjs';
-import { cleDeSite, ecartDuVolet, type EntreeDeSite } from '../../scripts/guards/lib/stock.mjs';
+import { cleDeSite, ecartDuVolet, remedeNomme, type EntreeDeSite } from '../../scripts/guards/lib/stock.mjs';
 import { MOTIF_DECLARATION, regenerations, sitesTableOrpheline } from '../../scripts/guards/lib/tableConsumerAudit';
 import { ecartDeRegeneration, texteEnPlace } from '../../scripts/guards/lib/stockDeSites.mjs';
 
@@ -136,7 +136,7 @@ describe('cliquet — toute table d’effets a un CONSOMMATEUR (donnée écrite,
       fichier: 'src/data/tables.json', ref: 'table-qui-n-existe-pas', occurrence: 1,
     }];
     const { perimees } = ecartOrphelines(gonfle);
-    expect(perimees.some((l) => l.includes(cleDeSite(gonfle[gonfle.length - 1])))).toBe(true);
-    expect(perimees.some((l) => l.includes('entrée SOLDÉE'))).toBe(true);
+    expect(remedeNomme(perimees, cleDeSite(gonfle[gonfle.length - 1]))).toBe(true);
+    expect(remedeNomme(perimees, 'entrée SOLDÉE')).toBe(true);
   });
 });

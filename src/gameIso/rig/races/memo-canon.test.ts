@@ -8,7 +8,8 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { raceById, RACES, DEFAULT_RACE_ID } from './index';
+import { raceById, RACES } from './index';
+import { DEFAULT_RACE_ID } from '../../../data';
 
 const SRC = readFileSync(fileURLToPath(new URL('./index.ts', import.meta.url)), 'utf8');
 

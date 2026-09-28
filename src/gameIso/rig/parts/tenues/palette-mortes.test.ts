@@ -8,6 +8,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, it, expect } from 'vitest';
+import { sexeSchema } from '../../../../data/schemas/grammaire/valeurs';
 import { resolveRig } from '../../composeRig';
 import { bonesToSvg } from '../../renderBones';
 import { asRigSpeciesId } from '../../appearance';
@@ -56,7 +57,7 @@ describe('déclarations de palette mortes (#1903)', () => {
   it('aucune clé déclarée par une tenue, une arme ou une armure n’est peinte par aucun rendu', () => {
     const fautes: string[] = [];
     for (const d of TENUE_DEFS) if (d.palette)
-      fautes.push(...mortes(`tenue:${d.id}`, d.palette, texte(d.set), () => ESPECES.flatMap((species) => (['M', 'F'] as const).flatMap((sex) =>
+      fautes.push(...mortes(`tenue:${d.id}`, d.palette, texte(d.set), () => ESPECES.flatMap((species) => sexeSchema.options.flatMap((sex) =>
         VIEWS.map((v) => bonesToSvg(resolveRig({ species, sex, build: 0.5, seed: 1 }, { weapons: [], armour: [] }, {}, d.id, v))))).join('\n')));
     for (const d of WEAPON_DEFS) if (d.palette) {
       const w = { label: d.slug, type: 'melee', damage: { plusBF: false, flat: 0 }, qualities: [], shape: d.slug, skin: {} } as unknown as Weapon;

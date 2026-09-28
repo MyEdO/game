@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { useGame } from './store';
-import { KEYBINDINGS, effectiveCodes } from './keybindings';
+import { KEYBINDINGS, bindingApplies, effectiveCodes } from './keybindings';
 
 /**
  * #199 — résidu de recette : en mode Pousser, les flèches positionnaient bien le curseur (aperçu
@@ -14,7 +14,7 @@ import { KEYBINDINGS, effectiveCodes } from './keybindings';
  */
 function dispatch(code: string, s: ReturnType<typeof useGame.getState>, controlFocused: boolean) {
   return KEYBINDINGS.find(
-    (k) => effectiveCodes(k, {}).includes(code) && (!k.notWhenControlFocused || !controlFocused) && k.when(s),
+    (k) => effectiveCodes(k, {}).includes(code) && (!k.notWhenControlFocused || !controlFocused) && bindingApplies(k, s),
   );
 }
 
@@ -31,8 +31,9 @@ describe('#199 — Entrée commet la poussée MÊME avec le focus résiduel du b
 
   it('flux complet clavier (arène 42-belier-porte) : 2 flèches + Entrée EXÉCUTENT la poussée (positions changent, moveSnapshot posé)', async () => {
     const { scenario } = await import('../scenes/test-scenarios/42-belier-porte');
-    useGame.setState({ party: scenario.makeParty() });
-    useGame.getState().startScene(scenario.scene);
+    const { party, scene } = scenario.construire();
+    useGame.setState({ party });
+    useGame.getState().startScene(scene);
     useGame.getState().startCombat('siege-belier');
     useGame.getState().confirmRoundStart();
     const b0 = useGame.getState().battle!;
@@ -56,8 +57,9 @@ describe('#199 — Entrée commet la poussée MÊME avec le focus résiduel du b
 
   it('« Annuler dépl. » défait une poussée commise au CLAVIER (chemin clic déjà couvert par push-cancel-move.test.ts)', async () => {
     const { scenario } = await import('../scenes/test-scenarios/42-belier-porte');
-    useGame.setState({ party: scenario.makeParty() });
-    useGame.getState().startScene(scenario.scene);
+    const { party, scene } = scenario.construire();
+    useGame.setState({ party });
+    useGame.getState().startScene(scene);
     useGame.getState().startCombat('siege-belier');
     useGame.getState().confirmRoundStart();
     const b0 = useGame.getState().battle!;

@@ -294,7 +294,34 @@
     "fichier": "scripts/gen-registry.mjs",
     "concept": "registre-par-defs auto-chargé (dépose un fichier → intégré)",
     "perimetre": "tout dataset extensible (créatures, tenues, armes, sons, icônes…)",
-    "verrou": "npm run gen && git diff --exit-code"
+    "verrou": "npm run docs:check (ligne `GENERATORS` de scripts/docs/build-all.mjs)"
+  },
+  {
+    "id": "pointDEntree",
+    "type": "primitives.manifest",
+    "label": "import.meta.main",
+    "fichier": "scripts/guards/lib/pointDEntree.mjs",
+    "concept": "ce module est-il le point d'entrée du processus (lancé, pas importé)",
+    "perimetre": "tout script de scripts/ et server/ qui porte un main",
+    "verrou": "src/point-d-entree-guard.test.ts"
+  },
+  {
+    "id": "descendre",
+    "type": "primitives.manifest",
+    "label": "descendre/enfantsDe",
+    "fichier": "src/data/schemas/grammaire/descente.ts",
+    "concept": "descente d'un arbre de schémas zod : enfants d'un nœud avec leur segment de path, parcours en largeur, identité par appel, élagage ou arrêt par le visiteur",
+    "perimetre": "toute lecture qui marche un schéma zod : validation, introspection des docs générés, gardes de grammaire, Codex",
+    "verrou": "src/data/schemas/grammaire/descente.test.ts"
+  },
+  {
+    "id": "coDescendre",
+    "type": "primitives.manifest",
+    "label": "coDescendre/ouverts/pasDeDonnee",
+    "fichier": "src/data/schemas/grammaire/descente.ts",
+    "concept": "co-descente d'une donnée et de son schéma zod : à chaque point de la donnée, ses nœuds de schéma ouverts (enveloppes, intersections, branches d'union filtrées par le discriminant de la donnée), sa valeur et son chemin, sans valider",
+    "perimetre": "toute lecture qui retrouve le schéma d'un point de donnée : collections à clé d'un document, lieu d'une faute",
+    "verrou": "src/data/schemas/grammaire/co-descente.test.ts"
   },
   {
     "id": "menuCard",
@@ -594,6 +621,16 @@
     "verrou": "réflexe avant tout bandeau de rubrique recodé"
   },
   {
+    "id": "reglagesApparence",
+    "type": "primitives.manifest",
+    "label": "ReglagesApparence/MonsterPartsFields",
+    "fichier": "src/ui/editor/MonsterPartsFields.tsx",
+    "css": "src/ui/styles/reglages-apparence.css",
+    "concept": "réglages d’une apparence, liste des réglages rendus en donnée, toute écriture par apparenceSuivante",
+    "perimetre": "rubrique Apparence de l’Inspecteur, du Narratif, du Codex et du créateur",
+    "verrou": "apparence-une-rubrique.test.tsx"
+  },
+  {
     "id": "heroSheet",
     "type": "primitives.manifest",
     "label": "HeroSheet",
@@ -835,7 +872,8 @@
     "css": "src/ui/styles/error-boundary.css",
     "poseurs": [
       "src/ui/App.tsx",
-      "src/ui/CampaignView.tsx"
+      "src/ui/CampaignView.tsx",
+      "src/ui/editor/Editor.tsx"
     ],
     "concept": "filet d’un crash de RENDU : capture, journalise, et montre un panneau de reprise en français au lieu de l’écran noir",
     "perimetre": "autour du stage (scène iso/POV), autour de tout l’écran de jeu (#225)",
@@ -1009,11 +1047,56 @@
   {
     "id": "suiteDuCoup",
     "type": "primitives.manifest",
-    "label": "jouerLaSuiteDuCoup / SuiteDeCoup / SuiteDeDefense",
+    "label": "applyAttackResult / jouerLApresCoup / APRES_COUP / SuiteDeCoup / SuiteDeDefense",
     "fichier": "src/state/combatFlow.ts",
-    "concept": "ce qu'un site fera APRÈS son coup, déclaré en DONNÉE à l'entrée (enchaînement, attaque gratuite, drapeaux du coup) et joué par une écriture unique à la reprise — y compris quand une fenêtre de défense s'interpose",
-    "perimetre": "toute frappe qui peut être suspendue : balayage, gratuites de créature et de talent, attaque pilotée, sauvegarde, Déviation",
-    "verrou": "src/state/defense-suite.test.ts"
+    "concept": "un COUP = application + après-coup, une écriture : l'après-coup est une liste ordonnée de temps (`APRES_COUP` : Maladresses, réaction, suite) ; ce qu'un site fera APRÈS son coup est déclaré en DONNÉE à l'entrée, et une fenêtre ouverte emporte le TEMPS où reprendre — y compris quand une fenêtre de défense s'interpose",
+    "perimetre": "toute frappe qui peut être suspendue : balayage, gratuites de créature et de talent, attaque pilotée, sauvegarde, Déviation, Maladresse, casse d'arme",
+    "verrou": "src/state/apres-coup.test.ts"
+  },
+  {
+    "id": "indexedDb",
+    "type": "primitives.manifest",
+    "label": "accesBase / brancherBasesSimulees",
+    "fichier": "src/lib/indexedDb.ts",
+    "concept": "base locale IndexedDB `{ nom, version, upgrade }` : disponibilité, ouverture bornée (délai, bloqué, un seul règlement, #776), une connexion par opération ; sa poignée `accesBase` rend ses magasins typés (`lire`, `lireTout`, `ecrire`, `supprimer`, clé composée comprise) et la vide en une transaction (`vider`) ; sa doublure de test `brancherBasesSimulees` (`src/lib/indexedDb.testkit.ts`) route toute ouverture sur une base simulée par nom, à transactions atomiques et pannes ciblées, derrière la seule couture `__setOuvertureIdbForTest`",
+    "perimetre": "tout magasin IndexedDB : bibliothèque de projets, calque de référence, sauvegarde automatique de l'éditeur, dossier src/data de l'atelier du Codex",
+    "verrou": "src/lib/indexedDb.test.ts"
+  },
+  {
+    "id": "echapperRegex",
+    "type": "primitives.manifest",
+    "label": "echapperRegex",
+    "fichier": "src/lib/regex.ts",
+    "concept": "échapper une chaîne pour une regex",
+    "perimetre": "toute chaîne insérée telle quelle dans une regex, en `src/` comme en `scripts/`",
+    "verrou": "regex.test.ts"
+  },
+  {
+    "id": "alternationDe",
+    "type": "primitives.manifest",
+    "label": "alternationDe",
+    "fichier": "src/lib/regex.ts",
+    "concept": "alternation de chaînes, échappées, la plus longue d'abord",
+    "perimetre": "toute alternation de chaînes cherchées telles quelles ; une variation par chaîne passe par `parChaine`",
+    "verrou": "regex.test.ts"
+  },
+  {
+    "id": "alternationDeRegex",
+    "type": "primitives.manifest",
+    "label": "alternationDeRegex",
+    "fichier": "src/lib/regex.ts",
+    "concept": "alternation de fragments de regex, ordre gardé",
+    "perimetre": "toute alternation dont un élément est un fragment de regex",
+    "verrou": "regex.test.ts"
+  },
+  {
+    "id": "espacesExtensibles",
+    "type": "primitives.manifest",
+    "label": "espacesExtensibles",
+    "fichier": "src/lib/regex.ts",
+    "concept": "chaque espace accepte une suite de blancs",
+    "perimetre": "toute chaîne échappée dont les espaces acceptent des blancs variables, seule ou en `parChaine` d'`alternationDe`",
+    "verrou": "regex.test.ts"
   },
   {
     "id": "clesDePalette",
@@ -1209,7 +1292,7 @@
     "type": "primitives.manifest",
     "label": "ast",
     "fichier": "scripts/guards/lib/dialecte.mjs",
-    "concept": "AST mémoïsé d'un fichier lu, dans le dialecte de son extension",
+    "concept": "AST d'un fichier lu, dans le dialecte de son extension",
     "perimetre": "toute garde qui parse un fichier",
     "verrou": "—"
   },
@@ -1257,5 +1340,59 @@
     "concept": "l'art du rig (estArtDuRig) ; les trois familles du second nom (de l'art, d'un concept de l'art, de la table totale) ; le périmètre des gardes et son corpus",
     "perimetre": "garde-fou commentaires et toute garde qui lit le périmètre des gardes",
     "verrou": "comment-poison-guard.test.ts"
+  },
+  {
+    "id": "reponsesDuNoeud",
+    "type": "primitives.manifest",
+    "label": "reponsesDuNoeud/testAnnonce/ouvrirDialogue",
+    "fichier": "src/state/dialogue.ts",
+    "concept": "ce qu'une réponse de dialogue OFFRE et ANNONCE, dérivé de sa donnée : liste VISIBLE (filtre when, rang affiché, index de donnée, verdict d'offre) et Test déclaré par son flux, en ids stables",
+    "perimetre": "la fenêtre de dialogue et les touches dialogue-choice-1..9 — toute surface qui sert une réponse",
+    "verrou": "src/scenes/dialogue-label-sans-test.test.ts (le libellé ne recopie jamais le Test de son flux)"
+  },
+  {
+    "id": "surfaceTientLaMain",
+    "type": "primitives.manifest",
+    "label": "surfaceTientLaMain/SURFACES_HORS_PENDING",
+    "fichier": "src/state/modalArbiter.ts",
+    "concept": "une surface PARTAGÉE (état de jeu que tous les sièges voient) tient la main : verdict UNIQUE de l'arbitre, dérivé des modales du registre, des fenêtres HORS-modale qui se déclarent tientLaMain et des surfaces partagées hors pending* (marché, taverne, document, carte du monde, port, marché de terre, écran plein). Les surfaces PAR SIÈGE (fiche, menu système, codex, écrans ouverts par un joueur) n'y entrent jamais : elles vivent dans la pile des couches du client (dismissStack.modalKindsOpen)",
+    "perimetre": "le VERBE qui s'exécute chez l'hôte : conversationRepond (chooseDialogue, touches dialogue-choice-N) ; la marche tenue (stageWalk.marcheAutorisee, avec la pile des couches pour l'écran du siège)",
+    "verrou": "src/state/dialogue-surface-tient-la-main.test.ts (un contrat par surface partagée + contrat coop : l'écran par siège de l'hôte ne refuse pas l'invité) ; src/ui/dialogue-couche-du-dessus.test.tsx (couche du dessus) ; src/state/stageWalk.test.ts"
+  },
+  {
+    "id": "ordreTotal",
+    "type": "primitives.manifest",
+    "label": "parUnitesDeCode/parLibelle/replier",
+    "fichier": "src/lib/ordre.mjs",
+    "concept": "comparateurs d'ORDRE TOTAL sans locale ni ICU : parUnitesDeCode pour un chemin, un id ou une clé ; parLibelle pour un libellé lu par le joueur (marques, casse, ligatures et ponctuation repliées, départage par unités de code) ; replier replie un libellé comparé, et le composent norm (src/lib/normalize.ts), la recherche et l'auto-liage du Codex, dialogueLibelle, parseSizeLabel et skillSpecWalk (par norm)",
+    "perimetre": "tout tri de chaînes sous le mur de l'ordre total : ses globs (eslint.config.js) et la clôture des générateurs de dérivés (scripts/guards/lib/lister.test.mjs, volet (c)) ; un module d'UI qu'aucun générateur n'atteint garde la collation du navigateur ; scripts/guards/lib/lister.mjs les ré-exporte",
+    "verrou": "mur de l'ordre total d'eslint.config.js (localeCompare, toLocale*, Intl refusés) ; scripts/guards/lib/lister.test.mjs, volet (c), sur la clôture des générateurs"
+  },
+  {
+    "id": "stockageWeb",
+    "type": "primitives.manifest",
+    "label": "stockageWeb",
+    "fichier": "src/lib/stockageWeb.ts",
+    "concept": "accès protégé aux deux stockages web (`localStorage`, `sessionStorage`), paramétré par le genre : `null` s’il manque ou si son accès lève (mode privé strict, iframe sandbox, hors navigateur) ; chaque site garde ses clés et sa sérialisation",
+    "perimetre": "tout site qui lit ou écrit un stockage web — localStorage : sauvegardes de partie, roster, miroir et tombes de la bibliothèque de projets, préférences, règles maison, raccourcis, audio, atomes persistés de l’UI ; sessionStorage : jeton de siège coop, dernier scénario de recette",
+    "verrou": "src/lib/stockageWeb.test.ts ; src/stockage-web-exclusivity-guard.test.ts (aucun accès au stockage web hors src/lib/stockageWeb.ts ; une clé de stockage écrite une fois)"
+  },
+  {
+    "id": "playerText",
+    "type": "primitives.manifest",
+    "label": "PlayerText",
+    "fichier": "src/i18n/playerText.ts",
+    "concept": "marque de TYPE du texte destiné à l'œil du joueur, sorti d'un minteur ; un `string` nu ne lui est pas assignable",
+    "perimetre": "tout champ de texte AFFICHÉ au joueur (étape de cascade, portes du seam de jet)",
+    "verrou": "src/state/built-brand-lint.test.ts, src/state/player-text-ratchet.test.ts"
+  },
+  {
+    "id": "dataLabel",
+    "type": "primitives.manifest",
+    "label": "dataLabel",
+    "fichier": "src/data/index.ts",
+    "concept": "minteur (b) : passage d'un texte AUTHORÉ de la donnée à l'affichage, rendu en `PlayerText`",
+    "perimetre": "tout libellé de donnée montré au joueur (clé : l'id, `docs/doctrines.md`, user-doctrine-ids-stables-labels-affichage)",
+    "verrou": "src/state/built-brand-lint.test.ts, src/state/player-text-ratchet.test.ts"
   }
 ]

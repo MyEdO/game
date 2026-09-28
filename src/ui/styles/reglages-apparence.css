@@ -1,0 +1,17 @@
+/* Réglages d'apparence (ReglagesApparence, MonsterPartsFields) : libellé et contrôle sur une ligne ;
+   le contrôle prend la place restante et se BRIDE à sa piste (un `<select>` se dimensionne sinon sur
+   son option la plus longue et déborde de la colonne). */
+.reglage-apparence {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-sm);
+  font-size: 12px;
+  margin: var(--sp-2xs) 0;
+  color: var(--muted);
+}
+.reglage-apparence select,
+.reglage-apparence input[type='range'] {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 100%;
+}

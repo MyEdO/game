@@ -73,7 +73,6 @@ const HORS_SURFACE_UI: Record<string, string> = {
   closePossessionsScreen: CLIENT('écran Possessions'),
   // ── Exploration (miroir V1) ───────────────────────────────────────────────────────────────────
   markExplored: MIROIR('brouillard de guerre'),
-  startScene: MIROIR('transition de scène'),
   openWorldMap: MIROIR('carte du monde'),
   closeWorldMap: MIROIR('carte du monde'),
   startTravel: MIROIR('départ en voyage'),
@@ -211,9 +210,6 @@ const HORS_SURFACE_UI: Record<string, string> = {
   importGame: HOTE('import de sauvegarde'),
   loadProject: HOTE('éditeur de campagne'),
   setPendingCampaign: HOTE('bibliothèque de campagnes'),
-  setParty: HOTE('écran de scénarios de test'),
-  startCombat: HOTE('écran de scénarios de test'),
-  startMassBattle: HOTE('écran de scénarios de test'),
   netHostStart: 'session réseau elle-même (héberger) — jamais un intent',
   netJoin: 'session réseau elle-même (rejoindre) — jamais un intent',
   netLeave: 'session réseau elle-même (quitter) — jamais un intent',

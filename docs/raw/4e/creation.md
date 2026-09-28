@@ -235,7 +235,7 @@ Trois options, dans l'ordre :
 
 ### Compétences et Talents liés à la Race
 
-> « Vous pouvez sélectionner 3 Compétences auxquelles ajouter 5 Augmentations chacune, et 3 Compétences auxquelles ajouter 3 Augmentations chacune. »
+> « Vous pouvez sélectionner 3 Compétences auxquelles ajouter 5 Augmentations à chacune, et 3 Compétences auxquelles ajouter 3 Augmentations à chacune. »
 > — LDB 05 l.484
 
 `LDB 05 l.483-553`
@@ -283,12 +283,12 @@ Trois options, dans l'ordre :
 | 47–49 | Imitation | 95–97 | Vision nocturne |
 | 50–52 | Imperturbable | 98–00 | Vivacité |
 
-**Si un Talent déjà possédé est obtenu, relancer.** `LDB 05 l.484`
+> « Si vous tombez sur un Talent que vous possédez déjà, vous pouvez relancer. » `LDB 05 l.484`
 
 ### Compétences et Talents de Carrière
 
-> « Vous commencez au premier niveau de Carrière. Il y a 8 Compétences et 4 Talents répertoriés à ce niveau. Répartissez 40 Points d'Augmentations entre vos huit Compétences de départ, sans dépasser plus de 10 Points alloués à une seule Compétence à ce stade. Vous pouvez choisir un unique Talent. »
-> — LDB 05 l.535-547
+> « Vous commencez au premier niveau de Carrière listé sur votre Évolution de Carrière. Il y a 8 Compétences et 4 Talents répertoriés à ce niveau, et vous pouvez choisir ceux qui vous conviennent le mieux. Répartissez 40 Points d'Augmentations entre vos huit Compétences de départ, sans dépasser plus de 10 Points alloués à une seule Compétence à ce stade. […] Vous pouvez aussi choisir un unique Talent à apprendre. »
+> — LDB 05 l.535
 
 `LDB 05 l.534-553`
 
@@ -351,7 +351,7 @@ Voir le **Chapitre 3 : Classes et Carrières** pour les possessions spécifiques
 
 `LDB 05 l.722-728`
 
-> « Tailles moyennes : nain (1,45 m), elfe (1,90 m), halfling (1 m). Les humains ont des tailles qui varient beaucoup plus, se situant dans une moyenne de 1m75 dans le Reikland. Si l'un des dés obtient un 10, lancez un dé supplémentaire et ajoutez le résultat (humains seulement). »
+> « Les tailles moyennes sont : nain (1,45 mètre), elfe (1,90 mètre), halfling (1 mètre). Les humains ont des tailles qui varient beaucoup plus, se situant dans une moyenne de 1m75 dans le Reikland. Si vous voulez une taille vraiment aléatoire pour les humains, si l'un des dés obtient un 10, lancez un dé supplémentaire et ajoutez le résultat à la hauteur totale. »
 
 | Race | Formule |
 |------|---------|

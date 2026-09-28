@@ -63,7 +63,7 @@ interface Row { inst: RawTraitInstance; def: TraitData | undefined; where: strin
  *  d'instance qu'un scénario de test). Un projet d'éditeur reste une SOURCE de données comme un
  *  scénario ou le bestiaire : la même dérive (libellé tapé à la main au lieu de l'id) s'y produit
  *  (#146, même classe que #145/#142) — plus d'exclusion par nature de fichier. */
-const scenesToScan: Scene[] = [...testScenarios.map((s) => s.scene), ...parseProject(areneProjetJson).scenes];
+const scenesToScan: Scene[] = [...testScenarios.map((s) => s.construire().scene), ...parseProject(areneProjetJson).scenes];
 
 /** Statblocs D'AUTEUR des scénarios de test/projets d'éditeur — même schéma d'instance que le
  *  bestiaire (id-based), soumis aux mêmes invariants #1/#2/#3. Balaie

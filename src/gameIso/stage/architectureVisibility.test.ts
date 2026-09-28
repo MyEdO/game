@@ -8,7 +8,7 @@ import { emptyScene, heightAt, type BuildingMass, type Scene, type WallSeg } fro
 import { actorCapsuleOf } from './actorCapsule';
 import { buildWalls } from '../builders/walls';
 import { buildFloors } from '../builders/floors';
-import { diligenceCampaign } from '../../scenes/campaign';
+import { diligenceCampaign, paquetDuJeu } from '../../scenes/campaign';
 import { sceneZoneTiles } from '../../state/zones';
 import { computeStateVisible } from '../../state/visionState';
 
@@ -131,7 +131,7 @@ describe('dégagement — une seule loi pour toits et façades, sur un bâti SAN
 /** La carte authorée « La Diligence » est une donnée VIVANTE : on n'y mesure que des RELATIONS —
  *  aucun compte ni aucune pièce nommée en dur, tout se re-dérive de la carte à la lecture. */
 describe('dégagement — chemin réel (La Diligence)', () => {
-  const scene = diligenceCampaign.scenes[0];
+  const scene = paquetDuJeu(diligenceCampaign).scenes[0];
   const masses = effectiveArchitecture(scene)
     .flatMap((corps) => corps.masses.map((masse) => ({ masse, cells: massFootprintCells(masse.footprint) })));
   const travees = (pieceId: string) =>
@@ -156,7 +156,7 @@ describe('dégagement — chemin réel (La Diligence)', () => {
  *  être RETIRÉ d'un bloc, à l'échelle de la masse. La condition se DÉRIVE de la carte (une case de
  *  rez couverte par une masse qui ne descend pas jusqu'à elle), jamais d'un id écrit en dur. */
 describe('dégagement — le couvercle au-dessus du groupe (La Diligence)', () => {
-  const scene = diligenceCampaign.scenes[0];
+  const scene = paquetDuJeu(diligenceCampaign).scenes[0];
   const masses = effectiveArchitecture(scene)
     .flatMap((corps) => corps.masses.map((masse) => ({ masse, cells: massFootprintCells(masse.footprint) })));
   /** Masse en SURPLOMB d'un niveau qu'elle ne couvre pas : l'étage porté au-dessus d'un passage. */
@@ -289,7 +289,7 @@ describe('vue — une nappe se peint quand le groupe la VOIT (#950)', () => {
   /** Carte VIVANTE : aucune valeur absolue — seule la RELATION est mesurée. Le groupe sous un toit
    *  voit STRICTEMENT moins de nappes que le même groupe sorti à l'air libre. */
   it('sur la carte réelle, être dessous montre STRICTEMENT moins de nappes qu’être dehors', () => {
-    const scene = diligenceCampaign.scenes[0];
+    const scene = paquetDuJeu(diligenceCampaign).scenes[0];
     const masses = effectiveArchitecture(scene)
       .flatMap((corps) => corps.masses.map((masse) => ({ masse, cells: massFootprintCells(masse.footprint) })));
     const couvertes = new Set(masses.flatMap(({ masse, cells }) => (masse.z === 0 ? [...cells] : [])));
@@ -321,7 +321,7 @@ describe('vue — une nappe se peint quand le groupe la VOIT (#950)', () => {
  *  Le montage est celui de l'hôte du monde (`stage/MondeDeCampagne`), pas une reconstruction : vision réelle, `clearedSpace`,
  *  nappes projetées et capsule d'acteur. */
 describe('occlusion d’écran — une masse qui CACHE sans abriter reste peinte (La Diligence)', () => {
-  const scene = diligenceCampaign.scenes[0];
+  const scene = paquetDuJeu(diligenceCampaign).scenes[0];
   const dims: Dims = { ...scene.dimensions, rot: 0, view: 'iso' };
   const lids: Lid[] = buildRoofs(scene).map((el) => ({
     sectionId: el.sectionId ?? el.key, z: el.cell.z, cells: el.cells, occluder: elOccluder(el, dims),

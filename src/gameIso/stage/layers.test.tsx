@@ -6,7 +6,8 @@ import { buildRoofs } from '../builders/roofs';
 import type { Dims } from '../../geometry/iso';
 import { wallLayerObjs, wallTraitObjs } from './layers';
 import { scenario as entrainement } from '../../scenes/test-scenarios/entrainement';
-import { diligenceCampaign } from '../../scenes/campaign';
+import { diligenceCampaign, paquetDuJeu } from '../../scenes/campaign';
+const entrainementConstruit = entrainement.construire();
 
 /**
  * Couche des MURS au trait (plan de station, aperçu d'éditeur). Les couches de SOLS et de TOITS
@@ -66,7 +67,7 @@ function tuilesPleines(s: Scene, z = 0): number {
 
 describe('trait d’obstacle — éléments de mur ET tuiles à bloc plein', () => {
   it('SCÈNE À GRILLE RÉELLE (terrain d’entraînement) : des tuiles mur ⇒ des traits', () => {
-    const s = entrainement.scene;
+    const s = entrainementConstruit.scene;
     expect(tuilesPleines(s), 'témoin : le muret de couvert est bien authoré en tuiles').toBe(4);
     expect(buildWalls(s, undefined, { activeZ: 0, viewZ: 0 }), 'témoin : et en AUCUN segment de mur').toHaveLength(0);
     // Muret contigu de 4 cases en colonne : le CONTOUR fait 10 arêtes (4 + 4 + 1 + 1), jamais 16.
@@ -74,7 +75,7 @@ describe('trait d’obstacle — éléments de mur ET tuiles à bloc plein', () 
   });
 
   it('SCÈNE BÂTIE RÉELLE (La Diligence) : les segments continuent de porter le trait, sans doublon', () => {
-    const s = diligenceCampaign.scenes[0];
+    const s = paquetDuJeu(diligenceCampaign).scenes[0];
     const segments = buildWalls(s, undefined, { activeZ: 0, viewZ: 0 }).length;
     expect(segments).toBeGreaterThan(0);
     // Aucune tuile pleine sur cette scène : le compte de traits est EXACTEMENT celui des segments.

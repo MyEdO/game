@@ -1,7 +1,7 @@
 // Rapport des ENTITÉS DE DONNÉES sans consommateur — GÉNÉRÉ. Sortie : docs/orphelines-donnees.md.
-// Re-run : node scripts/docs/build-entity-orphans.mjs (npm run docs:orphelines). Mode --check
-// (chaîné dans npm run docs:check) : régénère en mémoire, compare au .md committé, exit 1 si diff —
-// jamais d'écriture en mode --check. Corpus/détection PARTAGÉS avec la garde cliquet
+// Re-run : node scripts/docs/build-entity-orphans.mjs (npm run docs:orphelines).
+// Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/empreinte-sources.mjs), rejoué par `build-all.mjs`.
+// Corpus/détection PARTAGÉS avec la garde cliquet
 // `src/data/entity-orphans.test.ts` : scripts/guards/lib/entityConsumers.mjs.
 //
 // Objet : la mesure INVERSE des gardes RAW du dépôt (`check-doc-refs.mjs`, `check-refs.mjs`…), qui
@@ -24,10 +24,8 @@
 //   `trappings` — le stock marchand est bâti par PRÉDICAT sur des catégories déclarées EN DONNÉE
 //   (`state/merchantFlow.ts:194-201` filtre `trappings` par `arch.category` de `merchants.json`),
 //   chaîne hors grammaire MODE 2 (son `.map` rend un objet, pas `t.id`) — #1631.
-//   Le canal LABEL (`findSpell`/`findTrappingByLabel`/`findCreature`, src/data/index.ts) n'est PAS
-//   cette raison : mesuré 2026-09, `findTrappingByLabel` et `findCreature` n'ont AUCUN appelant, et
-//   `findSpell` en a trois (`data/pregens.ts:72`, `gameIso/rig/anim/spellClips.ts:57`,
-//   `ui/creator/draft.ts:819`) — un détecteur id-OU-label ne réconcilierait pas ces catalogues.
+//   Le canal LABEL (`findSpell`, src/data/index.ts) n'est PAS cette raison : un détecteur
+//   id-OU-label ne réconcilierait pas ces catalogues.
 //   Les ~99 autres `src/data/*.json` (hors ces 10 catalogues) sont HORS PÉRIMÈTRE de ce générateur.
 //
 // `creatures` EST AU PÉRIMÈTRE depuis #1553 L3 (2026-09), et le passage a tranché ce qui la retenait :
@@ -97,7 +95,7 @@
 // peut pas remplacer une recherche `ctx_search`/AST ciblée sur un champ précis.
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { emitOrCheck } from './lib/jsdocUnion.mjs'
+import { ecrireOuVerifier } from './lib/empreinte-sources.mjs'
 import {
   CATEGORY_FILES, EXCLUDED_CATEGORY_FILES, loadCategoryIds, buildConsumerCorpus, isConsumed,
   predicatDeConsommation,
@@ -179,7 +177,7 @@ for (const [cat, orphans] of Object.entries(orphansByCategory)) {
   out += `\n`
 }
 
-emitOrCheck({
+ecrireOuVerifier({
   out,
   path: OUT,
   check: process.argv.includes('--check'),

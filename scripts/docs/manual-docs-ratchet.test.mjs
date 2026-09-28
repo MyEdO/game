@@ -12,7 +12,7 @@
 // « GÉNÉRÉ par `npx tsx …` ».
 //
 // Second volet (#903 suite) — le marqueur ne suffit pas à qualifier un doc de « généré » : rien ne
-// vérifiait que le script cité existe ni qu'il est chaîné dans `docs:check`. C'est exactement le
+// vérifiait que le script cité existe ni qu'il est une ligne de `GENERATORS`. C'est exactement le
 // trou par lequel `docs/sorts-implementation.md` a pourri (en-tête GÉNÉRÉ, aucun script `npm`,
 // aucun `--check`, absent de la CI — 160 sorts d'écart mesurés avant correction). Ce fichier
 // verrouille que le marqueur ENGAGE réellement son générateur.
@@ -24,7 +24,7 @@ import { fileURLToPath } from 'node:url'
 import { listerDossier } from '../guards/lib/lister.mjs'
 import { MANUAL_DOCS_STOCK } from '../guards/lib/manualDocsStock.mjs'
 import { ecartsDeStock } from '../guards/lib/stock.mjs'
-import { NON_GENERATOR_CHECKS, checkedScripts } from './build-all.mjs'
+import { GENERATORS } from './build-all.mjs'
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url))
 const DOCS_DIR = join(ROOT, 'docs')
@@ -98,14 +98,10 @@ function generatedDocs() {
     .map(({ file, text }) => ({ file, head: text.split('\n').slice(0, 10).join('\n') }))
 }
 
-const PACKAGE_JSON = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'))
-// La CI joue `npm run docs:check` TEL QUEL (`ci.yml`) : le script EST la chaîne jouée.
-const DOCS_CHECK_SCRIPT = PACKAGE_JSON.scripts?.['docs:check'] ?? ''
-// Source UNIQUE des générateurs vérifiés : `docs:check` ne les nomme plus un à un, il délègue à
-// `build-all.mjs --check`. Parser la chaîne npm ne mesurerait plus rien.
-const CHECKED = checkedScripts()
+// Source UNIQUE des dérivés vérifiés : `GENERATORS`, que `build-all.mjs --check` rejoue un à un.
+const CHECKED = new Set(GENERATORS.map((g) => g.script))
 
-test('tout doc `GÉNÉRÉ par` cite un script qui existe et qui est chaîné en --check dans docs:check', () => {
+test('tout doc `GÉNÉRÉ par` cite un script qui existe et qui est une ligne de GENERATORS', () => {
   const violations = generatedDocs().flatMap(({ file, head }) => {
     const script = extractGeneratorScript(head)
     if (!script) {
@@ -121,21 +117,12 @@ test('tout doc `GÉNÉRÉ par` cite un script qui existe et qui est chaîné en 
     }
     if (!CHECKED.has(script)) {
       violationsForDoc.push(
-        `docs/${file} se déclare GÉNÉRÉ par "${script}" — absent (ou sans mode --check) de GENERATORS dans scripts/docs/build-all.mjs, la source unique que docs:check exécute : le marqueur pourrit en silence, non gardé par la CI`,
+        `docs/${file} se déclare GÉNÉRÉ par "${script}" — absent de GENERATORS dans scripts/docs/build-all.mjs, la source unique que docs:check vérifie : le marqueur pourrit en silence, non gardé par la CI`,
       )
     }
     return violationsForDoc
   })
   assert.deepEqual(violations, [])
-})
-
-test('docs:check exécute BIEN la source unique et ses vérificateurs purs', () => {
-  assert.ok(
-    DOCS_CHECK_SCRIPT.includes('scripts/docs/build-all.mjs --check'),
-    'docs:check ne délègue plus à la source unique',
-  )
-  const manquants = NON_GENERATOR_CHECKS.filter((s) => !DOCS_CHECK_SCRIPT.includes(s))
-  assert.deepEqual(manquants.map((s) => `${s} n'est plus chaîné par docs:check`), [])
 })
 
 /**

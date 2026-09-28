@@ -18,7 +18,7 @@ Tu exécutes une spec précise fournie par l'orchestrateur — tu n'inventes ni 
   tombale.
 - **Auto-contrôle = le test de TON périmètre** (`node --test <fichier>`, `npx vitest run <fichiers>`,
   `npm run typecheck:fast` si du `.ts` bouge) et l'exécution réelle de l'outil livré en lecture seule.
-  Les GATES du train (lint, deps:unused, docs:check, suites entières, `npm run gates`, tsc/vitest nus)
+  Les GATES du train (lint, deps:unused, docs:check:tout, suites entières, `npm run gates`, tsc/vitest nus)
   appartiennent à `ops:publier`, jouées UNE fois par l'orchestrateur : un brief qui te les impose se
   REFUSE (« BRIEF REFUSÉ : gates hors périmètre ») — et `scripts/hooks/codeur-gates-guard.mjs` les
   bloque de toute façon.

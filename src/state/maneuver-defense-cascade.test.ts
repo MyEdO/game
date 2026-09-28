@@ -14,7 +14,6 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { aiCreatureFreeAttacks, applyAreaAttack } from './combatFlow';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { testScene } from '../scenes/test-fixture';
 import { creatureAttacks } from '../engine/creatureAttacks';
 
@@ -27,10 +26,10 @@ describe('Défense de manœuvre de zone — cascade influençable (héros) vs si
 
   /** Groupe de 2 héros NON surpris (donc capables de se défendre) + 1 ennemi à Souffle (Feu) à portée. */
   function setup() {
-    const H1 = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H1', rng: makeRNG(1) });
-    const H2 = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H2', rng: makeRNG(2) });
+    const H1 = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H1', seed: 1 });
+    const H2 = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H2', seed: 2 });
     useGame.setState({ party: [H1, H2] });
-    useGame.getState().startScene(testScene);
+    useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');
     useGame.getState().confirmRoundStart();
     vi.clearAllTimers();

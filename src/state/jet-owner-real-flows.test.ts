@@ -23,7 +23,6 @@ import { seedBattleRng } from './battleRng';
 import { setCadence, resetCadence, cadenceAuto } from '../engine/cadence';
 import { testScene } from '../scenes/test-fixture';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import type { Combatant, Weapon } from '../engine/types';
 
 const NET0 = useGame.getState().net;
@@ -83,7 +82,7 @@ describe('#1015 — sonde 1 : `corruption` sous une fenêtre PRIORITAIRE d’un 
     const a = mk('a', 'hero', { x: 0, y: 0 }, { characteristics: { ...chars, 'force-mentale': 10, endurance: 10 } });
     const b = mk('b', 'hero', { x: 2, y: 0 });
     const e = mk('e', 'enemy', { x: 3, y: 0 });
-    useGame.setState({ battle: arena([a, b, e]), mode: 'battle', scene: testScene, net: NET_COOP, party: [] });
+    useGame.setState({ battle: arena([a, b, e]), mode: 'battle', scene: testScene(), net: NET_COOP, party: [] });
     // Flux RÉEL : le seuil de Corruption est franchi → `gainCorruption` POSE `pendingCorruption`.
     gainCorruption(g, useGame.setState, a, 12);
     expect(g().pendingCorruption?.heroId, 'précondition : le Test de seuil du héros `a` est ouvert').toBe('a');
@@ -106,10 +105,10 @@ describe('#1015 — sonde 2 : `heal` par un SOIGNEUR PNJ (hors `actorIn`)', () =
     // roule sur une valeur BAKÉE (`p.skillValue`, drapeau `actorless`, rollFlowSpecs.ts:349-350 :
     // « L'INFLUENCE (Chance/Résilience) reste gérée à part par la fabrique via `spec.actor` (no-op si
     // l'acteur est un PNJ). »).
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Blessé', rng: makeRNG(1) });
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Blessé', seed: 1 });
     hero.id = 'b';
     hero.wounds = { ...hero.wounds, current: hero.wounds.max - 5 };
-    useGame.setState({ battle: null, mode: 'exploration', scene: testScene, party: [hero], net: NET_COOP });
+    useGame.setState({ battle: null, mode: 'exploration', scene: testScene(), party: [hero], net: NET_COOP });
     openMedic(g, useGame.setState, { patientId: 'b', npc: { id: 'medecin-de-scene', label: 'Barbier-chirurgien', skill: { id: 'guerison', value: 45 }, intBonus: 3, acts: [{ act: 'wounds' }] } });
     medicAct(g, useGame.setState, 'wounds');
     expect(g().pendingHeal?.healerId, 'précondition : le soigneur est le PNJ de scène').toBe('medecin-de-scene');
@@ -123,7 +122,7 @@ describe('#1015 — sonde 3 : `run` en cadence NON manuelle', () => {
     expect(cadenceAuto(), 'précondition : cadence non manuelle').toBe(true);
     const a = mk('a', 'hero', { x: 0, y: 0 });
     const e = mk('e', 'enemy', { x: 6, y: 0 });
-    useGame.setState({ battle: arena([a, e]), mode: 'battle', scene: testScene, net: NET_COOP, party: [] });
+    useGame.setState({ battle: arena([a, e]), mode: 'battle', scene: testScene(), net: NET_COOP, party: [] });
     g().battleRun({ x: 3, y: 0 });
     expect(g().pendingRun?.combatantId, 'précondition : la Course du héros `a` est ouverte').toBe('a');
     for (const i of RUN_VERBS) expect(seats(i), `${i} (Rapide)`).toEqual([true, false, false]);
@@ -139,7 +138,7 @@ describe('#1015 — sonde 4 : `disengage`, Test OPPOSÉ — le porteur est le MO
     // est l'ennemi conduit par le siège MJ — deux sièges DIFFÉRENTS, ce qui rend la sonde discriminante.
     const a = mk('a', 'hero', { x: 0, y: 0 }, { engagedWith: ['e'] });
     const e = mk('e', 'enemy', { x: 1, y: 0 }, { engagedWith: ['a'], advantage: 0 });
-    useGame.setState({ battle: arena([a, e]), mode: 'battle', scene: testScene, net: NET_COOP, party: [] });
+    useGame.setState({ battle: arena([a, e]), mode: 'battle', scene: testScene(), net: NET_COOP, party: [] });
     g().battleDisengage();
     const pd = g().pendingDisengage!;
     expect([pd.moverId, pd.foeId], 'précondition : mover et foe sont deux sièges DIFFÉRENTS').toEqual(['a', 'e']);
@@ -152,10 +151,10 @@ describe('#1015 — sonde 4 : `disengage`, Test OPPOSÉ — le porteur est le MO
 
 describe('#1015 — sonde 5 : `activity` (hors combat) — accord avec la route `interlude*`', () => {
   it('le propriétaire du héros joue son Activité, et les deux routes d’`intentAllowedFor` concordent', () => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'charlatan', label: 'H', rng: makeRNG(1) });
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'charlatan', label: 'H', seed: 1 });
     hero.id = 'b';
     useGame.setState({ party: [hero], battle: null, interlude: null, bank: [], pendingOrders: [], pendingActivity: null, net: NET_COOP });
-    g().startScene(testScene);
+    g().startScene(testScene());
     useGame.setState({ net: NET_COOP });
     g().startInterlude(3);
     draineCascade(useGame.getState); // les dés d'Événement sont des étapes de séquence : elle se joue avant les Activités
@@ -171,17 +170,17 @@ describe('#1015 — sonde 6 : SOLO bit-à-bit', () => {
   it('en COMBAT (Course) : le siège unique garde TOUS les verbes', () => {
     const a = mk('a', 'hero', { x: 0, y: 0 });
     const e = mk('e', 'enemy', { x: 6, y: 0 });
-    useGame.setState({ battle: arena([a, e]), mode: 'battle', scene: testScene, net: NET_SOLO, party: [] });
+    useGame.setState({ battle: arena([a, e]), mode: 'battle', scene: testScene(), net: NET_SOLO, party: [] });
     g().battleRun({ x: 3, y: 0 });
     expect(g().pendingRun?.combatantId).toBe('a');
     for (const i of RUN_VERBS) expect(intentAllowedFor(g(), 0, i, argsOf(i)), i).toBe(true);
   });
 
   it('HORS COMBAT (Activité d’interlude) : idem', () => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'charlatan', label: 'H', rng: makeRNG(2) });
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'charlatan', label: 'H', seed: 2 });
     hero.id = 'a';
     useGame.setState({ party: [hero], battle: null, interlude: null, bank: [], pendingOrders: [], pendingActivity: null, net: NET_SOLO });
-    g().startScene(testScene);
+    g().startScene(testScene());
     useGame.setState({ net: NET_SOLO });
     g().startInterlude(3);
     draineCascade(useGame.getState); // les dés d'Événement sont des étapes de séquence : elle se joue avant les Activités

@@ -9,6 +9,7 @@ import type { Combatant } from './types';
 import { applyOps, resolveFormula } from './ops';
 import { spells, findSpellById, type SpellData } from '../data';
 import { spellOps } from '../state/flow';
+import { spellSupportOf } from './spellspec';
 
 function hero(p: Partial<Combatant> = {}): Combatant {
   return {
@@ -66,5 +67,22 @@ describe('registre curé — couverture & désambiguïsation', () => {
     const taal = spells.find((s) => s.label === 'Enchevêtrement' && s.ecole === 'Invocation');
     expect(arcane?.ecole).toBe('Magie des Arcanes');
     expect(taal?.ecole).toBe('Invocation');
+  });
+});
+
+describe('spellSupport — seul ce qui PRODUIT un effet compte mécanique', () => {
+  const sansOp = (p: Partial<SpellData>): SpellData => ({
+    ...findSpellById('explosion')!, missile: false, curated: true, effects: { kind: 'seq', steps: [] },
+    target: { kind: 'area', span: 'diameter', meters: 8 }, ...p,
+  });
+
+  it('une ZdE sans op ne fait que choisir des cibles : narratif, curée ou non', () => {
+    expect(spellSupportOf(sansOp({}))).toBe('narratif');
+    expect(spellSupportOf(sansOp({ curated: false }))).toBe('narratif');
+  });
+
+  it('la touche d’un Projectile et l’attaque du Souffle produisent un effet sans op', () => {
+    expect(spellSupportOf(sansOp({ missile: true }))).toBe('mecanique');
+    expect(spellSupportOf(sansOp({ breathAttack: true }))).toBe('mecanique');
   });
 });

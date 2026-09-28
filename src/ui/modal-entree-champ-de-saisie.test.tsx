@@ -141,7 +141,7 @@ describe('Modal — un contrôle porté par PORTAL possède ses touches (fronti�
   it('une COUCHE ouverte au-dessus de la boîte se referme d’abord — la modale reste ouverte', () => {
     clicks = 0; escapes = 0;
     let surfaces = 0;
-    const Surface = () => { useDismissLayer('surface-portee', () => { surfaces += 1; }); return null; };
+    const Surface = () => { useDismissLayer('surface-portee', 'modale', () => { surfaces += 1; }); return null; };
     const Scene = ({ portee }: { portee: boolean }) => (
       <Modal title="Jet" variant="roll" onClose={() => { escapes += 1; }}>
         <div className="modal-actions">

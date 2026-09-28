@@ -64,6 +64,7 @@ export function ecartDuVolet(p: {
 }): EcartsDeStock;
 
 export function nombresAccrus(observe: Iterable<object>, stock: Iterable<object>, ou?: string): string[];
+export function remedeNomme(lignes: readonly string[], cle: string): boolean;
 
 export function refusDeCroissance<M, S>(
   mesurees: Iterable<M>,

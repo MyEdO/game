@@ -2,6 +2,8 @@ import { BONE_IDS, type BoneId, type Bone, type Skeleton } from './bones';
 import { worldTransforms, apply } from './kinematics';
 import { gabaritById, type GabaritDef } from './gabarits';
 import speciesRaceJson from '../../data/speciesRace.json';
+import { DEFAULT_RACE_ID } from '../../data';
+import type { Sexe } from '../../data/schemas/grammaire/valeurs';
 
 function mk(spec: Record<BoneId, Omit<Bone, 'id'>>): Skeleton {
   const sk = {} as Skeleton;
@@ -71,11 +73,11 @@ function scaleSkeleton(sk: Skeleton, sl: number, st: number): Skeleton {
 }
 
 type SpeciesRule = { prefix?: string[]; includes?: string[]; all?: string[]; any?: string[]; race: string };
-const SPECIES_RACE = speciesRaceJson as { default: string; rules: SpeciesRule[] };
+const SPECIES_RACE = speciesRaceJson as { rules: SpeciesRule[] };
 
 /** Espèce (slug/libellé) → RACE-ID du rig (carrure/palette/features/posture). Règles ORDONNÉES
  *  pilotées par `data/speciesRace.json` (ajouter un mapping = une ligne JSON, jamais une if-chain) ;
- *  première qui matche gagne, sinon `default`. `s` déjà en minuscules (préfixes ASCII → `homme`
+ *  première qui matche gagne, sinon `DEFAULT_RACE_ID`. `s` déjà en minuscules (préfixes ASCII → `homme`
  *  matche `homme-bete`). Garde-fou : `creatures.unique.test.ts` vérifie que chaque slug mappe vers
  *  une race EXISTANTE. */
 export function baseSpeciesOf(species: string): string {
@@ -85,11 +87,11 @@ export function baseSpeciesOf(species: string): string {
     if (r.includes && r.includes.some((t) => s.includes(t))) return r.race;
     if (r.all && r.all.every((t) => s.includes(t)) && (r.any ?? []).some((t) => s.includes(t))) return r.race;
   }
-  return SPECIES_RACE.default;
+  return DEFAULT_RACE_ID;
 }
 
 
-export function baseSkeleton(p: GabaritDef, sex: 'M' | 'F'): Skeleton {
+export function baseSkeleton(p: GabaritDef, sex: Sexe): Skeleton {
   let sk = scaleSkeleton(HUMAIN_M, p.sl, p.st);
   // Jambes spécifiques (Nain/Halfling courtes, Elfe longues). On raccourcit la
   // LONGUEUR des os de jambe ET le pivot des joints enfants (tibia sur cuisse,

@@ -24,10 +24,10 @@ import { z } from 'zod';
 import { difficultySchema, dir8Schema, entityAppearanceSchema, enumNomme, moneyPartialSchema } from '../grammaire/valeurs';
 import { conditionSchema, flowTestSchema, gameOpSchema } from '../grammaire/mecanique';
 import { refIndiceSchema } from '../grammaire/reference';
-import { customStatblockSchema, ptSchema, skillRefSchema, wallSideSchema } from './communs';
+import { competenceChiffreeSchema, customStatblockSchema, ptSchema, wallSideSchema } from './communs';
 import { sceneFlowSchema } from './effets';
-import { PROPS_VOLUMIQUES } from '../_ids.generated';
-import { idDe } from '../grammaire/ref';
+import { idDe, porteLeMarqueur, refs } from '../grammaire/ref';
+import { listeCle } from '../grammaire/collection-cle';
 import { refEntiteResolue } from '../../index';
 import { capDecorAdmis } from '../../props.types';
 import { PARTS_RELIEF } from '../../materials.types';
@@ -62,17 +62,12 @@ export const seatOccupantSchema = z.discriminatedUnion('kind', [
  *  l'interaction (dialogueId) ne distinguaient pas. */
 export const entityKindSchema = enumNomme({ heroStart: 'Départ héros', personnage: 'Personnage', prop: 'Décor' });
 
-const VOLUMIQUES = new Set(PROPS_VOLUMIQUES);
-
-/** Porte de registre d'une ref de DÉCOR (#877) : le même `idDe('prop')` que `terrains › overlayProp`,
- *  appliqué depuis le `superRefine` de l'entité — `SceneEntity.ref` est un champ PARTAGÉ avec le
- *  personnage, que seul le `kind` départage. La liste admise se relit à chaque validation
- *  (`grammaire/ref.ts`), un décor créé au Compendium est donc référençable aussitôt. */
-const refDeDecor = idDe('prop');
+/** Sous-liste des décors à recette VOLUMIQUE : le marqueur `volume` de `defs/props.ts`. */
+const estVolumique = porteLeMarqueur('prop', 'volume');
 
 /** Les PORTEURS du type d'une entité, par `kind` (#877, #1882) : une entité NOMME son type, ou elle est
- *  refusée. La PRÉSENCE se juge au parse (`superRefine` en pied) et dans `validateScene` ; la
- *  RÉSOLUTION se juge au parse aussi : `refDeDecor` (décor), `refEntiteResolue` (personnage, lue au
+ *  refusée. La PRÉSENCE se juge au parse (`superRefine` de sa branche de `sceneEntitySchema`) et dans
+ *  `validateScene` ; la RÉSOLUTION se juge au parse aussi : `idDe('prop')` (décor), `refEntiteResolue` (personnage, lue au
  *  catalogue `src/data/index.ts`, patron `narratif.ts`). Une chaîne
  *  vide n'est pas un porteur. L'exclusivité des porteurs d'un personnage est #1892. */
 export const PORTEURS_DU_TYPE = {
@@ -80,20 +75,30 @@ export const PORTEURS_DU_TYPE = {
   personnage: { porteurs: ['ref', 'statblock', 'presetId'], entite: 'personnage', nomme: 'sa fiche (bestiaire, statbloc ou preset de PNJ)' },
 } as const satisfies Partial<Record<z.infer<typeof entityKindSchema>, { porteurs: readonly ('ref' | 'statblock' | 'presetId')[]; entite: string; nomme: string }>>;
 
-/** La faute d'une entité qui ne porte AUCUN des porteurs de son `kind` — `undefined` si elle en porte
- *  un, ou si son `kind` n'en exige aucun. Source unique du schéma et de `validateScene`. */
-export function typeNonNomme(ent: { id: string; kind: string; ref?: unknown; statblock?: unknown; presetId?: unknown }): string | undefined {
-  const regle = (PORTEURS_DU_TYPE as Partial<Record<string, (typeof PORTEURS_DU_TYPE)[keyof typeof PORTEURS_DU_TYPE]>>)[ent.kind];
+const regleDuType = (kind: string) =>
+  (PORTEURS_DU_TYPE as Partial<Record<string, (typeof PORTEURS_DU_TYPE)[keyof typeof PORTEURS_DU_TYPE]>>)[kind];
+
+/** La faute d'une entité qui ne porte AUCUN des porteurs de son `kind`, dite SANS nommer l'entité :
+ *  au schéma, c'est le LIEU de la faute qui la nomme. `undefined` si elle porte un porteur, ou si son
+ *  `kind` n'en exige aucun. Source unique du schéma et de `typeNonNomme`. */
+export function porteurAbsent(ent: { kind: string; ref?: unknown; statblock?: unknown; presetId?: unknown }): string | undefined {
+  const regle = regleDuType(ent.kind);
   if (!regle || regle.porteurs.some((p: 'ref' | 'statblock' | 'presetId') => ent[p] !== undefined && ent[p] !== '')) return undefined;
   const cles = regle.porteurs.map((p) => `« ${p} »`);
   const absence = cles.length === 1 ? `${cles[0]} absente` : `${cles.join(', ')} absents`;
-  return `${regle.entite} « ${ent.id} » : ${absence} — un ${regle.entite} NOMME ${regle.nomme}`;
+  return `${absence} — un ${regle.entite} NOMME ${regle.nomme}`;
+}
+
+/** `porteurAbsent`, l'entité NOMMÉE : la faute dite hors de tout lieu (patch d'éditeur refusé, fiche
+ *  absente au spawn, migration). */
+export function typeNonNomme(ent: { id: string; kind: string; ref?: unknown; statblock?: unknown; presetId?: unknown }): string | undefined {
+  const faute = porteurAbsent(ent);
+  return faute && `${regleDuType(ent.kind)!.entite} « ${ent.id} » : ${faute}`;
 }
 
 /** Une ACTION AUTHORÉE sur une instance de décor (#1687) — le vocabulaire OUVERT des gestes qu'un
- *  auteur pose. `id` : identité STABLE et non vide, unique sur l'entité (l'unicité est gardée par le
- *  `refine` de `usable`, qui seul voit la liste) ; `label` : surcharge d'AFFICHAGE, absent le libellé
- *  vient du catalogue i18n à la clé `usable.<id>` ; `consume` : l'entité est retirée après ;
+ *  auteur pose. `id` : identité STABLE et non vide, unique sur l'entité (`listeCle`) ; `label` :
+ *  surcharge d'AFFICHAGE, absent le libellé vient du catalogue i18n à la clé `usable.<id>` ; `consume` : l'entité est retirée après ;
  *  `unique` : jouable une fois (drapeau `__action_<entId>_<id>`), absent ou `false` = REJOUABLE ;
  *  `minutes` : ce que l'action coûte à l'horloge, absent = `TIME_COST.search` (`engine/timeCost.ts`). */
 export const actionAuthoreeSchema = z.strictObject({
@@ -105,21 +110,14 @@ export const actionAuthoreeSchema = z.strictObject({
   minutes: z.number().min(0).optional(),
 });
 
-/** `SceneEntity` (`state/scene.ts:41`). `id` = identité STABLE partagée avec le `Combatant` au spawn.
- *  Le `superRefine` en pied porte les invariants CROSS-CHAMP de l'entité : le type NOMMÉ
- *  (`PORTEURS_DU_TYPE`) et le cap d'un décor volumique (cf. `PROPS_VOLUMIQUES`). */
-export const sceneEntitySchema = z.strictObject({
+/** Champs PARTAGÉS par les trois `kind` d'une entité de scène — le `ref`, lui, est propre à chaque branche. */
+const baseDEntiteSchema = z.strictObject({
   id: z.string(),
-  kind: entityKindSchema,
   pos: z.strictObject({ x: z.number(), y: z.number() }),
   /** Couche d'empilement (cf. `layers`) : 0/absent = couche de base. */
   z: z.number().optional(),
   facing: dir8Schema.optional(),
   label: z.string().optional(),
-  /** Réf au bestiaire (personnage) ou au catalogue de décor (prop). Un des porteurs du type
-   *  (`PORTEURS_DU_TYPE`, #877, #1882) : REQUISE et résolue au registre pour un décor ; pour un
-   *  personnage, elle, `statblock` ou `presetId`. */
-  ref: z.string().optional(),
   statblock: customStatblockSchema.optional(),
   /** Id d'un preset de `narratif.presetsPnj` — FK intra-document (vérifiée par `projetSchema`). */
   presetId: z.string().optional(),
@@ -165,51 +163,61 @@ export const sceneEntitySchema = z.strictObject({
   usable: z
     .strictObject({
       assise: z.literal(true).optional(),
-      actions: z.array(actionAuthoreeSchema).optional(),
+      actions: listeCle(actionAuthoreeSchema, 'id').optional(),
     })
-    .refine(
-      (u) => !u.actions || new Set(u.actions.map((a) => a.id)).size === u.actions.length,
-      { message: 'usable.actions : deux actions partagent le même `id` — l’id est l’identité de l’action sur cette entité (drapeau d’épuisement, clé d’offre), il est unique.' },
-    )
     .optional(),
   /** RÔLE combat optionnel : ce que l'auteur choisit pour CETTE personne au combat. */
   combat: z
     .strictObject({
       /** OPTIONNELS choisis (`LDB 76 l.45`). */
       optionals: z.array(optionalEntrySchema).optional(),
-      spells: z.array(z.string()).optional(),
+      spells: refs('spell').optional(),
       /** Caractéristiques aléatoires au spawn (`LDB 77 l.108`). */
       randomChars: z.boolean().optional(),
-      skills: z.array(skillRefSchema).optional(),
+      skills: z.array(competenceChiffreeSchema).optional(),
       /** Invisible en EXPLORATION (embuscade) : n'apparaît qu'au combat. */
       hiddenUntilCombat: z.boolean().optional(),
     })
     .optional(),
-}).superRefine((ent, ctx) => {
-  // TYPE NOMMÉ — verrou AU PARSE (#877, #1882) : `PORTEURS_DU_TYPE`. L'absence se DIT ici, en nommant
-  // l'entité ; rien ne la remplace.
-  const absence = typeNonNomme(ent);
-  if (absence) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['ref'], message: absence });
-  if (ent.kind === 'personnage' && ent.ref && !refEntiteResolue(ent.ref))
-    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['ref'], message: `personnage « ${ent.id} » : ref « ${ent.ref} » ni créature, ni coque de véhicule, ni engin de siège` });
-  if (ent.kind !== 'prop') return;
-  // REF DE DÉCOR (#877) : résolue au registre `props.json` ; une ref morte se DIT, jamais remplacée.
-  if (ent.ref !== undefined) {
-    const verdict = refDeDecor.safeParse(ent.ref);
-    if (!verdict.success)
-      for (const souci of verdict.error.issues)
-        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['ref'], message: `décor « ${ent.id} » : ${souci.message}` });
-  }
-  // CAP D'UN DÉCOR VOLUMIQUE — verrou AU PARSE (#1680 ligne 3) : un décor dont le TYPE porte une
-  // recette ne prend qu'un cap CARDINAL : `data/props.types.ts` `capVolumique`. Le cap lit le registre
-  // GÉNÉRÉ `PROPS_VOLUMIQUES`, dérivé de `props.json`.
-  if (capDecorAdmis(ent.ref !== undefined && VOLUMIQUES.has(ent.ref), ent.facing)) return;
-  ctx.addIssue({
-    code: z.ZodIssueCode.custom,
-    path: ['facing'],
-    message: `décor volumique « ${ent.ref} » au cap ${ent.facing} — un décor volumique ne prend qu'un cap cardinal (N/E/S/O)`,
-  });
 });
+
+/** Branche d'une entité de scène : les champs partagés, son `kind` et sa `ref`. Le littéral
+ *  DISCRIMINE la branche, `entityKindSchema` en NOMME la valeur (vocabulaire à libellés). */
+const brancheDEntite = <R extends z.ZodType>(kind: EntityKindId, ref: R) =>
+  z.strictObject({ ...baseDEntiteSchema.shape, kind: z.literal(kind).pipe(entityKindSchema), ref });
+
+type EntityKindId = z.infer<typeof entityKindSchema>;
+
+/** `SceneEntity` (`state/scene.ts:98`). `id` = identité STABLE partagée avec le `Combatant` au spawn.
+ *  Union DISCRIMINÉE par `kind` : la `ref` d'un DÉCOR résout au registre `props.json` (`idDe('prop')`,
+ *  #877) ; celle d'un personnage au catalogue (`refEntiteResolue`, #1882). Le `superRefine` d'une branche
+ *  porte ses invariants CROSS-CHAMP : le type NOMMÉ (`PORTEURS_DU_TYPE`), et pour un décor le cap d'un
+ *  décor volumique. */
+export const sceneEntitySchema = z.discriminatedUnion('kind', [
+  brancheDEntite('heroStart', z.string().optional()),
+  brancheDEntite('personnage', z.string().optional()).superRefine((ent, ctx) => {
+    // TYPE NOMMÉ — verrou AU PARSE (#1882) : `PORTEURS_DU_TYPE`. L'absence se DIT ici ; rien ne la remplace.
+    const absence = porteurAbsent(ent);
+    if (absence) ctx.addIssue({ code: 'custom', path: ['ref'], message: absence });
+    if (ent.ref && !refEntiteResolue(ent.ref))
+      ctx.addIssue({ code: 'custom', path: ['ref'], message: `« ${ent.ref} » ni créature, ni coque de véhicule, ni engin de siège` });
+  }),
+  brancheDEntite('prop', idDe('prop').optional()).superRefine((ent, ctx) => {
+    // TYPE NOMMÉ — verrou AU PARSE (#877) : `PORTEURS_DU_TYPE` ; sa résolution au registre est celle de la
+    // feuille `idDe('prop')`. Une ref absente se DIT ici.
+    const absence = porteurAbsent(ent);
+    if (absence) ctx.addIssue({ code: 'custom', path: ['ref'], message: absence });
+    // CAP D'UN DÉCOR VOLUMIQUE — verrou AU PARSE (#1680 ligne 3) : un décor dont le TYPE porte une
+    // recette ne prend qu'un cap CARDINAL : `data/props.types.ts` `capVolumique`. La sous-liste se lit au
+    // régime vivant, sinon au registre généré (`porteLeMarqueur`).
+    if (capDecorAdmis(ent.ref !== undefined && estVolumique(ent.ref), ent.facing)) return;
+    ctx.addIssue({
+      code: 'custom',
+      path: ['facing'],
+      message: `décor volumique « ${ent.ref} » au cap ${ent.facing} — un décor volumique ne prend qu'un cap cardinal (N/E/S/O)`,
+    });
+  }),
+]);
 
 // ── Architecture ────────────────────────────────────────────────────────────────────────────────
 
@@ -223,7 +231,7 @@ export const architecturePartSchema = z.strictObject({ id: z.string(), foot: arc
 export const architectureStoreySchema = z.strictObject({
   id: z.string(),
   z: z.number(),
-  parts: z.array(architecturePartSchema),
+  parts: listeCle(architecturePartSchema, 'id'),
   roomZoneIds: z.array(z.string()),
 });
 /** Nature d'un ornement de façade — les trois `KINDS_DE_DECOR` (`builders/walls.ts`) portent le libellé
@@ -252,7 +260,7 @@ export const facadeSectionSchema = z.strictObject({
   edges: z.array(architectureEdgeRefSchema),
   appearance: z.string(),
   roomZoneIds: z.array(z.string()).optional(),
-  features: z.array(facadeFeatureSchema).optional(),
+  features: listeCle(facadeFeatureSchema, 'id').optional(),
 });
 /** Profil de toiture d'une masse/d'une intention de toiture. */
 export const roofProfileSchema = enumNomme({
@@ -433,11 +441,11 @@ export const architectureBodySchema = z.strictObject({
    *  corps sans identité de bâtiment (un bourg, un hameau : plusieurs bâtiments sous UN corps) — la
    *  dérivation le coiffe, aucun ornement n'est émis. */
   style: typeDeBatimentSchema.optional(),
-  storeys: z.array(architectureStoreySchema),
-  facades: z.array(facadeSectionSchema),
+  storeys: listeCle(architectureStoreySchema, 'id'),
+  facades: listeCle(facadeSectionSchema, 'id'),
   /** SURCHARGES (#829, cf. doc `buildingMassSchema`) — jamais l'obligation de couvrir tout le bâti à
    *  la main : la dérivation couvre le reste. */
-  masses: z.array(buildingMassSchema),
+  masses: listeCle(buildingMassSchema, 'id'),
   /** Intention des masses DÉRIVÉES (#829) — SURCHARGE de `Scene.roofDefaults`, champ par champ. */
   roofDefaults: roofDefaultsSchema.optional(),
   /** Cases à NE JAMAIS couvrir par la dérivation par défaut (cour intérieure à ciel ouvert…), par
@@ -480,7 +488,7 @@ export const dialogueNodeSchema = z.strictObject({
 export const dialogueSchema = z.strictObject({
   id: z.string(),
   start: z.string(),
-  nodes: z.array(dialogueNodeSchema),
+  nodes: listeCle(dialogueNodeSchema, 'id'),
 });
 
 // ── Déclencheur ─────────────────────────────────────────────────────────────────────────────────
@@ -564,7 +572,7 @@ export const encounterDefSchema = z.strictObject({
   /** Membres référençant des entités de la scène (peuplés par l'éditeur, ou à l'authoring via
    *  `buildEncounter`). SOURCE UNIQUE lue par le runtime — chaque membre pointe une `SceneEntity`
    *  'personnage' qui porte tout le profil (ref/statblock/apparence/arme/`combat.hiddenUntilCombat`). */
-  members: z.array(encounterMemberSchema).optional(),
+  members: listeCle(encounterMemberSchema, 'entityId').optional(),
   /** Scène/flag déclenché à la victoire — Flow (UN seul format avec `Trigger.flow`/`DialogueChoice.flow`).
    *  Aplati en `Effect[]` par `finishVictory` (la déférence transition/dialogue + la mesure de récompense
    *  restent sur la séquence plate). */
@@ -597,9 +605,9 @@ export const encounterDefSchema = z.strictObject({
    *  (défaut historique). Défaut résolu par `banRangedActive` (SEUL point), consommé par
    *  `resolveAttack`/`firedAttackBlock` (joueur ET IA). */
   banRanged: z.boolean().optional(),
-  /** Rencontre de SIÈGE — FOYER de l'arbitrage utilisateur du 2026-09-04 (#1680, réponses verbatim à
-   *  deux questions AskUserQuestion) : « Structures ciblables en siège seul », puis, à la question de ce
-   *  qui fait d'un combat un siège, « Un drapeau de RENCONTRE, éditable ». Les STRUCTURES destructibles de la
+  /** Rencontre de SIÈGE — #1680, commentaire 5546039260 du 2026-09-04 : « Structures ciblables en
+   *  siège seul », puis, à la question de ce qui fait d'un combat un siège, « Un drapeau de RENCONTRE,
+   *  éditable ». Les STRUCTURES destructibles de la
    *  scène (porte, mur) entrent dans le choix de cible de l'IA ennemie. Défaut LITTÉRAL `false` —
    *  absent = pas de siège, AUCUNE dérivation depuis un autre champ (une rencontre
    *  `victoryCondition: destroyStructure` ne l'active pas d'elle-même). Résolu par `siegeActif`
@@ -698,34 +706,16 @@ export const wallSegSchema = z.strictObject({
   climb: wallClimbSchema.optional(),
 });
 
-/** Clé d'ARÊTE d'un segment — la MÊME graphie que l'index d'arêtes (`state/wallIndex.ts`). */
-const cleDArete = (w: z.infer<typeof wallSegSchema>): string => `${w.x},${w.y},${w.side},${w.z ?? 0}`;
-
 /**
  * UNE arête, UN segment — verrou AU PARSE (#1624). L'index d'arêtes (`state/wallIndex.ts`) est la
  * seule lecture de « quels segments tiennent cette arête ? », et ses consommateurs prennent le
  * PREMIER (`aretesA(...)[0]`, composé par `gameIso/builders/roofs.ts`) : un second segment sur la
  * même clé `x,y,side,z` serait une donnée MUETTE, jamais rendue ni lue. `setEdgeWall`
  * (`state/sceneEdit.ts`) dédoublonne à la pose, mais l'authoring littéral, `asciiMap`, les
- * migrations et l'import de projet ne passent pas par lui : le verrou est ICI.
+ * migrations et l'import de projet ne passent pas par lui : le verrou est ICI. La clé est la MÊME
+ * graphie que l'index d'arêtes.
  */
-const refuseAretesDupliquees = (walls: z.infer<typeof wallSegSchema>[], ctx: z.RefinementCtx): void => {
-  const parArete = new Map<string, number[]>();
-  walls.forEach((w, i) => {
-    const k = cleDArete(w);
-    const vus = parArete.get(k);
-    if (vus) vus.push(i);
-    else parArete.set(k, [i]);
-  });
-  for (const [k, vus] of parArete) {
-    if (vus.length < 2) continue;
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: [vus[1]],
-      message: `arête ${k} × ${vus.length} — une arête ne porte qu'un segment (index d'arêtes, state/wallIndex.ts)`,
-    });
-  }
-};
+const cleDArete = { nom: 'x,y,side,z', de: (w: z.infer<typeof wallSegSchema>): string => `${w.x},${w.y},${w.side},${w.z ?? 0}` };
 
 /** Ancre AUTHORÉE d'une Scène de bataille (S2) sur le plan : `MassBattleState.pool` = l'id d'une
  *  Scène de bataille, `ActivityDef` contexte 'bataille-round', posée sur une case de la carte. La
@@ -737,12 +727,19 @@ export const sceneStationAnchorSchema = z.strictObject({
   pos: z.strictObject({ x: z.number(), y: z.number(), z: z.number().optional() }),
 });
 
+/** Les trois BLOCS DE LOGIQUE d'une scène, listes à clé : la scène les compose, et la modale « Avancé »
+ *  de l'éditeur (`SCHEMA_BLOCS_AVANCES`) les reprend TELS QUELS — une seule déclaration de leur clé. */
+export const dialoguesSchema = listeCle(dialogueSchema, 'id');
+export const triggersSchema = listeCle(triggerSchema, 'id');
+export const encountersSchema = listeCle(encounterDefSchema, 'id');
+
 // ── La scène ────────────────────────────────────────────────────────────────────────────────────
 
 /**
- * `Scene` (`state/scene.ts:683`) — l'agrégat. Les collections `layers`/`entities`/`dialogues`/
+ * `Scene` (`state/scene.ts:370`) — l'agrégat. Les collections `layers`/`entities`/`dialogues`/
  * `triggers`/`encounters`/`flags`, requises sur le type manuscrit, sont OPTIONNELLES ici : le
- * schéma voit le document AVANT `normalizeScene`, qui les comble au SEUL point d'entrée.
+ * schéma voit le document AVANT `normalizeScene`, qui les comble aux portes (`parseProject`,
+ * `migreSceneDeProjet`).
  */
 export const sceneSchema = z.strictObject({
   type: z.literal('scene'),
@@ -784,24 +781,24 @@ export const sceneSchema = z.strictObject({
       }),
     )
     .optional(),
-  effectZones: z.array(sceneEffectZoneSchema).optional(),
+  effectZones: listeCle(sceneEffectZoneSchema, 'id').optional(),
   /** Ids de pistes du registre audio ; `null` = SILENCE forcé, absent = AUTOMATIQUE. */
   music: z.strictObject({ ambient: z.string().nullable().optional(), combat: z.string().nullable().optional() }).optional(),
   /** Matière de chaque PARTIE de relief (#1691) — EXIGÉE : c'est la donnée que le builder LIT. */
   reliefDefaults: reliefDefaultsSchema,
   /** Toiture par défaut de la scène (#1715) — EXIGÉE : c'est la donnée que la dérivation LIT. */
   roofDefaults: sceneRoofDefaultsSchema,
-  layers: z.array(layerSchema).optional(),
-  /** Cloisons sur arête — au plus UNE par clé `x,y,side,z` (`refuseAretesDupliquees`). */
-  walls: z.array(wallSegSchema).superRefine(refuseAretesDupliquees).optional(),
-  entities: z.array(sceneEntitySchema).optional(),
+  layers: listeCle(layerSchema, 'z').optional(),
+  /** Cloisons sur arête — au plus UNE par clé `x,y,side,z` (`cleDArete`). */
+  walls: listeCle(wallSegSchema, cleDArete).optional(),
+  entities: listeCle(sceneEntitySchema, 'id').optional(),
   /** `SeatAssignments` (`state/seating.ts:65`) — `propId → slotId → occupant` (rang du groupe ou entité). */
   seatAssignments: z.record(z.string(), z.record(z.string(), seatOccupantSchema)).optional(),
-  architecture: z.array(architectureBodySchema).optional(),
-  dialogues: z.array(dialogueSchema).optional(),
-  triggers: z.array(triggerSchema).optional(),
-  encounters: z.array(encounterDefSchema).optional(),
-  stations: z.array(sceneStationAnchorSchema).optional(),
+  architecture: listeCle(architectureBodySchema, 'id').optional(),
+  dialogues: dialoguesSchema.optional(),
+  triggers: triggersSchema.optional(),
+  encounters: encountersSchema.optional(),
+  stations: listeCle(sceneStationAnchorSchema, 'sceneId').optional(),
   flags: z.record(z.string(), z.boolean()).optional(),
   /** Points d'arrivée nommés — `z` = étage visé (défaut 0, #835 FU-5). */
   entryPoints: z.record(z.string(), z.strictObject({ x: z.number(), y: z.number(), z: z.number().optional() })).optional(),
@@ -820,9 +817,7 @@ export const sceneSchema = z.strictObject({
       ctx.addIssue({
         code: 'custom',
         path: ['layers', i, champ],
-        message:
-          `scène « ${scene.id} », couche z=${l.z} : \`${champ}\` porte ${n} entrée(s) pour une grille ` +
-          `${scene.dimensions.w}×${scene.dimensions.h} — il en faut EXACTEMENT ${attendu}`,
+        message: `\`${champ}\` porte ${n} entrée(s) pour une grille ${scene.dimensions.w}×${scene.dimensions.h} — il en faut EXACTEMENT ${attendu}`,
       });
     }
   });

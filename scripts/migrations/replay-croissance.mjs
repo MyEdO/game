@@ -29,8 +29,7 @@
  */
 import { spawnSync } from 'node:child_process';
 import { copyFileSync, existsSync, mkdirSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
 
 import { croitreDocuments, rejouerEnCroissance } from './lib/croissance.mjs';
 import { CHEMINS_EXPORTES, RACINE_DES_EXPORTS, effacerExport, exporter } from './replay-head.mjs';
@@ -118,4 +117,4 @@ function main() {
   console.log(`migrations:replay:croissance — OK sur ${sha} : +1 entrée ne coûte rien`);
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url))) main();
+if (import.meta.main) main();

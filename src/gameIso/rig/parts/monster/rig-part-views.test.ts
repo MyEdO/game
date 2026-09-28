@@ -36,7 +36,7 @@ import {
   RIG_VIEW_ALIAS_RATCHET,
   RIG_VIEW_TRANSFORM_RATCHET,
 } from '../../../../../scripts/guards/lib/rigViewStock.mjs';
-import { cleDeSite, ecartDuVolet, type EntreeDeSite, type Site } from '../../../../../scripts/guards/lib/stock.mjs';
+import { cleDeSite, ecartDuVolet, remedeNomme, type EntreeDeSite, type Site } from '../../../../../scripts/guards/lib/stock.mjs';
 
 const STOCK = 'scripts/guards/lib/rigViewStock.mjs';
 
@@ -44,9 +44,6 @@ const STOCK = 'scripts/guards/lib/rigViewStock.mjs';
  *  périmées (échec). La primitive PARTAGÉE du dépôt, jamais une comparaison locale. */
 const ratchet = (sites: readonly Site[], stock: Iterable<EntreeDeSite>) =>
   ecartDuVolet({ sites, stock, ou: STOCK });
-
-/** Une ligne de remède CONTIENT-elle cette clé ? (le remède décore la clé d'une phrase) */
-const porte = (lignes: readonly string[], cle: string) => lignes.some((l) => l.includes(cle));
 
 describe('vues des parts monstre + éléments : cliquet à trois dimensions (#1082)', () => {
   const { format, alias, transform } = auditRigPartViews();
@@ -132,21 +129,21 @@ describe('morsure : les trois dimensions rougissent (#1082)', () => {
   }
 
   it('une part rendue front-only rougit la dimension FORMAT, en NOMMANT son def', () => {
-    expect(porte(withBack(undefined, 'format'), KEY)).toBe(true);
+    expect(remedeNomme(withBack(undefined, 'format'), KEY)).toBe(true);
   });
 
   it('une vue de dos recopiée du front rougit la dimension ALIAS', () => {
-    expect(porte(withBack(target.art.front, 'alias'), KEY)).toBe(true);
+    expect(remedeNomme(withBack(target.art.front, 'alias'), KEY)).toBe(true);
   });
 
   it('une vue de dos = front enveloppé d\'un rotate rougit la dimension TRANSFORM', () => {
-    expect(porte(withBack(`<g transform="rotate(180)">${target.art.front}</g>`, 'transform'), KEY)).toBe(true);
+    expect(remedeNomme(withBack(`<g transform="rotate(180)">${target.art.front}</g>`, 'transform'), KEY)).toBe(true);
   });
 
   it('une vue de dos = front dont CHAQUE forme porte son propre transform rougit la dimension TRANSFORM', () => {
     const miroir = target.art.front.replace(/<(path|ellipse|rect|circle|polygon)\b/g, '<$1 transform="scale(-1,1)"');
     expect(miroir, 'le front doit porter au moins une forme à transformer').not.toBe(target.art.front);
-    expect(porte(withBack(miroir, 'transform'), KEY)).toBe(true);
+    expect(remedeNomme(withBack(miroir, 'transform'), KEY)).toBe(true);
   });
 
   it('SOLDER une violation la rend PÉRIMÉE : le stock ne peut pas garder une entrée morte', () => {
@@ -158,7 +155,7 @@ describe('morsure : les trois dimensions rougissent (#1082)', () => {
     part.art = { front: '<path d="M0 0 L1 1"/>', profile: '<path d="M2 2 L7 3"/>', back: '<path d="M4 8 L9 5"/>' };
     try {
       const { perimees } = ratchet(auditRigPartViews().format, RIG_VIEW_FORMAT_RATCHET);
-      expect(porte(perimees, cleDeSite(entree!))).toBe(true);
+      expect(remedeNomme(perimees, cleDeSite(entree!))).toBe(true);
     } finally { part.art = saved; }
   });
 
@@ -173,7 +170,7 @@ describe('morsure : les trois dimensions rougissent (#1082)', () => {
   it('une vue de dos = front recoloré, sans transform, rougit la dimension ALIAS (géométrie identique)', () => {
     const recolore = replaceTokens(target.art.front, (key) => `@${gammeDe(key, 'ombre')}`);
     expect(recolore).not.toBe(target.art.front);
-    expect(porte(withBack(recolore, 'alias'), KEY)).toBe(true);
+    expect(remedeNomme(withBack(recolore, 'alias'), KEY)).toBe(true);
   });
 
   /** ALLONGER un stock ne s'échange plus contre un plafond relevé : une entrée de plus se DÉCLARE,
@@ -184,8 +181,8 @@ describe('morsure : les trois dimensions rougissent (#1082)', () => {
       ref: 'element:gonflement:back', occurrence: 1,
     }];
     const { perimees } = ratchet(auditRigPartViews().transform, gonfle);
-    expect(porte(perimees, cleDeSite(gonfle[gonfle.length - 1]))).toBe(true);
-    expect(porte(perimees, 'entrée SOLDÉE')).toBe(true);
+    expect(remedeNomme(perimees, cleDeSite(gonfle[gonfle.length - 1]))).toBe(true);
+    expect(remedeNomme(perimees, 'entrée SOLDÉE')).toBe(true);
   });
 });
 
@@ -225,8 +222,8 @@ describe('morsure : la branche ÉLÉMENTS du détecteur rougit (#1082)', () => {
 
   it('un calque `svg` sans `view` rougit les DEUX vues en FORMAT, en NOMMANT le def', () => {
     const neuves = neuvesFormat([{ bone: 'tete', svg: '<path d="M0 0 L5 5"/>' }]);
-    expect(porte(neuves, cleDe('back'))).toBe(true);
-    expect(porte(neuves, cleDe('profile'))).toBe(true);
+    expect(remedeNomme(neuves, cleDe('back'))).toBe(true);
+    expect(remedeNomme(neuves, cleDe('profile'))).toBe(true);
   });
 
   it('un calque `svg` sans `view` rougit MÊME quand un autre calque déclare la vue', () => {
@@ -234,7 +231,7 @@ describe('morsure : la branche ÉLÉMENTS du détecteur rougit (#1082)', () => {
       { bone: 'tete', svg: '<path d="M9 9 L1 4"/>', view: 'back' },
       { bone: 'torse', svg: '<path d="M0 0 L5 5"/>' },
     ]);
-    expect(porte(neuves, cleDe('back'))).toBe(true);
+    expect(remedeNomme(neuves, cleDe('back'))).toBe(true);
   });
 
   it('une vue DÉCLARÉE dont l\'art rend vide compte en FORMAT : rien n\'est servi à cette vue', () => {
@@ -242,7 +239,7 @@ describe('morsure : la branche ÉLÉMENTS du détecteur rougit (#1082)', () => {
       { bone: 'tete', svg: '<path d="M0 0 L5 5"/>', view: 'front' },
       { bone: 'tete', svg: '', view: 'back' },
     ]);
-    expect(porte(neuves, cleDe('back'))).toBe(true);
+    expect(remedeNomme(neuves, cleDe('back'))).toBe(true);
   });
 });
 

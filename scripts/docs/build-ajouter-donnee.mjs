@@ -14,15 +14,15 @@
  * La part ÉDITORIALE (check-first, zéro invention, ordre des étapes) vit ICI, en dur — patron
  * « éditorial EN DUR dans le générateur » de `scripts/docs/build-sources-vf.mjs`.
  *
- * Mode --check (chaîné dans npm run docs:check) : régénère en mémoire, compare au .md committé,
- * exit 1 si diff — jamais d'écriture en mode --check.
+ * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/empreinte-sources.mjs), rejoué par `build-all.mjs`.
  *
  *   node scripts/docs/build-ajouter-donnee.mjs
  */
 import { readFileSync, existsSync } from 'node:fs'
 import { listerDossier } from '../guards/lib/lister.mjs'
 import ts from 'typescript'
-import { emitOrCheck, loadSource } from './lib/jsdocUnion.mjs'
+import { loadSource } from './lib/jsdocUnion.mjs'
+import { ecrireOuVerifier } from './lib/empreinte-sources.mjs'
 
 const OUTIL = 'build-ajouter-donnee'
 const DOC = 'src/data/schemas/grammaire/document.ts'
@@ -288,7 +288,7 @@ JAMAIS un choix d'agent silencieux enterré. Avant de conclure « le moteur ne s
 ${table(GARDES_MESUREES, ['Garde', 'Ce qu’elle verrouille (son propre `describe`)'], (g) => `| \`${g.p}\` | ${g.quoi} |`)}
 `
 
-emitOrCheck({
+ecrireOuVerifier({
   out,
   path: 'docs/ajouter-une-donnee.md',
   check: process.argv.includes('--check'),

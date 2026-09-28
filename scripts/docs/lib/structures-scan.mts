@@ -25,10 +25,15 @@
 import { readFileSync, statSync } from 'node:fs';
 import { basename, join, relative } from 'node:path';
 import { parUnitesDeCode, listerArbre, listerDossier } from '../../guards/lib/lister.mjs';
+import { PROJETS_LIVRES } from '../../guards/lib/projetsLivres.mjs';
 import { defsDeDocument } from './slots-registre.mjs';
 import { choixDeclares, introspecterDefs } from './zod-introspect.mjs';
+import { collectionsDesDocuments } from '../../../src/data/schemas/grammaire/collection-cle';
+import { carteDuRecord } from '../../../src/data/schemas/grammaire/cle-d-espace';
+import type { SchemaDef } from '../../../src/data/schemas/types';
 import ts from 'typescript';
 import {
+  CLES_DE_SPECIALISATION,
   CLES_IDENTITE,
   CLES_PROSE_SANS_REFERENCE,
   CLES_REFERENCE_SCOPEE,
@@ -55,7 +60,7 @@ export type Racine = {
 
 export const RACINES: readonly Racine[] = [
   { id: 'src/data', dir: 'src/data', motif: '*.json', suffixe: '.json', recursif: false },
-  { id: 'src/scenes', dir: 'src/scenes', motif: '*-projet.json', suffixe: '-projet.json', recursif: true },
+  { id: PROJETS_LIVRES.dossier, dir: PROJETS_LIVRES.dossier, motif: `*${PROJETS_LIVRES.suffixe}`, suffixe: PROJETS_LIVRES.suffixe, recursif: PROJETS_LIVRES.recursif },
 ];
 
 export type Document = { racine: string; chemin: string; nom: string };
@@ -227,7 +232,7 @@ const candidatsStructurels = (o: Record<string, unknown>, dansTableau: boolean):
 const statutDe = (c: Concept, sig: string, site?: { dataset: string; champ: string }): Classement => {
   const candidates = c.signatures.filter((s) => s.sig === sig);
   const hit =
-    (site && candidates.find((s) => s.site?.datasets.includes(site.dataset) && s.site.champs.includes(site.champ)))
+    (site && candidates.find((s) => s.site && (s.site.datasets?.includes(site.dataset) ?? true) && s.site.champs.includes(site.champ)))
     ?? candidates.find((s) => !s.site);
   return { concept: c.id, strate: c.strate, statut: hit?.statut ?? 'divergente', note: hit?.note ?? '', signature: sig };
 };
@@ -325,6 +330,18 @@ export type FormeObservee = {
   /** Datasets vers lesquels les valeurs de cette forme résolvent (références seulement). */
   cibles: string[];
 };
+/**
+ * UNE occurrence de référence comptée par le scan, avec le COUPLE `(dataset, champ)` qu'il lui
+ * attribue — une instance par occurrence, l'unité du champ `occurrences` des formes de la strate
+ * `Référence` (#1473).
+ */
+export type OccurrenceDeReference = { readonly dataset: string; readonly champ: string };
+/**
+ * Occurrences de référence keyées par leur PORTEUR (l'objet ou la liste PARSÉS du document, par
+ * identité) puis par la CLÉ ou l'INDICE qui y pose la valeur : c'est la case où une valeur lue à un
+ * path déclaré tombe (#1473).
+ */
+export type ReferencesParPorteur = ReadonlyMap<object, ReadonlyMap<string | number, OccurrenceDeReference>>;
 export type SignatureOrpheline = {
   dataset: string;
   champ: string;
@@ -416,21 +433,34 @@ function parcourir(racine: unknown, visite: (o: Obj, champ: string, chemin: stri
 /**
  * Mesure OBSERVÉE sur les deux racines.
  * @param root racine absolue du dépôt
- * @param famillesDeclarees nom de document → famille déclarée par son schéma zod
- *   (`introspecterDefs`), qui donne le RÉGIME D'ENTRÉES. Absente = régime déduit de la racine JSON
- *   seule — repli sans population depuis #1466 L1a : les DEUX racines sont au registre.
+ * @param defs les defs des documents, keyés par BASENAME (`defsDeDocument`) : leur famille déclarée
+ *   (`introspecterDefs`) donne le RÉGIME D'ENTRÉES, et la co-descente de leur schéma
+ *   (`collectionsDesDocuments`) les COLLECTIONS À CLÉ déclarées. Un document sans def est classé par
+ *   sa racine JSON.
  * @param choixDeclares nom de document → clé → littéraux d'enum déclarés par son schéma zod
  *   (`choixDeclares`) : une clé dont la valeur est l'un d'eux est un DISCRIMINANT, jamais une
  *   référence. Absente = aucune fermeture d'enum — repli sans population depuis #1466 L1a.
  */
 export function scannerDonnees(
   root: string,
-  famillesDeclarees: ReadonlyMap<string, string> = new Map(),
+  defs: readonly SchemaDef[],
   choixDeclares: ReadonlyMap<string, ReadonlyMap<string, ReadonlySet<string>>> = new Map(),
 ) {
   const docs = listerDocuments(root);
   const brutParDocument = new Map<string, unknown>(
     docs.map((d) => [d.chemin, JSON.parse(readFileSync(join(root, d.chemin), 'utf8')) as unknown]),
+  );
+  const brutParNom = new Map(docs.map((d) => [d.nom, brutParDocument.get(d.chemin)])) as ReadonlyMap<string, unknown>;
+  const famillesDeclarees = new Map(introspecterDefs(defs).map((d) => [d.file, d.famille]));
+  /** Les COLLECTIONS À CLÉ déclarées au schéma, par la co-descente des objets PARSÉS ci-dessus. */
+  const collections = collectionsDesDocuments(defs, brutParNom);
+  /** Cartes des collections `record` : un objet que le schéma DÉCLARE collection à clé n'est jamais hors
+   *  strate — exclu des orphelines et des invisibles APRÈS le classement, qui reste entier. */
+  const cartesDeRecord = new Set<object>(
+    collections.flatMap((c) => {
+      const carte = c.marque.forme === 'record' ? carteDuRecord(c.marque, c.valeur) : undefined;
+      return estObjet(carte) ? [carte] : [];
+    }),
   );
 
   // --- passe 1 : régime, entrées de racine, INDEX DES IDS -------------------
@@ -690,8 +720,11 @@ export function scannerDonnees(
   let totalOps = 0;
   let objetsVus = 0;
   let objetsClasses = 0;
-  /** Objets qu'AUCUNE strate ne porte : ni document, ni forme mesurée, ni orpheline recensée. */
+  /** Objets qu'AUCUNE strate ne porte : ni document, ni forme mesurée, ni orpheline recensée, ni
+   *  collection à clé déclarée. */
   let objetsInvisibles = 0;
+  /** Cartes de record que le schéma déclare collection à clé (`TERMES_COLLECTION_A_CLE`). */
+  let objetsCollectionsACle = 0;
   /** Entrées de RACINE qu'aucun concept de valeur du lexique ne reconnaît — imprimé à la synthèse du
    *  doc (§1) : un document n'entre ni aux orphelines ni au hors-strate, rien d'autre ne les compterait. */
   let racinesSansValeur = 0;
@@ -745,6 +778,30 @@ export function scannerDonnees(
     return formes.get(k)!;
   };
 
+  const referencesParPorteur = new Map<object, Map<string | number, OccurrenceDeReference>>();
+  const occurrencesDeReference: OccurrenceDeReference[] = [];
+  /**
+   * Compte UNE occurrence de référence à sa forme ET l'inscrit à ses cases `(porteur, clé)` : l'unique
+   * site où la strate `Référence` compte, pour que le couple attribué soit celui de la forme (#1473).
+   * Ses cases sont ses cases de RÉFÉRENCE : une clé de `CLES_DE_SPECIALISATION` n'en est pas une.
+   */
+  const inscrireReference = (
+    concept: Concept,
+    p: Prepare,
+    champ: string,
+    cl: { statut: FormeObservee['statut']; note: string; signature: string },
+    porteur: object,
+    cles: Iterable<string | number>,
+  ) => {
+    const ligne = ligneForme(concept, p, champ, cl);
+    ligne.occurrences += 1;
+    const occurrence: OccurrenceDeReference = { dataset: ligne.dataset, champ: ligne.champ };
+    occurrencesDeReference.push(occurrence);
+    if (!referencesParPorteur.has(porteur)) referencesParPorteur.set(porteur, new Map());
+    for (const k of cles) if (!CLES_DE_SPECIALISATION.has(String(k))) referencesParPorteur.get(porteur)!.set(k, occurrence);
+    return ligne;
+  };
+
   for (const p of prepares) {
     const clesNiveau1 = new Map<string, CleNiveau1>();
     for (const e of p.entrees) {
@@ -774,6 +831,8 @@ export function scannerDonnees(
       const estRacine = p.racineEntrees.has(o);
       const estEmbarque = documentsEmbarques.has(o);
       const estDocument = estRacine || estEmbarque;
+      const estCollectionACle = cartesDeRecord.has(o);
+      if (estCollectionACle) objetsCollectionsACle += 1;
 
       // ---- Ops et Conditions
       const kind = typeof o.kind === 'string' ? o.kind : '';
@@ -828,22 +887,19 @@ export function scannerDonnees(
       } else if (resolvantes.size && !estDocument) {
         // Un `{text}` qui RÉSOUT est une forme à part entière : `text (résolvable)`, divergente, à
         // migrer en `{id}` (#624). Seul le `{text}` NON résolvable reste la forme `declaree`.
-        const ligne = ligneForme(CONCEPT_REFERENCE, p, champ, resolvableTexte(classementDeGraphie(p.nom, champ, signatureProjetee(cles, resolvantes)), resolvantes));
-        ligne.occurrences += 1;
+        const ligne = inscrireReference(CONCEPT_REFERENCE, p, champ, resolvableTexte(classementDeGraphie(p.nom, champ, signatureProjetee(cles, resolvantes)), resolvantes), o, resolvantes);
         for (const d of cibles) ligne.ciblesSet.add(d);
         if (resolvantes.has('text')) ligne.resolvables += 1;
         classe = true;
       } else if (!estDocument && cles.length && cles.every((k) => GRAPHIES_SANS_ID.has(k)) && champsPorteurs.has(champ)) {
         // GRAPHIE de référence sous un champ porteur MESURÉ, qu'elle résolve ou non : l'enveloppe
         // `{ref:{…}}` et la dotation `{text:"…"}` sont des FORMES, pas des objets hors strate.
-        const ligne = ligneForme(CONCEPT_REFERENCE, p, champ, classementDeGraphie(p.nom, champ, sig));
-        ligne.occurrences += 1;
+        inscrireReference(CONCEPT_REFERENCE, p, champ, classementDeGraphie(p.nom, champ, sig), o, cles);
         classe = true;
       } else if (resolvantes.size && estDocument) {
         // Référence portée par un CHAMP SCALAIRE d'un document (`species: "humain"`).
         for (const k of resolvantes) {
-          const ligne = ligneForme(CONCEPT_REFERENCE, p, k, statutDe(CONCEPT_REFERENCE, 'id-nu'));
-          ligne.occurrences += 1;
+          const ligne = inscrireReference(CONCEPT_REFERENCE, p, k, statutDe(CONCEPT_REFERENCE, 'id-nu'), o, [k]);
           for (const d of index.get(String(o[k])) ?? []) ligne.ciblesSet.add(d);
         }
         classe = true;
@@ -861,8 +917,7 @@ export function scannerDonnees(
         // document indexé ouvrirait un couple (dataset, champ) fantôme au registre des slots.
         if (GRAPHIE_REFERENCE.has(k)) continue;
         if (!(v as string[]).some((x) => index.has(x) && ouvreReference(p.nom, k, x))) continue;
-        const ligne = ligneForme(conceptRefs, p, k, statutDe(conceptRefs, 'ids-nus'));
-        ligne.occurrences += 1;
+        const ligne = inscrireReference(conceptRefs, p, k, statutDe(conceptRefs, 'ids-nus'), v, v.keys());
         for (const x of v as string[]) for (const d of index.get(x) ?? []) ligne.ciblesSet.add(d);
         classe = true;
       }
@@ -871,7 +926,7 @@ export function scannerDonnees(
 
       // ---- ORPHELINES : ce qui annonce une référence et ne résout pas
       let orpheline = false;
-      if (!estDocument && !classe && typeof o.op !== 'string') {
+      if (!estDocument && !estCollectionACle && !classe && typeof o.op !== 'string') {
         const cleRef = cles.find((k) => RX_CLE_REFERENCE.test(k));
         const cleReservee = cles.find((k) => (CLES_RESERVEES as readonly string[]).includes(k));
         const cleIdentite = cles.find((k) => (CLES_IDENTITE as readonly string[]).includes(k));
@@ -890,7 +945,7 @@ export function scannerDonnees(
           orpheline = true;
         }
       }
-      if (!estDocument && !classe && !orpheline) {
+      if (!estDocument && !estCollectionACle && !classe && !orpheline) {
         objetsInvisibles += 1;
         inc(invisibles, `${p.nom} | ${champ || '(racine)'} | ${sig}`);
       }
@@ -973,6 +1028,14 @@ export function scannerDonnees(
 
   return {
     documents,
+    /** Le JSON PARSÉ de chaque document, keyé par nom : celui dont les objets portent les
+     *  occurrences de `referencesParPorteur` (#1473). */
+    brutParNom,
+    /** Les collections à clé DÉCLARÉES présentes dans les documents (`collectionsDesDocuments`). */
+    collections,
+    referencesParPorteur: referencesParPorteur as ReferencesParPorteur,
+    /** TOUTES les occurrences de la strate `Référence`, y compris celles sans case de référence (#1473). */
+    occurrencesDeReference: occurrencesDeReference as readonly OccurrenceDeReference[],
     index: { ids: index.size, libelles: libelles.size, collisions, labelsQuiSontDesIds },
     /** Valeurs qui ne résolvent QUE vers un dataset hors des cibles majoritaires de leur site. */
     ambigues: [...ambigues.values()].sort(
@@ -1038,6 +1101,7 @@ export function scannerDonnees(
       vus: objetsVus,
       classes: objetsClasses,
       invisibles: objetsInvisibles,
+      collectionsACle: objetsCollectionsACle,
       racinesSansValeur,
       racinesDisqualifiees: [...racinesDisqualifiees].map(([dataset, entrees]) => ({ dataset, entrees })).sort((a, b) => b.entrees - a.entrees || parUnitesDeCode(a.dataset, b.dataset)),
       documentsEmbarques: documentsEmbarques.size,
@@ -1054,21 +1118,20 @@ export function scannerDonnees(
 }
 
 /**
- * LE scan du corpus : l'UNIQUE composition `defs du registre → familles + enums DÉCLARÉS →
- * `scannerDonnees``. Ses trois consommateurs — la garde `src/data/structures-contrat.test.ts`, le
- * générateur `scripts/docs/build-structures.mts` et l'audit `scripts/guards/lib/horsStrateAudit.ts`
- * — la lisent ICI : une composition recopiée ferait mesurer à l'un ce que l'autre ne mesure pas
- * (sans `familles`, le régime d'entrées se déduit de la racine JSON ; sans `choix`, aucun enum n'est
- * fermé et des discriminants comptent comme références), et aucune garde ne verrait la divergence.
- * Tout est rendu — `defs`, `declares`, `familles`, `choix`, `scan` — parce que chaque consommateur
+ * LE scan du corpus : l'UNIQUE composition `defs du registre + enums DÉCLARÉS → `scannerDonnees``.
+ * Ses trois consommateurs — la garde `src/data/structures-contrat.test.ts`, le générateur
+ * `scripts/docs/build-structures.mts` et l'audit `scripts/guards/lib/horsStrateAudit.ts` — la lisent
+ * ICI : une composition recopiée ferait mesurer à l'un ce que l'autre ne mesure pas (sans `choix`,
+ * aucun enum n'est fermé et des discriminants comptent comme références), et aucune garde ne verrait
+ * la divergence.
+ * Tout est rendu — `defs`, `declares`, `choix`, `scan` — parce que chaque consommateur
  * en lit une part différente et qu'aucun ne doit refabriquer la sienne.
  */
 export function scanDuCorpus(root: string) {
   const defs = defsDeDocument();
   const declares = introspecterDefs(defs);
-  const familles = new Map(declares.map((d) => [d.file, d.famille]));
   const choix = choixDeclares(defs);
-  return { defs, declares, familles, choix, scan: scannerDonnees(root, familles, choix) };
+  return { defs, declares, choix, scan: scannerDonnees(root, defs, choix) };
 }
 
 /**
@@ -1136,15 +1199,9 @@ export function mesurerEnveloppe(groupes: readonly GroupeEnveloppe[]): Divergenc
 // looseObject dont la signature recoupe le lexique ou un schéma de la grammaire partagée.
 // ---------------------------------------------------------------------------
 
-/** Un `createSourceFile` par fichier et par run (T9). */
-const CACHE_SOURCE = new Map<string, ts.SourceFile>();
-const sourceDe = (fichier: string, texte: () => string) => {
-  const vu = CACHE_SOURCE.get(fichier);
-  if (vu) return vu;
-  const sf = ts.createSourceFile(fichier, texte(), ts.ScriptTarget.Latest, true);
-  CACHE_SOURCE.set(fichier, sf);
-  return sf;
-};
+/** AST d'un fichier, bâti pour l'appel qui le demande (`scripts/guards/lib/tsProgram.mjs`, en-tête). */
+const sourceDe = (fichier: string) =>
+  ts.createSourceFile(fichier, readFileSync(fichier, 'utf8'), ts.ScriptTarget.Latest, true);
 /** Les fichiers de la GRAMMAIRE partagée (`src/data/schemas/grammaire/`) — un schéma commun y vit,
  *  jamais dans un def. LUS AU DOSSIER : un module de grammaire ajouté est couvert sans liste à tenir. */
 const fichiersGrammaire = (root: string) =>
@@ -1152,7 +1209,7 @@ const fichiersGrammaire = (root: string) =>
 const sourcesGrammaire = (root: string) =>
   fichiersGrammaire(root).map((nom) => {
     const fichier = join(root, 'src/data/schemas/grammaire', nom);
-    return sourceDe(fichier, () => readFileSync(fichier, 'utf8'));
+    return sourceDe(fichier);
   });
 
 /** `kind` reconnus par `conditionSchema` (`src/data/schemas/grammaire/mecanique.ts`) — lus par AST,
@@ -1273,21 +1330,15 @@ function litterauxZod(node: ts.Node, sf: ts.SourceFile) {
 
 type LitteralDef = { def: string; ligne: number; champ: string; cles: string[] };
 
-/** Cache par racine : les `defs/*.ts` ne sont parsés qu'UNE fois par run. */
-const CACHE_LITTERAUX = new Map<string, LitteralDef[]>();
-
 /** Tous les littéraux d'objet zod des `defs/*.ts`, avec leur `def:ligne`, leur champ et leurs clés. */
 function litterauxDefs(root: string): LitteralDef[] {
-  const cache = CACHE_LITTERAUX.get(root);
-  if (cache) return cache;
   const dir = join(root, 'src/data/schemas/defs');
   const out: LitteralDef[] = [];
   for (const f of listerDossier(dir).filter((f) => f.endsWith('.ts') && !f.endsWith('.test.ts'))) {
     const chemin = join(dir, f);
-    const sf = sourceDe(chemin, () => readFileSync(chemin, 'utf8'));
+    const sf = sourceDe(chemin);
     for (const lit of litterauxZod(sf, sf)) out.push({ def: f, ...lit });
   }
-  CACHE_LITTERAUX.set(root, out);
   return out;
 }
 

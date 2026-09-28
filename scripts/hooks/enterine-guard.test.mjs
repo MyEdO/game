@@ -11,6 +11,7 @@ import { readFileSync, writeFileSync, mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
+import { SURFACE_CLAUDE, SURFACE_CODEX, aplatirHooks } from '../agents/compat-core.mjs'
 import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
@@ -128,11 +129,10 @@ test('stdin illisible ou vide → silence (jamais de demande au hasard)', () => 
 })
 
 test('le hook est câblé sur Write ET Edit dans les DEUX surfaces (sinon il passe à vide)', () => {
-  for (const surface of ['.claude/settings.json', '.codex/hooks.json']) {
-    const config = JSON.parse(readFileSync(join(REPO, surface), 'utf8'))
-    const matchers = (config.hooks?.PreToolUse ?? [])
-      .filter((e) => (e.hooks ?? []).some((h) => String(h.command ?? '').includes('enterine-guard.mjs')))
-      .map((e) => String(e.matcher ?? ''))
+  for (const surface of [SURFACE_CLAUDE, SURFACE_CODEX]) {
+    const matchers = aplatirHooks(JSON.parse(readFileSync(join(REPO, surface), 'utf8')), surface)
+      .filter((h) => h.phase === 'PreToolUse' && h.script === 'enterine-guard.mjs')
+      .map((h) => h.matcher)
     assert.ok(matchers.length > 0, `${surface} : hook non câblé`)
     for (const canal of ['Write', 'Edit'])
       assert.ok(matchers.some((m) => m.split('|').includes(canal)), `${surface} : canal ${canal} non matché`)

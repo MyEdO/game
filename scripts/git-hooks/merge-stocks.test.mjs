@@ -163,7 +163,7 @@ test('une collection vide des deux côtés → pas de plantage', () => {
 })
 
 test('un fichier SANS collection modifié des deux côtés → 3-voies, propre sur des lignes disjointes, marqueurs sur les mêmes', () => {
-  for (const chemin of ['scripts/guards/lib/plageStock.mjs', 'scripts/guards/lib/legacyVocabStock.mjs']) {
+  for (const chemin of ['scripts/guards/lib/plageStock.mjs', 'scripts/guards/lib/legacyVocabStock.mjs', 'scripts/guards/lib/slotsStock.mjs']) {
     const O = lu(chemin)
     assert.equal(FORMAT_MJS.lire(O, chemin).collections.size, 0, chemin)
     const lignes = O.split('\n')
@@ -177,15 +177,16 @@ test('un fichier SANS collection modifié des deux côtés → 3-voies, propre s
   }
 })
 
-test('`slotsStock.mjs` : un tableau hors forme de site est du texte hors collections, qui suit la règle du côté changé', () => {
-  const S = 'scripts/guards/lib/slotsStock.mjs'
-  const O = lu(S)
-  assert.deepEqual([...FORMAT_MJS.lire(O, S).collections.keys()], ['SLOTS_INTERNES'])
-  const B = O.replace('date: "2026-08-26" },', 'date: "2026-09-27" },')
-  const A = varie(S, O, () => [{ fichier: 'src/x.ts', ref: 'r', occurrence: 1 }], 'SLOTS_INTERNES')
-  const r = fusion(S, O, A, B)
+test('un tableau hors forme de site (`slotsStock.mjs`) est du texte hors collections, qui suit la règle du côté changé', () => {
+  const ligne = (date) => `{ dataset: "actions.json", champ: "armed", occurrences: 3, lot: "L2/L3 #1473", date: "${date}" }`
+  const avec = (date, sites) => module(['SLOTS_SANS_DECLARATION', `[\n  ${ligne(date)},\n]`], ['SITES', sites])
+  const O = avec('2026-08-26', '[]')
+  assert.deepEqual([...FORMAT_MJS.lire(O, FIXTURE).collections.keys()], ['SITES'])
+  const B = avec('2026-09-27', '[]')
+  const A = varie(FIXTURE, O, () => [{ fichier: 'src/x.ts', ref: 'r', occurrence: 1 }], 'SITES')
+  const r = fusion(FIXTURE, O, A, B)
   assert.equal(r.conflict, false)
-  assert.equal(r.text, varie(S, B, () => [{ fichier: 'src/x.ts', ref: 'r', occurrence: 1 }], 'SLOTS_INTERNES'))
+  assert.equal(r.text, varie(FIXTURE, B, () => [{ fichier: 'src/x.ts', ref: 'r', occurrence: 1 }], 'SITES'))
 })
 
 test('des en-têtes changés des deux côtés différemment → 3-voies', () => {

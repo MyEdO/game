@@ -6,6 +6,7 @@ import { creatureSpeciesOptions } from './creatures';
 import { SWARM_FORMS } from './swarm/forms';
 import type { MonsterParts } from './parts/monstrous';
 import type { Palette } from './palette';
+import type { Sexe } from '../../data/schemas/grammaire/valeurs';
 
 /** Vocabulaire (marque NOMINALE, #406) : id RIG (slug d'espèce `species.json`, id de créature/race/
  *  véhicule/affût-de-siège) — jamais un `SpeciesData.label` (« Humains (Reiklander) »). UNE seule
@@ -29,10 +30,11 @@ export function rigSpeciesVocab(): Set<string> {
   ]);
 }
 
-/** SEUL site sanctionné d'assertion vers `RigSpeciesId` pour un id DÉJÀ rig (scène, def, override
- *  d'éditeur, résolution de rendu). Producteur VALIDANT : en DEV/test un id hors `rigSpeciesVocab()`
- *  lève nominativement (la donnée est fausse et se corrige) ; en prod c'est un passe-plat, le rendu
- *  ne meurt pas sur une entrée aberrante. Un id RULES passe par `rigSpeciesId` (src/data/index.ts). */
+/** SEUL site sanctionné d'assertion vers `RigSpeciesId` pour un id d'origine CODE (résolution de
+ *  rendu, def, littéral de galerie) : l'espèce d'AUTEUR est jugée en amont, par le schéma et par
+ *  `resolveRender` (corps d'erreur `manquant`). Producteur VALIDANT : en DEV/test un id hors
+ *  `rigSpeciesVocab()` lève nominativement — assertion d'invariant, sa levée est un bug de code ; en
+ *  prod c'est un passe-plat. Un id RULES passe par `rigSpeciesId` (src/data/index.ts). */
 export function asRigSpeciesId(id: string): RigSpeciesId {
   if (import.meta.env?.DEV && !rigSpeciesVocab().has(id))
     throw new Error(`[appearance] espèce « ${id} » hors vocabulaire rig (species.json ∪ defs rig ∪ raceAppearance ∪ formes de nuée ∪ véhicules ∪ siegeRig) — donnée à corriger.`);
@@ -43,7 +45,7 @@ export function asRigSpeciesId(id: string): RigSpeciesId {
 export interface Appearance {
   species: RigSpeciesId;
   gabarit?: string;                                 // id de carrure résolu (sinon dérivé de l'espèce)
-  sex: 'M' | 'F';
+  sex: Sexe;
   build: number;                                   // 0..1
   legs?: number;                                   // multiplicateur de longueur de jambes (mutation Court sur pattes)
   faceFlip?: boolean;                              // visage retourné tête en bas (mutation Visage inversé)

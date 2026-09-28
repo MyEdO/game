@@ -24,7 +24,6 @@ import { netSnapshot, applyNetSnapshot } from './netFlow';
 import { snapshotSave } from './saves';
 import { runAction } from './actionRegistry';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { testScene } from '../scenes/test-fixture';
 import { chebyshev } from '../engine/grid';
 
@@ -32,9 +31,9 @@ const get = () => useGame.getState();
 
 /** Combat témoin : un héros au tour ENTIER, un ennemi placé à distance de Charge (hors d'Allonge). */
 function setup(opts: { peur?: boolean } = {}) {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   useGame.setState({ party: [hero] });
-  get().startScene(testScene);
+  get().startScene(testScene());
   get().startCombat('enc-mutants');
   get().confirmRoundStart();
   vi.clearAllTimers();
@@ -239,7 +238,7 @@ describe('(C) le REFUS est un canal LOCAL — et ne se tait jamais', () => {
     setup();
     refuserGeste(get, useGame.setState, 'Hors de portée.');
     useGame.setState({ battle: null, mode: 'exploration' });
-    get().transitionTo(testScene.id); // seam RÉEL du checkpoint : `transitionTo` appelle `autoSave`
+    get().transitionTo(testScene().id); // seam RÉEL du checkpoint : `transitionTo` appelle `autoSave`
     expect(get().refus, 'le refus a traversé le changement de scène').toBeNull();
     const snap = snapshotSave(
       get() as unknown as Record<string, unknown>,

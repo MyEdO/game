@@ -40,7 +40,6 @@
 //     contexte (haut-gauche) ne mord pas sur le haut-centre, qui appartient au GROUPE.
 //
 // Sortie : exit 1 au premier défaut (liste complète imprimée), exit 0 si tout passe.
-import { pathToFileURL } from 'node:url';
 import { openApp, evaluate, setViewport, sleep, clickButtonByText, cliquerSelecteur, resoudreModales, VUE_REFERENCE } from './lib.mjs';
 
 // Les trois largeurs étroites (700/560/360) portent les recouvrements ; les deux larges portent la
@@ -664,7 +663,7 @@ async function main() {
 }
 
 // Le VERDICT (`defauts`) s'importe pour être testé à fixtures ; la sonde ne s'OUVRE que lancée en CLI.
-if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) {
+if (import.meta.main) {
   main().catch((e) => {
     console.error(`ERR ${e.message}`);
     process.exit(1);

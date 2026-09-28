@@ -66,7 +66,7 @@ import type { CodexFocus } from './codexFocus';
 export type SheetTab = 'etat' | 'possessions' | 'competences' | 'magie' | 'avancement' | 'histoire';
 
 /** Paquet de campagne snapshotté (#766) : RÉ-ENREGISTRE toutes ses scènes (le `sceneRegistry` en mémoire
- *  module ne connaît sinon que l'Arène + la scène courante → transitions/portes vers les AUTRES scènes du
+ *  module ne connaît sinon que la scène courante → transitions/portes vers les AUTRES scènes du
  *  paquet échoueraient en silence) et RE-DÉRIVE la couche narrative runtime (`HORS_SAVE`, `saves.ts`).
  *  Lue par la reprise de save et par le snapshot coop de l'invité (`netFlow.applyNetSnapshot`). */
 export function reposerPaquetDeCampagne(doc: CampaignDoc | null | undefined): Partial<GameState> {
@@ -135,7 +135,7 @@ import type {
   PendingAppraise, PendingAttack, PendingHandGate, PendingSiegeAim, PendingCleave, PendingDualStrike, PendingTrample, PendingBattement, PendingDistraire, PendingManeuver, PendingRun, PendingFall, PendingShipManeuver, PendingShipBattery, PendingCrewTest, PendingShanty, PendingApproach, PendingWard, PendingFocus, PendingDispel,
   PendingFrenzy, PendingRenounce, PendingDefense,
   PendingDisengage, PendingAuContact, PendingGrapple, PendingCast, PendingCounterspell, PendingExtendedTest, PendingForceDoor, PendingEtalLot, PendingHeal, PendingSurgery, PendingCorruption,
-  PendingCastOpposition, PendingCascade, ScheduledEffect, DialogueTransition, CascadeStepMeta, Cloture, CounterDeclaration,
+  PendingCastOpposition, PendingCascade, ScheduledEffect, DialogueTransition, EtatDialogue, CascadeStepMeta, Cloture, CounterDeclaration,
 } from './pendings';
 import { openEncounterPsych } from './encounterPsychFlow';
 import { toMoney } from '../engine/money';
@@ -149,13 +149,14 @@ export type { PendingRest, RestPlaces } from './restFlow';
 import { councilPay as councilPayFlow, councilClose as councilCloseFlow } from './shipCrew';
 import type { PendingCouncil } from './shipCrew';
 export type { PendingCouncil } from './shipCrew';
-import { Scene, Dialogue, isWalkable, sceneMetresPerTile, heightAt, speakerLabel, type SceneEntity, type VictoryCondition } from './scene';
+import { Scene, isWalkable, sceneMetresPerTile, heightAt, speakerLabel, type SceneEntity, type VictoryCondition } from './scene';
 import { recordTurn, type DialogueTurn } from './dialogueHistory';
+import { ouvrirDialogue, conversationRepond, reponsesDuNoeud } from './dialogue';
 import { placeCombatant } from './spawn';
 import { chebyshev, Pt } from './path';
 import { aPorteeDe, exploreStepDest, povStepDest, spawnFacing } from './exploreNav';
 import { bus, EVT } from './bus';
-import { campaign, campaignWorldMap } from '../scenes/campaign';
+import { emptyWorldMap } from './worldMap';
 import type { NarratifBlock, OuvertureBlock } from './campaignNarratif';
 import { emptyNarratif } from './campaignNarratif';
 import type { ChapitreDepuis, ChapterRecap } from './chapitreRecap';
@@ -184,18 +185,17 @@ import { createCombatSlice } from './combatSlice';
 export const SCREENS = ['menu', 'party', 'creator', 'campaign', 'editor', 'test', 'interlude', 'coop', 'compendium', 'massBattle', 'gallery', 'webglSpike'] as const;
 export type Screen = typeof SCREENS[number];
 
-/** Registre des scènes (pour les transitions de campagne). */
+/** Registre des scènes (pour les transitions de campagne) : les scènes d'une campagne y entrent
+ *  quand elle se lance (`loadProject`) ou se recharge (`reposerPaquetDeCampagne`), jamais à l'import. */
 const sceneRegistry: Record<string, Scene> = {};
-for (const c of campaign) sceneRegistry[c.scene.id] = c.scene;
 export function registerScene(s: Scene) {
   sceneRegistry[s.id] = s;
 }
-/** TEST-ONLY (#777) : vide le `sceneRegistry` et le ré-initialise aux scènes `campaign` par défaut —
- *  simule un « registre reparti de zéro » (reload) SANS `vi.resetModules()`, incompatible avec la
- *  suite sous `isolate:false` (fuite de registre de modules entre fichiers du worker partagé). */
+/** TEST-ONLY (#777) : vide le `sceneRegistry` — simule un « registre reparti de zéro » (reload) SANS
+ *  `vi.resetModules()`, incompatible avec la suite sous `isolate:false` (fuite de registre de modules
+ *  entre fichiers du worker partagé). */
 export function resetSceneRegistry(): void {
   for (const k of Object.keys(sceneRegistry)) delete sceneRegistry[k];
-  for (const c of campaign) sceneRegistry[c.scene.id] = c.scene;
 }
 
 // Types des flux différés (Pending*, Money, RevealEntry…) — extraits dans ./pendings, ré-exportés
@@ -339,9 +339,9 @@ export interface Objective {
 /** DOCUMENT SOURCE de la partie en cours (#766) — snapshot AUTO-SUFFISANT du paquet de campagne chargé
  *  par `loadProject` (scènes + carte + narratif + scène d'entrée). Embarqué au save (via `stateFields`)
  *  pour que le chargement RÉ-ENREGISTRE toutes les scènes (`registerScene`) et RE-DÉRIVE `campaignNarratif`
- *  — sans lui, une save reloadée ne connaîtrait que l'Arène + la scène courante et les transitions vers
- *  les AUTRES scènes du paquet échoueraient en silence. `null` = chemin Arène (scènes déjà seedées au
- *  module init de `sceneRegistry`) ou vieille save pré-#766. */
+ *  — sans lui, une save reloadée ne connaîtrait que la scène courante et les transitions vers les
+ *  AUTRES scènes du paquet échoueraient en silence. `null` = aucun paquet chargé (partie posée par
+ *  `startScene` seule). */
 export interface CampaignDoc {
   scenes: Scene[];
   worldMap?: import('./worldMap').WorldMap | null;
@@ -541,7 +541,9 @@ export interface GameState extends RollFlowActionsMap {
    *  transitions de scène (comme `clues`/`explored`), vidé en nouvelle partie (`startScene`). Verbatim
    *  des dialogues (non borné à 40) : `dialogueHistory`, slot séparé (ne pas greffer ici). */
   journal: string[];
-  dialogue: { dialogue: Dialogue; nodeId: string; speakerId?: string } | null;
+  /** CONVERSATION en cours (`EtatDialogue`, porteuse de sa `session`) — ouverte par l'unique
+   *  fabrique `ouvrirDialogue` (`state/dialogue.ts`), jamais bâtie à la main. */
+  dialogue: EtatDialogue | null;
   /** Archive verbatim des tours de dialogue (#718) — CAMPAGNE-scopée : survit aux transitions de
    *  scène, vidée en nouvelle partie (`startScene`). Fenêtre bornée (`DIALOGUE_HISTORY_CAP`), séparée
    *  du `journal` (dont le cap 40 éjecterait l'historique de dialogue). */
@@ -562,7 +564,7 @@ export interface GameState extends RollFlowActionsMap {
    *  persistance snapshot est déférée (#766). */
   campaignNarratif: NarratifBlock | null;
   /** Document source du paquet de campagne chargé (#766) — snapshotté (via `stateFields`), re-registre
-   *  les scènes + re-dérive `campaignNarratif` au chargement d'une save. null = chemin Arène / save sans paquet de campagne. */
+   *  les scènes + re-dérive `campaignNarratif` au chargement d'une save. null = aucun paquet chargé. */
   campaignDoc: CampaignDoc | null;
   /** Instances runtime de scène (#707) — delta capturé au départ (entités retirées, flags de porte/
    *  structure) par `sceneId`, réappliqué au clone frais au revisit (`transitionTo`). SURVIT aux
@@ -1753,9 +1755,9 @@ registerCloture('teardownDeVictoire', (get, set, c) => {
  * exécuteur, et il n'existe pas de `if (actionId === …)` pour en ajouter une.
  */
 const JOUER_CAPACITE: Readonly<Record<CapaciteId, (get: Get, set: Set, ent: SceneEntity, scene: Scene) => void>> = {
-  parler: (_get, set, ent, scene) => {
+  parler: (get, set, ent, scene) => {
     const dlg = scene.dialogues.find((d) => d.id === ent.dialogueId);
-    if (dlg) set({ dialogue: { dialogue: dlg, nodeId: dlg.start, speakerId: ent.id } });
+    if (dlg) set({ dialogue: ouvrirDialogue(get(), dlg, ent.id) });
   },
   commercer: (get, _set, ent) => get().openMerchant(ent.id),
 };
@@ -1840,7 +1842,7 @@ export const useGame = create<GameState>((set, get) => ({
   possessions: [],
   tradeRumours: [],
   landMarket: null,
-  worldMap: campaignWorldMap,
+  worldMap: emptyWorldMap(),
   worldMapOpen: false,
   gameMenuOpen: false,
   travelPlan: null,
@@ -2221,15 +2223,15 @@ export const useGame = create<GameState>((set, get) => ({
     if (!entry) throw new Error(`loadProject : scène d’entrée « ${entryId} » absente (${scenes.map((s) => s.id).join(', ')})`);
     for (const s of scenes) registerScene(s);
     get().startScene(entry, narratif);
-    // La carte du PROJET remplace celle de la campagne (restaurée par le reset de startScene) ;
-    // un projet sans carte n'offre pas de voyage.
+    // La carte du PROJET remplace la carte vide de l'état de départ (remise par le reset de
+    // startScene) ; un projet sans carte n'offre pas de voyage.
     if (worldMap !== undefined) set({ worldMap });
     // Ouverture cérémonielle du chapitre (#717) : posée ICI, `startScene` vient de remettre l'état à
     // l'init. Absente du paquet = démarrage direct.
     set({ pendingOuverture: narratif?.ouverture ?? null });
     // Document SOURCE de la partie (#766) : snapshot AUTO-SUFFISANT du paquet, embarqué au save par
     // `stateFields` → au chargement, `applyLoadedSave` ré-enregistre ces scènes et re-dérive le narratif.
-    // Posé APRÈS startScene (qui vide `campaignDoc` via le reset à l'init) — jamais sur le chemin Arène.
+    // Posé APRÈS startScene (qui vide `campaignDoc` via le reset à l'init).
     set({ campaignDoc: { scenes, worldMap: worldMap ?? null, narratif: narratif ?? emptyNarratif(), startSceneId: entry.id } });
   },
 
@@ -2542,8 +2544,21 @@ export const useGame = create<GameState>((set, get) => ({
 
   chooseDialogue: (choiceIndex) => {
     const st = get();
-    if (!st.dialogue) return;
-    const node = st.dialogue.dialogue.nodes.find((n) => n.id === st.dialogue!.nodeId);
+    // LE VERBE VALIDE, pas la surface : la fenêtre grise, la touche se tait, mais c'est ICI que
+    // « cette réponse est-elle jouable MAINTENANT ? » se tranche — un intent coop forgé, une touche
+    // restée vive sous une modale et un clic arrivent tous par ce chemin. Deux portes, nommées :
+    //  · `conversationRepond` — conversation ouverte, CE siège décide, aucune surface ne tient la
+    //    main (`surfaceTientLaMain` : la fenêtre de jet ou le marché qu'une réponse vient d'ouvrir
+    //    SUSPEND la conversation) ;
+    //  · `reponsesDuNoeud` — la réponse est VISIBLE (son `when`) et OFFERTE (bourse), par le MÊME
+    //    sélecteur que les deux surfaces. Un index qui n'y figure pas n'existe pas pour le joueur.
+    if (!conversationRepond(st)) return;
+    const r = reponsesDuNoeud(st).find((x) => x.index === choiceIndex);
+    if (!r?.enabled) {
+      if (r?.refus === 'argent') get().log(t('store.dialogueNoMoney'));
+      return;
+    }
+    const node = st.dialogue.dialogue.nodes.find((n) => n.id === st.dialogue.nodeId);
     const choice = node?.choices[choiceIndex];
     if (!node || !choice) return;
     // Option payante (auberge, péage, pot-de-vin) : dépense de groupe (aucun bénéficiaire héros
@@ -2553,7 +2568,7 @@ export const useGame = create<GameState>((set, get) => ({
       if (!payFromGroup(get, set, cost, { purpose: 'Dialogue' })) { get().log(t('store.dialogueNoMoney')); return; }
     }
     const transition: DialogueTransition = choice.next
-      ? { dialogue: st.dialogue.dialogue, nodeId: choice.next, speakerId: st.dialogue.speakerId }
+      ? { ...st.dialogue, nodeId: choice.next } // même conversation : `session` et interlocuteur voyagent avec
       : 'close';
     // Nom AFFICHÉ du locuteur (override par nœud puis speaker de session) — source unique partagée
     // par l'archive du tour et le titre de la fenêtre de butin d'un choix payant.
@@ -2567,6 +2582,7 @@ export const useGame = create<GameState>((set, get) => ({
       at: st.gameTime,
       sceneId: st.scene?.id,
       dialogueId: st.dialogue.dialogue.id,
+      session: st.dialogue.session,
     };
     set((s) => ({ dialogueHistory: recordTurn(s.dialogueHistory, turn) }));
     // Logique du choix (effets + branches) → runFlow ; objet/argent reçu = fenêtre d'attribution (titrée du donateur).

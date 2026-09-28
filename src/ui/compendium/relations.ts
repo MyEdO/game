@@ -30,6 +30,7 @@ import { effectiveEntry } from '../../engine/variants';
 import { spellEffectOps } from '../../state/flow';
 import type { Flow, TriggeredEffect } from '../../state/flow';
 import { codexLookupVersion } from './registry';
+import { replier } from '../../lib/ordre.mjs';
 import { resolveQualities } from '../../engine/qualities/dispatch';
 
 /** Un référant (entité QUI pointe vers la cible) — ouvrable au Codex via (category, id). */
@@ -146,7 +147,7 @@ const graph = versionCached<ReverseGraph>(() => {
     const by: Referrer = { category: 'talents', id: t.id, label: t.label };
     for (const op of t.passive ?? []) {
       if (op.op === 'grantCareerSkill') addReverse('skills', op.skill.id, by, 'Talents le conférant');
-      else if (op.op === 'grantCareerTalent') addReverse('talents', op.talentId, by, 'Talents le conférant');
+      else if (op.op === 'grantCareerTalent') addReverse('talents', op.talent.id, by, 'Talents le conférant');
       else if (op.op === 'charMod') addReverse('characteristics', op.char, by, 'Talents (bonus de départ)');
     }
   }
@@ -160,7 +161,7 @@ const graph = versionCached<ReverseGraph>(() => {
     for (const tr of c.optionals) if (!isOptionalNote(tr)) addReverse('traits', tr.id, { ...by, detail: 'facultatif' }, 'Créatures ayant ce trait');
     for (const sk of c.skills) addReverse('skills', sk.id, by);
     for (const ta of c.talents) addReverse('talents', ta.id, by);
-    for (const sp of c.spells) addReverse('spells', sp.id, by, 'Créatures la lançant');
+    for (const sp of c.spells) addReverse('spells', sp, by, 'Créatures la lançant');
     for (const tp of c.trappings) if ('id' in tp) addReverse('trappings', tp.id, by, 'Créatures la possédant');
   }
 
@@ -195,9 +196,9 @@ const graph = versionCached<ReverseGraph>(() => {
   // 12) Dieux/Cultes → bénédictions + miracles.
   for (const g of gods) {
     const by: Referrer = { category: 'gods', id: g.id, label: g.label };
-    for (const b of g.blessings) addReverse('spells', b.id, { ...by, detail: 'Bénédiction' }, 'Cultes (Bénédictions / Miracles)');
-    for (const mi of g.miracles) addReverse('spells', mi.id, { ...by, detail: 'Miracle' }, 'Cultes (Bénédictions / Miracles)');
-    for (const cs of g.chaosSpells ?? []) addReverse('spells', cs.id, { ...by, detail: 'Sort du Chaos' }, 'Cultes (Bénédictions / Miracles)');
+    for (const b of g.blessings) addReverse('spells', b, { ...by, detail: 'Bénédiction' }, 'Cultes (Bénédictions / Miracles)');
+    for (const mi of g.miracles) addReverse('spells', mi, { ...by, detail: 'Miracle' }, 'Cultes (Bénédictions / Miracles)');
+    for (const cs of g.chaosSpells ?? []) addReverse('spells', cs, { ...by, detail: 'Sort du Chaos' }, 'Cultes (Bénédictions / Miracles)');
   }
 
   // 13) États INFLIGÉS — ops `condition` des effets (Sort = Flow ; Trait/Qualité/Talent/Domaine = TriggeredEffect[].flow).
@@ -308,17 +309,16 @@ export function bookContents(bookId: string | undefined): { category: string; en
 }
 
 /**
- * Index d'auto-liage (LOCALE-SCOPED) : libellé normalisé (minuscule, sans accent) → (category, label)
+ * Index d'auto-liage (LOCALE-SCOPED) : libellé replié (`replier`) → (category, label)
  * de l'entité à lier. Construit depuis les libellés de la LOCALE active (ici FR) → 100 %
  * langue-agnostique de principe (dérivé des données, jamais une chaîne FR en dur). Les libellés
  * ambigus (même texte pour 2 entités) et trop courts (< 4) sont ÉCARTÉS pour ne pas sur-lier.
  * RE-CALCULÉ par version (suit une édition Codex).
  */
-const deburrLower = (s: string): string => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 const labelIndexCached = versionCached<Map<string, { category: string; label: string }>>(() => {
   const seen = new Map<string, { category: string; label: string } | null>();
   for (const e of catalog()) {
-    const key = deburrLower(e.label);
+    const key = replier(e.label);
     if (key.length < 4) continue;
     seen.set(key, seen.has(key) ? null : { category: e.category, label: e.label }); // collision → null (ambigu)
   }
@@ -333,7 +333,7 @@ export function labelIndex(): Map<string, { category: string; label: string }> {
 const LINKABLE_CATS = new Set(['characteristics', 'skills', 'talents', 'etats', 'maneuvers', 'traits', 'qualities', 'domains']);
 
 /** ── HOMONYMES du vocabulaire auto-liable (même libellé NU, catégories DIFFÉRENTES) ──
- *  Collisions RÉELLES du catalogue (relevées 2026-07-13, `deburrLower` sur libellé entier), classées
+ *  Collisions RÉELLES du catalogue (relevées 2026-07-13, `replier` sur libellé entier), classées
  *  par NATURE — c'est elle qui DÉCIDE la résolution d'un match NU (sans contexte de fiche) :
  *
  *   A. MÊME concept, deux REPRÉSENTATIONS (un match nu tombe TOUJOURS juste — on LIE, priorité à la
@@ -411,8 +411,8 @@ const linkCandidatesCached = versionCached<Map<string, LinkCandidate[]>>(() => {
   for (const e of catalog()) {
     if (!LINKABLE_CATS.has(e.category)) continue;
     const c: LinkCandidate = { category: e.category, id: e.id, label: e.label };
-    add(deburrLower(e.label), c);
-    for (const form of prefixedForms(e.category, e.label)) add(deburrLower(form), c);
+    add(replier(e.label), c);
+    for (const form of prefixedForms(e.category, e.label)) add(replier(form), c);
   }
   return idx;
 });
@@ -435,7 +435,7 @@ const idByLabelCached = versionCached<Map<string, string>>(() => {
  *  la résolution y ramène (« Attaques caudales » → « attaque caudale »). */
 const lookupCandidates = (rawText: string): LinkCandidate[] | undefined => {
   const idx = linkCandidatesCached();
-  const key = deburrLower(rawText);
+  const key = replier(rawText);
   const direct = idx.get(key);
   if (direct?.length) return direct;
   const singular = key.split(/\s+/).map((w) => (w.endsWith('s') ? w.slice(0, -1) : w)).join(' ');

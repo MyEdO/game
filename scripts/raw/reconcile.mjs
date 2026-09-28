@@ -27,23 +27,25 @@
 //   Les mesures fines (trous de ligne, `(non implémenté)`, folios ignorés, réfs sans chapitre) restent
 //   IMPRIMÉES et jamais assertées. Lecteur = `lireStockJson` (guards/lib/stockDeSites.mjs), écart = `ecartsDeStock`
 //   (guards/lib/stock.mjs) — jamais un troisième.
-// Sortie : docs/raw/reconciliation.md  ·  Re-run : node scripts/raw/reconcile.mjs
+// Sortie : docs/raw/reconciliation.md  ·  Re-run : node scripts/raw/reconcile.mjs  ·  `--check` :
+//   `ecrireOuVerifier`, APRÈS le cliquet — les deux rouges se disent.
 import { readFileSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parUnitesDeCode } from '../guards/lib/lister.mjs'
 import { ecartsDeStock } from '../guards/lib/stock.mjs'
 import {
-  refReDe, refFolioReDe, alternationDe, bookOfDe, booksDe, coeursDe, coeurDe, livresDeCoeur, looseReDe,
+  refReDe, refFolioReDe, bookOfDe, booksDe, coeursDe, coeurDe, livresDeCoeur, looseReDe,
   REGISTRE_LIVRES, folioSpan, span, pagesDeLAtlas, readText,
 } from './_lib.mjs'
+import { alternationDe } from '../../src/lib/regex.ts'
 import { lireStockJson } from '../guards/lib/stockDeSites.mjs'
 import { fichiersCitants } from './lib/fichiersCitants.mjs'
 import {
   loadAbbrMap, folioCitationsFromJson, chargerDette, registresDeFiches, parseFiche,
   stemDeFiche, couvertureDe, stemDe, MANIFEST_PATH,
 } from './build-implemente.mjs'
-import { ecrireDoc } from '../docs/lib/empreinte-sources.mjs'
+import { ecrireOuVerifier } from '../docs/lib/empreinte-sources.mjs'
 
 export const TOL = 20 // tolérance en lignes : la synthèse Atlas pine un ancrage proche, pas la ligne exacte
 export const RAWDIR = 'docs/raw'
@@ -84,7 +86,7 @@ export function decodeCle(cle, abbrs) {
   return sensB2 ? { sens: 'B2', ...sensB2 } : sensA ? { sens: 'A', ...sensA } : null
 }
 
-// Clé de chapitre canonique du Sens A (#434 défaut 9 suite, #1156) : le code écrit le numéro
+// Clé de chapitre canonique du Sens A (#434, #1156) : le code écrit le numéro
 // zéro-préfixé (`AA 02`, `ADE II ch.03`, `LDB 08`), l'Atlas écrit les titres sans préfixe
 // (`## [AA 2]`, `## [LDB 8]`) — comparaison textuelle brute = faux trou, et exemption catalogue
 // morte pour toute réf zéro-préfixée. Normalise aux DEUX collectes (code ET Atlas) et pour TOUS
@@ -109,7 +111,7 @@ const setDe = (table, book) => table.get(book) || new Set()
 export function computeReconciliation({ srcDir = 'src', rawDir = RAWDIR, registre = REGISTRE_LIVRES, manifestPath = MANIFEST_PATH } = {}) {
   const books = booksDe(registre)
   const coeurs = coeursDe(registre)
-  const ALT = alternationDe(books)
+  const ALT = alternationDe(books.map(([a]) => a))
   const bookOf = bookOfDe(books)
   const SRC = fichiersCitants(srcDir)
   const DOCS = pagesDeLAtlas(rawDir, { classes: CLASSES, registre })
@@ -258,7 +260,7 @@ export function computeReconciliation({ srcDir = 'src', rawDir = RAWDIR, registr
     }
   }
 
-  // Résumé par livre (le compte central du #434 défaut 9)
+  // Résumé par livre (#434)
   const bookStats = new Map()
   const stat = (book) => {
     if (!bookStats.has(book)) bookStats.set(book, { hard: 0, soft: 0, noCh: 0 })
@@ -313,7 +315,7 @@ export function computeReconciliation({ srcDir = 'src', rawDir = RAWDIR, registr
     total: (topicsParFiche.get(entree.id) ?? []).length,
   }))
   // === SENS B2 (R2, régime de CŒUR) : chapitres cités par l'Atlas jamais référencés dans le code
-  // (`atlasLoose`/`codeLoose` portent déjà la clé canonique `chKey`, #434 défaut 11 — `LDB 06` et
+  // (`atlasLoose`/`codeLoose` portent déjà la clé canonique `chKey`, #434 — `LDB 06` et
   // `LDB 6` sont une seule entrée). Crédite le FOLIO : un chapitre atteint par une source
   // `{book,page}` de src/data est référencé (donnée), pas hors-code.
   // Second crédit, la DETTE DE FICHE (#1825) : un chapitre que le code n'atteint pas, mais dont
@@ -522,7 +524,6 @@ export function ecartsTrousDurs(entrees, stock, registre = REGISTRE_LIVRES) {
 
 function main() {
   const data = computeReconciliation()
-  ecrireDoc(join(RAWDIR, 'reconciliation.md'), renderReport(data))
   const noChapterCount = [...data.codeNoCh.values()].reduce((n, a) => n + a.length, 0)
   console.log(`Sens A : ${data.hardA.length} trou(s) dur(s) chapitre-livre · ${data.softA.length} chapitre(s)-livre à lignes non pinées · ${noChapterCount} réf(s) sans chapitre (hors mesure) · folios Atlas ignorés ${data.folioIgnored}`)
   for (const [book, st] of [...data.bookStats].sort((a, b) => parUnitesDeCode(a[0], b[0])))
@@ -534,7 +535,9 @@ function main() {
   for (const e of data.b2)
     console.log(`Sens B2 ${e.book} (cœur ${e.coeur}) : ${e.avant.length} → ${e.horsCode.length} chapitre(s) Atlas hors-code (${e.credites.length} crédité(s) par folio, ${e.sousDette.length} sous dette de fiche)`)
 
-  if (data.etrangers.length) {
+  if (data.fichesJugees === 0) {
+    console.log("AUCUNE FICHE BALAYÉE — la garde de cœur étranger ne mesure rien : vérifier le balayage des fiches de l'Atlas.")
+  } else if (data.etrangers.length) {
     console.log(`CŒUR ÉTRANGER — ${data.etrangers.length} fiche(s) sur ${data.fichesJugees} citent le livre de cœur d'un AUTRE cœur que le leur :`)
     for (const m of data.etrangers)
       console.log(`  ${m.fiche} : ${m.coeurs.map((c) => `cœur ${c.coeur} (${c.livres.join(', ')})`).join(' ET ')}`)
@@ -560,9 +563,16 @@ function main() {
     console.log(`STOCK À DÉCROÎTRE — ${perimees.length} entrée(s) de \`scripts/raw/reconciliation-stock.json\` sans trou mesuré : retirer l'entrée.`)
     for (const p of perimees) console.log(`  ${p}`)
   }
-  if (neuves.length || perimees.length || coeur.length || data.etrangers.length) process.exitCode = 1
+  if (neuves.length || perimees.length || coeur.length || data.etrangers.length || data.fichesJugees === 0) process.exitCode = 1
   else console.log(`Cliquet des trous durs : ${entrees.length} trou(s) dur(s), tous au stock (${Object.keys(stock).length} entrée(s)) — aucun neuf, aucun périmé, aucun livre de cœur.`)
+  const rapport = join(RAWDIR, 'reconciliation.md')
+  ecrireOuVerifier({
+    out: renderReport(data),
+    path: rapport,
+    check: process.argv.includes('--check'),
+    staleMsg: `raw:reconcile — ${rapport} est PÉRIMÉ (code ou Atlas changé).`,
+    rerunMsg: '  → relancer `npm run raw:reconcile` et committer le résultat.',
+  })
 }
 
-const isMain = process.argv[1] && process.argv[1].endsWith('reconcile.mjs')
-if (isMain) main()
+if (import.meta.main) main()

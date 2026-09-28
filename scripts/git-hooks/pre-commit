@@ -2,4 +2,5 @@
 # scripts/git-hooks/pre-commit — porte au COMMIT : gardes anti-poison diff-scopées.
 # Toute la logique vit dans pre-commit.mjs (mécanique partagée scripts/guards/lib/).
 # Contrat : ce hook DOIT pouvoir refuser le commit (exit != 0) — c'est la seule porte git locale.
+node "$(dirname "$0")/../node-requis.mjs" </dev/null || exit $?
 exec node "$(dirname "$0")/pre-commit.mjs" "$@"

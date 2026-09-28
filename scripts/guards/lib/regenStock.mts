@@ -13,8 +13,8 @@
 import { existsSync, rmSync, writeFileSync } from 'node:fs';
 import { relative, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { fileURLToPath, pathToFileURL } from 'node:url';
-import { RACINE } from './bindingsVifs.mjs';
+import { pathToFileURL } from 'node:url';
+import { RACINE } from './bindingsVivants.mjs';
 import { ecartDeRegeneration, texteEnPlace, texteRegenere, type RegenerationDeStock } from './stockDeSites.mjs';
 
 /** Le lot du chantier passé par `--lot <#N …>`, ou `null`. */
@@ -139,5 +139,4 @@ async function main(): Promise<number> {
   return regenererStock(liste, { outil: `npx tsx scripts/guards/lib/regenStock.mts ${module}`, args });
 }
 
-const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
-if (isMain) process.exitCode = await main();
+if (import.meta.main) process.exitCode = await main();

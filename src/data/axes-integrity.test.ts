@@ -3,7 +3,7 @@ import { allAxes, byId, findTalentById, specResolves } from './index';
 
 /**
  * Garde d'INTÉGRITÉ de `axes.json` (#409) — patron `book-source-integrity.test.ts` : chaque
- * `skillId`/`talentId` DOIT être un `id` STABLE de `skills.json`/`talents.json`, chaque `spec` DOIT
+ * `id` de Compétence ou de Talent DOIT être un `id` STABLE de `skills.json`/`talents.json`, chaque `spec` DOIT
  * être VALIDE pour sa Compétence/Talent (`specResolves`, inline OU `specsSource`). Un id
  * qui ne résout plus (renommage/suppression amont) casse le moteur (`axisScore`) en silence sans
  * cette garde.
@@ -21,11 +21,11 @@ describe('#409 — intégrité de axes.json', () => {
         });
       }
       for (const ref of axis.talents ?? []) {
-        it(`talent ${ref.talentId}${ref.spec ? ` (${ref.spec})` : ''} existe`, () => {
-          const talent = findTalentById(ref.talentId);
-          expect(talent, `talentId « ${ref.talentId} » introuvable dans talents.json`).toBeDefined();
+        it(`talent ${ref.id}${ref.spec ? ` (${ref.spec})` : ''} existe`, () => {
+          const talent = findTalentById(ref.id);
+          expect(talent, `id « ${ref.id} » introuvable dans talents.json`).toBeDefined();
           if (ref.spec && talent) {
-            expect(specResolves(talent, ref.spec), `spec « ${ref.spec} » ne résout pas pour « ${ref.talentId} »`).toBe(true);
+            expect(specResolves(talent, ref.spec), `spec « ${ref.spec} » ne résout pas pour « ${ref.id} »`).toBe(true);
           }
         });
       }

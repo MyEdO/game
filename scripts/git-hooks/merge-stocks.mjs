@@ -14,13 +14,13 @@
 // collection, au niveau du GROUPE de site (`groupeDeSite`, `stock.mjs`) : un groupe inchangé d'un côté
 // prend l'autre côté ; un groupe changé des deux côtés dont aucune entrée ne porte de champ hors de la
 // clé est recompté par ordinal d'occurrence ; sinon → 3-voies. L'écriture est celle du format.
+import '../node-requis.mjs'
 import { readFileSync, writeFileSync } from 'node:fs'
-import { resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { threeWay } from './three-way.mjs'
-import { formatDe } from '../guards/lib/stockDeSites.mjs'
-import { CHAMPS_DE_CLE, CHAMP_D_OCCURRENCE, groupeDeSite } from '../guards/lib/stock.mjs'
-import { tableTotale } from '../../src/lib/tableTotale.ts'
+// Clôture statique chargeable sous un Node refusé : scripts/node-requis.mjs (#1801).
+const { formatDe } = await import('../guards/lib/stockDeSites.mjs')
+const { CHAMPS_DE_CLE, CHAMP_D_OCCURRENCE, groupeDeSite } = await import('../guards/lib/stock.mjs')
+const { tableTotale } = await import('../../src/lib/tableTotale.ts')
 
 /** Repli : la version n'est pas admise par la forme. */
 class NonAdmis extends Error {}
@@ -108,5 +108,4 @@ async function main(argv) {
   return 0
 }
 
-const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)
-if (isMain) process.exitCode = await main(process.argv.slice(2))
+if (import.meta.main) process.exitCode = await main(process.argv.slice(2))

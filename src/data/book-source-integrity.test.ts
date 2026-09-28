@@ -137,31 +137,21 @@ const FOLIO_TITLE_RATCHET_MAX = 0;
 
 /**
  * Plafond des entrées IRRÉSOLUES — ni desc verbatim, ni titre de section : ce que la garde ne PEUT
- * pas juger. 775 au relevé du 2026-09-23 (#1898), dont `criticals.json` 131, `trappings.json` 109,
- * `mutations.json` 103, `sea-events.json` 55, `careers.json` 49 (la liste complète est rendue par le
- * dernier `it` de ce bloc). C'est la POPULATION auditée qui le fixe : l'audit ne voit qu'une entrée à
- * `desc`, et chaque famille qui y entre apporte ses irrésolues. Il ne descend qu'en recollant des descs
- * au verbatim (règle 5) ou en nommant les entrées comme leur livre les intitule. Plafonné pour la même
- * raison que les stocks : sans plafond, « la garde couvre de plus en plus » n'est qu'un commentaire.
+ * pas juger. 488 au relevé du 2026-09-23 (#1897), `normMap` lisant le `<br>` d'une cellule de table
+ * comme une espace et la voie desc situant une tête de chapitre par `preMarkerRange`, dont
+ * `trappings.json` 93, `mutations.json` 69, `careers.json` 49, `gods.json` 37, `sea-events.json` 34
+ * (la liste complète est rendue par le dernier `it` de ce bloc). C'est la
+ * POPULATION auditée qui le fixe : l'audit ne voit qu'une entrée à `desc`, et chaque famille qui y
+ * entre apporte ses irrésolues. Il ne descend qu'en recollant des descs au verbatim (règle 5) ou en
+ * nommant les entrées comme leur livre les intitule. Plafonné pour la même raison que les stocks :
+ * sans plafond, « la garde couvre de plus en plus » n'est qu'un commentaire.
  * Classes identifiées :
- *  - cellule de tableau que l'extraction coupe par des `<br>`, et que la `desc` recolle sans les
- *    reproduire : Critiques des deux jeux (`criticals.json`), stations `pont`, `greement`, `avirons` de
- *    `ship-stations.json` (MDG 13 l.730, l.714, l.751) ;
  *  - phrase coupée par un encadré : `reseau-routier.json:patrouille-routiere` (« LES JUSTICIERS ») ;
- *  - chapitre sans ancre `data-folio` : 3 classes de route de `reseau-routier.json` (`EDOC 06`,
- *    verdict `sans-marqueur`).
+ *  - chapitre sans aucun marqueur `data-folio` : 9 entrées de `trappings.json` dans LDB `64 - Sacs et
+ *    contenants`, `69 - Outils professionnels et Ateliers` et `72 - Herbes et potions` (verdict
+ *    `sans-marqueur`).
  */
-// ÉTAT DU MATCHER après #1384 B2 : `normMap` (`scripts/guards/lib/folioIntegrity.mjs:79`) ne compose
-// PAS `sansBr`, là où l'adressage (`normText`) le compose. Mesure du 2026-09-23 (#1898), les deux
-// branches jouées sur le corpus (`<br>` lu comme une espace, offsets bruts conservés) : la composition
-// ferait tomber les irrésolues de 775 à 538 (les 3 stations ci-dessus résolvent) et convertirait 11
-// sites en réfutations NEUVES sur ce volet à tolérance zéro — 10 `mass-battle.json` (ADE2, p.88 →
-// 90+), 1 `traits.json:destabilisant` (ZI, p.82 → 135) ; `criticals.json` n'en porte aucune (ses
-// folios, dans les deux jeux, sont ceux de leur ligne citée, jugés par `folio-line-align.test.ts`).
-// C'est la classe « ambiguïté prose/table » de `folioRatchetStock.mjs:31-35` : elle se tranche au PDF,
-// site par site, au train B3 de #1384 (relever `FOLIO_RATCHET_MAX` de 108 à 119 serait l'inverse du
-// cliquet).
-const UNRESOLVED_MAX = 775;
+const UNRESOLVED_MAX = 488;
 
 describe('intégrité du folio — voie TITRE de section, et skip BRUYANT de ce qui reste (#1200)', () => {
   const { titleViolations, noteAuthored, unresolved, stats, total } = AUDIT;
@@ -250,6 +240,24 @@ describe('preuve de folio sur la prose ADRESSÉE — même hôte, même verdict 
       source: SOURCE_TERREUR,
     };
     expect(() => citedEntriesOf([faux])).toThrow(/empreinte-divergente/);
+  });
+});
+
+/**
+ * TÊTE DE CHAPITRE (#1897) : une desc placée AVANT le premier marqueur de son chapitre est située par
+ * CONTINUITÉ (`preMarkerRange`), la même primitive que la voie titre. Fixture SYNTHÉTIQUE sur le
+ * `Source/` : ZI `11 - Chat sauvage.md` l.27 (tête, premier marqueur l.47 = 83 ; `10 - Macareux a bec
+ * tranchant.md` finit sur 82 ; sommaire du livre `00 - Index.md` l.106).
+ */
+const PASSAGE_DESTABILISANT =
+  "En présence d'une créature Déstabilisante, une créature Instable compte ses Avantages à la fin de " +
+  'chaque Round comme si elle en avait deux de moins. Ses Avantages ne sont pas perdus, seulement ignorés.';
+
+describe('preuve de folio en TÊTE de chapitre — située par continuité (#1897)', () => {
+  it('une desc avant le premier marqueur de son chapitre reçoit le folio que la partition établit', () => {
+    const r = auditFolio({ book: 'zoo-imperial', page: 82, desc: PASSAGE_DESTABILISANT });
+    expect(r.ranges).toContainEqual({ lo: 82, hi: 82, file: '11 - Chat sauvage.md' });
+    expect(r.verdict).toBe('folio-ok');
   });
 });
 

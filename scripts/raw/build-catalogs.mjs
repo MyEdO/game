@@ -1,23 +1,22 @@
 // Construit les catalogues de l'Atlas (docs/raw/catalogue-*.md) en CONCATÉNANT verbatim les chapitres
 // de DONNÉES de la SOURCE Marker propre (tables intactes). Chaque chapitre est cité
-// `<ABBR> NN` → crédité au niveau chapitre par coverage.mjs/reconcile.mjs. #1825 lot E : l'APPARTENANCE
+// `<ABBR> NN` → crédité au niveau chapitre par coverage.mjs/reconcile.mjs. #1825 : l'APPARTENANCE
 // d'un chapitre à un catalogue est de la DONNÉE (`enCatalogue` de `scripts/raw/chapitres.json`, lue par
 // `livresDeCatalogue`) — ne restent ici que le fichier, le titre et la fiche de règles du CATALOGUE,
 // jamais une liste de livres. Une entrée de chapitre porte `ch` ; ses `from`/`to`/`title` optionnels
 // n'en transcrivent qu'une PLAGE DE SOUS-SECTION (ancres `chapterFile`, cf. `_lib.mjs`) — même
 // mécanisme, pour un chapitre trop large pour son catalogue.
 // Contrainte : tout bloc `<!-- <ABRÉV>-INTEGRATION -->` du fichier existant reste un correctif MANUEL
-// (perte connue de l'extraction Marker, aucun mécanisme `inc` ne la couvre encore) — préservé tel quel
+// (perte connue de l'extraction Marker) — préservé tel quel
 // par extractPreservedBlocks/appendPreservedBlocks, JAMAIS régénéré. Re-run après toute ré-extraction.
 // `appendPreservedBlocks` recolle en FIN de fichier : #1839.
-// node scripts/raw/build-catalogs.mjs
+// node scripts/raw/build-catalogs.mjs [--check]   (`--check` : `ecrireOuVerifier` par catalogue)
 import { existsSync } from 'node:fs'
 import { listerDossier } from '../guards/lib/lister.mjs'
-import { resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
-import { BOOKS, blockStartRe, chapterFile as chapterFileLib, esc, livresDeCatalogue, pagesDeLAtlas, readText } from './_lib.mjs'
+import { BOOKS, blockStartRe, chapterFile as chapterFileLib, livresDeCatalogue, pagesDeLAtlas, readText } from './_lib.mjs'
+import { echapperRegex } from '../../src/lib/regex.ts'
 import { titreDuFichier } from '../../src/data/source/decoupe.ts'
-import { ecrireDoc } from '../docs/lib/empreinte-sources.mjs'
+import { ecrireOuVerifier } from '../docs/lib/empreinte-sources.mjs'
 
 export const RAWDIR = 'docs/raw'
 // Acceptation DÉCLARÉE à la couture : les catalogues — l'écrivain relit OÙ vit déjà le catalogue
@@ -33,8 +32,8 @@ export const cataloguesDeLAtlas = (rawDir = RAWDIR) => pagesDeLAtlas(rawDir, { c
  *  silence, là où un catalogue porte des blocs de livres qui n'en déclarent AUCUN. */
 export function cheminDeCatalogue(file, pages = cataloguesDeLAtlas()) {
   const page = pages.find((p) => p.nom === file)
-  // Séparateurs NORMALISÉS : `ecrireDoc` KEYE son pied d'empreinte par le chemin, et un rapport
-  // committé ne doit pas dire deux choses selon la machine qui l'écrit.
+  // Séparateurs NORMALISÉS : ce chemin est celui que nomment le journal et le rouge de `--check`,
+  // le même sur toute machine.
   if (page) return page.chemin.replace(/\\/g, '/')
   throw new Error(
     `build-catalogs: le catalogue « ${file} » ne vit sous AUCUN cœur de l'Atlas — son cœur vient `
@@ -42,10 +41,10 @@ export function cheminDeCatalogue(file, pages = cataloguesDeLAtlas()) {
     + `catalogues vus : ${pages.map((p) => p.relatif).join(', ') || '(aucun)'}`)
 }
 
-// Motif du marqueur : DÉRIVÉ de l'alternation du registre (`_lib.mjs`) — un sigle porte des espaces,
+// Regex du marqueur : DÉRIVÉE de `allAbbrAlternation` (`_lib.mjs`) — un sigle porte des espaces,
 // des minuscules, un point ; aucune classe de caractères écrite à la main ne les tient tous.
 export const BLOCK_START = blockStartRe()
-const blockEnd = (tag) => new RegExp(`^<!-- /${esc(tag)} -->\\s*$`)
+const blockEnd = (tag) => new RegExp(`^<!-- /${echapperRegex(tag)} -->\\s*$`)
 
 // Extrait les blocs préservés (délimités par `<!-- X-INTEGRATION -->` … `<!-- /X-INTEGRATION -->`,
 // précédés d'un séparateur `---` isolé) d'un catalogue EXISTANT. Un bloc sans marqueur de fin sur
@@ -103,6 +102,7 @@ function chapterFile(abbr, nn, range) {
 }
 
 function main() {
+const check = process.argv.includes('--check')
 // Fail-fast : sans extraction sur disque, `chapterFile` rend null pour TOUT chapitre et le
 // catalogue s'écrirait VIDE, écrasant le committé. On refuse avant la moindre écriture.
 const dirsVides = BOOKS.filter(([, dir]) => !existsSync(dir) || !listerDossier(dir).some((f) => f.endsWith('.md')))
@@ -130,11 +130,16 @@ for (const dom of CATALOGUES) {
   const path = cheminDeCatalogue(dom.file, pagesCatalogues)
   const preserved = extractPreservedBlocks(path)
   const body = appendPreservedBlocks(header + parts.join('\n') + '\n', preserved)
-  ecrireDoc(path, body)
+  ecrireOuVerifier({
+    out: body,
+    path,
+    check,
+    staleMsg: `build-catalogs — ${path} est PÉRIMÉ (chapitre source ou registre des catalogues changé).`,
+    rerunMsg: '  → relancer `npm run raw:catalogs` et committer le résultat.',
+  })
   log.push(`${dom.file} : ${refs.length} ch., ${Math.round(body.length / 1024)} Ko${missing.length ? ' · MANQUE ' + missing.join(', ') : ''}${preserved.length ? ` · ${preserved.length} bloc(s) préservé(s)` : ''}`)
 }
 console.log(log.join('\n'))
 }
 
-const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)
-if (isMain) main()
+if (import.meta.main) main()

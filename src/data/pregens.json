@@ -6,6 +6,11 @@
     "species": "humains-reiklander",
     "career": "soldat",
     "seed": 101,
+    "speciesTalentChoices": {
+      "espece:talents:0": {
+        "id": "perspicace"
+      }
+    },
     "motivation": "Devoir",
     "ambitionShort": "Survivre à la prochaine campagne",
     "ambitionLong": "Commander sa propre compagnie"
@@ -28,13 +33,20 @@
     "species": "humains-reiklander",
     "career": "sorcier",
     "seed": 707,
+    "speciesTalentChoices": {
+      "espece:talents:0": {
+        "id": "perspicace"
+      }
+    },
     "motivation": "Connaissance",
     "ambitionShort": "Maîtriser un nouveau sortilège",
     "ambitionLong": "Percer les secrets des Vents de Magie",
-    "careerTalent": "Magie mineure",
+    "careerTalent": {
+      "id": "magie-mineure"
+    },
     "pettySpells": [
-      "Fléchette",
-      "Choc"
+      "flechette",
+      "choc"
     ],
     "sex": "F",
     "build": 0.42
@@ -46,10 +58,18 @@
     "species": "humains-reiklander",
     "career": "pretre",
     "seed": 808,
+    "speciesTalentChoices": {
+      "espece:talents:0": {
+        "id": "perspicace"
+      }
+    },
     "motivation": "Foi",
     "ambitionShort": "Protéger les fidèles sur la route",
     "ambitionLong": "Bâtir un temple à la gloire de Sigmar",
-    "careerTalent": "Béni (Sigmar)"
+    "careerTalent": {
+      "id": "beni",
+      "spec": "sigmar"
+    }
   },
   {
     "id": "aelindra-feuille-d-argent",
@@ -69,6 +89,11 @@
     "species": "humains-reiklander",
     "career": "apothicaire",
     "seed": 404,
+    "speciesTalentChoices": {
+      "espece:talents:0": {
+        "id": "perspicace"
+      }
+    },
     "motivation": "Connaissance",
     "ambitionShort": "Composer un remède contre la fièvre rouge",
     "ambitionLong": "Ouvrir son propre comptoir d’apothicaire",
@@ -93,6 +118,11 @@
     "species": "humains-reiklander",
     "career": "repurgateur",
     "seed": 606,
+    "speciesTalentChoices": {
+      "espece:talents:0": {
+        "id": "perspicace"
+      }
+    },
     "motivation": "Foi",
     "ambitionShort": "Démasquer un hérétique",
     "ambitionLong": "Purger une cellule de cultistes du Chaos"
