@@ -9,6 +9,7 @@ import { isAbsolute, join, sep } from 'node:path'
 import { envDeDepotForge, gabaritDeDepot, instanceDeDepot } from './depotGabarit.mjs'
 import { listerDossier } from './lister.mjs'
 import { readCorpus } from './sourceCorpus.mjs'
+import { tableTotale } from '../../../src/lib/tableTotale.ts'
 
 const git = (cwd) => (args) => execFileSync('git', args, { cwd, env: envDeDepotForge(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()
 
@@ -346,7 +347,7 @@ test('ÉCRIVAIN sous environnement HOSTILE : la fondation est signée `mesure`, 
     GIT_AUTHOR_NAME: 'Intrus', GIT_AUTHOR_EMAIL: 'intrus@example.invalid', GIT_COMMITTER_NAME: 'Intrus',
     GIT_COMMITTER_EMAIL: 'intrus@example.invalid', GIT_AUTHOR_DATE: '2001-01-01T00:00:00Z', GIT_CONFIG_GLOBAL: globale,
   }
-  const avant = Object.fromEntries(Object.keys(intrus).map((k) => [k, process.env[k]]))
+  const avant = tableTotale(Object.keys(intrus), (k) => process.env[k])
   Object.assign(process.env, intrus)
   let racine = null
   try {

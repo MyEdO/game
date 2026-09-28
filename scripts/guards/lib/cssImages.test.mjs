@@ -6,6 +6,7 @@ import { existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { CHEMIN_MANIFESTE } from './cssCouches.mjs'
 import { COLLECTIONS_VENTILEES, coteCss, sourceMelee, stockCssDe } from './cssImages.mjs'
+import { tableTotale } from '../../../src/lib/tableTotale.ts'
 
 const RACINE = fileURLToPath(new URL('../../..', import.meta.url))
 const COMPOSANT = 'src/ui/RollShell.tsx'
@@ -27,7 +28,7 @@ const sourceDe = (textes, fichiers = [...IMPORTEURS, COMPOSANT]) => {
     lister: () => fichiers,
   }
 }
-const importeursDe = (...textes) => Object.fromEntries(IMPORTEURS.map((f, i) => [f, textes[i]]))
+const importeursDe = (...textes) => tableTotale(IMPORTEURS, (_f, i) => textes[i])
 const reutilises = (source) => [...coteCss(source, { racine: RACINE }).reutilises]
 
 test('coteCss : un composant présent sur le DISQUE mais absent de l’arbre jugé n’est pas réutilisé', () => {
