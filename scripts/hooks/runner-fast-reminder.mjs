@@ -6,47 +6,42 @@
 // dans `scripts/guards/lib/appelsRunners.mjs`, partagée avec `scripts/hooks/codeur-gates-guard.mjs`.
 import '../node-requis.mjs'
 import { appelleTscNu, appelleVitestNu } from '../guards/lib/appelsRunners.mjs'
+import { lireStdinBorne } from '../guards/lib/stdinBorne.mjs'
 
-let brut = ''
-process.stdin.resume()
-process.stdin.on('data', (morceau) => {
-  brut += morceau
-})
-process.stdin.on('end', () => {
-  let commande
-  try {
-    commande = String(JSON.parse(brut || '{}').tool_input?.command ?? '')
-  } catch {
-    commande = ''
-  }
+const brut = await lireStdinBorne()
+let commande
+try {
+  commande = String(JSON.parse(brut || '{}').tool_input?.command ?? '')
+} catch {
+  commande = ''
+}
 
-  const conseils = []
-  if (appelleTscNu(commande)) {
-    conseils.push(
-      '[RAPPEL — runner] Ce dépôt a `npm run typecheck:fast` : incrémental ~7 s (cache ' +
-        'node_modules/.cache/typecheck.tsbuildinfo), sortie COMPLÈTE écrite dans ' +
-        'node_modules/.cache/typecheck-last.txt et toutes les erreurs listées — le `tsc --noEmit` ' +
-        'nu coûte ~42 s. La porte de vérité full reste `npm run typecheck`.',
-    )
-  }
-  if (appelleVitestNu(commande)) {
-    conseils.push(
-      '[RAPPEL — runner] Ce dépôt a un lanceur de suite : préfère `npm test -- <chemins>` ' +
-        '(capture en fichier + bornes de charge) — la sortie complète part dans ' +
-        'node_modules/.cache/vitest-run-<pid>.txt, en-tête et `status:` compris.',
-    )
-  }
-  if (!conseils.length) {
-    process.exit(0)
-  }
-
-  process.stdout.write(
-    JSON.stringify({
-      suppressOutput: true,
-      hookSpecificOutput: {
-        hookEventName: 'PreToolUse',
-        additionalContext: conseils.join('\n'),
-      },
-    }) + '\n',
+const conseils = []
+if (appelleTscNu(commande)) {
+  conseils.push(
+    '[RAPPEL — runner] Ce dépôt a `npm run typecheck:fast` : incrémental ~7 s (cache ' +
+      'node_modules/.cache/typecheck.tsbuildinfo), sortie COMPLÈTE écrite dans ' +
+      'node_modules/.cache/typecheck-last.txt et toutes les erreurs listées — le `tsc --noEmit` ' +
+      'nu coûte ~42 s. La porte de vérité full reste `npm run typecheck`.',
   )
-})
+}
+if (appelleVitestNu(commande)) {
+  conseils.push(
+    '[RAPPEL — runner] Ce dépôt a un lanceur de suite : préfère `npm test -- <chemins>` ' +
+      '(capture en fichier + bornes de charge) — la sortie complète part dans ' +
+      'node_modules/.cache/vitest-run-<pid>.txt, en-tête et `status:` compris.',
+  )
+}
+if (!conseils.length) {
+  process.exit(0)
+}
+
+process.stdout.write(
+  JSON.stringify({
+    suppressOutput: true,
+    hookSpecificOutput: {
+      hookEventName: 'PreToolUse',
+      additionalContext: conseils.join('\n'),
+    },
+  }) + '\n',
+)

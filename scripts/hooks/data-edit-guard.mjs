@@ -2,11 +2,10 @@
 // éditée. Non bloquant — injecte du contexte (le hard-gate reste `npm test`). Atteint aussi les
 // SOUS-AGENTS, où les skills ne se déclenchent jamais. Motivé par l'incident #148 (doublon « Bélier »).
 import '../node-requis.mjs'
+import { lireStdinBorne } from '../guards/lib/stdinBorne.mjs'
 import { cheminDEcriture } from './solde-ticket-guard.mjs'
 
-let raw = ''
-process.stdin.setEncoding('utf8')
-for await (const chunk of process.stdin) raw += chunk
+const raw = await lireStdinBorne()
 
 let chemin = null
 try { chemin = cheminDEcriture(JSON.parse(raw)?.tool_input) } catch { /* stdin illisible → silence */ }

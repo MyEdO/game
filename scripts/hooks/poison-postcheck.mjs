@@ -7,6 +7,7 @@
 // ticket par son seul numéro. « #1463 » ne se lit pas : le lecteur suivant (ou la session suivante)
 // doit ouvrir GitHub pour savoir de quoi il s'agit, et la note devient inerte au premier oubli.
 import '../node-requis.mjs';
+import { lireStdinBorne } from '../guards/lib/stdinBorne.mjs';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -19,9 +20,7 @@ const {
   estFichierScanne, loadDecisionsBaseline, partitionBaseline, formatBaselineReport,
 } = await import('../guards/lib/commentPoison.mjs');
 
-let raw = '';
-process.stdin.setEncoding('utf8');
-for await (const chunk of process.stdin) raw += chunk;
+const raw = await lireStdinBorne();
 
 let entree = {};
 try { entree = JSON.parse(raw)?.tool_input ?? {}; } catch { /* stdin illisible → silence */ }

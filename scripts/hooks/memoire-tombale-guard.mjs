@@ -22,6 +22,7 @@
 // CONSÉQUENCE DITE : replacer le MÊME en-tête dans `old_string` le rend silencieux — la ligne n'est
 // plus ajoutée. Le garde arbitre l'ÉCRITURE d'un en-tête, il n'inspecte pas la fiche existante.
 import '../node-requis.mjs'
+import { lireStdinBorne } from '../guards/lib/stdinBorne.mjs'
 import { readFileSync } from 'node:fs'
 import { cheminDEcriture } from './solde-ticket-guard.mjs'
 
@@ -118,9 +119,7 @@ export function evaluate(input, lireDisque = () => '') {
 
 // ── Driver stdin (n'exécute QUE lancé en direct, jamais à l'import du module de test) ─────────────
 if (import.meta.main) {
-  let raw = ''
-  process.stdin.setEncoding('utf8')
-  for await (const chunk of process.stdin) raw += chunk
+  const raw = await lireStdinBorne()
   let input = null
   try { input = JSON.parse(raw)?.tool_input ?? null } catch { /* stdin illisible → silence */ }
   const lire = (chemin) => { try { return readFileSync(chemin, 'utf8') } catch { return '' } }

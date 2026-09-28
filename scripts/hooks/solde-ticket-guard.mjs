@@ -126,6 +126,7 @@
 // `node --run c`, `yarn c`, `npm --prefix ../autre run c` (script hors du dépôt ancré) ;
 // `python3 -c "os.system('git commit -a')"` (interpréteur non shell).
 import '../node-requis.mjs'
+import { lireStdinBorne } from '../guards/lib/stdinBorne.mjs'
 import { Buffer } from 'node:buffer'
 import { existsSync, readFileSync, statSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
@@ -2796,9 +2797,7 @@ export function decisionCumulee(decisions) {
 
 // ── Driver stdin (n'exécute QUE lancé en direct, jamais à l'import du module de test) ─────────
 if (import.meta.main) {
-  let raw = ''
-  process.stdin.setEncoding('utf8')
-  for await (const chunk of process.stdin) raw += chunk
+  const raw = await lireStdinBorne()
   let command = ''
   // Canal MCP `ctx_shell` : son `tool_input` porte, en plus de `command` (même nom que
   // Bash/PowerShell), un `cwd` PERSISTANT propre au canal — le process hook, lui, démarre à

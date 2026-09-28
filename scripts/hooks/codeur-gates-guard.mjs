@@ -19,6 +19,7 @@
 // jamais visé. Sous Codex (`.codex/hooks.json`, même script) ces champs n'existent pas non plus — le
 // hook y est un no-op silencieux, par construction.
 import '../node-requis.mjs'
+import { lireStdinBorne } from '../guards/lib/stdinBorne.mjs'
 import { appelleTscNu, appelleVitestNu, segmentsHorsServer, LECTEURS } from '../guards/lib/appelsRunners.mjs'
 import { segmentsProfonds, basenameExecutable } from './solde-ticket-guard.mjs'
 import { ECRIT_LU } from '../gates/toutes.mjs'
@@ -199,9 +200,7 @@ export function evaluate({ agentType = null, commande = '', gates = gatesDeLaCi(
 
 // ── Driver stdin (n'exécute QUE lancé en direct, jamais à l'import du module de test) ─────────────
 if (import.meta.main) {
-  let brut = ''
-  process.stdin.setEncoding('utf8')
-  for await (const morceau of process.stdin) brut += morceau
+  const brut = await lireStdinBorne()
   let agentType = null
   let commande = ''
   try {

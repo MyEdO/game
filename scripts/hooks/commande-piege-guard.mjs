@@ -13,6 +13,7 @@
 // partagé) — une commande qui CITE le geste (`Write-Output "ln -s ../node_modules"`, un message de
 // commit) n'exécute rien et ne se refuse pas.
 import '../node-requis.mjs'
+import { lireStdinBorne } from '../guards/lib/stdinBorne.mjs'
 import { argumentChaine, segmentsProfonds, gitSubcommand, valeurParametre } from './solde-ticket-guard.mjs'
 
 /** Nom d'exécutable d'un segment : basename sans extension, en minuscules (call-operator sauté) ;
@@ -115,9 +116,7 @@ export function evaluate(command) {
 
 // ── Driver stdin (n'exécute QUE lancé en direct, jamais à l'import du module de test) ─────────────
 if (import.meta.main) {
-  let raw = ''
-  process.stdin.setEncoding('utf8')
-  for await (const chunk of process.stdin) raw += chunk
+  const raw = await lireStdinBorne()
   let command = ''
   try { command = String(JSON.parse(raw)?.tool_input?.command ?? '') } catch { /* stdin illisible → silence */ }
   const decision = evaluate(command)

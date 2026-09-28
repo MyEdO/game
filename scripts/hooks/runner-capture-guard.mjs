@@ -28,6 +28,7 @@
 //     (3 faux positifs mesurés avant ce groupement). La profondeur reste couverte : les pipelines
 //     d'un `sh -c "npx vitest | tail"` sont rendus comme les autres.
 import '../node-requis.mjs'
+import { lireStdinBorne } from '../guards/lib/stdinBorne.mjs'
 import { pipelinesProfonds } from './solde-ticket-guard.mjs'
 
 /** `{ exe, args }` d'un segment : basename sans extension, en minuscules (call-operator sauté). */
@@ -155,9 +156,7 @@ export function evaluate(command) {
 
 // ── Driver stdin (n'exécute QUE lancé en direct, jamais à l'import du module de test) ─────────────
 if (import.meta.main) {
-  let raw = ''
-  process.stdin.setEncoding('utf8')
-  for await (const chunk of process.stdin) raw += chunk
+  const raw = await lireStdinBorne()
   let command = ''
   try { command = String(JSON.parse(raw)?.tool_input?.command ?? '') } catch { /* stdin illisible → silence */ }
   const decision = evaluate(command)

@@ -4,6 +4,7 @@
 // explicite. Les re-pointages (clé remplacée, compte constant) et les RETRAITS passent sans
 // friction. Opposable aux sessions ET aux sous-agents.
 import '../node-requis.mjs'
+import { lireStdinBorne } from '../guards/lib/stdinBorne.mjs'
 import { readFileSync } from 'node:fs'
 import { SUFFIXE_SUITE } from '../guards/lib/fichierVitest.mjs'
 import { cheminDEcriture } from './solde-ticket-guard.mjs'
@@ -122,9 +123,7 @@ export function readWrite(input) {
 
 // ── Driver stdin (n'exécute QUE lancé en direct, jamais à l'import du module de test) ─────────────
 if (import.meta.main) {
-  let raw = ''
-  process.stdin.setEncoding('utf8')
-  for await (const chunk of process.stdin) raw += chunk
+  const raw = await lireStdinBorne()
   let input = null
   try { input = JSON.parse(raw)?.tool_input ?? null } catch { /* stdin illisible → silence */ }
   const chemin = cheminDEcriture(input)
