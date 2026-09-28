@@ -1,8 +1,7 @@
 /* ══ ObjectiveBanner — module de la primitive (`src/ui/ObjectiveBanner.tsx`, manifeste
    `objectiveBanner`) ══ L'OBJECTIF COURANT (#238) : une tête repliable (texte + compte + échéance)
    et la liste dépliée. Identité entière ici (#1806 2a, arbitrage A1 du 2026-09-18).
-   Son ANCRAGE dans la pile de contexte d'exploration appartient à l'écran qui la monte
-   (`.hud-topbar > .objective-banner`, hud.css). ══ */
+   Son placement est celui de sa ZONE dans la couche HUD (`temps`, hud.css). ══ */
 .objective-banner {
   max-width: min(520px, 70vw);
   display: flex;

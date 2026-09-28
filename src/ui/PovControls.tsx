@@ -39,8 +39,7 @@ export function PovControls() {
       {label}
     </button>
   );
-  // Le PLACEMENT du pavé vit chez l'écran qui le monte (`.stage-flot > .pov-controls`, hud.css) :
-  // il s'ancre au bas de la RANGÉE DU MONDE, au-dessus du pont, sans en connaître la hauteur.
+  // Le PLACEMENT du pavé est celui de sa zone dans la couche HUD (`[data-zone='camera']`, hud.css).
   return (
     <div className="pov-controls" onPointerDown={(e) => e.stopPropagation()}>
       {btn('pov-turn-l', '⟲', 'Pivoter le regard à gauche (A)')}

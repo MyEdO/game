@@ -71,17 +71,16 @@
      (débord de région, et hauteur rendue ≠ hauteur déclarée). */
   --cc-arch-chrome: 84px;
   --cc-arch-h: calc(var(--cc-portrait) + var(--cc-arch-chrome));
-  /* HAUTEUR DU PONT lue par le reste du HUD (frise, fil de combat) — et RÉSERVE de la bande dans
-     ses trois formes. Elle vaut la plus haute des régions : la travée, ou l'arche DIMINUÉE de ce
+  /* HAUTEUR DU PONT — la RÉSERVE de la bande dans ses trois formes, et la course de nappe du pont
+     d'exploration (exploration-dock.css). Elle vaut la plus haute des régions : la travée, ou l'arche DIMINUÉE de ce
      qu'elle franchit (le fronton s'élève au-dessus du liseré, il ne pèse pas sur la bande). Plus le
      liseré. Le script de recette la RÉFUTE : toute région qui déborderait sa boîte le fait rougir. */
   --cc-deck-h: calc(max(var(--cc-bay-h), var(--cc-arch-h) - var(--cc-fronton)) + 3px);
   /* HAUTEUR DU BANDEAU DE PHASE, publiée au MÊME titre que `--cc-deck-h` et pour la même raison : le
-     bandeau est superposé AU-DESSUS du liseré, il occupe donc de la bande de terrain que la frise ne
-     doit pas revendiquer (sans cette réserve, la colonne d'initiative — z-index 45 contre 5 — passait
-     par-dessus le titre et le décapitait, sonde pixel B6 : le « B » et l'accent de « Bordée » perdus
-     sur quatre captures). C'est un plancher TENU (`min-height` ci-dessous) : la réserve ne peut pas
-     être plus courte que la boîte qu'elle décrit. */
+     bandeau est superposé AU-DESSUS du liseré, il déborde donc dans la couche HUD, qui le réserve
+     (rangée `reserve`, hud.css) — sans cette réserve, la colonne d'initiative (z-index 45 contre 5)
+     passait par-dessus le titre et le décapitait (sonde pixel B6). C'est un plancher TENU
+     (`min-height` ci-dessous) : la réserve ne peut pas être plus courte que la boîte qu'elle décrit. */
   --cc-phase-h: 48px;
   /* AIR entre le bandeau et le parapet : il se pose AU-DESSUS du liseré, jamais à cheval. Publié au
      même titre que sa hauteur — qui réserve la boîte réserve aussi son air (le fil d'événements,
@@ -93,15 +92,8 @@
      basses retrouveraient une hauteur de pont à connaître. Elle vaut le fronton là où le fronton
      surplombe, zéro là où les régions s'empilent (≤700, `.cc-arch { margin-top: 0 }`). */
   --cc-saillie: var(--cc-fronton);
-  /* ANCRAGE HAUT du bandeau d'OUVERTURE (arbitrage user 2026-08-24) : il se pose sur la CARTE, sous
-     la bande de groupe. Au `:root` parce qu'un autre flottant du champ doit pouvoir s'y ranger
-     dessous (le fil de combat, tranche ≤700 de hud.css). */
-  /* Il se pose SOUS la zone haute du champ : bande de groupe (`.party-dock`, ancrée à 10px, boîte
-     mesurée 123,6px — tuile `--pd-tile` 88 + nom + rembourrages, invariante en largeur) plus l'air.
-     Le script de recette REFUSE tout recouvrement de la bande de groupe, de la frise et du fil. */
-  --cc-ouverture-top: 152px;
   /* Encoche d'angle des plaques (patron d'ébauche : la tôle est coupée, jamais arrondie). Au `:root`
-     parce que le bandeau d'OUVERTURE est monté sur la carte, HORS du pont : il en a besoin aussi. */
+     parce que le bandeau d'OUVERTURE est monté dans la couche HUD, HORS du pont : il en a besoin aussi. */
   --cc-notch: 4px;
 }
 /* LA BOÎTE DU PONT EST SON EMPREINTE (#1848) : la console n'est plus ancrée au bas du champ, elle
@@ -126,7 +118,7 @@
    du LISERÉ, pas de son côté intérieur : `100%` porte sur la boîte de rembourrage, donc SOUS la
    bordure. À cheval (`calc(100% - 10px)`), il descendait dans la bande de la frise d'initiative, qui
    le recouvre (z-index 45 contre 5) et lui décapitait son titre. Sa boîte est un plancher TENU :
-   c'est elle que la frise réserve (`--cc-phase-h`, `hud.css`).
+   c'est elle que la couche HUD réserve (`--cc-phase-h`, `hud.css`).
    Sa MATIÈRE est la peau partagée `.skin-bois` (components.css), que le bandeau POSE — la même
    plaque que le rail d'outils du HUD ; ce module n'en garde que le DELTA : l'encoche d'angle. */
 .cc-phase {
@@ -170,22 +162,12 @@
    d'un combat, le message de phase et son bouton quittent le coin du pont pour le HAUT DE LA CARTE,
    centrés — c'est là que la référence les pose (« Préparez-vous au combat », « DÉMARRER LE COMBAT »).
    C'est la MÊME boîte que `.cc-phase` (même matière, même primitive) posée ailleurs : le bandeau est
-   alors un enfant du champ (`.stage`), pas du pont — il ne lui appartient pas.
-   Aux pauses de round SUIVANTES, le bandeau reste sur le pont : l'arbitrage ne parle que de
-   l'ouverture. Son ancrage haut vit au `:root` (avec `--cc-phase-h`) : il tient sous la bande de
-   groupe et AU-DESSUS du fil de combat à toute largeur, sans qu'aucun des deux n'ait à se pousser.
-   L'ADRESSE est un attribut du bandeau, jamais une classe de plus (cliquet xii). */
-/* Enfant du CHAMP, il vit dans la RANGÉE DU MONDE de la grille du plateau (hud.css) : sa boîte
-   s'arrête au bord haut du pont, il ne peut ni le recouvrir ni avoir à le mesurer. */
-.stage > .cc-phase {
-  grid-area: 1 / 1 / 2 / 2;
-}
+   alors une surface de la couche HUD (zone `ouverture`, hud.css), pas du pont — il ne lui appartient
+   pas. Aux pauses de round SUIVANTES, le bandeau reste sur le pont : l'arbitrage ne parle que de
+   l'ouverture. L'ADRESSE est un attribut du bandeau, jamais une classe de plus (cliquet xii). */
 .cc-phase[data-phase='ouverture'] {
-  left: 50%;
-  right: auto;
-  bottom: auto;
-  top: var(--cc-ouverture-top);
-  transform: translateX(-50%);
+  position: relative;
+  inset: auto;
   flex-direction: column;
   gap: 6px;
   padding: 8px 26px;
@@ -1167,23 +1149,6 @@ button.cc-socle svg {
      dock de 1021px pour 572px de boîte, « Fin du tour » 439px sous le bas du champ). */
   .cc-bay-left {
     height: auto;
-  }
-  /* BANDEAU D'OUVERTURE sous 700 — et SEULEMENT là : c'est à cette largeur que la frise
-     d'initiative quitte sa colonne pour une BANDE HAUTE et que le fil de combat monte en haut du
-     champ. La zone haute devient alors pleine (bande de groupe jusqu'à 129,6px, frise jusqu'à
-     150px, fil à 192px — mesures `scripts/recette/console-pont-formes.mjs`) et la boîte réelle du
-     bandeau, 77px, n'entre pas dans les 42px qui restent. Il descend donc AU-DESSUS du pont et du
-     fil, pleine largeur, en relisant leur réserve. Jusqu'à 701px inclus il garde la position de la
-     référence RT — mesuré libre de tout recouvrement à 901, 900, 800 et 701. */
-  .cc-phase[data-phase='ouverture'] {
-    left: 4px;
-    right: 4px;
-    top: auto;
-    /* Au BAS de la rangée du monde, pleine largeur : le pont est la rangée d'en dessous et le fil
-       d'événements est remonté en haut du champ à cette largeur — plus rien à réserver. */
-    bottom: var(--sp-lg);
-    transform: none;
-    align-items: center;
   }
 }
 

@@ -3,7 +3,7 @@
    entière ici (#1806 2d, arbitrage A1 du 2026-09-18).
    ANCRAGE : la puce suit le FLUX par défaut (elle vit dans le panneau qui porte les commandes
    désactivées) ; la pose AU BAS DU CHAMP est un ÉTAT de la primitive, `data-pose='ecran'`, posé par
-   l'hôte qui arbitre les modales. Elle se pose dans la boîte qui la porte (rangée du monde sur
+   l'hôte qui arbitre les modales. Elle se pose dans la boîte qui la porte (couche HUD de
    l'écran de campagne, `.stage-flot`) : elle n'a donc aucune réserve de pont à tenir. Les trois
    hôtes partagent la MÊME règle d'ancrage : la recopier chez chacun en ferait trois. Aucune autre
    règle de `src/ui/styles` ne vise `.spectator-chip`. ══ */

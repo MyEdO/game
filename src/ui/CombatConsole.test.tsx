@@ -25,7 +25,7 @@ import { vehicleCombatant } from '../engine/vehicle';
 import { actionGate, ACTION_CANDIDATES, REMEDES } from '../state/actionRegistry';
 import { emptyScene } from '../state/scene';
 import { mdToText } from './Prose';
-import { CombatConsole } from './CombatConsole';
+import { BandeauDOuverture, CombatConsole } from './CombatConsole';
 import { coupeAuMot } from '../lib/coupeAuMot.mjs';
 import { BORNE_DU_CORPS } from './compendium/CodexRef';
 import { readFileSync } from 'node:fs';
@@ -762,18 +762,17 @@ describe('CombatConsole — assemblage : UN PONT, pas des blocs', () => {
     for (const cote of ['left', 'right', 'bottom']) expect(decl(bande, cote), cote).toBeNull();
     expect(decl(bande, 'padding-top')).toBe('var(--cc-saillie)');
     expect(decl(ruleOf(HUD_BASE, '.stage'), 'display')).toBe('grid');
-    // La RANGÉE dit tout : le plateau a une rangée de monde puis une rangée DE PONT, dimensionnée sur
-    // le pont (`auto`) ; le pont occupe la DERNIÈRE, et les surfaces en flot (`.stage-flot`) vivent
-    // dans une rangée STRICTEMENT au-dessus. C'est cette relation — pas un nombre — qui retire à toute
-    // surface basse la hauteur du pont à lire : si les deux partageaient une rangée, le recouvrement
-    // reviendrait le lendemain.
-    const pistes = decl(ruleOf(HUD_BASE, '.stage'), 'grid-template-rows')!.trim().split(/\s+/);
-    const rangeeDe = (sel: string) => Number(decl(ruleOf(HUD_BASE, sel), 'grid-area')!.split('/')[0].trim());
-    expect(rangeeDe('.stage > .combat-console, .stage > .exploration-dock'), 'le pont n’est pas dans la DERNIÈRE rangée')
-      .toBe(pistes.length);
-    expect(pistes[pistes.length - 1], 'la rangée du pont ne se dimensionne pas sur lui').toBe('auto');
-    expect(rangeeDe('.stage > .stage-flot'), 'les surfaces en flot partagent la rangée du pont')
-      .toBeLessThan(rangeeDe('.stage > .combat-console, .stage > .exploration-dock'));
+    // La RANGÉE dit tout (#1919, docs/charte-ui.md) : le plateau porte `[flot] minmax(0, 1fr) [pont]
+    // auto` — la rangée du pont est la DERNIÈRE et se dimensionne sur lui, la couche HUD (`.stage-flot`)
+    // s'arrête à la ligne `pont`. C'est cette relation — pas un nombre — qui retire à toute surface du
+    // HUD la hauteur du pont à lire, et au HUD le pouvoir de pousser le pont.
+    const pistes = decl(ruleOf(HUD_BASE, '.stage'), 'grid-template-rows')!;
+    expect(pistes, 'la rangée du pont n’est pas la dernière, dimensionnée sur lui').toMatch(/\[pont\] auto$/);
+    expect(pistes, 'le HUD peut pousser le pont : sa rangée n’est pas bornée à zéro').toMatch(/^\[flot\] minmax\(0, 1fr\) /);
+    const aire = (sel: string) => decl(ruleOf(HUD_BASE, sel), 'grid-area')!.split('/').map((x) => x.trim());
+    expect(aire('.stage > .combat-console, .stage > .exploration-dock')[0], 'le pont n’est pas dans sa rangée').toBe('pont');
+    const flot = aire('.stage > .stage-flot');
+    expect([flot[0], flot[2]], 'la couche HUD déborde sur la rangée du pont').toEqual(['flot', 'pont']);
     // La MATIÈRE de la bande est la peau `.skin-pont`, que la BANDE POSE (la racine, elle, ne peint
     // rien) : la nappe et le liseré se lisent donc là, une seule fois pour les trois boîtes de pont.
     expect(host.querySelector('.cc-dock')!.classList.contains('skin-pont'), 'la bande POSE la peau').toBe(true);
@@ -899,20 +898,12 @@ describe('CombatConsole — assemblage : UN PONT, pas des blocs', () => {
   // ── P-5 : LE FIL DE COMBAT descend BAS-GAUCHE, en texte NU sur le terrain, juste au-dessus du
   //    pont (planche 2026-08-17 : journal `[170,779,330,57]`, aucun cadre, aligné à gauche). Il
   //    était en haut-centre, en pastilles cadrées (`top: 136px; left: 50%`).
-  it('P-5 — le fil de combat est ancré bas-gauche sur la réserve du pont, en lignes NUES', () => {
+  it('P-5 — le fil de combat n’a AUCUNE ancre propre, et se lit en lignes NUES', () => {
+    // Sa ZONE le pose (couche HUD #1919 : `temps`, au pied de la frise — rendu jsdom dans
+    // ExplorationDock.test.tsx, géométrie par `scripts/recette/hud-clickables.mjs`) : le module du fil
+    // ne connaît ni le bord de l'écran, ni la frise, ni le pont.
     const feed = ruleOf(BANNER_BASE, '.combat-feed');
-    expect(decl(feed, 'top')).toBe('auto');
-    expect(decl(feed, 'transform')).toBe('none');
-    // Ancré au BAS de la RANGÉE DU MONDE (#1848) : le pont est la rangée d'en dessous, le fil n'a
-    // donc plus aucune hauteur de pont à connaître — seul le bandeau de phase, SUPERPOSÉ au parapet,
-    // déborde dans sa rangée, et c'est la grandeur que le bandeau publie qu'il réserve.
-    expect(decl(feed, 'bottom')).not.toMatch(/var\(--cc-deck-h\)/);
-    expect(decl(feed, 'bottom')).toMatch(/var\(--cc-phase-h\)/);
-    expect(readFileSync(join(process.cwd(), 'src', 'ui', 'CampaignView.tsx'), 'utf8'))
-      .toMatch(/<div className="stage-flot">[\s\S]*<CombatBanner \/>/);
-    // … à GAUCHE : une valeur en px depuis le bord, jamais un centrage.
-    expect(decl(feed, 'left')).toMatch(/^\d+(\.\d+)?px$/);
-    expect(decl(feed, 'align-items')).toBe('flex-start');
+    for (const cote of ['top', 'right', 'bottom', 'left', 'inset']) expect(decl(feed, cote), cote).toBeNull();
     // Lignes NUES : plus de carte (fond, filet, arrondi, rembourrage) — la lisibilité tient au halo
     // PARTAGÉ `.halo-champ`, que la ligne POSE.
     const ev = ruleOf(BANNER_BASE, '.cb-ev');
@@ -940,16 +931,16 @@ describe('CombatConsole — assemblage : UN PONT, pas des blocs', () => {
     expect(decl(racine, '--cc-deck-h')).toMatch(/var\(--cc-bay-h\)/);
     expect(decl(racine, '--cc-bay-h')).toMatch(/var\(--cc-cell-h\)/);
     expect(STRIP_BASE, 'la frise lit encore une hauteur de pont').not.toMatch(/--cc-deck-h|--xd-deck-h/);
-    // La colonne est une surface de la RANGÉE : c'est l'écran qui l'y pose (`.stage-flot`), et son
-    // bord bas réserve seulement le bandeau de phase, seule boîte qui déborde dans cette rangée.
+    // La colonne est une surface de sa ZONE (`temps`, couche HUD #1919) : aucune ancre propre, et
+    // aucune réserve — la réserve du bandeau de phase est une rangée de la couche.
     const strip = ruleOf(STRIP_BASE, '.initiative-strip');
-    expect(decl(strip, 'bottom')).toMatch(/var\(--cc-phase-h\)/);
-    expect(parseFloat(decl(strip, 'top')!)).toBeGreaterThanOrEqual(44); // norme: la frise part SOUS le coin du menu ☰, dont la cible au doigt fait 44px (charte UI règle 4)
-    // La PISTE aussi : au-delà elle défile (aucune entrée ne disparaît, rien ne dépasse sur le pont).
-    // Sa hauteur disponible se mesure sur le CONTENEUR (`cqh` = la rangée), que hud.css déclare.
+    for (const cote of ['top', 'bottom', 'left', 'right']) expect(decl(strip, cote), cote).toBeNull();
+    expect(STRIP_BASE, 'la frise relit la réserve du bandeau de phase').not.toMatch(/--cc-phase-h|--cc-phase-air/);
+    // La PISTE : au-delà elle défile (aucune entrée ne disparaît, rien ne dépasse sur le pont). Sa
+    // hauteur disponible se mesure sur le CONTENEUR (`cqh` = sa zone), que hud.css déclare.
     const tiles = ruleOf(STRIP_BASE, '.is-tiles');
     expect(decl(tiles, '--is-avail')).toMatch(/cqh/);
-    expect(decl(ruleOf(HUD_BASE, '.stage > .stage-flot'), 'container-type'), 'la rangée n’est pas un conteneur de requête').toBe('size');
+    expect(decl(ruleOf(HUD_BASE, "[data-zone='temps']"), 'container-type'), 'la zone de la frise n’est pas un conteneur de requête').toBe('size');
     expect(decl(tiles, 'max-height')).toMatch(/--is-avail/);
     expect(decl(tiles, 'overflow-y')).toBe('auto');
   });
@@ -962,7 +953,7 @@ describe('CombatConsole — assemblage : UN PONT, pas des blocs', () => {
   //    réserve du bas de la frise ne connaissait que le pont.
   //    Le contrat est ARITHMÉTIQUE, dans les tokens déclarés : une hauteur de pont arbitraire suffit,
   //    seules les RELATIONS entre les deux boîtes sont jugées.
-  it('P-7 — le bandeau de phase se pose AU-DESSUS du liseré, et la frise réserve sa hauteur', () => {
+  it('P-7 — le bandeau de phase se pose AU-DESSUS du liseré, et la couche HUD réserve son débord', () => {
     // Le liseré est celui de la peau de bande : son épaisseur est un token du `:root` (base.css).
     const liseret = parseFloat(token('--pont-liseret'));
     expect(decl(ruleOf(COMPONENTS_BASE, '.skin-pont'), 'border-top')).toMatch(/var\(--pont-liseret\)/);
@@ -984,13 +975,17 @@ describe('CombatConsole — assemblage : UN PONT, pas des blocs', () => {
     const basBandeau = pxCalc(decl(phase, 'bottom')!, env);
     expect(basBandeau, 'le bandeau redescend sur le liseré du pont').toBeGreaterThanOrEqual(D);
     const hautBandeau = basBandeau + P;
-    // La frise se mesure depuis SA RANGÉE, dont le bord bas est le bord haut du pont — soit
-    // l'EMPREINTE (bande + saillie) au-dessus du bas du viewport : conversion de repère, la frise ne
-    // lit rien du pont et le bandeau reste dégagé par construction.
-    const basFrise = (D + S) + pxCalc(decl(ruleOf(STRIP_BASE, '.initiative-strip'), 'bottom')!, env);
-    expect(basFrise, 'la frise descend dans la bande du bandeau de phase').toBeGreaterThanOrEqual(hautBandeau);
-    // La piste borne sa hauteur sur la MÊME réserve (sinon elle déborderait là où la boîte s'arrête).
-    expect(decl(ruleOf(STRIP_BASE, '.is-tiles'), '--is-avail')).toMatch(/var\(--cc-phase-h\)/);
+    // Ce que le bandeau DÉBORDE au-dessus de l'empreinte du pont tient dans la RÉSERVE de la couche
+    // HUD (#1919) — la rangée `reserve`, payée pendant tout le combat : aucune zone, frise comprise,
+    // ne descend dans la bande du bandeau.
+    // Le pire cas est l'adresse SPECTATRICE : posée au-dessus de l'empreinte entière, elle déborde de
+    // toute sa boîte plus son air.
+    const reserve = pxCalc(decl(ruleOf(HUD_BASE, ".stage > .stage-flot[data-pont='combat']"), '--flot-reserve')!, env);
+    const hautSpectatrice = pxCalc(decl(ruleOf(CC_BASE, ".cc-phase[data-phase='spectatrice']"), 'bottom')!, env) + P;
+    for (const [adresse, haut] of [['pont', hautBandeau], ['spectatrice', hautSpectatrice]] as const) {
+      expect(haut - (D + S), `le bandeau (${adresse}) déborde hors de la réserve de la couche`).toBeLessThanOrEqual(reserve);
+    }
+    expect(decl(ruleOf(HUD_BASE, '.stage > .stage-flot'), 'grid-template-rows')).toMatch(/\[reserve\] var\(--flot-reserve\)$/);
 
     // … et la RAMPE de débord suit la PLAQUE : la boîte de la frise épouse son contenu au lieu d'être
     // étirée jusqu'à la réserve (sonde B6 : 174px de terrain nu, puis 20px de bois dans le vide).
@@ -1081,29 +1076,17 @@ describe('CombatConsole — trois formes, une seule bande', () => {
     expect(decl(eteinte, 'background-image')).toBe('none');
   });
 
-  it('le bandeau d’OUVERTURE s’ancre sur des grandeurs DÉCLARÉES, jamais sur un nombre sans origine', () => {
-    // Le recouvrement se juge sur des BOÎTES RENDUES, que jsdom ne calcule pas : c'est
-    // `scripts/recette/console-pont-formes.mjs` qui refuse tout chevauchement de la bande de groupe,
-    // de la frise, du rail, du fil et du pont — à six largeurs, dans les trois formes.
-    // ANGLE MORT DÉCLARÉ de ce contrat-ci : il ne juge que l'ANCRAGE déclaré.
-    // Au-delà de 900, le bandeau se pose en haut du champ, sous la zone haute.
+  it('le bandeau d’OUVERTURE n’a AUCUNE ancre propre : sa zone de la couche HUD le pose', () => {
+    // Zone `ouverture` de la couche HUD (#1919) — rendu jsdom dans ExplorationDock.test.tsx, boîtes
+    // rendues par `scripts/recette/hud-clickables.mjs`. Le module de la console n'en garde que
+    // l'identité : aucune ancre, aucune tranche, aucune grandeur du haut de l'écran.
     const ouv = ruleOf(CC_BASE, ".cc-phase[data-phase='ouverture']");
-    expect(decl(ouv, 'top')).toBe('var(--cc-ouverture-top)');
-    expect(decl(ouv, 'bottom')).toBe('auto');
-    expect(centrage(ouv), 'le bandeau d’ouverture n’est pas centré en largeur').toBe('axe X');
-    expect(parseFloat(decl(ruleOf(CC_BASE, ':root'), '--cc-ouverture-top')!)).toBeGreaterThan(0);
-    // Cette position tient jusqu'à 701px inclus (mesuré libre de tout recouvrement à 901, 900, 800
-    // et 701). Sous 700 SEULEMENT — là où la frise quitte sa colonne pour une bande haute et où le
-    // fil monte en haut du champ — il descend au bas du champ. Enfant du CHAMP et non du pont, il
-    // vit dans la RANGÉE DU MONDE (#1848) : il n'a plus aucune hauteur de pont à relire.
-    expect(mediaBlock(CC_CSS, '@media (max-width: 900px)'), 'la tranche 700-900 n’est pas contrainte : le bandeau y garde le haut')
-      .not.toContain("data-phase='ouverture'");
-    const ouv700 = ruleOf(mediaBlock(CC_CSS, '@media (max-width: 700px)'), ".cc-phase[data-phase='ouverture']");
-    expect(decl(ouv700, 'top')).toBe('auto');
-    expect(decl(ouv700, 'bottom')).not.toContain('var(--cc-deck-h)');
-    expect(decl(ruleOf(CC_BASE, '.stage > .cc-phase'), 'grid-area'), 'le bandeau du champ n’est pas dans la rangée du monde').toBeTruthy();
-    // … et le fil de combat non plus : les deux se rangent dans le même repère.
-    expect(decl(ruleOf(BANNER_BASE, '.combat-feed'), 'bottom')).not.toContain('var(--cc-deck-h)');
+    expect(decl(ouv, 'inset'), 'l’ancre du bandeau de pont n’est pas neutralisée').toBe('auto');
+    for (const cote of ['top', 'right', 'bottom', 'left', 'transform']) expect(decl(ouv, cote), cote).toBeNull();
+    expect(CC_CSS, 'une grandeur du haut de l’écran survit').not.toMatch(/--cc-ouverture-top/);
+    for (const tranche of ['@media (max-width: 900px)', '@media (max-width: 700px)', '@media (max-width: 560px)']) {
+      expect(mediaBlock(CC_CSS, tranche), `${tranche} replace le bandeau d’ouverture`).not.toContain("data-phase='ouverture'");
+    }
   });
 
   it('la forme SPECTATRICE ne publie AUCUN slot au pont clavier (pas de touche sans case)', () => {
@@ -3600,7 +3583,8 @@ describe('CombatConsole — le pont d’OUVERTURE est celui du JOUEUR, et n’of
         } as unknown as BattleState,
       });
     });
-    act(() => { root.render(<CombatConsole />); });
+    // Les DEUX montages de l'écran de campagne : le bandeau d'ouverture (couche HUD) et le pont.
+    act(() => { root.render(<><BandeauDOuverture /><CombatConsole /></>); });
   }
 
   afterEach(() => { act(() => { useGame.setState({ pendingRoundStart: null }); }); });
@@ -3631,18 +3615,13 @@ describe('CombatConsole — le pont d’OUVERTURE est celui du JOUEUR, et n’of
     knud.label = 'Knud';
     ouverture(h, knud);
 
-    // Le bandeau quitte le pont : il est enfant du CHAMP, pas de la console (il flotte sur la carte).
+    // Le bandeau quitte le pont : c'est `BandeauDOuverture`, une surface de la couche HUD (zone
+    // `ouverture`, montée par l'écran de campagne), pas un enfant de la console.
     const bandeau = host.querySelector('.cc-phase[data-phase="ouverture"]')!;
-    expect(bandeau, 'aucun bandeau d’ouverture centré').not.toBeNull();
+    expect(bandeau, 'aucun bandeau d’ouverture').not.toBeNull();
     expect(host.querySelector('.combat-console')!.contains(bandeau), 'le bandeau est resté DANS le pont').toBe(false);
     expect(bandeau.textContent).toContain('Ouverture du combat');
     expect(bandeau.querySelector('button[data-action="round-start"]')!.textContent).toContain('Commencer le combat');
-    // … et il est CENTRÉ EN HAUT : ancré au haut du champ, ramené au centre par sa demi-largeur.
-    const regle = ruleOf(CC_BASE, ".cc-phase[data-phase='ouverture']");
-    expect(decl(regle, 'top')).toBe('var(--cc-ouverture-top)');
-    expect(decl(regle, 'bottom')).toBe('auto');
-    expect(centrage(regle), 'le bandeau d’ouverture n’est pas centré en largeur').toBe('axe X');
-    expect(parseFloat(decl(ruleOf(CC_BASE, ':root'), '--cc-ouverture-top')!)).toBeGreaterThan(0);
     // La console basse : l'ARCHE SEULE, et RIEN d'autre — ni bande, ni case, ni set, ni fin de tour
     // (arbitrage 2026-09-20, verbatim : « … et avant le début du combat »).
     expect(host.querySelector('.combat-console')!.getAttribute('data-forme')).toBe('spectatrice');

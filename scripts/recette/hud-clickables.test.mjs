@@ -5,7 +5,7 @@
 // rouge ne mesure rien, un détecteur sans cas vert crie sur tout.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { defauts, defautsMatrice, defautsMatriceGroupe, defautsTactile, defautsCompacite, trancheMatrice } from './hud-clickables.mjs'
+import { defauts, defautsCouche, defautsMatrice, defautsMatriceGroupe, defautsTactile, defautsCompacite, trancheMatrice } from './hud-clickables.mjs'
 
 /** Mesure de COMBAT sans aucun défaut (le cas vert de référence). */
 const combat = () => ({
@@ -14,7 +14,7 @@ const combat = () => ({
   grossier: false,
   cibles: null,
   combat: true,
-  rail: { dissous: true, ouvreurs: [{ i: 0, label: 'Dossier du navire', position: 'absolute', ok: true, hitBy: 'rien', rect: { x: 300, y: 400, w: 44, h: 44 } }] },
+  rail: { ouvreurs: [{ i: 0, label: 'Dossier du navire', ok: true, hitBy: 'rien', rect: { x: 300, y: 400, w: 44, h: 44 } }] },
   frise: { rect: { x: 58, y: 34, w: 298, h: 52 }, roundPremier: true, roundDansColonne: true, courantEntier: true,
     defilable: true, suivants: { attendus: 3, entiers: 3 },
     bande: true, margeDroite: 4, roundVisible: true, teteMesuree: true, teteDecouverte: null,
@@ -68,26 +68,7 @@ test('mesure d’exploration saine : aucun défaut', () => {
   assert.deepEqual(defauts(exploration(), 'exploration'), [])
 })
 
-// ── Rail dissous : l'ouvreur d'écran porte son propre ancrage ─────────────────────────────────────
-test('ouvreur du rail dissous en FLUX : défaut nommé', () => {
-  const m = combat()
-  m.rail.ouvreurs[0].position = 'static'
-  rouge(m, 'combat', /retombe dans le stage/)
-})
-
-test('rail dissous SANS aucun ouvreur : la sonde se déclare AVEUGLE, elle ne se tait pas', () => {
-  const m = combat()
-  m.rail.ouvreurs = []
-  rouge(m, 'combat', /le rail d'outils est dissous et ne porte aucun ouvreur d'écran — sonde aveugle/)
-})
-
-test('rail NON dissous : la position en flux ne dit rien (le rail porte alors l’ancrage)', () => {
-  const m = combat()
-  m.rail.dissous = false
-  m.rail.ouvreurs[0].position = 'static'
-  assert.deepEqual(defauts(m, 'combat'), [])
-})
-
+// ── Rail d'outils : son ouvreur d'écran reçoit son clic ──────────────────────────────────────────
 test('ouvreur du rail RECOUVERT : défaut nommé, recouvrant compris', () => {
   const m = combat()
   m.rail.ouvreurs[0].ok = false
@@ -111,6 +92,16 @@ test('bande REPLIÉE dont la poignée reçoit son clic : aucun défaut', () => {
   m.groupe = { cartes: 0, lignes: 0, poignee: { rendu: true, ok: true, hitBy: 'rien', rect: { x: 65, y: 10, w: 122, h: 20 } } }
   m.portraits = m.portraits.map((p) => ({ ...p, rendu: false, ok: false, hitBy: 'iso-stage <svg>', rect: { x: 0, y: 0, w: 0, h: 0 } }))
   assert.deepEqual(defauts(m, 'exploration'), [])
+})
+
+test('bande REPLIÉE dont la poignée cache des MICRO-JAUGES : défaut chiffré', () => {
+  const m = combat()
+  Object.assign(m.groupe, { cartes: 0, lignes: 0, replie: true, detail: [],
+    poignee: { rendu: true, ok: true, hitBy: 'rien', rect: { x: 133, y: 4, w: 93, h: 27 } }, micro: { attendues: 4, visibles: 0 } })
+  m.portraits = [{ i: 0, rendu: false, ok: false, hitBy: 'rien', rect: { x: 0, y: 0, w: 0, h: 0 } }]
+  rouge(m, 'combat', /ne montre que 0 micro-jauge\(s\) sur 4/)
+  m.groupe.micro.visibles = 4
+  assert.deepEqual(defauts(m, 'combat'), [])
 })
 
 test('bande REPLIÉE dont la poignée n’est PAS RENDUE : le groupe est hors d’atteinte', () => {
@@ -643,4 +634,85 @@ test('colonne d’initiative PAS réduite à 701–900 : défaut chiffré', () =
 
 test('série SANS mesure au-delà de 900 : rien à comparer', () => {
   assert.deepEqual(defautsCompacite([saine(900), saine(700)], 'combat'), [])
+})
+
+// ── COUCHE HUD (#1919) : `defautsCouche`, un cas ROUGE et un cas VERT par verdict ────────────────
+/** Mesure de couche SAINE : pont au bas, rien de rogné, chaque commande atteinte. */
+const couche = () => ({
+  largeur: 1366,
+  hauteur: 650,
+  couche: {
+    flot: { x: 0, y: 0, w: 1366, h: 467 },
+    pont: { x: 0, y: 467, w: 1366, h: 183 },
+    pontAuBas: true,
+    pageDefile: false,
+    surfaces: [{ zone: 'temps', surface: 'initiative-strip', rect: { x: 8, y: 59, w: 86, h: 340 }, rogne: 0 }],
+    commandes: [{ label: 'Fin du tour', ok: true, hitBy: 'rien', rect: { x: 1300, y: 560, w: 60, h: 60 }, exempte: null }],
+  },
+})
+const rougeCouche = (m, motif) => {
+  const d = defautsCouche(m, 'tour de héros')
+  assert.equal(d.length, 1, `attendu 1 défaut, obtenu ${d.length} : ${d.join(' | ')}`)
+  assert.match(d[0], motif)
+}
+
+test('couche saine : aucun défaut', () => {
+  assert.deepEqual(defautsCouche(couche(), 'tour de héros'), [])
+})
+
+test('couche ABSENTE : la sonde se déclare AVEUGLE', () => {
+  const m = couche()
+  m.couche = null
+  rougeCouche(m, /aucune couche HUD \(\.stage-flot\) — sonde aveugle/)
+})
+
+test('pont ABSENT sous la couche : sonde aveugle sur sa pose', () => {
+  const m = couche()
+  m.couche.pont = null
+  m.couche.pontAuBas = null
+  rougeCouche(m, /aucun pont sous la couche/)
+})
+
+test('pont DÉCOLLÉ du bas de l’écran : défaut nommé, boîte comprise', () => {
+  const m = couche()
+  m.couche.pontAuBas = false
+  rougeCouche(m, /le pont \{"x":0,"y":467,"w":1366,"h":183\} n'est pas posé au bas de l'écran/)
+})
+
+test('page qui DÉFILE : le plateau déborde de l’écran', () => {
+  const m = couche()
+  m.couche.pageDefile = true
+  rougeCouche(m, /la page défile/)
+})
+
+test('surface ROGNÉE par la couche : défaut chiffré, zone et surface nommées', () => {
+  const m = couche()
+  m.couche.surfaces[0].rogne = 42.5
+  rougeCouche(m, /la surface « initiative-strip » de la zone « temps » .* est rognée par la couche de 42\.5px/)
+})
+
+test('rognure sous le demi-pixel : arrondi de rendu, rien à dire', () => {
+  const m = couche()
+  m.couche.surfaces[0].rogne = 0.4
+  assert.deepEqual(defautsCouche(m, 'tour de héros'), [])
+})
+
+test('commande qui ne reçoit pas son clic : défaut nommé, recouvrant compris', () => {
+  const m = couche()
+  Object.assign(m.couche.commandes[0], { ok: false, hitBy: 'iso-stage <svg>' })
+  rougeCouche(m, /la commande « Fin du tour » .* ne reçoit pas son clic — iso-stage <svg>/)
+})
+
+test('commande EXEMPTÉE (hors du champ de son défilant, ou sous sa tête collée) : rien à dire', () => {
+  for (const exempte of ['hors du champ de son défilant', 'sous la tête collée de son défilant']) {
+    const m = couche()
+    Object.assign(m.couche.commandes[0], { ok: false, hitBy: 'is-round <DIV>', exempte })
+    assert.deepEqual(defautsCouche(m, 'tour de héros'), [], exempte)
+  }
+})
+
+test('AUCUNE commande rendue : la sonde se déclare AVEUGLE, elle ne se tait pas', () => {
+  const m = couche()
+  m.couche.commandes = []
+  rougeCouche(m, /aucune commande rendue .* sonde aveugle/)
 })

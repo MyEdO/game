@@ -2172,7 +2172,6 @@ export const CSS_ESPACEMENT_RATCHET = [
   { fichier: 'src/ui/styles/inspect-panel.css', ref: '.insp-lbl :: padding-top :: 2px', occurrence: 1 },
   { fichier: 'src/ui/styles/inspect-panel.css', ref: '.insp-row :: margin :: 5px 0', occurrence: 1 },
   { fichier: 'src/ui/styles/log-drawer.css', ref: '.jr-line :: gap :: 6px', occurrence: 1 },
-  { fichier: 'src/ui/styles/log-drawer.css', ref: '.ld-panel :: margin-bottom :: 6px', occurrence: 1 },
   { fichier: 'src/ui/styles/log-drawer.css', ref: '.ld-panel :: padding :: 8px 10px', occurrence: 1 },
   { fichier: 'src/ui/styles/log-drawer.css', ref: '.log-drawer :: gap :: 6px', occurrence: 1 },
   { fichier: 'src/ui/styles/mass-battle.css', ref: '.mb-actions :: gap :: 8px', occurrence: 1 },

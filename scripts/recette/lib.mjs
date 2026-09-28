@@ -298,6 +298,34 @@ export async function pourChaqueVue(session, fn, { reposMs = 500 } = {}) {
  * proportions », #393), et les 900px de haut des recettes suivantes ne tiennent sur AUCUN de ses
  * écrans. Une recette responsive passe sa vue explicitement (`pourChaqueVue`, `setMobileViewport`).
  */
+/** Erreur TYPÉE d'une cible perdue (navigation, fermeture, socket coupée) — `isNavigationError`. */
+function cibleFermee() {
+  const e = new Error('Inspected target navigated or closed');
+  e.code = TARGET_NAVIGATED;
+  return e;
+}
+
+/**
+ * L'APPEL CDP d'une session : un message sur la socket, réglé par sa réponse (`pending`). Sur une
+ * socket qui n'est plus OUVERTE, `send` n'échoue pas (WHATWG : le message est jeté) — l'appel est
+ * donc REJETÉ tout de suite, typé, au lieu de pendre pour toujours (juge G3 #1919, pt.4 : Node sortait
+ * en 0 sans conclure). PUR sur ses entrées.
+ * @param {{ readyState: number, send: (m: string) => void }} ws
+ * @param {Map<number, { resolve: Function, reject: Function }>} pending
+ * @param {() => string | null} lireSession @param {() => number} prochainId
+ */
+export function appelCdp(ws, pending, lireSession, prochainId) {
+  return (method, params = {}) => new Promise((resolve, reject) => {
+    if (ws.readyState !== WebSocket.OPEN) { reject(cibleFermee()); return; }
+    const mid = prochainId();
+    const msg = { id: mid, method, params };
+    const sessionId = lireSession();
+    if (sessionId) msg.sessionId = sessionId;
+    pending.set(mid, { resolve, reject });
+    ws.send(JSON.stringify(msg));
+  });
+}
+
 export async function launchSession({ chromePath, width = VUE_REFERENCE.largeur, height = VUE_REFERENCE.hauteur, port, mobile = false, timeoutMs = 10000 } = {}) {
   const lancement = chromeDeLaMachine(chromePath);
   const cdpPort = port ?? 9222 + Math.floor(Math.random() * 2000);
@@ -337,21 +365,13 @@ export async function launchSession({ chromePath, width = VUE_REFERENCE.largeur,
     ws.addEventListener('close', () => {
       for (const [mid, { reject }] of pending) {
         pending.delete(mid);
-        const e = new Error('Inspected target navigated or closed');
-        e.code = TARGET_NAVIGATED;
-        reject(e);
+        reject(cibleFermee());
       }
     });
 
     const session = { ws, chrome, listeners, sessionId: null, targetId: null, profile, contextCleared: false };
 
-    session.rpc = (method, params = {}) => new Promise((resolve, reject) => {
-      const mid = ++id;
-      const msg = { id: mid, method, params };
-      if (session.sessionId) msg.sessionId = session.sessionId;
-      pending.set(mid, { resolve, reject });
-      ws.send(JSON.stringify(msg));
-    });
+    session.rpc = appelCdp(ws, pending, () => session.sessionId, () => ++id);
 
     const { targetId } = await session.rpc('Target.createTarget', { url: 'about:blank' });
     session.targetId = targetId;

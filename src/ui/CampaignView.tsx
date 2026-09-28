@@ -14,7 +14,7 @@ import { PovControls } from './PovControls';
 import { DialogueBox } from './DialogueBox';
 import { MerchantPanel } from './MerchantPanel';
 import { TavernGameModal } from './TavernGameModal';
-import { CombatConsole } from './CombatConsole';
+import { BandeauDOuverture, CombatConsole } from './CombatConsole';
 import { PosteSheet } from './ShipSheet';
 import { isVehicle } from '../engine/vehicle';
 import { isEngin } from '../engine/structures';
@@ -264,24 +264,6 @@ export function CampaignView() {
         {/* Ciblage par carte (Frappe Mortelle / Des deux armes / Surincantation / pose de zone /
             bordée / téléportation) : la console porte le bandeau d'interlude et SA sortie, tirés du
             registre des actions (`surface: 'interlude'`, cf. CombatConsole). */}
-        {/* Barre HUD supérieure : le menu ☰, le nom du LIEU et l'OBJECTIF — rien d'autre, en AUCUN
-            mode (spec HUD combat § « Zone 11 ») : la date vit au menu ☰ et sur les écrans plein-champ
-            (`ScreenMeta`), les ouvreurs d'écrans à l'extrémité droite du pont d'exploration hors
-            combat, sur le rail d'outils en combat. Sauvegarder : exploration seulement (refusée en
-            combat) et jamais l'invité (la save vit chez l'hôte). */}
-        <Row className="hud-topbar" align="start">
-        <GameMenu sceneName={scene?.label} time={gameTime} onQuit={() => setScreen('party')} onSaveLoad={mode === 'exploration' && netMode !== 'guest' ? () => setSaveOpen(true) : undefined} onEndSession={mode === 'exploration' && netMode !== 'guest' ? () => setSessionOpen(true) : undefined} />
-        {/* Lieu courant : premier étage de la pile — le nom de la scène se lit sur le HUD, sans ouvrir
-            le menu. Sans nom authoré, aucune plaque (rien à annoncer). La MATIÈRE du nom est celle du
-            chrome de nom (`CodexTitre`), posée sur le halo partagé des textes du monde nu. */}
-        {mode === 'exploration' && scene?.label && (
-          <strong data-hud="place" className="halo-champ" title={scene.label}><CodexTitre title={scene.label} /></strong>
-        )}
-        {/* Objectif courant (#238) — dernier étage de la pile de contexte : il occupe sa propre ligne
-            sous le lieu (CSS `.hud-topbar > .objective-banner`). Masqué en combat (l'écran tactique
-            se réserve le HUD) ; nul si la pile d'objectifs est vide. */}
-        {mode === 'exploration' && <ObjectiveBannerMount />}
-        </Row>
         {/* PONT D'EXPLORATION (spec § « Zone 11 ») : la bande basse allégée, montée hors combat
             seulement — en combat, le pont est la console (`CombatConsole`). Les conditions
             d'apparition des ouvreurs restent ICI (un rappel absent = pas d'entrée). */}
@@ -317,51 +299,75 @@ export function CampaignView() {
             modale système au-dessus resterait invisible/inatteignable sous elle sans cette garde. */}
         {saveOpen && !dialogue && <SaveLoadModal mode="save" onClose={() => setSaveOpen(false)} />}
         {(sessionOpen || sessionEndOpen) && !dialogue && <SessionEndModal onClose={() => { setSessionOpen(false); closeSessionEnd(); }} />}
-        <PartyDock heroes={dockHeroes} targeting={isTargeting} onOpen={onDockPortrait} />
-        {/* LA RANGÉE DU MONDE (#1848, `.stage-flot` — hud.css) : tout ce qui s'ancre AU BAS DU CHAMP
-            vit ICI, dans la rangée du plateau qui s'arrête au bord haut du pont. Aucune de ces
-            surfaces ne connaît plus de hauteur de pont : `bottom: 0` y signifie « juste au-dessus
-            du pont », dans les deux modes et à toute forme de console. */}
-        <div className="stage-flot">
-          {/* La FRISE est une surface de cette rangée comme les autres : elle s'arrête au bord haut du
-              pont parce que sa rangée s'y arrête, et la hauteur qui lui reste est celle de la rangée
-              (`cqh`, initiative-strip.css) — plus aucune hauteur de pont à relire. */}
-          {mode === 'battle' && battle && (
-            <InitiativeStrip
-              order={battle.order}
-              turn={battle.turn}
-              round={battle.round}
-              combatants={battle.combatants}
-              over={battle.over != null}
-              canFirstIds={canFirstIds}
-              freeFirstIds={freeFirstIds}
-              targeting={isTargeting || !!preemptAiming}
-              onActivate={onStripPortrait}
-              onHover={setHoverCombatant}
-              hoveredId={hovered}
-              onPromote={roundStartPromote}
-              canPreemptIds={canPreemptIds}
-              preemptArmedId={preemptAiming}
-              onPreempt={armPreempt}
-              hand={netMode === 'local' ? undefined : {
-                raised: handRaised,
-                reason: handVerdict.ok ? undefined : handVerdict.reason,
-                label: <><Icon id={handDef.icon as IconIdInput} size="sm" /> {handRaised ? 'Pause demandée' : 'Pause'}{autresMains > 0 ? ` +${autresMains}` : ''}</>,
-                ariaLabel: `${handRaised ? `${handDef.label} : retirer ma demande` : handDef.label}${autresMains > 0 ? ` — déjà demandée par ${autresMains} autre${autresMains > 1 ? 's' : ''} joueur${autresMains > 1 ? 's' : ''}` : ''}`,
-                onToggle: () => runAction(handDef.id, useGame.getState, { toggleOff: handRaised }),
-              }}
-            />
-          )}
-          {mode === 'battle' && battle && <CombatBanner />}{/* fil SOUS la frise (CSS .combat-feed) */}
-          {/* RAIL D'OUTILS (épure G) EN COMBAT : UN panneau vertical encadré au bord droit — le journal
-              de bataille et l'ouvreur de dossier de navire y sont vissés, plus rien d'épars sur le champ
-              ni dans la barre haute. Hors combat, ces commandes vivent sur le pont d'exploration : le
-              rail ne se rend plus (la planche ne le veut qu'en tactique). La caméra n'y a plus de plaque :
-              elle se pilote au GESTE (glisser, molette, pincer) et au CLAVIER (registre
-              `state/keybindings`, remappable à l'écran Options). Aux tranches étroites le rail se dissout
-              (`display: contents`) et chaque surface reprend son ancrage mobile propre. */}
+        {/* LA COUCHE HUD (#1919, `.stage-flot` — hud.css) : une grille à elle, posée dans la rangée
+            `flot` du plateau, au-dessus du pont. Chaque surface y déclare sa ZONE (`data-zone`) ;
+            aucune ne connaît la hauteur du pont ni la boîte d'une voisine. */}
+        <div className="stage-flot" data-pont={mode === 'battle' ? 'combat' : 'exploration'}>
+          {/* Barre HUD supérieure : le menu ☰ et le nom du LIEU — rien d'autre, en AUCUN mode (spec
+              HUD combat § « Zone 11 ») : la date vit au menu ☰ et sur les écrans plein-champ
+              (`ScreenMeta`), les ouvreurs d'écrans à l'extrémité droite du pont d'exploration hors
+              combat, sur le rail d'outils en combat. Sauvegarder : exploration seulement (refusée en
+              combat) et jamais l'invité (la save vit chez l'hôte). */}
+          <Row className="hud-topbar" data-zone="contexte" align="start" wrap={false}>
+            <GameMenu sceneName={scene?.label} time={gameTime} onQuit={() => setScreen('party')} onSaveLoad={mode === 'exploration' && netMode !== 'guest' ? () => setSaveOpen(true) : undefined} onEndSession={mode === 'exploration' && netMode !== 'guest' ? () => setSessionOpen(true) : undefined} />
+            {/* Lieu courant — le nom de la scène se lit sur le HUD, sans ouvrir le menu. Sans nom
+                authoré, aucune plaque (rien à annoncer). La MATIÈRE du nom est celle du chrome de
+                nom (`CodexTitre`), posée sur le halo partagé des textes du monde nu. */}
+            {mode === 'exploration' && scene?.label && (
+              <strong data-hud="place" className="halo-champ" title={scene.label}><CodexTitre title={scene.label} /></strong>
+            )}
+          </Row>
+          <Stack data-zone="groupe" align="center">
+            <PartyDock heroes={dockHeroes} targeting={isTargeting} onOpen={onDockPortrait} />
+          </Stack>
+          {/* Zone TEMPS : en combat la frise d'initiative et, à sa suite, le fil d'événements ; hors
+              combat l'objectif courant (#238), nul si la pile d'objectifs est vide. La frise tient
+              dans sa zone, qui s'arrête au-dessus de la réserve du bandeau de phase. */}
+          <Row data-zone="temps" wrap={false} stackBelow={700}>
+            {mode === 'exploration' && <ObjectiveBannerMount />}
+            {mode === 'battle' && battle && (
+              <InitiativeStrip
+                order={battle.order}
+                turn={battle.turn}
+                round={battle.round}
+                combatants={battle.combatants}
+                over={battle.over != null}
+                canFirstIds={canFirstIds}
+                freeFirstIds={freeFirstIds}
+                targeting={isTargeting || !!preemptAiming}
+                onActivate={onStripPortrait}
+                onHover={setHoverCombatant}
+                hoveredId={hovered}
+                onPromote={roundStartPromote}
+                canPreemptIds={canPreemptIds}
+                preemptArmedId={preemptAiming}
+                onPreempt={armPreempt}
+                hand={netMode === 'local' ? undefined : {
+                  raised: handRaised,
+                  reason: handVerdict.ok ? undefined : handVerdict.reason,
+                  label: <><Icon id={handDef.icon as IconIdInput} size="sm" /> {handRaised ? 'Pause demandée' : 'Pause'}{autresMains > 0 ? ` +${autresMains}` : ''}</>,
+                  ariaLabel: `${handRaised ? `${handDef.label} : retirer ma demande` : handDef.label}${autresMains > 0 ? ` — déjà demandée par ${autresMains} autre${autresMains > 1 ? 's' : ''} joueur${autresMains > 1 ? 's' : ''}` : ''}`,
+                  onToggle: () => runAction(handDef.id, useGame.getState, { toggleOff: handRaised }),
+                }}
+              />
+            )}
+            {mode === 'battle' && battle && <CombatBanner />}
+          </Row>
+          {/* BANDEAU D'OUVERTURE (arbitrage user 2026-08-24, référence RT « round 0 ») : la pause du
+              premier Round quitte le pont pour le haut de la carte — une surface de la couche. */}
           {mode === 'battle' && (
-            <Stack className="hud-rail skin-bois" gap="md" pad="md">
+            <Stack data-zone="ouverture">
+              <BandeauDOuverture />
+            </Stack>
+          )}
+          {/* RAIL D'OUTILS (épure G) EN COMBAT : UN panneau vertical encadré — le journal de bataille
+              et l'ouvreur de dossier de navire y sont vissés, plus rien d'épars sur le champ ni dans
+              la barre haute. Hors combat, ces commandes vivent sur le pont d'exploration : le rail ne
+              se rend plus (la planche ne le veut qu'en tactique). La caméra n'y a plus de plaque :
+              elle se pilote au GESTE (glisser, molette, pincer) et au CLAVIER (registre
+              `state/keybindings`, remappable à l'écran Options). */}
+          {mode === 'battle' && (
+            <Stack className="hud-rail skin-bois" data-zone="outils" gap="md" pad="md" rowBelow={700}>
               {vessel && (
                 <button
                   type="button"
@@ -376,10 +382,14 @@ export function CampaignView() {
               <LogDrawer battle={battle ? { log: battle.log, combatants: battle.combatants } : null} journal={journal} />
             </Stack>
           )}
-          {mode === 'exploration' && povActive && <PovControls />}
+          {mode === 'exploration' && povActive && (
+            <Stack data-zone="camera">
+              <PovControls />
+            </Stack>
+          )}
           {dialogue && <DialogueBox />}
           {/* Arbitre R2 : UNE seule modale de combat à la fois, par priorité (cf. ActiveModal). Il
-              vit dans cette rangée parce que sa PUCE d'attente (coop) est une surface basse du champ
+              vit dans cette couche parce que sa PUCE d'attente (coop) est une surface basse du champ
               — ses modales, elles, sont des voiles fixes que la grille ne touche pas. */}
           <ActiveModal />
         </div>

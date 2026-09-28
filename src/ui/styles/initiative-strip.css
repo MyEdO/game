@@ -3,34 +3,20 @@
    cartouche de Round collé en tête, une entrée par combattant, badges de premier coup et de
    pré-emption en débord. Identité entière ici (#1806 2a, arbitrage A1 du 2026-09-18).
    Dépendances écrites : la vignette est `PortraitTile` (portrait-tile.css) — les règles
-   `.is-tiles .ptile*` ci-dessous en sont des spécialisations CONTEXTUELLES ; la réserve du bas est
-   celle du BANDEAU DE PHASE (`--cc-phase-h`/`--cc-phase-air`, publiées par la console), la seule
-   surface qui déborde dans la rangée du monde. ══ */
+   `.is-tiles .ptile*` ci-dessous en sont des spécialisations CONTEXTUELLES. Son placement est celui
+   de sa ZONE (`temps`, couche HUD de hud.css) : la frise n'y lit aucune géométrie voisine. ══ */
 
-/* ── Frise d'initiative → COLONNE À GAUCHE (inversée avec le dock du groupe — demande utilisateur).
-   Défile verticalement si beaucoup de combattants (R4 : plus de débordement hors écran).
-   ELLE S'ARRÊTE AU-DESSUS DU PONT de console (planche 2026-08-17 : plaque de frise `[0,132,133,472]`,
-   pont à y=863) — non parce qu'elle en connaît la hauteur, mais parce qu'elle vit dans la RANGÉE DU
-   MONDE (`.stage-flot`, hud.css), qui s'y arrête (#1848). Elle est sous le coin du menu ☰ (44px au
-   doigt + air) et s'y centre. Centrée sur le VIEWPORT, sa plaque descendait derrière le bout gauche
-   de la console (mesuré 103,6 × 97,3px de recouvrement à 1280, points de frise par-dessus le pont au
-   hit-test) ; ancrée en haut seulement, son cartouche de Round passait sous le bouton de menu.
-   La SEULE réserve du bas qui reste est le bandeau de phase, qui se pose sur le parapet du pont et
-   déborde donc dans cette rangée (`--cc-phase-h` + `--cc-phase-air`, les grandeurs que le bandeau
-   déclare — même réserve que le fil d'événements) : la colonne est en z-index 45 contre 5 pour la
-   console, elle recouvrait sinon le titre du bandeau et le décapitait (sonde pixel, quatre captures
-   sur quatre).
+/* ── Frise d'initiative → COLONNE du flanc gauche (inversée avec le dock du groupe — demande
+   utilisateur). Défile verticalement si beaucoup de combattants (R4 : plus de débordement hors
+   écran). Elle vit dans sa zone de la couche HUD (`temps`, hud.css), qui s'arrête au-dessus de la
+   réserve du bandeau de phase : elle ne connaît ni le pont ni le haut de l'écran.
    La boîte ÉPOUSE SA PLAQUE (`height: fit-content` + marges automatiques qui la centrent dans la
-   bande) : étirée du haut au bas de la bande, elle emportait sa rampe de débord loin sous la dernière
-   vignette — 174px de terrain nu, puis 20px de bois suspendu dans le vide (sonde B6). ── */
+   zone) : étirée, elle emportait sa rampe de débord loin sous la dernière vignette — 174px de
+   terrain nu, puis 20px de bois suspendu dans le vide (sonde B6). ── */
 .initiative-strip {
-  position: absolute;
-  top: 70px;
-  bottom: calc(var(--cc-phase-h) + var(--cc-phase-air));
-  left: 10px;
+  position: relative;
   height: fit-content;
   margin-block: auto;
-  transform: none;
   z-index: 45;
   display: flex;
   flex-direction: column;
@@ -106,12 +92,10 @@
      ci-dessus valent pour la COLONNE : en bande (≤700) l'axe de défilement est X, et c'est la tranche
      qui y pose son propre cran (`scroll-snap-type: x`). */
   scroll-padding-top: calc(var(--is-head-air) + var(--is-round-h) + var(--is-round-margin) + var(--is-gap));
-  /* La piste ne descend pas plus bas que la plaque : sa borne est celle de la colonne, arrondie au
-     pas d'entrée. Au-delà, elle DÉFILE — aucune entrée ne disparaît, et rien ne dépasse sur le pont.
-     L'espace disponible est celui de la RANGÉE DU MONDE elle-même (`cqh`, conteneur `.stage-flot`,
-     hud.css) moins les deux réserves de cette rangée : le coin du menu ☰ en haut, le bandeau de
-     phase en bas. La hauteur du pont n'entre plus dans ce calcul — c'est la rangée qui l'exclut. */
-  --is-avail: min(84cqh, calc(100cqh - 70px - var(--cc-phase-h) - var(--cc-phase-air) - 12px));
+  /* La piste ne descend pas plus bas que la plaque : sa borne est celle de la zone `temps`, qui
+     est son conteneur (`cqh`, hud.css), arrondie au pas d'entrée. Au-delà, elle DÉFILE — aucune
+     entrée ne disparaît, et rien ne dépasse sur le pont. */
+  --is-avail: 100cqh;
   max-height: var(--is-avail);
   max-height: calc(round(down, calc(var(--is-avail) - var(--is-head)), var(--is-pitch)) + var(--is-head));
 }
@@ -292,19 +276,12 @@
      gauche. La réserve du badge d'initiative, qui déborde du HAUT de chaque cellule, appartient à la
      CELLULE (`margin-top`) : portée par la piste, elle tombe hors de la boîte du cartouche étiré et
      laisse voir le sommet des badges défilés dans sa propre section (#1867).
-     PLUS DE RÉSERVE DE DROITE : la plaque de caméra a quitté l'écran de jeu et le rail dégraissé
-     s'ancre désormais en BAS à cette largeur (hud.css, `.hud-rail > .worldmap-btn`) — le haut-droite
-     est libre, la bande va jusqu'au bord comme à gauche.
+     Sa zone est la BANDE de la couche HUD (hud.css), pleine largeur, sous le groupe.
      `align-items: stretch` CONTRAINT la piste à la largeur de la bande : `overflow-x: auto` ne mord
      que sur une boîte bornée — alignée en `flex-start` elle prend la largeur de son contenu et
      déborde du HUD sans jamais défiler. */
   .initiative-strip {
-    top: 84px;
-    left: 4px;
-    right: 4px;
-    bottom: auto;
-    transform: none;
-    max-height: none;
+    margin-block: 0;
     align-items: stretch;
   }
   .is-tiles {
@@ -372,16 +349,7 @@
   .is-cell { flex: 0 0 auto; margin-top: var(--is-badge-air); }
 }
 @media (max-width: 560px) {
-  /* Empilement HAUT re-mesuré à 360px, bande de groupe REPLIÉE : groupe (6..30), frise (34..86),
-     fil d'événements (140..) — puis le TERRAIN jusqu'à la console.
-     Vignettes de frise réduites à 34px : la bande d'ordre reste lisible sans manger le champ. */
-  .initiative-strip {
-    top: 34px;
-    /* Elle part APRÈS le coin du menu ☰ (44px au doigt + air), comme la bande de groupe : à 4px du
-       bord, sa tête passait sous le bouton (chevauchement mesuré 42×18). */
-    left: 58px;
-    right: 4px;
-  }
+  /* Vignettes de frise réduites à 34px : la bande d'ordre reste lisible sans manger le champ. */
   .is-tiles .ptile,
   .is-tiles .ptile-face {
     width: 34px !important;

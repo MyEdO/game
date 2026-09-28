@@ -383,31 +383,59 @@ terrain. Deux boîtes la posent sur deux écrans : le rail d'outils `.hud-rail` 
 (`CampaignView`) et le bandeau de phase `.cc-phase` du pont (`CombatConsole`, à ses TROIS adresses).
 Chaque porteur n'en garde que son delta — l'ancrage du rail, l'encoche d'angle du bandeau.
 
-### Une réserve de pont se tient par le FLUX, jamais par une valeur (#1848)
+### Le pont se dimensionne seul ; le HUD vit dans ce qui reste, et n'en sort pas (#1848, #1919)
 
-Le bas du champ de l'écran de jeu est une **rangée de grille**, pas une pile d'ancrages : `.stage`
-est en `grid-template-rows: 1fr auto`, le PONT (console de combat ou pont d'exploration) EST la
-rangée basse, et toutes les surfaces qui s'ancrent au bas du champ vivent dans `.stage-flot`, la
-rangée du monde (`hud.css`). Conséquence : `bottom: 0` y signifie « juste au-dessus du pont », et
-**aucune feuille ne lit plus la hauteur d'un pont pour s'en écarter**.
+« `.stage` porte deux rangées, `[flot] minmax(0, 1fr) [pont] auto`. La couche HUD est une grille
+propre posée dans `flot` ; elle borne son débordement (`overflow: clip`) et porte seule les rangées
+`haut`/`bande`/`champ`/`reserve`. Le pont ne lit ni ne subit aucune rangée du HUD, et sa hauteur est
+tenue par son budget, à chaque tranche. » (design retenu par le juge de design, #1919, 2026-09-23)
 
-Devant tout `bottom:` d'une surface basse, la question est : « cette valeur connaît-elle la hauteur
-d'un pont ? » — si oui, elle meurt. Une variable mesurée au rendu (hook + `ResizeObserver`) ne règle
-rien : c'est une garde de synchronisation, fausse d'une frame à chaque bascule de forme, muette sous
-jsdom, et elle couple une primitive au runtime d'un écran. Ce qui reste légitime : la SAILLIE d'un
-pont (le fronton qui dépasse sa bande) se tient dans la BOÎTE du pont (`--cc-saillie` en rembourrage
-haut : sa boîte vaut son EMPREINTE), et une surface SUPERPOSÉE au parapet (le bandeau de phase)
-publie sa propre grandeur, que le fil d'événements réserve. Critère : ajouter une surface ancrée en
-bas doit coûter ZÉRO ligne de réserve, et changer la hauteur du pont ne doit toucher aucune autre
-feuille.
+Le PONT (console de combat ou pont d'exploration) est la rangée `pont`, à la hauteur qu'il fait : une
+piste `minmax(0, 1fr)` ne pousse pas une piste `auto`. La couche HUD `.stage-flot` (`hud.css`) est
+une grille à elle : chaque surface y déclare sa ZONE (`data-zone`, posé par `CampaignView`) — barre
+haute `contexte`, `groupe`, frise et fil d'événements (ou objectif hors combat) `temps`, bandeau
+d'ouverture `ouverture` (rangée `champ`), rail d'outils `outils`, commandes de première personne
+`camera` — et seules les `grid-template-areas` changent d'une tranche à l'autre, jamais les pistes.
+Critère N+1 : une surface de plus au HUD coûte une ligne de `grid-template-areas` et un `data-zone`,
+sans aucune hauteur lue. Aucune surface ne s'ancre en absolu à des littéraux ; aucune ne lit la
+géométrie d'une voisine. Le seul hors-flux de la couche est le volet déplié du groupe (≤560), qui
+naît de sa poignée (garde : `src/ui/ui-ratchets.test.ts`).
 
-Une surface qui a besoin de la HAUTEUR DISPONIBLE (et non d'un simple ancrage) la lit sur sa rangée,
-pas sur le viewport : `.stage-flot` se déclare conteneur de requête (`container-type: size`), et la
-frise d'initiative borne sa colonne en `cqh` — `min(84cqh, calc(100cqh - …))`. Un `100vh` moins la
-hauteur d'un pont est le même couplage écrit autrement. Corollaire de doctrine : `container`/
-`container-type`/`container-name` sont du PLACEMENT (même famille que `contain`) — ils déclarent une
-portée de mise en page, jamais une matière ; c'est l'écran qui compose ses rangées
-(`scripts/guards/lib/cssCouches.mjs`).
+Les zones qui ne sont pas des coins ne pèsent sur aucune colonne (`contain: inline-size`) : seuls la
+barre haute, le rail et le groupe dimensionnent les colonnes, et un fil long ou une bande qui déborde
+ne décentre jamais le groupe.
+
+La rangée `reserve` est le débord du bandeau de phase posé sur le parapet du pont (`--cc-phase-h` +
+`--cc-phase-air`), lu une seule fois (`--flot-reserve`). Elle est payée pendant TOUT le combat,
+publiée ou non : l'arbitrage d'immobilité (`src/ui/CombatConsole.tsx:51-53`, 2026-08-16, verbatim :
+« je ne veux pas que la taille de l'interface ou les boutons bougent ») interdit que la frise change
+de taille à chaque tour spectateur.
+
+Le panneau du journal naît de son BOUTON, hors flux, vers le champ (`log-drawer.css`) — sur le pont
+d'exploration comme dans le rail. Dans le flux du rail, sa largeur devenait la largeur minimale de la
+colonne `outils` : mesuré (sonde du 2026-09-28), le groupe se décentrait de 113 px à 900, 153 px à
+700 et 130 px à 360, et le bouton du journal descendait de 152 px sous le doigt du joueur à toute
+largeur ; ancré à son bouton, rien ne bouge. Aucun Anchor Positioning CSS : l'ancrage est celui d'un
+`position: absolute` dans le tiroir.
+
+Une surface qui a besoin de la HAUTEUR DISPONIBLE la lit sur sa ZONE, pas sur le viewport : la zone
+`temps` se déclare conteneur de requête (`container-type: size`) au-dessus de 700, et la frise
+d'initiative borne sa colonne en `cqh`. Un `100vh` moins la hauteur d'un pont est le même couplage
+écrit autrement. Corollaire de doctrine : `container`/`container-type`/`container-name` sont du
+PLACEMENT (même famille que `contain`) — ils déclarent une portée de mise en page, jamais une
+matière ; c'est l'écran qui compose ses rangées (`scripts/guards/lib/cssCouches.mjs`).
+
+La SAILLIE d'un pont (le fronton qui dépasse sa bande) se tient dans la BOÎTE du pont
+(`--cc-saillie` en rembourrage haut : sa boîte vaut son EMPREINTE). Une variable mesurée au rendu
+(hook + `ResizeObserver`) ne règle rien : c'est une garde de synchronisation, fausse d'une frame à
+chaque bascule de forme, muette sous jsdom.
+
+Le rognage de la couche est son seul mode de défaillance : aux vues de référence et aux seuils, HUD
+et pont tiennent ensemble grâce au BUDGET du pont, jamais par une cession de la grille. Preuve
+mécanique de la couche : `scripts/recette/hud-clickables.mjs` (`defautsCouche`), 3 hauteurs × 7
+largeurs × 4 états (exploration, ouverture, tour de héros, spectateur atteint par le vrai geste) —
+pont posé au bas de l'écran, page sans défilement, aucune surface rognée, chaque commande du HUD et
+du pont atteignable.
 
 Preuve mécanique : `scripts/recette/console-pont-formes.mjs` sonde les DEUX ponts — passe EXPLORATION
 (dialogue ouvert, panneau du journal déployé, trois vues jugées) puis passe COMBAT (trois formes,

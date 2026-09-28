@@ -2,28 +2,17 @@
    Le BEAT : une ligne nue posée sur le terrain, au-dessus du pont de console. Le tiroir du journal
    (`.log-drawer`) garde l'historique COMPLET ; ce fil ne dit que l'événement courant. Les noms par
    camp sont rendus par `TeamSegments` (team-segments.css). */
-/* Fil d'événements — BAS-GAUCHE, posé SUR LE TERRAIN juste au-dessus du pont de console (planche
-   2026-08-17 : journal `[170,779,330,57]`, aucun cadre, aligné à gauche). Il n'appartient PAS au
-   pont : il vit dans la RANGÉE DU MONDE (`.stage-flot`, hud.css), dont la boîte s'arrête au bord
-   haut du pont — il n'a donc AUCUNE hauteur de pont à connaître. */
+/* Fil d'événements : une ligne nue posée sur le terrain, sous la bande haute. Son placement est
+   celui de sa ZONE (`champ`, couche HUD de hud.css) : il n'a aucune géométrie voisine à connaître.
+   Il ne prend aucun clic. */
 .combat-feed {
-  position: absolute;
-  /* Après la plaque de frise (colonne x 10..114 mesurée) — la planche pose le journal à 170/1920. */
-  left: 130px;
-  right: auto;
-  top: auto;
-  /* Seule réserve qui reste : le bandeau de phase, SUPERPOSÉ au parapet du pont (il déborde donc
-     dans la rangée du monde, de sa boîte plus son air) — sans elle, le fil et le bouton « Commencer
-     le round » se recouvraient en pause de Round (mesuré à 1280). Les deux grandeurs sont celles que
-     le bandeau déclare (`--cc-phase-h`, `--cc-phase-air`, combat-console.css), jamais un nombre. */
-  bottom: calc(var(--cc-phase-h) + var(--cc-phase-air));
-  transform: none;
+  position: relative;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
   gap: 2px;
   /* AU-DESSUS du bandeau de groupe (`.party-dock`, z-index 45) : le message d'ouverture passait
-     derrière les cartes et se lisait coupé (grief vision). Le fil ne prend aucun clic. */
+     derrière les cartes et se lisait coupé (grief vision). */
   z-index: 46;
   pointer-events: none;
   max-width: 42vw;
@@ -76,26 +65,7 @@
   60% { opacity: 1; transform: scale(1.06) translateY(0); }
   100% { transform: scale(1) translateY(0); }
 }
-/* Le fil d'événements RESTE EN HAUT sous 700px : le pont s'y empile sur trois rangées (mesuré
-   616,5px de haut à 700×800) et le coin bas-gauche appartient au tiroir du journal — il n'y a pas
-   de bande de terrain au-dessus du pont où poser le fil. Il passe donc sous la bande
-   d'initiative (le groupe, puis le round, puis le flux) : le `top` se pose sous le BAS MESURÉ de
-   la bande en combat ENGAGÉ (84 + 100 = 184px, recette `hud-clickables.mjs`) plus l'air — le
-   message du flux et la frise n'ont aucune surface commune. */
 @media (max-width: 700px) {
-  .combat-feed {
-    top: 192px;
-    bottom: auto;
-    left: 50%;
-    transform: translateX(-50%);
-    align-items: center;
-    max-width: 94vw;
-  }
+  .combat-feed { max-width: 94vw; }
   .cb-ev { white-space: normal; text-align: center; } /* événements longs : retour à la ligne (pas de débord) */
-}
-@media (max-width: 560px) {
-  /* Le fil d'événements se pose SOUS le bandeau haut, jamais au milieu du terrain : il annonce, il
-     ne s'installe pas dans le champ (grief d'assemblage — le toast traversait le ruban de jeu).
-     Repère : bande de groupe repliée (6..30), frise (34..86), caméra (92..136), fil à 140. */
-  .combat-feed { top: 140px; }
 }

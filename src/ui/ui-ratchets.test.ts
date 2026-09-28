@@ -703,18 +703,17 @@ describe('canon responsive, peaux et matières partagées de src/ui/styles', () 
     expect(ecartsResponsive(), 'écart NEUF : une section responsive ordonnée ne pose chaque tranche qu’une fois (360 et 420 sont des largeurs de RECETTE) ; écart SOLDÉ : retirer son entrée du stock').toEqual(ECARTS_RESPONSIVE_STOCK);
   });
 
-  it('≤700 : le rail se DISSOUT, et son ouvreur d’écran reprend un ancrage hors flux', () => {
-    // CE QUI RESTE EN UNITÉ : la STRUCTURE. Un rail en `display: contents` ne porte plus l'ancrage de
-    // ses enfants ; sans ancrage propre, l'ouvreur retombe dans le flux du stage. La PLACE exacte
-    // (bord, réserve, recouvrement) se mesure au navigateur — aucune valeur ici.
-    const hud700 = mediaBlock(read('hud.css'), '@media (max-width: 700px)');
-    expect(hud700).toMatch(/\.hud-rail\s*\{[^}]*display:\s*contents/);
-    const ouvreur = /\.hud-rail\s*>\s*\.worldmap-btn\s*\{([^}]*)\}/.exec(hud700);
-    expect(ouvreur, 'l’ouvreur d’écran du rail dissous déclare son propre ancrage ≤700').not.toBeNull();
-    expect(ouvreur![1], 'un ancrage RELATIF suit encore le flux : il faut le sortir').toMatch(/position:\s*(absolute|fixed)/);
-    // Les VERDICTS DE RENDU de cette tranche (la bande défile, elle va jusqu'au bord droit, son
-    // cartouche de Round tient à tout défilement, l'ouvreur reçoit son clic) sont MESURÉS par
-    // `scripts/recette/hud-clickables.mjs` — jsdom n'applique aucune tranche et ne met rien en page.
+  it('couche HUD (#1919) : aucune surface n’est posée hors flux, seul le VOLET du groupe l’est', () => {
+    // CE QUI RESTE EN UNITÉ : la STRUCTURE. Chaque surface du HUD se place par sa ZONE (`data-zone`,
+    // aire de la grille de `.stage-flot`) : une ancre absolue lirait de nouveau la géométrie d'une
+    // voisine. Le seul hors-flux du module est le volet déplié du groupe (≤560), qui naît de sa
+    // poignée par-dessus la bande. La PLACE exacte se mesure au navigateur
+    // (`scripts/recette/hud-clickables.mjs`) — aucune valeur ici.
+    const horsFlux = reglesCss(read('hud.css'))
+      .filter((r) => declarations(r.corps).some((d) => d.prop === 'position' && /^(absolute|fixed)$/.test(d.valeur.trim())))
+      .flatMap((r) => r.selecteurs);
+    expect(horsFlux).toEqual(["[data-zone='groupe'] > .party-dock.on .pd-track"]);
+    expect(read('hud.css'), 'un rail dissous rend ses enfants à des ancres hors flux').not.toMatch(/display:\s*contents/);
   });
 
   it('la piste du groupe ne s’enroule JAMAIS : la règle vit hors de toute tranche', () => {
@@ -890,16 +889,17 @@ describe('canon responsive, peaux et matières partagées de src/ui/styles', () 
       const regle = reglesCss(css).find((r) => r.selecteurs.includes(selecteur) && declarations(r.corps).some((d) => d.prop === 'z-index'));
       return regle ? Number(declarations(regle.corps).find((d) => d.prop === 'z-index')!.valeur) : null;
     };
-    const depliee = reglesCss(hud).find((r) => r.media?.includes('max-width: 560px') && r.selecteurs.includes('.stage > .party-dock.on'));
+    const depliee = reglesCss(hud).find((r) => r.media?.includes('max-width: 560px') && r.selecteurs.includes("[data-zone='groupe'] > .party-dock.on"));
     expect(depliee, 'la tranche ≤560 de `hud.css` porte le rang de la bande dépliée').toBeDefined();
     const rangDeplie = Number(declarations(depliee!.corps).find((d) => d.prop === 'z-index')?.valeur);
     const fil = rang(readFileSync(join(UI, 'styles', 'combat-banner.css'), 'utf8'), '.combat-feed');
     expect(fil, '`.combat-feed` porte un rang').not.toBeNull();
     expect(rangDeplie).toBeGreaterThan(fil!);
-    // À poids ÉGAL c'est l'ordre qui tranche, et l'ancrage de repos (`.stage > .party-dock`) suit
-    // la primitive dans le graphe d'imports : le rang déplié se lit donc à un poids SUPÉRIEUR.
-    expect(comparerPoids('.stage > .party-dock.on', '.stage > .party-dock')).toBe(1);
-    expect(rang(hud, '.stage > .party-dock'), 'rang de repos').toBeLessThan(rangDeplie);
+    // À poids ÉGAL c'est l'ordre qui tranche, et le rang de repos (`[data-zone='groupe'] >
+    // .party-dock`) suit la primitive dans le graphe d'imports : le rang déplié se lit donc à un
+    // poids SUPÉRIEUR.
+    expect(comparerPoids("[data-zone='groupe'] > .party-dock.on", "[data-zone='groupe'] > .party-dock")).toBe(1);
+    expect(rang(hud, "[data-zone='groupe'] > .party-dock"), 'rang de repos').toBeLessThan(rangDeplie);
   });
 
   // Une MATIÈRE partagée se pose À CÔTÉ d'une classe de module : les deux visent le MÊME élément.

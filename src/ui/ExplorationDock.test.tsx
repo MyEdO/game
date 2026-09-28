@@ -310,13 +310,66 @@ describe('Zone 11 — la RÉSERVE du pont est lisible, et le pont est COMPACT', 
     expect(prop(bloc(coarseSkin![1], '.skin-tole[data-ton]'), 'min-height')).toBe('44px');
   });
 
-  it('le tiroir-journal LIT la réserve pour s’ancrer au-dessus du pont (jamais un nombre recopié)', () => {
-    const hud = styles('exploration-dock.css');
-    const tiroir = bloc(hud, '.exploration-dock .log-drawer');
-    // Le pont porte l'ancrage : le tiroir ne flotte plus (les calages mobiles ≤700/≤560 sont annulés).
-    expect(prop(tiroir, 'position')).toBe('relative');
-    expect(prop(tiroir, 'inset')).toBe('auto');
-    expect(prop(bloc(hud, '.exploration-dock .ld-panel'), 'max-height')).toContain('var(--xd-deck-h)');
+  it('le tiroir-journal est assis SUR le pont, et son panneau naît de son bouton', () => {
+    // Hors combat le tiroir appartient au PONT, pas à la couche HUD : aucune zone ne le porte, et son
+    // panneau ouvert est un enfant du tiroir — il naît de son bouton, sans lire aucune hauteur.
+    const el = monter();
+    const tiroir = el.querySelector('.exploration-dock .log-drawer')!;
+    expect(tiroir, 'le tiroir n’est pas assis sur le pont').not.toBeNull();
+    expect(tiroir.closest('[data-zone]'), 'le tiroir du pont vit dans une zone du HUD').toBeNull();
+    act(() => { (tiroir.querySelector('.ld-btn') as HTMLButtonElement).click(); });
+    expect(tiroir.querySelector('.ld-panel'), 'le panneau ne naît pas de son tiroir').not.toBeNull();
+    expect(styles('exploration-dock.css'), 'le pont relit une réserve du HUD pour borner le panneau').not.toMatch(/\.ld-panel|70px/);
+  });
+});
+
+/** Zone de la couche HUD qui porte un élément, ou `null` hors de la couche. */
+const zoneDe = (el: Element | null) => (el?.closest('[data-zone]') as HTMLElement | null)?.dataset.zone ?? null;
+
+describe('#1919 — la couche HUD est une grille : chaque surface déclare sa ZONE', () => {
+  // La GÉOMÉTRIE relève de la sonde navigateur (`scripts/recette/hud-clickables.mjs`, jsdom ne met
+  // rien en page) ; ici, la RELATION : qui déclare quelle zone, et que la couche place chacune.
+  const hud = () => styles('hud.css');
+  /** Chaque zone montée est un enfant DIRECT de la couche, et la couche la place (aire ou lignes). */
+  function zonesPlacees(el: Element) {
+    const couche = el.querySelector('.stage-flot')!;
+    const zones = [...el.querySelectorAll('[data-zone]')] as HTMLElement[];
+    for (const z of zones) {
+      expect(z.parentElement, `zone « ${z.dataset.zone} » hors de la couche`).toBe(couche);
+      expect(hud(), `zone « ${z.dataset.zone} » sans placement dans hud.css`)
+        .toMatch(new RegExp(`\\[data-zone='${z.dataset.zone}'\\]\\s*\\{[^}]*grid-(area|row)`));
+    }
+    return zones.map((z) => z.dataset.zone);
+  }
+
+  it('EXPLORATION : barre haute, groupe, objectif et caméra ; le pont hors de la couche', () => {
+    useGame.setState({ objectives: [{ id: 'o1', text: 'Retrouver la piste' }], povActive: true } as never);
+    const el = monter();
+    expect(zoneDe(el.querySelector('.hud-topbar'))).toBe('contexte');
+    expect(zoneDe(el.querySelector('.party-dock'))).toBe('groupe');
+    expect(zoneDe(el.querySelector('.objective-banner'))).toBe('temps');
+    expect(zoneDe(el.querySelector('.pov-controls'))).toBe('camera');
+    expect(el.querySelector('.stage-flot')!.getAttribute('data-pont')).toBe('exploration');
+    expect(zoneDe(dock()), 'le pont est dans la couche HUD').toBeNull();
+    expect(dock()!.parentElement!.classList.contains('stage'), 'le pont n’est plus une rangée du plateau').toBe(true);
+    expect(zonesPlacees(el).sort()).toEqual(['camera', 'contexte', 'groupe', 'temps']);
+  });
+
+  it('COMBAT : frise et fil, rail, bandeau d’ouverture ; la console hors de la couche', () => {
+    enCombat();
+    useGame.setState({ pendingRoundStart: { round: 1, readyBySeat: {} } } as never);
+    const el = monter();
+    expect(zoneDe(el.querySelector('.initiative-strip'))).toBe('temps');
+    expect(zoneDe(el.querySelector('.combat-feed'))).toBe('temps');
+    expect(zoneDe(el.querySelector('.hud-rail'))).toBe('outils');
+    expect(zoneDe(el.querySelector(".cc-phase[data-phase='ouverture']"))).toBe('ouverture');
+    expect(zoneDe(el.querySelector('.party-dock'))).toBe('groupe');
+    expect(el.querySelector('.stage-flot')!.getAttribute('data-pont'), 'la réserve du bandeau de phase n’est pas payée en combat').toBe('combat');
+    const console_ = el.querySelector('.combat-console')!;
+    expect(zoneDe(console_), 'la console est dans la couche HUD').toBeNull();
+    expect(console_.parentElement!.classList.contains('stage')).toBe(true);
+    expect(zonesPlacees(el).sort()).toEqual(['contexte', 'groupe', 'outils', 'ouverture', 'temps']);
+    useGame.setState({ pendingRoundStart: null } as never);
   });
 });
 

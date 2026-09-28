@@ -8,6 +8,7 @@ import { isAbsolute } from 'node:path'
 import {
   ALT,
   DELAI_EVALUATE,
+  appelCdp,
   champParLibelle,
   clickButtonByText,
   MOD_ALT,
@@ -605,4 +606,29 @@ test('Chrome : aucun candidat — refus NOMMANT les chemins essayés', () => {
     assert.match(e.message, /\/opt\/pw-browsers\/chromium-\*\/chrome-linux\/chrome/)
     return true
   })
+})
+
+// ── Appel CDP sur une socket fermée (juge G3 #1919, pt.4) : WHATWG jette le message sans lever, la
+//    promesse pendait pour toujours et Node sortait en 0 sans conclure. ─────────────────────────────
+test('appel CDP sur une socket FERMÉE : rejeté tout de suite, typé cible perdue, rien d’envoyé', async () => {
+  const envoyes = []
+  const pending = new Map()
+  const ws = { readyState: WebSocket.CLOSED, send: (m) => envoyes.push(m) }
+  await assert.rejects(appelCdp(ws, pending, () => null, () => 1)('Runtime.evaluate'), (e) => {
+    assert.equal(e.code, TARGET_NAVIGATED)
+    assert.equal(isNavigationError(e), true)
+    return true
+  })
+  assert.deepEqual(envoyes, [])
+  assert.equal(pending.size, 0)
+})
+
+test('appel CDP sur une socket OUVERTE : message envoyé, session portée, réglé par sa réponse', async () => {
+  const envoyes = []
+  const pending = new Map()
+  const ws = { readyState: WebSocket.OPEN, send: (m) => envoyes.push(JSON.parse(m)) }
+  const appel = appelCdp(ws, pending, () => 'S1', () => 7)('Page.enable', { a: 1 })
+  assert.deepEqual(envoyes, [{ id: 7, method: 'Page.enable', params: { a: 1 }, sessionId: 'S1' }])
+  pending.get(7).resolve({ ok: true })
+  assert.deepEqual(await appel, { ok: true })
 })

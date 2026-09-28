@@ -15,120 +15,162 @@
   flex-direction: row;
   position: relative;
 }
-/* LE PLATEAU EST UNE GRILLE À DEUX RANGÉES (#1848) : le monde et tout ce qui flotte dessus occupent
-   la rangée haute, le PONT — console de combat ou pont d'exploration — EST la rangée basse, EN
-   FLUX. Une surface ancrée en bas du champ n'a donc plus aucune hauteur de pont à connaître : elle
-   vit dans `.stage-flot` et s'ancre au bord bas de CETTE rangée. Changer la forme, la composition
-   ou la hauteur du pont ne touche aucune autre feuille ; ajouter une surface basse ne coûte aucune
-   ligne de réserve.
+/* LE PLATEAU PORTE DEUX RANGÉES (#1848, #1919) : `flot`, où vit le HUD, puis `pont` — console de
+   combat ou pont d'exploration —, à la hauteur qu'il fait. Une piste `minmax(0, 1fr)` ne pousse pas
+   une piste `auto` : rien au-dessus du pont ne peut le pousser (docs/charte-ui.md § « Le pont se
+   dimensionne seul »).
    Tout autre enfant du plateau couvre les DEUX rangées : le monde (absolu, `inset: 0`), les écrans
-   plein champ, les modales et les surfaces ancrées en haut — l'état d'avant la grille, déclaré une
-   fois pour tous. */
+   plein champ et les modales. */
 .stage {
   flex: 1;
   position: relative;
   overflow: hidden;
   min-width: 0;
   display: grid;
-  grid-template-rows: 1fr auto;
+  grid-template-rows: [flot] minmax(0, 1fr) [pont] auto;
 }
 .stage > * {
   grid-area: 1 / 1 / -1 / -1;
 }
-/* LA RANGÉE DU MONDE : le conteneur des surfaces qui s'ancrent AU BAS DU CHAMP — fil d'événements,
-   rail d'outils et tiroir-journal, commandes de première personne, bandeau de dialogue, puce
-   d'attente de l'arbitre de modales. Sa boîte s'arrête au bord haut du pont (fronton compris) :
-   `bottom: 0` y signifie « juste au-dessus du pont », sans réserve.
-   Elle ne prend AUCUN clic — chaque surface reprend le sien (même patron que `.hud-topbar`) ; le
-   fil d'événements est le seul à n'en vouloir aucun, il le déclare dans son module. */
-.stage > .stage-flot {
-  grid-area: 1 / 1 / 2 / 2;
-  position: relative;
-  pointer-events: none;
-  /* … et elle est le CONTENEUR de référence de ses surfaces : une hauteur disponible s'y exprime en
-     `cqh` (la rangée), jamais en `vh` moins la hauteur d'un pont. C'est ce qui permet à la frise
-     d'initiative de borner sa colonne sans rien savoir du pont d'en dessous. */
-  container-type: size;
-  container-name: flot;
-}
-.stage-flot > *:not(.combat-feed) {
-  pointer-events: auto;
-}
-/* LES DEUX PONTS sont la rangée BASSE, en flux : ils ne portent plus d'ancrage (ni `position`, ni
-   `left/right/bottom`) — c'est la grille qui les pose, de bord à bord, à la hauteur qu'ils font. */
 .stage > .combat-console,
 .stage > .exploration-dock {
-  grid-area: 2 / 1 / 3 / 2;
+  grid-area: pont / 1 / auto / 2;
 }
-/* COMMANDES DE PREMIÈRE PERSONNE (`PovControls`) : coin bas-gauche de la rangée du monde. L'écran
-   qui les monte porte leur placement — la primitive n'a pas à savoir où elle est posée. */
-.stage-flot > .pov-controls {
-  position: absolute;
-  left: 16px;
-  bottom: var(--sp-lg);
-  z-index: 5;
+
+/* LA COUCHE HUD (#1919) : une grille à ELLE, posée dans `flot`. Elle porte seule les rangées
+   `haut` / `bande` / `champ` / `reserve` et borne son débordement (`overflow: clip`) : aucune de
+   ses surfaces ne descend sur le pont. Chaque surface y déclare sa ZONE (`data-zone`, posé par
+   `CampaignView`) ; une surface de plus coûte une ligne de `grid-template-areas` et un
+   `data-zone`, et aucune hauteur n'est lue.
+   Colonnes : deux FLANCS égaux autour du CENTRE, qui prend la largeur de son contenu (le groupe).
+   Un flanc ne descend jamais sous le contenu de sa zone (`min-content`) : le menu ☰ et le rail
+   d'outils ne passent pas sous le groupe, qui reste centré tant que la largeur le permet.
+   La RÉSERVE est le débord du bandeau de phase posé sur le parapet du pont (`--cc-phase-h` +
+   `--cc-phase-air`, combat-console.css). Elle est payée pendant TOUT le combat
+   (`src/ui/CombatConsole.tsx:51-53`), et lue ici seulement. */
+.stage > .stage-flot {
+  grid-area: flot / 1 / pont / 2;
+  position: relative;
+  min-height: 0;
+  overflow: clip;
+  pointer-events: none;
+  display: grid;
+  gap: var(--sp-md);
+  padding: var(--sp-md);
+  --flot-reserve: 0px;
+  grid-template-rows: [haut] auto [bande] auto [champ] minmax(0, 1fr) [reserve] var(--flot-reserve);
+  grid-template-columns: [flanc-g] minmax(min-content, 1fr) [centre] minmax(0, auto) [flanc-d] minmax(min-content, 1fr);
+  grid-template-areas:
+    'contexte groupe    outils'
+    'temps    groupe    outils'
+    'temps    ouverture outils'
+    '.        .         .';
+}
+.stage > .stage-flot[data-pont='combat'] {
+  --flot-reserve: calc(var(--cc-phase-h) + var(--cc-phase-air));
+}
+/* La couche ne prend AUCUN clic, ni ses zones : chaque surface reprend le sien. Poids nul — une
+   surface qui n'en veut aucun (le fil d'événements, les interstices de la barre haute) le déclare
+   dans son module. Les enfants SANS zone (conversation, puce d'attente de l'arbitre de modales) se
+   posent eux-mêmes, en absolu dans la couche. */
+:where(.stage-flot > :not([data-zone]), .stage-flot > [data-zone] > *) {
+  pointer-events: auto;
+}
+[data-zone='contexte'] {
+  grid-area: contexte;
+  align-self: start;
+  /* La barre ne dicte pas la largeur de son flanc : le lieu s'ellipse dans la part qui lui revient.
+     Le plancher est la commande du menu ☰ (cible tactile `--xd-row`). */
+  contain: inline-size;
+  min-width: var(--xd-row);
+}
+[data-zone='groupe'] {
+  grid-area: groupe;
+  justify-self: center;
+  align-self: start;
+  min-width: 0;
+}
+[data-zone='outils'] {
+  grid-area: outils;
+  justify-self: end;
+  align-self: start;
+}
+/* La zone TEMPS porte, en combat, la frise d'initiative puis le fil d'événements, assis au pied de
+   la zone (planche 2026-08-17 : journal `[170,779,330,57]`, juste après la colonne de frise) ; hors
+   combat, l'objectif. Dans la colonne du flanc, elle est le CONTENEUR de la frise, qui y borne sa
+   piste (`cqh`) sans rien savoir du pont ni du haut de l'écran. Elle ne pèse sur aucune colonne
+   (`contain`) : un fil long ou une bande qui déborde ne décentre jamais le groupe. */
+[data-zone='temps'] {
+  grid-area: temps;
+  align-items: flex-start;
+  contain: inline-size;
+  container-type: size;
+}
+[data-zone='temps'] > .combat-feed {
+  align-self: flex-end;
+}
+/* L'objectif garde la boîte de son contenu à toute tranche : étirée sur la bande, elle avalait les
+   clics du terrain à sa droite. */
+[data-zone='temps'] > .objective-banner {
+  align-self: flex-start;
+}
+/* Le BANDEAU D'OUVERTURE est une zone de la rangée `champ`, sous le groupe. */
+[data-zone='ouverture'] {
+  grid-area: ouverture;
+  justify-self: center;
+  align-self: start;
+}
+/* COMMANDES DE PREMIÈRE PERSONNE : coin bas du flanc gauche, posées par les lignes de la couche
+   (hors combat, le flanc n'a pas de frise). */
+[data-zone='camera'] {
+  grid-row: champ;
+  grid-column: flanc-g;
+  align-self: end;
+  justify-self: start;
+}
+[data-zone='camera'] > .pov-controls {
   display: grid;
   grid-template-columns: repeat(3, auto);
   gap: var(--sp-md);
 }
 
-/* RAIL D'OUTILS (épure G) : colonne encadrée du bord droit, montée par `CampaignView` EN COMBAT —
-   dossier de navire et journal de bataille vissés sur UN seul plan de matière, plus aucun bouton posé
-   à nu sur le champ ni dans la barre haute. Les enfants y sont STATIQUES (le rail porte l'ancrage).
-   Hors combat, ces commandes vivent sur le pont d'exploration (`.exploration-dock .log-drawer`,
-   exploration-dock.css) : le rail n'est pas monté.
+/* RAIL D'OUTILS (épure G) : colonne encadrée, montée par `CampaignView` EN COMBAT — dossier de
+   navire et journal de bataille vissés sur UN seul plan de matière. Hors combat, ces commandes
+   vivent sur le pont d'exploration : le rail n'est pas monté.
    Sa MATIÈRE est la peau partagée `.skin-bois` (components.css), sa pile et ses espacements la
-   primitive `Stack` : ce module n'en porte que l'ANCRAGE. */
+   primitive `Stack` : ce module n'en porte que le rang. Le panneau du journal naît de son bouton,
+   vers le champ (log-drawer.css) : au haut de l'écran, il pend SOUS lui. */
 .hud-rail {
-  position: absolute;
-  top: 16px;
-  right: 16px;
+  position: relative;
   z-index: 46;
 }
-/* Le tiroir ne devient statique QUE là où le rail existe (au-dessus de 700px) : sous cette largeur le
-   rail se dissout et le tiroir reprend son ancrage propre — une règle non bornée gagnait en
-   spécificité sur les tranches étroites et rapatriait le tiroir en haut de l'écran (mesuré). */
-@media (min-width: 701px) {
-  .hud-rail > .log-drawer {
-    position: static;
-    inset: auto;
-    transform: none;
-    align-items: center;
-  }
+.hud-rail .ld-panel {
+  top: calc(100% + var(--sp-sm));
+  bottom: auto;
 }
 
-/* ── Barre HUD supérieure (haut-gauche, les deux modes) : menu ☰ + raccourcis de lieu, et HORS
-   COMBAT la pile de contexte — lieu, date, objectif (design 2026-07-31 §11). UN conteneur en
-   rangée qui s'enroule ≤700px. ── */
+/* ── Barre HUD supérieure : menu ☰ et, HORS COMBAT, le lieu (design 2026-07-31 §11). UNE rangée
+   qui ne s'enroule pas : le lieu s'ellipse dans la part de flanc qui lui revient. ── */
 .hud-topbar {
-  position: absolute;
-  top: 10px;
-  left: 10px;
+  position: relative;
   z-index: 60;
-  /* CONTEXTE D'EMPILEMENT (#1752) : `position: absolute` + `z-index: 60` — les rangs de ses enfants
-     (☰ 131 au-dessus du voile 130) se comparent ICI, jamais au rang racine où vivent les modales. */
-  /* La rangée et son enroulement viennent de la primitive `Row` ; la barre RESSERRE sa gouttière
-     d'un pas. La valeur se pose ICI et non en prop `gap` : `data-gap` déclare `--gap`, propriété
-     HÉRITÉE, et le menu ☰ entier vit sous cette barre (#1837). */
+  /* CONTEXTE D'EMPILEMENT (#1752) : `position` + `z-index: 60` — les rangs de ses enfants (☰ 131
+     au-dessus du voile 130) se comparent ICI, jamais au rang racine où vivent les modales. */
+  /* La rangée vient de la primitive `Row` ; la barre RESSERRE sa gouttière d'un pas. La valeur se
+     pose ICI et non en prop `gap` : `data-gap` déclare `--gap`, propriété HÉRITÉE, et le menu ☰
+     entier vit sous cette barre (#1837). */
   gap: var(--sp-sm);
-  /* Le haut-centre appartient au GROUPE (design 2026-07-31 §2) : la pile s'arrête avant le dock,
-     centré et large d'environ 242px pour quatre portraits. `50vw - 160px` = la moitié gauche moins
-     la demi-largeur du dock et son air ; le plancher garde la barre utilisable sous 700px, où le
-     dock passe en rangée défilable et ne se fait plus voler ses portraits. */
-  max-width: min(560px, max(200px, calc(50vw - 160px)));
   pointer-events: none; /* les interstices ne bloquent pas les clics sur la scène */
 }
 .hud-topbar > * {
   pointer-events: auto;
 }
-/* Lieu courant : premier étage de la pile de contexte, désigné par son id de zone, jamais par une
-   classe de plus. Sa MATIÈRE est celle du nom (`CodexTitre` → `.codex-pop-title`) posée sur le halo
-   partagé `.halo-champ` (components.css) : une inscription sans fond, et non la chip `.hud-clock` de
-   `ScreenMeta` (pilule `--panel2` à filet). L'écran n'en garde que le CADRAGE — la ligne unique et
-   son ellipse, bornées à la part de barre que le lieu peut prendre. */
+/* Lieu courant, désigné par son id de zone, jamais par une classe de plus. Sa MATIÈRE est celle du
+   nom (`CodexTitre` → `.codex-pop-title`) posée sur le halo partagé `.halo-champ` (components.css).
+   L'écran n'en garde que le CADRAGE — la ligne unique et son ellipse. */
 .hud-topbar [data-hud='place'] {
   align-self: center;
-  max-width: 40vw;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -137,7 +179,7 @@
   position: relative;
 }
 /* Le menu système garde SON coin (spécimen G) — la matière est la peau partagée
-   `.skin-tole[data-ton='laiton']` (components.css) ; ce module n'en porte que l'ANCRAGE.
+   `.skin-tole[data-ton='laiton']` (components.css) ; ce module n'en porte que le RANG.
    ATTEIGNABLE MENU OUVERT (#1752, même geste que `.wm-zoom` #1117) : le voile `.game-menu-overlay`
    (z-index 130) est son FRÈRE dans le DOM et le recouvrait, alors qu'il annonce « Fermer le menu »
    (`aria-label`, `aria-expanded`). Son rang passe devant ce voile DANS le contexte d'empilement de
@@ -147,119 +189,76 @@
   z-index: 131;
 }
 
-/* ── Objectif courant (#238) — DERNIER étage de la pile de contexte d'exploration (lieu, date,
-   objectif) : il vit DANS `.hud-topbar` et occupe sa propre ligne (`flex-basis: 100%`), donc son
-   ancrage suit la barre à toute largeur. La bannière elle-même est une primitive
-   (`objective-banner.css`). ── */
-.hud-topbar > .objective-banner {
-  flex: 1 0 100%;
-  /* La marge dégage la rangée de portraits du groupe (haut-centre), dont la boîte descend plus bas
-     que celle des boutons de la barre. Elle est RELATIVE à la barre : quand celle-ci s'enroule,
-     l'objectif suit. */
-  margin-top: calc(3 * var(--sp-md));
-  /* La boîte tient toute la ligne, mais la SURFACE CLIQUABLE est la tête seule : le reste de la
-     ligne rend la scène (`.hud-topbar > *` accorde `auto` à tous les étages de la pile). */
-  pointer-events: none;
-}
-.hud-topbar > .objective-banner > * {
-  pointer-events: auto;
-}
-
-/* ── ANCRAGE de la BANDE DE GROUPE (`PartyDock`, primitive : party-dock.css) ─────────────────────
-   L'écran qui monte la bande porte SEUL son placement : la primitive ne sait pas où elle est posée
-   (elle se montera aussi comme première rangée de la coquille de fiche — arbitrage user 2026-09-19).
-   PLACEMENT SEUL, aucune déclaration d'identité ici.
-   `max-width` réserve les DEUX coins hauts de l'écran, RE-MESURÉE après le dégraissage du rail (il
-   ne porte plus la plaque de caméra : dossier de navire + journal, 42px de commande + 2 × 8 de
-   rembourrage + 2 × 1 de filet = 60px de large, posé à 16px du bord → 76px, plus 10px d'air = 86px).
-   À gauche, le menu ☰ (10..50) demande 60px : c'est le coin DROIT qui borne. La bande étant centrée,
-   la réserve compte des DEUX côtés — un seul littéral, cité deux fois.
-   L'arrondi porte sur la LARGEUR DE CONTENU (les 2 × `--pd-pad` sont dans la boîte, `box-sizing:
-   border-box`) — sinon la dernière tuile restait tranchée de la valeur du rembourrage ; le pas
-   (`--pd-pitch`) vient de la primitive, qui seule connaît sa tuile. ── */
-.stage > .party-dock {
-  position: absolute;
-  top: 10px;
-  left: 50%;
-  transform: translateX(-50%);
+/* ── LA BANDE DE GROUPE (`PartyDock`, primitive : party-dock.css) dans sa zone. L'écran qui la
+   monte porte SEUL son placement : la primitive ne sait pas où elle est posée (elle se montera aussi
+   comme première rangée de la coquille de fiche — arbitrage user 2026-09-19). Sa largeur est celle
+   de sa zone, arrondie AU PAS DE TUILE sur la largeur de contenu (les 2 × `--pd-edge` sont dans la
+   boîte, `box-sizing: border-box`) ; le pas vient de la primitive, qui seule connaît sa tuile. ── */
+[data-zone='groupe'] > .party-dock {
+  position: relative;
   z-index: 45;
-  --pd-corners: 172px;
-  max-width: calc(100vw - var(--pd-corners));
+  max-width: 100%;
   max-width: calc(
-    round(down, calc(100vw - var(--pd-corners) - 2 * var(--pd-edge) + var(--pd-gap)), var(--pd-pitch))
+    round(down, calc(100% - 2 * var(--pd-edge) + var(--pd-gap)), var(--pd-pitch))
     - var(--pd-gap) + 2 * var(--pd-edge)
   );
 }
 /* FICHE OUVERTE : la bande passe au-dessus du voile de la fiche (125, `sheet.css`). L'état est un
    ATTRIBUT, jamais un `style=` (arbitrage user A2, 2026-09-18). Recouvrement de la fiche : #1829. */
-.stage > .party-dock[data-fiche] {
+[data-zone='groupe'] > .party-dock[data-fiche] {
   z-index: 126;
 }
 
 /* ══ Matrice responsive du HUD (design 2026-07-31 §12) ═══════════════════════════════════════════
-   Breakpoints canon 900 / 700 / 560, plus `pointer: coarse` — dans CET ordre, une tranche chacun :
-   la cascade se lit de haut en bas, une largeur plus étroite affine la précédente. 360px est une
-   largeur de RECETTE, elle appartient à la tranche ≤560. Les tranches des PRIMITIVES du HUD vivent
-   dans LEURS modules : la matrice se lit sur l'UNION (`src/ui/ui-ratchets.test.ts`).
+   Breakpoints canon 900 / 700 / 560, plus `pointer: coarse` — dans CET ordre, une tranche chacun.
+   360px est une largeur de RECETTE, elle appartient à la tranche ≤560. Seules les AIRES de la
+   couche changent d'une tranche à l'autre, jamais ses pistes. Les tranches des PRIMITIVES du HUD
+   vivent dans LEURS modules : la matrice se lit sur l'UNION (`src/ui/ui-ratchets.test.ts`).
    ═══════════════════════════════════════════════════════════════════════════════════════════════ */
 @media (max-width: 700px) {
-  .stage > .party-dock { top: 6px; }
-  /* Le rail se DISSOUT sous 700px : chaque surface reprend son ancrage propre (frise horizontale
-     en haut, tiroir au coin bas) — le panneau encadré n'a plus la place d'une colonne. */
-  .hud-rail {
-    display: contents;
+  /* La frise quitte le flanc pour la BANDE, pleine largeur, sous le groupe, et le fil passe sous
+     elle ; le bandeau d'ouverture descend au pied du champ. Le rail reste au coin haut, couché en
+     rangée (`rowBelow`, CampaignView) : il ne tient que la hauteur d'une commande. */
+  .stage > .stage-flot {
+    gap: var(--sp-xs);
+    padding: var(--sp-xs);
+    grid-template-areas:
+      'contexte  groupe    outils'
+      'temps     temps     temps'
+      'ouverture ouverture ouverture'
+      '.         .         .';
   }
-  /* Le rail dissous ne porte plus l'ancrage : son ouvreur d'écran (dossier de navire, combat) se pose
-     LUI-MÊME, juste au-dessus du tiroir avec lequel il faisait colonne — au bas de la RANGÉE DU
-     MONDE, d'où la seule grandeur qu'il ait à connaître est le CÔTÉ de la commande vissée qu'il
-     surmonte (`--xd-row`, la cible tactile partagée des quatre poseurs de `.skin-tole`), jamais une
-     hauteur de pont. Sans cet ancrage, il retombait dans le flux. */
-  .hud-rail > .worldmap-btn {
-    position: absolute;
-    right: 8px;
-    bottom: calc(var(--sp-md) + var(--xd-row) + var(--sp-sm));
-    z-index: 46;
+  [data-zone='temps'] {
+    container-type: normal;
+  }
+  [data-zone='temps'] > .combat-feed {
+    align-self: center;
+  }
+  [data-zone='ouverture'] {
+    align-self: end;
   }
 }
 @media (max-width: 560px) {
-  /* La bande DÉGAGE le coin du menu ☰ (44px au doigt + air) : elle ne part plus du bord gauche, où
-     sa première carte passait sous le bouton (grief vision, chevauchement mesuré). */
-  .stage > .party-dock {
-    left: 58px;
-    transform: none;
-    max-width: calc(100vw - 66px);
-    max-width: calc(
-      round(down, calc(100vw - 66px - 2 * var(--pd-edge) + var(--pd-gap)), var(--pd-pitch))
-      - var(--pd-gap) + 2 * var(--pd-edge)
-    );
+  /* REPLIÉE, la bande n'est que sa poignée : l'arrondi au pas de tuile ne vaut que pour la piste
+     (ici le volet, ci-dessous) — appliqué à la poignée, il la rognait et cachait ses micro-jauges. */
+  [data-zone='groupe'] > .party-dock {
+    max-width: 100%;
   }
-  /* Bande DÉPLIÉE : son rang passe au-dessus du fil d'événements (`.combat-feed`, 46) et de la barre
-     haute. Poids 0-3-0 : l'ancrage ci-dessus (0-2-0) porte le rang de repos. */
-  .stage > .party-dock.on {
+  /* Bande DÉPLIÉE : son rang passe au-dessus de la frise et du fil d'événements. */
+  [data-zone='groupe'] > .party-dock.on {
     z-index: 60;
   }
-  /* Le VOLET naît hors flux SOUS la rangée d'outils (92..134 mesurés) et couvre le fil d'événements
-     (140..206) en entier — aucun contrôle n'est coupé en deux. Sa largeur est bornée à l'écran et
-     arrondie AU PAS DE TUILE (`--pd-pitch`, de la primitive) ; repli simple d'abord.
-     Il reste FIXE, et c'est son repère qui le dit : il se pose sous la BARRE HAUTE, elle-même ancrée
-     au viewport — le passer en absolu le mesurerait depuis la boîte de la bande (`top: 6px`), soit le
-     même nombre déplacé dans un autre repère. Aucune hauteur de pont n'entre ici. */
-  .stage > .party-dock.on .pd-track {
-    position: fixed;
-    top: 138px;
-    left: 4px;
-    right: auto;
-    max-width: calc(100vw - 8px);
+  /* Le VOLET naît sous la poignée, hors flux, centré sur elle — donc sur l'écran, puisque la zone
+     du groupe est la colonne centrale. Sa largeur est bornée à l'écran et arrondie AU PAS DE TUILE
+     (`--pd-pitch`, de la primitive) ; repli simple d'abord. */
+  [data-zone='groupe'] > .party-dock.on .pd-track {
+    position: absolute;
+    top: calc(100% + var(--sp-xs));
+    left: 50%;
+    transform: translateX(-50%);
+    max-width: calc(100vw - 2 * var(--sp-xs));
     max-width: calc(
-      round(down, calc(100vw - 8px - 6px + var(--pd-gap)), var(--pd-pitch)) - var(--pd-gap) + 6px
+      round(down, calc(100vw - 2 * var(--sp-xs) - 6px + var(--pd-gap)), var(--pd-pitch)) - var(--pd-gap) + 6px
     );
   }
-  /* L'ouvreur du rail dissous (dossier de navire, combat) prend le coin BAS-DROIT à la MÊME hauteur
-     que le tiroir (`.log-drawer` ≤560, log-drawer.css), qui passe au coin bas-GAUCHE : les deux
-     commandes ne partagent plus de colonne, aucune n'a à surmonter l'autre. */
-  .hud-rail > .worldmap-btn {
-    right: 4px;
-    bottom: var(--sp-md);
-  }
-  .hud-topbar [data-hud='place'] { max-width: 52vw; }
 }

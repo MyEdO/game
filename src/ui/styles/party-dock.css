@@ -12,7 +12,7 @@
    d'initiative — la carte de celui QUI AGIT y est seulement surlignée (planche 2026-08-17, spec
    §1c-bis « actif surligné »).
    Son ANCRAGE (position, bord, rang d'empilement, réserve des coins de l'écran) appartient à
-   l'HÔTE qui la monte — `.stage > .party-dock` dans `hud.css`. ── */
+   l'HÔTE qui la monte — `[data-zone='groupe'] > .party-dock` dans `hud.css`. ── */
 .party-dock {
   display: flex;
   flex-direction: column;
@@ -226,7 +226,7 @@
   }
   /* DÉPLIÉE, la bande devient un VOLET : un panneau opaque né sous la poignée. Re-tap = fermeture.
      OÙ il naît (hors flux, coordonnées, rang, largeur bornée à l'écran) appartient à l'écran qui
-     monte la bande : `.stage > .party-dock.on` (`hud.css`). Ici, sa MATIÈRE et sa mise en page. */
+     monte la bande : `[data-zone='groupe'] > .party-dock.on` (`hud.css`). Ici, sa MATIÈRE et sa mise en page. */
   .party-dock.on {
     overflow: visible;
   }
@@ -235,8 +235,7 @@
     background: linear-gradient(180deg, var(--atelier-wood-top), var(--atelier-wood-bottom));
     border: 1px solid var(--atelier-wood-etch);
   }
-  /* Vignettes du volet à 44px : la hauteur totale (poignée 24 + volet 56) tient dans la bande
-     libre au-dessus de la rangée d'outils — le volet ne mord jamais sur le rail. */
+  /* Vignettes du volet à 44px : R-M1, le minimum digne (docs/plans/2026-08-16-spec-hud-combat.md:66-67). */
   .party-dock.on .pd-track .ptile,
   .party-dock.on .pd-track .ptile-face {
     width: 44px !important;

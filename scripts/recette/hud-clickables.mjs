@@ -29,8 +29,7 @@
 //     comparés) ; au repos, toute entrée qui COMMENCE dans la zone utile de la colonne y FINIT
 //     (hauteur arrondie au pas d'entrée, CONSTANT). Axe qui ne défile pas = NON MESURÉ ;
 //   · la piste du groupe (`.pd-track`) tient sur UNE ligne (aucune carte à un autre `y`) ;
-//   · quand le rail est DISSOUS (`display: contents`, ≤700), son ouvreur d'écran se pose LUI-MÊME
-//     (position hors flux) et reçoit son clic. Cet ouvreur n'est monté qu'avec un navire en jeu
+//   · l'ouvreur d'écran du rail d'outils reçoit son clic. Il n'est monté qu'avec un navire en jeu
 //     (`CampaignView.tsx`) : la mise en place du combat en pose un (`vessel`, patron de
 //     `__wfrp.scenario`) ;
 //   · en exploration, la boîte pleine ligne de `.objective-banner` n'avale aucun clic hors de sa
@@ -51,7 +50,13 @@
 //     (docs/plans/2026-08-16-spec-hud-combat.md Zone 1) ; COMPACITÉ sur la série des largeurs
 //     (`defautsCompacite`) — cartes et colonne d'initiative plus étroites à 701–900 qu'au-delà de 900,
 //     portraits à 561–700 ; CIBLES TACTILES sous `pointer: coarse` émulé (`defautsTactile`) — chaque
-//     commande vissée rendue offre 44px à ≤560.
+//     commande vissée rendue offre 44px à ≤560 ;
+//   · la COUCHE HUD (#1919, design « Le pont se dimensionne seul », `defautsCouche`), à 3 hauteurs
+//     (`vues-recette.json`) × 7 largeurs × 4 états — exploration, ouverture, tour de héros,
+//     spectateur (atteint par le VRAI geste : « Fin du tour » cliqué deux fois) : le pont est posé au
+//     bas de l'écran, la page ne défile pas, aucune surface d'une zone n'est rognée par la couche, et
+//     chaque commande du HUD et du pont reçoit son clic — exemptée seulement hors du champ de son
+//     ancêtre défilant, ou sous la TÊTE COLLÉE de cet ancêtre.
 //
 // Cellules §12 NON MESURÉES :
 //   · Caméra / inspection >900, 701–900, 561–700 : `ViewControls`, monté en jeu nulle part (#1822 ;
@@ -63,7 +68,7 @@
 //   · Dock >900 « disposition de référence » : aucun contrat propre hors bord à bord et hauteur.
 //
 // Sortie : exit 1 au premier défaut (liste complète imprimée), exit 0 si tout passe.
-import { openApp, evaluate, setViewport, sleep, clickButtonByText, cliquerSelecteur, resoudreModales, attendreSelecteur, VUE_REFERENCE } from './lib.mjs';
+import { openApp, evaluate, setViewport, sleep, clickButtonByText, cliquerSelecteur, cliquerAction, resoudreModales, attendreSelecteur, freezeTimeout, unfreezeTimeout, VUE_REFERENCE, VUES_RECETTE } from './lib.mjs';
 
 // Les trois largeurs étroites (700/560/360) portent les recouvrements ; les deux larges portent la
 // zone morte du bandeau d'objectif, dont la boîte n'excède sa tête qu'au-delà de 900px — sonder
@@ -71,6 +76,10 @@ import { openApp, evaluate, setViewport, sleep, clickButtonByText, cliquerSelect
 // La plus large est la vue de RÉFÉRENCE (`vues-recette.json`), jamais un couple recopié (#1847).
 const DEFAULT_WIDTHS = [VUE_REFERENCE.largeur, 1100, 900, 700, 560, 360];
 const HEIGHT = VUE_REFERENCE.hauteur;
+/** Grille de la COUCHE : 7 largeurs (les vues de référence et les seuils canon 900 / 700 / 560, de
+ *  part et d'autre) × les hauteurs de `vues-recette.json`. */
+export const LARGEURS_COUCHE = [1707, 1366, 1100, 900, 700, 560, 360];
+export const HAUTEURS_COUCHE = [...new Set(Object.values(VUES_RECETTE).map((v) => v.hauteur))];
 
 function parseArgs(argv) {
   const out = { url: undefined, widths: DEFAULT_WIDTHS };
@@ -119,7 +128,16 @@ const PROBE = `(() => {
   // TIROIR DU JOURNAL : sa réserve du bas ne se juge qu'au panneau DÉPLIÉ (fermé, il ne recouvre
   // rien). C'est le seul état où la question « passe-t-il sous la console ? » a un sens.
   const panneau = document.querySelector('.ld-panel');
-  const rp = panneau ? panneau.getBoundingClientRect() : null;
+  // Ce que le panneau PEINT : dans la couche HUD, sa boîte rognée par la couche (overflow: clip) —
+  // un recouvrement calculé sans le rognage accusait un panneau qu'on ne voit pas (juge G3 #1919).
+  const coucheDuPanneau = panneau ? panneau.closest('.stage-flot') : null;
+  const rp = panneau ? (() => {
+    const r = panneau.getBoundingClientRect();
+    if (!coucheDuPanneau) return r;
+    const c = coucheDuPanneau.getBoundingClientRect();
+    const x = Math.max(r.left, c.left), y = Math.max(r.top, c.top);
+    return new DOMRect(x, y, Math.max(0, Math.min(r.right, c.right) - x), Math.max(0, Math.min(r.bottom, c.bottom) - y));
+  })() : null;
   const tiroir = document.querySelector('.log-drawer') ? {
     ouvert: !!(rp && rp.width > 0 && rp.height > 0),
     rect: box(rp),
@@ -144,15 +162,68 @@ const PROBE = `(() => {
     }
   }
 
-  // Rail d'outils DISSOUS (≤700, hud.css) : il ne porte plus l'ancrage de ses enfants, son ouvreur
-  // d'écran doit se poser lui-même (sinon il retombe dans le flux du stage).
+  // Rail d'outils : son ouvreur d'écran reçoit son clic.
   const rail = document.querySelector('.hud-rail');
   const rails = rail ? {
-    dissous: getComputedStyle(rail).display === 'contents',
     ouvreurs: [...document.querySelectorAll('.hud-rail > .worldmap-btn')].map((b, i) => ({
-      i, label: (b.getAttribute('title') || '').trim(), position: getComputedStyle(b).position, ...reaches(b),
+      i, label: (b.getAttribute('title') || '').trim(), ...reaches(b),
     })),
   } : null;
+
+  // COUCHE HUD (#1919) : la grille de .stage-flot, ses zones, le pont sous elle.
+  const flotEl = document.querySelector('.stage-flot');
+  const pontEl = document.querySelector('.stage > .combat-console, .stage > .exploration-dock');
+  const rendu = (el) => { const r = el.getBoundingClientRect(); const s = getComputedStyle(el); return r.width > 0.5 && r.height > 0.5 && s.visibility !== 'hidden'; };
+  // EXEMPTION d'une commande qui ne reçoit pas son clic : elle n'est pas ENTIÈRE dans le champ de son
+  // ancêtre défilant (on la ramène en défilant), ou elle est sous la TÊTE COLLÉE (sticky) de cet
+  // ancêtre. Rien d'autre.
+  const exemption = (b) => {
+    const r = b.getBoundingClientRect();
+    const cx = r.x + r.width / 2, cy = r.y + r.height / 2;
+    for (let e = b.parentElement; e && e !== document.body; e = e.parentElement) {
+      const s = getComputedStyle(e);
+      const defile = /(auto|scroll)/.test(s.overflowX + ' ' + s.overflowY) && (e.scrollWidth > e.clientWidth + 1 || e.scrollHeight > e.clientHeight + 1);
+      if (!defile) continue;
+      const c = e.getBoundingClientRect();
+      const champ = { left: c.left + e.clientLeft, top: c.top + e.clientTop, right: c.left + e.clientLeft + e.clientWidth, bottom: c.top + e.clientTop + e.clientHeight };
+      if (r.left < champ.left - 0.5 || r.right > champ.right + 0.5 || r.top < champ.top - 0.5 || r.bottom > champ.bottom + 0.5) return 'hors du champ de son défilant';
+      const dessus = document.elementFromPoint(cx, cy);
+      for (let t = dessus; t && t !== e; t = t.parentElement) {
+        if (getComputedStyle(t).position === 'sticky' && e.contains(t)) return 'sous la tête collée de son défilant';
+      }
+      return null;
+    }
+    return null;
+  };
+  const couche = flotEl ? (() => {
+    const rf = flotEl.getBoundingClientRect();
+    const rpt = pontEl ? pontEl.getBoundingClientRect() : null;
+    const surfaces = [];
+    for (const z of flotEl.querySelectorAll(':scope > [data-zone]')) {
+      for (const el of z.children) {
+        if (!rendu(el)) continue;
+        const r = el.getBoundingClientRect();
+        const rogne = Math.max(rf.top - r.top, r.bottom - rf.bottom, rf.left - r.left, r.right - rf.right);
+        surfaces.push({ zone: z.dataset.zone, surface: String(el.className || el.tagName).split(' ')[0], rect: box(r), rogne: +Math.max(0, rogne).toFixed(1) });
+      }
+    }
+    const commandes = [...flotEl.querySelectorAll('button'), ...(pontEl ? pontEl.querySelectorAll('button') : [])]
+      .filter(rendu)
+      .map((b) => {
+        const t = reaches(b);
+        return { label: ((b.getAttribute('title') || b.getAttribute('aria-label') || b.textContent || '').replace(/\\s+/g, ' ').trim().slice(0, 40)),
+          ok: t.ok, hitBy: t.hitBy, rect: t.rect, exempte: t.ok ? null : exemption(b) };
+      });
+    const de = document.documentElement;
+    return {
+      flot: box(rf),
+      pont: box(rpt),
+      pontAuBas: rpt ? Math.abs(rpt.bottom - window.innerHeight) <= 0.5 : null,
+      pageDefile: de.scrollHeight > window.innerHeight + 0.5 || de.scrollWidth > window.innerWidth + 0.5,
+      surfaces,
+      commandes,
+    };
+  })() : null;
 
   // Frise : réserve de droite et VISIBILITÉ du cartouche de Round à fond de défilement. La mesure
   // déplace la piste puis la REMET où elle était — aucune trace pour les largeurs suivantes.
@@ -408,6 +479,16 @@ const PROBE = `(() => {
     lignes: new Set(rendues.map((c) => Math.round(c.getBoundingClientRect().y))).size,
     // Bande REPLIÉE : c'est la poignée qui porte alors l'affordance du groupe.
     poignee: poignee ? reaches(poignee) : null,
+    // … et la vie de chacun, en micro-jauges ENTIÈRES dans leur rangée (qui rogne son débord).
+    micro: (() => {
+      // Mesurée dès que la POIGNÉE est rendue : une rangée écrasée à 0 de large cache TOUTES ses
+      // barres, ce n'est pas une rangée absente.
+      const rang = document.querySelector('.party-dock .pd-micro');
+      if (!rang || !poignee || poignee.getBoundingClientRect().width === 0) return null;
+      const rr = rang.getBoundingClientRect();
+      const barres = [...rang.children];
+      return { attendues: barres.length, visibles: barres.filter((i) => { const r = i.getBoundingClientRect(); return r.width > 0 && r.left >= rr.left - 0.5 && r.right <= rr.right + 0.5; }).length };
+    })(),
   } : null;
 
   // CIBLES TACTILES (§12 <=560, Caméra / inspection) : sous pointeur grossier seulement, chaque
@@ -424,6 +505,7 @@ const PROBE = `(() => {
     cibles,
     combat: !!strip,
     rail: rails,
+    couche,
     frise,
     groupe,
     portraits: ptiles,
@@ -581,14 +663,6 @@ export function defautsFrise(m, phase) {
  */
 export function defauts(m, phase) {
   const out = [];
-  // Rail DISSOUS : son ouvreur d'écran porte son propre ancrage, ou il retombe dans le flux.
-  if (m.rail?.dissous) {
-    // Un rail dissous SANS ouvreur ne rendait aucun verdict : la mesure était verte par VACUITÉ.
-    if (!m.rail.ouvreurs.length) out.push(`${phase} ${m.largeur}px : le rail d'outils est dissous et ne porte aucun ouvreur d'écran — sonde aveugle sur l'accès à la carte`);
-    for (const b of m.rail.ouvreurs) {
-      if (b.position === 'static') out.push(`${phase} ${m.largeur}px : l'ouvreur « ${b.label} » du rail dissous est en flux (position: static) — il retombe dans le stage`);
-    }
-  }
   for (const b of m.rail?.ouvreurs ?? []) {
     if (!b.ok) out.push(`${phase} ${m.largeur}px : l'ouvreur « ${b.label} » ${JSON.stringify(b.rect)} ne reçoit pas son clic — recouvert par ${b.hitBy}`);
   }
@@ -624,6 +698,30 @@ export function defauts(m, phase) {
 }
 
 /**
+ * Défauts de la COUCHE HUD (#1919, design « Le pont se dimensionne seul ; le HUD vit dans ce qui
+ * reste, et n'en sort pas ») sur UNE mesure. PURE.
+ * @param {any} m mesure rendue par `PROBE` @param {string} phase libellé de l'état sondé
+ * @returns {string[]}
+ */
+export function defautsCouche(m, phase) {
+  const ou = `${phase} ${m.largeur}×${m.hauteur}`;
+  const c = m.couche;
+  if (!c) return [`${ou} : aucune couche HUD (.stage-flot) — sonde aveugle`];
+  const out = [];
+  if (!c.pont) out.push(`${ou} : aucun pont sous la couche — sonde aveugle sur sa pose`);
+  else if (!c.pontAuBas) out.push(`${ou} : le pont ${JSON.stringify(c.pont)} n'est pas posé au bas de l'écran`);
+  if (c.pageDefile) out.push(`${ou} : la page défile — le plateau déborde de l'écran`);
+  for (const s of c.surfaces) {
+    if (s.rogne > 0.5) out.push(`${ou} : la surface « ${s.surface} » de la zone « ${s.zone} » ${JSON.stringify(s.rect)} est rognée par la couche de ${s.rogne}px`);
+  }
+  if (!c.commandes.length) out.push(`${ou} : aucune commande rendue dans la couche ni sur le pont — sonde aveugle`);
+  for (const b of c.commandes) {
+    if (!b.ok && !b.exempte) out.push(`${ou} : la commande « ${b.label} » ${JSON.stringify(b.rect)} ne reçoit pas son clic — ${b.hitBy}`);
+  }
+  return out;
+}
+
+/**
  * Défauts d'ATTEIGNABILITÉ du GROUPE (bande dépliée ou repliée) — extraits parce qu'ils se jugent
  * aussi sur la bande DÉPLIÉE ≤560, dont la mesure ne doit pas re-juger le reste du HUD. PURE.
  * @param {any} m mesure rendue par `PROBE` @param {string} phase
@@ -643,6 +741,10 @@ export function defautsGroupe(m, phase) {
     if (!m.groupe.poignee) out.push(`${phase} ${m.largeur}px : le groupe ne rend aucune carte ET n'offre aucune poignée — il est hors d'atteinte`);
     else if (!m.groupe.poignee.rendu) out.push(`${phase} ${m.largeur}px : la poignée du groupe replié n'est pas rendue — le groupe est hors d'atteinte`);
     else if (!m.groupe.poignee.ok) out.push(`${phase} ${m.largeur}px : la poignée du groupe replié ${JSON.stringify(m.groupe.poignee.rect)} ne reçoit pas son clic — recouverte par ${m.groupe.poignee.hitBy}`);
+    // Repliée, la vie du groupe se lit en micro-jauges : une par héros, chacune entière (juge G2
+    // #1919, pt.5 : l'arrondi au pas de tuile rognait la poignée et les cachait toutes).
+    const mj = m.groupe.micro;
+    if (mj && mj.visibles < mj.attendues) out.push(`${phase} ${m.largeur}px : la poignée du groupe replié ne montre que ${mj.visibles} micro-jauge(s) sur ${mj.attendues}`);
   }
   // Portraits du groupe, aux DEUX phases (en combat, la bande dépliée ≤560 doit passer devant le fil
   // d'événements). RENDUS seulement : une tuile de bande repliée n'est pas recouverte, elle n'est pas
@@ -799,6 +901,28 @@ async function jugerGroupeDeplie(session, m, phase) {
   return out;
 }
 
+/**
+ * La COUCHE HUD à chaque vue de sa grille (`HAUTEURS_COUCHE` × `LARGEURS_COUCHE`), dans l'état où
+ * se trouve le jeu. Une ligne par vue, chaque défaut nommé.
+ * @returns {Promise<string[]>}
+ */
+async function jugerCouche(session, phase) {
+  const out = [];
+  for (const h of HAUTEURS_COUCHE) {
+    for (const w of LARGEURS_COUCHE) {
+      await setViewport(session, w, h);
+      await sleep(450);
+      const m = await evaluate(session, PROBE);
+      const d = defautsCouche(m, `couche (${phase})`);
+      const c = m.couche;
+      console.log(`couche (${phase}) ${w}×${h} — pont ${c?.pont ? c.pont.h + 'px' + (c.pontAuBas ? ' au bas' : ' DÉCOLLÉ') : 'absent'}, ${c ? c.surfaces.length : 0} surface(s), ${c ? c.commandes.filter((b) => b.ok).length + '/' + c.commandes.length : 0} commande(s) atteinte(s)${c ? ', ' + c.commandes.filter((b) => b.exempte).length + ' exemptée(s)' : ''} → ${d.length ? d.length + ' défaut(s)' : 'OK'}`);
+      dire(d);
+      out.push(...d);
+    }
+  }
+  return out;
+}
+
 /** Chaque défaut est NOMMÉ là où il est mesuré : un compte « 4 défaut(s) » ne dit rien, et le bilan
  *  final ne s'imprime jamais si la mise en place meurt à la phase suivante. */
 const dire = (liste) => { for (const e of liste) console.log(`   · ${e}`); };
@@ -842,6 +966,7 @@ async function main() {
     const compaciteExploration = defautsCompacite(serieExploration, 'exploration');
     dire(compaciteExploration);
     echecs.push(...compaciteExploration);
+    echecs.push(...await jugerCouche(session, 'exploration'));
 
     // ── Combat ─────────────────────────────────────────────────────────────────────────────────
     await setViewport(session, VUE_REFERENCE.largeur, VUE_REFERENCE.hauteur);
@@ -866,9 +991,13 @@ async function main() {
       dire(d);
       echecs.push(...d);
     }
+    echecs.push(...await jugerCouche(session, 'ouverture'));
     await setViewport(session, VUE_REFERENCE.largeur, VUE_REFERENCE.hauteur);
     await sleep(300);
     await monterLeDock(session);
+    echecs.push(...await jugerCouche(session, 'tour de héros'));
+    await setViewport(session, VUE_REFERENCE.largeur, VUE_REFERENCE.hauteur);
+    await sleep(300);
     // Le tiroir du journal ne se juge QU'OUVERT : on le déplie par CLIC RÉEL sur sa poignée (glyphe
     // seul → par sélecteur), au PREMIER tour tenu par un héros — console complète, avant tout tour
     // d'IA. Son état React traverse les changements de largeur : un seul clic pour les six mesures.
@@ -948,6 +1077,49 @@ async function main() {
       } finally {
         await session.rpc('Emulation.setTouchEmulationEnabled', { enabled: false });
       }
+    }
+
+    // Le tiroir du journal se REFERME (clic réel) : un panneau ouvert par le joueur n'est pas un état
+    // de la couche.
+    await cliquerSelecteur(session, '.log-drawer.open .ld-btn');
+    await sleep(300);
+
+    // ── Combat, TOUR SPECTATEUR, atteint par le VRAI geste (juge G4 #1919, pt.5) ─────────────────
+    // Mise en place : le trait au héros qui PRÉCÈDE un adversaire dans l'ordre (`__wfrp.turn`). Puis
+    // le joueur finit son tour : « Fin du tour » cliqué deux fois (armer, confirmer — garde-fou de
+    // l'Action non dépensée). Les minuteries de l'IA sont figées le temps de la mesure : le tour
+    // adverse ne s'achève pas sous la sonde.
+    await setViewport(session, VUE_REFERENCE.largeur, VUE_REFERENCE.hauteur);
+    await sleep(300);
+    const avantAdversaire = await evaluate(session, `(() => {
+      const b = window.__wfrp.store.getState().battle;
+      const kind = (id) => (b.combatants.find((c) => c.id === id) || {}).kind;
+      for (let i = 0; i < b.order.length; i++) {
+        const suivant = b.order[(i + 1) % b.order.length];
+        if (kind(b.order[i]) === 'hero' && kind(suivant) !== 'hero') {
+          const r = window.__wfrp.turn(b.order[i]);
+          if (typeof r === 'string' && r.startsWith('\u2713')) return b.order[i];
+        }
+      }
+      return null;
+    })()`);
+    if (!avantAdversaire) throw new Error('aucun héros ne précède un adversaire dans l’ordre — tour spectateur inatteignable');
+    await sleep(800);
+    await resoudreModales(session, 'tour avant adversaire');
+    await cliquerAction(session, 'end-turn');
+    await sleep(250);
+    await freezeTimeout(session, [3600000]);
+    try {
+      if (!await evaluate(session, `!document.querySelector(".combat-console[data-forme='spectatrice']")`)) {
+        throw new Error('le premier clic sur « Fin du tour » a déjà passé la main — le garde-fou n’a rien armé');
+      }
+      await cliquerAction(session, 'end-turn');
+      await sleep(600);
+      const spectateur = await evaluate(session, `!!document.querySelector(".combat-console[data-forme='spectatrice']")`);
+      if (!spectateur) throw new Error('après « Fin du tour » confirmé, le pont n’est pas en forme spectatrice — tour adverse non atteint');
+      echecs.push(...await jugerCouche(session, 'spectateur'));
+    } finally {
+      await unfreezeTimeout(session);
     }
   } finally {
     await session.close();

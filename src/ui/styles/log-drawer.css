@@ -17,18 +17,13 @@
   flex: 1;
 }
 
-/* ── Le TIROIR lui-même : ancrage, commande de coin, panneau révélé au survol (#1806 2a) ──
-   Au-dessus de 700px, le tiroir vit à DROITE du dock d'action : recouvrement nul mesuré à 900px
-   (dock x219-681, tiroir x846-888) — le calage vertical ne joue qu'aux tranches étroites.
-   Son ancrage SUR LE PONT d'exploration appartient au pont (exploration-dock.css), et son ancrage
-   dans le rail de combat à l'écran qui monte le rail (`.hud-rail > .log-drawer`, hud.css).
-   Le coin BAS où il se pose est celui de la RANGÉE DU MONDE (`.stage-flot`, hud.css) : le pont est
-   la rangée d'en dessous, le tiroir n'a donc aucune réserve à tenir — seulement son air. */
+/* ── Le TIROIR lui-même : commande de coin, panneau révélé au survol (#1806 2a) ──
+   Le tiroir s'assoit là où son hôte le pose — sur le pont d'exploration (exploration-dock.css), dans
+   le rail d'outils de combat (hud.css) — et son PANNEAU naît de son bouton, hors flux, vers le
+   champ : par défaut au-dessus de lui, aligné sur son bord droit. Il ne pèse ainsi sur aucune piste
+   de la couche HUD. */
 .log-drawer {
-  position: absolute;
-  right: 12px;
-  bottom: var(--sp-md);
-  z-index: 46;
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
@@ -40,6 +35,10 @@
   border-color: var(--gold);
 }
 .ld-panel {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + var(--sp-sm));
+  z-index: 46;
   width: min(330px, 86vw);
   max-height: 38vh;
   overflow: auto;
@@ -56,30 +55,4 @@
   background: rgba(14, 16, 22, 0.94);
   border-color: var(--border);
   text-shadow: none;
-}
-
-/* ══ Matrice responsive (canon 700 / 560) — UN bloc par tranche ══ */
-@media (max-width: 700px) {
-  /* Le bord de l'écran se resserre avec le reste du HUD : seul l'écart droit change. */
-  .log-drawer { right: 8px; }
-}
-@media (max-width: 560px) {
-  /* Le tiroir passe au coin BAS-GAUCHE de la rangée du monde : la colonne de droite porte déjà
-     l'ouvreur du rail dissous (`.hud-rail > .worldmap-btn`, hud.css). */
-  .log-drawer {
-    left: 4px;
-    right: auto;
-  }
-  /* Le panneau NAÎT de son déclencheur et sort du flux : sans cela, le tiroir occupait 309px de
-     large même FERMÉ et mordait la colonne voisine (chevauchement mesuré 30×16).
-     Une ancre inline se déclare par PAIRE : une demi-ancre laisse l'autre côté en place et
-     SUR-CONTRAINT la boîte — le panneau du pont d'exploration, ancré à droite par son pont, gardait
-     ce `left: 0` et sortait de 261px hors écran à 360 (mesuré x=312..621,6 pour 360px). */
-  .ld-panel {
-    position: absolute;
-    bottom: 100%;
-    left: 0;
-    right: auto;
-    margin-bottom: 6px;
-  }
 }

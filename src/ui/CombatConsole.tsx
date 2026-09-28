@@ -476,6 +476,48 @@ function pontDOuverture(battle: BattleState): Combatant | undefined {
     ?? inBattleId(battle, battle.order[0]);
 }
 
+/** LE BANDEAU DE LA PAUSE DE ROUND, source unique : le geste est l'ENTRÉE `round-start` du registre
+ *  — la MÊME porte que la touche (`keybindings.round-start`), donc le même arbitrage solo/coop. En
+ *  réseau, le bouton ne lance rien : il marque CE siège prêt, et la bande montre les sièges REQUIS et
+ *  leur état (`ReadyRow`). Nul hors de la pause. Lu par le pont et par le bandeau d'ouverture. */
+function useBandeauDeRound(): PhaseBanner | null {
+  const net = useGame((s) => s.net);
+  const pendingRoundStart = useGame((s) => s.pendingRoundStart);
+  const roundStartDef = pendingRoundStart ? findActionById('round-start') : undefined;
+  if (!pendingRoundStart || !roundStartDef) return null;
+  const enReseau = net.mode !== 'local';
+  const dejaPret = !!pendingRoundStart.readyBySeat?.[net.mySeat];
+  return {
+    label: pendingRoundStart.round <= 1 ? 'Ouverture du combat' : `Début du Round ${pendingRoundStart.round}`,
+    ready: enReseau ? (pendingRoundStart.readyBySeat ?? {}) : undefined,
+    actions: [{
+      key: roundStartDef.id,
+      label: enReseau
+        ? (dejaPret ? 'En attente des autres…' : 'Prêt')
+        : pendingRoundStart.round <= 1 ? 'Commencer le combat' : `Commencer le round ${pendingRoundStart.round}`,
+      icon: <Icon id={roundStartDef.icon as IconIdInput} size="sm" />,
+      primary: true,
+      disabled: enReseau && dejaPret,
+      run: () => runAction(roundStartDef.id, useGame.getState),
+    }],
+  };
+}
+
+/** OUVERTURE d'un combat (arbitrage utilisateur 2026-08-24, référence RT « round 0 », capture
+ *  archivée) : la pause du premier Round. Les pauses SUIVANTES gardent leur bandeau sur le parapet
+ *  du pont — l'arbitrage ne porte que sur l'ouverture. PUR sur l'état du store. */
+const estOuverture = (b: { battle: unknown; pendingRoundStart: { round: number } | null | undefined }) =>
+  !!b.battle && !!b.pendingRoundStart && b.pendingRoundStart.round <= 1;
+
+/** Le BANDEAU D'OUVERTURE : le bandeau de la pause de Round à son adresse `ouverture`, CENTRÉ EN HAUT
+ *  DE LA CARTE. C'est une surface de la couche HUD (zone `ouverture`), que l'écran de campagne monte
+ *  — jamais un enfant du pont. Nul hors de l'ouverture. */
+export function BandeauDOuverture() {
+  const ouverture = useGame((s) => estOuverture(s) && !s.battle?.over);
+  const phase = useBandeauDeRound();
+  return ouverture && phase ? <PhaseBanner {...phase} adresse="ouverture" /> : null;
+}
+
 export function CombatConsole() {
   const battle = useGame((s) => s.battle);
   const party = useGame((s) => s.party);
@@ -483,6 +525,7 @@ export function CombatConsole() {
   // Heure de jeu : le QUART courant borne la chanson de marin (une par quart, MDG 09 l.40).
   const gameTime = useGame((s) => s.gameTime);
   const pendingRoundStart = useGame((s) => s.pendingRoundStart);
+  const bandeauDeRound = useBandeauDeRound();
   // Intention LOCALE armée (spec zone 4) : elle allume SA case. Jamais un intent réseau — c'est un
   // mode d'écran, le geste qu'il commet part, lui, par les chemins de clic habituels.
   const localIntent = useGame((s) => s.localIntent);
@@ -552,55 +595,30 @@ export function CombatConsole() {
   // (l'action `surface: 'interlude'` du mode courant, § registre). Un interlude sans bandeau serait un
   // ciblage SANS SORTIE — le joueur aurait seulement le clic-carte pour en sortir.
   const interlude = interludeId ? findActionById(interludeId) : undefined;
-  // PAUSE DE ROUND : le geste est l'ENTRÉE `round-start` du registre — la MÊME porte que la touche
-  // (`keybindings.round-start`), donc le même arbitrage solo/coop. En réseau, le bouton ne lance rien :
-  // il marque CE siège prêt, et la bande montre les sièges REQUIS et leur état (`ReadyRow`).
-  const roundStartDef = pendingRoundStart ? findActionById('round-start') : undefined;
-  const enReseau = net.mode !== 'local';
-  const dejaPret = !!pendingRoundStart?.readyBySeat?.[net.mySeat];
-  const phase: PhaseBanner | null = pendingRoundStart && roundStartDef
+  const phase: PhaseBanner | null = bandeauDeRound ?? (interlude
     ? {
-        label: pendingRoundStart.round <= 1 ? 'Ouverture du combat' : `Début du Round ${pendingRoundStart.round}`,
-        ready: enReseau ? (pendingRoundStart.readyBySeat ?? {}) : undefined,
+        label: (interlude.mode && targetingModeLabel(interlude.mode)) ?? interlude.label,
         actions: [{
-          key: roundStartDef.id,
-          label: enReseau
-            ? (dejaPret ? 'En attente des autres…' : 'Prêt')
-            : pendingRoundStart.round <= 1 ? 'Commencer le combat' : `Commencer le round ${pendingRoundStart.round}`,
-          icon: <Icon id={roundStartDef.icon as IconIdInput} size="sm" />,
-          primary: true,
-          disabled: enReseau && dejaPret,
-          run: () => runAction(roundStartDef.id, useGame.getState),
+          key: interlude.id,
+          label: interlude.label,
+          icon: <Icon id={interlude.icon as IconIdInput} size="sm" />,
+          primary: !bandeauDiscret(interlude),
+          run: () => runAction(interlude.id, useGame.getState),
         }],
       }
-    : interlude
-      ? {
-          label: (interlude.mode && targetingModeLabel(interlude.mode)) ?? interlude.label,
-          actions: [{
-            key: interlude.id,
-            label: interlude.label,
-            icon: <Icon id={interlude.icon as IconIdInput} size="sm" />,
-            primary: !bandeauDiscret(interlude),
-            run: () => runAction(interlude.id, useGame.getState),
-          }],
-        }
-      : null;
+    : null);
   // Pendant la PAUSE de Round, `battle.turn` vaut -1 : personne n'agit encore. La console ne
   // DISPARAÎT pas pour autant (loi 1 : la géométrie ne bouge jamais) — elle passe en LECTURE, sous le
   // bandeau de phase (spec zone 7), sur un combattant que le JOUEUR CONTRÔLE. Elle montrait la tête de
   // l'INITIATIVE : sur une embuscade, un ENNEMI (Knud) portait portrait, stats et arsenal dans le
   // cadre du joueur. Le pont est celui du joueur — le premier contrôlé, sinon le premier héros du
   // groupe (partie entièrement en Auto-combat), sinon seulement la tête d'ordre.
-  /** OUVERTURE d'un combat (arbitrage utilisateur 2026-08-24, référence RT « round 0 », capture
-   *  archivée) : le bandeau de phase et son bouton quittent le coin du pont pour le HAUT DE LA
-   *  CARTE, centrés. Les pauses de round SUIVANTES gardent leur bandeau sur le parapet du pont —
-   *  l'arbitrage ne porte que sur l'ouverture. */
-  const ouverture = !!pendingRoundStart && pendingRoundStart.round <= 1;
+  // À l'OUVERTURE, le bandeau quitte le pont pour la couche HUD (`BandeauDOuverture`).
+  const ouverture = estOuverture({ battle, pendingRoundStart });
   const active = activeCombatant(battle) ?? (phase ? pontDOuverture(battle) : undefined);
   if (!active) {
     return phase ? (
       <>
-        {ouverture && <PhaseBanner {...phase} adresse="ouverture" />}
         <div className="combat-console" data-forme="spectatrice" onContextMenu={avalerMenuNatif}>{!ouverture && <PhaseBanner {...phase} adresse="spectatrice" />}</div>
       </>
     ) : null;
@@ -1184,9 +1202,6 @@ export function CombatConsole() {
 
   return (
     <>
-    {/* BANDEAU D'OUVERTURE : enfant du CHAMP (`.stage`), jamais du pont — à l'ouverture il se pose
-        CENTRÉ EN HAUT de la carte (référence RT « round 0 »), au-dessus du terrain. */}
-    {ouverture && phase && <PhaseBanner {...phase} adresse="ouverture" />}
     {/* LE PONT : la bande porteuse, à HAUTEUR FIXE. La racine est l'EMPREINTE du pont — la bande
         PLUS la saillie du fronton — et ne peint rien : la MATIÈRE de bande (peau `.skin-pont`) est
         portée par la bande elle-même, `.cc-dock`. Le bandeau de phase est le seul enfant HORS FLUX
