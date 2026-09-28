@@ -43,8 +43,9 @@ import { readFileSync, statSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { normaliserRacine } from '../../port-dev.mjs'
 import { BACKOFFS_MS, MARQUE_REJEU, attendreSync, estEchecDeChargement, rejeux } from './spawnResilient.mjs'
+import { coupeAuMot } from '../../../src/lib/coupeAuMot.mjs'
 
-/** Longueur maximale d'une `raison` : elle est DITE dans un refus de hook, une fois. */
+/** Une `raison` est coupée au mot vers `RAISON_MAX` (`coupeAuMot`) : elle est DITE dans un refus de hook, une fois. */
 const RAISON_MAX = 200
 
 /** git a répondu. @param {*} valeur */
@@ -77,7 +78,7 @@ export class BorneAbsente extends Error {
 }
 
 /**
- * Première ligne SIGNIFICATIVE d'une sortie d'erreur, bornée. PURE.
+ * Première ligne SIGNIFICATIVE d'une sortie d'erreur, coupée au mot vers `RAISON_MAX` (`coupeAuMot`). PURE.
  * @param {string} brut @returns {string}
  */
 export function raisonCourte(brut) {
@@ -85,7 +86,7 @@ export function raisonCourte(brut) {
     .split(/\r?\n/)
     .map((l) => l.trim())
     .find(Boolean) ?? 'raison non dite'
-  return ligne.length > RAISON_MAX ? `${ligne.slice(0, RAISON_MAX - 1)}…` : ligne
+  return coupeAuMot(ligne, RAISON_MAX)
 }
 
 /**

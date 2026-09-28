@@ -14,7 +14,7 @@ import { rigSpeciesVocab } from '../gameIso/rig/appearance';
 import { TENUE_BY_ID } from '../gameIso/rig/parts/tenues';
 import type { Effect } from '../state/scene';
 import type { Flow } from '../state/flow';
-import { coupeAuMot } from '../lib/coupeAuMot';
+import { coupeAuMot } from '../lib/coupeAuMot.mjs';
 
 /**
  * Garde TRANSVERSE (#809) : tout paquet bundlé `src/scenes/*.../*-projet.json` doit se relire dans

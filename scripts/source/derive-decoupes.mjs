@@ -23,6 +23,7 @@ import {
 } from '../../src/data/source/decoupe.ts'
 import { chapitresDe, lireChapitre } from './lecteur-fs.mjs'
 import { sigleDe } from '../raw/_lib.mjs'
+import { coupeAuMot } from '../../src/lib/coupeAuMot.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 
@@ -126,7 +127,7 @@ export function judge(entry) {
   const orphan = paras.find((p) => !chapitres.some(({ chapitre }) => findRuns(chapitre, p))) ?? D
   return {
     verdict: 'ECHEC',
-    reason: sub ? 'sous-bloc (desc = fragment d\'un bloc)' : `introuvable: « ${orphan.slice(0, 70)} … »`,
+    reason: sub ? 'sous-bloc (desc = fragment d\'un bloc)' : `introuvable: « ${coupeAuMot(orphan, 70)} »`,
   }
 }
 

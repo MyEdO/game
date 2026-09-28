@@ -15,7 +15,7 @@ import { estFichierVitest } from '../../../../scripts/guards/lib/fichierVitest.m
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { TROUS_DE_VALIDATION } from './trous-de-validation';
-import { coupeAuMot } from '../../../lib/coupeAuMot';
+import { coupeAuMot } from '../../../lib/coupeAuMot.mjs';
 
 const GARDE = {
   question:

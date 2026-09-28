@@ -1148,10 +1148,19 @@
     "id": "coupeAuMot",
     "type": "primitives.manifest",
     "label": "coupeAuMot",
-    "fichier": "src/lib/coupeAuMot.ts",
-    "concept": "coupe d'un texte à `n` caractères à une FRONTIÈRE DE MOT, suivie de « … » (R-M2) ; seule coupe ellipsée sous `src/`",
-    "perimetre": "tout texte borné puis ellipsé : infobulle `CodexRef` (corps, méta), résumés d'effet et d'op de l'éditeur, nœuds et choix de dialogue, extraits du créateur, messages de diagnostic des tests",
+    "fichier": "src/lib/coupeAuMot.mjs",
+    "concept": "coupe d'un texte à `n` caractères à une FRONTIÈRE DE MOT, suivie de « … » (R-M2) ; seule coupe ellipsée sous `src/` et `scripts/`",
+    "perimetre": "tout texte borné puis ellipsé : infobulle `CodexRef` (corps, méta), résumés d'effet et d'op de l'éditeur, nœuds et choix de dialogue, extraits du créateur, titres de chapitre du plugin de prose, messages des gardes, hooks et outils, messages de diagnostic des tests",
     "verrou": "coupeAuMot.test.ts ; src/coupe-au-caractere-guard.test.ts — aucune coupe au caractère ellipsée"
+  },
+  {
+    "id": "posePartagee",
+    "type": "primitives.manifest",
+    "label": "posePartagee",
+    "fichier": "src/lib/posePartagee.ts",
+    "concept": "écouteurs posés à la PREMIÈRE prise et retirés à la DERNIÈRE remise, quel que soit le nombre de preneurs ; `vider` retire la pose et rend inertes les remises antérieures",
+    "perimetre": "porte clavier de la pile (`useDismissLayer`), délégation de la couche d'infobulle (`Infobulle`)",
+    "verrou": "posePartagee.test.ts ; Infobulle.test.tsx — DÉLÉGATION, un seul jeu d'écouteurs"
   },
   {
     "id": "echapperRegex",

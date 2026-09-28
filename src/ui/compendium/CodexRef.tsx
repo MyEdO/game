@@ -12,7 +12,7 @@ import { useGame } from '../../state/store';
 import { codexLookup, codexLookupById } from './registry';
 import { mdToText } from '../Prose';
 import { useInfobulle } from '../Infobulle';
-import { coupeAuMot } from '../../lib/coupeAuMot';
+import { coupeAuMot } from '../../lib/coupeAuMot.mjs';
 
 /** Borne du corps de l'infobulle, en caractères (`coupeAuMot`). */
 export const BORNE_DU_CORPS = 400;

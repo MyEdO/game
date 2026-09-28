@@ -11,7 +11,7 @@
  * la boîte porte un marqueur d'ARRÊT : un nœud de la boîte ne résout aucun ancrage au-delà d'elle.
  *
  * DÉLÉGATION UNIQUE : un seul jeu d'écouteurs du document pour toute la couche, posé à la première
- * instance inscrite et retiré à la dernière (patron de `useDismissLayer.ts`, `brancherPorte`). Chaque
+ * instance inscrite et retiré à la dernière (`posePartagee`, `src/lib/posePartagee.ts`). Chaque
  * événement est routé à l'instance qui POSSÈDE l'ancrage résolu (`inscrites`, clé : la valeur
  * `data-infobulle` de l'ancrage), et les autres instances l'apprennent comme un geste AILLEURS.
  *
@@ -24,14 +24,16 @@
  * FOCUS : tant que la boîte est épinglée ou tient le focus, elle l'EMPRUNTE (`useFocusEmprunte`), et
  * son origine est le contrôle de l'ancrage (`controleDe`) — jamais le nœud focalisé au hasard.
  *
- * @clavier-hors-registre ↓ appartient au CONTRÔLE focalisé de l'ancrage (`aria-keyshortcuts`), où le
- * registre s'efface (`notWhenControlFocused`, `state/keybindings.ts`) ; la délégation le lit au document
- * parce que la couche n'écoute jamais l'ancrage. Échap passe par la pile (`useDismissLayer`).
+ * @clavier-hors-registre ↓ appartient à l'ancrage épinglable (`aria-keyshortcuts`) : la délégation le
+ * prend à la CAPTURE du document et en arrête la propagation (`PHASES`, `keydown` du routage) avant
+ * l'écouteur du registre, posé en bulle sur la fenêtre (`useGameKeyboard.ts`). Échap passe par la pile
+ * (`useDismissLayer`).
  */
 import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { BoiteAncree, usePlacementAncre } from './BoiteAncree';
 import { useDismissLayer } from './useDismissLayer';
 import { focusSansIntention, useFocusEmprunte } from './focus';
+import { posePartagee } from '../lib/posePartagee';
 
 const ANCRE = 'data-infobulle';
 const ARRET = 'data-infobulle-arret';
@@ -87,12 +89,17 @@ function deleguer(e: Event): void {
   }
 }
 
+const DELEGATION = posePartagee(
+  () => { for (const [type, capture] of Object.entries(PHASES)) document.addEventListener(type, deleguer, capture); },
+  () => { for (const [type, capture] of Object.entries(PHASES)) document.removeEventListener(type, deleguer, capture); },
+);
+
 function inscrire(id: string, routage: Routage): () => void {
-  if (inscrites.size === 0) for (const [type, capture] of Object.entries(PHASES)) document.addEventListener(type, deleguer, capture);
+  const rendre = DELEGATION.prendre();
   inscrites.set(id, routage);
   return () => {
     inscrites.delete(id);
-    if (inscrites.size === 0) for (const [type, capture] of Object.entries(PHASES)) document.removeEventListener(type, deleguer, capture);
+    rendre();
   };
 }
 

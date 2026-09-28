@@ -27,7 +27,7 @@ manifeste est invisible ici, et rien ne la révèle sauf le hook `new-src-file-g
 mord qu'à la CRÉATION d'un `.tsx` de `src/ui`/`src/gameIso` — un module `.ts`, un fichier antérieur
 au hook, ou une primitive née ailleurs n'y passent jamais.
 
-152 primitives.
+153 primitives.
 
 | Besoin | Primitive | Fichier | CSS possédé | Périmètre | Verrou |
 |---|---|---|---|---|---|
@@ -57,7 +57,7 @@ au hook, ou une primitive née ailleurs n'y passent jamais.
 | construction réservée à son foyer : le scan unique, ses constructions déclarées, les fabriques de recopie d'un canon et de clé en ligne, l'appel à une fonction déclarée et la liaison d'import | `scanConstructionsReservees/FORMULE_DE_CHEBYSHEV/ECHAPPEUR_DE_LITTERAL/ECRITURE_DE_STOCK_JSON/CONSTRUCTION_DE_TABLE_TOTALE/recopieDeCanon/cleEnLigne/estAppelDeclare/origineImportee` | `scripts/guards/lib/canonUnique.mjs` | — | toute garde de canon unique | unions-canon.test.ts, grid.test.ts, cle-de-site-guard.test.ts |
 | briques de salon coop : plaque et champ du code de room, sièges avec présence, ligne d'attribution, bandeau de liaison | `CoopInvite / CoopCodeInput / SeatList / CoopAssignRow / CoopBanner` | `src/ui/CoopPanels.tsx` | `src/ui/styles/coop-panels.css` | salon « Jouer en ligne » et sous-écran Coopération du menu ☰ | aucune recopie de ligne siège/attribution : la même brique sert le lobby et le menu |
 | couche d'ESPÈCE du rig : palette d'espèce plus la peau greffée par la tête quand l'espèce n'en déclare pas ; TETES_A_PEAU = domaine des têtes qui greffent | `coucheDEspece/TETES_A_PEAU` | `src/gameIso/rig/parts/career.ts` | — | composeRig (empilage sous couchesDuRig), porte de la donnée de palette (entrées de la couche) | composeRig-peau-tete.test.ts, palettes-declarees.test.ts |
-| coupe d'un texte à `n` caractères à une FRONTIÈRE DE MOT, suivie de « … » (R-M2) ; seule coupe ellipsée sous `src/` | `coupeAuMot` | `src/lib/coupeAuMot.ts` | — | tout texte borné puis ellipsé : infobulle `CodexRef` (corps, méta), résumés d'effet et d'op de l'éditeur, nœuds et choix de dialogue, extraits du créateur, messages de diagnostic des tests | coupeAuMot.test.ts ; src/coupe-au-caractere-guard.test.ts — aucune coupe au caractère ellipsée |
+| coupe d'un texte à `n` caractères à une FRONTIÈRE DE MOT, suivie de « … » (R-M2) ; seule coupe ellipsée sous `src/` et `scripts/` | `coupeAuMot` | `src/lib/coupeAuMot.mjs` | — | tout texte borné puis ellipsé : infobulle `CodexRef` (corps, méta), résumés d'effet et d'op de l'éditeur, nœuds et choix de dialogue, extraits du créateur, titres de chapitre du plugin de prose, messages des gardes, hooks et outils, messages de diagnostic des tests | coupeAuMot.test.ts ; src/coupe-au-caractere-guard.test.ts — aucune coupe au caractère ellipsée |
 | cérémonie de tirage du créateur : attente, roulant, rendu, gain de PX en direct | `CreatorDice` | `src/ui/creator/CreatorDice.tsx` | — | Race, Carrière, Caractéristiques, Signe astral | — |
 | gabarit d’étape du créateur : bande d’action requise, zone de choix, zone de description | `CreatorStepFrame` | `src/ui/creator/CreatorStepFrame.tsx` | `src/ui/styles/creator-step.css` | toutes les étapes du créateur | src/ui/creator/creator-ossature.test.tsx |
 | minteur (b) : passage d'un texte AUTHORÉ de la donnée à l'affichage, rendu en `PlayerText` | `dataLabel` | `src/data/index.ts` | — | tout libellé de donnée montré au joueur (clé : l'id, `docs/doctrines.md`, user-doctrine-ids-stables-labels-affichage) | src/state/built-brand-lint.test.ts, src/state/player-text-ratchet.test.ts |
@@ -139,6 +139,7 @@ au hook, ou une primitive née ailleurs n'y passent jamais.
 | ce module est-il le point d'entrée du processus (lancé, pas importé) | `import.meta.main` | `scripts/guards/lib/pointDEntree.mjs` | — | tout script de scripts/ et server/ qui porte un main | src/point-d-entree-guard.test.ts |
 | règle optionnelle RAW + house-rule taguée | `rule/policy` | `src/engine/policy.ts` | — | tout arbitrage editable | — |
 | affichage d'un personnage (HUD/modale/picker) | `PortraitTile/CharFrame` | `src/ui/PortraitTile.tsx` | `src/ui/styles/portrait-tile.css` | toute vignette de personnage | — |
+| écouteurs posés à la PREMIÈRE prise et retirés à la DERNIÈRE remise, quel que soit le nombre de preneurs ; `vider` retire la pose et rend inertes les remises antérieures | `posePartagee` | `src/lib/posePartagee.ts` | — | porte clavier de la pile (`useDismissLayer`), délégation de la couche d'infobulle (`Infobulle`) | posePartagee.test.ts ; Infobulle.test.tsx — DÉLÉGATION, un seul jeu d'écouteurs |
 | rendu de prose Markdown verbatim (HTML brut neutralisé) | `Prose` | `src/ui/Prose.tsx` | — | tout champ de prose RAW | no-html-in-prose.test.ts |
 | stepper de quantité moins / centre / plus | `QtyStepper` | `src/ui/QtyStepper.tsx` | — | panier, quantité en stock, baisse de prix par cran | — |
 | rangée de ready-check coop : sièges requis seuls, siège nommé, état prêt/attendu | `ReadyRow` | `src/ui/ReadyRow.tsx` | `src/ui/styles/ready-row.css` | pause de Round, écran de Victoire, nuit de repos | quorum = siegesRequis (src/state/netOwnership.ts), source unique |
@@ -183,4 +184,4 @@ au hook, ou une primitive née ailleurs n'y passent jamais.
 | identifiant et ordre canonique des trois vues (`View` en dérive) ; libellé d'affichage d'une vue, lu par les planches QC | `VIEWS/VIEW_LABEL` | `src/gameIso/rig/facing.ts` | — | tout art orienté, toute table ou liste de vues, les colonnes des planches QC | lectures-de-l-art-guard.test.ts (VIEWS), unions-canon.test.ts |
 | sceau de cire et plaque d’élu scellée | `WaxSeal/SealedPlaque` | `src/ui/WaxSeal.tsx` | — | tuiles de sélection, plaques d’élu | — |
 | rose des vents : direction + force du vent | `WindRose` | `src/ui/WindRose.tsx` | `src/ui/styles/gauges.css` | voyage en mer, dossier de navire | — |
-<!-- sources-empreinte: 132829dec91387d745183331d0d7675d9ed34538 (7 fichiers, 0 dossiers) corps: e9a438d01d29c9a5625bd233218caa786892e865 -->
+<!-- sources-empreinte: 2d150e23ca73c868f848074cba218e4b5be30616 (8 fichiers, 0 dossiers) corps: aaba5b75091897db0d1a0f0dd8e0afddf594b4ff -->

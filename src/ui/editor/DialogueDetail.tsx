@@ -15,7 +15,7 @@ import { WhenEditor, condSummary } from './ConditionEditor';
 import { ListRow } from '../ListRow';
 import { NumberField } from '../NumberField';
 import { Row, Stack } from '../Layout';
-import { coupeAuMot } from '../../lib/coupeAuMot';
+import { coupeAuMot } from '../../lib/coupeAuMot.mjs';
 
 /** Ids posables au clic pour `DialogueChoice.icon` — DÉRIVÉS du registre d'icônes (`ICON_DEFS`,
  *  généré depuis `icons/defs/`), jamais une liste tenue à la main. */

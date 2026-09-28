@@ -191,6 +191,9 @@ describe('plugin `wfrp:prose-source` — chapitres SERVIS EN DEV', () => {
     const long = titreDeChapitre(parseChapitre(md), md);
     expect(long.length).toBeLessThanOrEqual(60);
     expect(long.endsWith('…')).toBe(true);
+    const tient = 'Les Répurgateurs et la Chasse aux Sorcières dans le Reikland';
+    expect(tient.length).toBe(60);
+    expect(titre(`# ${tient}\n`), 'un titre de 60 caractères se rend entier').toBe(tient);
   });
 });
 

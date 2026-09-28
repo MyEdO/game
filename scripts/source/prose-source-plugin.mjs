@@ -29,6 +29,7 @@ import { basename } from 'node:path'
 import { chapitresDe, lireChapitre, oublierChapitre } from './lecteur-fs.mjs'
 import { cheminChapitre, materialiser } from './resoudre.mjs'
 import { BOOKS, REGISTRE_LIVRES, estLivreExtrait, readText, sigleDe } from '../raw/_lib.mjs'
+import { coupeAuMot } from '../../src/lib/coupeAuMot.mjs'
 
 /** Documents de catalogue, et eux seuls : `src/data/<nom>.json` à plat (les projets de `src/scenes`
  *  entrent au périmètre quand leur schéma compose la prose adressable). */
@@ -42,7 +43,7 @@ const ROUTE = /^\/source\/([a-z0-9-]+)\/(\d+)\.md$/
 /** Route publique du manifeste : `/source/manifest.json`. */
 const ROUTE_MANIFESTE = '/source/manifest.json'
 
-/** Longueur maximale d'un titre de chapitre au manifeste (au-delà, il ne tient plus dans une liste). */
+/** Un titre de chapitre au manifeste est coupé au mot vers `TITRE_MAX` (`coupeAuMot`) : au-delà, il ne tient plus dans une liste. */
 const TITRE_MAX = 60
 /**
  * Un heading dont le titre n'est qu'une ANCRE de conversion Word (`# _GoBack`, `# _gjdgxs`) — reconnu
@@ -77,7 +78,7 @@ export function titreDeChapitre(chapitre, texte = '') {
       .replace(/\s+/g, ' ')
       .trim()
     if (!propre) continue
-    return propre.length > TITRE_MAX ? `${propre.slice(0, TITRE_MAX - 1).trimEnd()}…` : propre
+    return coupeAuMot(propre, TITRE_MAX)
   }
   return ''
 }

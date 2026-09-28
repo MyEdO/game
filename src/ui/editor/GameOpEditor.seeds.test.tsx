@@ -1,18 +1,16 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeAll, afterEach } from 'vitest';
 import { act } from 'react';
-import { createRoot, type Root } from 'react-dom/client';
 import { GameOpEditor, OP_LABEL, OP_REF_FIELDS, opRefValue } from './GameOpEditor';
 import type { GameOp } from '../../engine/ops';
 import { choisirDansMenu, entreeDe, menuDe, ouvrirMenu } from './AddMenu.testkit';
+import { monterRacine, demonterRacines } from '../../monterRacine.testkit';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 });
 
-/** Démontages en attente : un test qui échoue avant son `teardown` est démonté par l'`afterEach`. */
-const montes = new Set<() => Promise<void>>();
-afterEach(async () => { for (const t of [...montes]) await t(); });
+afterEach(demonterRacines);
 
 /**
  * PREUVE D'INTERACTION (montage réel, clic réel) : ce que l'auteur obtient EN CLIQUANT dans la palette
@@ -20,31 +18,21 @@ afterEach(async () => { for (const t of [...montes]) await t(); });
  * `ref: 'Loup'`) naissait précisément du CLIC de création.
  */
 function mount() {
-  const container = document.createElement('div');
-  document.body.appendChild(container);
-  const root: Root = createRoot(container);
   let ops: GameOp[] = [];
-  const render = () => root.render(<GameOpEditor ops={ops} onChange={(next) => { ops = next; render(); }} />);
-  const teardown = async () => {
-    if (!montes.delete(teardown)) return;
-    await act(async () => { root.unmount(); });
-    container.remove();
-  };
-  montes.add(teardown);
+  const editeur = () => <GameOpEditor ops={ops} onChange={(next) => { ops = next; montage.rendre(editeur()); }} />;
+  const montage = monterRacine(editeur());
+  const { container } = montage;
   return {
-    container, root,
+    container,
     opsOf: () => ops,
-    mount: () => act(async () => { render(); }),
     palette: () => ouvrirMenu(menuDe(container, '+ Op mécanique')),
     click: (label: string) => choisirDansMenu(menuDe(container, '+ Op mécanique'), label),
-    teardown,
   };
 }
 
 describe('GameOpEditor — création au CLIC : aucune valeur pré-semée, raison visible', () => {
   it('créer « Accorder un Talent » n’élit aucun talent et affiche la raison', async () => {
     const h = mount();
-    await h.mount();
     await h.click(OP_LABEL.grantTalent);
 
     expect(h.opsOf()).toHaveLength(1);
@@ -54,17 +42,14 @@ describe('GameOpEditor — création au CLIC : aucune valeur pré-semée, raison
     const select = Array.from(h.container.querySelectorAll('select')).find((s) => s.value === '');
     expect(select, 'sélecteur de talent sur la sentinelle vide').toBeTruthy();
     expect(h.container.innerHTML).toContain('(choisir dans talents)');
-    await h.teardown();
   });
 
   it('créer « Invoquer une créature » n’élit aucune créature (fin du mannequin « Loup »)', async () => {
     const h = mount();
-    await h.mount();
     await h.click(OP_LABEL.summon);
 
     expect((h.opsOf()[0] as Extract<GameOp, { op: 'summon' }>).ref).toBe('');
     expect(h.container.textContent).toContain('Créature à choisir');
-    await h.teardown();
   });
 
   it('« Dôme protecteur » : le formulaire porte TOUT ce que l’op porte — Trait et Indice, et RIEN de plus', async () => {
@@ -72,7 +57,6 @@ describe('GameOpEditor — création au CLIC : aucune valeur pré-semée, raison
     // que l'op porte, sinon un champ devient inéditable sans que rien ne rougisse (vécu : le rayon).
     // La ZONE, elle, n'est PAS de l'op : elle vit dans la ligne « Cible » du sort (ZdE), un seul endroit.
     const h = mount();
-    await h.mount();
     await h.click(OP_LABEL.domeWard);
 
     const op = h.opsOf()[0] as Extract<GameOp, { op: 'domeWard' }>;
@@ -80,24 +64,22 @@ describe('GameOpEditor — création au CLIC : aucune valeur pré-semée, raison
     expect(h.container.textContent ?? '', 'l’Indice de la sauvegarde s’édite').toContain('Indice');
     expect(h.container.innerHTML, 'le Trait s’élit dans le registre').toContain('(choisir dans traits)');
     expect(h.container.querySelectorAll('textarea').length, 'plus de trappe JSON quand le formulaire est complet').toBe(0);
-    await h.teardown();
   });
 
   it('TOUTE op créable depuis la palette naît sans réf élue', async () => {
     let creees = 0;
     for (const [k, fields] of Object.entries(OP_REF_FIELDS) as [GameOp['op'], typeof OP_REF_FIELDS[GameOp['op']]][]) {
       const h = mount();
-      await h.mount();
       const label = OP_LABEL[k];
       const entree = entreeDe(await h.palette(), label);
-      if (!entree) { await h.teardown(); continue; }
+      if (!entree) { demonterRacines(); continue; }
       await act(async () => { entree.click(); });
       creees += 1;
       const fresh = h.opsOf()[0] as unknown as Record<string, unknown>;
       for (const f of fields ?? []) {
         expect([undefined, ''], `${k}.${f.field} pré-semé au clic`).toContain(opRefValue(fresh, f.field));
       }
-      await h.teardown();
+      demonterRacines();
     }
     expect(creees, 'témoin : la palette ouverte propose des ops à réf').toBeGreaterThan(0);
   });

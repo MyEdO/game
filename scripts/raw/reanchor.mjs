@@ -36,6 +36,7 @@ import { ecartDuVolet } from '../guards/lib/stock.mjs'
 import { SOUS_LOT, lireEntreesDeSite } from '../guards/lib/stockDeSites.mjs'
 import { ecrireOuVerifier } from '../docs/lib/empreinte-sources.mjs'
 import { carteDuFichier, destinEnTexte } from './lib/carte-lignes.mjs'
+import { coupeAuMot } from '../../src/lib/coupeAuMot.mjs'
 
 const APPLY = process.argv.includes('--apply')
 // --remap : ré-ancre les réfs de SYNTHÈSE (sans citation) et leurs CONTINUATIONS nues par la carte
@@ -283,11 +284,11 @@ export function scan(rawDir = RAWDIR, { apply = false, remap = false, classes = 
           return xc ? { label: `${abbr} ${xc.ch} l.${xc.line}` } : null
         }
         const r = li ? classifyQuote(li, citedStart, rawQuote, findCross) : { status: 'NO-SOURCE' }
-        const snippet = (r.norm || normalize(rawQuote)).slice(0, 46)
+        const snippet = coupeAuMot(r.norm || normalize(rawQuote), 46)
         if (r.status === 'OK') { tally.OK++; continue }
         tally[r.status]++
         if (r.status === 'DRIFT') {
-          const detail = `« ${snippet}… » → l.${r.foundStart}` + (r.edited ? ' (ancre partielle)' : '')
+          const detail = `« ${snippet} » → l.${r.foundStart}` + (r.edited ? ' (ancre partielle)' : '')
           rows.push({ full, status: 'DRIFT', cited: citedStart, found: r.foundStart, detail })
           if (apply) {
             // réécrit l.X→l.found ; plage -Y : largeur préservée (translatée du même décalage)
@@ -300,9 +301,9 @@ export function scan(rawDir = RAWDIR, { apply = false, remap = false, classes = 
             appliedTotal++
           }
         } else if (r.status === 'MEDIUM') {
-          rows.push({ full, status: 'MEDIUM', cited: citedStart, found: r.foundStart, detail: `« ${snippet}… » candidats l.${r.candidates.join('/')} → plus proche l.${r.foundStart}` })
+          rows.push({ full, status: 'MEDIUM', cited: citedStart, found: r.foundStart, detail: `« ${snippet} » candidats l.${r.candidates.join('/')} → plus proche l.${r.foundStart}` })
         } else if (r.status === 'LOW') {
-          const detail = `« ${snippet}… » — ${r.reason}`
+          const detail = `« ${snippet} » — ${r.reason}`
           rows.push({ full, status: 'LOW', cited: citedStart, detail })
           lowRows.push({ doc: path.split('\\').join('/'), full, detail })
         } else if (r.status === 'NO-SOURCE') {

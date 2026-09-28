@@ -17,7 +17,7 @@ import { chapterFile, readText, sigleDe } from '../../scripts/guards/lib/rawRefI
 import { NIGHT_STAKES, FLOW_STAKES, ACTIVITY_STAKES, etats, regles } from './index';
 import { ACTIVITIES } from '../engine/activities';
 import { STAKE_FORMS, type StakeForm } from '../engine/types';
-import { coupeAuMot } from '../lib/coupeAuMot';
+import { coupeAuMot } from '../lib/coupeAuMot.mjs';
 
 const RULE_IDS = new Set(regles.map((r) => r.id));
 

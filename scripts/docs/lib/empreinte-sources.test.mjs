@@ -104,10 +104,11 @@ test('apercuDivergences : toutes les lignes divergentes des deux côtés, le res
   )
 })
 
-test('apercuDivergences : une ligne longue est BORNÉE à 240 caractères', () => {
-  const apercu = apercuDivergences('z'.repeat(300), 'a')
-  assert.ok(apercu.includes(`${'z'.repeat(240)}…`))
-  assert.ok(!apercu.includes('z'.repeat(241)))
+test('apercuDivergences : une ligne longue est coupée AU MOT sous 240 caractères (`coupeAuMot`), jamais dans un mot', () => {
+  const apercu = apercuDivergences('mot '.repeat(100).trimEnd(), 'a')
+  assert.ok(apercu.includes(`"${'mot '.repeat(59)}mot…"`), apercu)
+  assert.ok(!apercu.includes('mot '.repeat(61)))
+  assert.ok(apercuDivergences('z'.repeat(300), 'a').includes(`"${'z'.repeat(300)}"`), 'un mot seul se rend entier')
 })
 
 /**

@@ -300,7 +300,7 @@ test('arbrePrincipal : sous un cwd de plus de 200 caractères, le refus garde so
 
     const jamais = join(profond, 'absent')
     const enPanne = arbrePrincipal(depotFeint(jamais, () => ({ error: new Error('spawnSync git ENOENT'), status: null })))
-    assert.match(enPanne.raison, /^arbre principal non résolu : cwd inexistant : /)
+    assert.match(enPanne.raison, /^arbre principal non résolu : cwd inexistant :/)
   } finally { jeter(base) }
 })
 
@@ -318,12 +318,18 @@ test('arbrePrincipal : depuis un WORKTREE RÉEL, la réponse est l’arbre PRINC
   } finally { jeter(racine) }
 })
 
-test('classer : la RAISON est la première ligne significative, bornée à 200 caractères', () => {
-  const vu = classer({ status: 128, stdout: '', stderr: `\n\nfatal: ${'x'.repeat(400)}\nune seconde ligne` })
+test('classer : la RAISON est la première ligne significative, coupée AU MOT sous 200 caractères', () => {
+  const ligne = `fatal: ${'mot '.repeat(100).trimEnd()}`
+  const vu = classer({ status: 128, stdout: '', stderr: `\n\n${ligne}\nune seconde ligne` })
   assert.equal(vu.disponible, false)
-  assert.equal(vu.raison.length, 200)
+  assert.ok(vu.raison.length <= 200, vu.raison)
+  assert.ok(vu.raison.endsWith('mot…'), vu.raison)
+  assert.equal(ligne[vu.raison.length - 1], ' ', 'la coupe tombe à une espace')
   assert.ok(!vu.raison.includes('une seconde ligne'))
   assert.equal(raisonCourte('   \n  premier mot  \nsuite'), 'premier mot')
+  const tient = `${'mot '.repeat(49)}motx`
+  assert.equal(tient.length, 200)
+  assert.equal(raisonCourte(tient), tient, 'une raison de 200 caractères se rend entière')
 })
 
 test('listerImage : l’unique listeur d’image — ref, INDEX, SUIVI et TRAVAIL rendent chacun LEURS fichiers ; enfantsDirects en projette les noms', () => {

@@ -169,6 +169,7 @@ n'exclut pas un usage indirect hors des modules racines déclarés).
 | `applyAttackResult / jouerLApresCoup / APRES_COUP / SuiteDeCoup / SuiteDeDefense` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 | `accesBase / brancherBasesSimulees` |  |  |  |  |  |  |  |  |  |  |  |  |  |  | U | U |
 | `coupeAuMot` |  | U | U |  | U |  | U | U | U | U | U | U | U | U | U | U |
+| `posePartagee` |  | U | U |  | U |  | U | U | U | U | U | U | U | U | U | U |
 | `echapperRegex` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | `alternationDe` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | `alternationDeRegex` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
@@ -284,4 +285,4 @@ unique ne « possède » légitimement ; à trier au fil de l'eau, pas un échec
 - `src/state/sceneEdit.testkit.ts`
 - `src/state/turnEconomy.ts`
 - `src/state/viewLevel.ts`
-<!-- sources-empreinte: 4d1574fb5fdbe3bbabc19fcabb560668ad2792b8 (1855 fichiers, 2 dossiers) corps: c59225b55dc01aa6156806a975455167622ee30c -->
+<!-- sources-empreinte: c3893e3a66ab04adb121470acb48edbfe2d1719d (1856 fichiers, 2 dossiers) corps: fb07e81636a61145e5b7461b94471f3e00edf129 -->

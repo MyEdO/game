@@ -28,8 +28,7 @@ import {
   type DismissHandle, type LayerNature, type LayerPlan, type OnDismiss,
 } from '../state/dismissStack';
 import { resoudreEchap, echapRelachee } from '../state/resoudreEchap';
-
-let montees = 0;
+import { posePartagee } from '../lib/posePartagee';
 
 const onKeyDown = (e: KeyboardEvent) => {
   // `code` (position physique) ou `key` : la manette virtuelle et les bancs de test émettent l'un ou
@@ -45,26 +44,22 @@ const onKeyUp = (e: KeyboardEvent) => {
   if (e.code === CODE_ECHAP || e.key === CODE_ECHAP) echapRelachee();
 };
 
-function brancherPorte(): void {
-  if (montees++ > 0) return;
-  window.addEventListener('keydown', onKeyDown, true);
-  window.addEventListener('keyup', onKeyUp, true);
-}
-function debrancherPorte(): void {
-  if (--montees > 0) return;
-  window.removeEventListener('keydown', onKeyDown, true);
-  window.removeEventListener('keyup', onKeyUp, true);
-}
-
-/** Remise à zéro de la pile ET de sa porte clavier (refcount + écouteurs) — bancs de test seulement :
- *  un refcount survivant laisserait la porte branchée entre deux fichiers de test. */
-export function resetDismissLayers(): void {
-  resetDismissStack();
-  if (montees > 0) {
+const PORTE = posePartagee(
+  () => {
+    window.addEventListener('keydown', onKeyDown, true);
+    window.addEventListener('keyup', onKeyUp, true);
+  },
+  () => {
     window.removeEventListener('keydown', onKeyDown, true);
     window.removeEventListener('keyup', onKeyUp, true);
-  }
-  montees = 0;
+  },
+);
+
+/** Remise à zéro de la pile ET de sa porte clavier (preneurs + écouteurs) — bancs de test seulement :
+ *  un preneur survivant laisserait la porte branchée entre deux fichiers de test. */
+export function resetDismissLayers(): void {
+  resetDismissStack();
+  PORTE.vider();
   echapRelachee();
 }
 
@@ -153,7 +148,7 @@ export function useDismissLayer(
   couvertRef.current = onCouvert;
   useEffect(() => {
     if (!actif) return;
-    brancherPorte();
+    const rendrePorte = PORTE.prendre();
     const { kind, nature, plan, boite } = declarationRef.current;
     // Bloquante (`onDismiss: null`) → elle RESTE : l'appui est consommé, la pile ne bouge pas.
     const h = pushLayer({ kind, nature, plan, onDismiss: () => (dismissRef.current ? dismissRef.current() : false) });
@@ -166,7 +161,7 @@ export function useDismissLayer(
     return () => {
       desabonner();
       popLayer(h);
-      debrancherPorte();
+      rendrePorte();
     };
   }, [actif]);
 }

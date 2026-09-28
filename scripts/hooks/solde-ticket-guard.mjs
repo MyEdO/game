@@ -151,6 +151,7 @@ import {
   DOSSIERS_DE_SUBSTANCE, estCheminDeSubstance, fenetreDeRevue, memeSha, mesureDuPalier,
   nomDArchiveDeRevue, problemesDeRevue, revuesNeuves,
 } from '../guards/lib/revuePalier.mjs'
+import { coupeAuMot } from '../../src/lib/coupeAuMot.mjs'
 
 // Message passé par FICHIER (`git commit -F <path>` / `--file <path>` / `--file=<path>`) : le
 // driver stdin ne voit que `tool_input.command` — un message packé dans un fichier externe y est
@@ -913,7 +914,7 @@ export function motifDuCommitPresume(command) {
   const embarque = (command ? commitsDe(command) : []).find((c) => c.embarque)
   if (!embarque) return null
   const { origine } = embarque
-  const extrait = (texte) => (texte.length > 80 ? `${texte.slice(0, 80)}…` : texte)
+  const extrait = (texte) => coupeAuMot(texte, 80)
   const cause = origine?.sature
     ? `l'analyse de la commande dépasse ses bornes (\`SEGMENTS_MAX\` segments ré-analysés ou \`PROFONDEUR_MAX_ENROBEURS\` niveaux) : un commit y est présumé`
     : `\`${origine?.tete ?? '?'}\` porte \`git commit\` en argument (\`${extrait(origine?.extrait ?? '')}\`) ; une tête hors CITEURS est présumée l'exécuter`

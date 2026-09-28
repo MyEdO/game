@@ -28,7 +28,7 @@ const DOSSIER_FAN = 'Source/Warhammer - Habitants & Creatures  du Vieux-Monde (D
 const CHAPITRE_FIXTURE = `${DOSSIER_FAN}/99 - Fixture.md`;
 const COPIES = [
   'scripts/data/lib', 'scripts/raw', 'scripts/guards/lib', 'scripts/source', 'scripts/port-dev.mjs',
-  'src/data/source', 'src/data/hash.ts', 'src/data/books.json', 'src/lib/ordre.mjs', 'src/lib/normalize.ts', 'src/lib/regex.ts', F_FUSIONS, DOSSIER_FAN,
+  'src/data/source', 'src/data/hash.ts', 'src/data/books.json', 'src/lib/ordre.mjs', 'src/lib/coupeAuMot.mjs', 'src/lib/normalize.ts', 'src/lib/regex.ts', F_FUSIONS, DOSSIER_FAN,
 ];
 
 /** Les entrées fan NEUVES de la migration (`NEUVES`), dernières de `spells.json`. */
