@@ -1055,18 +1055,32 @@ test('divergenceDe, combienDe, branchesDe, journalDe : les VALEURS — la gauche
     assert.deepEqual(journalDe(d, ['main..cote']).map((c) => c.message), ['sujet b\n\ncorps b\nsuite b\n', 'sujet c\n\ncorps c\nsuite c\n'])
     const branches = branchesDe(d)
     assert.deepEqual(branches.map((b) => b.nom), ['cote', 'main'])
-    for (const b of branches) {
-      assert.equal(b.sha, g('rev-parse', b.nom))
-      assert.equal(b.dernierCommitISO, g('log', '-1', '--format=%cI', b.nom))
-      assert.match(b.dernierCommitISO, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}$/)
+    for (const b of branches) assert.equal(b.sha, g('rev-parse', b.nom))
+  } finally { jeter(racine) }
+})
+
+test('journalDe, branchesDe : la date ISO 8601 stricte en `±hh:mm`, UTC compris, sous toute version de git', () => {
+  const { racine } = instanceDeDepot({ fichiers: { 'a.txt': 'a\n' }, message: 'socle' })
+  try {
+    const d = forge(racine)
+    const dates = { utc: '2026-09-27T21:47:00+00:00', est: '2026-09-27T23:47:00+02:00', ouest: '2026-09-27T16:17:00-05:30' }
+    for (const [branche, date] of Object.entries(dates)) {
+      execFileSync('git', ['checkout', '-q', '-b', branche, 'main'], { cwd: racine, env: envDeDepotForge(), stdio: 'ignore' })
+      execFileSync('git', ['commit', '-q', '--allow-empty', '-m', branche], { cwd: racine, env: { ...envDeDepotForge(), GIT_COMMITTER_DATE: date }, stdio: 'ignore' })
     }
+    const lues = Object.fromEntries(branchesDe(d).map((b) => [b.nom, b.dernierCommitISO]))
+    for (const [branche, date] of Object.entries(dates)) {
+      assert.equal(lues[branche], date, `branchesDe ${branche}`)
+      assert.equal(journalDe(d, [`${branche}^!`])[0].date, date, `journalDe ${branche}`)
+    }
+    assert.match(lues.main, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}$/)
   } finally { jeter(racine) }
 })
 
 test('branchesDe, divergenceDe, combienDe : une sortie en fin de ligne CRLF rend les mêmes valeurs', () => {
   const sha = 'a'.repeat(40)
   const reponses = {
-    'for-each-ref': `main\u00002026-09-14T09:12:33+02:00\u0000${sha}\r\ncote\u00002026-09-01T18:00:00+02:00\u0000${sha}\r\n`,
+    'for-each-ref': `main\u00002026-09-14T09:12:33+0200\u0000${sha}\r\ncote\u00002026-09-01T18:00:00+0200\u0000${sha}\r\n`,
     'rev-list --left-right': '17\t1\r\n',
     'rev-list --count': '3\r\n',
   }

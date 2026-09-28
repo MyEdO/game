@@ -435,9 +435,17 @@ export function shasDe(depot, revisions, { fusions = false } = {}) {
  */
 export const baseCommune = (depot, a, b) => lire(depot, ['merge-base', ...revisionsDe([a, b])])?.trim() || absentSaufCorrompu(depot, [a, b])
 
+/** La date d'un commit par `strftime` (`git help rev-list`, `--date=format:` ; `git help
+ *  for-each-ref`, `:format:`), dans le fuseau du commit : `%z` en `±hhmm` sous toute version, là où
+ *  `%cI` et `:iso-strict` écrivent `Z` pour UTC depuis git 2.45 (notes de version de git 2.45.0). */
+const FORMAT_DE_DATE = 'format:%Y-%m-%dT%H:%M:%S%z'
+
+/** La date ISO 8601 stricte (`±hh:mm`) d'une date lue sous `FORMAT_DE_DATE`. PURE. */
+const isoStricte = (date) => date.replace(/([+-]\d{2})(\d{2})$/, '$1:$2')
+
 /**
  * Les commits de la plage `revisions` (`shasDe`), du plus ancien au plus récent, en `{ sha, date,
- * message }` : `date` = la date de commit ISO 8601 stricte (`%cI`), `depuis` = `--since` (`git help
+ * message }` : `date` = la date de commit ISO 8601 stricte (`isoStricte`), `depuis` = `--since` (`git help
  * rev-list`). `rev-list` est la plomberie de `log`, et `--no-commit-header` retire la ligne
  * `commit <sha>` que `--format` lui fait écrire. `null` quand git ne rend pas la plage (`shasDe`).
  * @param {Depot} depot @param {readonly string[]} revisions
@@ -446,27 +454,27 @@ export const baseCommune = (depot, a, b) => lire(depot, ['merge-base', ...revisi
  */
 export function journalDe(depot, revisions, { depuis } = {}) {
   const borne = depuis === undefined ? [] : [`--since=${depuis}`]
-  const brut = lire(depot, ['rev-list', '--reverse', '--no-commit-header', ...borne, '--format=%H%x1f%cI%x1f%B%x00', ...revisionsDe(revisions), '--'])
+  const brut = lire(depot, ['rev-list', '--reverse', '--no-commit-header', ...borne, `--date=${FORMAT_DE_DATE}`, '--format=%H%x1f%cd%x1f%B%x00', ...revisionsDe(revisions), '--'])
   if (brut === null) return absentSaufCorrompu(depot, revisions)
   return brut
     .split('\0').map((e) => e.replace(/^\n/, '')).filter(Boolean).map((e) => {
       const [sha, date = '', ...message] = e.split('\x1f')
-      return { sha, date, message: message.join('\x1f') }
+      return { sha, date: isoStricte(date), message: message.join('\x1f') }
     })
 }
 
 /**
  * Les BRANCHES locales (`for-each-ref refs/heads`) en `{ nom, dernierCommitISO, sha }` : `nom` sans
- * `refs/heads/`, `dernierCommitISO` = la date de commit ISO 8601 stricte de leur tête. `null` si git
+ * `refs/heads/`, `dernierCommitISO` = la date de commit ISO 8601 stricte de leur tête (`isoStricte`). `null` si git
  * ne les rend pas.
  * @param {Depot} depot @returns {{ nom: string, dernierCommitISO: string, sha: string }[] | null}
  */
 export function branchesDe(depot) {
-  const brut = lire(depot, ['for-each-ref', '--format=%(refname:short)%00%(committerdate:iso-strict)%00%(objectname)', 'refs/heads'])
+  const brut = lire(depot, ['for-each-ref', `--format=%(refname:short)%00%(committerdate:${FORMAT_DE_DATE})%00%(objectname)`, 'refs/heads'])
   if (brut === null) return null
   return brut.split(/\r?\n/).filter(Boolean).map((ligne) => {
     const [nom, dernierCommitISO, sha] = ligne.split('\0')
-    return { nom, dernierCommitISO, sha }
+    return { nom, dernierCommitISO: isoStricte(dernierCommitISO ?? ''), sha }
   })
 }
 
@@ -834,12 +842,16 @@ export const TRONC = Object.freeze({ nom: 'main', branche: 'refs/heads/main', su
 
 /**
  * Le SHA du commit que `ref` nomme (`rev-parse --verify --quiet <ref>^{commit}`), abrégé sous
- * `court` ; `null` si `ref` ne nomme aucun commit.
+ * `court` ; `null` si `ref` ne nomme aucun commit. Une réponse INDISPONIBLE (git 2.55 écrit sur
+ * stderr pour un parent illisible, `v1~1`) passe par `corrompu` avant d'être confiée.
  * @param {Depot} depot @param {string} ref @param {{ court?: boolean }} [opts]
  * @returns {string | null}
  */
-export const shaDe = (depot, ref, { court = false } = {}) =>
-  lire(depot, ['rev-parse', '--verify', '--quiet', ...(court ? ['--short'] : []), `${revisionsDe([ref])[0]}^{commit}`])?.trim() || absentSaufCorrompu(depot, [ref])
+export function shaDe(depot, ref, { court = false } = {}) {
+  const vu = interroger(depot, ['rev-parse', '--verify', '--quiet', ...(court ? ['--short'] : []), `${revisionsDe([ref])[0]}^{commit}`])
+  if (!vu.disponible) return corrompu(depot, [ref]) ? null : confier(depot, vu.raison)
+  return sortieOuNull(vu)?.trim() || absentSaufCorrompu(depot, [ref])
+}
 
 /** Ce que git répond quand le `cwd` n'est dans aucun arbre de travail (`git help rev-parse`,
  *  `--show-toplevel` ; message de `setup.c`). */

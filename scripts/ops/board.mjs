@@ -168,7 +168,7 @@ export function statutLePlusVivant(a, b) {
 }
 
 /**
- * Le JOUR d'un instant ISO, tel que git l'écrit : `%(committerdate:iso-strict)` porte le fuseau du
+ * Le JOUR d'un instant ISO, tel que `branchesDe`/`journalDe` le rendent : il porte le fuseau du
  * committer, donc ses 10 premiers caractères SONT la date locale du commit. Un `toISOString()`
  * reculerait d'un jour tout commit du soir sous un fuseau à l'est de UTC. PUR.
  */
