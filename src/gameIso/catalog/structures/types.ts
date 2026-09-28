@@ -18,8 +18,8 @@ export interface StructureAppearanceDef {
   post: string;
   /** Panneau et moulure de travée sur un mur ordinaire. */
   bayPanel?: boolean;
-  /** PIERRE : ferrure / arase+merlons / gravats / renfoncement de passage. */
-  band?: string; cap?: string; rubble?: string; rubbleHi?: string; recess?: string;
+  /** PIERRE : ferrure / arase+merlons / gravats. */
+  band?: string; cap?: string; rubble?: string; rubbleHi?: string;
   /** BOIS : couleurs de base des autres parties (la face vient de `face`). */
   wood?: { inset: string; frame: string; cap: string; skirt: string; rubble: string; rubbleHi: string };
   /** Fortification : parapet crénelé. */

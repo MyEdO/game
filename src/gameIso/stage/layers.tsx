@@ -6,23 +6,23 @@
  * (`gameIso/TopoScene`) et la vue du dessus de JEU (`SurcoucheIso`, verdict `mursAuTrait` de
  * `stage/viewPolicy`) la montent toutes deux — elles ne diffèrent que par le brouillard, un argument.
  * Vu à la verticale, la coiffe d'un mur volumique tombe sous le pixel (mesure au JSDoc de
- * `stage/planSnapshot.ts`), là où le trait est invariant d'échelle — la MATIÈRE vient du monde cuit,
- * la STRUCTURE du trait.
+ * `stage/planSnapshot.ts`), là où le trait est la COUPE HORIZONTALE du volume (`builders/walls.ts:
+ * coupeDuMur`) — la MATIÈRE vient du monde cuit, la STRUCTURE du trait.
  *
  * C'est tout ce qui reste de l'assemblage de couches SVG : la voie de JEU affine est morte
  * (#1176 P3-4, commit C5a), et avec elle les sols et les toits projetés (`floorLayerObjs`/
  * `roofLayerObjs`), qui n'avaient plus de consommateur.
  * Fonctions PURES.
  */
-import { depth, projectOccluder, tileEdge, type Dims, type EdgeSide } from '../../geometry/iso';
-import { liftDe, tileAt } from '../../state/scene';
+import { depth, projectOccluder, type Dims, type EdgeSide } from '../../geometry/iso';
+import { heightAt, sceneMetresPerTile, tileAt } from '../../state/scene';
 import { areteCanonique, cleArete } from '../../geometry/arete';
 import { terrainSolidHeightM } from '../../state/terrain';
 import { memoByRefDeps } from '../../state/sceneMemo';
 import { panelOf } from './occluders';
 import { wallSvg, wallAccentsSvg, wallDepth, dessusDuBlocPlein, dessusSvg } from '../authoring/wallsSvg';
 import type { DetailOpts } from '../authoring/detailSvg';
-import { buildWalls } from '../builders/walls';
+import { buildWalls, wallEnds } from '../builders/walls';
 import type { WallEl } from '../builders/types';
 import { sortByDepth, type StageObj } from './objs';
 import type { Scene } from '../../state/scene';
@@ -96,12 +96,13 @@ function solidTileTraitObjs(scene: Scene, dims: Dims, z: number, visible?: Reado
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
     if (!plein(x, y)) continue;
     if (visible && !visible.has(`${x},${y},${z}`)) continue;
-    const lift = liftDe(scene, { x, y, z });
+    const base = heightAt(scene, x, y, z);
+    const hauteurM = terrainSolidHeightM(tileAt(scene, x, y, z));
     for (const [side, dx, dy] of ARETES) {
       if (plein(x + dx, y + dy)) continue;
       const arete = areteCanonique(x, y, side);
-      const [a, b] = tileEdge(x, y, side, dims, lift);
-      const svg = dessusSvg(dessusDuBlocPlein([a.cx, a.cy], [b.cx, b.cy]));
+      const [A, B] = wallEnds(arete);
+      const svg = dessusSvg(dessusDuBlocPlein([{ ...A, h: base }, { ...B, h: base }], hauteurM, dims, sceneMetresPerTile(scene)));
       out.push({
         d: depth(x, y, dims, z) + TRAIT_D,
         x, y, z,
@@ -132,6 +133,6 @@ function solidTileTraitObjs(scene: Scene, dims: Dims, z: number, visible?: Reado
  * qu'un plan doit interdire. Ce n'est donc pas une incohérence avec C6, c'est sa frontière.
  */
 export function wallTraitObjs(scene: Scene, dims: Dims, z: number, visible?: ReadonlySet<string>): StageObj[] {
-  const objs = wallLayerObjs(buildWalls(scene, visible, { activeZ: z, viewZ: z }), dims, 0, TRAIT_LOD);
+  const objs = wallLayerObjs(buildWalls(scene, visible, { activeZ: z, viewZ: z }), dims, 0, { ...TRAIT_LOD, mpt: sceneMetresPerTile(scene) });
   return sortByDepth(objs.filter((o) => o.vis !== false), solidTileTraitObjs(scene, dims, z, visible));
 }

@@ -16,7 +16,8 @@ import { memoByRef } from '../../state/sceneMemo';
 import { estAbsent } from '../../state/terrain';
 import { viewedBuilder, type Viewed } from './viewTruth';
 import { effectiveArchitecture } from '../../state/sceneEdit';
-import { structureAppearance, uprightCrossM, wallMatterM, type StructureAppearanceDef, type WallPart } from '../catalog/structures';
+import { structureAppearance, uprightCrossM, wallMatterM, wallPartRelief, type StructureAppearanceDef, type WallPart } from '../catalog/structures';
+import { faceDepthM } from '../catalog/faceDepth';
 import { MISSING_ID } from '../catalog/missing';
 import { KINDS_DE_DECOR } from '../../data/facadePresets';
 import { WALL_H_M, isoPxToM } from '../iso';
@@ -294,6 +295,59 @@ function wallFaces(seg: WallSeg, app: StructureAppearanceDef, b: number, down: b
     ...(capped ? [] : [slab('couronnement', H1, H1 + isoPxToM(CAP_LIP_PX))]),
     upright('poteau', 1, b, H1),
   ];
+}
+
+/** HAUTEUR DE COUPE (m au-dessus de la surface porteuse) de la vue du dessus — valeur MAISON, révisable :
+ *  sous l'ouverture de baie la plus basse du catalogue (`hauteurDeBaie`), au-dessus des seuils. */
+export const HAUTEUR_DE_COUPE_M = 1;
+
+/** Place d'une face par rapport au plan de coupe : `coupe` (le plan la traverse), `sous` (elle finit
+ *  plus bas), `surplomb` (elle commence plus haut). */
+export type ClasseDeCoupe = 'coupe' | 'sous' | 'surplomb';
+
+/** Une face de mur vue par la COUPE HORIZONTALE : son tronçon [t0, t1] le long de l'arête (0 = A, 1 = B),
+ *  l'épaisseur que le volume lui donne (`faceDepthM`, m), sa classe. */
+export interface TronconDeCoupe {
+  part: WallPart;
+  /** Id d'apparence de la FACE (un ornement de façade porte la sienne). */
+  apparence: string;
+  t0: number;
+  t1: number;
+  epaisseurM: number;
+  classe: ClasseDeCoupe;
+}
+
+/** COUPE HORIZONTALE des faces d'un mur à `hc` m au-dessus de la surface porteuse (la droite `ends`,
+ *  interpolée le long de l'arête), dans l'ORDRE de `faces`. Une face traversée donne l'intersection de
+ *  son polygone avec le plan ; une face sous ou au-dessus du plan, son emprise. Un MONTANT (face à
+ *  2 points) est une croix de largeur `epaisseurM` : son tronçon s'étend d'une demi-croix de part et
+ *  d'autre, en fraction de l'arête (`mpt` m par case). Les parts de famille `saillie`
+ *  (`wallPartRelief`) sont écartées. PURE. */
+export function coupeDuMur(faces: readonly Face[], ends: readonly [GP, GP], hc: number, mpt: number): TronconDeCoupe[] {
+  const [A, B] = ends;
+  const L2 = (B.x - A.x) ** 2 + (B.y - A.y) ** 2;
+  const tOf = (p: GP) => ((p.x - A.x) * (B.x - A.x) + (p.y - A.y) * (B.y - A.y)) / L2;
+  const out: TronconDeCoupe[] = [];
+  for (const face of faces) {
+    const part = face.material.part as WallPart;
+    if (wallPartRelief(part).famille === 'saillie') continue;
+    const ts = face.poly.map(tOf);
+    const ds = face.poly.map((p, i) => p.h - (A.h + (B.h - A.h) * ts[i]) - hc);
+    const classe: ClasseDeCoupe = Math.min(...ds) > 0 ? 'surplomb' : Math.max(...ds) < 0 ? 'sous' : 'coupe';
+    let span = ts;
+    if (classe === 'coupe') {
+      span = ts.filter((_, i) => ds[i] === 0);
+      const n = face.poly.length === 2 ? 1 : face.poly.length;
+      for (let i = 0; i < n; i++) {
+        const j = (i + 1) % face.poly.length;
+        if (ds[i] * ds[j] < 0) span.push(ts[i] + ((ts[j] - ts[i]) * ds[i]) / (ds[i] - ds[j]));
+      }
+    }
+    const epaisseurM = faceDepthM(face) ?? 0;
+    const demiCroix = face.poly.length === 2 ? epaisseurM / 2 / (Math.sqrt(L2) * mpt) : 0;
+    out.push({ part, apparence: face.material.id, t0: Math.min(...span) - demiCroix, t1: Math.max(...span) + demiCroix, epaisseurM, classe });
+  }
+  return out;
 }
 
 /** Case VOISINE de l'autre côté de l'arête — SOURCE UNIQUE `WALL_NB` (`builders/roofs.ts`), partagée

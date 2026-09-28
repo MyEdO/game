@@ -28,7 +28,8 @@ import {
   type Vec3,
   type WorldPoly,
 } from './worldTris';
-import { faceDepthM, faceDepthOf } from './faceRelief';
+import { faceDepthOf } from './faceRelief';
+import { faceDepthM } from '../../catalog/faceDepth';
 import {
   uprightCrossM,
   UPRIGHT_OVERHANG_M,
@@ -69,7 +70,7 @@ const vitrine = buildVitrineScene();
 const facesOf = memoByRef((scene: Scene): Face[] =>
   [...buildFloors(scene), ...buildWalls(scene), ...buildRoofs(scene)].flatMap((el) => el.faces));
 
-/** Quads MONDE d'une scène à la profondeur que les catalogues d'apparence résolvent (`faceRelief`) —
+/** Quads MONDE d'une scène à la profondeur que les catalogues d'apparence résolvent (`catalog/faceDepth.ts`) —
  *  la liste EXACTE que `bakeWorldGeometry` fusionne, jamais une géométrie de laboratoire. */
 const quadsOf = memoByRef((scene: Scene): WorldPoly[] => {
   const mpt = sceneMetresPerTile(scene);

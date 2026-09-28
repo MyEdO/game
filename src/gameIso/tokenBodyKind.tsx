@@ -9,7 +9,7 @@ import { AnimatedPlanToken } from './AnimatedPlanToken';
 import { enemyRigProfile, entityRigProfileFor, rendersFromOwnInventory, refOf } from './rig/enemyProfile';
 import { planById } from './rig/bodyPlan';
 import { diagOnce, withDiagSubject } from './rig/devDiag';
-import { structureAppearance } from './catalog/structures';
+import { structureAppearance, wallPartColor } from './catalog/structures';
 import { isStructure } from '../engine/structures';
 import { findCreatureById, findTrappingById, findVehicleById } from '../data';
 import { combatantRender, entityRender, sceneEntityForRender } from './sizeScale';
@@ -61,12 +61,12 @@ const STRUCT_BOX = '26 38 68 68';
 const STRUCT_APP = structureAppearance('mur-en-pierre');
 const STRUCT_BODY = (
   <g>
-    <rect x={34} y={50} width={52} height={64} fill={STRUCT_APP.face} stroke={STRUCT_APP.band ?? STRUCT_APP.face} strokeWidth={2} />
-    <rect x={34} y={66} width={52} height={5} fill={STRUCT_APP.band ?? STRUCT_APP.face} />
-    <rect x={34} y={90} width={52} height={5} fill={STRUCT_APP.band ?? STRUCT_APP.face} />
-    <rect x={34} y={44} width={12} height={8} fill={STRUCT_APP.cap ?? STRUCT_APP.face} />
-    <rect x={54} y={44} width={12} height={8} fill={STRUCT_APP.cap ?? STRUCT_APP.face} />
-    <rect x={74} y={44} width={12} height={8} fill={STRUCT_APP.cap ?? STRUCT_APP.face} />
+    <rect x={34} y={50} width={52} height={64} fill={wallPartColor(STRUCT_APP, 'face')} stroke={wallPartColor(STRUCT_APP, 'bande')} strokeWidth={2} />
+    <rect x={34} y={66} width={52} height={5} fill={wallPartColor(STRUCT_APP, 'bande')} />
+    <rect x={34} y={90} width={52} height={5} fill={wallPartColor(STRUCT_APP, 'bande')} />
+    <rect x={34} y={44} width={12} height={8} fill={wallPartColor(STRUCT_APP, 'merlon')} />
+    <rect x={54} y={44} width={12} height={8} fill={wallPartColor(STRUCT_APP, 'merlon')} />
+    <rect x={74} y={44} width={12} height={8} fill={wallPartColor(STRUCT_APP, 'merlon')} />
   </g>
 );
 

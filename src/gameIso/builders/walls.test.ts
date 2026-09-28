@@ -1,13 +1,15 @@
 import { describe, it, expect, vi } from 'vitest';
-import { buildWalls, wallEnds, PLANCHES, POIGNEE_BORD, POIGNEE_LARGEUR } from './walls';
+import { buildWalls, coupeDuMur, wallEnds, HAUTEUR_DE_COUPE_M, PLANCHES, POIGNEE_BORD, POIGNEE_LARGEUR } from './walls';
 import type { WallEl } from './types';
 import { WALL_H_M, isoPxToM } from '../iso';
 import { METRES_PER_LEVEL } from '../../state/relief';
-import { structureAppearance } from '../catalog/structures';
+import { structureAppearance, wallPartRelief, type WallPart } from '../catalog/structures';
 import { MISSING_ID } from '../catalog/missing';
-import { emptyScene, setStructureDown, type BuildingMass, type Scene, type SceneEffectZone, type WallSeg } from '../../state/scene';
+import { emptyScene, sceneMetresPerTile, setDoorOpen, setStructureDown, type BuildingMass, type Scene, type SceneEffectZone, type WallSeg } from '../../state/scene';
+import { structureAppearances } from '../../data';
+import { formesAdmises, type FormeArete } from '../../data/formesDArete';
 import { buildScene } from '../../state/mapSpec';
-import { faceDepthM } from '../backends/webgl/faceRelief';
+import { faceDepthM } from '../catalog/faceDepth';
 import { wallSideSchema } from '../../data/schemas/defs-scenes/communs';
 
 /** Apparence d'ESSAI à matière MINCE (`relief.wallM` sous la largeur du poteau, `UPRIGHT_WIDTH_M`) : le
@@ -633,8 +635,7 @@ describe('crestEls — crénelure de PÉRIMÈTRE (RENDU PUR, générale, jamais 
  * ENVELOPPE D'ÉTAGE (#892) — depuis l'unification `WALL_H = LEVEL_H` (`geometry/iso.ts`), le sommet
  * d'un mur EST la cote du plancher du dessus : la lèvre décorative du couronnement (`CAP_LIP_PX`,
  * 0,167 m au-dessus du sommet) n'a plus aucun dégagement et PERCE ce plancher. Elle se voit en POV et
- * en iso, où les FACES sont peintes ; pas en vue du dessus, qui ne trace que les arêtes (`dessusDuMur`,
- * `authoring/wallsSvg.ts`). Un mur COIFFÉ par un étage tient donc dans [base, base+WALL_H_M] ; un mur
+ * en iso, où les FACES sont peintes ; pas en vue du dessus, coupe à `HAUTEUR_DE_COUPE_M` (`coupeDuMur`). Un mur COIFFÉ par un étage tient donc dans [base, base+WALL_H_M] ; un mur
  * libre (dernier niveau, clôture), ou seulement TRAVERSÉ par un plancher, garde sa lèvre.
  */
 describe('buildWalls — un mur COIFFÉ par un étage tient dans son enveloppe', () => {
@@ -722,5 +723,113 @@ describe('roofSeamGeometry — le joint de deux nappes prend la matière du mur 
 
   it('un bâti SANS aucun mur n’a rien à prolonger : aucun joint inventé, pas plus qu’un pignon', () => {
     expect(seams(sceneWith([]))).toHaveLength(0);
+  });
+});
+
+/**
+ * COUPE HORIZONTALE (`coupeDuMur`) — la vue du dessus d'un mur. Oracle GÉOMÉTRIQUE indépendant de
+ * l'algorithme : chaque face est replacée dans son plan (t le long de l'arête, d = hauteur au-dessus du
+ * plan de coupe), sa classe se lit à l'étendue de d, et le tronçon coupé d'un polygone est la plage des
+ * t dont le point (t, 0) est DANS le polygone (pair-impair, échantillonné).
+ */
+describe('coupeDuMur — coupe horizontale des faces de chaque apparence × forme admise × intacte/abattue', () => {
+  const SEG_DE_FORME: Record<FormeArete, Partial<WallSeg>> = {
+    'mur-nu': {},
+    'mur-fenetre': { window: true },
+    'porte-fermee': { structure: 'porte', door: true, closed: true },
+    'porte-ouverte': { structure: 'porte', door: true },
+    'fermeture-fixe': { structure: 'porte' },
+  };
+  const scene = (appearance: string, forme: FormeArete, down: boolean): Scene => {
+    let s = emptyScene(6, 6);
+    s.walls = [{ x: 2, y: 2, side: 'N', structure: 'mur-en-bois', ...SEG_DE_FORME[forme], appearance }];
+    if (down) s = setStructureDown(s, 2, 2, 'N', 0, true);
+    return s;
+  };
+  const cas = structureAppearances.flatMap((app) => formesAdmises(app).flatMap((forme) =>
+    [false, true].map((down): [string, Scene] => [`${app.id} ${forme}${down ? ' abattue' : ''}`, scene(app.id, forme, down)])));
+
+  /** (t, d) de chaque sommet d'une face : t le long de l'arête, d au-dessus du plan de coupe. */
+  const plan = (el: WallEl, hc: number) => {
+    const [A, B] = el.ends;
+    const L2 = (B.x - A.x) ** 2 + (B.y - A.y) ** 2;
+    return (poly: WallEl['faces'][number]['poly']) => poly.map((p) => {
+      const t = ((p.x - A.x) * (B.x - A.x) + (p.y - A.y) * (B.y - A.y)) / L2;
+      return { t, d: p.h - (A.h + (B.h - A.h) * t) - hc };
+    });
+  };
+  const dansLePolygone = (pts: { t: number; d: number }[], t: number): boolean => {
+    let dedans = false;
+    for (let i = 0, j = pts.length - 1; i < pts.length; j = i++)
+      if ((pts[i].d > 0) !== (pts[j].d > 0) && t < pts[i].t + ((pts[j].t - pts[i].t) * (0 - pts[i].d)) / (pts[j].d - pts[i].d)) dedans = !dedans;
+    return dedans;
+  };
+
+  it('chaque face non saillante donne UNE entrée, dans son ordre : sa part, sa classe, son tronçon, son épaisseur = faceDepthM', () => {
+    expect(cas.length).toBeGreaterThan(40);
+    const fautes: string[] = [];
+    for (const [quoi, s] of cas) {
+      const el = one(s);
+      const mpt = sceneMetresPerTile(s);
+      const L = Math.hypot(el.ends[1].x - el.ends[0].x, el.ends[1].y - el.ends[0].y) * mpt;
+      const coupe = coupeDuMur(el.faces, el.ends, HAUTEUR_DE_COUPE_M, mpt);
+      const retenues = el.faces.filter((f) => wallPartRelief(f.material.part as WallPart).famille !== 'saillie');
+      if (coupe.length !== retenues.length) { fautes.push(`${quoi} : ${coupe.length} entrées pour ${retenues.length} faces non saillantes`); continue; }
+      const enPlan = plan(el, HAUTEUR_DE_COUPE_M);
+      retenues.forEach((f, i) => {
+        const e = coupe[i];
+        const pts = enPlan(f.poly);
+        const ds = pts.map((p) => p.d), ts = pts.map((p) => p.t);
+        const classe = Math.min(...ds) > 0 ? 'surplomb' : Math.max(...ds) < 0 ? 'sous' : 'coupe';
+        const ici = `${quoi} #${i} ${f.material.part}`;
+        if (e.part !== f.material.part) fautes.push(`${ici} : part ${e.part}`);
+        if (e.apparence !== f.material.id) fautes.push(`${ici} : apparence ${e.apparence}`);
+        if (e.classe !== classe) fautes.push(`${ici} : classe ${e.classe} ≠ ${classe}`);
+        if (e.epaisseurM !== (faceDepthM(f) ?? 0)) fautes.push(`${ici} : épaisseur ${e.epaisseurM} ≠ ${faceDepthM(f)}`);
+        let [t0, t1] = [Math.min(...ts), Math.max(...ts)];
+        if (f.poly.length === 2) { const demi = e.epaisseurM / 2 / L; t0 -= demi; t1 += demi; }
+        else if (classe === 'coupe' && (Math.min(...ds) === 0 || Math.max(...ds) === 0)) {
+          // Le plan AFFLEURE la face (bord haut ou bas à `hc`) : la coupe est ce bord.
+          const aPlat = ts.filter((_, k) => ds[k] === 0);
+          [t0, t1] = [Math.min(...aPlat), Math.max(...aPlat)];
+        } else if (classe === 'coupe') {
+          const N = 4000, pas = (t1 - t0) / N;
+          const dedans = Array.from({ length: N }, (_, k) => t0 + (k + 0.5) * pas).filter((t) => dansLePolygone(pts, t));
+          if (!dedans.length) { fautes.push(`${ici} : coupé mais aucun point dans le polygone`); return; }
+          if (Math.abs(e.t0 - dedans[0]) > pas || Math.abs(e.t1 - dedans[dedans.length - 1]) > pas) fautes.push(`${ici} : tronçon [${e.t0}, ${e.t1}] ≠ [${dedans[0]}, ${dedans[dedans.length - 1]}]`);
+          return;
+        }
+        if (Math.abs(e.t0 - t0) > 1e-12 || Math.abs(e.t1 - t1) > 1e-12) fautes.push(`${ici} : tronçon [${e.t0}, ${e.t1}] ≠ [${t0}, ${t1}]`);
+      });
+    }
+    expect(fautes).toEqual([]);
+  });
+
+  it('aucune part de famille `saillie` ne passe la coupe', () => {
+    const saillies = cas.flatMap(([quoi, s]) => {
+      const el = one(s);
+      return coupeDuMur(el.faces, el.ends, HAUTEUR_DE_COUPE_M, sceneMetresPerTile(s))
+        .filter((e) => wallPartRelief(e.part).famille === 'saillie').map((e) => `${quoi} : ${e.part}`);
+    });
+    expect(saillies).toEqual([]);
+  });
+
+  it('porte OUVERTE : quatre croix coupées aux bornes, le VIDE entre elles', () => {
+    for (const app of structureAppearances.filter((a) => !a.parapet && formesAdmises(a).includes('porte-ouverte'))) {
+      const s = scene(app.id, 'porte-ouverte', false);
+      const el = one(s);
+      const coupees = coupeDuMur(el.faces, el.ends, HAUTEUR_DE_COUPE_M, sceneMetresPerTile(s)).filter((e) => e.classe === 'coupe');
+      expect(coupees.map((e) => e.part), app.id).toEqual(['poteau', 'jambage', 'jambage', 'poteau']);
+      const demi = Math.max(...coupees.map((e) => (e.t1 - e.t0) / 2));
+      for (const e of coupees) expect(e.t1 <= demi + 1e-12 || e.t0 >= 1 - demi - 1e-12, `${app.id} ${e.part} [${e.t0}, ${e.t1}]`).toBe(true);
+    }
+  });
+
+  it('corps de garde OUVERT : rien de coupé, le linteau en surplomb', () => {
+    const s = setDoorOpen(scene('porte-de-ville', 'porte-fermee', false), 2, 2, 'N', 0, true);
+    const el = one(s);
+    const coupe = coupeDuMur(el.faces, el.ends, HAUTEUR_DE_COUPE_M, sceneMetresPerTile(s));
+    expect(coupe.filter((e) => e.classe === 'coupe')).toEqual([]);
+    expect(coupe.find((e) => e.part === 'linteau')?.classe).toBe('surplomb');
   });
 });

@@ -11,7 +11,7 @@
  *  - TRIANGULATION en ÉVENTAIL (les faces du pivot sont planes, convexes, ≤ 4 points) ;
  *  - VOLUME d'une face VERTICALE : une face du pivot est un plan d'épaisseur NULLE (l'affine peint des
  *    quads d'écran) — sans surface à 90° de plongée, sans chant à éclairer. Toute face verticale à qui
- *    l'appelant résout une profondeur (`FaceDepth`, catalogues d'apparence : `faceRelief.ts`) devient
+ *    l'appelant résout une profondeur (`FaceDepth`, catalogues d'apparence : `catalog/faceDepth.ts`) devient
  *    une BOÎTE MINCE centrée sur son plan (`wallBoxPolys`) ;
  *  - MONTANTS à 2 points (`walls.ts:119`, `floors.ts:163`) : deux quads verticaux CROISÉS, dont la
  *    largeur arrive PAR LE MÊME CANAL que les épaisseurs (`FaceDepth` → `uprightCrossM`, authorée en
@@ -42,7 +42,7 @@ export function pxPerM(mpt: number): number {
 
 /** Épaisseur (m) d'un volume dont l'appelant n'a rien résolu : AUCUNE. Ce module ne connaît pas les
  *  matériaux — les épaisseurs sont authorées en mètres au catalogue et arrivent par `FaceDepth`
- *  (`faceRelief.ts`). Un appelant sans résolveur obtient donc des PLANS, jamais une épaisseur devinée. */
+ *  (`catalog/faceDepth.ts`). Un appelant sans résolveur obtient donc des PLANS, jamais une épaisseur devinée. */
 const SANS_VOLUME = 0;
 
 /** Séparation métrique d'un cran de rang coplanaire. */
@@ -187,7 +187,7 @@ export function crossQuadPolys(a: Vec3, b: Vec3, wM: number): WorldPoly[] {
 }
 
 /** PROFONDEUR MONDE (m) du volume d'une face, résolue par l'appelant depuis les catalogues d'apparence
- *  (`faceRelief.ts`) — ce module ne connaît aucun matériau. Pour un MONTANT (face à 2 points), c'est la
+ *  (`catalog/faceDepth.ts`) — ce module ne connaît aucun matériau. Pour un MONTANT (face à 2 points), c'est la
  *  LARGEUR de sa croix. `undefined` = rien de résolu : la face reste un PLAN (et un montant, un trait
  *  sans épaisseur). Une profondeur NULLE laisse elle aussi un plan unique, au plan médian. */
 export type FaceDepth = (face: Face) => number | undefined;

@@ -4,20 +4,20 @@
  * du pivot en SVG, en projetant ses faces GRILLE+MÈTRES via le pont partagé (`projGP`). La ROTATION
  * caméra vit ici ; l'OMBRAGE d'orientation (arête N dans l'ombre) et les traits/liserés (dérivés de la
  * couleur de face via `shade.ts`) aussi. Les couleurs de base viennent de la def JSON par `wallPartColor`
- * (source unique avec le POV). La vue du DESSUS ('top') est la représentation SYMBOLIQUE historique
- * (traits épais / glyphe de porte), routée par `isSquareView` — elle se trace sur `el.ends`, pas les faces,
- * en DONNÉE (`dessusDuMur`) que `dessusSvg` sérialise.
+ * (source unique avec le POV). La vue du DESSUS ('top'), routée par `isSquareView`, est la COUPE
+ * HORIZONTALE des faces (`builders/walls.ts:coupeDuMur`), en DONNÉE (`dessusDuMur`) que `dessusSvg`
+ * sérialise.
  */
-import { CELL, depth, diamondPath, isSquareView, tileCenter, type Dims } from '../../geometry/iso';
+import { depth, isSquareView, type Dims } from '../../geometry/iso';
 import { WALL_H_M, isoPxToM } from '../iso';
-import { metricToLift } from '../../state/relief';
 import { APPARENCE_MUR_NU } from '../../state/formeArete';
-import { estBaie, estBaieFermee, habilleUneBaie } from '../../data/formesDArete';
+import { estBaie } from '../../data/formesDArete';
 import { structureAppearance, wallPartColor, windowLit, type StructureAppearanceDef, type WallPart } from '../catalog/structures';
 import { shade, spec, tonsDArete, SIDE_N, SIDE_LIT, POST_CAP, POST_BASE } from '../shade';
 import { detailOf, coursesOverlaySvg, timberOverlaySvg, verticalAccentsSvg, projTag, type DetailOpts } from './detailSvg';
 import { hash32 } from '../../data/hash';
 import type { Face, GP, WallEl } from '../builders/types';
+import { coupeDuMur, HAUTEUR_DE_COUPE_M, type ClasseDeCoupe, type TronconDeCoupe } from '../builders/walls';
 import type { WallSide } from '../../state/scene';
 import { projGP, type Pt2 } from './project';
 
@@ -102,8 +102,8 @@ function faceSvg(f: Face, el: WallEl, app: StructureAppearanceDef, tintK: number
   const base = wallPartColor(app, part);
   const fill = TINTED.has(part) ? shade(base, tintK) : base;
   let extra = '';
-  if (part === 'face') extra = app.parapet ? strokeAttr(app.band ?? app.face, 0.8) : strokeAttr(shade(app.face, OUTLINE), 0.7);
-  else if (part === 'parapet' || part === 'linteau') extra = strokeAttr(app.band ?? app.face, 0.8);
+  if (part === 'face') extra = app.parapet ? strokeAttr(wallPartColor(app, 'bande'), 0.8) : strokeAttr(shade(app.face, OUTLINE), 0.7);
+  else if (part === 'parapet' || part === 'linteau') extra = strokeAttr(wallPartColor(app, 'bande'), 0.8);
   else if (part === 'chambranle') extra = strokeAttr(shade(app.face, OUTLINE), 0.5);
   else if (part === 'gravats-tas') extra = strokeAttr(app.band ?? shade(app.face, OUTLINE), 0.6);
   let overlay = '';
@@ -113,124 +113,100 @@ function faceSvg(f: Face, el: WallEl, app: StructureAppearanceDef, tintK: number
   return `<polygon points="${polyPts(p)}" fill="${fill}"${extra}/>` + overlay;
 }
 
-/** Largeur ÉCRAN (px) minimale du liseré de BORD visible de chaque côté du cœur, (bord − cœur) / 2 : sur
- *  un fond proche du cœur, seul ce liseré porte le contraste. */
+/** Largeur (unités de viewBox) du liseré de BORD d'un trait coupé, de chaque côté de son cœur : sur un
+ *  fond proche du cœur, seul ce liseré porte le contraste. */
 export const LISERE_VISIBLE_MIN = 1;
 
-/** Largeurs ÉCRAN (px) [bord, cœur] des traits d'arête de la vue du dessus — la FORME se lit à la largeur,
- *  aux tirets et au glyphe. Chacune laisse `LISERE_VISIBLE_MIN` de liseré de part et d'autre. `dessusSvg`
- *  les trace en `non-scaling-stroke` : elles valent ces pixels à toute échelle du groupe qui porte le
- *  trait (caméra du jeu, `stage/stageCam` ; `meet` du plan de station, `TopoScene`). */
-export const TRAITS_D_ARETE = {
-  mur: [8, 5],
-  courtine: [11, 7],
-  breche: [6, 3.5],
-  jambage: [7, 4],
-  baie: [4, 2],
-  barreau: [3, 1],
-  case: [3.5, 1.5],
-} as const satisfies Record<string, readonly [number, number]>;
-const TIRETS_BRECHE = '3 5';
+/** Tirets du trait de SURPLOMB (unités de viewBox : trait, jour). */
+const TIRETS_DU_SURPLOMB = '3 5';
 
-/** TRAIT D'ARÊTE de la vue du dessus : la PART de mur `part` vue d'en haut, un BORD de largeur `larg[0]`
- *  puis un CŒUR de largeur `larg[1]`, aux deux tons de `tonsDArete(wallPartColor(app, part))` — le cœur
- *  est la couleur que le volume donne à cette part. Le long d'un SEGMENT p→q, ou le pourtour d'un CHEMIN
- *  fermé `d` rempli de `fond`. `dash` : tirets de la brèche. */
+/** TRAIT de la vue du dessus : une classe de la coupe (`coupeDuMur`) le long de ses tronçons [p, q]. Le
+ *  cœur a la largeur et la couleur que le volume donne à la part ; un trait `coupe` porte un BORD (les
+ *  deux tons de `tonsDArete`), un trait `sous` son cœur seul, le `surplomb` l'UNION de ses tronçons en
+ *  un seul trait en tirets. */
 export interface TraitDuDessus {
-  quoi: 'trait';
-  part: WallPart;
-  geo: { p: Pt2; q: Pt2 } | { d: string; fond: string };
-  larg: readonly [number, number];
-  tons: { coeur: string; bord: string };
-  dash?: string;
+  classe: ClasseDeCoupe;
+  troncons: readonly (readonly [Pt2, Pt2])[];
+  coeur: { largeur: number; couleur: string };
+  bord?: { largeur: number; couleur: string };
 }
-/** APLAT de la vue du dessus : le renfoncement du corps de garde. */
-interface AplatDuDessus {
-  quoi: 'aplat';
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-  fond: string;
+
+/** Union d'intervalles [t0, t1], triée. */
+function unionDIntervalles(ivs: readonly (readonly [number, number])[]): [number, number][] {
+  const out: [number, number][] = [];
+  for (const [a, b] of [...ivs].sort((x, y) => x[0] - y[0])) {
+    const der = out[out.length - 1];
+    if (der && a <= der[1]) der[1] = Math.max(der[1], b);
+    else out.push([a, b]);
+  }
+  return out;
 }
-/** Un élément de la vue du dessus, dans l'ORDRE DE PEINTURE. */
-export type ElementDuDessus = TraitDuDessus | AplatDuDessus;
 
-const trait = (geo: TraitDuDessus['geo'], larg: readonly [number, number], app: StructureAppearanceDef, part: WallPart, dash?: string): TraitDuDessus =>
-  ({ quoi: 'trait', part, geo, larg, tons: tonsDArete(wallPartColor(app, part)), ...(dash ? { dash } : {}) });
+/** SÉRIALISE une coupe en traits de la vue du dessus, dans l'ordre de peinture `sous` → `surplomb` →
+ *  `coupe`, sur l'arête `ends` projetée ; épaisseurs (m) converties en viewBox par `mpt`. */
+export function dessusDeLaCoupe(coupe: readonly TronconDeCoupe[], ends: readonly [GP, GP], dims: Dims, mpt: number): TraitDuDessus[] {
+  const [a, b] = ends.map((gp) => projGP(gp, dims));
+  const vbParM = Math.hypot(b[0] - a[0], b[1] - a[1]) / (Math.hypot(ends[1].x - ends[0].x, ends[1].y - ends[0].y) * mpt);
+  const at = (t: number): Pt2 => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
+  const couleur = (e: TronconDeCoupe) => wallPartColor(structureAppearance(e.apparence), e.part);
+  const de = (classe: ClasseDeCoupe) => coupe.filter((e) => e.classe === classe);
+  const sous = de('sous').map((e): TraitDuDessus =>
+    ({ classe: 'sous', troncons: [[at(e.t0), at(e.t1)]], coeur: { largeur: e.epaisseurM * vbParM, couleur: couleur(e) } }));
+  const hauts = de('surplomb');
+  const surplomb: TraitDuDessus[] = hauts.length ? [{
+    classe: 'surplomb',
+    troncons: unionDIntervalles(hauts.map((e) => [e.t0, e.t1] as const)).map(([t0, t1]) => [at(t0), at(t1)] as const),
+    coeur: { largeur: Math.max(...hauts.map((e) => e.epaisseurM)) * vbParM, couleur: couleur(hauts[0]) },
+  }] : [];
+  const coupes = de('coupe').map((e): TraitDuDessus => {
+    const tons = tonsDArete(couleur(e));
+    const largeur = e.epaisseurM * vbParM;
+    return {
+      classe: 'coupe',
+      troncons: [[at(e.t0), at(e.t1)]],
+      coeur: { largeur, couleur: tons.coeur },
+      bord: { largeur: largeur + 2 * LISERE_VISIBLE_MIN, couleur: tons.bord },
+    };
+  });
+  return [...sous, ...surplomb, ...coupes];
+}
 
-/** Vue du DESSUS symbolique d'un élément de mur, en DONNÉE : chaque trait est une part que `wallFaces`
- *  (`builders/walls.ts`) dessine sur la même arête — face du mur ou de la courtine, barreaux d'une
- *  claire-voie, gravats de la brèche (seuil d'un corps de garde abattu), jambages d'une porte et, sous
- *  eux, le vantail ou les barreaux d'une baie FERMÉE ; le corps de garde = case pleine au linteau + glyphe
- *  de herse. Seule la porte ouverte laisse le vide. `dessusSvg` la sérialise. */
-export function dessusDuMur(el: WallEl, dims: Dims): ElementDuDessus[] {
-  const app = structureAppearance(el.appearance);
-  const [a, b] = el.ends.map((gp) => projGP(gp, dims));
-  const lerp = (t: number): Pt2 => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
-  const breche = (part: WallPart) => [trait({ p: a, q: b }, TRAITS_D_ARETE.breche, app, part, TIRETS_BRECHE)];
-  if (app.parapet) {
-    if (habilleUneBaie(app) && estBaie(el.forme)) {
-      if (el.states.down) return breche('seuil');
-      const lift = metricToLift(el.ends[0].h);
-      const { cx, cy } = tileCenter(el.cell.x, el.cell.y, dims, lift);
-      const h = CELL / 2;
-      const glyphe: ElementDuDessus[] = [
-        trait({ d: diamondPath(el.cell.x, el.cell.y, dims, lift), fond: wallPartColor(app, 'linteau') }, TRAITS_D_ARETE.case, app, 'linteau'),
-        { quoi: 'aplat', x: cx - h * 0.46, y: cy - h, w: h * 0.92, h: 2 * h, fond: app.recess ?? app.face },
-      ];
-      const bars = estBaieFermee(el.forme) ? app.claireVoie?.bars ?? 0 : 0;
-      for (let i = 1; i < bars; i++) {
-        const ly = cy - h + 2 * h * (i / bars);
-        glyphe.push(trait({ p: [cx - h * 0.46, ly], q: [cx + h * 0.46, ly] }, TRAITS_D_ARETE.barreau, app, 'barreau'));
-      }
-      return glyphe;
-    }
-    if (el.states.down) return breche('gravats');
-    return [trait({ p: a, q: b }, TRAITS_D_ARETE.courtine, app, 'face')];
-  }
-  if (el.states.down) return breche('gravats');
-  if (estBaie(el.forme)) {
-    const bouchee = estBaieFermee(el.forme)
-      ? [trait({ p: lerp(0.3), q: lerp(0.7) }, TRAITS_D_ARETE.baie, app, app.claireVoie ? 'barreau' : 'vantail')]
-      : [];
-    return [...bouchee, trait({ p: a, q: lerp(0.3) }, TRAITS_D_ARETE.jambage, app, 'jambage'), trait({ p: lerp(0.7), q: b }, TRAITS_D_ARETE.jambage, app, 'jambage')];
-  }
-  return [trait({ p: a, q: b }, TRAITS_D_ARETE.mur, app, el.forme !== 'mur-fenetre' && app.claireVoie ? 'barreau' : 'face')];
+/** Vue du DESSUS d'un élément de mur : la sérialisation de la COUPE de ses faces
+ *  (`coupeDuMur`, `HAUTEUR_DE_COUPE_M`). `mpt` = mètres par case de la scène. */
+export function dessusDuMur(el: WallEl, dims: Dims, mpt: number): TraitDuDessus[] {
+  return dessusDeLaCoupe(coupeDuMur(el.faces, el.ends, HAUTEUR_DE_COUPE_M, mpt), el.ends, dims, mpt);
 }
 
 /**
- * TRAIT de FRONTIÈRE d'une TUILE À BLOC PLEIN en vue du dessus (#1176, P3-5b) : le MÊME trait
- * symbolique que le mur sur arête (`TraitDuDessus`), posé sur une arête de case.
+ * Vue du dessus d'une TUILE À BLOC PLEIN (#1176, P3-5b), sur l'arête `ends` de sa frontière : la MÊME
+ * coupe que le mur sur arête, d'UNE face verticale de `hauteurM` m à l'apparence du mur nu.
  *
  * Un obstacle s'auteure de DEUX façons — un segment `WallSeg` sur une arête, ou une tuile de terrain à
  * `solidHeightM > 0` (le muret de couvert d'une scène à grille). En volume ce sont deux formes
- * distinctes et c'est juste ; en PLAN, ce sont le même fait — « on ne passe pas, on ne voit pas » — et
- * ils doivent donc se lire pareil. Sans ce trait, un bloc plein vu du dessus rend sa face du dessus :
- * une dalle pâle, lue comme du SOL.
+ * distinctes et c'est juste ; en PLAN, ce sont le même fait — « on ne passe pas, on ne voit pas ».
+ * Sans ce trait, un bloc plein vu du dessus rend sa face du dessus : une dalle pâle, lue comme du SOL.
  */
-export function dessusDuBlocPlein(a: Pt2, b: Pt2): ElementDuDessus[] {
-  return [trait({ p: a, q: b }, TRAITS_D_ARETE.mur, structureAppearance(APPARENCE_MUR_NU), 'face')];
+export function dessusDuBlocPlein(ends: readonly [GP, GP], hauteurM: number, dims: Dims, mpt: number): TraitDuDessus[] {
+  const [A, B] = ends;
+  const face: Face = {
+    poly: [{ ...A, h: A.h + hauteurM }, { ...B, h: B.h + hauteurM }, B, A],
+    material: { domain: 'structure', id: APPARENCE_MUR_NU, part: 'face' },
+    oriented: false,
+  };
+  return dessusDeLaCoupe(coupeDuMur([face], ends, HAUTEUR_DE_COUPE_M, mpt), ends, dims, mpt);
 }
 
-/** Épaisseur de trait en pixels d'ÉCRAN, hors de l'échelle du groupe porteur — la convention des traits
- *  de carte du dépôt (`ui/WorldMapView.tsx`, routes). */
-const TRAIT_ECRAN = ' vector-effect="non-scaling-stroke"';
-
-/** SÉRIALISE une vue du dessus en SVG, dans l'ordre de ses éléments : un trait peint son BORD puis son
- *  CŒUR par-dessus, chacun à sa largeur ÉCRAN (`TRAIT_ECRAN`). */
-export function dessusSvg(elements: readonly ElementDuDessus[]): string {
-  const peint = (e: ElementDuDessus): string => {
-    if (e.quoi === 'aplat') return `<rect x="${e.x}" y="${e.y}" width="${e.w}" height="${e.h}" fill="${e.fond}"/>`;
-    const { geo, larg, tons, dash } = e;
-    if ('d' in geo)
-      return `<path d="${geo.d}" fill="${geo.fond}" stroke="${tons.bord}" stroke-width="${larg[0]}"${TRAIT_ECRAN}/>` +
-        `<path d="${geo.d}" fill="none" stroke="${tons.coeur}" stroke-width="${larg[1]}"${TRAIT_ECRAN}/>`;
-    const ligne = (w: number, col: string) =>
-      `<line x1="${geo.p[0]}" y1="${geo.p[1]}" x2="${geo.q[0]}" y2="${geo.q[1]}" stroke="${col}" stroke-width="${w}" stroke-linecap="round"${dash ? ` stroke-dasharray="${dash}"` : ''}${TRAIT_ECRAN}/>`;
-    return ligne(larg[0], tons.bord) + ligne(larg[1], tons.coeur);
+/** SÉRIALISE une vue du dessus en SVG, dans l'ordre de ses traits : un trait peint son BORD puis son
+ *  CŒUR par-dessus ; un surplomb, ses tronçons en UN chemin en tirets. */
+export function dessusSvg(traits: readonly TraitDuDessus[]): string {
+  const peint = ({ classe, troncons, coeur, bord }: TraitDuDessus): string => {
+    const d = troncons.map(([p, q]) => `M${p[0]} ${p[1]}L${q[0]} ${q[1]}`).join('');
+    const tirets = classe === 'surplomb' ? ` stroke-dasharray="${TIRETS_DU_SURPLOMB}"` : '';
+    const trace = (t: { largeur: number; couleur: string }) =>
+      `<path d="${d}" fill="none" stroke="${t.couleur}" stroke-width="${t.largeur}" stroke-linecap="butt"${tirets}/>`;
+    return (bord ? trace(bord) : '') + trace(coeur);
   };
-  return `<g>${elements.map(peint).join('')}</g>`;
+  return `<g>${traits.map(peint).join('')}</g>`;
 }
 
 /** SVG d'un élément de mur : iso/edge-on = faces dans l'ORDRE DE PEINTURE du builder, ombrées par
@@ -239,7 +215,7 @@ export function dessusSvg(elements: readonly ElementDuDessus[]): string {
  *  panneau) — jamais sur une travée de porte (l'ouverture couperait les écharpes) ni une brèche. */
 export function wallSvg(el: WallEl, dims: Dims, opts?: DetailOpts): string {
   const app = structureAppearance(el.appearance);
-  if (isSquareView(dims.view)) return dessusSvg(dessusDuMur(el, dims));
+  if (isSquareView(dims.view)) return dessusSvg(dessusDuMur(el, dims, detailOf(opts).mpt));
   const tintK = el.side === 'N' ? SIDE_N : SIDE_LIT;
   const renderFaces = (faces: Face[]) => faces.map((f) => {
     const faceApp = structureAppearance(f.material.id);

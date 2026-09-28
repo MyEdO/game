@@ -290,7 +290,6 @@
     "cap": "#888d95",
     "rubble": "#463f35",
     "rubbleHi": "#6a6253",
-    "recess": "#241a10",
     "parapet": {
       "heightLevelFrac": 0.32,
       "merlonCount": 5,

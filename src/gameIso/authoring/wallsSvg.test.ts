@@ -1,21 +1,23 @@
 import { describe, it, expect } from 'vitest';
-import { buildWalls } from '../builders/walls';
 import type { WallEl } from '../builders/types';
-import { wallDepth, wallSvg, wallAccentsSvg, dessusDuBlocPlein, dessusDuMur, dessusSvg, LISERE_VISIBLE_MIN, type ElementDuDessus, type TraitDuDessus } from './wallsSvg';
+import { wallDepth, wallSvg, wallAccentsSvg, dessusDeLaCoupe, dessusDuBlocPlein, dessusDuMur, dessusSvg, LISERE_VISIBLE_MIN, type TraitDuDessus } from './wallsSvg';
+import { buildWalls, coupeDuMur, wallEnds, HAUTEUR_DE_COUPE_M } from '../builders/walls';
+import { faceDepthM } from '../catalog/faceDepth';
+import { projGP } from './project';
 import { depth, tileEdge, type Dims } from '../../geometry/iso';
-import { structureAppearance, wallPartColor, type StructureAppearanceDef } from '../catalog/structures';
+import { structureAppearance, wallPartColor } from '../catalog/structures';
 import { materials, structureAppearances, terrains } from '../../data';
 import { distanceTeinte, SEUIL_TEINTES_CONTIGUES } from '../../data/couleur';
 import { shade, SIDE_N } from '../shade';
 import { APPARENCE_MUR_NU } from '../../state/formeArete';
 import { formesAdmises, type FormeArete } from '../../data/formesDArete';
-import { emptyScene, setDoorOpen, setStructureDown, type Scene, type WallSeg } from '../../state/scene';
+import { emptyScene, setStructureDown, type Scene, type WallSeg } from '../../state/scene';
 
 /**
  * Backend écran-affine des murs : projette les éléments `wall` du pivot via la projection partagée.
  * On vérifie la PARITÉ de géométrie avec `tileEdge` (l'arête historique), l'ombrage d'orientation
  * (arête N dans l'ombre), les couleurs tirées de la def (par `wallPartColor`), la profondeur de tri
- * (MAX des 2 cases bordantes + 0.45) et la branche VUE DU DESSUS (représentation symbolique).
+ * (MAX des 2 cases bordantes + 0.45) et la branche VUE DU DESSUS (coupe horizontale).
  */
 
 const dims: Dims = { w: 6, h: 6 };
@@ -220,48 +222,9 @@ describe('wallDepth — MAX des cases bordantes + 0.45, aux 4 rotations', () => 
   });
 });
 
-describe('wallSvg — vue du DESSUS (représentation symbolique)', () => {
+describe('wallSvg — vue du DESSUS (coupe horizontale)', () => {
   const top: Dims = { ...dims, view: 'top' };
-  it('mur bois : double trait arrondi ; porte : deux jambages (ouverture centrale)', () => {
-    const mur = wallSvg(el({ x: 2, y: 2, side: 'N' }), top);
-    expect((mur.match(/stroke-linecap="round"/g) ?? []).length).toBe(2); // bord + cœur
-    expect(mur).not.toContain('<polygon'); // symbolique, pas les faces
-    const porte = wallSvg(el({ x: 2, y: 2, side: 'N', door: true }), top);
-    expect((porte.match(/<line /g) ?? []).length).toBe(4); // deux jambages, bord + cœur
-  });
-  it('courtine : traits 11/7 ; corps de garde : case pleine + glyphe ; abattue : tirets', () => {
-    const courtine = wallSvg(el({ x: 2, y: 2, side: 'N', structure: 'mur-en-pierre' }), top);
-    expect(courtine).toContain('stroke-width="11"');
-    expect(courtine).toContain('stroke-width="7"');
-    const porte = wallSvg(el({ x: 2, y: 2, side: 'N', structure: 'porte-de-ville' }), top);
-    expect(porte).toContain('<path'); // la case (diamondPath) pleine
-    expect(porte).toContain(`fill="${structureAppearance('porte-de-ville').recess}"`); // renfoncement du glyphe (def recess)
-    const breche = wallSvg(el({ x: 2, y: 2, side: 'N', structure: 'mur-en-pierre' }, (s) => setStructureDown(s, 2, 2, 'N', 0, true)), top);
-    expect(breche).toContain('stroke-dasharray="3 5"');
-  });
-  it('la branche de porte suit la FORME, pas le bloc `door` : une apparence porte de ville posée en mur nu ne dessine aucun passage ; une fermeture fixe, si', () => {
-    const murNu = wallSvg(el({ x: 2, y: 2, side: 'N', structure: 'mur-en-bois', appearance: 'porte-de-ville' }), top);
-    expect(murNu).not.toContain('<path');
-    expect(murNu).toContain('stroke-width="11"');
-    const fixe = wallSvg(el({ x: 2, y: 2, side: 'N', structure: 'porte-de-ville' }), top);
-    expect(fixe).toContain('<path');
-    const herseFixe = wallSvg(el({ x: 2, y: 2, side: 'N', structure: 'herse' }), top);
-    expect((herseFixe.match(/<line /g) ?? []).length, 'fermeture fixe hors parapet : deux jambages et la baie bouchée, bord + cœur').toBe(6);
-  });
-
-  /** Traits d'une vue du dessus, lus sur la LISTE que le rendu émet (`dessusDuMur`), jamais sur le SVG. */
-  const traitsDe = (elements: ElementDuDessus[]): TraitDuDessus[] => elements.filter((e): e is TraitDuDessus => e.quoi === 'trait');
-
-  it('`dessusSvg` peint chaque trait BORD puis CŒUR, à ses largeurs et ses tons, sur sa géométrie', () => {
-    const tons = { coeur: '#6e5940', bord: '#261f16' };
-    expect(dessusSvg([{ quoi: 'trait', part: 'face', geo: { p: [1, 2], q: [3, 4] }, larg: [8, 5], tons, dash: '3 5' }])).toBe(
-      '<g><line x1="1" y1="2" x2="3" y2="4" stroke="#261f16" stroke-width="8" stroke-linecap="round" stroke-dasharray="3 5" vector-effect="non-scaling-stroke"/>' +
-        '<line x1="1" y1="2" x2="3" y2="4" stroke="#6e5940" stroke-width="5" stroke-linecap="round" stroke-dasharray="3 5" vector-effect="non-scaling-stroke"/></g>',
-    );
-    expect(dessusSvg([{ quoi: 'trait', part: 'linteau', geo: { d: 'M0 0Z', fond: '#abcdef' }, larg: [3.5, 1.5], tons }])).toBe(
-      '<g><path d="M0 0Z" fill="#abcdef" stroke="#261f16" stroke-width="3.5" vector-effect="non-scaling-stroke"/><path d="M0 0Z" fill="none" stroke="#6e5940" stroke-width="1.5" vector-effect="non-scaling-stroke"/></g>',
-    );
-  });
+  const MPT = 2;
   const SEG_DE_FORME: Record<FormeArete, Partial<WallSeg>> = {
     'mur-nu': {},
     'mur-fenetre': { window: true },
@@ -274,92 +237,91 @@ describe('wallSvg — vue du DESSUS (représentation symbolique)', () => {
     ...terrains.map((t): [string, string] => [t.id, t.swatch]),
     ...materials.flatMap((m) => ('slopeTop' in m && m.slopeTop ? [[`relief:${m.id}`, m.slopeTop] as [string, string]] : [])),
   ];
+  /** Chaque apparence du catalogue dans chaque forme qu'elle admet, intacte puis abattue. */
+  const elementsDuCatalogue = (): [string, WallEl][] =>
+    structureAppearances.flatMap((app) => formesAdmises(app).flatMap((forme): [string, WallEl][] => {
+      const seg: WallSeg = { x: 2, y: 2, side: 'N', structure: 'mur-en-bois', ...SEG_DE_FORME[forme], appearance: app.id };
+      const w = el(seg);
+      expect(w.forme, `${app.id} ${forme}`).toBe(forme);
+      return [[`${app.id} ${forme}`, w], [`${app.id} ${forme} abattue`, el(seg, (s) => setStructureDown(s, 2, 2, 'N', 0, true))]];
+    }));
+  const bloc = (): [string, TraitDuDessus[]] => {
+    const [A, B] = wallEnds({ x: 2, y: 2, side: 'N' });
+    return ['bloc plein', dessusDuBlocPlein([{ ...A, h: 0 }, { ...B, h: 0 }], 4, top, MPT)];
+  };
 
-  /** Chaque apparence du catalogue dans chaque forme qu'elle admet, puis abattue : l'élément de mur que
-   *  `buildWalls` émet (ses `faces` = les parts que le volume dessine sur l'arête) et sa vue du dessus. */
-  const rendusDuCatalogue = (): [string, StructureAppearanceDef, WallEl, ElementDuDessus[]][] =>
-    structureAppearances.flatMap((app) => [
-      ...formesAdmises(app).map((forme): [string, WallEl] => {
-        const w = el({ x: 2, y: 2, side: 'N', structure: 'mur-en-bois', ...SEG_DE_FORME[forme], appearance: app.id });
-        expect(w.forme, `${app.id} ${forme}`).toBe(forme);
-        return [`${app.id} ${forme}`, w];
-      }),
-      ...formesAdmises(app).map((forme): [string, WallEl] => [
-        `${app.id} ${forme} abattue`,
-        el({ x: 2, y: 2, side: 'N', structure: 'mur-en-bois', ...SEG_DE_FORME[forme], appearance: app.id }, (s) => setStructureDown(s, 2, 2, 'N', 0, true)),
-      ]),
-    ].map(([quoi, w]): [string, StructureAppearanceDef, WallEl, ElementDuDessus[]] => [quoi, app, w, dessusDuMur(w, top)]));
-
-  it('COUVERTURE : chaque trait du dessus est une part que le volume dessine sur la même arête (`wallFaces`)', () => {
-    const fautes: string[] = [];
-    for (const [quoi, , w, dessus] of rendusDuCatalogue()) {
-      const volume = new Set(w.faces.map((f) => f.material.part));
-      for (const t of traitsDe(dessus)) if (!volume.has(t.part)) fautes.push(`${quoi} : ${t.part} ∉ {${[...volume].join(', ')}}`);
+  it('CÂBLAGE : `dessusDuMur(el)` est la sérialisation de `coupeDuMur(el.faces)` à `HAUTEUR_DE_COUPE_M`, et `wallSvg` la peint', () => {
+    for (const [quoi, w] of elementsDuCatalogue()) {
+      const dessus = dessusDuMur(w, top, MPT);
+      expect(dessus, quoi).toEqual(dessusDeLaCoupe(coupeDuMur(w.faces, w.ends, HAUTEUR_DE_COUPE_M, MPT), w.ends, top, MPT));
+      expect(wallSvg(w, top, { mpt: MPT }), quoi).toBe(dessusSvg(dessus));
     }
-    expect(fautes).toEqual([]);
   });
 
-  it('chaque trait ÉMIS laisse au BORD un liseré de LISERE_VISIBLE_MIN px d’ÉCRAN au moins de chaque côté du cœur, à toute échelle du groupe porteur', () => {
-    expect(LISERE_VISIBLE_MIN).toBeGreaterThanOrEqual(1);
-    /** Largeur à l'ÉCRAN d'un trait sérialisé sous un groupe d'échelle `s` (px par unité de viewBox). */
-    const largeursEcran = (svg: string, s: number): number[] =>
-      [...svg.matchAll(/<(?:line|path) [^>]*stroke-width="([\d.]+)"[^>]*>/g)].map(([balise, w]) =>
-        balise.includes('vector-effect="non-scaling-stroke"') ? Number(w) : Number(w) * s);
-    const rendus: [string, ElementDuDessus[]][] = [
-      ['bloc plein', dessusDuBlocPlein([0, 0], [40, 20])],
-      ...rendusDuCatalogue().map(([quoi, , , dessus]): [string, ElementDuDessus[]] => [quoi, dessus]),
-    ];
-    const fautes: string[] = [];
-    for (const s of [1e-3, 1, 1e3])
-      for (const [quoi, dessus] of rendus) {
-        const w = largeursEcran(dessusSvg(dessus), s);
-        expect(w.length, `${quoi} : bord + cœur par trait`).toBe(2 * traitsDe(dessus).length);
-        for (let i = 0; i < w.length; i += 2)
-          if ((w[i] - w[i + 1]) / 2 < LISERE_VISIBLE_MIN) fautes.push(`${quoi} × ${s} : liseré ${((w[i] - w[i + 1]) / 2).toFixed(3)} px`);
-      }
-    expect(fautes).toEqual([]);
+  it('CÂBLAGE, ancre : un mur nu coupé = poteau, face, poteau aux couleurs de la DÉF, le couronnement en surplomb dessous', () => {
+    const app = structureAppearance(APPARENCE_MUR_NU);
+    const dessus = dessusDuMur(el({ x: 2, y: 2, side: 'N' }), top, MPT);
+    expect(dessus.map((t) => t.classe)).toEqual(['surplomb', 'coupe', 'coupe', 'coupe']);
+    expect(dessus.filter((t) => t.classe === 'coupe').map((t) => t.coeur.couleur)).toEqual([app.post, app.face, app.post]);
   });
 
-  it("contrat BICOLORE : chaque trait d'arête de chaque apparence, dans chaque forme admise et en brèche, porte en CŒUR la couleur déclarée à l'identique et en BORD un ton à ≥ 2 × SEUIL_TEINTES_CONTIGUES — l'un des deux tient le seuil contre chaque sol du catalogue", () => {
+  it('épaisseur du trait = épaisseur de la part (`faceDepthM`) en unités de viewBox ; bord = cœur + 2 × LISERE_VISIBLE_MIN', () => {
+    const w = el({ x: 2, y: 2, side: 'N' });
+    const [a, b] = w.ends.map((gp) => projGP(gp, top));
+    const vbParM = Math.hypot(b[0] - a[0], b[1] - a[1]) / MPT;
+    const face = w.faces.find((f) => f.material.part === 'face')!;
+    const trait = dessusDuMur(w, top, MPT).filter((t) => t.classe === 'coupe')[1];
+    expect(trait.coeur.largeur).toBeCloseTo(faceDepthM(face)! * vbParM, 12);
+    expect(trait.bord!.largeur - trait.coeur.largeur).toBeCloseTo(2 * LISERE_VISIBLE_MIN, 12);
+  });
+
+  it('`dessusSvg` : bord puis cœur en `butt` ; le surplomb en UN chemin en tirets ; le sous, cœur seul', () => {
+    expect(dessusSvg([
+      { classe: 'sous', troncons: [[[0, 0], [1, 0]]], coeur: { largeur: 2, couleur: '#111111' } },
+      { classe: 'surplomb', troncons: [[[0, 0], [1, 0]], [[2, 0], [3, 0]]], coeur: { largeur: 3, couleur: '#222222' } },
+      { classe: 'coupe', troncons: [[[1, 2], [3, 4]]], coeur: { largeur: 5, couleur: '#6e5940' }, bord: { largeur: 7, couleur: '#261f16' } },
+    ])).toBe('<g><path d="M0 0L1 0" fill="none" stroke="#111111" stroke-width="2" stroke-linecap="butt"/>' +
+      '<path d="M0 0L1 0M2 0L3 0" fill="none" stroke="#222222" stroke-width="3" stroke-linecap="butt" stroke-dasharray="3 5"/>' +
+      '<path d="M1 2L3 4" fill="none" stroke="#261f16" stroke-width="7" stroke-linecap="butt"/>' +
+      '<path d="M1 2L3 4" fill="none" stroke="#6e5940" stroke-width="5" stroke-linecap="butt"/></g>');
+  });
+
+  it('ordre de peinture sous, surplomb, coupe ; le surplomb en UN seul trait', () => {
+    const rang = (c: string) => ['sous', 'surplomb', 'coupe'].indexOf(c);
+    for (const [quoi, w] of elementsDuCatalogue()) {
+      const classes = dessusDuMur(w, top, MPT).map((t) => t.classe);
+      expect(classes.filter((c) => c === 'surplomb').length, quoi).toBeLessThanOrEqual(1);
+      expect([...classes].sort((x, y) => rang(x) - rang(y)), quoi).toEqual(classes);
+    }
+  });
+
+  it('bloc plein : la même coupe, d’UNE face de mur nu', () => {
+    const [, dessus] = bloc();
+    expect(dessus.map((t) => [t.classe, t.coeur.couleur])).toEqual([['coupe', structureAppearance(APPARENCE_MUR_NU).face]]);
+  });
+
+  it("contrat BICOLORE : chaque trait COUPÉ porte en BORD un ton à ≥ 2 × SEUIL_TEINTES_CONTIGUES de son cœur — l'un des deux tient le seuil contre chaque sol du catalogue", () => {
     const fautes: string[] = [];
-    const rendus: [string, StructureAppearanceDef, ElementDuDessus[]][] = [
-      ['bloc plein', structureAppearance(APPARENCE_MUR_NU), dessusDuBlocPlein([0, 0], [40, 20])],
-      ...rendusDuCatalogue().map(([quoi, app, , dessus]): [string, StructureAppearanceDef, ElementDuDessus[]] => [quoi, app, dessus]),
-    ];
     expect(SOLS.length).toBeGreaterThan(10);
-    for (const [quoi, app, dessus] of rendus) {
-      const traits = traitsDe(dessus);
-      expect(traits.length, `${quoi} : au moins un trait`).toBeGreaterThan(0);
-      for (const { part, tons: { bord, coeur } } of traits) {
-        if (coeur !== wallPartColor(app, part)) fautes.push(`${quoi} : cœur ${coeur} ≠ wallPartColor(${part}) ${wallPartColor(app, part)}`);
-        if (distanceTeinte(bord, coeur) < 2 * SEUIL_TEINTES_CONTIGUES) fautes.push(`${quoi} : ${bord} ⇄ ${coeur} = ${distanceTeinte(bord, coeur).toFixed(1)}`);
+    const rendus: [string, TraitDuDessus[]][] = [bloc(), ...elementsDuCatalogue().map(([quoi, w]): [string, TraitDuDessus[]] => [quoi, dessusDuMur(w, top, MPT)])];
+    for (const [quoi, dessus] of rendus)
+      for (const { classe, coeur, bord } of dessus) {
+        if (classe !== 'coupe') continue;
+        if (distanceTeinte(bord!.couleur, coeur.couleur) < 2 * SEUIL_TEINTES_CONTIGUES) fautes.push(`${quoi} : ${bord!.couleur} ⇄ ${coeur.couleur}`);
         for (const [sol, c] of SOLS)
-          if (Math.max(distanceTeinte(bord, c), distanceTeinte(coeur, c)) < SEUIL_TEINTES_CONTIGUES) fautes.push(`${quoi} sur ${sol}`);
+          if (Math.max(distanceTeinte(bord!.couleur, c), distanceTeinte(coeur.couleur, c)) < SEUIL_TEINTES_CONTIGUES) fautes.push(`${quoi} sur ${sol}`);
       }
-    }
     expect(fautes).toEqual([]);
   });
 
-  it('une baie FERMÉE (porte fermée, fermeture fixe) se dessine bouchée — vantail ou barreaux sous les jambages, au CONTACT, le cœur du trait de baie ⇄ le bord des jambages qui le coiffent au plancher des teintes contiguës ; seule la porte OUVERTE laisse le vide', () => {
-    const lignes = (dessus: ElementDuDessus[]) => traitsDe(dessus).filter((t) => 'p' in t.geo).length;
-    const porte = (open: boolean) => dessusDuMur(el({ x: 2, y: 2, side: 'N', structure: 'solide-porte-en-bois', door: true }, (s) => setDoorOpen(s, 2, 2, 'N', 0, open)), top);
-    expect(lignes(porte(true)), 'porte ouverte : deux jambages, le vide entre').toBe(2);
-    const baies = structureAppearances.filter((d) => formesAdmises(d).includes('porte-fermee'));
-    expect(baies.some((d) => d.parapet), 'le catalogue porte un corps de garde').toBe(true);
-    for (const a of baies)
-      for (const seg of [{ structure: 'porte', door: true, closed: true }, { structure: 'porte' }]) {
-        const dessus = dessusDuMur(el({ x: 2, y: 2, side: 'N', ...seg, appearance: a.id }), top);
-        const quoi = `${a.id} ${seg.door ? 'porte fermée' : 'fermeture fixe'}`;
-        if (a.parapet) {
-          expect(lignes(dessus), `${quoi} : un trait par barreau intérieur de la claire-voie`).toBe(a.claireVoie!.bars - 1);
-          continue;
-        }
-        const [bouchee, jambeA, jambeB] = traitsDe(dessus);
-        expect(jambeB, `${quoi} : deux jambages`).toBeDefined();
-        expect(jambeB.tons).toEqual(jambeA.tons);
-        expect(distanceTeinte(bouchee.tons.coeur, jambeA.tons.bord), `${quoi} : cœur du trait de baie ⇄ bord des jambages`).toBeGreaterThanOrEqual(SEUIL_TEINTES_CONTIGUES);
-      }
-    const corpsDeGarde = (open: boolean) => dessusDuMur(el({ x: 2, y: 2, side: 'N', structure: 'porte-de-ville', door: true }, (s) => setDoorOpen(s, 2, 2, 'N', 0, open)), top);
-    expect(lignes(corpsDeGarde(true)), 'corps de garde ouvert : passage libre').toBe(0);
+  it('porte FERMÉE à vantail : le cœur du vantail ⇄ le bord des jambages qui le coiffent au plancher des teintes contiguës', () => {
+    const portes = structureAppearances.filter((d) => !d.parapet && !d.claireVoie && formesAdmises(d).includes('porte-fermee'));
+    expect(portes.length).toBeGreaterThan(0);
+    for (const a of portes) {
+      const dessus = dessusDuMur(el({ x: 2, y: 2, side: 'N', structure: 'porte', door: true, closed: true, appearance: a.id }), top, MPT);
+      const vantail = dessus.find((t) => t.classe === 'coupe' && t.coeur.couleur === wallPartColor(a, 'vantail'))!;
+      const jambage = dessus.find((t) => t.classe === 'coupe' && t.coeur.couleur === wallPartColor(a, 'jambage'))!;
+      expect(distanceTeinte(vantail.coeur.couleur, jambage.bord!.couleur), a.id).toBeGreaterThanOrEqual(SEUIL_TEINTES_CONTIGUES);
+    }
   });
 });

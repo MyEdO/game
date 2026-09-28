@@ -90,7 +90,7 @@ describe('identité des matières du monde — (domaine, id), id unique sur tout
  * `MaterialRef.domain`, pas des trois que `materials.json` porte. Ces homonymes vivent : aucun
  * lecteur ne s'y trompe aujourd'hui, parce que chacun résout dans le domaine de la FACE qu'il peint
  * (`src/gameIso/backends/webgl/faceColors.ts:47` et `src/gameIso/authoring/floorsSvg.ts:61,72` pour
- * une face de relief, `src/gameIso/backends/webgl/faceRelief.ts:35` pour une face de structure).
+ * une face de relief, `src/gameIso/catalog/faceDepth.ts:32` pour une face de structure).
  * Le jour où ces deux catalogues rejoignent le document unique, ils cessent d'être séparables : le
  * stock ci-dessous ne peut donc que DÉCROÎTRE, et une collision de plus est rouge sous son nom.
  */

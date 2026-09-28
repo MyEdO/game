@@ -7,8 +7,8 @@
  *
  * Leurs trois consommateurs, et la raison de chacun :
  *  - l'APERÇU d'authoring (`ui/editor/EditorCanvas`) — aperçu de trait, plan des toits, motifs de LOD ;
- *  - le PLAN DE STATION (`gameIso/TopoScene` via `stage/layers`) — la structure au trait, invariante
- *    d'échelle là où une coiffe volumique tombe sous le pixel (mesure : `stage/planSnapshot.ts`) ;
+ *  - le PLAN DE STATION (`gameIso/TopoScene` via `stage/layers`) — la structure au trait, coupe
+ *    horizontale du volume, là où une coiffe volumique tombe sous le pixel (mesure : `stage/planSnapshot.ts`) ;
  *  - les ORACLES DE PARITÉ du monde volumique (`backends/webgl/*.test.ts`) — le SVG y sert d'étalon
  *    mesurable (semis d'accents, teintes de terrain, colombage).
  *

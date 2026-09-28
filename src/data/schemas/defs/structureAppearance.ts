@@ -56,7 +56,6 @@ const doc = document(
     cap: z.string().optional(),
     rubble: z.string().optional(),
     rubbleHi: z.string().optional(),
-    recess: z.string().optional(),
     wood: z
       .strictObject({
         inset: z.string(),
@@ -121,7 +120,6 @@ const doc = document(
     cap: { label: 'Couleur de couronnement' },
     rubble: { label: 'Couleur de gravats' },
     rubbleHi: { label: 'Couleur de gravats (clair)', hint: 'Reflet des gravats' },
-    recess: { label: 'Couleur de renfoncement', hint: 'Glyphe en creux de la vue de plan (corps de garde)' },
     wood: {
       label: 'Habillage bois',
       hint: 'Teintes de panneau, cadre/chambranle, couronnement, plinthe et gravats en bois',
