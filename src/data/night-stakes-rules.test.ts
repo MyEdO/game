@@ -11,6 +11,7 @@
 import { describe, it, expect } from 'vitest';
 import { chapterFile, readText, sigleDe } from '../../scripts/guards/lib/rawRefIntegrity.mjs';
 import { NIGHT_STAKES, regles, books, skills, symptoms, etats } from './index';
+import { coupeAuMot } from '../lib/coupeAuMot';
 
 /** FOYERS possibles d'une règle (amendement A, 2026-08-06) : l'entité qui la PORTE d'abord —
  *  `regles.json` n'héberge que les règles de CADRE, sans entité porteuse. */
@@ -98,7 +99,7 @@ describe('night-stakes.json — chaque enjeu porte sa règle (#1117 L0a)', () =>
       for (const para of r.desc.split('\n\n')) {
         const at = lines.indexOf(para);
         if (at < 0) {
-          defauts.push(`${id} : paragraphe absent du chapitre cité (${note}) — « ${para.slice(0, 60)}… »`);
+          defauts.push(`${id} : paragraphe absent du chapitre cité (${note}) — « ${coupeAuMot(para, 60)} »`);
           continue;
         }
         if (first == null) first = at + 1;

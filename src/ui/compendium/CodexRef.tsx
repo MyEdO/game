@@ -12,8 +12,10 @@ import { useGame } from '../../state/store';
 import { codexLookup, codexLookupById } from './registry';
 import { mdToText } from '../Prose';
 import { useInfobulle } from '../Infobulle';
+import { coupeAuMot } from '../../lib/coupeAuMot';
 
-const truncate = (s: string, n = 400): string => (s.length > n ? `${s.slice(0, n).trimEnd()}…` : s);
+/** Borne du corps de l'infobulle, en caractères (`coupeAuMot`). */
+export const BORNE_DU_CORPS = 400;
 
 /** Le contenu du déclencheur porte-t-il du TEXTE ? Une `Icon` rend un `<svg aria-hidden>` : un
  *  déclencheur qui n'a QUE des icônes serait MUET pour un lecteur d'écran. On dérive alors son nom
@@ -147,10 +149,10 @@ export function CodexRef({
   if (!item && !fallback && !refus) return hideIfUnknown ? null : <span className={`codex-ref codex-static${className ? ` ${className}` : ''}`}>{children ?? label}</span>;
 
   const title = item?.label ?? label;
-  const body = item ? (item.desc ? truncate(mdToText(item.desc)) : null) : (fallback?.body || null);
+  const body = item ? (item.desc ? coupeAuMot(mdToText(item.desc), BORNE_DU_CORPS) : null) : (fallback?.body || null);
   const popSub = item?.sub ?? fallback?.sub;
   // Faits-clés (Dégâts/PA/Prix/NI/Portée…) DANS l'infobulle — pas seulement la prose. Compact, 4 max.
-  const metaLine = item?.meta?.length ? truncate(item.meta.slice(0, 4).map((m) => `${m.label} ${m.value}`).join(' · '), 140) : null;
+  const metaLine = item?.meta?.length ? coupeAuMot(item.meta.slice(0, 4).map((m) => `${m.label} ${m.value}`).join(' · '), 140) : null;
   const src = item?.source;
   const inst = instance && instance !== title ? instance : undefined;
   const open = () => { if (item && category) openCodex({ category, id: item.id, label: item.label, instance: inst }); };

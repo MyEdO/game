@@ -1,13 +1,18 @@
 // @vitest-environment jsdom
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterEach } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { GameOpEditor, OP_LABEL, OP_REF_FIELDS, opRefValue } from './GameOpEditor';
 import type { GameOp } from '../../engine/ops';
+import { choisirDansMenu, entreeDe, menuDe, ouvrirMenu } from './AddMenu.testkit';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 });
+
+/** Démontages en attente : un test qui échoue avant son `teardown` est démonté par l'`afterEach`. */
+const montes = new Set<() => Promise<void>>();
+afterEach(async () => { for (const t of [...montes]) await t(); });
 
 /**
  * PREUVE D'INTERACTION (montage réel, clic réel) : ce que l'auteur obtient EN CLIQUANT dans la palette
@@ -20,16 +25,19 @@ function mount() {
   const root: Root = createRoot(container);
   let ops: GameOp[] = [];
   const render = () => root.render(<GameOpEditor ops={ops} onChange={(next) => { ops = next; render(); }} />);
+  const teardown = async () => {
+    if (!montes.delete(teardown)) return;
+    await act(async () => { root.unmount(); });
+    container.remove();
+  };
+  montes.add(teardown);
   return {
     container, root,
     opsOf: () => ops,
     mount: () => act(async () => { render(); }),
-    click: (label: string) => {
-      const btn = Array.from(container.querySelectorAll('button')).find((b) => b.textContent?.trim() === label);
-      if (!btn) throw new Error(`bouton « ${label} » absent de la palette`);
-      return act(async () => { (btn as HTMLButtonElement).click(); });
-    },
-    teardown: async () => { await act(async () => { root.unmount(); }); container.remove(); },
+    palette: () => ouvrirMenu(menuDe(container, '+ Op mécanique')),
+    click: (label: string) => choisirDansMenu(menuDe(container, '+ Op mécanique'), label),
+    teardown,
   };
 }
 
@@ -76,18 +84,21 @@ describe('GameOpEditor — création au CLIC : aucune valeur pré-semée, raison
   });
 
   it('TOUTE op créable depuis la palette naît sans réf élue', async () => {
+    let creees = 0;
     for (const [k, fields] of Object.entries(OP_REF_FIELDS) as [GameOp['op'], typeof OP_REF_FIELDS[GameOp['op']]][]) {
       const h = mount();
       await h.mount();
       const label = OP_LABEL[k];
-      const creatable = Array.from(h.container.querySelectorAll('button')).some((b) => b.textContent?.trim() === label);
-      if (!creatable) { await h.teardown(); continue; }
-      await h.click(label);
+      const entree = entreeDe(await h.palette(), label);
+      if (!entree) { await h.teardown(); continue; }
+      await act(async () => { entree.click(); });
+      creees += 1;
       const fresh = h.opsOf()[0] as unknown as Record<string, unknown>;
       for (const f of fields ?? []) {
         expect([undefined, ''], `${k}.${f.field} pré-semé au clic`).toContain(opRefValue(fresh, f.field));
       }
       await h.teardown();
     }
+    expect(creees, 'témoin : la palette ouverte propose des ops à réf').toBeGreaterThan(0);
   });
 });

@@ -17,7 +17,7 @@ const VUE = JSON.parse(readFileSync('scripts/recette/vues-recette.json', 'utf8')
   .find((v: { nom: string }) => v.nom === 'bureau') as { largeur: number; hauteur: number };
 const VP = { width: VUE.largeur, height: VUE.hauteur };
 const MENU_W = 330;
-const placer = (r: { top: number; bottom: number; left: number }) => placerAncre(r, VP.width, VP.height, MENU_W);
+const placer = (r: { top: number; bottom: number; left: number; right: number }) => placerAncre(r, VP.width, VP.height, MENU_W);
 /** Bords verticaux de la boîte : ancrée par le haut (`top`) ou par le bas (`bottom`). */
 const bords = (p: PlacementAncre) => (p.top != null
   ? { haut: p.top, bas: p.top + p.maxHeight }
@@ -31,7 +31,7 @@ describe('AddMenu — le menu d’ajout se pose TOUJOURS entier à l’écran (`
     // son HAUT à 48px du bord bas de la vue, donc son bas à 28px, quelle que soit la hauteur de
     // celle-ci : trop près pour qu'un menu de 300px s'ouvre vers le bas.
     const hautDuBouton = VP.height - 48;
-    const p = placer({ top: hautDuBouton, bottom: hautDuBouton + 20, left: 322 });
+    const p = placer({ top: hautDuBouton, bottom: hautDuBouton + 20, left: 322, right: 422 });
     expect(p.top, 'ancré par le BAS : un menu court reste collé à son bouton').toBeUndefined();
     expect(bords(p).bas).toBeLessThanOrEqual(hautDuBouton); // au-dessus du bouton
     expect(p.maxHeight).toBeGreaterThan(300); // la place du dessus, bornée à 60 % de la vue
@@ -39,19 +39,19 @@ describe('AddMenu — le menu d’ajout se pose TOUJOURS entier à l’écran (`
   });
 
   it('un bouton en HAUT de panneau ouvre le menu vers le bas, entièrement visible', () => {
-    const p = placer({ top: 120, bottom: 140, left: 322 });
+    const p = placer({ top: 120, bottom: 140, left: 322, right: 422 });
     expect(p.top).toBeGreaterThanOrEqual(140);
     expect(tientAEcran(p)).toBe(true);
   });
 
   it('un bouton au MILIEU garde la hauteur bornée par la place réelle du côté choisi', () => {
-    const p = placer({ top: 700, bottom: 720, left: 322 });
+    const p = placer({ top: 700, bottom: 720, left: 322, right: 422 });
     expect(tientAEcran(p)).toBe(true);
     expect(p.maxHeight).toBeLessThanOrEqual(700 - 6 - 8);
   });
 
   it('un bouton près du bord DROIT rentre le menu dans la largeur (330px + marge)', () => {
-    const p = placer({ top: 200, bottom: 220, left: 1500 });
+    const p = placer({ top: 200, bottom: 220, left: 1500, right: 1600 });
     expect(p.left + MENU_W).toBeLessThanOrEqual(VP.width);
     expect(p.left).toBeGreaterThanOrEqual(8);
   });
@@ -74,10 +74,10 @@ describe('AddMenu — le menu ouvert reste SOLIDAIRE de son bouton', () => {
     /** Le bouton vit dans un panneau défilant : sa position à l'écran suit le défilement. */
     let hautDuBouton = 300;
     Object.defineProperty(summary, 'getBoundingClientRect', {
-      value: () => ({ top: hautDuBouton, bottom: hautDuBouton + 20, left: 322 }),
+      value: () => ({ top: hautDuBouton, bottom: hautDuBouton + 20, left: 322, right: 422 }),
     });
     const attendu = (top: number) => {
-      const p = placerAncre({ top, bottom: top + 20, left: 322 }, window.innerWidth, window.innerHeight, MENU_W);
+      const p = placerAncre({ top, bottom: top + 20, left: 322, right: 422 }, window.innerWidth, window.innerHeight, MENU_W);
       return p.top != null ? `${p.top}px` : `bottom ${p.bottom}px`;
     };
     const posee = () => {

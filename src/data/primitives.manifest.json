@@ -48,7 +48,7 @@
     "label": "BoiteAncree / usePlacementAncre / placerAncre",
     "fichier": "src/ui/BoiteAncree.tsx",
     "css": "src/ui/styles/boite-ancree.css",
-    "concept": "surface `position: fixed` en portail, placée contre le rectangle de son ANCRAGE : côté qui a le plus de place, ancrée par le haut ou par le bas, hauteur et largeur bornées au viewport ; placement né au rendu qui reçoit l'ancrage (le commit d'ouverture porte la boîte), recalculé au défilement et au redimensionnement ; ancrage détaché = aucune boîte ; style = variables `--ancre-*` seules, écrites par le seul littéral de `style=` ; champs du placement listés par `CHAMPS`, complet par le type ; complétude du littéral non prouvée par le type (garde (xxii))",
+    "concept": "surface `position: fixed` en portail, placée contre le rectangle de son ANCRAGE : côté qui a le plus de place, ancrée par le haut ou par le bas, hauteur et largeur bornées au viewport, alignée sur le bord gauche de l'ancrage, sinon sur son bord droit, sinon sur la marge de la fenêtre ; placement né au rendu qui reçoit l'ancrage (le commit d'ouverture porte la boîte), recalculé au défilement et au redimensionnement ; ancrage détaché = aucune boîte ; style = variables `--ancre-*` seules, écrites par le seul littéral de `style=` ; champs du placement listés par `CHAMPS`, complet par le type ; complétude du littéral non prouvée par le type (garde (xxii))",
     "perimetre": "couche d'infobulle (`Infobulle`), `PanneauParametre`, menu d'ajout de l'atelier (`AddMenu`)",
     "verrou": "BoiteAncree.test.tsx — placement, naissance au commit d'ouverture, ancrage détaché, les cinq variables qu'il nomme"
   },
@@ -58,7 +58,7 @@
     "label": "useInfobulle",
     "fichier": "src/ui/Infobulle.tsx",
     "css": "src/ui/styles/infobulle.css",
-    "concept": "couche d'infobulle, UNE par ancrage : ancrage déclaré au balisage (`data-infobulle`), déclenchement par délégation au document (survol, focus, toucher, ↓), pont de survol, épinglage, sourdine, Échap et clic hors boîte (état `congediee` jusqu'au prochain `quitte`), `aria-describedby`, portail (`BoiteAncree`), marqueur d'arrêt à la racine de la boîte ; emprunt du focus par `useFocusEmprunte`, origine = le contrôle de l'ancrage. Le contenu (texte, rôle, activation, nom accessible) reste à l'appelant, qui ne passe que des booléens",
+    "concept": "couche d'infobulle, UNE par ancrage : ancrage déclaré au balisage (`data-infobulle`), déclenchement par délégation au document, un seul jeu d'écouteurs pour toute la couche (survol, focus, toucher, ↓), pont de survol, épinglage, sourdine, Échap et clic hors boîte (état `congediee` jusqu'au prochain `quitte`), `aria-describedby`, portail (`BoiteAncree`), marqueur d'arrêt à la racine de la boîte ; emprunt du focus par `useFocusEmprunte`, origine = le contrôle de l'ancrage. Le contenu (texte, rôle, activation, nom accessible) reste à l'appelant, qui ne passe que des booléens",
     "perimetre": "`CodexRef` (fiche, refus, instance, provenances)",
     "verrou": "Infobulle.test.tsx — congédiement, origine du focus, délégation ; CodexRef.hooks.test.tsx — Échap ne rouvre pas, ↓ épingle et le focus entre"
   },
@@ -68,9 +68,9 @@
     "label": "CodexRef / CodexTitre",
     "fichier": "src/ui/compendium/CodexRef.tsx",
     "css": "src/ui/styles/codex-ref.css",
-    "concept": "référence contextuelle au Codex : un libellé d'entité ancre une infobulle (`useInfobulle`) dont `CodexRef` fournit le CONTENU (raison d'un refus, titre `CodexTitre`, méta, corps, provenances, source, porte « Ouvrir la fiche ») ; le clic ouvre la fiche (`openCodex`), `tooltipOnly` bascule la bulle, `wrap` enveloppe un contrôle déjà actif (↓ épingle), `sourdine` la tait",
+    "concept": "référence contextuelle au Codex : un libellé d'entité ancre une infobulle (`useInfobulle`) dont `CodexRef` fournit le CONTENU (raison d'un refus, titre `CodexTitre`, méta et corps coupés au mot (`coupeAuMot`), provenances, source, porte « Ouvrir la fiche ») ; le clic ouvre la fiche (`openCodex`), `tooltipOnly` bascule la bulle, `wrap` enveloppe un contrôle déjà actif (↓ épingle), `sourdine` la tait",
     "perimetre": "chips d'entité, cases et pastilles de la console de combat, ressources (`ResilienceButton`, `DeterminationButton`), lignes de jet, fiches, plaques de nom (`CodexTitre`)",
-    "verrou": "CodexRef.hooks.test.tsx — Échap, épinglage, refus au survol/focus/tap ; CodexRef.test.tsx — affordance et nom accessible"
+    "verrou": "CodexRef.hooks.test.tsx — Échap, épinglage, refus au survol/focus/tap ; CodexRef.test.tsx — affordance, nom accessible, coupe au mot"
   },
   {
     "id": "focus",
@@ -1143,6 +1143,15 @@
     "concept": "base locale IndexedDB `{ nom, version, upgrade }` : disponibilité, ouverture bornée (délai, bloqué, un seul règlement, #776), une connexion par opération ; sa poignée `accesBase` rend ses magasins typés (`lire`, `lireTout`, `ecrire`, `supprimer`, clé composée comprise) et la vide en une transaction (`vider`) ; sa doublure de test `brancherBasesSimulees` (`src/lib/indexedDb.testkit.ts`) route toute ouverture sur une base simulée par nom, à transactions atomiques et pannes ciblées, derrière la seule couture `__setOuvertureIdbForTest`",
     "perimetre": "tout magasin IndexedDB : bibliothèque de projets, calque de référence, sauvegarde automatique de l'éditeur, dossier src/data de l'atelier du Codex",
     "verrou": "src/lib/indexedDb.test.ts"
+  },
+  {
+    "id": "coupeAuMot",
+    "type": "primitives.manifest",
+    "label": "coupeAuMot",
+    "fichier": "src/lib/coupeAuMot.ts",
+    "concept": "coupe d'un texte à `n` caractères à une FRONTIÈRE DE MOT, suivie de « … » (R-M2) ; seule coupe ellipsée sous `src/`",
+    "perimetre": "tout texte borné puis ellipsé : infobulle `CodexRef` (corps, méta), résumés d'effet et d'op de l'éditeur, nœuds et choix de dialogue, extraits du créateur, messages de diagnostic des tests",
+    "verrou": "coupeAuMot.test.ts ; src/coupe-au-caractere-guard.test.ts — aucune coupe au caractère ellipsée"
   },
   {
     "id": "echapperRegex",

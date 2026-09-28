@@ -132,7 +132,6 @@
     "src/ui/buildParticipantRows.tsx",
     "src/ui/compendium/CodexEdit.tsx",
     "src/ui/compendium/CodexEntry.tsx",
-    "src/ui/compendium/CodexRef.tsx",
     "src/ui/compendium/CompendiumScreen.tsx",
     "src/ui/compendium/CreaturePreview.tsx",
     "src/ui/compendium/StructFields.tsx",

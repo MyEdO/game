@@ -26,6 +26,8 @@ import { actionGate, ACTION_CANDIDATES, REMEDES } from '../state/actionRegistry'
 import { emptyScene } from '../state/scene';
 import { mdToText } from './Prose';
 import { CombatConsole } from './CombatConsole';
+import { coupeAuMot } from '../lib/coupeAuMot';
+import { BORNE_DU_CORPS } from './compendium/CodexRef';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { baseSection, mediaBlock } from '../../scripts/guards/lib/cssCouches.mjs';
@@ -173,8 +175,7 @@ function texteVisible(el: Element): string {
  *  primitive. On ne recopie AUCUN texte de règle — on applique au contenu de la donnée la même
  *  transformation que `CodexRef`, et on compare. La fiche complète reste derrière « Ouvrir la fiche ». */
 function verbatimAttendu(desc: string): string {
-  const t = mdToText(desc);
-  return t.length > 400 ? `${t.slice(0, 400).trimEnd()}…` : t;
+  return coupeAuMot(mdToText(desc), BORNE_DU_CORPS);
 }
 
 /** Le rack d'États de l'arche seul (le bandeau/les tuiles ne sont pas montés ici). */

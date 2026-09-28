@@ -4,7 +4,7 @@
  * consommateur réel (`CodexRef` sous `wrap`) et une fiche qui s'ouvre par sa porte (`openCodex`), comme
  * la surcouche du Codex d'`App`.
  */
-import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import { act, useState } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { useGame } from '../state/store';
@@ -140,5 +140,41 @@ describe('Q2DIAL — une origine sortie du document cède la place à celle de l
     expect(dansB(), 'A fermé sous B : le focus reste dans B').toBe(true);
     act(() => { bouton('Fermer B').click(); });
     expect(actif(), 'B fermé : le focus va au déclencheur de A, jamais à body').toBe('BUTTON«Déclencheur»');
+  });
+});
+
+describe('DÉLÉGATION — un seul jeu d’écouteurs du document pour la couche, quel que soit le nombre d’ancrages', () => {
+  /** Écouteurs nets posés sur le document pendant `geste`. */
+  const ecouteursDocument = (geste: () => void): number => {
+    let net = 0;
+    const pose = vi.spyOn(document, 'addEventListener').mockImplementation(function (this: Document, ...args) {
+      net++;
+      return EventTarget.prototype.addEventListener.apply(this, args);
+    });
+    const retire = vi.spyOn(document, 'removeEventListener').mockImplementation(function (this: Document, ...args) {
+      net--;
+      return EventTarget.prototype.removeEventListener.apply(this, args);
+    });
+    try { geste(); } finally { pose.mockRestore(); retire.mockRestore(); }
+    return net;
+  };
+  const ancrages = (n: number) => (
+    <>{Array.from({ length: n }, (_, i) => (
+      <CodexRef key={i} category="talents" id="affable" label="Affable" wrap><button type="button">A{i}</button></CodexRef>
+    ))}</>
+  );
+
+  it('1, 10 et 50 ancrages montés posent le même nombre d’écouteurs, et le démontage les retire tous', () => {
+    const poses = [1, 10, 50].map((n) => {
+      const pose = ecouteursDocument(() => monter(ancrages(n)));
+      expect(container.querySelectorAll('[data-infobulle]')).toHaveLength(n);
+      if (n < 50) {
+        const retire = ecouteursDocument(() => { act(() => { root.unmount(); }); container.remove(); });
+        expect(pose + retire, `${n} ancrages démontés : aucun écouteur ne reste`).toBe(0);
+      }
+      return pose;
+    });
+    expect(poses[0]).toBeGreaterThan(0);
+    expect(poses).toEqual([poses[0], poses[0], poses[0]]);
   });
 });

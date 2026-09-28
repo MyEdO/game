@@ -10,6 +10,11 @@
  * DOCUMENT et résout l'ancrage de chaque événement au moment où il arrive (`ancrageDe`). La racine de
  * la boîte porte un marqueur d'ARRÊT : un nœud de la boîte ne résout aucun ancrage au-delà d'elle.
  *
+ * DÉLÉGATION UNIQUE : un seul jeu d'écouteurs du document pour toute la couche, posé à la première
+ * instance inscrite et retiré à la dernière (patron de `useDismissLayer.ts`, `brancherPorte`). Chaque
+ * événement est routé à l'instance qui POSSÈDE l'ancrage résolu (`inscrites`, clé : la valeur
+ * `data-infobulle` de l'ancrage), et les autres instances l'apprennent comme un geste AILLEURS.
+ *
  * CONGÉDIÉE : Échap, un clic hors de la boîte, la porte, la sourdine ou la bascule referment la boîte ;
  * si le pointeur ou le focus occupait alors l'ancrage ou la boîte, ce qui continue de l'occuper ne la
  * rouvre pas (APG, Tooltip Pattern : « Escape: Dismisses the Tooltip ») — le focus rendu à l'ancrage,
@@ -18,6 +23,10 @@
  *
  * FOCUS : tant que la boîte est épinglée ou tient le focus, elle l'EMPRUNTE (`useFocusEmprunte`), et
  * son origine est le contrôle de l'ancrage (`controleDe`) — jamais le nœud focalisé au hasard.
+ *
+ * @clavier-hors-registre ↓ appartient au CONTRÔLE focalisé de l'ancrage (`aria-keyshortcuts`), où le
+ * registre s'efface (`notWhenControlFocused`, `state/keybindings.ts`) ; la délégation le lit au document
+ * parce que la couche n'écoute jamais l'ancrage. Échap passe par la pile (`useDismissLayer`).
  */
 import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { BoiteAncree, usePlacementAncre } from './BoiteAncree';
@@ -43,6 +52,49 @@ const controleDe = (ancre: HTMLElement): HTMLElement | null =>
   ancre.matches(CONTROLE) ? ancre : ancre.querySelector<HTMLElement>(CONTROLE);
 
 const dans = (el: Element | null | undefined, n: EventTarget | null): boolean => !!el && n instanceof Node && el.contains(n);
+
+interface EvenementsDelegues {
+  mouseover: MouseEvent;
+  mouseout: MouseEvent;
+  focusin: FocusEvent;
+  focusout: FocusEvent;
+  click: MouseEvent;
+  keydown: KeyboardEvent;
+  mousedown: MouseEvent;
+}
+type TypeDelegue = keyof EvenementsDelegues;
+/** Les types délégués, et leur phase : `keydown` à la CAPTURE (↓ épingle avant tout écouteur local). */
+const PHASES: Record<TypeDelegue, boolean> = {
+  mouseover: false, mouseout: false, focusin: false, focusout: false, click: false, keydown: true, mousedown: false,
+};
+
+/** Ce qu'une instance reçoit de la délégation : `ici`, un événement dont l'ancrage résolu est le sien ;
+ *  `ailleurs`, tout autre événement. */
+interface Routage {
+  ici: { [T in TypeDelegue]?: (e: EvenementsDelegues[T], a: HTMLElement) => void };
+  ailleurs: { [T in TypeDelegue]?: (e: EvenementsDelegues[T]) => void };
+}
+
+const inscrites = new Map<string, Routage>();
+
+function deleguer(e: Event): void {
+  const type = e.type as TypeDelegue;
+  const a = ancrageDe(e.target);
+  const proprio = a ? inscrites.get(a.getAttribute(ANCRE)!) : undefined;
+  for (const routage of inscrites.values()) {
+    if (routage === proprio) (routage.ici[type] as ((e: Event, a: HTMLElement) => void) | undefined)?.(e, a!);
+    else (routage.ailleurs[type] as ((e: Event) => void) | undefined)?.(e);
+  }
+}
+
+function inscrire(id: string, routage: Routage): () => void {
+  if (inscrites.size === 0) for (const [type, capture] of Object.entries(PHASES)) document.addEventListener(type, deleguer, capture);
+  inscrites.set(id, routage);
+  return () => {
+    inscrites.delete(id);
+    if (inscrites.size === 0) for (const [type, capture] of Object.entries(PHASES)) document.removeEventListener(type, deleguer, capture);
+  };
+}
 
 export interface OptionsInfobulle {
   /** La boîte porte de quoi être atteinte au pointeur : pont de survol, et ses événements de pointeur. */
@@ -117,77 +169,48 @@ export function useInfobulle(options: OptionsInfobulle) {
   useEffect(() => { if (options.sourdine) fermer(); }, [options.sourdine, fermer]);
 
   useEffect(() => {
-    const mien = (a: HTMLElement | null): a is HTMLElement => a?.getAttribute(ANCRE) === id;
     const dansLaBoite = (n: EventTarget | null) => dans(boxRef.current, n);
-    const onOver = (e: MouseEvent) => {
-      const v = vivant.current;
-      const a = ancrageDe(e.target);
-      if (!mien(a)) {
-        if (!dansLaBoite(e.target)) v.pointeur = false;
-        return;
-      }
-      if (dans(a, e.relatedTarget)) return;
-      if (!v.pointeur) v.congediee = false;
-      v.pointeur = true;
-      entre(a);
-    };
-    const onOut = (e: MouseEvent) => {
-      const a = ancrageDe(e.target);
-      if (!mien(a) || dans(a, e.relatedTarget) || dansLaBoite(e.relatedTarget)) return;
-      vivant.current.pointeur = false;
-      quitte();
-    };
-    const onFocusIn = (e: FocusEvent) => {
-      const v = vivant.current;
-      const a = ancrageDe(e.target);
-      if (!mien(a)) {
-        if (!dansLaBoite(e.target)) v.focus = false;
-        return;
-      }
-      if (!v.focus && !focusSansIntention()) v.congediee = false;
-      v.focus = true;
-      if (!focusSansIntention()) entre(a);
-    };
-    const onFocusOut = (e: FocusEvent) => {
-      const a = ancrageDe(e.target);
-      if (!mien(a) || dans(a, e.relatedTarget) || dansLaBoite(e.relatedTarget)) return;
-      vivant.current.focus = false;
-      quitte();
-    };
-    const onClick = (e: MouseEvent) => {
-      const a = ancrageDe(e.target);
-      if (mien(a) && vivant.current.options.auToucher) bascule(a);
-    };
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key !== 'ArrowDown' || !vivant.current.options.epinglable) return;
-      const a = ancrageDe(e.target);
-      if (!mien(a)) return;
-      e.preventDefault();
-      e.stopPropagation();
-      epingler(a);
-    };
-    const onMouseDown = (e: MouseEvent) => {
-      if (!vivant.current.ouverte) return;
-      const a = ancrageDe(e.target);
-      if (mien(a) || dansLaBoite(e.target)) return;
-      fermer();
-    };
-    document.addEventListener('mouseover', onOver);
-    document.addEventListener('mouseout', onOut);
-    document.addEventListener('focusin', onFocusIn);
-    document.addEventListener('focusout', onFocusOut);
-    document.addEventListener('click', onClick);
-    document.addEventListener('keydown', onKeyDown, true);
-    document.addEventListener('mousedown', onMouseDown);
-    return () => {
-      document.removeEventListener('mouseover', onOver);
-      document.removeEventListener('mouseout', onOut);
-      document.removeEventListener('focusin', onFocusIn);
-      document.removeEventListener('focusout', onFocusOut);
-      document.removeEventListener('click', onClick);
-      document.removeEventListener('keydown', onKeyDown, true);
-      document.removeEventListener('mousedown', onMouseDown);
-    };
+    return inscrire(id, {
+      ici: {
+        mouseover: (e, a) => {
+          const v = vivant.current;
+          if (dans(a, e.relatedTarget)) return;
+          if (!v.pointeur) v.congediee = false;
+          v.pointeur = true;
+          entre(a);
+        },
+        mouseout: (e, a) => {
+          if (dans(a, e.relatedTarget) || dansLaBoite(e.relatedTarget)) return;
+          vivant.current.pointeur = false;
+          quitte();
+        },
+        focusin: (_e, a) => {
+          const v = vivant.current;
+          if (!v.focus && !focusSansIntention()) v.congediee = false;
+          v.focus = true;
+          if (!focusSansIntention()) entre(a);
+        },
+        focusout: (e, a) => {
+          if (dans(a, e.relatedTarget) || dansLaBoite(e.relatedTarget)) return;
+          vivant.current.focus = false;
+          quitte();
+        },
+        click: (_e, a) => {
+          if (vivant.current.options.auToucher) bascule(a);
+        },
+        keydown: (e, a) => {
+          if (e.key !== 'ArrowDown' || !vivant.current.options.epinglable) return;
+          e.preventDefault();
+          e.stopPropagation();
+          epingler(a);
+        },
+      },
+      ailleurs: {
+        mouseover: (e) => { if (!dansLaBoite(e.target)) vivant.current.pointeur = false; },
+        focusin: (e) => { if (!dansLaBoite(e.target)) vivant.current.focus = false; },
+        mousedown: (e) => { if (vivant.current.ouverte && !dansLaBoite(e.target)) fermer(); },
+      },
+    });
   }, [id, entre, quitte, epingler, bascule, fermer]);
 
   const placement = usePlacementAncre(ancre, LARGEUR);

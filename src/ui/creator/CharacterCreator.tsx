@@ -177,6 +177,7 @@ import { XP_CAREER_FIRST, XP_CAREER_TOP3, XP_STAR_ROLLED, parseStatus, speciesAl
 import { PARTY_MAX, garanti } from '../../state/combatants';
 import { GatedAction } from '../GatedAction';
 import { Grid, Row } from '../Layout';
+import { coupeAuMot } from '../../lib/coupeAuMot';
 
 /** Métadonnées d'étape : libellé FR + ÉCRAN de plein rendu. Les HUIT pas passent par la MÊME porte —
  *  un pas pose ses propres hooks puis compose `CreatorStepFrame` (seule Présentation garde un
@@ -205,10 +206,8 @@ const especesDuLivreDeBase = memoParVersion('species', () => new Set(allSpecies.
 const demeureParId = indexParId('celestialHouses', celestialHouses);
 
 /** Texte de données (desc Markdown) → extrait lisible pour cartes et infobulles. */
-function blurb(md: string | null | undefined, max = 160): string {
-  if (!md) return '';
-  const txt = mdToText(md);
-  return txt.length > max ? `${txt.slice(0, max)}…` : txt;
+function blurb(md: string | null | undefined, max: number): string {
+  return md ? coupeAuMot(mdToText(md), max) : '';
 }
 const talentTip = (id: string) => blurb(findTalentById(id)?.desc, 300);
 /** Clé de la Caractéristique liée à une compétence (« Ag »), pour annoter les listes. */

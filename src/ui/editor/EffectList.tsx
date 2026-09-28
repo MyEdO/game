@@ -35,6 +35,7 @@ import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
 import { sceneKindSchema } from '../../data/schemas/defs/activities';
 import { activitiesFor } from '../../engine/activities';
 import { formatMoney, toMoney } from '../../engine/money';
+import { coupeAuMot } from '../../lib/coupeAuMot';
 
 /** Noms des maladies câblées (LDB 20) proposés dans l'éditeur. */
 const diseaseNames = memoParVersion('maladies', () => Object.keys(diseaseDefs()));
@@ -137,8 +138,6 @@ export const EFFECT_MENU_GROUPS: TypeMenuGroup[] = EFFECT_GROUPS.map(([g, types]
   items: types.map((t) => ({ key: t, label: <><Icon id={EFFECT_ICON[t]} size="sm" /> {EFFECT_LABEL[t]}</> })),
 }));
 
-const cut = (s: string, n = 46) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
-
 /** Une `ScheduleSpec` est-elle posée sur cet effet ? Même garde que `combatEffects.ts` (`setObjective.apply`). */
 const hasSchedule = (e: Partial<ScheduleSpec>): boolean =>
   e.afterMinutes != null || e.afterDays != null || e.atDate != null || e.atHour != null || e.atMinute != null;
@@ -159,9 +158,9 @@ function scheduleSummary(spec: ScheduleSpec): string {
 export function effectSummary(effect: Effect, ctx: Pick<Ctx, 'scenes' | 'cibles'>): string {
   const e = effect as any;
   switch (effect.type) {
-    case 'journal': return `Journal : ${e.desc ? `« ${cut(e.desc)} »` : '(vide)'}`;
+    case 'journal': return `Journal : ${e.desc ? `« ${coupeAuMot(e.desc, 46)} »` : '(vide)'}`;
     case 'setFlag': return `Flag ${e.flag || '?'} = ${e.value === false ? 'faux' : 'vrai'}`;
-    case 'setObjective': return `Objectif [${e.id || '?'}] : ${e.desc ? `« ${cut(e.desc)} »` : '(vide)'}${hasSchedule(e) ? ` (échéance ${scheduleSummary(e)})` : ''}`;
+    case 'setObjective': return `Objectif [${e.id || '?'}] : ${e.desc ? `« ${coupeAuMot(e.desc, 46)} »` : '(vide)'}${hasSchedule(e) ? ` (échéance ${scheduleSummary(e)})` : ''}`;
     case 'clearObjective': return e.id ? `Retirer l'objectif [${e.id}]` : `Retirer tous les objectifs`;
     case 'document': return `Document : ${e.title || '(sans titre)'}`;
     case 'revealClue': return `Indice : ${e.indiceId || '?'}${e.stade ? ` → stade ${e.stade}` : ''}`;

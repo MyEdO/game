@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { CodexRef, nodeHasText } from './CodexRef';
+import { CodexRef, nodeHasText, BORNE_DU_CORPS } from './CodexRef';
+import { coupeAuMot } from '../../lib/coupeAuMot';
+import { spells } from '../../data';
+import { mdToText } from '../Prose';
 
 describe('CodexRef — affordance clic (#tooltipOnly bascule l’infobulle, jamais un survol-only)', () => {
   // `mouvement` (catégorie `characteristics`) : entrée réelle garantie (source des chips
@@ -71,5 +74,20 @@ describe('CodexRef — le déclencheur-icône se NOMME tout seul (#1117)', () =>
     expect(nodeHasText([icone, icone])).toBe(false);
     expect(nodeHasText('Soutien')).toBe(true);
     expect(nodeHasText(<span>{icone} Soutien</span>)).toBe(true);
+  });
+});
+
+/** Coupée à une ESPACE : le préfixe rendu est un préfixe du texte, suivi dans le texte d'une espace. */
+const coupeAUneEspace = (texte: string, rendu: string): boolean => {
+  const prefixe = rendu.slice(0, -1);
+  return rendu.endsWith('…') && texte.startsWith(prefixe) && /\s/.test(texte[prefixe.length] ?? '');
+};
+
+describe('CodexRef — la coupe du corps tombe à une FRONTIÈRE DE MOT sur les données réelles (R-M2)', () => {
+  it('aucun sort long ne rend un mot tranché (données réelles)', () => {
+    const longs = spells.filter((sp) => sp.desc && mdToText(sp.desc).length > BORNE_DU_CORPS);
+    expect(longs.length).toBeGreaterThan(0);
+    const tranches = longs.filter((sp) => { const t = mdToText(sp.desc!); return !coupeAUneEspace(t, coupeAuMot(t, BORNE_DU_CORPS)); });
+    expect(tranches.map((sp) => sp.id)).toEqual([]);
   });
 });

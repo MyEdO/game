@@ -14,6 +14,7 @@ import { rigSpeciesVocab } from '../gameIso/rig/appearance';
 import { TENUE_BY_ID } from '../gameIso/rig/parts/tenues';
 import type { Effect } from '../state/scene';
 import type { Flow } from '../state/flow';
+import { coupeAuMot } from '../lib/coupeAuMot';
 
 /**
  * Garde TRANSVERSE (#809) : tout paquet bundlé `src/scenes/*.../*-projet.json` doit se relire dans
@@ -443,7 +444,7 @@ describe('prose de campagne SOURCÉE — copiée À L’OCTET du livre déclaré
       if (paragraphes.length === 0) return [`${p.chemin} → ${p.source.book} : prose VIDE alors qu’elle déclare une source`];
       return paragraphes
         .filter((paragraphe) => !source.includes(paragraphe))
-        .map((paragraphe) => `${p.chemin} → ${p.source.book} : « ${paragraphe.slice(0, 60)}… » absent du livre (reformulation ou typographie « corrigée »)`);
+        .map((paragraphe) => `${p.chemin} → ${p.source.book} : « ${coupeAuMot(paragraphe, 60)} » absent du livre (reformulation ou typographie « corrigée »)`);
     });
     expect(introuvables).toEqual([]);
   });

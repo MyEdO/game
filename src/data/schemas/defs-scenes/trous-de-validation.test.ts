@@ -15,6 +15,7 @@ import { estFichierVitest } from '../../../../scripts/guards/lib/fichierVitest.m
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { TROUS_DE_VALIDATION } from './trous-de-validation';
+import { coupeAuMot } from '../../../lib/coupeAuMot';
 
 const GARDE = {
   question:
@@ -115,7 +116,7 @@ describe('`z.custom` de defs-scenes — liste nominative datée, DÉCROISSANTE',
   it('chaque `lot` porte le JETON du stock du chantier (`L2 #1463` / `L3 #1463`) — un solde par grep du lot les trouve', () => {
     const horsGraphie = Object.entries(TROUS_DE_VALIDATION)
       .filter(([, v]) => !/^L[23] #1463 — /.test(v.lot))
-      .map(([k, v]) => `${k} → « ${v.lot.slice(0, 40)}… »`);
+      .map(([k, v]) => `${k} → « ${coupeAuMot(v.lot, 40)} »`);
     expect(horsGraphie, `Entrée(s) dont le \`lot\` n'est pas à la graphie du stock :\n${horsGraphie.join('\n')}`).toEqual([]);
   });
 });

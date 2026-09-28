@@ -892,7 +892,7 @@ function BoiteAncreeDemo() {
   return (
     <div className="col gap-sm">
       <button type="button" className="chip" aria-expanded={!!bouton} onClick={(e) => setBouton(bouton ? null : e.currentTarget)}>
-        {bouton ? 'Fermer la boîte' : 'Ouvrir la boîte'}
+        Boîte ancrée
       </button>
       {placement && <BoiteAncree placement={placement} className="panel">Boîte placée contre son ancrage.</BoiteAncree>}
     </div>

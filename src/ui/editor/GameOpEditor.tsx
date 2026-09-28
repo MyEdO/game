@@ -34,6 +34,7 @@ import { NumberField } from '../NumberField';
 import type { IconIdInput } from '../icons';
 import { TESTS_DE_CORRUPTION, type TestDeCorruption } from '../../data/schemas/grammaire/valeurs';
 import { OPTIONAL_RULES, ruleDef } from '../../engine/policy';
+import { coupeAuMot } from '../../lib/coupeAuMot';
 
 /** Aide à la SAISIE de l'atelier : nature d'Influence que chaque Compétence repousse (`LDB 19 l.29`).
  *  Le `Record` est TOTAL sur l'alphabet — un id de plus impose son libellé ici. */
@@ -732,7 +733,7 @@ export function opSummary(o: GameOp): string {
     case 'rollThreshold': return `1d${o.sides} → ${o.thresholds.length} palier(s)`;
     case 'rollTable': return `${'tableId' in o ? `table « ${o.tableId} »` : `${libelleDeValeur(deDeTableSchema, o.die)} → ${o.rows.length} rangée(s)`}${o.addNegativeSL ? ' (+|DR néga.|)' : ''}${o.extraRollsPerStep ? ` +${o.extraRollsPerStep} jet/pas Surinc. (Durée)` : ''}`;
     case 'rollMutation': return `mutation ← « ${o.table} »${o.duration === 'permanent' ? ' (perm.)' : ''}`;
-    case 'narrative': return `${o.text ? `« ${o.text.length > 40 ? `${o.text.slice(0, 39)}…` : o.text}` + ' »' : '(vide)'}`;
+    case 'narrative': return o.text ? `« ${coupeAuMot(o.text, 40)} »` : '(vide)';
     default: return `${(o as GameOp).op}`;
   }
 }

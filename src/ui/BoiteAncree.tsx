@@ -6,7 +6,9 @@
  *
  * `placerAncre` pose la boîte du côté (dessous/dessus) qui a le plus de place, ancrée par le HAUT
  * (dessous) ou par le BAS (dessus, sans deviner sa hauteur) ; `maxHeight` est borné à cette place et
- * à 60 % du viewport, la largeur et la gauche au viewport.
+ * à 60 % du viewport, la largeur au viewport. Horizontalement, la boîte s'aligne sur le bord GAUCHE de
+ * l'ancrage ; si elle déborde ainsi, sur son bord DROIT ; si elle déborde des deux façons, sur la
+ * marge de la fenêtre la plus proche.
  *
  * `usePlacementAncre` calcule le placement PENDANT LE RENDU qui reçoit un ancrage neuf : le commit
  * d'ouverture porte déjà la boîte placée, et un effet de ce même commit (le focus d'entrée) la trouve.
@@ -41,13 +43,17 @@ const ECART = 6;
 const MARGE = 8;
 
 export function placerAncre(
-  rect: { left: number; top: number; bottom: number },
+  rect: { left: number; right: number; top: number; bottom: number },
   vw: number,
   vh: number,
   largeur: number,
 ): PlacementAncre {
   const width = Math.min(largeur, vw - 2 * MARGE);
-  const left = Math.max(MARGE, Math.min(rect.left, vw - width - MARGE));
+  const tient = (x: number) => x >= MARGE && x + width <= vw - MARGE;
+  const parDroite = rect.right - width;
+  const left = tient(rect.left) ? rect.left
+    : tient(parDroite) ? parDroite
+      : Math.max(MARGE, Math.min(rect.left, vw - width - MARGE));
   const dessous = vh - rect.bottom - ECART - MARGE;
   const dessus = rect.top - ECART - MARGE;
   const plafond = Math.floor(vh * 0.6);

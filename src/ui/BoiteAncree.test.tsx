@@ -15,14 +15,14 @@ describe('placerAncre — la boîte tient dans le viewport, du côté qui a le p
   const L = 320;
 
   it('ancrage en HAUT → ancrée par le haut (dessous), maxHeight ≤ place disponible dessous', () => {
-    const p = placerAncre({ left: 100, top: 50, bottom: 70 }, VW, VH, L);
+    const p = placerAncre({ left: 100, right: 180, top: 50, bottom: 70 }, VW, VH, L);
     expect(p.top).toBe(70 + 6);
     expect(p.bottom).toBeUndefined();
     expect(p.maxHeight).toBeLessThanOrEqual(VH - 70);
   });
 
   it('ancrage en BAS → ancrée par le bas (dessus), jamais hors viewport', () => {
-    const p = placerAncre({ left: 100, top: 760, bottom: 780 }, VW, VH, L);
+    const p = placerAncre({ left: 100, right: 180, top: 760, bottom: 780 }, VW, VH, L);
     expect(p.bottom).toBe(VH - 760 + 6);
     expect(p.top).toBeUndefined();
     expect(p.maxHeight).toBeLessThanOrEqual(760);
@@ -30,20 +30,35 @@ describe('placerAncre — la boîte tient dans le viewport, du côté qui a le p
 
   it('jamais top ET bottom à la fois, quelle que soit la position', () => {
     for (const top of [10, 200, 400, 600, 790]) {
-      const p = placerAncre({ left: 0, top, bottom: top + 18 }, VW, VH, L);
+      const p = placerAncre({ left: 0, right: 80, top, bottom: top + 18 }, VW, VH, L);
       expect(p.top === undefined || p.bottom === undefined).toBe(true);
     }
   });
 
   it('viewport étroit (360px) → largeur et gauche bornées au viewport', () => {
-    const p = placerAncre({ left: 950, top: 100, bottom: 120 }, 360, VH, L);
+    const p = placerAncre({ left: 950, right: 1030, top: 100, bottom: 120 }, 360, VH, L);
     expect(p.width).toBeLessThanOrEqual(360 - 16);
     expect(p.left).toBeGreaterThanOrEqual(8);
     expect(p.left).toBeLessThanOrEqual(360 - p.width - 8);
   });
 
+  it('horizontal : alignée sur le bord GAUCHE de l’ancrage quand elle y tient', () => {
+    expect(placerAncre({ left: 100, right: 180, top: 100, bottom: 120 }, VW, VH, L).left).toBe(100);
+  });
+
+  it('horizontal : alignée sur le bord DROIT de l’ancrage quand la gauche déborde à droite', () => {
+    const p = placerAncre({ left: 800, right: 852, top: 100, bottom: 120 }, VW, VH, L);
+    expect(p.left).toBe(852 - L);
+  });
+
+  it('horizontal : sur la marge de la fenêtre quand les deux alignements débordent', () => {
+    const vw = 400;
+    const p = placerAncre({ left: 150, right: 250, top: 100, bottom: 120 }, vw, VH, L);
+    expect(p.left).toBe(vw - L - 8);
+  });
+
   it('maxHeight plafonné à 0.6×vh', () => {
-    const p = placerAncre({ left: 0, top: 400, bottom: 420 }, VW, VH, L);
+    const p = placerAncre({ left: 0, right: 80, top: 400, bottom: 420 }, VW, VH, L);
     expect(p.maxHeight).toBeLessThanOrEqual(Math.floor(VH * 0.6));
   });
 });
