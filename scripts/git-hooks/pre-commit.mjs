@@ -224,8 +224,8 @@ if (dataStaged.length) {
   }
 }
 
-// Tag [entériné] NOUVELLEMENT introduit dans le diff stagé : visibilité systématique (la validation
-// utilisateur vit au stylo — dialogue du hook enterine-guard ; ici on rend tout ajout VISIBLE).
+// Tag [entériné] NOUVELLEMENT introduit dans le diff stagé : visibilité systématique (le tag est
+// réservé à l'utilisateur, qui l'écrit lui-même ; ici on rend tout ajout VISIBLE).
 const ajoutees = diffDeLIndex.split('\n').filter((l) => l.startsWith('+') && !l.startsWith('+++'));
 const addedTags = ajoutees.filter((l) => /\[entériné[^\]]*\]/i.test(l));
 if (addedTags.length) {

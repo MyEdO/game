@@ -157,14 +157,20 @@ function referencesIn(text) {
 export const SURFACE_CLAUDE = '.claude/settings.json';
 export const SURFACE_CODEX = '.codex/hooks.json';
 
-/** Séparateur des clefs de contrat. JAMAIS écrit en octet brut dans la source : un NUL littéral
- *  ferait tenir ce fichier pour BINAIRE par git (plus de diff texte ni de fusion 3-voies). */
-export const NUL = '\0';
+/**
+ * Les points d'entrée des hooks d'APPEL D'OUTIL (#2125) : `script` de `scripts/hooks/`, le `module` qui
+ * exporte son registre (`exporte` : événement → gardes), son `timeout` (s) et son message. Le
+ * répartiteur porte toutes les gardes ; la porte de fermeture a le sien, parce qu'un commit de
+ * fermeture la fait durer plusieurs secondes et qu'un dépassement jetterait la sortie de toutes les
+ * gardes d'un même processus.
+ */
+export const ENTREES_OUTIL = [
+  { script: 'repartiteur.mjs', module: 'registre.mjs', exporte: 'REGISTRE', timeout: 10, statusMessage: 'Gardes des appels d’outil (répartiteur)' },
+  { script: 'solde-ticket-hook.mjs', module: 'solde-ticket-hook.mjs', exporte: 'REGISTRE_SOLDE', timeout: 10, statusMessage: 'Fermeture de ticket au commit = solde écrit obligatoire' },
+];
 
 /**
- * Hooks dont le CONTRAT n'appartient qu'à UNE surface — clef `phase`+NUL+`matcher`+NUL+`script` →
- * surface qui DOIT le porter, l'autre devant l'ignorer. Un hook absent de cette table reste soumis
- * à la parité stricte (même phase, même matcher, même script, même timeout des deux côtés).
+ * Hooks dont le CONTRAT n'appartient qu'à UNE surface : la surface qui le porte, l'autre ne le porte pas.
  *
  * Le credo de travail entre dans le contexte de Claude par l'IMPORT `@.claude/credo.md` en tête de
  * CLAUDE.md — un import n'est ni tronqué ni persisté à part. Codex n'a pas d'import : sa surface
@@ -174,53 +180,118 @@ export const NUL = '\0';
  * (`scripts/hooks/bootstrap-conteneur.mjs`) : sur la surface Codex, ce hook ne pourrait que naître
  * et rendre une liste vide. Un spawn qui ne mesure rien n'est pas une parité, c'est un mort.
  */
-
-export const HOOKS_MONO_SURFACE = new Map([
-  [`SessionStart${NUL}${NUL}inject-project-credo.mjs`, SURFACE_CODEX],
-  [`SessionStart${NUL}${NUL}bootstrap-conteneur.mjs`, SURFACE_CLAUDE],
-]);
+export const HOOKS_MONO_SURFACE = [
+  { phase: 'SessionStart', script: 'inject-project-credo.mjs', arguments: ['codex'], surface: SURFACE_CODEX, timeout: 10, statusMessage: 'Injection du credo de travail' },
+  { phase: 'SessionStart', script: 'bootstrap-conteneur.mjs', arguments: [], surface: SURFACE_CLAUDE, timeout: 300, statusMessage: 'Conformité du conteneur distant (hooks git, gh)' },
+];
 
 /**
- * Les hooks d'une surface, à plat : un par commande, `script` = le module de `scripts/hooks/` que la
- * commande lance (`undefined` si elle n'en lance aucun).
- * @param {{ hooks?: Record<string, Array<{ matcher?: string, hooks?: Array<{ command?: string, timeout?: number, statusMessage?: string }> }>> }} value
+ * Le lancement d'un hook sur `surface`. Claude Code : forme EXEC (`command` + `args`, aucun shell),
+ * `${CLAUDE_PROJECT_DIR}` substitué par élément — la forme shell passe par Git Bash sous Windows, dont
+ * l'enfant survit au timeout en tenant le stdout (#2112, anthropics/claude-code#96945). Codex : forme
+ * shell, lancée depuis la racine du dépôt.
+ */
+export const lancementDeHook = (surface, script, args = []) => (surface === SURFACE_CLAUDE
+  ? { command: 'node', args: [`${PLACE_PROJET}/scripts/hooks/${script}`, ...args] }
+  : { command: [`node scripts/hooks/${script}`, ...args].join(' ') });
+
+/** Le placeholder de chemin que Claude Code substitue dans chaque élément de `args`. */
+export const PLACE_PROJET = '${CLAUDE_PROJECT_DIR}';
+
+/**
+ * La valeur `hooks` ATTENDUE de `surface`, DÉRIVÉE des registres : pour chaque point d'entrée et
+ * chaque événement de son registre, un hook dont le matcher est l'UNION des `outils` de ses gardes,
+ * puis les hooks mono-surface de `surface`.
+ * @param {ReadonlyMap<string, Record<string, Array<{ outils: string[] }>>>} registres script → registre
+ * @param {string} surface
+ */
+export function hooksAttendus(registres, surface) {
+  const hooks = {};
+  const ajouter = (phase, groupe) => { (hooks[phase] ??= []).push(groupe); };
+  for (const { script, timeout, statusMessage } of ENTREES_OUTIL) {
+    const registre = registres.get(script);
+    if (!registre) throw new Error(`registre absent pour ${script}`);
+    for (const [phase, gardes] of Object.entries(registre)) {
+      const matcher = [...new Set(gardes.flatMap((g) => g.outils))].join('|');
+      ajouter(phase, { matcher, hooks: [{ type: 'command', ...lancementDeHook(surface, script), timeout, statusMessage }] });
+    }
+  }
+  for (const { phase, script, arguments: args, surface: proprietaire, timeout, statusMessage } of HOOKS_MONO_SURFACE)
+    if (proprietaire === surface) ajouter(phase, { hooks: [{ type: 'command', ...lancementDeHook(surface, script, args), timeout, statusMessage }] });
+  return hooks;
+}
+
+/**
+ * Les hooks d'une surface, à plat : un par commande, `command` = la ligne lancée (`args` de la forme exec
+ * joints), `script` = le module de `scripts/hooks/` qu'elle lance (`undefined` si elle n'en lance aucun).
+ * @param {{ hooks?: Record<string, Array<{ matcher?: string, hooks?: Array<{ command?: string, args?: string[], timeout?: number, statusMessage?: string }> }>> }} value
  * @param {string} surface
  */
 export const aplatirHooks = (value, surface) => Object.entries(value.hooks ?? {}).flatMap(([phase, groups]) =>
   groups.flatMap((group, groupIndex) => (group.hooks ?? []).map((hook, hookIndex) => {
-    const command = hook.command ?? '';
+    const command = [hook.command ?? '', ...(hook.args ?? [])].join(' ');
     const script = /scripts[\\/]hooks[\\/]([\w.-]+\.mjs)/.exec(command)?.[1];
-    return { phase, matcher: group.matcher ?? '', script, timeout: hook.timeout, statusMessage: hook.statusMessage, command, surface, path: `${surface}.hooks.${phase}[${groupIndex}].hooks[${hookIndex}]` };
+    return { phase, matcher: group.matcher ?? '', script, args: hook.args, timeout: hook.timeout, statusMessage: hook.statusMessage, command, surface, path: `${surface}.hooks.${phase}[${groupIndex}].hooks[${hookIndex}]` };
   })));
 
-export function validateHookParity(claudeSettings, codexHooks) {
-  const forbiddenEverywhere = /\bcat\b|\/dev\/null|[<>;|]|&&/;
-  const forbiddenOnCodex = /CLAUDE_PROJECT_DIR/;
-  const left = aplatirHooks(claudeSettings, SURFACE_CLAUDE);
-  const right = aplatirHooks(codexHooks, SURFACE_CODEX);
-  const isForbidden = (hook) => forbiddenEverywhere.test(hook.command) || (hook.surface === SURFACE_CODEX && forbiddenOnCodex.test(hook.command));
-  const diagnostics = [...left, ...right].filter((hook) => isForbidden(hook) || !hook.script)
-    .map((hook) => ({ family: 'hook', destination: hook.path, type: 'reference', message: `commande non portable: ${hook.command}` }));
+/**
+ * SORTIE PAR CLÉ : un fichier JSON dont `agents:sync` ne possède qu'UNE clé de premier niveau — le
+ * reste (les `permissions` éditées à la main de `.claude/settings.json`) est relu et PRÉSERVÉ à l'octet.
+ * Fichier → clé gérée.
+ */
+export const SORTIES_PAR_CLE = new Map([[SURFACE_CLAUDE, 'hooks']]);
 
-  // Clef d'IDENTITÉ du contrat (sans le timeout) : le `matcher` peut contenir des `|`, la clef ne se
-  // découpe donc jamais sur ce caractère.
-  const identite = (hook) => `${hook.phase}${NUL}${hook.matcher}${NUL}${hook.script}`;
-  const propre = (hook) => HOOKS_MONO_SURFACE.get(identite(hook));
-
-  const key = (hook) => `${hook.phase}${NUL}${hook.matcher}${NUL}${hook.script}${NUL}${hook.timeout}`;
-  const partages = (liste) => liste.filter((hook) => !propre(hook));
-  for (const value of new Set([...partages(left).map(key), ...partages(right).map(key)]))
-    if (!left.some((hook) => key(hook) === value) || !right.some((hook) => key(hook) === value))
-      diagnostics.push({ family: 'hook', destination: value, type: 'content', message: 'hook absent sur une surface' });
-
-  for (const [cle, surface] of HOOKS_MONO_SURFACE) {
-    const porte = (liste) => liste.some((hook) => identite(hook) === cle);
-    const attendue = surface === SURFACE_CODEX ? right : left;
-    const interdite = surface === SURFACE_CODEX ? left : right;
-    if (!porte(attendue)) diagnostics.push({ family: 'hook', destination: cle, type: 'missing', message: `hook propre à ${surface} absent de cette surface` });
-    if (porte(interdite)) diagnostics.push({ family: 'hook', destination: cle, type: 'content', message: `hook réservé à ${surface} présent sur l'autre surface` });
+/** L'étendue `[debut, fin)` de la VALEUR de la clé `cle` du premier niveau de l'objet JSON `texte`,
+ *  `null` si la clé n'y est pas. `texte` est un JSON valide (déjà parsé par l'appelant). */
+function etendueDeCle(texte, cle) {
+  let profondeur = 0;
+  let i = 0;
+  const finDeChaine = (j) => { for (j += 1; texte[j] !== '"'; j += 1) if (texte[j] === '\\') j += 1; return j + 1; };
+  while (i < texte.length) {
+    const c = texte[i];
+    if (c === '"') {
+      const fin = finDeChaine(i);
+      if (profondeur === 1 && JSON.parse(texte.slice(i, fin)) === cle && /^\s*:/.test(texte.slice(fin))) {
+        let debut = fin + texte.slice(fin).indexOf(':') + 1;
+        while (/\s/.test(texte[debut])) debut += 1;
+        let j = debut;
+        if (texte[j] === '"') return [debut, finDeChaine(j)];
+        if (texte[j] !== '{' && texte[j] !== '[') {
+          while (j < texte.length && !/[,}\s]/.test(texte[j])) j += 1;
+          return [debut, j];
+        }
+        for (let niveau = 0; ; j += 1) {
+          if (texte[j] === '"') { j = finDeChaine(j) - 1; continue; }
+          if (texte[j] === '{' || texte[j] === '[') niveau += 1;
+          else if ((texte[j] === '}' || texte[j] === ']') && --niveau === 0) return [debut, j + 1];
+        }
+      }
+      i = fin;
+      continue;
+    }
+    if (c === '{' || c === '[') profondeur += 1;
+    else if (c === '}' || c === ']') profondeur -= 1;
+    i += 1;
   }
-  return diagnostics;
+  return null;
+}
+
+/**
+ * `texte` (un objet JSON) dont la clé de premier niveau `cle` vaut `valeur` : seule l'étendue de sa
+ * valeur est réécrite, à l'indentation du fichier ; toute autre clé garde ses octets et sa place. Clé
+ * absente : ajoutée en dernier. `texte` absent : un objet qui ne porte qu'elle.
+ */
+export function remplacerCleJson(texte, cle, valeur) {
+  if (texte === undefined || texte === null) return `${JSON.stringify({ [cle]: valeur }, null, 2)}\n`;
+  JSON.parse(texte);
+  const unite = /\n([ \t]+)"/.exec(texte)?.[1] ?? '  ';
+  const serialise = JSON.stringify(valeur, null, unite).replace(/\n/g, `\n${unite}`);
+  const etendue = etendueDeCle(texte, cle);
+  if (etendue) return `${texte.slice(0, etendue[0])}${serialise}${texte.slice(etendue[1])}`;
+  const fin = texte.lastIndexOf('}');
+  const avant = texte.slice(0, fin).replace(/\s*$/, '');
+  const separateur = avant.endsWith('{') ? '' : ',';
+  return `${avant}${separateur}\n${unite}${JSON.stringify(cle)}: ${serialise}\n${texte.slice(fin)}`;
 }
 
 /** Les racines que `agents:sync` POSSÈDE — source unique, lue ici (`managedRoots`) et par le train
@@ -228,8 +299,14 @@ export function validateHookParity(claudeSettings, codexHooks) {
  *  `CLAUDE.md` et des fiches, donc committables avec les docs. */
 export const MANAGED_ROOTS = ['AGENTS.md', '.agents/skills', '.codex/credo.md'];
 
-export function buildExpectedOutputs(snapshot) {
+/**
+ * Les sorties attendues de `snapshot`. `registres` (script de `ENTREES_OUTIL` → registre) dérive les
+ * déclarations de hooks des deux surfaces : `.codex/hooks.json` ENTIER, la seule clé `hooks` de
+ * `.claude/settings.json` (`SORTIES_PAR_CLE`).
+ */
+export function buildExpectedOutputs(snapshot, registres) {
   const files = new Map();
+  const sortiesDeHooks = new Set();
   const diagnostics = [];
   const source = snapshot.get('CLAUDE.md');
   if (!source) diagnostics.push({ family: 'guide', destination: 'AGENTS.md', type: 'missing', message: 'CLAUDE.md absent' });
@@ -243,7 +320,20 @@ export function buildExpectedOutputs(snapshot) {
   for (const [destination, bytes] of transformSkillTree(snapshot)) files.set(destination, bytes);
   const credo = snapshot.get('.claude/credo.md');
   if (credo) files.set('.codex/credo.md', Buffer.from(`${GENERATED_PREFIX}.claude/credo.md -->\n${adapt(utf8.decode(credo))}`));
-  return { files, managedRoots: new Set(MANAGED_ROOTS), diagnostics };
+  for (const surface of [SURFACE_CLAUDE, SURFACE_CODEX]) {
+    try {
+      const valeur = hooksAttendus(registres, surface);
+      const cle = SORTIES_PAR_CLE.get(surface);
+      const texte = cle
+        ? remplacerCleJson(snapshot.get(surface)?.toString('utf8'), cle, valeur)
+        : `${JSON.stringify({ hooks: valeur }, null, 2)}\n`;
+      files.set(surface, Buffer.from(texte));
+      sortiesDeHooks.add(surface);
+    } catch (error) {
+      diagnostics.push({ family: 'hook', destination: surface, type: 'parse', message: error.message });
+    }
+  }
+  return { files, managedRoots: new Set(MANAGED_ROOTS), sortiesDeHooks, diagnostics };
 }
 
 function withoutBanner(value) {
@@ -258,6 +348,10 @@ export function collectDiffs(expected, actual) {
   const diagnostics = [...expected.diagnostics];
   for (const [destination, wanted] of expected.files) {
     const found = actual.get(destination);
+    if (expected.sortiesDeHooks.has(destination)) {
+      if (!found?.equals(wanted)) diagnostics.push({ family: 'hook', destination, type: found ? 'content' : 'missing', message: 'hooks divergents du registre', safe: true });
+      continue;
+    }
     if (!found) diagnostics.push({ family: 'guide', destination, type: 'missing', message: 'sortie absente', safe: true });
     else if (!found.equals(wanted)) {
       let current;

@@ -4,10 +4,18 @@ import { Buffer } from 'node:buffer';
 import { readFile } from 'node:fs/promises';
 import {
   normalizeText, readFrontmatter, readTomlStringField, transformGuide,
-  transformSkillTree, validateRolePairs, validateHookParity, buildExpectedOutputs, collectDiffs,
-  HOOKS_MONO_SURFACE, NUL, SURFACE_CLAUDE, SURFACE_CODEX, aplatirHooks,
+  transformSkillTree, validateRolePairs, buildExpectedOutputs as sortiesAttendues, collectDiffs,
+  HOOKS_MONO_SURFACE, PLACE_PROJET, SURFACE_CLAUDE, SURFACE_CODEX, aplatirHooks, hooksAttendus, remplacerCleJson,
 } from './compat-core.mjs';
-import { atomicWrite, runCompat } from './compat-cli.mjs';
+import { atomicWrite, chargerRegistres, runCompat } from './compat-cli.mjs';
+
+/** Registres de fixture : un point d'entrée par `ENTREES_OUTIL`, deux gardes au répartiteur. */
+const REGISTRES = new Map([
+  ['repartiteur.mjs', { PreToolUse: [{ outils: ['Write', 'Edit'] }, { outils: ['Bash', 'Edit'] }], PostToolUse: [{ outils: ['Write'] }] }],
+  ['solde-ticket-hook.mjs', { PreToolUse: [{ outils: ['Bash'] }] }],
+]);
+/** Les sorties attendues d'un snapshot, sous les registres de fixture. */
+const buildExpectedOutputs = (snapshot) => sortiesAttendues(snapshot, REGISTRES);
 
 // Racine de fixture ASSEMBLÉE à l'exécution : ce fichier ne porte aucun chemin absolu littéral, il
 // reste donc soumis à `src/portable-paths-guard.test.ts` comme le reste de `scripts/**`.
@@ -86,6 +94,7 @@ test('reconstruit les sorties attendues depuis le snapshot post-sync', async () 
   ]);
   let reads = 0;
   const diagnostics = await runCompat({ root: 'virtual', mode: 'sync' }, {
+    registres: REGISTRES,
     snapshot: async () => (reads++ === 0 ? first : second),
     atomicWrite: async () => {},
   });
@@ -128,47 +137,75 @@ test('génère seulement le credo Codex et partage la mémoire Claude', () => {
   assert.equal(expected.files.has('.codex/memory/MEMORY.md'), false);
 });
 
-/** Hook PARTAGÉ de référence — celui-là doit être présent à l'identique sur les deux surfaces. */
-const partage = (command = 'node scripts/hooks/poison-postcheck.mjs', timeout = 10, matcher = 'Write|Edit') =>
-  ({ hooks: { PostToolUse: [{ matcher, hooks: [{ type: 'command', command, timeout }] }] } });
-
-/** Ajoute à `base` les hooks que `HOOKS_MONO_SURFACE` RÉSERVE à `surface`. Les fixtures se dérivent
- *  ainsi de la TABLE : un mono-surface de plus n'oblige à toucher aucun cas de ce fichier. */
-function avecPropres(surface, base) {
-  const hooks = { ...base.hooks };
-  for (const [cle, proprietaire] of HOOKS_MONO_SURFACE) {
-    if (proprietaire !== surface) continue;
-    const [phase, matcher, script] = cle.split(NUL);
-    const entree = { ...(matcher ? { matcher } : {}), hooks: [{ type: 'command', command: `node scripts/hooks/${script}`, timeout: 10 }] };
-    hooks[phase] = [...(hooks[phase] ?? []), entree];
-  }
-  return { hooks };
-}
-/** Les deux surfaces d'un même jeu, chacune portant ce qui lui est propre. */
-const paire = (claude = partage(), codex = claude) =>
-  [avecPropres(SURFACE_CLAUDE, claude), avecPropres(SURFACE_CODEX, codex)];
-
-test('normalise la parité et rejette les commandes shell', () => {
-  assert.deepEqual(validateHookParity(...paire()), []);
-  assert.equal(validateHookParity(...paire(partage(), partage('cat .codex/credo.md')))[0].type, 'reference');
+test('les hooks ATTENDUS dérivent des registres : un par point d’entrée et par événement, matcher = UNION des outils', () => {
+  const claude = aplatirHooks({ hooks: hooksAttendus(REGISTRES, SURFACE_CLAUDE) }, SURFACE_CLAUDE);
+  const codex = aplatirHooks({ hooks: hooksAttendus(REGISTRES, SURFACE_CODEX) }, SURFACE_CODEX);
+  const outil = (liste) => liste.filter((h) => h.phase !== 'SessionStart').map(({ phase, matcher, script, timeout }) => ({ phase, matcher, script, timeout }));
+  assert.deepEqual(outil(claude), [
+    { phase: 'PreToolUse', matcher: 'Write|Edit|Bash', script: 'repartiteur.mjs', timeout: 10 },
+    { phase: 'PreToolUse', matcher: 'Bash', script: 'solde-ticket-hook.mjs', timeout: 10 },
+    { phase: 'PostToolUse', matcher: 'Write', script: 'repartiteur.mjs', timeout: 10 },
+  ]);
+  assert.deepEqual(outil(codex), outil(claude), 'les deux surfaces dérivent de la même source');
+  assert.ok(codex.every((h) => h.command.startsWith('node scripts/hooks/') && h.args === undefined));
 });
 
-test('CONTRAT — un hook mono-surface est EXIGÉ chez son propriétaire, REFUSÉ chez l’autre', () => {
-  // Deux surfaces nues : un diagnostic `missing` par hook que la table réserve à l'une d'elles.
-  const nus = validateHookParity(partage(), partage());
-  assert.equal(nus.length, HOOKS_MONO_SURFACE.size);
-  assert.ok(nus.every((d) => d.type === 'missing'), JSON.stringify(nus));
-  for (const surface of new Set(HOOKS_MONO_SURFACE.values())) {
-    assert.ok(nus.some((d) => d.message.includes(surface)), `aucun manque signalé pour ${surface}`);
+test('CONTRAT — toute déclaration Claude est en forme EXEC : `command` = `node`, `args` non vide, aucun `$` hors `${CLAUDE_PROJECT_DIR}` (#2112, #2125)', async () => {
+  const brutes = (hooks) => Object.values(hooks).flatMap((groupes) => groupes.flatMap((g) => g.hooks));
+  const surDisque = JSON.parse(await readFile(new URL(`../../${SURFACE_CLAUDE}`, import.meta.url), 'utf8')).hooks;
+  for (const [origine, hooks] of [['générées', hooksAttendus(REGISTRES, SURFACE_CLAUDE)], ['commitées', surDisque]]) {
+    const declarations = brutes(hooks);
+    assert.ok(declarations.length > 0, origine);
+    for (const h of declarations) {
+      const dit = `${origine} : ${JSON.stringify(h)}`;
+      assert.equal(h.command, 'node', dit);
+      assert.ok(Array.isArray(h.args) && h.args.length > 0, dit);
+      assert.ok(h.args[0].startsWith(`${PLACE_PROJET}/scripts/hooks/`), dit);
+      assert.ok(h.args.every((a) => !a.replaceAll(PLACE_PROJET, '').includes('$')), dit);
+    }
   }
+});
 
-  // Le credo porté AUSSI par Claude : il serait chargé deux fois (l'import `@.claude/credo.md` le pose déjà).
-  const [claude, codex] = paire();
-  const claudeAussi = { hooks: { ...claude.hooks, SessionStart: [...claude.hooks.SessionStart, { hooks: [{ type: 'command', command: 'node scripts/hooks/inject-project-credo.mjs claude', timeout: 10 }] }] } };
-  const double = validateHookParity(claudeAussi, codex);
-  assert.equal(double.length, 1);
-  assert.equal(double[0].type, 'content');
-  assert.match(double[0].message, /réservé à \.codex\/hooks\.json/);
+test('CONTRAT — un hook mono-surface n’est porté QUE par son propriétaire', () => {
+  for (const { phase, script, surface } of HOOKS_MONO_SURFACE) {
+    for (const cible of [SURFACE_CLAUDE, SURFACE_CODEX]) {
+      const porte = aplatirHooks({ hooks: hooksAttendus(REGISTRES, cible) }, cible).some((h) => h.phase === phase && h.script === script);
+      assert.equal(porte, cible === surface, `${script} sur ${cible}`);
+    }
+  }
+});
+
+test('sortie PAR CLÉ : sync réécrit la seule clé `hooks` de settings.json, permissions et ordre des clés à l’octet près', async () => {
+  const avant = '{\n  "permissions": { "allow": ["Bash(x:*)", "zz"], "deny": [] },\n  "hooks": { "Vieux": [] },\n  "claudeMdExcludes": ["**/a"]\n}\n';
+  const ecrits = new Map();
+  let fichiers = new Map([[SURFACE_CLAUDE, Buffer.from(avant)]]);
+  await runCompat({ root: 'virtual', mode: 'sync' }, {
+    registres: REGISTRES,
+    snapshot: async () => new Map(fichiers),
+    atomicWrite: async (_racine, rel, data) => { ecrits.set(rel, data); fichiers = new Map([...fichiers, [rel, data]]); },
+  });
+  const apres = ecrits.get(SURFACE_CLAUDE).toString('utf8');
+  assert.ok(apres.startsWith('{\n  "permissions": { "allow": ["Bash(x:*)", "zz"], "deny": [] },\n  "hooks": {\n'), apres);
+  assert.ok(apres.endsWith('\n  },\n  "claudeMdExcludes": ["**/a"]\n}\n'), apres);
+  assert.deepEqual(JSON.parse(apres).hooks, hooksAttendus(REGISTRES, SURFACE_CLAUDE));
+  assert.deepEqual(Object.keys(JSON.parse(apres)), ['permissions', 'hooks', 'claudeMdExcludes']);
+  assert.deepEqual(JSON.parse(ecrits.get(SURFACE_CODEX).toString('utf8')), { hooks: hooksAttendus(REGISTRES, SURFACE_CODEX) }, 'Codex : sortie ENTIÈRE');
+});
+
+test('sortie PAR CLÉ : clé absente ajoutée en dernier, fichier absent créé, JSON illisible = diagnostic', () => {
+  const ajoute = remplacerCleJson('{\n  "permissions": {}\n}\n', 'hooks', { A: [] });
+  assert.equal(ajoute, '{\n  "permissions": {},\n  "hooks": {\n    "A": []\n  }\n}\n');
+  assert.equal(remplacerCleJson(undefined, 'hooks', {}), '{\n  "hooks": {}\n}\n');
+  const casse = sortiesAttendues(new Map([[SURFACE_CLAUDE, Buffer.from('{ pas du json')]]), REGISTRES);
+  assert.ok(casse.diagnostics.some((d) => d.destination === SURFACE_CLAUDE && d.type === 'parse'));
+});
+
+test('une commande de hook éditée à la main (`&&`, `;`, `|`, redirection) est une DIVERGENCE : seul le gabarit du générateur est une commande', () => {
+  const attendu = buildExpectedOutputs(new Map());
+  const codex = JSON.parse(attendu.files.get(SURFACE_CODEX).toString('utf8'));
+  codex.hooks.PreToolUse[0].hooks[0].command += ' && true';
+  const diagnostics = collectDiffs(attendu, new Map([[SURFACE_CODEX, Buffer.from(`${JSON.stringify(codex, null, 2)}\n`)]]));
+  assert.ok(diagnostics.some((d) => d.destination === SURFACE_CODEX && d.family === 'hook' && d.type === 'content'), JSON.stringify(diagnostics));
 });
 
 test('CONTRAT — `.claude/settings.json` n’a PAS de SessionStart credo, `.codex/hooks.json` en a un', async () => {
@@ -181,7 +218,6 @@ test('CONTRAT — `.claude/settings.json` n’a PAS de SessionStart credo, `.cod
   assert.equal(credos(codex, SURFACE_CODEX).length, 1, 'Codex n’a pas d’import : sa surface INJECTE le credo');
   const guide = await readFile(new URL('CLAUDE.md', racine), 'utf8');
   assert.match(guide, /^@\.claude\/credo\.md$/m, 'la ligne d’import du credo manque à CLAUDE.md');
-  assert.deepEqual(validateHookParity(claude, codex), []);
 });
 
 test("CONTRAT — l'import `@.claude/credo.md` se traduit en MÉCANISME, pas en pointeur inerte", async () => {
@@ -195,29 +231,11 @@ test("CONTRAT — l'import `@.claude/credo.md` se traduit en MÉCANISME, pas en 
   assert.doesNotMatch(agents, /@\.codex\/credo\.md/);
 });
 
-test('CLAUDE_PROJECT_DIR ancre légitimement la surface Claude, jamais la surface Codex', () => {
-  const ancre = 'node "$CLAUDE_PROJECT_DIR"/scripts/hooks/poison-postcheck.mjs';
-  assert.deepEqual(validateHookParity(...paire(partage(ancre), partage())), []);
-  assert.equal(validateHookParity(...paire(partage(ancre), partage(ancre)))[0].type, 'reference');
-});
-
-test('&& et /dev/null restent interdits sur les deux surfaces', () => {
-  const claudeBad = partage('node scripts/hooks/poison-postcheck.mjs && true');
-  assert.equal(validateHookParity(...paire(claudeBad, partage()))[0].type, 'reference');
-  const codexBad = partage('node scripts/hooks/poison-postcheck.mjs > /dev/null');
-  assert.equal(validateHookParity(...paire(partage(), codexBad))[0].type, 'reference');
-});
-
-test('`;` et `|` restent interdits sur les deux surfaces : une commande de hook lance UN processus', () => {
-  const claudeBad = partage('node scripts/hooks/poison-postcheck.mjs; node scripts/x.mjs');
-  assert.equal(validateHookParity(...paire(claudeBad, partage()))[0].type, 'reference');
-  const codexBad = partage('node scripts/hooks/poison-postcheck.mjs | node scripts/x.mjs');
-  assert.equal(validateHookParity(...paire(partage(), codexBad))[0].type, 'reference');
-});
-
-test('une divergence de timeout ou de matcher entre surfaces reste rejetée', () => {
-  assert.equal(validateHookParity(...paire(partage(), partage(undefined, 20)))[0].type, 'content');
-  assert.equal(validateHookParity(...paire(partage(), partage(undefined, 10, 'Write')))[0].type, 'content');
+test('les déclarations committées sont celles que les registres RÉELS produisent (agents:check)', async () => {
+  const racine = new URL('../../', import.meta.url);
+  const snapshot = new Map(await Promise.all([SURFACE_CLAUDE, SURFACE_CODEX].map(async (s) => [s, await readFile(new URL(s, racine))])));
+  const attendu = sortiesAttendues(snapshot, await chargerRegistres());
+  assert.deepEqual(collectDiffs(attendu, snapshot).filter((d) => d.family === 'hook'), []);
 });
 
 test('réfute toute référence de profil qui diverge après normalisation', () => {
@@ -248,6 +266,7 @@ test('sync supprime seulement les orphelins générés avant le resnapshot', asy
   const files = new Map([source, ['.agents/skills/demo/SKILL.md', generated], ['.agents/skills/demo/assets/icon.bin', Buffer.from([1])]]);
   const removed = [];
   await runCompat({ root: 'virtual', mode: 'sync' }, {
+    registres: REGISTRES,
     snapshot: async () => new Map(files),
     atomicWrite: async () => {},
     rm: async (path) => { removed.push(path); files.delete('.agents/skills/demo/assets/icon.bin'); },

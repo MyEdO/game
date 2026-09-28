@@ -1,10 +1,9 @@
-// Garde de la mémoire persistante : un en-tête de SUPERSESSION ajouté à une fiche part en `ask`,
+// Garde de la mémoire persistante : un en-tête de SUPERSESSION ajouté à une fiche est refusé (`deny`),
 // une RÉÉCRITURE au présent passe. Les cas SILENCE sont le cœur du test — le stock mesuré
 // (2026-09-02 : 361 fiches, 84 touchées par un motif large, 4 lignes seulement en EN-TÊTE) dit
 // qu'un motif trop large crierait sur du récit daté légitime.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { spawnSync } from 'node:child_process'
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
@@ -12,21 +11,23 @@ import { dirname, join } from 'node:path'
 import { SURFACE_CLAUDE, SURFACE_CODEX, aplatirHooks } from '../agents/compat-core.mjs'
 import { evaluate, enteteSupersession, estLigneEntete, lignesAjoutees, estFicheMemoire } from './memoire-tombale-guard.mjs'
 import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
+import { lancerHook } from '../guards/lib/lancerHook.mjs'
+import { REGISTRE } from './registre.mjs'
+import { garde } from './memoire-tombale-guard.mjs'
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
-const HOOK = join(REPO, 'scripts', 'hooks', 'memoire-tombale-guard.mjs')
 const FICHE = join(REPO, '.claude', 'memory', 'game-exemple.md')
 
 const decision = (input, disque = '') => evaluate(input, () => disque)
 
-test('CAS FONDATEUR : un en-tête « ⚠ SUPERSÉDÉ … » ajouté en Edit part en ask', () => {
+test('CAS FONDATEUR : un en-tête « ⚠ SUPERSÉDÉ … » ajouté en Edit est refusé (deny)', () => {
   const d = decision({
     file_path: FICHE,
     old_string: 'La doctrine dit X.',
     new_string: '> ⚠ **SUPERSÉDÉ LE JOUR MÊME sur son cas (C)** — voir l’autre fiche.\n\nLa doctrine dit X.',
   })
-  assert.equal(d?.decision, 'ask')
-  assert.match(d.reason, /RÉÉCRIT au présent/)
+  assert.equal(d?.decision, 'deny')
+  assert.match(d.reason, /RÉÉCRIS le corps de la fiche au présent/)
   assert.match(d.reason, /SUPERSÉDÉ/)
 })
 
@@ -39,13 +40,13 @@ test('les trois mots, avec ou sans ornements, en tête de ligne', () => {
 
 // ── EN-TÊTE vs REPLI de phrase (sonde D1/P6) ───────────────────────────────────────────
 // Une ligne PHYSIQUE qui commence par le mot parce que la PHRASE s'y replie ne chapeaute rien :
-// mesurée au début de ligne seule, la garde rendait 3 `ask` sur 4 pour du récit daté légitime.
-test('ask : un en-tête ORNEMÉ ajouté sous une ligne pleine (le seul vrai cas)', () => {
+// mesurée au début de ligne seule, la garde rendait 3 refus sur 4 pour du récit daté légitime.
+test('deny : un en-tête ORNEMÉ ajouté sous une ligne pleine (le seul vrai cas)', () => {
   const d = decision({
     file_path: FICHE, old_string: 'ancre',
     new_string: 'ancre\n> ⚠ **SUPERSÉDÉ (2026-09-02)** — voir l’autre fiche.',
   })
-  assert.equal(d?.decision, 'ask')
+  assert.equal(d?.decision, 'deny')
 })
 
 test('SILENCE : le mot en tête de LIGNE par repli de phrase, ou en item descriptif', () => {
@@ -58,7 +59,7 @@ test('SILENCE : le mot en tête de LIGNE par repli de phrase, ou en item descrip
   }
 })
 
-test('ask : un en-tête NU là où rien ne précède une phrase — filet `---`, ligne de tableau, 1re ligne', () => {
+test('deny : un en-tête NU là où rien ne précède une phrase — filet `---`, ligne de tableau, 1re ligne', () => {
   for (const precedente of ['---', '|---|---|', '| une | rangée |', '']) {
     assert.match(enteteSupersession('SUPERSÉDÉ par la fiche X.', precedente) ?? '', /SUPERSÉDÉ/, `précédente : ${precedente}`)
   }
@@ -68,7 +69,7 @@ test('ask : un en-tête NU là où rien ne précède une phrase — filet `---`,
     file_path: FICHE, old_string: '',
     new_string: '---\nname: game-exemple\n---\nSUPERSÉDÉ par la fiche voisine.\n\nCorps.',
   })
-  assert.equal(d?.decision, 'ask')
+  assert.equal(d?.decision, 'deny')
 })
 
 test('SILENCE : la RÉÉCRITURE au présent, que la règle prescrit', () => {
@@ -121,7 +122,7 @@ test('hors .claude/memory, et hors .md, le garde se tait', () => {
 
 test('ctx_patch porte le texte en new_text/old_text', () => {
   const d = decision({ path: FICHE, old_text: 'Corps.', new_text: 'PÉRIMÉ — voir plus bas.\nCorps.' })
-  assert.equal(d?.decision, 'ask')
+  assert.equal(d?.decision, 'deny')
 })
 
 test('unités : enteteSupersession / estLigneEntete / lignesAjoutees', () => {
@@ -142,16 +143,15 @@ test('unités : enteteSupersession / estLigneEntete / lignesAjoutees', () => {
 
 /** Décision RÉELLE du hook sur un payload d'outil (`null` s'il se tait). */
 function decisionOf(tool_input) {
-  const run = spawnSync(process.execPath, [HOOK], {
-    input: JSON.stringify({ tool_input }), encoding: 'utf8', cwd: REPO,
+  const run = lancerHook('repartiteur.mjs', {
+    hook_event_name: 'PreToolUse', tool_name: tool_input.new_string === undefined ? 'Write' : 'Edit', tool_input,
   })
-  assert.equal(run.status, 0, 'le hook a quitté en ' + run.status + ' : ' + run.stderr)
-  if (!run.stdout.trim()) return null
-  return JSON.parse(run.stdout).hookSpecificOutput.permissionDecision
+  assert.equal(run.code, 0, 'le hook a quitté en ' + run.code + ' : ' + run.err)
+  return run.specifique?.permissionDecision ?? null
 }
 
 test('DRIVER : le hook décide de bout en bout, et se tait sur une écriture ordinaire', () => {
-  assert.equal(decisionOf({ file_path: FICHE, old_string: 'x', new_string: 'SUPERSÉDÉ : x' }), 'ask')
+  assert.equal(decisionOf({ file_path: FICHE, old_string: 'x', new_string: 'SUPERSÉDÉ : x' }), 'deny')
   assert.equal(decisionOf({ file_path: FICHE, old_string: 'x', new_string: 'La mesure du 2026-09-02 dit y.' }), null)
   assert.equal(decisionOf({ file_path: join(REPO, 'src', 'ui', 'App.tsx'), content: 'OBSOLÈTE' }), null)
 })
@@ -166,7 +166,7 @@ test('DRIVER : une fiche écrite PAR UNE JONCTION vers la mémoire d’un dépô
     mkdirSync(memoire, { recursive: true })
     const jonction = join(dehors, 'memory')
     symlinkSync(memoire, jonction, 'junction')
-    assert.equal(decisionOf({ file_path: join(jonction, 'game-x.md'), content: 'SUPERSÉDÉ : x\n' }), 'ask')
+    assert.equal(decisionOf({ file_path: join(jonction, 'game-x.md'), content: 'SUPERSÉDÉ : x\n' }), 'deny')
   } finally {
     rmSync(dehors, { recursive: true, force: true })
     rmSync(racine, { recursive: true, force: true })
@@ -196,13 +196,14 @@ test('DRIVER : une fiche `.claude/memory/` HORS de tout dépôt (scratchpad) →
   }
 })
 
-test('les DEUX surfaces câblent le garde sur Write, Edit et ctx_patch', () => {
+test('la garde est au registre PreToolUse du répartiteur, et les DEUX surfaces le câblent sur Write, Edit et ctx_patch', () => {
+  assert.ok(REGISTRE.PreToolUse.includes(garde))
   for (const surface of [SURFACE_CLAUDE, SURFACE_CODEX]) {
-    const matchers = aplatirHooks(JSON.parse(readFileSync(join(REPO, surface), 'utf8')), surface)
-      .filter((h) => h.phase === 'PreToolUse' && h.script === 'memoire-tombale-guard.mjs')
-      .map((h) => h.matcher)
-    assert.ok(matchers.length > 0, surface + ' : hook non câblé')
-    for (const canal of ['Write', 'Edit', 'mcp__lean-ctx__ctx_patch'])
-      assert.ok(matchers.some((m) => m.split('|').includes(canal)), surface + ' : canal ' + canal + ' non matché')
+    const matcher = aplatirHooks(JSON.parse(readFileSync(join(REPO, surface), 'utf8')), surface)
+      .find((h) => h.phase === 'PreToolUse' && h.script === 'repartiteur.mjs')?.matcher ?? ''
+    for (const canal of ['Write', 'Edit', 'mcp__lean-ctx__ctx_patch']) {
+      assert.ok(garde.outils.includes(canal), 'garde : canal ' + canal)
+      assert.ok(matcher.split('|').includes(canal), surface + ' : canal ' + canal + ' non matché')
+    }
   }
 })

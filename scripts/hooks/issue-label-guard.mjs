@@ -1,4 +1,4 @@
-// Hook PreToolUse(Bash|PowerShell|mcp__lean-ctx__ctx_shell) : garde d'ÉMISSION de tickets GitHub.
+// Garde PreToolUse(Bash|PowerShell|mcp__lean-ctx__ctx_shell) : ÉMISSION de tickets GitHub.
 // Constat utilisateur (2026-07-22) : « les labels sont sous-exploités par les agents/orchestrateur ».
 // La doctrine (credo : « les LABELS sont l'index du backlog ») ne suffit pas — on la rend MÉCANIQUE.
 //
@@ -27,10 +27,8 @@
 // `package.json` : la sonde `scripts/ops/sondes/audit-2026-09-01/sonde-bypass.mjs` le laisse passer
 // tant qu'AUCUN script `open-ticket` n'existe dans ce dépôt — le jour où il en porte un qui appelle
 // `gh issue create`, la création est refusée comme les autres.
-import '../node-requis.mjs'
-import { lireStdinBorne } from '../guards/lib/stdinBorne.mjs'
-import { resolve } from 'node:path'
-import { segmentsProfonds, extractTargetDir, ancrerScriptsNpm } from './solde-ticket-guard.mjs'
+import { OUTILS_SHELL, commandeDe, verdictDe } from '../guards/lib/contratGarde.mjs'
+import { segmentsProfonds } from './solde-ticket-guard.mjs'
 
 /** Un token porte-t-il une option de label ? (`--label`, `--label=X`, `-l`, `-lX` glué) */
 export const isLabelFlag = (t) => /^--label(=|$)/.test(t) || /^-l/.test(t)
@@ -191,35 +189,14 @@ export function contexteEmission(command, options) {
   return notes.length > 0 ? notes.join('\n') : null
 }
 
-// ── Driver stdin (n'exécute QUE lancé en direct, jamais à l'import du module de test) ─────────────
-if (import.meta.main) {
-  const raw = await lireStdinBorne()
-  let command = ''
-  // Le `cwd` du canal MCP `ctx_shell` (et un `cd`/`git -C` dans la commande) décide du dépôt où
-  // s'exécute la commande : `npm run <x>` s'y résout, jamais dans le dépôt du hook.
-  let baseCwd = process.cwd()
-  try {
-    const toolInput = JSON.parse(raw)?.tool_input
-    command = String(toolInput?.command ?? '')
-    if (typeof toolInput?.cwd === 'string' && toolInput.cwd) baseCwd = resolve(process.cwd(), toolInput.cwd)
-  } catch { /* stdin illisible → silence */ }
-  ancrerScriptsNpm(extractTargetDir(command, baseCwd))
-  const decision = evaluate(command)
-  if (decision) {
-    console.log(JSON.stringify({
-      hookSpecificOutput: {
-        hookEventName: 'PreToolUse',
-        permissionDecision: decision.decision ?? 'deny',
-        permissionDecisionReason: decision.reason,
-      },
-    }))
-  } else {
-    const contexte = contexteEmission(command)
-    if (contexte) {
-      console.log(JSON.stringify({
-        hookSpecificOutput: { hookEventName: 'PreToolUse', additionalContext: contexte },
-      }))
-    }
-  }
-  process.exit(0)
+/** Le refus, sinon le contexte d'émission. `npm run <x>` se résout dans le répertoire cible du contexte
+ *  (portée posée par le répartiteur). */
+function evaluer(entree) {
+  const command = commandeDe(entree)
+  const refus = verdictDe(evaluate(command))
+  if (refus) return refus
+  const contexte = contexteEmission(command)
+  return contexte ? { contexte } : null
 }
+
+export const garde = { nom: 'issue-label', outils: OUTILS_SHELL, evaluer }

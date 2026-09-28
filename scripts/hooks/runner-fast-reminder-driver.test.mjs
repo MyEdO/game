@@ -1,27 +1,21 @@
-// Tests du DRIVER de `runner-fast-reminder` (payloads de hook réels sur stdin) : le rappel doit
-// distinguer un APPEL de `tsc` d'une commande qui MENTIONNE le motif — une recherche de texte
-// (`grep -rn "tsc --noEmit" docs/`) déclenchait le rappel, mesuré en vif 2026-08-30 (#1591).
+// Tests de `runner-fast-reminder` : le rappel doit distinguer un APPEL de `tsc` d'une commande qui
+// MENTIONNE le motif — une recherche de texte (`grep -rn "tsc --noEmit" docs/`) déclenchait le rappel,
+// mesuré en vif 2026-08-30 (#1591). La table se joue sur la fonction ; le câblage, sur le répartiteur réel.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { spawnSync } from 'node:child_process'
-import { fileURLToPath } from 'node:url'
-import { dirname, join } from 'node:path'
+import { lancerHook } from '../guards/lib/lancerHook.mjs'
+import { conseilsRunner } from './runner-fast-reminder.mjs'
 
-const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
-const HOOK = join(REPO, 'scripts', 'hooks', 'runner-fast-reminder.mjs')
+/** `true` si la garde émet son rappel pour cette commande. */
+const rappelle = (command) => conseilsRunner(command).length > 0
 
-/** `true` si le hook émet son rappel pour cette commande. */
-function rappelle(command) {
-  const payload = JSON.stringify({
-    session_id: 'test',
-    hook_event_name: 'PreToolUse',
-    tool_name: 'Bash',
-    tool_input: { command },
-  })
-  const run = spawnSync(process.execPath, [HOOK], { input: payload, encoding: 'utf8', cwd: REPO })
-  assert.equal(run.status, 0, `le hook a quitté en ${run.status} : ${run.stderr}`)
-  return run.stdout.trim() !== ''
-}
+test('DRIVER : le répartiteur réel rend le rappel en contexte, et se tait hors appel', () => {
+  const charge = (command) => ({ session_id: 'test', hook_event_name: 'PreToolUse', tool_name: 'Bash', tool_input: { command } })
+  const appel = lancerHook('repartiteur.mjs', charge('npx tsc --noEmit'))
+  assert.equal(appel.code, 0, appel.err)
+  assert.match(appel.specifique?.additionalContext ?? '', /typecheck:fast/)
+  assert.equal(lancerHook('repartiteur.mjs', charge('grep -rn "tsc --noEmit" docs/')).out.trim(), '')
+})
 
 const APPELS = [
   'tsc --noEmit',

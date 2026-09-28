@@ -4,23 +4,17 @@
 // aucun fichier n'est écrit.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { spawnSync } from 'node:child_process'
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
 import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
-
-const HOOK = fileURLToPath(new URL('./data-edit-guard.mjs', import.meta.url))
+import { ecriture, lancerHook } from '../guards/lib/lancerHook.mjs'
 
 /** Contexte RENDU par le hook pour une édition de `<dossier>/src/data/qualities.json` (`''` s'il se tait). */
 function rappelPour(dossier) {
-  const run = spawnSync(process.execPath, [HOOK], {
-    input: JSON.stringify({ tool_input: { file_path: join(dossier, 'src', 'data', 'qualities.json'), old_string: 'a', new_string: 'b' } }),
-    encoding: 'utf8',
-  })
-  assert.equal(run.status, 0, run.stderr)
-  return run.stdout.trim() ? JSON.parse(run.stdout).hookSpecificOutput.additionalContext : ''
+  const run = lancerHook('repartiteur.mjs', ecriture({ file_path: join(dossier, 'src', 'data', 'qualities.json'), old_string: 'a', new_string: 'b' }, 'Edit'))
+  assert.equal(run.code, 0, run.err)
+  return run.specifique?.additionalContext ?? ''
 }
 
 test('une donnée src/data/ DANS un dépôt reçoit le rappel ; la même hors dépôt (scratchpad) → silence', () => {

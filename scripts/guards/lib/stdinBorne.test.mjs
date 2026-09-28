@@ -7,6 +7,7 @@ import { spawn } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { DELAI_STDIN_MS } from './stdinBorne.mjs'
+import { SURFACE_CLAUDE, aplatirHooks } from '../../agents/compat-core.mjs'
 
 const PRIMITIVE = new URL('./stdinBorne.mjs', import.meta.url).href
 const RACINE = fileURLToPath(new URL('../../../', import.meta.url))
@@ -15,14 +16,8 @@ const COUPE_MS = 30_000
 
 /** Les hooks déclarés dans `.claude/settings.json` : script `scripts/hooks/*.mjs` et `timeout` (s). */
 function hooksDeclares() {
-  const reglages = JSON.parse(readFileSync(`${RACINE}.claude/settings.json`, 'utf8'))
-  return Object.values(reglages.hooks)
-    .flat()
-    .flatMap((groupe) => groupe.hooks)
-    .flatMap((h) => {
-      const m = /scripts\/hooks\/([\w-]+\.mjs)/.exec(h.command)
-      return m ? [{ script: m[1], timeout: h.timeout }] : []
-    })
+  return aplatirHooks(JSON.parse(readFileSync(`${RACINE}${SURFACE_CLAUDE}`, 'utf8')), SURFACE_CLAUDE)
+    .flatMap((h) => (h.script ? [{ script: h.script, timeout: h.timeout }] : []))
 }
 
 test('chaque hook déclaré qui lit son stdin a un `timeout` au-dessus de DELAI_STDIN_MS', () => {
@@ -50,7 +45,7 @@ async function sortie(enfant) {
 }
 
 test('un vrai hook dont le stdin n’est JAMAIS fermé sort seul, en exit 0', async () => {
-  const enfant = spawn(process.execPath, ['scripts/hooks/solde-ticket-guard.mjs'], {
+  const enfant = spawn(process.execPath, ['scripts/hooks/repartiteur.mjs'], {
     cwd: RACINE,
     stdio: ['pipe', 'ignore', 'ignore'],
   })

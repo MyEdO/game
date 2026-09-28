@@ -131,16 +131,17 @@ const ATTENDU = {
     // (`symlinkSync`), poison-postcheck le fichier scanné (`mkdirSync` + `writeFileSync`) : les trois
     // lisent le disque, natif et MSYS doivent y lire le même fichier.
     'scripts/hooks/data-edit-guard.test.mjs',
-    // +1 le 2026-09-14 (#1754) : le banc du garde `[entériné]` pose ses fichiers-CIBLES (`mkdtempSync`
-    // + `writeFileSync`, puis `rmSync`) sous `os.tmpdir()` — c'est l'état SUR DISQUE que le hook lit
-    // pour ne demander que sur un tag NEUF ; l'arbre versionné n'est jamais écrit.
-    'scripts/hooks/enterine-guard.test.mjs',
     'scripts/hooks/exception-add-guard.test.mjs',
     'scripts/hooks/inject-project-credo.test.mjs',
     'scripts/hooks/memoire-tombale-guard.test.mjs',
-    'scripts/hooks/new-src-file-guard.mjs',
     'scripts/hooks/new-src-file-guard.test.mjs',
     'scripts/hooks/poison-postcheck.test.mjs',
+    // +2 −1 le 2026-09-28 (#2125), net +1 : le répartiteur AJOUTE au fichier la trace que rend une garde
+    // (`{ trace: { fichier, ligne } }`, la dérogation `SKIP_NEW_SRC_GUARD` vers
+    // `.claude/logs/new-src-guard-skips.log`) ; son banc pose des `package.json` jetables sous `os.tmpdir()` (`rmSync` en finally)
+    // pour le `cwd` de `ctx_shell`. L'arbre versionné n'est jamais écrit.
+    'scripts/hooks/repartiteur.mjs',
+    'scripts/hooks/repartiteur.test.mjs',
     'scripts/hooks/segments-profonds.test.mjs',
     'scripts/hooks/solde-ticket-guard-driver.test.mjs',
     'scripts/hooks/solde-ticket-guard.test.mjs',

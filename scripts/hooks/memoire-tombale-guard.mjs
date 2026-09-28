@@ -1,10 +1,10 @@
-// Hook PreToolUse(Write|Edit|mcp__lean-ctx__ctx_patch) : la règle 6(c) du CLAUDE.md (pierre tombale,
+// Garde PreToolUse(Write|Edit|mcp__lean-ctx__ctx_patch) : la règle 6(c) du CLAUDE.md (pierre tombale,
 // tolérance zéro) appliquée à `.claude/memory/**`. Une fiche devenue fausse se RÉÉCRIT au présent ou
 // se SUPPRIME — git porte l'historique ; poser un EN-TÊTE DE SUPERSESSION (les trois mots que `MOTIF`
 // reconnaît plus bas) au-dessus du faux le laisse en place, et la fiche se relit comme une vérité
 // (utilisateur, 2026-09-02 : « ce que tu as mis dans la mémoire sera retiré … vu qu'elle sera juste
-// une pierre tombale ou du poison ? »). Le geste n'est pas interdit : il est ARBITRÉ (`ask`, patron
-// `enterine-guard`).
+// une pierre tombale ou du poison ? »). Le geste est REFUSÉ, avec la consigne de réécriture
+// (doctrine `user-doctrine-gardes-jamais-de-ask`, 2026-09-28).
 //
 // PÉRIMÈTRE ÉTROIT, mesuré (2026-09-02, 362 fiches) : les seuls motifs retenus sont ceux d'un EN-TÊTE
 // de supersession. Un en-tête se reconnaît à son ORNEMENT de tête (`>`, `#`, `**`, `⚠`) ou au fait
@@ -21,9 +21,8 @@
 // prescrit (re-sauver la fiche entière) se ferait refuser par les lignes qu'elle conserve.
 // CONSÉQUENCE DITE : replacer le MÊME en-tête dans `old_string` le rend silencieux — la ligne n'est
 // plus ajoutée. Le garde arbitre l'ÉCRITURE d'un en-tête, il n'inspecte pas la fiche existante.
-import '../node-requis.mjs'
-import { lireStdinBorne } from '../guards/lib/stdinBorne.mjs'
 import { readFileSync } from 'node:fs'
+import { entreeDOutil, verdictDe } from '../guards/lib/contratGarde.mjs'
 import { cheminDEcriture } from './solde-ticket-guard.mjs'
 
 /** Ligne débarrassée de ses ornements de tête (citation, puce, titre, gras, avertissement). */
@@ -105,35 +104,25 @@ export function evaluate(input, lireDisque = () => '') {
     const entete = enteteSupersession(texte, lignes[rang - 1])
     if (!entete) continue
     return {
-      decision: 'ask',
+      decision: 'deny',
       reason:
-        '⚠ En-tête de SUPERSESSION ajouté à une fiche de mémoire (« ' + entete + ' ») : une fiche ' +
-        'devenue fausse se RÉÉCRIT au présent, ou se SUPPRIME (git porte l\'historique) — un en-tête ' +
+        '⛔ En-tête de SUPERSESSION ajouté à une fiche de mémoire (« ' + entete + ' ») : un en-tête ' +
         'posé AU-DESSUS du faux laisse le faux se relire comme une vérité (règle 6c, tolérance zéro). ' +
-        'Confirmer seulement si cette ligne NOMME le porteur actuel de l\'invariant ; sinon, réécrire ' +
-        'le corps de la fiche à l\'état présent.',
+        'Geste : RÉÉCRIS le corps de la fiche au présent, ou SUPPRIME la fiche (git porte l\'historique) ; ' +
+        'si la ligne nomme le porteur actuel de l\'invariant, écris-la `PORTÉ PAR <porteur>`.',
     }
   }
   return null
 }
 
-// ── Driver stdin (n'exécute QUE lancé en direct, jamais à l'import du module de test) ─────────────
-if (import.meta.main) {
-  const raw = await lireStdinBorne()
-  let input = null
-  try { input = JSON.parse(raw)?.tool_input ?? null } catch { /* stdin illisible → silence */ }
-  const lire = (chemin) => { try { return readFileSync(chemin, 'utf8') } catch { return '' } }
+const lire = (chemin) => { try { return readFileSync(chemin, 'utf8') } catch { return '' } }
+
+function evaluer(entree) {
+  const input = entreeDOutil(entree)
   // La fiche se juge sous son chemin RÉEL : la mémoire de session s'écrit par une jonction (#1973).
   const chemin = cheminDEcriture(input)
   const decision = chemin ? evaluate({ ...input, file_path: chemin.reel }, lire) : null
-  if (decision && !chemin.horsContenu) {
-    console.log(JSON.stringify({
-      hookSpecificOutput: {
-        hookEventName: 'PreToolUse',
-        permissionDecision: decision.decision ?? 'ask',
-        permissionDecisionReason: decision.reason,
-      },
-    }))
-  }
-  process.exit(0)
+  return decision && !chemin.horsContenu ? verdictDe(decision) : null
 }
+
+export const garde = { nom: 'memoire-tombale', outils: ['Write', 'Edit', 'mcp__lean-ctx__ctx_patch'], evaluer }
