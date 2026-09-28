@@ -6,6 +6,8 @@
 // `Condition`/`Flow`/`EffectTrigger`/`EffectTargeting` de src/engine/flowCore.ts).
 import ts from 'typescript'
 import { readFileSync } from 'node:fs'
+import path from 'node:path'
+import { VIRTUAL_ROOT, virtualProgram } from '../../guards/lib/tsProgram.mjs'
 
 /** Abréviations FR à ne PAS prendre pour une fin de phrase (« ex. », « l. », « p. »… — sinon un
  *  « (ex. » tronque le rôle en pleine parenthèse ouverte). */
@@ -225,7 +227,7 @@ export function indexerConstantes(fichiers) {
  * Déclaration RÉELLE d'une constante d'index dont l'initialiseur est un ACCÈS DE PROPRIÉTÉ
  * (`export const x = FAMILLE.x`, `mecaniqueDe`, `src/data/schemas/grammaire/mecanique.ts`) : le
  * vérificateur de types suit le membre jusqu'à la `const` qui le porte, à toute profondeur. Programme
- * restreint au fichier de l'entrée (`noResolve`) : seule la bibliothèque standard s'y ajoute.
+ * sur le texte déjà lu de l'entrée, bibliothèque standard comprise, sans import (`virtualProgram`).
  * Rend `{ decl, statement, sf, text }` ; l'entrée elle-même si son initialiseur n'est pas un accès.
  */
 function declarationReelle(entree, programmes) {
@@ -233,14 +235,11 @@ function declarationReelle(entree, programmes) {
   if (!init || !ts.isPropertyAccessExpression(init)) return entree
   let programme = programmes.get(entree.chemin)
   if (!programme) {
-    programme = ts.createProgram({
-      rootNames: [entree.chemin],
-      options: { noResolve: true, noEmit: true, target: ts.ScriptTarget.ES2022, skipLibCheck: true },
-    })
+    programme = virtualProgram({ [entree.chemin]: entree.text })
     programmes.set(entree.chemin, programme)
   }
   const checker = programme.getTypeChecker()
-  const sf = programme.getSourceFile(entree.chemin)
+  const sf = programme.getSourceFile(path.resolve(VIRTUAL_ROOT, entree.chemin))
   const trouver = (n) => (n.pos === init.pos && n.end === init.end && ts.isPropertyAccessExpression(n) ? n : ts.forEachChild(n, trouver))
   let acces = trouver(sf)
   if (!acces) throw new Error(`declarationReelle — l'accès « ${init.getText()} » de « ${entree.decl.name.getText()} » est introuvable dans le programme de ${entree.chemin}`)

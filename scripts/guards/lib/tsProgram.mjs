@@ -1,8 +1,10 @@
 // Fabriques de `ts.Program` PARTAGÉES par les gardes qui ont besoin d'un vérificateur de TYPES
-// (#841 éditabilité des champs de scène, #847 champs des `GameOp`, #1620 consommateurs par champ).
-// Deux fabriques, une par SOURCE des fichiers :
+// (#841 éditabilité des champs de scène, #847 champs des `GameOp`, #1620 consommateurs par champ,
+// #1806 coupe au caractère).
+// Trois fabriques, une par SOURCE des fichiers :
 //   - `repoProgram` : les fichiers du dépôt, options du `tsconfig.json` racine ;
-//   - `virtualProgram` : des sources EN MÉMOIRE, pour les morsures de garde.
+//   - `virtualProgram` : des sources EN MÉMOIRE, pour les morsures de garde ;
+//   - `parsedProgram` : un arbre DÉJÀ parsé, sans lib ni import.
 //
 // AUCUNE RÉTENTION ICI. Ni cache ni mémo au niveau module : un Program du dépôt pèse ~1,3 Go de
 // tables du checker (mesuré #1620, 1 952 fichiers de `src/`), et sous Vitest `isolate: false` un
@@ -77,4 +79,22 @@ export function virtualProgram(files) {
     readFile: read,
   };
   return ts.createProgram({ rootNames: [...sources.keys()], options, host });
+}
+
+/** Programme bâti sur UN arbre DÉJÀ parsé (`racine`, un `ts.SourceFile`), sans bibliothèque ni import :
+ *  son vérificateur résout un nom du fichier en son symbole. */
+export function parsedProgram(racine) {
+  const options = { noLib: true, noResolve: true, allowJs: true, noEmit: true, types: [] };
+  const host = {
+    getSourceFile: (name) => (name === racine.fileName ? racine : undefined),
+    getDefaultLibFileName: (o) => ts.getDefaultLibFileName(o),
+    writeFile: () => {},
+    getCurrentDirectory: () => path.sep,
+    getCanonicalFileName: (f) => f,
+    useCaseSensitiveFileNames: () => true,
+    getNewLine: () => '\n',
+    fileExists: (name) => name === racine.fileName,
+    readFile: () => undefined,
+  };
+  return ts.createProgram({ rootNames: [racine.fileName], options, host });
 }

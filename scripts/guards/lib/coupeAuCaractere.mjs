@@ -6,14 +6,15 @@
 // PORTÉE, par l'arbre syntaxique d'un seul fichier et sans flux de données : l'expression de texte qui
 // emporte la coupe (gabarit, concaténation, ternaire, parenthèses, `trim*`, `padEnd`, `concat`, le
 // `join` d'un tableau de caractères), le nœud JSX qui suit l'expression de la coupe (les textes JSX
-// faits de seuls blancs sautés), une constante `const` littérale nommée à la place de l'ellipse, et une
-// coupe liée à une `const` puis ellipsée sous ce nom. Un nom se résout par son SYMBOLE (vérificateur de
-// TypeScript sur le seul fichier) : un homonyme d'une autre portée n'est pas lui. HORS PORTÉE : une
-// coupe passée en argument, rendue par une fonction, liée à un `let` ou un `var`, ou ellipsée dans un
-// autre fichier ; une constante importée.
+// faits de seuls blancs et les expressions JSX vides `{/* … */}` sautés), une constante `const`
+// littérale nommée à la place de l'ellipse, et une coupe liée à une `const` puis ellipsée sous ce nom.
+// Un nom se résout par son SYMBOLE (vérificateur de TypeScript sur le seul fichier, `parsedProgram`) :
+// un homonyme d'une autre portée n'est pas lui. HORS PORTÉE : une coupe passée en argument, rendue par
+// une fonction, liée à un `let` ou un `var`, ou ellipsée dans un autre fichier ; une constante importée.
 
 import { ast, typescript } from './dialecte.mjs'
 import { sAppliqueA } from './sourceCorpus.mjs'
+import { parsedProgram } from './tsProgram.mjs'
 
 /** Méthodes qui prennent un préfixe au caractère. */
 const COUPES = new Set(['slice', 'substring', 'substr'])
@@ -23,24 +24,6 @@ const SUITES_DE_TEXTE = new Set(['trim', 'trimEnd', 'trimRight', 'padEnd', 'conc
 const ELLIPSE = /…|\.\.\./
 /** La coupe elle-même. */
 const DECLARATION = { foyer: 'src/lib/coupeAuMot.mjs' }
-
-/** Vérificateur de TypeScript sur le seul arbre `racine` (ni bibliothèque ni import) : il résout un
- *  nom du fichier en son symbole. Vit dans l'appel (`tsProgram.mjs`, en-tête). */
-function verificateurDe(ts, racine) {
-  const host = {
-    getSourceFile: (nom) => (nom === racine.fileName ? racine : undefined),
-    getDefaultLibFileName: () => 'lib.d.ts',
-    writeFile: () => {},
-    getCurrentDirectory: () => '/',
-    getCanonicalFileName: (nom) => nom,
-    useCaseSensitiveFileNames: () => true,
-    getNewLine: () => '\n',
-    fileExists: (nom) => nom === racine.fileName,
-    readFile: () => undefined,
-  }
-  const options = { noLib: true, noResolve: true, allowJs: true, noEmit: true, types: [] }
-  return ts.createProgram({ rootNames: [racine.fileName], options, host }).getTypeChecker()
-}
 
 /**
  * Sites d'un préfixe `x.slice|substring|substr(0, n)` dont l'expression de texte qui l'emporte porte
@@ -57,8 +40,8 @@ export function coupesAuCaractere(fichiers) {
     if (!racine) continue
 
     let verificateur
-    /** Le symbole d'un nom du fichier. */
-    const symbole = (id) => (verificateur ??= verificateurDe(ts, racine)).getSymbolAtLocation(id)
+    /** Le symbole d'un nom du fichier ; le vérificateur vit dans l'appel (`tsProgram.mjs`, en-tête). */
+    const symbole = (id) => (verificateur ??= parsedProgram(racine).getTypeChecker()).getSymbolAtLocation(id)
     /** La déclaration `const` que désigne le nom `id`. */
     const constanteDe = (id) => {
       const decl = symbole(id)?.valueDeclaration
@@ -99,12 +82,13 @@ export function coupesAuCaractere(fichiers) {
         return n
       }
     }
-    /** `{coupe}…` : le nœud JSX qui SUIT l'expression de la coupe, blancs sautés, porte l'ellipse. */
+    /** `{coupe}…` : le nœud JSX qui SUIT l'expression de la coupe, blancs et expressions vides sautés, porte l'ellipse. */
     const suiviEnJsx = (n) => {
       const expr = n.parent
       if (!expr || !ts.isJsxExpression(expr) || !expr.parent || !('children' in expr.parent)) return false
       const freres = [...expr.parent.children]
-      const suivant = freres.slice(freres.indexOf(expr) + 1).find((f) => !(ts.isJsxText(f) && f.containsOnlyTriviaWhiteSpaces))
+      const suivant = freres.slice(freres.indexOf(expr) + 1)
+        .find((f) => !(ts.isJsxText(f) && f.containsOnlyTriviaWhiteSpaces) && !(ts.isJsxExpression(f) && !f.expression))
       return !!suivant && porteEllipse(suivant)
     }
     const ellipse = (depart, caracteres) => {

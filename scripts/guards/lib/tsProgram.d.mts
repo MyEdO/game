@@ -1,4 +1,4 @@
-import type { Program } from 'typescript';
+import type { Program, SourceFile } from 'typescript';
 
 /** Racine des programmes bâtis par `virtualProgram`. */
 export const VIRTUAL_ROOT: string;
@@ -11,3 +11,6 @@ export function repoProgram(
 
 /** Programme bâti sur des sources EN MÉMOIRE (`chemin relatif` → contenu). */
 export function virtualProgram(files: Record<string, string>): Program;
+
+/** Programme bâti sur UN arbre DÉJÀ parsé, sans bibliothèque ni import. */
+export function parsedProgram(racine: SourceFile): Program;

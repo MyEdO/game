@@ -39,10 +39,38 @@ describe('coupeAuMot — la coupe tombe à une FRONTIÈRE DE MOT (R-M2)', () => 
     expect(coupeAuMot('12\u202F500 couronnes', 4)).toBe('12\u202F500…');
   });
 
-  it('un premier mot plus long que `n - 1` se rend entier : seule sortie au-delà de `n`', () => {
+  it('quand les blancs de tête et le premier mot dépassent ensemble `n - 1`, ils se rendent entiers (suivis de « … » si du texte les suit) : seule sortie au-delà de `n`', () => {
     expect(coupeAuMot('Anticonstitutionnellement', 10)).toBe('Anticonstitutionnellement');
     expect(coupeAuMot('Anticonstitutionnellement dit-il', 10)).toBe('Anticonstitutionnellement…');
+    expect(coupeAuMot('   abc def', 5)).toBe('   abc…');
   });
+
+  it('balayage à graine fixe : entier s’il tient, sinon un préfixe du texte, non vide, d’au plus `n` caractères hors la seule sortie', () => {
+    let graine = 42;
+    const alea = () => (graine = (graine * 1103515245 + 12345) >>> 0) / 2 ** 32;
+    const alphabet = ['a', 'b', 'c', 'é', ' ', ' ', '\u00A0', '\n', '  '];
+    const secable = /[^\S\u00A0\u2007\u202F]/;
+    const fautes: string[] = [];
+    for (let i = 0; i < 20000 && fautes.length < 5; i++) {
+      let s = '';
+      for (let k = Math.floor(alea() * 30); k > 0; k--) s += alphabet[Math.floor(alea() * alphabet.length)];
+      const n = 1 + Math.floor(alea() * 20);
+      const rendu = coupeAuMot(s, n);
+      const cas = `${JSON.stringify(s)} ${n} -> ${JSON.stringify(rendu)}`;
+      if (s.length <= n) {
+        if (rendu !== s) fautes.push(`entier attendu : ${cas}`);
+        continue;
+      }
+      const debut = Math.max(0, s.search(/\S/));
+      const mot = s.slice(debut).search(secable);
+      const teteEtMot = debut + (mot < 0 ? s.length - debut : mot);
+      if (rendu.length > n && teteEtMot <= n - 1) fautes.push(`au-delà de n : ${cas}`);
+      const base = rendu.replace(/…$/, '');
+      if (!s.startsWith(base)) fautes.push(`pas un préfixe : ${cas}`);
+      if (base.trim() === '' && s.trim() !== '') fautes.push(`texte perdu : ${cas}`);
+    }
+    expect(fautes).toEqual([]);
+  }, 5000);
 
   it('les blancs de tête ne sont pas un mot : le texte n’est jamais perdu', () => {
     expect(coupeAuMot(' Anticonstitutionnellement dit', 10)).toBe(' Anticonstitutionnellement…');

@@ -184,4 +184,4 @@ au hook, ou une primitive née ailleurs n'y passent jamais.
 | identifiant et ordre canonique des trois vues (`View` en dérive) ; libellé d'affichage d'une vue, lu par les planches QC | `VIEWS/VIEW_LABEL` | `src/gameIso/rig/facing.ts` | — | tout art orienté, toute table ou liste de vues, les colonnes des planches QC | lectures-de-l-art-guard.test.ts (VIEWS), unions-canon.test.ts |
 | sceau de cire et plaque d’élu scellée | `WaxSeal/SealedPlaque` | `src/ui/WaxSeal.tsx` | — | tuiles de sélection, plaques d’élu | — |
 | rose des vents : direction + force du vent | `WindRose` | `src/ui/WindRose.tsx` | `src/ui/styles/gauges.css` | voyage en mer, dossier de navire | — |
-<!-- sources-empreinte: 2d150e23ca73c868f848074cba218e4b5be30616 (8 fichiers, 0 dossiers) corps: aaba5b75091897db0d1a0f0dd8e0afddf594b4ff -->
+<!-- sources-empreinte: dc183d97e335bb133c77d74d8302b1df33ce0551 (8 fichiers, 0 dossiers) corps: aaba5b75091897db0d1a0f0dd8e0afddf594b4ff -->
