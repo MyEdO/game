@@ -81,7 +81,7 @@ type Cell = {
   on?: boolean;
   disabled?: boolean;
   /** FOYER de règle de la case (`{category, id}` du Codex, `RULE_REF`/registre de données) : c'est LUI
-   *  qui porte le texte de règle, en VERBATIM, dans le popover `CodexRef`. Aucune prose de règle n'est
+   *  qui porte le texte de règle, en VERBATIM, dans l'infobulle `CodexRef`. Aucune prose de règle n'est
    *  écrite ici (CLAUDE.md règles 5 & 6) — la case NOMME, la donnée EXPLIQUE. */
   rule?: CodexTarget;
   /** RAISON d'inéligibilité, quand la case se DESSINE quoi qu'il arrive mais que la situation en
@@ -107,11 +107,11 @@ type Cell = {
  *  ZÉRO `title` : l'infobulle native est proscrite (charte + grief du juge vision « la raison n'est
  *  qu'en title »). Ce que la case doit dire passe par TROIS véhicules VISIBLES ou accessibles :
  *  le libellé (+ `aria-label` pour le libellé entier quand l'ellipse le tronque), la copie hors écran
- *  de la RAISON de gate liée par `aria-describedby`, et le popover `CodexRef` (mode `wrap` : le bouton
+ *  de la RAISON de gate liée par `aria-describedby`, et l'infobulle `CodexRef` (mode `wrap` : le bouton
  *  EST l'affordance de sa règle, sans ⓘ voisin — #1078) qui porte, au survol comme au focus, CETTE
  *  raison (`refus`) puis le verbatim de la donnée.
  *
- *  `ciblageArme` MET CE POPOVER EN SOURDINE (`suppressPopover`) : tant qu'on VISE — intention locale
+ *  `ciblageArme` MET CETTE INFOBULLE EN SOURDINE (`sourdine`) : tant qu'on VISE — intention locale
  *  qui peint sa portée sur le terrain (spec zone 4) ou mode de ciblage armé au registre
  *  (`battle.action`) — le survol sert à désigner une cible, pas à lire une règle, et la boîte —
  *  ouverte par le focus que le clic vient de donner au bouton — recouvrait exactement ce que le
@@ -230,10 +230,10 @@ export function ConsoleCell({ cell, hotkey, advantage = 0, ciblageArme = false, 
   // tabindex) — c'est l'idiome des boutons de dépense (`ChanceButtons`, `DeterminationButton`). C'est
   // la MÊME enveloppe qui porte la RAISON du refus : une seule infobulle par alvéole, jamais deux
   // boîtes concurrentes sur le même ancrage — et une case gatée sans foyer de règle l'ouvre à elle
-  // seule (`refus` suffit à faire naître le popover).
+  // seule (`refus` suffit à faire naître l'infobulle).
   return cell.rule || raison
     ? (
-      <CodexRef category={cell.rule?.category} id={cell.rule?.id} label={cell.label} refus={raison} wrap suppressPopover={ciblageArme}>
+      <CodexRef category={cell.rule?.category} id={cell.rule?.id} label={cell.label} refus={raison} wrap sourdine={ciblageArme}>
         {button}
       </CodexRef>
     )
@@ -538,8 +538,8 @@ export function CombatConsole() {
   useEffect(() => { setAmmoOuvert(null); setRechargeOuverte(false); setGeste2eOuvert(null); }, [battle?.turn, battle?.round]);
   // …et il appartient à l'ARME qui l'a ouvert : commuter de set change l'arme au poing (`uid` refait
   // par `recomputeLoadout`), donc le chip déclencheur disparaît. Sans cette remise à zéro le panneau
-  // survivait à son ancre (panneau fantôme) et gardait le popover de règle en sourdine
-  // (`suppressPopover`, plus bas), sans plus aucun moyen de le refermer.
+  // survivait à son ancre (panneau fantôme) et gardait l'infobulle de règle en sourdine
+  // (`sourdine`, plus bas), sans plus aucun moyen de le refermer.
   const armeDuPanneau = useGame((s) => {
     const b = s.battle;
     const a = b ? activeCombatant(b) : undefined;
@@ -621,7 +621,7 @@ export function CombatConsole() {
   const spectatrice = !controlled || !!pendingRoundStart;
   // LECTURE : les cases de la forme complète sont inertes sous un bandeau d'interlude (spec zone 7).
   const live = !phase;
-  // ON VISE — source UNIQUE de la mise en sourdine des popovers de règle de la console (`ConsoleCell`,
+  // ON VISE — source UNIQUE de la mise en sourdine des infobulles de règle de la console (`ConsoleCell`,
   // chip de munition, vignettes de set) : intention LOCALE armée (spec zone 4) OU mode de ciblage
   // armé, quel qu'il soit (`battle.action` — Soigner, Dissiper, Bordée…). Aucun cas nommé ici.
   const ciblageArme = !!localIntent || battle.action !== null;
@@ -891,7 +891,7 @@ export function CombatConsole() {
         })
       : undefined,
     // G2 — Charge (bouton d'intention : portée M×2 visible avant le clic). Le verdict d'offre vient
-    // du registre (`charge-possible`), le verbatim du popover de sa fiche.
+    // du registre (`charge-possible`), le verbatim de l'infobulle de sa fiche.
     chargeDeduite && !vehicule ? cellFor('charge', 'geste') : undefined,
     // G3 — Viser
     rangedWs.length > 0 ? cellFor('aim', 'arme', { label: active.aiming ? 'En joue' : 'Viser', on: !!active.aiming, off: busy || !!active.aiming || frenzied }) : undefined,
@@ -1242,7 +1242,7 @@ export function CombatConsole() {
                   distance qui consomme des munitions, celle qui est CHARGÉE avec sa réserve —
                   « PISTOLETS · Balle ×6 · Balle bénie ×2 ». Deux pistolets = DEUX chips : l'en-tête
                   n'est pas la grille, la géométrie des alvéoles ne bouge pas (arbitrage HUD 2026-08-16).
-                  Chaque chip porte sa fiche (popover `CodexRef`), comme toute possession de la console,
+                  Chaque chip porte sa fiche (infobulle `CodexRef`), comme toute possession de la console,
                   et devient le DÉCLENCHEUR du choix dès que SON arme accepte plus d'une munition :
                   bouton (affordance visible, cible ≥44px au doigt) d'où NAÎT le panneau-paramètre. À un
                   seul candidat il redevient un chip informatif — même adresse, même matière : la
@@ -1252,7 +1252,7 @@ export function CombatConsole() {
                 {munitions.map((m) => (
                   <Fragment key={m.w.uid}>
                     {' · '}
-                    <CodexRef category="trappings" id={m.ammo.trappingId ?? ''} label={m.ammo.label} refus={m.raison} wrap suppressPopover={ciblageArme || ammoOuvert === m.w.uid}>
+                    <CodexRef category="trappings" id={m.ammo.trappingId ?? ''} label={m.ammo.label} refus={m.raison} wrap sourdine={ciblageArme || ammoOuvert === m.w.uid}>
                       {m.choisissable || m.raison ? (
                         <button
                           ref={(el) => { if (el) ammoChipRefs.current.set(m.w.uid!, el); else ammoChipRefs.current.delete(m.w.uid!); }}
@@ -1299,7 +1299,7 @@ export function CombatConsole() {
                     const mainItem = lo.main ? active.items?.find((it) => it.uid === lo.main) : undefined;
                     const held = heldSet?.id === lo.id;
                     const unloaded = loadoutUnloaded(active, lo);
-                    // La VIGNETTE porte sa fiche : le popover `CodexRef` (mode `wrap`) montre l'arme du
+                    // La VIGNETTE porte sa fiche : l'infobulle `CodexRef` (mode `wrap`) montre l'arme du
                     // set — profil, Atouts/Défauts, source — là où un `title` cachait le libellé du set.
                     // Le nom accessible reste sur le bouton (le libellé ne tient pas dans 39px).
                     const vignette = (
@@ -1323,7 +1323,7 @@ export function CombatConsole() {
                       </button>
                     );
                     return mainItem?.trappingId
-                      ? <CodexRef key={lo.id} category="trappings" id={mainItem.trappingId} label={loadoutLabel(lo, active)} wrap suppressPopover={ciblageArme}>{vignette}</CodexRef>
+                      ? <CodexRef key={lo.id} category="trappings" id={mainItem.trappingId} label={loadoutLabel(lo, active)} wrap sourdine={ciblageArme}>{vignette}</CodexRef>
                       : vignette;
                   })}
                 </div>

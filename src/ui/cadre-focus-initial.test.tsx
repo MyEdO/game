@@ -195,7 +195,7 @@ describe('infirmerie réelle (`MedicModal`) — le focus d’un cadre, rendu à 
   });
   const bouton = (texte: string) =>
     [...host.querySelectorAll<HTMLButtonElement>('button')].find((b) => (b.textContent ?? '').trim() === texte)!;
-  const bulles = () => document.querySelectorAll('.codex-pop').length;
+  const bulles = () => document.querySelectorAll('.infobulle').length;
 
   it('ouverte : le focus est sur « Soigner les Blessures » et aucune infobulle ne couvre les actes', () => {
     act(() => root.render(<MedicModal />));

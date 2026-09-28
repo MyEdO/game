@@ -4,7 +4,7 @@
  * se ferme la PREMIÈRE (LIFO), un appui ferme AU PLUS une couche, et rien ne « traverse » vers
  * l'échelle métier tant qu'une couche est à l'écran.
  *
- * Bug d'origine : chaque surface posait son propre écouteur. Le popover de règle se fermait ET
+ * Bug d'origine : chaque surface posait son propre écouteur. L'infobulle de règle se fermait ET
  * laissait la touche filer jusqu'au registre → le menu système s'ouvrait par-dessus. Le panneau-
  * paramètre, lui, la mangeait en capture (`stopImmediatePropagation`) → une modale ouverte APRÈS
  * lui devenait insensible à Échap. Les deux portes se contredisaient.
@@ -88,7 +88,7 @@ describe('Échap — pile de couches LIFO', () => {
     expect(menuOuvert(), 'la touche ne traverse pas la pile').toBe(false);
   });
 
-  it('POPOVER ÉPINGLÉ : Échap le referme et n’ouvre PAS le menu système (bug d’origine du ticket)', () => {
+  it('INFOBULLE ÉPINGLÉE : Échap la referme et n’ouvre PAS le menu système (bug d’origine du ticket)', () => {
     // Témoin : sans aucune couche, cet appui-là ouvre bien le menu.
     echap();
     expect(menuOuvert(), 'témoin : l’échelle métier répond quand la pile est vide').toBe(true);
@@ -99,10 +99,10 @@ describe('Échap — pile de couches LIFO', () => {
     ));
     const declencheur = host.querySelector('.codex-ref') as HTMLElement;
     act(() => { declencheur.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true })); });
-    expect(document.querySelector('.codex-pop'), 'le popover est épinglé').toBeTruthy();
+    expect(document.querySelector('.infobulle'), 'l’infobulle est épinglée').toBeTruthy();
 
     echap();
-    expect(document.querySelector('.codex-pop'), 'Échap referme le popover').toBeNull();
+    expect(document.querySelector('.infobulle'), 'Échap referme l’infobulle').toBeNull();
     expect(menuOuvert(), 'et le menu système NE s’ouvre PAS derrière').toBe(false);
   });
 
@@ -144,9 +144,9 @@ describe('Échap — pile de couches LIFO', () => {
     act(() => root.render(<Scene modale={false} />));
     const declencheur = host.querySelector('.codex-ref') as HTMLElement;
     act(() => { declencheur.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); });
-    expect(document.querySelector('.codex-pop'), 'le survol affiche le popover').toBeTruthy();
+    expect(document.querySelector('.infobulle'), 'le survol affiche l’infobulle').toBeTruthy();
     act(() => root.render(<Scene modale />));
-    expect(document.querySelector('.codex-pop'), 'la modale le recouvrait : il se retire').toBeNull();
+    expect(document.querySelector('.infobulle'), 'la modale le recouvrait : il se retire').toBeNull();
   });
 });
 

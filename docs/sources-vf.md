@@ -141,4 +141,4 @@ AUTORISÉ (`CLAUDE.md` § *Sources VF*). Au moindre doute, **lire le `.md` et ci
   `Aventures à Ubersreik I` (extrait : `Source/Warhammer v4 - Aventures a Ubersreik/`),
   `Middenheim — La Cité du Loup Blanc`, `Nuits Agitées & Dures Journées`,
   `Boîte d'Initiation` (+ `WH4_FR_BI_Livre_Aventure` / `…_Ubersreik`).
-<!-- sources-empreinte: 0e322f05d47c0d2ea05fa03d7a389e9c0ad4436b (18 fichiers, 0 dossiers) corps: da8cffdb50ddfde41209add487d250ed45aed89e -->
+<!-- sources-empreinte: c39226e18eee7663b7fa1733b9480b14b7b28631 (18 fichiers, 0 dossiers) corps: da8cffdb50ddfde41209add487d250ed45aed89e -->

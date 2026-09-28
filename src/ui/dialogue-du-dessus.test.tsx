@@ -144,14 +144,14 @@ describe('infirmerie ouverte depuis la fiche — le dialogue du dessus est celui
     expect(puce, 'une puce Codex dans le corps de l’infirmerie').toBeTruthy();
     act(() => { puce.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); });
     await vider();
-    expect(sommet(), 'la bulle survolée est la couche du sommet').toBe('popover-codex');
+    expect(sommet(), 'la bulle survolée est la couche du sommet').toBe('infobulle');
     bouton(infirmerie(), 'Lancer').focus();
     await frappe('Tab');
     expect(infirmerie().contains(document.activeElement), `Tab → « ${actif()} »`).toBe(true);
     bouton(infirmerie(), 'Lancer').focus();
     await frappe('Enter');
     await laisserRouler();
-    expect(sommet(), 'la bulle survolée est toujours au sommet').toBe('popover-codex');
+    expect(sommet(), 'la bulle survolée est toujours au sommet').toBe('infobulle');
     expect(actif(), 'après Lancer').toBe('Appliquer');
     await frappe('Enter');
     expect(useGame.getState().pendingHeal, 'Entrée résout le jet').toBeNull();
@@ -203,7 +203,7 @@ describe('repli quand une couche se retire — à la tâche suivante', () => {
     await vider();
     const [premier, second] = ['Premier', 'Second'].map((t) => [...document.querySelectorAll('button')].find((b) => b.textContent === t)!);
     act(() => premier.focus());
-    expect(sommet(), 'la bulle de focus est au sommet').toBe('popover-codex');
+    expect(sommet(), 'la bulle de focus est au sommet').toBe('infobulle');
     const auPop: string[] = [];
     const desabonner = subscribeDismissStack((e) => { if (e.type === 'pop') auPop.push(actif()); });
     try {
@@ -233,7 +233,7 @@ describe('manette — bulle épinglée au-dessus d’un dialogue', () => {
     const declencheur = document.querySelector<HTMLElement>('.codex-ref')!;
     act(() => { declencheur.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true })); });
     await vider();
-    const bulle = document.querySelector<HTMLElement>('.codex-pop')!;
+    const bulle = document.querySelector<HTMLElement>('.infobulle')!;
     expect(bulle, 'la bulle est épinglée').toBeTruthy();
     expect(bulle.contains(document.activeElement), 'elle a pris le focus').toBe(true);
     act(() => padDir('down'));

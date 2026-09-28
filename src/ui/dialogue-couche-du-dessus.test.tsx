@@ -35,7 +35,7 @@ function Campagne() {
   return (
     <>
       <DialogueBox />
-      {/* Une puce du HUD (portrait, état) : un `CodexRef` réel, dont le survol pose un POPOVER. */}
+      {/* Une puce du HUD (portrait, état) : un `CodexRef` réel, dont le survol pose une INFOBULLE. */}
       <CodexRef category="talents" id="affable" label="Affable" wrap>
         <button type="button">Affable ×2</button>
       </CodexRef>
@@ -76,15 +76,15 @@ function monterCampagne() {
   act(() => { root.render(<Campagne />); });
 }
 
-describe('#1869 — un POPOVER au-dessus de la conversation ne lui prend pas les touches', () => {
-  it('survol d’une puce du codex : le popover s’empile, et Digit2 choisit quand même la réponse 2', () => {
+describe('#1869 — une INFOBULLE au-dessus de la conversation ne lui prend pas les touches', () => {
+  it('survol d’une puce du codex : l’infobulle s’empile, et Digit2 choisit quand même la réponse 2', () => {
     monterCampagne();
     const puce = host.querySelector('.codex-ref') as HTMLElement;
     act(() => { puce.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); });
-    expect(dismissStackKinds(), 'le survol pose un popover au-dessus de la conversation').toEqual(['dialogue', 'popover-codex']);
+    expect(dismissStackKinds(), 'le survol pose une infobulle au-dessus de la conversation').toEqual(['dialogue', 'infobulle']);
     frapper('Digit2');
     relacher('Digit2');
-    expect(useGame.getState().dialogue?.nodeId, 'un popover ne rend rien inerte : la réponse 2 part').toBe('n3');
+    expect(useGame.getState().dialogue?.nodeId, 'une infobulle ne rend rien inerte : la réponse 2 part').toBe('n3');
   });
 });
 

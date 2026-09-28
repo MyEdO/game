@@ -9,6 +9,7 @@
 @import './styles/cadre.css'; /* gestes des trois cadres (Cadre.tsx) : pied `CadrePied`, croix `CadreFermer` */
 @import './styles/planche.css'; /* lecteur passif en deux colonnes (Planche) : aside, onglets, corps d'onglet, défileur unique */
 @import './styles/modal.css'; /* cadre de modale (Modal) : voile, boîte en colonne, corps défilant, états `data-*` */
+@import './styles/boite-ancree.css'; /* boîte ancrée (BoiteAncree) : surface fixe placée contre son ancrage par les variables `--ancre-*` */
 @import './styles/tabs.css'; /* Tabs — primitive UNIQUE d'onglets (#314), variantes flat/pill/sub/dock */
 @import './styles/layout.css'; /* COUCHE LAYOUT (#1800) — Stack/Row/Grid/Split + coquilles d'écran ; APRÈS components.css : le `padding` d'une primitive de placement doit battre `.panel`/`.panel.flush` */
 
@@ -87,7 +88,9 @@
 @import './styles/mass-battle.css'; /* combat de masse / Puissance de Bataille (ADE II 08) */
 @import './styles/editor.css'; /* éditeur de niveau v2 (rail, inspecteur docké, dock Logique, effets) */
 @import './styles/house-rules.css'; /* panneau des règles optionnelles (généré depuis le registre) */
-@import './styles/compendium.css'; /* Codex : écran de référence (browse + recherche) + popover CodexRef */
+@import './styles/infobulle.css'; /* couche d'infobulle (useInfobulle) : la boîte, une par ancrage, et son état atteignable */
+@import './styles/codex-ref.css'; /* CodexRef : l'ancrage d'une référence au Codex et le contenu de son infobulle */
+@import './styles/compendium.css'; /* Codex : écran de référence (browse + recherche) */
 @import './styles/codex-edit.css'; /* édition DEV des données dans le Compendium */
 @import './styles/gallery.css'; /* galerie design system DEV (#412) : MasterDetail liste/spécimen */
 

@@ -1,0 +1,10 @@
+/* BOÎTE ANCRÉE (`BoiteAncree.tsx`) — surface placée contre son ancrage, hors du flux : les variables
+   `--ancre-*` sont posées par la primitive (`usePlacementAncre`), jamais par l'appelant. La largeur
+   `--ancre-w` est lue par chaque consommateur (borne ou largeur fixe) ; l'empilement aussi. */
+.boite-ancree {
+  position: fixed;
+  top: var(--ancre-top, auto);
+  bottom: var(--ancre-bottom, auto);
+  left: var(--ancre-left, 0);
+  max-height: var(--ancre-h, 50vh);
+}

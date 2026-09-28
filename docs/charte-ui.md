@@ -45,7 +45,10 @@ habité » du juge, #371) ; un centrage/bornage codé à la main par écran (tra
   matière (couleur, bordure, police, rayon, ombre) : `components.css`, `tabs.css`, et le module que
   chaque primitive POSSÈDE — la liste fait foi au manifeste des primitives (champ `css`) : `band.css`,
   `frames.css`, `gauges.css`, `hero-sheet.css`, `ornaments.css`, `plaque-row.css`, `rose.css`,
-  `creator-step.css`, `panneau-parametre.css`, `reglages-apparence.css`, `combat-console.css`
+  `creator-step.css`, `panneau-parametre.css`, `boite-ancree.css` (la boîte placée contre son ancrage :
+  `BoiteAncree`), `infobulle.css` (la couche d'infobulle, une boîte par ancrage : `useInfobulle`), `codex-ref.css`
+  (l'ancrage `CodexRef` et le contenu de son infobulle),
+  `reglages-apparence.css`, `combat-console.css`
   (l'ORGANISME « console de combat »), plus les familles JET et HUD cataloguées ci-dessous ;
   (3) **layout** — `layout.css`, ce qui PLACE et n'a aucune matière.
   `layout.css` vient APRÈS `components.css` : sans quoi `.panel { padding: 16px }` écraserait le
@@ -131,7 +134,7 @@ primitive React pose souvent ces classes pour toi (ex. `Modal` pose `.modal`/`.m
 | `.count` | Pastille numérique (compteur) | À l'intérieur d'un `.chip`/`.tab-btn`, jamais seule dans le flux de texte. |
 | `.rm-note` | Note secondaire d'une modale de jet (acte de soin en cours, cadence d'un Test étendu, opposition annulée) | Rangée flex à alignement HAUT : accepte une icône + une `<Prose>` de bloc (dont les paragraphes perdent leur marge propre). Partagée par 6 modales — jamais redéfinie dans un module de domaine. |
 | `.rm-stake` | Zone Z3b — l'ENJEU d'un jet et le renvoi vers sa règle | Classe PROPRIÉTAIRE de la zone, écrite par la SEULE primitive `StakeNote` (`src/ui/StakeNote.tsx`, composée par la prop `stake` de `RollShell`). Ton NEUTRE (liseré, pas de fond d'alerte) : un enjeu ANNONCE — la menace SUBIE reste au ton `menace` de `.rm-note`. Icône dans sa colonne, prose de bloc sans marges propres ; aucune marge externe — le conteneur la place (`gap`, ou sa règle d'enfant dans un flux de bloc). |
-| `.entity-chip` (+ `.entity-badge`, `.entity-choice`, variante NUE `.entity-chip.plain`) | Chip d'ENTITÉ unifié (compétence/talent/sort/objet) avec déclencheur popover CodexRef | Source unique = `EntityChip.tsx` — remplace `.tag`/`.codex-chip` pour toute entité de règle ; ne pas recréer un badge ad hoc pour un nom de sort/talent. La variante `.entity-chip.plain` (primitive `PlainChip`) est la MÊME boîte SANS popover ni lookup par libellé — un libellé qui ne désigne aucune entité (nom d'objet authoré en clair d'une Possession) garde sa borne visible sans promettre une fiche. Un « A ou B » se rend en chips INDIVIDUELLES cliquables séparées d'un `ou` (`EntityChoice`, `src/ui/EntityChip.tsx:50-56`), jamais en une chaîne fusionnée non cliquable — un talent tiré au hasard porte la même affordance codex. |
+| `.entity-chip` (+ `.entity-badge`, `.entity-choice`, variante NUE `.entity-chip.plain`) | Chip d'ENTITÉ unifié (compétence/talent/sort/objet), ancrage de l'infobulle CodexRef | Source unique = `EntityChip.tsx` — remplace `.tag`/`.codex-chip` pour toute entité de règle ; ne pas recréer un badge ad hoc pour un nom de sort/talent. La variante `.entity-chip.plain` (primitive `PlainChip`) est la MÊME boîte SANS popover ni lookup par libellé — un libellé qui ne désigne aucune entité (nom d'objet authoré en clair d'une Possession) garde sa borne visible sans promettre une fiche. Un « A ou B » se rend en chips INDIVIDUELLES cliquables séparées d'un `ou` (`EntityChoice`, `src/ui/EntityChip.tsx:50-56`), jamais en une chaîne fusionnée non cliquable — un talent tiré au hasard porte la même affordance codex. |
 | `.tag` (+ `.tag.talent`) | Badge historique (alias de `.chip`) | Ne pas en créer de nouveaux usages — préférer `.chip` ou `.entity-chip` selon le contenu (texte libre vs entité de règle). |
 | `.gated-action` (+ `.gated-action-reason`, variante `.gated-action.dense`) | Action GATÉE : bouton d'engagement dont la RAISON d'indisponibilité se lit au SURVOL/FOCUS (voir « Raison d'un refus » ci-dessous), sa copie hors écran (`.hors-ecran`) servant l'`aria-describedby` ; `.gated-action-reason` = la même raison RENDUE EN CLAIR, par l'opt-in `raisonInline` (attente d'un invité en coop, diagnostic d'authoring, activité refusée) ; `dense` = graduation réduite pour une COLONNE étroite (pied de la frise d'initiative) | Composée par la primitive `GatedAction` (`src/ui/GatedAction.tsx`, CLAUDE.md) — tout bouton principal désactivé pour un motif intelligible (hub de ville « Entrer », écran d'équipe « Commencer ») la COMPOSE au lieu d'un `<button disabled title=…>` muet ; la densité se demande par la prop, jamais en redéfinition de `.btn` chez l'appelant. |
 | `.muted` | Texte SECONDAIRE (valeur dérivée, mention de contexte) — couleur atténuée, taille inchangée | Composer au lieu d'un `color: var(--muted)` recopié par module ; ne porte AUCUNE boîte (ni fond ni bordure) — un état, pas un badge. |
@@ -447,7 +450,7 @@ jamais un `.on`), `.prow-act` (zone d'actions d'une rangée, remplie par `RollRo
 `RollShell` lui-même). Le critère est mécanique : au-delà de deux poseurs hors de la primitive, la
 classe est un contrat de couche, pas la propriété d'un module (garde §5.2). La MATIÈRE DU NOM
 `.codex-pop-title` / `.codex-pop-sub` y vit pour une autre raison : elle n'a qu'UN poseur,
-`CodexTitre` (`src/ui/compendium/CodexRef.tsx`), mais trois zones le montent (le popover du Codex,
+`CodexTitre` (`src/ui/compendium/CodexRef.tsx`), mais trois zones le montent (l'infobulle du Codex,
 les plaques de nom du plateau, l'inscription du lieu du HUD) — la matière d'une brique que trois
 écrans montent ne peut pas vivre dans le module d'écran de l'un d'eux.
 
@@ -496,7 +499,7 @@ frontière (`modulesExemptes`).
 
 | Classe | Rôle | Quand l'utiliser / anti-patron |
 |---|---|---|
-| `.codex-ref` | ENVELOPPE du déclencheur de popover Codex (`CodexRef`) | Posée par la seule primitive `CodexRef` — une chip, un chiffre ou un segment qui ouvre une fiche la porte par composition ; jamais un `onClick` d'ouverture recodé sur une classe d'écran. |
+| `.codex-ref` | ANCRAGE de l'infobulle du Codex (`CodexRef`, couche `useInfobulle`) | Posée par la seule primitive `CodexRef` — une chip, un chiffre ou un segment qui ouvre une fiche la porte par composition ; jamais un `onClick` d'ouverture recodé sur une classe d'écran. |
 | `.rm-note[data-ton]` | TON d'une note de modale de jet : `discret` (contexte de foule), `etat` (posture tenue), `bloque` (geste impossible), `attente` (jet adverse en attente), `menace` (danger subi) | UNE classe, N tons par attribut — jamais une classe de note par situation (une classe par contexte — foule, geste bloqué, attente adverse, menace subie — est morte avec #1806). |
 | `.listrow[data-variant]` | VARIANTE de la rangée de liste (`ListRow`) : `insp` (inspecteur d'éditeur), `codex` (index du Compendium) | L'élection se dit `aria-current='true'`, jamais une classe `.on`/`.active` — même grammaire que le reste des états ferrés. |
 | `.off-malus` | Chiffre de MALUS de main faible affiché sous un set d'armes | Marque de règle, pas un badge : jamais un `.chip` (elle n'a ni boîte ni bordure) — définie une seule fois en couche partagée, composée par `EquipmentPanel` comme par la fiche. |
@@ -527,7 +530,7 @@ seule, et a UN propriétaire — la primitive qui la rend. Réfs : #1064, #1072,
 | **Z7** Sous-ligne | l'issue de CETTE rangée | `PanelRowData.note` (`.rr-note`) | Canal UNIQUE d'une note par rangée. |
 | **Z8** Refus | la RAISON de l'indisponibilité, visible | `RollRow.rollBlocked` → `GatedAction` | Dérivée du MÊME prédicat que la garde du résolveur, jamais une seconde condition recopiée. |
 | **Z9** Déclaration | qui lance (fenêtre à composition) | `RollRow.declare` | Phase 1 : elle précède les choix de règle. |
-| **Z10** Influences | les POOLS de ressource, « Ressource ×N » | `InfluenceRow` (+ `ResilienceButton`, `DeterminationButton`) | Jamais de `n/m` sur un pool (réservé Z6). La fiche RAW passe par la PORTE du popover (`CodexRef` `wrap` : le clic dépense, ↓ épingle). |
+| **Z10** Influences | les POOLS de ressource, « Ressource ×N » | `InfluenceRow` (+ `ResilienceButton`, `DeterminationButton`) | Jamais de `n/m` sur un pool (réservé Z6). La fiche RAW passe par la PORTE de l'infobulle (`CodexRef` `wrap` : le clic dépense, ↓ épingle). |
 | **Z11** Sélecteur de dé | le dé POSÉ (Résilience, option « Dés fixés ») | `ForcedRollPicker` | Commit au geste TERMINAL (Entrée) ; un blur pré-jet réinitialise. UNE surface de marque « Dé fixé » (étiquette du sélecteur, sinon `.prow-fixed-mark`). |
 | **Z12** Issue | ce qui s'est PASSÉ | `RollShell.outcome` (`RecapLine[]` → `RecapLineRow`, cadre `.rm-journal`) | DONNÉE, jamais du JSX ni du markup de site. Ni le verdict chiffré (Z5) ni la progression (Z6). Pleine couleur par défaut, ton AUTHORÉ. Muette sous le verrou `panelMasked` (#990). |
 | **Z13** Bilan | l'agrégat multi / le DR net | `RollShell.summary` (`.rm-summary`) + `netSL` (`.rm-netsl`) | Masqué avec les jets qu'il compare (#990). |
@@ -663,7 +666,8 @@ l.206-210), qui n'avait jamais été validée en rendu :
    « Je n'ai jamais validé ces "textes" impossible a lire sous le nom des capacités, même Rogue
    Trader qui est notre interface de départ n'a pas un tel comportement. » Une case, une pastille, un
    bouton fermés restent PROPRES (icône + libellé + touche, encre d'état grisé tenant AA ≥ 4,5:1) ; la
-   raison naît de l'infobulle PARTAGÉE (`CodexRef` prop `refus`, rendue en tête du popover) au survol
+   raison naît de l'infobulle PARTAGÉE (`CodexRef` prop `refus`, rendue en tête de sa boîte, couche
+   `useInfobulle`) au survol
    souris comme au focus clavier/manette — une seule infobulle par ancrage, jamais une 2ᵉ boîte
    concurrente. Sa copie HORS ÉCRAN (`.hors-ecran`) reste au DOM, cible de l'`aria-describedby` : un
    lecteur d'écran reçoit la raison sans avoir à survoler quoi que ce soit.

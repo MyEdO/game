@@ -634,10 +634,8 @@
    l'ouverture, de sorte qu'il tienne entier à l'écran quelle que soit la place sous le bouton.
    Les rangées composent `ListRow` (variante `insp`), resserrées à la densité d'un menu. */
 .eff-add-menu {
-  position: fixed;
   z-index: 60;
-  width: 330px;
-  max-width: calc(100vw - 16px);
+  width: var(--ancre-w, auto);
   overflow: auto;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.55);
 }

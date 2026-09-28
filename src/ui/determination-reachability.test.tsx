@@ -109,7 +109,7 @@ describe('Détermination — les trois usages sont ATTEIGNABLES depuis la consol
       // La raison ne se grave PAS sous le nom du geste (arbitrage user 2026-08-24) : elle naît de
       // l'infobulle partagée au survol, et sa copie HORS ÉCRAN sert l'`aria-describedby`.
       act(() => { c.closest('.codex-ref')!.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); });
-      expect(document.body.querySelector('.codex-pop[role="tooltip"] [data-refus]')?.textContent).toBe(attendue);
+      expect(document.body.querySelector('.infobulle[role="tooltip"] [data-refus]')?.textContent).toBe(attendue);
       act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); });
       const copie = c.querySelector('.hors-ecran[data-gate]')!;
       expect(copie.textContent).toBe(attendue);

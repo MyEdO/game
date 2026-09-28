@@ -22,7 +22,7 @@ export function DeterminationButton({ combatant, onSpend }: { combatant?: Combat
   if (resolve <= 0 || conds.length === 0) return null;
   return (
     <>
-      <CodexRef category={RULE_REF.determination.category} id={RULE_REF.determination.id} label="Détermination" wrap suppressPopover={open}>
+      <CodexRef category={RULE_REF.determination.category} id={RULE_REF.determination.id} label="Détermination" wrap sourdine={open}>
         <button
           className="btn btn-resource"
           aria-expanded={open}

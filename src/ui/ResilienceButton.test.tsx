@@ -59,7 +59,7 @@ describe('ResilienceButton — pool, le BOUTON porte sa règle (#945, #1078)', (
     act(() => root.render(<ResilienceButton resilience={2} show onForce={() => { spent += 1; }} />));
     const btn = host.querySelector<HTMLElement>('button')!;
     act(() => { btn.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); });
-    const pop = document.querySelector('.codex-pop');
+    const pop = document.querySelector('.infobulle');
     expect(pop, 'le survol du bouton doit rendre la règle').toBeTruthy();
     expect(pop!.textContent).toContain('Je ne faillirai pas');
     // UN SEUL effet au clic : la dépense. Le Codex ne s'ouvre pas par-dessus la modale de jet.
@@ -74,11 +74,11 @@ describe('ResilienceButton — pool, le BOUTON porte sa règle (#945, #1078)', (
     const btn = host.querySelector<HTMLButtonElement>('button')!;
     // 1. Le focus du contrôle rend la règle (aucun survol requis — chemin clavier pur).
     act(() => { btn.focus(); btn.dispatchEvent(new FocusEvent('focusin', { bubbles: true })); });
-    expect(document.querySelector('.codex-pop'), 'le focus doit rendre la règle').toBeTruthy();
-    // 2. ↓ épingle le popover et y porte le focus : la PORTE est atteignable au clavier bien que le
+    expect(document.querySelector('.infobulle'), 'le focus doit rendre la règle').toBeTruthy();
+    // 2. ↓ épingle l'infobulle et y porte le focus : la PORTE est atteignable au clavier bien que le
     //    portal vive en fin de <body> (hors ordre de Tab).
     act(() => { btn.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true })); });
-    const porte = document.querySelector<HTMLButtonElement>('.codex-pop .codex-pop-open')!;
+    const porte = document.querySelector<HTMLButtonElement>('.infobulle .codex-pop-open')!;
     expect(porte, '« Ouvrir la fiche » doit être un contrôle réel').toBeTruthy();
     expect(porte.tagName).toBe('BUTTON');
     expect(document.activeElement).toBe(porte);
@@ -86,11 +86,11 @@ describe('ResilienceButton — pool, le BOUTON porte sa règle (#945, #1078)', (
     //    « Dépenses » (amendement A #1117 : plus de fiche `regles` doublon), l'`instance` nommant le choix.
     act(() => porte.click());
     expect(useGame.getState().codexOverlay).toMatchObject({ category: 'characteristics', id: 'resilience', instance: 'Je ne faillirai pas !' });
-    // …et le popover s'est refermé derrière elle.
-    expect(document.querySelector('.codex-pop')).toBeNull();
+    // …et l'infobulle s'est refermée derrière elle.
+    expect(document.querySelector('.infobulle')).toBeNull();
   });
 
-  it('la PORTE est dans le popover, JAMAIS sur le contrôle : le déclencheur n’est pas cliquable', () => {
+  it('la PORTE est dans l’infobulle, JAMAIS sur le contrôle : le déclencheur n’est pas cliquable', () => {
     act(() => root.render(<ResilienceButton resilience={2} show onForce={noop} />));
     const wrapper = host.querySelector('.codex-ref')!;
     expect(wrapper.getAttribute('role')).toBeNull();

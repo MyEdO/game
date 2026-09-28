@@ -1,9 +1,10 @@
 /* PANNEAU-PARAMÈTRE BORNÉ (`PanneauParametre.tsx`, spec HUD combat zone 10) — surface ANCRÉE à son
-   déclencheur. La MATIÈRE est celle de `.panel` (components.css) : ici, seulement ce qu'un panneau
-   ancré ajoute — sortie du flux, empilement au-dessus du pont de combat, densité de liste bornée. */
+   déclencheur. La MATIÈRE est celle de `.panel` (components.css), le placement celui de `.boite-ancree`
+   (boite-ancree.css) : ici, seulement ce qu'un panneau ancré ajoute — sa largeur, l'empilement
+   au-dessus du pont de combat, la densité de liste bornée. */
 .pp-panel {
-  position: fixed;
-  z-index: 9999; /* même couche que le popover de règle (`.codex-pop`) : le panneau naît par-dessus tout */
+  z-index: 9999; /* même couche que l'infobulle (`.infobulle`) : le panneau naît par-dessus tout */
+  width: var(--ancre-w, auto);
   display: flex;
   flex-direction: column;
   gap: 6px;

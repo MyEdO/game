@@ -85,9 +85,6 @@ export function App() {
           {screen === 'coop' && <CoopLobby />}
           {screen === 'compendium' && <CompendiumScreen />}
           {screen === 'gallery' && DesignGallery && <DesignGallery />}
-          {/* Drill-in d'une réf Codex EN JEU : modale par-dessus l'écran courant (n'importe lequel),
-              sans démonter le jeu/la fiche → musique et contexte préservés (cf. openCodex). */}
-          {codexOverlay && <CodexOverlay />}
           {/* Écran de gestion des Possessions du groupe (#762) : modale GLOBALE, atteignable depuis
               n'importe quel écran (campagne EN JEU comme roster) — même patron que `codexOverlay`. */}
           {possessionsScreen && (
@@ -97,6 +94,14 @@ export function App() {
             />
           )}
         </Suspense>
+        {/* Drill-in d'une réf Codex EN JEU : modale par-dessus l'écran courant (n'importe lequel),
+            sans démonter le jeu/la fiche → musique et contexte préservés (cf. openCodex). Sa propre
+            frontière `Suspense` : le chargement de la fiche ne remplace jamais l'écran qu'elle couvre. */}
+        {codexOverlay && (
+          <Suspense fallback={null}>
+            <CodexOverlay />
+          </Suspense>
+        )}
         {ErrorCollectorBanner && (
           <Suspense fallback={null}>
             <ErrorCollectorBanner />

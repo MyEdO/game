@@ -85,24 +85,26 @@ afterEach(() => {
   useGame.setState({ battle: null });
 });
 
-/** SURVOL d'une alvéole : ouvre le popover `CodexRef` (mode `wrap`) qui l'enveloppe et rend son contenu.
- *  Le popover vit en PORTAL sur `document.body` (hors du `host`) — c'est là qu'on le lit. `mouseover` est
+/** SURVOL d'une alvéole : ouvre l'infobulle `CodexRef` (mode `wrap`) qui l'enveloppe et rend son contenu.
+ *  L'infobulle vit en PORTAL sur `document.body` (hors du `host`) — c'est là qu'on le lit. `mouseover` est
  *  l'événement dont React DÉRIVE `onMouseEnter` (même voie qu'un vrai survol). */
 function survol(dataCell: string) {
   const cell = host.querySelector(`[data-cell="${dataCell}"]`);
   if (!cell) throw new Error(`alvéole « ${dataCell} » absente`);
   const enveloppe = cell.closest('.codex-ref');
   if (!enveloppe) throw new Error(`alvéole « ${dataCell} » sans foyer de règle (aucun CodexRef)`);
-  // Un popover déjà ouvert (survol précédent) vit dans le MÊME portal : Échap le referme — sans quoi on
+  // Une infobulle déjà ouverte (survol précédent) vit dans le MÊME portal : Échap la referme — sans quoi on
   // relirait le voisin (mesuré : « Charge » lu à la place de « Recharge »).
   act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); });
+  // Le pointeur arrive d'AILLEURS : une infobulle congédiée ne se rouvre qu'à une entrée neuve (`Infobulle.tsx`).
+  act(() => { document.body.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); });
   act(() => { enveloppe.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); });
-  const pop = document.body.querySelector('.codex-pop[role="tooltip"]');
-  if (!pop) throw new Error(`aucun popover ouvert au survol de « ${dataCell} »`);
+  const pop = document.body.querySelector('.infobulle[role="tooltip"]');
+  if (!pop) throw new Error(`aucune infobulle ouverte au survol de « ${dataCell} »`);
   return {
     title: pop.querySelector('.codex-pop-title')?.textContent ?? null,
     body: pop.querySelector('.codex-pop-body')?.textContent ?? null,
-    /** La PORTE vers la fiche complète (le popover borne son corps, cf. `truncate` dans `CodexRef`). */
+    /** La PORTE vers la fiche complète (l'infobulle borne son corps, cf. `truncate` dans `CodexRef`). */
     porte: pop.querySelector('.codex-pop-open')?.textContent ?? null,
     source: pop.querySelector('.codex-src')?.textContent ?? null,
     /** La RAISON DU REFUS, quand la case est fermée : elle vit ICI et nulle part ailleurs à l'écran. */
@@ -118,8 +120,9 @@ function refusAuSurvol(el: Element): string | null {
   const enveloppe = el.closest('.codex-ref');
   if (!enveloppe) return null;
   act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); });
+  act(() => { document.body.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); });
   act(() => { enveloppe.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); });
-  return document.body.querySelector('.codex-pop[role="tooltip"] [data-refus]')?.textContent ?? null;
+  return document.body.querySelector('.infobulle[role="tooltip"] [data-refus]')?.textContent ?? null;
 }
 
 /** … et AU FOCUS RÉEL : c'est le chemin du CLAVIER et de la MANETTE (le pad déplace le focus DOM,
@@ -130,17 +133,17 @@ function refusAuFocus(el: HTMLElement): string | null {
   act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); });
   act(() => { el.focus(); });
   expect(document.activeElement, 'le contrôle refusé n’a pas pris le focus (`disabled` ?)').toBe(el);
-  return document.body.querySelector('.codex-pop[role="tooltip"] [data-refus]')?.textContent ?? null;
+  return document.body.querySelector('.infobulle[role="tooltip"] [data-refus]')?.textContent ?? null;
 }
 
 /** TAP au doigt : ni survol ni focus préalable — le clic sur un contrôle REFUSÉ montre sa raison. */
 function refusAuTap(el: HTMLElement): string | null {
   act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); });
   act(() => { el.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
-  return document.body.querySelector('.codex-pop[role="tooltip"] [data-refus]')?.textContent ?? null;
+  return document.body.querySelector('.infobulle[role="tooltip"] [data-refus]')?.textContent ?? null;
 }
 
-/** Le pointeur QUITTE le contrôle : l'infobulle meurt (le pont de survol différé, quand le popover
+/** Le pointeur QUITTE le contrôle : l'infobulle meurt (le pont de survol différé, quand l'infobulle
  *  porte une porte vers la fiche, est laissé s'écouler). Rend l'infobulle survivante, ou `null`. */
 function quitterRefus(el: Element): Element | null {
   const enveloppe = el.closest('.codex-ref')!;
@@ -151,7 +154,7 @@ function quitterRefus(el: Element): Element | null {
   } finally {
     vi.useRealTimers();
   }
-  return document.body.querySelector('.codex-pop[role="tooltip"]');
+  return document.body.querySelector('.infobulle[role="tooltip"]');
 }
 
 /** Une alvéole FERMÉE, dans les DEUX écritures : `disabled` HTML (maquette muette, rien à atteindre)
@@ -166,7 +169,7 @@ function texteVisible(el: Element): string {
   return clone.textContent ?? '';
 }
 
-/** Le VERBATIM d'une donnée tel que le popover le rend : prose démarquée (`mdToText`) puis bornée par la
+/** Le VERBATIM d'une donnée tel que l'infobulle le rend : prose démarquée (`mdToText`) puis bornée par la
  *  primitive. On ne recopie AUCUN texte de règle — on applique au contenu de la donnée la même
  *  transformation que `CodexRef`, et on compare. La fiche complète reste derrière « Ouvrir la fiche ». */
 function verbatimAttendu(desc: string): string {
@@ -1445,7 +1448,7 @@ describe('CombatConsole — droit de la travée et du coin (juge vision 2026-08-
     monter(poings());
     expect(cellKeys(), 'set mains nues : la Charge se déduit').toContain('g2-charge');
 
-    // (iv) set MIXTE lame+pistolet → les deux cases coexistent, chacune ENVELOPPÉE par le popover de SA
+    // (iv) set MIXTE lame+pistolet → les deux cases coexistent, chacune ENVELOPPÉE par l'infobulle de SA
     // fiche (`CodexRef wrap`) : c'est là que vit le texte de règle, en verbatim, jamais dans un `title`.
     monter(mixte());
     const keys = cellKeys();
@@ -1463,7 +1466,7 @@ describe('CombatConsole — droit de la travée et du coin (juge vision 2026-08-
     expect(popCharge.body).toBe(verbatimAttendu(fiche.desc));
     // Le corps est BORNÉ par la primitive : la porte vers la fiche complète doit donc être là.
     expect(popCharge.porte, 'verbatim borné sans porte vers la fiche').toBe('Ouvrir la fiche');
-    expect(popCharge.source, 'la source de la règle se lit au popover').toContain('165');
+    expect(popCharge.source, 'la source de la règle se lit à l’infobulle').toContain('165');
     expect(popRech.title).toBe(qualite.label);
     expect(popRech.body).toBe(verbatimAttendu(qualite.desc!));
     expect(popCharge.body, 'deux gestes, deux verbatims').not.toBe(popRech.body);
@@ -2211,16 +2214,16 @@ describe('CombatConsole — budget de hauteur du pont (arbitrage user 2026-08-17
 });
 
 /**
- * INTENTION ARMÉE (spec HUD zone 4) — le popover de règle se TAIT tant que la portée est peinte.
+ * INTENTION ARMÉE (spec HUD zone 4) — l'infobulle de règle se TAIT tant que la portée est peinte.
  *
  * Défaut mesuré sur captures au lot « intentions » : le clic qui arme Course/Charge donne le focus au
- * bouton, le popover `CodexRef` (mode `wrap`) s'ouvre par ce focus… et sa boîte recouvre le champ à
- * l'instant PRÉCIS où le joueur a demandé à voir la portée. Le popover reste le canon d'information
+ * bouton, l'infobulle `CodexRef` (mode `wrap`) s'ouvre par ce focus… et sa boîte recouvre le champ à
+ * l'instant PRÉCIS où le joueur a demandé à voir la portée. L'infobulle reste le canon d'information
  * HORS intention : ces contrats mesurent les deux états.
  */
-describe('CombatConsole — intention armée : aucun popover de règle au-dessus du champ', () => {
+describe('CombatConsole — intention armée : aucune infobulle de règle au-dessus du champ', () => {
   const caseAction = (id: string) => host.querySelector(`[data-action="${id}"]`) as HTMLButtonElement | null;
-  const popovers = () => [...document.body.querySelectorAll('.codex-pop[role="tooltip"]')];
+  const infobulles = () => [...document.body.querySelectorAll('.infobulle[role="tooltip"]')];
   const enveloppeDe = (b: HTMLButtonElement) => {
     const e = b.closest('.codex-ref');
     if (!e) throw new Error('la case n’est pas enveloppée par son foyer de règle (CodexRef)');
@@ -2240,29 +2243,29 @@ describe('CombatConsole — intention armée : aucun popover de règle au-dessus
     return c!;
   }
 
-  it('le clic qui ARME l’intention referme le popover que le survol/focus avait ouvert', () => {
+  it('le clic qui ARME l’intention referme l’infobulle que le survol/focus avait ouverte', () => {
     const c = console1();
     survoler(enveloppeDe(c));
-    expect(popovers().length, 'hors intention, le popover de règle doit s’ouvrir (comportement INCHANGÉ)').toBe(1);
+    expect(infobulles().length, 'hors intention, l’infobulle de règle doit s’ouvrir (comportement INCHANGÉ)').toBe(1);
     act(() => { caseAction('course')!.click(); });
     expect(useGame.getState().localIntent, 'la case n’a pas armé l’intention').toEqual({ actionId: 'course' });
-    expect(popovers().length, 'un popover de règle recouvre la portée peinte').toBe(0);
+    expect(infobulles().length, 'une infobulle de règle recouvre la portée peinte').toBe(0);
   });
 
-  it('intention armée : plus AUCUN popover ne s’ouvre — et le désarmement rend la règle', () => {
+  it('intention armée : plus AUCUNE infobulle ne s’ouvre — et le désarmement rend la règle', () => {
     const c = console1();
     act(() => { c.click(); });
     expect(useGame.getState().localIntent).toEqual({ actionId: 'course' });
     // Ni la case armée, ni ses voisines : le champ reste dégagé sous toutes les alvéoles de la console.
     survoler(enveloppeDe(caseAction('course')!));
-    expect(popovers().length, 'la case armée rouvre son popover au survol').toBe(0);
+    expect(infobulles().length, 'la case armée rouvre son infobulle au survol').toBe(0);
     survoler(enveloppeDe(caseAction('defend')!));
-    expect(popovers().length, 'une case VOISINE rouvre son popover au survol').toBe(0);
+    expect(infobulles().length, 'une case VOISINE rouvre son infobulle au survol').toBe(0);
     // Désarmement (re-clic, `toggleOff` du registre) → l'information de règle n'était pas retirée, elle attendait.
     act(() => { caseAction('course')!.click(); });
     expect(useGame.getState().localIntent).toBeNull();
     survoler(enveloppeDe(caseAction('course')!));
-    expect(popovers().length, 'intention dissoute : le popover de règle doit revenir').toBe(1);
+    expect(infobulles().length, 'intention dissoute : l’infobulle de règle doit revenir').toBe(1);
   });
 });
 
@@ -2585,11 +2588,11 @@ describe('CombatConsole — Dissiper : alvéole → porteur → panneau-paramèt
     expect(cell.querySelector('.cc-lbl')?.textContent).toBe(`${findActionById('dispel')!.label} 2/3`);
   });
 
-  // ON VISE, ON NE LIT PAS : un mode de ciblage armé met les popovers de règle de la console en
+  // ON VISE, ON NE LIT PAS : un mode de ciblage armé met les infobulles de règle de la console en
   // SOURDINE — le pavé de règle de la case armée (ouvert par le focus que son propre clic lui donne)
   // recouvrait la bandelette de refus du survol et quatre cases du pont (sonde du juge vision,
   // captures 08/09). Le mode dissous, la règle revient : l'information n'est pas retirée, elle attend.
-  it('mode de ciblage ARMÉ : le popover de règle de la case se tait, et revient au désarmement', () => {
+  it('mode de ciblage ARMÉ : l’infobulle de règle de la case se tait, et revient au désarmement', () => {
     const h = mage();
     const e = foe('e1', 6, 5);
     porteur(e, 2);
@@ -2597,8 +2600,9 @@ describe('CombatConsole — Dissiper : alvéole → porteur → panneau-paramèt
     const cell = () => host.querySelector('[data-action="dispel"]') as HTMLButtonElement;
     const survole = () => {
       act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); });
+      act(() => { document.body.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); });
       act(() => { cell().closest('.codex-ref')!.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); });
-      return document.body.querySelector('.codex-pop[role="tooltip"]');
+      return document.body.querySelector('.infobulle[role="tooltip"]');
     };
     expect(survole(), 'témoin : rien d’armé, la règle de la case s’ouvre au survol').not.toBeNull();
 
@@ -2730,7 +2734,7 @@ describe('CombatConsole — munition : le chip de l’en-tête est le DÉCLENCHE
 
   // Le panneau appartient à l'ARME qui l'a ouvert. Commuter de set refait l'arme au poing : le chip
   // déclencheur du set précédent n'existe plus, et un panneau qui lui survit est un FANTÔME — ancré
-  // à rien, et il garde le popover de règle du chip en sourdine (`suppressPopover`) sans plus aucun
+  // à rien, et il garde l'infobulle de règle du chip en sourdine (`sourdine`) sans plus aucun
   // moyen de se refermer. L'autre set porte lui aussi une arme de tir : sans remise à zéro, la
   // condition de rendu du panneau resterait vraie.
   it('COMMUTER DE SET referme le panneau (il appartient à l’arme qui l’a ouvert)', () => {

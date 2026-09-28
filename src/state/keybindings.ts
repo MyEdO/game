@@ -318,7 +318,7 @@ export const KEYBINDINGS: KeyBinding[] = [
   },
   // ── Curseur de combat (flèches) — la MANETTE réutilise ces mêmes ids via runBindingById. Le curseur
   //    « suit les yeux » (direction écran). Le 1er appui le pose sur le combattant actif.
-  //    `notWhenControlFocused` : un CONTRÔLE focalisé possède ses propres flèches (menu, popover de
+  //    `notWhenControlFocused` : un CONTRÔLE focalisé possède ses propres flèches (menu, infobulle de
   //    règle d'un bouton de pool, liste à roving tabindex). Sans cette garde, le curseur tactique
   //    court AVEC lui sur la même touche — le ↓ qui devait ouvrir la porte de la fiche déplaçait
   //    aussi la visée (recette B3a, capture 04). Même doctrine que `round-start`/`end-turn` pour
@@ -551,10 +551,31 @@ export function bindingApplies(b: KeyBinding, s: GameState): boolean {
   return b.when(s);
 }
 
+/** ÉLECTION d'un raccourci pour une touche : le 1ᵉʳ du registre dont la touche (remappée) et les
+ *  modificateurs tenus répondent, que le contrôle focalisé ne tait pas (`notWhenControlFocused`), et
+ *  que la porte commune laisse passer (`bindingApplies`). Unique pour le clavier (`useGameKeyboard`)
+ *  et l'annulation (`resoudreEchap`). */
+export function elireBinding(
+  code: string,
+  s: GameState,
+  { controlFocused = false, mods = [] }: { controlFocused?: boolean; mods?: readonly KeyMod[] } = {},
+): KeyBinding | undefined {
+  return KEYBINDINGS.find(
+    (k) =>
+      effectiveCodes(k, s.keyOverrides).includes(code) &&
+      modsMatch(effectiveMods(k, s.keyOverrides), mods, code) &&
+      (!k.notWhenControlFocused || !controlFocused) &&
+      bindingApplies(k, s),
+  );
+}
+
+/** Le raccourci d'`id` donné (ids uniques au registre, garde `keybindings.test.ts`). */
+export const bindingParId = (id: string): KeyBinding | undefined => KEYBINDINGS.find((k) => k.id === id);
+
 /** Exécute un raccourci par son `id` (s'il s'applique au contexte courant) — table d'intentions PARTAGÉE
  *  par le clavier ET la manette : un seul endroit porte les couches, la garde `when` et l'action `run`. */
 export function runBindingById(id: string, get: () => GameState): void {
-  const b = KEYBINDINGS.find((k) => k.id === id);
+  const b = bindingParId(id);
   if (b && bindingApplies(b, get())) b.run(get);
 }
 
@@ -562,7 +583,7 @@ export function runBindingById(id: string, get: () => GameState): void {
  *  la manette doit signaler comme le clavier : sans lui, un geste tenu armé par `runBindingById` n'a
  *  aucune fin. Sans garde `when` : un geste s'arrête même si le contexte a changé pendant qu'il durait. */
 export function runBindingUpById(id: string, get: () => GameState): void {
-  KEYBINDINGS.find((k) => k.id === id)?.runUp?.(get);
+  bindingParId(id)?.runUp?.(get);
 }
 
 /** Libellé d'un raccourci pour l'écran Options, résolu À L'APPEL depuis sa clé (+ ses paramètres). */

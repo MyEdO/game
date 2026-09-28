@@ -22,6 +22,9 @@ import { Planche } from '../Planche';
 import { ParchmentCard } from '../ParchmentCard';
 import { QtyStepper } from '../QtyStepper';
 import { PanneauParametre } from '../PanneauParametre';
+import { useInfobulle } from '../Infobulle';
+import { CodexRef } from '../compendium/CodexRef';
+import { BoiteAncree, usePlacementAncre } from '../BoiteAncree';
 import { NumberField } from '../NumberField';
 import { DescRefField } from '../compendium/DescRefField';
 import type { DescRef } from '../../data/source/decoupe';
@@ -844,6 +847,58 @@ function SceneErrorBoundaryDemo() {
  *  dissiper ? » de la console, sans rien inventer. */
 const sortsADissiper = memoParVersion('spells', () => spells.filter((s) => typeof s.cn === 'number').slice(0, 3));
 
+/** Référence au Codex VIVANTE : un libellé qui ouvre la fiche, un contrôle enveloppé (`wrap`) dont
+ *  ↓ épingle l'infobulle et sa porte, un contrôle refusé dont la raison se lit au survol. */
+function CodexRefDemo() {
+  return (
+    <div className="row gap-sm">
+      <CodexRef category="talents" id="affable" label="Affable" />
+      <CodexRef category="talents" id="affable" label="Affable" wrap>
+        <button type="button" className="btn small">Affable ×2</button>
+      </CodexRef>
+      <CodexRef label="Charger" refus="Vous êtes Engagé." wrap>
+        <button type="button" className="btn small" aria-disabled="true">Charger</button>
+      </CodexRef>
+    </div>
+  );
+}
+
+/** Couche d'infobulle VIVANTE : un ancrage (un bouton), sa boîte au survol et au focus, ↓ qui
+ *  l'épingle et y porte le focus sur son seul contrôle, Échap qui la congédie. Le contenu est celui
+ *  du spécimen, jamais une classe d'un consommateur. */
+function InfobulleDemo() {
+  const bulle = useInfobulle({ atteignable: true, epinglable: true, sourdine: false, auToucher: false });
+  const [lu, setLu] = useState(0);
+  return (
+    <div className="col gap-sm">
+      <span {...bulle.ancrage}>
+        <button type="button" className="chip">Survoler ou focaliser</button>
+      </span>
+      <span className="hint">{`Contrôle de la boîte activé ${lu} fois`}</span>
+      {bulle.boite(
+        <>
+          <span>Le texte entier de l’ancrage, lu au survol, au focus, et au doigt.</span>
+          <button type="button" className="btn btn-ghost" data-atteignable="" onClick={() => setLu((n) => n + 1)}>Activer</button>
+        </>,
+      )}
+    </div>
+  );
+}
+
+/** Boîte ancrée VIVANTE : placée contre son bouton, du côté qui a le plus de place. */
+function BoiteAncreeDemo() {
+  const [bouton, setBouton] = useState<HTMLElement | null>(null);
+  const placement = usePlacementAncre(bouton, 280);
+  return (
+    <div className="col gap-sm">
+      <button type="button" className="chip" aria-expanded={!!bouton} onClick={(e) => setBouton(bouton ? null : e.currentTarget)}>
+        {bouton ? 'Fermer la boîte' : 'Ouvrir la boîte'}
+      </button>
+      {placement && <BoiteAncree placement={placement} className="panel">Boîte placée contre son ancrage.</BoiteAncree>}
+    </div>
+  );
+}
+
 /** Panneau-paramètre VIVANT : un déclencheur, le panneau qui en NAÎT (ancré à son rect), un clic qui
  *  commet ET referme, Échap/clic-dehors qui annulent sans rien engager. Le choix retenu s'affiche
  *  sous le bouton — un panneau muet ne montrerait pas que le clic COMMET. */
@@ -1593,6 +1648,9 @@ export const GALLERY_SPECIMENS: GallerySpecimen[] = [
   { id: 'searchfilterfield', label: 'SearchFilterField', file: 'src/ui/SearchFilterField.tsx', category: 'Écrans & layout', render: SearchFilterFieldDemo },
   { id: 'optionchooser', label: 'OptionChooser', file: 'src/ui/OptionChooser.tsx', category: 'Jets', render: OptionChooserDemo },
   { id: 'panneauparametre', label: 'PanneauParametre', file: 'src/ui/PanneauParametre.tsx', category: 'Écrans & layout', render: PanneauParametreDemo },
+  { id: 'infobulle', label: 'useInfobulle', file: 'src/ui/Infobulle.tsx', category: 'Écrans & layout', render: InfobulleDemo },
+  { id: 'codex-ref', label: 'CodexRef', file: 'src/ui/compendium/CodexRef.tsx', category: 'Écrans & layout', render: CodexRefDemo },
+  { id: 'boite-ancree', label: 'BoiteAncree', file: 'src/ui/BoiteAncree.tsx', category: 'Écrans & layout', render: BoiteAncreeDemo },
   { id: 'influencerow', label: 'InfluenceRow', file: 'src/ui/InfluenceRow.tsx', category: 'Jets', render: InfluenceRowDemo },
   { id: 'vsheader', label: 'VsHeader', file: 'src/ui/VsHeader.tsx', category: 'Jets', render: VsHeaderDemo },
   { id: 'rollshell', label: 'RollShell', file: 'src/ui/RollShell.tsx', category: 'Jets', note: 'maquette statique d’états — un spécimen vivant exigerait un flux de jet monté (store + makeRollFlow), hors de portée d’une vignette de galerie', render: RollShellStaticMock },

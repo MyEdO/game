@@ -4,7 +4,7 @@
  *
  * Deux étages, dans cet ordre :
  *  1. LA PILE DES COUCHES (`dismissStack`) — surfaces ouvertes par-dessus le jeu (modales,
- *     popovers, panneaux-paramètre, dialogue). Dès qu'une couche existe, la couche du dessus
+ *     infobulles, panneaux-paramètre, dialogue). Dès qu'une couche existe, la couche du dessus
  *     (`coucheDuDessus`) prend l'appui, et un refus/blocage s'arrête là (jamais de cascade vers la
  *     couche suivante).
  *  2. L'ÉCHELLE MÉTIER du registre (`intent-cancel` → `cursor-cancel` → … → `toggle-menu`),
@@ -17,7 +17,7 @@
  * rend la main au registre) : sans mémoire partagée, la répétition suivante ouvrirait le menu.
  */
 import type { GameState } from './store';
-import { KEYBINDINGS, bindingApplies, effectiveCodes, effectiveMods, modsMatch, CODE_ECHAP, type KeyMod } from './keybindings';
+import { elireBinding, CODE_ECHAP, type KeyMod } from './keybindings';
 import { dismissStackSize, dismissTop } from './dismissStack';
 
 /** Jeton de prise quand c'est la PILE qui a répondu (aucun id de raccourci ne peut le valoir). */
@@ -50,14 +50,7 @@ export function resoudreEchap(get: () => GameState, { controlFocused = false, re
     prise = PRISE_COUCHE;
     return PRISE_COUCHE;
   }
-  const s = get();
-  const b = KEYBINDINGS.find(
-    (k) =>
-      effectiveCodes(k, s.keyOverrides).includes(CODE_ECHAP) &&
-      modsMatch(effectiveMods(k, s.keyOverrides), mods, CODE_ECHAP) &&
-      (!k.notWhenControlFocused || !controlFocused) &&
-      bindingApplies(k, s),
-  );
+  const b = elireBinding(CODE_ECHAP, get(), { controlFocused, mods });
   if (!b) return null;
   if (repeat && prise !== null && prise !== b.id) return prise;
   if (!repeat) prise = b.id;

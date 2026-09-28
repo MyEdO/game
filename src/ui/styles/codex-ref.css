@@ -1,0 +1,94 @@
+/* CODEXREF (`compendium/CodexRef.tsx`) — l'ancrage d'une référence au Codex et le CONTENU de son
+   infobulle (refus, méta, corps, pied, porte « Ouvrir la fiche »). La boîte qui le porte est celle de
+   la couche d'infobulle (`infobulle.css`). */
+/* ── CodexRef : libellé enrichi, ancrage de son infobulle (survol/focus) ──
+   Affordance : AUCUN soulignement au repos — le libellé est presque toujours déjà dans un cadre
+   (chip/tag/stat-chip/titre), le pointillé y serait redondant. Indice de découverte commun :
+   teinte or + curseur au survol/focus. Seul un ref en PLEINE PROSE (`inline`) garde le pointillé.
+   L'indice suit l'ÉTAT RÉEL du déclencheur — `[role='button']`, posé par `CodexRef` exactement quand
+   quelque chose s'ouvre (fiche ou infobulle basculée). Le repli muet garde la mise en forme (même surface, même
+   densité) sans promettre un clic. */
+.codex-ref {
+  position: relative;
+  outline: none;
+  transition: color 0.1s, border-color 0.1s;
+}
+.codex-ref[role='button'] {
+  cursor: help;
+}
+.codex-ref[role='button']:hover,
+.codex-ref[role='button']:focus-visible {
+  color: var(--gold2);
+}
+/* Ref hors cadre (prose) : l'« indice léger » = pointillé discret, réservé à ce seul cas. */
+.codex-ref.codex-inline {
+  border-bottom: 1px dotted var(--gold2);
+}
+.codex-ref.codex-inline:focus-visible {
+  border-bottom-color: var(--gold);
+}
+/* RAISON DE REFUS en tête de l'infobulle de `CodexRef` (arbitrage user 2026-08-24). Teinte
+   d'avertissement du jeu, jamais l'encre de prose. */
+.codex-pop-refus {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--tooltip-warn);
+}
+/* Le TITRE et le SOUS-TITRE de l'infobulle sont la matière de nom PARTAGÉE (`.codex-pop-title`,
+   `.codex-pop-sub`, components.css) : `CodexTitre` les pose ici comme sur le plateau et au HUD. */
+.codex-pop-meta {
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--gold2);
+}
+.codex-pop-body {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--text);
+}
+.codex-pop-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+}
+.codex-pop-foot .codex-src {
+  margin-right: auto;
+}
+/* pied EXPLICITE : le déclencheur ouvre la fiche au clic (affordance nommée, plus un secret de survol) */
+.codex-pop-open {
+  margin-left: auto;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--gold);
+}
+/* déclencheur-icône d'info à côté d'un bouton/contrôle d'action (modales de jet, marchand, fiche…) */
+.codex-ref.ab-codex-info {
+  flex-shrink: 0;
+  font-size: 13px;
+  opacity: 0.55;
+  padding: 0 2px;
+  align-self: center;
+}
+.codex-ref.ab-codex-info:hover,
+.codex-ref.ab-codex-info:focus-visible {
+  opacity: 1;
+}
+/* Tactile : l'icône d'info mesure ~13px — au doigt, elle est intouchable. On lui donne la cible
+   minimale de la charte (40px, cf. base.css) sans toucher à la densité desktop : le glyphe garde sa
+   taille, seule la surface cliquable grandit, et l'atténuation de repos tombe (aucun survol n'existe
+   pour la révéler). */
+@media (pointer: coarse) {
+  .codex-ref.ab-codex-info {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 40px;
+    min-height: 40px;
+    padding: 0;
+    opacity: 0.9;
+  }
+}

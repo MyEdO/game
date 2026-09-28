@@ -104,7 +104,7 @@ label.radio {
   overflow: hidden;
 }
 /* ── ACTION GATÉE (primitive GatedAction.tsx) : bouton d'engagement dont la raison d'indisponibilité
-   se lit AU SURVOL/FOCUS, dans l'infobulle partagée (`.codex-pop [data-refus]`) — arbitrage user
+   se lit AU SURVOL/FOCUS, dans l'infobulle partagée (`.codex-pop-refus`, `CodexRef`) — arbitrage user
    2026-08-24. Sa copie accessible est alors HORS ÉCRAN (`.hors-ecran`, base.css). L'OPT-IN
    `raisonInline` la rend en clair sous le bouton (`.gated-action-reason`), pour les rares écrans dont
    le refus est le seul signal : attente d'un invité en coop, diagnostic d'authoring, entrée refusée. ── */
@@ -1334,7 +1334,7 @@ button.chip:hover {
 /* ── MATIÈRE DU NOM (`.codex-pop-title`, `.codex-pop-sub`) ──────────────────────────────────────
    Les deux spans du chrome de nom, posés par la primitive `CodexTitre`
    (`src/ui/compendium/CodexRef.tsx`) : gravure d'or pour le nom de référence, encre sourde pour le
-   nom d'INSTANCE qui le surmonte. UN poseur, `CodexTitre`, monté sur trois zones (le popover du
+   nom d'INSTANCE qui le surmonte. UN poseur, `CodexTitre`, monté sur trois zones (l'infobulle du
    Codex, les plaques de nom du plateau, l'inscription du lieu du HUD) : la matière d'une brique que
    trois écrans montent ne peut pas vivre dans le module d'écran de l'un d'eux. */
 .codex-pop-title {

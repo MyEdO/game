@@ -43,13 +43,43 @@
     "verrou": "primitive-owners-guard.test.ts — aucune classe du cadre posée hors de lui ; css-modules-guard.test.ts §5.3 — aucune feuille tierce ne les vise"
   },
   {
+    "id": "boite-ancree",
+    "type": "primitives.manifest",
+    "label": "BoiteAncree / usePlacementAncre / placerAncre",
+    "fichier": "src/ui/BoiteAncree.tsx",
+    "css": "src/ui/styles/boite-ancree.css",
+    "concept": "surface `position: fixed` en portail, placée contre le rectangle de son ANCRAGE : côté qui a le plus de place, ancrée par le haut ou par le bas, hauteur et largeur bornées au viewport ; placement né au rendu qui reçoit l'ancrage (le commit d'ouverture porte la boîte), recalculé au défilement et au redimensionnement ; ancrage détaché = aucune boîte ; style = variables `--ancre-*` seules, écrites par le seul littéral de `style=` ; champs du placement listés par `CHAMPS`, complet par le type ; complétude du littéral non prouvée par le type (garde (xxii))",
+    "perimetre": "couche d'infobulle (`Infobulle`), `PanneauParametre`, menu d'ajout de l'atelier (`AddMenu`)",
+    "verrou": "BoiteAncree.test.tsx — placement, naissance au commit d'ouverture, ancrage détaché, les cinq variables qu'il nomme"
+  },
+  {
+    "id": "infobulle",
+    "type": "primitives.manifest",
+    "label": "useInfobulle",
+    "fichier": "src/ui/Infobulle.tsx",
+    "css": "src/ui/styles/infobulle.css",
+    "concept": "couche d'infobulle, UNE par ancrage : ancrage déclaré au balisage (`data-infobulle`), déclenchement par délégation au document (survol, focus, toucher, ↓), pont de survol, épinglage, sourdine, Échap et clic hors boîte (état `congediee` jusqu'au prochain `quitte`), `aria-describedby`, portail (`BoiteAncree`), marqueur d'arrêt à la racine de la boîte ; emprunt du focus par `useFocusEmprunte`, origine = le contrôle de l'ancrage. Le contenu (texte, rôle, activation, nom accessible) reste à l'appelant, qui ne passe que des booléens",
+    "perimetre": "`CodexRef` (fiche, refus, instance, provenances)",
+    "verrou": "Infobulle.test.tsx — congédiement, origine du focus, délégation ; CodexRef.hooks.test.tsx — Échap ne rouvre pas, ↓ épingle et le focus entre"
+  },
+  {
+    "id": "codex-ref",
+    "type": "primitives.manifest",
+    "label": "CodexRef / CodexTitre",
+    "fichier": "src/ui/compendium/CodexRef.tsx",
+    "css": "src/ui/styles/codex-ref.css",
+    "concept": "référence contextuelle au Codex : un libellé d'entité ancre une infobulle (`useInfobulle`) dont `CodexRef` fournit le CONTENU (raison d'un refus, titre `CodexTitre`, méta, corps, provenances, source, porte « Ouvrir la fiche ») ; le clic ouvre la fiche (`openCodex`), `tooltipOnly` bascule la bulle, `wrap` enveloppe un contrôle déjà actif (↓ épingle), `sourdine` la tait",
+    "perimetre": "chips d'entité, cases et pastilles de la console de combat, ressources (`ResilienceButton`, `DeterminationButton`), lignes de jet, fiches, plaques de nom (`CodexTitre`)",
+    "verrou": "CodexRef.hooks.test.tsx — Échap, épinglage, refus au survol/focus/tap ; CodexRef.test.tsx — affordance et nom accessible"
+  },
+  {
     "id": "focus",
     "type": "primitives.manifest",
-    "label": "useFocusEmprunte / focusSansIntention / poserFocus / visibleFocusables",
+    "label": "useFocusEmprunte / SURFACE / focusSansIntention / poserFocus / visibleFocusables",
     "fichier": "src/ui/focus.ts",
-    "concept": "coutures de focus partagées : `useFocusEmprunte` est le SEUL retour du focus à son invocateur (le nœud qui l'avait à CETTE ouverture, s'il est encore dans le document et qu'aucun dialogue du dessus ne le couvre) pour toute surface qui emprunte le focus ; `poserFocus` pose un focus sans intention du joueur, que `focusSansIntention` signale à un `onFocus` qui ne doit répondre qu'au joueur ; `visibleFocusables` liste les contrôles atteignables d'un conteneur",
-    "perimetre": "`useModalA11y` (`Modal`, `ScreenShell`, `GameMenu`, `OptionsScreen`, `PanneauParametre`, la conversation PNJ `DialogueBox`), `EmbeddedShell` (`cibleEmbarquee`), bulle épinglée de `CodexRef`, manette (`useGamepad`)",
-    "verrou": "cadre-focus-initial.test.tsx — une ouverture, un invocateur ; CodexRef.hooks.test.tsx — le retour du focus n'ouvre pas la bulle"
+    "concept": "coutures de focus partagées : `useFocusEmprunte` est le SEUL retour du focus à l'origine d'une surface qui l'emprunte (son invocateur : par défaut le nœud qui l'avait à CETTE ouverture, pour une infobulle le contrôle de son ancrage ; une origine sortie du document cède la place à celle de la surface qui la contenait), s'il est encore dans le document et qu'aucun dialogue du dessus ne le couvre ; `SURFACE` nomme les rôles qui empruntent (dialogue, infobulle) ; `poserFocus` pose un focus sans intention du joueur, que `focusSansIntention` signale à un `onFocus` qui ne doit répondre qu'au joueur ; `visibleFocusables` liste les contrôles atteignables d'un conteneur",
+    "perimetre": "`useModalA11y` (`Modal`, `ScreenShell`, `GameMenu`, `OptionsScreen`, `PanneauParametre`, la conversation PNJ `DialogueBox`), `EmbeddedShell` (`cibleEmbarquee`), couche d'infobulle (`useInfobulle`), propriété des touches (`useGameKeyboard`), manette (`useGamepad`)",
+    "verrou": "cadre-focus-initial.test.tsx — une ouverture, un invocateur ; Infobulle.test.tsx — origine d'une infobulle, origine morte ; CodexRef.hooks.test.tsx — le retour du focus n'ouvre pas la bulle"
   },
   {
     "id": "dismissLayer",

@@ -1,22 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { useGame } from './store';
-import { KEYBINDINGS, bindingApplies, effectiveCodes } from './keybindings';
+import { elireBinding } from './keybindings';
 
-/**
- * #199 — résidu de recette : en mode Pousser, les flèches positionnaient bien le curseur (aperçu
- * « Pousser (N) ») mais Entrée ne commettait rien. Cause : le bouton « Pousser » de la barre d'action
- * (cliqué à la souris pour ENTRER dans le mode) reste FOCALISÉ dans le DOM ; `cursor-commit` portait
- * `notWhenControlFocused: true` → Entrée retombait sur l'activation NATIVE de ce bouton encore
- * focalisé (qui referme le mode 'push', RAZ `reachable`), jamais sur `commitCursor`.
- *
- * Réplique EXACTE du prédicat de sélection de `useGameKeyboard.ts::onKey` (tag BUTTON focalisé,
- * `notWhenControlFocused`, 1er match) — sans DOM (l'environnement de test est `node`, pas `jsdom`).
- */
-function dispatch(code: string, s: ReturnType<typeof useGame.getState>, controlFocused: boolean) {
-  return KEYBINDINGS.find(
-    (k) => effectiveCodes(k, {}).includes(code) && (!k.notWhenControlFocused || !controlFocused) && bindingApplies(k, s),
-  );
-}
+/** L'élection du clavier (`elireBinding`), la même que `useGameKeyboard.ts::onKey`. */
+const dispatch = (code: string, s: ReturnType<typeof useGame.getState>, controlFocused: boolean) =>
+  elireBinding(code, s, { controlFocused });
 
 describe('#199 — Entrée commet la poussée MÊME avec le focus résiduel du bouton « Pousser »', () => {
   it('cursor-commit est sélectionné (pas d’exclusion notWhenControlFocused) quand un combatCursor est posé', () => {

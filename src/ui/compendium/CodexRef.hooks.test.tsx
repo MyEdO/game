@@ -19,22 +19,22 @@ const mount = (node: React.ReactElement) => {
  * `src/ui/useDismissLayer.ts`) : ce sont des singletons de MODULE, que `src/test-setup.ts` ne remet pas
  * à plat. Sous `test.isolate: false` (vite.config.ts) le worker les partage : sans remise à plat, une
  * couche laissée par un fichier voisin — ou un refcount de porte décalé — décide si Échap atteint le
- * popover de ce banc. Même geste que les deux autres bancs de la couture (`ui/echap-pile-lifo.test.tsx:48`,
+ * infobulle de ce banc. Même geste que les deux autres bancs de la couture (`ui/echap-pile-lifo.test.tsx:48`,
  * `ui/echap-couches-fantomes.test.tsx:39`).
  */
 beforeEach(() => { resetDismissLayers(); });
 
 /**
- * PRÉMISSE d'un appui d'Échap : la couche du DESSUS est bien celle de ce popover. Le congédiement va
- * à la couche du DESSUS (`dismissTop`) — sommet étranger = l'appui va à l'autre surface, le popover reste à l'écran,
- * et le banc rougirait sur « le popover n'est pas null » sans jamais nommer la vraie cause. Mesuré : une
+ * PRÉMISSE d'un appui d'Échap : la couche du DESSUS est bien celle de cette infobulle. Le congédiement va
+ * à la couche du DESSUS (`dismissTop`) — sommet étranger = l'appui va à l'autre surface, l'infobulle reste à l'écran,
+ * et le banc rougirait sur « l'infobulle n'est pas null » sans jamais nommer la vraie cause. Mesuré : une
  * couche étrangère empilée pendant le cas reproduit à l'identique le rouge CI de #1442, et le TEMPS n'y
  * change rien (la fermeture, elle, est synchrone : zéro tour d'attente nécessaire après l'appui).
  */
-const sommetEstLePopover = (quoi: string): void => {
+const sommetEstLInfobulle = (quoi: string): void => {
   const couches = dismissStackKinds();
   expect(couches[couches.length - 1], `PRÉMISSE : ${quoi} — la couche du dessus est ${JSON.stringify(couches)}`)
-    .toBe('popover-codex');
+    .toBe('infobulle');
 };
 
 describe('CodexRef — Rules of Hooks (régression crash "Rendered fewer hooks than expected")', () => {
@@ -71,12 +71,12 @@ describe('CodexRef — Rules of Hooks (régression crash "Rendered fewer hooks t
 });
 
 /**
- * #1117 (recette 2026-08-05, vécu 3 fois) — un popover de chip AFFICHÉ (survol/focus sous `wrap`,
+ * #1117 (recette 2026-08-05, vécu 3 fois) — une infobulle de chip AFFICHÉE (survol/focus sous `wrap`,
  * fermeture différée par le pont de survol) restait à l'écran par-dessus le CTA de la modale de jet et
  * INTERCEPTAIT le clic sur « Continuer » ; Échap ne le fermait pas. La couverture d'origine (#1078 B3a
- * « Échap en couches ») ne visait que le popover ÉPINGLÉ — cas jamais couvert, pas régression.
+ * « Échap en couches ») ne visait que l'infobulle ÉPINGLÉE — cas jamais couvert, pas régression.
  */
-describe('CodexRef — Échap ferme le popover AFFICHÉ, pas seulement l’épinglé (#1117)', () => {
+describe('CodexRef — Échap ferme l’infobulle AFFICHÉE, pas seulement l’épinglée (#1117)', () => {
   beforeAll(() => {
     (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
   });
@@ -87,27 +87,27 @@ describe('CodexRef — Échap ferme le popover AFFICHÉ, pas seulement l’épin
     container.remove();
   });
 
-  /** Chip de RESSOURCE : `wrap` (le popover porte la seule porte vers la fiche, il est actionnable). */
+  /** Chip de RESSOURCE : `wrap` (l'infobulle porte la seule porte vers la fiche, il est actionnable). */
   const chip = (
     <CodexRef category="talents" id="affable" label="Affable" wrap>
       <button type="button">Affable ×2</button>
     </CodexRef>
   );
 
-  const pop = () => document.querySelector('.codex-pop');
+  const pop = () => document.querySelector('.infobulle');
 
-  it('le popover affiché au survol se ferme sur Échap', () => {
+  it('l’infobulle affichée au survol se ferme sur Échap', () => {
     ({ container, root } = mount(chip));
     const trigger = container.querySelector('.codex-ref') as HTMLElement;
     act(() => { trigger.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); });
-    expect(pop(), 'le survol affiche le popover').toBeTruthy();
-    sommetEstLePopover('le popover affiché au survol doit être la couche que l’appui adresse');
+    expect(pop(), 'le survol affiche l’infobulle').toBeTruthy();
+    sommetEstLInfobulle('l’infobulle affichée au survol doit être la couche que l’appui adresse');
     act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); });
-    expect(pop(), 'Échap le ferme — il ne peut plus recouvrir le CTA').toBeNull();
-    expect(dismissStackKinds(), 'fermé, il n’est plus une couche').toEqual([]);
+    expect(pop(), 'Échap la ferme — elle ne peut plus recouvrir le CTA').toBeNull();
+    expect(dismissStackKinds(), 'fermée, elle n’est plus une couche').toEqual([]);
   });
 
-  it('sans popover affiché, Échap ne fait rien ici (la modale garde sa couche)', () => {
+  it('sans infobulle affichée, Échap ne fait rien ici (la modale garde sa couche)', () => {
     ({ container, root } = mount(chip));
     expect(pop()).toBeNull();
     act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); });
@@ -149,22 +149,22 @@ describe('CodexRef — bascule `tooltipOnly` en TOGGLETIP : la bulle est ANNONC�
     ];
     for (const [i, [geste, ouvrir]] of ouvertures.entries()) {
       ouvrir();
-      const bulle = document.querySelector<HTMLElement>('.codex-pop');
+      const bulle = document.querySelector<HTMLElement>('.infobulle');
       expect(bulle, `${geste} ouvre la bulle`).toBeTruthy();
       expect(region()!.textContent, `${geste} : la région annonce la bulle`).toContain('Mouvement');
       expect(region()!.textContent!.length, `${geste} : la région porte le corps de la bulle`).toBeGreaterThan('Mouvement'.length);
       const [fermeture, fermer] = fermetures[i];
       fermer();
-      expect(document.querySelector('.codex-pop'), `${fermeture} ferme la bulle`).toBeNull();
+      expect(document.querySelector('.infobulle'), `${fermeture} ferme la bulle`).toBeNull();
       expect(region()!.textContent, `${fermeture} : la région est vidée`).toBe('');
     }
   });
 });
 
 /**
- * #1117 — les deux CHEMINS distincts du popover, chacun sa preuve :
- *  - ÉPINGLÉ (le focus est parti DANS le popover) : Échap doit RENDRE le focus au contrôle englobé ;
- *  - NON épinglé : le popover ne doit JAMAIS voler le clic d'un bouton situé sous lui — c'est le
+ * #1117 — les deux CHEMINS distincts de l'infobulle, chacun sa preuve :
+ *  - ÉPINGLÉ (le focus est parti DANS l'infobulle) : Échap doit RENDRE le focus au contrôle englobé ;
+ *  - NON épinglée : l'infobulle ne doit JAMAIS voler le clic d'un bouton situé sous elle — c'est le
  *    symptôme vécu 3 fois en recette (« Continuer » injoignable).
  */
 describe('CodexRef — chemin ÉPINGLÉ et interception de clic (#1117)', () => {
@@ -188,16 +188,29 @@ describe('CodexRef — chemin ÉPINGLÉ et interception de clic (#1117)', () => 
     ({ container, root } = mount(chip));
     const inner = container.querySelector('.codex-ref button') as HTMLButtonElement;
     act(() => { inner.focus(); });
-    expect(document.querySelector('.codex-pop'), 'le focus du joueur ouvre la bulle').toBeTruthy();
+    expect(document.querySelector('.infobulle'), 'le focus du joueur ouvre la bulle').toBeTruthy();
     act(() => { inner.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true })); });
-    expect(document.querySelector('.codex-pop'), 'le popover est épinglé').toBeTruthy();
-    expect(document.activeElement, 'le focus est ENTRÉ dans le popover, sur sa porte')
-      .toBe(document.querySelector('.codex-pop button'));
-    sommetEstLePopover('le popover épinglé doit être la couche que l’appui adresse');
+    expect(document.querySelector('.infobulle'), 'l’infobulle est épinglée').toBeTruthy();
+    expect(document.activeElement, 'le focus est ENTRÉ dans l’infobulle, sur sa porte')
+      .toBe(document.querySelector('.infobulle button'));
+    sommetEstLInfobulle('l’infobulle épinglée doit être la couche que l’appui adresse');
     act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); });
     expect(document.activeElement, 'le focus REVIENT au contrôle, jamais dans le vide').toBe(inner);
-    expect(document.querySelector('.codex-pop'), 'le retour du focus ne rouvre pas la bulle').toBeNull();
+    expect(document.querySelector('.infobulle'), 'le retour du focus ne rouvre pas la bulle').toBeNull();
     expect(dismissStackKinds(), 'refermé, il n’est plus une couche').toEqual([]);
+  });
+
+  it('Échap puis ↓ sur l’ancrage dont la boîte est fermée : elle s’épingle ET le focus y entre', () => {
+    ({ container, root } = mount(chip));
+    const inner = container.querySelector('.codex-ref button') as HTMLButtonElement;
+    act(() => { inner.focus(); });
+    act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); });
+    expect(document.querySelector('.infobulle'), 'Échap ferme la boîte').toBeNull();
+    expect(document.activeElement, 'le focus reste sur le contrôle').toBe(inner);
+    act(() => { inner.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true })); });
+    expect(document.querySelector('.infobulle'), '↓ rouvre et épingle la boîte').toBeTruthy();
+    expect(document.activeElement, '↓ : le focus ENTRE dans la boîte, sur sa porte')
+      .toBe(document.querySelector('.infobulle button'));
   });
 
   it('ÉPINGLÉ puis désépinglé par un clic sur un AUTRE contrôle : le focus reste sur ce contrôle, l’invocateur ne le vole pas', () => {
@@ -211,17 +224,17 @@ describe('CodexRef — chemin ÉPINGLÉ et interception de clic (#1117)', () => 
     const autre = container.querySelector('#autre') as HTMLButtonElement;
     act(() => { inner.focus(); });
     act(() => { inner.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true })); });
-    expect(document.activeElement, 'épinglé : le focus est sur la porte').toBe(document.querySelector('.codex-pop button'));
+    expect(document.activeElement, 'épinglé : le focus est sur la porte').toBe(document.querySelector('.infobulle button'));
     // Un clic réel : `mousedown` (qui désépingle) puis, action par défaut, le focus du contrôle cliqué.
     act(() => {
       autre.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
       autre.focus();
     });
-    expect(document.querySelector('.codex-pop'), 'le clic dehors désépingle').toBeNull();
+    expect(document.querySelector('.infobulle'), 'le clic dehors désépingle').toBeNull();
     expect(document.activeElement, 'le focus reste sur le contrôle cliqué').toBe(autre);
   });
 
-  it('NON épinglé : un bouton SOUS le popover reçoit bien le clic (plus d’interception)', () => {
+  it('NON épinglé : un bouton SOUS l’infobulle reçoit bien le clic (plus d’interception)', () => {
     ({ container, root } = mount(
       <>
         {chip}
@@ -230,17 +243,17 @@ describe('CodexRef — chemin ÉPINGLÉ et interception de clic (#1117)', () => 
     ));
     const trigger = container.querySelector('.codex-ref') as HTMLElement;
     act(() => { trigger.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); });
-    const pop = document.querySelector('.codex-pop') as HTMLElement;
-    expect(pop, 'le popover est affiché (survol)').toBeTruthy();
-    // Le clic part sur le CTA : il ne doit pas être capté par la surface du popover restée ouverte.
+    const pop = document.querySelector('.infobulle') as HTMLElement;
+    expect(pop, 'l’infobulle est affichée (survol)').toBeTruthy();
+    // Le clic part sur le CTA : il ne doit pas être capté par la surface de l'infobulle restée ouverte.
     let clicked = 0;
     const cta = container.querySelector('#continuer') as HTMLButtonElement;
     cta.addEventListener('click', () => { clicked++; });
     act(() => { cta.dispatchEvent(new MouseEvent('mousedown', { bubbles: true })); });
     act(() => { cta.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
     expect(clicked, 'le CTA a reçu son clic').toBe(1);
-    // Et le `mousedown` hors popover l'a refermé : la surface ne reste pas au-dessus du CTA.
-    expect(document.querySelector('.codex-pop')).toBeNull();
+    // Et le `mousedown` hors infobulle l'a refermée : la surface ne reste pas au-dessus du CTA.
+    expect(document.querySelector('.infobulle')).toBeNull();
   });
 });
 
@@ -269,7 +282,7 @@ describe('CodexRef — la raison d’un refus s’atteint au survol, au FOCUS et
       <button type="button" aria-disabled="true">Charger</button>
     </CodexRef>
   );
-  const raison = () => document.querySelector('.codex-pop [data-refus]')?.textContent ?? null;
+  const raison = () => document.querySelector('.infobulle [data-refus]')?.textContent ?? null;
 
   it('FOCUS RÉEL du contrôle (clavier, manette) : la raison s’ouvre, le blur la referme', () => {
     ({ container, root } = mount(refuse));
@@ -279,7 +292,7 @@ describe('CodexRef — la raison d’un refus s’atteint au survol, au FOCUS et
     expect(document.activeElement, 'le contrôle refusé doit prendre le focus').toBe(btn);
     expect(raison(), 'le focus n’ouvre pas la raison').toBe('Vous êtes Engagé.');
     act(() => { btn.blur(); });
-    expect(document.querySelector('.codex-pop'), 'le blur doit refermer').toBeNull();
+    expect(document.querySelector('.infobulle'), 'le blur doit refermer').toBeNull();
   });
 
   it('TAP (aucun survol, aucun focus préalable) : le clic MONTRE la raison au lieu d’agir', () => {
@@ -294,7 +307,7 @@ describe('CodexRef — la raison d’un refus s’atteint au survol, au FOCUS et
     expect(raison(), 'au doigt, rien n’ouvrait la raison').toBe('Vous êtes Engagé.');
     // Le tap reste ÉPINGLÉ (il n'y a pas de survol au doigt pour la maintenir), et un 2ᵉ tap referme.
     act(() => { btn.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
-    expect(document.querySelector('.codex-pop')).toBeNull();
+    expect(document.querySelector('.infobulle')).toBeNull();
     expect(agi, 'le contrôle refusé n’a agi (son propre `onClick` est le no-op de l’appelant)').toBe(2);
   });
 
@@ -307,11 +320,11 @@ describe('CodexRef — la raison d’un refus s’atteint au survol, au FOCUS et
     ));
     const trigger = container.querySelector('.codex-ref') as HTMLElement;
     act(() => { trigger.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); });
-    const pop = document.querySelector('.codex-pop') as HTMLElement;
+    const pop = document.querySelector('.infobulle') as HTMLElement;
     expect(pop, 'le repli doit s’afficher').toBeTruthy();
     expect(pop.hasAttribute('data-atteignable'), 'une boîte affichée mais inatteignable au pointeur').toBe(true);
     // … et le pont de survol la maintient le temps que le pointeur y arrive.
     act(() => { trigger.dispatchEvent(new MouseEvent('mouseout', { bubbles: true })); });
-    expect(document.querySelector('.codex-pop'), 'le pont de survol ne tient pas').toBeTruthy();
+    expect(document.querySelector('.infobulle'), 'le pont de survol ne tient pas').toBeTruthy();
   });
 });
