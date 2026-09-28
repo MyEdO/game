@@ -15,7 +15,7 @@ import {
   baseCommune, brancheDe, branchesDe, ceQuEmporteLIndex, ceQueFaitLeCommit, ceQuiChange, cheminGit, cheminsEnConflit, classer, combienDe, commitDe,
   depotDe, divergenceDe, dossierDesHooks, elaguerWorktrees, eolsDe, estDansHead, estIgnore, estSuperficiel, etatDeLArbre, enfantsDirects, estAncetre, estRepertoire,
   fetchOrigin, fichiersDuGrep, fusionDeTextes, fusionnesEnCours, initialiserDepot, journalDe, lireEnLot, listerImage, natureDuChemin, origineDe, poserRef, pousser,
-  racineDe, raisonCourte, rebaser, reglerDepot, retirerWorktree, reussi, shaDe, shasDe, supprimerBranche, worktreesDe,
+  racineDe, raisonCourte, rebaseEntame, rebaser, reglerDepot, retirerWorktree, reussi, shaDe, shasDe, supprimerBranche, worktreesDe,
 } from './gitPorte.mjs'
 import { envDeDepotForge, envDeLUtilisatrice, instanceDeDepot } from './depotGabarit.mjs'
 import { sourceGit } from './cssImages.mjs'
@@ -40,7 +40,7 @@ const forge = (racine) => depotDe(racine, { env: envDeDepotForge() })
 
 /** Un dépôt dont le lanceur est `repondre(args)` : les arguments de git SANS `OPTIONS_DE_L_HOTE`,
  *  la réponse en résultat de `spawnSync`. Aucun git n'est lancé. */
-const depotFeint = (cwd, repondre) => depotDe(cwd, { spawn: (_git, args) => repondre(args.slice(OPTIONS_DE_L_HOTE.length)) })
+const depotFeint = (cwd, repondre, enPanne) => depotDe(cwd, { enPanne, spawn: (_git, args) => repondre(args.slice(OPTIONS_DE_L_HOTE.length)) })
 
 /** Un git MUET : code 1, rien sur aucun flux. */
 const muet = (cwd = tmpdir()) => depotFeint(cwd, () => ({ status: 1, stdout: '', stderr: '' }))
@@ -1185,6 +1185,50 @@ test('fusionnesEnCours : un `MERGE_HEAD` illisible est INDISPONIBLE, jamais « h
     assert.throws(() => fusionnesEnCours(forge(racine)), (e) => e instanceof GitIndisponible && /^MERGE_HEAD illisible : EISDIR/.test(e.raison))
     const pannes = []
     assert.deepEqual(fusionnesEnCours(depotDe(racine, { env: envDeDepotForge(), enPanne: (r) => pannes.push(r) })), [])
-    assert.match(pannes.join('\n'), /^MERGE_HEAD illisible : EISDIR/)
+    assert.equal(pannes.length, 1, JSON.stringify(pannes))
+    assert.match(pannes[0], /^MERGE_HEAD illisible : EISDIR/)
   } finally { jeter(racine) }
+})
+
+test('fusionnesEnCours : git EN PANNE sur les lignes de `MERGE_HEAD` — UNE requête, UNE panne, la sienne', () => {
+  const cwd = mkdtempSync(join(tmpdir(), 'merge-head-panne-'))
+  try {
+    writeFileSync(join(cwd, 'MERGE_HEAD'), `${'a'.repeat(40)}\n${'b'.repeat(40)}\n`)
+    const requetes = []
+    const repondre = (args) => {
+      requetes.push(args.slice(0, 2))
+      return args[1] === '--git-path' ? { status: 0, stdout: `${args[2]}\n`, stderr: '' } : { status: 128, stdout: '', stderr: 'fatal: boum\n' }
+    }
+    assert.throws(() => fusionnesEnCours(depotFeint(cwd, repondre)), (e) => e instanceof GitIndisponible && e.raison === 'fatal: boum')
+    const pannes = []
+    requetes.length = 0
+    assert.deepEqual(fusionnesEnCours(depotFeint(cwd, repondre, (r) => pannes.push(r))), [])
+    assert.deepEqual(pannes, ['fatal: boum'])
+    assert.deepEqual(requetes, [['rev-parse', '--git-path'], ['cat-file', '--batch-check']])
+  } finally { jeter(cwd) }
+})
+
+test('rebaseEntame : `null` hors rebase, puis le NOM du chemin d’état présent sous le répertoire git', () => {
+  const { racine } = depot()
+  try {
+    const d = forge(racine)
+    assert.equal(rebaseEntame(d), null)
+    for (const nom of ['rebase-merge', 'rebase-apply']) {
+      mkdirSync(join(racine, '.git', nom))
+      assert.equal(rebaseEntame(d), nom)
+      rmSync(join(racine, '.git', nom), { recursive: true })
+    }
+  } finally { jeter(racine) }
+})
+
+test('rebaseEntame : git en panne ou chemin d’état ILLISIBLE — INDISPONIBLE, une panne, jamais « hors rebase »', () => {
+  const panne = () => ({ status: 128, stdout: '', stderr: 'fatal: boum\n' })
+  const illisible = (args) => ({ status: 0, stdout: `${'x'.repeat(8192)}/${args[2]}\n`, stderr: '' })
+  for (const [repondre, raison] of [[panne, /^fatal: boum$/], [illisible, /^rebase-merge illisible : ENAMETOOLONG/]]) {
+    assert.throws(() => rebaseEntame(depotFeint(tmpdir(), repondre)), (e) => e instanceof GitIndisponible && raison.test(e.raison), String(raison))
+    const pannes = []
+    assert.equal(rebaseEntame(depotFeint(tmpdir(), repondre, (r) => pannes.push(r))), null)
+    assert.equal(pannes.length, 1, JSON.stringify(pannes))
+    assert.match(pannes[0], raison)
+  }
 })

@@ -19,8 +19,9 @@
 // `lireEnLot`, `ceQueFaitLeCommit`, `fichiersDuGrep` sur une ref) n'a pas de `null` : vide, elle dirait
 // « rien » d'un objet qui n'existe pas. Une borne NOMMÉE dont l'objet MANQUE n'est pas absente : le
 // dépôt est corrompu, et c'est l'issue 3 (`corrompu`, #1806).
-// L'unique LECTURE D'ÉTAT hors commande git — `MERGE_HEAD` (`fusionnesEnCours`) — passe par
-// `tenter` et `confier` : mêmes trois issues.
+// Le DISQUE, l'hôte le lit par `natureDuChemin` (`statSync`), et par elle ses deux lectures d'ÉTAT
+// GIT hors commande git — la fusion en cours (`MERGE_HEAD`, `fusionnesEnCours`, `readFileSync`) et
+// le rebase entamé (`rebaseEntame`) — qui passent par `tenter` et `confier` : mêmes trois issues.
 //
 // `status ≠ 0` avec un stderr VIDE n'est pas un échec : c'est la réponse des PRÉDICATS de git
 // (`merge-base --is-ancestor`, `rev-parse --verify --quiet`, `grep`), qui répondent par leur code de
@@ -882,9 +883,11 @@ export const cheminGit = (depot, nom) => lire(depot, ['rev-parse', '--git-path',
 /**
  * Les commits que la FUSION EN COURS fusionne dans HEAD (`MERGE_HEAD`, une ligne par commit : écrite
  * `builtin/merge.c:1044-1046`, lue `builtin/commit.c:1773-1778` par `get_merge_parent`, `commit.c:1700`,
- * git v2.43.0), vide hors fusion. Avec HEAD, ce sont les PARENTS du commit à venir. Un fichier
- * illisible, ou une ligne qui ne nomme aucun commit (`builtin/commit.c:1778`), va à `confier` : `[]`
- * sous `enPanne`.
+ * git v2.43.0), vide hors fusion. Avec HEAD, ce sont les PARENTS du commit à venir. Les lignes sont
+ * résolues en UN `cat-file --batch-check` (`<ligne>^{commit}`, patron de `bornesDe`), une ligne de
+ * lot par ligne du fichier : une ligne fautive (`revisionFautive`, dont tout caractère de contrôle)
+ * n'est jamais posée. Un fichier illisible, ou une ligne qui ne nomme aucun commit
+ * (`builtin/commit.c:1778`), va à `confier` : `[]` sous `enPanne`.
  * @param {Depot} depot @returns {string[]}
  */
 export function fusionnesEnCours(depot) {
@@ -895,13 +898,40 @@ export function fusionnesEnCours(depot) {
   if (!lu.disponible) return confier(depot, `MERGE_HEAD illisible : ${lu.raison}`) ?? []
   const lignes = lu.valeur.split('\n')
   if (lignes.at(-1) === '') lignes.pop()
+  const corrompue = (ligne) => confier(depot, `dépôt corrompu : MERGE_HEAD, « ${ligne} » ne nomme aucun commit`) ?? []
+  const fautive = lignes.find(revisionFautive)
+  if (fautive !== undefined) return corrompue(fautive)
+  if (!lignes.length) return []
+  const brut = lire(depot, ['cat-file', '--batch-check'], { entree: lignes.map((l) => `${l}^{commit}\n`).join('') })
+  if (brut === null) return []
+  const reponses = brut.split('\n')
   const shas = []
-  for (const ligne of lignes) {
-    const sha = revisionFautive(ligne) ? null : shaDe(depot, ligne)
-    if (!sha) return confier(depot, `dépôt corrompu : MERGE_HEAD, « ${ligne} » ne nomme aucun commit`) ?? []
+  for (const [i, ligne] of lignes.entries()) {
+    const sha = /^([0-9a-f]+) commit /.exec(reponses[i] ?? '')?.[1]
+    if (!sha) return corrompue(ligne)
     shas.push(sha)
   }
   return shas
+}
+
+/** Les chemins d'état d'un REBASE ENTAMÉ sous le répertoire git (`wt-status.c`, `wt_status_check_rebase`). */
+const ETATS_DE_REBASE = Object.freeze(['rebase-merge', 'rebase-apply'])
+
+/**
+ * Le REBASE ENTAMÉ du dépôt : le nom de son chemin d'état (`ETATS_DE_REBASE`) présent sous le
+ * répertoire git (`cheminGit`, `natureDuChemin`), `null` hors rebase. Un chemin illisible va à
+ * `confier` : `null` sous `enPanne`.
+ * @param {Depot} depot @returns {'rebase-merge' | 'rebase-apply' | null}
+ */
+export function rebaseEntame(depot) {
+  for (const nom of ETATS_DE_REBASE) {
+    const chemin = cheminGit(depot, nom)
+    if (!chemin) return null
+    const nature = tenter(() => natureDuChemin(resolve(depot.cwd, chemin)))
+    if (!nature.disponible) return confier(depot, `${nom} illisible : ${nature.raison}`)
+    if (nature.valeur !== 'absent') return nom
+  }
+  return null
 }
 
 /** Le dépôt est-il SUPERFICIEL (`rev-parse --is-shallow-repository`) ? `null` si git ne le dit pas.

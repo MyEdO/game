@@ -11,8 +11,6 @@
 // lu hors de ses inertes), évaluation ; `import.meta` est inerte. Résidu que le test ne garde pas :
 // évaluation par `.constructor`, état mutable posé par un autre module, effet au chargement d'un
 // module de la clôture (#2073).
-import { existsSync } from 'node:fs'
-import { resolve } from 'node:path'
 import { TRONC, raisonCourte, reussi, urlOrigineAcceptee } from '../guards/lib/gitPorte.mjs'
 import { ANNULEE, ROUGES } from '../guards/lib/coursesCi.mjs'
 import { numerosCites, numerosFermes } from '../guards/lib/fermetures.mjs'
@@ -296,11 +294,9 @@ export const ETAPES = [
     dejaFaite: () => false,
     jouer(ctx) {
       const { racine, questions } = ctx
-      for (const nom of ['rebase-merge', 'rebase-apply']) {
-        const chemin = questions.cheminGit(nom)
-        if (chemin && existsSync(resolve(racine, chemin)))
-          return { ok: false, raison: `rebase interrompu (${nom}) : \`git rebase --abort\` ou \`--continue\` à la main, puis \`--reprendre\`` }
-      }
+      const entame = questions.rebaseEntame()
+      if (entame)
+        return { ok: false, raison: `rebase interrompu (${entame}) : \`git rebase --abort\` ou \`--continue\` à la main, puis \`--reprendre\`` }
       if (questions.brancheDe() === null)
         return { ok: false, raison: 'HEAD DÉTACHÉ : le train publie une branche, pas un sha errant' }
       const { derives, manuscrits } = partitionSales(questions.cheminsSales(), ctx.generators)
@@ -359,7 +355,7 @@ export const ETAPES = [
       return Boolean(journal.base) && journal.base === ctx.questions.shaDe(TRONC.suivi) && journal.tete === ctx.tete
     },
     jouer(ctx, journal) {
-      const { racine, questions } = ctx
+      const { questions } = ctx
       const teteAvant = ctx.tete
       const relation = questions.relationAuTronc()
       if (!relation.disponible) return { ok: false, raison: `relation d’origin/main à HEAD illisible : ${relation.raison}` }
@@ -368,10 +364,7 @@ export const ETAPES = [
       const vu = decision === 'rebase' ? ctx.rebaser() : null
       if (vu && (!vu.disponible || vu.absent || vu.valeur.status !== 0)) {
         const conflits = questions.cheminsEnConflit()
-        const entame = ['rebase-merge', 'rebase-apply'].some((nom) => {
-          const chemin = questions.cheminGit(nom)
-          return Boolean(chemin) && existsSync(resolve(racine, chemin))
-        })
+        const entame = questions.rebaseEntame() !== null
         // Un rebase qui REFUSE DE DÉMARRER (arbre sale, HEAD détaché…) n'a rien entamé : `--abort`
         // y rendrait « No rebase in progress » et masquerait la vraie raison. Mesuré (2026-09-14) :
         // tout échec était classé CONFLIT, sans un seul fichier à nommer.

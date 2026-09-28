@@ -48,8 +48,8 @@ import { appendFileSync, closeSync, existsSync, mkdirSync, openSync, readFileSyn
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
-  GitIndisponible, TRONC, abandonnerRebase, brancheDe, ceQuiChange, cheminGit, cheminsEnConflit, combienDe, commitDe, depotDe, estAncetre,
-  etatDeLArbre, fetchOrigin, origineDe, pousser, racineDe, rebaser, shaDe, shasDe,
+  GitIndisponible, TRONC, abandonnerRebase, brancheDe, ceQuiChange, cheminsEnConflit, combienDe, commitDe, depotDe, estAncetre,
+  etatDeLArbre, fetchOrigin, origineDe, pousser, racineDe, rebaseEntame, rebaser, shaDe, shasDe,
 } from '../guards/lib/gitPorte.mjs'
 import { BORNE_RAISON, DEPOT, lireTicket, poserCommentaire } from '../guards/lib/ticketsGh.mjs'
 import { coursesCi } from '../guards/lib/coursesCi.mjs'
@@ -473,7 +473,7 @@ export const questionsDuTrain = (depot) => Object.freeze({
   shaDe: (ref) => shaDe(depot, ref),
   brancheDe: () => brancheDe(depot),
   origineDe: () => origineDe(depot),
-  cheminGit: (nom) => cheminGit(depot, nom),
+  rebaseEntame: () => rebaseEntame(depot),
   cheminsEnConflit: () => cheminsEnConflit(depot),
   combienDe: (revisions) => combienDe(depot, revisions),
   estAncetre: (ancetre, descendant) => estAncetre(depot, ancetre, descendant),
