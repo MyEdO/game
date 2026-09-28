@@ -82,7 +82,7 @@ describe('ModChips — la chip PORTE sa règle (#1078)', () => {
     // possible), il est monté directement sous <body>.
     expect(scroll!.contains(pop!)).toBe(false);
     expect(pop!.parentElement).toBe(document.body);
-    // Et il porte bien le texte de la RÈGLE (verbatim `regles.json`), pas un rappel maison.
+    // Et il porte bien le texte de la RÈGLE (la prose de sa fiche `regles`), pas un rappel maison.
     expect(pop!.textContent).toContain('viser');
   });
 

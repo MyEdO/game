@@ -2344,8 +2344,9 @@ export const skills = skillsJson as SkillData[];
 export const talents = talentsJson as TalentData[];
 export const etats = etatsJson as EtatData[];
 /** Procédures / options de jeu (Sombre Pacte, modes d'attaque/défense, Empoignade, Focalisation
- *  étendue…) — texte VERBATIM du Source (règle stricte 5), app-owned éditable au Codex. Routées en
- *  tooltip `CodexRef` (catégorie `regles`). */
+ *  étendue…) — prose du livre ADRESSÉE au `Source/` (`descRef`, #1887) ou inline (`desc`, stock
+ *  `PROSE_INLINE_TOLEREE`), app-owned. Routées en tooltip
+ *  `CodexRef` (catégorie `regles`). */
 export interface RegleData {
   id: string;
   type: 'regles';
@@ -2720,20 +2721,19 @@ export interface CrewRoleData {
   desc: string;
   wage?: CrewWage;
 }
-/** Type de Test d'équipage (MDG 14) : rôles contributeurs + rôle ESSENTIEL (son DR compte double). */
+/** Type de Test d'équipage — MDG 14. */
 export interface CrewTestTypeData {
   id: string;
   label: string;
   roles: string[];
   essential: string;
-  /** Fiche de RÈGLE (`regles.json`) qui porte le VERBATIM MDG 14 de ce Test d'équipage — la règle est
+  /** Fiche de RÈGLE (`regles.json`) qui ADRESSE le passage MDG 14 de ce Test d'équipage — la règle est
    *  à un clic depuis l'étape. L'ENJEU AFFICHÉ, lui, est le descripteur d'EFFET du `kind` joué
    *  (`voyage-stakes.json`, `voyageStake`) : deux natures, deux datasets. */
   rule?: string;
-  /** Un total NÉGATIF de ce Test retire autant de Moral à l'équipage — MDG 14 l.110. */
+  /** MDG 14 l.110. */
   moraleOnNegativeDR?: boolean;
-  /** Test d'équipage qui DIRIGE le navire : reçoit les modificateurs de Navigation pour diriger
-   *  (Traits/Améliorations de coque, MSRC 12 l.66/140) et la gêne d'un empêtrement. */
+  /** Test d'équipage qui DIRIGE le navire — MSRC 12 l.66/140. */
   steering?: boolean;
 }
 /** PRÉSENCE à bord que les livres NOMMENT (`ship-stations.json`) — seule cible de

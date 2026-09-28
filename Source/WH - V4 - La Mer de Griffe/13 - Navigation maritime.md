@@ -65,14 +65,14 @@ Le MJ détermine à quelle fréquence il demande des Tests de Navigation. La ré
 
 Les résultats du Test de Navigation peuvent ensuite être comparés au tableau de progression qui suit.
 
-| PROGRESSION |                                                                                                         |  |  |
-|-------------|---------------------------------------------------------------------------------------------------------|--|--|
-| DR<br>Effet |                                                                                                         |  |  |
-| 4 ou plus   | Le bateau progresse à sa vitesse maximale. Il se déplace<br>de son score de M+2.                        |  |  |
-| 1 à 3       | Le navire progresse bien. Il se déplace de son score<br>de M+1.                                         |  |  |
-| –2 à 0      | Le vaisseau progresse normalement. Il se déplace de<br>son score de M.                                  |  |  |
-| –3 à –4     | Le bateau progresse lentement. Il se déplace de son<br>score de M–1.                                    |  |  |
-| –5 ou moins | Le navire lutte pour avancer. Il se déplace de la moitié<br>de son score de M (arrondie à l'inférieur). |  |  |
+| PROGRESSION |                                                                                                         |
+|-------------|---------------------------------------------------------------------------------------------------------|
+| DR          | Effet                                                                                                   |
+| 4 ou plus   | Le bateau progresse à sa vitesse maximale. Il se déplace de son score de M+2.                        |
+| 1 à 3       | Le navire progresse bien. Il se déplace de son score de M+1.                                         |
+| –2 à 0      | Le vaisseau progresse normalement. Il se déplace de son score de M.                                  |
+| –3 à –4     | Le bateau progresse lentement. Il se déplace de son score de M–1.                                    |
+| –5 ou moins | Le navire lutte pour avancer. Il se déplace de la moitié de son score de M (arrondie à l'inférieur). |
 
 *Exemple : Andreas est le Personnage à la barre d'un esquif. Il a quelqu'un d'autre à bord pour l'aider à réduire la voilure, donc le bateau comporte l'équipage minimum requis pour utiliser son M Voile de 3.*
 

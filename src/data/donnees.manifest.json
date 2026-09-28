@@ -230,7 +230,7 @@
           "files": [
             "regles.json"
           ],
-          "desc": "Procédures / options de jeu au texte VERBATIM (Sombre Pacte, modes d'attaque/défense, Empoignade, Focalisation étendue, Ragot au marché…) — routées en tooltip `CodexRef` (catégorie Codex `regles`), jamais une paraphrase de règle (#392)"
+          "desc": "Procédures / options de jeu (Sombre Pacte, modes d'attaque/défense, Empoignade, Focalisation étendue, Ragot au marché…) dont la prose est ADRESSÉE au passage du livre (`descRef`, #1887), jamais recopiée ni paraphrasée — routées en tooltip `CodexRef` (catégorie Codex `regles`)"
         },
         {
           "files": [

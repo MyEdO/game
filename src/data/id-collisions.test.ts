@@ -45,19 +45,27 @@
  *           déjà listé : le vocabulaire de siège (au sens militaire) et le mobilier partagent le mot.
  *       • décor↔trait : toile — le Trait de créature « Toile » (LDB folio 343, pose l'État Empêtré)
  *           vs la TOILE d'araignée posée en décor (#1680 ligne 14) : le trait la TISSE, le décor la montre.
+ *       • règle↔entité : une fiche de RÈGLE (`regles.json`) adresse une PROCÉDURE du livre, l'entité
+ *           homonyme en est une autre ; confrontées au Source, aucune ne porte la règle de l'autre —
+ *           fuite (la procédure de Fuite, LDB 15 l.59 folio 165, vs le Talent « Fuite ! », LDB 10 l.508
+ *           folio 138, qui la RENVOIE), chute (les Dégâts de chute, LDB 15 l.78 folio 166, vs le Sort
+ *           d'Arcane « Chute », LDB 47 l.380 folio 243), mouvement (le Mouvement au cours d'un combat,
+ *           LDB 15 l.14 folio 165, vs l'Attribut « Mouvement (M) », LDB 05 l.447 folio 35).
+ *       • caractéristique↔trait : corruption — le compteur de Points de Corruption (LDB 19 l.7 folio
+ *           182) vs le Trait de créature « Corruption (Degré) » (LDB 85 l.85 folio 338).
  */
 import { describe, it, expect } from 'vitest';
-import { traits, talents, qualities, maneuvers, spells, trappings, skills, creatures, props, vehicles } from './index';
+import { traits, talents, qualities, maneuvers, spells, trappings, skills, creatures, props, vehicles, regles, characteristics } from './index';
 
-const CATEGORIES: Record<string, { id: string }[]> = { traits, talents, qualities, maneuvers, spells, trappings, skills, creatures, props, vehicles };
+const CATEGORIES: Record<string, { id: string }[]> = { traits, talents, qualities, maneuvers, spells, trappings, skills, creatures, props, vehicles, regles, characteristics };
 
 /** Ensemble VOULU des ids partagés entre ≥ 2 catalogues (cf. familles documentées ci-dessus). */
 const KNOWN_CROSS = [
-  'arme', 'barque', 'beni', 'bourse', 'broyeur-d-os', 'carreau', 'chaise', 'charrette',
-  'cornes', 'effrayant', 'etreinte-glaciale',
-  'filet', 'flechette', 'frenesie', 'frisson-paralysant', 'haine', 'hurlement-de-la-bete-indomptable',
+  'arme', 'barque', 'beni', 'bourse', 'broyeur-d-os', 'carreau', 'chaise', 'charrette', 'chute',
+  'cornes', 'corruption', 'effrayant', 'etreinte-glaciale',
+  'filet', 'flechette', 'frenesie', 'frisson-paralysant', 'fuite', 'haine', 'hurlement-de-la-bete-indomptable',
   'hurlement-fantomatique', 'infecte', 'langue-prehensile', 'magique', 'marmite', 'maudit', 'mauvais-oeil',
-  'morsure', 'ogre', 'perturbant', 'pistolet', 'poudre-impregnee-d-aqshy',
+  'morsure', 'mouvement', 'ogre', 'perturbant', 'pistolet', 'poudre-impregnee-d-aqshy',
   'poulet', 'protection', 'rapide', 'regard-petrifiant', 'regeneration', 'resistance', 'resistance-a-la-magie',
   'rocher', 'sang-corrosif', 'siege', 'silence', 'singe', 'souffle', 'taille', 'tente', 'tentacules', 'toile', 'tonneau', 'vers',
   'vision-nocturne', 'vol', 'vomissement',

@@ -5,8 +5,9 @@
 // taille du fichier pour un champ changé. On remplace donc un fragment de TEXTE à SA PLACE, ancré
 // sur les octets exacts qu'il porte aujourd'hui sur le disque.
 //
-// Consommateurs : la migration `scripts/migrations/2026-09-05-1389-psychology-desc-vers-descref.mjs`
-// (`"desc"` → `"descRef"`) et `scripts/source/reparer-adresses.mjs` (`"descRef"` recalée). Discipline
+// Consommateurs : les migrations `scripts/migrations/2026-09-05-1389-psychology-desc-vers-descref.mjs`
+// et `scripts/migrations/2026-09-28-1887-regles-desc-vers-descref.mjs` (`"desc"` → `"descRef"`) et
+// `scripts/source/reparer-adresses.mjs` (`"descRef"` recalée). Discipline
 // commune : une ancre vue 0 ou 2+ fois n'est PAS remplacée — elle est nommée ; le compte TEXTUEL des
 // remplacements se confronte au compte STRUCTUREL des gestes décidés, et rien n'est écrit si les deux
 // divergent.

@@ -251,8 +251,8 @@ export function sweepDismountDeaths(battle: BattleState, scene: Scene): string[]
   return lines;
 }
 
-// ── Combat monté : Mouvement & modificateurs de combat (LDB 14 l.179-181) ──────────────────────────
-/** Acrobaties équestres (LDB 10) : annule la pénalité d'Esquive du cavalier (l.225). */
+// ── Combat monté : Mouvement & modificateurs de combat (LDB 14 l.179-184) ──────────────────────────
+/** Acrobaties équestres (LDB 10 l.30) : annule la pénalité d'Esquive du cavalier (LDB 14 l.184). */
 const hasAcrobatiesEquestres = (c: Combatant): boolean =>
   (c.talents ?? []).some((t) => (t.times ?? 0) > 0 && t.talentId === 'acrobaties-equestres');
 
@@ -281,8 +281,8 @@ export function canMove(battle: BattleState, c: Combatant): boolean {
 
 /** Modificateurs d'attaque liés au Combat monté, injectés dans `env` (combat.ts reste pur, ignorant des
  *  montures) :
- *  - +20 si l'attaquant est un CAVALIER frappant une cible plus petite que SA monture (l.217, « toute attaque ») ;
- *  - −10 en MÊLÉE si l'on cible un CAVALIER (la cible chevauche) alors qu'on est plus petit que sa monture (l.219). */
+ *  - +20 si l'attaquant est un CAVALIER frappant une cible plus petite que SA monture (l.180, « toute attaque ») ;
+ *  - −10 en MÊLÉE si l'on cible un CAVALIER (la cible chevauche) alors qu'on est plus petit que sa monture (l.181). */
 export function mountedAttackMods(battle: BattleState, attacker: Combatant, target: Combatant | null, kind: 'melee' | 'ranged'): ModLine[] {
   const out: ModLine[] = [];
   if (!target) return out;
