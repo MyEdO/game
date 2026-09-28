@@ -57,15 +57,21 @@ describe('resolveTrappingChoices — les choix par adresse', () => {
     });
   });
 
-  it('sans choix : 1re branche, joker inchangé, Atout par défaut (raffine)', () => {
+  it('sans choix : `{choice}` et joker restent tels quels, l’Atout prend son défaut (raffine)', () => {
     avecFixture(() => {
       expect(resoudre({})).toEqual([
-        { id: 'miroir-a-main' },
+        DOTATIONS_FIXTURE.classe[0],
         { wildcard: 'arme' },
         { id: 'pinceau' },
-        { id: 'dague' },
+        DOTATIONS_FIXTURE.niveau[2],
         { id: 'fleuret', qualities: [{ id: 'raffine' }] },
       ]);
+    });
+  });
+
+  it('une branche choisie dont le `{choice}` imbriqué n’est pas tranché rend ce `{choice}` tel quel', () => {
+    avecFixture(() => {
+      expect(resoudre({ [dot([3])]: 0 })[3]).toEqual({ choice: [{ id: 'dague' }, { wildcard: 'arme' }] });
     });
   });
 
@@ -84,9 +90,9 @@ describe('resolveTrappingChoices — les choix par adresse', () => {
     });
   });
 
-  it('une valeur hors des branches retombe sur la 1re branche', () => {
+  it('une valeur hors des branches laisse le `{choice}` tel quel', () => {
     avecFixture(() => {
-      expect(resoudre({ [dot([3])]: 9 })[3]).toEqual({ id: 'dague' });
+      expect(resoudre({ [dot([3])]: 9 })[3]).toEqual(DOTATIONS_FIXTURE.niveau[2]);
     });
   });
 

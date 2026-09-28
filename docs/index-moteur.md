@@ -2838,7 +2838,7 @@ _2182 exports publics mesurés (162 fichiers de `src/engine`, hors tests) — 18
 | `brancheChoisie` | 65 | function | La branche choisie d'un `{choice}`, si `choices` en désigne une qui existe. | Choix d'équipement de départ |
 | `idChoisi` | 71 | function | L'objet choisi d'un `{wildcard}`, ou l'Atout choisi d'un `{id, qualityChoice}`. | Choix d'équipement de départ, Objets, possessions, équipement |
 | `emplacementTranche` | 79 | function | Le joueur a-t-il tranché l'emplacement ? Un `{choice}` exige sa branche, et que l'emplacement de cette branche soit lui-même tranché ; un `{wildcard}` exige un objet ; un `{id, qualityChoice}` l'est toujours (défaut `DEFAULT_FABRICATION_ATOUT`). | Choix d'équipement de départ, Objets, possessions, équipement |
-| `resolveTrappingChoices` | 93 | function | Les dotations du héros aux emplacements résolus par `choices` : un `{choice}` sans choix retombe sur sa 1re branche ; un `{wildcard}` sans choix reste tel quel (ignoré par le matérialiseur) ; un `{id, qualityChoice}` reçoit l'Atout choisi, sinon `DEFAULT_FABRICATION_ATOUT` (LDB 60 l.11). | Choix d'équipement de départ |
+| `resolveTrappingChoices` | 93 | function | Les dotations du héros aux emplacements résolus par `choices`. | Choix d'équipement de départ |
 
 ### `trauma.ts` — Traumatisme, passifs collectés
 
@@ -3197,4 +3197,4 @@ _2182 exports publics mesurés (162 fichiers de `src/engine`, hors tests) — 18
 |---|---|---|---|---|
 | `woundsFromHit` | 30 | function | Blessures infligées par un coup : `totalDamage` (Dégâts d'arme + DR + qualités) moins le Bonus d'Endurance et les PA EFFECTIFS à la `location` (armure portée/naturelle + `extraAP`, matériau ignoré PUIS retrait plat, LDB 62 l.270). | Calcul des Blessures, Blessures, dégâts, soin, guérison, Tests : Degrés de Réussite, Caractéristiques, tables, Qualités d'arme et d'armure |
 
-<!-- sources-empreinte: 9b0a6c51ee62628619046d3b6f91e8851db75af6 (169 fichiers, 6 dossiers) corps: 19b1e802545b00b4399c4919e3fdfd811c265661 -->
+<!-- sources-empreinte: 068eacf8bbc0ca4ea30e7919ba5cd860307fbcf3 (169 fichiers, 6 dossiers) corps: cd74ac898a8176ba53a2c97a91f109e394829982 -->

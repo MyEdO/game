@@ -87,8 +87,8 @@ export function emplacementTranche(e: EmplacementDeDotation, choices: ChoixDeDot
   return true;
 }
 
-/** Les dotations du héros aux emplacements résolus par `choices` : un `{choice}` sans choix retombe sur
- *  sa 1re branche ; un `{wildcard}` sans choix reste tel quel (ignoré par le matérialiseur) ; un
+/** Les dotations du héros aux emplacements résolus par `choices`. Un emplacement non tranché (`{choice}`
+ *  sans branche, `{wildcard}` sans objet) reste tel quel, ignoré par le matérialiseur ; un
  *  `{id, qualityChoice}` reçoit l'Atout choisi, sinon `DEFAULT_FABRICATION_ATOUT` (LDB 60 l.11). */
 export function resolveTrappingChoices(careerId: string, careerLevel: number, choices: ChoixDeDotation): TrappingRef[] {
   return dotationRefsForHero(careerId, careerLevel).map((ref, i) => resoudre(ref, emplacement(ref, [i]), choices));
@@ -97,8 +97,8 @@ export function resolveTrappingChoices(careerId: string, careerLevel: number, ch
 function resoudre(ref: TrappingRef, e: EmplacementDeDotation | undefined, choices: ChoixDeDotation): TrappingRef {
   if (!e) return ref;
   if (e.sorte === 'branches') {
-    const j = brancheChoisie(e, choices) ?? 0;
-    return resoudre(e.ref.choice[j], sousEmplacement(e, j), choices);
+    const j = brancheChoisie(e, choices);
+    return j === undefined ? ref : resoudre(e.ref.choice[j], sousEmplacement(e, j), choices);
   }
   if (e.sorte === 'joker') {
     const id = idChoisi(e, choices);

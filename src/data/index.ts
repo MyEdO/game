@@ -3358,8 +3358,9 @@ export type CountSpec = { fixed: number } | { roll: DiceSpec };
  *  DIRECTEMENT par `findVehicleById`, jamais par le foyer trappings — OU dotation BÊTE (`creatures.json`,
  *  SOCLE POSSESSIONS #615/#617 §9), résolue DIRECTEMENT par `findCreatureById` — OU choix « A ou B »
  *  (`choice`, RÉCURSIF, EN MIROIR d'`AdvancementRef`) — OU joker « n'importe quel <catégorie> »
- *  (`wildcard`, ex. `{wildcard:'arme'}`). `choice`/`wildcard` sont des EMPLACEMENTS non résolus,
- *  résolus par `resolveTrappingChoices` (`src/engine/trappingChoices.ts`) avant matérialisation.
+ *  (`wildcard`, ex. `{wildcard:'arme'}`). `choice`/`wildcard` sont des EMPLACEMENTS, résolus par
+ *  `resolveTrappingChoices` (`src/engine/trappingChoices.ts`) avant matérialisation ; non tranchés, ils
+ *  restent tels quels et ne produisent aucun objet.
  *  Une ref `{id}` peut aussi porter des Atouts d'objet ATTACHÉS (`qualities`, ex. Fabrication LDB
  *  ch.60 « Solide »/« Raffiné »/« Léger »/« Pratique ») ou un EMPLACEMENT « Atout au choix »
  *  (`qualityChoice: true`, « X de qualité ») — résolu par `resolveTrappingChoices` en `qualities`

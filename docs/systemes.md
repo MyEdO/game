@@ -284,4 +284,4 @@ unique ne « possède » légitimement ; à trier au fil de l'eau, pas un échec
 - `src/state/sceneEdit.testkit.ts`
 - `src/state/turnEconomy.ts`
 - `src/state/viewLevel.ts`
-<!-- sources-empreinte: d5a1f2fda5ed8e7883908591d65e0c7c6e0e6a91 (1856 fichiers, 2 dossiers) corps: c59225b55dc01aa6156806a975455167622ee30c -->
+<!-- sources-empreinte: c0252bc77ead1b754b6a0054222181bc03853493 (1856 fichiers, 2 dossiers) corps: c59225b55dc01aa6156806a975455167622ee30c -->
