@@ -22,13 +22,7 @@ import {
   scanTombstones, scanExcuses, scanRawClaims, scanDecisionClaims, scanLegacyVocabHorsStock, EXCUSE_GUARD_ACTIVE,
   estFichierScanne, loadDecisionsBaseline, partitionBaseline, formatBaselineReport,
 } from '../guards/lib/commentPoison.mjs';
-import {
-  scanLabelLogic, scanLabelAsIdArg, collectIdParamFnsAcrossDirs, effectiveIdParamFns,
-  scanLabelLiteralCompare, LABEL_LITERAL_STOCK,
-  scanCallResultLiteralCompare, LABEL_CALL_LITERAL_STOCK,
-  STRICT_DIRS, RATCHET_DIRS, DATA_DIRS, RATCHET_EXCEPTIONS, ratchetShortKey,
-  collectFacesDAffichage, estDansLeCorpusDeFace, scanFaceDAffichageIdentite, scanFaceDeDonneeString, scanLiantsLitterauxDesFaces,
-} from '../guards/lib/labelLogic.mjs';
+import { contexteDeLaGarde, scanLabelLogicFichier, dettesParVolet, ecartsAuxDettesDeLibelle } from '../guards/lib/labelLogic.mjs';
 import { readCorpus } from '../guards/lib/sourceCorpus.mjs';
 import { emojisIn } from '../guards/lib/emojiAffordance.mjs';
 import { scanHardcode } from '../guards/lib/hardcode.mjs';
@@ -75,18 +69,12 @@ const ROOT = (() => {
 const tsxIn = (root) => join(root, 'node_modules', 'tsx', 'dist', 'cli.mjs');
 const TSX_CLI = existsSync(tsxIn(ROOT)) ? tsxIn(ROOT) : tsxIn(HOOK_TREE);
 
-// 5ᵉ forme du garde-fou #142 (`.label` passé où le paramètre de déclaration est `id`) : map GLOBALE
-// des déclarations id-param sur le MÊME périmètre que `label-logic-guard.test.ts` (déclaration et
-// appel peuvent vivre dans des fichiers différents, ex. `bodyShapeOf`) — composition PARTAGÉE
-// (`collectIdParamFnsAcrossDirs`, scripts/guards/lib/labelLogic.mjs), aucune copie ici.
-const ID_PARAM_FNS = collectIdParamFnsAcrossDirs(ROOT, [...STRICT_DIRS, ...RATCHET_DIRS, ...DATA_DIRS]);
-// Garde de FACE D'AFFICHAGE (#1988 §7) : les faces (retour déclaré `PlayerText`) se collectent sur tout
-// `src/` — la déclaration et l'appel vivent dans des fichiers différents —, même corpus que le test.
-const FACES = collectFacesDAffichage(readCorpus(['src'], { tests: true }).filter(({ rel }) => estDansLeCorpusDeFace(rel)));
-const strictRe = new RegExp(`^(?:${STRICT_DIRS.join('|')})/`);
-const ratchetRe = new RegExp(`^(?:${RATCHET_DIRS.join('|')})/`);
-// Couture `src/data` : régime RATCHET des volets de LIGNE seulement (`DATA_DIRS`, labelLogic.mjs).
-const dataRe = new RegExp(`^(?:${DATA_DIRS.join('|')})/`);
+// Garde « logique par libellé » (#142, #909, #1988 §7) : le contexte INTER-FICHIERS (déclarations à
+// paramètre `id`, faces d'affichage, résolveurs par libellé) se collecte sur le corpus de la lib —
+// déclaration et appel vivent dans des fichiers différents —, même contexte que le test.
+const GARDE_LIBELLE = contexteDeLaGarde(readCorpus(['src'], { tests: true }));
+// Périmètre de `scanHardcode` : celui de `combat-hardcode-guard.test.ts` (`SCAN_DIRS`).
+const hardcodeRe = /^src\/(?:engine|state)\//;
 
 const argFiles = process.argv.slice(2);
 const staged = argFiles.length
@@ -135,45 +123,20 @@ for (const f of staged) {
     warnings.push({ file: rel, line: x.line, detail: `[affirmation RAW non ancrée] ${x.detail}` });
   for (const x of scanDecisionClaims(rel, text))
     warnings.push({ file: rel, line: x.line, detail: `[revendication d'autorité sans trace] ${x.detail}` });
-  if (!isTestFile && strictRe.test(rel)) {
-    for (const x of scanLabelLogic(rel, text)) offenders.push(`${rel}:${x.line} [logique par label] ${x.detail}`);
-    for (const x of scanLabelAsIdArg(rel, text, effectiveIdParamFns(text, ID_PARAM_FNS))) offenders.push(`${rel}:${x.line} [logique par label — id STABLE attendu] ${x.detail}`);
+  if (!isTestFile && hardcodeRe.test(rel)) {
     // hardcode.mjs porte des BASELINES par-fichier (policy dans combat-hardcode-guard.test.ts, PAS
     // dupliquée ici) — un nouveau site réactif par-nom peut rester SOUS une baseline tolérée : simple
     // signal, la CI (cliquet complet) reste la porte bloquante pour cette famille.
     for (const x of scanHardcode(rel, text)) warnings.push({ file: rel, line: x.line, detail: `[hardcode réactif par-nom] ${x.detail}` });
-  } else if (!isTestFile && (ratchetRe.test(rel) || dataRe.test(rel))) {
-    // MÊME périmètre RATCHET que `label-logic-guard.test.ts` (STRICT_DIRS/RATCHET_DIRS/DATA_DIRS/RATCHET_EXCEPTIONS
-    // partagés via labelLogic.mjs) : un site nouveau dans src/gameIso|ui|data BLOQUE le commit sauf entrée
-    // JUSTIFIÉE dans la MÊME table d'exceptions que le test — jamais un périmètre plus étroit ici.
-    const idParamFns = effectiveIdParamFns(text, ID_PARAM_FNS);
-    for (const x of [...scanLabelLogic(rel, text), ...scanLabelAsIdArg(rel, text, idParamFns)]) {
-      if (!(ratchetShortKey({ rel, line: x.line }) in RATCHET_EXCEPTIONS))
-        offenders.push(`${rel}:${x.line} [logique par label — hors exception ratchet] ${x.detail}`);
-    }
   }
-  // #1988 §7 — face d'affichage en identité (b), face de donnée en `string` (c), liant littéral (d) :
-  // MÊME table d'exceptions que `label-logic-guard.test.ts`.
-  if (estDansLeCorpusDeFace(rel)) {
-    for (const x of [...scanFaceDAffichageIdentite(rel, text, FACES), ...scanFaceDeDonneeString(rel, text), ...scanLiantsLitterauxDesFaces(rel, text)]) {
-      if (!(ratchetShortKey({ rel, line: x.line }) in RATCHET_EXCEPTIONS))
-        offenders.push(`${rel}:${x.line} [face d'affichage — ${x.rule} : ${x.face}] ${x.detail}`);
-    }
-  }
-  // #142 LOT 7 — libellé porté par un champ AUTRE que `label` (`w.reach === 'Très longue'`) : même
-  // stock PAR FICHIER que `label-logic-guard.test.ts` (`LABEL_LITERAL_STOCK`, partagé par la lib).
-  // Le hook ne voit qu'un fichier à la fois : seul un compte SUPÉRIEUR au stock y bloque — le volet
-  // « dette soldée non retirée » reste à la CI, qui scanne le corpus entier.
-  if (!isTestFile && (strictRe.test(rel) || ratchetRe.test(rel))) {
-    const n = scanLabelLiteralCompare(rel, text).length;
-    if (n > (LABEL_LITERAL_STOCK[rel] ?? 0)) offenders.push(`${rel} [logique par LIBELLÉ] ${n} site(s), stock = ${LABEL_LITERAL_STOCK[rel] ?? 0}`);
-  }
-  // #1694 B3 — retour d'APPEL comparé à un littéral FR (`rangeBandName(…) === 'Bout portant'`), stock
-  // par fichier `LABEL_CALL_LITERAL_STOCK` : même double détente que ci-dessus, le volet « dette
-  // soldée » restant à la CI (`label-logic-guard.test.ts`), qui scanne le corpus entier.
-  if (!isTestFile && strictRe.test(rel)) {
-    const n = scanCallResultLiteralCompare(rel, text).length;
-    if (n > (LABEL_CALL_LITERAL_STOCK[rel] ?? 0)) offenders.push(`${rel} [retour d'appel comparé à un LIBELLÉ] ${n} site(s), stock = ${LABEL_CALL_LITERAL_STOCK[rel] ?? 0}`);
+  // Garde « logique par libellé » : TOUS ses volets par `scanLabelLogicFichier`, la composition de la
+  // lib que le test joue sur le corpus entier. Le hook ne voit que les fichiers stagés : seule la dette
+  // NEUVE (compte au-dessus du stock `DETTES_DE_LIBELLE`, par fichier et volet) y bloque — la dette soldée reste à la CI.
+  const sitesLibelle = scanLabelLogicFichier(rel, text, GARDE_LIBELLE);
+  const detteNeuve = ecartsAuxDettesDeLibelle(dettesParVolet({ fichiers: [rel], sites: sitesLibelle }), { hausseSeule: true });
+  if (detteNeuve.length > 0) {
+    offenders.push(...detteNeuve);
+    for (const x of sitesLibelle.filter((y) => y.statut !== 'couture')) offenders.push(`${rel}:${x.line} [logique par libellé — ${x.rule}] ${x.detail}`);
   }
   if (!isTestFile && /^src\/(ui|state|gameIso)\//.test(rel))
     for (const emoji of emojisIn(text)) offenders.push(`${rel} [emoji d'affordance] ${emoji}`);

@@ -842,6 +842,6 @@ Le Devin lit le passé au contact d'une personne, d'un objet ou d'un lieu (capac
   - ADE II / AA : 18 carrières supplémentaires (Mangeur d'Hommes, Boucher Ogre, + 16 militaires/ordres).
   - Middenheim : 1 carrière (Frère Loup), 3 origines humaines.
   - MDG : 9 carrières (8 Côtiers + Prêtre de Stromfels, MDG 11), 3 origines humaines norses + nains norses.
-- **Refs code couvertes** : `src/engine/careerSlots.ts` — accumulation de compétences (`skillSlots` l.153-156), talents du niveau courant uniquement (`talentSlots` l.158-162), emplacements Au choix (`parseEntry`, `wildcardSpecs`), maxi talent (`talentMaxById`).
+- **Refs code couvertes** : `src/engine/careerSlots.ts` — accumulation de compétences (`skillSlots` l.153-156), talents du niveau courant uniquement (`talentSlots` l.158-162), emplacements Au choix (`slotOptionsFromRef`, `wildcardSpecs`), maxi talent (`talentMaxById`).
 - **Détails par niveau des carrières (compétences/talents/possessions) = catalogue volumineux à transcrire séparément (présent dans `src/data/careerLevels.json`).**
 - **Anomalies données** : typo « Agent 1 » pour Nautonier N2 dans `careerLevels.json` (ligne 15499) ; Receleur N4 et Patrouilleur Fluvial N4 avec Argent 1 semblent inattendus — à vérifier contre la source LDB p. 101+.

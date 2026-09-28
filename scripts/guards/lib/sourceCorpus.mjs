@@ -33,8 +33,8 @@
 // ils font partie de ce que la garde MESURE.
 //
 // REFUS DU VIDE : une BASE qui rend 0 fichier LÈVE, en la nommant (dossier POSIX, extensions,
-// `tests`). PAR BASE et non sur le total : les clés multi-dossiers sont la norme (`STRICT_DIRS` /
-// `RATCHET_DIRS` de `labelLogic.mjs`, `['src','scripts']`) — sur un total agrégé, une moitié de
+// `tests`). PAR BASE et non sur le total : les clés multi-dossiers sont la norme
+// (`['src','scripts']`) — sur un total agrégé, une moitié de
 // corpus qui s'évapore reste MUETTE derrière l'autre. Un corpus vide rend toute garde de corpus
 // verte par vacuité — son assertion `offenders == []` est satisfaite sans que rien n'ait été lu, et
 // le rouge est MUET. `listerArbre` lève déjà sur un dossier ABSENT (`lister.mjs:41-48`) ; ce refus

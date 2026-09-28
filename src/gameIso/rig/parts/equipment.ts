@@ -1,5 +1,6 @@
 import type { Combatant, Weapon, ItemInstance, HitLocation, QualityInstance } from '../../../engine/types';
 import { isCapeItem } from '../../../engine/items';
+import { isShieldItem } from '../../../engine/equipCompare';
 import type { Slot } from '../bones';
 import type { PartArt } from './types';
 import { ARMOUR, ARMOUR_PALETTES } from './armour';
@@ -18,8 +19,8 @@ export interface EquipCtx {
   cape?: ItemInstance;              // cape/manteau porté (cosmétique — rendu dorsal)
 }
 
-export const isShield = (x: { label: string; qualities?: QualityInstance[] }) =>
-  (x.qualities ?? []).some((q) => q.id === 'protectrice') || /bouclier/i.test(x.label);
+/** Bouclier au sens du rig : `isShieldItem` (`src/engine/equipCompare.ts`), par l'id de Qualité. */
+export const isShield = (x: { qualities?: QualityInstance[] }): boolean => isShieldItem(x);
 
 /** Rang d'affichage des matériaux : la couche du DESSUS s'affiche (plaque sur maille sur cuir). */
 const MATERIAL_RANK: Record<ReturnType<typeof armourMaterial>, number> = { plaque: 3, maille: 2, cuir: 1, rembourre: 0 };

@@ -1,13 +1,11 @@
 // Mécanique de scan du garde-fou « logique par LABEL interdite » (#142, doctrine CLAUDE.md bloc
 // agents). Module ESM pur (opère sur du texte source), consommé par
 // src/state/label-logic-guard.test.ts ET par le hook pre-commit (scripts/git-hooks/pre-commit.mjs) —
-// SOURCE UNIQUE de la composition « map globale de déclarations id-param + résolution du shadowing »
-// (`collectIdParamFnsAcrossDirs`/`effectiveIdParamFns` ci-dessous), pour que les deux consommateurs
-// ne divergent jamais.
-import { readFileSync } from 'node:fs';
-import { parUnitesDeCode, listerArbre } from './lister.mjs';
+// SOURCE UNIQUE du corpus (`estDansLeCorpus`), du contexte inter-fichiers (`contexteDeLaGarde`) et
+// de la composition des volets (`scanLabelLogicFichier`, en fin de fichier), pour que les deux
+// consommateurs ne divergent jamais.
+import { parUnitesDeCode } from './lister.mjs';
 import { scriptKindDe } from './dialecte.mjs';
-import { join, relative, isAbsolute } from 'node:path';
 import tsModule from 'typescript';
 
 // Liaison LOCALE de l'API du compilateur — même FAIT mesuré qu'en tête de `sceneMutation.mjs`
@@ -183,9 +181,14 @@ const DOM_VOCAB_FIELDS = new Set(['key', 'code', 'tagName']);
  *  ASCII minuscules (`tres-longue`, `mains-nues`, `disc`) — la convention est tenue par les
  *  registres et par `slugId`. Une MAJUSCULE INITIALE, un ACCENT ou une ESPACE ne peuvent donc pas
  *  appartenir à un id : c'est du libellé. Le critère est structurel (forme du texte), pas une liste.
+ *  Deux formes de CODE échappent au critère, par leur forme aussi : un identifiant en casse de
+ *  chameau à bosse interne (`'AbortError'` de `DOMException.name`, `'ArrowLeft'`, `'KeyE'` — aucun
+ *  libellé français ne porte de majuscule interne sans espace), et un jeton de grammaire entre
+ *  accolades (`'{clé}'`, segment de chemin de `src/data/schemas/grammaire/descente.ts`).
  *  @param {string} text @returns {boolean} */
 export function isLabelLiteral(text) {
   if (text.length < 2) return false;
+  if (/^[A-Z][a-z]+(?:[A-Z][a-z]*)+$/.test(text) || /^\{[^{}\s]+\}$/.test(text)) return false;
   return /^\p{Lu}/u.test(text) || /[À-ɏ]/.test(text) || /\s/.test(text);
 }
 
@@ -444,75 +447,80 @@ export function scanCallResultLiteralCompare(relPath, contenu) {
 }
 
 /**
- * STOCK NOMINATIF GELÉ de `label-call-literal`, par fichier (même patron/cliquet que
- * `LABEL_LITERAL_STOCK`) — mesuré sur `src/engine` + `src/state` le 2026-09-09, 1 site :
- * `state/combatFlow.ts` `worstCorruptionExposure`, qui classe le Degré de Corruption d'un adversaire
- * en re-lisant le TEXTE authoré de l'argument du trait (`t.arg.toLowerCase() === 'modérée'`, à côté
- * d'un `rank` keyé par le même texte). Sa migration demande un vocabulaire d'ids pour l'argument du
- * trait `corruption` (donnée + authoring), hors du geste qui pose cette règle : GELÉ, pas exempté.
- * @type {Readonly<Record<string, number>>}
- */
-export const LABEL_CALL_LITERAL_STOCK = {
- 'src/state/combatFlow.ts': 1,
-};
-
-/** Écart au stock `label-call-literal`, cliquet STRICT dans les deux sens (cf. `labelLiteralStockDrift`).
- *  @param {Map<string, number> | Record<string, number>} measured @returns {string[]} */
-export function labelCallLiteralStockDrift(measured) {
- const entries = measured instanceof Map ? [...measured] : Object.entries(measured);
- const out = [];
- for (const [rel, n] of entries) {
-  const stock = LABEL_CALL_LITERAL_STOCK[rel] ?? 0;
-  if (n > stock) out.push(`${rel} : ${n} retour(s) d'appel comparé(s) à un LIBELLÉ, stock = ${stock} — comparer l'id STABLE que la même couture expose.`);
-  else if (n < stock) out.push(`${rel} : ${n} retour(s) d'appel comparé(s) à un LIBELLÉ, stock = ${stock} — dette SOLDÉE, mettre LABEL_CALL_LITERAL_STOCK à jour dans le même geste.`);
-}
- return out;
-}
-
-/**
- * STOCK d'ANCIEN COMPORTEMENT, par fichier (patron `*Stock.mjs` du dépôt) : les vocabulaires de
- * LIBELLÉS encore employés comme logique, à la pose de la règle (2026-07-26, #142 LOT 7). Ce ne sont
- * pas des exemptions — aucun de ces sites n'est légitime : ce sont des AXES entiers qui restent à
- * migrer vers des ids (Disponibilité Commune/Limitée/Rare/Exotique, Statut social Bronze/Argent/Or,
- * récolte Rareté/Danger/Conservation, statut d'indice révélé/réfuté). Le compte est PAR FICHIER
- * (jamais `fichier:ligne` : la ligne dérive à chaque commit voisin et le cliquet crierait à faux).
+ * DETTES de la garde de libellé, par FICHIER et par VOLET (patron `*Stock.mjs` du dépôt) : clé
+ * `fichier#règle` (la `rule` du site, `cleDeDette`) → compte des sites que la garde voit (TOUS volets,
+ * `scanLabelLogicFichier`) hors des coutures légitimes de `RATCHET_EXCEPTIONS`. Ce ne sont pas des
+ * exemptions — aucun de ces sites n'est légitime : chacun meurt par sa migration vers un id, sous le
+ * ticket nommé en regard. Jamais `fichier:ligne` : la ligne dérive à chaque commit voisin et le cliquet
+ * crierait à faux. La RÈGLE est dans la clé pour qu'une dette ne passe pas d'un volet à l'autre d'un même
+ * fichier à compte constant, et pour que la porte des stocks nominatifs (`stocksNominatifs.mjs`, une
+ * entrée par clé qui nomme un fichier) voie chaque (fichier, volet) neuf.
  *
- * CLIQUET STRICT, dans les DEUX sens : un compte SUPÉRIEUR échoue (dette neuve), un compte
+ * CLIQUET STRICT, dans les DEUX sens et par clé : un compte SUPÉRIEUR échoue (dette neuve), un compte
  * INFÉRIEUR échoue aussi (dette soldée → l'entrée se met à jour, ou disparaît, dans le MÊME geste).
- * Un fichier absent du stock est à tolérance ZÉRO. La migration d'un axe se solde en retirant ses
- * entrées, jamais en gonflant un nombre.
+ * Une clé absente est à tolérance ZÉRO. La migration d'un axe se solde en retirant ses entrées, jamais
+ * en gonflant un nombre.
  * @type {Readonly<Record<string, number>>}
  */
-export const LABEL_LITERAL_STOCK = {
+export const DETTES_DE_LIBELLE = {
   // Axe Disponibilité (LDB 59) — `Availability` EST le libellé ; `src/engine/disponibilite.ts` porte
   // le type, la table ET le prédicat `isTradable` (source unique de la comparaison aux 4 classes),
   // ses consommateurs suivent.
-  'src/engine/activities.ts': 2,
-  'src/engine/disponibilite.ts': 1,
+  'src/engine/activities.ts#label-literal': 1,
+  'src/engine/activities.ts#label-record': 1,
+  'src/engine/disponibilite.ts#label-literal': 1,
   // Axes de récolte (Rareté / Danger / Taille / Conservation) — quatre vocabulaires FR en clés de table.
-  'src/engine/harvest.ts': 5,
+  'src/engine/harvest.ts#label-literal': 1,
+  'src/engine/harvest.ts#label-record': 4,
   // Axe Statut social (Bronze/Argent/Or) — `Status.tier` porte le libellé, lu du texte des carrières.
-  'src/engine/creation.ts': 2,
-  'src/engine/social.ts': 2,
-  'src/ui/creator/CharacterCreator.tsx': 2,
+  'src/engine/creation.ts#label-literal': 2,
+  'src/engine/social.ts#label-literal': 2,
+  'src/ui/creator/CharacterCreator.tsx#label-literal': 2,
   // Statut d'un indice de campagne (révélé/réfuté) — porté par la donnée de scène et les sauvegardes.
-  'src/state/clues.ts': 2,
-  'src/state/combatEffects.ts': 1,
-  'src/ui/CarnetScreen.tsx': 3,
+  'src/state/clues.ts#label-literal': 2,
+  'src/state/combatEffects.ts#label-literal': 1,
+  'src/ui/CarnetScreen.tsx#label-literal': 3,
+  // #1957 — `worstCorruptionExposure` : Degré de Corruption lu au texte authoré de l'argument du trait.
+  'src/state/combatFlow.ts#label-call-literal': 1,
+  // #1924 — résolveurs libellé→id (`qualityIdByLabel`, `traitIdByLabel`) appelés depuis le moteur.
+  'src/engine/qualities/normalize.ts#label-entity-resolver-call': 1,
+  'src/engine/traits/dispatch.ts#label-entity-resolver-call': 1,
+  // #1330 — `conditionIdInText` : le journal FR re-parsé par libellé d'État.
+  'src/engine/conditions.ts#face-affichage-identite': 1,
+  // #1816 lot 4 — `rollObsession` : copie runtime de libellé (`cible`/`arg` du moteur).
+  'src/data/obsessions.ts#face-donnee-string': 1,
+  // #2070 — scénarios de test résolus par libellé (`findSkill`/`findTalent`).
+  'src/scenes/test-scenarios/_casters.ts#label-entity-resolver-call': 2,
+  'src/scenes/test-scenarios/magie-hors-combat.ts#label-entity-resolver-call': 1,
+  // #1632 — index du Codex par libellé (`codexLookup`) ; sort classé par libellé (`classifySpellByLabel`).
+  'src/ui/compendium/registry.ts#label-keyed-index': 1,
+  'src/gameIso/rig/anim/spellClips.ts#label-entity-resolver-call': 1,
 };
 
-/** Écarts au stock pour un jeu de comptes MESURÉS (`fichier` → nombre de findings) : chaque écart est
- *  une phrase prête à afficher. Le cliquet ne juge que ce qui lui est PRÉSENTÉ : ce qui manque à
- *  `measured` ne rend aucun écart — c'est `couvertureDuBalayage` (`stock.mjs`) qui NOMME ce manque
- *  (gisement muet, entrée de stock hors corpus), et l'appelant qui joue les deux.
- *  @param {Map<string, number>|Record<string, number>} measured @returns {string[]} */
-export function labelLiteralStockDrift(measured) {
+/** Clé de dette d'un site : `fichier#règle`. @param {{ rel: string, rule: string }} site @returns {string} */
+export function cleDeDette(site) {
+  return `${site.rel}#${site.rule}`;
+}
+
+/** Le fichier d'une clé de dette. @param {string} cle @returns {string} */
+export function fichierDeDette(cle) {
+  return cle.slice(0, cle.lastIndexOf('#'));
+}
+
+/** Écarts aux dettes pour un jeu de comptes MESURÉS (`fichier#règle` → nombre, `dettesParVolet`) :
+ *  chaque écart est une phrase prête à afficher. Le cliquet ne juge que ce qui lui est PRÉSENTÉ : ce qui
+ *  manque à `measured` ne rend aucun écart — c'est `couvertureDuBalayage` (`stock.mjs`) qui NOMME ce
+ *  manque (gisement muet, entrée de stock hors corpus), et l'appelant qui joue les deux. `hausseSeule` :
+ *  le hook pre-commit, qui ne voit que les fichiers stagés, ne juge que la dette NEUVE.
+ *  @param {Map<string, number>|Record<string, number>} measured @param {{ hausseSeule?: boolean }} [options]
+ *  @returns {string[]} */
+export function ecartsAuxDettesDeLibelle(measured, { hausseSeule = false } = {}) {
   const entries = measured instanceof Map ? [...measured] : Object.entries(measured);
   const out = [];
-  for (const [rel, n] of entries) {
-    const stock = LABEL_LITERAL_STOCK[rel] ?? 0;
-    if (n > stock) out.push(`${rel} : ${n} logique(s) par LIBELLÉ, stock = ${stock} — migrer vers un id STABLE (le libellé est de l'AFFICHAGE).`);
-    else if (n < stock) out.push(`${rel} : ${n} logique(s) par LIBELLÉ, stock = ${stock} — dette SOLDÉE, mettre LABEL_LITERAL_STOCK à jour dans le même geste.`);
+  for (const [cle, n] of entries) {
+    const stock = DETTES_DE_LIBELLE[cle] ?? 0;
+    if (n > stock) out.push(`${cle} : ${n} logique(s) par LIBELLÉ, stock = ${stock} — migrer vers un id STABLE (le libellé est de l'AFFICHAGE).`);
+    else if (n < stock && !hausseSeule) out.push(`${cle} : ${n} logique(s) par LIBELLÉ, stock = ${stock} — dette SOLDÉE, mettre DETTES_DE_LIBELLE à jour dans le même geste.`);
   }
   return out;
 }
@@ -527,18 +535,45 @@ export function labelLiteralStockDrift(measured) {
 // `Object.fromEntries(… .map((q) => [q.label, q.desc]))` puis LU via une variable
 // (`QUALITY_DESC[key]`) — hors de portée d'un scan syntaxique (cf. LIMITE CONNUE de `scanLabelLogic`).
 // La CONSTRUCTION est la seule moitié structurellement visible : c'est elle qu'on vise.
-const LABEL_PAIR_RX = new RegExp('\\[\\s*[\\w.]+\\.' + DISPLAY_FIELD + '\\s*,');
-/** … une paire n'en est une que dans une construction de STRUCTURE (`map`/`fromEntries`/`new Map`) :
- *  `[a.label, b.label].join(', ')` est un tableau d'AFFICHAGE, aucune clé n'y naît. */
-const PAIR_CONTEXT_RX = /\b(?:map|fromEntries|new Map|new Set)\s*\(/;
+const DISPLAY_FIELD_NAME_RX = new RegExp('^' + DISPLAY_FIELD + '$');
+
+/** Lignes des PAIRES `[x.label, …]` d'une construction de STRUCTURE : le tableau vit sous un appel
+ *  `map`/`fromEntries` ou un `new Map`/`new Set`, et n'est pas lui-même le RECEVEUR d'une méthode —
+ *  `[a.label, b.label].join(', ')`, `[r.label, suffixe].filter(Boolean).join(' ')` sont des tableaux
+ *  d'AFFICHAGE, aucune clé n'y naît. @param {string} relPath @param {string} contenu @returns {Set<number>} */
+function lignesDePaireParLibelle(relPath, contenu) {
+  const lignes = new Set();
+  if (!/\.(?:label|name)\b/.test(contenu)) return lignes;
+  const sf = arbre(relPath, contenu);
+  const sousUneConstruction = (n) => {
+    for (let p = n.parent; p && !ts.isSourceFile(p); p = p.parent) {
+      if (ts.isNewExpression(p) && ts.isIdentifier(p.expression) && (p.expression.text === 'Map' || p.expression.text === 'Set')) return true;
+      if (ts.isCallExpression(p)) {
+        const e = unwrap(p.expression);
+        if (ts.isPropertyAccessExpression(e) && (e.name.text === 'map' || e.name.text === 'fromEntries')) return true;
+      }
+    }
+    return false;
+  };
+  const voir = (n) => {
+    if (ts.isArrayLiteralExpression(n) && n.elements.length >= 2) {
+      const cle = unwrap(n.elements[0]);
+      const receveur = ts.isPropertyAccessExpression(n.parent) && n.parent.expression === n;
+      if (!receveur && ts.isPropertyAccessExpression(cle) && DISPLAY_FIELD_NAME_RX.test(cle.name.text) && sousUneConstruction(n)) lignes.add(ligneDe(sf, n));
+    }
+    ts.forEachChild(n, voir);
+  };
+  voir(sf);
+  return lignes;
+}
 const LABEL_SET_RX = new RegExp('\\.set\\(\\s*[\\w.]+\\.' + DISPLAY_FIELD + '\\s*,');
 const LABEL_INDEX_WRITE_RX = new RegExp('[\\w)\\]]\\[[^\\]]*\\.' + DISPLAY_FIELD + '\\b[^\\]]*\\]\\s*(?:\\?\\?|\\|\\||&&)?=[^=]');
 
 /**
  * Sites qui CONSTRUISENT une structure keyée par un champ d'affichage : paire d'un `fromEntries`/
  * `Map`/tableau de paires (`[q.label, q.desc]`), `.set(x.label, …)`, écriture d'index
- * (`M[x.label] = …`). À n'appliquer qu'à `STRICT_DIRS` — hors `src/data`, aucune couture label→id
- * n'est tolérée. La CLÉ doit être le champ d'affichage : `[v.id, v.label]` (libellé en VALEUR) n'est
+ * (`M[x.label] = …`). Hors des coutures de `RATCHET_EXCEPTIONS`, aucune construction label→id n'est
+ * tolérée. La CLÉ doit être le champ d'affichage : `[v.id, v.label]` (libellé en VALEUR) n'est
  * pas visé, c'est la lecture légitime d'un libellé.
  * @param {string} relPath @param {string} contenu
  * @returns {{ line: number, detail: string, rule: 'label-keyed-index' }[]}
@@ -546,20 +581,14 @@ const LABEL_INDEX_WRITE_RX = new RegExp('[\\w)\\]]\\[[^\\]]*\\.' + DISPLAY_FIELD
 export function scanLabelKeyedIndex(relPath, contenu) {
   const findings = [];
   const source = contenu.split('\n');
+  const paires = lignesDePaireParLibelle(relPath, contenu);
   codeSeul(contenu).split('\n').forEach((line, i) => {
-    if ((LABEL_PAIR_RX.test(line) && PAIR_CONTEXT_RX.test(line)) || LABEL_SET_RX.test(line) || LABEL_INDEX_WRITE_RX.test(line)) {
+    if (paires.has(i + 1) || LABEL_SET_RX.test(line) || LABEL_INDEX_WRITE_RX.test(line)) {
       findings.push({ line: i + 1, detail: source[i].trim(), rule: 'label-keyed-index' });
     }
   });
   return findings;
 }
-
-/**
- * Stock VIDE : la règle est à tolérance ZÉRO sur tout `STRICT_DIRS`. Cliquet strict dans les DEUX
- * sens comme `LABEL_LITERAL_STOCK` : une entrée neuve se migre, jamais s'inscrit.
- * @type {Readonly<Record<string, number>>}
- */
-export const LABEL_KEYED_INDEX_STOCK = {};
 
 /** Découpe une liste de PARAMÈTRES de déclaration sur les VIRGULES de premier niveau — profondeur
  *  `(){}[]`/générique `<>` comptée (types génériques `Map<string, T>` fréquents en signature),
@@ -818,33 +847,9 @@ export function scanLabelAsIdArg(relPath, contenu, idParamFns) {
   return findings;
 }
 
-/** `.ts`/`.tsx` sous des dossiers racine, récursif — même marche que le scan de corpus des gardes.
- *  @param {string[]} dirs (absolus, ou relatifs à `root` si `root` fourni via `isAbsolute`)
- *  @returns {string[]} chemins absolus */
-function listTsFiles(dirs) {
-  return dirs.flatMap((d) => listerArbre(d, { filtre: (rel) => /\.tsx?$/.test(rel) }).map((rel) => join(d, rel)));
-}
-
-/** Map GLOBALE nom→index-paramètre-`id`, collectée en lisant le DISQUE sous `dirs` (déclaration et
- *  appel peuvent vivre dans des fichiers différents, cf. `collectIdParamFunctions`) — SOURCE UNIQUE
- *  de cette composition (parcours + lecture + fusion), consommée à l'identique par
- *  `label-logic-guard.test.ts` ET par le hook pre-commit (#142 LOT 6bis), sans copie.
- *  @param {string} root racine absolue du projet @param {string[]} dirs dossiers (absolus ou relatifs à `root`)
- *  @returns {Map<string, number>} */
-export function collectIdParamFnsAcrossDirs(root, dirs) {
-  const map = new Map();
-  const absDirs = dirs.map((d) => (isAbsolute(d) ? d : join(root, d)));
-  for (const f of listTsFiles(absDirs)) {
-    const rel = relative(root, f).split('\\').join('/');
-    if (estFichierVitest(rel)) continue;
-    for (const [name, idx] of collectIdParamFunctions(readFileSync(f, 'utf8'))) if (!map.has(name)) map.set(name, idx);
-  }
-  return map;
-}
-
 /** Map EFFECTIVE (locale + globale) pour un fichier donné : un nom d'ID_PARAM_FNS global MASQUÉ par
- *  une déclaration homonyme LOCALE (shadowing, `collectDeclaredNames`) cède la place à la locale —
- *  composition PARTAGÉE, même raison d'être que `collectIdParamFnsAcrossDirs` ci-dessus (#142 LOT 6bis).
+ *  une déclaration homonyme LOCALE (shadowing, `collectDeclaredNames`) cède la place à la locale
+ *  (#142 LOT 6bis).
  *  @param {string} contenu @param {Map<string, number>} globalIdParamFns @returns {Map<string, number>} */
 export function effectiveIdParamFns(contenu, globalIdParamFns) {
   const local = collectIdParamFunctions(contenu);
@@ -855,49 +860,37 @@ export function effectiveIdParamFns(contenu, globalIdParamFns) {
 }
 
 
-/** Dossiers TOLÉRANCE ZÉRO (`src/engine`, `src/state`) — SOURCE UNIQUE, consommée à l'identique par
- *  `label-logic-guard.test.ts` ET par le hook pre-commit (défaut constaté : liste dupliquée en dur
- *  aux deux endroits, divergente silencieusement au premier ajout d'un seul côté). */
-export const STRICT_DIRS = ['src/engine', 'src/state'];
+/** Le CORPUS de la garde, tous volets confondus (lignes, stock, face) — défini ICI seulement : tout
+ *  `src/` `.ts`/`.tsx` hors instruments Vitest. Le statut d'un site ne dépend jamais de son dossier :
+ *  couture légitime (`RATCHET_EXCEPTIONS`), dette au stock (`DETTES_DE_LIBELLE`), ou faute. */
+export const CORPUS_RACINE = 'src';
 
-/** Dossiers RATCHET à exceptions justifiées (`src/gameIso`, `src/ui`, #289) — même source unique. */
-export const RATCHET_DIRS = ['src/gameIso', 'src/ui'];
+/** @param {string} rel chemin POSIX relatif à la racine du projet @returns {boolean} */
+export function estDansLeCorpus(rel) {
+  return rel.startsWith(`${CORPUS_RACINE}/`) && /\.tsx?$/.test(rel) && !estFichierVitest(rel);
+}
 
-/** Dossier de la COUTURE label→id (CLAUDE.md, « seule couture label→id : `src/data/index.ts`, au
- *  CHARGEMENT ») — balayé par les volets de LIGNE (`scanLabelLogic`, `scanLabelAsIdArg`) au régime
- *  RATCHET : chaque résolveur par libellé y est une exception AU SITE (`RATCHET_EXCEPTIONS`, avec son
- *  test de légitimité), jamais un fichier exclu. Même source unique. */
-export const DATA_DIRS = ['src/data'];
-
-/** Exceptions JUSTIFIÉES du ratchet (#289) — `fichier:ligne` (relatif à `src/`) → justification.
- *  SOURCE UNIQUE (`label-logic-guard.test.ts` et le hook pre-commit la consomment TOUS DEUX, sans
- *  copie) : une entrée périmée (site déplacé/assaini) doit être retirée des DEUX consommateurs à la
- *  fois, jamais resynchronisée à la main de chaque côté. */
+/** COUTURES LÉGITIMES — `fichier:ligne` (relatif à `src/`) → justification. N'y entrent que la couture
+ *  de chargement et de saisie de `src/data/index.ts` (#909) et le parseur de saisie « format livre » de
+ *  l'éditeur (`refFormatLivre.ts`) ; chacune a son test de légitimité (`label-logic-guard.test.ts`,
+ *  « coutures légitimes »), qui juge le SITE par la déclaration qui le porte. Une DETTE n'y entre
+ *  jamais : elle va au stock `DETTES_DE_LIBELLE`, avec son ticket. */
 export const RATCHET_EXCEPTIONS = {
-  'gameIso/rig/parts/equipment.ts:22':
-    "isShield (fallback de RENDU rig) — détecte un bouclier d'abord par la Qualité Protectrice ; " +
-    "repli texte sur x.label pour un objet custom/legacy dépourvu de cette Qualité. Classification " +
-    "VISUELLE (quel gabarit dessiner), pas une FK de logique métier — aucune régression possible.",
-  // Garde de FACE D'AFFICHAGE (#1988 §7) — chaque entrée a son test de légitimité dans
-  // `label-logic-guard.test.ts` (« exemptions de la garde de face »).
   'data/index.ts:3278':
     "(c) `qualityIdByLabel` rend un ID, pas un texte : couture libellé→id d'AUTHORING (invariant 1, « aider " +
     'à la saisie »), déjà recensée comme résolveur par libellé (#909, `collectLabelEntityResolvers`).',
-  'data/obsessions.ts:34':
-    '(c) `rollObsession` : COPIE RUNTIME de libellé (`cible`/`arg` du moteur), inscrite au registre des ' +
-    'fossiles de #1816, tuée par le lot 4 de la Phase 3.',
-  'engine/conditions.ts:69':
-    "(b) `conditionIdInText` : re-parse du journal FR par libellé d'État, hors lot, sous #1330 (journal " +
-    'structuré : l’id voyage avec l’évènement, ce scan meurt).',
   'ui/editor/refFormatLivre.ts:20':
     '(b) Parseur de SAISIE « format livre » (invariant 1, « aider à la saisie »), même régime que :41 : la ' +
     'saisie « (Au choix) » se reconnaît au mot que l’affichage compose (`ref.motAuChoix`) ; elle rend `choix`.',
   'ui/editor/refFormatLivre.ts:41':
     '(b) Parseur de SAISIE « format livre » de l’éditeur (invariant 1, « aider à la saisie ») : le texte ' +
     'saisi retrouve l’id de spécialisation dont le libellé affiché est ce texte ; il rend un id.',
-  // Résolveurs par LIBELLÉ de la couture de chargement/saisie (`DATA_DIRS`, #909) — chacun est reconnu
-  // par `collectLabelEntityResolvers`, donc chacun de ses appels depuis `src/engine`/`src/state` est au
-  // stock `LABEL_RESOLVER_CALL_STOCK` : test « résolveurs de la couture » de `label-logic-guard.test.ts`.
+  'ui/editor/refFormatLivre.ts:52':
+    'Parseur de SAISIE « format livre » : le nom de Compétence saisi retrouve son id (`findSkill`, #909).',
+  'ui/editor/refFormatLivre.ts:67':
+    'Parseur de SAISIE « format livre » : le nom de Talent saisi retrouve son id (`findTalent`, #909).',
+  // Résolveurs par LIBELLÉ de la couture de chargement/saisie (#909) — chacun est reconnu par
+  // `collectLabelEntityResolvers`, donc chacun de ses appels hors couture est une dette au stock.
   'data/index.ts:3118':
     '`findSkill` : résolveur libellé→entrée de la couture de saisie (statblocs de campagne, #909).',
   'data/index.ts:3152':
@@ -919,10 +912,10 @@ export function ratchetShortKey(finding) {
 
 // ── Résolution d'ENTITÉ depuis un LIBELLÉ, appelée hors de sa seule couture légitime (#909) ────────
 // La comparaison `.label === label` d'un résolveur (`findSpell`, `findTalent`…) vit DANS
-// `src/data/index.ts`, seul fichier où `RATCHET_EXCEPTIONS` la tolère, au site. Les scans
-// ci-dessus ne voient QUE cette comparaison textuelle — pas le fait d'INVOQUER un tel résolveur
-// depuis `src/engine`/`src/state`, où le paramètre reçu est déjà, la plupart du temps, un id : y
-// appeler `findSpell(x)` bascule quand même toute la résolution sur le texte d'affichage.
+// `src/data/index.ts`, où `RATCHET_EXCEPTIONS` la tolère, au site. Les scans ci-dessus ne voient
+// QUE cette comparaison textuelle — pas le fait d'INVOQUER un tel résolveur hors de la couture, où
+// le paramètre reçu est déjà, la plupart du temps, un id : y appeler `findSpell(x)` bascule quand
+// même toute la résolution sur le texte d'affichage.
 //
 // Reconnaissance du résolveur — critères structurels, jamais une liste de noms :
 //  1. déclaré et exporté dans `src/data/index.ts` (seul fichier où la légitimité existe, doctrine
@@ -1039,16 +1032,8 @@ export function collectLabelEntityResolvers(contenu) {
   return names;
 }
 
-/** Lit `src/data/index.ts` sous `root` et en extrait les résolveurs d'entité par libellé — SOURCE
- *  UNIQUE consommée par `label-logic-guard.test.ts` ET le hook pre-commit.
- *  @param {string} root racine absolue du projet @returns {Set<string>} */
-export function labelEntityResolverNames(root) {
-  return collectLabelEntityResolvers(readFileSync(join(root, 'src/data/index.ts'), 'utf8'));
-}
-
 /**
- * Appels à un résolveur d'entité par libellé (`resolverNames`) dans un fichier de `src/engine`/
- * `src/state` — la faute #909 : la comparaison `.label` est invisible ici (elle vit dans le
+ * Appels à un résolveur d'entité par libellé (`resolverNames`) dans un fichier — la faute #909 : la comparaison `.label` est invisible ici (elle vit dans le
  * résolveur, à `src/data/index.ts`), seul l'APPEL l'est. Le nom appelé qui est SHADOWÉ par une
  * déclaration locale homonyme (`collectDeclaredNames`, même mécanique que `effectiveIdParamFns`)
  * est écarté — pas le même défaut si le fichier définit SA PROPRE fonction de ce nom.
@@ -1072,12 +1057,6 @@ export function scanLabelResolverCalls(relPath, contenu, resolverNames) {
   ts.forEachChild(sf, visit);
   return findings;
 }
-
-// Stock cliqueté (`LABEL_RESOLVER_CALL_STOCK`) : `labelResolverCallStock.mjs` — l'écart au stock se
-// calcule par la primitive partagée `ecartsDeStock` (`stock.mjs`), chez la garde appelante
-// (patron whitelist-en-lib SÉPARÉE du dépôt — `entityOrphanStock.mjs`/`folioRatchetStock.mjs`/
-// `manualDocsStock.mjs`), pour que le CONSTAT (ce module) reste distinct du STOCK (données figées
-// à la pose de la règle) — même séparation que `folioIntegrity.mjs` / `folioRatchetStock.mjs`.
 
 // ── FACE D'AFFICHAGE en position d'IDENTITÉ (#1988 §7) ─────────────────────────────────────────────
 // Une « face d'affichage » est une fonction exportée de `src/` dont le retour DÉCLARÉ est `PlayerText`
@@ -1104,7 +1083,19 @@ export function scanLabelResolverCalls(relPath, contenu, resolverNames) {
 //     argument d'appel (clé de `t()`, catégorie de `refLabel`, id), hors les méthodes qui ASSEMBLENT
 //     du texte (`join`, `concat`, `padStart`, `padEnd`, `replace`, `dataLabel`) ; un opérande de
 //     comparaison ou de `in` ; une clé d'index.
-// Exemptions AU SITE, par `RATCHET_EXCEPTIONS` seulement, chacune avec son test de légitimité.
+// Coutures légitimes AU SITE par `RATCHET_EXCEPTIONS`, dettes au stock `DETTES_DE_LIBELLE`.
+//
+// CE QUE CE SCAN NE VOIT PAS (faux négatifs assumés) :
+//  - une face passée par un `map` puis rangée en collection : `new Set(xs.map(face))` — la face y est
+//    une RÉFÉRENCE de fonction, jamais un appel, et le `Set` n'est pas une position d'identité suivie ;
+//  - une face rangée dans une PROPRIÉTÉ d'objet puis relue (`o.k = face(x)` … `m[o.k]`) : seuls les
+//    identifiants locaux sont suivis comme alias ;
+//  - un alias par GABARIT (`const k = \`${face(x)}\``) : un gabarit fabrique un texte neuf, il n'est
+//    pas suivi comme la face ;
+//  - un tri ou une comparaison par `localeCompare` (`face(a).localeCompare(face(b))`) : ORDONNER par le
+//    texte n'est pas une position d'identité du volet ;
+//  - pour (c), une fonction exportée par une clause séparée (`export { f }`) ou par `export default` :
+//    `fonctionsExportees` ne lit que le modificateur `export` posé sur la déclaration.
 
 /** Le type déclaré nomme-t-il `PlayerText` (nu ou dans une union) ? @param {ts.TypeNode=} t */
 function declarePlayerText(t) {
@@ -1366,21 +1357,61 @@ export function scanLiantsLitterauxDesFaces(relPath, contenu) {
   return findings;
 }
 
-/** Le CORPUS de la garde de face : tout `src/` hors instruments Vitest. @param {string} rel */
-export function estDansLeCorpusDeFace(rel) {
-  return rel.startsWith('src/') && /\.tsx?$/.test(rel) && !estFichierVitest(rel);
+/** Contexte INTER-FICHIERS de la garde, collecté sur le corpus : rang du paramètre `id` par nom de
+ *  fonction (`collectIdParamFunctions`, première déclaration rencontrée), faces d'affichage
+ *  (`collectFacesDAffichage`), résolveurs par libellé de `src/data/index.ts` (`collectLabelEntityResolvers`).
+ *  @param {{ rel: string, text: string }[]} fichiers @returns {GardeContexte} */
+export function contexteDeLaGarde(fichiers) {
+  const corpus = fichiers.filter(({ rel }) => estDansLeCorpus(rel));
+  const idParamFns = new Map();
+  for (const { text } of corpus) for (const [nom, idx] of collectIdParamFunctions(text)) if (!idParamFns.has(nom)) idParamFns.set(nom, idx);
+  const index = corpus.find(({ rel }) => rel === 'src/data/index.ts');
+  return { idParamFns, faces: collectFacesDAffichage(corpus), resolveurs: index ? collectLabelEntityResolvers(index.text) : new Set() };
 }
 
-/** Les trois volets (b), (c), (d) sur un corpus `src/` — les faces sont collectées sur CE corpus.
- *  SOURCE UNIQUE consommée par `label-logic-guard.test.ts` ET le hook pre-commit.
- *  @param {{ rel: string, text: string }[]} fichiers
- *  @returns {{ rel: string, line: number, detail: string, rule: string, face: string }[]} */
-export function scanGardeDeFace(fichiers) {
-  const corpus = fichiers.filter(({ rel }) => estDansLeCorpusDeFace(rel));
-  const faces = collectFacesDAffichage(corpus);
-  return corpus.flatMap(({ rel, text }) => [
-    ...scanFaceDAffichageIdentite(rel, text, faces),
+/** @typedef {{ idParamFns: Map<string, number>, faces: Map<string, string>, resolveurs: Set<string> }} GardeContexte */
+
+/**
+ * TOUS les volets de la garde sur UN fichier — la seule composition, appelée par le test (corpus
+ * entier, `scanLabelLogicCorpus`) et par le hook pre-commit (fichiers stagés). Chaque site porte son
+ * statut : `couture` (`RATCHET_EXCEPTIONS`), `dette` (clé `fichier#règle` au stock `DETTES_DE_LIBELLE`,
+ * que `ecartsAuxDettesDeLibelle` juge en compte), ou `nu`. Hors corpus : aucun site.
+ * @param {string} rel @param {string} text @param {GardeContexte} ctx
+ * @returns {{ rel: string, line: number, detail: string, rule: string, statut: 'couture' | 'dette' | 'nu' }[]}
+ */
+export function scanLabelLogicFichier(rel, text, ctx) {
+  if (!estDansLeCorpus(rel)) return [];
+  return [
+    ...scanLabelLogic(rel, text),
+    ...scanLabelAsIdArg(rel, text, effectiveIdParamFns(text, ctx.idParamFns)),
+    ...scanLabelLiteralCompare(rel, text),
+    ...scanCallResultLiteralCompare(rel, text),
+    ...scanLabelKeyedIndex(rel, text),
+    ...scanLabelResolverCalls(rel, text, ctx.resolveurs),
+    ...scanFaceDAffichageIdentite(rel, text, ctx.faces),
     ...scanFaceDeDonneeString(rel, text),
     ...scanLiantsLitterauxDesFaces(rel, text),
-  ].map((x) => ({ rel, ...x })));
+  ].map((f) => {
+    const site = { rel, ...f };
+    const statut = ratchetShortKey(site) in RATCHET_EXCEPTIONS ? 'couture' : cleDeDette(site) in DETTES_DE_LIBELLE ? 'dette' : 'nu';
+    return { ...site, statut };
+  });
+}
+
+/** La garde sur un corpus : les fichiers balayés (ceux du corpus) et tous leurs sites.
+ *  @param {{ rel: string, text: string }[]} fichiers */
+export function scanLabelLogicCorpus(fichiers) {
+  const corpus = fichiers.filter(({ rel }) => estDansLeCorpus(rel));
+  const ctx = contexteDeLaGarde(corpus);
+  return { fichiers: corpus.map(({ rel }) => rel), sites: corpus.flatMap(({ rel, text }) => scanLabelLogicFichier(rel, text, ctx)) };
+}
+
+/** Compte des sites HORS couture, par `fichier#règle` — la mesure que juge `ecartsAuxDettesDeLibelle`.
+ *  Chaque clé du stock dont le fichier est balayé est présente, à 0 si elle est soldée.
+ *  @param {{ fichiers: string[], sites: { rel: string, rule: string, statut: string }[] }} balayage @returns {Map<string, number>} */
+export function dettesParVolet({ fichiers, sites }) {
+  const balayes = new Set(fichiers);
+  const n = new Map(Object.keys(DETTES_DE_LIBELLE).filter((cle) => balayes.has(fichierDeDette(cle))).map((cle) => [cle, 0]));
+  for (const s of sites) if (s.statut !== 'couture') n.set(cleDeDette(s), (n.get(cleDeDette(s)) ?? 0) + 1);
+  return n;
 }

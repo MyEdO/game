@@ -42,10 +42,20 @@ describe('weaponFamily — 1 forme par arme, routée par shape (anti-collapse)',
 });
 
 describe('isShield', () => {
-  it('reconnaît un bouclier par qualité ou nom, pas une épée', () => {
-    expect(isShield({ label: 'Targe', qualities: [{ id: 'protectrice', value: 1 }] })).toBe(true);
-    expect(isShield({ label: 'Bouclier', qualities: [] })).toBe(true);
-    expect(isShield({ label: 'Épée', qualities: [] })).toBe(false);
+  it('reconnaît un bouclier par l’id de sa Qualité Protectrice, jamais par son libellé', () => {
+    expect(isShield({ qualities: [{ id: 'protectrice', value: 1 }] })).toBe(true);
+    expect(isShield({ qualities: [] })).toBe(false);
+  });
+
+  it('catalogue : chaque arme au libellé de bouclier porte Protectrice, et se dessine en bouclier ; la potion homonyme non', () => {
+    const armes = trappings.filter((t) => (t.categorie === 'melee' || t.categorie === 'ranged') && /bouclier/i.test(t.label));
+    expect(armes.map((t) => t.id)).toContain('bouclier');
+    for (const t of armes) {
+      const w = weaponFromItem(itemFromGive({ trappingId: t.id }));
+      expect(isShield(w), t.id).toBe(true);
+      expect(pickView(shieldPart(w), 'front'), t.id).toContain('<');
+    }
+    expect(isShield(itemFromGive({ trappingId: 'bouclier-de-la-forge' }))).toBe(false);
   });
 });
 
@@ -86,7 +96,7 @@ describe('shieldPart', () => {
 describe('equipFromCombatant', () => {
   it('extrait armes actives + pièces d’armure équipées + bouclier', () => {
     const c = {
-      weapons: [wep('Épée', 'melee'), wep('Bouclier', 'melee')],
+      weapons: [wep('Épée', 'melee'), wep('Bouclier', 'melee', [{ id: 'protectrice', value: 1 }])],
       items: [
         { uid: 'a', label: 'Plastron', kind: 'armor', qualities: [], pa: 1, locs: ['corps'], enc: 1, equipped: true } as ItemInstance,
         { uid: 'b', label: 'Heaume', kind: 'armor', qualities: [], pa: 1, locs: ['tete'], enc: 0, equipped: false } as ItemInstance,

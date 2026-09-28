@@ -203,7 +203,6 @@ const RAW_KNOWN: Record<string, number> = {
   'src/engine/windsOfMagic.ts': 1,
   'src/gameIso/rig/mountedRig.ts': 1,
   'src/gameIso/rig/parts/career.ts': 3,
-  'src/gameIso/rig/parts/equipment.ts': 1,
   'src/gameIso/rig/parts/injuries.ts': 2, // reste le canal APPARENCE (œil remplacé en place), hors `rig` (calques)
   'src/gameIso/stage/Ambiance.tsx': 1,
   'src/gameIso/stage/CrewTooltip.tsx': 1,

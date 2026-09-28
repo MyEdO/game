@@ -83,7 +83,7 @@ function* corpus(): Generator<[string, string]> {
     for (const d of WEAPON_DEFS) for (const skin of SKINS)
       yield [`arme|${species}|${d.slug}|${view}|s${i}|${skin ? 'k' : ''}`, bonesToSvg(resolveRig(app, { weapons: [arme(d.slug, skin)], armour: [] }, {}, 'soldat', view))];
     for (const d of SHIELD_DEFS)
-      yield [`bouclier|${species}|${d.slug}|${view}|s${i}`, bonesToSvg(resolveRig(app, { weapons: [arme('epee'), { ...arme(d.slug), label: 'Bouclier' }], armour: [] }, {}, 'soldat', view))];
+      yield [`bouclier|${species}|${d.slug}|${view}|s${i}`, bonesToSvg(resolveRig(app, { weapons: [arme('epee'), { ...arme(d.slug), qualities: [{ id: 'protectrice', value: 1 }] }], armour: [] }, {}, 'soldat', view))];
     for (const l of MATIERES) for (const skin of SKINS) for (const t of ['soldat', 'nu'])
       yield [`armure|${species}|${l}|${t}|${view}|s${i}|${skin ? 'k' : ''}`, bonesToSvg(resolveRig(app, { weapons: [], armour: [armure(l, skin)] }, {}, t, view))];
   }

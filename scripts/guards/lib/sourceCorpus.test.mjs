@@ -21,8 +21,8 @@
 //      aucun fichier des extensions demandées — ce `[]` muet rendrait toute garde de corpus verte
 //      par vacuité.
 //  (h) VACUITÉ PAR BASE : le refus se mesure BASE PAR BASE, jamais sur le total agrégé. Les clés
-//      multi-dossiers sont la norme (`STRICT_DIRS`/`RATCHET_DIRS` de `labelLogic.mjs`,
-//      `['src','scripts']`) : sur un total, une base évaporée resterait muette derrière une base
+//      multi-dossiers sont la norme
+//      (`['src','scripts']`) : sur un total, une base évaporée resterait muette derrière une base
 //      peuplée — la moitié perdue du corpus ne dirait rien.
 //  (i) DÉCLARATION : un `*.d.ts` est hors corpus, quelles que soient les `exts` et `tests` demandés —
 //      il n'a aucun corps, donc aucun des motifs qu'une garde cherche, et il fausse tout compte de
@@ -270,7 +270,7 @@ test('REFUS DU VIDE : la vacuité se mesure PAR BASE — une base vide ne se cac
   try {
     const vide = join(racine, 'vide')
     mkdirSync(vide)
-    // La clé multi-dossiers est la norme (`STRICT_DIRS`/`RATCHET_DIRS`, `['src','scripts']`) : sur un
+    // La clé multi-dossiers est la norme (`['src','scripts']`) : sur un
     // total agrégé, `a` (peuplé) couvrirait `vide`, et la moitié évaporée du corpus resterait muette.
     // La base fautive est nommée entre crochets, en chemin POSIX depuis la racine du dépôt.
     const nomme = `${nom}/vide] pour les extensions`
