@@ -15,7 +15,7 @@
  */
 import { memo, useMemo } from 'react';
 import type { Combatant } from '../engine/types';
-import { RigSprite, GROUND_Y, bodyHeight } from '../gameIso/rig/composeRig';
+import { RigSprite, GROUND_Y, bodyHeight, rigComposition } from '../gameIso/rig/composeRig';
 import { defaultAppearance, type Appearance } from '../gameIso/rig/appearance';
 import { equipFromCombatant, type EquipCtx } from '../gameIso/rig/parts/equipment';
 import { combatantAppearance, combatantOverlays } from '../gameIso/rig/parts/combatantVisuals';
@@ -97,11 +97,10 @@ function CharacterPreviewBase(props: CharacterPreviewProps) {
   const equip = useMemo(() => (hero ? equipFromCombatant(hero) : props.equip ?? EMPTY_EQUIP), [hero, props.equip]);
   const overlays = useMemo(() => (hero ? combatantOverlays(hero) : props.overlays), [hero, props.overlays]);
   const career = hero ? hero.career : props.career; // id de garde-robe (carrière), jamais un libellé
-  // Résolution du rig mémoïsée (rendu en listes de 8-15) : mêmes entrées → même élément, React saute le sous-arbre.
-  const sprite = useMemo(
-    () => <RigSprite appearance={appearance} equip={equip} pose={pose} career={career} view={view} overlays={overlays} mirror={mirror} />,
-    [appearance, equip, pose, career, view, overlays, mirror],
-  );
+  // Composition mémoïsée sur le personnage, la vue et le sens ; l'élément sur la composition et la pose
+  // (rendu en listes de 8-15) : mêmes entrées → même élément, React saute le sous-arbre.
+  const comp = useMemo(() => rigComposition(appearance, equip, career, view, overlays, mirror), [appearance, equip, career, view, overlays, mirror]);
+  const sprite = useMemo(() => <RigSprite comp={comp} pose={pose} />, [comp, pose]);
   const cls = ['charprev', `charprev-${size}`, AMBIANCE_CLASS[ambiance], className].filter(Boolean).join(' ');
   // Cadre `fill` (tuile plein-champ, #430) : viewBox resserré autour du CORPS DE GABARIT (pur,
   // `bodyHeight` — squelette race/carrure, jamais les accessoires) — pieds toujours ancrés en bas

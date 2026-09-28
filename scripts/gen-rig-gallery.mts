@@ -5,7 +5,7 @@
 import { writeFileSync } from 'node:fs';
 import { renderToStaticMarkup } from 'react-dom/server';
 import React from 'react';
-import { RigSprite } from '../src/gameIso/rig/composeRig';
+import { RigSprite, rigComposition } from '../src/gameIso/rig/composeRig';
 import { defsGlobaux } from '../src/gameIso/sprites';
 import type { Appearance } from '../src/gameIso/rig/appearance';
 import { asRigSpeciesId } from '../src/gameIso/rig/appearance';
@@ -17,7 +17,7 @@ import { sexeSchema } from '../src/data/schemas/grammaire/valeurs';
 import { tenueLabel } from '../src/gameIso/rig/parts/career';
 import { assertWardrobeId } from './_lib-wardrobe';
 
-// `RigSprite.career` se résout par ID de garde-robe (carrière ∪ classe ∪ tenue) : la galerie
+// la tenue de `rigComposition` se résout par ID de garde-robe (carrière ∪ classe ∪ tenue) : la galerie
 // n'écrit que des ids, et VALIDE fail-fast — un id qui retombe sur « nu » est une faute
 // d'authoring, jamais un corps nu silencieux (#1338, patron #1326).
 const TENUES_QC = ['garde', 'noble', 'repurgateur', 'tueur', 'medecin', 'voleur', 'flagellant', 'sorcier', 'chevalier', 'mendiant', 'nonne', 'batelier'];
@@ -36,7 +36,7 @@ function cell(label: string, app: Appearance, equip: EquipCtx, career: string, v
     React.createElement('svg', { viewBox: '0 0 120 150', width: 110, height: 138 },
       React.createElement('defs', { dangerouslySetInnerHTML: { __html: defsGlobaux() } }),
       React.createElement('rect', { x: 0, y: 0, width: 120, height: 150, fill: '#1d2230' }),
-      React.createElement(RigSprite, { appearance: app, equip, career, view }),
+      React.createElement(RigSprite, { comp: rigComposition(app, equip, career, view) }),
     ),
   );
   return `<figure style="margin:0;text-align:center"><div>${svg}</div><figcaption style="color:#cdd;font:11px sans-serif">${label}</figcaption></figure>`;
@@ -85,7 +85,7 @@ function enemyCell(name: string, view: View = 'front') {
     React.createElement('svg', { viewBox: '0 0 120 150', width: 110, height: 138 },
       React.createElement('defs', { dangerouslySetInnerHTML: { __html: defsGlobaux() } }),
       React.createElement('rect', { x: 0, y: 0, width: 120, height: 150, fill: '#2a1d22' }),
-      React.createElement(RigSprite, { appearance: p.appearance, equip: p.equip, career: p.tenue, overlays: [], view }),
+      React.createElement(RigSprite, { comp: rigComposition(p.appearance, p.equip, p.tenue, view, []) }),
     ),
   );
   const label = view === 'front' ? name : `${name} ${view}`;
@@ -107,7 +107,7 @@ function ambientCell(name: string, animKey: string, label: string) {
     React.createElement('svg', { viewBox: '0 0 120 150', width: 110, height: 138 },
       React.createElement('defs', { dangerouslySetInnerHTML: { __html: defsGlobaux() } }),
       React.createElement('rect', { x: 0, y: 0, width: 120, height: 150, fill: '#22291d' }),
-      React.createElement(RigSprite, { appearance: p.appearance, equip: p.equip, career: p.tenue, overlays: [], pose }),
+      React.createElement(RigSprite, { comp: rigComposition(p.appearance, p.equip, p.tenue, undefined, []), pose: pose }),
     ),
   );
   return `<figure style="margin:0;text-align:center"><div>${svg}</div><figcaption style="color:#be9;font:11px sans-serif">${label}</figcaption></figure>`;
@@ -130,7 +130,7 @@ function standalone(app: Appearance, equip: EquipCtx, career: string) {
     React.createElement('svg', { xmlns: 'http://www.w3.org/2000/svg', viewBox: '0 0 120 150', width: 240, height: 300 },
       React.createElement('defs', { dangerouslySetInnerHTML: { __html: defsGlobaux() } }),
       React.createElement('rect', { x: 0, y: 0, width: 120, height: 150, fill: '#2a3142' }),
-      React.createElement(RigSprite, { appearance: app, equip, career }),
+      React.createElement(RigSprite, { comp: rigComposition(app, equip, career) }),
     ),
   );
 }

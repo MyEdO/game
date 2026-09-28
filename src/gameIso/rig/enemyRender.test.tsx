@@ -2,7 +2,7 @@ import { VIEWS, type View } from './facing';
 import { describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import React from 'react';
-import { RigSprite } from './composeRig';
+import { RigSprite, rigComposition } from './composeRig';
 import { enemyRigProfile } from './enemyProfile';
 import { combatantAppearance, combatantOverlays } from './parts/combatantVisuals';
 import { mutationById } from '../../data/mutations';
@@ -24,9 +24,7 @@ function render(c: Combatant, view: View = 'front') {
   const p = enemyRigProfile(c)!;
   // Chemin RÉEL de prod : les visuels d'état (mutations/blessures/traits) viennent du combattant.
   return renderToStaticMarkup(
-    React.createElement(RigSprite, {
-      appearance: combatantAppearance(p.appearance, c), equip: p.equip, career: p.tenue, overlays: combatantOverlays(c), view,
-    }),
+    React.createElement(RigSprite, { comp: rigComposition(combatantAppearance(p.appearance, c), p.equip, p.tenue, view, combatantOverlays(c)) }),
   );
 }
 

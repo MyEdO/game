@@ -7,7 +7,7 @@
 import { writeFileSync } from 'node:fs';
 import { renderToStaticMarkup } from 'react-dom/server';
 import React from 'react';
-import { RigSprite } from '../src/gameIso/rig/composeRig';
+import { RigSprite, rigComposition } from '../src/gameIso/rig/composeRig';
 import { defsGlobaux } from '../src/gameIso/sprites';
 import { combatantOverlays, combatantAppearance } from '../src/gameIso/rig/parts/combatantVisuals';
 import { creatureToCombatant } from '../src/state/spawn';
@@ -24,7 +24,7 @@ import { VIEWS, type View } from '../src/gameIso/rig/facing';
 import type { ItemInstance, Weapon } from '../src/engine/types';
 import { assertWardrobeId } from './_lib-wardrobe';
 
-// `RigSprite.career` se résout par ID de garde-robe (carrière ∪ classe ∪ tenue) — ids seulement,
+// la tenue de `rigComposition` se résout par ID de garde-robe (carrière ∪ classe ∪ tenue) — ids seulement,
 // validés fail-fast : un id qui retombe sur « nu » masquerait la mutation sous un corps nu (#1338).
 const TENUE_DEFAUT = 'mendiant';
 const TENUE_SOLDAT = 'soldat';
@@ -40,7 +40,7 @@ function cell(label: string, app: Appearance, overlays: RigOverlay[], opts: { vi
     React.createElement('svg', { viewBox: '0 0 120 150', width: 110, height: 138 },
       React.createElement('defs', { dangerouslySetInnerHTML: { __html: defsGlobaux() } }),
       React.createElement('rect', { x: 0, y: 0, width: 120, height: 150, fill: opts.bg ?? '#1d2230' }),
-      React.createElement(RigSprite, { appearance: app, equip: opts.equip ?? NU, career: opts.career ?? TENUE_DEFAUT, view: opts.view ?? 'front', overlays }),
+      React.createElement(RigSprite, { comp: rigComposition(app, opts.equip ?? NU, opts.career ?? TENUE_DEFAUT, opts.view ?? 'front', overlays) }),
     ),
   );
   return `<figure style="margin:0;text-align:center"><div>${svg}</div><figcaption style="color:${opts.tint ?? '#cdd'};font:11px sans-serif">${label}</figcaption></figure>`;

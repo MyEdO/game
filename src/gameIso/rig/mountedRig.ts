@@ -214,7 +214,12 @@ const SADDLE_LOCAL_Y = -15;
  * fait d'être monté. Un `harnais: ''` authoré (nu explicite) est donc respecté tel quel. PURE.
  */
 export function mountedPlanOpts(recordId: string | undefined, override?: EntityAppearance): ResolveOpts {
-  const opts = planOptsForRecord(recordId, override);
+  return harnaisDeMonture(planOptsForRecord(recordId, override));
+}
+
+/** Opts d'une monture DÉJÀ résolues (`planOptsForRecord`), complétées du harnais par défaut — le cœur
+ *  de `mountedPlanOpts`, pour un appelant qui tient ces opts figées (`sceneMeshes`, instantané). PURE. */
+export function harnaisDeMonture(opts: ResolveOpts): ResolveOpts {
   return { ...opts, harnais: opts.harnais ?? DEFAUT_HARNAIS_MONTE };
 }
 

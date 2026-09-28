@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { actorBillboards, collectBillboards, combatantRenderSignature } from './sceneMeshes';
+import { actorBillboards, actorRenderSignature, collectBillboards } from './sceneMeshes';
 import { buildTokens } from '../../builders/tokens';
 import { buildProps } from '../../builders/props';
 import { combatantTokenScale, footprintTokenScale, sizeTokenScale } from '../../sizeScale';
@@ -110,11 +110,12 @@ describe('POPULATION — le monde volumique dessine les corps du builder, pas la
     const enrôlé = creatureToCombatant(creatures[0], ent.id, { x: ent.pos.x, y: ent.pos.y, z: ent.z ?? 0 });
     const battle = { combatants: [enrôlé], order: [enrôlé.id], turn: 0 } as unknown as BattleState;
     const subs = collectBillboards(scene, mpt, elsDuStage(scene, battle));
-    const acteurs = actorBillboards([{ c: enrôlé, x: ent.pos.x, y: ent.pos.y, z: ent.z ?? 0 }], scene, mpt);
+    const pose = { c: enrôlé, x: ent.pos.x, y: ent.pos.y, z: ent.z ?? 0 };
+    const acteurs = actorBillboards([pose], scene, mpt);
     expect(persosBillboardés(subs)).not.toContain(ent.id);
     // Un seul acteur, ancré sur SON id — la suite de l'identité est la signature de dessin
-    // (`combatantRenderSignature`, cf. `actor-signature.test.ts`).
-    expect(acteurs.map((a) => a.identity)).toEqual([`acteur:${enrôlé.id}|${combatantRenderSignature(enrôlé)}`]);
+    // (`actorRenderSignature`, cf. `actor-signature.test.ts`).
+    expect(acteurs.map((a) => a.identity)).toEqual([`acteur:${enrôlé.id}|${actorRenderSignature(pose)}`]);
   });
 });
 

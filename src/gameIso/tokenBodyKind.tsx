@@ -3,7 +3,6 @@ import type { ViewMode } from '../geometry/iso';
 import type { Combatant } from '../engine/types';
 import type { SceneEntity } from '../state/scene';
 import { isOutOfAction } from '../engine/conditions';
-import { AnimatedRigToken } from './AnimatedRigToken';
 import { RigToken } from './RigToken';
 import { AnimatedPlanToken } from './AnimatedPlanToken';
 import { enemyRigProfile, entityRigProfileFor, rendersFromOwnInventory, refOf } from './rig/enemyProfile';
@@ -15,7 +14,7 @@ import { findCreatureById, findTrappingById, findVehicleById } from '../data';
 import { combatantRender, entityRender, sceneEntityForRender } from './sizeScale';
 import { useGame } from '../state/store';
 import { entitySprite } from './sprites';
-import { resolveRig, RigSprite } from './rig/composeRig';
+import { poseRig, rigComposition, RigSprite } from './rig/composeRig';
 import { defaultAppearance, type Appearance } from './rig/appearance';
 import { equipFromCombatant, type EquipCtx } from './rig/parts/equipment';
 import { combatantAppearance, combatantOverlays } from './rig/parts/combatantVisuals';
@@ -77,7 +76,8 @@ const STRUCT_BODY = (
  * (`RigPortrait`).
  */
 function faceFrame(appearance: Appearance, equip: EquipCtx, tenue: string | undefined, overlays: RigOverlay[]): { body: ReactNode; box: string } {
-  const bones = resolveRig(appearance, equip, {}, tenue, 'front', overlays);
+  const comp = rigComposition(appearance, equip, tenue, 'front', overlays);
+  const bones = poseRig(comp, {});
   const tete = bones.find((b) => b.id === 'tete');
   const m = tete?.matrix ?? [1, 0, 0, 1, 60, 54];
   const sy = tete?.scale[1] ?? 1;
@@ -85,7 +85,7 @@ function faceFrame(appearance: Appearance, equip: EquipCtx, tenue: string | unde
   const cy = m[5] + 10 * sy; // le visage est dessiné SOUS l'origine de l'os tete (crâne) → on descend le cadre
   const S = 46 * Math.max(0.9, sy); // cadre proportionnel à la taille de la tête (Ogre > Nain)
   return {
-    body: <RigSprite appearance={appearance} equip={equip} career={tenue} view="front" overlays={overlays} />,
+    body: <RigSprite comp={comp} />,
     box: `${(cx - S / 2).toFixed(1)} ${(cy - S / 2).toFixed(1)} ${S.toFixed(1)} ${S.toFixed(1)}`,
   };
 }
@@ -96,7 +96,8 @@ function faceFrame(appearance: Appearance, equip: EquipCtx, tenue: string | unde
  * (`isHero / enemyRigProfile / entityRigProfile / bodyPlanById`) vit ICI, jamais au site appelant.
  *
  * `view: 'top'` (vue du dessus) → les ACTEURS deviennent un disque-portrait (vue de face cadrée,
- * `flat: true`) ; le décor reste un billboard de face (`flat: false`). En iso, comportement inchangé.
+ * `flat: true`) ; le décor reste un billboard de face (`flat: false`). Un combattant de rig et le
+ * jeton de groupe sont un disque-portrait dans les deux vues.
  *
  * NE porte AUCUNE info de layout (ombre/anneau/dim/échelle de base/walking) : ça reste au site
  * appelant (surcouche de jetons, planches QC). Les deux moteurs d'animation (rig à clips vs plan rAF)
@@ -117,16 +118,15 @@ export function tokenBodyKind(subject: TokenSubject, view: ViewMode = 'iso'): To
     // PLUS jamais la clé de résolution — repli ultime seulement pour un statbloc d'auteur sans id de
     // catalogue (`creatureId` absent, ex. ennemi générique nommé).
     const r = combatantRender(c);
+    // Un combattant de RIG n'existe ici qu'en DISQUE-PORTRAIT, quelle que soit la vue demandée : en iso,
+    // le monde volumique le dessine (`sceneMeshes.actorBillboards`).
     if (r.kind === 'rig') {
       const prof = rendersFromOwnInventory(c) ? null : enemyRigProfile(c);
-      if (top) {
-        const appearance = combatantAppearance(prof?.appearance ?? c.appearance ?? defaultAppearance(c), c);
-        const equip = prof?.equip ?? equipFromCombatant(c);
-        const tenue = prof?.tenue ?? c.career; // garde-robe = tenue du profil, sinon id de carrière (Combatant.career)
-        const f = faceFrame(appearance, equip, tenue, combatantOverlays(c));
-        return { bodyKind: 'rig', speciesScale: r.scale, portraitBox: f.box, flat: true, body: f.body };
-      }
-      return { bodyKind: 'rig', speciesScale: r.scale, portraitBox: FACE_BOX, flat: false, body: <AnimatedRigToken combatant={c} profile={prof ?? undefined} pos={c.pos} /> };
+      const appearance = combatantAppearance(prof?.appearance ?? c.appearance ?? defaultAppearance(c), c);
+      const equip = prof?.equip ?? equipFromCombatant(c);
+      const tenue = prof?.tenue ?? c.career; // garde-robe = tenue du profil, sinon id de carrière (Combatant.career)
+      const f = faceFrame(appearance, equip, tenue, combatantOverlays(c));
+      return { bodyKind: 'rig', speciesScale: r.scale, portraitBox: f.box, flat: true, body: f.body };
     }
     return { bodyKind: 'plan', speciesScale: r.scale, portraitBox: planPortraitBox(r.plan), flat: top, body: <AnimatedPlanToken id={c.id} planId={r.plan} species={r.species} recordId={c.creatureId} override={c.appearanceOverride} dead={groundStateOf(c) === 'corpse' || isOutOfAction(c)} prone={groundStateOf(c) === 'prone'} pos={c.pos} /> };
   }

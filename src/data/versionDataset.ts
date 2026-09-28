@@ -46,6 +46,19 @@ export function versionDesDatasets(): number {
  *  prochaine lecture. */
 export function bumperDataset(cle: CleDeDataset): void {
   cellule(cle).v += 1;
+  for (const abonne of ABONNES) abonne();
+}
+
+const ABONNES = new Set<() => void>();
+
+/** ABONNEMENT aux écritures du seam : `abonne` est appelé après chaque `bumperDataset`. Forme de
+ *  `useSyncExternalStore(abonnerAuxDatasets, versionDesDatasets)` — un écran dont le dessin dérive des
+ *  catalogues se re-rend à une édition (`CodexEdit`). Rend le désabonnement. */
+export function abonnerAuxDatasets(abonne: () => void): () => void {
+  ABONNES.add(abonne);
+  return () => {
+    ABONNES.delete(abonne);
+  };
 }
 
 /**

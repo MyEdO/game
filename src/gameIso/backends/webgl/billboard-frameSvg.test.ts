@@ -266,7 +266,7 @@ describe('Figurant à ambiance authorée — la donnée éditable JOUE en volumi
     expect(s.eid).toBeUndefined();
     expect(s.frameSvg).toBeUndefined();
     expect(s.anim).toBeUndefined();
-    expect(s.identity).toBe('perso:f1');
+    expect(s.identity).toMatch(/^perso:f1\|[0-9a-f]+$/);
   });
 
   it('la BOUCLE vit : les cellules du clip d’ambiance diffèrent', () => {

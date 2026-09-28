@@ -229,7 +229,7 @@ describe('Couple monté — UN billboard composite (monture + cavalier)', () => 
     const { subjects } = sujets(monture(), bête);
     expect(subjects).toHaveLength(1);
     expect(osDe(subjects[0].svg('profile', false, 0)).has('tronc')).toBe(true); // la monture est là
-    expect(subjects[0].identity.startsWith('acteur:m1|')).toBe(true); // et SEULE (aucun composite)
+    expect(subjects[0].identity.startsWith('acteur:m1+h1|')).toBe(true); // l'identité nomme le couple dont elle hache l'instantané
     expect(cri).toHaveBeenCalledTimes(1);
     expect(cri.mock.calls[0][0]).toContain('couple monté');
     sujets(monture(), bête); // le même défaut ne se redit pas

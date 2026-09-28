@@ -111,7 +111,7 @@ describe('Cap du GROUPE — sur l’écran MONTÉ (#1362)', () => {
     const { facingMonté, pose } = sujetDuGroupe(espion);
     expect(facingMonté, 'le cap porté par le SUJET monté').toBe(cap);
     expect(pose.facing, 'et la pose qui le lui donne').toBe(cap);
-    expect(actorPoseKey(pose), 'la clé de mémo retient le même cap').toContain(`:${cap}:`);
+    expect(actorPoseKey(pose), 'la clé de mémo retient le même cap').toMatch(new RegExp(`:${cap}(:|$)`));
   });
 
   it('VUE DU DESSUS : le disque du groupe, monté par l’hôte, porte le quartier du cap de GROUPE', async () => {

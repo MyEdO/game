@@ -15,7 +15,7 @@ import { walkMs } from '../geometry/walk';
  * Pilote l'ANIMATION d'un rig bipède (clips de repos/marche/attaque/parade/esquive/touché via
  * le bus, projeté en vue 8-dir selon la caméra) et renvoie les éléments à donner à resolveRig :
  * `pose` (clip courant), `holdPose` (prise d'arme toujours active), `view`+`mirror`. Consommé par
- * `RigToken` (lui-même monté par `AnimatedRigToken` et par `tokenBodyKind`) : le câblage bus vit ici,
+ * `RigToken` (monté par `tokenBodyKind`) : le câblage bus vit ici,
  * le token ne fait que dessiner. Le CHOIX du geste est pur (`rig/anim/actorAnimSelect`).
  */
 export function useRigAnim({ id, equip, restClip, facing, pos, seated }: {

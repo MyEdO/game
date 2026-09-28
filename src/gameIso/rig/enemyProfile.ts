@@ -224,7 +224,7 @@ export function enemyRigProfile(c: Combatant): EnemyRigProfile | null {
   const armour = base.armour.length ? base.armour : synthArmour(c.armour, ov?.armurePortee ?? cd?.armurePortee);
   const equip: EquipCtx = { weapons: base.weapons, armour, shield: base.shield };
 
-  // Calques de mutation = donnée (`combatantOverlays(c.mutations)`, appliqués par AnimatedRigToken),
+  // Calques de mutation = donnée (`combatantOverlays(c.mutations)`, appliqués par `sceneMeshes.actorDrawInputs`),
   // jamais le nom : un mutant déclare son tell via un trait « Mutation (X) » → c.mutations au spawn.
   return { appearance, tenue, equip };
 }

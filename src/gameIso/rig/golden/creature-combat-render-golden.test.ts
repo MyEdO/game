@@ -1,5 +1,5 @@
 /**
- * Golden master du rendu COMBAT des bipèdes par le chemin RÉEL de prod (`AnimatedRigToken`) :
+ * Golden master du rendu COMBAT des bipèdes par le chemin RÉEL de prod (`sceneMeshes.actorDrawInputs`) :
  * spawn (`creatureToCombatant`) → `enemyRigProfile` PUIS application des visuels d'ÉTAT du combattant
  * (`combatantAppearance` + `combatantOverlays` = mutations RÉELLES de `c.mutations`, amputations,
  * traits) → SVG. Couvre le chemin SPÉCIFIQUE au combat : équipement synthétisé des traits/PA, tenue

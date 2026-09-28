@@ -63,7 +63,7 @@
  * s'y lire — plus aucun jeton n'y porte de `data-cid` : cet écran INSCRIT son lanceur de rayon auprès
  * de `stage/spritePicker.ts`, la couture unique où le pointeur pose la question.
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import * as THREE from 'three';
 import { freeYaw, type ActorCapsule, type Dims, type Rot } from '../../geometry/iso';
 import { hauteurDe, type Scene } from '../../state/scene';
@@ -110,6 +110,7 @@ import {
   type BillboardSubject,
 } from '../backends/webgl/sceneMeshes';
 import { memoByRefDeps } from '../../state/sceneMemo';
+import { abonnerAuxDatasets, versionDesDatasets } from '../../data/versionDataset';
 import { signalerEntreeEnScene, entreeEnScene } from '../../state/entreeEnScene';
 import {
   AUCUN_CHROME,
@@ -943,9 +944,12 @@ export function GameStage3D({ scene, mpt, frame, tintAt, keepEl, nappeVue, els, 
   // IDENTITÉ des acteurs — qui ils sont et quel art ils portent, JAMAIS où ils sont (`actorIdentityKey`) :
   // la case logique appartient à la pose, que la repose ci-dessous porte aux sujets déjà montés.
   const acteursCle = actors.map(actorIdentityKey).join('|');
+  // VERSION DES CATALOGUES (`versionDesDatasets`) : les sujets la hachent (`DrawSnapshot`), et une
+  // édition au Codex (`CodexEdit`, modale au-dessus du jeu monté) doit relancer ce rendu pour la voir.
+  const versionCatalogues = useSyncExternalStore(abonnerAuxDatasets, versionDesDatasets, versionDesDatasets);
   // La TEINTE de visibilité n'entre PAS dans ces rétentions (#1396) : elle se prend à la case du sujet,
   // par la passe de POSE, à la cadence de la frame (`stage/boardPose.poseBoards`).
-  const decor = decorRetenu(jeton, [...hauteurDeps, mpt, elsStables], () => collectBillboards(scene, mpt, elsStables));
+  const decor = decorRetenu(jeton, [...hauteurDeps, mpt, elsStables, versionCatalogues], () => collectBillboards(scene, mpt, elsStables));
   const acteurs = acteursRetenus(jeton, [...hauteurDeps, acteursCle, mpt, pionsEnDisques], () => (pionsEnDisques ? AUCUN_SUJET : actorBillboards(actors, scene, mpt)));
   const subjects = useMemo(() => [...decor, ...acteurs], [decor, acteurs]);
   // REPOSE DE POSITION : un acteur qui change de case suit sa case, en place. C'est la passe sœur de

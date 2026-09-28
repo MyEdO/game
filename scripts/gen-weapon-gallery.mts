@@ -7,7 +7,7 @@
 import { writeFileSync } from 'node:fs';
 import { renderToStaticMarkup } from 'react-dom/server';
 import React from 'react';
-import { RigSprite } from '../src/gameIso/rig/composeRig';
+import { RigSprite, rigComposition } from '../src/gameIso/rig/composeRig';
 import { defsGlobaux } from '../src/gameIso/sprites';
 import { weaponFamily } from '../src/gameIso/rig/parts/equipment';
 import trappings from '../src/data/trappings.json';
@@ -40,7 +40,7 @@ function fig(w: Weapon, shield = false) {
     React.createElement('svg', { viewBox: '0 0 120 150', width: 92, height: 115 },
       React.createElement('defs', { dangerouslySetInnerHTML: { __html: defsGlobaux() } }),
       React.createElement('rect', { x: 0, y: 0, width: 120, height: 150, fill: '#1d2230' }),
-      React.createElement(RigSprite, { appearance: { species: asRigSpeciesId('humain'), sex: 'M', build: 0.5, seed: 4 }, equip, career: MANNEQUIN }),
+      React.createElement(RigSprite, { comp: rigComposition({ species: asRigSpeciesId('humain'), sex: 'M', build: 0.5, seed: 4 }, equip, MANNEQUIN) }),
     ),
   );
   const fam = shield ? 'bouclier' : weaponFamily(w) || '(mains nues)';

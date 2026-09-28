@@ -213,8 +213,8 @@ function stopClock(): void {
  * celle d'un hôte démonté.
  *
  * CONTRAT D'ÉMISSION : le registre installé est le SEUL émetteur d'`ANIM_IMPACT`. Le stage affine en
- * émet un pour le rig qu'il monte (`useRigAnim`, id de COMBATTANT en combat — `AnimatedRigToken` lui
- * passe `combatant.id`) : l'hôte qui installe le registre retire cette émission-là. Garde
+ * émet un pour le rig qu'il monte (`useRigAnim`) : l'hôte qui installe le registre retire cette
+ * émission-là. Garde
  * structurelle : `animTracks.test.ts`, « CONTRAT D'ÉMISSION UNIQUE ».
  */
 export function installAnimTracks(resolve: AnimCtxResolver = combatantAnimCtx): () => void {
