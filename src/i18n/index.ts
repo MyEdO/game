@@ -63,6 +63,7 @@ export function interpolate(pattern: string, params?: Params): string {
  */
 export function t(key: MsgKey, params?: Params): PlayerText {
   const pat: string = CATALOGS[locale][key] ?? CATALOGS.fr[key] ?? key;
+  // eslint-disable-next-line murs/marques -- #1318 : minteur (a) de `PlayerText` — ce qui sort du catalogue est du texte joueur (cf. JSDoc de `t`).
   return interpolate(pat, params) as PlayerText;
 }
 

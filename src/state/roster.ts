@@ -11,9 +11,7 @@ import { estLInstanceDe, migrerClesDEmplacement } from '../engine/careerSlots';
 import type { Mutation } from '../engine/corruption';
 import { FORMAT_DES_CHOIX } from '../engine/character';
 import { adresseLue, type AdresseDeCreation } from '../engine/adresseDeCreation';
-import { emplacementsDeDotation, sousEmplacement, type ChoixDeDotation, type EmplacementDeDotation } from '../engine/trappingChoices';
-import { formatDice } from '../engine/dice';
-import { findCreatureById, findQualityById, findTrappingById, findVehicleById, type AdvancementRef, type QualityRef, type TrappingRef } from '../data';
+import type { AdvancementRef } from '../data';
 import { t } from '../i18n';
 import { stockageWeb } from '../lib/stockageWeb';
 
@@ -62,8 +60,7 @@ export function rosterLoad(): RosterEntry[] {
 /** Entrée telle que lue du stockage, avant `brouillonRelu`. */
 type EntreeLue = Omit<RosterEntry, 'draft'> & { draft?: BrouillonPersiste };
 
-/** Brouillon tel que lu du stockage : ses choix par adresse sont des clés brutes ; le format 4 rangeait
- *  `trappingChoices` par libellé d'emplacement. */
+/** Brouillon tel que lu du stockage : ses choix par adresse sont des clés brutes. */
 type BrouillonPersiste = Omit<CreatorDraft, 'v' | 'specChoices' | 'speciesTalentChoices' | 'randomSpecPicks' | 'talentRerolls' | 'trappingChoices'> & {
   v?: number;
   specChoices?: Record<string, string>;
@@ -73,13 +70,12 @@ type BrouillonPersiste = Omit<CreatorDraft, 'v' | 'specChoices' | 'speciesTalent
   trappingChoices?: Record<string, number | string>;
 };
 
-/** Le brouillon persisté au format des choix (`FORMAT_DES_CHOIX`), ses clés marquées à la lecture
- *  (`adresseLue`) ; un brouillon au format 4 y est migré (`choixDeDotationDuFormat4`). Tout autre format
- *  (`v` absent, antérieur ou autre) est écarté, le créateur rouvre alors le héros par `draftFromHero`.
- *  Idempotent. */
+/** Le brouillon persisté s'il est au format `FORMAT_DES_CHOIX`, ses clés marquées à la lecture
+ *  (`adresseLue`) ; tout autre format (`v` absent, antérieur ou autre) est écarté, le créateur rouvre
+ *  alors le héros par `draftFromHero`. Idempotent. */
 function brouillonRelu(draft: BrouillonPersiste | undefined): CreatorDraft | undefined {
-  if (!draft || (draft.v !== FORMAT_DES_CHOIX && draft.v !== 4)) return undefined;
-  const { v, specChoices, speciesTalentChoices, randomSpecPicks, talentRerolls, trappingChoices, ...choix } = draft;
+  if (draft?.v !== FORMAT_DES_CHOIX) return undefined;
+  const { specChoices, speciesTalentChoices, randomSpecPicks, talentRerolls, trappingChoices, ...choix } = draft;
   return {
     ...choix,
     v: FORMAT_DES_CHOIX,
@@ -87,7 +83,7 @@ function brouillonRelu(draft: BrouillonPersiste | undefined): CreatorDraft | und
     speciesTalentChoices: adressesLues(speciesTalentChoices),
     randomSpecPicks: adressesLues(randomSpecPicks),
     talentRerolls: adressesLues(talentRerolls),
-    ...(trappingChoices && { trappingChoices: v === 4 ? choixDeDotationDuFormat4(draft.careerId, trappingChoices) : adressesLues(trappingChoices) }),
+    ...(trappingChoices && { trappingChoices: adressesLues(trappingChoices) }),
   };
 }
 
@@ -99,56 +95,6 @@ function adressesLues<V>(choix: Record<string, V> = {}): Record<AdresseDeCreatio
     if (adresse) lues[adresse] = v;
   }
   return lues;
-}
-
-/** `trappingChoices` d'un brouillon au format 4 (clé = libellé de l'emplacement ; valeur = libellé de la
- *  branche d'un `{choice}`, id d'objet ou d'Atout sinon) rangés par adresse, la branche par son index.
- *  Une clé qui ne nomme aucun emplacement de la carrière, ou une branche qu'aucune ne nomme, n'était
- *  lue par aucun résolveur : elle ne se reporte pas. */
-function choixDeDotationDuFormat4(careerId: string, anciens: Record<string, number | string>): ChoixDeDotation {
-  const choix: ChoixDeDotation = {};
-  for (const e of emplacementsDeDotation(careerId, 1)) {
-    const v = anciens[cleDuFormat4(e.ref, e)];
-    if (typeof v !== 'string') continue;
-    if (e.sorte !== 'branches') choix[e.adresse] = v;
-    else {
-      const j = e.ref.choice.findIndex((b, k) => cleDuFormat4(b, sousEmplacement(e, k)) === v);
-      if (j >= 0) choix[e.adresse] = j;
-    }
-  }
-  return choix;
-}
-
-/** Le libellé d'une `TrappingRef` tel que le format 4 le composait (`trappingRefLabel` d'alors), FIGÉ :
- *  le `label` brut de la donnée et les liants du format 4, jamais le catalogue de messages — un
- *  brouillon 4 se relit quelle que soit la langue d'affichage. `e` : l'emplacement que porte `ref`. */
-function cleDuFormat4(ref: TrappingRef, e: EmplacementDeDotation | undefined): string {
-  if (e?.sorte === 'branches') return e.ref.choice.map((b, j) => cleDuFormat4(b, sousEmplacement(e, j))).join(' ou ');
-  if (e?.sorte === 'joker') return e.ref.wildcard === 'arme' ? 'Arme (au choix)' : `${e.ref.wildcard} (au choix)`;
-  const base = 'text' in ref
-    ? ref.text
-    : 'vehicleId' in ref
-      ? (findVehicleById(ref.vehicleId)?.label ?? ref.vehicleId)
-      : 'creatureId' in ref
-        ? (findCreatureById(ref.creatureId)?.label ?? ref.creatureId)
-        : 'id' in ref ? avecSpecDuFormat4(findTrappingById(ref.id)?.label ?? ref.id, ref.spec) : '';
-  const count = 'count' in ref && ref.count ? ('fixed' in ref.count ? ` (${ref.count.fixed})` : ` (${formatDice(ref.count.roll)})`) : '';
-  const qualite = e?.sorte === 'atout'
-    ? ' (qualité au choix)'
-    : 'id' in ref && ref.qualities?.length ? ` (${ref.qualities.map(qualiteDuFormat4).join(', ')})` : '';
-  return base + count + qualite;
-}
-
-function avecSpecDuFormat4(base: string, spec: string | undefined): string {
-  return spec ? `${base} (${spec})` : base;
-}
-
-function qualiteDuFormat4(q: QualityRef): string {
-  const data = findQualityById(q.id);
-  const base = avecSpecDuFormat4(data?.label ?? q.id, q.spec);
-  if (q.value == null) return base;
-  const unite = data?.indice?.unite;
-  return unite ? `${base} (${q.value}${unite})` : `${base} ${q.value}`;
 }
 
 /** `careerSlotChoices` du héros aux clés en ids (#1924, `migrerClesDEmplacement`) — idempotent. */

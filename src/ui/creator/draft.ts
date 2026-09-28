@@ -59,7 +59,7 @@ import {
   type ChoixDeCreation,
   type CompetenceDeCarriere,
 } from '../../engine/character';
-import { adresseDeCreation, type AdresseDeCreation } from '../../engine/adresseDeCreation';
+import { adresseDeCreation, deFamille, tirageSous, type AdresseDeCreation } from '../../engine/adresseDeCreation';
 import { emplacementsDeDotation, emplacementTranche, estEmplacementRacine } from '../../engine/trappingChoices';
 import { refKey, talentMaxReached, acquerirTalent, type PorteurDeTalents, skillSlots, talentSlots, statutOuRefus } from '../../engine/careerSlots';
 import { findSpeciesById, findTalentById, specPoolOf, careers, levelsForCareer, advancementLabel, refLabel, findStarById, celestialHouses, SpeciesData, CareerLevelData, trappingRefLabel, type AdvancementRef } from '../../data';
@@ -249,9 +249,9 @@ export function rollDraftSpecies(d: CreatorDraft): CreatorDraft {
 export const speciesXp = (d: CreatorDraft): number =>
   d.speciesRoll && d.speciesRoll.ids.includes(d.speciesId) ? XP_SPECIES_ACCEPTED : 0;
 
-/** Choix par adresse (`adresseDeCreation`) privés des adresses aux préfixes donnés. */
-function horsAdresses<V>(parAdresse: Record<AdresseDeCreation, V>, ...prefixes: string[]): Record<AdresseDeCreation, V> {
-  return Object.fromEntries(Object.entries(parAdresse).filter(([a]) => !prefixes.some((p) => a.startsWith(p))));
+/** Choix par adresse (`adresseDeCreation`) privés des adresses que `ecartee` désigne (`deFamille`, `tirageSous`). */
+function horsAdresses<V>(parAdresse: Record<AdresseDeCreation, V>, ecartee: (cle: string) => boolean): Record<AdresseDeCreation, V> {
+  return Object.fromEntries(Object.entries(parAdresse).filter(([a]) => !ecartee(a)));
 }
 /** Choix par adresse privés de l'adresse `adresse`. */
 function sansAdresse<V>(parAdresse: Record<AdresseDeCreation, V>, adresse: AdresseDeCreation): Record<AdresseDeCreation, V> {
@@ -270,7 +270,7 @@ export function withSpecies(d: CreatorDraft, id: string): CreatorDraft {
     speciesTalentChoices: {},
     randomSpecPicks: {},
     talentRerolls: {},
-    specChoices: horsAdresses(d.specChoices, 'espece:', 'ajout:'),
+    specChoices: horsAdresses(d.specChoices, (a) => deFamille(a, 'espece', 'ajout')),
     talentsRolled: false,
     pettySpells: [],
     careerRolls: [],
@@ -345,7 +345,7 @@ export function withCareer(d: CreatorDraft, id: string): CreatorDraft {
     ...d,
     careerId: id,
     skillAdvances: {},
-    specChoices: horsAdresses(d.specChoices, 'carriere:', 'ajout:'),
+    specChoices: horsAdresses(d.specChoices, (a) => deFamille(a, 'carriere', 'ajout')),
     careerTalent: undefined,
     pettySpells: [],
     charAdvancesAlloc: {},
@@ -449,7 +449,7 @@ export function withSpeciesTalentChoice(d: CreatorDraft, adresse: AdresseDeCreat
   const speciesTalentChoices = { ...d.speciesTalentChoices, [adresse]: option };
   const avant = d.speciesTalentChoices[adresse];
   if (avant != null && cleDOption(avant) === cleDOption(option)) return { ...d, speciesTalentChoices };
-  return { ...d, speciesTalentChoices, talentRerolls: horsAdresses(d.talentRerolls, `${adresse}:`), randomSpecPicks: horsAdresses(d.randomSpecPicks, `${adresse}:`) };
+  return { ...d, speciesTalentChoices, talentRerolls: horsAdresses(d.talentRerolls, (a) => tirageSous(a, adresse)), randomSpecPicks: horsAdresses(d.randomSpecPicks, (a) => tirageSous(a, adresse)) };
 }
 
 /** Talents d'espèce en TROIS lots (LDB 05 l.484, écran Talents — 5c), dérivés de la DONNÉE

@@ -160,6 +160,7 @@ export function opposedAttackerLabel(opp: { test?: RollRequest['test']; attacker
  *  lui passe reste `string` pour ce lot : c'est lui que V8a₁ marque à son tour, minteur par minteur. */
 export function composeRollLabel(actor: Combatant | undefined, action: string, test: RollRequest['test']): PlayerText {
   const detail = testSkillLabel(test);
+  // eslint-disable-next-line murs/marques -- #1318 : minteur de `PlayerText` — composer le libellé de jet est le corps de `composeRollLabel`.
   return `${actor ? `${actor.label} — ` : ''}${action}${detail ? ` (${detail})` : ''}` as PlayerText;
 }
 
@@ -501,6 +502,7 @@ export function bandStep(spec: BandSpec, rows: readonly BatchParticipant[]): Bui
     ...(spec.combatPsych ? { combatPsych: spec.combatPsych } : {}),
     ...(spec.encounterPsych ? { encounterPsych: spec.encounterPsych } : {}),
     ...(spec.meta ? { meta: spec.meta } : {}),
+  // eslint-disable-next-line murs/marques -- #1262 : porte `bandStep` du seam — forger `BuiltCascadeStep` depuis sa spec est son corps de métier.
   } as BuiltCascadeStep;
 }
 
@@ -1280,6 +1282,7 @@ export function choiceStep(spec: ChoiceSpec): BuiltCascadeStep | undefined {
     ...(spec.deviation ? { deviation: spec.deviation } : {}),
     ...(spec.bladeTrap ? { bladeTrap: spec.bladeTrap } : {}),
     ...(spec.meta ? { meta: spec.meta } : {}),
+  // eslint-disable-next-line murs/marques -- #1262 : porte `choiceStep` du seam — forger `BuiltCascadeStep` depuis sa spec est son corps de métier.
   } as BuiltCascadeStep;
 }
 
@@ -1357,6 +1360,7 @@ export function quantityStep(spec: QuantitySpec): BuiltCascadeStep | undefined {
     ...(spec.stakeRule ? { stakeRule: spec.stakeRule } : {}),
     ...(spec.outcome ? { outcome: spec.outcome } : {}),
     ...(spec.meta ? { meta: spec.meta } : {}),
+  // eslint-disable-next-line murs/marques -- #1262 : porte `quantityStep` du seam — forger `BuiltCascadeStep` depuis sa spec est son corps de métier.
   } as BuiltCascadeStep;
 }
 
@@ -1459,6 +1463,7 @@ export function monoStep(spec: MonoSpec): BuiltCascadeStep | undefined {
     ...(spec.reveal ? { reveal: spec.reveal } : {}),
     ...(spec.outcome ? { outcome: spec.outcome } : {}),
     ...(spec.meta ? { meta: spec.meta } : {}),
+  // eslint-disable-next-line murs/marques -- #1262 : porte `monoStep` du seam — forger `BuiltCascadeStep` depuis sa spec est son corps de métier.
   } as BuiltCascadeStep;
 }
 
@@ -1563,6 +1568,7 @@ export function tableStep(spec: TableSpec): BuiltCascadeStep | undefined {
     ...(spec.mutation ? { mutation: spec.mutation } : {}),
     ...(spec.casse ? { casse: spec.casse } : {}),
     ...(spec.meta ? { meta: spec.meta } : {}),
+  // eslint-disable-next-line murs/marques -- #1262 : porte `tableStep` du seam — forger `BuiltCascadeStep` depuis sa spec est son corps de métier.
   } as BuiltCascadeStep;
 }
 
@@ -1601,6 +1607,7 @@ export function tableStepDone(spec: TableDoneSpec): BuiltCascadeStep | undefined
       + '(`registerCascadeTableFold`) qu\'aucune fenêtre ne jouera ici — le tirage doit passer par `tableStep`. Aucun tirage ouvert.');
     return undefined;
   }
+  // eslint-disable-next-line murs/marques -- #1262 : porte `tableStepDone` du seam — l'étape posée par `tableStepPosee` sort mintée par cette porte.
   return tableStepPosee(base, spec.table, spec.result) as BuiltCascadeStep;
 }
 
@@ -1653,6 +1660,7 @@ export function displayStep(spec: DisplaySpec): BuiltCascadeStep {
     ...(spec.outcome ? { outcome: spec.outcome } : {}),
     ...(spec.fleeMove ? { fleeMove: spec.fleeMove } : {}),
     ...(spec.meta ? { meta: spec.meta } : {}),
+  // eslint-disable-next-line murs/marques -- #1262 : porte `displayStep` du seam — forger `BuiltCascadeStep` depuis sa spec est son corps de métier.
   } as BuiltCascadeStep;
 }
 
@@ -1694,6 +1702,7 @@ export function worldStep(spec: WorldStepSpec): BuiltCascadeStep {
     result: null,
     ...(spec.stake ? { stake: spec.stake } : {}),
     ...(spec.meta ? { meta: spec.meta } : {}),
+  // eslint-disable-next-line murs/marques -- #1262 : porte `worldStep` du seam — forger `BuiltCascadeStep` depuis sa spec est son corps de métier.
   } as BuiltCascadeStep;
 }
 
@@ -1769,6 +1778,7 @@ export function dieStep(spec: DieStepSpec): BuiltCascadeStep | undefined {
     ...(spec.casse ? { casse: spec.casse } : {}),
     ...(spec.stake ? { stake: spec.stake } : {}),
     ...(spec.meta ? { meta: spec.meta } : {}),
+  // eslint-disable-next-line murs/marques -- #1262 : porte `dieStep` du seam — forger `BuiltCascadeStep` depuis sa spec est son corps de métier.
   } as BuiltCascadeStep;
 }
 
@@ -1865,6 +1875,7 @@ export function hostStep(get: Get, spec: HostSpec): BuiltCascadeStep | undefined
     ...(spec.jet === 'fumble' ? { fumble: spec.fumble } : {}),
     ...(spec.stake ? { stake: spec.stake } : {}),
     ...(spec.meta ? { meta: spec.meta } : {}),
+  // eslint-disable-next-line murs/marques -- #1262 : porte `hostStep` du seam — forger `BuiltCascadeStep` depuis sa spec est son corps de métier.
   } as BuiltCascadeStep;
 }
 

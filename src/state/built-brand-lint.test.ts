@@ -106,9 +106,18 @@ describe('#1262 — le lint mure les ROUTES DE FORGE de la marque', () => {
     expect(await messagesDeVerrou(code), 'résidu MESURÉ (le sélecteur filtre par nom) : il est dit, pas couvert').toHaveLength(0);
   });
 
-  it('les MINTEURS restent exemptés : leur cast interne est la seule fabrique légitime', async () => {
-    const [res] = await eslint.lintText(`${ENTETE}export const h = o as BuiltCascadeStep;\n`, { filePath: 'src/state/rollSeam.ts', warnIgnored: false });
+  /** Les MINTEURS sont SOUS la règle : chaque cast légitime porte son exemption AU SITE, aucune au fichier. */
+  it.each([
+    ['src/state/rollSeam.ts', 'declare const sonde: unknown;\nexport const forge = sonde as BuiltCascadeStep;'],
+    ['src/state/revealStep.ts', 'declare const sonde: unknown;\nexport const forge = sonde as BuiltCascadeStep;'],
+    ['src/ui/rollRowBuild.ts', 'declare const sonde: unknown;\nexport const forge = sonde as BuiltRollRow;'],
+    ['src/i18n/index.ts', "export const forge = 'sonde' as PlayerText;"],
+  ])('le minteur `%s` lint propre, et un SECOND cast y rougit', async (fichier, second) => {
+    const [res] = await eslint.lintFiles([fichier]);
     expect(res.messages.filter((m) => MURS_DE_MARQUE.has(m.ruleId ?? ''))).toHaveLength(0);
+    const reel = readFileSync(fichier, 'utf8');
+    const [cast] = await eslint.lintText(`${reel}\n${second}\n`, { filePath: fichier });
+    expect(cast.messages.filter((m) => m.ruleId === 'murs/marques'), 'un cast non justifié doit rougir').toHaveLength(1);
   });
 
   /**
@@ -139,13 +148,59 @@ describe('#1262 — le lint mure les ROUTES DE FORGE de la marque', () => {
     expect(await messagesDeVerrou(code), 'un libellé casté en adresse indexerait les choix de création').toHaveLength(1);
   });
 
-  it('la fabrique `adresseDeCreation.ts` lint propre : son unique cast porte son exemption AU SITE', async () => {
+  it('la fabrique `adresseDeCreation.ts` lint propre : son unique cast et ses fabriques portent leur exemption AU SITE', async () => {
     const [res] = await eslint.lintFiles(['src/engine/adresseDeCreation.ts']);
-    expect(res.messages.filter((m) => m.ruleId === 'no-restricted-syntax')).toHaveLength(0);
+    expect(res.messages.filter((m) => MURS_DE_MARQUE.has(m.ruleId ?? ''))).toHaveLength(0);
     expect(res.errorCount).toBe(0);
-    const augmente = `${readFileSync('src/engine/adresseDeCreation.ts', 'utf8')}\nexport const forge = (s: string) => s as AdresseDeCreation;\n`;
-    const [plante] = await eslint.lintText(augmente, { filePath: 'src/engine/adresseDeCreation.ts' });
-    expect(plante.messages.filter((m) => m.ruleId === 'no-restricted-syntax'), 'un SECOND cast dans la fabrique doit rougir').toHaveLength(1);
+    const reel = readFileSync('src/engine/adresseDeCreation.ts', 'utf8');
+    const [cast] = await eslint.lintText(`${reel}\nexport const forge = (s: string) => s as AdresseDeCreation;\n`, { filePath: 'src/engine/adresseDeCreation.ts' });
+    expect(cast.messages.filter((m) => MURS_DE_MARQUE.has(m.ruleId ?? '')), 'un SECOND cast dans la fabrique doit rougir').toHaveLength(1);
+    const [texte] = await eslint.lintText(`${reel}\nexport const ecrite = 'signe:3';\n`, { filePath: 'src/engine/adresseDeCreation.ts' });
+    expect(texte.messages.filter((m) => MURS_DE_MARQUE.has(m.ruleId ?? '')), 'une adresse écrite hors des fabriques doit rougir').toHaveLength(1);
+  });
+
+  /** ENTRE deux fabriques : l'exemption est sur la ligne de chaque fabrique, aucun bloc ne couvre ses voisines. */
+  it.each([
+    ['cast', '  forge: (s: string) => s as AdresseDeCreation,'],
+    ['adresse littérale', "  ecrite: 'signe:3',"],
+    ['préfixe de famille', "  prefixe: 'espece:',"],
+  ])('une forge (%s) insérée ENTRE deux fabriques rougit', async (_forme, insere) => {
+    const lignes = readFileSync('src/engine/adresseDeCreation.ts', 'utf8').split('\n');
+    const apres = lignes.findIndex((l) => l.trimStart().startsWith('especeTirage:'));
+    expect(lignes[apres + 1], 'la fixture tombe entre `especeTirage` et la fabrique suivante').toMatch(/eslint-disable-next-line murs\/marques/);
+    lignes.splice(apres + 1, 0, insere);
+    const [res] = await eslint.lintText(lignes.join('\n'), { filePath: 'src/engine/adresseDeCreation.ts' });
+    expect(res.messages.filter((m) => m.ruleId === 'murs/marques').map((m) => m.line)).toEqual([apres + 2]);
+  });
+
+  /** L'adresse ÉCRITE en texte : tsc laisse un objet intermédiaire à clés littérales entrer dans un
+   *  `Record<AdresseDeCreation, V>` (JSDoc de `engine/adresseDeCreation.ts`), le lint la refuse à l'écriture. */
+  it.each([
+    ['clé littérale', "export const p = { 'espece:talents:0': { id: 'perspicace' } };"],
+    ['valeur littérale', "export const a = 'dotation:0.1';"],
+    ['gabarit ouvert sur une famille', 'const i = 2;\nexport const o = { [`carriere:competences:${i}`]: 1 };'],
+    ['gabarit sans expression', 'export const o = { [`espece:talents:1:tirage:0`]: 1 };'],
+  ])('une adresse de création écrite en texte (%s) est refusée', async (_forme, code) => {
+    expect(await messagesDeVerrou(`${code}\n`)).toHaveLength(1);
+  });
+
+  /** Le PRÉFIXE de famille écrit en texte recopie la grammaire hors de `engine/adresseDeCreation.ts` (`deFamille`, `tirageSous`). */
+  it.each([
+    ['littéral espece', "export const p = 'espece:';"],
+    ['littéral carriere', "export const p = 'carriere:';"],
+    ['littéral ajout', "export const p = 'ajout:';"],
+    ['littéral signe', "export const p = 'signe:';"],
+    ['littéral dotation', "export const p = 'dotation:';"],
+    ['littéral espece:talents', "export const p = 'espece:talents:';"],
+    ['littéral carriere:competences', "export const p = 'carriere:competences:';"],
+    ['gabarit sans expression', 'export const p = `carriere:`;'],
+  ])('un préfixe de famille écrit en texte (%s) est refusé', async (_forme, code) => {
+    expect(await messagesDeVerrou(`${code}\n`)).toHaveLength(1);
+  });
+
+  it('un texte sans la forme d’une adresse ni d’un préfixe passe : libellé, étape de flux, gabarit de clé d’écran, gabarit étranger', async () => {
+    const code = "const i = 1;\nexport const o = { 'Arme (au choix)': 1, etape: 'carriere:relance', ecran: `espece:${i}`, t: `x:${i}` };\n";
+    expect(await messagesDeVerrou(code)).toHaveLength(0);
   });
 });
 
@@ -332,13 +387,9 @@ describe('#1262 V4 M2 — le murage du CHOIX DE GROUPE est TUEUR', () => {
  * sont rejouées ici sur la config RÉELLE : sans elles, ajouter un nom au sélecteur serait une
  * déclaration, pas un murage.
  *
- * DEUX exemptions, de nature différente : `i18n/index.ts` est exempté AU FICHIER (c'est un minteur,
- * comme `rollSeam`), tandis que `i18n/fixtureText.ts` reste SOUS la règle avec son exemption AU SITE
- * (patron `saves.ts`) — un second cast y échoue, et les deux volets du bas le mesurent. C'est le SEUL
- * module à exemption au site depuis la mort du fossile `i18n/rawText.ts` (#1318 E7-FINAL) : ses deux
- * volets ont disparu avec lui, et rien ne s'est perdu — la forme qu'ils rejouaient est exactement
- * celle des volets `fixtureText`, sur un module VIVANT. `data/index.ts` n'est PAS mesurable ici :
- * `src/data/**` est hors du périmètre ESLint du dépôt (`ignores` de tête) — limite dite, pas couverte.
+ * Chaque minteur est SOUS la règle avec son exemption AU SITE : `i18n/index.ts` et `state/rollSeam.ts`
+ * sont mesurés par le volet des minteurs du verrou de forge (#1988), `i18n/fixtureText.ts` par les deux
+ * volets du bas — un second cast y échoue.
  */
 const ENTETE_TEXTE = "import type { PlayerText } from '../i18n/playerText';\ndeclare const o: unknown;\n";
 
@@ -371,11 +422,6 @@ describe('#1318 V8a₀ — le lint mure les ROUTES DE FORGE du texte joueur', ()
       'export const f: Rendu = (l) => l[0];',
     ].join('\n');
     expect(await messagesDeVerrou(code)).toHaveLength(0);
-  });
-
-  it('le MINTEUR `i18n/index.ts` est exempté AU FICHIER : son cast interne est la fabrique légitime', async () => {
-    const [res] = await eslint.lintText(`${ENTETE_TEXTE}export const g = o as PlayerText;\n`, { filePath: 'src/i18n/index.ts', warnIgnored: false });
-    expect(res.messages.filter((m) => MURS_DE_MARQUE.has(m.ruleId ?? ''))).toHaveLength(0);
   });
 
   /**

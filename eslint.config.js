@@ -46,6 +46,22 @@ const VERROU_MARQUES = [{
     `TSTypeAliasDeclaration > TSUnionType > TSTypeOperator > TSArrayType > TSTypeReference > Identifier[name=${MARQUES}]`,
   ].join(', '),
   message: 'Marque d’origine (#1262/#1318) : aliaser un `Built*`/`PlayerText` rouvre la route de forge par cast (le verrou filtre par NOM). Nommer la marque au site, ou passer par un minteur.',
+}, {
+  // `AdresseDeCreation` : une adresse ÉCRITE en texte (littéral complet, ou gabarit ouvert sur une famille)
+  // entre dans un Record par une clé d'objet sans cast, ce que le typecheck laisse passer (`adresseDeCreation.ts`).
+  selector: [
+    'Literal[value=/^(espece:talents:[0-9]+(:tirage:[0-9]+)?|carriere:competences:[0-9]+|ajout:[^:]+|signe:[0-9]+|dotation:[0-9]+([.][0-9]+)*)$/]',
+    'TemplateElement[value.cooked=/^(espece:talents|carriere:competences|ajout|signe|dotation):/]',
+  ].join(', '),
+  message: 'Marque d’origine (#1988) : une adresse de création écrite en texte échappe à la marque `AdresseDeCreation` — le typecheck laisse une clé littérale entrer dans un Record par un objet intermédiaire. Passer par une fabrique `adresseDeCreation`, ou par `adresseLue` pour une clé lue.',
+}, {
+  // `AdresseDeCreation` : un PRÉFIXE de famille écrit en texte recopie la grammaire hors de son module. Le
+  // gabarit ouvert (`espece:${i}`) n'est pas refusé : `CharacterCreator.tsx` en fait des clés d'écran.
+  selector: [
+    'Literal[value=/^(espece|carriere|ajout|signe|dotation|espece:talents|carriere:competences):$/]',
+    'TemplateLiteral[expressions.length=0] > TemplateElement[value.cooked=/^(espece|carriere|ajout|signe|dotation|espece:talents|carriere:competences):$/]',
+  ].join(', '),
+  message: 'Marque d’origine (#1988) : un préfixe de famille d’adresse de création écrit en texte recopie la grammaire hors de `engine/adresseDeCreation.ts`. Demander au module : `deFamille`, `tirageSous`.',
 }];
 
 /** VERROU DES CONTENEURS (#1318 V8a₀ T1/T2) — les deux voies qui recomposent l'ÉTAPE entière et
@@ -231,10 +247,10 @@ export default tseslint.config(
   {
     // VERROU DES MARQUES D'ORIGINE (#1262) : `BuiltCascadeStep`/`BuiltRollRow` portent une propriété
     // REQUISE inécrivable hors de leur module (symbole non exporté), donc le SEUL moyen d'en forger
-    // une est le cast. L'exemption est AUX MINTEURS (`rollSeam`, `revealStep`, `rollRowBuild` : forger la
-    // marque EST leur corps de métier, une fois, dans leur corps) ; une exemption AU SITE (un
-    // `eslint-disable-next-line` porteur de sa raison) reste possible là où une marque effacée doit être
-    // postulée. Partout ailleurs le cast rendrait la marque décorative.
+    // une est le cast. Toute exemption est AU SITE (un `eslint-disable-next-line` porteur de sa raison),
+    // minteurs compris : chaque porte de `rollSeam`, `revealToStep` et le prédicat `isBuiltRollRow` de
+    // `rollRowBuild` portent la leur, et un second cast dans ces fichiers rougit. Partout ailleurs le
+    // cast rendrait la marque décorative.
     //
     // DEUX formes de cast (`x as T` et `<T>x`), et la référence est cherchée en DESCENDANT : la marque
     // se forge tout autant sous un tableau (`as BuiltCascadeStep[]`), un `readonly` ou un générique —
@@ -252,17 +268,17 @@ export default tseslint.config(
     // (`type A<T> = …`, type conditionnel, accès indexé) et le renommage à l'import.
     //
     // TROISIÈME MARQUE, mêmes routes, même verrou (#1318 V8a₀) : `PlayerText` (`src/i18n/playerText.ts`),
-    // le texte destiné à l'œil du joueur. Ses MINTEURS sont exemptés au FICHIER (`i18n/index.ts` pour
-    // `t()`, `state/rollSeam.ts` pour `composeRollLabel` — déjà dans la liste), et le minteur de fixture
-    // `i18n/fixtureText.ts` est SOUS la règle avec son exemption AU SITE : un second cast
-    // y échouerait. Même régime pour le MINTEUR (b), les libellés de la donnée (#1709 C3c-3b, depuis que
-    // `src/data` est linté) : `data/index.ts` (`dataLabel`) et `data/mutations.ts`
-    // (`mutationTablePlayerLabel`) portent chacun son exemption AU SITE — un troisième cast y échouerait.
+    // le texte destiné à l'œil du joueur. Ses MINTEURS portent chacun son exemption AU SITE : `t()`
+    // (`i18n/index.ts`), `composeRollLabel` (`state/rollSeam.ts`), le minteur de fixture
+    // `i18n/fixtureText.ts`, et les libellés de la donnée (#1709 C3c-3b) `dataLabel` (`data/index.ts`) et
+    // `mutationTablePlayerLabel` (`data/mutations.ts`) — un second cast dans l'un de ces fichiers échoue.
     // QUATRIÈME MARQUE (#1988) : `AdresseDeCreation` (`src/engine/adresseDeCreation.ts`), la clé des choix
-    // de création. Même régime que le minteur (b) : l'unique cast de ses fabriques porte son exemption
-    // AU SITE ; un cast ailleurs forgerait une adresse depuis un texte quelconque.
+    // de création. Même régime : l'unique cast (`marquer`) porte son exemption AU SITE ; un cast ailleurs
+    // forgerait une adresse depuis un texte quelconque. QUATRIÈME ROUTE, propre à cette marque : l'adresse
+    // ÉCRITE en texte (littéral, gabarit ouvert sur une famille), que tsc laisse entrer par un objet
+    // intermédiaire — sonde et bilan au JSDoc de `engine/adresseDeCreation.ts`. Chaque fabrique, qui
+    // compose l'adresse par gabarit, porte son exemption sur sa ligne.
     files: ['src/**/*.ts', 'src/**/*.tsx'],
-    ignores: ['src/state/rollSeam.ts', 'src/state/revealStep.ts', 'src/ui/rollRowBuild.ts', 'src/i18n/index.ts'],
     rules: {
       'murs/marques': ['error', ...VERROU_MARQUES],
     },
@@ -273,9 +289,9 @@ export default tseslint.config(
     //  T1. `Object.assign(step, { label: '…' })` — la signature `assign<T,U>(t: T, s: U): T & U` ne
     //      vérifie RIEN contre `T` : le champ marqué se réécrit en `string` sans un mot de `tsc`.
     //  T2. `x as CascadeStep` — le cast de CONTENEUR : tout littéral y entre, `label` compris. Les casts
-    //      internes des 7 portes du seam visent `BuiltCascadeStep` et restent exemptés AU FICHIER
-    //      (`rollSeam`/`revealStep`) : ils ne blanchissent plus rien depuis que la marque est exigée EN
-    //      AMONT, au paramètre de leur SPEC — c'est la déclaration qui est murée, pas la sortie.
+    //      internes des 7 portes du seam visent `BuiltCascadeStep`, que le sélecteur ne nomme pas : ils
+    //      ne blanchissent rien, la marque étant exigée EN AMONT, au paramètre de leur SPEC — c'est la
+    //      déclaration qui est murée, pas la sortie.
     // Le sélecteur T1 est SYNTAXIQUE (un lint ne type pas la cible) : il vise `Object.assign` dont un
     // argument littéral porte un `label`. Le seul site RÉEL du dépôt (`interludeFlow.ts`, un
     // `Partial<PendingActivityFields>` — pas une étape) porte son exemption AU SITE avec sa raison.
@@ -284,7 +300,7 @@ export default tseslint.config(
     // cible 0), jamais ici : un chiffre recopié en commentaire ment au premier lot qui l'abaisse. Un gel
     // mesuré vaut mieux qu'une exemption muette, et le code de PRODUCTION, lui, n'en a plus AUCUN (mesuré).
     files: ['src/**/*.ts', 'src/**/*.tsx'],
-    ignores: ['src/state/rollSeam.ts', 'src/state/revealStep.ts', 'src/ui/rollRowBuild.ts', 'src/i18n/index.ts', 'src/**/*.test.ts', 'src/**/*.test.tsx'],
+    ignores: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
     rules: {
       'murs/conteneur': ['error', ...VERROU_CONTENEUR],
     },

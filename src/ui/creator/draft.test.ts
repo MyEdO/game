@@ -194,11 +194,40 @@ describe('relance d\'un Talent tiré doublon (LDB 05 l.484)', () => {
       randomSpecPicks: { [de(1, 0)]: 'odorat', [de(2, 0)]: 'gout' },
     };
     expect(withSpeciesTalentChoice(d, adresseDeCreation.especeTalent(1), { random: 1 })).toMatchObject({ talentRerolls: d.talentRerolls, randomSpecPicks: d.randomSpecPicks });
-    expect(withSpeciesTalentChoice(d, adresseDeCreation.especeTalent(1), { id: 'destinee' })).toMatchObject({
-      speciesTalentChoices: { [adresseDeCreation.especeTalent(1)]: { id: 'destinee' } }, talentRerolls: { [de(2, 1)]: 1 }, randomSpecPicks: { [de(2, 0)]: 'gout' },
-    });
+    const change = withSpeciesTalentChoice(d, adresseDeCreation.especeTalent(1), { id: 'destinee' });
+    expect(change.speciesTalentChoices).toEqual({ [adresseDeCreation.especeTalent(1)]: { id: 'destinee' } });
+    expect(change.talentRerolls).toEqual({ [de(2, 1)]: 1 });
+    expect(change.randomSpecPicks).toEqual({ [de(2, 0)]: 'gout' });
     expect(withSpeciesTalentChoice(d, adresseDeCreation.especeTalent(0), { id: 'guerrier-ne' })).toMatchObject({ talentRerolls: d.talentRerolls, randomSpecPicks: d.randomSpecPicks });
     expect(withSpecies(d, 'nains')).toMatchObject({ talentRerolls: {}, randomSpecPicks: {} });
+  });
+
+  it('les tirages d’une entrée sont les SIENS : l’entrée 1 ne remet pas à zéro ceux de l’entrée 10', () => {
+    const de = (i: number, j: number) => adresseDeCreation.especeTirage(i, j);
+    const d = {
+      ...withSpecies(newDraft(1), 'humains-middenland'),
+      speciesTalentChoices: { [adresseDeCreation.especeTalent(1)]: { random: 1 } },
+      talentRerolls: { [de(1, 0)]: 1, [de(10, 0)]: 2 },
+      randomSpecPicks: { [de(1, 0)]: 'odorat', [de(10, 0)]: 'gout' },
+    };
+    const change = withSpeciesTalentChoice(d, adresseDeCreation.especeTalent(1), { id: 'destinee' });
+    expect(change.talentRerolls).toEqual({ [de(10, 0)]: 2 });
+    expect(change.randomSpecPicks).toEqual({ [de(10, 0)]: 'gout' });
+  });
+});
+
+describe('changer d’espèce ou de carrière écarte les spécialisations des emplacements de SA famille', () => {
+  const a = adresseDeCreation;
+  const autreEspece = allSpecies.find((s) => s.id !== DEFAULT_SPECIES.id)!.id;
+  const autreCarriere = careersForSpecies(DEFAULT_SPECIES.refCareer).find((c) => c.id !== DEFAULT_CAREER.id)!.id;
+  const d = () => ({ ...draft(), specChoices: { [a.especeTalent(0)]: 'e', [a.carriereCompetence(0)]: 'c', [a.ajout('metier')]: 'x', [a.signe(1)]: 's' } });
+
+  it('l’espèce écarte les emplacements d’espèce et les ajouts, garde la carrière et le signe', () => {
+    expect(withSpecies(d(), autreEspece).specChoices).toEqual({ [a.carriereCompetence(0)]: 'c', [a.signe(1)]: 's' });
+  });
+
+  it('la carrière écarte les emplacements de carrière et les ajouts, garde l’espèce et le signe', () => {
+    expect(withCareer(d(), autreCarriere).specChoices).toEqual({ [a.especeTalent(0)]: 'e', [a.signe(1)]: 's' });
   });
 });
 
