@@ -14,7 +14,9 @@ declare const ADRESSE_DE_CREATION: unique symbol;
 /** Clé d'un choix de création, sortie de `adresseDeCreation` ou de `adresseLue`. */
 export type AdresseDeCreation = string & { readonly [ADRESSE_DE_CREATION]: true };
 
-const marquer = (cle: string): AdresseDeCreation => cle as AdresseDeCreation;
+const marquer = (cle: string): AdresseDeCreation =>
+  // eslint-disable-next-line no-restricted-syntax -- #1988 : l'unique cast de ce module — forger la marque EST le corps de métier de ses deux minteurs (cf. JSDoc), comme `dataLabel` pour `PlayerText`.
+  cle as AdresseDeCreation;
 
 /** Les fabriques d'adresse, une par famille d'emplacement de création. */
 export const adresseDeCreation = {

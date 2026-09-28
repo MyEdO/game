@@ -130,6 +130,20 @@ describe('#1262 — le lint mure les ROUTES DE FORGE de la marque', () => {
     const [res] = await eslint.lintText(augmente, { filePath: 'src/state/saves.ts' });
     expect(res.messages.filter((m) => m.ruleId === 'no-restricted-syntax'), 'un cast non justifié doit rougir').toHaveLength(1);
   });
+
+  it('la marque d’ADRESSE (`AdresseDeCreation`, #1988) : un cast hors de sa fabrique est refusé', async () => {
+    const code = "import type { AdresseDeCreation } from '../engine/adresseDeCreation';\ndeclare const o: string;\nexport const a = o as AdresseDeCreation;\n";
+    expect(await messagesDeVerrou(code), 'un libellé casté en adresse indexerait les choix de création').toHaveLength(1);
+  });
+
+  it('la fabrique `adresseDeCreation.ts` lint propre : son unique cast porte son exemption AU SITE', async () => {
+    const [res] = await eslint.lintFiles(['src/engine/adresseDeCreation.ts']);
+    expect(res.messages.filter((m) => m.ruleId === 'no-restricted-syntax')).toHaveLength(0);
+    expect(res.errorCount).toBe(0);
+    const augmente = `${readFileSync('src/engine/adresseDeCreation.ts', 'utf8')}\nexport const forge = (s: string) => s as AdresseDeCreation;\n`;
+    const [plante] = await eslint.lintText(augmente, { filePath: 'src/engine/adresseDeCreation.ts' });
+    expect(plante.messages.filter((m) => m.ruleId === 'no-restricted-syntax'), 'un SECOND cast dans la fabrique doit rougir').toHaveLength(1);
+  });
 });
 
 /**

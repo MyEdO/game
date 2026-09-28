@@ -21,11 +21,8 @@
  * Cas réels en données : Érudit a « Savoir (Au choix) » aux 4 niveaux ; jokers RESTREINTS
  * « Corps à corps (Fléau ou À deux mains) » ; entrée talent « Guide fluvial ou Bonnes jambes ».
  *
- * MOTEUR : `slotsOfLevel` construit ses `SlotOption[]` DIRECTEMENT depuis l'`AdvancementRef` structuré
- * (`slotOptionsFromRef`). `parseAdvancement`
- * (prose→ref) et `parseEntry`/`parseOption`/`splitTopLevelOu` restent les helpers d'AUTHORING/CRÉATION :
- * l'assistant de création (`draft`/`CharacterCreator`) travaille sur des LIBELLÉS concrets (clés de
- * `specChoices`), le Codex sur la prose — c'est leur modèle, pas un chemin de résolution de règle.
+ * `slotsOfLevel` construit ses `SlotOption[]` depuis l'`AdvancementRef` structuré (`slotOptionsFromRef`) ;
+ * les désignations sont keyées par `refKey(id, spec)`, jamais par un libellé.
  */
 import { Combatant, CharKey, CHAR_LABELS, type TalentInstance } from './types';
 import { bonus } from './characteristics';
@@ -68,45 +65,6 @@ export interface CareerSlot {
   needsChoice: boolean;
 }
 
-/** Marqueurs « au choix » des données (Au choix / un au choix / une au choix). */
-const CHOICE_RE = /^(au choix|une? au choix)$/i;
-
-/** Sépare « A ou B » à profondeur 0 (préserve « Savoir-vivre (Criminel ou Guilde) »). */
-export function splitTopLevelOu(s: string): string[] {
-  const out: string[] = [];
-  let depth = 0;
-  let cur = '';
-  const tokens = s.split(/(\s+ou\s+|\(|\))/);
-  for (const tok of tokens) {
-    if (tok === '(') depth++;
-    if (tok === ')') depth--;
-    if (depth === 0 && /^\s+ou\s+$/.test(tok)) {
-      if (cur.trim()) out.push(cur.trim());
-      cur = '';
-    } else cur += tok;
-  }
-  if (cur.trim()) out.push(cur.trim());
-  return out;
-}
-
-/** Parse une possibilité « Nom », « Nom (Spec) », « Nom (Au choix) », « Nom (A ou B) ». */
-export function parseOption(raw: string): SlotOption {
-  const m = raw.match(/^(.*?)\s*\(([^)]*)\)\s*$/);
-  if (!m) return { label: raw.trim(), wildcard: false };
-  const name = m[1].trim();
-  const inner = m[2].trim();
-  if (CHOICE_RE.test(inner)) return { label: name, wildcard: true };
-  if (/\sou\s/i.test(inner)) {
-    return { label: name, wildcard: true, specOptions: inner.split(/\s+ou\s+/i).map((x) => x.trim()) };
-  }
-  return { label: name, spec: inner, wildcard: false };
-}
-
-/** Parse une entrée de liste de carrière (gère le « A ou B » de premier niveau). */
-export function parseEntry(raw: string): SlotOption[] {
-  return splitTopLevelOu(raw).map(parseOption);
-}
-
 /**
  * Pool de spécialisations PROPOSÉES par une option joker — SOURCE UNIQUE : la liste restreinte
  * `specOptions` (« (A ou B) »), sinon `specPoolOf` de la def, résolue par `optionId` + `kind`. Valeurs
@@ -139,29 +97,8 @@ export function parseRefKey(key: string): { id: string; spec?: string } {
   return i < 0 ? { id: key } : { id: key.slice(0, i), spec: key.slice(i + 1) };
 }
 
-/** Le libellé est-il encore « au choix » (non résolu) ? */
-export function isUnresolvedChoice(label: string): boolean {
-  const { spec } = splitLabel(label);
-  return spec != null && (CHOICE_RE.test(spec) || /\sou\s/i.test(spec));
-}
-
-/** Entrée d'avancement (chaîne d'authoring/test) → `AdvancementRef` (id = nom brut, résolu à l'affichage
- *  par `advancementLabel`). Le SCRIPT de migration résout en id réel ; ce parseur runtime garde le nom. */
-export function parseAdvancement(entry: string): AdvancementRef {
-  const RAND = /^(?:(\d+)\s+)?Talents?\s+al[ée]atoires?$/i;
-  const opts = splitTopLevelOu(entry).map((o): AdvancementRef => {
-    const m = o.match(RAND);
-    if (m) return { random: parseInt(m[1] ?? '1', 10) };
-    const so = parseOption(o);
-    if (so.wildcard) return { id: so.label, choix: so.specOptions ?? true };
-    return so.spec ? { id: so.label, spec: so.spec } : { id: so.label };
-  });
-  return opts.length > 1 ? { pick: 1, of: opts } : opts[0];
-}
-
 /** `AdvancementRef` STRUCTURÉ → `SlotOption[]` — lecture DIRECTE de la donnée (id→libellé via `refLabel`,
- *  jamais de re-parse de prose). `label` reste un LIBELLÉ d'affichage.
- *  Remplace le round-trip `advancementLabel(ref) → parseEntry(prose)`. */
+ *  jamais de re-parse de prose). `label` reste un LIBELLÉ d'affichage. */
 export function slotOptionsFromRef(category: string, a: AdvancementRef): SlotOption[] {
   if ('id' in a) {
     const label = refLabel(category, { id: a.id });

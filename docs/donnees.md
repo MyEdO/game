@@ -265,15 +265,15 @@ Le **bloc `narratif`** d'un paquet de campagne schema 3 (`NarratifBlock`, `src/s
   `src/data/variants-integrity.test.ts`) — `talents.json` résout quatre champs, UNE CITATION PAR LIGNE,
   chacune à côté du SYMBOLE qu'elle porte (lignes MESURÉES à la génération, `citeLigne`) :
 
-  - `desc`/`source` — Codex, `effectiveEntry`, `src/ui/compendium/registry.ts:1490`
+  - `desc`/`source` — Codex, `effectiveEntry`, `src/ui/compendium/registry.ts:1476`
   - `test` — `talentTestSLBonus`, `src/engine/magic.ts:358`
-  - `max` — `talentMaxById`, `src/engine/careerSlots.ts:385`
+  - `max` — `talentMaxById`, `src/engine/careerSlots.ts:322`
   - `combat` — `featuresOf`, `src/engine/combatFeatures/dispatch.ts:52`
   - `combat` — `castingKindOf`, `src/engine/combatFeatures/dispatch.ts:18`
 
   `traits.json` ne résout, lui, que deux champs :
 
-  - `desc`/`source` — Codex, `effectiveEntry`, `src/ui/compendium/registry.ts:627`
+  - `desc`/`source` — Codex, `effectiveEntry`, `src/ui/compendium/registry.ts:613`
 
   `passive` et `effects` en sont EXCLUS — le moteur les lit sur
   l'entrée brute (`src/engine/talentEffects.ts`, `src/engine/traits/dispatch.ts`) ; un champ n'entre
@@ -502,4 +502,4 @@ se met à ressembler à une clé de l'autre sans être le couple ponté sanction
 >    scope ».
 > 5. **Vérifie** : canonicaliser via `serializeDataset`, puis `npm test` + `npm run typecheck` verts ;
 >    recette navigateur si l'élément est visible au Codex/éditeur.
-<!-- sources-empreinte: a145b864130e84b6eb919fbbbbc71dd89c7089c3 (383 fichiers, 2 dossiers) corps: 3c7be39e23675a9e2e55775c60cc029bed72004b -->
+<!-- sources-empreinte: 063f2af5e15afeb3c5219cbbf5ebf72bd41036ee (383 fichiers, 2 dossiers) corps: d7fd464ee8a5e681389b30a7b2f09e472f5836c3 -->

@@ -10,8 +10,8 @@ import globals from 'globals';
  */
 
 /** Un NOM de marque, cherché en DESCENDANT (le cast se forge tout autant sous un tableau/`readonly`). */
-const MARQUES = '/^(Built(CascadeStep|RollRow)|PlayerText)$/';
-const MSG_FORGE = 'Marque d’origine (#1262/#1318) : forger un `Built*`/`PlayerText` par cast rend la marque décorative. Passer par un constructeur de la porte (rollSeam), par `revealToStep`, ou par un minteur de texte (`t`, `refLabel`, `composeRollLabel`).';
+const MARQUES = '/^(Built(CascadeStep|RollRow)|PlayerText|AdresseDeCreation)$/';
+const MSG_FORGE = 'Marque d’origine (#1262/#1318) : forger un `Built*`/`PlayerText`/`AdresseDeCreation` par cast rend la marque décorative. Passer par un constructeur de la porte (rollSeam), par `revealToStep`, par un minteur de texte (`t`, `refLabel`, `composeRollLabel`), ou par une fabrique d’adresse (`adresseDeCreation`, `adresseLue`).';
 
 /** VERROU DES MARQUES — les trois ROUTES DE FORGE (cast `as`, cast `<T>`, alias qui déguiserait le nom).
  *  Défini ICI parce que DEUX blocs le déclarent : en flat config, le dernier bloc qui pose une règle
@@ -199,6 +199,9 @@ export default tseslint.config(
     // y échouerait. Même régime pour le MINTEUR (b), les libellés de la donnée (#1709 C3c-3b, depuis que
     // `src/data` est linté) : `data/index.ts` (`dataLabel`) et `data/mutations.ts`
     // (`mutationTablePlayerLabel`) portent chacun son exemption AU SITE — un troisième cast y échouerait.
+    // QUATRIÈME MARQUE (#1988) : `AdresseDeCreation` (`src/engine/adresseDeCreation.ts`), la clé des choix
+    // de création. Même régime que le minteur (b) : l'unique cast de ses fabriques porte son exemption
+    // AU SITE ; un cast ailleurs forgerait une adresse depuis un texte quelconque.
     files: ['src/**/*.ts', 'src/**/*.tsx'],
     ignores: ['src/state/rollSeam.ts', 'src/state/revealStep.ts', 'src/ui/rollRowBuild.ts', 'src/i18n/index.ts'],
     rules: {

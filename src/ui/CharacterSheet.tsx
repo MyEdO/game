@@ -205,7 +205,7 @@ export function CharacterSheet({ heroId, onClose }: { heroId: string; onClose: (
                 <div className="sheet-idrow">
                   <span className="sheet-idrow-label">Race</span>
                   <span className="sheet-idrow-value">
-                    <CodexRef category="races" id={hero.species} label={libelleOuAbsence(findSpeciesById(hero.species), 'race', String(hero.species))}>{speciesSingular(findSpeciesById(hero.species)?.label ?? hero.species)}</CodexRef>
+                    <CodexRef category="races" id={hero.species} label={libelleOuAbsence(findSpeciesById(hero.species), 'race', String(hero.species))}>{speciesSingular(hero.species)}</CodexRef>
                   </span>
                 </div>
                 <div className="sheet-idrow">

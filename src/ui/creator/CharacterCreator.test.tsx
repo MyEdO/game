@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { CharacterCreator, CareerScreen, CharScreen, SpeciesRaceScreen, SkillsScreen, StarScreen, TrappingsScreen, DetailsScreen, PresentationScreen, PettySpellsSection, careerLevelTalentsTitle, TrappingChoiceSlot } from './CharacterCreator';
 import type { ReactElement } from 'react';
 import { adresseDeCreation } from '../../engine/adresseDeCreation';
-import { emplacementsDeDotation } from '../../engine/trappingChoices';
+import { emplacementsDeDotation, emplacementTranche } from '../../engine/trappingChoices';
 import { avecDotations, CARRIERE_FIXTURE, DOTATIONS_FIXTURE } from '../../data/dotations.fixture';
 
 const dot = adresseDeCreation.dotation;
@@ -463,6 +463,20 @@ describe('CharacterCreator (assistant) — ossature 2 zones + page blanche', () 
       chooser.props.options![1].onSelect();
       expect(ecrits).toEqual([[dot([3]), 1]]);
       expect(sous.props.emplacement!.adresse).toBe(dot([3, 0]));
+    });
+  });
+
+  it('TrappingChoiceSlot : aucun sous-sélecteur avant le choix d’une branche — l’UI suit la porte `emplacementTranche`', () => {
+    avecDotations(CARRIERE_FIXTURE, DOTATIONS_FIXTURE, () => {
+      type Rendu = ReactElement<{ children: [ReactElement, ReactElement<{ emplacement: { adresse: string } }> | undefined] }>;
+      const slot = emplacementA(dot([3]));
+      const sousDe = (choices: Record<string, number | string>) =>
+        (TrappingChoiceSlot({ emplacement: slot, choices, onChoicesChange: () => {} }) as Rendu).props.children[1];
+      expect(sousDe({}), 'aucune branche choisie : rien ne se déroule dessous').toBeFalsy();
+      expect(emplacementTranche(slot, {})).toBe(false);
+      expect(sousDe({ [dot([3])]: 0 })!.props.emplacement.adresse).toBe(dot([3, 0]));
+      expect(emplacementTranche(slot, { [dot([3])]: 0 }), 'le sous-emplacement déroulé reste à trancher').toBe(false);
+      expect(emplacementTranche(slot, { [dot([3])]: 0, [dot([3, 0])]: 0 })).toBe(true);
     });
   });
 

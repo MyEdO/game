@@ -96,7 +96,7 @@ describe('cas fondateur #903 — qui lit TrappingRef.spec ?', () => {
    * `qualityChoice`, `itemFromTrappingRef` (`src/engine/items.ts`) qui la MATÉRIALISE sur
    * l'`ItemInstance` — sans quoi la spécialisation se perd entre la dotation et le sac (#1463
    * L-ref-1) —, et `cleDuFormat2` (`src/state/roster.ts`), la clé FIGÉE d'un brouillon au format 2
-   * (#1988), qui ne peut pas passer par le rendu vivant. Le RENDU, lui, n'en est pas un : « base (spec) » passe par `refConcrete`
+   * (#1988), qui ne peut pas passer par le rendu vivant. Le RENDU, lui, n'en est pas un : « base (spec) » passe par `refLabel`
    * (`src/data/index.ts`), SOURCE UNIQUE partagée par toute référence, son paramètre est un `RefDesignee` —
    * un lecteur mesuré dans `data/index.ts` signalerait une SECONDE définition du rendu, et c'est ce
    * que cette garde refuse. La preuve d'AFFICHAGE vit sur la donnée réelle
@@ -117,7 +117,7 @@ describe('cas fondateur #903 — qui lit TrappingRef.spec ?', () => {
     ).toEqual(['src/engine/items.ts:309', 'src/engine/trappingChoices.ts:107', 'src/state/roster.ts:135']);
     expect(
       specReaders.some((s: string) => s.includes('data/index.ts')),
-      'un lecteur de spec dans `data/index.ts` = une seconde définition du rendu « base (spec) », qui appartient à `refConcrete`',
+      'un lecteur de spec dans `data/index.ts` = une seconde définition du rendu « base (spec) », qui appartient à `refLabel`',
     ).toBe(false);
     // Program du dépôt, mémoïsé entre les `it` — mais celui-ci le paie SEUL s'il est lancé à part
     // (`-t`) : même mesure, donc même marge.

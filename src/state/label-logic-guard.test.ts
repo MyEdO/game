@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, rmSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
@@ -7,14 +7,17 @@ import {
   scanLabelLogic, collectIdParamFunctions, scanLabelAsIdArg, collectIdParamFnsAcrossDirs, effectiveIdParamFns,
   scanLabelLiteralCompare, labelLiteralStockDrift, LABEL_LITERAL_STOCK,
   scanCallResultLiteralCompare, labelCallLiteralStockDrift, LABEL_CALL_LITERAL_STOCK,
-  STRICT_DIRS, RATCHET_DIRS, RATCHET_EXCEPTIONS,
+  STRICT_DIRS, RATCHET_DIRS, DATA_DIRS, RATCHET_EXCEPTIONS,
   collectLabelEntityResolvers, labelEntityResolverNames, scanLabelResolverCalls,
   scanLabelKeyedIndex, LABEL_KEYED_INDEX_STOCK,
+  scanGardeDeFace, collectFacesDAffichage, scanFaceDAffichageIdentite, scanFaceDeDonneeString, scanLiantsLitterauxDesFaces,
 } from '../../scripts/guards/lib/labelLogic.mjs';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { LABEL_RESOLVER_CALL_STOCK } from '../../scripts/guards/lib/labelResolverCallStock.mjs';
 import { champsAveugles, couvertureDuBalayage, ecartsDeStock } from '../../scripts/guards/lib/stock.mjs';
 import { estFichierVitest } from '../../scripts/guards/lib/fichierVitest.mjs';
+import { skillRefLabel } from '../data';
+import { parseSkillRef } from '../ui/editor/refFormatLivre';
 
 /** NON-VACUITÉ d'un cliquet, à jouer EN TÊTE du `it` qu'elle protège (patron `props-volumiques.test.ts`,
  *  `2639287cd`) : le cliquet ne juge que ce que le balayage lui présente — un gisement muet ou une
@@ -56,20 +59,21 @@ const ROOT = fileURLToPath(new URL('../..', import.meta.url)); // src/state/ →
 // `STRICT_DIRS`/`RATCHET_DIRS`/`RATCHET_EXCEPTIONS` : SOURCE UNIQUE `scripts/guards/lib/labelLogic.mjs`
 // (importés ci-dessus), consommée à l'identique par le hook pre-commit : aucune copie locale ici.
 
-// `src/data/index.ts` = couture label→id tolérée au CHARGEMENT (conversion depuis du texte) — hors
-// périmètre du garde-fou, aucune LOGIQUE keyée par label. (`instanceIdMigration.ts` est SCANNÉ comme
-// tout fichier state : sa migration de renommage teste la PRÉSENCE de clé `'label' in o`, pas une
-// comparaison de libellé.)
-const EXCLUDED = (rel: string) =>
-  estFichierVitest(rel) || rel === 'src/data/index.ts';
+// `src/data` (`DATA_DIRS`) = couture label→id du CHARGEMENT : balayée au régime RATCHET, chaque
+// résolveur par libellé exempté AU SITE. (`instanceIdMigration.ts` est SCANNÉ comme tout fichier
+// state : sa migration de renommage teste la PRÉSENCE de clé `'label' in o`, pas une comparaison de
+// libellé.)
+const EXCLUDED = estFichierVitest;
 
-// Mécanique de scan (stripComments + BY_LABEL_RX/LABEL_EQ_RX + scanLabelLogic) :
+// Mécanique de scan (vue `codeSeul` + BY_LABEL_RX/LABEL_EQ_RX + scanLabelLogic) :
 // `scripts/guards/lib/labelLogic.mjs` (module .mjs pur), partagé avec le hook pre-commit
 // (`scripts/git-hooks/pre-commit.mjs`) — la composition « map globale de déclarations id-param +
 // résolution du shadowing » (`collectIdParamFnsAcrossDirs`/`effectiveIdParamFns`, #142 LOT 6bis) est
 // EXPORTÉE par la lib, consommée à l'identique par ce test ET par le hook, sans copie.
 
 const ALL_DIRS = [...STRICT_DIRS, ...RATCHET_DIRS];
+/** Périmètre RATCHET des volets de LIGNE (#142/#289) : `RATCHET_DIRS` et la couture `DATA_DIRS`. */
+const LIGNE_RATCHET_DIRS = [...RATCHET_DIRS, ...DATA_DIRS];
 
 /** Fichiers SCANNABLES d'un jeu de dossiers (chemin relatif POSIX + texte) — marche, lecture et
  *  mémoïsation par clé dans `scripts/guards/lib/sourceCorpus.mjs`, le PÉRIMÈTRE (`EXCLUDED`) reste
@@ -92,7 +96,7 @@ const corpusTotal = (): { rel: string; text: string }[] => [...corpus(STRICT_DIR
 // paierait à la phase de COLLECTE de Vitest, hors de tout `it` (patron
 // `src/gameIso/rig/quadruped/quad-couture.test.ts`).
 let _idParamFns: ReturnType<typeof collectIdParamFnsAcrossDirs> | null = null;
-const ID_PARAM_FNS = () => (_idParamFns ??= collectIdParamFnsAcrossDirs(ROOT, ALL_DIRS));
+const ID_PARAM_FNS = () => (_idParamFns ??= collectIdParamFnsAcrossDirs(ROOT, [...ALL_DIRS, ...DATA_DIRS]));
 
 /** Sites des deux détecteurs `.label` sur un jeu de dossiers, ET les fichiers réellement ITÉRÉS pour
  *  les produire — mémoïsés ensemble : trois `it` (STRICT, RATCHET, CLIQUET des exceptions) demandent
@@ -116,6 +120,11 @@ function scanDe(dirs: string[]): { sites: { rel: string; line: number; detail: s
 }
 const findingsIn = (dirs: string[]): { rel: string; line: number; detail: string }[] => scanDe(dirs).sites;
 
+/** Garde de FACE D'AFFICHAGE (#1988 §7) sur tout `src/` — mémoïsée : le cliquet des exceptions
+ *  périmées et le volet de la garde lisent le MÊME balayage. */
+let _face: ReturnType<typeof scanGardeDeFace> | null = null;
+const scanDeFace = (): ReturnType<typeof scanGardeDeFace> => (_face ??= scanGardeDeFace(readCorpus(['src'], { tests: true })));
+
 describe('garde-fou « logique par label interdite » (#142)', () => {
   it('src/engine + src/state : TOLÉRANCE ZÉRO, aucune carte/comparaison par label', () => {
     // Volet à tolérance ZÉRO, donc sans stock : c'est la non-vacuité par GISEMENT qui porte seule le
@@ -132,22 +141,24 @@ describe('garde-fou « logique par label interdite » (#142)', () => {
     ).toEqual([]);
   });
 
-  it('src/gameIso + src/ui (#289) : aucune régression hors des exceptions justifiées', () => {
+  it('src/gameIso + src/ui (#289) + src/data : aucune régression hors des exceptions justifiées', () => {
+    const scan = scanDe(LIGNE_RATCHET_DIRS);
+    attendCouverture({ nom: '#142 RATCHET', stock: {}, balayes: scan.fichiers, gisements: LIGNE_RATCHET_DIRS });
     const offenders: string[] = [];
-    for (const f of findingsIn(RATCHET_DIRS)) {
-      // `f.rel` est relatif à la racine (`src/gameIso/...`/`src/ui/...`) ; les clés d'exception omettent `src/`.
+    for (const f of scan.sites) {
+      // `f.rel` est relatif à la racine (`src/gameIso/...`/`src/data/...`) ; les clés d'exception omettent `src/`.
       const shortKey = `${f.rel.replace(/^src\//, '')}:${f.line}`;
       if (!(shortKey in RATCHET_EXCEPTIONS)) offenders.push(`${f.rel}:${f.line}: ${f.detail}`);
     }
     expect(
       offenders,
-      "Logique par LABEL non-exceptée dans src/gameIso/src/ui — migrer vers un keying par id, ou ajouter " +
-        'une entrée JUSTIFIÉE à RATCHET_EXCEPTIONS (label-logic-guard.test.ts) :\n' + offenders.join('\n'),
+      "Logique par LABEL non-exceptée dans src/gameIso/src/ui/src/data — migrer vers un keying par id, ou ajouter " +
+        'une entrée JUSTIFIÉE à RATCHET_EXCEPTIONS (`scripts/guards/lib/labelLogic.mjs`), avec son test de légitimité :\n' + offenders.join('\n'),
     ).toEqual([]);
   });
 
   it('CLIQUET : toute exception dont le site a bougé/disparu doit être RETIRÉE ou re-justifiée', () => {
-    const findings = findingsIn(RATCHET_DIRS);
+    const findings = [...findingsIn(LIGNE_RATCHET_DIRS), ...scanDeFace()];
     const present = new Set(findings.map((f) => `${f.rel.replace(/^src\//, '')}:${f.line}`));
     const stale = Object.keys(RATCHET_EXCEPTIONS).filter((k) => !present.has(k));
     expect(stale, 'Exception(s) PÉRIMÉE(s) (site déplacé ou assaini) — retirer/re-pointer ces entrées de RATCHET_EXCEPTIONS :\n' + stale.join('\n')).toEqual([]);
@@ -166,18 +177,40 @@ describe('garde-fou « logique par label interdite » (#142)', () => {
     expect(findings.map((f) => f.rule)).toEqual(['display-key', 'display-key']);
   });
 
-  it('scanLabelLogic : détecte une IDENTITÉ dérivée du label (slugId(x.label), #637)', () => {
-    // Cas PLANTÉ = le motif EXACT qui vivait au rig (`TENUE_BY_ID` keyé par `slugId(d.label)`) et en
-    // moteur (`uid: { prefix: nat-${slugId(op.label)} }`) : re-dériver un `id` du libellé d'affichage
-    // multilangue au runtime. La CONTRE-ÉPREUVE `slugId(p.name)` (fragment TEXTE saisi en éditeur,
-    // couture label→id d'authoring) NE doit PAS être flaguée — le détecteur vise `.label` seulement.
+  it('scanLabelLogic : détecte une IDENTITÉ dérivée du label, quelle que soit la chaîne qui mène au `.label` (#637, #1988)', () => {
+    // Cas PLANTÉS = le motif qui vivait au rig (`TENUE_BY_ID` keyé par `slugId(d.label)`), et la forme
+    // de `rigSpeciesId` (`src/data/index.ts`, #1988) qu'un motif de ligne `slugId\s*\(\s*[\w.]+\.label` ne
+    // voit pas : appel, `?.`, `??`, gabarit, appel sur plusieurs lignes. CONTRE-ÉPREUVES : `slugId(p.name)`
+    // (fragment TEXTE saisi en éditeur, couture label→id d'authoring) et `slugId(label)` (paramètre de
+    // saisie) — le détecteur vise la LECTURE d'un champ `.label` seulement.
     const src = [
       'export const defId = (c) => c.id ?? slugId(c.label);',
       'const id = findTalent(p.name)?.id ?? slugId(p.name);',
+      "export const r = (x) => slugId(findSpeciesById(x)?.label ?? x ?? 'Humain');",
+      'export const s = slugId(a?.b.label);',
+      'export const u = slugId(x.label ?? y);',
+      'export const v = slugId(`${x.label}-${n}`);',
+      'export const w = slugId(',
+      '  pick(x).label,',
+      ');',
+      'export const q = (label) => slugId(label);',
     ].join('\n');
     const findings = scanLabelLogic('fixture.ts', src);
-    expect(findings.map((f) => f.line)).toEqual([1]);
-    expect(findings.map((f) => f.rule)).toEqual(['label-logic']);
+    expect(findings.map((f) => f.line)).toEqual([1, 3, 4, 5, 6, 7]);
+    expect(new Set(findings.map((f) => f.rule))).toEqual(new Set(['label-logic']));
+  });
+
+  it('scanLabelLogic : la ligne rapportée est celle du FICHIER, sous un commentaire de bloc multiligne', () => {
+    // Les volets de ligne et le volet AST (`slugId`) partagent la numérotation du fichier : c'est elle
+    // que portent les clés `fichier:ligne` de `RATCHET_EXCEPTIONS`.
+    const src = [
+      '/**',
+      ' * JSDoc de trois lignes.',
+      ' */',
+      'export const k = slugId(c.label);',
+      'const m = X_BY_LABEL;',
+    ].join('\n');
+    expect(scanLabelLogic('fixture.ts', src).map((f) => f.line)).toEqual([4, 5]);
   });
 
   it('scanLabelLogic : ne flague PAS la LECTURE d’affichage d’un libellé (interpolation de journal)', () => {
@@ -346,6 +379,49 @@ describe('garde-fou « logique par label interdite » (#142)', () => {
     const setDecl = 'function set(id: string) { return id; }\n';
     const setFns = collectIdParamFunctions(setDecl);
     expect(scanLabelAsIdArg('fixture.ts', 'teamOf.set(sb.label);', setFns)).toEqual([]);
+  });
+  it('scanLabelLogic : un `typeof x.label` compare le TYPE du champ, pas son texte', () => {
+    const src = [
+      "const l = estObjet(v) && typeof v.label === 'string' ? v.label : undefined;",
+      "const m = typeof a?.b.label === 'string';",
+      "const n = v.label === 'Épée';",
+    ].join('\n');
+    expect(scanLabelLogic('fixture.ts', src).map((f) => f.line)).toEqual([3]);
+  });
+
+  it('scanLabelLogic : le contenu d’une CHAÎNE n’est pas du code, `detail` cite la ligne source', () => {
+    const src = [
+      "const aide = 'écrire x.label === y est interdit';",
+      "const k = x.label === 'Arme (au choix)';",
+    ].join('\n');
+    expect(scanLabelLogic('fixture.ts', src).map((f) => [f.line, f.detail])).toEqual([[2, "const k = x.label === 'Arme (au choix)';"]]);
+  });
+
+  describe('exemptions de la couture `src/data` : chacune vit dans un résolveur par libellé de #909', () => {
+    /** Nom de la déclaration de PREMIER NIVEAU qui porte la ligne `n` (1-based). */
+    const declarationDe = (lignes: string[], n: number): string => {
+      for (let i = n - 1; i >= 0; i--) {
+        const m = /^(?:export\s+)?(?:function|const)\s+(\w+)/.exec(lignes[i]);
+        if (m) return m[1];
+      }
+      return '';
+    };
+
+    it('chaque site exempté de `src/data` est dans un résolveur reconnu, ou dans un index lu par lui SEUL', () => {
+      const resolveurs = labelEntityResolverNames(ROOT);
+      const lignes = readFileSync(join(ROOT, 'src/data/index.ts'), 'utf8').split('\n');
+      const sites = new Set(scanDe(DATA_DIRS).sites.map((f) => `${f.rel.replace(/^src\//, '')}:${f.line}`));
+      const exemptes = Object.keys(RATCHET_EXCEPTIONS).filter((k) => sites.has(k));
+      expect(exemptes.length, 'aucun site `src/data` exempté : le volet est devenu muet').toBeGreaterThan(0);
+      for (const cle of exemptes) {
+        expect(cle.startsWith('data/index.ts:'), cle).toBe(true);
+        const decl = declarationDe(lignes, Number(cle.split(':')[1]));
+        const lecteurs = new Set(lignes.flatMap((l, i) =>
+          new RegExp(`\\b${decl}\\b`).test(l) && declarationDe(lignes, i + 1) !== decl ? [declarationDe(lignes, i + 1)] : []));
+        const porteur = resolveurs.has(decl) ? decl : lecteurs.size === 1 ? [...lecteurs][0] : `${decl} (lu par ${[...lecteurs].join(', ')})`;
+        expect(resolveurs.has(porteur), `${cle} : \`${porteur}\` n'est pas un résolveur par libellé de #909`).toBe(true);
+      }
+    });
   });
 });
 
@@ -638,5 +714,180 @@ describe('garde-fou « appel à un résolveur d’entité par LIBELLÉ » (#909)
     } finally {
       rmSync(tmp, { recursive: true, force: true });
     }
+  });
+});
+
+/**
+ * FACE D'AFFICHAGE en position d'IDENTITÉ (#1988 §7) — une fonction exportée de `src/` au retour DÉCLARÉ
+ * `PlayerText` rend un texte montré au joueur, qui change avec la langue : il ne sert ni de clé, ni
+ * d'opérande de comparaison, ni d'argument de recherche (b). Une face de `src/data/**` qui lit `.label`
+ * naît `PlayerText` (c), et ses liants vivent au catalogue (d). Cible 0 ; exemptions AU SITE par
+ * `RATCHET_EXCEPTIONS`, chacune prouvée légitime ci-dessous.
+ */
+describe('garde de FACE D’AFFICHAGE (#1988 §7)', () => {
+  const FACES = new Map([['trappingRefLabel', 'src/data/index.ts'], ['t', 'src/i18n/index.ts'], ['specLabel', 'src/data/index.ts']]);
+  const identite = (src: string, rel = 'src/ui/sonde.tsx') => scanFaceDAffichageIdentite(rel, src, FACES).map((f) => f.line);
+
+  it('corpus `src/` : aucune face en position d’identité, aucune face de donnée en `string`, aucun liant littéral hors exceptions', () => {
+    const faces = collectFacesDAffichage(readCorpus(['src'], { tests: true }).filter(({ rel }) => !estFichierVitest(rel)));
+    for (const f of ['t', 'dataLabel', 'refLabel', 'trappingRefLabel', 'mutationTablePlayerLabel', 'specLabel', 'conditionLabel']) {
+      expect(faces.has(f), `la face \`${f}\` doit être COLLECTÉE par son type de retour`).toBe(true);
+    }
+    const hors = scanDeFace().filter((f) => !(`${f.rel.replace(/^src\//, '')}:${f.line}` in RATCHET_EXCEPTIONS));
+    expect(hors.map((f) => `${f.rel}:${f.line} [${f.rule}:${f.face}] ${f.detail}`)).toEqual([]);
+  });
+
+  it('(b) chaque position d’identité est vue : clé calculée, index, égalité, `in`, `switch`, méthodes de clé', () => {
+    const src = [
+      'import { trappingRefLabel } from "../data";',
+      'export const a = { ...choices, [trappingRefLabel(ref)]: v };',
+      'export const b = choices[trappingRefLabel(ref)];',
+      'export const c = trappingRefLabel(ref) === x;',
+      'export const d = trappingRefLabel(ref) in choices;',
+      'switch (trappingRefLabel(ref)) { default: break; }',
+      'export const e = xs.includes(trappingRefLabel(ref));',
+      'export const f = m.get(trappingRefLabel(ref));',
+      'm.set(trappingRefLabel(ref), 1);',
+    ].join('\n');
+    expect(identite(src)).toEqual([2, 3, 4, 5, 6, 7, 8, 9]);
+  });
+
+  it('(b) ALIAS suivi, import RENOMMÉ suivi ; nom de face MASQUÉ par une liaison locale ignoré', () => {
+    const src = [
+      'import { t as tr } from "../i18n";',
+      'const k = tr("ref.ou");',
+      'export const a = choices[k];',
+      'export const b = xs.find((t) => t === y);',
+      'export function c(t: string) { return m[t]; }',
+    ].join('\n');
+    expect(identite(src)).toEqual([3]);
+  });
+
+  it('(b) une méthode qui GARDE le texte reste la face : casse, blancs, forme Unicode, `String()`', () => {
+    const src = [
+      'import { trappingRefLabel } from "../data";',
+      'import { t } from "../i18n";',
+      'export const a = trappingRefLabel(r).toLowerCase() === y;',
+      'export const b = m[trappingRefLabel(r).trim()];',
+      'export const c = m[String(trappingRefLabel(r))];',
+      "export const d = x === t('k').normalize().toUpperCase();",
+    ].join('\n');
+    expect(identite(src)).toEqual([3, 4, 5, 6]);
+  });
+
+  it('(b) positions de PRÉDICAT : receveur de méthode de texte, argument de `RegExp#test`, paire d’une table', () => {
+    const src = [
+      'import { trappingRefLabel } from "../data";',
+      "export const e = trappingRefLabel(r).includes('x');",
+      "export const f = trappingRefLabel(r).startsWith('x');",
+      "export const g = trappingRefLabel(r).endsWith('x');",
+      'export const h = trappingRefLabel(r).match(/x/);',
+      'export const i = trappingRefLabel(r).search(/x/);',
+      'export const j = /x/.test(trappingRefLabel(r));',
+      'export const k = new Map(xs.map((x) => [trappingRefLabel(x), x]));',
+      'export const l = Object.fromEntries(xs.map((x) => [trappingRefLabel(x), 1]));',
+      "export const n = [trappingRefLabel(r), 'x'].join(' ');",
+    ].join('\n');
+    expect(identite(src)).toEqual([2, 3, 4, 5, 6, 7, 8, 9]);
+  });
+
+  it('(b) ALIAS par affectation (`let`) et TRANSITIF ; une ré-affectation à un id le libère', () => {
+    const src = [
+      'import { trappingRefLabel } from "../data";',
+      'let u; u = trappingRefLabel(r); export const n = m[u];',
+      'const v = trappingRefLabel(r); const w = v; export const o = m[w];',
+      "let q = trappingRefLabel(r); q = 'id'; export const p = m[q];",
+    ].join('\n');
+    expect(identite(src)).toEqual([2, 3]);
+  });
+
+  it('(b) HORS du volet : l’affichage, l’attribut JSX `key=`, et un appel de fonction non-face', () => {
+    const src = [
+      'import { trappingRefLabel } from "../data";',
+      'export const a = <li key={trappingRefLabel(ref)}>{trappingRefLabel(ref)}</li>;',
+      'export const b = `${trappingRefLabel(ref)} (3)`;',
+      'export const c = choices[refKey(id, spec)];',
+    ].join('\n');
+    expect(identite(src)).toEqual([]);
+  });
+
+  it('(c) une export de `src/data/**` qui lit `.label` et rend `string`, déclaré ou INFÉRÉ, est refusée ; `PlayerText`, un type déclaré, ou hors `data/` passe', () => {
+    const src = [
+      'export function a(id: string): string { return find(id)?.label ?? id; }',
+      'export const b = (id: string): string => find(id)?.label ?? id;',
+      'export function c(id: string): PlayerText { return dataLabel(find(id)?.label, id); }',
+      'export function d(id: string): string { return find(id)?.id ?? id; }',
+      'export function e(id: string) { return find(id)?.label ?? id; }',
+      'export const g = (id: string) => find(id)?.label;',
+      'export function h(label: string): SkillData | undefined { return xs.find((s) => s.label === label); }',
+    ].join('\n');
+    expect(scanFaceDeDonneeString('src/data/sonde.ts', src).map((f) => f.face)).toEqual(['a', 'b', 'e', 'g']);
+    expect(scanFaceDeDonneeString('src/ui/sonde.ts', src)).toEqual([]);
+  });
+
+  it('(d) liant littéral d’au moins deux lettres dans une face de `data/index.ts` ; clé, id et opérande passent', () => {
+    const src = [
+      'export function a(xs: string[]): PlayerText { return dataLabel(xs.join(" ou ")); }',
+      'export function b(n: number): PlayerText { const s = `${n} parmi : x`; return dataLabel(s); }',
+      'export function c(r: R): PlayerText { return r.w === "arme" ? t("ref.armeAuChoix") : refLabel("skills", r); }',
+      'export function d(r: R): PlayerText { return "choice" in r ? t(`absent.${r.n}`) : dataLabel(r.l); }',
+      'export function e(r: R): string { return r.l + " ou "; }',
+      'function f(xs: string[]): PlayerText { return dataLabel(xs.join(" ou ")); }',
+    ].join('\n');
+    expect(scanLiantsLitterauxDesFaces('src/data/index.ts', src).map((f) => `${f.face}:${f.line}`)).toEqual(['a:1', 'b:2', 'f:6']);
+    expect(scanLiantsLitterauxDesFaces('src/data/autre.ts', src)).toEqual([]);
+  });
+
+  it('MUTATION (d) sur la face RÉELLE : réintroduire `\' ou \'` dans `trappingRefLabel` rougit', () => {
+    const reel = readFileSync(join(ROOT, 'src/data/index.ts'), 'utf8');
+    const site = 'if (\'choice\' in ref) return ouListe(ref.choice.map(trappingRefLabel));';
+    expect(reel, 'le site de la mutation a bougé : re-pointer ce test').toContain(site);
+    expect(scanLiantsLitterauxDesFaces('src/data/index.ts', reel)).toEqual([]);
+    const mute = reel.replace(site, 'if (\'choice\' in ref) return dataLabel(ref.choice.map(trappingRefLabel).join(\' ou \'));');
+    expect(scanLiantsLitterauxDesFaces('src/data/index.ts', mute).map((f) => f.face)).toEqual(['trappingRefLabel']);
+  });
+
+  describe('exemptions de la garde de face : chacune est LÉGITIME', () => {
+    const face = (cle: string) => scanDeFace().find((f) => `${f.rel.replace(/^src\//, '')}:${f.line}` === cle);
+    const appelants = (nom: string) => readCorpus(['src'], { tests: true })
+      .filter(({ rel, text }) => !estFichierVitest(rel) && new RegExp(`\\b${nom}\\(`).test(text))
+      .map(({ rel }) => rel).sort();
+
+    it('`qualityIdByLabel` rend un ID : résolveur libellé→id d’authoring, recensé par la garde #909', () => {
+      const cle = Object.keys(RATCHET_EXCEPTIONS).find((k) => k.startsWith('data/index.ts:'))!;
+      expect(face(cle)?.face).toBe('qualityIdByLabel');
+      expect(labelEntityResolverNames(ROOT).has('qualityIdByLabel')).toBe(true);
+    });
+
+    it('`rollObsession` : copie runtime du lot 4 de #1816, lue seulement comme `cible`/`arg` du moteur', () => {
+      expect(face('data/obsessions.ts:34')?.face).toBe('rollObsession');
+      expect(RATCHET_EXCEPTIONS['data/obsessions.ts:34']).toMatch(/#1816.*lot 4/);
+      expect(appelants('rollObsession')).toEqual(['src/data/obsessions.ts', 'src/engine/corruption.ts', 'src/engine/ops.ts']);
+      for (const rel of ['src/engine/corruption.ts', 'src/engine/ops.ts']) {
+        const lignes = readFileSync(join(ROOT, rel), 'utf8').split('\n').filter((l) => /rollObsession\(rng\)/.test(l));
+        expect(lignes.length).toBeGreaterThan(0);
+        for (const l of lignes) expect(l).toMatch(/const (cible|arg) = /);
+      }
+    });
+
+    it('`conditionIdInText` : scan du journal FR sous #1330, lu par les deux lecteurs du journal seulement', () => {
+      expect(face('engine/conditions.ts:69')?.face).toBe('conditionLabel');
+      const conditions = readFileSync(join(ROOT, 'src/engine/conditions.ts'), 'utf8').split('\n');
+      expect(conditions.slice(62, 68).join('\n')).toMatch(/#1330/);
+      expect(conditions[67]).toMatch(/export function conditionIdInText/);
+      expect(appelants('conditionIdInText')).toEqual(['src/engine/conditions.ts', 'src/gameIso/combatNarration.ts', 'src/state/combatLog.ts']);
+    });
+
+    it('`refFormatLivre` : parseur de SAISIE de l’éditeur, qui rend un id — l’aller-retour affichage → saisie tient', () => {
+      expect(face('ui/editor/refFormatLivre.ts:41')?.face).toBe('specLabel');
+      const ref = { id: 'corps-a-corps', spec: 'fleau', value: 50 };
+      expect(parseSkillRef(skillRefLabel(ref))).toEqual(ref);
+    });
+
+    it('`refFormatLivre` : la saisie « (Au choix) » se lit au mot que l’affichage compose, et rend `choix`', () => {
+      expect(face('ui/editor/refFormatLivre.ts:20')?.face).toBe('t');
+      const ref = { id: 'savoir', choix: true as const, value: 30 };
+      expect(parseSkillRef(skillRefLabel(ref))).toEqual(ref);
+    });
   });
 });

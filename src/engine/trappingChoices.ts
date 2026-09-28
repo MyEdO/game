@@ -2,8 +2,8 @@
  * Emplacements de DOTATION (`{choice}`, `{wildcard}`, `{id, qualityChoice}` des `TrappingRef`) : leur
  * énumération canonique, `emplacementsDeDotation`, et leur résolveur, `resolveTrappingChoices`. Chaque
  * emplacement a une adresse `adresseDeCreation.dotation(chemin)` ; les choix du joueur
- * (`ChoixDeCreation.trappingChoices`) sont rangés par ces adresses. Seul ce module interprète la valeur
- * d'un choix selon la forme de la ref.
+ * (`ChoixDeCreation.trappingChoices`) sont rangés par ces adresses. Seul ce module LIT la valeur d'un
+ * choix (`brancheChoisie`, `idChoisi`).
  */
 import { findCareerById, findClassById, firstLevel, levelsForCareer, DEFAULT_FABRICATION_ATOUT, fabricationAtoutQuality, type TrappingRef } from '../data/index';
 import { adresseDeCreation, type AdresseDeCreation } from './adresseDeCreation';

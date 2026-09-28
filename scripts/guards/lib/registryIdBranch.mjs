@@ -246,6 +246,14 @@ export class Scopes {
   push() { this.stack.push(new Map()); }
   pop() { this.stack.pop(); }
   declare(name, kind) { this.stack[this.stack.length - 1].set(name, kind); }
+  /** Affectation `name = …` : la liaison change de valeur dans la portée qui la DÉCLARE (la plus
+   *  proche), ou naît dans la portée courante si aucune ne la connaît. */
+  assign(name, kind) {
+    for (let i = this.stack.length - 1; i >= 0; i--) {
+      if (this.stack[i].has(name)) { this.stack[i].set(name, kind); return; }
+    }
+    this.declare(name, kind);
+  }
   kindOf(name) {
     for (let i = this.stack.length - 1; i >= 0; i--) {
       const k = this.stack[i].get(name);

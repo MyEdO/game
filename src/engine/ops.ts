@@ -16,7 +16,7 @@
 import { RNG, defaultRNG, roll, type DiceSpec, rollDice } from './dice';
 import { bonus, effectiveChar, refreshWounds } from './characteristics';
 import { addCondition, addTimedCondition, addClockCondition, removeCondition, loseWounds, hasCondition, releaseConditionLocks, syncDerivedConditions } from './conditions';
-import { conditionLabel, psychologyLabel, qualityRefLabel, refConcrete, findTraitById, refLabel, findTrappingById } from '../data';
+import { conditionLabel, psychologyLabel, qualityRefLabel, findTraitById, refLabel, findTrappingById } from '../data';
 import { contractDiseaseOnce, aggravateDiseaseSymptom, attenuateDiseaseSymptom, grantDiseaseSymptom, suspendSymptom } from './disease';
 import { groupMatch } from './groups';
 import { findTableEntry } from './tables';
@@ -2223,7 +2223,7 @@ export function applyOps(target: Combatant, ops: GameOp[], ctx: OpsCtx = {}): st
       }
       case 'grantTalent': {
         const dur = durationFromCtx(ctx);
-        const talent = refConcrete('talents', o.talent);
+        const talent = refLabel('talents', o.talent);
         // Octroi SANS échéance (VDM 02 l.238) : acquisition structurelle, `acquerirTalent` (engine/careerSlots.ts).
         if (dur.scale === 'permanent') {
           const acquis = acquerirTalent(target, o.talent);

@@ -238,15 +238,13 @@ export function buildFieldConsumersMd(files: string[] = listProdFiles(SRC_DIR)):
   out += `liste attendue y est écrite champ par champ — un zéro apparu comme un zéro disparu est rouge, et `
   out += `la ligne ne se retire qu'avec le lecteur qui l'annule.\n\n`
   // Les lecteurs sont ÉNUMÉRÉS depuis la mesure (jamais un nom en dur) : la phrase reste vraie quand
-  // le nombre de lecteurs change — #1463 L-ref-1 en a ajouté un (matérialisation de la spec sur
-  // l'`ItemInstance`) et la version « l'unique lecteur est `resolveOne` » est devenue fausse en
-  // silence. La clause de RENDU suit la mesure elle-même : un lecteur dans `src/data/index.ts`
-  // signalerait une SECONDE définition du libellé affiché (cf. `src/data/field-consumers.test.ts`).
+  // le nombre ou le nom des lecteurs change. La clause de RENDU suit la mesure elle-même : un lecteur
+  // dans `src/data/index.ts` signalerait une SECONDE définition du libellé affiché (cf. `src/data/field-consumers.test.ts`).
   const specDansLeRendu = trappingRefSpecSites.some((s) => s.startsWith('src/data/index.ts'))
   // DEUX paragraphes, et la coupure est STRUCTURELLE : la porte de commit `check-docs-vs-head.mjs`
   // exige que chaque `fichier:ligne` cité porte, à ±2 lignes du site AU COMMIT, l'un des identifiants
   // backtiqués de la MÊME ligne du doc. La ligne des SITES ne backtique donc que `spec` (présent aux
-  // deux sites) ; les identifiants du RENDU (`trappingRefLabel`, `refConcrete`), qui vivent dans
+  // deux sites) ; les identifiants du RENDU (`trappingRefLabel`, `refLabel`), qui vivent dans
   // `src/data/index.ts`, restent sur une ligne SANS `fichier:ligne`.
   out += `## Cas fondateur\n\n`
   out += `Le champ \`spec\` d'une référence de dotation a ${trappingRefSpecSites.length} lecteur(s) mesuré(s)`
@@ -254,8 +252,8 @@ export function buildFieldConsumersMd(files: string[] = listProdFiles(SRC_DIR)):
   out += `\`trappingRefLabel\` `
   out += `(\`src/data/index.ts\`, SOURCE UNIQUE du libellé affiché d'une \`TrappingRef\`) `
   out += specDansLeRendu
-    ? `LIT \`ref.spec\` : une SECONDE définition du rendu « base (spec) », qui appartient à \`refConcrete\`.\n`
-    : `ne lit PAS \`ref.spec\` — le rendu « base (spec) » passe par \`refConcrete\`, partagée par toute \`RefDesignee\`.\n`
+    ? `LIT \`ref.spec\` : une SECONDE définition du rendu « base (spec) », qui appartient à \`refLabel\`.\n`
+    : `ne lit PAS \`ref.spec\` — le rendu « base (spec) » passe par \`refLabel\`, partagée par toute \`RefDesignee\`.\n`
 
   // `zeros` sort NOMMÉ (`Type.champ`) : le cliquet de `src/data/field-consumers.test.ts` compare
   // cette liste à la sienne, écrite en dur — aucun re-parsing du `.md`, dont la table est un RENDU.

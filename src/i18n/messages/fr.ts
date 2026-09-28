@@ -310,6 +310,15 @@ export const fr = {
   'absent.mois': 'mois n° {id} (hors calendrier)',
   'absent.race': 'race « {id} » retirée du Compendium',
   'absent.carriere': 'carrière « {id} » retirée du Compendium',
+  // Nom SINGULIER d'un individu de chaque race, keyé par `RaceKey` (`species.json` `refChar`) — lu par
+  // `data/index.ts#speciesSingular` ; la variante régionale vient de la donnée (`variant`).
+  'espece.individu.humain': 'Humain',
+  'espece.individu.halfling': 'Halfling',
+  'espece.individu.nain': 'Nain',
+  'espece.individu.gnome': 'Gnome',
+  'espece.individu.ogre': 'Ogre',
+  'espece.individu.haut-elfe': 'Haut elfe',
+  'espece.individu.elfe-sylvain': 'Elfe sylvain',
   'cargo.chargeNominale': 'Charge nominale',
   'op.condPerRoundUnless': "{name} regagnera l'État {cond} à chaque fin de Round, tant que dure {src} ({n} Rounds).",
   'op.condRegain': '{name} regagne {v} État {cond} : {src} le tient toujours.',
@@ -2389,7 +2398,18 @@ export const fr = {
   // LDB 10 « Schéma des Talents » / LDB 46 l.177, repris VDM 02 l.190-192). `reason` → `pf.designateRefused`.
   // Emplacement de spécialisation NON DÉSIGNÉ, régime LIBRE (`LDB 09 l.40`) — porte unique de rendu
   // `data/index.ts#choixLabel`, composée par `skillRefLabel` et `advancementLabel`. #1548
-  'ref.auChoix': '{base} (Au choix)',
+  'ref.auChoix': '{base} ({mot})',
+  'ref.motAuChoix': 'Au choix',
+  // Liants des faces d'affichage de la donnée (#1988) — lus AUSSI par les parseurs de saisie « format
+  // livre » (`ui/editor/refFormatLivre.ts`) : l'affichage et la saisie partagent la même clé.
+  'ref.ou': 'ou',
+  // Tête de « n parmi », partagée par le texte (`advancementLabel`) et les chips (`EntityChoice`).
+  'ref.parmi': '{n} parmi :',
+  'ref.talentAleatoire': 'Talent aléatoire',
+  'ref.talentsAleatoires': '{n} Talents aléatoires',
+  'ref.armeAuChoix': 'Arme (au choix)',
+  'ref.jokerAuChoix': '{base} (au choix)',
+  'ref.qualiteAuChoix': '{base} (qualité au choix)',
   'slot.notCovered': "ce choix n'est pas couvert par cet emplacement",
   'slot.alreadyDesignated': 'emplacement déjà désigné',
   'slot.takenByOther': 'déjà pris par un autre emplacement de ce Niveau de Carrière',

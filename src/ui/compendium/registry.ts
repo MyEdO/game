@@ -11,7 +11,7 @@ import { useSyncExternalStore } from 'react';
 import {
   species, careers, characteristics, classes, skills, talents,
   qualities, trappings, siegeEngines, weaponGroups, etats, maladies, creatures, traits, spells, maneuvers, domains, mutations, mutationTables, gods,
-  stars, locations, findLocationById, books, bookAbr, careerLevels, raceAppearance, levelsForCareer, skillRefLabel, talentRefLabel, refLabel, trappingRefLabel, qualityRefLabel, advancementLabel, advancementBaseId, weaponGroupLabel, qualitySubtypeLabel, qualityTypeLabel,
+  stars, locations, findLocationById, books, bookAbr, careerLevels, raceAppearance, levelsForCareer, skillRefLabel, talentRefLabel, refLabel, trappingRefLabel, qualityRefLabel, advancementLabel, weaponGroupLabel, qualitySubtypeLabel, qualityTypeLabel,
   skillInstanceLabel, careersForSpecies, findCareerById, findClassById, findSpeciesById, eyes, hairs, details, semencesDeScene, defautsDeCompilation, names,
   pregens, oups, interludeEvents, peripeties, psychologyLabel,
   allAxes,
@@ -65,7 +65,7 @@ import SURINCANTATION from '../../data/surincantation.json';
 import type { SaturationLevel, WindSaturationEffects, ArcanePhenomenon, ArcaneTable, PhenomenonTestMod, PhenomenonScope } from '../../data/arcanePhenomena';
 import type { CastingNumberMod, CastingNumberScope } from '../../engine/castingNumber';
 import { effectiveEntry } from '../../engine/variants';
-import { statName, isOptionalNote, type TraitList } from '../../engine/statEntry';
+import { isOptionalNote, type TraitList } from '../../engine/statEntry';
 import { damageString } from '../../engine/items';
 import { rangeSpecLabel, ammoRangeModLabel, conditionalDamageNote } from '../weaponStats';
 import { formatSpellRange, formatSpellTarget, formatSpellDuration } from '../../engine/spellRangeFormat';
@@ -162,8 +162,9 @@ export type CodexRow =
    *  verdict juge vision : une Possession rendue en PARAGRAPHE inversait la hiérarchie de la section
    *  et fondait « Presse à imprimer » et « Chapeau impressionnant » en un seul objet). */
   | { t: 'chip'; label: string; badge?: string }
-  /** CHOIX « A ou B » : chaque option est un lien cross-réf cliquable, séparées par « ou ». */
-  | { t: 'choice'; category: string; options: { id: string; label: string; show: string }[] }
+  /** CHOIX « A ou B » / « n parmi » d'un emplacement d'avancement (`{pick}`), rendu par `EntityChoice` sur
+   *  la STRUCTURE : une option référence = un lien cross-réf par son `id`, une option sans id = une pastille. */
+  | { t: 'choice'; category: 'skills' | 'talents'; advancement: Extract<AdvancementRef, { pick: number }> }
   /** Mini sous-en-tête à l'intérieur d'une section (« Compétences », « Talents »…). */
   | { t: 'sub'; label: string }
   /** Bloc REPLIABLE (`<details class="fold">`) : `summary` visible, `text` (Markdown) dévoilé au clic.
@@ -333,18 +334,12 @@ const couvertureLabel = (id: string): string => materials.find((m) => m.id === i
 /** Famille d'une race/variante : « Humains (Reiklander) » → « Humains ». */
 const family = (label: string): string => label.split(' (')[0].trim();
 
-/** Id résolu d'une référence par (catégorie, libellé) — même résolution que `CodexRef` (recherche
- *  exacte puis casse pliée dans les items DÉJÀ projetés de la catégorie cible) ; repli sur un slug
- *  du libellé si la cible n'est pas (encore) au catalogue (défensif — arme naturelle hors catalogue,
- *  entrée cassée… — ne doit jamais faire échouer un build). */
-const refId = (category: string, label: string): string => codexLookup(category, label)?.id ?? slugId(label);
-
 /** Rangées de référence d'une liste de Caractéristiques : `CharKey` EST l'id de `characteristics.json`
  *  (`charKeySchema`, `grammaire/valeurs.ts`) — aucun round-trip par libellé, même patron
  *  qu'`opRows.ts` (`case 'charMod'`). */
 const charRefRows = (keys: readonly CharKey[]): CodexRow[] =>
   keys.map((k) => ({ t: 'ref', category: 'characteristics', id: k, label: CHAR_LABELS[k], show: CHAR_LABELS[k] }));
-/** Lien cross-réf par `id` STABLE DÉJÀ CONNU, jamais re-résolu par libellé (`refId`) : `label` =
+/** Lien cross-réf par `id` STABLE DÉJÀ CONNU, jamais re-résolu par libellé : `label` =
  *  libellé concret (`refLabel`, spécialisation comprise), `show` = texte affiché (valeur, Indice…). */
 const idRefRow = (category: string, id: string, spec?: string, show?: string): CodexRow => {
   const label = refLabel(category, { id, spec });
@@ -354,17 +349,8 @@ const idRefRow = (category: string, id: string, spec?: string, show?: string): C
 const traitRefRows = (traits?: TraitList | null): CodexRow[] =>
   (traits ?? []).map((t) => idRefRow('traits', t.id, undefined, formatTrait(t)));
 /** Rangée d'un `AdvancementRef` : `{pick}` → rangée de choix, référence → par id, `{random}` → pastille. */
-const advancementRow = (category: string, a: AdvancementRef): CodexRow => {
-  if ('pick' in a) {
-    return {
-      t: 'choice', category,
-      options: a.of.map((x) => {
-        const lbl = advancementLabel(category, x);
-        const name = statName(lbl);
-        return { id: advancementBaseId(x) ?? refId(category, name), label: name, show: lbl };
-      }),
-    };
-  }
+const advancementRow = (category: 'skills' | 'talents', a: AdvancementRef): CodexRow => {
+  if ('pick' in a) return { t: 'choice', category, advancement: a };
   if ('id' in a) return idRefRow(category, a.id, a.spec, advancementLabel(category, a));
   return { t: 'chip', label: advancementLabel(category, a) };
 };
@@ -378,7 +364,7 @@ const chips = (title: string, rows: CodexRow[]): CodexSection | null =>
   rows.length ? { title, layout: 'chips', rows } : null;
 /** Ligne cross-réf d'une `TrappingRef` STRUCTURÉE (#904) : la FORME de la référence désigne SON
  *  foyer — `id`→Possessions, `creatureId`→Créatures, `vehicleId`→Véhicules — jamais une re-résolution
- *  par libellé (`refId`/`slugId`). `{text}` reste du texte narratif (aucune entité désignée) ;
+ *  par libellé. `{text}` reste du texte narratif (aucune entité désignée) ;
  *  `choice`/`wildcard` restent un texte composite (pas de `t:'choice'` multi-catégorie ici). */
 const trappingRefRow = (ref: TrappingRef): CodexRow => {
   const show = trappingRefLabel(ref);

@@ -357,13 +357,6 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/data/refs-migrated.test.ts",
-    motif: "désormais",
-    ancre: "`trappingRefLabel` affiche désormais la `spec` (par `refConcrete`), ce qui lève la réserve notée",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
     fichier: "src/data/regles-optionnelles-partition.test.ts",
     motif: "désormais",
     ancre: "// 2 → 24 (#1688) : les 24 Structures citent leur folio (ADE II 89, AA 119-120) ET portent désormais",

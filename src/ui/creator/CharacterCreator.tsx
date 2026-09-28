@@ -83,7 +83,7 @@ import { BackgroundFields } from '../BackgroundFields';
 import { CodexRef } from '../compendium/CodexRef';
 import { Prose, mdToText } from '../Prose';
 import { CodexSections } from '../compendium/CodexEntry';
-import { EntityRef, EntityChoice, SkillChip, TalentChip } from '../EntityChip';
+import { EntityRef, EntityChoice, cleDAvancement, SkillChip, TalentChip } from '../EntityChip';
 import { raceSkillSection, raceTalentSection, type CodexSection } from '../compendium/registry';
 import { CharStatsGrid } from '../CharStatsGrid';
 import { GameOpChips } from '../GameOpChips';
@@ -874,8 +874,8 @@ export function CareerScreen({ d, setD }: StepProps): ReactNode {
               <div>
                 <div className="mini-title">Compétences — Niveau {lvlExplored.level}</div>
                 <div className="skill-tags">
-                  {lvlExplored.skills.map((a) => advancementLabel('skills', a)).map((s) => (
-                    <EntityChoice key={s} category="skills" entry={s} />
+                  {lvlExplored.skills.map((a, i) => (
+                    <EntityChoice key={cleDAvancement(a, i)} category="skills" advancement={a} />
                   ))}
                 </div>
               </div>
@@ -887,8 +887,8 @@ export function CareerScreen({ d, setD }: StepProps): ReactNode {
                     2026-07-15 : le rang 3 affichait la même note « se tranche à l'étape 5 »). */}
                 <div className="mini-title">{careerLevelTalentsTitle(lvlExplored.level)}</div>
                 <div className="skill-tags">
-                  {lvlExplored.talents.map((a) => advancementLabel('talents', a)).map((t) => (
-                    <EntityChoice key={t} category="talents" entry={t} />
+                  {lvlExplored.talents.map((a, i) => (
+                    <EntityChoice key={cleDAvancement(a, i)} category="talents" advancement={a} />
                   ))}
                   {lvlExplored.level === 1 && <em className="nb">se tranche à l'étape 5</em>}
                 </div>
@@ -1949,7 +1949,7 @@ export function TrappingChoiceSlot({ emplacement, choices, onChoicesChange }: {
       primary: choisie === j,
       onSelect: () => onChoicesChange(adresse, j),
     }));
-    const sous = sousEmplacement(emplacement, choisie ?? 0);
+    const sous = choisie === undefined ? undefined : sousEmplacement(emplacement, choisie);
     return (
       <>
         <OptionChooser layout="grid" options={options} />

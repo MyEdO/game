@@ -14,11 +14,11 @@ import {
   inCareerChar,
   mentorBlocks,
 } from './advancement';
-import { skillSlots, talentSlots, parseAdvancement } from './careerSlots';
-import { CareerLevelData } from '../data';
+import { skillSlots, talentSlots } from './careerSlots';
+import { CareerLevelData, type AdvancementRef } from '../data';
 
-/** Fixtures : libellés d'avancement → `AdvancementRef[]`. */
-const A = (xs: string[]) => xs.map(parseAdvancement);
+/** Fixtures : références d'avancement par id. */
+const A = (ids: string[]): AdvancementRef[] => ids.map((id) => ({ id }));
 
 const hero = (xp: number): Combatant =>
   ({
@@ -139,10 +139,8 @@ describe('Achat un par un (mutation du héros, PX déduits)', () => {
 });
 
 describe('Compléter / Changer de Carrière (LDB 07 l.111-140, LDB 07 l.144)', () => {
-  // Carrière factice à 2 niveaux : 9 compétences au Niveau 1 (dont un joker), 2 talents.
-  // NB : `A()`/`parseAdvancement` (parseur de TEST) garde la chaîne telle quelle comme `optionId`
-  // (pas de résolution vers un id réel) — les fixtures ci-dessous utilisent donc directement les
-  // MÊMES ids ('s1'…, 't1'…) que `completedHero`, pour que la comparaison par id soit cohérente.
+  // Carrière factice à 2 niveaux : 9 compétences au Niveau 1, 2 talents.
+  // Les fixtures utilisent les MÊMES ids ('s1'…, 't1'…) que `completedHero` : la comparaison est par id.
   const LEVELS: CareerLevelData[] = [
     {
       id: 'Test-1',

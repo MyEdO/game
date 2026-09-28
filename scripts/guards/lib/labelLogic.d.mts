@@ -21,7 +21,6 @@ export interface LabelLiteralFinding {
   rule: LabelLiteralRule;
 }
 
-export function stripComments(src: string): string;
 export const BY_LABEL_RX: RegExp;
 export const LABEL_EQ_RX: RegExp;
 export const LABEL_PREDICATE_RX: RegExp;
@@ -31,11 +30,11 @@ export function scanLabelLogic(relPath: string, contenu: string): Finding[];
 export function collectIdParamFunctions(contenu: string): Map<string, number>;
 export function collectDeclaredNames(contenu: string): Set<string>;
 export function scanLabelAsIdArg(relPath: string, contenu: string, idParamFns: Map<string, number>): Finding[];
-export function isCorpusExcluded(rel: string): boolean;
 export function collectIdParamFnsAcrossDirs(root: string, dirs: string[]): Map<string, number>;
 export function effectiveIdParamFns(contenu: string, globalIdParamFns: Map<string, number>): Map<string, number>;
 export const STRICT_DIRS: string[];
 export const RATCHET_DIRS: string[];
+export const DATA_DIRS: string[];
 export const RATCHET_EXCEPTIONS: Record<string, string>;
 export function ratchetShortKey(finding: { rel: string; line: number }): string;
 export function isLabelLiteral(text: string): boolean;
@@ -71,3 +70,18 @@ export interface LabelResolverCallFinding {
 export function collectLabelEntityResolvers(contenu: string): Set<string>;
 export function labelEntityResolverNames(root: string): Set<string>;
 export function scanLabelResolverCalls(relPath: string, contenu: string, resolverNames: Set<string>): LabelResolverCallFinding[];
+
+/** Finding de la garde de FACE D'AFFICHAGE (#1988 §7) — (b) identité, (c) face de donnée en `string`,
+ *  (d) liant littéral. `face` : la fonction en cause. */
+export interface FaceFinding {
+  line: number;
+  detail: string;
+  rule: 'face-affichage-identite' | 'face-donnee-string' | 'liant-litteral-de-face';
+  face: string;
+}
+export function collectFacesDAffichage(fichiers: readonly { rel: string; text: string }[]): Map<string, string>;
+export function scanFaceDAffichageIdentite(relPath: string, contenu: string, faces: ReadonlyMap<string, string>): FaceFinding[];
+export function scanFaceDeDonneeString(relPath: string, contenu: string): FaceFinding[];
+export function scanLiantsLitterauxDesFaces(relPath: string, contenu: string): FaceFinding[];
+export function estDansLeCorpusDeFace(rel: string): boolean;
+export function scanGardeDeFace(fichiers: readonly { rel: string; text: string }[]): (FaceFinding & { rel: string })[];

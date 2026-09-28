@@ -860,7 +860,7 @@ describe('spec de Compétence GROUPÉE — corps-a-corps/projectiles ne portent 
 // catalogue sont liées — 32 `{id, spec}` (« Outils professionnels (Maréchal-ferrant) », `LDB 08
 // l.1130`), 1 `{choice}` (`alchimiste-4`, « Atelier (Ingénierie ou Magie) ») et 15 graphies non
 // littérales (« Cartes »→`carte`, « Carreaux »→`carreau`, « Haches de lancer »→`hache-de-lancer`…).
-// `trappingRefLabel` affiche désormais la `spec` (par `refConcrete`), ce qui lève la réserve notée
+// `trappingRefLabel` affiche la `spec` (par `refLabel`), ce qui lève la réserve notée
 // plus haut sur `atelier`. Ce qui reste est hors catalogue ou narratif ; le contrat POSITIF qui
 // l'atteste ligne à ligne vit dans `src/data/dotations-catalogue.test.ts` — trois portes (libellé
 // entier, singulier, tête de parenthèse) et 6 exclusions nominatives, chacune avec sa raison.

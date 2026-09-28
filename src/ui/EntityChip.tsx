@@ -7,9 +7,9 @@
  */
 import { Fragment, type ReactNode } from 'react';
 import { CodexRef } from './compendium/CodexRef';
-import { splitTopLevelOu } from '../engine/careerSlots';
-import { statName } from '../engine/statEntry';
-import { byId, findTalentById, findTraitById, skillInstanceLabel, talentConcrete, qualityRefLabel } from '../data';
+import { byId, findTalentById, findTraitById, skillInstanceLabel, talentConcrete, qualityRefLabel, refLabel, advancementLabel, type AdvancementRef } from '../data';
+import { t } from '../i18n';
+import { refKey } from '../engine/careerSlots';
 import { formatTrait } from '../engine/traits/dispatch';
 import type { SkillInstance, TalentInstance, QualityInstance } from '../engine/types';
 import type { TraitInstance } from '../engine/statEntry';
@@ -26,9 +26,8 @@ export function EntityRef({
   className,
 }: {
   category: string;
-  /** Identité STABLE de la cible (préférée quand fournie) — omise seulement pour les cas SANS id
-   *  stable (`EntityChoice` « A ou B » éclaté d'un libellé brut) ; `CodexRef` se rabat alors sur le
-   *  lookup par `label`. */
+  /** Identité STABLE de la cible (préférée quand fournie) — omise, `CodexRef` se rabat sur le lookup
+   *  par `label` (auto-liage de prose depuis une donnée sans id). */
   id?: string;
   label: string;
   show?: ReactNode;
@@ -63,28 +62,36 @@ export function PlainChip({ label, badge }: { label: string; badge?: ReactNode }
   );
 }
 
-/** Groupe de CHOIX « A ou B » avec options DÉJÀ séparées : un chip cliquable par option + « ou ». */
-export function ChoiceChips({ category, options }: { category: string; options: { id?: string; label: string; show: string }[] }) {
-  return (
-    <span className="entity-choice">
-      {options.map((o, i) => (
-        <Fragment key={i}>
-          {i > 0 && <em className="chip-ou">ou</em>}
-          <EntityRef category={category} id={o.id} label={o.label} show={o.show} />
-        </Fragment>
-      ))}
-    </span>
-  );
+/** Clé React d'une entrée d'avancement : son identité `refKey(id, spec)` — deux options d'un même
+ *  `{pick}` partagent l'id et diffèrent par la `spec` (`alchimiste-2`) ; sans id (tirage, `{pick}`
+ *  imbriqué), sa position. */
+export function cleDAvancement(a: AdvancementRef, i: number): string | number {
+  return 'id' in a ? refKey(a.id, a.spec) : i;
 }
 
-/** Une ENTRÉE brute de compétence/talent : « A ou B » → choix éclaté ; sinon un simple chip. */
-export function EntityChoice({ category, entry }: { category: string; entry: string }) {
-  const opts = splitTopLevelOu(entry);
-  return opts.length > 1 ? (
-    <ChoiceChips category={category} options={opts.map((o) => ({ label: statName(o), show: o }))} />
-  ) : (
-    <EntityRef category={category} label={statName(entry)} show={entry} />
-  );
+/** Une ENTRÉE d'avancement de carrière (`AdvancementRef`), lue sur la STRUCTURE : « A ou B » (`{pick}`) →
+ *  un chip par option, chacun par son `id`, séparés par « ou », ou précédés du compte « n parmi : » quand
+ *  `pick > 1` (même clé `ref.parmi` que `advancementLabel`) ; une référence → un chip par `id` ; un
+ *  tirage (`{random}`) → pastille nue (aucune fiche à ouvrir). */
+export function EntityChoice({ category, advancement }: { category: 'skills' | 'talents'; advancement: AdvancementRef }) {
+  if ('pick' in advancement) {
+    const parmi = advancement.pick > 1;
+    return (
+      <span className="entity-choice">
+        {parmi && <em className="chip-ou">{t('ref.parmi', { n: advancement.pick })}</em>}
+        {advancement.of.map((x, i) => (
+          <Fragment key={cleDAvancement(x, i)}>
+            {i > 0 && !parmi && <em className="chip-ou">{t('ref.ou')}</em>}
+            <EntityChoice category={category} advancement={x} />
+          </Fragment>
+        ))}
+      </span>
+    );
+  }
+  if ('id' in advancement) {
+    return <EntityRef category={category} id={advancement.id} label={refLabel(category, { id: advancement.id })} show={advancementLabel(category, advancement)} />;
+  }
+  return <PlainChip label={advancementLabel(category, advancement)} />;
 }
 
 /** Chip d'une compétence CONCRÈTE (instance d'un héros) — libellé vivant + badge `+avancées`. */

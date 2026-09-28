@@ -117,8 +117,7 @@ export function CodexRef({
    *  câblé sur sa propre copie accessible. Un popover peut n'avoir QUE cela (aucune cible au Codex). */
   refus?: string;
   /** Identité STABLE de la cible — PRÉFÉRÉE quand fournie (`codexLookupById`) ; `label` reste requis
-   *  (affichage + repli de résolution pour les cas SANS id stable : `EntityChoice` — entrées « A ou B »
-   *  éclatées d'un libellé brut — et l'auto-liage de prose depuis une donnée sans id). */
+   *  (affichage + repli de résolution pour l'auto-liage de prose depuis une donnée sans id). */
   id?: string;
   label: string;
   /** Texte affiché si différent du libellé d'entrée (ex. libellé avec spécialisation). */

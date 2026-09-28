@@ -851,8 +851,8 @@ export interface ActiveEffect {
    *  `combatFeatures/dispatch.featuresOf` (capacités de combat) et par `effectGrantedTalents` →
    *  `effectiveTalents` (POSSESSION : fiche, chips, `hasTalent`). JAMAIS posé dans `c.talents` :
    *  l'acquisition et l'avancement restent hors de portée d'un octroi qui expire. Un octroi SANS
-   *  échéance ne passe pas par ici — il est structurel (`engine/ops.ts`, op `grantTalent`). Résolu en
-   *  libellé concret (clé du registre) par `talentConcrete`. */
+   *  échéance ne passe pas par ici — il est structurel (`engine/ops.ts`, op `grantTalent`). Rendu à
+   *  l'affichage par `talentConcrete`. */
   grantedTalent?: { talentId: string; spec?: string };
   /** DURÉE d'un enchantement d'arme (op `augmentWeapon`) : l'enchant vit sur l'OBJET
    *  (`ItemInstance.enchants`, replié dans l'arme par `recomputeLoadout`) ; cet effet ne porte que sa

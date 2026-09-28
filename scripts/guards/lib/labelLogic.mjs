@@ -17,19 +17,8 @@ const ts = tsModule;
 // `registryIdBranch.mjs` : le suivi d'alias `const k = def.id` y existe déjà, on l'importe.
 import { Scopes, bindingNames, unwrap, isEntryLiteral, EQUALITY_OPS } from './registryIdBranch.mjs';
 import { estFichierVitest } from './fichierVitest.mjs';
-
-/** Retire les commentaires de bloc et de ligne (pas les chaînes).
- * @param {string} src @returns {string} */
-export function stripComments(src) {
-  return src
-    .replace(/\/\*[\s\S]*?\*\//g, '')
-    .split('\n')
-    .map((l) => {
-      const i = l.indexOf('//');
-      return i >= 0 ? l.slice(0, i) : l;
-    })
-    .join('\n');
-}
+// Vue CODE des volets lexicaux (lignes et colonnes préservées) — `codeSeul.mjs`, #1790.
+import { codeSeul } from './codeSeul.mjs';
 
 /** Carte par label : constante hurlante `XXX_BY_LABEL`/`XXXBYLABEL`, ou fonction/variable `byLabel`. */
 export const BY_LABEL_RX = /(BY_?LABEL|byLabel)/;
@@ -37,8 +26,9 @@ export const BY_LABEL_RX = /(BY_?LABEL|byLabel)/;
 /** Comparaison D'ÉGALITÉ sur `.label`, dans un sens ou l'autre. Le membre en face de `.label` doit
  *  être un accès `mot(.mot)*` COLLÉ (pas d'appel/parenthèse/optional-chaining entre les deux) : ça
  *  exclut `find((x) => x.id === id)?.label` (extraction d'AFFICHAGE après un lookup PAR ID), qui
- *  n'est pas une comparaison mais une résolution de libellé légitime. */
-export const LABEL_EQ_RX = /\.label\s*===|===\s*[\w.]+\.label\b/;
+ *  n'est pas une comparaison mais une résolution de libellé légitime. Un `.label` sous `typeof`
+ *  (`typeof p.label === 'string'`) compare le TYPE du champ, pas son texte : il n'est pas visé. */
+export const LABEL_EQ_RX = /(?<!\btypeof\s+[\w.?]*)\.label\s*===|===\s*[\w.]+\.label\b/;
 
 /** PRÉDICAT sur `.label` : `.label` comme ARGUMENT d'un `.test(`/`.exec(` (regex évaluée contre un
  *  label), ou comme RÉCEPTEUR d'une méthode de chaîne prédicative (`.label.startsWith(`/`.endsWith(`/
@@ -50,12 +40,25 @@ export const LABEL_PREDICATE_RX = /\.test\([^)]*\.label\b|\.label\.(?:match|incl
  *  carte `BY_LABEL`, juste écrite en `switch`. */
 export const LABEL_SWITCH_RX = /switch\s*\([^)]*\.label\b/;
 
-/** DÉRIVATION D'IDENTITÉ depuis un libellé : `slugId(x.label)` (#637). Re-dériver un `id` à partir du
- *  `.label` (affichage multilangue) au runtime couple l'identité à la langue — une traduction change
- *  l'id, cassant lookups/références/sauvegardes. L'`id` est explicite et OBLIGATOIRE sur l'entité,
- *  jamais dérivé. Vise `.label` SEULEMENT (pas `.name` : la conversion d'un fragment TEXTE saisi en
- *  éditeur — `slugId(p.name)` d'un `splitLabel` — est la couture label→id d'authoring tolérée). */
-export const SLUG_FROM_LABEL_RX = /slugId\s*\(\s*[\w.]+\.label\b/;
+/** DÉRIVATION D'IDENTITÉ depuis un libellé (#637) : un argument de `slugId(…)` qui LIT un `.label`,
+ *  quelle que soit la chaîne qui y mène — `slugId(x.label)`, `slugId(f(x)?.label ?? y)`,
+ *  `slugId(a?.b.label)`, un gabarit. Re-dériver un `id` du `.label` (affichage multilangue) au runtime
+ *  couple l'identité à la langue — une traduction change l'id, cassant lookups/références/sauvegardes.
+ *  Vise `.label` SEULEMENT (pas `.name` : la conversion d'un fragment TEXTE saisi en éditeur —
+ *  `slugId(p.name)` d'un `splitLabel` — est la couture label→id d'authoring tolérée). Lecture par l'AST
+ *  (`litLeLabel`, le critère du volet (c) de la garde de face), jamais par une regex de ligne.
+ *  @param {string} relPath @param {string} contenu @returns {Set<number>} lignes des appels fautifs */
+function lignesDeSlugDepuisLabel(relPath, contenu) {
+  const lignes = new Set();
+  if (!contenu.includes('slugId')) return lignes;
+  const sf = arbre(relPath, contenu);
+  const voir = (n) => {
+    if (ts.isCallExpression(n) && ts.isIdentifier(n.expression) && n.expression.text === 'slugId' && n.arguments.some(litLeLabel)) lignes.add(ligneDe(sf, n));
+    ts.forEachChild(n, voir);
+  };
+  voir(sf);
+  return lignes;
+}
 
 /** Champs d'AFFICHAGE d'une entité : `label` ET `name` (#598 — `Weapon.name`/`ItemInstance.name`/
  *  `Combatant.name` sont des libellés). ⚠ `name` est AMBIGU dans ce dépôt : `ConditionInstance.name`
@@ -117,7 +120,8 @@ export function hasDisplayCollectionKey(line) {
  * d'égalité sur `.label`, PRÉDICAT sur `.label` (regex/méthode de chaîne), `switch` sur `.label`, ou
  * champ d'AFFICHAGE (`label`/`name`) interpolé dans une CLÉ (`DISPLAY_KEY_TEMPLATE_RX`, #598), ou
  * champ d'affichage servant de CLÉ DE COLLECTION (`hasDisplayCollectionKey`, #602) — ligne par ligne,
- * commentaires retirés.
+ * sur la vue CODE (`codeSeul` : commentaires et contenu des chaînes blanchis) ; `detail` cite la ligne
+ * SOURCE.
  *
  * Frontière de la règle #602 (doctrine, pas liste d'exceptions) : CONSTRUIRE un index depuis du texte
  * (`.set(x.label, …)`, `m[x.label] = …`) est la conversion label→id TOLÉRÉE ; INTERROGER une collection
@@ -139,19 +143,21 @@ export function hasDisplayCollectionKey(line) {
  */
 export function scanLabelLogic(relPath, contenu) {
   const findings = [];
-  const body = stripComments(contenu);
-  body.split('\n').forEach((line, i) => {
+  const source = contenu.split('\n');
+  const slugDeLabel = lignesDeSlugDepuisLabel(relPath, contenu);
+  codeSeul(contenu).split('\n').forEach((line, i) => {
+    const detail = source[i].trim();
     const labelLogic =
       BY_LABEL_RX.test(line) ||
       LABEL_EQ_RX.test(line) ||
       LABEL_PREDICATE_RX.test(line) ||
       LABEL_SWITCH_RX.test(line) ||
-      SLUG_FROM_LABEL_RX.test(line);
+      slugDeLabel.has(i + 1);
     // Une ligne qui viole les DEUX est rapportée sous `label-logic` (la règle la plus stricte prime,
     // sinon un baseline `display-key` amnistierait au passage une vraie logique-par-label).
-    if (labelLogic) findings.push({ line: i + 1, detail: line.trim(), rule: 'label-logic' });
-    else if (hasDisplayCollectionKey(line)) findings.push({ line: i + 1, detail: line.trim(), rule: 'collection-key' });
-    else if (DISPLAY_KEY_TEMPLATE_RX.test(line)) findings.push({ line: i + 1, detail: line.trim(), rule: 'display-key' });
+    if (labelLogic) findings.push({ line: i + 1, detail, rule: 'label-logic' });
+    else if (hasDisplayCollectionKey(line)) findings.push({ line: i + 1, detail, rule: 'collection-key' });
+    else if (DISPLAY_KEY_TEMPLATE_RX.test(line)) findings.push({ line: i + 1, detail, rule: 'display-key' });
   });
   return findings;
 }
@@ -539,9 +545,10 @@ const LABEL_INDEX_WRITE_RX = new RegExp('[\\w)\\]]\\[[^\\]]*\\.' + DISPLAY_FIELD
  */
 export function scanLabelKeyedIndex(relPath, contenu) {
   const findings = [];
-  stripComments(contenu).split('\n').forEach((line, i) => {
+  const source = contenu.split('\n');
+  codeSeul(contenu).split('\n').forEach((line, i) => {
     if ((LABEL_PAIR_RX.test(line) && PAIR_CONTEXT_RX.test(line)) || LABEL_SET_RX.test(line) || LABEL_INDEX_WRITE_RX.test(line)) {
-      findings.push({ line: i + 1, detail: line.trim(), rule: 'label-keyed-index' });
+      findings.push({ line: i + 1, detail: source[i].trim(), rule: 'label-keyed-index' });
     }
   });
   return findings;
@@ -706,7 +713,7 @@ function findDeclarationHeads(body) {
  *  fait foi, structurel, jamais un grep du nom de la fonction.
  * @param {string} contenu @returns {Map<string, number>} */
 export function collectIdParamFunctions(contenu) {
-  const body = stripComments(contenu);
+  const body = codeSeul(contenu);
   const map = new Map();
   for (const { name, paramsInner } of findDeclarationHeads(body)) {
     if (map.has(name)) continue;
@@ -724,7 +731,7 @@ export function collectIdParamFunctions(contenu) {
  *  PROPRE `toggle(label)` — son appel `toggle(s.label)` vise la locale, pas l'homonyme).
  * @param {string} contenu @returns {Set<string>} */
 export function collectDeclaredNames(contenu) {
-  const body = stripComments(contenu);
+  const body = codeSeul(contenu);
   const names = new Set();
   for (const { name } of findDeclarationHeads(body)) names.add(name);
   return names;
@@ -781,8 +788,8 @@ function isLabelArg(arg) {
  */
 export function scanLabelAsIdArg(relPath, contenu, idParamFns) {
   const findings = [];
-  const body = stripComments(contenu);
-  const lines = body.split('\n');
+  const body = codeSeul(contenu);
+  const lines = contenu.split('\n');
   // `(?:(\w+)\.)?` = receveur optionnel d'un appel de méthode (`teamOf.set(`, `helpers.bodyShapeOf(`) —
   // seul le nom de méthode (dernier segment) est confronté à `idParamFns`/`COLLECTION_METHOD_NAMES`.
   const CALL_RX = /(?<![.\w])(?:(\w+)\.)?(\w+)\s*\(/g;
@@ -818,13 +825,6 @@ function listTsFiles(dirs) {
   return dirs.flatMap((d) => listerArbre(d, { filtre: (rel) => /\.tsx?$/.test(rel) }).map((rel) => join(d, rel)));
 }
 
-/** Exclusion PARTAGÉE du scan de corpus (déclaration ET appel) : fichiers de TEST, et
- *  `src/data/index.ts` (couture label→id tolérée au CHARGEMENT, hors périmètre du garde-fou).
- *  @param {string} rel chemin relatif à la racine du projet, séparateurs `/` @returns {boolean} */
-export function isCorpusExcluded(rel) {
-  return estFichierVitest(rel) || rel === 'src/data/index.ts';
-}
-
 /** Map GLOBALE nom→index-paramètre-`id`, collectée en lisant le DISQUE sous `dirs` (déclaration et
  *  appel peuvent vivre dans des fichiers différents, cf. `collectIdParamFunctions`) — SOURCE UNIQUE
  *  de cette composition (parcours + lecture + fusion), consommée à l'identique par
@@ -836,7 +836,7 @@ export function collectIdParamFnsAcrossDirs(root, dirs) {
   const absDirs = dirs.map((d) => (isAbsolute(d) ? d : join(root, d)));
   for (const f of listTsFiles(absDirs)) {
     const rel = relative(root, f).split('\\').join('/');
-    if (isCorpusExcluded(rel)) continue;
+    if (estFichierVitest(rel)) continue;
     for (const [name, idx] of collectIdParamFunctions(readFileSync(f, 'utf8'))) if (!map.has(name)) map.set(name, idx);
   }
   return map;
@@ -863,6 +863,12 @@ export const STRICT_DIRS = ['src/engine', 'src/state'];
 /** Dossiers RATCHET à exceptions justifiées (`src/gameIso`, `src/ui`, #289) — même source unique. */
 export const RATCHET_DIRS = ['src/gameIso', 'src/ui'];
 
+/** Dossier de la COUTURE label→id (CLAUDE.md, « seule couture label→id : `src/data/index.ts`, au
+ *  CHARGEMENT ») — balayé par les volets de LIGNE (`scanLabelLogic`, `scanLabelAsIdArg`) au régime
+ *  RATCHET : chaque résolveur par libellé y est une exception AU SITE (`RATCHET_EXCEPTIONS`, avec son
+ *  test de légitimité), jamais un fichier exclu. Même source unique. */
+export const DATA_DIRS = ['src/data'];
+
 /** Exceptions JUSTIFIÉES du ratchet (#289) — `fichier:ligne` (relatif à `src/`) → justification.
  *  SOURCE UNIQUE (`label-logic-guard.test.ts` et le hook pre-commit la consomment TOUS DEUX, sans
  *  copie) : une entrée périmée (site déplacé/assaini) doit être retirée des DEUX consommateurs à la
@@ -872,14 +878,36 @@ export const RATCHET_EXCEPTIONS = {
     "isShield (fallback de RENDU rig) — détecte un bouclier d'abord par la Qualité Protectrice ; " +
     "repli texte sur x.label pour un objet custom/legacy dépourvu de cette Qualité. Classification " +
     "VISUELLE (quel gabarit dessiner), pas une FK de logique métier — aucune régression possible.",
-  'ui/RollRow.tsx:92':
-    "Nom ACCESSIBLE dérivé du libellé affiché de la ligne (« Fixer le dé — Voile », #1117) — display " +
-    "pur, aucun branchement de comportement : rien n'est décidé selon le texte, il est seulement RENDU " +
-    "dans un attribut. Le test de type est structurel, pas sémantique : `RollBreakdown.label` est une " +
-    "chaîne, `PendingRoll.label` un ReactNode (chips) dont on ne peut extraire de texte sans le tester. " +
-    "Sans ce nom, N spinbuttons « Fixer le dé » deviennent homonymes et le geste vise au hasard.",
-  'ui/RollRow.tsx:93':
-    'Même dérivation, branche du pré-jet (`row.pending.label`) — même justification que :92.',
+  // Garde de FACE D'AFFICHAGE (#1988 §7) — chaque entrée a son test de légitimité dans
+  // `label-logic-guard.test.ts` (« exemptions de la garde de face »).
+  'data/index.ts:3278':
+    "(c) `qualityIdByLabel` rend un ID, pas un texte : couture libellé→id d'AUTHORING (invariant 1, « aider " +
+    'à la saisie »), déjà recensée comme résolveur par libellé (#909, `collectLabelEntityResolvers`).',
+  'data/obsessions.ts:34':
+    '(c) `rollObsession` : COPIE RUNTIME de libellé (`cible`/`arg` du moteur), inscrite au registre des ' +
+    'fossiles de #1816, tuée par le lot 4 de la Phase 3.',
+  'engine/conditions.ts:69':
+    "(b) `conditionIdInText` : re-parse du journal FR par libellé d'État, hors lot, sous #1330 (journal " +
+    'structuré : l’id voyage avec l’évènement, ce scan meurt).',
+  'ui/editor/refFormatLivre.ts:20':
+    '(b) Parseur de SAISIE « format livre » (invariant 1, « aider à la saisie »), même régime que :41 : la ' +
+    'saisie « (Au choix) » se reconnaît au mot que l’affichage compose (`ref.motAuChoix`) ; elle rend `choix`.',
+  'ui/editor/refFormatLivre.ts:41':
+    '(b) Parseur de SAISIE « format livre » de l’éditeur (invariant 1, « aider à la saisie ») : le texte ' +
+    'saisi retrouve l’id de spécialisation dont le libellé affiché est ce texte ; il rend un id.',
+  // Résolveurs par LIBELLÉ de la couture de chargement/saisie (`DATA_DIRS`, #909) — chacun est reconnu
+  // par `collectLabelEntityResolvers`, donc chacun de ses appels depuis `src/engine`/`src/state` est au
+  // stock `LABEL_RESOLVER_CALL_STOCK` : test « résolveurs de la couture » de `label-logic-guard.test.ts`.
+  'data/index.ts:3118':
+    '`findSkill` : résolveur libellé→entrée de la couture de saisie (statblocs de campagne, #909).',
+  'data/index.ts:3152':
+    '`findTalent` : résolveur libellé→entrée de la couture de saisie (#909).',
+  'data/index.ts:3255':
+    '`findSpell` : résolveur libellé→entrée de la couture de saisie (#909).',
+  'data/index.ts:3273':
+    '`qualiteParSlugDeLabel` : index du slug de libellé, lu par `qualityIdByLabel` SEUL (#909).',
+  'data/index.ts:3284':
+    '`qualityIdByLabel` : l’entrée CANONIQUE d’un libellé doublon est celle dont l’id est son slug (#909).',
 };
 
 /** Résout le `shortKey` (`fichier:ligne` relatif à `src/`) d'un finding porté par un chemin `src/…`
@@ -891,7 +919,7 @@ export function ratchetShortKey(finding) {
 
 // ── Résolution d'ENTITÉ depuis un LIBELLÉ, appelée hors de sa seule couture légitime (#909) ────────
 // La comparaison `.label === label` d'un résolveur (`findSpell`, `findTalent`…) vit DANS
-// `src/data/index.ts`, seul fichier où `isCorpusExcluded`/`STRICT_DIRS` la tolère. Les scans
+// `src/data/index.ts`, seul fichier où `RATCHET_EXCEPTIONS` la tolère, au site. Les scans
 // ci-dessus ne voient QUE cette comparaison textuelle — pas le fait d'INVOQUER un tel résolveur
 // depuis `src/engine`/`src/state`, où le paramètre reçu est déjà, la plupart du temps, un id : y
 // appeler `findSpell(x)` bascule quand même toute la résolution sur le texte d'affichage.
@@ -1050,3 +1078,309 @@ export function scanLabelResolverCalls(relPath, contenu, resolverNames) {
 // (patron whitelist-en-lib SÉPARÉE du dépôt — `entityOrphanStock.mjs`/`folioRatchetStock.mjs`/
 // `manualDocsStock.mjs`), pour que le CONSTAT (ce module) reste distinct du STOCK (données figées
 // à la pose de la règle) — même séparation que `folioIntegrity.mjs` / `folioRatchetStock.mjs`.
+
+// ── FACE D'AFFICHAGE en position d'IDENTITÉ (#1988 §7) ─────────────────────────────────────────────
+// Une « face d'affichage » est une fonction exportée de `src/` dont le retour DÉCLARÉ est `PlayerText`
+// (`src/i18n/playerText.ts`) : ce qu'elle rend est montré au joueur, et change avec la langue. Critère
+// de TYPE, jamais une liste de noms ni un fichier d'origine : `t()` (`i18n/index.ts`), les faces de
+// `data/**` et toute face N+1 déclarée ailleurs sont collectées par l'AST.
+//
+// (b) Un appel de face d'affichage — ou l'ALIAS qui en tient le résultat (`const k = f()`, `let k; k =
+//     f()`, `const b = k`), ou une méthode qui en GARDE le texte (`f().toLowerCase()`, `.trim()`,
+//     `.normalize()`, `String(f())`) — en position d'IDENTITÉ ou de PRÉDICAT est refusé : clé calculée
+//     (`{ [f()]: … }`), index (`x[f()]`), opérande de `===`/`!==`/`==`/`!=`, opérande gauche de `in`,
+//     discriminant de `switch`, premier argument de `includes`/`indexOf`/`lastIndexOf`/`has`/`get`/
+//     `set`/`delete`, receveur de `includes`/`startsWith`/`endsWith`/`match`/`search`, argument de
+//     `RegExp#test`, première case d'une paire `[f(), …]` d'un `new Map(…)`/`Object.fromEntries(…)`.
+//     HORS DU VOLET : l'attribut JSX `key=` — identité de RENDU React (réconciliation d'une liste), pas
+//     logique métier : aucun comportement n'en dépend.
+// (c) Une fonction exportée de `src/data/**` qui lit `.label` et rend `string` — DÉCLARÉ, ou INFÉRÉ faute
+//     de type de retour — est refusée : la face d'affichage neuve naît `PlayerText`, donc visible de (b) ;
+//     un export qui rend autre chose (id, entrée) le DÉCLARE.
+// (d) Dans le corps d'une fonction de `src/data/index.ts` au retour `PlayerText` (exportée ou non : un
+//     assembleur privé comme `ouListe` compose le même texte), un littéral chaîne, une
+//     tête ou un morceau de gabarit d'au moins deux lettres qui PRODUIT du texte est refusé : un liant
+//     de composition vit au catalogue (`src/i18n/messages/fr.ts`). Ne produisent pas de texte : un
+//     argument d'appel (clé de `t()`, catégorie de `refLabel`, id), hors les méthodes qui ASSEMBLENT
+//     du texte (`join`, `concat`, `padStart`, `padEnd`, `replace`, `dataLabel`) ; un opérande de
+//     comparaison ou de `in` ; une clé d'index.
+// Exemptions AU SITE, par `RATCHET_EXCEPTIONS` seulement, chacune avec son test de légitimité.
+
+/** Le type déclaré nomme-t-il `PlayerText` (nu ou dans une union) ? @param {ts.TypeNode=} t */
+function declarePlayerText(t) {
+  if (!t) return false;
+  if (ts.isUnionTypeNode(t)) return t.types.some(declarePlayerText);
+  return ts.isTypeReferenceNode(t) && ts.isIdentifier(t.typeName) && t.typeName.text === 'PlayerText';
+}
+
+/** Le type déclaré est-il `string` (nu ou dans une union) ? @param {ts.TypeNode=} t */
+function declareString(t) {
+  if (!t) return false;
+  if (ts.isUnionTypeNode(t)) return t.types.some(declareString);
+  return t.kind === ts.SyntaxKind.StringKeyword;
+}
+
+/** Les fonctions de PREMIER NIVEAU d'un fichier — EXPORTÉES seules par défaut —, avec leur type de
+ *  retour déclaré et leur corps.
+ *  @param {ts.SourceFile} sf @param {boolean} [privees] inclure les fonctions non exportées
+ *  @returns {{ nom: string, type: ts.TypeNode | undefined, corps: ts.Node | undefined, noeud: ts.Node }[]} */
+function fonctionsExportees(sf, privees = false) {
+  const out = [];
+  ts.forEachChild(sf, (n) => {
+    if (ts.isFunctionDeclaration(n) && n.name && (privees || isExported(n))) out.push({ nom: n.name.text, type: n.type, corps: n.body, noeud: n });
+    if (ts.isVariableStatement(n) && (privees || isExported(n))) {
+      for (const d of n.declarationList.declarations) {
+        if (!ts.isIdentifier(d.name) || !d.initializer) continue;
+        const init = unwrap(d.initializer);
+        if (ts.isArrowFunction(init) || ts.isFunctionExpression(init)) out.push({ nom: d.name.text, type: init.type, corps: init.body, noeud: d });
+      }
+    }
+  });
+  return out;
+}
+
+const arbre = (rel, contenu) => ts.createSourceFile(rel, contenu, ts.ScriptTarget.Latest, true, scriptKindDe(rel));
+const ligneDe = (sf, node) => sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1;
+
+/** Les FACES D'AFFICHAGE d'un corpus : nom → fichier déclarant (le premier rencontré).
+ *  @param {{ rel: string, text: string }[]} fichiers @returns {Map<string, string>} */
+export function collectFacesDAffichage(fichiers) {
+  const faces = new Map();
+  for (const { rel, text } of fichiers) {
+    if (!text.includes('PlayerText')) continue;
+    for (const f of fonctionsExportees(arbre(rel, text))) if (declarePlayerText(f.type) && !faces.has(f.nom)) faces.set(f.nom, rel);
+  }
+  return faces;
+}
+
+/** Méthodes dont le premier argument est une CLÉ (appartenance, recherche, lecture/écriture de collection). */
+const METHODES_DE_CLE = new Set(['includes', 'indexOf', 'lastIndexOf', 'has', 'get', 'set', 'delete']);
+/** Méthodes de chaîne dont le RECEVEUR est jugé : un prédicat sur le texte. */
+const PREDICATS_DE_TEXTE = new Set(['includes', 'startsWith', 'endsWith', 'match', 'search']);
+/** Méthodes de chaîne qui GARDENT le texte (casse, blancs, forme Unicode) : leur résultat reste la face. */
+const GARDENT_LE_TEXTE = new Set(['toLowerCase', 'toUpperCase', 'toLocaleLowerCase', 'toLocaleUpperCase', 'trim', 'trimStart', 'trimEnd', 'normalize']);
+const ALIAS_DE_FACE = 'alias-de-face:';
+const FACE_IMPORTEE = 'face:';
+const LOCAL = 'local';
+
+/**
+ * (b) Appels de face d'affichage en position d'identité dans un fichier. Portée suivie : un nom de face
+ * redéclaré localement (paramètre `t` d'un prédicat, variable homonyme) n'est plus la face ; un import
+ * RENOMMÉ (`import { t as tr }`) l'est encore.
+ * @param {string} relPath @param {string} contenu @param {ReadonlyMap<string, string>} faces
+ * @returns {{ line: number, detail: string, rule: 'face-affichage-identite', face: string }[]}
+ */
+export function scanFaceDAffichageIdentite(relPath, contenu, faces) {
+  const sf = arbre(relPath, contenu);
+  const lines = contenu.split('\n');
+  const findings = [];
+  const seen = new Set();
+  const scopes = new Scopes();
+  for (const st of sf.statements) {
+    const liaisons = ts.isImportDeclaration(st) ? st.importClause?.namedBindings : undefined;
+    if (!liaisons || !ts.isNamedImports(liaisons)) continue;
+    for (const s of liaisons.elements) {
+      const origine = (s.propertyName ?? s.name).text;
+      if (faces.has(origine)) scopes.declare(s.name.text, FACE_IMPORTEE + origine);
+    }
+  }
+  const faceAppelee = (node) => {
+    const n = unwrap(node);
+    if (!ts.isCallExpression(n) || !ts.isIdentifier(n.expression)) return undefined;
+    const nom = n.expression.text;
+    const k = scopes.kindOf(nom);
+    if (k === undefined) return faces.has(nom) ? nom : undefined;
+    return k.startsWith(FACE_IMPORTEE) ? k.slice(FACE_IMPORTEE.length) : undefined;
+  };
+  const faceTenue = (node) => {
+    let n = unwrap(node);
+    for (;;) {
+      if (!ts.isCallExpression(n)) break;
+      const e = unwrap(n.expression);
+      if (ts.isPropertyAccessExpression(e) && ts.isIdentifier(e.name) && GARDENT_LE_TEXTE.has(e.name.text)) n = unwrap(e.expression);
+      else if (ts.isIdentifier(e) && e.text === 'String' && n.arguments.length === 1) n = unwrap(n.arguments[0]);
+      else break;
+    }
+    if (ts.isIdentifier(n)) {
+      const k = scopes.kindOf(n.text);
+      return k && k.startsWith(ALIAS_DE_FACE) ? k.slice(ALIAS_DE_FACE.length) : undefined;
+    }
+    return faceAppelee(n);
+  };
+  /** La paire est-elle une entrée d'une TABLE construite (`new Map(…)`, `Object.fromEntries(…)`) ? */
+  const entreeDeTable = (paire) => {
+    for (let p = paire.parent; p && !ts.isSourceFile(p); p = p.parent) {
+      if (ts.isNewExpression(p) && ts.isIdentifier(p.expression) && p.expression.text === 'Map') return true;
+      if (ts.isCallExpression(p)) {
+        const e = unwrap(p.expression);
+        if (ts.isPropertyAccessExpression(e) && ts.isIdentifier(e.expression) && e.expression.text === 'Object' && e.name.text === 'fromEntries') return true;
+      }
+    }
+    return false;
+  };
+  const report = (node, face) => {
+    const line = ligneDe(sf, node);
+    if (seen.has(line)) return;
+    seen.add(line);
+    findings.push({ line, detail: (lines[line - 1] || '').trim(), rule: 'face-affichage-identite', face });
+  };
+  const declarer = (list) => {
+    for (const d of list.declarations) {
+      const face = d.initializer && ts.isIdentifier(d.name) ? faceTenue(d.initializer) : undefined;
+      if (face) scopes.declare(d.name.text, ALIAS_DE_FACE + face);
+      else for (const n of bindingNames(d.name)) scopes.declare(n, LOCAL);
+    }
+  };
+  const visit = (node) => {
+    if (ts.isFunctionLike(node)) {
+      if (ts.isFunctionDeclaration(node) && node.name) scopes.declare(node.name.text, LOCAL);
+      scopes.push();
+      for (const p of node.parameters) for (const n of bindingNames(p.name)) scopes.declare(n, LOCAL);
+      ts.forEachChild(node, visit);
+      scopes.pop();
+      return;
+    }
+    if (ts.isBlock(node) || ts.isCaseBlock(node) || ts.isModuleBlock(node) || ts.isForStatement(node)
+      || ts.isForOfStatement(node) || ts.isForInStatement(node) || ts.isCatchClause(node)) {
+      scopes.push();
+      if (ts.isCatchClause(node) && node.variableDeclaration) for (const n of bindingNames(node.variableDeclaration.name)) scopes.declare(n, LOCAL);
+      ts.forEachChild(node, visit);
+      scopes.pop();
+      return;
+    }
+    if (ts.isVariableDeclarationList(node)) declarer(node);
+    if (ts.isComputedPropertyName(node)) { const f = faceTenue(node.expression); if (f) report(node, f); }
+    if (ts.isElementAccessExpression(node)) { const f = faceTenue(node.argumentExpression); if (f) report(node, f); }
+    if (ts.isBinaryExpression(node) && EQUALITY_OPS.has(node.operatorToken.kind)) {
+      const f = faceTenue(node.left) ?? faceTenue(node.right);
+      if (f) report(node, f);
+    }
+    if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.InKeyword) { const f = faceTenue(node.left); if (f) report(node, f); }
+    if (ts.isSwitchStatement(node)) { const f = faceTenue(node.expression); if (f) report(node, f); }
+    if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.EqualsToken && ts.isIdentifier(node.left)) {
+      const f = faceTenue(node.right);
+      scopes.assign(node.left.text, f ? ALIAS_DE_FACE + f : LOCAL);
+    }
+    if (ts.isCallExpression(node)) {
+      const callee = unwrap(node.expression);
+      if (ts.isPropertyAccessExpression(callee) && ts.isIdentifier(callee.name)) {
+        const m = callee.name.text;
+        const f = (node.arguments.length > 0 && (METHODES_DE_CLE.has(m) || m === 'test') ? faceTenue(node.arguments[0]) : undefined)
+          ?? (PREDICATS_DE_TEXTE.has(m) ? faceTenue(callee.expression) : undefined);
+        if (f) report(node, f);
+      }
+    }
+    if (ts.isArrayLiteralExpression(node) && node.elements.length >= 2) {
+      const f = faceTenue(node.elements[0]);
+      if (f && entreeDeTable(node)) report(node, f);
+    }
+    ts.forEachChild(node, visit);
+  };
+  ts.forEachChild(sf, visit);
+  return findings;
+}
+
+/** Le corps lit-il un champ `.label` ? @param {ts.Node | undefined} corps */
+function litLeLabel(corps) {
+  let lu = false;
+  const voir = (x) => {
+    if (lu) return;
+    if (ts.isPropertyAccessExpression(x) && ts.isIdentifier(x.name) && x.name.text === 'label') lu = true;
+    ts.forEachChild(x, voir);
+  };
+  if (corps) voir(corps);
+  return lu;
+}
+
+/** (c) Exports de `src/data/**` qui lisent `.label` sans DÉCLARER un retour autre que `string`.
+ *  @param {string} relPath @param {string} contenu
+ *  @returns {{ line: number, detail: string, rule: 'face-donnee-string', face: string }[]} */
+export function scanFaceDeDonneeString(relPath, contenu) {
+  if (!relPath.startsWith('src/data/')) return [];
+  const sf = arbre(relPath, contenu);
+  const lines = contenu.split('\n');
+  return fonctionsExportees(sf)
+    .filter((f) => (!f.type || declareString(f.type)) && litLeLabel(f.corps))
+    .map((f) => {
+      const line = ligneDe(sf, f.noeud);
+      return { line, detail: (lines[line - 1] || '').trim(), rule: 'face-donnee-string', face: f.nom };
+    });
+}
+
+/** Méthodes et minteur qui ASSEMBLENT du texte : un littéral en argument EST un liant. */
+const ASSEMBLEURS = new Set(['join', 'concat', 'padStart', 'padEnd', 'replace', 'dataLabel']);
+const auMoinsDeuxLettres = (s) => (s.match(/\p{L}/gu) ?? []).length >= 2;
+
+/** Le littéral (ou gabarit) PRODUIT-il du texte, ou n'est-il qu'une clé, un id, un opérande ? @param {ts.Node} lit */
+function produitDuTexte(lit) {
+  let enfant = lit;
+  for (let p = lit.parent; p; enfant = p, p = p.parent) {
+    if (ts.isParenthesizedExpression(p) || ts.isTemplateSpan(p) || ts.isTemplateExpression(p)) continue;
+    if (ts.isConditionalExpression(p)) {
+      if (enfant === p.condition) return false;
+      continue;
+    }
+    if (ts.isBinaryExpression(p)) {
+      const op = p.operatorToken.kind;
+      if (op === ts.SyntaxKind.PlusToken || op === ts.SyntaxKind.QuestionQuestionToken
+        || op === ts.SyntaxKind.BarBarToken || op === ts.SyntaxKind.AmpersandAmpersandToken) continue;
+      return false;
+    }
+    if (ts.isCallExpression(p)) {
+      if (enfant === p.expression) return false;
+      const callee = unwrap(p.expression);
+      const nom = ts.isPropertyAccessExpression(callee) ? callee.name.text : ts.isIdentifier(callee) ? callee.text : '';
+      return ASSEMBLEURS.has(nom);
+    }
+    if (ts.isElementAccessExpression(p) || ts.isCaseClause(p)) return false;
+    if (ts.isPropertyAssignment(p) && enfant === p.name) return false;
+    return true;
+  }
+  return true;
+}
+
+/** (d) Liants littéraux dans le corps des fonctions au retour `PlayerText` de `src/data/index.ts`.
+ *  @param {string} relPath @param {string} contenu
+ *  @returns {{ line: number, detail: string, rule: 'liant-litteral-de-face', face: string }[]} */
+export function scanLiantsLitterauxDesFaces(relPath, contenu) {
+  if (relPath !== 'src/data/index.ts') return [];
+  const sf = arbre(relPath, contenu);
+  const lines = contenu.split('\n');
+  const findings = [];
+  for (const f of fonctionsExportees(sf, true)) {
+    if (!declarePlayerText(f.type) || !f.corps) continue;
+    const voir = (x) => {
+      const gabarit = ts.isTemplateHead(x) || ts.isTemplateMiddle(x) || ts.isTemplateTail(x);
+      const texte = ts.isStringLiteral(x) || ts.isNoSubstitutionTemplateLiteral(x) || gabarit ? x.text : undefined;
+      if (texte !== undefined && auMoinsDeuxLettres(texte)) {
+        const porteur = ts.isTemplateHead(x) ? x.parent : gabarit ? x.parent.parent : x;
+        if (produitDuTexte(porteur)) {
+          const line = ligneDe(sf, x);
+          findings.push({ line, detail: (lines[line - 1] || '').trim(), rule: 'liant-litteral-de-face', face: f.nom });
+        }
+      }
+      ts.forEachChild(x, voir);
+    };
+    voir(f.corps);
+  }
+  return findings;
+}
+
+/** Le CORPUS de la garde de face : tout `src/` hors instruments Vitest. @param {string} rel */
+export function estDansLeCorpusDeFace(rel) {
+  return rel.startsWith('src/') && /\.tsx?$/.test(rel) && !estFichierVitest(rel);
+}
+
+/** Les trois volets (b), (c), (d) sur un corpus `src/` — les faces sont collectées sur CE corpus.
+ *  SOURCE UNIQUE consommée par `label-logic-guard.test.ts` ET le hook pre-commit.
+ *  @param {{ rel: string, text: string }[]} fichiers
+ *  @returns {{ rel: string, line: number, detail: string, rule: string, face: string }[]} */
+export function scanGardeDeFace(fichiers) {
+  const corpus = fichiers.filter(({ rel }) => estDansLeCorpusDeFace(rel));
+  const faces = collectFacesDAffichage(corpus);
+  return corpus.flatMap(({ rel, text }) => [
+    ...scanFaceDAffichageIdentite(rel, text, faces),
+    ...scanFaceDeDonneeString(rel, text),
+    ...scanLiantsLitterauxDesFaces(rel, text),
+  ].map((x) => ({ rel, ...x })));
+}

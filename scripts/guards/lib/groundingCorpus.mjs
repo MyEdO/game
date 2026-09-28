@@ -181,9 +181,9 @@ export const GROUNDING_CASES = [
       "« personne ne lit `spec` sur une référence de dotation » affirmé sur la foi d'une recherche trop " +
       "étroite — sans surface de consommateurs-par-champ, l'affirmation n'était pas vérifiable, juste plausible. " +
       "Résolu par scripts/docs/build-field-consumers.mts (#903) : `trappingRefLabel` NE lit PAS `ref.spec` ; " +
-      "le lecteur fondateur est `resolveOne` (src/engine/trappingChoices.ts:36). Puis L-ref-1 (75a454653, " +
+      "le lecteur fondateur est `resoudre` (src/engine/trappingChoices.ts). Puis L-ref-1 (75a454653, " +
       "#1463) lui en a ajouté un SECOND, légitime : `itemFromTrappingRef` (src/engine/items.ts:309) " +
-      "MATÉRIALISE la spec sur l'`ItemInstance` — le rendu, lui, n'en est toujours pas un (`refConcrete`).",
+      "MATÉRIALISE la spec sur l'`ItemInstance` — le rendu, lui, n'en est toujours pas un (`refLabel`).",
     // Ce que le cas exige est que le doc NOMME ses sites lecteurs, pas qu'il redise un NOMBRE gelé :
     // la version « exactement 1 lecteur » a viré au rouge quand le second lecteur est apparu, alors
     // que le doc répondait toujours — mieux — à la question. Sont exigés les DEUX rôles mesurés
@@ -198,7 +198,7 @@ export const GROUNDING_CASES = [
       if (fondateur == null) return false;
       if (!/`src\/engine\/trappingChoices\.ts:\d+`/.test(fondateur)) return false;
       if (!/`src\/engine\/items\.ts:\d+`/.test(fondateur)) return false;
-      return /trappingRefLabel[\s\S]{0,80}ne lit PAS `ref\.spec`[\s\S]{0,60}`refConcrete`/.test(fondateur);
+      return /trappingRefLabel[\s\S]{0,80}ne lit PAS `ref\.spec`[\s\S]{0,60}`refLabel`/.test(fondateur);
     },
     // Fait retomber la ligne `spec` de la section `TrappingRef` à « 0 — JAMAIS LU » (comme les 16
     // autres champs sans lecteur du même rapport) — seule occurrence du motif que `resolves` exige
