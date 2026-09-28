@@ -1,4 +1,4 @@
-// Garde de graphie des citations RAW (#487 lot 3, #585 lot A, #454 DoD, #1898).
+// Garde de graphie des citations RAW (#487, #585, #454 DoD, #1898).
 // Dans les CITANTS de `src/**` (`lib/fichiersCitants.mjs`), une réf au livre s'écrit
 // `<ABRÉV> <chap> l.<ligne>` (CLAUDE.md règle 1). Deux classes y lisent TOUTE ligne — commentaire en
 // tête ou en fin de ligne de code, titre de test, chaîne affichée, champ JSON :
@@ -11,13 +11,14 @@
 // Les fiches `docs/raw/*.md` ont leurs classes propres (a/c/d/f/h/i) ; (b), (e) et (g) lisent les
 // deux corpus. Toute occurrence hors stock fait échouer le run avec la liste `fichier:ligne`.
 // Re-run : node scripts/raw/citation-graphy-guard.mjs
+import { tableTotale } from '../../src/lib/tableTotale.ts'
 import { join, dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { fieldBlockMask } from './build-implemente.mjs'
 import { allAbbrAlternation, bookOf, chapterBoundaryRiskFor, folioRange, pagesDeLAtlas, readText, refFolioRe } from './_lib.mjs'
 import { ecartDuVolet } from '../guards/lib/stock.mjs'
 import { EXTS_CITANTES, fichiersCitants } from './lib/fichiersCitants.mjs'
-import { readStock as readStockFile } from './stockNominatif.mjs'
+import { SOUS_LOT, lireEntreesDeSite } from '../guards/lib/stockDeSites.mjs'
 
 export const SRC_DIR = 'src'
 export const RAWDIR = 'docs/raw'
@@ -102,7 +103,7 @@ export const CHAPTER_BOUNDARY_FOLIO_RE = () => new RegExp(`\\b(${allAbbrAlternat
 // nourris au passage. Chaque CLASSE est une fonction PURE d'une LIGNE vers ses occurrences
 // (`detecte*`) ; chaque `scan*Violations` lit sa famille dans le résultat de la passe, qui est
 // mémoïsé par clé (dossiers + extensions). Ce qui coûtait n'était pas l'I/O (~2 s) mais le RE-SCAN
-// du même corpus par famille, sept fois (mesure #1709 D2 : 18,9 s pour 3 743 fichiers de `src/`).
+// du même corpus par famille, sept fois (mesure #1709 : 18,9 s pour 3 743 fichiers de `src/`).
 // MÉMO : il porte le RÉSULTAT de la passe, pas le texte lu (`readCorpus`, scripts/guards/lib) ;
 // même condition de licéité — l'arbre scanné est STATIQUE pendant un run (aucune gate n'écrit dans
 // l'arbre, `photoArbre` de `scripts/gates/toutes.mjs` le vérifie). Les familles
@@ -212,7 +213,7 @@ function fichesScannees(rawDir) {
 }
 
 const FAMILLES = ['graphy', 'folioSrc', 'docsRaw', 'implProse', 'chDot', 'bareFolio', 'bookNoChapterSrc', 'unknownAbbr', 'multiFolioSplit', 'chapterBoundaryFolio']
-const vide = () => Object.fromEntries(FAMILLES.map((f) => [f, []]))
+const vide = () => tableTotale(FAMILLES, () => [])
 /** Gèle les dix familles et leur porteur : ce que rend une passe est IMMUABLE. */
 const geler = (familles) => {
   for (const f of FAMILLES) Object.freeze(familles[f])
@@ -277,7 +278,7 @@ function passeFiches(rawDir) {
 export function scanTout(srcDir = SRC_DIR, exts = EXTS_CITANTES, rawDir = RAWDIR) {
   const src = passeSrc(srcDir, exts)
   const fiches = passeFiches(rawDir)
-  return geler(Object.fromEntries(FAMILLES.map((f) => [f, [...src[f], ...fiches[f]]])))
+  return geler(tableTotale(FAMILLES, (f) => [...src[f], ...fiches[f]]))
 }
 
 /** Scan (h) : multi-folios d'une fiche à cheval sur des chapitres différents (#522 juge
@@ -343,13 +344,6 @@ export function scanUnknownAbbrViolations(srcDir = SRC_DIR, exts = EXTS_CITANTES
   return scanTout(srcDir, exts, rawDir).unknownAbbr
 }
 
-/** Les ENTRÉES de `graphy-stock.json` (fichier absent, ou stock vide : aucune entrée). La FAMILLE
- *  est un champ de l'entrée, jamais une rubrique : un seul stock, une seule forme, et la porte de
- *  plage compte une ligne ajoutée où qu'elle tombe. */
-export function readStock(path = STOCK_PATH) {
-  return readStockFile(path)
-}
-
 /** RÉF NOMINATIVE d'un site, par famille : ce qui identifie la citation fautive indépendamment de sa
  *  ligne. Les familles de graphie de fiche n'ont que le TEXTE de la ligne ; les familles au folio
  *  portent la réf elle-même. */
@@ -361,36 +355,61 @@ const REF_DU_SITE = {
   chapterBoundaryFolio: (v) => `${v.abbr} ${v.ch} p.${v.folio}`,
 }
 
-// Écart d'une famille à son stock — les deux sens échouent (site neuf, entrée soldée). Le stock est
-// filtré sur la famille : la clé la porte, l'écart ne juge que les entrées qui la nomment.
-function checkFamily(label, family, violations, stock) {
-  const { neuves, perimees } = ecartDuVolet({
-    sites: violations.map((v) => ({ file: v.file, ref: REF_DU_SITE[family](v) })),
-    stock: stock.filter((e) => e.famille === family),
-    famille: family,
-    ou: 'graphy-stock.json',
-  })
-  return { label, family, violations, neuves, perimees }
-}
-
 /** Les familles CLIQUETÉES dans `graphy-stock.json`, dans l'ordre du rapport. `avertissement` : le
  *  rapport liste aussi chaque candidat (famille non bloquante sur ses sites déclarés). */
 export const FAMILLES_CLIQUETEES = Object.freeze([
-  { family: 'chDot', label: 'ch. cosmétique (src+docs/raw)' },
-  { family: 'folioSrc', label: 'réf au folio (src/)' },
-  { family: 'bareFolio', label: 'folio nu (docs/raw)' },
-  { family: 'bookNoChapterSrc', label: 'réf sans chapitre (src+docs/raw)' },
-  { family: 'chapterBoundaryFolio', label: 'folio en fin de chapitre (docs/raw, AVERTISSEMENT)', avertissement: true },
+  { famille: 'chDot', label: 'ch. cosmétique (src+docs/raw)' },
+  { famille: 'folioSrc', label: 'réf au folio (src/)' },
+  { famille: 'bareFolio', label: 'folio nu (docs/raw)' },
+  { famille: 'bookNoChapterSrc', label: 'réf sans chapitre (src+docs/raw)' },
+  { famille: 'chapterBoundaryFolio', label: 'folio en fin de chapitre (docs/raw, AVERTISSEMENT)', avertissement: true },
 ])
 
-/** Écart de chaque famille cliquetée d'une passe (`scanTout`) à un stock (`readStock`) : `neuves` et
- *  `perimees` non vides font échouer le run. Pur. */
+/** Les SITES de toutes les familles cliquetées d'une passe (`scanTout`), chacun sous sa famille. */
+export const sitesCliquetes = (passe) =>
+  FAMILLES_CLIQUETEES.flatMap(({ famille }) => passe[famille].map((v) => ({ famille, file: v.file, ref: REF_DU_SITE[famille](v) })))
+
+/** Les familles cliquetées d'une passe (`scanTout`), jugées en UN écart à un stock
+ *  (`lireEntreesDeSite`) : `juges` par famille, et `neuves` et `perimees`, qui, non vides, font échouer
+ *  le run. La FAMILLE est un champ de l'entrée, jamais une rubrique : un seul stock, une seule forme, et
+ *  la porte de plage compte une ligne ajoutée où qu'elle tombe. Pur. */
 export function cliquets(passe, stock) {
-  return FAMILLES_CLIQUETEES.map(({ family, label, avertissement = false }) => ({
-    ...checkFamily(label, family, passe[family], stock),
-    avertissement,
-  }))
+  const juges = FAMILLES_CLIQUETEES.map(({ famille, label, avertissement = false }) => ({ famille, label, violations: passe[famille], avertissement }))
+  const { neuves, perimees } = ecartDuVolet({ sites: sitesCliquetes(passe), stock, ou: 'graphy-stock.json' })
+  return { juges, neuves, perimees }
 }
+
+const QUOI =
+  "STOCK NOMINATIF des graphies de citation cliquetées par scripts/raw/citation-graphy-guard.mjs " +
+  "(FAMILLES_CLIQUETEES) : une DETTE à drainer vers ZÉRO. Familles : `folioSrc` = réf au folio " +
+  "`<ABRÉV> [<chap>] p.<folio>` sur TOUTE ligne des citants de src/** " +
+  "(scripts/raw/lib/fichiersCitants.mjs), invariant zéro, le stock ne porte que des sites DIFFÉRÉS ; " +
+  "`chDot` et `bookNoChapterSrc` = src/** et fiches docs/raw ; `bareFolio` et `chapterBoundaryFolio` " +
+  "(AVERTISSEMENT) = fiches docs/raw seules. Une entrée = un SITE (famille de graphie, fichier, réf " +
+  "ou texte de la citation, occurrence dans ce fichier) — jamais un numéro de ligne, qui dérive à " +
+  "chaque édition. La FAMILLE est un champ de l'entrée, jamais une rubrique : une famille vidée " +
+  "disparaît sans laisser de coquille. Le lot et la date d'une entrée sont ceux du geste qui l'a " +
+  "DIFFÉRÉE (#1898 : sites de src/gameIso/rig/**, tenus par le fil de la palette des rigs, #1882). Se " +
+  "solde en corrigeant la citation, " +
+  "PUIS en régénérant ce fichier (`npx tsx scripts/guards/lib/regenStock.mts " +
+  "scripts/raw/citation-graphy-guard.mjs`), qui en retire l'entrée ; un site DIFFÉRÉ y entre par " +
+  "`--lot <#N>` : la garde refuse tout site NEUF et toute entrée devenue caduque (cliquet à double " +
+  "sens), et la porte de plage compte toute croissance de ce fichier " +
+  "(scripts/guards/lib/stocksNominatifs.mjs). COÛT DU RÉ-RANGEMENT D'ORDINAL : l'occurrence est " +
+  "l'ordinal du site parmi ceux qui partagent la même (famille, fichier, réf) — corriger le premier " +
+  "de N sites homonymes renumérote les N-1 autres : la garde rend alors N-1 périmées et N-1 neuves " +
+  "pour un seul geste, et le stock se réécrit d'un bloc. ANGLE MORT de la porte de plage : un échange " +
+  "EN PLACE à total constant rend net 0 — la dette ne peut pas croître, mais un solde et un neuf du " +
+  "même commit ne se déclarent pas ; la garde, elle, les voit toujours."
+
+/** La RÉGÉNÉRATION de `graphy-stock.json` (`RegenerationDeStock`, `stockDeSites.mjs`), sur une passe
+ *  (par défaut, celle de tout le corpus). */
+export const regenerations = (passe = scanTout()) => [{
+  chemin: STOCK_PATH,
+  politique: SOUS_LOT,
+  horsCollections: QUOI,
+  collections: [{ nom: 'entrees', sites: sitesCliquetes(passe) }],
+}]
 
 function main() {
   const passe = scanTout()
@@ -399,7 +418,7 @@ function main() {
   const implProse = passe.implProse
   const unknownAbbr = passe.unknownAbbr
   const multiFolioSplit = passe.multiFolioSplit
-  const juges = cliquets(passe, readStock())
+  const { juges, neuves, perimees } = cliquets(passe, lireEntreesDeSite(STOCK_PATH))
 
   if (src.length) {
     console.log(`citation-graphy-guard : ${src.length} graphie(s) chapitre-relative(s) (src/) :`)
@@ -424,23 +443,21 @@ function main() {
   // déclarés : un candidat structurel (dernier folio de N, N+1 s'ouvre sur X/X+1) n'est PAS une preuve
   // verbatim (cas prouvé unique `LDB 48 p.255` sur 48 candidats structurels du repo). Un site NEUF ou
   // une entrée SOLDÉE échoue quand même, même cliquet que les autres familles.
-  let stockFail = false
-  for (const { label, violations, neuves, perimees, avertissement } of juges) {
+  for (const { label, violations, avertissement } of juges) {
     console.log(`citation-graphy-guard : ${label} — ${violations.length} site(s) mesuré(s).`)
     if (avertissement) {
       for (const { file, row, abbr, ch, folio } of violations) console.log(`  ${file}:${row}  [${abbr} ${ch} p.${folio}]`)
     }
-    if (neuves.length) {
-      stockFail = true
-      console.log(`  RÉGRESSION — site(s) hors du stock :`)
-      for (const o of neuves) console.log(`    ${o}`)
-    }
-    if (perimees.length) {
-      stockFail = true
-      console.log(`  Entrée(s) SOLDÉE(s) :`)
-      for (const e of perimees) console.log(`    ${e}`)
-    }
   }
+  if (neuves.length) {
+    console.log(`  RÉGRESSION — site(s) hors du stock :`)
+    for (const o of neuves) console.log(`    ${o}`)
+  }
+  if (perimees.length) {
+    console.log(`  Entrée(s) SOLDÉE(s) :`)
+    for (const e of perimees) console.log(`    ${e}`)
+  }
+  const stockFail = neuves.length > 0 || perimees.length > 0
 
   if (unknownAbbr.length) {
     console.log(`citation-graphy-guard (#585) : ${unknownAbbr.length} abréviation(s) INCONNUE(S) (zéro tolérance) :`)

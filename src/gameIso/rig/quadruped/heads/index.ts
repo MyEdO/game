@@ -1,13 +1,14 @@
 /**
  * Registre des TÊTES quadrupèdes : une tête = un fichier `defs/<clé>.ts`, collecté par
  * `npm run gen` (patron des parts monstrueuses du bipède). Le socle `quadParts.ts` compose par
- * LOOKUP — il ne connaît plus aucune clé d'espèce (#1082 P2).
+ * LOOKUP — il ne connaît aucune clé d'espèce (#1082).
  */
 import { QUAD_HEAD_DEFS } from './_registry.generated';
 import type { QuadHeadDef } from './types';
 import type { QuadBoneId } from '../quadSkeleton';
-import type { View } from '../../facing';
-import { MISSING_ART, pickView } from '../../viewArt';
+import { VIEWS, type View } from '../../facing';
+import { tableTotale } from '../../../../lib/tableTotale';
+import { MISSING_ART, nearestView } from '../../viewArt';
 
 export type { QuadHeadDef } from './types';
 export type { QuadHeadId } from './_registry.generated';
@@ -28,11 +29,11 @@ export function quadHeadDef(head: string): QuadHeadDef {
   return MISSING_HEAD;
 }
 
-const missing = (view: View) => pickView(MISSING_ART, view)();
+const missing = (view: View) => nearestView(MISSING_ART, view)();
 const MISSING_HEAD: QuadHeadDef = {
   key: '',
   label: 'Tête manquante',
-  art: { profile: missing('profile'), front: missing('front'), back: missing('back') },
+  art: tableTotale(VIEWS, missing),
 };
 
 /** Os PORTEUR de l'art de tête pour la vue (défaut `tete` ; clusters multi-cous : `encolure` en profil). */

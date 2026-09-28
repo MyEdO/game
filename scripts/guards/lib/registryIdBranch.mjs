@@ -24,6 +24,7 @@ import tsModule from 'typescript';
 import { parUnitesDeCode } from './lister.mjs'
 import { scriptKindDe } from './dialecte.mjs'
 import { estFichierVitest } from './fichierVitest.mjs';
+import { estTableTotale, origineImportee } from './canonUnique.mjs';
 
 /** Liaison LOCALE du compilateur : sous le transformeur SSR de Vitest, chaque `ts.x` d'un import est
  *  une traversée de module (`__vite_ssr_import_N__.default.x`) — sur le visiteur d'AST, chaud, elle
@@ -134,39 +135,15 @@ export function isEntryLiteral(node) {
  * Le CONTENU de cette table est figé par un test : une entrée de plus se paie d'une fermeture PROUVÉE
  * du type (union de littéraux, pas un alias `= string`), et le test la refuse sinon.
  */
-export const VOCABULARY_TYPES = new Map([['BoneId', 'src/gameIso/rig/bones']]);
+export const VOCABULARY_TYPES = new Map([['BoneId', 'src/gameIso/rig/bones.ts']]);
 
-/** Chemin de module d'un spécificateur RELATIF, résolu contre le fichier scanné (séparateurs `/`,
- *  extension usuelle retirée). Un spécificateur de PAQUET (non relatif) n'ancre rien → null. */
-function resolveSpecifier(relPath, spec) {
-  if (!spec.startsWith('.')) return null;
-  const parts = relPath.split('/').slice(0, -1);
-  for (const seg of spec.split('/')) {
-    if (seg === '.' || seg === '') continue;
-    if (seg === '..') parts.pop();
-    else parts.push(seg);
-  }
-  return parts.join('/').replace(/\.(m|c)?[tj]sx?$/, '');
-}
-
-/** Noms IMPORTÉS par le fichier (spécificateurs de type compris) → module d'origine résolu. */
-function collectImportOrigins(sf, relPath) {
-  const origins = new Map();
-  for (const st of sf.statements) {
-    if (!ts.isImportDeclaration(st) || !ts.isStringLiteral(st.moduleSpecifier)) continue;
-    const from = resolveSpecifier(relPath, st.moduleSpecifier.text);
-    if (!from) continue;
-    const named = st.importClause?.namedBindings;
-    if (named && ts.isNamedImports(named)) for (const el of named.elements) origins.set(el.name.text, from);
-  }
-  return origins;
-}
-
-/** Le nœud de type est-il une référence à un type de vocabulaire IMPORTÉ DE SON MODULE CANONIQUE ? */
-function isVocabularyTypeRef(t, origins) {
+/** Le nœud de type est-il une référence à un type de vocabulaire IMPORTÉ DE SON MODULE CANONIQUE ?
+ *  Le nom EXPORTÉ fait foi (`origineImportee`) : un import renommé du type compte, un autre type
+ *  importé sous son nom non. */
+function isVocabularyTypeRef(t, sf) {
   if (!t || !ts.isTypeReferenceNode(t) || !ts.isIdentifier(t.typeName)) return false;
-  const canonical = VOCABULARY_TYPES.get(t.typeName.text);
-  return !!canonical && origins.get(t.typeName.text) === canonical;
+  const origine = origineImportee(t.typeName.text, sf);
+  return !!origine && VOCABULARY_TYPES.get(origine.nom) === origine.module;
 }
 
 /**
@@ -174,15 +151,15 @@ function isVocabularyTypeRef(t, origins) {
  * `Set<BoneId>`, ou `const X = new Set<BoneId>([…])` — l'argument de type porte la fermeture aussi
  * bien que l'annotation.
  */
-function isVocabularyCollectionDecl(decl, origins) {
+function isVocabularyCollectionDecl(decl, sf) {
   let t = decl.type;
   if (t && ts.isTypeOperatorNode(t) && t.operator === ts.SyntaxKind.ReadonlyKeyword) t = t.type;
-  if (t && ts.isArrayTypeNode(t)) return isVocabularyTypeRef(t.elementType, origins);
+  if (t && ts.isArrayTypeNode(t)) return isVocabularyTypeRef(t.elementType, sf);
   if (t && ts.isTypeReferenceNode(t) && ts.isIdentifier(t.typeName)
-    && ['Array', 'ReadonlyArray', 'Set', 'ReadonlySet'].includes(t.typeName.text)) return isVocabularyTypeRef(t.typeArguments?.[0], origins);
+    && ['Array', 'ReadonlyArray', 'Set', 'ReadonlySet'].includes(t.typeName.text)) return isVocabularyTypeRef(t.typeArguments?.[0], sf);
   const init = decl.initializer && unwrap(decl.initializer);
   if (init && ts.isNewExpression(init) && ts.isIdentifier(init.expression) && init.expression.text === 'Set') {
-    return isVocabularyTypeRef(init.typeArguments?.[0], origins);
+    return isVocabularyTypeRef(init.typeArguments?.[0], sf);
   }
   return false;
 }
@@ -304,33 +281,18 @@ function isLiteralRecord(node, literalRecords) {
   return false;
 }
 
-/**
- * Table EXHAUSTIVE par TYPE : `const T: Record<StepId, X> = {…}` — la clé est une union fermée, le
- * compilateur EXIGE une entrée par membre. Ajouter une option force la table dans le même geste, à
- * la compilation : ce n'est pas la « suite d'id » silencieuse que la doctrine proscrit. Une table
- * `Record<string, X>` (clé OUVERTE) ne porte, elle, aucune garantie — elle dérive en silence.
- * Les enveloppes `Partial<…>`/`Readonly<…>` sont traversées : elles relâchent l'obligation de clé,
- * pas la FERMETURE de l'union — un SQUELETTE `Partial<Record<BoneId, Bone>>` reste indexé par un
- * vocabulaire fermé déclaré en type, pas par l'identité d'une entrée de registre.
- */
-function isExhaustiveRecordDecl(decl) {
-  let t = decl.type;
-  while (t && ts.isTypeReferenceNode(t) && ts.isIdentifier(t.typeName)
-    && (t.typeName.text === 'Partial' || t.typeName.text === 'Readonly') && t.typeArguments?.length === 1) t = t.typeArguments[0];
-  if (!t || !ts.isTypeReferenceNode(t) || !ts.isIdentifier(t.typeName) || t.typeName.text !== 'Record') return false;
-  const key = t.typeArguments?.[0];
-  if (!key) return false;
-  return key.kind !== ts.SyntaxKind.StringKeyword && key.kind !== ts.SyntaxKind.NumberKeyword && key.kind !== ts.SyntaxKind.AnyKeyword;
-}
-
 /** Pré-passe : noms déclarés dans le fichier qui tiennent une collection/table FERMÉE de littéraux.
+ *  Une table TOTALE déclarée (`estTableTotale`, `canonUnique.mjs` : `const T: Record<StepId, X> = {…}`,
+ *  ou son `satisfies`) n'est pas une table littérale figée : le compilateur exige une entrée par
+ *  membre de sa clé, et une option de plus force la table dans le même geste — ce n'est pas la
+ *  « suite d'id » silencieuse que la doctrine proscrit.
  *  La pré-passe est à plat (tout le fichier) alors que l'usage, lui, est porté : un même nom peut
  *  désigner une table littérale dans une fonction et une valeur CALCULÉE dans une autre
  *  (`const sk = {…}` d'un côté, `const sk = buildSkeleton(p)` de l'autre). Un nom AMBIGU est donc
  *  retiré des deux jeux : la garde ne peut pas prouver que le site indexé fige quoi que ce soit.
  *  Une collection de VOCABULAIRE FERMÉ (`const X: BoneId[]`, cf. `VOCABULARY_TYPES`) sort des jeux
  *  au même titre : elle ne fige pas un registre, son type le fait déjà. */
-function collectLiteralHolders(sf, origins) {
+function collectLiteralHolders(sf) {
   const collections = new Set();
   const records = new Set();
   const computed = new Set(); // noms déclarés au moins une fois avec une valeur NON littérale
@@ -338,9 +300,9 @@ function collectLiteralHolders(sf, origins) {
   const visit = (node) => {
     if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.initializer) {
       const name = node.name.text;
-      if (isVocabularyCollectionDecl(node, origins)) vocabulary.add(name);
+      if (isVocabularyCollectionDecl(node, sf)) vocabulary.add(name);
       else if (isLiteralStringCollection(node.initializer, collections)) collections.add(name);
-      else if (isLiteralRecord(node.initializer, records) && !isExhaustiveRecordDecl(node)) records.add(name);
+      else if (isLiteralRecord(node.initializer, records) && !estTableTotale(unwrap(node.initializer))) records.add(name);
       else computed.add(name);
     }
     ts.forEachChild(node, visit);
@@ -373,7 +335,7 @@ function collectLiteralHolders(sf, origins) {
  *  - les TESTS et les MIGRATIONS (`isRegistryIdBranchExcluded`).
  *
  * CE QUE LA GARDE NE VOIT PAS (évasions MESURÉES, chacune à une ligne d'écriture ; faux NÉGATIFS
- * assumés plutôt que bruit — une garde qui hurle partout se fait désactiver) :
+ * plutôt que bruit — une garde qui hurle partout se fait désactiver) :
  *  - un champ d'identité hors convention de nom : `def.key === 'x'`, `v.when.rule === 'x'` — seuls
  *    `id`/`xxxId`/`ref`/`xxxRef` sont reconnus (`ID_NAME_RX`) ;
  *  - un renommage à la destructuration : `function Row({ id: ruleKey })` — la liaison porte le
@@ -391,7 +353,7 @@ function collectLiteralHolders(sf, origins) {
  * @returns {{ line: number, detail: string, rule: 'id-equality'|'id-switch'|'id-membership'|'id-record' }[]}
  */
 export function scanRegistryIdBranch(relPath, contenu, sf = arbreDe(relPath, contenu)) {
-  const { collections, records } = collectLiteralHolders(sf, collectImportOrigins(sf, relPath));
+  const { collections, records } = collectLiteralHolders(sf);
   const lines = contenu.split('\n');
   const findings = [];
   const scopes = new Scopes();
@@ -484,7 +446,7 @@ export function countRegistryIdBranch(rel, contenu) {
   return scanRegistryIdBranch(rel, contenu).length;
 }
 
-// ── CLIQUET ANTI-ÉVASION : la forme BRUTE, sans aucune condition de liaison (#1318 E4/C0-a) ───────
+// ── CLIQUET ANTI-ÉVASION : la forme BRUTE, sans aucune condition de liaison (#1318) ───────
 
 /**
  * Scan de la forme BRUTE « <champ d'identité> === '<littéral>' » : une (in)égalité dont un côté est un

@@ -1,10 +1,11 @@
 /**
- * LA PASTILLE HORS COMBAT (#1687 lot 3-I-b) — `offresUtilisables` est la PROJECTION d'`actionsDe`
+ * LA PASTILLE HORS COMBAT (#1687) — `offresUtilisables` est la PROJECTION d'`actionsDe`
  * dans l'invariant d'affichage `OffreRendue`, pas une seconde source d'offre : ce qui est offert se
  * dit au dériveur unique, ce qui est joué passe par `jouerAction`.
  *
  * Scènes FABRIQUÉES (doctrine : jamais une scène de campagne utilisée comme fixture).
  */
+import { tableTotale } from '../lib/tableTotale';
 import { describe, expect, it, vi } from 'vitest';
 import { emptyScene, type Scene, type SceneEntity } from './scene';
 import { offresUtilisables, porteDOffre } from './offresUtilisables';
@@ -73,8 +74,8 @@ describe('offresUtilisables — la pastille de toute entité À PORTÉE, sans su
     const libres = offresUtilisables(useGame.getState())[0].offres;
     expect(libres.map((o) => [o.id, o.gate.ok])).toEqual([['sasseoir', true]]);
 
-    const seatAssignments = { table: Object.fromEntries(
-      ['place-1', 'place-2', 'place-3', 'place-4'].map((s) => [s, { kind: 'entity' as const, entityId: `pnj-${s}` }]),
+    const seatAssignments = { table: tableTotale(
+      ['place-1', 'place-2', 'place-3', 'place-4'], (s) => ({ kind: 'entity' as const, entityId: `pnj-${s}` }),
     ) };
     useGame.setState({ scene: { ...sc, seatAssignments } } as Partial<GameState>);
     const prises = offresUtilisables(useGame.getState())[0].offres;

@@ -2,7 +2,7 @@
  * ATELIER — LE DESSIN du bœuf de PROFIL (#1082, étalon « bête entière par vue ») : la bête
  * ENTIÈRE, dans le repère du MONDE (canevas 120×150, sol y=150, bête tournée à DROITE). Une seule
  * illustration : la ligne de dos, l'épaule, la cuisse et la gorge sont tracées d'un trait, PUIS
- * réparties en groupes d'os. C'est la SOURCE de l'art ; `boeufProfilCompile.ts` en est la sortie.
+ * réparties en groupes d'os. C'est la SOURCE de l'art ; `boeufCompile.ts` en est la sortie.
  *
  *   npx tsx scripts/rig/compile-dessin-quad.mts        (relance la compilation ; --check = porte)
  *

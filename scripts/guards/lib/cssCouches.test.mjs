@@ -1,6 +1,6 @@
 // Le PARSEUR des trois couches CSS (#1800, `node --test` — joué par `npm run test:hooks`) : ce qu'il
 // rend, et ce qu'il refuse d'abriter ; puis la FRONTIÈRE (#1806 L1), le FRANCHISSEMENT (D1″), la
-// VENTILATION d'un commit contre son parent (D6″) et l'ADMISSION du régénérateur (C). Chaque cas est
+// VENTILATION d'un commit contre son parent (D6″) et l'ADMISSION du RETOURNÉ par la régénération (C). Chaque cas est
 // une fixture de texte, sauf les trois commits cibles, lus dans l'HISTOIRE du dépôt par le vrai chemin
 // (`ventilationDeGit`) : la CI les porte (`fetch-depth: 0`, .github/workflows/ci.yml:26). La MESURE sur
 // le corpus réel se prouve ailleurs (`src/ui/ui-ratchets.test.ts`, cliquets (xxi)/(xxii)).
@@ -13,9 +13,11 @@ import {
   FEUILLES_PARTAGEES, feuillesPartageesDe, fichiersReutilises, ligneDeVentilation, manifesteDe,
   moduleHorsCouche, modulesExemptes, partitionCss, physique, reglesCss, valeurHorsEchelle, ventiler,
 } from './cssCouches.mjs'
-import { CHEMIN_STOCK_CSS, ventilationDeGit } from './cssImages.mjs'
+import { regenerations } from './cssCouchesAudit.ts'
+import { CHEMIN_STOCK_CSS, COLLECTIONS_VENTILEES, ventilationDeGit } from './cssImages.mjs'
 import { croissanceDesStocks } from './stocksNominatifs.mjs'
-import { ligneDEntree, refusDeCroissance, sitesEnEntrees } from './stock.mjs'
+import { refusDeCroissance, sitesEnEntrees } from './stock.mjs'
+import { FORMAT_MJS, texteRegenere } from './stockDeSites.mjs'
 
 test('reglesCss : règle de premier niveau — sélecteurs séparés, corps rendu, media nul', () => {
   assert.deepEqual(reglesCss('.a, .b > .c { color: red; gap: 4px }'), [
@@ -296,9 +298,12 @@ const stockDe = (img) => {
   const { stock } = partitionCss(img)
   return { identite: sitesEnEntrees(stock.identite), espacement: sitesEnEntrees(stock.espacement) }
 }
-/** Le texte d'un stock écrit (`ligneDEntree`), une collection par volet. */
-const texteDeStock = ({ identite, espacement }) =>
-  [['I', identite], ['E', espacement]].map(([nom, es]) => `export const ${nom} = [\n${es.map(ligneDEntree).join('\n')}\n]\n`).join('')
+/** Le texte d'un stock écrit par son format (`FORMAT_MJS`, `stockDeSites.mjs`), une collection par volet. */
+const texteDeStock = ({ identite, espacement }) => FORMAT_MJS.ecrire({
+  chemin: CHEMIN_STOCK_CSS,
+  horsCollections: ['export const I = ', '\nexport const E = ', '\n'],
+  collections: new Map([['I', identite], ['E', espacement]]),
+})
 
 test('D (#1806) : sur un changement de frontière, Σ CLIQUET du stock CSS = APPARU + RETOURNÉ', () => {
   const parent = image({ [P]: CSS, [X]: CSS }, P)
@@ -334,6 +339,37 @@ test('C (#1806) : l\'admission rend au stock les sites que HEAD portait, et refu
   const refus = juge(image({ [P]: CSS2, [X]: CSS }))
   assert.ok(refus?.includes(`${P} :: .f :: color`), String(refus))
   assert.ok(!refus.includes(`${P} :: .e :: color`), refus)
+})
+
+test('C (#1806) : la régénération du stock CSS admet le RETOURNÉ, refuse un site NEUF, et ne lit la ventilation qu’au refus', () => {
+  const tete = image({ [P]: CSS, [X]: CSS }, P)
+  const stockDeTete = stockDe(tete)
+  const enPlace = FORMAT_MJS.ecrire({
+    chemin: CHEMIN_STOCK_CSS,
+    horsCollections: [`export const ${COLLECTIONS_VENTILEES.identite} = `, `\nexport const ${COLLECTIONS_VENTILEES.espacement} = `, '\nexport const STYLE_INLINE_RATCHET = ', '\n'],
+    collections: new Map([[COLLECTIONS_VENTILEES.identite, stockDeTete.identite], [COLLECTIONS_VENTILEES.espacement, stockDeTete.espacement], ['STYLE_INLINE_RATCHET', []]]),
+  })
+  const regenere = (arbre, inline = []) => {
+    let lectures = 0
+    const retour = () => {
+      lectures++
+      return { ...ventiler(tete, arbre, { stockAvant: stockDeTete }), stockAvant: stockDeTete }
+    }
+    const [r] = regenerations({ ...partitionCss(arbre).stock, inline }, retour)
+    return { ...texteRegenere(r, { enPlace }), lectures }
+  }
+  const temoin = regenere(tete)
+  assert.deepEqual([temoin.refus, temoin.texte === enPlace, temoin.lectures], [undefined, true, 0], 'témoin : point fixe, aucune lecture')
+  const retourne = regenere(image({ [P]: CSS, [X]: CSS }))
+  assert.equal(retourne.refus, undefined, String(retourne.refus))
+  assert.ok(retourne.texte.includes(`fichier: '${P}', ref: '.e :: color'`), 'P quitte la zone : ses sites de HEAD entrent au stock')
+  assert.equal(retourne.lectures, 1, 'une lecture pour les deux volets')
+  const neuf = regenere(image({ [P]: CSS2, [X]: CSS }))
+  assert.ok(neuf.refus?.includes(`${P} :: .f :: color`), String(neuf.refus))
+  assert.ok(!neuf.refus.includes(`${P} :: .e :: color`), neuf.refus)
+  const inline = regenere(tete, [{ file: 'src/ui/A.tsx', ref: 'div :: expr' }])
+  assert.ok(inline.refus?.includes('STYLE_INLINE_RATCHET'), String(inline.refus))
+  assert.equal(inline.lectures, 0, 'le volet inline n’admet aucun retour')
 })
 
 test('ligneDeVentilation : SORTI décomposé, puis APPARU et RETOURNÉ', () => {

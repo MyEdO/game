@@ -912,6 +912,13 @@ export const estIgnore = (depot, chemin, { suivisCompris = false } = {}) =>
   lire(depot, ['check-ignore', '-q', ...(suivisCompris ? ['--no-index'] : []), '--', chemin]) !== null
 
 /**
+ * La valeur de l'attribut `nom` sur `chemin` (`check-attr -z`, `git help check-attr`) : la valeur
+ * posée, ou `unspecified`, `set`, `unset` ; `null` si git ne répond pas.
+ * @param {Depot} depot @param {string} chemin @param {string} nom @returns {string | null}
+ */
+export const attributDe = (depot, chemin, nom) => enregistrementsDe(depot, ['check-attr', nom, '--', chemin])[2] ?? null
+
+/**
  * Les WORKTREES du dépôt (`worktree list --porcelain -z`, `git help worktree`), le principal en tête
  * (`principal`) : `{ chemin, head, branche, principal, nu, verrouille, verrouillePour, prunable }`,
  * `branche` sans `refs/heads/` (`null` sous HEAD détaché), `verrouillePour`/`prunable` = la raison

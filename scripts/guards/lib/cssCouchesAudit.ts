@@ -1,10 +1,8 @@
 /**
  * MESURE des TROIS COUCHES CSS (#1800) — définition UNIQUE, partagée par les cliquets (xxi)/(xxii)
- * (`src/ui/ui-ratchets.test.ts`) et le régénérateur `scripts/ui/regen-css-couches-stock.mts`.
+ * (`src/ui/ui-ratchets.test.ts`) et la régénération de `cssCouchesStock.mjs` (`regenerations`).
  *
- * Trois classes de défaut, trois collections SÉPARÉES (jamais un champ `famille` : `regenStock.mts`
- * n'écrit que `{ fichier, ref, occurrence }`, et une famille mesurée mais jamais écrite rendrait
- * tout le stock neuf ET périmé à chaque run) :
+ * Trois classes de défaut, trois collections :
  *   1. IDENTITÉ en module d'ÉCRAN — une déclaration qui PEINT (couleur, bordure, police, rayon,
  *      ombre, curseur, transition…) là où seul le PLACEMENT est légitime ; elle appartient à une
  *      primitive, et se solde en la DÉPLAÇANT vers le module de sa primitive, jamais en effaçant
@@ -26,11 +24,14 @@
  * lecteur unique des hooks (`imageCss`, `cssImages.mjs`).
  */
 import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readCorpus } from './sourceCorpus.mjs';
-import { imageCss, sourceGit } from './cssImages.mjs';
+import { CHEMIN_STOCK_CSS, COLLECTIONS_VENTILEES, imageCss, sourceGit, ventilationDeGit } from './cssImages.mjs';
 import { TRAVAIL } from './gitPorte.mjs';
+import { DECROISSANT, type PolitiqueDeCroissance, type RegenerationDeStock } from './stockDeSites.mjs';
 import {
+  admisAuRetour,
   cleDeRegle,
   declarations,
   FEUILLES_PARTAGEES,
@@ -370,3 +371,47 @@ export const MOTIF_ESPACEMENT =
   "Un espacement se pose sur l'échelle `var(--sp-*)` de base.css, il ne s'entérine pas ici.";
 export const MOTIF_INLINE =
   "Une géométrie calculée se pose en VARIABLE CSS consommée par une classe (patron `.swatch`), elle ne s'entérine pas ici.";
+
+/** La ventilation `HEAD` → arbre de travail dont la régénération admet le RETOURNÉ. */
+export type RetourDeTete = () => ReturnType<typeof ventilationDeGit>;
+
+/**
+ * Politique `DECROISSANT` dont la croissance admise est le RETOURNÉ (#1806 C) : un volet ventilé
+ * (`COLLECTIONS_VENTILEES`) dont `DECROISSANT` refuse les entrées est rejugé sur son stock augmenté de
+ * `admisAuRetour` — les sites que `HEAD` portait et que son stock ne comptait pas, jamais un site neuf.
+ * `retour` n'est lu qu'à ce refus, une fois par politique. Le commit déclare le retourné par une ligne
+ * `CLIQUET:` du porteur.
+ */
+export function decroissantSaufRetourne(retour: RetourDeTete): PolitiqueDeCroissance {
+  const voletDe = new Map(Object.entries(COLLECTIONS_VENTILEES).map(([volet, nom]) => [nom, volet as keyof typeof COLLECTIONS_VENTILEES]));
+  let lu: ReturnType<RetourDeTete> | undefined;
+  const politique: PolitiqueDeCroissance = {
+    nom: 'DECROISSANT_SAUF_RETOURNE',
+    datee: false,
+    refus: (p) => {
+      const refus = DECROISSANT.refus(p);
+      const volet = voletDe.get(p.collection.nom);
+      if (refus === null || volet === undefined) return refus;
+      lu ??= retour();
+      const admis = admisAuRetour(p.entrees, lu.stockAvant[volet], lu[volet].retournes);
+      return DECROISSANT.refus({ ...p, stock: [...p.stock, ...admis] });
+    },
+  };
+  return Object.freeze(politique);
+}
+
+/** La RÉGÉNÉRATION de `cssCouchesStock.mjs`, ses trois collections sur UNE mesure (par défaut, celle du
+ *  corpus réel), sous `decroissantSaufRetourne` (par défaut, la ventilation `HEAD` → arbre). Commande :
+ *  `npx tsx scripts/guards/lib/regenStock.mts scripts/guards/lib/cssCouchesAudit.ts [--check] [--amorce]`. */
+export const regenerations = (
+  mesure: ReturnType<typeof mesureCssCouches> = mesureCssCouches(imageDuDisque(), composantsDuDisque()),
+  retour: RetourDeTete = () => ventilationDeGit({ cwd: RACINE, base: 'HEAD' }),
+): RegenerationDeStock[] => [{
+  chemin: resolve(RACINE, CHEMIN_STOCK_CSS),
+  politique: decroissantSaufRetourne(retour),
+  collections: [
+    { nom: COLLECTIONS_VENTILEES.identite, sites: mesure.identite, motif: MOTIF_IDENTITE },
+    { nom: COLLECTIONS_VENTILEES.espacement, sites: mesure.espacement, motif: MOTIF_ESPACEMENT },
+    { nom: 'STYLE_INLINE_RATCHET', sites: mesure.inline, motif: MOTIF_INLINE },
+  ],
+}];

@@ -5,7 +5,7 @@
 // couvre les slots de CORPS (tenues + armures) ; même patron whitelist-en-lib du dépôt.
 //
 // POURQUOI ces deux familles : elles ne passent pas par `resolveParts`. Leur repli est SILENCIEUX —
-// `pickView` (`parts/types.ts`) sert le front tel quel côté monstre ; côté éléments, le filtre
+// `viewOrFront` (`parts/types.ts`) sert le front tel quel côté monstre ; côté éléments, le filtre
 // `if (ov.view && ov.view !== view) continue` (`composeRig.tsx`) émet un overlay SANS `view` à
 // l'identique dans les trois vues. Aucun cliquet ne les mesurait.
 //
@@ -24,16 +24,16 @@
 //     l'occlusion n'est pas redessinée.
 //
 // La MESURE vit dans `scripts/guards/lib/partViewAudit.ts` (`auditRigPartViews`), partagée avec la
-// garde et le régénérateur `scripts/rig/regen-rig-view-stock.mts` — deux lectures du pipeline
-// divergeraient.
+// garde et la régénération (`regenerations`) — deux lectures du pipeline divergeraient.
 //
 // CLIQUET, pas absolution : la garde échoue (a) sur toute violation ABSENTE de ces listes ; (b) sur
 // toute entrée qui ne viole PLUS. Aucun PLAFOND : une entrée se solde en DESSINANT la vue, jamais en
 // allongeant la liste — et l'allonger se voit à la porte de plage, parce que l'entrée nomme son def.
 // La dimension TRANSFORM est un stock VIDE servi par la MÊME primitive : un cliquet tenu à zéro est
 // un cliquet (`stock.mjs`), il rend ses `neuves` sans assertion d'absence particulière.
-// Corps des trois listes GÉNÉRÉ par `npx tsx scripts/rig/regen-rig-view-stock.mts` : toute prose
-// posée ENTRE les entrées est mangée à la régénération, l'explication vit dans cet en-tête.
+// Corps des trois listes GÉNÉRÉ par
+// `npx tsx scripts/guards/lib/regenStock.mts scripts/guards/lib/partViewAudit.ts` : toute prose posée
+// ENTRE les entrées est mangée à la régénération, l'explication vit dans cet en-tête.
 //
 // Ampleur à la pose (2026-08-04) : MONSTRE — 24 defs (20 têtes, 2 bras, 2 jambes), 8 vues non
 // déclarées portées par 4 defs front-only (chèvre, fauve, griffe, tentacule = la totalité des slots
@@ -175,5 +175,4 @@ export const RIG_VIEW_ALIAS_RATCHET = [
   { fichier: 'src/gameIso/rig/parts/elements/defs/queue.ts', ref: 'element:queue:back', occurrence: 1 },
 ]
 
-export const RIG_VIEW_TRANSFORM_RATCHET = [
-]
+export const RIG_VIEW_TRANSFORM_RATCHET = []

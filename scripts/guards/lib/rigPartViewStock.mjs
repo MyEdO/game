@@ -3,8 +3,8 @@
 // (`folioRatchetStock.mjs`, `rollSeamWhitelist.mjs`).
 //
 // FORMAT : un slot de CORPS se fournit en TROIS vues `{front, profile, back}`.
-// Le discriminant est celui du PIPELINE lui-même (`hasProfileView`/`hasBackView`, `parts/resolve.ts`) —
-// la garde l'importe, elle n'en réplique pas la définition.
+// Le discriminant est celui du PIPELINE lui-même (`declaredView`, `viewArt.ts`, lu par `isDrawnView`,
+// `partViewAudit.ts`) — la garde l'importe, elle n'en réplique pas la définition.
 //
 // PÉRIMÈTRE : les DEUX registres qui alimentent les slots de corps de `resolveParts` — les TENUES
 // (clé `<tenueId>:<slot>`) et les ARMURES (clé `armure:<materiau>:<slot>`). L'armure PRIME sur la
@@ -19,11 +19,11 @@
 // l'entrée nommée qui le dit — la garde compare par `ecartDuVolet` (neuves ET périmées).
 //
 // --- PART_VIEW_RATCHET : slots fournis en `string` FRONT-ONLY ---
-// Corps GÉNÉRÉ par `npx tsx scripts/rig/regen-part-view-stock.mts` (DÉCROISSANT-SEULEMENT : il
-// refuse SITE PAR SITE, `refusDeCroissance`). Toute prose posée ENTRE les entrées est mangée à la
+// Corps GÉNÉRÉ par `npx tsx scripts/guards/lib/regenStock.mts scripts/guards/lib/partViewAudit.ts`
+// (politique `DECROISSANT` : elle refuse SITE PAR SITE, `refusDeCroissance`). Toute prose posée ENTRE les entrées est mangée à la
 // régénération — l'explication vit dans cet en-tête.
 // Le dégât MESURÉ par `resolveParts` (le chemin réel), pas supposé, tient à deux mécanismes selon le slot :
-//   - `bras` (78 clés) : `resolve.ts` ne substitue RIEN sur ce slot — `pickView` retombe sur `front`,
+//   - `bras` (78 clés) : `resolve.ts` ne substitue RIEN sur ce slot — `viewOrFront` retombe sur `front`,
 //     donc l'art de FACE est servi VERBATIM de profil et de dos (« FRONT PLAQUE »).
 //   - `torse`/`jambes`/`tete` (89 clés) : `resolve.ts` invente une silhouette générique
 //     (`PROFILE_TORSE`/`BACK_JAMBE`…) teintée par `dominantCloth` — l'art de la tenue est IGNORÉ.

@@ -1,5 +1,5 @@
 /**
- * PRÉSÉANCE objet/porteur et dégradé dérivé (#1903 D2). Question : une clé de sorte porteur (`@peau`,
+ * PRÉSÉANCE objet/porteur et dégradé dérivé (#1903). Question : une clé de sorte porteur (`@peau`,
  * ou un `dg-` qui en contient une) peinte par un OBJET se résout-elle sur le porteur qui le tient ?
  * Primitive : `tableDObjet` (passe d'objet) puis `buildTokenMap` (passe du porteur), `applyTokenMap`
  * pour les deux. Le rendu final entièrement résolu : `references-degrade.test.ts` (0).
@@ -7,7 +7,8 @@
 import { afterEach, describe, it, expect } from 'vitest';
 import { resolveRig } from '../composeRig';
 import { bonesToSvg } from '../renderBones';
-import { buildTokenMap } from '../palette';
+import { buildTokenMap, tokensOf } from '../palette';
+import { declaredView, viewEntries } from '../viewArt';
 import { couchesDuRig } from './career';
 import { racePalette } from '../races';
 import { weaponPart, shieldPart, armourPart, objetSansPorteur } from './equipment';
@@ -18,14 +19,15 @@ import { asRigSpeciesId } from '../appearance';
 import type { ItemInstance, Weapon } from '../../../engine/types';
 import type { PartArt } from './types';
 
-const ARO = /@[a-zA-Z]/;
 const HUMAIN = asRigSpeciesId('humain');
 const LOCS = ['tete', 'corps', 'brasG', 'brasD', 'jambeG', 'jambeD'];
 const arme = (shape: string) => ({ label: shape, type: 'melee', damage: { plusBF: false, flat: 0 }, qualities: [], shape }) as unknown as Weapon;
 const plaque = (skin?: Record<string, string>) => ({ uid: 'p', kind: 'armor', label: 'Plastron de plaque', locs: LOCS, equipped: true, qualities: [], enc: 0, ...(skin && { skin }) }) as unknown as ItemInstance;
-const vues = (a: PartArt) => (typeof a === 'string' ? [a] : [a.front, a.back, a.profile].filter((v): v is string => v != null));
+const vues = (a: PartArt) => viewEntries(a).map(([, s]) => s);
+/** Vrai si le texte porte un jeton `@clé`. */
+const aUnJeton = (s: string) => tokensOf(s).length > 0;
 
-describe('préséance objet/porteur (#1903 D2)', () => {
+describe('préséance objet/porteur (#1903)', () => {
   it('un poing tenu par un porteur à peau #3a2a1a peint le dégradé dérivé de CETTE peau', () => {
     const app = { species: HUMAIN, sex: 'M' as const, build: 0.5, seed: 1, colors: { peau: '#3a2a1a' } };
     const t = buildTokenMap(couchesDuRig(racePalette('humain', 'M'), 'nu'), app.colors);
@@ -41,11 +43,11 @@ describe('préséance objet/porteur (#1903 D2)', () => {
 
   it('un objet rendu SANS porteur ne garde aucun `@` ni `dg-` à `@` (armes, boucliers, armures)', () => {
     const fautes: string[] = [];
-    for (const d of WEAPON_DEFS) if (vues(objetSansPorteur(weaponPart(arme(d.slug)))).some((v) => ARO.test(v))) fautes.push(`arme:${d.slug}`);
-    for (const d of SHIELD_DEFS) if (vues(objetSansPorteur(shieldPart({ ...arme('bouclier'), shape: d.slug }))).some((v) => ARO.test(v))) fautes.push(`bouclier:${d.slug}`);
+    for (const d of WEAPON_DEFS) if (vues(objetSansPorteur(weaponPart(arme(d.slug)))).some(aUnJeton)) fautes.push(`arme:${d.slug}`);
+    for (const d of SHIELD_DEFS) if (vues(objetSansPorteur(shieldPart({ ...arme('bouclier'), shape: d.slug }))).some(aUnJeton)) fautes.push(`bouclier:${d.slug}`);
     for (const slot of ['tete', 'torse', 'bras', 'jambes'] as const) {
       const p = armourPart(plaque(), slot);
-      if (p && vues(objetSansPorteur(p)).some((v) => ARO.test(v))) fautes.push(`armure:plaque:${slot}`);
+      if (p && vues(objetSansPorteur(p)).some(aUnJeton)) fautes.push(`armure:plaque:${slot}`);
     }
     expect(fautes).toEqual([]);
     const poing = vues(objetSansPorteur(weaponPart(arme('poing')))).join('');
@@ -59,8 +61,8 @@ describe('préséance objet/porteur (#1903 D2)', () => {
 
     it('un seul `<linearGradient>` par id et par fragment, contenu identique partout', () => {
       const dg = '<path d="M0 0h4v4z" fill="url(#dg-v3-@metalH-@metal-@metalO)" stroke="@peau"/>';
-      ARMOUR.plaque.bras = dg + (typeof avant.bras === 'string' ? avant.bras : avant.bras?.front ?? '');
-      ARMOUR.plaque.torse = dg + (typeof avant.torse === 'string' ? avant.torse : avant.torse?.front ?? '');
+      ARMOUR.plaque.bras = dg + (declaredView(avant.bras, 'front') ?? '');
+      ARMOUR.plaque.torse = dg + (declaredView(avant.torse, 'front') ?? '');
       const bones = resolveRig({ species: HUMAIN, sex: 'M', build: 0.5, seed: 1 }, { weapons: [], armour: [plaque({ metal: '#ff0000' })] }, {}, 'soldat', 'front');
       const contenus = new Map<string, Set<string>>();
       let vus = 0;
@@ -72,7 +74,7 @@ describe('préséance objet/porteur (#1903 D2)', () => {
       }
       expect(vus).toBeGreaterThan(0);
       for (const [id, s] of contenus) expect(s.size, id).toBe(1);
-      expect(bonesToSvg(bones)).not.toMatch(ARO);
+      expect(tokensOf(bonesToSvg(bones))).toEqual([]);
     });
   });
 });

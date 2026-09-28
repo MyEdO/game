@@ -2,7 +2,7 @@ import type { PropViz } from '../../types';
 import { P } from '../../decorPalette';
 
 // Canapé capitonné de velours et dorures : le siège d'honneur de la LOGE ROYALE (30) et du Salon des
-// Seigneurs (39) du théâtre. Prop DIRECTIONNEL (1×1) : il déclare ses trois vues ; la machinerie
+// Seigneurs (39) du théâtre. Prop ORIENTÉ (1×1) : il déclare ses trois vues ; la machinerie
 // (`propSvg`) choisit la vue + le miroir via `project(dir, camRot)` (cf. `PropViz.views`). Le profil est
 // dessiné tourné vers la DROITE — le profil gauche = miroir. Cf. plan officiel NADJ 08 folio 39 (image).
 const front = (cx: number) =>

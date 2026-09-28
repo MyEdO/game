@@ -1,8 +1,9 @@
 // STOCK CLIQUETÉ des SIGNATURES HORS STRATE des documents authorés (#1463 L0, #1727 T0d) — consommé
 // par la garde `src/data/structures-contrat.test.ts`. La MESURE vit dans `scannerDonnees`
 // (`scripts/docs/lib/structures-scan.mts`, champ `invisibles`), traduite en SITES par
-// `horsStrateAudit.ts`, partagée avec le régénérateur
-// `npx tsx scripts/data/regen-hors-strate-stock.mts` (DÉCROISSANT-SEULEMENT, refus SITE PAR SITE).
+// `horsStrateAudit.ts`, partagée avec sa régénération,
+// `npx tsx scripts/guards/lib/regenStock.mts scripts/guards/lib/horsStrateAudit.ts` (politique `DECROISSANT`,
+// refus SITE PAR SITE).
 //
 // FORME DES ENTRÉES — `{ fichier, ref, occurrence }`, la forme UNIQUE de tout stock nominatif du
 // dépôt (`cleDeSite`, `scripts/guards/lib/stock.mjs`) : `fichier` = le document à OUVRIR, à son
@@ -222,7 +223,7 @@ export const HORS_STRATE_RATCHET = [
   { fichier: 'src/data/etats.json', ref: 'passive | amount,hearingOnly,op', occurrence: 1 },
   { fichier: 'src/data/etats.json', ref: 'passive | amount,movementOnly,op', occurrence: 1 },
   { fichier: 'src/data/etats.json', ref: 'passive | amount,op', occurrence: 1 },
-  { fichier: 'src/data/etats.json', ref: 'recover | characteristic,enjeu,form,opposedBy', occurrence: 1 }, // characteristic,opposedBy → +enjeu,form (#1920 B14, 2026-09-24) : l'enjeu de récupération se porte sur l'État
+  { fichier: 'src/data/etats.json', ref: 'recover | characteristic,enjeu,form,opposedBy', occurrence: 1 },
   { fichier: 'src/data/etats.json', ref: 'steps | cond,kind,then', occurrence: 1 },
   { fichier: 'src/data/etats.json', ref: 'steps | effect,kind', occurrence: 1 },
   { fichier: 'src/data/etats.json', ref: 'subject | field,who', occurrence: 1 },

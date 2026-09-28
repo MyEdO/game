@@ -73,7 +73,7 @@ describe('computeVerdict — clause quasi-blanc (#638 volet B)', () => {
     expect(raisons).toEqual(["légitime: pas d'art de tenue au slot"]);
   });
 
-  it('matière introuvable MAIS slot AVEC art de tenue (gradient/littéral non tokenisé) → ECHEC couverture', () => {
+  it('matière introuvable MAIS slot AVEC art de tenue (dégradé/littéral hors jetons) → ECHEC couverture', () => {
     const { verdict, raisons } = computeVerdict({
       pixels: 500, matiere: null, lBase: null, lLumiere: null,
       ecart: 0, partClaire: null, partSombre: null,

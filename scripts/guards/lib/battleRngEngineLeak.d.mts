@@ -1,16 +1,12 @@
-import type { SourceFile } from 'typescript';
-
 export interface EngineLeakFinding {
   line: number;
   name: string;
   detail: string;
 }
 
-export function collectEngineImportNames(contenu: string): string[];
-/** Contexte d'un passage de scan : AST des modules moteur et décisions, tenus par l'appelant. */
+/** Contexte d'un passage de scan : la table des résolveurs à RNG, tenue par l'appelant. */
 export interface ContexteDeScanRng {
-  sources: Map<string, SourceFile>;
-  decisions: Map<string, boolean>;
+  resolveurs: Record<string, string[]> | null;
 }
 export function contexteDeScanRng(): ContexteDeScanRng;
 export function scanBattleRngEngineLeak(relPath: string, contenu: string, ctx?: ContexteDeScanRng): EngineLeakFinding[];

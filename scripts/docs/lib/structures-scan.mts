@@ -73,7 +73,7 @@ export type Document = { racine: string; chemin: string; nom: string };
 export const nomDeDocument = (file: string): string => file.split(/[\\/]/).pop() ?? file;
 
 /**
- * Bornes de la table EXHAUSTIVE des signatures hors strate dans `docs/structures-donnees.md`.
+ * Bornes de la table COMPLÈTE des signatures hors strate dans `docs/structures-donnees.md`.
  * Le doc est la LISTE DE RÉFÉRENCE du cliquet de `src/data/structures-contrat.test.ts` : le
  * générateur pose les bornes, la garde lit entre elles.
  */
@@ -394,7 +394,7 @@ const trieCles = (cles: Map<string, CleNiveau1>): CleNiveau1[] =>
 /**
  * Graphies dont la valeur n'est PAS un id (objet enveloppé, texte narratif) : un objet dont la
  * signature n'est faite QUE de celles-là est une forme de référence même quand rien ne résout —
- * `{wildcard:{…}}`, `{choice:[…]}`, `{text:"…"}` (#1463, arbitrage de design L0, point 4).
+ * `{wildcard:{…}}`, `{choice:[…]}`, `{text:"…"}` (#1463).
  */
 const GRAPHIES_SANS_ID: ReadonlySet<string> = new Set<string>([...GRAPHIES_ENVELOPPANTES, 'text']);
 
@@ -706,7 +706,7 @@ export function scannerDonnees(
   const clesEnveloppe = new Map<string, number>();
   const groupes = new Map<string, { groupe: GroupeEnveloppe; cles: Map<string, CleNiveau1> }>();
   const ops = new Map<string, number>();
-  /** Documents portant au moins une clé `source` à une profondeur quelconque (T3, lot L1d #1469). */
+  /** Documents portant au moins une clé `source` à une profondeur quelconque (T3, #1469). */
   const docsAvecSource = new Set<string>();
   const conditionsAvecOp = new Map<string, number>();
   const conditionsSansOp = new Map<string, number>();
@@ -1135,8 +1135,8 @@ export function scanDuCorpus(root: string) {
 }
 
 /**
- * Divergences d'ENVELOPPE, une ligne par (rôle, clé, motif, document, chemin) — le dénominateur du
- * lot L1b (#1467). Quatre motifs :
+ * Divergences d'ENVELOPPE, une ligne par (rôle, clé, motif, document, chemin) — le dénominateur de
+ * #1467. Quatre motifs :
  *   `clé divergente`  — le rôle est porté sous un autre nom que sa cible (`key`/`nom` pour l'identité) ;
  *   `type divergent`  — la clé cible est là, sa classe de type ne l'est pas (`source` en chaîne) ;
  *   `clé absente`     — une ENTRÉE DE RACINE ne porte nulle part la clé cible d'un rôle requis

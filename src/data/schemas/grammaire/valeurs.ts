@@ -4,6 +4,7 @@
  * variante réglée, recette de détail. Aucune dépendance à la MÉCANIQUE : sous la grammaire, ce
  * fichier ne compose que la RÉFÉRENCE (`refOuSpec`).
  */
+import { tableTotale } from '../../../lib/tableTotale';
 import { z } from 'zod';
 import { AVAILABILITIES, COUVERT_DIFFICULTES, REACH_LABELS, REACH_VARIABLE, STAKE_FORMS } from '../../../engine/types';
 import { GAMMES_PORTEUR, SLOTS } from '../../palette.types';
@@ -168,9 +169,9 @@ export const sourceRefSchema = z.strictObject({
   book: z.string(),
   page: z.number(),
   /** Précision optionnelle (ch./l. du passage, portée VERBATIM…). Aucune LOGIQUE DE JEU ne la lit ;
-   *  une GARDE la lit désormais : quand elle est de la forme `<ABRÉV> <ch> l.<ligne>`,
+   *  une GARDE la lit : quand elle est de la forme `<ABRÉV> <ch> l.<ligne>`,
    *  `scripts/guards/lib/folioLineAlign.mjs` la confronte au marqueur `data-folio` qui gouverne cette
-   *  ligne — `page` et `note` doivent désigner le même endroit (#1318 E8). Toute autre forme est
+   *  ligne — `page` et `note` doivent désigner le même endroit (#1318). Toute autre forme est
    *  ignorée par la garde (aucune contrainte de saisie ajoutée). */
   note: z.string().optional(),
 });
@@ -403,13 +404,13 @@ export const variantWhenSchema = z.strictObject({ rule: z.string(), equals: rule
  * `src/engine/variants.ts`) — un champ absent de la variante est hérité de l'entrée de base, un champ
  * présent remplace celui de base EN ENTIER (le livre republie l'entrée entière ; aucune fusion profonde
  * implicite). `desc`/`source` d'une variante portent la règle stricte 5 (verbatim + folio) comme
- * l'ancre — `folioIntegrity.mjs:citedEntriesOf` les découvre déjà à toute profondeur (#563 Lot 3).
+ * l'ancre — `folioIntegrity.mjs:citedEntriesOf` les découvre déjà à toute profondeur (#563).
  */
 export function variantOf<T extends z.ZodRawShape, K extends Extract<keyof T, string>>(
   entrySchema: z.ZodObject<T>,
   resolved: readonly K[],
 ) {
-  const mask = Object.fromEntries(resolved.map((k) => [k, true]));
+  const mask = tableTotale(resolved, () => true);
   const picked = entrySchema.pick(mask as Parameters<typeof entrySchema.pick>[0]) as unknown as z.ZodObject<Pick<T, K>>;
   return picked.partial().extend({ when: variantWhenSchema });
 }
@@ -530,7 +531,7 @@ export const sizeCategorySchema = enumNomme({
 });
 
 /** Couleur `#rrggbb` en minuscules, la SEULE graphie de couleur du dépôt : toute couleur persistée, dont
- *  chaque surcharge de palette du rig (`buildTokenMap`/`tableDObjet`, #1903 A6). */
+ *  chaque surcharge de palette du rig (`buildTokenMap`/`tableDObjet`, #1903). */
 export const couleurHexSchema = z.string().regex(/^#[0-9a-f]{6}$/, 'couleur hexadécimale « #rrggbb » attendue');
 
 /** SURCHARGE de palette persistée (`Palette`, `src/gameIso/rig/palette.ts`) : clés dans `SLOTS`, valeurs
@@ -540,7 +541,7 @@ export const couleurHexSchema = z.string().regex(/^#[0-9a-f]{6}$/, 'couleur hexa
 export const surchargePaletteSchema = z.partialRecord(z.enum(SLOTS), couleurHexSchema);
 
 /** Palette d'ESPÈCE persistée (`raceAppearance.palette`/`paletteF`, `PaletteDEspece`) : clés dans
- *  `GAMMES_PORTEUR` (base, ombre, lumière des clés `PORTEUR`), valeurs `couleurHexSchema` (#1903 B2).
+ *  `GAMMES_PORTEUR` (base, ombre, lumière des clés `PORTEUR`), valeurs `couleurHexSchema` (#1903).
  *  Structure seule : une déclaration sans effet de rendu est jugée par la porte du rig. */
 export const paletteDEspeceSchema = z.partialRecord(z.enum(GAMMES_PORTEUR), couleurHexSchema);
 

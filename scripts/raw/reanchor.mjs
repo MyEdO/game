@@ -19,9 +19,10 @@
 //     (`scripts/raw/reanchor-low-stock.json`, écart `ecartDuVolet` de `scripts/guards/lib/stock.mjs`, clé
 //     `fiche :: réf citée :: occurrence`) : un site NEUF est une régression à corriger ou à déclarer,
 //     une entrée dont le site a disparu est une dette SOLDÉE à retirer. L'entrée nomme sa fiche
-//     `docs/raw/<x>.md` : l'ajouter est une croissance que la porte de plage compte. Stock soldé
-//     (#1898) : fichier ABSENT en régime nominal → tolérance ZÉRO (`readStock` traite un fichier
-//     absent comme zéro entrée) ; un résidu IRRÉDUCTIBLE recrée le stock à sa mesure MINIMALE.
+//     `docs/raw/<x>.md` : l'ajouter est une croissance que la porte de plage compte (#1898). Soldé,
+//     le stock est un fichier ABSENT, lu comme zéro entrée (`lireEntreesDeSite`) : tolérance ZÉRO.
+//     Il se régénère par `npx tsx scripts/guards/lib/regenStock.mts scripts/raw/reanchor.mjs` ; un
+//     site différé y entre par `--lot <#N>`, et un solde total retire le fichier.
 //   - ⛔ PAST-EOF (hors-fichier) : NE PAS doubler — déjà cliqueté par `check-refs.mjs`
 //     (`dead-refs-stock.json`), sur la borne HAUTE dépliée d'une plage (`span`), un sur-ensemble
 //     de la borne de départ vérifiée ici.
@@ -32,7 +33,7 @@ import { fileURLToPath } from 'node:url'
 import { allAbbrAlternation, chapterFile, livreDuSigle, normalize, ELLIPSIS_SENTINEL as SENT, pagesDeLAtlas, readText } from './_lib.mjs'
 import { graphieDuFichier } from '../../src/data/source/decoupe.ts'
 import { ecartDuVolet } from '../guards/lib/stock.mjs'
-import { readStock } from './stockNominatif.mjs'
+import { SOUS_LOT, lireEntreesDeSite } from '../guards/lib/stockDeSites.mjs'
 import { ecrireOuVerifier } from '../docs/lib/empreinte-sources.mjs'
 import { carteDuFichier, destinEnTexte } from './lib/carte-lignes.mjs'
 
@@ -49,6 +50,13 @@ export const LOW_STOCK_PATH = join(dirname(fileURLToPath(import.meta.url)), 'rea
 // Sites LOW observés → sites du stock : la FICHE où la réf est lue (chemin depuis la racine du dépôt,
 // c'est lui que la porte de plage reconnaît) et la RÉF CITÉE telle qu'écrite (`full`).
 export const sitesLow = (lowRows) => lowRows.map((r) => ({ file: r.doc, ref: r.full }))
+const QUOI =
+  'Réfs FAUSSES (❌ LOW) de l’Atlas RAW (`scripts/raw/reanchor.mjs`, #434) : une citation verbatim ' +
+  '« … » introuvable à la ligne que sa réf `<ABRÉV> NN l.X` annonce. Une ENTRÉE par SITE, clé ' +
+  '`fichier :: ref :: occurrence` (régime #1711) ; `fichier` = la fiche `docs/raw/<x>.md` où la réf ' +
+  'est lue, `ref` = la réf citée telle qu’écrite. Une entrée se solde en lisant le `Source/` et en ' +
+  'réancrant la réf (ou la citation) ; le fichier se régénère par ' +
+  '`npx tsx scripts/guards/lib/regenStock.mts scripts/raw/reanchor.mjs`, et un solde total le retire.'
 // Acceptation DÉCLARÉE à la couture : fiches de DOMAINE et catalogues SEULS. Les rapports générés,
 // les pages d'AUTEUR (index, conventions) et les épreuves DATÉES portent des réfs ILLUSTRATIVES,
 // jamais des citations vivantes à ré-ancrer.
@@ -321,6 +329,15 @@ export function scan(rawDir = RAWDIR, { apply = false, remap = false, classes = 
   return { DOCS, tally, sections, lowRows, nonRemappees, totalRefs, totalQuotes, appliedTotal, remappedTotal }
 }
 
+/** La RÉGÉNÉRATION du stock des réfs FAUSSES (`RegenerationDeStock`, `stockDeSites.mjs`), sur des
+ *  sites LOW (par défaut, ceux du balayage de l'Atlas). */
+export const regenerations = (lowRows = scan().lowRows) => [{
+  chemin: LOW_STOCK_PATH,
+  politique: SOUS_LOT,
+  horsCollections: QUOI,
+  collections: [{ nom: 'entrees', sites: sitesLow(lowRows) }],
+}]
+
 // ---------- rapport Markdown (aucun effet de bord de `scan` — écrit ici uniquement) ----------
 function buildReport(result) {
   const { DOCS, tally, sections, totalRefs, totalQuotes } = result
@@ -372,7 +389,7 @@ function main() {
     fail = true
   }
   const { neuves, perimees } = ecartDuVolet({
-    sites: sitesLow(lowRows), stock: readStock(LOW_STOCK_PATH), ou: 'reanchor-low-stock.json',
+    sites: sitesLow(lowRows), stock: lireEntreesDeSite(LOW_STOCK_PATH), ou: 'reanchor-low-stock.json',
   })
   if (neuves.length) {
     console.log('RÉGRESSION — site(s) de réf FAUSSE (❌ LOW) hors du stock :')

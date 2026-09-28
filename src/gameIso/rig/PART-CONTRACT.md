@@ -2,20 +2,21 @@
 
 Spec à respecter pour dessiner une **part** SVG du rig (cosmétique, tenue, armure, arme).
 Le placement des OS (pivots/longueurs, canon d'emboîtement art⇄squelette) vit dans
-`SKELETON-CONTRACT.md` (#633 P3) — les étendues par slot ci-dessous en sont le pendant côté art.
+`SKELETON-CONTRACT.md` (#633) — les étendues par slot ci-dessous en sont le pendant côté art.
 Le § FORMAT ci-dessous ne couvre pas tous ces registres : il dit son périmètre exact.
 Toute part est un fragment SVG (sans `<svg>` wrapper) attaché à un **os** ; le rendu la place
 via la matrice monde de l'os puis l'échelonne par `(sx, sy) = thickness/réf, length/réf`.
 
-## FORMAT — `ViewSet` TOTAL par slot de corps (contrat cible)
+## FORMAT — `ViewSet` TOTAL par slot de corps
 
 Un slot de **corps** (`tete` / `torse` / `jambes` / `bras` / `avantBras`) se résout, au runtime, en un
-**`ViewSet` TOTAL** (`parts/types.ts`) : `{ front, back, profile }` — les trois vues sont
-**GARANTIES**. L'accès se fait par `pickBodyView(art, view)` = `art[view]`, **sans repli** : une vue
-manquante est une **erreur de compile**, plus jamais un `?? art.front` silencieux. (La forme
-`PartArt` = `string | { front, back?, profile? }` survit pour les registres à **repli DÉCLARÉ** —
-armes, boucliers, appendices, têtes de race, injections monstrueuses — servis par `pickView` ;
-elle n'est **plus** la porte de sortie des slots de corps.)
+**`ViewSet` TOTAL** (`parts/types.ts`, `Record<View, string>`) — les trois vues de `VIEWS`
+(`facing.ts`) sont **GARANTIES**. L'accès à un `ViewSet` est `art[view]`, **sans repli** : une vue
+manquante est une **erreur de compile**. La lecture d'une vue d'un art orienté sans repli passe par
+`declaredView` (`viewArt.ts`) ; le repli d'un `PartArt` sur sa face, par `viewOrFront`
+(`parts/types.ts`). La forme `PartArt` = `string | (Pick<ViewSet, 'front'> & Partial<ViewSet>)` sert
+les registres à **repli DÉCLARÉ** — armes, boucliers, appendices, têtes de race, injections
+monstrueuses — et les defs de corps avant leur ingestion.
 
 Les **defs** de tenues/armures déclarent un `PartArt` partiel (`string` front-only, ou objet à vues
 partielles) ; `resolveParts` (`parts/resolve.ts`) les totalise en `ViewSet` **au point d'ingestion**,
@@ -26,47 +27,51 @@ par `toViewSet(slot, art, opts)` (`parts/derive.ts`) :
 | `front` | l'art fourni (string, ou `art.front`) |
 | `profile` / `back` | la vue **DÉCLARÉE** du def si présente ; **sinon DÉRIVÉE** du front (`deriveViews`) |
 
-La **dérivation** (`parts/derive.ts`, décision **D3** : ces helpers sont destinés à être
-**matérialisés dans les defs** — un def porte à terme ses 3 vraies vues, plus de dérivation runtime) :
+La **dérivation** (`parts/derive.ts`, décision **D3**) :
 
 | Slot dérivé | Helper | Sortie |
 |---|---|---|
-| `torse` / `jambes` / `tete` | `deriveViews` (`PROFILE_TORSE`/`BACK_JAMBE`…) | silhouette générique en TOKENS du tissu dominant (`dominantCloth`) — **le front n'est jamais plaqué** |
-| `bras` / `avantBras` | `derive{Profile,Back}Bras` / `derive{Profile,Back}AvantBras` (**neufs**) | vraie silhouette de profil/dos, scindée au coude (#633 D1) — fin du **front plaqué** (défaut historique du slot `bras`) |
+| `torse` / `jambes` / `tete` | `deriveViews` (`PROFILE_TORSE`/`BACK_JAMBE`…) | silhouette générique en JETONS du tissu dominant (`dominantCloth`) — **le front n'est jamais plaqué** |
+| `bras` / `avantBras` | `derive{Profile,Back}Bras` / `derive{Profile,Back}AvantBras` | vraie silhouette de profil/dos, scindée au coude (#633 D1) — le front du slot `bras` n'est pas plaqué |
 
-> Les helpers peignent en **tokens existants** (`@vet1`/`@cuir`/`@peau`…) — jamais un hex neuf.
+`toViewSet` matérialise en `ViewSet` TOTAL, à l'ingestion par `resolveParts`, les vues qu'un
+`PartArt` de corps ne déclare pas : face = art fourni ; dos et profil = déclarés, sinon dérivés
+(#2000).
 
-### Décisions cadrant les phases suivantes
+> Les helpers peignent en **jetons de palette** (`@vet1`/`@cuir`/`@peau`…) — jamais un hex littéral.
+> Un jeton se lit par `tokensOf` et se substitue par `replaceTokens` (`palette.ts`, motif `TOKEN_RE`) ;
+> la clé d'un rôle de gamme est `gammeDe` et la base d'une clé, `baseDeGamme` (`src/data/palette.types.ts`).
 
-- **D1** — le bras est **scindé au coude** (bras + avant-bras) : **livré (P0, #633)**. `bras` =
-  épaule→coude (os `epauleG/D`, y −2..+18) ; `avantBras` = coude→poignet (os `avantBrasG/D`,
-  y 0..+16, ré-origine au pivot du coude). La vraie main (`HAND`, `resolve.ts`) s'emboîte au
-  poignet réel (`main.pivot.y = avantBras.length = 18`) — le moignon `WRIST` est mort. Les
-  tenues/armures non recoupées gardent leur art de bras ENTIER sur l'os épaule + une silhouette
-  d'avant-bras dérivée (pas de trou) : leur recoupe est P4.
-- **D2** — les **armes** porteront **3 vraies vues** : *à venir* (P4) ; aujourd'hui `arme`/`bouclier`
-  sont front-only, plaqués verbatim de profil/dos (hors périmètre P1, cf. ci-dessous).
-- **D3** — les helpers `derive*` sont **matérialisés dans les defs** : le shim P1 est l'étape de
-  transition ; en P3 les defs portent leurs vues et `toViewSet` disparaît.
-- **D4** — **pas de visage de dos** : **livré P2** (#633) — `cosmeticPart` sert `{ front: visage,
-  back: BACK_CRANE (crâne plein, même empreinte que le disque visage front, surchargeable par
-  `HeadDef.crane`), profile: PROFILE_FACE }`. Le **corps de base garanti crâne+cou** est également
-  livré P2 : le slot `cou` (os `cou`, `NECK` de `resolve.ts`) est TOUJOURS résolu, indépendant de la
-  tenue/coiffure ; `cou.z` (skeletons.ts) est sous le torse — un col de tenue le couvre par le tri
-  du peintre, sans patch par tenue (l'ancien cas spécial `composeRig.tsx` visage/back est retiré).
+### Décisions D1 à D4 (#633)
+
+- **D1** — le bras est **scindé au coude** (bras + avant-bras). `bras` = épaule→coude (os
+  `epauleG/D`, y −2..+18) ; `avantBras` = coude→poignet (os `avantBrasG/D`, y 0..+16, ré-origine au
+  pivot du coude). La vraie main (`HAND`, `resolve.ts`) s'emboîte au poignet réel
+  (`main.pivot.y = avantBras.length = 18`). Les tenues/armures non recoupées gardent leur art de
+  bras ENTIER sur l'os épaule + une silhouette d'avant-bras dérivée (pas de trou).
+- **D2** — `arme`/`bouclier` sont front-only, plaqués de profil et de dos par `viewOrFront`
+  (cf. ci-dessous).
+- **D3** — les helpers `derive*` dérivent au runtime, à l'ingestion (`toViewSet`), les vues de corps
+  qu'un def ne dessine pas.
+- **D4** — **pas de visage de dos** : `cosmeticPart` sert `{ front: visage, back: BACK_CRANE (crâne
+  plein, même empreinte que le disque visage front, surchargeable par `HeadDef.crane`), profile:
+  PROFILE_FACE }`. Le **corps de base garanti crâne+cou** : le slot `cou` (os `cou`, `NECK` de
+  `resolve.ts`) est TOUJOURS résolu, indépendant de la tenue/coiffure ; `cou.z` (skeletons.ts) est
+  sous le torse — un col de tenue le couvre par le tri du peintre, sans patch par tenue.
 
 ### Des 3 vues aux 8 directions
 
 Une part n'est dessinée qu'en **3 vues** (`front` / `profile` / `back`) ; le **profil est tourné vers
 la droite**, le profil gauche s'obtient par **MIROIR** dans la machinerie de rendu (jamais dans l'art).
 La sélection vue+miroir pour une orientation monde `Dir8` et un cran caméra vient de l'unique
-résolveur `project(dir8, camRot)` (`facing.ts`, **inchangé**) → 8 directions couvertes par 3 vues + un
+résolveur `project(dir8, camRot)` (`facing.ts`, qui déclare aussi `VIEWS`) → 8 directions couvertes par 3 vues + un
 flip horizontal.
 
 ### Périmètre GARDÉ (et ce qui ne l'est pas)
 
 Le **cliquet de format** (`parts/tenues/part-view-format.test.ts`) mesure, sur les **defs bruts**,
-lesquels ne portent **pas encore** leurs 3 vraies vues (dette à solder en dessinant) :
+les slots front-only, sans leurs 3 vraies vues — la dette du stock `PART_VIEW_RATCHET`, soldée en
+dessinant :
 
 | Registre | Clé de stock | Gardé |
 |---|---|---|
@@ -76,11 +81,11 @@ lesquels ne portent **pas encore** leurs 3 vraies vues (dette à solder en dessi
 Registres **hors** garde :
 
 - **Armes** (`parts/weapons/defs/`) et **boucliers** (`parts/shields/defs/`) — slots `arme`/`bouclier`,
-  qu'aucun `ViewSet` ne couvre en P1 : un art front-only y est **plaqué verbatim** de profil et de dos
-  (via `pickView`). Mesuré 2026-07-17 : **89 des 90** formes d'arme et **4 des 4** boucliers sont
-  front-only — c'est la **décision D2** (P4), pas une propriété du format.
+  qu'aucun `ViewSet` ne couvre : un art front-only y est **plaqué verbatim** de profil et de dos
+  (via `viewOrFront`). Mesuré 2026-07-17 : **89 des 90** formes d'arme et **4 des 4** boucliers sont
+  front-only — c'est la **décision D2**, pas une propriété du format.
 - **Visages** (`parts/heads/`) — `cosmeticPart` (`parts/cosmetic.ts`) enveloppe TOUJOURS le visage en
-  `{ front, back: BACK_CRANE, profile: PROFILE_FACE }` avant `resolveParts` (D4, #633 P2). Les
+  `{ front, back: BACK_CRANE, profile: PROFILE_FACE }` avant `resolveParts` (D4, #633). Les
   chevelures portent leurs 3 vues par type (`HairArt`).
 
 Une vue **recopiée** sur le front satisfait la lettre du format mais produit le défaut qu'il vise à
@@ -88,12 +93,12 @@ tuer : refusée au même titre (**anti-alias**). La garde compare des **géomét
 ajouté, le commentaire, le `<g>` enveloppant et le simple **recoloriage** du front sont refusés eux
 aussi. Deux stocks gelés dans `scripts/guards/lib/rigPartViewStock.mjs` (`PART_VIEW_RATCHET` =
 slots front-only, `PART_VIEW_ALIAS_RATCHET` = vues recopiées), en entrées `{ fichier, ref,
-occurrence }` régénérées par `npx tsx scripts/rig/regen-part-view-stock.mts` (`--check`). Le
-mécanisme est l'**ÉCART NOMINATIF** (`ecartDuVolet`, `scripts/guards/lib/stock.mjs`), **aucun
+occurrence }` régénérées par `npx tsx scripts/guards/lib/regenStock.mts
+scripts/guards/lib/partViewAudit.ts` (`--check`). Le mécanisme est l'**ÉCART NOMINATIF** (`ecartDuVolet`, `scripts/guards/lib/stock.mjs`), **aucun
 plafond** : un site hors stock échoue (*neuves*), une entrée que plus aucun site ne porte échoue
 (*périmées*) — une dette ne peut pas croître **sans se déclarer**, et c'est l'entrée qui NOMME son
 fichier que la porte de plage (`croissanceDesStocks`) voit à l'append. La garde exerce le chemin RÉEL
-(`resolveParts` + le discriminant de format `hasProfileView`/`hasBackView`, `parts/types.ts`), jamais
+(`resolveParts` + le discriminant de format `isDrawnView`, `partViewAudit.ts`), jamais
 une réplique, et ses évasions connues sont testées (`describe('morsure')`). **Se solde en DESSINANT
 la vue, jamais en allongeant la liste.**
 
@@ -103,13 +108,12 @@ la vue, jamais en allongeant la liste.**
   le **repère LOCAL de son os** : **origine (0,0) au pivot (l'articulation)**.
 - **Sens des axes** : +x = droite, **+y = vers le bas de l'écran** (SVG standard). Pour les
   membres, +y va du joint vers l'**extrémité distale** (épaule→main, hanche→pied).
-- **Gradients partagés** (définis une fois dans `defsGlobaux()`, cf. sprites.ts) : `g_steel`, `g_steelD`,
-  `g_cloak`, `g_robe`, `g_coat`, `g_axe`, `g_glow`, `g_eye`, `g_crest`, `g_hVest`. Leur couleur est
-  FIXE : ils ne suivent pas la palette (#1903).
+- **Dégradés fixes** : le registre `rigFxGradients` (`fxGradients.ts`, ids `FX_GRADIENT_IDS`),
+  composé par `defsGlobaux()` ; leur couleur est FIXE : elle ne suit pas la palette.
   Un dégradé qui suit la palette est un **dégradé DÉRIVÉ** `url(#dg-<forme>-<arrêt>-<arrêt>…)` : un
   arrêt est un jeton `@clé` (`@vet1H`, `@cuirO`…) ou un littéral `#rrggbb`, et `applyTokenMap` le
-  résout en `<linearGradient>` dont l'id est le contenu. La table des formes (axe, arrêts) est
-  `FORMES_DE_DEGRADE` de `palette.ts`. Un arrêt littéral reste de la DETTE de littéral, comptée par le
+  résout en `<linearGradient>` dont l'id est le contenu ; il se lit par `lireDegradeDerive` (`palette.ts`).
+  La table des formes (axe, arrêts) est `FORMES_DE_DEGRADE` de `palette.ts`. Un arrêt littéral reste de la DETTE de littéral, comptée par le
   cliquet `palette-literal.test.ts` comme un `stop-color`. L'art du rig ne définit aucun
   `<linearGradient>`/`<radialGradient>` local (gardé, `parts/references-degrade.test.ts`).
   Sinon couleurs hex — MAIS **jamais pour la CHAIR** (voir ci-dessous). Matériaux d'armure : cuir
@@ -121,7 +125,7 @@ la vue, jamais en allongeant la liste.**
   (`@cheveux`/`@cheveuxO`/`@cheveuxH`) — qui appartiennent au PERSONNAGE et doivent TOUJOURS
   suivre les jetons résolus par `raceAppearance.json` au moment du rendu, jamais un littéral hex.
   Un dégradé de chair est le dégradé DÉRIVÉ `url(#dg-v-@peauH-@peauO)`, résolu par `applyTokenMap`
-  (`palette.ts`) à la passe du porteur (#1903 D2). Plus largement : tout littéral hex qui vaudrait EXACTEMENT une valeur déjà
+  (`palette.ts`) à la passe du porteur (#1903). Plus largement : tout littéral hex qui vaudrait EXACTEMENT une valeur déjà
   déclarée dans la `palette` du def (chair, cheveux, cuir, tissu, plume…) est une faute — c'était
   le jeton `@<clé>` qu'il fallait peindre (gardé, `parts/tenues/palette-literal.test.ts`,
   cliquet). Piège symétrique côté cheveux : un jeton `@cheveux*` DANS l'art d'une tenue n'est
@@ -214,6 +218,6 @@ optés, démons/trolls/peaux-dures naturels.
 ## Contrat de sortie pour un agent-artiste
 
 Renvoyer, par part demandée : `{ slot, svg }` où `svg` est le fragment respectant le repère
-ci-dessus (origine au pivot, +y distal, étendue dans le gabarit, gradients partagés). Pas de
+ci-dessus (origine au pivot, +y distal, étendue dans le gabarit, dégradés fixes). Pas de
 `<svg>`, pas de `transform` racine (le moteur s'en charge). Tester par rendu dans la galerie QC
 (`scripts/gen-rig-gallery.mts`) avant d'intégrer.

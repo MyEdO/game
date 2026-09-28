@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { WEAPON_FORMS, SHIELD_FORMS } from './weaponForms';
 import { weaponFamily, shieldPart } from './equipment';
+import { declaredView } from '../viewArt';
 import { trappings } from '../../../data';
 import type { Weapon } from '../../../engine/types';
 
@@ -74,7 +75,7 @@ describe('routage de l’art PAR ID (shape) — plus aucun libellé', () => {
 });
 
 describe('boucliers (registre data-driven shields/defs) — routés par shape', () => {
-  const front = (a: ReturnType<typeof shieldPart>) => (typeof a === 'string' ? a : a.front);
+  const front = (a: ReturnType<typeof shieldPart>) => declaredView(a, 'front');
   it('chaque bouclier du catalogue a SA silhouette (toutes distinctes) routée par shape', () => {
     const arts = SHIELD_FORMS.map((f) => front(shieldPart(byShape(f.slug))));
     expect(new Set(arts).size).toBe(SHIELD_FORMS.length);

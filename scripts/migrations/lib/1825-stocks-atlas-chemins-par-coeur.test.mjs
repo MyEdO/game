@@ -8,6 +8,7 @@ import test from 'node:test';
 import { coeursDuRegistre } from '../../raw/_lib.mjs';
 import { serialise } from './croissance.mjs';
 import { depot, efface, joue, lireDans, rienTouche } from './joue.mjs';
+import { tableTotale } from '../../../src/lib/tableTotale.ts';
 
 const MIGRATION = '2026-09-20-1825-stocks-atlas-chemins-par-coeur.mjs';
 
@@ -36,7 +37,7 @@ const texteDe = (doc) => serialise(doc, { indent: 2, nl: true });
 function depotAtlas(t, pages, doc) {
   const d = depot({
     ...(doc === undefined ? {} : { [STOCK]: texteDe(doc) }),
-    ...Object.fromEntries(AUTRES_STOCKS.map((rel) => [rel, texteDe({ entrees: [] })])),
+    ...tableTotale(AUTRES_STOCKS, () => texteDe({ entrees: [] })),
     ...Object.fromEntries(pages.map((page) => [path.posix.join(RAWDIR, page), '# page\n'])),
   }, LUS);
   t.after(() => efface(d.racine));

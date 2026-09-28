@@ -444,7 +444,7 @@ export interface Weapon {
   bypass?: ArmourBypass;
   /** Dégâts subis par l'arme (LDB 62 l.135) : réduit les Dégâts de 1/point ; à +0 → improvisée. */
   damageTaken?: number;
-  /** SKIN cosmétique (objets uniques/légendaires) : override de palette token→hex appliqué au
+  /** SKIN cosmétique (objets uniques/légendaires) : override de palette clé→hex appliqué au
    *  rendu de l'arme (ex. { metal:'#caa64a' } → lame dorée). Données opaques côté moteur. */
   skin?: Record<string, string>;
   /** Silhouette de RENDU forcée (libellé d'arme du catalogue, ex. arme invoquée affichée comme
@@ -999,7 +999,7 @@ export interface Trauma {
    *  de la fiche `traumas.json` ou d'une séquelle synthétique (fracture mal ressoudée). */
   desc?: string;
   /** Jours de convalescence restants (LDB 18 : déchirure 30−BE, fracture 30+1d10…). Décompté au repos ;
-   *  à 0 le trauma (et ses pénalités) disparaît. Absent = trauma legacy/permanent (pas de décompte). */
+   *  à 0 le trauma (et ses pénalités) disparaît. Absent = trauma permanent (pas de décompte). */
   recoveryDays?: number;
   /** Durée totale de convalescence (à la création) — seuils : mi-durée d'une déchirure majeure (downgrade
    *  −20→−10, l.231), fenêtre de pose d'une semaine d'une fracture (l.204). */
@@ -1198,7 +1198,7 @@ export interface ItemInstance {
    *  ou malepierre encore à sa réserve pleine).
    */
   niReserve?: number;
-  /** SKIN cosmétique (objet unique/légendaire) : override de palette token→hex, propagé au
+  /** SKIN cosmétique (objet unique/légendaire) : override de palette clé→hex, propagé au
    *  `Weapon.skin` actif par `recomputeLoadout` → l'arme se rend recolorée. */
   skin?: Record<string, string>;
   /** Objet NON identifié (objet magique/légendaire trouvé) : ses qualités sont MASQUÉES à l'affichage
@@ -1506,10 +1506,10 @@ export interface Combatant {
   /** États psychologiques portés (LDB 21) — Peur/Terreur/Animosité/Haine ET **Frénésie** (`type:'frenesie'`,
    *  posée à l'entrée, lue par `isFrenzied` ; +1 BF / immunité psy / sortie en DONNÉES `psychology.json`). */
   psychState?: import('./psychology').PsychAffliction[];
-  /** (Détermination : l'immunité psy temporaire + l'ignorance des modifs de Critique sont désormais
+  /** (Détermination : l'immunité psy temporaire + l'ignorance des modifs de Critique sont
    *  portées par des `ActiveEffect` à `duration` Rounds — `psychImmune`/`ignoreCritMods` — expirées par
    *  le système de Durée unifié, plus de compteur/flag round-scopé ad hoc.) */
-  /** Groupes d'appartenance + traits psy possédés (matching des Cibles — utilisés en P3). */
+  /** Groupes d'appartenance + traits psy possédés (matching des Cibles). */
   groups?: string[];
   /** DOCTRINE TACTIQUE forcée en DONNÉE (id de `DOCTRINES` dans `state/ai.ts` : `meute`/`soldats`/
    *  `tirailleurs`/`artillerie`/`horde`/`racaille`/`embuscade`/`standard`). Si présent et valide, l'IA
@@ -1891,7 +1891,7 @@ export const DIFFICULTY_MODIFIERS: Record<Difficulty, number> = {
   impossible: -50,
 };
 
-/** VOCABULAIRE FERMÉ des étapes de la cascade de NUIT (#1117 point 5) — les 16 `kind` réellement
+/** VOCABULAIRE FERMÉ des étapes de la cascade de NUIT (#1117) — les 16 `kind` réellement
  *  émis : 7 par les Tests d'entretien DIFFÉRÉS (`UpkeepDeferTest`), 8 construits par le flux de nuit,
  *  1 par l'entretien de MER (`sea-exposition` — MÊME règle d'Exposition, AUTRE route, donc autre kind :
  *  les ORDRES d'une traversée ne commandent que le sien, cf. `voyageCadence.SEA_KINDS_SOUS_ORDRES`).
@@ -1921,7 +1921,7 @@ export type StakeForm = (typeof STAKE_FORMS)[number];
 
 /** Ids de ce qui est TESTÉ — ce qu'un producteur NOMME pour que la porte en tire la valeur
  *  (`rollLine` → `testValue`) au lieu de la calculer chez lui. Union FAIL-CLOSED : au moins un id,
- *  jamais `{}` (qui ferait jouer la porte sur une valeur de 0, auto-échec muet — #1657 B3-3). Une
+ *  jamais `{}` (qui ferait jouer la porte sur une valeur de 0, auto-échec muet — #1657). Une
  *  Compétence PEUT nommer la Caractéristique sur laquelle elle se joue (Venin : Résistance sur
  *  Endurance) ; une Caractéristique NUE se déclare seule (ver de carie, `MSRC 16 l.90`). */
 export type TestIds =

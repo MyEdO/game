@@ -1,6 +1,6 @@
 /**
  * Galerie QC des MUTATIONS physiques (LDB 19) : chaque mutation rendue sur le rig
- * (calques/morpho/peau/membres remplacés), vues directionnelles, collisions avec
+ * (calques/morpho/peau/membres remplacés), vues de l'art orienté, collisions avec
  * l'armure équipée, et mutants ennemis tirés au seed.
  * Lancer : npx tsx scripts/gen-mutations-gallery.mts → public/mutations-gallery.html
  */
@@ -20,7 +20,7 @@ import type { Appearance } from '../src/gameIso/rig/appearance';
 import { asRigSpeciesId } from '../src/gameIso/rig/appearance';
 import type { EquipCtx } from '../src/gameIso/rig/parts/equipment';
 import type { RigOverlay } from '../src/gameIso/rig/bones';
-import type { View } from '../src/gameIso/rig/facing';
+import { VIEWS, type View } from '../src/gameIso/rig/facing';
 import type { ItemInstance, Weapon } from '../src/engine/types';
 import { assertWardrobeId } from './_lib-wardrobe';
 
@@ -60,10 +60,10 @@ const section = (title: string, cells: string[]) =>
 // 1) La table physique complète, de face.
 section('Tableau de Corruption physique (LDB 19) — vue de face', idsPhysiques().map((id) => mutCell(id)));
 
-// 2) Vues directionnelles : détails de visage (face seule), membres remplacés, morpho.
+// 2) Vues de l'art orienté : détails de visage (face seule), membres remplacés, morpho.
 const VUES = ['groin-poilu', 'visage-inverse', 'cornes-asymetriques', 'tentacule-epais', 'pattes-d-animaux', 'plumes-eparses', 'court-sur-pattes', 'corpulent', 'emacie'];
 section('Vues — les détails de visage disparaissent de dos/profil', VUES.flatMap((id) =>
-  (['front', 'profile', 'back'] as View[]).map((view) => mutCell(id, { view }))));
+  VIEWS.map((view) => mutCell(id, { view }))));
 
 // 3) Collisions avec l'armure équipée + arme en main (Soldat cuirassé).
 const piece = (uid: string, pa: number, locs: ItemInstance['locs']): ItemInstance =>
@@ -120,7 +120,7 @@ const TRAITS: { label: string; traits: string[] }[] = [
 ];
 const traitC = (traits: string[]): Combatant => ({ id: 't', name: 'T', kind: 'hero', species: 'humains-reiklander', traits }) as unknown as Combatant;
 section('Traits de créature → visuels (statbloc / sorts) — 3 vues', TRAITS.flatMap(({ label, traits }) =>
-  (['front', 'profile', 'back'] as View[]).map((view) =>
+  VIEWS.map((view) =>
     cell(`${label} — ${view}`, APP, combatantOverlays(traitC(traits)), { view, career: TENUE_SOLDAT, bg: '#23202c', tint: '#fc9' }))));
 
 const html = `<!doctype html><html><head><meta charset="utf-8"><title>Mutations QC</title></head>

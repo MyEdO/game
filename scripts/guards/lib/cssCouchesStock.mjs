@@ -12,11 +12,11 @@
 //                                Réf : `<balise>[.<1re classe>] :: <clés triées>` (`expr` pour une
 //                                valeur non littérale, `vide` pour `style={{}}`).
 //
-// Corps GÉNÉRÉ par `npx tsx scripts/ui/regen-css-couches-stock.mts` (DÉCROISSANT-SEULEMENT) — jamais
-// édité à la main. FORME : une ENTRÉE par occurrence, `{ fichier, ref, occurrence }`, celle de TOUT
-// stock nominatif du dépôt (`cleDeSite`/`sitesEnEntrees`, `stock.mjs`) ; le `fichier` est ce que la
-// porte de plage voit (`croissanceDesStocks`, `stocksNominatifs.mjs`), et ce que le codeur doit
-// ouvrir pour solder.
+// Corps GÉNÉRÉ par `npx tsx scripts/guards/lib/regenStock.mts scripts/guards/lib/cssCouchesAudit.ts`
+// (politique `decroissantSaufRetourne`) — jamais édité à la main. FORME : une ENTRÉE par occurrence,
+// `{ fichier, ref, occurrence }`, celle de TOUT stock nominatif du dépôt (`cleDeSite`/`sitesEnEntrees`,
+// `stock.mjs`) ; le `fichier` est ce que la porte de plage voit (`croissanceDesStocks`,
+// `stocksNominatifs.mjs`), et ce que le codeur doit ouvrir pour solder.
 //
 // CLIQUET, pas absolution : la garde échoue (a) sur tout site NEUF — un écran neuf ne peint pas, ne
 // pose pas de pixel hors échelle, n'écrit pas de style inline ; (b) sur toute entrée dont le site a
@@ -34,14 +34,14 @@
 //
 // FRONTIÈRE (#1806 L1) : un module de primitive n'est exempté que si l'un de ses propriétaires est
 // RÉUTILISÉ (`modulesExemptes`, `cssCouches.mjs`) ; le module d'un composant à un seul hôte est au
-// stock. Un module qui QUITTE la zone exempte y ramène ses sites RETOURNÉS — les seuls que le
-// régénérateur admet (`admisAuRetour`, `cssCouches.mjs`) — et le commit les déclare par une ligne
-// `CLIQUET:` du porteur ; un module qui y ENTRE se déclare par `RECLASSEMENT: <module> +N — <motif
-// #ticket>` (`reclassementCss.mjs`, chaque commit contre son parent). `regen-css-couches-stock.mts
-// --ventiler <ref>` (`ventilationDeGit`, `cssImages.mjs`) rend par volet SORTI = RECLASSÉ +
-// PRIMITIVISÉ + DISPARU, APPARU et RETOURNÉ.
+// stock. Un module qui QUITTE la zone exempte y ramène ses sites RETOURNÉS — la seule croissance que
+// la régénération admet (`decroissantSaufRetourne`, `cssCouchesAudit.ts`) — et le commit les déclare
+// par une ligne `CLIQUET:` du porteur ; un module qui y ENTRE se déclare par `RECLASSEMENT: <module>
+// +N — <motif #ticket>` (`reclassementCss.mjs`, chaque commit contre son parent).
+// `npx tsx scripts/ui/ventilation-css-couches.mts <ref>` (`ventilationDeGit`, `cssImages.mjs`) rend
+// par volet SORTI = RECLASSÉ + PRIMITIVISÉ + DISPARU, APPARU et RETOURNÉ.
 
-/** @type {import('./stock.mjs').EntreeNominative[]} */
+/** @type {import('./stock.mjs').EntreeDeSite[]} */
 export const CSS_IDENTITE_ECRAN_RATCHET = [
   { fichier: 'src/gameIso/anim.css', ref: '.breathe :: animation', occurrence: 1 },
   { fichier: 'src/gameIso/anim.css', ref: '.breathe :: transform-box', occurrence: 1 },
@@ -1845,7 +1845,7 @@ export const CSS_IDENTITE_ECRAN_RATCHET = [
   { fichier: 'src/ui/styles/world-meta.css', ref: '.worldmap-panel.muted-panel :: color', occurrence: 1 },
 ];
 
-/** @type {import('./stock.mjs').EntreeNominative[]} */
+/** @type {import('./stock.mjs').EntreeDeSite[]} */
 export const CSS_ESPACEMENT_RATCHET = [
   { fichier: 'src/ui/styles/city-hub.css', ref: '.city-hub-body :: padding :: 12px', occurrence: 1 },
   { fichier: 'src/ui/styles/city-hub.css', ref: '.city-hub-hint :: padding-left :: 18px', occurrence: 1 },
@@ -2557,7 +2557,7 @@ export const CSS_ESPACEMENT_RATCHET = [
   { fichier: 'src/ui/styles/world-meta.css', ref: '.worldmap-panel p :: margin :: 4px 0', occurrence: 1 },
 ];
 
-/** @type {import('./stock.mjs').EntreeNominative[]} */
+/** @type {import('./stock.mjs').EntreeDeSite[]} */
 export const STYLE_INLINE_RATCHET = [
   { fichier: 'src/ui/CityHubScreen.tsx', ref: 'g :: color', occurrence: 1 },
   { fichier: 'src/ui/GlobalSvgDefs.tsx', ref: 'svg :: position', occurrence: 1 },

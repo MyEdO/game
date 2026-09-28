@@ -1,3 +1,3 @@
-import type { EntreeNominative } from './stock.mjs';
+import type { EntreeDeSite } from './stock.mjs';
 
-export const FUITES_COUCHE_PARTAGEE: readonly EntreeNominative[];
+export const FUITES_COUCHE_PARTAGEE: readonly EntreeDeSite[];

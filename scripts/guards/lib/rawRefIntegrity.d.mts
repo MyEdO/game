@@ -1,17 +1,16 @@
-export interface BlindRef {
-  file: string;
+import type { Echeance, EntreeDeSite, Site } from './stock.mjs';
+import type { RegenerationDeStock } from './stockDeSites.mjs';
+
+export interface BlindRef extends Site {
   row: number;
-  ref: string;
   abbr: string;
   nn: string;
   lo: number;
   hi: number;
 }
 
-export interface SiteExemption {
-  file: string;
+export interface SiteExemption extends Site {
   row: number;
-  ref: string;
   raison: string;
   date: string;
 }
@@ -21,15 +20,6 @@ export interface EmptyLineRef {
   sites: number;
   blind: number;
   files: Set<string>;
-}
-
-export interface EntreeDeStock {
-  famille?: string;
-  fichier: string;
-  ref: string;
-  occurrence: number;
-  lot?: string;
-  date?: string;
 }
 
 export const SRC_DIR: string;
@@ -62,11 +52,12 @@ export function refsInLine(ln: string): Generator<{ abbr: string; nn: string; lo
 export function isExcludedSrc(rel: string): boolean;
 export function scanBlindRefs(srcDir?: string): BlindRef[];
 export function scanEmptyLineRefs(srcDir?: string): EmptyLineRef[];
-export function sitesAveugles(blind: BlindRef[]): { file: string; ref: string }[];
+export function sitesAveugles(blind: BlindRef[]): Site[];
 export function ecartDesRefsAveugles(
-  blind: BlindRef[], stock: EntreeDeStock[],
+  blind: BlindRef[], stock: (EntreeDeSite & Partial<Echeance>)[],
 ): { neuves: string[]; perimees: string[] };
 export function ecartDuVolet(p: {
-  sites: { file: string; ref: string }[]; stock: EntreeDeStock[]; famille?: string; ou?: string;
+  sites: Site[]; stock: (EntreeDeSite & Partial<Echeance>)[]; ou?: string;
 }): { neuves: string[]; perimees: string[] };
-export function readStock(path: URL | string): EntreeDeStock[];
+export function lireEntreesDeSite(path: URL | string): (EntreeDeSite & Partial<Echeance>)[];
+export function regenerations(blind?: BlindRef[]): RegenerationDeStock[];

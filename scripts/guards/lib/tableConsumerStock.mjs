@@ -21,9 +21,10 @@
 // append n'y coûte rien. Aucun PLAFOND : ce qu'une dette ne peut pas faire, c'est croître SANS SE
 // DÉCLARER, et c'est l'entrée nommée qui le dit — la garde compare par `ecartDuVolet`.
 //
-// GÉNÉRÉ par `npx tsx scripts/data/regen-table-orphan-stock.mts` (`--check` en garde) depuis la
-// MESURE de `scripts/guards/lib/tableConsumerAudit.ts`, la SEULE lecture du corpus — la même que
-// celle de la garde `src/data/tables.test.ts`. Le régénérateur est DÉCROISSANT-SEULEMENT.
+// GÉNÉRÉ par `npx tsx scripts/guards/lib/regenStock.mts scripts/guards/lib/tableConsumerAudit.ts`
+// (`--check` en garde) depuis la MESURE de `scripts/guards/lib/tableConsumerAudit.ts`, la SEULE
+// lecture du corpus — la même que celle de la garde `src/data/tables.test.ts`. Sa politique est
+// `DECROISSANT`.
 //
 // Un id se solde en CÂBLANT sa table (op `rollTable`, clé de rôle de Domaine, appel code) puis en
 // retirant sa ligne ici — jamais en retirant la ligne seule.

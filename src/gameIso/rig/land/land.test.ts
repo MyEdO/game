@@ -1,9 +1,10 @@
+import type { View } from '../facing';
 import { describe, it, expect } from 'vitest';
 import { planById, resolveRender } from '../bodyPlan';
 import { landPlan, landArtOf } from './composeLand';
 import { MISSING_ART } from '../viewArt';
 
-const svgOf = (view: 'front' | 'profile' | 'back') =>
+const svgOf = (view: View) =>
   landPlan.resolve('chariot-moyen', view, landPlan.restPose()).map((b) => b.parts.map((p) => p.svg).join('')).join('');
 
 describe('Gabarit TERRESTRE — chariot/attelage via le système de plans (réutilisé)', () => {
@@ -20,9 +21,9 @@ describe('Gabarit TERRESTRE — chariot/attelage via le système de plans (réut
 
   it('id FUTUR sans art dédié → REPLI VISIBLE (#223) ; face/dos REPLIENT sur le profil (mono-vue)', () => {
     // Un id inconnu tombe sur la silhouette d'erreur partagée (repli VISIBLE #223), mono-vue →
-    // face/dos replient dessus (pickView/foldView) — jamais un générique silencieux.
+    // face/dos replient dessus (nearestView/foldView) — jamais un générique silencieux.
     expect(landArtOf('espece-inconnue-xyz')).toBe(MISSING_ART);
-    const repliSvgOf = (view: 'front' | 'profile' | 'back') =>
+    const repliSvgOf = (view: View) =>
       landPlan.resolve('espece-inconnue-xyz', view, landPlan.restPose()).map((b) => b.parts.map((p) => p.svg).join('')).join('');
     expect(repliSvgOf('profile')).toContain('#ff2fb0'); // magenta d'alarme
     expect(repliSvgOf('front')).toBe(repliSvgOf('profile'));

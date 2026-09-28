@@ -8,20 +8,19 @@
  * de sa gamme dans la couche défaut, et la clé qu'elle SUIT (`suit`, voir `propagerSuiveuses`).
  * Module FEUILLE : aucun import du rig.
  */
-import { SLOTS, PORTEUR, type Slot } from '../../data/palette.types';
+import { SLOTS, PORTEUR, ROLES_DE_GAMME, gammeDe, type RoleDeGamme, type Slot } from '../../data/palette.types';
 
-/** Valeur d'une clé dans la couche défaut ; `ombre`/`lumiere` = `<clé>O`/`<clé>H` de cette couche ;
- *  `suit` = la clé de la table dont elle prend la gamme quand une couche ne la donne pas. Sans
+/** Champs de rôle d'une ligne : un champ par `RoleDeGamme`, de valeur `V`. */
+type RolesDeLigne<V> = { readonly [R in RoleDeGamme]?: V };
+/** Valeur d'une clé dans la couche défaut ; un champ de rôle = la clé `gammeDe(<clé>, rôle)` de cette
+ *  couche ; `suit` = la clé de la table dont elle prend la gamme quand une couche ne la donne pas. Sans
  *  `defaut`, la couche défaut la donne par sa clé suivie. */
 type LigneDeCle<K extends string> =
-  | { readonly defaut: string; readonly ombre?: string; readonly lumiere?: string; readonly suit?: K }
-  | { readonly suit: K; readonly defaut?: undefined; readonly ombre?: undefined; readonly lumiere?: undefined };
+  | ({ readonly defaut: string; readonly suit?: K } & RolesDeLigne<string>)
+  | ({ readonly suit: K; readonly defaut?: undefined } & RolesDeLigne<undefined>);
 type LigneRecoloriable = { readonly defaut: string; readonly libelle: string };
 /** Ligne de vocabulaire : ce que la clé peint (nom court) ; aucune valeur dans la couche défaut. */
-type LigneDeVocabulaire = {
-  readonly peint: string;
-  readonly defaut?: never; readonly ombre?: never; readonly lumiere?: never; readonly suit?: never;
-};
+type LigneDeVocabulaire = { readonly peint: string; readonly defaut?: never; readonly suit?: never } & RolesDeLigne<never>;
 
 /** Lignes communes : refuse, au type, une clé qui serait un `Slot` et un `suit` hors de la table. */
 export function communes<const T extends Record<string, LigneDeCle<string>>>(
@@ -158,16 +157,21 @@ export function propagerSuiveuses(couche: Readonly<Record<string, string>>): Rec
   for (const [f, s] of SUIVEUSES) {
     if (couche[s] == null || couche[f] != null) continue;
     out[f] = couche[s];
-    for (const suf of ['O', 'H']) if (couche[s + suf] != null) out[f + suf] = couche[s + suf];
+    for (const role of ROLES_DE_GAMME) {
+      const valeur = couche[gammeDe(s, role)];
+      if (valeur != null) out[gammeDe(f, role)] = valeur;
+    }
   }
   return out;
 }
 
-/** La couche DÉFAUT DÉCLARÉE (`<clé>`, `<clé>O`, `<clé>H`), avant propagation des suiveuses. */
+/** La couche DÉFAUT DÉCLARÉE (la base et chacun de ses rôles, `gammeDe`), avant propagation des suiveuses. */
 export const COUCHE_DEFAUT: Readonly<Record<string, string>> = Object.fromEntries(LIGNES.flatMap(([k, l]) => [
   ...(l.defaut ? [[k, l.defaut]] : []),
-  ...(l.ombre ? [[`${k}O`, l.ombre]] : []),
-  ...(l.lumiere ? [[`${k}H`, l.lumiere]] : []),
+  ...ROLES_DE_GAMME.flatMap((role) => {
+    const valeur = l[role];
+    return valeur ? [[gammeDe(k, role), valeur]] : [];
+  }),
 ]));
 
 /** Défaut d'une clé recoloriable. */

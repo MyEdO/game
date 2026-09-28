@@ -6,7 +6,7 @@ import { dominantCloth, avantBrasBase, splitBrasSvg, deriveProfileBras, deriveBa
 import { ARMOUR, ARMOUR_PALETTES } from './armour';
 import { buildTokenMap, applyTokenMap, applyTokenMapArt } from '../palette';
 import type { EquipCtx } from './equipment';
-import type { PartArt } from './types';
+import { declaredView } from '../viewArt';
 
 /** Enregistre une tenue FIXTURE sous un id à elle, la sert au test, puis la retire du registre.
  *  `tenueFor` lit `TENUE_BY_ID` à l'APPEL : le chemin exercé est le vrai (résolution par id de
@@ -19,9 +19,6 @@ function withTenue<T>(id: string, set: TenueSet, run: () => T): T {
 }
 
 const NO_EQUIP: EquipCtx = { weapons: [], armour: [] };
-const frontOf = (art: PartArt): string => (typeof art === 'string' ? art : art.front);
-const viewOf = (art: PartArt, v: 'front' | 'back' | 'profile'): string =>
-  typeof art === 'string' ? (v === 'front' ? art : '') : (art[v] ?? '');
 const resolve = (tenueKey: string | undefined) =>
   resolveParts('humain', 'M', tenueKey, NO_EQUIP, {}, 0, 'front');
 
@@ -33,12 +30,12 @@ const PLAQUE: EquipCtx = {
   ],
 };
 
-// Contrat POSITIF (#633 D1, Lot 2) : le membre supérieur se résout en UNITÉ — l'avant-bras est le BAS
+// Contrat POSITIF (#633 D1) : le membre supérieur se résout en UNITÉ — l'avant-bras est le BAS
 // de l'art `bras` pleine longueur découpé au coude, jamais un rect de peau nu plaqué par-dessus.
 describe('resolveParts — membre supérieur (bras + avantBras) en unité', () => {
   it('Soldat (tenue.bras pleine longueur) : bras = .haut clippé, avantBras = .bas (manche, pas peau nue)', () => {
     const out = resolve('soldat');
-    const brasFront = frontOf(TENUE_BY_ID.soldat.bras!);
+    const brasFront = declaredView(TENUE_BY_ID.soldat.bras!, 'front') ?? '';
 
     // bras = haut de la manche, clippé dans le repère épaule (aucun rebasage).
     expect(out.bras!.svg).toContain('clip-path="url(#rigCutBrasHaut)"');
@@ -49,10 +46,10 @@ describe('resolveParts — membre supérieur (bras + avantBras) en unité', () =
     expect(out.avantBras!.svg).toContain('translate(0,-18)');
     expect(out.avantBras!.svg).toContain('clip-path="url(#rigCutBrasBas)"');
     expect(out.avantBras!.svg).toContain(brasFront); // tissu de la manche, pas un rect de peau
-    expect(out.avantBras!.svg).not.toBe(frontOf(genericPart('avantBras')));
+    expect(out.avantBras!.svg).not.toBe(declaredView(genericPart('avantBras'), 'front') ?? '');
 
-    // COUVERTURE PLEINE (Lot 2, décision 2026-07-22) : sous-couche = silhouette d'avant-bras REMPLIE de
-    // la matière dominante du bras (manche), PAS @peau seule. Tenue → tokens gardés (composeRig résout).
+    // COUVERTURE PLEINE (décision 2026-07-22) : sous-couche = silhouette d'avant-bras REMPLIE de
+    // la matière dominante du bras (manche), PAS @peau seule. Tenue → jetons gardés (composeRig résout).
     const dom = dominantCloth(brasFront);
     expect(dom).not.toBe('peau'); // manche habillée → matière ≠ chair
     expect(out.avantBras!.svg).toContain(avantBrasBase(dom).front); // base = rect matière (ici @cuir)
@@ -60,7 +57,7 @@ describe('resolveParts — membre supérieur (bras + avantBras) en unité', () =
 
   it('Sorcier : manche scindée (avantBras porte le bas de l’art bras, pas un rect nu)', () => {
     const out = resolve('sorcier');
-    const brasFront = frontOf(TENUE_BY_ID.sorcier.bras!);
+    const brasFront = declaredView(TENUE_BY_ID.sorcier.bras!, 'front') ?? '';
     expect(out.bras!.svg).toContain('clip-path="url(#rigCutBrasHaut)"');
     expect(out.avantBras!.svg).toContain('translate(0,-18)');
     expect(out.avantBras!.svg).toContain('clip-path="url(#rigCutBrasBas)"');
@@ -70,11 +67,11 @@ describe('resolveParts — membre supérieur (bras + avantBras) en unité', () =
   it('tenue SANS bras (Nu, winner générique) : bras + avantBras génériques (ni sliver, ni translate)', () => {
     const out = resolve('nu');
     // Le générique `bras` est déjà court (épaule→coude) → laissé tel quel, aucun clip de découpe.
-    expect(out.bras!.svg).toBe(frontOf(genericPart('bras')));
+    expect(out.bras!.svg).toBe(declaredView(genericPart('bras'), 'front') ?? '');
     expect(out.bras!.svg).not.toContain('clip-path');
     // avantBras = rect de peau dédié (PAS le bas d'un art court, qui donnerait un sliver 16..18).
-    // Couverture pleine (Lot 2) : bras de chair → avant-bras RESTE peau (dominante = peau), inchangé.
-    expect(out.avantBras!.svg).toBe(frontOf(genericPart('avantBras')));
+    // Couverture pleine : bras de chair → avant-bras RESTE peau (dominante = peau), inchangé.
+    expect(out.avantBras!.svg).toBe(declaredView(genericPart('avantBras'), 'front') ?? '');
     expect(out.avantBras!.svg).toContain('@peau');
     expect(out.avantBras!.svg).not.toContain('translate');
     expect(out.avantBras!.svg).not.toContain('clip-path="url(#rigCutBrasBas)"');
@@ -83,7 +80,7 @@ describe('resolveParts — membre supérieur (bras + avantBras) en unité', () =
   it('Plaque (armure gagnante) : base d’avant-bras FRONT en matière de PLAQUE, pas peau (tue l’incohérence front↔profil)', () => {
     const out = resolveParts('humain', 'M', 'soldat', PLAQUE, {}, 0, 'front');
 
-    // Matière dominante lue sur l'art RAW de l'armure (tokens @metal intacts), résolue contre LA palette
+    // Matière dominante lue sur l'art RAW de l'armure (jetons @metal intacts), résolue contre LA palette
     // de plaque — comme le bras (armourPart), donc couverture ET vambrace de la même matière steel.
     const rawBras = ARMOUR.plaque.bras as string;
     const dom = dominantCloth(rawBras);
@@ -112,11 +109,11 @@ describe('resolveParts — membre supérieur (bras + avantBras) en unité', () =
     expect(out.avantBras!.svg).not.toContain('clip-path="url(#rigCutBrasBas)"');
   });
 
-  // Lot 2c : cohérence 3 vues de l'avant-bras ARMURÉ. L'art `bras` de plaque est front-only (string) →
+  // Cohérence 3 vues de l'avant-bras ARMURÉ. L'art `bras` de plaque est front-only (string) →
   // le détail `.bas` n'existe QU'EN FRONT ; en profil/dos, l'avant-bras = la couverture-matière d'acier
   // SEULE, PAS un détail fabriqué par `toViewSet` retombant sur un fallback @vet1 (brun). Contrat anti-incohérence.
   for (const v of ['profile', 'back'] as const) {
-    it(`Plaque : vue ${v} de l'avant-bras = matière d'ACIER (token plaque résolu), pas fallback @vet1/@peau`, () => {
+    it(`Plaque : vue ${v} de l'avant-bras = matière d'ACIER (jeton plaque résolu), pas fallback @vet1/@peau`, () => {
       const out = resolveParts('humain', 'M', 'soldat', PLAQUE, {}, 0, v);
 
       const dom = dominantCloth(ARMOUR.plaque.bras as string);
@@ -132,12 +129,12 @@ describe('resolveParts — membre supérieur (bras + avantBras) en unité', () =
     });
   }
 
-  // Lot 2d : cohérence 3 vues du BRAS HAUT ARMURÉ (épaule→coude). L'art `bras` de plaque est front-only
+  // Cohérence 3 vues du BRAS HAUT ARMURÉ (épaule→coude). L'art `bras` de plaque est front-only
   // (string @metal) → en profil/dos, la silhouette du bras haut se DÉRIVE de l'art RAW (dominantCloth voit
   // @metal), puis est résolue en matière de plaque — PAS un fallback @vet1/brun (l'art déjà résolu en hex
   // faisait retomber dominantCloth sur @vet1, le défaut jugé). Contrat qui tue l'incohérence front↔profil du haut.
   for (const v of ['profile', 'back'] as const) {
-    it(`Plaque : vue ${v} du BRAS HAUT = matière d'ACIER (token plaque résolu), pas fallback @vet1/@peau`, () => {
+    it(`Plaque : vue ${v} du BRAS HAUT = matière d'ACIER (jeton plaque résolu), pas fallback @vet1/@peau`, () => {
       const out = resolveParts('humain', 'M', 'soldat', PLAQUE, {}, 0, v);
 
       const dom = dominantCloth(ARMOUR.plaque.bras as string);
@@ -160,13 +157,13 @@ describe('resolveParts — membre supérieur (bras + avantBras) en unité', () =
     it(`Soldat : vue ${v} de l'avant-bras = couverture de manche + détail .bas de la vue déclarée (cohérent avec le front)`, () => {
       const out = resolveParts('humain', 'M', 'soldat', NO_EQUIP, {}, 0, v);
 
-      const dom = dominantCloth(frontOf(TENUE_BY_ID.soldat.bras!)); // matière lue sur le FRONT (couverture)
+      const dom = dominantCloth(declaredView(TENUE_BY_ID.soldat.bras!, 'front') ?? ''); // matière lue sur le FRONT (couverture)
       expect(dom).not.toBe('peau');
       const base = avantBrasBase(dom) as Record<typeof v, string>;
       expect(out.avantBras!.svg).toContain(base[v]);           // couverture-matière (manche) présente
 
       // Vue déclarée par l'art `bras` objet → son détail `.bas` est overlayé (découpe au coude).
-      const declared = viewOf(TENUE_BY_ID.soldat.bras!, v);
+      const declared = declaredView(TENUE_BY_ID.soldat.bras!, v) ?? '';
       expect(declared).not.toBe('');
       expect(out.avantBras!.svg).toContain('translate(0,-18)');
       expect(out.avantBras!.svg).toContain('clip-path="url(#rigCutBrasBas)"');

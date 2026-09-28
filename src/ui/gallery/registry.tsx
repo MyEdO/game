@@ -10,6 +10,7 @@
  * ne sélectionne l'entrée. `note` documente une exception explicite (maquette statique plutôt que
  * vivante) — jamais une exclusion silencieuse : la garde compte aussi les entrées notées.
  */
+import { tableTotale } from '../../lib/tableTotale';
 import { type ComponentType, useRef, useState } from 'react';
 import { ScreenMeta } from '../ScreenMeta';
 import { Tabs, type TabItem } from '../Tabs';
@@ -473,7 +474,7 @@ const FIG_ZONE_BADGES_CRIT: ZoneBadgeSpec[] = [
  *  primitive, aucune rangée recodée. */
 function PlaqueRowDemo() {
   if (!herosExemple()) return <p className="hint">Aucun pregen disponible.</p>;
-  const ch = Object.fromEntries(CHAR_KEYS.map((k) => [k, effectiveChar(herosExemple(), k)])) as Record<(typeof CHAR_KEYS)[number], number>;
+  const ch = tableTotale(CHAR_KEYS, (k) => effectiveChar(herosExemple(), k));
   const [k1, k2, k3] = CHAR_KEYS;
   return (
     <Stack>
@@ -955,7 +956,7 @@ function ActivityPaneDemo() {
 function ProseDemo() {
   // La prose sourcée se montre dans son hôte canonique (`DetailFrame`, qui possède `.detail-frame-prose`)
   // plutôt qu'en recopiant sa peau : le spécimen reste celui de `Prose`, monté vivant. Le cadre du
-  // `DetailFrame` autour de la démo est ASSUMÉ (galerie DEV, aucun écran joueur) : c'est le contexte
+  // `DetailFrame` autour de la démo (galerie DEV, aucun écran joueur) est le contexte
   // réel de lecture de cette prose.
   return (
     <DetailFrame prose={carriereExemple().desc} porteur={{ type: 'careers', id: carriereExemple().id, chemin: 'desc' }} />

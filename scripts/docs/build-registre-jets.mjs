@@ -19,8 +19,9 @@ import { fileURLToPath } from 'node:url'
 import { ecrireOuVerifier } from './lib/empreinte-sources.mjs'
 import {
   scanPendingJetFabrication, engineRollerExports, scanEngineDelegatedRoll,
-  engineDiceRollers, scanDesHorsPorte,
+  engineDiceRollers, scanDesHorsPorte, AMORCE_DES,
 } from '../guards/lib/rollSeamExclusivity.mjs'
+import { tableDesExports } from '../guards/lib/canonUnique.mjs'
 import { scanFlowTestEngineRoll } from '../guards/lib/flowTestEngineRoll.mjs'
 import { estFichierVitest } from '../guards/lib/fichierVitest.mjs'
 import {
@@ -51,11 +52,11 @@ for (const { rel, text } of prodFiles('src')) {
 
 // --- (D) roulage délégué à un export de src/engine -------------------------------------------
 const rollers = engineRollerExports(prodFiles('src/engine'))
-const rollerNames = new Set(rollers.keys())
+const tableDesRollers = tableDesExports(prodFiles('src/engine'), rollers.keys())
 const delegue = new Map()
 for (const { rel, text } of prodFiles('src/state', 'src/ui')) {
   if (ROLL_SEAM_CORE.has(rel)) continue
-  const sites = scanEngineDelegatedRoll(rel, text, rollerNames)
+  const sites = scanEngineDelegatedRoll(rel, text, tableDesRollers)
   if (sites.length) delegue.set(rel, sites)
 }
 
@@ -64,6 +65,7 @@ for (const { rel, text } of prodFiles('src/state', 'src/ui')) {
 // plus large que (D) — `src/data` et `src/scenes` en font partie (une donnée authorée qui tire son
 // `rng.int` tire un dé comme un flux).
 const desRollers = engineDiceRollers(prodFiles('src/engine'))
+const exportsQuiTirent = new Set(Object.values(desRollers).flat().filter((n) => !AMORCE_DES.includes(n)))
 const desHorsPorte = new Map()
 for (const { rel, text } of prodFiles('src')) {
   if (rel.startsWith('src/engine/') || ROLL_SEAM_CORE.has(rel)) continue
@@ -109,14 +111,14 @@ const authoredTests = authoredByFile.reduce((n, [, c]) => n + c, 0)
 
 // --- nœuds authorés NON ROUTÉS par la porte -----------------------------------------------------
 // Un nœud `test` n'atteint les routeurs canoniques que si personne ne l'a résolu AVANT. Le garde
-// `flowTestEngineRoll` (#1657 B3) mesure les fonctions de `src/engine/**` qui LISENT un nœud et le
+// `flowTestEngineRoll` (#1657) mesure les fonctions de `src/engine/**` qui LISENT un nœud et le
 // ROULENT ; là où l'une d'elles est le résolveur d'un document, les nœuds de ce document n'ont
 // AUCUNE fenêtre — ni enjeu affiché, ni Chance, ni Pacte, ni Résilience, et la valeur testée n'est
 // pas celle de la porte (#1685).
 // Le RATTACHEMENT document → site moteur est DÉCLARÉ : aucun scan ne relie un `.json` à la fonction
 // qui le lit. Ses DEUX bouts sont vérifiés à chaque génération — le document porte des nœuds, et le
 // site figure dans le stock mesuré du garde. Une entrée dont le site a quitté le stock est PÉRIMÉE
-// et fait échouer le générateur : c'est le cliquet qui vide cette section en B3-1/B3-2.
+// et fait échouer le générateur : c'est le cliquet qui vide cette section.
 const NON_ROUTES = []
 // Le stock du garde indexe le SITE DU DÉ ; il porte AUSSI le nom du résolveur et sa ligne de
 // DÉCLARATION. Les deux servent, et pas au même endroit : le cliquet mord sur le site du dé (ce que
@@ -151,7 +153,7 @@ const nonRoutesTotal = nonRoutes.reduce((n, [, c]) => n + c, 0)
 const ROUTEURS_AUTHORES = [
   ['resolveFlowTest', 'src/state/combat/triggeredTest.ts', 'voie CADENCE-AWARE : ouvre `openSkillTest` (modale influençable) quand l\'acteur est piloté.'],
   ['resolveInlineFlowTest', 'src/state/triggeredEffects.ts', 'jumeau store-free de la branche NON-interactive du précédent (jet résolu inline, journalisé).'],
-  ['bandeTriggeredTest', 'src/state/combat/triggeredTest.ts', 'MÊME porte, N TESTEURS (#1657 B3-2) : une BANDE de N rangées pour les porteurs surfacés, la voie inline pour les autres.'],
+  ['bandeTriggeredTest', 'src/state/combat/triggeredTest.ts', 'MÊME porte, N TESTEURS (#1657) : une BANDE de N rangées pour les porteurs surfacés, la voie inline pour les autres.'],
 ]
 const routeursManquants = ROUTEURS_AUTHORES.filter(([name, file]) =>
   !new RegExp(`function\\s+${name}\\b`).test(readFileSync(join(ROOT, file), 'utf8')))
@@ -161,7 +163,7 @@ if (routeursManquants.length) {
   process.exit(1)
 }
 
-// --- ASSERTION INVERSE (#1657 B3-3) : « … et AUCUN AUTRE chemin » ---------------------------------
+// --- ASSERTION INVERSE (#1657) : « … et AUCUN AUTRE chemin » ---------------------------------
 // Vérifier que les routeurs EXISTENT dit qu'un chemin canonique est disponible ; ça ne dit pas qu'il
 // est le SEUL. Le second bout se mesure sur le moteur : un `src/engine/**` qui LIT un nœud `test` et le
 // ROULE court-circuite la porte, quel que soit le nombre de routeurs en place. Le scan est celui du
@@ -226,8 +228,8 @@ out += `## Périmètre mesuré et angles morts (à dire pour ne pas se lire comm
 out += `- **(F)** ne voit qu'un **littéral d'objet** : un pending assemblé par spread depuis un helper, ou monté champ\n`
 out += `  par champ, échappe. La conjonction \`skillValue\` + (\`target\` \\| \`roll: null\`) est un resserrement DÉLIBÉRÉ —\n`
 out += `  \`skillValue:\` seul remonte 200+ faux positifs (types, paramètres de résolveur, patches de champ).\n`
-out += `- **(D)** résout par **nom appelé**, sans suivi de liaison : un import renommé (\`import { resolveClash as x }\`)\n`
-out += `  ou un appel indirect (référence passée en callback) échappe. Même angle mort que le garde d'exclusivité.\n`
+out += `- **(D)** reconnaît un appel par sa liaison d'import (\`estAppelDeclare\`) : un import renommé ou un appel\n`
+out += `  \`ns.f\` compte ; une référence passée en callback, qui n'est pas un appel, échappe.\n`
 out += `- **(D)** indexe les fonctions de \`src/engine\` par nom **à plat** : deux homonymes dans deux modules se\n`
 out += `  confondent, et un homonyme local d'un rouleur peut faire entrer un export au titre de la transitivité.\n`
 out += `- **(D)** ne scanne que \`src/state\` et \`src/ui\` (les consommateurs de flux) ; **(F)** scanne tout \`src\`.\n`
@@ -274,7 +276,7 @@ out += `## (D) Roulage délégué à un export de \`src/engine\`\n\n`
 out += `\`rollSeamExcluded\` exempte \`src/engine/**\` de principe (le moteur reçoit un rng, il ne décide pas du\n`
 out += `surfaçage) — ce qui suppose que l'APPELANT passe par le seam. Un export d'engine qui roule, appelé par un\n`
 out += `flux, rend donc le call-site invisible aux deux gardes. **Cette supposition est désormais TENUE des deux\n`
-out += `côtés** (#1657 B3-3) : \`battleRngEngineLeak\` ferme la moitié APPELANT (un flux qui remet un rng vivant à un\n`
+out += `côtés** (#1657) : \`battleRngEngineLeak\` ferme la moitié APPELANT (un flux qui remet un rng vivant à un\n`
 out += `résolveur moteur), \`flowTestEngineRoll\` ferme la moitié DONNÉE et n'admet plus aucun site (garde BLOQUANTE,\n`
 out += `population attendue VIDE) : un moteur qui LIT un nœud \`test\` le REND ou le DIFFÈRE. La table ci-dessous\n`
 out += `inventorie ce qui reste : des résolveurs qui roulent LEURS PROPRES dés, sans lire de nœud authoré.\n`
@@ -314,7 +316,7 @@ for (const [rel, dec] of DES_HORS_PORTE_STOCK) {
   const noms = [...new Set(desHorsPorte.get(rel).map((s) => s.name))].sort()
   out += `| \`${rel}\` | ${dec.n} | ${dec.kind} | ${noms.map((n) => `\`${n}\``).join(', ')} | ${esc(dec.why)} |\n`
 }
-out += `\n_${total(desHorsPorte)} dés mesurés dans ${desHorsPorte.size} fichiers, pour ${desRollers.size} exports de \`src/engine\` derrière lesquels un dé tombe sans franchir d'autre frontière exportée — par nature : ${parNature(DES_HORS_PORTE_STOCK)}._\n\n`
+out += `\n_${total(desHorsPorte)} dés mesurés dans ${desHorsPorte.size} fichiers, pour ${exportsQuiTirent.size} exports de \`src/engine\` derrière lesquels un dé tombe sans franchir d'autre frontière exportée — par nature : ${parNature(DES_HORS_PORTE_STOCK)}._\n\n`
 
 // --- population authorée ---
 out += `## Population AUTHORÉE (donnée, pas code)\n\n`

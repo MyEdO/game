@@ -1,4 +1,6 @@
 import type { PartArt } from './types';
+import { VIEWS } from '../facing';
+import { tableTotale } from '../../../lib/tableTotale';
 import { baseSpeciesOf } from '../skeletons';
 import { PART_BEHIND_SEP, PART_DROP_SEP } from '../bones';
 import { HEADS_BY_KEY } from './heads';
@@ -11,19 +13,15 @@ import type { Sexe } from '../../../data/schemas/grammaire/valeurs';
 // porte ses 3 vues + composantes `behind` (masse qui épouse le crâne) et `drop` (chute qui dépasse
 // la tête) éventuelles PAR vue (HairArt), pliées ici dans la chaîne de vue (dépliées par composeRig :
 // behind → layer −2, drop → plan dorsal ; cf. splitPartBehind dans bones.ts).
-// Seul le profil/dos du VISAGE reste un art GÉNÉRIQUE token ci-dessous (PROFILE_FACE / BACK_CRANE).
+// Seul le profil/dos du VISAGE reste un art GÉNÉRIQUE en jetons ci-dessous (PROFILE_FACE / BACK_CRANE).
 
-const foldView = (main: string, behind?: string, drop?: string) => {
+const packHairLayers = (main: string, behind?: string, drop?: string) => {
   const folded = behind ? `${behind}${PART_BEHIND_SEP}${main}` : main;
   return drop ? `${drop}${PART_DROP_SEP}${folded}` : folded;
 };
-const foldHair = (h: HairArt): PartArt => ({
-  front: foldView(h.front, h.behind?.front, h.drop?.front),
-  profile: foldView(h.profile, h.behind?.profile, h.drop?.profile),
-  back: foldView(h.back, h.behind?.back, h.drop?.back),
-});
+const packHair = (h: HairArt): PartArt => tableTotale(VIEWS, (view) => packHairLayers(h[view], h.behind?.[view], h.drop?.[view]));
 
-// Œil de secours : blanc + iris @yeux + pupille (PAS le gradient monstre g_eye).
+// Œil de secours : blanc + iris @yeux + pupille (PAS le dégradé fixe monstre g_eye).
 // ANCRÉ data-eye comme les têtes générées → remplaçable par le système d'yeux
 // (parts/eyes.ts : Vampire rougeoyant, œil de verre…) même sans tête dédiée.
 const eye = (cx: number) =>
@@ -37,13 +35,13 @@ const DEFAULT_VISAGE: string[] = [
 
 // =========================================================================================
 // VUES PROFIL / DOS du VISAGE — art générique COMMUN (partagé par toutes les espèces),
-// 100 % en tokens (@peau/@cheveux…) pour recoloriage correct. La FACE reste l'art détaillé
+// 100 % en jetons (@peau/@cheveux…) pour recoloriage correct. La FACE reste l'art détaillé
 // par espèce (heads/defs) ; ici on dessine un profil/dos PROPRES qui matchent ses proportions :
 // crâne ovale (x±9, y -9..16), yeux à y≈6.6, bouche à y≈12.6. Le profil regarde vers +x.
 // (Les CHEVEUX, eux, portent leurs vues DANS leur def — HairArt — plus d'art générique partagé.)
 // =========================================================================================
 
-// Crâne arrière PLEIN (#633 P2, décision D4 : pas de visage de dos — le crâne + le cou + les
+// Crâne arrière PLEIN (#633, décision D4 : pas de visage de dos — le crâne + le cou + les
 // cheveux portent le dos). MÊME empreinte que le disque visage front (`DEFAULT_VISAGE`, cy7 r9) :
 // couvre tout l'arrière du crâne jusqu'à la nuque, INDÉPENDANT de la coiffure (une coiffure vient
 // PAR-DESSUS, layer cheveux > crâne, sur le même os `tete`) : le dôme couvre l'ENTIER arrière du
@@ -60,7 +58,7 @@ const BACK_CRANE =
   // nappe d'ombre de la base du crâne, VERTICALE, en fondu vers la nuque puis le cou (jamais un arc)
   '<path d="M-3 8.4 Q0 9.4 3 8.4 Q2.3 13.2 0 17.4 Q-2.3 13.2 -3 8.4Z" fill="@peauO" opacity="0.3"/>';
 
-// VISAGE de PROFIL générique (tokens) : silhouette de côté propre — front, arête du nez, lèvres,
+// VISAGE de PROFIL générique (jetons) : silhouette de côté propre — front, arête du nez, lèvres,
 // menton, un œil, une oreille. Remplace l'art headViews profil (hardcodé, déformé). Regarde +x.
 const PROFILE_FACE =
   // contour du visage : crâne arrière arrondi (-x) → front (+x) → nez → lèvres → menton → mâchoire
@@ -170,7 +168,7 @@ export function cosmeticPart(slot: 'visage' | 'cheveux', species: string, sex: S
   if (slot === 'cheveux') {
     const entries = hairPool(species, sex);
     if (!entries.length) return ''; // aucun pool (jamais atteint : le pool par sexe est non vide)
-    return foldHair(entries[((idx % entries.length) + entries.length) % entries.length]);
+    return packHair(entries[((idx % entries.length) + entries.length) % entries.length]);
   }
   // Visage : art de tête dédié (dos = crâne PLEIN, jamais un visage — D4 — surchargeable par
   // `head.crane` pour une espèce à boîte crânienne divergente ; profil = silhouette générique

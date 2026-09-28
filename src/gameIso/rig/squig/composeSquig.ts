@@ -3,7 +3,7 @@
  * dominé par une ÉNORME gueule à crocs (mâchoire inférieure articulée qui CLAQUE), gros yeux,
  * crête d'épines dorsale, deux petites pattes griffues. Anim propre au plan : claquement de
  * mâchoire au repos, bonds (lean) au déplacement, gueule grande ouverte à l'attaque, sur le dos
- * à la mort. Réutilise la machinerie (FK générique, palette tokenisée, rendu).
+ * à la mort. Réutilise la machinerie (FK générique, palette en jetons, rendu).
  */
 import type { BonePose } from '../poses';
 import type { ResolvedBone } from '../composeRig';
@@ -43,7 +43,7 @@ function body(p: SquigProps, view: View): string {
   if (view === 'back') return `<g>${feet}${ball}${crest}<path d="M0 ${-ry + 6} L0 ${ry - 6}" stroke="@corpsO" stroke-width="1" opacity="0.4"/></g>`;
   if (view === 'profile') {
     // PROFIL : gueule de CÔTÉ fendue vers l'avant (+x), UN œil, crête orientée — fini le
-    // « même pose que de face » (verdict des juges aveugles, lot 4).
+    // « même pose que de face » (verdict des juges aveugles).
     const mawP = `<path d="M-2 2 Q${rx * 0.4} -2 ${rx - 2} 1 Q${rx} ${ry * 0.4} ${rx * 0.45} ${ry * 0.56} Q-1 ${ry * 0.52} -2 2 Z" fill="#2a0e0c"/>`;
     const fangsP = `<path d="M${rx * 0.16} 1 l1.8 7.5 l2.6 -7 Z M${rx * 0.45} 0 l1.8 8.5 l2.6 -8 Z M${rx * 0.72} 0.5 l1.6 7 l2.4 -6.6 Z" fill="#efe6cf"/>`;
     const eyeP = `<ellipse cx="${rx * 0.34}" cy="-10" rx="3.6" ry="4" fill="#f4ecd8"/><circle cx="${rx * 0.4}" cy="-9.4" r="1.8" fill="#1a0a06"/>` +

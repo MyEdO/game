@@ -1,3 +1,4 @@
+import { VIEWS, type View } from './facing';
 import { describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import React from 'react';
@@ -19,7 +20,7 @@ function mkEnemy(name: string, over: Partial<Combatant> = {}): Combatant {
   } as Combatant;
 }
 
-function render(c: Combatant, view: 'front' | 'back' | 'profile' = 'front') {
+function render(c: Combatant, view: View = 'front') {
   const p = enemyRigProfile(c)!;
   // Chemin RÉEL de prod : les visuels d'état (mutations/blessures/traits) viennent du combattant.
   return renderToStaticMarkup(
@@ -43,7 +44,7 @@ describe('rendu rig ennemi (F1)', () => {
   });
 
   it('rend les 3 vues sans planter', () => {
-    for (const v of ['front', 'back', 'profile'] as const) {
+    for (const v of VIEWS) {
       expect(render(mkEnemy('Soldat'), v).length).toBeGreaterThan(100);
     }
   });

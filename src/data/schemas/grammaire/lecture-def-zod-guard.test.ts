@@ -5,14 +5,14 @@
  * tests compris (`scripts/guards/lib/lectureDefZod.mjs`).
  */
 import { describe, it, expect } from 'vitest';
-import { readCorpus } from '../../../../scripts/guards/lib/sourceCorpus.mjs';
+import { corpusDesGardes } from '../../../../scripts/guards/lib/commentPoison.mjs';
 import { lecturesDefZod } from '../../../../scripts/guards/lib/lectureDefZod.mjs';
 import { CHAMPS_D_ENFANTS } from './descente';
 
 /** Le module qui EST la lecture. */
 const DESCENTE = 'src/data/schemas/grammaire/descente.ts';
 
-const CORPUS = readCorpus(['src', 'scripts'], { exts: ['.ts', '.tsx', '.mts', '.mjs'], tests: true });
+const CORPUS = corpusDesGardes();
 
 describe('GARDE — `_zod.def` et les champs d’enfants ne se lisent que dans `descente.ts`', () => {
   it('aucune lecture hors de `descente.ts`', () => {

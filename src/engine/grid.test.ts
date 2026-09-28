@@ -9,15 +9,14 @@
  * moteur de porter la primitive — `state/path` la réexporte pour ses appelants).
  */
 import { describe, it, expect } from 'vitest';
-import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
-import { scanChebyshevFormula } from '../../scripts/guards/lib/canonUnique.mjs';
+import {
+  FORMULE_DE_CHEBYSHEV, constructionsReserveesDuCorpus, scanConstructionsReservees,
+} from '../../scripts/guards/lib/canonUnique.mjs';
+import { corpusDesGardes } from '../../scripts/guards/lib/commentPoison.mjs';
 import { chebyshev } from './grid';
 
-/** Le SEUL fichier où la formule a le droit de s'écrire : le canon lui-même. */
-const FOYER = 'src/engine/grid.ts';
-/** Corpus de `src/**`, tests compris, hors foyer — lecture disque payée une fois par worker
- *  (`readCorpus` mémoïse par clé) ; l'AST naît et meurt avec le scan. */
-const corpus = () => readCorpus(['src'], { tests: true }).filter(({ rel }) => rel !== FOYER);
+/** La formule, et le SEUL fichier où elle a le droit de s'écrire : le canon lui-même. */
+const CHEBYSHEV = { ...FORMULE_DE_CHEBYSHEV, foyer: 'src/engine/grid.ts' };
 const fixture = (text: string) => ({ rel: 'fixture.ts', text });
 
 describe('grille — distance de Chebyshev (#1440)', () => {
@@ -34,12 +33,11 @@ describe('grille — distance de Chebyshev (#1440)', () => {
   });
 
   it('la FORMULE ne s’écrit nulle part ailleurs dans `src/` — prod ET tests', () => {
-    const inline = corpus().flatMap((f) => scanChebyshevFormula(f).map((x) => `${f.rel}:${x.line}`));
-    expect(inline, 'importer `chebyshev` de `engine/grid` (#1440)').toEqual([]);
+    expect(constructionsReserveesDuCorpus(corpusDesGardes(), [CHEBYSHEV])).toEqual([]);
   });
 
   it('le scan lit la FORME, pas le nom : commutations et opérandes nus compris', () => {
-    const vu = (text: string) => scanChebyshevFormula(fixture(text)).length;
+    const vu = (text: string) => scanConstructionsReservees(fixture(text), [CHEBYSHEV]).length;
     expect(vu('const d = Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));'), 'forme canonique').toBe(1);
     expect(vu('const cheb = (p, q) => Math.max(Math.abs(q.y - p.y), Math.abs(q.x - p.x));'), 'axes commutés, opérandes inversés').toBe(1);
     expect(vu('const d = Math.max(Math.abs(x - pos.x), Math.abs(y - pos.y));'), 'opérandes NUS').toBe(1);
@@ -54,6 +52,6 @@ describe('grille — distance de Chebyshev (#1440)', () => {
   });
 
   it('le scan couvre bien `src/` (sanity : > 1500 fichiers)', () => {
-    expect(corpus().length).toBeGreaterThan(1500);
+    expect(corpusDesGardes().length).toBeGreaterThan(1500);
   });
 });

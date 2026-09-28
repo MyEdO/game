@@ -1,8 +1,10 @@
 // Test de la garde `check-source-format` (node --test, joué par `npm run test:raw`). Les
 // familles MORDENT — d'abord sur des dossiers SYNTHÉTIQUES (le détecteur est PUR, un site par
 // fichier fautif), puis sur de VRAIS dossiers fabriqués sous `os.tmpdir()` (le chemin disque : listing,
-// lecture, chemin POSIX) —, la clé de site ne porte aucune position, et le stock COMMITTÉ est
-// exactement le rendu des écarts mesurés sur l'arbre, dans les deux sens.
+// lecture, chemin POSIX) —, la clé de site ne porte aucune position, et le stock COMMITTÉ est le
+// point fixe de sa régénération (`texteRegenere`) sur les écarts mesurés sur l'arbre, dans les deux
+// sens.
+import { tableTotale } from '../../src/lib/tableTotale.ts'
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs'
@@ -10,15 +12,18 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import {
   sitesDuDossier, scanDossier, scanAll, dossiersFR, formeDeLigne1, estNomDeSignet,
-  comptesDeTables, balisesResiduelles, liensDIndex, entreesDe, stockDe, ecartDuStock, comptesParFamille,
+  comptesDeTables, balisesResiduelles, liensDIndex, regenerations,
   ecartsAuGrain, mobilierAll, rougesDuMobilier, titresSoudesAll, titresSoudesDuDossier,
   FAMILLES, STOCK_PATH, PREFIXES_FR,
 } from './check-source-format.mjs'
-import { naissanceEnPlace, readStock } from './stockNominatif.mjs'
-import { BOOKS, decoupeDe, gabaritTitreDe, livreExtraitDe, livresDecoupes, nomsDeLaListe, ongletsDe, readText } from './_lib.mjs'
+import {
+  comptesParFamille, ecartDeRegeneration, entreesRegenerees, lireEntreesDeSite, naissanceEnPlace, texteDeStock, texteEnPlace,
+  texteRegenere,
+} from '../guards/lib/stockDeSites.mjs'
+import { BOOKS, decoupeDe, gabaritTitreDe, livreExtraitDe, livresATitres, livresDecoupes, nomsDeLaListe, ongletsDe, readText } from './_lib.mjs'
 import { chiffresDes, fenetreDe, mobilierDuDossier } from './lib/mobilier.mjs'
 import { EXEMPTIONS_MOBILIER } from '../guards/lib/mobilierExemptions.mjs'
-import { cleDeSite, naissanceDu, sitesEnEntrees } from '../guards/lib/stock.mjs'
+import { cleDeSite, ecartDuVolet, naissanceDu, sitesEnEntrees } from '../guards/lib/stock.mjs'
 import { estSeparateur, ligne1DePlage, titreDuFichier } from '../../src/data/source/decoupe.ts'
 
 const DIR = 'Source/Livre'
@@ -232,7 +237,7 @@ test('table-sans-separateur : un bloc de table sans ligne `|---|` est compté, s
 
 test('le NOMBRE d’occurrences d’un site est HORS CLÉ : une réparation partielle garde l’identité de l’entrée', () => {
   const texte = (n) => `*Pages PDF 6-8*\n\n<span id="page-5-0" data-folio="3"></span>a${'<sup>1</sup>'.repeat(n)}\n`
-  const entree = (n) => sitesEnEntrees(sitesDuDossier(DIR, [{ nom: '01 - X.md', texte: texte(n) }]).filter((s) => s.famille === 'html-residuel'), { famille: 'html-residuel' })[0]
+  const entree = (n) => sitesEnEntrees(sitesDuDossier(DIR, [{ nom: '01 - X.md', texte: texte(n) }]).filter((s) => s.famille === 'html-residuel'))[0]
   assert.deepEqual([entree(3).nombre, entree(2).nombre], [3, 2])
   assert.equal(cleDeSite(entree(3)), cleDeSite(entree(2)))
 })
@@ -328,25 +333,35 @@ test('un livre de `books.json` dont le dossier MANQUE lève — un corpus amput�
 // --- Le STOCK committé ---
 
 test('stock COMMITTÉ : chaque écart mesuré y a son entrée, et aucune entrée n’est soldée', () => {
-  const { neuves, perimees } = ecartDuStock(scanAll(), readStock(STOCK_PATH))
+  const { neuves, perimees } = ecartDuVolet({ sites: scanAll(), stock: lireEntreesDeSite(STOCK_PATH), ou: 'source-format-stock.json' })
   assert.deepEqual(neuves, [], `écart(s) hors du stock :\n${neuves.join('\n')}`)
   assert.deepEqual(perimees, [], `entrée(s) SOLDÉE(s) à retirer :\n${perimees.join('\n')}`)
 })
 
-// AUCUN GÉNÉRATEUR SÉPARÉ : le fichier de stock EST le rendu de `entreesDe(scanAll())`, écrit par
-// `node scripts/raw/check-source-format.mjs --ecrire-stock`. Ce test le vérifie à la clé ET à
-// l'ORDRE, là où l'écart ci-dessus ne juge que les ensembles.
+// AUCUN GÉNÉRATEUR SÉPARÉ : le fichier de stock EST le texte de sa régénération (`texteRegenere`),
+// écrit par `npx tsx scripts/guards/lib/regenStock.mts scripts/raw/check-source-format.mjs`. Ce test le
+// vérifie à l'octet, ORDRE compris, là où l'écart ci-dessus ne juge que les ensembles.
 test('stock COMMITTÉ : le rendu EXACT et ORDONNÉ des écarts mesurés sur l’arbre', () => {
-  const cle = (e) => `${e.famille} :: ${e.fichier} :: ${e.ref} :: ${e.occurrence}`
-  const attendu = entreesDe(scanAll(), { lot: '', date: '' })
-  assert.deepEqual(readStock(STOCK_PATH).map(cle), attendu.map(cle))
+  for (const r of regenerations(scanAll())) assert.equal(ecartDeRegeneration(r, texteEnPlace(r.chemin)), null)
+})
+
+// Le `quoi` ne dépend jamais de la mesure du run : deux soldes disjoints d'un même stock le laissent
+// identique, et le pilote de fusion les fusionne sans conflit.
+test('un solde laisse le quoi à l’octet', () => {
+  const sites = scanAll()
+  const [s0] = sites
+  const reste = sites.filter((s) => s.famille !== s0.famille || s.file !== s0.file || s.ref !== s0.ref)
+  assert.ok(reste.length < sites.length)
+  const enPlace = texteEnPlace(STOCK_PATH)
+  const [r] = regenerations(reste)
+  assert.equal(JSON.parse(texteRegenere(r, { enPlace, lot: null, date: null }).texte).quoi, JSON.parse(enPlace).quoi)
 })
 
 // PLAFOND de la dette (jamais dans la lib de stock : il vit ICI, cf. `scripts/guards/lib/stock.mjs`).
 // Il ne monte QUE par une édition de cette ligne, sous `CLIQUET:`.
 // 57 → 58 au train #1820 : +1 `sans-folio` pour le Core Rulebook 5e, enregistré SANS ancre de folio
 // — l'entrée sort quand la chaîne canonique lui pose ses folios (#1739).
-// 58 → 78 au train #1739 (lot S1) : la famille `sans-decoupe` NAÎT — UNE entrée par livre dont le
+// 58 → 78 au train #1739 : la famille `sans-decoupe` NAÎT — UNE entrée par livre dont le
 // GRAIN n'est déclaré par aucune liste de découpe, 20 livres. Elle décroît d'un par liste écrite ;
 // le livre qui en a une n'entre pas au stock, il se CONFRONTE (`ecartsAuGrain`, rouge nommé).
 // 78 → 997 au train #1739 (#1393, folios du CRB) : UN SITE PAR FICHIER pour toutes les familles —
@@ -355,7 +370,7 @@ test('stock COMMITTÉ : le rendu EXACT et ORDONNÉ des écarts mesurés sur l’
 const PLAFOND = 997
 
 test('stock COMMITTÉ : PLAFOND de la dette de format — le relever exige de changer CE test', () => {
-  const entrees = readStock(STOCK_PATH)
+  const entrees = lireEntreesDeSite(STOCK_PATH)
   assert.ok(
     entrees.length <= PLAFOND,
     `${entrees.length} entrée(s) pour un plafond de ${PLAFOND} : une dette de format ne grossit pas`,
@@ -369,8 +384,9 @@ test('stock COMMITTÉ : PLAFOND de la dette de format — le relever exige de ch
 
 test('stock TRUQUÉ : une entrée retirée rend son site NEUF, une entrée sans écart est SOLDÉE', () => {
   const sites = scanAll()
-  const stock = readStock(STOCK_PATH)
-  const ampute = ecartDuStock(sites, stock.slice(1))
+  const stock = lireEntreesDeSite(STOCK_PATH)
+  const ecart = (s) => ecartDuVolet({ sites, stock: s, ou: 'source-format-stock.json' })
+  const ampute = ecart(stock.slice(1))
   assert.equal(ampute.neuves.length, 1)
   assert.match(ampute.neuves[0], /site NEUF/)
   assert.ok(ampute.neuves[0].includes(stock[0].fichier), `le rouge NOMME le chapitre : ${ampute.neuves[0]}`)
@@ -378,7 +394,7 @@ test('stock TRUQUÉ : une entrée retirée rend son site NEUF, une entrée sans 
 
   // Un livre RÉ-EXTRAIT : son écart disparaît, son entrée devient soldée et doit se retirer.
   const fantome = { ...stock[0], fichier: `${stock[0].fichier} (ré-extrait)` }
-  const gonfle = ecartDuStock(sites, [...stock, fantome])
+  const gonfle = ecart([...stock, fantome])
   assert.deepEqual(gonfle.neuves, [])
   assert.equal(gonfle.perimees.length, 1)
   assert.match(gonfle.perimees[0], /entrée SOLDÉE/)
@@ -386,18 +402,18 @@ test('stock TRUQUÉ : une entrée retirée rend son site NEUF, une entrée sans 
 
 test('l’écart est jugé FAMILLE PAR FAMILLE : le stock d’une famille ne solde pas les écarts d’une autre', () => {
   const sites = sitesDuDossier(DIR, [{ nom: '01 - _GoBack.md', texte: '*Folio 3+*\n\n<span id="page-5-0" data-folio="3"></span>x\n' }], listePour(['01 - _GoBack.md']))
-  assert.equal(comptesParFamille(sites)['ligne1-hors-format'], 1)
-  assert.equal(comptesParFamille(sites)['nom-de-signet'], 1)
-  const partiel = entreesDe(sites, { lot: 'x', date: 'y' }).filter((e) => e.famille === 'ligne1-hors-format')
-  const { neuves, perimees } = ecartDuStock(sites, partiel)
+  assert.equal(comptesParFamille(sites, FAMILLES)['ligne1-hors-format'], 1)
+  assert.equal(comptesParFamille(sites, FAMILLES)['nom-de-signet'], 1)
+  const partiel = entreesRegenerees(sites, { lot: 'x', date: 'y' }).filter((e) => e.famille === 'ligne1-hors-format')
+  const { neuves, perimees } = ecartDuVolet({ sites, stock: partiel, ou: 'source-format-stock.json' })
   assert.equal(neuves.length, 1, 'la famille NON couverte reste neuve')
   assert.match(neuves[0], /^nom-de-signet ::/)
   assert.deepEqual(perimees, [], 'la famille couverte n’est pas déclarée soldée pour autant')
 })
 
 test('comptesParFamille nomme TOUTES les familles, même à zéro (une famille muette resterait invisible)', () => {
-  assert.deepEqual(Object.keys(comptesParFamille([])), FAMILLES)
-  assert.deepEqual(Object.values(comptesParFamille([])), FAMILLES.map(() => 0))
+  assert.deepEqual(Object.keys(comptesParFamille([], FAMILLES)), FAMILLES)
+  assert.deepEqual(Object.values(comptesParFamille([], FAMILLES)), FAMILLES.map(() => 0))
 })
 
 test('familles() n’est pas AVEUGLE : un dossier tout-défaut les rend TOUTES', () => {
@@ -413,28 +429,29 @@ test('familles() n’est pas AVEUGLE : un dossier tout-défaut les rend TOUTES',
 
 // SURVIE de l'échéance (#1820) : régénérer pour ajouter UNE entrée ne redate pas les autres. La
 // règle est `survieDeLecheance` (`scripts/guards/lib/stock.mjs`) ; ce test-ci tient son CÂBLAGE —
-// `entreesDe`, puis `stockDe`, qui est ce que `--ecrire-stock` écrit sur le disque.
-test('--ecrire-stock CONSERVE les comptes « à la naissance » du stock en place (#1739)', () => {
+// `entreesRegenerees`, puis `texteRegenere`, qui est ce que la commande de régénération écrit.
+test('`regenerations` CONSERVE les comptes « à la naissance » du stock en place (#1739)', () => {
   const sites = sitesDuDossier(DIR, [{ nom: '01 - _GoBack.md', texte: '*Folio 3+*\n\n<span id="page-5-0" data-folio="3"></span>x\n' }], listePour(['01 - _GoBack.md']))
-  const naissance = Object.fromEntries(FAMILLES.map((f, i) => [f, 100 + i]))
-  const quoi = JSON.parse(stockDe(sites, { lot: '#9999 Z', date: '2030-01-01', dossiers: 1, naissance })).quoi
-  assert.deepEqual(naissanceDu(quoi, FAMILLES), naissance)
-  assert.notDeepEqual(naissanceDu(JSON.parse(stockDe(sites, { lot: '#9999 Z', date: '2030-01-01', dossiers: 1 })).quoi, FAMILLES), naissance)
+  const naissance = tableTotale(FAMILLES, (_f, indice) => 100 + indice)
+  const quoiDe = (n) => regenerations(sites, n)[0].horsCollections
+  assert.deepEqual(naissanceDu(quoiDe(naissance), FAMILLES), naissance)
+  assert.notDeepEqual(naissanceDu(quoiDe(null), FAMILLES), naissance)
   assert.ok(naissanceEnPlace(STOCK_PATH, FAMILLES), 'le stock en place porte ses comptes à la naissance')
 })
 
-test('--ecrire-stock CONSERVE l’échéance d’une entrée existante, à clé identique', () => {
+test('`texteRegenere` CONSERVE l’échéance d’une entrée existante, à clé identique', () => {
   const sites = sitesDuDossier(DIR, [{ nom: '01 - _GoBack.md', texte: '*Folio 3+*\n\n<span id="page-5-0" data-folio="3"></span>x\n' }], listePour(['01 - _GoBack.md']))
-  const ancien = entreesDe(sites, { lot: '#1739 H-0', date: '2026-09-14' })
-  const rendu = entreesDe(sites, { lot: '#9999 Z', date: '2030-01-01', ancien })
+  const ancien = entreesRegenerees(sites, { lot: '#1739 H-0', date: '2026-09-14' })
+  const rendu = entreesRegenerees(sites, { lot: '#9999 Z', date: '2030-01-01', ancien })
   assert.deepEqual(rendu, ancien, 'une régénération ne rajeunit pas une entrée inchangée')
+  const [r] = regenerations(sites, null)
   assert.ok(
-    stockDe(sites, { lot: '#9999 Z', date: '2030-01-01', dossiers: 1, ancien }).includes('"date": "2026-09-14"'),
+    texteRegenere(r, { enPlace: texteDeStock('q', ancien), lot: '#9999 Z', date: '2030-01-01' }).texte.includes('"date": "2026-09-14"'),
     'le FICHIER écrit porte la date d’origine, pas celle du run',
   )
 
   // Une entrée NEUVE (aucune ancienne à sa clé) prend le lot et la date du run, l'autre garde les siens.
-  const neuve = entreesDe(sites, { lot: '#9999 Z', date: '2030-01-01', ancien: ancien.slice(0, 1) })
+  const neuve = entreesRegenerees(sites, { lot: '#9999 Z', date: '2030-01-01', ancien: ancien.slice(0, 1) })
   assert.deepEqual(neuve.map((e) => [e.famille, e.lot, e.date]), [
     [ancien[0].famille, '#1739 H-0', '2026-09-14'],
     ['nom-de-signet', '#9999 Z', '2030-01-01'],
@@ -445,8 +462,8 @@ test('--ecrire-stock CONSERVE l’échéance d’une entrée existante, à clé 
 // stock-ci, dont aucune entrée n'en porte aujourd'hui.
 test('survie : une `preuve` posée à la main sur une entrée de format lui survit', () => {
   const sites = sitesDuDossier(DIR, [{ nom: '01 - X.md', texte: '*Folio 3+*\n\n<span id="page-5-0" data-folio="3"></span>x\n' }])
-  const ancien = entreesDe(sites, { lot: '#1739 H-0', date: '2026-09-14' }).map((e) => ({ ...e, preuve: 'PDF p.9 : lu.' }))
-  assert.deepEqual(entreesDe(sites, { lot: '#9999 Z', date: '2030-01-01', ancien }), ancien)
+  const ancien = entreesRegenerees(sites, { lot: '#1739 H-0', date: '2026-09-14' }).map((e) => ({ ...e, preuve: 'PDF p.9 : lu.' }))
+  assert.deepEqual(entreesRegenerees(sites, { lot: '#9999 Z', date: '2030-01-01', ancien }), ancien)
 })
 
 // --- MOBILIER DE PAGE (#1739) : la famille `mobilier`, rouge nommé sans stock ---
@@ -503,15 +520,19 @@ test('mobilier : un chiffre d’onglet AJOUTÉ à une ligne EXEMPTÉE rougit —
 
 // --- TITRES SOUDÉS (#1739) : la famille `titre-soude`, rouge nommé sans stock ---
 
-const LIVRES_A_GABARIT = livresDecoupes().filter((id) => gabaritTitreDe(id))
+test('livresATitres : la seule liste des livres à gabarit de titre, chacun avec son gabarit', () => {
+  const ids = livresATitres()
+  assert.ok(ids.includes('core-rulebook-5e'), ids.join(', '))
+  for (const id of ids) assert.ok(gabaritTitreDe(id), id)
+})
 
 test('titre-soude : l’arbre est VERT — aucun titre soudé ni titre à deux gras dans un livre à gabarit', () => {
-  assert.ok(LIVRES_A_GABARIT.length, 'aucun livre à gabarit de titre : la famille serait muette')
+  assert.ok(livresATitres().length, 'aucun livre à gabarit de titre : la famille serait muette')
   assert.deepEqual(titresSoudesAll(), [])
 })
 
 test('titre-soude : un titre RE-SOUDÉ à son corps ROUGIT, nommé à sa ligne', () => {
-  for (const id of LIVRES_A_GABARIT) {
+  for (const id of livresATitres()) {
     const dir = livreExtraitDe(id).dir.split('\\').join('/')
     const liste = decoupeDe(id)
     const nom = nomsDeLaListe(liste).find((n) => /^# \*\*[^*]+\*\*\n\n[A-Z]/m.test(readText(`${dir}/${n}`)))

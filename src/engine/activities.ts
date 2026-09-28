@@ -138,7 +138,7 @@ export type ResolverOwner = 'interlude' | 'mer' | 'voyage';
  *  - `mer` → `src/state/seaActivities.ts` (+ `SeaActivitiesModal`) ; `voyage` → `travelPostes.ts`.
  * La bataille de masse n'est PAS une famille : ses Scènes se résolvent par `sceneKind`
  * (`massBattleFlow.confirmBattleActivity`), le Rassemblement par `rallyHealAmount` (ADE II 8 l.122).
- * Table EXHAUSTIVE (`satisfies Record<ActivityResolver, …>`) : un résolveur ajouté sans propriétaire
+ * Table TOTALE (`satisfies Record<ActivityResolver, …>`) : un résolveur ajouté sans propriétaire
  * ne compile pas.
  */
 export const RESOLVER_OWNER = {

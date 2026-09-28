@@ -7,7 +7,7 @@
 // `stock.mjs`). DÉCROISSANT : une entrée se solde en déplaçant la classe dans le
 // module de sa primitive, ou en la cataloguant ; une entrée neuve se déclare par `CLIQUET:`.
 
-/** @type {import('./stock.mjs').EntreeNominative[]} */
+/** @type {import('./stock.mjs').EntreeDeSite[]} */
 export const FUITES_COUCHE_PARTAGEE = [
   { fichier: 'src/ui/styles.css', ref: '.combat-cursor', occurrence: 1 },
   { fichier: 'src/ui/styles.css', ref: '.error-collector-badge', occurrence: 1 },

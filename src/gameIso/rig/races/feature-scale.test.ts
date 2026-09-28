@@ -25,7 +25,7 @@ describe("featureToPart — échelle à l'os", () => {
   });
 });
 
-describe('featureToPart — appendice MULTI-VUES (registre APPENDAGES, résolu par pickView)', () => {
+describe('featureToPart — appendice ORIENTÉ (registre APPENDAGES, résolu par viewOrFront)', () => {
   const corne = (): RaceFeature => ({ bone: 'tete', appendage: 'cornes-taureau', svg: '', layer: -2 });
   it('résout l\'art de la VUE demandée (front ≠ profile)', () => {
     const front = featureToPart(corne(), [1, 1], 'front').svg;

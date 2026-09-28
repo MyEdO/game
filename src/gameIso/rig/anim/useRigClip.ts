@@ -14,7 +14,7 @@ interface Active {
 
 /** Anime le rig : boucle rAF qui échantillonne le clip courant en Pose. play()/hold().
  *  `restClip` = posture de REPOS (sinon idle) : un clip d'ambiance (dévore/hurle…) vers
- *  lequel on retombe après chaque geste — un seul token sert combat ET exploration. */
+ *  lequel on retombe après chaque geste — un seul pion sert combat ET exploration. */
 export function useRigClip(restClip?: Clip, pos?: { x: number; y: number }) {
   const [pose, setPose] = useState<Pose>({});
   const rest = useRef<Clip | undefined>(restClip);

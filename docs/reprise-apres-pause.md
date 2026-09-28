@@ -23,7 +23,7 @@ longue pause. Chaque chemin/symbole cité existe dans le repo — vérifié via 
 
 ```bash
 git clone <url> && cd Game
-npm install     # pose 7 réglages git (script "postinstall" de package.json)
+npm install     # pose 9 réglages git (script "postinstall" de package.json)
 npm test        # suite du moteur — deux processus Vitest (node + jsdom) si ≥ 7 cœurs, sinon un seul
 npm run dev     # http://localhost:5173 (un CLONE garde le port historique)
 ```
@@ -45,9 +45,9 @@ Le port n'est historique QUE pour un arbre principal ou un clone : un **worktree
 autre (5174-5272, `scripts/port-dev.mjs`) pour que deux arbres servis en même temps ne se recouvrent
 jamais. `npm run dev` imprime celui qu'il sert.
 
-`npm install` déclenche le script `postinstall`, qui pose : `core.hooksPath`, `merge.docs-generes.driver`, `merge.docs-generes.name`, `merge.docs-catalogue.driver`, `merge.docs-catalogue.name`, `merge.docs-fiche-raw.driver`, `merge.docs-fiche-raw.name`.
+`npm install` déclenche le script `postinstall`, qui pose : `core.hooksPath`, `merge.docs-generes.driver`, `merge.docs-generes.name`, `merge.docs-catalogue.driver`, `merge.docs-catalogue.name`, `merge.docs-fiche-raw.driver`, `merge.docs-fiche-raw.name`, `merge.stocks.driver`, `merge.stocks.name`.
 
-**Sans ce postinstall, 2 familles de mécanismes sont MORTES.**
+**Sans ce postinstall, 3 familles de mécanismes sont MORTES.**
 
 1. `core.hooksPath` → `scripts/git-hooks` : les hooks `commit-msg`, `post-merge`, `post-rewrite`, `pre-commit`, `pre-push` ne tournent plus. Le
    `pre-commit` porte les gardes anti-poison/anti-dérive de chaque commit ; `post-merge` et
@@ -56,8 +56,12 @@ jamais. `npm run dev` imprime celui qu'il sert.
    et la fermeture des issues suit la PUBLICATION : job `fermetures` de `.github/workflows/ci.yml`
    après un `build` vert sur `main`, qui joue `node scripts/ops/fermer-depuis-main.mjs <before>..<sha>`.
 2. Les pilotes de fusion des docs dérivés (`docs-generes`, `docs-catalogue`, `docs-fiche-raw`), déclarés par
-   `.gitattributes` et servis par `scripts/git-hooks/merge-docs.mjs` : sans eux, chaque rebase
-   rouvre un conflit sur des fichiers que `npm run docs:build` régénère seul.
+   `.gitattributes` et servis par `scripts/git-hooks/merge-docs.mjs` : sans eux, chaque rebase rouvre un conflit sur
+   des fichiers que `npm run docs:build` régénère seul.
+3. Le pilote de fusion des stocks de sites (`stocks`), déclaré par
+   `.gitattributes` et servi par `scripts/git-hooks/merge-stocks.mjs` : fusion par groupe de site ; sans lui, deux soldes
+   de groupes disjoints d'un même stock rouvrent un conflit. Un stock se régénère par la commande
+   `npx tsx scripts/guards/lib/regenStock.mts <module qui mesure>`, jamais par `docs:build`.
 
 Le partage de la suite (`node scripts/test/run.mjs`) est décidé par `repartitionWorkers` : en dessous de
 7 cœurs, un seul processus Vitest ; au-delà, un processus `node` et un processus `jsdom`. Les
@@ -104,7 +108,7 @@ C'est le signal qu'un geste manuel a dévié de ce que `npm install` pose seul.
 
 - `Source/` — texte des livres en `.md`, **citable** (réfs `LDB <chap> l.<ligne>`).
 - `src/data/` — données app-owned (124 fichiers JSON commités, éditables au Compendium).
-- Les gardes de données : `scripts/guards/validate-data.mts` + 162 modules
+- Les gardes de données : `scripts/guards/validate-data.mts` + 166 modules
   sous `scripts/guards/lib/` (dont `scripts/guards/lib/commentPoison.mjs`,
   `scripts/guards/lib/emojiAffordance.mjs`, `scripts/guards/lib/hardcode.mjs`,
   `scripts/guards/lib/labelLogic.mjs`).
@@ -232,7 +236,7 @@ n'écrit dans l'arbre, un dérivé s'y VÉRIFIE (`docs:check:tout`) :
 
 Les deux tables vivent dans `scripts/gates/toutes.mjs` : `LANES` pour la répartition ci-dessus,
 `ECRIT_LU` pour ce que CHAQUE gate écrit et lit (24 gates mesurées, dont
-9 écrivain(s) — écriture de chaque run ou écriture POSSIBLE à porte nommée) ; c'est elle
+4 écrivain(s) — écriture de chaque run ou écriture POSSIBLE à porte nommée) ; c'est elle
 qui rend le classement vérifiable plutôt que déclaratif. La suite est BORNÉE par `WFRP_TEST_COEURS`
 pendant que les autres lanes tournent. Options : `--gates`, `--liste`, `--serie`. Une gate de `ci.yml`
 sans place dans ce plan fait REFUSER le run, avec son nom.
@@ -241,4 +245,4 @@ sans place dans ce plan fait REFUSER le run, avec son nom.
 `scripts/guards/lib/npmLockHoisted.mjs` — npx --yes npm@10.9.3 install --package-lock-only, puis valider avec npx npm@10.9.3 ci --dry-run. npm 11 ampute les entrées hoistées
 `@emnapi/*` que `npm ci` exige en CI ; la garde (pre-commit +
 `src/npm-lock-hoisted-guard.test.ts`) refuse un lock amputé.
-<!-- sources-empreinte: 05d7c22b23935682c95b2806ab69e76ee0845055 (26 fichiers, 8 dossiers) corps: 5d88cb614f4b45533f1c2a6920ecb5e1ca92f90a -->
+<!-- sources-empreinte: f54fba5087a4b12d9588e0f1ffb90a1b491f8f03 (26 fichiers, 8 dossiers) corps: a66122aa62627ea5003d70581a283f7bdc554119 -->

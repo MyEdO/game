@@ -1,7 +1,8 @@
-import type { ViewSet } from '../types';
+import { gammeDe } from '../../../../data/palette.types';
+import type { PartArt, ViewSet } from '../types';
 
 /**
- * GABARIT de JAMBE partagé (#633 Lot 0) — contour + galbe genou/mollet faits UNE fois, à l'image de
+ * GABARIT de JAMBE partagé (#633) — contour + galbe genou/mollet faits UNE fois, à l'image de
  * la composition d'authoring du torse (`BODIES.nu.torse*` + surface). Une tenue appelle `jambeVetue`
  * en fournissant SON tissu et SON détail peint ; le CONTOUR (rempli `@tissu`) et le galbe lissé
  * viennent du gabarit → le fix de galbe (mollet doux, `rig/SKELETON-CONTRACT.md` genou 22..30) se
@@ -29,20 +30,20 @@ const JAMBE_PROFILE_FLANC =
 // Galbe PARTAGÉ genou/mollet (le fix fait UNE fois) : rotule (front), mollet + pli du genou (dos),
 // arc du mollet (profil). Teintes @tissuH/@tissuO → suit le recoloriage de carrière.
 const galbeFront = (t: string) =>
-  `<path d="M-3.6 22 Q-4.6 25.5 -2.9 28.5 Q1.4 29.4 3.2 25.8 Q3.7 22.4 2 20 Q-0.8 21.4 -3.6 22 Z" fill="@${t}H" opacity="0.45"/>`;
+  `<path d="M-3.6 22 Q-4.6 25.5 -2.9 28.5 Q1.4 29.4 3.2 25.8 Q3.7 22.4 2 20 Q-0.8 21.4 -3.6 22 Z" fill="@${gammeDe(t, 'lumiere')}" opacity="0.45"/>`;
 const galbeBack = (t: string) =>
-  `<path d="M-2.4 29.5 Q-3.6 34.5 -2.2 39.5 Q0.8 40.6 2.4 36.5 Q2.9 32 1.2 29 Q-0.6 30 -2.4 29.5 Z" fill="@${t}H" opacity="0.4"/>`
-  + `<path d="M-2.6 25 Q0 26.6 2.8 25" fill="none" stroke="@${t}O" stroke-width="0.6" opacity="0.6"/>`;
+  `<path d="M-2.4 29.5 Q-3.6 34.5 -2.2 39.5 Q0.8 40.6 2.4 36.5 Q2.9 32 1.2 29 Q-0.6 30 -2.4 29.5 Z" fill="@${gammeDe(t, 'lumiere')}" opacity="0.4"/>`
+  + `<path d="M-2.6 25 Q0 26.6 2.8 25" fill="none" stroke="@${gammeDe(t, 'ombre')}" stroke-width="0.6" opacity="0.6"/>`;
 const galbeProfile = (t: string) =>
-  `<path d="M-3.2 30 Q-3.9 35 -3.2 40" fill="none" stroke="@${t}H" stroke-width="0.7" opacity="0.5"/>`;
+  `<path d="M-3.2 30 Q-3.9 35 -3.2 40" fill="none" stroke="@${gammeDe(t, 'lumiere')}" stroke-width="0.7" opacity="0.5"/>`;
 
-// Tige de botte standard (segment bas de jambe y..50) — @token de cuir, suit le contour.
+// Tige de botte standard (segment bas de jambe y..50) — jeton de cuir, suit le contour.
 const bootShaft = (y: number, token: string) =>
-  `<path d="M-4.4 ${y} Q0 ${y - 1.6} 4.4 ${y} L4 50 L-4 50 Z" fill="@${token}" stroke="@${token}O" stroke-width="0.5"/>`;
+  `<path d="M-4.4 ${y} Q0 ${y - 1.6} 4.4 ${y} L4 50 L-4 50 Z" fill="@${token}" stroke="@${gammeDe(token, 'ombre')}" stroke-width="0.5"/>`;
 
 /**
  * Construit la jambe VÊTUE d'une tenue, 3 vues, sur le contour partagé.
- * - `tissu` : token de remplissage du contour (`vet1`|`cuir`|`peau`…). Le flanc suit en `@tissuO`.
+ * - `tissu` : jeton de remplissage du contour (`vet1`|`cuir`|`peau`…). Le flanc suit en `@tissuO`.
  * - `surfaces` : détail peint SUR le contour, CLIPPÉ à la silhouette de jambe. `front` requis ;
  *   `back`/`profile` absents → surface générique du gabarit (couture + `botte` si fournie).
  * - `deborde` : calque NON clippé (revers/genouillère qui débordent légitimement le contour).
@@ -51,22 +52,22 @@ const bootShaft = (y: number, token: string) =>
  */
 export function jambeVetue(opts: {
   tissu: string;
-  surfaces: { front: string; back?: string; profile?: string };
-  deborde?: { front?: string; back?: string; profile?: string };
+  surfaces: Exclude<PartArt, string>;
+  deborde?: Partial<ViewSet>;
   galbe?: boolean;
   botte?: { y: number; token?: string };
 }): ViewSet {
   const { tissu: t, surfaces, deborde = {}, galbe = false, botte } = opts;
   const baseFB =
-    `<path d="${JAMBE_CONTOUR}" fill="@${t}" stroke="@${t}O" stroke-width="0.5"/>`
-    + `<path d="${JAMBE_FLANC}" fill="@${t}O" opacity="0.3"/>`;
+    `<path d="${JAMBE_CONTOUR}" fill="@${t}" stroke="@${gammeDe(t, 'ombre')}" stroke-width="0.5"/>`
+    + `<path d="${JAMBE_FLANC}" fill="@${gammeDe(t, 'ombre')}" opacity="0.3"/>`;
   const baseP =
-    `<path d="${JAMBE_PROFILE_CONTOUR}" fill="@${t}" stroke="@${t}O" stroke-width="0.5"/>`
-    + `<path d="${JAMBE_PROFILE_FLANC}" fill="@${t}O" opacity="0.35"/>`;
+    `<path d="${JAMBE_PROFILE_CONTOUR}" fill="@${t}" stroke="@${gammeDe(t, 'ombre')}" stroke-width="0.5"/>`
+    + `<path d="${JAMBE_PROFILE_FLANC}" fill="@${gammeDe(t, 'ombre')}" opacity="0.35"/>`;
   const boot = botte ? bootShaft(botte.y, botte.token ?? 'cuir') : '';
   // Surface générique d'une vue back/profile non fournie : couture centrale + botte.
-  const genericBack = `<path d="M0 4 L0 48" stroke="@${t}O" stroke-width="0.5" opacity="0.4"/>${boot}`;
-  const genericProfile = `<path d="M2.6 6 Q2.9 26 2.4 47" fill="none" stroke="@${t}H" stroke-width="0.5" opacity="0.4"/>${boot}`;
+  const genericBack = `<path d="M0 4 L0 48" stroke="@${gammeDe(t, 'ombre')}" stroke-width="0.5" opacity="0.4"/>${boot}`;
+  const genericProfile = `<path d="M2.6 6 Q2.9 26 2.4 47" fill="none" stroke="@${gammeDe(t, 'lumiere')}" stroke-width="0.5" opacity="0.4"/>${boot}`;
   // Détail (galbe + surface) CLIPPÉ à la silhouette de jambe ; le débord reste hors clip.
   const clip = (id: string, inner: string) => (inner ? `<g clip-path="url(#${id})">${inner}</g>` : '');
   return {

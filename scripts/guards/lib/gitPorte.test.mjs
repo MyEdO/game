@@ -11,7 +11,7 @@ import { tmpdir } from 'node:os'
 import { join, relative } from 'node:path'
 import { STATUS_DLL_INIT_FAILED } from './spawnResilient.mjs'
 import {
-  BorneAbsente, GitIndisponible, INDEX, OPTIONS_DE_L_HOTE, SUIVI, TRAVAIL, abandonnerRebase, ajouterOrigine, ajouterWorktree, approfondir, arbrePrincipal, arbreVide,
+  BorneAbsente, GitIndisponible, INDEX, OPTIONS_DE_L_HOTE, SUIVI, TRAVAIL, abandonnerRebase, ajouterOrigine, ajouterWorktree, approfondir, arbrePrincipal, arbreVide, attributDe,
   baseCommune, brancheDe, branchesDe, ceQuEmporteLIndex, ceQueFaitLeCommit, ceQuiChange, cheminGit, cheminsEnConflit, classer, combienDe, commitDe,
   depotDe, divergenceDe, dossierDesHooks, elaguerWorktrees, eolsDe, estDansHead, estIgnore, estSuperficiel, etatDeLArbre, enfantsDirects, estAncetre, estRepertoire,
   fetchOrigin, fichiersDuGrep, fusionDeTextes, initialiserDepot, journalDe, lireEnLot, listerImage, natureDuChemin, origineDe, poserRef, pousser,
@@ -1007,6 +1007,7 @@ test('un CHEMIN positionnel qui commence par `-` passe APRÈS `--` : git le lit 
     commitDe: [() => commitDe(d, { message: 'm', chemins: ['-A'] }), ['--literal-pathspecs', 'commit', '-q', '-F', '-', '--', '-A']],
     fusionDeTextes: [() => fusionDeTextes(d, { ours: '-o', base: '-b', theirs: '-t' }, { ours: 'o', base: 'b', theirs: 't' }), ['merge-file', '-p', '-L', 'o', '-L', 'b', '-L', 't', '--', '-o', '-b', '-t']],
     estIgnore: [() => estIgnore(d, '-v'), ['check-ignore', '-q', '--', '-v']],
+    attributDe: [() => attributDe(d, '-v', 'merge'), ['check-attr', '-z', 'merge', '--', '-v']],
     eolsDe: [() => eolsDe(d, ['-z']), ['ls-files', '-z', '--eol', '--cached', '--', '-z']],
   }
   for (const [nom, [geste, attendu]] of Object.entries(gestes)) {
@@ -1093,9 +1094,9 @@ test('branchesDe, divergenceDe, combienDe : une sortie en fin de ligne CRLF rend
   assert.equal(combienDe(d, ['main..cote']), 3)
 })
 
-test('estSuperficiel, dossierDesHooks, estIgnore, cheminGit, brancheDe, racineDe, origineDe : les VALEURS sur dépôt forgé', () => {
+test('estSuperficiel, dossierDesHooks, estIgnore, attributDe, cheminGit, brancheDe, racineDe, origineDe : les VALEURS sur dépôt forgé', () => {
   const origine = 'https://github.com/cgauche/game.git'
-  const { racine } = instanceDeDepot({ fichiers: { 'a.txt': 'a\n', '.gitignore': '*.log\n' }, origin: origine })
+  const { racine } = instanceDeDepot({ fichiers: { 'a.txt': 'a\n', '.gitignore': '*.log\n', '.gitattributes': '*.txt merge=stocks\n' }, origin: origine })
   const clone = mkdtempSync(join(tmpdir(), 'superficiel-'))
   try {
     const g = (...a) => execFileSync('git', a, { cwd: racine, env: envDeDepotForge(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()
@@ -1103,6 +1104,7 @@ test('estSuperficiel, dossierDesHooks, estIgnore, cheminGit, brancheDe, racineDe
     assert.equal(estSuperficiel(d), false)
     assert.equal(dossierDesHooks(d), 'hooks-absents')
     assert.deepEqual([estIgnore(d, 'x.log'), estIgnore(d, 'a.txt')], [true, false])
+    assert.deepEqual([attributDe(d, 'a.txt', 'merge'), attributDe(d, 'x.log', 'merge')], ['stocks', 'unspecified'])
     assert.equal(cheminGit(d, 'rebase-merge'), '.git/rebase-merge')
     assert.equal(brancheDe(d), 'main')
     assert.equal(racineDe(d), g('rev-parse', '--show-toplevel'))

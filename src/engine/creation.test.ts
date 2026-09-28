@@ -1,3 +1,4 @@
+import { tableTotale } from '../lib/tableTotale';
 import { describe, it, expect, afterEach } from 'vitest';
 import type { RefASpecialisation } from '../data/schemas/grammaire/ref';
 import { makeRNG, roll } from './dice';
@@ -72,7 +73,7 @@ describe('rollStar — signe astral (ADE II, table d100)', () => {
 });
 
 describe('applyStarOps — effet d\'un signe aux ATTRIBUTS DE DÉPART (ADE II 3 l.38)', () => {
-  const baseChars = () => Object.fromEntries(CHAR_KEYS.map((k) => [k, 30])) as Record<CharKey, number>;
+  const baseChars = () => tableTotale(CHAR_KEYS, () => 30);
 
   it('XP_STAR_ROLLED = 25 (l.36)', () => {
     expect(XP_STAR_ROLLED).toBe(25);
@@ -146,7 +147,7 @@ describe('Gnome jouable — règle optionnelle (NADJ 14 l.5)', () => {
   });
 
   it('SÉMANTIQUE : le gate porte sur l’ESPÈCE (`gatedByRule`), PAS sur son LIVRE — une autre espèce du MÊME livre sans le champ reste ouverte', () => {
-    // Le filtre historique masquait TOUT le livre NADJ ; il porte désormais sur le champ déclaré par
+    // Le filtre historique masquait TOUT le livre NADJ ; il porte sur le champ déclaré par
     // l'entrée. Une espèce NADJ future SANS `gatedByRule` est donc ouverte — comportement VOULU,
     // asserté ici pour qu'aucune relecture ne le prenne pour une régression.
     const gnome = findSpeciesById('gnomes')!;
@@ -182,7 +183,7 @@ describe('Tableau des Classes et Carrières aléatoires (LDB 05 l.214+)', () => 
 });
 
 describe('répartition de 100 Points (LDB 05 l.341 : min 4, max 18)', () => {
-  const alloc = (v: number): Record<CharKey, number> => Object.fromEntries(CHAR_KEYS.map((k) => [k, v])) as Record<CharKey, number>;
+  const alloc = (v: number): Record<CharKey, number> => tableTotale(CHAR_KEYS, () => v);
   it('valide : 10 × 10 = 100', () => {
     expect(validatePointBuy(alloc(10)).ok).toBe(true);
     expect(POINT_BUY_TOTAL).toBe(100);

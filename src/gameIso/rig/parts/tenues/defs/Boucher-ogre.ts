@@ -52,7 +52,7 @@ export const tenue: TenueDef = {
         + `<circle cx="-7.6" cy="35" r="1.1" fill="#7c211d"/><circle cx="7" cy="35" r="1.1" fill="#7c211d"/>`
         + `<path d="M-0.6 43 Q-0.9 47.5 0.2 48.5 Q1.4 47.5 1 43.5 Z" fill="#7c211d"/><path d="M-5 40 Q-5.3 43.5 -4.3 44.5 Q-3.4 43.5 -3.8 40 Z" fill="#7c211d"/>`
         + `</g>`
-        // poche d'outils en acier (gradient partagé pour la profondeur métallique)
+        // poche d'outils en acier (dégradé fixe pour la profondeur métallique)
         + `<path d="M-5.6 -1 L5.6 -1 L5.1 12 Q0 13.6 -5.1 12 Z" fill="url(#g_steelD)" stroke="@metalO" stroke-width="0.7"/>`
         + `<path d="M-5.6 -1 L5.6 -1 L5.4 1.6 L-5.4 1.6 Z" fill="@metalH" opacity="0.55" stroke="none"/>`
         + `<path d="M-2 2.5 Q1.5 1.6 3.4 5 Q3.6 9.5 0.4 11 Q-3 10 -3 6 Z" fill="#8f2b27" opacity="0.65" stroke="none"/>`

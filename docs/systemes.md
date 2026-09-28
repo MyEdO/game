@@ -174,6 +174,28 @@ n'exclut pas un usage indirect hors des modules racines déclarés).
 | `paletteDEspeceSchema` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 | `declarationsInertes` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 | `coucheDEspece/TETES_A_PEAU` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
+| `TOKEN_RE/tokensOf/replaceTokens` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
+| `SUFFIXE_DE_ROLE/RoleDeGamme/ROLES_DE_GAMME/gammeDe/baseDeGamme/Gamme/gammes` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
+| `VIEWS/VIEW_LABEL` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
+| `ViewSet/PartArt/ViewArt` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
+| `declaredView/declaredViews/viewEntries/mapViews/foldView/nearestView` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
+| `viewOrFront` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
+| `tableTotale` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
+| `isDrawnView` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| `lireDegradeDerive` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
+| `FX_GRADIENT_IDS` |  | U | U |  | U |  | U | U | U | U | U | U | U | U | U | U |
+| `SEPARATEUR_DE_CLE/SEPARATEUR_DE_REMEDE/CHAMPS_DE_GROUPE/CHAMP_D_OCCURRENCE/CHAMPS_DE_CLE/CHAMPS_REQUIS/CHAMPS_D_ECHEANCE/CHAMPS_DE_SITE_OBSERVE/EntreeDeSite/Site/Echeance/cleDeSite/groupeDeSite/estEntreeDeSite/estNeuveOuAccrue/sitesEnEntrees/survieDeLecheance` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| `FORMAT_MJS/FORMAT_JSON/FORMATS/formatDe/parCleDeSite/lireStockJson/lireEntreesDeSite/texteDeStock/texteEnPlace/entreesRegenerees/comptesParFamille/DECROISSANT/SOUS_LOT/REMESURE/texteRegenere/ecartDeRegeneration/RegenerationDeStock/CollectionRegeneree/PolitiqueDeCroissance` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| `regenererStock` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| `estEntreeNominative/entreesNominatives` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| `threeWay` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| `litteralJs` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| `ast` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| `sAppliqueA/estRetenu` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| `scanConstructionsReservees/FORMULE_DE_CHEBYSHEV/ECHAPPEUR_DE_LITTERAL/ECRITURE_DE_STOCK_JSON/CONSTRUCTION_DE_TABLE_TOTALE/recopieDeCanon/cleEnLigne/estAppelDeclare/origineImportee` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| `LECTURES_DE_L_ART` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| `garde de la clé de site` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| `estArtDuRig/PERIMETRE_DES_GARDES/corpusDesGardes/LEGACY_VOCAB_FAMILIES` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | `reponsesDuNoeud/testAnnonce/ouvrirDialogue` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 | `surfaceTientLaMain/SURFACES_HORS_PENDING` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 | `parUnitesDeCode/parLibelle/replier` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
@@ -217,6 +239,19 @@ n'exclut pas un usage indirect hors des modules racines déclarés).
 - `alternationDe` (src/lib/regex.ts) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
 - `alternationDeRegex` (src/lib/regex.ts) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
 - `espacesExtensibles` (src/lib/regex.ts) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
+- `isDrawnView` (scripts/guards/lib/partViewAudit.ts) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
+- `SEPARATEUR_DE_CLE/SEPARATEUR_DE_REMEDE/CHAMPS_DE_GROUPE/CHAMP_D_OCCURRENCE/CHAMPS_DE_CLE/CHAMPS_REQUIS/CHAMPS_D_ECHEANCE/CHAMPS_DE_SITE_OBSERVE/EntreeDeSite/Site/Echeance/cleDeSite/groupeDeSite/estEntreeDeSite/estNeuveOuAccrue/sitesEnEntrees/survieDeLecheance` (scripts/guards/lib/stock.mjs) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
+- `FORMAT_MJS/FORMAT_JSON/FORMATS/formatDe/parCleDeSite/lireStockJson/lireEntreesDeSite/texteDeStock/texteEnPlace/entreesRegenerees/comptesParFamille/DECROISSANT/SOUS_LOT/REMESURE/texteRegenere/ecartDeRegeneration/RegenerationDeStock/CollectionRegeneree/PolitiqueDeCroissance` (scripts/guards/lib/stockDeSites.mjs) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
+- `regenererStock` (scripts/guards/lib/regenStock.mts) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
+- `estEntreeNominative/entreesNominatives` (scripts/guards/lib/stocksNominatifs.mjs) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
+- `threeWay` (scripts/git-hooks/three-way.mjs) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
+- `litteralJs` (scripts/guards/lib/litteralJs.mjs) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
+- `ast` (scripts/guards/lib/dialecte.mjs) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
+- `sAppliqueA/estRetenu` (scripts/guards/lib/sourceCorpus.mjs) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
+- `scanConstructionsReservees/FORMULE_DE_CHEBYSHEV/ECHAPPEUR_DE_LITTERAL/ECRITURE_DE_STOCK_JSON/CONSTRUCTION_DE_TABLE_TOTALE/recopieDeCanon/cleEnLigne/estAppelDeclare/origineImportee` (scripts/guards/lib/canonUnique.mjs) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
+- `LECTURES_DE_L_ART` (scripts/guards/lib/lecturesDeLArt.ts) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
+- `garde de la clé de site` (src/cle-de-site-guard.test.ts) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
+- `estArtDuRig/PERIMETRE_DES_GARDES/corpusDesGardes/LEGACY_VOCAB_FAMILIES` (scripts/guards/lib/commentPoison.mjs) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
 
 ## Modules `src/state`/`src/engine` non rattachés à un système déclaré
 
@@ -245,4 +280,4 @@ unique ne « possède » légitimement ; à trier au fil de l'eau, pas un échec
 - `src/state/sceneEdit.testkit.ts`
 - `src/state/turnEconomy.ts`
 - `src/state/viewLevel.ts`
-<!-- sources-empreinte: 12a5b065cd17e2aa2c7343b3c2ae321034308043 (1853 fichiers, 2 dossiers) corps: 3c8b27b5e5e715877e8b18fc9f85f95a4bd5831c -->
+<!-- sources-empreinte: 720470402b206bb1e5b3d2203ec033e2005c8ae9 (1852 fichiers, 2 dossiers) corps: 1b353631f2acbb833c7af0fddc6e9d3abdadf403 -->

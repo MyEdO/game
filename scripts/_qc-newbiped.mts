@@ -1,4 +1,5 @@
 /** QC des nouveaux bipèdes sortis du monolithique : Liche, Démonette, Fimir. */
+import { VIEWS } from '../src/gameIso/rig/facing';
 import { writeFileSync } from 'node:fs';
 import { Resvg } from '@resvg/resvg-js';
 import { defsGlobaux } from '../src/gameIso/sprites';
@@ -6,9 +7,8 @@ import { bonesToSvg } from '../src/gameIso/rig/renderBones';
 import { resolveRig } from '../src/gameIso/rig/composeRig';
 import { entityRigProfile } from '../src/gameIso/rig/enemyProfile';
 import { hashSeed } from '../src/engine/dice';
-import type { View } from '../src/gameIso/rig/facing';
+
 const NAMES: [string, string][] = [['Liche', ''], ['Démonette de Slaanesh', ''], ['Fimir', 'Gourdin']];
-const VIEWS: View[] = ['front', 'profile', 'back'];
 const CW = 300, CH = 340, SC = 1.9, FEET = 285;
 const cells: string[] = [];
 NAMES.forEach(([name, weapon], r) => {

@@ -24,15 +24,15 @@
 // SANS site mesuré (extraction réparée : la retirer).
 //
 // Re-run    : node scripts/raw/check-source-puces.mjs
-// Régénérer : node scripts/raw/check-source-puces.mjs --ecrire-stock [--lot <#N …>] — le lot est REQUIS dès qu'une entrée NEUVE naît (`ecrireStockSousLot`, scripts/guards/lib/stock.mjs)
-import { writeFileSync } from 'node:fs'
+// Régénérer : npx tsx scripts/guards/lib/regenStock.mts scripts/raw/check-source-puces.mjs [--lot <#N …>] — le
+// lot est REQUIS dès qu'une entrée NEUVE naît (politique `SOUS_LOT`, scripts/guards/lib/stockDeSites.mjs)
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { listerDossier } from '../guards/lib/lister.mjs'
 import { BOOKS, readText } from './_lib.mjs'
 import { estNomDExtraction } from '../../src/data/source/decoupe.ts'
-import { ecartDuVolet, ecrireStockSousLot, sitesEnEntrees, survieDeLecheance } from '../guards/lib/stock.mjs'
-import { parCleDeSite, readStock, texteDeStock } from './stockNominatif.mjs'
+import { ecartDuVolet } from '../guards/lib/stock.mjs'
+import { SOUS_LOT, lireEntreesDeSite } from '../guards/lib/stockDeSites.mjs'
 import { normText } from '../../src/data/source/decoupe.ts'
 
 export const STOCK_PATH = join(dirname(fileURLToPath(import.meta.url)), 'source-puces-stock.json')
@@ -75,7 +75,7 @@ export const refDeSuite = (jeton, contenu) => `« ${jeton} » :: ${normText(cont
  * Sites d'UN chapitre (PUR : aucun accès disque) : les suites d'au moins DEUX items consécutifs
  * partageant le même jeton. Une ligne VIDE ne rompt pas la suite (l'extraction sépare souvent les
  * items par un blanc) ; toute autre ligne la rompt.
- * @param {string} texte @param {string} file @returns {{ file: string, ref: string }[]}
+ * @param {string} texte @param {string} file @returns {import('../guards/lib/stock.mjs').Site[]}
  */
 export function sitesDuChapitre(texte, file) {
   const out = []
@@ -116,18 +116,6 @@ export function scanAllBooks(books = BOOKS) {
   return out
 }
 
-/**
- * Les ENTRÉES du stock, en ORDRE CANONIQUE (`parCleDeSite`) — c'est CE rendu que le fichier porte.
- * L'ordre du BALAYAGE n'y entre pas : réordonner `src/data/books.json` ne réécrit pas le fichier
- * (#1825). `ancien` porte la SURVIE de l'échéance (`survieDeLecheance`, seule définition du dépôt).
- */
-export const entreesDe = (sites, { lot, date, ancien = [] }) =>
-  survieDeLecheance(sitesEnEntrees(sites), { lot, date, ancien }).sort(parCleDeSite)
-
-/** ÉCART au stock, dans les deux sens. */
-export const ecartDuStock = (sites, stock) =>
-  ecartDuVolet({ sites, stock, ou: 'source-puces-stock.json' })
-
 /** Compte des sites par LIVRE (`dir` du registre), dans l'ordre du registre. */
 export function comptesParLivre(sites, books = BOOKS) {
   const parDir = new Map(books.map(([abbr, dir]) => [`${String(dir).split('\\').join('/').replace(/\/$/, '')}/`, abbr]))
@@ -149,33 +137,26 @@ const QUOI =
   'que quand un site disparaît du `Source/` ; il ne porte AUCUN livre en code, seulement les ' +
   'chapitres mesurés.'
 
-/** Rend le CONTENU du fichier de stock pour des sites mesurés (source unique de sa forme). */
-export const stockDe = (sites, { lot, date, ancien = [] }) =>
-  texteDeStock(QUOI, entreesDe(sites, { lot, date, ancien }))
+/** La RÉGÉNÉRATION du stock (`RegenerationDeStock`, `stockDeSites.mjs`), sur des sites (par défaut, la
+ *  mesure de tous les livres). L'ordre du BALAYAGE n'entre pas dans le fichier : réordonner
+ *  `src/data/books.json` ne le réécrit pas (#1825). */
+export const regenerations = (sites = scanAllBooks()) => [{
+  chemin: STOCK_PATH,
+  politique: SOUS_LOT,
+  horsCollections: QUOI,
+  collections: [{ nom: 'entrees', sites }],
+}]
 
 function main() {
   const sites = scanAllBooks()
-  const stock = readStock(STOCK_PATH)
-
-  const args = process.argv.slice(2)
-  if (args.includes('--ecrire-stock')) {
-    const r = ecrireStockSousLot(
-      args,
-      (lot, date) => ({ entrees: entreesDe(sites, { lot, date, ancien: stock }), texte: stockDe(sites, { lot, date, ancien: stock }) }),
-      (texte) => writeFileSync(STOCK_PATH, texte),
-      STOCK_PATH,
-    )
-    ;(r.code ? console.error : console.log)(r.message)
-    process.exitCode = r.code
-    return
-  }
+  const stock = lireEntreesDeSite(STOCK_PATH)
 
   const parLivre = [...comptesParLivre(sites)].filter(([, n]) => n > 0).map(([a, n]) => `${a} ${n}`)
   console.log(
     `puces lues comme un jeton : ${sites.length} site(s) sur ${new Set(sites.map((s) => s.file)).size} chapitre(s)` +
       ` — ${parLivre.join(', ') || 'aucun livre porteur'}`,
   )
-  const { neuves, perimees } = ecartDuStock(sites, stock)
+  const { neuves, perimees } = ecartDuVolet({ sites, stock, ou: 'source-puces-stock.json' })
   for (const l of [...neuves, ...perimees]) console.error(l)
   if (neuves.length || perimees.length) {
     console.error(`\nstock : ${stock.length} entrée(s), ${neuves.length} neuve(s), ${perimees.length} soldée(s).`)

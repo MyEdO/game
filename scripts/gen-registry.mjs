@@ -17,6 +17,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { estFichierVitest } from './guards/lib/fichierVitest.mjs';
+import { litteralJs } from './guards/lib/litteralJs.mjs';
 import { ecrireOuVerifier } from './docs/lib/empreinte-sources.mjs';
 
 /**
@@ -101,8 +102,9 @@ export const REGISTRIES = [
     idUnion: { typeName: 'QuadManeId', field: 'key' },
   },
   {
-    // Sets d'ÉQUIPEMENT quadrupèdes (sellerie/bât/barde — art cuit par vue depuis
-    // `atelier/harnais/<id>@<espèce>-<vue>.dessin.mts`) : 1 set = 1 fichier defs/. Même patron que
+    // Sets d'ÉQUIPEMENT quadrupèdes (sellerie/bât/barde — art cuit depuis
+    // `atelier/harnais/<id>@<espèce>-<vue>.dessin.mts` en une table keyée par vue,
+    // `harnais/<id>Compile.ts`) : 1 set = 1 fichier defs/. Même patron que
     // les têtes/queues/crinières ; l'union `QuadHarnaisId` est GÉNÉRÉE des ids déclarés (#1128).
     dir: 'src/gameIso/rig/quadruped/harnais/defs',
     out: 'src/gameIso/rig/quadruped/harnais/_registry.generated.ts',
@@ -113,7 +115,7 @@ export const REGISTRIES = [
     idUnion: { typeName: 'QuadHarnaisId', field: 'id' },
   },
   {
-    // Appendices (cornes/queue, art multi-vues) : 1 appendice = 1 fichier defs/. Source UNIQUE de
+    // Appendices (cornes/queue, art orienté) : 1 appendice = 1 fichier defs/. Source UNIQUE de
     // l'art de corne/queue, référencé par id (monster.cornes / appendageFeature / traitVisuals).
     dir: 'src/gameIso/rig/parts/appendages/defs',
     out: 'src/gameIso/rig/parts/appendages/_registry.generated.ts',
@@ -184,7 +186,7 @@ export const REGISTRIES = [
     typeFrom: './types',
   },
   {
-    // Têtes (visage + coiffure défaut par Race:Sexe, art tokenisé) : 1 tête = 1 fichier defs/.
+    // Têtes (visage + coiffure défaut par Race:Sexe, art en jetons) : 1 tête = 1 fichier defs/.
     dir: 'src/gameIso/rig/parts/heads/defs',
     out: 'src/gameIso/rig/parts/heads/_registry.generated.ts',
     exportName: 'head',
@@ -240,7 +242,7 @@ export const REGISTRIES = [
     typeFrom: './types',
   },
   {
-    // Armures (matériau × emplacement, art tokenisé) : 1 matériau = 1 fichier defs/ — MÊME pattern que les tenues.
+    // Armures (matériau × emplacement, art en jetons) : 1 matériau = 1 fichier defs/ — MÊME pattern que les tenues.
     dir: 'src/gameIso/rig/parts/armour/defs',
     out: 'src/gameIso/rig/parts/armour/_registry.generated.ts',
     exportName: 'armour',
@@ -337,7 +339,7 @@ export const REGISTRIES = [
     typeFrom: './types',
   },
   {
-    // Schémas zod du contrat de donnée (Lot 1) : 1 dataset `src/data/*.json` = 1 fichier defs/,
+    // Schémas zod du contrat de donnée : 1 dataset `src/data/*.json` = 1 fichier defs/,
     // exportant `file` (nom du .json) + `schema` (zod). `fields` (2 exports par module, pas 1
     // seul) → entrées `{ file, schema }` plutôt qu'un tableau plat d'un seul type.
     dir: 'src/data/schemas/defs',
@@ -499,9 +501,6 @@ function genOne(r, check) {
   return { arrayName: r.arrayName, dir: r.dir, files: files.length, changed, missing: false };
 }
 
-/** Littéral de chaîne TS d'une valeur, pour les modules générés. */
-const lit = (v) => `'${v.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`;
-
 /**
  * Valeurs du champ `champ` écrites en LITTÉRAL (guillemets simples ou doubles, en tête de ligne) dans
  * la source d'un def — SEULE règle de lecture d'un littéral du générateur (`idUnion`, `projection`).
@@ -559,9 +558,9 @@ function genArt(check, registres = REGISTRIES, out = SORTIE_ART) {
     const lignes = projeterDefs(r.dir, r.projection);
     const tete = `/** Projection GÉNÉRÉE de \`${r.dir}\`${r.projection.champ ? ` : id → \`${r.projection.champ}\`` : ' : ids'} (${lignes.length}). */\n`;
     if (!r.projection.champ)
-      return { nom: r.projection.nom, n: lignes.length, texte: `${tete}export const ${r.projection.nom}: readonly string[] = [\n${lignes.map(([id]) => `  ${lit(id)},\n`).join('')}];\n` };
-    const valeurs = [...new Set(lignes.map(([, v]) => v))].sort().map(lit).join(' | ');
-    return { nom: r.projection.nom, n: lignes.length, texte: `${tete}export const ${r.projection.nom}: Readonly<Record<string, ${valeurs}>> = {\n${lignes.map(([id, v]) => `  ${lit(id)}: ${lit(v)},\n`).join('')}};\n` };
+      return { nom: r.projection.nom, n: lignes.length, texte: `${tete}export const ${r.projection.nom}: readonly string[] = [\n${lignes.map(([id]) => `  ${litteralJs(id)},\n`).join('')}];\n` };
+    const valeurs = [...new Set(lignes.map(([, v]) => v))].sort().map((v) => litteralJs(v)).join(' | ');
+    return { nom: r.projection.nom, n: lignes.length, texte: `${tete}export const ${r.projection.nom}: Readonly<Record<string, ${valeurs}>> = {\n${lignes.map(([id, v]) => `  ${litteralJs(id)}: ${litteralJs(v)},\n`).join('')}};\n` };
   });
   const body =
     `// GÉNÉRÉ par scripts/gen-registry.mjs — NE PAS ÉDITER À LA MAIN.\n` +

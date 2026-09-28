@@ -35,7 +35,7 @@ const chemin = cheminDEcriture(entree, { base: root });
 if (chemin === null) process.exit(0);
 const rel = chemin.relatif;
 // MÊME périmètre que la suite Vitest et le pre-commit : `estFichierScanne` (source unique,
-// `commentPoison.mjs`) — les deux racines, les quatre extensions, tests compris.
+// `commentPoison.mjs`), qui lit `PERIMETRE_DES_GARDES`.
 const isSrcTs = estFichierScanne(rel);
 
 /** Tout ce qui part en contexte, tous volets confondus (une seule sortie JSON par appel). */

@@ -19,6 +19,7 @@ import type { MerchantArchetypeDef } from '../state/merchants/types';
 import type { Scene, ReliefDefaults, SceneRoofDefaults, Terrain } from '../state/scene';
 import { slugId } from './slug';
 import { parLibelle } from '../lib/ordre.mjs';
+import { tableTotale } from '../lib/tableTotale';
 import { effectiveEntry } from '../engine/variants';
 import { CATEGORY_BY_SOURCE_KIND, type EffectSource } from '../engine/types';
 import characteristicsJson from './characteristics.json';
@@ -3446,19 +3447,17 @@ const LIBELLE_DE_SOURCE: Record<SpecsSource, (id: string) => string> = {
 /** UNE source de spéc, lue sur sa déclaration (`SOURCES_DE_SPECS`) : `pool()` = ids CHOISISSABLES par un
  *  joueur ; `resolves()` = l'id appartient-il à l'UNIVERS de la source (⊇ pool) ; `label()` = affichage.
  *  Le pool borne le CHOIX joueur ; l'univers borne la VALIDITÉ des données (le Triton, MDG 16 l.283). */
-export const SPEC_SOURCES = Object.fromEntries(
-  (Object.keys(SOURCES_DE_SPECS) as SpecsSource[]).map((src) => {
+export const SPEC_SOURCES = tableTotale(
+  Object.keys(SOURCES_DE_SPECS) as SpecsSource[],
+  (src): { pool(): string[]; label(id: string): string; resolves(id: string): boolean } => {
     const decl: SourceDeSpecs = SOURCES_DE_SPECS[src];
-    return [
-      src,
-      {
-        pool: () => [...(lireLEspace(decl.pool ?? decl.univers) ?? [])],
-        label: LIBELLE_DE_SOURCE[src],
-        resolves: (id: string) => lireLEspace(decl.univers)?.has(id) ?? false,
-      },
-    ];
-  }),
-) as Record<SpecsSource, { pool(): string[]; label(id: string): string; resolves(id: string): boolean }>;
+    return {
+      pool: () => [...(lireLEspace(decl.pool ?? decl.univers) ?? [])],
+      label: LIBELLE_DE_SOURCE[src],
+      resolves: (id: string) => lireLEspace(decl.univers)?.has(id) ?? false,
+    };
+  },
+);
 /** POOL d'une def (Compétence/Talent) — ce qu'un choix joueur PROPOSE d'office (`LDB 09 l.40`) :
  *  pool DÉRIVÉ du registre partagé si `specsSource` (SSOT `SPEC_SOURCES`), sinon les entrées `specs[]`
  *  inline SANS `pool: false`. Consommé par `wildcardSpecs` (créateur), l'avancement et l'Entraînement.

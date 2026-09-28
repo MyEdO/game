@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { sitesNarratifs, sitesNarratifsParaphrases, FICHIER_DES_SORTS } from '../../scripts/data/lib/sortsNarratifs';
+import { sitesNarratifs, sitesNarratifsParaphrases, FICHIER_DES_SORTS, regenerations } from '../../scripts/data/lib/sortsNarratifs';
 import { SPELL_NARRATIF_PARAPHRASE_STOCK, SPELL_NARRATIF_STOCK } from '../../scripts/guards/lib/spellNarratifStock.mjs';
-import { ecartDuVolet, remedeNomme } from '../../scripts/guards/lib/stock.mjs';
+import { cleDeSite, ecartDuVolet, remedeNomme } from '../../scripts/guards/lib/stock.mjs';
+import { ecartDeRegeneration, texteEnPlace } from '../../scripts/guards/lib/stockDeSites.mjs';
 
 /**
  * Cliquet décroissant des sorts NARRATIFS (DoD de #838) : l'écart NOMINATIF au stock
@@ -9,6 +10,11 @@ import { ecartDuVolet, remedeNomme } from '../../scripts/guards/lib/stock.mjs';
  * en assertion : le compte s'imprime en diagnostic.
  */
 const STOCK = 'scripts/guards/lib/spellNarratifStock.mjs';
+const REGENERATION = 'npx tsx scripts/guards/lib/regenStock.mts scripts/data/lib/sortsNarratifs.ts';
+
+it('le stock committé est un point fixe de sa régénération', () => {
+  for (const r of regenerations()) expect(ecartDeRegeneration(r, texteEnPlace(r.chemin))).toBeNull();
+});
 
 describe('cliquet — tout sort NARRATIF est au stock, toute entrée du stock est narrative', () => {
   const sites = sitesNarratifs();
@@ -21,7 +27,7 @@ describe('cliquet — tout sort NARRATIF est au stock, toute entrée du stock es
 
   it('le stock ne peut que DÉCROÎTRE — toute entrée qui n’est plus narrative en sort', () => {
     expect(perimees, `entrée(s) du stock qui ne sont plus narratives — retirer leur ligne (ou :\n` +
-      `npx tsx scripts/data/regen-spell-narratif-stock.mts) :\n${perimees.join('\n')}`).toEqual([]);
+      `${REGENERATION}) :\n${perimees.join('\n')}`).toEqual([]);
   });
 
   it('chaque entrée NOMME le dataset des sorts — c’est ce que la porte de plage voit', () => {
@@ -31,15 +37,13 @@ describe('cliquet — tout sort NARRATIF est au stock, toute entrée du stock es
 
   /** SUBSTITUTION à compte constant — forgée EN MÉMOIRE, le stock du disque n'est jamais touché. */
   it('une SUBSTITUTION à compte CONSTANT rougit : la découverte est neuve, la bidon est périmée', () => {
-    const substitue = [
-      ...SPELL_NARRATIF_STOCK.slice(1),
-      { fichier: FICHIER_DES_SORTS, ref: 'sort-qui-n-existe-pas', occurrence: 1 },
-    ];
+    const bidon = { fichier: FICHIER_DES_SORTS, ref: 'sort-qui-n-existe-pas', occurrence: 1 };
+    const substitue = [...SPELL_NARRATIF_STOCK.slice(1), bidon];
     expect(substitue, 'la forge doit rester à taille CONSTANTE, sinon elle ne prouve rien')
       .toHaveLength(SPELL_NARRATIF_STOCK.length);
     const ecart = ecartDuVolet({ sites, stock: substitue, ou: STOCK });
-    expect(remedeNomme(ecart.neuves, ` :: ${SPELL_NARRATIF_STOCK[0].ref} :: `), 'la découverte doit ressortir NEUVE').toBe(true);
-    expect(remedeNomme(ecart.perimees, ' :: sort-qui-n-existe-pas :: 1'), "l'entrée bidon doit ressortir SOLDÉE").toBe(true);
+    expect(remedeNomme(ecart.neuves, cleDeSite(SPELL_NARRATIF_STOCK[0])), 'la découverte doit ressortir NEUVE').toBe(true);
+    expect(remedeNomme(ecart.perimees, cleDeSite(bidon)), "l'entrée bidon doit ressortir SOLDÉE").toBe(true);
   });
 });
 
@@ -54,7 +58,7 @@ describe('cliquet — une op `narrative` recopie sa `desc` VERBATIM (règle 5 de
 
   it('le stock ne peut que DÉCROÎTRE — toute op redevenue verbatim en sort', () => {
     expect(perimees, `entrée(s) du stock soldées — retirer leur ligne (ou :\n` +
-      `npx tsx scripts/data/regen-spell-narratif-stock.mts) :\n${perimees.join('\n')}`).toEqual([]);
+      `${REGENERATION}) :\n${perimees.join('\n')}`).toEqual([]);
   });
 
   it('la mesure MORD : `putrefaction` (paraphrase) est vue, `bouclier-ceruleen` (verbatim) ne l’est pas', () => {

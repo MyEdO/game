@@ -240,11 +240,11 @@ describe('BILLBOARDS — sujets de la scène', () => {
     expect(persos[0].box).toEqual({ w: 120, h: 150 });
   });
 
-  it('le SVG d\'un PERSONNAGE ignore le cran de caméra, celui d\'un DÉCOR directionnel en dépend — c\'est ce qui règle la clé de cache', () => {
+  it('le SVG d\'un PERSONNAGE ignore le cran de caméra, celui d\'un DÉCOR orienté en dépend — c\'est ce qui règle la clé de cache', () => {
     const perso = collectBillboards(scene, mpt, wholeSceneBillboardEls(scene)).find((s) => s.kind === 'personnage')!;
     for (const camRot of [1, 2, 3] as const)
       expect(perso.svg('front', false, camRot)).toBe(perso.svg('front', false, 0));
-    // Le décor délègue à `propSvg(ref, dir, camRot)` : un prop DIRECTIONNEL (`views`) pivote avec la
+    // Le décor délègue à `propSvg(ref, dir, camRot)` : un prop ORIENTÉ (`views`) pivote avec la
     // caméra, donc son cran reste dans la clé de cache. Lu sur le REGISTRE (les scènes du spike
     // n'en posent aucun aujourd'hui — une carte en posera un demain sans toucher au cache).
     const directionnels = Object.values(PROPS).filter((p) => p.views);
@@ -639,7 +639,7 @@ describe('GAMMA de la brume — la courbe du POV, pas la moitié de la courbe (#
   });
 
   it('gamma DÉBRANCHÉ (le smoothstep nu de three) : l’écart à la courbe du POV réapparaît', () => {
-    // Les deux écarts mesurés au juge de design (#1176 P3-1) — c'est ce que la surcharge supprime.
+    // Les deux écarts mesurés au juge de design (#1176) — c'est ce que la surcharge supprime.
     expect(écartMax(false, 1)).toBeCloseTo(0.25, 2);
     expect(écartMax(true, 1)).toBeCloseTo(0.067, 2);
   });
@@ -724,7 +724,7 @@ describe('OMBRE DE CONTACT — ancrée sous les pieds', () => {
 });
 
 /**
- * LE SOCLE DE FIGURINE (#1176 P3-5a) : sans soleil, le disque de contact EST le socle du pion — sa
+ * LE SOCLE DE FIGURINE (#1176) : sans soleil, le disque de contact EST le socle du pion — sa
  * taille dit le sujet, pas l'état de son art. La boîte d'un corps AU SOL est BALAYÉE par la chute
  * (`rigGroundTilt` : 193×193 contre 120×150 debout) : prise pour largeur de socle, elle donnait au
  * cadavre un socle ×1,6 plus large que celui du vivant identique à côté, et centré sur ses pieds.

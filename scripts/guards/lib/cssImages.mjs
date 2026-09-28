@@ -3,13 +3,13 @@
 // CÔTÉ `{ manifeste, partagees, reutilises, lire }` qu'en lit la garde `RECLASSEMENT:`. Les imports
 // qui fixent `reutilises` sont ceux de `directImportsOf` (`importGraph.mjs`) sur le contenu entier des
 // modules que `git grep -l` (`fichiersDuGrep`, `gitPorte.mjs`) présélectionne (`motifDeCitation`), lus par lot
-// (`lireEnLot`) et résolus contre l'arbre lu. Appelants : `cssCouchesAudit.ts` (disque), `ventilationDeGit` (le régénérateur), le garde
-// de solde au commit, la porte de plage au push.
+// (`lireEnLot`) et résolus contre l'arbre lu. Appelants : `cssCouchesAudit.ts` (disque),
+// `ventilationDeGit` (l'admission du RETOURNÉ par la régénération de `cssCouchesAudit.ts`, et
+// `scripts/ui/ventilation-css-couches.mts`), le garde de solde au commit, la porte de plage au push.
 import { readFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { CHEMIN_TSCONFIG, aliasDe, directImportsOf, estModule, pathspecsDeModules } from './importGraph.mjs'
 import { INDEX, SUIVI, TRAVAIL, ceQuiChange, depotDe, fichiersDuGrep, lireEnLot, listerImage, shaDe } from './gitPorte.mjs'
-import { entreesEcrites } from './stock.mjs'
 import {
   CHEMIN_COUCHES, CHEMIN_MANIFESTE, RACINE_DES_MODULES, feuillesPartageesDe, fichiersReutilises,
   manifesteDe, modulesDePrimitive, ventiler,
@@ -24,6 +24,7 @@ export const RACINE_DES_SOURCES = 'src'
 
 // Chargé après la porte de version des hooks qui l'importent : scripts/node-requis.mjs (#1801).
 const { alternationDe } = await import('../../../src/lib/regex.ts')
+const { FORMAT_MJS } = await import('./stockDeSites.mjs')
 
 /**
  * Les NOMS par lesquels un spécificateur atteint `chemin` sous l'ordre de repli de `resolveImport`
@@ -159,15 +160,28 @@ export function lireDuTravail(cwd, rel) {
   }
 }
 
-/** Le stock CSS nominatif, et ses deux collections que la ventilation lit. */
+/** Le stock CSS nominatif, et ses deux collections que la ventilation lit, keyées par volet. */
 export const CHEMIN_STOCK_CSS = 'scripts/guards/lib/cssCouchesStock.mjs'
-const COLLECTIONS = { identite: 'CSS_IDENTITE_ECRAN_RATCHET', espacement: 'CSS_ESPACEMENT_RATCHET' }
+export const COLLECTIONS_VENTILEES = Object.freeze({ identite: 'CSS_IDENTITE_ECRAN_RATCHET', espacement: 'CSS_ESPACEMENT_RATCHET' })
+
+/**
+ * Les deux volets ventilés du stock CSS ÉCRIT dans `texte`, lus par `FORMAT_MJS`. Une collection que le
+ * format ne reconnaît pas (absente, ou une entrée hors forme) LÈVE en se nommant, `ou` dans la phrase.
+ * @param {string} texte @param {string} ou
+ */
+export function stockCssDe(texte, ou) {
+  const lu = FORMAT_MJS.lire(texte, CHEMIN_STOCK_CSS)
+  const absentes = Object.values(COLLECTIONS_VENTILEES).filter((nom) => !lu.collections.has(nom))
+  if (absentes.length) throw new Error(`${CHEMIN_STOCK_CSS} illisible ${ou} : collection(s) ${absentes.join(', ')} introuvable(s)`)
+  return { identite: lu.collections.get(COLLECTIONS_VENTILEES.identite), espacement: lu.collections.get(COLLECTIONS_VENTILEES.espacement) }
+}
 
 /**
  * La VENTILATION de `base` à `tete` (une ref, ou `TRAVAIL`) telle que git les porte — le seul chemin
- * de `--ventiler` et de l'admission du régénérateur : images lues par `imageCss`, renommages `-M` de
- * l'intervalle, et Sb = le stock ÉCRIT à `base` (`CHEMIN_STOCK_CSS`) quand il existe. Une ref absente
- * de l'histoire LÈVE en se nommant : un clone superficiel ne ventile rien.
+ * de `scripts/ui/ventilation-css-couches.mts` et de l'admission du RETOURNÉ (`cssCouchesAudit.ts`) :
+ * images lues par `imageCss`, renommages `-M` de l'intervalle, et Sb = le stock ÉCRIT à `base`
+ * (`CHEMIN_STOCK_CSS`, `stockCssDe`) quand il existe. Une ref absente de l'histoire LÈVE en se nommant :
+ * un clone superficiel ne ventile rien.
  * @param {{ cwd?: string, base: string, tete?: string, depot?: import('./gitPorte.mjs').Depot }} p
  */
 export function ventilationDeGit({ cwd = process.cwd(), base, tete = TRAVAIL, depot = depotDe(cwd) }) {
@@ -178,12 +192,7 @@ export function ventilationDeGit({ cwd = process.cwd(), base, tete = TRAVAIL, de
   }
   const avant = source(base)
   const texte = avant.lire(CHEMIN_STOCK_CSS)
-  const lus = texte === null ? null : Object.fromEntries(
-    Object.entries(COLLECTIONS).map(([volet, nom]) => [volet, entreesEcrites(texte, nom)]),
-  )
-  const ecarts = lus ? Object.values(lus).flatMap((l) => l.ecarts) : []
-  if (ecarts.length) throw new Error(`${CHEMIN_STOCK_CSS} illisible à ${base} : ${ecarts.join(' ; ')}`)
-  const stockAvant = lus ? { identite: lus.identite.entrees, espacement: lus.espacement.entrees } : undefined
+  const stockAvant = texte === null ? undefined : stockCssDe(texte, `à ${base}`)
   const v = ventiler(imageCss(avant, { racine: cwd }), imageCss(source(tete), { racine: cwd }), {
     renommages: ceQuiChange(depot, base, tete === TRAVAIL ? SUIVI : tete).renommages(),
     stockAvant,

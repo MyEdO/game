@@ -9,7 +9,7 @@
  * engins de siège) ; le TYPE de véhicule (`species`, id de `vehicles.json`) sélectionne l'art PAR ID via
  * `ART_BY_ID` — JAMAIS de name-matcher/regex. Un id FUTUR sans art dédié tombe sur le REPLI VISIBLE
  * partagé (#223, `orientedArtOr`), jamais sur un générique silencieux. Silhouettes de BROADSIDE : la
- * couverture réelle est DÉCLARÉE (galerie QC) ; face/dos REPLIENT via `pickView`/`foldView`.
+ * couverture réelle est DÉCLARÉE (galerie QC) ; face/dos REPLIENT via `nearestView`/`foldView`.
  */
 import { rotOf, type BonePose } from '../poses';
 import type { ResolvedBone } from '../composeRig';
@@ -17,7 +17,7 @@ import type { BodyPlan } from '../bodyPlan';
 import type { View } from '../facing';
 import type { Palette } from '../palette';
 import { groundedBody } from '../staticBody';
-import { pickView, orientedArtOr, type ViewArt } from '../viewArt';
+import { nearestView, orientedArtOr, type ViewArt } from '../viewArt';
 import { LAND_DEFAULT } from './artkit';
 import { LAND_ARTS } from './_registry.generated';
 import { terrestreSpeciesNames } from '../creatures';
@@ -33,8 +33,8 @@ export function landArtOf(species: string): ViewArt {
 }
 
 function art(species: string, view: View): string {
-  // Sélection vue + repli PARTAGÉS (`pickView`), jamais un ternaire ad hoc par vue.
-  return pickView(landArtOf(species), view)();
+  // Sélection vue + repli PARTAGÉS (`nearestView`), jamais un ternaire ad hoc par vue.
+  return nearestView(landArtOf(species), view)();
 }
 
 /** (espèce, vue, pose, couleurs) → un os statique ancré au sol. `pose.cahot` = tangage de roulage /

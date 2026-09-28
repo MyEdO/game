@@ -4,15 +4,17 @@
 // Lancé par `npm run test:raw`.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtempSync, writeFileSync, mkdirSync, rmSync, existsSync } from 'node:fs'
+import { mkdtempSync, writeFileSync, mkdirSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import {
   scanGraphyViolations, scanDocsRawViolations, scanImplProseViolations, BOOK_NO_CHAPTER_RE,
   scanChDotViolations, scanBareFolioViolations, scanBookNoChapterSrcViolations, scanUnknownAbbrViolations,
-  scanChapterBoundaryFolioViolations, scanFolioSrcViolations, scanMultiFolioSplitViolations, readStock, STOCK_PATH,
-  scanTout, cliquets, FAMILLES_CLIQUETEES,
+  scanChapterBoundaryFolioViolations, scanFolioSrcViolations, scanMultiFolioSplitViolations, STOCK_PATH,
+  scanTout, cliquets, FAMILLES_CLIQUETEES, regenerations,
 } from './citation-graphy-guard.mjs'
+import { CHAMPS_DE_CLE, CHAMPS_D_ECHEANCE } from '../guards/lib/stock.mjs'
+import { lireEntreesDeSite, texteEnPlace, texteRegenere } from '../guards/lib/stockDeSites.mjs'
 import { allAbbrAlternation, chapterBoundaryRisk, siglesDeCoeur } from './_lib.mjs'
 import { avecAtlasFixture } from './atlasFixture.mjs'
 
@@ -308,7 +310,7 @@ test('non-régression : le VRAI src/ du repo est à ZÉRO abréviation INCONNUE 
 })
 
 
-// --- (#585 lot A) scan (e) : ch. cosmétique ---
+// --- (#585) scan (e) : ch. cosmétique ---
 function withTempSrcAndRawDir(srcFiles, rawFiles, fn) {
   const dir = mkdtempSync(join(tmpdir(), 'graphy-585-'))
   mkdirSync(join(dir, 'src'), { recursive: true })
@@ -351,7 +353,7 @@ test('(f)/(h)/(i) : un arbre src/ portant un folio nu, un multi-folio et un foli
   )
 })
 
-// --- (#585 lot A) scan (b) étendu à src ---
+// --- (#585) scan (b) étendu à src ---
 test('(b) étendu à src : réf de livre SANS chapitre détectée en .ts, forme avec chapitre silencieuse', () => {
   withTempSrcAndRawDir(
     { 'x.ts': '// EDOC l.172 : règle libre\n// EDOC 8 l.172 : forme canonique, silence\n' },
@@ -395,7 +397,7 @@ test('(#454) (b) étendu à docs/raw : réf de livre SANS chapitre détectée, f
   )
 })
 
-// --- (#585 lot A) scan (g) : abréviation INCONNUE (zéro tolérance, pas de baseline) ---
+// --- (#585) scan (g) : abréviation INCONNUE (zéro tolérance, pas de baseline) ---
 test('(g) abréviation inconnue : détectée nominativement, abréviation connue (LDB) silencieuse', () => {
   withTempSrcAndRawDir(
     { 'x.ts': '// RAW 16 l.105 : abréviation inventée\n// LDB 16 l.105 : abréviation connue, silence\n' },
@@ -527,25 +529,35 @@ test('(i) scan : un folio suivi d\'un autre (LDB 48 p.255/256) n\'est pas un fol
   )
 })
 
-// --- (#585 lot A) stock NOMINATIF par SITE, cliqueté dans les deux sens (patron check-code-refs.mjs) ---
+// --- (#585) stock NOMINATIF par SITE, cliqueté dans les deux sens (patron check-code-refs.mjs) ---
 // Le verdict se lit par `cliquets`, la couture même de `main()` : une table recopiée ici ferait un
 // cliquet muet dès qu'une famille s'ajoute à la garde.
 
 test('non-régression : les familles cliquetées du VRAI repo sont exactement les sites de graphy-stock.json', () => {
-  const stock = readStock()
-  assert.ok(stock.length > 0, 'la dette de graphie est encore ouverte : un stock vide ici serait une perte de mesure')
-  for (const { family, neuves, perimees } of cliquets(scanTout(), stock)) {
-    assert.deepEqual(neuves, [], `${family} — site(s) NEUF(s) :\n${neuves.join('\n')}`)
-    assert.deepEqual(perimees, [], `${family} — entrée(s) SOLDÉE(s) :\n${perimees.join('\n')}`)
-  }
+  const { neuves, perimees } = cliquets(scanTout(), lireEntreesDeSite(STOCK_PATH))
+  assert.deepEqual(neuves, [], `site(s) NEUF(s) :\n${neuves.join('\n')}`)
+  assert.deepEqual(perimees, [], `entrée(s) SOLDÉE(s) :\n${perimees.join('\n')}`)
 })
 
-test('graphy-stock.json existe, et chaque entrée nomme sa famille, son fichier, sa réf et son échéance', () => {
-  assert.equal(existsSync(STOCK_PATH), true)
-  const familles = new Set(FAMILLES_CLIQUETEES.map(({ family }) => family))
-  for (const e of readStock()) {
+test('un solde laisse le quoi à l’octet', () => {
+  const [r] = regenerations()
+  const [c] = r.collections
+  const [s0] = c.sites
+  const reste = c.sites.filter((s) => s.famille !== s0.famille || s.file !== s0.file || s.ref !== s0.ref)
+  assert.ok(reste.length < c.sites.length)
+  const enPlace = texteEnPlace(STOCK_PATH)
+  const solde = texteRegenere({ ...r, collections: [{ ...c, sites: reste }] }, { enPlace, lot: null, date: null })
+  assert.equal(JSON.parse(solde.texte).quoi, JSON.parse(enPlace).quoi)
+  const neuf = { famille: 'folioSrc', file: 'src/neuf.ts', ref: 'LDB p.1' }
+  const { refus } = texteRegenere({ ...r, collections: [{ ...c, sites: [...c.sites, neuf] }] }, { enPlace, lot: null, date: null })
+  assert.match(refus ?? '', /src\/neuf\.ts/, 'un site neuf sans `lot` est refusé')
+})
+
+test('chaque entrée de graphy-stock.json nomme sa famille, son fichier, sa réf et son échéance', () => {
+  const familles = new Set(FAMILLES_CLIQUETEES.map(({ famille }) => famille))
+  for (const e of lireEntreesDeSite(STOCK_PATH)) {
     assert.equal(familles.has(e.famille), true, `famille inconnue de la garde : ${e.famille}`)
-    for (const champ of ['fichier', 'ref', 'occurrence', 'lot', 'date']) {
+    for (const champ of [...CHAMPS_DE_CLE, ...CHAMPS_D_ECHEANCE]) {
       assert.ok(e[champ] !== undefined && e[champ] !== '', `entrée sans ${champ} : ${JSON.stringify(e)} — sans lot ni date, une ligne de stock est un régime, pas un cliquet`)
     }
   }
@@ -588,21 +600,20 @@ test('(j) réf au folio : une réf à la LIGNE n\'est pas une violation', () => 
 })
 
 const entreeFolio = (fichier, ref) => ({ famille: 'folioSrc', fichier, ref, occurrence: 1, lot: '#1898', date: '2026-09-23' })
-const jugeFolioSrc = (passe, stock) => cliquets(passe, stock).find((c) => c.family === 'folioSrc')
 
 test('(j) cliquet : un site DU stock ne fait pas échouer, un site NEUF et une entrée SOLDÉE font échouer', () => {
   withTempSrcAndRawDir({ 'fin.ts': 'const x = 1 // LDB 47 p.244\n' }, {}, (srcDir, rawDir) => {
     const passe = scanTout(srcDir, ['.ts', '.tsx', '.json'], rawDir)
     const fichier = passe.folioSrc[0].file
 
-    const couvert = jugeFolioSrc(passe, [entreeFolio(fichier, 'LDB 47 p.244')])
+    const couvert = cliquets(passe, [entreeFolio(fichier, 'LDB 47 p.244')])
     assert.deepEqual([couvert.neuves, couvert.perimees], [[], []])
 
-    const neuf = jugeFolioSrc(passe, [])
+    const neuf = cliquets(passe, [])
     assert.equal(neuf.neuves.length, 1)
     assert.match(neuf.neuves[0], /LDB 47 p\.244 :: 1 — site NEUF/)
 
-    const solde = jugeFolioSrc(passe, [entreeFolio(fichier, 'LDB 47 p.244'), entreeFolio(fichier, 'ACE p.220')])
+    const solde = cliquets(passe, [entreeFolio(fichier, 'LDB 47 p.244'), entreeFolio(fichier, 'ACE p.220')])
     assert.deepEqual(solde.neuves, [])
     assert.equal(solde.perimees.length, 1)
     assert.match(solde.perimees[0], /ACE p\.220 :: 1 — entrée SOLDÉE/)

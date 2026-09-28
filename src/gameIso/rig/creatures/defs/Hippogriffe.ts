@@ -4,10 +4,10 @@ import type { CreatureDef } from '../types';
 // BLANCHES à bec crochu jaune, poitrail brun-roux moucheté (foreCoat, robe des ailes), serres et
 // tarses JAUNE VIF — sur un ARRIÈRE-TRAIN DE CHEVAL BLANC svelte et haut sur pattes (robe blanche
 // pommelée gris-bleu, sabots sombres, queue de crin blanche). L'artwork le montre EN PLEIN VOL :
-// un token posé au sol ne lévite pas (le vol vit dans l'état runtime `spread`, WingState), mais la
+// un pion posé au sol ne lévite pas (le vol vit dans l'état runtime `spread`, WingState), mais la
 // silhouette de vol se porte AU REPOS par les ailes DRESSÉES à demi-ouvertes (wingPose 'dressees'
 // + wingLift, patron pégase artwork LDB 79 p.325 — jamais couchées façon planeur sur la croupe) et
-// l'envergure AMPLE (wingSpan). Contraste brun/blanc NET : famille @aile* brun-roux profond vs
+// l'envergure AMPLE (wingSpan). Contraste brun/blanc NET : gamme @aile* brun-roux profond vs
 // robe @corps* blanche.
 export const creature: CreatureDef = {
   label: "Hippogriffe",

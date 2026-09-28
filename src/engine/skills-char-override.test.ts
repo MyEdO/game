@@ -1,3 +1,4 @@
+import { tableTotale } from '../lib/tableTotale';
 import { describe, it, expect, afterEach } from 'vitest';
 import { testValue } from './skills';
 import { setRule, resetRule, ruleDef } from './policy';
@@ -48,12 +49,10 @@ describe('testValue — Intimidation : caractéristique alternative (LDB 09 l.29
     // Le stock d'options vient du registre, jamais d'une liste recopiée : une 5ᵉ option non déclarée sur
     // l'entrée `skills.json` rougit ICI (c'est ainsi que « FM »/« Int » ont été trouvées inertes).
     const regle = ruleDef('test-intimidation-char')!;
-    const rendu = Object.fromEntries(
-      (regle.options ?? []).map((o) => {
-        setRule('test-intimidation-char', o);
-        return [o, testValue(c(), 'intimidation')];
-      }),
-    );
+    const rendu = tableTotale(regle.options ?? [], (o) => {
+      setRule('test-intimidation-char', o);
+      return testValue(c(), 'intimidation');
+    });
     expect(rendu).toEqual({ F: 30, max: 60, FM: 60, Int: 50 });
   });
 });

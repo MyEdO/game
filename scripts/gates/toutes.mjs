@@ -317,35 +317,6 @@ export const ECRIT_LU = {
   'test:raw': {
     ecrit: [],
     ecritFerme: {
-      'scripts/raw/source-tables-stock.json':
-        '`check-source-tables.test.mjs` IMPORTE le détecteur des tables cassées, dont l’unique écriture ' +
-        '(la régénération de ce stock) vit derrière `--ecrire-stock` sous sa porte `import.meta.main` ' +
-        '(`main` de scripts/raw/check-source-tables.mjs) ; le banc ne fait que LIRE le stock (`readStock`)',
-      'scripts/raw/source-puces-stock.json':
-        '`check-source-puces.test.mjs` IMPORTE le détecteur des puces lues comme un jeton, dont l’unique ' +
-        'écriture (la régénération de ce stock) vit derrière `--ecrire-stock` sous sa porte `import.meta.main` ' +
-        '(`main` de scripts/raw/check-source-puces.mjs) ; le banc ne fait que LIRE le stock (`readStock`)',
-      'scripts/raw/renvois-stock.json':
-        '`check-renvois.test.mjs` IMPORTE la garde des renvois « page N », dont l’unique écriture (la ' +
-        'régénération de ce stock) vit derrière `--ecrire-stock` sous sa porte `import.meta.main` ' +
-        '(`main` de scripts/raw/check-renvois.mjs) ; le banc ne fait que LIRE le stock (`readStock`), son ' +
-        'refus de croissance passe une écriture INJECTÉE (`ecrireStockSousLot`) qui ne touche pas le disque',
-      'scripts/raw/source-format-stock.json':
-        '`check-source-format.test.mjs` IMPORTE le détecteur du format des extractions, dont l’unique ' +
-        'écriture (la régénération de ce stock) vit derrière `--ecrire-stock` sous sa porte `import.meta.main` ' +
-        '(`main` de scripts/raw/check-source-format.mjs) ; le banc ne fait que LIRE le stock (`readStock`), ' +
-        'ses dossiers JETABLES vivant sous `os.tmpdir()`',
-      'scripts/raw/empty-folios-perdues-stock.json':
-        '`check-folio-continuity.test.mjs` IMPORTE la fonction d’ÉCRITURE du générateur des ancres sans ' +
-        'contenu (`stocksEnTexte`, scripts/raw/lib/empty-folios-stock.mjs) pour comparer son rendu au ' +
-        'fichier committé ; elle rend un TEXTE et n’écrit rien — le seul `writeFileSync` du module vit ' +
-        'dans `main()`, sous sa porte `import.meta.main`, et exige les PDF gitignorés',
-      'scripts/raw/empty-folios-benignes-stock.json':
-        'même porte, même module : les deux stocks sont écrits par le même `main()` derrière `import.meta.main`',
-      'scripts/raw/folio-gaps-stock.json':
-        '`check-folio-continuity.test.mjs` IMPORTE le détecteur des sauts de folio, dont l’unique ' +
-        'écriture (la régénération de ce stock) vit derrière `--ecrire-stock` sous sa porte `import.meta.main` ; ' +
-        'le banc ne fait que LIRE le stock (`readStock`, `lireStockJson`)',
       // Le GLOB, pas une page : l’écrivain tient le routeur de l’Atlas ET l’index de chaque cœur,
       // et la population des cœurs est DÉRIVÉE (#1825) ; un chemin de cœur écrit ici sous-déclarerait
       // dès le cœur suivant. Même glob qu’à sa déclaration de générateur (`injecte`,
@@ -404,14 +375,14 @@ export const ECRIT_LU = {
     lit: ['docs/raw/', 'Source/', 'src/data/books.json', 'src/data/source/', 'src/lib/regex.ts', 'scripts/raw/', 'scripts/guards/lib/', 'scripts/port-dev.mjs'],
     raison:
       'aucune écriture dans les scripts atteints ; LIT le registre de livres et le normaliseur de références ' +
-      '(src/data/books.json, src/data/source/normalize.ts) et son stock scripts/raw/dead-refs-stock.json, ABSENT en régime nominal',
+      '(src/data/books.json, src/data/source/normalize.ts) et son stock scripts/raw/dead-refs-stock.json, absent quand il est soldé',
   },
   'raw:check-code-refs': {
     ecrit: [],
     lit: ['docs/raw/', 'src/', 'Source/', 'scripts/raw/', 'scripts/guards/lib/', 'scripts/port-dev.mjs'],
     raison:
       'aucune écriture dans les scripts atteints ; LIT Source/, les stocks scripts/raw/dead-code-refs-stock.json et ' +
-      'scripts/raw/empty-line-code-refs-stock.json, ABSENTS en régime nominal, et scripts/raw/graphy-stock.json (sites différés)',
+      'scripts/raw/empty-line-code-refs-stock.json, absents quand ils sont soldés, et scripts/raw/graphy-stock.json (sites différés)',
   },
   'raw:check-ancres': {
     ecrit: [],
@@ -425,76 +396,44 @@ export const ECRIT_LU = {
   },
   'raw:check-folio-continuity': {
     ecrit: [],
-    ecritFerme: {
-      'scripts/raw/folio-gaps-stock.json':
-        'le stock NOMINATIF des sauts de folio ne se réécrit que sous `--ecrire-stock`, option que la ' +
-        'commande de .github/workflows/ci.yml ne passe pas ; sans elle la gate COMPARE le stock à sa ' +
-        'mesure et ne touche à rien',
-    },
     lit: ['docs/raw/', 'Source/', 'src/data/books.json', 'src/data/source/', 'src/lib/regex.ts', 'scripts/raw/', 'scripts/guards/lib/', 'scripts/port-dev.mjs'],
     raison:
       'LIT le registre de livres, le normaliseur de références, ' +
       'le stock NOMINATIF des sauts de folio (scripts/raw/folio-gaps-stock.json) et les deux stocks des ancres ' +
       'sans contenu (scripts/raw/empty-folios-perdues-stock.json, scripts/raw/empty-folios-benignes-stock.json) ; ' +
-      'le seul module écrivain atteint est le détecteur lui-même, dont l’écriture est fermée par sa ' +
-      'porte `--ecrire-stock`',
+      'aucune écriture n’est atteinte',
   },
   'raw:check-source-tables': {
     ecrit: [],
-    ecritFerme: {
-      'scripts/raw/source-tables-stock.json':
-        'le stock NOMINATIF des tables cassées ne se réécrit que sous `--ecrire-stock` ' +
-        '(`main` de scripts/raw/check-source-tables.mjs), option que la commande de .github/workflows/ci.yml ' +
-        'ne passe pas ; sans elle la gate COMPARE le stock à sa mesure et ne touche à rien',
-    },
     lit: ['Source/', 'src/data/books.json', 'src/data/source/', 'src/lib/regex.ts', 'scripts/raw/', 'scripts/guards/lib/', 'scripts/port-dev.mjs'],
     raison:
       'LIT le registre de livres, le parseur de tables (src/data/source/decoupe.ts), les dossiers à `dir` de ' +
-      'Source/ et son stock nominatif scripts/raw/source-tables-stock.json ; le seul module écrivain ' +
-      'atteint est le détecteur lui-même, dont l’écriture est fermée par sa porte `--ecrire-stock`',
+      'Source/ et son stock nominatif scripts/raw/source-tables-stock.json ; aucune écriture ' +
+      'n’est atteinte',
   },
   'raw:check-source-puces': {
     ecrit: [],
-    ecritFerme: {
-      'scripts/raw/source-puces-stock.json':
-        'le stock NOMINATIF des puces lues comme un jeton ne se réécrit que sous `--ecrire-stock` ' +
-        '(`main` de scripts/raw/check-source-puces.mjs), option que la commande de .github/workflows/ci.yml ' +
-        'ne passe pas ; sans elle la gate COMPARE le stock à sa mesure et ne touche à rien',
-    },
     lit: ['Source/', 'src/data/books.json', 'src/data/source/', 'src/lib/regex.ts', 'scripts/raw/', 'scripts/guards/lib/', 'scripts/port-dev.mjs'],
     raison:
       'LIT le registre de livres, le normaliseur de citations (src/data/source/decoupe.ts), les dossiers ' +
-      'à `dir` de Source/ et son stock nominatif scripts/raw/source-puces-stock.json ; le seul module ' +
-      'écrivain atteint est le détecteur lui-même, dont l’écriture est fermée par sa porte `--ecrire-stock`',
+      'à `dir` de Source/ et son stock nominatif scripts/raw/source-puces-stock.json ; aucune écriture ' +
+      'n’est atteinte',
   },
   'raw:check-renvois': {
     ecrit: [],
-    ecritFerme: {
-      'scripts/raw/renvois-stock.json':
-        'le stock NOMINATIF des renvois « page N » non résolus ne se réécrit que sous `--ecrire-stock` ' +
-        '(`main` de scripts/raw/check-renvois.mjs), option que la commande de .github/workflows/ci.yml ' +
-        'ne passe pas ; sans elle la gate COMPARE le stock à sa mesure et ne touche à rien',
-    },
     lit: ['Source/', 'src/data/books.json', 'src/data/source/', 'src/lib/regex.ts', 'src/data/hash.ts', 'scripts/raw/', 'scripts/source/', 'scripts/guards/lib/'],
     raison:
       'LIT le registre de livres, les chapitres des livres couverts par le lecteur fs (scripts/source/lecteur-fs.mjs), ' +
-      'le résolveur PUR src/data/source/renvoi.ts et son stock nominatif scripts/raw/renvois-stock.json ; le seul ' +
-      'module écrivain atteint est la garde elle-même, dont l’écriture est fermée par sa porte `--ecrire-stock`',
+      'le résolveur PUR src/data/source/renvoi.ts et son stock nominatif scripts/raw/renvois-stock.json ; aucune ' +
+      'écriture n’est atteinte',
   },
   'raw:check-source-format': {
     ecrit: [],
-    ecritFerme: {
-      'scripts/raw/source-format-stock.json':
-        'le stock NOMINATIF des écarts de format ne se réécrit que sous `--ecrire-stock` ' +
-        '(`main` de scripts/raw/check-source-format.mjs), option que la commande de .github/workflows/ci.yml ' +
-        'ne passe pas ; sans elle la gate COMPARE le stock à sa mesure et ne touche à rien',
-    },
     lit: ['Source/', 'src/data/books.json', 'src/lib/regex.ts', 'scripts/raw/', 'scripts/source/nom-ascii.mjs', 'scripts/guards/lib/', 'scripts/port-dev.mjs'],
     raison:
       'LIT le registre de livres et les dossiers FR de Source/ (ceux à `dir` plus les ' +
       'pré-pipeline atteints par balayage), ainsi que son stock nominatif ' +
-      'scripts/raw/source-format-stock.json ; le seul module écrivain atteint est le détecteur ' +
-      'lui-même, dont l’écriture est fermée par sa porte `--ecrire-stock`',
+      'scripts/raw/source-format-stock.json ; aucune écriture n’est atteinte',
   },
   'server:typecheck': {
     ecrit: [],

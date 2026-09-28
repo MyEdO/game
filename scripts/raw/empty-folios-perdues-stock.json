@@ -20,22 +20,10 @@
       "pdfChars": 1498
     },
     {
-      "fichier": "Source/Warhammer v4 - 1.0 L'ennemi dans l'Ombre/00 - Index.md",
-      "ref": "EDO 0 folio 1",
-      "occurrence": 1,
-      "pdfChars": 1105
-    },
-    {
       "fichier": "Source/WH - V4 - La Mer de Griffe/00 - Index.md",
       "ref": "MDG 0 folio -3",
       "occurrence": 1,
       "pdfChars": 1526
-    },
-    {
-      "fichier": "Source/Warhammer v4 - 2.0 Mort sur le Reik Compagnon/00 - Index.md",
-      "ref": "MSRC 0 folio 1",
-      "occurrence": 1,
-      "pdfChars": 1083
     },
     {
       "fichier": "Source/WH - V4 - Le zoo imperial/00 - Index.md",
@@ -51,39 +39,15 @@
     },
     {
       "fichier": "Source/WH - V4 - Le zoo imperial/01 - TROIS EXPEDITIONS.md",
-      "ref": "ZI 1 folio 9",
-      "occurrence": 1,
-      "pdfChars": 809
-    },
-    {
-      "fichier": "Source/WH - V4 - Le zoo imperial/01 - TROIS EXPEDITIONS.md",
       "ref": "ZI 1 folio 11",
       "occurrence": 1,
       "pdfChars": 1276
     },
     {
-      "fichier": "Source/WH - V4 - Le zoo imperial/10 - Macareux a bec tranchant.md",
-      "ref": "ZI 10 folio 81",
+      "fichier": "Source/WH - V4 - Le zoo imperial/01 - TROIS EXPEDITIONS.md",
+      "ref": "ZI 1 folio 9",
       "occurrence": 1,
-      "pdfChars": 415
-    },
-    {
-      "fichier": "Source/WH - V4 - Le zoo imperial/13 - Sirene.md",
-      "ref": "ZI 13 folio 87",
-      "occurrence": 1,
-      "pdfChars": 1000
-    },
-    {
-      "fichier": "Source/WH - V4 - Le zoo imperial/13 - Sirene.md",
-      "ref": "ZI 13 folio 89",
-      "occurrence": 1,
-      "pdfChars": 1184
-    },
-    {
-      "fichier": "Source/WH - V4 - Le zoo imperial/13 - Sirene.md",
-      "ref": "ZI 13 folio 97",
-      "occurrence": 1,
-      "pdfChars": 437
+      "pdfChars": 809
     },
     {
       "fichier": "Source/WH - V4 - Le zoo imperial/02 - Griffon.md",
@@ -138,6 +102,42 @@
       "ref": "ZI 7 folio 73",
       "occurrence": 1,
       "pdfChars": 608
+    },
+    {
+      "fichier": "Source/WH - V4 - Le zoo imperial/10 - Macareux a bec tranchant.md",
+      "ref": "ZI 10 folio 81",
+      "occurrence": 1,
+      "pdfChars": 415
+    },
+    {
+      "fichier": "Source/WH - V4 - Le zoo imperial/13 - Sirene.md",
+      "ref": "ZI 13 folio 87",
+      "occurrence": 1,
+      "pdfChars": 1000
+    },
+    {
+      "fichier": "Source/WH - V4 - Le zoo imperial/13 - Sirene.md",
+      "ref": "ZI 13 folio 89",
+      "occurrence": 1,
+      "pdfChars": 1184
+    },
+    {
+      "fichier": "Source/WH - V4 - Le zoo imperial/13 - Sirene.md",
+      "ref": "ZI 13 folio 97",
+      "occurrence": 1,
+      "pdfChars": 437
+    },
+    {
+      "fichier": "Source/Warhammer v4 - 1.0 L'ennemi dans l'Ombre/00 - Index.md",
+      "ref": "EDO 0 folio 1",
+      "occurrence": 1,
+      "pdfChars": 1105
+    },
+    {
+      "fichier": "Source/Warhammer v4 - 2.0 Mort sur le Reik Compagnon/00 - Index.md",
+      "ref": "MSRC 0 folio 1",
+      "occurrence": 1,
+      "pdfChars": 1083
     }
   ]
 }

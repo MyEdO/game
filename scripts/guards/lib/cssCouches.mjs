@@ -553,11 +553,11 @@ export function franchissements(parent, commit) {
  * VENTILATION d'un commit contre son parent, par volet (#1806 D6″), en multisets clés par
  * (fichier, réf) : `SORTI` = Sb − Sh, `ENTRÉ` = Eh − Eb ; `RETOURNÉ` = la part de Sh − Sb que le
  * parent portait HORS de son stock (Eb) — les sites qu'un module rend au stock en quittant la zone
- * exempte, seuls admis par le régénérateur (#1806 C) ; `APPARU` = le reste de Sh − Sb, des sites
- * NEUFS. `RECLASSÉ` = Σ prix(m) des modules franchis (`franchissements`), consommé à la clé ;
+ * exempte, seuls admis par la régénération (`admisAuRetour`, #1806 C) ; `APPARU` = le reste de
+ * Sh − Sb, des sites NEUFS. `RECLASSÉ` = Σ prix(m) des modules franchis (`franchissements`), consommé à la clé ;
  * `PRIMITIVISÉ` = le SORTI restant apparié à l'ENTRÉ restant par réf seule, chaque clé consommée une
  * fois ; `DISPARU` = le SORTI restant. Lieu UNIQUE du prix : la ligne `RECLASSEMENT:`
- * (`reclassementCss.mjs`) et `--ventiler` le lisent ici.
+ * (`reclassementCss.mjs`) et `scripts/ui/ventilation-css-couches.mts` le lisent ici.
  * Sb est ce que le parent COMPTAIT : `stockAvant` (les entrées de son fichier de stock) quand
  * l'appelant le fournit, sinon sa mesure sous la règle en vigueur ; Eb est le reste de ses sites.
  * `renommages` (chemin au parent ↦ chemin au commit, la carte `-M`) reporte d'abord les clés du
@@ -658,7 +658,7 @@ export function ligneDeVentilation(nom, v) {
 }
 
 /**
- * L'ADMISSION du régénérateur (#1806 C) : parmi les entrées `mesurees`, celles que le stock de `HEAD`
+ * L'ADMISSION du RETOURNÉ (`decroissantSaufRetourne`, `cssCouchesAudit.ts`, #1806 C) : parmi les entrées `mesurees`, celles que le stock de `HEAD`
  * ne comptait pas et que `HEAD` portait déjà — les `retournes` d'une ventilation `HEAD` → arbre
  * faite sur `stockDeTete`. Par clé (fichier, réf), les occurrences au-delà du compte de `stockDeTete`,
  * dans la limite du retour : un site NEUF n'est jamais admis.

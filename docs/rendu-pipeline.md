@@ -118,7 +118,7 @@ La vérité de VUE (estompe d'occlusion, révélation, assombrissement d'un éta
 Cornes et queues ne sont pas de l'art posé au cas par cas : `src/gameIso/rig/parts/appendages/` est le registre UNIQUE, et
 **1 appendice = 1 def `defs/<id>.ts` qui porte SON art** (`front` + `profile` dédié, `back` = `front` par
 défaut) — aucune string SVG de corne ou de queue hors des defs. Les consommateurs les référencent **PAR ID**
-et la résolution passe par la primitive unique `pickView` (`src/gameIso/rig/parts/types.ts:14`), appelée
+et la résolution passe par la primitive unique `viewOrFront` (`src/gameIso/rig/parts/types.ts:24`), appelée
 sur un appendice par `src/gameIso/rig/composeRig.tsx`, `src/gameIso/rig/parts/monstrous.ts`, `src/gameIso/rig/parts/traitVisuals.ts`.
 
 | Appendice | id | Def | Dos propre | Référencé par |
@@ -193,9 +193,9 @@ relancer, comparer : une migration donnée-neutre doit rester identique.
 - **un ton de décor** : une entrée dans la palette — jamais un hex dans un renderer (§6).
 - **un terrain** : une entrée dans `src/data/terrains.json` (règle ET rendu dans la même entrée).
 - **un prop / décor** : une def sous `src/gameIso/catalog/decor/defs/`, puis `npm run gen`. Symétrique →
-  un seul dessin ; directionnel → il DÉCLARE ses vues, et la sélection vue + miroir + repli se fait
+  un seul dessin ; orienté → il DÉCLARE ses vues, et la sélection vue + miroir + repli se fait
   dans la MACHINERIE partagée, jamais dans la def.
 - **un TYPE d'élément** (au-delà des 5 membres de `SceneEl`) : ajouter le variant au pivot,
   son builder, sa cuisson dans le monde volumique, et — s'il doit se voir à l'authoring — son peintre
   SVG avec sa profondeur de tri.
-<!-- sources-empreinte: ae2bf11ffbd40a7581a0eb4aa90b1eaae7bf4e65 (1016 fichiers, 93 dossiers) corps: b6b73a98b1840986c27e8309bcb290b3e44847eb -->
+<!-- sources-empreinte: fde1c40dc7e29bcc4d83c6048b5fd10239f24366 (1014 fichiers, 93 dossiers) corps: 54932f16d69e726a96e21cffdf1ae6735732eb66 -->

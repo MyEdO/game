@@ -8,11 +8,11 @@ import { mkdtempSync, writeFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import {
-  scanMissingEntities, scanAll, sitesEntites, STOCK_PATH,
+  scanMissingEntities, scanAll, sitesEntites, STOCK_PATH, regenerations,
   normalizeLoose, stripArticles, entityNameFromHeader,
 } from './check-entity-in-chapter.mjs'
-import { ecartDuVolet } from '../guards/lib/stock.mjs'
-import { readStock } from './stockNominatif.mjs'
+import { cleDeSite, ecartDuVolet } from '../guards/lib/stock.mjs'
+import { ecartDeRegeneration, lireEntreesDeSite, texteEnPlace } from '../guards/lib/stockDeSites.mjs'
 
 // LDB 06 (Source/…/06 - Classes.md) : chapitre réel, court et stable, contient le mot « Classes ».
 function withTempDoc(content, fn) {
@@ -90,15 +90,16 @@ test('sitesEntites : un site = le DOC et le NOM de l’entité, deux homonymes �
   ], 'la ligne du doc ne fait pas partie du site')
   const { neuves } = ecartDuVolet({ sites, stock: [], ou: 'entity-in-chapter-stock.json' })
   assert.equal(neuves.length, 3)
-  assert.ok(neuves.some((n) => n.startsWith(' :: docs/raw/4e/talents.md :: X :: 2')), `les homonymes se distinguent par leur occurrence :\n${neuves.join('\n')}`)
+  const deuxieme = cleDeSite({ fichier: 'docs/raw/4e/talents.md', ref: 'X', occurrence: 2 })
+  assert.ok(neuves.some((n) => n.startsWith(deuxieme)), `les homonymes se distinguent par leur occurrence :\n${neuves.join('\n')}`)
 })
 
 test('stock ABSENT → tolérance ZÉRO : la VRAIE docs/raw/4e/talents.md ne porte aucune entité hors chapitre (#600 solde)', () => {
   assert.equal(STOCK_PATH.endsWith('entity-in-chapter-stock.json'), true)
-  assert.deepEqual(readStock(STOCK_PATH), [], 'le régime nominal est le stock ABSENT (ou vide)')
-  assert.deepEqual(readStock(join(tmpdir(), 'inexistant-entity-in-chapter.json')), [], 'fichier absent = zéro entrée tolérée')
+  const violations = scanAll()
+  for (const r of regenerations(violations)) assert.equal(ecartDeRegeneration(r, texteEnPlace(r.chemin)), null)
   const { neuves, perimees } = ecartDuVolet({
-    sites: sitesEntites(scanAll()), stock: readStock(STOCK_PATH), ou: 'entity-in-chapter-stock.json',
+    sites: sitesEntites(violations), stock: lireEntreesDeSite(STOCK_PATH), ou: 'entity-in-chapter-stock.json',
   })
   assert.deepEqual(neuves, [], `entité(s) dont le nom est absent du chapitre cité :\n${neuves.join('\n')}`)
   assert.deepEqual(perimees, [], `entrée(s) SOLDÉE(s) à retirer :\n${perimees.join('\n')}`)

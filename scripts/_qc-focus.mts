@@ -1,4 +1,5 @@
 /** QC focalisé — Snotling/Gobelin (grosse tête) + Démon (volume membres). Axe rouge = centre. */
+import { VIEWS } from '../src/gameIso/rig/facing';
 import { writeFileSync } from 'node:fs';
 import { Resvg } from '@resvg/resvg-js';
 import { defsGlobaux } from '../src/gameIso/sprites';
@@ -6,7 +7,6 @@ import { bonesToSvg } from '../src/gameIso/rig/renderBones';
 import { resolveRig } from '../src/gameIso/rig/composeRig';
 import { entityRigProfile } from '../src/gameIso/rig/enemyProfile';
 import { hashSeed } from '../src/engine/dice';
-import type { View } from '../src/gameIso/rig/facing';
 
 const NAMES: [string, string][] = [
   ['Skaven', 'Dague'],
@@ -14,7 +14,6 @@ const NAMES: [string, string][] = [
   ['Goule de crypte', ''],
   ['Vampire', ''],
 ];
-const VIEWS: View[] = ['front', 'profile', 'back'];
 const CW = 360, CH = 560, SC = 3.0, FEET = 500;
 const cells: string[] = [];
 NAMES.forEach(([name, weapon], r) => {

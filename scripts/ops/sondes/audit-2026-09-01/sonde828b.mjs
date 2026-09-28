@@ -1,6 +1,6 @@
 // SONDE (lecture seule) — le stock de la famille TOMBSTONE d'ANCIEN NOM RAPPELÉ (`FAMILLE`
 // ci-dessous) sur le corpus RÉEL de la garde comment-poison, et non sur un grep de surface :
-// mêmes dossiers (`POISON_DIRS`), mêmes extensions (`POISON_EXTS`), tests COMPRIS, et détection par
+// même périmètre (`corpusDesGardes()`, qui lit `PERIMETRE_DES_GARDES`), tests COMPRIS, et détection par
 // `tombstonesIn` appliquée aux seuls COMMENTAIRES extraits (`extractComments`), jamais aux chaînes.
 // La sonde rend aussi le CARDINAL du corpus et la présence de `commentPoison.mjs` lui-même :
 // une garde qui ne se scanne pas elle-même rendrait 0 sans rien prouver.
@@ -15,10 +15,9 @@ import { RACINE } from './_socle.mjs';
 const FAMILLE = 'ex-Nom';
 
 const lib = (nom) => pathToFileURL(join(RACINE, 'scripts', 'guards', 'lib', nom)).href;
-const { readCorpus } = await import(lib('sourceCorpus.mjs'));
-const { POISON_DIRS, POISON_EXTS, tombstonesIn, extractComments } = await import(lib('commentPoison.mjs'));
+const { corpusDesGardes, tombstonesIn, extractComments } = await import(lib('commentPoison.mjs'));
 
-const corpus = readCorpus([...POISON_DIRS], { exts: [...POISON_EXTS], tests: true });
+const corpus = corpusDesGardes();
 console.log(
   'corpus',
   corpus.length,

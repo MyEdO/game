@@ -7,11 +7,12 @@
  * est une erreur de TYPE (mapped type → `never`) ET une erreur d'exécution nommant la clé ; chaque
  * clé de `champs` exige sa `MetaChamp` ; chaque document déclare son EXPOSITION (Codex, éditeur).
  *
- * L'adoption par les defs est le lot L1b (#1467) : 122 defs l'appellent (121 sous `defs/`, 1 sous
+ * L'adoption par les defs est #1467 : 122 defs l'appellent (121 sous `defs/`, 1 sous
  * `defs-scenes/`). Les defs `entite` ont TOUS adopté. Le compte fait foi à la MESURE, pas à cette
  * phrase : c'est le mesureur de `grammaire.test.ts` (« contrats d'enveloppe REQUIS dans les defs
  * `entite` ») qui l'établit.
  */
+import { tableTotale } from '../../../lib/tableTotale';
 import { z } from 'zod';
 import { sourceRefSchema, secondarySourceRefSchema, variantOf } from './valeurs';
 import { defDe } from './descente';
@@ -29,7 +30,7 @@ export const CLES_ENVELOPPE = ['id', 'type', 'label', 'labelF', 'desc', 'descRef
 export type CleEnveloppe = (typeof CLES_ENVELOPPE)[number];
 
 /**
- * Libellés FR des clés d'ENVELOPPE (#1466 L1a, point 6). `document()` REFUSE une `MetaChamp` sur une
+ * Libellés FR des clés d'ENVELOPPE (#1466). `document()` REFUSE une `MetaChamp` sur une
  * clé d'enveloppe (la fabrique la pose, aucun def ne la déclare) : leur nom lisible appartient donc à
  * la FABRIQUE, ici. Consommé par la cascade de libellés de l'atelier (`src/ui/compendium/editFields.ts`).
  */
@@ -170,7 +171,7 @@ export interface OptionsDocument {
    * Schéma d'une CLÉ du record — défaut `z.string().min(1)`. Un def dont l'univers de clés est FERMÉ
    * le déclare ici (`src/data/schemas/defs/teintesJeu.ts` : `z.record(z.enum(TEINTE_KEYS), couleurHexSchema)`)
    * et garde son verrou par construction, qu'une clé libre perdrait. Mesuré (zod 4.4.3) : une clé
-   * énumérée rend le record EXHAUSTIF — toute clé déclarée doit être présente.
+   * énumérée rend le record TOTAL — toute clé déclarée doit être présente.
    */
   readonly cleRecord?: z.ZodType<string>;
   /**
@@ -247,7 +248,7 @@ export interface DocumentHandle<T extends string> {
    * `.partial()` rend un `ZodObject` NU, que `.extend` rouvrirait — la fabrique n'expose aucun nœud
    * extensible, fût-il voisin. `.optional()`/`safeParse` restent servis.
    * Consommateur mesuré : `narratif.ts` (`presetPnjSchema.profil`, profil de PNJ embarqué) — il
-   * CONSOMME désormais `entreePartielle`. Sur le nœud SCELLÉ, `.partial` n'existe pas et l'appel
+   * CONSOMME `entreePartielle`. Sur le nœud SCELLÉ, `.partial` n'existe pas et l'appel
    * JETTE : c'est bien cette propriété-ci qui lui tient lieu de `.partial()`.
    */
   readonly entreePartielle: z.ZodType<unknown>;
@@ -255,7 +256,7 @@ export interface DocumentHandle<T extends string> {
    * Clés top-level de l'entrée (enveloppe + champs, plus la CHARGE posée par la fabrique),
    * relevées AVANT le sceau.
    * Consommateurs mesurés : `variants-integrity.test.ts` (`SHAPE_BY_FILE`, où les TROIS defs à
-   * variantes lisent désormais `cles` — plus aucun `element.shape`, le dernier est mort avec
+   * variantes lisent `cles` — plus aucun `element.shape`, le dernier est mort avec
    * l'adoption de `spells`) et `scripts/guards/lib/fieldConsumerTargets.mjs` (`if (schema?.shape)` —
    * sans cette liste, la garde dégrade en SILENCE à zéro champ).
    */
@@ -517,7 +518,7 @@ export function document<T extends string, C extends Record<string, z.ZodType>>(
       : famille === 'record'
         ? marquerCollection(affineDataset, marqueDeRecord({ sous: 'entries', espace }))
         : affineDataset;
-  const metaPubliee = { ...(meta as Record<string, MetaChamp>), ...Object.fromEntries(clesPosees.map((k) => [k, META_CHARGE[k]])) };
+  const metaPubliee = { ...(meta as Record<string, MetaChamp>), ...tableTotale(clesPosees, (k) => META_CHARGE[k]) };
   return {
     schema,
     entree: entreeScellee,

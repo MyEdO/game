@@ -1,7 +1,7 @@
 import type { WeaponDef } from '../types';
 
 /** Épée générique (forme par défaut du Groupe « Base » + défaut final de `weaponPart`).
- *  ART DIRECTIONNEL : front / dos (lame grise mate) / profil (fine), garde dorée. */
+ *  ART ORIENTÉ : front / dos (lame grise mate) / profil (fine), garde dorée. */
 export const weapon: WeaponDef = {
   slug: "epee",
   label: "Épée",

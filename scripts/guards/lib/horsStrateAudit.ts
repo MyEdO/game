@@ -1,8 +1,8 @@
 /**
  * AUDIT « quelles SIGNATURES d'objet ne sont portées par AUCUNE strate du lexique ? » en SITES
  * (#1463 L0, #1727 T0d) — la TRADUCTION en sites est UNIQUE, partagée par la garde
- * `src/data/structures-contrat.test.ts` et le régénérateur
- * `scripts/data/regen-hors-strate-stock.mts` : deux lectures divergentes du corpus laisseraient
+ * `src/data/structures-contrat.test.ts` et la régénération de `horsStrateStock.mjs`
+ * (`regenerations`) : deux lectures divergentes du corpus laisseraient
  * l'une écrire ce que l'autre refuse.
  *
  * La MESURE vit dans `scripts/docs/lib/structures-scan.mts` (`scanDuCorpus`, champ
@@ -19,9 +19,11 @@
  * la racine du dépôt, 126 documents pour 126 basenames distincts). Aucune heuristique de nom,
  * aucune racine devinée — un basename absent de cette liste LÈVE, nommément.
  */
+import { fileURLToPath } from 'node:url';
 import { depotDe, racineDe } from './gitPorte.mjs';
 import { scanDuCorpus } from '../../docs/lib/structures-scan.mjs';
 import type { Site } from './stock.mjs';
+import { DECROISSANT, type RegenerationDeStock } from './stockDeSites.mjs';
 
 /** Une signature HORS STRATE telle que le scan la rend (`scan.invisibles`). */
 export interface SignatureHorsStrate {
@@ -64,7 +66,7 @@ export const sitesHorsStrate = (
   });
 };
 
-/** La mesure du corpus réel, pour qui n'a pas déjà un scan sous la main (le régénérateur). */
+/** La mesure du corpus réel, pour qui n'a pas déjà un scan sous la main (la régénération). */
 export const auditHorsStrate = (root?: string): MesureHorsStrate => {
   const racine = root ?? racineDe(depotDe(process.cwd()));
   if (!racine) throw new Error(`racine du dépôt non résolue depuis ${process.cwd()}`);
@@ -77,3 +79,11 @@ export const MOTIF_HORS_STRATE =
   'Une structure neuve se pose à la forme CIBLE du lexique (`structures-lexique.mts`) : elle entre '
   + "dans une strate, elle ne s'inscrit pas ici. Une paire périmée/neuve d'un MÊME dataset, sans un "
   + "octet de donnée changé, est le bruit d'instrument dit en tête du stock — se lire, pas s'entériner.";
+
+/** La RÉGÉNÉRATION de `horsStrateStock.mjs`, sur une mesure (par défaut, celle du corpus réel). Commande :
+ *  `npx tsx scripts/guards/lib/regenStock.mts scripts/guards/lib/horsStrateAudit.ts [--check]`. */
+export const regenerations = (mesure: MesureHorsStrate = auditHorsStrate()): RegenerationDeStock[] => [{
+  chemin: fileURLToPath(new URL('./horsStrateStock.mjs', import.meta.url)),
+  politique: DECROISSANT,
+  collections: [{ nom: 'HORS_STRATE_RATCHET', sites: sitesHorsStrate(mesure.invisibles, mesure.documents), motif: MOTIF_HORS_STRATE }],
+}];

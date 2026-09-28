@@ -43,23 +43,24 @@
 // est rouge ; en deçà, l'exemption l'est.
 //
 // TITRES SOUDÉS (famille `titre-soude`, #1739) : pour tout livre dont la liste de découpe porte un
-// `gabaritTitre`, une ligne ouverte par un gras que suit autre chose que sa prose (P5) ou une ligne de
+// `gabaritTitre`, une ligne ouverte par un gras que suit autre chose que sa prose ou une ligne de
 // titre à deux groupes gras est un ROUGE NOMMÉ, sans stock — le geste est
 // `node scripts/raw/reparer-titres.mjs <id>`. Le prédicat est celui de la réparation
 // (`lib/titres-soudes.mjs`), importé, jamais redit.
 //
 // Re-run    : node scripts/raw/check-source-format.mjs
-// Régénérer : node scripts/raw/check-source-format.mjs --ecrire-stock [--lot <#N …>] — le lot est REQUIS dès qu'une entrée NEUVE naît (`ecrireStockSousLot`, scripts/guards/lib/stock.mjs)
-import { existsSync, writeFileSync, statSync } from 'node:fs'
+// Régénérer : npx tsx scripts/guards/lib/regenStock.mts scripts/raw/check-source-format.mjs [--lot <#N …>] — le
+// lot est REQUIS dès qu'une entrée NEUVE naît (politique `SOUS_LOT`, scripts/guards/lib/stockDeSites.mjs)
+import { existsSync, statSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { listerDossier, parUnitesDeCode } from '../guards/lib/lister.mjs'
 import { BOOKS, readText } from './_lib.mjs'
-import { ecartDuVolet, ecrireStockSousLot, phraseDeNaissance, sitesEnEntrees, survieDeLecheance } from '../guards/lib/stock.mjs'
-import { naissanceEnPlace, readStock } from './stockNominatif.mjs'
+import { ecartDuVolet, phraseDeNaissance } from '../guards/lib/stock.mjs'
+import { SOUS_LOT, comptesParFamille, lireEntreesDeSite, naissanceEnPlace } from '../guards/lib/stockDeSites.mjs'
 import { estSeparateur, graphieDeChapitre, graphieDuFichier, largeurDeChapitre, ligne1DePlage, numeroDuFichier, plageDeLigne1, titreDuFichier } from '../../src/data/source/decoupe.ts'
 import { estLigneDeTitre, ouvreSur } from './lib/titres.mjs'
-import { decoupeDe, gabaritTitreDe, livreDuDossier, livresDecoupes, nomsDeLaListe, ongletsDe, REGISTRE_LIVRES } from './_lib.mjs'
+import { decoupeDe, livreDuDossier, livresATitres, livresDecoupes, nomsDeLaListe, ongletsDe, REGISTRE_LIVRES } from './_lib.mjs'
 import { exemptionsFausses, mobilierDuDossier } from './lib/mobilier.mjs'
 import { sitesDeTitresSoudes } from './lib/titres-soudes.mjs'
 import { EXEMPTIONS_MOBILIER } from '../guards/lib/mobilierExemptions.mjs'
@@ -272,7 +273,7 @@ export function sitesDuDossier(dir, fichiers, liste = null) {
  * PUR : la liste est DONNÉE.
  * @param {string} dir @param {{ nom: string, texte: string }[]} fichiers
  * @param {{ titre: string, ouverture?: string, page: number, pageFin: number }[]} liste
- * @returns {{ file: string, ref: string }[]}
+ * @returns {import('../guards/lib/stock.mjs').Site[]}
  */
 export function ecartsAuGrain(dir, fichiers, liste) {
   const out = []
@@ -375,10 +376,10 @@ export const titresSoudesDuDossier = (dir, texteDe, liste) =>
   nomsDeLaListe(liste).flatMap((nom) => sitesDeTitresSoudes(texteDe(nom)).map((s) => ({ file: `${dir}/${nom}`, ref: `l.${s.ligne} ${s.classe} : ${s.texte.trim().slice(0, 60)}` })))
 
 /** TITRES SOUDÉS de tous les dossiers FR dont le livre déclare un `gabaritTitre`. */
-export function titresSoudesAll(dossiers = dossiersFR(), avecListe = livresDecoupes()) {
+export function titresSoudesAll(dossiers = dossiersFR(), aTitres = livresATitres()) {
   return dossiers.flatMap((d) => {
     const livre = livreDuDossier(d)
-    if (!livre || !avecListe.includes(livre.id) || !gabaritTitreDe(livre.id)) return []
+    if (!livre || !aTitres.includes(livre.id)) return []
     const textes = new Map(lireDossier(d).map((f) => [f.nom, f.texte]))
     return titresSoudesDuDossier(cheminDe(d), (nom) => textes.get(nom) ?? '', decoupeDe(livre.id))
   })
@@ -416,10 +417,6 @@ export function scanAll(dossiers = dossiersFR()) {
   return out
 }
 
-/** Compte par famille (toutes les familles présentes, même à zéro). */
-export const comptesParFamille = (sites) =>
-  Object.fromEntries(FAMILLES.map((f) => [f, sites.filter((s) => s.famille === f).length]))
-
 /** Compte par DOSSIER de livre — le `file` d'un site nomme un CHAPITRE, le dossier en est le
  *  préfixe. C'est le grain du rapport : l'unité de réparation est le livre. */
 export const comptesParDossier = (sites) => {
@@ -431,44 +428,10 @@ export const comptesParDossier = (sites) => {
   return out
 }
 
-/**
- * Les ENTRÉES du stock, dans l'ordre du balayage — c'est CE rendu que le fichier de stock porte.
- * `ancien` (les entrées déjà committées) porte la SURVIE : `survieDeLecheance`
- * (`scripts/guards/lib/stock.mjs`), seule définition du dépôt.
- * @param {{famille: string, file: string, ref: string}[]} sites
- * @param {{ lot: string, date: string, ancien?: Iterable<object> }} p
- */
-export const entreesDe = (sites, { lot, date, ancien = [] }) =>
-  FAMILLES.flatMap((famille) =>
-    survieDeLecheance(sitesEnEntrees(sites.filter((s) => s.famille === famille), { famille }), { lot, date, ancien }),
-  )
-
-/**
- * ÉCART au stock, famille par famille (le stock d'une famille ne juge que ses sites : mêlés, tous
- * les sites des autres familles paraîtraient périmés).
- * @returns {{ neuves: string[], perimees: string[] }}
- */
-export function ecartDuStock(sites, stock) {
-  const neuves = []
-  const perimees = []
-  for (const famille of FAMILLES) {
-    const r = ecartDuVolet({
-      sites: sites.filter((s) => s.famille === famille),
-      stock: stock.filter((e) => e.famille === famille),
-      famille,
-      ou: 'source-format-stock.json',
-    })
-    neuves.push(...r.neuves)
-    perimees.push(...r.perimees)
-  }
-  return { neuves, perimees }
-}
-
-const QUOI = ({ comptes, dossiers, entrees }) =>
+const QUOI = (comptes) =>
   'Écart de FORME des extractions de `Source/` au format canonique (#1739, épique #1388) : une ' +
   'ENTRÉE par (famille, fichier, détail), clé `famille :: fichier :: ref :: occurrence` (régime ' +
   `#1711). Format DÉFINI par \`docs/ajouter-un-livre-source.md\` § « Format canonique ». ` +
-  `${dossiers} dossier(s) FR balayé(s). ` +
   `${phraseDeNaissance(comptes, FAMILLES)} ` +
   'LE GESTE, UN SEUL — REJOUER la chaîne canonique sur le livre : re-découpe depuis la sortie ' +
   'Marker conservée sous `Source/_marker/`, ou ré-extraction quand cette sortie manque. Jamais un ' +
@@ -479,7 +442,6 @@ const QUOI = ({ comptes, dossiers, entrees }) =>
   'entrée sans écart mesuré. L’ORDRE de ré-extraction vit sur #1739. ' +
   'CE QUE LE `fichier` NOMME — le chapitre fautif lui-même : la `ref` porte le détail de CE ' +
   'fichier, sans cardinal ; le `nombre`, hors clé, compte ses occurrences dans CE fichier, jamais dans un dossier. ' +
-  `${entrees} entrée(s). ` +
   'COUVERTURE DITE — les familles `ligne1-hors-format`, `sans-folio`, `ancre-seule`, ' +
   '`nom-de-signet`, `largeur-de-numero` et `sans-decoupe` ne jugent que les fichiers au motif `NN - X.md`, ' +
   '`00 - Index.md` exclu ; un `.md` ' +
@@ -489,32 +451,21 @@ const QUOI = ({ comptes, dossiers, entrees }) =>
   '`data-folio` est déjà nommée par `sans-folio`, et la compter deux fois dirait deux réparations ' +
   'là où il n’y en a qu’une.'
 
-/** Rend le CONTENU du fichier de stock pour des sites mesurés (source unique de sa forme). Les comptes
- *  à la naissance sont ceux du stock en place (`naissance`), sinon ceux du jour. */
-export const stockDe = (sites, { lot, date, dossiers, ancien = [], naissance = null }) => {
-  const entrees = entreesDe(sites, { lot, date, ancien })
-  const quoi = QUOI({ comptes: naissance ?? comptesParFamille(sites), dossiers, entrees: entrees.length })
-  return `${JSON.stringify({ quoi, entrees }, null, 2)}\n`
-}
+/** La RÉGÉNÉRATION du stock (`RegenerationDeStock`, `stockDeSites.mjs`), sur des sites (par défaut, la
+ *  mesure de tous les dossiers FR). Son `quoi` ne lit que les comptes À LA NAISSANCE (par défaut, ceux
+ *  du stock en place), ceux du run pour un stock qui naît. */
+export const regenerations = (sites = scanAll(), naissance = naissanceEnPlace(STOCK_PATH, FAMILLES)) => [{
+  chemin: STOCK_PATH,
+  politique: SOUS_LOT,
+  horsCollections: QUOI(naissance ?? comptesParFamille(sites, FAMILLES)),
+  collections: [{ nom: 'entrees', sites }],
+}]
 
 function main() {
-  const args = process.argv.slice(2)
   const dossiers = dossiersFR()
   const sites = scanAll(dossiers)
-  const comptes = comptesParFamille(sites)
-  const stock = readStock(STOCK_PATH)
-
-  if (args.includes('--ecrire-stock')) {
-    const r = ecrireStockSousLot(
-      args,
-      (lot, date) => ({ entrees: entreesDe(sites, { lot, date, ancien: stock }), texte: stockDe(sites, { lot, date, dossiers: dossiers.length, ancien: stock, naissance: naissanceEnPlace(STOCK_PATH, FAMILLES) }) }),
-      (texte) => writeFileSync(STOCK_PATH, texte),
-      STOCK_PATH,
-    )
-    ;(r.code ? console.error : console.log)(r.message)
-    process.exitCode = r.code
-    return
-  }
+  const comptes = comptesParFamille(sites, FAMILLES)
+  const stock = lireEntreesDeSite(STOCK_PATH)
 
   const parDossier = comptesParDossier(sites)
   console.log(
@@ -547,7 +498,7 @@ function main() {
     for (const t of soudes) console.log(`  ${t.file} — ${t.ref}`)
   }
 
-  const { neuves, perimees } = ecartDuStock(sites, stock)
+  const { neuves, perimees } = ecartDuVolet({ sites, stock, ou: 'source-format-stock.json' })
   if (neuves.length) {
     console.log('RÉGRESSION — écart(s) hors du stock :')
     for (const o of neuves) console.log(`  ${o}`)

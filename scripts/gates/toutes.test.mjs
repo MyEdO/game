@@ -5,6 +5,7 @@
 // bon, sur un dépôt jetable à trois gates factices (c'est ce que
 // `principal({ racine, lanes, ecritLu, journal })` rend possible).
 //   node --test scripts/gates/toutes.test.mjs
+import { tableTotale } from '../../src/lib/tableTotale.ts'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
@@ -346,7 +347,7 @@ test('un ROUGE ne coupe RIEN : ce qui le suit dans sa lane est JOUÉ, et le rés
         { nom: 'b', gates: ['rouge', 'apres'] },
         { nom: 'c', gates: ['lente2'] },
       ],
-      ecritLu: Object.fromEntries(['lente', 'rouge', 'apres', 'lente2'].map((n) => [n, { ecrit: [], lit: ['src/'] }])),
+      ecritLu: tableTotale(['lente', 'rouge', 'apres', 'lente2'], () => ({ ecrit: [], lit: ['src/'] })),
     })
     const sortie = lignes.join('')
     assert.equal(code, 1, 'un rouge doit rendre 1')
@@ -380,7 +381,7 @@ test('DEUX rouges dans DEUX lanes distinctes sont rendus par UN SEUL run', async
         { nom: 'a', gates: ['rouge1'] },
         { nom: 'b', gates: ['lente', 'rouge2'] },
       ],
-      ecritLu: Object.fromEntries(['rouge1', 'rouge2', 'lente'].map((n) => [n, { ecrit: [], lit: ['src/'] }])),
+      ecritLu: tableTotale(['rouge1', 'rouge2', 'lente'], () => ({ ecrit: [], lit: ['src/'] })),
     })
     const sortie = lignes.join('')
     assert.equal(code, 1)
@@ -447,7 +448,7 @@ test('--serie rend les MÊMES verdicts que les lanes : deux rouges, deux lignes,
         { nom: 'a', gates: ['rouge1'] },
         { nom: 'b', gates: ['lente', 'rouge2'] },
       ],
-      ecritLu: Object.fromEntries(['rouge1', 'rouge2', 'lente'].map((n) => [n, { ecrit: [], lit: ['src/'] }])),
+      ecritLu: tableTotale(['rouge1', 'rouge2', 'lente'], () => ({ ecrit: [], lit: ['src/'] })),
     })
     const sortie = lignes.join('')
     assert.equal(code, 1)
@@ -474,7 +475,7 @@ test('DEUX rouges dans la MÊME lane sont tous deux JOUÉS et rendus', async () 
       argv: ['node', 'toutes.mjs'],
       journal: (t) => lignes.push(t),
       lanes: [{ nom: 'a', gates: ['rouge1', 'rouge2'] }],
-      ecritLu: Object.fromEntries(['rouge1', 'rouge2'].map((n) => [n, { ecrit: [], lit: ['src/'] }])),
+      ecritLu: tableTotale(['rouge1', 'rouge2'], () => ({ ecrit: [], lit: ['src/'] })),
     })
     const sortie = lignes.join('')
     assert.equal(code, 1)

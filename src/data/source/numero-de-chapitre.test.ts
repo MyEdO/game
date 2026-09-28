@@ -23,6 +23,7 @@ import { descRefSchema } from '../schemas/grammaire/valeurs';
 import { proseSource } from '../../../scripts/source/prose-source-plugin.mjs';
 // @ts-expect-error - garde ESM JS (pas de types) — même convention que `vite.config.ts`
 import { sitesDuDossier } from '../../../scripts/raw/check-source-format.mjs';
+import type { Site } from '../../../scripts/guards/lib/stock.mjs';
 
 const LIVRE = 'livre-forge';
 /** Un livre plus gros que tout livre réel (max 85 chapitres) : sa largeur de graphie est TROIS. */
@@ -165,7 +166,7 @@ describe('garde `largeur-de-numero` — une largeur par dossier, celle du plus g
   /** Les seuls sites de la famille jugée, sur un dossier réduit à ses NOMS de fichier. */
   const largeurs = (noms: string[]) =>
     (sitesDuDossier('Source/Livre', noms.map((nom) => ({ nom, texte: texteDe(1) }))) as
-      { famille: string; file: string; ref: string }[])
+      (Site & { famille: string })[])
       .filter((s) => s.famille === 'largeur-de-numero');
 
   it('un dossier à largeur UNE ne rend aucun écart, à deux comme à trois chiffres', () => {

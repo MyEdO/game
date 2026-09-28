@@ -25,7 +25,7 @@
 //   `reconciliation-stock.json` : une entrée neuve OU une entrée du stock devenue caduque pose
 //   `process.exitCode = 1` (double sens).
 //   Les mesures fines (trous de ligne, `(non implémenté)`, folios ignorés, réfs sans chapitre) restent
-//   IMPRIMÉES et jamais assertées. Lecteur = `lireStockJson` (check-code-refs.mjs), écart = `ecartsDeStock`
+//   IMPRIMÉES et jamais assertées. Lecteur = `lireStockJson` (guards/lib/stockDeSites.mjs), écart = `ecartsDeStock`
 //   (guards/lib/stock.mjs) — jamais un troisième.
 // Sortie : docs/raw/reconciliation.md  ·  Re-run : node scripts/raw/reconcile.mjs  ·  `--check` :
 //   `ecrireOuVerifier`, APRÈS le cliquet — les deux rouges se disent.
@@ -39,7 +39,7 @@ import {
   REGISTRE_LIVRES, folioSpan, span, pagesDeLAtlas, readText,
 } from './_lib.mjs'
 import { alternationDe } from '../../src/lib/regex.ts'
-import { lireStockJson } from './stockNominatif.mjs'
+import { lireStockJson } from '../guards/lib/stockDeSites.mjs'
 import { fichiersCitants } from './lib/fichiersCitants.mjs'
 import {
   loadAbbrMap, folioCitationsFromJson, chargerDette, registresDeFiches, parseFiche,
@@ -486,7 +486,7 @@ export function trousDurs({ hardA = [], b2 = [] }) {
 /** Stock committé des trous durs : `{ cle: { sites, lot, date, quoi } }` — chaque entrée nomme ses
  *  SITES (le cliquet de plage `stocksNominatifs.mjs` ne voit une entrée que si son sous-arbre nomme
  *  un fichier), son LOT et sa DATE. Fichier absent = `{}` (tolérance ZÉRO, `lireStockJson` de
- *  check-code-refs.mjs — même lecteur que les autres cliquets de `scripts/raw/`). */
+ *  `guards/lib/stockDeSites.mjs` — même lecteur que les autres cliquets de `scripts/raw/`). */
 export function lireStock(path = STOCK_PATH) {
   return lireStockJson(path).trous ?? {}
 }

@@ -4,7 +4,7 @@ import type { CreatureDef } from '../types';
 // flamboyante (@cheveux) à grands crocs (tête 'felin'), paire de CORNES SOMBRES qui percent la
 // crinière (deco tete — trait de l'artwork), avant-train écailleux bleu-gris à dorsale d'épines
 // (build 'draconic'), grandes ailes de chauve-souris VIOLET POURPRE dressées à demi-ouvertes
-// (membrane + wingPose 'dressees', famille @aile* propre — la couleur signature de l'artwork),
+// (membrane + wingPose 'dressees', gamme @aile* propre — la couleur signature de l'artwork),
 // longue queue segmentée dressée derrière la croupe HÉRISSÉE DE PIQUANTS (deco queue) finie en
 // DARD de scorpion (queue 'dard'). Gabarit AILÉ — distinct du griffon (cuir vs plumes).
 export const creature: CreatureDef = {
@@ -16,7 +16,7 @@ export const creature: CreatureDef = {
     head: 'felin', headScale: 1.25, tail: 'dard', tailLen: 1.15, ears: 'rondes', foot: 'patte',
     wings: 'membrane', wingSpan: 1.55, wingPose: 'dressees', mane: 'hirsute', ridge: 'epines',
     deco: {
-      // cornes courbées vers l'extérieur, teinte sombre de la robe (@corpsO) pour trancher sur
+      // cornes courbées vers l'extérieur, ombre de gamme de la robe (@corpsO) pour trancher sur
       // la crinière rousse ; symétriques autour de l'axe → lisibles de face, profil et dos
       tete: `<g data-deco="cornes">` +
         `<path d="M-4.6 -9 Q-11 -13.6 -12.4 -21.5 Q-6.8 -16.5 -5.6 -10.2 Z" fill="@corpsO" stroke="#1a140e" stroke-width="0.45"/>` +

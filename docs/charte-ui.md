@@ -483,10 +483,11 @@ un franchissement sans ligne, une ligne sans franchissement, un N faux ; chaque 
 son parent, au commit (`scripts/hooks/solde-ticket-guard.mjs`) comme au push
 (`scripts/guards/lib/plageStock.mjs`), par `scripts/guards/lib/reclassementCss.mjs`. La matière qui
 monte dans un module DÉJÀ exempté est PRIMITIVISÉE, sans ligne. Un module qui QUITTE la zone exempte
-ramène ses sites au stock, RETOURNÉS : le régénérateur n'admet, par fichier hors zone, que les sites que
-`HEAD` portait et que son stock ne comptait pas — jamais un site neuf (`admisAuRetour`) — et le commit
-les déclare par une ligne `CLIQUET:` du porteur. Entre deux arbres,
-`npx tsx scripts/ui/regen-css-couches-stock.mts --ventiler <ref> [--tete <ref>]` rend, par volet,
+ramène ses sites au stock, RETOURNÉS : la régénération (`npx tsx scripts/guards/lib/regenStock.mts
+scripts/guards/lib/cssCouchesAudit.ts`, politique `decroissantSaufRetourne`) n'admet, par fichier hors
+zone, que les sites que `HEAD` portait et que son stock ne comptait pas — jamais un site neuf
+(`admisAuRetour`) — et le commit les déclare par une ligne `CLIQUET:` du porteur. Entre deux arbres,
+`npx tsx scripts/ui/ventilation-css-couches.mts <ref> [--tete <ref>]` rend, par volet,
 SORTI = RECLASSÉ + PRIMITIVISÉ + DISPARU, APPARU (sites neufs) et RETOURNÉ, puis nomme les modules
 franchis ; le stock varie de APPARU + RETOURNÉ − SORTI, et Σ CLIQUET = APPARU + RETOURNÉ quand aucun
 fichier ne perd de site au même commit.

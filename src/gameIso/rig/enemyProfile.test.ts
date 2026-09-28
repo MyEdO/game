@@ -8,7 +8,7 @@ import { raceById } from './races';
 import { bipedDef } from './creatures';
 import { baseSpeciesOf } from './skeletons';
 import { resolveParts } from './parts/resolve';
-import { pickView } from './parts/types';
+import { viewOrFront } from './parts/types';
 import { CLAWFOOT, MAIN_GRIFFUE } from './parts/bodies/extremites';
 import { armourPart } from './parts/equipment';
 import { spawnEnemy } from '../../state/spawn';
@@ -92,7 +92,7 @@ describe('enemyRigProfile', () => {
   });
 
   it('espèce EXPLICITE (donnée) → tête monstrueuse portée par la Race (rendu data-driven)', () => {
-    // De-POC P5/5d : l'espèce vient de la DONNÉE (record/combattant) → species pilote race.head
+    // L'espèce vient de la DONNÉE (record/combattant) → species pilote race.head
     // (tête monstrueuse via composeRig). Le nom est purement contextuel.
     const cases: [string, string, string | undefined][] = [
       ['Orc noir', 'orc', 'orc'],
@@ -150,11 +150,11 @@ describe('enemyRigProfile', () => {
 
     const race = raceById(bipedDef('demon')?.race ?? baseSpeciesOf('demon'));
     const extremites = bipedDef('demon')?.perso?.extremites ?? race.extremites ?? 'lisses';
-    expect(extremites).toBe('griffues'); // race Démon = griffue (garde de classe #736 Lot 1)
+    expect(extremites).toBe('griffues'); // race Démon = griffue (garde de classe #736)
 
     const parts = resolveParts('demon', 'M', p.tenue, p.equip, {}, 1, 'front', extremites);
-    expect(parts.pied!.svg).toBe(pickView(CLAWFOOT, 'front')); // Nu griffu, PAS le soleret d'acier
-    expect(parts.main!.svg).toBe(pickView(MAIN_GRIFFUE, 'front')); // Nu griffu, PAS le gantelet d'acier
+    expect(parts.pied!.svg).toBe(viewOrFront(CLAWFOOT, 'front')); // Nu griffu, PAS le soleret d'acier
+    expect(parts.main!.svg).toBe(viewOrFront(MAIN_GRIFFUE, 'front')); // Nu griffu, PAS le gantelet d'acier
   });
 
   it('Capitaine du Guet (bestiaire, OPTÉ armurePortee) — art d’armure PLEIN, zones dérivées comprises (gantelets/soleret/gorgerin)', () => {
@@ -182,7 +182,7 @@ describe('enemyRigProfile', () => {
     // (species/monster/couleurs…) était aussi renseigné — une entité SANS record, armurePortee SEUL,
     // n'attachait donc AUCUN override → `enemyRigProfile` ne lisait que `cd?.armurePortee` (toujours
     // undefined, pas de record) → armure invisible en combat alors que visible en explo (`entityRigProfile`,
-    // qui lit déjà `opts.armurePortee`). Symétrique désormais : `ov?.armurePortee ?? cd?.armurePortee`.
+    // qui lit déjà `opts.armurePortee`). Symétrique : `ov?.armurePortee ?? cd?.armurePortee`.
     const c = spawnEnemy({ statblock: { type: 'statblock', label: 'Soudard sans record', char: { B: 10 }, armour: 5 } }, 'sans-record-1', { x: 0, y: 0 }, {
       appearance: { armurePortee: true },
     });

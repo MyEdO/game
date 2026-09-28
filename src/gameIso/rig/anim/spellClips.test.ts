@@ -54,7 +54,7 @@ describe('classifySpellByLabel — data-driven (spells.json + engine/magic)', ()
 });
 
 describe('spellFx — tintage arcane/divin (source de vérité unique du feedback)', () => {
-  it('arcane → gradient violet/bleu, divin → gradient or (gradients distincts)', () => {
+  it('arcane → dégradé fixe violet/bleu, divin → dégradé fixe or (dégradés fixes distincts)', () => {
     expect(spellFx('arcane').gradient).toBe('g_arcane');
     expect(spellFx('divine').gradient).toBe('g_divine');
     expect(spellFx('arcane').gradient).not.toBe(spellFx('divine').gradient);

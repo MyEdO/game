@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { resolveRender, resolveById, resolveSpecies, planById } from './bodyPlan';
 import { bonesToSvg } from './renderBones';
 import { MISSING_ART } from './viewArt';
+import { VIEWS } from './facing';
 import { defById } from './creatures';
 import { isSwarm } from '../../engine/traits/dispatch';
 import { creatures } from '../../data';
@@ -56,7 +57,7 @@ describe('resolveRender — résolution de rendu 100% data-driven (par id d’es
   });
 
   it('le gabarit `manquant` dessine la silhouette de repli visible (#223), dans toutes les vues', () => {
-    for (const vue of ['front', 'profile', 'back'] as const)
+    for (const vue of VIEWS)
       expect(bonesToSvg(planById('manquant').resolve('zzz', vue, {})), vue).toContain('M-22 -52 L22 -4');
     expect(MISSING_ART.profile!()).toContain('M-22 -52 L22 -4');
   });

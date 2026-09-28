@@ -248,6 +248,10 @@ export const ongletsDe = (bookId, dir = DECOUPES_DIR) => JSON.parse(readText(joi
  *  nulle part ailleurs. @param {string} bookId @param {string} [dir] */
 export const gabaritTitreDe = (bookId, dir = DECOUPES_DIR) => JSON.parse(readText(join(dir, `${bookId}.json`))).gabaritTitre
 
+/** Les ids des livres dont la liste de découpe porte un `gabaritTitre` — la SEULE liste des livres à
+ *  gabarit de titre. */
+export const livresATitres = () => livresDecoupes().filter((id) => gabaritTitreDe(id))
+
 // PDF d'un livre et sorties Marker (#1739). Les PDF et `Source/_marker/` sont
 // gitignorés (`.gitignore`) : ils n'existent que dans l'ARBRE PRINCIPAL, jamais dans un worktree
 // lié. `Source/` s'y résout par `arbrePrincipal` (`scripts/guards/lib/gitPorte.mjs`) : l'IMPORT de

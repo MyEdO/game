@@ -10,13 +10,14 @@ import { document } from '../grammaire/document';
 import { idDe } from '../grammaire/ref';
 import { champsDeChoix, metaDesChoix } from '../grammaire/choixDeCreation';
 import type { ChoixDeCreation } from '../../../engine/character';
+import { sexeSchema } from '../grammaire/valeurs';
+import { tableTotale } from '../../../lib/tableTotale';
 
 /** Les clés de choix que `pregens.json` PORTE : une clé de plus s'ajoute ici et dans la donnée. */
 const CHOIX_DES_PRETIRES = ['seed', 'careerTalent', 'speciesTalentChoices', 'pettySpells'] as const satisfies readonly (keyof ChoixDeCreation)[];
 export type ChoixDesPretires = (typeof CHOIX_DES_PRETIRES)[number];
 const desPretires = <T extends Record<ChoixDesPretires, unknown>>(table: T): Pick<T, ChoixDesPretires> =>
-  Object.fromEntries(CHOIX_DES_PRETIRES.map((k) => [k, table[k]])) as Pick<T, ChoixDesPretires>;
-import { sexeSchema } from '../grammaire/valeurs';
+  tableTotale(CHOIX_DES_PRETIRES, (k) => table[k]);
 
 export const file = 'pregens.json';
 export const famille = 'entite';

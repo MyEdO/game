@@ -36,7 +36,7 @@ const ATTENDU = {
     // forge ses fiches sous un `mkdtempSync` de os.tmpdir() — l'arbre du dépôt n'est jamais écrit.
     'scripts/gates/classerPush.test.mjs',
     'scripts/guards/lib/memoryLinks.test.mjs',
-    // +1 le 2026-09-20 (#1825 lot E2) : le banc de l'ENVELOPPE de jeu d'un workflow écrit ses
+    // +1 le 2026-09-20 (#1825) : le banc de l'ENVELOPPE de jeu d'un workflow écrit ses
     // scripts JOUETS sous un `mkdtempSync` de os.tmpdir() (`rmSync` en finally) — l'enveloppe
     // charge un FICHIER, un script jouet ne se fabrique pas autrement ; l'arbre n'est jamais écrit.
     'scripts/guards/lib/jouer-workflow.test.mjs',
@@ -63,6 +63,13 @@ const ATTENDU = {
     'scripts/git-hooks/docs-rebuild.test.mjs',
     'scripts/git-hooks/merge-docs.mjs',
     'scripts/git-hooks/merge-docs.test.mjs',
+    // +4 le 2026-09-27 (#1903) : le pilote de fusion des stocks de sites et son banc écrivent %A, des
+    // copies et des fichiers temporaires sous `os.tmpdir()` supprimés en `finally` (`three-way.mjs`,
+    // la fusion 3-voies qu'ils partagent avec `merge-docs.mjs`) ; le banc des formats pose ses
+    // fixtures sous un `mkdtempSync` de `os.tmpdir()`, retirées par `rmSync`. L'arbre du dépôt n'est
+    // jamais écrit.
+    'scripts/git-hooks/merge-stocks.mjs',
+    'scripts/git-hooks/merge-stocks.test.mjs',
     // +1 le 2026-09-27 (#1806) : le banc du pre-commit forge un dépôt JETABLE (`instanceDeDepot`, sous
     // os.tmpdir(), `rmSync` en finally), y stage un nom à tabulation et y JOUE le hook, `cwd` = ce
     // dépôt — la lecture refusée de l'index ne se fabrique pas autrement. Mesure du 2026-09-27 :
@@ -70,11 +77,12 @@ const ATTENDU = {
     'scripts/git-hooks/pre-commit.test.mjs',
     'scripts/git-hooks/pre-push.mjs',
     'scripts/git-hooks/pre-push.test.mjs',
+    'scripts/git-hooks/three-way.mjs',
     // +2 le 2026-09-05 (#1679 L3 T2) : les deux tests de l'hôte des lectures git et de la lecture des
     // courses CI écrivent leurs fixtures (dépôts jetables, fichiers de stub) sous `os.tmpdir()` —
     // l'arbre n'est jamais touché.
     'scripts/guards/lib/coursesCi.test.mjs',
-    // +2 le 2026-09-07 (#1709 B1) : la fixture de dépôt jetable est devenue une source unique ; le
+    // +2 le 2026-09-07 (#1709) : la fixture de dépôt jetable est devenue une source unique ; le
     // gabarit et ses instances vivent sous `os.tmpdir()` (`mkdtempSync` + `cpSync`), l'arbre n'est
     // jamais écrit — même mesure que les fixtures qu'elle remplace.
     'scripts/guards/lib/depotGabarit.mjs',
@@ -102,7 +110,10 @@ const ATTENDU = {
     // pose et efface ses fichiers sous `os.tmpdir()`. Ni l'une ni l'autre ne touche l'arbre versionné.
     'scripts/guards/lib/purgerPerimes.mjs',
     'scripts/guards/lib/purgerPerimes.test.mjs',
-    // +1 le 2026-09-07 (#1709 C1) : la porte de rôle du corpus source pose ses fixtures
+    // +1 le 2026-09-27 (#1903) : la commande de régénération des stocks de sites, exercée par son banc
+    // (`stockDeSites.test.mjs`, morsure `--check`) sur des fixtures sous `os.tmpdir()`.
+    'scripts/guards/lib/regenStock.mts',
+    // +1 le 2026-09-07 (#1709) : la porte de rôle du corpus source pose ses fixtures
     // (`mkdtempSync` + `writeFileSync`, puis `rmSync`) sous `os.tmpdir()` — l'arbre versionné n'est
     // jamais écrit, et la lib mesurée (`sourceCorpus.mjs`) ne fait que LIRE.
     'scripts/guards/lib/sourceCorpus.test.mjs',
@@ -111,6 +122,7 @@ const ATTENDU = {
     // fixtures : des scripts jetables sous `os.tmpdir()` (`mkdtempSync` + `writeFileSync`, `rmSync`
     // en sortie) qui sortent avec le code du loader ; l'arbre n'est jamais écrit.
     'scripts/guards/lib/spawnResilient.test.mjs',
+    'scripts/guards/lib/stockDeSites.test.mjs',
     // +4 −1 le 2026-09-26 (#1973), net +3 : les hooks d'écriture se taisent hors de tout dépôt et lisent
     // le disque au chemin RÉEL ; quatre bancs le mesurent sous `os.tmpdir()` (`rmSync` en finally,
     // l'arbre versionné n'est jamais écrit). Data-edit ne pose que des DOSSIERS (`instanceDeDepot`,
@@ -121,7 +133,7 @@ const ATTENDU = {
     'scripts/hooks/data-edit-guard.test.mjs',
     // +1 le 2026-09-14 (#1754) : le banc du garde `[entériné]` pose ses fichiers-CIBLES (`mkdtempSync`
     // + `writeFileSync`, puis `rmSync`) sous `os.tmpdir()` — c'est l'état SUR DISQUE que le hook lit
-    // désormais pour ne demander que sur un tag NEUF ; l'arbre versionné n'est jamais écrit.
+    // pour ne demander que sur un tag NEUF ; l'arbre versionné n'est jamais écrit.
     'scripts/hooks/enterine-guard.test.mjs',
     'scripts/hooks/exception-add-guard.test.mjs',
     'scripts/hooks/inject-project-credo.test.mjs',
@@ -162,7 +174,7 @@ const ATTENDU = {
     'scripts/test/verrou.mjs',
   ],
   'test:ops': [
-    // +1 le 2026-09-07 (#1709 B1) : `fermer-depuis-main.test.mjs` et `faits-de-palier.test.mjs`
+    // +1 le 2026-09-07 (#1709) : `fermer-depuis-main.test.mjs` et `faits-de-palier.test.mjs`
     // prennent leurs dépôts jetables à la fixture partagée, qui n'écrit que sous `os.tmpdir()`.
     // +8 le 2026-09-14 (#1736) : le train de publication entre dans `test:ops`.
     // · `chantier.test.mjs` et `worktrees.test.mjs` posent de VRAIS worktrees et un origin nu, tous
@@ -259,7 +271,7 @@ const ATTENDU = {
     // + `mkdirSync`/`writeFileSync` sous `os.tmpdir()`, `rmSync` en finally) — ce que voit un module
     // selon son LIEU exige de vrais fichiers à charger ; l'arbre n'est jamais écrit.
     'scripts/docs/lib/plateforme-win32.test.mjs',
-    // +1 le 2026-09-07 (#1709 B1) : `build-all-check.test.mjs` et `check-plans-anchors.test.mjs`
+    // +1 le 2026-09-07 (#1709) : `build-all-check.test.mjs` et `check-plans-anchors.test.mjs`
     // prennent leurs dépôts jetables à la fixture partagée, qui n'écrit que sous `os.tmpdir()`.
     'scripts/guards/lib/depotGabarit.mjs',
   ],
@@ -279,7 +291,7 @@ const ATTENDU = {
   'docs:empreinte': ['scripts/docs/build-all.mjs', 'scripts/docs/lib/empreinte-sources.mjs'],
   'test:raw': [
     'scripts/docs/lib/empreinte-sources.mjs',
-    // +1 le 2026-09-20 (#1825 lot F0) : le banc du contrat d'acceptation de l'Atlas IMPORTE
+    // +1 le 2026-09-20 (#1825) : le banc du contrat d'acceptation de l'Atlas IMPORTE
     // l'acceptation déclarée par chaque lecteur, `croissance.mjs` compris — une ligne de contrat
     // qui nommerait ses lecteurs dans une CHAÎNE ne dirait rien de ce qu'ils déclarent. Le module
     // n'écrit que dans un EXPORT jetable sous `os.tmpdir()` (même raison qu'en `test:hooks`).
@@ -290,48 +302,22 @@ const ATTENDU = {
     'scripts/raw/check-code-refs.test.mjs',
     'scripts/raw/check-entity-in-chapter.test.mjs',
     'scripts/raw/check-folio-continuity.test.mjs',
-    // +1 le 2026-09-14 (#1384 B1) : `check-source-tables.test.mjs` importe le détecteur, dont
-    // l'unique écriture (régénération du stock) est fermée par `--ecrire-stock` sous `import.meta.main`
-    // (`main` de check-source-tables.mjs) — déclarée en `ecritFerme` de `test:raw` (ECRIT_LU).
-    'scripts/raw/check-source-tables.mjs',
-    // +1 le 2026-09-21 (#1820 R4) : `check-source-puces.test.mjs` importe le détecteur des puces
-    // lues comme un jeton, dont l'unique écriture (régénération du stock) est fermée par
-    // `--ecrire-stock` sous `import.meta.main` (`main` de check-source-puces.mjs) — déclarée en `ecritFerme` de
-    // `test:raw` (ECRIT_LU).
-    'scripts/raw/check-source-puces.mjs',
-    // +1 le 2026-09-25 (#1393 lot 1) : `check-renvois.test.mjs` importe la garde des renvois « page N »,
-    // dont l'unique écriture (régénération du stock) est fermée par `--ecrire-stock` sous `import.meta.main`
-    // (`main` de check-renvois.mjs) — déclarée en `ecritFerme` de `test:raw` (ECRIT_LU).
-    'scripts/raw/check-renvois.mjs',
-    // +1 le 2026-09-14 (#1739 H-0) : `check-source-format.test.mjs` importe le détecteur du format
-    // des extractions, dont l'unique écriture (régénération du stock) est fermée par `--ecrire-stock`
-    // sous `import.meta.main` (`main` de check-source-format.mjs) — déclarée en `ecritFerme` de `test:raw` (ECRIT_LU).
-    'scripts/raw/check-source-format.mjs',
-    // +1 le même jour : le banc lui-même écrit — il fabrique des dossiers de livre JETABLES sous
-    // `os.tmpdir()` (`mkdtempSync`/`mkdirSync`/`writeFileSync`, retirés par `rmSync`) pour éprouver
-    // le chemin DISQUE du détecteur. Aucune écriture DANS l'arbre : même classe que
-    // `scripts/guards/lib/depotGabarit.mjs` (test:docs) et les dépôts jetables de `scripts/ops/`.
+    // +1 le 2026-09-14 (#1739) : le banc du détecteur du format des extractions écrit — il fabrique
+    // des dossiers de livre JETABLES sous `os.tmpdir()` (`mkdtempSync`/`mkdirSync`/`writeFileSync`,
+    // retirés par `rmSync`) pour éprouver le chemin DISQUE du détecteur. Aucune écriture DANS
+    // l'arbre : même classe que `scripts/guards/lib/depotGabarit.mjs` (test:docs) et les dépôts
+    // jetables de `scripts/ops/`.
     'scripts/raw/check-source-format.test.mjs',
     'scripts/raw/check-refs.test.mjs',
-    // +1 le 2026-09-19 (#1825 lot B) : le détecteur des sauts de folio porte désormais UN
-    // `writeFileSync` — la régénération de son stock nominatif, fermée par `--ecrire-stock` sous
-    // `import.meta.main`, et déclarée en `ecritFerme` de `test:raw` (ECRIT_LU). Le banc ne fait que LIRE
-    // (`readStock`, `lireStockJson`) pour comparer le fichier commité au rendu.
-    'scripts/raw/check-folio-continuity.mjs',
     'scripts/raw/citation-graphy-guard.test.mjs',
     'scripts/raw/folio-bootstrap.mjs',
     'scripts/raw/folio-bootstrap.test.mjs',
-    // +1 le 2026-09-23 (#1739 lot 3b-2a) : le banc de la carte de lignes éprouve le refus du CR isolé
+    // +1 le 2026-09-23 (#1739) : le banc de la carte de lignes éprouve le refus du CR isolé
     // (#604) de `carteDuFichier` sur un fichier JETABLE (`mkdtempSync` + `writeFileSync` sous
     // `os.tmpdir()`, `rmSync` en finally). Aucune écriture DANS l'arbre : même classe que
     // `check-source-format.test.mjs` ci-dessus.
     'scripts/raw/lib/carte-lignes.test.mjs',
-    // +1 le 2026-09-14 (#1727 T2) : `check-folio-continuity.test.mjs` importe la fonction d'ÉCRITURE
-    // du générateur des ancres sans contenu (`stocksEnTexte`) pour comparer son rendu aux deux stocks
-    // committés ; elle rend un TEXTE. Le seul `writeFileSync` du module vit dans `main()`, sous
-    // `import.meta.main`, et exige les PDF gitignorés — déclaré en `ecritFerme` de `test:raw` (ECRIT_LU).
-    'scripts/raw/lib/empty-folios-stock.mjs',
-    // +1 le 2026-09-14 (#1739 Lot H) : le banc de la lib de lecture des extractions Marker fabrique
+    // +1 le 2026-09-14 (#1739) : le banc de la lib de lecture des extractions Marker fabrique
     // des dossiers de tranches JETABLES sous `os.tmpdir()` (`mkdtempSync`/`mkdirSync`/`writeFileSync`,
     // retirés par `rmSync`) pour éprouver `mdsDeMarker`/`mdsDeRestitutions` sur le disque. Aucune
     // écriture DANS l'arbre : même classe que `check-source-format.test.mjs` ci-dessus.
@@ -350,12 +336,7 @@ const ATTENDU = {
     // sur un livre FORGÉ en mémoire ; ses `writeFileSync`/`rmSync` vivent dans `main()`, sous sa porte
     // `import.meta.main` (`main` de recouper-source.mjs) — déclarés en `ecritFerme` de `test:raw` (ECRIT_LU).
     'scripts/raw/recouper-source.mjs',
-    // +1 le 2026-09-14 (#1759) : le test du LECTEUR de stock nominatif vit sous `scripts/raw`,
-    // racine de cette gate. Il pose ses fixtures (`mkdtempSync` + `writeFileSync`,
-    // puis `rmSync`) sous `os.tmpdir()` — l'arbre n'est jamais écrit, et le module mesuré
-    // (`stockNominatif.mjs`) ne fait que LIRE.
-    'scripts/raw/stockNominatif.test.mjs',
-    // +3 le 2026-09-20 (#1825 lot E2) : les deux bancs neufs posent leurs fixtures (catalogue à bloc
+    // +3 le 2026-09-20 (#1825) : les deux bancs neufs posent leurs fixtures (catalogue à bloc
     // préservé, fiche d'un autre cœur) sous `mkdtempSync` de os.tmpdir(), `rmSync` en finally ;
     // l'assembleur est ACQUIS parce que son banc l'importe. Mesure du 2026-09-21 (#1825 F1-0-C) :
     // `assemble()` ÉCRIT, et le banc l'APPELLE — il lui passe son `rawDir` (même couture que
@@ -365,7 +346,7 @@ const ATTENDU = {
     'scripts/raw/apply-livre.test.mjs',
     'scripts/raw/assemble-domain.mjs',
     'scripts/raw/assemble-domain.test.mjs',
-    // +4 le 2026-09-20 (#1825 lot F0) : la FABRIQUE d'Atlas jetable et les deux bancs qui la
+    // +4 le 2026-09-20 (#1825) : la FABRIQUE d'Atlas jetable et les deux bancs qui la
     // prennent posent leur arborescence sous `mkdtempSync` de os.tmpdir(), `rmSync` en finally ;
     // l'écrivain du bloc des cœurs est ACQUIS parce que son banc l'importe — son `writeFileSync`
     // vit dans `main()`, sous sa porte `import.meta.main` (build-atlas-index.mjs), et le cas `--check` le
@@ -374,16 +355,16 @@ const ATTENDU = {
     'scripts/raw/atlasFixture.mjs',
     'scripts/raw/build-atlas-index.mjs',
     'scripts/raw/build-atlas-index.test.mjs',
-    // +1 le 2026-09-20 (#1825 lot F0-D) : le banc de l'aiguillage des catalogues prend la fixture de
+    // +1 le 2026-09-20 (#1825) : le banc de l'aiguillage des catalogues prend la fixture de
     // dépôt jetable (`instanceDeDepot`) et son env isolé (`envDeDepotForge`). La primitive ne fabrique
     // que sous `mkdtempSync` de os.tmpdir(), et jette ses gabarits à la sortie du process — aucune
     // écriture DANS l'arbre : même classe que `marker-pages.test.mjs` ci-dessus.
     'scripts/guards/lib/depotGabarit.mjs',
-    // +1 le 2026-09-21 (#1825 lot F1-0-C) : le banc de la PROJECTION écrit les rendus de fixture que
+    // +1 le 2026-09-21 (#1825) : le banc de la PROJECTION écrit les rendus de fixture que
     // `lireRendu` relit (mode de reprise du workflow) sous `mkdtempSync` de os.tmpdir(), `rmSync` en
     // finally ; le module mesuré (`workflow-args.mjs`) ne fait que LIRE.
     'scripts/raw/workflow-args.test.mjs',
-    // +1 le 2026-09-21 (#1825 lot F1-0-D) : le banc du WORKFLOW joue la reprise de BOUT EN BOUT —
+    // +1 le 2026-09-21 (#1825) : le banc du WORKFLOW joue la reprise de BOUT EN BOUT —
     // rendu du run → fichier → `lireRendu` → workflow → fichier → `assemble`. Il écrit ses deux
     // rendus et son Atlas de sortie sous `mkdtempSync` de os.tmpdir(), `rmSync` en finally ;
     // `assemble` reçoit ce jetable par son `rawDir` (même couture que `cheminDeFiche`), l'arbre
@@ -423,29 +404,11 @@ const ATTENDU = {
   // pages, calcule leurs ancres et rend son verdict — l'outil qui répare vit à côté
   // (scripts/raw/reparer-ancres.mjs), et c'est LUI qui importe la garde, jamais l'inverse.
   'raw:check-ancres': [],
-  // +1 le 2026-09-19 (#1825 lot B) : même module, même porte — la gate ne passe pas
-  // `--ecrire-stock`, elle COMPARE le stock à sa mesure et ne touche à rien.
-  'raw:check-folio-continuity': ['scripts/raw/check-folio-continuity.mjs'],
-  // +1 le 2026-09-14 (#1384 B1) : la gate neuve est le détecteur des tables cassées de `Source/`,
-  // qui porte UN `writeFileSync` — la régénération de son stock nominatif, fermée par la porte
-  // `--ecrire-stock` (`main` de check-source-tables.mjs) que ci.yml ne passe pas ; déclarée en
-  // `ecritFerme` sur `scripts/raw/source-tables-stock.json` (ECRIT_LU, scripts/gates/toutes.mjs).
-  'raw:check-source-tables': ['scripts/raw/check-source-tables.mjs'],
-  // +1 le 2026-09-14 (#1739 H-0) : la gate neuve est le détecteur du FORMAT des extractions, qui
-  // porte UN `writeFileSync` — la régénération de son stock nominatif, fermée par la porte
-  // `--ecrire-stock` (`main` de check-source-format.mjs) que ci.yml ne passe pas ; déclarée en
-  // `ecritFerme` sur `scripts/raw/source-format-stock.json` (ECRIT_LU, scripts/gates/toutes.mjs).
-  'raw:check-source-format': ['scripts/raw/check-source-format.mjs'],
-  // +1 le 2026-09-21 (#1820 R4) : la gate neuve est le détecteur des PUCES lues comme un jeton, qui
-  // porte UN `writeFileSync` — la régénération de son stock nominatif, fermée par la porte
-  // `--ecrire-stock` (`main` de check-source-puces.mjs) que ci.yml ne passe pas ; déclarée en
-  // `ecritFerme` sur `scripts/raw/source-puces-stock.json` (ECRIT_LU, scripts/gates/toutes.mjs).
-  'raw:check-source-puces': ['scripts/raw/check-source-puces.mjs'],
-  // +1 le 2026-09-25 (#1393 lot 1) : la gate neuve est la garde des renvois « page N », qui porte UN
-  // `writeFileSync` — la régénération de son stock nominatif, fermée par la porte `--ecrire-stock`
-  // (`main` de check-renvois.mjs) que ci.yml ne passe pas ; déclarée en `ecritFerme` sur
-  // `scripts/raw/renvois-stock.json` (ECRIT_LU, scripts/gates/toutes.mjs).
-  'raw:check-renvois': ['scripts/raw/check-renvois.mjs'],
+  'raw:check-folio-continuity': [],
+  'raw:check-source-tables': [],
+  'raw:check-source-format': [],
+  'raw:check-source-puces': [],
+  'raw:check-renvois': [],
   'server:typecheck': [],
 }
 

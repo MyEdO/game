@@ -1,6 +1,6 @@
 import type { ArmourDef } from '../types';
 
-// Armure de plaque (harnois) — art tokenisé @metal/@metalO/@metalH, front verbatim du workflow d'art.
+// Armure de plaque (harnois) — art en jetons @metal/@metalO/@metalH, front verbatim du workflow d'art.
 export const armour: ArmourDef = {
   id: 'plaque',
   set: {
@@ -29,7 +29,7 @@ export const armour: ArmourDef = {
       // DOS : dossière de jambe lisse PLEINE (silhouette générique), arête @metalH + rivets @metal, aucun emblème de face.
       back: `<g stroke-linejoin="round"><path d="M-3.4 0 Q-4.2 20 -2.8 32 Q-4 42 -2.6 49 L3.2 49 Q4.2 24 3.4 0 Z" fill="@metal" stroke="@metalO" stroke-width="0.7"/><path d="M-3.4 0 Q-4.2 20 -2.8 32" fill="none" stroke="@metalH" stroke-width="0.8" stroke-opacity="0.8"/><path d="M0 2 Q0.6 20 0.4 47" fill="none" stroke="@metalH" stroke-width="0.6" stroke-opacity="0.55"/><path d="M-3.2 20 Q0 22 3.4 20" fill="none" stroke="@metalO" stroke-width="0.7"/><circle cx="-2" cy="2" r="0.6" fill="@metalO"/><circle cx="2" cy="2" r="0.6" fill="@metalO"/><circle cx="-1.8" cy="24" r="0.55" fill="@metalO"/><circle cx="2" cy="24" r="0.55" fill="@metalO"/></g>`,
     },
-    pied: { /* SOLERET d'acier (#736 Lot 3) — MÊME empreinte que FOOT/CLAWFOOT (cheville y0 → sol y~8, profil pointe +x), pilote la part par-dessus le repli de pied. */
+    pied: { /* SOLERET d'acier (#736) — MÊME empreinte que FOOT/CLAWFOOT (cheville y0 → sol y~8, profil pointe +x), pilote la part par-dessus le repli de pied. */
       // FACE : coque lisse @metal, lames de soleret transversales @metalO, arête lumineuse @metalH.
       front: `<g stroke-linejoin="round"><path d="M-3 -1 Q-3.9 4 -3.6 6.4 Q-3.4 7.7 0 7.9 Q3.4 7.7 3.6 6.4 Q3.9 4 3 -1 Z" fill="@metal" stroke="@metalO" stroke-width="0.6"/><path d="M-3 -1 Q-3.9 4 -3.6 6.4" fill="none" stroke="@metalH" stroke-width="0.5" stroke-opacity="0.6"/><path d="M-3.4 1.6 Q0 2.6 3.4 1.6" fill="none" stroke="@metalO" stroke-width="0.6"/><path d="M-3.5 3.6 Q0 4.6 3.5 3.6" fill="none" stroke="@metalO" stroke-width="0.6"/><path d="M-3.5 5.4 Q0 6.4 3.5 5.4" fill="none" stroke="@metalO" stroke-width="0.6"/><path d="M-3.3 1.9 Q0 2.9 3.3 1.9" fill="none" stroke="@metalH" stroke-width="0.4" stroke-opacity="0.55"/><path d="M0 -0.6 Q0.3 3.5 0 7.2" fill="none" stroke="@metalH" stroke-width="0.5" stroke-opacity="0.5"/></g>`,
       // PROFIL : sabaton à bout pointu (+x), lames transversales @metalO, plaque d'orteil, arête @metalH.
@@ -37,7 +37,7 @@ export const armour: ArmourDef = {
       // DOS : talon lisse @metal, lames de soleret @metalO, arête + nervure centrale @metalH.
       back: `<g stroke-linejoin="round"><path d="M-2.9 -1 Q-3.5 4 -3.3 6.4 Q-3.1 7.6 0 7.8 Q3.1 7.6 3.3 6.4 Q3.5 4 2.9 -1 Z" fill="@metal" stroke="@metalO" stroke-width="0.6"/><path d="M-2.9 -1 Q-3.5 4 -3.3 6.4" fill="none" stroke="@metalH" stroke-width="0.5" stroke-opacity="0.6"/><path d="M-3.1 1.8 Q0 2.7 3.1 1.8" fill="none" stroke="@metalO" stroke-width="0.6"/><path d="M-3.2 3.8 Q0 4.7 3.2 3.8" fill="none" stroke="@metalO" stroke-width="0.6"/><path d="M-3.2 5.6 Q0 6.5 3.2 5.6" fill="none" stroke="@metalO" stroke-width="0.6"/><path d="M0 -0.6 Q0.3 3.5 0 7.2" fill="none" stroke="@metalH" stroke-width="0.5" stroke-opacity="0.5"/></g>`,
     },
-    main: { /* GANTELET d'acier (#736 Lot 3) — MÊME empreinte que HAND (poignet y=-2, poing refermé +7.7), pilote la part par-dessus le repli de main. */
+    main: { /* GANTELET d'acier (#736) — MÊME empreinte que HAND (poignet y=-2, poing refermé +7.7), pilote la part par-dessus le repli de main. */
       // FACE : coque de poing @metal, rangées d'articulations @metalO + refends de doigts, manchette @metalH.
       front: `<g stroke-linejoin="round"><path d="M-2.8 -2 Q0 -2.8 2.8 -2 Q3.3 1.6 3 4.7 Q2.6 7.1 0 7.7 Q-2.6 7.1 -3 4.7 Q-3.3 1.6 -2.8 -2 Z" fill="@metal" stroke="@metalO" stroke-width="0.6"/><path d="M-2.8 -2 Q0 -2.8 2.8 -2" fill="none" stroke="@metalH" stroke-width="0.7" stroke-opacity="0.8"/><path d="M-2.4 1.6 Q0 2.4 2.4 1.6" fill="none" stroke="@metalO" stroke-width="0.6"/><path d="M-2.6 3.4 Q0 4.2 2.6 3.4" fill="none" stroke="@metalO" stroke-width="0.6"/><path d="M-2.4 5.2 Q0 5.9 2.4 5.2" fill="none" stroke="@metalO" stroke-width="0.6"/><path d="M-1.4 4 L-1.4 7.2 M0 4.2 L0 7.6 M1.4 4 L1.4 7.2" fill="none" stroke="@metalO" stroke-width="0.5"/><path d="M-2.2 1.9 Q0 2.7 2.2 1.9" fill="none" stroke="@metalH" stroke-width="0.4" stroke-opacity="0.5"/></g>`,
       // DOS : coque de dos de main @metal, rangées + refends @metalO, manchette @metalH.
@@ -45,7 +45,7 @@ export const armour: ArmourDef = {
       // PROFIL : poing de côté @metal, arêtes d'articulations @metalO, manchette @metalH.
       profile: `<g stroke-linejoin="round"><path d="M-2.4 -2 Q0.4 -2.8 2.6 -1.9 Q3.2 1.5 2.8 4.7 Q2.4 7.2 -0.2 7.5 Q-2.4 6.9 -2.6 4.5 Q-2.8 1.4 -2.4 -2 Z" fill="@metal" stroke="@metalO" stroke-width="0.6"/><path d="M-2.4 -2 Q0.4 -2.8 2.6 -1.9" fill="none" stroke="@metalH" stroke-width="0.6" stroke-opacity="0.75"/><path d="M-2 0.4 Q0 1.2 2.4 0.4" fill="none" stroke="@metalO" stroke-width="0.5"/><path d="M-2 2.4 Q0 3.2 2.2 2.4" fill="none" stroke="@metalO" stroke-width="0.5"/><path d="M-1.8 4.4 Q0 5 1.8 4.4" fill="none" stroke="@metalO" stroke-width="0.5"/><path d="M-1.8 0.7 Q0 1.5 2.2 0.7" fill="none" stroke="@metalH" stroke-width="0.4" stroke-opacity="0.5"/></g>`,
     },
-    cou: { /* GORGERIN d'acier (#736 Lot 3) — colerette sur l'empreinte de NECK (colonne y -16.4..+4.5, ±3.3), CEINT le bas du cou et le haut du buste (y -10..+5), PAS un cou plein ; posée par-dessus le NECK de chair. */
+    cou: { /* GORGERIN d'acier (#736) — colerette sur l'empreinte de NECK (colonne y -16.4..+4.5, ±3.3), CEINT le bas du cou et le haut du buste (y -10..+5), PAS un cou plein ; posée par-dessus le NECK de chair. */
       // FACE : colerette lisse @metal évasée sur le buste, anneaux lamellés @metalO, rebord haut @metalH.
       front: `<g stroke-linejoin="round"><path d="M-3.5 -10 Q-4.2 -2 -5 3 Q-5.2 4.6 -3.5 5.2 Q0 6 3.5 5.2 Q5.2 4.6 5 3 Q4.2 -2 3.5 -10 Q0 -11 -3.5 -10 Z" fill="@metal" stroke="@metalO" stroke-width="0.7"/><path d="M-3.5 -10 Q0 -11 3.5 -10" fill="none" stroke="@metalH" stroke-width="0.6" stroke-opacity="0.7"/><path d="M-4 -6 Q0 -4.6 4 -6" fill="none" stroke="@metalO" stroke-width="0.6"/><path d="M-4.6 -1 Q0 0.6 4.6 -1" fill="none" stroke="@metalO" stroke-width="0.6"/><path d="M-5 3 Q0 4.8 5 3" fill="none" stroke="@metalO" stroke-width="0.6"/><path d="M-4 -5.6 Q0 -4.2 4 -5.6" fill="none" stroke="@metalH" stroke-width="0.4" stroke-opacity="0.5"/></g>`,
       // DOS : garde-nuque évasé @metal, anneaux @metalO, rebord @metalH + couture dorsale @metalO.

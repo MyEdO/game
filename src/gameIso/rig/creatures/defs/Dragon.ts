@@ -5,7 +5,7 @@ import type { CreatureDef } from '../types';
 // courtes, poitrail profond, girth↑ — pas un loup dressé), grandes ailes MEMBRANEUSES portées
 // en PAIRE demi-ouverte même au repos (wingPose 'deployees' + wingSpan large : la silhouette
 // identitaire — panneaux d'envers PÂLES entre les doigts comme sur l'artwork, aile lointaine
-// basculée vers la queue), membrane bordeaux sombre distincte de la robe (famille @aile*,
+// basculée vers la queue), membrane bordeaux sombre distincte de la robe (gamme @aile*,
 // envers gris-rosé @aileH), très longue
 // queue épineuse ENROULÉE autour de la bête au ras du sol (tail 'enroulee' — la traînante
 // sortait de la boîte 120×150), écailles rouge/bordeaux crevassées, cou serpentin porté en

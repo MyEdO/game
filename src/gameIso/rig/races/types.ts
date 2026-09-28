@@ -7,9 +7,9 @@ import type { Sexe } from '../../../data/schemas/grammaire/valeurs';
 /** Trait de corps d'une race, ancré à un os, éventuellement échelonné à la taille de l'os. */
 export interface RaceFeature {
   bone: BoneId;
-  svg: string;                  // art brut 1-vue (tokens @peau/@metal…). Vide '' si `appendage` fournit l'art.
-  appendage?: string;           // id du registre APPENDAGES (cornes/queue MULTI-VUES) — quand présent,
-                                // REMPLACE `svg`, résolu par `pickView` selon la vue (cf. `appendageFeature`).
+  svg: string;                  // art brut 1-vue (jetons @peau/@metal…). Vide '' si `appendage` fournit l'art.
+  appendage?: string;           // id du registre APPENDAGES (cornes/queue ORIENTÉES) — quand présent,
+                                // REMPLACE `svg`, résolu par `viewOrFront` selon la vue (cf. `appendageFeature`).
   layer?: number;               // ordre peintre (défaut: derrière la part de l'os si négatif)
   scale?: 'bone' | 'fixed';     // 'bone' = suit (thickness,length) de l'os ; 'fixed' = taille fixe (défaut)
   view?: View;                  // limite la feature à une vue (ex. crocs vampire = 'front' seul)
@@ -40,11 +40,11 @@ export interface RaceDef {
   colors?: Palette;             // surcharges de palette
   sex?: Sexe;              // sexe forcé
   parts?: { cheveux?: number; visage?: number }; // coiffure/visage épinglés
-  scale?: number;               // échelle globale du token en jeu (Géant)
+  scale?: number;               // échelle globale du pion en jeu (Géant)
   /** yeux de race par défaut — CLÉS du catalogue d'yeux (`EYE_OPTIONS`, ex. 'rouge' pour le Vampire),
    *  résolues en art par `composeRig`. Surchargés par `Appearance.eyes` (mutation/blessure prime). */
   eyes?: { G?: string; D?: string };
-  /** Nu du PIED de l'espèce (#736 Lot 1) — 'lisses' (civilisé, défaut) ou 'griffues' (monstrueux) ;
+  /** Nu du PIED de l'espèce (#736) — 'lisses' (civilisé, défaut) ou 'griffues' (monstrueux) ;
    *  repli quand aucune tenue/armure ne chausse la zone (`resolve.ts`, `PIED_NU`). Surchargé par
    *  `CreaturePerso.extremites` pour une créature non-canonique repliée sur une race partagée. */
   extremites?: 'lisses' | 'griffues';

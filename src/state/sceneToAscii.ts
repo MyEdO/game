@@ -18,6 +18,7 @@
  * ce contenu — d'où l'avertissement explicite en tête de `text` et l'exigence de ne coller QUE les
  * grilles/legend/wallLegend/zoneLegend/relief dans le fichier `*.ascii.ts` + `*.ts` d'origine.
  */
+import { tableTotale } from '../lib/tableTotale';
 import type { Scene, SceneEffectZone, Terrain, WallOverlay, WallSeg } from './scene';
 import { DEFAULT_TERRAIN, heightAt, isDescriptiveZone, tileAt, wallOverlayOf, WALL_OVERLAY_KEYS } from './scene';
 import { sceneZoneTiles } from './zones';
@@ -52,7 +53,7 @@ function makeAllocators(pool: readonly string[]): Record<EspaceAlloue, (key: str
       return ch;
     };
   };
-  return Object.fromEntries(ESPACES_ALLOUES.map((e) => [e, espace(e)])) as Record<EspaceAlloue, (key: string) => string>;
+  return tableTotale(ESPACES_ALLOUES, (e) => espace(e));
 }
 
 /** Terrain le plus FRÉQUENT de la couche `z` (base par défaut du char `.`/espace du grillage `walled`). */

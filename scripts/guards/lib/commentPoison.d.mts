@@ -13,17 +13,25 @@ export function codeSeul(src: string): string;
 export function matchLine(comment: Comment, matchIndex: number): number;
 export function excerptAt(comment: Comment, matchIndex: number): string;
 
-export const POISON_DIRS: string[];
-export const POISON_EXTS: string[];
+/** Périmètre des gardes : source unique des trois portes anti-poison et de `corpusDesGardes`. */
+export const PERIMETRE_DES_GARDES: Readonly<{
+  racines: readonly string[];
+  extensions: readonly string[];
+  tests: boolean;
+}>;
+/** Le corpus du périmètre des gardes (`readCorpus`, mémoïsé). */
+export function corpusDesGardes(): readonly import('./sourceCorpus.mjs').CorpusFile[];
 export function estFichierScanne(cheminRelatifOuAbsolu: string): boolean;
+/** L'ensemble `ART` : les fichiers de l'art du rig, par dossier. */
+export function estArtDuRig(rel: string): boolean;
 
 export const TOMBSTONE_FAMILIES: { rx: RegExp; label: string }[];
 export function tombstonesIn(text: string): string[];
 export function scanTombstones(relPath: string, contenu: string): Finding[];
 
-export const LEGACY_VOCAB_FAMILIES: { rx: RegExp; label: string }[];
+export const LEGACY_VOCAB_FAMILIES: { rx: RegExp; label: string; domaine?: (rel: string) => boolean }[];
 export const LEGACY_VOCAB_EXCLUSIONS: { rx: RegExp; label: string }[];
-export function legacyVocabIn(text: string): string[];
+export function legacyVocabIn(text: string, relPath: string): string[];
 export function scanLegacyVocab(relPath: string, contenu: string): Finding[];
 export function scanLegacyVocabHorsStock(relPath: string, contenu: string): Finding[];
 

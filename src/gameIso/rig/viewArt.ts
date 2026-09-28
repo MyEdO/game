@@ -1,49 +1,80 @@
 /**
- * Contrat PARTAGÉ de tout ART ORIENTÉ (silhouette rendue par vue) — généralise ce que `EnginArtDef`
- * faisait déjà (face / profil / dos). Consommé par : engins de siège (`engin/artkit`), coque de navire
- * (`ship/composeShip`), gabarit terrestre (`land/composeLand`), et — via la variante paramétrée
- * `PropViews` (args `(params, ctx)`) — les props ORIENTABLES du catalogue.
+ * Contrat de LECTURE de tout ART ORIENTÉ (un texte par vue), sous ses deux formats : `ViewArt`, une
+ * fonction de rendu par vue (engins de siège `engin/artkit`, coque de navire `ship/composeShip`, gabarit
+ * terrestre `land/composeLand`, et, par la variante paramétrée `PropViews` (args `(params, ctx)`), les
+ * props ORIENTÉS du catalogue) ; `PartArt`/`ViewSet` (`parts/types.ts`), un SVG par vue.
  *
  * Le PROFIL est dessiné tourné vers la DROITE ; le profil gauche s'obtient par MIROIR dans la MACHINERIE
  * de rendu (jamais dans l'art). La sélection vue+miroir vient de l'UNIQUE résolveur `project(dir, camRot)`
- * (`facing.ts`) — jamais un second algorithme. Une vue peut être ABSENTE (art mono-vue : la coque et le
- * chariot ne déclarent que `profile`) : au rendu, la vue demandée REPLIE sur la plus proche déclarée
- * (`foldView`). La COUVERTURE réelle (`declaredViews`) pilote la galerie QC (cases vides / « profil seul »).
+ * (`facing.ts`) — jamais un second algorithme.
+ *
+ * Lecture SANS repli : `declaredView` (une chaîne ne déclare que la face), la présence
+ * `declaredView(art, v) != null`, `declaredViews`, `viewEntries`, `mapViews`. Lecture AVEC repli : UNE
+ * lecture, `foldView`, paramétrée par un ordre de repli (une table totale keyée par vue) ; `nearestView`
+ * en est l'instance d'un `ViewArt` (une vue ABSENTE replie sur la vue déclarée la plus proche : la coque
+ * et le chariot ne déclarent que `profile`), `viewOrFront` celle d'un `PartArt`, qui vit avec son format
+ * (#2000). La COUVERTURE réelle (`declaredViews`) pilote la galerie QC (cases vides / « profil seul »).
  */
-import type { View } from './facing';
+import { VIEWS, type View } from './facing';
+import { tableTotale } from '../../lib/tableTotale';
 
-/** @template A arguments passés à chaque vue — aucun pour engin/navire/terrestre ; `[params, ctx]` pour un prop. */
-export interface ViewArt<A extends unknown[] = []> {
-  front?(...a: A): string;
-  profile?(...a: A): string;
-  back?(...a: A): string;
+/** Art orienté par FONCTIONS de rendu, une par vue déclarée.
+ *  @template A arguments passés à chaque vue — aucun pour engin/navire/terrestre ; `[params, ctx]` pour un prop. */
+export type ViewArt<A extends unknown[] = []> = Partial<Record<View, (...a: A) => string>>;
+
+/** Ce que `mapViews` rend : la valeur de `f` pour une chaîne, sinon un objet aux mêmes clés. */
+type VuesMappees<A, U> = A extends string ? U : { [K in keyof A]: U };
+
+/** Art de la vue `view` DÉCLARÉE par `art`, sans repli, ou `undefined`. Domaine : un art orienté en
+ *  objet (une valeur par vue), une chaîne (qui ne déclare que la face), `null` ou `undefined`. */
+export function declaredView<T>(art: Partial<Record<View, T>> | null | undefined, view: View): T | undefined;
+export function declaredView<T>(art: string | Partial<Record<View, T>> | null | undefined, view: View): T | string | undefined;
+export function declaredView<T>(art: string | Partial<Record<View, T>> | null | undefined, view: View): T | string | undefined {
+  if (art == null) return undefined;
+  if (typeof art === 'string') return view === 'front' ? art : undefined;
+  return art[view];
 }
 
-const CANON: View[] = ['front', 'profile', 'back'];
-
-/** Vues RÉELLEMENT déclarées, dans l'ordre canon (face, profil, dos) — couverture QC. */
-export function declaredViews<A extends unknown[]>(art: ViewArt<A>): View[] {
-  return CANON.filter((v) => typeof art[v] === 'function');
+/** Vues DÉCLARÉES par `art` (`declaredView(art, v) != null`), dans l'ordre de `VIEWS` : une chaîne
+ *  déclare `['front']`, `null` et `undefined` ne déclarent rien. Même domaine que `declaredView`. */
+export function declaredViews(art: string | Partial<Record<View, unknown>> | null | undefined): View[] {
+  return VIEWS.filter((v) => declaredView(art, v) != null);
 }
 
-/** Ordre de proximité par vue demandée : le profil est mitoyen de face et de dos ; face/dos se replient
- *  d'abord sur le profil, puis l'un sur l'autre. */
-const NEAREST: Record<View, View[]> = {
-  front: ['front', 'profile', 'back'],
-  profile: ['profile', 'front', 'back'],
-  back: ['back', 'profile', 'front'],
-};
-
-/** Vue DÉCLARÉE la plus proche de `want` (repli). Lève si l'art ne déclare AUCUNE vue (erreur de donnée). */
-export function foldView<A extends unknown[]>(art: ViewArt<A>, want: View): View {
-  const v = NEAREST[want].find((c) => typeof art[c] === 'function');
-  if (!v) throw new Error('[viewArt] art orienté sans aucune vue déclarée');
-  return v;
+/** Art de la PREMIÈRE vue de `order[want]` que `art` déclare, lu par `declaredView`, ou `undefined`
+ *  si `art` n'en déclare aucune (sans lever). `order` : l'ordre de repli, une table totale keyée par vue. */
+export function foldView<T>(art: Partial<Record<View, T>> | null | undefined, want: View, order: Readonly<Record<View, readonly View[]>>): T | undefined;
+export function foldView<T>(art: string | Partial<Record<View, T>> | null | undefined, want: View, order: Readonly<Record<View, readonly View[]>>): T | string | undefined;
+export function foldView<T>(art: string | Partial<Record<View, T>> | null | undefined, want: View, order: Readonly<Record<View, readonly View[]>>): T | string | undefined {
+  const vue = order[want].find((v) => declaredView(art, v) != null);
+  return vue === undefined ? undefined : declaredView(art, vue);
 }
+
+/** Vues déclarées de `art` avec leur art (`declaredView`), dans l'ordre de `declaredViews` : une chaîne
+ *  rend `[['front', art]]`, l'art de face dont les autres vues dérivent. */
+export function viewEntries<T>(art: Partial<Record<View, T>> | null | undefined): [View, T][];
+export function viewEntries<T>(art: string | Partial<Record<View, T>> | null | undefined): [View, T | string][];
+export function viewEntries<T>(art: string | Partial<Record<View, T>> | null | undefined): [View, T | string][] {
+  return declaredViews(art).map((v) => [v, declaredView(art, v)!]);
+}
+
+/** `f` appliquée à l'art de chaque vue : une chaîne rend `f(art)` ; un objet rend un objet aux MÊMES
+ *  clés présentes (une vue absente reste absente), `f` appliquée à chaque valeur. */
+export function mapViews<A extends string | Partial<Record<View, string>>, U>(art: A, f: (s: string) => U): VuesMappees<A, U> {
+  if (typeof art === 'string') return f(art) as VuesMappees<A, U>;
+  return Object.fromEntries(viewEntries(art).map(([vue, s]) => [vue, f(s)])) as VuesMappees<A, U>;
+}
+
+/** Ordre de PROXIMITÉ par vue demandée : `VIEWS` rangé par distance d'indice à la vue (le profil est
+ *  mitoyen de la face et du dos), égalités rompues par l'ordre de `VIEWS`. */
+const NEAREST = tableTotale(VIEWS, (_vue, indice) =>
+  [...VIEWS].sort((a, b) => Math.abs(VIEWS.indexOf(a) - indice) - Math.abs(VIEWS.indexOf(b) - indice)));
 
 /** Fonction de rendu de la vue repliée (repli inclus). */
-export function pickView<A extends unknown[]>(art: ViewArt<A>, want: View): (...a: A) => string {
-  return art[foldView(art, want)]! as (...a: A) => string;
+export function nearestView<A extends unknown[]>(art: ViewArt<A>, want: View): (...a: A) => string {
+  const rendu = foldView(art, want, NEAREST);
+  if (!rendu) throw new Error('[viewArt] art orienté sans aucune vue déclarée');
+  return rendu;
 }
 
 /**
@@ -75,7 +106,7 @@ export const MISSING_ART: ViewArt = { profile: () => MISSING_ART_SVG };
 /**
  * SOURCE UNIQUE du repli des 3 registres d'objets inertes (navire / terrestre / engin). Résout l'art
  * orienté d'`id` dans `byId` ; à défaut, la silhouette de REPLI VISIBLE (`MISSING_ART`) + un `console.warn`
- * en DEV nommant l'`id` fautif (`kind` = famille affichée). PLUS aucun repli « générique silencieux ».
+ * en DEV nommant l'`id` fautif (`kind` = famille affichée), jamais un repli « générique silencieux ».
  */
 export function orientedArtOr<T extends ViewArt>(byId: Map<string, T>, id: string, kind: string): ViewArt {
   const found = byId.get(id);

@@ -3,7 +3,7 @@ import type { ItemInstance, Weapon } from '../engine/types';
 import { isCapeItem } from '../engine/items';
 import { isConsumable } from '../engine/consumables';
 import { weaponPart, armourPart, shieldPart, isShield, objetSansPorteur } from '../gameIso/rig/parts/equipment';
-import { pickView } from '../gameIso/rig/parts/types';
+import { viewOrFront } from '../gameIso/rig/parts/types';
 import type { Slot } from '../gameIso/rig/bones';
 import { defsGlobaux } from '../gameIso/sprites';
 import { Icon } from './Icon';
@@ -39,13 +39,13 @@ function resolve(item: ItemInstance | Weapon): Resolved {
     if (item.kind === 'armor') {
       for (const slot of ARMOUR_SLOTS) {
         const p = armourPart(item, slot); // null si l'item ne couvre pas ce slot → on essaie le suivant
-        if (p) return { art: pickView(objetSansPorteur(p), 'front'), geom: 'armor' };
+        if (p) return { art: viewOrFront(objetSansPorteur(p), 'front'), geom: 'armor' };
       }
       return { glyph: 'item/armour' };
     }
     if (item.kind === 'melee' || item.kind === 'ranged') {
-      if (isShield(item)) { const a = pickView(objetSansPorteur(shieldPart(item)), 'front'); return a ? { art: a, geom: 'shield' } : { glyph: 'item/armour' }; }
-      const a = pickView(objetSansPorteur(weaponPart(asWeapon(item))), 'front');
+      if (isShield(item)) { const a = viewOrFront(objetSansPorteur(shieldPart(item)), 'front'); return a ? { art: a, geom: 'shield' } : { glyph: 'item/armour' }; }
+      const a = viewOrFront(objetSansPorteur(weaponPart(asWeapon(item))), 'front');
       return a ? { art: a, geom: 'weapon' } : { glyph: 'item/weapon' };
     }
     if (item.kind === 'ammo') return { glyph: 'item/ammo' };
@@ -54,8 +54,8 @@ function resolve(item: ItemInstance | Weapon): Resolved {
     return { glyph: 'item/misc' };
   }
   // `Weapon` (combat) : pas de champ `kind` — discriminant de l'union.
-  if (isShield(item)) { const a = pickView(objetSansPorteur(shieldPart(item)), 'front'); return a ? { art: a, geom: 'shield' } : { glyph: 'item/armour' }; }
-  const a = pickView(objetSansPorteur(weaponPart(item)), 'front');
+  if (isShield(item)) { const a = viewOrFront(objetSansPorteur(shieldPart(item)), 'front'); return a ? { art: a, geom: 'shield' } : { glyph: 'item/armour' }; }
+  const a = viewOrFront(objetSansPorteur(weaponPart(item)), 'front');
   return a ? { art: a, geom: 'weapon' } : { glyph: 'item/weapon' };
 }
 
@@ -110,7 +110,7 @@ function ArtIcon({ art, geom, px }: { art: string; geom: Geom; px: number }) {
     setVb(next);
   }, [art, rotate]);
   // `defsGlobaux()` injecté UNIQUEMENT si l'art réfère un id qu'il ne définit pas lui-même : un
-  // dégradé dérivé `dg-` arrive avec sa propre définition (`applyTokenMap`, #1903 D2).
+  // dégradé dérivé `dg-` arrive avec sa propre définition (`applyTokenMap`, #1903).
   const definis = new Set([...art.matchAll(/\bid="([^"]+)"/g)].map((m) => m[1]));
   const needsDefs = [...art.matchAll(/url\(#([^)]+)\)/g)].some((m) => !definis.has(m[1]));
   return (

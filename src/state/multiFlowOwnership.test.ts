@@ -1,5 +1,5 @@
 /**
- * Garde STRUCTURELLE de la possession par PARTICIPANT (#942 lot 3, ferme #949) : pour CHAQUE flux
+ * Garde STRUCTURELLE de la possession par PARTICIPANT (#942, ferme #949) : pour CHAQUE flux
  * `kind:'multi'` de `FLOW_VERBS` — énumération de la table, jamais une liste locale —
  *  (a) un flux à `pidIsActor:true` est `coop` et expose TOUS ses verbes dans `COMBAT_INTENTS` ;
  *  (b) un flux `pidIsActor:true` route le JET sur le PROPRIÉTAIRE du participant : le siège qui
@@ -42,7 +42,7 @@ const groupCascade = {
   pendingCascade: { participants: [{ id: 's0', kind: 'x', groupOwner: true }], cursor: 0 },
 } as unknown as Partial<GameState>;
 
-/** Un pending OUVERT par flux (les 2 héros en participants) — table exhaustive, vérifiée ci-dessous. */
+/** Un pending OUVERT par flux (les 2 héros en participants) — table totale, vérifiée ci-dessous. */
 const FIXTURES: Record<string, Partial<GameState>> = {
   flee: {
     ...groupCascade,

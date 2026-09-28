@@ -1,7 +1,7 @@
 // STOCK CLIQUETÉ des entités de catalogue SANS CONSOMMATEUR (« curée, jamais atteinte = dette ») —
 // consommé par `src/data/entity-orphans.test.ts`, GÉNÉRÉ par
-// `npx tsx scripts/data/regen-entity-orphan-stock.mts` depuis la mesure de `entityConsumers.mjs`
-// (`orphelinesMesurees`) — la MÊME que celle du rapport `docs/orphelines-donnees.md`.
+// `npx tsx scripts/guards/lib/regenStock.mts scripts/guards/lib/entityConsumers.mjs` depuis la mesure
+// de `entityConsumers.mjs` (`orphelinesMesurees`) — la MÊME que celle du rapport `docs/orphelines-donnees.md`.
 //
 // Une entrée de `traits.json`/`talents.json`/`qualities.json`/`maneuvers.json`/`skills.json`/
 // `props.json`/`vehicles.json`/`creatures.json` (périmètre retenu, cf. `build-entity-orphans.mjs`) dont

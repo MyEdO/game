@@ -5,7 +5,7 @@ import assert from 'node:assert/strict'
 import { existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { CHEMIN_MANIFESTE } from './cssCouches.mjs'
-import { coteCss, sourceMelee } from './cssImages.mjs'
+import { COLLECTIONS_VENTILEES, coteCss, sourceMelee, stockCssDe } from './cssImages.mjs'
 
 const RACINE = fileURLToPath(new URL('../../..', import.meta.url))
 const COMPOSANT = 'src/ui/RollShell.tsx'
@@ -82,4 +82,14 @@ test('sourceMelee : chaque chemin vient de SON côté — `lister` et `citants` 
   assert.equal(melee.lire('src/a.ts'), 'a arbre motif')
   assert.equal(melee.lire('src/b.ts'), 'b head motif')
   assert.deepEqual([...melee.lireTout(['src/a.ts', 'src/b.ts', 'src/d.ts'])], [['src/a.ts', 'a arbre motif'], ['src/b.ts', 'b head motif'], ['src/d.ts', null]])
+})
+
+test('stockCssDe : les deux volets ventilés du stock écrit ; une collection absente ou hors forme LÈVE en se nommant', () => {
+  const E = { fichier: 'src/ui/a.css', ref: '.a :: color', occurrence: 1 }
+  const texte = (identite, espacement) => `export const ${COLLECTIONS_VENTILEES.identite} = ${identite}\nexport const ${COLLECTIONS_VENTILEES.espacement} = ${espacement}\n`
+  assert.deepEqual(stockCssDe(texte(`[\n  { fichier: '${E.fichier}', ref: '${E.ref}', occurrence: 1 },\n]`, '[]'), 'à HEAD'), { identite: [E], espacement: [] })
+  assert.throws(() => stockCssDe(`export const ${COLLECTIONS_VENTILEES.identite} = []\n`, 'à HEAD'),
+    new RegExp(`illisible à HEAD : collection\\(s\\) ${COLLECTIONS_VENTILEES.espacement} introuvable`))
+  assert.throws(() => stockCssDe(texte('[{ fichier: 1 }]', '[]'), 'à v1'),
+    new RegExp(`illisible à v1 : collection\\(s\\) ${COLLECTIONS_VENTILEES.identite} introuvable`))
 })

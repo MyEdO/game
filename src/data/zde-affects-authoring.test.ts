@@ -8,10 +8,11 @@
  * exactement ce que la source réserve. Une ZdE dont la source ne réserve rien (`LDB 47 l.28`) ne
  * porte AUCUN `affects` — la retenue est vérifiée aussi.
  */
+import { tableTotale } from '../lib/tableTotale';
 import { describe, it, expect } from 'vitest';
 import { spells } from './index';
 import { evalCondition, spellEffectOps, type ActorView, type Condition, type ConditionCtx } from '../engine/flowCore';
-import { CHAR_KEYS, type CharKey } from '../engine/types';
+import { CHAR_KEYS } from '../engine/types';
 import type { Camp } from '../engine/relations';
 import type { SpellTarget } from '../engine/spellRange';
 
@@ -27,7 +28,7 @@ const areaOf = (id: string): Area => {
 const actor = (o: { id: string; camp: Camp; talents?: { id: string; spec?: string }[] }): ActorView => ({
   id: o.id, woundsCurrent: 10, woundsMax: 10, size: 3, advantage: 0, camp: o.camp,
   groups: [], talents: o.talents ?? [], traits: [], conditions: {},
-  chars: Object.fromEntries(CHAR_KEYS.map((k) => [k, 35])) as Record<CharKey, number>,
+  chars: tableTotale(CHAR_KEYS, () => 35),
 });
 
 /** Le lanceur : héros, donc camp `party` (`campOf`, `src/engine/relations.ts`). */
@@ -127,7 +128,7 @@ describe('narrative — ce que le champ `affects` modélise ne se journalise plu
   const textes = (id: string) => narrativesDe(spells.find((s) => s.id === id)!);
 
   /** Motifs par lesquels une prose RESTITUE la restriction de ciblage — exactement ce que le champ
-   *  `affects` décide désormais. Portée : le camp du candidat (toute mention d'alliance) et les deux
+   *  `affects` décide. Portée : le camp du candidat (toute mention d'alliance) et les deux
    *  clauses d'exclusion nominales du corpus (« Ce Sort ne vous affecte pas », VDM 11 l.418 ;
    *  « hormis ceux qui possèdent le Talent Magie des Arcanes (Cieux) », LDB 48 l.157). Hors motif à
    *  dessein : « ennemi »/« neutre » seuls, qu'une note peut citer pour un ordre de résolution sans

@@ -123,7 +123,7 @@ const passageRng = contexteDeScanRng();
 for (const f of staged) {
   const rel = f.replace(/\\/g, '/');
   // MÊME périmètre que la suite Vitest et le hook au stylo : `estFichierScanne` (source unique,
-  // `commentPoison.mjs`) — `src/**` ET `scripts/**`, quatre extensions, tests compris.
+  // `commentPoison.mjs`), qui lit `PERIMETRE_DES_GARDES`.
   if (!estFichierScanne(rel)) continue;
   // Familles de COMMENTAIRES (tombale / excuse / vocabulaire de l'ancien état / revendications RAW / revendications d'autorité) : tests compris,
   // « le poison écrit dans un test est du poison » (commentPoison.mjs). Familles CODE (label-logic,
@@ -165,7 +165,7 @@ for (const f of staged) {
         offenders.push(`${rel}:${x.line} [logique par label — hors exception ratchet] ${x.detail}`);
     }
   }
-  // #142 LOT 7 — libellé porté par un champ AUTRE que `label` (`w.reach === 'Très longue'`) : même
+  // #142 — libellé porté par un champ AUTRE que `label` (`w.reach === 'Très longue'`) : même
   // stock PAR FICHIER que `label-logic-guard.test.ts` (`LABEL_LITERAL_STOCK`, partagé par la lib).
   // Le hook ne voit qu'un fichier à la fois : seul un compte SUPÉRIEUR au stock y bloque — le volet
   // « dette soldée non retirée » reste à la CI, qui scanne le corpus entier.
@@ -173,7 +173,7 @@ for (const f of staged) {
     const n = scanLabelLiteralCompare(rel, text).length;
     if (n > (LABEL_LITERAL_STOCK[rel] ?? 0)) offenders.push(`${rel} [logique par LIBELLÉ] ${n} site(s), stock = ${LABEL_LITERAL_STOCK[rel] ?? 0}`);
   }
-  // #1694 B3 — retour d'APPEL comparé à un littéral FR (`rangeBandName(…) === 'Bout portant'`), stock
+  // #1694 — retour d'APPEL comparé à un littéral FR (`rangeBandName(…) === 'Bout portant'`), stock
   // par fichier `LABEL_CALL_LITERAL_STOCK` : même double détente que ci-dessus, le volet « dette
   // soldée » restant à la CI (`label-logic-guard.test.ts`), qui scanne le corpus entier.
   if (!isTestFile && strictRe.test(rel)) {
@@ -309,7 +309,7 @@ if (armes.length) {
 //       fichier porteur ;
 //   (c) une ligne AJOUTÉE qui NOMME un plan déjà supprimé (registre lu par `--registre`, 0,45 s) —
 //       consulté uniquement si le diff ajoute un nom de fichier plausible, sinon on ne paie rien.
-// Reste hors pre-commit (assumé, couvert par `npm run docs:check` et le canari) : une violation
+// Reste hors pre-commit (couvert par `npm run docs:check` et le canari) : une violation
 // PRÉEXISTANTE d'un fichier que ce commit ne touche pas.
 const citePlan = ajoutees.some((l) => l.includes('docs/plans/'));
 const nommeUnFichier = ajoutees.some((l) => /[\w-]{3,}\.(?:md|html|png|json)\b/.test(l));

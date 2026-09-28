@@ -1,5 +1,6 @@
 /** QC Phase B FOCUS — rend un sous-ensemble de noms à grande échelle pour inspection fine.
  *  Usage : npx tsx scripts/_qc-phaseB-focus.mts <groupe>  (groupe ∈ vert|bete|mv|gros) */
+import { VIEWS } from '../src/gameIso/rig/facing';
 import { writeFileSync } from 'node:fs';
 import { Resvg } from '@resvg/resvg-js';
 import { defsGlobaux } from '../src/gameIso/sprites';
@@ -7,7 +8,6 @@ import { bonesToSvg } from '../src/gameIso/rig/renderBones';
 import { resolveRig } from '../src/gameIso/rig/composeRig';
 import { entityRigProfile } from '../src/gameIso/rig/enemyProfile';
 import { hashSeed } from '../src/engine/dice';
-import type { View } from '../src/gameIso/rig/facing';
 
 const GROUPS: Record<string, [string, string][]> = {
   vert: [['Orc', 'Épée'], ['Gobelin', 'Lance'], ['Snotling', 'Gourdin']],
@@ -17,7 +17,6 @@ const GROUPS: Record<string, [string, string][]> = {
 };
 const group = process.argv[2] || 'vert';
 const NAMES = GROUPS[group];
-const VIEWS: View[] = ['front', 'profile', 'back'];
 const CW = 280, CH = 420, SC = 2.5, FEET = 375;
 const cells: string[] = [];
 NAMES.forEach(([name, weapon], r) => {

@@ -1,37 +1,29 @@
-import type { View } from '../facing';
+import { VIEWS, type View } from '../facing';
+import { foldView } from '../viewArt';
+import { tableTotale } from '../../../lib/tableTotale';
 
 /** Fragment SVG dessiné dans le repère LOCAL de l'os porteur (origine au pivot). */
 export interface Part { svg: string; }
 
-/** Art d'une part : soit un seul SVG (= front pour toutes les vues), soit une vue par direction.
- *  Format des registres à repli DÉCLARÉ (armes/boucliers/appendices/têtes/monstre) — front-only y est
- *  plaqué sur les autres vues via `pickView` ci-dessous. N'est PLUS la porte de sortie des slots de
- *  CORPS (tete/torse/jambes/bras) : ceux-ci résolvent en `ViewSet` TOTAL (accès `art[view]`). */
-export type PartArt = string | { front: string; back?: string; profile?: string };
+/** Art TOTAL d'un slot de CORPS : les trois vues sont GARANTIES, une vue manquante est une erreur de
+ *  compile. Produit à l'ingestion par `toViewSet` (`derive.ts`) à partir de l'art `PartArt` des
+ *  registres (tenue/armure/générique/override) ; l'accès à une vue est `art[view]`. */
+export type ViewSet = Record<View, string>;
 
-/** Choisit le SVG d'une vue, avec fallback sur front (jamais vide si front existe). Sert les registres
- *  à repli DÉCLARÉ (`PartArt`) — jamais les slots de corps (cf. `ViewSet`/`pickBodyView`). */
-export function pickView(art: PartArt | undefined | null, view: View): string {
-  if (art == null) return '';
-  if (typeof art === 'string') return art;
-  return art[view] ?? art.front;
+/** Art d'une part : soit un seul SVG (la face, valable pour toutes les vues), soit un art orienté qui
+ *  déclare sa face et, s'il les dessine, son dos et son profil. Format des registres à repli DÉCLARÉ
+ *  (armes/boucliers/appendices/têtes/monstre), où une vue absente retombe sur la face (`viewOrFront`).
+ *  Les slots de CORPS (tete/torse/jambes/bras) résolvent en `ViewSet` TOTAL (`toViewSet`). */
+export type PartArt = string | (Pick<ViewSet, 'front'> & Partial<ViewSet>);
+
+/** Ordre de repli d'un `PartArt` : la vue demandée, puis la face. */
+const FRONT_FALLBACK = tableTotale(VIEWS, (view): readonly View[] => [view, 'front']);
+
+/** SVG de la vue `view` d'un `PartArt`, repli sur la face (une chaîne vaut pour toute vue ; `null` et
+ *  `undefined` rendent `''`). Sert les registres à repli DÉCLARÉ, jamais les slots de corps (#2000). */
+export function viewOrFront(art: PartArt | undefined | null, view: View): string {
+  return foldView(art, view, FRONT_FALLBACK) ?? '';
 }
-
-/** Art TOTAL d'un slot de CORPS : les trois vues sont GARANTIES (aucun repli silencieux possible —
- *  une vue manquante est une erreur de compile). Produit à l'ingestion par le shim `toViewSet`
- *  (`derive.ts`) à partir de l'art `PartArt` des registres (tenue/armure/générique/override). */
-export interface ViewSet { front: string; back: string; profile: string }
-
-/** Accès TOTAL d'une vue de corps — `art[view]`, sans repli (le repli est matérialisé en amont). */
-export function pickBodyView(art: ViewSet, view: View): string {
-  return art[view];
-}
-
-/** Une part `PartArt` fournit-elle sa vue de PROFIL / de DOS ? Discriminant du FORMAT de part :
- *  `string` = front-only (le shim `toViewSet` DÉRIVE alors la vue absente). Consommé par la garde de
- *  format (`tenues/part-view-format.test.ts` via `partViewAudit`), qui mesure le format des DEFS bruts. */
-export const hasProfileView = (p: PartArt | null | undefined): boolean => typeof p === 'object' && p != null && !!p.profile;
-export const hasBackView = (p: PartArt | null | undefined): boolean => typeof p === 'object' && p != null && !!p.back;
 
 /** Base COMMUNE d'un def « équipement TENU » (silhouette sur un os de main) : armes ET boucliers.
  *  1 fichier = 1 def (registre auto-chargé `defs/`) ; les deux sont routés par SLUG (`shape`), jamais par libellé. */
@@ -43,6 +35,6 @@ export interface RigHeldDef {
   /** Cible silhouette-first (FR) — sert les workflows d'art. */
   target: string;
   /** Art dans le repère local de l'os porteur (arme : manche en (0,0), lame vers -y ; bouclier : centré ~cy6).
-   *  String = même art toutes vues ; objet `{front,back?,profile?}` pour un art DIRECTIONNEL (ex. l'épée). */
+   *  String = même art toutes vues ; objet `{front,back?,profile?}` pour un art ORIENTÉ (ex. l'épée). */
   art: PartArt;
 }

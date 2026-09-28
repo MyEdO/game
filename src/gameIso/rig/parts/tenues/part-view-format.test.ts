@@ -3,7 +3,7 @@
  *
  * Un slot de CORPS se résout en `ViewSet` TOTAL `{front, profile, back}`. Un def en `string` est
  * front-only : la couture `toViewSet` (`parts/derive.ts`) DÉRIVE alors ses vues manquantes (silhouette
- * générique en tokens pour torse/jambes/tete, vraie silhouette pour `bras`). Ce cliquet compte les
+ * générique en jetons pour torse/jambes/tete, vraie silhouette pour `bras`). Ce cliquet compte les
  * DEFS BRUTS front-only (ceux restant à solder en DESSINANT leurs 3 vues). Contrat : `rig/PART-CONTRACT.md`.
  *
  * PÉRIMÈTRE : les deux registres qui alimentent les slots de corps de `resolveParts` — les TENUES
@@ -11,8 +11,8 @@
  * le format restait vert sur une tenue conforme pendant qu'un personnage en plaque montrait un slot
  * front-only. Armes et boucliers restent HORS garde (cf. PART-CONTRACT.md § Périmètre).
  *
- * La MESURE vit dans `scripts/guards/lib/partViewAudit.ts` — partagée avec le régénérateur, pour
- * qu'aucun des deux n'ait sa propre lecture du pipeline. Ici : les trois invariants du cliquet.
+ * La MESURE vit dans `scripts/guards/lib/partViewAudit.ts` — partagée avec la régénération, pour
+ * qu’aucune des deux n’ait sa propre lecture du pipeline. Ici : les trois invariants du cliquet.
  *   1. FORMAT — un slot déclare ses 3 vues.
  *   2. ANTI-ALIAS — une vue déclarée n'est pas le front redessiné à l'identique.
  * Les deux se jugent par l'ÉCART NOMINATIF au stock (`ecartDuVolet`, `scripts/guards/lib/stock.mjs`),
@@ -24,20 +24,24 @@
 import { describe, it, expect } from 'vitest';
 import { TENUE_DEFS } from './_registry.generated';
 import { ARMOUR_DEFS } from '../armour/_registry.generated';
-import { auditPartViews, SLOTS, type Audit, type Bearer, type BodySlot } from '../../../../../scripts/guards/lib/partViewAudit';
-import type { Site } from '../../../../../scripts/guards/lib/stock.mjs';
-import type { PartArt } from '../types';
+import { auditPartViews, auditRigPartViews, isDrawnView, regenerations, SLOTS, type Audit, type Bearer, type BodySlot } from '../../../../../scripts/guards/lib/partViewAudit';
+import { fichierDeDef, REGISTRE_ARMURES, REGISTRE_TENUES } from '../../../../../scripts/guards/lib/registreDeDefs';
+import { ecartDeRegeneration, texteEnPlace } from '../../../../../scripts/guards/lib/stockDeSites.mjs';
+import type { PartArt, ViewSet } from '../types';
+import { replaceTokens } from '../../palette';
+import { declaredView } from '../../viewArt';
+import { gammeDe } from '../../../../data/palette.types';
 import {
   PART_VIEW_RATCHET,
   PART_VIEW_ALIAS_RATCHET,
 } from '../../../../../scripts/guards/lib/rigPartViewStock.mjs';
-import { ecartDuVolet, remedeNomme, type EntreeNominative } from '../../../../../scripts/guards/lib/stock.mjs';
+import { cleDeSite, ecartDuVolet, remedeNomme, type EntreeDeSite, type Site } from '../../../../../scripts/guards/lib/stock.mjs';
 
 const STOCK = 'scripts/guards/lib/rigPartViewStock.mjs';
 
 /** Cliquet générique : sites hors stock = neuves (échec) ; entrées que plus aucun site ne porte =
  *  périmées (échec). La primitive PARTAGÉE du dépôt, jamais une comparaison locale. */
-const ratchet = (sites: readonly Site[], stock: Iterable<EntreeNominative>) =>
+const ratchet = (sites: readonly Site[], stock: Iterable<EntreeDeSite>) =>
   ecartDuVolet({ sites, stock, ou: STOCK });
 
 describe('format de part : 3 vues par slot de corps (cliquet #551)', () => {
@@ -55,8 +59,12 @@ describe('format de part : 3 vues par slot de corps (cliquet #551)', () => {
     expect(neuves, `Slots front-only NEUFS — fournir {front, profile, back} (cf. rig/PART-CONTRACT.md).\n` +
       `Une string fait DÉRIVER ses vues (silhouette générique torse/jambes/tete, vraie silhouette bras) :\n  ${neuves.join('\n  ')}`).toEqual([]);
     expect(perimees, `Entrées de PART_VIEW_RATCHET qui ne violent plus (soldées ou disparues) — les RETIRER de\n` +
-      `${STOCK} (ou : npx tsx scripts/rig/regen-part-view-stock.mts),\n` +
+      `${STOCK} (ou : npx tsx scripts/guards/lib/regenStock.mts scripts/guards/lib/partViewAudit.ts),\n` +
       `sinon le stock ment :\n  ${perimees.join('\n  ')}`).toEqual([]);
+  });
+
+  it('le stock committé est un point fixe de sa régénération', () => {
+    for (const r of regenerations({ format, alias }, auditRigPartViews())) expect(ecartDeRegeneration(r, texteEnPlace(r.chemin))).toBeNull();
   });
 
   it('aucune vue déclarée NEUVE aliasée sur le front, et le stock ne peut que DÉCROÎTRE', () => {
@@ -100,8 +108,10 @@ describe('morsure : les évasions connues rougissent (#551)', () => {
       const id = def.id;
       for (const slot of SLOTS) {
         const art = def.set[slot];
-        if (art && typeof art === 'object' && art.profile && art.back && !refsAliasees.has(`${id}:${slot}:back`))
-          return { def: def as Bearer, slot, id, front: art.front, art };
+        if (isDrawnView(art, 'profile') && isDrawnView(art, 'back') && !refsAliasees.has(`${id}:${slot}:back`)) {
+          const vues = art as ViewSet;
+          return { def: def as Bearer, slot, id, front: vues.front, art: vues };
+        }
       }
     }
     throw new Error('aucun slot de tenue conforme — le corpus a changé, la morsure n\'a plus de support');
@@ -111,7 +121,11 @@ describe('morsure : les évasions connues rougissent (#551)', () => {
   const aliasNeuves = (back: string) =>
     ratchet(withArt(target.def, target.slot, { ...target.art, back }, auditPartViews).alias, PART_VIEW_ALIAS_RATCHET).neuves;
   /** La violation attendue, telle que le remède l'imprime : la CLÉ nominative du site. */
-  const KEY = ` :: ${target.id}:${target.slot}:back :: 1`;
+  const KEY = cleDeSite({
+    fichier: fichierDeDef(REGISTRE_TENUES, target.def as unknown as (typeof TENUE_DEFS)[number]),
+    ref: `${target.id}:${target.slot}:back`,
+    occurrence: 1,
+  });
   /** Une ligne de remède CONTIENT-elle la clé attendue ? (le remède décore la clé d'une phrase) */
 
   it('un alias enveloppé dans un <g> inerte rougit (le <g> ne porte aucune géométrie)', () => {
@@ -127,20 +141,20 @@ describe('morsure : les évasions connues rougissent (#551)', () => {
   });
 
   it('un alias RECOLORÉ (géométrie du front, autre remplissage) rougit — la comparaison de chaînes le ratait', () => {
-    const recolore = target.front.replace(/fill=("|')@(\w+)("|')/g, 'fill=$1@$2O$3');
-    expect(recolore, 'le support de morsure ne porte aucun token de remplissage').not.toBe(target.front);
+    const recolore = replaceTokens(target.front, (key) => `@${gammeDe(key, 'ombre')}`);
+    expect(recolore, 'le support de morsure ne porte aucun jeton').not.toBe(target.front);
     expect(remedeNomme(aliasNeuves(recolore), KEY)).toBe(true);
   });
 
   it('un slot d\'ARMURE front-only NEUF rougit (le registre des armures est bien dans le périmètre)', () => {
     const plaque = ARMOUR_DEFS.find((d) => d.id === 'plaque')! as unknown as Bearer;
     const torse = plaque.set.torse!;
-    const front = typeof torse === 'object' ? torse.front : torse;
+    const front = declaredView(torse, 'front') ?? '';
     const { format } = withArt(plaque, 'torse', front, auditPartViews); // 3 vues -> string front-only
     const neuves = ratchet(format, PART_VIEW_RATCHET).neuves;
-    expect(remedeNomme(neuves, ' :: armure:plaque:torse :: 1')).toBe(true);
-    // Et le site neuf NOMME le def d'armure à ouvrir, pas seulement la clé de slot.
-    expect(remedeNomme(neuves, 'src/gameIso/rig/parts/armour/defs/Plaque.ts')).toBe(true);
+    // Le site neuf NOMME le def d'armure à ouvrir, pas seulement la clé de slot.
+    const fichier = fichierDeDef(REGISTRE_ARMURES, plaque as unknown as (typeof ARMOUR_DEFS)[number]);
+    expect(remedeNomme(neuves, cleDeSite({ fichier, ref: 'armure:plaque:torse', occurrence: 1 }))).toBe(true);
   });
 
   /** ALLONGER le stock ne s'échange plus contre un plafond relevé : une entrée de plus se DÉCLARE,
@@ -152,7 +166,7 @@ describe('morsure : les évasions connues rougissent (#551)', () => {
       fichier: 'src/gameIso/rig/parts/tenues/defs/TenueQuiNExistePas.ts', ref: 'gonflement:bras', occurrence: 1,
     }];
     const { perimees } = ratchet(format, gonfle);
-    expect(remedeNomme(perimees, ' :: gonflement:bras :: 1')).toBe(true);
+    expect(remedeNomme(perimees, cleDeSite(gonfle[gonfle.length - 1]))).toBe(true);
     expect(remedeNomme(perimees, 'entrée SOLDÉE')).toBe(true);
   });
 });

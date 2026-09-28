@@ -26,3 +26,14 @@ export function readCorpus(dirs: string[], opts?: ReadCorpusOptions): readonly C
  *  TOTAL (toutes les clés, pas une) et l'IDENTITÉ des tableaux et des entrées est perdue — les mémos
  *  par identité des appelants repartent de zéro. Les tests de `sourceCorpus.mjs` l'appellent. */
 export function viderCorpus(): void;
+
+/** Le prédicat de fichier que `readCorpus` applique dans sa marche (mêmes défauts) : une extension de
+ *  `exts`, un instrument Vitest seulement sous `tests`, jamais un `.d.ts`. */
+export function estRetenu(nom: string, opts?: { exts?: readonly string[]; tests?: boolean }): boolean;
+
+/** Une déclaration gardée s'applique-t-elle à ce fichier ? Vraie hors de son `foyer` (un chemin ou une
+ *  liste ; absent : aucun) et dans son `domaine` (absent : tous). Seul lecteur de ces deux champs. */
+export function sAppliqueA(
+  fichier: Pick<CorpusFile, 'rel'>,
+  declaration: { readonly foyer?: string | readonly string[]; readonly domaine?: (rel: string) => boolean },
+): boolean;

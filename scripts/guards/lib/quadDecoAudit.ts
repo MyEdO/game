@@ -1,7 +1,7 @@
 /**
  * AUDIT des dettes d'ART quadrupède (#1082) — définition UNIQUE des trois mesures, partagée par les
  * gardes `src/gameIso/rig/quadruped/quad-anchor-contract.test.ts` et `quad-vues-ratchet.test.ts` et
- * par le régénérateur `scripts/rig/regen-quad-deco-stock.mts`. Deux lectures divergentes du corpus
+ * par la régénération de `quadDecoStock.mjs` (`regenerations`). Deux lectures divergentes du corpus
  * laisseraient l'une écrire ce que l'autre refuse.
  *
  * Trois classes de défaut, toutes keyées `<espèce> <vue> <os|clé#vue>` :
@@ -17,11 +17,13 @@
 import { CREATURES } from '../../../src/gameIso/rig/creatures/_registry.generated';
 import { quadParts, quadAnchor } from '../../../src/gameIso/rig/quadruped/quadParts';
 import { OS_TETE } from '../../../src/gameIso/rig/quadruped/composeQuad';
-import { quadDecoCouples, quadLayersSvg, DECO_VIEWS } from '../../../src/gameIso/rig/quadruped/deco-stock.fixture';
-import type { QuadBoneId, QuadProps } from '../../../src/gameIso/rig/quadruped/quadSkeleton';
-import type { View } from '../../../src/gameIso/rig/facing';
+import { quadDecoCouples, quadLayersSvg, type DecoCouples } from '../../../src/gameIso/rig/quadruped/deco-stock.fixture';
+import { readQuadDecoKey, type QuadBoneId, type QuadProps } from '../../../src/gameIso/rig/quadruped/quadSkeleton';
+import { VIEWS, type View } from '../../../src/gameIso/rig/facing';
 import { REGISTRE_CREATURES, fichierDeDef } from './registreDeDefs';
 import type { Site } from './stock.mjs';
+import { fileURLToPath } from 'node:url';
+import { DECROISSANT, type RegenerationDeStock } from './stockDeSites.mjs';
 
 /** Les defs du registre qui portent un `quad` — la population des trois mesures. */
 const quadDefs = CREATURES.filter((c) => c.quad);
@@ -77,7 +79,7 @@ export function mesureDesReperes(): MesureDesReperes {
   };
   for (const { id, quad: q } of quadDefs) {
     const quad = q as QuadProps;
-    for (const view of DECO_VIEWS) {
+    for (const view of VIEWS) {
       const nu = quadParts({ ...quad, deco: undefined }, view);
       for (const bone of OS_TETE) {
         const art = quadLayersSvg(nu[bone]);
@@ -86,8 +88,8 @@ export function mesureDesReperes(): MesureDesReperes {
         verifier(id, quad, view, bone, art, bone);
       }
       for (const key of Object.keys(quad.deco ?? {})) {
-        const [bone, vue] = key.split('#') as [QuadBoneId, View | undefined];
-        if (vue && vue !== view) continue;
+        const { bone, views } = readQuadDecoKey(key);
+        if (!views.includes(view)) continue;
         const art = quadLayersSvg(nu[bone]);
         if (!art) continue;
         couplesDeco++;
@@ -98,13 +100,25 @@ export function mesureDesReperes(): MesureDesReperes {
   return { sites: [...parts].sort().map(siteDuCouple), divergences, couplesTete, couplesDeco };
 }
 
-export const sitesReperesArtPropres = (): Site[] => mesureDesReperes().sites;
-export const sitesDecosMorts = (): Site[] => quadDecoCouples().morts.map(siteDuCouple);
-export const sitesDecosSansPlan = (): Site[] => quadDecoCouples().sansPlan.map(siteDuCouple);
-
 export const MOTIF_REPERE_ART_PROPRE =
   "Un art qui s'enveloppe de son propre repère se RÉÉCRIT dans le repère de l'os (cf. le patron `boeuf profile tete`, lot B2), il ne s'entérine pas ici.";
 export const MOTIF_DECO_MORT =
   "Un décor authoré pour une vue où son os n'est pas émis se CÂBLE (art de bout à créer, ou réaffectation à un os émis), il ne s'entérine pas ici.";
 export const MOTIF_DECO_SANS_PLAN =
   "Un décor neuf DÉCLARE son `plan` relatif à l'os (`plan: 0` pour le plan de l'os), il ne s'entérine pas ici.";
+
+/** La RÉGÉNÉRATION de `quadDecoStock.mjs`, ses trois collections sur les couples de décor et la mesure
+ *  des repères (par défaut, celles du dépôt). Commande :
+ *  `npx tsx scripts/guards/lib/regenStock.mts scripts/guards/lib/quadDecoAudit.ts [--check]`. */
+export const regenerations = (
+  couples: DecoCouples = quadDecoCouples(),
+  reperes: MesureDesReperes = mesureDesReperes(),
+): RegenerationDeStock[] => [{
+  chemin: fileURLToPath(new URL('./quadDecoStock.mjs', import.meta.url)),
+  politique: DECROISSANT,
+  collections: [
+    { nom: 'REPERES_ART_PROPRES_RATCHET', sites: reperes.sites, motif: MOTIF_REPERE_ART_PROPRE },
+    { nom: 'DECOS_MORTS_RATCHET', sites: couples.morts.map(siteDuCouple), motif: MOTIF_DECO_MORT },
+    { nom: 'DECOS_SANS_PLAN_RATCHET', sites: couples.sansPlan.map(siteDuCouple), motif: MOTIF_DECO_SANS_PLAN },
+  ],
+}];

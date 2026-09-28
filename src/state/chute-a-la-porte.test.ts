@@ -1,3 +1,4 @@
+import { tableTotale } from '../lib/tableTotale';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
 import { applyLeafOps, ouvrirChute, runFlow, checkTriggers, differerLaSuite, pushCombatStep, runPureFlowLines, OPS_DIFFEREES } from './combatEffects';
@@ -439,7 +440,7 @@ describe('(vi) CONTEXTE de la feuille : la reprise applique le MÊME contexte qu
     expect(new Set(seaux).size, 'aucun champ dans deux seaux à la fois').toBe(seaux.length);
     // Un contexte qui porte TOUS les champs gelables : le gel les rend tous. Sortir un champ du seau
     // `OPS_CTX_GELES` le fait disparaître ici — et c'est ce que la reprise perdrait.
-    const plein = Object.fromEntries(OPS_CTX_GELES.map((k) => [k, 1])) as unknown as OpsCtx;
+    const plein = tableTotale(OPS_CTX_GELES, () => 1) as unknown as OpsCtx;
     expect(Object.keys(gelerOpsCtx(plein)).sort()).toEqual([...OPS_CTX_GELES].sort());
   });
 });
@@ -657,7 +658,7 @@ describe('(x) CLÔTURE DU VERBE : ce que le site allait faire APRÈS son Flow at
     poseLeDe(8);
     const clefs = ['pendingCascade', 'dialogue', 'party', 'scene', 'journal', 'gameTime', 'flags', 'scheduledEffects', 'suspendedCascades'] as const;
     const etat = useGame.getState() as unknown as Record<string, unknown>;
-    const save = JSON.parse(JSON.stringify(Object.fromEntries(clefs.map((k) => [k, etat[k]]))));
+    const save = JSON.parse(JSON.stringify(tableTotale(clefs, (k) => etat[k])));
     const clotures = (save.pendingCascade as PendingCascade).participants
       .map((p) => p.meta?.apresClotures as Cloture[] | undefined).filter(Boolean);
     expect(clotures, 'UNE étape porte la clôture — l’étape validée l’a rendue').toHaveLength(1);

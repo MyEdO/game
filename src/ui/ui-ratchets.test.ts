@@ -26,13 +26,15 @@ import {
   VIEWPORT_RECETTE,
   sitesGrandTitre,
   sitesStyleInline,
+  regenerations,
 } from '../../scripts/guards/lib/cssCouchesAudit';
+import { ecartDeRegeneration, texteEnPlace } from '../../scripts/guards/lib/stockDeSites.mjs';
 import {
   CSS_ESPACEMENT_RATCHET,
   CSS_IDENTITE_ECRAN_RATCHET,
   STYLE_INLINE_RATCHET,
 } from '../../scripts/guards/lib/cssCouchesStock.mjs';
-import { cleDeSite, ecartDuVolet } from '../../scripts/guards/lib/stock.mjs';
+import { cleDeSite, ecartDuVolet, type Site } from '../../scripts/guards/lib/stock.mjs';
 import { FUITES_COUCHE_PARTAGEE } from '../../scripts/guards/lib/fuitesPartageesStock.mjs';
 
 /**
@@ -94,7 +96,7 @@ const PRICE_PA_ARMOR_EXEMPT = new Set([
   'creator/CharacterCreator.tsx',
   'editor/GameOpEditor.tsx',
   'EquipmentPanel.tsx',
-  // #492 Lot 1b : `ActiveEffectsPanel`/`describeEffect` (« PA (toutes Localisations) », Points
+  // #492 : `ActiveEffectsPanel`/`describeEffect` (« PA (toutes Localisations) », Points
   // d'Armure) déplacés tels quels de CharacterSheet.tsx — même faux positif, même exemption.
   'EtatPanel.tsx',
 ]);
@@ -112,13 +114,13 @@ const FLEX_WRAP_BASELINE: Record<string, number> = {
   // -1 (#1834) : l'enroulement du titre de section suit `.panel h3` en couche PARTAGÉE
   // (`components.css`, hors cliquet) — une base et sa tranche dans la MÊME feuille.
   'styles/base.css': 3,
-  // +1 (#1388 C4) : `.de-reflrow` (rangée dense de réfs de l'atelier Codex) s'enroule dès 360 px —
+  // +1 (#1388) : `.de-reflrow` (rangée dense de réfs de l'atelier Codex) s'enroule dès 360 px —
   // motif `.bar` non composable ici (c'est une rangée de CHAMPS d'un formulaire d'édition, pas un
   // bandeau d'écran) ; le `flex-wrap` seul ne suffisait pas, il va de pair avec `min-width: 0`.
   'styles/codex-edit.css': 2,
   'styles/gear-assign-list.css': 1,
   'styles/compendium.css': 3,
-  // +1 : `.creator-race-lineages` (#393 P2, correction structurelle Race) — rangée de chips de
+  // +1 : `.creator-race-lineages` (#393, correction structurelle Race) — rangée de chips de
   // lignée en tête du détail, s'enroule (motif `.bar` non composable ici, boutons de largeur variable).
   // -2 : lot « ossature enforcée » (#393) — mort du bandeau fiche-vivante ≤1100px du rail 3 zones
   // (`.creator-shell > .creator-summary` et `.creator-derived` en rangée), l'empilement vit sur
@@ -130,7 +132,7 @@ const FLEX_WRAP_BASELINE: Record<string, number> = {
   'styles/gauges.css': 1,
   'styles/mass-battle.css': 2,
   'styles/merchant.css': 1,
-  // +1 (#492 lot POSSESSIONS B) : `.inv-actionbar` — barre d'actions de la rangée ÉLUE du registre
+  // +1 (#492) : `.inv-actionbar` — barre d'actions de la rangée ÉLUE du registre
   // Possessions (motif « contrôles qui s'enroulent », hérité 1:1 de l'ancienne `.inv-row`).
   // -1 (juge vision, correction d'alignement de la bande Seuils) : `.etat-destin-row` MEURT — les 3
   // jauges composent `.notch-gauge-stack` (grid, patron de groupe de `NotchGauge`, gauges.css) au
@@ -183,7 +185,7 @@ const FILL_LITERAL_BASELINE: Record<string, number> = {
   // rectangle, rouge d'exclusion de toiture) ; le jaune de sélection et l'encre de texte composent
   // `--iso-active-halo` / `--shadow-ink`.
   // -1 (8 → 7) : baseline PÉRIMÉE constatée le 2026-08-14 (mesure `git show HEAD:…` = 7 avant comme
-  // après le lot C5a du #1176, qui ne touche aucun `fill`/`stroke` de ce fichier) — le cliquet exige
+  // après #1176, qui ne touche aucun `fill`/`stroke` de ce fichier) — le cliquet exige
   // l'abaissement d'une baseline devenue plus haute que le réel.
   'editor/EditorCanvas.tsx': 7,
   'editor/Inspector.tsx': 1,
@@ -202,7 +204,7 @@ const FILL_LITERAL_BASELINE: Record<string, number> = {
 //    la surface — et toute classe distincte dont le nom commence par `.panel` (`.panel` suivi de `-`). La densité mobile du canon
 //    vit DANS components.css, APRÈS la base, pour gagner la cascade.
 // BASELINE nominative : les 3 spécialisations LÉGITIMES de l'interlude (world-meta.css) — carte d'Activité
-//    à liseré d'or (`.interlude-hero.panel`, densité resserrée assumée), son état actif, et le bandeau de
+//    à liseré d'or (`.interlude-hero.panel`, densité resserrée), son état actif, et le bandeau de
 //    bataille à liseré rouge (`.interlude-battle-banner.panel`). Densité CONSTANTE voulue (déjà compacte
 //    ≤700px) — plus jamais INVISIBLES au cliquet. Tout NOUVEAU composé `.panel` reste à ZÉRO.
 const PANEL_REDEFINE_BASELINE: Record<string, number> = {
@@ -250,7 +252,7 @@ const BARE_BUTTON_EXEMPT_FILES = new Set([
   'PlaqueRow.tsx',
   // ListRow.tsx : primitive canon de la RANGÉE DE LISTE sélectionnable (`.listrow` et ses variantes
   // `data-variant`, #841/#1806) — même famille que Tabs/MenuCard/PlaqueRow. Elle existe justement
-  // pour que plus aucun panneau ne recode la rangée : 13 sites de l'éditeur la composent désormais,
+  // pour que plus aucun panneau ne recode la rangée : 13 sites de l'éditeur la composent,
   // et l'ÉLECTION s'y dit `aria-current`, une seule grammaire pour tous.
   'ListRow.tsx',
   // GatedAction.tsx : primitive canon du bouton d'ENGAGEMENT (table `docs/primitives.md`), qui exporte
@@ -260,11 +262,11 @@ const BARE_BUTTON_EXEMPT_FILES = new Set([
 ]);
 // `dicewell` : bouton-encrier canon de `CreatorDice` (#414, langage `.c-dicewell.act` du kit
 // « Atelier du scribe ») — même famille que `.btn`/`.chip`, sa propre classe de composant.
-// `cc-step` : médaillon-bouton canon de `CareerPath` (#393 P2, 2026-07-14) — même famille, chaîne
+// `cc-step` : médaillon-bouton canon de `CareerPath` (#393, 2026-07-14) — même famille, chaîne
 // explorable propre (langage `.cc-path`/`.cc-link`, pas un `.chip`/`.seg` recyclé).
 const BARE_BUTTON_CANON = /\b(btn|chip|seg|dicewell|cc-step)\b/;
 const BARE_BUTTON_BASELINE: Record<string, number> = {
-  // +1 (LOT L, 2026-07-17) : titre de bande CLIQUABLE (`onTitleClick`, registre État → catégorie
+  // +1 (2026-07-17) : titre de bande CLIQUABLE (`onTitleClick`, registre État → catégorie
   // Compendium) — bouton de RESET pur (`all: unset`) posé UNE fois dans la primitive PARTAGÉE
   // elle-même (`Band.tsx`), jamais recopié à l'appel : tout consommateur de `Band` hérite du patron.
   'Band.tsx': 1,
@@ -283,7 +285,7 @@ const BARE_BUTTON_BASELINE: Record<string, number> = {
   'editor/Palette.tsx': 7,
   'editor/StatblockEditor.tsx': 2,
   'ErrorCollectorBanner.tsx': 1,
-  // #839 : -1 (1 → 0, entrée retirée) — la remise au défaut d'une règle (`↺`) compose désormais
+  // #839 : -1 (1 → 0, entrée retirée) — la remise au défaut d'une règle (`↺`) compose
   // `GatedAction` (bouton `.btn` + raison VISIBLE du verrou de combat), plus un `<button>` nu.
   // #1135 : baseline abaissée (3 → 2), bouton nu retiré au commit 9bae13b3 — détecteur inchangé.
   'InitiativeStrip.tsx': 2,
@@ -292,7 +294,7 @@ const BARE_BUTTON_BASELINE: Record<string, number> = {
   'VoyageScreen.tsx': 4,
 };
 // Baseline SÉPARÉE des `className` opaques (aucun littéral dedans) : au recensement, zéro site après
-// exemption des primitives — tout `<button className={fn(...)}>` NOUVEAU doit désormais soit exposer un
+// exemption des primitives — tout `<button className={fn(...)}>` NOUVEAU doit soit exposer un
 // littéral `btn`/`chip`/`seg` dans son expression, soit vivre dans un fichier-primitive exempté ci-dessus.
 const BARE_BUTTON_OPAQUE_BASELINE: Record<string, number> = {};
 
@@ -418,7 +420,7 @@ function scanBareButtons(files: readonly Fichier[]) {
 //    Chaque entrée restante est un témoin dont le jet ne PEUT PAS précéder la réponse (construit
 //    `rolled &&`, ou jet du même acteur) : rien à masquer. Les jets figés À L'OUVERTURE (Empoignade,
 //    Au Contact, Distraire, Désengagement) sont passés au builder au #990 ; le Marchandage les a
-//    rejoints au #1153 (sa rangée adverse existe désormais dès l'ouverture, masquée par le calendrier).
+//    rejoints au #1153 (sa rangée adverse existe dès l'ouverture, masquée par le calendrier).
 const FROZEN_WITNESS_BASELINE: Record<string, number> = {
   // 2ᵉ Compétence du MÊME acteur (Test combiné) ; la « Puissance » ennemie passe par `opposedLines`.
   'ActivityModal.tsx': 1,
@@ -571,7 +573,7 @@ describe('#236 — cliquets d’hygiène UI', () => {
   it('(xiii) fuite de domaine en couche partagée : classe mono-consommateur ET non cataloguée = stock nominatif, décroissant (#371, #1806)', () => {
     const catalogue = catalogueClasses();
     const usage = classUsageByModule();
-    const sites: { file: string; ref: string }[] = [];
+    const sites: Site[] = [];
     for (const file of SHARED_CSS_FILES) {
       const f = join(UI, file);
       const defined = classNamesDefined(readFileSync(f, 'utf8').replace(/\/\*[\s\S]*?\*\//g, ''));
@@ -1050,7 +1052,7 @@ describe('canon responsive, peaux et matières partagées de src/ui/styles', () 
 //    — saisie clavier + `QtyStepper` + plage dite). Un `<input type="number">` posé
 //    directement rejoue à la main la borne, les pas et l'affordance. BASELINE PAR FICHIER DÉCROISSANTE :
 //    stock COURANT mesuré par le scan ci-dessous : 26 balises / 2 fichiers, `editor/Inspector.tsx` et
-//    `editor/Palette.tsx` (migration #1318 E1, tranche 3). EXEMPTÉ : `NumberField.tsx`, la primitive elle-même (c'est elle qui a le
+//    `editor/Palette.tsx` (migration #1318, tranche 3). EXEMPTÉ : `NumberField.tsx`, la primitive elle-même (c'est elle qui a le
 //    droit — et le devoir — de poser l'`<input type="number">` canonique).
 //    COUVERTURE du détecteur (à énoncer, pas à supposer) : il lit la balise OUVRANTE `<input …>` et
 //    compte `type="number"` en littéral OU en expression CALCULÉE (`type={kind}`, `type={t ? 'number'
@@ -1391,9 +1393,9 @@ describe('#1792 — la boîte des contrôles custom est immune aux règles de mo
 
 // ══════════════════════════════════════════════════════════════════════════════════════════════
 // (xxi)/(xxii) — LES TROIS COUCHES (#1800). La MESURE et le STOCK vivent dans
-// `scripts/guards/lib/` (`cssCouchesAudit.ts`, `cssCouchesStock.mjs`), partagés avec le
-// régénérateur `scripts/ui/regen-css-couches-stock.mts` ; ICI vit le VERDICT. Rien ne joue les
-// régénérateurs en CI : ces `it` SONT le `--check`.
+// `scripts/guards/lib/` (`cssCouchesAudit.ts`, `cssCouchesStock.mjs`), partagés avec la
+// régénération (`regenerations`) ; ICI vit le VERDICT. Rien ne joue la régénération en CI : ces `it`
+// SONT le `--check`.
 //
 // Doctrine utilisateur du 2026-07-12 (#373) : « J'y crois pas une seule seconde à des classes
 // mono-écrans personnellement, c'est une excuse à la dérive ». Ce que ce cliquet compte n'est plus
@@ -1406,7 +1408,7 @@ describe('#1792 — la boîte des contrôles custom est immune aux règles de mo
 const fixture = (rel: string, text: string): FichierMesure => ({ rel, text });
 
 /** Les réfs d'une liste de sites — ce qu'un `it` de preuve compare. */
-const refs = (sites: { file: string; ref: string }[]) => sites.map((s) => s.ref);
+const refs = (sites: Site[]) => sites.map((s) => s.ref);
 
 /** Spécificité (classes+attributs, éléments) d'un sélecteur SIMPLE (sans combinateur). */
 function specificite(selecteur: string): number {
@@ -1460,7 +1462,7 @@ describe('#1800 — trois couches CSS : un module d’écran ne pose que du PLAC
       ou: 'scripts/guards/lib/cssCouchesStock.mjs (CSS_IDENTITE_ECRAN_RATCHET)',
     });
     expect(neuves, `Identité NEUVE dans un module d’ÉCRAN — la porter dans le module de sa primitive (manifeste, champ \`css\`) :\n${neuves.join('\n')}`).toEqual([]);
-    expect(perimees, `Entrée(s) SOLDÉE(s) — relancer \`npx tsx scripts/ui/regen-css-couches-stock.mts\` :\n${perimees.join('\n')}`).toEqual([]);
+    expect(perimees, `Entrée(s) SOLDÉE(s) — relancer \`npx tsx scripts/guards/lib/regenStock.mts scripts/guards/lib/cssCouchesAudit.ts\` :\n${perimees.join('\n')}`).toEqual([]);
   });
 
   it('(xxi) espacement hors échelle : stock nominatif, décroissant', () => {
@@ -1481,6 +1483,10 @@ describe('#1800 — trois couches CSS : un module d’écran ne pose que du PLAC
     });
     expect(neuves, `\`style=\` NEUF (arbitrage user A2, 2026-09-18 : la seule forme légale est un objet dont TOUTES les clés sont des variables CSS) :\n${neuves.join('\n')}`).toEqual([]);
     expect(perimees, `Entrée(s) SOLDÉE(s) — relancer le régénérateur :\n${perimees.join('\n')}`).toEqual([]);
+  });
+
+  it('le stock committé est un point fixe de sa régénération', () => {
+    for (const r of regenerations()) expect(ecartDeRegeneration(r, texteEnPlace(r.chemin))).toBeNull();
   });
 
   it('(xxi) le manifeste classe chaque module : un css de primitive existe, et n’est pas une feuille partagée', () => {

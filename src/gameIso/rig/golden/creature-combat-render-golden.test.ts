@@ -12,13 +12,14 @@
  *
  * CE QUE LES SNAPSHOTS `back` FIGENT — ce n'est PAS une couverture d'art (#559). Sans art `back`
  * dédié sur une part, `parts/resolve.ts` (~l.185-189) FABRIQUE une silhouette dorsale générique en
- * tokens (`BACK_TORSE`/`BACK_JAMBE`/`BACK_CRANE`). Cette suite est la plus exposée (100 % bipèdes,
+ * jetons (`BACK_TORSE`/`BACK_JAMBE`/`BACK_CRANE`). Cette suite est la plus exposée (100 % bipèdes,
  * donc 100 % soumise à ce repli) : 331 snapshots `back`, dont 277 (84 %) portent au moins une part
  * dorsale inventée (221 torse, 235 jambe, 1 tête). Ces snapshots figent donc le REPLI, pas un dos
  * authoré : ils protègent d'une régression de composition, ils n'attestent d'aucune intention
  * d'artiste. Ils ont vocation à être REMPLACÉS à mesure que #559 vide son stock de slots front-only
  * (167 mesurés) — un churn de ces snapshots y est ATTENDU, pas suspect.
  */
+import { VIEWS } from '../facing';
 import { describe, it, expect } from 'vitest';
 import { creatures } from '../../../data';
 import { creatureToCombatant } from '../../../state/spawn';
@@ -26,9 +27,6 @@ import { enemyRigProfile } from '../enemyProfile';
 import { combatantAppearance, combatantOverlays } from '../parts/combatantVisuals';
 import { resolveRig } from '../composeRig';
 import { bonesToSvg } from '../renderBones';
-import type { View } from '../facing';
-
-const VIEWS: View[] = ['front', 'profile', 'back'];
 
 describe('golden — rendu COMBAT (spawn→enemyRigProfile→visuels d’état) du bestiaire bipède', () => {
   for (const cr of creatures) {

@@ -1,4 +1,5 @@
 /** QC : têtes monstrueuses en 3 vues (front/back/profile) → 8-dir. → public/qc/monster-views.png */
+import { VIEWS } from '../src/gameIso/rig/facing';
 import { writeFileSync } from 'node:fs';
 import { Resvg } from '@resvg/resvg-js';
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -20,7 +21,6 @@ const HEADS: [string, MonsterParts][] = [
   ['ogive', { tete: 'ogive' }],
   ['crétin', { tete: 'minuscule' }],
 ];
-const VIEWS = ['front', 'back', 'profile'] as const;
 const cells: string[] = [];
 HEADS.forEach(([label, monster], r) => {
   VIEWS.forEach((view, c) => {

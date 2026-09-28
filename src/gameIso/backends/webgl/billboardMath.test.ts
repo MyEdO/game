@@ -16,7 +16,7 @@ import {
 } from './billboardMath';
 import { pxPerM } from './worldTris';
 import { ISO_PX_PER_M } from '../../iso';
-import { project, facingView } from '../../rig/facing';
+import { VIEWS, project, facingView } from '../../rig/facing';
 import { povView } from '../../pov/camera';
 import { ENT_H_M, PROP_H_M, BB_W, BB_H } from '../../pov/billboardCore';
 import { DIR8_ORDER } from '../../../state/dir8';
@@ -88,7 +88,7 @@ describe('sélection de vue — délégation aux résolveurs de prod (#1161)', (
     expect(billboardView({ kind: 'ortho', yawDeg: 65 }, 'E').view).toBe('profile');
     for (const yawDeg of [12.5, 25, 47.3, 65, 200.4]) {
       const { view, mirror } = billboardView({ kind: 'ortho', yawDeg }, 'NE');
-      expect(['front', 'back', 'profile'], `${yawDeg}`).toContain(view);
+      expect(VIEWS, `${yawDeg}`).toContain(view);
       expect(typeof mirror).toBe('boolean');
     }
   });

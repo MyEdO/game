@@ -30,6 +30,7 @@ import { couperAuxTitres } from './lib/marker-pages.mjs'
 import { carteDuFichier, destinEnTexte } from './lib/carte-lignes.mjs'
 import { INDEX } from './check-source-format.mjs'
 import { nomAscii } from '../source/nom-ascii.mjs'
+import { FORMAT_JSON } from '../guards/lib/stockDeSites.mjs'
 import {
   estNomDExtraction, graphieDeChapitre, largeurDeChapitre, ligne1DePlage, numeroDuFichier,
   parseChapitre, plageDeLigne1, plageEnTexte, tablesOf,
@@ -306,11 +307,11 @@ export function carteDesSlugs(nom, texteHead, texteArbre, carteLignes) {
 function stocksRecales(racine, carte, options) {
   const stocks = []
   for (const chemin of stocksNominatifs(join('scripts', 'raw'))) {
-    const brut = JSON.parse(readText(chemin))
-    if (!Array.isArray(brut.entrees)) continue
-    const r = recalerStock(brut.entrees, racine, carte, options)
+    const image = FORMAT_JSON.lire(readText(chemin))
+    if (!image) continue
+    const r = recalerStock(image.collections.get('entrees'), racine, carte, options)
     if (!r.recalees.length && !r.orphelines.length) continue
-    stocks.push({ chemin, texte: `${JSON.stringify({ ...brut, entrees: r.entrees }, null, 2)}\n`, ...r })
+    stocks.push({ chemin, texte: FORMAT_JSON.ecrire({ horsCollections: image.horsCollections, collections: new Map([['entrees', r.entrees]]) }), ...r })
   }
   return stocks
 }
@@ -369,8 +370,8 @@ function suivreLeDiff(dir, racine, DRY) {
   }
   const stocks = stocksRecales(racine, carte, { portee: aUneCleDeSection })
   const surScindees = stocksNominatifs(join('scripts', 'raw')).flatMap((chemin) => {
-    const brut = JSON.parse(readText(chemin))
-    return Array.isArray(brut.entrees) ? entreesScindees(brut.entrees, racine, scindees).map((e) => `${chemin} : ${e}`) : []
+    const image = FORMAT_JSON.lire(readText(chemin))
+    return image ? entreesScindees(image.collections.get('entrees'), racine, scindees).map((e) => `${chemin} : ${e}`) : []
   })
   console.log(`${racine} : carte de slugs par diff — ${carte.size} section(s) portée(s), ${rapportees.length} rapportée(s), ${scindees.length} section(s) scindée(s).`)
   const orphelines = stocks.flatMap((s) => s.orphelines)

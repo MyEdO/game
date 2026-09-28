@@ -6,11 +6,11 @@
  */
 import type { BodyPlan } from '../bodyPlan';
 import { groundedBody } from '../staticBody';
-import { MISSING_ART, pickView } from '../viewArt';
+import { MISSING_ART, nearestView } from '../viewArt';
 
 export const manquantPlan: BodyPlan = {
   id: 'manquant',
-  resolve: (_species, view, _pose, opts) => groundedBody(pickView(MISSING_ART, view)(), {}, opts?.colors, { id: 'manquant' }),
+  resolve: (_species, view, _pose, opts) => groundedBody(nearestView(MISSING_ART, view)(), {}, opts?.colors, { id: 'manquant' }),
   speciesNames: () => [],
   portraitBox: '25 80 70 70',
   restPose: () => ({}),

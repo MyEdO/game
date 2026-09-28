@@ -4,6 +4,7 @@
  * définition : ce module existe pour qu'aucune des deux ne recopie l'autre (et pour que le cycle
  * `scene ⇄ effets` n'ait pas lieu — la scène porte des Flows, les effets portent des cases).
  */
+import { tableTotale } from '../../../lib/tableTotale';
 import { z } from 'zod';
 import { talentRefSchema, traitInstanceSchema } from '../grammaire/reference';
 import { refOuSpec, refs } from '../grammaire/ref';
@@ -33,10 +34,7 @@ const sortsConnusSchema: z.ZodType<string[], string[]> = refs('spell');
  *  à champs optionnels, jamais en `z.record` : `z.record(z.enum, …)` est EXHAUSTIF en zod 4 (il
  *  EXIGERAIT les 12 clés), et un `z.record(z.string(), …)` accepterait n'importe quelle clé. */
 export const charStatsSchema = z.strictObject(
-  Object.fromEntries(charStatKeySchema.options.map((k) => [k, z.number().optional()])) as Record<
-    (typeof charStatKeySchema.options)[number],
-    z.ZodOptional<z.ZodNumber>
-  >,
+  tableTotale(charStatKeySchema.options, () => z.number().optional()),
 );
 
 /**

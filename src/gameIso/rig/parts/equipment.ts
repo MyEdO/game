@@ -75,7 +75,7 @@ export function weaponFamily(w: Weapon): string {
  * du Groupe `base` via `ART_BY_GROUP` + défaut final de `weaponPart`) est une def comme les autres.
  */
 // Art des formes RÉSOLU par la table d'OBJET du def (`tableDObjet`) : les clés porteur restent en
-// jeton pour la passe du porteur. Relevé sur `PartArt` : préserve un art DIRECTIONNEL verbatim.
+// jeton pour la passe du porteur. Relevé sur `PartArt` : préserve un art ORIENTÉ verbatim.
 const FORM_ART: Record<string, PartArt> = Object.fromEntries(
   WEAPON_DEFS.map((d) => [d.slug, applyTokenMapArt(d.art, tableDObjet([d.palette ?? {}]))]),
 );
@@ -118,7 +118,7 @@ export function armourMaterial(item: ItemInstance): 'rembourre' | 'cuir' | 'mail
  *  `pied`/`main`/`cou` : couverture DÉRIVÉE des HitLocation existantes (pied←jambes, main←bras,
  *  cou←corps) — c'est du VISUEL et du calcul de PA sur la zone parente, PAS une nouvelle HitLocation
  *  moteur (le RAW WFRP4 n'en a pas ; la localisation d'armure reste tete/corps/bras/jambe). Une
- *  armure de statblock non-portée ne produit désormais AUCUN item (`synthArmour`, #774) : plus
+ *  armure de statblock non-portée ne produit AUCUN item (`synthArmour`, #774) : plus
  *  besoin de gate ici — tout item présent COUVRE ses zones dérivées (porté = pleinement rendu). */
 function coversSlot(item: ItemInstance, slot: Slot): boolean {
   const map: Partial<Record<Slot, HitLocation[]>> = {
@@ -144,7 +144,7 @@ export function armourPart(item: ItemInstance, slot: Slot): PartArt | null {
 
 const TABLE_PORTEUR_DEFAUT = buildTokenMap([]);
 /** Rendu d'un OBJET SANS PORTEUR (icône, galerie) : la part d'arme, d'armure ou de bouclier passée
- *  par la table du porteur PAR DÉFAUT (#1903 D2), qui résout ses clés porteur. */
+ *  par la table du porteur PAR DÉFAUT (#1903), qui résout ses clés porteur. */
 export function objetSansPorteur(art: PartArt): PartArt {
   return applyTokenMapArt(art, TABLE_PORTEUR_DEFAUT);
 }

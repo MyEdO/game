@@ -4,7 +4,7 @@
  * DEUX grosses pinces frontales (chélae) ouvrantes = arme signature, yeux pédonculés + mandibules.
  * Anim propre au plan : léger balancement au repos, scuttle latéral à la marche, pinces qui claquent
  * vers l'avant à l'attaque, carapace retournée à la mort. Réutilise la machinerie (FK générique,
- * palette tokenisée, rendu) — comme composeSpider, dont c'est le pendant à pinces.
+ * palette en jetons, rendu) — comme composeSpider, dont c'est le pendant à pinces.
  */
 import type { BonePose } from '../poses';
 import type { ResolvedBone } from '../composeRig';
@@ -20,7 +20,7 @@ import { sortByZ } from '../composite';
 export type CrabBoneId = 'corps' | 'pinceG' | 'pinceD';
 type CBone = FKBone & { z: number };
 export interface CrabProps {
-  sl: number; // échelle token
+  sl: number; // échelle du pion
   girth: number; // largeur/bombé de la carapace
   palette: PaletteDeclaree; // carapace (corps/corpsO/corpsH) ; cuir = articulations/pinces internes
   /** Piquants dressés sur carapace + pinces (nombre sur le pourtour ; absent = carapace lisse). */
@@ -32,7 +32,7 @@ export interface CrabProps {
   clawScale?: number | { G?: number; D?: number };
   /** Dents triangulaires marquées entre les doigts (pinces perforatrices). */
   clawTeeth?: boolean;
-  /** Art ADDITIONNEL par os (repère local de l'os, tokens @palette admis) — épave du Granchio… */
+  /** Art ADDITIONNEL par os (repère local de l'os, jetons @palette admis) — épave du Granchio… */
   deco?: Partial<Record<CrabBoneId, string>>;
 }
 

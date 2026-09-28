@@ -2,8 +2,9 @@
 // `src/gameIso/rig/quadruped/quad-anchor-contract.test.ts` et `quad-vues-ratchet.test.ts`. Patron
 // whitelist-en-lib du dépôt (`paletteLiteralStock.mjs`, `jambesGabaritStock.mjs`).
 //
-// La MESURE vit dans `scripts/guards/lib/quadDecoAudit.ts`, partagée avec le régénérateur
-// `npx tsx scripts/rig/regen-quad-deco-stock.mts` (DÉCROISSANT-SEULEMENT, refus SITE PAR SITE).
+// La MESURE vit dans `scripts/guards/lib/quadDecoAudit.ts`, partagée avec sa régénération,
+// `npx tsx scripts/guards/lib/regenStock.mts scripts/guards/lib/quadDecoAudit.ts` (politique `DECROISSANT`,
+// refus SITE PAR SITE).
 //
 // FORME DES ENTRÉES — `{ fichier, ref, occurrence }`, la forme UNIQUE de tout stock nominatif du
 // dépôt (`cleDeSite`, `scripts/guards/lib/stock.mjs`) : `fichier` = la def de créature à ouvrir,
@@ -18,7 +19,7 @@
 //   — `REPERES_ART_PROPRES_RATCHET` : l'art d'une part s'enveloppe d'un transform que `quadAnchor`
 //     ne reproduit pas. Les 18 entrées sont des ROTATIONS (port de tête de profil, cuit dans l'art
 //     faute d'axe de squelette qui le porte) : mouvement RIGIDE, l'unité de la part reste celle de
-//     l'os. Le patron de solde est `boeuf profile tete` (lot B2) puis `cheval profile tete`
+//     l'os. Le patron de solde est `boeuf profile tete` puis `cheval profile tete`
 //     (2026-08-06) : réécrire les coordonnées de l'art dans le repère de l'OS, port de tête compris.
 //   — `DECOS_MORTS_RATCHET` : clé `deco` visant un os que la vue n'émet pas. Les 4 relèvent de l'ART
 //     à créer (fanon du grand cerf, crête de soies du sanglier : art authoré dans les coordonnées et
@@ -33,7 +34,7 @@
 // PAS ICI — `ANCRES_OEIL_ABSENTES_GELEES` reste dans `src/gameIso/rig/quadruped/deco-stock.fixture.ts` :
 // son unique entrée `boeuf profile` n'a PAS de fichier fautif dérivable. La mesure lit
 // `quad.viewArt.profile.tete`, mais l'art qui manque l'ancre `data-eye` est CUIT dans
-// `src/gameIso/rig/quadruped/boeufProfilCompile.ts` (module d'art compilé par vue, qui n'existe que
+// `src/gameIso/rig/quadruped/boeufCompile.ts` (module d'art compilé de l'espèce, keyé par vue, qui n'existe que
 // pour boeuf/cheval) — aucun index ne relie un `viewArt` à son module source, et écrire `defs/Boeuf.ts`
 // nommerait un fichier où le défaut n'est pas. Un chemin inventé vaut moins qu'une clé nue : il ferait
 // mentir la porte de plage. Le jour où le canal `viewArt` dira son module, l'entrée rejoint ce fichier.

@@ -9,6 +9,7 @@
  *
  * Toute mutation faite ici est reprise en `finally` : sinon l'`afterEach` global échouerait ICI.
  */
+import { VIEWS } from './facing';
 import { describe, it, expect } from 'vitest';
 import { creatures } from '../../data';
 import { creatureToCombatant } from '../../state/spawn';
@@ -19,9 +20,6 @@ import { bonesToSvg } from './renderBones';
 import { ARMOUR } from './parts/armour';
 import { HAIRSTYLE_DEFS } from './parts/hairstyles';
 import { rigArtRegistrySignatures } from '../../test-setup';
-import type { View } from './facing';
-
-const VIEWS: View[] = ['front', 'profile', 'back'];
 
 type Case = { name: string; render: () => string };
 

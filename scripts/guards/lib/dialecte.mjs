@@ -1,4 +1,6 @@
-// Dialecte de parse d'un fichier — source UNIQUE de « extension → `ts.ScriptKind` » (#1679 L3b).
+// Dialecte de parse d'un fichier — source UNIQUE de « extension → `ts.ScriptKind` » (#1679), et
+// l'arbre syntaxique d'un fichier lu (`ast`), seule écriture de `createSourceFile` des
+// modules de #1903 (les autres parses du dépôt : #2012).
 // Chaque garde AST recopiait sa propre table (14 sites, de 2 à 3 branches) : une extension neuve
 // (`.mts` d'un script d'outillage, `.cts`) entrait alors en `TS` ici et en `JS` là, et un scan
 // silencieusement faux ne se voit pas — l'AST se construit quand même.
@@ -31,4 +33,20 @@ export function scriptKindDe(fichier, { inconnu = 'TS' } = {}) {
   const dialecte = DIALECTE[ext] ?? (inconnu === 'refus' ? null : inconnu)
   // eslint-disable-next-line murs/dialecte -- la source elle-même : la table du dialecte vit ici
   return dialecte === null ? null : typescript().ScriptKind[dialecte]
+}
+
+/**
+ * Arbre syntaxique d'un fichier lu, dans le dialecte de son extension (`scriptKindDe`), nœuds
+ * parentés, bâti à chaque appel : aucune rétention (`tsProgram.mjs`, en-tête). Un appelant qui relit
+ * le même fichier dans une même passe tient l'arbre lui-même.
+ * @param {{ rel: string, text: string }} fichier
+ * @param {{ inconnu?: 'TS' | 'refus' }} [options] sous `inconnu: 'refus'`, une extension hors table
+ *   rend `null`, sans parser.
+ * @returns {import('typescript').SourceFile | null}
+ */
+export function ast(fichier, { inconnu = 'TS' } = {}) {
+  const kind = scriptKindDe(fichier.rel, { inconnu })
+  if (kind === null) return null
+  const ts = typescript()
+  return ts.createSourceFile(fichier.rel, fichier.text, ts.ScriptTarget.Latest, true, kind)
 }

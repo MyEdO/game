@@ -12,7 +12,9 @@ import type { Combatant } from '../../../engine/types';
 import type { RigOverlay, BoneId } from '../bones';
 import { appendageArt } from './appendages';
 import { ARMS } from './monster';
-import { pickView } from './types';
+import { viewOrFront } from './types';
+import { VIEWS, type View } from '../facing';
+import { tableTotale } from '../../../lib/tableTotale';
 import { WINGS } from './wings';
 import { dorsalOverlays } from './dorsal';
 import { raceById } from '../races';
@@ -20,16 +22,16 @@ import { bipedDef } from '../creatures';
 import { baseSpeciesOf } from '../skeletons';
 import { hasTraitKey } from '../../../engine/traits/dispatch';
 
-// Cornes de trait = MÊME registre multi-vues que features/monster (repli générique), rendues en 3
+// Cornes de trait = MÊME registre des arts orientés que features/monster (repli générique), rendues en 3
 // calques view-taggés (comme queue/ailes via dorsalOverlays) → profil balayé, plus de cornes de face.
 const CORNES3 = appendageArt('cornes-generique');
-const corneOverlay = (v: 'front' | 'back' | 'profile'): RigOverlay =>
-  ({ bone: 'tete', svg: `<g data-trait="cornes">${pickView(CORNES3, v)}</g>`, behind: true, view: v });
+const corneOverlay = (v: View): RigOverlay =>
+  ({ bone: 'tete', svg: `<g data-trait="cornes">${viewOrFront(CORNES3, v)}</g>`, behind: true, view: v });
 // Queue de trait (Attaque caudale) : art du fouet dans le registre UNIQUE (`queue-fouet`), rendu ICI
 // en DORSAL (profondeur : longue, déborde la hanche) — le mécanisme diffère, PAS la source de l'art.
 const QUEUE3 = appendageArt('queue-fouet');
-const queueArt = (v: 'front' | 'back' | 'profile') => `<g data-trait="queue">${pickView(QUEUE3, v)}</g>`;
-const TENTACULE_BRAS = `<g data-trait="tentacules">${pickView(ARMS['tentacule'], 'front')}</g>`;
+const queueArt = (v: View) => `<g data-trait="queue">${viewOrFront(QUEUE3, v)}</g>`;
+const TENTACULE_BRAS = `<g data-trait="tentacules">${viewOrFront(ARMS['tentacule'], 'front')}</g>`;
 
 /** Calques dérivés des traits du combattant (bipèdes — les plans dessinent les leurs). */
 export function traitOverlaysFor(c: Combatant): RigOverlay[] {
@@ -43,10 +45,10 @@ export function traitOverlaysFor(c: Combatant): RigOverlay[] {
   const hasBehind = (bone: BoneId) => behindFeats.some((f) => f.bone === bone && (f.layer ?? 50) < 0);
   const has = (key: string) => hasTraitKey(traits, key);
   const out: RigOverlay[] = [];
-  if (has('cornes') && !hasBehind('tete')) out.push(corneOverlay('front'), corneOverlay('back'), corneOverlay('profile'));
+  if (has('cornes') && !hasBehind('tete')) out.push(...VIEWS.map(corneOverlay));
   // Queue et ailes = appendices DORSAUX : règles de vue/profondeur codifiées par dorsalOverlays.
   if (has('attaque-caudale') && !hasBehind('bassin')) {
-    out.push(...dorsalOverlays('bassin', { front: queueArt('front'), back: queueArt('back'), profile: queueArt('profile') }));
+    out.push(...dorsalOverlays('bassin', tableTotale(VIEWS, queueArt)));
   }
   if (has('tentacules')) {
     out.push({ bone: 'epauleG', svg: TENTACULE_BRAS, replace: true });

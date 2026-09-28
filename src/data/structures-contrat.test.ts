@@ -6,6 +6,7 @@ import { listerArbre } from '../../scripts/guards/lib/lister.mjs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { detenteur } from '../detenteur.testkit';
+import { tableTotale } from '../lib/tableTotale';
 import {
   classerValeur,
   listerDocuments,
@@ -15,9 +16,10 @@ import {
   scannerRedeclarations,
   type Redeclaration,
 } from '../../scripts/docs/lib/structures-scan.mjs';
-import { sitesHorsStrate } from '../../scripts/guards/lib/horsStrateAudit';
+import { regenerations, sitesHorsStrate } from '../../scripts/guards/lib/horsStrateAudit';
 import { HORS_STRATE_RATCHET } from '../../scripts/guards/lib/horsStrateStock.mjs';
 import { ecartDuVolet } from '../../scripts/guards/lib/stock.mjs';
+import { ecartDeRegeneration, texteEnPlace } from '../../scripts/guards/lib/stockDeSites.mjs';
 import {
   ANGLES_MORTS,
   CLES_DE_VALEUR,
@@ -162,7 +164,8 @@ const cleOrphelineObservee = (o: Parameters<typeof cleOrpheline>[0]) => cleOrphe
  * CLIQUET des signatures HORS STRATE (#1465, nominatif depuis #1727 T0d) : chaque signature que le
  * lexique fermé ne classe dans aucune strate est une ENTRÉE de
  * `scripts/guards/lib/horsStrateStock.mjs`, GÉNÉRÉE par
- * `npx tsx scripts/data/regen-hors-strate-stock.mts` depuis la mesure `scan.invisibles` que ce
+ * `npx tsx scripts/guards/lib/regenStock.mts scripts/guards/lib/horsStrateAudit.ts` depuis la mesure
+ * `scan.invisibles` que ce
  * fichier consomme. La traduction en sites est UNIQUE (`horsStrateAudit.ts`), l'écart est jugé par
  * `ecartDuVolet` ci-dessous.
  * Le COMPTE d'occurrences de chaque signature vit dans `docs/structures-donnees.md` (table bornée
@@ -223,9 +226,13 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
     expect(
       lignes(perimees),
       'entrée(s) SOLDÉE(s) au stock hors strate : régénérer par ' +
-        '`npx tsx scripts/data/regen-hors-strate-stock.mts` — un stock qui garde une ligne morte fait ' +
+        '`npx tsx scripts/guards/lib/regenStock.mts scripts/guards/lib/horsStrateAudit.ts` — un stock qui garde une ligne morte fait ' +
         'passer une dette éteinte pour vivante.',
     ).toEqual([]);
+  });
+
+  it('le stock hors strate committé est un point fixe de sa régénération', () => {
+    for (const r of regenerations(scan)) expect(ecartDeRegeneration(r, texteEnPlace(r.chemin))).toBeNull();
   });
 
   it('signatures d’OPS : observé == stock (dénominateur du lot L1c #1468)', () => {
@@ -469,7 +476,7 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       // 10 lignes `source | alsoIn` (69 occurrences) sortent de `STRUCTURES_FORMES` ; aucune donnée
       // n'est réécrite.
       ['STRUCTURES_CIBLES', STRUCTURES_CIBLES.length, 42],
-      // Cliquet DESCENDU 671 → 670 (#1467 L1b V-P7) : le statbloc à `size` d'`arene-projet.json` quitte
+      // Cliquet DESCENDU 671 → 670 (#1467) : le statbloc à `size` d'`arene-projet.json` quitte
       // ce stock — le profil embarqué s'ANNONCE (`type: 'statblock'`) et sa forme est déclarée champ par
       // champ (`defs-scenes/communs.ts`), donc sa signature n'est plus lue comme une référence non
       // résolue. Il réapparaît à `STRUCTURES_ORPHELINES` ci-dessous : même objet, autre stock.
@@ -660,14 +667,14 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       // Pneumonie (`dailyTest {difficulty+…}`, EDOC 08 l.104) avec son propre objet, comme le font
       // encore les autres porteurs de Test du même lot L4. La ligne s'éteindra avec eux.
       // Cliquet REMONTÉ 105 → 107 (L4 #1463, vague `plage`, 2026-08-31) — deux lignes ENTRENT, et
-      // c'est l'empreinte de la migration P2 sur les defs, pas une dérive de forme : `weather.json`
+      // c'est l'empreinte de la vague `plage` sur les defs, pas une dérive de forme : `weather.json`
       // et `advancementCosts.json` encodaient leurs tables par la BORNE HAUTE SEULE (19 + 15 rangées,
       // borne basse reconstruite par POSITION, donc ni authorée ni éditable). Leurs deux bornes étant
       // en donnée (EDOC 08 l.52-59 ; LDB 07 l.56-70), leurs deux schémas déclarent le
       // littéral `{min, max, …}` — ils rejoignent la famille des 30 defs qui le redéclarent déjà.
-      // RESTE NOMMÉ : le schéma PARTAGÉ (P1, `grammaire/valeurs.ts`) éteint les 32 d'un coup ; ces
+      // RESTE NOMMÉ : le schéma PARTAGÉ (`grammaire/valeurs.ts`) éteint les 32 d'un coup ; ces
       // deux lignes-là sont à éteindre AVEC elles, pas séparément.
-      // Cliquet DESCENDU 107 → 97 (L4 #1463, vague `plage`, LOT P1-a) : les deux bornes d'une rangée
+      // Cliquet DESCENDU 107 → 97 (L4 #1463, vague `plage`) : les deux bornes d'une rangée
       // de table se déclarent UNE fois — `plageSchema` (`grammaire/valeurs.ts`) — et les schémas de
       // RANGÉE la composent PAR SHAPE (`z.strictObject({ ...plageSchema.shape, … })`, graphie unique
       // de dérivation tenue par `grammaire-guard.test.ts`). Dix lignes SORTENT : sept par composition
@@ -678,7 +685,7 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       // Le scanner ne résout PAS un spread : la garde est le test POSITIF de composition
       // (`grammaire/formes-partagees.test.ts`), qui refuse une rangée sans borne AU SCHÉMA PARTAGÉ et
       // à chacun des 9 documents adoptants. Le cliquet SUIT la baisse.
-      // Cliquet DESCENDU 97 → 88 (LOT P1-b, même graphie) : les rangées de table de MAGIE et les tables
+      // Cliquet DESCENDU 97 → 88 (même graphie) : les rangées de table de MAGIE et les tables
       // générales composent à leur tour `plageSchema` par la SHAPE — miscast › entries,
       // arcane-phenomena › tables[].rows, vents-tourbillonnants › entries, tables › rows,
       // interludeEvents (racine), drunkenness › entries, weather › seasons[].ranges, tavernGames › table
@@ -687,7 +694,7 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       // second relève du concept `bornes` d'un réglage), `advancementCosts.ts` a une borne haute
       // `nullable` (dernière bande ouverte). Le gate reste POSITIF (`grammaire/formes-partagees.test.ts`,
       // +10 sites à la porte réelle `validateDataset`), le scanner ne résolvant pas un spread.
-      // Cliquet DESCENDU 88 → 76 (LOT P1-c, même graphie) : les rangées de table de MER, de ROUTE et de
+      // Cliquet DESCENDU 88 → 76 (même graphie) : les rangées de table de MER, de ROUTE et de
       // BATAILLE composent à leur tour `plageSchema` par la SHAPE — artillery-misfire › entries,
       // crew-morale › bands, driving-mishap › entries, land-cargo › wineQuality et › rumours,
       // mass-battle › hazards, naval-progression › entries, river-navigation › windForces/windDirections
@@ -697,7 +704,7 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       // OPTIONNELLES, le `kind` misfire est hors table), `advancementCosts.ts` (borne haute `nullable`,
       // dernière bande ouverte) et `water-exposure.ts` (les deux bornes y sont celles d'un PRÉDICAT
       // `auto.{kind:'woundsLost', op:'between'}` sur des Blessures perdues — aucune rangée tirable,
-      // aucun `findTableEntry` ; la table du document, `diseases`, compose depuis P1-a).
+      // aucun `findTableEntry` ; la table du document, `diseases`, compose `plageSchema`).
       // Cliquet DESCENDU 76 → 69 (#1463 L-de-1, 2026-09-01), en DEUX temps. (a) Le lot : les TROIS dés
       // re-tapés dans les defs sortent — `maladies.ts` et `miscast.ts › engineFormulaSchema.dice`
       // composent le `diceSpecSchema` de la grammaire, et le `jsonDiceSchema` du dialecte
@@ -749,21 +756,21 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       // Cliquet DESCENDU 77 → 73 (#1467 L1b V-formeProjet) : les 4 lignes « identité | `id` | clé
       // absente » des projets sont SOLDéES — l'enveloppe aplatie pose `id`/`label` à la RACINE des 4
       // documents. Le cliquet SUIT la baisse.
-      // Cliquet DESCENDU 73 → 58 (#1467 L1b V-P7) : les 14 lignes « `nom` | clé divergente » des 4
+      // Cliquet DESCENDU 73 → 58 (#1467) : les 14 lignes « `nom` | clé divergente » des 4
       // projets sont SOLDÉES (le libellé de scène et de carte prend sa graphie `label`, `schema` 5 → 6),
       // et la 15ᵉ part avec la ligne FORMES ci-dessus. Le cliquet SUIT la baisse.
       // … et 58 → 56 : `title` reçoit son RÔLE PROPRE au lexique (« sous-titre », forme cible), donc
       // `creatures.json` (490) et `gods.json` (40) ne sont plus comptés en graphie divergente du libellé.
       // … et 56 → 52 (L2 #1548) : les 4 lignes `progression-schemas.derived.json` sont SOLDÉES — la
       // marque de niveau nomme sa Caractéristique `characteristic`, graphie de RÉFÉRENCE.
-      // … et 52 → 47 (#1552 lot 3) : le rôle `source` déclare son ALTERNATIVE `maison`, comme la
+      // … et 52 → 47 (#1552) : le rôle `source` déclare son ALTERNATIVE `maison`, comme la
       // grammaire l'exige déjà (`document.ts:402-413` : `source` OU `maison`, jamais ni l'un ni
       // l'autre). Les 4 documents dont TOUTES les entrées portent `maison` sortent du
       // dénominateur — les 3 projets authorés (`arene`, `barge-du-sel`, `loup-et-saumure`) et
       // `axes.json` (9/9 entrées `maison`). AUCUNE donnée n'est touchée : c'est le lexique qui
       // cessait de mesurer une divergence là où le schéma, lui, est satisfait.
       ['STRUCTURES_ENVELOPPE', STRUCTURES_ENVELOPPE.length, 47],
-      // Cliquet REMONTÉ 91 → 92 (#1467 L1b V-P7) : AUCUNE dérive neuve — c'est le statbloc à `size`
+      // Cliquet REMONTÉ 91 → 92 (#1467) : AUCUNE dérive neuve — c'est le statbloc à `size`
       // d'`arene-projet.json` qui ARRIVE de `STRUCTURES_FORMES` (sa signature gagne `type`, elle ne se
       // confond plus avec les deux autres). La somme des deux stocks est CONSTANTE : 671 + 91 = 670 + 92.
       // Cliquet REMONTÉ 92 → 106 (L2 #1548, commit 3c) : AUCUNE dérive neuve — ce sont 14 lignes qui
@@ -885,10 +892,10 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       // … puis 400 → 402 (#862) : cf. le cliquet `STRUCTURES_OPS` ci-dessus.
       // … puis 402 → 404 (#674) : cf. le cliquet `STRUCTURES_OPS` ci-dessus.
       // … puis 404 → 403 (#1463 L-de-1) : cf. le cliquet `STRUCTURES_OPS` ci-dessus.
-      // … puis 403 → 391 (#1657 B2a) : les 12 lignes de signature d'op d'`aa-criticals.json` FUSIONNENT
+      // … puis 403 → 391 (#1657) : les 12 lignes de signature d'op d'`aa-criticals.json` FUSIONNENT
       // dans celles de `criticals.json` — un fichier de moins, les mêmes ops (les occurrences se
       // somment, cf. le cliquet `STRUCTURES_OPS` ci-dessus).
-      // … puis 391 → 392 (#1657 B3-2b-c) : l'op `fall` NEUVE — les 5 rangées du gréement font tomber
+      // … puis 391 → 392 (#1657) : l'op `fall` NEUVE — les 5 rangées du gréement font tomber
       // (MDG 13 l.678-688), hauteur lue en donnée et non authorée au site.
       // … puis 392 → 393 (#1653 train A, 2026-09-04) : la signature `condition {durationRounds, id, op,
       // perRound, unlessCondition, value}` de « Purifier la chair » (LDB 40 l.75) — INSTANCE des deux
@@ -907,7 +914,7 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       // train rejoignent des signatures DÉJÀ stockées (`rollTable` 12 → 13 ; `wounds` à mitigations
       // déclarées 5 → 6). Cf. `STRUCTURES_OPS` ci-dessus.
       // … puis 398 → 393 (#1473 train 2a) : les 13 lignes `op,talentId`/`op,spec,talentId` des ops de Talent deviennent 8 lignes `op,talent` (`refOuSpec('talent')`).
-      // … puis 393 → 394 (#1957 lot 1, 2026-09-24) : la signature `grantTrait {indice, op, range,
+      // … puis 393 → 394 (#1957, 2026-09-24) : la signature `grantTrait {indice, op, range,
       // traitId}` de `tables.json` — la Langue préhensile de l'Allure démoniaque de Slaanesh porte sa
       // Portée en `range` (`LDB 85` l.209) et non plus en `arg`. Même op, une ligne de plus
       // (`arg,indice,op,traitId` 3 → 2 dans ce dataset), aucune occurrence en plus.
@@ -915,15 +922,15 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       // L1d #1469 : 62 → 61 (#1552) — « La Diligence » CITE son folio à la racine
       // (`ennemi-dans-l-ombre` 12, la référence que son bloc narratif portait déjà en profondeur) ;
       // sa ligne « source | clé absente » est SOLDÉE.
-      // … puis 61 → 57 (#1552 lot 3) : le rôle `source` déclare son alternative `maison` et les 4
+      // … puis 61 → 57 (#1552) : le rôle `source` déclare son alternative `maison` et les 4
       // documents qui la portent sur TOUTES leurs entrées sortent du dénominateur (cf. le cliquet
       // `STRUCTURES_ENVELOPPE` ci-dessus).
       // … puis 59 → 58 (#1463 L-gram-4) : la redéclaration du def `progression-schemas-derived.ts`
       // sort — il compose `sourceRefSchema.shape` et le générateur émet `page`.
-      // … puis 58 → 56 (#1657 B2a) : les DEUX lignes « source | clé absente » des racines de
+      // … puis 58 → 56 (#1657) : les DEUX lignes « source | clé absente » des racines de
       // `criticals.json` et `aa-criticals.json` sont SOLDÉES — les 8 documents-tables qui les
       // remplacent portent chacun leur `source` (LDB 174 ×4, AA 83/84/85/86).
-      // … puis 55 → 53 (#1686 lot 2) : les TROIS lignes « `source` absente » des catalogues de matières
+      // … puis 55 → 53 (#1686) : les TROIS lignes « `source` absente » des catalogues de matières
       // (`propMaterials`/`roofMaterials`/`reliefMaterials`) en font seulement UNE — les trois documents
       // fusionnent en `materials.json`, mêmes 16 entrées, un seul porteur de la divergence.
       'L1d #1469': 43 /* 53→43 (#1897) : les 10 lignes `source | alsoIn` sortent, l'emplacement secondaire et sa preuve `quote` étant CIBLES au site `alsoIn` (`SITE_EMPLACEMENT_SECONDAIRE`) — le +2 ci-dessous (creatures/species) est soldé avec elles. 56→55 : la ligne d'enveloppe « `source` absente » de `props.json` meurt (#1680 ligne 5). PORTÉE EXACTE, à ne pas surestimer : elle s'éteint par `satisfaitAutrement = parCle.has(def.alternative)` (`scripts/docs/lib/structures-scan.mts:1081`) — la divergence est relevée PAR DOCUMENT, et la présence de la clé alternative `maison` sur AU MOINS UNE entrée suffit à l'éteindre pour tout le document. Ce ne sont donc PAS les 123 entrées qui deviennent sourcées : 41 portent `maison` (celles qui portent une RÈGLE — `light`/`cover`/`opaque` — que `affinerEntree` exige), 82 restent muettes et le demeurent légitimement (leur contenu est de l'art). */,
@@ -982,14 +989,14 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       // (`maladies › symptoms {difficulty,symptomId}`, sa Difficulté RÉSOUT donc la projection garde les
       // deux clés) et la RÈGLE d'une Activité (`activities › rule {id-nu}`, `augure` → `tableau-augure`,
       // que la classification en `test` empêchait de mesurer). La somme L2+L3+L4 BAISSE : 494 → 485.
-      // … puis 385 → 376 (#1657 B2a) : 7 lignes de référence d'`aa-criticals.json` fusionnent dans
+      // … puis 385 → 376 (#1657) : 7 lignes de référence d'`aa-criticals.json` fusionnent dans
       // celles de `criticals.json`, et les 2 lignes `onFail` MEURENT — la conséquence d'un jet vit
       // dans la branche `fail` du nœud `test`, sous `ops` — une seule graphie au lieu de deux.
-      // … puis 376 → 374 (#1657 B2b) : les DEUX lignes `onFail` des maladies meurent à leur tour —
+      // … puis 376 → 374 (#1657) : les DEUX lignes `onFail` des maladies meurent à leur tour —
       // `symptoms.json › onFail` (2 signatures) fusionne dans `› ops`, et la 8ᵉ réf de symptôme à
       // Difficulté propre (posée au geste A) part : le document déclare sa Difficulté par
       // l'enum de la grammaire, un littéral d'enum n'ouvrant jamais de référence.
-      // … puis 374 → 373 (#1657 B2c) : la ligne `river-criticals.json › onFail` MEURT à son tour — la
+      // … puis 374 → 373 (#1657) : la ligne `river-criticals.json › onFail` MEURT à son tour — la
       // conséquence du coup à l'équipage rejoint `› ops` (4 → 5 occurrences), une seule graphie.
       // … puis 373 → 374 (#1653 train A, 2026-09-04) : `miscast.json › ops` gagne la signature
       // `id,unlessCondition,value+…` — MÊME famille que `id,value+…` déjà stockée (11+31 lignes) :
@@ -1025,7 +1032,7 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       // catalogue de BÂTIMENTS passé en donnée (`buildings.json › roofMaterial` et `› features`,
       // `diligence-projet.json › style` ; `arene-projet.json › style` s'éteint). MÊME graphie que leurs
       // sœurs déjà stockées ici : elles s'éteindront avec elles, d'un seul geste.
-      // #1687 lot 3-I (2026-09-11) : 394 → 391 — TROIS lignes MEURENT sans un octet de donnée changé :
+      // #1687 (2026-09-11) : 394 → 391 — TROIS lignes MEURENT sans un octet de donnée changé :
       // `arene-projet.json › effect` `lodging,type` (1), `phase,type` (2) et `type+…` (1), dont
       // `choixDeclares` (`zod-introspect.mts`) atteint le littéral d'enum DÉCLARÉ ; `ouvreReference`
       // (`structures-scan.mts`) ne l'ouvre pas en référence.
@@ -1057,14 +1064,14 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       // L4 #1463 : 221 → 162 (vague `plage`, 2026-08-31). −61 lignes de FORMES (les rangées de table
       // à fourchette plate passent CIBLE, cf. le cliquet `STRUCTURES_FORMES` ci-dessus) et +2 lignes
       // de REDÉCLARATIONS (`weather.ts`, `advancementCosts.ts` — leurs schémas déclarent le
-      // littéral à DEUX bornes, empreinte de la migration P2 ; cf. le cliquet
+      // littéral à DEUX bornes, empreinte de la vague `plage` ; cf. le cliquet
       // `STRUCTURES_REDECLARATIONS`). Solde net −59.
-      // … puis 162 → 152 (vague `plage`, LOT P1-a) : les 10 lignes de REDÉCLARATIONS des rangées de
+      // … puis 162 → 152 (vague `plage`) : les 10 lignes de REDÉCLARATIONS des rangées de
       // table « critiques & corps » sortent — leurs schémas composent `plageSchema` par la SHAPE, ou
       // l'adoptent nu quand les deux bornes sont toute la charge utile.
-      // … puis 152 → 143 (LOT P1-b) : les 9 lignes de REDÉCLARATIONS des rangées de table de magie et
+      // … puis 152 → 143 : les 9 lignes de REDÉCLARATIONS des rangées de table de magie et
       // des tables générales sortent à leur tour, par composition de `plageSchema`.
-      // … puis 143 → 131 (LOT P1-c) : les 12 lignes de REDÉCLARATIONS des rangées de table de mer, de
+      // … puis 143 → 131 : les 12 lignes de REDÉCLARATIONS des rangées de table de mer, de
       // route et de bataille sortent à leur tour, par composition de `plageSchema`.
       // … puis 131 → 130 (L-monnaie-1) : `activities.minInvest` compose `moneyPartialSchema` de la
       // grammaire (`grammaire/valeurs.ts`) au lieu de re-taper `{gold}`.
@@ -1091,21 +1098,21 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       // … puis 94 → 90 (#1463 L-gram-3) : les DEUX `price` re-tapés des defs de commerce, la
       // redéclaration `sea-cargo.ts › offerPrice` et la forme `sea-cargo.json › offerPrice {sum+…}`
       // sortent ENSEMBLE (cf. les deux cliquets ci-dessus) : −4.
-      // … #1657 B2a : 90 → 85. Les 4 lignes de test d'`aa-criticals.json` fusionnent dans celles de
+      // … #1657 : 90 → 85. Les 4 lignes de test d'`aa-criticals.json` fusionnent dans celles de
       // `criticals.json` (amputation, loss, resist ×2), et `resist` devient le nœud `test` PARTAGÉ :
       // deux lignes (`test | difficulty` 38, `test | difficulty,skill` 1) là où il y en avait quatre,
       // plus la redéclaration de def `criticals.ts › resist` qui meurt avec la graphie propriétaire.
-      // … #1657 B2b : le plafond TIENT à 85, mesuré — le lot ne décroît pas ici. `symptoms.json ›
+      // … #1657 : le plafond TIENT à 85, mesuré — le lot ne décroît pas ici. `symptoms.json ›
       // onTick {difficulty+…}` et sa redéclaration de def (`symptoms.ts › onTick`) meurent avec la
       // graphie propriétaire (−2), et le nœud partagé rend UNE forme par document porteur
       // (`symptoms.json › test {difficulty}` 3, `maladies.json › test {difficulty}` 1, +2) : solde 0.
       // Le terrain gagné est de SIGNATURE, pas de compte — les deux lignes neuves portent l'exacte
-      // `difficulty` du `flowTestSchema`, la MÊME que `criticals.json › test` depuis B2a, là où la
+      // `difficulty` du `flowTestSchema`, la MÊME que `criticals.json › test`, là où la
       // graphie propriétaire projetait `difficulty+…`. Le décompte L3 (−2), lui, baisse.
-      // … #1657 B3-1 : 85 → 84. Les DEUX formes de nœud `test` de `criticals.json` en font seulement UNE : les 38 rangées qui ne nommaient PAS leur Compétence rejoignent `difficulty,skill`
+      // … #1657 : 85 → 84. Les DEUX formes de nœud `test` de `criticals.json` en font seulement UNE : les 38 rangées qui ne nommaient PAS leur Compétence rejoignent `difficulty,skill`
       // (1 → 39), la seule graphie que la porte sache tester. Ce que le silence coûtait : le moteur
       // recomposait la valeur à la main (Endurance + avances de Résistance), hors `testValue`.
-      // … #1657 B3-3 : 84 → 85, cliquet REMONTÉ d'UNE ligne, et c'est une CONVERGENCE, pas une dérive.
+      // … #1657 : 84 → 85, cliquet REMONTÉ d'UNE ligne, et c'est une CONVERGENCE, pas une dérive.
       // Les 4 nœuds du cycle de maladie NOMMENT ce qu'ils testent (`LDB 20 l.145/l.212` Résistance,
       // `MSRC 16 l.90` Endurance, `EDOC 08 l.104` Résistance) : la graphie APPAUVRIE `test
       // {difficulty}` — celle qui laissait le moteur recomposer la valeur à la main (#1685) — MEURT
@@ -1218,7 +1225,7 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       for (const champ of champs) {
         const i = arr.findIndex((x) => x[champ] !== undefined && x[champ] !== '' && x[champ] !== null);
         // Champ qu'AUCUNE ligne ne porte encore (`STRUCTURES_ENVELOPPE.detail` depuis l'extinction du
-        // dernier `type divergent`, #1467 L1b V-P3) : le scan le produit toujours
+        // dernier `type divergent`, #1467) : le scan le produit toujours
         // (`structures-scan.mts:967`), il doit donc entrer dans la clé LE JOUR où une ligne le
         // portera — on l'INJECTE sur la première ligne, la cécité de la clé restant mesurée pareil.
         const cible = i < 0 ? 0 : i;
@@ -1946,23 +1953,18 @@ const verdictsRedecl = detenteur((): Record<string, VerdictRedecl> => {
     for (const [cle, muter] of Object.entries(MUTATIONS)) muter(join(dossier, cle, 'src/data/schemas/defs'));
     const avant = scannerRedeclarations(join(dossier, 'avant'));
     const clesAvant = avant.redeclarations.map(cleRedecl);
-    return Object.fromEntries(
-      Object.keys(MUTATIONS).map((cle) => {
-        const apres = scannerRedeclarations(join(dossier, cle));
-        const clesApres = apres.redeclarations.map(cleRedecl);
-        return [
-          cle,
-          {
-            avant: avant.redeclarations.length,
-            apres: apres.redeclarations.length,
-            litterauxAvant: avant.totalLitteraux,
-            litterauxApres: apres.totalLitteraux,
-            nees: clesApres.filter((k) => !clesAvant.includes(k)).sort(),
-            perdues: clesAvant.filter((k) => !clesApres.includes(k)).sort(),
-          },
-        ];
-      }),
-    );
+    return tableTotale(Object.keys(MUTATIONS), (cle) => {
+      const apres = scannerRedeclarations(join(dossier, cle));
+      const clesApres = apres.redeclarations.map(cleRedecl);
+      return {
+        avant: avant.redeclarations.length,
+        apres: apres.redeclarations.length,
+        litterauxAvant: avant.totalLitteraux,
+        litterauxApres: apres.totalLitteraux,
+        nees: clesApres.filter((k) => !clesAvant.includes(k)).sort(),
+        perdues: clesAvant.filter((k) => !clesApres.includes(k)).sort(),
+      };
+    });
   } finally {
     rmSync(dossier, { recursive: true, force: true });
   }

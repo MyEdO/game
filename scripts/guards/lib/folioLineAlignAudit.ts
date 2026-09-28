@@ -1,7 +1,7 @@
 /**
- * AUDIT « le FOLIO déclaré tombe-t-il sur la LIGNE citée ? » en SITES (#1318 E8, #1727) — la
- * TRADUCTION en sites est UNIQUE, partagée par la garde `src/data/folio-line-align.test.ts` et le
- * régénérateur `scripts/data/regen-folio-line-align-stock.mts` : deux lectures divergentes du corpus
+ * AUDIT « le FOLIO déclaré tombe-t-il sur la LIGNE citée ? » en SITES (#1318, #1727) — la
+ * TRADUCTION en sites est UNIQUE, partagée par la garde `src/data/folio-line-align.test.ts` et la
+ * régénération de `folioLineAlignStock.mjs` (`regenerations`) : deux lectures divergentes du corpus
  * laisseraient l'une écrire ce que l'autre refuse. `auditFolioLineAlign` leur donne aussi la même
  * RÉSOLUTION du dossier de données, chacun n'ouvrant le disque qu'une fois.
  *
@@ -24,6 +24,7 @@ import { fileURLToPath } from 'node:url';
 import { auditDataDir } from './folioLineAlign.mjs';
 import type { AlignReport, AlignViolation, IgnoredEntry } from './folioLineAlign.mjs';
 import type { Site } from './stock.mjs';
+import { DECROISSANT, type RegenerationDeStock } from './stockDeSites.mjs';
 
 const RACINE = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 
@@ -61,3 +62,15 @@ export const MOTIF_FOLIO_DESALIGNE =
 export const MOTIF_FOLIO_NON_JUGEABLE =
   "Une entrée neuve hors de portée du détecteur se RELÈVE à la main au `Source/` avant d'être gelée : "
   + 'la geler sans relevé ferait passer un folio non vérifié pour une couverture tenue.';
+
+/** La RÉGÉNÉRATION de `folioLineAlignStock.mjs`, ses deux collections sur UN rapport (par défaut,
+ *  celui du corpus réel). Commande :
+ *  `npx tsx scripts/guards/lib/regenStock.mts scripts/guards/lib/folioLineAlignAudit.ts [--check]`. */
+export const regenerations = (rapport: AlignReport = auditFolioLineAlign()): RegenerationDeStock[] => [{
+  chemin: fileURLToPath(new URL('./folioLineAlignStock.mjs', import.meta.url)),
+  politique: DECROISSANT,
+  collections: [
+    { nom: 'FOLIO_LINE_ALIGN_RATCHET', sites: sitesDesViolations(rapport.violations), motif: MOTIF_FOLIO_DESALIGNE },
+    { nom: 'FOLIO_LINE_ALIGN_NON_JUGEABLE', sites: sitesDesNonJugeables(rapport.ignored), motif: MOTIF_FOLIO_NON_JUGEABLE },
+  ],
+}];

@@ -20,10 +20,8 @@
 //                   champ. Conflit résiduel = divergence de prose, donc humain : marqueurs écrits
 //                   dans %A et exit 1.
 import '../node-requis.mjs'
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
-import { depotDe, fusionDeTextes } from '../guards/lib/gitPorte.mjs'
+import { readFileSync, writeFileSync } from 'node:fs'
+import { threeWay } from './three-way.mjs'
 // Clôture statique chargeable sous un Node refusé : scripts/node-requis.mjs (#1801).
 // Frontière du champ dérivé : SOURCE UNIQUE partagée avec le générateur (scripts/raw/build-implemente.mjs).
 const { NOT_IMPL, parseFiche } = await import('../raw/build-implemente.mjs')
@@ -74,20 +72,6 @@ export function restoreImplemente(text, ...blockMaps) {
     out.push(...(blockMaps.map((b) => b.get(m[1])).find(Boolean) ?? [`**Implémente :** ${NOT_IMPL}`]))
   }
   return out.join('\n')
-}
-
-/** Fusion 3-voies déléguée à `git merge-file -p` (aucune réimplémentation du diff3).
- *  Retourne `{ text, conflict }` ; `conflict` vrai = marqueurs présents dans `text`. */
-export function threeWay(ours, base, theirs, labels = { ours: 'ours', base: 'base', theirs: 'theirs' }) {
-  const dir = mkdtempSync(join(tmpdir(), 'merge-docs-'))
-  try {
-    const put = (name, content) => { const f = join(dir, name); writeFileSync(f, content); return f }
-    const fichiers = { ours: put('ours', ours), base: put('base', base), theirs: put('theirs', theirs) }
-    const { texte, conflit } = fusionDeTextes(depotDe(dir), fichiers, labels)
-    return { text: texte, conflict: conflit }
-  } finally {
-    rmSync(dir, { recursive: true, force: true })
-  }
 }
 
 /** Blocs `<!-- X-INTEGRATION -->` d'un catalogue, indexés par marqueur. */

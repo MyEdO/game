@@ -519,8 +519,8 @@ export type GameOp =
   // (Il n'existe PLUS d'op `test` : un Test est un nœud de la STRUCTURE Flow `{kind:'test'}`, jamais une
   //  feuille d'effet — résolu CADENCE-AWARE par `resolveFlowTest` (héros manuel = jet influençable ;
   //  ennemi/auto = inline), avec sa branche `onFail` et sa continuation honorées. Les derniers usages
-  //  inline — les Tests imbriqués des tables d'Imparfaites/Colère, LDB 46/40 — sont désormais des nœuds
-  //  Flow `test` produits par `engine/miscast` et joués par `applyMiscast`→`runCombatFlow` (Lot 4d).
+  //  inline — les Tests imbriqués des tables d'Imparfaites/Colère, LDB 46/40 — sont des nœuds
+  //  Flow `test` produits par `engine/miscast` et joués par `applyMiscast`→`runCombatFlow`.
   //  « vocabulaire de Test UNIQUE » : aucun jet de héros ne se résout en silence.)
   /** Points de Corruption (LDB 19). Le store branche `ctx.onCorruption` (seuil →
    *  mutation → damnation) ; sans contexte, simple incrément du compteur.
@@ -791,7 +791,7 @@ export type GameOp =
   | { op: 'grantWeapon'; label: string; damage: Formula; damagePlus?: number; plusBF?: boolean;
       qualities?: string[]; subType?: string /* `id` de Groupe d'arme (WeaponGroupData.id) */; reach?: ReachValue; hands?: 1 | 2;
       onHitEffects?: TriggeredEffect[];
-      /** SKIN cosmétique magique (token→hex, ex. lame aethyrique bleutée / améthyste / ardente) —
+      /** SKIN cosmétique magique (clé→hex, ex. lame aethyrique bleutée / améthyste / ardente) —
        *  propagé à `Weapon.skin` par recomputeLoadout, l'arme se rend recolorée (système d'objet unique). */
       skin?: Record<string, string>;
       /** Silhouette de RENDU : `id` de Possession (`TrappingData.id`) pour les conjures à forme FIXE
@@ -1277,7 +1277,7 @@ export interface OpsCtx {
    *  `rollTable.extraRollsPerStep` (LDB 47 l.13-17, EDOC 13 l.230+270-276). */
   overcastDurationSteps?: number;
   /** Jets sur le Tableau RÉELLEMENT choisis par le lanceur (EDOC 13 l.276 : « vous POUVEZ » — décidable,
-   *  jamais forcé), borné à `overcastDurationSteps`. Absent = tous les pas alloués (défaut, IA/rétrocompat). */
+   *  jamais forcé), borné à `overcastDurationSteps`. Absent = tous les pas alloués (défaut, IA). */
   chosenTableRolls?: number;
   /** Marqueur de RÉ-ENTRANCE `onOwnTestFailed` : posé sur le flowCtx des effets déclenchés par ce trigger
    *  (MSRC 16 — Crampes). Threadé jusqu'à un nœud Flow `test` (le FM de palier 2) routé en cascade : son
