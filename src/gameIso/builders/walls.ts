@@ -10,7 +10,7 @@
  */
 import { heightAt, tileAt, doorIsOpen, structureIsDown, crenellatedAt, isCrenellated, isWalkable, structureAt, sceneMetresPerTile, type Scene, type WallSeg, type WallSide } from '../../state/scene';
 import { apparenceDeLArete, apparenceDOrnement, formeRendue } from '../../state/formeArete';
-import { estBaie } from '../../data/formesDArete';
+import { estBaie, habilleUneBaie } from '../../data/formesDArete';
 import { interiorCells } from '../../state/planDefects';
 import { memoByRef } from '../../state/sceneMemo';
 import { estAbsent } from '../../state/terrain';
@@ -46,8 +46,10 @@ const CHAMBRANLE_PX = 4; // linteau de porte bois
 // montant à l'autre ; ses joints de planches (demi-largeur PLANK_HALF_T) et sa poignée se DÉRIVENT de
 // sa partie VISIBLE entre les jambages (`jourDuVantail`, `jointsDePlanches`, `poigneeDuVantail`).
 export const VANTAIL_T0 = 0, VANTAIL_T1 = 1;
-/** Montants posés à CHAQUE borne d'une baie (`wallFaces`) : le poteau d'extrémité et le jambage. */
+/** Montants posés à CHAQUE borne d'une baie, de l'EXTRÉMITÉ de l'arête vers l'ouverture : le poteau
+ *  d'extrémité, puis le jambage. `wallFaces` les émet, `jourDuVantail` en lit la largeur. */
 const MONTANTS_DE_BAIE = ['poteau', 'jambage'] as const;
+type MontantDeBaie = (typeof MONTANTS_DE_BAIE)[number];
 /** Partie VISIBLE [t0, t1] du vantail, entre les montants des deux bornes : la demi-croix la plus large
  *  de `MONTANTS_DE_BAIE` (`uprightCrossM`, m) ramenée en fraction de l'arête `longueurM` (m). */
 export function jourDuVantail(app: StructureAppearanceDef, longueurM: number): [number, number] {
@@ -190,7 +192,7 @@ function wallFaces(seg: WallSeg, app: StructureAppearanceDef, b: number, down: b
     const P = par.heightLevelFrac * METRES_PER_LEVEL; // hauteur dressée du parapet (poteaux montant à H1+P)
     const crest = crownFaces(app, A, B, H1);
 
-    if (par.corpsDeGarde && estBaie(forme)) {
+    if (habilleUneBaie(app) && estBaie(forme)) {
       // CORPS DE GARDE : passage béant barré de sa claire-voie jusqu'au linteau (fermé), libre (ouvert) ou
       // seuil d'éboulis (abattu) + linteau.
       const haut = b + hauteurDeBaie(app, wallHeightM);
@@ -224,15 +226,17 @@ function wallFaces(seg: WallSeg, app: StructureAppearanceDef, b: number, down: b
           ...jointsDePlanches(...jour).map((t) => span('vantail-planche', t - PLANK_HALF_T, t + PLANK_HALF_T, b, b + op)),
           ...(forme === 'fermeture-fixe' ? [] : [span('poignee', ...poigneeDuVantail(...jour), b + op * HANDLE_LO, b + op * HANDLE_HI)]),
         ];
+    const hautDuMontant: Record<MontantDeBaie, number> = { poteau: H1, jambage: b + op };
+    const montant = (m: MontantDeBaie, t: number) => upright(m, t, b, hautDuMontant[m]);
+    const [extremite, ...bordsDOuverture] = MONTANTS_DE_BAIE;
     return [
-      upright('poteau', 0, b, H1),
+      montant(extremite, 0),
       ...leaf,
       slab('face', b + op, H1),
       slab('chambranle', b + op, b + op + isoPxToM(CHAMBRANLE_PX)),
       slab('couronnement', b + wallHeightM * CAP_FRAC, H1),
-      upright('jambage', 0, b, b + op),
-      upright('jambage', 1, b, b + op),
-      upright('poteau', 1, b, H1),
+      ...bordsDOuverture.flatMap((m) => [montant(m, 0), montant(m, 1)]),
+      montant(extremite, 1),
     ];
   }
   if (forme === 'mur-fenetre') {

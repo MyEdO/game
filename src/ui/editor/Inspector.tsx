@@ -53,8 +53,7 @@ import { Sel, type Tool, changePropRef, deleteSel, renameEntry, renameEffectZone
 import { scrollElementIntoPort } from './useEditorView';
 import type { FireArc, StructureData, NavalTraitRef } from '../../engine/types';
 import { DIFFICULTY_LABELS } from '../../engine/types';
-import { structureEdgeKind } from '../../engine/structures';
-import { apparenceDeLArete, apparenceParId, fenetrePosable, formesHorsCompatibilite, natureDuType, typeDArete, type TypeDArete } from '../../state/formeArete';
+import { apparenceDeLArete, apparenceParId, fenetrePosable, formesHorsCompatibilite, posableSurLeType, typeDArete, type TypeDArete } from '../../state/formeArete';
 import { patchVersStructure, patchVersType } from '../../state/editionArete';
 import { RefField } from '../compendium/RefField';
 import { SearchFilterField, filterByLabel } from '../SearchFilterField';
@@ -1122,7 +1121,7 @@ export function Inspector({
                   cfg={{
                     ds: 'structures',
                     single: true,
-                    filter: (e) => structureEdgeKind(e as unknown as StructureData) === natureDuType(typeDArete(selW)),
+                    filter: (e) => posableSurLeType(e as unknown as StructureData, typeDArete(selW)),
                   }}
                   fieldKey="Matériau du mur"
                   value={selW.structure}

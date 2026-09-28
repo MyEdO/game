@@ -115,7 +115,9 @@ export const PAIRES_SUPERPOSEES: { surbrillance: TeinteId; identite: TeinteId }[
   (identite) => ({ surbrillance: 'zone-marche' as TeinteId, identite }),
 );
 
-/** Plancher de séparation des quatre identités de héros : leurs anneaux sont des teintes contiguës. */
+/** Plancher de séparation des quatre identités de héros : leurs anneaux sont des teintes contiguës.
+ *  ÉTALON MESURÉ du plancher `SEUIL_TEINTES_CONTIGUES` : la paire la plus proche que le dépôt lit
+ *  distincte, `identite-heros-1` ⇄ `identite-heros-3`, est à 102. */
 export const SEUIL_IDENTITE_HEROS = SEUIL_TEINTES_CONTIGUES;
 
 /** Vue de la CHARGE d'un document `teintesJeu` : la carte des teintes, sous `entries`. */

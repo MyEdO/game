@@ -1,4 +1,5 @@
 import { readFileSync, existsSync } from 'node:fs';
+import { posix } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, it, expect } from 'vitest';
 import { readCorpus } from '../../../scripts/guards/lib/sourceCorpus.mjs';
@@ -16,7 +17,7 @@ import { materials, semencesDeScene, terrains } from '../../data';
  * le rend ROUGE dès qu'aucun site du périmètre ne l'exerce plus — au grain du CHAMP, une entrée par
  * champ (`neutraliseursDeChamp`), pour qu'un homonyme qui meurt rougisse SEUL. Un homonyme se
  * neutralise par le NOM DU CHAMP (`kind:`, `key:`, `cargoId:`, `weather:`, `part:`, `scope:`), par le
- * VOCABULAIRE d'union déclaré dans le fichier, par une UNION de littéraux ÉCRITE EN PLACE (paramètre,
+ * VOCABULAIRE d'union déclaré dans le fichier ou IMPORTÉ par son nom, par une UNION de littéraux ÉCRITE EN PLACE (paramètre,
  * champ) ou par une SEMENCE d'authoring GELÉE (`as const satisfies Fige<…Defaults>`) — jamais par un
  * nom de fichier, jamais par un site toléré.
  *
@@ -45,6 +46,8 @@ import { materials, semencesDeScene, terrains } from '../../data';
  * AUCUNE exception nominative : le stock mesuré est vide, il doit le rester.
  */
 const GAMEISO = fileURLToPath(new URL('../', import.meta.url));
+/** Racine du dépôt : `readCorpus` rend ses chemins relatifs à elle. */
+const RACINE = fileURLToPath(new URL('../../../', import.meta.url));
 
 /** Les CINQ couches ÉMETTRICES scannées. `prefixe`/`dir` composent le chemin que le rapport porte ;
  *  `recursif: false` borne la couche à la profondeur 1. */
@@ -93,12 +96,12 @@ const SEMENCE_DECL = /=\s*\{[^{}]*\}\s*as const satisfies\s+(?:Fige<)?\w*Default
 /** Tous les fichiers du périmètre : la marche de l'arbre ET la lecture viennent de la primitive de
  *  corpus (`readCorpus`, une clé par base, `*.test.*` hors corpus). Le chemin rendu est celui que le
  *  rapport porte — relatif à `src/` pour les couches de `gameIso`, à `src/state/` pour le store. */
-function fichiersDuPerimetre(): { rel: string; code: string }[] {
+function fichiersDuPerimetre(): { rel: string; source: string; code: string }[] {
   return COUCHES.flatMap((c) =>
     readCorpus([baseDe(c)])
-      .map(({ rel, text }) => ({ f: rel.slice(baseDe(c).length + 1), text }))
+      .map(({ rel, text }) => ({ source: rel, f: rel.slice(baseDe(c).length + 1), text }))
       .filter(({ f }) => (c.recursif || !f.includes('/')) && c.filtre(f.slice(f.lastIndexOf('/') + 1)))
-      .map(({ f, text }) => ({ rel: `${c.prefixe}${c.dir === '.' ? '' : `${c.dir}/`}${f}`, code: text })),
+      .map(({ source, f, text }) => ({ rel: `${c.prefixe}${c.dir === '.' ? '' : `${c.dir}/`}${f}`, source, code: text })),
   );
 }
 
@@ -141,7 +144,7 @@ type Neutraliseur = { nom: string; applique: (code: string, onglets: Set<string>
  * de vie se juge alors au grain du champ, et un homonyme que plus aucun site n'exerce rougit SEUL.
  * Groupés, quatre champs partageaient un verdict — trois morts passaient sous le vivant.
  */
-const neutraliseursDeChamp = (vocabulaires: Record<string, string>): Neutraliseur[] =>
+const neutraliseursDeChamp = (vocabulaires: Record<string, string>): { nom: string; applique: (code: string) => string }[] =>
   Object.entries(vocabulaires).map(([champ, vocabulaire]) => ({
     nom: `champ \`${champ}\` (${vocabulaire})`,
     applique: champHorsMatiere(champ),
@@ -231,12 +234,42 @@ const membresSontTousDesTerrains = (union: string): boolean => {
  * terrain n'est pas un vocabulaire propre, c'est une LISTE DE TERRAINS récitée en code — elle
  * n'entre pas dans le répertoire, et la ligne reste comptée.
  */
-const vocabulaireDUnion = (src: string): Set<string> => {
+const vocabulaireDUnion = (src: string, nom = '\\w+'): Set<string> => {
   const mots = new Set<string>();
-  for (const m of src.matchAll(/\btype\s+\w+\s*=\s*([^;{}]*?);/g)) {
+  for (const m of src.matchAll(new RegExp(`\\btype\\s+${nom}\\s*=\\s*([^;{}]*?);`, 'g'))) {
     const membres = membresDUnion(m[1]);
     if (membres.length < 2 || membresSontTousDesTerrains(m[1])) continue;
     for (const v of membres) mots.add(v);
+  }
+  return mots;
+};
+
+/** Un import NOMMÉ depuis un module RELATIF du dépôt : `import { a, type B as C } from './x'`. */
+const IMPORT_NOMME = /\bimport\s+(?:type\s+)?\{([^}]*)\}\s*from\s*['"](\.{1,2}\/[^'"]+)['"]/g;
+
+/** Les littéraux d'un vocabulaire VIDÉS, bornes gardées. */
+const blanchitVocabulaire = (code: string, mots: Set<string>) =>
+  mots.size ? code.replace(new RegExp(`(['"\`])(?:${[...mots].map((m) => m.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})\\1`, 'g'), (m) => `${m[0]}_${m[0]}`) : code;
+
+/**
+ * VOCABULAIRE d'union IMPORTÉ — le même répertoire que `vocabulaireDUnion`, pour un type que le fichier
+ * IMPORTE par son nom au lieu de le déclarer (`TypeDArete`, lu par l'éditeur et ses patchs) : la valeur
+ * est de CE vocabulaire, que sa déclaration vive ici ou dans le module importé. Même clause : une union
+ * dont tous les membres sont des sols reste une liste récitée. `source` = chemin depuis la racine du
+ * dépôt ; une source SYNTHÉTIQUE (sans chemin) n'importe rien.
+ */
+const vocabulaireImporte = (src: string, source?: string): Set<string> => {
+  const mots = new Set<string>();
+  if (!source) return mots;
+  for (const [, noms, spec] of src.matchAll(IMPORT_NOMME)) {
+    const base = posix.join(posix.dirname(source), spec);
+    const module = [`${base}.ts`, `${base}.tsx`, `${base}/index.ts`].map((f) => RACINE + f).find((f) => existsSync(f));
+    if (!module) continue;
+    const texte = sansCommentaires(readFileSync(module, 'utf8'));
+    for (const brut of noms.split(',')) {
+      const nom = brut.trim().replace(/^type\s+/, '').split(/\s+as\s+/)[0];
+      if (/^\w+$/.test(nom)) for (const v of vocabulaireDUnion(texte, nom)) mots.add(v);
+    }
   }
   return mots;
 };
@@ -246,6 +279,7 @@ const vocabulaireDUnion = (src: string): Set<string> => {
  * que plus aucun site du PÉRIMÈTRE n'exerce est une exemption morte, et le test de vie le rend ROUGE.
  * Aucun nom de fichier, aucune ligne : c'est la FORME qui dit qu'un littéral n'est pas un id de sol.
  *  - le VOCABULAIRE D'UNION déclaré dans le fichier (capacité d'arête, résultat de dépilage…) ;
+ *  - le VOCABULAIRE D'UNION IMPORTÉ par son nom d'un module du dépôt (`vocabulaireImporte`) ;
  *  - une UNION de littéraux ÉCRITE EN PLACE (paramètre, champ) qui porte AU MOINS un membre hors du
  *    registre des sols : elle DÉCLARE un vocabulaire propre, elle n'émet pas. Une union dont TOUS les
  *    membres sont des ids de terrain est une LISTE RÉCITÉE — même clause qu'au répertoire
@@ -256,13 +290,10 @@ const vocabulaireDUnion = (src: string): Set<string> => {
  *    chacun a un homonyme au registre des terrains, et chacun rougit SEUL quand son site meurt ;
  *  - la SEMENCE d'authoring GELÉE (`as const satisfies Fige<…Defaults>`) des migrations de projet.
  */
-const NEUTRALISEURS_TERRAIN: readonly { nom: string; portee: 'ligne' | 'bloc'; applique: (code: string, mots: Set<string>) => string }[] = [
-  {
-    nom: 'VOCABULAIRE d’union déclaré dans le fichier',
-    portee: 'ligne',
-    applique: (code, mots) =>
-      mots.size ? code.replace(new RegExp(`(['"\`])(?:${[...mots].join('|')})\\1`, 'g'), (m) => `${m[0]}_${m[0]}`) : code,
-  },
+type Vocabulaires = { declare: Set<string>; importe: Set<string> };
+const NEUTRALISEURS_TERRAIN: readonly { nom: string; portee: 'ligne' | 'bloc'; applique: (code: string, vocab: Vocabulaires) => string }[] = [
+  { nom: 'VOCABULAIRE d’union déclaré dans le fichier', portee: 'ligne', applique: (code, { declare }) => blanchitVocabulaire(code, declare) },
+  { nom: 'VOCABULAIRE d’union importé par son nom', portee: 'ligne', applique: (code, { importe }) => blanchitVocabulaire(code, importe) },
   {
     nom: 'UNION de littéraux écrite en place',
     portee: 'ligne',
@@ -281,8 +312,8 @@ const NEUTRALISEURS_TERRAIN: readonly { nom: string; portee: 'ligne' | 'bloc'; a
 /** Le code d'une couche SANS ses commentaires ni ses homonymes de terrain, lignes préservées. `sauf` en
  *  retire UN neutraliseur — c'est ainsi que le test de vie mesure ce que chacun blanchit RÉELLEMENT.
  *  Un neutraliseur de portée `bloc` s'applique au TEXTE entier (la semence gelée tient sur 3 lignes). */
-function codeHorsTerrain(src: string, sauf?: string): string {
-  const mots = vocabulaireDUnion(src);
+function codeHorsTerrain(src: string, sauf?: string, source?: string): string {
+  const mots: Vocabulaires = { declare: vocabulaireDUnion(src), importe: vocabulaireImporte(src, source) };
   let texte = codeNu(src).join('\n');
   for (const n of NEUTRALISEURS_TERRAIN) if (n.portee === 'bloc' && n.nom !== sauf) texte = n.applique(texte, mots);
   return texte
@@ -399,7 +430,7 @@ describe('couches émettrices du monde — aucune matière ni aucun terrain nomm
     expect(ids.length, 'vocabulaire de terrains VIDE : la garde mesurerait le néant.').toBeGreaterThan(0);
     const fautes: string[] = [];
     for (const f of fichiers) {
-      codeHorsTerrain(f.code).split('\n').forEach((l, i) => {
+      codeHorsTerrain(f.code, undefined, f.source).split('\n').forEach((l, i) => {
         for (const id of ids) if (citeId(id).test(l)) fautes.push(`${chemin(f.rel)}:${i + 1} — « ${id} »`);
       });
     }
@@ -425,8 +456,8 @@ describe('couches émettrices du monde — aucune matière ni aucun terrain nomm
     const cite = (l: string) => ids.some((id) => citeId(id).test(l));
     for (const n of NEUTRALISEURS_TERRAIN) {
       const exerce = fichiers.some((f) => {
-        const avec = codeHorsTerrain(f.code).split('\n');
-        return codeHorsTerrain(f.code, n.nom)
+        const avec = codeHorsTerrain(f.code, undefined, f.source).split('\n');
+        return codeHorsTerrain(f.code, n.nom, f.source)
           .split('\n')
           .some((l, i) => cite(l) && !cite(avec[i]));
       });

@@ -5,8 +5,8 @@
  */
 import type { Scene, WallSeg } from './scene';
 import { findStructureById, premierOffert, structures } from '../data';
-import { isDoorEdgeStructure, structureEdgeKind } from '../engine/structures';
-import { apparenceDeLArete, apparenceParId, formesHorsCompatibilite, natureDuType, type TypeDArete } from './formeArete';
+import { isDoorEdgeStructure } from '../engine/structures';
+import { apparenceDeLArete, apparenceParId, formesHorsCompatibilite, posableSurLeType, type TypeDArete } from './formeArete';
 
 /** Retire l'apparence DÉCLARÉE en override si elle n'habille plus les formes de l'arête patchée. */
 function avecApparenceCompatible(seg: WallSeg, patch: Partial<WallSeg>): Partial<WallSeg> {
@@ -23,9 +23,8 @@ function avecApparenceCompatible(seg: WallSeg, patch: Partial<WallSeg>): Partial
  * l'arête.
  */
 export function patchVersType(seg: WallSeg, type: TypeDArete): Partial<WallSeg> {
-  const nature = natureDuType(type);
   const s = seg.structure ? findStructureById(seg.structure) : undefined;
-  const garde = s && structureEdgeKind(s) === nature ? seg.structure : undefined;
+  const garde = s && posableSurLeType(s, type) ? seg.structure : undefined;
   const structure = garde ?? (type === 'fermeture-fixe'
     ? premierOffert(structures.filter(isDoorEdgeStructure), 'Fermeture fixe')
     : undefined);

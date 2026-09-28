@@ -103,8 +103,10 @@ function finRegex(src, i) {
 /**
  * Extrait tous les commentaires (lignes `//` et blocs) d'un source TS/TSX, en ignorant le contenu
  * des chaînes ('…', "…", `…`) — une occurrence dans une chaîne ou un littéral de scénario n'est
- * PAS un commentaire. Heuristique volontairement simple : suffisante pour du TypeScript/TSX
- * standard, pas un vrai lexer.
+ * PAS un commentaire. Les SUBSTITUTIONS d'un gabarit (`${ … }`) sont du code, et un gabarit peut s'y
+ * imbriquer : une PILE tient la profondeur d'accolades de chaque substitution ouverte, sans quoi le
+ * gabarit imbriqué fermerait l'englobant et son texte (`//`, `/*`) serait lu en commentaire.
+ * Heuristique volontairement simple : suffisante pour du TypeScript/TSX standard, pas un vrai lexer.
  * @param {string} src
  * @returns {Comment[]}
  */
@@ -113,6 +115,28 @@ export function extractComments(src) {
   let i = 0;
   let line = 1;
   const n = src.length;
+  /** Profondeur d'accolades de chaque substitution `${ … }` ouverte, la plus intérieure en dernier. */
+  const substitutions = [];
+  /** Balaie le TEXTE d'un gabarit depuis `j` : rend l'index après son `` ` `` fermant, ou après le
+   *  `${` d'une substitution, alors empilée. */
+  const texteDeGabarit = (j) => {
+    while (j < n) {
+      const c = src[j];
+      if (c === '\\') {
+        if (src[j + 1] === '\n') line++;
+        j += 2;
+        continue;
+      }
+      if (c === '`') return j + 1;
+      if (c === '$' && src[j + 1] === '{') {
+        substitutions.push(1);
+        return j + 2;
+      }
+      if (c === '\n') line++;
+      j++;
+    }
+    return n;
+  };
   while (i < n) {
     const ch = src[i];
     if (ch === '\n') {
@@ -151,7 +175,18 @@ export function extractComments(src) {
         continue;
       }
     }
-    if (ch === '"' || ch === "'" || ch === '`') {
+    if (ch === '`') {
+      i = texteDeGabarit(i + 1);
+      continue;
+    }
+    const ouvertes = substitutions.length;
+    if (ouvertes && ch === '{') substitutions[ouvertes - 1]++;
+    if (ouvertes && ch === '}' && --substitutions[ouvertes - 1] === 0) {
+      substitutions.pop();
+      i = texteDeGabarit(i + 1);
+      continue;
+    }
+    if (ch === '"' || ch === "'") {
       const quote = ch;
       let j = i + 1;
       while (j < n && src[j] !== quote) {

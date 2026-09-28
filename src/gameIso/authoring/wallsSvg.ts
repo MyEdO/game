@@ -12,7 +12,7 @@ import { CELL, depth, diamondPath, isSquareView, tileCenter, type Dims } from '.
 import { WALL_H_M, isoPxToM } from '../iso';
 import { metricToLift } from '../../state/relief';
 import { APPARENCE_MUR_NU } from '../../state/formeArete';
-import { estBaie, estBaieFermee } from '../../data/formesDArete';
+import { estBaie, estBaieFermee, habilleUneBaie } from '../../data/formesDArete';
 import { structureAppearance, wallPartColor, windowLit, type StructureAppearanceDef, type WallPart } from '../catalog/structures';
 import { shade, spec, tonsDArete, SIDE_N, SIDE_LIT, POST_CAP, POST_BASE } from '../shade';
 import { detailOf, coursesOverlaySvg, timberOverlaySvg, verticalAccentsSvg, projTag, type DetailOpts } from './detailSvg';
@@ -118,7 +118,9 @@ function faceSvg(f: Face, el: WallEl, app: StructureAppearanceDef, tintK: number
 export const LISERE_VISIBLE_MIN = 1;
 
 /** Largeurs ÉCRAN (px) [bord, cœur] des traits d'arête de la vue du dessus — la FORME se lit à la largeur,
- *  aux tirets et au glyphe. Chacune laisse `LISERE_VISIBLE_MIN` de liseré de part et d'autre. */
+ *  aux tirets et au glyphe. Chacune laisse `LISERE_VISIBLE_MIN` de liseré de part et d'autre. `dessusSvg`
+ *  les trace en `non-scaling-stroke` : elles valent ces pixels à toute échelle du groupe qui porte le
+ *  trait (caméra du jeu, `stage/stageCam` ; `meet` du plan de station, `TopoScene`). */
 export const TRAITS_D_ARETE = {
   mur: [8, 5],
   courtine: [11, 7],
@@ -130,11 +132,13 @@ export const TRAITS_D_ARETE = {
 } as const satisfies Record<string, readonly [number, number]>;
 const TIRETS_BRECHE = '3 5';
 
-/** TRAIT D'ARÊTE de la vue du dessus : un BORD de largeur `larg[0]` puis un CŒUR de largeur `larg[1]`,
- *  aux deux tons de `tonsDArete(base)` — le cœur est `base`. Le long d'un SEGMENT p→q, ou le pourtour d'un
- *  CHEMIN fermé `d` rempli de `fond`. `dash` : tirets de la brèche. */
+/** TRAIT D'ARÊTE de la vue du dessus : la PART de mur `part` vue d'en haut, un BORD de largeur `larg[0]`
+ *  puis un CŒUR de largeur `larg[1]`, aux deux tons de `tonsDArete(wallPartColor(app, part))` — le cœur
+ *  est la couleur que le volume donne à cette part. Le long d'un SEGMENT p→q, ou le pourtour d'un CHEMIN
+ *  fermé `d` rempli de `fond`. `dash` : tirets de la brèche. */
 export interface TraitDuDessus {
   quoi: 'trait';
+  part: WallPart;
   geo: { p: Pt2; q: Pt2 } | { d: string; fond: string };
   larg: readonly [number, number];
   tons: { coeur: string; bord: string };
@@ -152,46 +156,47 @@ interface AplatDuDessus {
 /** Un élément de la vue du dessus, dans l'ORDRE DE PEINTURE. */
 export type ElementDuDessus = TraitDuDessus | AplatDuDessus;
 
-const trait = (geo: TraitDuDessus['geo'], larg: readonly [number, number], base: string, dash?: string): TraitDuDessus =>
-  ({ quoi: 'trait', geo, larg, tons: tonsDArete(base), ...(dash ? { dash } : {}) });
+const trait = (geo: TraitDuDessus['geo'], larg: readonly [number, number], app: StructureAppearanceDef, part: WallPart, dash?: string): TraitDuDessus =>
+  ({ quoi: 'trait', part, geo, larg, tons: tonsDArete(wallPartColor(app, part)), ...(dash ? { dash } : {}) });
 
-/** Vue du DESSUS symbolique d'un élément de mur, en DONNÉE : trait d'arête bicolore — mur plein,
- *  courtine, brèche en tirets —, porte = deux jambages, corps de garde = case pleine + glyphe de herse.
- *  Une baie FERMÉE (porte fermée, fermeture fixe) se dessine bouchée : trait de vantail ou de barreaux
- *  SOUS les jambages, barreaux de la claire-voie au corps de garde ; seule la porte ouverte laisse le
- *  vide. `dessusSvg` la sérialise. */
+/** Vue du DESSUS symbolique d'un élément de mur, en DONNÉE : chaque trait est une part que `wallFaces`
+ *  (`builders/walls.ts`) dessine sur la même arête — face du mur ou de la courtine, barreaux d'une
+ *  claire-voie, gravats de la brèche (seuil d'un corps de garde abattu), jambages d'une porte et, sous
+ *  eux, le vantail ou les barreaux d'une baie FERMÉE ; le corps de garde = case pleine au linteau + glyphe
+ *  de herse. Seule la porte ouverte laisse le vide. `dessusSvg` la sérialise. */
 export function dessusDuMur(el: WallEl, dims: Dims): ElementDuDessus[] {
   const app = structureAppearance(el.appearance);
   const [a, b] = el.ends.map((gp) => projGP(gp, dims));
   const lerp = (t: number): Pt2 => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
+  const breche = (part: WallPart) => [trait({ p: a, q: b }, TRAITS_D_ARETE.breche, app, part, TIRETS_BRECHE)];
   if (app.parapet) {
-    if (el.states.down) return [trait({ p: a, q: b }, TRAITS_D_ARETE.breche, app.rubble ?? app.face, TIRETS_BRECHE)];
-    if (app.parapet.corpsDeGarde && estBaie(el.forme)) {
+    if (habilleUneBaie(app) && estBaie(el.forme)) {
+      if (el.states.down) return breche('seuil');
       const lift = metricToLift(el.ends[0].h);
       const { cx, cy } = tileCenter(el.cell.x, el.cell.y, dims, lift);
       const h = CELL / 2;
       const glyphe: ElementDuDessus[] = [
-        trait({ d: diamondPath(el.cell.x, el.cell.y, dims, lift), fond: app.face }, TRAITS_D_ARETE.case, app.face),
+        trait({ d: diamondPath(el.cell.x, el.cell.y, dims, lift), fond: wallPartColor(app, 'linteau') }, TRAITS_D_ARETE.case, app, 'linteau'),
         { quoi: 'aplat', x: cx - h * 0.46, y: cy - h, w: h * 0.92, h: 2 * h, fond: app.recess ?? app.face },
       ];
       const bars = estBaieFermee(el.forme) ? app.claireVoie?.bars ?? 0 : 0;
       for (let i = 1; i < bars; i++) {
         const ly = cy - h + 2 * h * (i / bars);
-        glyphe.push(trait({ p: [cx - h * 0.46, ly], q: [cx + h * 0.46, ly] }, TRAITS_D_ARETE.barreau, app.cap ?? app.face));
+        glyphe.push(trait({ p: [cx - h * 0.46, ly], q: [cx + h * 0.46, ly] }, TRAITS_D_ARETE.barreau, app, 'barreau'));
       }
       return glyphe;
     }
-    return [trait({ p: a, q: b }, TRAITS_D_ARETE.courtine, app.face)];
+    if (el.states.down) return breche('gravats');
+    return [trait({ p: a, q: b }, TRAITS_D_ARETE.courtine, app, 'face')];
   }
-  if (el.states.down) return [trait({ p: a, q: b }, TRAITS_D_ARETE.breche, app.face, TIRETS_BRECHE)];
+  if (el.states.down) return breche('gravats');
   if (estBaie(el.forme)) {
-    const jambage = shade(app.post, POST_CAP);
     const bouchee = estBaieFermee(el.forme)
-      ? [trait({ p: lerp(0.3), q: lerp(0.7) }, TRAITS_D_ARETE.baie, wallPartColor(app, app.claireVoie ? 'barreau' : 'vantail'))]
+      ? [trait({ p: lerp(0.3), q: lerp(0.7) }, TRAITS_D_ARETE.baie, app, app.claireVoie ? 'barreau' : 'vantail')]
       : [];
-    return [...bouchee, trait({ p: a, q: lerp(0.3) }, TRAITS_D_ARETE.jambage, jambage), trait({ p: lerp(0.7), q: b }, TRAITS_D_ARETE.jambage, jambage)];
+    return [...bouchee, trait({ p: a, q: lerp(0.3) }, TRAITS_D_ARETE.jambage, app, 'jambage'), trait({ p: lerp(0.7), q: b }, TRAITS_D_ARETE.jambage, app, 'jambage')];
   }
-  return [trait({ p: a, q: b }, TRAITS_D_ARETE.mur, app.face)];
+  return [trait({ p: a, q: b }, TRAITS_D_ARETE.mur, app, el.forme !== 'mur-fenetre' && app.claireVoie ? 'barreau' : 'face')];
 }
 
 /**
@@ -205,20 +210,24 @@ export function dessusDuMur(el: WallEl, dims: Dims): ElementDuDessus[] {
  * une dalle pâle, lue comme du SOL.
  */
 export function dessusDuBlocPlein(a: Pt2, b: Pt2): ElementDuDessus[] {
-  return [trait({ p: a, q: b }, TRAITS_D_ARETE.mur, structureAppearance(APPARENCE_MUR_NU).face)];
+  return [trait({ p: a, q: b }, TRAITS_D_ARETE.mur, structureAppearance(APPARENCE_MUR_NU), 'face')];
 }
 
+/** Épaisseur de trait en pixels d'ÉCRAN, hors de l'échelle du groupe porteur — la convention des traits
+ *  de carte du dépôt (`ui/WorldMapView.tsx`, routes). */
+const TRAIT_ECRAN = ' vector-effect="non-scaling-stroke"';
+
 /** SÉRIALISE une vue du dessus en SVG, dans l'ordre de ses éléments : un trait peint son BORD puis son
- *  CŒUR par-dessus. */
+ *  CŒUR par-dessus, chacun à sa largeur ÉCRAN (`TRAIT_ECRAN`). */
 export function dessusSvg(elements: readonly ElementDuDessus[]): string {
   const peint = (e: ElementDuDessus): string => {
     if (e.quoi === 'aplat') return `<rect x="${e.x}" y="${e.y}" width="${e.w}" height="${e.h}" fill="${e.fond}"/>`;
     const { geo, larg, tons, dash } = e;
     if ('d' in geo)
-      return `<path d="${geo.d}" fill="${geo.fond}" stroke="${tons.bord}" stroke-width="${larg[0]}"/>` +
-        `<path d="${geo.d}" fill="none" stroke="${tons.coeur}" stroke-width="${larg[1]}"/>`;
+      return `<path d="${geo.d}" fill="${geo.fond}" stroke="${tons.bord}" stroke-width="${larg[0]}"${TRAIT_ECRAN}/>` +
+        `<path d="${geo.d}" fill="none" stroke="${tons.coeur}" stroke-width="${larg[1]}"${TRAIT_ECRAN}/>`;
     const ligne = (w: number, col: string) =>
-      `<line x1="${geo.p[0]}" y1="${geo.p[1]}" x2="${geo.q[0]}" y2="${geo.q[1]}" stroke="${col}" stroke-width="${w}" stroke-linecap="round"${dash ? ` stroke-dasharray="${dash}"` : ''}/>`;
+      `<line x1="${geo.p[0]}" y1="${geo.p[1]}" x2="${geo.q[0]}" y2="${geo.q[1]}" stroke="${col}" stroke-width="${w}" stroke-linecap="round"${dash ? ` stroke-dasharray="${dash}"` : ''}${TRAIT_ECRAN}/>`;
     return ligne(larg[0], tons.bord) + ligne(larg[1], tons.coeur);
   };
   return `<g>${elements.map(peint).join('')}</g>`;

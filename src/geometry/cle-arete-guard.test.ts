@@ -39,6 +39,8 @@ describe('garde — aucune clé d’arête construite à la main hors du socle',
       `const k = \`${D}{x},${D}{y},"S"\`;`,
       `const k = \`'E',${D}{x},${D}{y}\`;`,
       `const k = \`${D}{x},${D}{y},${D}{String(side)}\`;`,
+      `const k = \`${D}{a ? \`//\` : b},${D}{x},${D}{y},${D}{side}\`;`,
+      `const k = \`${D}{f(\`//\`)}\` + \`${D}{x},${D}{y},${D}{side}\`;`,
     ]) expect(sitesFautifs(ligne), ligne).toHaveLength(1);
     for (const ligne of [
       `const source = \`arête (${D}{seg.x},${D}{seg.y},${D}{seg.side}) z${D}{seg.z ?? 0}\`;`,

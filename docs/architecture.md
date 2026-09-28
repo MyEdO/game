@@ -105,6 +105,16 @@ src/data/                   NOTRE base APP-OWNED (JSON commité, éditable dans 
                               SEUL éditeur d'adresse (`src/ui/compendium/DescRefField.tsx`)
   hash.ts                     Hachage déterministe partagé (`hash32` FNV-1a, `seedStream`) : empreinte
                               de découpe ET seeds du rendu (`src/gameIso`)
+  couleur.ts                  Couleur `#rrggbb` PURE, FEUILLE sans import : parse, émission, mélange, et la
+                              métrique `distanceTeinte` avec son plancher `SEUIL_TEINTES_CONTIGUES` — lue par
+                              le schéma (`schemas/defs/teintesJeu.ts`) comme par le rendu (`gameIso/shade.ts`)
+  formesDArete.ts             FORMES d'une arête de mur et leur ADMISSION par une apparence (#1883), FEUILLE
+                              sans import : lue par le schéma (`schemas/defs/structureAppearance.ts`), la
+                              dérivation (`state/formeArete.ts`) et le rendu (`gameIso/builders/walls.ts`,
+                              `gameIso/authoring/wallsSvg.ts`)
+                            Ces trois modules PURS vivent sous `src/data` parce que le SCHÉMA les lit ou que
+                            `src/data` les sert : la couche la plus AMONT n'importe jamais `state`/`gameIso`
+                            au runtime (`eslint.config.js`, bloc « PURETÉ DE `src/data` »)
 scripts/source/             Le côté NODE de la chaîne d'adressage de prose — entrées/sorties seulement,
                             le parsing vit dans `src/data/source/decoupe.ts` (PUR). `lecteur-fs.mjs` lit
                             et mémorise un chapitre du `Source/` ; `resoudre.mjs` porte les deux portes

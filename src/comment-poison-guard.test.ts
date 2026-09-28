@@ -173,6 +173,18 @@ describe('balayage — un `/` de CODE ne fait jamais disparaître le commentaire
     expect(vu('const s = "a/b"; // ' + TEMOIN)).toBe(true);
     expect(vu('const t = `a/${b}/c`; // ' + TEMOIN)).toBe(true);
   });
+
+  it('GABARIT IMBRIQUÉ dans une substitution : son texte (`//`, `/*`) n’est pas un commentaire, et la suite reste lue', () => {
+    for (const code of [
+      'const k = `${a ? `//` : b},${x}`;',
+      'const k = `${f(`//`)}` + `${x}`;',
+      'const a = `${f(`/*`)}`;\nconst k = `${x}`;',
+      'const k = `${{ a: `//` }.a}`;',
+    ]) {
+      expect(extractComments(code), code).toEqual([]);
+      expect(vu(code + ' // ' + TEMOIN), code).toBe(true);
+    }
+  });
 });
 
 describe('garde-fou commentaires — pierres tombales (#136, CLAUDE.md règle 6c)', () => {

@@ -1,14 +1,14 @@
 /**
- * MESSAGES de COMPATIBILITÉ apparence × forme des arêtes et des façades (#1883), et LIBELLÉ d'affichage
- * d'une arête : les refus nommés que `validateScene` émet, lus sur la dérivation de forme
- * (`state/formeArete.ts`) et l'admission de l'apparence (`data/formesDArete.ts`).
+ * MESSAGES de COMPATIBILITÉ apparence × forme des arêtes et des façades (#1883) : les refus nommés que
+ * `validateScene` émet, lus sur la dérivation de forme (`state/formeArete.ts`) et l'admission de
+ * l'apparence (`data/formesDArete.ts`).
  */
 import type { FacadeFeature, Scene } from './scene';
 import { facadePreset, KINDS_DE_DECOR } from '../data/facadePresets';
 import { facadeFeatureKindSchema } from '../data/schemas/defs-scenes/scene';
 import { valeursDe } from '../data/schemas/grammaire/meta';
 import { formesAdmises, type FormeArete } from '../data/formesDArete';
-import { apparenceDeLArete, apparenceDOrnement, apparenceParId, formesHorsCompatibilite } from './formeArete';
+import { apparenceDeLArete, apparenceDOrnement, apparenceParId, formesHorsCompatibilite, libelleArete } from './formeArete';
 
 const LIBELLE_FORME: Record<FormeArete, string> = {
   'mur-nu': 'mur nu',
@@ -19,12 +19,6 @@ const LIBELLE_FORME: Record<FormeArete, string> = {
 };
 
 const libelles = (formes: readonly FormeArete[]): string => formes.map((f) => `« ${LIBELLE_FORME[f]} »`).join(', ');
-
-/** LIBELLÉ d'affichage d'une arête — `(x,y,side)`, suivi de ` étage z` hors du rez-de-chaussée. Du texte
- *  lu par les messages de validation et les résumés d'effet de l'éditeur : il vit dans l'état, pas dans
- *  `geometry`, qui reste pur. */
-export const libelleArete = (e: { x: number; y: number; side: string; z?: number }): string =>
-  `(${e.x},${e.y},${e.side})${e.z ? ` étage ${e.z}` : ''}`;
 
 /** Libellé d'un ornement, lu sur l'enum nommé `facadeFeatureKindSchema`. */
 const LIBELLE_ORNEMENT = valeursDe(facadeFeatureKindSchema) as Readonly<Record<FacadeFeature['kind'], string>>;

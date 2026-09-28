@@ -1,6 +1,6 @@
 /**
  * FORME d'une arête de mur (#1883) — DÉRIVATION, source UNIQUE : les formes qu'un segment prend, celle
- * qu'il rend, son type d'authoring et l'apparence qu'il porte ; confrontées à l'ADMISSION de
+ * qu'il rend, son type d'authoring, l'apparence qu'il porte et son libellé d'affichage ; confrontées à l'ADMISSION de
  * l'apparence (`formesAdmises`, `data/formesDArete.ts`). Lue par `validateScene`
  * (`state/compatibiliteArete.ts`), l'Inspecteur (choix proposés, `state/editionArete.ts`) et
  * `gameIso/builders/walls.ts` (branche de rendu).
@@ -12,7 +12,8 @@ import { facadeDeLArete } from './facadeEdges';
 import { facadePreset, murDeFacade } from '../data/facadePresets';
 import { findStructureById, structureAppearances } from '../data';
 import { estBaie, formesAdmises, type BlocsDApparence, type FormeArete } from '../data/formesDArete';
-import { isDoorEdgeStructure } from '../engine/structures';
+import { isDoorEdgeStructure, isWallEdgeStructure } from '../engine/structures';
+import type { StructureData } from '../engine/types';
 
 /** Id d'apparence DÉCLARÉ par le segment : l'override visuel, sinon la Structure. `undefined` = aucun
  *  (façade authorée ou mur nu). Précédence lue par `wallApp` (`gameIso/catalog/structures`). */
@@ -93,8 +94,14 @@ export function typeDArete(seg: Pick<WallSeg, 'door' | 'window' | 'structure'>):
   return TYPES.find((t) => FORMES_DU_TYPE[t].includes(forme))!;
 }
 
-/** Nature d'authoring (`structureEdgeKind`) des Structures posables pour ce type : une baie est portée
- *  par une Structure de nature `porte`, un mur par une de nature `mur`. */
-export function natureDuType(type: TypeDArete): 'mur' | 'porte' {
-  return FORMES_DU_TYPE[type].some(estBaie) ? 'porte' : 'mur';
+/** La Structure `s` est-elle POSABLE sur une arête de ce type ? Une baie est portée par une fermeture
+ *  (`isDoorEdgeStructure`), une cloison par un matériau de mur (`isWallEdgeStructure`). */
+export function posableSurLeType(s: StructureData, type: TypeDArete): boolean {
+  return FORMES_DU_TYPE[type].some(estBaie) ? isDoorEdgeStructure(s) : isWallEdgeStructure(s);
 }
+
+/** LIBELLÉ d'affichage d'une arête — `(x,y,side)`, suivi de ` étage z` hors du rez-de-chaussée. Du texte
+ *  lu par les messages de validation, les erreurs de `mapSpec` et les résumés d'effet de l'éditeur : il
+ *  vit dans l'état, pas dans `geometry`, qui reste pur. */
+export const libelleArete = (e: { x: number; y: number; side: string; z?: number }): string =>
+  `(${e.x},${e.y},${e.side})${e.z ? ` étage ${e.z}` : ''}`;

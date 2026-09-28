@@ -676,7 +676,6 @@
       "src/state/combatTimers.ts",
       "src/state/combatants.ts",
       "src/state/commandTeam.ts",
-      "src/state/compatibiliteArete.ts",
       "src/state/consumableFlow.ts",
       "src/state/corruptionFlow.ts",
       "src/state/decorIndex.ts",

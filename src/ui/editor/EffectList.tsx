@@ -10,7 +10,7 @@
  */
 import { Effect, EncounterDef, Dialogue, Scene } from '../../state/scene';
 import { Icon } from '../Icon';
-import { libelleArete } from '../../state/compatibiliteArete';
+import { libelleArete } from '../../state/formeArete';
 import { EMPTY_FLOW } from '../../state/flow';
 import { EFFECT_HANDLERS, EFFECT_GROUP_ORDER, CIBLES_PAR_RACINE, type RacineDeCatalogue, type TableDeCibles } from '../../state/combatEffects';
 import { DAY_PHASES, DayPhaseId, IMPERIAL_MONTHS, type ScheduleSpec } from '../../engine/clock';
