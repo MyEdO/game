@@ -567,11 +567,11 @@ describe('parseTable — la bannière de table, absorbée SOUS GARDE', () => {
   });
 
   it('CONTRAT POSITIF : l’absorption rend adressables des cellules qui ne l’étaient pas', () => {
-    // Chiffres MESURÉS sur l'arbre à la livraison de #1384 B1 (jamais un « ≥ 90 % » complaisant) :
-    // les deux lectures du même chapitre sont imprimées, et toutes deux épinglées.
+    // Chiffres MESURÉS sur l'arbre (#1384 B1 ; chapitre 61 : #1887 lot 6a), jamais un « ≥ 90 % »
+    // complaisant : les deux lectures du même chapitre sont imprimées, et toutes deux épinglées.
     for (const m of [
       { ch: '15', fichier: '15 - Déplacement.md', avant: 28, apres: 64 },
-      { ch: '61', fichier: '61 - Encombrement.md', avant: 65, apres: 93 },
+      { ch: '61', fichier: '61 - Encombrement.md', avant: 72, apres: 100 },
     ]) {
       const chapitre = chapitreDe(LDB, m.ch);
       const avant = pctAdressable(sansAbsorption(chapitre));
