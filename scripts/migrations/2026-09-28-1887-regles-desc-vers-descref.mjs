@@ -30,7 +30,7 @@
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 import { sigleDe } from '../raw/_lib.mjs';
 import { judge } from '../source/derive-decoupes.mjs';
 import { jsonIndente, remplacerAncre } from '../source/reecriture-ancree.mjs';
@@ -113,7 +113,7 @@ export function migrer(brut) {
   };
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (import.meta.main) {
   const cible = path.join(ROOT, FICHIER);
   const brut = readFileSync(cible, 'utf8');
   const { texte, gestes, restantes, echecs } = migrer(brut);
