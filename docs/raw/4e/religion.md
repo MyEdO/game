@@ -173,7 +173,7 @@ Règles précises :
 - Se cumule avec la Maladresse : une Maladresse déclenche la Colère des dieux **indépendamment** du Péché.
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 40` (l.35-36) → `discreetPrayerDifficulty`, `peche`, `wrath-table`, `CastModal`, `liveTableDecl`, `giveSinSchema`, `prayerWrathTriggered`, `GameOp`, `FLOWS`, `prayer-conviction`, +42 — `src/data/characteristics.json`, `src/data/combat-stakes.json`, `src/data/miscast.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/engine/magic.ts`, +11 fichiers
+- `LDB 40` (l.35-36) → `discreetPrayerDifficulty`, `peche`, `CastModal`, `wrath-table`, `liveTableDecl`, `giveSinSchema`, `prayerWrathTriggered`, `GameOp`, `FLOWS`, `prayer-conviction`, +42 — `src/data/characteristics.json`, `src/data/combat-stakes.json`, `src/data/miscast.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/engine/magic.ts`, +11 fichiers
 
 ---
 
@@ -192,7 +192,7 @@ Le MJ peut aussi utiliser la table ou y piocher des résultats chaque fois qu'un
 **Après le jet** : réduire les Points de Péché de 1 (minimum 0). `LDB 40 l.46-50`
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 40` (l.12-13, l.45-50) → `discreetPrayerDifficulty`, `SinPoints`, `castInfoIsPrayer`, `castInfo`, `peche`, `wrath-table`, `CastModal`, `liveTableDecl`, `giveSinSchema`, `prayerWrathTriggered`, +49 — `src/data/characteristics.json`, `src/data/combat-stakes.json`, `src/data/miscast.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/data/schemas/grammaire/valeurs.ts`, +13 fichiers
+- `LDB 40` (l.12-13, l.45-50) → `discreetPrayerDifficulty`, `SinPoints`, `castInfoIsPrayer`, `castInfo`, `peche`, `CastModal`, `wrath-table`, `liveTableDecl`, `giveSinSchema`, `prayerWrathTriggered`, +49 — `src/data/characteristics.json`, `src/data/combat-stakes.json`, `src/data/miscast.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/data/schemas/grammaire/valeurs.ts`, +13 fichiers
 - dette : #1653
 - bloqué : 6 rangées à DÉ du Tableau de la Colère des dieux sans `ops` — LDB 40 l.61 et l.70 (pénalité de Compétence à durée, hors magie), l.64 (cibles dans `applyMiscast` + échec automatique par divinité), l.74 (action contrainte), l.80 et l.82 (suppression temporaire de Talent) : le vocabulaire de `GameOp` ne les exprime pas encore
 

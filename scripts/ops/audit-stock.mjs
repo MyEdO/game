@@ -160,4 +160,4 @@ function main() {
   process.stdout.write('[audit-stock] aucun écart au stock daté\n')
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) main()
+if (import.meta.main) main()

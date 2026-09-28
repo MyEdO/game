@@ -28,6 +28,9 @@ import { parUnitesDeCode, listerArbre, listerDossier } from '../../guards/lib/li
 import { PROJETS_LIVRES } from '../../guards/lib/projetsLivres.mjs';
 import { defsDeDocument } from './slots-registre.mjs';
 import { choixDeclares, introspecterDefs } from './zod-introspect.mjs';
+import { collectionsDesDocuments } from '../../../src/data/schemas/grammaire/collection-cle';
+import { carteDuRecord } from '../../../src/data/schemas/grammaire/cle-d-espace';
+import type { SchemaDef } from '../../../src/data/schemas/types';
 import ts from 'typescript';
 import {
   CLES_DE_SPECIALISATION,
@@ -70,7 +73,7 @@ export type Document = { racine: string; chemin: string; nom: string };
 export const nomDeDocument = (file: string): string => file.split(/[\\/]/).pop() ?? file;
 
 /**
- * Bornes de la table EXHAUSTIVE des signatures hors strate dans `docs/structures-donnees.md`.
+ * Bornes de la table COMPLÈTE des signatures hors strate dans `docs/structures-donnees.md`.
  * Le doc est la LISTE DE RÉFÉRENCE du cliquet de `src/data/structures-contrat.test.ts` : le
  * générateur pose les bornes, la garde lit entre elles.
  */
@@ -391,7 +394,7 @@ const trieCles = (cles: Map<string, CleNiveau1>): CleNiveau1[] =>
 /**
  * Graphies dont la valeur n'est PAS un id (objet enveloppé, texte narratif) : un objet dont la
  * signature n'est faite QUE de celles-là est une forme de référence même quand rien ne résout —
- * `{wildcard:{…}}`, `{choice:[…]}`, `{text:"…"}` (#1463, arbitrage de design L0, point 4).
+ * `{wildcard:{…}}`, `{choice:[…]}`, `{text:"…"}` (#1463).
  */
 const GRAPHIES_SANS_ID: ReadonlySet<string> = new Set<string>([...GRAPHIES_ENVELOPPANTES, 'text']);
 
@@ -430,21 +433,34 @@ function parcourir(racine: unknown, visite: (o: Obj, champ: string, chemin: stri
 /**
  * Mesure OBSERVÉE sur les deux racines.
  * @param root racine absolue du dépôt
- * @param famillesDeclarees nom de document → famille déclarée par son schéma zod
- *   (`introspecterDefs`), qui donne le RÉGIME D'ENTRÉES. Absente = régime déduit de la racine JSON
- *   seule — repli sans population depuis #1466 L1a : les DEUX racines sont au registre.
+ * @param defs les defs des documents, keyés par BASENAME (`defsDeDocument`) : leur famille déclarée
+ *   (`introspecterDefs`) donne le RÉGIME D'ENTRÉES, et la co-descente de leur schéma
+ *   (`collectionsDesDocuments`) les COLLECTIONS À CLÉ déclarées. Un document sans def est classé par
+ *   sa racine JSON.
  * @param choixDeclares nom de document → clé → littéraux d'enum déclarés par son schéma zod
  *   (`choixDeclares`) : une clé dont la valeur est l'un d'eux est un DISCRIMINANT, jamais une
  *   référence. Absente = aucune fermeture d'enum — repli sans population depuis #1466 L1a.
  */
 export function scannerDonnees(
   root: string,
-  famillesDeclarees: ReadonlyMap<string, string> = new Map(),
+  defs: readonly SchemaDef[],
   choixDeclares: ReadonlyMap<string, ReadonlyMap<string, ReadonlySet<string>>> = new Map(),
 ) {
   const docs = listerDocuments(root);
   const brutParDocument = new Map<string, unknown>(
     docs.map((d) => [d.chemin, JSON.parse(readFileSync(join(root, d.chemin), 'utf8')) as unknown]),
+  );
+  const brutParNom = new Map(docs.map((d) => [d.nom, brutParDocument.get(d.chemin)])) as ReadonlyMap<string, unknown>;
+  const famillesDeclarees = new Map(introspecterDefs(defs).map((d) => [d.file, d.famille]));
+  /** Les COLLECTIONS À CLÉ déclarées au schéma, par la co-descente des objets PARSÉS ci-dessus. */
+  const collections = collectionsDesDocuments(defs, brutParNom);
+  /** Cartes des collections `record` : un objet que le schéma DÉCLARE collection à clé n'est jamais hors
+   *  strate — exclu des orphelines et des invisibles APRÈS le classement, qui reste entier. */
+  const cartesDeRecord = new Set<object>(
+    collections.flatMap((c) => {
+      const carte = c.marque.forme === 'record' ? carteDuRecord(c.marque, c.valeur) : undefined;
+      return estObjet(carte) ? [carte] : [];
+    }),
   );
 
   // --- passe 1 : régime, entrées de racine, INDEX DES IDS -------------------
@@ -690,7 +706,7 @@ export function scannerDonnees(
   const clesEnveloppe = new Map<string, number>();
   const groupes = new Map<string, { groupe: GroupeEnveloppe; cles: Map<string, CleNiveau1> }>();
   const ops = new Map<string, number>();
-  /** Documents portant au moins une clé `source` à une profondeur quelconque (T3, lot L1d #1469). */
+  /** Documents portant au moins une clé `source` à une profondeur quelconque (T3, #1469). */
   const docsAvecSource = new Set<string>();
   const conditionsAvecOp = new Map<string, number>();
   const conditionsSansOp = new Map<string, number>();
@@ -704,8 +720,11 @@ export function scannerDonnees(
   let totalOps = 0;
   let objetsVus = 0;
   let objetsClasses = 0;
-  /** Objets qu'AUCUNE strate ne porte : ni document, ni forme mesurée, ni orpheline recensée. */
+  /** Objets qu'AUCUNE strate ne porte : ni document, ni forme mesurée, ni orpheline recensée, ni
+   *  collection à clé déclarée. */
   let objetsInvisibles = 0;
+  /** Cartes de record que le schéma déclare collection à clé (`TERMES_COLLECTION_A_CLE`). */
+  let objetsCollectionsACle = 0;
   /** Entrées de RACINE qu'aucun concept de valeur du lexique ne reconnaît — imprimé à la synthèse du
    *  doc (§1) : un document n'entre ni aux orphelines ni au hors-strate, rien d'autre ne les compterait. */
   let racinesSansValeur = 0;
@@ -812,6 +831,8 @@ export function scannerDonnees(
       const estRacine = p.racineEntrees.has(o);
       const estEmbarque = documentsEmbarques.has(o);
       const estDocument = estRacine || estEmbarque;
+      const estCollectionACle = cartesDeRecord.has(o);
+      if (estCollectionACle) objetsCollectionsACle += 1;
 
       // ---- Ops et Conditions
       const kind = typeof o.kind === 'string' ? o.kind : '';
@@ -905,7 +926,7 @@ export function scannerDonnees(
 
       // ---- ORPHELINES : ce qui annonce une référence et ne résout pas
       let orpheline = false;
-      if (!estDocument && !classe && typeof o.op !== 'string') {
+      if (!estDocument && !estCollectionACle && !classe && typeof o.op !== 'string') {
         const cleRef = cles.find((k) => RX_CLE_REFERENCE.test(k));
         const cleReservee = cles.find((k) => (CLES_RESERVEES as readonly string[]).includes(k));
         const cleIdentite = cles.find((k) => (CLES_IDENTITE as readonly string[]).includes(k));
@@ -924,7 +945,7 @@ export function scannerDonnees(
           orpheline = true;
         }
       }
-      if (!estDocument && !classe && !orpheline) {
+      if (!estDocument && !estCollectionACle && !classe && !orpheline) {
         objetsInvisibles += 1;
         inc(invisibles, `${p.nom} | ${champ || '(racine)'} | ${sig}`);
       }
@@ -1009,7 +1030,9 @@ export function scannerDonnees(
     documents,
     /** Le JSON PARSÉ de chaque document, keyé par nom : celui dont les objets portent les
      *  occurrences de `referencesParPorteur` (#1473). */
-    brutParNom: new Map(prepares.map((p) => [p.nom, p.brut])) as ReadonlyMap<string, unknown>,
+    brutParNom,
+    /** Les collections à clé DÉCLARÉES présentes dans les documents (`collectionsDesDocuments`). */
+    collections,
     referencesParPorteur: referencesParPorteur as ReferencesParPorteur,
     /** TOUTES les occurrences de la strate `Référence`, y compris celles sans case de référence (#1473). */
     occurrencesDeReference: occurrencesDeReference as readonly OccurrenceDeReference[],
@@ -1078,6 +1101,7 @@ export function scannerDonnees(
       vus: objetsVus,
       classes: objetsClasses,
       invisibles: objetsInvisibles,
+      collectionsACle: objetsCollectionsACle,
       racinesSansValeur,
       racinesDisqualifiees: [...racinesDisqualifiees].map(([dataset, entrees]) => ({ dataset, entrees })).sort((a, b) => b.entrees - a.entrees || parUnitesDeCode(a.dataset, b.dataset)),
       documentsEmbarques: documentsEmbarques.size,
@@ -1094,26 +1118,25 @@ export function scannerDonnees(
 }
 
 /**
- * LE scan du corpus : l'UNIQUE composition `defs du registre → familles + enums DÉCLARÉS →
- * `scannerDonnees``. Ses trois consommateurs — la garde `src/data/structures-contrat.test.ts`, le
- * générateur `scripts/docs/build-structures.mts` et l'audit `scripts/guards/lib/horsStrateAudit.ts`
- * — la lisent ICI : une composition recopiée ferait mesurer à l'un ce que l'autre ne mesure pas
- * (sans `familles`, le régime d'entrées se déduit de la racine JSON ; sans `choix`, aucun enum n'est
- * fermé et des discriminants comptent comme références), et aucune garde ne verrait la divergence.
- * Tout est rendu — `defs`, `declares`, `familles`, `choix`, `scan` — parce que chaque consommateur
+ * LE scan du corpus : l'UNIQUE composition `defs du registre + enums DÉCLARÉS → `scannerDonnees``.
+ * Ses trois consommateurs — la garde `src/data/structures-contrat.test.ts`, le générateur
+ * `scripts/docs/build-structures.mts` et l'audit `scripts/guards/lib/horsStrateAudit.ts` — la lisent
+ * ICI : une composition recopiée ferait mesurer à l'un ce que l'autre ne mesure pas (sans `choix`,
+ * aucun enum n'est fermé et des discriminants comptent comme références), et aucune garde ne verrait
+ * la divergence.
+ * Tout est rendu — `defs`, `declares`, `choix`, `scan` — parce que chaque consommateur
  * en lit une part différente et qu'aucun ne doit refabriquer la sienne.
  */
 export function scanDuCorpus(root: string) {
   const defs = defsDeDocument();
   const declares = introspecterDefs(defs);
-  const familles = new Map(declares.map((d) => [d.file, d.famille]));
   const choix = choixDeclares(defs);
-  return { defs, declares, familles, choix, scan: scannerDonnees(root, familles, choix) };
+  return { defs, declares, choix, scan: scannerDonnees(root, defs, choix) };
 }
 
 /**
- * Divergences d'ENVELOPPE, une ligne par (rôle, clé, motif, document, chemin) — le dénominateur du
- * lot L1b (#1467). Quatre motifs :
+ * Divergences d'ENVELOPPE, une ligne par (rôle, clé, motif, document, chemin) — le dénominateur de
+ * #1467. Quatre motifs :
  *   `clé divergente`  — le rôle est porté sous un autre nom que sa cible (`key`/`nom` pour l'identité) ;
  *   `type divergent`  — la clé cible est là, sa classe de type ne l'est pas (`source` en chaîne) ;
  *   `clé absente`     — une ENTRÉE DE RACINE ne porte nulle part la clé cible d'un rôle requis
@@ -1176,15 +1199,9 @@ export function mesurerEnveloppe(groupes: readonly GroupeEnveloppe[]): Divergenc
 // looseObject dont la signature recoupe le lexique ou un schéma de la grammaire partagée.
 // ---------------------------------------------------------------------------
 
-/** Un `createSourceFile` par fichier et par run (T9). */
-const CACHE_SOURCE = new Map<string, ts.SourceFile>();
-const sourceDe = (fichier: string, texte: () => string) => {
-  const vu = CACHE_SOURCE.get(fichier);
-  if (vu) return vu;
-  const sf = ts.createSourceFile(fichier, texte(), ts.ScriptTarget.Latest, true);
-  CACHE_SOURCE.set(fichier, sf);
-  return sf;
-};
+/** AST d'un fichier, bâti pour l'appel qui le demande (`scripts/guards/lib/tsProgram.mjs`, en-tête). */
+const sourceDe = (fichier: string) =>
+  ts.createSourceFile(fichier, readFileSync(fichier, 'utf8'), ts.ScriptTarget.Latest, true);
 /** Les fichiers de la GRAMMAIRE partagée (`src/data/schemas/grammaire/`) — un schéma commun y vit,
  *  jamais dans un def. LUS AU DOSSIER : un module de grammaire ajouté est couvert sans liste à tenir. */
 const fichiersGrammaire = (root: string) =>
@@ -1192,7 +1209,7 @@ const fichiersGrammaire = (root: string) =>
 const sourcesGrammaire = (root: string) =>
   fichiersGrammaire(root).map((nom) => {
     const fichier = join(root, 'src/data/schemas/grammaire', nom);
-    return sourceDe(fichier, () => readFileSync(fichier, 'utf8'));
+    return sourceDe(fichier);
   });
 
 /** `kind` reconnus par `conditionSchema` (`src/data/schemas/grammaire/mecanique.ts`) — lus par AST,
@@ -1313,21 +1330,15 @@ function litterauxZod(node: ts.Node, sf: ts.SourceFile) {
 
 type LitteralDef = { def: string; ligne: number; champ: string; cles: string[] };
 
-/** Cache par racine : les `defs/*.ts` ne sont parsés qu'UNE fois par run. */
-const CACHE_LITTERAUX = new Map<string, LitteralDef[]>();
-
 /** Tous les littéraux d'objet zod des `defs/*.ts`, avec leur `def:ligne`, leur champ et leurs clés. */
 function litterauxDefs(root: string): LitteralDef[] {
-  const cache = CACHE_LITTERAUX.get(root);
-  if (cache) return cache;
   const dir = join(root, 'src/data/schemas/defs');
   const out: LitteralDef[] = [];
   for (const f of listerDossier(dir).filter((f) => f.endsWith('.ts') && !f.endsWith('.test.ts'))) {
     const chemin = join(dir, f);
-    const sf = sourceDe(chemin, () => readFileSync(chemin, 'utf8'));
+    const sf = sourceDe(chemin);
     for (const lit of litterauxZod(sf, sf)) out.push({ def: f, ...lit });
   }
-  CACHE_LITTERAUX.set(root, out);
   return out;
 }
 

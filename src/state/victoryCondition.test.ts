@@ -2,7 +2,6 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { checkBattleOver } from './combatFlow';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { testScene } from '../scenes/test-fixture';
 import { structureIsDown, structureDownKey } from './scene';
 import type { Scene } from './scene';
@@ -27,8 +26,8 @@ function drainCombatEndCascade(): void {
   }
 }
 
-function startFixtureCombat(scene: Scene = testScene) {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+function startFixtureCombat(scene: Scene = testScene()) {
+  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   useGame.setState({ party: [hero], battle: null });
   useGame.getState().startScene(scene);
   useGame.getState().startCombat('enc-mutants');
@@ -50,7 +49,7 @@ describe('checkBattleOver — objectif de victoire authorable (#197)', () => {
   });
 
   it("destroyStructure : le dernier ennemi mort mais la structure INTACTE → le combat CONTINUE (bug exact du ticket)", () => {
-    const scene = structuredClone(testScene);
+    const scene = structuredClone(testScene());
     scene.walls = [{ x: 2, y: 2, side: 'E', structure: 'porte' }];
     scene.encounters[0].victoryCondition = { type: 'destroyStructure', edge: { x: 2, y: 2, side: 'E' } };
     startFixtureCombat(scene);
@@ -64,7 +63,7 @@ describe('checkBattleOver — objectif de victoire authorable (#197)', () => {
   });
 
   it("destroyStructure : la porte ABATTUE déclenche la victoire même avec des ennemis vivants", () => {
-    const scene = structuredClone(testScene);
+    const scene = structuredClone(testScene());
     scene.walls = [{ x: 2, y: 2, side: 'E', structure: 'porte' }];
     scene.encounters[0].victoryCondition = { type: 'destroyStructure', edge: { x: 2, y: 2, side: 'E' } };
     startFixtureCombat(scene);

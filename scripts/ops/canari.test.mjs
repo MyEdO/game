@@ -12,6 +12,8 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { SIGNALEUR, stepsDu } from '../gates/workflowsDuDepot.mjs'
+import { COMMANDE_ARBRE_INCHANGE, nomDeGate } from '../gates/gatesDeCi.mjs'
+import { ECRIT_LU } from '../gates/toutes.mjs'
 
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 export const CHEMIN = join(RACINE, '.github', 'workflows', 'canari.yml')
@@ -91,3 +93,26 @@ test('les deux mesures d’ÉTAT sont jouées par le canari', () => {
     assert.match(TEXTE, new RegExp(`node scripts/ops/${script.replace('.', '\\.')}`), `${script} absent du canari`)
   }
 })
+
+/** Commande `run:` d'un step, sur une ligne. PUR. */
+const commandeDu = (step) => /^\s*-?\s*run:\s*(.+)$/m.exec(step.bloc)?.[1]?.trim() ?? null
+
+for (const [nom, texte] of [['ci.yml', readFileSync(join(RACINE, '.github', 'workflows', 'ci.yml'), 'utf8')], ['canari.yml', TEXTE]]) {
+  test(`${nom} : \`docs:check:tout\` joue AVANT toute gate qui réécrit un registre \`*.generated.ts\``, () => {
+    const steps = stepsDu(texte).map(commandeDu)
+    const verification = steps.indexOf('npm run docs:check:tout')
+    assert.ok(verification >= 0, `${nom} ne joue pas \`npm run docs:check:tout\``)
+    const ecrivains = Object.entries(ECRIT_LU)
+      .filter(([, g]) => Object.keys(g.ecritFerme ?? {}).some((c) => c.endsWith('.generated.ts')))
+      .map(([gate]) => gate)
+    assert.ok(ecrivains.length > 0, 'aucune gate d’`ECRIT_LU` ne déclare réécrire un registre')
+    const avant = steps.slice(0, verification).map((c) => c && nomDeGate(c)).filter((g) => ecrivains.includes(g))
+    assert.deepEqual(avant, [], 'vérifiée après eux, la gate juge un registre déjà réécrit par `genAll()`')
+  })
+
+  test(`${nom} : le step « Arbre inchangé » joue \`COMMANDE_ARBRE_INCHANGE\` tel quel`, () => {
+    const step = stepsDu(texte).find((s) => s.nom === 'Arbre inchangé')
+    assert.ok(step, `${nom} n’a pas de step « Arbre inchangé »`)
+    assert.equal(commandeDu(step), COMMANDE_ARBRE_INCHANGE)
+  })
+}

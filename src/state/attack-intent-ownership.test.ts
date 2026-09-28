@@ -51,7 +51,7 @@ function setup(net: Record<string, unknown> = {}) {
     movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
   } as unknown as BattleState;
   useGame.setState({
-    battle, mode: 'battle', scene: testScene, pendingDefense: null, pendingAttack: null, pendingCascade: null,
+    battle, mode: 'battle', scene: testScene(), pendingDefense: null, pendingAttack: null, pendingCascade: null,
     net: { ...NET0, mode: 'host', mySeat: 0, gmSeat: 2, ownership: { h: 1 }, slots: [0, 1, 0, 0], seatNames: { 0: 'Hôte', 1: 'Joueur', 2: 'MJ' }, ...net },
   });
   return { enemy, hero };

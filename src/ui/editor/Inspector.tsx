@@ -18,10 +18,8 @@ import { sceneZoneTiles, zoneAreaTiles } from '../../state/zones';
 import type { WorldMap } from '../../state/worldMap';
 import type { NarratifBlock } from '../../state/campaignNarratif';
 import type { Settlement } from '../../engine/disponibilite';
-import { hashSeed } from '../../engine/dice';
 import { SCENE_ANIMS } from '../../gameIso/sceneAnims';
 import { tokenBodyKind } from '../../gameIso/tokenBodyKind';
-import { coiffureChoisie, coiffureRetombee } from '../../gameIso/rig/parts/cosmetic';
 import { PROPS } from '../../gameIso/catalog/decor';
 import { buildingsMeta } from '../../state/buildings';
 import { FACADE_APPEARANCE_IDS } from '../../gameIso/catalog/facades';
@@ -41,6 +39,7 @@ import { entityKindSchema, facadeFeatureKindSchema, roofProfileSchema, sceneWeat
 const battleAnchorTargets = (): { id: string; label: string }[] =>
   activitiesFor('bataille-round').map((def) => ({ id: def.id, label: def.label }));
 import { MonsterPartsFields, ReglagesApparence } from './MonsterPartsFields';
+import { isSwarm } from '../../engine/traits/dispatch';
 import { effectCtxOf } from './EffectList';
 import { GameOpEditor } from './GameOpEditor';
 import { FlowEditor, TestFields } from './FlowEditor';
@@ -1382,14 +1381,10 @@ function EntityPanel({
                 réf de créature (fold Rôle/Combat), distincte de l'apparence. */}
             <div className="ed-field">
               <ReglagesApparence
-                species={ent.appearance?.species}
-                sex={ent.appearance?.sex}
-                build={ent.appearance?.build}
-                hairstyle={ent.appearance?.hairstyle}
-                onSpecies={(id) => updateSel({ appearance: { ...ent.appearance, species: id } })}
-                onSex={(s) => updateSel({ appearance: coiffureRetombee({ ...ent.appearance, sex: s }) })}
-                onBuild={(b) => updateSel({ appearance: { ...ent.appearance, build: b } })}
-                onHairstyle={(id) => updateSel({ appearance: { ...ent.appearance, ...coiffureChoisie(id) } })}
+                appearance={ent.appearance ?? {}}
+                onChange={(appearance) => updateSel({ appearance })}
+                reglages={['species', 'sex', 'build', 'hairstyle', 'variante']}
+                nuee={isSwarm(findCreatureById(ent.ref)?.traits)}
               />
             </div>
             <label className="ed-field">
@@ -1402,28 +1397,12 @@ function EntityPanel({
                 ))}
               </select>
             </label>
-            <div className="ed-field">
-              <span>Apparence aléatoire</span>
-              <button
-                className="btn small"
-                onClick={() => updateSel({ appearance: { ...ent.appearance, seed: hashSeed(ent.id + ':' + Math.floor(performance.now())) } })}
-              >
-                <Icon id="nav/dice" size="sm" /> Relancer
-              </button>
-            </div>
             <MonsterPartsFields
-              monster={ent.appearance?.monster}
+              appearance={ent.appearance ?? {}}
+              onChange={(appearance) => updateSel({ appearance })}
+              reglages={['monster', 'eyes', 'features', 'tenue', 'colors']}
               weapon={ent.weapon}
-              colors={ent.appearance?.colors}
-              tenue={ent.appearance?.tenue}
-              onMonster={(patch) => updateSel({ appearance: { ...ent.appearance, monster: { ...(ent.appearance?.monster ?? {}), ...patch } } })}
               onWeapon={(w) => updateSel({ weapon: w })}
-              onColors={(patch) => updateSel({ appearance: { ...ent.appearance, colors: { ...(ent.appearance?.colors ?? {}), ...patch } } })}
-              onTenue={(c) => updateSel({ appearance: { ...ent.appearance, tenue: c } })}
-              eyes={ent.appearance?.eyes}
-              onEyes={(patch) => updateSel({ appearance: { ...ent.appearance, eyes: { ...(ent.appearance?.eyes ?? {}), ...patch } } })}
-              features={ent.appearance?.features}
-              onFeatures={(f) => updateSel({ appearance: { ...ent.appearance, features: f.length ? f : undefined } })}
             />
           </Fold>
           <Fold title="Rôle (dialogue, marchand)">

@@ -3,4 +3,5 @@
 # (hors chantier/**), run CI vert pour main. Toute la logique vit dans pre-push.mjs.
 # Même contrat que pre-commit : ce hook DOIT pouvoir refuser le push (exit != 0). Les refs à pousser
 # arrivent sur stdin, que `exec` transmet tel quel.
+node "$(dirname "$0")/../node-requis.mjs" </dev/null || exit $?
 exec node "$(dirname "$0")/pre-push.mjs" "$@"

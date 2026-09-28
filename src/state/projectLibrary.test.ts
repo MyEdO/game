@@ -6,8 +6,6 @@ import {
   publishedProjects,
   initLibrary,
   __resetLibraryForTest,
-  __setIdbBackendForTest,
-  IdbBackend,
   SavedProject,
   documentDeLEntree,
   campagneDeLEntree,
@@ -15,7 +13,7 @@ import {
   upgradeBibliotheque,
 } from './projectLibrary';
 import { __setOuvertureIdbForTest } from '../lib/indexedDb';
-import { baseSimulee } from '../lib/indexedDb.testkit';
+import { baseSimulee, brancherBasesSimulees } from '../lib/indexedDb.testkit';
 import { Scene, emptyScene } from './scene';
 import { parseProject, CURRENT_PROJECT_SCHEMA, ProjetRefuse } from './worldMap';
 import { allBuiltinCampaigns } from '../scenes/campaign';
@@ -43,28 +41,19 @@ function fakeStorage(opts: { failSetItem?: Set<string> } = {}): Storage {
   } as Storage;
 }
 
-/** Backend IndexedDB en mémoire pour les tests — même contrat que `IdbBackend` (#776 pt.4), sans
- *  reproduire l'API IndexedDB. `fail.put`/`fail.delete` : ids dont l'écriture doit rejeter — des
- *  `Set` mutables, pour simuler une panne qui se résorbe entre deux appels (reprise au reload). */
-function fakeIdbBackend(fail: { put?: Set<string>; delete?: Set<string> } = {}): IdbBackend & { store: Map<string, SavedProject> } {
-  const store = new Map<string, SavedProject>();
-  return {
-    store,
-    async getAll() {
-      return [...store.values()];
-    },
-    async put(entry: SavedProject) {
-      if (fail.put?.has(entry.id)) throw new Error(`put refusé (${entry.id})`);
-      store.set(entry.id, entry);
-    },
-    async delete(id: string) {
-      if (fail.delete?.has(id)) throw new Error(`delete refusé (${id})`);
-      store.delete(id);
-    },
-    async clear() {
-      store.clear();
-    },
+const NOM = 'wfrp4-library';
+
+/** Branche la bibliothèque IndexedDB sur une base simulée, et rend son magasin `projects`.
+ *  `pannes.put`/`pannes.delete` : ids dont l'écriture échoue — des `Set` mutables, pour simuler une
+ *  panne qui se résorbe entre deux appels (reprise au reload). */
+function bibliothequeSimulee(pannes: { put?: Set<string>; delete?: Set<string> } = {}): { store: Map<unknown, unknown> } {
+  const base = brancherBasesSimulees().amorcer(NOM, 1, { projects: { keyPath: 'id' } });
+  base.panne = (q) => {
+    const id = q.geste === 'put' ? (q.valeur as SavedProject).id : String(q.cle);
+    const echoue = (q.geste === 'put' && pannes.put?.has(id)) || (q.geste === 'delete' && pannes.delete?.has(id));
+    return echoue ? new DOMException(`${q.geste} refusé (${id})`, 'UnknownError') : null;
   };
+  return { store: base.magasins.get('projects')!.contenu };
 }
 
 const scene = (id: string): Scene => ({ id, nom: id }) as unknown as Scene;
@@ -95,7 +84,6 @@ describe('projectLibrary — bibliothèque de projets éditeur (localStorage)', 
   });
   afterEach(() => {
     delete (globalThis as { localStorage?: Storage }).localStorage;
-    __setIdbBackendForTest(null);
     __setOuvertureIdbForTest(null);
   });
 
@@ -214,15 +202,11 @@ describe('projectLibrary — bibliothèque de projets éditeur (localStorage)', 
 
     // Sortie 3 : `initLibrary()` dont la branche IndexedDB ÉCHOUE (`getAll` rejette) retombe sur son
     // `catch`, qui relit aussi ce même miroir.
-    __setIdbBackendForTest({
-      async getAll() { throw new Error('getAll refusé'); },
-      async put() { /* non exercé ici */ },
-      async delete() { /* non exercé ici */ },
-      async clear() { /* non exercé ici */ },
-    });
+    brancherBasesSimulees().base(NOM).panne = (q) => (q.geste === 'getAll' ? new DOMException('getAll refusé', 'UnknownError') : null);
     await initLibrary();
     expect(projectsLoad()).toEqual([]);
-    __setIdbBackendForTest(null);
+    // Le `catch` a joué : la branche de succès aurait purgé la tombe, absente d'IndexedDB.
+    expect(JSON.parse(localStorage.getItem(TOMBSTONE_KEY)!)).toEqual(['p1']);
   });
 
   describe('miroir localStorage borné PAR PROJET (#776 lot correctif — LOCAL_MIRROR_ENTRY_LIMIT)', () => {
@@ -236,8 +220,7 @@ describe('projectLibrary — bibliothèque de projets éditeur (localStorage)', 
     });
 
     it('le chemin de perte RÉEL : IndexedDB en échec ET projet trop gros pour le miroir → échec signalé', async () => {
-      const idb = fakeIdbBackend({ put: new Set(['big']) });
-      __setIdbBackendForTest(idb);
+      bibliothequeSimulee({ put: new Set(['big']) });
       const res = await projectSave(bigProj('big'));
       expect(res.ok).toBe(false);
       if (!res.ok) expect(res.message.length).toBeGreaterThan(0);
@@ -247,15 +230,14 @@ describe('projectLibrary — bibliothèque de projets éditeur (localStorage)', 
 
     it('stockage local INDISPONIBLE (pas juste une entrée trop grosse) → message distinct, sans conseil « allégez la campagne » (#776 pt.4)', async () => {
       delete (globalThis as { localStorage?: Storage }).localStorage;
-      const idb = fakeIdbBackend({ put: new Set(['small']) });
-      __setIdbBackendForTest(idb);
+      bibliothequeSimulee({ put: new Set(['small']) });
       const res = await projectSave(proj('small', 'Petit')); // PAS un `bigProj` : le stockage est absent, pas l'entrée trop grosse
       expect(res.ok).toBe(false);
       if (!res.ok) expect(res.message.toLowerCase()).not.toMatch(/volumineuse/);
     });
 
     it('un projet trop gros pour le miroir mais dont IndexedDB réussit n’est PAS signalé en échec (le filet IDB suffit) — la borne reste PAR PROJET, pas globale', async () => {
-      __setIdbBackendForTest(fakeIdbBackend());
+      bibliothequeSimulee();
       await projectSave(proj('small', 'Petit'));
       const res = await projectSave(bigProj('big'));
       expect(res.ok).toBe(true);
@@ -266,14 +248,13 @@ describe('projectLibrary — bibliothèque de projets éditeur (localStorage)', 
     });
   });
 
-  describe('backend IndexedDB injecté (#776) — chemin de migration/réconciliation réellement exercé', () => {
+  describe('IndexedDB simulée (#776) — chemin de migration/réconciliation réellement exercé', () => {
     it('migration complète : localStorage peuplé + idb vide → initLibrary recopie tout dans idb', async () => {
       localStorage.setItem(
         KEY,
         JSON.stringify([proj('p1', 'Un'), proj('p2', 'Deux')]),
       );
-      const idb = fakeIdbBackend();
-      __setIdbBackendForTest(idb);
+      const idb = bibliothequeSimulee();
       await initLibrary();
       expect(projectsLoad().map((e) => e.id).sort()).toEqual(['p1', 'p2']);
       expect(idb.store.has('p1')).toBe(true);
@@ -286,8 +267,7 @@ describe('projectLibrary — bibliothèque de projets éditeur (localStorage)', 
         JSON.stringify([proj('p1', 'Un'), proj('p2', 'Deux')]),
       );
       const failPut = new Set(['p2']);
-      const idb = fakeIdbBackend({ put: failPut });
-      __setIdbBackendForTest(idb);
+      const idb = bibliothequeSimulee({ put: failPut });
 
       await initLibrary(); // p1 migré, p2 échoue
       expect(idb.store.has('p1')).toBe(true);
@@ -303,15 +283,13 @@ describe('projectLibrary — bibliothèque de projets éditeur (localStorage)', 
         KEY,
         JSON.stringify([proj('p1', 'Un'), proj('p2', 'Deux')]),
       );
-      __setIdbBackendForTest(idb); // même backend idb, p1 déjà dedans
       await initLibrary();
       expect(idb.store.has('p2')).toBe(true); // reprise réussie cette fois
       expect(projectsLoad().map((e) => e.id).sort()).toEqual(['p1', 'p2']);
     });
 
     it('suppression respectée : un projet supprimé n’est jamais ressuscité par la réconciliation', async () => {
-      const idb = fakeIdbBackend();
-      __setIdbBackendForTest(idb);
+      const idb = bibliothequeSimulee();
       localStorage.setItem(KEY, JSON.stringify([proj('p1', 'Un')]));
       await initLibrary();
       expect(projectsLoad()).toHaveLength(1);
@@ -332,8 +310,7 @@ describe('projectLibrary — bibliothèque de projets éditeur (localStorage)', 
     });
 
     it('re-sauvegarder un projet supprimé lève sa tombe : `initLibrary` ne le fait pas disparaître (#776 pt.6)', async () => {
-      const idb = fakeIdbBackend();
-      __setIdbBackendForTest(idb);
+      bibliothequeSimulee();
       await projectSave(proj('p1', 'Un'));
       await projectRemove('p1');
       expect(projectsLoad()).toEqual([]);
@@ -349,9 +326,8 @@ describe('projectLibrary — bibliothèque de projets éditeur (localStorage)', 
 
     it('une tombe disparaît une fois la suppression IndexedDB effectivement aboutie (#776 pt.4 : pas de croissance monotone)', async () => {
       const failDelete = new Set(['p1']);
-      const idb = fakeIdbBackend({ delete: failDelete });
+      const idb = bibliothequeSimulee({ delete: failDelete });
       idb.store.set('p1', proj('p1', 'Un'));
-      __setIdbBackendForTest(idb);
       localStorage.setItem(KEY, JSON.stringify([proj('p1', 'Un')]));
       await initLibrary();
 
@@ -365,8 +341,7 @@ describe('projectLibrary — bibliothèque de projets éditeur (localStorage)', 
     });
 
     it('échec d’écriture IndexedDB non silencieux : `projectSave` journalise l’échec (console.error)', async () => {
-      const idb = fakeIdbBackend({ put: new Set(['p1']) });
-      __setIdbBackendForTest(idb);
+      bibliothequeSimulee({ put: new Set(['p1']) });
       const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
       await projectSave(proj('p1', 'Un'));
       expect(spy).toHaveBeenCalled();
@@ -377,9 +352,8 @@ describe('projectLibrary — bibliothèque de projets éditeur (localStorage)', 
     });
 
     it('échec de suppression IndexedDB non silencieux : `projectRemove` journalise l’échec', async () => {
-      const idb = fakeIdbBackend({ delete: new Set(['p1']) });
+      const idb = bibliothequeSimulee({ delete: new Set(['p1']) });
       idb.store.set('p1', proj('p1', 'Un'));
-      __setIdbBackendForTest(idb);
       const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
       await projectRemove('p1');
       expect(spy).toHaveBeenCalled();
@@ -387,9 +361,8 @@ describe('projectLibrary — bibliothèque de projets éditeur (localStorage)', 
     });
 
     it('échec d’écriture des tombes non silencieux : journalisé (console.error), comme put/delete', async () => {
-      const idb = fakeIdbBackend({ delete: new Set(['p1']) });
+      const idb = bibliothequeSimulee({ delete: new Set(['p1']) });
       idb.store.set('p1', proj('p1', 'Un'));
-      __setIdbBackendForTest(idb);
       localStorage.setItem(KEY, JSON.stringify([proj('p1', 'Un')]));
       await initLibrary();
       (globalThis as { localStorage?: Storage }).localStorage = fakeStorage({ failSetItem: new Set([TOMBSTONE_KEY]) });
@@ -401,9 +374,8 @@ describe('projectLibrary — bibliothèque de projets éditeur (localStorage)', 
 
     it('résurrection empêchée même quand la tombe elle-même ne peut pas être écrite (secours en mémoire, #776 pt.2)', async () => {
       const failDelete = new Set(['p1']);
-      const idb = fakeIdbBackend({ delete: failDelete });
+      const idb = bibliothequeSimulee({ delete: failDelete });
       idb.store.set('p1', proj('p1', 'Un'));
-      __setIdbBackendForTest(idb);
       localStorage.setItem(KEY, JSON.stringify([proj('p1', 'Un')]));
       await initLibrary();
       expect(projectsLoad()).toHaveLength(1);
@@ -487,7 +459,7 @@ describe('documentDeLEntree — le document d’une entrée de bibliothèque, lu
   });
 
   it('copie d’AVANT E5 au nom divergent : le nom de l’ENTRÉE prime, l’id et la version restent ceux du document', () => {
-    const { scenes: _sc, startSceneId: _st, worldMap: _wm, narratif: _na, label: _lb, ...identiteDuPaquet } = allBuiltinCampaigns[0];
+    const { paquet: _pq, label: _lb, ...identiteDuPaquet } = allBuiltinCampaigns[0];
     const entree = {
       id: 'entree-copie', label: 'Mon nom', startSceneId: 'scene-a', savedAt: 1, published: true,
       project: { ...identiteDuPaquet, type: 'projet', schema: CURRENT_PROJECT_SCHEMA, label: 'Nom du paquet', versionContenu: 4, scenes: [scene], narratif },

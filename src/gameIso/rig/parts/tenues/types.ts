@@ -20,7 +20,7 @@ export type TenueSet = Partial<Record<'torse' | 'jambes' | 'bras' | 'avantBras' 
  *     une carrière n'a pas de tenue dédiée. La taxonomie des classes (careers.json) discrimine
  *     seule « archétype de classe » vs « tenue spécifique » — aucun flag à porter ;
  *   - nom d'une CARRIÈRE / CRÉATURE / PNJ → tenue spécifique (prioritaire par id) ;
- *   - 'Nu' pour le corps de chair sans vêtement (torse/jambes en @peau, le token suit l'espèce).
+ *   - 'Nu' pour le corps de chair sans vêtement (torse/jambes en @peau, le jeton suit l'espèce).
  * Les slots portent une string (FRONT) ou les 3 vues `{front, back, profile}`. Ajouter un
  * humanoïde habillé = DÉPOSER ce fichier (+ un def de race/PNJ pointant `tenue: '<name>'`).
  *
@@ -38,7 +38,7 @@ export type TenueSet = Partial<Record<'torse' | 'jambes' | 'bras' | 'avantBras' 
  *
  * Une tenue qui ne chausse pas (corps 'Nu', squelette décharné, pagne du Sanguinaire…) ne
  * déclare simplement PAS `pied` dans son `set` : le repli devient alors le Nu de l'ESPÈCE
- * (`race.extremites`/`perso.extremites`, 'lisses' civilisé ou 'griffues' monstrueux — #736 Lot 1,
+ * (`race.extremites`/`perso.extremites`, 'lisses' civilisé ou 'griffues' monstrueux — #736,
  * `resolve.ts`).
  */
 export type TenueDef = {

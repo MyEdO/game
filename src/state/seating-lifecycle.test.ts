@@ -11,7 +11,6 @@ import { seatPoseOf, type SeatOccupant } from './seating';
 import { notifySlain, releaseSeatsOfDowned } from './combatFlow';
 import { TIME_COST } from '../engine/timeCost';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
 
@@ -129,9 +128,9 @@ describe('mort / indisponibilité d’un occupant', () => {
   });
 
   it('un PNJ attablé mis hors de combat libère sa place par `notifySlain`', () => {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [h], battle: null, journal: [] });
-    useGame.getState().startScene(testScene);
+    useGame.getState().startScene(testScene());
     const sc = useGame.getState().scene!;
     const badaud: SceneEntity = { id: 'badaud', kind: 'personnage', ref: 'humain', pos: { x: 5, y: 4 } };
     const entities: SceneEntity[] = [...sc.entities, { id: PROP, kind: 'prop', pos: { x: 5, y: 5 }, ref: TABLE, facing: 'N', usable: { assise: true } }, badaud];
@@ -152,9 +151,9 @@ describe('ouverture de combat — le MENEUR assis se lève avec les autres enrô
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 
   it('sa place est libérée dans l’écriture de pose du combat', () => {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [h], battle: null });
-    useGame.getState().startScene(testScene);
+    useGame.getState().startScene(testScene());
     const sc = useGame.getState().scene!;
     // Table au NORD du groupe, cap `N` : son abord SUD est exactement la case du groupe.
     const table = { x: useGame.getState().partyPos.x, y: useGame.getState().partyPos.y - 1 };

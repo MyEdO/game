@@ -44,7 +44,8 @@ import { numerosCites, numerosFermes } from '../guards/lib/fermetures.mjs'
 import { BORNE_RAISON, DEPOT, lireTicket, poserCommentaire } from '../guards/lib/ticketsGh.mjs'
 import { refusDeSujet } from '../guards/lib/sujetDeCommit.mjs'
 import { commitsDeLaPlage, marqueDe } from '../guards/lib/plageFermante.mjs'
-import { GENERATORS, SOURCES_LUES } from '../docs/build-all.mjs'
+import { GENERATORS, natureDuRouge, rougesNommes, SOURCES_LUES } from '../docs/build-all.mjs'
+import { CODE_CORPS_PERIME } from '../docs/lib/empreinte-sources.mjs'
 import { MANAGED_ROOTS } from '../agents/compat-core.mjs'
 import { sourcesMesurees, touchesDocSources } from '../git-hooks/docs-rebuild.mjs'
 import { PEREMPTION_MS, purgerPerimes } from '../guards/lib/purgerPerimes.mjs'
@@ -176,17 +177,16 @@ export function citerArgv(valeur) {
 }
 
 /**
- * Le seul site de détachement du TRAIN (#1784) — `scripts/gates/toutes.mjs:700` en détache aussi ses
+ * Le seul site de détachement du TRAIN (#1784) — `spawnBorne` (scripts/gates/toutes.mjs) en détache aussi ses
  * gates, mais sous POSIX seulement (`detached: process.platform !== 'win32'`) : sous win32 elles
  * héritent de la console de l'appelant. Sous win32, `spawn({ detached: true })` pose
  * `DETACHED_PROCESS` (libuv) : le train n'a AUCUNE console, et chacun de ses enfants console
- * (`git`, `gh`, `npm`, `node`) en ALLOUE une, visible au premier plan — mesuré le 2026-09-17 sur 15
- * commandes : 9 consoles neuves, contre 1 (celle du train, CACHÉE, dont ses enfants héritent) par
- * `Start-Process -WindowStyle Hidden`. Le pid rendu est celui du NODE du train (`-PassThru`), jamais
- * celui du `powershell` intermédiaire, qui rend la main aussitôt (mesuré : 253 ms) et meurt sans
- * emporter le train. Aucune redirection n'est demandée à `Start-Process` : le train ouvre LUI-MÊME
- * son journal (`modeDuLog`) et le passe en stdio à ses enfants, et `-RedirectStandard*` retiendrait
- * le `powershell` jusqu'à la fin du train (mesuré : 16,14 s au lieu de 253 ms).
+ * (`git`, `gh`, `npm`, `node`) en ALLOUE une, visible au premier plan ; `Start-Process -WindowStyle
+ * Hidden` n'en ouvre qu'une, celle du train, CACHÉE, dont ses enfants héritent. Le pid rendu est
+ * celui du NODE du train (`-PassThru`), jamais celui du `powershell` intermédiaire, qui rend la main
+ * aussitôt et meurt sans emporter le train. Aucune redirection n'est demandée à `Start-Process` : le
+ * train ouvre LUI-MÊME son journal (`modeDuLog`) et le passe en stdio à ses enfants, et
+ * `-RedirectStandard*` retiendrait le `powershell` jusqu'à la fin du train.
  * @param {{script:string, args:string[], cwd:string, fdLog:number, envSupplementaire?:Record<string,string>,
  *          plateforme?:string, node?:string, detacher?:Function, executerSync?:Function}} p
  * @returns {number|undefined} pid du processus NODE du train
@@ -561,7 +561,7 @@ export const finDeSortie = (texte, max = 400) => {
  * Ce que git a IMPRIMÉ dans une union de `scripts/guards/lib/gitPorte.mjs` : la `raison` d'une
  * indisponibilité, puis `stderr`, puis `stdout` — chaque morceau retenu sur son CONTENU, jamais par
  * un repli `??` (une chaîne vide n'est pas nullish : `classer` rend `{status, stdout, stderr:''}`
- * quand git n'écrit que sur stdout, `scripts/guards/lib/gitPorte.mjs:164`). PURE.
+ * quand git n'écrit que sur stdout). PURE.
  * @param {object} vu union git @param {number} [max] borne de `finDeSortie`
  * @returns {string} '' quand git n'a rien imprimé
  */
@@ -957,10 +957,20 @@ export const ETAPES = [
       if (!regenerer && !salesAvant.length) return { ok: true, dit: 'aucune source de doc dans la plage, arbre propre : docs inchangés' }
       if (regenerer) {
         const check = spawnSync(process.execPath, [join(racine, 'scripts/docs/build-all.mjs'), '--check'], {
-          cwd: racine, stdio: ['ignore', ctx.fdLog, ctx.fdLog],
+          cwd: racine, stdio: ['ignore', ctx.fdLog, 'pipe'], encoding: 'utf8', maxBuffer: 256 * 1024 * 1024,
         })
-        if (check.status !== 0) {
-          ctx.journaliser('[publier] docs — `--check` non vert : passe COMPLÈTE de build-all\n')
+        if (check.stderr) writeSync(ctx.fdLog, check.stderr)
+        // Seul un rouge que la régénération GUÉRIT la déclenche (`executer`, build-all.mjs) : un
+        // cliquet, un vérificateur ou un refus rendrait un `docs:build` vain, ou le masquerait.
+        if (check.status !== 0 && check.status !== CODE_CORPS_PERIME) {
+          const nommes = rougesNommes(check.stderr)
+          return {
+            ok: false,
+            raison: `\`build-all --check\` rouge, que \`docs:build\` ne guérit pas (${natureDuRouge({ status: check.status, signal: check.signal, code: check.error?.code ?? null })})${nommes.length ? ` :\n${nommes.map((r) => `    ${r}`).join('\n')}` : ''}`,
+          }
+        }
+        if (check.status === CODE_CORPS_PERIME) {
+          ctx.journaliser('[publier] docs — `--check` : dérivés périmés, passe COMPLÈTE de build-all\n')
           const passe = spawnSync(process.execPath, [join(racine, 'scripts/docs/build-all.mjs'), '--quiet'], {
             cwd: racine, stdio: ['ignore', ctx.fdLog, ctx.fdLog],
           })
@@ -1230,5 +1240,4 @@ function main() {
   return verdict.etat === 'vert' ? 0 : verdict.etat === 'indeterminee' ? 3 : 1
 }
 
-const estMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)
-if (estMain) process.exit(main())
+if (import.meta.main) process.exit(main())

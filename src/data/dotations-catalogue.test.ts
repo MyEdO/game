@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { careerLevels, classes, creatures, trappings, trappingRefLabel, type TrappingRef } from './index';
+import { replier } from '../lib/ordre.mjs';
 
 /**
  * CONTRAT POSITIF (#1463 L-ref-1, étendu au bestiaire par L-ref-1bis) — une dotation qui NOMME une possession du catalogue est une
@@ -18,9 +19,8 @@ import { careerLevels, classes, creatures, trappings, trappingRefLabel, type Tra
  * une possession NOMMÉE est une référence, quel que soit son porteur.
  */
 
-/** Normalisation de libellé — casse, accents et ponctuation, comme le scan de structures. */
-const normaliser = (s: string) =>
-  s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+/** Normalisation de libellé — `replier`, puis la ponctuation en espace, comme le scan de structures. */
+const normaliser = (s: string) => replier(s).replace(/[^a-z0-9]+/g, ' ').trim();
 
 /** SINGULIER mot à mot d'un libellé normalisé : « haches de lancer » → « hache de lancer ». */
 const singulier = (s: string) =>

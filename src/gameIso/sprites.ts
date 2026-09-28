@@ -24,7 +24,7 @@ export interface EntityViz {
   id: string;
   ref?: string;
   appearance?: { seed?: number };
-  /** Orientation MONDE (Dir8, même repère que `SceneEntity.facing`) — un prop directionnel (sièges)
+  /** Orientation MONDE (Dir8, même repère que `SceneEntity.facing`) — un prop orienté (sièges)
    *  la projette avec la caméra via `project()` ; les props symétriques l'ignorent. */
   facing?: Dir8;
 }

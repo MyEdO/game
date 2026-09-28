@@ -3,7 +3,9 @@ import { useGame } from './store';
 import { runFlow } from './combatFlow';
 import { testFlow, EMPTY_FLOW } from './flow';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
+
+/** Humains (Reiklander), « Affable *ou* Perspicace » (LDB 05 l.490) : Perspicace, la Sociabilité reste nue. */
+const PERSPICACE = { 'espece:talents:0': { id: 'perspicace' } };
 
 describe('Test de Sociabilité vs groupe haï (dialogue) — malus psy appliqué (LDB 21, P3)', () => {
   beforeEach(() => {
@@ -11,7 +13,7 @@ describe('Test de Sociabilité vs groupe haï (dialogue) — malus psy appliqué
   });
 
   function hero(name: string, soc: number, traits: { type: string; cible: string }[] = []) {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: name, rng: makeRNG(1) });
+    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: name, seed: 1, speciesTalentChoices: PERSPICACE });
     h.characteristics.sociabilite = soc;
     h.skills = []; // pas d'avances → testValue = Soc brut
     h.psychTraits = traits as never;

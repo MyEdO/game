@@ -19,6 +19,7 @@
  * Ce banc vit sous `lib/` : `replay.mjs` scanne le dossier des migrations à PLAT et n'y admet que
  * des `.mjs` à préfixe DATÉ.
  */
+import { tableTotale } from '../../../src/lib/tableTotale.ts';
 import { strict as assert } from 'node:assert';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -144,7 +145,7 @@ const PROJETS = fs
   .filter((rel) => fs.existsSync(path.join(RACINE, rel)));
 assert.ok(PROJETS.length > 0, 'aucun projet de scène — la fixture ne mesure rien');
 
-const SCENES_PAR_PROJET = Object.fromEntries(PROJETS.map((rel) => [rel, JSON.parse(lireArbre(rel)).scenes.length]));
+const SCENES_PAR_PROJET = tableTotale(PROJETS, (rel) => JSON.parse(lireArbre(rel)).scenes.length);
 for (const rel of PROJETS)
   assert.ok(
     JSON.parse(lireArbre(rel)).scenes.every((s) => s.reliefDefaults),
@@ -157,7 +158,7 @@ for (const rel of PROJETS)
 const SCHEMA_AVANT = 7;
 const SCHEMA_APRES = 8;
 /** Le `schema` que l'arbre porte AUJOURD'HUI — lu, jamais récité. */
-const SCHEMA_ARBRE = Object.fromEntries(PROJETS.map((rel) => [rel, JSON.parse(lireArbre(rel)).schema]));
+const SCHEMA_ARBRE = tableTotale(PROJETS, (rel) => JSON.parse(lireArbre(rel)).schema);
 for (const rel of PROJETS)
   assert.ok(SCHEMA_ARBRE[rel] >= SCHEMA_APRES, `${rel} : \`schema\` ${SCHEMA_ARBRE[rel]} < ${SCHEMA_APRES} — l’arbre n’est pas migré`);
 
@@ -169,7 +170,7 @@ function projetAvant(rel) {
 }
 
 const depotScenes = (fabrique) =>
-  ({ ...depot(Object.fromEntries(PROJETS.map((rel) => [rel, fabrique(rel)]))), migration: MIGRATION_SCENES });
+  ({ ...depot(tableTotale(PROJETS, (rel) => fabrique(rel))), migration: MIGRATION_SCENES });
 
 test('(f) ALLER-RETOUR scènes : l’état d’avant projeté → chaque projet BYTE-IDENTIQUE à l’arbre', (t) => {
   const d = depotScenes((rel) => serialise(projetAvant(rel), FORME_PROJET));

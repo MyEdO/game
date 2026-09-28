@@ -10,6 +10,7 @@
  */
 import sizesJson from '../data/sizes.json';
 import type { QualityId } from './qualities/ids';
+import { replier } from '../lib/ordre.mjs';
 
 export type SizeCategory =
   | 'minuscule'
@@ -76,8 +77,6 @@ const SIZE_BY_NORM: Record<string, SizeCategory> = {
   monstrueuse: 'monstrueuse',
 };
 
-const stripAccents = (s: string): string => s.normalize('NFD').replace(/[̀-ͯ]/g, '');
-
 /**
  * Catégorie depuis un libellé libre (« Énorme », « de Petite à Énorme »…). Une plage narrative
  * est résolue vers sa **borne HAUTE** : un statbloc attribue UNE catégorie de Taille, une fourchette
@@ -85,7 +84,7 @@ const stripAccents = (s: string): string => s.normalize('NFD').replace(/[̀-ͯ]/
  * null si aucune catégorie n'est reconnue.
  */
 export function parseSizeLabel(raw: string): SizeCategory | null {
-  const tokens = stripAccents(raw.toLowerCase()).match(
+  const tokens = replier(raw).match(
     /minuscule|tres\s*petite|petite|moyenne|grande|enorme|monstrueuse/g,
   );
   if (!tokens) return null;

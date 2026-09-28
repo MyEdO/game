@@ -6,7 +6,8 @@
 import { worldTransformsG, type FKBone } from '../kinematics';
 import type { BonePose } from '../poses';
 import type { PaletteDeclaree } from '../palette';
-import type { View } from '../facing';
+import { VIEWS, type View } from '../facing';
+import { viewEntries } from '../viewArt';
 import { QUAD_Z } from './quadZ';
 import type { QuadHeadId } from './heads/_registry.generated';
 import type { QuadTailId } from './tails/_registry.generated';
@@ -37,8 +38,8 @@ export type QuadPose = BonePose<QuadBoneId>;
 /**
  * Fragment de DÉCOR posé sur un os : son `plan` est RELATIF au plan de l'os porteur (`QUAD_Z`),
  * borné à ±`QUAD_DECO_PLAN_MAX` — un fragment ne quitte jamais le voisinage de son os. `plan`
- * absent = calque apposé PAR-DESSUS l'art de l'os (le comportement du canal avant #1082 Lot 2,
- * compté par le stock gelé `DECOS_SANS_PLAN_GELES`). Un couple (os, vue) peut porter N fragments
+ * absent = calque apposé PAR-DESSUS l'art de l'os, compté par le stock gelé
+ * `DECOS_SANS_PLAN_GELES` (#1082). Un couple (os, vue) peut porter N fragments
  * de plans différents : la sangle qui fait le tour (un pan devant, un derrière), les cornes du
  * bœuf de dos (derrière le crâne) et son mufle (devant).
  */
@@ -46,10 +47,27 @@ export interface QuadDecoFragment { svg: string; plan?: number }
 /** Décor d'un couple (os, vue) : SVG nu (sans plan déclaré) ou fragments à plans déclarés. */
 export type QuadDecoValue = string | QuadDecoFragment[];
 
+/** Clé de `QuadProps.deco` : l'os, ou l'os suffixé `#<vue>`. */
+export type QuadDecoKey = QuadBoneId | `${QuadBoneId}#${View}`;
+
+/** La seule construction d'une clé de décor. */
+export const quadDecoKey = (bone: QuadBoneId, view?: View): QuadDecoKey => (view === undefined ? bone : `${bone}#${view}`);
+
+/** La seule lecture d'une clé de décor : elle lève sur plus d'un `#` ou sur une vue hors de `VIEWS`.
+ *  `views` rend la règle de la clé : `[view]` pour une clé suffixée, `VIEWS` pour une clé nue. */
+export function readQuadDecoKey(key: string): { bone: QuadBoneId; view: View | undefined; views: readonly View[] } {
+  const [bone, suffix, ...rest] = key.split('#');
+  const view = VIEWS.find((v) => v === suffix);
+  if (rest.length > 0 || (suffix !== undefined && view === undefined)) {
+    throw new Error(`clé de décor « ${key} » : suffixe de vue attendu parmi ${VIEWS.join(', ')}`);
+  }
+  return { bone: bone as QuadBoneId, view, views: view === undefined ? VIEWS : [view] };
+}
+
 /** Caractère d'une espèce quadrupède (proportions + parts + couleurs par défaut). */
 export type QuadBuild = 'equine' | 'canine' | 'suid' | 'rodent' | 'ursine' | 'feline' | 'draconic' | 'batracien' | 'bovin';
-/** Tête = id du REGISTRE des defs (`heads/defs/<clé>.ts`, union générée) — le socle ne peut plus
- *  écrire `p.head === 'hydre'` : une tête N+1 est un fichier, jamais une branche (#1082 P2). */
+/** Tête = id du REGISTRE des defs (`heads/defs/<clé>.ts`, union générée) : le socle n'écrit pas
+ *  `p.head === 'hydre'`, une tête N+1 est un fichier, jamais une branche (#1082). */
 export type QuadHead = QuadHeadId;
 export type QuadFoot = 'sabot' | 'patte' | 'serre'; // serre = serres d'aigle (rapace)
 /** Queue = id du REGISTRE des defs (`tails/defs/<clé>.ts`, union générée). */
@@ -100,13 +118,13 @@ export interface QuadProps {
    * ne REPLIE sur rien, elle se compose au socle (`quadParts`), part par part. C'est LE modèle de
    * dessin des BÊTES (plans non équipables — #1082), pas une option parmi d'autres : l'assemblage
    * par pièces reste aux bipèdes équipables et aux éléments attachés (`deco`).
-   * Population à ce jour : `boeuf`, vue `profile` (l'étalon).
+   * Étalon : `boeuf`, vue `profile`.
    */
   viewArt?: Partial<Record<View, Partial<Record<QuadBoneId, string>>>>;
   /** Tangage ADDITIF de l'os tête en PROFIL (deg, négatif = museau levé). Par défaut l'os tête
    *  compense neckAngle (rotation monde constante +10) → museau à l'horizontale quel que soit le
-   *  port d'encolure ; un port de tête expressif (brame du grand cerf) le décale. Face/dos
-   *  inchangés (quadSkeletonForView y force l'angle à 0). */
+   *  port d'encolure ; un port de tête expressif (brame du grand cerf) le décale. De face et de
+   *  dos, quadSkeletonForView force l'angle à 0. */
   headPitch?: number;
   tailLen?: number; // × sur l'art de queue (défaut 1)
   /** La crête du dos se PROLONGE sur la queue jusqu'à la pointe (hydre). Propriété de la BÊTE : la
@@ -120,15 +138,16 @@ export interface QuadProps {
    *  gauche vue de bout. `bodyLen`/`neckLen` restent CUITS dans les coordonnées de l'art de tronc
    *  et d'encolure (`barrel`/`neck`, quadParts.ts) : un décor de ces deux os s'authore à leurs
    *  valeurs d'espèce. Jetons de palette admis.
-   *  Clé suffixée `#vue` = décor limité à cette vue (gueule de brame du grand cerf, dessinée
-   *  pour la tête de PROFIL seulement) ; clé nue = toutes les vues où l'os a un art.
+   *  Clé : `QuadDecoKey`, construite par `quadDecoKey`, lue par `readQuadDecoKey`. Clé suffixée
+   *  `#vue` = décor limité à cette vue (gueule de brame du grand cerf, dessinée pour la tête de
+   *  PROFIL seulement) ; clé nue = toutes les vues où l'os a un art.
    *  Valeur = SVG nu (calque apposé PAR-DESSUS l'art de l'os) ou liste de FRAGMENTS déclarant
    *  chacun son `plan` (cf. `QuadDecoFragment`).
    *  VUE DE DOS, décor de TÊTE : l'art de tête y est scindé entre `tete` (crâne, au-dessus du
    *  tronc) et `nuque` (raccord, dessous), qui PARTAGENT le même repère (`quadAnchor`). La part
    *  d'un décor qui descend sous la ligne de coupe se déclare donc sur `nuque#back`, aux mêmes
    *  coordonnées — sur `tete#back` elle resterait entière au plan du crâne. */
-  deco?: Partial<Record<QuadBoneId | `${QuadBoneId}#${'profile' | 'front' | 'back'}`, QuadDecoValue>>;
+  deco?: Partial<Record<QuadDecoKey, QuadDecoValue>>;
   /** Posture de REPOS propre à la créature en PROFIL (deltas additifs d'angle par os, même
    *  vocabulaire que QuadPose) : port habituel qui s'ajoute SOUS toute pose d'anim (lion de
    *  Chrace tapi prêt à bondir). Ignorée de face/dos (quadSkeletonForView y refige les angles). */
@@ -141,6 +160,19 @@ export interface QuadProps {
 // par créature, auto-collectés). `quadSkeleton` ne garde que les TYPES + la mécanique de rendu.
 // On RE-EXPORTE les tables dérivées pour que les consommateurs existants ne changent pas.
 export { QUAD_SPECIES, quadSpeciesNames } from '../creatures';
+
+/** Le décor d'un art compilé keyé par vue : une clé `quadDecoKey(os, vue)` par os de chaque vue
+ *  déclarée, valeur `[{ svg, plan }]`. */
+export function quadDecoFromViewArt(art: NonNullable<QuadProps['viewArt']>, plan: number): NonNullable<QuadProps['deco']> {
+  const deco: NonNullable<QuadProps['deco']> = {};
+  for (const [view, bones] of viewEntries(art)) {
+    for (const bone of Object.keys(bones) as QuadBoneId[]) {
+      const svg = bones[bone];
+      if (svg !== undefined) deco[quadDecoKey(bone, view)] = [{ svg, plan }];
+    }
+  }
+  return deco;
+}
 
 /** Construit le squelette d'une espèce (profil tourné à droite, pieds ~y150). */
 export function buildQuadSkeleton(p: QuadProps): QuadSkeleton {

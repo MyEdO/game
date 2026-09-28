@@ -6,12 +6,14 @@ import './combatFlow'; // charge les clôtures que le combat enregistre (`ouvrir
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { scanRollSeamExclusivity, ROLL_SEAM_RX, scanPendingJetFabrication, engineRollerExports, engineHomonyms, scanEngineDelegatedRoll, scanDesHorsPorte, engineDiceRollers } from '../../scripts/guards/lib/rollSeamExclusivity.mjs';
+import { scanRollSeamExclusivity, ROLL_SEAM_RX, scanPendingJetFabrication, engineRollerExports, engineHomonyms, scanEngineDelegatedRoll, scanDesHorsPorte, engineDiceRollers, AMORCE_DES } from '../../scripts/guards/lib/rollSeamExclusivity.mjs';
 import { rollSeamExcluded, ROLL_SEAM_PHASE2_STOCK, WORLD_DIE_SUBTRACTED_STOCK, PENDING_JET_FABRICATION_STOCK, ENGINE_DELEGATED_ROLL_STOCK, DES_HORS_PORTE_STOCK, SEAM_CALLERS } from '../../scripts/guards/lib/rollSeamWhitelist.mjs';
-import { scanBattleRngEngineLeak } from '../../scripts/guards/lib/battleRngEngineLeak.mjs';
+import { contexteDeScanRng, scanBattleRngEngineLeak } from '../../scripts/guards/lib/battleRngEngineLeak.mjs';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
+import { tableDesExports } from '../../scripts/guards/lib/canonUnique.mjs';
 import { battleRngEngineLeakExcluded } from '../../scripts/guards/lib/battleRngEngineLeakWhitelist.mjs';
 import { estFichierVitest } from '../../scripts/guards/lib/fichierVitest.mjs';
+import { detenteur } from '../detenteur.testkit';
 
 /**
  * Garde-fou « exclusivité du seam de jet » (#274, DERNIER verrou du programme #276).
@@ -22,7 +24,7 @@ import { estFichierVitest } from '../../scripts/guards/lib/fichierVitest.mjs';
  * (`scripts/git-hooks/pre-commit.mjs`) — un `rollTest` réintroduit dans un flow doit être rouge ICI
  * (CI/local) ET au commit.
  *
- * Ce qui n'est PAS une violation se décide par la FORME, pas par une liste de noms (#918 lot B) :
+ * Ce qui n'est PAS une violation se décide par la FORME, pas par une liste de noms (#918) :
  *  - `src/engine/**` : moteur PUR, fonctions qui REÇOIVENT un `rng` sans jamais décider du
  *    surfaçage — c'est l'APPELANT (state/) qui choisit modale/MJ/inline (règle du seam elle-même).
  *  - (S) position de spec et (M) dé de monde : reconnues STRUCTURELLEMENT par le scanner (critères
@@ -48,13 +50,11 @@ const corpus = () => readCorpus(SCAN_DIRS, { tests: true });
 /** Sites de roulage brut du corpus entier, mode `includeExcluded` — SUR-ENSEMBLE dont la forme NUE du
  *  garde est le sous-ensemble sans `excludedBy` (rollSeamExclusivity.mjs, `opts.includeExcluded`) :
  *  un seul parcours nourrit le garde d'exclusivité ET le compteur (M). */
-let _sites: Map<string, { line: number; detail: string; excludedBy?: string }[]> | null = null;
-function sitesByFile(): Map<string, { line: number; detail: string; excludedBy?: string }[]> {
-  if (_sites) return _sites;
+const sitesByFile = detenteur(() => {
   const m = new Map<string, { line: number; detail: string; excludedBy?: string }[]>();
   for (const { rel, text } of corpus()) m.set(rel, scanRollSeamExclusivity(rel, text, { includeExcluded: true }));
-  return (_sites = m);
-}
+  return m;
+});
 
 function countsByFile(): Record<string, number> {
   const counts: Record<string, number> = {};
@@ -308,9 +308,10 @@ describe('garde-fou « seam de jet » — exclusivité de rollTest/d100/TestOutc
 describe('garde-fou « rng vivant → résolveur moteur » — un flux state/** ne peut plus appeler un resolveXxx(…) moteur avec battleRng() en direct (#370)', () => {
   it('aucun fichier hors whitelist ne remet un rng vivant à un résolveur moteur', () => {
     const offenders: string[] = [];
+    const passage = contexteDeScanRng();
     for (const { rel, text } of corpus()) {
       if (estFichierVitest(rel) || battleRngEngineLeakExcluded(rel)) continue;
-      const findings = scanBattleRngEngineLeak(rel, text);
+      const findings = scanBattleRngEngineLeak(rel, text, passage);
       for (const x of findings) offenders.push(`${rel}:${x.line} [rng vivant → ${x.name}] ${x.detail}`);
     }
     expect(
@@ -319,19 +320,21 @@ describe('garde-fou « rng vivant → résolveur moteur » — un flux state/** 
     ).toEqual([]);
   });
 
-  it('fail-closed : le scanner détecte un resolveXxx(…, battleRng()) SYNTHÉTIQUE', () => {
+  it('le scanner détecte un resolveXxx(…, battleRng()) SYNTHÉTIQUE', () => {
     const regressed = [
-      "import { resolveTavernGame } from '../engine/tavernGame';",
-      "const res = resolveTavernGame(game, playerValue, opponentValue, battleRng());",
+      "import { resolveMelee } from '../engine/combat';",
+      "import { battleRng } from './battleRng';",
+      "const res = resolveMelee(attacker, defender, battleRng());",
     ].join('\n');
     expect(scanBattleRngEngineLeak('src/state/x.ts', regressed).length).toBe(1);
   });
 
-  it('fail-closed : le scanner MORD le rng HOISTÉ (battleRng() et resolveXxx( sur des lignes séparées, #370)', () => {
+  it('le scanner MORD le rng HOISTÉ (battleRng() et resolveXxx( sur des lignes séparées, #370)', () => {
     const hoisted = [
-      "import { resolveTavernGame } from '../engine/tavernGame';",
+      "import { resolveMelee } from '../engine/combat';",
+      "import { battleRng } from './battleRng';",
       "const rng = battleRng();",
-      "const res = resolveTavernGame(game, playerValue, opponentValue, rng);",
+      "const res = resolveMelee(attacker, defender, rng);",
     ].join('\n');
     expect(scanBattleRngEngineLeak('src/state/x.ts', hoisted).length).toBe(1);
   });
@@ -339,6 +342,7 @@ describe('garde-fou « rng vivant → résolveur moteur » — un flux state/** 
   it('zéro faux positif : une primitive roll*/valeur (testValue/effectiveChar) voisine d’un battleRng() sur une AUTRE ligne ne matche pas', () => {
     const clean = [
       "import { rollTavernTest } from '../engine/tavernGame';",
+      "import { battleRng } from './battleRng';",
       "const v = testValue(hero, 'pari');",
       "const opponentTR = rollTavernTest(opponentValue, battleRng());",
     ].join('\n');
@@ -348,6 +352,7 @@ describe('garde-fou « rng vivant → résolveur moteur » — un flux state/** 
   it('zéro faux positif : un résolveur moteur PUR (resolveOpposed, aucun paramètre RNG) coexistant avec battleRng() ne matche pas (#912)', () => {
     const clean = [
       "import { resolveOpposed } from '../engine/tests';",
+      "import { battleRng } from './battleRng';",
       'const rng = battleRng();',
       "const res = resolveOpposed(attackerTR, defenderTR);",
     ].join('\n');
@@ -357,9 +362,40 @@ describe('garde-fou « rng vivant → résolveur moteur » — un flux state/** 
   it('vrai positif préservé : un résolveur moteur RNG-capable réel (resolveCasting) reste détecté (#912)', () => {
     const regressed = [
       "import { resolveCasting } from '../engine/magic';",
+      "import { battleRng } from './battleRng';",
       "const res = resolveCasting(caster, spell, battleRng());",
     ].join('\n');
     expect(scanBattleRngEngineLeak('src/state/x.ts', regressed).length).toBe(1);
+  });
+
+  it('un import RENOMMÉ et un appel par NAMESPACE d’un résolveur à RNG comptent, sous le nom exporté', () => {
+    const renomme = [
+      "import { resolveMelee as melee } from '../engine/combat';",
+      "import { battleRng } from './battleRng';",
+      'const res = melee(attacker, defender, battleRng());',
+    ].join('\n');
+    expect(scanBattleRngEngineLeak('src/state/x.ts', renomme).map((f) => f.name)).toEqual(['resolveMelee']);
+    const espace = [
+      "import * as combat from '../engine/combat';",
+      "import { battleRng } from './battleRng';",
+      'const res = combat.resolveMelee(attacker, defender, battleRng());',
+    ].join('\n');
+    expect(scanBattleRngEngineLeak('src/state/x.ts', espace).map((f) => f.name)).toEqual(['resolveMelee']);
+  });
+
+  it('un battleRng LOCAL, non importé, ou un HOMONYME local d’un résolveur ne comptent pas', () => {
+    const local = [
+      "import { resolveMelee } from '../engine/combat';",
+      'const battleRng = () => makeRNG(1);',
+      'const res = resolveMelee(attacker, defender, battleRng());',
+    ].join('\n');
+    expect(scanBattleRngEngineLeak('src/state/x.ts', local)).toEqual([]);
+    const homonyme = [
+      "import { battleRng } from './battleRng';",
+      'const resolveMelee = (a, b, rng) => a;',
+      'const res = resolveMelee(attacker, defender, battleRng());',
+    ].join('\n');
+    expect(scanBattleRngEngineLeak('src/state/x.ts', homonyme)).toEqual([]);
   });
 
   /* CONTRAT DU TEXTE SCANNÉ (#1788) : le scan lit la vue CODE SEUL (`codeSeul.mjs`), commentaires ET
@@ -368,6 +404,7 @@ describe('garde-fou « rng vivant → résolveur moteur » — un flux state/** 
   it('un appel écrit en CHAÎNE n’est pas un appel — et le voisin en CODE en est un', () => {
     const donnee = [
       "import { resolveCasting } from '../engine/magic';",
+      "import { battleRng } from './battleRng';",
       'const rng = battleRng();',
       "const gabarit = 'resolveCasting(caster, spell, rng)';",
     ].join('\n');
@@ -375,18 +412,19 @@ describe('garde-fou « rng vivant → résolveur moteur » — un flux state/** 
 
     const codeEtDonnee = [...donnee.split('\n'), 'const res = resolveCasting(caster, spell, rng);'].join('\n');
     const trouve = scanBattleRngEngineLeak('src/state/x.ts', codeEtDonnee);
-    expect(trouve.map((f) => f.line)).toEqual([4]);
+    expect(trouve.map((f) => f.line)).toEqual([5]);
   });
 
   it('le blanchiment PRÉSERVE les lignes : le numéro rapporté est celui de la source (#1788)', () => {
     const regressed = [
       "import { resolveCasting } from '../engine/magic';",
+      "import { battleRng } from './battleRng';",
       '/* un bloc',
       ' * de prose',
       ' */',
       'const res = resolveCasting(caster, spell, battleRng());',
     ].join('\n');
-    expect(scanBattleRngEngineLeak('src/state/x.ts', regressed).map((f) => f.line)).toEqual([5]);
+    expect(scanBattleRngEngineLeak('src/state/x.ts', regressed).map((f) => f.line)).toEqual([6]);
   });
 });
 
@@ -413,8 +451,11 @@ function prodFiles(...dirs: string[]): { rel: string; text: string }[] {
 
 /** Rouleurs d'engine DÉRIVÉS (clôture transitive) — mémoïsés : 4 `it` de deux `describe` les
  *  demandent, la dérivation reparse tout `src/engine` à chaque appel. */
-let _rollers: ReturnType<typeof engineRollerExports> | null = null;
-const rollers = () => (_rollers ??= engineRollerExports(prodFiles('src/engine')));
+const rollers = detenteur(() => engineRollerExports(prodFiles('src/engine')));
+/** Table `{ module: [rouleurs] }` de (D), lue par `scanEngineDelegatedRoll` — détenue, comme `rollers()`. */
+const delegues = detenteur(() => tableDesExports(prodFiles('src/engine'), rollers().keys()));
+/** Table d'une fixture de (D) : le module de `resolveClash`. */
+const MASS_BATTLE = { 'src/engine/massBattle.ts': ['resolveClash'] };
 
 type Stock = Map<string, { n: number; kind: string; why: string }>;
 
@@ -470,13 +511,13 @@ describe('REGISTRE des chemins de jet (#1070) — le tri de population est SOLD�
 });
 
 /**
- * LE DOC DÉRIVÉ DÉCRIT CE QUI EST (#1657 B3-2) — la section « Les N NON routés » raconte un DÉFAUT :
+ * LE DOC DÉRIVÉ DÉCRIT CE QUI EST (#1657) — la section « Les N NON routés » raconte un DÉFAUT :
  * des nœuds `test` de la donnée consommés avant tout routeur. À N=0 elle n'a plus de sujet, et un
  * doc qui continue de décrire un mal éteint se relit comme s'il durait. Le générateur la rend donc
  * SOUS CONDITION, et ne laisse qu'une LIGNE DE MESURE — c'est ce commutateur que ce contrat tient,
  * dans les DEUX états : la mesure décide, jamais une main.
  */
-describe('REGISTRE des chemins de jet (#1657 B3-2) — la section « NON routés » suit la MESURE', () => {
+describe('REGISTRE des chemins de jet (#1657) — la section « NON routés » suit la MESURE', () => {
   const doc = () => readFileSync(join(ROOT, 'docs/registre-jets.md'), 'utf8');
   /** Cardinal MESURÉ des nœuds hors porte, lu sur le doc généré (jamais un littéral recopié). */
   const horsPorte = (): number => {
@@ -550,15 +591,20 @@ describe('REGISTRE des chemins de jet (#1066) — (F) fabrication d’un pending
 
 describe('REGISTRE des chemins de jet (#1066) — (D) roulage délégué à un export de src/engine', () => {
 
-  const mesure = (names: Set<string>) => {
+  const mesure = (table: Readonly<Record<string, readonly string[]>>) => {
     const m = new Map<string, number>();
     for (const { rel, text } of prodFiles('src/state', 'src/ui')) {
       if (SEAM_CORE.has(rel)) continue;
-      const n = scanEngineDelegatedRoll(rel, text, names).length;
+      const n = scanEngineDelegatedRoll(rel, text, table).length;
       if (n > 0) m.set(rel, n);
     }
     return m;
   };
+
+  it('la table des exports compte un export RÉEXPORTÉ sous le nom qu’il exporte', () => {
+    const fichier = { rel: 'src/engine/x.ts', text: "export { resolveClash as melee } from './massBattle';\nexport const autre = () => 0;\n" };
+    expect(tableDesExports([fichier], ['resolveClash', 'autre'])).toEqual({ 'src/engine/x.ts': ['melee', 'autre'] });
+  });
 
   it('la liste des rouleurs est DÉRIVÉE, transitivement : `rollMightTest` ET `resolveClash` en sont', () => {
     const r = rollers();
@@ -571,14 +617,14 @@ describe('REGISTRE des chemins de jet (#1066) — (D) roulage délégué à un e
     const sites = scanEngineDelegatedRoll(
       'src/state/massBattleFlow.ts',
       readFileSync(join(ROOT, 'src/state/massBattleFlow.ts'), 'utf8'),
-      new Set(rollers().keys()),
+      delegues(),
     );
     expect(sites.map((s: { name: string }) => s.name)).toContain('resolveClash');
     expect(ENGINE_DELEGATED_ROLL_STOCK.has('src/state/massBattleFlow.ts')).toBe(true);
   });
 
   it('le compte par fichier est EXACT et fail-closed (site en plus, entrée périmée, fichier hors registre)', () => {
-    const ecarts = stockDiff(ENGINE_DELEGATED_ROLL_STOCK, mesure(new Set(rollers().keys())));
+    const ecarts = stockDiff(ENGINE_DELEGATED_ROLL_STOCK, mesure(delegues()));
     expect(
       ecarts,
       `Population (D) désynchronisée — un call-site de rouleur moteur entre au registre AVEC sa justification (ENGINE_DELEGATED_ROLL_STOCK, scripts/guards/lib/rollSeamWhitelist.mjs) :\n${ecarts.join('\n')}`,
@@ -596,10 +642,11 @@ describe('REGISTRE des chemins de jet (#1066) — (D) roulage délégué à un e
   });
 
   it('(S) position de spec : le MÊME appel dans un callback `resolve` de spec n’est pas un site', () => {
-    const spec = 'export const F = makeRollFlow({ resolve: (p) => resolveClash(p.a, p.b, battleRng()) });';
-    expect(scanEngineDelegatedRoll('src/state/x.ts', spec, ['resolveClash'])).toEqual([]);
-    const libre = 'function go(p) { return resolveClash(p.a, p.b, battleRng()); }';
-    expect(scanEngineDelegatedRoll('src/state/x.ts', libre, ['resolveClash']).length).toBe(1);
+    const imp = "import { resolveClash } from '../engine/massBattle';\n";
+    const spec = `${imp}export const F = makeRollFlow({ resolve: (p) => resolveClash(p.a, p.b, battleRng()) });`;
+    expect(scanEngineDelegatedRoll('src/state/x.ts', spec, MASS_BATTLE)).toEqual([]);
+    const libre = `${imp}function go(p) { return resolveClash(p.a, p.b, battleRng()); }`;
+    expect(scanEngineDelegatedRoll('src/state/x.ts', libre, MASS_BATTLE).length).toBe(1);
   });
 });
 
@@ -610,20 +657,20 @@ describe('REGISTRE des chemins de jet (#1066) — (D) roulage délégué à un e
  * SURVEILLÉ, pas subi : aucun homonyme rouleur aujourd'hui, et le test rougit dès qu'il en naît un.
  */
 describe('REGISTRE des chemins de jet (#1066) — les angles morts DÉCLARÉS sont mesurés', () => {
-  it('faux négatif ASSUMÉ : un import RENOMMÉ échappe au scan (résolution par nom appelé, sans liaison)', () => {
+  it('un import RENOMMÉ compte sous son nom exporté (liaison résolue)', () => {
     const renomme = [
       "import { resolveClash as duel } from '../engine/massBattle';",
       'function go(p) { return duel(p.a, p.b, battleRng()); }',
     ].join('\n');
-    expect(scanEngineDelegatedRoll('src/state/x.ts', renomme, ['resolveClash'])).toEqual([]);
+    expect(scanEngineDelegatedRoll('src/state/x.ts', renomme, MASS_BATTLE)).toEqual([{ line: 2, name: 'resolveClash' }]);
   });
 
-  it('faux négatif ASSUMÉ : un appel par NAMESPACE (`mb.resolveClash(…)`) échappe au scan', () => {
+  it('un appel par NAMESPACE (`mb.resolveClash(…)`) compte', () => {
     const ns = [
       "import * as mb from '../engine/massBattle';",
       'function go(p) { return mb.resolveClash(p.a, p.b, battleRng()); }',
     ].join('\n');
-    expect(scanEngineDelegatedRoll('src/state/x.ts', ns, ['resolveClash'])).toEqual([]);
+    expect(scanEngineDelegatedRoll('src/state/x.ts', ns, MASS_BATTLE)).toEqual([{ line: 2, name: 'resolveClash' }]);
   });
 
   it('SURVEILLANCE : aucun rouleur d’engine n’a d’HOMONYME dans un autre module (l’index est à plat)', () => {
@@ -637,14 +684,13 @@ describe('REGISTRE des chemins de jet (#1066) — les angles morts DÉCLARÉS so
     ).toEqual([]);
   });
 
-  it('faux négatif ASSUMÉ : un dé qui n’est ni `rollTest` ni `d100` (ex. `d10`) n’est vu par AUCUN des trois scanners', () => {
+  it('angle mort : un dé qui n’est ni `rollTest` ni `d100` (ex. `d10`) n’est vu par AUCUN des trois scanners', () => {
     const src = readFileSync(join(ROOT, 'src/state/massBattleFlow.ts'), 'utf8');
-    const rollerNames = new Set(rollers().keys());
     const hazard = /export function massBattleSetHazard[\s\S]*?\n}/.exec(src)?.[0] ?? '';
     expect(hazard, 'massBattleSetHazard a bougé — l’exemple d’angle mort cité par la doc doit rester mesurable').toContain('d10(battleRng())');
     expect(scanRollSeamExclusivity('src/state/massBattleFlow.ts', hazard)).toEqual([]);
     expect(scanPendingJetFabrication('src/state/massBattleFlow.ts', hazard)).toEqual([]);
-    expect(scanEngineDelegatedRoll('src/state/massBattleFlow.ts', hazard, rollerNames)).toEqual([]);
+    expect(scanEngineDelegatedRoll('src/state/massBattleFlow.ts', hazard, delegues())).toEqual([]);
   });
 });
 
@@ -691,7 +737,7 @@ describe('REGISTRE des chemins de jet (#1066) — familles CANONIQUES énuméré
  * et le cliquet remonterait en silence si ce WIP était abandonné.
  */
 const LIGNE_A_LA_MAIN_STOCK: Record<string, number> = {
-  // COMBAT — reste du lot L1b (`encounterPsychFlow` = la rangée batch du Test de Peur hors rencontre).
+  // COMBAT — reste de #1467 (`encounterPsychFlow` = la rangée batch du Test de Peur hors rencontre).
   // `combat/triggeredTest.ts` (L3) et `combatEffects.ts` (L2' : `openSkillTest`, Test ÉTENDU,
   // exposition hydrique) sont SOLDÉS — leurs étapes montent toutes leur ligne par `rollStep`.
   'src/state/encounterPsychFlow.ts': 1,
@@ -764,8 +810,8 @@ describe('CLIQUET — l’arithmétique de ligne vit dans le monteur, pas dans l
  * verdict) : il attrape aussi (a) les DÉCLARATIONS de type qui portent `kind` + `target`
  * (`DeferredUpkeepTest`, `PendingExtendedTest`, `RestRoll`…) et (b) les RELAIS d'une ligne déjà
  * montée ailleurs (`deferredUpkeepSteps` recopie `t.base`/`t.target` du wrapper d'entretien, par le
- * régime `MonoSpec.montee`). Ces deux familles sont annotées entrée par entrée ci-dessous. Faux
- * NÉGATIF assumé : une étape dont le littéral est éclaté sur plusieurs variables
+ * régime `MonoSpec.montee`). Ces deux familles sont annotées entrée par entrée ci-dessous. Angle
+ * mort : une étape dont le littéral est éclaté sur plusieurs variables
  * (`const st = {...}; st.target = …`) échappe au scanner.
  */
 const HORS_PERIMETRE_COMBAT = [
@@ -904,8 +950,7 @@ describe('CLIQUET 2 — une étape-JET ne se monte plus à la main, même sans a
  */
 describe('garde SŒUR « dés hors porte » (#1508) — un dé qui tombe hors de la porte est compté nominativement', () => {
   /** Rouleurs DIRECTS de `src/engine` (un hop) — mémoïsés, comme `rollers()`. */
-  let _des: Set<string> | null = null;
-  const desRollers = () => (_des ??= engineDiceRollers(prodFiles('src/engine')));
+  const desRollers = detenteur(() => engineDiceRollers(prodFiles('src/engine')));
 
   /** Mesure du corpus de PRODUCTION hors moteur et hors noyau du seam. */
   function mesureDesHorsPorte(): Map<string, number> {
@@ -940,16 +985,24 @@ describe('garde SŒUR « dés hors porte » (#1508) — un dé qui tombe hors de
     expect(exclusivite).toEqual([['d100', 1], ['d10', 0], ['rollDice', 0], ['rollExpr', 0], ['deMonde', 0]]);
   });
 
+  it('AMORCE COMPLÈTE : tout export de `src/engine/dice.ts` qui tire un dé est une primitive de `AMORCE_DES`', () => {
+    const dice = prodFiles('src/engine').filter((f) => f.rel === 'src/engine/dice.ts');
+    expect(dice).toHaveLength(1);
+    const horsAmorce = (engineDiceRollers(dice)['src/engine/dice.ts'] ?? []).filter((n) => !AMORCE_DES.includes(n));
+    expect(horsAmorce, 'primitive de dé absente de `AMORCE_DES` (scripts/guards/lib/rollSeamExclusivity.mjs)').toEqual([]);
+  });
+
   it('MORSURE : un `d10` NEUF dans un applier de `src/state` est vu (fail-closed)', () => {
     const regresse = "import { d10 } from '../engine/dice';\nexport function applyChute(c, rng) { c.wounds -= d10(rng); }\n";
     expect(scanDesHorsPorte('src/state/x.ts', regresse, desRollers()).map((s) => s.name)).toEqual(['d10']);
   });
 
   it('MORSURE : un dé SYNTHÉTIQUE ajouté dans `src/engine` sur un chemin d’op est vu par la CLÔTURE', () => {
-    const moteur = [{ rel: 'src/engine/faux.ts', text: "import { d10 } from './dice';\nexport function applyGrosDegats(c, rng) { return d10(rng); }\n" }];
-    expect(engineDiceRollers(moteur).has('applyGrosDegats'), 'un export qui tire dans son corps entre dans la clôture').toBe(true);
-    const appelant = "import { applyGrosDegats } from '../engine/faux';\nexport function f(c, rng) { applyGrosDegats(c, rng); }\n";
-    expect(scanDesHorsPorte('src/state/x.ts', appelant, ['applyGrosDegats']).map((s) => s.name)).toEqual(['applyGrosDegats']);
+    const moteur = [{ rel: 'src/engine/combat.ts', text: "import { d10 } from './dice';\nexport function applyGrosDegats(c, rng) { return d10(rng); }\n" }];
+    const table = engineDiceRollers(moteur);
+    expect(table['src/engine/combat.ts'], 'un export qui tire dans son corps entre dans la clôture').toContain('applyGrosDegats');
+    const appelant = "import { applyGrosDegats } from '../engine/combat';\nexport function f(c, rng) { applyGrosDegats(c, rng); }\n";
+    expect(scanDesHorsPorte('src/state/x.ts', appelant, table).map((s) => s.name)).toEqual(['applyGrosDegats']);
   });
 
   /**
@@ -962,7 +1015,7 @@ describe('garde SŒUR « dés hors porte » (#1508) — un dé qui tombe hors de
    */
   it('MORSURE : un dé derrière un helper PRIVÉ du moteur entre dans la clôture — et un export intermédiaire l’ARRÊTE', () => {
     const moteur = [{
-      rel: 'src/engine/faux.ts',
+      rel: 'src/engine/combat.ts',
       text: [
         "import { roll } from './dice';",
         'function tirageInterne(rng) { return roll(2, 10, rng); }', // helper MODULE-LOCAL
@@ -971,22 +1024,23 @@ describe('garde SŒUR « dés hors porte » (#1508) — un dé qui tombe hors de
       ].join('\n'),
     }];
     const rouleurs = engineDiceRollers(moteur);
-    expect(rouleurs.has('magnitudeCachee'), 'le dé tombe derrière un helper privé : l’export compte').toBe(true);
-    expect(rouleurs.has('viaExport'), 'son appelant franchit une frontière EXPORTÉE : il ne contamine plus').toBe(false);
-    expect(rouleurs.has('tirageInterne'), 'un helper non exporté n’est pas un site d’appel visible').toBe(false);
-    const appelant = "import { magnitudeCachee } from '../engine/faux';\nexport function f(rng) { return magnitudeCachee(rng); }\n";
+    const exports = rouleurs['src/engine/combat.ts'];
+    expect(exports, 'le dé tombe derrière un helper privé : l’export compte').toContain('magnitudeCachee');
+    expect(exports, 'son appelant franchit une frontière EXPORTÉE : il ne contamine plus').not.toContain('viaExport');
+    expect(exports, 'un helper non exporté n’est pas un site d’appel visible').not.toContain('tirageInterne');
+    const appelant = "import { magnitudeCachee } from '../engine/combat';\nexport function f(rng) { return magnitudeCachee(rng); }\n";
     expect(scanDesHorsPorte('src/state/x.ts', appelant, rouleurs).map((s) => s.name)).toEqual(['magnitudeCachee']);
   });
 
   it('ALIAS résolu : `import { roll as rollDice }` compte sous son nom D’ORIGINE, et un alias inconnu ne se perd plus', () => {
     const alias = "import { roll as rollDice } from '../engine/dice';\nexport function f(rng) { return rollDice(2, 10, rng); }\n";
-    expect(scanDesHorsPorte('src/state/x.ts', alias, []).map((s) => s.name)).toEqual(['roll']);
+    expect(scanDesHorsPorte('src/state/x.ts', alias, desRollers()).map((s) => s.name)).toEqual(['roll']);
     const aliasDe = "import { d100 as des } from '../engine/dice';\nexport function f(rng) { return des(rng); }\n";
-    expect(scanDesHorsPorte('src/state/x.ts', aliasDe, []).map((s) => s.name), 'un `d100 as des` ne s’échappe plus').toEqual(['d100']);
+    expect(scanDesHorsPorte('src/state/x.ts', aliasDe, desRollers()).map((s) => s.name), 'un `d100 as des` ne s’échappe plus').toEqual(['d100']);
   });
 
   it('un `rng.int(` (désignation « lequel ? ») est un dé comme un autre', () => {
-    expect(scanDesHorsPorte('src/state/x.ts', 'export function f(rng, l) { return l[rng.int(0, l.length - 1)]; }', []).map((s) => s.name)).toEqual(['rng.int']);
+    expect(scanDesHorsPorte('src/state/x.ts', 'export function f(rng, l) { return l[rng.int(0, l.length - 1)]; }', desRollers()).map((s) => s.name)).toEqual(['rng.int']);
   });
 
   /**
@@ -1009,12 +1063,12 @@ describe('garde SŒUR « dés hors porte » (#1508) — un dé qui tombe hors de
 
   it('zéro faux positif : un `roll` LOCAL (déclencheur de flux, non importé du moteur) n’est pas un dé', () => {
     const ui = "export function Modale({ roll }) { return <button onClick={() => roll()}>Lancer</button>; }";
-    expect(scanDesHorsPorte('src/ui/x.tsx', ui, [])).toEqual([]);
+    expect(scanDesHorsPorte('src/ui/x.tsx', ui, desRollers())).toEqual([]);
   });
 
   it('(S) position de spec : un dé dans le callback `resolve` d’une spec de flux reste exclu', () => {
     const spec = "import { d10 } from '../engine/dice';\nexport const F = makeRollFlow({ resolve: (p) => d10(battleRng()) });";
-    expect(scanDesHorsPorte('src/state/x.ts', spec, [])).toEqual([]);
+    expect(scanDesHorsPorte('src/state/x.ts', spec, desRollers())).toEqual([]);
   });
 
   it('le stock « dés hors porte » déclare le compte MESURÉ, à l’unité, dans les DEUX sens', () => {
@@ -1042,8 +1096,10 @@ describe('garde SŒUR « dés hors porte » (#1508) — un dé qui tombe hors de
 // #1508 — LE SIGNAL « DIFFÉRÉ » NE TOMBE JAMAIS PAR TERRE
 // ---------------------------------------------------------------------------------------------
 
-/** Les fonctions qui appliquent des Effets/des ops et rendent `Applique` (`state/combatEffects`). */
-const POINTS_DAPPLICATION = ['applyEffects', 'applyEffectsLoot', 'applyLeafOps', 'runFlow'];
+/** Les fonctions qui appliquent des Effets/des ops et rendent `Applique` (`state/combatEffects` ; et
+ *  les deux points d'application de COMBAT dont la grappe de dés part à la porte — `state/combatFlow`
+ *  `applyOups`/`applyBladeTrap`, #1508 T3b-4). */
+const POINTS_DAPPLICATION = ['applyEffects', 'applyEffectsLoot', 'applyLeafOps', 'runFlow', 'applyOups', 'applyBladeTrap'];
 /** Les CONSOMMATEURS nommés — recevoir le retour en argument de l'un d'eux EST le consommer. */
 const CONSOMMATEURS = ['jouerFlowEntier', 'nePeutPasDifferer', 'cloturer'];
 
@@ -1175,14 +1231,14 @@ describe('#1508 — angles morts du scan, mesurés (alias local, appel par objet
     return n;
   };
 
-  it('faux négatif ASSUMÉ : un ALIAS local échappe au scan — et le corpus n’en porte aucun', () => {
+  it('angle mort : un ALIAS local échappe au scan — et le corpus n’en porte aucun', () => {
     expect(sondeVoit('const jouer = runFlow; jouer(g, s, f);'), 'le scan ne voit que le nom APPELÉ').toBe(0);
     const alias = corpus().filter(({ rel, text }) => !estFichierVitest(rel)
       && POINTS_DAPPLICATION.some((n) => new RegExp(`=\\s*${n}\\s*;`).test(text)));
     expect(alias.map((f) => f.rel), 'un alias local d’un point d’application : le scan cesserait de mordre dessus').toEqual([]);
   });
 
-  it('faux négatif ASSUMÉ : la propriété de `jouerFlowEntier` est SÉMANTIQUE, le scan ne la mesure pas', () => {
+  it('angle mort : la propriété de `jouerFlowEntier` est SÉMANTIQUE, le scan ne la mesure pas', () => {
     // Le scan mesure la CONSOMMATION du retour, pas la vérité de ce que le nom affirme (« mon appelant
     // ne continue pas »). Un site qui écrirait `jouerFlowEntier(…)` alors que sa fonction poursuit
     // passerait — c'est un fait de LECTURE, pas de forme. Ce qui l'a fermé pour toute une classe :
@@ -1203,7 +1259,7 @@ describe('#1508 — angles morts du scan, mesurés (alias local, appel par objet
     expect(perdus, 'le scan voit un retour CONSOMMÉ — il ne peut pas savoir que l’appelant poursuit').toEqual([]);
   });
 
-  it('faux négatif ASSUMÉ : un appel PAR OBJET échappe au scan — et le corpus n’en porte aucun', () => {
+  it('angle mort : un appel PAR OBJET échappe au scan — et le corpus n’en porte aucun', () => {
     expect(sondeVoit('CE.runFlow(g, s, f);'), 'le scan ne lit pas les accès de propriété').toBe(0);
     const parObjet = corpus().filter(({ rel, text }) => !estFichierVitest(rel)
       && POINTS_DAPPLICATION.some((n) => new RegExp(`\\.${n}\\s*\\(`).test(text)));

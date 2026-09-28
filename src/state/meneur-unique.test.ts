@@ -17,7 +17,6 @@ import { tokenChromes } from '../gameIso/builders/tokenChrome';
 import { actorPoseKey, partyActorPose } from '../gameIso/backends/webgl/sceneMeshes';
 import { bus, EVT } from './bus';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import type { Combatant } from '../engine/types';
 
 const TABLE = 'table-ronde-4-tabourets';
@@ -307,8 +306,8 @@ describe('un seul meneur — le Grimpeur lu est celui du meneur debout', () => {
 
   it('Talent porté par le meneur DEBOUT : la paroi s’ouvre (montée optimiste au sommet)', () => {
     // Héros COMPLETS : la paroi ouverte déclenche le Test d'Escalade, qui lit des Compétences réelles.
-    const a = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', rng: makeRNG(1) });
-    const b = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'B', rng: makeRNG(2) });
+    const a = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
+    const b = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'B', seed: 2 });
     a.wounds.current = 0;
     b.talents = [...(b.talents ?? []), { talentId: 'grimpeur', times: 1 }];
     poser([a, b], scèneDeFalaise({ kind: 'surface', requiresGrimpeur: true }), PIED);

@@ -6,14 +6,13 @@ import { PortraitTile } from './PortraitTile';
 import { TokenChromeMarks } from '../gameIso/TokenChromeMarks';
 import { iconSvg } from './Icon';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import type { EndState } from '../engine/conditions';
 import type { Combatant } from '../engine/types';
 
 const ALL: EndState[] = ['mort', 'inconscient', 'rendu', 'hors-combat'];
 
 const mkForState = (es: EndState): Combatant => {
-  const c = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', rng: makeRNG(3) });
+  const c = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 3 });
   if (es === 'mort') c.dead = true;
   if (es === 'inconscient') c.conditions = [{ id: 'inconscient', value: 1 }] as Combatant['conditions'];
   if (es === 'rendu') { c.outOfRencontre = true; c.exitReason = 'reddition'; }

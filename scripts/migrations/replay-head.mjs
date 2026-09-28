@@ -32,7 +32,6 @@ import { spawnSync } from 'node:child_process'
 import { mkdirSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve, sep } from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { PERIMETRE, rejouer } from './replay.mjs'
 import { blobsDe, comparer, empreinteDe, rapportDEcart } from './lib/empreinteRejeu.mjs'
 import { listerDossier } from '../guards/lib/lister.mjs'
@@ -183,4 +182,4 @@ function main() {
 }
 
 // Importable par le hook `pre-push` : le rejeu ne part que si ce fichier est le point d'entrée.
-if (process.argv[1] && resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url))) main()
+if (import.meta.main) main()

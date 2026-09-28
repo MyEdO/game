@@ -18,7 +18,9 @@ import { validateDocument, cheminLisible } from '../validate';
 import { parseProject, ProjetRefuse } from '../../../state/worldMap';
 import areneProjet from '../../../scenes/arene/arene-projet.json';
 import { collectionDe, collectionsDesDocuments, collectionsPerdues, collectionsRetrouvees, listeCle, marquerCollection, marqueDeRecord, type MarqueDeCollection } from './collection-cle';
-import { descendre, enfantsDe, ouverts } from './descente';
+import { descendre, enfantsDe, ouverts, pasDeDonnee } from './descente';
+import { champsDeChoix } from './choixDeCreation';
+import { schema as schemaDesTailles } from '../defs/sizes';
 import { idDe } from './ref';
 
 const nomDeMarque = (m: MarqueDeCollection | undefined): string | undefined => (m?.forme === 'liste' ? m.nom : m?.sous);
@@ -34,6 +36,20 @@ describe('anti-perte — le seul détecteur du zéro SILENCIEUX', () => {
     expect(collectionsPerdues(z.strictObject({ l: clone.min(1) })).map(nomDeMarque)).toEqual(['id']);
     expect(collectionsRetrouvees(z.strictObject({ l: liste.optional() }))).toEqual(new Set([liste]));
     expect(collectionsPerdues(z.strictObject({ l: liste.optional() }))).toEqual([]);
+  });
+
+  it('un record à clé d’adresse ou de Taille est une collection à clé SANS espace de noms (#1897)', () => {
+    const marqueAuChamp = (racine: unknown, champ?: string) =>
+      ouverts(champ === undefined ? [racine] : pasDeDonnee(ouverts([racine]), champ)).map(collectionDe).find((m) => m !== undefined);
+    const lues = {
+      speciesTalentChoices: marqueAuChamp(champsDeChoix.speciesTalentChoices),
+      shipboardEnc: marqueAuChamp(schemaDesTailles, 'shipboardEnc'),
+      footprintSide: marqueAuChamp(schemaDesTailles, 'footprintSide'),
+    };
+    for (const [champ, marque] of Object.entries(lues)) {
+      expect(marque?.forme, `${champ} : aucune marque de record`).toBe('record');
+      expect(marque?.espace, `${champ} : la marque ouvre un espace de noms`).toBeUndefined();
+    }
   });
 
   it('les defs des DEUX racines ne perdent AUCUNE collection à clé', () => {
@@ -161,7 +177,7 @@ describe('`espace` — jamais sur une liste de RÉFÉRENCES', () => {
 
 const ROOT = execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim();
 const { defs: DEFS, scan } = scanDuCorpus(ROOT);
-const COLLECTIONS = collectionsDesDocuments(DEFS, scan.brutParNom);
+const COLLECTIONS = scan.collections;
 const ESPACES = COLLECTIONS.filter((c) => c.marque.espace);
 const trie = (ids: readonly string[]) => [...ids].sort();
 

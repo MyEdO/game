@@ -29,7 +29,7 @@ import { scheduleCombatTimer } from './combatTimers';
  * Politique d'auto-résolution par TYPE de jet de cascade de COMBAT. `self` = jet propre piloté par son
  * flux bespoke (`drive` = roll → confirm, qui avance la cascade) ; `choice` = vrai choix laissé au joueur
  * en Rapide (Surincantation, menu de Désengagement) ou multi-participant rare (Test étendu, Enfoncer la
- * porte) — tranché par l'IA en Auto-combat (C4). Record exhaustif : ajouter un `jet` force une politique.
+ * porte) — tranché par l'IA en Auto-combat (C4). Record total : ajouter un `jet` force une politique.
  */
 export const JET_AUTO: Record<NonNullable<CascadeStep['jet']>, AutoPolicy> = {
   attack: { mode: 'self', drive: ['attackRoll', 'attackConfirm'] },

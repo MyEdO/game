@@ -5,10 +5,10 @@ import { fileURLToPath } from 'node:url';
 import { listerDossier } from '../../../../scripts/guards/lib/lister.mjs';
 import { estFichierVitest } from '../../../../scripts/guards/lib/fichierVitest.mjs';
 
-// Garde STRUCTURELLE : la SÉLECTION DE VUE d'un prop directionnel vit dans la MACHINERIE (`propSvg`,
+// Garde STRUCTURELLE : la SÉLECTION DE VUE d'un prop orienté vit dans la MACHINERIE (`propSvg`,
 // `catalog/decor/index.ts`), JAMAIS dans une def. Une def déclare ses trois vues (`PropViz.views`) ;
 // elle ne projette pas `dir`/`camRot` et ne choisit pas la vue elle-même (cf. cible du chantier
-// multi-vues des props). Toute réintroduction d'une projection dans `defs/**` échoue ici.
+// des props orientés). Toute réintroduction d'une projection dans `defs/**` échoue ici.
 
 const DEFS_DIR = join(dirname(fileURLToPath(import.meta.url)), 'defs');
 
@@ -24,7 +24,7 @@ const FORBIDDEN: { pattern: RegExp; why: string }[] = [
  *  légitimement citer `project`/`rig/facing` pour expliquer où vit la machinerie). */
 const stripComments = (src: string) => src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
 
-describe('props directionnels — sélection de vue hors des defs', () => {
+describe('props orientés — sélection de vue hors des defs', () => {
   const files = listerDossier(DEFS_DIR).filter((f) => f.endsWith('.ts') && !estFichierVitest(f));
 
   it('aucune def ne projette dir/camRot ni ne sélectionne de vue', () => {

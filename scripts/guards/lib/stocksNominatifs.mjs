@@ -11,7 +11,7 @@
 // PÉRIMÈTRE : les fichiers où un stock vit dans ce dépôt — tests de `src/**`, libs de garde
 // `scripts/guards/lib/**`, tests de `scripts/**`, tables JSON de `scripts/hooks/`, de
 // `scripts/guards/` et de `scripts/guards/lib/`, le gel d'exports `knip-exports-baseline.json` de la
-// RACINE, les stocks NOMMÉS de l'Atlas RAW (`scripts/raw/*-stock.json`, #1709 D2) et les BASELINES
+// RACINE, les stocks NOMMÉS de l'Atlas RAW (`scripts/raw/*-stock.json`, #1709) et les BASELINES
 // de compte qui les voisinent (`scripts/raw/*-baseline.json` — #1711 T1). Ces motifs nomment
 // des FAMILLES, pas des dossiers, et le test de périmètre les CONFRONTE à une dérivation : tout JSON
 // suivi dont la racine est un objet à CLÉS-CHEMINS, ou qui porte une liste d'entrées à champ
@@ -28,7 +28,7 @@
 // relèvement déclarable est le stock NOMINATIF — une entrée par occurrence, comme
 // `scripts/raw/reconciliation-stock.json` : l'ajout y est une LIGNE de plus. Le filet couvre les
 // clés neuves ; les baselines de compte de `scripts/raw` sont, elles, passées à la forme nominative
-// (#1711 T2-T4, puis les ancres sans contenu #1727 T2 : leurs entrées nomment désormais le chapitre
+// (#1711 T2-T4, puis les ancres sans contenu #1727 T2 : leurs entrées nomment le chapitre
 // par son CHEMIN `Source/…md`, donc 51 entrées vues sur 51 là où le nom NU à espaces
 // (`"05 - Amibe.md"`) n'en donnait AUCUNE à voir). Plus aucun porteur suivi n'est sous ce filet.
 // UNE CLASSE RESTE, et c'est la FORME qui la tient : deux RUBRIQUES d'un même fichier entre
@@ -52,6 +52,12 @@
 //   · sinon, une propriété dont la VALEUR est elle-même un littéral de tableau ou d'objet est une
 //     RUBRIQUE — un porteur imbriqué (`'test:hooks': [ … ]`) : on y descend, on ne la compte pas ;
 //   · toute autre propriété est une entrée si son sous-arbre nomme un fichier.
+// Une propriété dont la clé est `foyer` n'est jamais lue, ni sa valeur ni rien au-dessous : un FOYER
+// déclaré (le fichier où une construction a le droit de vivre, `sAppliqueA` de `sourceCorpus.mjs`)
+// n'est pas une dette.
+// Une ENTRÉE NOMINATIVE est une entrée de stock au sens LARGE, celle que cette porte compte :
+// `estEntreeNominative` en juge une ligne, `entreesNominatives` les lit dans une image. Une entrée de
+// site (`{ fichier, ref, occurrence }`, `stock.mjs`) en est une espèce.
 // En JSON, tout est de portée module. Aucun seuil de taille : la porte compte des lignes ajoutées et
 // retirées, jamais des stocks.
 //
@@ -65,9 +71,9 @@
 // UNE SEULE SOURCE D'IMAGE : le lecteur `lirePostImage` que l'appelant fournit (contrat
 // `lirePostImage` de `gitPorte.mjs`). `croissanceDesStocks` REFUSE nommément l'appel qui n'en porte
 // pas — un compte sans image ment —, et ne reconstruit aucune image depuis le diff. VOIE NOMINALE :
-// le lecteur rend l'image, `entreesDeStock` y pose les entrées, et une ligne du diff ne compte que
+// le lecteur rend l'image, `entreesNominatives` y pose les entrées, et une ligne du diff ne compte que
 // si elle en porte une. REPLI : quand le lecteur rend `null` (fichier supprimé, binaire, dialecte
-// hors `DIALECTE`), `estEntreeDeStock` juge la LIGNE seule et l'entrée COMPTE — la porte perd sa
+// hors `DIALECTE`), `estEntreeNominative` juge la LIGNE seule et l'entrée COMPTE — la porte perd sa
 // précision, jamais sa vue. Ce que le repli ne sait pas lire, il le rate : entrée MULTILIGNE,
 // entrée-objet JSON, propriété dont la CLÉ ne nomme pas de fichier alors que sa valeur en nomme
 // (`"sites": [ … ]` de `scripts/raw/reconciliation-stock.json`). Les appelants de production
@@ -106,7 +112,7 @@
 //     `.mjs` sous `src/` entre dans le périmètre sans qu'on revienne sur cette liste.
 import { SUFFIXE_SUITE } from './fichierVitest.mjs'
 import { parUnitesDeCode } from './lister.mjs'
-import { scriptKindDe, typescript } from './dialecte.mjs'
+import { ast, typescript } from './dialecte.mjs'
 import { enteteDeHunk } from './hunks.mjs'
 
 /** Fichiers susceptibles de porter un stock nominatif. Une BASELINE de COMPTE
@@ -193,7 +199,7 @@ export function estPorteurDeStock(chemin) {
 
 /** La ligne (sans son marqueur de diff) est-elle une entrée littérale de stock ? REPLI de la porte :
  *  il ne se joue que sur un fichier dont l'IMAGE ne se lit pas, et juge la ligne pour elle seule. */
-export function estEntreeDeStock(ligne) {
+export function estEntreeNominative(ligne) {
   const l = String(ligne ?? '');
   return ENTREE_EN_TETE.test(l) || ENTREE_EN_QUEUE.test(l);
 }
@@ -203,12 +209,8 @@ export function estEntreeDeStock(ligne) {
 /** Image parsée d'un fichier, ou `null` si son extension n'a pas de dialecte (`dialecte.mjs`) :
  *  aucune image n'est alors lue, le REPLI de ligne juge seul. */
 function imageParsee(source, chemin) {
-  const kind = scriptKindDe(chemin, { inconnu: 'refus' });
-  if (kind === null) return null;
-  const texte = String(source ?? '');
-  const ts = typescript();
-  const sf = ts.createSourceFile(String(chemin), texte, ts.ScriptTarget.Latest, true, kind);
-  return { ts, sf, texte };
+  const sf = ast({ rel: String(chemin), text: String(source ?? '') }, { inconnu: 'refus' });
+  return sf && { ts: typescript(), sf, texte: sf.text };
 }
 
 /**
@@ -262,6 +264,7 @@ function noeudQuiNomme(ts, node, motif = NOMME) {
   let trouve = null;
   const visiter = (n) => {
     if (trouve) return;
+    if (ts.isPropertyAssignment(n) && cleDe(ts, n) === 'foyer') return;
     if (ts.isStringLiteral(n) || ts.isNoSubstitutionTemplateLiteral(n)) {
       if (motif.test(n.text)) trouve = n;
       return;
@@ -320,7 +323,7 @@ function cleDe(ts, prop) {
 /**
  * Les ENTRÉES de stock d'une IMAGE de fichier, par ligne croissante — ou `null` si le dialecte n'a
  * pas d'AST ici (le REPLI de ligne juge alors seul). Voir la DÉFINITION en tête de module.
- * Deux entrées sur une même ligne n'en font qu'une (sous-comptage assumé).
+ * Deux entrées sur une même ligne n'en font qu'une (sous-comptage).
  *
  * Chaque entrée porte DEUX lignes : `ligne`, où elle vit (son premier caractère — l'accolade
  * ouvrante d'une entrée-objet JSON), et `nomme`, celle du littéral qui NOMME le fichier. Les deux
@@ -329,7 +332,7 @@ function cleDe(ts, prop) {
  * @param {string} source @param {string} chemin
  * @returns {{ ligne: number, nomme: number }[] | null}
  */
-export function entreesDeStock(source, chemin) {
+export function entreesNominatives(source, chemin) {
   const img = imageParsee(source, chemin);
   if (!img) return null;
   const { ts, sf } = img;
@@ -356,6 +359,7 @@ export function entreesDeStock(source, chemin) {
     }
     for (const prop of node.properties) {
       const cle = cleDe(ts, prop);
+      if (cle === 'foyer') continue;
       if (cle !== null && NOMME.test(cle)) { poser(prop, prop.name ?? prop); continue; }
       if (litteral(prop.initializer)) { parcourir(prop.initializer); continue; }
       const nommant = noeudQuiNomme(ts, prop);
@@ -375,7 +379,7 @@ function lignesDEntrees(lire, fichier) {
   try { source = lire(fichier); } catch { return null; }
   if (typeof source !== 'string') return null;
   try {
-    const entrees = entreesDeStock(source, fichier);
+    const entrees = entreesNominatives(source, fichier);
     return entrees && new Map(entrees.map((e) => [e.ligne, e.nomme]));
   } catch { return null; }
 }
@@ -447,8 +451,8 @@ function texteDEntree(touchees, entrees) {
  *
  * Les lignes AJOUTÉES se lisent sur le POST-IMAGE (`lirePostImage(chemin)`), les RETIRÉES sur le
  * PRÉ-IMAGE (`lirePreImage(chemin)`) — sans quoi le retrait d'une fixture locale compenserait
- * l'ajout d'une vraie entrée. Une ligne compte quand `entreesDeStock` de l'image correspondante y
- * pose une entrée ; quand le lecteur rend `null`, `estEntreeDeStock` juge la ligne seule. Les deux
+ * l'ajout d'une vraie entrée. Une ligne compte quand `entreesNominatives` de l'image correspondante y
+ * pose une entrée ; quand le lecteur rend `null`, `estEntreeNominative` juge la ligne seule. Les deux
  * lecteurs sont fournis par l'appelant : la lib reste PURE.
  * @param {string} diffU0
  * @param {{ lirePostImage: (chemin: string) => string | null,
@@ -552,7 +556,7 @@ export function croissanceDesStocks(diffU0, images) {
     .map(([fichier, { ajoutees, retirees, disparu }]) => {
       const surPost = lignesDEntrees(lirePostImage, fichier);
       const surPre = lignesDEntrees(lirePreImage, fichier);
-      const estEntree = (entrees) => (t) => (entrees ? entrees.has(t.ligne) : estEntreeDeStock(t.texte));
+      const estEntree = (entrees) => (t) => (entrees ? entrees.has(t.ligne) : estEntreeNominative(t.texte));
       return {
         fichier,
         disparu,

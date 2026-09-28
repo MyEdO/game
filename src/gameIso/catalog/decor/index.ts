@@ -7,7 +7,7 @@
 import type { PropViz, RenderCtx } from '../types';
 import type { View } from '../../rig/facing';
 import { project } from '../../rig/facing';
-import { pickView, MISSING_ART } from '../../rig/viewArt';
+import { nearestView, MISSING_ART } from '../../rig/viewArt';
 import { warnMissing } from '../missing';
 import type { Dir8 } from '../../../state/dir8';
 import type { Rot } from '../../../geometry/iso';
@@ -20,7 +20,7 @@ export const PROPS: Record<string, PropViz> = Object.fromEntries(PROP_DEFS.map((
 const SANS_TYPE = '(aucun type nommé)';
 
 /** SVG d'un décor. `dir` (orientation MONDE d'auteur, Dir8) + `camRot` (cran caméra) → `ctx`. Un prop
- *  DIRECTIONNEL (`views`) : la MACHINERIE projette ici `project(dir, camRot) → {view, mirror}`, choisit
+ *  ORIENTÉ (`views`) : la MACHINERIE projette ici `project(dir, camRot) → {view, mirror}`, choisit
  *  la vue et applique le miroir (profil gauche/droit) — il PIVOTE avec la caméra. Un prop symétrique
  *  (`render`) ignore l'orientation. La sélection de vue vit ICI, JAMAIS dans une def (`defs/**`). */
 export function propSvg(ref: string | undefined, dir?: Dir8, camRot: Rot = 0): string {
@@ -29,9 +29,9 @@ export function propSvg(ref: string | undefined, dir?: Dir8, camRot: Rot = 0): s
   const ctx: RenderCtx = { dims: { w: 0, h: 0, rot: camRot }, dir };
   if (prop.views) {
     const { view, mirror } = project(dir ?? 'S', camRot);
-    // Sélection vue + repli PARTAGÉS (`pickView`, contrat `ViewArt`) — une vue absente replie sur la plus
+    // Sélection vue + repli PARTAGÉS (`nearestView`, contrat `ViewArt`) — une vue absente replie sur la plus
     // proche déclarée. Miroir de la boîte 120×150 (centre en x=60) : le profil « gauche » se déduit du droit.
-    const body = pickView(prop.views, view)({}, ctx);
+    const body = nearestView(prop.views, view)({}, ctx);
     return mirror ? `<g transform="translate(120,0) scale(-1,1)">${body}</g>` : body;
   }
   // Une def sans `views` NI `render` ne dessine rien : c'est le même manque qu'un id absent du registre.
@@ -47,7 +47,7 @@ export function missingPropSvg(ref: string | undefined): string {
   return `<g transform="translate(60,150)">${MISSING_ART.profile!()}</g>`;
 }
 
-/** Art BRUT d'une vue EXACTEMENT déclarée par un prop directionnel (planche-contact QC), sinon null (case
+/** Art BRUT d'une vue EXACTEMENT déclarée par un prop orienté (planche-contact QC), sinon null (case
  *  vide = couverture manquante). Sans projection, sans repli, sans miroir — pour relire face/profil/dos
  *  côte à côte comme les vues de rig/tenue et VOIR la couverture réelle de chaque prop. */
 export function propViewSvg(ref: string, view: View): string | null {

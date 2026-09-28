@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { allBuiltinCampaigns } from './campaign';
+import { allBuiltinCampaigns, paquetDuJeu } from './campaign';
 import { testScenarios } from './test-scenarios';
 import { propFootTiles, propDeclaredFoot } from '../state/footprint';
 import { sceneMetresPerTile, type Scene, type SceneEntity } from '../state/scene';
@@ -19,7 +19,7 @@ import { sceneMetresPerTile, type Scene, type SceneEntity } from '../state/scene
 /** Toutes les scènes LIVRÉES : paquets de campagne intégrés + scénarios de test enregistrés. */
 function scenesLivrees(): { source: string; scene: Scene }[] {
   return [
-    ...allBuiltinCampaigns.flatMap((c) => c.scenes.map((scene) => ({ source: c.id, scene }))),
+    ...allBuiltinCampaigns.flatMap((c) => paquetDuJeu(c).scenes.map((scene) => ({ source: c.id, scene }))),
     ...testScenarios.map((s) => ({ source: `test-scenarios/${s.id}`, scene: s.construire().scene })),
   ];
 }

@@ -1,9 +1,7 @@
-// Helpers partagés des gardes Atlas RAW (coverage / reconcile / reanchor).
-// Source UNIQUE de : map des livres (BOOKS), résolveur de fichier-chapitre, graphie de réf — UNE
-// pour TOUS les livres de BOOKS, par ligne (refRe) et par folio (refFolioRe), sur l'alternation
-// dérivée `allAbbrAlternation` —, dépliage de plage, échappement regex, et normalisation de texte
-// pour le match exact des citations. reanchor.mjs dérive sa PROPRE alternation de BOOKS (#434
-// défaut 10, périmètre non couvert par ce fichier).
+// Helpers partagés des gardes Atlas RAW. Source UNIQUE de : map des livres (`BOOKS`), résolveur de
+// fichier-chapitre (`chapterFile`), graphie de réf — UNE pour TOUS les livres de `BOOKS`, par ligne
+// (`refRe`) et par folio (`refFolioRe`), sur l'alternation dérivée `allAbbrAlternation` —, dépliage
+// de plage (`span`).
 // INVARIANT #1825 : le code ne nomme AUCUN livre — un livre de plus, c'est de la DONNÉE. Ce qu'on
 // sait du LIVRE vit dans son entrée de `src/data/books.json` (sigle, dossier, langue, cœur, teneur,
 // niveau de section) ; ce qu'on sait de ses CHAPITRES vit dans `scripts/raw/chapitres.json`
@@ -20,21 +18,21 @@ import chapitresData from './chapitres.json' with { type: 'json' }
 import domainesData from './domaines.json' with { type: 'json' }
 // Normalisation de citation : SOURCE UNIQUE dans `src/data/source/normalize.ts` (module feuille en
 // syntaxe effaçable, chargé tel quel par Node nu comme par vitest). Importée ICI parce que ce
-// fichier s'en sert lui-même (`findAnchor`, `sectionsOf`), et RÉ-EXPORTÉE plus bas pour ses 15
-// consommateurs.
+// fichier s'en sert lui-même (`findAnchor`, `sectionsOf`), et RÉ-EXPORTÉE plus bas.
 import { normalize, ELLIPSIS_SENTINEL } from '../../src/data/source/normalize.ts'
-// Le NUMÉRO DE CHAPITRE (prédicat, motif de nom, résolution) vit dans sa maison unique
+// Le NUMÉRO DE CHAPITRE (prédicat, regex de nom, résolution) vit dans sa maison unique
 // `src/data/source/decoupe.ts` — module PUR, chargé tel quel par Node nu comme par vitest.
 import { fichierDuChapitre, graphieDeChapitre, largeurDeChapitre, numeroDuFichier } from '../../src/data/source/decoupe.ts'
 import { nomAscii } from '../source/nom-ascii.mjs'
 // « Livre EXTRAIT » : définition UNIQUE app/outillage, `src/data/source/livre-extrait.ts` (#1739).
 import { estLivreExtrait } from '../../src/data/source/livre-extrait.ts'
+import { alternationDe } from '../../src/lib/regex.ts'
 
 // Lecture CRLF-robuste (#604) -- SOURCE UNIQUE de lecture texte pour tout fichier Source/**/docs/raw/** :
-// une reecriture Windows du 2026-07-07 a mutile 202 fichiers en CRLF/mixte (contenu identique, index git
-// reste LF). sectionsOf (coverage.mjs) decoupe les headings avec une regex de fin de ligne ancree sans
-// flag m -- or le '.' de regex exclut TOUT LineTerminator (dont \r, ECMA-262), donc le heading pattern
-// echoue net des qu'une ligne se termine par \r (repro mesure : sectionsOf('# A\r\n## B\r\ntexte', 2)
+// une copie de travail peut porter des fins de ligne CRLF ou mixtes sur un index git en LF.
+// sectionsOf (coverage.mjs) decoupe les headings avec une regex de fin de ligne ancree sans flag m --
+// or le '.' de regex exclut TOUT LineTerminator (dont \r, ECMA-262), donc le heading pattern echoue
+// net des qu'une ligne se termine par \r (repro mesure : sectionsOf('# A\r\n## B\r\ntexte', 2)
 // -> un seul '(integral)', la boundary H2 jamais vue). readText normalise \r\n/\r isole -> \n AU POINT
 // DE LECTURE -- jamais dans les parseurs eux-memes (une seule couture, pas un remede par regex disperse).
 // N'affecte pas JSON.parse (deja tolerant aux fins de ligne) ni les fichiers deja en LF (no-op).
@@ -250,7 +248,11 @@ export const ongletsDe = (bookId, dir = DECOUPES_DIR) => JSON.parse(readText(joi
  *  nulle part ailleurs. @param {string} bookId @param {string} [dir] */
 export const gabaritTitreDe = (bookId, dir = DECOUPES_DIR) => JSON.parse(readText(join(dir, `${bookId}.json`))).gabaritTitre
 
-// PDF d'un livre et sorties Marker — #1739 (2026-09-19, bloquant 3). Les PDF et `Source/_marker/` sont
+/** Les ids des livres dont la liste de découpe porte un `gabaritTitre` — la SEULE liste des livres à
+ *  gabarit de titre. */
+export const livresATitres = () => livresDecoupes().filter((id) => gabaritTitreDe(id))
+
+// PDF d'un livre et sorties Marker (#1739). Les PDF et `Source/_marker/` sont
 // gitignorés (`.gitignore`) : ils n'existent que dans l'ARBRE PRINCIPAL, jamais dans un worktree
 // lié. `Source/` s'y résout par `arbrePrincipal` (`scripts/guards/lib/gitPorte.mjs`) : l'IMPORT de
 // `gitPorte` est statique et sans effet de bord, l'APPEL est paresseux — au premier besoin d'un
@@ -337,52 +339,41 @@ export function copieMarkerDe(id, options = {}) {
   return markerDe(`${id}.pdf`, options)
 }
 
-// Échappe une chaîne pour l'insérer littéralement dans une RegExp.
-export const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-
-// Alternation d'abréviations DÉRIVÉE de BOOKS (#434 défaut 10 : une alternation écrite à la main
-// avait oublié MDG ; citation-graphy-guard écrivait la sienne, désynchronisée dès que BOOKS gagne un
-// livre). Tri par longueur décroissante OBLIGATOIRE : sinon "MSR" matcherait avant "MSRC", "EDO"
-// avant "EDOC". Plus de graphies tolérées (#585 lot B) : un livre, UNE abréviation canonique
-// (SOURCE UNIQUE `books.json`), l'identité stricte suffit — aucune variante à couvrir.
-// Calculée UNE fois : `refRe()` est une fabrique appelée par ligne scannée.
-export const alternationDe = (books) => books.map(([a]) => esc(a)).sort((a, b) => b.length - a.length).join('|')
-const ABBR_ALT = alternationDe(BOOKS)
+// Alternation des sigles des livres extraits, dérivée de `BOOKS` (#434). Calculée une fois :
+// `refRe()` est une fabrique appelée par ligne scannée.
+const ABBR_ALT = alternationDe(BOOKS.map(([a]) => a))
 export const allAbbrAlternation = () => ABBR_ALT
 
-// MÊME fabrique (`alternationDe`), AUTRE population : TOUT livre du registre porteur d'un `abbr`,
-// extrait ou non. `allAbbrAlternation` ne couvre que les livres EXTRAITS (à `dir`) parce que
-// l'Atlas n'adresse que ceux-là ; mais un livre SANS extraction se CITE quand même, et la garde qui
-// juge une réf RENDUE (`src/ui/book-ref-guard.test.ts`, #1826) doit voir tout le registre.
-// Une SEULE alternation existe dans le dépôt : celle que rend `alternationDe`, ici paramétrée.
-const ABBR_ALT_REGISTRE = alternationDe(booksData.filter((b) => b.abbr).map((b) => [b.abbr]))
+// Même fabrique, `alternationDe` (`src/lib/regex.ts`), autre population : tout livre du registre
+// porteur d'un `abbr`, extrait ou non. `allAbbrAlternation` ne couvre que les livres extraits, que
+// l'Atlas adresse ; un livre sans extraction se cite quand même, et la garde qui juge une réf rendue
+// (`src/ui/book-ref-guard.test.ts`, #1826) doit voir tout le registre.
+const ABBR_ALT_REGISTRE = alternationDe(booksData.filter((b) => b.abbr).map((b) => b.abbr))
 export const alternationDuRegistre = () => ABBR_ALT_REGISTRE
 
 // MARQUEUR de BLOC PRÉSERVÉ d'un livre — `<!-- <ABRÉV>-INTEGRATION -->` : un correctif MANUEL posé
 // dans une fiche ou un catalogue de l'Atlas, que `build-catalogs.mjs` re-préserve à chaque
 // régénération et que `merge-docs.mjs` re-fusionne. L'ÉCRIVAIN (`apply-livre.mjs`) et les LECTEURS
-// passent par ICI, et le motif se DÉRIVE de l'alternation du registre : un marqueur écrit que le
+// passent par ICI, et la regex se DÉRIVE de `allAbbrAlternation` : un marqueur écrit que le
 // lecteur ne relit pas, c'est un correctif manuel effacé sans un mot à la régénération suivante.
 export const marqueurIntegration = (abbr) => `<!-- ${abbr}-INTEGRATION -->`
 export const marqueurIntegrationFin = (abbr) => `<!-- /${abbr}-INTEGRATION -->`
 export const blockStartReDe = (alt) => new RegExp(`^<!-- ((?:${alt})-INTEGRATION) -->`)
 export const blockStartRe = () => blockStartReDe(ABBR_ALT)
 
-// Mention LÂCHE d'un chapitre (« <ABRÉV> 12 », « <ABRÉV> ch.7 » — sans réf de ligne), UNE pour tous
-// les livres, sur l'alternation du registre : c'est elle qui dit « ce document parle de ce chapitre »
-// (`reconcile.mjs` couverture, `assemble-domain.mjs` cœur d'une fiche existante).
+// Mention LÂCHE d'un chapitre (« <ABRÉV> 12 », « <ABRÉV> ch.7 », sans réf de ligne) sur l'alternation
+// que l'appelant injecte : c'est elle qui dit « ce document parle de ce chapitre » (`reconcile.mjs`,
+// couverture).
 export const looseReDe = (alt) => new RegExp(`\\b(${alt}) (?:ch\\.)?(\\d+)\\b`, 'g')
-export const looseRe = () => looseReDe(ABBR_ALT)
 
 // Regex de réfs (factories : instances FRAÎCHES — l'état /g `lastIndex` n'est pas partagé entre appelants).
 // UNE graphie pour TOUS les livres de BOOKS, les livres de cœur compris : `<ABRÉV>[ [ch.]NN] l.<ligne><suffixe>`.
 // Groupes, IDENTIQUES quel que soit le livre : m[1] livre · m[2] chapitre (OPTIONNEL, `undefined`
 // pour une réf de livre entier) · m[3] ligne · m[4] suffixe.
-// `ch.` optionnel devant le numéro de chapitre (#434 défaut 3) : le code écrit indifféremment
+// `ch.` optionnel devant le numéro de chapitre (#434) : le code écrit indifféremment
 // `LIVRE NN l.X` et `LIVRE ch.NN l.X` — le groupe livre reste OBLIGATOIRE.
-// Suffixe : `-fin` (plage) · `+n…` (points) · `/n…` (forme COMPACTE `l.298/315/369`, #1318 E3-L4 —
-// jusque-là seul le PREMIER numéro était vu, les suivants échappaient à toute garde : `l.222/999`
-// passait vert). Le `(?!\d)(?!\s*l\.)` (nombre ENTIER, puis pas de ` l.` derrière — sans le garde
+// Suffixe : `-fin` (plage) · `+n…` (points) · `/n…` (forme COMPACTE `l.298/315/369`, #1318, dont
+// chaque numéro se rend, `refNums`). Le `(?!\d)(?!\s*l\.)` (nombre ENTIER, puis pas de ` l.` derrière — sans le garde
 // de chiffre la regex se rabattrait sur `/2` de `/20 l.72`) distingue `/315` (ligne du MÊME chapitre) de `/20 l.72` (réf
 // MULTI-CHAPITRES `LDB 18 l.298/20 l.72`, où `20` est un CHAPITRE — jamais une ligne du 18).
 export const refReDe = (alt) =>
@@ -396,8 +387,8 @@ export const refFolioReDe = (alt) =>
   new RegExp(`\\b(${alt})(?: (?:ch\\.)?(\\d+))? p\\.(\\d+)((?:[-+]\\d+)*)`, 'g')
 export const refFolioRe = () => refFolioReDe(ABBR_ALT)
 
-// Canonicalise le texte brut matché par refRe (m[1]) vers l'abréviation BOOKS (#434 défaut 11).
-// Identité stricte (#585 lot B) — une seule graphie par livre, aucune variante à résoudre.
+// Canonicalise le texte brut matché par refRe (m[1]) vers l'abréviation BOOKS (#434).
+// Identité stricte (#585) — une seule graphie par livre, aucune variante à résoudre.
 export const bookOfDe = (books) => {
   const abbrs = new Set(books.map(([a]) => a))
   return (text) => (abbrs.has(text) ? text : null)
@@ -410,7 +401,7 @@ export const bookOf = bookOfDe(BOOKS)
 export const isRangeSuffix = (suffix) => !!suffix && /^-\d+/.test(suffix)
 
 // Tous les numéros de ligne EXPLICITEMENT cités par une réf : `l.10` → [10] · `l.10-25` → [10,25]
-// (bornes) · `l.10+17` → [10,17] · `l.298/315/369` → [298,315,369] (forme COMPACTE, #1318 E3-L4).
+// (bornes) · `l.10+17` → [10,17] · `l.298/315/369` → [298,315,369] (forme COMPACTE, #1318).
 export function refNums(line, suffix) {
   const a = Number(line)
   if (!suffix) return [a]
@@ -551,12 +542,12 @@ export function folioSpan(abbr, nn, folioStr, suffix) {
   return [start.lo, hi]
 }
 
-// (#454 juge adversarial) Un folio SIMPLE `ABBR N p.X` cité au DERNIER folio du chapitre N, alors que
+// (#454) Un folio SIMPLE `ABBR N p.X` cité au DERNIER folio du chapitre N, alors que
 // le chapitre N+1 s'ouvre sur X ou X+1, est un CANDIDAT à contenu-en-fin-de-chapitre-qui-a-débordé
 // (cas prouvé : `LDB 48 p.255` — le sujet cité vivait en réalité au tout début de `49 - Sorcellerie.md`,
 // AVANT sa propre première ancre `data-folio`). Détection STRUCTURELLE PURE (aucun accès disque ici) :
-// ne tranche PAS si le sujet cité vit réellement en N ou en N+1 (vérification verbatim, non triviale,
-// hors scope) — seulement que la POSITION rend les deux plausibles. `map` = `folioIndexOf(abbr)`.
+// ne tranche PAS si le sujet cité vit réellement en N ou en N+1 — seulement que la POSITION rend les
+// deux plausibles. `map` = `folioIndexOf(abbr)`.
 export function chapterBoundaryRisk(map, ch, folio) {
   let lastOfCh = null
   let firstOfNext = null
@@ -591,15 +582,13 @@ function findAnchor(lines, locator) {
 
 export { normalize, ELLIPSIS_SENTINEL }
 
-// --- Exclusions PARTAGÉES de fiches docs/raw (#454 DoD, #585 lot A) ---
-// Deux ensembles nommés (périmètres RÉELLEMENT différents, pas une fusion aveugle) :
-// - RAWDOC_META_GENERATED : rapports RÉ-GÉNÉRÉS à chaque run (jamais des citations vivantes d'auteur)
-//   — hors sujet pour TOUT scan (bornes de ligne comme prose de citation) : check-refs, check-code-refs
-//   (src uniquement, sans objet), reconcile (Sens A/B), reanchor, citation-graphy-guard (a/b/c/d).
-// - RAWDOC_AUTHOR_META : fiches d'auteur (index, conventions de sourcing) qui PEUVENT citer un chapitre
-//   réel illustrativement (bornes de ligne restent vérifiables par check-refs) mais ne portent PAS de
-//   citation verbatim vivante à ré-ancrer ni de prose d'état à juger — hors sujet pour reanchor et pour
-//   citation-graphy-guard scan (d) seulement, PAS pour check-refs/check-code-refs/reconcile.
+// --- Exclusions PARTAGÉES de fiches docs/raw (#454, #585) ---
+// Deux ensembles nommés, deux classes de page (`classeDePage`) :
+// - RAWDOC_META_GENERATED : rapports RÉ-GÉNÉRÉS à chaque run, jamais des citations vivantes d'auteur
+//   (classe `generee`) ;
+// - RAWDOC_AUTHOR_META : pages d'auteur (index, conventions de sourcing) qui PEUVENT citer un chapitre
+//   réel à titre d'illustration, sans citation verbatim vivante à ré-ancrer (classe `auteur`).
+// Chaque lecteur déclare les classes qu'il accepte par ses `CLASSES`, passées à `pagesDeLAtlas`.
 export const RAWDOC_META_GENERATED = new Set(['coverage.md', 'reconciliation.md', 'reanchor.md'])
 export const RAWDOC_AUTHOR_META = new Set(['00-index.md', 'sources.md', 'code-map.md'])
 export const isRawEpreuve = (name) => /^epreuve-/.test(name)
@@ -618,7 +607,7 @@ export const CLASSES_DE_PAGE = ['fiche', 'catalogue', 'generee', 'auteur', 'epre
 const CLASSES_DE_COEUR = new Set(['fiche', 'catalogue', 'epreuve'])
 const PREFIXE_CATALOGUE = 'catalogue-'
 
-/** Classe d'une page de l'Atlas d'après son NOM de fichier — dérivation UNIQUE des six lecteurs. */
+/** Classe d'une page de l'Atlas d'après son NOM de fichier : dérivation UNIQUE. */
 export function classeDePage(nom) {
   if (RAWDOC_META_GENERATED.has(nom)) return 'generee'
   if (RAWDOC_AUTHOR_META.has(nom)) return 'auteur'

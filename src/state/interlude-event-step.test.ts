@@ -34,10 +34,10 @@ const MONSTRUEUX = 57; // « Complications monstrueuses » — Revenus interdits
 
 /** Groupe de deux héros, bourses créditées — remis à neuf pour chaque sonde. */
 function groupe(): Combatant[] {
-  const a = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', rng: makeRNG(1) });
-  const b = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'B', rng: makeRNG(2) });
+  const a = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
+  const b = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'B', seed: 2 });
   useGame.setState({ party: [a, b], battle: null, interlude: null, bank: [], pendingOrders: [], journal: [], pendingCascade: null, suspendedCascades: [] });
-  useGame.getState().startScene(testScene);
+  useGame.getState().startScene(testScene());
   vi.clearAllTimers();
   creditBourse(useGame.getState, useGame.setState, a.id, fromBrass(2000));
   creditBourse(useGame.getState, useGame.setState, b.id, fromBrass(2000));

@@ -1,8 +1,8 @@
 // Garde « docs vivantes » — les références vivantes (docs/*.md, hors docs/plans/ & docs/raw/) ne
 // doivent jamais mentir. Six vérifications déterministes, exit 1 avec la liste fichier:ligne sinon :
 //   1. CHEMINS  — tout `src/…` / `scripts/…` cité existe sur le disque (fichier, dossier ou glob).
-//   2. SYMBOLES — tout appel de fonction backtiqué (`nomCamel(` / `NomPascal(`) se retrouve dans src/.
-//   3. PRIMITIVES — tout symbole de `src/data/primitives.manifest.json` est un EXPORT réel de src/.
+//   2. SYMBOLES — tout appel de fonction backtiqué (`nomCamel(` / `NomPascal(`) se retrouve dans src/ ou scripts/.
+//   3. PRIMITIVES — tout symbole de `src/data/primitives.manifest.json` est un EXPORT réel de src/ ou de scripts/.
 //   4. CATALOGUE CSS — les deux sens entre `docs/charte-ui.md` et les feuilles `.css` de src/.
 //   5. SENS INVERSE — tout chemin `docs/….md` cité par src/ ou scripts/ existe sur le disque.
 //   6. HOOKS — tout chemin `src/…` / `scripts/…` cité par un hook (git-hooks, hooks) existe.
@@ -16,6 +16,7 @@ import { liensJugeables } from '../guards/lib/liensMarkdown.mjs'
 
 const DOCS_DIR = 'docs'
 const SRC_DIR = 'src'
+const SCRIPTS_DIR = 'scripts'
 const EXTS_SRC = ['.ts', '.tsx', '.js', '.mjs', '.mts', '.json', '.css']
 
 /** Fichiers de `dir` portant une des extensions, en ORDRE TOTAL (hors `node_modules`). */
@@ -26,11 +27,11 @@ function fichiersSources(dir, exts) {
   }).map((rel) => join(dir, rel))
 }
 
-// --- index des identifiants présents dans src/ (= « grep dans src/ ») ---
-const SRC_IDENTS = new Set()
-for (const f of fichiersSources(SRC_DIR, EXTS_SRC)) {
+// --- index des identifiants présents dans src/ et scripts/ (= « grep dans src/ et scripts/ ») ---
+const IDENTS_VIVANTS = new Set()
+for (const f of [...fichiersSources(SRC_DIR, EXTS_SRC), ...fichiersSources(SCRIPTS_DIR, EXTS_SRC)]) {
   const text = readFileSync(f, 'utf8')
-  for (const m of text.matchAll(/[A-Za-z_$][\w$]*/g)) SRC_IDENTS.add(m[0])
+  for (const m of text.matchAll(/[A-Za-z_$][\w$]*/g)) IDENTS_VIVANTS.add(m[0])
 }
 
 const isDir = (p) => { try { return statSync(p).isDirectory() } catch { return false } }
@@ -87,7 +88,7 @@ for (const file of listerDossier(DOCS_DIR).filter((f) => f.endsWith('.md'))) {
     for (const c of span.matchAll(/\b([A-Za-z_$][\w$]*)\s*\(/g)) {
       const id = c[1]
       if (!/[a-z]/.test(id) || !/[A-Z]/.test(id)) continue // exige camelCase/PascalCase (ex. `applyOps`, pas `t`/`MAX`)
-      if (!SRC_IDENTS.has(id)) {
+      if (!IDENTS_VIVANTS.has(id)) {
         const line = lineAt(text, m.index) + span.slice(0, c.index).split('\n').length - 1
         problems.push({ file: rel, line, kind: 'symbole absent', tok: `${id}()` })
       }
@@ -96,9 +97,9 @@ for (const file of listerDossier(DOCS_DIR).filter((f) => f.endsWith('.md'))) {
 }
 
 // 3. MANIFESTE DES PRIMITIVES (`src/data/primitives.manifest.json`, la SOURCE dont `docs/primitives.md`
-// dérive) : chaque symbole du champ `label` doit résoudre à un EXPORT réel de src/ — cause-racine des
+// dérive) : chaque symbole du champ `label` doit résoudre à un EXPORT réel de src/ ou de scripts/ — cause-racine des
 // fantômes historiques (ex. `inBattle` cité alors que le fichier n'exportait que `inBattleId`,
-// `ParticipantRow` jamais exporté nulle part). Vérifié contre l'EXPORT global de src/ (pas juste le
+// `ParticipantRow` jamais exporté nulle part). Vérifié contre l'EXPORT global de src/ et de scripts/ (pas juste le
 // champ `fichier` de l'entrée : un `label` y nomme légitimement des symboles AUXILIAIRES qui vivent
 // dans leur PROPRE fichier — `CharFrame`, `ResilienceButton`… ; une carte symbole→fichier-de-l'entrée
 // stricte re-déclencherait ces faux positifs).
@@ -106,7 +107,7 @@ const MANIFESTE_PRIMITIVES = 'src/data/primitives.manifest.json'
 if (existsSync(MANIFESTE_PRIMITIVES)) {
   const brut = readFileSync(MANIFESTE_PRIMITIVES, 'utf8')
   const EXPORTED_SYMS = new Set()
-  for (const f of fichiersSources(SRC_DIR, ['.ts', '.tsx', '.mjs', '.mts'])) {
+  for (const f of [SRC_DIR, SCRIPTS_DIR].flatMap((d) => fichiersSources(d, ['.ts', '.tsx', '.mjs', '.mts']))) {
     const src = readFileSync(f, 'utf8')
     for (const m of src.matchAll(/export\s+(?:default\s+)?(?:async\s+)?(?:function|class|interface|type|enum)\s+([A-Za-z_$][\w$]*)/g)) EXPORTED_SYMS.add(m[1])
     for (const m of src.matchAll(/export\s+(?:const|let|var)\s+([A-Za-z_$][\w$]*)/g)) EXPORTED_SYMS.add(m[1])
@@ -123,7 +124,7 @@ if (existsSync(MANIFESTE_PRIMITIVES)) {
       const id = c[1]
       if (!/[a-z]/.test(id) || !/[A-Z]/.test(id)) continue // camelCase/PascalCase only (cf. check 2)
       if (!EXPORTED_SYMS.has(id))
-        problems.push({ file: MANIFESTE_PRIMITIVES, line, kind: 'primitive fantôme (aucun export src/)', tok: `${id}` })
+        problems.push({ file: MANIFESTE_PRIMITIVES, line, kind: 'primitive fantôme (aucun export de src/ ni de scripts/)', tok: `${id}` })
     }
   }
 }
@@ -259,7 +260,7 @@ const DOC_REF_SELF = 'scripts/docs/check-doc-refs.mjs'
 const DOCS_LISANT = listerArbre(DOCS_DIR, { filtre: (r) => r.endsWith('.md') })
   .filter((r) => !r.startsWith('plans/') && !/(^|\/)epreuve-/.test(r))
   .map((r) => `${DOCS_DIR}/${r}`)
-for (const f of [...fichiersSources(SRC_DIR, EXTS_SRC), ...fichiersSources('scripts', EXTS_SRC), ...DOCS_LISANT]) {
+for (const f of [...fichiersSources(SRC_DIR, EXTS_SRC), ...fichiersSources(SCRIPTS_DIR, EXTS_SRC), ...DOCS_LISANT]) {
   const rel = f.replace(/\\/g, '/')
   if (rel === DOC_REF_SELF) continue
   const text = readFileSync(f, 'utf8')
@@ -303,12 +304,6 @@ const estMetavariable = (tok) => /(^|\/)[A-Za-z](\.[A-Za-z0-9]+)?$/.test(tok)
  *  `*-guard.test.ts`), pas un chemin : il ne se confronte pas au disque. SEULE définition — les sens
  *  6 et 7 la partagent. */
 const estMotif = (tok) => /[*?[]/.test(String(tok ?? ''))
-// Exemptions AU SITE (`fichier:ligne|jeton`), jamais au fichier : une occurrence de plus du même
-// jeton AILLEURS dans le fichier reste jugée. Une exemption qui ne matche plus se voit — son site
-// redevient rouge dès que la ligne bouge, et c'est le moment de la re-mesurer.
-const HOOK_SITES_EXEMPTS = new Set([
-  'scripts/git-hooks/pre-push.mjs:94|src/database', // contre-exemple de la comparaison par SEGMENT (`src/database` n’est pas `src/data`)
-])
 // Un hook nomme aussi ses tests-scanners par leur SEUL nom de fichier (`label-logic-guard.test.ts`,
 // EXCLUDED de telle famille) : ce nom se confronte à l'index des tests de `src/`, sinon un renommage
 // laisse la liste mentir. Un MOTIF (`*-guard.test.ts`, `-guard\.test\.ts` d'une regex) n'est pas un nom.
@@ -325,7 +320,7 @@ for (const dir of HOOKS_DIRS) {
     while ((m = CHEMIN_RE.exec(text))) {
       const tok = cheminCite(text, m)
       const ligne = lineAt(text, m.index)
-      if (estMetavariable(tok) || HOOK_SITES_EXEMPTS.has(`${f}:${ligne}|${tok}`)) continue
+      if (estMetavariable(tok)) continue
       if (!pathExists(tok)) problems.push({ file: f, line: ligne, kind: 'chemin cité par un hook, absent du disque', tok })
     }
     while ((m = NOM_DE_TEST_RE.exec(text))) {

@@ -12,14 +12,14 @@
  * l'unité près), et aucune def n'en est exemptée — les 4 sont jugées. Il ne se relève pas : un écart
  * qui dépasse 2 est un art à corriger, jamais un cran à ouvrir.
  *
- * VACUITÉ À ÉCARTER AVANT DE MESURER : `pickView` (`parts/types.ts`) replie `art[view] ?? art.front`.
+ * VACUITÉ À ÉCARTER AVANT DE MESURER : `viewOrFront` (`parts/types.ts`) replie `art[view] ?? art.front`.
  * Une def à `jambes` front-only rendrait donc le MÊME fragment pour les deux vues, `spread = 0`, et
  * le seuil serait tenu sans que rien de la vue de profil n'ait été jugé. Chaque def doit donc
  * DÉCLARER un profil distinct de son front pour que l'écart mesure quelque chose.
  */
 import { describe, it, expect } from 'vitest';
 import { ARMOUR_DEFS } from './_registry.generated';
-import { pickView, type PartArt } from '../types';
+import { viewOrFront, type PartArt } from '../types';
 
 const MIN_FRONT_Y = 48;
 const MAX_VIEW_SPREAD = 2;
@@ -49,10 +49,10 @@ describe('armure : la grève (jambes) atteint la cheville dans toutes les vues',
     if (jambes == null) continue;
 
     it(`${def.id} : front ≥ y${MIN_FRONT_Y}, écart front/profile ≤ ${MAX_VIEW_SPREAD}`, () => {
-      const front = pickView(jambes, 'front');
-      const profile = pickView(jambes, 'profile');
+      const front = viewOrFront(jambes, 'front');
+      const profile = viewOrFront(jambes, 'profile');
 
-      expect(profile, `${def.id}:jambes — le profil est REPLIÉ sur le front par \`pickView\` : l'écart ` +
+      expect(profile, `${def.id}:jambes — le profil est REPLIÉ sur le front par \`viewOrFront\` : l'écart ` +
         `mesuré ci-dessous serait 0 sans qu'aucune vue de profil n'ait été jugée. Déclarer \`profile\` ` +
         `dans l'art de la part, ou le DISTINGUER du front.`).not.toBe(front);
       const maxYFront = maxYOfSvg(front);

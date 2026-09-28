@@ -5,7 +5,6 @@ import { removeEntities } from './combatGeometry';
 import { seatPoseOf, seatSlotsOf } from './seating';
 import { createHero } from '../engine/character';
 import { inanimateCombatant } from '../engine/inanimate';
-import { makeRNG } from '../engine/dice';
 import { testScene } from '../scenes/test-fixture';
 import { DEFAULT_RELIEF_DEFAULTS, DEFAULT_ROOF_DEFAULTS, type Scene, type SceneEntity } from './scene';
 import { enemyRigProfile, entityRigProfile } from '../gameIso/rig/enemyProfile';
@@ -18,9 +17,9 @@ import { hashSeed } from '../engine/dice';
  */
 
 function startFixtureCombat() {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   useGame.setState({ party: [hero], battle: null });
-  useGame.getState().startScene(testScene);
+  useGame.getState().startScene(testScene());
   useGame.getState().startCombat('enc-mutants');
 }
 
@@ -190,9 +189,9 @@ describe('ouverture de combat — un PNJ enrôlé ASSIS se lève', () => {
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 
   it('sa place est libérée AVANT la pose du combat ; le voisin non enrôlé reste attablé', () => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero], battle: null });
-    useGame.getState().startScene(testScene);
+    useGame.getState().startScene(testScene());
     const sc = useGame.getState().scene!;
     const enrole = sc.encounters.find((e) => e.id === 'enc-mutants')!.members![0].entityId;
     const pos = sc.entities.find((e) => e.id === enrole)!.pos;

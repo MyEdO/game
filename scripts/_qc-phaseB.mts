@@ -1,5 +1,6 @@
 /** QC Phase B — rendu des bipèdes monstrueux via le RIG (auto tête/parts/pelage par espèce).
  *  Une ligne par nom, colonnes face / profil / dos. → public/qc/_qc-phaseB.png */
+import { VIEWS } from '../src/gameIso/rig/facing';
 import { writeFileSync } from 'node:fs';
 import { Resvg } from '@resvg/resvg-js';
 import { defsGlobaux } from '../src/gameIso/sprites';
@@ -7,7 +8,6 @@ import { bonesToSvg } from '../src/gameIso/rig/renderBones';
 import { resolveRig } from '../src/gameIso/rig/composeRig';
 import { entityRigProfile } from '../src/gameIso/rig/enemyProfile';
 import { hashSeed } from '../src/engine/dice';
-import type { View } from '../src/gameIso/rig/facing';
 
 // nom → arme à la main (libellé libre)
 const NAMES: [string, string][] = [
@@ -26,7 +26,6 @@ const NAMES: [string, string][] = [
   ['Vampire', ''],
   ['Sanguinaire de Khorne', 'Épée'],
 ];
-const VIEWS: View[] = ['front', 'profile', 'back'];
 const CW = 200, CH = 300, SC = 1.8, FEET = 265;
 const cells: string[] = [];
 NAMES.forEach(([name, weapon], r) => {

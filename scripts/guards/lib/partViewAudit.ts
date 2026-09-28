@@ -1,19 +1,19 @@
 /**
  * AUDIT du FORMAT DE PART du rig (#551) — définition UNIQUE, partagée par :
  *   - la garde  `src/gameIso/rig/parts/tenues/part-view-format.test.ts` (cliquet) ;
- *   - le régénérateur `scripts/rig/regen-part-view-stock.mts` (solde du stock).
+ *   - la régénération de `rigPartViewStock.mjs` et de `rigViewStock.mjs` (`regenerations`).
  *
- * Les deux DOIVENT mesurer la même chose : un régénérateur qui aurait sa propre lecture du pipeline
+ * Les deux DOIVENT mesurer la même chose : une régénération qui aurait sa propre lecture du pipeline
  * écrirait un stock que la garde ne reconnaît pas. D'où l'audit ici, et non dans le test.
  *
- * L'audit exerce le CHEMIN RÉEL (`resolveParts` pour le rendu servi + le discriminant de FORMAT
- * `hasProfileView`/`hasBackView` sur le def brut, `parts/types.ts`) : il ne réplique jamais
- * l'empilage. Périmètre et mécanismes : `rig/PART-CONTRACT.md`.
+ * L'audit exerce le CHEMIN RÉEL (`resolveParts` pour le rendu servi + la vue DESSINÉE, `isDrawnView`
+ * de ce module, sur le def brut) : il ne réplique jamais l'empilage. Périmètre et mécanismes : `rig/PART-CONTRACT.md`.
  */
 import { TENUE_DEFS } from '../../../src/gameIso/rig/parts/tenues/_registry.generated';
 import { ARMOUR_DEFS } from '../../../src/gameIso/rig/parts/armour/_registry.generated';
 import { resolveParts } from '../../../src/gameIso/rig/parts/resolve';
-import { hasProfileView, hasBackView, pickView, type PartArt } from '../../../src/gameIso/rig/parts/types';
+import { viewOrFront, type PartArt } from '../../../src/gameIso/rig/parts/types';
+import { declaredView } from '../../../src/gameIso/rig/viewArt';
 import { MONSTER_PARTS } from '../../../src/gameIso/rig/parts/monster/_registry.generated';
 import { ELEMENT_DEFS } from '../../../src/gameIso/rig/parts/elements/_registry.generated';
 import type { ElementOverlay } from '../../../src/gameIso/rig/parts/elements/types';
@@ -21,6 +21,8 @@ import { appendageArt } from '../../../src/gameIso/rig/parts/appendages';
 import type { View } from '../../../src/gameIso/rig/facing';
 import type { EquipCtx } from '../../../src/gameIso/rig/parts/equipment';
 import type { Site } from './stock.mjs';
+import { fileURLToPath } from 'node:url';
+import { DECROISSANT, type RegenerationDeStock } from './stockDeSites.mjs';
 import type { ItemInstance, HitLocation } from '../../../src/engine/types';
 import { slugId } from '../../../src/data/slug';
 import { fichierDeDef, REGISTRE_TENUES, REGISTRE_ARMURES, REGISTRE_PARTS_MONSTRUEUSES, REGISTRE_ELEMENTS } from './registreDeDefs';
@@ -31,6 +33,9 @@ export type BodySlot = (typeof SLOTS)[number];
 export interface Bearer { set: Partial<Record<BodySlot, PartArt>> }
 
 const NO_EQUIP: EquipCtx = { weapons: [], armour: [] };
+
+/** Vue DÉCLARÉE (`declaredView`, `viewArt.ts`) dont l'art n'est pas vide : ce que mesure le format. */
+export const isDrawnView = (art: PartArt | null | undefined, view: View): boolean => !!declaredView(art, view);
 
 /**
  * Signature GÉOMÉTRIQUE d'un fragment SVG : la suite des éléments et de leurs attributs de forme.
@@ -85,7 +90,7 @@ function auditBearer(
   file: string,
   key: string,
   bearer: Bearer,
-  serve: (view: 'front' | 'profile' | 'back') => Record<string, { svg: string } | null>,
+  serve: (view: View) => Record<string, { svg: string } | null>,
   acc: Audit,
 ) {
   const front = serve('front');
@@ -93,7 +98,7 @@ function auditBearer(
   for (const slot of SLOTS) {
     const art = bearer.set[slot];
     if (art == null) continue;
-    if (!hasProfileView(art) || !hasBackView(art)) { acc.format.push({ file, ref: `${key}:${slot}` }); continue; }
+    if (!isDrawnView(art, 'profile') || !isDrawnView(art, 'back')) { acc.format.push({ file, ref: `${key}:${slot}` }); continue; }
     // Vues DÉCLARÉES : le pipeline sert l'art du def — vérifier que le DESSIN diffère du front.
     const ref = geometryOrThrow(front[slot]?.svg ?? '', `${key}:${slot}:front`);
     for (const view of ['profile', 'back'] as const)
@@ -129,7 +134,7 @@ export function auditPartViews(): Audit {
 /* ------------------------------------------------------------------------------------------------
  * MESURE SŒUR (#1082) — les familles hors slots de corps : parts MONSTRUEUSES (`parts/monster/defs/`)
  * et ÉLÉMENTS d'apparence (`parts/elements/defs/`). Elles ne passent pas par `resolveParts` : leur
- * repli est celui de `pickView` (`parts/types.ts`, front servi tel quel) côté monstre, et celui du
+ * repli est celui de `viewOrFront` (`parts/types.ts`, front servi tel quel) côté monstre, et celui du
  * filtre `if (ov.view && ov.view !== view) continue` (`composeRig.tsx`) côté éléments — un overlay
  * sans `view` est émis à l'identique dans les trois vues.
  *
@@ -219,10 +224,9 @@ export function auditRigPartViews(): RigViewAudit {
   for (const part of MONSTER_PARTS) {
     const key = `monstre:${part.slot}:${part.key}`;
     const file = fichierDeDef(REGISTRE_PARTS_MONSTRUEUSES, part);
-    const front = pickView(part.art, 'front');
-    const has = { profile: hasProfileView(part.art), back: hasBackView(part.art) };
+    const front = viewOrFront(part.art, 'front');
     for (const view of OTHER_VIEWS)
-      classifyView(file, key, view, has[view], front, pickView(part.art, view), acc);
+      classifyView(file, key, view, isDrawnView(part.art, view), front, viewOrFront(part.art, view), acc);
   }
 
   // GRANULARITÉ de la mesure des éléments — le runtime décide par OVERLAY : `composeRig.tsx:267`
@@ -238,21 +242,19 @@ export function auditRigPartViews(): RigViewAudit {
     if (overlays.length === 0) continue; // élément purement morpho (build/legs/skin/faceFlip) : aucun art
     const key = `element:${el.key}`;
     const file = fichierDeDef(REGISTRE_ELEMENTS, el);
-    const hasView = (art: PartArt, view: 'profile' | 'back') =>
-      (view === 'profile' ? hasProfileView : hasBackView)(art);
     const artOf = (view: View) => overlays
       .filter((o) => !o.view || o.view === view)
-      .map((o) => (o.appendage ? pickView(appendageArt(o.appendage), view) : o.svg))
+      .map((o) => (o.appendage ? viewOrFront(appendageArt(o.appendage), view) : o.svg))
       .join('');
     /** Ce calque envoie-t-il l'art de FACE dans cette vue ? (`view` absent, et rien qui le résolve
      *  par vue : un `svg` brut est émis tel quel, un appendice sans art de la vue replie sur le front.) */
     const fuiteVersVue = (o: ElementOverlay, view: 'profile' | 'back') => {
       if (o.view) return false;
-      if (o.appendage != null) return !hasView(appendageArt(o.appendage), view);
+      if (o.appendage != null) return !isDrawnView(appendageArt(o.appendage), view);
       return (o.svg ?? '').trim() !== '';
     };
     const declaredIn = (view: 'profile' | 'back') =>
-      overlays.some((o) => o.view === view || (o.appendage != null && hasView(appendageArt(o.appendage), view)))
+      overlays.some((o) => o.view === view || (o.appendage != null && isDrawnView(appendageArt(o.appendage), view)))
       && !overlays.some((o) => fuiteVersVue(o, view));
     const front = artOf('front');
     for (const view of OTHER_VIEWS)
@@ -260,3 +262,28 @@ export function auditRigPartViews(): RigViewAudit {
   }
   return acc;
 }
+
+const MOTIF_RIG_VIEW = 'Dessine ces vues ; une vue neuve non dessinée ne s’entérine pas ici.';
+
+/** La RÉGÉNÉRATION des deux stocks que ce module mesure, `rigPartViewStock.mjs` puis `rigViewStock.mjs`
+ *  (par défaut, sur les mesures du dépôt). Commande :
+ *  `npx tsx scripts/guards/lib/regenStock.mts scripts/guards/lib/partViewAudit.ts [--check]`. */
+export const regenerations = (parts: Audit = auditPartViews(), rig: RigViewAudit = auditRigPartViews()): RegenerationDeStock[] => [
+  {
+    chemin: fileURLToPath(new URL('./rigPartViewStock.mjs', import.meta.url)),
+    politique: DECROISSANT,
+    collections: [
+      { nom: 'PART_VIEW_RATCHET', sites: parts.format, motif: 'Dessine les 3 vues de ces slots (cf. src/gameIso/rig/PART-CONTRACT.md) ; un slot neuf ne s’entérine pas ici.' },
+      { nom: 'PART_VIEW_ALIAS_RATCHET', sites: parts.alias, motif: 'Une vue déclarée qui redessine le front se corrige (dessiner la vue), elle ne s’entérine pas ici.' },
+    ],
+  },
+  {
+    chemin: fileURLToPath(new URL('./rigViewStock.mjs', import.meta.url)),
+    politique: DECROISSANT,
+    collections: [
+      { nom: 'RIG_VIEW_FORMAT_RATCHET', sites: rig.format, motif: MOTIF_RIG_VIEW },
+      { nom: 'RIG_VIEW_ALIAS_RATCHET', sites: rig.alias, motif: MOTIF_RIG_VIEW },
+      { nom: 'RIG_VIEW_TRANSFORM_RATCHET', sites: rig.transform, motif: MOTIF_RIG_VIEW },
+    ],
+  },
+];

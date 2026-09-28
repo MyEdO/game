@@ -8,7 +8,6 @@ import { seedBattleRng } from './battleRng';
 import { skills as SKILLS, crewRoles as CREW_ROLES, refLabel } from '../data';
 import { seaAutoResolves, riverAutoResolves, SEA_KINDS_SOUS_ORDRES, RIVER_ROUTINE_KINDS, DEFAULT_VOYAGE_ORDERS } from './voyageCadence';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { buildScene } from './mapSpec';
 import type { Combatant, SkillInstance } from '../engine/types';
 import type { WorldMap } from './worldMap';
@@ -181,7 +180,7 @@ function riverSkill(c: Combatant, skillId: string, advances: number, spec?: stri
 }
 
 function riverCrew(): Combatant[] {
-  const gunnar = createHero({ speciesId: 'humains-reiklander', careerId: 'batelier', label: 'Gunnar', motivation: 'x', rng: makeRNG(11), id: 'r-gunnar' });
+  const gunnar = createHero({ speciesId: 'humains-reiklander', careerId: 'batelier', label: 'Gunnar', motivation: 'x', seed: 11, id: 'r-gunnar' });
   riverSkill(gunnar, 'ramer', 50);
   riverSkill(gunnar, 'voile', 45);
   riverSkill(gunnar, 'metier', 40, 'Construction de bateaux');

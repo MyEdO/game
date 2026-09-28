@@ -62,27 +62,26 @@
 // STOCK NOMINATIF (`scripts/raw/sonde-titres-stock.json`, régime #1711) : une ENTRÉE par site émis hors
 // `colonne`, clé `fichier :: ref :: occurrence` (`guards/lib/stock.mjs`, `cleDeSite`) ; `fichier` = le
 // 1er `.md` de la page du titre, `ref` = forme, page et titre imprimé — l'IDENTITÉ du site, jamais une
-// ligne du `.md`. Un livre sondé ne réécrit que SES entrées.
+// ligne du `.md`. La régénération (`regenerations`, politique `SOUS_LOT`) sonde TOUS les livres à gabarit
+// de titre (`livresATitres`) ; un livre non sondable la refuse.
 //
 // Usage :
 //   node scripts/raw/sonde-titres.mjs <id> [--boites <boites.json>] [--json <sortie.json>]
-//   node scripts/raw/sonde-titres.mjs <id> [--boites <boites.json>] --ecrire-stock [--lot <#N …>]
+//   npx tsx scripts/guards/lib/regenStock.mts scripts/raw/sonde-titres.mjs [--lot <#N …>]
 //   `--boites` : le JSON de `scripts/raw/lib/pdf-lignes.py` déjà produit (sinon la sonde le produit
-//   dans un dossier temporaire) ; `--json` : les sites, pour la réparation, HORS du dépôt ;
-//   `--ecrire-stock` : le stock, lot REQUIS dès qu'une entrée NEUVE naît (`ecrireStockSousLot`).
+//   dans un dossier temporaire) ; `--json` : les sites, pour la réparation, HORS du dépôt.
 import { execFileSync } from 'node:child_process'
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { decoupeDe, gabaritTitreDe, livreExtraitDe, nomsDeLaListe, normalize, readText } from './_lib.mjs'
+import { decoupeDe, gabaritTitreDe, livreExtraitDe, livresATitres, nomsDeLaListe, normalize, pdfRequisDe, readText } from './_lib.mjs'
 import { lignes } from './lib/colonnes.mjs'
 import { cellulesDe, estSeparateur, stripSpans } from '../../src/data/source/decoupe.ts'
 import { FOLIO_ATTR, foliosRoulants } from '../../src/data/source/ancre-vide.ts'
 import { grasOuvert, prosePrecedenteCoupee, recoller } from './lib/titres-soudes.mjs'
 import { canoniser, relatifSousRacine } from '../docs/lib/chemin-mesure.mjs'
-import { ecartDuVolet, ecrireStockSousLot, sitesEnEntrees, survieDeLecheance } from '../guards/lib/stock.mjs'
-import { parCleDeSite, readStock, texteDeStock } from './stockNominatif.mjs'
+import { SOUS_LOT, comptesParFamille } from '../guards/lib/stockDeSites.mjs'
 
 const PDF_LIGNES = join(dirname(fileURLToPath(import.meta.url)), 'lib', 'pdf-lignes.py')
 
@@ -996,15 +995,32 @@ export const sitesNominaux = ({ dir, fichiers, sites }) =>
     ref: `${s.forme} :: p.${s.page} :: « ${s.titre} »`,
   }))
 
-/** Les ENTRÉES du stock pour la sonde d'un livre : les siennes remesurées, celles des autres livres tenues. */
-export const entreesDe = (sonde, { lot, date, ancien = [] }) => [
-  ...ancien.filter((e) => !e.fichier.startsWith(`${sonde.dir}/`)),
-  ...survieDeLecheance(sitesEnEntrees(sitesNominaux(sonde)), { lot, date, ancien }),
-].sort(parCleDeSite)
+/** La MESURE de tous les livres à gabarit de titre : la sonde de chacun, et la phrase de chaque livre
+ *  dont le PDF manque. Seule l'absence du PDF est rattrapée. */
+export function mesurerTitres() {
+  const mesures = []
+  const manque = []
+  for (const id of livresATitres()) {
+    try {
+      pdfRequisDe(id)
+    } catch (e) {
+      manque.push(`${id} — NON SONDABLE (${String(e.message).split('\n')[0]})`)
+      continue
+    }
+    mesures.push(sondeDuLivre(id, boitesDuPdf(id)))
+  }
+  return { mesures, manque }
+}
 
-/** ÉCART au stock des sites d'un livre, dans les deux sens. */
-export const ecartDuStock = (sonde, stock) =>
-  ecartDuVolet({ sites: sitesNominaux(sonde), stock: stock.filter((e) => e.fichier.startsWith(`${sonde.dir}/`)), ou: 'sonde-titres-stock.json' })
+/** La RÉGÉNÉRATION du stock (`RegenerationDeStock`, `stockDeSites.mjs`), sur une mesure (par défaut,
+ *  celle de tous les livres à gabarit de titre). */
+export const regenerations = (titres = mesurerTitres()) => [{
+  chemin: STOCK_PATH,
+  politique: SOUS_LOT,
+  horsCollections: QUOI,
+  collections: [{ nom: 'entrees', sites: titres.mesures.flatMap(sitesNominaux) }],
+  manque: titres.manque,
+}]
 
 /** Les boîtes du PDF d'un livre (`lib/pdf-lignes.py`, dossier temporaire effacé). */
 export function boitesDuPdf(id) {
@@ -1030,9 +1046,9 @@ function main() {
     const i = args.indexOf(nom)
     return i >= 0 ? args[i + 1] : null
   }
-  const id = args.find((a, i) => !a.startsWith('--') && !['--boites', '--json', '--lot'].includes(args[i - 1]))
+  const id = args.find((a, i) => !a.startsWith('--') && !['--boites', '--json'].includes(args[i - 1]))
   if (!id) {
-    console.error('usage : node scripts/raw/sonde-titres.mjs <id> [--boites <boites.json>] [--json <sortie.json> | --ecrire-stock [--lot <#N …>]]')
+    console.error('usage : node scripts/raw/sonde-titres.mjs <id> [--boites <boites.json>] [--json <sortie.json>]')
     process.exitCode = 2
     return
   }
@@ -1047,18 +1063,6 @@ function main() {
     console.error(`sonde-titres : ${id} déclare \`gabaritTitre: null\` — aucun titre à sonder`)
     return
   }
-  if (args.includes('--ecrire-stock')) {
-    const ancien = readStock(STOCK_PATH)
-    const r = ecrireStockSousLot(
-      args,
-      (lot, date) => { const entrees = entreesDe(sonde, { lot, date, ancien }); return { entrees, texte: texteDeStock(QUOI, entrees) } },
-      (texte) => writeFileSync(STOCK_PATH, texte),
-      STOCK_PATH,
-    )
-    ;(r.code ? console.error : console.log)(r.message)
-    process.exitCode = r.code
-    return
-  }
   const { sites, titres } = sonde
   for (const fam of FAMILLES) {
     const de = titres.filter((t) => t.famille === fam)
@@ -1066,7 +1070,7 @@ function main() {
   }
   for (const f of FORMES) {
     const de = sites.filter((s) => s.forme === f)
-    const parFamille = FAMILLES.map((fam) => `${fam} ${de.filter((s) => s.famille === fam).length}`).join(' · ')
+    const parFamille = Object.entries(comptesParFamille(de, FAMILLES)).map(([fam, n]) => `${fam} ${n}`).join(' · ')
     const parFichier = {}
     for (const s of de) {
       const k = (s.site ?? s.cible ?? '---').slice(0, 3)
@@ -1086,5 +1090,4 @@ function main() {
   if (sortie) writeFileSync(sortie, `${JSON.stringify({ livre: id, sites }, null, 1)}\n`)
 }
 
-const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)
-if (isMain) main()
+if (import.meta.main) main()

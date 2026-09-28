@@ -62,3 +62,15 @@ docs/raw/**/catalogue-*.md    merge=docs-catalogue linguist-generated=true
 docs/raw/coverage.md          merge=docs-generes linguist-generated=true
 docs/raw/reconciliation.md    merge=docs-generes linguist-generated=true
 docs/raw/reanchor.md          merge=docs-generes linguist-generated=true
+
+# --- Stocks : fusion par groupe de site. ---
+# Pilote `stocks`, déclaré par `npm run postinstall` (git config merge.stocks.driver), implémenté par
+# scripts/git-hooks/merge-stocks.mjs : chaque version est lue par le format de son extension
+# (`FORMATS`, scripts/guards/lib/stockDeSites.mjs) et la fusion se fait au niveau du GROUPE de site ;
+# deux soldes de groupes disjoints d'un même stock ne se heurtent plus. Ces motifs désignent les
+# fichiers qui ESSAIENT le pilote : un fichier sans collection de sites (un `*Stock.mjs` qui porte
+# d'autres formes, comme `legacyVocabStock.mjs`, `plageStock.mjs` ou `structuresStock.mjs`) retombe
+# sur la fusion 3-voies ordinaire. Un stock hors de ces motifs garde la fusion ordinaire.
+scripts/guards/lib/*Stock.mjs merge=stocks
+scripts/raw/*-stock.json      merge=stocks
+scripts/guards/*-stock.json   merge=stocks

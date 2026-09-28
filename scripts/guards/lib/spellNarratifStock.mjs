@@ -1,5 +1,5 @@
 // STOCK CLIQUETÉ des sorts NARRATIFS (DoD de #838) — consommé par `src/data/spell-narratifs.test.ts`,
-// GÉNÉRÉ par `npx tsx scripts/data/regen-spell-narratif-stock.mts` depuis la mesure
+// GÉNÉRÉ par `npx tsx scripts/guards/lib/regenStock.mts scripts/data/lib/sortsNarratifs.ts` depuis la mesure
 // `sitesNarratifs` (`scripts/data/lib/sortsNarratifs.ts`), qui classe par `spellSupportOf`
 // (`src/engine/spellspec.ts`) — la MÊME classification que `docs/sorts-implementation.md` et la fiche.
 //

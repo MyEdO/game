@@ -11,7 +11,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { testScene } from '../scenes/test-fixture';
 import type { CastResult } from '../engine/magic';
 
@@ -20,12 +19,12 @@ describe('Câblage — pas de Surincantation Durée → rollTable.extraRollsPerS
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 
   it('2 pas alloués (modale/castAllocOvercast) → 3 octrois sur le Tableau ET durée ×3, « à la fois » (EDOC 13 l.276)', () => {
-    const W = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', rng: makeRNG(3) });
+    const W = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', seed: 3 });
     W.talents = [...(W.talents ?? []), { talentId: 'magie-du-chaos', spec: 'nurgle', times: 1 }];
     W.spells = ['allure-demoniaque'];
     W.characteristics.sociabilite = 40; // Bonus 4 → durée de base non nulle, la prolongation ×3 est mesurable
     useGame.setState({ party: [W] });
-    useGame.getState().startScene(testScene);
+    useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');
     useGame.getState().confirmRoundStart();
     vi.clearAllTimers();
@@ -53,12 +52,12 @@ describe('Câblage — pas de Surincantation Durée → rollTable.extraRollsPerS
   });
 
   const setup = () => {
-    const W = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', rng: makeRNG(3) });
+    const W = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', seed: 3 });
     W.talents = [...(W.talents ?? []), { talentId: 'magie-du-chaos', spec: 'nurgle', times: 1 }];
     W.spells = ['allure-demoniaque'];
     W.characteristics.sociabilite = 40;
     useGame.setState({ party: [W] });
-    useGame.getState().startScene(testScene);
+    useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');
     useGame.getState().confirmRoundStart();
     vi.clearAllTimers();

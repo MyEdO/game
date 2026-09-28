@@ -10,6 +10,7 @@
  * ne sélectionne l'entrée. `note` documente une exception explicite (maquette statique plutôt que
  * vivante) — jamais une exclusion silencieuse : la garde compte aussi les entrées notées.
  */
+import { tableTotale } from '../../lib/tableTotale';
 import { type ComponentType, useRef, useState } from 'react';
 import { ScreenMeta } from '../ScreenMeta';
 import { Tabs, type TabItem } from '../Tabs';
@@ -63,6 +64,8 @@ import { ActivityPane } from '../ActivityPane';
 import { MenuCard, MenuSection, MenuButton, MenuToggle } from '../MenuCard';
 import { CreatorDice } from '../creator/CreatorDice';
 import { GameOpEditor } from '../editor/GameOpEditor';
+import { ReglagesApparence, MonsterPartsFields } from '../editor/MonsterPartsFields';
+import type { EntityAppearance } from '../../engine/authoringAppearance';
 import type { GameOp } from '../../engine/ops';
 import { species, careers, levelsForCareer, stars, mutations, rigSpeciesId, allAxes, charAbr, spells, etats, memoParVersion } from '../../data';
 import { makePregens } from '../../data/pregens';
@@ -466,7 +469,7 @@ const FIG_ZONE_BADGES_CRIT: ZoneBadgeSpec[] = [
  *  primitive, aucune rangée recodée. */
 function PlaqueRowDemo() {
   if (!herosExemple()) return <p className="hint">Aucun pregen disponible.</p>;
-  const ch = Object.fromEntries(CHAR_KEYS.map((k) => [k, effectiveChar(herosExemple(), k)])) as Record<(typeof CHAR_KEYS)[number], number>;
+  const ch = tableTotale(CHAR_KEYS, (k) => effectiveChar(herosExemple(), k));
   const [k1, k2, k3] = CHAR_KEYS;
   return (
     <Stack>
@@ -888,7 +891,7 @@ function ActivityPaneDemo() {
 function ProseDemo() {
   // La prose sourcée se montre dans son hôte canonique (`DetailFrame`, qui possède `.detail-frame-prose`)
   // plutôt qu'en recopiant sa peau : le spécimen reste celui de `Prose`, monté vivant. Le cadre du
-  // `DetailFrame` autour de la démo est ASSUMÉ (galerie DEV, aucun écran joueur) : c'est le contexte
+  // `DetailFrame` autour de la démo (galerie DEV, aucun écran joueur) est le contexte
   // réel de lecture de cette prose.
   return (
     <DetailFrame prose={carriereExemple().desc} porteur={{ type: 'careers', id: carriereExemple().id, chemin: 'desc' }} />
@@ -958,6 +961,17 @@ function BandDemo() {
 function GameOpEditorDemo() {
   const [ops, setOps] = useState<GameOp[]>([]);
   return <GameOpEditor ops={ops} onChange={setOps} />;
+}
+
+function ReglagesApparenceDemo() {
+  const [a, setA] = useState<EntityAppearance>({ sex: 'F', build: 0.4 });
+  return (
+    <div className="ed-field">
+      <span>Apparence</span>
+      <ReglagesApparence appearance={a} onChange={setA} reglages={['species', 'sex', 'build', 'hairstyle', 'variante']} />
+      <MonsterPartsFields appearance={a} onChange={setA} reglages={['monster', 'eyes', 'tenue']} />
+    </div>
+  );
 }
 
 /** Ops RÉELLES (mutations.json) : charMod (ancré Caractéristiques) + grantTalent (ancré Talents) de
@@ -1551,6 +1565,7 @@ export const GALLERY_SPECIMENS: GallerySpecimen[] = [
   { id: 'parchmentcard', label: 'ParchmentCard', file: 'src/ui/ParchmentCard.tsx', category: 'Négoce & activités', render: ParchmentCardDemo },
   { id: 'prose', label: 'Prose', file: 'src/ui/Prose.tsx', category: 'Texte', render: ProseDemo },
   { id: 'gameopeditor', label: 'GameOpEditor', file: 'src/ui/editor/GameOpEditor.tsx', category: 'Éditeur', render: GameOpEditorDemo },
+  { id: 'reglagesapparence', label: 'ReglagesApparence / MonsterPartsFields', file: 'src/ui/editor/MonsterPartsFields.tsx', category: 'Éditeur', render: ReglagesApparenceDemo },
   { id: 'descreffield', label: 'DescRefField', file: 'src/ui/compendium/DescRefField.tsx', category: 'Éditeur', render: DescRefFieldDemo },
   { id: 'gameopchips', label: 'GameOpChips', file: 'src/ui/GameOpChips.tsx', category: 'Texte', render: GameOpChipsDemo },
   { id: 'metalstatus', label: 'MetalStatus', file: 'src/ui/MetalStatus.tsx', category: 'Atelier du scribe', render: MetalStatusDemo },

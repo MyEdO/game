@@ -15,7 +15,7 @@ import { entityRigProfileFor } from '../rig/enemyProfile';
 import { apply, worldTransforms } from '../rig/kinematics';
 import { addPose } from '../rig/poses';
 import type { BoneId } from '../rig/bones';
-import type { View } from '../rig/facing';
+import { VIEWS, type View } from '../rig/facing';
 import { dynamicMarks } from '../builders/dynamicMarks';
 import { EYE_H, EYE_H_ASSIS, makeCamera, seatedEyeH } from '../pov/camera';
 import { buildTokens, partyTokenOf } from '../builders/tokens';
@@ -246,14 +246,13 @@ describe('buildTokens → rendu : la chaîne complète', () => {
 });
 
 /**
- * CONTRAT 4 ESPÈCES × 3 VUES — le tabouret d'auberge a UNE hauteur, les corps qui s'y posent n'ont
+ * CONTRAT 4 ESPÈCES × 3 VIEWS — le tabouret d'auberge a UNE hauteur, les corps qui s'y posent n'ont
  * pas la même jambe. Une espèce COURTE ne s'étire pas pour rejoindre le sol : elle PEND de son
  * siège. Aucun seuil n'est posé par espèce — tout se dérive du SQUELETTE du corps rendu (les deux
  * seams que le rendu emploie : `entityRigProfileFor` + `rigComposition`) confronté à la hauteur
  * d'assise du catalogue, et se vérifie sur le FRAGMENT RENDU, os par os.
  */
 const ESPÈCES = ['humain', 'nain', 'halfling', 'elfe-sylvain'];
-const VUES: View[] = ['front', 'back', 'profile'];
 
 /** Repères de jambe du corps DEBOUT + hauteur d'assise, dans le repère de sa boîte. */
 function repèresDe(species: string, view: View) {
@@ -279,7 +278,7 @@ function repèresDe(species: string, view: View) {
 }
 
 describe.each(ESPÈCES)('assise d’un %s — le siège est le même, la jambe non', (species) => {
-  it.each(VUES)('vue %s : bassin au siège, jambe jamais étirée, pieds au sol ou pendants', (view) => {
+  it.each(VIEWS)('vue %s : bassin au siège, jambe jamais étirée, pieds au sol ou pendants', (view) => {
     const r = repèresDe(species, view);
     const a = sujetFigurant(scèneAttablée(true, species)).svg(view, false, 0);
     const d = sujetFigurant(scèneAttablée(false, species)).svg(view, false, 0);

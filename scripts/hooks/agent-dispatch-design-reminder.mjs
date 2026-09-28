@@ -1,6 +1,7 @@
 // Hook PreToolUse (matcher: Agent) : injecte au DISPATCH de chaque agent le rappel d'altitude de
 // design — la décision d'architecture précède le premier codeur, elle ne s'extrait pas des passes
 // de juge (précédent 2026-07-29, #939 : « modifications trop basiques », flag utilisateur).
+import '../node-requis.mjs';
 process.stdin.resume();
 process.stdin.on('data', () => {});
 process.stdin.on('end', () => {

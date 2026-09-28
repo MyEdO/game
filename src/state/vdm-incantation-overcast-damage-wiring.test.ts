@@ -12,7 +12,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { setRule, resetRule } from '../engine/policy';
 import { testScene } from '../scenes/test-fixture';
 import { evaluateMissile, type CastResult } from '../engine/magic';
@@ -21,10 +20,10 @@ import { findSpell } from '../data';
 const RULE = 'magic-vdm-incantation';
 
 function setup() {
-  const w = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', rng: makeRNG(3) });
+  const w = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', seed: 3 });
   w.spells = ['carreau'];
   useGame.setState({ party: [w] });
-  useGame.getState().startScene(testScene);
+  useGame.getState().startScene(testScene());
   useGame.getState().startCombat('enc-mutants');
   useGame.getState().confirmRoundStart();
   vi.clearAllTimers();
@@ -73,10 +72,10 @@ describe('Câblage — axe Dégâts de la Surincantation VDM, Carreau, chemin de
   });
 
   it('sort NON-missile : l’axe Dégâts est refusé par `castAllocOvercast` (aucun axe hors Projectile)', () => {
-    const w = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', rng: makeRNG(3) });
+    const w = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', seed: 3 });
     w.spells = ['armure-aethyrique'];
     useGame.setState({ party: [w] });
-    useGame.getState().startScene(testScene);
+    useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');
     useGame.getState().confirmRoundStart();
     vi.clearAllTimers();

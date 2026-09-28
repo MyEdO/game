@@ -1,5 +1,5 @@
 /** TEMP — face/profil/dos côte à côte pour PLUSIEURS carrières, afin de juger la cohérence
- *  inter-vues et repérer celles à doter d'un art directionnel dédié. */
+ *  inter-vues et repérer celles à doter d'un art orienté dédié. */
 import { writeFileSync } from 'node:fs';
 import { Resvg } from '@resvg/resvg-js';
 import { defsGlobaux } from '../src/gameIso/sprites';
@@ -7,7 +7,7 @@ import { bonesToSvg } from '../src/gameIso/rig/renderBones';
 import { resolveRig } from '../src/gameIso/rig/composeRig';
 import type { Appearance } from '../src/gameIso/rig/appearance';
 import { asRigSpeciesId } from '../src/gameIso/rig/appearance';
-import type { View } from '../src/gameIso/rig/facing';
+import { VIEWS } from '../src/gameIso/rig/facing';
 import { tenueLabel } from '../src/gameIso/rig/parts/career';
 import { assertWardrobeId } from './_lib-wardrobe';
 
@@ -21,7 +21,6 @@ const CAREERS = process.argv.slice(2).length
   : ['mendiant', 'voleur', 'sorcier', 'noble', 'nonne', 'batelier', 'repurgateur', 'flagellant', 'artisan', 'bourgeois', 'agitateur'];
 for (const id of CAREERS)
   assertWardrobeId(id, 'qc-careers-views');
-const VIEWS: View[] = ['front', 'profile', 'back'];
 
 const SUB = 120, GAP = 6, SC = 1.95, FEET = 150, ROWH = 305;
 // 3 sous-vues par carrière, étiquette à gauche.

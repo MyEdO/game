@@ -1,6 +1,6 @@
 // Mécanique de scan du garde-fou commentaires (#136, CLAUDE.md règle 6b/6c).
 // Module ESM pur, exécutable par `node` nu (pas de tsx/TS) — consommé par
-// src/comment-poison-guard.test.ts ET par un futur hook pre-commit.
+// src/comment-poison-guard.test.ts, `scripts/git-hooks/pre-commit.mjs` et `scripts/hooks/poison-postcheck.mjs`.
 // Les listes d'exceptions/baselines restent DONNÉES DE POLICY dans le test (ex. EXCUSE_GUARD_ACTIVE) ;
 // ici ne vit QUE la mécanique de détection (extraction de commentaires, familles de regex, matching).
 //
@@ -15,19 +15,40 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { allAbbrAlternation } from '../../raw/_lib.mjs';
 import { LEGACY_VOCAB_SITES } from './legacyVocabStock.mjs';
+import { estRetenu, readCorpus, sAppliqueA } from './sourceCorpus.mjs';
 
-/** PÉRIMÈTRE des gardes anti-poison — SOURCE UNIQUE des trois portes (suite Vitest, pre-commit,
- *  hook au stylo). Un fichier hors de ces racines/extensions n'est scanné par aucune ; un fichier
- *  dedans l'est par les TROIS, tests compris (le poison écrit dans un test est du poison). */
-export const POISON_DIRS = ['src', 'scripts'];
-export const POISON_EXTS = ['.ts', '.tsx', '.mts', '.mjs'];
+/** PÉRIMÈTRE DES GARDES — SOURCE UNIQUE des trois portes anti-poison (suite Vitest, pre-commit, hook
+ *  au stylo) et du corpus des gardes qui balaient l'arbre (`corpusDesGardes`). Un fichier hors de ce
+ *  périmètre n'est lu par aucune ; un fichier dedans l'est par toutes, tests compris (le poison écrit
+ *  dans un test est du poison). */
+export const PERIMETRE_DES_GARDES = Object.freeze({
+  racines: Object.freeze(['src', 'scripts']),
+  extensions: Object.freeze(['.ts', '.tsx', '.mts', '.mjs']),
+  tests: true,
+});
 
-/** @param {string} cheminRelatifOuAbsolu @returns {boolean} */
+/** Le corpus du périmètre des gardes (`readCorpus`, mémoïsé : même tableau à chaque appel). */
+export const corpusDesGardes = () =>
+  readCorpus([...PERIMETRE_DES_GARDES.racines], { exts: [...PERIMETRE_DES_GARDES.extensions], tests: PERIMETRE_DES_GARDES.tests });
+
+/** Le fichier est-il dans le périmètre des gardes ? Sous l'une des racines, et retenu par le corpus
+ *  (`estRetenu`) : la porte au fichier et le corpus ne diffèrent pas.
+ * @param {string} cheminRelatifOuAbsolu @returns {boolean} */
 export function estFichierScanne(cheminRelatifOuAbsolu) {
   const p = String(cheminRelatifOuAbsolu).replace(/\\/g, '/');
-  if (!POISON_EXTS.some((e) => p.endsWith(e))) return false;
-  return POISON_DIRS.some((d) => p === d || p.startsWith(`${d}/`) || p.includes(`/${d}/`));
+  const { racines, extensions, tests } = PERIMETRE_DES_GARDES;
+  if (!estRetenu(p, { exts: extensions, tests })) return false;
+  return racines.some((d) => p === d || p.startsWith(`${d}/`) || p.includes(`/${d}/`));
 }
+
+/** L'ensemble `ART` : les fichiers de l'art du rig, par DOSSIER — sous `src/gameIso/rig/`,
+ *  `scripts/rig/` ou `scripts/qc/`, un `scripts/_qc-*` ou `scripts/_tokenize-*`. Seule écriture de cet
+ *  ensemble du dépôt. `scripts/qc/` porte aussi des scripts qui ne dessinent pas le rig (rendu de
+ *  mobilier, de props, de siège, captures) : ils sont dans l'ensemble, où les formes de l'art sont
+ *  lues quel que soit leur sens.
+ * @param {string} rel chemin POSIX depuis la racine @returns {boolean} */
+export const estArtDuRig = (rel) =>
+  /^(?:src\/gameIso\/rig\/|scripts\/rig\/|scripts\/qc\/|scripts\/_qc-|scripts\/_tokenize-)/.test(rel);
 
 /**
  * @typedef {{ text: string, line: number, start: number, end: number }} Comment
@@ -290,7 +311,7 @@ const OF_YORE_RX = new RegExp('\\bd' + APOS + 'antan\\b', 'i');
 // ÉTROITE, complément FERMÉ à ce seul mot — population mesurée 2026-09-05 sur `src/**`+`scripts/**`
 // (4253 fichiers) : UN site, reformulé du même geste. Les LITTÉRAUX (formes couvertes, faux positifs
 // écartés) vivent dans `src/comment-poison-guard.test.ts` — jamais ici : le fichier de la garde est
-// lui-même scanné. ANGLE MORT ASSUMÉ, déclaré à l'en-tête du test : la même cessation devant un
+// lui-même scanné. ANGLE MORT, déclaré à l'en-tête du test : la même cessation devant un
 // artefact BACK-TICKÉ n'entre PAS dans la famille (48 sites au même relevé, en majorité des prédicats
 // VIVANTS sur une clé de donnée ou un nœud zod scellé — plus de faux positifs que de sites).
 const NO_MORE_CODE_RX = new RegExp(
@@ -623,7 +644,54 @@ const NB_APRES = '(?![a-zA-ZÀ-ÿ0-9])';
 const FICHIER_APRES = '(?!\\.(?:mjs|mts|tsx?|jsx?|json))';
 const MOT = '[a-zA-ZÀ-ÿ]+';
 
-/** @type {{ rx: RegExp, label: string }[]} */
+// SECOND NOM d'un concept de l'art du rig (le jeton, le dégradé, la gamme, l'art orienté) et de la
+// table totale (#1903) : trois familles, chacune une déclaration gardée dont le périmètre s'écrit par
+// son `domaine` (absent : tous les fichiers), lu par `sAppliqueA` (`sourceCorpus.mjs`) comme toute
+// déclaration gardée. Dans son domaine, les emplois vivants restent écartés par le contexte
+// immédiat, jamais par une liste de fichiers. Leurs formes sont des littéraux de code, drapeaux `i`
+// et `m`, bornées par un non-mot où le tiret bas BORNE (un identifiant de code n'est pas de la prose),
+// et ne lisent pas le texte entre accents graves ; leurs cas vivent en littéraux dans
+// `src/comment-poison-guard.test.ts`.
+// Ce que ces deux familles ne voient pas. Les titres de test, la prose des `.md`, les chaînes des
+// `.json` et les fichiers `.js` : le garde-fou ne lit que les commentaires des fichiers `.ts`, `.tsx`,
+// `.mts` et `.mjs` de `src` et de `scripts` (#2048). Hors de l'art, un mot qui nomme aussi un autre
+// concept (« tokenisé » seul, l'auto-liage du Codex ; « gradient » seul, un ciel ; « teinte sombre »,
+// une couleur d'interface) : seules les formes qui ne nomment que l'art y sont lues. Un commentaire
+// qui porte le tag `[entériné …]` : la famille (e) le saute (#2048). Dans l'art, « famille » seul, qui
+// nomme aussi une famille d'arme, d'espèce ou de projection : seules les formes qui le lient à un
+// jeton, à une clé, à une couleur ou à une palette sont lues. Partout, « directionnel » seul, qui
+// nomme aussi une lampe, une croix de manette ou un créneau de tir : seules les formes qui le lient à
+// un art, à un prop, à un décor, à un pied, à une main, à une part ou à des vues sont lues ;
+// « orientable » seul, qui qualifie aussi un œil : seule la forme qui le lie à un prop est lue. Un
+// synonyme qu'aucune forme ne déclare échappe à la garde.
+// Ce que cette famille ne voit pas. « Exhaustif » seul, qui dit aussi la complétude d'un relevé ou la
+// vérification d'un `switch` : seules les formes qui le lient à une table, à un record ou au type sont
+// lues. Un synonyme qu'aucune forme ne déclare échappe à la garde. Les titres de test, les chaînes, la
+// prose des `.md`, les fichiers `.js` et un commentaire tagué `[entériné …]` (#2048).
+const HORS_ACCENTS_GRAVES = String.raw`(?<=^(?:[^\x60\n]*\x60[^\x60\n]*\x60)*[^\x60\n]*)`;
+const SECOND_NOM = (formes) => String.raw`(?<![\w@])(?:` + formes + String.raw`)(?![\wÀ-ÿ])`;
+const FORMES_DE_L_ART_SEUL = [
+  String.raw`tokens?`, String.raw`tokenis[\wÀ-ÿ]*`, String.raw`gradients?`, String.raw`O\/H`,
+  String.raw`familles?\s+(?:de|d['’]une?)\s+(?:couleurs?|palettes?)`, String.raw`familles?\s+(?:custom|propre)`,
+  String.raw`propres?\s+familles?`, String.raw`têtes?\s+de\s+famille`, String.raw`(?:re)?dérive[\wÀ-ÿ]*\s+la\s+famille`,
+  String.raw`teintes?\s+sombres?`,
+].join('|');
+const FORMES_DE_L_ART_SANS_FIN = [String.raw`familles?\s+@`, String.raw`familles?\s+\x60[\wÀ-ÿ]+\*?\x60`].join('|');
+const FORMES_D_UN_CONCEPT_DE_L_ART = [
+  String.raw`token\s*→\s*hex`, String.raw`tokens?\s+de\s+palette`, String.raw`gradients?\s+partagés`,
+  String.raw`gradients?\s+du\s+rig`, String.raw`\(base,\s*O,\s*H\)`, String.raw`nuances?\s+O\/H`,
+  String.raw`familles?\s+de\s+jetons?`, String.raw`jetons?\s+de\s+famille`, String.raw`variantes?\s+(?:O|sombre)`,
+  String.raw`arts?\s+tokenis[\wÀ-ÿ]*`, String.raw`arts?\s+(?:dédiés?\s+)?à\s+gradients?`, String.raw`multi-?vues?`,
+  String.raw`(?:arts?|props?|décors?|pieds?|mains?|parts?)(?:\s+\([^)]*\))?(?:\s+|\s+[\wÀ-ÿ]+\/)(?:non[- ])?directionnel(?:le)?s?`,
+  String.raw`vues\s+directionnelles`,
+  String.raw`directionnel(?:le)?s?(?=[^.;\n]{0,40}(?<![\wÀ-ÿ])(?:vues|views)(?![\wÀ-ÿ]))`,
+  String.raw`props?\s+orientables?`,
+].join('|');
+const FORMES_DE_LA_TABLE_TOTALE = [
+  String.raw`tables?\s+exhaustives?`, String.raw`\x60?records?\x60?\s+exhaustifs?`, String.raw`exhaustive?s?\s+par\s+(?:le\s+)?type`,
+].join('|');
+
+/** @type {{ rx: RegExp, label: string, domaine?: (rel: string) => boolean }[]} */
 export const LEGACY_VOCAB_FAMILIES = [
   { rx: new RegExp(NB_AVANT + 'legacy' + NB_APRES + FICHIER_APRES, 'i'), label: 'legacy' },
   { rx: new RegExp(NB_AVANT + '(?:rétro|retro)-?compat\\w*', 'i'), label: 'rétro-compat' },
@@ -645,6 +713,21 @@ export const LEGACY_VOCAB_FAMILIES = [
   },
   // Adverbe de CHANGEMENT d'état : extension de couverture mesurée le 2026-09-26 (#1486 #1509).
   { rx: new RegExp(NB_AVANT + 'désormais' + NB_APRES, 'i'), label: 'désormais' },
+  {
+    rx: new RegExp(
+      HORS_ACCENTS_GRAVES + '(?:' + SECOND_NOM(FORMES_DE_L_ART_SEUL + '|' + FORMES_D_UN_CONCEPT_DE_L_ART) +
+        String.raw`|(?<![\w@])(?:` + FORMES_DE_L_ART_SANS_FIN + '))',
+      'im',
+    ),
+    label: "second nom de l'art",
+    domaine: estArtDuRig,
+  },
+  {
+    rx: new RegExp(HORS_ACCENTS_GRAVES + SECOND_NOM(FORMES_D_UN_CONCEPT_DE_L_ART), 'im'),
+    label: "second nom d'un concept de l'art",
+    domaine: (rel) => !estArtDuRig(rel),
+  },
+  { rx: new RegExp(HORS_ACCENTS_GRAVES + SECOND_NOM(FORMES_DE_LA_TABLE_TOTALE), 'im'), label: 'second nom de la table totale' },
 ];
 
 /** Réf de livre ancrant la thèse au Source (n'importe où dans le MÊME commentaire logique).
@@ -694,10 +777,12 @@ function emploiVivant(text, index, len) {
   return false;
 }
 
-/** @param {string} text @returns {string[]} labels des familles matchées */
-export function legacyVocabIn(text) {
+/** @param {string} text @param {string} relPath chemin POSIX du fichier, REQUIS : il décide des
+ *  familles qui s'y appliquent (`sAppliqueA`). @returns {string[]} labels des familles matchées */
+export function legacyVocabIn(text, relPath) {
   const labels = [];
   for (const f of LEGACY_VOCAB_FAMILIES) {
+    if (!sAppliqueA({ rel: relPath }, f)) continue;
     const m = f.rx.exec(text);
     if (m && !emploiVivant(text, m.index, m[0].length)) labels.push(f.label);
   }
@@ -731,6 +816,7 @@ export function scanLegacyVocab(relPath, contenu) {
   for (const c of extractComments(contenu)) {
     if (ENTERINE_TAG_RX.test(c.text)) continue;
     for (const fam of LEGACY_VOCAB_FAMILIES) {
+      if (!sAppliqueA({ rel: relPath }, fam)) continue;
       const m = fam.rx.exec(c.text);
       if (!m || emploiVivant(c.text, m.index, m[0].length)) continue;
       findings.push({ line: matchLine(c, m.index), detail: `[${fam.label}] ${excerptAt(c, m.index)}` });

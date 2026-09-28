@@ -71,7 +71,7 @@ const entitesAvecFootDansLesJson = (): string[] =>
 const areneDoc = parseProject(JSON.parse(readFileSync(ARENE_JSON, 'utf8')));
 const OPERA = 'opera/furnished';
 const entitiesOf = (scene: string): SceneEntity[] =>
-  scene === OPERA ? scenarioEntities : areneDoc.scenes.find((s) => s.id === scene)!.entities;
+  scene === OPERA ? scenarioEntities() : areneDoc.scenes.find((s) => s.id === scene)!.entities;
 /** L'ÉCHELLE de la scène PORTEUSE : l'empreinte d'un décor à recette en dépend (#1509). Lue à sa
  *  source unique (`sceneMetresPerTile`), jamais écrite en littéral. */
 const mptDe = (scene: string): number =>
@@ -164,7 +164,7 @@ describe('migration de l’empreinte : du legacy d’instance au catalogue de ty
    *  chargement, une assertion posée APRÈS lui serait verte sur un fichier sali. */
   it('plus AUCUNE instance authorée ne porte d’empreinte propre — mesuré sur le JSON BRUT', () => {
     expect(entitesAvecFootDansLesJson()).toEqual([]);
-    expect(scenarioEntities.filter((e) => 'foot' in e).map((e) => `${OPERA}/${e.id}`)).toEqual([]);
+    expect(scenarioEntities().filter((e) => 'foot' in e).map((e) => `${OPERA}/${e.id}`)).toEqual([]);
   });
 
   it('le verrou MORD : un JSON sali est rapporté (il ne passe pas sous la normalisation)', () => {

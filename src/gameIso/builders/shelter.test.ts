@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { clearedSpace, isSheltered, massCovers, massFootprintCells, shelterField } from './roofs';
 import { effectiveArchitecture } from '../../state/sceneEdit';
 import { emptyScene, type BuildingMass, type Scene } from '../../state/scene';
-import { diligenceCampaign } from '../../scenes/campaign';
+import { diligenceCampaign, paquetDuJeu } from '../../scenes/campaign';
 
 /**
  * SOUS COUVERT (#1176 P2-6) — « cette case est-elle sous un toit ? » n'a qu'UNE réponse dans le
@@ -41,7 +41,7 @@ describe('Couvert bâti — UNE vérité pour le dégagement et pour la météo 
   it.each([
     ['scène-témoin (toit simple)', sceneAvec([masse()])],
     ['deux masses à étages différents', sceneAvec([masse(), masse({ id: 'tour', z: 1, levels: 2, footprint: [{ x: 8, y: 8, w: 2, h: 2 }] })])],
-    ['La Diligence (2 niveaux)', diligenceCampaign.scenes[0]],
+    ['La Diligence (2 niveaux)', paquetDuJeu(diligenceCampaign).scenes[0]],
   ])('%s : `shelterField` couvre EXACTEMENT les colonnes que `massCovers` couvre', (_cas, scene) => {
     const balaye = couvertBalaye(scene);
     const champ = shelterField(scene);

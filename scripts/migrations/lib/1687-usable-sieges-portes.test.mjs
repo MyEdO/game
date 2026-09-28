@@ -25,6 +25,7 @@
  * Ce banc vit sous `lib/` : `replay.mjs` scanne le dossier des migrations à PLAT et n'y admet que
  * des `.mjs` à préfixe DATÉ.
  */
+import { tableTotale } from '../../../src/lib/tableTotale.ts';
 import { strict as assert } from 'node:assert';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -57,8 +58,8 @@ const estSiege = (e) => e?.kind === 'prop' && TYPES.has(e?.ref);
 const entitesDe = (doc) => doc.scenes.flatMap((s) => (Array.isArray(s.entities) ? s.entities : []));
 
 /** Cardinaux LUS sur les documents migrés — jamais récités. */
-const SCENES_PAR_PROJET = Object.fromEntries(PROJETS.map((rel) => [rel, JSON.parse(lireArbre(rel)).scenes.length]));
-const SIEGES_PAR_PROJET = Object.fromEntries(PROJETS.map((rel) => [rel, entitesDe(JSON.parse(lireArbre(rel))).filter(estSiege).length]));
+const SCENES_PAR_PROJET = tableTotale(PROJETS, (rel) => JSON.parse(lireArbre(rel)).scenes.length);
+const SIEGES_PAR_PROJET = tableTotale(PROJETS, (rel) => entitesDe(JSON.parse(lireArbre(rel))).filter(estSiege).length);
 const SIEGES = Object.values(SIEGES_PAR_PROJET).reduce((n, v) => n + v, 0);
 assert.ok(SIEGES > 0, 'aucune entité à places dans les projets livrés — la fixture ne mesure rien');
 
@@ -106,7 +107,7 @@ function projetApres(rel) {
 }
 
 const depotScenes = (fabrique) =>
-  depot({ [PROPS]: lireArbre(PROPS), ...Object.fromEntries(PROJETS.map((rel) => [rel, fabrique(rel)])) });
+  depot({ [PROPS]: lireArbre(PROPS), ...tableTotale(PROJETS, (rel) => fabrique(rel)) });
 
 test('(a) ALLER-RETOUR : l’état d’avant projeté → chaque projet BYTE-IDENTIQUE à l’état d’arrivée', (t) => {
   const d = depotScenes((rel) => serialise(projetAvant(rel), FORME_PROJET));
@@ -263,7 +264,7 @@ test('(g) CATALOGUE MUET (aucun type à places) → sortie 1 demandant l’arbit
   const sansPlaces = JSON.parse(lireArbre(PROPS)).map(({ seatSlots: _p, ...reste }) => reste);
   const d = depot({
     [PROPS]: `${JSON.stringify(sansPlaces, null, 1)}\n`,
-    ...Object.fromEntries(PROJETS.map((rel) => [rel, serialise(projetAvant(rel), FORME_PROJET)])),
+    ...tableTotale(PROJETS, (rel) => serialise(projetAvant(rel), FORME_PROJET)),
   });
   t.after(() => efface(d.racine));
 

@@ -12,7 +12,6 @@ import { pursuedMovement, pursuitOf, PURSUIT_POLICY_DEFAUT } from './pursuitFlow
 import { closeSequenceRound } from './sequenceCore';
 import { setRule, resetRule } from '../engine/policy';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import type { Combatant } from '../engine/types';
 import type { PendingCascade, CascadeStep } from './pendings';
 
@@ -20,7 +19,7 @@ const RULE = 'combat-aa-avantage-groupe';
 
 /** Un héros unique, porteur (ou non) de Fuite !, de Mouvement fixé à 4 comme l'adversaire. */
 function hero(withTalent: boolean): Combatant {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Alix', rng: makeRNG(1) });
+  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Alix', seed: 1 });
   h.movement = 4;
   h.talents = withTalent ? [{ talentId: 'fuite', times: 1 }] : [];
   h.items = [];

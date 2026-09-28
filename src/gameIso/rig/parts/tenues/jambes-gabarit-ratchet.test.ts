@@ -3,19 +3,20 @@ import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:f
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { DOSSIER_DEFS, sitesJambeInline } from '../../../../../scripts/guards/lib/jambesGabaritAudit';
+import { DOSSIER_DEFS, regenerations, sitesJambeInline } from '../../../../../scripts/guards/lib/jambesGabaritAudit';
 import { JAMBE_INLINE_RATCHET, JAMBE_SILHOUETTE_OVERRIDES } from '../../../../../scripts/guards/lib/jambesGabaritStock.mjs';
-import { ecartDuVolet, remedeNomme, type EntreeNominative } from '../../../../../scripts/guards/lib/stock.mjs';
+import { cleDeSite, ecartDuVolet, remedeNomme, type EntreeDeSite } from '../../../../../scripts/guards/lib/stock.mjs';
+import { ecartDeRegeneration, texteEnPlace } from '../../../../../scripts/guards/lib/stockDeSites.mjs';
 
 /**
- * CLIQUET — migration de la jambe vers le GABARIT partagé (#633 Lot 0).
+ * CLIQUET — migration de la jambe vers le GABARIT partagé (#633).
  *
  * Chaque tenue redessinait sa jambe INLINE, recopiant le défaut de galbe genou/mollet. Le gabarit
  * `jambeVetue` (`parts/bodies/jambe-gabarit.ts`) porte le contour + le galbe lissé UNE fois ; une
  * tenue le consomme (ou compose le corps via `BODIES.`).
  *
- * La MESURE vit dans `scripts/guards/lib/jambesGabaritAudit.ts` — partagée avec le régénérateur
- * `scripts/rig/regen-jambes-gabarit-stock.mts`, pour qu'aucun des deux n'ait sa propre lecture du
+ * La MESURE vit dans `scripts/guards/lib/jambesGabaritAudit.ts` — partagée avec la régénération
+ * (`regenerations`), pour qu'aucune des deux n'ait sa propre lecture du
  * corpus. Le STOCK vit dans `scripts/guards/lib/jambesGabaritStock.mjs`, en entrées
  * `{ fichier, ref, occurrence }` : la forme UNIQUE du dépôt, celle que la porte de plage
  * (`croissanceDesStocks`) VOIT — un id nu (`'apothicaire'`) lui est invisible, un append ne coûte
@@ -28,9 +29,9 @@ const STOCK = 'scripts/guards/lib/jambesGabaritStock.mjs';
 
 /** Les deux collections réunies : la dette mesurée, et les silhouettes ASSUMÉES (décision, non
  *  mesurable — elle s'écrit à la main, et reste un cliquet même tenue à zéro). */
-const stockComplet = (): EntreeNominative[] => [...JAMBE_INLINE_RATCHET, ...JAMBE_SILHOUETTE_OVERRIDES];
+const stockComplet = (): EntreeDeSite[] => [...JAMBE_INLINE_RATCHET, ...JAMBE_SILHOUETTE_OVERRIDES];
 
-const ecart = (stock: Iterable<EntreeNominative> = stockComplet(), dossier?: string) =>
+const ecart = (stock: Iterable<EntreeDeSite> = stockComplet(), dossier?: string) =>
   ecartDuVolet({ sites: sitesJambeInline(dossier), stock, ou: STOCK });
 
 describe('jambe : migration vers le gabarit partagé (cliquet #633 Lot 0)', () => {
@@ -44,8 +45,13 @@ describe('jambe : migration vers le gabarit partagé (cliquet #633 Lot 0)', () =
   it('le stock ne MENT pas : un def migré en sort', () => {
     const { perimees } = ecart();
     expect(perimees, `Entrées de stock dont le def n'est plus inline (migré) — les RETIRER (ou :\n` +
-      `npx tsx scripts/rig/regen-jambes-gabarit-stock.mts), sinon le stock surestime ce qui reste à\n` +
+      `npx tsx scripts/guards/lib/regenStock.mts scripts/guards/lib/jambesGabaritAudit.ts), sinon le stock\n` +
+      `surestime ce qui reste à ` +
       `migrer :\n  ${perimees.join('\n  ')}`).toEqual([]);
+  });
+
+  it('le stock committé est un point fixe de sa régénération', () => {
+    for (const r of regenerations(sitesJambeInline())) expect(ecartDeRegeneration(r, texteEnPlace(r.chemin))).toBeNull();
   });
 
   it("chaque entrée NOMME le def à ouvrir — c'est ce que la porte de plage voit", () => {
@@ -62,7 +68,7 @@ describe('jambe : migration vers le gabarit partagé (cliquet #633 Lot 0)', () =
       fichier: `${DOSSIER_DEFS}/TenueQuiNExistePas.ts`, ref: 'gonflement:jambes:inline', occurrence: 1,
     }];
     const { perimees } = ecart(gonfle);
-    expect(remedeNomme(perimees, ' :: gonflement:jambes:inline :: 1')).toBe(true);
+    expect(remedeNomme(perimees, cleDeSite(gonfle[gonfle.length - 1]))).toBe(true);
     expect(remedeNomme(perimees, 'entrée SOLDÉE')).toBe(true);
   });
 });
@@ -87,7 +93,7 @@ describe('morsure : migrer un def le rend PÉRIMÉ au stock (#633 Lot 0)', () =>
       const copie = join(tmp, cible.fichier.slice(`${DOSSIER_DEFS}/`.length));
       writeFileSync(copie, `${readFileSync(copie, 'utf8')}\n// jambeVetue( — migration forgée par la morsure\n`);
       const { perimees } = ecart(stockComplet(), tmp);
-      expect(remedeNomme(perimees, ` :: ${cible.ref} :: ${cible.occurrence}`)).toBe(true);
+      expect(remedeNomme(perimees, cleDeSite(cible))).toBe(true);
       expect(remedeNomme(perimees, cible.fichier)).toBe(true);
     } finally {
       rmSync(tmp, { recursive: true, force: true });

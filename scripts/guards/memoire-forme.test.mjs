@@ -36,13 +36,24 @@ test('une fiche dont le CORPS dépasse le plafond est refusée, le plafond et la
   assert.deepEqual(defautsDeForme('.claude/memory/game-x.md', fiche('a'.repeat(TAILLE_MAX - 3))), [])
 })
 
-test('les lignes de CITATION ne comptent pas dans le plafond — un verbatim ne se tronque pas', () => {
-  const verbatim = `Verbatim (2026-09-06) : « ${'mot '.repeat(500)}»`
-  const corps = `${'a'.repeat(TAILLE_MAX - 3)}\n${verbatim}`
+test('le texte CITÉ ne compte pas dans le plafond — un verbatim ne se tronque pas, même sur plusieurs lignes', () => {
+  const verbatim = `Verbatim (2026-09-06) : « ${'mot '.repeat(250)}\n${'mot '.repeat(250)}»`
+  const corps = `${'a'.repeat(TAILLE_MAX - 40)}\n${verbatim}`
   assert.deepEqual(defautsDeForme('.claude/memory/user-x.md', fiche(corps)), [], 'la citation gonflait la mesure')
-  // La PROSE, elle, reste bornée : une ligne de plus autour du verbatim et la fiche est refusée.
-  const [d] = defautsDeForme('.claude/memory/user-x.md', fiche(`${corps}\naaaaa`))
+  // La PROSE, elle, reste bornée : quelques octets de plus autour du verbatim et la fiche est refusée.
+  const [d] = defautsDeForme('.claude/memory/user-x.md', fiche(`${corps}\n${'a'.repeat(40)}`))
   assert.equal(d.quoi, 'fiche trop longue')
+})
+
+test('un mot cité n’exempte PAS la ligne qui le porte : la prose autour compte', () => {
+  const ligne = `${'a'.repeat(TAILLE_MAX)} « x » ${'a'.repeat(10)}`
+  const [d] = defautsDeForme('.claude/memory/game-x.md', fiche(ligne))
+  assert.equal(d?.quoi, 'fiche trop longue')
+})
+
+test('un « jamais refermé ne retire rien de la mesure', () => {
+  const [d] = defautsDeForme('.claude/memory/game-x.md', fiche(`« ${'a'.repeat(TAILLE_MAX)}`))
+  assert.equal(d?.quoi, 'fiche trop longue')
 })
 
 test('le plafond de taille ne juge QUE les fiches : un skill ou un agent long passe', () => {

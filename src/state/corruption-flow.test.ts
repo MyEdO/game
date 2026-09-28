@@ -8,13 +8,15 @@ import { applyEffects } from './combatFlow';
 import { gainCorruption, corruptionTarget } from './corruptionFlow';
 import { draineCascade, avanceEtapeCascade } from './cascadeTestKit';
 import type { RevealEntry } from './store';
-import { makePregens } from '../data/pregens';
+import { makePregens, PREGEN } from '../data/pregens';
+import { createHero } from '../engine/character';
 import mutationTables from '../data/mutationTables.json';
 import type { Combatant } from '../engine/types';
 
 function party2() {
   const all = makePregens();
-  const a = all[0];
+  // Sans Talent aléatoire (`talentsRolled: false`) : aucun tirage d'Âme pure (LDB 10 l.52).
+  const a = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Sigmund', id: all[0].id, seed: PREGEN.soldat, talentsRolled: false });
   const b = all[1];
   return { a, b, party: [a, b] as Combatant[] };
 }

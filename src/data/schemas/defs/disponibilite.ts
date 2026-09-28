@@ -1,14 +1,15 @@
 /**
  * Schéma de `disponibilite.json` — les deux tables numériques de « Faire son marché » (LDB 59)
- * migrées en donnée éditable (#366) : `dispoPct` (Tableau de Disponibilité, folio 290 l.25-30) et
+ * en donnée éditable (#366) : `dispoPct` (Tableau de Disponibilité, folio 290 l.25-30) et
  * `barterRatios` (RATIOS DE TROC, folio 291 l.68-76). Consommé par `src/engine/disponibilite.ts`
  * (`dispoPct` / `barterRatios`). `availability` = `Availability` (`src/engine/types.ts`), clé
  * STABLE ; `village`/`ville`/`cite` = `Settlement`.
  */
+import { tableTotale } from '../../../lib/tableTotale';
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { availabilitySchema, sourceRefSchema } from '../grammaire/valeurs';
-import { AVAILABILITIES, type Availability } from '../../../engine/types';
+import { AVAILABILITIES } from '../../../engine/types';
 
 export const file = 'disponibilite.json';
 export const famille = 'config';
@@ -38,7 +39,7 @@ const doc = document(
   barterRatios: z.array(
     z.strictObject({
       give: availabilitySchema,
-      ratios: z.strictObject(Object.fromEntries(AVAILABILITIES.map((a) => [a, ratioSchema])) as Record<Availability, typeof ratioSchema>),
+      ratios: z.strictObject(tableTotale(AVAILABILITIES, () => ratioSchema)),
       source: sourceRefSchema,
     }),
   ),

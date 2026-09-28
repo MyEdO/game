@@ -2,6 +2,7 @@ import { BONE_IDS, type BoneId, type Bone, type Skeleton } from './bones';
 import { worldTransforms, apply } from './kinematics';
 import { gabaritById, type GabaritDef } from './gabarits';
 import speciesRaceJson from '../../data/speciesRace.json';
+import { DEFAULT_RACE_ID } from '../../data';
 import type { Sexe } from '../../data/schemas/grammaire/valeurs';
 
 function mk(spec: Record<BoneId, Omit<Bone, 'id'>>): Skeleton {
@@ -12,7 +13,7 @@ function mk(spec: Record<BoneId, Omit<Bone, 'id'>>): Skeleton {
 
 /** Squelette HUMAIN mâle de référence (boîte 120×150, pieds ~y=150).
  *
- *  CANON D'EMBOÎTEMENT (#633 P3 — `rig/SKELETON-CONTRACT.md`) : les pivots/longueurs sont DÉRIVÉS
+ *  CANON D'EMBOÎTEMENT (#633 — `rig/SKELETON-CONTRACT.md`) : les pivots/longueurs sont DÉRIVÉS
  *  des repères anatomiques de l'ART (l'art des 117 tenues est la donnée fixe, le squelette s'y
  *  emboîte — jamais l'inverse). Repères-monde ancrés au sol (bassin descendu à y=86 par
  *  `groundSkeleton`) : col du torse ~44, menton 40 (2..6 AU-DESSUS du col : le cou existe),
@@ -24,7 +25,7 @@ const HUMAIN_M: Skeleton = mk({
   // +34) : −12 au-dessus du bassin place ces repères sur les hanches/la mi-cuisse. À −2 (POC),
   // l'ourlet tombait à ~118 (sous le GENOU 116) → jambes « enfoncées », cuisses invisibles.
   torse:      { parent: 'bassin',     pivot: { x: 0,  y: -12 }, length: 34, thickness: 20, angle: 0,  z: 5 },
-  // z SOUS le torse (5) — #633 P2 : un col de tenue (dessiné au torse) couvre le cou NATURELLEMENT
+  // z SOUS le torse (5) — #633 : un col de tenue (dessiné au torse) couvre le cou NATURELLEMENT
   // par tri du peintre, sans patch par tenue ni retouche de `composeRig`.
   cou:        { parent: 'torse',      pivot: { x: 0,  y: -34 }, length: 16, thickness: 6,  angle: 0,  z: 4.5 },
   // tete.pivot.y = −cou.length (emboîtement) : l'os tête naît au SOMMET du cou. L'art de visage
@@ -55,7 +56,7 @@ function scaleSkeleton(sk: Skeleton, sl: number, st: number): Skeleton {
   for (const id of BONE_IDS) {
     const b = sk[id];
     // La RACINE (bassin, parent null) est l'ANCRE ABSOLUE de la figure : son pivot.x = 60 est
-    // l'axe de symétrie = centre de la boîte 120 large (le token ancre rig-x=60 sur la case).
+    // l'axe de symétrie = centre de la boîte 120 large (le pion ancre rig-x=60 sur la case).
     // Mettre ce x à l'échelle décentrerait toute la figure (Minotaure/Ogre st=1.7 → bassin à
     // x=102 → la silhouette débordait à droite de sa case). On garde donc le pivot.x de la
     // racine ; seuls les pivots des os ENFANTS (offsets RELATIFS : épaules ±14, hanches ±9)
@@ -72,11 +73,11 @@ function scaleSkeleton(sk: Skeleton, sl: number, st: number): Skeleton {
 }
 
 type SpeciesRule = { prefix?: string[]; includes?: string[]; all?: string[]; any?: string[]; race: string };
-const SPECIES_RACE = speciesRaceJson as { default: string; rules: SpeciesRule[] };
+const SPECIES_RACE = speciesRaceJson as { rules: SpeciesRule[] };
 
 /** Espèce (slug/libellé) → RACE-ID du rig (carrure/palette/features/posture). Règles ORDONNÉES
  *  pilotées par `data/speciesRace.json` (ajouter un mapping = une ligne JSON, jamais une if-chain) ;
- *  première qui matche gagne, sinon `default`. `s` déjà en minuscules (préfixes ASCII → `homme`
+ *  première qui matche gagne, sinon `DEFAULT_RACE_ID`. `s` déjà en minuscules (préfixes ASCII → `homme`
  *  matche `homme-bete`). Garde-fou : `creatures.unique.test.ts` vérifie que chaque slug mappe vers
  *  une race EXISTANTE. */
 export function baseSpeciesOf(species: string): string {
@@ -86,7 +87,7 @@ export function baseSpeciesOf(species: string): string {
     if (r.includes && r.includes.some((t) => s.includes(t))) return r.race;
     if (r.all && r.all.every((t) => s.includes(t)) && (r.any ?? []).some((t) => s.includes(t))) return r.race;
   }
-  return SPECIES_RACE.default;
+  return DEFAULT_RACE_ID;
 }
 
 

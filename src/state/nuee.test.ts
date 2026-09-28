@@ -3,7 +3,6 @@ import { statblockToCombatant } from './spawn';
 import { attackModifiers } from '../engine/combat';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { engage } from '../engine/engagement';
 import { buildEncounter } from './encounterAuthoring';
 import { testScene } from '../scenes/test-fixture';
@@ -68,16 +67,16 @@ function nueeScene(avecTrait = true): { scene: Scene; nueeId: string; temoinId: 
     ],
   });
   const scene: Scene = {
-    ...testScene,
+    ...testScene(),
     id: 'test-nuee',
-    entities: [...testScene.entities.filter((e) => e.kind === 'heroStart'), ...enc.entities],
+    entities: [...testScene().entities.filter((e) => e.kind === 'heroStart'), ...enc.entities],
     encounters: [enc.encounter],
   };
   return { scene, nueeId: enc.entities[0].id, temoinId: enc.entities[1].id };
 }
 
 function startNuee(scene: Scene) {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   useGame.setState({ party: [hero], battle: null, pendingDisengage: null });
   useGame.getState().startScene(scene);
   useGame.getState().startCombat(ENC_NUEE);

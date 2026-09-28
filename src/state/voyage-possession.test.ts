@@ -27,7 +27,7 @@ import { startCascade } from './cascade';
 import { creditBourse } from './bourseFlow';
 import { seedBattleRng } from './battleRng';
 import { createHero, skillCharacteristicById } from '../engine/character';
-import { makeRNG, type RNG } from '../engine/dice';
+import { type RNG } from '../engine/dice';
 import { modalOwnerOf } from './modalArbiter';
 import { seatOwns, humanControlled, WORLD_STEP_OWNER } from './netOwnership';
 import { surfaceOf } from './rollSeam';
@@ -185,10 +185,10 @@ function riverMap(extra: Partial<MapRoute> = {}): WorldMap {
 describe('#1262 V2 — la descente FLUVIALE : le barreur garde sa fenêtre, le péril sans barreur est au MONDE', () => {
   it('barreur de l’invité : les étapes du jour lui appartiennent (jamais à l’hôte)', () => {
     seedBattleRng(7);
-    const gunnar = createHero({ speciesId: 'humains-reiklander', careerId: 'batelier', label: 'Gunnar', motivation: 'x', rng: makeRNG(11), id: 'r-gunnar' });
+    const gunnar = createHero({ speciesId: 'humains-reiklander', careerId: 'batelier', label: 'Gunnar', motivation: 'x', seed: 11, id: 'r-gunnar' });
     skill(gunnar, 'ramer', 50);
     skill(gunnar, 'voile', 45);
-    const otto = createHero({ speciesId: 'humains-reiklander', careerId: 'garde', label: 'Otto', motivation: 'x', rng: makeRNG(12), id: 'r-otto' });
+    const otto = createHero({ speciesId: 'humains-reiklander', careerId: 'garde', label: 'Otto', motivation: 'x', seed: 12, id: 'r-otto' });
     get().setParty([gunnar, otto]);
     get().loadProject([quai('quai-a', 'Grünburg'), quai('quai-b', 'Altdorf')], 'quai-a', riverMap());
     set({ travelPlan: null, pendingRest: null, pendingCascade: null, travelRecap: null, journal: [] });
@@ -210,7 +210,7 @@ describe('#1262 V2 — la descente FLUVIALE : le barreur garde sa fenêtre, le p
 
   it('péril SANS barreur : le pas de vérification est une étape MONDE (siège MJ), pas un pas anonyme', () => {
     seedBattleRng(7);
-    const gunnar = createHero({ speciesId: 'humains-reiklander', careerId: 'batelier', label: 'Gunnar', motivation: 'x', rng: makeRNG(11), id: 'r-gunnar' });
+    const gunnar = createHero({ speciesId: 'humains-reiklander', careerId: 'batelier', label: 'Gunnar', motivation: 'x', seed: 11, id: 'r-gunnar' });
     skill(gunnar, 'ramer', 50);
     get().setParty([gunnar]);
     get().loadProject([quai('quai-a', 'Grünburg'), quai('quai-b', 'Altdorf')], 'quai-a', riverMap({ riverPerils: [{ perilId: 'debris', chancePct: 100 }] }));
@@ -241,9 +241,9 @@ describe('#1262 V2 — l’allure FORCÉE ouvre sa cascade pour le conducteur d�
   it('conducteur d’un autre siège : la journée devient influençable au lieu de se rouler en silence', () => {
     setRule('travel-allures', true);
     seedBattleRng(1);
-    const lead = createHero({ speciesId: 'humains-reiklander', careerId: 'cocher', label: 'Lead', motivation: 'x', rng: makeRNG(21), id: 't-lead' });
+    const lead = createHero({ speciesId: 'humains-reiklander', careerId: 'cocher', label: 'Lead', motivation: 'x', seed: 21, id: 't-lead' });
     skill(lead, 'conduite-d-attelage', 40);
-    const aide = createHero({ speciesId: 'humains-reiklander', careerId: 'garde', label: 'Aide', motivation: 'x', rng: makeRNG(22), id: 't-aide' });
+    const aide = createHero({ speciesId: 'humains-reiklander', careerId: 'garde', label: 'Aide', motivation: 'x', seed: 22, id: 't-aide' });
     skill(aide, 'conduite-d-attelage', 5);
     useGame.setState({ party: [lead, aide], travelPlan: null, pendingRest: null, pendingCascade: null, travelRecap: null, journal: [] } as never);
     get().loadProject(
@@ -279,7 +279,7 @@ describe('#1262 V2 — l’allure FORCÉE ouvre sa cascade pour le conducteur d�
    * synchrone par la seule cadence.
    */
   it('table de vérité : solo identique · cadence identique · COOP = le seul écart', () => {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'cocher', label: 'D', motivation: 'x', rng: makeRNG(31), id: 'tv-d' });
+    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'cocher', label: 'D', motivation: 'x', seed: 31, id: 'tv-d' });
     useGame.setState({ party: [h] } as never);
 
     // 1. SOLO (aucun siège invité) : les deux prédicats disent VRAI.
@@ -313,8 +313,8 @@ describe('#1262 V2 — l’allure FORCÉE ouvre sa cascade pour le conducteur d�
 describe('#1262 V2 lot 3 — les BANDES de l’Étape se possèdent (classe #1268)', () => {
   it('bande des Postes et bande de Résistance de traversée : jamais une fenêtre sans propriétaire', () => {
     seedBattleRng(3);
-    const a = createHero({ speciesId: 'humains-reiklander', careerId: 'garde', label: 'Poste A', motivation: 'x', rng: makeRNG(41), id: 'p-a' });
-    const b = createHero({ speciesId: 'humains-reiklander', careerId: 'garde', label: 'Poste B', motivation: 'x', rng: makeRNG(42), id: 'p-b' });
+    const a = createHero({ speciesId: 'humains-reiklander', careerId: 'garde', label: 'Poste A', motivation: 'x', seed: 41, id: 'p-a' });
+    const b = createHero({ speciesId: 'humains-reiklander', careerId: 'garde', label: 'Poste B', motivation: 'x', seed: 42, id: 'p-b' });
     useGame.setState({
       party: [a, b], battle: null, pendingCascade: null, suspendedCascades: [],
       travelPlan: { routeId: 'r', km: 24, postes: { [a.id]: { activityId: 'plein-air' }, [b.id]: { activityId: 'plein-air' } } },

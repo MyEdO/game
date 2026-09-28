@@ -6,7 +6,6 @@ import { setPreference, resetPreference } from './preferences';
 import { cadence } from '../engine/cadence';
 import { resolveRoundBoundary } from './combatFlow';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { seedBattleRng } from './battleRng';
 import { testScene } from '../scenes/test-fixture';
 
@@ -35,9 +34,9 @@ function fakeStorage(): Storage {
 }
 
 function startFixtureCombat() {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   useGame.setState({ party: [hero] });
-  useGame.getState().startScene(testScene);
+  useGame.getState().startScene(testScene());
   seedBattleRng(777);
   useGame.getState().startCombat('enc-mutants', undefined, { noSurprise: true });
   return useGame.getState().battle!;

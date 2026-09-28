@@ -1,12 +1,12 @@
 import { fixtureText } from '../i18n/fixtureText';
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { combatStakeRef } from '../data';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
-import { startCascade, registerCascadeApplier, stepInteraction, stepReady, buildConsequenceSteps, runCascadeImmediate, pushStep, stepOpposedFreeze } from './cascade';
+import { startCascade, registerCascadeApplier, stepInteraction, stepReady, buildConsequenceSteps, runCascadeImmediate, pushStep, stepOpposedFreeze, advanceCascade, resolveRemainingCascade, compteurDeSequence } from './cascade';
 import { freeCons, monoStep, displayStep, type BuiltCascadeStep } from './rollSeam';
 import { spyApplier } from './cascadeTestKit';
+import { journaliser } from './combatLog';
 import type { CascadeStep, BatchParticipant } from './pendings';
 import type { Combatant } from '../engine/types';
 
@@ -26,7 +26,7 @@ describe('Cascade séquentielle influençable', () => {
   });
 
   function hero() {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brawn', rng: makeRNG(1) });
+    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brawn', seed: 1 });
     h.fortune = 2; h.resilience = 1;
     useGame.setState({ party: [h] });
     return h;
@@ -223,8 +223,8 @@ describe('Cascade séquentielle influençable', () => {
 
   it('étape « batch » (participants — seam de jet #275 Décision 4 cran 1) : agrège les contributeurs à la validation', () => {
     useGame.getState().seedRng(11);
-    const h1 = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Timonier', rng: makeRNG(2) });
-    const h2 = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Vigie', rng: makeRNG(3) });
+    const h1 = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Timonier', seed: 2 });
+    const h2 = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Vigie', seed: 3 });
     useGame.setState({ party: [h1, h2] });
     spyApplier('crew-batch', applied, (step) => ({ kind: step.kind, success: !!step.result?.success }),
       (step) => ({ consequences: freeCons([`${step.label} → DR ${step.result?.sl}`]) }));
@@ -248,6 +248,30 @@ describe('Cascade séquentielle influençable', () => {
     expect(applied).toHaveLength(1);
     expect(useGame.getState().pendingCascade).toBeNull();
     expect(useGame.getState().journal.some((l) => l.startsWith('Progression → DR'))).toBe(true);
+  });
+
+  /**
+   * `dejaDites` (#1508) — l'applier qui déclenche LUI-MÊME une continuation écrivante dit sa conclusion
+   * AVANT elle, par `journaliser`, et DÉCLARE au goulot de ne pas la ré-écrire. Le drapeau DÉSIGNE donc
+   * des lignes : sans elles il ne protège rien, il coupe seulement le journal (compense #1881).
+   */
+  it('`dejaDites` : les conséquences rendues sont AFFICHÉES sur l’étape, et écrites au journal UNE fois', () => {
+    const h = hero();
+    registerCascadeApplier('deja', (get, set) => {
+      journaliser(get, set, ['la conclusion, dite par l’applier'], 'info', { actorId: h.id });
+      return { consequences: freeCons(['la conclusion, dite par l’applier']), dejaDites: true };
+    });
+    startCascade(useGame.getState, useGame.setState, { title: 'T', purpose: 'test', steps: [{ id: 'd', kind: 'deja', actorId: h.id }] });
+    useGame.getState().cascadeNext();
+    expect(useGame.getState().journal.filter((l) => l === 'la conclusion, dite par l’applier'),
+      'le goulot ne la ré-écrit pas').toHaveLength(1);
+  });
+
+  it('`dejaDites` SANS conséquence à désigner : refus nommé (le drapeau ne remplace pas une conclusion)', () => {
+    const h = hero();
+    registerCascadeApplier('dejaVide', () => ({ dejaDites: true }));
+    startCascade(useGame.getState, useGame.setState, { title: 'T', purpose: 'test', steps: [{ id: 'v', kind: 'dejaVide', actorId: h.id }] });
+    expect(() => useGame.getState().cascadeNext()).toThrow(/dejaDites.*sans conclusion à désigner/s);
   });
 
   it('buildConsequenceSteps : groupes non vides → étapes d’affichage (outcome pré-posé), vides ignorés', () => {
@@ -416,5 +440,95 @@ describe('étape opposée — base NUE (LDB 12 l.160)', () => {
   it('une étape NON opposée n’en rend aucun', () => {
     const st = { id: 's1', kind: 'x', base: 50, target: 50, mods: [{ label: 'Soutien', value: 10 }] } as unknown as CascadeStep;
     expect(stepOpposedFreeze(st)).toBeUndefined();
+  });
+});
+
+/**
+ * LES DEUX PORTES D'ENTRÉE sous la fenêtre d'insertion (#1508) : une étape de la MÊME séquence ouverte
+ * PENDANT l'application d'une autre — par `pushStep` OU par `startCascade` — est la suite immédiate de
+ * celle-ci, et son id se mint sur le compteur de la fenêtre. Sous les TROIS pilotes.
+ */
+describe('startCascade pendant une application : la fenêtre, comme pushStep', () => {
+  const g = useGame.getState;
+  const s = useGame.setState;
+  let joues: string[] = [];
+  let erreurs: ReturnType<typeof vi.spyOn>;
+  beforeEach(() => {
+    joues = [];
+    s({ battle: null, pendingCascade: null, suspendedCascades: [], journal: [] });
+    erreurs = vi.spyOn(console, 'error').mockImplementation(() => {});
+  });
+  afterEach(() => { erreurs.mockRestore(); });
+
+  // `fenP` ouvre, pendant qu'il s'applique, UNE étape de la même séquence par `startCascade` ; son id
+  // vient du compteur de la séquence (`compteurDeSequence`), comme tout mint.
+  registerCascadeApplier('fenP', (get, set, step) => {
+    joues.push(step.id);
+    const id = `sc-${compteurDeSequence(get(), 'test')}`;
+    startCascade(get, set, { title: 'T', purpose: 'test', steps: [{ id, kind: 'fenF', label: fixtureText('F') }] });
+  });
+  registerCascadeApplier('fenF', (_g, _s, step) => { joues.push(step.id); });
+  // `fenB` ouvre, sous applier, un fragment qui porte une BORNE et une ligne de `log`.
+  registerCascadeApplier('fenB', (get, set, step) => {
+    joues.push(step.id);
+    startCascade(get, set, { title: 'T', purpose: 'test', steps: [{ id: 'borne', kind: 'fenF', label: fixtureText('F') }], roundBoundary: true, log: ['ligne du fragment'] });
+  });
+  const trois = (): CascadeStep[] => [
+    { id: 'a', kind: 'fenP', label: fixtureText('a') },
+    { id: 'c', kind: 'fenP', label: fixtureText('c') },
+    { id: 'b', kind: 'fenF', label: fixtureText('b') },
+  ];
+  const ATTENDU = ['a', 'sc-3', 'c', 'sc-4', 'b'];
+
+  it('interactif : chaque étape ouverte se joue juste derrière celle qui l’a ouverte, ids uniques', () => {
+    startCascade(g, s, { title: 'T', purpose: 'test', steps: trois() });
+    for (let k = 0; k < 10 && g().pendingCascade; k++) advanceCascade(g, s);
+    expect(joues).toEqual(ATTENDU);
+    expect(erreurs).not.toHaveBeenCalled();
+  });
+
+  it('« Tout résoudre » : aucune étape ouverte n’est perdue', () => {
+    startCascade(g, s, { title: 'T', purpose: 'test', steps: trois() });
+    resolveRemainingCascade(g, s);
+    expect(joues).toEqual(ATTENDU);
+    expect(g().pendingCascade!.participants.map((x) => x.id)).toEqual(ATTENDU);
+    expect(g().pendingCascade!.seq).toBe(5);
+    expect(erreurs).not.toHaveBeenCalled();
+  });
+
+  it('immédiat : les étapes ouvertes se jouent dans le tableau du pilote, pas au slot', () => {
+    runCascadeImmediate(g, s, trois(), { title: 'T', purpose: 'test' });
+    expect(joues).toEqual(ATTENDU);
+    expect(g().pendingCascade).toBeNull();
+    expect(erreurs).not.toHaveBeenCalled();
+  });
+
+  it('la BORNE et le `log` d’un fragment ouvert sous applier arrivent au slot : interactif, « Tout résoudre », immédiat ARRÊTÉ sur un choix', () => {
+    const avecBorne = (): CascadeStep[] => [
+      { id: 'x', kind: 'fenB', label: fixtureText('x') },
+      { id: 'fin', kind: 'fenF', label: fixtureText('fin'), options: [{ key: 'o', label: fixtureText('o') }] },
+    ];
+    startCascade(g, s, { title: 'T', purpose: 'test', steps: avecBorne() });
+    advanceCascade(g, s);
+    expect(g().pendingCascade!.roundBoundary, 'interactif').toBe(true);
+    expect(g().pendingCascade!.log).toContain('ligne du fragment');
+
+    s({ pendingCascade: null });
+    startCascade(g, s, { title: 'T', purpose: 'test', steps: avecBorne() });
+    resolveRemainingCascade(g, s);
+    expect(g().pendingCascade!.roundBoundary, '« Tout résoudre »').toBe(true);
+    expect(g().pendingCascade!.log).toContain('ligne du fragment');
+
+    s({ pendingCascade: null });
+    runCascadeImmediate(g, s, avecBorne(), { title: 'T', purpose: 'test' });
+    expect(g().pendingCascade!.roundBoundary, 'immédiat (arrêté sur le choix sans défaut)').toBe(true);
+    expect(g().pendingCascade!.log).toContain('ligne du fragment');
+    expect(erreurs).not.toHaveBeenCalled();
+  });
+
+  it('immédiat ALLÉ AU BOUT avec une borne collectée : aucun slot ne la porte, la levée la NOMME', () => {
+    const seul = (): CascadeStep[] => [{ id: 'x', kind: 'fenB', label: fixtureText('x') }];
+    expect(() => runCascadeImmediate(g, s, seul(), { title: 'T', purpose: 'test' })).toThrow(/bornes collectées \(roundBoundary\)/);
+    expect(erreurs).toHaveBeenCalledTimes(1);
   });
 });

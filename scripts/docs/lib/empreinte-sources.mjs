@@ -14,8 +14,8 @@
 // graphie de fin de ligne — mesuré 2026-09-02 : 6 526 fichiers `i/lf w/lf`, 34 binaires, 0 mixte.
 import { createHash } from 'node:crypto'
 import { execFileSync } from 'node:child_process'
-import { readFileSync, statSync, writeFileSync } from 'node:fs'
-import { listerDossier } from '../../guards/lib/lister.mjs'
+import { appendFileSync, readFileSync, statSync, writeFileSync } from 'node:fs'
+import { listerDossier, parUnitesDeCode } from '../../guards/lib/lister.mjs'
 import { dansLaMesure } from './chemin-mesure.mjs'
 import path from 'node:path'
 
@@ -25,9 +25,9 @@ const sha1 = (donnee) => createHash('sha1').update(donnee).digest('hex')
  * Format UNIQUE du pied, dernière ligne du doc généré. Il signe DEUX choses : l'empreinte des
  * SOURCES lues à la génération, et le sha1 du CORPS signé (le doc sans son pied).
  * Le corps est signé parce que les sources ne le disent pas : aucune cible n'est mesurée comme
- * source d'elle-même (0 générateur sur 30, sonde `q3b.mjs` 2026-09-04), si bien qu'un doc dérivé
+ * source d'elle-même, si bien qu'un doc dérivé
  * ÉDITÉ À LA MAIN resterait « frais » par ses seules sources, et pour toujours.
- * Le groupe `corps` est optionnel À LA LECTURE : les pieds d'avant #1679 T1d ne le portent pas, et
+ * Le groupe `corps` est optionnel À LA LECTURE : les pieds d'avant #1679 ne le portent pas, et
  * `retirerPied` doit savoir les retirer pour qu'une re-signature n'en empile pas deux.
  */
 export const PIED_RX =
@@ -74,17 +74,21 @@ export function motifDeRejeu(texte, empreinteSources) {
   return null
 }
 
+/** Une cible est un doc MARKDOWN. Deux lecteurs : le pied, commentaire HTML, ne se POSE que sur
+ *  elle (`ciblesSignees`, build-all.mjs) — le lire ou le retirer vaut pour toute cible, une cible de
+ *  code (`*.generated.ts`) n'en portant simplement aucun ; et `check-docs-vs-head.mjs` ne confronte
+ *  au commit que la prose d'un doc. */
+export const estUnDocMarkdown = (cible) => cible.endsWith('.md')
+
 /**
  * Écrit un doc généré en CONSERVANT le pied qu'il portait. Un générateur joué SEUL (`npm run
- * raw:catalogs` en CI, suivi d'un `git diff --exit-code`) réécrit sa cible : sans cela il effacerait
- * la signature posée par `docs:build`, et le dépôt sortirait sale. Le pied redevient juste au
- * prochain `docs:build` ; s'il ment sur un doc STAGÉ, `--empreinte` le nomme.
+ * docs:<x>`, `npm run raw:<x>`) réécrit sa cible : sans cela il effacerait la signature posée par
+ * `docs:build`. Le pied redevient juste au prochain `docs:build` ; s'il ment sur un doc STAGÉ,
+ * `--empreinte` le nomme.
  *
- * N'ÉCRIT QUE SI LE RENDU DIFFÈRE. Les trois rapports d'Atlas réécrivaient leur `.md` à CHAQUE run
- * (`coverage.mjs:422`, `reconcile.mjs:367`, `reanchor.mjs:344`) pendant que la suite lit ce même
- * dossier (`src/oversize-search-blindspot.test.ts:86`, `scripts/docs/manual-docs-ratchet.test.mjs:32`) :
- * jouées en LANES parallèles (`scripts/gates/toutes.mjs`), c'était un lecteur sur un fichier en
- * cours d'écriture. Patron : `genOne` et `genArt` de `scripts/gen-registry.mjs`, `scripts/gen-espaces.mts` (`if (changed) writeFileSync`).
+ * N'ÉCRIT QUE SI LE RENDU DIFFÈRE : la suite lit les dérivés pendant que les gates tournent en LANES
+ * parallèles (`scripts/gates/toutes.mjs`), et un fichier réécrit à l'identique serait un lecteur sur
+ * un fichier en cours d'écriture.
  */
 export function ecrireDoc(chemin, contenu) {
   let actuel
@@ -92,6 +96,57 @@ export function ecrireDoc(chemin, contenu) {
   const pied = actuel === null ? null : lirePied(actuel)
   const rendu = pied ? avecPied(contenu, pied) : contenu
   if (actuel !== rendu) writeFileSync(chemin, rendu)
+}
+
+/**
+ * Bit du code de sortie qui dit « corps périmé » — une seule convention pour tout dérivé. Le bit 1
+ * reste celui de tout autre rouge (cliquet, refus, exception), si bien qu'un générateur dont le
+ * cliquet ET le corps sont rouges sort en 3. La convention ne produit que 1, 2 et 3 : `natureDuRouge`
+ * (build-all.mjs) ne lit ce bit que sur 2 et 3, tout autre code étant une sortie de Node.
+ */
+export const CODE_CORPS_PERIME = 2
+
+/** Variable d'env posée par build-all.mjs : le fichier où `declarerCorpsPerime` APPEND le sha1 de
+ *  chaque corps rendu qu'il déclare périmé, une ligne par corps. */
+export const ENV_CORPS_RENDUS = 'WFRP_CORPS_RENDUS'
+
+/** Déclare un corps périmé au code de sortie SANS quitter le processus : un cliquet posé avant garde
+ *  son bit, et ce qui suit l'appel peut encore parler. `corps` : le(s) corps RENDU(S) — ce que
+ *  `docs:build` écrirait — au moins un, consignés sous `ENV_CORPS_RENDUS` (#1801). */
+export function declarerCorpsPerime(...corps) {
+  if (!corps.length) throw new Error('declarerCorpsPerime : aucun corps rendu déclaré')
+  const fichier = process.env[ENV_CORPS_RENDUS]
+  if (fichier) appendFileSync(fichier, corps.map((c) => `${sha1(c)}\n`).join(''))
+  process.exitCode = (Number(process.exitCode) || 0) | CODE_CORPS_PERIME
+}
+
+/**
+ * LA primitive d'un dérivé : écrit `out` dans `path` (par `ecrireDoc`) — ou, sous `check`, le
+ * compare au corps committé SANS RIEN ÉCRIRE. Un corps périmé imprime `staleMsg`, la première
+ * divergence NOMMÉE et l'aperçu des suivantes (`apercuDivergences`), puis `rerunMsg`, et se déclare
+ * au code de sortie (`declarerCorpsPerime`) : la primitive ne quitte jamais le processus, un
+ * générateur à plusieurs cibles les nomme donc TOUTES.
+ * Le pied « sources-empreinte » est posé après coup par build-all.mjs : la comparaison porte sur le
+ * corps. `okMsg` / `writeMsg` sont facultatifs (un générateur qui résume lui-même ne les passe pas).
+ * REND `true` quand le corps était déjà à jour.
+ */
+export function ecrireOuVerifier({ out, path: chemin, check, staleMsg, rerunMsg, okMsg, writeMsg }) {
+  const actuel = existeFichier(chemin) ? retirerPied(readFileSync(chemin, 'utf8')) : null
+  const aJour = actuel === out
+  if (!check) {
+    ecrireDoc(chemin, out)
+    if (writeMsg) console.log(writeMsg)
+    return aJour
+  }
+  if (aJour) {
+    if (okMsg) console.log(okMsg)
+    return true
+  }
+  console.error(staleMsg)
+  console.error(apercuDivergences(out, actuel))
+  console.error(rerunMsg)
+  declarerCorpsPerime(out)
+  return false
 }
 
 /** Hash de BLOB git du contenu d'un fichier du disque — comparable à la colonne de `git ls-files -s`. */
@@ -164,7 +219,7 @@ export function enfantsDeLIndex(blobs, dossier) {
 function lignes(fichiers, dossiers) {
   return [
     ...[...fichiers].sort().map(([p, h]) => `${p} ${h}`),
-    ...[...dossiers].sort(([a], [b]) => (a < b ? -1 : 1)).map(([d, h]) => `${d}/ ${h}`),
+    ...[...dossiers].sort(([a], [b]) => parUnitesDeCode(a, b)).map(([d, h]) => `${d}/ ${h}`),
   ]
 }
 
@@ -256,7 +311,7 @@ function premiereDivergence(k, regeneree, committee) {
  * puis l'aperçu des `max` premières lignes divergentes des DEUX côtés, puis le compte du reste.
  * Vide = les deux corps sont identiques ; `committe` à `null` = le doc n'est pas sur le disque.
  * Sœur de `deltaSourcesLues` pour l'autre moitié du rouge de fraîcheur — les SOURCES d'un côté, le
- * CORPS de l'autre, quand un générateur compare son rendu au fichier (`emitOrCheck`, jsdocUnion.mjs).
+ * CORPS de l'autre, quand un générateur compare son rendu au fichier (`ecrireOuVerifier`).
  */
 export function apercuDivergences(regenere, committe, max = 10) {
   if (committe === null) return 'le doc committé est ABSENT du dépôt'

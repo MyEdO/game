@@ -11,7 +11,6 @@ import { useGame } from './store';
 import { applyZoneCrossings } from './combatFlow';
 import type { BattleZone } from './zones';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { testScene } from '../scenes/test-fixture';
 import { seedBattleRng } from './battleRng';
 import { hasCondition, COND, stacks } from '../engine/conditions';
@@ -38,10 +37,10 @@ describe('#500 — BattleZone.crossTest : Forêt d’épines (LDB 48 l.749)', ()
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 
   function setup(heroTalents: Combatant['talents'] = []) {
-    const H = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+    const H = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     H.talents = [...H.talents, ...heroTalents];
     useGame.setState({ party: [H] });
-    useGame.getState().startScene(testScene);
+    useGame.getState().startScene(testScene());
     seedBattleRng(9);
     useGame.getState().startCombat('enc-mutants');
     useGame.getState().confirmRoundStart();

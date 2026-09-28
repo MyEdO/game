@@ -104,7 +104,7 @@ export interface RigOverlay {
    *  le corps (ailes de face — sinon le z inégal des bras en cache une), `avant` = devant tout
    *  (ailes vues de dos). Ignore `behind`/`replace`. */
   plane?: 'fond' | 'avant';
-  /** id du registre APPENDAGES (cornes/queue MULTI-VUES) — quand présent, REMPLACE `svg`, résolu
-   *  par vue via pickView. Même source/résolution que les features et monsterInjection. */
+  /** id du registre APPENDAGES (cornes/queue ORIENTÉES) — quand présent, REMPLACE `svg`, résolu
+   *  par vue via viewOrFront. Même source/résolution que les features et monsterInjection. */
   appendage?: string;
 }

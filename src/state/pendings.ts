@@ -423,6 +423,9 @@ export interface PendingAttack {
    *  qu'un héros active : mutation/polymorphie) : ne consomme pas l'Action ; effets onHit propres à la
    *  manœuvre appliqués à la confirmation (cf. attackConfirm). `tentacules` = limiteur 1/tour (mutation). */
   freeKind?: AttackKind;
+  /** Réaction de Porte-Bouclier déclarée par le défenseur SURFACÉ (`AA 13 l.84`) : la fenêtre de défense
+   *  la rend ici avec le résultat opposé, et `attackConfirm` la verse dans la `SuiteDeCoup`. */
+  reaction?: 'damage' | 'push';
   /** PILONNAGE INDIRECT (« viser une case », AA 10 l.169/171) : POINT D'IMPACT choisi au sol. Présent → la
    *  touche DÉTONE sur cette case (Explosion/Tir de zone uniforme sur le rayon, RAW LDB 62 l.254), AUCUNE touche
    *  directe « primaire » ni Critique par victime ; `targetId` n'est que la cible-REPÈRE de la bande de
@@ -955,6 +958,9 @@ export interface SuiteDeCoup {
    *  2ᵉ frappe reprend. La valeur de Critique, elle, se lit sur l'ÉTAPE de Critique que l'application
    *  appende — elle n'existe donc qu'APRÈS le coup, jamais à l'ouverture. */
   dualMain?: { offWeaponUid: string; mainRoll: number };
+  /** Réaction de Porte-Bouclier DÉCLARÉE par le défenseur qui a paré (variante `AA 13 l.84`) : jouée
+   *  au temps `reaction` de l'après-coup, APRÈS l'application — suspendue ou non. */
+  reaction?: 'damage' | 'push';
 }
 
 /**
@@ -982,9 +988,9 @@ export type SauvegardeSuite =
     targetId: string;
     weapon: Weapon;
     res: AttackResult;
-    /** La valeur de `deviated` du coup suspendu : elle dit d'où vient la reprise (attaque standard,
-     *  enchaînement, attaque gratuite) — elle ne se devine pas à la ré-entrée. */
-    deviated?: boolean;
+    /** Le coup suspendu était une SOUS-ATTAQUE (enchaînement, attaque gratuite) : la reprise le rend
+     *  tel quel (`ApplicationDuCoup.sousAttaque`) — il ne se devine pas à la ré-entrée. */
+    sousAttaque?: boolean;
     /** Ce que l'appelant fera APRÈS le coup — entrée par le haut, jamais parquée après coup. */
     suite?: SuiteDeCoup;
   }
@@ -996,6 +1002,49 @@ export type SauvegardeSuite =
 export interface PendingWardSave {
   seuils: SeuilDeSauvegarde[];
   suite: SauvegardeSuite;
+}
+
+/** L'APRÈS-COUP d'un coup appliqué (#1508 T3b-4) — UNE liste ordonnée de temps, jouée par
+ *  `combatFlow.jouerLApresCoup` depuis le temps porté par la queue (`QueueDuCoup.depuis`). L'ordre est
+ *  un choix `maison` (le livre est muet sur l'ordre) : `LDB 14 l.9`, `l.19`. */
+export const APRES_COUP = ['oupsAttaquant', 'oupsDefenseur', 'reaction', 'suite'] as const;
+export type TempsDApresCoup = typeof APRES_COUP[number];
+
+/** LA QUEUE d'un coup appliqué (#1508 T3b-4) : ce qu'il faut pour rejouer son après-coup, et le TEMPS
+ *  où le reprendre (`depuis`) — une fenêtre ouverte par un temps emporte la queue au temps SUIVANT.
+ *  JSON-sérialisable : elle voyage sur l'étape (Maladresse du défenseur, dé de casse d'arme). */
+export interface QueueDuCoup {
+  attackerId: string;
+  targetId: string;
+  weapon: Weapon;
+  res: AttackResult;
+  suite?: SuiteDeCoup;
+  depuis: TempsDApresCoup;
+}
+
+/** CE QUE LE DÉ D'UNE CASSE D'ARME RE-JOUE (#1508 T3b-4) — union par SITE DE REPRISE, patron
+ *  `SauvegardeSuite` : chaque membre nomme le point d'application qui ré-entre avec le dé tombé, et
+ *  porte ce que la reprise ne saurait pas rebâtir. JSON-sérialisable : elle voyage sur l'étape. */
+export type RepriseDeCasse =
+  | {
+    mode: 'oups';
+    actorId: string;
+    weapon: Weapon;
+    r: OupsResolved;
+    /** La queue du coup dont cette Maladresse est un temps d'après-coup. Absente quand la
+     *  Maladresse ne vient pas d'un coup en cours (fenêtre de Maladresse du héros). */
+    coup?: QueueDuCoup;
+  }
+  | { mode: 'bladeTrap'; defenderId: string; bt: BladeTrapFreeze; defenderSL: number };
+
+/** CHARGE d'une étape de la GRAPPE de dés d'une CASSE D'ARME (#1508 T3b-4) — Sauvegarde Solide
+ *  (`LDB 60 l.30`) et table des Incidents par Salve (`AA 10 l.270-277`) : les dés DÉJÀ TOMBÉS de la
+ *  grappe, par clé (`engine/oups.desDOups`), et le point d'application qui les consommera. La
+ *  demande que CETTE étape sert est celle que la grappe rend en tête avec ces dés-là — rien n'est
+ *  recopié, donc rien ne peut diverger de ce que la fenêtre a montré (patron `combatEffects.opsDe`). */
+export interface PendingCasseDArme {
+  des: [string, number][];
+  reprise: RepriseDeCasse;
 }
 
 /** Contexte SÉRIALISABLE des tirages CHAÎNÉS d'une mutation de Corruption (#942 L5, LDB 19 l.73-83) :
@@ -1773,13 +1822,14 @@ export interface CascadeDeDecl extends CascadeDeTirage {
   seuil?: SeuilDeSauvegarde;
 }
 
-/** LE SEUIL d'une sauvegarde « 1d10 ≥ Indice » (Démoniaque `LDB 85 l.98`, Protection `LDB 85 l.278`, et
- *  le Trait qu'un Dôme octroie `LDB 47 l.410`) : l'Indice à atteindre, le TRAIT qui l'offre (id stable —
- *  la graphie est rendue par `formatWardSave`) et sa PROVENANCE (le porteur, ou la zone qui le lui
- *  octroie). JSON-sérialisable : il voyage sur l'étape. */
+/** LE SEUIL d'une sauvegarde « 1d10 ≥ Indice » (Démoniaque `LDB 85 l.98`, Protection `LDB 85 l.278`, le
+ *  Trait qu'un Dôme octroie `LDB 47 l.410`, la QUALITÉ Solide d'un objet `LDB 60 l.30`) : l'Indice à
+ *  atteindre, CE QUI l'offre (`SourceDeSauvegarde` — id stable + son dataset, la graphie étant rendue
+ *  par `formatWardSave`) et sa PROVENANCE (le porteur, ou la zone qui le lui octroie).
+ *  JSON-sérialisable : il voyage sur l'étape. */
 export interface SeuilDeSauvegarde {
   indice: number;
-  traitId: string;
+  source: import('../engine/traits/dispatch').SourceDeSauvegarde;
   dome: boolean;
 }
 
@@ -1967,6 +2017,10 @@ export interface CascadeStepBase extends Omit<RollParticipant, 'interactive'> {
    *  L'applier lit le dé (`cascade.lireEnSeuil`) puis RÉ-ENTRE dans le site d'origine — patron de
    *  `critSeverity`, dont la charge rejoue `applyAttackResult` avec le Critique construit. */
   wardSave?: PendingWardSave;
+  /** Étape de la GRAPPE de dés d'une CASSE D'ARME (#1508 T3b-4) — Sauvegarde Solide (étape à DÉ lu en
+   *  SEUIL) ou table des Incidents par Salve (étape à TABLE) : même charge pour les deux lectures, et
+   *  l'applier ré-entre dans `applyOups`/`applyBladeTrap` avec le dé tombé — patron `wardSave`. */
+  casse?: PendingCasseDArme;
   /** Étapes à TABLE de la MUTATION de Corruption (#942 L5) : les d100 des tirages chaînés (nature →
    *  Tableau → sous-table) sont restés à poser ; l'applier de chaque étape lit le dé posé, INSÈRE
    *  l'étape suivante s'il en reste une, et applique la mutation au dernier niveau. */
@@ -1986,8 +2040,9 @@ export interface CascadeStepBase extends Omit<RollParticipant, 'interactive'> {
    *  utilisée + le résultat tiré vivent ICI (l'acteur est `actorId`). Plus de `pendingFumble` top-level
    *  parallèle à désynchroniser : si l'étape existe la donnée existe, si la cascade ferme la maladresse
    *  s'en va — orphelin structurellement impossible. Flux : `fumbleRoll` (rollOups → result),
-   *  `fumbleConfirm` (applyOups). */
-  fumble?: { weapon: Weapon; result: OupsResolved | null };
+   *  `fumbleConfirm` (applyOups). `coup` = la queue du coup dont cette Maladresse est un temps
+   *  d'après-coup : `fumbleConfirm` la reprend une fois la Maladresse appliquée. */
+  fumble?: { weapon: Weapon; result: OupsResolved | null; coup?: QueueDuCoup };
   /** DÉCLARATION d'une BANDE de Psychologie À LA RENCONTRE (LDB 21) : l'entrée de règle mise en jeu
    *  — type psy + source + cible + Indice — face à laquelle les héros appelés à l'entrée de scène sont
    *  les RANGÉES (`participants`, `aggregate:'none'`). L'applier 'encounterPsych' pose le `psychState`

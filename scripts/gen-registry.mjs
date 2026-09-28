@@ -4,17 +4,21 @@
  * cassé sous tsx) : l'index généré marche partout (app Vite, Vitest, scripts tsx), est
  * inspectable et sans coût runtime. Réutilisable pour créatures / tenues / modèles / etc.
  *
- *   node scripts/gen-registry.mjs
+ *   node scripts/gen-registry.mjs            (`npm run gen`, écrit)
+ *   node scripts/gen-registry.mjs --check    (ligne de `GENERATORS`, scripts/docs/build-all.mjs : compare sans écrire)
  *
  * `genAll` joue la PHASE 1 (ces registres) puis la PHASE 2 (`scripts/gen-espaces.mts`, l'INDEX DES
  * IDS, les CLÉS DE DATASET et les RACINES VIVANTES), pour `npm run gen`, `npm run build` et le plugin
  * Vite (`vite.config.ts`, donc chaque run Vitest). Ajouter une entrée = déposer un fichier dans le `defs/` correspondant, puis relancer.
  */
-import { readdirSync, writeFileSync, readFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { readFileSync } from 'node:fs';
+import { listerDossier } from './guards/lib/lister.mjs';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { estFichierVitest } from './guards/lib/fichierVitest.mjs';
+import { litteralJs } from './guards/lib/litteralJs.mjs';
+import { ecrireOuVerifier } from './docs/lib/empreinte-sources.mjs';
 
 /**
  * `importDir` : chemin (relatif au fichier `out`) d'où importer chaque entrée. Défaut `./defs`
@@ -98,8 +102,9 @@ export const REGISTRIES = [
     idUnion: { typeName: 'QuadManeId', field: 'key' },
   },
   {
-    // Sets d'ÉQUIPEMENT quadrupèdes (sellerie/bât/barde — art cuit par vue depuis
-    // `atelier/harnais/<id>@<espèce>-<vue>.dessin.mts`) : 1 set = 1 fichier defs/. Même patron que
+    // Sets d'ÉQUIPEMENT quadrupèdes (sellerie/bât/barde — art cuit depuis
+    // `atelier/harnais/<id>@<espèce>-<vue>.dessin.mts` en une table keyée par vue,
+    // `harnais/<id>Compile.ts`) : 1 set = 1 fichier defs/. Même patron que
     // les têtes/queues/crinières ; l'union `QuadHarnaisId` est GÉNÉRÉE des ids déclarés (#1128).
     dir: 'src/gameIso/rig/quadruped/harnais/defs',
     out: 'src/gameIso/rig/quadruped/harnais/_registry.generated.ts',
@@ -110,7 +115,7 @@ export const REGISTRIES = [
     idUnion: { typeName: 'QuadHarnaisId', field: 'id' },
   },
   {
-    // Appendices (cornes/queue, art multi-vues) : 1 appendice = 1 fichier defs/. Source UNIQUE de
+    // Appendices (cornes/queue, art orienté) : 1 appendice = 1 fichier defs/. Source UNIQUE de
     // l'art de corne/queue, référencé par id (monster.cornes / appendageFeature / traitVisuals).
     dir: 'src/gameIso/rig/parts/appendages/defs',
     out: 'src/gameIso/rig/parts/appendages/_registry.generated.ts',
@@ -181,7 +186,7 @@ export const REGISTRIES = [
     typeFrom: './types',
   },
   {
-    // Têtes (visage + coiffure défaut par Race:Sexe, art tokenisé) : 1 tête = 1 fichier defs/.
+    // Têtes (visage + coiffure défaut par Race:Sexe, art en jetons) : 1 tête = 1 fichier defs/.
     dir: 'src/gameIso/rig/parts/heads/defs',
     out: 'src/gameIso/rig/parts/heads/_registry.generated.ts',
     exportName: 'head',
@@ -237,7 +242,7 @@ export const REGISTRIES = [
     typeFrom: './types',
   },
   {
-    // Armures (matériau × emplacement, art tokenisé) : 1 matériau = 1 fichier defs/ — MÊME pattern que les tenues.
+    // Armures (matériau × emplacement, art en jetons) : 1 matériau = 1 fichier defs/ — MÊME pattern que les tenues.
     dir: 'src/gameIso/rig/parts/armour/defs',
     out: 'src/gameIso/rig/parts/armour/_registry.generated.ts',
     exportName: 'armour',
@@ -334,7 +339,7 @@ export const REGISTRIES = [
     typeFrom: './types',
   },
   {
-    // Schémas zod du contrat de donnée (Lot 1) : 1 dataset `src/data/*.json` = 1 fichier defs/,
+    // Schémas zod du contrat de donnée : 1 dataset `src/data/*.json` = 1 fichier defs/,
     // exportant `file` (nom du .json) + `schema` (zod). `fields` (2 exports par module, pas 1
     // seul) → entrées `{ file, schema }` plutôt qu'un tableau plat d'un seul type.
     dir: 'src/data/schemas/defs',
@@ -414,9 +419,7 @@ export function lireExports(src, noms, def) {
 
 /** Modules de def d'un dossier — la population de tout registre ; lève si le dossier manque. */
 function modulesDeDefs(dir) {
-  return readdirSync(dir)
-    .filter((f) => /\.tsx?$/.test(f) && !f.startsWith('_') && !estFichierVitest(f) && !f.endsWith('.ascii.ts') && f !== 'index.ts')
-    .sort();
+  return listerDossier(dir).filter((f) => /\.tsx?$/.test(f) && !f.startsWith('_') && !estFichierVitest(f) && !f.endsWith('.ascii.ts') && f !== 'index.ts');
 }
 
 /** Les exports `noms` de chaque def d'un dossier, par `lireExports` : `{ module, …exports }`. */
@@ -424,10 +427,29 @@ export function lireDefs(dir, noms) {
   return modulesDeDefs(dir).map((f) => ({ module: f, ...lireExports(readFileSync(join(dir, f), 'utf8'), noms, join(dir, f)) }));
 }
 
-function genOne(r) {
+/** Les projections d'art (`genArt`). */
+const SORTIE_ART = 'src/data/schemas/_art.generated.ts';
+
+/** Les sorties de la PHASE 2 (`scripts/gen-espaces.mts`, qui les lit ici). */
+export const SORTIES_DES_ESPACES = {
+  ids: 'src/data/schemas/_ids.generated.ts',
+  cles: 'src/data/schemas/_cles-de-dataset.generated.ts',
+  racines: 'src/data/schemas/_racines-vivantes.generated.ts',
+};
+
+/** Tous les fichiers que ce générateur écrit EN ENTIER, phase 2 comprise — ses cibles dans `GENERATORS` (build-all.mjs). */
+export const SORTIES = [...REGISTRIES.map((r) => r.out), SORTIE_ART, ...Object.values(SORTIES_DES_ESPACES)];
+
+/** Le rouge d'un registre périmé en `--check` : `genAll` résume lui-même le reste. */
+export const MESSAGES_DE = (out) => ({
+  staleMsg: `gen-registry — ${out} est PÉRIMÉ (un fichier de defs ou une donnée a changé).`,
+  rerunMsg: '  → relancer `npm run gen` et committer le résultat.',
+});
+
+function genOne(r, check) {
   const importDir = r.importDir ?? './defs';
   try {
-    readdirSync(r.dir);
+    listerDossier(r.dir);
   } catch {
     return { arrayName: r.arrayName, dir: r.dir, files: 0, changed: false, missing: true };
   }
@@ -444,7 +466,7 @@ function genOne(r) {
   // Alias suffixé (`e0_champ`) UNIQUEMENT pour les registres multi-champs : les registres
   // « 1 def = 1 valeur » gardent `e0` — leur sortie générée reste byte-identique.
   // `optionalFields` : champ qu'un module de def exporte OU NON (`meta`, #1466). Le générateur est
-  // TEXTUEL (readdirSync + regex, jamais d'import runtime), donc un export absent doit être vu AVANT
+  // TEXTUEL (listing + regex, jamais d'import runtime), donc un export absent doit être vu AVANT
   // d'être importé, sinon le module généré ne compile pas.
   const presents = (i) => (r.optionalFields ?? []).filter((fn) => lus[i][fn] !== undefined);
   const imports = files.map((f, i) => {
@@ -474,16 +496,10 @@ function genOne(r) {
     imports.join('\n') + '\n\n' +
     `export const ${r.arrayName}: ${r.type}[] = [${arr.join(', ')}];\n` +
     unionDecl;
-  // n'écrit que si le contenu change (évite de toucher le mtime → boucles de watch)
-  let prev = '';
-  try { prev = readFileSync(r.out, 'utf8'); } catch { /* nouveau */ }
-  const changed = prev !== body;
-  if (changed) writeFileSync(r.out, body);
+  // `ecrireDoc` n'écrit que si le contenu change (évite de toucher le mtime → boucles de watch).
+  const changed = !ecrireOuVerifier({ out: body, path: r.out, check, ...MESSAGES_DE(r.out) });
   return { arrayName: r.arrayName, dir: r.dir, files: files.length, changed, missing: false };
 }
-
-/** Littéral de chaîne TS d'une valeur, pour les modules générés. */
-const lit = (v) => `'${v.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`;
 
 /**
  * Valeurs du champ `champ` écrites en LITTÉRAL (guillemets simples ou doubles, en tête de ligne) dans
@@ -537,36 +553,39 @@ export function projeterDefs(dir, projection) {
 }
 
 /** Module des projections (`projection` des `REGISTRIES`), écrit seulement s'il change. */
-function genArt(registres = REGISTRIES, out = 'src/data/schemas/_art.generated.ts') {
+function genArt(check, registres = REGISTRIES, out = SORTIE_ART) {
   const blocs = registres.filter((r) => r.projection).map((r) => {
     const lignes = projeterDefs(r.dir, r.projection);
     const tete = `/** Projection GÉNÉRÉE de \`${r.dir}\`${r.projection.champ ? ` : id → \`${r.projection.champ}\`` : ' : ids'} (${lignes.length}). */\n`;
     if (!r.projection.champ)
-      return { nom: r.projection.nom, n: lignes.length, texte: `${tete}export const ${r.projection.nom}: readonly string[] = [\n${lignes.map(([id]) => `  ${lit(id)},\n`).join('')}];\n` };
-    const valeurs = [...new Set(lignes.map(([, v]) => v))].sort().map(lit).join(' | ');
-    return { nom: r.projection.nom, n: lignes.length, texte: `${tete}export const ${r.projection.nom}: Readonly<Record<string, ${valeurs}>> = {\n${lignes.map(([id, v]) => `  ${lit(id)}: ${lit(v)},\n`).join('')}};\n` };
+      return { nom: r.projection.nom, n: lignes.length, texte: `${tete}export const ${r.projection.nom}: readonly string[] = [\n${lignes.map(([id]) => `  ${litteralJs(id)},\n`).join('')}];\n` };
+    const valeurs = [...new Set(lignes.map(([, v]) => v))].sort().map((v) => litteralJs(v)).join(' | ');
+    return { nom: r.projection.nom, n: lignes.length, texte: `${tete}export const ${r.projection.nom}: Readonly<Record<string, ${valeurs}>> = {\n${lignes.map(([id, v]) => `  ${litteralJs(id)}: ${litteralJs(v)},\n`).join('')}};\n` };
   });
   const body =
     `// GÉNÉRÉ par scripts/gen-registry.mjs — NE PAS ÉDITER À LA MAIN.\n` +
     `// Régénérer : \`npm run gen\` (option \`projection\` des REGISTRIES).\n\n` +
     blocs.map((b) => b.texte).join('\n');
-  let prev = '';
-  try { prev = readFileSync(out, 'utf8'); } catch { /* nouveau */ }
-  const changed = prev !== body;
-  if (changed) writeFileSync(out, body);
+  const changed = !ecrireOuVerifier({ out: body, path: out, check, ...MESSAGES_DE(out) });
   return { out, blocs: blocs.map((b) => `${b.nom}=${b.n}`), changed };
 }
 
 /**
  * PHASE 2 : l'INDEX DES IDS, par `scripts/gen-espaces.mts` sous `tsx` (il parse les documents par
- * leurs schémas TypeScript), dans un processus enfant. Lève si l'enfant échoue.
+ * leurs schémas TypeScript), dans un processus enfant. Hors `--check`, lève si l'enfant échoue ; en
+ * `--check`, son code de sortie (bit « corps périmé » compris) rejoint celui de ce processus.
  */
-function genEspaces(verbose) {
-  const r = spawnSync(process.execPath, ['--import', 'tsx', 'scripts/gen-espaces.mts', ...(verbose ? [] : ['--silencieux'])], {
+function genEspaces(verbose, check) {
+  const r = spawnSync(process.execPath, ['--import', 'tsx', 'scripts/gen-espaces.mts', ...(verbose ? [] : ['--silencieux']), ...(check ? ['--check'] : [])], {
     stdio: 'inherit',
     cwd: fileURLToPath(new URL('..', import.meta.url)),
   });
-  if (r.status !== 0) throw new Error(`gen-registry: phase 2 (scripts/gen-espaces.mts) en échec (exit ${r.status ?? r.signal}).`);
+  if (r.status === 0) return;
+  if (check && r.status !== null) {
+    process.exitCode = (Number(process.exitCode) || 0) | r.status;
+    return;
+  }
+  throw new Error(`gen-registry: phase 2 (scripts/gen-espaces.mts) en échec (exit ${r.status ?? r.signal}).`);
 }
 
 /**
@@ -577,8 +596,24 @@ function genEspaces(verbose) {
  * polluent chaque sortie de test et cassent le parseur pass/fail de l'outil `rtk`. En mode verbose
  * (exécution directe `npm run gen`), détail complet (usage : audit manuel de ce que le générateur a vu).
  */
-export function genAll(verbose = false) {
-  const results = REGISTRIES.map(genOne);
+export function genAll(verbose = false, { check = false } = {}) {
+  // En `--check`, une validation qui LÈVE est un rouge (bit 1) parmi les autres : levée hors du
+  // processus, elle sortirait en 1 et effacerait le bit « corps périmé » d'un registre déjà jugé.
+  const jouer = (fn) => {
+    if (!check) return fn();
+    try {
+      return fn();
+    } catch (e) {
+      console.error(e instanceof Error ? e.message : String(e));
+      process.exitCode = (Number(process.exitCode) || 0) | 1;
+      return null;
+    }
+  };
+  const libelle = (nom, detail, changed) =>
+    check
+      ? `gen-registry --check: ${nom} ${changed ? 'PÉRIMÉ' : 'à jour'} (${detail})`
+      : `gen-registry: ${nom} ← ${detail}${changed ? '' : ' [inchangé]'}`;
+  const results = REGISTRIES.map((r) => jouer(() => genOne(r, check))).filter(Boolean);
   let unchangedCount = 0;
   for (const res of results) {
     if (res.missing) {
@@ -586,25 +621,25 @@ export function genAll(verbose = false) {
       continue;
     }
     if (res.changed || verbose) {
-      console.log(`gen-registry: ${res.arrayName} ← ${res.files} fichiers (${res.dir})${res.changed ? '' : ' [inchangé]'}`);
+      console.log(libelle(res.arrayName, `${res.files} fichiers, ${res.dir}`, res.changed));
     } else {
       unchangedCount++;
     }
   }
-  const artRes = genArt();
-  if (artRes.changed || verbose) {
-    console.log(`gen-registry: projections d'art ← ${artRes.blocs.join(', ')} (${artRes.out})${artRes.changed ? '' : ' [inchangé]'}`);
-  } else {
+  const artRes = jouer(() => genArt(check));
+  if (artRes && (artRes.changed || verbose)) {
+    console.log(libelle("projections d'art", `${artRes.blocs.join(', ')}, ${artRes.out}`, artRes.changed));
+  } else if (artRes) {
     unchangedCount++;
   }
   if (!verbose && unchangedCount > 0) {
     console.log(`gen-registry: ${unchangedCount} registre${unchangedCount > 1 ? 's' : ''} à jour`);
   }
-  genEspaces(verbose);
+  genEspaces(verbose, check);
 }
 
 // Exécution directe (node scripts/gen-registry.mjs) : détail complet (audit manuel). Point d'entrée
-// seulement — l'importer (`vite.config.ts`, gardes) n'exécute rien.
-if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
-  genAll(true);
+// seulement — l'importer (`vite.config.ts`, gardes, `scripts/gen-espaces.mts`) n'exécute rien.
+if (import.meta.main) {
+  genAll(true, { check: process.argv.includes('--check') });
 }

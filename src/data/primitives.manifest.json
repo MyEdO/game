@@ -294,7 +294,16 @@
     "fichier": "scripts/gen-registry.mjs",
     "concept": "registre-par-defs auto-chargé (dépose un fichier → intégré)",
     "perimetre": "tout dataset extensible (créatures, tenues, armes, sons, icônes…)",
-    "verrou": "npm run gen && git diff --exit-code"
+    "verrou": "npm run docs:check (ligne `GENERATORS` de scripts/docs/build-all.mjs)"
+  },
+  {
+    "id": "pointDEntree",
+    "type": "primitives.manifest",
+    "label": "import.meta.main",
+    "fichier": "scripts/guards/lib/pointDEntree.mjs",
+    "concept": "ce module est-il le point d'entrée du processus (lancé, pas importé)",
+    "perimetre": "tout script de scripts/ et server/ qui porte un main",
+    "verrou": "src/point-d-entree-guard.test.ts"
   },
   {
     "id": "descendre",
@@ -610,6 +619,16 @@
     "concept": "bande titrée de rubrique : titre, compteur ou jauge ancrés à droite, contenu dessous",
     "perimetre": "étapes du créateur, bandes de section du registre État de la fiche",
     "verrou": "réflexe avant tout bandeau de rubrique recodé"
+  },
+  {
+    "id": "reglagesApparence",
+    "type": "primitives.manifest",
+    "label": "ReglagesApparence/MonsterPartsFields",
+    "fichier": "src/ui/editor/MonsterPartsFields.tsx",
+    "css": "src/ui/styles/reglages-apparence.css",
+    "concept": "réglages d’une apparence, liste des réglages rendus en donnée, toute écriture par apparenceSuivante",
+    "perimetre": "rubrique Apparence de l’Inspecteur, du Narratif, du Codex et du créateur",
+    "verrou": "apparence-une-rubrique.test.tsx"
   },
   {
     "id": "heroSheet",
@@ -1028,20 +1047,56 @@
   {
     "id": "suiteDuCoup",
     "type": "primitives.manifest",
-    "label": "jouerLaSuiteDuCoup / SuiteDeCoup / SuiteDeDefense",
+    "label": "applyAttackResult / jouerLApresCoup / APRES_COUP / SuiteDeCoup / SuiteDeDefense",
     "fichier": "src/state/combatFlow.ts",
-    "concept": "ce qu'un site fera APRÈS son coup, déclaré en DONNÉE à l'entrée (enchaînement, attaque gratuite, drapeaux du coup) et joué par une écriture unique à la reprise — y compris quand une fenêtre de défense s'interpose",
-    "perimetre": "toute frappe qui peut être suspendue : balayage, gratuites de créature et de talent, attaque pilotée, sauvegarde, Déviation",
-    "verrou": "src/state/defense-suite.test.ts"
+    "concept": "un COUP = application + après-coup, une écriture : l'après-coup est une liste ordonnée de temps (`APRES_COUP` : Maladresses, réaction, suite) ; ce qu'un site fera APRÈS son coup est déclaré en DONNÉE à l'entrée, et une fenêtre ouverte emporte le TEMPS où reprendre — y compris quand une fenêtre de défense s'interpose",
+    "perimetre": "toute frappe qui peut être suspendue : balayage, gratuites de créature et de talent, attaque pilotée, sauvegarde, Déviation, Maladresse, casse d'arme",
+    "verrou": "src/state/apres-coup.test.ts"
   },
   {
     "id": "indexedDb",
     "type": "primitives.manifest",
-    "label": "ouvrirBase/lireDansBase/ecrireDansBase",
+    "label": "accesBase / brancherBasesSimulees",
     "fichier": "src/lib/indexedDb.ts",
-    "concept": "magasin local IndexedDB : disponibilité, ouverture bornée d'une base `{ nom, version, upgrade }` (délai, bloqué, un seul règlement, #776), requête et transaction en promesse, une connexion par opération",
+    "concept": "base locale IndexedDB `{ nom, version, upgrade }` : disponibilité, ouverture bornée (délai, bloqué, un seul règlement, #776), une connexion par opération ; sa poignée `accesBase` rend ses magasins typés (`lire`, `lireTout`, `ecrire`, `supprimer`, clé composée comprise) et la vide en une transaction (`vider`) ; sa doublure de test `brancherBasesSimulees` (`src/lib/indexedDb.testkit.ts`) route toute ouverture sur une base simulée par nom, à transactions atomiques et pannes ciblées, derrière la seule couture `__setOuvertureIdbForTest`",
     "perimetre": "tout magasin IndexedDB : bibliothèque de projets, calque de référence, sauvegarde automatique de l'éditeur, dossier src/data de l'atelier du Codex",
     "verrou": "src/lib/indexedDb.test.ts"
+  },
+  {
+    "id": "echapperRegex",
+    "type": "primitives.manifest",
+    "label": "echapperRegex",
+    "fichier": "src/lib/regex.ts",
+    "concept": "échapper une chaîne pour une regex",
+    "perimetre": "toute chaîne insérée telle quelle dans une regex, en `src/` comme en `scripts/`",
+    "verrou": "regex.test.ts"
+  },
+  {
+    "id": "alternationDe",
+    "type": "primitives.manifest",
+    "label": "alternationDe",
+    "fichier": "src/lib/regex.ts",
+    "concept": "alternation de chaînes, échappées, la plus longue d'abord",
+    "perimetre": "toute alternation de chaînes cherchées telles quelles ; une variation par chaîne passe par `parChaine`",
+    "verrou": "regex.test.ts"
+  },
+  {
+    "id": "alternationDeRegex",
+    "type": "primitives.manifest",
+    "label": "alternationDeRegex",
+    "fichier": "src/lib/regex.ts",
+    "concept": "alternation de fragments de regex, ordre gardé",
+    "perimetre": "toute alternation dont un élément est un fragment de regex",
+    "verrou": "regex.test.ts"
+  },
+  {
+    "id": "espacesExtensibles",
+    "type": "primitives.manifest",
+    "label": "espacesExtensibles",
+    "fichier": "src/lib/regex.ts",
+    "concept": "chaque espace accepte une suite de blancs",
+    "perimetre": "toute chaîne échappée dont les espaces acceptent des blancs variables, seule ou en `parChaine` d'`alternationDe`",
+    "verrou": "regex.test.ts"
   },
   {
     "id": "clesDePalette",
@@ -1057,7 +1112,7 @@
     "type": "primitives.manifest",
     "label": "PaletteDeclaree/PaletteDeCouchePortee",
     "fichier": "src/gameIso/rig/palette.ts",
-    "concept": "type d'une palette déclarée : record partiel des gammes de la table (base, O, H) ; la couche PORTÉE (tenue, arme, armure) type `?: never` les gammes de sorte porteur, suiveuses comprises. Limite : refuse un littéral et un objet typé, pas un Record<string, string> non littéral",
+    "concept": "type d'une palette déclarée : record partiel des gammes de la table (base, ombre, lumière) ; la couche PORTÉE (tenue, arme, armure) type `?: never` les gammes de sorte porteur, suiveuses comprises. Limite : refuse un littéral et un objet typé, pas un Record<string, string> non littéral",
     "perimetre": "toute palette de def du rig : créatures, compose*, nuées, navires, artkits, espèces (PaletteDeclaree) ; tenues, armes, armures (PaletteDeCouchePortee)",
     "verrou": "compilation ; morsures @ts-expect-error de clesDePalette.test.ts"
   },
@@ -1089,6 +1144,204 @@
     "verrou": "composeRig-peau-tete.test.ts, palettes-declarees.test.ts"
   },
   {
+    "id": "jetonsDeLArt",
+    "type": "primitives.manifest",
+    "label": "TOKEN_RE/tokensOf/replaceTokens",
+    "fichier": "src/gameIso/rig/palette.ts",
+    "concept": "jeton `@clé` d'un art du rig : son motif, la lecture des jetons d'un art, leur substitution par un rappel",
+    "perimetre": "tout art du rig (parts, créatures, décor, armes) et ses outils de QC",
+    "verrou": "lectures-de-l-art-guard.test.ts (REGEX_DE_JETON)"
+  },
+  {
+    "id": "gammeDePalette",
+    "type": "primitives.manifest",
+    "label": "SUFFIXE_DE_ROLE/RoleDeGamme/ROLES_DE_GAMME/gammeDe/baseDeGamme/Gamme/gammes",
+    "fichier": "src/data/palette.types.ts",
+    "concept": "gamme d'une clé de palette : sa base et ses rôles (ombre, lumière) ; la clé d'un rôle, la base d'une clé de rôle, les gammes d'une liste de bases",
+    "perimetre": "toute clé de rôle lue ou écrite par le rig, la palette et la donnée d'espèce",
+    "verrou": "lectures-de-l-art-guard.test.ts (GAMME_EN_LIGNE, ROLES_DE_GAMME)"
+  },
+  {
+    "id": "vuesDuRig",
+    "type": "primitives.manifest",
+    "label": "VIEWS/VIEW_LABEL",
+    "fichier": "src/gameIso/rig/facing.ts",
+    "concept": "identifiant et ordre canonique des trois vues (`View` en dérive) ; libellé d'affichage d'une vue, lu par les planches QC",
+    "perimetre": "tout art orienté, toute table ou liste de vues, les colonnes des planches QC",
+    "verrou": "lectures-de-l-art-guard.test.ts (VIEWS), unions-canon.test.ts"
+  },
+  {
+    "id": "formatsDArtOriente",
+    "type": "primitives.manifest",
+    "label": "ViewSet/PartArt/ViewArt",
+    "fichier": "src/gameIso/rig/parts/types.ts",
+    "concept": "formats d'un art orienté, dérivés de `View` : table totale des vues (ViewSet), art d'un slot (PartArt), art d'un registre (ViewArt, viewArt.ts)",
+    "perimetre": "parts, appendices, décor orienté, calques monstrueux",
+    "verrou": "compilation ; lectures-de-l-art-guard.test.ts (VIEWS)"
+  },
+  {
+    "id": "lectureDUneVue",
+    "type": "primitives.manifest",
+    "label": "declaredView/declaredViews/viewEntries/mapViews/foldView/nearestView",
+    "fichier": "src/gameIso/rig/viewArt.ts",
+    "concept": "lecture d'un art orienté : la vue déclarée, les vues déclarées, leurs entrées, la projection vue par vue, le repli dans un ordre (foldView) et le repli vers la vue la plus proche (nearestView)",
+    "perimetre": "tout lecteur d'un art orienté (rig, décor, QC)",
+    "verrou": "lectures-de-l-art-guard.test.ts (PROJECTION_DE_VUES), viewArt.test.ts"
+  },
+  {
+    "id": "viewOrFront",
+    "type": "primitives.manifest",
+    "label": "viewOrFront",
+    "fichier": "src/gameIso/rig/parts/types.ts",
+    "concept": "vue d'un PartArt, repliée sur sa face quand l'art ne la déclare pas (foldView, table FRONT_FALLBACK)",
+    "perimetre": "résolution des parts et des appendices",
+    "verrou": "viewArt.test.ts"
+  },
+  {
+    "id": "tableTotale",
+    "type": "primitives.manifest",
+    "label": "tableTotale",
+    "fichier": "src/lib/tableTotale.ts",
+    "concept": "table TOTALE keyée par les éléments d'une liste, clés dans l'ordre de la liste, rappel (clé, indice) ; le seul cast du concept",
+    "perimetre": "toute couche, src/engine et .mjs compris",
+    "verrou": "lectures de canonUnique.mjs (CONSTRUCTION_DE_TABLE_TOTALE), tableTotale.test.ts"
+  },
+  {
+    "id": "isDrawnView",
+    "type": "primitives.manifest",
+    "label": "isDrawnView",
+    "fichier": "scripts/guards/lib/partViewAudit.ts",
+    "concept": "vue DESSINÉE d'une part : déclarée par son art, jamais dérivée",
+    "perimetre": "audit des vues des parts et son stock",
+    "verrou": "part-view-format.test.ts"
+  },
+  {
+    "id": "lireDegradeDerive",
+    "type": "primitives.manifest",
+    "label": "lireDegradeDerive",
+    "fichier": "src/gameIso/rig/palette.ts",
+    "concept": "lecture d'un dégradé DÉRIVÉ `url(#dg-…)` : sa forme et ses jetons",
+    "perimetre": "résolution de palette d'un art, audit du littéral == jeton",
+    "verrou": "lectures-de-l-art-guard.test.ts (REGEX_DE_DEGRADE_DERIVE)"
+  },
+  {
+    "id": "fxGradientIds",
+    "type": "primitives.manifest",
+    "label": "FX_GRADIENT_IDS",
+    "fichier": "src/gameIso/rig/fxGradients.ts",
+    "concept": "registre des dégradés FIXES `g_…` du rig",
+    "perimetre": "tout art qui peint un dégradé fixe",
+    "verrou": "lectures-de-l-art-guard.test.ts (REGEX_DE_DEGRADE_FIXE)"
+  },
+  {
+    "id": "cleDeSite",
+    "type": "primitives.manifest",
+    "label": "SEPARATEUR_DE_CLE/SEPARATEUR_DE_REMEDE/CHAMPS_DE_GROUPE/CHAMP_D_OCCURRENCE/CHAMPS_DE_CLE/CHAMPS_REQUIS/CHAMPS_D_ECHEANCE/CHAMPS_DE_SITE_OBSERVE/EntreeDeSite/Site/Echeance/cleDeSite/groupeDeSite/estEntreeDeSite/estNeuveOuAccrue/sitesEnEntrees/survieDeLecheance",
+    "fichier": "scripts/guards/lib/stock.mjs",
+    "concept": "clé d'une entrée de stock de sites (famille, fichier, ref, occurrence), ses séparateurs, son échéance et son site observé ; le groupe d'une entrée, sa forme, sa croissance ; les sites mis en entrées et la survie de leur échéance",
+    "perimetre": "tout stock de sites (JSON et .mjs) et sa garde",
+    "verrou": "cle-de-site-guard.test.ts, stock.test.mjs"
+  },
+  {
+    "id": "stockDeSites",
+    "type": "primitives.manifest",
+    "label": "FORMAT_MJS/FORMAT_JSON/FORMATS/formatDe/parCleDeSite/lireStockJson/lireEntreesDeSite/texteDeStock/texteEnPlace/entreesRegenerees/comptesParFamille/DECROISSANT/SOUS_LOT/REMESURE/texteRegenere/ecartDeRegeneration/RegenerationDeStock/CollectionRegeneree/PolitiqueDeCroissance",
+    "fichier": "scripts/guards/lib/stockDeSites.mjs",
+    "concept": "lecture et écriture d'un stock de sites dans ses deux formats, son ordre canonique, les entrées régénérées et leurs comptes par famille, les trois politiques de croissance, le texte régénéré et son écart au fichier en place",
+    "perimetre": "tout module qui mesure un stock de sites (déclaration `regenerations`)",
+    "verrou": "stockDeSites.test.mjs, lectures de canonUnique.mjs (ECRITURE_DE_STOCK_JSON)"
+  },
+  {
+    "id": "regenererStock",
+    "type": "primitives.manifest",
+    "label": "regenererStock",
+    "fichier": "scripts/guards/lib/regenStock.mts",
+    "concept": "régénération des stocks de sites d'un module sur sa liste de déclarations ; le plus grand des codes ; commande `npx tsx scripts/guards/lib/regenStock.mts <module> [--check|--amorce|--lot]`",
+    "perimetre": "tout stock de sites",
+    "verrou": "stockDeSites.test.mjs"
+  },
+  {
+    "id": "entreesNominatives",
+    "type": "primitives.manifest",
+    "label": "estEntreeNominative/entreesNominatives",
+    "fichier": "scripts/guards/lib/stocksNominatifs.mjs",
+    "concept": "entrée NOMINATIVE d'un stock (clé qui nomme un site) et leur liste dans un module, une propriété `foyer` sautée",
+    "perimetre": "filet de croissance des stocks nominatifs",
+    "verrou": "stocks-nominatifs.test.mjs"
+  },
+  {
+    "id": "threeWay",
+    "type": "primitives.manifest",
+    "label": "threeWay",
+    "fichier": "scripts/git-hooks/three-way.mjs",
+    "concept": "fusion à trois voies d'un texte par `git merge-file`",
+    "perimetre": "pilotes de fusion des docs dérivés et des stocks de sites",
+    "verrou": "merge-docs.test.mjs, merge-stocks.test.mjs"
+  },
+  {
+    "id": "litteralJs",
+    "type": "primitives.manifest",
+    "label": "litteralJs",
+    "fichier": "scripts/guards/lib/litteralJs.mjs",
+    "concept": "littéral JS entre apostrophes d'une chaîne, échappée",
+    "perimetre": "tout générateur de module .mjs/.ts",
+    "verrou": "lectures de canonUnique.mjs (ECHAPPEUR_DE_LITTERAL), litteralJs.test.mjs"
+  },
+  {
+    "id": "ast",
+    "type": "primitives.manifest",
+    "label": "ast",
+    "fichier": "scripts/guards/lib/dialecte.mjs",
+    "concept": "AST d'un fichier lu, dans le dialecte de son extension",
+    "perimetre": "toute garde qui parse un fichier",
+    "verrou": "—"
+  },
+  {
+    "id": "perimetreDUneDeclaration",
+    "type": "primitives.manifest",
+    "label": "sAppliqueA/estRetenu",
+    "fichier": "scripts/guards/lib/sourceCorpus.mjs",
+    "concept": "périmètre d'une déclaration gardée (hors de son foyer, dans son domaine) ; fichier retenu par un corpus",
+    "perimetre": "toute construction réservée, recopie d'un canon, famille d'un garde-fou ; readCorpus",
+    "verrou": "sourceCorpus.test.mjs"
+  },
+  {
+    "id": "constructionsReservees",
+    "type": "primitives.manifest",
+    "label": "scanConstructionsReservees/FORMULE_DE_CHEBYSHEV/ECHAPPEUR_DE_LITTERAL/ECRITURE_DE_STOCK_JSON/CONSTRUCTION_DE_TABLE_TOTALE/recopieDeCanon/cleEnLigne/estAppelDeclare/origineImportee",
+    "fichier": "scripts/guards/lib/canonUnique.mjs",
+    "concept": "construction réservée à son foyer : le scan unique, ses constructions déclarées, les fabriques de recopie d'un canon et de clé en ligne, l'appel à une fonction déclarée et la liaison d'import",
+    "perimetre": "toute garde de canon unique",
+    "verrou": "unions-canon.test.ts, grid.test.ts, cle-de-site-guard.test.ts"
+  },
+  {
+    "id": "lecturesDeLArt",
+    "type": "primitives.manifest",
+    "label": "LECTURES_DE_L_ART",
+    "fichier": "scripts/guards/lib/lecturesDeLArt.ts",
+    "concept": "garde des lectures de l'art du rig hors de leur foyer (jeton, gamme, projection de vues, dégradés, vues, rôles de gamme)",
+    "perimetre": "périmètre des gardes",
+    "verrou": "lectures-de-l-art-guard.test.ts"
+  },
+  {
+    "id": "gardeCleDeSite",
+    "type": "primitives.manifest",
+    "label": "garde de la clé de site",
+    "fichier": "src/cle-de-site-guard.test.ts",
+    "concept": "clé de site écrite en ligne ou recopiée hors de stock.mjs",
+    "perimetre": "périmètre des gardes",
+    "verrou": "cle-de-site-guard.test.ts"
+  },
+  {
+    "id": "secondNomEtPerimetre",
+    "type": "primitives.manifest",
+    "label": "estArtDuRig/PERIMETRE_DES_GARDES/corpusDesGardes/LEGACY_VOCAB_FAMILIES",
+    "fichier": "scripts/guards/lib/commentPoison.mjs",
+    "concept": "l'art du rig (estArtDuRig) ; les trois familles du second nom (de l'art, d'un concept de l'art, de la table totale) ; le périmètre des gardes et son corpus",
+    "perimetre": "garde-fou commentaires et toute garde qui lit le périmètre des gardes",
+    "verrou": "comment-poison-guard.test.ts"
+  },
+  {
     "id": "reponsesDuNoeud",
     "type": "primitives.manifest",
     "label": "reponsesDuNoeud/testAnnonce/ouvrirDialogue",
@@ -1105,6 +1358,24 @@
     "concept": "une surface PARTAGÉE (état de jeu que tous les sièges voient) tient la main : verdict UNIQUE de l'arbitre, dérivé des modales du registre, des fenêtres HORS-modale qui se déclarent tientLaMain et des surfaces partagées hors pending* (marché, taverne, document, carte du monde, port, marché de terre, écran plein). Les surfaces PAR SIÈGE (fiche, menu système, codex, écrans ouverts par un joueur) n'y entrent jamais : elles vivent dans la pile des couches du client (dismissStack.modalKindsOpen)",
     "perimetre": "le VERBE qui s'exécute chez l'hôte : conversationRepond (chooseDialogue, touches dialogue-choice-N) ; la marche tenue (stageWalk.marcheAutorisee, avec la pile des couches pour l'écran du siège)",
     "verrou": "src/state/dialogue-surface-tient-la-main.test.ts (un contrat par surface partagée + contrat coop : l'écran par siège de l'hôte ne refuse pas l'invité) ; src/ui/dialogue-couche-du-dessus.test.tsx (couche du dessus) ; src/state/stageWalk.test.ts"
+  },
+  {
+    "id": "ordreTotal",
+    "type": "primitives.manifest",
+    "label": "parUnitesDeCode/parLibelle/replier",
+    "fichier": "src/lib/ordre.mjs",
+    "concept": "comparateurs d'ORDRE TOTAL sans locale ni ICU : parUnitesDeCode pour un chemin, un id ou une clé ; parLibelle pour un libellé lu par le joueur (marques, casse, ligatures et ponctuation repliées, départage par unités de code) ; replier replie un libellé comparé, et le composent norm (src/lib/normalize.ts), la recherche et l'auto-liage du Codex, dialogueLibelle, parseSizeLabel et skillSpecWalk (par norm)",
+    "perimetre": "tout tri de chaînes sous le mur de l'ordre total : ses globs (eslint.config.js) et la clôture des générateurs de dérivés (scripts/guards/lib/lister.test.mjs, volet (c)) ; un module d'UI qu'aucun générateur n'atteint garde la collation du navigateur ; scripts/guards/lib/lister.mjs les ré-exporte",
+    "verrou": "mur de l'ordre total d'eslint.config.js (localeCompare, toLocale*, Intl refusés) ; scripts/guards/lib/lister.test.mjs, volet (c), sur la clôture des générateurs"
+  },
+  {
+    "id": "stockageWeb",
+    "type": "primitives.manifest",
+    "label": "stockageWeb",
+    "fichier": "src/lib/stockageWeb.ts",
+    "concept": "accès protégé aux deux stockages web (`localStorage`, `sessionStorage`), paramétré par le genre : `null` s’il manque ou si son accès lève (mode privé strict, iframe sandbox, hors navigateur) ; chaque site garde ses clés et sa sérialisation",
+    "perimetre": "tout site qui lit ou écrit un stockage web — localStorage : sauvegardes de partie, roster, miroir et tombes de la bibliothèque de projets, préférences, règles maison, raccourcis, audio, atomes persistés de l’UI ; sessionStorage : jeton de siège coop, dernier scénario de recette",
+    "verrou": "src/lib/stockageWeb.test.ts ; src/stockage-web-exclusivity-guard.test.ts (aucun accès au stockage web hors src/lib/stockageWeb.ts ; une clé de stockage écrite une fois)"
   },
   {
     "id": "playerText",

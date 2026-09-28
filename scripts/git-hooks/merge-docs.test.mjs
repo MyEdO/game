@@ -7,8 +7,9 @@ import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { catalogueConflicts, mergeFicheRaw, restoreImplemente, sentinelFor, stripImplemente, threeWay } from './merge-docs.mjs'
-import { GENERATORS, ciblesSurDisque } from '../docs/build-all.mjs'
+import { catalogueConflicts, mergeFicheRaw, restoreImplemente, sentinelFor, stripImplemente } from './merge-docs.mjs'
+import { threeWay } from './three-way.mjs'
+import { GENERATORS, ciblesSignees } from '../docs/build-all.mjs'
 import { pagesDeLAtlas, RAWDOC_META_GENERATED } from '../raw/_lib.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
@@ -176,8 +177,8 @@ function famillesDe(paths) {
   return map
 }
 
-test('taxonomie — toute cible ECRITE EN ENTIER par un generateur est generee ou catalogue', () => {
-  const paths = GENERATORS.flatMap((g) => ciblesSurDisque(g.targets, ROOT))
+test('taxonomie — tout DOC ecrit en entier par un generateur est genere ou catalogue', () => {
+  const paths = GENERATORS.flatMap((g) => ciblesSignees(g, ROOT))
   assert.ok(paths.length >= 18, `cibles depliees : ${paths.length}`)
   const fam = famillesDe(paths)
   const hors = paths.filter((p) => !['docs-generes', 'docs-catalogue'].includes(fam.get(p)))

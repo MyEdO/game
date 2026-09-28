@@ -1,6 +1,6 @@
 import type { WingDef } from '../types';
 
-// Aile de CUIR (membrane de chauve-souris : furie du Chaos, démons ailés). Membrane en TOKENS @peau
+// Aile de CUIR (membrane de chauve-souris : furie du Chaos, démons ailés). Membrane en JETONS @peau
 // (suit la robe de la créature), bord inférieur festonné entre les doigts osseux, pouce-griffe au coude.
 const aileCuir = (s: 1 | -1) =>
   `<path d="M${5 * s} -15 Q${13 * s} -26 ${17 * s} -38 L${20 * s} -34 Q${23 * s} -22 ${20 * s} -12 L${17 * s} -14 Q${18 * s} -4 ${14 * s} 2 L${11 * s} -2 Q${12 * s} 5 ${8 * s} 9 Q${10 * s} -4 ${6 * s} -11 Z" fill="@peauO" stroke="#1a1210" stroke-width="0.7"/>`

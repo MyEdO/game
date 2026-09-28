@@ -10,7 +10,6 @@ import { fixtureText } from '../i18n/fixtureText';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { combatStakeRef } from '../data';
 import { monoStep } from './rollSeam';
 import { hasCondition, COND } from '../engine/conditions';
@@ -92,7 +91,7 @@ registerSequence<JoutePayload>(JOUTE, {
 
 describe('Famille (4)+(6) — le socle DÉCLENCHE les ops de manche, et s’arrête au bout de ses phases', () => {
   beforeEach(() => {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Jouteur', rng: makeRNG(1) });
+    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Jouteur', seed: 1 });
     h.advantage = 0;
     useGame.setState({ battle: null, party: [h], journal: [], pendingCascade: null, sequence: null });
     useGame.getState().seedRng(9);
@@ -210,7 +209,7 @@ describe('Famille (4)+(6) — le socle DÉCLENCHE les ops de manche, et s’arr�
 
 describe('la BORNE tient compte des phases déclarées', () => {
   beforeEach(() => {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Jouteur', rng: makeRNG(2) });
+    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Jouteur', seed: 2 });
     useGame.setState({ battle: null, party: [h], journal: [], pendingCascade: null, sequence: null });
     useGame.getState().seedRng(4);
     passes.length = 0;

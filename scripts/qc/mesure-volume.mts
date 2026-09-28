@@ -29,7 +29,7 @@
  *    (`SLOT_FLESH`) — la sortie porte alors la mention `chair=INCLUSE`.
  * 5. ÉROSION PAR DÉFAUT de `ERODE_U` unité SVG (chebyshev, 8-voisins, `ERODE_PX` itérations
  *    d'un pixel). Le cerne n'est pas du volume : un cerne de 0,7 u ne pèse que 0,19 px sur un
- *    token de 40 px, mais il domine les extrêmes de luminance. `--no-erode` le désactive.
+ *    pion de 40 px, mais il domine les extrêmes de luminance. `--no-erode` le désactive.
  * 6. Chaque nombre rendu porte les trois réglages qui l'ont produit (masque, érosion, chair).
  *
  * MÉTRIQUES, par vue :
@@ -72,14 +72,17 @@ import { Resvg } from '@resvg/resvg-js';
 import { resolveRig, type ResolvedBone } from '../../src/gameIso/rig/composeRig';
 import { toSvg } from '../../src/gameIso/rig/kinematics';
 import { SLOT_BONES, type BoneId, type Slot } from '../../src/gameIso/rig/bones';
-import { buildTokenMap, lum, SLOTS } from '../../src/gameIso/rig/palette';
+import { buildTokenMap, lum, tokensOf, SLOTS } from '../../src/gameIso/rig/palette';
+import { PORTEUR, baseDeGamme, gammeDe, gammes } from '../../src/data/palette.types';
 import type { PartArt } from '../../src/gameIso/rig/parts/types';
 import { defsGlobaux } from '../../src/gameIso/sprites';
 import { TENUE_BY_ID, TENUE_PALETTE_BY_ID, SPECIFIC_TENUES, CLASS_TENUE_BY_ID } from '../../src/gameIso/rig/parts/tenues';
 import { slugId } from '../../src/data/slug';
 import type { Appearance } from '../../src/gameIso/rig/appearance';
 import { asRigSpeciesId } from '../../src/gameIso/rig/appearance';
-import type { View } from '../../src/gameIso/rig/facing';
+import { VIEWS, type View } from '../../src/gameIso/rig/facing';
+import { viewEntries } from '../../src/gameIso/rig/viewArt';
+import { FX_GRADIENT_IDS } from '../../src/gameIso/rig/fxGradients';
 import { computeVerdict, CONTRAT_ECART_MIN, CONTRAT_CLAIR_MIN, CONTRAT_QUASI_BLANC_BASE_MIN, type Verdict } from '../../src/gameIso/rig/qc-contrat';
 import { QUAD_SPECIES, WINGED_SPECIES } from '../../src/gameIso/rig/creatures';
 import { resolveQuadFromProps } from '../../src/gameIso/rig/quadruped/composeQuad';
@@ -112,7 +115,7 @@ const SLOT_FLESH: Partial<Record<Slot, BoneId[]>> = {
 const TORSO_BONES: BoneId[] = ['torse'];
 
 // ── CLI ───────────────────────────────────────────────────────────────────────────────────
-const USAGE = 'usage: npx tsx scripts/qc/mesure-volume.mts (<tenueId> | --all [--ids a,b,c] | --creature <id> [--os tronc,tete]) [--slot bras] [--views front,profile,back] [--json] [--with-flesh] [--no-erode]';
+const USAGE = `usage: npx tsx scripts/qc/mesure-volume.mts (<tenueId> | --all [--ids a,b,c] | --creature <id> [--os tronc,tete]) [--slot bras] [--views ${VIEWS.join(',')}] [--json] [--with-flesh] [--no-erode]`;
 const argv = process.argv.slice(2);
 const flag = (n: string) => argv.includes(n);
 function opt(n: string): string | undefined {
@@ -123,7 +126,7 @@ const positional = argv.filter((a, i) => !a.startsWith('--') && !(i > 0 && ['--s
 const tenueArg = positional[0];
 const allMode = flag('--all');
 const slot = (opt('--slot') ?? 'bras') as Slot;
-const views = (opt('--views') ?? 'front,profile,back').split(',').map((v) => v.trim()) as View[];
+const views = (opt('--views')?.split(',').map((v) => v.trim()) ?? [...VIEWS]) as View[];
 const asJson = flag('--json');
 const withFlesh = flag('--with-flesh');
 const erode = !flag('--no-erode');
@@ -142,7 +145,7 @@ if (!tenueArg && !allMode && !creatureArg) die(USAGE);
 if (idsArg && !allMode) die(`${USAGE}\n--ids nécessite --all.`);
 if (osArg && !creatureArg) die(`${USAGE}\n--os nécessite --creature.`);
 if (!SLOT_BONES[slot]) die(`slot inconnu: ${slot} — attendus: ${Object.keys(SLOT_BONES).join(', ')}`);
-for (const v of views) if (!['front', 'profile', 'back'].includes(v)) die(`vue inconnue: ${v} — attendues: front, profile, back`);
+for (const v of views) if (!VIEWS.includes(v)) die(`vue inconnue: ${v} — attendues: ${VIEWS.join(', ')}`);
 
 // `tenueId` est un ID (slugId), jamais un libellé : un lookup par libellé replie silencieusement
 // sur la tenue citadins (incident corrigé en a1fcfe6c).
@@ -227,49 +230,43 @@ function quantile(sorted: number[], q: number): number {
   return sorted[lo] + (sorted[hi] - sorted[lo]) * (i - lo);
 }
 
-/** Matière dominante du masque : famille de jeton (base + ombre + lumière) qui couvre le plus de
- *  pixels. Compter la seule BASE désigne la mauvaise matière dès qu'une nappe d'ombre en recouvre
+/** Matière dominante du masque : la gamme (base, ombre, lumière) qui couvre le plus de pixels. Compter la seule BASE désigne la mauvaise matière dès qu'une nappe d'ombre en recouvre
  *  la moitié (cas du dos de manche : la base de robe passait sous le cuir du poignet).
  *  Donne le seuil de « part claire » = mi-distance base↔lumière (`…H`). */
 function dominantMaterial(tmap: Record<string, string>, counts: Map<string, number>) {
-  const fams = [...new Set(Object.keys(tmap).map((k) => k.replace(/(O|H)$/, '')))];
-  let best: { fam: string; hits: number } | null = null;
-  for (const fam of fams) {
-    const hex = tmap[fam]?.toLowerCase();
-    if (!hex || !tmap[`${fam}H`]) continue;
-    const hits = ['', 'O', 'H'].reduce((s, suf) => s + (counts.get((tmap[fam + suf] ?? '').toLowerCase()) ?? 0), 0);
-    if (!best || hits > best.hits) best = { fam, hits };
+  const bases = [...new Set(Object.keys(tmap).map(baseDeGamme))];
+  let best: { base: string; hits: number } | null = null;
+  for (const base of bases) {
+    const hex = tmap[base]?.toLowerCase();
+    if (!hex || !tmap[gammeDe(base, 'lumiere')]) continue;
+    const hits = gammes([base]).reduce((s, g) => s + (counts.get((tmap[g] ?? '').toLowerCase()) ?? 0), 0);
+    if (!best || hits > best.hits) best = { base, hits };
   }
   if (!best || best.hits === 0) return null;
   const rgb = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)) as [number, number, number];
-  const lBase = lum(...rgb(tmap[best.fam]));
-  const lHi = lum(...rgb(tmap[`${best.fam}H`]));
-  const ombreHex = tmap[`${best.fam}O`];
+  const lBase = lum(...rgb(tmap[best.base]));
+  const lHi = lum(...rgb(tmap[gammeDe(best.base, 'lumiere')]));
+  const ombreHex = tmap[gammeDe(best.base, 'ombre')];
   const lOmbre = ombreHex ? lum(...rgb(ombreHex)) : lBase;
-  return { fam: best.fam, lBase, lHi, lOmbre, seuil: (lBase + lHi) / 2, seuilSombre: (lBase + lOmbre) / 2 };
+  return { base: best.base, lBase, lHi, lOmbre, seuil: (lBase + lHi) / 2, seuilSombre: (lBase + lOmbre) / 2 };
 }
 
 // ── Art de tenue au slot (règle STATIQUE, pas de détection au pixel) ─────────────────────────
 /** Emplacements de CORPS (chair/anatomie) — le reste de `SLOTS` (`palette.ts`) est TENUE. */
-const BODY_SLOTS = new Set(['peau', 'cheveux', 'yeux', 'corps']);
-const TENUE_FAM_TOKENS = SLOTS.filter((s) => !BODY_SLOTS.has(s));
-const TENUE_TOKEN_RE = new RegExp(`@(${TENUE_FAM_TOKENS.join('|')})(O|H)?\\b`);
-/** Un gradient de tenue est tout `url(#g_...)` ; un dégradé dérivé `dg-` compte par ses jetons. */
-const TENUE_GRADIENT_RE = /url\(#g_\w+\)/;
+const BODY_SLOTS = new Set<string>([...PORTEUR, 'corps']);
+const TENUE_SLOTS = new Set<string>(SLOTS.filter((s) => !BODY_SLOTS.has(s)));
+/** Vrai si le fragment référence un dégradé fixe (un id de `FX_GRADIENT_IDS`). */
+const referenceUnDegradeFixe = (svg: string): boolean => [...svg.matchAll(/url\(#([^)]*)\)/g)].some(([, id]) => FX_GRADIENT_IDS.has(id));
 
-/** Vrai si le fragment SVG référence de l'art de TENUE (jeton de famille vêtement/cuir/métal/accent
- *  ou gradient de tenue) — faux s'il ne référence que de la chair/anatomie (`@peau*`, `@cheveux*`,
- *  y compris dans un `dg-`) ou est absent. */
+/** Vrai si le fragment SVG référence de l'art de TENUE : jeton d'un emplacement de tenue (base ou rôle
+ *  de gamme), un dégradé dérivé `dg-` comptant par ses jetons, ou dégradé fixe — faux s'il ne référence
+ *  que de la chair/anatomie (`@peau*`, `@cheveux*`, y compris dans un `dg-`) ou est absent. */
 function fragmentHasTenueArt(svg: string): boolean {
-  return TENUE_TOKEN_RE.test(svg) || TENUE_GRADIENT_RE.test(svg);
+  return tokensOf(svg).some((k) => TENUE_SLOTS.has(baseDeGamme(k))) || referenceUnDegradeFixe(svg);
 }
 
-/** Toutes les vues d'un `PartArt` (string = front pour toutes vues). */
-function partArtFragments(art: PartArt | undefined): string[] {
-  if (art == null) return [];
-  if (typeof art === 'string') return [art];
-  return [art.front, art.back, art.profile].filter((s): s is string => s != null);
-}
+/** Toutes les vues déclarées d'un `PartArt` (`viewEntries`). */
+const partArtFragments = (art: PartArt | undefined): string[] => viewEntries(art).map(([, s]) => s);
 
 /** Slots que `TenueSet` habille réellement (`tenues/types.ts`) — les autres (`pied`, `main`,
  *  `arme`, `bouclier`, `visage`, `cheveux`) ne sont jamais portés par une tenue. */
@@ -389,7 +386,7 @@ function measure(tenueId: string, tmap: Record<string, string>, view: View): Vie
 
   const pixels = ls.length;
   const ecart = +(p90 - p10).toFixed(1);
-  const matiere = mat?.fam ?? null;
+  const matiere = mat?.base ?? null;
   const lBase = mat ? +mat.lBase.toFixed(1) : null;
   const lLumiere = mat ? +mat.lHi.toFixed(1) : null;
   const partClaireVal = partClaire === null ? null : +partClaire.toFixed(1);
@@ -620,7 +617,7 @@ if (creatureArg) {
       p90: +quantile(ls, 0.9).toFixed(1),
       p10: +quantile(ls, 0.1).toFixed(1),
       ecart: +(quantile(ls, 0.9) - quantile(ls, 0.1)).toFixed(1),
-      matiere: mat?.fam ?? null,
+      matiere: mat?.base ?? null,
       partClaire: mat && ls.length ? +((ls.filter((l) => l > mat.seuil).length / ls.length) * 100).toFixed(1) : null,
       platitude: platitude(comp, mask, w, h),
     });

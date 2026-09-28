@@ -11,13 +11,15 @@ import {
   auditFolioLineAlign,
   citationsParCle,
   DOSSIER_DATA,
+  regenerations,
   sitesDesNonJugeables,
   sitesDesViolations,
 } from '../../scripts/guards/lib/folioLineAlignAudit';
 import { ecartDuVolet } from '../../scripts/guards/lib/stock.mjs';
+import { ecartDeRegeneration, texteEnPlace } from '../../scripts/guards/lib/stockDeSites.mjs';
 
 /**
- * Garde-fou « le FOLIO déclaré tombe sur la LIGNE citée » (#1318 E8).
+ * Garde-fou « le FOLIO déclaré tombe sur la LIGNE citée » (#1318).
  *
  * Une entrée qui porte `source: {book, page}` ET une citation à la ligne (`source.note`, ou son
  * champ `ref` frère) se cite DEUX fois. L'extraction Marker sème des ancres `data-folio` : la ligne
@@ -32,7 +34,8 @@ import { ecartDuVolet } from '../../scripts/guards/lib/stock.mjs';
  * `{ fichier, ref, occurrence }` (`ecartDuVolet`, `scripts/guards/lib/stock.mjs`) — la forme que la
  * porte de plage VOIT, et qui se passe de plafond : une entrée de plus se déclare par son `fichier`.
  * Toute NOUVELLE divergence fait rouge nominativement ; toute entrée qui cesse de diverger SORT du
- * stock à la régénération (`npx tsx scripts/data/regen-folio-line-align-stock.mts`, second volet).
+ * stock à la régénération
+ * (`npx tsx scripts/guards/lib/regenStock.mts scripts/guards/lib/folioLineAlignAudit.ts`, second volet).
  *
  * COUVERTURE, pas confiance : sur les 54 folios posés à `reglesOptionnelles.json`, le détecteur en
  * verrouille **52**. Les 2 autres — `vents-tourbillonnants` (`LDB 46 l.179-190`, déclaré 238) et
@@ -76,10 +79,11 @@ function compteSources(dir: string): { sourcees: number; citees: number } {
 }
 
 const STOCK = 'scripts/guards/lib/folioLineAlignStock.mjs';
-const REGEN = 'npx tsx scripts/data/regen-folio-line-align-stock.mts';
+const REGEN = 'npx tsx scripts/guards/lib/regenStock.mts scripts/guards/lib/folioLineAlignAudit.ts';
 
-describe('garde-fou « folio déclaré ↔ ligne citée » (cliquet, #1318 E8)', () => {
-  const { scanned, violations, ignored } = auditFolioLineAlign();
+describe('garde-fou « folio déclaré ↔ ligne citée » (cliquet, #1318)', () => {
+  const rapport = auditFolioLineAlign();
+  const { scanned, violations, ignored } = rapport;
   const ecartDesalignes = ecartDuVolet({
     sites: sitesDesViolations(violations), stock: FOLIO_LINE_ALIGN_RATCHET, ou: STOCK,
   });
@@ -108,6 +112,10 @@ describe('garde-fou « folio déclaré ↔ ligne citée » (cliquet, #1318 E8)',
   it('CLIQUET : toute entrée du stock qui ne diverge plus doit en être RETIRÉE', () => {
     const { perimees } = ecartDesalignes;
     expect(perimees, `Entrée(s) alignée(s) — régénérer (${REGEN}) :\n${perimees.join('\n')}`).toEqual([]);
+  });
+
+  it('le stock committé est un point fixe de sa régénération', () => {
+    for (const r of regenerations(rapport)) expect(ecartDeRegeneration(r, texteEnPlace(r.chemin))).toBeNull();
   });
 
   it('CLIQUET DE COUVERTURE : les entrées JUGÉES ne reculent pas, les entrées SANS citation ne croissent pas (2026-09-01)', () => {

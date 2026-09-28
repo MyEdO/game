@@ -8,7 +8,7 @@
 //
 // Détection par AST (`typescript`, `ts.createSourceFile` — MÊME socle que `battleRngEngineLeak.mjs`/
 // `registryIdBranch.mjs`, aucun second socle) : un site est un APPEL, jamais une occurrence textuelle.
-// Deux conséquences mesurées (#918 lot B) : les lignes rapportées sont EXACTES (le scan lexical
+// Deux conséquences mesurées (#918) : les lignes rapportées sont EXACTES (le scan lexical
 // précédent supprimait commentaires bloc et imports multi-lignes sans conserver leurs retours-ligne —
 // dérive mesurée jusqu'à +662 lignes sur `combatFlow.ts`), et deux FORMES de non-violation sont
 // reconnues STRUCTURELLEMENT au lieu d'être portées par une entrée de whitelist :
@@ -27,22 +27,19 @@
 //      (`const cible = effectiveChar(c, 'ag'); if (d100(rng) <= cible)`) aussi souvent qu'en direct ;
 //      lue sur la seule instruction, elle blanchit ce Test et un Test OPPOSÉ maison entier.
 //
-// ANGLE MORT assumé de (M) : le critère est celui de la CONSOMMATION IMMÉDIATE. Un dé dont le
+// ANGLE MORT de (M) : le critère est celui de la CONSOMMATION IMMÉDIATE. Un dé dont le
 // résultat transite par un appel intermédiaire (`mutationKindFor(roll)`, `petitePriereAnswered(roll,
 // seuil)`) reste une violation — resserrement délibéré : la forme relâchée blanchirait aussi
 // `massBattleFlow.ts` (`enemyRoll` passé à `openBattlePending`), qui est le jet de l'ADVERSAIRE d'un
 // Test opposé.
 //
-// ANGLE MORT résiduel de CE scanner (mesuré, fail-open assumé) : un import RENOMMÉ
-// (`import { d100 as des } from '../engine/dice'`) lui échappe — il reconnaît le nom APPELÉ, sans
-// résoudre la liaison. Le dépôt porte DEUX imports renommés de primitives de dé (`combatEffects.ts:9`
-// et `interludeFlow.ts:16`, `roll as rollDice`) ; aucun ne renomme `rollTest`/`d100`, la population de
-// ce scanner-ci reste donc exacte. La garde SŒUR (#1508), elle, RÉSOUT l'alias
-// (`importsDuMoteur` : nom local → nom d'origine) — elle ne pouvait pas s'en remettre à la coïncidence
-// qui fait tomber `roll as rollDice` sur un autre nom de son amorce.
+// Angle mort de CE scanner : un import RENOMMÉ (`import { d100 as des } from '../engine/dice'`) lui
+// échappe — il reconnaît le nom APPELÉ. La garde SŒUR (`scanDesHorsPorte`, #1508) reconnaît l'appel
+// par sa liaison d'import (`estAppelDeclare`) et le voit.
 import tsModule from 'typescript';
 import { parUnitesDeCode } from './lister.mjs'
 import { scriptKindDe } from './dialecte.mjs'
+import { estAppelDeclare, tableDesExports } from './canonUnique.mjs'
 
 // Liaison LOCALE de l'API du compilateur — FAIT mesuré 2026-08-23 : sous Vitest ce module passe par
 // vite-node, et chaque `ts.x` d'un visiteur AST se relit alors sur l'objet d'import du runner. Même
@@ -279,7 +276,8 @@ export const AMORCE_TEST = ['rollTest', 'd100'];
  * `src/engine/dice.ts` au complet. La garde d'exclusivité (#274) ne connaît que le forgeage d'un
  * Test ; elle est donc AVEUGLE à une magnitude (`rollDice`), à une dispersion (`d10`), à une
  * expression authorée (`rollExpr`) et au d100 d'environnement (`deMonde`) — 60 des 75 lignes de dé
- * de `src/state`+`src/ui` lui étaient invisibles au 2026-09-04.
+ * de `src/state`+`src/ui` lui étaient invisibles au 2026-09-04. « Au complet » est gardé :
+ * `roll-seam-exclusivity-guard.test.ts`, « AMORCE COMPLÈTE ».
  * @type {readonly string[]}
  */
 export const AMORCE_DES = ['rollTest', 'd100', 'd10', 'roll', 'rollDice', 'rollExpr', 'deMonde'];
@@ -304,26 +302,6 @@ function estAppelDeDe(node) {
 }
 
 /**
- * LIAISON des noms importés depuis `src/engine` dans ce fichier : nom LOCAL → nom D'ORIGINE
- * (`import { d10 } from '../engine/dice'` → `d10 → d10` ; `import { roll as rollDice }` →
- * `rollDice → roll`). Deux rôles, un seul passage :
- *  - elle distingue une primitive de dé d'un HOMONYME local (`roll`, déclencheur de flux en UI) ;
- *  - elle ferme l'ALIAS : le dépôt en porte deux (`combatEffects.ts:9`, `interludeFlow.ts:16` —
- *    `roll as rollDice`), qui ne comptaient jusqu'ici que par la coïncidence d'un alias tombant sur un
- *    autre nom de l'amorce. Un `d100 as des` ne se serait pas vu.
- * @returns {Map<string, string>} */
-function importsDuMoteur(sf) {
-  const out = new Map();
-  for (const st of sf.statements) {
-    if (!ts.isImportDeclaration(st) || !ts.isStringLiteral(st.moduleSpecifier)) continue;
-    if (!/(^|\/)engine\//.test(st.moduleSpecifier.text)) continue;
-    const b = st.importClause?.namedBindings;
-    if (b && ts.isNamedImports(b)) for (const el of b.elements) out.set(el.name.text, (el.propertyName ?? el.name).text);
-  }
-  return out;
-}
-
-/**
  * EXPORTS de `src/engine` derrière lesquels UN DÉ TOMBE SANS QU'AUCUNE FRONTIÈRE EXPORTÉE NE SOIT
  * FRANCHIE (#1508) — `applyFall`, `scatter`, `rollMiscast`, `rollStock`… : le dé tombe là, le nom le
  * masque, et c'est le CALL-SITE qui décide de la fenêtre.
@@ -345,7 +323,9 @@ function importsDuMoteur(sf) {
  *
  * `applyOps` compte : il tire DANS SON CORPS (`rng.int` de ses désignations). Son canal a son propre
  * lot (#1508 T2, `OpsCtx.des`), qui le fera sortir d'ici en une ligne.
- * @param {{ rel: string, text: string }[]} engineFiles @returns {Set<string>}
+ * Rend la TABLE `{ module: [noms exportés] }` de ces exports et des primitives de `AMORCE_DES`
+ * (`src/engine/dice.ts`, `src/engine/tests.ts`), lue par `estAppelDeclare`.
+ * @param {{ rel: string, text: string }[]} engineFiles @returns {Record<string, string[]>}
  */
 export function engineDiceRollers(engineFiles) {
   const amorce = new Set(AMORCE_DES);
@@ -384,19 +364,17 @@ export function engineDiceRollers(engineFiles) {
       if (d.direct || viaLocal) { roule.add(nom); changed = true; }
     }
   }
-  const out = new Set([...roule].filter((n) => decls.get(n).exported && !amorce.has(n)));
-  return out;
+  return tableDesExports(engineFiles, [...AMORCE_DES, ...[...roule].filter((n) => decls.get(n).exported)]);
 }
 
 /**
  * GARDE SŒUR (#1508) — TOUT DÉ TIRÉ HORS PORTE, dans un fichier consommateur (`src/state`, `src/ui`,
  * `src/data`, `src/scenes`). Un site = un APPEL, au MÊME socle AST que les familles ci-dessus :
- *  - une PRIMITIVE de dé (`AMORCE_DES`) appelée en direct ;
+ *  - un appel qu'`estAppelDeclare` lie à un export de la table (`engineDiceRollers`), import renommé
+ *    et `ns.f` compris, compté sous son nom EXPORTÉ ;
  *  - un `.int(` de RNG (`rng.int(1, 6)`, `battleRng().int(…)`) — la désignation « lequel ? » tire un
  *    dé comme le reste ; l'appel doit porter SA PLAGE (`estAppelDeDe` : au moins un argument, aucun
  *    littéral chaîne), ce qui écarte le `.int()` de schéma zod, qui ne tire pas ;
- *  - un export de `src/engine` derrière lequel le dé tombe sans franchir d’autre frontière exportée
- *    (`engineDiceRollers` ci-dessus).
  * La forme (S) « position de spec » garde son exclusion STRUCTURELLE (le callback d'une spec de flux
  * est exécuté PAR la fabrique du seam). La forme (M) ne s'applique PAS : elle blanchit un `d100(`
  * consommé en seuil ou en table, ce qui était exactement la taxonomie que #1508 annule — sous la
@@ -404,29 +382,21 @@ export function engineDiceRollers(engineFiles) {
  *
  * Un site est rendu UNE fois (dédupliqué par ligne + nom) : `roll` est à la fois primitive et amorce,
  * et un helper homonyme ne doit pas compter double.
- * @param {string} relPath @param {string} contenu @param {Iterable<string>} rollerNames
+ * @param {string} relPath @param {string} contenu
+ * @param {Readonly<Record<string, readonly string[]>>} table `engineDiceRollers`
  * @returns {{ line: number, name: string }[]}
  */
-export function scanDesHorsPorte(relPath, contenu, rollerNames) {
-  const noms = new Set([...AMORCE_DES, ...rollerNames]);
-  if (!DES_HORS_PORTE_RX.test(contenu) && !rollerNameRx(noms).test(contenu)) return [];
+export function scanDesHorsPorte(relPath, contenu, table) {
+  if (!DES_HORS_PORTE_RX.test(contenu) && !rollerNameRx(new Set(Object.values(table).flat())).test(contenu)) return [];
   const sf = ts.createSourceFile(
     relPath, contenu, ts.ScriptTarget.Latest, true,
     scriptKindDe(relPath),
   );
-  // Un nom ne compte que s'il est IMPORTÉ DU MOTEUR dans CE fichier, et il compte sous son nom
-  // D'ORIGINE. Les primitives de dé portent des noms courants (`roll`) : sans cette condition, 7 sites
-  // d'UI où `roll` est le déclencheur local du flux (`AuContactModal`, `jetProps/*`, `CascadeModal`…)
-  // étaient comptés comme des dés ; et sans la résolution d'ALIAS, un `d100 as des` ne compterait pas
-  // du tout (le dépôt porte deux `roll as rollDice`, cf. `importsDuMoteur`).
-  const duMoteur = importsDuMoteur(sf);
   /** @type {Map<string, { line: number, name: string }>} */
   const vus = new Map();
   const visit = (node) => {
     if (ts.isCallExpression(node) && !inSpecCallback(node)) {
-      const e = node.expression;
-      const origine = ts.isIdentifier(e) ? duMoteur.get(e.text) : undefined;
-      const nom = origine && noms.has(origine) ? origine : (estAppelDeDe(node) ? 'rng.int' : null);
+      const nom = estAppelDeclare(node, sf, table) ?? (estAppelDeDe(node) ? 'rng.int' : null);
       if (nom) {
         const line = sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1;
         vus.set(`${line}:${nom}`, { line, name: nom });
@@ -543,21 +513,22 @@ function rollerNameRx(names) {
  * « position de spec » garde son exclusion STRUCTURELLE (le callback `resolve` d'une spec de flux est
  * exécuté PAR la fabrique du seam, que le dé soit brut ou délégué). La forme (M) « dé de monde » ne
  * s'applique pas : elle se lit sur la CONSOMMATION immédiate d'un `d100(`, qu'un helper nommé masque.
- * @param {string} relPath @param {string} contenu @param {Iterable<string>} rollerNames
+ * Un appel compte quand `estAppelDeclare` le lie à un export de la table (import renommé et `ns.f`
+ * compris, sous son nom EXPORTÉ) ; un homonyme non importé ne compte pas.
+ * @param {string} relPath @param {string} contenu
+ * @param {Readonly<Record<string, readonly string[]>>} table `tableDesExports(engineFiles, engineRollerExports(engineFiles).keys())`
  * @returns {{ line: number, name: string }[]}
  */
-export function scanEngineDelegatedRoll(relPath, contenu, rollerNames) {
-  const names = rollerNames instanceof Set ? rollerNames : new Set(rollerNames);
-  if (!rollerNameRx(names).test(contenu)) return [];
+export function scanEngineDelegatedRoll(relPath, contenu, table) {
+  if (!rollerNameRx(new Set(Object.values(table).flat())).test(contenu)) return [];
   const sf = ts.createSourceFile(
     relPath, contenu, ts.ScriptTarget.Latest, true,
     scriptKindDe(relPath),
   );
   const findings = [];
   const visit = (node) => {
-    if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && names.has(node.expression.text) && !inSpecCallback(node)) {
-      findings.push({ line: sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1, name: node.expression.text });
-    }
+    const name = ts.isCallExpression(node) && !inSpecCallback(node) ? estAppelDeclare(node, sf, table) : null;
+    if (name) findings.push({ line: sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1, name });
     ts.forEachChild(node, visit);
   };
   ts.forEachChild(sf, visit);

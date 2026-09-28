@@ -5,6 +5,7 @@ import { buildFieldConsumersMd } from '../../scripts/docs/build-field-consumers.
 import { TARGETS, fieldsOf } from '../../scripts/guards/lib/fieldConsumerTargets.mjs';
 import { listProdFiles, scanFieldReads, fieldOwnership, groupByField } from '../../scripts/guards/lib/fieldConsumers.mjs';
 import { virtualProgram, VIRTUAL_ROOT } from '../../scripts/guards/lib/tsProgram.mjs';
+import { detenteur } from '../detenteur.testkit';
 
 /**
  * Garde du rapport « consommateurs par champ » (#903 — `scripts/docs/build-field-consumers.mts`,
@@ -24,9 +25,8 @@ const ROOT = fileURLToPath(new URL('../../', import.meta.url));
  *  assertions qui le lisent (cas fondateur, déterminisme, champs recouvrés, cliquet des « 0 lecteur »).
  *  Il coûte ~17 s et ~1,3 Go (Program du dépôt, 1 952 fichiers) : d'où les timeouts explicites posés
  *  sur les `it` qui le paient. PARESSEUX : payé au 1ᵉʳ `it` qui le demande, jamais à la collecte de
- *  vitest. */
-let _rapport: ReturnType<typeof buildFieldConsumersMd> | null = null;
-const rapport = () => (_rapport ??= buildFieldConsumersMd());
+ *  vitest (#1801). */
+const rapport = detenteur(buildFieldConsumersMd);
 
 /**
  * L'ÉCART entre DEUX rendus du rapport, en une phrase — vide = identiques. Trois cas NOMMÉS, mordus
@@ -95,14 +95,14 @@ describe('cas fondateur #903 — qui lit TrappingRef.spec ?', () => {
    * (`src/engine/trappingChoices.ts`) qui reconduit la spec en résolvant un emplacement
    * `qualityChoice`, `itemFromTrappingRef` (`src/engine/items.ts`) qui la MATÉRIALISE sur
    * l'`ItemInstance` — sans quoi la spécialisation se perd entre la dotation et le sac (#1463
-   * L-ref-1) —, et `cleDuFormat2` (`src/state/roster.ts`), la clé FIGÉE d'un brouillon au format 2
+   * L-ref-1) —, et `cleDuFormat4` (`src/state/roster.ts`), la clé FIGÉE d'un brouillon au format 4
    * (#1988), qui ne peut pas passer par le rendu vivant. Le RENDU, lui, n'en est pas un : « base (spec) » passe par `refLabel`
    * (`src/data/index.ts`), SOURCE UNIQUE partagée par toute référence, son paramètre est un `RefDesignee` —
    * un lecteur mesuré dans `data/index.ts` signalerait une SECONDE définition du rendu, et c'est ce
    * que cette garde refuse. La preuve d'AFFICHAGE vit sur la donnée réelle
    * (`src/data/dotations-catalogue.test.ts`, `src/engine/integration-creation.test.ts`).
    */
-  it('`TrappingRef.spec` : TROIS lecteurs, résolution, matérialisation et clé du format 2 — aucun dans le rendu', () => {
+  it('`TrappingRef.spec` : TROIS lecteurs, résolution, matérialisation et clé du format 4 — aucun dans le rendu', () => {
     const target = TARGETS.find((t) => t.type === 'TrappingRef');
     expect(target, 'TrappingRef absent de TARGETS — le cas fondateur a perdu sa surface').toBeTruthy();
     const byField = rapport().byType.get('TrappingRef');
@@ -113,8 +113,8 @@ describe('cas fondateur #903 — qui lit TrappingRef.spec ?', () => {
     const specReaders = [...new Set(specSites.map((s) => s.slice(0, s.lastIndexOf(':'))))];
     expect(
       specSites.sort(),
-      'TrappingRef.spec devrait avoir EXACTEMENT 3 sites lecteurs : la résolution de choix, la matérialisation et la clé du format 2',
-    ).toEqual(['src/engine/items.ts:309', 'src/engine/trappingChoices.ts:107', 'src/state/roster.ts:135']);
+      'TrappingRef.spec devrait avoir EXACTEMENT 3 sites lecteurs : la résolution de choix, la matérialisation et la clé du format 4',
+    ).toEqual(['src/engine/items.ts:309', 'src/engine/trappingChoices.ts:107', 'src/state/roster.ts:134']);
     expect(
       specReaders.some((s: string) => s.includes('data/index.ts')),
       'un lecteur de spec dans `data/index.ts` = une seconde définition du rendu « base (spec) », qui appartient à `refLabel`',

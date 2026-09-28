@@ -1,7 +1,7 @@
 /**
  * Source UNIQUE des visuels dérivés de l'ÉTAT d'un Combatant — mutations (Corruption, LDB 19) et
  * traits, DÉCLARÉS EN DONNÉE (`appearance` sur la mutation / le `TraitData`), + amputations/prothèses
- * (LDB 18/73). Consommée par tous les chemins de rendu (token combat/exploration, vue top, portrait
+ * (LDB 18/73). Consommée par tous les chemins de rendu (pion combat/exploration, vue top, portrait
  * HUD, cavalier) : un nouveau visuel d'état se branche en DONNÉE (fragment `appearance`), pas ici.
  *
  * Le fragment = `Partial<EntityAppearance>` : `features` (clés du catalogue → calques + morpho),

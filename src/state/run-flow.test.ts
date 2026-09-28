@@ -6,7 +6,6 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { runFlow } from './combatFlow';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import type { Flow } from './flow';
 
 const setFlag = (flag: string): Flow => ({ kind: 'do', effect: { type: 'setFlag', flag } });
@@ -43,7 +42,7 @@ describe('runFlow — séquence + branche if (état vivant)', () => {
 
 describe('runFlow — nœud test (suspension + continuation)', () => {
   function hero() {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     return h;
   }
 

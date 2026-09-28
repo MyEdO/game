@@ -8,7 +8,6 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { resolveFreeAttacks } from './combatFlow';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { testScene } from '../scenes/test-fixture';
 
 import type { AttackResult } from '../engine/combat';
@@ -24,9 +23,9 @@ describe('Talents d’attaque déclenchée (grantFreeAttack en donnée)', () => 
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 
   function setup() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
-    useGame.getState().startScene(testScene);
+    useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');
     useGame.getState().confirmRoundStart();
     vi.clearAllTimers();
@@ -113,7 +112,12 @@ describe('Talents d’attaque déclenchée (grantFreeAttack en donnée)', () => 
       H.talents = [...(H.talents ?? []), { talentId: 'frappe-reactive', times: 1 }];
       H.characteristics.initiative = 99; // Test d'Initiative quasi-garanti
       resolveFreeAttacks(useGame.getState, useGame.setState, H, 'onCharged', E);
-      // Cadence auto : pas de cascade — choix + Test résolus inline (comme un ennemi).
+      // Cadence auto : choix + Test d'Init inline. Graine 2 : la riposte rate sur un double (88) → sa
+      // Maladresse est un dé du HÉROS (`jetSurfaced`), que le pilote mène par `JET_AUTO.fumble`.
+      const pc = useGame.getState().pendingCascade!;
+      expect(pc.participants[pc.cursor]).toMatchObject({ jet: 'fumble', actorId: H.id });
+      useGame.getState().fumbleRoll();
+      useGame.getState().fumbleConfirm();
       expect(useGame.getState().pendingCascade).toBeNull();
       const h = useGame.getState().battle!.combatants.find((c) => c.id === H.id)!;
       expect(h.freeAttacksThisTurn?.['frappe-reactive']).toBe(1); // a riposté 1× contre ce chargeur

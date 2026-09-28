@@ -95,7 +95,7 @@ La vérité de VUE (estompe d'occlusion, révélation, assombrissement d'un éta
 | `buildHighlights` | `HighlightEl[]` | `src/gameIso/builders/highlights.ts:64` | — |
 | `buildPropVolumes` | `Face[]` | `src/gameIso/builders/propVolumes.ts:52` | Les faces MONDE d'un décor volumique : recette locale × cap × ancre, posées sur `baseHeightM`. |
 | `buildProps` | `PropEl[]` | `src/gameIso/builders/props.ts:128` | Éléments `prop` de la scène — TOUTES les couches, sauf ISOLEMENT explicite d'un étage (`viewZ`, demande de l'appelant : vue du dessus, minimap, `state/viewLevel`). |
-| `buildRoofs` | `RoofEl[]` | `src/gameIso/builders/roofs.ts:1401` | Éléments `roof` de la scène. |
+| `buildRoofs` | `RoofEl[]` | `src/gameIso/builders/roofs.ts:1402` | Éléments `roof` de la scène. |
 | `buildTokens` | `TokenEl[]` | `src/gameIso/builders/tokens.ts:92` | Éléments `token` de la scène — figurants (toujours), puis combattants (si `battle`). |
 | `buildWalls` | `WallEl[]` | `src/gameIso/builders/walls.ts:629` | Éléments `wall` de la scène. |
 
@@ -118,7 +118,7 @@ La vérité de VUE (estompe d'occlusion, révélation, assombrissement d'un éta
 Cornes et queues ne sont pas de l'art posé au cas par cas : `src/gameIso/rig/parts/appendages/` est le registre UNIQUE, et
 **1 appendice = 1 def `defs/<id>.ts` qui porte SON art** (`front` + `profile` dédié, `back` = `front` par
 défaut) — aucune string SVG de corne ou de queue hors des defs. Les consommateurs les référencent **PAR ID**
-et la résolution passe par la primitive unique `pickView` (`src/gameIso/rig/parts/types.ts:14`), appelée
+et la résolution passe par la primitive unique `viewOrFront` (`src/gameIso/rig/parts/types.ts:24`), appelée
 sur un appendice par `src/gameIso/rig/composeRig.tsx`, `src/gameIso/rig/parts/monstrous.ts`, `src/gameIso/rig/parts/traitVisuals.ts`.
 
 | Appendice | id | Def | Dos propre | Référencé par |
@@ -193,9 +193,9 @@ relancer, comparer : une migration donnée-neutre doit rester identique.
 - **un ton de décor** : une entrée dans la palette — jamais un hex dans un renderer (§6).
 - **un terrain** : une entrée dans `src/data/terrains.json` (règle ET rendu dans la même entrée).
 - **un prop / décor** : une def sous `src/gameIso/catalog/decor/defs/`, puis `npm run gen`. Symétrique →
-  un seul dessin ; directionnel → il DÉCLARE ses vues, et la sélection vue + miroir + repli se fait
+  un seul dessin ; orienté → il DÉCLARE ses vues, et la sélection vue + miroir + repli se fait
   dans la MACHINERIE partagée, jamais dans la def.
 - **un TYPE d'élément** (au-delà des 5 membres de `SceneEl`) : ajouter le variant au pivot,
   son builder, sa cuisson dans le monde volumique, et — s'il doit se voir à l'authoring — son peintre
   SVG avec sa profondeur de tri.
-<!-- sources-empreinte: 931dfaa9f4e83125d8527943cc6a26f1e645b58e (1015 fichiers, 93 dossiers) corps: c6f40f73ebafdd022b3dd737f1489c6e82ae7a1b -->
+<!-- sources-empreinte: c9ae045e556d9b8e7611c4d58ec7de3a8915ac1f (1014 fichiers, 93 dossiers) corps: 54932f16d69e726a96e21cffdf1ae6735732eb66 -->

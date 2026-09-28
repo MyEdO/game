@@ -134,7 +134,7 @@ test('le step de classement précède `npm ci` dans chaque job qui le porte', ()
 // (c1) — chaque gate SAUTABLE confrontée à son CORPUS : la classe « `lit` sous-déclaré ».
 //
 // Le trou vécu (2026-09-16) : `ECRIT_LU['test:agents'].lit` disait `['scripts/agents/']` alors que
-// `scripts/agents/compat.test.mjs:160,161,166,180` lit `.claude/settings.json`, `.codex/hooks.json`,
+// `scripts/agents/compat.test.mjs:176,177,182,193` lit `.claude/settings.json`, `.codex/hooks.json`,
 // `CLAUDE.md` et `AGENTS.md` sur l'arbre réel — la gate était donc SAUTÉE sur le push qui touche
 // exactement ces fichiers. La mesure `lit` est déclarative ; ce cas la confronte au CODE ATTEINT.
 //

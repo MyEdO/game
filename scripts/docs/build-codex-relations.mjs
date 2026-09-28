@@ -12,15 +12,15 @@
  * Patron retenu : « éditorial EN DUR dans le générateur » (scripts/docs/build-sources-vf.mjs),
  * avec la passerelle TS de `scripts/docs/build-donnees.mjs` pour l'exposition.
  *
- * Mode --check (chaîné dans npm run docs:check) : régénère en mémoire, compare au .md committé,
- * exit 1 avec message actionnable si diff — jamais d'écriture en mode --check.
+ * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/empreinte-sources.mjs), rejoué par `build-all.mjs`.
  *
  *   node scripts/docs/build-codex-relations.mjs
  */
 import { readFileSync, existsSync } from 'node:fs'
 import { sortieOutilLocal } from '../lancer-local.mjs'
 import ts from 'typescript'
-import { emitOrCheck, loadSource, jsdocBody } from './lib/jsdocUnion.mjs'
+import { loadSource, jsdocBody } from './lib/jsdocUnion.mjs'
+import { ecrireOuVerifier } from './lib/empreinte-sources.mjs'
 import { fileExports } from './lib/engineExports.mjs'
 import { parUnitesDeCode } from '../guards/lib/lister.mjs'
 
@@ -411,7 +411,7 @@ Regrouper une catégorie = poser \`cluster: '…'\` sur son littéral dans \`COD
 ${TESTS.map((t) => `- \`npx vitest run ${t}\``).join('\n')}
 `
 
-emitOrCheck({
+ecrireOuVerifier({
   out,
   path: 'docs/codex-relations.md',
   check: process.argv.includes('--check'),

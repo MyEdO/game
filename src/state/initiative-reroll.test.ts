@@ -2,7 +2,6 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { advanceTurn } from './combatFlow';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { seedBattleRng } from './battleRng';
 import { setRule, resetRule } from '../engine/policy';
 import { testScene } from '../scenes/test-fixture';
@@ -20,9 +19,9 @@ describe('combat-init-reroll — relance de l’Initiative par Round (LDB 13 l.4
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); resetRule('combat-init-reroll'); resetRule('combat-init-method'); });
 
   function openCombat() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
-    useGame.getState().startScene(testScene);
+    useGame.getState().startScene(testScene());
     seedBattleRng(777);
     useGame.getState().startCombat('enc-mutants');
     useGame.getState().confirmRoundStart();

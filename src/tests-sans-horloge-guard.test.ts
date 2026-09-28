@@ -1,8 +1,9 @@
-import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { codeSeul } from '../scripts/guards/lib/codeSeul.mjs';
 import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
 import { estSuiteVitest, EST_SUITE_VITEST } from '../scripts/guards/lib/fichierVitest.mjs';
+import { RACINES_DE_LA_SUITE } from '../scripts/guards/lib/racinesDeLaSuite.mjs';
+import { detenteur } from './detenteur.testkit';
 
 /**
  * TESTS SANS HORLOGE (#1788) — un test de `src/` prouve un CONTRAT DE TRAVAIL, jamais une durée.
@@ -11,16 +12,17 @@ import { estSuiteVitest, EST_SUITE_VITEST } from '../scripts/guards/lib/fichierV
  * rapide qui a pourtant régressé. Ce que le contrat voulait dire se lit sur l'ARTEFACT (tampons,
  * `version` d'attribut, index, compteurs d'appels), qui est déterministe.
  *
- * PÉRIMÈTRE = LE CORPUS DE `npm test`, jamais une liste à nous : les `include` de `vite.config.ts`
- * (`src/**`, `server/src/**`, `scripts/map/**`) sont EXACTEMENT ce que la suite joue, donc
+ * PÉRIMÈTRE = LE CORPUS DE `npm test`, jamais une liste à nous : les racines de la suite
+ * (`RACINES_DE_LA_SUITE`, d'où `vite.config.ts` tire `test.include` : `src/**`, `server/src/**`,
+ * `scripts/map/**`) sont EXACTEMENT ce que la suite joue, donc
  * exactement ce dont la baseline ZÉRO parle — la garde ne porte AUCUNE liste de sites tolérés (une
  * garde qui nomme ses tolérés valide des défauts). Ces tests prouvent du code PUR (moteur, état,
  * rendu, worker) : aucun n'a un délai pour sujet. Les tests de `scripts/**` HORS `scripts/map`
  * exercent des processus, des sockets et des délais d'attente, où une durée EST le sujet légitime
  * du contrat (`scripts/guards/lib/spawnResilient.test.mjs`, `scripts/recette/lib.test.mjs` en
  * portent) — et `npm test` ne les joue pas : ils sortent du périmètre par la MÊME règle, sans
- * énumération. Les `include` ne sont pas recopiés : ils sont DÉRIVÉS de `vite.config.ts` à
- * l'exécution (`includeDeVite`), et la garde ne porte donc AUCUNE liste — ni de sites, ni de globs.
+ * énumération. Les motifs ne sont pas recopiés : la garde lit la source unique
+ * (`scripts/guards/lib/racinesDeLaSuite.mjs`) et ne porte donc AUCUNE liste — ni de sites, ni de globs.
  *
  * Ce fichier est DANS le corpus qu'il scanne : son motif n'y apparaît qu'ÉCLATÉ (alternance de la
  * regex, concaténation des cas vivants), donc la garde ne s'exempte pas — elle ne se matche pas.
@@ -41,7 +43,7 @@ const GARDE = {
     'dossiers local, aucun blanchiment local : commentaires et littéraux de chaîne sont de la prose ' +
     'et de la donnée, seul le CODE est mesuré.',
   perimetre:
-    'Le corpus de `npm test`, DÉRIVÉ des `include` de la section `test` de `vite.config.ts` — aucune ' +
+    'Le corpus de `npm test`, lu aux racines de la suite (`racinesDeLaSuite.mjs`, source du `test.include` de `vite.config.ts`) — aucune ' +
     'liste de globs ici : fichiers de test ET le harnais `src/test-setup.ts` qui court avant chacun ' +
     'd’eux. Les tests de `scripts/**` hors `scripts/map` ' +
     'pilotent des processus et des sockets, où un délai est le SUJET du contrat — et `npm test` ne ' +
@@ -72,29 +74,6 @@ const HORLOGE = /\b(?:performance|Date)\s*\.\s*now\s*\(/;
  *  horloge dans tous les tests à la fois — et celle-là n'apparaît dans aucun d'eux. */
 const EST_TEST = (rel: string): boolean => estSuiteVitest(rel) || rel.endsWith('/test-setup.ts');
 
-/**
- * Les `include` de la section `test` de `vite.config.ts` : CE QUE `npm test` joue. DÉRIVÉS, jamais
- * recopiés — aucune liste de globs ne vit dans cette garde, donc rien à tenir à jour quand la config
- * en gagne une.
- *
- * POURQUOI PAS L'IMPORT DU MODULE : `vite.config.ts` ÉVALUE `defineConfig(...)` au chargement, et
- * instancie ses plugins au passage (`registryGen()`, `proseSource()`, `react()`, `:27-28`) — un
- * import pour lire trois chaînes embarquerait ces effets dans le worker de test. Le scan lexical,
- * lui, n'exécute rien. Et l'autre canal (`vitest list --filesOnly`, `scripts/test/run.mjs:231-234`)
- * lance un processus : hors de portée d'un test.
- */
-function includeDeVite(): string[] {
-  const config = readFileSync(new URL('../vite.config.ts', import.meta.url), 'utf8');
-  const sectionTest = /\btest:\s*\{/.exec(config);
-  if (!sectionTest) throw new Error('tests-sans-horloge : section `test:` introuvable dans vite.config.ts');
-  const bloc = /\binclude:\s*\[([^\]]*)\]/.exec(config.slice(sectionTest.index));
-  if (!bloc) throw new Error('tests-sans-horloge : `include:` introuvable dans la section `test:` de vite.config.ts');
-  const motifs = [...bloc[1].matchAll(/'([^']+)'/g)].map((m) => m[1]);
-  if (motifs.length === 0) throw new Error('tests-sans-horloge : `include:` de vite.config.ts est VIDE — la garde mesurerait le vide');
-  return motifs;
-}
-
-const INCLUDE_NPM_TEST = includeDeVite();
 
 /** Le séparateur d'un glob de Vitest : ce qui précède est le DOSSIER, ce qui suit est la FIN de nom. */
 const SEPARATEUR_GLOB = '/**/*';
@@ -109,12 +88,6 @@ const finsDuGlob = (motif: string): string[] => {
   return accolade ? accolade[1].split(',').map((d) => suffixe.replace(accolade[0], d)) : [suffixe];
 };
 
-/** Un motif d'`include` décrit un DOSSIER et des EXTENSIONS : c'est tout ce dont le corpus a besoin. */
-const cibleDe = (motif: string): { dir: string; exts: string[] } => ({
-  dir: motif.split(SEPARATEUR_GLOB)[0],
-  exts: [...new Set(finsDuGlob(motif).map((fin) => `.${fin.split('.').pop()}`))],
-});
-
 /** Ce nom de fichier serait-il joué par ce motif d'`include` ? */
 const accepteParLeGlob = (motif: string, nom: string): boolean => finsDuGlob(motif).some((fin) => nom.endsWith(fin));
 
@@ -122,10 +95,9 @@ const accepteParLeGlob = (motif: string, nom: string): boolean => finsDuGlob(mot
  *  dialecte de suite que seul `scripts/**` écrit, un BANC, une source de production, un suffixé. */
 const NOMS_TEMOINS = ['a.test.ts', 'a.test.tsx', 'a.test.mjs', 'a.bench.ts', 'a.ts', 'x.test.ts.bak'];
 
-describe('la SUITE se définit à UN endroit — le glob de vite.config.ts et le prédicat partagé concordent', () => {
+describe('la SUITE se définit à UN endroit — le glob des racines et le prédicat partagé concordent', () => {
   it('sur les dialectes que le glob NOMME, glob et `EST_SUITE_VITEST` acceptent et refusent les mêmes noms', () => {
-    for (const motif of INCLUDE_NPM_TEST) {
-      const { exts } = cibleDe(motif);
+    for (const { motif, exts } of RACINES_DE_LA_SUITE) {
       for (const nom of NOMS_TEMOINS) {
         if (!exts.some((e) => nom.endsWith(e))) continue; // dialecte que CE glob ne nomme pas
         expect(accepteParLeGlob(motif, nom), `${motif} ↔ prédicat sur ${nom}`).toBe(EST_SUITE_VITEST.test(nom));
@@ -137,46 +109,44 @@ describe('la SUITE se définit à UN endroit — le glob de vite.config.ts et le
     // Ce n'est pas un rouge à masquer, c'est le périmètre : le prédicat sert AUSSI `scripts/**`, dont
     // les suites sont en `.mjs` et tournent sous `node --test`, hors de `npm test`. La concordance
     // ci-dessus porte donc sur les dialectes que le glob NOMME, et l'écart est mesuré ici, pas tu.
-    expect(INCLUDE_NPM_TEST.some((m) => accepteParLeGlob(m, 'a.test.mjs'))).toBe(false);
+    expect(RACINES_DE_LA_SUITE.some((r) => accepteParLeGlob(r.motif, 'a.test.mjs'))).toBe(false);
     expect(EST_SUITE_VITEST.test('a.test.mjs')).toBe(true);
   });
 
   it('un nom SUFFIXÉ n’est une suite pour personne', () => {
-    expect(INCLUDE_NPM_TEST.some((m) => accepteParLeGlob(m, 'x.test.ts.bak'))).toBe(false);
+    expect(RACINES_DE_LA_SUITE.some((r) => accepteParLeGlob(r.motif, 'x.test.ts.bak'))).toBe(false);
     expect(EST_SUITE_VITEST.test('x.test.ts.bak')).toBe(false);
   });
 });
 
 describe('tests-sans-horloge-guard : aucun test joué par `npm test` ne lit l’horloge', () => {
-  const tests = INCLUDE_NPM_TEST.flatMap((motif) => {
-    const { dir, exts } = cibleDe(motif);
-    return readCorpus([dir], { exts, tests: true }).filter((f) => EST_TEST(f.rel));
-  });
+  const tests = detenteur(() =>
+    RACINES_DE_LA_SUITE.flatMap(({ dir, exts }) => readCorpus([dir], { exts: [...exts], tests: true }).filter((f) => EST_TEST(f.rel))),
+  );
 
   it('le corpus scanné est le RÉEL — sinon la garde mesurerait le vide', () => {
-    expect(tests.length).toBeGreaterThan(100);
-    expect(tests.map((f) => f.rel)).toContain('src/gameIso/backends/webgl/sceneTint.test.ts');
-    expect(tests.map((f) => f.rel), 'le HARNAIS est dans le corpus — sinon sa graine échappe à la garde')
+    expect(tests().length).toBeGreaterThan(100);
+    expect(tests().map((f) => f.rel)).toContain('src/gameIso/backends/webgl/sceneTint.test.ts');
+    expect(tests().map((f) => f.rel), 'le HARNAIS est dans le corpus — sinon sa graine échappe à la garde')
       .toContain('src/test-setup.ts');
-    for (const motif of INCLUDE_NPM_TEST) {
-      const { dir } = cibleDe(motif);
-      expect(tests.some((f) => f.rel.startsWith(`${dir}/`)), `${dir} est représenté dans le corpus`).toBe(true);
+    for (const { dir } of RACINES_DE_LA_SUITE) {
+      expect(tests().some((f) => f.rel.startsWith(`${dir}/`)), `${dir} est représenté dans le corpus`).toBe(true);
     }
   });
 
-  it('le périmètre DÉRIVÉ de `vite.config.ts` n’est pas vide, et porte bien `src/**`', () => {
-    // La dérivation LIT la config : si sa forme change, `includeDeVite` lève en le disant. Ce qui se
-    // vérifie ici est qu'elle rend quelque chose d'UTILISABLE — un périmètre vide, ou sans le dossier
-    // où vivent les tests du jeu, rendrait la baseline ZÉRO vraie par vacuité.
-    expect(INCLUDE_NPM_TEST.length, 'aucun `include` dérivé : la garde ne scannerait rien').toBeGreaterThan(0);
+  it('le périmètre lu n’est pas vide, et porte bien `src/**`', () => {
+    // Un périmètre vide, ou sans le dossier où vivent les tests du jeu, rendrait la baseline ZÉRO
+    // vraie par vacuité.
+    const motifs = RACINES_DE_LA_SUITE.map((r) => r.motif);
+    expect(motifs.length, 'aucune racine : la garde ne scannerait rien').toBeGreaterThan(0);
     expect(
-      INCLUDE_NPM_TEST.some((motif) => motif.startsWith('src/**')),
-      `aucun glob \`src/**\` dans le périmètre dérivé — reçu : ${INCLUDE_NPM_TEST.join(', ')}`,
+      motifs.some((motif) => motif.startsWith('src/**')),
+      `aucun glob \`src/**\` dans le périmètre — reçu : ${motifs.join(', ')}`,
     ).toBe(true);
   });
 
   it('aucune lecture d’horloge dans un test joué par `npm test`', () => {
-    const sites = tests.flatMap(({ rel, text }) =>
+    const sites = tests().flatMap(({ rel, text }) =>
       codeSeul(text)
         .split('\n')
         .map((ligne, i) => (HORLOGE.test(ligne) ? `${rel}:${i + 1}` : null))

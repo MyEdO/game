@@ -4,7 +4,6 @@ import { createElement } from 'react';
 import { TokenChromeMarks } from './TokenChromeMarks';
 import { CHROME_SLOTS, CHROME_ICON_MAX, tokenChrome } from './builders/tokenChrome';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import type { IconId } from '../ui/icons';
 import type { Combatant } from '../engine/types';
 
@@ -41,7 +40,7 @@ describe('Chrome de jeton — les alvéoles d’États sont RÉSERVÉES, jamais 
   });
 
   it('le rang tient dans SA réserve : le report « +N » occupe la dernière place', () => {
-    const c: Combatant = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', rng: makeRNG(3) });
+    const c: Combatant = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 3 });
     c.conditions = [
       { id: 'aveugle', value: 1 }, { id: 'assomme', value: 1 }, { id: 'saignement', value: 1 },
       { id: 'terrifie', value: 1 }, { id: 'empoisonne', value: 1 },

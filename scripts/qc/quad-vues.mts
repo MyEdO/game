@@ -32,13 +32,12 @@ import { Resvg } from '@resvg/resvg-js';
 import { QUAD_SPECIES, WINGED_SPECIES } from '../../src/gameIso/rig/creatures';
 import { resolveQuadFromProps } from '../../src/gameIso/rig/quadruped/composeQuad';
 import { quadParts } from '../../src/gameIso/rig/quadruped/quadParts';
-import type { QuadBoneId, QuadProps } from '../../src/gameIso/rig/quadruped/quadSkeleton';
+import { readQuadDecoKey, type QuadProps } from '../../src/gameIso/rig/quadruped/quadSkeleton';
 import { bonesToSvg } from '../../src/gameIso/rig/renderBones';
 import type { ResolvedBone } from '../../src/gameIso/rig/composeRig';
-import type { View } from '../../src/gameIso/rig/facing';
+import { VIEWS, VIEW_LABEL, type View } from '../../src/gameIso/rig/facing';
 import { defsGlobaux } from '../../src/gameIso/sprites';
 
-const VIEWS: View[] = ['profile', 'front', 'back'];
 // Boîte d'AUTHORING 120×150, mesurée dans un viewBox ÉLARGI (marge 60×75) pour voir les débords.
 const BOX_W = 120, BOX_H = 150, PAD_X = 60, PAD_Y = 75;
 const VB_W = BOX_W + 2 * PAD_X, VB_H = BOX_H + 2 * PAD_Y;
@@ -172,8 +171,8 @@ for (const [espece, p] of Object.entries(ALL)) {
   for (const view of VIEWS) {
     const nu = quadParts({ ...p, deco: undefined }, view);
     for (const cle of Object.keys(p.deco)) {
-      const [os, vue] = cle.split('#') as [QuadBoneId, View | undefined];
-      if (vue && vue !== view) continue;
+      const { bone: os, views } = readQuadDecoKey(cle);
+      if (!views.includes(view)) continue;
       decosApplicables++;
       if (!nu[os]) decosMorts.push({ espece, view, cle, os });
     }
@@ -184,19 +183,21 @@ if (process.argv.includes('--json')) {
   console.log(JSON.stringify({ rows, decosApplicables, decosMorts }, null, 1));
 } else {
   const n = (v: number, d = 1) => v.toFixed(d).padStart(7);
+  /** En-têtes des colonnes par vue, dans l'ordre de `VIEWS`, préfixés de la grandeur. */
+  const parVue = (grandeur: string) => VIEWS.map((v) => `${grandeur}${VIEW_LABEL[v]}`.padStart(7)).join(' ');
   rows.sort((a, b) => Math.abs(b.ecartH) - Math.abs(a.ecartH));
   console.log(`\n== PARITÉ DE SILHOUETTE VISIBLE (${rows.length} espèces ; boîte 120×150, unités boîte) ==`);
-  console.log(`${'espèce'.padEnd(28)} ${'hProfil'} ${'  hFace'} ${'   hDos'} ${'    Δh%'} ${' Δaire%'}`);
+  console.log(`${'espèce'.padEnd(28)} ${parVue('h')} ${'    Δh%'} ${' Δaire%'}`);
   console.log('-'.repeat(76));
   for (const r of rows)
-    console.log(`${r.espece.padEnd(28)} ${n(r.vu.profile.h)} ${n(r.vu.front.h)} ${n(r.vu.back.h)} ${n(r.ecartH)} ${n(r.ecartAire)}`);
+    console.log(`${r.espece.padEnd(28)} ${VIEWS.map((v) => n(r.vu[v].h)).join(' ')} ${n(r.ecartH)} ${n(r.ecartAire)}`);
 
   console.log('\n== LIGNE DE SOL PAR VUE (y du pixel le plus bas, silhouette entière ; sol de boîte = 150) ==');
   const parSol = [...rows].sort((a, b) => b.flottementSol - a.flottementSol);
-  console.log(`${'espèce'.padEnd(28)} ${' solPro'} ${'solFace'} ${' solDos'} ${' flott.'}`);
+  console.log(`${'espèce'.padEnd(28)} ${parVue('sol')} ${' flott.'}`);
   console.log('-'.repeat(76));
   for (const r of parSol)
-    console.log(`${r.espece.padEnd(28)} ${n(r.box.profile.sol)} ${n(r.box.front.sol)} ${n(r.box.back.sol)} ${n(r.flottementSol, 2)}`);
+    console.log(`${r.espece.padEnd(28)} ${VIEWS.map((v) => n(r.box[v].sol)).join(' ')} ${n(r.flottementSol, 2)}`);
 
   console.log('\n== DÉBORDS DE LA BOÎTE 120×150 (silhouette entière hors boîte) ==');
   console.log(`   viewBox de mesure : x ∈ [${-PAD_X}, ${BOX_W + PAD_X}] — « saturé » = bord atteint, gauche/droite sont des MINORANTS`);
@@ -207,10 +208,10 @@ if (process.argv.includes('--json')) {
 
   console.log('\n== OCCLUSION tête∩tronc (% des pixels de `tete` que le tronc recouvrirait) ==');
   const parOcc = [...rows].sort((a, b) => b.occlusionTete.back - a.occlusionTete.back);
-  console.log(`${'espèce'.padEnd(28)} ${' profil'} ${'   face'} ${'    dos'}`);
+  console.log(`${'espèce'.padEnd(28)} ${parVue('')}`);
   console.log('-'.repeat(60));
   for (const r of parOcc)
-    console.log(`${r.espece.padEnd(28)} ${n(r.occlusionTete.profile)} ${n(r.occlusionTete.front)} ${n(r.occlusionTete.back)}`);
+    console.log(`${r.espece.padEnd(28)} ${VIEWS.map((v) => n(r.occlusionTete[v])).join(' ')}`);
 
   console.log('\n== MASQUAGE RÉEL (% des pixels d\'un os couverts par les os peints PAR-DESSUS) ==');
   console.log('   « — » = l\'os ne porte pas d\'art dans cette vue ; `aile` = aileD (proche/droite).');

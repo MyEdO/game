@@ -17,10 +17,13 @@ import type { MerchantArchetypeDef } from '../state/merchants/types';
 // EXACTEMENT les types des champs qu'elles alimentent — les redéclarer ici en ferait une seconde vérité.
 import type { Scene, ReliefDefaults, SceneRoofDefaults, Terrain } from '../state/scene';
 import { slugId } from './slug';
+import { parLibelle } from '../lib/ordre.mjs';
+import { tableTotale } from '../lib/tableTotale';
 import { effectiveEntry } from '../engine/variants';
 import { CATEGORY_BY_SOURCE_KIND, type EffectSource } from '../engine/types';
 import characteristicsJson from './characteristics.json';
 import speciesJson from './species.json';
+import speciesRaceJson from './speciesRace.json';
 import classesJson from './classes.json';
 import careersJson from './careers.json';
 import careerLevelsJson from './careerLevels.json';
@@ -36,6 +39,7 @@ import mutationTablesJson from './mutationTables.json';
 import { critiqueEntries } from './criticals';
 import { SHIP_CRIT_SET, RIVER_CRIT_SET, type ShipCritSet } from './shipCriticals';
 import structureCriticalsRawJson from './structure-criticals.json';
+import artilleryMisfireRawJson from './artillery-misfire.json';
 import miscastRawJson from './miscast.json';
 import trappingsJson from './trappings.json';
 import vehiclesJson from './vehicles.json';
@@ -466,6 +470,8 @@ const STAKE_ENTRY_POOLS: Record<string, (id: string) => boolean> = {
   mutations: (id) => mutations.some((m) => m.id === id),
   mutationTables: (id) => mutationTables.some((t) => t.id === id),
   interludeEvents: (id) => interludeEvents.some((e) => e.id === id),
+  // Incidents de Tir par Salve (AA 10 l.270-277) : la LIGNE tirée est l'entrée jouée, comme un Critique.
+  artilleryMisfire: (id) => artilleryMisfireRows.some((e) => e.id === id),
   // Un jeu de taverne PORTE sa règle (sa fiche Codex la recopie verbatim) : c'est le foyer des effets
   // qu'une partie inflige (l'ivresse d'un jeu à boire, NADJ 16 l.90).
   tavernGames: (id) => (tavernGamesJson as { id: string }[]).some((g) => g.id === id),
@@ -488,6 +494,7 @@ const STAKE_ENTRY_POOLS: Record<string, (id: string) => boolean> = {
 /** Rangées BRUTES des tables tirées par une étape, réduites à leur id — le résolveur d'enjeu n'a
  *  besoin que du pool d'ids, et les lit sur le MÊME JSON que le Codex édite. */
 const structureCriticalRows = (structureCriticalsRawJson as { entries: { id: string }[] }).entries;
+const artilleryMisfireRows = (artilleryMisfireRawJson as { entries: { id: string }[] }).entries;
 
 /** POOLS d'ids d'un jeu de Critiques de coque, une entrée par Localisation — les clés sont celles des
  *  catégories Codex (`shipCriticalsGreement`…), et la MEME dérivation (préfixe + segment capitalisé)
@@ -3050,14 +3057,13 @@ export function speciesSize(sp: SpeciesData): import('../engine/size').SizeCateg
   const ids = sp.talents.filter((t): t is RefDesignee => 'id' in t && t.choix == null).map((t) => t.id);
   return sizeFromTalents(ids, (id) => findTalentById(id)?.size);
 }
-/** id d'espèce RIG (clé `appearance.species`) d'un id d'espèce RULES (ou chaîne libre). Pont UNIQUE
- *  rules→rig (pregens/draft/creator/defaultAppearance). Trois sorties : l'`id` de l'entrée de
- *  `species.json` trouvée ; sans entrée, le `rulesId` slugué (identité sur un id déjà slug) ; sans
- *  argument, `humain` — un id de `raceAppearance.json`, PAS de species.json. Le cast est le seul de la
- *  donnée vers la marque : `asRigSpeciesId` (`gameIso/rig/appearance.ts`) importe `src/data`, un appel
- *  d'ici ferait un cycle, et il lève sur un id hors vocabulaire que la branche « sans entrée » admet. */
+/** Race de rig par DÉFAUT, déclarée en donnée (`speciesRace.json` `default`). */
+export const DEFAULT_RACE_ID: string = (speciesRaceJson as { default: string }).default;
+/** id d'espèce RIG (clé `appearance.species`) d'un id d'espèce RULES : l'id passe tel quel (un id
+ *  `species.json` est un id du domaine de saisie, `grammaire/art.ts`) ; sans argument, `DEFAULT_RACE_ID`.
+ *  Pont UNIQUE rules→rig (pregens/draft/creator/defaultAppearance). */
 export function rigSpeciesId(rulesId: string | undefined): RigSpeciesId {
-  return (findSpeciesById(rulesId)?.id ?? slugId(rulesId ?? 'humain')) as RigSpeciesId;
+  return (rulesId ?? DEFAULT_RACE_ID) as RigSpeciesId;
 }
 /** Seuil d100 de mutation PHYSIQUE d'une espèce par `id` (LDB 19 l.78-81). Défaut **50** = colonne
  *  Humain (LDB) — couvre aussi le Gnome (NADJ « Gnomes et Corruption » : « mutent comme les humains »)
@@ -3265,6 +3271,12 @@ const possessionParId = indexParId('trappings', trappings);
 export function findTrappingById(id: string): TrappingData | undefined {
   return possessionParId(id);
 }
+/** ARMES choisissables `{ id, label }` : toute Possession `melee`/`ranged` hors « Mains nues »
+ *  (`TrappingData.unarmed`), triée au libellé. `id` = `trappingId` STABLE (`weaponFromId`). */
+export const armesChoisissables = memoParVersion('trappings', () => trappings
+  .filter((t) => (t.categorie === 'melee' || t.categorie === 'ranged') && !t.unarmed)
+  .map((t) => ({ id: t.id, label: t.label }))
+  .sort((a, b) => parLibelle(a.label, b.label)));
 /** Résout une Qualité par son `id` STABLE. */
 export function findQualityById(id: string): QualityData | undefined {
   return qualiteParId(id);
@@ -3430,19 +3442,17 @@ const LIBELLE_DE_SOURCE: Record<SpecsSource, (id: string) => string> = {
 /** UNE source de spéc, lue sur sa déclaration (`SOURCES_DE_SPECS`) : `pool()` = ids CHOISISSABLES par un
  *  joueur ; `resolves()` = l'id appartient-il à l'UNIVERS de la source (⊇ pool) ; `label()` = affichage.
  *  Le pool borne le CHOIX joueur ; l'univers borne la VALIDITÉ des données (le Triton, MDG 16 l.283). */
-export const SPEC_SOURCES = Object.fromEntries(
-  (Object.keys(SOURCES_DE_SPECS) as SpecsSource[]).map((src) => {
+export const SPEC_SOURCES = tableTotale(
+  Object.keys(SOURCES_DE_SPECS) as SpecsSource[],
+  (src): { pool(): string[]; label(id: string): string; resolves(id: string): boolean } => {
     const decl: SourceDeSpecs = SOURCES_DE_SPECS[src];
-    return [
-      src,
-      {
-        pool: () => [...(lireLEspace(decl.pool ?? decl.univers) ?? [])],
-        label: LIBELLE_DE_SOURCE[src],
-        resolves: (id: string) => lireLEspace(decl.univers)?.has(id) ?? false,
-      },
-    ];
-  }),
-) as Record<SpecsSource, { pool(): string[]; label(id: string): string; resolves(id: string): boolean }>;
+    return {
+      pool: () => [...(lireLEspace(decl.pool ?? decl.univers) ?? [])],
+      label: LIBELLE_DE_SOURCE[src],
+      resolves: (id: string) => lireLEspace(decl.univers)?.has(id) ?? false,
+    };
+  },
+);
 /** POOL d'une def (Compétence/Talent) — ce qu'un choix joueur PROPOSE d'office (`LDB 09 l.40`) :
  *  pool DÉRIVÉ du registre partagé si `specsSource` (SSOT `SPEC_SOURCES`), sinon les entrées `specs[]`
  *  inline SANS `pool: false`. Consommé par `wildcardSpecs` (créateur), l'avancement et l'Entraînement.
@@ -3492,7 +3502,7 @@ export function specLabel(category: string, refId: string, specId: string): Play
  * catalogue (`refLabel`, `CHAR_LABELS`). Jamais un littéral FR : même cliquet.
  */
 export function dataLabel(texte: string | undefined | null, repli?: string): PlayerText {
-  // eslint-disable-next-line no-restricted-syntax -- #1318 V8a₁ : l'unique cast de ce minteur (b) — forger la marque EST son corps de métier (cf. JSDoc), et le cliquet `state/player-text-ratchet.test.ts` refuse qu'un littéral FR y entre.
+  // eslint-disable-next-line murs/marques -- #1318 V8a₁ : l'unique cast de ce minteur (b) — forger la marque EST son corps de métier (cf. JSDoc), et le cliquet `state/player-text-ratchet.test.ts` refuse qu'un littéral FR y entre.
   return (texte ?? repli ?? '') as PlayerText;
 }
 

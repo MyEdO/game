@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
+import { detenteur } from '../detenteur.testkit';
 
 /**
  * Le TEXTE FANTÔME d'un champ de saisie (consigne, ou valeur effective héritée quand le champ est
@@ -12,14 +13,16 @@ import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
  * l'UNICITÉ de la règle et son TOKEN.
  */
 const STYLES = 'src/ui/styles';
-const feuilles = readCorpus([STYLES], { exts: ['.css'] }).map(({ rel, text }) => ({
-  nom: rel.slice(STYLES.length + 1),
-  css: text,
-}));
+const feuilles = detenteur(() =>
+  readCorpus([STYLES], { exts: ['.css'] }).map(({ rel, text }) => ({
+    nom: rel.slice(STYLES.length + 1),
+    css: text,
+  })),
+);
 
 describe('charte — texte fantôme des champs de saisie', () => {
   it('base.css pose la règle globale input/textarea en encre atténuée', () => {
-    const base = feuilles.find((f) => f.nom === 'base.css')?.css ?? '';
+    const base = feuilles().find((f) => f.nom === 'base.css')?.css ?? '';
     const regle = /input::placeholder,\s*\ntextarea::placeholder\s*\{([^}]*)\}/.exec(base)?.[1];
     expect(regle, 'la règle globale ::placeholder existe dans base.css').toBeTruthy();
     expect(regle).toMatch(/color:\s*var\(--muted\)/);
@@ -27,7 +30,7 @@ describe('charte — texte fantôme des champs de saisie', () => {
   });
 
   it('aucune autre feuille ne redéclare ::placeholder', () => {
-    const autres = feuilles.filter((f) => f.nom !== 'base.css' && f.css.includes('::placeholder'));
+    const autres = feuilles().filter((f) => f.nom !== 'base.css' && f.css.includes('::placeholder'));
     expect(autres.map((f) => f.nom)).toEqual([]);
   });
 });

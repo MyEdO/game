@@ -25,6 +25,7 @@
  */
 import type { RuleValue } from '../engine/policy';
 import type { Scene } from './scene';
+import { stockageWeb } from '../lib/stockageWeb';
 
 // 32 → 33 (L2 #1548, geste modèle) : une personne se RÉFÉRENCE. Le document de scène (`scene`) perd
 // les deux pseudo-PNJ écrits en clair — l'effet `medicalAid` porte seulement son `entityId` (la
@@ -172,7 +173,12 @@ import type { Scene } from './scene';
 // Une save de 57 rouvrirait avec des ops en `talentId` sur lesquelles l'octroi (`applyOps`) lève, et des
 // mutations attachées sans `talentsAcquis` dont le détachement garderait le Talent octroyé. La save se
 // jette (politique 2 ci-dessus).
-export const SAVE_VERSION = 58;
+// 58 → 59 (#1692, lot A2) : l'Arène se lance par `loadProject` comme toute campagne du jeu, et ses
+// scènes n'entrent plus au registre `sceneRegistry` à l'import. Une save d'Arène de 58 ne porte aucun
+// `campaignDoc` (chemin `startScene` d'alors) : rechargée, elle rouvre sa scène mais aucune autre zone
+// de l'Arène ne résout (mesuré : `transitionTo('arene-hub')` → « Scène introuvable — transition
+// ignorée »). La save se jette (politique 2 ci-dessus).
+export const SAVE_VERSION = 59;
 
 export interface SaveMeta {
   version: number;
@@ -203,14 +209,6 @@ export type AnySlot = SaveSlot | typeof AUTO_SLOT;
 // versionnées écrites par le code d'avant #898 : aucune ne porte la version courante.
 const KEY = (slot: AnySlot) => `wfrp4.save.${slot}`;
 const LEGACY_KEY = (version: number, slot: AnySlot) => `wfrp4.save.v${version}.${slot}`;
-
-function storage(): Storage | null {
-  try {
-    return globalThis.localStorage ?? null;
-  } catch {
-    return null; // accès refusé (mode privé strict, iframe sandbox…)
-  }
-}
 
 /**
  * Les clés de DONNÉES qui ne partent PAS en save — l'ensemble NOMMÉ, une raison par clé. Le contrat
@@ -354,7 +352,7 @@ function discardSlot(s: Storage, slot: AnySlot, cause: ObsoleteCause): void {
 }
 
 export function saveToSlot(slot: AnySlot, save: SaveGame): boolean {
-  const s = storage();
+  const s = stockageWeb('localStorage');
   if (!s) return false;
   try {
     s.setItem(KEY(slot), JSON.stringify(save));
@@ -382,7 +380,7 @@ function residualCause(s: Storage, slot: AnySlot): ObsoleteCause | null {
 /** Lit l'emplacement : une save à `SAVE_VERSION`, ou `null`. Tout contenu d'une AUTRE version (clé
  *  stable, clé de quarantaine ou clé versionnée historique) ou illisible est JETÉ, témoin posé. */
 export function readSlot(slot: AnySlot): SaveGame | null {
-  const s = storage();
+  const s = stockageWeb('localStorage');
   if (!s) return null;
   let raw: string | null;
   try {
@@ -422,7 +420,7 @@ export function readSlot(slot: AnySlot): SaveGame | null {
 
 export function deleteSlot(slot: AnySlot): void {
   try {
-    const s = storage();
+    const s = stockageWeb('localStorage');
     if (!s) return;
     for (const k of slotKeys(slot)) s.removeItem(k);
   } catch {

@@ -127,4 +127,4 @@ function main() {
   console.log(`\n${vides} ancre(s) VIDE!!/HORS BORNE!! — triage, pas un verdict.`)
 }
 
-if (import.meta.url === `file://${process.argv[1].split('\\').join('/')}` || process.argv[1]?.endsWith('audit-refs-chapitre.mjs')) main()
+if (import.meta.main) main()

@@ -1,5 +1,4 @@
 import { createHero, skillCharacteristicById } from '../../engine/character';
-import { makeRNG } from '../../engine/dice';
 import { itemFromTrappingById } from '../../engine/items';
 import type { Combatant, SkillInstance } from '../../engine/types';
 import { buildScene } from '../../state/mapSpec';
@@ -29,21 +28,21 @@ function skill(c: Combatant, skillId: string, advances: number, spec?: string): 
  *  (Progression), Timonier/Mousse (Manœuvre/Affaler/Entretien), Navigateur (Orientation), Vigie
  *  (Perception au phare). `shipRole` ÉPINGLE le rôle de chacun pour un défaut d'équipage lisible. */
 function crew(): Combatant[] {
-  const cap = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Capitaine Brenner', motivation: 'Test', rng: makeRNG(4801), id: 'mar-cap' });
+  const cap = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Capitaine Brenner', motivation: 'Test', seed: 4801, id: 'mar-cap' });
   cap.shipRole = 'capitaine';
   skill(cap, 'commandement', 50);
   skill(cap, 'voile', 40);
   cap.items = [...(cap.items ?? []), itemFromTrappingById('ration')!, itemFromTrappingById('ration')!];
   cap.appearance = { species: rigSpeciesId('humains-reiklander'), sex: 'M', build: 0.55 };
 
-  const timo = createHero({ speciesId: 'humains-reiklander', careerId: 'chasseur', label: 'Timonière Hilda', motivation: 'Test', rng: makeRNG(4802), id: 'mar-timo' });
+  const timo = createHero({ speciesId: 'humains-reiklander', careerId: 'chasseur', label: 'Timonière Hilda', motivation: 'Test', seed: 4802, id: 'mar-timo' });
   timo.shipRole = 'timonier';
   skill(timo, 'voile', 55);
   skill(timo, 'ramer', 45);
   skill(timo, 'metier', 40, 'Charpentier'); // entretien de la coque au soir
   timo.appearance = { species: rigSpeciesId('humains-reiklander'), sex: 'F', build: 0.42 };
 
-  const navi = createHero({ speciesId: 'humains-reiklander', careerId: 'erudit', label: 'Navigateur Ansmann', motivation: 'Test', rng: makeRNG(4803), id: 'mar-navi' });
+  const navi = createHero({ speciesId: 'humains-reiklander', careerId: 'erudit', label: 'Navigateur Ansmann', motivation: 'Test', seed: 4803, id: 'mar-navi' });
   navi.shipRole = 'navigateur';
   skill(navi, 'orientation', 55);
   skill(navi, 'savoir', 40, 'oceans'); // bonus d'Orientation au phare (MDG 13 l.335)
@@ -54,7 +53,7 @@ function crew(): Combatant[] {
   navi.spells = ['bienfait-de-bel-shanaar'];
   navi.appearance = { species: rigSpeciesId('humains-reiklander'), sex: 'M', build: 0.48 };
 
-  const vigie = createHero({ speciesId: 'humains-reiklander', careerId: 'eclaireur', label: 'Vigie Perla', motivation: 'Test', rng: makeRNG(4804), id: 'mar-vigie' });
+  const vigie = createHero({ speciesId: 'humains-reiklander', careerId: 'eclaireur', label: 'Vigie Perla', motivation: 'Test', seed: 4804, id: 'mar-vigie' });
   vigie.shipRole = 'vigie';
   skill(vigie, 'perception', 55);
   skill(vigie, 'voile', 35);

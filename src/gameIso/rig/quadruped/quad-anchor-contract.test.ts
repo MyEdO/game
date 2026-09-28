@@ -3,13 +3,11 @@ import { CREATURES } from '../creatures';
 import { quadParts } from './quadParts';
 import { ANCRES_OEIL_ABSENTES_GELEES, PLAFOND_ANCRES_OEIL_ABSENTES } from './deco-stock.fixture';
 import { DECOS_MORTS_RATCHET, REPERES_ART_PROPRES_RATCHET } from '../../../../scripts/guards/lib/quadDecoStock.mjs';
-import { ecartDuVolet, remedeNomme, type EntreeNominative } from '../../../../scripts/guards/lib/stock.mjs';
+import { cleDeSite, ecartDuVolet, remedeNomme, type EntreeDeSite, type Site } from '../../../../scripts/guards/lib/stock.mjs';
 import { mesureDesReperes, fichierDeEspece } from '../../../../scripts/guards/lib/quadDecoAudit';
-import type { Site } from '../../../../scripts/guards/lib/stock.mjs';
 import { applyEyes } from '../parts/eyes';
-import type { QuadBoneId, QuadProps } from './quadSkeleton';
-import type { View } from '../facing';
-
+import { readQuadDecoKey, type QuadProps } from './quadSkeleton';
+import { VIEWS } from '../facing';
 /**
  * Contrat du canal `deco` : `quadAnchor(p, os, vue)` EST le repère dans lequel vit l'art de cet os
  * pour cette vue. `quadParts` appose le décor via `quadAnchored` (même transform) — si l'art porte
@@ -19,19 +17,18 @@ import type { View } from '../facing';
  * sans `deco` — un repère propre est une propriété de l'art, et l'échelle de tête étant portée par
  * l'os depuis `composeQuad`, c'est là que l'unité part↔os doit coïncider) ; (b) tout os visé par
  * une clé `deco`. Stock NOMINATIF `REPERES_ART_PROPRES_RATCHET` (`scripts/guards/lib/quadDecoStock.mjs`,
- * GÉNÉRÉ par `npx tsx scripts/rig/regen-quad-deco-stock.mts`), aucun plafond, aucune entrée périmée.
- * La MESURE vit dans `scripts/guards/lib/quadDecoAudit.ts` — partagée avec le régénérateur, pour
- * qu'aucun des deux n'ait sa propre lecture du corpus.
+ * GÉNÉRÉ par `npx tsx scripts/guards/lib/regenStock.mts scripts/guards/lib/quadDecoAudit.ts`), aucun
+ * plafond, aucune entrée périmée. La MESURE vit dans `scripts/guards/lib/quadDecoAudit.ts` — partagée
+ * avec la régénération, pour qu'aucune des deux n'ait sa propre lecture du corpus.
  */
 
-const VIEWS: View[] = ['profile', 'front', 'back'];
 const STOCK = 'scripts/guards/lib/quadDecoStock.mjs';
 
 /** Cliquet générique : sites hors stock = neuves (échec) ; entrées que plus aucun site ne porte =
  *  périmées (échec). La primitive PARTAGÉE du dépôt, jamais une comparaison locale. Aucun PLAFOND :
  *  ce qu'une dette ne peut pas faire, c'est croître SANS SE DÉCLARER, et c'est l'entrée
  *  `{ fichier, ref, occurrence }` — qui NOMME la def à ouvrir — que la porte de plage voit à l'append. */
-const ratchet = (sites: readonly Site[], stock: Iterable<EntreeNominative>) =>
+const ratchet = (sites: readonly Site[], stock: Iterable<EntreeDeSite>) =>
   ecartDuVolet({ sites, stock, ou: STOCK });
 
 const quadDefs = CREATURES.filter((c) => c.quad).map((c) => ({ id: c.id, quad: c.quad as QuadProps }));
@@ -49,7 +46,7 @@ describe('quadAnchor = repère de l\'art de l\'os (contrat du canal deco)', () =
     expect(neuves, `repère propre à l'art d'une part, hors stock :\n${divergences.join('\n')}`).toEqual([]);
     // … et aucune entrée PÉRIMÉE : un repère soldé doit SORTIR du stock, sinon il ment.
     expect(perimees, `entrée du stock qui ne diverge plus — la retirer\n` +
-      `(npx tsx scripts/rig/regen-quad-deco-stock.mts) :\n  ${perimees.join('\n  ')}`).toEqual([]);
+      `(npx tsx scripts/guards/lib/regenStock.mts scripts/guards/lib/quadDecoAudit.ts) :\n  ${perimees.join('\n  ')}`).toEqual([]);
   });
 
   it("chaque entrée NOMME la def de créature à ouvrir — c'est ce que la porte de plage voit", () => {
@@ -68,7 +65,7 @@ describe('quadAnchor = repère de l\'art de l\'os (contrat du canal deco)', () =
       fichier: 'src/gameIso/rig/creatures/defs/BeteQuiNExistePas.ts', ref: 'gonflement profile tete', occurrence: 1,
     }];
     const { perimees } = ratchet(mesureDesReperes().sites, gonfle);
-    expect(remedeNomme(perimees, ' :: gonflement profile tete :: 1')).toBe(true);
+    expect(remedeNomme(perimees, cleDeSite(gonfle[gonfle.length - 1]))).toBe(true);
     expect(remedeNomme(perimees, 'entrée SOLDÉE')).toBe(true);
   });
 
@@ -83,15 +80,15 @@ describe('quadAnchor = repère de l\'art de l\'os (contrat du canal deco)', () =
     for (const { id, quad } of quadDefs) {
       if (!quad.deco) continue;
       for (const key of Object.keys(quad.deco)) {
-        const [bone, vue] = key.split('#') as [QuadBoneId, View | undefined];
-        for (const v of (vue ? [vue] : VIEWS))
+        const { bone, views } = readQuadDecoKey(key);
+        for (const v of views)
           if (!quadParts({ ...quad, deco: undefined }, v)[bone]) perdus.push(`${id} ${v} ${key}`);
       }
     }
     const { neuves, perimees } = ratchet(perdus.map((c) => ({ file: fichierDeEspece(c.split(' ')[0]), ref: c })), DECOS_MORTS_RATCHET);
     expect(neuves, `décor authoré pour une vue où son os n'est pas émis :\n  ${neuves.join('\n  ')}`).toEqual([]);
     expect(perimees, `entrée du stock des morts dont l'os est désormais émis — la retirer\n` +
-      `(npx tsx scripts/rig/regen-quad-deco-stock.mts) :\n  ${perimees.join('\n  ')}`).toEqual([]);
+      `(npx tsx scripts/guards/lib/regenStock.mts scripts/guards/lib/quadDecoAudit.ts) :\n  ${perimees.join('\n  ')}`).toEqual([]);
   });
 });
 

@@ -8,11 +8,11 @@ import { dirname, join } from 'node:path'
 import {
   BUDGET_CONSTAT, BUDGET_TOTAL, PREREQUIS, bootstrap, estConteneurDistant, lancer, mettreEnConformite,
 } from './bootstrap-conteneur.mjs'
-import { HOOKS_MONO_SURFACE, NUL, SURFACE_CLAUDE } from '../agents/compat-core.mjs'
+import { HOOKS_MONO_SURFACE, NUL, SURFACE_CLAUDE, SURFACE_CODEX, aplatirHooks } from '../agents/compat-core.mjs'
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
-const SETTINGS_CLAUDE = join(REPO, '.claude', 'settings.json')
-const HOOKS_CODEX = join(REPO, '.codex', 'hooks.json')
+const SETTINGS_CLAUDE = join(REPO, SURFACE_CLAUDE)
+const HOOKS_CODEX = join(REPO, SURFACE_CODEX)
 
 /** Faux lanceur : rend la réponse programmée pour `<exe> <premier arg>` et journalise l'appel. */
 function lanceurFeint(reponses) {
@@ -125,10 +125,8 @@ test('un rapport d’échec est BORNÉ avant d’entrer au contexte de la sessio
 // bout en bout, et le `timeout` déclaré à la surface était plus court que la somme des poses.
 test('BUDGET — le `timeout` déclaré couvre la table ENTIÈRE, constats compris', () => {
   assert.equal(BUDGET_TOTAL, PREREQUIS.reduce((s, p) => s + p.budget + BUDGET_CONSTAT, 0))
-  const config = JSON.parse(readFileSync(SETTINGS_CLAUDE, 'utf8'))
-  const porte = (config.hooks?.SessionStart ?? [])
-    .flatMap((g) => g.hooks ?? [])
-    .filter((h) => String(h.command ?? '').includes('bootstrap-conteneur.mjs'))
+  const porte = aplatirHooks(JSON.parse(readFileSync(SETTINGS_CLAUDE, 'utf8')), SURFACE_CLAUDE)
+    .filter((h) => h.phase === 'SessionStart' && h.script === 'bootstrap-conteneur.mjs')
   assert.equal(porte.length, 1, 'le hook de conformité du conteneur n’est pas câblé côté Claude')
   assert.ok(
     porte[0].timeout >= BUDGET_TOTAL,

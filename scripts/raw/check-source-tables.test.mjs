@@ -1,17 +1,19 @@
 // Test de la garde `check-source-tables` (node --test, joué par `npm run test:raw`). Les quatre
 // familles MORDENT sur des chapitres synthétiques (le détecteur est PUR au grain du chapitre), la
 // clé de site ne porte aucune position, la `preuve` d'une entrée est un fait daté (jamais une
-// dispense), et le stock COMMITTÉ est exactement le rendu des sites mesurés sur l'arbre — dans les
-// deux sens.
+// dispense), et le stock COMMITTÉ est le point fixe de sa régénération sur les sites mesurés sur
+// l'arbre — dans les deux sens.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  sitesDuChapitre, scanAllBooks, scanBookDir, refDeTable, cleDeLigne, entreesDe, ecartDuStock,
-  comptesParFamille, verdictDesPreuves, comptesDeTri, preuvesHorsPlage, lireLigne1Du,
-  FAMILLES, STOCK_PATH, stockDe,
+  sitesDuChapitre, scanAllBooks, scanBookDir, refDeTable, cleDeLigne, regenerations,
+  verdictDesPreuves, comptesDeTri, preuvesHorsPlage, lireLigne1Du,
+  FAMILLES, STOCK_PATH,
 } from './check-source-tables.mjs'
-import { naissanceEnPlace, readStock } from './stockNominatif.mjs'
-import { cleDeSite, naissanceDu } from '../guards/lib/stock.mjs'
+import {
+  comptesParFamille, ecartDeRegeneration, entreesRegenerees, lireEntreesDeSite, naissanceEnPlace, texteEnPlace, texteRegenere,
+} from '../guards/lib/stockDeSites.mjs'
+import { cleDeSite, ecartDuVolet, naissanceDu } from '../guards/lib/stock.mjs'
 import { BOOKS } from './_lib.mjs'
 import { parseChapitre, tablesOf } from '../../src/data/source/decoupe.ts'
 
@@ -31,7 +33,7 @@ test('br-litteral : un `<br>` dans une CELLULE est un site ; sans lui, rien', ()
 })
 
 test('un marqueur de folio COLLÉ à une ligne de table n’est PAS un site : la lib l’absorbe', () => {
-  // Contrat POSITIF de l'absorption (#1384 B2) : `toBlocks` applique `stripSpans` AVANT `parseTable`,
+  // Contrat POSITIF de l'absorption (#1384) : `toBlocks` applique `stripSpans` AVANT `parseTable`,
   // la ligne ouvre donc bien par `|` et la table se lit ENTIÈREMENT. Rien à réparer dans `Source/` :
   // l'ancre reste où la page coupe.
   const texte = [
@@ -188,9 +190,9 @@ test('cle-de-ligne-ambigue (#1739) : l’adresse `table` (`titre#occ`, titre NON
 })
 
 test('stock (#1739) : les comptes « à la naissance » du `quoi` en place se gardent — l’historique ne se réécrit pas', () => {
-  const quoi = JSON.parse(stockDe([], { lot: '', date: '', naissance: naissanceDu('Compte par famille à la naissance : br-litteral 403, donnee-en-tete 14, banniere-suspecte 114, cle-de-ligne-ambigue 148, table-avalee-par-titre 36. suite', FAMILLES) })).quoi
-  assert.match(quoi, /cle-de-ligne-ambigue 148/)
-  assert.match(JSON.parse(stockDe([], { lot: '', date: '' })).quoi, /cle-de-ligne-ambigue 0/)
+  const quoiDe = (naissance) => regenerations([], naissance)[0].horsCollections
+  assert.match(quoiDe(naissanceDu('Compte par famille à la naissance : br-litteral 403, donnee-en-tete 14, banniere-suspecte 114, cle-de-ligne-ambigue 148, table-avalee-par-titre 36. suite', FAMILLES)), /cle-de-ligne-ambigue 148/)
+  assert.match(quoiDe(null), /cle-de-ligne-ambigue 0/)
   assert.equal(naissanceDu('pas de comptes', FAMILLES), null)
   assert.ok(naissanceEnPlace(STOCK_PATH, FAMILLES), 'le stock en place porte ses comptes à la naissance')
 })
@@ -210,7 +212,7 @@ test('la CLÉ de site porte du CONTENU, jamais une position — deux tables de m
   assert.equal(sites.length, 2)
   assert.equal(sites[0].ref, sites[1].ref, 'même contenu → même réf ; c’est l’occurrence qui les sépare')
   assert.equal(sites[0].ref, refDeTable('tables', 1, ['Lancer', 'Effet']))
-  assert.deepEqual(entreesDe(sites, { lot: 'x', date: 'y' }).map((e) => e.occurrence), [1, 2])
+  assert.deepEqual(entreesRegenerees(sites, { lot: 'x', date: 'y' }).map((e) => e.occurrence), [1, 2])
   // Un paragraphe INSÉRÉ avant les tables ne change aucune réf : la clé ne compte ni les lignes ni
   // les tables qui précèdent.
   const decale = ['## Tables', '', 'Un paragraphe de plus.', '', table, '', table].join('\n')
@@ -243,27 +245,38 @@ test('scanBookDir : le `fichier` d’un site est le chapitre extrait, en POSIX d
 })
 
 test('stock COMMITTÉ : chaque site mesuré y a son entrée, et aucune entrée n’est soldée', () => {
-  const { neuves, perimees } = ecartDuStock(scanAllBooks(), readStock(STOCK_PATH))
+  const { neuves, perimees } = ecartDuVolet({ sites: scanAllBooks(), stock: lireEntreesDeSite(STOCK_PATH), ou: 'source-tables-stock.json' })
   assert.deepEqual(neuves, [], `site(s) hors du stock :\n${neuves.join('\n')}`)
   assert.deepEqual(perimees, [], `entrée(s) SOLDÉE(s) à retirer :\n${perimees.join('\n')}`)
 })
 
-// AUCUN GÉNÉRATEUR SÉPARÉ : le fichier de stock EST le rendu de `entreesDe(scanAllBooks())`, écrit
-// par `node scripts/raw/check-source-tables.mjs --ecrire-stock`. Ce test le vérifie à la clé ET à
-// l'ORDRE, là où l'écart ci-dessus ne juge que les ensembles — un stock réordonné à la main rougit.
+// AUCUN GÉNÉRATEUR SÉPARÉ : le fichier de stock EST le texte de sa régénération (`regenerations`),
+// écrit par `npx tsx scripts/guards/lib/regenStock.mts scripts/raw/check-source-tables.mjs`. Ce test le
+// vérifie à l'octet, ORDRE compris, là où l'écart ci-dessus ne juge que les ensembles — un stock
+// réordonné à la main rougit.
 test('stock COMMITTÉ : le rendu EXACT et ORDONNÉ des sites mesurés sur l’arbre', () => {
-  const attendu = entreesDe(scanAllBooks(), { lot: '', date: '' })
-  assert.deepEqual(readStock(STOCK_PATH).map(cleDeSite), attendu.map(cleDeSite))
+  for (const r of regenerations(scanAllBooks())) assert.equal(ecartDeRegeneration(r, texteEnPlace(r.chemin)), null)
+})
+
+// Le `quoi` ne dépend jamais de la mesure du run : deux soldes disjoints d'un même stock le laissent
+// identique, et le pilote de fusion les fusionne sans conflit.
+test('un solde laisse le quoi à l’octet', () => {
+  const sites = scanAllBooks()
+  const [s0] = sites
+  const reste = sites.filter((s) => s.famille !== s0.famille || s.file !== s0.file || s.ref !== s0.ref)
+  assert.ok(reste.length < sites.length)
+  const enPlace = texteEnPlace(STOCK_PATH)
+  const [r] = regenerations(reste)
+  assert.equal(JSON.parse(texteRegenere(r, { enPlace, lot: null, date: null }).texte).quoi, JSON.parse(enPlace).quoi)
 })
 
 // #1825 : même contrat que `check-folio-continuity.test.mjs` — l'ordre des livres vit dans
 // `src/data/books.json`, et aucun artefact commité ne s'y asservit : insérer un livre AU MILIEU du
 // registre ne doit réécrire aucun stock. Registre INJECTÉ (`scanAllBooks(books)`), jamais le fichier.
 test('#1825 le rendu du stock est INDIFFÉRENT à l’ordre du registre (registre inversé)', () => {
-  const sitesDe = (books) => scanAllBooks(books).map((s) => `${s.famille} :: ${s.file} :: ${s.ref}`)
-  const rendu = (books) => entreesDe(scanAllBooks(books), { lot: '', date: '' }).map(cleDeSite)
+  const rendu = (books) => entreesRegenerees(scanAllBooks(books)).map(cleDeSite)
   const inverse = [...BOOKS].reverse()
-  assert.notDeepEqual(sitesDe(inverse), sitesDe(BOOKS), 'le balayage rend le même ordre : sonde inerte')
+  assert.notDeepEqual(scanAllBooks(inverse), scanAllBooks(BOOKS), 'le balayage rend le même ordre : sonde inerte')
   assert.deepEqual(rendu(inverse), rendu(BOOKS))
 })
 
@@ -278,16 +291,17 @@ const PLAFOND = 680
 const PLAFOND_A_TRIER = 667
 
 test('stock COMMITTÉ : PLAFOND de la DETTE — « à trier » (entrées sans preuve) ne remonte jamais', () => {
-  const { aTrier, verifies } = comptesDeTri(readStock(STOCK_PATH))
+  const stock = lireEntreesDeSite(STOCK_PATH)
+  const { aTrier, verifies } = comptesDeTri(stock)
   assert.ok(
     aTrier <= PLAFOND_A_TRIER,
     `${aTrier} entrée(s) à trier pour un plafond de ${PLAFOND_A_TRIER} : une dette ne grossit pas`,
   )
-  assert.equal(aTrier + verifies, readStock(STOCK_PATH).length, 'toute entrée est soit à trier, soit vérifiée')
+  assert.equal(aTrier + verifies, stock.length, 'toute entrée est soit à trier, soit vérifiée')
 })
 
 test('stock COMMITTÉ : PLAFOND de l’INVENTAIRE — le relever exige de changer CE test', () => {
-  const entrees = readStock(STOCK_PATH)
+  const entrees = lireEntreesDeSite(STOCK_PATH)
   assert.ok(
     entrees.length <= PLAFOND,
     `${entrees.length} entrée(s) pour un plafond de ${PLAFOND} : une dette de forme ne grossit pas`,
@@ -301,15 +315,16 @@ test('stock COMMITTÉ : PLAFOND de l’INVENTAIRE — le relever exige de change
 
 test('stock TRUQUÉ : une entrée retirée rend son site NEUF, une entrée sans site est SOLDÉE', () => {
   const sites = scanAllBooks()
-  const stock = readStock(STOCK_PATH)
-  const ampute = ecartDuStock(sites, stock.slice(1))
+  const stock = lireEntreesDeSite(STOCK_PATH)
+  const ecart = (s) => ecartDuVolet({ sites, stock: s, ou: 'source-tables-stock.json' })
+  const ampute = ecart(stock.slice(1))
   assert.equal(ampute.neuves.length, 1)
   assert.match(ampute.neuves[0], /site NEUF/)
   assert.ok(ampute.neuves[0].includes(stock[0].ref), `le rouge NOMME le site : ${ampute.neuves[0]}`)
   assert.deepEqual(ampute.perimees, [])
 
   const fantome = { ...stock[0], ref: `${stock[0].ref} (fantôme)` }
-  const gonfle = ecartDuStock(sites, [...stock, fantome])
+  const gonfle = ecart([...stock, fantome])
   assert.deepEqual(gonfle.neuves, [])
   assert.equal(gonfle.perimees.length, 1)
   assert.match(gonfle.perimees[0], /entrée SOLDÉE/)
@@ -320,10 +335,10 @@ test('l’écart est jugé FAMILLE PAR FAMILLE : le stock d’une famille ne sol
     ['## Tables', '', '| 81-85 | Effet<br>long |', '| --- | --- |', '| 86-90 | Pire |'].join('\n'),
     FICHIER,
   )
-  assert.deepEqual(comptesParFamille(sites)['br-litteral'], 1)
-  assert.deepEqual(comptesParFamille(sites)['donnee-en-tete'], 1)
-  const stockPartiel = entreesDe(sites, { lot: 'x', date: 'y' }).filter((e) => e.famille === 'br-litteral')
-  const { neuves, perimees } = ecartDuStock(sites, stockPartiel)
+  assert.deepEqual(comptesParFamille(sites, FAMILLES)['br-litteral'], 1)
+  assert.deepEqual(comptesParFamille(sites, FAMILLES)['donnee-en-tete'], 1)
+  const stockPartiel = entreesRegenerees(sites, { lot: 'x', date: 'y' }).filter((e) => e.famille === 'br-litteral')
+  const { neuves, perimees } = ecartDuVolet({ sites, stock: stockPartiel, ou: 'source-tables-stock.json' })
   assert.equal(neuves.length, 1, 'la famille NON couverte reste neuve')
   assert.match(neuves[0], /^donnee-en-tete ::/)
   assert.deepEqual(perimees, [], 'la famille couverte n’est pas déclarée soldée pour autant')
@@ -335,17 +350,17 @@ const SITE_FIXTURE = ['## Tables', '', '| Lancer | Effet |', '| --- | --- |', '|
 
 test('preuve VALIDE : l’entrée est comptée « vérifiée », et aucun verdict ne la rougit', () => {
   const sites = sitesDuChapitre(SITE_FIXTURE, FICHIER)
-  const stock = entreesDe(sites, { lot: 'x', date: '2026-09-14' })
+  const stock = entreesRegenerees(sites, { lot: 'x', date: '2026-09-14' })
     .map((e) => ({ ...e, preuve: 'PDF p.42 : les deux États sont imprimés en colonne, pas de césure.' }))
   assert.deepEqual(comptesDeTri(stock), { aTrier: 0, verifies: 1 })
   assert.deepEqual(verdictDesPreuves(sites, stock), { vides: [], perimees: [] })
   // Une entrée prouvée reste un SITE du stock : elle n'est ni neuve ni soldée.
-  assert.deepEqual(ecartDuStock(sites, stock), { neuves: [], perimees: [] })
+  assert.deepEqual(ecartDuVolet({ sites, stock, ou: 'source-tables-stock.json' }), { neuves: [], perimees: [], taille: 1 })
 })
 
 test('preuve VIDE : une exemption sans fait est ROUGE (et ne compte pas comme vérifiée)', () => {
   const sites = sitesDuChapitre(SITE_FIXTURE, FICHIER)
-  const stock = entreesDe(sites, { lot: 'x', date: '2026-09-14' }).map((e) => ({ ...e, preuve: '   ' }))
+  const stock = entreesRegenerees(sites, { lot: 'x', date: '2026-09-14' }).map((e) => ({ ...e, preuve: '   ' }))
   assert.deepEqual(comptesDeTri(stock), { aTrier: 1, verifies: 0 })
   const { vides, perimees } = verdictDesPreuves(sites, stock)
   assert.equal(vides.length, 1)
@@ -355,7 +370,7 @@ test('preuve VIDE : une exemption sans fait est ROUGE (et ne compte pas comme v�
 
 test('preuve PÉRIMÉE : une entrée prouvée dont le site n’est plus mesuré est ROUGE', () => {
   const sites = sitesDuChapitre(SITE_FIXTURE, FICHIER)
-  const stock = entreesDe(sites, { lot: 'x', date: '2026-09-14' })
+  const stock = entreesRegenerees(sites, { lot: 'x', date: '2026-09-14' })
     .map((e) => ({ ...e, ref: `${e.ref} (fantôme)`, preuve: 'PDF p.42 : lu.' }))
   const { vides, perimees } = verdictDesPreuves(sites, stock)
   assert.deepEqual(vides, [])
@@ -363,26 +378,26 @@ test('preuve PÉRIMÉE : une entrée prouvée dont le site n’est plus mesuré 
   assert.match(perimees[0], /preuve PÉRIMÉE/)
 })
 
-test('--ecrire-stock CONSERVE la preuve et l’échéance d’une entrée existante, à clé identique', () => {
+test('`entreesRegenerees` CONSERVE la preuve et l’échéance d’une entrée existante, à clé identique', () => {
   const sites = sitesDuChapitre(SITE_FIXTURE, FICHIER)
-  const ancien = entreesDe(sites, { lot: '#1384 B2', date: '2026-09-14' })
+  const ancien = entreesRegenerees(sites, { lot: '#1384 B2', date: '2026-09-14' })
     .map((e) => ({ ...e, preuve: 'PDF p.42 : lu.' }))
-  const rendu = entreesDe(sites, { lot: '#9999 Z', date: '2030-01-01', ancien })
+  const rendu = entreesRegenerees(sites, { lot: '#9999 Z', date: '2030-01-01', ancien })
   assert.deepEqual(rendu, ancien, 'une régénération ne rajeunit ni n’efface une entrée inchangée')
   // Un site NEUF (aucune entrée ancienne) prend le lot et la date du run — et AUCUNE preuve.
-  const neuf = entreesDe(sites, { lot: '#9999 Z', date: '2030-01-01', ancien: [] })
+  const neuf = entreesRegenerees(sites, { lot: '#9999 Z', date: '2030-01-01', ancien: [] })
   assert.deepEqual(neuf.map((e) => [e.lot, e.date, 'preuve' in e]), [['#9999 Z', '2030-01-01', false]])
 })
 
 test('comptesParFamille nomme TOUTES les familles, même à zéro (une famille muette resterait invisible)', () => {
-  assert.deepEqual(Object.keys(comptesParFamille([])), FAMILLES)
-  assert.deepEqual(Object.values(comptesParFamille([])), FAMILLES.map(() => 0))
+  assert.deepEqual(Object.keys(comptesParFamille([], FAMILLES)), FAMILLES)
+  assert.deepEqual(Object.values(comptesParFamille([], FAMILLES)), FAMILLES.map(() => 0))
 })
 
 /* ─── CONTRE-ÉPREUVE : la page CITÉE par une preuve contre la PLAGE du fichier keyé ─────────────
  * Mesure INDÉPENDANTE de la liste de découpe : elle tombe sur un `pageFin` faux DANS la liste comme
  * sur un re-keyage qui aurait posé la preuve sur le fichier voisin. C'est elle qui a nommé la classe
- * A du lot S1 (preuve p.168 contre un fichier déclaré 164-167).
+ * A de #1739 (preuve p.168 contre un fichier déclaré 164-167).
  * ───────────────────────────────────────────────────────────────────────────────────────────── */
 
 const PREUVE_FIXTURE = { famille: 'banniere-suspecte', fichier: 'Source/Livre/07 - Combat.md', ref: 'x#1 :: a|b', occurrence: 1 }
@@ -420,6 +435,6 @@ test('preuve HORS PLAGE : ce qui ne se juge PAS, et ce qui ne se TAIT pas', () =
 // L'ARBRE : toute preuve du stock committé tient à la plage de son fichier. GÉNÉRAL — aucun livre
 // n'est nommé ici, et une preuve de plus sur un livre de plus entre dans la mesure sans rien changer.
 test('stock COMMITTÉ : aucune preuve ne cite une page hors de la plage du fichier qu’elle keye', () => {
-  const hors = preuvesHorsPlage(readStock(STOCK_PATH), lireLigne1Du)
+  const hors = preuvesHorsPlage(lireEntreesDeSite(STOCK_PATH), lireLigne1Du)
   assert.deepEqual(hors, [], `preuve(s) hors plage :\n${hors.join('\n')}`)
 })

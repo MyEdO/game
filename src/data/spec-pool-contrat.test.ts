@@ -10,6 +10,7 @@ import activitiesJson from './activities.json';
 import tavernGamesJson from './tavernGames.json';
 import crewRolesJson from './crew-roles.json';
 import { estSpecialisable, refOuSpec } from './schemas/grammaire/ref';
+import { norm } from '../lib/normalize';
 
 /**
  * CONTRAT DE DONNÉE #1342 L3 — deux axes ORTHOGONAUX sur une entrée `specs[]` : `source` dit d'où
@@ -163,7 +164,6 @@ const DOSSIER_SCENES = fileURLToPath(new URL('../scenes/', import.meta.url));
 const RACINES: [string, string][] = [['data/', DOSSIER_DATA], ['scenes/', DOSSIER_SCENES]];
 
 /** Normalisation de COMPARAISON seulement (NFD + casse) : jamais une conversion de donnée. */
-const normLabel = (s: string): string => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
 
 /**
  * DETTE NOMINATIVE DATÉE — spécs de Compétence encore écrites en LIBELLÉ FR de leur propre catalogue.
@@ -180,12 +180,12 @@ describe('L2 #1548 — aucune `spec` de Compétence ni de Talent écrite en LIBE
   /** Par id de Compétence : « cet id résout-il ? » et l'index LIBELLÉ normalisé → id attendu. */
   const CATALOGUE = new Map(skills.map((s) => [
     s.id,
-    { def: s, parLabel: new Map(specCatalogOf(s).map((id) => [normLabel(specLabel('skills', s.id, id)), id])) },
+    { def: s, parLabel: new Map(specCatalogOf(s).map((id) => [norm(specLabel('skills', s.id, id)), id])) },
   ]));
   /** Même index pour les TALENTS — même doctrine id/label, autre porte de résolution. */
   const CATALOGUE_TALENT = new Map(talents.map((t) => [
     t.id,
-    { def: t, parLabel: new Map(specCatalogOf(t).map((id) => [normLabel(specLabel('talents', t.id, id)), id])) },
+    { def: t, parLabel: new Map(specCatalogOf(t).map((id) => [norm(specLabel('talents', t.id, id)), id])) },
   ]));
 
   const fichiers = RACINES.flatMap(([racine, dir]) =>
@@ -220,7 +220,7 @@ describe('L2 #1548 — aucune `spec` de Compétence ni de Talent écrite en LIBE
       if (defId && typeof spec === 'string' && CATALOGUE.has(defId)) {
         if (SENTINELLE_CHOIX.test(spec)) sentinelles.push(`${ou}|${defId}|${spec}`);
         const cat = CATALOGUE.get(defId)!;
-        const attendu = cat.parLabel.get(normLabel(spec));
+        const attendu = cat.parLabel.get(norm(spec));
         if (attendu && !specResolves(cat.def, spec)) {
           const cle = `${ou}|${defId}|${spec}`;
           if (SPECS_EN_LIBELLE.some((d) => d.cle === cle)) vues.add(cle);
@@ -232,7 +232,7 @@ describe('L2 #1548 — aucune `spec` de Compétence ni de Talent écrite en LIBE
         || (typeof n.id === 'string' && n.id) || null;
       if (talentDefId && typeof spec === 'string' && CATALOGUE_TALENT.has(talentDefId)) {
         const cat = CATALOGUE_TALENT.get(talentDefId)!;
-        const attendu = cat.parLabel.get(normLabel(spec));
+        const attendu = cat.parLabel.get(norm(spec));
         if (attendu && !specResolves(cat.def, spec)) {
           const cle = `${ou}|${talentDefId}|${spec}`;
           if (SPECS_EN_LIBELLE.some((d) => d.cle === cle)) vues.add(cle);

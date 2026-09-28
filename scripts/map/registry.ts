@@ -14,7 +14,7 @@ import { fileURLToPath } from 'node:url';
 import type { Scene } from '../../src/state/scene';
 import type { ZoneSeed } from '../../src/state/asciiMap';
 import { parseProject } from '../../src/state/worldMap';
-import { buildOperaFloorplan, OPERA_ZONE_LAYERS, OPERA_ZONE_SEEDS } from '../../src/scenes/opera/floorplan';
+import { buildOperaFloorplan, operaZoneLayers, OPERA_ZONE_SEEDS } from '../../src/scenes/opera/floorplan';
 import { REZ_ASCII, ETAGE_ASCII } from '../../src/scenes/opera/floorplan.ascii';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -28,8 +28,9 @@ export interface MapSource {
   walledGrids: Record<string, string>;
   /** CALQUE de zones par étage, TEL QUE la scène l'a dérivé (`zonesFromSeeds`), et les GRAINES dont il
    *  vient. Le calque n'est écrit dans AUCUN fichier : un défaut de zone se cite en case + graine de la
-   *  pièce, jamais en ligne de fichier. Les deux se prennent à la scène — l'outil ne redérive rien. */
-  zoneLayers?: Record<string, string>;
+   *  pièce, jamais en ligne de fichier. Le calque se dérive à l'appel (#1692), par la MÊME dérivation que
+   *  la scène, jamais une seconde. */
+  zoneLayers?: () => Record<string, string>;
   zoneSeeds?: Record<string, readonly ZoneSeed[]>;
   /** Chars de case (grille `walled` de l'étage source) qui posent une volée d'escalier légitime
    *  (`MapSpec.cells[c].stair`) — un « trou » de plancher d'étage sur ces chars est une TRÉMIE voulue. */
@@ -60,7 +61,7 @@ export const MAP_REGISTRY: MapEntry[] = [
     source: {
       sourceDir: sceneDir('opera'),
       walledGrids: { z0: REZ_ASCII, z1: ETAGE_ASCII },
-      zoneLayers: OPERA_ZONE_LAYERS,
+      zoneLayers: operaZoneLayers,
       zoneSeeds: OPERA_ZONE_SEEDS,
     },
     floorTerrain: 'plancher',

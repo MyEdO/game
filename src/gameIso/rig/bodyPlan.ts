@@ -14,16 +14,15 @@ import { asRigSpeciesId, type Appearance, type RigSpeciesId } from './appearance
 import type { EquipCtx } from './parts/equipment';
 import { PLAN_LIST } from './plans/_registry.generated';
 import { defById, speciesScale } from './creatures';
-import { findCreatureById, findTrappingById, findVehicleById } from '../../data';
+import { findCreatureById, findTrappingById, findVehicleById, DEFAULT_RACE_ID } from '../../data';
 import { isSwarm } from '../../engine/traits/dispatch';
-import { DEFAULT_RACE_ID } from './races';
 import { diagOnce, diagSubject } from './devDiag';
 import { eyesArtFromKeys } from './parts/eyes';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
 import { fauteDEspece, estFormeDeNuee } from '../../data/schemas/grammaire/art';
 
 /** Identifiant de gabarit — chaîne libre dérivée des `plans/defs/` (data-driven : chaque plan
- *  déclare son `id`). Le monolithique n'est PAS un BodyPlan (fallback legacy hors registre). */
+ *  déclare son `id`). Le monolithique n'est PAS un BodyPlan (repli hors registre). */
 export type BodyPlanId = string;
 
 /** État des AILES d'un gabarit ailé : REPLIÉES le long du dos (repos) ou DÉPLOYÉES (vol/
@@ -109,7 +108,7 @@ export function resolveSpecies(species: string): RenderResolution {
 
 /** Opts de rendu de GABARIT portées par l'apparence d'un RECORD de créature (`creatures.json`) —
  *  pendant plan d'`enemyRigProfile` (bipède), consommé par TOUS les sites qui rendent un plan
- *  (tokens iso, POV, aperçu de Codex, galeries, goldens). Une seule précédence PAR CHAMP (même
+ *  (pions iso, POV, aperçu de Codex, galeries, goldens). Une seule précédence PAR CHAMP (même
  *  formule que `rigAppearance`, le pendant bipède) : apparence VIVANTE (`Combatant.appearanceOverride`,
  *  `SceneEntity.appearance`, apparence en cours d'édition) passée en `override` → record. Un `colors`
  *  d'override remplace donc l'objet `colors` ENTIER du record, il ne s'y fusionne pas.
@@ -126,8 +125,8 @@ export function planOptsForRecord(recordId: string | undefined, override?: Entit
   };
 }
 
-/** Résolution de rendu UNIFIÉE et 100% DATA-DRIVEN (de-POC P5/5d) : classe (rig/gabarit), id de
- *  gabarit, espèce canonique et échelle de token. Résout par la DONNÉE — espèce explicite (arg) →
+/** Résolution de rendu UNIFIÉE et 100% DATA-DRIVEN : classe (rig/gabarit), id de
+ *  gabarit, espèce canonique et échelle du pion. Résout par la DONNÉE — espèce explicite (arg) →
  *  espèce du RECORD (`findCreatureById(id).appearance.species`) → bipède Humain. Trait Nuée → 'swarm'.
  *  PLUS aucun repli par libellé/nom d'auteur (le 3ᵉ arg ne sert qu'au record + match véhicule).
  *  3ᵉ arg = `id` de créature (scènes/spawn) ; une ESPÈCE explicite passe par le 1er arg (cf. resolveSpecies). */

@@ -14,15 +14,15 @@
  *    d'entrées qui l'exercent RÉELLEMENT dans le `.json`.
  * La part ÉDITORIALE (frontières, doctrine « un seul format », recettes) vit ICI, en dur.
  *
- * Mode --check (chaîné dans npm run docs:check) : régénère en mémoire, compare au .md committé,
- * exit 1 si diff — jamais d'écriture en mode --check.
+ * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/empreinte-sources.mjs), rejoué par `build-all.mjs`.
  *
  *   node scripts/docs/build-passifs.mjs
  */
 import { readFileSync, existsSync } from 'node:fs'
 import { parUnitesDeCode, listerDossier } from '../guards/lib/lister.mjs'
 import ts from 'typescript'
-import { emitOrCheck, loadSource, firstSentence } from './lib/jsdocUnion.mjs'
+import { loadSource, firstSentence } from './lib/jsdocUnion.mjs'
+import { ecrireOuVerifier } from './lib/empreinte-sources.mjs'
 
 const OUTIL = 'build-passifs'
 const OPS = 'src/engine/ops.ts'
@@ -419,7 +419,7 @@ Tout passe par le Compendium in-app (écran Codex) :
   dont les plages référencent des mutations EXISTANTES par id.
 `
 
-emitOrCheck({
+ecrireOuVerifier({
   out,
   path: 'docs/systeme-passifs.md',
   check: process.argv.includes('--check'),

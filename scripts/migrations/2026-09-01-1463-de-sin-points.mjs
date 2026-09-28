@@ -30,6 +30,7 @@
  * IDEMPOTENT : rejouée, elle ne voit plus aucun `sinPlus` et n'écrit rien.
  * FORMATAGE : `JSON.stringify(doc, null, 2)`, vérifié canonique AVANT toute écriture.
  */
+import { tableTotale } from '../../src/lib/tableTotale.ts';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -153,7 +154,7 @@ for (const document of doc) {
   for (const rangee of document.entries ?? []) constater(rangee, rangee.id);
 }
 
-const attendu = { ...ATTENDUS_DES, ...Object.fromEntries(ATTENDUS_UN.map((s) => [s, 0])) };
+const attendu = { ...ATTENDUS_DES, ...tableTotale(ATTENDUS_UN, () => 0) };
 const vus = Object.keys(constat).sort();
 const nommes = Object.keys(attendu).sort();
 if (vus.join('\n') !== nommes.join('\n')) {

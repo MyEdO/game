@@ -4,7 +4,6 @@ import { wildcardSpecs } from './careerSlots';
 import { createHero } from './character';
 import { adresseDeCreation } from './adresseDeCreation';
 import { testValue } from './skills';
-import { makeRNG } from './dice';
 import type { Combatant, SkillInstance } from './types';
 
 /**
@@ -51,7 +50,7 @@ describe('#1342 L3 — spécialisation hors pool : valide partout, jamais propos
 
   it('un héros créé sur « Savoir (Local) » stocke l\'id de la spécialisation', () => {
     const h = createHero({
-      speciesId: 'humains-reiklander', careerId: 'erudit', label: 'É', rng: makeRNG(7),
+      speciesId: 'humains-reiklander', careerId: 'erudit', label: 'É', seed: 7,
       specChoices: { [adresseDeCreation.carriereCompetence(7)]: HORS_POOL.specId }, // erudit : « Savoir (Au choix) »
     });
     const inst = h.skills.filter((s) => s.id === HORS_POOL.skillId);

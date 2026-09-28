@@ -16,13 +16,12 @@
  *  - la clé de persistance `localStorage`, lue dans `src/state/houseRules.ts`.
  * La part ÉDITORIALE (comment activer, quoi faire avant de rapporter une absence) vit ICI, en dur.
  *
- * Mode --check (chaîné dans npm run docs:check via scripts/docs/build-all.mjs) : régénère en
- * mémoire, compare au .md committé, exit 1 si diff — jamais d'écriture en mode --check.
+ * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/empreinte-sources.mjs), rejoué par `build-all.mjs`.
  *
  *   node scripts/docs/build-regles-optionnelles.mjs
  */
 import { readFileSync, existsSync } from 'node:fs'
-import { emitOrCheck } from './lib/jsdocUnion.mjs'
+import { ecrireOuVerifier } from './lib/empreinte-sources.mjs'
 
 const OUTIL = 'build-regles-optionnelles'
 const DATA = 'src/data/reglesOptionnelles.json'
@@ -89,7 +88,7 @@ const OWN_TAB_MIN = Number(capture(TABS_SRC, /export const OWN_TAB_MIN = (\d+)/,
 const MISC_LABEL = capture(TABS_SRC, /export const MISC_TAB_LABEL = '([^']+)'/, 'la constante `MISC_TAB_LABEL`', TABS)
 if (!Number.isFinite(OWN_TAB_MIN) || OWN_TAB_MIN < 1) abandon(`\`OWN_TAB_MIN\` illisible dans ${TABS}`)
 
-const CLE_PERSISTANCE = capture(lire(STORE), /const KEY = '([^']+)'/, 'la clé de persistance `KEY`', STORE)
+const CLE_PERSISTANCE = capture(lire(STORE), /export const HOUSE_RULES_STORAGE_KEY = '([^']+)'/, 'la clé de persistance `HOUSE_RULES_STORAGE_KEY`', STORE)
 
 for (const [f, sym] of [[POLICY, 'export function rule('], [POLICY, 'export function ruleDef(']]) {
   if (!lire(f).includes(sym)) abandon(`« ${sym.trim()} » introuvable dans ${f} (renommé ?)`)
@@ -243,7 +242,7 @@ rangée quand la règle atteint sa valeur de déclenchement.
 ${sectionsGroupes}
 `
 
-emitOrCheck({
+ecrireOuVerifier({
   out,
   path: 'docs/regles-optionnelles.md',
   check: process.argv.includes('--check'),

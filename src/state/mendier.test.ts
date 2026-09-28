@@ -37,6 +37,9 @@ import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
 import type { WorldMap } from './worldMap';
 
+/** Humains (Reiklander), « Affable *ou* Perspicace » (LDB 05 l.490) : Perspicace, la Sociabilité reste nue. */
+const PERSPICACE = { 'espece:talents:0': { id: 'perspicace' } };
+
 const ROOT = join(import.meta.dirname, '..', '..');
 
 /** Le gain RAW de Mendier, tel qu'authoré : (Bonus de Sociabilité × DR) × heures. */
@@ -48,7 +51,7 @@ const GAIN: Formula = {
 };
 
 function heros(soc: number): Combatant {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Mendiant', rng: makeRNG(1) });
+  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Mendiant', seed: 1, speciesTalentChoices: PERSPICACE });
   h.characteristics.sociabilite = soc;
   return h;
 }
@@ -130,16 +133,16 @@ describe('Exemption de Statut (LDB 09 l.99) — DÉRIVÉE du registre des carri�
   it('aucune étape de monde pour une Carrière sans ressources ; UNE pour les autres', () => {
     const def = activityById('mendier')!;
     for (const id of sansRessources) {
-      const h = createHero({ speciesId: 'humains-reiklander', careerId: id, label: id, rng: makeRNG(1) });
+      const h = createHero({ speciesId: 'humains-reiklander', careerId: id, label: id, seed: 1, speciesTalentChoices: PERSPICACE });
       expect(buildActivityWorldRollSteps(def, h), `exempté : ${id}`).toEqual([]);
     }
-    const soldat = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'S', rng: makeRNG(1) });
+    const soldat = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'S', seed: 1, speciesTalentChoices: PERSPICACE });
     expect(buildActivityWorldRollSteps(def, soldat)).toHaveLength(1);
   });
 
   it('l’exemption lit le Statut d’ENTRÉE de la carrière, pas l’avancement du porteur', () => {
     const def = activityById('mendier')!;
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'mendiant', label: 'M', rng: makeRNG(1) });
+    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'mendiant', label: 'M', seed: 1, speciesTalentChoices: PERSPICACE });
     h.careerLevel = 4; // le Mendiant monté en grade reste d'une Carrière sans ressources
     expect(buildActivityWorldRollSteps(def, h)).toEqual([]);
   });
@@ -297,7 +300,7 @@ describe('Mendier de bout en bout (bandes de DR, LDB 09 l.97)', () => {
   const carte = (): WorldMap => ({
     id: 'w', label: 'Carte',
     places: [{
-      id: 'halle', label: 'La Halle', pos: { x: 10, y: 10 }, scene: testScene.id,
+      id: 'halle', label: 'La Halle', pos: { x: 10, y: 10 }, scene: testScene().id,
       market: { taille: 2, richesse: 2, produits: [] } as never,
     }],
     routes: [],
@@ -306,10 +309,10 @@ describe('Mendier de bout en bout (bandes de DR, LDB 09 l.97)', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.clearAllTimers();
-    const a = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', rng: makeRNG(1) });
+    const a = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1, speciesTalentChoices: PERSPICACE });
     a.characteristics.sociabilite = 45; // Bonus de Sociabilité = 4
     useGame.setState({ party: [a], battle: null, interlude: null, bank: [], pendingActivity: null, journal: [], pendingCascade: null });
-    useGame.getState().startScene(testScene);
+    useGame.getState().startScene(testScene());
     useGame.setState({ worldMap: carte() });
     vi.clearAllTimers();
     useGame.getState().seedRng(13);
@@ -486,7 +489,7 @@ describe('Dé de MONDE « surpris à mendier » (LDB 09 l.99) — par la PORTE, 
 
   it('la cible de l’étape EST la règle optionnelle (aucune constante au moteur)', () => {
     const def = activityById('mendier')!;
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'S', rng: makeRNG(1) });
+    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'S', seed: 1, speciesTalentChoices: PERSPICACE });
     setRule('mendier-surpris-pct', 35);
     const [step] = buildActivityWorldRollSteps(def, h);
     expect(step.target).toBe(35);

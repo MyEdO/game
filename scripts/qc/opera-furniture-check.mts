@@ -18,7 +18,8 @@ const bad: string[] = [];
 // Les lustres FLOTTENT au-dessus du vide central / du foyer (suspendus) — exemptés du contrôle de sol.
 const FLOATING = new Set(['lustre-opera']);
 
-for (const e of scenarioEntities) {
+const entites = scenarioEntities();
+for (const e of entites) {
   if (e.kind !== 'prop' || !e.ref || FLOATING.has(e.ref)) continue;
   const z = e.z ?? 0;
   for (const { x, y } of propFootTiles(e.ref, e.pos, e.facing, sceneMetresPerTile(scene))) {
@@ -35,5 +36,5 @@ if (bad.length) {
   for (const b of bad) console.error('  - ' + b);
   process.exit(1);
 }
-const props = scenarioEntities.filter((e) => e.kind === 'prop' && e.ref).length;
+const props = entites.filter((e) => e.kind === 'prop' && e.ref).length;
 console.log(`OK: ${props} props placés, 0 anomalie (aucun dans un mur / sur le parterre / hors grille).`);

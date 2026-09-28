@@ -26,6 +26,7 @@ import { fileURLToPath } from 'node:url';
 import { IMPORT_RE, resolveImport } from '../../scripts/guards/lib/importGraph.mjs';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { estFichierVitest } from '../../scripts/guards/lib/fichierVitest.mjs';
+import { detenteur } from '../detenteur.testkit';
 
 const SRC = fileURLToPath(new URL('../', import.meta.url)).split('\\').join('/');
 const STATE = `${SRC}state`;
@@ -51,12 +52,12 @@ export function importsDuRendu(fichierAbs: string, texte: string): { spec: strin
 }
 
 describe('frontière state → gameIso (CLAUDE.md règle 3)', () => {
-  const fichiers = sourcesDeState();
+  const fichiers = detenteur(() => sourcesDeState());
 
   it('le scan voit bien les sources de production de src/state (preuve de câblage)', () => {
-    expect(fichiers.length).toBeGreaterThan(50);
-    expect(fichiers.some((f) => f.chemin.endsWith('/state/sceneEdit.ts'))).toBe(true);
-    expect(fichiers.some((f) => estFichierVitest(f.chemin))).toBe(false);
+    expect(fichiers().length).toBeGreaterThan(50);
+    expect(fichiers().some((f) => f.chemin.endsWith('/state/sceneEdit.ts'))).toBe(true);
+    expect(fichiers().some((f) => estFichierVitest(f.chemin))).toBe(false);
   });
 
   it('cas planté : un import du rendu est VU, un import de state ne l’est pas (preuve TDD)', () => {
@@ -71,7 +72,7 @@ describe('frontière state → gameIso (CLAUDE.md règle 3)', () => {
 
   it('aucune source de production de src/state n’importe src/gameIso', () => {
     const fautes: string[] = [];
-    for (const f of fichiers)
+    for (const f of fichiers())
       for (const { spec, cible } of importsDuRendu(f.chemin, f.texte))
         fautes.push(`${f.chemin.slice(SRC.length)} → ${cible}  (« ${spec} »)`);
     expect(

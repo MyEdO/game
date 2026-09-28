@@ -101,7 +101,7 @@ test('MORSURE : un `gh issue create` inséré dans un workflow est vu comme une 
 })
 
 test('le LECTEUR de `ci.yml` (`gatesDeCi`) lit bien le fichier que PORTE nomme', () => {
-  // Confrontation, pas recopie : `gatesDeCi.mjs:54` garde son littéral (le registre n’est importé par
+  // Confrontation, pas recopie : `cheminCi` (gatesDeCi.mjs) garde son littéral (le registre n’est importé par
   // aucune gate) — c’est ce test qui refuse la dérive entre les deux.
   const racine = mkdtempSync(join(tmpdir(), 'porte-de-gatesDeCi-'))
   try {

@@ -11,6 +11,7 @@
  * (`RACINES_VIVANTES`, `collectionDuDataset`) : ce que le save sérialise, et ce que le régime vivant des
  * ids navigue.
  */
+import { tableTotale } from '../lib/tableTotale';
 import {
   characteristics, species, classes, careers, careerLevels, skills, talents, etats, maladies, traits,
   qualities, qualitySubtypes, qualityTypes, mutations, mutationTables, trappings, weaponGroups, breathTypes, damageTypes, creatures, spells, maneuvers, domains, lightLevels, lightTones, props, eyes, hairs, stars, locations, books, raceAppearance, gods, structures,
@@ -55,7 +56,7 @@ import { SHIP_CRITICAL_TABLES, RIVER_CRIT_SET } from './shipCriticals';
 import type { GameOp } from '../engine/ops';
 import type { SourceRef } from './schemas/grammaire/valeurs';
 import traumasRawJson from './traumas.json';
-// LOT 1 #422 : famille RÈGLES LDB — Coût des Augmentations (07), % de Disponibilité (59), Accidents de
+// #422 : famille RÈGLES LDB — Coût des Augmentations (07), % de Disponibilité (59), Accidents de
 // Conduite d'attelage (09) et Ivresse (09) NICHÉS dans un objet `{table,source}` (même patron que
 // `incidents-monture.json`/`problemes-vehicule.json`), Surchargé par palier (61).
 import advancementCostsRawJson from './advancementCosts.json';
@@ -64,7 +65,7 @@ import drunkennessRawJson from './drunkenness.json';
 import encumbranceTiersRawJson from './encumbranceTiers.json';
 import type { MishapEntry } from '../engine/drivingMishap';
 import type { DrunkEntry } from '../engine/drunkenness';
-// LOT 3 #422 (FINAL) : dernières 3 exemptions AUDIT — Empoignade (LDB 14, fiche de règle UNIQUE, même
+// #422 (FINAL) : dernières 3 exemptions AUDIT — Empoignade (LDB 14, fiche de règle UNIQUE, même
 // patron que `disponibilite`/`riverNavigation`), Incantations Imparfaites/Colère des dieux (LDB 46/40,
 // 3 tables NICHÉES dans `miscast.json`, même patron que `criticalsTete`/`aaCriticalsTete`), enjeux de
 // la cascade de nuit (`night-stakes.json`, tableau RACINE, nom de fichier kebab-case divergent).
@@ -118,7 +119,7 @@ export interface TraumaFicheEntry {
 const traumas = traumasRawJson as TraumaFicheEntry[];
 
 /** Entrée de table de Blessures Critiques par Localisation (LDB 18 « Traumatisme » ET AA « approche
- *  alternative ») — MÊME schéma pour les DEUX jeux depuis leur fusion (#1657 B2a). ALIAS de `CritEntry`
+ *  alternative ») — MÊME schéma pour les DEUX jeux depuis leur fusion (#1657). ALIAS de `CritEntry`
  *  (`src/data/criticals.ts`), la SEULE déclaration de la forme : une redéclaration structurelle en
  *  amputait `source`, `escalation` et les champs d'`Amputation` (`timing`/`loss`/`unites`), si bien que
  *  le Codex ne pouvait pas voir ce que le moteur joue. */
@@ -147,7 +148,7 @@ const ARRAYS = {
   // Matières du monde (#1686) : UN document, le domaine PORTÉ par l'entrée. Ce binding EST le seam de
   // mutation en place, et c'est lui qui rend vivante la lecture des vues par domaine (`matieresDe`,
   // `src/data/index.ts`) : une matière retouchée se voit au rendu sans rechargement. Son def déclare
-  // `exposition.edit` = `dataset` (lot 3a-2) : la clé a sa route de sauvegarde vers `materials.json`,
+  // `exposition.edit` = `dataset` : la clé a sa route de sauvegarde vers `materials.json`,
   // et l'onglet Codex « Matières » l'édite.
   materials,
   // Terrains du monde (#1690) : UN document, règle et rendu dans la même entrée. Ce binding EST le
@@ -206,19 +207,19 @@ const ARRAYS = {
   shipHullSizes: shipConstruction.standard,
   shipSpeedTraits: shipConstruction.speedTraits,
   shipConstructionTraits: shipConstruction.constructionTraits,
-  // LOT 1 #422 : famille RÈGLES LDB — Coût des Augmentations (tableau RACINE) ; Accidents de Conduite
+  // #422 : famille RÈGLES LDB — Coût des Augmentations (tableau RACINE) ; Accidents de Conduite
   // d'attelage / Ivresse (tableaux NICHÉS sous `entries`, MÊME référence que le moteur — accès de
   // propriété, jamais une copie) ; Surchargé par palier (tableau RACINE).
   advancementCosts: advancementCostsRawJson,
   drivingMishap: drivingMishapRawJson.entries as MishapEntry[],
   drunkenness: drunkennessRawJson.entries as DrunkEntry[],
   encumbranceTiers: encumbranceTiersRawJson,
-  // LOT 3 #422 (FINAL) : Incantations Imparfaites Mineures/Majeures (LDB 46) + Colère des dieux (LDB 40)
+  // #422 (FINAL) : Incantations Imparfaites Mineures/Majeures (LDB 46) + Colère des dieux (LDB 40)
   // — les rangées de 3 des 5 DOCUMENTS de `miscast.json`, adressées par leur id (#1467 L1b).
   miscastMinor: miscastEntries('miscast-mineure'),
   miscastMajor: miscastEntries('miscast-majeure'),
   miscastWrath: miscastEntries('miscast-colere'),
-  // LOT 3 #422 (FINAL) : enjeux des cascades — chaque binding écrit EST la racine de son fichier
+  // #422 (FINAL) : enjeux des cascades — chaque binding écrit EST la racine de son fichier
   // (tableau RACINE, pas un tableau niché sous une enveloppe). Le fichier disque ne se déduit pas de
   // la clé JS : il est DÉRIVÉ de l'`exposition.edit` du def (`nightStakes` → `night-stakes.json`) ;
   // les trois autres sont `edit:{none}` (lecture seule au Codex), donc sans fichier de sauvegarde.
@@ -259,13 +260,13 @@ const OBJECTS = {
   semencesDeScene,
   // #1716 : défauts du COMPILATEUR de scène (`mapSpec`) — même patron, autre moment (compiler, pas créer).
   defautsDeCompilation,
-  // LOT 1 #422 : 3 fiches de règle UNIQUES (MDG 13) — même patron que `waterExposure` (MSRC 16).
+  // #422 : 3 fiches de règle UNIQUES (MDG 13) — même patron que `waterExposure` (MSRC 16).
   seaNavigation, seaPerils, seaWeather,
-  // LOT 1 #422 (suite) : Disponibilité & Troc (LDB 59) — fiche de règle UNIQUE, même patron.
+  // #422 (suite) : Disponibilité & Troc (LDB 59) — fiche de règle UNIQUE, même patron.
   disponibilite,
-  // LOT 2 #422 : Navigation fluviale (MSRC 7) — fiche de règle UNIQUE, même patron.
+  // #422 : Navigation fluviale (MSRC 7) — fiche de règle UNIQUE, même patron.
   riverNavigation,
-  // LOT 3 #422 (FINAL) : Empoignade (LDB 14) — fiche de règle UNIQUE, même patron.
+  // #422 (FINAL) : Empoignade (LDB 14) — fiche de règle UNIQUE, même patron.
   grapple: GRAPPLE,
   // Barres par catégorie de Taille (mod de tir LDB 14, Enc à bord MDG 12, empreinte de grille MAISON) —
   // fiche de règle UNIQUE, même patron ; les 3 tables sont NICHÉES (cf. la fusion en place ci-dessous).
@@ -292,12 +293,8 @@ export function datasetObjectFile(key: ObjectDatasetKey): string {
 }
 
 /** Seeds immuables (clone du JSON d'origine), capturés à l'init du module — pour `resetData()`. */
-const SEED = Object.fromEntries(
-  DATASET_KEYS.map((k) => [k, structuredClone(ARRAYS[k] as unknown[])]),
-) as Record<DatasetKey, unknown[]>;
-const OBJECT_SEED = Object.fromEntries(
-  OBJECT_DATASET_KEYS.map((k) => [k, structuredClone(OBJECTS[k])]),
-) as Record<ObjectDatasetKey, object>;
+const SEED = tableTotale(DATASET_KEYS, (k) => structuredClone(ARRAYS[k] as unknown[]));
+const OBJECT_SEED = tableTotale(OBJECT_DATASET_KEYS, (k): object => structuredClone(OBJECTS[k]));
 
 /** Remplace EN PLACE le contenu d'un dataset (jamais de réassignation du binding) et VERSIONNE
  *  l'écriture — l'identité du tableau ne bougeant pas, la version est le seul témoin qu'un index
@@ -371,7 +368,7 @@ function lectureVivante(cle: string): LectureVivante {
 }
 
 /**
- * RÉGIME VIVANT DES IDS (#1686 lot 3a-2, #1463) — le second régime de `_ids.generated.ts` : les ids de
+ * RÉGIME VIVANT DES IDS (#1686, #1463) — le second régime de `_ids.generated.ts` : les ids de
  * l'espace `cle` sur les racines vivantes (`lectureVivante`, le calcul de la phase 2 de `npm run gen`),
  * si bien qu'une entité créée ou renommée à l'atelier est référençable par la donnée AVANT tout
  * `npm run gen`. L'univers d'une `specsSource` se suit (`idsDeLEspace`) à SA lecture, datée par son

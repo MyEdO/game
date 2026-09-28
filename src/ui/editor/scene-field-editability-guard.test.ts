@@ -6,11 +6,12 @@ import {
   auditSceneFieldEditability,
   orphanFields,
   sceneScope,
-  programmeMemoise,
+  programmeDuPerimetre,
   fossileAudit,
   FOSSILES,
 } from '../../../scripts/guards/lib/sceneFieldEditability.mjs';
 import { virtualProgram, VIRTUAL_ROOT } from '../../../scripts/guards/lib/tsProgram.mjs';
+import { detenteur } from '../../detenteur.testkit';
 
 /**
  * GARDE #841 — « toute donnée de la scène s'édite au clic, sans dépendre d'une IA » (directive
@@ -53,8 +54,11 @@ const ids = (rows: { id: string }[]) => rows.map((r) => r.id);
 const TROUS_CONNUS: string[] = [];
 
 describe('#841 — chaque champ du document de scène a un chemin d’écriture ATTEIGNABLE PAR L’AUTEUR', () => {
+  // `scripts/guards/lib/tsProgram.mjs`, en-tête ; garde `src/analyse-retention-guard.test.ts`.
+  const perimetre = detenteur(() => programmeDuPerimetre(ROOT));
+
   it('aucun champ n’est joignable seulement par le pipeline d’authoring, hors cliquet nommé', () => {
-    const orphelins = orphanFields(auditSceneFieldEditability(ROOT));
+    const orphelins = orphanFields(auditSceneFieldEditability(ROOT, perimetre()));
     // Rendu en TEXTE : l'échec doit NOMMER les champs et leur `fichier:ligne`, pas afficher « …(9) ».
     const detail = orphelins
       .map((r) => `${r.id} (${r.at}) — écrivains : ${r.pipeline.join(', ') || 'AUCUN'}`)
@@ -68,7 +72,7 @@ describe('#841 — chaque champ du document de scène a un chemin d’écriture 
     // vivant y était donc rapporté « écrivains : AUCUN » — un faux négatif qui invite à supprimer du
     // code vivant. `src/state/mapSpec.ts:902` (`const namedZones: SceneEffectZone[] = […].map(…)`)
     // est la sonde : l'annotation de la collection porte le type, la garde doit la lire.
-    const rows = auditSceneFieldEditability(ROOT);
+    const rows = auditSceneFieldEditability(ROOT, perimetre());
     const zone = (field: string) => rows.find((r) => r.id === `SceneEffectZone.${field}`);
     for (const field of ['tiles', 'area', 'id', 'label', 'z']) {
       expect(zone(field)?.pipeline, `SceneEffectZone.${field} sans écrivain de pipeline`).toContain(
@@ -125,7 +129,7 @@ export const tracerCalque = () => {
   });
 
   it('le périmètre se dérive du type `Scene` — types imbriqués, unions et littéraux anonymes compris', () => {
-    const scope = sceneScope(programmeMemoise(ROOT), ROOT);
+    const scope = sceneScope(perimetre(), ROOT);
     const all = new Set(ids(scope));
     // Champs qu'un scanner limité aux interfaces atteignables « à la main » manque : ils vivent dans
     // des types que seule la traversée du type `Scene` ramène.
@@ -214,7 +218,7 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
     const DOC = ['src/state/scene.ts', 'src/data/schemas/defs-scenes/scene.ts'];
     const fichier = (r: { decl: ts.Declaration }) =>
       path.relative(ROOT, r.decl.getSourceFile().fileName).split(path.sep).join('/');
-    const scope: { id: string; decl: ts.Declaration }[] = sceneScope(programmeMemoise(ROOT), ROOT);
+    const scope: { id: string; decl: ts.Declaration }[] = sceneScope(perimetre(), ROOT);
     const horsDocument = scope.filter((r) => !DOC.includes(fichier(r)));
     expect(
       horsDocument.map((r) => `${r.id} @ ${fichier(r)}`).sort(),
@@ -332,7 +336,7 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
   // d'imports étant tirée par TypeScript —, un module servi MODIFIÉ EN MÉMOIRE : aucune écriture
   // disque, et la mesure porte sur les vraies déclarations, pas sur une réplique. `src/ui/**` n'y
   // entre pas : l'audit `@fossile` et le SEAM lisent les DÉCLARATIONS du document, jamais les
-  // écrivains d'interface — ceux-là se mesurent sur `programmeMemoise(ROOT)`, qui porte l'interface,
+  // écrivains d'interface — ceux-là se mesurent sur `programmeDuPerimetre(ROOT)`, qui porte l'interface,
   // le pont et le pipeline.
   const programAvec = (patch: Record<string, string>) => {
     const cfgPath = ts.findConfigFile(ROOT, ts.sys.fileExists, 'tsconfig.json')!;
@@ -403,8 +407,8 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
   });
 
   it('gate @fossile : les deux sens sont muets à l’arbre, et le fossile gaté est HORS périmètre', () => {
-    expect(fossileAudit(programmeMemoise(ROOT), ROOT)).toEqual({ taguesHorsListe: [], entreesSansTag: [] });
-    expect(ids(sceneScope(programmeMemoise(ROOT), ROOT))).not.toContain('SceneEntity.foot');
+    expect(fossileAudit(perimetre(), ROOT)).toEqual({ taguesHorsListe: [], entreesSansTag: [] });
+    expect(ids(sceneScope(perimetre(), ROOT))).not.toContain('SceneEntity.foot');
   });
 
   it('NON VACANTE (a) : un champ frais, écrit par personne, est rapporté orphelin', () => {

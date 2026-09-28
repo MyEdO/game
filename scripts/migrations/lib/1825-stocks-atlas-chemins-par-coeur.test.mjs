@@ -1,6 +1,6 @@
 // Banc de la migration `2026-09-20-1825-stocks-atlas-chemins-par-coeur.mjs` — jouée par `joue` dans
 // un DÉPÔT JETABLE sous `os.tmpdir()`, jamais sur l'arbre réel. Sous `lib/` : un `.mjs` sans préfixe
-// daté à la racine des migrations y est inclassable (scripts/migrations/replay.mjs:90, :175-177).
+// daté à la racine des migrations y est inclassable (`estUneMigration` et `MODULES_DE_LA_PORTE`, scripts/migrations/replay.mjs).
 import { strict as assert } from 'node:assert';
 import path from 'node:path';
 import test from 'node:test';
@@ -8,13 +8,14 @@ import test from 'node:test';
 import { coeursDuRegistre } from '../../raw/_lib.mjs';
 import { serialise } from './croissance.mjs';
 import { depot, efface, joue, lireDans, rienTouche } from './joue.mjs';
+import { tableTotale } from '../../../src/lib/tableTotale.ts';
 
 const MIGRATION = '2026-09-20-1825-stocks-atlas-chemins-par-coeur.mjs';
 
 /** Ce que la migration LIT hors de l'Atlas et des stocks : la couture `_lib.mjs` et ses imports. */
-const LUS = ['scripts/raw', 'scripts/guards/lib', 'scripts/port-dev.mjs', 'scripts/source/nom-ascii.mjs', 'src/data/books.json', 'src/data/hash.ts', 'src/data/source'];
+const LUS = ['scripts/raw', 'scripts/guards/lib', 'scripts/port-dev.mjs', 'scripts/source/nom-ascii.mjs', 'src/data/books.json', 'src/data/hash.ts', 'src/data/source', 'src/lib/ordre.mjs', 'src/lib/regex.ts'];
 
-// Chemins d'Atlas composés à l'exécution : scripts/docs/check-doc-refs.mjs:262 (`DOC_REF_RE`, l.247).
+// Chemins d'Atlas composés à l'exécution : `DOC_REF_RE` de scripts/docs/check-doc-refs.mjs.
 const RAWDIR = path.posix.join('docs', 'raw');
 const STOCK = 'scripts/raw/reanchor-low-stock.json';
 const AUTRES_STOCKS = ['scripts/raw/graphy-stock.json', 'scripts/raw/reconciliation-stock.json'];
@@ -36,7 +37,7 @@ const texteDe = (doc) => serialise(doc, { indent: 2, nl: true });
 function depotAtlas(t, pages, doc) {
   const d = depot({
     ...(doc === undefined ? {} : { [STOCK]: texteDe(doc) }),
-    ...Object.fromEntries(AUTRES_STOCKS.map((rel) => [rel, texteDe({ entrees: [] })])),
+    ...tableTotale(AUTRES_STOCKS, () => texteDe({ entrees: [] })),
     ...Object.fromEntries(pages.map((page) => [path.posix.join(RAWDIR, page), '# page\n'])),
   }, LUS);
   t.after(() => efface(d.racine));

@@ -8,7 +8,6 @@ import { poserCapDuGroupe } from '../../state/combatants';
 import { emptyScene, sceneMetresPerTile, type Scene } from '../../state/scene';
 import { setRevealAll } from '../../state/visionState';
 import { createHero } from '../../engine/character';
-import { makeRNG } from '../../engine/dice';
 import type { Dims } from '../../geometry/iso';
 import { AMBIANCE, ambianceLuminance } from '../catalog/ambiance';
 import { fogCurveOf, povDepth } from '../pov/camera';
@@ -38,7 +37,7 @@ brancherArdoise();
 
 /** Pose une scène jouable au store — `interieur` bascule le MILIEU (c'est `isIndoor` qui tranche). */
 function poser(ambiance: Scene['ambiance']): Scene {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', rng: makeRNG(1) });
+  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
   const scene = emptyScene(12, 12);
   scene.ambiance = ambiance;
   useGame.setState({

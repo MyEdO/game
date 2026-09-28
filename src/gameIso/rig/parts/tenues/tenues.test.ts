@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { TENUE_NUE, TENUE_BY_ID } from './index';
 import { TENUE_DEFS } from './_registry.generated';
-import { pickView } from '../types';
+import { viewOrFront } from '../types';
 import { tenueFor, tenuePaletteFor } from '../career';
 import { careers } from '../../../../data';
 
@@ -31,19 +31,19 @@ describe('registre des tenues (defs/ = source UNIQUE, data-driven)', () => {
   it("une tenue SPÉCIFIQUE déposée en defs/ est consommée par tenueFor (par ID) — un fichier, zéro merge", () => {
     expect(TENUE_BY_ID['guerrier-du-chaos']).toBeDefined();
     const t = tenueFor('guerrier-du-chaos');
-    expect(pickView(t.tete, 'profile')).toContain('@metal'); // heaume cornu, vue dédiée
+    expect(viewOrFront(t.tete, 'profile')).toContain('@metal'); // heaume cornu, vue dédiée
     expect(tenuePaletteFor('guerrier-du-chaos').metal).toBe('#3a3a46'); // palette portée par le def
   });
 
   it('chaque def expose torse + jambes non vides', () => {
     for (const d of TENUE_DEFS) {
-      expect(pickView(d.set.torse, 'front'), d.label).toContain('<');
-      expect(pickView(d.set.jambes, 'front'), d.label).toContain('<');
+      expect(viewOrFront(d.set.torse, 'front'), d.label).toContain('<');
+      expect(viewOrFront(d.set.jambes, 'front'), d.label).toContain('<');
     }
   });
 
   it('ne chausse pas = SOURCE UNIQUE (absence de `pied` dans le def) : Nu + Squelette (#736 Lot 1)', () => {
-    expect(pickView(TENUE_NUE.torse, 'front')).toContain('@peau'); // suit la palette d'espèce
+    expect(viewOrFront(TENUE_NUE.torse, 'front')).toContain('@peau'); // suit la palette d'espèce
     expect(TENUE_NUE.pied).toBeUndefined();
     expect(TENUE_BY_ID.squelette.pied).toBeUndefined();
   });
@@ -54,7 +54,7 @@ describe('registre des tenues (defs/ = source UNIQUE, data-driven)', () => {
 
   it("id inconnu / classe sans def de tenue → corps Nu (repli ultime — plus aucune tenue générique de classe)", () => {
     expect(tenueFor('carriere-imaginaire')).toBe(TENUE_NUE);
-    // un id de CLASSE (defs supprimés) retombe désormais sur Nu, jamais sur une tenue générique
+    // un id de CLASSE (defs supprimés) retombe sur Nu, jamais sur une tenue générique
     expect(tenueFor('citadins')).toBe(TENUE_NUE);
   });
 });

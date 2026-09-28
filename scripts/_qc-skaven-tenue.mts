@@ -11,7 +11,7 @@ import { resolveRig } from '../src/gameIso/rig/composeRig';
 import type { Appearance } from '../src/gameIso/rig/appearance';
 import { asRigSpeciesId } from '../src/gameIso/rig/appearance';
 import type { EquipCtx } from '../src/gameIso/rig/parts/equipment';
-import type { View } from '../src/gameIso/rig/facing';
+import { VIEWS } from '../src/gameIso/rig/facing';
 import { assertWardrobeId } from './_lib-wardrobe';
 
 // Tenue sondée : ID de garde-robe (carrière ∪ classe ∪ tenue), validée fail-fast — un id qui
@@ -31,7 +31,6 @@ const equip: EquipCtx = {
   armour: [],
 };
 
-const VIEWS: View[] = ['front', 'profile', 'back'];
 const CW = 250, CH = 360, SC = 2.2, FEET = 320;
 const cells: string[] = [];
 VIEWS.forEach((view, i) => {

@@ -1,12 +1,13 @@
-// STOCK CLIQUETÉ de la JAMBE encore INLINE dans les tenues (#633 Lot 0) — consommé par
+// STOCK CLIQUETÉ de la JAMBE encore INLINE dans les tenues (#633) — consommé par
 // `src/gameIso/rig/parts/tenues/jambes-gabarit-ratchet.test.ts`. Patron whitelist-en-lib du dépôt
 // (`paletteLiteralStock.mjs`, `rigPartViewStock.mjs`).
 //
 // Chaque tenue redessinait sa jambe INLINE, recopiant le défaut de galbe genou/mollet. Le gabarit
 // `jambeVetue` (`parts/bodies/jambe-gabarit.ts`) porte le contour + le galbe lissé UNE fois ; une
 // tenue le consomme (ou compose le corps via `BODIES.`). La MESURE vit dans
-// `scripts/guards/lib/jambesGabaritAudit.ts`, partagée avec le régénérateur
-// `npx tsx scripts/rig/regen-jambes-gabarit-stock.mts` (DÉCROISSANT-SEULEMENT, refus SITE PAR SITE).
+// `scripts/guards/lib/jambesGabaritAudit.ts`, partagée avec sa régénération,
+// `npx tsx scripts/guards/lib/regenStock.mts scripts/guards/lib/jambesGabaritAudit.ts` (politique `DECROISSANT`,
+// refus SITE PAR SITE).
 //
 // FORME DES ENTRÉES — `{ fichier, ref, occurrence }`, la forme UNIQUE de tout stock nominatif du
 // dépôt (`cleDeSite`, `scripts/guards/lib/stock.mjs`) : `fichier` = le def de tenue à ouvrir pour
@@ -124,5 +125,5 @@ export const JAMBE_INLINE_RATCHET = [
   { fichier: 'src/gameIso/rig/parts/tenues/defs/Voleur.ts', ref: 'voleur:jambes:inline', occurrence: 1 },
 ]
 
-/** @type {ReadonlyArray<{ fichier: string, ref: string, occurrence: number }>} */
+/** @type {ReadonlyArray<import('./stock.mjs').EntreeDeSite>} */
 export const JAMBE_SILHOUETTE_OVERRIDES = []

@@ -42,7 +42,7 @@ const mutInstance = (id: string, over: Partial<Mutation> = {}): Mutation =>
 const mutFromCatalog = (id: string): Mutation => ({ ...findMutationById(id)!, roll: 1 }) as Mutation;
 
 const hero = (label = 'H', seed = 1): Combatant =>
-  createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label, rng: makeRNG(seed) });
+  createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label, seed });
 
 /** Place le groupe au jour `from` (dernier entretien) et l'horloge au jour `to`, 8 h du matin. */
 const atDays = (party: Combatant[], from: number, to: number, nightDay = -1): void => {

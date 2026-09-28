@@ -17,21 +17,18 @@
 import { describe, it, expect } from 'vitest';
 import { resolveParts } from './resolve';
 import { couchesDuRig, tenuePaletteFor } from './career';
-import { buildTokenMap, applyTokenMap, type PaletteDeclaree } from '../palette';
+import { buildTokenMap, applyTokenMap, tokensOf, type PaletteDeclaree } from '../palette';
 import { CLASS_TENUE_BY_ID, SPECIFIC_TENUES } from './tenues';
-import type { View } from '../facing';
+import { VIEWS, type View } from '../facing';
 import type { EquipCtx } from './equipment';
 
 const empty: EquipCtx = { weapons: [], armour: [] };
-const VIEWS: View[] = ['front', 'back', 'profile'];
 const TENUE_IDS = [...SPECIFIC_TENUES.map((t) => t.id), ...Object.keys(CLASS_TENUE_BY_ID)];
 const SHARED_SLOTS = ['pied', 'main'] as const;
 /** Bruns de l'art d'origine (pied système) — aucun ne doit survivre à une `botte` déclarée. */
 const SYSTEM_BROWNS = /#3a2614|#1f1408|#241608|#2e1f10|#1a1208/;
 
 const COLOR_LITERAL = /#[0-9a-fA-F]{3,8}\b|\brgba?\(\s*[\d.]|\bhsla?\(\s*[\d.]/g;
-/** Jetons `@x` non substitués par la table (= jeton hors palette effective). */
-const LEFT_TOKEN = /@[a-zA-Z]\w*/g;
 
 const sharedSvg = (tenueId: string, view: View, slot: (typeof SHARED_SLOTS)[number]): string =>
   resolveParts('Humain', 'M', tenueId, empty, {}, 1, view)[slot]?.svg ?? '';
@@ -42,7 +39,7 @@ describe('garde-fou — parts partagées du rig : zéro couleur littérale, tout
   it('les détecteurs mordent', () => {
     expect('<path fill="#3a2614"/>'.match(COLOR_LITERAL)).toHaveLength(1);
     expect('<path fill="@botte"/>'.match(COLOR_LITERAL)).toBeNull();
-    expect(applyTokenMap('<path fill="@inconnu"/>', rigMap('soldat')).match(LEFT_TOKEN)).toHaveLength(1);
+    expect(tokensOf(applyTokenMap('<path fill="@inconnu"/>', rigMap('soldat')))).toHaveLength(1);
   });
 
   it('la surface balayée est complète (toute la garde-robe)', () => {
@@ -57,7 +54,7 @@ describe('garde-fou — parts partagées du rig : zéro couleur littérale, tout
       for (const slot of SHARED_SLOTS) {
         const raw = sharedSvg(tenueId, view, slot);
         expect(raw.match(COLOR_LITERAL) ?? [], `${slot} (${view}) porte une couleur littérale — la palette de la tenue ne peut plus la piloter`).toEqual([]);
-        expect(applyTokenMap(raw, map).match(LEFT_TOKEN) ?? [], `${slot} (${view}) porte un jeton hors palette effective`).toEqual([]);
+        expect(tokensOf(applyTokenMap(raw, map)), `${slot} (${view}) porte un jeton hors palette effective (non substitué par la table)`).toEqual([]);
       }
     }
   });
@@ -74,9 +71,9 @@ describe('pied système — la palette PORTÉE le pilote (#426)', () => {
   });
 
   // Couche ESPÈCE : elle s'empile ENTRE le pied système et la tenue (composeRig). Le pied doit être
-  // expansé depuis la palette portée ENTIÈRE, sinon une race qui déclare `botte` voit sa base honorée
-  // et sa famille rester système (cuir neuf, contour brun d'origine).
-  it('une RACE qui déclare `botte` pilote TOUTE sa famille (aucune couche entre-deux)', () => {
+  // expansé depuis la palette portée ENTIÈRE, sinon une race qui déclare `botte` voit sa base honorée,
+  // son ombre et ses suiveuses restées système (cuir déclaré, contour brun d'origine).
+  it('une RACE qui déclare `botte` pilote TOUTE sa gamme et ses suiveuses (aucune couche entre-deux)', () => {
     const cuir = '#2e261c';
     for (const view of VIEWS) {
       const svg = pied('soldat', view, { botte: cuir });
@@ -105,7 +102,7 @@ describe('pied système — la palette PORTÉE le pilote (#426)', () => {
     expect(buildTokenMap([{ botte: '#2e261c', semelle: '#101010' }], {}).semelle).toBe('#101010');
   });
 
-  // Déclaration PARTIELLE (un membre sans la tête de famille) : contrat = robuste, le membre déclaré
+  // Déclaration PARTIELLE (un membre sans sa clé suivie) : contrat = robuste, le membre déclaré
   // dérive SA propre ombre. Sinon `botteDos` neuf garderait le `botteDosO` brun peint par l'art.
   it('déclaration PARTIELLE (`botteDos` sans `botte`) : l’ombre du membre déclaré se dérive', () => {
     const dos = '#2e261c';

@@ -2,7 +2,7 @@
  * Gabarit ARACHNIDE (araignée géante). Vue de dessus-3/4 : gros abdomen à l'arrière (qui PULSE),
  * céphalothorax devant avec yeux + chélicères, 8 pattes arquées rayonnant de part et d'autre.
  * Anim propre au plan : pulsation de l'abdomen + frémissement au repos, ruée à l'attaque, pattes
- * recroquevillées à la mort. Réutilise la machinerie (FK générique, palette tokenisée, rendu).
+ * recroquevillées à la mort. Réutilise la machinerie (FK générique, palette en jetons, rendu).
  */
 import type { BonePose } from '../poses';
 import type { ResolvedBone } from '../composeRig';
@@ -18,7 +18,7 @@ import { sortByZ } from '../composite';
 export type SpiderBoneId = 'corps' | 'abdomen';
 type SBone = FKBone & { z: number };
 export interface SpiderProps {
-  sl: number; // échelle token
+  sl: number; // échelle du pion
   girth: number; // grosseur de l'abdomen
   palette: PaletteDeclaree; // robe (corps/corpsO/corpsH…)
 }

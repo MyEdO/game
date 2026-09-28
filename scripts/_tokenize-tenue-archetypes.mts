@@ -1,6 +1,6 @@
 /**
- * Tokenise les 9 ARCHÉTYPES de classe (tenues/defs/) pour qu'ils marchent comme les tenues de
- * CARRIÈRE : couleurs → @tokens (torse/tête→@vet1, jambes→@vet2, gradient métal→@metal) +
+ * Met en jetons les 9 ARCHÉTYPES de classe (tenues/defs/) pour qu'ils marchent comme les tenues de
+ * CARRIÈRE : couleurs → jetons (torse/tête→@vet1, jambes→@vet2, dégradé métal→@metal) +
  * `palette` (couleurs EXACTES → sans perte). Préserve les commentaires (édite le texte).
  * Nu est déjà en @peau → ignoré. Usage : npx tsx scripts/_tokenize-tenue-archetypes.mts
  */

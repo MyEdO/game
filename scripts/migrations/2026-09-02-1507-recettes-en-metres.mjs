@@ -49,6 +49,7 @@
  * FORMATAGE PRÉSERVÉ : chaque fichier est EXACTEMENT `JSON.stringify(doc, null, 2)`, vérifié AVANT
  * toute écriture.
  */
+import { tableTotale } from '../../src/lib/tableTotale.ts';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -71,7 +72,7 @@ const DATASETS_OPS = ['trappings.json', 'spells.json', 'tables.json'];
  * PROVENANCES en MÈTRES — les 10 phrases de `maison` que le lot #1680 a écrites disaient leur étalon
  * en CASES (« 10 m = 5 cases », « 4 cases contre 5 »). L'unité de la donnée n'est plus la case : elles
  * sont réécrites à l'identique, l'étalon en mètres. Le texte cible est CELUI QUE LE SCRIPT DE #1680
- * ÉCRIT DÉSORMAIS (`RAISONS`) — les deux migrations convergent, dans n'importe quel ordre de rejeu.
+ * ÉCRIT (`RAISONS`) — les deux migrations convergent, dans n'importe quel ordre de rejeu.
  * @type {Record<string, string>}
  */
 const PROVENANCES = {
@@ -130,7 +131,7 @@ const dejaPoint = (p) => p && typeof p === 'object' && 'xM' in p;
 
 // ————————————————————————————————— PORTE DE LECTURE —————————————————————————————————
 const props = lire('props.json');
-const datasetsOps = Object.fromEntries(DATASETS_OPS.map((f) => [f, lire(f)]));
+const datasetsOps = tableTotale(DATASETS_OPS, (f) => lire(f));
 
 {
   const recettes = props.doc.filter((e) => e && e.volume);
@@ -244,7 +245,7 @@ function opsEnMetres(noeud) {
 // NO-OP SÉMANTIQUE : ce script ne possède que les conversions en mètres et la phrase de provenance
 // qui les suit. Aucune à faire = rien à écrire, quel que soit l'ordre des clés ou le formatage des
 // fichiers. `opsEnMetres` compte en rendant : ses sorties se calculent AVANT la porte.
-const sortiesOps = Object.fromEntries(DATASETS_OPS.map((f) => [f, JSON.stringify(opsEnMetres(datasetsOps[f].doc), null, 2)]));
+const sortiesOps = tableTotale(DATASETS_OPS, (f) => JSON.stringify(opsEnMetres(datasetsOps[f].doc), null, 2));
 if (primitivesConverties + ancresConverties + sourcesConverties + provenancesReecrites + opsConverties === 0) {
   console.log('src/data : no-op (0 conversion — recettes, places et sources déjà en mètres)');
   process.exit(0);

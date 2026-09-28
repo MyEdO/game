@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { itemFromTrappingById, recomputeLoadout } from '../engine/items';
 import { hoverTargeting } from './targeting';
 import type { Scene } from './scene';
@@ -19,14 +18,14 @@ import type { Weapon } from '../engine/types';
  */
 const EDGE = { x: 2, y: 2, side: 'E' as const };
 function sceneWithStructure(structId: string): Scene {
-  const s = structuredClone(testScene);
+  const s = structuredClone(testScene());
   s.walls = [{ x: EDGE.x, y: EDGE.y, side: EDGE.side, structure: structId }];
   return s;
 }
 
 function start(structId: string, seed = 1) {
   useGame.getState().seedRng(seed);
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(seed) });
+  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed });
   useGame.setState({ party: [hero] });
   useGame.getState().startScene(sceneWithStructure(structId));
   useGame.getState().startCombat('enc-mutants');

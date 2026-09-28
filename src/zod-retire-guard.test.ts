@@ -7,7 +7,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { join, dirname } from 'node:path';
-import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
+import { corpusDesGardes } from '../scripts/guards/lib/commentPoison.mjs';
 import { apisRetirees, usagesRetirees } from '../scripts/guards/lib/zodRetire.mjs';
 
 const COMPAT = join(dirname(createRequire(import.meta.url).resolve('zod/package.json')), 'v4/classic/compat.d.ts');
@@ -34,7 +34,7 @@ describe('API retirée de zod', () => {
   });
 
   it('aucun site sous `src/` ni `scripts/`', () => {
-    const fichiers = readCorpus(['src', 'scripts'], { exts: ['.ts', '.tsx', '.mts', '.mjs'], tests: true });
+    const fichiers = corpusDesGardes();
     expect(usagesRetirees(fichiers, NOMS)).toEqual([]);
   });
 });

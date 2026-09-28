@@ -6,7 +6,7 @@
  * VERBATIM du Tableau de Coût des Augmentations (LDB 07 l.51-70) — aucune invention.
  */
 import { Combatant, CharKey } from './types';
-import { CareerSlot, acquerirTalent, parseRefKey } from './careerSlots';
+import { CareerSlot, acquerirTalent, parseRefKey, talentAcquisitions } from './careerSlots';
 import advancementCostsJson from '../data/advancementCosts.json';
 import { findTableEntry, tableOuverte } from './tables';
 import { memoParVersion } from '../data/versionDataset';
@@ -51,8 +51,7 @@ export function advanceCost(advancesAlready: number, kind: 'characteristic' | 's
   return inCareer ? Math.max(1, base - discount) : base * 2;
 }
 
-/** Coût en PX de la prochaine Augmentation de Talent : 100 + 100 × (Augmentations déjà achetées)
- *  pour ce Talent (LDB 07 l.105). 1ʳᵉ = 100, 2ᵉ = 200, 3ᵉ = 300. */
+/** Coût en PX de la prochaine Augmentation de Talent : LDB 07 l.105, l.156. */
 export function talentCost(timesAlready: number): number {
   return 100 * (timesAlready + 1);
 }
@@ -90,10 +89,10 @@ export function buySkillAdvance(hero: Combatant, skillId: string, spec: string |
 /** Achète UNE Augmentation de Talent (le crée à `times` 1 s'il est absent, sinon +1) si les PX
  *  suffisent. Identité STABLE par `talentId` + `spec` (déjà résolus par l'appelant ; jamais un
  *  libellé). Les Talents hors carrière ne sont pas achetables (LDB 07 l.93) et le Maxi doit être respecté
- *  (LDB 10 l.18) : le hors-carrière est vérifié par l'appelant, le Maxi par `acquerirTalent`. */
+ *  (LDB 10 l.18) : le hors-carrière est vérifié par l'appelant, le Maxi par `acquerirTalent`. Coût : LDB 07
+ *  l.105, l.156, `talentAcquisitions`. */
 export function buyTalent(hero: Combatant, talentId: string, spec?: string): AdvanceResult {
-  const already = hero.talents.find((t) => t.talentId === talentId && (t.spec ?? '') === (spec ?? ''))?.times ?? 0;
-  const cost = talentCost(already);
+  const cost = talentCost(talentAcquisitions(hero, talentId, spec));
   if ((hero.xp ?? 0) < cost) return { ok: false, cost, reason: t('adv.notEnoughXp') };
   if (!acquerirTalent(hero, { id: talentId, spec })) return { ok: false, cost, reason: t('adv.talentMax') };
   hero.xp = (hero.xp ?? 0) - cost;

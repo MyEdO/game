@@ -1,12 +1,11 @@
 // Socle PARTAGÉ des générateurs de doc « vocabulaire » (#298bis) : lecture d'une union discriminée
 // TypeScript par AST (`ts.createSourceFile` — jamais de regex sur les accolades, les unions imbriquent
-// des littéraux d'objet et des intersections), extraction du JSDoc de chaque membre, et écriture/
-// vérification du .md généré. Consommé par scripts/docs/build-effects.mjs (union `Effect` de
-// src/state/scene.ts) et scripts/docs/build-vocabulaire.mjs (unions `GameOp` de src/engine/ops.ts,
+// des littéraux d'objet et des intersections) et extraction du JSDoc de chaque membre. Consommé par
+// scripts/docs/build-effects.mjs (union `Effect` de src/state/scene.ts) et
+// scripts/docs/build-vocabulaire.mjs (unions `GameOp` de src/engine/ops.ts,
 // `Condition`/`Flow`/`EffectTrigger`/`EffectTargeting` de src/engine/flowCore.ts).
 import ts from 'typescript'
-import { readFileSync, existsSync } from 'node:fs'
-import { apercuDivergences, ecrireDoc, retirerPied } from './empreinte-sources.mjs'
+import { readFileSync } from 'node:fs'
 
 /** Abréviations FR à ne PAS prendre pour une fin de phrase (« ex. », « l. », « p. »… — sinon un
  *  « (ex. » tronque le rôle en pleine parenthèse ouverte). */
@@ -171,31 +170,6 @@ export function renderFields(fieldGroups) {
   const nonEmpty = fieldGroups.filter((g) => g.length)
   if (!nonEmpty.length) return '—'
   return nonEmpty.map((g) => g.map((f) => `\`${f}\``).join(', ')).join(' \\| ')
-}
-
-/**
- * Écrit le .md — ou, en mode `--check` (chaîné dans `npm run docs:check`), régénère en mémoire,
- * compare au committé et sort en erreur ACTIONNABLE. Jamais d'écriture en mode `--check`.
- * C'est la garde d'exhaustivité : une entrée ajoutée à l'union sans régénération = CI rouge.
- * Le rouge NOMME sa cause : `apercuDivergences` imprime la première divergence et l'aperçu borné
- * des suivantes, des deux côtés — un « PÉRIMÉ » seul se diagnostique de mémoire.
- */
-export function emitOrCheck({ out, path, check, staleMsg, rerunMsg, okMsg, writeMsg }) {
-  if (check) {
-    // Le pied « sources-empreinte » est posé APRÈS coup par build-all.mjs (#1679 L1b) : le générateur
-    // ne le connaît pas, la comparaison porte donc sur le corps.
-    const current = existsSync(path) ? retirerPied(readFileSync(path, 'utf8')) : null
-    if (current !== out) {
-      console.error(staleMsg)
-      console.error(apercuDivergences(out, current))
-      console.error(rerunMsg)
-      process.exit(1)
-    }
-    console.log(okMsg)
-  } else {
-    ecrireDoc(path, out)
-    console.log(writeMsg)
-  }
 }
 
 // ── Lecture d'une union discriminée exprimée en SCHÉMAS zod ──────────────────────────────────────

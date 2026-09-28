@@ -1,5 +1,5 @@
 /**
- * Galerie QC des OBJETS ORIENTÉS (navires, engins de siège, gabarit terrestre, props orientables) :
+ * Galerie QC des OBJETS ORIENTÉS (navires, engins de siège, gabarit terrestre, props orientés) :
  * pour chaque objet, sa COUVERTURE de vues (face/profil/dos déclarées vs cases vides — pilote les vagues
  * d'art A1-A4) ET un ruban de ROTATION prouvant qu'il pivote avec la caméra via l'UNIQUE résolveur
  * `project(dir, camRot)` (4 crans de caméra × 2 orientations monde = les « 2 projections » d'orientation).
@@ -9,7 +9,7 @@
 import { writeFileSync } from 'node:fs';
 import { planById } from '../src/gameIso/rig/bodyPlan';
 import { bonesToSvg } from '../src/gameIso/rig/renderBones';
-import { project, type View } from '../src/gameIso/rig/facing';
+import { VIEWS, project, type View } from '../src/gameIso/rig/facing';
 import { declaredViews, type ViewArt } from '../src/gameIso/rig/viewArt';
 import { shipArtOf } from '../src/gameIso/rig/ship/composeShip';
 import { SHIP_ARTS } from '../src/gameIso/rig/ship/_registry.generated';
@@ -22,7 +22,6 @@ import { defsGlobaux } from '../src/gameIso/sprites';
 import type { Dir8 } from '../src/state/dir8';
 import type { Rot } from '../src/geometry/iso';
 
-const VIEWS: View[] = ['front', 'profile', 'back'];
 const ROTS: Rot[] = [0, 1, 2, 3];
 const ORIENTS: Dir8[] = ['E', 'SE']; // cardinal (front/back net) + diagonale (profil + miroir)
 
@@ -110,7 +109,7 @@ const entries: { title: string; items: Entry[] }[] = [
     items: (['navire', 'terrestre', 'engin'] as const).map(missingEntry),
   },
   {
-    title: 'Props orientables — catalogue décor (PropViz.views)',
+    title: 'Props orientés — catalogue décor (PropViz.views)',
     items: Object.keys(PROPS).filter((id) => PROPS[id].views).sort().map((id) => ({
       name: `prop · ${id}`,
       art: PROPS[id].views as unknown as ViewArt<never[]>,
@@ -159,4 +158,4 @@ svg{display:block;border-radius:4px}
 ${sections}`;
 
 writeFileSync('public/oriented-objects.html', html, 'utf8');
-console.log('OK: public/oriented-objects.html (navires, engins, terrestre, props orientables)');
+console.log('OK: public/oriented-objects.html (navires, engins, terrestre, props orientés)');

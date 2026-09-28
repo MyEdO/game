@@ -39,10 +39,10 @@ const g = useGame.getState;
 
 /** Monte un combat réel, puis pose les sièges : HÔTE au siège 0, le héros appartient au siège 1 (invité). */
 function setupCoop(withTalent = false): Combatant {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   if (withTalent) hero.talents = [...hero.talents, { talentId: 'controle-de-la-frenesie', times: 1 }];
   useGame.setState({ party: [hero] });
-  g().startScene(testScene);
+  g().startScene(testScene());
   g().startCombat('enc-mutants');
   g().confirmRoundStart();
   vi.clearAllTimers();

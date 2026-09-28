@@ -43,7 +43,7 @@ const DEF_BY_ID: Record<string, CreatureDef> = Object.fromEntries(CREATURES.map(
 export function defById(id: string): CreatureDef | undefined { return DEF_BY_ID[id]; }
 /** Options du sélecteur d'espèce (affiche le libellé, stocke l'id). */
 export function creatureSpeciesOptions(): { id: string; label: string }[] { return CREATURES.map((c) => ({ id: defId(c), label: c.label })); }
-/** Échelle de token d'une espèce canonique (par id) — bipède via race, non-bipède via props. */
+/** Échelle du pion d'une espèce canonique (par id) — bipède via race, non-bipède via props. */
 export function speciesScale(id: string): number {
   const d = DEF_BY_ID[id];
   if (!d) return 1;

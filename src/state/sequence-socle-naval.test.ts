@@ -17,7 +17,6 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { combatStakeRef } from '../data';
 import { monoStep } from './rollSeam';
 import {
@@ -136,7 +135,7 @@ registerSequence<SeaCrisisPayload>(NAVAL, {
 
 describe('Structure d’orchestrateur — instanciable par une crise NAVALE (2 manches déroulées)', () => {
   beforeEach(() => {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Barreur', rng: makeRNG(1) });
+    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Barreur', seed: 1 });
     useGame.setState({ battle: null, party: [h], journal: [], pendingCascade: null, sequence: null });
     useGame.getState().seedRng(9);
   });

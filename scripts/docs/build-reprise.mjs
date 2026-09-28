@@ -11,20 +11,20 @@
  * « éditorial en donnée » (build-donnees.mjs) — il n'existe aucun manifeste de reprise à froid, et
  * en fabriquer un pour six phrases de motivation créerait une source de vérité de plus.
  *
- * Mode --check (chaîné dans npm run docs:check) : régénère en mémoire, compare au .md committé,
- * exit 1 avec message actionnable si diff — jamais d'écriture en mode --check.
+ * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/empreinte-sources.mjs), rejoué par `build-all.mjs`.
  *
  *   node scripts/docs/build-reprise.mjs
  */
 import { readFileSync, existsSync } from 'node:fs'
 import { listerDossier } from '../guards/lib/lister.mjs'
-import { emitOrCheck } from './lib/jsdocUnion.mjs'
+import { ecrireOuVerifier } from './lib/empreinte-sources.mjs'
 import { repartitionWorkers } from '../test/partition.mjs'
-import { AVANT_LES_LANES, LANES, ECRIT_LU } from '../gates/toutes.mjs'
+import { LANES, ECRIT_LU } from '../gates/toutes.mjs'
 import { gatesDeCi } from '../gates/gatesDeCi.mjs'
 import { ETATS as ETATS_PORTE, PORTE, WORKFLOWS as REGISTRE_WORKFLOWS, corpsRun } from '../gates/workflowsDuDepot.mjs'
 import { DOCUMENTAIRE, gatesSautables } from '../gates/classerPush.mjs'
 import { REGEN_RECIPE } from '../guards/lib/npmLockHoisted.mjs'
+import { SURFACE_CLAUDE, aplatirHooks } from '../agents/compat-core.mjs'
 
 const OUTIL = 'build-reprise'
 
@@ -56,9 +56,17 @@ const CONFIGS = [...new Set([...POSTINSTALL.matchAll(/git config ([\w.-]+)/g)].m
 if (!CONFIGS.includes('core.hooksPath')) {
   abandon('`postinstall` ne pose plus `core.hooksPath` — le runbook de reprise repose dessus')
 }
-const DRIVERS_FUSION = CONFIGS.filter((c) => c.startsWith('merge.') && c.endsWith('.driver')).map((c) =>
-  c.slice('merge.'.length, -'.driver'.length),
+/** Pilotes de fusion posés par `postinstall` : nom → MODULE qui les sert. */
+const PILOTES_DE_FUSION = new Map(
+  [...POSTINSTALL.matchAll(/git config merge\.([\w-]+)\.driver "node (\S+)/g)].map((m) => [m[1], m[2]]),
 )
+/** Les noms des pilotes servis par `module`. */
+const pilotesDe = (module) => [...PILOTES_DE_FUSION].filter(([, m]) => m === module).map(([nom]) => nom)
+/** Vrai si `c` est une clé `merge.<nom>.driver` ou `.name` d'un pilote servi par `module`. */
+const clePiloteDe = (module) => (c) => {
+  const m = /^merge\.([\w-]+)\.(?:driver|name)$/.exec(c)
+  return m !== null && PILOTES_DE_FUSION.get(m[1]) === module
+}
 
 // Hooks Git : les fichiers SANS extension sont ceux que git invoque par nom. La liste est DÉRIVÉE du
 // dossier — un hook posé ou retiré change le runbook sans qu'on touche à ce script. Ce qui est exigé,
@@ -67,21 +75,17 @@ const HOOKS_GIT = listerDossier(chemin('scripts/git-hooks')).filter((f) => !f.in
 if (!HOOKS_GIT.includes('pre-commit')) abandon('hook Git « pre-commit » absent de scripts/git-hooks/')
 
 // Hooks de session Claude Code déclarés dans `.claude/settings.json` (versionné).
-const SETTINGS = JSON.parse(readFileSync(chemin('.claude/settings.json'), 'utf8'))
+const HOOKS_SESSION = aplatirHooks(JSON.parse(readFileSync(chemin(SURFACE_CLAUDE), 'utf8')), SURFACE_CLAUDE)
 
 function hooksDeSession(evenement) {
-  const groupes = SETTINGS.hooks?.[evenement]
-  if (!Array.isArray(groupes) || !groupes.length) {
-    abandon(`.claude/settings.json ne déclare plus d'événement « ${evenement} »`)
-  }
-  return groupes.flatMap((g) =>
-    (g.hooks ?? []).map((h) => {
-      const s = (h.command ?? '').match(/scripts\/hooks\/[\w.-]+\.mjs/)
-      if (!s) abandon(`hook « ${evenement} » sans script scripts/hooks/*.mjs : ${h.command}`)
-      chemin(s[0])
-      return { matcher: g.matcher ?? '(tous)', script: s[0], role: h.statusMessage ?? '' }
-    }),
-  )
+  const hooks = HOOKS_SESSION.filter((h) => h.phase === evenement)
+  if (!hooks.length) abandon(`${SURFACE_CLAUDE} ne déclare plus d'événement « ${evenement} »`)
+  return hooks.map((h) => {
+    if (!h.script) abandon(`hook « ${evenement} » sans script scripts/hooks/*.mjs : ${h.command}`)
+    const script = `scripts/hooks/${h.script}`
+    chemin(script)
+    return { matcher: h.matcher || '(tous)', script, role: h.statusMessage ?? '' }
+  })
 }
 
 /** Événements de session que la surface Claude DOIT déclarer. Son `SessionStart` porte la mise en
@@ -238,7 +242,7 @@ const NB_GATES_TOUJOURS = GATES_TOUJOURS.length
 const NB_GATES_SAUTABLES = SAUTABLES.size
 
 const lignesLanes = LANES.map((l) => `| \`${l.nom}\` | ${listeCode(l.gates)} |`).join('\n')
-const NB_GATES_CLASSEES = AVANT_LES_LANES.length + LANES.reduce((n, l) => n + l.gates.length, 0)
+const NB_GATES_CLASSEES = LANES.reduce((n, l) => n + l.gates.length, 0)
 const NB_GATES_MESUREES = Object.keys(ECRIT_LU).length
 /** Écrivain = gate qui écrit à chaque run (`ecrit`) OU qui PEUT écrire, porte nommée (`ecritFerme`). */
 const NB_ECRIVAINS = Object.values(ECRIT_LU).filter(
@@ -262,13 +266,21 @@ const FAMILLES_POSTINSTALL = [
    après un \`build\` vert sur \`main\`, qui joue \`${script('ops:fermer')} <before>..<sha>\`.`,
   },
   {
-    porte: (c) => /^merge\..+\.(?:driver|name)$/.test(c),
-    texte: () =>
-      `Les pilotes de fusion des docs dérivés (${listeCode(DRIVERS_FUSION)}), déclarés par
-   \`.gitattributes\` et servis par \`scripts/git-hooks/merge-docs.mjs\` : sans eux, chaque rebase
-   rouvre un conflit sur des fichiers que \`npm run docs:build\` régénère seul.`,
+    module: 'scripts/git-hooks/merge-docs.mjs',
+    texte: (module) =>
+      `Les pilotes de fusion des docs dérivés (${listeCode(pilotesDe(module))}), déclarés par
+   \`.gitattributes\` et servis par \`${module}\` : sans eux, chaque rebase rouvre un conflit sur
+   des fichiers que \`npm run docs:build\` régénère seul.`,
   },
-]
+  {
+    module: 'scripts/git-hooks/merge-stocks.mjs',
+    texte: (module) =>
+      `Le pilote de fusion des stocks de sites (${listeCode(pilotesDe(module))}), déclaré par
+   \`.gitattributes\` et servi par \`${module}\` : fusion par groupe de site ; sans lui, deux soldes
+   de groupes disjoints d'un même stock rouvrent un conflit. Un stock se régénère par la commande
+   \`npx tsx scripts/guards/lib/regenStock.mts <module qui mesure>\`, jamais par \`docs:build\`.`,
+  },
+].map((f) => ({ ...f, porte: f.porte ?? clePiloteDe(f.module) }))
 for (const c of CONFIGS) {
   if (!FAMILLES_POSTINSTALL.some((f) => f.porte(c))) {
     abandon(
@@ -277,7 +289,7 @@ for (const c of CONFIGS) {
   }
 }
 const FAMILLES = FAMILLES_POSTINSTALL.filter((f) => CONFIGS.some(f.porte))
-const lignesFamilles = FAMILLES.map((f, i) => `${i + 1}. ${f.texte()}`).join('\n')
+const lignesFamilles = FAMILLES.map((f, i) => `${i + 1}. ${f.texte(f.module)}`).join('\n')
 
 /** Une porte vise le sous-projet `server/` sous DEUX formes : l'invocation directe
  *  (`npm --prefix server ci`) et le script racine qui la délègue (`npm run server:<x>` — package.json
@@ -391,9 +403,12 @@ jamais. \`npm run dev\` imprime celui qu'il sert.
 ${lignesFamilles}
 
 Le partage de la suite (\`${script('test')}\`) est décidé par \`repartitionWorkers\` : en dessous de
-${SEUIL} cœurs, un seul processus Vitest ; au-delà, un processus \`node\` et un processus \`jsdom\`. La
-variable d'environnement \`WFRP_TEST_COEURS\` force ce nombre (seule façon de jouer l'autre chemin sur
-une machine quelconque).
+${SEUIL} cœurs, un seul processus Vitest ; au-delà, un processus \`node\` et un processus \`jsdom\`. Les
+cœurs servis sont bornés par la mémoire DISPONIBLE au lancement (\`capacite\`) : autant de workers que
+la mémoire en porte, à l'empreinte mesurée d'un worker sous sa borne de tas, une réserve déduite par
+processus Vitest. Les variables
+d'environnement \`WFRP_TEST_COEURS\` et \`WFRP_TEST_MEMOIRE_MO\` forcent ces deux mesures (seule façon
+de jouer l'autre chemin sur une machine quelconque).
 
 \`src/data/*.json\` (${NB_DATA_JSON} fichiers) est la **SOURCE app-owned** : rien à régénérer après le clone.
 
@@ -513,10 +528,8 @@ nomme ${NB_REFUS_PREPUSH} refus, et celui qui exige un run vert ne vaut que pour
 Ajouter une gate, c'est ajouter UN step à \`ci.yml\` — rien d'autre ne la récite.
 
 **Rejeu LOCAL \`npm run gates\`** (\`${script('gates')}\`), un confort de diagnostic, jamais une porte :
-${NB_GATES_CLASSEES} gates classées, d'abord
-une phase SÉRIE \`AVANT_LES_LANES\` (${listeCode(AVANT_LES_LANES)}) — les gates qui ÉCRIVENT dans
-l'arbre, jouées seules pour qu'aucun lecteur ne tombe sur un fichier à moitié écrit — puis
-${LANES.length} lanes parallèles de LECTEURS :
+${NB_GATES_CLASSEES} gates classées en ${LANES.length} lanes parallèles de LECTEURS — aucune gate
+n'écrit dans l'arbre, un dérivé s'y VÉRIFIE (\`docs:check:tout\`) :
 
 | Lane | Gates |
 |---|---|
@@ -535,7 +548,7 @@ sans place dans ce plan fait REFUSER le run, avec son nom.
 \`src/npm-lock-hoisted-guard.test.ts\`) refuse un lock amputé.
 `
 
-emitOrCheck({
+ecrireOuVerifier({
   out,
   path: 'docs/reprise-apres-pause.md',
   check: process.argv.includes('--check'),

@@ -15,8 +15,7 @@ const ts = tsModule;
 // Substrat AST PARTAGÉ (portées, alias, opérateurs d'égalité, littéralité) — SOURCE UNIQUE
 // `registryIdBranch.mjs` : le suivi d'alias `const k = def.id` y existe déjà, on l'importe.
 import { Scopes, bindingNames, unwrap, isEntryLiteral, EQUALITY_OPS } from './registryIdBranch.mjs';
-import { estFichierVitest } from './fichierVitest.mjs';
-import { estDeclaration, readCorpus } from './sourceCorpus.mjs';
+import { estRetenu, readCorpus } from './sourceCorpus.mjs';
 // Vue CODE des volets lexicaux (lignes et colonnes préservées) — `codeSeul.mjs`, #1790.
 import { codeSeul } from './codeSeul.mjs';
 
@@ -35,6 +34,39 @@ export const LABEL_EQ_RX = /(?<!\btypeof\s+[\w.?]*)\.label\s*===|===\s*[\w.]+\.l
  *  `.match(`/`.includes(`/`.test(`/`.search(`/`.indexOf(`). Même défaut que `LABEL_EQ_RX` : logique
  *  qui distingue des cas par IDENTITÉ de libellé plutôt que par `id` stable. */
 export const LABEL_PREDICATE_RX = /\.test\([^)]*\.label\b|\.label\.(?:match|includes|startsWith|endsWith|test|search|indexOf)\(/;
+
+// Espèce en RÉCEPTEUR : identifiant `species*` (`species`, `x.species`, `speciesId`), accès indexé
+// `x['species']`, ou groupe parenthésé qui la contient (`(x.species ?? '')`, `String(x.species)`) —
+// un appel `f({ species })` n'en est pas un.
+const ESPECE = String.raw`(?:\bspecies\w*|\[\s*['"]species\w*['"]\s*\])`;
+const RECEPTEUR_ESPECE = String.raw`(?:${ESPECE}|(?:(?<![\w$\])\]])|\bString)\([^()]*\bspecies[^()]*\))`;
+const LITTERAUX = String.raw`(?:'[^']*'|"[^"]*")(?:\s*,\s*(?:'[^']*'|"[^"]*"))*\s*,?`;
+
+/** PRÉDICAT de MOTIF sur une espèce : méthode de chaîne prédicative sur son récepteur (`!`/`?.`
+ *  compris, après `split`/`toLowerCase`/`toUpperCase` éventuels), `.test(` d'une regex, liste
+ *  LITTÉRALE d'ids qui la teste (`[…].includes`, `new Set([…]).has`), comparaison à un littéral (hors
+ *  `typeof`). L'appartenance d'une espèce se lit dans sa DONNÉE (`grantGroups`, `groupsFor`), jamais
+ *  dans la forme de son id ni de son libellé (#1897). Une liste NOMMÉE (`allowed.includes(x.species)`)
+ *  et un prédicat sur un alias (`const s = species.toLowerCase()`) échappent : lexicalement
+ *  indiscernables d'un lookup par id. */
+export const SPECIES_PREDICATE_RX = new RegExp(
+  [
+    String.raw`${RECEPTEUR_ESPECE}\s*!?(?:\??\.(?:split|toLowerCase|toUpperCase)\([^()]*\))*\??\.(?:match|includes|startsWith|endsWith|test|search|indexOf)\(`,
+    String.raw`\.test\([^)]*\bspecies`,
+    String.raw`\[\s*${LITTERAUX}\s*\]\s*\.(?:includes|indexOf)\([^)]*\bspecies`,
+    String.raw`new Set\(\s*\[\s*${LITTERAUX}\s*\]\s*\)\s*\.has\([^)]*\bspecies`,
+    String.raw`(?<!\btypeof\s+[\w$.?]*)${ESPECE}\s*[!=]==?\s*['"]`,
+    String.raw`['"]\s*[!=]==?\s*[\w$.?]*${ESPECE}`,
+  ].join('|'),
+);
+
+/** Clé LITTÉRALE d'un accès indexé (`x['species']`), blanchie par `codeSeul`, restituée depuis la
+ *  source aux mêmes colonnes : un nom de propriété est du CODE, le récepteur que lit
+ *  `SPECIES_PREDICATE_RX`. @param {string} code ligne de `codeSeul` @param {string} source même ligne,
+ *  brute @returns {string} */
+function avecClesDAcces(code, source) {
+  return code.replace(/\[\s*(['"]) *\1\s*\]/g, (m, _q, debut) => source.slice(debut, debut + m.length));
+}
 
 /** `switch` sur `.label` : un aiguillage par libellé est la même famille de logique-par-label qu'une
  *  carte `BY_LABEL`, juste écrite en `switch`. */
@@ -152,6 +184,7 @@ export function scanLabelLogic(relPath, contenu) {
       BY_LABEL_RX.test(line) ||
       LABEL_EQ_RX.test(line) ||
       LABEL_PREDICATE_RX.test(line) ||
+      SPECIES_PREDICATE_RX.test(avecClesDAcces(line, source[i])) ||
       LABEL_SWITCH_RX.test(line) ||
       slugDeLabel.has(i + 1);
     // Une ligne qui viole les DEUX est rapportée sous `label-logic` (la règle la plus stricte prime,
@@ -947,13 +980,13 @@ function rangsDuCorpus(corpus) {
 
 /** Le CORPUS de la garde, tous volets confondus (lignes, stock, face) — défini ICI seulement : tout
  *  `src/` `.ts`/`.tsx` hors instruments Vitest et hors déclarations `.d.ts` — les deux exclusions de
- *  `readCorpus` (`sourceCorpus.mjs`), par les MÊMES prédicats. Le statut d'un site ne dépend jamais de son dossier :
+ *  `readCorpus` (`sourceCorpus.mjs`), par son prédicat `estRetenu`. Le statut d'un site ne dépend jamais de son dossier :
  *  couture légitime (`RATCHET_EXCEPTIONS`), dette au stock (`DETTES_DE_LIBELLE`), ou faute. */
 export const CORPUS_RACINE = 'src';
 
 /** @param {string} rel chemin POSIX relatif à la racine du projet @returns {boolean} */
 export function estDansLeCorpus(rel) {
-  return rel.startsWith(`${CORPUS_RACINE}/`) && /\.tsx?$/.test(rel) && !estFichierVitest(rel) && !estDeclaration(rel);
+  return rel.startsWith(`${CORPUS_RACINE}/`) && estRetenu(rel);
 }
 
 /** COUTURES LÉGITIMES — `fichier:ligne` (relatif à `src/`) → justification. N'y entrent que la couture
@@ -962,7 +995,7 @@ export function estDansLeCorpus(rel) {
  *  « coutures légitimes »), qui juge le SITE par la déclaration qui le porte. Une DETTE n'y entre
  *  jamais : elle va au stock `DETTES_DE_LIBELLE`, avec son ticket. */
 export const RATCHET_EXCEPTIONS = {
-  'data/index.ts:3278':
+  'data/index.ts:3290':
     "(c) `qualityIdByLabel` rend un ID, pas un texte : couture libellé→id d'AUTHORING (invariant 1, « aider " +
     'à la saisie »), déjà recensée comme résolveur par libellé (#909, `collectLabelEntityResolvers`).',
   'ui/editor/refFormatLivre.ts:20':
@@ -977,15 +1010,15 @@ export const RATCHET_EXCEPTIONS = {
     'Parseur de SAISIE « format livre » : le nom de Talent saisi retrouve son id (`findTalent`, #909).',
   // Résolveurs par LIBELLÉ de la couture de chargement/saisie (#909) — chacun est reconnu par
   // `collectLabelEntityResolvers`, donc chacun de ses appels hors couture est une dette au stock.
-  'data/index.ts:3118':
+  'data/index.ts:3124':
     '`findSkill` : résolveur libellé→entrée de la couture de saisie (statblocs de campagne, #909).',
-  'data/index.ts:3152':
+  'data/index.ts:3158':
     '`findTalent` : résolveur libellé→entrée de la couture de saisie (#909).',
-  'data/index.ts:3255':
+  'data/index.ts:3261':
     '`findSpell` : résolveur libellé→entrée de la couture de saisie (#909).',
-  'data/index.ts:3273':
+  'data/index.ts:3285':
     '`qualiteParSlugDeLabel` : index du slug de libellé, lu par `qualityIdByLabel` SEUL (#909).',
-  'data/index.ts:3284':
+  'data/index.ts:3296':
     '`qualityIdByLabel` : l’entrée CANONIQUE d’un libellé doublon est celle dont l’id est son slug (#909).',
 };
 

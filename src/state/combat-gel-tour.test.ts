@@ -42,7 +42,7 @@ function setup() {
     movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
   } as unknown as BattleState;
   useGame.setState({
-    battle, mode: 'battle', scene: testScene, party: [hero],
+    battle, mode: 'battle', scene: testScene(), party: [hero],
     pendingDefense: null, pendingAttack: null, pendingCascade: null, suspendedCascades: [],
     net: { ...useGame.getState().net, mode: 'local', mySeat: 0, gmSeat: undefined, ownership: {} },
   } as never);
@@ -132,7 +132,7 @@ function setupTaille() {
     movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
   } as unknown as BattleState;
   useGame.setState({
-    battle, mode: 'battle', scene: testScene, party: [h1, h2],
+    battle, mode: 'battle', scene: testScene(), party: [h1, h2],
     pendingDefense: null, pendingAttack: null, pendingCascade: null, suspendedCascades: [],
     net: { ...useGame.getState().net, mode: 'local', mySeat: 0, gmSeat: undefined, ownership: {} },
   } as never);
@@ -155,7 +155,7 @@ function setupRiposte() {
     movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
   } as unknown as BattleState;
   useGame.setState({
-    battle, mode: 'battle', scene: testScene, party: [hero],
+    battle, mode: 'battle', scene: testScene(), party: [hero],
     pendingDefense: null, pendingAttack: null, pendingCascade: null, suspendedCascades: [],
     net: { ...useGame.getState().net, mode: 'local', mySeat: 0, gmSeat: undefined, ownership: {} },
   } as never);

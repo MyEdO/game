@@ -3,7 +3,7 @@ import { P } from '../../decorPalette';
 
 // Canon de pont (#342, chantier A2 — meubles marins) : pièce navale COURTE en fer noirci sur affût-truck
 // (caisse basse en bois à 4 petites roues pleines) retenue par sa brague (grosse corde de chanvre).
-// Prop DIRECTIONNEL : face = la GUEULE (bouche ronde vers la caméra), profil = le TUBE (vers la DROITE ;
+// Prop ORIENTÉ : face = la GUEULE (bouche ronde vers la caméra), profil = le TUBE (vers la DROITE ;
 // le gauche = miroir par la machinerie), dos = la CULASSE (bouton de brague). Boîte 120×150, pieds ~y=147.
 
 /** Ombre au sol commune, dans la boîte 120×150. */

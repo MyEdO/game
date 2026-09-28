@@ -12,7 +12,7 @@ import { readFileSync, readdirSync } from 'node:fs'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { dirname, join } from 'node:path'
 import {
-  croissanceDesStocks, croissancesNonCouvertes, cliquetsDuMessage, entreesDeStock, estEntreeDeStock,
+  croissanceDesStocks, croissancesNonCouvertes, cliquetsDuMessage, entreesNominatives, estEntreeNominative,
   estPorteurDeStock, raisonDeRefus,
 } from '../guards/lib/stocksNominatifs.mjs'
 import { croissancesDeLaPlage, raisonDeRefusDePlage, SHA_NUL } from '../guards/lib/plageStock.mjs'
@@ -177,7 +177,7 @@ test('porteur — une entrée qui ne NOMME aucun fichier n est vue par AUCUNE po
   const entree = '    { "chapitre": "LDB 8", "folio": 12 },'
   const avant = `{\n  "entrees": [\n${entree}\n    { "chapitre": "LDB 8", "folio": 14 }\n  ]\n}\n`
   const apres = `{\n  "entrees": [\n${entree}\n    { "chapitre": "LDB 8", "folio": 13 },\n    { "chapitre": "LDB 8", "folio": 14 }\n  ]\n}\n`
-  assert.deepEqual(entreesDeStock(avant, GEL), [], 'un chapitre et un folio ne nomment aucun fichier')
+  assert.deepEqual(entreesNominatives(avant, GEL), [], 'un chapitre et un folio ne nomment aucun fichier')
   assert.deepEqual(
     croissanceDesStocks(diffAuxLignes(GEL, 4, ['    { "chapitre": "LDB 8", "folio": 13 },']),
       { lirePostImage: () => apres, lirePreImage: () => avant }),
@@ -323,7 +323,7 @@ const casDuChapitre = (chapitre) => {
     const avant = enveloppe(entree('LDB 8 65→67'))
     const apres = enveloppe([...entree('LDB 8 65→67').map((l, i) => (i === 6 ? '    },' : l)), ...ajoutee])
     assert.equal(
-      entreesDeStock(apres, f).length, 2,
+      entreesNominatives(apres, f).length, 2,
       'les deux entrées sont lues : un nom de chapitre à espaces — apostrophe ASCII comprise — nomme un fichier',
     )
     const [c] = croissanceDesStocks(
@@ -346,13 +346,13 @@ casDuChapitre(CHAPITRE_ACE)
 test('racine `Source/` — ce qui n en est PAS : prose à espaces, dossier sans `.md`, extension étrangère', () => {
   const f = 'scripts/raw/folio-gaps-stock.json'
   const stock = (valeur) => ['{', '  "entrees": [', `    { "fichier": ${JSON.stringify(valeur)}, "occurrence": 1 }`, '  ]', '}', ''].join('\n')
-  assert.equal(entreesDeStock(stock(CHAPITRE), f).length, 1, 'témoin : le chapitre extrait EST une entrée')
+  assert.equal(entreesNominatives(stock(CHAPITRE), f).length, 1, 'témoin : le chapitre extrait EST une entrée')
   for (const valeur of [
     'le chapitre du Statut dans Source',
     'Source/Warhammer v4 - Livre de base version corrigee',
     'Source/Warhammer v4 - Livre de base version corrigee/08 - Statut.pdf',
   ]) {
-    assert.deepEqual(entreesDeStock(stock(valeur), f), [], `« ${valeur} » ne nomme aucun fichier`)
+    assert.deepEqual(entreesNominatives(stock(valeur), f), [], `« ${valeur} » ne nomme aucun fichier`)
   }
 })
 
@@ -361,7 +361,7 @@ test('racine `Source/` — ce qui n en est PAS : prose à espaces, dossier sans 
 // Sonde du juge de diff (2026-09-12) promue. Les témoins de CROISSANCE vivent plus haut (une entrée
 // ajoutée → net 1, exemple nommant) ; ces trois-là tiennent l'autre bord — ce qu'une entrée-objet
 // de sept lignes ne doit PAS rendre, là où un compte de lignes naïf verrait des croissances.
-// Chaque cas ANCRE ses hunks : il affirme d'abord où `entreesDeStock` pose les entrées de chaque
+// Chaque cas ANCRE ses hunks : il affirme d'abord où `entreesNominatives` pose les entrées de chaque
 // image, sans quoi un numéro de hunk faux rendrait un vert qui ne mesure rien.
 const FOLIO = 'scripts/raw/folio-gaps-stock.json'
 
@@ -391,7 +391,7 @@ const diffHunks = (fichier, hunks) => [
     ...retirees.map((l) => `-${l}`), ...ajoutees.map((l) => `+${l}`),
   ]),
 ].join('\n')
-const lignesDEntree = (image) => entreesDeStock(image, FOLIO).map((e) => e.ligne)
+const lignesDEntree = (image) => entreesNominatives(image, FOLIO).map((e) => e.ligne)
 
 test('entrée MULTILIGNE — une entrée DÉPLACÉE dans son stock ne rend RIEN', () => {
   const a = entreeFolio(CHAPITRE, 'LDB 8 65→67')
@@ -452,28 +452,28 @@ test('entrée MULTILIGNE — la ligne `fichier` REMPLACÉE ne rend RIEN (échang
 })
 
 test('entrée — élément de liste, clé d objet et balise commentée comptent', () => {
-  assert.equal(estEntreeDeStock(ENTREE_A), true)
-  assert.equal(estEntreeDeStock(ENTREE_B), true)
-  assert.equal(estEntreeDeStock(ENTREE_CLE), true)
-  assert.equal(estEntreeDeStock("  'src/ui/Tabs.tsx:42',"), true)
+  assert.equal(estEntreeNominative(ENTREE_A), true)
+  assert.equal(estEntreeNominative(ENTREE_B), true)
+  assert.equal(estEntreeNominative(ENTREE_CLE), true)
+  assert.equal(estEntreeNominative("  'src/ui/Tabs.tsx:42',"), true)
 })
 
 test('entrée — le cas FONDATEUR : une clé de registre en NOM DE FICHIER nu', () => {
-  assert.equal(estEntreeDeStock("  'criticals.json':"), true)
-  assert.equal(estEntreeDeStock("  'criticals.json': 'Blessures critiques (LDB 18) : le noeud est auto-résolu.',"), true)
+  assert.equal(estEntreeNominative("  'criticals.json':"), true)
+  assert.equal(estEntreeNominative("  'criticals.json': 'Blessures critiques (LDB 18) : le noeud est auto-résolu.',"), true)
 })
 
 test('entrée — tuple dont le fichier est la CLÉ ou la QUEUE', () => {
-  assert.equal(estEntreeDeStock("  ['src/state/combatFlow.ts', { n: 32, kind: 'mixte' }],"), true)
-  assert.equal(estEntreeDeStock("  ['CritEscalation', 'onRepeat', 'src/engine/critical.ts:325'],"), true)
+  assert.equal(estEntreeNominative("  ['src/state/combatFlow.ts', { n: 32, kind: 'mixte' }],"), true)
+  assert.equal(estEntreeNominative("  ['CritEscalation', 'onRepeat', 'src/engine/critical.ts:325'],"), true)
 })
 
 test('entrée — un chemin cité en PROSE ou en commentaire n en est pas une', () => {
-  assert.equal(estEntreeDeStock("      `⛔ src/state/combatSlice.ts a grossi`,"), false)
-  assert.equal(estEntreeDeStock('  // src/state/combatSlice.ts reste à traiter'), false)
-  assert.equal(estEntreeDeStock("    'src/x.ts est absent de l index',"), false)
-  assert.equal(estEntreeDeStock("  const stock = ['src/a.ts', 'src/b.ts']"), false)
-  assert.equal(estEntreeDeStock("import { scanTombstones } from '../guards/lib/commentPoison.mjs'"), false)
+  assert.equal(estEntreeNominative("      `⛔ src/state/combatSlice.ts a grossi`,"), false)
+  assert.equal(estEntreeNominative('  // src/state/combatSlice.ts reste à traiter'), false)
+  assert.equal(estEntreeNominative("    'src/x.ts est absent de l index',"), false)
+  assert.equal(estEntreeNominative("  const stock = ['src/a.ts', 'src/b.ts']"), false)
+  assert.equal(estEntreeNominative("import { scanTombstones } from '../guards/lib/commentPoison.mjs'"), false)
 })
 
 test('croissance — un stock qui NAÎT est une croissance nette, avec ses exemples', () => {
@@ -694,7 +694,7 @@ const FORMES = {
   },
 }
 
-const lignesDe = (source, chemin) => entreesDeStock(source, chemin).map((e) => e.ligne)
+const lignesDe = (source, chemin) => entreesNominatives(source, chemin).map((e) => e.ligne)
 
 test('définition — les quatre formes de stock sont VUES en portée de module', () => {
   for (const [nom, { corps, entrees }] of Object.entries(FORMES)) {
@@ -719,7 +719,22 @@ test('définition — une entrée MULTILIGNE vit à la ligne de son PREMIER cara
     ']',
   ].join('\n')
   assert.deepEqual(lignesDe(`${corps}\n`, 'scripts/guards/lib/legacyVocabStock.mjs'), [2])
-  assert.equal(estEntreeDeStock('  {'), false, 'le REPLI de ligne ne voit pas une accolade ouvrante')
+  assert.equal(estEntreeNominative('  {'), false, 'le REPLI de ligne ne voit pas une accolade ouvrante')
+})
+
+test('définition — un FOYER déclaré n’est pas une entrée : la valeur de `foyer` n’est jamais lue', () => {
+  const corps = [
+    "const ICI = 'src/engine/grid.test.ts'",
+    'export const CONSTRUCTIONS = [',
+    "  { ...FORMULE, foyer: 'src/engine/grid.ts' },",
+    "  { ...CANON, foyer: ['src/engine/types.ts', ICI] },",
+    "  { ...CANON, foyer: { src: 'src/engine/types.ts' } },",
+    ']',
+    "export const DECL = { nom: 'x', foyer: 'src/engine/grid.ts' }",
+    "export const STOCK = [{ fichier: 'src/a.ts', foyer: 'src/b.ts' }]",
+    "export const DECL_A_LISTE = { nom: 'y', foyer: ['src/engine/grid.ts', ICI] }",
+  ].join('\n')
+  assert.deepEqual(lignesDe(`${corps}\n`, 'src/engine/grid.test.ts'), [8])
 })
 
 test('définition — un porteur JSON se lit comme les autres', () => {
@@ -745,7 +760,7 @@ test('repli — sur une image `null`, une entrée à ACCOLADE n’est pas vue, e
 // ── NAISSANCE : le compte d'un fichier qui naît vient du LECTEUR, ou l'appel est REFUSÉ ─────────
 // Sonde 3 de la revue de palier du 2026-09-08 : `croissanceDesStocks(diff)` SANS lecteur rendait
 // `[]` sur `5756d2d2c`, où `scripts/raw/reconciliation-stock.json` NAÎT avec 13 entrées — un zéro
-// qui ment pour tout appelant hors CI (diagnostic, sonde, revue). Un tel appel est désormais un
+// qui ment pour tout appelant hors CI (diagnostic, sonde, revue). Un tel appel est un
 // REFUS NOMMÉ : la lib ne devine aucune image, elle exige son unique source.
 
 /** Diff d'un fichier qui NAÎT : la graphie de `git diff` (pré-image `/dev/null`, hunk à partir de 1). */
@@ -806,10 +821,10 @@ test('naissance — un `*-stock.json` qui naît compte ses entrées sur l’imag
     ['MDG 3', ['src/state/seaActivities.ts', 'src/state/travelFlow.ts']],
   ])
   assert.deepEqual(
-    source.split('\n').filter((l) => estEntreeDeStock(l)), [],
+    source.split('\n').filter((l) => estEntreeNominative(l)), [],
     'témoin : le REPLI de ligne ne voit AUCUNE de ces entrées — le compte ne peut venir que d’une image',
   )
-  assert.equal(entreesDeStock(source, f).length, 3)
+  assert.equal(entreesNominatives(source, f).length, 3)
   const diff = diffNaissance(f, source)
   assert.deepEqual(
     croissanceDesStocks(diff, { lirePostImage: () => source }).map((c) => [c.fichier, c.net]), [[f, 3]],
@@ -838,6 +853,12 @@ test('naissance — un `*-stock.json` qui naît compte ses entrées sur l’imag
 // toute LIGNE qui ressemble à une entrée, y compris dans une donnée locale, là où l'image ne compte
 // que les entrées d'un porteur de portée MODULE. L'invariant vaut pour les stocks réels, pas pour un
 // fichier quelconque : un corpus dérivé par la taille le réfuterait sans rien dire de la porte.
+test('image — une extension hors de `DIALECTE` n’a pas d’image : `entreesNominatives` rend `null`', () => {
+  const stock = "export const STOCK = [{ fichier: 'src/a.ts', ref: 'r', occurrence: 1 }]\n"
+  assert.equal(entreesNominatives(stock, 'scripts/x.yaml'), null)
+  assert.deepEqual(entreesNominatives(stock, 'scripts/x.mjs'), [{ ligne: 1, nomme: 1 }])
+})
+
 test('porteurs réels — l’image lit des entrées, et jamais moins que le repli de ligne', (t) => {
   const porteurs = [
     'scripts/guards/lib/slotsStock.mjs',
@@ -849,8 +870,8 @@ test('porteurs réels — l’image lit des entrées, et jamais moins que le rep
     const contenu = readFileSync(join(RACINE, rel), 'utf8')
     // `null` = image illisible (dialecte absent de `DIALECTE`) : ZÉRO entrée lue, et le repli
     // prendrait seul la main — donc un porteur dont l'image ne rend rien est un DÉFAUT, pas un cas.
-    const parImage = (entreesDeStock(contenu, rel) ?? []).length
-    const parRepli = contenu.split(/\r?\n/).filter((l) => estEntreeDeStock(l)).length
+    const parImage = (entreesNominatives(contenu, rel) ?? []).length
+    const parRepli = contenu.split(/\r?\n/).filter((l) => estEntreeNominative(l)).length
     t.diagnostic(`${rel} — image ${parImage} entrée(s), repli ${parRepli} ligne(s)`)
     assert.ok(parImage > 0, `${rel} : l’image ne lit AUCUNE entrée (image ${parImage}, repli ${parRepli})`)
     assert.ok(
@@ -879,13 +900,13 @@ test('stocks de `scripts/raw` — la porte voit CHAQUE entrée déclarée (corpu
     // Deux formes de stock dans `scripts/raw`, et chacune dit son UNITÉ : la liste `entrees` (une
     // entrée par occurrence, un objet par entrée), et la table `trous` de la réconciliation (une
     // entrée par TROU, dont les sites tiennent sur UNE ligne — plusieurs jetons sur une ligne n'en
-    // font qu'un pour la porte, sous-comptage assumé dit en tête de `stocksNominatifs.mjs`). Une
+    // font qu'un pour la porte, sous-comptage dit en tête de `stocksNominatifs.mjs`). Une
     // troisième forme ARRÊTE la mesure au lieu de la laisser compter zéro.
     let declarees
     if (Array.isArray(json.entrees)) declarees = json.entrees.length
     else if (json.trous) declarees = Object.keys(json.trous).length
     else { assert.fail(`${rel} : forme de stock inconnue — la mesure ne sait pas compter ses entrées`) }
-    const vues = (entreesDeStock(contenu, rel) ?? []).length
+    const vues = (entreesNominatives(contenu, rel) ?? []).length
     t.diagnostic(`${rel} — ${vues} vue(s) / ${declarees} déclarée(s)`)
     assert.equal(estPorteurDeStock(rel), true, `${rel} : hors des motifs de porteur, aucune porte ne le lit`)
     assert.equal(
@@ -942,7 +963,7 @@ test('stocks `.mjs` de garde à la forme NOMINATIVE — la porte voit CHAQUE ent
     const rel = `scripts/guards/lib/${nom}`
     const contenu = readFileSync(join(dossier, nom), 'utf8')
     const declarees = entreesExportees(modules.get(nom)).length
-    const vues = (entreesDeStock(contenu, rel) ?? []).length
+    const vues = (entreesNominatives(contenu, rel) ?? []).length
     t.diagnostic(`${rel} — ${vues} vue(s) / ${declarees} déclarée(s)`)
     assert.equal(estPorteurDeStock(rel), true, `${rel} : hors des motifs de porteur, aucune porte ne le lit`)
     assert.equal(
@@ -956,18 +977,18 @@ test('stocks `.mjs` de garde à la forme NOMINATIVE — la porte voit CHAQUE ent
 // L'APPEND sur un stock `.mjs` nominatif : ce que la clé AVEUGLE rendait gratuit. Sonde du juge de
 // design (2026-09-14) promue : la même ligne ajoutée vaut `[]` quand la clé ne nomme aucun fichier
 // (`'apothicaire:tete:back#0'`), et `net 1` dès que l'entrée porte son def. Le cas ANCRE ses hunks :
-// il affirme d'abord où `entreesDeStock` pose les entrées de chaque image.
+// il affirme d'abord où `entreesNominatives` pose les entrées de chaque image.
 test('stock `.mjs` nominatif — une entrée AJOUTÉE est vue par la porte de plage (net 1, exemple nommant)', () => {
   const f = 'scripts/guards/lib/paletteLiteralStock.mjs'
   const entree = (occ) => `  { fichier: 'src/gameIso/rig/parts/tenues/defs/Bailli.ts', ref: 'bailli:torse:front', occurrence: ${occ} },`
   const image = (...lignes) => [
-    "/** @type {import('./stock.mjs').EntreeNominative[]} */",
+    "/** @type {import('./stock.mjs').EntreeDeSite[]} */",
     'export const PALETTE_LITERAL_RATCHET = [', ...lignes, ']', '',
   ].join('\n')
   const avant = image(entree(1))
   const apres = image(entree(1), entree(2))
-  assert.deepEqual(entreesDeStock(avant, f).map((e) => e.ligne), [3], 'ancrage : la première entrée vit à la ligne 3')
-  assert.deepEqual(entreesDeStock(apres, f).map((e) => e.ligne), [3, 4], 'ancrage : la seconde entrée vit à la ligne 4')
+  assert.deepEqual(entreesNominatives(avant, f).map((e) => e.ligne), [3], 'ancrage : la première entrée vit à la ligne 3')
+  assert.deepEqual(entreesNominatives(apres, f).map((e) => e.ligne), [3, 4], 'ancrage : la seconde entrée vit à la ligne 4')
   const diff = [`diff --git a/${f} b/${f}`, `--- a/${f}`, `+++ b/${f}`, '@@ -4,0 +4,1 @@', `+${entree(2)}`].join('\n')
   assert.deepEqual(
     croissanceDesStocks(diff, { lirePostImage: () => apres, lirePreImage: () => avant }),
@@ -979,7 +1000,7 @@ test('stock `.mjs` nominatif — une entrée AJOUTÉE est vue par la porte de pl
   const aveugle = (occ) => `  'bailli:torse:front#${occ}',`
   const imageAveugle = (...lignes) => ['/** @type {ReadonlySet<string>} */', 'export const PALETTE_LITERAL_RATCHET = new Set([', ...lignes, '])', ''].join('\n')
   const diffAveugle = [`diff --git a/${f} b/${f}`, `--- a/${f}`, `+++ b/${f}`, '@@ -4,0 +4,1 @@', `+${aveugle(2)}`].join('\n')
-  assert.deepEqual(entreesDeStock(imageAveugle(aveugle(1), aveugle(2)), f), [], 'une clé qui ne nomme aucun fichier n’est pas une entrée pour la porte')
+  assert.deepEqual(entreesNominatives(imageAveugle(aveugle(1), aveugle(2)), f), [], 'une clé qui ne nomme aucun fichier n’est pas une entrée pour la porte')
   assert.deepEqual(
     croissanceDesStocks(diffAveugle, { lirePostImage: () => imageAveugle(aveugle(1), aveugle(2)), lirePreImage: () => imageAveugle(aveugle(1)) }),
     [], 'clé aveugle : allonger le stock reste GRATUIT et MUET — la raison d’être de la forme nominative',
@@ -1008,7 +1029,7 @@ const imagesDe = (avant, apres) => ({
 })
 
 test('fenêtre — les deux plus gros stocks du dépôt sont comptés à l’entrée comme à la sortie', () => {
-  const compte = (sha, rel) => entreesDeStock(gitOuNull('show', `${sha}:${rel}`), rel).length
+  const compte = (sha, rel) => entreesNominatives(gitOuNull('show', `${sha}:${rel}`), rel).length
   const slots = 'scripts/guards/lib/slotsStock.mjs'
   const structures = 'scripts/guards/lib/structuresStock.mjs'
   assert.deepEqual([compte(FENETRE_STOCKS.avant, slots), compte(FENETRE_STOCKS.apres, slots)], [335, 336])
@@ -1089,7 +1110,7 @@ test('portée — une entrée écrite en GABARIT à substitution est vue par l�
   assert.deepEqual(parImage.map((c) => c.net), parRepli.map((c) => c.net), 'l’image ne voit pas MOINS que le repli')
 })
 
-// ── ARGUMENT D'APPEL : un paramètre n'est pas un stock (#1709 D1) ─────────────────────────────────
+// ── ARGUMENT D'APPEL : un paramètre n'est pas un stock (#1709) ─────────────────────────────────
 // Trois trains de gates perdus (2026-09-07) sur la même classe : la migration des marches d'arbre
 // vers `readCorpus` écrit `readCorpus(['src/ui'])`, et l'IMAGE y lisait « +1 entrée de stock » —
 // le repli de ligne, lui, n'y voyait rien. Les cliquets payés (`6382c792d`, `cc71eb45c`) NIENT tous
@@ -1155,9 +1176,8 @@ test('argument — sept FAÇADES d’une ligne ne cachent pas un stock qui NOMME
 })
 
 // FRONTIÈRE mesurée : un ÉLÉMENT de stock qui nomme son fichier À TRAVERS un appel reste une
-// entrée — `scripts/test/run.test.mjs:69` (`node: [abs('src/i18n/labels.test.ts'), …]`) et
-// `scripts/hooks/settings-guard-canaux.test.mjs:27` (`[join(REPO, '.claude', 'settings.json'), …]`)
-// sont des stocks nominatifs à part entière. La règle porte sur le PORTEUR en position d'argument :
+// entrée — `scripts/test/run.test.mjs:78` (`node: [abs('src/i18n/labels.test.ts'), …]`) est un
+// stock nominatif à part entière. La règle porte sur le PORTEUR en position d'argument :
 // il n'est exempt que s'il ne nomme AUCUN fichier — un élément qui en nomme un le rend porteur.
 test('argument — un ÉLÉMENT de stock qui nomme son fichier via un appel reste une entrée', () => {
   assert.deepEqual(
@@ -1184,5 +1204,5 @@ test('argument — la forme VÉCUE, dans un `describe` comme au module, ne compt
     entreesA(["describe('x', () => {", `  ${boucle}`, '    void rel; void text;', '  }', '})']), [],
     'dans un corps de `describe`',
   )
-  assert.equal(estEntreeDeStock(boucle), false, 'le repli de ligne ne l’a jamais vue : c’est l’IMAGE qui la voyait')
+  assert.equal(estEntreeNominative(boucle), false, 'le repli de ligne ne l’a jamais vue : c’est l’IMAGE qui la voyait')
 })

@@ -41,8 +41,8 @@ habité » du juge, #371) ; un centrage/bornage codé à la main par écran (tra
   matière (couleur, bordure, police, rayon, ombre) : `components.css`, `tabs.css`, et le module que
   chaque primitive POSSÈDE — la liste fait foi au manifeste des primitives (champ `css`) : `band.css`,
   `frames.css`, `gauges.css`, `hero-sheet.css`, `ornaments.css`, `plaque-row.css`, `rose.css`,
-  `creator-step.css`, `panneau-parametre.css`, `combat-console.css` (l'ORGANISME « console de
-  combat »), plus les familles JET et HUD cataloguées ci-dessous ;
+  `creator-step.css`, `panneau-parametre.css`, `reglages-apparence.css`, `combat-console.css`
+  (l'ORGANISME « console de combat »), plus les familles JET et HUD cataloguées ci-dessous ;
   (3) **layout** — `layout.css`, ce qui PLACE et n'a aucune matière.
   `layout.css` vient APRÈS `components.css` : sans quoi `.panel { padding: 16px }` écraserait le
   `pad` de toute primitive de placement. Un module d'ÉCRAN (tous les autres) ne déclare QUE du

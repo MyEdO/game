@@ -23,7 +23,7 @@ import { maskOpposedRow } from './opposedFrozen';
  * REQUISE au type et son symbole est NON REPRODUCTIBLE : `Symbol()` (pas `Symbol.for`), non exporté —
  * aucun module tiers ne peut écrire la propriété. Le CAST (`as BuiltRollRow`, sous tableau/générique
  * compris) ET l'ALIAS de type qui le déguiserait (`type A = BuiltRollRow`) sont murés par le lint
- * `no-restricted-syntax`, mesurés par `state/built-brand-lint.test.ts`. Ce qui reste ouvert est dit
+ * `murs/marques`, mesurés par `state/built-brand-lint.test.ts`. Ce qui reste ouvert est dit
  * NOMMÉMENT au JSDoc du jumeau `state/stepBrand.ts` (annotation d'une valeur élargie, renommage à
  * l'import) : les mêmes limites, la même liste — aucune couverture affirmée ici qui n'y soit mesurée.
  *

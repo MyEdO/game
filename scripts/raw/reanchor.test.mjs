@@ -4,10 +4,11 @@
 // (LOW + « texte trouvé en ZI 2 l.68 ») mais ne bloquait rien. Lancé par `npm run test:raw`.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { existsSync, readFileSync } from 'node:fs'
+import { readFileSync } from 'node:fs'
 import { basename, join } from 'node:path'
 import { ecartDuVolet } from '../guards/lib/stock.mjs'
-import { buildIndex, classifyQuote, continuations, scan, sitesLow, RAWDIR, LOW_STOCK_PATH } from './reanchor.mjs'
+import { ecartDeRegeneration, texteEnPlace } from '../guards/lib/stockDeSites.mjs'
+import { buildIndex, classifyQuote, continuations, regenerations, scan, sitesLow, RAWDIR } from './reanchor.mjs'
 import { avecAtlasFixture } from './atlasFixture.mjs'
 
 // La fiche vit SOUS un cœur : un Atlas est PARTITIONNÉ, et la couture refuse une page de règles
@@ -131,7 +132,7 @@ test('écart : deux sites de la MÊME réf dans la MÊME fiche se distinguent pa
 test('régime ZÉRO-TOLÉRANCE (#1898) : le VRAI Atlas n’a aucun site ❌ LOW, et reanchor-low-stock.json reste ABSENT', () => {
   const r = scan(RAWDIR, {})
   assert.deepEqual(sitesLow(r.lowRows).map((x) => `${x.file} :: ${x.ref}`), [], 'réf(s) ❌ LOW : la citation est introuvable à la ligne annoncée')
-  assert.equal(existsSync(LOW_STOCK_PATH), false, 'reanchor-low-stock.json doit rester ABSENT (zéro-tolérance) — sa réapparition doit porter, dans chaque entrée, le résidu irréductible qu’elle déclare')
+  for (const x of regenerations(r.lowRows)) assert.equal(ecartDeRegeneration(x, texteEnPlace(x.chemin)), null)
 })
 
 // ---------- --remap : carte de lignes EXACTE (#1739), continuations nues comprises ----------

@@ -4,8 +4,8 @@
  * (iris @cuir), forêt de tentacules FINS et sinueux dressés en volutes étagées bien au-dessus du
  * corps (la plus haute frôle le haut du cadre 120×150) — les bras avant
  * s'enroulent devant le manteau ou rampent au sol. Anim propre au plan : ondulation des volutes
- * au repos, projection à l'attaque, affaissement à la mort. Réutilise la machinerie (FK, palette
- * tokenisée, rendu).
+ * au repos, projection à l'attaque, affaissement à la mort. Réutilise la machinerie (FK, palette en
+ * jetons, rendu).
  */
 import type { BonePose } from '../poses';
 import type { ResolvedBone } from '../composeRig';

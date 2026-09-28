@@ -10,15 +10,15 @@
  * Patron retenu : « éditorial EN DUR dans le générateur » (scripts/docs/build-sources-vf.mjs),
  * avec la lecture AST + JSDoc du socle `scripts/docs/lib/jsdocUnion.mjs` (patron build-effects.mjs).
  *
- * Mode --check (chaîné dans npm run docs:check) : régénère en mémoire, compare au .md committé,
- * exit 1 avec message actionnable si diff — jamais d'écriture en mode --check.
+ * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/empreinte-sources.mjs), rejoué par `build-all.mjs`.
  *
  *   node scripts/docs/build-map-authoring.mjs
  */
 import { readFileSync, existsSync } from 'node:fs'
 import { listerArbre } from '../guards/lib/lister.mjs'
 import ts from 'typescript'
-import { emitOrCheck, loadSource, jsdocRole, findAlias, aliasDoc, indexerConstantes } from './lib/jsdocUnion.mjs'
+import { loadSource, jsdocRole, findAlias, aliasDoc, indexerConstantes } from './lib/jsdocUnion.mjs'
+import { ecrireOuVerifier } from './lib/empreinte-sources.mjs'
 import { fileExports } from './lib/engineExports.mjs'
 
 const OUTIL = 'build-map-authoring'
@@ -543,7 +543,7 @@ ${
 }
 `
 
-emitOrCheck({
+ecrireOuVerifier({
   out,
   path: 'docs/map-authoring.md',
   check: process.argv.includes('--check'),

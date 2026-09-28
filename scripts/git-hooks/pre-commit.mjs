@@ -27,7 +27,7 @@ import { emojisIn } from '../guards/lib/emojiAffordance.mjs';
 import { scanHardcode } from '../guards/lib/hardcode.mjs';
 import { scanRollSeamExclusivity } from '../guards/lib/rollSeamExclusivity.mjs';
 import { rollSeamExcluded } from '../guards/lib/rollSeamWhitelist.mjs';
-import { scanBattleRngEngineLeak } from '../guards/lib/battleRngEngineLeak.mjs';
+import { contexteDeScanRng, scanBattleRngEngineLeak } from '../guards/lib/battleRngEngineLeak.mjs';
 import { battleRngEngineLeakExcluded } from '../guards/lib/battleRngEngineLeakWhitelist.mjs';
 import { scanNpmLockHoisted } from '../guards/lib/npmLockHoisted.mjs';
 import { scanArbresImbriques } from '../guards/lib/arbreImbrique.mjs';
@@ -92,11 +92,13 @@ offenders.push(...clesInterditesAuStock());
 const warnings = [];
 // Fichiers TS réellement scannés — périmètre sur lequel la péremption d'une entrée se juge.
 const scannedTs = [];
+// Un passage de scan « rng vivant → résolveur moteur » pour tous les fichiers indexés.
+const passageRng = contexteDeScanRng();
 
 for (const f of staged) {
   const rel = f.replace(/\\/g, '/');
   // MÊME périmètre que la suite Vitest et le hook au stylo : `estFichierScanne` (source unique,
-  // `commentPoison.mjs`) — `src/**` ET `scripts/**`, quatre extensions, tests compris.
+  // `commentPoison.mjs`), qui lit `PERIMETRE_DES_GARDES`.
   if (!estFichierScanne(rel)) continue;
   // Familles de COMMENTAIRES (tombale / excuse / vocabulaire de l'ancien état / revendications RAW / revendications d'autorité) : tests compris,
   // « le poison écrit dans un test est du poison » (commentPoison.mjs). Familles CODE (label-logic,
@@ -149,7 +151,7 @@ for (const f of staged) {
   // #370 — rng vivant → résolveur moteur : resolveXxx(…, battleRng()) hors whitelist (double détente
   // avec src/state/roll-seam-exclusivity-guard.test.ts, SOURCE UNIQUE de la whitelist).
   if (!isTestFile && !battleRngEngineLeakExcluded(rel))
-    for (const x of scanBattleRngEngineLeak(rel, text)) offenders.push(`${rel}:${x.line} [rng vivant → résolveur moteur] ${x.detail}`);
+    for (const x of scanBattleRngEngineLeak(rel, text, passageRng)) offenders.push(`${rel}:${x.line} [rng vivant → résolveur moteur] ${x.detail}`);
 }
 
 // #290 — emoji dans la DONNÉE (`src/scenes/**/*.json` + `src/data/*.json`) : même tolérance zéro que le code.
@@ -241,13 +243,12 @@ if (docsPourLaPorte.length) {
 // que ce commit n'embarque pas. Une SOURCE stagée sans régénération n'arme rien ici : le pied qu'elle
 // périme porte un doc qui ne part pas dans ce commit, et armer sur les sources coûterait un
 // `docs:build` à 59,3 % des commits (mesuré 2026-09-02) pour un pied re-signé UNE fois par train, à
-// l'étape docs de `ops:publier` — qui juge désormais aussi les pieds des cibles `check: false`
-// (`piedsDesNonVerifiables`, #1773). La gate `docs:empreinte` reste la porte. Ce qui est joué ici ne
+// l'étape docs de `ops:publier`. La gate `docs:empreinte` reste la porte. Ce qui est joué ici ne
 // régénère RIEN (recalcul sur l'index, `git ls-files -s`), contre 49,8 s pour la régénération des 13
 // générateurs qu'un `src/data/*.json` arme (mesuré 2026-09-02).
 // CHAÎNE DE CONFIANCE : `docs/.sources-lues.json` est lu ici dans l'ARBRE (il ne sert qu'à CHOISIR
 // les générateurs), SANS être revérifié ; le VERDICT, lui, ne sort que de l'INDEX. Sa fraîcheur est
-// gatée en CI par `docs:check`, qui le REGÉNÈRE et le compare comme tout dérivé. DÉFAUT CONNU : s'il
+// gatée en CI par `docs:check:tout`, qui rejoue chaque générateur et compare la mesure au committé. DÉFAUT CONNU : s'il
 // est illisible, la sélection rend une liste vide et la porte se tait ici — la CI reste le filet.
 const sourcesLues = (() => {
   try { return JSON.parse(readFileSync(join(ROOT, 'docs', '.sources-lues.json'), 'utf8')); } catch { return {}; }
@@ -279,7 +280,7 @@ if (armes.length) {
 //       fichier porteur ;
 //   (c) une ligne AJOUTÉE qui NOMME un plan déjà supprimé (registre lu par `--registre`, 0,45 s) —
 //       consulté uniquement si le diff ajoute un nom de fichier plausible, sinon on ne paie rien.
-// Reste hors pre-commit (assumé, couvert par `npm run docs:check` et le canari) : une violation
+// Reste hors pre-commit (couvert par `npm run docs:check` et le canari) : une violation
 // PRÉEXISTANTE d'un fichier que ce commit ne touche pas.
 const ajoutees = (() => {
   try {

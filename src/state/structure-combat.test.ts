@@ -33,7 +33,7 @@ const belier = mkWeapon({ label: 'Bélier', type: 'melee', qualities: [{ id: 'si
 /** Arête E de (2,2) — sépare (2,2) de (3,2). On y pose la structure `structId` (intacte sauf `down`). */
 const EDGE = { x: 2, y: 2, side: 'E' as const };
 function sceneWithStructure(structId: string, down = false): Scene {
-  const s = structuredClone(testScene);
+  const s = structuredClone(testScene());
   s.walls = [{ x: EDGE.x, y: EDGE.y, side: EDGE.side, structure: structId }];
   if (down) s.flags = { ...s.flags, [structureDownKey(EDGE.x, EDGE.y, EDGE.side, 0)]: true };
   return s;
@@ -43,7 +43,7 @@ function sceneWithStructure(structId: string, down = false): Scene {
  *  enrôlée (undefined si `down`), un héros attaquant et l'accès store. */
 function start(structId: string, opts?: { down?: boolean; seed?: number }) {
   useGame.getState().seedRng(opts?.seed ?? 1);
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(opts?.seed ?? 1) });
+  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: opts?.seed ?? 1 });
   useGame.setState({ party: [hero] });
   useGame.getState().startScene(sceneWithStructure(structId, opts?.down));
   useGame.getState().startCombat('enc-mutants');
@@ -221,7 +221,7 @@ describe('Structures de siège — CHEMIN DE CLIC joueur (overlay d’arête →
 
 describe('weaponContextOf — exceptions hors-spécialisation dégradées (LDB 62 l.184/188, #472)', () => {
   const attacker = (spec: string) => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     hero.skills = [{ id: 'projectiles', spec, characteristic: 'capacite-de-tir', advances: 5 }];
     return hero;
   };

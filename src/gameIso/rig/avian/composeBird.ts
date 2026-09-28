@@ -2,7 +2,7 @@
  * Gabarit AVIAIRE (pigeon / petit oiseau). Corps dodu sur 2 pattes fines, aile repliée, queue
  * en éventail, petite tête à bec qui DODELINE (le tell de l'oiseau). Anim propre au plan :
  * hochement de tête au repos, sautillement+frémissement d'aile au déplacement, coup de bec à
- * l'attaque, sur le flanc à la mort. Réutilise la machinerie (FK, palette tokenisée, rendu).
+ * l'attaque, sur le flanc à la mort. Réutilise la machinerie (FK, palette en jetons, rendu).
  */
 import type { BonePose } from '../poses';
 import type { ResolvedBone } from '../composeRig';

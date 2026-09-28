@@ -1,11 +1,11 @@
 import type { AppearanceElement } from '../types';
 import { LEGS } from '../../monster';
-import { pickView } from '../../types';
+import { viewOrFront } from '../../types';
 
 // Pattes d'animaux : les JAMBES sont REMPLACÉES par les pattes de chèvre du registre monster/
 // (couleur de peau du perso via @peau, sabot inclus) et les bottes effacées — traitement « membre
 // muté » appliqué aux jambes (comme un Gor).
-const PATTES = `<g data-mut="pattes-danimaux">${pickView(LEGS['chevre'], 'front')}</g>`;
+const PATTES = `<g data-mut="pattes-danimaux">${viewOrFront(LEGS['chevre'], 'front')}</g>`;
 
 export const element: AppearanceElement = {
   key: 'pattes-danimaux', label: 'Pattes d’animaux', category: 'mutation',

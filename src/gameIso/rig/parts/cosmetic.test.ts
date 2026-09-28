@@ -1,11 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { cosmeticPart } from './cosmetic';
+import { cosmeticPart, apparenceSuivante } from './cosmetic';
+import { hairstylesForSex } from './hairstyles';
+import type { EntityAppearance } from '../../../engine/authoringAppearance';
 import { genericPart } from './generic';
-import { pickView } from './types';
+import { viewOrFront } from './types';
 import type { Sexe } from '../../../data/schemas/grammaire/valeurs';
 
 const sv = (slot: 'visage' | 'cheveux', sp: string, sex: Sexe, idx: number) =>
-  pickView(cosmeticPart(slot, sp, sex, idx), 'front');
+  viewOrFront(cosmeticPart(slot, sp, sex, idx), 'front');
 
 describe('cosmeticPart', () => {
   it('renvoie un fragment SVG non vide pour visage et cheveux', () => {
@@ -39,23 +41,23 @@ describe('cosmeticPart', () => {
 describe('cosmeticPart — vues dos/profil E·7 branchées', () => {
   it('une espèce avec vues générées expose back/profile distincts du front', () => {
     const part = cosmeticPart('visage', 'Nain', 'M', 0); // Nain:M a des vues générées
-    expect(typeof part).toBe('object'); // PartArt multi-vues
-    const front = pickView(part, 'front');
+    expect(typeof part).toBe('object'); // PartArt orienté
+    const front = viewOrFront(part, 'front');
     expect(front).toContain('<');
-    expect(pickView(part, 'back')).not.toBe(front);
-    expect(pickView(part, 'profile')).not.toBe(front);
+    expect(viewOrFront(part, 'back')).not.toBe(front);
+    expect(viewOrFront(part, 'profile')).not.toBe(front);
   });
   it('la vue de DOS du visage n’a pas d’yeux', () => {
-    expect(pickView(cosmeticPart('visage', 'Nain', 'M', 0), 'back')).not.toMatch(/g_eye/);
+    expect(viewOrFront(cosmeticPart('visage', 'Nain', 'M', 0), 'back')).not.toMatch(/g_eye/);
   });
   it('les cheveux exposent aussi des vues', () => {
     const part = cosmeticPart('cheveux', 'Haut-Elfe', 'F', 0);
-    expect(pickView(part, 'back')).not.toBe(pickView(part, 'front'));
+    expect(viewOrFront(part, 'back')).not.toBe(viewOrFront(part, 'front'));
   });
   it('repli: une espèce sans tête générée a quand même un DOS correct (nuque, pas le visage de face)', () => {
     const part = cosmeticPart('visage', 'Gnome', 'M', 0); // pas de tête générée
-    const back = pickView(part, 'back');
-    expect(back).not.toBe(pickView(part, 'front')); // dos = nuque générique, pas le cercle de face
+    const back = viewOrFront(part, 'back');
+    expect(back).not.toBe(viewOrFront(part, 'front')); // dos = nuque générique, pas le cercle de face
     expect(back).not.toMatch(/g_eye/); // ni yeux luisants de dos
   });
 });
@@ -63,10 +65,45 @@ describe('cosmeticPart — vues dos/profil E·7 branchées', () => {
 describe('genericPart', () => {
   it('fournit un vêtement fallback pour les slots de corps habillés', () => {
     for (const s of ['torse', 'bras', 'jambes'] as const)
-      expect(pickView(genericPart(s), 'front')).toContain('<');
+      expect(viewOrFront(genericPart(s), 'front')).toContain('<');
   });
   it('tete (couvre-chef) et arme sont vides par défaut (tête nue / mains nues)', () => {
-    expect(pickView(genericPart('tete'), 'front')).toBe('');
-    expect(pickView(genericPart('arme'), 'front')).toBe('');
+    expect(viewOrFront(genericPart('tete'), 'front')).toBe('');
+    expect(viewOrFront(genericPart('arme'), 'front')).toBe('');
+  });
+});
+
+/** Patron `propRefPatch` (`ui/editor/propDefaults.ts`) : un geste d'édition ne crée pas la faute. */
+describe('apparenceSuivante — l’unique mutation d’une apparence depuis un écran', () => {
+  const coiffureM = hairstylesForSex('M')[0].id;
+  const coiffureF = hairstylesForSex('F')[0].id;
+
+  it('coiffure M puis sexe F : la coiffure retombe, le reste est gardé', () => {
+    const a: EntityAppearance = { sex: 'M', hairstyle: coiffureM, build: 0.4 };
+    expect(apparenceSuivante(a, { sex: 'F' })).toEqual({ sex: 'F', build: 0.4 });
+  });
+
+  it('coiffure F choisie sur une apparence M : la coiffure ET son sexe sont posés', () => {
+    const a: EntityAppearance = { sex: 'M', build: 0.4 };
+    expect(apparenceSuivante(a, { hairstyle: coiffureF })).toEqual({ sex: 'F', build: 0.4, hairstyle: coiffureF });
+  });
+
+  it('aucune coiffure : la clé est retirée, le sexe reste', () => {
+    const a: EntityAppearance = { sex: 'M', hairstyle: coiffureM };
+    expect(apparenceSuivante(a, { hairstyle: undefined })).toStrictEqual({ sex: 'M' });
+  });
+
+  it('les sous-objets (couleurs, mutations, yeux) se fusionnent, ils ne s’écrasent pas', () => {
+    const a: EntityAppearance = { colors: { peau: '#111111' }, monster: { tete: 'chien' }, eyes: { G: 'chat' } };
+    expect(apparenceSuivante(a, { colors: { cheveux: '#222222' }, monster: { cornes: true }, eyes: { D: 'verre' } })).toEqual({
+      colors: { peau: '#111111', cheveux: '#222222' },
+      monster: { tete: 'chien', cornes: true },
+      eyes: { G: 'chat', D: 'verre' },
+    });
+  });
+
+  it('une liste de traits vidée disparaît', () => {
+    const a: EntityAppearance = { features: ['crocs'] };
+    expect(apparenceSuivante(a, { features: [] })).toStrictEqual({});
   });
 });

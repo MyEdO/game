@@ -20,6 +20,7 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { FORME_DATA, FORME_PROJET, serialise } from './croissance.mjs';
 import { depot, efface, joue, lireArbre, rienTouche } from './joue.mjs';
+import { tableTotale } from '../../../src/lib/tableTotale.ts';
 
 const RACINE = fileURLToPath(new URL('../../../', import.meta.url));
 const MIGRATION = '2026-09-05-1686-ardoise-ids-composes.mjs';
@@ -39,7 +40,7 @@ const DATASETS = ['src/data/materials.json', 'src/data/props.json'];
  * modifie en place avant la pose.
  */
 function depotMute(mute) {
-  const docs = Object.fromEntries([...DATASETS, ...PROJETS].map((rel) => [rel, JSON.parse(lireArbre(rel))]));
+  const docs = tableTotale([...DATASETS, ...PROJETS], (rel) => JSON.parse(lireArbre(rel)));
   mute(docs);
   return depot(
     Object.fromEntries(

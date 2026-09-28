@@ -14,8 +14,6 @@
 // baseline (à la différence de `check-entity-in-chapter`, dont le stock historique justifiait un
 // cliquet) : toute régression future doit échouer immédiatement, jamais se glisser sous un seuil.
 // Re-run : node scripts/raw/check-catalogue-complete.mjs (npm run raw:check-catalogue-complete).
-import { resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { sectionsOf, catalogChaptersOf, cleanTitle, pagesLues, RAWDIR } from './coverage.mjs'
 import { chapterFile, niveauDeSectionDe, readText } from './_lib.mjs'
 import { normalizeLoose } from './check-entity-in-chapter.mjs'
@@ -101,5 +99,4 @@ function main(rawDir = RAWDIR) {
   console.log('OK — chaque chapitre crédité par un catalogue y est transcrit EN ENTIER (tolérance zéro, aucune baseline).')
 }
 
-const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)
-if (isMain) main()
+if (import.meta.main) main()

@@ -3,7 +3,6 @@ import { useGame } from '../store';
 import { runEnemyAI } from '../combatFlow';
 import { setGmSeat } from '../netFlow';
 import { createHero } from '../../engine/character';
-import { makeRNG } from '../../engine/dice';
 import { seedBattleRng } from '../battleRng';
 import { testScene } from '../../scenes/test-fixture';
 import { resetCadence } from '../../engine/cadence';
@@ -32,9 +31,9 @@ describe('IA × siège MJ pris après planification — runEnemyAI rend la main 
   });
 
   function setup() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
-    useGame.getState().startScene(testScene);
+    useGame.getState().startScene(testScene());
     seedBattleRng(777);
     useGame.getState().startCombat('enc-mutants');
     useGame.getState().confirmRoundStart();

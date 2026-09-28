@@ -1,7 +1,6 @@
 import type { QuadHarnaisDef } from '../types';
-import { SELLERIE_IMPERIALE_PROFIL_COMPILE } from '../sellerieImperialeProfilCompile';
-import { SELLERIE_IMPERIALE_FACE_COMPILE } from '../sellerieImperialeFaceCompile';
-import { SELLERIE_IMPERIALE_DOS_COMPILE } from '../sellerieImperialeDosCompile';
+import { quadDecoFromViewArt } from '../../quadSkeleton';
+import { SELLERIE_IMPERIALE_COMPILE } from '../sellerieImperialeCompile';
 
 // SELLERIE IMPÉRIALE — le harnachement de monture de l'Empire (selle matelassée verte, caparaçon
 // rouge liseré d'or, croupière à panneaux olive et médaillons, sangle, étrivière et étrier doré,
@@ -19,10 +18,5 @@ export const quadHarnais: QuadHarnaisDef = {
   id: 'sellerie-imperiale',
   label: 'Sellerie impériale',
   especes: ['cheval'],
-  deco: {
-    'tronc#profile': [{ svg: SELLERIE_IMPERIALE_PROFIL_COMPILE.tronc, plan: 0 }],
-    'tete#profile': [{ svg: SELLERIE_IMPERIALE_PROFIL_COMPILE.tete, plan: 0 }],
-    'tronc#front': [{ svg: SELLERIE_IMPERIALE_FACE_COMPILE.tronc, plan: 0 }],
-    'tronc#back': [{ svg: SELLERIE_IMPERIALE_DOS_COMPILE.tronc, plan: 0 }],
-  },
+  deco: quadDecoFromViewArt(SELLERIE_IMPERIALE_COMPILE, 0),
 };

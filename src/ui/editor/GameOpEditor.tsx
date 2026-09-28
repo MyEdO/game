@@ -8,6 +8,7 @@
  * `FormulaField` — JAMAIS de coercition en nombre (la régression historique : un `wounds {dice}` lu
  * « 0 » puis écrasé). Un nouveau type d'op = 1 entrée dans `OP_GROUPS` + 1 défaut dans `newOp`.
  */
+import { tableTotale } from '../../lib/tableTotale';
 import { Formula, GameOp, type ResolveWindow } from '../../engine/ops';
 import { ChaosAlign, ExposureLevel } from '../../engine/corruption';
 import { libelleDeValeur, valeursDe } from '../../data/schemas/grammaire/meta';
@@ -51,7 +52,7 @@ const UNLOCK_LABELS = Object.entries(ACTE_DE_DEVERROUILLAGE) as [ConditionUnlock
 // ---------------------------------------------------------------------------
 
 /** Libellé court (texte SEUL, sert aussi de `<option>` natif) de CHAQUE op du vocabulaire `GameOp` —
- *  `Record` EXHAUSTIF (TS force sa complétude) : source runtime de l'énumération des kinds pour les
+ *  `Record` TOTAL (TS force sa complétude) : source runtime de l'énumération des kinds pour les
  *  tests (`Object.keys(OP_LABEL)`), sans dupliquer la liste. */
 export const OP_LABEL: Record<GameOp['op'], string> = {
   wounds: 'Blessures (ignore BE/PA)',
@@ -675,7 +676,7 @@ export function opSummary(o: GameOp): string {
     case 'grantReverseToken': return `inverser ${o.skill ? refOuChoix('skills', o.skill, 'compétence') : 'un Test (cible)'}`;
     case 'castWard': return `−20 Langue, rayon ${formulaSummary(o.radius)} m`;
     case 'arrowWard': return 'projectiles organiques détruits (ZdE du sort)';
-    case 'domeWard': return `${formatWardSave(o.traitId, formulaSummary(o.indice))} (ZdE du sort)`;
+    case 'domeWard': return `${formatWardSave({ kind: 'trait', id: o.traitId }, formulaSummary(o.indice))} (ZdE du sort)`;
     case 'attackWardFM': return 'l’attaquer exige un Test de FM';
     case 'grantWeapon': return `${o.label} (Dégâts ${o.plusBF ? 'BF+' : ''}${formulaSummary(o.damage)})`;
     case 'grantNaturalWeapon': return `${o.label} (${o.plusBF !== false ? 'BF+' : ''}${formulaSummary(o.damage)})`;
@@ -943,7 +944,7 @@ function OpFields({ op, onChange }: { op: GameOp; onChange: (o: GameOp) => void 
                     ci-dessus), depuis la MÊME liste close que le refus au parse (`CHAMPS_EXCLUS_DE_CARRIED`)
                     — la donnée ne peut donc pas naître dans la forme que `refusLoose` refuse. */}
                 <label className="dr"><input type="checkbox" checked={!!o.carried} onChange={(e) => upd(e.target.checked
-                  ? { carried: true, ...Object.fromEntries(CHAMPS_EXCLUS_DE_CARRIED.map((k) => [k, undefined])) }
+                  ? { carried: true, ...tableTotale(CHAMPS_EXCLUS_DE_CARRIED, () => undefined) }
                   : { carried: undefined })}
                 /> porté par la source (durée du Sort)</label>
                 {o.carried

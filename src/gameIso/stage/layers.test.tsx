@@ -6,7 +6,7 @@ import { buildRoofs } from '../builders/roofs';
 import type { Dims } from '../../geometry/iso';
 import { wallLayerObjs, wallTraitObjs } from './layers';
 import { scenario as entrainement } from '../../scenes/test-scenarios/entrainement';
-import { diligenceCampaign } from '../../scenes/campaign';
+import { diligenceCampaign, paquetDuJeu } from '../../scenes/campaign';
 const entrainementConstruit = entrainement.construire();
 
 /**
@@ -75,7 +75,7 @@ describe('trait d’obstacle — éléments de mur ET tuiles à bloc plein', () 
   });
 
   it('SCÈNE BÂTIE RÉELLE (La Diligence) : les segments continuent de porter le trait, sans doublon', () => {
-    const s = diligenceCampaign.scenes[0];
+    const s = paquetDuJeu(diligenceCampaign).scenes[0];
     const segments = buildWalls(s, undefined, { activeZ: 0, viewZ: 0 }).length;
     expect(segments).toBeGreaterThan(0);
     // Aucune tuile pleine sur cette scène : le compte de traits est EXACTEMENT celui des segments.

@@ -14,7 +14,6 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { useGame } from '../state/store';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { CascadeBody } from './CascadeModal';
 import { dieStep } from '../state/rollSeam';
 import { fixtureText } from '../i18n/fixtureText';
@@ -27,7 +26,7 @@ beforeAll(() => {
 let host: HTMLDivElement;
 let root: Root;
 
-const HERO = () => createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', rng: makeRNG(1) });
+const HERO = () => createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 1 });
 
 /** Ouvre une séquence à UNE étape, le titre de la fenêtre étant fourni par l'appelant. */
 function openStep(title: string, step: (heroId: string) => CascadeStep) {
@@ -126,7 +125,7 @@ describe('sous-titre d’étape — il porte la POSITION, jamais le libellé', (
    */
   const pasDeDe = (id: string, actorId: string, label: string): CascadeStep => dieStep({
     id, kind: 'uiDieSpy', actorId, label: fixtureText(label), icon: 'journal/critical',
-    spec: { n: 1, sides: 10 }, seuil: { indice: 6, traitId: 'protection', dome: true },
+    spec: { n: 1, sides: 10 }, seuil: { indice: 6, source: { kind: 'trait', id: 'protection' }, dome: true },
   })!;
 
   it('branche DÉ : sous-titre = « porteur — 2/2 », puis le porteur SEUL à une étape', () => {

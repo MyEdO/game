@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { computeStateVisible, computeStateVisibleAndLight, recordExplored, sceneLightField, sceneLightSources, setRevealAll } from './visionState';
 import { computeLightField, type LightSource } from './vision';
-import { diligenceCampaign } from '../scenes/campaign';
+import { diligenceCampaign, paquetDuJeu } from '../scenes/campaign';
 import { Scene, WallSeg } from './scene';
 import type { Combatant } from '../engine/types';
 
@@ -70,7 +70,7 @@ describe('sceneLightSources — la liste UNIQUE que le champ mécanique et le re
 });
 
 describe('« La Diligence » — la lumière PORTÉE éclaire l’étage de son porteur, pas la cour en dessous', () => {
-  const scene = diligenceCampaign.scenes[0];
+  const scene = paquetDuJeu(diligenceCampaign).scenes[0];
   /** Cases éclairées par une SOURCE, par étage. */
   const parÉtage = (sources: LightSource[]): Record<number, number> => {
     const out: Record<number, number> = { 0: 0, 1: 0 };

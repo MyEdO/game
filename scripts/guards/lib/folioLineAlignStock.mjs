@@ -1,7 +1,8 @@
-// STOCK CLIQUETÉ des désalignements folio ↔ ligne de `src/data/*.json` (#1318 E8) — consommé par la
+// STOCK CLIQUETÉ des désalignements folio ↔ ligne de `src/data/*.json` (#1318) — consommé par la
 // garde `src/data/folio-line-align.test.ts`. La MESURE vit dans `folioLineAlign.mjs`, traduite en
-// SITES par `folioLineAlignAudit.ts`, partagée avec le régénérateur
-// `npx tsx scripts/data/regen-folio-line-align-stock.mts` (DÉCROISSANT-SEULEMENT, refus SITE PAR SITE).
+// SITES par `folioLineAlignAudit.ts`, partagée avec sa régénération,
+// `npx tsx scripts/guards/lib/regenStock.mts scripts/guards/lib/folioLineAlignAudit.ts` (politique `DECROISSANT`,
+// refus SITE PAR SITE).
 //
 // FORME DES ENTRÉES — `{ fichier, ref, occurrence }`, la forme UNIQUE de tout stock nominatif du
 // dépôt (`cleDeSite`, `scripts/guards/lib/stock.mjs`) : `fichier` = le dataset à OUVRIR, `ref` = l'id
@@ -19,7 +20,7 @@
 // dérivée à la ré-extraction Marker, un folio pris sur le titre de section gouvernant et un folio
 // simplement faux se ressemblent tous les trois ici). Le stock ne peut que DÉCROÎTRE : on solde une
 // entrée en RELEVANT le passage, jamais en alignant l'une sur l'autre à l'aveugle. Deux soldes du
-// lot #1318 E8 donnent la mesure du geste : `combat-stakes.json#combat-aa-bleed` 61 → 80 (sommaire
+// lot #1318 donnent la mesure du geste : `combat-stakes.json#combat-aa-bleed` 61 → 80 (sommaire
 // imprimé d'Aux Armes, `01 - CREDITS.md` : « Blessures, Blessures Critiques et mort 80 ») et
 // `flow-stakes.json#fate-save-choice` 34 → 170 (« Dépenser du Destin » sous l'ancre
 // `data-folio="170"` de `17 - Destin et Resistance.md` ; le folio 34 est celui de la CRÉATION de
@@ -31,7 +32,7 @@
 //     (`reason: 'queue-trouee'` : la ligne citée tombe au-delà de la dernière ancre `data-folio` du
 //     chapitre, et le chapitre suivant ne reprend pas la numérotation — résidu #522). Gelées
 //     NOMINATIVEMENT pour que la COUVERTURE du détecteur soit un chiffre tenu et non un angle mort :
-//     leur folio déclaré est plausible mais n'a PAS été machine-vérifié (relu à la main, #1318 E8).
+//     leur folio déclaré est plausible mais n'a PAS été machine-vérifié (relu à la main, #1318).
 //     Si une extraction regagne ses ancres, l'entrée devient jugeable et SORT de cette liste à la
 //     régénération. Les quatre entrées de `reseau-routier.json` (#677) sont citées APRÈS l'unique
 //     ancre d'`EDOC 06` (`data-folio="20"`, l.37) : le chapitre suivant ne reprend pas la

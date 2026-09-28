@@ -1,5 +1,5 @@
 /**
- * MONDE VOLUMIQUE de l'écran de jeu (#1176, lots P2-2/P2-2b) — la couche MONDE, rendue en three.
+ * MONDE VOLUMIQUE de l'écran de jeu (#1176) — la couche MONDE, rendue en three.
  * CONSOMMATEUR
  * pur du stage : il ne lit AUCUN store, ne décide ni cadrage ni visibilité ni dégagement — l'hôte du
  * monde (`stage/MondeDeCampagne`) reste la seule source d'intention.
@@ -14,17 +14,17 @@
  *    sur les couleurs de sommet (`[baked, tintAt]`).
  *  - POSE : la caméra suit les crans du store (`stage3dCamera`) et, pendant une MARCHE, l'intention
  *    du stage à l'instant de la frame (`anim.cam`) — rien d'autre ne bouge la vue.
- *  - MARCHE (P2-4) : la boucle de rendu lit elle-même le glissement (`anim.glide`) et ne déplace que
+ *  - MARCHE : la boucle de rendu lit elle-même le glissement (`anim.glide`) et ne déplace que
  *    les matrices des quads concernés. Aucun rendu React, aucun sommet, aucun matériau.
  *
- * DEUX REGARDS, UN SEUL MONDE (#1176, P3-1a ; #1385) : le cadre de la frame est une UNION
+ * DEUX REGARDS, UN SEUL MONDE (#1176 ; #1385) : le cadre de la frame est une UNION
  * (`StageFrame`) que l'hôte unique (`stage/MondeDeCampagne`) sert selon son regard — ortho affine
  * cadrée sur la surcouche de plateau, ou PERSPECTIVE à hauteur d'homme cadrée par la pose du groupe.
  * Tout le reste de cet écran l'ignore : mêmes cuisson, teinte, lumière,
  * billboards et intempéries. La première personne n'a ni marques de sol, ni halos, ni picker inscrit —
  * ce sont des affordances de la vue de plateau, et le POV n'en a jamais porté.
  *
- * LUMIÈRE (P2-5) : le CANEVAS porte toute la luminosité de la scène — une ambiante au palier de lumière
+ * LUMIÈRE : le CANEVAS porte toute la luminosité de la scène — une ambiante au palier de lumière
  * du moment et, dehors et de jour, un SOLEIL qui suit l'heure d'horloge et le nord de la carte
  * (`stage/stageLights.ts`, décision ; cet écran ne fait que monter ses lampes et brancher les ombres).
  * FLAQUES (#1245) : les sources PONCTUELLES de la scène (brasero posé, lanterne portée — la liste que
@@ -38,11 +38,11 @@
  * lambertien y mesurerait l'angle caméra↔soleil et la luminosité d'un personnage suivrait la rotation
  * de la vue. Leur lumière est donc un SCALAIRE, mais un scalaire PAR SUJET (#1245, L3) : l'exposition
  * de la frame (`surfaceLuminance`) PLUS les flaques qui l'atteignent, par la même loi que le sol
- * (`billboardExposure`) — sans quoi le sol s'allume et les personnages restent plats. RÉSIDU ASSUMÉ :
+ * (`billboardExposure`) — sans quoi le sol s'allume et les personnages restent plats. RÉSIDU :
  * un personnage sous l'ombre portée d'un bâtiment garde l'exposition de la frame — il ne s'assombrit
  * pas en entrant dans l'ombre, et la flaque qu'il reçoit est omnidirectionnelle.
  *
- * INTEMPÉRIES (P2-6, #1247) : la météo authorée de la scène a TROIS expressions dans le volume, toutes
+ * INTEMPÉRIES (#1247) : la météo authorée de la scène a TROIS expressions dans le volume, toutes
  * dérivées de la MÊME donnée (`iso.weather`, `src/data/ambiance.json`) :
  *  - ce qui TOMBE (`precip`) : un semis de quads instanciés qui descend à la cadence de la frame, borné
  *    par le MÊME couvert bâti que le dégagement (`shelterField`, `builders/roofs.ts`) — rien ne tombe
@@ -59,7 +59,7 @@
  * et les BILLBOARDS (invalidés à la case LOGIQUE et à la signature de dessin des sujets, jamais au
  * glissement de marche : celui-ci ne touche que les matrices, dans la boucle).
  * Le canevas est posé SOUS le SVG du stage et sans événements de pointeur : les overlays et les voiles
- * restent au SVG, qui reçoit tous les événements (lot P2-7). Le hit-test de SPRITE, lui, ne peut plus
+ * restent au SVG, qui reçoit tous les événements. Le hit-test de SPRITE, lui, ne peut plus
  * s'y lire — plus aucun jeton n'y porte de `data-cid` : cet écran INSCRIT son lanceur de rayon auprès
  * de `stage/spritePicker.ts`, la couture unique où le pointeur pose la question.
  */
@@ -167,7 +167,7 @@ import {
   type RigClipDef,
   type RigSelectCtx,
 } from '../rig/anim/actorAnimSelect';
-import type { View } from '../rig/facing';
+import { VIEWS, type View } from '../rig/facing';
 import { mountGroundAccentLots, reposeGroundAccents, sceneGroundAccents, type GroundAccentLot, type SceneGroundAccent } from '../backends/webgl/groundAccents';
 import {
   HIGHLIGHT_SLOTS,
@@ -263,7 +263,7 @@ export function setStageRendererFactory(fabrique: ((canvas: HTMLCanvasElement) =
  * n'utilise pas ne lui est donc pas fournissable : la vue première personne n'a ni cran, ni zoom, ni
  * translation de viewBox à fabriquer pour satisfaire une signature.
  *
- * Le POV N'ENTRE PAS dans `ProjKind`/`Dims` (#1176, P3-1a) : la projection affine, le picking et les
+ * Le POV N'ENTRE PAS dans `ProjKind`/`Dims` (#1176) : la projection affine, le picking et les
  * trois modules purs qui en dérivent (`geometry/iso`, `stage/projection`, `stage3dCamera`) resteraient
  * à couvrir un cas qu'aucun d'eux ne sait exprimer.
  */
@@ -281,7 +281,7 @@ export type StageFrame =
       zoom: number;
     }
   /**
-   * Regard de PLATEAU cadré par un VIEWBOX MOBILE (#1176, P3-3) — la convention de l'ÉDITEUR de scènes
+   * Regard de PLATEAU cadré par un VIEWBOX MOBILE (#1176) — la convention de l'ÉDITEUR de scènes
    * (`ui/editor/EditorCanvas.tsx`) : aucune caméra de groupe, le viewBox rendu EST le cadrage, et
    * l'échelle se prend sur le RENDU (`viewBoxScreen`, cadre en pixels mesuré) parce que la CSS
    * rétrécit l'élément. Tout le reste de cet écran l'ignore : c'est le même regard de plateau.
@@ -291,7 +291,7 @@ export type StageFrame =
    * Regard PREMIÈRE PERSONNE : la case du groupe, son cap, et le milieu (dont dépend la portée).
    * `cid` = le sujet dont le GLISSEMENT de marche déplace l'œil (`anim.glide`) : la caméra suit la
    * position CONTINUE du meneur, comme la caméra volumique affine suit `anim.cam()`. ARBITRAGE
-   * D'INGÉNIERIE (#1176, P3-1a, révisable au goût final) : le pas-à-pas du POV SVG était une forme
+   * D'INGÉNIERIE (#1176, révisable au goût final) : le pas-à-pas du POV SVG était une forme
    * du PEINTRE (une projection recalculée par pas), pas une intention de jeu — `makeCamera` accepte
    * une position continue, et les billboards du monde glissent déjà.
    * Le LACET, lui, reste SEC : `facing` est un `Dir8`, donc l'œil pivote de 45° d'un coup là où la
@@ -375,26 +375,26 @@ export interface GameStage3DProps {
    *  mécanique de vision consomme (`state/visionState.ts` `sceneLightSources`) : cet écran ne les
    *  recollecte pas, il en monte les flaques (`stage/stagePointLights.ts`). */
   lights: readonly LightSource[];
-  /** MARQUES DE CASES du combat (#1176, P3-0c) — la sortie du builder PUR `builders/highlights`. Cet
+  /** MARQUES DE CASES du combat (#1176) — la sortie du builder PUR `builders/highlights`. Cet
    *  écran ne les recalcule pas : il les pose à plat dans le monde. */
   highlights?: readonly HighlightEl[];
-  /** MARQUES DYNAMIQUES (#1176, P3-0d) — lien d'engagement, contour de l'actif, repère du groupe : la
+  /** MARQUES DYNAMIQUES (#1176) — lien d'engagement, contour de l'actif, repère du groupe : la
    *  dérivation pure `builders/dynamicMarks`, en cases LOGIQUES. Leur position se prend à la FRAME, sur
    *  le glissement de `anim` — jamais à un rendu React. */
   dynMarks?: DynamicMarks;
-  /** HALOS D'INTERACTION (#1176, P3-0g ; régime de révélation #1687) — un par entité utilisable du
+  /** HALOS D'INTERACTION (#1176 ; régime de révélation #1687) — un par entité utilisable du
    *  champ, à l'état que la frame lui donne : la dérivation pure `builders/interactHalos`. Leurs
    *  PULSATIONS sont des fonctions de la frame (`stage/interactHaloPose`). Absents ou tous MUETS =
    *  aucun halo, et pas une frame de plus. */
   halos?: readonly InteractHalo[];
-  /** ALLURE des jetons (#1176, P3-0f) — fantôme hors Ligne de Vue, corps hors d'action, cible
+  /** ALLURE des jetons (#1176) — fantôme hors Ligne de Vue, corps hors d'action, cible
    *  survolée : la dérivation pure `builders/tokenChrome`, demandée à la FRAME et posée sur le matériau
    *  des quads déjà montés. Absente = aucun jeton ne se distingue. */
   chromeAt?: ChromeAt;
-  /** Cadençage de la MARCHE, quand le stage en offre un (lot P2-4) : sans lui, cet écran ne bouge
+  /** Cadençage de la MARCHE, quand le stage en offre un : sans lui, cet écran ne bouge
    *  qu'aux rendus du stage. */
   anim?: StageWalkAnim;
-  /** PLAQUE DE DÉCALQUAGE de l'ÉDITEUR (#1176, P3-3, vague B) — la planche calée sous la carte
+  /** PLAQUE DE DÉCALQUAGE de l'ÉDITEUR (#1176, vague B) — la planche calée sous la carte
    *  (#830), montée en QUAD MONDE : `below` sous la matière (le sol la couvre là où il en écrit),
    *  `above` par-dessus tout (rang chrome, sans test de profondeur). Absente en jeu. */
   decalque?: PlaqueDecalque | null;
@@ -404,7 +404,7 @@ export interface GameStage3DProps {
    *  bougent, et sortir du mode rend aux groupes leurs matériaux d'origine. Absent en jeu. */
   calage?: boolean;
   /** Cet écran inscrit-il son lanceur de rayon auprès de la couture de picking de sprite
-   *  (`stage/spritePicker.ts`) ? Défaut OUI, la vue de plateau du jeu. L'ÉDITEUR (#1176, P3-3) dit
+   *  (`stage/spritePicker.ts`) ? Défaut OUI, la vue de plateau du jeu. L'ÉDITEUR (#1176) dit
    *  NON : son picking est PUREMENT GÉOMÉTRIQUE (`screenToTileAtZ` sur le SVG d'authoring), et un
    *  picker inscrit ici écraserait celui du jeu — le registre est un singleton. */
   spritePicking?: boolean;
@@ -413,7 +413,7 @@ export interface GameStage3DProps {
    *  dérive AUCUNE : deux jeux de nappes/capsules divergeraient de la géométrie d'occlusion, et le
    *  trou s'ouvrirait là où rien n'est caché. Absent (POV, éditeur) = aucun trou. */
   percage?: PercageEntrees | null;
-  /** PIONS EN DISQUES (#1176, P3-5c) — le verdict `pionsEnDisques` de `stage/viewPolicy`, tel que
+  /** PIONS EN DISQUES (#1176) — le verdict `pionsEnDisques` de `stage/viewPolicy`, tel que
    *  l'hôte le tranche. EXIGÉ chez l'hôte, et pas re-déduit ici de la projection : c'est celui qui
    *  PEINT les disques qui doit éteindre les billboards, jamais l'inverse. L'écran de JEU
    *  (`stage/MondeDeCampagne` → `stage/TokenChromeOverlay`) le passe ; l'ÉDITEUR, lui, regarde aussi son plateau du
@@ -430,9 +430,9 @@ export interface GameStage3DProps {
 }
 
 /**
- * MARCHE lue par la BOUCLE DE RENDU (#1176, P2-4). Le stage reste la seule source d'intention : il
+ * MARCHE lue par la BOUCLE DE RENDU (#1176). Le stage reste la seule source d'intention : il
  * décide de la courbe de glissement et du cadrage, cet écran ne fait que les redemander à SA cadence.
- * Sans cet objet, rien ne bouge entre deux rendus React — le contrat d'avant le lot.
+ * Sans cet objet, rien ne bouge entre deux rendus React.
  */
 export interface StageWalkAnim {
   /** PILOTE D'IMAGES ALTERNATIF — optionnel, et la production n'en fournit AUCUN : l'écran s'abonne
@@ -450,7 +450,7 @@ export interface StageWalkAnim {
 /** Rien ne glisse : la pose d'une frame hors marche (la boucle ne demande alors que l'orientation). */
 const AUCUN_GLISSEMENT: GlideAt = () => null;
 
-/** RÉTENTIONS PAR CONTENU des passes lourdes de cet écran (#1176, P3-3) — le patron canonique du
+/** RÉTENTIONS PAR CONTENU des passes lourdes de cet écran (#1176) — le patron canonique du
  *  dépôt (`state/sceneMemo.ts`), un slot par INSTANCE de stage (la clé est un jeton de composant) et
  *  par passe. Les deps sont les READ-SETS exportés par le module qui fait le travail, jamais une liste
  *  devinée ici : `worldBakeDeps` pour la cuisson et les accents, `sceneHeightDeps` pour les
@@ -603,9 +603,7 @@ function cuire(r: Recette, priorité: number): Promise<BakedAtlas> {
 
 /** Les trois vues d'un corps, et le profil MIROIR — le réchauffage d'un quart de tour. */
 const VUES_REGARD: readonly { view: View; mirror: boolean }[] = [
-  { view: 'front', mirror: false },
-  { view: 'back', mirror: false },
-  { view: 'profile', mirror: false },
+  ...VIEWS.map((view) => ({ view, mirror: false })),
   { view: 'profile', mirror: true },
 ];
 
@@ -671,7 +669,7 @@ export function GameStage3D({ scene, mpt, frame, tintAt, keepEl, nappeVue, els, 
    *  quad a manqué à l'appel. Cf. `PERCAGE_GRACE_DESSINS`. */
   const memoirePercéeRef = useRef(new Map<string, { monde: THREE.Vector3; absences: number }>());
   const pov = frame.mode === 'pov';
-  // STYLE DE CE REGARD (#1176, P3-5, `viewPolicy`) : ce que la vue choisit de MONTRER — les nappes de
+  // STYLE DE CE REGARD (#1176, `viewPolicy`) : ce que la vue choisit de MONTRER — les nappes de
   // brume et le soleil ci-dessous en descendent. La GÉOMÉTRIE de la frame (cadrage, cran d'art,
   // projection) ne passe pas par là : elle se dérive de `frame` comme avant.
   const politique = viewPolicy(frame.mode === 'pov' ? { pov: true } : { view: frame.dims.view });
@@ -763,18 +761,18 @@ export function GameStage3D({ scene, mpt, frame, tintAt, keepEl, nappeVue, els, 
     // — le semis se remonte au CHAMP (météo), les nappes à la scène, à la météo et au REGARD (aucune
     // en vue du dessus). Un groupe partagé démonterait l'un en remontant l'autre.
     brumes.current = new THREE.Group();
-    // Groupe des MARQUES (P3-0c) : monté une fois, jamais vidé par événement de combat — ses pools ne
+    // Groupe des MARQUES : monté une fois, jamais vidé par événement de combat — ses pools ne
     // se redimensionnent qu'au PALIER de capacité, leur contenu se réécrit en place.
     marques.current = new THREE.Group();
-    // Groupe FRÈRE des marques DYNAMIQUES (P3-0d) : à part parce que ses pools ne dépendent d'AUCUNE
+    // Groupe FRÈRE des marques DYNAMIQUES : à part parce que ses pools ne dépendent d'AUCUNE
     // capacité d'état — ils sont montés une fois à capacité fixe, et réécrits à la FRAME (jamais à un
     // rendu React, comme les marques de case du groupe voisin).
     marquesDyn.current = new THREE.Group();
-    // Groupe des HALOS D'INTERACTION (P3-0g) : même politique que le précédent — capacité fixe, contenu
+    // Groupe des HALOS D'INTERACTION : même politique que le précédent — capacité fixe, contenu
     // réécrit à la frame. À part de lui parce qu'il vit hors du combat, et que ses pools PULSENT (leur
     // opacité de matériau change à chaque frame, cf. `stage/interactHaloPose`).
     halosGroupe.current = new THREE.Group();
-    // Groupe de la PLAQUE DE DÉCALQUAGE (éditeur, P3-3) : à part de tout le reste — elle ne vit ni de
+    // Groupe de la PLAQUE DE DÉCALQUAGE (éditeur) : à part de tout le reste — elle ne vit ni de
     // la scène, ni de la lumière, ni du combat, mais du calage de l'auteur et du cran de vue.
     decalques.current = new THREE.Group();
     camAffine.current = new StretchedOrthographicCamera();
@@ -882,8 +880,8 @@ export function GameStage3D({ scene, mpt, frame, tintAt, keepEl, nappeVue, els, 
   // ── CUISSON : la passe LOURDE (100 à 634 ms selon la carte), RETENUE PAR CONTENU — sur le read-set
   // réel de `worldFaces` (`worldBakeDeps`, `backends/webgl/sceneMeshes.ts`), jamais sur la référence
   // de l'objet scène. En jeu la référence est stable ; à l'ÉDITION elle se reforge au tick, et une
-  // cuisson par tick gelait l'écran. Le patron est celui du dépôt (`memoByRefDeps`, semis P2-6,
-  // nappes P3-2), keyé sur un jeton d'INSTANCE : deux stages montés côte à côte gardent leur bake
+  // cuisson par tick gelait l'écran. Le patron est celui du dépôt (`memoByRefDeps`, semis,
+  // nappes), keyé sur un jeton d'INSTANCE : deux stages montés côte à côte gardent leur bake
   // (contrat de propriété de `BakedWorld` — une teinte écrase l'autre sur un bake partagé).
   // Le double rendu de montage de `StrictMode` fabrique DEUX jetons, donc deux slots et deux cuissons
   // (dev seulement) : la géométrie du rendu jeté n'est montée dans aucune scène — mesuré, jamais
@@ -924,7 +922,7 @@ export function GameStage3D({ scene, mpt, frame, tintAt, keepEl, nappeVue, els, 
   // vient de leurs éléments. Retenus dessus, un pas de combattant (jeu) comme un déplacement d'entité
   // ou de zone (édition) ne re-rasterise plus la planche entière.
   //
-  // PIONS EN DISQUES (#1176, P3-5c) : sous ce verdict le monde ne monte AUCUN sujet `kind:'personnage'`
+  // PIONS EN DISQUES (#1176) : sous ce verdict le monde ne monte AUCUN sujet `kind:'personnage'`
   // — ni combattant, ni meneur de groupe, ni figurant ; ils sont peints en disques par la surcouche SVG
   // (`stage/TokenChromeOverlay`). Le décor (`kind:'prop'`) reste billboard. C'est le SEUL geste : toute
   // la cascade tombe avec la population, par construction — plus de jumeau de silhouette ni d'ombre de
@@ -962,7 +960,7 @@ export function GameStage3D({ scene, mpt, frame, tintAt, keepEl, nappeVue, els, 
     ombresARefaire.current = true;
     dessiner();
   }, [acteurs, actors, scene, mpt]);
-  // ── MARQUES DE CASES (P3-0c) : les éléments du builder, rangés par SLOT de montage. La CAPACITÉ des
+  // ── MARQUES DE CASES : les éléments du builder, rangés par SLOT de montage. La CAPACITÉ des
   // pools ne suit que les paliers (`slotCapacity`) — un anneau de cible qui apparaît ne redimensionne
   // rien, il s'écrit dans le pool déjà là.
   const marquesGroupées = useMemo(() => groupHighlights(highlights ?? []), [highlights]);
@@ -972,10 +970,10 @@ export function GameStage3D({ scene, mpt, frame, tintAt, keepEl, nappeVue, els, 
   );
   const clésCapacités = capacités.join(',');
   const poolsMarques = useRef(new Map<HighlightSlot, THREE.InstancedMesh>());
-  // ── MARQUES DYNAMIQUES (P3-0d) : trois pools à capacité FIXE, montés une fois (l'effet plus bas).
+  // ── MARQUES DYNAMIQUES : trois pools à capacité FIXE, montés une fois (l'effet plus bas).
   // Leur contenu ne se déduit d'aucun état React — il se réécrit à la frame, dans `dessiner`.
   const poolsDyn = useRef<DynMarkPools>({});
-  // ── HALOS D'INTERACTION (P3-0g) : même politique de pool, et un contenu qui BAT (l'opacité de leurs
+  // ── HALOS D'INTERACTION : même politique de pool, et un contenu qui BAT (l'opacité de leurs
   // matériaux est une fonction de la frame, écrite par la passe de pose).
   const poolsHalos = useRef<HaloPools>({});
   // Le SOL d'une case : la hauteur MÉTRIQUE de sa surface, celle où le monde volumique bâtit sa dalle
@@ -988,7 +986,7 @@ export function GameStage3D({ scene, mpt, frame, tintAt, keepEl, nappeVue, els, 
     [scene],
   );
 
-  // ── LUMIÈRE (P2-5) : la DÉCISION est prise en scalaires purs (`stageLights.ts`), l'écran n'en monte
+  // ── LUMIÈRE : la DÉCISION est prise en scalaires purs (`stageLights.ts`), l'écran n'en monte
   // que les conséquences. `lit` = un soleil éclaire RÉELLEMENT (il est levé, au-dessus du fondu, et le
   // REGARD en veut un) : ombres portées branchées, disque de contact rendu inutile. La même passe
   // rejoue au montage des lampes.
@@ -1055,7 +1053,7 @@ export function GameStage3D({ scene, mpt, frame, tintAt, keepEl, nappeVue, els, 
   // remontait ambiante + soleil, carte d'ombre 2048² comprise.
   const cléBoite = `${shadowBox.min.x},${shadowBox.min.y},${shadowBox.min.z},${shadowBox.max.x},${shadowBox.max.y},${shadowBox.max.z}`;
 
-  // ── INTEMPÉRIES (P2-6) : ce qui TOMBE dans le monde. La PORTE est celle de toutes les vues
+  // ── INTEMPÉRIES : ce qui TOMBE dans le monde. La PORTE est celle de toutes les vues
   // (`scenePrecip` → `sceneWeatherFx` : une météo authorée, et jamais en intérieur) ; densité, vitesse
   // de chute, vent, taille et teinte viennent tous de la donnée — aucun type de météo n'est nommé ici.
   // `null` = rien ne tombe, et pas une frame ne s'en occupe. Le REGARD ferme cette porte à son tour
@@ -1123,7 +1121,7 @@ export function GameStage3D({ scene, mpt, frame, tintAt, keepEl, nappeVue, els, 
    *
    * ORIENTATION PAR SEGMENT : la vue du marcheur se reprend sur la DIRECTION du pas en cours (dérivée
    * du glissement entre deux images), et le swap n'a lieu QUE si cette planche-là est déjà cuite.
-   * NON-DÉTERMINISME ASSUMÉ : à cache froid, le marcheur garde la vue de son montage jusqu'à ce que la
+   * NON-DÉTERMINISME : à cache froid, le marcheur garde la vue de son montage jusqu'à ce que la
    * cuisson rattrape — le rendu d'une image dépend donc de ce que le cuiseur a eu le temps de servir.
    */
   const choisirFrame = (b: Board, camera: FrameCamera, hCanevas: number): FramePick | null => {
@@ -1229,7 +1227,7 @@ export function GameStage3D({ scene, mpt, frame, tintAt, keepEl, nappeVue, els, 
   };
   /** UNE frame : cadre le canevas sur son élément, dérive la caméra de l'intention du stage, re-pose les
    *  quads face à elle (glissement de marche compris), dessine. Rien n'y est construit : cette passe est
-   *  celle que la MARCHE rejoue soixante fois par seconde, hors de tout rendu React (P2-4). */
+   *  celle que la MARCHE rejoue soixante fois par seconde, hors de tout rendu React. */
   const dessiner = () => {
     const canvas = canvasRef.current;
     const renderer = rendererRef.current;
@@ -1295,10 +1293,10 @@ export function GameStage3D({ scene, mpt, frame, tintAt, keepEl, nappeVue, els, 
     // au même endroit et sur les mêmes boards — deux écritures de matériau, aucune rasterisation. La
     // planche absente du cache est DEMANDÉE, jamais attendue : le quad garde la sienne d'ici là.
     writeBoardFrames(boardsRef.current, (b) => choisirFrame(b, camera, h), getCachedAtlas, demanderCuisson);
-    // MARQUES DYNAMIQUES (P3-0d) et HALOS D'INTERACTION (P3-0g) : ils suivent la MÊME glisse que les
+    // MARQUES DYNAMIQUES et HALOS D'INTERACTION : ils suivent la MÊME glisse que les
     // quads, à la même frame et sur le même canal — un lien d'engagement posé à un rendu React
     // attendrait le marcheur à l'arrivée. Marques de sol et halos se mesurent à l'ÉCRAN d'une vue
-    // affine (`kind`/`yawDeg`) : la première personne n'en pose aucun (#1176, P3-1a).
+    // affine (`kind`/`yawDeg`) : la première personne n'en pose aucun (#1176).
     if (f) {
       poseDynamicMarks(poolsDyn.current, dynMarks ?? NO_DYNAMIC_MARKS, {
         mpt,
@@ -1307,7 +1305,7 @@ export function GameStage3D({ scene, mpt, frame, tintAt, keepEl, nappeVue, els, 
         kind: f.kind, // la compensation du pointillé d'anneau se mesure sur l'ellipse écran de la vue
         pionsEnDisques, // pion en disque SVG ⇒ son anneau d'équipe y est peint aussi
         yawDeg: f.yawDeg, // les tirets de l'anneau d'équipe se mesurent à l'ÉCRAN : ils suivent la vue
-        chromeAt: chromeAt ?? AUCUN_CHROME, // l'anneau d'un corps estompé s'estompe avec lui (P3-0f)
+        chromeAt: chromeAt ?? AUCUN_CHROME, // l'anneau d'un corps estompé s'estompe avec lui
       });
       // La PULSATION d'un halo est une fonction de l'horloge, donc elle ne s'écrit que dans la frame.
       // `camQuat` : l'étincelle est un quad aligné écran, et son décalage se mesure en pixels d'écran.
@@ -1330,7 +1328,7 @@ export function GameStage3D({ scene, mpt, frame, tintAt, keepEl, nappeVue, els, 
       renderer.shadowMap.needsUpdate = true;
       ombresARefaire.current = false;
     }
-    // CHUTE (P2-6) : les particules avancent à la cadence RÉELLE de la frame, ici et nulle part
+    // CHUTE : les particules avancent à la cadence RÉELLE de la frame, ici et nulle part
     // ailleurs — aucun rendu React, aucune allocation, aucun `Math.random`. Le pas est BORNÉ : un
     // onglet revenu au premier plan reprend l'averse, il ne la téléporte pas d'un bout à l'autre.
     // Seule la TRANSLATION de chaque instance se réécrit ; la base (orientation × taille) est commune
@@ -1399,7 +1397,7 @@ export function GameStage3D({ scene, mpt, frame, tintAt, keepEl, nappeVue, els, 
     // les reprojette avec la caméra de CETTE frame (`Percage.avancer`). Le PAS DE TEMPS aussi lui
     // appartient : il reçoit l'horodatage de l'image, jamais un écart calculé ici.
     pilote.avancer(maintenant, camera, w, h);
-    // GAMMA de la courbe de brume (P3-1c) : `THREE.Fog` s'arrête au smoothstep, la courbe du POV est
+    // GAMMA de la courbe de brume : `THREE.Fog` s'arrête au smoothstep, la courbe du POV est
     // smoothstep^gamma (`fogAt`, `pov/camera.ts`). Le `#define` se pose ici, et pas à un montage : les
     // quads de billboard naissent APRÈS coup (rasterisation asynchrone) et un matériau neuf arriverait
     // sans gamma. La passe ne réécrit que ce qui a changé — hors POV elle ne court pas du tout.
@@ -1441,7 +1439,7 @@ export function GameStage3D({ scene, mpt, frame, tintAt, keepEl, nappeVue, els, 
     };
   }, [champ]);
 
-  // ── GROUPE DÉCALQUE (#1176, P3-3, vague B) : la plaque de l'auteur, en QUAD MONDE — elle TOURNE donc
+  // ── GROUPE DÉCALQUE (#1176, vague B) : la plaque de l'auteur, en QUAD MONDE — elle TOURNE donc
   // avec la carte, là où la surcouche SVG qu'elle remplace restait clouée au repère de contenu (le
   // changement de sémantique est déclaré dans `backends/webgl/traceQuad.ts`). Deux régimes, une seule
   // géométrie : SOUS le monde, la plaque garde le test de profondeur — le sol la couvre là où il en
@@ -1503,7 +1501,7 @@ export function GameStage3D({ scene, mpt, frame, tintAt, keepEl, nappeVue, els, 
   useBattementContinu(pulseHalos, 'halos');
   useBattementContinu(corpsAnimés, 'corps-animés');
 
-  // HIT-TEST DE SPRITE (lot P2-3, règle #1297 « ce qui se voit se clique ») : la voie volumique répond
+  // HIT-TEST DE SPRITE (règle #1297 « ce qui se voit se clique ») : la voie volumique répond
   // au pointeur par un RAYON — cibles = les quads montés, ceux d'un combattant portant son id, ceux du
   // décor aucun (un décor touché le premier rend le clic à la tuile). La masse du monde n'est PAS
   // inscrite : un jeton qu'elle occulte se lit en silhouette, donc se clique
@@ -1558,11 +1556,11 @@ export function GameStage3D({ scene, mpt, frame, tintAt, keepEl, nappeVue, els, 
     renderer.setPixelRatio(Math.min(DPR_PLAFOND, window.devicePixelRatio || 1));
     renderer.shadowMap.enabled = true;
     // La carte d'ombre ne se recuit PAS à chaque frame : rien ne la périme tant que ni le soleil ni un
-    // casteur n'ont bougé, et la boucle de marche (P2-4) rend soixante fois par seconde. C'est
+    // casteur n'ont bougé, et la boucle de marche rend soixante fois par seconde. C'est
     // `dessiner` qui la redemande, au cas par cas (`shadowMap.needsUpdate`).
     renderer.shadowMap.autoUpdate = false;
     ombresARefaire.current = true;
-    // `PCFSoftShadowMap` est DÉPRÉCIÉ depuis three 0.185 : le moteur le remplace lui-même par
+    // three 0.185 ne rend plus `PCFSoftShadowMap` : le moteur le remplace lui-même par
     // `PCFShadowMap` à la première frame ombrée en criant à la console — on pose donc directement le
     // filtre réellement appliqué (rendu identique, console propre).
     renderer.shadowMap.type = THREE.PCFShadowMap;
@@ -1573,13 +1571,13 @@ export function GameStage3D({ scene, mpt, frame, tintAt, keepEl, nappeVue, els, 
     };
   }, []);
 
-  // ── BRUME & CIEL (P3-1c) : la première personne a un HORIZON, la vue de plateau n'en a pas — hors
+  // ── BRUME & CIEL : la première personne a un HORIZON, la vue de plateau n'en a pas — hors
   // POV, `scene.fog` reste NUL (une brume de distance y délaverait le bord de carte, et les planches
   // QC de l'iso avec). DEUX couleurs, et c'est structurel : les SURFACES se fondent dans la brume de
   // surface du milieu (`povFog`), le FOND porte celle du ciel (`skyTexture`) — sans quoi les sols
   // lointains se relèvent vers le bleu froid (cf. le JSDoc d'`AMBIANCE.pov.fogOutdoorSurface`).
   // Les sprites d'entité s'embrument AVEC le monde (three embrume tout matériau `fog`), là où le POV
-  // SVG les laissait nets — réf juge de design P3-1.
+  // SVG les laissait nets (#1176).
   // MÉTÉO (#1247) : dehors, la brume authorée REMPLACE la couleur du milieu et resserre la portée ; le
   // FOND suit la même dérivation de teinte que les lampes (`weatherLightScalars`), sans quoi le ciel
   // reste clair au-dessus d'un monde éteint par l'orage. Dedans, rien : `brumePov` y est nul.
@@ -1785,7 +1783,7 @@ export function GameStage3D({ scene, mpt, frame, tintAt, keepEl, nappeVue, els, 
     dessiner();
   }, [accents, keepEl, tintAt]);
 
-  // ── POOLS DE MARQUES (P3-0c) : la CAPACITÉ, et rien d'autre. Un pool ne naît, ne grandit ou ne meurt
+  // ── POOLS DE MARQUES : la CAPACITÉ, et rien d'autre. Un pool ne naît, ne grandit ou ne meurt
   // qu'au changement de palier — c'est la seule passe qui alloue une géométrie ou un matériau de marque.
   // Le contenu, lui, s'écrit dans la passe suivante ; le patron est celui du pool de flaques (#1245).
   useEffect(() => {
@@ -1843,7 +1841,7 @@ export function GameStage3D({ scene, mpt, frame, tintAt, keepEl, nappeVue, els, 
     };
   }, []);
 
-  // ── POOLS DYNAMIQUES (P3-0d) : montés UNE fois, à capacité fixe, et jamais retouchés jusqu'à la mort
+  // ── POOLS DYNAMIQUES : montés UNE fois, à capacité fixe, et jamais retouchés jusqu'à la mort
   // de l'écran. Aucune dépendance : ni le combat, ni la scène, ni l'échelle n'en refont un — leur
   // contenu ENTIER se réécrit à chaque frame (`poseDynamicMarks`), y compris le compte dessiné.
   useEffect(() => {
@@ -1854,7 +1852,7 @@ export function GameStage3D({ scene, mpt, frame, tintAt, keepEl, nappeVue, els, 
       const mesh = buildDynamicMarkMesh(slot);
       pools[slot] = mesh;
       groupe.add(mesh);
-      // SILHOUETTE À TRAVERS LES MURS (#1297, LOT A) : l'anneau d'équipe seul reçoit son jumeau à test
+      // SILHOUETTE À TRAVERS LES MURS (#1297) : l'anneau d'équipe seul reçoit son jumeau à test
       // de profondeur retourné — un pool de plus, pas un objet par acteur.
       if (slot === 'anneau') groupe.add(buildSilhouetteTwin(mesh));
     }
@@ -1865,7 +1863,7 @@ export function GameStage3D({ scene, mpt, frame, tintAt, keepEl, nappeVue, els, 
     };
   }, []);
 
-  // ── POOLS DE HALOS (P3-0g) : même politique que les pools dynamiques ci-dessus — montés UNE fois, à
+  // ── POOLS DE HALOS : même politique que les pools dynamiques ci-dessus — montés UNE fois, à
   // capacité fixe, contenu et OPACITÉ réécrits à chaque frame (`poseInteractHalos`).
   useEffect(() => {
     const groupe = halosGroupe.current;
@@ -1978,7 +1976,7 @@ export function GameStage3D({ scene, mpt, frame, tintAt, keepEl, nappeVue, els, 
   // ── GROUPE BILLBOARDS : décor + acteurs. Rebâti quand les SUJETS changent — l'identité d'un sujet
   // porte sa SIGNATURE DE DESSIN, et elle seule (`actorIdentityKey`) : ni sa case, ni son cap, ni le
   // glissement de la marche n'y entrent. Tous trois se REPOSENT sur des quads déjà montés — la case et
-  // le cap par `reposerActeurs` (#1396), le glissement par frame dans `dessiner` (P2-4). Le REGARD n'y
+  // le cap par `reposerActeurs` (#1396), le glissement par frame dans `dessiner`. Le REGARD n'y
   // entre pas non plus : un quart de tour est une REPOSE (`reposerRegard`), et rebâtir le groupe mesurait
   // 7 matériaux et 6 géométries libérés pour 4 quads sur un banc de trois décors (vue de plateau),
   // 10 matériaux au changement de cap sur le même banc (première personne).
@@ -2154,7 +2152,7 @@ export function GameStage3D({ scene, mpt, frame, tintAt, keepEl, nappeVue, els, 
       const board: Board = { sub: q.sub, quad: q.quad, mesh, material: mat };
       boards.push(board);
       épinglerSujet(q.sub, [cleStatique(q.sub, q.view, q.mirror, rot, q.pxHeight)]);
-      // SILHOUETTE À TRAVERS LES MURS (#1297, LOT C) : le corps d'un jeton occulté par la matière
+      // SILHOUETTE À TRAVERS LES MURS (#1297) : le corps d'un jeton occulté par la matière
       // du monde garde un JUMEAU à test de profondeur retourné, teinté de sa couleur d'équipe —
       // enfant du quad, donc porté par la MÊME pose (aucune écriture de plus par frame). Les deux
       // regards du cadre en héritent : c'est le montage des quads, pas une passe de vue.
@@ -2410,7 +2408,7 @@ export function GameStage3D({ scene, mpt, frame, tintAt, keepEl, nappeVue, els, 
   // `data-sujets` : le nombre de SUJETS que la frame a à peindre en billboard (décor + acteurs), avant
   // toute rasterisation — la seule trace de ce que l'hôte a donné à voir (un banc headless ne rasterise
   // rien, et le canevas n'a pas d'arbre).
-  // `data-bake` : le nombre de CUISSONS payées depuis le montage. La rétention par contenu (P3-3) ne se
+  // `data-bake` : le nombre de CUISSONS payées depuis le montage. La rétention par contenu ne se
   // lit nulle part ailleurs : c'est cette trace qui dit qu'un geste d'édition n'a PAS recuit le monde.
   // `data-bg` : la COULEUR D'EFFACEMENT réellement posée sur le renderer. Un banc headless stubbe
   // `setClearColor` en no-op — sans cette trace, la teinte du fond ne serait mesurable nulle part.

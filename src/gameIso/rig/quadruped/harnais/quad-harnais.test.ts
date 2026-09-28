@@ -1,13 +1,15 @@
 /**
- * SOCLE des SETS D'ÉQUIPEMENT quadrupèdes (#1128 L1) — deux contrats :
+ * SOCLE des SETS D'ÉQUIPEMENT quadrupèdes (#1128) — deux contrats :
  *
  *  1. ÉTANCHÉITÉ du registre `harnais/defs/` : id kebab-case unique, gabarits DÉCLARÉS connus du
- *     registre d'espèces, clés de déco visant un os réel du gabarit (et une vue réelle). Le
+ *     registre d'espèces, clés de déco lisibles par `readQuadDecoKey` (vue de `VIEWS`) et visant un
+ *     os réel du gabarit. Le
  *     prédicat est PUR et mesuré d'abord sur des defs factices — valides ET fautives — puis appliqué
  *     au registre réel : une garde qui ne mordrait que sur le stock présent passerait à vide le jour
  *     où ce stock est vide.
  *  2. PIPELINE d'atelier : un dessin `<set>@<espèce>-<vue>.dessin.mts` compile sur le gabarit de
- *     l'espèce nommée, la sortie est IDEMPOTENTE, et sa désynchronisation fait ROUGIR `--check`
+ *     l'espèce nommée, dans UNE table keyée par vue par set, la sortie est IDEMPOTENTE, et sa
+ *     désynchronisation fait ROUGIR `--check`
  *     (la porte de commit) — vert de nouveau après régénération PAR LE GÉNÉRATEUR.
  */
 import { describe, it, expect, vi, afterEach } from 'vitest';
@@ -20,7 +22,8 @@ import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import { QUAD_HARNAIS, quadHarnaisDeco, harnaisOptions } from './index';
 import type { QuadHarnaisDef } from './types';
-import { buildQuadSkeleton, type QuadProps } from '../quadSkeleton';
+import { buildQuadSkeleton, quadDecoKey, readQuadDecoKey, type QuadProps } from '../quadSkeleton';
+import { VIEWS } from '../../facing';
 import { QUAD_SPECIES, WINGED_SPECIES } from '../../creatures';
 import { creatures } from '../../../../data';
 import { resolveById, planById, planOptsForRecord } from '../../bodyPlan';
@@ -28,14 +31,13 @@ import { bonesToSvg } from '../../renderBones';
 import { resolveQuadFromProps, mergeQuadDeco } from '../composeQuad';
 import { wingedPlan } from '../../winged/composeWing';
 import { QUAD_REST } from '../quadPose';
-import { buildTokenMap } from '../../palette';
+import { buildTokenMap, tokensOf } from '../../palette';
 import { quadDecoFragments } from '../quadParts';
 import { MISSING_TONE } from '../../viewArt';
 
 const SPECIES = { ...QUAD_SPECIES, ...WINGED_SPECIES };
 /** Os RÉELS des gabarits (union sur toutes les espèces : les os d'aile n'existent que chez les ailés). */
-const OS = new Set(Object.values(SPECIES).flatMap((p) => Object.keys(buildQuadSkeleton(p))));
-const VUES = new Set(['profile', 'front', 'back']);
+const OS = new Set<string>(Object.values(SPECIES).flatMap((p) => Object.keys(buildQuadSkeleton(p))));
 
 /** Violations du contrat d'un set — liste VIDE = def étanche. */
 function violations(d: QuadHarnaisDef): string[] {
@@ -44,9 +46,12 @@ function violations(d: QuadHarnaisDef): string[] {
   if (!d.especes.length) v.push(`${d.id} : aucun gabarit déclaré`);
   for (const e of d.especes) if (!(e in SPECIES)) v.push(`${d.id} : gabarit inconnu « ${e} »`);
   for (const cle of Object.keys(d.deco)) {
-    const [os, vue] = cle.split('#');
-    if (!OS.has(os)) v.push(`${d.id} : os inconnu « ${os} »`);
-    if (vue !== undefined && !VUES.has(vue)) v.push(`${d.id} : vue inconnue « ${vue} »`);
+    try {
+      const { bone } = readQuadDecoKey(cle);
+      if (!OS.has(bone)) v.push(`${d.id} : os inconnu « ${bone} »`);
+    } catch (e) {
+      v.push(`${d.id} : ${(e as Error).message}`);
+    }
   }
   return v;
 }
@@ -70,8 +75,31 @@ describe('registre des sets d\'équipement quadrupèdes : étanchéité', () => 
     expect(violations(set({ especes: [] }))).toContain('sellerie-factice : aucun gabarit déclaré');
     expect(violations(set({ deco: { selle: '<path/>' } as QuadHarnaisDef['deco'] })))
       .toContain('sellerie-factice : os inconnu « selle »');
-    expect(violations(set({ deco: { 'tronc#trois-quarts': '<path/>' } as QuadHarnaisDef['deco'] })))
-      .toContain('sellerie-factice : vue inconnue « trois-quarts »');
+    expect(violations(set({ deco: { 'tronc#trois-quarts': '<path/>' } as QuadHarnaisDef['deco'] })).join('\n'))
+      .toContain('sellerie-factice : clé de décor « tronc#trois-quarts »');
+  });
+
+  it('une clé calculée hors de la grammaire rend la violation', () => {
+    const cle = `${'tronc'}#${'frnt'}`;
+    expect(violations(set({ deco: { [cle]: '<path/>' } as QuadHarnaisDef['deco'] })).join('\n'))
+      .toContain('sellerie-factice : clé de décor « tronc#frnt »');
+  });
+});
+
+describe('grammaire de la clé de décor : `quadDecoKey` écrit, `readQuadDecoKey` lit', () => {
+  it('une vue hors de `VIEWS` ou plus d\'un `#` lèvent en nommant la clé', () => {
+    expect(() => readQuadDecoKey('tronc#frnt')).toThrow(`« tronc#frnt » : suffixe de vue attendu parmi ${VIEWS.join(', ')}`);
+    expect(() => readQuadDecoKey('tronc#front#back')).toThrow('« tronc#front#back »');
+  });
+
+  it('une clé nue vaut toutes les vues, une clé suffixée sa seule vue', () => {
+    expect(readQuadDecoKey('tronc').views).toEqual(VIEWS);
+    expect(readQuadDecoKey('tete#back')).toEqual({ bone: 'tete', view: 'back', views: ['back'] });
+  });
+
+  it('`quadDecoKey` suffixe la vue quand elle est donnée', () => {
+    expect(quadDecoKey('tronc', 'back')).toBe('tronc#back');
+    expect(quadDecoKey('tronc')).toBe('tronc');
   });
 
   it('le registre réel est étanche, et sa table est keyée par l\'`id` de chaque def', () => {
@@ -85,8 +113,9 @@ describe('registre des sets d\'équipement quadrupèdes : étanchéité', () => 
 // ── pipeline d'atelier : dessin de set → compilé, sous la porte `--check` ─────────────────────
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../../../../..');
 const SET = 'set-factice-l1';
+const ENTETE = 'export const SET_FACTICE_L1_COMPILE: Partial<Record<View, Partial<Record<QuadBoneId, string>>>> = {';
 // `tsx` se résout par le sous-chemin EXPORTÉ `tsx/cli` — jamais par un chemin `node_modules/` collé
-// à la racine de l'arbre. Cette résolution REMONTE les dossiers parents (#1679 L1c-M3) : hors du
+// à la racine de l'arbre. Cette résolution REMONTE les dossiers parents (#1679) : hors du
 // chemin `npm test`, qui refuse en amont un outillage non local, elle servirait le tsx d'un AUTRE
 // arbre. Un chemin résolu hors de ROOT est donc refusé ici, en le nommant.
 const TSX = (() => {
@@ -108,35 +137,42 @@ const compilateurDe = (racine: string) => (...args: string[]) =>
     { cwd: ROOT, encoding: 'utf8', env: { ...process.env, QUAD_RIG_RACINE: racine } });
 const md5 = (f: string) => createHash('md5').update(readFileSync(f)).digest('hex');
 
+/** Écrit un dessin factice de deux groupes (`tronc`, `tete`) sous `atelier/harnais/` du bac. */
+const ecrireDessin = (bac: string, nom: string): string => {
+  const f = join(bac, 'atelier', 'harnais', nom);
+  mkdirSync(dirname(f), { recursive: true });
+  writeFileSync(f, [
+    '/** Fixture de test (#1128) — écrite et supprimée par quad-harnais.test.ts. */',
+    'export interface GroupeDessin { bone: string; svg: string }',
+    'export const DESSIN: GroupeDessin[] = [',
+    '  { bone: \'tronc\', svg: \'<path d="M40 80 L70 80 L70 92 L40 92 Z" fill="@corps"/>\' },',
+    '  { bone: \'tete\', svg: \'<path d="M88 62 L98 62 L98 70 L88 70 Z" fill="@corps"/>\' },',
+    '];',
+    '',
+  ].join('\n'));
+  return f;
+};
+
 describe('compilation d\'un dessin de SET (gabarit lu du suffixe @espèce)', () => {
   it('compile, reste idempotent, ROUGIT à la désynchro et REVERDIT après régénération', () => {
     const BAC = mkdtempSync(join(tmpdir(), 'quad-harnais-'));
-    const DESSIN = join(BAC, 'atelier', 'harnais', `${SET}@boeuf-profil.dessin.mts`);
-    const COMPILE = join(BAC, 'harnais', 'setFacticeL1ProfilCompile.ts');
+    const COMPILE = join(BAC, 'harnais', 'setFacticeL1Compile.ts');
     const compilateur = compilateurDe(BAC);
-    mkdirSync(dirname(DESSIN), { recursive: true });
-    writeFileSync(DESSIN, [
-      '/** Fixture de test (#1128 L1) — écrite et supprimée par quad-harnais.test.ts. */',
-      'export interface GroupeDessin { bone: string; svg: string }',
-      'export const DESSIN: GroupeDessin[] = [',
-      '  { bone: \'tronc\', svg: \'<path d="M40 80 L70 80 L70 92 L40 92 Z" fill="@corps"/>\' },',
-      '  { bone: \'tete\', svg: \'<path d="M88 62 L98 62 L98 70 L88 70 Z" fill="@corps"/>\' },',
-      '];',
-      '',
-    ].join('\n'));
+    ecrireDessin(BAC, `${SET}@boeuf-profile.dessin.mts`);
     try {
       const un = compilateur(SET);
-      expect(un.stderr + un.stdout).toContain(`harnais/${SET}@boeuf-profil.dessin.mts`);
+      expect(un.stderr + un.stdout).toContain(`harnais/${SET}@boeuf-profile.dessin.mts`);
       expect(un.status).toBe(0);
       expect(existsSync(COMPILE), 'la sortie du set vit sous quadruped/harnais/').toBe(true);
 
       const texte = readFileSync(COMPILE, 'utf8');
-      expect(texte).toContain('export const SET_FACTICE_L1_PROFIL_COMPILE: Record<string, string> = {');
-      expect(texte).toContain(`depuis atelier/harnais/${SET}@boeuf-profil.dessin.mts`);
-      // Cuisson monde → local effectuée : les coordonnées du dessin ne survivent pas telles quelles.
+      expect(texte).toContain(ENTETE);
+      expect(texte).toContain(`depuis atelier/harnais/${SET}@boeuf-profile.dessin.mts`);
+      // Cuisson monde → local effectuée : les coordonnées du dessin sont réécrites.
       expect(texte).not.toContain('M40 80');
-      expect(texte).toMatch(/^ {2}tronc: "/m);
-      expect(texte).toMatch(/^ {2}tete: "/m);
+      expect(texte).toMatch(/^ {2}profile: \{$/m);
+      expect(texte).toMatch(/^ {4}tronc: "/m);
+      expect(texte).toMatch(/^ {4}tete: "/m);
 
       const empreinte = md5(COMPILE);
       expect(compilateur(SET).status, 'seconde compilation').toBe(0);
@@ -149,22 +185,64 @@ describe('compilation d\'un dessin de SET (gabarit lu du suffixe @espèce)', () 
       expect(rouge.status, '--check sur un compilé désynchronisé').toBe(1);
       expect(rouge.stderr).toContain('sortie(s) divergentes du dessin');
 
-      // Remise en état PAR LE GÉNÉRATEUR (jamais une restauration à la main). L'écriture de
-      // `scripts/rig/compile-dessin-quad.mts:189` est CONDITIONNELLE (`actuel !== texte`) :
-      // l'idempotence ci-dessus prend la branche « inchangé », ce passage-ci est le seul qui
-      // prend la branche qui ÉCRIT sur une destination existante.
+      // Remise en état PAR LE GÉNÉRATEUR (jamais une restauration à la main). L'écriture du
+      // compilateur est CONDITIONNELLE (`actuel !== texte`) : l'idempotence ci-dessus prend la
+      // branche « déjà à jour », ce passage-ci est le seul qui prend la branche qui ÉCRIT sur une
+      // destination existante.
       expect(compilateur(SET).status, 'régénération après désynchro').toBe(0);
       expect(md5(COMPILE), 'empreinte retrouvée').toBe(empreinte);
     } finally {
       rmSync(BAC, { recursive: true, force: true });
     }
   }, 180_000);
+
+  it('un dessin dont la vue n\'est pas un membre de `VIEWS` est refusé, sa vue nommée', () => {
+    const BAC = mkdtempSync(join(tmpdir(), 'quad-harnais-'));
+    const compilateur = compilateurDe(BAC);
+    ecrireDessin(BAC, `${SET}@boeuf-profil.dessin.mts`);
+    try {
+      const r = compilateur(SET);
+      expect(r.status).not.toBe(0);
+      expect(r.stderr).toContain('vue inconnue « profil »');
+    } finally {
+      rmSync(BAC, { recursive: true, force: true });
+    }
+  }, 180_000);
+
+  it('les vues d\'un set entrent dans le MÊME module, dans l\'ordre de `VIEWS`', () => {
+    const BAC = mkdtempSync(join(tmpdir(), 'quad-harnais-'));
+    const compilateur = compilateurDe(BAC);
+    ecrireDessin(BAC, `${SET}@boeuf-profile.dessin.mts`);
+    ecrireDessin(BAC, `${SET}@boeuf-front.dessin.mts`);
+    try {
+      expect(compilateur(SET).status).toBe(0);
+      const texte = readFileSync(join(BAC, 'harnais', 'setFacticeL1Compile.ts'), 'utf8');
+      expect(texte).toContain(ENTETE);
+      const front = texte.search(/^ {2}front: \{$/m), profile = texte.search(/^ {2}profile: \{$/m);
+      expect(front, 'la vue front est dans le module').toBeGreaterThan(0);
+      expect(front, 'front précède profile').toBeLessThan(profile);
+    } finally {
+      rmSync(BAC, { recursive: true, force: true });
+    }
+  }, 180_000);
+
+  it('deux dessins d\'un set pour une même vue font sortir le compilateur en les nommant', () => {
+    const BAC = mkdtempSync(join(tmpdir(), 'quad-harnais-'));
+    const compilateur = compilateurDe(BAC);
+    ecrireDessin(BAC, `${SET}@boeuf-profile.dessin.mts`);
+    ecrireDessin(BAC, `${SET}@cheval-profile.dessin.mts`);
+    try {
+      const sortie = compilateur(SET);
+      expect(sortie.status).not.toBe(0);
+      expect(sortie.stderr).toContain(`${SET}@boeuf-profile.dessin.mts`);
+      expect(sortie.stderr).toContain(`${SET}@cheval-profile.dessin.mts`);
+    } finally {
+      rmSync(BAC, { recursive: true, force: true });
+    }
+  }, 180_000);
 });
 
-// ── SERVICE du set à la DONNÉE committée (#1128 L3) ──────────────────────────────────────────
-/** Jetons de palette d'un SVG — MÊME lecture que `applyTokenMap` (un jeton hors table y est un
- *  no-op SILENCIEUX : l'art sort avec « @harnaisCuir » en valeur de `fill`). */
-const jetons = (svg: string): string[] => [...svg.matchAll(/@([a-zA-Z]\w*)/g)].map((m) => m[1]);
+// ── SERVICE du set à la DONNÉE committée (#1128) ──────────────────────────────────────────
 
 /** Les records de `creatures.json` qui déclarent un set, avec l'espèce que le rendu leur résout. */
 const recordsHarnaches = () =>
@@ -175,7 +253,7 @@ const recordsHarnaches = () =>
     colors: c.appearance?.colors,
   }));
 
-describe('donnée COMMITTÉE : un record harnaché est réellement servi (#1128 L3)', () => {
+describe('donnée COMMITTÉE : un record harnaché est réellement servi (#1128)', () => {
   it('la mesure porte sur une population réelle', () => {
     expect(recordsHarnaches().length, 'aucun record ne déclare de set : la garde passerait à vide').toBeGreaterThan(0);
   });
@@ -201,7 +279,7 @@ describe('donnée COMMITTÉE : un record harnaché est réellement servi (#1128 
       for (const [cle, val] of Object.entries(set.deco)) {
         if (!val) continue;
         for (const f of quadDecoFragments(val))
-          for (const j of jetons(f.svg)) {
+          for (const j of tokensOf(f.svg)) {
             mesures++;
             if (!(j in tmap)) fautes.push(`${id} (${espece}) ${harnais} ${cle} : jeton « @${j} » absent de la palette`);
           }
@@ -213,7 +291,7 @@ describe('donnée COMMITTÉE : un record harnaché est réellement servi (#1128 
 });
 
 // ── REFUS BRUYANT d'un set non servi (patron du repli visible #223) ──────────────────────────
-describe('un set que le registre ne peut pas servir est REFUSÉ, visiblement (#1128 L3)', () => {
+describe('un set que le registre ne peut pas servir est REFUSÉ, visiblement (#1128)', () => {
   afterEach(() => vi.restoreAllMocks());
   const alarme = (deco: NonNullable<QuadProps['deco']>): boolean =>
     Object.values(deco).flatMap((v) => quadDecoFragments(v!)).some((f) => f.svg.includes(MISSING_TONE));
@@ -249,11 +327,11 @@ describe('un set que le registre ne peut pas servir est REFUSÉ, visiblement (#1
 /**
  * Le CÂBLAGE bout-en-bout, mesuré sur le chemin de PROD d'un record (`resolveById` +
  * `planOptsForRecord` + `plan.resolve`) : une bête harnachée par la DONNÉE rend exactement
- * l'espèce NUE avec la déco du set poussée à la main — la sonde qui a prouvé l'extraction L2
- * (recollage byte-identique), désormais rejouable pour tout set futur. Contrôle NÉGATIF sur la
+ * l'espèce NUE avec la déco du set poussée à la main — la sonde du recollage byte-identique,
+ * rejouable pour tout set. Contrôle NÉGATIF sur la
  * même population : un record sans `harnais` rend la bête nue, et les deux rendus diffèrent.
  */
-describe('un record harnaché rend l\'espèce NUE + la déco du set (#1128 L3)', () => {
+describe('un record harnaché rend l\'espèce NUE + la déco du set (#1128)', () => {
   const svgDuRecord = (id: string): string => {
     const r = resolveById(id);
     return bonesToSvg(planById(r.plan).resolve(r.species, 'profile', QUAD_REST, planOptsForRecord(id)));
@@ -275,11 +353,11 @@ describe('un record harnaché rend l\'espèce NUE + la déco du set (#1128 L3)',
 /**
  * Le gabarit AILÉ est un quadrupède + ailes : il passe par le MÊME pipeline
  * (`resolveQuadFromProps`), son catalogue d'espèces est mesuré par les mêmes gardes, et un set peut
- * DÉCLARER une espèce ailée (`especes`, prédicat L1). Le canal doit donc lui arriver aussi : sinon
+ * DÉCLARER une espèce ailée (`especes`, prédicat d'étanchéité). Le canal doit donc lui arriver aussi : sinon
  * un record ailé harnaché passe les trois gardes de donnée au VERT et rend NU, en silence.
  * Mesure sur les deux issues possibles — servi, ou REFUSÉ visiblement — jamais ignoré.
  */
-describe('le canal atteint AUSSI le gabarit ailé (#1128 L3)', () => {
+describe('le canal atteint AUSSI le gabarit ailé (#1128)', () => {
   afterEach(() => vi.restoreAllMocks());
   const rendu = (harnais?: string): string =>
     bonesToSvg(wingedPlan.resolve('pegase', 'profile', wingedPlan.restPose(), { harnais }));
@@ -297,7 +375,7 @@ describe('le canal atteint AUSSI le gabarit ailé (#1128 L3)', () => {
 });
 
 // ── FUSION `deco` espèce ⊕ set (contrat propre de `mergeQuadDeco`) ───────────────────────────
-describe('mergeQuadDeco : le set S\'AJOUTE à la déco d\'espèce (#1128 L3)', () => {
+describe('mergeQuadDeco : le set S\'AJOUTE à la déco d\'espèce (#1128)', () => {
   const A = '<g data-x="espece"/>', B = '<g data-x="set"/>';
 
   it('clé de collision : les fragments de l\'espèce restent, ceux du set viennent APRÈS', () => {
@@ -336,7 +414,7 @@ describe('mergeQuadDeco : le set S\'AJOUTE à la déco d\'espèce (#1128 L3)', (
 });
 
 // ── `''` = NU EXPLICITE d'un override d'instance ─────────────────────────────────────────────
-describe('override d\'instance : `harnais: \'\'` DÉSHABILLE le record (#1128 L3)', () => {
+describe('override d\'instance : `harnais: \'\'` DÉSHABILLE le record (#1128)', () => {
   const svg = (id: string, over?: Parameters<typeof planOptsForRecord>[1]): string => {
     const r = resolveById(id);
     return bonesToSvg(planById(r.plan).resolve(r.species, 'profile', QUAD_REST, planOptsForRecord(id, over)));

@@ -29,6 +29,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { SCHEMA_DEFS } from './schemas/_registry.generated';
+import { replier } from '../lib/ordre.mjs';
 
 interface Rangee {
   readonly def: string;
@@ -80,12 +81,7 @@ const REPERTOIRE = /^[A-Za-zÀÂÄÇÉÈÊËÎÏÔÖÙÛÜŸÆŒàâäçéèêë
 const JARGON = ['id', 'ids', 'key', 'keys', 'flag', 'bool', 'boolean', 'enum', 'array', 'callback', 'override', 'wildcard', 'timestamp', 'slug', 'uid', 'payload'] as const;
 
 /** Normalisation FORTE : ce que deux libellés doivent différer PAR AUTRE CHOSE que la décoration. */
-const normalise = (s: string): string =>
-  s
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]/g, '');
+const normalise = (s: string): string => replier(s).replace(/[^a-z0-9]/g, '');
 
 describe('libellés de champ — répertoire, jargon, doublons (#1467 L1b)', () => {
   it('la population mesurée n’est pas vide — la garde regarde bien quelque chose', () => {

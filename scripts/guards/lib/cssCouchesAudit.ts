@@ -1,10 +1,8 @@
 /**
  * MESURE des TROIS COUCHES CSS (#1800) — définition UNIQUE, partagée par les cliquets (xxi)/(xxii)
- * (`src/ui/ui-ratchets.test.ts`) et le régénérateur `scripts/ui/regen-css-couches-stock.mts`.
+ * (`src/ui/ui-ratchets.test.ts`) et la régénération de `cssCouchesStock.mjs` (`regenerations`).
  *
- * Trois classes de défaut, trois collections SÉPARÉES (jamais un champ `famille` : `regenStock.mts`
- * n'écrit que `{ fichier, ref, occurrence }`, et une famille mesurée mais jamais écrite rendrait
- * tout le stock neuf ET périmé à chaque run) :
+ * Trois classes de défaut, trois collections :
  *   1. IDENTITÉ en module d'ÉCRAN — une déclaration qui PEINT (couleur, bordure, police, rayon,
  *      ombre, curseur, transition…) là où seul le PLACEMENT est légitime ; elle appartient à une
  *      primitive, et se solde en la DÉPLAÇANT vers le module de sa primitive, jamais en effaçant
@@ -27,6 +25,8 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { readCorpus } from './sourceCorpus.mjs';
+import type { Site } from './stock.mjs';
+import { DECROISSANT, type RegenerationDeStock } from './stockDeSites.mjs';
 import {
   declarations,
   estPlacement,
@@ -40,9 +40,6 @@ const RACINE = fileURLToPath(new URL('../../../', import.meta.url));
 
 /** Un fichier tel que `readCorpus` le rend — ou une FIXTURE de même forme. */
 export type Fichier = { rel: string; text: string };
-
-/** Un site mesuré, forme d'entrée de `sitesEnEntrees` (`stock.mjs`). */
-export type Site = { file: string; ref: string };
 
 type EntreeManifeste = { id: string; css?: string };
 
@@ -66,7 +63,7 @@ export function modulesDEcran(
 
 /** Toutes les feuilles MESURÉES : `src/ui/styles/` ∪ les modules déclarés par le manifeste (champ
  *  `css`), où qu'ils vivent — une primitive qui n'habite pas `src/ui` (le plateau, `gameIso`) POSSÈDE
- *  quand même sa feuille, et le corpus se lit sur la SOURCE UNIQUE qu'est le manifeste (#1806 A3). */
+ *  quand même sa feuille, et le corpus se lit sur la SOURCE UNIQUE qu'est le manifeste (#1806). */
 export const feuillesDeStyle = (): readonly Fichier[] => {
   const dansStyles = readCorpus(['src/ui/styles'], { exts: ['.css'] });
   const dejaLues = new Set(dansStyles.map((f) => f.rel));
@@ -431,3 +428,16 @@ export const MOTIF_ESPACEMENT =
   "Un espacement se pose sur l'échelle `var(--sp-*)` de base.css, il ne s'entérine pas ici.";
 export const MOTIF_INLINE =
   "Une géométrie calculée se pose en VARIABLE CSS consommée par une classe (patron `.swatch`), elle ne s'entérine pas ici.";
+
+/** La RÉGÉNÉRATION de `cssCouchesStock.mjs`, ses trois collections sur UNE mesure (par défaut, celle du
+ *  corpus réel). Commande :
+ *  `npx tsx scripts/guards/lib/regenStock.mts scripts/guards/lib/cssCouchesAudit.ts [--check] [--amorce]`. */
+export const regenerations = (mesure: ReturnType<typeof mesureCssCouches> = mesureCssCouches()): RegenerationDeStock[] => [{
+  chemin: fileURLToPath(new URL('./cssCouchesStock.mjs', import.meta.url)),
+  politique: DECROISSANT,
+  collections: [
+    { nom: 'CSS_IDENTITE_ECRAN_RATCHET', sites: mesure.identite, motif: MOTIF_IDENTITE },
+    { nom: 'CSS_ESPACEMENT_RATCHET', sites: mesure.espacement, motif: MOTIF_ESPACEMENT },
+    { nom: 'STYLE_INLINE_RATCHET', sites: mesure.inline, motif: MOTIF_INLINE },
+  ],
+}];

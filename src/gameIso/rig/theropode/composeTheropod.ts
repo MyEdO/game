@@ -6,7 +6,7 @@
  * (les « cornes pointues » du Cornu — pas une grande corne recourbée unique).
  * Anim propre au plan : respiration/balancement de queue au repos, foulée bipède au déplacement,
  * détente du cou + gueule grande ouverte à l'attaque, effondrement en avant à la mort. Réutilise
- * la machinerie (FK générique, palette tokenisée, rendu) — même patron que jabberslythe/squig.
+ * la machinerie (FK générique, palette en jetons, rendu) — même patron que jabberslythe/squig.
  *
  * Traits OPTIONNELS (défaut = éteint, rendu saurien inchangé) pour les hybrides bipèdes type
  * Cockatrice (art-ref/zi/page068_img1.png) : `wings` = grandes ailes MEMBRANEUSES déployées,

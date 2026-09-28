@@ -35,6 +35,7 @@ import { offHandPenalty, talentDamageBonus, isSlayer, talentRangedAPIgnore, igno
 import { isEngagedWith, meleeReachRank } from './engagement';
 import { hullHitAdjust } from './shipMelee';
 import { rule } from './policy';
+import { objetSourceDeLArme } from './weaponLoad';
 
 /** Inverse le jet du toucher (23 → 32 ; « 00 » → 100). */
 export function reverseRoll(r: number): number {
@@ -270,8 +271,7 @@ export function attackTestLabel(weapon: Weapon | undefined, kind: 'melee' | 'ran
  * Lue par `combatValue` et `hasWeaponGroupSkill` ; inerte sur les armes hors inventaire (créatures).
  */
 export function weaponUnmastered(c: Combatant, weapon: Weapon): boolean {
-  if (!weapon.uid) return false;
-  const it = (c.items ?? []).find((i) => i.uid === weapon.uid);
+  const it = objetSourceDeLArme(c, weapon);
   if (!it?.requiresMastery) return false;
   return !(it.trappingId != null && (c.masteredWeapons ?? []).includes(it.trappingId));
 }

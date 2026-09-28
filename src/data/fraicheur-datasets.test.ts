@@ -19,6 +19,7 @@ import type { Combatant } from '../engine/types';
 import { mutationTableIds, mutationTablePlayerLabel, mutationTableRows, type MutationTable } from './mutations';
 import { rollMiscast, miscastRowAt, MISCAST_TABLES, type MiscastTableRow } from '../engine/miscast';
 import { makeRNG } from '../engine/dice';
+import { tableTotale } from '../lib/tableTotale';
 import { tableStepDef, tableStepIds } from '../state/cascade';
 import { stageWeatherRows } from '../state/travelFlow';
 // La FAMILLE des Tableaux de Corruption s'enregistre au chargement de son module : on l'importe par
@@ -33,7 +34,7 @@ import {
   tickRiverWind, navBaseDifficulty, tackDifficulty, driftPctOfSpeed, navPenaltyMods, rowingAgilityDifficulty,
   capsizeRightDifficulty, capsizeRightCumulative, type RiverWindForceId,
 } from '../engine/riverNavigation';
-import { tickWindForce, type SeaWindForceId } from '../engine/seaWeather';
+import { tickWindForce, tickWindForceDay, type SeaWindForceId } from '../engine/seaWeather';
 import { rollAvailability, barterRatio } from '../engine/disponibilite';
 import { dawnMinute, duskMinute, isTravelDaylight, daysPerYear } from '../engine/clock';
 import { sunJeuHalfArcMin } from '../gameIso/backends/webgl/sunJeu';
@@ -57,12 +58,12 @@ const TRAUMAS_LIVRES = [...(datasetArray('traumas') as TraumaFiche[])];
 const TABLES_MUTATION_LIVREES = [...(datasetArray('mutationTables') as MutationTable[])];
 const MISCAST_MINEURE_LIVREE = [...(datasetArray('miscastMinor') as MiscastTableRow[])];
 /** Les datasets des vues dérivées migrées (#1692) : restaurés par le seam, comme les autres. */
-const LISTES_LIVREES = Object.fromEntries(
-  (['seaCargo', 'landCargo', 'advancementCosts', 'shipHullSizes', 'calendarPhases', 'calendarMonths', 'calendarIntercalary', 'flowStakes', 'combatStakes', 'seaBoardEvents'] as const)
-    .map((k) => [k, structuredClone(datasetArray(k))]),
+const LISTES_LIVREES = tableTotale(
+  ['seaCargo', 'landCargo', 'advancementCosts', 'shipHullSizes', 'calendarPhases', 'calendarMonths', 'calendarIntercalary', 'flowStakes', 'combatStakes', 'seaBoardEvents'] as const,
+  (k) => structuredClone(datasetArray(k)),
 ) as { [K in 'seaCargo' | 'landCargo' | 'advancementCosts' | 'shipHullSizes' | 'calendarPhases' | 'calendarMonths' | 'calendarIntercalary' | 'flowStakes' | 'combatStakes' | 'seaBoardEvents']: ReturnType<typeof datasetArray<K>> };
-const OBJETS_LIVRES = Object.fromEntries(
-  (['riverNavigation', 'seaWeather', 'disponibilite'] as const).map((k) => [k, structuredClone(datasetObject(k))]),
+const OBJETS_LIVRES = tableTotale(
+  ['riverNavigation', 'seaWeather', 'disponibilite'] as const, (k) => structuredClone(datasetObject(k)),
 ) as { [K in 'riverNavigation' | 'seaWeather' | 'disponibilite']: ReturnType<typeof datasetObject<K>> };
 /** Un dé qui rend toujours `n` : le cran de vent se force (seuil 1, puis « forcir »). */
 const deFixe = (n: number): RNG => ({ int: () => n });
@@ -330,6 +331,14 @@ describe('#1692 — les vues DÉRIVÉES d’un dataset suivent son édition', ()
     expect(tickWindForce(calme.id as SeaWindForceId, deFixe(1))).toBe(second.id);
     setObjectDataset('seaWeather', { ...fiche, vents: fiche.vents.map((v, i) => (i === 1 ? { ...v, id: 'brise-mer-qc' } : v)) });
     expect(tickWindForce(calme.id as SeaWindForceId, deFixe(1))).toBe('brise-mer-qc');
+  });
+
+  it('la mise à jour du vent de mer ÉDITÉE : `tickWindForceDay` lit le seuil et le nombre de tirages NEUFS', () => {
+    const fiche = structuredClone(datasetObject('seaWeather'));
+    const [calme, second] = fiche.vents;
+    expect(tickWindForceDay(calme.id as SeaWindForceId, deFixe(2))).toBe(calme.id);
+    setObjectDataset('seaWeather', { ...fiche, windTickThreshold: 2, windTicksPerDay: 1 });
+    expect(tickWindForceDay(calme.id as SeaWindForceId, deFixe(2))).toBe(second.id);
   });
 
   it('la fiche Disponibilité & Troc ÉDITÉE : `rollAvailability` et `barterRatio` la lisent', () => {

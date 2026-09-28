@@ -15,7 +15,7 @@ le geste.
   un runner.
 - **Rien ne te survit** : toute commande en arrière-plan (sonde, script, serveur) est BORNÉE (`timeout`, ou boucle à sortie garantie), arrêtée avant ton rendu et LISTÉE avec sa fin (règle de `codeur.md`).
 - Lis `.claude/skills/creer-une-creature/SKILL.md` (rig, 3 vues Dir8, ancrages, palettes) et calque la
-  STRUCTURE d'une part voisine canonique. Couleurs/valeurs : registres et tokens existants, jamais un
+  STRUCTURE d'une part voisine canonique. Couleurs/valeurs : registres et jetons existants, jamais un
   littéral neuf ; l'apparence pilotée par DONNÉE reste en donnée.
 - **MESURE : le harnais est CANONIQUE, tu ne l'écris jamais.** `npx tsx scripts/qc/mesure-volume.mts
   <tenueId>` rend un verdict PAR VUE et imprime les réglages qui l'ont produit — tout chiffre rapporté

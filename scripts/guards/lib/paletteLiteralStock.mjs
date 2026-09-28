@@ -1,12 +1,12 @@
-// STOCK NOMINATIF du LITTÉRAL == JETON dans les tenues (#583 point 1) — consommé par
+// STOCK NOMINATIF du LITTÉRAL == JETON dans les tenues (#583) — consommé par
 // `src/gameIso/rig/parts/tenues/palette-literal.test.ts`.
 //
 // Un littéral hex (`fill`/`stroke`/`stop-color`) qui vaut EXACTEMENT une valeur déclarée dans la
 // `palette` du MÊME def aurait dû être le jeton `@<clé>` correspondant — peu importe la matière
 // peinte (chair, cuir, tissu, plume…). Corps GÉNÉRÉ par
-// `npx tsx scripts/rig/regen-palette-literal-stock.mts` (DÉCROISSANT-SEULEMENT) depuis
-// `sitesEnEntrees(sitesPaletteLiteral())` — la MESURE vit dans `paletteLiteralAudit.ts`, partagée
-// avec la garde.
+// `npx tsx scripts/guards/lib/regenStock.mts scripts/guards/lib/paletteLiteralAudit.ts` (politique
+// `DECROISSANT`) depuis `sitesPaletteLiteral()` — la MESURE vit dans `paletteLiteralAudit.ts`,
+// partagée avec la garde.
 //
 // FORME : une ENTRÉE par occurrence, `{ fichier, ref, occurrence }` — celle de TOUT stock nominatif
 // du dépôt (`cleDeSite`/`sitesEnEntrees`, `stock.mjs`). Le `fichier` est le def qui porte la faute,
@@ -32,7 +32,7 @@
 // ⚠ Comparaison EXACTE uniquement (distance ZÉRO, insensible casse/guillemets) — jamais une
 // distance colorimétrique (faux positifs confirmés #583).
 
-/** @type {import('./stock.mjs').EntreeNominative[]} */
+/** @type {import('./stock.mjs').EntreeDeSite[]} */
 export const PALETTE_LITERAL_RATCHET = [
   { fichier: 'src/gameIso/rig/parts/tenues/defs/Apothicaire.ts', ref: 'apothicaire:tete:back', occurrence: 1 },
   { fichier: 'src/gameIso/rig/parts/tenues/defs/Apothicaire.ts', ref: 'apothicaire:tete:back', occurrence: 2 },

@@ -2,7 +2,6 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from '../store';
 import '../combatFlow'; // effet de bord : installe l'applier `triggeredTest`, le routeur + le hook onGainCondition
 import { createHero } from '../../engine/character';
-import { makeRNG } from '../../engine/dice';
 import { seedBattleRng } from '../battleRng';
 import { addCondition, stacks, hasCondition, combatTestPenalty, COND } from '../../engine/conditions';
 import { rawCombatTestBase, skillBaseValue } from '../../engine/skills';
@@ -33,9 +32,9 @@ describe('Mâchoires d’acier — effet onGainCondition cadence-aware (brique t
   });
 
   function setup() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
-    useGame.getState().startScene(testScene);
+    useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');
     useGame.getState().confirmRoundStart();
     vi.clearAllTimers();

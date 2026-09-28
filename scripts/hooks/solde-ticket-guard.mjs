@@ -41,13 +41,15 @@
 //                                 AUCUN ticket ;
 //   `evaluateAntiEsquive`         réfutation d'un commit « ref #N » de substance ;
 //   `evaluateJuge`                preuve de juge adversarial (+ JUGE-VISION sur un écran) ;
-//   `evaluateAmendInvisible`      amend dont le message échappe au contrôle ;
+//   `evaluateAmendInvisible`      amend, ou message hérité (`-C`/`-c`/`--fixup`/`--squash`), qui
+//                                 échappe au contrôle ;
 //   `evaluateRegistresPorteurs`   ticket encore porté par un registre de `registres-porteurs.json` ;
 //   `evaluateFermetureHorsCommit` `gh issue close` & co — la fermeture passe par le commit ;
 //   `evaluateTombale`             (scripts/hooks/solde-tombale.mjs) commentaire de dette citant le
 //                                 ticket fermé ;
 //   `evaluateArbrePrincipal`      `ask` sur un commit hors worktree ;
-//   `evaluateHunksEmportes`       `git commit -- <paths>` qui prendrait l'arbre au lieu de l'index ;
+//   `evaluateHunksEmportes`       `git commit [-i] [--] <paths>` qui prendrait l'arbre au lieu de
+//                                 l'index ;
 //   `evaluateStocksQuiGrandissent` stock nominatif qui naît ou grandit sans `CLIQUET:` au message.
 //
 // COÛT, et pourquoi le `timeout: 10` de `.claude/settings.json` (et son miroir `.codex/hooks.json`)
@@ -57,6 +59,48 @@
 // du compilateur `typescript` (portée de module, à la demande) 0,20 s et le parse de ses 5 porteurs
 // 0,06 s. La marge est d'un facteur 4 sur le pire cas mesuré — un hook expiré ne bloque pas, donc
 // ce chiffre se re-mesure quand la porte s'alourdit, il ne se gonfle pas par précaution.
+// Re-mesuré le 2026-09-27 pour la LECTURE de la commande (`commitsDe`, linéaire en jetons) :
+// `x` + `git`×N + `; git commit -a -m y` — détection et forme en 38 ms (N = 20 000, 80 Ko), 67 ms
+// (N = 50 000, 200 Ko), 214 ms (N = 200 000, 800 Ko) ; le vrai hook, N = 50 000 sur un `src/`
+// modifié, refuse en 1,8 s. Pire cas mesuré par le juge du lot H (6e passe), même date :
+// `sh -c 'true' ; `×50 000 + `git commit -a -m y` (750 Ko), vrai hook 7,7 s (9,0 s avant le lot) —
+// chaque évaluation relisait la commande. Lectures mémoïsées par commande (`memoParCommande`) :
+// 6,1 s → 4,3 s sur une copie jetable du dépôt à un fichier `src/` modifié (7,7 s → 5,3 s sur l'arbre
+// du lot), le reste étant git et la mesure des stocks.
+//
+// LECTURE DE LA COMMANDE (`segmentsProfonds`, `commitsDe`) — ce qu'elle reconnaît, et rien d'autre :
+//   - découpage : quotes, here-strings, heredocs (leur corps n'est pas une commande), enchaînements
+//     `;` `&&` `||` `|`, sous-shells `( … )` ;
+//   - tête d'un segment, épluchée jusqu'à stabilité : jetons nus et mots réservés (`TOKENS_TETE_NUS`),
+//     affectations `VAR=val` (sautées, jamais relues), enrobeurs de tête (`ENROBEURS_TETE`) ;
+//   - porteurs de chaîne (`ENROBEURS_ARGUMENT`), relus comme une commande : l'argument de `sh`/`bash`/
+//     `dash`/`zsh -c`/`-lc`, `npx -c`/`--call`, `Invoke-Expression`, `powershell`/`pwsh
+//     -EncodedCommand` ; tout le reste de la ligne, joint par des espaces, après `cmd /c`/`/k`,
+//     `powershell`/`pwsh -Command`/`-c` et `eval` ; la chaîne de `env -S`/`--split-string` suivie des
+//     arguments restants ; et `npm run <x>` (`npm test`/`start`/`stop`/`restart`), dont le script est
+//     lu dans le `package.json` du dépôt ancré (`ancrerScriptsNpm`) ;
+//   - commit DIRECT : `git [options globales] commit` en tête d'un segment ainsi lu ;
+//   - commit EMBARQUÉ : sous une tête qui n'est pas CITEUSE, un `git … commit` en argv, ou un argument
+//     à espace — la valeur d'un jeton `<clé>=<valeur>` comprise — relu comme une commande. CITEUSE :
+//     une tête de `CITEURS`, ou `git` sous une sous-commande hors `SOUS_COMMANDES_GIT_EXECUTANTES`
+//     (`rebase`, `bisect`, `submodule` : `rebase -x '…'`, `bisect run …`, `submodule foreach '…'`,
+//     `git -c sequence.editor='…' rebase -i` sont lus) ;
+//   - aide : un commit, direct ou embarqué, qui porte `-h`/`--help` n'en est pas un (git rend l'aide) ;
+//   - profondeur : `PROFONDEUR_MAX_ENROBEURS` niveaux de porteurs et `SEGMENTS_MAX` segments relus ;
+//     au-delà, les gardes consommatrices n'en voient rien, la garde de commit présume un commit
+//     embarqué.
+// Tout autre chemin par lequel un commit s'exécute n'est pas vu (#2071, qui le juge dans le hook git
+// `commit-msg`, où le vrai commit est visible). Témoins, figés par les bancs « #2071 NON COUVERT » du
+// fichier de tests : `out=$(git commit -a -m x)` ; `GIT_SEQUENCE_EDITOR="sh -c '…'" git rebase -i`,
+// `GIT_PAGER=… git log`, `GIT_EDITOR=… git tag -a v9` (variable de tête consommée par git) ;
+// `git -c core.editor='git commit -a' tag -a v9`, `git -c alias.ci='!git commit -a' ci` (sous-commande
+// citeuse qui exécute) ; `gh alias set --shell ci 'git commit -a' && gh ci` (tête citeuse qui
+// exécute) ; `git merge --no-ff -m x autre`, `git cherry-pick <sha>` (porcelaine) ; `git ci -a` (alias
+// du `.gitconfig`) ; `echo 'git commit -a' | sh`, `bash <<'EOF'` (corps sur stdin) ;
+// `printf 'commit -a' | xargs git` ; `G=git; $G commit -a` ; `bash ./x.sh`, `make release`,
+// `node --run c`, `yarn c`, `npm --prefix ../autre run c` (script hors du dépôt ancré) ;
+// `python3 -c "os.system('git commit -a')"` (interpréteur non shell).
+import '../node-requis.mjs'
 import { Buffer } from 'node:buffer'
 import { existsSync, readFileSync, statSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
@@ -70,7 +114,7 @@ import { GitIndisponible, estDansHead, estRepertoire, lireGit, sortieOuNull } fr
 import { hunksDe } from '../guards/lib/hunks.mjs'
 import { ancetreExistant, canoniser } from '../docs/lib/chemin-mesure.mjs'
 import { estFichierVitest } from '../guards/lib/fichierVitest.mjs'
-import { motifRattachement, numerosDeLaChaine, numerosFermes } from '../guards/lib/fermetures.mjs'
+import { motifRattachement, numerosCites, numerosDeLaChaine, numerosFermes } from '../guards/lib/fermetures.mjs'
 import {
   DOSSIERS_DE_SUBSTANCE, estCheminDeSubstance, fenetreDeRevue, memeSha, mesureDuPalier,
   nomDArchiveDeRevue, problemesDeRevue, revuesNeuves,
@@ -81,54 +125,58 @@ import {
 // INVISIBLE, ce qui (a) bloque à tort une fermeture légitime (aucun "corrige #N" vu dans la commande)
 // et (b) pire, laisse le closer de publication (qui LIT le vrai message du commit poussé) fermer un
 // ticket SANS être passé par ce contrôle de solde. Fix découvert en production 2026-07-14.
-const FILE_FLAG_RE = /(?:^|\s)(?:-F|--file)(=|\s+)("[^"]*"|'[^']*'|\S+)/
 
-/** Chemin du fichier de message porté par `-F <path>` / `--file <path>` / `--file=<path>` DANS le
- *  segment qui exécute `git commit` — jamais ailleurs dans la ligne. `null` si aucun de ces flags
- *  n'y est présent.
- *  Sémantique git : `-m` et `-F` sont MUTUELLEMENT EXCLUSIFS (git refuse la combinaison) — le
- *  PREMIER des deux rencontré tranche, et un `-m` signifie donc qu'aucun fichier de message n'existe
- *  (faux positif vécu : un message -m citant « via -F et, » a fait chercher le fichier « et, »).
- *  Le SEGMENT est la seconde borne, mesurée le 2026-09-04 : `gh api -X PATCH … -F corps=@fichier`
- *  (où `-F` est un CHAMP de formulaire, pas un fichier de message) et une ligne de todo qui cite ce
- *  drapeau étaient refusés « message de commit en fichier illisible » — même classe de défaut que le
- *  `2>&1` pris pour un pathspec : un drapeau ne vaut que dans le segment de la commande qui le lit. */
-function fileFlagPath(command) {
-  if (!command) return null
-  for (const segment of segmentsProfonds(command)) {
-    const subIdx = gitCommitSubcommandIndex(segment)
-    if (subIdx === -1) continue
-    for (let k = subIdx + 1; k < segment.length; k += 1) {
-      const t = segment[k]
-      if (OPERATEUR_SHELL_RE.test(t)) break
-      if (t === '--message' || /^--message=/.test(t)) return null
-      if (t === '--file') return segment[k + 1] ?? null
-      const longEq = /^--file=(.*)$/.exec(t)
-      if (longEq) return longEq[1]
-      const court = t.startsWith('-') && !t.startsWith('--') ? SHORT_VALUE_FLAG_RE.exec(t) : null
-      if (court) {
-        if (court[2] === 'm') return null
-        return court[3] !== '' ? court[3] : segment[k + 1] ?? null
+/** Message de CHAQUE commit de la commande (`commitsDe`), dans l'ordre : `{ texte, fichier, direct,
+ *  tete, herite }`. `texte` = ses `-m`/`--message`, ou le contenu de son `-F <path>` / `--file <path>`
+ *  / `--file=<path>` (lu via `readFile`, résolu relatif à `cwd`) ; pour un `--amend` qui n'en porte
+ *  pas et ne nomme pas son message ailleurs (`-C`/`-c`), le texte du commit DIRECT qui le précède
+ *  dans la commande (`herite`) ; `null` sinon (éditeur, message d'un autre commit, commit présumé). `fichier` = lu dans un `-F` ; `tete` = `git` pour un
+ *  commit direct, la tête qui porte un commit embarqué, `null` pour le présumé de saturation. Chaque commit se lit DANS ses propres jetons, jamais ailleurs dans la ligne, sur la
+ *  grammaire de `lireCommit` (lettres groupées, abréviations). Sémantique git : `-m` et `-F` sont
+ *  MUTUELLEMENT EXCLUSIFS (git refuse la combinaison) — le PREMIER des deux rencontré tranche, et un
+ *  `-m` signifie donc qu'aucun fichier de message n'existe (faux positif vécu : un message -m citant
+ *  « via -F et, » a fait chercher le fichier « et, »). Le SEGMENT est la seconde borne, mesurée le
+ *  2026-09-04 : `gh api -X PATCH … -F corps=@fichier` (où `-F` est un CHAMP de formulaire, pas un
+ *  fichier de message) et une ligne de todo qui cite ce drapeau étaient refusés « message de commit
+ *  en fichier illisible » — un drapeau ne vaut que dans le segment de la commande qui le lit.
+ *  `fileError` = le PREMIER chemin illisible ; la lecture s'y arrête. */
+export function messagesDesCommits(command, { readFile = readFileSync, cwd = process.cwd() } = {}) {
+  const messages = []
+  let precedent = null
+  for (const commit of command ? commitsDe(command) : []) {
+    const { options } = lireCommit(commit)
+    const premier = options.find((o) => o.nom === 'message' || o.nom === 'file')
+    let texte = null
+    if (premier?.nom === 'file' && premier.valeur) {
+      try {
+        texte = readFile(resolve(cwd, premier.valeur), 'utf8')
+      } catch {
+        return { messages, fileError: premier.valeur }
       }
+    } else if (premier?.nom === 'message') {
+      texte = options.filter((o) => o.nom === 'message' && o.valeur !== null).map((o) => o.valeur).join('\n\n')
     }
+    const herite = texte === null && !commit.embarque && precedent !== null && porteOption(options, 'amend')
+      && !porteOption(options, 'reuse-message') && !porteOption(options, 'reedit-message')
+    if (herite) texte = precedent
+    const tete = commit.embarque ? (commit.origine?.tete ?? null) : 'git'
+    messages.push({ texte, fichier: premier?.nom === 'file', direct: !commit.embarque, tete, herite })
+    if (!commit.embarque) precedent = texte
   }
-  return null
+  return { messages, fileError: null }
 }
 
-/** Texte COMPLET à analyser pour la fermeture/réfutation : la commande elle-même + le contenu du
- *  fichier `-F`/`--file` s'il y en a un (lu via `readFile`, résolu relatif à `cwd`). Le gate « est-ce
- *  un git commit » continue de s'appliquer sur la commande seule (le fichier ne la contient jamais).
- *  `fileError` = chemin illisible (fail-closed : ne JAMAIS retomber en silence sur un -F cassé). */
-export function extractMessageSources(command, { readFile = readFileSync, cwd = process.cwd() } = {}) {
-  if (!command) return { text: '', fileError: null }
-  const path = fileFlagPath(command)
-  if (!path) return { text: command, fileError: null }
-  try {
-    const fileContent = readFile(resolve(cwd, path), 'utf8')
-    return { text: `${command}\n${fileContent}`, fileError: null }
-  } catch {
-    return { text: command, fileError: path }
-  }
+/** Texte COMPLET à analyser pour la fermeture/réfutation : la commande elle-même + le contenu des
+ *  fichiers `-F`/`--file` de TOUS ses commits (`messagesDesCommits`), dans l'ordre des commits. Le
+ *  gate « est-ce un git commit » continue de s'appliquer sur la commande seule (un fichier ne la
+ *  contient jamais). `messages` = le message de chaque commit ; `fileError` = le premier chemin
+ *  illisible (fail-closed : ne JAMAIS retomber en silence sur un -F cassé). */
+export function extractMessageSources(command, options = {}) {
+  if (!command) return { text: '', fileError: null, messages: [] }
+  const { messages, fileError } = messagesDesCommits(command, options)
+  if (fileError) return { text: command, fileError, messages }
+  const fichiers = messages.filter((m) => m.fichier).map((m) => m.texte)
+  return { text: [command, ...fichiers].join('\n'), fileError: null, messages }
 }
 
 // ── Parsing STRUCTUREL de la ligne de commande (#591 défaut 3) ───────────────────────────────────
@@ -137,11 +185,15 @@ export function extractMessageSources(command, { readFile = readFileSync, cwd = 
 // commande (quotes simples/doubles + here-strings PowerShell `@'…'@`/`@"…"@`), on la découpe en
 // segments aux enchaînements top-level (`&&`, `;`, `||`, `|`), puis on identifie dans CHAQUE segment
 // l'exécutable de tête et sa sous-commande (`git [-C <path>|-c <k=v>|...] commit`).
+// Un `git commit` porté en ARGUMENTS n'est une citation que sous une tête CITEUSE (`CITEURS`, table
+// fermée) : sous toute autre tête il est présumé exécuté, donc EMBARQUÉ (`commitsDe`), et la forme
+// du commit retombe sur le sur-ensemble dès qu'il n'est pas le seul commit, direct (`jetonsDuCommit`).
 // Ouverture d'un HEREDOC (`<<EOF`, `<<-'EOF'`, `<<"EOF"`) : ce qui suit, à partir de la LIGNE
 // suivante et jusqu'à la ligne qui répète le mot, est une DONNÉE écrite par la commande, pas des
-// commandes. Sans cette borne, le corps se tokenisait : ses `;`/`&&` ouvraient des segments et une
-// ligne de PROSE citant « git commit » devenait un commit (`cat > f.md <<'EOF' … EOF` d'un
-// commentaire de ticket, demande de confirmation sur une écriture de fichier, #1729 sonde 6).
+// commandes — sauf pour un shell qui lit son stdin (`bash <<'EOF'`, NON COUVERT, #2071). Sans cette
+// borne, le corps se tokenisait : ses `;`/`&&` ouvraient des segments et une ligne de PROSE citant
+// « git commit » devenait un commit (`cat > f.md <<'EOF' … EOF` d'un commentaire de ticket, demande
+// de confirmation sur une écriture de fichier, #1729 sonde 6).
 // Le mot de fin ne peut pas être quoté ici : les quotes de l'ouverture n'appartiennent pas au mot.
 const HEREDOC_OUVERTURE_RE = /^<<(-?)\s*(['"]?)([A-Za-z_][\w.-]*)\2/
 
@@ -166,6 +218,10 @@ function finDesCorpsHeredoc(command, pos, ouverts) {
   return i
 }
 
+/** Jetons de la commande : `{ text, op, quote }`. `op` nomme un enchaînement (`&&`, `||`, `;`,
+ *  `|`) ; `quote` est la PROVENANCE du mot — `'simple'` s'il est ENTIÈREMENT sous quote simple
+ *  (`'…'`, `$'…'`, here-string `@'…'@`), `'double'` s'il l'est sous quote double (`"…"`,
+ *  `@"…"@`), absente sinon (mot nu, ou mêlant nu et quoté, ou deux sortes de quote). */
 function tokenizeCommand(command) {
   const tokens = []
   let i = 0
@@ -173,6 +229,11 @@ function tokenizeCommand(command) {
   // Mots de fin des heredocs ouverts sur la ligne EN COURS : leurs corps commencent au prochain
   // saut de ligne, dans l'ordre d'ouverture.
   let heredocs = []
+  // `(` en TÊTE de commande (début de segment, après `!`, `{`, `(`, un mot réservé ou `time`) ouvre
+  // un sous-shell, que ferme le `)` hors quote correspondant ; `$(`
+  // ouvre une SUBSTITUTION, dont le `)` reste dans le mot (le jeton reste non résolu).
+  let sousShells = 0
+  let substitutions = 0
   while (i < n) {
     while (i < n && /\s/.test(command[i])) {
       // Un SAUT DE LIGNE hors quote termine la commande comme un `;` : sans lui, la ligne qui SUIT
@@ -201,10 +262,23 @@ function tokenizeCommand(command) {
       const closer = `${quote}@`
       const end = command.indexOf(closer, i + 2)
       if (end !== -1) {
-        tokens.push({ text: command.slice(i + 2, end), op: null })
+        tokens.push({ text: command.slice(i + 2, end), op: null, quote: quote === "'" ? 'simple' : 'double' })
         i = end + closer.length
         continue
       }
+    }
+    const precedent = tokens.at(-1)
+    if (command[i] === '(' && (!precedent || precedent.op || (precedent.quote === undefined && AVANT_SOUS_SHELL.has(precedent.text)))) {
+      tokens.push({ text: '(', op: null })
+      sousShells += 1
+      i += 1
+      continue
+    }
+    if (command[i] === ')' && sousShells > 0 && substitutions === 0) {
+      tokens.push({ text: ')', op: ')' })
+      sousShells -= 1
+      i += 1
+      continue
     }
     if (command.startsWith('&&', i)) { tokens.push({ text: '&&', op: '&&' }); i += 2; continue }
     if (command.startsWith('||', i)) { tokens.push({ text: '||', op: '||' }); i += 2; continue }
@@ -216,7 +290,8 @@ function tokenizeCommand(command) {
     // message fuir en tokens séparés (les mots d'un message multi-mots devenaient alors autant de
     // pathspecs parasites, #591 suite : le filtrage src/ui retombait à néant, JUGE silencieux).
     let buf = ''
-    let quoteVue = false
+    const quotes = new Set()
+    let nu = false
     let j = i
     while (j < n) {
       const c = command[j]
@@ -231,6 +306,7 @@ function tokenizeCommand(command) {
       // de tête devenait méconnaissable. Un `\x` y rend son caractère littéral : la reconnaissance
       // porte sur des noms d'exécutable, jamais sur des octets de contrôle.
       if (c === '$' && command[j + 1] === "'") {
+        quotes.add('simple')
         j += 2
         while (j < n && command[j] !== "'") {
           if (command[j] === '\\' && j + 1 < n) { buf += command[j + 1]; j += 2; continue }
@@ -241,7 +317,7 @@ function tokenizeCommand(command) {
       }
       if (c === '"' || c === "'") {
         const quote = c
-        quoteVue = true
+        quotes.add(quote === "'" ? 'simple' : 'double')
         j++
         while (j < n && command[j] !== quote) {
           // Échappement réel `\"`/`\\` seulement — un backslash de chemin Windows (`C:\Program…`)
@@ -255,32 +331,39 @@ function tokenizeCommand(command) {
         j++ // saute la quote fermante (si absente — quote non refermée — j a déjà atteint n)
         continue
       }
+      if (c === ')' && substitutions === 0 && sousShells > 0) break
+      if (c === '(' && command[j - 1] === '$') substitutions += 1
+      else if (c === ')' && substitutions > 0) substitutions -= 1
       buf += c
+      nu = true
       j++
     }
     // Un mot fait UNIQUEMENT de continuations n'est pas un token vide : il n'existe pas. Un vrai
     // argument vide (`''`) en reste un — c'est la quote qui le prouve.
-    if (buf !== '' || quoteVue) tokens.push({ text: buf, op: null })
+    if (buf !== '' || quotes.size > 0) {
+      tokens.push({ text: buf, op: null, quote: !nu && quotes.size === 1 ? [...quotes][0] : undefined })
+    }
     i = j
   }
   return tokens
 }
 
-/** Segments exécutables AVEC l'opérateur qui les enchaîne (`&&`/`;`/`||`/`|`, `null` pour le
- *  dernier). Source unique du découpage : `splitCommandSegments` et `pipelinesProfonds` en dérivent,
- *  le tube n'étant un séparateur QUE pour qui a besoin de le distinguer. */
+/** Segments exécutables — leurs JETONS (`tokenizeCommand`, provenance quotée comprise) — AVEC
+ *  l'opérateur qui les enchaîne (`&&`/`;`/`||`/`|`, `)` de fin de sous-shell, `null` pour le dernier). Source unique du
+ *  découpage : `splitCommandSegments` et `pipelinesProfonds` en dérivent, le tube n'étant un
+ *  séparateur QUE pour qui a besoin de le distinguer. */
 function segmentsAvecOperateur(command) {
   const segments = []
   let current = []
   for (const tok of tokenizeCommand(command)) {
     if (tok.op) {
-      segments.push({ tokens: current, op: tok.op })
+      segments.push({ jetons: current, op: tok.op })
       current = []
     } else {
-      current.push(tok.text)
+      current.push(tok)
     }
   }
-  segments.push({ tokens: current, op: null })
+  segments.push({ jetons: current, op: null })
   return segments
 }
 
@@ -288,7 +371,7 @@ function segmentsAvecOperateur(command) {
  *  niveau — les mêmes marqueurs À L'INTÉRIEUR d'une quote/here-string ont déjà été consommés comme
  *  contenu de token par `tokenizeCommand`, jamais comme séparateur). */
 export function splitCommandSegments(command) {
-  return segmentsAvecOperateur(command).map((s) => s.tokens).filter((s) => s.length > 0)
+  return segmentsAvecOperateur(command).map((s) => s.jetons.map((j) => j.text)).filter((s) => s.length > 0)
 }
 
 // ── Enrobeurs : voir DERRIÈRE les sous-shells et les préfixes de tête ───────────────────────────
@@ -304,10 +387,7 @@ export function splitCommandSegments(command) {
 // re-tokenisé et récursé, si bien qu'un `npm run <x>` porteur d'un `gh issue create` est vu comme
 // la création qu'il exécute.
 //
-// HORS PORTÉE, dit : `node script.mjs` (la commande vit dans un fichier que rien ne désigne comme
-// du shell), `$VAR issue create` (l'exécutable vient de l'environnement), `pwsh -File x.ps1`
-// (fichier), `bash -c "$(cat …)"` (l'argument est une substitution, inconnue avant exécution), et
-// toute imbrication au-delà de `PROFONDEUR_MAX_ENROBEURS` niveaux.
+// HORS PORTÉE : tout ce que ne reconnaît pas le paragraphe LECTURE DE LA COMMANDE de l'en-tête.
 
 /** Nom d'exécutable d'un token : basename, sans extension `.exe`/`.cmd`, en minuscules. */
 export function basenameExecutable(token) {
@@ -349,16 +429,23 @@ const FAMILLE_SH = {
   estFlag: (t) => t.startsWith('-'),
   aValeur: (t) => /^-[a-zA-Z]*o$/.test(t) || t === '--rcfile' || t === '--init-file',
 }
+// `suite` = ce que l'hôte lit APRÈS l'argument porteur : `reste` = toute la ligne, jointe par des
+// espaces (`cmd /c`, `powershell -Command`, `eval`) ; `jetons` = les arguments restants passés tels
+// quels à la commande découpée (`env -S`), ajoutés comme JETONS, provenance comprise ; absente = rien
+// (`sh -c 'cmd' arg0` : ses positionnels).
 const FAMILLE_CMD = {
   porteurs: ['/c', '/k'],
   porteurInsensible: true,
   estFlag: (t) => t.startsWith('/'),
   aValeur: () => false,
+  suite: 'reste',
 }
 const FAMILLE_POWERSHELL = {
   parametre: 'Command', parametreEncode: 'EncodedCommand', params: PARAMS_HOTE_POWERSHELL, porteurCourt: '-c',
+  suite: 'reste',
 }
-const FAMILLE_EVAL = { premierNonFlag: true }
+const FAMILLE_EVAL = { premierNonFlag: true, suite: 'reste' }
+const FAMILLE_INVOKE_EXPRESSION = { premierNonFlag: true }
 // `npx` est à la fois un enrobeur de TÊTE (`npx gh issue create`) et, avec `-c`/`--call`, un
 // interpréteur à argument-chaîne : `epluchageTete` interroge la table A à chaque cran, la forme
 // `-c` part donc en récursion au lieu d'être AVALÉE comme la valeur d'un flag (contournement mesuré).
@@ -366,6 +453,40 @@ const FAMILLE_NPX = {
   porteurs: ['-c', '--call'],
   estFlag: (t) => t.startsWith('-'),
   aValeur: (t) => t === '-p' || t === '--package',
+}
+
+// `env -S <chaîne>` / `--split-string=<chaîne>` (coreutils) : la chaîne est découpée en commande.
+// Lettres courtes à la getopt (`env --help`) : `-S` groupé (`-iS '…'`) ou collé (`-S'…'`) ; `-u`
+// et `-C` prennent eux aussi une valeur.
+const FAMILLE_ENV = {
+  porteurs: ['--split-string'],
+  groupeCourt: { porteur: 'S', aValeur: 'uC' },
+  estFlag: (t) => t.startsWith('-'),
+  aValeur: (t) => t === '--unset' || t === '--chdir',
+  suite: 'jetons',
+}
+
+/** Lecture getopt d'un groupe de lettres courtes (`-iS…`) : `porteur` = la chaîne portée (résidu
+ *  du jeton, sinon `suivant`), `null` si le groupe ne porte pas la lettre ; `valeurSuivante` = la
+ *  lettre porteuse ou à valeur prend le jeton suivant. */
+function groupeCourt(t, suivant, { porteur, aValeur }) {
+  for (let l = 1; l < t.length; l++) {
+    if (t[l] === porteur) {
+      const residu = t.slice(l + 1)
+      return residu ? { porteur: residu, valeurSuivante: false } : { porteur: suivant ?? null, valeurSuivante: true }
+    }
+    if (aValeur.includes(t[l])) return { porteur: null, valeurSuivante: l === t.length - 1 }
+  }
+  return { porteur: null, valeurSuivante: false }
+}
+
+/** Lecture portée : `chaine`, et ce que l'hôte lit après elle (`suite` de la famille) à partir de
+ *  `args[debut]` — joint au texte pour `reste`, index de segment des jetons ajoutés pour `jetons`.
+ *  `null` sans chaîne. */
+function portee(famille, chaine, args, debut) {
+  if (chaine === null) return null
+  if (famille.suite === 'reste') return { commande: [chaine, ...args.slice(debut)].join(' '), suite: null }
+  return { commande: chaine, suite: famille.suite === 'jetons' ? debut + 1 : null }
 }
 
 /** Commande portée par un `-EncodedCommand` PowerShell : base64 d'UTF-16LE (contrat de l'hôte).
@@ -381,30 +502,56 @@ const ENROBEURS_ARGUMENT = new Map([
   ['sh', FAMILLE_SH], ['bash', FAMILLE_SH], ['dash', FAMILLE_SH], ['zsh', FAMILLE_SH],
   ['powershell', FAMILLE_POWERSHELL], ['pwsh', FAMILLE_POWERSHELL],
   ['cmd', FAMILLE_CMD],
-  ['eval', FAMILLE_EVAL], ['invoke-expression', FAMILLE_EVAL],
+  ['eval', FAMILLE_EVAL], ['invoke-expression', FAMILLE_INVOKE_EXPRESSION],
   ['npx', FAMILLE_NPX],
+  ['env', FAMILLE_ENV],
 ])
 
-/** Argument-chaîne porté par ce segment (la commande à ré-analyser), ou `null`. Le flag porteur est
- *  cherché PARMI LES FLAGS DE TÊTE, jamais à une position fixe : `bash -euo pipefail -c "…"`,
- *  `sh -ex -c "…"`, `powershell -NoProfile -Command "…"` sont des formes courantes. */
-function argumentChaine(segment) {
+/** Texte que ce segment porte (à ré-analyser), ou `null` : l'argument-chaîne, séparé du flag porteur
+ *  ou collé par `=` (`--split-string=…`), suivi du reste de la ligne pour une famille `reste`. Les
+ *  arguments qui suivent la chaîne d'une famille `jetons` (`env -S`) n'y sont pas : ce sont des
+ *  jetons, que `pipelinesDeJetons` lui ajoute (`lecturePorteur`). Lecture PARTAGÉE avec
+ *  `commande-piege-guard` (`cmd /c mklink`). */
+export function argumentChaine(segment) {
+  return lecturePorteur(segment)?.commande ?? null
+}
+
+/** Lecture d'un segment porteur : `{ commande, suite }`, `commande` = le texte d'`argumentChaine`,
+ *  `suite` = index, dans le segment, du premier jeton qui suit la chaîne d'une famille `jetons`
+ *  (sinon `null`) ; `null` si le segment ne porte rien. Le flag porteur est cherché PARMI LES FLAGS
+ *  DE TÊTE, jamais à une position fixe : `bash -euo pipefail -c "…"`, `sh -ex -c "…"`,
+ *  `powershell -NoProfile -Command "…"` sont des formes courantes. */
+function lecturePorteur(segment) {
   const famille = ENROBEURS_ARGUMENT.get(basenameExecutable(segment[0]))
   if (!famille) return null
   const args = segment.slice(1)
-  if (famille.premierNonFlag) return args.find((a) => !a.startsWith('-')) ?? null
+  if (famille.premierNonFlag) {
+    let k = 0
+    while (k < args.length && args[k].startsWith('-') && args[k] !== '--') k += 1
+    if (args[k] === '--') k += 1
+    return portee(famille, args[k] ?? null, args, k + 1)
+  }
   if (famille.parametre) {
     const court = args.findIndex((a) => a.toLowerCase() === famille.porteurCourt)
     const i = court !== -1 ? court : indexParametre(args, famille.parametre, famille.params)
-    if (i !== -1) return args[i + 1] ?? null
+    if (i !== -1) return portee(famille, args[i + 1] ?? null, args, i + 2)
     const encode = indexParametre(args, famille.parametreEncode, famille.params)
-    return encode !== -1 ? decodeCommandeEncodee(args[encode + 1]) : null
+    const decodee = encode !== -1 ? decodeCommandeEncodee(args[encode + 1]) : null
+    return decodee === null ? null : { commande: decodee, suite: null }
   }
   const memeFlag = famille.porteurInsensible
     ? (a, b) => a.toLowerCase() === b.toLowerCase()
     : (a, b) => a === b
   for (let k = 0; k < args.length && famille.estFlag(args[k]); k++) {
-    if (famille.porteurs.some((f) => memeFlag(f, args[k]))) return args[k + 1] ?? null
+    if (famille.groupeCourt && /^-[^-]/.test(args[k])) {
+      const groupe = groupeCourt(args[k], args[k + 1], famille.groupeCourt)
+      if (groupe.porteur !== null) return portee(famille, groupe.porteur, args, k + (groupe.valeurSuivante ? 2 : 1))
+      if (groupe.valeurSuivante) k += 1
+      continue
+    }
+    if (famille.porteurs.some((f) => memeFlag(f, args[k]))) return portee(famille, args[k + 1] ?? null, args, k + 2)
+    const colle = famille.porteurs.find((f) => args[k].startsWith(`${f}=`))
+    if (colle) return portee(famille, args[k].slice(colle.length + 1), args, k + 1)
     if (famille.aValeur(args[k])) k += 1
   }
   return null
@@ -413,38 +560,48 @@ function argumentChaine(segment) {
 /** Enrobeurs de TÊTE : préfixes qui ne font qu'exécuter la suite de la ligne. `flags` = les flags à
  *  VALEUR SÉPARÉE de cet enrobeur (les autres flags sont sautés seuls ; sans clef `flags`, aucun flag
  *  n'est sauté — `command -v git` n'exécute rien) ; `affectations` = `VAR=val` admis parmi eux ;
- *  `positionnels` = arguments propres avant la commande (la durée de `timeout`). */
+ *  `positionnels` = arguments propres avant la commande (la durée de `timeout`) ;
+ *  `ajouteArguments` = l'enrobeur ajoute à la commande des arguments ABSENTS de son texte ;
+ *  `citeSous` = les flags sous lesquels il n'exécute rien et reste la tête (`command -v`). */
 const ENROBEURS_TETE = new Map([
   ['env', { flags: ['-u', '--unset'], affectations: true }],
   ['nohup', {}],
-  ['command', {}],
+  ['command', { citeSous: ['-v', '-V'] }],
   ['winpty', {}],
   ['time', {}],
   ['npx', { flags: ['-p', '--package'] }],
   ['sudo', { flags: ['-u', '--user', '-g', '--group', '-p', '--prompt'] }],
   ['setsid', { flags: [] }],
   ['timeout', { flags: ['-k', '--kill-after', '-s', '--signal'], positionnels: 1 }],
-  ['xargs', { flags: ['-I', '-i', '-n', '-P', '-d', '-E', '-e', '-s', '-a', '-L'] }],
+  ['xargs', { flags: ['-I', '-i', '-n', '-P', '-d', '-E', '-e', '-s', '-a', '-L'], ajouteArguments: true }],
   ['stdbuf', { flags: ['-i', '-o', '-e', '--input', '--output', '--error'] }],
   ['nice', { flags: ['-n', '--adjustment'] }],
 ])
 
-/** Tokens de tête sans exécutable propre : call-operator PowerShell et accolades de bloc `& { … }`. */
-const TOKENS_TETE_NUS = new Set(['&', '{', '}'])
+/** Tokens de tête sans exécutable propre : call-operator PowerShell, accolades de bloc `& { … }`,
+ *  parenthèse ouvrante de sous-shell `( … )`, et les mots réservés POSIX qui précèdent une commande
+ *  (`!`, `if`, `then`, `elif`, `else`, `while`, `until`, `do` ; XCU 2.4). */
+const TOKENS_TETE_NUS = new Set(['&', '{', '}', '(', '!', 'if', 'then', 'elif', 'else', 'while', 'until', 'do'])
+/** Jetons après lesquels `(` ouvre un sous-shell : ceux de `TOKENS_TETE_NUS` et le mot réservé `time`. */
+const AVANT_SOUS_SHELL = new Set([...TOKENS_TETE_NUS, 'time'])
 const AFFECTATION_RE = /^[A-Za-z_][A-Za-z0-9_]*=/
 
-/** Segment débarrassé de ses enrobeurs de TÊTE, épluchés jusqu'à stabilité (`nohup env FOO=1 git …`).
- *  `[]` si le segment n'est fait que d'enrobeurs. */
+/** Enrobeurs de TÊTE d'un segment, épluchés jusqu'à stabilité (`nohup env FOO=1 git …`) :
+ *  `debut` = index du premier jeton exécuté (`segment.length` si le segment n'est fait que
+ *  d'enrobeurs), `enrobeurs` = les noms des enrobeurs épluchés devant lui, dans l'ordre. */
 function epluchageTete(segment) {
+  const enrobeurs = []
   let i = 0
   for (;;) {
     const t = segment[i]
-    if (t === undefined) return []
+    if (t === undefined) return { debut: segment.length, enrobeurs }
     if (TOKENS_TETE_NUS.has(t) || AFFECTATION_RE.test(t)) { i += 1; continue }
     // Un enrobeur qui porte ICI un argument-chaîne rend la main : la récursion le déploiera.
-    if (argumentChaine(segment.slice(i)) !== null) return segment.slice(i)
-    const enrobeur = ENROBEURS_TETE.get(basenameExecutable(t))
-    if (!enrobeur) return segment.slice(i)
+    if (argumentChaine(segment.slice(i)) !== null) return { debut: i, enrobeurs }
+    const nom = basenameExecutable(t)
+    const enrobeur = ENROBEURS_TETE.get(nom)
+    if (!enrobeur || enrobeur.citeSous?.includes(segment[i + 1])) return { debut: i, enrobeurs }
+    enrobeurs.push(nom)
     i += 1
     if (enrobeur.flags) {
       while (i < segment.length && (segment[i].startsWith('-') || (enrobeur.affectations && AFFECTATION_RE.test(segment[i])))) {
@@ -455,8 +612,9 @@ function epluchageTete(segment) {
   }
 }
 
-// Une commande réelle dépasse rarement deux niveaux ; au-delà de quatre, l'analyse s'arrête et la
-// commande PASSE (borne dite, préférée à une récursion non bornée dans un hook).
+// Une commande réelle dépasse rarement deux niveaux ; au-delà de quatre, l'analyse s'arrête (borne
+// dite, préférée à une récursion non bornée dans un hook) : les gardes consommatrices ne voient pas
+// la suite, et la garde de commit y présume un commit EMBARQUÉ (`commitsDe`, forme `tout`).
 const PROFONDEUR_MAX_ENROBEURS = 4
 
 // ── `npm run <x>` : le corps du script est LU dans package.json ─────────────────────────────────
@@ -519,18 +677,40 @@ export function commandeScriptNpm(segment, scripts) {
  *  re-tokenisé : les pipelines qu'il porte sont rendus À PART (ceux d'un `sh -c "a | b"` ne se
  *  mêlent pas au pipeline hôte), avant le pipeline enrobant. `segmentsProfonds` en est l'APLATI :
  *  une garde qui n'a pas besoin du tube ignore ce groupement. */
-export function pipelinesProfonds(command, profondeur = 0, { scripts = scriptsNpm() } = {}) {
+export function pipelinesProfonds(command, profondeur = 0, options) {
+  return pipelinesDeJetons(command, profondeur, options).map((p) => p.map((s) => s.jetons.map((j) => j.text)))
+}
+
+/** Les pipelines de `pipelinesProfonds`, segment par segment en `{ jetons, enrobeurs, deploye }` :
+ *  les JETONS exécutés (`tokenizeCommand`, provenance quotée comprise), les ENROBEURS de tête
+ *  épluchés devant eux (`epluchageTete`), et `deploye` quand la commande qu'il porte (argument-chaîne,
+ *  script npm) est rendue à part. Qui lit un jeton comme un chemin a besoin des deux premiers : la
+ *  quote dit si le shell le change, l'enrobeur s'il ajoute des arguments hors du texte. Au-delà de
+ *  `PROFONDEUR_MAX_ENROBEURS`, l'analyse s'arrête et `budget.sature` (`nouveauBudget`, partagé par
+ *  toute la récursion) le dit ; tous les segments en deçà sont rendus. `suite` = jetons ajoutés au
+ *  DERNIER segment de `command` : les arguments qui suivent la chaîne d'`env -S` (`lecturePorteur`),
+ *  avec leur provenance d'origine. */
+function pipelinesDeJetons(command, profondeur = 0, { scripts = scriptsNpm(), budget = nouveauBudget(), suite = [] } = {}) {
   const pipelines = []
-  if (!command || profondeur > PROFONDEUR_MAX_ENROBEURS) return pipelines
+  if (!command) return pipelines
+  if (profondeur > PROFONDEUR_MAX_ENROBEURS) { budget.sature = true; return pipelines }
   let courant = []
-  for (const { tokens, op } of segmentsAvecOperateur(command)) {
-    const segment = epluchageTete(tokens)
+  for (const { jetons: lus, op } of segmentsAvecOperateur(command)) {
+    const jetons = op === null ? [...lus, ...suite] : lus
+    const { debut, enrobeurs } = epluchageTete(jetons.map((j) => j.text))
+    const segment = jetons.slice(debut)
     if (segment.length > 0) {
-      const inner = argumentChaine(segment) ?? commandeScriptNpm(segment, scripts)
-      if (inner !== null) pipelines.push(...pipelinesProfonds(inner, profondeur + 1, { scripts }))
-      courant.push(segment)
+      const textes = segment.map((j) => j.text)
+      const porteur = lecturePorteur(textes)
+      const inner = porteur?.commande ?? commandeScriptNpm(textes, scripts)
+      if (inner !== null) {
+        const debutSuite = porteur?.suite ?? null
+        const suiteInterne = debutSuite === null ? [] : segment.slice(debutSuite)
+        for (const p of pipelinesDeJetons(inner, profondeur + 1, { scripts, budget, suite: suiteInterne })) pipelines.push(p)
+      }
+      courant.push({ jetons: segment, enrobeurs, deploye: inner !== null })
     }
-    if (op !== '|' && courant.length > 0) {
+    if (op !== '|' && op !== ')' && courant.length > 0) {
       pipelines.push(courant)
       courant = []
     }
@@ -540,8 +720,8 @@ export function pipelinesProfonds(command, profondeur = 0, { scripts = scriptsNp
 }
 
 /** Liste PLATE des segments RÉELLEMENT exécutés par la commande — l'aplati de `pipelinesProfonds`,
- *  dans le même ordre (un segment enrobé précède son enrobeur : `cmd /c mklink …` n'a pas
- *  d'argument-chaîne unique, l'invocation vit sur ses arguments recollés — `commande-piege-guard`).
+ *  dans le même ordre (un segment enrobé précède son enrobeur : `cmd /c mklink …` rend `mklink …`
+ *  puis `cmd /c …`).
  *  `profondeur` = niveau d'imbrication de départ, borné par `PROFONDEUR_MAX_ENROBEURS`. */
 export function segmentsProfonds(command, profondeur = 0, options) {
   return pipelinesProfonds(command, profondeur, options).flat()
@@ -552,12 +732,13 @@ const GLOBAL_VALUE_FLAGS = new Set(['-C', '-c', '--git-dir', '--work-tree', '--n
 /** Index de la SOUS-COMMANDE git dans un segment (`[&] git [flags globales] <sub>`), `-1` si le
  *  segment n'exécute pas `git`. Un token `&` de tête (call-operator PowerShell :
  *  `& "C:\Program Files\Git\git.exe" commit …`) est sauté — le contrôle d'exécutable porte alors
- *  sur le BASENAME (sans extension `.exe`/`.cmd`, insensible à la casse). Invariant PARTAGÉ avec
- *  `commande-piege-guard` : « quel git, quelle sous-commande » ne se réécrit pas par garde. */
-export function gitSubcommandIndex(segment) {
-  const start = segment[0] === '&' ? 1 : 0
+ *  sur le BASENAME (sans extension `.exe`/`.cmd`, insensible à la casse ; `estGit`). `depart` = index
+ *  où le segment commence, sans tranche à recopier. Invariant PARTAGÉ avec `commande-piege-guard` :
+ *  « quel git, quelle sous-commande » ne se réécrit pas par garde. */
+export function gitSubcommandIndex(segment, depart = 0) {
+  const start = segment[depart] === '&' ? depart + 1 : depart
   if (segment.length <= start) return -1
-  if (basenameExecutable(segment[start]) !== 'git') return -1
+  if (!estGit(segment[start])) return -1
   let idx = start + 1
   while (idx < segment.length) {
     const t = segment[idx]
@@ -571,6 +752,12 @@ export function gitSubcommandIndex(segment) {
   return idx < segment.length ? idx : -1
 }
 
+/** `true` si le jeton nomme l'exécutable `git` (`basenameExecutable`), lu tel quel (`C:\Git\git.exe`)
+ *  ou après le retrait des antislashs d'échappement d'un mot nu POSIX (`g\it`). */
+function estGit(jeton) {
+  return basenameExecutable(jeton) === 'git' || basenameExecutable(jeton.replace(/\\(.)/g, '$1')) === 'git'
+}
+
 /** Sous-commande git d'un segment et ses arguments : `{ sub, args }`, ou `null` si le segment
  *  n'exécute pas `git`. */
 export function gitSubcommand(segment) {
@@ -579,41 +766,181 @@ export function gitSubcommand(segment) {
   return { sub: segment[idx], args: segment.slice(idx + 1) }
 }
 
-/** Index du token `commit` (spécialisation de `gitSubcommandIndex`), `-1` si la sous-commande
- *  exécutée n'est pas `commit`. */
-function gitCommitSubcommandIndex(segment) {
-  const idx = gitSubcommandIndex(segment)
+/** Index du token `commit` (spécialisation de `gitSubcommandIndex`, même `depart`), `-1` si la
+ *  sous-commande exécutée n'est pas `commit`. */
+function gitCommitSubcommandIndex(segment, depart = 0) {
+  const idx = gitSubcommandIndex(segment, depart)
   return idx !== -1 && segment[idx] === 'commit' ? idx : -1
 }
 
-/** `true` si la commande exécute STRUCTURELLEMENT un `git commit` (un segment PROFOND quelconque :
- *  enchaînements, enrobeurs de tête, sous-shells) — jamais un grep de sous-chaîne sur la ligne
- *  entière (#591 défaut 3). */
-export function isGitCommitCommand(command) {
-  if (!command) return false
-  return segmentsProfonds(command).some((segment) => gitCommitSubcommandIndex(segment) !== -1)
+/** CITEURS : têtes qui n'exécutent JAMAIS leurs arguments — un `git commit` qu'elles portent est une
+ *  CITATION (#591). Table FERMÉE, mesurée sur les commandes Bash réelles des agents de ce dépôt :
+ *  toute autre tête est présumée exécuter ses arguments (`collecterCommits`). `command` n'y arrive
+ *  que sous `-v`/`-V` (`ENROBEURS_TETE`). */
+const CITEURS = new Set([
+  'echo', 'printf', 'grep', 'egrep', 'fgrep', 'rg', 'man', 'info', 'tldr', 'which', 'type', 'whereis',
+  'command', 'ls', 'cat', 'head', 'tail', 'wc', 'gh', 'export', 'declare', 'local', 'readonly', 'typeset',
+])
+/** Sous-commandes git présumées exécuter une commande écrite dans leurs arguments (`git rebase
+ *  --exec`, `git bisect run`, `git submodule foreach`). Toute autre sous-commande est lue comme
+ *  CITEUSE (`git log --grep`) — table FERMÉE d'exécutants, donc à l'envers de la règle des autres
+ *  têtes : les alias `!`, `filter-branch` et les `-c core.pager=…` y échappent (NON COUVERT, #2071). */
+const SOUS_COMMANDES_GIT_EXECUTANTES = new Set(['rebase', 'bisect', 'submodule'])
+
+/** `true` si la tête du segment CITE ses arguments (`CITEURS`, ou `git` hors
+ *  `SOUS_COMMANDES_GIT_EXECUTANTES`). */
+function estCiteur(segment) {
+  const tete = basenameExecutable(segment[0])
+  if (tete !== 'git') return CITEURS.has(tete)
+  const idx = gitSubcommandIndex(segment)
+  return idx !== -1 && !SOUS_COMMANDES_GIT_EXECUTANTES.has(segment[idx])
 }
 
-// Longs à valeur SÉPARÉE (`--message truc`, `-c truc`) : le token suivant est la valeur, jamais un
-// pathspec. `-c` reste un flag SIMPLE (config `clé=valeur`) — hors du regroupement court m/F ci-dessous.
-const COMMIT_VALUE_FLAGS = new Set([
-  '-c', '--author', '--date', '--template', '--fixup', '--squash', '--trailer',
-  '--reuse-message', '--reedit-message', '--message', '--file',
+/** Bornes PARTAGÉES par toute la récursion d'une analyse : `reste` = segments que la RÉ-ANALYSE des
+ *  arguments (`collecterCommits`) peut encore lire, au plus `SEGMENTS_MAX` ; `sature` dit qu'une
+ *  borne (ces segments, ou la profondeur de `pipelinesDeJetons`) a coupé l'analyse. */
+const SEGMENTS_MAX = 2000
+const nouveauBudget = () => ({ reste: SEGMENTS_MAX, sature: false })
+
+/** Lecture MÉMOÏSÉE par commande : le driver interroge la même commande pour chaque évaluation. Clé =
+ *  racine d'ancrage npm (`ancrerScriptsNpm`) + chaîne ; chaque lecture garde ses `MEMO_MAX` dernières
+ *  clés (la plus ancienne sort). La valeur rendue est PARTAGÉE : l'appelant ne la modifie pas. */
+function memoParCommande(calcul) {
+  const memo = new Map()
+  return (command) => {
+    const clef = `${racineScriptsNpm ?? ''}\0${command}`
+    if (memo.has(clef)) return memo.get(clef)
+    const valeur = calcul(command)
+    if (memo.size >= MEMO_MAX) memo.delete(memo.keys().next().value)
+    memo.set(clef, valeur)
+    return valeur
+  }
+}
+const MEMO_MAX = 16
+
+/** `segmentsProfonds` au premier niveau, mémoïsé (`memoParCommande`). */
+const segmentsLus = memoParCommande((command) => segmentsProfonds(command))
+
+/** Commits qu'exécute la commande, dans l'ordre : `{ jetons, enrobeurs, sub, embarque, origine }`,
+ *  `sub` = index du jeton `commit`, `origine` = pour un embarqué, la tête qui le porte et l'extrait
+ *  qui cite `git commit` (`motifDuCommitPresume`). DIRECT : `git … commit` en tête d'un segment
+ *  profond (enrobeurs, mots réservés, sous-shells épluchés ; argument-chaîne d'un interpréteur
+ *  déployé). EMBARQUÉ : porté en arguments par une tête qui n'est pas un CITEUR — en argv
+ *  (`find … -exec env git commit`), ou dans un argument qui contient une espace, ré-analysé comme
+ *  une chaîne de commande (`watch '…'`, `find … -exec sh -c '…'`), la VALEUR d'un jeton
+ *  `<clé>=<valeur>` comprise (`su --command='…'`, `-c core.editor='…'`). Une analyse coupée par une
+ *  borne (`nouveauBudget`) rend un commit EMBARQUÉ présumé (`sub` = -1, aucun jeton). Mémoïsé
+ *  (`memoParCommande`). */
+const commitsDe = memoParCommande((command) => {
+  const budget = nouveauBudget()
+  const commits = []
+  collecterCommits(command, 0, null, budget, commits)
+  if (budget.sature) commits.push({ jetons: [], enrobeurs: [], sub: -1, embarque: true, origine: { sature: true } })
+  return commits
+})
+
+/** Ajoute `commit` à `commits`, sauf s'il demande l'aide (`-h`/`--help`) : git la rend sans committer. */
+function ajouterCommit(commits, commit) {
+  if (!porteOption(lireCommit(commit).options, 'help')) commits.push(commit)
+}
+
+/** Ajoute à `commits` ceux que `command` exécute (`commitsDe`). `origine` = `null` au premier niveau ;
+ *  dans une ré-analyse, la tête et l'extrait qui la portent, et ses commits sont EMBARQUÉS. La
+ *  profondeur et le budget sont ceux de l'analyse entière ; seuls les segments ré-analysés consomment
+ *  `budget.reste`. */
+function collecterCommits(command, profondeur, origine, budget, commits) {
+  for (const pipeline of pipelinesDeJetons(command, profondeur, { budget })) {
+    for (const { jetons, enrobeurs, deploye } of pipeline) {
+      if (origine) {
+        if (budget.reste <= 0) { budget.sature = true; return }
+        budget.reste -= 1
+      }
+      const textes = jetons.map((j) => j.text)
+      const sub = gitCommitSubcommandIndex(textes)
+      if (sub !== -1) { ajouterCommit(commits, { jetons, enrobeurs, sub, embarque: origine !== null, origine }); continue }
+      if (deploye || estCiteur(textes)) continue
+      for (let k = 1; k < textes.length; k++) {
+        const t = textes[k]
+        const idx = estGit(t) ? gitCommitSubcommandIndex(textes, k) : -1
+        if (idx !== -1) {
+          const cite = origine ?? { tete: textes[0], extrait: textes.slice(k, idx + 1).join(' ') }
+          ajouterCommit(commits, { jetons: jetons.slice(k), enrobeurs, sub: idx - k, embarque: true, origine: cite })
+          continue
+        }
+        const valeur = /^[^\s=]+=/.test(t) ? t.slice(t.indexOf('=') + 1) : t
+        if (/\s/.test(valeur)) collecterCommits(valeur, profondeur + 1, origine ?? { tete: textes[0], extrait: t }, budget, commits)
+      }
+    }
+  }
+}
+
+/** Motif d'un commit PRÉSUMÉ, ou `null` : dès que `commitsDe` rend un commit embarqué (ou le présumé
+ *  de saturation), avec ou sans commit direct, tout refus du driver le porte en tête — la tête et
+ *  l'extrait du premier embarqué, et la sortie. */
+export function motifDuCommitPresume(command) {
+  const embarque = (command ? commitsDe(command) : []).find((c) => c.embarque)
+  if (!embarque) return null
+  const { origine } = embarque
+  const extrait = (texte) => (texte.length > 80 ? `${texte.slice(0, 80)}…` : texte)
+  const cause = origine?.sature
+    ? `l'analyse de la commande dépasse ses bornes (\`SEGMENTS_MAX\` segments ré-analysés ou \`PROFONDEUR_MAX_ENROBEURS\` niveaux) : un commit y est présumé`
+    : `\`${origine?.tete ?? '?'}\` porte \`git commit\` en argument (\`${extrait(origine?.extrait ?? '')}\`) ; une tête hors CITEURS est présumée l'exécuter`
+  return `⚠ Commit PRÉSUMÉ : ${cause}. Si c'est une citation, écrire le texte dans un fichier ou passer `
+    + 'par une tête citeuse (`printf`, `grep`) ; les refus qui suivent comptent ce commit présumé.'
+}
+
+/** `true` si la commande exécute STRUCTURELLEMENT un `git commit`, direct ou embarqué
+ *  (`commitsDe`) — jamais un grep de sous-chaîne sur la ligne entière (#591 défaut 3). */
+export function isGitCommitCommand(command) {
+  if (!command) return false
+  return commitsDe(command).length > 0
+}
+
+// Options de `git commit` — source : `git commit --help-all` de git 2.43.0 (options cachées comprises),
+// plus `-h`/`--help`, internes à parse-options (l'aide, sortie 129, aucun commit), par nom LONG
+// canonique. `requise` = valeur obligatoire (collée par `=` ou token suivant ; pour la
+// lettre courte, collée ou token suivant) ; `optionnelle` = valeur COLLÉE seulement (`--gpg-sign=<id>`,
+// `-S<id>`, `-u<mode>`) ; `booleen` = aucune valeur. La valeur d'une option n'est jamais un pathspec.
+const OPTIONS_DU_COMMIT = {
+  requise: [
+    'file', 'author', 'date', 'message', 'reedit-message', 'reuse-message', 'fixup', 'squash',
+    'trailer', 'template', 'cleanup', 'pathspec-from-file',
+  ],
+  optionnelle: ['gpg-sign', 'untracked-files'],
+  booleen: [
+    'quiet', 'verbose', 'reset-author', 'signoff', 'edit', 'status', 'all', 'include', 'interactive',
+    'patch', 'only', 'no-verify', 'verify', 'dry-run', 'short', 'branch', 'ahead-behind', 'porcelain',
+    'long', 'null', 'amend', 'no-post-rewrite', 'post-rewrite', 'pathspec-file-nul', 'allow-empty',
+    'allow-empty-message', 'help',
+  ],
+}
+/** Options sans graphie `--no-<nom>` (`git commit --help-all` : `--trailer`, et les paires
+ *  `verify`/`post-rewrite` écrites des deux côtés ; `help`, interne à parse-options). */
+const SANS_NEGATION = new Set(['trailer', 'verify', 'no-verify', 'post-rewrite', 'no-post-rewrite', 'help'])
+/** Lettres courtes de `git commit` → nom long canonique. */
+const LETTRES_DU_COMMIT = new Map([
+  ['F', 'file'], ['m', 'message'], ['c', 'reedit-message'], ['C', 'reuse-message'], ['t', 'template'],
+  ['S', 'gpg-sign'], ['u', 'untracked-files'], ['q', 'quiet'], ['v', 'verbose'], ['s', 'signoff'],
+  ['e', 'edit'], ['a', 'all'], ['i', 'include'], ['p', 'patch'], ['o', 'only'], ['n', 'no-verify'],
+  ['z', 'null'], ['h', 'help'],
 ])
-// Longs à valeur COLLÉE par `=` (`--message=texte`, `--file=chemin`) : la valeur est DÉJÀ dans le
-// token, rien à consommer ensuite — et elle n'est jamais elle-même un pathspec.
-const LONG_VALUE_FLAG_EQ_RE = /^--(message|file|author|date|template|fixup|squash|trailer|reuse-message|reedit-message)=/
-// Shorts POSIX groupés (`-am`, `-cam`, `-sm`…) : `git` accepte l'empilement d'options courtes
-// booléennes suivies d'UNE option à valeur — `m` (message) et `F` (file) sont les deux lettres
-// courtes à valeur de `git commit`. Capture (flags avant, lettre m/F, RÉSIDU) : résidu vide → la
-// valeur est le token SUIVANT (`-am "msg"`) ; résidu non vide → la valeur est GLUÉE au token lui-même
-// (`-m"a b c"` tokenisé en un seul token `-ma b c` par `tokenizeCommand` — rien à consommer ensuite).
-// Sans cette reconnaissance, le MESSAGE (ou ses mots, avant la fusion de tokenisation) se prenait
-// pour un pathspec — le filtrage src/ui retombait à néant, JUGE/anti-esquive restaient muets (#591).
-// Le groupe des flags booléens EXCLUT `m` et `F` : c'est le PREMIER des deux qui décide, comme dans
-// git. Sur `-mF`, un groupe gourmand lisait `-m` comme booléen et `F` comme drapeau FICHIER, donc
-// consommait le token suivant en pathspec — là où git lit un message valant « F » et ne consomme rien.
-const SHORT_VALUE_FLAG_RE = /^-([a-ln-zA-EG-Z]*)([mF])(.*)$/
+/** Graphies longues ENTIÈRES → `{ nom, valeur }` ; une négation `--no-<nom>` ne prend pas de valeur. */
+const GRAPHIES_LONGUES = new Map(
+  Object.entries(OPTIONS_DU_COMMIT).flatMap(([valeur, noms]) => noms.flatMap((nom) => [
+    [nom, { nom, valeur }],
+    ...(SANS_NEGATION.has(nom) ? [] : [[`no-${nom}`, { nom: `no-${nom}`, valeur: 'booleen' }]]),
+  ])),
+)
+
+/** Option longue de `git commit` désignée par `graphie` (sans `--` ni valeur) : la graphie EXACTE,
+ *  sinon celle dont elle est le préfixe UNIQUE — parse-options accepte l'abréviation non ambiguë
+ *  (`--incl`, `--pathspec-fr=l`). `null` si inconnue ou ambiguë (`--al`) : git refuse la commande. */
+function optionLongueDuCommit(graphie) {
+  const exacte = GRAPHIES_LONGUES.get(graphie)
+  if (exacte) return exacte
+  const candidates = [...GRAPHIES_LONGUES.keys()].filter((g) => g.startsWith(graphie))
+  return candidates.length === 1 ? GRAPHIES_LONGUES.get(candidates[0]) : null
+}
 
 /** Token de REDIRECTION ou d'OPÉRATEUR de shell (`2>&1`, `>`, `>>`, `2>/dev/null`, `<`, `|`, `&&`,
  *  `;`) : à partir de lui, le segment ne parle plus à `git`, et rien de ce qui suit n'est un
@@ -622,71 +949,124 @@ const SHORT_VALUE_FLAG_RE = /^-([a-ln-zA-EG-Z]*)([mF])(.*)$/
  *  cité par le solde (mesuré 2026-09-04 sur un vrai commit de fermeture depuis un worktree). */
 const OPERATEUR_SHELL_RE = /^(?:\d*(?:>>?|>&)|&(?![&>])|&>>?|<<?|\|\|?|&&|;)/
 
-/** Glob non résolu (`*`, `?`, `[`) : la garde ne réimplémente pas le matching de pathspec de git —
- *  un pathspec-glob présent invalide le SCOPING ENTIER de la commande (retombe sur l'index complet,
- *  jamais un silence par filtrage résolu à tort en « aucun fichier »). */
-const PATHSPEC_GLOB_RE = /[*?[]/
+/** Jeton de pathspec NON RÉSOLU, par PROVENANCE quotée (`tokenizeCommand`) : sa valeur n'est connue
+ *  qu'après le shell ou git, et la garde ne réimplémente ni l'un ni l'autre.
+ *  - GIT, quelle que soit la quote : joker de pathspec (`*`, `?`, `[`) et magie en tête (`:(glob)`,
+ *    `:/`, `:!`) — git les reçoit tels quels et les interprète ;
+ *  - SHELL, jeton nu : substitution de commande `$(…)`, `` `…` ``, expansion de variable `$NOM`,
+ *    `${NOM}`, d'accolades `{a,b}`, tilde en tête `~`, antislash d'échappement (`a\ b.ts`).
+ *    `tokenizeCommand` coupe une substitution aux espaces (`$(cat`, `/tmp/liste.txt)`) : le critère
+ *    mord sur N'IMPORTE QUEL fragment — `$`, backtick, antislash, parenthèse ou accolade, ouvrante
+ *    ou orpheline ;
+ *  - SHELL, sous quote double : `$` et le backtick seuls ;
+ *  - SHELL, sous quote simple : rien, le jeton est littéral. */
+const JOKER_GIT = String.raw`[*?[]|^:`
+const PATHSPEC_NON_RESOLU_RE = {
+  nu: new RegExp(`${JOKER_GIT}|[$\`(){}\\\\]|^~`),
+  double: new RegExp(`${JOKER_GIT}|[$\`]`),
+  simple: new RegExp(JOKER_GIT),
+}
+
+/** `true` si le jeton (`tokenizeCommand`), lu comme pathspec, n'est pas résolu (`PATHSPEC_NON_RESOLU_RE`). */
+function jetonNonResolu(jeton) {
+  return PATHSPEC_NON_RESOLU_RE[jeton.quote ?? 'nu'].test(jeton.text)
+}
+
+/** Options de `git commit` qui lui fournissent des chemins HORS du texte de la commande. */
+const OPTIONS_PATHSPEC_HORS_TEXTE = new Set(['pathspec-from-file', 'pathspec-file-nul'])
 
 /**
- * Jetons d'un `git commit`, séparés en OPTIONS (valeurs de flags exclues) et CHEMINS positionnels —
- * `null` si la commande n'exécute pas de `git commit`. UN SEUL parcours pour les deux lectures : les
- * pathspecs et la présence de `-a` se décident sur la MÊME grammaire. Séparées, un `-m"ajoute…"`
- * (valeur GLUÉE au flag court) passait pour un `-a` — la valeur d'un `-m` n'est pas une liste
- * d'options courtes, et la forme du commit en basculait de `index` à `tout` (mesuré 2026-09-04).
+ * Jetons d'UN commit de `commitsDe`, séparés en OPTIONS et CHEMINS positionnels. UN SEUL parcours,
+ * sur la grammaire de git : les options longues
+ * (exactes ou abrégées, `optionLongueDuCommit`) et les lettres courtes GROUPÉES (`-qi`, `-am`) où la
+ * première lettre à valeur prend le RÉSIDU du jeton, ou le jeton suivant (`-m"ajoute…"`, `-cam` =
+ * `-c am`). Chaque option est `{ nom, valeur }`, `nom` canonique (`no-<nom>` pour sa négation).
+ * Après le premier `--`, tout jeton est un chemin, comme pour git (`-- src/a.ts -am` nomme `-am`).
+ * `nonResolus` est vrai quand git reçoit des chemins que la garde ne connaît pas : un chemin
+ * positionnel non résolu (`jetonNonResolu`), une option qui les lit hors du texte
+ * (`OPTIONS_PATHSPEC_HORS_TEXTE`), une option inconnue ou ambiguë, un enrobeur de tête qui ajoute
+ * des arguments (`xargs`), ou un commit EMBARQUÉ.
+ * @returns {{ options: { nom: string, valeur: string | null }[], chemins: string[], nonResolus: boolean }}
+ */
+function lireCommit({ jetons, enrobeurs, sub, embarque }) {
+  const segment = jetons.map((j) => j.text)
+  const options = []
+  const chemins = []
+  let nonResolus = embarque || enrobeurs.some((e) => ENROBEURS_TETE.get(e).ajouteArguments === true)
+  const lire = (option, valeur = null) => {
+    if (!option) { nonResolus = true; return }
+    options.push({ nom: option.nom, valeur })
+    if (OPTIONS_PATHSPEC_HORS_TEXTE.has(option.nom)) nonResolus = true
+  }
+  let separe = false
+  for (let k = sub + 1; k < segment.length; k++) {
+    const t = segment[k]
+    if (OPERATEUR_SHELL_RE.test(t)) break
+    if (separe) {
+      chemins.push(t)
+      if (jetonNonResolu(jetons[k])) nonResolus = true
+      continue
+    }
+    if (t === '--') { separe = true; continue }
+    if (t.startsWith('--')) {
+      const egal = t.indexOf('=')
+      const option = optionLongueDuCommit(egal === -1 ? t.slice(2) : t.slice(2, egal))
+      if (egal !== -1) lire(option, t.slice(egal + 1))
+      else if (option?.valeur === 'requise') { lire(option, segment[k + 1] ?? null); k += 1 }
+      else lire(option)
+      continue
+    }
+    if (t.startsWith('-') && t.length > 1) {
+      for (let l = 1; l < t.length; l++) {
+        const option = GRAPHIES_LONGUES.get(LETTRES_DU_COMMIT.get(t[l]))
+        if (!option) { lire(null); break }
+        if (option.valeur === 'booleen') { lire(option); continue }
+        const residu = t.slice(l + 1)
+        if (residu !== '' || option.valeur === 'optionnelle') lire(option, residu || null)
+        else { lire(option, segment[k + 1] ?? null); k += 1 }
+        break
+      }
+      continue
+    }
+    chemins.push(t)
+    if (jetonNonResolu(jetons[k])) nonResolus = true
+  }
+  return { options, chemins, nonResolus }
+}
+
+/**
+ * Le commit dont la commande LIT options et chemins (`lireCommit`) — le premier DIRECT de `commitsDe`,
+ * à défaut le premier embarqué — ou `null` si elle n'exécute pas de `git commit`. `nonResolus` est vrai aussi quand la commande porte PLUSIEURS commits : la forme d'un
+ * seul ne couvre pas ce que les autres emportent. Les messages, eux, se lisent sur TOUS les commits
+ * (`extractMessageSources`).
+ * @returns {{ options: { nom: string, valeur: string | null }[], chemins: string[], nonResolus: boolean } | null}
  */
 function jetonsDuCommit(command) {
-  for (const segment of segmentsProfonds(command)) {
-    const subIdx = gitCommitSubcommandIndex(segment)
-    if (subIdx === -1) continue
-    const options = []
-    const chemins = []
-    for (let k = subIdx + 1; k < segment.length; k++) {
-      const t = segment[k]
-      if (OPERATEUR_SHELL_RE.test(t)) break
-      if (t === '--') continue
-      if (t.startsWith('--')) {
-        options.push(t.split('=')[0])
-        if (LONG_VALUE_FLAG_EQ_RE.test(t)) continue // valeur collée par `=` : rien à consommer
-        if (COMMIT_VALUE_FLAGS.has(t)) k += 1 // valeur séparée (token suivant)
-        continue
-      }
-      if (t.startsWith('-')) {
-        if (COMMIT_VALUE_FLAGS.has(t)) { options.push(t); k += 1; continue } // `-c` : valeur séparée
-        const m = SHORT_VALUE_FLAG_RE.exec(t)
-        if (m) {
-          // Les lettres AVANT `m`/`F` sont les options ; le RÉSIDU est la valeur, jamais une option.
-          options.push(`-${m[1]}${m[2]}`)
-          if (m[3] === '') k += 1 // résidu vide : valeur SÉPARÉE (token suivant)
-          continue
-        }
-        options.push(t)
-        continue
-      }
-      chemins.push(t)
-    }
-    return { options, chemins }
-  }
-  return null
+  const commits = commitsDe(command)
+  const lu = commits.find((c) => !c.embarque) ?? commits[0]
+  if (!lu) return null
+  const lecture = lireCommit(lu)
+  return { ...lecture, nonResolus: lecture.nonResolus || commits.length > 1 }
 }
 
 /**
  * Pathspecs portés par un `git commit`, extraits de sa STRUCTURE : tout token qui n'est ni un flag
  * connu ni la valeur d'un flag qui en attend une est un chemin — qu'il précède ou suive le
- * séparateur `--`. `nonResolus` distingue les DEUX silences que la seule liste vide confondait :
- * « la commande ne nomme aucun chemin » et « elle en nomme, mais avec un joker que cette garde ne
- * résout pas » (`*`, `?`, `[`, magie `:(glob)`). L'appelant DOIT les traiter différemment : un
- * pathspec non résolu commite quand même l'ARBRE DE TRAVAIL, et le prendre pour « aucun chemin »
- * faisait lire l'index — vide — pendant que git emportait la croissance (mesuré 2026-09-04).
+ * séparateur `--`. `nonResolus` distingue les DEUX silences que la seule liste vide confondrait :
+ * « la commande ne nomme aucun chemin » et « git reçoit des chemins que la garde ne connaît pas »
+ * (causes : `nonResolus` de `jetonsDuCommit`). Alors la liste entière est invalide (`[]`) : les
+ * fragments d'une substitution ou le fichier-liste ne sont pas les chemins commités, et un filtrage
+ * sur eux rend un diff vide. L'appelant retombe sur l'ARBRE DE TRAVAIL (`formeDuCommit` → `tout`), le
+ * seul diff qui les voit.
  * @returns {{ chemins: string[], nonResolus: boolean }}
  */
 export function pathspecsDuCommit(command) {
   const jetons = command ? jetonsDuCommit(command) : null
   if (!jetons) return { chemins: [], nonResolus: false }
-  const nonResolus = jetons.chemins.some((p) => PATHSPEC_GLOB_RE.test(p))
-  return { chemins: nonResolus ? [] : jetons.chemins, nonResolus }
+  return { chemins: jetons.nonResolus ? [] : jetons.chemins, nonResolus: jetons.nonResolus }
 }
 
-/** Les seuls pathspecs RÉSOLUS (`[]` quand il n'y en a pas, ou qu'un joker les rend inutilisables). */
+/** Les seuls pathspecs RÉSOLUS (`[]` quand il n'y en a pas, ou qu'un jeton non résolu les rend inutilisables). */
 export function extractCommitPathspecs(command) {
   return pathspecsDuCommit(command).chemins
 }
@@ -699,9 +1079,7 @@ export function extractCommitPathspecs(command) {
 /** Texte où chercher les mots-clefs : la commande TELLE QU'ÉCRITE, plus ses segments profonds
  *  recomposés — un message qui n'apparaît qu'après déroulage (`-EncodedCommand` en base64) resterait
  *  sinon invisible alors que le `git commit` qu'il porte est, lui, reconnu. */
-function texteProfond(command) {
-  return [command, ...segmentsProfonds(command).map((s) => s.join(' '))].join('\n')
-}
+const texteProfond = memoParCommande((command) => [command, ...segmentsLus(command).map((s) => s.join(' '))].join('\n'))
 
 /** Numéros de ticket que la commande FERME, dédupliqués/triés. `[]` si la commande n'est pas un
  *  `git commit`, ou si aucun mot-clef de fermeture n'apparaît. */
@@ -1277,24 +1655,49 @@ const MAX_FICHIERS_NOMMES = 3
 
 /**
  * Décision de la porte du ticket (PURE, testable). `fichiersEmportes` = les chemins que le commit
- * va produire (`analyzeDiffDuCommit(...).fichiers`), injectés par le driver.
+ * va produire (`analyzeDiffDuCommit(...).fichiers`), injectés par le driver ; quand la commande porte
+ * PLUSIEURS commits, c'est le lot de tous (`formeDuCommit` → `tout`). `messages` = le message de
+ * chaque commit (`messagesDesCommits`, calculé sans lire de fichier quand l'appelant ne le fournit
+ * pas). UNE règle, par commit : un message LISIBLE cite un ticket (`numerosCites`), direct ou
+ * embarqué ; un message INVISIBLE (éditeur, message d'un autre commit) retombe, pour un commit
+ * direct, sur les tickets que le texte de la commande cite HORS des messages lisibles de ses commits
+ * (`extractClosedIssues`/`extractRefIssues`) — le ticket d'un autre commit n'est pas le sien —, et
+ * compte comme sans ticket pour un commit embarqué (son motif : `motifDuCommitPresume`). Le refus nomme le rang et la
+ * tête du premier commit sans ticket quand la commande en porte plusieurs.
  * @returns {{ reason: string } | null} — non-null = `deny`, null = silence.
  */
-export function evaluatePorteDuTicket({ command, fichiersEmportes = [] }) {
+export function evaluatePorteDuTicket({
+  command,
+  fichiersEmportes = [],
+  messages = messagesDesCommits(command, { readFile: () => null }).messages,
+}) {
   if (!command || !isGitCommitCommand(command)) return null
   const substance = fichiersEmportes.filter(estCheminDeSubstance)
   if (substance.length === 0) return null
-  if (extractClosedIssues(command).length > 0 || extractRefIssues(command).length > 0) return null
+  let horsMessages = null
+  const sansTicket = (m) => {
+    if (m.texte !== null) return numerosCites(m.texte).length === 0
+    if (!m.direct) return true
+    if (horsMessages === null) {
+      const lus = new Set(messages.flatMap((l) => (l.texte !== null ? numerosCites(l.texte) : [])))
+      horsMessages = [...extractClosedIssues(command), ...extractRefIssues(command)].filter((n) => !lus.has(String(n)))
+    }
+    return horsMessages.length === 0
+  }
+  const rang = messages.findIndex(sansTicket)
+  if (rang === -1) return null
+  const fautif = messages[rang]
+  const lequel = messages.length > 1 ? ` (commit n°${rang + 1} de la commande, \`${fautif.tete ?? 'présumé'}\`)` : ''
+  const messageInvisible = fautif.direct && fautif.texte === null
 
   const nommes = substance.slice(0, MAX_FICHIERS_NOMMES).join(', ')
   const reste = substance.length > MAX_FICHIERS_NOMMES ? ` (+${substance.length - MAX_FICHIERS_NOMMES})` : ''
   // Message NON LISIBLE ICI : `--amend` sans `-m`/`-F` hérite du message de HEAD, et un `git commit`
   // nu (ou `-v`/`-e`) l'ouvre dans l'ÉDITEUR — dans les deux cas le ticket peut y être, la commande
   // ne le porte pas. Le refus le DIT, au lieu d'ordonner de citer un ticket déjà écrit.
-  const messageInvisible = !MESSAGE_FLAG_RE.test(command) && !FILE_FLAG_RE.test(command)
   return {
     reason:
-      `⚠ Commit de SUBSTANCE sans ticket : ${nommes}${reste}. Ajouter \`refs #N\` au message (ou `
+      `⚠ Commit de SUBSTANCE sans ticket${lequel} : ${nommes}${reste}. Ajouter \`refs #N\` au message (ou `
       + '`corrige #N` à la fermeture, avec son solde). '
       + (messageInvisible
         ? 'Le message de ce commit part à l’ÉDITEUR (ou est hérité par `--amend`) : ce contrôle ne le '
@@ -1487,27 +1890,40 @@ export function evaluateJuge({ command, stagedTouchesSrc, stagedTotalLines, stag
   }
 }
 
-// ── --amend sans message explicite (message hérité invisible au contrôle) ──────────────────────────
-const AMEND_RE = /--amend\b/
-const MESSAGE_FLAG_RE = /(?:^|\s)(?:-m\b|--message\b)/
+// ── Message HÉRITÉ (invisible au contrôle) ─────────────────────────────────────────────────────
+
+/** Options de `git commit` qui reprennent le message d'un AUTRE commit, par PORTÉE de l'héritage
+ *  (sonde git 2.43) :
+ *  - `sauf-message` : `--amend` (HEAD), `-C`/`--reuse-message`, `-c`/`--reedit-message` (le commit
+ *    nommé) — un `-m`/`-F` remplace le message entier ;
+ *  - `toujours` : `--fixup`, `--squash` — le sujet `fixup!`/`squash!`/`amend!` du commit nommé reste
+ *    en tête même sous `-m` (git refuse `-m` avec `--fixup=amend:`/`reword:`). */
+const MESSAGE_HERITE = new Map([
+  ['amend', 'sauf-message'], ['reuse-message', 'sauf-message'], ['reedit-message', 'sauf-message'],
+  ['fixup', 'toujours'], ['squash', 'toujours'],
+])
 
 /**
- * `git commit --amend` sans `-m`/`-F` hérite du message du commit précédent — invisible à ce hook
- * (et au closer de publication) puisque ni la commande ni un fichier lisible ne le portent. Deny
- * PRUDENT si le diff staged touche `src/**` ; silence sinon (les règles maison découragent déjà
- * l'amend, mais un amend sans substance src ne mérite pas un blocage).
+ * Un `git commit` dont le message est HÉRITÉ en tout ou partie (`MESSAGE_HERITE`) porte un texte
+ * invisible à ce hook (et au closer de publication) : ni la commande ni un fichier lisible ne le
+ * portent. Deny PRUDENT si le diff staged touche `src/**` ; silence sinon (un message hérité sans
+ * substance src ne mérite pas un blocage).
  * @returns {{ reason: string } | null}
  */
 export function evaluateAmendInvisible({ command, stagedTouchesSrc }) {
-  if (!command || !isGitCommitCommand(command)) return null
-  if (!AMEND_RE.test(command)) return null
-  if (MESSAGE_FLAG_RE.test(command) || FILE_FLAG_RE.test(command)) return null
-  if (!stagedTouchesSrc) return null
+  const jetons = command ? jetonsDuCommit(command) : null
+  if (!jetons || !stagedTouchesSrc) return null
+  const explicite = porteMessage(jetons.options)
+  const herite = [...MESSAGE_HERITE].some(
+    ([nom, portee]) => porteOption(jetons.options, nom) && (portee === 'toujours' || !explicite),
+  )
+  if (!herite) return null
   return {
     reason:
-      `⚠ Commit --amend sans message explicite (-m/-F) : le message hérité est invisible au ` +
-      `contrôle de solde (src/** touché) — re-committer avec -m (ou -F sur un fichier lisible) ` +
-      `pour que la fermeture/réfutation reste contrôlable.`,
+      `⚠ Commit au message HÉRITÉ (--amend, -C/-c <commit> sans -m/-F ; --fixup/--squash <commit> ` +
+      `toujours) : ce message est invisible au contrôle de solde (src/** touché) — re-committer avec -m ` +
+      `(ou -F sur un fichier lisible), sans option qui hérite d'un sujet, pour que la ` +
+      `fermeture/réfutation reste contrôlable.`,
   }
 }
 
@@ -1566,7 +1982,7 @@ const VARIABLE_NON_EXPANSEE_RE = /[$%]/
 /** Chemin que la COMMANDE nomme, TEL QU'ÉCRIT (`brut`) et résolu contre `cwd` (`resolu`) : `git -C
  *  <path>` en priorité, sinon le dernier `cd`/`Set-Location` du pipeline. `null` si aucun. */
 function cheminNommeParLaCommande(command, cwd, platform) {
-  const segments = segmentsProfonds(command)
+  const segments = segmentsLus(command)
   for (const segment of segments) {
     const dashC = valeurGitDashC(segment)
     if (dashC) return { brut: dashC, resolu: resolve(cwd, versCheminNatif(dashC, platform)) }
@@ -1791,14 +2207,19 @@ export function analyzeDiffDuCommit(raw, chemins = null) {
 // contenu que HEAD ne portait déjà (donc rien de neuf à juger), et le contenu final est de toute
 // façon relu par la porte de PLAGE au pre-push (`scripts/guards/lib/plageStock.mjs`).
 
-/** Forme d'un `git commit` : `pathspec` (arbre des chemins nommés), `tout` (-a), `index`.
- *  Un pathspec NON RÉSOLU (joker) rend `tout` — git commitera l'arbre de travail, et un diff
- *  SUR-INCLUSIF (non borné) le voit toujours ; le prendre pour `index` rendait la garde MUETTE. */
+/** Forme d'un `git commit` : `pathspec` (arbre des chemins nommés), `tout` (-a), `index`. La forme
+ *  mesure un SUR-ENSEMBLE de ce que git emporte : rendent `tout`, le seul diff non borné,
+ *  - des chemins que la garde ne connaît pas (`pathspecsDuCommit` → `nonResolus`) : git commite
+ *    leur arbre de travail, et `index` ou `pathspec` sur des fragments le rend vide — dont un commit
+ *    EMBARQUÉ, ou plusieurs commits, dont un seul ne borne pas ce que les autres emportent ;
+ *  - `-i`/`--include` (groupé compris : `-qi`) : git commite l'index ENTIER en plus des chemins,
+ *    que `pathspec` ne borne qu'aux chemins nommés. */
 export function formeDuCommit(command) {
-  const { chemins, nonResolus } = pathspecsDuCommit(command)
-  if (nonResolus) return { forme: 'tout', pathspecs: [] }
-  if (chemins.length > 0) return { forme: 'pathspec', pathspecs: chemins }
-  if (aFlagTout(command)) return { forme: 'tout', pathspecs: [] }
+  const jetons = command ? jetonsDuCommit(command) : null
+  if (!jetons) return { forme: 'index', pathspecs: [] }
+  if (jetons.nonResolus || porteOption(jetons.options, 'include')) return { forme: 'tout', pathspecs: [] }
+  if (jetons.chemins.length > 0) return { forme: 'pathspec', pathspecs: jetons.chemins }
+  if (porteOption(jetons.options, 'all')) return { forme: 'tout', pathspecs: [] }
   return { forme: 'index', pathspecs: [] }
 }
 
@@ -2027,7 +2448,7 @@ export function evaluateFermetureHorsCommit(command, { lire = (p) => readFileSyn
     `la fermeture passe par un commit \`corrige #N\` porteur de son solde (.claude/soldes/<N>.md) — ` +
     `le job \`fermetures\` de ci.yml (\`scripts/ops/fermer-depuis-main.mjs\`) ferme l'issue ET y poste ` +
     `le solde, après un \`build\` vert sur main. Fermer à la main court-circuite le contrôle entier.`
-  for (const segment of segmentsProfonds(command)) {
+  for (const segment of segmentsLus(command)) {
     const forme = fermetureGh(segment)
     if (forme) {
       return { decision: 'deny', reason: `⛔ Fermeture de ticket HORS commit (${forme}) : ${parCommit}` }
@@ -2059,7 +2480,7 @@ export function evaluateFermetureHorsCommit(command, { lire = (p) => readFileSyn
 export function porteUnGesteGh(command) {
   if (!command) return false
   const sansLecture = () => { throw new Error('corps non lu : on ne décide ici que de JUGER') }
-  return segmentsProfonds(command).some((s) => fermetureGh(s) !== null || corpsInputGh(s, sansLecture) !== null)
+  return segmentsLus(command).some((s) => fermetureGh(s) !== null || corpsInputGh(s, sansLecture) !== null)
 }
 
 /**
@@ -2184,12 +2605,23 @@ export function evaluateArbrePrincipal({ command, principal = false, fichiersEmp
 // acf2a447, bb824bafb). Le geste réel est une SÉQUENCE de deux appels — la porte se pose donc sur
 // le commit, jamais sur « les deux dans une commande ».
 
-/** `true` si un segment `git commit` de la commande porte `-a`/`--all` (isolé ou groupé : `-am`).
- *  Les OPTIONS seules sont inspectées (`jetonsDuCommit`) : la valeur d'un `-m` n'en est pas une. */
+/** `true` si les OPTIONS d'un `git commit` (`jetonsDuCommit`) activent l'option longue `nom` — lettre
+ *  courte, groupée ou abrégée comprise : sa dernière occurrence n'est pas suivie de sa négation
+ *  `no-<nom>`, comme dans git. */
+function porteOption(options, nom) {
+  const noms = options.map((o) => o.nom)
+  return noms.lastIndexOf(nom) > noms.lastIndexOf(`no-${nom}`)
+}
+
+/** `true` si les OPTIONS d'un `git commit` portent son message (`-m`/`--message`, `-F`/`--file`). */
+function porteMessage(options) {
+  return options.some((o) => o.nom === 'message' || o.nom === 'file')
+}
+
+/** `true` si un segment `git commit` de la commande porte `-a`/`--all`. */
 function aFlagTout(command) {
   const jetons = command ? jetonsDuCommit(command) : null
-  if (!jetons) return false
-  return jetons.options.some((o) => o === '--all' || (!o.startsWith('--') && /^-[a-zA-Z]*a/.test(o)))
+  return jetons !== null && porteOption(jetons.options, 'all')
 }
 
 /**
@@ -2216,11 +2648,17 @@ export function evaluateHunksEmportes({ command, fichiersModifies = [], fichiers
   const nommes = fichiersModifies.filter((f) => pathspecs.some((ps) => pathMatchesPathspec(f, ps)))
   if (nommes.length === 0) return null
   const aussiStages = nommes.filter((f) => fichiersStages.includes(f))
+  // `-i`/`--include` stage l'ARBRE des chemins nommés PAR-DESSUS l'index, puis commite l'index ENTIER.
+  const inclut = porteOption(jetonsDuCommit(command).options, 'include')
+  const geste = inclut ? '`git commit -i <paths>`' : '`git commit -- <paths>`'
   if (aussiStages.length > 0) {
     return {
       decision: 'deny',
       reason:
-        `⛔ \`git commit -- <paths>\` prend le contenu de l'ARBRE et ignore l'index : ` +
+        `⛔ ${geste} ` +
+        (inclut
+          ? `stage le contenu de l'ARBRE de ces chemins par-dessus l'index, puis commite l'index ENTIER : `
+          : `prend le contenu de l'ARBRE et ignore l'index : `) +
         `${aussiStages.join(', ')} porte(nt) À LA FOIS des modifications stagées et non stagées — le ` +
         `stage par hunk serait annulé et le reste emporté. Committer sans pathspec (l'index fait foi), ` +
         `ou stager tout le fichier avant.`,
@@ -2228,8 +2666,10 @@ export function evaluateHunksEmportes({ command, fichiersModifies = [], fichiers
   }
   return {
     contexte:
-      `Note : ${nommes.join(', ')} porte(nt) des modifications NON stagées ; \`git commit -- <paths>\` ` +
-      `les emportera (il prend l'arbre, pas l'index).`,
+      `Note : ${nommes.join(', ')} porte(nt) des modifications NON stagées ; ${geste} les emportera ` +
+      (inclut
+        ? `(il stage l'arbre de ces chemins, puis commite l'index entier).`
+        : `(il prend l'arbre, pas l'index).`),
   }
 }
 
@@ -2302,8 +2742,7 @@ export function decisionCumulee(decisions) {
 }
 
 // ── Driver stdin (n'exécute QUE lancé en direct, jamais à l'import du module de test) ─────────
-const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)
-if (isMain) {
+if (import.meta.main) {
   let raw = ''
   process.stdin.setEncoding('utf8')
   for await (const chunk of process.stdin) raw += chunk
@@ -2363,13 +2802,16 @@ if (isMain) {
   // Message `-F <chemin>` : résolu dans le répertoire où le `git commit` s'exécute RÉELLEMENT
   // (targetDir), jamais dans celui d'où part la commande — un `cd wt && git commit -F m.txt`
   // désignait sinon un fichier homonyme de l'arbre de départ (fermeture invisible = fail-open).
-  const { text, fileError } = extractMessageSources(command, { cwd: targetDir })
+  const { text, fileError, messages } = extractMessageSources(command, { cwd: targetDir })
+  // Tout refus d'une commande qui porte un commit PRÉSUMÉ commence par son motif.
+  const presume = motifDuCommitPresume(command)
+  const prefixe = (motif) => (presume ? `${presume} || ${motif}` : motif)
   if (fileError) {
     rendre({
       decision: 'deny',
-      reason:
+      reason: prefixe(
         `⚠ Message de commit en fichier illisible pour le contrôle de solde (-F/--file "${fileError}") ` +
-        `— utiliser -m ou un chemin lisible (fail-closed : pas de fermeture ni de réfutation invisibles).`,
+        `— utiliser -m ou un chemin lisible (fail-closed : pas de fermeture ni de réfutation invisibles).`),
     })
     process.exit(0)
   }
@@ -2407,7 +2849,7 @@ if (isMain) {
   }), { cwd: targetDir, horsDepot: natureDeLArbre(targetDir) === null })
   // La porte du ticket juge le lot que le commit EMPORTE (`fichiers`), pas l'index : c'est la même
   // lecture que toutes les autres évaluations de ce driver.
-  const porteDuTicket = evaluatePorteDuTicket({ command: text, fichiersEmportes: fichiers })
+  const porteDuTicket = evaluatePorteDuTicket({ command: text, fichiersEmportes: fichiers, messages })
   // TOUT ce que le garde lit sur DISQUE se lit dans le répertoire où le commit s'exécute — comme le
   // solde stagé, la mesure du palier, le message `-F` et la revue de palier. Lu depuis le dépôt du HOOK, un
   // fichier de réfutation écrit dans le worktree était invisible, et la porte refusait à tort.
@@ -2478,10 +2920,11 @@ if (isMain) {
       plafond: plafondDeLaSource(commit.avant(PORTEUR_DU_PLAFOND)),
     })
     : null
-  const rendu = rendre(decisionCumulee([
+  const cumul = decisionCumulee([
     decision, porteDuTicket, antiEsquive, juge, amendInvisible, registresPorteurs,
     horsCommit, tombale, arbrePrincipal, hunks?.decision ? hunks : null, stocks, budget,
-  ]))
+  ])
+  const rendu = rendre(cumul ? { ...cumul, reason: prefixe(cumul.reason) } : cumul)
   if (!rendu && hunks?.contexte) {
     console.log(JSON.stringify({
       hookSpecificOutput: { hookEventName: 'PreToolUse', additionalContext: hunks.contexte },

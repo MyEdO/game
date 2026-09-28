@@ -1,7 +1,6 @@
 import { makeShowcaseParty } from '../../data/pregens';
 import { itemFromTrappingById } from '../../engine/items';
-import { parseProject } from '../../state/worldMap';
-import areneProjet from '../arene/arene-projet.json';
+import { areneCampaign, paquetDuJeu } from '../campaign';
 import type { TestScenario } from './_shared';
 
 /**
@@ -29,7 +28,7 @@ export const scenario: TestScenario = {
   tests: 'campagne vitrine complète : Bourg (bâtiments/intérieurs), échelle des 13 zones, contrats, carte du monde, marchands, fouilles',
   partyNote: 'Groupe d’arène pré-tiré (+1 ration chacun)',
   construire: () => {
-    const { scenes, worldMap } = parseProject(areneProjet);
+    const { scenes, worldMap } = paquetDuJeu(areneCampaign);
     return {
       party: groupe(),
       scene: scenes.find((s) => s.id === 'arene-hub')!,

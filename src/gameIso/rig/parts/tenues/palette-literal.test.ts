@@ -1,12 +1,12 @@
 /**
- * LITTÉRAL == JETON — garde de cliquet (#583 point 1).
+ * LITTÉRAL == JETON — garde de cliquet (#583).
  *
  * Un littéral hex (`fill`/`stroke`/`stop-color`) qui vaut EXACTEMENT une valeur déclarée dans la
  * `palette` du MÊME def aurait dû être le jeton `@<clé>` correspondant. Le recoloriage
- * (`buildTokenMap`/`applyTokenMap`, `palette.ts`) ne peut agir que sur les tokens : un littéral
+ * (`buildTokenMap`/`applyTokenMap`, `palette.ts`) ne peut agir que sur les jetons : un littéral
  * gravé reste figé quel que soit l'espèce/la carrière du porteur, quelle que soit la matière (chair,
  * cuir, tissu, plume…). Un arrêt littéral de dégradé dérivé `url(#dg-…)` compte comme un
- * `stop-color` (#1903 A3).
+ * `stop-color` (#1903).
  *
  * PÉRIMÈTRE : comparaison EXACTE (distance ZÉRO, insensible casse/guillemets) contre les valeurs
  * déclarées PAR LE MÊME def — sans ambiguïté, sans faux positif possible. Jamais une distance
@@ -14,8 +14,8 @@
  * pour un panache de plume, pas de la chair — mais ICI la réponse est la MÊME : littéral == jeton
  * du même def est une faute, peu importe la matière).
  *
- * La MESURE vit dans `scripts/guards/lib/paletteLiteralAudit.ts` — partagée avec le régénérateur
- * `scripts/rig/regen-palette-literal-stock.mts`, pour qu'aucun des deux n'ait sa propre lecture.
+ * La MESURE vit dans `scripts/guards/lib/paletteLiteralAudit.ts` — partagée avec la régénération
+ * (`regenerations`), pour qu'aucune des deux n'ait sa propre lecture.
  *
  * STOCK NOMINATIF (#1727) : une entrée `{ fichier, ref, occurrence }` par occurrence, comparée par
  * `ecartDuVolet` (`scripts/guards/lib/stock.mjs`) — la forme d'entrée de TOUT stock du dépôt. Aucun
@@ -24,10 +24,13 @@
  * `scripts/hooks/stocks-nominatifs.test.mjs`).
  */
 import { describe, it, expect } from 'vitest';
-import { MOTIF_PALETTE_LITERAL, fichierDeTenue, sitesPaletteLiteral } from '../../../../../scripts/guards/lib/paletteLiteralAudit';
+import { fichierDeTenue, regenerations, sitesPaletteLiteral } from '../../../../../scripts/guards/lib/paletteLiteralAudit';
 import { PALETTE_LITERAL_RATCHET } from '../../../../../scripts/guards/lib/paletteLiteralStock.mjs';
-import { ecartDuVolet, refusDeCroissance, sitesEnEntrees } from '../../../../../scripts/guards/lib/stock.mjs';
+import { SEPARATEUR_DE_CLE, cleDeSite, ecartDuVolet, groupeDeSite, type EntreeDeSite } from '../../../../../scripts/guards/lib/stock.mjs';
+import { FORMAT_MJS, ecartDeRegeneration, texteEnPlace, texteRegenere } from '../../../../../scripts/guards/lib/stockDeSites.mjs';
 import type { TenueDef } from './types';
+import type { View } from '../../facing';
+import { declaredView } from '../../viewArt';
 import { TENUE_DEFS } from './_registry.generated';
 
 const STOCK = 'scripts/guards/lib/paletteLiteralStock.mjs';
@@ -37,8 +40,8 @@ function ecart(defs: readonly TenueDef[] = TENUE_DEFS) {
   return ecartDuVolet({ sites: sitesPaletteLiteral(defs), stock: PALETTE_LITERAL_RATCHET, ou: STOCK });
 }
 
-/** La clé d'un site telle que le remède l'imprime — `<famille vide> :: fichier :: ref :: occurrence`. */
-const cle = (fichier: string, ref: string, occurrence: number) => ` :: ${fichier} :: ${ref} :: ${occurrence}`;
+/** La clé d'un site telle que le remède l'imprime (`cleDeSite`). */
+const cle = (fichier: string, ref: string, occurrence: number) => cleDeSite({ fichier, ref, occurrence });
 
 describe('littéral == jeton : aucune tenue neuve ne recopie une valeur de SA palette (cliquet #583)', () => {
   it('aucun site NEUF, et aucune entrée SOLDÉE ne traîne au stock', () => {
@@ -46,7 +49,12 @@ describe('littéral == jeton : aucune tenue neuve ne recopie une valeur de SA pa
     expect(neuves, `Sites NEUFS d'un littéral == valeur de sa PROPRE palette — peindre avec le jeton\n`
       + `@<clé> déclaré (peu importe la matière : chair, cuir, tissu, plume…) :\n  ${neuves.join('\n  ')}`).toEqual([]);
     expect(perimees, `Entrées de ${STOCK} dont le site ne recopie plus (migré ou disparu) — les RETIRER\n`
-      + `(ou : npx tsx scripts/rig/regen-palette-literal-stock.mts), sinon le stock ment :\n  ${perimees.join('\n  ')}`).toEqual([]);
+      + `(ou : npx tsx scripts/guards/lib/regenStock.mts scripts/guards/lib/paletteLiteralAudit.ts), sinon le stock\n`
+      + `ment :\n  ${perimees.join('\n  ')}`).toEqual([]);
+  });
+
+  it('le stock committé est un point fixe de sa régénération', () => {
+    for (const r of regenerations(sitesPaletteLiteral())) expect(ecartDeRegeneration(r, texteEnPlace(r.chemin))).toBeNull();
   });
 });
 
@@ -67,7 +75,7 @@ describe('morsure : un littéral neuf == jeton du même def rougit (#583)', () =
       if (stocked.has(id)) continue;
       for (const slot of ['bras', 'torse', 'jambes', 'tete'] as const) {
         const art = def.set[slot];
-        if (typeof art === 'string' || (art && typeof art === 'object' && art.front)) return { def, id, slot };
+        if (declaredView(art, 'front')) return { def, id, slot };
       }
     }
     throw new Error("aucun def À PALETTE hors-stock avec un slot exploitable — le corpus a changé, la morsure n'a plus de support");
@@ -77,7 +85,7 @@ describe('morsure : un littéral neuf == jeton du même def rougit (#583)', () =
   /** Peint un littéral == jeton dans la vue `front` du slot cible, rend l'écart, restaure. */
   const sousLitteral = (peindre: (hex: string, art: string) => string) => {
     const saved = target.def.set[target.slot]!;
-    const front = typeof saved === 'string' ? saved : saved.front!;
+    const front = declaredView(saved, 'front')!;
     const [, hex] = Object.entries(target.def.palette!)[0];
     try {
       target.def.set[target.slot] = peindre(hex, front);
@@ -118,20 +126,19 @@ describe('morsure : un littéral neuf == jeton du même def rougit (#583)', () =
  */
 describe('morsure : 40 littéraux NEUFS dans un slot déjà stocké rougissent (#583, contournement du juge)', () => {
   const stockee = PALETTE_LITERAL_RATCHET[0];
-  const [stockedId, stockedSlot, stockedView] = stockee.ref.split(':') as [string, 'torse' | 'jambes' | 'bras' | 'tete', string];
+  const [stockedId, stockedSlot, stockedView] = stockee.ref.split(':') as [string, 'torse' | 'jambes' | 'bras' | 'tete', View];
   const target = TENUE_DEFS.find((d) => d.id === stockedId)!;
 
   it('40 littéraux neufs ajoutés dans un slot déjà fautif produisent 40 sites neufs', () => {
     const saved = target.set[stockedSlot]!;
-    const viewsObj = typeof saved === 'string' ? { front: saved } : { ...saved };
-    const original = (viewsObj as Record<string, string>)[stockedView]!;
+    const original = declaredView(saved, stockedView)!;
     const [, hex] = Object.entries(target.palette!)[0];
     const injected = Array.from({ length: 40 }, (_, i) => `<circle cx="${i}" cy="0" r="1" fill="${hex}"/>`).join('');
     try {
-      (viewsObj as Record<string, string>)[stockedView] = injected + original;
-      target.set[stockedSlot] = typeof saved === 'string' ? (viewsObj as Record<string, string>).front : (viewsObj as typeof saved);
+      target.set[stockedSlot] = typeof saved === 'string' ? injected + original : { ...saved, [stockedView]: injected + original };
       const { neuves } = ecart();
-      const fraiches = neuves.filter((l) => l.includes(` :: ${stockee.fichier} :: ${stockedId}:${stockedSlot}:${stockedView} :: `));
+      const groupe = groupeDeSite({ fichier: stockee.fichier, ref: `${stockedId}:${stockedSlot}:${stockedView}`, occurrence: 1 }) + SEPARATEUR_DE_CLE;
+      const fraiches = neuves.filter((l) => l.includes(groupe));
       expect(fraiches.length).toBeGreaterThanOrEqual(40);
     } finally {
       target.set[stockedSlot] = saved;
@@ -158,16 +165,23 @@ describe("l'autre sens du cliquet : une entrée que plus aucun site ne porte est
 });
 
 /**
- * MORSURE DU RÉGÉNÉRATEUR (`scripts/rig/regen-palette-literal-stock.mts`, #1727) — son refus
- * DÉCROISSANT-SEULEMENT se juge site par site (`refusDeCroissance`), jamais sur un total. Un ÉCHANGE
- * à taille CONSTANTE (une entrée du stock retirée pendant qu'un site mesuré n'est plus couvert)
- * laisse les deux longueurs égales : un refus qui compare des nombres écrirait le stock et
- * entérinerait le site neuf en silence, la garde ci-dessus verte ensuite. Forgé EN MÉMOIRE (le stock
- * du disque n'est jamais touché) sur la mesure RÉELLE du corpus.
+ * MORSURE DE LA RÉGÉNÉRATION (`regenerations`, politique `DECROISSANT`, #1727) — son refus se juge
+ * site par site (`refusDeCroissance`), jamais sur un total. Un ÉCHANGE à taille CONSTANTE (une entrée
+ * du stock retirée pendant qu'un site mesuré n'est plus couvert) laisse les deux longueurs égales : un
+ * refus qui compare des nombres écrirait le stock et entérinerait le site neuf en silence, la garde
+ * ci-dessus verte ensuite. Forgé EN MÉMOIRE (le stock du disque n'est jamais touché) sur la mesure
+ * RÉELLE du corpus.
  */
 describe('régénérateur : un échange à taille constante est REFUSÉ, en nommant le site (#1727)', () => {
-  const mesurees = () => sitesEnEntrees(sitesPaletteLiteral());
-  const REFUS = { nom: 'PALETTE_LITERAL_RATCHET', motif: MOTIF_PALETTE_LITERAL };
+  const [regeneration] = regenerations(sitesPaletteLiteral());
+  const enPlace = texteEnPlace(regeneration.chemin) ?? '';
+  /** Le texte du stock en place, sa collection remplacée par `stock`. */
+  const avecStock = (stock: readonly EntreeDeSite[]) => {
+    const image = FORMAT_MJS.lire(enPlace, regeneration.chemin);
+    if (!image) throw new Error(`${regeneration.chemin} illisible`);
+    image.collections.set('PALETTE_LITERAL_RATCHET', [...stock]);
+    return FORMAT_MJS.ecrire(image);
+  };
 
   it("une entrée retirée + une entrée fantôme (même longueur) : refus qui NOMME le site découvert", () => {
     const [decouvert, ...reste] = PALETTE_LITERAL_RATCHET;
@@ -177,12 +191,12 @@ describe('régénérateur : un échange à taille constante est REFUSÉ, en nomm
     }];
     expect(echange, 'la forge doit rester à TAILLE CONSTANTE, sinon elle ne prouve rien')
       .toHaveLength(PALETTE_LITERAL_RATCHET.length);
-    const refus = refusDeCroissance(mesurees(), echange, REFUS);
-    expect(refus, 'un site mesuré hors du stock doit refuser même à taille constante').not.toBeNull();
-    expect(refus).toContain(cle(decouvert.fichier, decouvert.ref, decouvert.occurrence));
+    const rendu = texteRegenere(regeneration, { enPlace: avecStock(echange) });
+    expect('refus' in rendu, 'un site mesuré hors du stock doit refuser même à taille constante').toBe(true);
+    expect('refus' in rendu && rendu.refus).toContain(cleDeSite(decouvert));
   });
 
   it('le stock en place couvre la mesure : aucun refus, le régénérateur peut écrire', () => {
-    expect(refusDeCroissance(mesurees(), PALETTE_LITERAL_RATCHET, REFUS)).toBeNull();
+    expect('refus' in texteRegenere(regeneration, { enPlace: avecStock(PALETTE_LITERAL_RATCHET) })).toBe(false);
   });
 });

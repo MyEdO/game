@@ -15,14 +15,16 @@
 // « ADE II ch. Les Ogres ») = hors sujet (rien à chapitrer) : périmètre de check-refs/check-code-refs.
 // Cliquet NOMINATIF PAR SITE (`scripts/raw/entity-in-chapter-stock.json`, écart `ecartDuVolet` de
 // `scripts/guards/lib/stock.mjs`, clé `doc :: nom :: occurrence`) : un site NEUF est une régression à corriger
-// ou à déclarer, une entrée dont le site a disparu est une dette SOLDÉE à retirer. Le stock est
-// ABSENT en régime nominal → tolérance ZÉRO (`readStock` traite un fichier absent comme zéro entrée).
+// ou à déclarer, une entrée dont le site a disparu est une dette SOLDÉE à retirer. Soldé, le stock est
+// un fichier ABSENT, lu comme zéro entrée (`lireEntreesDeSite`) : tolérance ZÉRO. Il se régénère par
+// `npx tsx scripts/guards/lib/regenStock.mts scripts/raw/check-entity-in-chapter.mjs` ; un site différé
+// y entre par `--lot <#N>`, et un solde total retire le fichier.
 // Re-run : node scripts/raw/check-entity-in-chapter.mjs (npm run raw:check-entity-in-chapter).
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chapterFile, allAbbrAlternation, pagesDeLAtlas, readText } from './_lib.mjs'
 import { ecartDuVolet } from '../guards/lib/stock.mjs'
-import { readStock } from './stockNominatif.mjs'
+import { SOUS_LOT, lireEntreesDeSite } from '../guards/lib/stockDeSites.mjs'
 
 export const RAWDIR = 'docs/raw'
 // Acceptation DÉCLARÉE à la couture : les FICHES seules. Le garde lit les entrées `### <Nom>` de la
@@ -115,11 +117,29 @@ export function scanAll(targets = ciblesDeLAtlas()) {
   return targets.flatMap((t) => scanMissingEntities(t))
 }
 
+const QUOI =
+  'Entités de l’Atlas RAW dont le NOM est absent du chapitre que leur réf cite ' +
+  '(`scripts/raw/check-entity-in-chapter.mjs`, #600) : une entrée `### <Nom>` de la fiche des talents ' +
+  'd’un cœur, sa réf `<ABRÉV> NN l.X` résolue, et le nom introuvable dans le texte du chapitre. Une ' +
+  'ENTRÉE par SITE, clé `fichier :: ref :: occurrence` (régime #1711) ; `fichier` = la fiche, `ref` = ' +
+  'le nom de l’entité. Une entrée se solde en lisant le `Source/` et en corrigeant la réf (ou le nom) ; ' +
+  'le fichier se régénère par `npx tsx scripts/guards/lib/regenStock.mts ' +
+  'scripts/raw/check-entity-in-chapter.mjs`, et un solde total le retire.'
+
+/** La RÉGÉNÉRATION du stock (`RegenerationDeStock`, `stockDeSites.mjs`), sur des violations (par
+ *  défaut, celles des cibles de l'Atlas). */
+export const regenerations = (violations = scanAll()) => [{
+  chemin: STOCK_PATH,
+  politique: SOUS_LOT,
+  horsCollections: QUOI,
+  collections: [{ nom: 'entrees', sites: sitesEntites(violations) }],
+}]
+
 function main() {
   const cibles = ciblesDeLAtlas()
   const violations = scanAll(cibles)
   const { neuves, perimees } = ecartDuVolet({
-    sites: sitesEntites(violations), stock: readStock(STOCK_PATH), ou: 'entity-in-chapter-stock.json',
+    sites: sitesEntites(violations), stock: lireEntreesDeSite(STOCK_PATH), ou: 'entity-in-chapter-stock.json',
   })
 
   console.log(`check-entity-in-chapter : ${violations.length} entrée(s) dont le nom est ABSENT du chapitre cité, sur ${cibles.join(', ')}`)
@@ -141,5 +161,4 @@ function main() {
   process.exitCode = 1
 }
 
-const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)
-if (isMain) main()
+if (import.meta.main) main()

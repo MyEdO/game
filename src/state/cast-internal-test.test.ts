@@ -2,7 +2,6 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { openCastCascade } from './combatFlow'; // effet de bord : installe l'applier `triggeredTest` + le routeur de Test
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { seedBattleRng } from './battleRng';
 import { testScene } from '../scenes/test-fixture';
 import { findSpellById } from '../data';
@@ -29,11 +28,11 @@ describe('Lot 4b — Sort à Test interne (Chute) cadence-aware en contexte d’
   /** Groupe : un sorcier (lanceur) + un second héros (cible « manuelle » du Test). Combat sur la scène
    *  de test (rencontre `enc-mutants`) → un ennemi disponible comme cible « inline ». */
   function setup() {
-    const wiz = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', careerTalent: { id: 'magie-mineure' }, rng: makeRNG(707) });
+    const wiz = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', careerTalent: { id: 'magie-mineure' }, seed: 707 });
     wiz.spells = ['chute', ...(wiz.spells ?? [])];
-    const ally = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', rng: makeRNG(13) });
+    const ally = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 13 });
     useGame.setState({ party: [wiz, ally] });
-    useGame.getState().startScene(testScene);
+    useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');
     useGame.getState().confirmRoundStart();
     vi.clearAllTimers();

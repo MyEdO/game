@@ -18,11 +18,11 @@ export const creature: CreatureDef = {
   perso: {
     tenue: 'nu',
     gabarit: 'elance-voute',
-    extremites: 'griffues', // « Arme +8 Griffes » (#736 Lot 2) ; race Humain partagée
-    monster: { tete: 'chien', ailes: 'cuir', queue: true }, // griffes = le Nu de la race griffue (`resolve.ts`, #736 Lot 3)
+    extremites: 'griffues', // « Arme +8 Griffes » (#736) ; race Humain partagée
+    monster: { tete: 'chien', ailes: 'cuir', queue: true }, // griffes = le Nu de la race griffue (`resolve.ts`, #736)
     colors: { peau: '#3a2c22' }, // fourrure sombre (les ailes-cuir @peauO suivent)
     features: [
-      // « cornes courtes et pointues » — repli générique MULTI-VUES du registre (jamais un hack par-vue)
+      // « cornes courtes et pointues » — repli générique ORIENTÉ du registre (jamais un hack par-vue)
       appendageFeature('cornes-generique'),
       // plaques DISPERSÉES (pas alignées : une diagonale lisait « bandoulière »)
       { bone: 'torse', svg: OV_ECAILLES(-6, -16, 0.9), scale: 'bone', layer: 60 },

@@ -1,6 +1,6 @@
 /**
  * Adresse d'un EMPLACEMENT de création — la clé des choix portés par un emplacement (`specChoices`,
- * `speciesTalentChoices`, `trappingChoices` de `ChoixDeCreation`). Deux emplacements qui désignent la
+ * `speciesTalentChoices`, `randomSpecPicks`, `talentRerolls`, `trappingChoices` de `ChoixDeCreation`). Deux emplacements qui désignent la
  * même entité restent deux adresses.
  *
  * MARQUE PUREMENT TYPOLOGIQUE, sur le modèle de `PlayerText` (`src/i18n/playerText.ts`) : `string`
@@ -15,12 +15,14 @@ declare const ADRESSE_DE_CREATION: unique symbol;
 export type AdresseDeCreation = string & { readonly [ADRESSE_DE_CREATION]: true };
 
 const marquer = (cle: string): AdresseDeCreation =>
-  // eslint-disable-next-line no-restricted-syntax -- #1988 : l'unique cast de ce module — forger la marque EST le corps de métier de ses deux minteurs (cf. JSDoc), comme `dataLabel` pour `PlayerText`.
+  // eslint-disable-next-line murs/marques -- #1988 : l'unique cast de ce module — forger la marque EST le corps de métier de ses deux minteurs (cf. JSDoc), comme `dataLabel` pour `PlayerText`.
   cle as AdresseDeCreation;
 
 /** Les fabriques d'adresse, une par famille d'emplacement de création. */
 export const adresseDeCreation = {
   especeTalent: (i: number): AdresseDeCreation => marquer(`espece:talents:${i}`),
+  /** Tirage `j` d'une entrée `{random: n}` de l'entrée d'espèce `i`, y compris comme option d'un choix. */
+  especeTirage: (i: number, j: number): AdresseDeCreation => marquer(`espece:talents:${i}:tirage:${j}`),
   carriereCompetence: (i: number): AdresseDeCreation => marquer(`carriere:competences:${i}`),
   ajout: (skillId: string): AdresseDeCreation => marquer(`ajout:${skillId}`),
   signe: (k: number): AdresseDeCreation => marquer(`signe:${k}`),
@@ -29,7 +31,7 @@ export const adresseDeCreation = {
   dotation: (chemin: readonly number[]): AdresseDeCreation => marquer(`dotation:${chemin.join('.')}`),
 };
 
-const FORME = /^(espece:talents:\d+|carriere:competences:\d+|ajout:[^:]+|signe:\d+|dotation:\d+(\.\d+)*)$/;
+const FORME = /^(espece:talents:\d+(:tirage:\d+)?|carriere:competences:\d+|ajout:[^:]+|signe:\d+|dotation:\d+(\.\d+)*)$/;
 
 /** Une clé lue d'un JSON persisté, si elle a la forme d'une adresse de `adresseDeCreation`. */
 export function adresseLue(cle: string): AdresseDeCreation | undefined {

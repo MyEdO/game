@@ -10,6 +10,7 @@ import {
 import { tileKey, walkComponentAt, walkComponentsFrom, walkNeighbors, type Pt } from './path';
 import { memoByRef } from './sceneMemo';
 import { sceneZoneTiles } from './zones';
+import { parUnitesDeCode } from '../lib/ordre.mjs';
 
 export type RoomPortalKind = 'passage' | 'door-open' | 'door-closed';
 
@@ -125,7 +126,7 @@ function roomPortalsUncached(scene: Scene): RoomPortal[] {
     }
   }
 
-  return [...portals.values()].sort((a, b) => a.id.localeCompare(b.id));
+  return [...portals.values()].sort((a, b) => parUnitesDeCode(a.id, b.id));
 }
 
 /** Accès de pièce d'une SCÈNE — dérivés de ses zones intérieures, de ses murs et de l'état runtime de

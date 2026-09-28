@@ -29,6 +29,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
+import { detenteur } from '../detenteur.testkit';
 
 /** Racines d'AUTHORING balayées — le code qui PRODUIT des documents de scène. */
 const RACINES = ['src', 'scripts'];
@@ -104,12 +105,12 @@ function masquerFrontmatter(texte: string): string {
 }
 
 describe('graphie de la prose de scène — aucun producteur ne réécrit la forme retirée (#1467 L1b)', () => {
-  const corpus = readCorpus(RACINES, { exts: EXTS, tests: true }).filter((f) => !estExempt(f.rel));
+  const corpus = detenteur(() => readCorpus(RACINES, { exts: EXTS, tests: true }).filter((f) => !estExempt(f.rel)));
 
   it('le corpus balayé est NON VIDE et couvre les deux racines (sans quoi la garde serait un no-op vert)', () => {
-    expect(corpus.length).toBeGreaterThan(500);
-    expect(corpus.some((f) => f.rel.startsWith('src/'))).toBe(true);
-    expect(corpus.some((f) => f.rel.startsWith('scripts/'))).toBe(true);
+    expect(corpus().length).toBeGreaterThan(500);
+    expect(corpus().some((f) => f.rel.startsWith('src/'))).toBe(true);
+    expect(corpus().some((f) => f.rel.startsWith('scripts/'))).toBe(true);
   });
 
   it('la garde MORD : chaque forme surveillée est reconnue sur un texte forgé', () => {
@@ -150,7 +151,7 @@ describe('graphie de la prose de scène — aucun producteur ne réécrit la for
 
   it('aucun site à l’ancienne graphie dans `src/**` ni `scripts/**`', () => {
     const trouves: string[] = [];
-    for (const f of corpus) {
+    for (const f of corpus()) {
       const texte = masquerFrontmatter(f.text);
       for (const forme of FORMES) {
         const re = new RegExp(forme.motif.source, 'g');

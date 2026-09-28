@@ -15,7 +15,7 @@ import { itemFromTrappingById } from '../engine/items';
 import { applyOps } from '../engine/ops';
 import { findSpellById, findTrappingById } from '../data';
 import { emptyScene, sceneMetresPerTile } from './scene';
-import { builtinCampaigns } from '../scenes/campaign';
+import { builtinCampaigns, paquetDuJeu } from '../scenes/campaign';
 import type { Combatant } from '../engine/types';
 
 const pos = { x: 3, y: 3 };
@@ -24,7 +24,7 @@ const MPT_TERRE = sceneMetresPerTile(emptyScene(1, 1));
 /** Échelle MER, LUE sur une scène livrée : l'abordage de la cogue du Loup et Saumure (combat naval,
  *  MDG 13) — jamais un littéral d'épreuve. */
 const MPT_MER = sceneMetresPerTile(
-  builtinCampaigns.find((c) => c.id === 'loup-et-saumure')!.scenes.find((s) => s.id === 'ls-abordage-cogue')!,
+  paquetDuJeu(builtinCampaigns.find((c) => c.id === 'loup-et-saumure')!).scenes.find((s) => s.id === 'ls-abordage-cogue')!,
 );
 const target = (): Combatant => ({ id: 't', name: 'Cible', activeEffects: [] }) as unknown as Combatant;
 

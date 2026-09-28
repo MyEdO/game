@@ -29,12 +29,13 @@ import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { DIFFICULTY_MODIFIERS } from './types';
 import { easeDifficulty } from './tests';
 import { trappings, talents, levelsForCareer, skills, specPoolOf, specCatalogOf, refLabel, findCareerById, type TrappingData } from '../data';
-import { talentSlotsUpTo, designationsFor, talentMaxReached, skillSlots, availableChars } from './careerSlots';
+import { talentSlotsUpTo, designationsFor, talentMaxReached, talentAcquisitions, skillSlots, availableChars } from './careerSlots';
 import { talentCost, advanceCost, inCareerChar } from './advancement';
 import { competenceEnCarriere, talentEnCarriere } from './talentEffects';
 import { CHAR_KEYS, CHAR_LABELS } from './types';
 import { isTradable } from './disponibilite';
 import activitiesJson from '../data/activities.json';
+import { parLibelle } from '../lib/ordre.mjs';
 
 // ─────────────────────────────────────────────────────────────────────────────────────────────
 // CATALOGUE d'ACTIVITÉS data-driven (`src/data/activities.json`) — FOYER UNIQUE des Activités, tous
@@ -137,7 +138,7 @@ export type ResolverOwner = 'interlude' | 'mer' | 'voyage';
  *  - `mer` → `src/state/seaActivities.ts` (+ `SeaActivitiesModal`) ; `voyage` → `travelPostes.ts`.
  * La bataille de masse n'est PAS une famille : ses Scènes se résolvent par `sceneKind`
  * (`massBattleFlow.confirmBattleActivity`), le Rassemblement par `rallyHealAmount` (ADE II 8 l.122).
- * Table EXHAUSTIVE (`satisfies Record<ActivityResolver, …>`) : un résolveur ajouté sans propriétaire
+ * Table TOTALE (`satisfies Record<ActivityResolver, …>`) : un résolveur ajouté sans propriétaire
  * ne compile pas.
  */
 export const RESOLVER_OWNER = {
@@ -836,7 +837,7 @@ export function entrainementOptions(hero: Combatant): EntrainementOption[] {
       });
     }
   }
-  return [...chars, ...skillOptions.sort((a, b) => a.label.localeCompare(b.label))];
+  return [...chars, ...skillOptions.sort((a, b) => parLibelle(a.label, b.label))];
 }
 
 /** Retrait bancaire (ch.23 l.157-159) : `roll` = le 1d100 du retrait. Planque : seuil de découverte
@@ -914,7 +915,7 @@ export function craftCatalog(): CraftOption[] {
       const target = craftTarget(spec.tier, spec.avail, 0, 0);
       return [{ id: t.id, label: t.label, categorie: t.categorie, ...spec, dr: target.dr, difficulty: target.difficulty }];
     })
-    .sort((a, b) => (a.categorie === b.categorie ? a.priceBrass - b.priceBrass : a.categorie.localeCompare(b.categorie)));
+    .sort((a, b) => (a.categorie === b.categorie ? a.priceBrass - b.priceBrass : parLibelle(a.categorie, b.categorie)));
 }
 
 /** Fourchette du prix du tuteur (« 2D10 pistoles d'argent par 100PX », ch.23 l.63) — pour
@@ -936,11 +937,9 @@ export interface LearnOption {
 
 /** Talents apprenables par Apprentissage particulier : « apprendre un Talent en dehors de
  *  votre Carrière » (ch.23 l.59) → exclut les talents offerts par la Carrière courante
- *  (jusqu'au Niveau atteint — eux s'achètent par l'Avancement), ceux au Maxi (LDB 10), et ceux
- *  à spécialisation (`specCatalogOf(t).length > 0`) : le catalogue n'a aucun sélecteur de spec
- *  (`LearnOption` n'en porte pas), l'achat via cette Activité ne peut donc pas produire une
- *  identité `(talentId, spec)` cohérente — le gate `arcaneDomainGate` (`careerSlots.ts`) et le
- *  Maxi par spécialisation resteraient contournables sinon. */
+ *  (jusqu'au Niveau atteint — eux s'achètent par l'Avancement), ceux au Maxi (`talentMaxReached`), et
+ *  ceux à spécialisation (`specCatalogOf(t).length > 0`) : `LearnOption` ne porte aucune spec, l'achat
+ *  ne produirait pas l'identité `(talentId, spec)` que lit `arcaneDomainGate` (`careerSlots.ts`). */
 export function learnableTalents(hero: Combatant): LearnOption[] {
   const levels = levelsForCareer(hero.career ?? '');
   const slots = talentSlotsUpTo(levels, hero.careerLevel ?? 1);
@@ -953,11 +952,11 @@ export function learnableTalents(hero: Combatant): LearnOption[] {
       return true;
     })
     .map((t) => {
-      const xpCost = talentCost(hero.talents.find((k) => k.talentId === t.id)?.times ?? 0);
+      const xpCost = talentCost(talentAcquisitions(hero, t.id));
       const { minBrass, maxBrass } = tutorCostRange(xpCost);
       return { id: t.id, label: t.label, xpCost, tutorMinBrass: minBrass, tutorMaxBrass: maxBrass };
     })
-    .sort((a, b) => a.label.localeCompare(b.label));
+    .sort((a, b) => parLibelle(a.label, b.label));
 }
 
 /** Ce qui interdit « Passer commande » sur un équipement, ou `null` s'il est commandable. Porte

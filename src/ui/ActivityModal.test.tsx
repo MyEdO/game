@@ -12,7 +12,6 @@ import { createRoot, type Root } from 'react-dom/client';
 import { describe, it, expect, afterEach } from 'vitest';
 import { useGame } from '../state/store';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { ActivityModal } from './ActivityModal';
 import type { PendingActivity } from '../state/interludeFlow';
 
@@ -25,7 +24,7 @@ const ARMEE = 'Horde du Chaos';
 
 /** Pending de tenue DÉJÀ jeté (la rangée témoin de l'ennemi n'est montrée que post-jet). */
 function holdPending(over: Partial<PendingActivity> = {}): PendingActivity {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Vétéran', rng: makeRNG(42) });
+  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Vétéran', seed: 42 });
   useGame.setState({ party: [hero], battle: null, massBattle: null, interlude: null, journal: [] });
   useGame.getState().startMassBattle({ allyMight: 50, enemyMight: 55, plannedRounds: 3, enemyName: ARMEE });
   return {

@@ -6,7 +6,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { Resvg } from '@resvg/resvg-js';
 import { defsGlobaux } from '../src/gameIso/sprites';
 import { weaponPart, objetSansPorteur } from '../src/gameIso/rig/parts/equipment';
-import { pickView } from '../src/gameIso/rig/parts/types';
+import { viewOrFront } from '../src/gameIso/rig/parts/types';
 import { WEAPON_FORMS } from '../src/gameIso/rig/parts/weaponForms';
 import type { Weapon } from '../src/engine/types';
 
@@ -19,7 +19,7 @@ const tiles = slugs.map((slug, i) => {
   const f = bySlug.get(slug);
   if (!f) return '';
   const art = weaponPart({ label: f.label, type: f.type, damage: { plusBF: false, flat: 4 }, qualities: [] } as Weapon);
-  const svg = pickView(objetSansPorteur(art), 'front');
+  const svg = viewOrFront(objetSansPorteur(art), 'front');
   return `<g transform="translate(${i * CW},0)"><rect width="${CW}" height="${CH}" fill="#222831"/>` +
     `<g transform="translate(${CW / 2},${CH - 26})">${svg}</g>` +
     `<text x="${CW / 2}" y="${CH - 6}" text-anchor="middle" font-size="8" fill="#cdd">${f.label}</text></g>`;

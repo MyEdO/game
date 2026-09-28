@@ -4,7 +4,7 @@
  */
 import { QUAD_MANE_DEFS } from './_registry.generated';
 import type { QuadManeDef } from './types';
-import { MISSING_ART, pickView } from '../../viewArt';
+import { MISSING_ART, nearestView } from '../../viewArt';
 
 export type { QuadManeDef } from './types';
 export type { QuadManeId } from './_registry.generated';
@@ -15,7 +15,7 @@ export const QUAD_MANES: Record<string, QuadManeDef> = Object.fromEntries(QUAD_M
 const MISSING_MANE: QuadManeDef = {
   key: '',
   label: 'Crinière manquante',
-  art: { neck: pickView(MISSING_ART, 'profile')() },
+  art: { neck: nearestView(MISSING_ART, 'profile')() },
 };
 
 /**

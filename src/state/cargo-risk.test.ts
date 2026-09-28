@@ -2,7 +2,6 @@ import { fixtureText } from '../i18n/fixtureText';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import {
   cargoRaidLossPct, spoilCargoByEnc, spoilCargoByPct, cargoTotalEnc, type CargoLot,
 } from '../engine/cargo';
@@ -21,7 +20,7 @@ const lot = (cargoId: string, enc: number): CargoLot => ({ cargoId, enc, basePri
 
 /** Un héros du groupe (propriétaire du porteur véhicule ci-dessous, SOCLE POSSESSIONS #617/#618). */
 function cartHero() {
-  return createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+  return createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
 }
 
 /** Un porteur véhicule (charrette EDOC, `chargement` 25) — Possession `nature: 'vehicule'`, chargé de `lots`. */
@@ -139,7 +138,7 @@ describe('Cogue pirate — se soumettre : pillage + tribut (#327 A5.3)', () => {
   beforeEach(() => {
     seedBattleRng(5);
     useGame.setState({
-      party: [createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) })],
+      party: [createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 })],
       vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, cargo: [lot('vin', 30), lot('sel', 20)] } as never,
       worldMap: null, scene: null, battle: null, travelPlan: null, pendingCascade: null, suspendedCascades: [], journal: [],
     } as never);

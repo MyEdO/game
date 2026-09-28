@@ -25,8 +25,6 @@
 // qui ouvre les dossiers de l'Atlas (`pagesDeLAtlas`) et les périmètres d'extraction.
 import { REGISTRE_LIVRES, coeursDuRegistre, domainesDe, estLivreExtrait } from './_lib.mjs'
 import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
 
 const CHOIX = { '--avec-supplements': true, '--coeur-seul': false }
 const CHOIX_DITS = Object.keys(CHOIX).join(' | ')
@@ -169,5 +167,4 @@ function main() {
   }
 }
 
-const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)
-if (isMain) main()
+if (import.meta.main) main()

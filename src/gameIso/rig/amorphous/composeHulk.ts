@@ -58,7 +58,7 @@ function blob(p: HulkProps, view: View): string {
   const drips = `<path d="M${W(-15)} 25 q-1 7 1 11 q2 -1 2 -5 q1 5 3 6 q1 -2 0 -7 Z" fill="@corps" stroke="@corpsO" stroke-width="0.5"/>` +
     `<path d="M${W(9)} 26 q1 8 -1 12 q-2 -1 -2 -6 q-1 4 -3 5 q-1 -3 1 -8 Z" fill="@corps" stroke="@corpsO" stroke-width="0.5"/>`;
   // « Vaguement humanoïde » (canon) : BOSSE DE TÊTE émergeant de la masse + épaulements —
-  // l'ovale uniforme lisait « blob-patate » (verdict des juges aveugles, lot 4).
+  // l'ovale uniforme lisait « blob-patate » (verdict des juges aveugles).
   const dome = `<path d="M${W(-9)} -24 Q${W(-7)} -33 ${W(1)} -33.5 Q${W(9)} -33 ${W(10)} -24 Q${W(4)} -27.5 ${W(-3)} -27.5 Z" fill="@corps" stroke="@corpsO" stroke-width="0.7"/>` +
     `<path d="M${W(-20)} -19 q-3 -4 -1 -7 M${W(20)} -18 q3 -4 1 -7" stroke="@corpsO" stroke-width="1.4" fill="none" opacity="0.6"/>`; // épaulements de boue
   if (view === 'back') return `<g>${drips}${mass}${dome}${lumps}<path d="M0 -22 Q3 0 0 24" stroke="@corpsO" stroke-width="1" opacity="0.35" fill="none"/></g>`;
@@ -92,7 +92,7 @@ function gel(p: HulkProps, view: View): string {
   const massD = `M${W(-19)} 17 Q${W(-27)} 13 ${W(-23)} 4 Q${W(-29)} -2 ${W(-22)} -9 Q${W(-27)} -17 ${W(-18)} -23 Q${W(-23)} -30 ${W(-13)} -34 Q${W(-12)} -41 ${W(-3)} -40.5 Q${W(6)} -43 ${W(10)} -36.5 Q${W(19)} -34.5 ${W(15)} -27 Q${W(24)} -22 ${W(19)} -15 Q${W(26)} -8 ${W(21)} -1 Q${W(26)} 7 ${W(18)} 14 Q${W(9)} 19.5 0 19.5 Q${W(-11)} 19.5 ${W(-19)} 17 Z`;
   const mass = `<path d="${massD}" fill="@corps" fill-opacity="0.62" stroke="none"/>`;
   // dégradé interne (artwork ZI 48 : gelée CLAIRE et lumineuse en haut → s'assombrit en fondant
-  // dans la vase du socle) — deux voiles additifs sur tokens existants, pas de <defs>
+  // dans la vase du socle) — deux voiles additifs sur jetons existants, pas de <defs>
   const glow = `<path d="M${W(-15)} -22 Q${W(-19)} -31 ${W(-12)} -35 Q${W(-11)} -41 ${W(-3)} -40 Q${W(6)} -42 ${W(9)} -36 Q${W(17)} -34 ${W(14)} -27 Q${W(16)} -20 ${W(11)} -14 Q${W(1)} -18 ${W(-9)} -14 Q${W(-16)} -16 ${W(-15)} -22 Z" fill="@corpsH" opacity="0.38"/>` +
     `<path d="M${W(-17)} -13 Q${W(-4)} -18 ${W(10)} -13 Q${W(14)} -6 ${W(11)} 0 Q0 -4 ${W(-12)} 0 Q${W(-18)} -6 ${W(-17)} -13 Z" fill="@corpsH" fill-opacity="0.2"/>`;
   const shade = `<path d="M${W(-21)} 3 Q${W(-11)} 8 0 8.5 Q${W(12)} 8 ${W(20)} 2 Q${W(25)} 8 ${W(18)} 14 Q${W(9)} 19.5 0 19.5 Q${W(-11)} 19.5 ${W(-19)} 17 Q${W(-26)} 12 ${W(-21)} 3 Z" fill="@cheveux" opacity="0.45"/>` +

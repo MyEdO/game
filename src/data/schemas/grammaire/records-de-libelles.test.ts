@@ -46,6 +46,7 @@ import { describe, it, expect } from 'vitest';
 import { readCorpus } from '../../../../scripts/guards/lib/sourceCorpus.mjs';
 import { DEFS_DE_DOCUMENT } from '../validate';
 import { descendre } from './descente';
+import { detenteur } from '../../../detenteur.testkit';
 
 /** Les vocabulaires (jeux d'options) d'enum atteints par le registre (`descendre`). */
 function vocabulairesDuRegistre(): Set<string>[] {
@@ -188,12 +189,12 @@ const STOCK: readonly string[] = [
 
 describe('cliquet — un libellé de valeur vit sur le NŒUD, jamais dans un Record', () => {
   const vocabulaires = vocabulairesDuRegistre();
-  const fichiers = sourcesDuDepot();
-  const detectes = recordsDeLibelles(fichiers, vocabulaires);
+  const fichiers = detenteur(() => sourcesDuDepot());
+  const detectes = recordsDeLibelles(fichiers(), vocabulaires);
 
   it('le détecteur voit les vocabulaires du registre et les sources des quatre racines', () => {
     expect(vocabulaires.length).toBeGreaterThan(100);
-    expect(fichiers.length).toBeGreaterThan(300);
+    expect(fichiers().length).toBeGreaterThan(300);
   });
 
   it('aucun Record de libellés de valeurs hors du stock gelé', () => {

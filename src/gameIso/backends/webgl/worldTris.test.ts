@@ -52,35 +52,51 @@ import { sceneMetresPerTile, type Scene } from '../../../state/scene';
 import { memoByRef } from '../../../state/sceneMemo';
 import { TW } from '../../../geometry/iso';
 import type { Face } from '../../builders/types';
-const diligenceConstruit = diligence.construire();
-const areneConstruit = arene.construire();
-
-const siege = buildScene(siegeSpec());
-/** La vitrine est BÂTIE une fois : son IDENTITÉ est la clé des listes retenues ci-dessous. */
-const vitrine = buildVitrineScene();
+import { detenteur } from '../../../detenteur.testkit';
 
 /**
- * Toutes les faces MONDE d'une scène, dans l'ordre de peinture des builders.
+ * Scènes-témoins BÂTIES et listes RETENUES par l'identité de la scène, dans UN détenteur du fichier
+ * (#1801).
  *
- * Cette liste et les deux qui suivent sont RETENUES par l'identité de la scène — patron canonique
- * du dépôt (`memoByRef`, `state/sceneMemo.ts`, celui de l'écran). Ce fichier rejoue les cinq mêmes
- * cartes-témoins d'un cas à l'autre et la construction des builders est la passe LOURDE ; les
- * listes rendues sont LUES, jamais mutées (biais, géométrie et empreintes rendent des tableaux
- * neufs). Une scène bâtie DANS un cas garde son identité propre, donc sa liste propre.
+ * Les trois listes suivent le patron canonique du dépôt (`memoByRef`, `state/sceneMemo.ts`, celui de
+ * l'écran). Ce fichier rejoue les mêmes cartes-témoins d'un cas à l'autre et la construction des
+ * builders est la passe LOURDE ; les listes rendues sont LUES, jamais mutées (biais, géométrie et
+ * empreintes rendent des tableaux neufs). Une scène bâtie DANS un cas garde son identité propre, donc
+ * sa liste propre.
  */
-const facesOf = memoByRef((scene: Scene): Face[] =>
-  [...buildFloors(scene), ...buildWalls(scene), ...buildRoofs(scene)].flatMap((el) => el.faces));
-
-/** Quads MONDE d'une scène à la profondeur que les catalogues d'apparence résolvent (`faceRelief`) —
- *  la liste EXACTE que `bakeWorldGeometry` fusionne, jamais une géométrie de laboratoire. */
-const quadsOf = memoByRef((scene: Scene): WorldPoly[] => {
-  const mpt = sceneMetresPerTile(scene);
-  const depthOf = faceDepthOf();
-  return facesOf(scene).flatMap((f) => faceQuads(f, mpt, depthOf(f)));
-});
-
-/** La géométrie triangulée de TOUTES les faces d'une scène — ce que `bakeWorldGeometry` appelle. */
-const geomsOf = memoByRef((scene: Scene) => facesGeometry(facesOf(scene), sceneMetresPerTile(scene), faceDepthOf()));
+function batirTemoins() {
+  /** Toutes les faces MONDE d'une scène, dans l'ordre de peinture des builders. */
+  const facesOf = memoByRef((scene: Scene): Face[] =>
+    [...buildFloors(scene), ...buildWalls(scene), ...buildRoofs(scene)].flatMap((el) => el.faces));
+  /** Quads MONDE d'une scène à la profondeur que les catalogues d'apparence résolvent (`faceRelief`) —
+   *  la liste EXACTE que `bakeWorldGeometry` fusionne, jamais une géométrie de laboratoire. */
+  const quadsOf = memoByRef((scene: Scene): WorldPoly[] => {
+    const mpt = sceneMetresPerTile(scene);
+    const depthOf = faceDepthOf();
+    return facesOf(scene).flatMap((f) => faceQuads(f, mpt, depthOf(f)));
+  });
+  /** La géométrie triangulée de TOUTES les faces d'une scène — ce que `bakeWorldGeometry` appelle. */
+  const geomsOf = memoByRef((scene: Scene) => facesGeometry(facesOf(scene), sceneMetresPerTile(scene), faceDepthOf()));
+  return {
+    siege: buildScene(siegeSpec()),
+    arene: arene.construire().scene,
+    diligence: diligence.construire().scene,
+    vitrine: buildVitrineScene(),
+    opera: buildOperaFloorplan(),
+    facesOf,
+    quadsOf,
+    geomsOf,
+  };
+}
+const temoin = detenteur(batirTemoins);
+const siege = () => temoin().siege;
+const vitrine = () => temoin().vitrine;
+const opera = () => temoin().opera;
+const areneHub = () => temoin().arene;
+const diligenceScene = () => temoin().diligence;
+const facesOf = (scene: Scene) => temoin().facesOf(scene);
+const quadsOf = (scene: Scene) => temoin().quadsOf(scene);
+const geomsOf = (scene: Scene) => temoin().geomsOf(scene);
 
 describe('gpToWorld — GP (tuiles + mètres) → repère three Y-haut', () => {
   it('(x, y, h) devient (x·mpt, h, y·mpt)', () => {
@@ -93,13 +109,14 @@ describe('gpToWorld — GP (tuiles + mètres) → repère three Y-haut', () => {
 });
 
 describe('Triangulation en ÉVENTAIL — le pivot n’émet que des faces planes, convexes, ≤ 4 points', () => {
-  const scenes: [string, Scene][] = [
+  const scenes: [string, () => Scene][] = [
     ['siege-enceinte', siege],
-    ['arene (hub)', areneConstruit.scene],
+    ['arene (hub)', areneHub],
   ];
 
-  for (const [name, scene] of scenes) {
+  for (const [name, faire] of scenes) {
     it(`${name} : 0 face > 4 points, 0 non-plane (> 1e-4 m), 0 non-convexe`, () => {
+      const scene = faire();
       const mpt = sceneMetresPerTile(scene);
       let counted = 0;
       let tooMany = 0;
@@ -183,8 +200,8 @@ describe('MONTANTS à 2 points — deux quads verticaux croisés, largeur AUTHOR
   });
 
   it('arène : AUCUN montant n’est entièrement noyé dans la matière des murs', () => {
-    const mpt = sceneMetresPerTile(areneConstruit.scene);
-    const faces = facesOf(areneConstruit.scene);
+    const mpt = sceneMetresPerTile(areneHub());
+    const faces = facesOf(areneHub());
     const depthOf = faceDepthOf();
     // Matière = les boîtes des faces qui SONT la matière pleine du mur (`wallPartRelief`) — depuis le
     // relief mince (#1176 P1-E), une partie en SAILLIE produit une boîte elle aussi, mais plus épaisse
@@ -267,12 +284,13 @@ describe('BIAIS COPLANAIRE — l’ordre de peinture affine devient une séparat
     expect(coplanarOverlapPairs([tile(0), tile(1)])).toHaveLength(1);
   });
 
-  const scenes: [string, Scene][] = [
+  const scenes: [string, () => Scene][] = [
     ['siege-enceinte', siege],
-    ['arene (hub)', areneConstruit.scene],
+    ['arene (hub)', areneHub],
   ];
-  for (const [name, scene] of scenes)
+  for (const [name, faire] of scenes)
     it(`${name} : des paires coplanaires recouvrantes AVANT biais, zéro APRÈS (montants COMPRIS)`, () => {
+      const scene = faire();
       const quads = quadsOf(scene);
       const ranks = coplanarRanks(quads);
       const biased = quads.map((p, i) => biasPoly(p, ranks[i]));
@@ -281,8 +299,8 @@ describe('BIAIS COPLANAIRE — l’ordre de peinture affine devient une séparat
     });
 
   it('arène : les quads de MONTANT entrent dans le rang (poteaux/jambages/piliers)', () => {
-    const mpt = sceneMetresPerTile(areneConstruit.scene);
-    const faces = facesOf(areneConstruit.scene);
+    const mpt = sceneMetresPerTile(areneHub());
+    const faces = facesOf(areneHub());
     const depthOf = faceDepthOf();
     const quads: WorldPoly[] = [];
     const montant: boolean[] = [];
@@ -301,8 +319,8 @@ describe('BIAIS COPLANAIRE — l’ordre de peinture affine devient une séparat
   });
 
   it('facesGeometry biaise AUSSI les quads d’un montant (même liste de rangs que faceQuads)', () => {
-    const mpt = sceneMetresPerTile(areneConstruit.scene);
-    const faces = facesOf(areneConstruit.scene);
+    const mpt = sceneMetresPerTile(areneHub());
+    const faces = facesOf(areneHub());
     const geoms = facesGeometry(faces, mpt, faceDepthOf());
     const iMontant = faces.findIndex((f, i) => f.poly.length === 2 && geoms[i].rank > 0);
     expect(iMontant).toBeGreaterThanOrEqual(0);
@@ -358,15 +376,16 @@ describe('coplanarRanks — le balayage spatial rend EXACTEMENT les rangs de la 
     });
   }
 
-  const cartes: [string, Scene][] = [
-    ['arene (hub)', areneConstruit.scene],
+  const cartes: [string, () => Scene][] = [
+    ['arene (hub)', areneHub],
     ['siege-enceinte', siege],
-    ['diligence', diligenceConstruit.scene],
+    ['diligence', diligenceScene],
     ['vitrine-batiments', vitrine],
-    ['opera (la plus lourde du dépôt)', buildOperaFloorplan()],
+    ['opera (la plus lourde du dépôt)', opera],
   ];
-  for (const [nom, scene] of cartes)
+  for (const [nom, faire] of cartes)
     it(`${nom} : rangs identiques à l’oracle, quad par quad`, () => {
+      const scene = faire();
       const quads = quadsOf(scene);
       const attendus = rangsExhaustifs(quads);
       expect(attendus.filter((r) => r > 0).length).toBeGreaterThan(0); // prémisse : il y a bien des piles
@@ -513,12 +532,13 @@ describe('ÉPAISSEUR de mur — un plan d’épaisseur nulle n’a AUCUNE surfac
     expect(oriented).toBe(false); // un sens de parcours arbitraire orienterait la carte d'ombre
   });
 
-  const parScene: [string, Scene][] = [
+  const parScene: [string, () => Scene][] = [
     ['siege-enceinte', siege],
-    ['arene (hub)', areneConstruit.scene],
+    ['arene (hub)', areneHub],
   ];
-  for (const [name, scene] of parScene)
+  for (const [name, faire] of parScene)
     it(`${name} : les murs offrent une surface NON NULLE vue du dessus (coiffes)`, () => {
+      const scene = faire();
       const mpt = sceneMetresPerTile(scene);
       const faces = buildWalls(scene).flatMap((el) => el.faces);
       const tris = facesGeometry(faces, mpt, faceDepthOf()).flatMap((g) => g.tris);
@@ -533,11 +553,10 @@ describe('CONVERSION des murs — la géométrie rendue est celle que `buildWall
   // L'opéra dresse 983 segments (aucun diagonal : son ovale est un ESCALIER de segments N/E). La garde
   // mesure que la conversion n'en PERD ni n'en DÉPLACE aucun — l'aspect « dalles disjointes » de la
   // planche `opera-iso-rot2-unlit.png` se joue en amont, dans le plan authoré.
-  const opera = buildOperaFloorplan();
-
   it('opéra : chaque face de mur émise produit des triangles, tous DANS l’emprise de la scène', () => {
-    const mpt = sceneMetresPerTile(opera);
-    const faces = buildWalls(opera).flatMap((el) => el.faces);
+    const scene = opera();
+    const mpt = sceneMetresPerTile(scene);
+    const faces = buildWalls(scene).flatMap((el) => el.faces);
     expect(faces.length).toBeGreaterThan(1000);
     const geoms = facesGeometry(faces, mpt, faceDepthOf());
     expect(geoms.filter((g) => g.tris.length === 0)).toEqual([]);
@@ -549,9 +568,9 @@ describe('CONVERSION des murs — la géométrie rendue est celle que `buildWall
       .filter(
         (p) =>
           p.x < -TOL_M ||
-          p.x > (opera.dimensions.w - 1) * mpt + TOL_M ||
+          p.x > (scene.dimensions.w - 1) * mpt + TOL_M ||
           p.z < -TOL_M ||
-          p.z > (opera.dimensions.h - 1) * mpt + TOL_M,
+          p.z > (scene.dimensions.h - 1) * mpt + TOL_M,
       );
     expect(hors).toEqual([]);
   });
@@ -624,7 +643,7 @@ describe('UV — la maille MONDE en mètres (attribut `uv`)', () => {
   });
 
   it('scène réelle (siege-enceinte) : chaque triangle porte 3 UV monde, à l’échelle métrique de SON quad', () => {
-    const geoms = geomsOf(siege);
+    const geoms = geomsOf(siege());
     expect(geoms.length).toBeGreaterThan(100);
     let pires = 0;
     for (const g of geoms) {
@@ -657,8 +676,8 @@ describe('UV1 — la FACE d’origine en [0,1]² (attribut `uv1`)', () => {
 
   it('scène réelle : TOUTES les uv1 sont bornées [0,1] (montants et chants de boîte compris)', () => {
     for (const [, scène] of [
-      ['siege', siege],
-      ['arene', areneConstruit.scene],
+      ['siege', siege()],
+      ['arene', areneHub()],
     ] as [string, Scene][]) {
       const geoms = geomsOf(scène);
       const hors = geoms.flatMap((g) => g.uv1.flat()).filter((c) => c.u < 0 || c.u > 1 || c.v < 0 || c.v > 1);
@@ -667,7 +686,7 @@ describe('UV1 — la FACE d’origine en [0,1]² (attribut `uv1`)', () => {
   });
 
   it('scène réelle : uv1 EXPLOITE la face (elle n’est pas un aplat de zéros)', () => {
-    const geoms = geomsOf(siege);
+    const geoms = geomsOf(siege());
     const toutes = geoms.flatMap((g) => g.uv1.flat());
     expect(toutes.length).toBeGreaterThan(100);
     expect(toutes.filter((c) => c.u > 0.99).length).toBeGreaterThan(50);
@@ -675,10 +694,10 @@ describe('UV1 — la FACE d’origine en [0,1]² (attribut `uv1`)', () => {
   });
 
   it('les DEUX joues d’une boîte de mur partagent leurs uv1 : le même ornement des deux côtés', () => {
-    const mpt = sceneMetresPerTile(siege);
+    const mpt = sceneMetresPerTile(siege());
     const depthOf = faceDepthOf();
     // Toute face verticale de mur devient une boîte : ses deux premiers quads sont ses JOUES.
-    const face = facesOf(siege).find((f) => faceQuadsOriented(f, mpt, depthOf(f)).oriented);
+    const face = facesOf(siege()).find((f) => faceQuadsOriented(f, mpt, depthOf(f)).oriented);
     expect(face).toBeDefined();
     const fr = faceUvFrame(facePoly(face!, mpt));
     const [avant, arrière] = faceQuadsOriented(face!, mpt, depthOf(face!)).quads;
@@ -729,8 +748,8 @@ describe('RELIEF MINCE — le prix mesuré du volume (#1176 P1-E)', () => {
    *  fichier du scénario, la vitrine est une spec de rendu — aucune main d'auteur ne peut déplacer
    *  leurs chiffres. */
   const MESURES: [string, () => Scene, { trisAvant: number; trisApres: number; paires: number }][] = [
-    ['siege-enceinte', () => siege, { trisAvant: 6912, trisApres: 7404, paires: 1238 }],
-    ['vitrine-batiments', () => vitrine, { trisAvant: 9666, trisApres: 11146, paires: 5279 }],
+    ['siege-enceinte', siege, { trisAvant: 6912, trisApres: 7404, paires: 1238 }],
+    ['vitrine-batiments', vitrine, { trisAvant: 9666, trisApres: 11146, paires: 5279 }],
   ];
 
   /** SANS ÉPINGLE CHIFFRÉE — scènes dont la carte appartient à un AUTEUR (ou à son générateur) : une
@@ -747,8 +766,8 @@ describe('RELIEF MINCE — le prix mesuré du volume (#1176 P1-E)', () => {
    *  (bourg meublé à fort relief) se rétablit par une scène CONSTRUITE portant du relief, pas en
    *  ré-épinglant une carte livrée. */
   const SANS_EPINGLE: [string, () => Scene, string][] = [
-    ['diligence', () => diligenceConstruit.scene, 'carte livrée (authoring au studio)'],
-    ['arene (hub)', () => areneConstruit.scene, 'carte livrée (générateur d’auteur)'],
+    ['diligence', diligenceScene, 'carte livrée (authoring au studio)'],
+    ['arene (hub)', areneHub, 'carte livrée (générateur d’auteur)'],
   ];
 
   /** Plafond de hausse ASSUMÉ du lot : au-delà, le relief coûte plus qu'il ne rend et la mesure remonte
@@ -790,7 +809,7 @@ describe('RELIEF MINCE — le prix mesuré du volume (#1176 P1-E)', () => {
     });
 
   it('la vitrine porte les parties de RUINE et de porte FERMÉE qu’aucune autre scène-témoin n’émet', () => {
-    const parts = new Set(facesRendues(vitrine).map((f) => f.material.part));
+    const parts = new Set(facesRendues(vitrine()).map((f) => f.material.part));
     for (const part of ['gravats', 'gravats-tas', 'seuil', 'vantail', 'vantail-planche', 'poignee'])
       expect(parts.has(part as WallPart), `${part} absent de la vitrine`).toBe(true);
   });

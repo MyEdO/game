@@ -229,7 +229,7 @@ describe('cliquet composeur — CONTENU des conséquences : re-print roll/target
 /**
  * VOLET ISSUE (#1262 V3 Lj) — le canal de l'ISSUE d'un jet. Le murage par export est impossible
  * (`get().log` sert le narratif légitime, `describeX` sert AUSSI l'affichage des fenêtres de
- * `src/ui`) : la police est un LINT D'IMPORT AST (`no-restricted-imports`, `eslint.config.js`, patron
+ * `src/ui`) : la police est un LINT D'IMPORT AST (mur `murs/canal-issue`, `eslint.config.js`, patron
  * `ownsLocally`), borné à `src/state` — la couche qui décidait — et MESURÉ ici sur la config RÉELLE
  * (API ESLint, jamais une copie de règle : une regex maison laissait passer les guillemets doubles).
  *
@@ -256,7 +256,7 @@ const eslint = new ESLint({ cwd: ROOT });
 /** Occurrences de la règle d'import restreint sur un CODE donné (config réelle). */
 async function violationsCanal(code: string, filePath = SOUS_LA_REGLE): Promise<number> {
   const [res] = await eslint.lintText(code, { filePath, warnIgnored: false });
-  return res.messages.filter((m) => m.ruleId === 'no-restricted-imports').length;
+  return res.messages.filter((m) => m.ruleId === 'murs/canal-issue').length;
 }
 
 describe('cliquet du canal — l’ISSUE d’un jet ne se compose qu’aux GOULOTS (#1262 V3 Lj)', () => {
@@ -270,7 +270,7 @@ describe('cliquet du canal — l’ISSUE d’un jet ne se compose qu’aux GOULO
       .map(({ abs }) => abs);
     const res = await eslint.lintFiles(candidats);
     const offenders = res.flatMap((r) => r.messages
-      .filter((m) => m.ruleId === 'no-restricted-imports')
+      .filter((m) => m.ruleId === 'murs/canal-issue')
       .map(() => relative(ROOT, r.filePath).split('\\').join('/')));
     expect(offenders, 'Issue composée hors goulot — déclarer `spec.issue` et acquitter par `flow.apply` :').toEqual([]);
   }, { timeout: 30_000 });

@@ -1,4 +1,5 @@
 /** QC une espèce, 3 vues en TRÈS grand (étude détaillée). Usage: npx tsx scripts/_qc-one3.mts Loup */
+import { VIEWS } from '../src/gameIso/rig/facing';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { Resvg } from '@resvg/resvg-js';
 import { defsGlobaux } from '../src/gameIso/sprites';
@@ -6,7 +7,6 @@ import { bonesToSvg } from '../src/gameIso/rig/renderBones';
 import { resolveQuad } from '../src/gameIso/rig/quadruped/composeQuad';
 
 const sp = process.argv[2] ?? 'Loup';
-const VIEWS = ['profile', 'front', 'back'] as const;
 const CW = 120, CH = 152, FEET = 150;
 const cells = VIEWS.map((view, ci) =>
   `<g transform="translate(${ci * CW},0)"><rect width="${CW}" height="${CH}" fill="#26323a"/>` +

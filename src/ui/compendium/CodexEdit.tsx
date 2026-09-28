@@ -5,6 +5,7 @@
  * piochés dans leurs vrais datasets, param libre « 8 Tentacules +8 » conservé). Sauvegarde via File
  * System Access (`fsPersist`) + preview mémoire (`setDataset`).
  */
+import { tableTotale } from '../../lib/tableTotale';
 import { useEffect, useMemo, useState } from 'react';
 import { datasetArray, setDataset, datasetObject, datasetObjectSerializeRoot, setObjectDataset, datasetFile, datasetSerializeRoot, datasetObjectFile, type DatasetKey, type ObjectDatasetKey } from '../../data/overrides';
 import { CATEGORY_DATASET_DERIVE, OBJECT_CATEGORY_DERIVE } from '../../data/schemas/exposition-derivee';
@@ -38,7 +39,7 @@ import type { GameOp } from '../../engine/ops';
 import type { ConsumableDuration } from '../../engine/consumables';
 import { JsonField } from '../editor/JsonField';
 import { QUAD_SPECIES, WINGED_SPECIES } from '../../gameIso/rig/creatures';
-import { coiffureChoisie, coiffureRetombee } from '../../gameIso/rig/parts/cosmetic';
+import { apparenceSuivante } from '../../gameIso/rig/parts/cosmetic';
 import { CreaturePreview } from './CreaturePreview';
 import { porteurDApercu } from './apercuPorteur';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
@@ -54,6 +55,7 @@ import type { PsychTrait } from '../../engine/psychology';
 import { SymptomsField, SymptomTickField, DiseaseDailyTestField, type DiseaseDailyTest, ShipCrewHitField, type ShipCrewHitValue, TalentTestField, CombatField, AdvancementRefField, TrappingRefField, CharKeysField, DispoSaisonniereField, DomainEffectsField, TraitListField, OptionalsListField, HarvestField, SpecsField, RuleValueField, RuleActionField, type RuleShape } from './StructFields';
 import type { OptionalRule } from '../../engine/policy';
 import type { TraitInstance, OptionalEntry } from '../../engine/statEntry';
+import { isSwarm } from '../../engine/traits/dispatch';
 import type { DomainData } from '../../data';
 import type { CharKey, Difficulty } from '../../engine/types';
 import { CHAR_KEYS, CHAR_LABELS, DIFFICULTY_LABELS, HIT_LOCATION_LABELS } from '../../engine/types';
@@ -127,15 +129,15 @@ const OPS_FIELDS: Record<string, string[]> = {
   aaCriticalsTete: ['ops'], aaCriticalsBras: ['ops'], aaCriticalsCorps: ['ops'], aaCriticalsJambe: ['ops'],
   incidentsMonture: ['occupantOps'], problemesVehicule: ['occupantOps'],
   seaShanties: ['crewOps', 'captainOps'],
-  drunkenness: ['ops'], // LOT 1 #422 (suite) : effet mécanique optionnel d'un résultat d'Ivresse (LDB 09)
+  drunkenness: ['ops'], // #422 (suite) : effet mécanique optionnel d'un résultat d'Ivresse (LDB 09)
   stars: ['ops'], // #1467 L1b : effet du signe aux attributs de départ (ADE II 3 l.38) — GameOp[] comme les autres
-  // LOT 3 #422 (FINAL) : Empoignade — `init` (à la touche) en `GameOp[]` top-level (`win.damage/entangle/
+  // #422 (FINAL) : Empoignade — `init` (à la touche) en `GameOp[]` top-level (`win.damage/entangle/
   // free`, sous `win`, retombent en sous-formulaire récursif `object`, hors guard — même patron `windEffect`
   // de `riverNavigation`). Incantations Imparfaites/Colère des dieux — `ops` (dialecte compilé, mais MÊMES
   // kinds `condition`/`wounds`/`corruption`/`reduceToZero`/`castPenalty` que le vocabulaire `GameOp` réel).
   grapple: ['init'],
   miscastMinor: ['ops'], miscastMajor: ['ops'], miscastWrath: ['ops'],
-  ...Object.fromEntries(SHIP_CRIT_CATEGORIES.map((k) => [k, ['ops']])),
+  ...tableTotale(SHIP_CRIT_CATEGORIES, () => ['ops']),
 };
 const opsFieldsOf = (categoryKey: string): string[] => OPS_FIELDS[categoryKey] ?? [];
 
@@ -318,13 +320,13 @@ export function dedicatedFieldKeys(categoryKey: string): Set<string> {
   if (categoryKey === 'mutations') add('psychTraits');
   if (['mutations', 'trappings'].includes(categoryKey)) add('derivedWeapon');
   if (categoryKey === 'trappings') add('consumable', 'consumableDuration', 'onHitEffects'); // onHitEffects → TriggeredEffectsField (#175)
-  // #1318 E4/C-γ : paliers d'entraînement d'une PROTHÈSE (LDB 73) — `{cost,label,reduces?,grants?}[]`,
+  // #1318 : paliers d'entraînement d'une PROTHÈSE (LDB 73) — `{cost,label,reduces?,grants?}[]`,
   // tableau d'objets HOMOGÈNES → éditeur GÉNÉRIQUE commun (`GenericArrayField`), jamais le repli JSON.
   if (categoryKey === 'trappings') add('prosthesisTraining');
-  if (categoryKey === 'maladies') add('symptoms', 'dailyTest'); // `dailyTest` porte un nœud `test` du Flow → DiseaseDailyTestField (#1657 B2b)
+  if (categoryKey === 'maladies') add('symptoms', 'dailyTest'); // `dailyTest` porte un nœud `test` du Flow → DiseaseDailyTestField (#1657)
   if (categoryKey === 'talents') add('combat', 'test');
-  if (VARIANT_FIELDS_BY_CATEGORY[categoryKey]) add('variants'); // variants → VariantsField (#563 Lot 5)
-  if (['trappings', 'qualities', 'spells', 'traits', 'navalTraits', 'talents', 'domains', 'creatures', 'races'].includes(categoryKey)) add('alsoIn'); // alsoIn → AlsoInField (#563 Lot 5)
+  if (VARIANT_FIELDS_BY_CATEGORY[categoryKey]) add('variants'); // variants → VariantsField (#563)
+  if (['trappings', 'qualities', 'spells', 'traits', 'navalTraits', 'talents', 'domains', 'creatures', 'races'].includes(categoryKey)) add('alsoIn'); // alsoIn → AlsoInField (#563)
   if (categoryKey === 'skills' || categoryKey === 'talents') add('specs');
   if (categoryKey === 'traits') add('specsSource', 'indice', 'range', 'specsOpen', 'specsMulti'); // schéma d'argument → éditeur dédié
   // V9 #1318 : la VALEUR d'une règle optionnelle est typée par son `kind` (`RuleValueField`/
@@ -346,18 +348,18 @@ export function dedicatedFieldKeys(categoryKey: string): Set<string> {
   if (categoryKey === 'tavernGames') add('options', 'table', 'sides');
   if (categoryKey === 'creatures') add('traits', 'optionals', 'harvest');
   if (categoryKey === 'details') add('texts');
-  if (SHIP_CRIT_CATEGORIES.includes(categoryKey)) add('crewHit'); // {crewTarget?, test | ops} — nœud `test` du Flow → ShipCrewHitField (#1657 B2c)
+  if (SHIP_CRIT_CATEGORIES.includes(categoryKey)) add('crewHit'); // {crewTarget?, test | ops} — nœud `test` du Flow → ShipCrewHitField (#1657)
   if (categoryKey === 'waterExposure') add('test', 'modifiers', 'diseases'); // #157 suite (MSRC 16)
-  // LOT 1 #422 : seules les tables NICHÉES en TABLEAU top-level d'une fiche-objet navale retombent en
+  // #422 : seules les tables NICHÉES en TABLEAU top-level d'une fiche-objet navale retombent en
   // json (repli générique) — chaque sous-objet HÉTÉROGÈNE (vitesseMax/salissures/orientation/phares/
   // poursuite/reparation…) recourt déjà au sous-formulaire récursif (`ObjectField`), hors guard.
   if (categoryKey === 'seaNavigation') add('forcerLeRythme');
   if (categoryKey === 'seaPerils') add('hazards', 'detroits', 'tourbillons', 'gestionDesPerils');
   if (categoryKey === 'seaWeather') add('table', 'precipitations', 'temperatures', 'visibilites', 'vents', 'roseDesVents');
-  // LOT 1 #422 (suite) : Disponibilité & Troc (`disponibilite`, mode 'single', patron `waterExposure`) —
+  // #422 (suite) : Disponibilité & Troc (`disponibilite`, mode 'single', patron `waterExposure`) —
   // `dispoPct`/`barterRatios` (tableaux top-level) → éditeur GÉNÉRIQUE commun (`GenericArrayField`).
   if (categoryKey === 'disponibilite') add('dispoPct', 'barterRatios');
-  // LOT 2 #422 : Navigation fluviale (`riverNavigation`, mode 'single', patron `waterExposure`) —
+  // #422 : Navigation fluviale (`riverNavigation`, mode 'single', patron `waterExposure`) —
   // `windForces`/`windDirections` (tableaux top-level) → éditeur GÉNÉRIQUE commun (`GenericArrayField`).
   // `windEffect`/`capsize`/`rowingAgility`/`outOfControl`/`echouage`/`temporaryRepair` sont des objets
   // (hétérogènes ou Record de Record) déjà couverts par le sous-formulaire récursif (`ObjectField`).
@@ -506,10 +508,10 @@ export function CodexEdit({ categoryKey, label, id, onClose, isNew }: CodexEditP
   const isDisease = categoryKey === 'maladies';
   // Talent : sa capacité de combat `combat` (CombatFeature : drapeaux + castingKind/attackModes/offHand).
   const hasCombat = categoryKey === 'talents';
-  // Variantes réglées par règle optionnelle (`variants`, #563 Lot 5) — VariantsField, dont les sous-
+  // Variantes réglées par règle optionnelle (`variants`, #563) — VariantsField, dont les sous-
   // éditeurs DÉRIVENT de la liste blanche du dataset (`VARIANT_FIELDS_BY_CATEGORY`).
   const variantFields = VARIANT_FIELDS_BY_CATEGORY[categoryKey];
-  // Emplacement(s) secondaire(s) d'une entrée réimprimée ailleurs (`alsoIn`, #563 Lot 5) — AlsoInField.
+  // Emplacement(s) secondaire(s) d'une entrée réimprimée ailleurs (`alsoIn`, #563) — AlsoInField.
   const hasAlsoIn = ['trappings', 'qualities', 'spells', 'traits', 'navalTraits', 'talents', 'domains', 'creatures'].includes(categoryKey);
   // Compétence/Talent : `specs` = SpecEntry[] ({id,label}).
   const hasSpecs = categoryKey === 'skills' || categoryKey === 'talents';
@@ -544,16 +546,16 @@ export function CodexEdit({ categoryKey, label, id, onClose, isNew }: CodexEditP
   // Exposition à l'eau (`waterExposure`, #157 suite, MSRC 16) : `test` (Compétence+Difficulté),
   // `modifiers` (WaterExposureModifier[]) et `diseases` (plages d100 → maladie) ont chacun leur éditeur.
   const isWaterExposure = categoryKey === 'waterExposure';
-  // LOT 1 #422 : fiches de règle navales UNIQUES (mode 'single', patron `waterExposure`) — leurs
+  // #422 : fiches de règle navales UNIQUES (mode 'single', patron `waterExposure`) — leurs
   // tableaux top-level NICHÉS (`forcerLeRythme`/`hazards`/…/`roseDesVents`) ont un éditeur GÉNÉRIQUE
   // commun (`GenericArrayField`, réutilise `inferFields`+`Field` — pas de forme dédiée par champ).
   const isSeaNavigation = categoryKey === 'seaNavigation';
   const isSeaPerils = categoryKey === 'seaPerils';
   const isSeaWeather = categoryKey === 'seaWeather';
-  // LOT 1 #422 (suite) : Disponibilité & Troc (`disponibilite`, mode 'single') — `dispoPct`/`barterRatios`
+  // #422 (suite) : Disponibilité & Troc (`disponibilite`, mode 'single') — `dispoPct`/`barterRatios`
   // (tableaux top-level) au MÊME éditeur générique commun que les fiches navales ci-dessus.
   const isDisponibilite = categoryKey === 'disponibilite';
-  // LOT 2 #422 : Navigation fluviale (`riverNavigation`, mode 'single') — `windForces`/`windDirections`
+  // #422 : Navigation fluviale (`riverNavigation`, mode 'single') — `windForces`/`windDirections`
   // (tableaux top-level) au MÊME éditeur générique commun que les fiches ci-dessus.
   const isRiverNavigation = categoryKey === 'riverNavigation';
   const hasHullLength = categoryKey === 'shipHullSizes'; // `lengthM` : [minM,maxM]
@@ -655,7 +657,7 @@ export function CodexEdit({ categoryKey, label, id, onClose, isNew }: CodexEditP
         </ul>
       )}
       <div className="codex-edit-form">
-        {hasAppearance && <AppearanceField label={String(entry.label ?? label)} porteur={porteurDApercu(categoryKey)} value={entry.appearance as EntityAppearance | undefined} onChange={(v) => edit('appearance', v)} />}
+        {hasAppearance && <AppearanceField label={String(entry.label ?? label)} porteur={porteurDApercu(categoryKey)} nuee={categoryKey === 'creatures' && isSwarm(entry.traits as TraitInstance[] | undefined)} value={entry.appearance as EntityAppearance | undefined} onChange={(v) => edit('appearance', v)} />}
         {isSpell && <SpellEffectsField value={entry.effects as Flow | undefined} onChange={(v) => edit('effects', v)} />}
         {CRITICAL_CATEGORIES.includes(categoryKey) && (
           <NoeudTestField
@@ -875,41 +877,29 @@ export function CodexEdit({ categoryKey, label, id, onClose, isNew }: CodexEditP
   );
 }
 
-/** Éditeur d'apparence par défaut d'une créature (bloc `appearance` UNIFIÉ) — réutilise les briques
- *  partagées `ReglagesApparence` (espèce/sexe/carrure/coiffure) et `MonsterPartsFields` (parts/couleurs/
- *  tenue/harnachement/yeux). Édite le VRAI record
- *  `creatures.json` ; le rig le lit comme couche de défaut → l'apparence en jeu reflète l'édition. */
-function AppearanceField({ label, porteur, value, onChange }: { label: string; porteur?: string; value: EntityAppearance | undefined; onChange: (v: EntityAppearance) => void }) {
+/** Apparence par défaut d'une créature (bloc `appearance`, #1897). */
+function AppearanceField({ label, porteur, nuee, value, onChange }: { label: string; porteur?: string; nuee: boolean; value: EntityAppearance | undefined; onChange: (v: EntityAppearance) => void }) {
   const a = value ?? {};
-  const patch = (p: Partial<EntityAppearance>) => onChange(coiffureRetombee({ ...a, ...p }));
   // Le harnachement est un canal du pipeline QUADRUPÈDE (quad ∪ ailé) : hors de ces gabarits, la
   // clé serait de la donnée absurde, ignorée au rendu — le sélecteur n'est donc pas offert.
   const quadrupede = !!a.species && (a.species in QUAD_SPECIES || a.species in WINGED_SPECIES);
   return (
-    <div className="ed-field ed-appearance">
-      <span>apparence par défaut — éditée sur le record, reflétée en jeu</span>
-      <CreaturePreview label={label} appearance={a} porteur={porteur} />{/* aperçu LIVE : se met à jour à chaque modification */}
-      <ReglagesApparence
-        species={a.species} sex={a.sex} build={a.build} hairstyle={a.hairstyle}
-        onSpecies={(id) => patch({ species: id })}
-        onSex={(s) => patch({ sex: s })}
-        onBuild={(b) => patch({ build: b })}
-        onHairstyle={(id) => patch(coiffureChoisie(id))}
-      />
+    <>
+      <div className="ed-field">
+        <span>Apparence</span>
+        <CreaturePreview label={label} appearance={a} porteur={porteur} />{/* aperçu LIVE : se met à jour à chaque modification */}
+        <ReglagesApparence appearance={a} onChange={onChange} reglages={['species', 'sex', 'build', 'hairstyle']} nuee={nuee} />
+        <label className="dr">
+          <input type="checkbox" checked={!!a.armurePortee} onChange={(e) => onChange(apparenceSuivante(a, { armurePortee: e.target.checked || undefined }))} />
+          {' '}Armure du profil visible sur la figurine
+        </label>
+      </div>
       <MonsterPartsFields
-        monster={a.monster} colors={a.colors} tenue={a.tenue} harnais={a.harnais} eyes={a.eyes} features={a.features}
-        onMonster={(p) => patch({ monster: { ...(a.monster ?? {}), ...p } })}
-        onColors={(p) => patch({ colors: { ...(a.colors ?? {}), ...p } })}
-        onTenue={(c) => patch({ tenue: c })}
-        onHarnais={quadrupede ? (id) => patch({ harnais: id }) : undefined}
-        onEyes={(p) => patch({ eyes: { ...(a.eyes ?? {}), ...p } })}
-        onFeatures={(f) => patch({ features: f.length ? f : undefined })}
+        appearance={a}
+        onChange={onChange}
+        reglages={quadrupede ? ['monster', 'eyes', 'features', 'tenue', 'harnais', 'colors'] : ['monster', 'eyes', 'features', 'tenue', 'colors']}
       />
-      <label className="dr">
-        <input type="checkbox" checked={!!a.armurePortee} onChange={(e) => patch({ armurePortee: e.target.checked || undefined })} />
-        {' '}Armure du statblock VISIBLE (portée) — sinon les PA (trait Armure) restent mécaniques purs, sans art
-      </label>
-    </div>
+    </>
   );
 }
 
@@ -1904,7 +1894,7 @@ function ObjectField({ label, value, noeud, onChange }: { label: string; value: 
   );
 }
 
-/** Tableau de lignes HÉTÉROGÈNES (LOT 1 #422) — une entrée par rangée, colonnes DÉRIVÉES par
+/** Tableau de lignes HÉTÉROGÈNES (#422) — une entrée par rangée, colonnes DÉRIVÉES par
  *  `inferFields` (comme `ObjectField`, mais pour un tableau top-level plutôt qu'un objet unique). Chaque
  *  champ retrouve son kind structuré (number/text/source/stringList…) ; un sous-champ COLONNE lui-même
  *  tableau-d'objets (ex. `hazards[].entanglePenalties`) reste JSON-FREE : il redescend en `GenericArrayField`

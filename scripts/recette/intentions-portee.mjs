@@ -22,6 +22,7 @@
 // Sortie : exit 1 au premier défaut (liste complète imprimée), exit 0 si tout passe.
 import { openApp, evaluate, sleep, shot, clickButtonByText, consoleGuard, frapperTouche, cliquerAction, resoudreModales } from './lib.mjs';
 import { enteteArbre } from '../guards/lib/enteteArbre.mjs';
+import { chebyshev } from '../../src/engine/grid.ts';
 
 /** FILIGRANE : l'arbre RÉELLEMENT joué (une recette sans son arbre ne prouve rien). */
 const filigrane = () => enteteArbre(process.cwd());
@@ -129,7 +130,7 @@ async function main() {
     for (let d = M + 1; d <= M + 3; d++) {
       for (let dx = -d; dx <= d; dx++) {
         for (let dy = -d; dy <= d; dy++) {
-          if (Math.max(Math.abs(dx), Math.abs(dy)) !== d) continue;
+          if (chebyshev({ x: 0, y: 0 }, { x: dx, y: dy }) !== d) continue;
           const pt = { x: e.actif.pos.x + dx, y: e.actif.pos.y + dy };
           if (!occupees.has(`${pt.x},${pt.y}`)) candidats.push(pt);
         }
@@ -198,9 +199,8 @@ async function main() {
     await ouvrirLeRound(session);
     e = await attendreLeHeros(session);
 
-    const dist = (p, q) => Math.max(Math.abs(p.x - q.x), Math.abs(p.y - q.y));
     const cibleDeCharge = (s2) => s2.ennemis
-      .map((en) => ({ ...en, d: dist(en.pos, s2.actif.pos) }))
+      .map((en) => ({ ...en, d: chebyshev(en.pos, s2.actif.pos) }))
       .filter((en) => en.d > 1 && en.d <= 2 * s2.actif.mvt)
       .sort((a, b) => a.d - b.d)[0];
     // La case Charger n'est DÉDUITE que d'un set qui ouvre un corps à corps (spec §1a G2) : le Tireur
@@ -242,7 +242,7 @@ async function main() {
     await ouvrirLeRound(session);
     e = await attendreLeHeros(session);
     dire(e.intent === null, 'aucune intention armée au début du tour');
-    const proche = e.ennemis.map((en) => ({ ...en, d: dist(en.pos, e.actif.pos) })).sort((a, b) => a.d - b.d)[0];
+    const proche = e.ennemis.map((en) => ({ ...en, d: chebyshev(en.pos, e.actif.pos) })).sort((a, b) => a.d - b.d)[0];
     console.log(`Clic-ennemi nu : ${proche.id} à ${proche.d} case(s) de ${e.actif.id}.`);
     await cliquerCase(session, proche.pos);
     await sleep(900);

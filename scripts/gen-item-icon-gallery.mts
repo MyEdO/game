@@ -23,7 +23,7 @@ const weaponCells = WEAPON_DEFS.map((d) =>
   cell(d.label, React.createElement(ItemIcon, { item: { label: d.label, type: d.type, damage: { plusBF: false, flat: 0 }, qualities: [] } as Weapon, size: 64 })),
 );
 
-// Boucliers (art dédié à gradients → ItemIcon injecte ses <defs>).
+// Boucliers (art dédié à dégradés → ItemIcon injecte ses <defs>).
 const SHIELDS = ['Bouclier', 'Bouclier (Grand)', 'Bouclier (Targe)'];
 const shieldCells = SHIELDS.map((name) =>
   cell(name, React.createElement(ItemIcon, { item: { label: name, type: 'melee', damage: { plusBF: false, flat: 0 }, qualities: [{ id: 'protectrice', value: 1 }] } as Weapon, size: 64 })),

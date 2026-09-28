@@ -5,15 +5,16 @@
 // reconcile.mjs) — seul un chapitre TROUVÉ dont la ligne est HORS BORNE est une réf morte.
 // Cliquet NOMINATIF PAR SITE (`scripts/raw/dead-refs-stock.json`, écart `ecartDuVolet` de
 // `scripts/guards/lib/stock.mjs`, clé `fiche :: réf citée :: occurrence`) : un site NEUF est une régression à
-// corriger ou à déclarer, une entrée dont le site a disparu est une dette SOLDÉE à retirer. Le stock
-// est ABSENT en régime nominal → tolérance ZÉRO (`readStock` traite un fichier absent comme zéro
-// entrée). S'il renaît, il se recrée à sa mesure MINIMALE, chaque entrée portant son lot et sa date.
+// corriger ou à déclarer, une entrée dont le site a disparu est une dette SOLDÉE à retirer. Soldé, le
+// stock est un fichier ABSENT, lu comme zéro entrée (`lireEntreesDeSite`) : tolérance ZÉRO. Il se
+// régénère par `npx tsx scripts/guards/lib/regenStock.mts scripts/raw/check-refs.mjs` ; un site
+// différé y entre par `--lot <#N>`, et un solde total retire le fichier.
 // Re-run : node scripts/raw/check-refs.mjs
-import { join, dirname, resolve } from 'node:path'
+import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { refRe, span, chapterFile, bookOf, pagesDeLAtlas, readText } from './_lib.mjs'
 import { ecartDuVolet } from '../guards/lib/stock.mjs'
-import { readStock } from './stockNominatif.mjs'
+import { SOUS_LOT, lireEntreesDeSite } from '../guards/lib/stockDeSites.mjs'
 
 export const RAWDIR = 'docs/raw'
 // Acceptation DÉCLARÉE à la couture : tout sauf les rapports générés — une réf morte est une réf
@@ -61,10 +62,27 @@ export function scanDeadRefs(rawDir = RAWDIR, classes = CLASSES) {
   return dead
 }
 
+const QUOI =
+  'Réfs MORTES de l’Atlas RAW (`scripts/raw/check-refs.mjs`, #454) : une réf `<ABRÉV> NN l.X[-Y|+n…]` ' +
+  'dont la borne HAUTE dépasse le nombre de lignes du chapitre résolu. Une ENTRÉE par SITE, clé ' +
+  '`fichier :: ref :: occurrence` (régime #1711) ; `fichier` = la page `docs/raw/<x>.md` où la réf ' +
+  'est lue, `ref` = la réf citée, borne haute comprise. Une entrée se solde en lisant le `Source/` et ' +
+  'en réancrant la réf ; le fichier se régénère par ' +
+  '`npx tsx scripts/guards/lib/regenStock.mts scripts/raw/check-refs.mjs`, et un solde total le retire.'
+
+/** La RÉGÉNÉRATION du stock des réfs mortes (`RegenerationDeStock`, `stockDeSites.mjs`), sur des réfs
+ *  mortes (par défaut, celles de l'Atlas). */
+export const regenerations = (dead = scanDeadRefs()) => [{
+  chemin: STOCK_PATH,
+  politique: SOUS_LOT,
+  horsCollections: QUOI,
+  collections: [{ nom: 'entrees', sites: sitesMorts(dead) }],
+}]
+
 function main() {
   const dead = scanDeadRefs()
   const { neuves, perimees } = ecartDuVolet({
-    sites: sitesMorts(dead), stock: readStock(STOCK_PATH), ou: 'dead-refs-stock.json',
+    sites: sitesMorts(dead), stock: lireEntreesDeSite(STOCK_PATH), ou: 'dead-refs-stock.json',
   })
 
   console.log(`refs mortes (ligne hors borne du chapitre résolu) : ${dead.length} site(s)`)
@@ -86,5 +104,4 @@ function main() {
   process.exitCode = 1
 }
 
-const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)
-if (isMain) main()
+if (import.meta.main) main()

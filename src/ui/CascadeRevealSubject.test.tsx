@@ -13,7 +13,6 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { useGame } from '../state/store';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { CascadeBody } from './CascadeModal';
 import type { RevealEntry } from '../state/pendings';
 
@@ -24,7 +23,7 @@ beforeAll(() => {
 let host: HTMLDivElement;
 let root: Root;
 
-const HERO = () => createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', rng: makeRNG(1) });
+const HERO = () => createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 1 });
 
 /** Ouvre une séquence d'affichage à UNE étape portant l'entrée bâtie par `make` (forme exacte de
  *  `revealToStep` : `actorId` = le sujet ; `autoCloseMs` n'existe que si le site l'a DÉCLARÉ — la

@@ -19,7 +19,6 @@ import * as THREE from 'three';
 import { emptyScene, type Scene } from '../../state/scene';
 import { useGame } from '../../state/store';
 import { createHero } from '../../engine/character';
-import { makeRNG } from '../../engine/dice';
 import type { Combatant } from '../../engine/types';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -121,7 +120,7 @@ afterEach(() => {
   useGame.setState({ povActive: false });
 });
 
-const HÉROS = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', rng: makeRNG(7) });
+const HÉROS = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 7 });
 
 /** Scène d'ARÈNE : douze décors semés autour du groupe — assez de sujets pour qu'un remontage se
  *  voie ; aucune toiture, donc aucun décor sous espace dégagé (la population ne varie que du meneur). */

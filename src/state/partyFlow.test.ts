@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { setItemShape, transferItem, toggleEquip, stowItem } from './partyFlow';
-import { itemFromTrappingById, recomputeLoadout, totalEncumbrance } from '../engine/items';
+import { setItemShape, transferItem, toggleEquip, stowItem, setLoadoutSlot } from './partyFlow';
+import { itemFromTrappingById, recomputeLoadout, totalEncumbrance, addItemToHero, activeLoadout } from '../engine/items';
 import type { Combatant, ItemInstance } from '../engine/types';
 import type { Possession } from '../engine/possession';
 import type { GameState } from './store';
@@ -228,5 +228,39 @@ describe('transferItem — invariant de CO-LOCALISATION (#723, garde store, sour
 
     expect(get().party.find((h) => h.id === hero.id)!.items ?? []).toHaveLength(1);
     expect(get().possessions.find((p) => p.uid === mule.uid)!.items).toHaveLength(0);
+  });
+});
+
+// Un objet rangé (`inside`) n'est pas en main : `recomputeLoadout` vide son slot, et le repli `LDB 62 l.28` s'applique.
+describe('stowItem — ranger l’arme TENUE dans un sac', () => {
+  it('l’épée rangée n’est plus en main, et les Mains nues la remplacent', () => {
+    const hero = heroWithArmeSimple();
+    const epee = hero.items![0];
+    const sac = { ...itemFromTrappingById('sac')!, uid: 'sac-1', equipped: true };
+    hero.items!.push(sac);
+    recomputeLoadout(hero);
+    expect(activeWeapon(hero, epee.uid)).toBeDefined();
+    const { get, set } = makeHarness([hero]);
+    stowItem(get, set, 'h1', epee.uid, 'sac-1');
+    const apres = get().party[0];
+    expect(apres.items!.find((i) => i.uid === epee.uid)?.inside, 'l’épée est rangée').toBe('sac-1');
+    expect(activeWeapon(apres, epee.uid), 'elle n’est plus en main').toBeUndefined();
+    expect(apres.weapons.map((w) => w.label)).toEqual(['Mains nues']);
+  });
+});
+
+// Un objet mis en main sort de son contenant : l'arme achetée (rangée d'office, `autoStowNewItem`) se choisit au set.
+describe('setLoadoutSlot — une arme ACHETÉE, rangée dans un sac, choisie au set', () => {
+  it('elle est en main, et n’est plus dans le sac', () => {
+    const base = { id: 'h1', label: 'Test', kind: 'hero', characteristics: { force: 30, endurance: 30 }, items: [{ ...itemFromTrappingById('sac')!, uid: 'sac-1', equipped: true }], weapons: [], talents: [], skills: [], traits: [], activeEffects: [], conditions: [], advantage: 0, wounds: { current: 10, max: 10 } } as unknown as Combatant;
+    recomputeLoadout(base);
+    const hero = addItemToHero(base, 'arme-simple');
+    const achat = hero.items!.find((i) => i.kind === 'melee')!;
+    expect(achat.inside, 'rangée d’office à l’achat').toBe('sac-1');
+    const { get, set } = makeHarness([hero]);
+    setLoadoutSlot(get, set, 'h1', activeLoadout(hero)!.id, 'main', achat.uid);
+    const apres = get().party[0];
+    expect(activeWeapon(apres, achat.uid), 'en main').toBeDefined();
+    expect(apres.items!.find((i) => i.uid === achat.uid)?.inside, 'hors du sac').toBeUndefined();
   });
 });

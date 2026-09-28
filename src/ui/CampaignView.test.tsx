@@ -8,7 +8,10 @@
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { useGame } from '../state/store';
+import { useGame, type BattleState } from '../state/store';
+import type { Combatant } from '../engine/types';
+import { datasetArray, setDataset } from '../data/overrides';
+import { areneCampaign, paquetDuJeu } from '../scenes/campaign';
 import { testScene } from '../scenes/test-fixture';
 import { makePregens } from '../data/pregens';
 import { CampaignView } from './CampaignView';
@@ -31,7 +34,7 @@ function Clavier() {
 }
 
 function monter(povActive: boolean) {
-  useGame.setState({ screen: 'campaign', scene: testScene, mode: 'exploration', povActive, battle: null });
+  useGame.setState({ screen: 'campaign', scene: testScene(), mode: 'exploration', povActive, battle: null });
   host = document.createElement('div');
   document.body.appendChild(host);
   root = createRoot(host);
@@ -197,7 +200,7 @@ describe('CampaignView — le portrait du dock route le ciblage d’ENTITÉ', ()
       movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
     } as never;
     useGame.setState({
-      scene: testScene, mode: 'battle', povActive: false, battle, party: [h1, h2],
+      scene: testScene(), mode: 'battle', povActive: false, battle, party: [h1, h2],
       sheetId: null, dispelCarrierId: null, inspectId: null,
       pendingCleave: null, pendingDualStrike: null, pendingCast: null, pendingAttack: null,
       pendingSiegeAim: null, pendingDispel: null,
@@ -233,5 +236,59 @@ describe('CampaignView — le portrait du dock route le ciblage d’ENTITÉ', ()
     act(() => { b.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
     expect(useGame.getState().sheetId).toBe('h2');
     expect(useGame.getState().dispelCarrierId).toBeNull();
+  });
+});
+
+/** Défaite sans scène (#1692) : « Reprendre » lance l'Arène par `lancerCampagne` ; le refus de la porte
+ *  s'affiche, puis se lève quand la cause n'a plus lieu — il ne survit pas à la modale. */
+describe('CampaignView — le refus du repli de défaite vit le temps de la modale', () => {
+  const MESSAGE = 'Cette campagne ne peut pas être jouée en l’état. Demandez-en une nouvelle version à son auteur.';
+
+  function defaite(party: Combatant[]): BattleState {
+    return {
+      combatants: party, order: party.map((h) => h.id), turn: 0, round: 1, action: null, selectedSpellId: null,
+      reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: 'defeat',
+    };
+  }
+  const alerte = () => host.querySelector('.defeat-modal [role="alert"]');
+  const reprendre = () => {
+    const b = [...host.querySelectorAll<HTMLButtonElement>('.defeat-modal button')].find((x) => x.textContent === 'Reprendre');
+    expect(b, 'bouton « Reprendre » absent de la modale de défaite').toBeTruthy();
+    act(() => { b!.click(); });
+  };
+  const menuPrincipal = () =>
+    [...host.querySelectorAll<HTMLButtonElement>('.defeat-modal .modal-actions button')].find((x) => x.textContent === 'Menu principal');
+
+  it('refus affiché, puis levé : la défaite suivante s’ouvre sans lui', () => {
+    vi.stubGlobal('matchMedia', (media: string) => ({ matches: false, media, addEventListener() {}, removeEventListener() {} }));
+    const consoleErr = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const party = makePregens().slice(0, 1);
+    const avant = [...datasetArray('props')];
+    useGame.setState({ screen: 'campaign', scene: null, mode: 'battle', povActive: false, massBattle: null, party, battle: defaite(party) });
+    host = document.createElement('div');
+    document.body.appendChild(host);
+    root = createRoot(host);
+    setDataset('props', avant.map((p) => (p.id === 'tonneau' ? { ...p, id: 'tonneau-renomme' } : p)));
+    try {
+      act(() => { root.render(<CampaignView />); });
+      expect(menuPrincipal(), 'sans refus, la modale reste telle quelle').toBeUndefined();
+      reprendre();
+      expect(alerte()?.textContent).toBe(MESSAGE);
+      expect(useGame.getState().scene, 'aucune scène posée').toBeNull();
+      const menu = menuPrincipal();
+      expect(menu, 'refus posé : seconde sortie « Menu principal »').toBeTruthy();
+      act(() => { menu!.click(); });
+      expect(useGame.getState().screen).toBe('menu');
+      act(() => { useGame.setState({ screen: 'campaign' }); });
+    } finally {
+      setDataset('props', avant);
+    }
+    reprendre();
+    expect(useGame.getState().scene?.id).toBe(paquetDuJeu(areneCampaign).scenes[0].id);
+    act(() => { useGame.setState({ mode: 'battle', battle: defaite(party) }); });
+    expect(host.querySelector('.defeat-modal'), 'nouvelle défaite affichée').toBeTruthy();
+    expect(alerte(), 'le refus d’avant ne survit pas à la modale').toBeNull();
+    expect(menuPrincipal(), 'sans refus, pas de « Menu principal »').toBeUndefined();
+    consoleErr.mockRestore();
   });
 });

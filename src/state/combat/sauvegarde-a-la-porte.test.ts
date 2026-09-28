@@ -18,6 +18,7 @@
  *  - ce que l'appelant allait faire APRÈS le coup (maillon de balayage, Action d'une frappe gratuite)
  *    est parqué sur SON étape, par IDENTITÉ, et rendu à la reprise.
  */
+import { tableTotale } from '../../lib/tableTotale';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame, type BattleState } from '../store';
 import { aiCreatureFreeAttacks, applyAttackResult, applyCast, autoCleave, freeAttackHookImpl, resolveDeviation } from '../combatFlow';
@@ -27,7 +28,7 @@ import { setRule, resetRule } from '../../engine/policy';
 import { emptyScene } from '../scene';
 import { stepInteraction } from '../cascade';
 import type { CascadeStep } from '../pendings';
-import type { Combatant, Weapon } from '../../engine/types';
+import { CHAR_KEYS, type Combatant, type Weapon } from '../../engine/types';
 import type { AttackResult } from '../../engine/combat';
 
 const CHARS = { 'capacite-de-combat': 45, 'capacite-de-tir': 45, force: 40, endurance: 40, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
@@ -118,7 +119,7 @@ describe('coup physique — le dé naît à la porte, AVANT toute mutation', () 
     expect(st.kind).toBe('sauvegarde');
     expect(stepInteraction(st), 'le dé reste à jeter').toBe('de');
     expect(st.de?.spec, 'un 1d10, celui du RAW').toEqual({ n: 1, sides: 10 });
-    expect(st.de?.seuil, 'l’étape PORTE son seuil — la fenêtre peut le montrer').toEqual({ indice: 6, traitId: 'protection', dome: true });
+    expect(st.de?.seuil, 'l’étape PORTE son seuil — la fenêtre peut le montrer').toEqual({ indice: 6, source: { kind: 'trait', id: 'protection' }, dome: true });
     expect(st.actorId, 'le porteur du dé est la cible').toBe(cible.id);
     expect(cible.wounds.current, 'aucune Blessure avant le dé').toBe(30);
     expect((useGame.getState().pendingCascade?.participants ?? []).some((s) => s.kind === 'deviation'), 'aucune fenêtre de Critique avant la sauvegarde').toBe(false);
@@ -181,7 +182,7 @@ describe('aucune scission par KIND de porteur (canon : la porte pousse pour tous
     const st = etapeCourante()!;
     expect(st.kind).toBe('sauvegarde');
     expect(st.actorId, 'le dé appartient au démon').toBe(demon.id);
-    expect(st.de?.seuil).toEqual({ indice: 8, traitId: 'demoniaque', dome: false });
+    expect(st.de?.seuil).toEqual({ indice: 8, source: { kind: 'trait', id: 'demoniaque' }, dome: false });
     expect(demon.wounds.current, 'rien n’est appliqué avant son dé').toBe(30);
     poser(8);
     expect(demon.wounds.current, '1d10 ≥ 8 : le coup est ignoré (LDB 85 l.98)').toBe(30);
@@ -203,7 +204,7 @@ describe('Projectile magique — une étape PAR CIBLE, rien roulé en silence', 
     applyCast(useGame.getState, useGame.setState, mage, cible, spell, evaluateMissile(mage, cible, spell, cast), true, false, undefined, undefined);
     const st = etapeCourante()!;
     expect(st.kind, 'la touche magique EST un coup reçu (LDB 85 l.98)').toBe('sauvegarde');
-    expect(st.de?.seuil).toEqual({ indice: 6, traitId: 'protection', dome: true });
+    expect(st.de?.seuil).toEqual({ indice: 6, source: { kind: 'trait', id: 'protection' }, dome: true });
     expect(cible.wounds.current, 'aucune Blessure avant le dé').toBe(30);
     poser(6);
     expect(cible.wounds.current, 'le Dôme a sauvé : le Projectile est ignoré').toBe(30);
@@ -267,7 +268,7 @@ describe('ce que l’appelant allait faire APRÈS le coup est parqué sur SON é
     // perdrait la chaîne en silence.
     const demon = { id: 'demoniaque', value: 8 };
     const fort = { ...CHARS, 'capacite-de-combat': 90 };
-    const faible = Object.fromEntries(Object.keys(CHARS).map((k) => [k, 1])) as typeof CHARS; // aucune défense possible : le contrat porte sur la CHAÎNE, pas sur le jet
+    const faible = tableTotale(CHAR_KEYS, () => 1); // aucune défense possible : le contrat porte sur la CHAÎNE, pas sur le jet
     const griffe = { label: 'Griffe', type: 'melee', damage: { plusBF: true, flat: 0 }, qualities: [] } as unknown as Weapon;
     const ogre = mk('enemy', 'ogre', { pos: { x: 5, y: 5 }, characteristics: fort, size: 'enorme', weapons: [griffe] } as never);
     const h1 = mk('hero', 'h1', { pos: { x: 5, y: 6 }, characteristics: faible, aiControlled: true } as never);
@@ -308,7 +309,7 @@ describe('ce que l’appelant allait faire APRÈS le coup est parqué sur SON é
     const epee = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0 }, qualities: [] } as unknown as Weapon;
     // Frappeur sûr de sa touche / démon sans défense : le contrat porte sur l'Action, pas sur le jet.
     const frappeur = mk('hero', 'frappeur', { pos: { x: 0, y: 0 }, weapons: [epee], characteristics: { ...CHARS, 'capacite-de-combat': 90 } } as never);
-    const nul = Object.fromEntries(Object.keys(CHARS).map((k) => [k, 1])) as typeof CHARS;
+    const nul = tableTotale(CHAR_KEYS, () => 1);
     const demon = mk('enemy', 'demon', { pos: { x: 1, y: 0 }, characteristics: nul, traits: [{ id: 'demoniaque', value: 8 }] } as never);
     setBattle([frappeur, demon]);
     freeAttackHookImpl(useGame.getState, useGame.setState, frappeur,
@@ -324,7 +325,7 @@ describe('ce que l’appelant allait faire APRÈS le coup est parqué sur SON é
 describe('une fenêtre DE PLUS sur le même coup ne perd pas la suite (sauvegarde PUIS Déviation)', () => {
   // La Déviation Critique (LDB 63 l.30) rouvre une fenêtre APRÈS la sauvegarde : ce que l’appelant fera
   // après le coup doit traverser les DEUX, sans quoi la dernière reprise joue un coup amputé de sa suite.
-  const nul = (): typeof CHARS => Object.fromEntries(Object.keys(CHARS).map((k) => [k, 1])) as typeof CHARS;
+  const nul = (): typeof CHARS => tableTotale(CHAR_KEYS, () => 1);
   const blindee = { tete: 2, brasG: 2, brasD: 2, corps: 2, jambeG: 2, jambeD: 2 };
 
   /** Joue la séquence jusqu'au bout comme le pilote : dés posés à 1 (toute sauvegarde RATE), choix au
@@ -357,8 +358,8 @@ describe('une fenêtre DE PLUS sur le même coup ne perd pas la suite (sauvegard
     // S'y ajoute la Protection (6+) du porteur : la SAUVEGARDE s'ouvre d'abord, la DÉVIATION ensuite, sur
     // le MÊME coup. La suite sous contrat est l'Avantage DIFFÉRÉ du Maniement de deux armes (LDB 10
     // l.767-773) : c'est la seule dont l'effet se MESURE après les deux fenêtres (l'attaque GRATUITE et le
-    // maillon de balayage entrent, eux, avec `deviated: false` — un enchaînement n'ouvre PAS de fenêtre de
-    // Déviation imbriquée, `combatFlow.ts:3444`).
+    // maillon de balayage entrent, eux, en `sousAttaque` — un enchaînement n'ouvre PAS de fenêtre de
+    // Déviation imbriquée, `ApplicationDuCoup.sousAttaque`).
     const gourdin = { label: 'Gourdin', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [] } as unknown as Weapon;
     const brute = mk('enemy', 'brute', { pos: { x: 1, y: 0 }, weapons: [gourdin] });
     const porteur = mk('hero', 'porteur', {
@@ -371,7 +372,7 @@ describe('une fenêtre DE PLUS sur le même coup ne perd pas la suite (sauvegard
 
     // 1) La SAUVEGARDE s'ouvre la première, avant toute mutation.
     const suspendu = applyAttackResult(useGame.getState, useGame.setState, brute, porteur, gourdin, depassement,
-      undefined, undefined, { deferAttackerAdvantage: true });
+      { suite: { deferAttackerAdvantage: true } });
     expect(suspendu, 'la sauvegarde suspend AVANT toute mutation').toBe(true);
     expect(etapeCourante()!.kind).toBe('sauvegarde');
     expect(etapesDeviation(), 'aucune fenêtre de Critique avant le dé').toHaveLength(0);
@@ -421,7 +422,7 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `attackConfi
   const dague = { uid: 'o', label: 'Dague', type: 'melee', hand: 'off', hands: 1, damage: { plusBF: true, flat: 0 }, qualities: [] } as unknown as Weapon;
   const griffe = { label: 'Griffe', type: 'melee', damage: { plusBF: true, flat: 0 }, qualities: [] } as unknown as Weapon;
   const demoniaque = [{ id: 'demoniaque', value: 8 }] as never;
-  const nul = (): typeof CHARS => Object.fromEntries(Object.keys(CHARS).map((k) => [k, 1])) as typeof CHARS;
+  const nul = (): typeof CHARS => tableTotale(CHAR_KEYS, () => 1);
 
   /** La sauvegarde du porteur est l'étape COURANTE, et rien n'a encore bougé. */
   const sauvegardeEnCours = (porteur: Combatant): CascadeStep => {
@@ -579,6 +580,9 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `attackConfi
     const etapes = useGame.getState().pendingCascade?.participants ?? [];
     expect(etapes.filter((s) => s.kind === 'fumbleJet' && s.actorId === h1.id),
       `la Maladresse de h1 est poussée — étapes vues : ${etapes.map((s) => s.kind).join(', ')}`).toHaveLength(1);
+    // La chaîne est la SUITE du coup : elle vient APRÈS la Maladresse du défenseur (`APRES_COUP`).
+    useGame.getState().fumbleRoll();
+    useGame.getState().fumbleConfirm();
     const coups = (useGame.getState().battle?.log ?? []).map((l) => l.text).filter((x) => /^ogre touche/.test(x));
     expect(coups.filter((x) => /h2/.test(x)).length, `la chaîne reprend tout de même sur h2 — ${coups.join(' | ')}`).toBe(1);
   });

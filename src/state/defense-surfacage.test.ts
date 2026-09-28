@@ -39,7 +39,7 @@ function setup(enemyPos: { x: number; y: number }, enemyWeapons: Weapon[], net?:
     movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
   } as unknown as BattleState;
   useGame.setState({
-    battle, mode: 'battle', scene: testScene, pendingDefense: null, pendingAttack: null, pendingCascade: null,
+    battle, mode: 'battle', scene: testScene(), pendingDefense: null, pendingAttack: null, pendingCascade: null,
     net: { ...useGame.getState().net, mode: 'local', mySeat: 0, gmSeat: undefined, ownership: {}, ...net },
   });
   return { enemy, hero };

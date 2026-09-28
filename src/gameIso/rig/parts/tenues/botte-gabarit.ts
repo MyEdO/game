@@ -1,11 +1,11 @@
 import type { PartArt } from '../types';
 
-// Botte de cuir SYSTÈME (#736 Lot 1) — HABIT du pied (repère os `pied`, origine = cheville, +y
+// Botte de cuir SYSTÈME (#736) — HABIT du pied (repère os `pied`, origine = cheville, +y
 // descend) : une botte n'est pas un repli de chair — elle ne vit pas avec le corps (`bodies/`), c'est
 // l'équipement par défaut de toute tenue chaussée (piloté par `TenueSet.pied`, cf. `types.ts`).
 // Dessinée par-dessus le bas de jambe → un pied de profil pointe vers l'avant (botte de côté),
 // de face un bout arrondi, de dos un talon.
-// Peinte en JETONS de la famille `botte` (cuir `@botte` + contour `@botteO`, `@semelle`, et
+// Peinte en JETONS de la gamme `botte` et de ses suiveuses (cuir `@botte` + contour `@botteO`, `@semelle`, et
 // `@botteDos`/`@botteDosO` pour le cuir dorsal que l'art assombrit à la main) — une tenue pilote
 // donc la couleur de ses bottes par sa `palette` (`botte`, cf. tenues/types.ts). Défauts (art
 // d'origine) et clés suiveuses `semelle`/`botteDos` : table des clés de palette (`clesDePalette.ts`).

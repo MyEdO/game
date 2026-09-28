@@ -6,7 +6,7 @@ export const SUFFIXE_SUITE: string;
 /** Le SUFFIXE d'un INSTRUMENT (suite OU banc), source de `EST_FICHIER_VITEST`. */
 export const SUFFIXE_INSTRUMENT: string;
 
-/** Un fichier joué par Vitest (ou par `node --test`) : `.test.` (suite, `vite.config.ts:71`) ou
+/** Un fichier joué par Vitest (ou par `node --test`) : `.test.` (suite, `scripts/guards/lib/racinesDeLaSuite.mjs`) ou
  *  `.bench.` (banc, `npm run bench`, hors suite et hors CI), dans TOUS les dialectes du dépôt
  *  (`.ts`, `.tsx`, `.js`, `.jsx`, `.mts`, `.cts`, `.mjs`, `.cjs`). En FIN de nom : un `.bak` n'en
  *  est pas un. */

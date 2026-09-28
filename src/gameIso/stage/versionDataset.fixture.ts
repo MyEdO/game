@@ -8,7 +8,7 @@
  *
  * COUCHE : cuire des scènes est un objet de RENDU, pas de donnée — c'est pourquoi cette fixture vit
  * sous `gameIso/`, d'où les builders et `state/` sont importables (`src/data` n'importe ni l'un ni
- * l'autre, cf. `no-restricted-imports`, #1709).
+ * l'autre, cf. le mur `murs/purete-imports`, #1709).
  */
 import { readFileSync } from 'node:fs';
 import { parseProject } from '../../state/worldMap';

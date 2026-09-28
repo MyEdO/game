@@ -8,7 +8,7 @@ import type { View } from '../src/gameIso/rig/facing';
 
 // ordre mélangé pour ne pas suggérer un regroupement
 const TRUTH = ['Dragon', 'Pégase', 'Griffon', 'Hippogriffe'];
-const VIEWS: View[] = ['profile', 'front'];
+const SHOWN_VIEWS: View[] = ['profile', 'front'];
 const CW = 460, CH = 420, BASE = 1.25, FEET = 365, SUB = CW / 2;
 const cells: string[] = [];
 TRUTH.forEach((name, idx) => {
@@ -17,7 +17,7 @@ TRUTH.forEach((name, idx) => {
   const SC = BASE * WINGED_SPECIES[name].sl;
   cells.push(`<rect x="${ox}" y="${oy}" width="${CW - 8}" height="${CH - 10}" fill="#2b3142" stroke="#3a4156"/>`);
   cells.push(`<text x="${ox + 8}" y="${oy + 20}" font-size="16" fill="#e8c25a" font-family="sans-serif" font-weight="bold">#${idx + 1}</text>`);
-  VIEWS.forEach((view, i) => {
+  SHOWN_VIEWS.forEach((view, i) => {
     const inner = bonesToSvg(resolveWing(name, view));
     const sx = ox + i * SUB + SUB / 2;
     cells.push(`<g transform="translate(${sx - 60 * SC},${oy + FEET - 150 * SC}) scale(${SC})">${inner}</g>`);

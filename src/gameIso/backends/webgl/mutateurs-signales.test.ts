@@ -36,6 +36,7 @@
 import { describe, expect, it } from 'vitest';
 import ts from 'typescript';
 import { readCorpus } from '../../../../scripts/guards/lib/sourceCorpus.mjs';
+import { detenteur } from '../../../detenteur.testkit';
 
 const DIR_WEBGL = 'src/gameIso/backends/webgl';
 const DIR_STAGE = 'src/gameIso/stage';
@@ -235,27 +236,31 @@ export function sitesDe(fichier: string, code: string, noms: ReadonlySet<string>
 
 // ── Le monde réel ────────────────────────────────────────────────────────────────────────────────
 
-const MUTATEURS = readCorpus([DIR_WEBGL]).flatMap(({ rel, text }) =>
-  mutateursDe(rel, text).map((m) => ({ ...m, fichier: rel })),
+const MUTATEURS = detenteur(() =>
+  readCorpus([DIR_WEBGL]).flatMap(({ rel, text }) =>
+    mutateursDe(rel, text).map((m) => ({ ...m, fichier: rel })),
+  ),
 );
-const SIGNALANTS = new Set(MUTATEURS.filter((m) => m.signalant).map((m) => m.nom));
-const SITES = readCorpus([DIR_WEBGL, DIR_STAGE]).flatMap(({ rel, text }) =>
-  sitesDe(rel, text, SIGNALANTS).map((s) => ({ ...s, fichier: rel })),
+const SIGNALANTS = detenteur(() => new Set(MUTATEURS().filter((m) => m.signalant).map((m) => m.nom)));
+const SITES = detenteur(() =>
+  readCorpus([DIR_WEBGL, DIR_STAGE]).flatMap(({ rel, text }) =>
+    sitesDe(rel, text, SIGNALANTS()).map((s) => ({ ...s, fichier: rel })),
+  ),
 );
 /** Les sites qui laissent tomber un verdict, exclusions structurelles retirées. */
-const PERDUS = SITES.filter((s) => s.nu && !s.nettoyage);
+const PERDUS = detenteur(() => SITES().filter((s) => s.nu && !s.nettoyage));
 
 describe('#1401 — un mutateur du monde monté rend un signal, et son appelant le consomme', () => {
   it('le sélecteur trouve VRAIMENT des mutateurs, dont les trois étalons du ticket', () => {
-    expect(MUTATEURS.length, 'sélecteur muet = garde qui ne pèse rien').toBeGreaterThanOrEqual(10);
+    expect(MUTATEURS().length, 'sélecteur muet = garde qui ne pèse rien').toBeGreaterThanOrEqual(10);
     for (const étalon of ['applyCutawayMask', 'applyVisibilityTint', 'reposeGroundAccents', 'reposerActeurs']) {
-      expect(MUTATEURS.find((m) => m.nom === étalon)?.signalant, étalon).toBe(true);
+      expect(MUTATEURS().find((m) => m.nom === étalon)?.signalant, étalon).toBe(true);
     }
   });
 
   it('chaque mutateur rend un signal de CHANGEMENT — hors foyers déclarés', () => {
     const exemptés = new Set(FOYERS_SIGNAL.map((f) => `${f.fichier}#${f.export}`));
-    const fautifs = MUTATEURS.filter((m) => !m.signalant && !exemptés.has(`${m.fichier}#${m.nom}`)).map(
+    const fautifs = MUTATEURS().filter((m) => !m.signalant && !exemptés.has(`${m.fichier}#${m.nom}`)).map(
       (m) => `${m.fichier}:${m.ligne} ${m.nom} → ${m.retour} : ${m.grief}`,
     );
     expect(fautifs, `Rendre un verdict de changement (patron : \`{bouge}\`, \`{dégagement, teinte}\`, booléen) :\n${fautifs.join('\n')}`).toEqual([]);
@@ -263,7 +268,7 @@ describe('#1401 — un mutateur du monde monté rend un signal, et son appelant 
 
   it('chaque site d’appel consomme le signal — hors nettoyage d’effet et foyers déclarés', () => {
     const exemptés = new Set(FOYERS_SITE.map((f) => `${f.fichier}#${f.export}`));
-    const fautifs = PERDUS.filter((s) => !exemptés.has(`${s.fichier}#${s.nom}`)).map(
+    const fautifs = PERDUS().filter((s) => !exemptés.has(`${s.fichier}#${s.nom}`)).map(
       (s) => `${s.fichier}:${s.ligne} ${s.nom}(…) — retour jeté`,
     );
     expect(fautifs, `Consommer le verdict (le lire, le tester, ou le déclarer en foyer) :\n${fautifs.join('\n')}`).toEqual([]);
@@ -271,7 +276,7 @@ describe('#1401 — un mutateur du monde monté rend un signal, et son appelant 
 
   it('chaque foyer de SIGNAL est vivant : son export existe et reste muet', () => {
     for (const f of FOYERS_SIGNAL) {
-      const m = MUTATEURS.find((x) => x.fichier === f.fichier && x.nom === f.export);
+      const m = MUTATEURS().find((x) => x.fichier === f.fichier && x.nom === f.export);
       expect(m, `${f.fichier}#${f.export} (${f.raison})`).toBeDefined();
       expect(m!.signalant, `${f.export} SIGNALE désormais : son exemption se retire`).toBe(false);
     }
@@ -279,13 +284,13 @@ describe('#1401 — un mutateur du monde monté rend un signal, et son appelant 
 
   it('chaque foyer de SITE porte EXACTEMENT le nombre de sites déclaré', () => {
     for (const f of FOYERS_SITE) {
-      const n = PERDUS.filter((s) => s.fichier === f.fichier && s.nom === f.export).length;
+      const n = PERDUS().filter((s) => s.fichier === f.fichier && s.nom === f.export).length;
       expect(n, `${f.fichier}#${f.export} (${f.raison})`).toBe(f.sites);
     }
   });
 
   it('le nettoyage d’effet est bien EXCLU par structure, pas par foyer', () => {
-    const nettoyages = SITES.filter((s) => s.nu && s.nettoyage);
+    const nettoyages = SITES().filter((s) => s.nu && s.nettoyage);
     expect(nettoyages.length, 'aucun site de nettoyage détecté : l’exclusion structurelle ne pèse rien').toBeGreaterThan(0);
   });
 });

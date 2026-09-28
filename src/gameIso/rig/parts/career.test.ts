@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { careerClass, tenueForClass, tenueFor, tenuePaletteFor, wardrobeKeyResolves } from './career';
 import { TENUE_BY_ID, TENUE_NUE } from './tenues';
-import { pickView } from './types';
+import { viewOrFront } from './types';
 import { careers } from '../../../data';
 
 describe('careerClass — renvoie un id de CLASSE, par id de carrière EXACT (aucun libellé)', () => {
@@ -43,10 +43,10 @@ describe('tenueFor — garde-robe id→id (aucun slugId au milieu)', () => {
   });
   it('vues dos/profil E·7 branchées (tenue générée)', () => {
     const t = tenueFor('noble');
-    const front = pickView(t.torse, 'front');
+    const front = viewOrFront(t.torse, 'front');
     expect(front).toContain('<');
-    expect(pickView(t.torse, 'back')).not.toBe(front);
-    expect(pickView(t.torse, 'profile')).not.toBe(front);
+    expect(viewOrFront(t.torse, 'back')).not.toBe(front);
+    expect(viewOrFront(t.torse, 'profile')).not.toBe(front);
   });
 });
 

@@ -4,6 +4,7 @@
 // Rien ici ne touche l'arbre : le moteur reçoit des étapes FACTICES et un journal EN MÉMOIRE, les
 // verdicts reçoivent des listes de courses littérales. Ce que ce fichier ne couvre pas est dit :
 // les `jouer` réels (rebase, build-all, push, gh) ne sont jugés que par le train joué.
+import { tableTotale } from '../../src/lib/tableTotale.ts'
 import test, { after, describe } from 'node:test'
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
@@ -108,12 +109,12 @@ test('planDeReprise : la première étape NON verte', () => {
 })
 
 test('planDeReprise : tout vert POUR CETTE TÊTE → rien à jouer', () => {
-  const journal = { tete: 'aaa', etapes: Object.fromEntries(NOMS.map((n) => [n, { etat: 'vert', tete: 'aaa' }])) }
+  const journal = { tete: 'aaa', etapes: tableTotale(NOMS, () => ({ etat: 'vert', tete: 'aaa' })) }
   assert.equal(planDeReprise(journal, NOMS, 'aaa'), null)
 })
 
 test('planDeReprise : une étape verte pour une AUTRE tête est À FAIRE (2ᵉ lot sur la même branche)', () => {
-  const journal = { tete: 'bbb', etapes: Object.fromEntries(NOMS.map((n) => [n, { etat: 'vert', tete: 'aaa' }])) }
+  const journal = { tete: 'bbb', etapes: tableTotale(NOMS, () => ({ etat: 'vert', tete: 'aaa' })) }
   assert.equal(planDeReprise(journal, NOMS, 'bbb'), NOMS[0])
   assert.equal(etatDeLEtape(journal, 'ci', 'bbb'), 'à faire (verte pour une autre tête)')
   assert.equal(etatDeLEtape({ tete: 'aaa', etapes: {} }, 'ci', 'aaa'), 'à faire')
@@ -121,13 +122,13 @@ test('planDeReprise : une étape verte pour une AUTRE tête est À FAIRE (2ᵉ l
 
 test('planDeReprise : la règle de tête porte sur la tête VIVANTE, et une étape SANS estampille est à faire', () => {
   // La tête PUBLIÉE du journal ne décide de rien : seule la tête vivante est comparée.
-  const publie = { tete: 'aaa', etapes: Object.fromEntries(NOMS.map((n) => [n, { etat: 'vert', tete: 'aaa' }])) }
+  const publie = { tete: 'aaa', etapes: tableTotale(NOMS, () => ({ etat: 'vert', tete: 'aaa' })) }
   assert.equal(planDeReprise(publie, NOMS, 'bbb'), NOMS[0])
   assert.equal(planDeReprise(publie, NOMS, 'aaa'), null)
   // Une étape estampillée `null` (journal d'avant la règle) N'est PAS verte pour toute tête.
   const sansEstampille = {
     tete: 'aaa',
-    etapes: Object.fromEntries(NOMS.map((n) => [n, { etat: 'vert', tete: n === 'preflight' ? null : 'aaa' }])),
+    etapes: tableTotale(NOMS, (n) => ({ etat: 'vert', tete: n === 'preflight' ? null : 'aaa' })),
   }
   assert.equal(planDeReprise(sansEstampille, NOMS, 'aaa'), 'preflight')
   assert.equal(etatDeLEtape(sansEstampille, 'preflight', 'aaa'), 'à faire (verte pour une autre tête)')
@@ -139,7 +140,7 @@ test('planDeReprise / etatDeLEtape : une étape SANS estampille est à faire, M�
   // la tête vivante n'a pas pu être mesurée se déclarait verte. L'ABSENCE d'estampille décide seule.
   const sansEstampille = {
     tete: 'aaa',
-    etapes: Object.fromEntries(NOMS.map((n) => [n, { etat: 'vert', tete: n === 'preflight' ? null : 'aaa' }])),
+    etapes: tableTotale(NOMS, (n) => ({ etat: 'vert', tete: n === 'preflight' ? null : 'aaa' })),
   }
   assert.equal(planDeReprise(sansEstampille, NOMS, null), 'preflight')
   assert.equal(etatDeLEtape(sansEstampille, 'preflight', null), 'à faire (verte pour une autre tête)')

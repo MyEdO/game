@@ -51,7 +51,7 @@ function setup(hero: Combatant, net: Record<string, unknown>): Combatant {
     movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
   } as unknown as BattleState;
   useGame.setState({
-    battle, mode: 'battle', scene: testScene, party: [hero],
+    battle, mode: 'battle', scene: testScene(), party: [hero],
     pendingCascade: null, suspendedCascades: [],
     net: { ...NET0, ...net },
   } as never);

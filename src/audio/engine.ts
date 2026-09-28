@@ -9,6 +9,7 @@
 import { SOUND_DEFS } from './_registry.generated';
 import type { SoundDef } from './types';
 import { musicDefsFor, type MusicSelection } from './music';
+import { stockageWeb } from '../lib/stockageWeb';
 
 const LS_KEY = 'wfrp4.audio.v1';
 const byId = new Map<string, SoundDef>(SOUND_DEFS.map((d) => [d.id, d]));
@@ -23,7 +24,7 @@ const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
 
 function loadPrefs(): AudioPrefs {
   try {
-    const raw = globalThis.localStorage?.getItem(LS_KEY);
+    const raw = stockageWeb('localStorage')?.getItem(LS_KEY);
     if (raw) {
       const p = JSON.parse(raw) as Partial<AudioPrefs>;
       return {
@@ -42,7 +43,7 @@ let prefs = loadPrefs();
 
 function savePrefs(): void {
   try {
-    globalThis.localStorage?.setItem(LS_KEY, JSON.stringify(prefs));
+    stockageWeb('localStorage')?.setItem(LS_KEY, JSON.stringify(prefs));
   } catch {
     // stockage indisponible : préférences de session seulement
   }

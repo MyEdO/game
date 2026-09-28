@@ -27,7 +27,7 @@ export function donnees(usage) {
   const d = process.argv[2];
   if (!d) {
     process.stderr.write(
-      `Usage : node ${process.argv[1]} <dossier-de-données>\n` +
+      'Usage : node <sonde> <dossier-de-données>\n' +
       `  <dossier-de-données> : dossier HORS dépôt. ${usage}\n` +
       '  Recettes de (re)fabrication des dumps : scripts/ops/sondes/audit-2026-09-01/README.md\n',
     );

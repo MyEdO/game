@@ -23,6 +23,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
+import { detenteur } from '../detenteur.testkit';
 
 const HERE = fileURLToPath(new URL('.', import.meta.url)); // …/src/gameIso/
 const SOUS_GAMEISO = 'src/gameIso/';
@@ -41,9 +42,11 @@ const SWEEP_DIRS = ['builders', 'backends', 'authoring', 'detail', 'pov', 'catal
 
 /** Le balayage : les sources (hors tests) des arborescences déclarées, chemins relatifs à `gameIso/`.
  *  `catalog/decor/defs` a son bloc dédié plus bas (palette) — il sort ici. */
-const BALAYAGE = readCorpus(SWEEP_DIRS.map((d) => `${SOUS_GAMEISO}${d}`))
-  .filter(({ rel }) => !rel.startsWith(`${SOUS_GAMEISO}catalog/decor/defs/`))
-  .map(({ rel, text }) => [rel.slice(SOUS_GAMEISO.length), text] as const);
+const BALAYAGE = detenteur(() =>
+  readCorpus(SWEEP_DIRS.map((d) => `${SOUS_GAMEISO}${d}`))
+    .filter(({ rel }) => !rel.startsWith(`${SOUS_GAMEISO}catalog/decor/defs/`))
+    .map(({ rel, text }) => [rel.slice(SOUS_GAMEISO.length), text] as const),
+);
 
 // Chrome d'état des TOKENS : la surcouche des jetons (pion-disque, PV, badges, ombres) et tokenBodyKind
 // (bloc de siège) rendent l'ÉTAT de combat, pas un MATÉRIAU du monde. La couleur d'IDENTITÉ vient de
@@ -54,11 +57,13 @@ const BALAYAGE = readCorpus(SWEEP_DIRS.map((d) => `${SOUS_GAMEISO}${d}`))
 const CHROME_RENDERERS = ['stage/TokenChromeOverlay.tsx', 'tokenBodyKind.tsx'];
 
 /** Le texte de chaque fichier couvert, par chemin relatif à `gameIso/`. */
-const SOURCE = new Map<string, string>([
-  ...ROOT_RENDERERS.map((rel) => [rel, readFileSync(HERE + rel, 'utf8')] as const),
-  ...BALAYAGE,
-]);
-const COVERED = [...SOURCE.keys()].filter((rel) => !CHROME_RENDERERS.includes(rel));
+const SOURCE = detenteur(() =>
+  new Map<string, string>([
+    ...ROOT_RENDERERS.map((rel) => [rel, readFileSync(HERE + rel, 'utf8')] as const),
+    ...BALAYAGE(),
+  ]),
+);
+const COVERED = detenteur(() => [...SOURCE().keys()].filter((rel) => !CHROME_RENDERERS.includes(rel)));
 
 // `rgb(`/`hsl(` ne mordent que sur des CANAUX LITTÉRAUX : `rgb(${r},…)` (assemblage d'une couleur
 // CALCULÉE, ex. `tint` du POV) n'est pas une identité en dur.
@@ -95,23 +100,23 @@ describe('garde-fou — aucune couleur en dur dans un renderer d’environnement
   });
 
   it('la surface couverte est complète (racine + balayage)', () => {
-    expect(COVERED).toContain('sprites.ts');
+    expect(COVERED()).toContain('sprites.ts');
     // Ancres nommées : le peintre volumique, les recettes de matière, et les peintres d'authoring
     // survivants (#1176, P3-4 C5b).
-    expect(COVERED).toContain('backends/webgl/faceColors.ts');
-    expect(COVERED).toContain('detail/expand.ts');
-    expect(COVERED).toContain('authoring/wallsSvg.ts');
+    expect(COVERED()).toContain('backends/webgl/faceColors.ts');
+    expect(COVERED()).toContain('detail/expand.ts');
+    expect(COVERED()).toContain('authoring/wallsSvg.ts');
     // …et chaque arborescence déclarée est réellement ATTEINTE : une ancre nommée ne prouve que son
     // propre dossier ; ceci empêche n'importe lequel des autres de se vider en silence.
-    for (const dir of SWEEP_DIRS) expect(COVERED.filter((rel) => rel.startsWith(`${dir}/`))).not.toEqual([]);
-    expect(COVERED.length).toBeGreaterThan(40);
+    for (const dir of SWEEP_DIRS) expect(COVERED().filter((rel) => rel.startsWith(`${dir}/`))).not.toEqual([]);
+    expect(COVERED().length).toBeGreaterThan(40);
     // Les renderers de CHROME sont RETIRÉS de ce balayage — et pas perdus : ils passent par le bloc
     // dédié plus bas, à l'allowlist neutre. Un fichier par bloc, et un bloc pour chacun.
-    for (const rel of CHROME_RENDERERS) expect(COVERED, rel).not.toContain(rel);
+    for (const rel of CHROME_RENDERERS) expect(COVERED(), rel).not.toContain(rel);
   });
 
-  it.each(COVERED)('%s : zéro couleur en dur', (rel) => {
-    const hits = colorHits(SOURCE.get(rel)!);
+  it.each(COVERED())('%s : zéro couleur en dur', (rel) => {
+    const hits = colorHits(SOURCE().get(rel)!);
     expect(hits, `Couleurs en dur dans ${rel} :\n${hits.join('\n')}`).toEqual([]);
   });
 });

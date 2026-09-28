@@ -25,7 +25,7 @@ const OREILLE_PROFILE =
   `<path d="M-2 6 Q-7 2 -11 -6 Q-6 -1 -2.5 2 Z" fill="@peau" stroke="@peauO" stroke-width="0.5"/>`
   + `<path d="M-4 2 Q-6.5 -1 -9 -4.5" stroke="@peauO" stroke-width="0.4" fill="none" opacity="0.6"/>`;
 
-// --- Ailes gossamer translucides (couleurs LITTÉRALES pâles — jamais un token vif qui repeindrait
+// --- Ailes gossamer translucides (couleurs LITTÉRALES pâles — jamais un jeton vif qui repeindrait
 // une silhouette). Ancrées au haut du dos (repère torse). Par-vue : face = paire DERRIÈRE le corps ;
 // dos = paire PAR-DESSUS le dos ; profil = une aile balayée en arrière. ---
 const AILE_FRONT =

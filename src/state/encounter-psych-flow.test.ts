@@ -7,7 +7,6 @@ import { psychDRAdjust } from '../engine/combat';
 import { stacks } from '../engine/conditions';
 import type { Combatant } from '../engine/types';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { DEFAULT_RELIEF_DEFAULTS, DEFAULT_ROOF_DEFAULTS, type Scene, type SceneEntity, type CustomStatblock } from './scene';
 import { emptyNarratif } from './campaignNarratif';
 
@@ -36,7 +35,7 @@ function scene(entities: SceneEntity[]): Scene {
 
 /** Héros au Calme bas (FM 1, 0 avance) → Test simple raté de façon déterministe (cible basse). */
 function timoreux(name: string, fm = 1) {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: name, rng: makeRNG(1) });
+  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: name, seed: 1 });
   h.characteristics['force-mentale'] = fm;
   h.skills = []; // pas d'avance de Calme → calmeValue = FM brut
   return h;

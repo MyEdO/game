@@ -7,7 +7,7 @@
  * le navire monte en y NÉGATIF, la PROUE regarde à DROITE (le profil gauche s'obtient par MIROIR
  * dans la machinerie, jamais dans l'art). Jetons palette CONSERVÉS (recoloration Compendium) :
  * `@coque` (bois de carène), `@toileDeVoile` (voiles), `@mat` (espars/rames), `@pavillon` (flammes/
- * emblèmes) + nuances O/H dérivées par `buildTokenMap`.
+ * emblèmes) + ombre et lumière de gamme dérivées par `buildTokenMap`.
  */
 import type { ViewArt } from '../viewArt';
 

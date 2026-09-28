@@ -8,8 +8,9 @@
  *   - cornes/queue : calques (overlay) sur `tete` / `bassin` — FORME déclarée PAR la tête.
  * Aucune arme ici : l'arme reste de l'ÉQUIPEMENT (rendue par le rig si équipée).
  */
+import type { View } from '../facing';
 import type { BoneId, RigOverlay } from '../bones';
-import { pickView, type PartArt } from './types';
+import { viewOrFront, type PartArt } from './types';
 import { HEADS, ARMS, LEGS, HEAD_CORNES, HEAD_QUEUE } from './monster';
 import { WINGS } from './wings';
 import { dorsalOverlays } from './dorsal';
@@ -42,7 +43,7 @@ export interface MonsterParts {
 }
 
 export interface MonsterInjection {
-  /** part par os (remplace la part normale de l'os) — multi-vues (front/back/profile). */
+  /** part par os (remplace la part normale de l'os) — orientée (front/back/profile). */
   replace: Partial<Record<BoneId, PartArt>>;
   /** calques additionnels. */
   overlays: RigOverlay[];
@@ -52,7 +53,7 @@ export interface MonsterInjection {
  *  clés inconnues (ignorées) pour accepter les libellés libres de la scène.
  *  `view` : certains calques sont propres à une vue (les crocs du vampire = détail de FACE ;
  *  les dessiner de dos/de profil les ferait flotter sur la nuque ou hors du museau). */
-export function monsterInjection(m: MonsterParts, view: 'front' | 'back' | 'profile' = 'front'): MonsterInjection {
+export function monsterInjection(m: MonsterParts, view: View = 'front'): MonsterInjection {
   const replace: Partial<Record<BoneId, PartArt>> = {};
   const overlays: RigOverlay[] = [];
   const head = m.tete ? HEADS[m.tete] : undefined;
@@ -68,8 +69,8 @@ export function monsterInjection(m: MonsterParts, view: 'front' | 'back' | 'prof
   // Cornes/queue : la FORME est DÉCLARÉE PAR la tête (monster/defs : `cornes`/`queue`) — bovine en V
   // pour taureau, noire de démon, ivoire de chèvre pour caprin/gobelin, rose de rat pour la queue —
   // sinon le calque GÉNÉRIQUE. Plus de name-matcher `m.tete === '…'` : donnée sur la part de tête.
-  if (m.cornes) overlays.push({ bone: 'tete', svg: pickView(appendageArt(HEAD_CORNES[m.tete ?? ''] ?? 'cornes-generique'), view), behind: true });
-  if (m.queue) overlays.push({ bone: 'bassin', svg: pickView(appendageArt(HEAD_QUEUE[m.tete ?? ''] ?? 'queue-generique'), view), behind: true });
+  if (m.cornes) overlays.push({ bone: 'tete', svg: viewOrFront(appendageArt(HEAD_CORNES[m.tete ?? ''] ?? 'cornes-generique'), view), behind: true });
+  if (m.queue) overlays.push({ bone: 'bassin', svg: viewOrFront(appendageArt(HEAD_QUEUE[m.tete ?? ''] ?? 'queue-generique'), view), behind: true });
   if (m.griffes) { overlays.push({ bone: 'mainG', svg: GRIFFES_ART }); overlays.push({ bone: 'mainD', svg: GRIFFES_ART }); }
   if (m.plaie) overlays.push({ bone: 'torse', svg: PLAIE_ART });
   if (m.verrues) overlays.push({ bone: 'torse', svg: VERRUES_ART });

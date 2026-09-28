@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
+import { detenteur } from '../detenteur.testkit';
 
 /**
  * Garde STRUCTURELLE — ce qu'une feuille CONSOMME doit être DÉFINI quelque part dans l'arbre.
@@ -17,8 +18,10 @@ function stripCodeComments(src: string): string {
   return src.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/(^|[^:])\/\/[^\n]*/g, '$1');
 }
 
-const cssTexts = readCorpus(['src'], { exts: ['.css'], tests: true }).map(({ rel, text }) => [rel, text] as const);
-const codeTexts = readCorpus(['src']).map(({ text }) => stripCodeComments(text));
+const cssTexts = detenteur(() =>
+  readCorpus(['src'], { exts: ['.css'], tests: true }).map(({ rel, text }) => [rel, text] as const),
+);
+const codeTexts = detenteur(() => readCorpus(['src']).map(({ text }) => stripCodeComments(text)));
 
 /** Retire commentaires puis appels de fonction (`cubic-bezier(…)`, `steps(…)`) d'une valeur. */
 function strip(value: string): string {
@@ -36,11 +39,11 @@ const ANIM_KEYWORDS = new Set([
 
 describe('CSS — toute consommation a sa définition', () => {
   const keyframes = new Set<string>();
-  for (const [, t] of cssTexts) for (const m of t.matchAll(/@(?:-\w+-)?keyframes\s+([-\w]+)/g)) keyframes.add(m[1]);
+  for (const [, t] of cssTexts()) for (const m of t.matchAll(/@(?:-\w+-)?keyframes\s+([-\w]+)/g)) keyframes.add(m[1]);
 
   /** Noms d'animations consommés, avec le fichier qui les consomme. */
   const animUsed = new Map<string, string>();
-  for (const [f, t] of cssTexts)
+  for (const [f, t] of cssTexts())
     for (const m of t.matchAll(/(?:^|[;{}\s])animation(?:-name)?\s*:([^;}]*)/g))
       for (const tok of strip(m[1]).split(/[\s,]+/))
         if (tok && !/^[\d.]/.test(tok) && /^[-\w]+$/.test(tok) && !ANIM_KEYWORDS.has(tok) && !animUsed.has(tok))
@@ -58,15 +61,15 @@ describe('CSS — toute consommation a sa définition', () => {
   // Variables : déclarées en CSS (`--x:`, `@property --x`) ou POSÉES par le code (style inline,
   // `setProperty`) — les deux comptent comme définition, le rendu final les fusionne.
   const varsDefined = new Set<string>();
-  for (const [, t] of cssTexts) {
+  for (const [, t] of cssTexts()) {
     for (const m of t.matchAll(/(--[-\w]+)\s*:/g)) varsDefined.add(m[1]);
     for (const m of t.matchAll(/@property\s+(--[-\w]+)/g)) varsDefined.add(m[1]);
   }
-  for (const t of codeTexts) for (const m of t.matchAll(/(--[a-z][-\w]*)/g)) varsDefined.add(m[1]);
+  for (const t of codeTexts()) for (const m of t.matchAll(/(--[a-z][-\w]*)/g)) varsDefined.add(m[1]);
 
   /** `var(--x)` SANS repli : la déclaration entière meurt si `--x` n'existe pas. */
   const varsUsed = new Map<string, string>();
-  for (const [f, t] of cssTexts)
+  for (const [f, t] of cssTexts())
     for (const m of t.matchAll(/var\(\s*(--[-\w]+)\s*\)/g)) if (!varsUsed.has(m[1])) varsUsed.set(m[1], f);
 
   it('mesure un stock non vide de variables consommées sans repli', () => {

@@ -4,7 +4,7 @@
  */
 import { QUAD_TAIL_DEFS } from './_registry.generated';
 import type { QuadTailDef } from './types';
-import { MISSING_ART, pickView } from '../../viewArt';
+import { MISSING_ART, nearestView } from '../../viewArt';
 
 export type { QuadTailDef } from './types';
 export type { QuadTailId } from './_registry.generated';
@@ -15,7 +15,7 @@ export const QUAD_TAILS: Record<string, QuadTailDef> = Object.fromEntries(QUAD_T
 const MISSING_TAIL: QuadTailDef = {
   key: '',
   label: 'Queue manquante',
-  art: { profile: pickView(MISSING_ART, 'profile')(), back: pickView(MISSING_ART, 'back')() },
+  art: { profile: nearestView(MISSING_ART, 'profile')(), back: nearestView(MISSING_ART, 'back')() },
 };
 
 /**

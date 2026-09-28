@@ -4,6 +4,7 @@ import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
 import { estSuiteVitest } from '../scripts/guards/lib/fichierVitest.mjs';
 import { typeNonNomme } from './data/schemas/defs-scenes/scene';
 import { CURRENT_PROJECT_SCHEMA } from './state/worldMap';
+import { detenteur } from './detenteur.testkit';
 
 /**
  * PERSONNAGE SANS FICHE DANS UNE FIXTURE (#1882) — un test qui pose un `kind:'personnage'` sans porteur
@@ -131,11 +132,11 @@ export function personnagesSansFiche(rel: string, raw: string): Site[] {
 
 const estSujetProuve = (s: Site) => SANS_FICHE_PROUVES.some((r) => r.fichier === s.rel && r.it === s.it);
 
-let memo: Site[] | undefined;
-const sitesDuCorpus = (): Site[] =>
-  (memo ??= readCorpus(['src'], { tests: true })
+const sitesDuCorpus = detenteur((): Site[] =>
+  readCorpus(['src'], { tests: true })
     .filter((f) => estSuiteVitest(f.rel))
-    .flatMap(({ rel, text }) => personnagesSansFiche(rel, text)));
+    .flatMap(({ rel, text }) => personnagesSansFiche(rel, text)),
+);
 
 describe('personnage-sans-fiche-guard : aucune fixture ne pose un personnage sans fiche (#1882)', () => {
   it('en-tête structuré', () => {

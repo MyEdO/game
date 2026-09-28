@@ -1,4 +1,5 @@
-/** QC : pieds directionnels (front/back/profile) sur 2 tenues. → public/qc/feet.png */
+/** QC : pieds orientés (front/back/profile) sur 2 tenues. → public/qc/feet.png */
+import { VIEWS } from '../src/gameIso/rig/facing';
 import { writeFileSync } from 'node:fs';
 import { Resvg } from '@resvg/resvg-js';
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -14,7 +15,6 @@ import { assertWardrobeId } from './_lib-wardrobe';
 const CASES = ['soldat', 'mendiant'].map((career) => ({ career, label: tenueLabel(career) }));
 for (const c of CASES)
   assertWardrobeId(c.career, 'qc-feet');
-const VIEWS = ['front', 'back', 'profile'] as const;
 const cells: string[] = [];
 CASES.forEach((cse, r) => {
   VIEWS.forEach((view, c) => {

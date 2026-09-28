@@ -8,7 +8,7 @@
  */
 import { writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 import { projectDoc } from '../campagne/lib.mjs';
 import { makeHub } from './hub.mjs';
 import { makeZone1, makeZone2, makeZone3, makeZone4, makeZone5, makeZone6, makeZone7 } from './zones1-7.mjs';
@@ -132,7 +132,7 @@ return projectDoc({
 /** Chemin de l'artefact écrit par le CLI — lu aussi par la garde byte-stable. */
 export const OUT = join(dirname(fileURLToPath(import.meta.url)), '../../src/scenes/arene/arene-projet.json');
 
-if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (import.meta.main) {
   const doc = build();
   writeFileSync(OUT, JSON.stringify(doc, null, 1) + '\n');
   console.log(`arene-projet.json : ${doc.scenes.length} scènes, ${doc.worldMap.places.length} lieux, ${doc.worldMap.routes.length} routes.`);

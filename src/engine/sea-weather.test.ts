@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  rollSeaWeather, rollWindDirection, windAspect, tickWindForce, windEffect, windAdjustedM,
+  rollSeaWeather, rollWindDirection, windAspect, tickWindForce, tickWindForceDay, windEffect, windAdjustedM,
   visibilityDRPenalty, precipitationSkillMod, dailyWaterLitres, windForces, temperatureDef,
   seaExposureTestsPerDay,
 } from './seaWeather';
@@ -60,6 +60,33 @@ describe('vents — rose, aspect, mise à jour (MDG 13 l.250-272)', () => {
     expect(tickWindForce('calme-plat', seq(1, 8))).toBe('legere-brise'); // ne peut que forcir
     expect(tickWindForce('violente-tempete', seq(1, 3))).toBe('vent-violent'); // ne peut que mollir
     expect(windForces()).toHaveLength(6);
+  });
+
+  /** RNG scripté STRICT : chaque valeur servie une fois, `consumed` compte les d10 tirés. */
+  const file = (...vals: number[]): RNG & { consumed: () => number } => {
+    let i = 0;
+    return {
+      int: (min, max) => { if (i >= vals.length) throw new Error('file épuisée'); return Math.min(max, Math.max(min, vals[i++])); },
+      consumed: () => i,
+    };
+  };
+
+  it('tickWindForceDay : aube, midi, crépuscule, minuit = 4 d10 par jour (l.272)', () => {
+    const calme = file(5, 7, 2, 10);
+    expect(tickWindForceDay('vent-modere', calme)).toBe('vent-modere');
+    expect(calme.consumed()).toBe(4);
+    const deuxCrans = file(1, 3, 6, 1, 3, 9);
+    expect(tickWindForceDay('brise-fraiche', deuxCrans)).toBe('vent-violent');
+    expect(deuxCrans.consumed()).toBe(6);
+    const mollit = file(4, 1, 8, 4, 4);
+    expect(tickWindForceDay('brise-fraiche', mollit)).toBe('legere-brise');
+    expect(mollit.consumed()).toBe(5);
+  });
+
+  it('tickWindForceDay : bornes Calme plat et Violente tempête à chaque moment (l.272)', () => {
+    expect(tickWindForceDay('calme-plat', file(1, 8, 1, 3, 1, 3, 1, 3))).toBe('vent-violent');
+    expect(tickWindForceDay('violente-tempete', file(1, 3, 1, 8, 2, 2))).toBe('vent-modere');
+    expect(tickWindForceDay('violente-tempete', file(1, 8, 1, 3, 1, 3, 1, 3))).toBe('violente-tempete');
   });
 });
 

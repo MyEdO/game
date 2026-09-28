@@ -68,7 +68,7 @@ type Fix = { pid?: string; make: (win: boolean) => Record<string, unknown>; comp
 const FIXTURES: Record<string, Fix> = {
   // ── Attaque / défense / piétinement (issue = `attackerDetail.success` / `def.success`) ──
   attack: { make: (win) => ({
-    battle: arena(), scene: testScene, // resolveAttack (re-résolution) lit la scène (LdV/couvert) sans garde
+    battle: arena(), scene: testScene(), // resolveAttack (re-résolution) lit la scène (LdV/couvert) sans garde
     pendingAttack: { attackerId: 'A', targetId: 'B', location: null, result: { hit: win, attackerRoll: win ? 20 : 88, netSL: win ? 2 : -4, critical: false, advantageTo: win ? 'attacker' : 'defender', defenderDefeated: false, log: '', attackerDetail: atkDetail(win) } },
   }) },
   defense: { make: (win) => ({

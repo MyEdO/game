@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { resolveParts } from './resolve';
 import { tenueFor } from './career';
 import { armourPart } from './equipment';
-import { pickView } from './types';
+import { viewOrFront } from './types';
 import type { EquipCtx } from './equipment';
 import type { ItemInstance, Weapon } from '../../../engine/types';
 
@@ -13,14 +13,14 @@ const plastron: ItemInstance = { uid: '1', label: 'Plastron', kind: 'armor', qua
 describe('resolveParts — priorité', () => {
   it('sans rien : torse = tenue de la carrière (par-carrière)', () => {
     const r = resolveParts('Humain', 'M', 'soldat', empty, {}, 1);
-    expect(r.torse?.svg).toBe(pickView(tenueFor('soldat').torse, 'front'));
+    expect(r.torse?.svg).toBe(viewOrFront(tenueFor('soldat').torse, 'front'));
   });
 
   it('armure équipée sur le corps PRIME sur la tenue de carrière', () => {
     const equip: EquipCtx = { weapons: [], armour: [plastron] };
     const r = resolveParts('Humain', 'M', 'soldat', equip, {}, 1);
-    expect(r.torse?.svg).toBe(pickView(armourPart(plastron, 'torse'), 'front'));
-    expect(r.torse?.svg).not.toBe(pickView(tenueFor('soldat').torse, 'front'));
+    expect(r.torse?.svg).toBe(viewOrFront(armourPart(plastron, 'torse'), 'front'));
+    expect(r.torse?.svg).not.toBe(viewOrFront(tenueFor('soldat').torse, 'front'));
   });
 
   it('arme et bouclier suivent l’équipement', () => {
@@ -33,7 +33,7 @@ describe('resolveParts — priorité', () => {
   it('override éditeur (parts) PRIME sur l’équipement', () => {
     const equip: EquipCtx = { weapons: [], armour: [plastron] };
     const r = resolveParts('Humain', 'M', 'soldat', equip, { torse: 0 }, 1);
-    expect(r.torse?.svg).not.toBe(pickView(armourPart(plastron, 'torse'), 'front'));
+    expect(r.torse?.svg).not.toBe(viewOrFront(armourPart(plastron, 'torse'), 'front'));
   });
 
   it('visage et cheveux sont toujours présents', () => {

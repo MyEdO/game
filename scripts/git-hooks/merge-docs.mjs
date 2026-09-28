@@ -19,15 +19,14 @@
 //                   puis entrant, puis ancêtre — une section AJOUTÉE par l'entrant garde donc SON
 //                   champ. Conflit résiduel = divergence de prose, donc humain : marqueurs écrits
 //                   dans %A et exit 1.
-import { execFileSync } from 'node:child_process'
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import { join, resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import '../node-requis.mjs'
+import { readFileSync, writeFileSync } from 'node:fs'
+import { threeWay } from './three-way.mjs'
+// Clôture statique chargeable sous un Node refusé : scripts/node-requis.mjs (#1801).
 // Frontière du champ dérivé : SOURCE UNIQUE partagée avec le générateur (scripts/raw/build-implemente.mjs).
-import { NOT_IMPL, parseFiche } from '../raw/build-implemente.mjs'
+const { NOT_IMPL, parseFiche } = await import('../raw/build-implemente.mjs')
 // Blocs préservés des catalogues : SOURCE UNIQUE partagée avec le générateur.
-import { BLOCK_START, extractPreservedBlocks } from '../raw/build-catalogs.mjs'
+const { BLOCK_START, extractPreservedBlocks } = await import('../raw/build-catalogs.mjs')
 
 export const FAMILIES = ['generes', 'catalogue', 'fiche-raw']
 
@@ -73,28 +72,6 @@ export function restoreImplemente(text, ...blockMaps) {
     out.push(...(blockMaps.map((b) => b.get(m[1])).find(Boolean) ?? [`**Implémente :** ${NOT_IMPL}`]))
   }
   return out.join('\n')
-}
-
-/** Fusion 3-voies déléguée à `git merge-file -p` (aucune réimplémentation du diff3).
- *  Retourne `{ text, conflict }` ; `conflict` vrai = marqueurs présents dans `text`. */
-export function threeWay(ours, base, theirs, labels = { ours: 'ours', base: 'base', theirs: 'theirs' }) {
-  const dir = mkdtempSync(join(tmpdir(), 'merge-docs-'))
-  try {
-    const put = (name, content) => { const f = join(dir, name); writeFileSync(f, content); return f }
-    const args = ['merge-file', '-p', '-L', labels.ours, '-L', labels.base, '-L', labels.theirs,
-      put('ours', ours), put('base', base), put('theirs', theirs)]
-    try {
-      return { text: execFileSync('git', args, { encoding: 'utf8', maxBuffer: 256 * 1024 * 1024 }), conflict: false }
-    } catch (e) {
-      // `git merge-file` sort le NOMBRE de conflits (>0), ou 255 sur erreur réelle.
-      if (typeof e.status === 'number' && e.status > 0 && e.status < 255 && e.stdout != null) {
-        return { text: String(e.stdout), conflict: true }
-      }
-      throw e
-    }
-  } finally {
-    rmSync(dir, { recursive: true, force: true })
-  }
 }
 
 /** Blocs `<!-- X-INTEGRATION -->` d'un catalogue, indexés par marqueur. */
@@ -155,5 +132,4 @@ function main(argv) {
   return 0
 }
 
-const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)
-if (isMain) process.exit(main(process.argv.slice(2)))
+if (import.meta.main) process.exit(main(process.argv.slice(2)))

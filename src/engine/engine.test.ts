@@ -876,7 +876,7 @@ describe('Création de héros', () => {
       speciesId: 'humains-reiklander',
       careerId: 'agitateur',
       label: 'Test',
-      rng: makeRNG(7),
+      seed: 7,
     });
     expect(hero.kind).toBe('hero');
     expect(hero.skills.length).toBeGreaterThan(0);

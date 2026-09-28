@@ -1,3 +1,4 @@
+import { tableTotale } from '../../lib/tableTotale';
 import { describe, expect, it } from 'vitest';
 import { missingPropSvg, propSvg } from './decor';
 import { scenarioEntities } from '../../scenes/opera/furnished';
@@ -14,8 +15,8 @@ import { emptyScene, sceneMetresPerTile, type Scene, type SceneEntity } from '..
 import { sceneEntitySchema } from '../../data/schemas/defs-scenes/scene';
 import { validateScene } from '../../state/validateScene';
 import { DIR4_ORDER, type Dir4 } from '../../state/dir8';
-import { memoByRef } from '../../state/sceneMemo';
 import { readCorpus } from '../../../scripts/guards/lib/sourceCorpus.mjs';
+import { detenteur } from '../../detenteur.testkit';
 
 /**
  * LE DÉCOR VOLUMIQUE — les refs de `props.json` dont le corps MONDE est leur recette, et dont le SVG
@@ -58,10 +59,8 @@ interface DecorAuthore { source: string; id: string; kind?: string; ref?: string
  * a exactement la même frontière, pour la même raison.
  */
 const CORPUS_SCENES = () => readCorpus(['src/scenes'], { exts: ['.json'], tests: true });
-/** Le dépouillement d'un corpus donné, retenu par l'IDENTITÉ de ce corpus (`memoByRef`) : `readCorpus`
- *  rend le MÊME tableau gelé à chaque appel de la même clé, donc la moisson ne se refait pas d'un `it`
- *  à l'autre — et une relecture disque (`viderCorpus`) rend un tableau neuf, donc une moisson neuve. */
-const moisson = memoByRef((corpus: ReturnType<typeof CORPUS_SCENES>): DecorAuthore[] => {
+/** Le dépouillement d'un corpus donné. */
+function moissonDe(corpus: ReturnType<typeof CORPUS_SCENES>): DecorAuthore[] {
   const out: DecorAuthore[] = [];
   const recolte = (o: unknown, fichier: string): void => {
     if (!o || typeof o !== 'object') return;
@@ -76,12 +75,11 @@ const moisson = memoByRef((corpus: ReturnType<typeof CORPUS_SCENES>): DecorAutho
   };
   for (const f of corpus) recolte(JSON.parse(f.text), f.rel.replace(/^src\/scenes\//, ''));
   const mptOpera = sceneMetresPerTile(buildOperaFloorplan());
-  for (const e of scenarioEntities as unknown as DecorAuthore[]) out.push({ ...e, source: SOURCE_TS, mpt: mptOpera });
+  for (const e of scenarioEntities() as unknown as DecorAuthore[]) out.push({ ...e, source: SOURCE_TS, mpt: mptOpera });
   return out;
-});
-function entitesAuthorees(): DecorAuthore[] {
-  return moisson(CORPUS_SCENES());
 }
+/** La moisson, une fois par fichier (#1801). */
+const entitesAuthorees = detenteur(() => moissonDe(CORPUS_SCENES()));
 
 /** Emprise d'une primitive (`empriseLocaleM`, la seule) : sa boîte englobante au sol ramenée en CASES
  *  (la recette est en mètres, #1507 — c'est l'échelle de la scène qui la ramène à la grille) et ses
@@ -241,7 +239,7 @@ describe('décor volumique — chaque recette du catalogue, sa vignette et son c
     // un mur fait 1×2), jamais par un `foot` déclaré — qui ne tournerait pas avec le cap.
     'table-2x1': { ns: [2, 1], eo: [1, 2] },
     'table-murale-2-tabourets': { ns: [2, 1], eo: [1, 2] },
-    // Lot B (#1343) : trois recettes qui REPRODUISENT en corps dérivé le `foot` que leur def
+    // #1343 : trois recettes qui REPRODUISENT en corps dérivé le `foot` que leur def
     // d'entrée déclarait — un bureau et un établi longs de 3,40 m, un manteau de scène de 5,60 m.
     // Le `foot` authoré est mort avec la conversion (#1509) ; ce sont ces cotes-là qui le tiennent.
     'bureau-2x1': { ns: [2, 1], eo: [1, 2] },
@@ -250,26 +248,26 @@ describe('décor volumique — chaque recette du catalogue, sa vignette et son c
     // La rangée de fauteuils du parterre : trois assises sous une même ménuiserie de 5,40 m, séparées
     // par quatre accoudoirs — son 3×1 vient de ce corps, là où elle le DÉCLARAIT en billboard.
     'rangee-sieges': { ns: [3, 1], eo: [1, 3] },
-    // Lot C (#1343) : la charrette à bras, plateau et brancards de 3,30 m — son 2×1 vient de ce corps,
+    // #1343 : la charrette à bras, plateau et brancards de 3,30 m — son 2×1 vient de ce corps,
     // là où elle le DÉCLARAIT en billboard.
     'charrette': { ns: [2, 1], eo: [1, 2] },
     // Toutes les autres tiennent sur UNE case, à tous les caps. La table ronde n'y tient que parce
     // que ses quatre tabourets sont exclus du corps (sans eux elle mesurerait 2×2 — cf. le contrat de
     // cache de `data/props-integrity.test.ts`).
-    ...Object.fromEntries(([
+    ...tableTotale([
       'tonneau', 'tonneaux-pile', 'caisse', 'coffre', 'urne', 'table', 'chaise', 'banc', 'tabouret',
       'armoire', 'etagere', 'etal-marche', 'cheminee-interieure', 'comptoir-droit', 'comptoir-angle',
       'table-ronde-4-tabourets', 'cheminee', 'enseigne', 'clocheton',
       'applique-murale',
-      // Lot B (#1343) — le mobilier de l'opéra/théâtre : chacun tient sur sa case à tous ses caps.
+      // #1343 — le mobilier de l'opéra/théâtre : chacun tient sur sa case à tous ses caps.
       'siege', 'fauteuil-loge', 'canape', 'coiffeuse', 'pupitre-chef', 'miroir', 'paravent',
       'portant-costumes', 'rack-armes', 'scie-chevalet', 'decor-flat',
       // … et les deux BASES courtes, converties avec leurs variantes longues : une demi-migration
       // aurait laissé le même meuble en volume ici et en billboard là, selon sa longueur.
       'bureau', 'etabli',
-      // Lot C (#1343) — les décors organiques en volume sobre, chacun sur sa case à tous ses caps.
+      // #1343 — les décors organiques en volume sobre, chacun sur sa case à tous ses caps.
       'plante-pot', 'statue', 'colonne-brisee', 'lustre-opera', 'mannequin', 'mannequin-couturier',
-    ]).map((id) => [id, { ns: [1, 1], eo: [1, 1] }])),
+    ], () => ({ ns: [1, 1], eo: [1, 1] })),
   };
 
   it('la liste des empreintes attendues couvre EXACTEMENT le catalogue des recettes', () => {

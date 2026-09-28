@@ -8,6 +8,7 @@
  * existant (`TypeMenu`, qui CONVERTIT). Les effets se réordonnent (l'ordre d'application compte —
  * `applyEffects`).
  */
+import { tableTotale } from '../../lib/tableTotale';
 import { Effect, EncounterDef, Dialogue, Scene } from '../../state/scene';
 import { Icon } from '../Icon';
 import { EMPTY_FLOW } from '../../state/flow';
@@ -119,12 +120,8 @@ export const ctxDeCatalogue = (racine: RacineDeCatalogue): Ctx => ({ encounters:
 
 /** Libellé / icône d'un type d'effet — dérivés du REGISTRE unique (aucun Record parallèle à
  *  maintenir : la source de vérité est `EFFECT_HANDLERS[t].label/icon`). */
-export const EFFECT_LABEL = Object.fromEntries(
-  EFFECT_TYPES.map((t) => [t, EFFECT_HANDLERS[t].label]),
-) as Record<Effect['type'], string>;
-export const EFFECT_ICON = Object.fromEntries(
-  EFFECT_TYPES.map((t) => [t, EFFECT_HANDLERS[t].icon]),
-) as Record<Effect['type'], string>;
+export const EFFECT_LABEL = tableTotale(EFFECT_TYPES, (t) => EFFECT_HANDLERS[t].label);
+export const EFFECT_ICON = tableTotale(EFFECT_TYPES, (t) => EFFECT_HANDLERS[t].icon);
 
 /** Picker « + Effet » : les types groupés par intention d'auteur — reconstruit depuis le `group` de
  *  chaque handler, dans l'ordre des groupes (`EFFECT_GROUP_ORDER`) et l'ordre de déclaration intra-groupe. */

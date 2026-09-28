@@ -18,7 +18,7 @@
  */
 import { writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 import { scene, hero, NPC, P, flowOf, flagWhen, testNode, poste, resetIds, projectDoc } from '../campagne/lib.mjs';
 import { dailyWaterLitres } from '../../src/engine/seaWeather.ts';
 import { itemFromTrappingById } from '../../src/engine/items.ts';
@@ -750,7 +750,7 @@ return projectDoc({
 /** Chemin de l'artefact écrit par le CLI — lu aussi par la garde byte-stable. */
 export const OUT = join(dirname(fileURLToPath(import.meta.url)), '../../src/scenes/loup-et-saumure/loup-et-saumure-projet.json');
 
-if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (import.meta.main) {
   const doc = build();
   writeFileSync(OUT, JSON.stringify(doc, null, 1) + '\n');
   console.log(`loup-et-saumure-projet.json : ${doc.scenes.length} scènes, ${doc.worldMap.places.length} lieux, ${doc.worldMap.routes.length} routes.`);

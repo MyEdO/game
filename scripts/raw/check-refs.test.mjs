@@ -2,11 +2,11 @@
 // détectée, une réf valide reste silencieuse. Lancé par `npm run test:raw`.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { scanDeadRefs, sitesMorts, STOCK_PATH } from './check-refs.mjs'
+import { regenerations, scanDeadRefs, sitesMorts, STOCK_PATH } from './check-refs.mjs'
 import { avecAtlasFixture, coeurDeBanc } from './atlasFixture.mjs'
 import { RAWDOC_META_GENERATED } from './_lib.mjs'
-import { ecartDuVolet } from '../guards/lib/stock.mjs'
-import { readStock } from './stockNominatif.mjs'
+import { cleDeSite, ecartDuVolet } from '../guards/lib/stock.mjs'
+import { ecartDeRegeneration, lireEntreesDeSite, texteEnPlace } from '../guards/lib/stockDeSites.mjs'
 
 // LDB 06 (Source/Warhammer v4 - Livre de base version corrigee/06 - Classes.md) fait 6 lignes
 // (split('\n').length) — chapitre réel, court, stable : sert d'ancrage pour planter une réf hors
@@ -82,7 +82,8 @@ test('écart : un site hors du stock est NEUF, une entrée sans site est SOLDÉE
     ou: 'dead-refs-stock.json',
   })
   assert.equal(neuves.length, 1)
-  assert.match(neuves[0], new RegExp(`docs/raw/${FICHE.replace('.', '\\.')} :: LDB 6 l\\.999 :: 1 — site NEUF`))
+  assert.ok(neuves[0].startsWith(cleDeSite({ fichier: `docs/raw/${FICHE}`, ref: 'LDB 6 l.999', occurrence: 1 })), neuves[0])
+  assert.match(neuves[0], /site NEUF/)
   assert.match(neuves[0], /CLIQUET:/)
   assert.equal(perimees.length, 1)
   assert.match(perimees[0], new RegExp(AUTRE_FICHE.replace('.', '\\.')))
@@ -90,9 +91,10 @@ test('écart : un site hors du stock est NEUF, une entrée sans site est SOLDÉE
 })
 
 test('stock ABSENT → tolérance ZÉRO : tout site mort est neuf, et l’Atlas réel n’en porte aucun', () => {
-  assert.deepEqual(readStock(STOCK_PATH), [], 'le régime nominal est le stock ABSENT (ou vide)')
+  const dead = scanDeadRefs()
+  for (const r of regenerations(dead)) assert.equal(ecartDeRegeneration(r, texteEnPlace(r.chemin)), null)
   const { neuves, perimees } = ecartDuVolet({
-    sites: sitesMorts(scanDeadRefs()), stock: readStock(STOCK_PATH), ou: 'dead-refs-stock.json',
+    sites: sitesMorts(dead), stock: lireEntreesDeSite(STOCK_PATH), ou: 'dead-refs-stock.json',
   })
   assert.deepEqual(neuves, [], `site(s) de réf morte dans docs/raw :\n${neuves.join('\n')}`)
   assert.deepEqual(perimees, [], `entrée(s) SOLDÉE(s) :\n${perimees.join('\n')}`)

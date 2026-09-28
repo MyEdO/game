@@ -1,5 +1,6 @@
-// PORTE DE RÔLE du corpus source (#1709 C1) — la lib LIT UNE FOIS PAR CLÉ, et ce qu'elle rend est
-// IMMUABLE. Cinq propriétés, mesurées sur une fixture de `os.tmpdir()` (jamais le `src/` réel) :
+// PORTE DE RÔLE du corpus source (#1709) — la lib LIT UNE FOIS PAR CLÉ, et ce qu'elle rend est
+// IMMUABLE. Onze propriétés, mesurées sur une fixture de `os.tmpdir()` (jamais le `src/` réel) sauf
+// (f), sur l'arbre, et (k), sur des chemins :
 //  (a) MÉMO      : même clé = MÊME tableau (identité), et le disque n'est pas retouché — une écriture
 //      faite APRÈS la première lecture reste invisible jusqu'à `viderCorpus()`.
 //  (b) CLÉ       : dossiers, extensions et `tests` font partie de la clé — trois corpus distincts.
@@ -13,7 +14,7 @@
 //      AJOUTÉ entre deux lectures est vu, et le tableau rendu est NEUF.
 //  (f) PÉRIMÈTRE : sur l'arbre RÉEL de `src/**`, l'ensemble rendu est EXACTEMENT celui d'une marche
 //      naïve écrite dans ce test comme ORACLE. C'est le seul filet contre une régression de périmètre
-//      de la primitive : ses appelants ont chacun troqué leur propre marche contre elle (#1709 C2),
+//      de la primitive : ses appelants ont chacun troqué leur propre marche contre elle (#1709),
 //      aucun ne peut donc plus servir de témoin — une exclusion de trop ou de moins ici rendrait
 //      toutes les gardes de corpus vertes sur un corpus amputé, sans qu'aucune ne le dise.
 //  (g) REFUS DU VIDE : une clé qui rend 0 fichier LÈVE, en nommant les dossiers et les extensions
@@ -27,14 +28,18 @@
 //  (i) DÉCLARATION : un `*.d.ts` est hors corpus, quelles que soient les `exts` et `tests` demandés —
 //      il n'a aucun corps, donc aucun des motifs qu'une garde cherche, et il fausse tout compte de
 //      modules de production.
+//  (j) UN TEXTE PAR CHEMIN : deux clés qui lisent le même fichier rendent la MÊME entrée (#1801).
+//  (k) PÉRIMÈTRE D'UNE DÉCLARATION : `sAppliqueA` applique une déclaration gardée à un fichier hors de
+//      son `foyer` (chemin ou liste) et dans son `domaine` ; les deux champs absents, elle s'applique
+//      partout.
 import test from 'node:test'
 import assert from 'node:assert/strict'
-// eslint-disable-next-line no-restricted-imports -- ORACLE du cas (f) : marche naïve TÉMOIN, indépendante de `listerArbre` par construction (sinon le test ne prouverait rien) ; son rendu est trié par unités de code avant comparaison, l’ordre du système de fichiers n’en sort jamais.
+// eslint-disable-next-line murs/ordre-total-imports -- ORACLE du cas (f) : marche naïve TÉMOIN, indépendante de `listerArbre` par construction (sinon le test ne prouverait rien) ; son rendu est trié par unités de code avant comparaison, l’ordre du système de fichiers n’en sort jamais.
 import { mkdtempSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, relative, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { readCorpus, viderCorpus } from './sourceCorpus.mjs'
+import { readCorpus, sAppliqueA, viderCorpus } from './sourceCorpus.mjs'
 
 /** La même racine que celle contre laquelle `sourceCorpus.mjs` normalise ses clés. */
 const ROOT = fileURLToPath(new URL('../../../', import.meta.url)).replace(/[\\/]$/, '')
@@ -127,6 +132,21 @@ test('la clé porte les dossiers, leur ORDRE, les extensions et `tests`', () => 
     assert.deepEqual(readCorpus([a], { tests: true }).map((f) => f.text), ['deux', 'un-test', 'un'])
     assert.equal(readCorpus([a], { exts: ['.tsx', '.ts'] }), readCorpus([a], { exts: ['.ts', '.tsx'] }),
       'la clé est le CONTENU des extensions, pas leur ordre d’écriture')
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+test('deux clés qui lisent le même chemin rendent la MÊME entrée, donc un seul texte', () => {
+  const { racine, a, b } = frais()
+  try {
+    const surA = readCorpus([a])
+    const surAB = readCorpus([a, b])
+    const avecTests = readCorpus([a], { tests: true })
+    const un = (corpus) => corpus.find((f) => f.rel.endsWith('/un.ts'))
+    assert.notEqual(surAB, surA, 'deux clés, deux tableaux')
+    assert.equal(un(surAB), un(surA), 'clé `[a, b]` : la même entrée que clé `[a]`')
+    assert.equal(un(avecTests), un(surA), 'clé `tests` : la même entrée que clé `[a]`')
   } finally {
     rmSync(racine, { recursive: true, force: true })
   }
@@ -293,4 +313,16 @@ test('REFUS DU VIDE : la vacuité se mesure PAR BASE — une base vide ne se cac
     viderCorpus()
     rmSync(racine, { recursive: true, force: true })
   }
+})
+
+test('PÉRIMÈTRE D’UNE DÉCLARATION : hors du foyer et dans le domaine, `sAppliqueA` applique ; sinon non', () => {
+  const f = { rel: 'src/a.ts' }
+  assert.equal(sAppliqueA(f, {}), true, 'foyer et domaine absents')
+  assert.equal(sAppliqueA(f, { foyer: 'src/b.ts' }), true, 'hors d’un foyer chemin')
+  assert.equal(sAppliqueA(f, { foyer: ['src/b.ts', 'src/c.ts'] }), true, 'hors d’un foyer liste')
+  assert.equal(sAppliqueA(f, { foyer: 'src/a.ts' }), false, 'foyer chemin')
+  assert.equal(sAppliqueA(f, { foyer: ['src/b.ts', 'src/a.ts'] }), false, 'foyer liste')
+  assert.equal(sAppliqueA(f, { domaine: (rel) => rel.startsWith('scripts/') }), false, 'hors du domaine')
+  assert.equal(sAppliqueA(f, { domaine: (rel) => rel.startsWith('src/'), foyer: 'src/a.ts' }), false, 'dans le domaine mais foyer')
+  assert.equal(sAppliqueA(f, { domaine: (rel) => rel.startsWith('src/'), foyer: 'src/b.ts' }), true, 'dans le domaine, hors du foyer')
 })

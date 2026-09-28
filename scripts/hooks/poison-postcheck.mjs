@@ -6,15 +6,17 @@
 // Second volet, sur .claude/** et docs/** : le POINTEUR DÉRÉFÉRENCÉ — une ligne écrite qui cite un
 // ticket par son seul numéro. « #1463 » ne se lit pas : le lecteur suivant (ou la session suivante)
 // doit ouvrir GitHub pour savoir de quoi il s'agit, et la note devient inerte au premier oubli.
+import '../node-requis.mjs';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import {
-  scanTombstones, scanExcuses, scanRawClaims, scanDecisionClaims, scanLegacyVocabHorsStock, EXCUSE_GUARD_ACTIVE,
-  estFichierScanne, loadDecisionsBaseline, partitionBaseline, formatBaselineReport,
-} from '../guards/lib/commentPoison.mjs';
 import { contexteDeLaGarde, corpusDeLaGarde, estDansLeCorpus, scanLabelLogicFichier } from '../guards/lib/labelLogic.mjs';
 import { cheminDEcriture } from './solde-ticket-guard.mjs';
+// Clôture statique chargeable sous un Node refusé : scripts/node-requis.mjs (#1801).
+const {
+  scanTombstones, scanExcuses, scanRawClaims, scanDecisionClaims, scanLegacyVocabHorsStock, EXCUSE_GUARD_ACTIVE,
+  estFichierScanne, loadDecisionsBaseline, partitionBaseline, formatBaselineReport,
+} = await import('../guards/lib/commentPoison.mjs');
 
 let raw = '';
 process.stdin.setEncoding('utf8');
@@ -32,7 +34,7 @@ const chemin = cheminDEcriture(entree, { base: root });
 if (chemin === null) process.exit(0);
 const rel = chemin.relatif;
 // MÊME périmètre que la suite Vitest et le pre-commit : `estFichierScanne` (source unique,
-// `commentPoison.mjs`) — les deux racines, les quatre extensions, tests compris.
+// `commentPoison.mjs`), qui lit `PERIMETRE_DES_GARDES`.
 const isSrcTs = estFichierScanne(rel);
 
 /** Tout ce qui part en contexte, tous volets confondus (une seule sortie JSON par appel). */

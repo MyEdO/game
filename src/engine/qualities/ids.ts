@@ -7,7 +7,7 @@
  * (`npm run gen:quality-ids`) — voir `./qualityId.generated.ts`, NE PAS ÉDITER À LA MAIN. Union de
  * littéraux seulement (aucun export runtime) : les sites d'appel écrivent l'id directement
  * (`hasQuality(w, 'flexible')`), typé `QualityId` — un id renommé/retiré de `qualities.json` fait
- * échouer la compilation aux sites qui le citaient. Fraîcheur vérifiée par `ids.test.ts`
- * (mode `--check`).
+ * échouer la compilation aux sites qui le citaient. Fraîcheur vérifiée par `npm run docs:check`
+ * (ligne de `GENERATORS`, scripts/docs/build-all.mjs).
  */
 export type { QualityId } from './qualityId.generated';

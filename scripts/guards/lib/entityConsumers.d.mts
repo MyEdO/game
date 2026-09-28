@@ -1,7 +1,11 @@
+import type { Site } from './stock.mjs';
+import type { RegenerationDeStock } from './stockDeSites.mjs';
+
 export const CATEGORY_FILES: Record<string, string>;
 export const EXCLUDED_CATEGORY_FILES: Record<string, string>;
 export function loadCategoryIds(dataDir: string, files?: Record<string, string>): Record<string, string[]>;
-export function orphelinesMesurees(dataDir: string, srcDir: string): { file: string; ref: string }[];
+export function orphelinesMesurees(dataDir: string, srcDir: string): Site[];
+export function regenerations(sites?: readonly Site[]): RegenerationDeStock[];
 export function predicatDeConsommation(dataDir: string, srcDir: string): (cat: string, id: string) => boolean;
 export function buildConsumerCorpus(dataDir: string, srcDir: string, files?: Record<string, string>): string;
 export function sceneConsumerCorpus(srcDir: string): string;

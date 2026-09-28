@@ -7,16 +7,14 @@
  * dans SpellData (spells.json) — plus de src/data/spellspecs/. La colonne « Curé »
  * lit s.curated directement depuis la donnée JSON.
  *
- * Mode --check (chaîné dans npm run docs:check) : régénère en mémoire, compare au
- * .md committé, exit 1 avec message actionnable si diff — jamais d'écriture en --check.
- * Composé via `emitOrCheck` de scripts/docs/lib/jsdocUnion.mjs.
+ * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/empreinte-sources.mjs), rejoué par `build-all.mjs`.
  *
  *   npx tsx scripts/gen-sorts-doc.mts
  */
 import { spells } from '../src/data';
 import { spellSupportOf } from '../src/engine/spellspec';
 import { spellEffectOps } from '../src/engine/flowCore';
-import { emitOrCheck } from './docs/lib/jsdocUnion.mjs';
+import { ecrireOuVerifier } from './docs/lib/empreinte-sources.mjs';
 import { parLibelle } from './guards/lib/lister.mjs';
 
 const ICON = { mecanique: '✅', partiel: '🟡', narratif: '📜' } as const;
@@ -82,7 +80,7 @@ lines.splice(10, 0,
 const out = lines.join('\n');
 const summary = `${spells.length} sorts — ✅ ${totals.mecanique} · 🟡 ${totals.partiel} · 📜 ${totals.narratif} · curés ${totals.curated}`;
 const path = 'docs/sorts-implementation.md';
-emitOrCheck({
+ecrireOuVerifier({
   out,
   path,
   check: process.argv.includes('--check'),

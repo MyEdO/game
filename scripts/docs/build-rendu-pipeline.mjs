@@ -14,15 +14,15 @@
  *  - la population des CATALOGUES de matériaux.
  * La part ÉDITORIALE (contrat de perf, doctrine, « où ajouter… ») vit ICI, en dur.
  *
- * Mode --check (chaîné dans npm run docs:check) : régénère en mémoire, compare au .md committé,
- * exit 1 si diff — jamais d'écriture en mode --check.
+ * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/empreinte-sources.mjs), rejoué par `build-all.mjs`.
  *
  *   node scripts/docs/build-rendu-pipeline.mjs
  */
 import { readFileSync, existsSync, statSync } from 'node:fs'
 import { listerDossier, listerArbre } from '../guards/lib/lister.mjs'
 import ts from 'typescript'
-import { emitOrCheck, loadSource, firstSentence, jsdocBody } from './lib/jsdocUnion.mjs'
+import { loadSource, firstSentence, jsdocBody } from './lib/jsdocUnion.mjs'
+import { ecrireOuVerifier } from './lib/empreinte-sources.mjs'
 import { fileExports } from './lib/engineExports.mjs'
 
 const OUTIL = 'build-rendu-pipeline'
@@ -252,11 +252,11 @@ const CONSOMMATEURS = (() => {
 })()
 
 /** La primitive UNIQUE de résolution vue→art, et les coutures qui l'appellent sur un appendice. */
-const PICKVIEW = (() => {
+const VIEW_OR_FRONT = (() => {
   const p = ancre(`${ISO}/rig/parts/types.ts`, 'primitive de résolution par vue')
   const { sf, text } = loadSource(p)
-  const i = text.indexOf('export function pickView')
-  if (i < 0) abandon(`\`pickView\` introuvable dans ${p} — la résolution des appendices ne se dérive plus`)
+  const i = text.indexOf('export function viewOrFront')
+  if (i < 0) abandon(`\`viewOrFront\` introuvable dans ${p} — la résolution des appendices ne se dérive plus`)
   return { fichier: p, ligne: ligne(sf, i) }
 })()
 const COUTURES = listerArbre(ISO, { filtre: (rel) => /\.tsx?$/.test(rel) && !rel.includes('.test.') })
@@ -345,7 +345,7 @@ ${table(SOUS_DOSSIERS, ['Dossier', 'Modules directs', 'Sous-dossiers', 'Rôle'],
 Cornes et queues ne sont pas de l'art posé au cas par cas : \`${APPENDAGES}/\` est le registre UNIQUE, et
 **1 appendice = 1 def \`defs/<id>.ts\` qui porte SON art** (\`front\` + \`profile\` dédié, \`back\` = \`front\` par
 défaut) — aucune string SVG de corne ou de queue hors des defs. Les consommateurs les référencent **PAR ID**
-et la résolution passe par la primitive unique \`pickView\` (\`${PICKVIEW.fichier}:${PICKVIEW.ligne}\`), appelée
+et la résolution passe par la primitive unique \`viewOrFront\` (\`${VIEW_OR_FRONT.fichier}:${VIEW_OR_FRONT.ligne}\`), appelée
 sur un appendice par ${COUTURES.map((f) => `\`${f}\``).join(', ')}.
 
 ${table(APPENDICES, ['Appendice', 'id', 'Def', 'Dos propre', 'Référencé par'], (a) => {
@@ -401,14 +401,14 @@ ${table(CATALOGUES, ['Catalogue', 'Entrées'], (c) => `| \`${c.p}\` | ${c.entree
 - **un ton de décor** : une entrée dans la palette — jamais un hex dans un renderer (§6).
 - **un terrain** : une entrée dans \`src/data/terrains.json\` (règle ET rendu dans la même entrée).
 - **un prop / décor** : une def sous \`${ISO}/catalog/decor/defs/\`, puis \`npm run gen\`. Symétrique →
-  un seul dessin ; directionnel → il DÉCLARE ses vues, et la sélection vue + miroir + repli se fait
+  un seul dessin ; orienté → il DÉCLARE ses vues, et la sélection vue + miroir + repli se fait
   dans la MACHINERIE partagée, jamais dans la def.
 - **un TYPE d'élément** (au-delà des ${SCENE_EL.membres.length} membres de \`SceneEl\`) : ajouter le variant au pivot,
   son builder, sa cuisson dans le monde volumique, et — s'il doit se voir à l'authoring — son peintre
   SVG avec sa profondeur de tri.
 `
 
-emitOrCheck({
+ecrireOuVerifier({
   out,
   path: 'docs/rendu-pipeline.md',
   check: process.argv.includes('--check'),

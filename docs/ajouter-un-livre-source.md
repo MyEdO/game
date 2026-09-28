@@ -68,7 +68,7 @@ LDB compris ; la garde imprime le compte de dossiers hors format à chaque exéc
 | Numéro de chapitre | un **entier** ≥ 1, zéro-paddé à la largeur du **plus grand numéro du livre**, deux au minimum (`livre-de-base` : `21` ; un livre de 120 chapitres : `007`, `105`) — `largeurDeChapitre` / `graphieDeChapitre` (`src/data/source/decoupe.ts`) rendent cette graphie, et elle est la même pour tous les fichiers d'un dossier | `largeur-de-numero` |
 | GRAIN | un fichier porte **UNE section** du livre et **OUVRE** sur le titre que la LISTE DE DÉCOUPE lui donne (`ouverture`) | livre AVEC liste : rouge nommé, sans stock — livre SANS liste : `sans-decoupe` |
 | Mobilier de page | aucun chiffre d'**onglet** de chapitre ni **folio** mêlé au texte | livre dont la liste porte des `onglets` : `mobilier`, rouge nommé, sans stock |
-| Titres d'entrée | aucun gras de tête soudé à une ligne (P5), aucune ligne de titre à deux groupes gras | livre dont la liste porte un `gabaritTitre` : `titre-soude`, rouge nommé, sans stock |
+| Titres d'entrée | aucun gras de tête soudé à une ligne, aucune ligne de titre à deux groupes gras | livre dont la liste porte un `gabaritTitre` : `titre-soude`, rouge nommé, sans stock |
 
 **Le GRAIN, et son régime.** Arbitrage utilisateur du 2026-09-21, verbatim : « Oui : un fichier par
 section majeure ». Le grain d'un livre est sa **LISTE DE DÉCOUPE** (§ 2,
@@ -136,9 +136,9 @@ atteints par balayage des préfixes `Warhammer v4 - `, `WH - V4 - `, `WH4_FR_`, 
 `scripts/raw/source-format-stock.json` : une entrée par (famille, dossier, détail). Les deux sens
 sont rouges — un écart hors du stock (rejouer la chaîne sur le livre, ou déclarer l'entrée au
 message par `CLIQUET:`), une entrée sans écart mesuré (la chaîne a été rejouée : l'entrée se
-retire). `--ecrire-stock` régénère le stock ; une entrée NEUVE y exige son lot, `--lot <#N …>`, sans
-quoi rien n'est écrit (`ecrireStockSousLot`, `scripts/guards/lib/stock.mjs`), et les entrées
-existantes gardent le leur. Comme la `ref` d'une entrée porte un **compte**
+retire). `npx tsx scripts/guards/lib/regenStock.mts scripts/raw/check-source-format.mjs` régénère le stock ; une entrée NEUVE y exige son lot,
+`--lot <#N …>`, sans quoi rien n'est écrit (`regenererStock`, politique `SOUS_LOT`,
+`scripts/guards/lib/regenStock.mts`), et les entrées existantes gardent le leur. Comme la `ref` d'une entrée porte un **compte**
 (« ×N »), **tout geste non canonique se voit** : corriger une occurrence sur N déplace la clé et
 rougit la garde — c'est voulu. **Comment le stock décroît** : un livre repassé par la chaîne en sort
 dans le train qui l'intègre — remplacement du dossier suivi, `node scripts/raw/reanchor.mjs --apply
@@ -297,7 +297,7 @@ autre forme (même clé, ancre, `#` et emphase ôtés, autant de fois que ses pa
 le multi-ensemble des MOTS du LIVRE gagne autre chose que les mots des S′ ou perd autre chose que les
 débris et les appels de figure. Rejouée sur un livre réparé, la sonde ne rend plus aucun site à réparer (N reste rapporté), et la réparation rien. Puis le
 recalage du § 7, étape 2. **La garde** : la famille `titre-soude` de `raw:check-source-format`,
-pour tout livre à `gabaritTitre`, sur TOUT le livre — P5 (`**X** Y…` : groupe hors étiquette
+pour tout livre à `gabaritTitre`, sur TOUT le livre — titre soudé (`**X** Y…` : groupe hors étiquette
 `X:`, hors repère `A)`, hors gras fini par `,` ou `;`, `Y` ni minuscule ni `:-–—(|=`) et titre à
 deux groupes gras, prédicats de `scripts/raw/lib/titres-soudes.mjs`. La sonde PDF reste la porte de
 S′, F, M, O, P, D, E, A, G, T et J, que le `.md` seul ne trahit pas sans bruit : une prose qui s'arrête sans
@@ -332,8 +332,8 @@ Deux limites dites. (1) La recherche séquentielle n'écarte pas un homonyme sit
 section qu'il double : seul un flux PAGINÉ (sortie Marker) porte la fenêtre de page qui le ferait
 tomber — la carte émise est ce qui se relit pour le vérifier. (2) Le recalage ne suit que les
 entrées de stock keyées par **section** (`slug#occ :: …`) ; les autres sont **nommées** et se
-régénèrent par le `--ecrire-stock` de leur propre garde, qui rétablit aussi l'ORDRE canonique du
-fichier de stock.
+régénèrent par `npx tsx scripts/guards/lib/regenStock.mts scripts/raw/<garde>.mjs`, qui rétablit
+aussi l'ORDRE canonique du fichier de stock.
 
 **Après la re-découpe d'un livre DÉJÀ CITÉ** : une re-coupe déplace le `ch` et le `secOcc` de TOUTE
 adresse `descRef` du livre. L'ordre sain est **grain d'abord, curation d'adresses ensuite** — la
@@ -342,9 +342,10 @@ séquence est celle du § 7 (`reanchor --apply --remap` AVANT de committer, `pro
 
 Les PORTES après la re-découpe, dans le même commit : `npm run -s test:raw`,
 `raw:check-source-format`, `raw:check-source-tables`, `raw:check-source-puces`, `raw:check-renvois`,
-`raw:check-folio-continuity`, `raw:check-refs`, `raw:check-code-refs`, `raw:coverage`,
-`raw:reconcile`, `raw:check-catalogue-complete` — plus le recalage des références (§ 4,
-`reanchor.mjs`) et des coordonnées citées hors `docs/raw/`.
+`raw:check-folio-continuity`, `raw:check-refs`, `raw:check-code-refs`,
+`raw:check-catalogue-complete`, et `docs:check`, qui vérifie les dérivés de l'Atlas (catalogues,
+`coverage.md`, `reconciliation.md`, `reanchor.md`) et joue leurs cliquets — plus le recalage des
+références (§ 4, `reanchor.mjs`) et des coordonnées citées hors `docs/raw/`.
 
 ### Découper un livre NEUF depuis la sortie Marker
 
@@ -620,9 +621,9 @@ La chaîne, dans l'ordre — **périmètre → workflow → assemble → apply �
    les fiches de domaine, **idempotent** via un sentinel `<!-- <ABRÉV>-INTEGRATION -->` (sigle en
    argument, libellé lu au registre ; le motif du marqueur est dérivé du registre dans `_lib.mjs`,
    donc un sigle à espace ou à point reste préservé par `build-catalogs.mjs`).
-5. **Gardes** — `npm run raw:coverage`, `raw:reconcile` (dont le refus d'une fiche qui cite le livre
-   de cœur d'un AUTRE cœur que celui de son dossier),
-   `raw:implemente`, `raw:check-refs`, `node scripts/raw/check-atlas-counts.mjs`.
+5. **Gardes** — `npm run docs:check`, qui rejoue `raw:coverage`, `raw:reconcile` (dont le refus d'une
+   fiche qui cite le livre de cœur d'un AUTRE cœur que celui de son dossier), `raw:implemente` et
+   `scripts/raw/check-atlas-counts.mjs` ; puis `raw:check-refs`.
 
 - **Catalogues de données verbatim** (`docs/raw/<coeur>/catalogue-*.md`) : régénérés par
   `node scripts/raw/build-catalogs.mjs`, qui concatène **verbatim** les chapitres de données des
@@ -821,7 +822,8 @@ sert d'arbitre — jamais comme source de la donnée affichée, qui reste recoll
   copiée — un `<br>` resté dans une cellule du `Source/` ne peut donc pas atteindre le joueur.
 - `node scripts/raw/check-source-tables.mjs` — tables cassées du `Source/` (cinq familles, stock
   nominatif décroissant `scripts/raw/source-tables-stock.json`) ; le geste est le tableau
-  « défaut de table → geste » du §7. `--ecrire-stock` régénère le stock après une correction.
+  « défaut de table → geste » du §7. `npx tsx scripts/guards/lib/regenStock.mts scripts/raw/check-source-tables.mjs` régénère le stock après une
+  correction.
 - `node scripts/raw/check-source-puces.mjs` — la PUCE imprimée que l'extraction a rendue par le CODE
   de son glyphe d'ornement (Core Rulebook 5e : le `0` de la police `onlyskulls`, un petit crâne) :
   une liste dont au moins DEUX items consécutifs s'ouvrent par le MÊME jeton d'un seul caractère est
@@ -832,18 +834,18 @@ sert d'arbitre — jamais comme source de la donnée affichée, qui reste recoll
   jeton de ponctuation OUVRANTE — `Pi`/`Ps` : `«`, `“`, `‹`, `(`, `[`… — ouvre une citation, pas un
   item). COUVERTURE : l'item ISOLÉ et la puce INTERNE à une ligne (colonnes effondrées) restent
   invisibles à la garde ; ils se tranchent à la page, pas au stock.
-  `--ecrire-stock` régénère le stock après une correction.
+  `npx tsx scripts/guards/lib/regenStock.mts scripts/raw/check-source-puces.mjs` régénère le stock après une correction.
 - `node scripts/raw/check-renvois.mjs` (#1393) — les renvois « page N » du texte, résolus en ADRESSE
   par `src/data/source/renvoi.ts` (niveaux `table`, `section-adjacente`, `section-phrase`, `page`),
   pour tout livre extrait dont la `language` a ses motifs (`MOTIFS_DE_RENVOI`, construits par comptage
   du corpus — une langue neuve se mesure avant de s'y ajouter). Stock nominatif décroissant
   `scripts/raw/renvois-stock.json` : les renvois `ambigu` et `introuvable`, clé
   `slug#occ :: p.N :: rang R` de la section porteuse. Une entrée part quand son renvoi se résout ;
-  `--ecrire-stock` régénère le stock, `--lot <#N>` requis pour toute entrée neuve.
+  `npx tsx scripts/guards/lib/regenStock.mts scripts/raw/check-renvois.mjs` régénère le stock, `--lot <#N>` requis pour toute entrée neuve.
 - `node scripts/raw/check-source-format.mjs` — écart de FORME des 20 dossiers FR au format canonique
   (sept familles, stock nominatif décroissant `scripts/raw/source-format-stock.json`) ; le geste est
   de REJOUER la chaîne canonique sur le livre (§0), jamais une correction manuelle.
-  `--ecrire-stock` régénère le stock après ce passage.
+  `npx tsx scripts/guards/lib/regenStock.mts scripts/raw/check-source-format.mjs` régénère le stock après ce passage.
 - `node scripts/raw/check-ancres.mjs` (`npm run raw:check-ancres`) — les RENVOIS D'ANCRE des pages de
   l'Atlas : tout `](#un-titre)`, `](autre.md#un-titre)`, `](../coeur/autre.md#un-titre)` désigne une
   ancre EXISTANTE de la page visée. Refus DUR, aucun stock : l'ancre d'un titre se CALCULE

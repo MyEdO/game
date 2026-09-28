@@ -95,7 +95,7 @@ export interface FloorEl extends ElBase {
 }
 export interface WallEl extends ElBase {
   kind: 'wall';
-  /** Relations stables d'une façade architecturale authorée. Absentes sur les murs legacy. */
+  /** Relations stables d'une façade architecturale authorée. Absentes sur un mur hors façade authorée. */
   bodyId?: string;
   facadeSectionId?: string;
   roomZoneIds?: string[];
@@ -165,7 +165,7 @@ interface BillboardPropBase extends ElBase {
   /** Id de dessin : le type de décor tel que la donnée le NOMME — jamais normalisé. ABSENT (entité sans
    *  type) ou hors registre : le même billboard d'ERREUR (`missingPropSvg`, #877). */
   ref: string | undefined;
-  /** Orientation MONDE d'auteur (props directionnels) — chaque backend la projette avec SA caméra. */
+  /** Orientation MONDE d'auteur (props orientés) — chaque backend la projette avec SA caméra. */
   facing?: Dir8;
   /** Géométrie d'empreinte du décor (décalage fractionnaire vers le centre + échelle au côté max). */
   foot: { offX: number; offY: number; scale: number };

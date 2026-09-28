@@ -23,6 +23,7 @@ import { describe, it, expect } from 'vitest';
 import ts from 'typescript';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { SITES_PROSE } from './liage';
+import { detenteur } from '../detenteur.testkit';
 
 /** Prop de markdown de la racine du point fixe : tout part de `<Prose md>`. */
 const RACINE_PORTEUSE = { balise: 'Prose', prop: 'md' };
@@ -71,13 +72,17 @@ const spreads = (e: ts.JsxOpeningElement | ts.JsxSelfClosingElement): ts.JsxSpre
 /** Le fichier + son AST, une fois. Corpus PARTAGÉ (`readCorpus`, primitive des gardes qui balaient
  *  `src/**`) : les `*.test.*` et les `*.d.ts` en sont exclus PAR LA LIB — les `<Prose>` d'un test
  *  sont des fixtures, pas des sites de l'application. C'est la seule exclusion, et elle est dite. */
-const SOURCES: { fichier: string; sf: ts.SourceFile }[] = readCorpus(['src']).map(({ rel: r, text }) => ({
-  fichier: r,
-  sf: ts.createSourceFile(r, text, ts.ScriptTarget.Latest, true, r.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS),
-}));
+const SOURCES = detenteur(() =>
+  readCorpus(['src']).map(({ rel: r, text }) => ({
+    fichier: r,
+    sf: ts.createSourceFile(r, text, ts.ScriptTarget.Latest, true, r.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS),
+  })),
+);
 
 /** Toutes les balises JSX montées quelque part — un identifiant qui n'y figure pas n'est PAS un composant. */
-const BALISES_MONTEES = new Set<string>(SOURCES.flatMap(({ sf }) => elementsJsx(sf).map(nomDeBalise)));
+const BALISES_MONTEES = detenteur(() =>
+  new Set<string>(SOURCES().flatMap(({ sf }) => elementsJsx(sf).map(nomDeBalise))),
+);
 
 /** Point fixe : `balise → props de markdown`. */
 function porteursDeProse(): Map<string, Set<string>> {
@@ -87,7 +92,7 @@ function porteursDeProse(): Map<string, Set<string>> {
   while (change && tours < 10) {
     change = false;
     tours++;
-    for (const { sf } of SOURCES) {
+    for (const { sf } of SOURCES()) {
       for (const e of elementsJsx(sf)) {
         const props = porteurs.get(nomDeBalise(e));
         if (!props) continue;
@@ -99,7 +104,7 @@ function porteursDeProse(): Map<string, Set<string>> {
           const comp = englobant(e);
           // Transmission = identifiant NU d'une prop du composant courant, et ce composant doit être
           // monté comme balise quelque part (sinon c'est un helper, pas un porteur).
-          if (!comp?.nom || !comp.props.has(ex.text) || !BALISES_MONTEES.has(comp.nom)) continue;
+          if (!comp?.nom || !comp.props.has(ex.text) || !BALISES_MONTEES().has(comp.nom)) continue;
           const vues = porteurs.get(comp.nom) ?? new Set<string>();
           if (!vues.has(ex.text)) {
             vues.add(ex.text);
@@ -122,7 +127,7 @@ function mesure(): { sites: SiteMesure[]; anomalies: string[] } {
   const porteurs = porteursDeProse();
   const sites: SiteMesure[] = [];
   const anomalies: string[] = [];
-  for (const { fichier, sf } of SOURCES) {
+  for (const { fichier, sf } of SOURCES()) {
     const rangs = new Map<string, number>();
     const ligne = (n: ts.Node): number => sf.getLineAndCharacterOfPosition(n.getStart()).line + 1;
     // `React.createElement(Prose, …)` — forme que la garde ne saurait pas suivre : refusée.
@@ -147,7 +152,7 @@ function mesure(): { sites: SiteMesure[]; anomalies: string[] } {
         const ini = a.initializer;
         const ex = ini && ts.isJsxExpression(ini) ? ini.expression : undefined;
         const comp = englobant(e);
-        const transmis = !!ex && ts.isIdentifier(ex) && !!comp?.nom && !!comp.props.has(ex.text) && BALISES_MONTEES.has(comp.nom);
+        const transmis = !!ex && ts.isIdentifier(ex) && !!comp?.nom && !!comp.props.has(ex.text) && BALISES_MONTEES().has(comp.nom);
         if (transmis) continue; // site NON terminal : c'est le porteur intermédiaire, pas un site
         const base = `${fichier}#${balise}.${mdp}`;
         const rang = (rangs.get(base) ?? 0) + 1;

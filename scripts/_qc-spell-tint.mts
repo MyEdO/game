@@ -1,5 +1,5 @@
 /**
- * QC du tintage arcane/divin (Jalon 8) : rend pour chaque école son halo diffus (gradient),
+ * QC du tintage arcane/divin (Jalon 8) : rend pour chaque école son halo diffus (dégradé fixe),
  * son projectile (cœur dense) et la couleur de cœur, depuis la SOURCE DE VÉRITÉ `spellFx`.
  * → public/qc/spell-tint.png. Usage : npx tsx scripts/_qc-spell-tint.mts
  */

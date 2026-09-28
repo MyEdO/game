@@ -8,7 +8,7 @@ import { RigSprite } from '../src/gameIso/rig/composeRig';
 import { defsGlobaux } from '../src/gameIso/sprites';
 import { weaponRest } from '../src/gameIso/rig/anim/weaponClips';
 import type { Weapon } from '../src/engine/types';
-import type { View } from '../src/gameIso/rig/facing';
+import { VIEW_LABEL, type View } from '../src/gameIso/rig/facing';
 import { asRigSpeciesId } from '../src/gameIso/rig/appearance';
 import { assertWardrobeId } from './_lib-wardrobe';
 
@@ -27,31 +27,31 @@ const CFGS: Cfg[] = [
   { label: 'Épée + Bouclier', weapons: [sword, shield], shield },
   { label: 'Épée + Dague (off)', weapons: [sword, W_('Dague', 'off')] },
 ];
-const VIEWS: { v: View; m: boolean; l: string }[] = [
-  { v: 'front', m: false, l: 'face' },
-  { v: 'profile', m: false, l: 'va à droite (gauche=fond)' },
-  { v: 'profile', m: true, l: 'va à gauche (gauche=devant)' },
+const COLUMNS: { view: View; mirror: boolean; label: string }[] = [
+  { view: 'front', mirror: false, label: VIEW_LABEL.front },
+  { view: 'profile', mirror: false, label: 'va à droite (gauche=fond)' },
+  { view: 'profile', mirror: true, label: 'va à gauche (gauche=devant)' },
 ];
 
 const CW = 200, CH = 270, BW = CW - 6, BH = CH - 22;
 const cells: string[] = [];
 CFGS.forEach((cfg, r) => {
   cells.push(`<text x="6" y="${34 + r * CH + CH / 2}" font-size="12" fill="#9fb0c8" font-family="sans-serif">${cfg.label}</text>`);
-  VIEWS.forEach((vw, c) => {
+  COLUMNS.forEach((col, c) => {
     const inner = renderToStaticMarkup(
       React.createElement(RigSprite, {
         appearance: { species: asRigSpeciesId('humain'), sex: 'M', build: 0.5, seed: 4 },
         equip: { weapons: cfg.weapons, armour: [], shield: cfg.shield },
-        career: MANNEQUIN, view: vw.v, pose: weaponRest(cfg.weapons[0]), mirror: vw.m,
+        career: MANNEQUIN, view: col.view, pose: weaponRest(cfg.weapons[0]), mirror: col.mirror,
       }),
     );
     const scaled = `<g transform="translate(${BW / 2 - 60 * 1.6},20) scale(1.6)">${inner}</g>`;
-    const body = vw.m ? `<g transform="translate(${BW},0) scale(-1,1)">${scaled}</g>` : scaled;
+    const body = col.mirror ? `<g transform="translate(${BW},0) scale(-1,1)">${scaled}</g>` : scaled;
     const x = 200 + c * CW, y = 34 + r * CH;
-    cells.push(`<g transform="translate(${x},${y})"><rect width="${BW}" height="${BH}" fill="#262d3b"/><line x1="0" y1="${20 + 150 * 1.6}" x2="${BW}" y2="${20 + 150 * 1.6}" stroke="#e06a4a" stroke-width="0.8"/>${body}<text x="${BW / 2}" y="${CH - 4}" text-anchor="middle" font-size="9" fill="#cdd" font-family="sans-serif">${vw.l}</text></g>`);
+    cells.push(`<g transform="translate(${x},${y})"><rect width="${BW}" height="${BH}" fill="#262d3b"/><line x1="0" y1="${20 + 150 * 1.6}" x2="${BW}" y2="${20 + 150 * 1.6}" stroke="#e06a4a" stroke-width="0.8"/>${body}<text x="${BW / 2}" y="${CH - 4}" text-anchor="middle" font-size="9" fill="#cdd" font-family="sans-serif">${col.label}</text></g>`);
   });
 });
-const W = 200 + VIEWS.length * CW, H = 34 + CFGS.length * CH;
+const W = 200 + COLUMNS.length * CW, H = 34 + CFGS.length * CH;
 const full = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}"><defs>${defsGlobaux()}</defs><rect width="${W}" height="${H}" fill="#11141c"/><text x="12" y="22" font-size="15" fill="#d8a93b" font-family="sans-serif">Dual-wield — main gauche (bouclier) : derrière à droite, devant à gauche</text>${cells.join('')}</svg>`;
 writeFileSync('public/qc/dualwield.png', new Resvg(full, { background: '#11141c', fitTo: { mode: 'width', value: W * 2 } }).render().asPng());
 console.log('OK → public/qc/dualwield.png');

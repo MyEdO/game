@@ -73,7 +73,6 @@ const HORS_SURFACE_UI: Record<string, string> = {
   closePossessionsScreen: CLIENT('écran Possessions'),
   // ── Exploration (miroir V1) ───────────────────────────────────────────────────────────────────
   markExplored: MIROIR('brouillard de guerre'),
-  startScene: MIROIR('transition de scène'),
   openWorldMap: MIROIR('carte du monde'),
   closeWorldMap: MIROIR('carte du monde'),
   startTravel: MIROIR('départ en voyage'),

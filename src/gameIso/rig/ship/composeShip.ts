@@ -16,7 +16,7 @@ import type { BodyPlan } from '../bodyPlan';
 import type { View } from '../facing';
 import type { Palette, PaletteDeclaree } from '../palette';
 import { groundedBody } from '../staticBody';
-import { pickView, orientedArtOr, type ViewArt } from '../viewArt';
+import { nearestView, orientedArtOr, type ViewArt } from '../viewArt';
 import { SHIP_ARTS } from './_registry.generated';
 import { navireSpeciesNames } from '../creatures';
 import type { ShipArtDef } from './artkit';
@@ -32,7 +32,7 @@ export function shipArtOf(id: string): ViewArt {
 }
 
 // Palette par défaut : jetons NAVIRE propres au plan (bois de coque / toile / mât-rames / pavillon vif).
-// Les nuances O/H se dérivent via `buildTokenMap`.
+// L'ombre et la lumière de gamme se dérivent via `buildTokenMap`.
 export const SHIP_DEFAULT: PaletteDeclaree = { coque: '#6b4a2b', toileDeVoile: '#e8e0cc', mat: '#4a3320', pavillon: '#b03a2e' };
 
 // Poses (delta additif sur l'angle de la coque) : roulis au repos, tangage à l'« attaque » (éperon),
@@ -43,10 +43,10 @@ const shipRam = (phase: number): Record<string, number> => ({ coque: Math.sin(Ma
 const SHIP_DEATH: Record<string, number> = { coque: 22 };
 
 function resolveShip(species: string, view: View, pose: BonePose = {}, colors?: Palette): ResolvedBone[] {
-  // La vue demandée est CONSOMMÉE via le contrat d'art orienté PARTAGÉ (`pickView`). `pose.coque` = angle
+  // La vue demandée est CONSOMMÉE via le contrat d'art orienté PARTAGÉ (`nearestView`). `pose.coque` = angle
   // de roulis/gîte (deg) ⇒ `tilt` autour de la quille (au sol), via la fondation PARTAGÉE `groundedBody`.
   // Les defs sont dessinées quille à y=0 (origine = contact) ⇒ baseY 0.
-  const svg = pickView(shipArtOf(species), view)();
+  const svg = nearestView(shipArtOf(species), view)();
   return groundedBody(svg, SHIP_DEFAULT, colors, { id: 'coque', baseY: 0, tilt: rotOf(pose, 'coque') });
 }
 

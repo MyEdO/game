@@ -29,8 +29,8 @@ const doc = document(
   {
     // Univers de la source `sizes` (`grammaire/sourcesDeSpecs.ts`).
     rangedMod: marquerCollection(sizeTable, marqueDeRecord({ espace: {} })),
-    shipboardEnc: sizeTable,
-    footprintSide: sizeTable,
+    shipboardEnc: marquerCollection(sizeTable, marqueDeRecord()),
+    footprintSide: marquerCollection(sizeTable, marqueDeRecord()),
   },
   {
     rangedMod: { label: 'Modificateur de tir (cible)', hint: 'Modificateur au Test de Tir selon la Taille de la cible' },

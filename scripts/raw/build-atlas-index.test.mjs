@@ -13,6 +13,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { avecAtlasFixture, coeurDeBanc } from './atlasFixture.mjs'
+import { CODE_CORPS_PERIME } from '../docs/lib/empreinte-sources.mjs'
 import {
   DEBUT, DEBUT_DOMAINES, FIN, FIN_DOMAINES, INDEX_PATH, NOM_INDEX, blocsDeLAtlas, injecter,
   lignesDesCoeurs, lignesDesDomaines,
@@ -148,7 +149,7 @@ test('un index de cœur SANS sa paire de marqueurs : refus d’UNE ligne, jamais
   } finally { rmSync(arbre, { recursive: true, force: true }) }
 })
 
-test('--check : un bloc PÉRIMÉ sort 1 — au routeur comme à l’index d’un cœur', () => {
+test('--check : un bloc PÉRIMÉ sort en CORPS PÉRIMÉ — au routeur comme à l’index d’un cœur', () => {
   const arbre = mkdtempSync(join(tmpdir(), 'atlas-index-banc-'))
   const coeur = coeurDeBanc()
   try {
@@ -158,7 +159,7 @@ test('--check : un bloc PÉRIMÉ sort 1 — au routeur comme à l’index d’un
     writeFileSync(page, `# Atlas\n\n${DEBUT}\n- cœur inventé d'une autre époque\n${FIN}\n`, 'utf8')
     writeFileSync(pageDuCoeur, `# Cœur\n\n${DEBUT_DOMAINES}\n| domaine inventé d'une autre époque |\n${FIN_DOMAINES}\n`, 'utf8')
     const jouer = (...args) => spawnSync(process.execPath, [SCRIPT, ...args], { cwd: arbre, encoding: 'utf8' })
-    assert.equal(jouer('--check').status, 1)
+    assert.equal(jouer('--check').status, CODE_CORPS_PERIME)
     assert.equal(jouer().status, 0)
     for (const p of [page, pageDuCoeur]) assert.equal(readFileSync(p, 'utf8').includes("d'une autre époque"), false)
     assert.equal(jouer('--check').status, 0)

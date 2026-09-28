@@ -3,6 +3,7 @@
  * consommée comme `StructureAppearanceDef[]` (`src/gameIso/catalog/structures/types.ts`). Chaque champ
  * est une COULEUR ou une mesure que le rendu lit par PARTIE de mur (`wallPartColor`).
  */
+import { tableTotale } from '../../../lib/tableTotale';
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { detailRecipeSchema } from '../grammaire/valeurs';
@@ -35,10 +36,7 @@ export const RELIEF_PART_KEYS = WALL_PART_KEYS.filter(
 
 /** Profondeur (m) par partie, toutes optionnelles, AUCUNE clé étrangère (`strictObject`). */
 const reliefParPartie = z.strictObject(
-  Object.fromEntries(RELIEF_PART_KEYS.map((k) => [k, z.number().optional()])) as Record<
-    (typeof RELIEF_PART_KEYS)[number],
-    z.ZodOptional<z.ZodNumber>
-  >,
+  tableTotale(RELIEF_PART_KEYS, () => z.number().optional()),
 );
 
 const doc = document(

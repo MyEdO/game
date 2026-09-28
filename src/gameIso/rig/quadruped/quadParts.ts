@@ -1,17 +1,18 @@
 /**
- * Parts du gabarit QUADRUPÈDE — repère LOCAL de chaque os, tokenisées (@corps/@corpsO/@corpsH
+ * Parts du gabarit QUADRUPÈDE — repère LOCAL de chaque os, en jetons (@corps/@corpsO/@corpsH
  * = robe/pelage ; @cheveux = crinière/queue ; @cuir = sabot/coussinet). Trois vues dédiées
  * (profile = côté droit ; front = face, tête à 2 yeux ; back = croupe + queue). Cible de
  * silhouette : les sprites monolithiques officiels (Loup/Chien/Ours/Rat géant/Sanglier).
  */
 import type { View } from '../facing';
-import type { QuadBoneId, QuadProps, QuadFoot, QuadDecoFragment, QuadDecoValue } from './quadSkeleton';
+import { readQuadDecoKey, type QuadBoneId, type QuadProps, type QuadFoot, type QuadDecoFragment, type QuadDecoValue } from './quadSkeleton';
 import { scalesPatch } from '../parts/textures';
 import { quadHeadBone, quadHeadDef } from './heads';
 import { quadManeDef } from './manes';
 import { quadArt } from './partArt';
 import { QUAD_Z } from './quadZ';
 import { quadTailDef } from './tails';
+import { gammeDe } from '../../../data/palette.types';
 
 // ============================ helpers ============================
 // Segment CONIQUE (membre qui s'effile : cuisse→genou, canon→boulet) — la capsule droite à
@@ -25,7 +26,7 @@ const taper = (len: number, thTop: number, thBot: number, fill: string, line = '
     `<path d="M${-e(0.3)} ${y0} L${-r2 * 0.92} ${len} Q0 ${len + r2 * 0.7} ${r2 * 0.92} ${len} L${e(0.3)} ${y0}" fill="none" stroke="${line}" stroke-width="0.5"/>`;
 };
 function hoof(foot: QuadFoot, far: boolean, leather = '@cuir'): string {
-  const c = far ? `${leather}O` : leather;
+  const c = far ? gammeDe(leather, 'ombre') : leather;
   const body = far ? '@corpsO' : '@corps';
   if (foot === 'sabot') // sabot net : bloc trapézoïdal compact (PAS une « botte ») + pince + couronne claire
     return `<path d="M-2.8 -1 Q-3 4 -3.4 7 Q0 9.4 3.4 7 Q3 4 2.8 -1 Q0 -2 -2.8 -1 Z" fill="${c}" stroke="#0e0b07" stroke-width="0.5"/>` +
@@ -43,7 +44,7 @@ function hoof(foot: QuadFoot, far: boolean, leather = '@cuir'): string {
     `<path d="M-1 10.6 l-0.3 2.6 M2.2 10.6 l0.2 2.6 M5 9.2 l0.8 2.2" stroke="#15110c" stroke-width="1.3" stroke-linecap="round"/></g>`;
 }
 function footFront(foot: QuadFoot, far: boolean, leather = '@cuir'): string {
-  const c = far ? `${leather}O` : leather;
+  const c = far ? gammeDe(leather, 'ombre') : leather;
   const body = far ? '@corpsO' : '@corps';
   if (foot === 'sabot') return `<ellipse cx="0" cy="3" rx="3.4" ry="3" fill="${c}" stroke="#0e0b07" stroke-width="0.5"/>`;
   if (foot === 'serre') // 3 doigts pleins écartés (pas des fils)
@@ -95,7 +96,7 @@ const balzane = (p: QuadProps, ll: number, w: number, far: boolean): string =>
 
 // Membre AVANT de rapace (`fore` vrai + foreCoat) : cuisse dans la robe des AILES (@aile —
 // l'avant-train rapace porte le même plumage), culotte de plumes retombant sur un canon-TARSE
-// écailleux (famille custom @cuirAv) fin, serres de la même famille.
+// écailleux (gamme propre @cuirAv) fin, serres de la même gamme.
 function legParts(p: QuadProps, far: boolean, foot: QuadFoot, fore = false) {
   const ll = p.legLen;
   const plumed = fore && !!p.foreCoat;
@@ -363,7 +364,7 @@ function headArtOn(p: QuadProps, view: View, bone: QuadBoneId): string {
 }
 /** Coiffe de crâne (bois ramifiés du cerf / cornes courbées) attachée au sommet-arrière de l'os tete.
  *  '' si la créature n'en porte pas. Teinte os/corne = @cheveux (secondaire de la robe). */
-function headgear(p: QuadProps, view: 'front' | 'profile' | 'back'): string {
+function headgear(p: QuadProps, view: View): string {
   if (!p.headgear) return '';
   const C = '@cheveux', O = '@cheveuxO';
   if (p.headgear === 'cornes') {
@@ -579,7 +580,7 @@ function wingSpread(p: QuadProps): string {
 
 // Aile PLIÉE vue de bout (face/dos) : panneau replié qui ÉPOUSE LE FLANC vers le bas (épaule
 // modeste + pan qui descend le long du corps) : une bosse dressée au garrot lit comme de
-// grandes « oreilles d'âne » près de la tête (verdict unanime des juges aveugles, lot 4).
+// grandes « oreilles d'âne » près de la tête (verdict unanime des juges aveugles).
 function wingFoldedEnd(p: QuadProps): string {
   const c = p.wings === 'membrane' ? '@aileO' : '@aile';
   if (p.wingPose === 'dressees' || p.wingPose === 'deployees') // pliées DRESSÉES vues de bout : panneau qui MONTE en pointe
@@ -661,7 +662,7 @@ export function quadParts(p: QuadProps, view: View = 'profile', wings: 'folded' 
   // Décor PAR-OS propre à la créature (prop `deco` — précédent : épave du crabe, CrabProps.deco) :
   // SVG posé dans le REPÈRE DE L'ART de l'os (`quadAnchor`), en CALQUE sur cet os, uniquement là
   // où l'os porte déjà un art dans la vue courante (un os sans art n'affiche pas de décor flottant).
-  // Clé `os#vue` = décor limité à cette vue (cf. QuadProps.deco) ; clé nue = toutes les vues.
+  // Clé lue par `readQuadDecoKey` (cf. QuadProps.deco) : `os#vue` = cette vue seule, clé nue = toutes les vues.
   // Une entrée peut être un SVG nu (un calque au plan de l'os) OU une liste de calques déjà
   // planifiés (`QuadLayer[]`) : c'est ce second cas qui permet à l'assemblage d'INTERCALER un
   // morceau d'os dans la pile de la vue (haut de membre sous le barillet, cf. plus bas).
@@ -679,9 +680,9 @@ export function quadParts(p: QuadProps, view: View = 'profile', wings: 'folded' 
       out[id] = [{ svg, ...(plan != null && { plan }) }];
     }
     if (p.deco) for (const [key, val] of Object.entries(p.deco) as [string, QuadDecoValue | undefined][]) {
-      const [id, vue] = key.split('#') as [QuadBoneId, View | undefined];
-      if (!val || (vue && vue !== view) || !out[id]) continue;
-      for (const f of quadDecoFragments(val)) out[id]!.push({ svg: quadAnchored(p, id, view, f.svg), plan: f.plan });
+      const { bone, views } = readQuadDecoKey(key);
+      if (!val || !views.includes(view) || !out[bone]) continue;
+      for (const f of quadDecoFragments(val)) out[bone]!.push({ svg: quadAnchored(p, bone, view, f.svg), plan: f.plan });
     }
     return out;
   };

@@ -19,7 +19,6 @@ import { applyAttackResult } from './combatFlow';
 import { tenuParUnHumain } from './netOwnership';
 import { draineCascade } from './cascadeTestKit';
 import { seedBattleRng, battleRng } from './battleRng';
-import { makeRNG } from '../engine/dice';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { resetDesFixes } from '../engine/fixedDie';
@@ -46,9 +45,9 @@ const critHit = (woundsLost = 2): AttackResult => ({
 function startFight(seed: number, opts: { pa?: ArmourPoints; gmSeat?: number } = {}) {
   useGame.setState({ battle: null, pendingCascade: null, suspendedCascades: [] });
   useGame.getState().seedRng(seed);
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(seed) });
+  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed });
   useGame.setState({ party: [hero] });
-  useGame.getState().startScene(structuredClone(testScene));
+  useGame.getState().startScene(structuredClone(testScene()));
   useGame.getState().startCombat('enc-mutants');
   useGame.getState().confirmRoundStart();
   vi.clearAllTimers();

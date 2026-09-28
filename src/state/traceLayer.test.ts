@@ -5,44 +5,21 @@ import {
   traceLayerDelete,
   panelExpandedLoad,
   panelExpandedSave,
-  __setTraceLayerBackendForTest,
   __resetTraceLayerForTest,
-  type TraceLayerBackend,
   type TraceLayerRecord,
   upgradeCalques,
 } from './traceLayer';
 import { __setOuvertureIdbForTest } from '../lib/indexedDb';
-import { baseSimulee, brancherBaseSimulee } from '../lib/indexedDb.testkit';
+import { baseSimulee, brancherBasesSimulees, type BasesSimulees } from '../lib/indexedDb.testkit';
 import { identityTransform } from './traceCalibration';
 
-function fakeBackend(): TraceLayerBackend & { store: Map<string, TraceLayerRecord>; expanded: Map<string, boolean> } {
-  const store = new Map<string, TraceLayerRecord>();
-  const expanded = new Map<string, boolean>();
-  const key = (sceneId: string, z: number) => `${sceneId}#${z}`;
-  return {
-    store,
-    expanded,
-    async get(sceneId, z) {
-      return store.get(key(sceneId, z)) ?? null;
-    },
-    async put(entry) {
-      store.set(key(entry.sceneId, entry.z), entry);
-    },
-    async delete(sceneId, z) {
-      store.delete(key(sceneId, z));
-    },
-    async getExpanded(sceneId) {
-      return expanded.has(sceneId) ? expanded.get(sceneId)! : null;
-    },
-    async putExpanded(sceneId, v) {
-      expanded.set(sceneId, v);
-    },
-    async clear() {
-      store.clear();
-      expanded.clear();
-    },
-  };
-}
+const NOM = 'wfrp4-trace-layers';
+let bases: BasesSimulees;
+
+beforeEach(() => {
+  bases = brancherBasesSimulees();
+});
+afterEach(() => __setOuvertureIdbForTest(null));
 
 const record = (sceneId: string, z = 0): TraceLayerRecord => ({
   sceneId,
@@ -61,7 +38,6 @@ const record = (sceneId: string, z = 0): TraceLayerRecord => ({
 
 describe('traceLayer — persistance PAR (SCÈNE, COUCHE) du calque de référence', () => {
   beforeEach(async () => {
-    __setTraceLayerBackendForTest(fakeBackend());
     await __resetTraceLayerForTest();
   });
 
@@ -113,14 +89,7 @@ describe('traceLayer — persistance PAR (SCÈNE, COUCHE) du calque de référen
   });
 
   it('une écriture qui rejette ne lève JAMAIS (best-effort — l’éditeur ne doit pas planter)', async () => {
-    __setTraceLayerBackendForTest({
-      async get() { return null; },
-      async put() { throw new Error('put refusé'); },
-      async delete() { throw new Error('delete refusé'); },
-      async getExpanded() { return null; },
-      async putExpanded() { throw new Error('putExpanded refusé'); },
-      async clear() {},
-    });
+    bases.base(NOM).panne = (q) => (q.geste === 'get' ? null : new DOMException(`${q.geste} refusé`, 'QuotaExceededError'));
     await expect(traceLayerSave(record('scene-1'))).resolves.toBeUndefined();
     await expect(traceLayerDelete('scene-1', 0)).resolves.toBeUndefined();
     await expect(panelExpandedSave('scene-1', false)).resolves.toBeUndefined();
@@ -129,7 +98,6 @@ describe('traceLayer — persistance PAR (SCÈNE, COUCHE) du calque de référen
 
 describe('panelExpanded — repli/dépli du panneau, PAR SCÈNE (survit à un changement de couche)', () => {
   beforeEach(async () => {
-    __setTraceLayerBackendForTest(fakeBackend());
     await __resetTraceLayerForTest();
   });
 
@@ -151,11 +119,6 @@ describe('panelExpanded — repli/dépli du panneau, PAR SCÈNE (survit à un ch
 });
 
 describe('upgradeCalques — montée de `wfrp4-trace-layers` vers v2 (#830)', () => {
-  afterEach(() => {
-    __setOuvertureIdbForTest(null);
-    __setTraceLayerBackendForTest(null);
-  });
-
   it('base neuve (v0) : crée `layers` keyé (sceneId, z) et `panelExpanded` keyé sceneId', () => {
     const base = baseSimulee();
     upgradeCalques(base.db, 0);
@@ -165,8 +128,8 @@ describe('upgradeCalques — montée de `wfrp4-trace-layers` vers v2 (#830)', ()
 
   it('v1 → v2 : `layers` (keyé sceneId) est RECRÉÉ keyé (sceneId, z), `panelExpanded` garde son contenu', () => {
     const base = baseSimulee({ layers: { keyPath: 'sceneId' }, panelExpanded: { keyPath: 'sceneId' } });
-    base.magasins.get('layers')!.contenu.set('"scene-1"', record('scene-1'));
-    base.magasins.get('panelExpanded')!.contenu.set('"scene-1"', { sceneId: 'scene-1', expanded: false });
+    base.magasins.get('layers')!.contenu.set('scene-1', record('scene-1'));
+    base.magasins.get('panelExpanded')!.contenu.set('scene-1', { sceneId: 'scene-1', expanded: false });
     upgradeCalques(base.db, 1);
     expect(base.magasins.get('layers')?.keyPath).toEqual(['sceneId', 'z']);
     expect(base.magasins.get('layers')?.contenu.size).toBe(0);
@@ -179,10 +142,17 @@ describe('upgradeCalques — montée de `wfrp4-trace-layers` vers v2 (#830)', ()
     expect(base.magasins.get('panelExpanded')?.keyPath).toBe('sceneId');
   });
 
-  it('le backend réel passe par la base : deux couches de la même scène, clé composite', async () => {
-    const base = baseSimulee();
-    brancherBaseSimulee(base);
-    __setTraceLayerBackendForTest(null);
+  it('une base v1 ouverte monte en v2 : le panneau garde son contenu, les calques repartent keyés (sceneId, z)', async () => {
+    const v1 = bases.amorcer(NOM, 1, { layers: { keyPath: 'sceneId' }, panelExpanded: { keyPath: 'sceneId' } });
+    v1.magasins.get('layers')!.contenu.set('scene-1', record('scene-1'));
+    v1.magasins.get('panelExpanded')!.contenu.set('scene-1', { sceneId: 'scene-1', expanded: false });
+    expect(await panelExpandedLoad('scene-1')).toBe(false);
+    expect(await traceLayerLoad('scene-1', 0)).toBeNull();
+    expect(v1.magasins.get('layers')?.keyPath).toEqual(['sceneId', 'z']);
+  });
+
+  it('une base neuve passe deux couches de la même scène, clé composite', async () => {
+    const base = bases.base(NOM);
     await traceLayerSave(record('scene-1', 0));
     await traceLayerSave({ ...record('scene-1', 1), opacity: 0.3 });
     await panelExpandedSave('scene-1', false);

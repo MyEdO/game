@@ -4,6 +4,7 @@ import { describe, it, expect } from 'vitest';
 import { readCorpus } from '../../../scripts/guards/lib/sourceCorpus.mjs';
 import { codeSeul as sansCommentaires } from '../../../scripts/guards/lib/commentPoison.mjs';
 import { materials, semencesDeScene, terrains } from '../../data';
+import { detenteur } from '../../detenteur.testkit';
 
 /**
  * GARDE DÉRIVÉE (#1691, élargie #1715, #1716, #1789) — aucune couche ÉMETTRICE du monde ne NOMME une
@@ -296,22 +297,22 @@ function codeHorsTerrain(src: string, sauf?: string): string {
 }
 
 describe('couches émettrices du monde — aucune matière ni aucun terrain nommé en dur (#1691, #1715, #1716, #1789)', () => {
-  const fichiers = fichiersDuPerimetre();
+  const fichiers = detenteur(fichiersDuPerimetre);
 
   it('le scan couvre les CINQ couches émettrices (sanity)', () => {
     for (const c of COUCHES)
-      expect(fichiers.filter((f) => f.rel.startsWith(c.prefixe) && (c.dir === '.' || f.rel.includes(`${c.dir}/`))).length, c.dir).toBeGreaterThan(0);
-    expect(fichiers.some((f) => f.rel === 'sceneEdit.ts'), 'la dérivation des masses n’est plus scannée').toBe(true);
-    expect(fichiers.some((f) => f.rel === 'scene.ts'), 'le SCHÉMA de scène n’est plus scanné').toBe(true);
-    expect(fichiers.some((f) => f.rel.includes('/')), 'le scan de `src/state` n’est plus récursif').toBe(true);
-    expect(fichiers.some((f) => f.rel === 'ui/editor/Palette.tsx'), 'la PALETTE de l’éditeur n’est plus scannée').toBe(true);
-    expect(fichiers.some((f) => f.rel === 'ui/editor/Editor.tsx'), 'le redimensionnement de l’éditeur n’est plus scanné').toBe(true);
+      expect(fichiers().filter((f) => f.rel.startsWith(c.prefixe) && (c.dir === '.' || f.rel.includes(`${c.dir}/`))).length, c.dir).toBeGreaterThan(0);
+    expect(fichiers().some((f) => f.rel === 'sceneEdit.ts'), 'la dérivation des masses n’est plus scannée').toBe(true);
+    expect(fichiers().some((f) => f.rel === 'scene.ts'), 'le SCHÉMA de scène n’est plus scanné').toBe(true);
+    expect(fichiers().some((f) => f.rel.includes('/')), 'le scan de `src/state` n’est plus récursif').toBe(true);
+    expect(fichiers().some((f) => f.rel === 'ui/editor/Palette.tsx'), 'la PALETTE de l’éditeur n’est plus scannée').toBe(true);
+    expect(fichiers().some((f) => f.rel === 'ui/editor/Editor.tsx'), 'le redimensionnement de l’éditeur n’est plus scanné').toBe(true);
     expect(materials.length).toBeGreaterThan(5);
   });
 
   it('les HOMONYMES du store portent tous un signal STRUCTUREL, et aucun ne survit à la neutralisation', () => {
     const nus: { rel: string; ligne: number; texte: string }[] = [];
-    for (const f of fichiers.filter((x) => duStore(x.rel))) {
+    for (const f of fichiers().filter((x) => duStore(x.rel))) {
       const sansCommentaires = codeNu(f.code);
       sansCommentaires.forEach((l, i) => {
         if (materials.some((m) => new RegExp(`(['"\`])${m.id}\\1`).test(l)))
@@ -338,7 +339,7 @@ describe('couches émettrices du monde — aucune matière ni aucun terrain nomm
   it('chaque NEUTRALISEUR est exercé par un site du périmètre (aucune exemption morte)', () => {
     const cite = (l: string) => materials.some((m) => new RegExp(`(['"\`])${m.id}\\1`).test(l));
     for (const n of NEUTRALISEURS) {
-      const exerce = fichiers.some((f) => {
+      const exerce = fichiers().some((f) => {
         const avec = codeSeul(f.code).split('\n');
         return codeSeul(f.code, n.nom)
           .split('\n')
@@ -365,7 +366,7 @@ describe('couches émettrices du monde — aucune matière ni aucun terrain nomm
     expect(terrains.some((t) => t.id === semence), `la semence « ${semence} » n’est pas un terrain : la garde mesure un vocabulaire mort.`).toBe(true);
     const cite = (id: string) => new RegExp(`(['"\`])${id}\\1`);
     const fautes: string[] = [];
-    for (const f of fichiers) {
+    for (const f of fichiers()) {
       codeNu(f.code).forEach((l, i) => {
         if (cite(semence).test(l)) fautes.push(`${f.rel}:${i + 1} — « ${semence} »`);
       });
@@ -398,7 +399,7 @@ describe('couches émettrices du monde — aucune matière ni aucun terrain nomm
     const ids = terrains.map((t) => t.id);
     expect(ids.length, 'vocabulaire de terrains VIDE : la garde mesurerait le néant.').toBeGreaterThan(0);
     const fautes: string[] = [];
-    for (const f of fichiers) {
+    for (const f of fichiers()) {
       codeHorsTerrain(f.code).split('\n').forEach((l, i) => {
         for (const id of ids) if (citeId(id).test(l)) fautes.push(`${chemin(f.rel)}:${i + 1} — « ${id} »`);
       });
@@ -424,7 +425,7 @@ describe('couches émettrices du monde — aucune matière ni aucun terrain nomm
     const ids = terrains.map((t) => t.id);
     const cite = (l: string) => ids.some((id) => citeId(id).test(l));
     for (const n of NEUTRALISEURS_TERRAIN) {
-      const exerce = fichiers.some((f) => {
+      const exerce = fichiers().some((f) => {
         const avec = codeHorsTerrain(f.code).split('\n');
         return codeHorsTerrain(f.code, n.nom)
           .split('\n')
@@ -490,12 +491,12 @@ describe('couches émettrices du monde — aucune matière ni aucun terrain nomm
 
   it('l’homonyme `plan` du RIG est hors périmètre : la voie de corps n’est pas une couverture', () => {
     expect(materials.some((m) => m.id === 'plan' && m.domain === 'roof'), '`plan` n’est plus une matière de toiture : reformuler la garde.').toBe(true);
-    expect(fichiers.some((f) => /bodyPlan|sceneMeshes|actorAnimSelect|enemyProfile|tokenBodyKind/.test(f.rel))).toBe(false);
+    expect(fichiers().some((f) => /bodyPlan|sceneMeshes|actorAnimSelect|enemyProfile|tokenBodyKind/.test(f.rel))).toBe(false);
   });
 
   it('aucun id de `materials.json` n’apparaît en littéral dans les couches émettrices', () => {
     const fautes: string[] = [];
-    for (const f of fichiers) {
+    for (const f of fichiers()) {
       const code = codeSeul(f.code);
       const lignes = code.split('\n');
       for (const m of materials) {

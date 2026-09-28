@@ -11,7 +11,7 @@
  *
  * CE QUE LES SNAPSHOTS `back` FIGENT — ce n'est PAS une couverture d'art (#559). Sans art `back`
  * dédié sur une part, `parts/resolve.ts` (~l.185-189) FABRIQUE une silhouette dorsale générique en
- * tokens (`BACK_TORSE`/`BACK_JAMBE`/`BACK_CRANE`). Mesuré sur cette suite : 472 snapshots `back`, dont
+ * jetons (`BACK_TORSE`/`BACK_JAMBE`/`BACK_CRANE`). Mesuré sur cette suite : 472 snapshots `back`, dont
  * 204 (43 %) portent au moins une part dorsale inventée (86 torse, 162 jambe, 5 tête). Ces snapshots
  * figent donc le REPLI, pas un dos authoré : ils protègent d'une régression de composition, ils
  * n'attestent d'aucune intention d'artiste. Ils ont vocation à être REMPLACÉS à mesure que #559 vide
@@ -23,9 +23,7 @@ import { entityRigProfile } from '../enemyProfile';
 import { resolveRig } from '../composeRig';
 import { bonesToSvg } from '../renderBones';
 import { planById, resolveById, planOptsForRecord } from '../bodyPlan';
-import type { View } from '../facing';
-
-const VIEWS: View[] = ['front', 'profile', 'back'];
+import { VIEWS, type View } from '../facing';
 const SEED = 7;
 
 function renderSvg(id: string, view: View): string {

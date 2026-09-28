@@ -25,15 +25,15 @@
 // (corriger, ou déclarer par `CLIQUET:`), une entrée SANS site mesuré (défaut réparé : la retirer).
 //
 // Re-run    : node scripts/raw/check-source-tables.mjs
-// Régénérer : node scripts/raw/check-source-tables.mjs --ecrire-stock [--lot <#N …>] — le lot est REQUIS dès qu'une entrée NEUVE naît (`ecrireStockSousLot`, scripts/guards/lib/stock.mjs)
-import { writeFileSync } from 'node:fs'
-import { join, dirname, resolve } from 'node:path'
+// Régénérer : npx tsx scripts/guards/lib/regenStock.mts scripts/raw/check-source-tables.mjs [--lot <#N …>] — le
+// lot est REQUIS dès qu'une entrée NEUVE naît (politique `SOUS_LOT`, scripts/guards/lib/stockDeSites.mjs)
+import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { listerDossier } from '../guards/lib/lister.mjs'
 import { BOOKS, readText } from './_lib.mjs'
 import { estNomDExtraction } from '../../src/data/source/decoupe.ts'
-import { ecartDuVolet, sitesEnEntrees, cleDeSite, ecrireStockSousLot, phraseDeNaissance, survieDeLecheance } from '../guards/lib/stock.mjs'
-import { naissanceEnPlace, parCleDeSite, readStock } from './stockNominatif.mjs'
+import { SEPARATEUR_DE_REMEDE, ecartDuVolet, sitesEnEntrees, cleDeSite, phraseDeNaissance } from '../guards/lib/stock.mjs'
+import { SOUS_LOT, comptesParFamille, lireEntreesDeSite, naissanceEnPlace } from '../guards/lib/stockDeSites.mjs'
 import { parseChapitre, tablesOf, normText, estCleDePlage, plageDeLigne1, lignesDesignees } from '../../src/data/source/decoupe.ts'
 
 export const STOCK_PATH = join(dirname(fileURLToPath(import.meta.url)), 'source-tables-stock.json')
@@ -183,28 +183,9 @@ export function scanAllBooks(books = BOOKS) {
   return out
 }
 
-/** Compte par famille (toutes les familles présentes, même à zéro). */
-export const comptesParFamille = (sites) =>
-  Object.fromEntries(FAMILLES.map((f) => [f, sites.filter((s) => s.famille === f).length]))
-
-/**
- * Les ENTRÉES du stock, en ORDRE CANONIQUE (`parCleDeSite`) — c'est CE rendu que le fichier de stock
- * porte. L'ordre du BALAYAGE n'y entre pas : réordonner `src/data/books.json` ne réécrit pas ce
- * fichier (#1825).
- * `ancien` (les entrées déjà committées) porte la SURVIE : `survieDeLecheance`
- * (`scripts/guards/lib/stock.mjs`), seule définition du dépôt.
- * @param {{famille: string, file: string, ref: string}[]} sites
- * @param {{ lot: string, date: string, ancien?: Iterable<object> }} p
- */
-export const entreesDe = (sites, { lot, date, ancien = [] }) =>
-  FAMILLES.flatMap((famille) =>
-    survieDeLecheance(sitesEnEntrees(sites.filter((s) => s.famille === famille), { famille }), { lot, date, ancien }),
-  ).sort(parCleDeSite)
-
 /** Les clés des sites MESURÉS (même occurrence que le stock : le calcul d'occurrence est celui de
  *  `sitesEnEntrees`, jamais un second comptage). */
-export const clesMesurees = (sites) =>
-  new Set(entreesDe(sites, { lot: '', date: '' }).map(cleDeSite))
+export const clesMesurees = (sites) => new Set(sitesEnEntrees(sites).map(cleDeSite))
 
 /**
  * VERDICT des `preuve` du stock — une preuve est un FAIT daté (« PDF p.N : … »), pas une dispense :
@@ -221,11 +202,11 @@ export function verdictDesPreuves(sites, stock) {
   for (const e of stock) {
     if (!('preuve' in e)) continue
     if (typeof e.preuve !== 'string' || !e.preuve.trim()) {
-      vides.push(`${cleDeSite(e)} — \`preuve\` VIDE : une preuve est un fait lu au PDF (« PDF p.N : … »), ou rien.`)
+      vides.push(`${cleDeSite(e)}${SEPARATEUR_DE_REMEDE}\`preuve\` VIDE : une preuve est un fait lu au PDF (« PDF p.N : … »), ou rien.`)
       continue
     }
     if (!mesurees.has(cleDeSite(e))) {
-      perimees.push(`${cleDeSite(e)} — preuve PÉRIMÉE : ce site n'est plus mesuré, la preuve ne parle plus de rien.`)
+      perimees.push(`${cleDeSite(e)}${SEPARATEUR_DE_REMEDE}preuve PÉRIMÉE : ce site n'est plus mesuré, la preuve ne parle plus de rien.`)
     }
   }
   return { vides, perimees }
@@ -269,16 +250,16 @@ export function preuvesHorsPlage(stock, lireLigne1) {
     const page = Number(m[1])
     const ligne1 = lireLigne1(e.fichier)
     if (ligne1 == null) {
-      out.push(`${cleDeSite(e)} — preuve à la page ${page}, mais le fichier « ${e.fichier} » est INTROUVABLE.`)
+      out.push(`${cleDeSite(e)}${SEPARATEUR_DE_REMEDE}preuve à la page ${page}, mais le fichier « ${e.fichier} » est INTROUVABLE.`)
       continue
     }
     const plage = plageDeLigne1(ligne1)
     if (!plage) {
-      out.push(`${cleDeSite(e)} — preuve à la page ${page}, mais « ${e.fichier} » n'a pas de ligne 1 lisible (« ${String(ligne1).trim().slice(0, 40)} »).`)
+      out.push(`${cleDeSite(e)}${SEPARATEUR_DE_REMEDE}preuve à la page ${page}, mais « ${e.fichier} » n'a pas de ligne 1 lisible (« ${String(ligne1).trim().slice(0, 40)} »).`)
       continue
     }
     if (page < plage.page || page > plage.pageFin) {
-      out.push(`${cleDeSite(e)} — preuve à la page ${page}, HORS de la plage ${plage.page}-${plage.pageFin} de « ${e.fichier} ».`)
+      out.push(`${cleDeSite(e)}${SEPARATEUR_DE_REMEDE}preuve à la page ${page}, HORS de la plage ${plage.page}-${plage.pageFin} de « ${e.fichier} ».`)
     }
   }
   return out
@@ -288,27 +269,6 @@ export function preuvesHorsPlage(stock, lireLigne1) {
 export const comptesDeTri = (stock) => {
   const verifies = [...stock].filter((e) => typeof e.preuve === 'string' && e.preuve.trim()).length
   return { aTrier: [...stock].length - verifies, verifies }
-}
-
-/**
- * ÉCART au stock, famille par famille (le stock d'une famille ne juge que ses sites : mêlés, tous
- * les sites des autres familles paraîtraient périmés).
- * @returns {{ neuves: string[], perimees: string[] }}
- */
-export function ecartDuStock(sites, stock) {
-  const neuves = []
-  const perimees = []
-  for (const famille of FAMILLES) {
-    const r = ecartDuVolet({
-      sites: sites.filter((s) => s.famille === famille),
-      stock: stock.filter((e) => e.famille === famille),
-      famille,
-      ou: 'source-tables-stock.json',
-    })
-    neuves.push(...r.neuves)
-    perimees.push(...r.perimees)
-  }
-  return { neuves, perimees }
 }
 
 const QUOI = (comptes) =>
@@ -353,28 +313,20 @@ const QUOI = (comptes) =>
   'légendes numérotées qui n\'ont jamais été une table : elles se tranchent au PDF par la `preuve` ' +
   'de leur entrée, comme tout site, jamais par une liste de titres dans la garde.'
 
-/** Rend le CONTENU du fichier de stock pour des sites mesurés (source unique de sa forme). Les comptes
- *  à la naissance sont ceux du stock en place (`naissance`), sinon ceux du jour. */
-export const stockDe = (sites, { lot, date, ancien = [], naissance = null }) =>
-  `${JSON.stringify({ quoi: QUOI(naissance ?? comptesParFamille(sites)), entrees: entreesDe(sites, { lot, date, ancien }) }, null, 2)}\n`
+/** La RÉGÉNÉRATION du stock (`RegenerationDeStock`, `stockDeSites.mjs`), sur des sites (par défaut, la
+ *  mesure de tous les livres). Son `quoi` ne lit que les comptes À LA NAISSANCE (par défaut, ceux du
+ *  stock en place), ceux du run pour un stock qui naît. */
+export const regenerations = (sites = scanAllBooks(), naissance = naissanceEnPlace(STOCK_PATH, FAMILLES)) => [{
+  chemin: STOCK_PATH,
+  politique: SOUS_LOT,
+  horsCollections: QUOI(naissance ?? comptesParFamille(sites, FAMILLES)),
+  collections: [{ nom: 'entrees', sites }],
+}]
 
 function main() {
-  const args = process.argv.slice(2)
   const sites = scanAllBooks()
-  const comptes = comptesParFamille(sites)
-  const stock = readStock(STOCK_PATH)
-
-  if (args.includes('--ecrire-stock')) {
-    const r = ecrireStockSousLot(
-      args,
-      (lot, date) => ({ entrees: entreesDe(sites, { lot, date, ancien: stock }), texte: stockDe(sites, { lot, date, ancien: stock, naissance: naissanceEnPlace(STOCK_PATH, FAMILLES) }) }),
-      (texte) => writeFileSync(STOCK_PATH, texte),
-      STOCK_PATH,
-    )
-    ;(r.code ? console.error : console.log)(r.message)
-    process.exitCode = r.code
-    return
-  }
+  const comptes = comptesParFamille(sites, FAMILLES)
+  const stock = lireEntreesDeSite(STOCK_PATH)
 
   const tri = comptesDeTri(stock)
   console.log(
@@ -383,7 +335,7 @@ function main() {
   )
   console.log(`stock : ${tri.aTrier} à trier (aucune preuve), ${tri.verifies} vérifié(s) au PDF.`)
 
-  const { neuves, perimees } = ecartDuStock(sites, stock)
+  const { neuves, perimees } = ecartDuVolet({ sites, stock, ou: 'source-tables-stock.json' })
   const preuves = verdictDesPreuves(sites, stock)
   if (neuves.length) {
     console.log('RÉGRESSION — site(s) hors du stock :')
@@ -405,5 +357,4 @@ function main() {
   process.exitCode = 1
 }
 
-const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)
-if (isMain) main()
+if (import.meta.main) main()

@@ -9,6 +9,7 @@ import { RigSprite } from '../src/gameIso/rig/composeRig';
 import { defsGlobaux } from '../src/gameIso/sprites';
 import type { Appearance } from '../src/gameIso/rig/appearance';
 import { asRigSpeciesId } from '../src/gameIso/rig/appearance';
+import { VIEWS, type View } from '../src/gameIso/rig/facing';
 import type { EquipCtx } from '../src/gameIso/rig/parts/equipment';
 import type { Weapon, ItemInstance } from '../src/engine/types';
 import { raceAppearance } from '../src/data';
@@ -30,7 +31,7 @@ const wep = (name: string, type: 'melee' | 'ranged'): Weapon => ({ label: name, 
 const plate: ItemInstance = { uid: '1', label: 'Plastron de plaque', kind: 'armor', qualities: [], pa: 4, locs: ['corps'], enc: 1, equipped: true };
 const helm: ItemInstance = { uid: '2', label: 'Heaume', kind: 'armor', qualities: [], pa: 2, locs: ['tete'], enc: 1, equipped: true };
 
-function cell(label: string, app: Appearance, equip: EquipCtx, career: string, view: 'front' | 'back' | 'profile' = 'front') {
+function cell(label: string, app: Appearance, equip: EquipCtx, career: string, view: View = 'front') {
   const svg = renderToStaticMarkup(
     React.createElement('svg', { viewBox: '0 0 120 150', width: 110, height: 138 },
       React.createElement('defs', { dangerouslySetInnerHTML: { __html: defsGlobaux() } }),
@@ -54,8 +55,8 @@ cells.push(cell('Humain M + plaque+heaume', { species: asRigSpeciesId('humain'),
 cells.push(cell('Humain F Sorcier + bâton', { species: asRigSpeciesId('humain'), sex: 'F', build: 0.4, seed: 5 }, { weapons: [wep('Bâton', 'melee')], armour: [] }, 'sorcier'));
 cells.push(cell('Nain M + hache', { species: asRigSpeciesId('nain'), sex: 'M', build: 0.7, seed: 9 }, { weapons: [wep('Hache', 'melee')], armour: [] }, 'soldat'));
 
-// Facing : Soldat humain en 3 vues (front/back/profile) — tranche verticale.
-for (const view of ['front', 'back', 'profile'] as const) {
+// Facing : Soldat humain en 3 vues (ordre de `VIEWS`) — tranche verticale.
+for (const view of VIEWS) {
   cells.push(cell(`Soldat ${view}`, { species: asRigSpeciesId('humain'), sex: 'M', build: 0.55, seed: 4 }, { weapons: [wep('Épée', 'melee')], armour: [] }, 'soldat', view));
 }
 
@@ -65,11 +66,11 @@ for (const car of TENUES_QC) {
   cells.push(cell(tenueLabel(car), { species: asRigSpeciesId('humain'), sex: 'M', build: 0.55, seed: 4 }, { weapons: [], armour: [] }, car));
 }
 
-// F1 : ennemis humanoïdes riggés (classifieur + dérivation). Arme + tenue + mutations.
+// Ennemis humanoïdes riggés (classifieur + dérivation). Arme + tenue + mutations.
 import { enemyRigProfile, entityRigProfile } from '../src/gameIso/rig/enemyProfile';
 import { AMBIENT_CLIPS } from '../src/gameIso/rig/anim/ambientClips';
 import type { Combatant } from '../src/engine/types';
-function enemyCell(name: string, view: 'front' | 'back' | 'profile' = 'front') {
+function enemyCell(name: string, view: View = 'front') {
   const c = {
     id: `gal-${name}`, label: name, kind: 'enemy',
     characteristics: {} as Combatant['characteristics'], wounds: { current: 10, max: 10 },
@@ -94,10 +95,10 @@ for (const e of ['Bandit', 'Cultiste', 'Soldat', 'Garde', 'Flagellant', 'Noble',
   cells.push(enemyCell(e));
 }
 // Mutant : 3 vues + montre les calques de mutation.
-for (const v of ['front', 'back', 'profile'] as const) cells.push(enemyCell('Mutant', v));
+for (const v of VIEWS) cells.push(enemyCell('Mutant', v));
 cells.push(enemyCell('Guerrier du Chaos'));
 
-// I : poses d'ambiance (1re keyframe du clip en boucle) — démo mutant qui dévore.
+// Poses d'ambiance (1re keyframe du clip en boucle) — démo mutant qui dévore.
 function ambientCell(name: string, animKey: string, label: string) {
   const p = entityRigProfile(name, 4);
   if (!p) return '';

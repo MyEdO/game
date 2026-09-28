@@ -4,7 +4,7 @@ import { BOTTE_CUIR } from '../botte-gabarit';
 // Chevalier du Loup Blanc (AA 03 l.234-266) — templier d'Ulric, tête nue.
 //
 // ÉTALON DE FACTURE. Cinq idiomes réutilisables, à recopier pour tout le vestiaire :
-//  · LAMELLE  : path fill=url(#g_steelD) (le gradient suit la bbox → clair en HAUT de chaque
+//  · LAMELLE  : path fill=url(#g_steelD) (le dégradé fixe suit la bbox → clair en HAUT de chaque
 //               bande) + nappe @metalO qui enfonce la masse + arête spéculaire @metalH TRACÉE
 //               PAR-DESSUS la nappe + ombre portée @metalO sous le bord. Jamais un aplat+liseré.
 //  · LUMIÈRE  : deux lames voisines ne captent JAMAIS le même reflet. `g_steelD` étant en
@@ -45,7 +45,7 @@ import { BOTTE_CUIR } from '../botte-gabarit';
 //               La VALEUR se mesure, elle ne se déclare pas — Contrat de valeur : verdict du
 //               harnais canonique `scripts/qc/mesure-volume.mts` (#635) (mesuré ici : 20,8 →
 //               41,6 points, P90 93,6 % vs P10 52,0 %).
-//               `fourrureO` est un token d'OMBRE, pas « la couleur de l'ombre » : à la valeur de
+//               `fourrureO` est un jeton d'OMBRE, pas « la couleur de l'ombre » : à la valeur de
 //               `metalO` face à `metal`, il sert toute la rampe par son OPACITÉ (comme l'acier).
 //               Ordre EXACT : base → FACE OMBRÉE @fourrureO 0.58 (~50 % de la masse, du côté opposé
 //               à la lumière = le BAS, convention de l'acier où toute arête haute est @metalH) →
@@ -91,7 +91,7 @@ import { BOTTE_CUIR } from '../botte-gabarit';
 //  · RIVET    : point @metalO + éclat @metalH décalé d'un quart de pixel.
 //  · CHAIR    : la chair (peau nue à un poignet, une gorge, un visage) appartient au PERSONNAGE,
 //               jamais à la tenue — `@peau`/`@peauO`/`@peauH` ou `url(#dg-v-@peauH-@peauO)`, jamais
-//               un littéral hex (`PART-CONTRACT.md`, « Gradients partagés »). Un littéral
+//               un littéral hex (`PART-CONTRACT.md`, « Dégradés fixes »). Un littéral
 //               hex n'est légitime QUE pour une matière propre à CETTE tenue (son cuir, son acier
 //               — une couleur qui lui appartient, à elle) — jamais pour recopier une valeur déjà
 //               déclarée dans `palette` (#583, garde `parts/tenues/palette-literal.test.ts`).
@@ -163,7 +163,7 @@ export const tenue: TenueDef = {
     // sombre, ce sont les arêtes qui brillent — l'inverse d'un gris moyen uniforme).
     metal: '#4c5663', metalO: '#0f1216', metalH: '#ccd6e2',
     // pelisse : crème chaud, ombres BLEU-GRIS (teinte relevée sur l'illustration, non gris neutre)
-    // mais à la VALEUR de l'acier, pas à la sienne : `fourrureO` est un token d'OMBRE (comme
+    // mais à la VALEUR de l'acier, pas à la sienne : `fourrureO` est un jeton d'OMBRE (comme
     // `metalO` #0f1216 face à `metal` #4c5663), pas « la couleur de l'ombre ». Un #9ca9b4 posé à
     // 0.5 sur le crème compose à 78 % de luminance contre 94 % pour la plage éclairée : 15 points
     // d'écart, mesurés — l'œil n'y voit AUCUN volume, seulement une salissure. Trois tours ont été

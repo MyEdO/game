@@ -18,7 +18,7 @@ const STEPS = [
   ['Bestiaire — attaques (traits, animé)', 'npx tsx scripts/gen-creature-attacks-gallery.mts'],
   ['Tenues — 3 vues', 'npx tsx scripts/gen-tenue-views-gallery.mts'],
   ['Engins de siège — planche-contact 3 vues', 'npx tsx scripts/gen-engin-views-gallery.mts'],
-  ['Décor — planche-contact (props, dont directionnels en 3 vues)', 'npx tsx scripts/_qc-decor-sheet.mts'],
+  ['Décor — planche-contact (props, dont orientés en 3 vues)', 'npx tsx scripts/_qc-decor-sheet.mts'],
   ['Objets orientés — couverture de vues + rotation caméra', 'npx tsx scripts/gen-oriented-objects-gallery.mts'],
   ['Mobilier volumique — 4 rotations + dessus + vignette', 'npx tsx scripts/qc/render-props-volumiques.mts'],
   ['Toise — échelles en jeu', 'npx tsx scripts/gen-toise-gallery.mts'],

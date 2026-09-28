@@ -34,6 +34,15 @@ ment ne se tague pas, elle se corrige.
 Après toute fusion ou tout rebase : `npm run docs:build` (`scripts/docs/build-all.mjs`) régénère et
 nomme ce qui a bougé — les hooks `post-merge`/`post-rewrite` le lancent, le commit reste à toi.
 
+**Fusion des stocks de sites** (`.gitattributes`, section « Stocks : fusion par groupe de site »,
+pilote `scripts/git-hooks/merge-stocks.mjs` déclaré par `npm run postinstall`, `merge=stocks`) :
+chaque version est lue par le format de son extension (`FORMATS`, `scripts/guards/lib/stockDeSites.mjs`)
+et la fusion se fait au niveau du GROUPE de site, donc deux soldes de groupes disjoints d'un même stock
+ne se heurtent pas. Une version qui n'est pas un point fixe de son format, ou un fichier sans collection
+de sites, retombe sur la fusion 3-voies ordinaire, `scripts/git-hooks/three-way.mjs`, que les deux
+pilotes partagent. Un stock se régénère par `npx tsx scripts/guards/lib/regenStock.mts <module qui
+mesure>`.
+
 ## Frontière orchestrateur · machinerie · data-driven
 
 Un Trigger doit fonctionner pour TOUT kind d'entité (maladie, talent, trait, sort, état, mutation)
@@ -134,12 +143,18 @@ scripts/migrations/         Migrations de donnée REJOUABLES (une par lot, daté
                             hors dépôt, `git diff` bascule en `--no-index` et rend un faux vert), et
                             le hook `pre-push` l'arme dès que la plage poussée touche le périmètre
 src/lib/                     Couche NEUTRE, en amont de `engine`, `data`, `state` et `ui` : ce que
-                            plusieurs couches emploient sans qu’aucune ne le possède (`eslint.config.js`,
-                            `AVALS_DATA`). `normalize.ts` : normalisation d'un nom (`norm`).
-                            `indexedDb.ts` : plomberie des magasins IndexedDB (disponibilité, ouverture
-                            bornée #776 par `{ nom, version, upgrade }`, requête/transaction en
-                            promesse, une connexion par opération) — bibliothèque de projets, calque
-                            de référence, sauvegarde automatique, dossier `src/data` du Codex (#1956).
+                            plusieurs couches emploient sans qu’aucune ne le possède. `normalize.ts` :
+                            normalisation d'un nom (`norm`).
+                            `regex.ts` : échapper une chaîne pour une regex (`echapperRegex`), alternation
+                            de chaînes ou de fragments de regex (`alternationDe`, `alternationDeRegex`),
+                            `espacesExtensibles`. Module PUR, sans import : Node nu le charge aussi, par
+                            son chemin relatif, extension comprise.
+                            `indexedDb.ts` : bases IndexedDB (disponibilité, ouverture bornée #776 par
+                            `{ nom, version, upgrade }`, une connexion par opération) et leur poignée
+                            `accesBase` (magasins typés, `vider`) ; doublure `indexedDb.testkit.ts`
+                            (`brancherBasesSimulees`).
+                            `stockageWeb.ts` : accès protégé au `localStorage` et au `sessionStorage`
+                            (`stockageWeb`).
                             `fileIo.ts` : téléchargement d'un texte (`downloadText`), nom de fichier
                             sûr (`fileSlug`).
 src/geometry/                Géométrie/simulation PURE partagée `state` ⇄ `gameIso` (#161 : `state` en a
@@ -191,7 +206,7 @@ src/engine/                 Règles WFRP4, PUR + testé :
                               usages réels en donnée. À CONSULTER avant de conclure à un manque du moteur.
   spellspec.ts                spellSupport : classification mécanique/partiel/narratif d'un sort depuis
                               SpellData (duck typing — l'interface SpellSpec, le registre spellspecs/ et
-                              le repli regex fallbackSpec sont supprimés, métadonnées migrées en donnée)
+                              le repli regex fallbackSpec sont supprimés, métadonnées en donnée)
   magic.ts                    incantation/Focalisation/Péché/ZdE/portée/armure (« Repousser les Vents »)
   miscast.ts                  tables d'Imparfaites & Colère des dieux (d100 → GameOps, verbatim)
   corruption.ts               Corruption & mutations (LDB 19 : expositions, seuil, limites → damné)
@@ -286,7 +301,7 @@ src/state/
   viewLevel.ts                override DEBUG de l'étage AFFICHÉ (`__wfrp.viewLevel(z)`, #161 : ex-
                               `gameIso/viewLevel.ts`) — SOURCE dans `state`, lu par l'hôte du monde
                               (`gameIso/stage/MondeDeCampagne`)
-  stageYaw.ts                 LACET CONTINU de la caméra du stage (#1176, P2-7) : cible + courant qui y
+  stageYaw.ts                 LACET CONTINU de la caméra du stage (#1176) : cible + courant qui y
                               court, `viewYawDeg` (projection) et `viewRot` (cran EFFECTIF du dégagement)
   combatLog.ts                CombatEvent/CombatEventKind + CombatTone/toneOf/isImportantEvent/
                               lastEventTone (#161 : cadence des beats, `gameIso/combatNarration` les
@@ -322,9 +337,9 @@ src/state/
                               `assignSeat`/`releaseSeat` et l'élagage (`pruneSeatAssignments`,
                               `releaseUnavailableSeats`). PUR : aucun store, aucun rendu, aucun `gameIso`
   projectLibrary.ts           Bibliothèque des projets de campagne de l'éditeur (`SavedProject`).
-                              Backend IndexedDB (db `wfrp4-library`, store `projects`, une source de
+                              Base IndexedDB `wfrp4-library` par `accesBase` (magasin `projects`, source de
                               vérité — supporte les grandes campagnes qui dépassent le quota
-                              localStorage, #766 lot B). `projectsLoad`/`publishedProjects` SYNC
+                              localStorage, #766). `projectsLoad`/`publishedProjects` SYNC
                               (cache mémoire) ; `projectSave`/`projectRemove` ASYNC (persistance
                               IndexedDB awaitée, ne rejette jamais — `LibraryWriteOutcome`). `cache`
                               chargé une fois par `initLibrary()` (awaité dans `main.tsx` avant le
@@ -372,7 +387,7 @@ src/gameIso/                Rendu du monde. Le moteur est le monde VOLUMIQUE thr
   iso.ts                    dérivés MÉTRIQUES de la projection (WALL_H_M, isoPxToM — besoin du monde,
                             via state/relief) ; la projection elle-même (Dims, tileCenter, diamondPath,
                             screenToTile, stageSize…) vit dans `src/geometry/iso.ts` (#161)
-  sprites.ts                décor (props/villageois/terrain en relief) + defsGlobaux() (gradients) — PLUS de sprite créature
+  sprites.ts                décor (props/villageois/terrain en relief) + defsGlobaux() (dégradés fixes) — PLUS de sprite créature
   rig/                      gabarits corporels (bipède + quadrupède/ailé/serpentin/…) — rend TOUT le bestiaire
                             AJOUTER une créature : suivre docs/creer-une-creature.md (registre defs/,
                             corps nu ≠ tenue, illustration art-ref obligatoire, pièges codifiés)
@@ -417,7 +432,7 @@ src/scenes/                 Documents de scène + campaign.ts (campagne = l'Arè
                             projet v2 {scenes, worldMap} — 20 scènes : Bourg+intérieurs, 13 zones, 3 expéditions,
                             embuscade ; AUTHORING par `scripts/arene/generate.mjs`, cartes ASCII → JSON canonique
                             qui RESTE la source éditable dans l'éditeur)
-                            + test-fixture.ts (scène neutre `testScene` + rencontre `enc-mutants` des tests de combat)
+                            + test-fixture.ts (fabrique de scène neutre `testScene()` + rencontre `enc-mutants` des tests de combat)
 src/state/asciiMap.ts       AUTHORING de map en ASCII — la MÉTHODE À PRIVILÉGIER pour tout contenu de
                             map (scène/scénario) plutôt que poser les tuiles une à une. `parseAsciiRows(rows,
                             base, legend)` → {w,h,tiles} (1 char = 1 tuile) ; `parseWalledAscii` (box-drawing
@@ -472,9 +487,9 @@ Deux restrictions posées en 0cd24a01 (#232/#91) sans ticket au moment du commit
   bipèdes (carrière + arme + armure + mutations visibles) et créatures non-bipèdes via gabarit corporel
   animé (quadrupède/ailé/serpentin/…). `sprites.ts` ne fournit plus que le décor (props).
   Le sprite monolithique (`creatureSprites.json` + `enemySprite`/`creatureView`) a été retiré (juin 2026).
-- **Objets ORIENTÉS** (navires, engins de siège, véhicules terrestres, props directionnels) : un SEUL
+- **Objets ORIENTÉS** (navires, engins de siège, véhicules terrestres, props orientés) : un SEUL
   contrat de vues `ViewArt` (`src/gameIso/rig/viewArt.ts`, `front?`/`profile?`/`back?`), sélectionné par
-  l'UNIQUE résolveur `project(dir, camRot)` (`rig/facing.ts`) + repli `pickView` ; couverture de vues en
+  l'UNIQUE résolveur `project(dir, camRot)` (`rig/facing.ts`) + repli `nearestView` ; couverture de vues en
   galerie QC (`oriented-objects.html`). Les véhicules à coque sont routés par `hull.propulsion`
   (`bodyPlan.ts`) : mer/fleuve → gabarit `navire`, terrestre → gabarit `terrestre` (plus de repli
   accidentel d'un attelage vers la coque de navire). Détail : `docs/rendu-pipeline.md` § « Objets orientés ».

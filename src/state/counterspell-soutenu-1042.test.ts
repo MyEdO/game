@@ -5,7 +5,6 @@ import { intentAllowedFor } from './netOwnership';
 import { seedBattleRng } from './battleRng';
 import { castingValue } from '../engine/magic';
 import { createHero } from '../engine/character';
-import { makeRNG } from '../engine/dice';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
 import type { CounterParticipant } from './pendings';
@@ -27,7 +26,7 @@ const NET0 = { mode: 'local' as const, mySeat: 0, gmSeat: undefined, ownership: 
 /** Trois héros lanceurs (deux du Domaine du Feu, un de la Mort) face à une ennemie qui incante. */
 function setup() {
   const mk = (label: string, seed: number, advances: number, domain: string) => {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label, careerTalent: { id: 'magie-mineure' }, rng: makeRNG(seed) });
+    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label, careerTalent: { id: 'magie-mineure' }, seed });
     h.spells = ['flechette'];
     h.characteristics.intelligence = 40;
     h.characteristics['force-mentale'] = 60;
@@ -37,7 +36,7 @@ function setup() {
     return h;
   };
   useGame.setState({ party: [mk('W1', 707, 20, 'feu'), mk('W2', 101, 10, 'feu'), mk('W3', 55, 15, 'mort')] });
-  useGame.getState().startScene(testScene);
+  useGame.getState().startScene(testScene());
   useGame.getState().startCombat('enc-mutants');
   useGame.getState().confirmRoundStart();
   vi.clearAllTimers();

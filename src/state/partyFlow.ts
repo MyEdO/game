@@ -479,7 +479,7 @@ export function buyTalent(get: Get, set: Set, heroId: string, talentId: string, 
         msg = t('pf.talentMaxed', { name: clone.label, label: talentLabel });
         return h;
       }
-      if (spec != null && findTalentById(talentId)?.specsSource === 'arcaneDomains') {
+      if (spec != null && findTalentById(talentId)?.grantsArcaneDomain) {
         const gate = arcaneDomainGate(clone, spec);
         if (!gate.ok) {
           msg = t('pf.refused', { name: clone.label, what: talentLabel, reason: gate.reason ?? '' });

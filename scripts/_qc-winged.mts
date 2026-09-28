@@ -1,14 +1,13 @@
 /** QC du gabarit AILÉ — griffon / pégase / hippogriffe / dragon, vues face/profil/dos.
  *  L'échelle d'espèce (sl) est appliquée au scale de cellule → le dragon est géant. */
+import { VIEWS } from '../src/gameIso/rig/facing';
 import { writeFileSync } from 'node:fs';
 import { Resvg } from '@resvg/resvg-js';
 import { defsGlobaux } from '../src/gameIso/sprites';
 import { bonesToSvg } from '../src/gameIso/rig/renderBones';
 import { resolveWing, WINGED_SPECIES } from '../src/gameIso/rig/winged/composeWing';
-import type { View } from '../src/gameIso/rig/facing';
 
 const NAMES = ['Griffon', 'Pégase', 'Hippogriffe', 'Dragon'];
-const VIEWS: View[] = ['profile', 'front', 'back'];
 const CW = 380, CH = 460, BASE = 1.5, FEET = 410;
 const cells: string[] = [];
 NAMES.forEach((name, r) => {

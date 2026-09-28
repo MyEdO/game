@@ -6,8 +6,6 @@
 // (`src/data/books.json`), sa liste de découpe et ses onglets de `scripts/raw/decoupes/<id>.json`.
 //
 // Usage : node scripts/raw/sonde-mobilier.mjs <id du livre>
-import { resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { decoupeDe, livreExtraitDe, ongletsDe, readText } from './_lib.mjs'
 import { mobilierDuDossier } from './lib/mobilier.mjs'
 
@@ -37,5 +35,4 @@ function main() {
   }
 }
 
-const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)
-if (isMain) main()
+if (import.meta.main) main()

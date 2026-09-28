@@ -20,9 +20,9 @@ const hache = (): Weapon => ({ label: 'Hache', type: 'melee', damage: { plusBF: 
 /** Enrôle une diligence (coque à PV) comme ENNEMI dans la scène de fixture, puis démarre le combat. */
 function startWithVehicle() {
   useGame.getState().seedRng(1);
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', rng: makeRNG(1) });
+  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   useGame.setState({ party: [hero] });
-  const scene = structuredClone(testScene);
+  const scene = structuredClone(testScene());
   scene.entities.push({ id: 'veh', kind: 'personnage', ref: 'diligence', pos: { x: 7, y: 10 } } as never);
   (scene.encounters[0].members ??= []).push({ entityId: 'veh' } as never);
   useGame.getState().startScene(scene);
@@ -41,7 +41,7 @@ describe('Véhicule-coque attaqué en mêlée — inerte comme une structure (is
     const veh = vehicleCombatant(findVehicleById('diligence')!)!; // E45 / B50, bodyShape 'vehicule'
     expect(veh.bodyShape).toBe('vehicule');
     expect(isInanimate(veh)).toBe(true);
-    const atk = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', rng: makeRNG(1) });
+    const atk = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
     atk.characteristics['capacite-de-combat'] = 90; // touche quasi-certaine → coup résolu
     const res = resolveMelee(atk, veh, hache(), makeRNG(2));
     expect(res.hit).toBe(true);

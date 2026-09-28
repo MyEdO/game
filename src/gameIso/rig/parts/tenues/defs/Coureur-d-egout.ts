@@ -14,7 +14,7 @@ export const tenue: TenueDef = {
       + `<path d="M-12 -26 Q0 -30 12 -26 L11 6 L10 32 Q0 36 -10 32 L-11 6 Z" fill="@vet1" stroke="@vet1O" stroke-width="0.8"/>`
       + `<path d="M-11 -22 L11 2 M11 -22 L-11 2 M-10 -10 L10 12" stroke="@vet2" stroke-width="2.8" stroke-linecap="round"/>`
       + `<path d="M-11 -22 L11 2 M11 -22 L-11 2" stroke="@vet1O" stroke-width="0.6" opacity="0.5"/>`
-      // ceinture + fioles de poison (verre vert LITTÉRAL — pas un token de palette, sinon
+      // ceinture + fioles de poison (verre vert LITTÉRAL — pas un jeton de palette, sinon
       // dominantCloth prend le vert pour l'étoffe dominante → torse vert en profil/dos)
       + `<rect x="-11" y="8" width="22" height="4" rx="1" fill="@cuir" stroke="@cuirO" stroke-width="0.6"/>`
       + `<rect x="-6" y="11.5" width="2.6" height="5" rx="1" fill="#5f7a4a" stroke="#2c3a24" stroke-width="0.4"/>`

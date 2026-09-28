@@ -7,8 +7,6 @@
 // Contrat, comme `pre-commit` et `pre-push` : ce hook DOIT pouvoir refuser le commit (exit != 0).
 // Sans fichier de message lisible, il ne juge RIEN et le DIT — il ne refuse pas sur du vide.
 import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { refusDeSujet } from '../guards/lib/sujetDeCommit.mjs'
 
 /** Verdict sur le fichier de message passé par git. `null` = rien à refuser.
@@ -23,7 +21,7 @@ export function jugerFichierDeMessage(chemin, { lire = (c) => readFileSync(c, 'u
   return refusDeSujet(message)
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url))) {
+if (import.meta.main) {
   const refus = jugerFichierDeMessage(process.argv[2])
   if (refus) { process.stderr.write(`${refus}\n`); process.exit(1) }
   process.exit(0)
