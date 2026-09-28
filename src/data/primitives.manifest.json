@@ -4,9 +4,91 @@
     "type": "primitives.manifest",
     "label": "ScreenShell",
     "fichier": "src/ui/ScreenShell.tsx",
-    "concept": "coquille d'écran plein-champ (voile + en-tête + corps, a11y dialogue)",
+    "css": "src/ui/styles/screen-shell.css",
+    "concept": "coquille d'écran plein-champ (voile + en-tête avec croix `CadreFermer` + corps ; un corps borné défile dans le rail `.screen-scroll`, et sa colonne `.screen-colonne` porte le pied `footer` sous le rail, `CadrePied`), a11y dialogue",
     "perimetre": "carte du monde, port/escale, marché, dossier de navire, négoce",
     "verrou": "aucune modale/écran bespoke (existant)"
+  },
+  {
+    "id": "cadre",
+    "type": "primitives.manifest",
+    "label": "CadrePied / CadreFermer",
+    "fichier": "src/ui/Cadre.tsx",
+    "css": "src/ui/styles/cadre.css",
+    "concept": "gestes des trois cadres (`Modal`, `EmbeddedShell`, `ScreenShell`) : pied `CadrePied` (gestes de sortie hors du défileur, à la largeur du corps) et croix `CadreFermer`",
+    "perimetre": "pied et croix de toute modale, étape embarquée et écran plein-champ",
+    "verrou": "primitive-owners-guard.test.ts — aucune classe posée hors de `Cadre.tsx` ; css-modules-guard.test.ts §5.3 — aucune feuille tierce ne les vise"
+  },
+  {
+    "id": "planche",
+    "type": "primitives.manifest",
+    "label": "Planche",
+    "fichier": "src/ui/Planche.tsx",
+    "css": "src/ui/styles/planche.css",
+    "concept": "lecteur passif en deux colonnes dans la boîte `planche` de `Modal` (voile de référence, croix) : `nom` du dialogue, posé en titre visible (`.planche-nom`) en tête de la colonne `aside` (permanente), onglets `tabs` au-dessus du corps d'onglet ; un défileur par colonne au-delà de 700px, la planche entière en dessous",
+    "perimetre": "fiche de personnage, feuille de navire ou de batterie de siège",
+    "verrou": "primitive-owners-guard.test.ts — `sheet-layout`, `sheet-aside`, `sheet-main`, `sheet-tabbody`, `planche-nom` posées par `Planche.tsx` seul ; planche.test.tsx — structure et défileurs"
+  },
+  {
+    "id": "modal",
+    "type": "primitives.manifest",
+    "label": "Modal",
+    "fichier": "src/ui/Modal.tsx",
+    "css": "src/ui/styles/modal.css",
+    "poseurs": [
+      "src/ui/ModalSubject.tsx"
+    ],
+    "concept": "cadre de modale (voile + boîte en colonne : tête avec croix `croix`, bandeau sujet, corps défilant, pied `footer`) ; états `data-*` (voile, champ lisible, plein écran, taille, gangrène), a11y dialogue (focus initial `focusTarget`, piège Tab, congédiement) ; son emprunt du focus passe par `useFocusEmprunte` (`src/ui/focus.ts`)",
+    "perimetre": "toute fenêtre de dialogue : jet, décision, récapitulatif, planche de fiche, Codex en jeu",
+    "verrou": "primitive-owners-guard.test.ts — aucune classe du cadre posée hors de lui ; css-modules-guard.test.ts §5.3 — aucune feuille tierce ne les vise"
+  },
+  {
+    "id": "boite-ancree",
+    "type": "primitives.manifest",
+    "label": "BoiteAncree / usePlacementAncre / placerAncre",
+    "fichier": "src/ui/BoiteAncree.tsx",
+    "css": "src/ui/styles/boite-ancree.css",
+    "concept": "surface `position: fixed` en portail, placée contre le rectangle de son ANCRAGE : côté qui a le plus de place, ancrée par le haut ou par le bas, hauteur et largeur bornées au viewport, alignée sur le bord gauche de l'ancrage, sinon sur son bord droit, sinon sur la marge de la fenêtre ; placement né au rendu qui reçoit l'ancrage (le commit d'ouverture porte la boîte), recalculé au défilement et au redimensionnement ; ancrage détaché = aucune boîte ; style = variables `--ancre-*` seules, écrites par le seul littéral de `style=` ; champs du placement listés par `CHAMPS`, complet par le type ; complétude du littéral non prouvée par le type (garde (xxii))",
+    "perimetre": "couche d'infobulle (`Infobulle`), `PanneauParametre`, menu d'ajout de l'atelier (`AddMenu`)",
+    "verrou": "BoiteAncree.test.tsx — placement, naissance au commit d'ouverture, ancrage détaché, les cinq variables qu'il nomme"
+  },
+  {
+    "id": "infobulle",
+    "type": "primitives.manifest",
+    "label": "useInfobulle",
+    "fichier": "src/ui/Infobulle.tsx",
+    "css": "src/ui/styles/infobulle.css",
+    "concept": "couche d'infobulle, UNE par ancrage : ancrage déclaré au balisage (`data-infobulle`), déclenchement par délégation au document, un seul jeu d'écouteurs pour toute la couche (survol, focus, toucher, ↓), pont de survol, épinglage, sourdine, Échap et clic hors boîte (état `congediee` jusqu'au prochain `quitte`), `aria-describedby`, portail (`BoiteAncree`), marqueur d'arrêt à la racine de la boîte ; emprunt du focus par `useFocusEmprunte`, origine = le contrôle de l'ancrage. Le contenu (texte, rôle, activation, nom accessible) reste à l'appelant, qui ne passe que des booléens",
+    "perimetre": "`CodexRef` (fiche, refus, instance, provenances)",
+    "verrou": "Infobulle.test.tsx — congédiement, origine du focus, délégation ; CodexRef.hooks.test.tsx — Échap ne rouvre pas, ↓ épingle et le focus entre"
+  },
+  {
+    "id": "codex-ref",
+    "type": "primitives.manifest",
+    "label": "CodexRef / CodexTitre",
+    "fichier": "src/ui/compendium/CodexRef.tsx",
+    "css": "src/ui/styles/codex-ref.css",
+    "concept": "référence contextuelle au Codex : un libellé d'entité ancre une infobulle (`useInfobulle`) dont `CodexRef` fournit le CONTENU (raison d'un refus, titre `CodexTitre`, méta et corps coupés au mot (`coupeAuMot`), provenances, source, porte « Ouvrir la fiche ») ; le clic ouvre la fiche (`openCodex`), `tooltipOnly` bascule la bulle, `wrap` enveloppe un contrôle déjà actif (↓ épingle), `sourdine` la tait",
+    "perimetre": "chips d'entité, cases et pastilles de la console de combat, ressources (`ResilienceButton`, `DeterminationButton`), lignes de jet, fiches, plaques de nom (`CodexTitre`)",
+    "verrou": "CodexRef.hooks.test.tsx — Échap, épinglage, refus au survol/focus/tap ; CodexRef.test.tsx — affordance, nom accessible, coupe au mot"
+  },
+  {
+    "id": "focus",
+    "type": "primitives.manifest",
+    "label": "useFocusEmprunte / SURFACE / focusSansIntention / poserFocus / visibleFocusables",
+    "fichier": "src/ui/focus.ts",
+    "concept": "coutures de focus partagées : `useFocusEmprunte` est le SEUL retour du focus à l'origine d'une surface qui l'emprunte (son invocateur : par défaut le nœud qui l'avait à CETTE ouverture, pour une infobulle le contrôle de son ancrage ; une origine sortie du document cède la place à celle de la surface qui la contenait), s'il est encore dans le document et qu'aucun dialogue du dessus ne le couvre ; `SURFACE` nomme les rôles qui empruntent (dialogue, infobulle) ; `poserFocus` pose un focus sans intention du joueur, que `focusSansIntention` signale à un `onFocus` qui ne doit répondre qu'au joueur ; `visibleFocusables` liste les contrôles atteignables d'un conteneur",
+    "perimetre": "`useModalA11y` (`Modal`, `ScreenShell`, `GameMenu`, `OptionsScreen`, `PanneauParametre`, la conversation PNJ `DialogueBox`), `EmbeddedShell` (`cibleEmbarquee`), couche d'infobulle (`useInfobulle`), propriété des touches (`useGameKeyboard`), manette (`useGamepad`)",
+    "verrou": "cadre-focus-initial.test.tsx — une ouverture, un invocateur ; Infobulle.test.tsx — origine d'une infobulle, origine morte ; CodexRef.hooks.test.tsx — le retour du focus n'ouvre pas la bulle"
+  },
+  {
+    "id": "dismissLayer",
+    "type": "primitives.manifest",
+    "label": "useDismissLayer / dialogueDuDessus / surfaceFocalisee",
+    "fichier": "src/ui/useDismissLayer.ts",
+    "concept": "couche de congédiement de la pile (`src/state/dismissStack.ts`) : `useDismissLayer` empile une COUCHE le temps de son ouverture, déclarée en entier (identifiant stable, nature `modale`/`popover`, plan `scene`/`application`, boîte) ; `dialogueDuDessus` rend la boîte de la modale du dessus (`coucheDuDessus` : plan le plus haut, puis la dernière ouverte), la même couche que lisent Échap (`resoudreEchap`), les touches (`bindingApplies`) et la marche — lue par l'emprunt, le sauvetage et la restitution du focus, le piège Tab et la manette ; `surfaceFocalisee` rend la surface où navigue la manette (bulle épinglée qui tient le focus, sinon le dialogue du dessus)",
+    "perimetre": "`useModalA11y` (`Modal`, `ScreenShell`, `GameMenu`, `OptionsScreen`, `PanneauParametre`, la conversation PNJ `DialogueBox`), bulle de `CodexRef`, panneaux et menus qui se congédient, `useGameKeyboard`, `useGamepad`",
+    "verrou": "dialogue-du-dessus.test.tsx — l'ordre des ouvertures, jamais celui du document ; la conversation, peinte sous une fiche, attend ; echap-pile-lifo.test.tsx — Échap congédie la couche du dessus ; dismissStack.test.ts — le plan d'abord"
   },
   {
     "id": "rollShell",
@@ -14,7 +96,7 @@
     "label": "RollShell",
     "fichier": "src/ui/RollShell.tsx",
     "css": "src/ui/styles/roll-shell.css",
-    "concept": "coquille de jet mono/multi (Lancer→Chance→Pacte→Résilience→Appliquer)",
+    "concept": "coquille de jet mono/multi (Lancer→Chance→Pacte→Résilience→Appliquer) ; posée dans `Modal` ou `EmbeddedShell`, ou rendue à part (`useRollShell` : titre, corps, gestes) pour l'hôte qui l'englobe dans SA boîte",
     "perimetre": "toute modale de jet, mono (N=1) et multi (N contributeurs)",
     "verrou": "roll-modal-invariant.test.ts"
   },
@@ -58,7 +140,7 @@
       "src/ui/jetProps/useAttackJetProps.tsx",
       "src/ui/jetProps/useDefenseJetProps.tsx"
     ],
-    "concept": "choix d'options de jet (seg/grid/actions)",
+    "concept": "choix d'options de jet (seg/grid ; l'option retenue se marque `selected` → `aria-pressed`, jamais `primary` ; une grille dont une option porte sa `note` passe en rangées verbe | conséquence, la note de rangée sans icône) et gestes de décision posés au pied d'un cadre (ChoiceButtons)",
     "perimetre": "tout choix d'options + paire/triplet de boutons de décision",
     "verrou": "—"
   },
@@ -519,9 +601,9 @@
   {
     "id": "gatedAction",
     "type": "primitives.manifest",
-    "label": "GatedAction",
+    "label": "GatedAction / classeBouton",
     "fichier": "src/ui/GatedAction.tsx",
-    "concept": "action dont l’indisponibilité porte sa raison au survol, au focus et au tap",
+    "concept": "action dont l’indisponibilité porte sa raison au survol, au focus et au tap ; `classeBouton(ton)` compose la classe de tout bouton d'action (`btn`, ton primaire, variantes nue et tactile, classe de l'appelant), lue par `GatedAction`, `OptionChooser` et `RollShell`",
     "perimetre": "toute action refusable de la console et des écrans",
     "verrou": "aria-disabled et jamais disabled ; raison inline seulement sur opt-in"
   },
@@ -1063,6 +1145,15 @@
     "verrou": "src/lib/indexedDb.test.ts"
   },
   {
+    "id": "coupeAuMot",
+    "type": "primitives.manifest",
+    "label": "coupeAuMot",
+    "fichier": "src/lib/coupeAuMot.ts",
+    "concept": "coupe d'un texte à `n` caractères à une FRONTIÈRE DE MOT, suivie de « … » (R-M2) ; seule coupe ellipsée sous `src/`",
+    "perimetre": "tout texte borné puis ellipsé : infobulle `CodexRef` (corps, méta), résumés d'effet et d'op de l'éditeur, nœuds et choix de dialogue, extraits du créateur, messages de diagnostic des tests",
+    "verrou": "coupeAuMot.test.ts ; src/coupe-au-caractere-guard.test.ts — aucune coupe au caractère ellipsée"
+  },
+  {
     "id": "echapperRegex",
     "type": "primitives.manifest",
     "label": "echapperRegex",
@@ -1355,7 +1446,7 @@
     "type": "primitives.manifest",
     "label": "surfaceTientLaMain/SURFACES_HORS_PENDING",
     "fichier": "src/state/modalArbiter.ts",
-    "concept": "une surface PARTAGÉE (état de jeu que tous les sièges voient) tient la main : verdict UNIQUE de l'arbitre, dérivé des modales du registre, des fenêtres HORS-modale qui se déclarent tientLaMain et des surfaces partagées hors pending* (marché, taverne, document, carte du monde, port, marché de terre, écran plein). Les surfaces PAR SIÈGE (fiche, menu système, codex, écrans ouverts par un joueur) n'y entrent jamais : elles vivent dans la pile des couches du client (dismissStack.modalKindsOpen)",
+    "concept": "une surface PARTAGÉE (état de jeu que tous les sièges voient) tient la main : verdict UNIQUE de l'arbitre, dérivé des modales du registre, des fenêtres HORS-modale qui se déclarent tientLaMain et des surfaces partagées hors pending* (marché, taverne, document, carte du monde, port, marché de terre, écran plein). Les surfaces PAR SIÈGE (fiche, menu système, codex, écrans ouverts par un joueur) n'y entrent jamais : elles vivent dans la pile des couches du client (dismissStack.modaleDuDessus)",
     "perimetre": "le VERBE qui s'exécute chez l'hôte : conversationRepond (chooseDialogue, touches dialogue-choice-N) ; la marche tenue (stageWalk.marcheAutorisee, avec la pile des couches pour l'écran du siège)",
     "verrou": "src/state/dialogue-surface-tient-la-main.test.ts (un contrat par surface partagée + contrat coop : l'écran par siège de l'hôte ne refuse pas l'invité) ; src/ui/dialogue-couche-du-dessus.test.tsx (couche du dessus) ; src/state/stageWalk.test.ts"
   },

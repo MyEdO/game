@@ -380,9 +380,9 @@ describe('#1692 — les vues DÉRIVÉES d’un dataset suivent son édition', ()
 
   it('un enjeu de modale ÉDITÉ : la catégorie d’ENTRÉE déclarée suit `flowStakes`', () => {
     const chanson = seaShanties[0].id;
-    const ref = () => resolveStake(flowStakeRef('shanty', 'roll', { entryId: chanson })).rule;
+    const ref = () => resolveStake(flowStakeRef('shanty-roll', { entryId: chanson })).rule;
     expect(ref()).toEqual({ category: 'seaShanties', id: chanson });
-    setDataset('flowStakes', FLOW_STAKES.map((e) => (e.flow === 'shanty' && e.phase === 'roll' ? { ...e, entryCategory: undefined } : e)));
+    setDataset('flowStakes', FLOW_STAKES.map((e) => (e.id === 'shanty-roll' ? { ...e, entryCategory: undefined } : e)));
     expect(ref(), 'la catégorie d’entrée retirée au Codex reste déclarée').toEqual({ category: 'talents', id: 'chanson-de-marin' });
   });
 

@@ -6,7 +6,7 @@
  * `icon` et `maison` sont des clés d'ENVELOPPE, posées par la fabrique.
  */
 import { z } from 'zod';
-import { charKeySchema, difficultySchema } from '../grammaire/valeurs';
+import { charKeySchema, difficultySchema, stakeFormSchema } from '../grammaire/valeurs';
 import { document } from '../grammaire/document';
 import { conditionSchema, gameOpSchema, sujetsNonGarantis, triggeredEffectSchema } from '../grammaire/mecanique';
 import { refOuSpec } from '../grammaire/ref';
@@ -27,6 +27,10 @@ const recoverSchema = z.strictObject({
   characteristic: charKeySchema.optional(),
   opposedBy: z.literal('source').optional(),
   difficulty: difficultySchema.optional(),
+  /** Enjeu du jet de récupération, porté par l'État (patron `ActivityDef.stake`) — lu par `stateRecoveryStakeRef`. */
+  enjeu: z.string(),
+  /** Forme déclarée de `enjeu` (garde `night-stake-form.test.ts`). */
+  form: stakeFormSchema,
 });
 
 /** `EtatData.lockedUntil` : même contexte d'évaluation que le verrou d'instance (`conditionLockCtx`),

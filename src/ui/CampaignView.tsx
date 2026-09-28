@@ -79,18 +79,24 @@ function ModaleDeDefaite() {
     setRefus(lancerCampagne(useGame.getState, null));
   };
   return (
-    <Modal title={repli ? 'Repoussés…' : 'Défaite…'} variant="plain" className="defeat-modal" onClose={reprendre}>
-      {refus && <p className="chip tone-danger" role="alert">{refus}</p>}
-      <div className="modal-actions">
-        <button className="btn btn-primary" onClick={reprendre}>
-          {repli ? 'Poursuivre la bataille' : 'Reprendre'}
-        </button>
-        {refus && (
-          <button className="btn" onClick={() => setScreen('menu')}>
-            Menu principal
+    <Modal
+      title={repli ? 'Repoussés…' : 'Défaite…'}
+      className="defeat-modal"
+      onClose={reprendre}
+      footer={
+        <>
+          <button className="btn btn-primary" onClick={reprendre}>
+            {repli ? 'Poursuivre la bataille' : 'Reprendre'}
           </button>
-        )}
-      </div>
+          {refus && (
+            <button className="btn" onClick={() => setScreen('menu')}>
+              Menu principal
+            </button>
+          )}
+        </>
+      }
+    >
+      {refus && <p className="chip tone-danger" role="alert">{refus}</p>}
     </Modal>
   );
 }
@@ -417,9 +423,11 @@ export function CampaignView() {
         {/* Anéantissement HORS COMBAT (`checkPartyWiped`) : MÊME écran de défaite que le combat, hors
             bataille (aucun `battle`) — le groupe entier est tombé (faim, exposition, damnation…). */}
         {partyWiped && (
-          <Modal title="Le groupe a péri…" variant="plain" className="defeat-modal" onClose={() => useGame.getState().dismissDefeat()}>
-            <button className="btn btn-primary" onClick={() => useGame.getState().dismissDefeat()}>Retour au menu</button>
-          </Modal>
+          <Modal
+            title="Le groupe a péri…"
+            onClose={() => useGame.getState().dismissDefeat()}
+            footer={<button className="btn btn-primary" onClick={() => useGame.getState().dismissDefeat()}>Retour au menu</button>}
+          />
         )}
       </main>
 

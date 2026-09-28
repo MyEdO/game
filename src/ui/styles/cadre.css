@@ -1,0 +1,31 @@
+/* ══════════════════ Gestes d'un cadre (`Cadre.tsx`) ══════════════════
+   Le pied `.cadre-pied` des trois cadres (`Modal`, `EmbeddedShell`, `ScreenShell`). Le pied suit la
+   largeur du corps : c'est le cadre qui le pose dans sa colonne. La croix `.cadre-fermer` n'a aucune
+   règle ici : sa matière est `.btn.small`, sa classe un marqueur (`CROIX_DU_CADRE`). */
+/* PIED : une `Row` ferrée à la fin (elle s'enroule plutôt que de déborder), 2 boutons max —
+   [discret au début] [primaire à la fin, largeur min fixe]. Les dépenses de ressources vivent dans
+   `.rm-influence`, pas ici. */
+.cadre-pied {
+  flex: 0 0 auto;
+  margin-top: var(--sp-lg);
+  padding-top: var(--sp-md);
+  border-top: 1px solid var(--border);
+}
+.cadre-pied .btn-primary {
+  min-width: 132px;
+}
+.cadre-pied .btn-ghost {
+  margin-right: auto;
+}
+@media (max-width: 560px) {
+  /* L'élément qui grandit est l'ENFANT du pied qui porte le primaire — le bouton lui-même, ou
+     l'enveloppe d'une primitive qui le rend (`GatedAction` : `.gated-action`). */
+  .cadre-pied > .btn-primary,
+  .cadre-pied > :has(.btn-primary) {
+    flex: 1;
+    min-width: 0;
+  }
+  .cadre-pied .btn-primary {
+    min-width: 0;
+  }
+}

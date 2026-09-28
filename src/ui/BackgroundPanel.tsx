@@ -6,6 +6,7 @@ import { BackgroundFields } from './BackgroundFields';
 import { Icon } from './Icon';
 import { ChoiceButtons } from './OptionChooser';
 import { GatedAction } from './GatedAction';
+import { Row } from './Layout';
 import { favorRequiredActivities, type Favor } from '../engine/favor';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { favorLevelSchema } from '../data/schemas/defs-scenes/effets';
@@ -95,13 +96,15 @@ function FavorRow({ favor, disabled, onBreak }: { favor: Favor; disabled: boolea
           : `Ne peut pas être acquittée par une Activité — jouée comme une aventure complète`}
       </span>
       {confirming ? (
-        <ChoiceButtons idPrefix={`favor-${favor.id}`} options={[
-          { key: 'cancel', label: 'Annuler', ghost: true, onSelect: () => setConfirming(false) },
-          {
-            key: 'confirm', label: 'Confirmer la rupture', primary: true, refus: disabled ? COMBAT_REFUS : undefined,
-            onSelect: () => { onBreak(); setConfirming(false); },
-          },
-        ]} />
+        <Row gap="sm" justify="end">
+          <ChoiceButtons idPrefix={`favor-${favor.id}`} options={[
+            { key: 'cancel', label: 'Annuler', ghost: true, onSelect: () => setConfirming(false) },
+            {
+              key: 'confirm', label: 'Confirmer la rupture', primary: true, refus: disabled ? COMBAT_REFUS : undefined,
+              onSelect: () => { onBreak(); setConfirming(false); },
+            },
+          ]} />
+        </Row>
       ) : (
         <GatedAction
           id={`favor-break-${favor.id}`}

@@ -13,13 +13,16 @@ export function DocumentModal() {
   const close = useGame((s) => s.closeDocument);
   if (!doc) return null;
   return (
-    <Modal title={doc.title} variant="plain" className="document-modal" onClose={close} backdropClose>
+    <Modal
+      title={doc.title}
+      taille="lecture"
+      onClose={close}
+      backdropClose
+      footer={<button className="btn" onClick={close}>Fermer</button>}
+    >
       <ParchmentCard>
         <Prose md={doc.text} />
       </ParchmentCard>
-      <button className="btn" onClick={close}>
-        Fermer
-      </button>
     </Modal>
   );
 }

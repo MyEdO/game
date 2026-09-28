@@ -20,7 +20,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { clotureDImports, closureOf, resolveImport } from './importGraph.mjs'
+import { aliasDe, clotureDImports, closureOf, directImportsOf, resolveImport } from './importGraph.mjs'
 
 const RACINE = fileURLToPath(new URL('../../..', import.meta.url))
 
@@ -200,5 +200,33 @@ test('`typesEffaces` : la marche suit ce que le BUNDLER garde — tout arc effac
       'l’import dont la liaison ne sert qu’au typage (`typeSeul`) sort comme les autres arcs de type')
   } finally {
     rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+test('resolveImport : un spécificateur sous l’ALIAS de tsconfig.json (`@/…`) se résout sous sa cible ; un paquet npm reste hors graphe', () => {
+  const racine = fileURLToPath(new URL('../../..', import.meta.url)).replace(/\\/g, '/').replace(/\/$/, '')
+  const depuis = `${racine}/src/ui/Ailleurs.tsx`
+  assert.equal(resolveImport(depuis, '@/ui/RollShell'), `${racine}/src/ui/RollShell.tsx`)
+  assert.equal(resolveImport(depuis, '@/ui/RollShell'), resolveImport(depuis, './RollShell'), 'alias et relatif désignent le même fichier')
+  assert.equal(resolveImport(depuis, 'react'), null)
+})
+
+test('directImportsOf : l’alias se résout sous `racine` (son `tsconfig.json`), jamais sous le dépôt du module — checkout IMBRIQUÉ compris', () => {
+  const externe = mkdtempSync(join(tmpdir(), 'import-graph-'))
+  const imbrique = join(externe, '.wt-x')
+  try {
+    for (const r of [externe, imbrique]) {
+      mkdirSync(join(r, 'src', 'ui'), { recursive: true })
+      writeFileSync(join(r, 'tsconfig.json'), JSON.stringify({ compilerOptions: { baseUrl: '.', paths: { '@/*': ['src/*'] } } }))
+      writeFileSync(join(r, 'src', 'ui', 'Cible.tsx'), 'export const C = 1\n')
+    }
+    const texte = "import { C } from '@/ui/Cible'\n"
+    assert.deepEqual(directImportsOf('src/ui/X.tsx', texte, { racine: externe }), ['src/ui/Cible.tsx'])
+    assert.deepEqual(directImportsOf('src/ui/X.tsx', texte, { racine: imbrique }), ['src/ui/Cible.tsx'])
+    assert.deepEqual(aliasDe(null, externe), [], 'un arbre sans `tsconfig.json` n’a aucun alias')
+    assert.deepEqual(aliasDe(JSON.stringify({ compilerOptions: { baseUrl: 'src', paths: { '~/*': ['ui/*'] } } }), '/r'),
+      [{ prefixe: '~/', vers: '/r/src/ui/' }], 'la cible se pose sous `racine` via `baseUrl`')
+  } finally {
+    rmSync(externe, { recursive: true, force: true })
   }
 })

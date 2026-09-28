@@ -91,9 +91,10 @@
 .mc-table tr.cmp-down .mc-new { color: var(--danger); }
 .mc-trend { font-size: 10px; }
 /* Nom cliquable (déplie la carte de détail) + carte enrichie (stats / Atouts-Défauts / description) */
-.merch-name.as-link { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; background: none; border: none; color: var(--text); font: inherit; text-align: left; cursor: pointer; padding: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.merch-name.as-link { display: flex; align-items: center; gap: 6px; width: 100%; min-width: 0; background: none; border: none; color: var(--text); font: inherit; text-align: left; cursor: pointer; padding: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .merch-name.as-link:hover { color: var(--accent2); }
-.merch-name.as-link .caret { color: var(--muted); font-size: 11px; flex: none; }
+/* Le chevron canonique (`components.css`) en bout de cellule : une colonne alignée, comme `.fold`. */
+.merch-name.as-link::after { margin-inline-start: auto; }
 .merch-row.open { background: rgba(122, 79, 208, 0.10); border-radius: 6px 6px 0 0; }
 .mc-quals { display: flex; flex-direction: column; gap: 5px; margin: 6px 0; }
 .mc-qual { display: flex; gap: 8px; align-items: baseline; font-size: 12.5px; }

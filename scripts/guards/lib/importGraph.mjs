@@ -4,14 +4,19 @@
 // parseur d'imports. Module ESM pur (node nu).
 
 import { readFileSync, existsSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { dirname, resolve } from 'node:path';
 import { typescript } from './dialecte.mjs';
 
 // Extensions de MODULE que le dépôt écrit réellement : les libs de garde et les générateurs vivent en
 // `.mjs` (109 imports relatifs de `src/**` vers `scripts/**` mesurés le 2026-09-02), donc `.mjs`/`.cjs`
 // font partie de ce qu'un spécificateur relatif peut désigner ici.
 const EXTS = ['.ts', '.tsx', '.mts', '.mjs', '.cjs', '.js'];
+
+/** Un MODULE de code : un chemin qu'`EXTS` termine — le seul que lit `IMPORT_RE` en importeur. */
+export const estModule = (chemin) => EXTS.some((ext) => chemin.endsWith(ext));
+
+/** Les pathspecs git des modules de code sous `dossier` (`EXTS`). @param {string} dossier */
+export const pathspecsDeModules = (dossier) => EXTS.map((ext) => `${dossier}/*${ext}`);
 
 /** Capture les imports/réexports statiques (`from '…'`), dynamiques (`import('…')`, ex. `lazy`) et À
  *  EFFET DE BORD (`import './x'`, sans `from` — il n'en existe aucun dans la clôture aujourd'hui,
@@ -20,16 +25,18 @@ const EXTS = ['.ts', '.tsx', '.mts', '.mjs', '.cjs', '.js'];
  *  @type {RegExp} */
 export const IMPORT_RE = /\bfrom\s+['"]([^'"]+)['"]|\bimport\s*\(\s*['"]([^'"]+)['"]\s*\)|\bimport\s+['"](\.[^'"]+)['"]/g;
 
-/** Options de compilation du DÉPÔT (`tsconfig.json`), converties par le compilateur lui-même : c'est
- *  d'elles (`isolatedModules`, `verbatimModuleSyntax`, `preserveValueImports`…) que dépend l'effacement
- *  d'un import. Lues au PREMIER `sourceALExecution`, comme le compilateur (`typescript()`) : la
+/** Le `tsconfig.json` d'un dépôt, à sa racine. */
+export const CHEMIN_TSCONFIG = 'tsconfig.json';
+
+/** Options de compilation du dépôt du répertoire courant (`CHEMIN_TSCONFIG`), converties par le
+ *  compilateur lui-même : c'est d'elles (`isolatedModules`, `verbatimModuleSyntax`,
+ *  `preserveValueImports`…) que dépend l'effacement d'un import. Lues au PREMIER `sourceALExecution`, comme le compilateur (`typescript()`) : la
  *  clôture sans `typesEffaces` ne charge aucun paquet npm. */
-const TSCONFIG_URL = new URL('../../../tsconfig.json', import.meta.url);
 let compilerOptions = null;
 const optionsDuDepot = () =>
   (compilerOptions ??= typescript().convertCompilerOptionsFromJson(
-    JSON.parse(readFileSync(TSCONFIG_URL, 'utf8')).compilerOptions,
-    dirname(fileURLToPath(TSCONFIG_URL)),
+    JSON.parse(readFileSync(resolve(CHEMIN_TSCONFIG), 'utf8')).compilerOptions,
+    resolve('.'),
   ).options);
 
 /**
@@ -48,6 +55,33 @@ export function sourceALExecution(fichier, texte) {
   return typescript().transpileModule(texte, { fileName: fichier, compilerOptions: optionsDuDepot() }).outputText;
 }
 
+/**
+ * Les ALIAS de chemin que déclare le texte d'un `tsconfig.json` (`compilerOptions.paths`, forme
+ * `<clé>/*` → `<cible>/*`), cibles posées sous `racine` via `baseUrl` : la même source que le
+ * compilateur et que `vite.config.ts` (`resolve.alias`). `null` (fichier absent de l'arbre) = aucun.
+ * @param {string | null} texte @param {string} racine @returns {{ prefixe: string, vers: string }[]}
+ */
+export function aliasDe(texte, racine) {
+  if (texte === null) return [];
+  const { compilerOptions: { baseUrl = '.', paths = {} } = {} } = JSON.parse(texte);
+  const base = resolve(racine, baseUrl).split('\\').join('/');
+  return Object.entries(paths)
+    .filter(([cle, [cible] = []]) => cle.endsWith('/*') && cible?.endsWith('/*'))
+    .map(([cle, [cible]]) => ({ prefixe: cle.slice(0, -1), vers: `${resolve(base, cible.slice(0, -1)).split('\\').join('/')}/` }));
+}
+
+/** Les alias du dépôt dont `racine` est la racine sur le DISQUE (`aliasDe` sur son `tsconfig.json`),
+ *  lus une fois par racine. */
+const aliasParRacine = new Map();
+export const aliasDuDepot = (racine = '.') => {
+  const abs = resolve(racine);
+  if (!aliasParRacine.has(abs)) {
+    const chemin = resolve(abs, CHEMIN_TSCONFIG);
+    aliasParRacine.set(abs, aliasDe(existsSync(chemin) ? readFileSync(chemin, 'utf8') : null, abs));
+  }
+  return aliasParRacine.get(abs);
+};
+
 /** Extensions qu'un spécificateur peut porter LUI-MÊME (le chemin désigne alors le fichier). */
 const EXTS_EXPLICITES = [...EXTS, '.json'];
 /** Source TypeScript d'un spécificateur à extension JS émise : `./x.mjs` désigne `x.mts` quand
@@ -59,28 +93,32 @@ const EXTS_TS_DE = { '.js': ['.ts', '.tsx'], '.mjs': ['.mts'], '.cjs': ['.cts'] 
  * Résout un spécificateur d'import RELATIF (`./foo`, `../bar`) vers un fichier source réel :
  * spécificateur portant DÉJÀ son extension (`./x.mjs`, `./data.json` — la forme des 109 imports de
  * `src/**` vers les libs de garde) ou, absent, sa source TypeScript (`EXTS_TS_DE`), sinon extension
- * déduite d'`EXTS`, sinon repli `index.*`. Les
- * paquets npm / alias non-relatifs renvoient `null` (hors périmètre — pas résolus ici).
- * @param {string} fromFile @param {string} spec @returns {string|null}
+ * déduite d'`EXTS`, sinon repli `index.*`. Un spécificateur qui commence par un ALIAS (`alias`, `@/…`)
+ * se résout sous sa cible ; un paquet npm rend `null` (hors périmètre).
+ * `existe` (chemin absolu POSIX → présent ?) et `alias` disent quel ARBRE fait foi : le disque du
+ * répertoire courant par défaut, la liste de fichiers et le `tsconfig.json` d'une ref pour qui juge un
+ * autre arbre que l'arbre de travail (#1806).
+ * @param {string} fromFile @param {string} spec @param {(abs: string) => boolean} [existe]
+ * @param {readonly { prefixe: string, vers: string }[]} [alias]
+ * @returns {string|null}
  */
-export function resolveImport(fromFile, spec) {
-  if (!spec.startsWith('.')) return null;
-  const base = resolve(dirname(fromFile), spec);
+export function resolveImport(fromFile, spec, existe = existsSync, alias = aliasDuDepot()) {
+  const a = spec.startsWith('.') ? null : alias.find(({ prefixe }) => spec.startsWith(prefixe));
+  if (!spec.startsWith('.') && !a) return null;
+  const base = a ? `${a.vers}${spec.slice(a.prefixe.length)}` : resolve(dirname(fromFile), spec).split('\\').join('/');
   if (EXTS_EXPLICITES.some((e) => spec.endsWith(e))) {
-    if (existsSync(base)) return base.split('\\').join('/');
-    const [, radical, ext] = /^(.*)(\.[^./\\]+)$/.exec(base);
-    const source = (EXTS_TS_DE[ext] ?? []).map((e) => radical + e).find((f) => existsSync(f));
-    return source ? source.split('\\').join('/') : null;
+    if (existe(base)) return base;
+    const [, radical, ext] = /^(.*)(\.[^./]+)$/.exec(base);
+    return (EXTS_TS_DE[ext] ?? []).map((e) => radical + e).find((f) => existe(f)) ?? null;
   }
-  for (const ext of EXTS) if (existsSync(base + ext)) return (base + ext).split('\\').join('/');
-  if (existsSync(base) && existsSync(join(base, 'index.ts'))) return join(base, 'index.ts').split('\\').join('/');
-  for (const ext of EXTS) if (existsSync(join(base, 'index' + ext))) return join(base, 'index' + ext).split('\\').join('/');
+  for (const ext of EXTS) if (existe(base + ext)) return base + ext;
+  for (const ext of EXTS) if (existe(`${base}/index${ext}`)) return `${base}/index${ext}`;
   return null;
 }
 
 /**
  * Enfants d'un module : TOUS ses imports relatifs résolus, sans borne. `null` = fichier absent (hors
- * closure) ; `[]` = membre sans graphe à lire (`.json`, #487) ou illisible.
+ * closure) ; `[]` = membre qui n'est pas un module (`estModule` : `.json`, #487) ou illisible.
  * `typesEffaces` lit le source À L'EXÉCUTION (`sourceALExecution`) : les arcs effacés n'y sont plus.
  * `dynamiques` faux écarte les `import('…')` (m[2]) : il reste les arcs que le CHARGEMENT lie.
  * @param {string} abs @param {string} rel @param {boolean} typesEffaces @param {boolean} dynamiques
@@ -88,7 +126,7 @@ export function resolveImport(fromFile, spec) {
  */
 function enfantsDe(abs, rel, typesEffaces, dynamiques) {
   if (!existsSync(abs)) return null;
-  if (rel.endsWith('.json')) return [];
+  if (!estModule(rel)) return [];
   let text;
   try {
     text = readFileSync(abs, 'utf8');
@@ -156,15 +194,20 @@ export function closureOf(roots, cache = new Map()) {
 
 /**
  * Imports RELATIFS directs (non transitifs) d'un fichier — résolus vers des chemins POSIX
- * relatifs à la racine du repo, dédupliqués, `src/`-only.
- * @param {string} fromFile @param {string} contenu @returns {string[]}
+ * relatifs à la racine du repo, dédupliqués, `src/`-only. `racine` = le dépôt où `fromFile` (relatif)
+ * se résout, le répertoire courant par défaut : un hook s'exécute ailleurs que dans l'arbre jugé.
+ * `existe` et `alias` : l'arbre contre lequel résoudre (`resolveImport`) ; par défaut les alias du
+ * disque de `racine` (`aliasDuDepot`).
+ * @param {string} fromFile @param {string} contenu
+ * @param {{ racine?: string, existe?: (abs: string) => boolean, alias?: readonly { prefixe: string, vers: string }[] }} [options]
+ * @returns {string[]}
  */
-export function directImportsOf(fromFile, contenu) {
-  const root = resolve('.').split('\\').join('/');
+export function directImportsOf(fromFile, contenu, { racine = '.', existe, alias = aliasDuDepot(racine) } = {}) {
+  const root = resolve(racine).split('\\').join('/');
   const found = new Set();
   for (const m of contenu.matchAll(IMPORT_RE)) {
-    const resolved = resolveImport(fromFile, m[1] ?? m[2] ?? m[3]);
-    if (resolved && resolved.includes('/src/')) found.add(resolved.slice(root.length + 1));
+    const resolved = resolveImport(resolve(root, fromFile), m[1] ?? m[2] ?? m[3], existe, alias);
+    if (resolved?.startsWith(`${root}/`) && resolved.includes('/src/')) found.add(resolved.slice(root.length + 1));
   }
   return [...found];
 }

@@ -64,7 +64,7 @@ export function EscaleTab({ vessel, isGuest, pendingShoreLeave, pendingManannPri
   const countOf = (roleId: string) => vessel.crew?.find((h) => h.roleId === roleId)?.count ?? 0;
   const hasEvent = !!(pendingShoreLeave || pendingManannPriest);
   return (
-    <Split aside="md" stackBelow={900} gap="xl" pad="xl" className="screen-scroll port-escale">
+    <Split aside="md" stackBelow={900} gap="xl" pad="xl">
       <section className="panel port-section">
         <h3>Vie du port</h3>
         {!hasEvent && <p className="port-hint">Aucun événement d’escale en cours.</p>}
@@ -161,7 +161,6 @@ export function PortView({ initialTab = 'coque' }: { initialTab?: 'coque' | 'car
 
   return (
     <ScreenShell
-      className="port-overlay"
       title={<><Icon id="travel/anchor" size="sm" /> Port de {port.label} — {nomDuNavire(vessel)}</>}
       onClose={close}
       meta={{ money }}
@@ -180,7 +179,7 @@ export function PortView({ initialTab = 'coque' }: { initialTab?: 'coque' | 'car
       />
 
         {tab === 'coque' ? (
-          <Split aside="md" stackBelow={900} gap="xl" pad="xl" className="screen-scroll port-yard">
+          <Split aside="md" stackBelow={900} gap="xl" pad="xl">
             <section className="panel port-section">
               <h3>Coque &amp; entretien</h3>
               <p>Blessures : <b>{woundsCur}/{woundsMax}</b>{vessel.criticals?.length ? ` · ${vessel.criticals.length} Critique(s) noté(s)` : ''}</p>
@@ -241,7 +240,7 @@ export function PortView({ initialTab = 'coque' }: { initialTab?: 'coque' | 'car
             </section>
           </Split>
         ) : tab === 'cargaison' ? (
-          <Split aside="md" stackBelow={900} gap="xl" pad="xl" className="screen-scroll port-trade">
+          <Split aside="md" stackBelow={900} gap="xl" pad="xl">
             <section className="panel port-section">
               <h3>Acheter — offres de l’escale</h3>
               <p className="port-hint">

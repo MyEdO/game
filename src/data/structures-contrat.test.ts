@@ -1054,7 +1054,9 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       // #1473 train 2a : 384 → 372 — les 13 lignes `reference` à clé `talentId` (ops de Talent, `axes.json ›
       // talents`) meurent avec la graphie `talent: { id, spec? }` / `{ id, spec? }` ; l'homonyme `talent`
       // (objet des ops / chaîne nue de 79 sites) entre, +1.
-      'L3 #1463': 372,
+      // #1920 B14 (2026-09-24) : 372 → 370 — `flow-stakes.json › flow` et `› phase` s'éteignent : l'enjeu
+      // de modale se keye par son `id` (`FlowStakeId`, généré).
+      'L3 #1463': 370,
       // L4 #1463 : 220 → 219 (commit 3b) — les deux formes de `activities.json › skills` fusionnent en
       // une seule dès que la référence sort de leur signature.
       // … puis 219 → 221 (#674) : le Test quotidien de la Pneumonie compte DEUX fois — sa forme en

@@ -7,19 +7,20 @@
 // 34 ms un `git init` nu.
 // Aucun état de départ n'est simulé : c'est le même arbre, aux mêmes octets, sous le même sha.
 
-import { execFileSync } from 'node:child_process'
 import { cpSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
+import { ajouterOrigine, commitDe, depotDe, initialiserDepot, poserRef, reglerDepot, reussi, shaDe } from './gitPorte.mjs'
 
 /** @typedef {{ fichiers?: Record<string, string>, branche?: string, origin?: string | null, message?: string, refs?: Record<string, string>, commit?: boolean }} ParamsDepot */
-/** @typedef {{ racine: string, sha: string | null }} Depot */
+/** @typedef {{ racine: string, sha: string | null }} DepotForge */
 
-/** @type {Map<string, Depot>} */
+/** @type {Map<string, DepotForge>} */
 const GABARITS = new Map()
 
 const jeterLesGabarits = () => {
   for (const { racine } of GABARITS.values()) rmSync(racine, { recursive: true, force: true })
+  if (CONFIG_VIDE) rmSync(dirname(CONFIG_VIDE), { recursive: true, force: true })
 }
 
 process.on('exit', jeterLesGabarits)
@@ -29,28 +30,65 @@ process.on('exit', jeterLesGabarits)
 process.once('SIGINT', () => { jeterLesGabarits(); process.exit(130) })
 process.once('SIGTERM', () => { jeterLesGabarits(); process.exit(143) })
 
-/** Variables par lesquelles un processus git LOCALISE un dépôt, telles que git les énumère
- *  (`git rev-parse --local-env-vars`) : une seule source, jamais une liste recopiée. Mémoïsées — la
- *  réponse de git ne dépend que du binaire. @type {string[] | null} */
-let VARIABLES_LOCALES = null
+/** La configuration GLOBALE d'un dépôt forgé : un fichier vide, créé au premier besoin et jeté avec
+ *  les gabarits. @type {string | null} */
+let CONFIG_VIDE = null
 
 /**
- * `process.env` PURGÉ des variables qui localisent un dépôt : l'environnement de TOUT processus git
- * lancé dans un dépôt forgé. Un parent qui les exporte — git sous un hook — les transmet sinon à
- * l'enfant, qui vise alors le dépôt du parent depuis le dossier forgé.
- * L'env se dérive à chaque appel du `process.env` COURANT, qui est mutable ; seule la liste des
- * variables est retenue.
+ * `process.env` PURGÉ de tout l'espace de noms de git (`GIT_*`, `git help git`, « ENVIRONMENT
+ * VARIABLES » : dépôt, identité, dates, configuration) puis ISOLÉ de la configuration de
+ * l'utilisateur et du système (`GIT_CONFIG_GLOBAL` vers un fichier vide, `GIT_CONFIG_NOSYSTEM`) :
+ * l'environnement de TOUT processus git lancé dans un dépôt forgé, qui ne dépend ni du parent ni de
+ * la machine (#1806). L'env se dérive à chaque appel du `process.env` COURANT, qui est mutable ;
+ * seule la config vide est retenue.
  * @returns {NodeJS.ProcessEnv}
  */
 export function envDeDepotForge() {
-  VARIABLES_LOCALES ??= execFileSync('git', ['rev-parse', '--local-env-vars'], { encoding: 'utf8' })
-    .split('\n').map((l) => l.trim()).filter(Boolean)
-  const env = { ...process.env }
-  for (const nom of VARIABLES_LOCALES) delete env[nom]
-  return env
+  if (!CONFIG_VIDE) {
+    CONFIG_VIDE = join(mkdtempSync(join(tmpdir(), 'config-forge-')), 'gitconfig')
+    writeFileSync(CONFIG_VIDE, '')
+  }
+  const env = Object.fromEntries(Object.entries(process.env).filter(([nom]) => !nom.startsWith('GIT_')))
+  return { ...env, GIT_CONFIG_GLOBAL: CONFIG_VIDE, GIT_CONFIG_NOSYSTEM: '1' }
 }
 
-const git = (cwd) => (args) => execFileSync('git', args, { cwd, env: envDeDepotForge(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()
+/**
+ * L'environnement d'une UTILISATRICE dont la configuration globale est le fichier `globale` : celui
+ * d'un dépôt forgé (`envDeDepotForge`), sous sa configuration. La mesure des ÉCRIVAINS : l'identité
+ * qui signe est celle de sa configuration, ou aucune.
+ * @param {string} globale @returns {NodeJS.ProcessEnv}
+ */
+export const envDeLUtilisatrice = (globale) => ({ ...envDeDepotForge(), GIT_CONFIG_GLOBAL: globale })
+
+/**
+ * `fn()` sous `envDeLUtilisatrice(globale)` posé sur `process.env`, restauré à la sortie : la mesure
+ * des écrivains qui lancent git dans l'environnement du PROCESSUS (le contexte du train, la forge).
+ * @template T @param {string} globale @param {() => T} fn @returns {T}
+ */
+export function sousLEnvDeLUtilisatrice(globale, fn) {
+  const avant = { ...process.env }
+  const env = envDeLUtilisatrice(globale)
+  for (const nom of Object.keys(process.env)) if (!(nom in env)) delete process.env[nom]
+  Object.assign(process.env, env)
+  try {
+    return fn()
+  } finally {
+    for (const nom of Object.keys(process.env)) if (!(nom in avant)) delete process.env[nom]
+    Object.assign(process.env, avant)
+  }
+}
+
+/** L'écriture `geste` a réussi (`reussi`) : la fixture ne se construit pas sur une écriture refusée. */
+const exiger = (union, geste, cwd) => {
+  if (!reussi(union)) throw new Error(`${geste} refusé dans ${cwd} : ${union.disponible ? union.valeur?.stderr ?? 'objet absent' : union.raison}`)
+}
+
+/** Le SHA que `ref` nomme dans le dépôt forgé : la fixture ne se construit pas sur une ref absente. */
+const shaExige = (depot, ref) => {
+  const sha = shaDe(depot, ref)
+  if (!sha) throw new Error(`${ref} absent de ${depot.cwd}`)
+  return sha
+}
 
 /** Clé de contenu : deux appels aux mêmes paramètres décrivent le même arbre, donc le même gabarit. */
 function cle({ fichiers, branche, origin, message, refs, commit }) {
@@ -70,7 +108,7 @@ function ecrire(racine, rel, texte) {
  * la machine hôte. Une construction qui échoue ne laisse aucun dossier derrière elle.
  * @param {ParamsDepot} params `fichiers` = `{ 'chemin/relatif': 'contenu' }` ; `refs` = `{ 'refs/…': 'HEAD' }` ;
  *   `commit: false` = un dépôt initialisé dont les fichiers restent HORS index et sans HEAD (`sha` = `null`).
- * @returns {Depot} racine du gabarit (à NE PAS muter — prendre une `instanceDeDepot`) et sha de son commit.
+ * @returns {DepotForge} racine du gabarit (à NE PAS muter — prendre une `instanceDeDepot`) et sha de son commit.
  */
 export function gabaritDeDepot({ fichiers = {}, branche = 'main', origin = null, message = 'fondation', refs = {}, commit = true } = {}) {
   if (!commit && Object.keys(refs).length > 0) {
@@ -83,37 +121,34 @@ export function gabaritDeDepot({ fichiers = {}, branche = 'main', origin = null,
   const racine = mkdtempSync(join(tmpdir(), 'gabarit-'))
   let sha = null
   try {
-    const g = git(racine)
-    g(['init', '-q', '-b', branche])
-    g(['config', 'user.email', 'mesure@example.invalid'])
-    g(['config', 'user.name', 'mesure'])
-    g(['config', 'commit.gpgsign', 'false'])
+    const depot = depotDe(racine, { env: envDeDepotForge() })
+    exiger(initialiserDepot(depot, { branche }), `git init -b ${branche}`, racine)
     // RELATIF : git résout `core.hooksPath` contre le dépôt qui l'exécute, donc dans l'INSTANCE.
     // Un chemin absolu y ferait pointer chaque instance vers le gabarit — effacé à la sortie.
-    g(['config', 'core.hooksPath', 'hooks-absents'])
+    const reglages = { 'user.email': 'mesure@example.invalid', 'user.name': 'mesure', 'commit.gpgsign': 'false', 'core.hooksPath': 'hooks-absents' }
+    for (const [cle, valeur] of Object.entries(reglages)) exiger(reglerDepot(depot, cle, valeur), `git config ${cle}`, racine)
     for (const [rel, texte] of Object.entries(fichiers)) ecrire(racine, rel, texte)
     if (commit) {
-      g(['add', '-A'])
-      g(['commit', '-q', '--allow-empty', '-m', message])
-      sha = g(['rev-parse', 'HEAD'])
+      exiger(commitDe(depot, { message, chemins: Object.keys(fichiers), vide: true }), 'git commit', racine)
+      sha = shaExige(depot, 'HEAD')
     }
-    if (origin) g(['remote', 'add', 'origin', origin])
-    for (const [nom, cible] of Object.entries(refs)) g(['update-ref', nom, g(['rev-parse', cible])])
+    if (origin) exiger(ajouterOrigine(depot, origin), 'git remote add origin', racine)
+    for (const [nom, cible] of Object.entries(refs)) exiger(poserRef(depot, nom, shaExige(depot, cible)), `git update-ref ${nom}`, racine)
   } catch (e) {
     rmSync(racine, { recursive: true, force: true })
     throw e
   }
 
-  const depot = { racine, sha }
-  GABARITS.set(k, depot)
-  return depot
+  const forge = { racine, sha }
+  GABARITS.set(k, forge)
+  return forge
 }
 
 /**
  * Instance indépendante du gabarit de ce contenu : un dépôt complet, à l'appelant de le jeter
  * (`rmSync(racine, { recursive: true, force: true })` en `finally`).
  * @param {ParamsDepot} params mêmes paramètres que {@link gabaritDeDepot}.
- * @returns {Depot} racine de l'instance et sha de son commit de fondation.
+ * @returns {DepotForge} racine de l'instance et sha de son commit de fondation.
  */
 export function instanceDeDepot(params = {}) {
   const gabarit = gabaritDeDepot(params)

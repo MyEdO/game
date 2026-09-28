@@ -12,32 +12,21 @@
 // ANGLES MORTS DÉCLARÉS : un chemin sans `eol=lf` (binaire, ou attribut levé) n'est pas jugé ; le
 // WORKING TREE (`w/`) n'est pas jugé — c'est ce que le commit emporte qui compte, pas ce que le
 // disque montre.
-// La sortie mesurée (git 2.x) : `i/lf<espaces>w/lf<espaces>attr/text=auto eol=lf <TAB>chemin`. Les
-// trois colonnes sont séparées par des ESPACES et la valeur d'`attr/` en contient elle-même ; seul le
-// chemin est précédé d'une TABULATION. C'est donc la tabulation qui coupe, jamais l'espace.
-const COLONNES = /^i\/(\S+)\s+w\/(\S+)\s+attr\/(.*)$/
+// Les colonnes se lisent par `eolsDe` (`gitPorte.mjs`), l'unique lecteur de cette forme.
 
 /** Un blob d'index est mal normalisé s'il porte des `\r` : `crlf` (tous) ou `mixed` (certains). PURE. */
 export const ESTAMPILLES_FAUTIVES = new Set(['crlf', 'mixed'])
 
 /**
  * Les chemins STAGÉS dont le blob porte des `\r` alors que `.gitattributes` leur déclare `eol=lf`.
- * PURE : elle lit la sortie de `git ls-files --eol --cached -- <chemins>`, jamais git.
- * @param {string} sortie @returns {{chemin: string, index: string}[]}
+ * PURE : elle lit les entrées de `git ls-files --eol --cached -- <chemins>` (`eolsDe`), jamais git.
+ * @param {readonly { index: string, attr: string, chemin: string }[]} entrees
+ * @returns {{chemin: string, index: string}[]}
  */
-export function cheminsMalNormalises(sortie) {
-  const out = []
-  for (const brute of String(sortie ?? '').split('\n')) {
-    const ligne = brute.replace(/\r$/, '')
-    const tab = ligne.indexOf('\t')
-    if (tab === -1) continue
-    const m = COLONNES.exec(ligne.slice(0, tab).trim())
-    if (!m) continue
-    const [, index, , attr] = m
-    if (!/\beol=lf\b/.test(attr)) continue
-    if (ESTAMPILLES_FAUTIVES.has(index)) out.push({ chemin: ligne.slice(tab + 1).trim(), index })
-  }
-  return out
+export function cheminsMalNormalises(entrees) {
+  return entrees
+    .filter((e) => /\beol=lf\b/.test(e.attr) && ESTAMPILLES_FAUTIVES.has(e.index))
+    .map(({ chemin, index }) => ({ chemin, index }))
 }
 
 /** Le refus, qui NOMME les chemins et le geste qui les répare. `null` si rien. PURE. */

@@ -148,7 +148,7 @@ function PresentHandle({ hero, onPresent, className, children }: { hero: Combata
 
 /**
  * Carte-portrait de CANDIDAT (l'étal) — figure en pied dominante, nom complet, archétype, rôle +
- * accroche. Source unique du vivier : `gallery` (grille de l'écran) ET `modal` (remplacement, plus
+ * accroche. Source unique du vivier : `gallery` (grille de l'écran) ET `remplacement` (plus
  * compacte). Clic figure/nom → PRÉSENTATION (`onPresent`). L'équipe, elle, est rendue par `SeatCard`.
  */
 export function CandidateCard({
@@ -165,7 +165,7 @@ export function CandidateCard({
   onDelete,
 }: {
   hero: Combatant;
-  variant?: 'gallery' | 'modal';
+  variant?: 'gallery' | 'remplacement';
   state?: RecruitState;
   wealth?: Money;
   /** Déjà dans le groupe (modale de remplacement) → bouton « Déjà choisi » désactivé. */
@@ -198,9 +198,9 @@ export function CandidateCard({
       <Row className="candidate-actions">
         <GatedAction
           id={`char-recruit-${hero.id}`}
-          label={variant === 'modal' ? (recruited ? t('picker.hero.inParty') : t('picker.hero.choose')) : t('party.hero.recruit')}
-          enabled={variant === 'modal' ? !recruited : !blocked}
-          reason={variant === 'modal' ? t('party.recruit.already') : t('party.recruit.full')}
+          label={variant === 'remplacement' ? (recruited ? t('picker.hero.inParty') : t('picker.hero.choose')) : t('party.hero.recruit')}
+          enabled={variant === 'remplacement' ? !recruited : !blocked}
+          reason={variant === 'remplacement' ? t('party.recruit.already') : t('party.recruit.full')}
           onClick={() => onRecruit?.()}
           btnClassName="small"
         />

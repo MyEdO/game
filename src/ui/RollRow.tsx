@@ -271,7 +271,7 @@ export interface RollRowProps {
   /** Anime le jet (dés qui roulent puis se figent sur les vraies faces) avant de résoudre — DÉFAUT
    *  `true` (#396 : tout jet roule). Honore `prefers-reduced-motion`. Skippable au clic sur le roulis. */
   rollFrisson?: boolean;
-  /** La coquille (`RollShell`, cas mono) rend « Lancer » + son spinner dans `.modal-actions` :
+  /** La coquille (`RollShell`, cas mono) rend « Lancer » + son spinner dans `.cadre-pied` :
    *  la rangée n'affiche alors NI le bouton inline NI le spinner (le reste — influence, Résilience
    *  pré-jet, résistance — inchangé). Le shell le pose lui-même ; les hooks/modales n'y touchent pas. */
   rollInBar?: boolean;

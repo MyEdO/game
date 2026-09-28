@@ -124,20 +124,24 @@ describe('CharacterSheet — colonne PRÉSENCE (#492 arbitrage 2026-07-17)', () 
     expect(html).not.toContain('Destin'); // ressources (FateChips) SORTIES de la colonne
   });
 
-  it('colonne au CROQUIS (arbitrage 2026-07-17) : nom, boîte-figurine, barre de vie, barre d’encombrement, race/classe/statut — contrat POSITIF, structure figée', () => {
+  it('nom du héros en tête de la colonne, au-dessus du cadre-figurine ; la colonne : boîte-figurine, barre de vie, barre d’encombrement, race/classe/statut', () => {
     const h = hero();
     useGame.setState({ party: [h], battle: null, sheetId: h.id, sheetTab: 'possessions' });
     mount(<CharacterSheet heroId={h.id} onClose={() => {}} />);
     const aside = container.querySelector('.sheet-aside')!;
     const portrait = aside.querySelector('.sheet-portrait')!;
 
-    // 1. Nom en tête, AU-DESSUS du cadre-figurine.
-    const h3 = portrait.querySelector('h3')!;
-    expect(h3.textContent).toBe('H');
-    // 2. Cadre-figurine grand format, inchangé.
+    // 1. Nom en tête de la colonne, qui nomme le dialogue, AU-DESSUS du cadre-figurine (en tête de
+    //    planche avec le dock : #1829).
+    const dialogue = container.querySelector('[role="dialog"]')!;
+    const nom = aside.firstElementChild!;
+    expect(nom.className).toBe('planche-nom');
+    expect(nom.textContent).toBe('H');
+    expect(dialogue.getAttribute('aria-label')).toBe('H');
+    expect(dialogue.querySelector('.modal-title'), 'la tête ne porte que la croix').toBeNull();
     const figTile = portrait.querySelector('.fig-tile.hero')!;
     expect(figTile).toBeTruthy();
-    expect(h3.compareDocumentPosition(figTile) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy(); // le nom précède le cadre
+    expect(nom.compareDocumentPosition(figTile) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     // 3/4. Barre de vie PUIS barre d'encombrement — VRAIES barres lisses `LifeBar` (arbitrage
     // 2026-07-17 : « pourquoi la version crantée ? »), aucun arc SVG (VitalArc mort).
     expect(aside.querySelector('.vital-arc')).toBeNull();
@@ -158,9 +162,9 @@ describe('CharacterSheet — colonne PRÉSENCE (#492 arbitrage 2026-07-17)', () 
     expect(rows[2].querySelector('.sheet-idrow-label')?.textContent).toBe('Statut');
     expect(rows[2].querySelector('.metal-status')).toBeTruthy();
     expect(rows[3].querySelector('.sheet-idrow-label')?.textContent).toBe('Bourse');
-    // Structure figée : SANS alarme ni Soins éligibles, l'aside n'a qu'UN enfant direct (le bloc
-    // portrait) — un enfant de plus signalerait un ajout non voulu (scroll de fait).
-    expect(aside.children.length).toBe(1);
+    // Structure figée : SANS alarme ni Soins éligibles, l'aside n'a que DEUX enfants directs (le nom,
+    // le bloc portrait) — un enfant de plus signalerait un ajout non voulu (scroll de fait).
+    expect([...aside.children].map((e) => e.className)).toEqual(['planche-nom', 'sheet-portrait']);
   });
 
   it('les jauges VIVENT : re-rendent au switch de héros et après un soin (valeur/teinte suivent `hero.wounds`)', () => {
@@ -208,8 +212,7 @@ describe('CharacterSheet — colonne PRÉSENCE (#492 arbitrage 2026-07-17)', () 
     const h = hero();
     useGame.setState({ party: [h], battle: null, sheetId: h.id, sheetTab: null, sheetAlarmsSeen: {} });
     const html = mount(<CharacterSheet heroId={h.id} onClose={() => {}} />);
-    const tabnav = container.querySelector('.sheet-tabnav')!;
-    const firstTab = tabnav.querySelector('[role="tab"]');
+    const firstTab = container.querySelector('.sheet-main [role="tab"]');
     expect(firstTab?.textContent).toContain('Compétences & Talents');
     // Défaut (aucune alarme sur ce héros sain) : l'onglet Compétences & Talents s'affiche, pas État.
     expect(html).toContain('char-stats');
@@ -223,17 +226,17 @@ describe('CharacterSheet — colonne PRÉSENCE (#492 arbitrage 2026-07-17)', () 
     expect(useGame.getState().sheetTab).toBe('etat');
   });
 
-  it('gangrène du cadre : `data-corruption` posé selon le seuil de Corruption', () => {
+  it('gangrène du cadre : `data-gangrene` posé selon le seuil de Corruption', () => {
     const clean = hero();
     useGame.setState({ party: [clean], battle: null, sheetId: clean.id, sheetTab: 'etat' });
     const htmlClean = mount(<CharacterSheet heroId={clean.id} onClose={() => {}} />);
-    expect(htmlClean).toContain('data-corruption="none"');
+    expect(htmlClean).not.toContain('data-gangrene');
 
     // BFM/BE = 30 → bonus 3 chacun, seuil = 6 : 3 Points de Corruption reste SOUS le seuil (« ronge »).
     const corrupted = { ...hero(), corruption: 3 } as Combatant;
     useGame.setState({ party: [corrupted], battle: null, sheetId: corrupted.id, sheetTab: 'etat' });
     const htmlCorrupted = mount(<CharacterSheet heroId={corrupted.id} onClose={() => {}} />);
-    expect(htmlCorrupted).toContain('data-corruption="ronge"');
+    expect(htmlCorrupted).toContain('data-gangrene="ronge"');
   });
 
   it('Prothèses : la rangée d’Avancement porte le LIBELLÉ DÉCLARÉ du palier (LDB 73, `prosthesisTraining`)', () => {

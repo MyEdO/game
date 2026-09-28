@@ -1,8 +1,10 @@
+import { Fragment } from 'react';
 import { useGame } from '../state/store';
 import { CharFrame } from './CharFrame';
 import { RollRow } from './RollRow';
 import { Icon } from './Icon';
 import { Band } from './Band';
+import { Stack } from './Layout';
 import type { NightEntry } from '../state/restFlow';
 import { resultLine, freeCons } from '../state/rollSeam';
 import { StakeNote, StakeRule, stakeRuleOf } from './StakeNote';
@@ -48,12 +50,12 @@ export function MultiRollList({ entries }: { entries: NightEntry[] }) {
     <div className="mrl">
       {groups.map((g, gi) => {
         const stake = stakeOf(g.items);
-        const body = <>{stake && <StakeNote stake={stake} />}{g.items.map(row)}</>;
+        const body = <Stack gap="sm">{stake && <StakeNote stake={stake} />}{g.items.map(row)}</Stack>;
         return g.group
           // Le RENVOI de règle est accolé au titre de la bande (même affordance que le titre d'étape
           // d'une cascade), l'enjeu se lit dessous — une seule fois pour toute la rubrique.
           ? <Band key={`g-${gi}`} title={<>{g.group} <StakeRule rule={stake ? stakeRuleOf(stake) : undefined} /></>}>{body}</Band>
-          : <div key={`g-${gi}`}>{body}</div>;
+          : <Fragment key={`g-${gi}`}>{body}</Fragment>;
       })}
     </div>
   );

@@ -186,13 +186,15 @@ export function CarrierInventory({
                 reason={VERROU_COMBAT}
                 descOfferte={isProsthesis ? 'Porter la prothèse (annule le malus d’amputation correspondant)' : isCape ? 'Porter la cape (cosmétique — visible dans le dos du héros)' : it.kind === 'misc' ? 'Porter (−1 Enc)' : undefined}
                 onClick={() => toggleEquip(carrierId, it.uid)}
-                primary={!!it.equipped}
+                primary={false}
+                ariaPressed={!!it.equipped}
                 btnClassName="small"
               />
             ) : null}
             {isSkinnable && (
               <button
-                className={`btn small ${skinOpen ? 'btn-primary' : ''}`}
+                className="btn small"
+                aria-expanded={skinOpen}
                 title="Parure légendaire — recolorer l'objet"
                 onClick={() => setSkinOpenUid(skinOpen ? null : it.uid)}
               >

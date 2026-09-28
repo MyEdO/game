@@ -1,8 +1,16 @@
-import { describe, it, expect } from 'vitest';
+// @vitest-environment jsdom
+import { describe, it, expect, afterEach, beforeAll } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { FlowEditor } from './FlowEditor';
 import { EMPTY_FLOW, type Flow } from '../../state/flow';
 import { CIBLES_D_EFFET_DE_SCENE } from '../../state/combatEffects';
+import { monterRacine, demonterRacines } from '../../monterRacine.testkit';
+import { entreeDe, menuDe, ouvrirMenu } from './AddMenu.testkit';
+
+beforeAll(() => {
+  (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+});
+afterEach(demonterRacines);
 
 const ctx = { encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE };
 const testFlow = (skill: string, vsGroups?: string[]): Flow => ({
@@ -26,11 +34,12 @@ describe('FlowEditor — nœud Test : champ Interlocuteur/groupes (P3)', () => {
 });
 
 describe('FlowEditor — menu « + Bloc » : effets, condition et test', () => {
-  it('propose les nœuds logiques (si / test) ET les feuilles d’effet', () => {
-    const html = renderToStaticMarkup(<FlowEditor flow={EMPTY_FLOW} onChange={() => {}} ctx={ctx} />);
-    expect(html).toContain('Condition (si…)');
-    expect(html).toContain('Test de compétence');
-    expect(html).toContain('Journal'); // une feuille d'effet (do)
+  it('propose les nœuds logiques (si / test) ET les feuilles d’effet', async () => {
+    const { container } = monterRacine(<FlowEditor flow={EMPTY_FLOW} onChange={() => {}} ctx={ctx} />);
+    const menu = await ouvrirMenu(menuDe(container, '+ Bloc'));
+    for (const libelle of ['Condition (si…)', 'Test de compétence', 'Journal']) {
+      expect(entreeDe(menu, libelle), libelle).toBeDefined();
+    }
   });
 
   it('rend un nœud `if` (condition + branches ALORS/SINON)', () => {

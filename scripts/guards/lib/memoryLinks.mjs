@@ -42,7 +42,7 @@
 //
 // Module ESM pur — consommé par `scripts/guards/lib/memoryLinks.test.mjs`.
 import { readFileSync, existsSync, statSync } from 'node:fs';
-import { execFileSync } from 'node:child_process';
+import { TRAVAIL, depotDe, enfantsDirects, imageDeHead, listerImage, racineDe } from './gitPorte.mjs';
 import { parUnitesDeCode, listerDossier } from './lister.mjs';
 import { extname, join } from 'node:path';
 import { sansBlocsDeCode } from './liensMarkdown.mjs';
@@ -138,21 +138,18 @@ function jetonDisparues(disparues) {
 /**
  * VOCABULAIRE des noms de fiche connus du dépôt : celles de l'arbre de travail ET celles de HEAD.
  * C'est ce qui rend le slug BACKTIQUÉ décidable — hors de ce vocabulaire, un kebab backtiqué est un
- * identifiant de code (mesure : 99,95 % de faux positifs, cf. en-tête). Si git ne répond pas, le
- * vocabulaire se réduit à l'arbre : la portée rétrécit, elle ne ment pas.
+ * identifiant de code (mesure : 99,95 % de faux positifs, cf. en-tête). HORS dépôt (`racineDe`
+ * nulle), le vocabulaire se réduit à l'arbre : la portée rétrécit, elle ne ment pas. Une PANNE de git
+ * LÈVE `GitIndisponible` : un vocabulaire amputé de HEAD rendrait des mentions indécidables muettes.
  * @returns {Set<string>}
  */
 export function nomsDeFichesConnues(root) {
   const noms = new Set(liveNotes(root).map((f) => f.replace(/\.md$/, '')));
-  try {
-    const sortie = execFileSync('git', ['ls-tree', '--name-only', 'HEAD', `${MEMORY_DIR}/`], {
-      cwd: root, encoding: 'utf8', maxBuffer: 1 << 26, stdio: ['ignore', 'pipe', 'ignore'],
-    });
-    for (const ligne of sortie.split('\n')) {
-      if (!ligne.endsWith('.md')) continue;
-      noms.add(ligne.slice(`${MEMORY_DIR}/`.length, -'.md'.length));
-    }
-  } catch { /* dépôt sans HEAD (banc forgé) : vocabulaire = arbre seul */ }
+  const depot = depotDe(root);
+  if (racineDe(depot) === null) return noms;
+  for (const nom of enfantsDirects(listerImage(depot, imageDeHead(depot), MEMORY_DIR), MEMORY_DIR)) {
+    if (nom.endsWith('.md')) noms.add(nom.slice(0, -'.md'.length));
+  }
   return noms;
 }
 
@@ -161,12 +158,8 @@ export function nomsDeFichesConnues(root) {
  * non ignorés) : un fichier temporaire posé dans le périmètre est donc VU. @returns {string[]}
  */
 export function fichiersHorsMemoire(root) {
-  const sortie = execFileSync(
-    'git',
-    ['ls-files', '--cached', '--others', '--exclude-standard', '--', ...RACINES_HORS_MEMOIRE],
-    { cwd: root, encoding: 'utf8', maxBuffer: 1 << 28 },
-  );
-  return [...new Set(sortie.split('\n').filter(Boolean))]
+  const chemins = listerImage(depotDe(root), TRAVAIL, ...RACINES_HORS_MEMOIRE);
+  return [...new Set(chemins)]
     .filter((rel) => EXTENSIONS_LUES.has(extname(rel)))
     .filter((rel) => !HORS_SCAN.some((p) => rel === p || rel.startsWith(p)))
     .sort(parUnitesDeCode);

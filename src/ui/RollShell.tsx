@@ -1,5 +1,9 @@
-import { Fragment, useRef, type ReactNode } from 'react';
-import { Modal } from './Modal';
+import { Fragment, useId, useRef, type ComponentProps, type ReactNode } from 'react';
+import { Modal, cibleEmbarquee } from './Modal';
+import { useFocusEmprunte } from './focus';
+import { GatedAction, classeBouton, type TonBouton } from './GatedAction';
+import { CadrePied } from './Cadre';
+import { Stack } from './Layout';
 import { RollRow, type RollRowProps, DEFAULT_ROLL_LABEL } from './RollRow';
 import { useRollFrisson } from './useRollFrisson';
 import { DiceRoll } from './DiceRoll';
@@ -12,14 +16,15 @@ import type { RecapLine } from '../state/recapLine';
 import { StakeNote, StakeRule, hasStakeRule, stakeRuleOf } from './StakeNote';
 import type { StakeRef } from '../data';
 import type { BuiltRollRow } from './rollRowBuild';
+import type { OnDismiss } from '../state/dismissStack';
 
 /**
  * RollShell — LA coquille UNIQUE des modales de jet différé (mono, opposé, ou N contributeurs).
- * Une seule enveloppe (`Modal` ou zone embarquée), un ORDRE de zones fixe, et une barre d'actions
+ * Une enveloppe choisie (`Modal`, zone embarquée, ou la boîte d'un hôte via `useRollShell`), un ORDRE de zones fixe, et une barre d'actions
  * DATA-DRIVEN filtrée par phase.
  *
  *   overlay → titre → sous-titre → instruction → extra → setup (pré-jet) → rangées (`RollRow`)
- *   → outcome/summary → postRollExtra → forcedExtra → `.modal-actions`
+ *   → outcome/summary → postRollExtra → forcedExtra → pied (`CadrePied`)
  *
  * Cardinalité des rangées :
  * - **mono** : 1 rangée interactive ;
@@ -31,8 +36,8 @@ import type { BuiltRollRow } from './rollRowBuild';
  *
  * La phase courante est `rolled` (au moins un jet lancé). Les actions déclarent `when` :
  * `'pre'` (avant jet), `'post'` (après), `'always'` (toujours) — le shell filtre. Aucune classe CSS
- * nouvelle : réutilise `Modal`/`roll-modal`, `rm-subtitle`, `mini-title`,
- * `cs-rows`, `rm-summary`, `modal-actions` — donc restyler/étendre se fait à UN endroit.
+ * nouvelle : réutilise `Modal` (états `champ` et `plein`), `rm-subtitle`, `mini-title`,
+ * `cs-rows`, `rm-summary`, `cadre-pied` — donc restyler/étendre se fait à UN endroit.
  */
 
 /** Donnée d'UNE rangée de jet du shell = les props de `RollRow` (ligne + cycle d'influence propre).
@@ -49,32 +54,36 @@ export type RollRowData = RollRowProps & {
   separator?: ReactNode;
 };
 
-/** Un bouton de la barre d'actions, filtré par phase (`when`). Rendu dans `.modal-actions`. La
+/** Un bouton de la barre d'actions, filtré par phase (`when`). Rendu dans le pied (`CadrePied`). La
  *  PROÉMINENCE (style) n'est PLUS choisie par l'appelant : elle se DÉDUIT du RÔLE porté par la `key`
- *  (cf. `actionClass`) — un même verbe a le même poids visuel dans toutes les modales. */
+ *  (cf. `actionTon`) — un même verbe a le même poids visuel dans toutes les modales. */
 export interface RollAction {
   key: string;
   label: ReactNode;
   onClick: () => void;
+  /** Description de l'action OFFERTE. */
   title?: string;
+  /** Fermée sans rien à dire (tous les jets ne sont pas lancés…). */
   disabled?: boolean;
+  /** Fermée pour une RAISON, que le joueur lit au survol, au focus et au toucher (`GatedAction`). */
+  refus?: string;
   /** Phase où le bouton est VISIBLE : avant le jet / après / toujours. */
   when: 'pre' | 'post' | 'always';
 }
 
-/** Rôle visuel d'une action DÉDUIT de sa `key` (les appelants ne le choisissent plus) : abandon /
- *  secondaire = ghost ; ressource (Chance/Destin…) = resource ; tout le reste (validation,
- *  progression : confirm/apply/next/finish/continue…) = primary. Source UNIQUE de la proéminence des
- *  barres de jet — restyler un rôle se fait ICI, jamais au call-site.
+/** TON d'une action DÉDUIT de sa `key` (les appelants ne le choisissent plus) : abandon /
+ *  secondaire = discret (`btn-ghost`) ; tout le reste (validation, progression :
+ *  confirm/apply/next/finish/continue…) = primaire. Source UNIQUE de la proéminence des barres de jet,
+ *  exposée en STRUCTURE (`primary`, `btnClassName` : les props de `GatedAction`) — le bouton nu et
+ *  `GatedAction` lisent le même objet, jamais la chaîne de classes rendue.
  *  `all`/`rollAll` (« Tout lancer ») sont SECONDAIRES (#1117, recette 2026-08-05) : voisins du
  *  « Lancer » primaire, même style, ils déclenchaient la résolution de TOUTE la séquence sans
  *  influence — la confusion a coûté la moitié d'une recette. */
 const ACTION_GHOST_KEYS = new Set(['cancel', 'break', 'ack', 'all', 'rollAll']);
-const ACTION_RESOURCE_KEYS = new Set<string>();
-function actionClass(key: string): string {
-  if (ACTION_GHOST_KEYS.has(key)) return 'btn btn-ghost';
-  if (ACTION_RESOURCE_KEYS.has(key)) return 'btn btn-resource';
-  return 'btn btn-primary';
+const TON_PRIMAIRE: TonBouton = { primary: true };
+const TON_DISCRET: TonBouton = { primary: false, btnClassName: 'btn-ghost' };
+function actionTon(key: string): TonBouton {
+  return ACTION_GHOST_KEYS.has(key) ? TON_DISCRET : TON_PRIMAIRE;
 }
 
 /** Commandes de barre NEUTRES (≠ verbes de cadence portés par les RANGÉES) présentes dans les
@@ -95,27 +104,7 @@ function assertActionVocabulary(flowKey: keyof typeof FLOW_VERBS, actions: RollA
   }
 }
 
-export function RollShell({
-  title,
-  subtitle,
-  instruction,
-  embedded = false,
-  disableEscClose = false,
-  stake,
-  extra,
-  setup,
-  rows,
-  rolled,
-  winnerIndex,
-  netSL,
-  outcome,
-  summary,
-  postRollExtra,
-  forcedExtra,
-  actions,
-  onCancel,
-  flowKey,
-}: {
+export function RollShell(props: {
   title: ReactNode;
   /** Zone Z1 — sous-titre « Acteur — Action (Compétence) », rendu par la coquille en `.rm-subtitle`. */
   subtitle?: ReactNode;
@@ -168,12 +157,57 @@ export function RollShell({
   /** Clé du flux de jet de la modale (`FLOW_VERBS`) : arme la garde de vocabulaire d'actions (DEV).
    *  Absente = modale sans flux naturel (garde inerte). */
   flowKey?: keyof typeof FLOW_VERBS;
+  /** Étape de l'appelant (cascade, phase d'un flux) : la coquille y ajoute sa phase posé/résolu (`JetRendu.etape`). */
+  etape?: string | number;
 }) {
+  const { embedded = false, ...p } = props;
+  const jet = useRollShell(p);
+  if (embedded) return <EmbeddedShell title={jet.titre} footer={jet.gestes} etape={jet.etape}>{jet.corps}</EmbeddedShell>;
+  return <Modal title={jet.titre} champ plein onClose={jet.escClose} footer={jet.gestes} etape={jet.etape}>{jet.corps}</Modal>;
+}
+
+/** Le jet rendu À PART : titre, corps et gestes, que le cadre choisi pose (`footer`) ; `etape`, que
+ *  le cadre relaie à `useFocusEmprunte`. */
+export interface JetRendu { titre: ReactNode; corps: ReactNode; gestes: ReactNode; escClose?: OnDismiss; etape: string }
+
+type JetDeCoquille = Omit<ComponentProps<typeof RollShell>, 'embedded'>;
+const AUCUN_JET: JetDeCoquille = { title: null, rows: [], rolled: false, actions: [] };
+
+/**
+ * La coquille SANS cadre (`docs/charte-ui.md`, `.cadre-pied`, patron `useSessionEnd`) : `RollShell`
+ * la pose dans `Modal` ou `EmbeddedShell` ; un hôte qui englobe le jet dans SA boîte la pose lui-même.
+ * `null` : aucun jet, hooks appelés quand même.
+ */
+export function useRollShell(p: JetDeCoquille): JetRendu;
+export function useRollShell(p: JetDeCoquille | null): JetRendu | null;
+export function useRollShell(p: JetDeCoquille | null): JetRendu | null {
+  const {
+    title,
+    subtitle,
+    instruction,
+    disableEscClose = false,
+    stake,
+    extra,
+    setup,
+    rows,
+    rolled,
+    winnerIndex,
+    netSL,
+    outcome,
+    summary,
+    postRollExtra,
+    forcedExtra,
+    actions,
+    onCancel,
+    flowKey,
+    etape,
+  } = p ?? AUCUN_JET;
   if (import.meta.env.DEV && flowKey) assertActionVocabulary(flowKey, actions);
   // Abonnement RÉACTIF au siège (coop : prise/relâche du rôle MJ, attribution d'un héros) — le
   // sélecteur de dé en dépend via `canFixDie`. L'état COMPLET se relit ensuite (pendings + délégués),
   // frais à chaque rendu : hook appelé INCONDITIONNELLEMENT, jamais après un retour anticipé.
   useGame((s) => s.net);
+  const uid = useId();
   const state = useGame.getState();
   // Z3b′ AU SOCLE (recette #1117) : le RENVOI vers la règle est accolé au TITRE par la COQUILLE, plus
   // par discipline au site — une modale qui pose son `stake` l'obtient sans rien faire. La cible est
@@ -224,7 +258,10 @@ export function RollShell({
   // Échap : pendant le frisson HISSÉ (roulis ou atterrissage de la scène centrale), SKIPPE — même
   // geste qu'un clic sur les dés (`hoist.skip`), jamais une annulation en pleine animation. Sinon,
   // annule seulement pré-jet ; un bouton Annuler post-jet porte sa visibilité via `when`.
-  const escClose = disableEscClose ? undefined : (hoist.rolling || hoist.landed) ? hoist.skip : (!rolled ? onCancel : undefined);
+  // Congédiement PARTIEL par construction (`dismissStack.ts:12-14`) : la fenêtre qui porte le jet
+  // (`Modal` de la coquille ou boîte d'un hôte) ne se ferme que par son démontage, jamais par l'appui.
+  const escGeste = disableEscClose ? undefined : (hoist.rolling || hoist.landed) ? hoist.skip : (!rolled ? onCancel : undefined);
+  const escClose: OnDismiss | undefined = escGeste && (() => { escGeste(); return false; });
   // « TOUT LANCER » par rangées (`rollRows`/`rollAll` — fenêtre MULTI) : chaque rangée commet d'abord
   // SON brouillon ; celles dont la saisie a POSÉ un dé ont déjà lancé, on ne les relance pas. Les
   // autres partent par LEUR propre `onRoll` (la même fonction que leur bouton) — le verbe du domaine
@@ -241,17 +278,14 @@ export function RollShell({
   const shownActions = actions
     .filter((a) => a.when === 'always' || (rolled ? a.when === 'post' : a.when === 'pre'))
     .map((a) => (ROLL_ALL_ROWS_KEYS.has(a.key) ? { ...a, onClick: rollAllRowsWithPickedDice(a.onClick) } : a));
+  // Le corps est une PILE (`Stack`) : c'est son `gap` qui place l'enjeu et les notes, primitives sans
+  // marge externe.
   const body = (
-    <>
+    <Stack gap="md">
       {/* Scène centrale du roulis (#396 v2/v3, mono/opposé — le hissage `hoistIdx` ne s'active que
           pour UNE rangée à lancer) : grands dés au centre, voile sur le contenu qui reste dessous.
-          HORS du corps défilable : elle s'ancre sur `.modal` (position: relative), pas sur le scrollport. */}
+          Elle s'ancre sur le cadre positionné (`.modal`, `.rs-embedded`), pas sur le défileur. */}
       {(hoist.rolling || hoist.landed) && <DiceRoll scene landed={hoist.landed} faces={hoistFaces} onSkip={hoist.skip} />}
-      {/* CORPS DÉFILABLE — la barre d'actions en est SŒUR, jamais fille : c'est ce qui la garde à
-          l'écran quand le corps déborde (grille de 31 lignes, pile d'étapes committées). Patron
-          `ActivityPane` (corps scrollable, pied fixe) porté ICI, au conteneur : aucune étape de
-          cascade n'a à s'en soucier. */}
-      <div className="rs-scroll">
       {subtitle != null && <p className="rm-subtitle">{subtitle}</p>}
       {instruction != null && <div className="mini-title">{instruction}</div>}
       {/* Z3b — l'ENJEU (#1117) : résolu par la coquille depuis la RÉFÉRENCE de donnée, jamais écrit au site. */}
@@ -293,20 +327,33 @@ export function RollShell({
       {summary != null && <p className="rm-summary">{summary}</p>}
       {postRollExtra}
       {forcedExtra}
-      </div>
-      <div className="modal-actions">
-        {shownActions.map((a) => (
+    </Stack>
+  );
+  const footer = (
+    <>
+        {shownActions.map((a) => (a.refus ? (
+          <GatedAction
+            key={a.key}
+            id={`${uid}-${a.key}`}
+            label={a.label}
+            enabled={false}
+            reason={a.refus}
+            onClick={() => {}}
+            {...actionTon(a.key)}
+          />
+        ) : a.disabled ? (
+          <button key={a.key} className={classeBouton(actionTon(a.key))} disabled>{a.label}</button>
+        ) : (
           <button
             key={a.key}
-            className={actionClass(a.key)}
-            disabled={a.disabled}
+            className={classeBouton(actionTon(a.key))}
             title={a.title}
             /* () => a.onClick() : ne PAS passer l'événement React (coop : l'invité sérialise les intents en JSON). */
             onClick={() => a.onClick()}
           >
             {a.label}
           </button>
-        ))}
+        )))}
         {/* « Lancer » HISSÉ (mono) : au MÊME niveau qu'Annuler/Appliquer, en DERNIER (à DROITE) — action
             PRIMAIRE à droite, « Annuler » à gauche (convention de la coquille). Pendant le roulis/
             l'atterrissage, la SCÈNE centrale (ci-dessus) porte les dés : ce bouton disparaît sans repli. */}
@@ -315,17 +362,10 @@ export function RollShell({
             {hoistRow?.rollLabel ?? DEFAULT_ROLL_LABEL}
           </button>
         )}
-      </div>
     </>
   );
-  if (embedded) {
-    return <EmbeddedShell className="roll-modal" title={titleNode}>{body}</EmbeddedShell>;
-  }
-  return (
-    <Modal title={titleNode} onClose={escClose}>
-      {body}
-    </Modal>
-  );
+  if (!p) return null;
+  return { titre: titleNode, corps: body, gestes: footer, escClose, etape: `${etape ?? ''}:${rolled ? 'post' : 'pre'}` };
 }
 
 /**
@@ -333,17 +373,24 @@ export function RollShell({
  * étape prend quand elle s'incruste dans un écran-hub au lieu de flotter. Exporté par la coquille
  * parce que les étapes HORS jet de la même cascade (décision d'escale, réglages de repos) portent la
  * MÊME zone : elles la COMPOSENT au lieu de recopier `.rs-embedded` + son titre.
+ * Apparue dans un dialogue déjà ouvert, la zone EMPRUNTE le focus (`useFocusEmprunte`,
+ * `cibleEmbarquee`) et le rend à son invocateur quand elle se retire.
  */
-export function EmbeddedShell({ title, className, children }: {
+export function EmbeddedShell({ title, footer, etape, children }: {
   title: ReactNode;
-  /** Modificateur d'appelant sur l'enceinte (ex. `rest-modal`) — jamais un second cadre. */
-  className?: string;
+  /** PIED : les gestes de sortie de l'étape (`CadrePied`, le pied des trois cadres). */
+  footer?: ReactNode;
+  /** Étape courante de la zone (`JetRendu.etape`, ou celle de l'hôte) : relayée à `useFocusEmprunte`. */
+  etape?: string | number;
   children: ReactNode;
 }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useFocusEmprunte(ref, true, cibleEmbarquee, etape);
   return (
-    <div className={`rs-embedded${className ? ` ${className}` : ''}`}>
+    <div ref={ref} className="rs-embedded">
       <div className="mini-title">{title}</div>
       {children}
+      <CadrePied>{footer}</CadrePied>
     </div>
   );
 }

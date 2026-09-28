@@ -1083,10 +1083,10 @@ export function Inspector({
                 <div className="ed-field">
                   <span>Type</span>
                   <Row>
-                    <button className={`btn small ${selW.door ? '' : 'btn-primary'}`} title="Cloison pleine (bloque vue et passage)" onClick={() => patchSelW({ door: undefined, closed: undefined })}>
+                    <button className="btn small" aria-pressed={!selW.door} title="Cloison pleine (bloque vue et passage)" onClick={() => patchSelW({ door: undefined, closed: undefined })}>
                       ▮ Cloison
                     </button>
-                    <button className={`btn small ${selW.door ? 'btn-primary' : ''}`} title="Arête franchissable (porte)" onClick={() => patchSelW({ door: true })}>
+                    <button className="btn small" aria-pressed={!!selW.door} title="Arête franchissable (porte)" onClick={() => patchSelW({ door: true })}>
                       <Icon id="map-tool/door" size="sm" /> Porte
                     </button>
                   </Row>
@@ -1127,9 +1127,9 @@ export function Inspector({
                 <div className="ed-field">
                   <span>Escaladable</span>
                   <Row>
-                    <button className={`btn small ${selW.climb ? '' : 'btn-primary'}`} title="Arête non grimpable" onClick={() => patchSelW({ climb: undefined })}>Non</button>
-                    <button className={`btn small ${selW.climb?.kind === 'ladder' ? 'btn-primary' : ''}`} title="Échelle / surface facile : pas de Test (LDB 15 l.53)" onClick={() => patchSelW({ climb: { kind: 'ladder' } })}>Échelle</button>
-                    <button className={`btn small ${selW.climb?.kind === 'surface' ? 'btn-primary' : ''}`} title="Paroi à prises : Test d'Escalade (LDB 15 l.57)" onClick={() => patchSelW({ climb: { kind: 'surface', ...(selW.climb?.kind === 'surface' ? selW.climb : {}) } })}>Paroi</button>
+                    <button className="btn small" aria-pressed={!selW.climb} title="Arête non grimpable" onClick={() => patchSelW({ climb: undefined })}>Non</button>
+                    <button className="btn small" aria-pressed={selW.climb?.kind === 'ladder'} title="Échelle / surface facile : pas de Test (LDB 15 l.53)" onClick={() => patchSelW({ climb: { kind: 'ladder' } })}>Échelle</button>
+                    <button className="btn small" aria-pressed={selW.climb?.kind === 'surface'} title="Paroi à prises : Test d'Escalade (LDB 15 l.57)" onClick={() => patchSelW({ climb: { kind: 'surface', ...(selW.climb?.kind === 'surface' ? selW.climb : {}) } })}>Paroi</button>
                   </Row>
                 </div>
                 {selW.climb?.kind === 'surface' && (
@@ -1730,10 +1730,10 @@ function EmplacementFold({ ent, scene, setScene }: { ent: SceneEntity; scene: Sc
           <div className="ed-field">
             <span>Créneau de tir</span>
             <Row>
-              <button className={`btn small ${directional ? '' : 'btn-primary'}`} title="Pivot libre — tire dans toutes les directions" onClick={() => setScene(setPosteSide(scene, ent.id, undefined))}>
+              <button className="btn small" aria-pressed={!directional} title="Pivot libre — tire dans toutes les directions" onClick={() => setScene(setPosteSide(scene, ent.id, undefined))}>
                 ↻ Omni
               </button>
-              <button className={`btn small ${directional ? 'btn-primary' : ''}`} title="Arc fixe, relatif à l'orientation-monde du chef de pièce" onClick={() => setScene(setPosteSide(scene, ent.id, poste.side ?? 'proue'))}>
+              <button className="btn small" aria-pressed={directional} title="Arc fixe, relatif à l'orientation-monde du chef de pièce" onClick={() => setScene(setPosteSide(scene, ent.id, poste.side ?? 'proue'))}>
                 → Directionnel
               </button>
             </Row>

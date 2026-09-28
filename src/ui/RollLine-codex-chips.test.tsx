@@ -3,7 +3,7 @@
  * Chips de modificateur CODEX-LIÉES (#1078 LOT B3a). Trois contrats :
  *  1. une ligne qui porte sa RÈGLE (`ModLine.ref`) rend un `CodexRef` CLIQUABLE (la chip EST
  *     l'affordance — il n'y a plus d'ⓘ voisin) ;
- *  2. son popover s'ouvre DANS le corps DÉFILABLE d'une `RollShell` (`.rs-scroll`) sans être
+ *  2. son infobulle s'ouvre DANS le corps DÉFILABLE d'une `RollShell` (`.modal-body` de `Modal`) sans être
  *     coupé : `CodexRef` le rend en PORTAL sur `document.body`, hors du scrollport ;
  *  3. la PROVENANCE se NOMME au rendu : aucun producteur ne passe de résolveur (recette B3a —
  *     un site qui l'oubliait affichait « pregen-101 » à l'écran).
@@ -47,7 +47,7 @@ describe('ModChips — la chip PORTE sa règle (#1078)', () => {
   let container: HTMLDivElement;
   let root: Root;
   afterEach(() => {
-    act(() => { root.unmount(); }); // démonte aussi les portals de popover (React les possède)
+    act(() => { root.unmount(); }); // démonte aussi les portals d'infobulle (React les possède)
     container.remove();
   });
 
@@ -63,33 +63,33 @@ describe('ModChips — la chip PORTE sa règle (#1078)', () => {
     expect(viser.classList.contains('codex-ref')).toBe(true);
     expect(viser.getAttribute('role')).toBe('button'); // cliquable → ouvre la fiche Codex
     expect(viser.getAttribute('tabindex')).toBe('0');
-    // La ligne sans règle ne prétend rien : ni popover, ni clic.
+    // La ligne sans règle ne prétend rien : ni infobulle, ni clic.
     expect(avantage.classList.contains('codex-ref')).toBe(false);
     expect(avantage.getAttribute('role')).toBeNull();
   });
 
-  it('POPOVER dans le corps DÉFILÉ (.rs-scroll) : porté sur document.body, hors du scrollport', () => {
+  it('INFOBULLE dans le corps DÉFILÉ (.modal-body) : porté sur document.body, hors du scrollport', () => {
     ({ container, root } = mount(shell([{ label: 'Viser', value: 20, famille: 'circonstance', ref: RULE_REF.viser }])));
-    const scroll = container.querySelector('.rs-scroll');
+    const scroll = container.querySelector('.modal-body');
     expect(scroll, 'la coquille rend bien son corps défilable').not.toBeNull();
     const chip = container.querySelector('.rm-mod.codex-ref') as HTMLElement;
     expect(scroll!.contains(chip), 'la chip vit DANS le scrollport').toBe(true);
 
     act(() => { chip.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); });
-    const pop = document.querySelector('.codex-pop');
-    expect(pop, 'le popover est rendu').not.toBeNull();
-    // Le PORTAL : le popover n'est PAS un descendant du scrollport (aucun clipping `overflow`
+    const pop = document.querySelector('.infobulle');
+    expect(pop, 'l’infobulle est rendue').not.toBeNull();
+    // Le PORTAL : l'infobulle n'est PAS un descendant du scrollport (aucun clipping `overflow`
     // possible), il est monté directement sous <body>.
     expect(scroll!.contains(pop!)).toBe(false);
     expect(pop!.parentElement).toBe(document.body);
-    // Et il porte bien le texte de la RÈGLE (verbatim `regles.json`), pas un rappel maison.
+    // Et il porte bien le texte de la RÈGLE (la prose de sa fiche `regles`), pas un rappel maison.
     expect(pop!.textContent).toContain('viser');
   });
 
   // ── PROVENANCE : arbitrage user 2026-08-05, verbatim « Normalement les informations de ce genre
   //    sont dans le hover codex non ? » — les noms ne flottent plus à côté de la chip (illisibles,
-  //    rattachés à rien) : ils vivent DANS le popover de la chip, qui porte déjà sa règle.
-  it('provenance `by` : AUCUN badge inline — les noms partent au popover de la chip', () => {
+  //    rattachés à rien) : ils vivent DANS l'infobulle de la chip, qui porte déjà sa règle.
+  it('provenance `by` : AUCUN badge inline — les noms partent à l’infobulle de la chip', () => {
     ({ container, root } = mount(shell([
       { label: 'Soutien', value: 20, famille: 'jet', ref: RULE_REF.soutien, by: [{ label: 'Perdita' }, { label: 'Valentyn' }] },
     ])));
@@ -113,19 +113,19 @@ describe('ModChips — la chip PORTE sa règle (#1078)', () => {
     expect(mod.by, 'le moteur reste PUR : il ne connaît que des ids').toEqual([{ id: 'pregen-101' }, { id: 'pregen-102' }]);
     ({ container, root } = mount(shell([mod])));
     expect(container.textContent).not.toContain('pregen-101');
-    expect(container.textContent).not.toContain('Perdita'); // au popover, pas sur la ligne
+    expect(container.textContent).not.toContain('Perdita'); // à l'infobulle, pas sur la ligne
   });
 
   // ── #1117 (recette) : « les soutiens sont invisibles ». Le contrat NÉGATIF ci-dessus (aucun badge
   //    sur la ligne) est vrai sans que l'information soit LISIBLE nulle part — il faut donc prouver
-  //    l'autre bout : le popover de la chip, atteignable au survol ET au focus clavier, les NOMME.
-  it('le popover de la chip Soutien NOMME les soutiens (survol)', () => {
+  //    l'autre bout : l'infobulle de la chip, atteignable au survol ET au focus clavier, les NOMME.
+  it('l’infobulle de la chip Soutien NOMME les soutiens (survol)', () => {
     useGame.setState({ party: [{ id: 'pregen-101', label: 'Perdita' }, { id: 'pregen-102', label: 'Valentyn' }] as Combatant[], battle: null });
     const mod = soutienMod({ count: 2, bonus: 20, ids: ['pregen-101', 'pregen-102'] })!;
     ({ container, root } = mount(shell([mod])));
     const chip = container.querySelector('.rm-mod.codex-ref') as HTMLElement;
     act(() => { chip.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); });
-    const pop = document.querySelector('.codex-pop')!;
+    const pop = document.querySelector('.infobulle')!;
     expect(pop.textContent).toContain('Perdita');
     expect(pop.textContent).toContain('Valentyn');
   });
@@ -136,7 +136,7 @@ describe('ModChips — la chip PORTE sa règle (#1078)', () => {
     ({ container, root } = mount(shell([mod])));
     const chip = container.querySelector('.rm-mod.codex-ref') as HTMLElement;
     act(() => { chip.focus(); });
-    expect(document.querySelector('.codex-pop')?.textContent).toContain('Perdita');
+    expect(document.querySelector('.infobulle')?.textContent).toContain('Perdita');
   });
 
   // ── Le bout AMONT : le producteur réel du voyage (`partyAssisted` → `supportSplit`) doit livrer
@@ -156,6 +156,6 @@ describe('ModChips — la chip PORTE sa règle (#1078)', () => {
     ({ container, root } = mount(shell(mods)));
     const chip = container.querySelector('.rm-mod.codex-ref') as HTMLElement;
     act(() => { chip.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); });
-    expect(document.querySelector('.codex-pop')?.textContent).toContain('Valentyn');
+    expect(document.querySelector('.infobulle')?.textContent).toContain('Valentyn');
   });
 });

@@ -1,7 +1,7 @@
 /* ══════════════════ Sélecteur d'options de jet (`OptionChooser.tsx`) ══════════════════
-   Les trois layouts du choix : rangée `seg` (`.rm-loc-inline` + `.seg`, couche partagée), grille de
-   boutons (`.rm-loc-grid`), barre d'actions (`.modal-actions`, couche partagée). L'état RETENU est
-   `aria-pressed` (base.css) — jamais une classe de ton posée ici. */
+   Les deux layouts du choix : rangée `seg` (`.rm-loc-inline` + `.seg`, couche partagée) et grille
+   de boutons (`.rm-loc-grid`). `ChoiceButtons` n'a aucun conteneur : son cadre le pose dans son
+   pied. L'état RETENU est `aria-pressed` (base.css) — jamais une classe de ton posée ici. */
 /* Rangée de choix compacte (choix rare) : libellé + contrôle sur une seule ligne. */
 .rm-loc-inline {
   display: flex;
@@ -30,11 +30,35 @@
   font-size: 13px;
   cursor: pointer;
 }
+/* Au plus 3 colonnes, jamais sous 140px ; `auto-fit` replie les pistes vides : 2 options se
+   partagent la ligne au lieu d'en laisser le tiers vide. */
 .rm-loc-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(max(calc((100% - 12px) / 3), 140px), 1fr));
   gap: 6px;
   margin-top: 6px;
+}
+/* Grille dont les options portent leur NOTE d'enjeu (`note` de `RollGridOption`) : une RANGÉE par
+   option (`.rm-option`), le verbe puis ce qu'il met en jeu, pleine largeur. La colonne des verbes est
+   commune à toutes les rangées (`subgrid`) ; ≤560 la rangée s'empile. */
+.rm-loc-grid[data-notes] {
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: var(--sp-md) var(--sp-lg);
+}
+.rm-option {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  align-items: start;
+}
+@media (max-width: 560px) {
+  .rm-loc-grid[data-notes] {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--sp-md);
+  }
+  .rm-option {
+    row-gap: var(--sp-xs);
+  }
 }
 /* DÉCLARATION de rangée (`declare` de `RollRow`) : la rangée de choix est un enfant de `.prow-act`
    (couche partagée, components.css) comme les autres contrôles — elle ne prend pas toute la largeur

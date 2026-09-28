@@ -5,6 +5,7 @@ import { act, useState } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { EffectList, EffectFields, effectSummary, newEffect, EFFECT_MENU_GROUPS, ctxDeCatalogue } from './EffectList';
 import { convertTo } from './AddMenu';
+import { choisirDansMenu, menuDe } from './AddMenu.testkit';
 import type { Effect } from '../../state/scene';
 import { CIBLES_D_EFFET_DE_SCENE } from '../../state/combatEffects';
 import { talents } from '../../data';
@@ -155,33 +156,27 @@ describe('changer le type d’un effet CONVERTIT — un seul vocabulaire, un seu
     await act(async () => {
       root.render(<ListeControlee />);
     });
-    /** Rangée du menu de TYPE de l'effet (pas du menu d'ajout, qui vit hors de la rangée). */
-    const choisirType = async (libelle: string) => {
-      const menu = Array.from(container.querySelectorAll('.eff-row .eff-add')).find(
-        (details) => details.querySelector('summary')?.textContent?.startsWith('Type :'),
-      )!;
-      const rangee = Array.from(menu.querySelectorAll('.listrow')).find(
-        (row) => row.textContent?.trim() === libelle,
-      ) as HTMLButtonElement;
+    const rangee = container.querySelector<HTMLDetailsElement>('details.eff-row')!;
+    await act(async () => { rangee.querySelector('summary')!.click(); });
+    /** Menu de TYPE de l'effet déplié (pas le menu d'ajout, qui vit hors de la rangée). */
+    const choisirType = (libelle: string) => choisirDansMenu(menuDe(rangee, /^Type :/), libelle);
+
+    try {
+      await choisirType('Document (handout)');
+      expect(dernier[0]).toEqual({ type: 'document', title: '', desc: 'Le plancher gemit' });
+
+      await choisirType('Définir un flag');
+      expect(dernier[0].type).toBe('setFlag');
+      expect(dernier[0]).not.toHaveProperty('desc'); // le document ne porte que les champs de SON type
+
+      await choisirType('Journal');
+      expect(dernier[0]).toEqual({ type: 'journal', desc: 'Le plancher gemit' });
+    } finally {
       await act(async () => {
-        rangee.click();
+        root.unmount();
       });
-    };
-
-    await choisirType('Document (handout)');
-    expect(dernier[0]).toEqual({ type: 'document', title: '', desc: 'Le plancher gemit' });
-
-    await choisirType('Définir un flag');
-    expect(dernier[0].type).toBe('setFlag');
-    expect(dernier[0]).not.toHaveProperty('desc'); // le document ne porte que les champs de SON type
-
-    await choisirType('Journal');
-    expect(dernier[0]).toEqual({ type: 'journal', desc: 'Le plancher gemit' });
-
-    await act(async () => {
-      root.unmount();
-    });
-    container.remove();
+      container.remove();
+    }
   });
 });
 

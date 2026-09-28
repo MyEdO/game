@@ -73,9 +73,9 @@ describe('#1689 T2 — la raison d’un refus a UNE forme (GatedAction)', () => 
     expect(html).not.toContain('Bourse insuffisante.');
   });
 
-  it('OptionChooser `actions` : une option qui porte `refus` passe par la MÊME composition que `grid`', () => {
+  it('ChoiceButtons : une option qui porte `refus` passe par la MÊME composition que `grid`', () => {
     const options = [{ key: 'go', label: 'Payer', primary: true, refus: 'L’hôte décide.', onSelect: () => {} }];
-    const actions = renderToStaticMarkup(<OptionChooser layout="actions" idPrefix="t" options={options} />);
+    const actions = renderToStaticMarkup(<ChoiceButtons idPrefix="t" options={options} />);
     const grid = renderToStaticMarkup(<OptionChooser layout="grid" idPrefix="t" options={options} />);
     attendRefusAtteignable(actions, 'Payer', 'L’hôte décide.');
     attendRefusAtteignable(grid, 'Payer', 'L’hôte décide.');

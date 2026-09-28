@@ -165,3 +165,169 @@ export function courantHorsChamp(releve) {
   if (!sorties.length) return [];
   return [`${releve.vue} : l'acteur au trait « ${courant.nom} » sort du champ de sa piste ${sorties.join(', ')}`];
 }
+
+/**
+ * PIED DE CADRE HORS CHAMP — le pied d'un cadre (`.cadre-pied` : `Modal`, `EmbeddedShell`,
+ * `ScreenShell`) reste à l'écran : il est hors du défileur, aucun défilement ne le ramène. Un pied
+ * dont le bas passe sous la fenêtre (ou le haut au-dessus) a perdu ses gestes — la mesure du juge B5
+ * (#1920) : récap de chapitre à 1366×650, pied 661..708 pour 650 de haut. Tolérance d'UN pixel.
+ *
+ * `piedExige` : l'écran jugé porte un pied. Aucun pied relevé est alors un défaut NOMMÉ — un écran
+ * absent (non monté au relevé, jamais ouvert) ne passe pas pour un écran conforme.
+ *
+ * @param {{ vue: string, ecran: string, fenetre?: { largeur: number, hauteur: number },
+ *           piedExige?: boolean,
+ *           pieds?: { sel: string, top: number, bottom: number }[] }} releve
+ * @returns {string[]}
+ */
+export function piedHorsChamp(releve) {
+  const { fenetre } = releve;
+  if (releve.piedExige && !(releve.pieds ?? []).length) {
+    return [`${releve.vue} · ${releve.ecran} : aucun pied de cadre relevé alors que l'écran en porte un — écran absent, sonde aveugle`];
+  }
+  if (!fenetre) return [];
+  const out = [];
+  for (const p of releve.pieds ?? []) {
+    if (p.bottom <= fenetre.hauteur + 1 && p.top >= -1) continue;
+    out.push(
+      `${releve.vue} · ${releve.ecran} : le pied « ${p.sel} » (${p.top}..${p.bottom}) sort de la fenêtre ` +
+      `(${fenetre.hauteur}px de haut) — ses gestes ne sont plus à l'écran, et aucun défilement ne les ramène`,
+    );
+  }
+  return out;
+}
+
+/**
+ * CONTENU SOUS LE BORD D'UN CADRE — un cadre (`.modal-body` d'une `Modal`, voile d'une `ScreenShell`)
+ * dont le contenu descend sous son bord doit le porter dans un DÉFILEUR : sinon ce contenu est coupé,
+ * et aucun geste du joueur ne l'amène à l'écran. Mesure du juge B6 (#1920), planche de navire à
+ * 360×740 : corps borné à 665, contenu jusqu'à 987, aucun défileur. La sonde relève, pour chaque
+ * cadre, son bord et le plus bas des éléments qu'aucun défileur (jusqu'au cadre) ne ramène ; le
+ * verdict est ici. Tolérance d'UN pixel.
+ *
+ * `cadreExige` : l'écran jugé est un cadre. Aucun cadre relevé est alors un défaut NOMMÉ.
+ *
+ * @param {{ vue: string, ecran: string, cadreExige?: boolean,
+ *           cadres?: { sel: string, bord: number, sansDefileur?: { sel: string, bas: number } | null }[] }} releve
+ * @returns {string[]}
+ */
+export function contenuSousLeBord(releve) {
+  const cadres = releve.cadres ?? [];
+  if (releve.cadreExige && !cadres.length) {
+    return [`${releve.vue} · ${releve.ecran} : aucun cadre relevé alors que l'écran en est un — écran absent, sonde aveugle`];
+  }
+  const out = [];
+  for (const c of cadres) {
+    const e = c.sansDefileur;
+    if (!e || e.bas <= c.bord + 1) continue;
+    out.push(
+      `${releve.vue} · ${releve.ecran} : dans « ${c.sel} » (bord ${c.bord}), « ${e.sel} » descend à ${e.bas} ` +
+      `sans défileur — ${+(e.bas - c.bord).toFixed(1)}px de contenu coupés, qu'aucun défilement ne ramène`,
+    );
+  }
+  return out;
+}
+
+/**
+ * ÉCRAN NOMMÉ ABSENT OU RECOUVERT — le verdict d'un écran porte sur CET écran : son dialogue
+ * (`[role=dialog]` dont le nom accessible contient le nom attendu) est monté, et c'est le dialogue du
+ * DESSUS — le point de son geste primaire, sinon de sa tête, tombe sur lui (`elementFromPoint`). Un
+ * autre cadre présent ne vaut pas preuve : sans ce détecteur, les verdicts de pied et de bord jugeaient
+ * le premier cadre venu (juge B8, #1920 : une fenêtre de jet montée de « campagne (exploration) » à
+ * « menu système », six écrans jugés `OK` dessous).
+ *
+ * @param {{ vue: string, ecran: string, nom: string, dialogues?: string[],
+ *           dialogue?: { nom: string, dessus: boolean, cible: string } | null }} releve
+ * @returns {string[]}
+ */
+export function ecranNomme(releve) {
+  const { dialogue } = releve;
+  if (!dialogue) {
+    const autres = releve.dialogues?.length ? `dialogues montés : ${releve.dialogues.map((n) => `« ${n} »`).join(', ')}` : 'aucun dialogue monté';
+    return [`${releve.vue} · ${releve.ecran} : aucun dialogue nommé « ${releve.nom} » — écran absent, ${autres}`];
+  }
+  if (dialogue.dessus) return [];
+  return [`${releve.vue} · ${releve.ecran} : « ${dialogue.nom} » est monté mais RECOUVERT — son geste tombe sur « ${dialogue.cible} »`];
+}
+
+/**
+ * ENFANTS QUI SE CHEVAUCHENT dans un cadre — deux frères dans le flux (ni `absolute` ni `fixed`)
+ * dont les ÉTENDUES se recouvrent : l'un écrit sur l'autre. L'étendue d'un élément est sa boîte
+ * augmentée de ce qui en DÉBORDE sans être tenu par un défileur ou un rognage : une rangée de grille
+ * comprimée garde une boîte sage et laisse son contenu passer sous la rangée suivante (juge B9,
+ * #1920 : planche à 700×780, colonne `aside` jusqu'à 499 sous des onglets qui commencent à 421).
+ * La sonde relève les fratries et leurs étendues, le verdict est ici. Tolérance d'UN pixel.
+ *
+ * @param {{ vue: string, ecran: string,
+ *           cadres?: { sel: string, fratries?: { parent: string,
+ *             enfants: { sel: string, left: number, right: number, top: number, bottom: number }[] }[] }[] }} releve
+ * @returns {string[]}
+ */
+export function enfantsQuiSeChevauchent(releve) {
+  const out = [];
+  for (const c of releve.cadres ?? []) {
+    for (const f of c.fratries ?? []) {
+      const e = f.enfants;
+      for (let i = 0; i < e.length; i++) {
+        for (let j = i + 1; j < e.length; j++) {
+          const h = Math.min(e[i].right, e[j].right) - Math.max(e[i].left, e[j].left);
+          const v = Math.min(e[i].bottom, e[j].bottom) - Math.max(e[i].top, e[j].top);
+          if (h <= 1 || v <= 1) continue;
+          out.push(
+            `${releve.vue} · ${releve.ecran} : dans « ${c.sel} », sous « ${f.parent} », « ${e[i].sel} » ` +
+            `(${e[i].top}..${e[i].bottom}) et « ${e[j].sel} » (${e[j].top}..${e[j].bottom}) se CHEVAUCHENT ` +
+            `sur ${+v.toFixed(1)}×${+h.toFixed(1)}px — l'un écrit sur l'autre`,
+          );
+        }
+      }
+    }
+  }
+  return out;
+}
+
+/**
+ * ONGLET CLIQUÉ HORS DE VUE — après le clic d'un onglet de planche, le joueur voit la barre
+ * d'onglets et le haut du corps qu'il vient d'ouvrir, jamais la colonne de présence qui les
+ * précède. Mesure du juge B10 (#1920), fiche à 360×740 : barre à 416px sous le haut de la planche
+ * et 29px du corps d'onglet en vue. Le relevé porte, en coordonnées d'écran, la fenêtre de la planche
+ * (`cadre`), la barre d'onglets et le haut du corps d'onglet ; `finDeCourse` dit que la planche ne
+ * peut plus descendre. Tolérance d'UN pixel.
+ *
+ * @param {{ vue: string, ecran: string, onglet: string, finDeCourse?: boolean,
+ *           cadre: { top: number, bottom: number }, barre: { top: number, bottom: number },
+ *           corps: { top: number } }} releve
+ * @returns {string[]}
+ */
+export function ongletHorsDeVue(releve) {
+  const { cadre, barre, corps } = releve;
+  const ici = `${releve.vue} · ${releve.ecran} › onglet « ${releve.onglet} »`;
+  if (barre.top < cadre.top - 1 || barre.bottom > cadre.bottom + 1) {
+    return [`${ici} : la barre d'onglets (${barre.top}..${barre.bottom}) sort de la planche (${cadre.top}..${cadre.bottom})`];
+  }
+  if (barre.top > cadre.top + 1 && !releve.finDeCourse) {
+    return [
+      `${ici} : la barre d'onglets est à ${+(barre.top - cadre.top).toFixed(1)}px sous le haut de la planche — ` +
+      `la présence reste en vue et ${+Math.max(0, cadre.bottom - corps.top).toFixed(1)}px du corps ouvert`,
+    ];
+  }
+  if (corps.top >= cadre.bottom - 1) {
+    return [`${ici} : le haut du corps d'onglet (${corps.top}) est sous le bord de la planche (${cadre.bottom})`];
+  }
+  return [];
+}
+
+/**
+ * NOM DE PLANCHE RECOUVERT — le nom d'une planche (`.planche-nom`, nom de son dialogue) n'est jamais
+ * sous un élément HORS de ce dialogue : chacun des 5 points relevés (centre, 4 coins rentrés de 3px)
+ * tombe dans le dialogue (`elementFromPoint`). Juge B11 (#1920, D2) : planche de navire à 700×780 en
+ * combat, le nom sous la bande de groupe (`party-dock`).
+ *
+ * @param {{ vue: string, ecran: string, nom: { texte: string, couverts: string[] } | null }} releve
+ * @returns {string[]}
+ */
+export function nomRecouvert(releve) {
+  const { vue, ecran, nom } = releve;
+  if (!nom) return [`${vue} · ${ecran} : aucun nom de planche relevé — sonde aveugle`];
+  if (!nom.couverts.length) return [];
+  return [`${vue} · ${ecran} : le nom « ${nom.texte} » est RECOUVERT par « ${[...new Set(nom.couverts)].join(', ')} » (${nom.couverts.length}/5 points)`];
+}

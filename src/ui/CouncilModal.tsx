@@ -33,15 +33,14 @@ export function CouncilModal() {
     const delta = p.delta ?? 0;
     const chosen = p.decision ? findMoraleFactor(p.decision) : undefined;
     return (
-      <Modal title={title} variant="plain" className="council-modal" onClose={councilClose}>
+      <Modal title={title} className="council-modal" onClose={councilClose} etape={p.phase}
+        footer={<button className="btn btn-primary" onClick={() => councilClose()}>Clore le conseil</button>}
+      >
         {chosen && <p className="port-hint">Paie de la semaine : <b>{chosen.label}</b>.</p>}
         <MultiRollList entries={p.results ?? []} />
         <p className={`council-result ${moraleTone(after)}`}>
           Moral : <b>{p.before}</b> → <b>{after}</b> ({delta >= 0 ? '+' : ''}{delta}) — {band.label}
         </p>
-        <div className="modal-actions">
-          <button className="btn btn-primary" onClick={() => councilClose()}>Clore le conseil</button>
-        </div>
       </Modal>
     );
   }
@@ -69,7 +68,7 @@ export function CouncilModal() {
   });
 
   return (
-    <Modal title={title} variant="plain" className="council-modal" onClose={undefined}>
+    <Modal title={title} className="council-modal" onClose={undefined} etape={p.phase}>
       <p className="port-hint">
         Solde due (paie régulière) : <b><Coins money={fromBrass(p.wageBrass)} /></b> · Bourse <Coins money={money} />
       </p>

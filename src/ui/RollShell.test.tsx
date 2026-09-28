@@ -30,7 +30,7 @@ const rolledRow = (over: Partial<RollRowData> = {}): BuiltRollRow => ({
   ...over,
 });
 
-// Les hooks/modales NE fournissent PLUS de « Lancer » : la coquille le hisse dans `.modal-actions`
+// Les hooks/modales NE fournissent PLUS de « Lancer » : la coquille le hisse dans `.cadre-pied`
 // pour le cas mono. Les actions sont donc seulement Annuler (pré) + Appliquer (post).
 const actions: RollAction[] = [
   { key: 'cancel', label: 'Annuler', onClick: noop, when: 'pre' },
@@ -41,11 +41,11 @@ function render(node: React.ReactElement) {
   return renderToStaticMarkup(node);
 }
 
-/** Extrait le contenu de la barre `.modal-actions` (div à profondeur équilibrée) pour vérifier OÙ est un bouton. */
+/** Extrait le contenu de la barre `.cadre-pied` (div à profondeur équilibrée) pour vérifier OÙ est un bouton. */
 function actionsBar(html: string): string {
-  const start = html.indexOf('<div class="modal-actions">');
-  if (start < 0) return '';
-  const contentStart = start + '<div class="modal-actions">'.length;
+  const ouverture = /<div class="[^"]*\bcadre-pied\b[^"]*"[^>]*>/.exec(html);
+  if (!ouverture) return '';
+  const contentStart = ouverture.index + ouverture[0].length;
   let depth = 1;
   const re = /<div\b|<\/div>/g;
   re.lastIndex = contentStart;
@@ -57,8 +57,19 @@ function actionsBar(html: string): string {
   return html.slice(contentStart);
 }
 
+describe('RollShell — la couture UNIQUE du plein écran', () => {
+  it('une fenêtre de jet pose le champ lisible ET le plein écran sur son voile ; embarquée, aucun', () => {
+    const flottante = render(<RollShell title="Jet" rows={[pendingRow()]} rolled={false} actions={actions} onCancel={noop} />);
+    const voile = /<div class="modal-overlay"[^>]*>/.exec(flottante)?.[0] ?? '';
+    expect(voile).toContain('data-champ="true"');
+    expect(voile).toContain('data-plein="true"');
+    const embarquee = render(<RollShell title="Jet" embedded rows={[pendingRow()]} rolled={false} actions={actions} onCancel={noop} />);
+    expect(embarquee).not.toContain('data-plein');
+  });
+});
+
 describe('RollShell — coquille de jet unifiée', () => {
-  it('(a) mono : 1 rangée interactive pré-jet → « Lancer » HISSÉ dans la barre `.modal-actions`', () => {
+  it('(a) mono : 1 rangée interactive pré-jet → « Lancer » HISSÉ dans la barre `.cadre-pied`', () => {
     const html = render(
       <RollShell
         title="Test mono"
@@ -72,12 +83,12 @@ describe('RollShell — coquille de jet unifiée', () => {
     expect(html).toContain('Un jet');
     expect(html).toContain('45'); // cible pré-jet
     expect(html).not.toContain('Appliquer'); // action 'post' masquée pré-jet
-    // Le « Lancer » vit dans `.modal-actions` (même niveau qu'Annuler), jamais dans la rangée.
+    // Le « Lancer » vit dans `.cadre-pied` (même niveau qu'Annuler), jamais dans la rangée.
     const bar = actionsBar(html);
     expect(bar).toContain('Lancer'); // Lancer hissé DANS la barre
     expect(bar).toContain('Annuler'); // à côté d'Annuler (pré-jet)
     // La rangée (`prow-act`) ne rend plus le bouton Lancer inline.
-    const beforeBar = html.slice(0, html.indexOf('<div class="modal-actions">'));
+    const beforeBar = html.slice(0, html.search(/<div class="[^"]*\bcadre-pied\b/));
     expect(beforeBar).not.toContain('Lancer');
   });
 
@@ -100,7 +111,7 @@ describe('RollShell — coquille de jet unifiée', () => {
     );
     // ≥2 rangées à lancer → aucun hissage : le Lancer reste dans les rangées (`prow-act`), pas dans la barre.
     expect(actionsBar(html)).not.toContain('Lancer');
-    const beforeBar = html.slice(0, html.indexOf('<div class="modal-actions">'));
+    const beforeBar = html.slice(0, html.search(/<div class="[^"]*\bcadre-pied\b/));
     expect(beforeBar).toContain('Lancer'); // les deux boutons de rangée
   });
 
@@ -205,6 +216,22 @@ describe('RollShell — coquille de jet unifiée', () => {
     expect(pre).toContain('Lancer');
     expect(post).not.toContain('Lancer');
   });
+
+  it('(l) une action REFUSÉE garde le ton de sa clé : le bouton nu et `GatedAction` lisent le même `actionTon`', () => {
+    const classes = (html: string, label: string) =>
+      (new RegExp(`<button[^>]*class="([^"]*)"[^>]*>${label}<`).exec(actionsBar(html))?.[1] ?? '').split(' ').filter(Boolean).sort();
+    const refusees: RollAction[] = [
+      { key: 'cancel', label: 'Annuler', onClick: noop, when: 'pre', refus: 'Le jet est engagé.' },
+      { key: 'confirm', label: 'Valider', onClick: noop, when: 'pre', refus: 'Choisis une option.' },
+    ];
+    const nues: RollAction[] = refusees.map(({ refus: _refus, ...a }) => a);
+    const refuse = render(<RollShell title="T" rows={[]} rolled={false} actions={refusees} />);
+    const offert = render(<RollShell title="T" rows={[]} rolled={false} actions={nues} />);
+    expect(classes(refuse, 'Annuler')).toEqual(['btn', 'btn-ghost']);
+    expect(classes(refuse, 'Valider')).toEqual(['btn', 'btn-primary']);
+    expect(classes(offert, 'Annuler')).toEqual(classes(refuse, 'Annuler'));
+    expect(classes(offert, 'Valider')).toEqual(classes(refuse, 'Valider'));
+  });
 });
 
 /**
@@ -213,7 +240,7 @@ describe('RollShell — coquille de jet unifiée', () => {
  * l'accole désormais elle-même, dérivé de la MÊME entrée d'enjeu que la phrase.
  */
 describe('RollShell — Z3b′ : le renvoi de règle est accolé au titre PAR LA COQUILLE', () => {
-  const stake = flowStakeRef('run', 'roll'); // un jet dont l'enjeu a un foyer (`regles/course`)
+  const stake = flowStakeRef('run-roll'); // un jet dont l'enjeu a un foyer (`regles/course`)
 
   it('un `stake` à foyer donne le ℹ au titre SANS que le site ne compose quoi que ce soit', () => {
     const html = render(<RollShell title="Course" rows={[pendingRow()]} rolled={false} actions={actions} stake={stake} />);

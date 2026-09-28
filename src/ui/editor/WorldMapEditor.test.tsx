@@ -21,6 +21,7 @@ import { describe, it, expect, beforeAll, afterEach } from 'vitest';
 import { act, useState } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { WorldMapEditor } from './WorldMapEditor';
+import { choisirDansMenu, menuDe } from './AddMenu.testkit';
 import { emptyWorldMap, type WorldMap, type MapPlace, type MapRoute } from '../../state/worldMap';
 import { emptyScene, type Scene } from '../../state/scene';
 import { lieuxServices, navalPorts } from '../../data';
@@ -290,7 +291,7 @@ describe('WorldMapEditor — panneau Route / Péripéties (#419)', () => {
     expect(lastMap!.routes[0].ambush?.at).toBeCloseTo(0.3);
   });
 
-  it('ajoute et édite une péripétie d’auteur (libellé, probabilité, effet)', () => {
+  it('ajoute et édite une péripétie d’auteur (libellé, probabilité, effet)', async () => {
     mount();
     click(routeG());
     click(tab('Péripéties'));
@@ -303,8 +304,7 @@ describe('WorldMapEditor — panneau Route / Péripéties (#419)', () => {
     setValue(input('Probabilité par jour'), '25');
     expect(lastMap!.routes[0].perils![0].chancePct).toBe(25);
 
-    const addEffectBtn = container.querySelector('.eff-add-menu .listrow') as HTMLButtonElement;
-    click(addEffectBtn);
+    await choisirDansMenu(menuDe(container, '+ Effet'), 'Journal');
     expect(lastMap!.routes[0].perils![0].effects).toHaveLength(1);
   });
 });

@@ -1,6 +1,6 @@
-// CLIQUET de l'inventaire des worktrees (node --test) : parseur et classement sont PURS, et la
-// purge se joue sur un dépôt JETABLE sous `os.tmpdir()` porteur de VRAIS worktrees — la seule façon
-// de prouver qu'un arbre SALE survit à `--purger`.
+// CLIQUET de l'inventaire des worktrees (node --test) : le classement est PUR, les écrivains de la
+// purge sont injectables, et l'inventaire se joue sur un dépôt JETABLE sous `os.tmpdir()` porteur de
+// VRAIS worktrees — la seule façon de prouver qu'un arbre SALE survit à `--purger`.
 // Lancé par `npm run test:ops`.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
@@ -9,61 +9,25 @@ import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { envDeDepotForge, instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
+import { GitIndisponible, depotDe, worktreesDe } from '../guards/lib/gitPorte.mjs'
 import {
-  CLASSES, arbresTenus, classerWorktree, comptesParClasse, inventaire, ligneDInventaire, parseWorktrees, purger,
+  CLASSES, GESTES_DE_L_INVENTAIRE, arbresTenus, classerWorktree, comptesParClasse, inventaire, ligneDInventaire, purger,
 } from './worktrees.mjs'
 
-const PORCELAIN = [
-  'worktree /dep',
-  'HEAD 1111111111111111111111111111111111111111',
-  'branch refs/heads/main',
-  '',
-  'worktree /dep/.wt-42',
-  'HEAD 2222222222222222222222222222222222222222',
-  'branch refs/heads/chantier/42',
-  '',
-  'worktree /dep/.wt-detache',
-  'HEAD 3333333333333333333333333333333333333333',
-  'detached',
-  '',
-  'worktree /dep/.wt-verrou',
-  'HEAD 4444444444444444444444444444444444444444',
-  'branch refs/heads/chantier/verrou',
-  'locked recette en cours',
-  '',
-  'worktree /dep/.wt-perdu',
-  'HEAD 5555555555555555555555555555555555555555',
-  'branch refs/heads/chantier/perdu',
-  'prunable gitdir file points to non-existent location',
-  '',
-].join('\n')
-
-test('parseWorktrees lit les cinq formes de bloc, et le PREMIER est l’arbre principal', () => {
-  const vus = parseWorktrees(PORCELAIN)
-  assert.equal(vus.length, 5)
-  assert.deepEqual(vus.map((w) => w.chemin), ['/dep', '/dep/.wt-42', '/dep/.wt-detache', '/dep/.wt-verrou', '/dep/.wt-perdu'])
-  assert.deepEqual(vus.map((w) => w.principal), [true, false, false, false, false])
-  assert.deepEqual(vus.map((w) => w.branche), ['main', 'chantier/42', null, 'chantier/verrou', 'chantier/perdu'])
-  assert.equal(vus[2].head, '3333333333333333333333333333333333333333')
-  assert.equal(vus[3].verrouille, true)
-  assert.equal(vus[3].verrouillePour, 'recette en cours')
-  assert.equal(vus[1].verrouille, false)
-  assert.equal(vus[4].prunable, 'gitdir file points to non-existent location')
-  assert.equal(vus[1].prunable, null)
-})
-
-test('parseWorktrees supporte les fins de ligne CRLF et un `locked` sans raison', () => {
-  const vus = parseWorktrees('worktree /a\r\nHEAD abc\r\nbare\r\n\r\nworktree /b\r\nHEAD def\r\nlocked\r\n')
-  assert.equal(vus.length, 2)
-  assert.equal(vus[0].nu, true)
-  assert.equal(vus[1].verrouille, true)
-  assert.equal(vus[1].verrouillePour, null)
-})
-
-test('parseWorktrees d’une sortie VIDE ne rend rien (et ne jette pas)', () => {
-  assert.deepEqual(parseWorktrees(''), [])
-  assert.deepEqual(parseWorktrees(null), [])
-})
+/** Les ÉCRIVAINS de la purge, factices : `vus` journalise chaque geste, `code(geste)` rend son code
+ *  de sortie. */
+function gestesFactices(vus = [], code = () => 0) {
+  const union = (geste) => {
+    vus.push(geste)
+    const status = code(geste)
+    return { disponible: true, valeur: { status, stdout: '', stderr: status ? 'fatal: failed to delete: Permission denied' : '' } }
+  }
+  return {
+    retirerWorktree: (_depot, chemin) => union(`worktree remove ${chemin}`),
+    supprimerBranche: (_depot, branche) => union(`branch -d ${branche}`),
+    elaguerWorktrees: () => union('worktree prune'),
+  }
+}
 
 // `tenus` est l'ensemble NORMALISÉ des arbres que le processus courant tient : il est INJECTÉ ici
 // (fixture locale), jamais lu du disque — le classement reste pur.
@@ -111,7 +75,7 @@ test('classerWorktree : un arbre TENU par ce processus n’est JAMAIS purgeable,
   const gestes = purger({
     principal: '/dep',
     worktrees: [{ classe: 'tenu', chemin: '/dep/.wt-tenu', branche: 'chantier/tenu' }],
-    git: (args) => { vus.push(args.join(' ')); return { disponible: true, valeur: { status: 0, stderr: '' } } },
+    gestes: gestesFactices(vus),
   })
   assert.deepEqual(vus, [])
   assert.deepEqual(gestes, [])
@@ -165,15 +129,11 @@ test('comptesParClasse compte dans l’ordre des CLASSES, sans les classes vides
   assert.deepEqual(Object.entries(comptes), [['principal', 1], ['sale', 1], ['propre+fusionné', 2]])
 })
 
-test('purger : un worktree ABSENT seul suffit à jouer `git worktree prune` (git injecté)', () => {
+test('purger : un worktree ABSENT seul suffit à jouer `git worktree prune` (écrivains injectés)', () => {
   const vus = []
-  const git = (args) => {
-    vus.push(args.join(' '))
-    return { disponible: true, absent: false, valeur: { status: 0, stderr: '' } }
-  }
   // Aucun `propre+fusionné` : sans le déclencheur `absent`, la taille ne se jouait pas et
   // l'inventaire répétait le worktree disparu à chaque passage.
-  const gestes = purger({ principal: '/dep', worktrees: [{ classe: 'absent', chemin: '/dep/.wt-perdu', branche: 'chantier/perdu' }], git })
+  const gestes = purger({ principal: '/dep', worktrees: [{ classe: 'absent', chemin: '/dep/.wt-perdu', branche: 'chantier/perdu' }], gestes: gestesFactices(vus) })
   assert.deepEqual(vus, ['worktree prune'])
   assert.deepEqual(gestes.map((g) => g.geste), ['git worktree prune'])
   assert.equal(gestes[0].ok, true)
@@ -181,11 +141,7 @@ test('purger : un worktree ABSENT seul suffit à jouer `git worktree prune` (git
 
 test('purger : sans absent NI fusionné, aucun geste — la taille ne se joue pas sur rien', () => {
   const vus = []
-  const git = (args) => {
-    vus.push(args.join(' '))
-    return { disponible: true, absent: false, valeur: { status: 0, stderr: '' } }
-  }
-  const gestes = purger({ principal: '/dep', worktrees: [{ classe: 'sale', chemin: '/dep/.wt-sale' }, { classe: 'principal', chemin: '/dep' }], git })
+  const gestes = purger({ principal: '/dep', worktrees: [{ classe: 'sale', chemin: '/dep/.wt-sale' }, { classe: 'principal', chemin: '/dep' }], gestes: gestesFactices(vus) })
   assert.deepEqual(vus, [])
   assert.deepEqual(gestes, [])
 })
@@ -254,11 +210,62 @@ test('un worktree dont le RÉPERTOIRE a disparu se classe absent, et la purge le
   } finally { jeter() }
 })
 
+test('worktreesDe lit les cinq formes de worktree sur git RÉEL, et le PREMIER est l’arbre principal', () => {
+  const { racine, git, jeter } = depotAvecOrigin()
+  try {
+    git('worktree', 'add', '-q', '-b', 'chantier/42', join(racine, '.wt-42'), 'origin/main')
+    git('worktree', 'add', '-q', '--detach', join(racine, '.wt-detache'), 'origin/main')
+    git('worktree', 'add', '-q', '-b', 'chantier/verrou', join(racine, '.wt-verrou'), 'origin/main')
+    git('worktree', 'lock', '--reason', 'recette en cours', join(racine, '.wt-verrou'))
+    git('worktree', 'add', '-q', '-b', 'chantier/nu-verrou', join(racine, '.wt-nu-verrou'), 'origin/main')
+    git('worktree', 'lock', join(racine, '.wt-nu-verrou'))
+    git('worktree', 'add', '-q', '-b', 'chantier/perdu', join(racine, '.wt-perdu'), 'origin/main')
+    rmSync(join(racine, '.wt-perdu'), { recursive: true, force: true })
+    const vus = worktreesDe(depotDe(racine, { env: envDeDepotForge() }))
+    const nom = (w) => w.chemin.split('/').pop()
+    const par = Object.fromEntries(vus.slice(1).map((w) => [nom(w), w]))
+    assert.deepEqual(vus.map((w) => w.principal), [true, false, false, false, false, false])
+    assert.deepEqual(Object.entries(par).map(([n, w]) => [n, w.branche]).sort(), [
+      ['.wt-42', 'chantier/42'], ['.wt-detache', null], ['.wt-nu-verrou', 'chantier/nu-verrou'],
+      ['.wt-perdu', 'chantier/perdu'], ['.wt-verrou', 'chantier/verrou'],
+    ])
+    assert.match(par['.wt-detache'].head, /^[0-9a-f]{40}$/)
+    assert.deepEqual([par['.wt-verrou'].verrouille, par['.wt-verrou'].verrouillePour], [true, 'recette en cours'])
+    assert.deepEqual([par['.wt-nu-verrou'].verrouille, par['.wt-nu-verrou'].verrouillePour], [true, null])
+    assert.equal(par['.wt-42'].verrouille, false)
+    assert.match(par['.wt-perdu'].prunable, /gitdir file points to non-existent location/)
+    assert.equal(par['.wt-42'].prunable, null)
+    assert.equal(vus.some((w) => w.nu), false)
+  } finally { jeter() }
+})
+
+test('un arbre ILLISIBLE (git en panne sur son dossier) est SALE : il ne se purge pas', () => {
+  const { racine, jeter } = depotAvecOrigin()
+  const illisible = mkdtempSync(join(tmpdir(), 'wt-illisible-'))
+  try {
+    const bruts = [
+      { chemin: racine, head: null, branche: 'main', principal: true, nu: false, verrouille: false, verrouillePour: null, prunable: null },
+      { chemin: illisible, head: 'a'.repeat(40), branche: 'chantier/illisible', principal: false, nu: false, verrouille: false, verrouillePour: null, prunable: null },
+    ]
+    const vu = inventaire({ racine, gestes: {
+      ...GESTES_DE_L_INVENTAIRE,
+      worktreesDe: () => bruts,
+      fetchOrigin: () => ({ disponible: true, valeur: { status: 0, stdout: '', stderr: '' } }),
+      estAncetre: () => ({ disponible: true, valeur: true }),
+    } })
+    const w = vu.worktrees.find((x) => x.chemin === illisible)
+    assert.deepEqual([w.sale, w.fusionne, w.classe], [true, true, 'sale'])
+  } finally {
+    jeter()
+    rmSync(illisible, { recursive: true, force: true })
+  }
+})
+
 test('origin non lu : l’inventaire s’imprime SANS verdict de fusion, et rien n’est purgeable', () => {
   const { racine, git, jeter } = depotAvecOrigin()
   try {
     git('worktree', 'add', '-q', '-b', 'chantier/propre', join(racine, '.wt-propre'), 'origin/main')
-    const vu = inventaire({ racine, fetch: () => ({ disponible: false, raison: 'réseau coupé' }) })
+    const vu = inventaire({ racine, gestes: { ...GESTES_DE_L_INVENTAIRE, fetchOrigin: () => ({ disponible: false, raison: 'réseau coupé' }) } })
     assert.equal(vu.fusionLue, false)
     const propre = parNom(vu.worktrees, '.wt-propre')
     assert.equal(propre.fusionne, null)
@@ -270,19 +277,13 @@ test('origin non lu : l’inventaire s’imprime SANS verdict de fusion, et rien
 
 // Le `remove` qui ÉCHOUE laisse un dossier sur le disque (EPERM d'un arbre tenu par un autre
 // processus, mesuré sur `.wt-1736`). Sans re-mesure, la sortie annonçait le retrait et personne ne
-// savait qu'il restait un dossier à retirer à la main. `git` et la sonde de disque sont INJECTÉS.
+// savait qu'il restait un dossier à retirer à la main. Les écrivains et la sonde de disque sont INJECTÉS.
 test('purger : un remove ROUGE dont le dossier RESTE se dit, avec le geste à la main et la branche', () => {
   const vus = []
-  const git = (args) => {
-    vus.push(args.join(' '))
-    return args[1] === 'remove'
-      ? { disponible: true, valeur: { status: 1, stderr: 'fatal: failed to delete: Permission denied' } }
-      : { disponible: true, valeur: { status: 0, stderr: '' } }
-  }
   const gestes = purger({
     principal: '/dep',
     worktrees: [{ classe: 'propre+fusionné', chemin: '/dep/.wt-bloque', branche: 'chantier/bloque' }],
-    git,
+    gestes: gestesFactices(vus, (geste) => (geste.startsWith('worktree remove') ? 1 : 0)),
     nature: (chemin) => (chemin === '/dep/.wt-bloque' ? 'repertoire' : 'absent'),
   })
   // La branche n'est PAS supprimée (le remove a échoué) ; la taille se joue ; puis la re-mesure parle.
@@ -303,7 +304,7 @@ test('purger : un remove VERT dont le dossier RESTE est nommé lui aussi', () =>
   const gestes = purger({
     principal: '/dep',
     worktrees: [{ classe: 'propre+fusionné', chemin: '/dep/.wt-reste', branche: 'chantier/reste' }],
-    git: () => ({ disponible: true, valeur: { status: 0, stderr: '' } }),
+    gestes: gestesFactices(),
     nature: (chemin) => (chemin === '/dep/.wt-reste' ? 'repertoire' : 'absent'),
   })
   assert.deepEqual(gestes.map((g) => [g.geste, g.ok]), [
@@ -319,7 +320,7 @@ test('purger : un remove rouge dont le dossier a bel et bien DISPARU ne dit rien
   const gestes = purger({
     principal: '/dep',
     worktrees: [{ classe: 'propre+fusionné', chemin: '/dep/.wt-parti', branche: 'chantier/parti' }],
-    git: (args) => ({ disponible: true, valeur: { status: args[1] === 'remove' ? 1 : 0, stderr: '' } }),
+    gestes: gestesFactices([], (geste) => (geste.startsWith('worktree remove') ? 1 : 0)),
     nature: () => 'absent',
   })
   assert.deepEqual(gestes.map((g) => g.geste), ['git worktree remove /dep/.wt-parti', 'git worktree prune'])
@@ -354,8 +355,7 @@ test('inventaire RÉEL depuis un WORKTREE : cet arbre-là est `tenu`, et la purg
 test('git worktree list illisible : refus NOMMÉ, jamais un inventaire vide', () => {
   const vu = inventaire({
     racine: '/dep',
-    fetch: () => ({ disponible: true, valeur: { status: 0, stdout: '', stderr: '' } }),
-    git: () => ({ disponible: false, raison: 'git introuvable (binaire absent du PATH)' }),
+    gestes: { ...GESTES_DE_L_INVENTAIRE, worktreesDe: () => { throw new GitIndisponible('git introuvable (binaire absent du PATH)') } },
   })
   assert.equal(vu.ok, false)
   assert.match(vu.refus, /git introuvable/)

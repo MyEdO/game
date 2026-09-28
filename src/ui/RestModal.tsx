@@ -48,11 +48,11 @@ function heroWarnings(h: Combatant, lodging: RestLodging, food: RestFood, exposu
 /**
  * CORPS de la modale de repos — `embedded` (#333) bascule le rendu en zone embarquée (sans `Modal`,
  * patron `CascadeBody`/`RollShell embedded`) pour l'incrustation dans l'écran-hub de voyage. Défaut
- * `false` = modale flottante (inchangé) ; une nuit ÉTAPE, RÉGLAGES + BILAN en deux phases :
- *  - RÉGLAGES : par héros, couchage + pitance (choix PERSONNELS et orthogonaux — manger à
- *    l'auberge et dormir dehors est permis) ; coût RAW total calculé ; avertissements en ligne ;
- *  - BILAN : le temps passé est AFFICHÉ (avant → après), et tous les jets de la nuit tiennent
- *    sur UN écran (brique multi-jets) — abri, Exposition, récupération, cauchemars, contagion.
+ * `false` = modale flottante. Une seule phase, les RÉGLAGES de la nuit : par héros,
+ * couchage + pitance (choix PERSONNELS et orthogonaux — manger à l'auberge et dormir dehors est
+ * permis) ; coût RAW total calculé ; avertissements en ligne. Le bilan n'est pas ici : « Dormir
+ * jusqu’à l’aube » (`restSleep`) vide `pendingRest` et ouvre la nuit en CASCADE (`openRestNight`,
+ * `restFlow.ts`).
  */
 export function RestBody({ embedded = false }: { embedded?: boolean } = {}) {
   const p = useGame((s) => s.pendingRest);
@@ -187,7 +187,10 @@ export function RestBody({ embedded = false }: { embedded?: boolean } = {}) {
       {online && (
         <ReadyRow ready={ready} />
       )}
-      <div className="modal-actions">
+    </>
+  );
+  const reglagesFooter = (
+    <>
         {!p.travelHalt && <button className="btn btn-ghost" onClick={() => restCancel()}>Annuler</button>}
         {online && !ready[net.mySeat] && (
           <button className="btn" onClick={() => restReady(net.mySeat)}><Icon id="action/attack" size="sm" /> Prêt</button>
@@ -202,14 +205,13 @@ export function RestBody({ embedded = false }: { embedded?: boolean } = {}) {
             onClick={() => restSleep()}
           />
         )}
-      </div>
     </>
   );
   if (embedded) {
-    return <EmbeddedShell className="rest-modal" title={reglagesTitle}>{reglagesBody}</EmbeddedShell>;
+    return <EmbeddedShell title={reglagesTitle} footer={reglagesFooter}>{reglagesBody}</EmbeddedShell>;
   }
   return (
-    <Modal title={reglagesTitle} variant="plain" className="rest-modal" onClose={p.travelHalt ? undefined : () => restCancel()}>
+    <Modal title={reglagesTitle} onClose={p.travelHalt ? undefined : () => restCancel()} footer={reglagesFooter}>
       {reglagesBody}
     </Modal>
   );

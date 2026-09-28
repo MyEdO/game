@@ -503,9 +503,9 @@ describe('Après la pose — l’étape reste lisible à l’état résolu (verd
     setDesFixes(true);
     openDeux();
     render();
-    const scroll = host.querySelector('.rs-scroll');
+    const scroll = host.querySelector('.modal-body');
     expect(scroll, 'aucun corps défilable : la modale entière redevient le scrollport').not.toBeNull();
-    const actions = host.querySelector('.modal-actions')!;
+    const actions = host.querySelector('.cadre-pied')!;
     expect(actions, 'la barre d’actions a disparu').not.toBeNull();
     expect(scroll!.contains(actions), 'la barre d’actions est DANS le corps défilable : elle sortira du champ dès que le contenu déborde').toBe(false);
     expect(actions.parentElement, 'la barre n’est pas sœur du corps défilable').toBe(scroll!.parentElement);

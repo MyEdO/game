@@ -73,6 +73,12 @@ Moissonné de scripts scratchpad éprouvés (patrons repris tels quels) : CDP nu
 **Zéro dépendance nouvelle** : `playwright-core` n'était PAS installé dans ce dépôt (vérifié —
 seul le scratchpad d'un agent l'avait en local) ; le socle reste donc en CDP nu (fetch + WebSocket
 natifs Node ≥ 22), le choix le plus robuste des scripts moissonnés au regard de cette contrainte.
+
+**Quel Chrome** (`resoudreChrome`, `lib.mjs`, testée à fixtures) : `CHROME_PATH` d'abord, puis les
+chemins Windows de Chrome (sur `win32` seulement), puis le Chromium Playwright de plus haute version sous
+`PLAYWRIGHT_BROWSERS_PATH` (défaut `/opt/pw-browsers`, `chromium-<N>/chrome-linux/chrome`) ; en root,
+`--no-sandbox` est ajouté. Aucun candidat : refus nommant les chemins essayés.
+
 Le kit ne DÉMARRE **jamais** le serveur de dev — il s'y **attache** (erreur claire si injoignable).
 
 > **L'étalon se juge aux TROIS VUES, source unique `scripts/recette/vues-recette.json`** (#1847) :
@@ -130,6 +136,38 @@ d'initiative, badges de score montés ; tour engagé ; acteur au trait EN BAS de
 à fond),
 l'ouvreur d'écran d'un rail dissous garde un ancrage hors flux, et la boîte pleine ligne du bandeau
 d'objectif n'avale rien hors de sa tête. Exit ≠ 0 avec la liste des défauts.
+La MATRICE RESPONSIVE du HUD (design 2026-07-31 §12) se juge sur le RENDU pour les cellules qu'un
+DOM de la sonde porte (`defautsMatrice`, `defautsCompacite`, `defautsTactile`, testées à fixtures) :
+**Groupe** — toutes les cartes rendues avec leur vie et leur NOM à toute tranche
+(`docs/plans/2026-08-16-spec-hud-combat.md:192-194`), la vie superposée au portrait à
+561–700, un défilement horizontal de secours ; à ≤560, R-M1 (`:66-68`) : chaque tuile rendue fait
+≥ 44px de large et n'est rognée par le champ de la piste que si celle-ci défile ; à ≤560 la bande
+REPLIÉE se déplie par clic réel sur sa poignée et le groupe déplié se juge (une ligne, chaque portrait
+reçoit son clic — en combat devant le fil d'événements, recouvrement volet × fil imprimé), puis elle
+se replie ; **Initiative** — colonne à gauche au-dessus de 900 avec le cartouche de Round rendu DANS
+sa boîte (« round intégré »), colonne jusqu'à 701 avec l'entrée au trait entière dans le champ
+(« courant entier »), bande à 700 et moins dont la piste est défilable, cartouche de Round en première
+entrée, bande sous le groupe à 561–700, courant + deux suivants entiers à ≤560 ; **Dock** — pont de
+bord à bord, chaque case entière dans l'écran, hauteur du pont ≤ 21 % du viewport dès 1280px et
+≤ 45 % à ≤560 (`docs/plans/2026-08-16-spec-hud-combat.md` Zone 1) ; **compacité** sur la série des
+largeurs (cartes et colonne d'initiative plus étroites à 701–900 qu'au-delà de 900, portraits à
+561–700) ; **cibles tactiles** : le pointeur grossier est ÉMULÉ (`Emulation.setTouchEmulationEnabled`
+fait répondre `(pointer: coarse)`) et chaque commande vissée rendue offre 44px à ≤560. L'ouvreur
+d'écran du rail n'est monté qu'avec un navire (`src/ui/CampaignView.tsx`) : la mise en place du combat
+pose un `vessel` de campagne.
+Cellules NON MESURÉES, et pourquoi :
+- **Caméra / inspection** `>900`, `701–900`, `561–700` : ces cellules décrivent `ViewControls`, monté
+  en jeu nulle part (#1822, « Inspection de combattant : aucun contrôle visible (ViewControls monté
+  nulle part, touche I seule)… ») — `grep -rn ViewControls src` ne le trouve qu'à
+  `src/ui/editor/EditorCanvas.tsx` et `src/ui/gallery/registry.tsx`.
+- **Dock** `701–900` « dock sur deux rangées au besoin » : conditionnel, aucun rendu ne le rend
+  exigible.
+- **Dock** `561–700` « actions sur deux colonnes » : la grille du pont (`.cc-dock`) est réécrite sous
+  #1856 ; la cellule se mesurera sur la grille qui en sortira.
+- **Dock** `<=560` « modales plein écran, corps défilable, actions finales fixes » : la sonde n'ouvre
+  aucune modale de jet ; la structure reste gardée par `src/ui/ui-ratchets.test.ts`.
+- **Dock** `>900` « disposition de référence » : aucun contrat propre au-delà du bord à bord et du
+  budget de hauteur, mesurés.
 Le TIROIR DU JOURNAL se juge **ouvert** : la sonde le déplie par clic réel sur sa poignée
 (`.ld-btn`) au premier tour tenu par un héros, puis refuse un panneau qui recouvre la console
 (« recouvre la console de N×Mpx ») — fermé, il ne recouvre rien, et la question n'a pas de sens.
@@ -232,7 +270,7 @@ ne garde que ce relevé. Exit ≠ 0 avec la liste des défauts. Résidu mesuré 
 | `clickButtonByText` | trouve un `<button>`/`[role="button"]` par son TEXTE (`session, texte, {exact?}`), `scrollIntoView`, PUIS lit son rect et clique via un VRAI clic CDP (`Input.dispatchMouseEvent` pressed+released) — SCROLL-AWARE : lire le rect AVANT le scroll fait rater le clic SILENCIEUSEMENT (aucune erreur, aucun effet). `{exact:true}` compare le texte ENTIER (obligatoire dès qu'un libellé en préfixe un autre) ; `{dans}` = sélecteur RACINE où chercher, quand le même libellé vit dans deux zones de l'écran — racine d'une modale : `.modal-overlay` ; racine d'un ÉCRAN PLEIN (`ScreenShell`, `src/ui/ScreenShell.tsx` : bibliothèque de campagnes, carte du monde, port, marché, dossier de navire, carnet, possessions, voyage, hub de ville, sélection du groupe…) : `.worldmap-overlay` — `{ dans: '.modal-overlay' }` n'y trouve RIEN ; `{rangee}` = texte d'une RANGÉE quand chaque rangée d'une liste porte le même bouton (les « Choisir » de la modale « Choisir la campagne » : `{ rangee: 'La Diligence' }`) — seuls comptent les boutons de l'ancêtre le plus proche de ce texte qui en contient un, et une rangée introuvable est un refus qui la nomme (friction mesurée en recette E7, #1343) ; si PLUSIEURS boutons matchent, le premier est cliqué et l'ambiguïté est AVERTIE sur `stderr` avec les textes concurrents |
 | `cliquerSelecteur` | CLIC RÉEL d'un contrôle désigné par un SÉLECTEUR (`session, selecteur`) — le pendant de `clickButtonByText` quand le contrôle n'a PAS de texte (bouton à glyphe : tiroir du journal `.ld-btn`, ouvreur d'écran). SCROLL-AWARE, et il REFUSE en le nommant : cible absente, boîte 0×0 (non rendue), contrôle désactivé — jamais un clic silencieux qui n'a rien fait |
 | `clicReel` | la triade CDP `mouseMoved`/`mousePressed`/`mouseReleased` — geste de clic UNIQUE du module : tout helper qui clique passe par là, aucun ne la réécrit |
-| `resoudreModales` + `CASCADE_LABELS` | RÉSOUT toute fenêtre ouverte (`.modal-overlay`) jusqu'à ce qu'il n'y en ait plus — DÉFINITION UNIQUE partagée par les sondes. Deux gestes, dans cet ordre : (1) un bouton d'AVANCEMENT (`CASCADE_LABELS` : Lancer, Appliquer, Continuer… — aucun nom de RÈGLE n'y figure) ; (2) à défaut, la **première option OUVERTE** d'un sélecteur d'options (`OptionChooser` : `.seg`, `.rm-loc-grid`, `.rm-loc-inline`). Une fenêtre de CHOIX (défense, désengagement, résistance) n'offre aucun bouton d'avancement tant que le joueur n'a pas tranché : la recette tranche par la FORME du contrôle, jamais par le nom d'une règle — toute fenêtre de choix passe, y compris celle qu'une règle future ouvrira, et l'option cliquée est IMPRIMÉE (une recette dit ce qu'elle a choisi à la place du joueur). Lève en nommant les boutons offerts si aucun des deux gestes ne s'applique, et lève « l'option « X » ne fait pas avancer la fenêtre » si la fenêtre est identique après deux clics. ⚠ `max` (40) est un BUDGET TOTAL de clics pour fermer la cascade ENTIÈRE, **pas un pas unitaire** : l'helper lève si une fenêtre reste ouverte au bout du budget, donc `{ max: 1 }` ne sert PAS à « avancer d'un cran » — il lève aussitôt. Pour avancer d'UN pas, cliquer soi-même — `clickButtonByText` avec le libellé voulu et `{ dans: '.modal-overlay' }`, ou `cliquerSelecteur` sur l'option visée (friction mesurée en recette #1852, 2026-09-21) |
+| `resoudreModales` + `CASCADE_LABELS` | RÉSOUT toute fenêtre ouverte (`.modal-overlay`) jusqu'à ce qu'il n'y en ait plus — DÉFINITION UNIQUE partagée par les sondes. La fin se juge au STORE : une étape de cascade en cours (`pendingCascade`) sans fenêtre au DOM est ATTENDUE (`attenteMs`, 30 s — la carte d'entrée de scène monte après le monde), puis nommée si elle ne monte pas. Deux gestes, dans cet ordre : (1) un bouton d'AVANCEMENT (`CASCADE_LABELS` : Lancer, Appliquer, Continuer… — aucun nom de RÈGLE n'y figure) ; (2) à défaut, la **première option OUVERTE** d'un sélecteur d'options (`OptionChooser` : `.seg`, `.rm-loc-grid`, `.rm-loc-inline`). Une fenêtre de CHOIX (défense, désengagement, résistance) n'offre aucun bouton d'avancement tant que le joueur n'a pas tranché : la recette tranche par la FORME du contrôle, jamais par le nom d'une règle — toute fenêtre de choix passe, y compris celle qu'une règle future ouvrira, et l'option cliquée est IMPRIMÉE (une recette dit ce qu'elle a choisi à la place du joueur). Lève en nommant les boutons offerts si aucun des deux gestes ne s'applique, et lève « l'option « X » ne fait pas avancer la fenêtre » si la fenêtre est identique après deux clics. ⚠ `max` (40) est un BUDGET TOTAL de clics pour fermer la cascade ENTIÈRE, **pas un pas unitaire** : l'helper lève si une fenêtre reste ouverte au bout du budget, donc `{ max: 1 }` ne sert PAS à « avancer d'un cran » — il lève aussitôt. Pour avancer d'UN pas, cliquer soi-même — `clickButtonByText` avec le libellé voulu et `{ dans: '.modal-overlay' }`, ou `cliquerSelecteur` sur l'option visée (friction mesurée en recette #1852, 2026-09-21) |
 | `realKey` | frappe RÉELLE (`session, touche`, `Input.dispatchKeyEvent` : `rawKeyDown`/`char`/`keyUp`) — traverse les MÊMES handlers que le clavier physique (`keybindings.ts`), contrairement à un `KeyboardEvent` JS synthétique souvent ignoré. UNE forme d'argument pour toute la famille `realKey*` : la TOUCHE `{ key, code?, windowsVirtualKeyCode?, modifiers? }` — pour Échap, `session` puis `{ key: 'Escape' }` ; seul `key` est requis, `code` et le code virtuel se déduisent de lui (`scripts/recette/lib.mjs`). Alias français : `frapperTouche` (même geste, même forme). ⚠ Observé en recette #1752 le 2026-09-17 : `Enter` envoyé sur un `<button>` FOCALISÉ n'a pas activé le bouton (`keydown` reçu, `defaultPrevented:false`, aucun `click`) ; `Space` l'a activé. Une frappe d'activation se mesure donc, elle ne se suppose pas |
 | `realKeyDown` / `realKeyUp` + `ALT` / `MOD_ALT` | geste MAINTENU (`session, ALT` — la même TOUCHE que `realKey`, `ALT` imposant `code`/code virtuel) : l'appui et le relâchement sont deux appels, et ce qui se joue ENTRE les deux porte `{ modifiers: MOD_ALT }` (`survoler`, `clickButtonByText`) — sinon l'événement déclare la touche relâchée. C'est le pilotage d'**Alt maintenu** (`decor.reveler`) : halo + plaque de nom sur chaque utilisable visible, le survolé agrandi ; relâché, le champ redevient muet. ⚠ `__wfrp.screen('editor')` charge la scène-FIXTURE, pas la scène active — pour ouvrir un document précis, `editorOpen(id)` ; et un `querySelector` de pastille reste vrai SOUS la modale d'intro (mesurer la scène, pas le seul DOM) |
 | `typeInField` | SAISIE réelle dans un champ (`session, selecteur, texte, {clear?}`) : focus par VRAI clic CDP, puis `Input.insertText` — l'insertion passe par le pipeline d'édition, donc le `onChange` React s'exécute (mesuré : `ab12cd` frappé dans `.coop-code-input` se lit `AB12CD`, la casse venant du handler React de `CoopCodeInput`). Rend la valeur relue APRÈS la frappe. C'est la sortie du piège « Champ CONTRÔLÉ React » ci-dessous |
@@ -846,7 +884,7 @@ console. ») — les verbes `ooc*` sont des lanceurs HORS combat et ne produisai
 - **Le « Lancer » d'une cascade n'est pas celui de la rangée** (même recette) : quand une seule rangée
   est lançable, `RollShell` HISSE le bouton dans sa barre d'actions et lance lui-même. Un fix posé sur
   le CTA de rangée peut donc être vert en test et mort à l'écran. Viser le bouton de la BARRE
-  (`.modal-actions`) pour recetter une cascade, et se souvenir qu'un même verbe peut avoir deux hôtes.
+  (`.cadre-pied`) pour recetter une cascade, et se souvenir qu'un même verbe peut avoir deux hôtes.
 
 - **« Tout lancer » n'est PAS « Lancer »** (vécu 2026-08-05, a coûté la moitié d'une recette) : dans
   une cascade, la barre porte « Lancer » (la ligne COURANTE, influençable) et « Tout lancer » (TOUTE

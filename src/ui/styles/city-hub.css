@@ -4,7 +4,7 @@
    composition, pas une variante (recette 2026-07-12, cf. étalon marché). */
 .city-hub-body { display: flex; flex-direction: column; min-width: 0; padding: 12px; overflow: auto; }
 /* Bornage/centrage (#359bis) porté par `ScreenShell` (`body='centered'`, #371 lot 2) — cette classe ne
-   garde que le comportement de flex INTERNE, la borne/centrage vit désormais dans `.screen-body`. */
+   garde que le comportement de flex INTERNE, la borne/centrage vit dans `.screen-colonne`. */
 .city-hub-master { flex: 1 1 auto; width: 100%; }
 .city-hub-weather { opacity: 0.85; }
 .city-hub-services { display: flex; flex-direction: column; gap: 6px; width: 100%; padding: 10px; }

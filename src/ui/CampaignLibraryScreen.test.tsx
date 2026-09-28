@@ -214,14 +214,14 @@ describe('CampaignLibraryScreen — rendu (#766)', () => {
     });
     const row = Array.from(container.querySelectorAll('button.listrow')).find((el) => el.textContent?.includes('Campagne refusée')) as HTMLButtonElement;
     await act(async () => row.click());
-    const bouton = Array.from(container.querySelectorAll('.modal-actions button')).find((el) => el.textContent === geste) as HTMLButtonElement;
+    const bouton = Array.from(container.querySelectorAll('.row[data-justify="end"] button')).find((el) => el.textContent === geste) as HTMLButtonElement;
     await act(async () => bouton.click());
 
     const alertes = container.querySelectorAll('[role="alert"]');
     expect(alertes).toHaveLength(1);
     const alerte = alertes[0];
     expect(alerte.closest('.master-detail-list'), 'jamais au rail de la liste').toBeNull();
-    expect(bouton.closest('.modal-actions')!.parentElement!.contains(alerte), 'près des boutons de l’entrée').toBe(true);
+    expect(bouton.closest('.row[data-justify="end"]')!.parentElement!.contains(alerte), 'près des boutons de l’entrée').toBe(true);
     expect(alerte.classList.contains('chip') && alerte.classList.contains('tone-danger')).toBe(true);
     const txt = alerte.textContent ?? '';
     expect(txt).toMatch(message);
@@ -242,7 +242,7 @@ describe('CampaignLibraryScreen — rendu (#766)', () => {
   async function clique(nom: string, geste: string) {
     const row = Array.from(container.querySelectorAll('button.listrow')).find((el) => el.textContent?.includes(nom)) as HTMLButtonElement;
     await act(async () => row.click());
-    const bouton = Array.from(container.querySelectorAll('.modal-actions button')).find((el) => el.textContent === geste) as HTMLButtonElement;
+    const bouton = Array.from(container.querySelectorAll('.row[data-justify="end"] button')).find((el) => el.textContent === geste) as HTMLButtonElement;
     await act(async () => bouton.click());
   }
 
@@ -310,7 +310,7 @@ describe('CampaignLibraryScreen — rendu (#766)', () => {
     URL.createObjectURL = (b: Blob | MediaSource) => { telecharges.push(b as Blob); return 'blob:fake'; };
     URL.revokeObjectURL = () => {};
     try {
-      const bouton = Array.from(container.querySelectorAll('.modal-actions button')).find((el) => el.textContent === 'Exporter') as HTMLButtonElement;
+      const bouton = Array.from(container.querySelectorAll('.row[data-justify="end"] button')).find((el) => el.textContent === 'Exporter') as HTMLButtonElement;
       await act(async () => bouton.click());
     } finally {
       URL.createObjectURL = OrigCreateObjectURL;

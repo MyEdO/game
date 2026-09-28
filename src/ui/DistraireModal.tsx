@@ -76,7 +76,7 @@ export function DistraireModal() {
   return (
     <RollShell
       flowKey="distraire"
-      stake={flowStakeRef('distraire', 'roll')}
+      stake={flowStakeRef('distraire-roll')}
       title="Distraire"
       extra={<VsHeader actor={mover} target={foe} label="détourner son attention (Athlétisme vs Calme)" />}
       // Choix de la cible AVANT le jet (plusieurs adversaires en Ligne de vue) — OptionChooser partagé.

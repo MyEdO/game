@@ -154,11 +154,6 @@ const CEILING = Object.values(KNOWN).reduce((s, n) => s + n, 0);
  * jusque-là comptés 0 par le seul effet de leur écriture. Aucun d'eux n'est un branchement nouveau.
  */
 const RAW_KNOWN: Record<string, number> = {
-  // SAIN (#1738) : `ref === REF_TRONC` compare `github.ref` à `refs/heads/main` — une REF GIT
-  // (`refs/pull/N/merge` en est une autre), pas l'id d'une entrée de registre. Le scan brut le
-  // compte parce que le nom `ref` est dans `ID_NAME_RX` et que la constante de module est résolue
-  // (L2 #1548) ; aucun attribut déclarable n'existe sur une ref git.
-  'scripts/gates/classerPush.mjs': 1,
   'scripts/gen-bestiary-gallery.mts': 1,
   'scripts/gen-creature-attacks-gallery.mts': 2,
   'scripts/qc/opera-furniture-check.mts': 1,
@@ -234,7 +229,6 @@ const RAW_KNOWN: Record<string, number> = {
   // (`'__pinned__'`) est une SENTINELLE de sélection d'écran (la rangée « Épinglés », qui n'est pas une
   // affaire), jamais l'identité d'une entrée de registre — famille du `''` d'`OP_VOCABULARY`.
   'src/ui/CarnetScreen.tsx': 2,
-  'src/ui/HealModal.tsx': 2,
   'src/ui/InterludeScreen.tsx': 2,
   'src/ui/MedicModal.tsx': 2,
   'src/ui/MerchantPanel.tsx': 1,
@@ -242,6 +236,7 @@ const RAW_KNOWN: Record<string, number> = {
   'src/ui/creator/CharacterCreator.tsx': 6,
   'src/ui/editor/StatblockEditor.tsx': 1,
   'src/ui/gallery/registry.tsx': 4,
+  'src/ui/jetProps/useHealJetProps.tsx': 2,
 };
 
 /** Plafond BRUT global du jour (= somme de `RAW_KNOWN`). */

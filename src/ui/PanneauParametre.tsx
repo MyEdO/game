@@ -13,19 +13,19 @@
  * héros, tout l'inventaire) n'est pas un paramètre — elle vit à son écran, et la console garde ses
  * alvéoles.
  *
- * COMPOSITION, aucune réinvention : les boutons sont ceux d'`OptionChooser` (layout `grid`), le
- * placement dans le viewport est la fonction PURE `computePopoverPos` déjà écrite pour `CodexRef`
- * (côté qui a le plus de place, `maxHeight` borné au réel — jamais de débordement), et l'a11y de
+ * COMPOSITION, aucune réinvention : les boutons sont ceux d'`OptionChooser` (layout `grid`), la
+ * boîte et son placement contre le déclencheur sont ceux de `BoiteAncree` (côté qui a le plus de
+ * place, `maxHeight` borné au réel — jamais de débordement), et l'a11y de
  * dialogue est le hook partagé `useModalA11y` (focus au montage sur le 1ᵉʳ candidat, piège Tab,
  * flèches, retour du focus au déclencheur à la fermeture) — comme `InspectPanel`/`CharacterSheet`,
  * dialogues au markup propre. Le congédiement (Échap, B de la manette) est celui de tout le monde :
- * le panneau est une COUCHE de la pile partagée (`useModalA11y` la pousse), congédiée en LIFO.
+ * le panneau est une COUCHE de la pile partagée (`useModalA11y` la pousse), congédiée quand elle est la
+ * couche du dessus (`coucheDuDessus`).
  */
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
-import { createPortal } from 'react-dom';
+import { useCallback, useEffect, useRef, type ReactNode } from 'react';
 import { OptionChooser, type RollOption } from './OptionChooser';
 import { useModalA11y } from './Modal';
-import { computePopoverPos, type PopoverPlacement } from './compendium/CodexRef';
+import { BoiteAncree, usePlacementAncre, type PlacementAncre } from './BoiteAncree';
 
 /** Largeur cible du panneau : une valeur de paramètre tient sur une ligne, pas une colonne d'écran. */
 const PANNEAU_W = 280;
@@ -58,22 +58,14 @@ export interface PanneauParametreProps {
 }
 
 export function PanneauParametre({ anchor, intitule, options, onClose }: PanneauParametreProps) {
-  const [pos, setPos] = useState<PopoverPlacement | null>(null);
-
-  // Placement AU MONTAGE et à chaque changement d'ancre : le rect du déclencheur, borné au viewport.
-  useLayoutEffect(() => {
-    if (!anchor) { setPos(null); return; }
-    setPos(computePopoverPos(anchor.getBoundingClientRect(), window.innerWidth, window.innerHeight, PANNEAU_W));
-  }, [anchor]);
-
-  if (!anchor || !pos || options.length === 0) return null;
-  // La BOÎTE est un composant à part : `useModalA11y` agit au MONTAGE de son élément, et le panneau
-  // ne rend rien tant que son placement n'est pas calculé (premier rendu = `null`). Monter la boîte
-  // seulement quand elle est réellement affichée est ce qui donne au hook un élément à focaliser.
-  return <PanneauBoite anchor={anchor} intitule={intitule} options={options} onClose={onClose} pos={pos} />;
+  const placement = usePlacementAncre(anchor, PANNEAU_W);
+  if (!anchor || !placement || options.length === 0) return null;
+  // La BOÎTE est un composant à part : `useModalA11y` agit au MONTAGE de son élément, qui n'existe
+  // que placé et affiché.
+  return <PanneauBoite anchor={anchor} intitule={intitule} options={options} onClose={onClose} placement={placement} />;
 }
 
-function PanneauBoite({ anchor, intitule, options, onClose, pos }: Omit<PanneauParametreProps, 'anchor'> & { anchor: Element; pos: PopoverPlacement }) {
+function PanneauBoite({ anchor, intitule, options, onClose, placement }: Omit<PanneauParametreProps, 'anchor'> & { anchor: Element; placement: PlacementAncre }) {
   const panelRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef(onClose);
   closeRef.current = onClose;
@@ -81,7 +73,7 @@ function PanneauBoite({ anchor, intitule, options, onClose, pos }: Omit<PanneauP
   const fermer = useCallback(() => closeRef.current(), []);
   // ANNULATION GRATUITE : le panneau s'empile comme couche `panneau-parametre` — Échap le congédie
   // tant qu'il est la couche du DESSUS, et rien d'autre ne bouge (ni curseur tactique, ni intention
-  // armée, ni menu système). Une couche ouverte APRÈS lui (modale) passe devant : c'est le LIFO.
+  // armée, ni menu système). Une couche d'application ouverte APRÈS lui (modale) passe devant.
   useModalA11y(panelRef, fermer, { kind: 'panneau-parametre' }); // `PanneauBoite` n'est monté QUE placé et affiché → actif par défaut
 
   // CLIC DEHORS : ferme aussi, sans rien engager.
@@ -119,18 +111,17 @@ function PanneauBoite({ anchor, intitule, options, onClose, pos }: Omit<PanneauP
       : undefined,
   }));
 
-  return createPortal(
-    <div
+  return (
+    <BoiteAncree
       ref={panelRef}
+      placement={placement}
       className="pp-panel panel"
       role="dialog"
       aria-label={intitule}
       data-panneau-parametre=""
-      style={{ top: pos.top, bottom: pos.bottom, left: pos.left, width: pos.width, maxHeight: pos.maxHeight }}
     >
       <span className="mini-title pp-title">{intitule}</span>
       <OptionChooser options={rendues} layout="grid" />
-    </div>,
-    document.body,
+    </BoiteAncree>
   );
 }

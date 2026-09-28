@@ -9,8 +9,8 @@ const mk = (id: string, size: SizeCategory, extra: Partial<Combatant> = {}): Com
   ({ id, name: id, size, movement: 4, characteristics: { force: 30, endurance: 30 }, talents: [], items: [], wounds: { current: 10, max: 10, base: 10 }, conditions: [], ...extra }) as unknown as Combatant;
 const battle = (cs: Combatant[]): BattleState => ({ combatants: cs }) as unknown as BattleState;
 
-describe('mount — modificateurs de Combat monté (LDB 14 l.179-181)', () => {
-  it('+20 : un cavalier frappe une cible plus petite que sa monture (l.217), mêlée ET tir', () => {
+describe('mount — modificateurs de Combat monté (LDB 14 l.179-184)', () => {
+  it('+20 : un cavalier frappe une cible plus petite que sa monture (l.180), mêlée ET tir', () => {
     const horse = mk('h', 'grande', { movement: 8 });
     const knight = mk('k', 'moyenne');
     mountUp(knight, horse);
@@ -23,7 +23,7 @@ describe('mount — modificateurs de Combat monté (LDB 14 l.179-181)', () => {
     expect(mountedAttackMods(b, knight, giant, 'melee')).toEqual([]);
   });
 
-  it('−10 : viser le cavalier en mêlée quand on est plus petit que sa monture (l.219) — pas au tir', () => {
+  it('−10 : viser le cavalier en mêlée quand on est plus petit que sa monture (l.181) — pas au tir', () => {
     const horse = mk('h', 'grande');
     const knight = mk('k', 'moyenne');
     mountUp(knight, horse);
@@ -42,13 +42,13 @@ describe('mount — modificateurs de Combat monté (LDB 14 l.179-181)', () => {
     expect(mountedAttackMods(battle([a, t]), a, t, 'melee')).toEqual([]);
   });
 
-  it('Esquive : −20 à cheval, annulé par Acrobaties équestres, nul à pied (l.225)', () => {
+  it('Esquive : −20 à cheval, annulé par Acrobaties équestres, nul à pied (l.184)', () => {
     expect(mountedDodgePenalty(mk('x', 'moyenne', { mountId: 'h' }))).toBe(-20);
     expect(mountedDodgePenalty(mk('x', 'moyenne', { mountId: 'h', talents: [{ talentId: 'acrobaties-equestres', times: 1 }] as any }))).toBe(0);
     expect(mountedDodgePenalty(mk('x', 'moyenne'))).toBe(0); // à pied
   });
 
-  it('mountMovement : le cavalier se déplace avec le Mouvement de sa monture (l.215)', () => {
+  it('mountMovement : le cavalier se déplace avec le Mouvement de sa monture (l.179)', () => {
     const horse = mk('h', 'grande', { movement: 8 });
     const knight = mk('k', 'moyenne', { movement: 4 });
     mountUp(knight, horse);

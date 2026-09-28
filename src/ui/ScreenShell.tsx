@@ -1,7 +1,9 @@
-import { useRef, type ReactNode } from 'react';
+import { useId, useRef, type ReactNode } from 'react';
 import { useModalA11y } from './Modal';
+import { CadrePied, CadreFermer } from './Cadre';
 import { ScreenMeta } from './ScreenMeta';
 import { SceneBackdrop } from './SceneBackdrop';
+import { Row } from './Layout';
 import type { Money } from '../engine/money';
 import type { AmbianceCadre } from '../state/campaignNarratif';
 
@@ -20,23 +22,34 @@ import type { AmbianceCadre } from '../state/campaignNarratif';
  * `.worldmap-head-actions` (JAMAIS dans `.screen-toolbar`, qui reste aux `<Tabs>`/filtres et casse
  * sur deux lignes avec un contenu large). Barre d'outils : slot `tabs` OPTIONNEL rendu dans
  * `.screen-toolbar`, sous l'en-tête — l'écran y pose la primitive `<Tabs>` (onglets réels) et/ou du
- * contenu libre, tel quel. `className` ajoute des classes au voile (ex. `port-overlay`, `ship-dossier`).
+ * contenu libre, tel quel. `className` est un crochet pour les DESCENDANTS de l'écran.
  *
- * Habillage générique (#371 lot 2) : `body` bascule le traitement du CORPS — `'full'` (défaut, INCHANGÉ)
- * pour un écran-canevas (carte, plan) qui doit remplir tout le cadre ; `'centered'` borne et centre le
- * corps (`.screen-body`, ~960px, le patron de `.port-body`/`.city-hub-master`) — le réflexe pour un
+ * Habillage générique (#371 lot 2) : `body` bascule le traitement du CORPS — `'full'` (défaut)
+ * pour un écran-canevas (carte, plan) qui remplit tout le cadre et compose lui-même son rail
+ * `.screen-scroll` ; `'centered'` borne et centre le corps dans une colonne (`.screen-colonne`, ~960px),
+ * qui défile dans le rail `.screen-scroll` que la coquille pose — le réflexe pour un
  * écran de PANNEAUX/LECTURE (marché, dossier, hub) sans quoi le contenu colle à gauche avec un océan vide
  * à droite en large (famille « vide non habité » du juge, #371) ; `'centered-wide'` (politique grand écran,
- * docs/charte-ui.md) — même bornage/centrage mais plafond relevé (`.screen-body-wide`, ~1400px au-delà de
+ * docs/charte-ui.md) — même bornage/centrage mais plafond relevé (`data-large`, ~1400px au-delà de
  * 1440px) pour un écran-GRILLE/catalogue (tables de négoce…) qui profite de plus de colonnes utiles.
  * `backdrop` pose la bande d'ambiance (`SceneBackdrop`, lot 1) sous l'en-tête/barre d'outils, au-dessus du
- * corps — absente du prop = pas de bande (zéro régression) ; fournie (même id inconnu) = toujours un rendu
+ * corps — absente du prop = pas de bande ; fournie (même id inconnu) = toujours un rendu
  * (repli élégant géré par `SceneBackdrop`, jamais un trou).
+ *
+ * Pied (`footer`) : `CadrePied`, le pied des trois cadres, hors du rail et dans la colonne du corps
+ * (même largeur, même alignement). Seul un corps borné en a un : la coquille possède alors le
+ * défileur, et le pied reste à l'écran.
  *
  * Ambiance (#717) : `ambiance` pose `data-ambiance` sur le voile — une STRATE DE MATIÈRE (tokens
  * `--amb-*`, `styles/base.css`), pas une classe d'écran : le parchemin d'une veillée s'assombrit
  * partout dans le sous-arbre sans qu'aucun écran ne redessine sa peau.
  */
+/** Corps : un canevas (`'full'`) remplit le cadre et n'a pas de pied ; un corps borné défile dans le
+ *  rail de la coquille, et peut porter un pied. */
+type CorpsEcran =
+  | { body?: 'full'; footer?: never }
+  | { body: 'centered' | 'centered-wide'; footer?: ReactNode };
+
 export function ScreenShell({
   title,
   onClose,
@@ -48,8 +61,10 @@ export function ScreenShell({
   body = 'full',
   ambiance,
   className,
+  footer,
+  etape,
   children,
-}: {
+}: CorpsEcran & {
   title: ReactNode;
   /** Échap / bouton de fermeture. */
   onClose: () => void;
@@ -63,35 +78,41 @@ export function ScreenShell({
   tabs?: ReactNode;
   /** Bande d'ambiance (id du registre `src/ui/backdrops`) — opt-in, rendue sous l'en-tête/barre d'outils. */
   backdrop?: string;
-  /** Traitement du corps : `'full'` (défaut) laisse l'écran remplir le cadre ; `'centered'` borne/centre
-   *  le corps (`.screen-body`, ~960px) au patron des écrans de panneaux/lecture ; `'centered-wide'` idem
-   *  avec un plafond relevé (`.screen-body-wide`, ~1400px≥1440px) pour un écran-grille/catalogue. */
-  body?: 'centered' | 'centered-wide' | 'full';
   /** Strate de MATIÈRE de l'écran (#717) — posée en `data-ambiance` sur le voile : les tokens
    *  `--amb-*` (`styles/base.css`) s'y rescopent et les matières déjà en place (parchemin, cartes)
    *  les lisent. Absente = aucune ambiance (comportement inchangé). */
   ambiance?: AmbianceCadre;
-  /** Classes ajoutées au voile plein écran (`port-overlay`, `ship-dossier`…). */
+  /** Crochet d'appelant pour SES descendants — la boîte elle-même ne se vise pas (§5.3,
+   *  `css-modules-guard.test.ts`) : sa matière est un état ci-dessus (`ambiance`). */
   className?: string;
+  /** Étape courante de l'écran : quand elle change, le focus entre sur la cible de l'étape (`useFocusEmprunte`). */
+  etape?: string | number;
   children: ReactNode;
 }) {
   const boxRef = useRef<HTMLDivElement>(null);
-  useModalA11y(boxRef, onClose, { kind: 'ecran-plein-champ' }); // aucun early-return : monté = affiché
+  const titreId = useId();
+  useModalA11y(boxRef, onClose, { kind: 'ecran-plein-champ', etape }); // aucun early-return : monté = affiché
+  const large = body === 'centered-wide' || undefined;
   return (
-    <div ref={boxRef} role="dialog" aria-modal="true" data-ambiance={ambiance} className={`worldmap-overlay${className ? ` ${className}` : ''}`}>
-      <div className="worldmap-head">
-        <h2>{title}</h2>
-        <div className="worldmap-head-actions">
+    <div ref={boxRef} role="dialog" aria-modal="true" aria-labelledby={titreId} data-ambiance={ambiance} className={`worldmap-overlay${className ? ` ${className}` : ''}`}>
+      <Row justify="between" className="worldmap-head">
+        <h2 id={titreId}>{title}</h2>
+        <Row justify="end" className="worldmap-head-actions">
           <ScreenMeta meta={meta} />
           {actions}
-          <button type="button" className="btn small" onClick={onClose}>{closeLabel}</button>
-        </div>
-      </div>
-      {tabs != null && <div className="screen-toolbar">{tabs}</div>}
+          <CadreFermer onClose={onClose}>{closeLabel}</CadreFermer>
+        </Row>
+      </Row>
+      {tabs != null && <Row className="screen-toolbar">{tabs}</Row>}
       {backdrop !== undefined && <SceneBackdrop backdropId={backdrop} />}
-      {body === 'centered' ? <div className="screen-body">{children}</div>
-        : body === 'centered-wide' ? <div className="screen-body screen-body-wide">{children}</div>
-        : children}
+      {body === 'full' ? children : (
+        <>
+          <div className="screen-scroll">
+            <div className="screen-colonne" data-large={large}>{children}</div>
+          </div>
+          {footer != null && <div className="screen-colonne" data-large={large}><CadrePied>{footer}</CadrePied></div>}
+        </>
+      )}
     </div>
   );
 }

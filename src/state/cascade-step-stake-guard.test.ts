@@ -441,7 +441,7 @@ describe('cliquet — une étape de cascade qui LANCE dit son ENJEU (#1117)', ()
 
   it('FAIL-CLOSED (4ᵉ forme) : les DEUX formes propres sont détectées, et l’enjeu les éteint', () => {
     const noeud = `const n = { kind: 'test', test: { skill: 'escalade', difficulty: 'intermediaire' }, success: EMPTY_FLOW, fail: f };`;
-    const noeudAvec = `const n = { kind: 'test', test: { skill: 'escalade', difficulty: 'intermediaire', stake: flowStakeRef('climb', 'roll') }, success: EMPTY_FLOW, fail: f };`;
+    const noeudAvec = `const n = { kind: 'test', test: { skill: 'escalade', difficulty: 'intermediaire', stake: flowStakeRef('climb-roll') }, success: EMPTY_FLOW, fail: f };`;
     const direct = `openSkillTest(get, set, { characteristic: 'force-mentale', difficulty: 'difficile' }, EMPTY_FLOW, fail);`;
     const directAvec = `openSkillTest(get, set, { characteristic: 'force-mentale', difficulty: 'difficile', stake: combatStakeRef('actGate') }, EMPTY_FLOW, fail);`;
     const dynamique = `const t = { skill: 'calme', difficultyBy: [{ cond: c, difficulty: 'accessible' }] };`;

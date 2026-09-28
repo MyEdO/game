@@ -28,6 +28,7 @@
 // Échappement documenté : `SKIP_NEW_SRC_GUARD=1` laisse passer et TRACE la dérogation (stderr +
 // `.claude/logs/new-src-guard-skips.log`, gitignoré).
 import '../node-requis.mjs'
+import { lireStdinBorne } from '../guards/lib/stdinBorne.mjs'
 import { existsSync, readFileSync, appendFileSync, mkdirSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join, resolve, relative, isAbsolute } from 'node:path'
@@ -151,9 +152,7 @@ function trace(rel) {
 }
 
 async function main() {
-  let raw = ''
-  process.stdin.setEncoding('utf8')
-  for await (const chunk of process.stdin) raw += chunk
+  const raw = await lireStdinBorne()
 
   // `Write` porte le chemin en `tool_input.file_path`, `ctx_patch` (op `create`) en `tool_input.path`.
   let fp

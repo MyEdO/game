@@ -2,8 +2,8 @@ import type { HealMode } from '../engine/healing';
 import type { IconId } from './icons';
 
 /**
- * VOCABULAIRE d'un acte de soin — source UNIQUE partagée par les deux fenêtres (`HealRollFlow` et le
- * dossier d'opération de `MedicModal`) : ce sur QUOI porte le soin (`label`) et son icône. Sert à
+ * VOCABULAIRE d'un acte de soin — source UNIQUE de `useHealJetProps`, `useSurgeryJetProps` et du
+ * dossier d'opération de `MedicModal` : ce sur QUOI porte le soin (`label`) et son icône. Sert à
  * annoter la flèche de l'A→B (`VsHeader`), qui est LA forme canonique du face-à-face (décision
  * utilisateur 2026-08-04) — plus aucune phrase « A soigne B » en sous-titre.
  *

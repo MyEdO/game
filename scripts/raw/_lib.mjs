@@ -9,7 +9,7 @@
 // sait des DOMAINES d'un cœur dans `scripts/raw/domaines.json` : registres d'OUTILLAGE dont ce
 // fichier est le LECTEUR UNIQUE. Zéro ligne de code pour aucun d'eux.
 import { existsSync, readFileSync } from 'node:fs'
-import { arbrePrincipal } from '../guards/lib/gitPorte.mjs'
+import { arbrePrincipal, depotDe } from '../guards/lib/gitPorte.mjs'
 import { listerArbre, listerDossier } from '../guards/lib/lister.mjs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -264,7 +264,7 @@ let sourcePrincipale = null
 /** `Source/` de l'arbre principal, chemin absolu. LÈVE en nommant la cause si git ne le résout pas. */
 function sourceDeLArbrePrincipal() {
   if (sourcePrincipale) return sourcePrincipale
-  const vu = arbrePrincipal(ICI_RAW)
+  const vu = arbrePrincipal(depotDe(ICI_RAW))
   if (!vu.disponible) throw new Error(`_lib: Source/ de l'arbre principal non résolu — ${vu.raison}`)
   sourcePrincipale = join(vu.valeur, 'Source')
   return sourcePrincipale

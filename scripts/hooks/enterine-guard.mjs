@@ -2,12 +2,11 @@
 // règle 6b) — toute écriture qui l'INTRODUIT exige sa confirmation explicite : ce dialogue EST la
 // validation. Opposable aux sessions ET aux sous-agents (aucune mémoire/discipline requise).
 import '../node-requis.mjs'
+import { lireStdinBorne } from '../guards/lib/stdinBorne.mjs'
 import { readFileSync } from 'node:fs'
 import { cheminDEcriture } from './solde-ticket-guard.mjs'
 
-let raw = ''
-process.stdin.setEncoding('utf8')
-for await (const chunk of process.stdin) raw += chunk
+const raw = await lireStdinBorne()
 
 let input = null
 try { input = JSON.parse(raw)?.tool_input ?? null } catch { /* stdin illisible → silence */ }

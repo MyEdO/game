@@ -146,14 +146,15 @@ describe('OptionChooser — sélecteur d’options de jet partagé', () => {
     expect(html).not.toContain('Caché'); // option masquée non rendue
   });
 
-  it('layout actions : `.modal-actions` de `.btn` (primary/ghost)', () => {
+  it('ChoiceButtons : les gestes SEULS, `.btn` (primary/ghost), sans conteneur — le cadre les pose dans son pied', () => {
     const opts: RollOption[] = [
       { key: 'subir', label: 'Subir la mutation' },
       { key: 'renier', label: 'Je te renie !', primary: true },
       { key: 'renoncer', label: 'Renoncer', ghost: true },
     ];
-    const html = renderToStaticMarkup(<OptionChooser layout="actions" options={opts} />);
-    expect(html).toContain('class="modal-actions"');
+    const html = renderToStaticMarkup(<ChoiceButtons options={opts} />);
+    expect(html).not.toContain('cadre-pied');
+    expect(html.startsWith('<button')).toBe(true);
     expect(html).toContain('btn btn-primary');
     expect(html).toContain('btn btn-ghost');
   });
@@ -166,12 +167,6 @@ describe('OptionChooser — sélecteur d’options de jet partagé', () => {
     expect(html).not.toContain('(10)');
   });
 
-  it('ChoiceButtons = OptionChooser en barre d’actions', () => {
-    const opts: RollOption[] = [{ key: 'a', label: 'A' }, { key: 'b', label: 'B', primary: true }];
-    expect(renderToStaticMarkup(<ChoiceButtons options={opts} />)).toBe(
-      renderToStaticMarkup(<OptionChooser layout="actions" options={opts} />),
-    );
-  });
 });
 
 describe('optionValue / optionPending — forme unique pré-jet', () => {

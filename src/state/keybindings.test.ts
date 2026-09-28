@@ -7,11 +7,11 @@
  * rendait TOUT le clavier muet pendant que la souris continuait de cibler.
  */
 import { describe, it, expect, vi } from 'vitest';
-import { KEYBINDINGS, formatCombo, modsDeLaTouche, modsMatch, type KeyBinding } from './keybindings';
+import { KEYBINDINGS, bindingParId, formatCombo, modsDeLaTouche, modsMatch, type KeyBinding } from './keybindings';
 import { modalHolds, pickActiveModalKey } from './modalArbiter';
 import type { GameState } from './store';
 
-const binding = (id: string) => KEYBINDINGS.find((k) => k.id === id)!;
+const binding = (id: string) => bindingParId(id)!;
 
 /** État minimal : combat en cours, écran de jeu, aucun pending — les cas posent le leur. */
 const fake = (over: Partial<GameState> = {}): GameState =>
@@ -86,36 +86,40 @@ describe('raccourcis — les gestes qui ENGAGENT ou QUITTENT restent gardés par
  * décide, et le nouveau geste n'agit jamais (ou vole celui d'un autre).
  */
 describe('raccourcis — aucune collision de touche NON DÉCLARÉE', () => {
+  it('un id, un raccourci : les ids du registre sont UNIQUES (`bindingParId` rend le premier)', () => {
+    const vus = new Set<string>();
+    const doublons = KEYBINDINGS.map((b) => b.id).filter((id) => (vus.has(id) ? true : (vus.add(id), false)));
+    expect(doublons).toEqual([]);
+  });
+
   /** La TOUCHE d'un raccourci, c'est son code ET ses modificateurs : `Ctrl+KeyZ` ≠ `KeyZ`. */
   const touches = (b: KeyBinding) => b.codes.map((c) => formatCombo(c, b.mods ?? []));
 
   it('toute paire d’entrées partageant une touche (code ET modificateurs) se nomme mutuellement dans `sharedBy`', () => {
     const parCode = new Map<string, string[]>();
     for (const b of KEYBINDINGS) for (const c of touches(b)) parCode.set(c, [...(parCode.get(c) ?? []), b.id]);
-    const byId = new Map(KEYBINDINGS.map((b) => [b.id, b]));
     const fautes: string[] = [];
     for (const [code, ids] of parCode) {
       for (const a of ids) for (const b of ids) {
         if (a === b) continue;
-        if (!byId.get(a)?.sharedBy?.includes(b)) fautes.push(`${code} : « ${a} » ne déclare pas partager avec « ${b} »`);
+        if (!bindingParId(a)?.sharedBy?.includes(b)) fautes.push(`${code} : « ${a} » ne déclare pas partager avec « ${b} »`);
       }
     }
     expect(fautes).toEqual([]);
   });
 
   it('`Ctrl+KeyZ` et `KeyZ` ne sont PAS une collision : les modificateurs FONT partie de la touche', () => {
-    const annuler = KEYBINDINGS.find((b) => b.id === 'editeur-annuler')!;
+    const annuler = bindingParId('editeur-annuler')!;
     expect(touches(annuler)).toEqual(['ctrl+KeyZ']);
     expect(touches({ ...annuler, mods: undefined })).toEqual(['KeyZ']);
     expect(annuler.sharedBy ?? [], '« Ctrl+Z » n’a rien à partager').toEqual([]);
   });
 
   it('`sharedBy` ne nomme que des ids EXISTANTS qui partagent réellement une touche (pas une déclaration morte)', () => {
-    const byId = new Map(KEYBINDINGS.map((b) => [b.id, b]));
     const fautes: string[] = [];
     for (const b of KEYBINDINGS) {
       for (const other of b.sharedBy ?? []) {
-        const o = byId.get(other);
+        const o = bindingParId(other);
         if (!o) { fautes.push(`« ${b.id} » nomme « ${other} », absent du registre`); continue; }
         if (!touches(o).some((c) => touches(b).includes(c))) fautes.push(`« ${b.id} » et « ${other} » ne partagent aucune touche`);
       }

@@ -22,6 +22,7 @@ import {
   instantanerStockage,
   isNavigationError,
   poserFichier,
+  resoudreChrome,
   restaurerStockage,
   TARGET_NAVIGATED,
   verdictArbreGele,
@@ -401,6 +402,14 @@ test('realKey : une touche d’un seul caractère émet aussi le `char`, et le c
   assert.equal(s.emis[0].windowsVirtualKeyCode, 'E'.charCodeAt(0))
 })
 
+test('realKey : Entrée émet son TEXTE `\\r` — c’est lui qui active le bouton focalisé', async () => {
+  const s = sessionClavier()
+  await realKey(s, { key: 'Enter' })
+  assert.deepEqual(s.emis.map((e) => e.type), ['rawKeyDown', 'char', 'keyUp'])
+  assert.equal(s.emis[1].text, '\r')
+  assert.equal(s.emis[0].windowsVirtualKeyCode, 13)
+})
+
 test('realKey* : `code` et code virtuel IMPOSÉS par l’appelant priment (`ALT`), et `modifiers` ne suit que l’APPUI', async () => {
   const s = sessionClavier()
   await realKeyDown(s, { ...ALT, modifiers: MOD_ALT })
@@ -530,4 +539,70 @@ test('poserFichier : racine `dans` absente = refus NOMMANT la racine', async () 
   const { poses, session } = sessionDomCdp(DEUX_IMPORTS)
   await assert.rejects(() => poserFichier(session, 'input[type=file]', 'x.json', { dans: '.modal-overlay' }), /\.modal-overlay/)
   assert.deepEqual(poses, [])
+})
+
+// ── Découverte de Chrome (`resoudreChrome`) : système de fichiers FACTICE, aucun disque ──
+/** Un disque factice : `fichiers` existent, `dossiers[d]` liste le contenu de `d`. */
+const disque = (fichiers = [], dossiers = {}) => ({
+  existe: (p) => fichiers.includes(p) || p in dossiers,
+  lister: (d) => dossiers[d] ?? [],
+})
+const WIN = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
+const PW = (racine, v) => `${racine}/chromium-${v}/chrome-linux/chrome`
+
+test('Chrome : CHROME_PATH prime sur tout le reste', () => {
+  const r = resoudreChrome({ env: { CHROME_PATH: '/x/chrome' }, fs: disque([WIN]), uid: 1000 })
+  assert.deepEqual(r, { chemin: '/x/chrome', args: [] })
+})
+
+test('Chrome : le chemin EXPLICITE de l’appelant prime sur CHROME_PATH', () => {
+  const r = resoudreChrome({ explicite: '/y/chrome', env: { CHROME_PATH: '/x/chrome' }, fs: disque(), uid: 1000 })
+  assert.equal(r.chemin, '/y/chrome')
+})
+
+test('Chrome : un chemin Windows présent passe avant Playwright, sur win32', () => {
+  const fs = disque([WIN, PW('/opt/pw-browsers', 1194)], { '/opt/pw-browsers': ['chromium-1194'] })
+  assert.equal(resoudreChrome({ env: {}, fs, uid: undefined, plateforme: 'win32' }).chemin, WIN)
+})
+
+test('Chrome : hors win32, un chemin Windows n’est jamais essayé — il se résoudrait contre le dossier courant', () => {
+  const essayes = []
+  const base = disque([WIN, PW('/opt/pw-browsers', 1194)], { '/opt/pw-browsers': ['chromium-1194'] })
+  const fs = { ...base, existe: (p) => (essayes.push(p), base.existe(p)) }
+  assert.equal(resoudreChrome({ env: {}, fs, uid: 1000, plateforme: 'linux' }).chemin, PW('/opt/pw-browsers', 1194))
+  assert.ok(!essayes.includes(WIN), essayes.join(' · '))
+})
+
+test('Chrome : Chromium Playwright trouvé par LECTURE du dossier, version la plus haute, headless_shell écarté', () => {
+  const racine = '/pw'
+  const fs = disque([PW(racine, 1194), PW(racine, 1200)], {
+    [racine]: ['chromium', 'chromium_headless_shell-1300', 'chromium-1194', 'chromium-1200', 'ffmpeg-1011'],
+  })
+  assert.equal(resoudreChrome({ env: { PLAYWRIGHT_BROWSERS_PATH: racine }, fs, uid: 1000 }).chemin, PW(racine, 1200))
+})
+
+test('Chrome : sans PLAYWRIGHT_BROWSERS_PATH, la racine est /opt/pw-browsers', () => {
+  const fs = disque([PW('/opt/pw-browsers', 1194)], { '/opt/pw-browsers': ['chromium-1194'] })
+  assert.equal(resoudreChrome({ env: {}, fs, uid: 1000 }).chemin, PW('/opt/pw-browsers', 1194))
+})
+
+test('Chrome : un dossier chromium-N sans exécutable est ignoré', () => {
+  const fs = disque([PW('/pw', 1194)], { '/pw': ['chromium-1194', 'chromium-1300'] })
+  assert.equal(resoudreChrome({ env: { PLAYWRIGHT_BROWSERS_PATH: '/pw' }, fs, uid: 1000 }).chemin, PW('/pw', 1194))
+})
+
+test('Chrome : --no-sandbox en root SEULEMENT', () => {
+  const fs = disque([WIN])
+  assert.deepEqual(resoudreChrome({ env: {}, fs, uid: 0, plateforme: 'win32' }).args, ['--no-sandbox'])
+  assert.deepEqual(resoudreChrome({ env: {}, fs, uid: 1000, plateforme: 'win32' }).args, [])
+  assert.deepEqual(resoudreChrome({ env: {}, fs, uid: undefined, plateforme: 'win32' }).args, [])
+})
+
+test('Chrome : aucun candidat — refus NOMMANT les chemins essayés', () => {
+  assert.throws(() => resoudreChrome({ env: {}, fs: disque(), uid: 1000 }), (e) => {
+    assert.match(e.message, /aucun Chrome trouvé/)
+    assert.match(e.message, /CHROME_PATH/)
+    assert.match(e.message, /\/opt\/pw-browsers\/chromium-\*\/chrome-linux\/chrome/)
+    return true
+  })
 })

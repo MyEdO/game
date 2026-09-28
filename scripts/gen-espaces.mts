@@ -159,9 +159,12 @@ async function genEspaces(check: boolean): Promise<{ changed: boolean; espaces: 
     ` *    RACINES VIVANTES (\`src/data/overrides.ts\` pose le régime vivant, \`grammaire/idsVivants.ts\` le\n` +
     ` *    sert à \`ref.ts\`), par le même calcul (\`idsDeLEspace\`), dans l'ordre de la donnée.\n` +
     ` */\n` +
-    `export const IDS_PAR_ESPACE: Readonly<Record<string, readonly string[]>> = {\n` +
+    `const IDS = {\n` +
     [...table].map(([cle, ids]) => `  ${litteralJs(cle)}: [${ids.map(litteralJs).join(', ')}],\n`).join('') +
-    `};\n`;
+    `} as const;\n\n` +
+    `export const IDS_PAR_ESPACE: Readonly<Record<string, readonly string[]>> = IDS;\n\n` +
+    `/** Union LITTÉRALE des ids de chaque espace, dérivée de \`IDS\` : un id absent de la donnée ne compile pas. */\n` +
+    `export type IdsParEspace = { readonly [E in keyof typeof IDS]: (typeof IDS)[E][number] };\n`;
   const cles =
     `// GÉNÉRÉ par scripts/gen-espaces.mts (phase 2 de \`npm run gen\`) — NE PAS ÉDITER À LA MAIN.\n` +
     `// Régénérer : \`npm run gen\` (deux exécutions successives rendent le même octet).\n\n` +

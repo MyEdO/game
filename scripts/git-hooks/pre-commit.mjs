@@ -36,7 +36,7 @@ import { ciblesDesArmes, generateursArmes } from '../guards/lib/empreinteStage.m
 import { codeDePanne, docsDePorte, paquetsDArgv } from '../guards/lib/porteSpawn.mjs';
 import { cheminsMalNormalises, raisonDeRefusEol } from '../guards/lib/eolStage.mjs';
 import { defautsDeForme, familleDe, raisonDeRefusDeForme } from '../guards/memoire-forme.mjs';
-import { arbrePrincipal } from '../guards/lib/gitPorte.mjs';
+import { INDEX, arbrePrincipal, ceQuEmporteLIndex, depotDe, eolsDe, lireEnLot, racineDe, raisonCourte } from '../guards/lib/gitPorte.mjs';
 import { estFichierVitest } from '../guards/lib/fichierVitest.mjs';
 
 const DEBUT_MS = Date.now();
@@ -54,15 +54,12 @@ const DEBUT_MS = Date.now();
 //    l'arbre principal depuis n'importe quel worktree) ; à défaut, le dossier qui héberge ce fichier.
 const DOSSIER_DU_HOOK = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const HOOK_TREE = (() => {
-  const vu = arbrePrincipal(DOSSIER_DU_HOOK);
+  const vu = arbrePrincipal(depotDe(DOSSIER_DU_HOOK));
   return vu.disponible ? resolve(vu.valeur) : DOSSIER_DU_HOOK;
 })();
-const ROOT = (() => {
-  try {
-    const top = execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim();
-    return top ? resolve(top) : HOOK_TREE;
-  } catch { return HOOK_TREE; }
-})();
+const TOP = racineDe(depotDe(process.cwd()));
+const ROOT = TOP ? resolve(TOP) : HOOK_TREE;
+const depot = depotDe(ROOT);
 // tsx est de l'OUTILLAGE, pas du contenu jugé : il vit là où l'install a eu lieu. Le SCRIPT qu'il joue,
 // lui, reste celui de ROOT.
 const tsxIn = (root) => join(root, 'node_modules', 'tsx', 'dist', 'cli.mjs');
@@ -78,10 +75,35 @@ const hardcodeRe = /^src\/(?:engine|state)\//;
 const argFiles = process.argv.slice(2);
 const staged = argFiles.length
   ? argFiles
-  : execFileSync('git', ['diff', '--cached', '--name-only', '--diff-filter=ACMR'], { cwd: ROOT, encoding: 'utf8' })
-      .split('\n').filter(Boolean);
+  : ceQuEmporteLIndex(depot).chemins('ACMR');
 
 const offenders = [];
+/**
+ * Le texte à juger de `rel`, `null` s'il n'y en a pas : en mode `argFiles`, le fichier (illisible →
+ * `null`) ; en mode stagé, le BLOB DE L'INDEX (`lireEnLot`) — sur l'arbre partagé, le fichier disque
+ * peut porter le WIP d'une AUTRE session que ce commit n'embarque pas. Un refus ou une panne de
+ * `lireEnLot` est un fautif NOMMÉ.
+ */
+function texteAJuger(rel) {
+  if (argFiles.length) {
+    try { return readFileSync(join(ROOT, rel), 'utf8'); } catch { return null; }
+  }
+  try {
+    return lireEnLot(depot, INDEX, [rel]).get(rel) ?? null;
+  } catch (e) {
+    offenders.push(`${rel} : illisible dans l'index — ${raisonCourte(e?.message ?? e)}`);
+    return null;
+  }
+}
+/** Le diff de l'INDEX (`ceQuEmporteLIndex`) ; une panne est un fautif NOMMÉ. */
+const diffDeLIndex = (() => {
+  try {
+    return ceQuEmporteLIndex(depot).diff();
+  } catch (e) {
+    offenders.push(`diff de l'index illisible — ${raisonCourte(e?.message ?? e)}`);
+    return '';
+  }
+})();
 // #1679 L1c — le contenu d'un arbre de travail imbriqué n'appartient pas à un commit du dépôt hôte.
 for (const x of scanArbresImbriques(staged, { racine: ROOT })) offenders.push(x.detail);
 // Garde « logique par libellé » : un volet sans stock (`VOLETS_SANS_STOCK`) porté par une clé du stock
@@ -107,12 +129,8 @@ for (const f of staged) {
   // labelLogic.mjs, combat-hardcode-guard.test.ts EXCLUDED, roll-seam-exclusivity-guard.test.ts EXCLUDED,
   // no-emoji-affordance.test.ts EXCLUDED) — un fichier de test stagé ne doit PAS y rougir.
   const isTestFile = estFichierVitest(rel);
-  let text;
-  try {
-    // Mode stagé : scanner le BLOB DE L'INDEX (`:<chemin>`), pas le working tree — sur l'arbre
-    // partagé, le fichier disque peut porter le WIP d'une AUTRE session que ce commit n'embarque pas.
-    text = argFiles.length ? readFileSync(join(ROOT, rel), 'utf8') : execFileSync('git', ['show', `:${rel}`], { cwd: ROOT, encoding: 'utf8' });
-  } catch { continue; }
+  const text = texteAJuger(rel);
+  if (text === null) continue;
   scannedTs.push(rel);
   for (const x of scanTombstones(rel, text)) offenders.push(`${rel}:${x.line} [pierre tombale] ${x.detail}`);
   for (const x of scanExcuses(rel, text)) {
@@ -161,10 +179,8 @@ const emojiJsonStaged = staged.filter((f) => {
 });
 for (const f of emojiJsonStaged) {
   const rel = f.replace(/\\/g, '/');
-  let text;
-  try {
-    text = argFiles.length ? readFileSync(join(ROOT, rel), 'utf8') : execFileSync('git', ['show', `:${rel}`], { cwd: ROOT, encoding: 'utf8' });
-  } catch { continue; }
+  const text = texteAJuger(rel);
+  if (text === null) continue;
   for (const emoji of emojisIn(text)) offenders.push(`${rel} [emoji d'affordance] ${emoji}`);
 }
 
@@ -190,23 +206,16 @@ if (dataStaged.length) {
 
 // Tag [entériné] NOUVELLEMENT introduit dans le diff stagé : visibilité systématique (la validation
 // utilisateur vit au stylo — dialogue du hook enterine-guard ; ici on rend tout ajout VISIBLE).
-try {
-  const addedTags = execFileSync('git', ['diff', '--cached', '-U0'], { cwd: ROOT, encoding: 'utf8' })
-    .split('\n').filter((l) => l.startsWith('+') && !l.startsWith('+++') && /\[entériné[^\]]*\]/i.test(l));
-  if (addedTags.length) {
-    process.stderr.write(`pre-commit — tag(s) [entériné] AJOUTÉ(s) par ce commit (mot réservé à l'utilisateur — vérifier que CHAQUE site a reçu sa validation) :\n${addedTags.map((l) => `  ${l.slice(0, 160)}`).join('\n')}\n`);
-  }
-} catch { /* diff illisible → pas de scan */ }
+const ajoutees = diffDeLIndex.split('\n').filter((l) => l.startsWith('+') && !l.startsWith('+++'));
+const addedTags = ajoutees.filter((l) => /\[entériné[^\]]*\]/i.test(l));
+if (addedTags.length) {
+  process.stderr.write(`pre-commit — tag(s) [entériné] AJOUTÉ(s) par ce commit (mot réservé à l'utilisateur — vérifier que CHAQUE site a reçu sa validation) :\n${addedTags.map((l) => `  ${l.slice(0, 160)}`).join('\n')}\n`);
+}
 
 // #528 — package-lock.json amputé des entrées hoistées @emnapi/* par une régénération npm 11.
 if (staged.some((f) => f.replace(/\\/g, '/') === 'package-lock.json')) {
-  let lockText;
-  try {
-    lockText = argFiles.length
-      ? readFileSync(join(ROOT, 'package-lock.json'), 'utf8')
-      : execFileSync('git', ['show', ':package-lock.json'], { cwd: ROOT, encoding: 'utf8' });
-  } catch { lockText = undefined; }
-  if (lockText !== undefined) {
+  const lockText = texteAJuger('package-lock.json');
+  if (lockText !== null) {
     for (const x of scanNpmLockHoisted(lockText)) offenders.push(`package-lock.json:${x.line} [lock npm amputé] ${x.detail}`);
   }
 }
@@ -282,12 +291,6 @@ if (armes.length) {
 //       consulté uniquement si le diff ajoute un nom de fichier plausible, sinon on ne paie rien.
 // Reste hors pre-commit (couvert par `npm run docs:check` et le canari) : une violation
 // PRÉEXISTANTE d'un fichier que ce commit ne touche pas.
-const ajoutees = (() => {
-  try {
-    return execFileSync('git', ['diff', '--cached', '-U0'], { cwd: ROOT, encoding: 'utf8' })
-      .split('\n').filter((l) => l.startsWith('+') && !l.startsWith('+++'));
-  } catch { return []; }
-})();
 const citePlan = ajoutees.some((l) => l.includes('docs/plans/'));
 const nommeUnFichier = ajoutees.some((l) => /[\w-]{3,}\.(?:md|html|png|json)\b/.test(l));
 const citeUnMort = () => {
@@ -348,10 +351,8 @@ const formeStaged = staged.map((f) => f.replace(/\\/g, '/')).filter(familleDe);
 if (formeStaged.length) {
   const parFichier = [];
   for (const rel of formeStaged) {
-    let texte;
-    try {
-      texte = argFiles.length ? readFileSync(join(ROOT, rel), 'utf8') : execFileSync('git', ['show', `:${rel}`], { cwd: ROOT, encoding: 'utf8' });
-    } catch { continue; }
+    const texte = texteAJuger(rel);
+    if (texte === null) continue;
     const defauts = defautsDeForme(rel, texte);
     if (defauts.length) parFichier.push({ chemin: rel, defauts });
   }
@@ -363,10 +364,8 @@ if (formeStaged.length) {
 // `eol=lf` (scripts/guards/lib/eolStage.mjs). Lu sur l'INDEX (`--cached`), jamais sur le disque.
 if (staged.length) {
   try {
-    const sortie = paquetsDArgv(staged)
-      .map((paquet) => execFileSync('git', ['ls-files', '--eol', '--cached', '--', ...paquet], { cwd: ROOT, encoding: 'utf8' }))
-      .join('\n');
-    const raison = raisonDeRefusEol(cheminsMalNormalises(sortie));
+    const entrees = paquetsDArgv(staged).flatMap((paquet) => eolsDe(depot, paquet));
+    const raison = raisonDeRefusEol(cheminsMalNormalises(entrees));
     if (raison) offenders.push(raison);
   } catch (e) {
     offenders.push(`fins de ligne de l'index — porte en PANNE : ${codeDePanne(e) ?? e.message} (le garde n'a pas tourné)`);

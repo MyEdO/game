@@ -1,7 +1,8 @@
 import { useEffect } from 'react';
 import { useGame } from '../state/store';
-import { KEYBINDINGS, bindingApplies, effectiveCodes, effectiveMods, eventMods, modsMatch, runBindingUpById, CODE_ECHAP } from '../state/keybindings';
+import { KEYBINDINGS, bindingParId, elireBinding, eventMods, runBindingUpById, CODE_ECHAP } from '../state/keybindings';
 import { resoudreEchap, echapRelachee } from '../state/resoudreEchap';
+import { SURFACE } from './focus';
 
 /** Touches de NAVIGATION : elles ne sont à personne par défaut — un bouton focalisé ne les possède
  *  que s'il est un item d'un conteneur à roving tabindex (`ui/rovingFocus.ts`). */
@@ -9,6 +10,8 @@ const CODE_NAVIGATION = /^Arrow(Up|Down|Left|Right)$/;
 /** Conteneurs qui pilotent leurs items aux flèches (roving tabindex) : là, la flèche appartient au
  *  contrôle focalisé, jamais au raccourci d'application. */
 const CONTENEUR_ROVING = '[role="listbox"],[role="tablist"],[role="menu"],[role="menubar"],[role="radiogroup"],[role="grid"],[role="tree"]';
+/** Touches d'ACTIVATION d'un contrôle focalisé. */
+const CODE_ACTIVATION = /^(Enter|NumpadEnter|Space)$/;
 
 /**
  * Hook UNIQUE des raccourcis clavier de TOUTE l'application : un seul listener `keydown`, ignore les
@@ -20,36 +23,37 @@ const CONTENEUR_ROVING = '[role="listbox"],[role="tablist"],[role="menu"],[role=
  * EXACTEMENT ceux qu'il déclare (`mods`) — un raccourci sans `mods` se tait donc sous Alt ou Ctrl,
  * et laisse la combinaison au système ou au raccourci qui la déclare.
  *
- * La COUCHE DIALOGUE (`coucheDialogue`) ne se tranche PAS ici : elle vit dans `bindingApplies`
- * (`state/keybindings`), la porte que le clavier ET la manette empruntent — une conversation à
- * l'écran est bloquante pour les DEUX. C'est une PROPRIÉTÉ déclarée au registre, jamais une liste
- * d'ids : aucun dispatcher ne connaît un raccourci par son nom.
+ * La MODALE DU DESSUS ne se tranche PAS ici : elle vit dans `bindingApplies` (`state/keybindings`),
+ * la porte que le clavier ET la manette empruntent — sous une modale de la pile, seules répondent
+ * les touches qu'elle déclare (`coucheDialogue` pour la conversation), Échap excepté. C'est une
+ * PROPRIÉTÉ déclarée au registre, jamais une liste d'ids : aucun dispatcher ne connaît un raccourci
+ * par son nom.
  *
  * Le CONTRÔLE FOCALISÉ (`notWhenControlFocused`) ne possède que les touches de SON geste, et ce
  * partage est tranché ICI, une fois : un bouton/lien focalisé possède son ACTIVATION (Espace,
  * Entrée) ; les FLÈCHES ne lui appartiennent que s'il est l'item d'un conteneur à roving tabindex
  * (liste, onglets, menu, radiogroupe). Sinon un focus RÉSIDUEL — le bouton de palette qu'on vient de
  * cliquer — mangerait les flèches de l'application (sélection de l'éditeur, curseur tactique).
+ *
+ * Un contrôle focalisé DANS une SURFACE (`SURFACE` : un dialogue, une infobulle) possède ses touches
+ * d'ACTIVATION, même face à un raccourci qui ne se tait pas devant un contrôle (`cursor-commit`) : le
+ * focus y a été posé par la surface (son focus d'entrée) ou par le joueur, jamais laissé là par un
+ * clic antérieur sur le jeu. Hors surface, le focus résiduel du bouton « Pousser » laisse Entrée au
+ * curseur (#199).
+ *
+ * Une modale pilotée par la carte (désignation de cibles) n'a pas de fenêtre, donc pas de couche dans
+ * la pile : le ciblage au clavier y reste vivant.
  */
 export function useGameKeyboard() {
   useEffect(() => {
-    /** Raccourci qui répond à cette touche dans l'état courant, ou `undefined`. */
-    const trouver = (e: KeyboardEvent, controlFocused: boolean, s = useGame.getState()) => {
-      const tenus = eventMods(e);
-      return KEYBINDINGS.find(
-        (k) =>
-          effectiveCodes(k, s.keyOverrides).includes(e.code) &&
-          modsMatch(effectiveMods(k, s.keyOverrides), tenus, e.code) &&
-          (!k.notWhenControlFocused || !controlFocused) &&
-          bindingApplies(k, s),
-      );
-    };
-    const saisieEnCours = (e: KeyboardEvent): { saisie: boolean; controlFocused: boolean } => {
+    const saisieEnCours = (e: KeyboardEvent): { saisie: boolean; controlFocused: boolean; activationDeSurface: boolean } => {
       const ae = document.activeElement as HTMLElement | null;
       const tag = ae?.tagName ?? '';
+      const controle = /^(BUTTON|A)$/.test(tag);
       return {
         saisie: /^(INPUT|TEXTAREA|SELECT)$/.test(tag) || !!ae?.isContentEditable,
-        controlFocused: /^(BUTTON|A)$/.test(tag) && (!CODE_NAVIGATION.test(e.code) || !!ae?.closest(CONTENEUR_ROVING)),
+        controlFocused: controle && (!CODE_NAVIGATION.test(e.code) || !!ae?.closest(CONTENEUR_ROVING)),
+        activationDeSurface: controle && CODE_ACTIVATION.test(e.code) && !!ae?.closest(SURFACE),
       };
     };
     // UN APPUI, UN RACCOURCI : tant que la touche n'est pas relâchée, elle appartient au raccourci qui
@@ -58,18 +62,17 @@ export function useGameKeyboard() {
     // condition de `intent-cancel` étant retombée, ouvrait le menu système au suivant (#1411 P0-A).
     const priseParCode = new Map<string, string>();
     const onKey = (e: KeyboardEvent) => {
-      const { saisie, controlFocused } = saisieEnCours(e);
-      if (saisie) return;
+      const { saisie, controlFocused, activationDeSurface } = saisieEnCours(e);
+      if (saisie || activationDeSurface) return;
       // ANNULATION : couture unique `resoudreEchap` (pile de couches, puis échelle métier du
       // registre). La porte clavier de la pile la tranche déjà en capture quand une couche existe ;
-      // ce chemin-ci est celui de la pile VIDE. La sourdine du dialogue PNJ est une couche bloquante
-      // poussée par `DialogueBox`, plus un cas particulier de ce hook.
+      // ce chemin-ci est celui de la pile VIDE.
       if (e.code === CODE_ECHAP) {
         const pris = resoudreEchap(useGame.getState, { controlFocused, repeat: e.repeat, mods: eventMods(e) });
         if (pris !== null) e.preventDefault();
         return;
       }
-      const b = trouver(e, controlFocused);
+      const b = elireBinding(e.code, useGame.getState(), { controlFocused, mods: eventMods(e) });
       if (!b) return;
       e.preventDefault();
       const prise = priseParCode.get(e.code);
@@ -92,7 +95,7 @@ export function useGameKeyboard() {
       priseParCode.delete(e.code); // l'appui est fini : la touche est rendue au registre
       if (e.code === CODE_ECHAP) echapRelachee();
       if (prise === undefined) return; // touche jamais prise : rien à terminer
-      if (!KEYBINDINGS.find((k) => k.id === prise)?.runUp) return;
+      if (!bindingParId(prise)?.runUp) return;
       e.preventDefault();
       runBindingUpById(prise, useGame.getState);
     };

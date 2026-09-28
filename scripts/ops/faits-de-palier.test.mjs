@@ -1,4 +1,4 @@
-// Les fonctions PURES de `faits-de-palier.mjs` : lecture des arguments, du journal git, des
+// Les fonctions PURES de `faits-de-palier.mjs` : lecture des arguments, des commits du journal, des
 // fermetures, du journal de dérogations et des courses CI. La lecture RÉELLE (git, gh, npm audit)
 // n'est pas testée ici — elle compose des hôtes qui portent déjà leurs propres tests.
 import test from 'node:test';
@@ -9,12 +9,10 @@ import { join } from 'node:path';
 import { soldesSuivis } from './fermetures-non-citees.mjs';
 import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs';
 import {
-  CHAMP,
-  ENREGISTREMENT,
   analyserArguments,
+  commitDuJournal,
   fermeturesDesCommits,
   marquerSubstance,
-  parserJournal,
   coursesParCommit,
   sortieParDefaut,
 } from './faits-de-palier.mjs';
@@ -47,21 +45,9 @@ test('analyserArguments : sans base ni tête, l’erreur NOMME ce qui manque', (
   assert.throws(() => analyserArguments(['--base', 'aaa']), /--tete <sha>/);
 });
 
-test('parserJournal : un enregistrement par commit, sujet et corps séparés', () => {
-  const brut = [
-    `aaa111${CHAMP}feat: un sujet${CHAMP}feat: un sujet\n\ncorrige #12${ENREGISTREMENT}`,
-    `bbb222${CHAMP}chore: un autre${CHAMP}chore: un autre${ENREGISTREMENT}`,
-  ].join('\n');
-  const commits = parserJournal(brut);
-  assert.equal(commits.length, 2);
-  assert.deepEqual(commits.map((c) => c.sha), ['aaa111', 'bbb222']);
-  assert.equal(commits[0].sujet, 'feat: un sujet');
-  assert.match(commits[0].corps, /corrige #12/);
-});
-
-test('parserJournal : un journal vide ne rend aucun commit', () => {
-  assert.deepEqual(parserJournal(''), []);
-  assert.deepEqual(parserJournal(null), []);
+test('commitDuJournal : le sujet est la première ligne du message, le corps le message entier', () => {
+  const commit = commitDuJournal({ sha: 'aaa111', message: 'feat: un sujet\n\ncorrige #12\n' });
+  assert.deepEqual(commit, { sha: 'aaa111', sujet: 'feat: un sujet', corps: 'feat: un sujet\n\ncorrige #12\n' });
 });
 
 test('marquerSubstance : seuls les commits qui touchent src/scripts comptent pour le palier', () => {

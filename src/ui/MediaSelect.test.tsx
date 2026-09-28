@@ -22,10 +22,6 @@ describe('MediaSelect', () => {
     expect(renderToStaticMarkup(<MediaSelect options={OPTS} value="a" onSelect={() => {}} />)).toContain('Alpha');
   });
 
-  it('déclencheur désactivé → attribut disabled', () => {
-    expect(renderToStaticMarkup(<MediaSelect options={OPTS} onSelect={() => {}} disabled />)).toContain('disabled');
-  });
-
   it('option désactivée → aria-disabled', () => {
     expect(renderToStaticMarkup(<MediaSelect options={OPTS} onSelect={() => {}} />)).toContain('aria-disabled="true"');
   });

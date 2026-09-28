@@ -1,5 +1,5 @@
 import { useGame, type PendingStateRecovery } from '../state/store';
-import { flowStakeRef } from '../data';
+import { stateRecoveryStakeRef } from '../data';
 import type { Combatant } from '../engine/types';
 import { RollShell, type RollAction } from './RollShell';
 import { buildRollRow, witnessRow, type BuiltRollRow } from './rollRowBuild';
@@ -75,7 +75,7 @@ export function StateRecoveryModalView({
   return (
     <RollShell
       flowKey="recover"
-      stake={flowStakeRef('recover', sr.state)}
+      stake={stateRecoveryStakeRef(sr.state)}
       title={remedeDeLEtat(sr.state)?.label ?? conditionLabel(sr.state)}
       subtitle={<>{sub} · {sr.stacks} pion{sr.stacks > 1 ? 's' : ''}</>}
       rows={witness ? [actorRow, witness] : [actorRow]}

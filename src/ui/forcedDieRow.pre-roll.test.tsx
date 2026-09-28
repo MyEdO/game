@@ -305,7 +305,13 @@ describe('« Dé fixé » PRÉ-jet — le champ DANS une vraie modale', () => {
     const die = rowForcedDie(useGame.getState(), 'attack', { actor: ATT, rolled: false, interactive: true, onRoll }, false);
     act(() => {
       root.render(
-        <Modal title="Attaque" variant="roll">
+        <Modal title="Attaque"
+          footer={
+            <>
+              <button className="btn btn-primary" onClick={() => applies.push('apply')}>Appliquer</button>
+            </>
+          }
+        >
           <RollRow
             actor={VIEW}
             row={{ combatant: VIEW, pending: testPending('Corps à corps', 45) }}
@@ -316,14 +322,11 @@ describe('« Dé fixé » PRÉ-jet — le champ DANS une vraie modale', () => {
             rollFrisson={false}
             onRoll={onRoll}
           />
-          <div className="modal-actions">
-            <button className="btn btn-primary" onClick={() => applies.push('apply')}>Appliquer</button>
-          </div>
         </Modal>,
       );
     });
     // Sans boîte, `Modal` juge le bouton primaire invisible et son raccourci Entrée ne partirait JAMAIS.
-    rendreVisible(host.querySelector<HTMLElement>('.modal-actions .btn-primary')!);
+    rendreVisible(host.querySelector<HTMLElement>('.cadre-pied .btn-primary')!);
     return dieInput()!;
   }
 
@@ -574,7 +577,7 @@ describe('CTA HISSÉ de la coquille (hôte réel d’une cascade) — le dé sai
         />,
       );
     });
-    const cta = [...host.querySelectorAll('.modal-actions button')].find((b) => /Lancer/.test(b.textContent ?? '')) as HTMLButtonElement;
+    const cta = [...host.querySelectorAll('.cadre-pied button')].find((b) => /Lancer/.test(b.textContent ?? '')) as HTMLButtonElement;
     return { input: dieInput()!, cta, rolls };
   }
 
@@ -615,7 +618,7 @@ describe('CTA HISSÉ d’une étape SANS champ de dé — le brouillon de l’é
     key: 'oups', row: { note: undefined }, rollLabel: 'Lancer sur le Tableau des Oups !', onRoll: tire, rollFrisson: false,
   })];
   const ctaOups = (): HTMLButtonElement =>
-    [...host.querySelectorAll('.modal-actions button')].find((b) => /Tableau des Oups/.test(b.textContent ?? '')) as HTMLButtonElement;
+    [...host.querySelectorAll('.cadre-pied button')].find((b) => /Tableau des Oups/.test(b.textContent ?? '')) as HTMLButtonElement;
 
   it('un dé SAISI non validé à l’étape d’avant : le « Lancer sur le Tableau des Oups ! » de la Maladresse tire quand même', () => {
     setDesFixes(true);
@@ -698,7 +701,7 @@ describe('« Tout lancer » d’une fenêtre MULTI — chaque rangée consomme S
         />,
       );
     });
-    const cta = [...host.querySelectorAll('.modal-actions button')].find((b) => /Tout lancer/.test(b.textContent ?? '')) as HTMLButtonElement;
+    const cta = [...host.querySelectorAll('.cadre-pied button')].find((b) => /Tout lancer/.test(b.textContent ?? '')) as HTMLButtonElement;
     return { inputs: [...host.querySelectorAll('.rm-die-pick input[type="number"]')] as HTMLInputElement[], cta, rolls };
   }
 
@@ -763,7 +766,7 @@ describe('ORDRE RÉEL blur → clic : les 3 hôtes consomment quand même le dé
       );
     });
     const input = dieInput()!;
-    const cta = [...host.querySelectorAll('.modal-actions button')].find((b) => /Lancer/.test(b.textContent ?? '')) as HTMLButtonElement;
+    const cta = [...host.querySelectorAll('.cadre-pied button')].find((b) => /Lancer/.test(b.textContent ?? '')) as HTMLButtonElement;
     act(() => input.focus());
     type(input, '95');
     act(() => { input.blur(); input.dispatchEvent(new FocusEvent('blur', { bubbles: false })); });
@@ -794,7 +797,7 @@ describe('ORDRE RÉEL blur → clic : les 3 hôtes consomment quand même le dé
       );
     });
     const inputs = [...host.querySelectorAll('.rm-die-pick input[type="number"]')] as HTMLInputElement[];
-    const cta = [...host.querySelectorAll('.modal-actions button')].find((b) => /Tout lancer/.test(b.textContent ?? '')) as HTMLButtonElement;
+    const cta = [...host.querySelectorAll('.cadre-pied button')].find((b) => /Tout lancer/.test(b.textContent ?? '')) as HTMLButtonElement;
     act(() => inputs[1].focus());
     type(inputs[1], '95');
     act(() => { inputs[1].blur(); inputs[1].dispatchEvent(new FocusEvent('blur', { bubbles: false })); });

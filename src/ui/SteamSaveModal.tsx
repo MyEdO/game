@@ -49,7 +49,7 @@ export function SteamSaveModal() {
   return (
     <RollShell
       flowKey="steamSave"
-      stake={flowStakeRef('steamSave', 'roll')}
+      stake={flowStakeRef('steam-save-roll')}
       title="Fuite de vapeur — Initiative"
       subtitle={<>panne de vapeur</>}
       rows={[actorRow]}

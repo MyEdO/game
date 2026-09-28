@@ -48,7 +48,7 @@ export function ShipManeuverModal() {
   const total = maneuverCrewTotal(p.participants, p.essentialRoleId, p.moraleScore, p.undercrew, p.extraDR);
   const result = allRolled ? deriveManeuverFromCrew(ship, total) : null;
   const turnOptions: RollOption[] = TURN_OPTIONS.map((o) => ({
-    key: o.key, label: o.label, selected: p.turnSteps === o.steps, primary: p.turnSteps === o.steps,
+    key: o.key, label: o.label, selected: p.turnSteps === o.steps,
     onSelect: () => setTurn(o.steps),
   }));
   const plural = (n: number) => (n > 1 ? 's' : '');

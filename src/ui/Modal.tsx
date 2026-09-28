@@ -1,7 +1,10 @@
 import { useEffect, useId, useRef, type ReactNode, type RefObject } from 'react';
-import { useDismissLayer } from './useDismissLayer';
-import type { OnDismiss } from '../state/dismissStack';
+import { atteignable, poserFocus, useFocusEmprunte, visibleFocusables } from './focus';
+import { dialogueDuDessus, useDismissLayer } from './useDismissLayer';
+import { subscribeDismissStack, type LayerPlan, type OnDismiss } from '../state/dismissStack';
 import { ModalSubject } from './ModalSubject';
+import { Row } from './Layout';
+import { CadrePied, CadreFermer, PRIMAIRE_DU_PIED, PIED_DU_CADRE, CROIX_DU_CADRE } from './Cadre';
 import type { Combatant } from '../engine/types';
 
 /**
@@ -10,76 +13,94 @@ import type { Combatant } from '../engine/types';
  * que son contenu propre (résultat, actions). Le bandeau `subject` (portrait + nom du combattant
  * concerné, via `ModalSubject`) garantit qu'on sait TOUJOURS à qui la modale s'applique.
  *
- * `variant` choisit la famille de classes ('roll' = roll-modal, 'plain' = boîte
- * nue stylée par `className`) ; `className` ajoute une classe spécifique (ex. inspection). Le contenu
- * spécifique passe en `children`.
+ * Boîte en colonne : tête (titre, croix), bandeau `subject`, corps `.modal-body` qui défile
+ * (`children`), pied `CadrePied` (`footer`, `Cadre.tsx`) qui reste. `champ`, `plein`, `voile`, `taille` et
+ * `gangrene` sont des ÉTATS posés en `data-*` sur le voile (`styles/modal.css`).
+ *
+ * @clavier-hors-registre Tab et Échap appartiennent au DIALOGUE ouvert (`useModalA11y`, pattern
+ * WAI-ARIA) : ni raccourcis d'application ni remappables (garde `ui/raccourcis-registre.test.ts`).
  */
-const FOCUSABLE = 'button, [href], input, select, textarea';
 
-/** Focusables VISIBLES d'un conteneur (non `disabled`, effectivement rendus) — source UNIQUE du
- *  calcul partagé par le piège Tab et tout consommateur clavier. */
-export function visibleFocusables(container: HTMLElement): HTMLElement[] {
-  return [...container.querySelectorAll<HTMLElement>(FOCUSABLE)]
-    .filter((el) => !el.hasAttribute('disabled') && el.getClientRects().length > 0);
-}
-
-/** Comportement a11y des dialogues (pattern WAI-ARIA) : focus déplacé dans la boîte à l'ouverture,
- *  piège de focus (Tab/Shift+Tab bouclent), Échap = `onClose` quand il existe — seule la modale du
- *  DESSUS (dernier [role=dialog] du document) réagit.
- *
- *  @clavier-hors-registre Tab et Échap appartiennent ici au DIALOGUE ouvert (pattern WAI-ARIA) : ils
- *  ne sont ni des raccourcis d'application ni remappables (garde `ui/raccourcis-registre.test.ts`).
- *
- *  Pour les dialogues au markup spécifique (Fiche, Inspection…) qui ne passent pas par <Modal> :
- *  poser role="dialog" + appeler ce hook. */
 /** Options d'un GROUPE DE CHOIX de la modale (segmented `.seg`, grille `.rm-loc-grid`, sélecteur de dé
- *  `.rm-die-pick`) — `<button>` qui vivent HORS `.modal-actions`. Le clavier doit pouvoir les COCHER,
+ *  `.rm-die-pick`) — `<button>` qui vivent HORS du pied (`.cadre-pied`). Le clavier doit pouvoir les COCHER,
  *  sinon une étape « choix » (déviation de Critique, Parade/Esquive, dé choisi…) est un cul-de-sac :
  *  son bouton de validation reste garrotté. */
 function choiceOptions(box: HTMLElement): HTMLButtonElement[] {
   return [...box.querySelectorAll<HTMLButtonElement>('.seg button, .rm-loc-grid button, .rm-die-pick button')]
-    .filter((el) => !el.disabled && el.getClientRects().length > 0);
+    .filter(atteignable);
 }
 
-/** Cible de focus de la boîte — source UNIQUE, partagée par l'ouverture et le sauvetage :
- *  option de choix, sinon bouton primaire de la barre, sinon 1er focusable.
- *  - `initial` : une option seulement si AUCUNE n'est tranchée (le 1er Entrée la coche, au lieu de
+/** GESTE d'un dialogue : un bouton `.btn`, ou l'onglet ouvert d'une barre `<Tabs>`. */
+const GESTE = '.btn, [role="tab"][aria-selected="true"]';
+
+/** Gestes VISIBLES de la boîte, sauf la croix du cadre. */
+const gestesDe = (box: HTMLElement): HTMLElement[] =>
+  visibleFocusables(box).filter((el) => el.matches(GESTE) && !el.matches(CROIX_DU_CADRE));
+
+/** Cible de focus de la boîte — source UNIQUE, partagée par l'ouverture et le sauvetage. Elle ne
+ *  tombe que sur un GESTE du dialogue, jamais sur un autre contrôle (jauge, portrait, lien) ni sur la
+ *  croix du cadre : option de choix, sinon primaire du pied, sinon 1er geste du corps, sinon 1er geste
+ *  (de sortie) du pied, sinon la boîte elle-même (`tabindex=-1`) : le focus entre toujours dans le
+ *  dialogue. Patron de dialogue WAI-ARIA (APG) : le point de départ du travail, jamais la sortie.
+ *  - une option RETENUE porte `aria-pressed` (`selected` d'`OptionChooser`) ; l'option `.btn-primary`
+ *    n'est que mise en avant, et c'est elle qui est OFFERTE la première ;
+ *  - `initial` : une option seulement si AUCUNE n'est retenue (le 1er Entrée la coche, au lieu de
  *    taper un bouton de validation inerte) ;
- *  - `rescue` : le groupe de choix RÉVÉLÉ prime (l'option en cours, sinon la première) — c'est lui
- *    qui vient de remplacer le contrôle disparu. */
-function focusTarget(box: HTMLElement, mode: 'initial' | 'rescue'): HTMLElement | null {
+ *  - `rescue` : le groupe de choix RÉVÉLÉ (l'option retenue, sinon l'offerte) — c'est lui qui vient de
+ *    remplacer le contrôle disparu. */
+function focusTarget(box: HTMLElement, mode: 'initial' | 'rescue'): HTMLElement {
+  const gestes = gestesDe(box);
   const opts = choiceOptions(box);
-  const selected = opts.find((b) => b.classList.contains('on') || b.classList.contains('btn-primary'));
-  const choice = mode === 'rescue' ? (selected ?? opts[0] ?? null) : (opts.length && !selected ? opts[0] : null);
-  const primary = box.querySelector<HTMLElement>('.modal-actions .btn-primary:not([disabled])');
-  return choice ?? (primary?.getClientRects().length ? primary : null) ?? visibleFocusables(box)[0] ?? null;
+  const retenue = opts.find((b) => b.getAttribute('aria-pressed') === 'true');
+  const offerte = opts.find((b) => b.classList.contains('btn-primary')) ?? opts[0];
+  const choice = mode === 'rescue' ? (retenue ?? offerte) : retenue ? undefined : offerte;
+  const pied = gestes.filter((el) => el.closest(PIED_DU_CADRE));
+  const corps = gestes.filter((el) => !el.closest(PIED_DU_CADRE));
+  const cible = choice ?? pied.find((el) => el.matches(PRIMAIRE_DU_PIED)) ?? corps[0] ?? pied[0];
+  if (cible) return cible;
+  if (!box.hasAttribute('tabindex')) box.tabIndex = -1;
+  return box;
 }
 
-/** @param kind identifiant STABLE de la surface empilée (`dismissStack`) — il n'entre dans aucun rang.
+/** Cible d'ouverture d'un dialogue : `focusTarget` initial — évite que le focus atterrisse sur un
+ *  bouton sans intérêt (« rien ne répond »). Un dialogue qui n'est pas le dialogue du dessus
+ *  (`dialogueDuDessus`) n'emprunte rien : peint dessous, il attend que ce qui le couvre se retire. */
+const cibleDialogue = (box: HTMLElement) => (dialogueDuDessus() === box ? focusTarget(box, 'initial') : null);
+
+/** Cible d'une surface EMBARQUÉE dans un dialogue déjà ouvert (jet posé dans l'infirmerie) : la cible
+ *  d'ouverture de ce dialogue, qui porte les gestes de la surface à son pied. Montée AVEC son dialogue
+ *  (le focus n'y est pas encore), elle n'emprunte rien : le dialogue emprunte pour elle. */
+export const cibleEmbarquee = (box: HTMLElement): HTMLElement | null => {
+  const dialogue = box.closest<HTMLElement>('[role="dialog"]');
+  return dialogue && dialogue.contains(document.activeElement) ? focusTarget(dialogue, 'initial') : null;
+};
+
+/** Comportement a11y des dialogues (pattern WAI-ARIA) : focus déplacé dans la boîte à l'ouverture,
+ *  piège de focus (Tab/Shift+Tab bouclent), Échap = `onClose` quand il existe — seule la modale du
+ *  DESSUS de la pile (`dialogueDuDessus`) réagit, jamais le dernier `[role=dialog]` de l'ordre du
+ *  document. Consommé par tout dialogue de la pile.
+ *
+ *  @param kind identifiant STABLE de la surface empilée (`dismissStack`) — il n'entre dans aucun rang.
+ *  @param plan où la boîte est PEINTE (`dismissStack`) : `application` (défaut, voile `fixed`) ou
+ *   `scene` (la conversation, peinte dans la scène sous toute surface d'application).
  *  @param actif le dialogue est-il RÉELLEMENT à l'écran. DISTINCT d'« annulable » : un composant monté
  *   en permanence (menu système fermé) ou qui rend `null` sous condition n'a AUCUNE couche — sans quoi il empilerait une couche fantôme qui mange le
- *   congédiement de toute la session. */
+ *   congédiement de toute la session.
+ *  @param etape l'étape courante du dialogue (`useFocusEmprunte`). */
 export function useModalA11y(
   boxRef: RefObject<HTMLDivElement>,
   onClose?: OnDismiss,
-  { kind = 'modale', actif = true }: { kind?: string; actif?: boolean } = {},
+  { kind = 'modale', plan = 'application', actif = true, etape }: { kind?: string; plan?: LayerPlan; actif?: boolean; etape?: string | number } = {},
 ) {
-  // Focus initial UTILE (cf. `focusTarget`) : évite que le focus atterrisse sur un bouton sans intérêt
-  // (« rien ne répond »).
-  // RESTORE : à la fermeture, le focus revient à l'élément qui l'avait AVANT l'ouverture (déclencheur du
-  // bouton/carte) — sinon un joueur clavier perd son point de navigation à chaque modale fermée.
-  // `actif` fait partie des DÉPENDANCES : une boîte qui n'existe qu'à l'ouverture (`{actif && <div
-  // ref=…>}`) n'a pas d'élément au premier rendu, et l'objet `ref` ne change jamais d'identité — sans
-  // cette dépendance l'effet sortirait à vide une fois pour toutes (#1752).
-  useEffect(() => {
-    const box = boxRef.current;
-    if (!actif || !box) return;
-    const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    focusTarget(box, 'initial')?.focus();
-    return () => {
-      if (previouslyFocused && document.body.contains(previouslyFocused)) previouslyFocused.focus();
-    };
-  }, [boxRef, actif]);
+  // CONGÉDIEMENT : le dialogue est une COUCHE de la pile (`dismissStack`, #1476) — Échap et le
+  // bouton B de la manette y arrivent par la couture unique `resoudreEchap`, qui congédie la couche
+  // du DESSUS (`coucheDuDessus`), jamais le dernier `[role=dialog]` de l'ordre du document — un
+  // portal ajouté en fin de `body` mentait sur l'ordre d'ouverture. Sans `onClose`, la couche est
+  // BLOQUANTE : elle consomme la touche sans rien fermer (un jet posé doit être résolu). Un `onClose`
+  // qui rend `false` garde la couche à l'écran (congédiement PARTIEL, #1752). Empilée AVANT l'emprunt :
+  // l'ordre des effets est celui des appels, et l'emprunt lit la pile (`cibleDialogue`).
+  useDismissLayer({ kind, nature: 'modale', plan, boite: boxRef }, onClose ?? null, actif);
+  useFocusEmprunte(boxRef, actif, cibleDialogue, etape);
   // SAUVETAGE du focus : un contrôle focalisé que le rendu DÉMONTE (« Résilience » cède la place au
   // groupe de choix du dé, « Lancer » au résultat…) laisse le focus sur <body> — le piège Tab est
   // rompu et la tabulation suivante s'échappe vers l'arrière-plan. On le replace DANS la boîte, sur la
@@ -93,30 +114,43 @@ export function useModalA11y(
     box.addEventListener('focusin', onFocusIn);
     const obs = new MutationObserver(() => {
       if (!had.current || !document.body.contains(box)) return;
-      const dialogs = document.querySelectorAll('[role="dialog"]');
-      if (dialogs[dialogs.length - 1] !== box) return;
+      if (dialogueDuDessus() !== box) return;
       const ae = document.activeElement;
       if (ae && ae !== document.body && box.contains(ae)) return;
       // Focus parti VOLONTAIREMENT sur un élément vivant hors de la boîte : on ne le rapatrie pas.
       if (ae && ae !== document.body && document.body.contains(ae)) { had.current = false; return; }
-      focusTarget(box, 'rescue')?.focus();
+      poserFocus(focusTarget(box, 'rescue'));
     });
     obs.observe(box, { childList: true, subtree: true });
     return () => { obs.disconnect(); box.removeEventListener('focusin', onFocusIn); };
   }, [boxRef, actif]);
-  // CONGÉDIEMENT : le dialogue est une COUCHE de la pile (`dismissStack`, #1476) — Échap et le
-  // bouton B de la manette y arrivent par la couture unique `resoudreEchap`, qui congédie la couche
-  // du DESSUS (la dernière ouverte), jamais le dernier `[role=dialog]` de l'ordre du document — un
-  // portal ajouté en fin de `body` mentait sur l'ordre d'ouverture. Sans `onClose`, la couche est
-  // BLOQUANTE : elle consomme la touche sans rien fermer (un jet posé doit être résolu). Un `onClose`
-  // qui rend `false` garde la couche à l'écran (congédiement PARTIEL, #1752).
-  useDismissLayer(kind, 'modale', onClose ?? null, actif);
+  // REPLI quand une couche se retire (dialogue fermé, bulle, panneau) en laissant le focus sur <body> —
+  // son invocateur n'existe plus : le dialogue qui DEVIENT le dessus le reprend. Évaluation
+  // d'ingénierie, au-delà de l'APG cité par `useFocusEmprunte`. Lu à la tâche SUIVANTE, jamais dans
+  // le retrait : congédiée par Échap (`dismissTop`), une couche est dépilée AVANT que le rendu ne
+  // retire sa boîte ; retirée par un `blur` (bulle de focus), elle l'est pendant que le focus passe
+  // au contrôle suivant, <body> le temps de l'événement.
+  useEffect(() => {
+    const box = boxRef.current;
+    if (!actif || !box) return;
+    let relecture: ReturnType<typeof setTimeout> | undefined;
+    const reprendre = () => {
+      const ae = document.activeElement;
+      if (ae && ae !== document.body) return;
+      if (dialogueDuDessus() !== box) return;
+      poserFocus(focusTarget(box, 'rescue'));
+    };
+    const desabonner = subscribeDismissStack((e) => {
+      if (e.type !== 'pop') return;
+      clearTimeout(relecture);
+      relecture = setTimeout(reprendre, 0);
+    });
+    return () => { desabonner(); clearTimeout(relecture); };
+  }, [boxRef, actif]);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const box = boxRef.current;
-      if (!box) return;
-      const dialogs = document.querySelectorAll('[role="dialog"]');
-      if (dialogs[dialogs.length - 1] !== box) return;
+      if (!box || dialogueDuDessus() !== box) return;
       // Un CONTRÔLE focalisé possède sa touche, OÙ QU'IL VIVE dans le document — `document.activeElement`
       // est global, alors que la boîte n'est qu'un sous-arbre. Juger par CONTAINMENT (`box.contains(ae)`)
       // était faux au socle : tout contrôle actionnable rendu en PORTAL (`createPortal(document.body)`)
@@ -137,7 +171,7 @@ export function useModalA11y(
         // `ForcedRollPicker`), il ne se déclare pas ici.
         // Sinon (focus sur la boîte/aucun) → repli sur le bouton primaire.
         if (activeButton || focusElsewhere) return;
-        const primary = box.querySelector<HTMLElement>('.modal-actions .btn-primary:not([disabled])');
+        const primary = box.querySelector<HTMLElement>(PRIMAIRE_DU_PIED);
         if (primary && primary.getClientRects().length) { e.preventDefault(); primary.click(); }
         return;
       }
@@ -161,10 +195,11 @@ export function useModalA11y(
       const first = els[0];
       const last = els[els.length - 1];
       const active = document.activeElement;
-      if (e.shiftKey && (active === first || !box.contains(active))) {
+      const horsDesControles = active === box || !box.contains(active);
+      if (e.shiftKey && (active === first || horsDesControles)) {
         e.preventDefault();
         last.focus();
-      } else if (!e.shiftKey && (active === last || !box.contains(active))) {
+      } else if (!e.shiftKey && (active === last || horsDesControles)) {
         e.preventDefault();
         first.focus();
       }
@@ -174,53 +209,93 @@ export function useModalA11y(
   }, [boxRef]);
 }
 
-const VARIANT_CLASS = { roll: ' roll-modal', plain: '' } as const;
+/** Nom du dialogue : un `title` rendu en tête (il EST le nom accessible), ou un `label` quand le
+ *  corps porte déjà son propre titre (fiche, Codex) — jamais un dialogue sans nom. */
+type ModalName = { title: ReactNode; label?: never } | { label: string; title?: never };
 
 export function Modal({
   title,
+  label,
   subject,
-  variant = 'roll',
+  champ = false,
+  plein = false,
   voile,
+  taille,
+  gangrene,
   kind,
   className,
   onClose,
+  croix = false,
   backdropClose = false,
+  footer,
+  etape,
   children,
-}: {
-  title: ReactNode;
+}: ModalName & {
   /** Combattant concerné → tuile-portrait en bandeau (omis si absent). */
   subject?: Combatant | null;
-  variant?: 'roll' | 'plain';
-  /** Voile OPAQUE, sous les modales de jet : la scène n'a plus à rester lisible et une modale peut
-   *  s'ouvrir par-dessus (fin de combat). Défaut : voile allégé, au rang le plus haut. */
-  voile?: 'opaque';
-  /** Nom de la couche de congédiement (`dismissStack`) — défaut `modale`. */
+  /** CHAMP LISIBLE : le champ de bataille se lit sous la fenêtre (voile allégé, ancrage par bandes
+   *  sur l'écran de campagne). État posé en `data-champ` sur le voile. */
+  champ?: boolean;
+  /** PLEIN ÉCRAN ≤560 : la fenêtre prend tout le téléphone. Posé par la seule `RollShell`, pour
+   *  tout hôte de jet. État posé en `data-plein` sur le voile. */
+  plein?: boolean;
+  /** `'opaque'` : sous les modales de jet, la scène n'a plus à rester lisible et une modale peut
+   *  s'ouvrir par-dessus (fin de combat). `'reference'` : lecteur passif (fiche) sous les modales
+   *  actives. Défaut : voile allégé, au rang le plus haut. */
+  voile?: 'opaque' | 'reference';
+  /** Boîte : `'apercu'` (380px, inspection d'un combattant), `'lecture'` (560px, page de document ou
+   *  de butin), `'large'` (760px), `'planche'` (fiche : 880px, hauteur stable), `'vaste'` (écran
+   *  hébergé bord à bord). Défaut : 520px. */
+  taille?: 'apercu' | 'lecture' | 'large' | 'planche' | 'vaste';
+  /** Gangrène du cadre (#492) : la Corruption du porteur ternit l'or de la boîte. */
+  gangrene?: 'ronge' | 'seuil';
+  /** Identifiant STABLE de la couche de congédiement (`dismissStack`) — défaut `modale`. */
   kind?: string;
+  /** Crochet d'appelant pour SES descendants — la boîte elle-même ne se vise pas (§5.3,
+   *  `css-modules-guard.test.ts`) : géométrie et matière sont des états ci-dessus. */
   className?: string;
   /** Échap = ce callback (l'équivalent du bouton Fermer/Annuler visible). Absent → modale
-   *  NON annulable (un jet posé doit être résolu). */
-  onClose?: () => void;
+   *  NON annulable (un jet posé doit être résolu). `false` en retour : la boîte RESTE montée et
+   *  garde sa couche (`dismissStack.ts`). */
+  onClose?: OnDismiss;
+  /** La tête porte la croix de fermeture (`CadreFermer`) — lecteurs passifs sans pied (planche). */
+  croix?: boolean;
   /** Cliquer le voile ferme aussi (lecteurs passifs : document, fiche…) — jamais par défaut. */
   backdropClose?: boolean;
-  children: ReactNode;
+  /** PIED : les gestes de sortie, hors du défileur (`CadrePied`). */
+  footer?: ReactNode;
+  /** Étape courante du dialogue : quand elle change, le focus entre sur la cible de l'étape (`useFocusEmprunte`). */
+  etape?: string | number;
+  children?: ReactNode;
 }) {
   const boxRef = useRef<HTMLDivElement>(null);
-  // NOM ACCESSIBLE : le titre rendu EST le nom du dialogue — aucun appelant n'a à le redire.
   const titreId = useId();
-  useModalA11y(boxRef, onClose, kind ? { kind } : undefined); // aucun early-return : la boîte montée est la boîte affichée
+  useModalA11y(boxRef, onClose, { kind, etape }); // aucun early-return : la boîte montée est la boîte affichée
+  const fermer = croix && onClose ? <CadreFermer onClose={onClose} /> : null;
+  const titre = label === undefined ? <h3 id={titreId} className="modal-title">{title}</h3> : null;
   return (
-    <div className="modal-overlay" data-voile={voile} onClick={backdropClose && onClose ? onClose : undefined}>
+    <div
+      className="modal-overlay"
+      data-champ={champ || undefined}
+      data-plein={plein || undefined}
+      data-voile={voile}
+      data-taille={taille}
+      data-gangrene={gangrene}
+      onClick={backdropClose && onClose ? onClose : undefined}
+    >
       <div
         ref={boxRef}
         role="dialog"
         aria-modal="true"
-        aria-labelledby={titreId}
-        className={`modal${VARIANT_CLASS[variant]}${className ? ` ${className}` : ''}`}
+        aria-labelledby={label === undefined ? titreId : undefined}
+        aria-label={label}
+        className={`modal${className ? ` ${className}` : ''}`}
         onClick={backdropClose ? (e) => e.stopPropagation() : undefined}
       >
-        <h3 id={titreId}>{title}</h3>
+        {fermer ? <Row justify={titre ? 'between' : 'end'} className="modal-tete">{titre}{fermer}</Row> : titre}
         {subject && <ModalSubject c={subject} />}
-        {children}
+        <div className="modal-body">{children}</div>
+        <CadrePied>{footer}</CadrePied>
       </div>
     </div>
   );

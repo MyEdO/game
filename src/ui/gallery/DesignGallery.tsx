@@ -21,7 +21,7 @@ export function DesignGallery() {
   const entry = GALLERY_SPECIMENS.find((s) => s.id === activeId) ?? GALLERY_SPECIMENS[0];
   const Render = entry?.render;
   return (
-    <ScreenShell title={<><Icon id="nav/art-gallery" /> Design system — L'Atelier du scribe</>} onClose={() => setScreen('menu')} body="centered-wide" className="gallery-screen">
+    <ScreenShell title={<><Icon id="nav/art-gallery" /> Design system — L'Atelier du scribe</>} onClose={() => setScreen('menu')} body="centered-wide">
       <div className="gallery-body">
         <MasterDetail
           listLabel="Primitives du design system"

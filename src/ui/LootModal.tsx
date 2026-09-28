@@ -25,7 +25,12 @@ export function LootModal() {
   // Attribuables = les héros de CE siège (solo : tous — `ownsLocal` le rend déjà, #1262).
   const assignable = party.filter((h) => ownsLocal(state, h.id));
   return (
-    <Modal title={pl.title} variant="plain" className="loot-modal" onClose={appraising ? undefined : dismiss}>
+    <Modal
+      title={pl.title}
+      taille="lecture"
+      onClose={appraising ? undefined : dismiss}
+      footer={<button className="btn btn-primary" onClick={dismiss}>Continuer</button>}
+    >
       <RewardRecap
         messages={pl.messages}
         gold={pl.gold}
@@ -41,7 +46,6 @@ export function LootModal() {
             />
           ),
         }] : undefined}
-        action={<button className="btn btn-primary reward-continue" onClick={dismiss}>Continuer</button>}
       />
     </Modal>
   );

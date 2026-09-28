@@ -65,8 +65,9 @@ function verifier(chapitre, ref, D) {
 
 /**
  * Juge une entrée : SEULE définition du verdict d'adressabilité du dépôt — le rapport de dérivation
- * ci-dessous et la migration `scripts/migrations/2026-09-05-1389-psychology-desc-vers-descref.mjs`
- * en jugent par elle, jamais par un second chemin.
+ * ci-dessous et les migrations `scripts/migrations/2026-09-05-1389-psychology-desc-vers-descref.mjs`
+ * et `scripts/migrations/2026-09-28-1887-regles-desc-vers-descref.mjs` en jugent par elle, jamais
+ * par un second chemin.
  * @returns {{ verdict: string, ref?: object, reason?: string, verification?: string }}
  */
 export function judge(entry) {

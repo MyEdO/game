@@ -175,7 +175,7 @@
                                     sont pas les mêmes » — le bas reste `--atelier-night`. */
   --atelier-shell-hi: #1a130c; /* haut de la coquille d'atelier (`.dirC` planche) — le SOL de l'écran */
   --atelier-shell-lo: #0a0705; /* bas de la coquille d'atelier */
-  --atelier-modal-lo: #0c0805; /* bas du dégradé de matière MODALE (`.sheet-modal` planche-fiche-perso
+  --atelier-modal-lo: #0c0805; /* bas du dégradé de matière MODALE (planche de la fiche de personnage
                                   l.108-109, #414) — même haut que `--atelier-shell-hi`, bas distinct
                                   d'1-2 valeurs 8-bit (authoring), pas un doublon de `--atelier-shell-lo` */
   --atelier-crank-hi: #3a2c15; /* haut de la manivelle laiton `[−]`/`[+]` (`.crank button` planche) */
@@ -549,11 +549,11 @@ h3 {
   padding: 6px 10px;
   font-size: 13px;
 }
-/* ÉTAT FERRÉ d'un bouton — le choix DÉJÀ POSÉ se VOIT (munition en chambre, ligne de table élue,
-   outil actif). Grammaire UNIQUE des états ferrés : `aria-pressed` pour un interrupteur,
-   `aria-current` pour l'item courant d'un ensemble (`.listrow`, components.css) — jamais une classe
-   de ton en plus de l'attribut. */
-.btn[aria-pressed='true'] {
+/* ÉTAT FERRÉ d'un bouton : `aria-pressed` (WAI-ARIA APG, Button, toggle) ; `aria-haspopup` +
+   `aria-expanded` (WAI-ARIA APG, Menu Button). Une divulgation (APG, Disclosure) porte son état par
+   le chevron (components.css). Garde `choix-retenu-guard.test.ts`. */
+.btn[aria-pressed='true'],
+.btn[aria-haspopup][aria-expanded='true'] {
   border-color: var(--atelier-brass-vif);
   box-shadow: inset 0 0 0 1px var(--atelier-brass-vif);
 }
@@ -770,12 +770,6 @@ h3 {
   border-radius: 6px;
   padding: 2px 8px;
   font-size: 12px;
-}
-.hero-present-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 14px;
 }
 @media (max-width: 700px) {
   .hero-present-body {

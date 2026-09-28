@@ -191,6 +191,19 @@ const NOMME_FICHIER = new RegExp(String.raw`^(?:${CHEMIN_FICHIER}|${NOM_NU}|${CH
 const ENTREE_EN_TETE = new RegExp(String.raw`^\s*\[?\s*${JETON}\s*(?:[,:][^\n]*)?$`);
 const ENTREE_EN_QUEUE = new RegExp(String.raw`^\s*\[[^\n]*${JETON}\s*\][,;]?\s*(?:\/\/[^\n]*)?$`);
 
+/** Le premier fichier qu'une ligne d'entrée NOMME, entre quotes, sans son suffixe `:ligne`/`:symbole`. */
+const FICHIER_NOMME = new RegExp(String.raw`['"\`]((?:${CHEMIN}|${NOM_NU}|${CHEMIN_SOURCE})(?=${SUFFIXE_JETON}['"\`]))`);
+
+/**
+ * La CLÉ d'une entrée (#1806 D5″) : le fichier qu'elle nomme, ou son texte entier quand aucun
+ * littéral n'en nomme un.
+ * @param {string} texte @returns {string}
+ */
+export function fichierNommePar(texte) {
+  const m = FICHIER_NOMME.exec(texte);
+  return m ? m[1].replace(/:[\w.|:-]+$/, '') : texte;
+}
+
 /** Le fichier peut-il porter un stock ? */
 export function estPorteurDeStock(chemin) {
   const rel = String(chemin ?? '').replace(/\\/g, '/');
@@ -443,8 +456,12 @@ function texteDEntree(touchees, entrees) {
 }
 
 /**
- * Croissance NETTE des stocks nominatifs d'un diff unifié (`-U0` ou non : seuls les `+`/`-`
- * comptent). Un fichier n'est rendu que si ses entrées AJOUTÉES dépassent ses entrées RETIRÉES.
+ * Croissance des stocks nominatifs d'un diff unifié (`-U0` ou non : seuls les `+`/`-` comptent), PAR
+ * CLÉ (#1806 D5″) : la clé d'une entrée est le fichier qu'elle nomme (`fichierNommePar`), et la
+ * croissance d'un porteur est la somme des croissances nettes POSITIVES de ses clés — un retrait sous
+ * une clé ne paie pas un ajout sous une autre. Les clés RETIRÉES sont d'abord reportées par
+ * `images.renommages` (chemin au parent ↦ chemin au commit, la carte `-M`, FOURNIE par l'appelant) : un
+ * renommage pur coûte 0. Un porteur n'est rendu que si cette somme est positive.
  *
  * Une entrée DÉPLACÉE d'un porteur DISPARU vers un autre porteur ne compte nulle part
  * (`apparierLesDeplacements`, qui porte la borne et sa raison).
@@ -456,10 +473,11 @@ function texteDEntree(touchees, entrees) {
  * lecteurs sont fournis par l'appelant : la lib reste PURE.
  * @param {string} diffU0
  * @param {{ lirePostImage: (chemin: string) => string | null,
- *           lirePreImage?: (chemin: string) => string | null }} images
+ *           lirePreImage?: (chemin: string) => string | null,
+ *           renommages?: ReadonlyMap<string, string> }} images
  * @returns {{ fichier: string, ajoutees: number, retirees: number, net: number, exemples: string[] }[]}
- *   trié par fichier ; `exemples` = jusqu'à 3 entrées ajoutées, citées par leur ligne NOMMANTE
- *   (`texteDEntree`) telle qu'écrite.
+ *   trié par fichier ; `net` = la croissance par clé ; `exemples` = jusqu'à 3 entrées ajoutées sous
+ *   une clé qui croît, citées par leur ligne NOMMANTE (`texteDEntree`) telle qu'écrite.
  * @throws {TypeError} si le diff n'est pas une CHAÎNE : la signature est POSITIONNELLE, et un appel
  *   en objet (`croissanceDesStocks({ diff })`) stringifiait `[object Object]` — donc `[]` sur TOUS
  *   les commits, y compris sur des croissances réelles. Un juge a publié ce faux zéro le 2026-09-04
@@ -471,20 +489,32 @@ function texteDEntree(touchees, entrees) {
  *   est un lecteur : le repli juge alors, et la porte le sait.
  */
 export function croissanceDesStocks(diffU0, images) {
+  return croissancesDuBilan(bilanDesStocks(diffU0, images));
+}
+
+/**
+ * Le BILAN SIGNÉ d'un diff, porteur par porteur : `parCle` = clé → croissance nette, NÉGATIVE comprise,
+ * pour TOUT porteur touché. `croissanceDesStocks` en est la lecture positive ; deux bilans se
+ * SOUSTRAIENT clé par clé (`bilanSoustrait`, `plageStock.mjs`, #1806). Mêmes paramètres et mêmes
+ * levées que `croissanceDesStocks`, qui les lui délègue.
+ * @param {string} diffU0 @param {Parameters<typeof croissanceDesStocks>[1]} images
+ * @returns {{ fichier: string, retenues: string[], perdues: string[], parCle: Map<string, number> }[]}
+ */
+export function bilanDesStocks(diffU0, images) {
   if (typeof diffU0 !== 'string') {
     throw new TypeError(
-      `croissanceDesStocks(diffU0, images) attend le diff en CHAÎNE, reçu ${typeof diffU0} `
-      + '— la signature est POSITIONNELLE : croissanceDesStocks(diff, { lirePostImage, lirePreImage })',
+      `bilanDesStocks(diffU0, images) attend le diff en CHAÎNE, reçu ${typeof diffU0} `
+      + '— la signature est POSITIONNELLE : bilanDesStocks(diff, { lirePostImage, lirePreImage })',
     );
   }
   if (typeof images?.lirePostImage !== 'function') {
     throw new Error(
-      "croissanceDesStocks : aucun lecteur d'image post — un compte sans image ment. Passer "
+      "bilanDesStocks : aucun lecteur d'image post — un compte sans image ment. Passer "
       + '`{ lirePostImage: (chemin) => string | null }` ; un lecteur qui rend `null` laisse le REPLI '
       + 'de ligne juger.',
     );
   }
-  const { lirePostImage, lirePreImage = null } = images;
+  const { lirePostImage, lirePreImage = null, renommages = new Map() } = images;
   /** @type {Map<string, { ajoutees: { texte: string, ligne: number }[],
    *    retirees: { texte: string, ligne: number }[], disparu: boolean }>} */
   const parFichier = new Map();
@@ -566,14 +596,38 @@ export function croissanceDesStocks(diffU0, images) {
     })
     .sort((a, b) => parUnitesDeCode(a.fichier, b.fichier));
   apparierLesDeplacements(lus);
-  return lus
-    .map(({ fichier, retenues, perdues }) => ({
-      fichier,
-      ajoutees: retenues.length,
-      retirees: perdues.length,
-      net: retenues.length - perdues.length,
-      exemples: retenues.slice(0, 3),
-    }))
+  return lus.map(({ fichier, retenues, perdues }) => {
+    /** @type {Map<string, number>} clé → croissance nette */
+    const parCle = new Map();
+    for (const t of retenues) {
+      const k = fichierNommePar(t);
+      parCle.set(k, (parCle.get(k) ?? 0) + 1);
+    }
+    for (const t of perdues) {
+      const k = fichierNommePar(t);
+      const reportee = renommages.get(k) ?? k;
+      parCle.set(reportee, (parCle.get(reportee) ?? 0) - 1);
+    }
+    return { fichier, retenues, perdues, parCle };
+  });
+}
+
+/** Croissance d'un porteur lue sur ses clés : la somme des nets POSITIFS (#1806 D5″). */
+export const croissanceDesCles = (parCle) => [...parCle.values()].reduce((s, n) => s + Math.max(0, n), 0);
+
+/** La lecture POSITIVE d'un bilan : les porteurs qui croissent, trois exemples sous une clé qui croît. */
+function croissancesDuBilan(bilan) {
+  return bilan
+    .map(({ fichier, retenues, perdues, parCle }) => {
+      const croit = (t) => (parCle.get(fichierNommePar(t)) ?? 0) > 0;
+      return {
+        fichier,
+        ajoutees: retenues.length,
+        retirees: perdues.length,
+        net: croissanceDesCles(parCle),
+        exemples: retenues.filter(croit).slice(0, 3),
+      };
+    })
     .filter((c) => c.net > 0);
 }
 
@@ -581,19 +635,55 @@ export function croissanceDesStocks(diffU0, images) {
 export const MOTIF_MIN = 20;
 
 /**
- * Cliquets DÉCLARÉS par un message de commit : `CLIQUET: <fichier> +N — <motif>`. Le tiret peut
- * être cadratin, demi-cadratin ou trait d'union ; un motif plus court que `MOTIF_MIN` n'est pas
- * retenu (l'appelant voit alors le fichier comme non couvert).
- * @param {string} message
+ * Lignes DÉCLARÉES par un message de commit sous un MOT-CLÉ : `<MOT>: <fichier> +N — <motif>`. Lecteur
+ * UNIQUE des déclarations au compte exact — `CLIQUET:` (un stock qui grandit, ci-dessous) et
+ * `RECLASSEMENT:` (une revendication `css` qui sort des sites du stock CSS, `reclassementCss.mjs`).
+ * Le tiret peut être cadratin, demi-cadratin ou trait d'union ; un motif plus court que `MOTIF_MIN`
+ * n'est pas retenu (l'appelant voit alors le fichier comme non couvert).
+ * @param {string} message @param {string} motCle
  * @returns {{ fichier: string, n: number, motif: string }[]}
  */
-export function cliquetsDuMessage(message) {
+export function declarationsDuMessage(message, motCle) {
   const out = [];
-  for (const m of String(message ?? '').matchAll(/^[^\S\n]*CLIQUET\s*:\s*(\S+)\s*\+(\d+)\s*[—–-]\s*(.+)$/gm)) {
-    const motif = m[3].trim();
-    if (motif.length >= MOTIF_MIN) out.push({ fichier: m[1].replace(/\\/g, '/'), n: Number(m[2]), motif });
+  const motif = new RegExp(String.raw`^[^\S\n]*${motCle}\s*:\s*(\S+)\s*\+(\d+)\s*[—–-]\s*(.+)$`, 'gm');
+  for (const m of String(message ?? '').matchAll(motif)) {
+    const raison = m[3].trim();
+    if (raison.length >= MOTIF_MIN) out.push({ fichier: m[1].replace(/\\/g, '/'), n: Number(m[2]), motif: raison });
   }
   return out;
+}
+
+/** Cliquets DÉCLARÉS par un message de commit : `CLIQUET: <fichier> +N — <motif>`. */
+export const cliquetsDuMessage = (message) => declarationsDuMessage(message, 'CLIQUET');
+
+/**
+ * Les mesures NON COUVERTES par les lignes déclarées : une mesure `{ fichier, n }` n'est couverte que
+ * par UNE ligne qui la nomme ET annonce son compte exact — sinon la ligne serait un tampon qui survit
+ * au geste suivant, et deux lignes pour un même fichier laisseraient choisir la bonne. Juge UNIQUE de
+ * `CLIQUET:` (ci-dessous) et de `RECLASSEMENT:` (`reclassementCss.mjs`).
+ * @template {{ fichier: string, n: number }} M
+ * @param {readonly M[]} mesures @param {readonly { fichier: string, n: number }[]} lignes
+ * @returns {(M & { declare: number | null, declarees?: number[] })[]} `declare` = le premier `+N` lu
+ *   pour ce fichier ; `declarees` = tous, présent seulement s'il y en a plusieurs.
+ */
+export function mesuresNonCouvertes(mesures, lignes) {
+  return mesures.flatMap((m) => {
+    const pourLui = lignes.filter((d) => d.fichier === m.fichier);
+    if (pourLui.length === 1 && pourLui[0].n === m.n) return [];
+    const declarees = pourLui.length > 1 ? { declarees: pourLui.map((d) => d.n) } : {};
+    return [{ ...m, declare: pourLui.length ? pourLui[0].n : null, ...declarees }];
+  });
+}
+
+/**
+ * Ce que le message a déclaré pour une mesure non couverte, en clair : aucune ligne, un compte
+ * faux, ou plusieurs lignes pour le même fichier.
+ * @param {{ n: number, declare: number | null, declarees?: number[] }} r @returns {string}
+ */
+export function declarationLue(r) {
+  if (r.declarees) return `le message porte ${r.declarees.length} lignes (${r.declarees.map((n) => `+${n}`).join(', ')}) — une seule par fichier`;
+  if (r.declare === null) return 'aucune ligne au message';
+  return `le message annonce \`+${r.declare}\`, pas +${r.n}`;
 }
 
 /**
@@ -607,21 +697,20 @@ export function cliquetsDuMessage(message) {
  * @throws {Error} propagé de `croissanceDesStocks` : sans `images.lirePostImage`, le compte ment.
  */
 export function croissancesNonCouvertes({ diff, message }, images) {
-  const cliquets = cliquetsDuMessage(message);
-  return croissanceDesStocks(diff, images)
-    .map((c) => {
-      const pourCeFichier = cliquets.filter((k) => k.fichier === c.fichier);
-      const couvert = pourCeFichier.some((k) => k.n === c.net);
-      return couvert ? null : { ...c, declare: pourCeFichier.length ? pourCeFichier[0].n : null };
-    })
-    .filter(Boolean);
+  return nonCouvertesDuBilan(bilanDesStocks(diff, images), message);
+}
+
+/** `croissancesNonCouvertes` sur un bilan DÉJÀ lu (`bilanDesStocks`) : la plage le lit une fois. */
+export function nonCouvertesDuBilan(bilan, message) {
+  const mesures = croissancesDuBilan(bilan).map((c) => ({ ...c, n: c.net }));
+  return mesuresNonCouvertes(mesures, cliquetsDuMessage(message)).map(({ n: _n, ...c }) => c);
 }
 
 /** Refus lisible d'une croissance : ce qui a grossi, de combien, trois exemples, et le geste. */
 export function raisonDeRefus(croissances) {
   const lignes = croissances.map((c) => {
     const compte = `+${c.net} entrée(s) nette(s) (${c.ajoutees} ajoutée(s), ${c.retirees} retirée(s))`;
-    const declare = c.declare === null ? '' : ` — le message annonce \`+${c.declare}\`, pas +${c.net}`;
+    const declare = c.declare === null ? '' : ` — ${declarationLue({ ...c, n: c.net })}`;
     return `${c.fichier} : ${compte}${declare} — ex. ${c.exemples.join(' · ')}`;
   });
   return (

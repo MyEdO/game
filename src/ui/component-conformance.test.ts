@@ -30,7 +30,7 @@ function classNames(src: string): string[] {
 }
 
 /** Idem, mais UNIQUEMENT le `className` d'un `<div>` natif — un modificateur passé en props à un
- *  composant (`<ScreenShell className="port-overlay">`) n'est pas un voile hand-rollé : le composant
+ *  composant (`<ScreenShell className="ship-dossier">`) n'est pas un voile hand-rollé : le composant
  *  possède déjà le voile réel. */
 function divClassNames(src: string): string[] {
   const out: string[] = [];
@@ -43,15 +43,13 @@ function divClassNames(src: string): string[] {
 // Coquilles CANONIQUES (définissent le voile + l'a11y) et semi-canoniques SANCTIONNÉES (markup propre,
 // squelette maison mais a11y `useModalA11y` câblée). Toute AUTRE surface passe par une primitive.
 const OVERLAY_OWNERS = ['Modal.tsx', 'ScreenShell.tsx'];
-// CampaignView (défaite) : surface plein-écran de RÉSULTAT, bouton unique, Échap inerte — voile
-// bespoke. Dette #285.
 // GameMenu.tsx : menu SYSTÈME plein écran (pause) — voile `.game-menu-overlay` semi-canonique (squelette
 // maison composant la primitive MenuCard, a11y `useModalA11y` câblée) ; langage MenuCard voulu, pas la
 // chrome de Modal/ScreenShell.
 // OptionsScreen.tsx (#839) : MÊME voile et MÊME carte que GameMenu — c'est l'écran Options du menu
 // PRINCIPAL, qui compose `OptionsSubScreen`, exactement celui du sous-écran Options en
 // jeu. Même justification, même a11y (`useModalA11y` câblée) : semi-canonique, jamais une 2e chrome.
-const OVERLAY_WHITELIST = ['CharacterSheet.tsx', 'ShipSheet.tsx', 'InspectPanel.tsx', 'compendium/CompendiumScreen.tsx', 'CampaignView.tsx', 'GameMenu.tsx', 'OptionsScreen.tsx'];
+const OVERLAY_WHITELIST = ['GameMenu.tsx', 'OptionsScreen.tsx'];
 
 describe('#236 — gardes du système de composants unifié', () => {
   // ── (ii) Le voile plein écran est une PRIMITIVE : `modal-overlay`/`worldmap-overlay` n'apparaissent

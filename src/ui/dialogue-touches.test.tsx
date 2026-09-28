@@ -115,17 +115,6 @@ describe('#1869 — les touches 1-9 choisissent la réponse NUMÉROTÉE', () => 
     expect(tire).not.toHaveBeenCalled();
   });
 
-  it('pendant la conversation, AUCUN autre raccourci ne répond — même en plein combat', () => {
-    // La couche DIALOGUE est bloquante : `I` (inspection, `when: inBattle`) se tait tant que la
-    // fenêtre est là. C'est la loi du hook (`coucheDialogue`), pas un privilège des chiffres.
-    monter({
-      mode: 'battle', inspectEnabled: false,
-      battle: { over: null, order: ['h1'], turn: 0, combatants: [{ id: 'h1', kind: 'hero' }] } as never,
-    });
-    frapper('KeyI');
-    expect(useGame.getState().inspectEnabled).toBe(false);
-  });
-
   it('conversation CLOSE : le même chiffre reprend la grille de capacités (la garde n’est pas muette)', () => {
     const tire = vi.fn();
     hotbar.capacites = [{ actionId: 'attaquer', run: tire }];

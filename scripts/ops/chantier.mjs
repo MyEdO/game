@@ -19,7 +19,7 @@ import { spawnSync } from 'node:child_process'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { ECRIT_LU } from '../gates/toutes.mjs'
-import { arbrePrincipal, fetchOrigin, lireGit, natureDuChemin, sortieOuNull } from '../guards/lib/gitPorte.mjs'
+import { GitIndisponible, TRONC, ajouterWorktree, arbrePrincipal, depotDe, fetchOrigin, natureDuChemin, reussi, shaDe } from '../guards/lib/gitPorte.mjs'
 import { portDev, urlDev } from '../port-dev.mjs'
 
 /** Racine de l'arbre qui porte CE script. */
@@ -141,46 +141,55 @@ export function resumeDeChantier({ cible, branche, base, port, url }) {
   ].join('\n')
 }
 
+/** Les GESTES au dépôt de l'ouverture — ses questions et deux écrivains —, ceux de l'hôte (`gitPorte.mjs`) : injectables (mesure). */
+export const GESTES_DU_CHANTIER = Object.freeze({ arbrePrincipal, shaDe, fetchOrigin, ajouterWorktree })
+
 /**
- * Ouvre le chantier `nom` depuis `racine`. `git`, `fetch` et `npm` sont injectables (mesure).
- * @param {{racine?: string, nom: string, sansCi?: boolean, git?: Function, fetch?: Function,
+ * Ouvre le chantier `nom` depuis `racine`. Les gestes au dépôt (`GESTES_DU_CHANTIER`) et `npm` sont
+ * injectables (mesure).
+ * @param {{racine?: string, nom: string, sansCi?: boolean, gestes?: typeof GESTES_DU_CHANTIER,
  *   npm?: Function}} params
  * @returns {{ok: true, cible: string, branche: string, base: string, resume: string, npmJoue: boolean}
  *   | {ok: false, refus: string, cible?: string, branche?: string}}
  */
-export function creerChantier({ racine = RACINE, nom, sansCi = false, git = lireGit, fetch = fetchOrigin, npm = spawnSync }) {
+export function creerChantier({ racine = RACINE, nom, sansCi = false, gestes = GESTES_DU_CHANTIER, npm = spawnSync }) {
   if (!nomValide(nom)) {
     return { ok: false, refus: `nom de chantier invalide : « ${nom} » — forme attendue : ${FORME_DITE}` }
   }
   // L'ouverture se joue depuis N'IMPORTE QUEL worktree : la cible et tous les gestes git partent de
   // l'ARBRE PRINCIPAL, résolu par git (`arbrePrincipal`) — `.wt-<nom>` ne peut se poser que là.
-  const vuPrincipal = arbrePrincipal(racine)
+  const vuPrincipal = gestes.arbrePrincipal(depotDe(racine))
   if (!vuPrincipal.disponible) return { ok: false, refus: `arbre principal introuvable : ${vuPrincipal.raison}` }
   const principal = vuPrincipal.valeur
 
   const cible = cibleDe(principal, nom)
   const branche = brancheDe(nom)
 
-  const vuBranche = git(['rev-parse', '--verify', '--quiet', `refs/heads/${branche}`], { cwd: principal, site: 'git rev-parse' })
-  if (!vuBranche.disponible) return { ok: false, refus: `branche illisible : ${vuBranche.raison}` }
-  const brancheExiste = !vuBranche.absent && vuBranche.valeur.status === 0
+  const depot = depotDe(principal)
+  let brancheExiste
+  try {
+    brancheExiste = gestes.shaDe(depot, `refs/heads/${branche}`) !== null
+  } catch (e) {
+    if (!(e instanceof GitIndisponible)) throw e
+    return { ok: false, refus: `branche illisible : ${e.raison}` }
+  }
   const cibleExiste = natureDuChemin(cible) !== 'absent'
 
   const refus = refusDeCreation({ cibleExiste, brancheExiste, nom, cible })
   if (refus) return { ok: false, refus, cible, branche }
 
-  const vuFetch = fetch({ cwd: principal })
+  const vuFetch = gestes.fetchOrigin(depot)
   if (!vuFetch.disponible) {
     return { ok: false, refus: `origin non consultable, le chantier ne peut pas partir d'origin/main : ${vuFetch.raison}` }
   }
 
-  const vuAdd = git(['worktree', 'add', '-b', branche, cible, 'origin/main'], { cwd: principal, site: 'git worktree add' })
+  const vuAdd = gestes.ajouterWorktree(depot, { chemin: cible, branche, depuis: TRONC.suivi })
   if (!vuAdd.disponible) return { ok: false, refus: `git worktree add a échoué : ${vuAdd.raison}`, cible, branche }
-  if (vuAdd.absent || vuAdd.valeur.status !== 0) {
+  if (!reussi(vuAdd)) {
     return { ok: false, refus: `git worktree add a échoué (code ${vuAdd.absent ? 'objet absent' : vuAdd.valeur.status})`, cible, branche }
   }
 
-  const base = (sortieOuNull(git(['rev-parse', '--short', 'origin/main'], { cwd: principal, site: 'git rev-parse' })) ?? '').trim() || 'inconnue'
+  const base = gestes.shaDe(depotDe(principal, { enPanne: () => {} }), TRONC.suivi, { court: true }) ?? 'inconnue'
   const resume = resumeDeChantier({ cible, branche, base, port: portDev(cible), url: urlDev(cible) })
 
   if (sansCi) return { ok: true, cible, branche, base, resume, npmJoue: false }

@@ -6,7 +6,9 @@
 //   2. un STOCK NOMINATIF qui grandit quelque part dans la PLAGE poussée, sans que le message de SON
 //      commit le dise (`scripts/guards/lib/plageStock.mjs`) : les portes de stock du commit et du
 //      DERNIER commit ne voient qu'une tête, et un commit intermédiaire leur échappe (revue de
-//      palier n°2, 2026-09-03 — `429b9a1a2` a traversé les deux, six heures après leur pose) ;
+//      palier n°2, 2026-09-03 — `429b9a1a2` a traversé les deux, six heures après leur pose) — et,
+//      par la même lecture, un RECLASSEMENT CSS non déclaré, chaque commit contre sa base
+//      (`reclassementsDeLaPlage`, même fichier) ;
 //   3. un push NON fast-forward vers une ref distante EXISTANTE. Une ref neuve ne peut écraser aucune
 //      histoire, elle n'est pas jugée. `refs/heads/chantier/**` en est EXEMPTÉE : une branche de
 //      chantier n'a qu'un écrivain (régime « une session par chantier », 2026-09-01), et le train la
@@ -30,14 +32,15 @@
 // MESURE : `WFRP_GH_STUB=<fichier json>` fournit les courses au lieu de `gh` (`coursesCi.mjs`).
 import { readFileSync } from 'node:fs'
 import { enteteArbre } from '../guards/lib/enteteArbre.mjs'
-import { estAncetre, lireGit, sortieOuNull, urlOrigineAcceptee } from '../guards/lib/gitPorte.mjs'
+import { TRONC, depotDe, estAncetre, origineDe, urlOrigineAcceptee } from '../guards/lib/gitPorte.mjs'
 import { ROUGES, coursesCi } from '../guards/lib/coursesCi.mjs'
 import { croissancesDeLaPlage, raisonDeRefusDePlage } from '../guards/lib/plageStock.mjs'
+import { raisonDeRefusDeReclassement } from '../guards/lib/reclassementCss.mjs'
 
 const ZERO = '0'.repeat(40)
 
 /** La ref distante que le ruleset protège — la seule dont le contenu doit être VERT avant d'entrer. */
-export const REF_PROTEGEE = 'refs/heads/main'
+export const REF_PROTEGEE = TRONC.branche
 
 /** Les refs dont l'histoire se réécrit par construction : un écrivain, rebasées par le train. */
 export const PREFIXE_CHANTIER = 'refs/heads/chantier/'
@@ -105,30 +108,33 @@ export function verdictDuSha({ courses, sha, disponible = true, raison = null })
 
 /** Verdict COMPLET du hook : `{ refus: [], notes: [] }`. Aucune sortie, aucun code — testable. */
 export function jugerPush({ cwd, stdin, env = process.env }) {
-  // Les lectures git passent par l'hôte unique : `null` dit « l'objet n'existe pas », et une
-  // INDISPONIBILITÉ (git absent, hors dépôt) devient un refus NOMMÉ au lieu d'un `fatal:` brut.
-  const lire = (args) => sortieOuNull(lireGit(args, { cwd }))
+  // Les lectures git passent par les questions de l'hôte unique : `null` dit « l'objet n'existe pas »,
+  // et une INDISPONIBILITÉ (git absent, hors dépôt) devient un refus NOMMÉ au lieu d'un `fatal:` brut.
+  const pannes = []
+  const depot = depotDe(cwd, { enPanne: (raison) => pannes.push(raison) })
   const refus = []
   const notes = []
 
-  const origine = (lire(['remote', 'get-url', 'origin']) ?? '').trim()
-  if (!urlOrigineAcceptee(origine))
+  const origine = origineDe(depot) ?? ''
+  if (pannes.length) refus.push(`origin illisible, git indisponible : ${pannes[0]}`)
+  else if (!urlOrigineAcceptee(origine))
     refus.push(`origin = « ${origine || '(absent)'} » : ce hook ne connaît que github.com/cgauche/game`)
 
   for (const { refLocale, shaLocal, refDistante, shaDistant } of refsAPousser(stdin)) {
     // Stocks nominatifs de la PLAGE poussée : par commit, filtrés par la croissance cumulée.
-    const stocks = croissancesDeLaPlage({ cwd, avant: shaDistant, apres: shaLocal })
+    const stocks = croissancesDeLaPlage({ cwd, debut: shaDistant, fin: shaLocal, vers: refDistante })
     for (const n of stocks.notes) notes.push(n)
     if (stocks.indisponible)
       refus.push(`${refLocale} → ${refDistante} : plage \`${stocks.plage}\` illisible : ${stocks.indisponible}`)
     if (stocks.refus.length) refus.push(raisonDeRefusDePlage(stocks.refus))
+    if (stocks.reclassements.length) refus.push(raisonDeRefusDeReclassement(stocks.reclassements))
 
     if (!fastForwardJuge(refDistante)) {
       notes.push(`${refDistante} : branche de chantier — fast-forward non jugé, le train la rebase avant chaque push`)
     } else if (!shaDistant || shaDistant === ZERO) {
       notes.push(`${refDistante} n’existe pas encore côté distant : rien à écraser, fast-forward non jugé`)
     } else {
-      const ancetre = estAncetre(shaDistant, shaLocal, { cwd })
+      const ancetre = estAncetre(depot, shaDistant, shaLocal)
       if (!ancetre.disponible)
         refus.push(`${refLocale} → ${refDistante} : ascendance illisible — ${ancetre.raison}`)
       else if (ancetre.absent)

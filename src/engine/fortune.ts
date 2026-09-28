@@ -29,6 +29,18 @@ export function restoreFortune(party: Combatant[]): Combatant[] {
     : h));
 }
 
+/** Sauvetage par le Destin (LDB 17 l.29) : sur le coup qui porte (`hit`) ou sur une mort lente (`slow`). */
+export type FateSaveSource = 'hit' | 'slow';
+
+/** Option du sacrifice : `survive` LDB 17 l.31, `negate` LDB 17 l.32. */
+export type FateSaveOption = 'survive' | 'negate';
+
+/** Options OFFERTES selon la source, dans l'ordre du livre : LDB 17 l.31-32. Source unique de la
+ *  fenêtre, de son enjeu, du verbe `fateNegate` et de l'auto-combat. */
+export function fateSaveOptions(source: FateSaveSource): readonly FateSaveOption[] {
+  return source === 'hit' ? ['survive', 'negate'] : ['survive'];
+}
+
 /** Mort certaine évitée en brûlant 1 Point de Destin (LDB 17 l.29-37) : Destin −1 et la cible
  *  survit à 1 Blessure minimum (true) ; sans Destin, elle meurt (`dead`, false). La prose du
  *  dénouement reste au call-site (contexte : hémorragie, op kill, tick de maladie). */

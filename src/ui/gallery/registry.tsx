@@ -14,10 +14,17 @@ import { tableTotale } from '../../lib/tableTotale';
 import { type ComponentType, useRef, useState } from 'react';
 import { ScreenMeta } from '../ScreenMeta';
 import { Tabs, type TabItem } from '../Tabs';
-import { OptionChooser } from '../OptionChooser';
+import { ChoiceButtons, OptionChooser } from '../OptionChooser';
+import { EmbeddedShell } from '../RollShell';
+import { Modal } from '../Modal';
+import { CadrePied, CadreFermer } from '../Cadre';
+import { Planche } from '../Planche';
 import { ParchmentCard } from '../ParchmentCard';
 import { QtyStepper } from '../QtyStepper';
 import { PanneauParametre } from '../PanneauParametre';
+import { useInfobulle } from '../Infobulle';
+import { CodexRef } from '../compendium/CodexRef';
+import { BoiteAncree, usePlacementAncre } from '../BoiteAncree';
 import { NumberField } from '../NumberField';
 import { DescRefField } from '../compendium/DescRefField';
 import type { DescRef } from '../../data/source/decoupe';
@@ -235,13 +242,14 @@ function OptionChooserDemo() {
           { key: 'haut', label: 'Le coup porte haut', range: '36-00', onSelect: () => {} },
         ]}
       />
-      <OptionChooser
-        layout="actions"
-        options={[
-          { key: 'cancel', label: 'Renoncer', ghost: true, onSelect: () => {} },
-          { key: 'ok', label: 'Confirmer', primary: true, onSelect: () => {} },
-        ]}
-      />
+      <Row gap="sm" justify="end">
+        <ChoiceButtons
+          options={[
+            { key: 'cancel', label: 'Renoncer', ghost: true, onSelect: () => {} },
+            { key: 'ok', label: 'Confirmer', primary: true, onSelect: () => {} },
+          ]}
+        />
+      </Row>
     </Stack>
   );
 }
@@ -639,6 +647,67 @@ function ScreenMetaDemo() {
   return <ScreenMeta meta={{ time: 0, money: toMoney({ gold: 12, silver: 4, brass: 8 }) }} />;
 }
 
+/** Le cadre réel, ouvert par un geste : titre, corps qui défile, pied `footer` hors du corps. */
+function ModalDemo() {
+  const [ouverte, setOuverte] = useState(false);
+  const fermer = () => setOuverte(false);
+  return (
+    <>
+      <button className="btn" onClick={() => setOuverte(true)}>Ouvrir la modale</button>
+      {ouverte && (
+        <Modal
+          title="Exemple — Repos"
+          onClose={fermer}
+          footer={
+            <>
+              <button className="btn btn-ghost" onClick={fermer}>Annuler</button>
+              <button className="btn btn-primary" onClick={fermer}>Confirmer</button>
+            </>
+          }
+        >
+          <p>Le corps défile ; le pied reste sous un filet, ferré à la fin.</p>
+        </Modal>
+      )}
+    </>
+  );
+}
+
+/** La planche réelle, ouverte par un geste : aside permanente, onglets, corps d'onglet. */
+function PlancheDemo() {
+  const [ouverte, setOuverte] = useState(false);
+  const [onglet, setOnglet] = useState<'a' | 'b'>('a');
+  return (
+    <>
+      <button className="btn" onClick={() => setOuverte(true)}>Ouvrir la planche</button>
+      {ouverte && (
+        <Planche
+          nom="Exemple — planche"
+          kind="galerie-planche"
+          onClose={() => setOuverte(false)}
+          aside={<p>Présence permanente.</p>}
+          tabs={<Tabs tabs={[{ key: 'a' as const, label: 'Premier' }, { key: 'b' as const, label: 'Second' }]} active={onglet} onChange={setOnglet} />}
+        >
+          <p>{onglet === 'a' ? 'Le corps d’onglet défile seul.' : 'Second onglet.'}</p>
+        </Planche>
+      )}
+    </>
+  );
+}
+
+/** Les gestes des trois cadres, hors de tout cadre : la croix, puis le pied (ghost au début,
+ *  primaire à la fin). */
+function CadreDemo() {
+  return (
+    <div>
+      <CadreFermer onClose={() => {}} />
+      <CadrePied>
+        <button className="btn btn-ghost">Annuler</button>
+        <button className="btn btn-primary">Confirmer</button>
+      </CadrePied>
+    </div>
+  );
+}
+
 function GatedActionDemo() {
   return (
     <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
@@ -725,8 +794,8 @@ function GearAssignListDemo() {
   return <GearAssignList gear={gear} assignable={heros} onAssign={() => {}} onAppraise={() => {}} />;
 }
 
-/** Récapitulatif de gain COMPLET : ambiance, PX, or, une rubrique titrée, le geste de sortie — la
- *  forme que montrent à l'identique l'écran de victoire et la fenêtre de butin. */
+/** Récapitulatif de gain COMPLET : ambiance, PX, or, rubriques titrées — la forme que montrent à
+ *  l'identique l'écran de victoire et la fenêtre de butin (le geste de sortie est au pied de leur cadre). */
 function RewardRecapDemo() {
   return (
     <div className="gallery-colonne">
@@ -747,7 +816,6 @@ function RewardRecapDemo() {
             children: <Row><span className="chip">Mutant ×3</span><span className="chip">Meneur</span></Row>,
           },
         ]}
-        action={<button className="btn btn-primary reward-continue">Continuer</button>}
       />
     </div>
   );
@@ -778,6 +846,58 @@ function SceneErrorBoundaryDemo() {
 /** Trois Sorts RÉELS du catalogue portant un NI (`cn`) — la matière du panneau « Quel Sort
  *  dissiper ? » de la console, sans rien inventer. */
 const sortsADissiper = memoParVersion('spells', () => spells.filter((s) => typeof s.cn === 'number').slice(0, 3));
+
+/** Référence au Codex VIVANTE : un libellé qui ouvre la fiche, un contrôle enveloppé (`wrap`) dont
+ *  ↓ épingle l'infobulle et sa porte, un contrôle refusé dont la raison se lit au survol. */
+function CodexRefDemo() {
+  return (
+    <div className="row gap-sm">
+      <CodexRef category="talents" id="affable" label="Affable" />
+      <CodexRef category="talents" id="affable" label="Affable" wrap>
+        <button type="button" className="btn small">Affable ×2</button>
+      </CodexRef>
+      <CodexRef label="Charger" refus="Vous êtes Engagé." wrap>
+        <button type="button" className="btn small" aria-disabled="true">Charger</button>
+      </CodexRef>
+    </div>
+  );
+}
+
+/** Couche d'infobulle VIVANTE : un ancrage (un bouton), sa boîte au survol et au focus, ↓ qui
+ *  l'épingle et y porte le focus sur son seul contrôle, Échap qui la congédie. Le contenu est celui
+ *  du spécimen, jamais une classe d'un consommateur. */
+function InfobulleDemo() {
+  const bulle = useInfobulle({ atteignable: true, epinglable: true, sourdine: false, auToucher: false });
+  const [lu, setLu] = useState(0);
+  return (
+    <div className="col gap-sm">
+      <span {...bulle.ancrage}>
+        <button type="button" className="chip">Survoler ou focaliser</button>
+      </span>
+      <span className="hint">{`Contrôle de la boîte activé ${lu} fois`}</span>
+      {bulle.boite(
+        <>
+          <span>Le texte entier de l’ancrage, lu au survol, au focus, et au doigt.</span>
+          <button type="button" className="btn btn-ghost" data-atteignable="" onClick={() => setLu((n) => n + 1)}>Activer</button>
+        </>,
+      )}
+    </div>
+  );
+}
+
+/** Boîte ancrée VIVANTE : placée contre son bouton, du côté qui a le plus de place. */
+function BoiteAncreeDemo() {
+  const [bouton, setBouton] = useState<HTMLElement | null>(null);
+  const placement = usePlacementAncre(bouton, 280);
+  return (
+    <div className="col gap-sm">
+      <button type="button" className="chip" aria-expanded={!!bouton} onClick={(e) => setBouton(bouton ? null : e.currentTarget)}>
+        Boîte ancrée
+      </button>
+      {placement && <BoiteAncree placement={placement} className="panel">Boîte placée contre son ancrage.</BoiteAncree>}
+    </div>
+  );
+}
 
 /** Panneau-paramètre VIVANT : un déclencheur, le panneau qui en NAÎT (ancré à son rect), un clic qui
  *  commet ET referme, Échap/clic-dehors qui annulent sans rien engager. Le choix retenu s'affiche
@@ -990,18 +1110,21 @@ function GameOpChipsDemo() {
 }
 
 /** RollShell/RollRow : un spécimen VIVANT exigerait un flux de jet monté (store + `makeRollFlow`),
- *  hors de portée d'une vignette de galerie. Maquette STATIQUE des états, composée des classes canon
- *  du rôle rendu (`.modal`/`.modal-actions` pour la coquille, `.prow` pour la rangée), légendée. */
+ *  hors de portée d'une vignette de galerie. La coquille se montre dans sa zone EMBARQUÉE
+ *  (`EmbeddedShell`, le cadre réel sans voile), la rangée par sa classe canon `.prow`, légendées. */
 function RollShellStaticMock() {
   return (
-    <div className="modal" style={{ position: 'static', width: 420 }}>
-      <h3>Attaque — maquette statique</h3>
-      <p className="hint">États : Lancer → Chance/Pacte → Résilience → Appliquer (`.modal-actions`, `.rm-influence`).</p>
-      <div className="modal-actions">
-        <button type="button" className="btn btn-ghost">Annuler</button>
-        <button type="button" className="btn btn-primary">Lancer</button>
-      </div>
-    </div>
+    <EmbeddedShell
+      title="Attaque — maquette statique"
+      footer={
+        <>
+          <button type="button" className="btn btn-ghost">Annuler</button>
+          <button type="button" className="btn btn-primary">Lancer</button>
+        </>
+      }
+    >
+      <p className="hint">États : Lancer → Chance/Pacte → Résilience → Appliquer (pied du cadre, `.rm-influence`).</p>
+    </EmbeddedShell>
   );
 }
 function RollRowStaticMock() {
@@ -1514,6 +1637,9 @@ export const GALLERY_SPECIMENS: GallerySpecimen[] = [
   { id: 'chips', label: 'Chips', file: 'src/ui/styles/components.css', category: 'Atomes', render: Chips },
   { id: 'panel', label: 'Panel', file: 'src/ui/styles/components.css', category: 'Atomes', render: Panels },
   { id: 'screenshell', label: 'ScreenShell', file: 'src/ui/ScreenShell.tsx', category: 'Écrans & layout', note: 'maquette d’états — la coquille EST cet écran', render: ScreenShellNote },
+  { id: 'cadre-modale', label: 'Modal', file: 'src/ui/Modal.tsx', category: 'Écrans & layout', render: ModalDemo },
+  { id: 'cadre-gestes', label: 'CadrePied / CadreFermer', file: 'src/ui/Cadre.tsx', category: 'Écrans & layout', render: CadreDemo },
+  { id: 'planche', label: 'Planche', file: 'src/ui/Planche.tsx', category: 'Écrans & layout', render: PlancheDemo },
   { id: 'screenmeta', label: 'ScreenMeta', file: 'src/ui/ScreenMeta.tsx', category: 'Écrans & layout', render: ScreenMetaDemo },
   { id: 'masterdetail', label: 'MasterDetail', file: 'src/ui/MasterDetail.tsx', category: 'Écrans & layout', render: MasterDetailDemo },
   { id: 'tabs', label: 'Tabs', file: 'src/ui/Tabs.tsx', category: 'Écrans & layout', render: TabsDemo },
@@ -1522,6 +1648,9 @@ export const GALLERY_SPECIMENS: GallerySpecimen[] = [
   { id: 'searchfilterfield', label: 'SearchFilterField', file: 'src/ui/SearchFilterField.tsx', category: 'Écrans & layout', render: SearchFilterFieldDemo },
   { id: 'optionchooser', label: 'OptionChooser', file: 'src/ui/OptionChooser.tsx', category: 'Jets', render: OptionChooserDemo },
   { id: 'panneauparametre', label: 'PanneauParametre', file: 'src/ui/PanneauParametre.tsx', category: 'Écrans & layout', render: PanneauParametreDemo },
+  { id: 'infobulle', label: 'useInfobulle', file: 'src/ui/Infobulle.tsx', category: 'Écrans & layout', render: InfobulleDemo },
+  { id: 'codex-ref', label: 'CodexRef', file: 'src/ui/compendium/CodexRef.tsx', category: 'Écrans & layout', render: CodexRefDemo },
+  { id: 'boite-ancree', label: 'BoiteAncree', file: 'src/ui/BoiteAncree.tsx', category: 'Écrans & layout', render: BoiteAncreeDemo },
   { id: 'influencerow', label: 'InfluenceRow', file: 'src/ui/InfluenceRow.tsx', category: 'Jets', render: InfluenceRowDemo },
   { id: 'vsheader', label: 'VsHeader', file: 'src/ui/VsHeader.tsx', category: 'Jets', render: VsHeaderDemo },
   { id: 'rollshell', label: 'RollShell', file: 'src/ui/RollShell.tsx', category: 'Jets', note: 'maquette statique d’états — un spécimen vivant exigerait un flux de jet monté (store + makeRollFlow), hors de portée d’une vignette de galerie', render: RollShellStaticMock },

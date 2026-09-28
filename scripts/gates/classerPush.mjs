@@ -1,15 +1,15 @@
 // CLASSEMENT D'UN PUSH — documentaire ou produit (#1738).
 //
-// Module FEUILLE : il n'importe que `node:*`. La CI l'exécute AVANT `npm ci`, donc rien de
-// `node_modules` ne peut l'atteindre, et `gatesSautables` reçoit `ECRIT_LU`/`gatesDeCi()` en
-// PARAMÈTRE au lieu de les importer.
+// La CI l'exécute AVANT `npm ci` : la fermeture de ses imports n'atteint que `node:*` et des fichiers
+// du dépôt, jamais un paquet (garde : `classerPush.test.mjs`). Elle compte l'hôte git (`gitPorte.mjs`,
+// `TRONC`) ; `gatesSautables` reçoit `ECRIT_LU`/`gatesDeCi()` en PARAMÈTRE au lieu de les importer.
 //
 // Ce qu'un push déclenche se décide par ce que les gates LISENT (`ECRIT_LU[gate].lit`,
 // `scripts/gates/toutes.mjs`, mesuré), jamais par un dossier deviné. La décision est FAIL-CLOSED
 // des deux côtés : un fichier hors `DOCUMENTAIRE` rend le push PRODUIT, une gate dont `lit` est
 // vide n'est jamais sautée, un diff vide est PRODUIT.
-import { execFileSync } from 'node:child_process'
 import { env, exit, stderr, stdout } from 'node:process'
+import { TRONC, baseCommune, ceQuiChange, depotDe, fetchOrigin, reussi, shaDe } from '../guards/lib/gitPorte.mjs'
 
 /**
  * Chemins NON EXÉCUTABLES, chacun avec sa raison. Un push dont TOUS les fichiers changés tombent
@@ -93,63 +93,42 @@ export function gatesSautables({ gates, ecritLu }) {
   return sautables
 }
 
-const git = (args, cwd) => execFileSync('git', args, { cwd, encoding: 'utf8' }).trim()
-
-/** La ref du tronc : sur elle seule on classe l'INCRÉMENT poussé, ailleurs ce qui entrera dans `main`. */
-const REF_TRONC = 'refs/heads/main'
-
 /** Un sha nul ou fait de zéros : `github.event.before` d'un premier push (même lecture que ci.yml). */
 const shaNul = (sha) => !sha || !/[^0]/.test(sha)
-
-/** `refs/remotes/origin/main` est-il présent localement ? Un clone `--single-branch` d'une branche
- *  de travail ne l'a pas : le merge-base n'aurait alors aucune base. */
-const troncConnu = (cwd) => {
-  try {
-    git(['rev-parse', '--verify', '--quiet', 'refs/remotes/origin/main'], cwd)
-    return true
-  } catch {
-    return false
-  }
-}
 
 /**
  * La BASE du diff : ce contre quoi on classe. Sur `main`, l'incrément poussé (`BEFORE`, replié sur
  * `SHA^`). Ailleurs, ce qui ENTRERA dans `main` (`merge-base origin/main SHA`) — jamais l'incrément
  * du push, qu'un run annulé puis un push documentaire rendraient faux. `ref` est `github.ref` : une
- * REF git (`refs/pull/N/merge` compris), jamais un nom de branche.
+ * REF git (`refs/pull/N/merge` compris), jamais un nom de branche. Une lecture que git ne rend pas
+ * replie en classement CONSERVATEUR ; une panne de git (`enPanne`, `depotDe`) y est NOMMÉE.
+ * `refs/remotes/origin/main` manque à un clone `--single-branch` d'une branche de travail : il se
+ * fetche avant le merge-base.
  * @returns {{ base: string } | { base: null, motif: string }}
  */
 export function baseDuDiff({ ref, before, sha, cwd = process.cwd() } = {}) {
-  if (ref === REF_TRONC) {
+  const pannes = []
+  const depot = depotDe(cwd, { enPanne: (raison) => pannes.push(raison) })
+  const conservateur = (motif) => ({
+    base: null,
+    motif: `${motif}${pannes.length ? ` — git indisponible : ${pannes.join(' ; ')}` : ''} : conservateur`,
+  })
+  if (ref === TRONC.branche) {
     if (!shaNul(before)) return { base: before }
-    try {
-      return { base: git(['rev-parse', `${sha}^`], cwd) }
-    } catch {
-      return { base: null, motif: `main sans parent lisible pour ${sha} : conservateur` }
-    }
+    const parent = shaDe(depot, `${sha}^`)
+    return parent ? { base: parent } : conservateur(`main sans parent lisible pour ${sha}`)
   }
-  if (!troncConnu(cwd)) {
-    try {
-      git(['fetch', '--no-tags', 'origin', 'main:refs/remotes/origin/main'], cwd)
-    } catch {
-      return { base: null, motif: 'origin/main absent après fetch : conservateur' }
-    }
-  }
-  try {
-    return { base: git(['merge-base', 'origin/main', sha], cwd) }
-  } catch {
-    return { base: null, motif: 'merge-base origin/main en échec : conservateur' }
-  }
+  if (shaDe(depot, `refs/remotes/${TRONC.suivi}`) === null && !reussi(fetchOrigin(depot))) return conservateur('origin/main absent après fetch')
+  const base = baseCommune(depot, TRONC.suivi, sha)
+  return base ? { base } : conservateur('merge-base origin/main en échec')
 }
 
-/** Le classement complet, du contexte de push aux motifs. */
+/** Le classement complet, du contexte de push aux motifs. Une borne du diff inconnue LÈVE
+ *  (`BorneAbsente`, `ceQuiChange`). */
 export function classerPush({ ref, before, sha, cwd = process.cwd() } = {}) {
   const socle = baseDuDiff({ ref, before, sha, cwd })
   if (socle.base === null) return { produit: true, base: null, fichiers: [], motifs: [socle.motif] }
-  const fichiers = git(['diff', '--name-only', '--no-renames', socle.base, sha], cwd)
-    .split('\n')
-    .map((l) => l.trim())
-    .filter(Boolean)
+  const fichiers = ceQuiChange(depotDe(cwd), socle.base, sha).chemins()
   return { ...classer(fichiers), base: socle.base, fichiers }
 }
 

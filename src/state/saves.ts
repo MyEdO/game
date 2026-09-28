@@ -178,7 +178,13 @@ import { stockageWeb } from '../lib/stockageWeb';
 // `campaignDoc` (chemin `startScene` d'alors) : rechargée, elle rouvre sa scène mais aucune autre zone
 // de l'Arène ne résout (mesuré : `transitionTo('arene-hub')` → « Scène introuvable — transition
 // ignorée »). La save se jette (politique 2 ci-dessus).
-export const SAVE_VERSION = 59;
+// 59 → 60 (2026-09-24, #1920) : la clé d'un enjeu de modale PERSISTÉ (`StakeKey.kind` du dataset
+// `flow`) devient l'`id` de l'entrée (`surgery/roll` → `surgery-roll`). `snapshotSave` recopie le
+// `state` ENTIER, dont l'opération armée de l'infirmerie (`medic.surgery.stake`, `medicAct`) et les
+// étapes d'un Test étendu (`combatEffects.ts`, `flowStakeRef('extended-test-roll')`). Une save de 59
+// rouvrirait avec une clé que `resolveStake` ne trouve plus : la fenêtre jetterait à l'ouverture au
+// lieu de dire son enjeu. La save se jette (politique 2 ci-dessus).
+export const SAVE_VERSION = 60;
 
 export interface SaveMeta {
   version: number;

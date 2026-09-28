@@ -165,14 +165,6 @@
   pointer-events: auto;
 }
 
-/* Les deux fenêtres que l'écran monte : seule leur LARGEUR est affaire d'écran — la matière est
-   celle de `Modal`/`ParchmentCard`, le texte celui de `Prose` (couche partagée). */
-.defeat-modal { text-align: center; min-width: 240px; }
-.document-modal {
-  width: 560px;
-  max-width: 92vw;
-}
-
 /* ── ANCRAGE de la BANDE DE GROUPE (`PartyDock`, primitive : party-dock.css) ─────────────────────
    L'écran qui monte la bande porte SEUL son placement : la primitive ne sait pas où elle est posée
    (elle se montera aussi comme première rangée de la coquille de fiche — arbitrage user 2026-09-19).

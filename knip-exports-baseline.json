@@ -8,9 +8,6 @@
   "src/state/portFlow.ts": [
     "PortState"
   ],
-  "src/state/seaActivities.ts": [
-    "PendingSeaActivities"
-  ],
   "src/ui/editor/editorState.ts": [
     "StairCell",
     "StairFlightPlan",

@@ -5,6 +5,7 @@
  */
 import { create } from 'zustand';
 import { Combatant, CharKey, HitLocation } from '../engine/types';
+import type { FateSaveSource } from '../engine/fortune';
 import { extendedTestStep } from '../engine/tests';
 import { unloadWeapon, setAmmoChoice } from '../engine/items';
 import type { SupportDetail } from '../engine/skills';
@@ -729,8 +730,8 @@ export interface GameState extends RollFlowActionsMap {
   armPreempt: (heroId: string | null) => void;
   /** Coop : marque le siège PRÊT au ready-check d'ouverture (round 1) ; l'hôte lance quand tous ✓. */
   roundStartReady: (seat: number) => void;
-  /** Sauvetage par le Destin en attente (LDB 17 l.31-35). */
-  pendingFateSave: { heroId: string; source: 'hit' | 'slow'; restoreWounds?: number;
+  /** Sauvetage par le Destin en attente (LDB 17 l.29-32). */
+  pendingFateSave: { heroId: string; source: FateSaveSource; restoreWounds?: number;
     /** Animosité & Haine (ADE II Annexe I, règle facultative) : Groupe (ou nom) de « l'individu ou
      *  l'élément qui l'a presque tué » — Cible de l'Animosité acquise si le héros dépense le Destin. */
     foeCible?: string } | null;
@@ -1046,6 +1047,8 @@ export interface GameState extends RollFlowActionsMap {
   /** « Appliquer » la passe : cumule le DR (Test étendu), 1d10 PB + Hémorragie ; cible atteinte → trauma
    *  réparé + infection révélée ; sinon réouvre la passe suivante (calque extendedTestNext). */
   surgeryNext: () => void;
+  /** Annule la passe posée avant son jet ; l'opération armée et son cumul restent. */
+  surgeryPassCancel: () => void;
   /** Annule la Chirurgie (cumul perdu ; jamais commencée → acte remboursé). */
   surgeryCancel: () => void;
   closeMedic: () => void;
@@ -2749,6 +2752,7 @@ export const useGame = create<GameState>((set, get) => ({
   medicSetWound: (idx) => medicFlow.medicSetWound(get, set, idx),
   openSurgeryPass: () => medicFlow.openSurgeryPass(get, set),
   surgeryNext: () => medicFlow.surgeryNext(get, set),
+  surgeryPassCancel: () => medicFlow.surgeryPassCancel(get, set),
   surgeryCancel: () => medicFlow.surgeryCancel(get, set),
   closeMedic: () => medicFlow.closeMedic(get, set),
 

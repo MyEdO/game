@@ -15,6 +15,7 @@ import { WhenEditor, condSummary } from './ConditionEditor';
 import { ListRow } from '../ListRow';
 import { NumberField } from '../NumberField';
 import { Row, Stack } from '../Layout';
+import { coupeAuMot } from '../../lib/coupeAuMot';
 
 /** Ids posables au clic pour `DialogueChoice.icon` — DÉRIVÉS du registre d'icônes (`ICON_DEFS`,
  *  généré depuis `icons/defs/`), jamais une liste tenue à la main. */
@@ -68,7 +69,7 @@ export function DialogueDetail({ dialogue, onChange, ctx }: { dialogue: Dialogue
                 key={n.id}
                 selected={node?.id === n.id}
                 onClick={() => setNodeId(n.id)}
-                label={<>{dialogue.start === n.id ? '▶ ' : ''}<b>{n.id}</b> {n.desc ? `· ${n.desc.slice(0, 24)}${n.desc.length > 24 ? '…' : ''}` : ''}</>}
+                label={<>{dialogue.start === n.id ? '▶ ' : ''}<b>{n.id}</b> {n.desc ? `· ${coupeAuMot(n.desc, 24)}` : ''}</>}
               >
                 {targets.length > 0 && <span className="chip">→ {targets.join(', ')}</span>}
               </ListRow>
@@ -128,7 +129,7 @@ export function DialogueDetail({ dialogue, onChange, ctx }: { dialogue: Dialogue
                 <details className="eff-row dlg-choice" key={ci}>
                   <summary>
                     <span className="eff-summary">
-                      {c.label ? `« ${c.label.slice(0, 38)}${c.label.length > 38 ? '…' : ''} »` : '(choix sans texte)'}
+                      {c.label ? `« ${coupeAuMot(c.label, 38)} »` : '(choix sans texte)'}
                       {c.next ? ` → ${c.next}` : ' → fin'}
                       {c.cost?.gold || c.cost?.silver || c.cost?.brass ? <> · <Icon id="resource/gold-purse" size="sm" /></> : ''}
                       {condSummary(c.when) ? ' · si ' + condSummary(c.when) : ''}

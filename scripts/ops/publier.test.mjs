@@ -7,58 +7,62 @@
 import { tableTotale } from '../../src/lib/tableTotale.ts'
 import test, { after, describe } from 'node:test'
 import assert from 'node:assert/strict'
-import { execFileSync } from 'node:child_process'
+import { execFileSync, spawnSync } from 'node:child_process'
 import { existsSync, mkdtempSync, readFileSync, rmSync, utimesSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { codeSeul } from '../guards/lib/commentPoison.mjs'
 import { manquementsDeFeuilles } from '../guards/lib/modulesFeuilles.mjs'
 import { numerosCites } from '../guards/lib/fermetures.mjs'
 import { refusDeSujet, sujetDuMessage } from '../guards/lib/sujetDeCommit.mjs'
-import { reinitialiserStub } from '../guards/lib/coursesCi.mjs'
-import { envDeDepotForge, instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
+import { GitIndisponible, depotDe } from '../guards/lib/gitPorte.mjs'
+import { envDeDepotForge, instanceDeDepot, sousLEnvDeLUtilisatrice } from '../guards/lib/depotGabarit.mjs'
+import { GENERATORS } from '../docs/build-all.mjs'
 import {
-  ETAPES,
-  MOTIF_APRES_REBASE,
-  MOTIF_POST_REWRITE,
   RACINE,
-  REFUS_DEUX_FOIS,
-  REFUS_TRAIN_DE_FUSION,
   attenteCiSecondes,
   citerArgv,
-  commandeInterdite,
   contexteDe,
-  corpsDePilotage,
-  decisionDeRebase,
-  estDocDerive,
   etatDeLEtape,
   filetDuTrainEnfant,
-  finDeSortie,
   jouerLeTrain,
   journalInitial,
   journalVide,
+  lancementNpm,
   lancerDetache,
   ligneDeDetachement,
-  marquePublication,
-  messageDeDerives,
   modeDuLog,
   motifDeRotation,
   nomDeJournal,
   nomDeRotation,
   optionsDe,
-  partitionSales,
-  plageDeCitations,
   planDeReprise,
-  refusDeGit,
+  questionsDuTrain,
   relationAuTronc,
   rotationnerLog,
-  sansOptionsGlobales,
+} from './publier.mjs'
+import {
+  ETAPES,
+  MOTIF_APRES_REBASE,
+  MOTIF_POST_REWRITE,
+  REFUS_DEUX_FOIS,
+  REFUS_TRAIN_DE_FUSION,
+  corpsDePilotage,
+  decisionDeRebase,
+  estDocDerive,
+  finDeSortie,
+  marquePublication,
+  messageDeDerives,
+  partitionSales,
+  plageDeCitations,
+  refusDeGit,
   sortieDe,
   synchroniserAgents,
   titreDeCommit,
   verdictDuTronc,
   verdictDesRuns,
-} from './publier.mjs'
+} from './etapesDuTrain.mjs'
 
 const NOMS = ETAPES.map((e) => e.nom)
 
@@ -340,70 +344,90 @@ describe('estDocDerive', () => {
   })
 })
 
-// ── commandeInterdite ──────────────────────────────────────────────────────────────────
+// ── Les gestes du train : des écrivains NOMMÉS, jamais une commande git libre ──────────────────
 
-test('commandeInterdite : chaque geste interdit rend sa RAISON', () => {
-  for (const args of [
-    ['add', '-A'],
-    ['add', '--all'],
-    ['add', '.'],
-    ['stash'],
-    ['stash', 'push'],
-    ['push', 'origin', 'HEAD:main', '--force'],
-    ['push', '-f', 'origin', 'HEAD:main'],
-    ['push', '-f', 'origin', 'HEAD:refs/heads/chantier/1776'],
-    // `--force-with-lease` est ACCEPTÉ sur une branche de travail, jamais vers `main` (#1776).
-    ['push', '--force-with-lease', 'origin', 'HEAD:main'],
-    ['push', '--force-with-lease', 'origin', 'HEAD:refs/heads/main'],
-    ['reset', '--hard', 'origin/main'],
-    ['branch', '-D', 'chantier/1736'],
-    ['worktree', 'remove', '--force', '.wt-1736'],
-    ['worktree', 'remove', '-f', '.wt-1736'],
-    ['commit', '-F', '/tmp/msg'],
-    ['checkout', '--', 'docs/'],
-    ['restore', 'docs/'],
-  ]) {
-    const raison = commandeInterdite(args)
-    assert.equal(typeof raison, 'string', `git ${args.join(' ')} doit être REFUSÉ`)
-    assert.ok(raison.length > 10, `git ${args.join(' ')} : la raison doit se lire`)
+test('le contexte du train ne porte que des QUESTIONS et des gestes NOMMÉS aux arguments validés : ni poignée du dépôt, ni commande libre', () => {
+  const ctx = contexteDe({ racine: '/nulle-part', branche: 'chantier/x', options: {}, journaliser: () => {}, fdLog: 'ignore' })
+  const cles = Object.getOwnPropertyNames(ctx).sort()
+  assert.deepEqual(cles, ['abandonnerRebase', 'branche', 'commenter', 'commit', 'coursesCi', 'docs', 'fdLog', 'generators', 'journaliser', 'lireTicket', 'npm', 'options', 'pousser', 'questions', 'racine', 'rebaser', 'tete', 'tronc'])
+  assert.deepEqual(Object.keys(ctx.questions).sort(), ['brancheDe', 'ceQuiChange', 'cheminsEnConflit', 'cheminsSales', 'combienDe', 'commitsDeLaPlage', 'estAncetre', 'origineDe', 'rebaseEntame', 'relationAuTronc', 'shaDe'])
+  assert.equal(Object.isFrozen(ctx.questions), true)
+  assert.equal(ctx.generators, GENERATORS)
+  for (const script of ['x; git add -A', 'x && git commit -m libre', 'a b', '$(git add -A)', '', 7])
+    assert.throws(() => ctx.npm(script), /ctx\.npm : un NOM de script/, JSON.stringify(script))
+  for (const mode of ['--check; git add -A', '--write', undefined])
+    assert.throws(() => ctx.docs(mode), /ctx\.docs : mode de build-all inconnu/, JSON.stringify(mode))
+  for (const sha of ['HEAD', 'a'.repeat(39), `${'a'.repeat(40)}\n`, ['a'.repeat(40)], undefined])
+    assert.throws(() => ctx.coursesCi(sha), /ctx\.coursesCi : un sha COMPLET/, JSON.stringify(sha))
+  for (const numero of ['0', '12a', '-1', ' 12', 'api', 1.5, [12], undefined]) {
+    assert.throws(() => ctx.lireTicket(numero), /ctx\.lireTicket : un NUMÉRO de ticket/, JSON.stringify(numero))
+    assert.throws(() => ctx.commenter(numero, 'corps'), /ctx\.commenter : un NUMÉRO de ticket/, JSON.stringify(numero))
+  }
+  for (const corps of ['', '  ', undefined, ['x']])
+    assert.throws(() => ctx.commenter('1806', corps), /ctx\.commenter : un CORPS de commentaire/, JSON.stringify(corps))
+})
+
+test('lancementNpm : `npm run <script>` sans shell hors win32 ; `npm.cmd` sous shell sous win32', () => {
+  assert.deepEqual(lancementNpm('agents:check', 'linux'), { executable: 'npm', args: ['run', 'agents:check'], shell: false })
+  assert.deepEqual(lancementNpm('agents:check', 'darwin'), { executable: 'npm', args: ['run', 'agents:check'], shell: false })
+  assert.deepEqual(lancementNpm('agents:check', 'win32'), { executable: 'npm.cmd', args: ['run', 'agents:check'], shell: true })
+})
+
+test('git INDISPONIBLE : le train LÈVE `GitIndisponible` — ni tête `null`, ni arbre lu propre', () => {
+  const ctx = contexteDe({ racine: '/nulle-part', branche: 'chantier/x', options: {}, journaliser: () => {}, fdLog: 'ignore' })
+  assert.throws(() => ctx.tete, GitIndisponible)
+  assert.throws(() => ctx.questions.cheminsSales(), GitIndisponible)
+  assert.throws(() => ctx.questions.rebaseEntame(), GitIndisponible)
+})
+
+test('git INDISPONIBLE avant le train (racine, branche, tête) : une ligne finale `PUBLICATION: rouge` NOMMÉE, jamais une pile brute', () => {
+  const cale = mkdtempSync(join(tmpdir(), 'git-en-panne-'))
+  try {
+    writeFileSync(join(cale, 'git'), "#!/bin/sh\necho 'fatal: panne simulée' >&2\nexit 128\n", { mode: 0o755 })
+    const vu = spawnSync(process.execPath, [fileURLToPath(new URL('./publier.mjs', import.meta.url)), '--etapes'], {
+      encoding: 'utf8', env: { ...process.env, PATH: `${cale}:${process.env.PATH}`, WFRP_PUBLIER_ENFANT: '' },
+    })
+    assert.equal(vu.status, 1, vu.stderr)
+    assert.equal(vu.stderr, 'PUBLICATION: rouge lecture — git indisponible : fatal: panne simulée\n')
+  } finally {
+    rmSync(cale, { recursive: true, force: true })
   }
 })
 
-test('commandeInterdite : les gestes du train passent', () => {
-  for (const args of [
-    ['rebase', 'origin/main'],
-    ['rebase', '--abort'],
-    ['add', '--', 'docs/systemes.md'],
-    ['commit', '-F', '/tmp/msg', '--', 'docs/systemes.md'],
-    ['push', 'origin', 'HEAD:main'],
-    ['status', '--porcelain', '-z'],
-    ['rev-parse', 'HEAD'],
-  ]) {
-    assert.equal(commandeInterdite(args), null, `git ${args.join(' ')} doit passer`)
+test('`ctx.commit` sans chemins, ou à chemins vides, LÈVE avant tout spawn : ni `git add -A`, ni commit de tout l’index', () => {
+  const ctx = contexteDe({ racine: '/nulle-part', branche: 'chantier/x', options: {}, journaliser: () => {}, fdLog: 'ignore' })
+  for (const p of [{ message: 'm' }, { message: 'm', chemins: [] }, { message: 'm', chemins: null }]) {
+    assert.throws(() => ctx.commit(p), /commitDe : un commit porte des `chemins` explicites/, JSON.stringify(p))
   }
 })
 
-test('commandeInterdite : les options GLOBALES de git ne masquent pas le sous-commande', () => {
-  // Mesuré avant correction : `['-c','x=y','add','-A']` rendait `null` — le sous-commande lu était `-c`.
-  for (const args of [
-    ['-c', 'x=y', 'add', '-A'],
-    ['-c', 'protocol.version=2', 'push', '--force', 'origin', 'HEAD:main'],
-    ['-C', '/dep', 'reset', '--hard'],
-    ['--git-dir=/dep/.git', 'stash'],
-    ['--no-pager', 'checkout', '--', 'docs/'],
-    ['--work-tree=/dep', 'commit', '-F', '/tmp/msg'],
-  ]) {
-    assert.equal(typeof commandeInterdite(args), 'string', `git ${args.join(' ')} doit être REFUSÉ`)
+test('`pousser` refuse `--force-with-lease` vers `main`, sous ses deux noms, AVANT tout spawn', () => {
+  const ctx = contexteDe({ racine: '/nulle-part', branche: 'chantier/x', options: {}, journaliser: () => {}, fdLog: 'ignore' })
+  for (const vers of ['main', 'refs/heads/main']) {
+    assert.throws(() => ctx.pousser({ vers, bail: true }), /main n’entre qu’en fast-forward/, vers)
   }
-  assert.equal(commandeInterdite(['-c', 'x=y', 'add', '--', 'docs/systemes.md']), null)
-  assert.equal(commandeInterdite(['-C', '/dep', 'push', 'origin', 'HEAD:main']), null)
 })
 
-test('sansOptionsGlobales : le sous-commande, quel que soit le préfixe', () => {
-  assert.deepEqual(sansOptionsGlobales(['-c', 'x=y', 'add', '-A']), ['add', '-A'])
-  assert.deepEqual(sansOptionsGlobales(['--no-pager', '-C', '/dep', 'log']), ['log'])
-  assert.deepEqual(sansOptionsGlobales(['push', 'origin', 'HEAD:main']), ['push', 'origin', 'HEAD:main'])
-  assert.deepEqual(sansOptionsGlobales([]), [])
+test('ÉCRIVAIN sous config HOSTILE : le commit du train est signé par l’identité de l’UTILISATRICE', () => {
+  const { racine } = instanceDeDepot({ fichiers: { 'a.txt': 'a\n' }, message: 'socle' })
+  const mesure = mkdtempSync(join(tmpdir(), 'train-hostile-'))
+  const g = (...a) => execFileSync('git', a, { cwd: racine, env: envDeDepotForge(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()
+  try {
+    g('config', '--local', '--unset', 'user.name')
+    g('config', '--local', '--unset', 'user.email')
+    const globale = join(mesure, 'globale.gitconfig')
+    writeFileSync(globale, '[user]\n\tname = Utilisatrice Hostile\n\temail = hostile@example.invalid\n[commit]\n\tgpgsign = false\n\tverbose = true\n[core]\n\tquotePath = true\n')
+    writeFileSync(join(racine, 'a.txt'), 'a2\n')
+    const vu = sousLEnvDeLUtilisatrice(globale, () => {
+      const ctx = contexteDe({ racine, branche: 'main', options: {}, journaliser: () => {}, fdLog: 'ignore' })
+      return ctx.commit({ message: 'docs: dérivés\n', chemins: ['a.txt'] })
+    })
+    assert.equal(vu.disponible && vu.valeur.status, 0, JSON.stringify(vu))
+    assert.equal(g('log', '-1', '--format=%an <%ae>|%cn|%s'), 'Utilisatrice Hostile <hostile@example.invalid>|Utilisatrice Hostile|docs: dérivés')
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+    rmSync(mesure, { recursive: true, force: true })
+  }
 })
 
 /** Les argv LITTÉRAUX passés à `gh`/`appel` dans une source, quelle que soit la graphie de quote. */
@@ -412,9 +436,9 @@ function argvDesAppelsGh(code) {
     .map((m) => [...m[1].matchAll(/['"`]([^'"`]*)['"`]/g)].map((t) => t[1]))
 }
 
-// La SOURCE `gh` du train est faite de DEUX fichiers depuis #1813 : le train lui-même et la couture
-// REST qu'il partage avec les autres `ops`. Lire le premier seul rendrait le cliquet aveugle.
-const SOURCES_GH_DU_TRAIN = ['./publier.mjs', '../guards/lib/ticketsGh.mjs']
+// La SOURCE `gh` du train : le train, ses étapes (#1806) et la couture REST qu'il partage avec les
+// autres `ops` (#1813). En lire une partie seulement rendrait le cliquet aveugle.
+const SOURCES_GH_DU_TRAIN = ['./publier.mjs', './etapesDuTrain.mjs', '../guards/lib/ticketsGh.mjs']
 
 test('la SOURCE du train : `gh api` en GET ou POST — aucune route GraphQL, aucun geste de FERMETURE', () => {
   const code = SOURCES_GH_DU_TRAIN
@@ -447,8 +471,8 @@ test('le train n’IMPORTE pas le module qui FERME — l’invariant tient sur l
   // (`scripts/guards/lib/modulesFeuilles.mjs`) et couvre toutes les graphies d'import ; le train lit
   // le vocabulaire d'une plage fermante dans `plageFermante.mjs`, qui ne ferme rien.
   assert.deepEqual(manquementsDeFeuilles().manquements, [])
-  const train = readFileSync(new URL('./publier.mjs', import.meta.url), 'utf8')
-  assert.match(train, /from '\.\.\/guards\/lib\/plageFermante\.mjs'/)
+  const etapes = readFileSync(new URL('./etapesDuTrain.mjs', import.meta.url), 'utf8')
+  assert.match(etapes, /from '\.\.\/guards\/lib\/plageFermante\.mjs'/)
 })
 
 test('la table des ÉTAPES nomme les neuf étapes, dans l’ordre du régime', () => {
@@ -869,7 +893,7 @@ test('sortieDe / refusDeGit : la sortie d’un git en échec, jamais vide', () =
   assert.match(refusDeGit({ disponible: true, absent: true }), /status \?/)
 })
 
-/** L'étape `ff-main`, jouée avec un `ctx` FACTICE : `tronc()` et `git()` sont ses deux seules portes. */
+/** L'étape `ff-main`, jouée avec un `ctx` FACTICE : `tronc()` et `pousser()` sont ses deux seules portes. */
 const etapePush = ETAPES.find((e) => e.nom === 'ff-main')
 const ctxPush = ({ sha, push }) => ({
   racine: RACINE,
@@ -877,7 +901,7 @@ const ctxPush = ({ sha, push }) => ({
   tete: 'ttttttttt',
   journaliser: () => {},
   tronc: () => ({ disponible: true, sha }),
-  git: () => push,
+  pousser: () => push,
 })
 const REFUS_PUSH = { disponible: true, valeur: { status: 1, stderr: '! [rejected] main -> main (non-fast-forward)', stdout: '' } }
 const journalPush = (reprises) => ({ ...journalVide('b'), base: 'aaa', tete: 'ttttttttt', reprises })
@@ -937,14 +961,12 @@ test('push-branche : pousse la TÊTE sur SA branche, par un bail — c’est lui
     branche: 'chantier/1776',
     tete: 'ttttttttt',
     journaliser: () => {},
-    git: (args) => { vus = args; return { disponible: true, valeur: { status: 0, stdout: '', stderr: '' } } },
+    pousser: (geste) => { vus = geste; return { disponible: true, valeur: { status: 0, stdout: '', stderr: '' } } },
   }
   const vu = etapeBranche.jouer(ctx, journalPush(0))
-  assert.deepEqual(vus, ['push', '--force-with-lease', 'origin', 'HEAD:refs/heads/chantier/1776'])
+  assert.deepEqual(vus, { vers: 'refs/heads/chantier/1776', bail: true })
   assert.equal(vu.ok, true)
   assert.match(vu.dit, /poussé sur chantier\/1776 — la CI de la branche juge/)
-  // Le bail vers la branche passe la porte des interdits ; vers `main`, non.
-  assert.equal(commandeInterdite(vus), null)
 })
 
 test('push-branche : un refus de git est ROUGE et porte ce que git a imprimé', () => {
@@ -953,7 +975,7 @@ test('push-branche : un refus de git est ROUGE et porte ce que git a imprimé', 
     branche: 'chantier/1776',
     tete: 'ttttttttt',
     journaliser: () => {},
-    git: () => ({ disponible: true, valeur: { status: 1, stderr: '! [rejected] stale info', stdout: '' } }),
+    pousser: () => ({ disponible: true, valeur: { status: 1, stderr: '! [rejected] stale info', stdout: '' } }),
   }
   const vu = etapeBranche.jouer(ctx, journalPush(0))
   assert.equal(vu.ok, false)
@@ -963,20 +985,12 @@ test('push-branche : un refus de git est ROUGE et porte ce que git a imprimé', 
 
 const etapeCi = ETAPES.find((e) => e.nom === 'ci')
 
-/** Les courses servies à l'étape `ci` : elle lit `coursesCi`, que `WFRP_GH_STUB` alimente. */
+/** Les courses servies à l'étape `ci` par le geste `ctx.coursesCi`, qui note le sha demandé. */
 function avecCourses(courses, jouer) {
-  const fichier = join(mkdtempSync(join(tmpdir(), 'publier-ci-')), 'gh.json')
-  writeFileSync(fichier, JSON.stringify(courses))
-  reinitialiserStub()
-  const avant = process.env.WFRP_GH_STUB
-  process.env.WFRP_GH_STUB = fichier
-  try {
-    return jouer()
-  } finally {
-    if (avant === undefined) delete process.env.WFRP_GH_STUB
-    else process.env.WFRP_GH_STUB = avant
-    rmSync(fichier, { force: true })
-  }
+  const demandes = []
+  const vu = jouer({ ...ctxCi(), coursesCi: (sha) => { demandes.push(sha); return { disponible: true, valeur: courses } } })
+  assert.deepEqual([...new Set(demandes)], [journalPush(0).tete], 'l’étape lit les courses de la TÊTE du journal')
+  return vu
 }
 
 const ctxCi = () => ({
@@ -990,7 +1004,7 @@ const ctxCi = () => ({
 test('ci : un run VERT sur la tête rend vert, et le journal porte le temps d’ATTENTE', () => {
   const vu = avecCourses(
     [{ headSha: 'ttttttttt', status: 'completed', conclusion: 'success', databaseId: 7, workflowName: 'CI' }],
-    () => etapeCi.jouer(ctxCi(), journalPush(0)),
+    (ctx) => etapeCi.jouer(ctx, journalPush(0)),
   )
   assert.equal(vu.ok, true)
   assert.equal(vu.detail.etat, 'verte')
@@ -1001,7 +1015,7 @@ test('ci : un run VERT sur la tête rend vert, et le journal porte le temps d’
 test('ci : un run ROUGE rend le job et l’URL du run — et RIEN n’est entré dans main', () => {
   const vu = avecCourses(
     [{ headSha: 'ttttttttt', status: 'completed', conclusion: 'failure', databaseId: 33691303703, workflowName: 'CI' }],
-    () => etapeCi.jouer(ctxCi(), journalPush(0)),
+    (ctx) => etapeCi.jouer(ctx, journalPush(0)),
   )
   assert.equal(vu.ok, false)
   assert.match(vu.raison, /course CI rouge \(33691303703\)/)
@@ -1013,14 +1027,14 @@ test('ci : un run ROUGE rend le job et l’URL du run — et RIEN n’est entré
 test('ci : une course ANNULÉE n’est pas un vert — elle rougit, en se nommant', () => {
   const vu = avecCourses(
     [{ headSha: 'ttttttttt', status: 'completed', conclusion: 'cancelled', databaseId: 9, workflowName: 'CI' }],
-    () => etapeCi.jouer(ctxCi(), journalPush(0)),
+    (ctx) => etapeCi.jouer(ctx, journalPush(0)),
   )
   assert.equal(vu.ok, false)
   assert.match(vu.raison, /course CI annulee \(9\)/)
 })
 
 test('ci : la borne ÉCOULÉE rend INDÉTERMINÉ, jamais un vert — et le dit', () => {
-  const vu = avecCourses([], () => etapeCi.jouer({ ...ctxCi(), options: { ciTimeoutMin: 0 } }, journalPush(0)))
+  const vu = etapeCi.jouer({ ...ctxCi(), options: { ciTimeoutMin: 0 }, coursesCi: () => assert.fail('borne écoulée : aucune lecture') }, journalPush(0))
   assert.equal(vu.indetermine, true)
   assert.match(vu.raison, /aucun verdict de la CI en 0 min sur ttttttttt/)
   assert.match(vu.raison, /rien n'est entré dans main/)
@@ -1047,11 +1061,14 @@ describe('étape `rebase` sur un VRAI dépôt : train de fusion, puis tronc qui 
     g('update-ref', 'refs/remotes/origin/main', 'main')
     g('checkout', '-q', 'train')
   }
-  // Le ctx de l'étape : `git` JETTE — l'étape ne doit lancer aucun rebase dans ces deux cas.
+  // Le ctx de l'étape : ses écrivains JETTENT — l'étape ne doit lancer aucun rebase dans ces deux cas.
+  const depot = depotDe(racine, { env: envDeDepotForge() })
   const ctx = {
     racine,
+    questions: questionsDuTrain(depot),
     get tete() { return g('rev-parse', 'HEAD') },
-    git: (args) => { throw new Error(`git ${args.join(' ')} lancé`) },
+    rebaser: () => { throw new Error('git rebase lancé') },
+    abandonnerRebase: () => { throw new Error('git rebase --abort lancé') },
   }
   g('checkout', '-q', '-b', 'train')
   commit('b.txt')
@@ -1063,7 +1080,7 @@ describe('étape `rebase` sur un VRAI dépôt : train de fusion, puis tronc qui 
   commit('d.txt')
 
   test('tronc CONTENU : relation « contenu », aucun rebase, journal posé, « tronc déjà contenu »', () => {
-    assert.deepEqual(relationAuTronc(racine), { disponible: true, contenu: true, fusions: false })
+    assert.deepEqual(relationAuTronc(depot), { disponible: true, contenu: true, fusions: false })
     const journal = journalVide('train')
     const vu = etapeRebase.jouer(ctx, journal)
     const base = g('rev-parse', 'origin/main')
@@ -1076,7 +1093,7 @@ describe('étape `rebase` sur un VRAI dépôt : train de fusion, puis tronc qui 
 
   test('le tronc AVANCE : relation « non contenu + fusions », refus NOMMÉ, aucun rebase, histoire intacte', () => {
     avancerLeTronc('e.txt')
-    assert.deepEqual(relationAuTronc(racine), { disponible: true, contenu: false, fusions: true })
+    assert.deepEqual(relationAuTronc(depot), { disponible: true, contenu: false, fusions: true })
     const tete = g('rev-parse', 'HEAD')
     const journal = journalVide('train')
     assert.deepEqual(etapeRebase.jouer(ctx, journal), { ok: false, raison: REFUS_TRAIN_DE_FUSION })
@@ -1088,7 +1105,7 @@ describe('étape `rebase` sur un VRAI dépôt : train de fusion, puis tronc qui 
   test('branche LINÉAIRE non contenue : un VRAI `git rebase origin/main` sous le contexte RÉEL, histoire linéaire', () => {
     g('checkout', '-q', '-b', 'lineaire', 'main~1')
     commit('f.txt')
-    assert.deepEqual(relationAuTronc(racine), { disponible: true, contenu: false, fusions: false })
+    assert.deepEqual(relationAuTronc(depot), { disponible: true, contenu: false, fusions: false })
     const teteAvant = g('rev-parse', 'HEAD')
     const ctxReel = contexteDe({ racine, branche: 'lineaire', options: {}, journaliser: () => {}, fdLog: 'ignore' })
     const journal = journalVide('lineaire')

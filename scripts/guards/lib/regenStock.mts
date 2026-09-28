@@ -12,9 +12,9 @@
  */
 import { existsSync, rmSync, writeFileSync } from 'node:fs';
 import { relative, resolve } from 'node:path';
-import { spawnSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 import { RACINE } from './bindingsVivants.mjs';
+import { attributDe, depotDe } from './gitPorte.mjs';
 import { ecartDeRegeneration, texteEnPlace, texteRegenere, type RegenerationDeStock } from './stockDeSites.mjs';
 
 /** Le lot du chantier passé par `--lot <#N …>`, ou `null`. */
@@ -104,14 +104,6 @@ function moduleDeLaLigne(args: readonly string[]): string | null {
   return positionnels.length === 1 ? positionnels[0] : null;
 }
 
-/** L'attribut git `merge` du fichier `chemin`, ou `null` si `git check-attr` échoue. */
-function attributDeFusion(chemin: string): string | null {
-  const r = spawnSync('git', ['check-attr', 'merge', '--', relative(RACINE, resolve(chemin))], { cwd: RACINE, encoding: 'utf8' });
-  if (r.status !== 0) return null;
-  const m = /: merge: (.*)$/m.exec(r.stdout);
-  return m ? m[1].trim() : null;
-}
-
 async function main(): Promise<number> {
   const args = process.argv.slice(2);
   const module = moduleDeLaLigne(args);
@@ -129,10 +121,12 @@ async function main(): Promise<number> {
     console.error(`${module} : \`regenerations()\` ne rend pas une liste.`);
     return 2;
   }
+  const pannes: string[] = [];
+  const depot = depotDe(RACINE, { enPanne: (raison) => pannes.push(raison) });
   for (const r of liste as RegenerationDeStock[]) {
-    const attribut = attributDeFusion(r.chemin);
+    const attribut = attributDe(depot, relative(RACINE, resolve(r.chemin)), 'merge');
     if (attribut !== 'stocks') {
-      console.error(`${r.chemin} : l'attribut git merge vaut ${attribut ?? '(git check-attr en échec)'}, pas \`stocks\` (.gitattributes) : rien n'est écrit.`);
+      console.error(`${r.chemin} : l'attribut git merge vaut ${attribut ?? `(git check-attr en échec : ${pannes[pannes.length - 1] ?? 'sans réponse'})`}, pas \`stocks\` (.gitattributes) : rien n'est écrit.`);
       return 2;
     }
   }

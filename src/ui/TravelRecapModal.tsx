@@ -52,7 +52,18 @@ export function TravelRecapModal({ seam }: { seam?: TravelRecap } = {}) {
   const kmLeft = Math.max(0, Math.round(recap.km - recap.kmDone));
   const onContinue = () => { dismiss(); openWorldMap(); };
   return (
-    <Modal title={title} variant="plain" className="travel-recap" onClose={dismiss} backdropClose={!ambush}>
+    <Modal title={title} onClose={dismiss} backdropClose={!ambush}
+      footer={
+        <>
+          {!ambush && <button className="btn" onClick={dismiss}>Fermer</button>}
+          {ambush
+            ? <button className="btn btn-primary" onClick={() => dismiss()}><Icon id="action/attack" size="sm" /> Faire face</button>
+            : recap.status === 'arrived'
+              ? <button className="btn btn-primary" onClick={onContinue}><Icon id="nav/campaign" size="sm" /> Continuer le voyage</button>
+              : <button className="btn btn-primary" onClick={onContinue}><Icon id="nav/campaign" size="sm" /> Ouvrir la carte</button>}
+        </>
+      }
+    >
       <p className="travel-recap-route">
         {recap.fromLabel} → <b>{recap.toLabel}</b> · {routeDistanceLabel(recap.km, sea)}, {travelModeLabels()[recap.mode].toLowerCase()}
         {recap.status !== 'arrived' && <> · <b>{kmLeft > 0 ? `${routeDistanceLabel(kmLeft, sea)} restants` : `aux portes de ${recap.toLabel}`}</b></>}
@@ -84,14 +95,6 @@ export function TravelRecapModal({ seam }: { seam?: TravelRecap } = {}) {
       ) : recap.status === 'stalled' ? (
         <p className="travel-recap-foot">Le groupe est trop chargé pour avancer — allégez les sacs, puis reprenez depuis la carte.</p>
       ) : null}
-      <div className="modal-actions">
-        {!ambush && <button className="btn" onClick={dismiss}>Fermer</button>}
-        {ambush
-          ? <button className="btn btn-primary" onClick={() => dismiss()}><Icon id="action/attack" size="sm" /> Faire face</button>
-          : recap.status === 'arrived'
-            ? <button className="btn btn-primary" onClick={onContinue}><Icon id="nav/campaign" size="sm" /> Continuer le voyage</button>
-            : <button className="btn btn-primary" onClick={onContinue}><Icon id="nav/campaign" size="sm" /> Ouvrir la carte</button>}
-      </div>
     </Modal>
   );
 }

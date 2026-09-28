@@ -28,7 +28,7 @@ import { Tabs } from './Tabs';
 import { coreAxisIds } from '../data';
 import { resolveActiveAxes } from '../state/worldMap';
 import { t } from '../i18n';
-import { Row } from './Layout';
+import { Row, Stack } from './Layout';
 
 /**
  * Écran d'équipe — solo ET coop. En coop, l'hôte attribue chaque SIÈGE (`net.slots`) ; chaque joueur
@@ -137,13 +137,17 @@ export function PartyScreen() {
         />
       )}
       {refusLancement && (
-        <Modal variant="plain" title={t('party.launch.refused')} onClose={() => setRefusLancement(null)} backdropClose>
-          <p className="chip tone-danger" role="alert">{refusLancement}</p>
-          <div className="modal-actions">
+        <Modal
+          title={t('party.launch.refused')}
+          onClose={() => setRefusLancement(null)}
+          backdropClose
+          footer={
             <button className="btn btn-primary" onClick={() => setRefusLancement(null)}>
               {t('party.launch.refused.close')}
             </button>
-          </div>
+          }
+        >
+          <p className="chip tone-danger" role="alert">{refusLancement}</p>
         </Modal>
       )}
     </>
@@ -174,7 +178,7 @@ function CampaignSelect({ currentId, onClose }: { currentId: string | undefined;
     pick(lancee);
   };
   return (
-    <Modal variant="plain" className="picker-modal" title={t('party.campaign.pick.title')} onClose={onClose} backdropClose>
+    <Modal title={t('party.campaign.pick.title')} onClose={onClose} backdropClose>
         {refusEntree && <p className="chip tone-danger" role="alert">{refusEntree}</p>}
         <div className="pregen-list">
           <div className="pregen-row">
@@ -626,11 +630,10 @@ export function HeroSelector({
       title={replace ? t('picker.title.replace', { name: replaceName ?? '' }) : t('party.select.title')}
       onClose={onClose}
       body="centered-wide"
-      className="hero-selector"
     >
       <CandidatePool
         party={party}
-        variant={replace ? 'modal' : 'gallery'}
+        variant={replace ? 'remplacement' : 'gallery'}
         axisIds={axisIds}
         onPick={onPick}
         hideInParty={!replace}
@@ -643,7 +646,7 @@ export function HeroSelector({
 /** Vivier de candidats — personnages sauvegardés (roster localStorage LOCAL du joueur) + pré-tirés,
  *  onglets Mes personnages / Pré-tirés, cartes-action créer/importer. Rendu DANS le sélecteur dédié
  *  (`HeroSelector`) : source unique de la carte-portrait `CandidateCard`, en mode `gallery` (recrutement,
- *  grandes cartes) ou `modal` (remplacement — les membres restent grisés « Déjà choisi »). */
+ *  grandes cartes) ou `remplacement` (les membres restent grisés « Déjà choisi »). */
 export function CandidatePool({
   party,
   onPick,
@@ -655,8 +658,8 @@ export function CandidatePool({
 }: {
   party: Combatant[];
   onPick: (h: Combatant, wealth?: Money) => void;
-  /** `gallery` = recrutement (les recrutés quittent l'étal) ; `modal` = remplacement (membres grisés). */
-  variant?: 'gallery' | 'modal';
+  /** `gallery` = recrutement (les recrutés quittent l'étal) ; `remplacement` : membres grisés. */
+  variant?: 'gallery' | 'remplacement';
   /** Un siège reste-t-il à pourvoir ? Sinon « Recruter » est grisé (groupe complet). */
   canRecruit?: boolean;
   /** Écarte du vivier les personnages DÉJÀ dans le groupe (recrutement) : un recruté quitte l'étal. Le
@@ -712,64 +715,67 @@ export function CandidatePool({
 
   return (
     <>
-      <Tabs
-        className="sheet-tabnav"
-        tabs={[
-          { key: 'roster' as const, label: t('picker.tab.roster') },
-          { key: 'pregens' as const, label: t('picker.tab.pregens') },
-        ]}
-        active={tab}
-        onChange={setTab}
-      />
+      <Stack gap="lg">
+        <Row justify="center">
+          <Tabs
+            tabs={[
+              { key: 'roster' as const, label: t('picker.tab.roster') },
+              { key: 'pregens' as const, label: t('picker.tab.pregens') },
+            ]}
+            active={tab}
+            onChange={setTab}
+          />
+        </Row>
 
-      <MasterDetail
-        className="candidate-master-detail"
-        listLabel={t('party.select.title')}
-        list={
-          <div className="candidate-grid">
-            {tab === 'roster'
-              ? shownRoster.map(({ hero, wealth }) => (
-                  <CandidateCard
-                    key={hero.id}
-                    hero={hero}
-                    variant={variant}
-                    state={state}
-                    recruited={inParty(hero.id)}
-                    wealth={wealth}
-                    axisIds={axisIds}
-                    selected={selected?.hero.id === hero.id}
-                    onRecruit={() => onPick(hero, wealth)}
-                    onPresent={() => setSelectedId(hero.id)}
-                    onExport={() => exportHero({ hero, wealth })}
-                    onDelete={() => removeSaved(hero.id)}
-                  />
-                ))
-              : shownPregens.map(({ hero: h, wealth }) => (
-                  <CandidateCard
-                    key={h.id}
-                    hero={h}
-                    variant={variant}
-                    state={state}
-                    recruited={inParty(h.id)}
-                    wealth={wealth}
-                    axisIds={axisIds}
-                    selected={selected?.hero.id === h.id}
-                    onRecruit={() => onPick(h, wealth)}
-                    onPresent={() => setSelectedId(h.id)}
-                  />
-                ))}
-            {/* Cartes-action (même famille visuelle) : UNE carte « Créer un personnage » ; « Importer » à
-                côté, dans l'onglet Mes personnages. */}
-            <ActionCard icon="nav/new-game" label={t('picker.roster.create')} invite={t('party.create.invite')} onClick={startCreate} />
-            {tab === 'roster' && (
-              <ActionCard icon="file/import" label={t('picker.import.btn')} invite={t('party.import.invite')} title={t('picker.import.btn.title')} onClick={() => fileRef.current?.click()} />
-            )}
-          </div>
-        }
-        detail={
-          selected ? <CandidateDetailPane hero={selected.hero} wealth={selected.wealth} axisIds={axisIds} /> : <p className="hint">{t('picker.detail.empty')}</p>
-        }
-      />
+        <MasterDetail
+          className="candidate-master-detail"
+          listLabel={t('party.select.title')}
+          list={
+            <div className="candidate-grid">
+              {tab === 'roster'
+                ? shownRoster.map(({ hero, wealth }) => (
+                    <CandidateCard
+                      key={hero.id}
+                      hero={hero}
+                      variant={variant}
+                      state={state}
+                      recruited={inParty(hero.id)}
+                      wealth={wealth}
+                      axisIds={axisIds}
+                      selected={selected?.hero.id === hero.id}
+                      onRecruit={() => onPick(hero, wealth)}
+                      onPresent={() => setSelectedId(hero.id)}
+                      onExport={() => exportHero({ hero, wealth })}
+                      onDelete={() => removeSaved(hero.id)}
+                    />
+                  ))
+                : shownPregens.map(({ hero: h, wealth }) => (
+                    <CandidateCard
+                      key={h.id}
+                      hero={h}
+                      variant={variant}
+                      state={state}
+                      recruited={inParty(h.id)}
+                      wealth={wealth}
+                      axisIds={axisIds}
+                      selected={selected?.hero.id === h.id}
+                      onRecruit={() => onPick(h, wealth)}
+                      onPresent={() => setSelectedId(h.id)}
+                    />
+                  ))}
+              {/* Cartes-action (même famille visuelle) : UNE carte « Créer un personnage » ; « Importer » à
+                  côté, dans l'onglet Mes personnages. */}
+              <ActionCard icon="nav/new-game" label={t('picker.roster.create')} invite={t('party.create.invite')} onClick={startCreate} />
+              {tab === 'roster' && (
+                <ActionCard icon="file/import" label={t('picker.import.btn')} invite={t('party.import.invite')} title={t('picker.import.btn.title')} onClick={() => fileRef.current?.click()} />
+              )}
+            </div>
+          }
+          detail={
+            selected ? <CandidateDetailPane hero={selected.hero} wealth={selected.wealth} axisIds={axisIds} /> : <p className="hint">{t('picker.detail.empty')}</p>
+          }
+        />
+      </Stack>
       {importErr && <p className="hint danger candidate-import-err">{importErr}</p>}
       <input
         ref={fileRef}

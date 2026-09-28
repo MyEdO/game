@@ -32,64 +32,6 @@
 @keyframes wm-pulse {
   50% { box-shadow: 0 0 10px 2px rgba(255, 224, 102, 0.45); }
 }
-.worldmap-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 90; /* sous les modales de jet (.modal-overlay = 130) */
-  /* Opaque (#358 correctif) : le HUD de scène (dock de portraits, commandes de vue — z-index bien
-     SOUS 90 mais peint dans le MÊME contexte d'empilement) ne doit JAMAIS transparaître à travers le
-     voile. Un `rgba(...)` avec alpha < 1 (même 0.97) laisse un résidu visible sur les chips vives du
-     dock — le token `--bg` (opacité 1, pas un hex à alpha fractionnaire) coupe le fond net. */
-  background:
-    radial-gradient(ellipse at 50% -10%, color-mix(in srgb, var(--gold) 7%, transparent), transparent 55%),
-    radial-gradient(ellipse at 50% 115%, color-mix(in srgb, var(--blood) 18%, transparent), transparent 60%),
-    var(--bg); /* ambiance de la coquille partagée (politique grand écran, charte-ui.md) — pas un aplat nu quand le corps est borné en large */
-  display: flex;
-  flex-direction: column;
-  padding: 10px;
-  gap: 8px;
-}
-.worldmap-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  flex-wrap: wrap;
-  /* Bande opaque dédiée : l'en-tête (titre, actions, fermeture) reste lisible même si le voile
-     doit un jour redevenir plus transparent — la zone où « Réduire » vit ne dépend pas du voile seul. */
-  background: var(--panel2);
-  border-radius: 10px;
-  padding: 6px 10px;
-  margin: -2px -2px 0;
-}
-.worldmap-head h2 {
-  margin: 0;
-  font-size: 18px;
-}
-.worldmap-head-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-}
-/* Barre d'outils optionnelle de ScreenShell (`tabs` prop) — pose la primitive `<Tabs>` et/ou du
- * contenu libre (badges, bourse…), sous l'en-tête. */
-.screen-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  width: min(900px, 96vw);
-  margin: 0 auto;
-}
-/* Bande d'ambiance de la coquille (`ScreenShell` prop `backdrop`, #371 lot 2) — même primitive
-   `SceneBackdrop` que dans un `.panel`, mais SANS le bleed négatif pensé pour un bord de panel : ici
-   enfant direct du voile plein écran. */
-.worldmap-overlay > .scene-backdrop {
-  margin: 0;
-  border-radius: 10px;
-}
 /* Phase 3 (#343) : la carte reste la zone principale, le panneau de départ (4 états mutuellement
    exclusifs — reprise/départ/muet/porte de nuit, tous `.worldmap-panel`) devient une colonne latérale
    FIXE, SECONDE (compose `Split side="end" align="stretch"` — jamais une grille maison). ≥901px, cet
@@ -231,20 +173,17 @@
 .wm-provision-item.short { color: var(--danger-soft); font-weight: 600; }
 @media (max-width: 560px) {
   .worldmap-panel { padding: 10px; }
-  .worldmap-head h2 { font-size: 15px; }
 }
 /* En-tête mobile compact (#359, généralisé #362) : `.port-purse` porte `margin-left:auto` qui
    consomme le reste de la ligne et rejette le bouton Fermer seul sur sa propre rangée à 360px ; la
    pilule de date/bourse (slot `meta` de `ScreenShell`) se resserre pour tenir en 2 rangées max
    (titre + actions), jamais 3 — comportement UNIQUE, quel que soit l'écran plein-champ. */
 @media (max-width: 560px) {
-  .worldmap-head-actions { gap: 6px; }
   .port-purse, .market-carrier { margin-left: 0; font-size: 12px; }
   .hud-clock { height: 32px; padding: 0 8px; font-size: 11px; }
 }
 
 /* ── Écran Port (MDG 15 : chantier naval + commerce maritime) ─────────────────── */
-.port-overlay { overflow-y: auto; }
 /* Onglets propres de PortView (rendus hors slot ScreenShell, entre `PortHeader` et le corps) — même
  * largeur bornée/centrage que `.screen-toolbar` (primitive `<Tabs>`, tabs.css, en compose le style). */
 .port-tabnav {
@@ -319,7 +258,6 @@
 }
 
 /* ── Activités en mer (MDG 15 l.266-306) ─────────────────────────────────────── */
-.sea-activities { width: min(760px, 96vw); max-height: 88vh; overflow-y: auto; }
 .sea-act-intro { font-size: 12.5px; color: var(--muted); margin-bottom: 8px; }
 .sea-act-hero { padding: 10px 12px; }
 .sea-act-hero h4 { margin: 0 0 8px; display: flex; align-items: center; gap: 6px; font-size: 14px; }
@@ -328,14 +266,9 @@
 .sea-act-invest input { width: 84px; }
 .sea-act-purse { font-size: 13px; color: var(--muted); margin: 10px 0 4px; }
 
-/* ── Éditeur de carte du monde (#T2) — coquille `ScreenShell` (voile+en-tête ⇒ classes worldmap-*),
-   `.wme-shell` n'ajoute que le fond opaque (l'éditeur masque tout le jeu, pas un voile translucide). ── */
-.wme-shell {
-  background: var(--bg);
-  overflow: auto;
-}
+/* ── Éditeur de carte du monde (#T2) — coquille `ScreenShell` (voile, en-tête) ; le corps-canevas
+   défile dans le rail `.screen-scroll`. ── */
 .wme-body {
-  flex: 1;
   min-height: 0;
   display: flex;
   gap: 10px;
@@ -556,11 +489,9 @@
   .interlude-chronicle .parchment-card { flex-direction: column; align-items: center; text-align: center; }
   .interlude-chronicle-head { justify-content: center; }
 }
-.interlude-recap { max-width: min(560px, 94vw); }
 .interlude-recap-list { text-align: left; font-size: 14px; display: flex; flex-direction: column; gap: 8px; margin: 10px 0; padding-left: 18px; }
 
 /* Récapitulatif de voyage (audit M4) */
-.travel-recap { max-width: min(560px, 94vw); }
 .travel-recap-route { margin: 4px 0 10px; font-size: 14px; }
 /* « Jour N » est écrit DANS le texte (le ::marker était rogné par l'overflow — bug recette). */
 /* max-height AUGMENTÉ (40vh → 60vh, #376 pt.4) : une journée de MER (`SeaVoyageBody` — rose des
@@ -590,7 +521,6 @@
 /* ══ Modales de SERVICE d'une escale (Infirmerie, Repos, Conseil de bord) ══════════════════════ */
 
 /* ── Infirmerie (modale de soins persistante — MedicModal) ── */
-.medic-modal { min-width: min(480px, 94vw); }
 /* Rappel de bourse en tête : `Coins` porte son ton (`ton="discret"`, coins.css) — l'écran ne règle
    que l'ancrage de la ligne. */
 /* Bourse du groupe, au-dessus des actes payants. PLACEMENT seul : le libellé discret est `.hint`
@@ -614,10 +544,8 @@
   margin: 6px 0;
   background: rgba(0, 0, 0, 0.18);
 }
-.medic-wound-pick { justify-content: center; }
 
 /* ── Modale de REPOS (nuit) ── */
-.rest-modal { min-width: min(520px, 94vw); }
 .rest-weather { text-align: center; font-size: 13px; color: var(--danger-soft); margin: 0 0 8px; }
 .rest-rows { display: flex; flex-direction: column; gap: 6px; }
 /* Choix MAÎTRE « Pour toute la troupe » (arbitrage user 2026-07-11) : Couchage + Pitance appliqués à tous. */

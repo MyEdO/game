@@ -12,8 +12,8 @@ import { readFileSync, readdirSync } from 'node:fs'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { dirname, join } from 'node:path'
 import {
-  croissanceDesStocks, croissancesNonCouvertes, cliquetsDuMessage, entreesNominatives, estEntreeNominative,
-  estPorteurDeStock, raisonDeRefus,
+  croissanceDesStocks, croissancesNonCouvertes, cliquetsDuMessage, declarationsDuMessage, entreesNominatives,
+  estEntreeNominative, estPorteurDeStock, fichierNommePar, raisonDeRefus,
 } from '../guards/lib/stocksNominatifs.mjs'
 import { croissancesDeLaPlage, raisonDeRefusDePlage, SHA_NUL } from '../guards/lib/plageStock.mjs'
 
@@ -42,14 +42,22 @@ function porteEnVigueur() {
 }
 
 /** Début de la plage à juger. En CI, l'événement de push le porte (`GITHUB_EVENT_PATH` → `before`) ;
- *  `origin/main` n'y a PAS de reflog, il ne peut donc pas servir de base. Sans événement lisible, la
- *  base reste nulle et `croissancesDeLaPlage` juge HEAD seul en le DISANT (jamais un silence). */
+ *  `origin/main` n'y a PAS de reflog, il ne peut donc pas servir de début. Sans événement lisible, le
+ *  début reste nul : `croissancesDeLaPlage` n'exclut alors que le tronc, ou juge HEAD seul en le
+ *  DISANT (jamais un silence). */
 function debutDeLaPlage(env = process.env) {
   if (!env.GITHUB_EVENT_PATH) return SHA_NUL
   try {
-    const avant = String(JSON.parse(readFileSync(env.GITHUB_EVENT_PATH, 'utf8'))?.before ?? '')
-    return /^[0-9a-f]{40}$/.test(avant) && avant !== SHA_NUL ? avant : SHA_NUL
+    const debut = String(JSON.parse(readFileSync(env.GITHUB_EVENT_PATH, 'utf8'))?.before ?? '')
+    return /^[0-9a-f]{40}$/.test(debut) && debut !== SHA_NUL ? debut : SHA_NUL
   } catch { return SHA_NUL }
+}
+
+/** La ref POUSSÉE : en CI `GITHUB_REF` (= `github.ref`, la ref que l'événement a poussée, celle que
+ *  classe `.github/workflows/ci.yml:40`) ; hors CI, la branche de HEAD. */
+function refPoussee(env = process.env) {
+  if (env.GITHUB_REF) return env.GITHUB_REF
+  try { return git('symbolic-ref', '-q', 'HEAD').trim() } catch { return null }
 }
 
 // ── La règle, sur des diffs FABRIQUÉS (ce que la porte voit, et ce qu'elle ne voit pas) ──────────
@@ -483,9 +491,47 @@ test('croissance — un stock qui NAÎT est une croissance nette, avec ses exemp
   assert.deepEqual(c.exemples, [ENTREE_A.trim(), ENTREE_B.trim()])
 })
 
-test('croissance — un stock qui DÉCROÎT ou qui se déplace ne dit rien', () => {
-  assert.deepEqual(croissanceDesStocks(diffDe('scripts/guards/lib/domResiduStock.mjs', [], [ENTREE_A, ENTREE_B]), REPLI), [])
-  assert.deepEqual(croissanceDesStocks(diffDe('scripts/guards/lib/domResiduStock.mjs', [ENTREE_A], [ENTREE_B]), REPLI), [])
+test('croissance — un stock qui DÉCROÎT ne dit rien ; une clé neuve ne se cache pas derrière une clé qui baisse (#1806 D5″)', () => {
+  const porteur = 'scripts/guards/lib/domResiduStock.mjs'
+  assert.deepEqual(croissanceDesStocks(diffDe(porteur, [], [ENTREE_A, ENTREE_B]), REPLI), [])
+  assert.deepEqual(
+    croissanceDesStocks(diffDe(porteur, [ENTREE_A], [ENTREE_B]), REPLI).map((c) => [c.fichier, c.ajoutees, c.retirees, c.net, c.exemples]),
+    [[porteur, 1, 1, 1, [ENTREE_A.trim()]]],
+    'B sort, A entre : la dette de A est NEUVE',
+  )
+  const renommages = new Map([['src/ui/CampaignView.test.tsx', 'src/state/combatSlice.ts']])
+  assert.deepEqual(croissanceDesStocks(diffDe(porteur, [ENTREE_A], [ENTREE_B]), { ...REPLI, renommages }), [],
+    'le fichier nommé a été RENOMMÉ par le commit : la clé du parent se reporte, le renommage pur coûte 0')
+  assert.deepEqual(croissanceDesStocks(diffDe(porteur, [ENTREE_A, ENTREE_B], [ENTREE_B, ENTREE_A]), REPLI), [],
+    'une entrée qui change de place sous la même clé ne grandit rien')
+})
+
+test('croissance par CLÉ (#1806 D5″, sonde `j3-cliquet-net.mjs`) : X +3 derrière Q −3 dans le même porteur exige `CLIQUET: +3`', () => {
+  const F = 'scripts/guards/lib/cssCouchesStock.mjs'
+  const e = (f, r) => `  { fichier: '${f}', ref: '${r}', occurrence: 1 },`
+  const Q = 'src/ui/styles/ecran-q.css'
+  const X = 'src/ui/styles/ecran-x.css'
+  const refs = (sel) => [`${sel} :: color`, `${sel} :: border`, `${sel} :: font-size`]
+  const qs = refs('.e').map((r) => e(Q, r))
+  const xs = refs('.e').map((r) => e(X, r))
+  const xs2 = refs('.f').map((r) => e(X, r))
+  const tete = (lignes) => ['/** @type {import(\'./stock.mjs\').EntreeDeSite[]} */', 'export const CSS_IDENTITE_ECRAN_RATCHET = [', ...lignes, '];', ''].join('\n')
+  const pre = tete([...qs, ...xs])
+  const images = (post) => ({ lirePreImage: (f) => (f === F ? pre : null), lirePostImage: (f) => (f === F ? post : null) })
+  const deplace = `diff --git a/${F} b/${F}\n--- a/${F}\n+++ b/${F}\n@@ -3,3 +2,0 @@\n${qs.map((l) => `-${l}`).join('\n')}\n@@ -8,0 +6,3 @@\n${xs2.map((l) => `+${l}`).join('\n')}\n`
+  assert.deepEqual(croissancesNonCouvertes({ diff: deplace, message: 'refactor' }, images(tete([...xs, ...xs2]))).map((c) => [c.fichier, c.net]), [[F, 3]])
+  const seul = `diff --git a/${F} b/${F}\n--- a/${F}\n+++ b/${F}\n@@ -8,0 +9,3 @@\n${xs2.map((l) => `+${l}`).join('\n')}\n`
+  assert.deepEqual(croissancesNonCouvertes({ diff: seul, message: 'refactor' }, images(tete([...qs, ...xs, ...xs2]))).map((c) => [c.fichier, c.net]), [[F, 3]],
+    'témoin positif : X +3 sans sortie de Q, même compte')
+})
+
+test('fichierNommePar : la clé d’une entrée est le fichier qu’elle nomme, sans `:ligne`, `:symbole` ni balise', () => {
+  assert.equal(fichierNommePar("  { fichier: 'src/ui/styles/x.css', ref: '.e :: color', occurrence: 1 },"), 'src/ui/styles/x.css')
+  assert.equal(fichierNommePar("  ['CritEscalation', 'onRepeat', 'src/x.ts:325'],"), 'src/x.ts')
+  assert.equal(fichierNommePar(ENTREE_B), 'src/ui/CampaignView.test.tsx')
+  assert.equal(fichierNommePar("  'criticals.json': 'raison',"), 'criticals.json')
+  assert.equal(fichierNommePar('  "Source/Warhammer v4 - Livre de base/08 - Statut.md",'), 'Source/Warhammer v4 - Livre de base/08 - Statut.md')
+  assert.equal(fichierNommePar('  { "chapitre": "LDB 8" },'), '  { "chapitre": "LDB 8" },', 'sans fichier nommé, le texte entier est la clé')
 })
 
 test('croissance — un diff qui n’est PAS une chaîne LÈVE, et un « 0 » ne peut plus mentir', () => {
@@ -510,6 +556,21 @@ test('CLIQUET — le message couvre le fichier s il annonce le BON compte et un 
   assert.deepEqual(croissancesNonCouvertes({ diff, message: couvrant }, REPLI), [])
 })
 
+test('déclarations — UN lecteur par mot-clé : `CLIQUET:` et `RECLASSEMENT:` ne se lisent jamais l’un pour l’autre', () => {
+  const message = [
+    'refactor: lot',
+    '',
+    'CLIQUET: scripts/x.test.mjs +2 — deux fixtures du test neuf, motif assez long',
+    'RECLASSEMENT: src/ui/styles/console.css +255 — la console devient un organisme, refs #1806',
+  ].join('\n')
+  assert.deepEqual(cliquetsDuMessage(message).map((k) => [k.fichier, k.n]), [['scripts/x.test.mjs', 2]])
+  assert.deepEqual(
+    declarationsDuMessage(message, 'RECLASSEMENT').map((k) => [k.fichier, k.n]),
+    [['src/ui/styles/console.css', 255]],
+  )
+  assert.deepEqual(declarationsDuMessage('RECLASSEMENT: a.css +1 — court', 'RECLASSEMENT'), [])
+})
+
 test('CLIQUET — un compte FAUX ou un motif de tampon ne couvre rien, et le refus le dit', () => {
   const diff = diffDe('src/state/flowtest-derived-stake.test.ts', [ENTREE_A, ENTREE_B])
   const fauxCompte = 'CLIQUET: src/state/flowtest-derived-stake.test.ts +1 — motif suffisamment long pour passer'
@@ -520,6 +581,17 @@ test('CLIQUET — un compte FAUX ou un motif de tampon ne couvre rien, et le ref
   assert.equal(croissancesNonCouvertes({ diff, message: tampon }, REPLI).length, 1)
   const autreFichier = 'CLIQUET: scripts/guards/lib/domResiduStock.mjs +2 — un motif assez long mais pour un autre fichier'
   assert.equal(croissancesNonCouvertes({ diff, message: autreFichier }, REPLI).length, 1)
+})
+
+test('CLIQUET — deux lignes pour le MÊME fichier (`+999` puis le bon compte) → refus nommé : une déclaration par porteur', () => {
+  const diff = diffDe('src/state/flowtest-derived-stake.test.ts', [ENTREE_A, ENTREE_B])
+  const double = [
+    'CLIQUET: src/state/flowtest-derived-stake.test.ts +999 — motif suffisamment long pour passer',
+    'CLIQUET: src/state/flowtest-derived-stake.test.ts +2 — motif suffisamment long pour passer',
+  ].join('\n')
+  const [c] = croissancesNonCouvertes({ diff, message: double }, REPLI)
+  assert.deepEqual([c.net, c.declare, c.declarees], [2, 999, [999, 2]])
+  assert.match(raisonDeRefus([c]), /2 lignes \(\+999, \+2\)/)
 })
 
 test('refus — nomme le fichier, le compte et jusqu à trois exemples', () => {
@@ -1018,8 +1090,8 @@ test('stock `.mjs` nominatif — une entrée AJOUTÉE est vue par la porte de pl
 //   · `c8d3105ae` fait croître un registre à clés en NOM DE FICHIER (`AUTO_RESOLUS`) ;
 //   · `a9b7edf17` fait croître un stock OBJET dont les valeurs sont des tableaux.
 const FENETRE_STOCKS = { avant: '571f54287', apres: '02cc09c04' }
-const FENETRE_REGISTRE = { avant: '2c11fdd9a', apres: 'c8d3105ae' }
-const FENETRE_STOCK_OBJET = { avant: 'da3acf95c', apres: 'a9b7edf17' }
+const FENETRE_REGISTRE = { debut: '2c11fdd9a', fin: 'c8d3105ae' }
+const FENETRE_STOCK_OBJET = { debut: 'da3acf95c', fin: 'a9b7edf17' }
 const gitOuNull = (...args) => {
   try { return git(...args) } catch { return null }
 }
@@ -1082,7 +1154,7 @@ test('CLIQUET stocks : la PLAGE POUSSÉE ne fait grossir aucun stock en silence'
   }
   exigerHistoireComplete()
   const { refus, notes, commits } = croissancesDeLaPlage({
-    cwd: RACINE, avant: debutDeLaPlage(), apres: git('rev-parse', 'HEAD').trim(),
+    cwd: RACINE, debut: debutDeLaPlage(), fin: git('rev-parse', 'HEAD').trim(), vers: refPoussee(),
   })
   for (const n of notes) t.diagnostic(n)
   if (commits !== undefined) t.diagnostic(`${commits} commit(s) jugé(s)`)

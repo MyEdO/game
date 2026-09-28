@@ -1,14 +1,9 @@
-/* ══════════════════ Panneau d'ÉQUIPEMENT (`EquipmentPanel.tsx`) ══════════════════
+/* ══════════════════ Panneau d'ÉQUIPEMENT — `src/ui/EquipmentPanel.tsx` ══════════════════
    Emplacements en CELLULES (localisation × couche) + cartes de set d'armes + récap « en main ».
-   Pas de mannequin (mort, #492 : le rig grand format vit dans la colonne de la fiche). ≥900px :
-   2 colonnes (emplacements | sets) ; ≤900px : empilées. Cibles tactiles via `pointer: coarse`. */
+   Cibles tactiles via `pointer: coarse`. */
 .equip-panel {
   --eq-cell: 46px;
-  display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
-  gap: 12px;
-  margin-bottom: 14px;
-  align-items: start;
+  margin-bottom: var(--sp-lg);
 }
 /* Colonne EMPLACEMENTS : en-tête de couches + une ligne par localisation (libellé+PA | 3 cellules). */
 .equip-slots {
@@ -238,11 +233,6 @@
 .weap-quals,
 .eq-ammo {
   color: var(--muted);
-}
-@media (max-width: 900px) {
-  .equip-panel {
-    grid-template-columns: 1fr;
-  }
 }
 @media (max-width: 560px) {
   .equip-panel {

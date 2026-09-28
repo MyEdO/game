@@ -1,14 +1,14 @@
 // @vitest-environment jsdom
 /**
  * BOUT-EN-BOUT de la chip de pénalité (ref #1117 L4) : du COMBATTANT jusqu'au TEXTE à l'écran et au
- * popover. CONTRAT : la pastille porte le NOM de l'État qui octroie la pénalité (jamais l'étiquette
+ * infobulle. CONTRAT : la pastille porte le NOM de l'État qui octroie la pénalité (jamais l'étiquette
  * de famille « État »), et elle est CLIQUABLE — une pastille muette ne renvoie à aucune règle.
  *
  * Distinct de `RollLine-codex-chips.test.tsx`, qui verrouille le contrat GÉNÉRIQUE de `ModChip` à
  * partir de `ModLine` forgées. Ici le producteur est le RÉEL (`conditionModLines`, source unique des
  * trois producteurs) et aucune ligne n'est écrite à la main — ce que la garde moteur ne voit pas :
  *  1. le TEXTE EXACT rendu (signe typographique compris) ;
- *  2. la chip EST l'affordance Codex, et son popover s'OUVRE ;
+ *  2. la chip EST l'affordance Codex, et son infobulle s'OUVRE ;
  *  3. CHAQUE catégorie émise (`etats`, `spells`, `symptoms`, `traits`) résout au registre Codex —
  *     une catégorie mal orthographiée rendrait la pastille muette à l'écran.
  */
@@ -62,14 +62,14 @@ function shell(mods: PendingRoll['mods']) {
 }
 const shellFor = (c: Combatant) => shell(conditionModLines(c));
 
-describe('Chips de pénalité — texte EXACT et popover, du Combatant à l’écran (#1117 L4)', () => {
+describe('Chips de pénalité — texte EXACT et infobulle, du Combatant à l’écran (#1117 L4)', () => {
   beforeAll(() => {
     (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
   });
   let container: HTMLDivElement;
   let root: Root;
   afterEach(() => {
-    act(() => { root.unmount(); }); // démonte aussi les portals de popover
+    act(() => { root.unmount(); }); // démonte aussi les portals d'infobulle
     container.remove();
   });
 
@@ -80,13 +80,13 @@ describe('Chips de pénalité — texte EXACT et popover, du Combatant à l’é
     ({ container, root } = mount(shellFor(c)));
     const chips = [...container.querySelectorAll('.rm-mod')];
     expect(chips.map((n) => n.textContent)).toEqual(['−30 Brisé', '−10 Malédiction de malchance']);
-    // Les DEUX portent leur affordance Codex (aucune pastille muette), et leur popover s'ouvre.
+    // Les DEUX portent leur affordance Codex (aucune pastille muette), et leur infobulle s'ouvre.
     for (const chip of chips) {
       expect(chip.classList.contains('codex-ref'), `chip « ${chip.textContent} » liée au Codex`).toBe(true);
       expect(chip.getAttribute('role')).toBe('button');
       act(() => { chip.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); });
-      const pop = document.querySelector('.codex-pop');
-      expect(pop, `popover ouvert pour « ${chip.textContent} »`).not.toBeNull();
+      const pop = document.querySelector('.infobulle');
+      expect(pop, `infobulle ouverte pour « ${chip.textContent} »`).not.toBeNull();
       expect(pop!.textContent).toContain(chip.textContent!); // l'instance lue à l'écran est reprise
       act(() => { chip.dispatchEvent(new MouseEvent('mouseout', { bubbles: true })); });
     }
@@ -101,7 +101,7 @@ describe('Chips de pénalité — texte EXACT et popover, du Combatant à l’é
     expect(chips.map((n) => n.textContent)).toEqual(['−10 Sonné', '−20 Crampes abdominales']);
     const symptome = chips[1] as HTMLElement;
     act(() => { symptome.focus(); }); // atteignable au CLAVIER, pas seulement à la souris
-    expect(document.querySelector('.codex-pop')?.textContent).toContain('Crampes abdominales');
+    expect(document.querySelector('.infobulle')?.textContent).toContain('Crampes abdominales');
   });
 
   it('CHAQUE catégorie émise par le moteur résout au Codex (aucune chip ne peut être muette)', () => {
@@ -136,7 +136,7 @@ describe('Chips de pénalité — texte EXACT et popover, du Combatant à l’é
     for (const chip of chips) {
       expect(chip.classList.contains('codex-ref')).toBe(true);
       act(() => { chip.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); });
-      expect(document.querySelector('.codex-pop'), `popover de « ${chip.textContent} »`).not.toBeNull();
+      expect(document.querySelector('.infobulle'), `infobulle de « ${chip.textContent} »`).not.toBeNull();
       act(() => { chip.dispatchEvent(new MouseEvent('mouseout', { bubbles: true })); });
     }
   });
@@ -157,6 +157,6 @@ describe('Chips de pénalité — texte EXACT et popover, du Combatant à l’é
     const chip = container.querySelector('.rm-mod') as HTMLElement;
     expect(chip.textContent).toBe('−20 N’écoutez point la Sorcière');
     act(() => { chip.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); });
-    expect(document.querySelector('.codex-pop')?.textContent).toContain('Sœur Gerda'); // le PORTEUR est nommé
+    expect(document.querySelector('.infobulle')?.textContent).toContain('Sœur Gerda'); // le PORTEUR est nommé
   });
 });

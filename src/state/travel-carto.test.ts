@@ -112,7 +112,7 @@ describe('Voyage — poste Cartographie (Établir des cartes, test étendu)', ()
       if (/from ['"].*\/DrBar['"]/.test(text)) importers.push(path);
     }
     // Exception nommée : `MedicModal.tsx` — état d'opération de Chirurgie ARMÉE, visible AVANT/ENTRE
-    // les passes (hors de toute rangée de jet ; `SurgeryRollFlow` n'a pas de rangée tant qu'aucune passe
+    // les passes (hors de toute rangée de jet ; `useSurgeryJetProps` n'a pas de rangée tant qu'aucune passe
     // n'est ouverte) — pas la barre d'UN jet, le cumul PERSISTANT de l'opération.
     const NAMED_EXCEPTIONS = new Set(['MedicModal.tsx']);
     expect(new Set(importers)).toEqual(new Set(['RollRow.tsx', ...NAMED_EXCEPTIONS]));

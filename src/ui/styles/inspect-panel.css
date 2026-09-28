@@ -3,9 +3,6 @@
    camp/états, puis des rangées libellé → valeur. La RANGÉE est la primitive partagée `ListRow`
    (`.listrow[data-variant='insp']`, components.css) ; l'en-tête `.insp-head` est aussi composé par
    l'inspecteur de l'éditeur (`editor/Inspector.tsx`, poseur déclaré au manifeste). */
-.inspect-panel {
-  max-width: 380px;
-}
 .insp-head {
   display: flex;
   gap: 12px;

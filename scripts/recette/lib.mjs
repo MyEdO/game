@@ -91,10 +91,42 @@ export function verdictArbreGele(avant, apres) {
     `sous elle — relancer en fenêtre calme plutôt que de rejouer (#1679 L1c).`
   );
 }
-const CHROME_CANDIDATES = [
+const CHROME_WINDOWS = [
   'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
   'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
 ];
+/** Racine des navigateurs Playwright quand `PLAYWRIGHT_BROWSERS_PATH` n'est pas posée. */
+const RACINE_PLAYWRIGHT = '/opt/pw-browsers';
+
+/**
+ * Exécutable Chrome et arguments de lancement propres à la machine. Ordre : chemin `explicite` de
+ * l'appelant, `CHROME_PATH`, chemins Windows présents (sur `win32` seulement : ailleurs ils se
+ * résoudraient contre le dossier courant), puis le Chromium Playwright de plus haute
+ * version sous `PLAYWRIGHT_BROWSERS_PATH` (défaut `/opt/pw-browsers`), trouvé par lecture du dossier
+ * (`chromium-<N>/chrome-linux/chrome`). `--no-sandbox` en root seulement : Chromium refuse d'y
+ * démarrer avec son bac à sable. PURE : `fs`, `uid` et `plateforme` injectés.
+ * @param {{ explicite?: string, env: Record<string, string | undefined>, fs: { existe: (p: string) => boolean, lister: (d: string) => string[] }, uid?: number, plateforme: string }} o
+ * @returns {{ chemin: string, args: string[] }}
+ */
+export function resoudreChrome({ explicite, env, fs, uid, plateforme }) {
+  const args = uid === 0 ? ['--no-sandbox'] : [];
+  const direct = explicite || env.CHROME_PATH;
+  if (direct) return { chemin: direct, args };
+  const windows = plateforme === 'win32' ? CHROME_WINDOWS.find((p) => fs.existe(p)) : undefined;
+  if (windows) return { chemin: windows, args };
+  const racine = env.PLAYWRIGHT_BROWSERS_PATH || RACINE_PLAYWRIGHT;
+  const playwright = (fs.existe(racine) ? fs.lister(racine) : [])
+    .map((d) => /^chromium-(\d+)$/.exec(d))
+    .filter(Boolean)
+    .sort((a, b) => Number(b[1]) - Number(a[1]))
+    .map((m) => `${racine}/${m[0]}/chrome-linux/chrome`)
+    .find((p) => fs.existe(p));
+  if (playwright) return { chemin: playwright, args };
+  throw new Error(
+    `aucun Chrome trouvé — pose CHROME_PATH, ou installe Chrome (${CHROME_WINDOWS.join(', ')}) ` +
+      `ou un Chromium Playwright (${racine}/chromium-*/chrome-linux/chrome)`,
+  );
+}
 
 /** Attend `ms` millisecondes. */
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -165,10 +197,9 @@ process.on('exit', () => {
   }
 });
 
-function resolveChromePath(explicit) {
-  if (explicit) return explicit;
-  return CHROME_CANDIDATES.find((p) => existsSync(p)) ?? CHROME_CANDIDATES[0];
-}
+/** `resoudreChrome` sur le disque et l'environnement réels. */
+const chromeDeLaMachine = (explicite) =>
+  resoudreChrome({ explicite, env: process.env, fs: { existe: existsSync, lister: readdirSync }, uid: process.getuid?.(), plateforme: process.platform });
 
 /**
  * Vérifie que le serveur de dev répond (le kit ne le DÉMARRE jamais) ET qu'il sert BIEN cet arbre
@@ -268,11 +299,12 @@ export async function pourChaqueVue(session, fn, { reposMs = 500 } = {}) {
  * écrans. Une recette responsive passe sa vue explicitement (`pourChaqueVue`, `setMobileViewport`).
  */
 export async function launchSession({ chromePath, width = VUE_REFERENCE.largeur, height = VUE_REFERENCE.hauteur, port, mobile = false, timeoutMs = 10000 } = {}) {
+  const lancement = chromeDeLaMachine(chromePath);
   const cdpPort = port ?? 9222 + Math.floor(Math.random() * 2000);
   const profile = join(os.tmpdir(), `recette-cdp-profile-${Date.now()}-${Math.floor(Math.random() * 1e6)}`);
   mkdirSync(profile, { recursive: true });
-  const chrome = spawn(resolveChromePath(chromePath), [
-    '--headless=new', '--mute-audio', `--remote-debugging-port=${cdpPort}`, `--user-data-dir=${profile}`,
+  const chrome = spawn(lancement.chemin, [
+    ...lancement.args, '--headless=new', '--mute-audio', `--remote-debugging-port=${cdpPort}`, `--user-data-dir=${profile}`,
     `--window-size=${width},${height}`, '--no-first-run', '--no-default-browser-check', 'about:blank',
   ], { stdio: 'ignore' });
   const childEntry = { chrome, profile };
@@ -824,14 +856,23 @@ export const CASCADE_LABELS = ['Tout lancer', 'Commencer', 'Lancer', 'Continuer'
  * Lève, en nommant les boutons offerts, si aucun des deux gestes ne s'applique — et lève aussi si
  * l'option cliquée NE FAIT RIEN : une fenêtre dont les boutons et l'option offerte sont identiques
  * après deux clics est un BLOCAGE, pas une lenteur, et la recette le nomme au lieu d'épuiser `max`.
+ *
+ * La fin se juge au STORE, pas au DOM : tant qu'une étape de cascade est en cours (`pendingCascade`),
+ * sa fenêtre va monter — la carte d'entrée de scène (`startScene`, `store.ts`) attend le montage du
+ * monde. Aucune fenêtre au DOM avec une étape en cours : on attend sa fenêtre, `attenteMs` au plus,
+ * puis on lève en nommant l'étape.
  */
-export async function resoudreModales(session, etape, { labels = CASCADE_LABELS, max = 40, pauseMs = 600 } = {}) {
+export async function resoudreModales(session, etape, { labels = CASCADE_LABELS, max = 40, pauseMs = 600, attenteMs = 30000 } = {}) {
   let precedent = null;
   let immobile = 0;
-  for (let i = 0; i < max; i++) {
+  let sansFenetreDepuis = null;
+  for (let i = 0; i < max; ) {
     const etat = await evaluate(session, `(() => {
       const modale = document.querySelector('.modal-overlay');
-      if (!modale) return null;
+      if (!modale) {
+        const pc = window.__game.getState().pendingCascade;
+        return pc ? { enCours: (pc.participants[pc.cursor]?.reveal?.kind ?? pc.participants[pc.cursor]?.kind ?? pc.purpose ?? '?') + '' } : null;
+      }
       const norm = (s) => (s || '').replace(/\\s+/g, ' ').trim();
       const ouvert = (b) => !b.disabled && b.getAttribute('aria-disabled') !== 'true';
       const boutons = [...modale.querySelectorAll('button')].filter(ouvert).map((b) => norm(b.textContent)).filter(Boolean);
@@ -845,6 +886,16 @@ export async function resoudreModales(session, etape, { labels = CASCADE_LABELS,
       return { boutons, option: point };
     })()`);
     if (!etat) return;
+    if (etat.enCours) {
+      sansFenetreDepuis ??= Date.now();
+      if (Date.now() - sansFenetreDepuis > attenteMs) {
+        throw new Error(`[${etape}] étape « ${etat.enCours} » en cours au store, aucune fenêtre au DOM après ${attenteMs} ms`);
+      }
+      await sleep(pauseMs);
+      continue;
+    }
+    sansFenetreDepuis = null;
+    i += 1;
     const signature = `${etat.boutons.join('|')}##${etat.option ? etat.option.texte : ''}`;
     immobile = signature === precedent ? immobile + 1 : 0;
     precedent = signature;
@@ -1130,8 +1181,17 @@ function champsCDP(touche) {
 export async function realKey(session, touche) {
   const common = champsCDP(touche);
   await session.rpc('Input.dispatchKeyEvent', { type: 'rawKeyDown', ...common });
-  if (touche.key.length === 1) await session.rpc('Input.dispatchKeyEvent', { type: 'char', text: touche.key, ...common });
+  const texte = texteDeTouche(touche.key);
+  if (texte !== null) await session.rpc('Input.dispatchKeyEvent', { type: 'char', text: texte, ...common });
   await session.rpc('Input.dispatchKeyEvent', { type: 'keyUp', ...common });
+}
+
+/** Le TEXTE qu'une touche produit, ce qui fait d'elle une frappe qui AGIT : un caractère se tape,
+ *  Entrée produit `\r` — c'est lui qui active le bouton focalisé (sans, Chrome ne clique rien).
+ *  Les touches sans texte (Échap, flèches, Tab, modificateurs) rendent `null`. */
+function texteDeTouche(key) {
+  if (key.length === 1) return key;
+  return key === 'Enter' ? '\r' : null;
 }
 
 /** Alt GAUCHE, tel que CDP le nomme — la touche des gestes MAINTENUS du jeu (`decor.reveler`). */

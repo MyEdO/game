@@ -1,6 +1,8 @@
 // Hook commit-msg : la porte au MESSAGE (#1728 train B). Elle LIT le fichier du message FINAL que
 // git lui passe en `$1` — le seul endroit où le sujet est connu tel qu'il sera enregistré, quelle
-// que soit la façon dont il a été composé (`-m`, heredoc substitué, `-F`, éditeur, amend, rebase).
+// que soit la façon dont `git commit` l'a composé (`-m`, heredoc substitué, `-F`, éditeur, `--amend`),
+// ainsi que sous `git merge` qui crée un commit et sous le `reword` de `git rebase -i`. Un `git rebase`
+// simple et `git cherry-pick`, même `-e`, ne l'appellent PAS ; `--no-verify` le saute (#1806, git 2.43).
 // La règle et sa lecture vivent dans `scripts/guards/lib/sujetDeCommit.mjs` (PUR) ; ici, l'entrée/
 // sortie seulement.
 //

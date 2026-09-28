@@ -268,7 +268,7 @@ export function Palette({
               </button>
               <button className="btn small" disabled={!architectureStorey} onClick={onAddArchitecturePart}>Nouvelle partie</button>
               <button
-                className={`btn small${architectureAction === 'facade' ? ' btn-primary' : ''}`}
+                className="btn small"
                 disabled={!architectureBody}
                 aria-pressed={architectureAction === 'facade'}
                 onClick={onArmFacade}

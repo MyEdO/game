@@ -362,9 +362,7 @@ export const STRUCTURES_FORMES = [
   { concept: "reference", dataset: "etats.json", champ: "ops", signature: "id+…", statut: "divergente", strate: "Référence", occurrences: 9, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "etats.json", champ: "passive", signature: "mode+…", statut: "divergente", strate: "Référence", occurrences: 5, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "etats.json", champ: "subject", signature: "condition+…", statut: "divergente", strate: "Référence", occurrences: 10, lot: "L3 #1463", date: "2026-08-23" },
-  { concept: "reference", dataset: "flow-stakes.json", champ: "flow", signature: "id-nu", statut: "historique", strate: "Référence", occurrences: 16, lot: "L3 #1463", date: "2026-08-23" },
-  { concept: "reference", dataset: "flow-stakes.json", champ: "phase", signature: "id-nu", statut: "historique", strate: "Référence", occurrences: 6, lot: "L3 #1463", date: "2026-08-30", motif: "référence de PHASE de flux" },
-  { concept: "reference", dataset: "flow-stakes.json", champ: "rule", signature: "id-nu", statut: "historique", strate: "Référence", occurrences: 33, lot: "L3 #1463", date: "2026-08-30", motif: "référence de RÈGLE" },
+  { concept: "reference", dataset: "flow-stakes.json", champ: "rule", signature: "id-nu", statut: "historique", strate: "Référence", occurrences: 35, lot: "L3 #1463", date: "2026-08-30", motif: "référence de RÈGLE" }, // 33 → 35 (#1920, 2026-09-24) : +4, quatre enjeux neufs nomment leur foyer (B2..B12) ; −2, `recover-empetre`/`recover-en-flammes` passent sur `etats.json` (`recover.enjeu`, B14)
   { concept: "reference", dataset: "grapple.json", champ: "amount", signature: "bonusOf", statut: "divergente", strate: "Référence", occurrences: 1, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "grapple.json", champ: "entangle", signature: "id,value+…", statut: "divergente", strate: "Référence", occurrences: 1, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "grapple.json", champ: "free", signature: "id,value+…", statut: "divergente", strate: "Référence", occurrences: 1, lot: "L3 #1463", date: "2026-08-23" },
@@ -1007,7 +1005,7 @@ export const STRUCTURES_ORPHELINES = [
   { dataset: "trappings.json", champ: "test", signature: "label,skill", motif: "clé réservée", occurrences: 2, lot: "#1553", date: "2026-08-23" },
   { dataset: "arene-projet.json", champ: "effect", signature: "level,skill,type", motif: "clé réservée", occurrences: 1, lot: "#1553", date: "2026-08-23" },
   { dataset: "etats.json", champ: "test", signature: "difficultyBy,gate,label,skill", motif: "clé réservée", occurrences: 1, lot: "#1553", date: "2026-08-23" },
-  { dataset: "etats.json", champ: "recover", signature: "skill", motif: "clé réservée", occurrences: 1, lot: "#1553", date: "2026-08-23" },
+  { dataset: "etats.json", champ: "recover", signature: "enjeu,form,skill", motif: "clé réservée", occurrences: 1, lot: "#1553", date: "2026-08-23" }, // skill → enjeu,form,skill (#1920 B14, 2026-09-24) : l'enjeu de récupération se porte sur l'État
   { dataset: "qualities.json", champ: "test", signature: "characteristic,opposed,skill", motif: "clé réservée", occurrences: 1, lot: "#1553", date: "2026-08-23" },
   { dataset: "qualities.json", champ: "test", signature: "opposed,skill", motif: "clé réservée", occurrences: 1, lot: "#1553", date: "2026-08-23" },
   { dataset: "tavernGames.json", champ: "test", signature: "skill", motif: "clé réservée", occurrences: 1, lot: "#1553", date: "2026-08-23" },

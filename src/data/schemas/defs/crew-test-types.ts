@@ -1,6 +1,5 @@
 /**
- * Schéma de `crew-test-types.json` — types de Test d'équipage (MDG 14) : rôles contributeurs +
- * rôle ESSENTIEL (son DR compte double). Consommé par `src/data/index.ts` (`CrewTestTypeData`),
+ * Schéma de `crew-test-types.json` — types de Test d'équipage, MDG 14. Consommé par `src/data/index.ts` (`CrewTestTypeData`),
  * `findCrewTestTypeById`) et `src/engine/crewMorale.ts`/`src/state/shipCrew.ts`.
  */
 import { z } from 'zod';
@@ -21,13 +20,12 @@ const doc = document(
       label: z.string(),
       roles: z.array(z.string()),
       essential: z.string(),
-      /** Fiche `regles.json` portant le VERBATIM MDG 14 du Test (règle-cadre « ce Test peut être
-       *  remplacé par un Test d'équipage »). L'enjeu AFFICHÉ vient de `voyage-stakes.json`. */
+      /** Fiche `regles.json` qui ADRESSE le passage MDG 14 du Test. L'enjeu AFFICHÉ vient de
+       *  `voyage-stakes.json`. */
       rule: z.string().optional(),
-      /** Un total NÉGATIF de ce Test retire autant de Moral à l'équipage (MDG 14 l.110, Rude épreuve). */
+      /** MDG 14 l.110. */
       moraleOnNegativeDR: z.boolean().optional(),
-      /** Ce Test d'équipage est celui qui DIRIGE le navire : les Traits/Améliorations de coque qui
-       *  modifient le Test de Navigation pour diriger (MSRC 12 l.66/140) s'y appliquent, et l'empêtrement le grève. */
+      /** Test d'équipage qui DIRIGE le navire — MSRC 12 l.66/140. */
       steering: z.boolean().optional(),
       source: sourceRefSchema,
     }),

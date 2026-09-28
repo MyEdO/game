@@ -5,7 +5,7 @@ import { moraleBand } from '../engine/crewMorale';
 import { exposedCrew } from '../engine/shipCritical';
 import { hullNavalTraits } from '../engine/navalTraits';
 import { shipMoraleScore } from '../state/shipCrew';
-import { useModalA11y } from './Modal';
+import { Planche } from './Planche';
 import { PortraitTile } from './PortraitTile';
 import { CharFrame } from './CharFrame';
 import { ShipRolesPanel } from './ShipRolesPanel';
@@ -140,7 +140,7 @@ export function manoeuvreCrew(hull: Combatant, crew: Combatant[]): Combatant[] {
  * KIND-AGNOSTIQUE : un navire (`bodyShape:'vehicule'`, 1 coque à N postes) OU une batterie de siège
  * (`bodyShape:'engin'`, N emplacements séparés à 1 poste chacun). Le corps maître-détail est la surface PARTAGÉE
  * `StationSheet` (plan TOP-DOWN + puces, générique) ; sélectionner une pièce fixe la coque ACTIVE (aside + détail).
- * Réutilise la coquille modale `sheet-*` + `useModalA11y` : aside = portrait + ÉTAT de la coque active ; main =
+ * `Planche` : aside = portrait + ÉTAT de la coque active ; main =
  * MAÎTRE-DÉTAIL piloté par le plan (FTL/RTS) : plan + puces sélectionnent LE MÊME poste, dont le `PosteDetail`
  * (injecté par `renderDetail`) s'affiche seul. Les Rôles de
  * manœuvre passent dans un onglet, UNIQUEMENT pour un navire (la manœuvre est navale). Sélection BIDIRECTIONNELLE :
@@ -154,17 +154,14 @@ export function PosteSheet({ combatantIds, initialHullId, onClose }: { combatant
   const facing = useGame((s) => s.facing);
   const [pickedPosteUid, setSelectedPosteUid] = useState<string | null>(null);
   const [tab, setTab] = useState<'postes' | 'manoeuvre'>('postes');
-  const boxRef = useRef<HTMLDivElement>(null);
+  const defilement = useRef<Partial<Record<'postes' | 'manoeuvre', number>>>({});
   const idSet = new Set(combatantIds);
   // Postes de TOUTES les coques de l'ensemble, ancrés au cap de chacune (posteAnchor). Un poste par pièce d'artillerie.
-  // Calcul PUR, remonté au-dessus du hook a11y : c'est lui qui dit si la feuille rend quelque chose,
-  // donc si elle est une couche — les deux early-returns ci-dessous lisent la même expression.
   const stations = battle && scene
     ? postesToStations(battle.combatants, (h, p) => posteAnchor(h, p, { heading: facing[h.id] })).filter(
         (s) => s.ref.kind === 'poste' && idSet.has(s.ref.hullId),
       )
     : [];
-  useModalA11y(boxRef, onClose, { kind: 'feuille-postes', actif: stations.length > 0 });
   if (!battle || !scene) return null;
   if (!stations.length) return null;
   // Sélection effective : choix explicite (plan/puces), sinon le 1er poste de la coque d'ouverture, sinon le 1er poste.
@@ -184,49 +181,48 @@ export function PosteSheet({ combatantIds, initialHullId, onClose }: { combatant
   const selectedStationId = selectedPosteUid ? `poste:${hull.id}:${selectedPosteUid}` : undefined;
   const selectedPoste = (hull.postes ?? []).find((p) => p.item.uid === selectedPosteUid);
   return (
-    <div className="modal-overlay sheet-overlay" onClick={onClose}>
-      <div ref={boxRef} role="dialog" aria-modal="true" className="modal sheet-modal" onClick={(e) => e.stopPropagation()}>
-        <button className="btn small sheet-close" onClick={onClose} aria-label="Fermer">✕</button>
-        <div className="sheet-layout">
-          <aside className="sheet-aside">
-            <div className="sheet-portrait">
-              <PortraitTile c={hull} ring="var(--gold)" variant="full" size="xl" />
-              <h3>{hull.label}</h3>
-              <span className="char-sub">{vehicle ? 'Navire' : 'Emplacement de siège'}{cap ? ` · cap ${libelleDeValeur(dir8Schema, cap)}` : ''}</span>
-            </div>
-            <ShipStateBlock ship={hull} cap={cap} morale={shipMoraleScore(useGame.getState, hull)} crew={crew} />
-          </aside>
-          <div className="sheet-main">
-            {vehicle && (
-              <Tabs
-                tabs={[
-                  { key: 'postes' as const, label: 'Postes' },
-                  { key: 'manoeuvre' as const, label: 'Manœuvre' },
-                ]}
-                active={tab}
-                onChange={setTab}
-              />
-            )}
-            {tab === 'postes' || !vehicle ? (
-              <StationSheet
-                scene={scene}
-                z={partyZ}
-                stations={stations}
-                selectedStationId={selectedStationId}
-                onSelectStation={(s) => setSelectedPosteUid(s.ref.kind === 'poste' ? s.ref.posteUid : null)}
-                renderDetail={() => (selectedPoste ? <PosteDetail hull={hull} poste={selectedPoste} combatants={battle.combatants} /> : null)}
-                subtitleOf={(s) => (s.side ? libelleDeValeur(posteSideSchema, s.side) : 'Omni')}
-                detailTitle="Armes · postes"
-              />
-            ) : (
-              /* Le dossier montre l'équipage de la COQUE (PJ et marins PNJ, moins les servants de
-                 pièce) ; la carte du monde montre le GROUPE. Même roster, même règles, deux
-                 populations — la primitive les reçoit, elle ne les devine pas. */
-              <ShipRolesPanel crew={maneuverCrew} onSet={setShipRole} />
-            )}
+    <Planche
+      nom={hull.label}
+      kind="feuille-postes"
+      onClose={onClose}
+      memoire={{ cle: tab, lire: () => defilement.current[tab] ?? 0, retenir: (top) => { defilement.current[tab] = top; } }}
+      tabs={vehicle && (
+        <Tabs
+          tabs={[
+            { key: 'postes' as const, label: 'Postes' },
+            { key: 'manoeuvre' as const, label: 'Manœuvre' },
+          ]}
+          active={tab}
+          onChange={setTab}
+        />
+      )}
+      aside={(
+        <>
+          <div className="sheet-portrait">
+            <PortraitTile c={hull} ring="var(--gold)" variant="full" size="xl" />
+            <span className="char-sub">{vehicle ? 'Navire' : 'Emplacement de siège'}{cap ? ` · cap ${libelleDeValeur(dir8Schema, cap)}` : ''}</span>
           </div>
-        </div>
-      </div>
-    </div>
+          <ShipStateBlock ship={hull} cap={cap} morale={shipMoraleScore(useGame.getState, hull)} crew={crew} />
+        </>
+      )}
+    >
+      {tab === 'postes' || !vehicle ? (
+        <StationSheet
+          scene={scene}
+          z={partyZ}
+          stations={stations}
+          selectedStationId={selectedStationId}
+          onSelectStation={(s) => setSelectedPosteUid(s.ref.kind === 'poste' ? s.ref.posteUid : null)}
+          renderDetail={() => (selectedPoste ? <PosteDetail hull={hull} poste={selectedPoste} combatants={battle.combatants} /> : null)}
+          subtitleOf={(s) => (s.side ? libelleDeValeur(posteSideSchema, s.side) : 'Omni')}
+          detailTitle="Armes · postes"
+        />
+      ) : (
+        /* Le dossier montre l'équipage de la COQUE (PJ et marins PNJ, moins les servants de
+           pièce) ; la carte du monde montre le GROUPE. Même roster, même règles, deux
+           populations — la primitive les reçoit, elle ne les devine pas. */
+        <ShipRolesPanel crew={maneuverCrew} onSet={setShipRole} />
+      )}
+    </Planche>
   );
 }

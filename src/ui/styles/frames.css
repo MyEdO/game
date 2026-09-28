@@ -18,11 +18,12 @@
    matière (dégradé + rivets + lueur) et une ambiance de plus y peindrait la seconde boîte. C'est
    d'ailleurs par là que les deux peaux divergeaient (« la carrière a un fond mais pas la race,
    c'est pourtant la même primitive ? ») : la race passait `panel`, la carrière `spotlight`. */
-/* RANGÉE de tuiles (`FigRow`, #717) — grille UNIFORME : colonnes de largeur fixe (jamais
-   dimensionnées par le libellé le plus long), 2 colonnes sous le breakpoint canon 700. */
+/* RANGÉE de tuiles (`FigRow`, #717) — grille UNIFORME : colonnes égales (jamais dimensionnées par le
+   libellé le plus long), 2 colonnes sous le breakpoint canon 700. `auto-fit` : une compagnie plus
+   courte que la rangée ne laisse aucune piste vide qui la collerait à gauche. */
 .fig-row {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 10px;
 }
 @media (max-width: 700px) {

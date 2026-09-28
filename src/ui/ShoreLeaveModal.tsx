@@ -27,6 +27,9 @@ export function ShoreLeaveBody({ embedded = false }: { embedded?: boolean } = {}
         l'Embrigadement, mais prive aussi l'équipage des faveurs que la vie du port pourrait lui
         offrir.
       </p>
+    </>
+  );
+  const footer = (
       <ChoiceButtons
         idPrefix="shore"
         options={[
@@ -34,11 +37,9 @@ export function ShoreLeaveBody({ embedded = false }: { embedded?: boolean } = {}
           { key: 'refuser', label: <><Icon id="travel/anchor" size="sm" /> Refuser la relâche</>, refus: isGuest ? 'L\'hôte décide de la relâche.' : undefined, onSelect: () => resolve(false), title: isGuest ? undefined : 'Garder l\'équipage à bord — l\'Embrigadement n\'aura pas lieu' },
         ]}
       />
-    </>
   );
-  if (embedded) return <EmbeddedShell title={title}>{body}</EmbeddedShell>;
-  // Fenêtre HORS jet (décision d'accostage) : pas de géométrie de jet (voile allégé + ancrage haut).
-  return <Modal title={title} variant="plain">{body}</Modal>;
+  if (embedded) return <EmbeddedShell title={title} footer={footer}>{body}</EmbeddedShell>;
+  return <Modal title={title} footer={footer}>{body}</Modal>;
 }
 
 export function ShoreLeaveModal() {

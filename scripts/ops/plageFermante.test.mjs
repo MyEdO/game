@@ -11,7 +11,7 @@ import {
   fermeturesDeLaPlage, decisionPour, marqueDe, commitsDeLaPlage, soldeDuCommit,
   avertissementRapportee, motifDePlageIllisible, posteUnSolde,
 } from '../guards/lib/plageFermante.mjs'
-import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
+import { envDeDepotForge, instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import { extractClosedIssues } from '../hooks/solde-ticket-guard.mjs'
 import { fermeturesDesCommits } from './faits-de-palier.mjs'
 import { numerosFermes } from '../guards/lib/fermetures.mjs'
@@ -112,19 +112,38 @@ test('une issue déjà fermée ailleurs s’AVERTIT : le job ne rougit pas sur u
   assert.match(ligne, /#42 déjà FERMÉE par un autre geste que aaa/)
 })
 
-test('plage dont la BASE est inatteignable : erreur NOMMÉE, jamais une exception brute de git', () => {
+test('plage dont la BASE est hors de l’histoire, ou dont une BORNE est INCONNUE du dépôt : des motifs NOMMÉS, jamais une exception brute de git', () => {
   const { racine: depot, sha: base } = instanceDeDepot({ fichiers: { 'a.txt': 'a' }, message: 'base' })
   try {
-    const git = (...args) => execFileSync('git', args, { cwd: depot, encoding: 'utf8' })
+    const git = (...args) => execFileSync('git', args, { cwd: depot, encoding: 'utf8', env: envDeDepotForge() })
+    git('checkout', '-q', '-b', 'divergente')
+    writeFileSync(join(depot, 'a.txt'), 'c')
+    git('commit', '-q', '-am', 'divergente')
+    const divergente = git('rev-parse', 'HEAD').trim()
+    git('checkout', '-q', '-')
     writeFileSync(join(depot, 'a.txt'), 'b')
-    git('add', '-A'); git('commit', '-q', '-m', 'suite')
+    git('commit', '-q', '-am', 'suite')
     const tete = git('rev-parse', 'HEAD').trim()
 
     assert.equal(motifDePlageIllisible(`${base}..${tete}`, depot), null, 'une plage fast-forward est lisible')
-    const absent = '0'.repeat(40)
-    const motif = motifDePlageIllisible(`${absent}..${tete}`, depot)
-    assert.match(motif, new RegExp(`base ${absent} inatteignable depuis ${tete}`))
-    assert.match(motif, /push non fast-forward sur main, interdit par le pre-push/)
+    assert.equal(
+      motifDePlageIllisible(`${divergente}..${tete}`, depot),
+      `base ${divergente} inatteignable depuis ${tete} : push non fast-forward sur main, interdit par le pre-push`,
+    )
+    const inconnue = 'f'.repeat(40)
+    assert.equal(
+      motifDePlageIllisible(`${inconnue}..${tete}`, depot),
+      `base ${inconnue} inconnue de ce dépôt (non fetchée, ou dépôt corrompu) — aucune fermeture n'est jugée`,
+    )
+    const teteInconnue = 'e'.repeat(40)
+    assert.equal(
+      motifDePlageIllisible(`${base}..${teteInconnue}`, depot),
+      `tête ${teteInconnue} inconnue de ce dépôt (non fetchée, ou dépôt corrompu) — aucune fermeture n'est jugée`,
+    )
+    assert.equal(
+      motifDePlageIllisible(`${inconnue}..${teteInconnue}`, depot),
+      `base ${inconnue} et tête ${teteInconnue} inconnues de ce dépôt (non fetchées, ou dépôt corrompu) — aucune fermeture n'est jugée`,
+    )
   } finally { rmSync(depot, { recursive: true, force: true }) }
 })
 

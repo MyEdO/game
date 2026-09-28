@@ -10,9 +10,11 @@ ne pas la réinventer par fichier :
 
 1. **`ScreenShell`** (`src/ui/ScreenShell.tsx`) — voile + en-tête (titre/méta date-bourse/actions/
    fermeture), a11y de dialogue câblée. Choisir la prop `body` dès la création : `'centered'` pour
-   un écran de PANNEAUX (marché, dossier, hub — corps borné/centré `.screen-body`, ~960px, sinon le
+   un écran de PANNEAUX (marché, dossier, hub — colonne bornée/centrée `.screen-colonne`, ~960px, sinon le
    contenu colle à gauche avec un océan vide à droite en large) ; `'full'` pour un écran-canevas
-   (carte, plan) qui doit remplir tout le cadre.
+   (carte, plan) qui doit remplir tout le cadre, et compose lui-même son rail `.screen-scroll`. La
+   boîte (`.worldmap-overlay`) ne se repeint jamais par une co-classe passée en `className` : celle-ci
+   ne sert que les DESCENDANTS de l'écran (garde §5.3, `sitesCoClasseVisee`).
 2. **Bande d'ambiance** — slot `backdrop` de `ScreenShell` (id du registre `src/ui/backdrops`),
    rendue sous l'en-tête/barre d'outils, au-dessus du corps ; repli élégant géré par `SceneBackdrop`
    (jamais un trou, même id absent/inconnu).
@@ -21,7 +23,9 @@ ne pas la réinventer par fichier :
 4. **Contenu** en primitives composées : `.panel` en `Grid`, `MasterDetail` (liste+détail),
    tables (`.port-table`…) — jamais une liste/section maison recodée (cf. « Couche atomique » et
    `docs/primitives.md`).
-5. **Pied d'action** — `.bar`/`.modal-actions` selon le contexte (barre d'écran vs modale imbriquée).
+5. **Pied d'action** — le slot `footer` du cadre, rendu par `CadrePied` (`.cadre-pied`, filet haut) pour
+   les trois cadres : `ScreenShell` (colonne bornée : le corps y défile dans le rail `.screen-scroll`,
+   le pied suit sa largeur), `Modal` et `EmbeddedShell`. Jamais une barre posée à la main dans le corps.
 
 **Anti-patrons** : un écran nu sur fond noir (zéro `.panel`, zéro ambiance — famille « vide non
 habité » du juge, #371) ; un centrage/bornage codé à la main par écran (traitement manuel ex-
@@ -41,7 +45,10 @@ habité » du juge, #371) ; un centrage/bornage codé à la main par écran (tra
   matière (couleur, bordure, police, rayon, ombre) : `components.css`, `tabs.css`, et le module que
   chaque primitive POSSÈDE — la liste fait foi au manifeste des primitives (champ `css`) : `band.css`,
   `frames.css`, `gauges.css`, `hero-sheet.css`, `ornaments.css`, `plaque-row.css`, `rose.css`,
-  `creator-step.css`, `panneau-parametre.css`, `reglages-apparence.css`, `combat-console.css`
+  `creator-step.css`, `panneau-parametre.css`, `boite-ancree.css` (la boîte placée contre son ancrage :
+  `BoiteAncree`), `infobulle.css` (la couche d'infobulle, une boîte par ancrage : `useInfobulle`), `codex-ref.css`
+  (l'ancrage `CodexRef` et le contenu de son infobulle),
+  `reglages-apparence.css`, `combat-console.css`
   (l'ORGANISME « console de combat »), plus les familles JET et HUD cataloguées ci-dessous ;
   (3) **layout** — `layout.css`, ce qui PLACE et n'a aucune matière.
   `layout.css` vient APRÈS `components.css` : sans quoi `.panel { padding: 16px }` écraserait le
@@ -106,7 +113,7 @@ Classes CSS **canoniques** réellement définies dans `src/ui/styles/components.
 PARTAGÉ (utilisé par ≥2 domaines) — pas les classes propres à un seul écran (`.voyage-*`,
 `.city-hub-*`, `.party-*`, `.char-card*`…). Pour la couche **React** (composants, pas classes),
 voir `docs/primitives.md` — les deux se lisent ensemble : une
-primitive React pose souvent ces classes pour toi (ex. `RollShell` pose `.modal`/`.modal-actions`).
+primitive React pose souvent ces classes pour toi (ex. `Modal` pose `.modal`/`.modal-body`/`.cadre-pied`).
 
 ### Actions
 
@@ -115,7 +122,7 @@ primitive React pose souvent ces classes pour toi (ex. `RollShell` pose `.modal`
 | `.btn` | Bouton de base (fond charbon, bordure) | Tout `<button>` porte `.btn` ou `.chip` ou est rendu par une primitive (`ChoiceButtons`…) — un bouton nu hérite le noir UA (`buttontext`), illisible sur fond sombre (vécu #358bis/#373). |
 | `.btn.small` | Variante compacte (padding/police réduits) | Barres d'actions denses, rangées de liste. |
 | `.btn-primary` | Action primaire (dégradé rouge sang) | Une seule par barre d'actions/modale — jamais deux primaires côte à côte. |
-| `.btn-ghost` | Action discrète (transparent, texte atténué) | Annuler/Subir dans `.modal-actions` (ancré à gauche automatiquement) ; pas pour une action engageante. |
+| `.btn-ghost` | Action discrète (transparent, texte atténué) | Annuler/Subir dans `.cadre-pied` (ancré à gauche automatiquement) ; pas pour une action engageante. |
 | `.btn-test` | Bouton d'outil de test/QA (bordure pointillée verte) | Réservé aux écrans Atelier/dev — jamais un écran joueur. |
 | `.btn.danger` | Variante destructive (bordure rouge alerte) | Suppression/abandon irréversible ; combiner avec `.btn-primary` si c'est l'action principale de l'écran. |
 | `.btn.btn-resource` | Petit bouton normé de ressource (Chance/Pacte/Résilience/Détermination) | Toujours DANS `.rm-influence` (`InfluenceRow`), jamais isolé. |
@@ -126,8 +133,8 @@ primitive React pose souvent ces classes pour toi (ex. `RollShell` pose `.modal`
 | `.chip.tone-warn` / `.chip.tone-danger` / `.chip.tone-ok` | Variantes de TON du chip (or / rouge alerte / vert bénéfique) | Bande d'alarmes de la colonne moniteur (#492) — un chip qui SIGNALE (pas un badge neutre) prend le ton de sa gravité ; composer, jamais un `style={{color}}` inline. `.tone-ok` = buff de sort (registre État, #492 tableau de bord). |
 | `.count` | Pastille numérique (compteur) | À l'intérieur d'un `.chip`/`.tab-btn`, jamais seule dans le flux de texte. |
 | `.rm-note` | Note secondaire d'une modale de jet (acte de soin en cours, cadence d'un Test étendu, opposition annulée) | Rangée flex à alignement HAUT : accepte une icône + une `<Prose>` de bloc (dont les paragraphes perdent leur marge propre). Partagée par 6 modales — jamais redéfinie dans un module de domaine. |
-| `.rm-stake` | Zone Z3b — l'ENJEU d'un jet et le renvoi vers sa règle | Classe PROPRIÉTAIRE de la zone, écrite par la SEULE primitive `StakeNote` (`src/ui/StakeNote.tsx`, composée par la prop `stake` de `RollShell`). Ton NEUTRE (liseré, pas de fond d'alerte) : un enjeu ANNONCE — la menace SUBIE reste au ton `menace` de `.rm-note`. Icône flottante, prose de bloc sans marges propres. |
-| `.entity-chip` (+ `.entity-badge`, `.entity-choice`, variante NUE `.entity-chip.plain`) | Chip d'ENTITÉ unifié (compétence/talent/sort/objet) avec déclencheur popover CodexRef | Source unique = `EntityChip.tsx` — remplace `.tag`/`.codex-chip` pour toute entité de règle ; ne pas recréer un badge ad hoc pour un nom de sort/talent. La variante `.entity-chip.plain` (primitive `PlainChip`) est la MÊME boîte SANS popover ni lookup par libellé — un libellé qui ne désigne aucune entité (nom d'objet authoré en clair d'une Possession) garde sa borne visible sans promettre une fiche. Un « A ou B » se rend en chips INDIVIDUELLES cliquables séparées d'un `ou` (`EntityChoice`, `src/ui/EntityChip.tsx`, lu sur la structure `AdvancementRef`, chaque option liée par son `id`), jamais en une chaîne fusionnée non cliquable — une option tirée au hasard (`{random}`) ne désigne aucune fiche : elle se rend en pastille NUE (`PlainChip`), sans affordance codex. |
+| `.rm-stake` | Zone Z3b — l'ENJEU d'un jet et le renvoi vers sa règle | Classe PROPRIÉTAIRE de la zone, écrite par la SEULE primitive `StakeNote` (`src/ui/StakeNote.tsx`, composée par la prop `stake` de `RollShell`). Ton NEUTRE (liseré, pas de fond d'alerte) : un enjeu ANNONCE — la menace SUBIE reste au ton `menace` de `.rm-note`. Icône dans sa colonne, prose de bloc sans marges propres ; aucune marge externe — le conteneur la place (`gap`, ou sa règle d'enfant dans un flux de bloc). |
+| `.entity-chip` (+ `.entity-badge`, `.entity-choice`, variante NUE `.entity-chip.plain`) | Chip d'ENTITÉ unifié (compétence/talent/sort/objet), ancrage de l'infobulle CodexRef | Source unique = `EntityChip.tsx` — remplace `.tag`/`.codex-chip` pour toute entité de règle ; ne pas recréer un badge ad hoc pour un nom de sort/talent. La variante `.entity-chip.plain` (primitive `PlainChip`) est la MÊME boîte SANS popover ni lookup par libellé — un libellé qui ne désigne aucune entité (nom d'objet authoré en clair d'une Possession) garde sa borne visible sans promettre une fiche. Un « A ou B » se rend en chips INDIVIDUELLES cliquables séparées d'un `ou` (`EntityChoice`, `src/ui/EntityChip.tsx`, lu sur la structure `AdvancementRef`, chaque option liée par son `id`), jamais en une chaîne fusionnée non cliquable — une option tirée au hasard (`{random}`) ne désigne aucune fiche : elle se rend en pastille NUE (`PlainChip`), sans affordance codex. |
 | `.tag` (+ `.tag.talent`) | Badge historique (alias de `.chip`) | Ne pas en créer de nouveaux usages — préférer `.chip` ou `.entity-chip` selon le contenu (texte libre vs entité de règle). |
 | `.gated-action` (+ `.gated-action-reason`, variante `.gated-action.dense`) | Action GATÉE : bouton d'engagement dont la RAISON d'indisponibilité se lit au SURVOL/FOCUS (voir « Raison d'un refus » ci-dessous), sa copie hors écran (`.hors-ecran`) servant l'`aria-describedby` ; `.gated-action-reason` = la même raison RENDUE EN CLAIR, par l'opt-in `raisonInline` (attente d'un invité en coop, diagnostic d'authoring, activité refusée) ; `dense` = graduation réduite pour une COLONNE étroite (pied de la frise d'initiative) | Composée par la primitive `GatedAction` (`src/ui/GatedAction.tsx`, CLAUDE.md) — tout bouton principal désactivé pour un motif intelligible (hub de ville « Entrer », écran d'équipe « Commencer ») la COMPOSE au lieu d'un `<button disabled title=…>` muet ; la densité se demande par la prop, jamais en redéfinition de `.btn` chez l'appelant. |
 | `.muted` | Texte SECONDAIRE (valeur dérivée, mention de contexte) — couleur atténuée, taille inchangée | Composer au lieu d'un `color: var(--muted)` recopié par module ; ne porte AUCUNE boîte (ni fond ni bordure) — un état, pas un badge. |
@@ -230,12 +237,11 @@ son propre cue (Compendium, pickers marchands…) sans reposer le mécanisme de 
 | `.row` (`Row`) | RANGÉE horizontale qui s'enroule — `justify`, `align`, `wrap`, `stackBelow` (devient une pile) | Toute rangée d'éléments qui doit passer à la ligne sur petit écran plutôt qu'un `overflow` caché. |
 | `.grid` (`Grid`) | GRILLE de cartes/panneaux — `min` (`sm` 240 / `md` 340 / `lg` 400px, colonnes AUTO) ou `cols` (2/3/4 FIXES, exclusif), `align` (`start` par défaut, `stretch` égalise les cases d'une rangée), `stackBelow` | Tableau de bord, catalogue de cartes — 1 colonne sous la cassure ; l'enfant pleine largeur porte le modificateur `spanFull` (attribut `data-span`). |
 | `.split` (`Split`) | Deux colonnes dont une BORNÉE — `aside` (`sm` 160-240 / `md` 270px / `lg` 240px-1,3fr), `side`, `sticky`, `align` (`start` par défaut, `stretch` égalise les hauteurs), `stackBelow` | Fiche vivante, inspecteur, maître-détail — s'empile sous la cassure, et `sticky` y revient dans le flux. C'est `side` qui dit QUELLE colonne est bornée : la première, ou la dernière en `side="end"`. |
-| `.screen-scroll` | Rail DÉFILANT borné (1480px, centré) d'un écran plein champ | Le corps d'un écran plein-champ qui doit défiler d'un SEUL bloc — jamais des scrollbars imbriquées. |
+| `.screen-scroll` | Rail DÉFILANT borné (1480px, centré) d'un écran plein champ | Le corps d'un écran plein-champ qui doit défiler d'un SEUL bloc — jamais des scrollbars imbriquées. `ScreenShell` le pose lui-même autour d'un corps borné (`body='centered'`), qui ne le repose jamais ; un canevas (`body='full'`) le compose DANS son élément `<ScreenShell>` (garde `sitesRailHorsCanevas`, `css-modules-guard.test.ts`). |
 | Attributs de placement | `data-gap`/`data-pad` (échelle `--sp-2xs`…`--sp-xl`), `data-stack-below`/`data-row-below` (900/700/560), `data-grow`/`data-push`/`data-span` | Posés par les props de `src/ui/Layout.tsx` ; les modificateurs d'ENFANT `grow`, `pushEnd`, `spanFull` s'étalent en attributs sur l'enfant (`data-grow`, `data-push`, `data-span`). Jamais une valeur en pixels : l'échelle `--sp-*` est fermée (10px → `lg` dans un `.panel`, `md` sinon ; 14px → `lg`). |
 | `.bar` | Barre d'écran (en-tête, fond dégradé, filet or) | En-tête d'écran avec titre + actions — s'enroule ≤700px ; ne PAS la détourner pour une simple rangée sans fond/padding de header (charte : « éviter les espaces vides »). |
 | `.screen` | Colonne plein-écran (flex column, hauteur 100%) | Coquille racine d'un écran plein-champ « historique » (hors `ScreenShell`, cf. table `docs/primitives.md`). |
-| `.screen-body` | Corps de `ScreenShell` borné/centré (~960px) | Posée par `ScreenShell` (prop `body='centered'`) — écran de PANNEAUX/LECTURE (marché, dossier, hub) plutôt que canevas plein cadre ; jamais un centrage/bornage manuel recopié par écran. |
-| `.screen-body-wide` | Modificateur de `.screen-body` — plafond relevé (~1400px) au-delà de 1440px | Posée par `ScreenShell` (prop `body='centered-wide'`, politique grand écran) — écran-GRILLE/catalogue (négoce en `TradeTable`/`Grid`) plutôt que lecture ; toujours combinée à `.screen-body`, jamais seule. |
+| `.screen-colonne` | Colonne bornée/centrée (~960px) de `ScreenShell` : le corps dans le rail, le pied sous le rail, même largeur | Posée par `ScreenShell` (prop `body='centered'`) — écran de PANNEAUX/LECTURE (marché, dossier, hub) plutôt que canevas plein cadre ; jamais un centrage/bornage manuel recopié par écran. `[data-large]` (prop `body='centered-wide'`, politique grand écran) relève le plafond (~1400px) au-delà de 1440px — écran-GRILLE/catalogue (négoce en `TradeTable`/`Grid`). |
 | `.master-detail-list` | Géométrie de DÉFILEMENT du rail de liste d'un maître-détail (plafond `min(60vh, 520px)`) | Posée par `MasterDetail.tsx` (CLAUDE.md), composé sur `Split aside="sm"` + `Stack rowBelow={700}` — jamais une 2ᵉ composition liste+détail recodée. |
 | `.tabs` (+ `.tab-btn`) | Style de base (variante `flat`) de la barre d'onglets | Posée par la primitive React `Tabs` (CLAUDE.md) — les variantes `pill`/`sub`/`dock` composent par-dessus dans `tabs.css` ; jamais un `role=tablist` recodé à la main. |
 | `.seg` (`sheet.css`) | Segmented control (choix exclusif, boutons collés) | Composé par la primitive React `OptionChooser` (variante `seg`) — jamais un groupe de boutons exclusifs recodé à la main. |
@@ -262,13 +268,20 @@ son propre cue (Compendium, pickers marchands…) sans reposer le mécanisme de 
 
 ### Modales (cadre partagé)
 
-| Classe | Rôle | Quand l'utiliser / anti-patron |
+Toutes posées par `Modal` (`src/ui/Modal.tsx`, module `modal.css`) et par lui seul — le pied l'est
+aussi par `EmbeddedShell`, le bandeau par `ModalSubject`. Aucune feuille tierce ne les vise, placement
+compris (gardes `primitive-owners-guard.test.ts` et `css-modules-guard.test.ts` §5.3) : ce qui varie
+d'un hôte à l'autre est un ÉTAT du voile, jamais une règle d'hôte.
+
+| Classe / état | Rôle | Quand l'utiliser / anti-patron |
 |---|---|---|
-| `.modal-overlay` (+ variante `:has(.roll-modal)`) | Voile plein écran (`position:fixed inset:0`) | Cadre UNIQUE de toute modale — jamais un voile recopié à la main ; la variante `:has()` ancre les modales de jet en bas avec un voile plus léger. |
-| `.modal` / `.modal.wide` | Boîte de la modale (surface, largeur plafonnée) | `.wide` (760px) pour un contenu riche (multi-colonnes) ; `.modal` seul (520px) sinon. |
-| `.picker-modal` | Titre `<h3>` d'une modale de sélection | Modale de choix dans une liste (picker) — cohérent avec `.modal`. |
-| `.modal-subject` | Respiration du bandeau « sujet » sous le titre d'une modale (la rangée est un `Row`) | Posée par `ModalSubject` seul — jamais à la main. |
-| `.modal-actions` | Barre d'actions de modale (max 2 boutons : ghost à gauche, primaire à droite) | JAMAIS de 3ᵉ bouton — les dépenses de ressources vivent dans `.rm-influence`, pas ici. |
+| `.modal-overlay` | Voile plein écran (`position:fixed inset:0`), porteur des ÉTATS : `data-voile` (`opaque`, `reference`), `data-champ` (champ LISIBLE : voile allégé et ancrage par bandes sur l'écran de campagne), `data-plein` (plein écran ≤560), `data-taille` (`apercu` 380px, `lecture` 560px, `large` 760px, `planche` fiche 880px à hauteur stable, `vaste` Codex en jeu), `data-gangrene` (`ronge`, `seuil` : la matière ternie de la fiche, #492) | Props `voile` / `champ` / `plein` / `taille` / `gangrene` de `Modal`. Défaut : boîte de dialogue, sans rien écrire. `champ` sert une décision DE COMBAT (Destin, cible montée, désengagement) ; `plein` n'est posé que par `RollShell`, la couture de tout hôte de jet. |
+| `.modal` | Boîte en COLONNE (520px par défaut) : tête, bandeau sujet, corps, pied | Géométrie et matière par les états du voile, jamais par la feuille d'un écran : une co-classe passée en `className` ne sert que les DESCENDANTS de l'appelant (garde §5.3, `sitesCoClasseVisee`). |
+| `.modal-tete` | Tête qui porte la croix (`croix`) : titre au début, `CadreFermer` à la fin | Lecteur passif sans pied (planche, Codex en jeu). La croix est un geste du CADRE : un contenu ne la recopie jamais. |
+| `.modal-title` | Titre `<h3>` : aucune marge au-dessus (l'air de tête est le `padding` de la boîte), `--sp-lg` dessous | Prop `title` ; un corps qui porte déjà son titre (fiche, Codex) passe `label` (nom accessible sans titre rendu). |
+| `.modal-subject` | Respiration du bandeau « sujet » sous lui (la rangée est un `Row`) | Prop `subject`, rendu par `ModalSubject`. |
+| `.modal-body` | Corps qui DÉFILE, ferré au début à toute largeur | `children` de `Modal` — le pied n'y vit jamais. |
+| `.cadre-pied` | PIED d'un cadre (`CadrePied` : `Modal`, `EmbeddedShell`, `ScreenShell`) hors du défileur, sous un filet (max 2 boutons : ghost au début, primaire à la fin) — même ferrage à TOUTE largeur ; ≤700px il s'enroule ; ≤560px l'enfant qui porte le primaire (bouton nu, ou enveloppe `.gated-action`) prend la place restante | Prop `footer` de `Modal` / `EmbeddedShell` / `ScreenShell`. JAMAIS de 3ᵉ bouton : une action qui agit sur le CONTENU va dans le corps (« Copier » de l'export ASCII), les dépenses de ressources dans `.rm-influence` ; un groupe de CHOIX va dans le corps (`OptionChooser layout="grid"`) ; une action de PANNEAU hors cadre prend un `Row` (`justify="end"`). Un corps partagé (`RollShell`, `useSessionEnd`, `RestBody`, `RewardRecap`, `ChoiceButtons`) rend ses gestes À PART : le cadre choisi les pose — un jet englobé dans la boîte d'un hôte (infirmerie) passe par `useRollShell`, et l'hôte pose ses `gestes` dans SON `footer`. Le ghost porte la sortie de l'état courant (« Terminer », « Annuler » du jet posé, « Arrêter l'opération »). |
 | `.rm-influence` | Rangée « influencer le jet » (Chance/Pacte/Résilience/Détermination) | Vide → invisible (`:empty{display:none}`) ; composée par `InfluenceRow` (CLAUDE.md). |
 | `.prow` | RANGÉE de jet (`RollRow`) — CONTENEUR | Porte le ferrage EXPLICITE de tous ses enfants (`text-align`) : sans lui chaque enfant hérite du `text-align` de la coquille hôte et la même rangée se lit différemment selon la modale. Tout ferrage/alignement de rangée se règle ICI, jamais élément par élément. |
 | `.prow-act` | Zone d'ACTIONS d'une rangée de jet (`RollRow`) | Ordre visuel imposé par la primitive : choix de RÈGLE (Résilience/Résistance/Détermination) → offre de CONFORT (dé fixé) → CTA « Lancer ». Layout posé dans `components.css`, jamais hérité de l'ambiance de la coquille hôte. |
@@ -304,13 +317,13 @@ module de sa primitive, déclaré au manifeste des primitives (champ `css`) et m
 
 | Module | Primitive | Classes possédées |
 |---|---|---|
-| `roll-shell.css` | `RollShell` | `.roll-modal`, `.rs-scroll`, `.rs-embedded`, `.rm-subtitle`, `.rm-summary`, `.rm-journal`, `.rm-netsl`, et l'ancrage du voile `.app-campaign .modal-overlay:has(.roll-modal)` |
+| `roll-shell.css` | `RollShell` | `.rs-embedded`, `.rm-subtitle`, `.rm-summary`, `.rm-journal`, `.rm-netsl` — le cadre flottant et l'ancrage du voile sont ceux de `Modal` (`modal.css`, états `data-champ` et `data-plein`) |
 | `roll-line.css` | `RollLine` / `PendingRollLine` | `.rm-roll*`, `.rm-roll-diff`, `.rm-roll-mods`, `.rm-mod` (+ `.pos`/`.neg`), `.rm-table-result` |
 | `roll-row.css` | `RollRow` | `.prow`, `.prow-line`, `.prow-fixed-mark` |
 | `roll-panel.css` | `RollPanel` | `.roll-panel`, `.rr-row`, `.rr-port`, `.rr-main`, `.rr-line`, `.rr-note`, `.rr-win`, `.rr-lose` |
 | `dice-roll.css` | `DiceRoll` / `DieFace` | `.rm-die*` (dont `.rm-die-gold`, matière de l'Atelier), `.rm-rolling`, `.rm-scene`, `.d100`, `.d100-rolling` |
 | `forced-roll-picker.css` | `ForcedRollPicker` | `.rm-die-pick` (+ son champ, sans classe propre) |
-| `option-chooser.css` | `OptionChooser` | `.rm-loc-grid`, `.rm-loc-inline` (+ `[data-bascule]`), `.rm-loc-select`, `.rm-range` |
+| `option-chooser.css` | `OptionChooser` | `.rm-loc-grid` (+ `[data-notes]`), `.rm-option`, `.rm-loc-inline` (+ `[data-bascule]`), `.rm-loc-select`, `.rm-range` |
 | `recap-line.css` | `RecapLine` / `RecapLineList` | `.recap-line`, `.recap-lines`, `.recap-phase`, `.recap-phase-label` |
 | `multi-roll-list.css` | `MultiRollList` | `.mrl`, `.mrl-row`, `.mrl-port`, `.mrl-label`, `.mrl-roll`, `.mrl-text` |
 | `reveal-body.css` | `RevealBody` / `RevealTimer` | `.crit-stats`, `.crit-stat`, `.crit-effects`, `.crit-effect`, `.crit-cond` ; minuteur de fermeture : `.reveal-timer`, `@keyframes reveal-timer-drain`, durée en variable `--reveal-timer-duree` |
@@ -328,14 +341,18 @@ module de sa primitive, déclaré au manifeste des primitives (champ `css`) et m
 | `view-controls.css` | `ViewControls` | `.view-controls`, `.vc-group`, `.vc-btn` (le CORPS du glyphe et l'état `aria-pressed` ; la matière est `.skin-tole`), `.vc-zoom-value` |
 | `dr-bar.css` | `DrBar` | `.dr-bar`, `.dr-bar-track`, `.dr-bar-fill`, `.dr-bar-notch`, `.dr-bar-val` |
 | `coins.css` | `Coins` | `.coins[data-ton]`, `.coin-gold`, `.coin-silver`, `.coin-copper`, `.coin-sep` |
-| `inspect-panel.css` | `InspectPanel` | `.inspect-panel`, `.insp-head`, `.insp-id`, `.insp-lbl`, `.insp-badges`, `.insp-badge`, `.insp-pv-num` |
+| `inspect-panel.css` | `InspectPanel` | `.insp-head`, `.insp-id`, `.insp-lbl`, `.insp-badges`, `.insp-badge`, `.insp-pv-num` |
 | `equipment-panel.css` | `EquipmentPanel` | `.equip-panel`, `.equip-slots`, `.eq-*`, `.equip-sets`, `.set-*`, `.weap-quals` |
 | `combat-console.css` | `CombatConsole` (organisme) | `.combat-console` (l'EMPREINTE du pont — bande + saillie du fronton —, + `[data-forme]`), `.cc-phase` (+ `[data-phase]`, ses TROIS adresses), `.cc-dock` (la BANDE, qui porte la matière), `.cc-bay*`, `.cc-arsenal*`, `.cc-sets`/`.cc-set*`, `.cc-grid*`, `.cc-cell` (l'alvéole, posée à côté de `.chip`), `.cc-ico`, `.cc-lbl`, `.cc-key`, `.cc-cost`, `.cc-quick`, `.cc-arch*` (le fronton), `.cc-gutter*`, `.cc-socle`, `.cc-conduit*`, `.cc-corner`, `.cc-end` — identité et mise en page INTERNE ; la matière de la bande est la peau `.skin-pont`, celle du bandeau de phase la peau `.skin-bois` |
 | `fx-chip.css` | `FxChip` / `EffectChips` | `.fx-chips` (la rangée), `.fx-chip` (+ tons `.malus`, `.buff`, `.state`, `.more`, compte `<b>`, durée `<em>`), `.fx-chip-label` |
 | `spectator-chip.css` | `SpectatorChip` | `.spectator-chip` — l'ANCRAGE est un état de la primitive (`data-pose='ecran'`), pas une règle recopiée chez chacun de ses trois hôtes |
 | `ready-row.css` | `ReadyRow` | `.ready-row`, `.ready-chip` (+ `.ok`), `.ready-noportrait` |
 | `gear-assign-list.css` | `GearAssignList` | `.gear-list`, `.gear-row`, `.gear-name`, `.gear-unid`, `.gear-acts`, `.gear-act`, `.gear-assign` |
-| `reward-recap.css` | `RewardRecap` | `.reward-messages`, `.reward-msg`, `.reward-stats`, `.reward-stat` (+ son `<b>`), `.reward-unit`, `.reward-ico`, `.reward-section` (+ son `h3`), `.reward-continue` — le GESTE DE SORTIE est un slot : l'hôte pose `.reward-continue` sur son propre bouton, la rubrique à TOUCHER est un ÉTAT de la primitive (prop `enAvant` d'une `RecapSection` → `.reward-section[data-avant]`, posée sur `.panel.gold`) |
+| `reward-recap.css` | `RewardRecap` | `.reward-msg`, `.reward-stat` (+ son `<b>`, posée sur un `Row`), `.reward-unit`, `.reward-section` (+ son `h3`) — une seule forme, celle du corps de toute modale : le placement est celui des `Stack`/`Row` qu'elle compose, le GESTE DE SORTIE n'est pas à elle : l'hôte le pose au pied de son cadre (`Modal` `footer`), la rubrique à TOUCHER est un ÉTAT de la primitive (prop `enAvant` d'une `RecapSection` → `.reward-section[data-avant]`, posée sur `.panel.gold`). CLAVIER (butin et victoire, focus canonique de `Modal`) : avec de l'équipement à attribuer, le focus d'entrée est le 1er portrait de la 1re ligne (le `PortraitPicker` est un groupe de choix `.rm-loc-grid` non tranché) ; Entrée répétée donne chaque ligne au 1er héros, puis tombe sur « Continuer » et ferme — assumé : `transferItem` rend toute attribution réversible (banc `RewardRecap.test.tsx`) |
+| `cadre.css` | `CadrePied` (`Cadre.tsx`) | `.cadre-pied` — le pied des trois cadres (`Modal`, `EmbeddedShell`, `ScreenShell`), qui le composent ; il suit la largeur du corps. La croix `CadreFermer` n'y a aucune règle : `.btn.small` la peint, `.cadre-fermer` est son marqueur (`CROIX_DU_CADRE`, jamais cible du focus initial) |
+| `planche.css` | `Planche` | `.sheet-layout`, `.sheet-aside`, `.sheet-main`, `.sheet-tabbody`, `.planche-nom` — le squelette de la fiche et de la feuille de navire ; au-delà de 700px un défileur par colonne, en dessous la planche entière et elle seule |
+| `modal.css` | `Modal` | `.modal-overlay` (+ `[data-voile]`, `[data-champ]`, `[data-plein]`, `[data-taille]`, `[data-gangrene]`), `.modal`, `.modal-tete`, `.modal-title`, `.modal-subject`, `.modal-body` |
+| `screen-shell.css` | `ScreenShell` | `.worldmap-overlay`, `.worldmap-head` (+ son `h2`), `.worldmap-head-actions`, `.screen-toolbar`, `.screen-colonne` (+ `[data-large]`) — la colonne bornée porte le corps, qui défile dans le rail `.screen-scroll` (layout.css), et le pied `CadrePied`, hors du rail |
 | `combat-start-splash.css` | `CombatStartSplash` (organisme) | `.combat-splash` (la pose plein-champ), `.combat-splash-inner` (ferrage + animation d'entrée-sortie, `@keyframes combat-splash-in`/`-fade`) et `.combat-splash-sub` (la ligne de sous-titre, art propre de cet organisme : un seul écran la porte) — le MOT, lui, pose la matière partagée `.display-title` |
 | `error-boundary.css` | `SceneErrorBoundary` | `.scene-error-boundary` (repli dans le stage) et `.app-error-boundary` (filet plein viewport, #225) — la seconde est demandée par l'appelant, déclarée en `poseurs` au manifeste |
 | `src/gameIso/stage/iso-stage.css` | `GameStage3D` et `SurcoucheIso` | `.iso-stage` (la surface du monde, sans `cursor` au repos) |
@@ -433,7 +450,7 @@ jamais un `.on`), `.prow-act` (zone d'actions d'une rangée, remplie par `RollRo
 `RollShell` lui-même). Le critère est mécanique : au-delà de deux poseurs hors de la primitive, la
 classe est un contrat de couche, pas la propriété d'un module (garde §5.2). La MATIÈRE DU NOM
 `.codex-pop-title` / `.codex-pop-sub` y vit pour une autre raison : elle n'a qu'UN poseur,
-`CodexTitre` (`src/ui/compendium/CodexRef.tsx`), mais trois zones le montent (le popover du Codex,
+`CodexTitre` (`src/ui/compendium/CodexRef.tsx`), mais trois zones le montent (l'infobulle du Codex,
 les plaques de nom du plateau, l'inscription du lieu du HUD) — la matière d'une brique que trois
 écrans montent ne peut pas vivre dans le module d'écran de l'un d'eux.
 
@@ -445,18 +462,44 @@ TOUS ses poseurs sont des fenêtres de jet ; un seul poseur hors jet et elle se 
 `FateSaveModal`, `MountTargetModal`, `ForcedRollPicker`, les deux `jetProps`) — tous des fenêtres de
 jet : les deux gardent leur préfixe.
 
-**Organisme de domaine au manifeste** : une entrée qui n'existe au manifeste que pour le module CSS
-qu'elle POSSÈDE (panneau d'inspection, panneau d'équipement, plateau de jeu) porte `nature:
-"organisme"` ; elle assume ses imports de domaine et sort du corpus mesuré par la garde de généricité
-(`src/data/generic-domain-import-guard.test.ts`), au lieu d'y entrer comme dette chiffrée. La
-déclaration est BORNÉE, et la garde la mesure : un organisme porte obligatoirement `css`, et AUCUNE
-autre entrée du manifeste n'importe son `fichier` — une primitive que d'autres primitives COMPOSENT
-est générique, et le reste (le sens compte : c'est d'ÊTRE importé qui disqualifie ; un organisme, lui,
-compose librement des primitives).
+**Organisme de domaine au manifeste** : `nature: "organisme"` ne sert qu'à la garde de généricité
+(`src/data/generic-domain-import-guard.test.ts`) — l'entrée assume ses imports de domaine et sort du
+corpus qu'elle mesure, au lieu d'y entrer comme dette chiffrée. La déclaration est BORNÉE, et la garde
+la mesure : un organisme porte obligatoirement `css`, et AUCUNE autre entrée du manifeste n'importe son
+`fichier` — une primitive que d'autres primitives COMPOSENT est générique, et le reste (le sens compte :
+c'est d'ÊTRE importé qui disqualifie ; un organisme, lui, compose librement des primitives). La nature
+n'exempte AUCUN module CSS : l'exemption suit la réutilisation, ci-dessous.
+
+**La zone exempte suit la RÉUTILISATION, et son franchissement se DIT** (#1806). La zone exempte d'un
+arbre est lue dans CET arbre (`modulesExemptes`, `scripts/guards/lib/cssCouches.mjs`) : les feuilles de
+`FEUILLES_PARTAGEES` hors `layout.css`, et tout module `css` dont au moins un propriétaire est
+RÉUTILISÉ — son `fichier` importé directement par au moins deux fichiers de `src/` (hors suites et
+`src/ui/gallery/`), ou par le `fichier` d'une autre entrée du manifeste (`directImportsOf`,
+`scripts/guards/lib/importGraph.mjs`, lu par `scripts/guards/lib/cssImages.mjs`). Le module d'un
+composant à un seul hôte reste au stock (xxi), mesuré comme un écran. Un composant est une primitive OU
+un écran : aucun `fichier` du manifeste ne figure au registre `scripts/hooks/ecrans-ui.json`
+(`scripts/hooks/new-src-file-guard.test.mjs`). Un module FRANCHIT la frontière quand il est exempté au
+commit, pas au parent, et présent au parent — revendication au manifeste, second importeur gagné, ajout
+à `FEUILLES_PARTAGEES` : le message porte `RECLASSEMENT: <module> +N — <motif #ticket>`, UNE ligne par
+module franchi, N = ses clés (fichier, réf) sorties du stock et entrées en zone exempte. Trois refus :
+un franchissement sans ligne, une ligne sans franchissement, un N faux ; chaque commit est jugé contre
+son parent, au commit (`scripts/hooks/solde-ticket-guard.mjs`) comme au push
+(`scripts/guards/lib/plageStock.mjs`), par `scripts/guards/lib/reclassementCss.mjs`. La matière qui
+monte dans un module DÉJÀ exempté est PRIMITIVISÉE, sans ligne. Un module qui QUITTE la zone exempte
+ramène ses sites au stock, RETOURNÉS : la régénération (`npx tsx scripts/guards/lib/regenStock.mts
+scripts/guards/lib/cssCouchesAudit.ts`, politique `decroissantSaufRetourne`) n'admet, par fichier hors
+zone, que les sites que `HEAD` portait et que son stock ne comptait pas — jamais un site neuf
+(`admisAuRetour`) — et le commit les déclare par une ligne `CLIQUET:` du porteur. Entre deux arbres,
+`npx tsx scripts/ui/ventilation-css-couches.mts <ref> [--tete <ref>]` rend, par volet,
+SORTI = RECLASSÉ + PRIMITIVISÉ + DISPARU, APPARU (sites neufs) et RETOURNÉ, puis nomme les modules
+franchis ; le stock varie de APPARU + RETOURNÉ − SORTI, et Σ CLIQUET = APPARU + RETOURNÉ quand aucun
+fichier ne perd de site au même commit.
+Les modules d'ÉCRAN (`modulesDEcran`) sont le stock moins `layout.css` : ils dérivent de la même
+frontière (`modulesExemptes`).
 
 | Classe | Rôle | Quand l'utiliser / anti-patron |
 |---|---|---|
-| `.codex-ref` | ENVELOPPE du déclencheur de popover Codex (`CodexRef`) | Posée par la seule primitive `CodexRef` — une chip, un chiffre ou un segment qui ouvre une fiche la porte par composition ; jamais un `onClick` d'ouverture recodé sur une classe d'écran. |
+| `.codex-ref` | ANCRAGE de l'infobulle du Codex (`CodexRef`, couche `useInfobulle`) | Posée par la seule primitive `CodexRef` — une chip, un chiffre ou un segment qui ouvre une fiche la porte par composition ; jamais un `onClick` d'ouverture recodé sur une classe d'écran. |
 | `.rm-note[data-ton]` | TON d'une note de modale de jet : `discret` (contexte de foule), `etat` (posture tenue), `bloque` (geste impossible), `attente` (jet adverse en attente), `menace` (danger subi) | UNE classe, N tons par attribut — jamais une classe de note par situation (une classe par contexte — foule, geste bloqué, attente adverse, menace subie — est morte avec #1806). |
 | `.listrow[data-variant]` | VARIANTE de la rangée de liste (`ListRow`) : `insp` (inspecteur d'éditeur), `codex` (index du Compendium) | L'élection se dit `aria-current='true'`, jamais une classe `.on`/`.active` — même grammaire que le reste des états ferrés. |
 | `.off-malus` | Chiffre de MALUS de main faible affiché sous un set d'armes | Marque de règle, pas un badge : jamais un `.chip` (elle n'a ni boîte ni bordure) — définie une seule fois en couche partagée, composée par `EquipmentPanel` comme par la fiche. |
@@ -487,7 +530,7 @@ seule, et a UN propriétaire — la primitive qui la rend. Réfs : #1064, #1072,
 | **Z7** Sous-ligne | l'issue de CETTE rangée | `PanelRowData.note` (`.rr-note`) | Canal UNIQUE d'une note par rangée. |
 | **Z8** Refus | la RAISON de l'indisponibilité, visible | `RollRow.rollBlocked` → `GatedAction` | Dérivée du MÊME prédicat que la garde du résolveur, jamais une seconde condition recopiée. |
 | **Z9** Déclaration | qui lance (fenêtre à composition) | `RollRow.declare` | Phase 1 : elle précède les choix de règle. |
-| **Z10** Influences | les POOLS de ressource, « Ressource ×N » | `InfluenceRow` (+ `ResilienceButton`, `DeterminationButton`) | Jamais de `n/m` sur un pool (réservé Z6). La fiche RAW passe par la PORTE du popover (`CodexRef` `wrap` : le clic dépense, ↓ épingle). |
+| **Z10** Influences | les POOLS de ressource, « Ressource ×N » | `InfluenceRow` (+ `ResilienceButton`, `DeterminationButton`) | Jamais de `n/m` sur un pool (réservé Z6). La fiche RAW passe par la PORTE de l'infobulle (`CodexRef` `wrap` : le clic dépense, ↓ épingle). |
 | **Z11** Sélecteur de dé | le dé POSÉ (Résilience, option « Dés fixés ») | `ForcedRollPicker` | Commit au geste TERMINAL (Entrée) ; un blur pré-jet réinitialise. UNE surface de marque « Dé fixé » (étiquette du sélecteur, sinon `.prow-fixed-mark`). |
 | **Z12** Issue | ce qui s'est PASSÉ | `RollShell.outcome` (`RecapLine[]` → `RecapLineRow`, cadre `.rm-journal`) | DONNÉE, jamais du JSX ni du markup de site. Ni le verdict chiffré (Z5) ni la progression (Z6). Pleine couleur par défaut, ton AUTHORÉ. Muette sous le verrou `panelMasked` (#990). |
 | **Z13** Bilan | l'agrégat multi / le DR net | `RollShell.summary` (`.rm-summary`) + `netSL` (`.rm-netsl`) | Masqué avec les jets qu'il compare (#990). |
@@ -504,21 +547,21 @@ soigne le symptôme chez lui et laisse l'invariant faux partout ailleurs.
 
 Conséquences concrètes :
 
-- L'ancrage de la fenêtre dans le voile fixe son bord HAUT (`.app-campaign .modal-overlay:has(.roll-modal)`,
-  `src/ui/styles/roll-shell.css`) : la fenêtre occupe la bande basse de l'écran, la bande de champ
+- L'ancrage de la fenêtre dans le voile fixe son bord HAUT (`.app-campaign .modal-overlay[data-champ]`,
+  `src/ui/styles/modal.css`) : la fenêtre occupe la bande basse de l'écran, la bande de champ
   de bataille visible au-dessus reste CONSTANTE d'un état à l'autre. C'est ce que servait l'ancrage
   bas (verdict vision #942 L7, « voir l'action sous la fenêtre ») — un bord haut fixe le sert mieux,
   puisque la bande visible ne respire plus au gré du contenu.
 - La fenêtre garde un `max-height` borné : elle ne crève jamais le bas de l'écran, les grands flux
-  (cascade à N pas déjà validés) défilent dans `.rs-scroll`, corps SŒUR de la barre d'actions.
-- Ordre du document dans `.rs-scroll` (`RollShell`) : sous-titre → enjeu → `extra` → **setup (Z4)** →
+  (cascade à N pas déjà validés) défilent dans `.modal-body`, corps SŒUR du pied.
+- Ordre du document dans le corps (`RollShell`) : sous-titre → enjeu → `extra` → **setup (Z4)** →
   rangées (`.cs-rows`) → issue → DR net → bilan → post-jet → post-dé-forcé. Seule Z4 est volatile
   AU-DESSUS des rangées : elle disparaît au jet, sous le rideau de dés opaque (`.rm-scene`,
   `position:absolute; inset:0`) qui couvre la fenêtre pendant le roulis — la transition est masquée
   sur le chemin majoritaire. Volatilité ACCEPTÉE en l'état (zéro JS, zéro hauteur réservée) : si un
   chemin sans rideau vient l'exposer, c'est la coquille qui réservera CE slot, jamais un site.
 - Cliquet structurel : `src/ui/roll-display-contract.test.tsx` (l'index DOM de `.cs-rows` dans
-  `.rs-scroll` est le même pré-jet et post-jet, et aucune zone volatile hors Z4 ne la précède).
+  `.modal-body` est le même pré-jet et post-jet, et aucune zone volatile hors Z4 ne la précède).
 
 **Un signe, un sens** (libellés de jet) : la **parenthèse** est le détail DÉRIVÉ par le moteur — la
 compétence, ajoutée par `composeRollLabel` ; le **tiret long** est le séparateur acteur/action. Donc
@@ -604,8 +647,8 @@ trois règles :
    écran. Un écran de LECTURE (prose, fiche, panneau centré) GARDE un plafond confortable
    ~960-1080px : la lisibilité d'une ligne de texte a une largeur optimale (trop large = l'œil perd
    la ligne en fin de retour), ce n'est pas un oubli mais un choix délibéré. `ScreenShell` porte
-   cette distinction via la prop `body` : `'centered'` (lecture, `.screen-body` ~960px, inchangé) vs
-   `'centered-wide'` (grille/catalogue, `.screen-body.screen-body-wide` ~1400px au-delà de 1440px) —
+   cette distinction via la prop `body` : `'centered'` (lecture, `.screen-colonne` ~960px) vs
+   `'centered-wide'` (grille/catalogue, `.screen-colonne[data-large]` ~1400px au-delà de 1440px) —
    choisir selon la NATURE du contenu, pas par défaut.
 3. **Le FOND hors-cadre n'est jamais un aplat nu.** Les marges dégagées par un plafond de largeur
    doivent lire « cadre de table de jeu », pas « vide » — l'ambiance existante (gradients radiaux
@@ -623,7 +666,8 @@ l.206-210), qui n'avait jamais été validée en rendu :
    « Je n'ai jamais validé ces "textes" impossible a lire sous le nom des capacités, même Rogue
    Trader qui est notre interface de départ n'a pas un tel comportement. » Une case, une pastille, un
    bouton fermés restent PROPRES (icône + libellé + touche, encre d'état grisé tenant AA ≥ 4,5:1) ; la
-   raison naît de l'infobulle PARTAGÉE (`CodexRef` prop `refus`, rendue en tête du popover) au survol
+   raison naît de l'infobulle PARTAGÉE (`CodexRef` prop `refus`, rendue en tête de sa boîte, couche
+   `useInfobulle`) au survol
    souris comme au focus clavier/manette — une seule infobulle par ancrage, jamais une 2ᵉ boîte
    concurrente. Sa copie HORS ÉCRAN (`.hors-ecran`) reste au DOM, cible de l'`aria-describedby` : un
    lecteur d'écran reçoit la raison sans avoir à survoler quoi que ce soit.

@@ -7,39 +7,42 @@
 //
 // Le filigrane ne JETTE JAMAIS : il est imprimé juste avant les refus d'un hook, et une exception ici
 // emporterait les refus nommés avec elle. Git indisponible donne une ligne DÉGRADÉE qui le dit.
-import { GitIndisponible, lireGit, sortieOuNull } from './gitPorte.mjs'
+import { depotDe, etatDeLArbre, journalDe, shaDe } from './gitPorte.mjs'
 
-/** Lecteur git par défaut : `git <args>` dans `racine`, sortie ébarbée, `null` si l'objet demandé
- *  n'existe pas. Une INDISPONIBILITÉ JETTE avec sa raison — `enteteArbre` en fait sa ligne dégradée.
- *  @param {string} racine @returns {(args: string[]) => string | null} */
-export const gitDans = (racine) => (args) => {
-  const vu = lireGit(args, { cwd: racine })
-  if (!vu.disponible) throw new GitIndisponible(vu.raison)
-  const sortie = sortieOuNull(vu)
-  return sortie === null ? null : sortie.trim()
+/** Les trois QUESTIONS du filigrane au dépôt de `racine` : le nombre de fichiers non committés
+ *  (`etatDeLArbre`), le sha court de HEAD (`shaDe`) et le sujet de son commit (`journalDe`), `null`
+ *  si git ne le rend pas. Une INDISPONIBILITÉ JETTE avec sa raison — `enteteArbre` en fait sa ligne
+ *  dégradée.
+ *  @param {string} racine
+ *  @returns {{ sales: () => number, sha: () => string | null, sujet: () => string | null }} */
+export function lectureDeLArbre(racine) {
+  const depot = depotDe(racine)
+  return {
+    sales: () => etatDeLArbre(depot).length,
+    sha: () => shaDe(depot, 'HEAD', { court: true }),
+    sujet: () => journalDe(depot, ['HEAD^!'])?.[0]?.message.split('\n')[0] ?? null,
+  }
 }
 
 /**
  * Ligne de filigrane : `arbre <sha7> « <sujet, 70 car. max> » + N fichier(s) non committé(s)`.
- * `git` est injectable pour la mesure (dépôt jetable), jamais pour cacher l'arbre réel.
- * @param {string} racine @param {(args: string[]) => string | null} [git]
+ * `lecture` (`lectureDeLArbre`) est injectable pour la mesure, jamais pour cacher l'arbre réel.
+ * @param {string} racine @param {ReturnType<typeof lectureDeLArbre>} [lecture]
  * @returns {string}
  */
-export function enteteArbre(racine, git = gitDans(racine)) {
-  const lu = (args) => {
+export function enteteArbre(racine, lecture = lectureDeLArbre(racine)) {
+  const lu = (question) => {
     try {
-      return git(args)
+      return question()
     } catch (e) {
       return { panne: e.message }
     }
   }
-  const statut = lu(['status', '--short'])
-  const sha = lu(['rev-parse', '--short', 'HEAD'])
-  const sujet = lu(['log', '-1', '--format=%s'])
-  const panne = [statut, sha, sujet].find((v) => v?.panne)?.panne
+  const sales = lu(lecture.sales)
+  const sha = lu(lecture.sha)
+  const sujet = lu(lecture.sujet)
+  const panne = [sales, sha, sujet].find((v) => v?.panne)?.panne
   if (panne) return `arbre (git indisponible : ${panne})`
-  if (statut === null || sha === null || sujet === null)
-    return 'arbre (git indisponible : aucune réponse de git dans cet arbre)'
-  const sales = String(statut).split(/\r?\n/).filter(Boolean).length
+  if (sha === null || sujet === null) return 'arbre (git indisponible : aucune réponse de git dans cet arbre)'
   return `arbre ${sha} « ${String(sujet).slice(0, 70)} » + ${sales} fichier(s) non committé(s)`
 }

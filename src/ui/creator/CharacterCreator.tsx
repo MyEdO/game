@@ -179,6 +179,7 @@ import { XP_CAREER_FIRST, XP_CAREER_TOP3, XP_STAR_ROLLED, parseStatus, speciesAl
 import { PARTY_MAX, garanti } from '../../state/combatants';
 import { GatedAction } from '../GatedAction';
 import { Grid, Row } from '../Layout';
+import { coupeAuMot } from '../../lib/coupeAuMot';
 
 /** Métadonnées d'étape : libellé FR + ÉCRAN de plein rendu. Les HUIT pas passent par la MÊME porte —
  *  un pas pose ses propres hooks puis compose `CreatorStepFrame` (seule Présentation garde un
@@ -207,10 +208,8 @@ const especesDuLivreDeBase = memoParVersion('species', () => new Set(allSpecies.
 const demeureParId = indexParId('celestialHouses', celestialHouses);
 
 /** Texte de données (desc Markdown) → extrait lisible pour cartes et infobulles. */
-function blurb(md: string | null | undefined, max = 160): string {
-  if (!md) return '';
-  const txt = mdToText(md);
-  return txt.length > max ? `${txt.slice(0, max)}…` : txt;
+function blurb(md: string | null | undefined, max: number): string {
+  return md ? coupeAuMot(mdToText(md), max) : '';
 }
 const talentTip = (id: string) => blurb(findTalentById(id)?.desc, 300);
 /** Clé de la Caractéristique liée à une compétence (« Ag »), pour annoter les listes. */
@@ -1972,7 +1971,7 @@ export function TrappingChoiceSlot({ emplacement, choices, onChoicesChange }: {
     const options = emplacement.ref.choice.map((branche, j) => ({
       key: String(j),
       label: trappingRefLabel(branche),
-      primary: choisie === j,
+      selected: choisie === j,
       onSelect: () => onChoicesChange(adresse, j),
     }));
     const sous = choisie === undefined ? undefined : sousEmplacement(emplacement, choisie);
@@ -1986,7 +1985,7 @@ export function TrappingChoiceSlot({ emplacement, choices, onChoicesChange }: {
   const value = idChoisi(emplacement, choices);
   if (emplacement.sorte === 'joker') {
     if (emplacement.ref.wildcard === 'arme') return <WeaponWildcardPicker value={value} onChange={(v) => onChoicesChange(adresse, v)} />;
-    return <p className="hint">Catégorie « {emplacement.ref.wildcard} » : aucun sélecteur au créateur.</p>;
+    return <p className="hint">Aucun catalogue d'objets pour la catégorie « {emplacement.ref.wildcard} » : cet emplacement ne peut pas être choisi.</p>;
   }
   const options = fabricationAtouts().map((atoutId) => {
     const q = findQualityById(atoutId);
@@ -1998,7 +1997,7 @@ export function TrappingChoiceSlot({ emplacement, choices, onChoicesChange }: {
           {q?.desc && <em className="hint" style={{ display: 'block', fontStyle: 'normal', fontWeight: 'normal' }}>{q.desc}</em>}
         </>
       ),
-      primary: (value ?? DEFAULT_FABRICATION_ATOUT) === atoutId,
+      selected: (value ?? DEFAULT_FABRICATION_ATOUT) === atoutId,
       onSelect: () => onChoicesChange(adresse, atoutId),
     };
   });

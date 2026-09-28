@@ -59,12 +59,8 @@ export const PROSE_INLINE_TOLEREE: Readonly<Record<string, LigneProseInline>> = 
   traits: { entrees: 128, lot: LOT, date: DATE, motif: 'prose du livre recopiée en `desc` d’entrée, à adresser au Lot C' },
   mutations: { entrees: 116, lot: LOT, date: DATE, motif: 'prose du livre recopiée en `desc` d’entrée, à adresser au Lot C' },
   careers: { entrees: 108, lot: LOT, date: DATE, motif: 'prose du livre recopiée en `desc` d’entrée, à adresser au Lot C' },
-  regles: { entrees: 85, lot: LOT, date: DATE, motif: 'prose du livre recopiée en `desc` d’entrée, à adresser au Lot C' },
   'arcane-phenomena': { entrees: 77, lot: LOT, date: DATE, motif: 'prose du livre recopiée en `desc` de rangée (`phenomena[]`, `phenomena[].testMods[]`) — refus au parse à la migration de la famille, Lot C' },
   'sea-events': { entrees: 63, lot: LOT, date: DATE, motif: 'prose du livre recopiée en `desc` de rangée (`boardEvents[]`, `portEvents[]`) — refus au parse à la migration de la famille, Lot C' },
-  // 61 → 62 (#1612, 2026-09-06) : l'Activité Mendier entre au dataset avec sa `desc` VERBATIM du LDB
-  // (règle stricte 5 — le texte doit pouvoir se recoller au Source). Elle se solde comme ses 61 sœurs,
-  // par la MÊME migration vers l'adresse (`descRef`), jamais séparément.
   activities: { entrees: 62, lot: LOT, date: DATE, motif: 'prose du livre recopiée en `desc` d’entrée, à adresser au Lot C' },
   qualities: { entrees: 59, lot: LOT, date: DATE, motif: 'prose du livre recopiée en `desc` d’entrée, à adresser au Lot C' },
   locations: { entrees: 55, lot: LOT, date: DATE, motif: 'prose du livre recopiée en `desc` d’entrée, à adresser au Lot C' },
@@ -80,6 +76,7 @@ export const PROSE_INLINE_TOLEREE: Readonly<Record<string, LigneProseInline>> = 
   stars: { entrees: 23, lot: LOT, date: DATE, motif: 'prose du livre recopiée en `desc` d’entrée, à adresser au Lot C' },
   characteristics: { entrees: 21, lot: LOT, date: DATE, motif: 'prose du livre recopiée en `desc` d’entrée (19) et de rangée (2 : `[].options[]`), à adresser au Lot C' },
   etats: { entrees: 21, lot: LOT, date: DATE, motif: 'prose du livre recopiée en `desc` d’entrée, à adresser au Lot C' },
+  regles: { entrees: 21, lot: '#1887 lot 6a', date: '2026-09-28', motif: 'prose du livre recopiée en `desc` d’entrée que la migration `2026-09-28-1887-regles-desc-vers-descref` laisse inline (verdict `judge` ECHEC ou CELLULE), soldée par #1887 lot 6a-2' },
   'land-cargo': { entrees: 20, lot: LOT, date: DATE, motif: 'prose du livre recopiée en `desc` de rangée (`rumours[]`) — refus au parse à la migration de la famille, Lot C' },
   structures: { entrees: 19, lot: LOT, date: DATE, motif: 'prose du livre recopiée en `desc` d’entrée, à adresser au Lot C' },
   maladies: { entrees: 18, lot: LOT, date: DATE, motif: 'prose du livre recopiée en `desc` d’entrée, à adresser au Lot C' },

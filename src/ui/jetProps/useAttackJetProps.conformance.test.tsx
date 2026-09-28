@@ -246,7 +246,7 @@ describe('Attaque — contrat d’affichage Z0–Z15', () => {
  *  1. la zone Difficulté (Z5, `.rm-roll-diff`) dit le palier que les CIRCONSTANCES composent
  *     (`LDB 14 l.91-96`, verbatim : « le brouillard ajouté au fait de vouloir toucher une
  *     Localisation précise […] le Test devient simplement **Très Difficile (-30)** ») ;
- *  2. ces circonstances ne sont plus des chips — le palier les porte (composition au popover) ;
+ *  2. ces circonstances ne sont plus des chips — le palier les porte (composition à l'infobulle) ;
  *  3. un modificateur de JET (État du jeteur, `LDB 16 l.11` « à tous vos Tests ») RESTE une chip et
  *     ne bouge pas le palier : la taxonomie se VOIT à l'écran ;
  *  4. `ANONYMES.count === 0` partout : aucune ligne ne cache d'écart.
@@ -256,23 +256,23 @@ describe('Attaque — la Difficulté DÉRIVE des circonstances (#1153 L3b-2)', (
   const palier = (v: HTMLDivElement) => ligne(v).querySelector('.rm-roll-diff')?.textContent;
   const chips = (v: HTMLDivElement) => Array.from(ligne(v).querySelectorAll('.rm-mod')).map((c) => c.textContent);
   const calcul = (v: HTMLDivElement) => ligne(v).querySelector('.rm-roll-calc')?.textContent;
-  /** Le palier est-il sa PROPRE affordance de règle (déclencheur `CodexRef` → popover de composition,
+  /** Le palier est-il sa PROPRE affordance de règle (déclencheur `CodexRef` → infobulle de composition,
    *  fiche « Combiner les Difficultés ») ? C'est la trace ADN du mode DÉRIVÉ — un palier CHOISI reste
    *  du texte nu. */
   const porte = (v: HTMLDivElement) => ligne(v).querySelector('.rm-roll-diff .codex-ref')?.textContent;
-  /** OUVRE le popover du palier (survol) et rend son contenu : le popover est un PORTAL monté à la
+  /** OUVRE l'infobulle du palier (survol) et rend son contenu : l'infobulle est un PORTAL monté à la
    *  demande — sans le geste, il n'existe pas dans le DOM. C'est là que se lit la COMPOSITION. */
-  const popover = (v: HTMLDivElement): string => {
+  const infobulle = (v: HTMLDivElement): string => {
     const trigger = ligne(v).querySelector('.rm-roll-diff .codex-ref');
     if (!trigger) return '';
     act(() => { trigger.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); });
-    return document.querySelector('.codex-pop')?.textContent ?? '';
+    return document.querySelector('.infobulle')?.textContent ?? '';
   };
   /** L'affordance (i) qui SIGNALE la porte : elle vit DANS le déclencheur (même hit-target), jamais
    *  accolée à côté, et elle SUIT le palier — arbitrage user 2026-08-10 : « le (i) par convention est
    *  apres et non avant ceux a quoi il fait référence ». */
   const infoPalier = (v: HTMLDivElement) => ligne(v).querySelector('.rm-roll-diff .codex-ref svg.icon');
-  /** Le NOM du jet (la Compétence lancée) est-il une porte Codex ? Il l'est PAR SON POPOVER seul :
+  /** Le NOM du jet (la Compétence lancée) est-il une porte Codex ? Il l'est PAR SON INFOBULLE seule :
    *  aucun (i) ne le précède (même arbitrage). */
   const nomDuJet = (v: HTMLDivElement) => ligne(v).querySelector('.rm-roll-label > .codex-ref');
 
@@ -284,7 +284,7 @@ describe('Attaque — la Difficulté DÉRIVE des circonstances (#1153 L3b-2)', (
     expect(ligne(v).textContent).not.toContain('autres');
     // Capacité de Tir 40 − 30 = 10, et non 40 − 40 : le plafond a mordu, le palier le DIT.
     expect(calcul(v)).toBe('40 −30 = 10');
-    expect(porte(v), 'le palier DÉRIVÉ porte le popover de sa composition').toBe('Très difficile (−30)');
+    expect(porte(v), 'le palier DÉRIVÉ porte l’infobulle de sa composition').toBe('Très difficile (−30)');
     const decl = ligne(v).querySelector('.rm-roll-diff .codex-ref')!;
     expect(infoPalier(v), 'la porte se SIGNALE : un (i) dans le déclencheur, pas à côté').toBeTruthy();
     // `lastChild` et non `lastElementChild` : le palier est un nœud TEXTE — l'ignorer rendrait
@@ -341,24 +341,24 @@ describe('Attaque — la Difficulté DÉRIVE des circonstances (#1153 L3b-2)', (
     });
     expect(palier(v), 'les circonstances SEULES composent le palier').toBe('Complexe (−10)');
     expect(porte(v), 'le palier dérivé est explorable').toBeDefined();
-    expect(popover(v)).toContain('+20 Courte portée');
-    expect(popover(v)).toContain('−20 Localisation visée');
-    expect(popover(v)).toContain('−10 Tir en bougeant');
-    expect(popover(v), 'aucune amputation : le plafond ne mord pas sur −10').not.toContain('plafond Difficultés');
+    expect(infobulle(v)).toContain('+20 Courte portée');
+    expect(infobulle(v)).toContain('−20 Localisation visée');
+    expect(infobulle(v)).toContain('−10 Tir en bougeant');
+    expect(infobulle(v), 'aucune amputation : le plafond ne mord pas sur −10').not.toContain('plafond Difficultés');
     expect(chips(v), 'l’État du jeteur ne se dilue jamais dans la Difficulté').toEqual(['−10 Empoisonné']);
     expect(calcul(v)).toBe('40 −20 = 20');
     expect(ANONYMES.count).toBe(0);
   });
 
   /**
-   * Le palier ne se contente pas d'être une porte : son popover DIT sa composition. Sans cette
+   * Le palier ne se contente pas d'être une porte : son infobulle DIT sa composition. Sans cette
    * mesure, `difficultyParts` pourrait être vide/tronqué et le déclencheur resterait vert — le
    * joueur lirait « Très difficile » sans jamais savoir de quoi c'est fait.
    */
-  it('le POPOVER du palier énumère les circonstances qui le composent', () => {
+  it('l’INFOBULLE du palier énumère les circonstances qui le composent', () => {
     const v = renderAttack({ ranged: true, fog: true, location: 'tete' });
-    const pop = popover(v);
-    expect(pop, 'l’instance lue à l’écran ouvre le popover').toContain('Très difficile (−30)');
+    const pop = infobulle(v);
+    expect(pop, 'l’instance lue à l’écran ouvre l’infobulle').toContain('Très difficile (−30)');
     expect(pop, 'la règle qui plafonne est nommée').toContain('Combiner les Difficultés');
     expect(pop).toContain('−20 Brouillard');
     expect(pop).toContain('−20 Localisation visée');
@@ -382,22 +382,22 @@ describe('Attaque — la Difficulté DÉRIVE des circonstances (#1153 L3b-2)', (
   /**
    * COHÉRENCE DE RANGÉE : le nom du jet (la Compétence lancée) est une porte Codex de plein droit —
    * sans elle, la rangée apprenait la règle de la Difficulté et taisait celle de la Compétence. Elle
-   * s'ouvre par son SEUL popover : le (i) reste au palier (arbitrage user 2026-08-10).
+   * s'ouvre par sa SEULE infobulle : le (i) reste au palier (arbitrage user 2026-08-10).
    */
-  it('le NOM du jet est une porte Codex — popover SEUL, sans (i)', () => {
+  it('le NOM du jet est une porte Codex — infobulle SEULE, sans (i)', () => {
     const v = renderAttack({ ranged: true });
     const nom = nomDuJet(v);
     expect(nom, 'le libellé « Projectiles » ouvre sa fiche').toBeTruthy();
     expect(nom!.textContent).toBe('Projectiles');
     expect(nom!.getAttribute('role'), 'porte RÉELLE, pas un texte décoré').toBe('button');
-    expect(nom!.querySelector('svg.icon'), 'aucun (i) sur la Compétence : le popover suffit').toBeNull();
+    expect(nom!.querySelector('svg.icon'), 'aucun (i) sur la Compétence : l’infobulle suffit').toBeNull();
   });
 
-  it('le POPOVER du nom du jet donne la règle de la Compétence lancée', () => {
+  it('l’INFOBULLE du nom du jet donne la règle de la Compétence lancée', () => {
     const v = renderAttack();
     const nom = nomDuJet(v);
     expect(nom!.textContent).toBe('Corps à corps');
     act(() => { nom!.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); });
-    expect(document.querySelector('.codex-pop')?.textContent).toContain('Corps à corps');
+    expect(document.querySelector('.infobulle')?.textContent).toContain('Corps à corps');
   });
 });

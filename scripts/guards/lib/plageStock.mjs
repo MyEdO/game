@@ -5,6 +5,11 @@
 // deux portes six heures après leur pose (revue de palier n°2, 2026-09-03). Cette lib juge la PLAGE
 // réellement poussée.
 //
+// La plage d'un PUSH est ce qu'il APPORTE au tronc : l'appelant passe la ref poussée (`vers`), et un
+// commit déjà sur le tronc n'y est pas rejugé (stocks-nominatifs.test.mjs:33-36). Une FENÊTRE mesurée
+// (palier) ne passe pas de `vers`. Le tronc est lu tel que le dépôt qui juge le connaît : un
+// `origin/main` local périmé retranche moins au cumul (le pre-push), la CI refetche le sien.
+//
 // DEUX NIVEAUX, tous deux nécessaires (discriminés par sonde le 2026-09-03) :
 //   · PAR COMMIT, parce que `CLIQUET: <fichier> +N — <motif>` vit dans UN message : jugée en cumulé,
 //     une plage de deux commits cliquetés `+2` et `+2` demanderait un cliquet `+4` qu'aucun message
@@ -14,29 +19,93 @@
 // Donc : les croissances non couvertes se lèvent PAR COMMIT, et l'on n'en retient que les fichiers
 // dont la croissance CUMULÉE sur toute la plage reste positive.
 //
+// Le filtre CUMULÉ est un bilan d'ÉTATS, clé par clé (`bilanDesStocks`, renommages de chaque paire de
+// bouts, #1806 D5″) : `debut..fin`, moins ce que le tronc a changé entre l'état qu'en connaît `debut`
+// et celui qu'en connaît `fin` (`merge-base` de chacun avec le tronc). Une dette neuve dans X qu'une
+// baisse dans Q du même porteur compenserait reste en croissance, et se refuse ; une baisse faite par
+// le tronc ne paie rien.
+//
+// Chaque commit de la plage, fusions comprises, se lit par CE QU'IL FAIT (`ceQueFaitLeCommit`) contre
+// sa BASE : diff, textes des stocks dans la base et côté `base` des reclassements. Une fusion n'y porte
+// que son apport propre, et ce qu'elle ajoute en résolvant s'y voit.
+//
+// `RECLASSEMENT: <module> +N — <motif>` (`reclassementCss.mjs`) se juge PAR COMMIT seulement, contre sa
+// base (#1806 D3″) : la ligne vit dans UN message et nomme le franchissement de CE commit.
+//
 // La lib CALCULE ; le VERDICT appartient à l'appelant (le pre-push refuse, la mesure a posteriori
-// échoue). Elle reste PURE dans son cœur (`refusDeLaPlage`) : les lectures git sont injectées.
-import { lireGit, sortieOuNull } from './gitPorte.mjs'
-import { croissanceDesStocks, croissancesNonCouvertes } from './stocksNominatifs.mjs'
+// échoue). Elle reste PURE dans son cœur (`refusDeLaPlage`, `reclassementsDeLaPlage`) : les lectures
+// git passent par les questions du dépôt de `cwd` (`depotDe`, `gitPorte.mjs`).
+import { GitIndisponible, TRONC, baseCommune, ceQueFaitLeCommit, ceQuiChange, depotDe, journalDe, lireEnLot, shasDe } from './gitPorte.mjs'
+import { bilanDesStocks, croissanceDesCles, nonCouvertesDuBilan } from './stocksNominatifs.mjs'
+import { deplaceLaFrontiere, ecartsDeReclassement, franchisDesCotes, lignesDeReclassement } from './reclassementCss.mjs'
+import { coteCss, sourceGit } from './cssImages.mjs'
 
 /** Le sha nul que git écrit sur stdin du pre-push pour une branche NEUVE. */
 export const SHA_NUL = '0'.repeat(40)
 
 /**
- * Refus d'une plage, PUR. `commits` = `[{ sha, message, diff, images }]` dans l'ordre de l'histoire,
- * `cumule` = le diff `<avant>..<apres>` d'un bloc, `imagesCumul` = les lecteurs d'image de ses deux
- * bouts. Chaque `images` porte un `lirePostImage` : `croissanceDesStocks` refuse nommément sinon.
- * @returns {{ sha: string, fichier: string, net: number, declare: number | null, exemples: string[] }[]}
- * @throws {Error} propagé de `croissanceDesStocks` : sans lecteur d'image post, le compte ment.
+ * Bilan signé `de` MOINS `moins`, porteur par porteur et clé par clé, PUR.
+ * @param {{ fichier: string, parCle: Map<string, number> }[]} de
+ * @param {{ fichier: string, parCle: Map<string, number> }[]} [moins]
+ * @returns {{ fichier: string, parCle: Map<string, number> }[]}
  */
-export function refusDeLaPlage({ commits = [], cumule = '', imagesCumul } = {}) {
-  const enCroissance = new Set(croissanceDesStocks(cumule, imagesCumul).map((c) => c.fichier))
+export function bilanSoustrait(de, moins = []) {
+  /** @type {Map<string, Map<string, number>>} */
+  const parFichier = new Map()
+  const porter = (bilan, signe) => {
+    for (const { fichier, parCle } of bilan) {
+      const cles = parFichier.get(fichier) ?? new Map()
+      for (const [cle, n] of parCle) cles.set(cle, (cles.get(cle) ?? 0) + signe * n)
+      parFichier.set(fichier, cles)
+    }
+  }
+  porter(de, 1)
+  porter(moins, -1)
+  return [...parFichier].map(([fichier, parCle]) => ({ fichier, parCle }))
+}
+
+/**
+ * Refus d'une plage, PUR. `commits` = `[{ sha, message, diff, images }]` dans l'ordre de l'histoire,
+ * les seuls commits JUGÉS ; `cumul` = le bilan cumulé SIGNÉ de la plage (`bilanDesStocks`, `bilanSoustrait`).
+ * Chaque `images` porte un `lirePostImage` : `bilanDesStocks` refuse nommément sinon.
+ * @param {{ commits?: object[], cumul: { fichier: string, parCle: Map<string, number> }[] }} p
+ * @returns {{ sha: string, fichier: string, net: number, declare: number | null, exemples: string[] }[]}
+ * @throws {TypeError} sans `cumul` : un filtre absent rendrait zéro refus, un verdict qui ment.
+ * @throws {Error} propagé de `bilanDesStocks` : sans lecteur d'image post, le compte ment.
+ */
+export function refusDeLaPlage({ commits = [], cumul } = {}) {
+  if (!Array.isArray(cumul)) throw new TypeError('refusDeLaPlage : `cumul` (le bilan cumulé signé de la plage) est exigé')
+  const enCroissance = new Set(cumul.filter((b) => croissanceDesCles(b.parCle) > 0).map((b) => b.fichier))
   const refus = []
   for (const { sha, message, diff, images } of commits) {
-    for (const c of croissancesNonCouvertes({ diff, message }, images)) {
-      if (!enCroissance.has(c.fichier)) continue
-      refus.push({ sha, fichier: c.fichier, net: c.net, declare: c.declare, exemples: c.exemples })
+    for (const c of nonCouvertesDuBilan(bilanDesStocks(diff, images), message)) {
+      if (enCroissance.has(c.fichier)) refus.push({ sha, fichier: c.fichier, net: c.net, declare: c.declare, exemples: c.exemples })
     }
+  }
+  return refus
+}
+
+/**
+ * Reclassements CSS non déclarés d'une plage, PUR : chaque commit contre sa base (#1806 D3″).
+ * `cotes()` rend `{ base, commit }` (`coteCss`), ou `null` si le commit ne touche pas la frontière ;
+ * une image illisible est un refus NOMMÉ par son commit, jamais une levée.
+ * @param {{ commits?: { sha: string, message: string, cotes: () => ({ base: object, commit: object } | null) }[] }} p
+ * @returns {({ sha: string, ecarts: ReturnType<typeof ecartsDeReclassement> } | { sha: string, illisible: string })[]}
+ */
+export function reclassementsDeLaPlage({ commits = [] } = {}) {
+  const refus = []
+  for (const { sha, message, cotes } of commits) {
+    let lus
+    try {
+      lus = cotes()
+    } catch (e) {
+      refus.push({ sha, illisible: e.message })
+      continue
+    }
+    const lignes = lignesDeReclassement(message)
+    if (!lus && !lignes.length) continue
+    const ecarts = ecartsDeReclassement(lus ? franchisDesCotes(lus.base, lus.commit) : [], lignes)
+    if (ecarts.length) refus.push({ sha, ecarts })
   }
   return refus
 }
@@ -56,60 +125,84 @@ export function raisonDeRefusDePlage(refus) {
 }
 
 /**
- * Lecture d'une plage réelle dans `cwd` et refus qu'elle porte.
- * `avant` nul (branche NEUVE, forme observée sur stdin du hook) → `origin/main` : la plage jugée est
- * ce que la branche ajoute au tronc.
+ * Lecture de la plage réelle `<fin>`, privée de `<debut>`, dans `cwd`, et refus qu'elle porte.
+ * `vers` = la ref POUSSÉE. Le tronc d'avant est `debut` quand `vers` est `TRONC.branche` ; sinon, et
+ * dès que `debut` est nul (branche NEUVE sur stdin du hook, tête hors CI), c'est `TRONC.suivi`, que la
+ * plage exclut aussi. Une FENÊTRE (`vers` absent, `debut` donné) n'exclut que `debut`. Un tronc
+ * illisible est NOMMÉ dans `notes`, et sans aucune borne `fin` seul est jugé (`fin^!`).
  * `null` = l'OBJET demandé n'existe pas (le contrat des lecteurs d'image) ; une INDISPONIBILITÉ de
  * git est rendue à part (`indisponible`), et l'appelant la NOMME : une plage illisible ne se juge
  * pas, elle se dit.
- * @param {{ cwd?: string, avant: string, apres: string,
- *           git?: (args: string[]) => string | null }} p
- * @returns {{ refus: [], notes: string[], plage: string, indisponible: string|null, commits?: number }}
+ * @param {{ cwd?: string, debut: string, fin: string, vers?: string | null }} p
+ * @returns {{ refus: [], reclassements: [], notes: string[], plage: string, indisponible: string|null, commits?: number }}
  */
-export function croissancesDeLaPlage({ cwd = process.cwd(), avant, apres, git } = {}) {
+export function croissancesDeLaPlage({ cwd = process.cwd(), debut, fin, vers = null } = {}) {
   const pannes = []
-  const lire = git ?? ((args) => {
-    const vu = lireGit(args, { cwd })
-    if (!vu.disponible) {
-      pannes.push(vu.raison)
-      return null
-    }
-    return sortieOuNull(vu)
-  })
+  const depot = depotDe(cwd, { enPanne: (raison) => pannes.push(raison) })
   const notes = []
-  let base = avant
-  if (!base || base === SHA_NUL) {
-    base = 'origin/main'
-    if (lire(['rev-parse', '--verify', '--quiet', `${base}^{commit}`]) === null) {
-      notes.push(`plage inconnue : ni sha distant ni \`origin/main\` — ${apres.slice(0, 9)} seul est jugé`)
-      base = `${apres}^`
-    }
+  const avecLeTronc = (sha) => baseCommune(depot, sha, TRONC.suivi)
+  if (debut === SHA_NUL) debut = null
+  let tronc = null
+  if (debut && vers === TRONC.branche) {
+    notes.push(`push vers le tronc (\`${vers}\`) : \`debut\` est le tronc d'avant, rien d'autre n'est exclu`)
+  } else if (!debut || vers !== null) {
+    tronc = avecLeTronc(fin) && TRONC.suivi
+    if (!tronc) notes.push(`tronc \`${TRONC.suivi}\` illisible depuis ${fin.slice(0, 9)} : ses commits ne sont PAS exclus de la plage`)
   }
-  const plage = `${base}..${apres}`
-  // `--no-merges` : `git show` ne rend aucun diff propre d'une fusion, et la croissance qu'elle
-  // porte a déjà été jugée sur le commit d'ORIGINE.
-  const liste = lire(['rev-list', '--reverse', '--no-merges', plage])
-  if (liste === null) {
+  const seul = !debut && !tronc
+  if (seul) notes.push(`plage inconnue : ni sha distant ni tronc — ${fin.slice(0, 9)} seul est jugé, sans ses parents`)
+  const revisions = seul ? [`${fin}^!`] : [debut ? `${debut}..${fin}` : fin, ...(tronc ? [`^${tronc}`] : [])]
+  const plage = revisions.join(' ')
+  const shas = shasDe(depot, revisions)
+  if (shas === null) {
     notes.push(`plage \`${plage}\` illisible : rien n'est jugé`)
-    return { refus: [], notes, plage, indisponible: pannes[0] ?? null }
+    return { refus: [], reclassements: [], notes, plage, indisponible: pannes[0] ?? null }
   }
-  const shas = liste.split('\n').map((l) => l.trim()).filter(Boolean)
-  const commits = shas.map((sha) => ({
-    sha,
-    message: lire(['show', '-s', '--format=%B', sha]) ?? '',
-    diff: lire(['show', '--format=', '-U0', '--no-renames', sha]) ?? '',
-    images: {
-      lirePostImage: (f) => lire(['show', `${sha}:${f}`]),
-      lirePreImage: (f) => lire(['show', `${sha}^:${f}`]),
-    },
-  }))
-  const cumule = lire(['diff', '-U0', '--no-renames', `${base}..${apres}`]) ?? ''
-  const imagesCumul = {
-    lirePostImage: (f) => lire(['show', `${apres}:${f}`]),
-    lirePreImage: (f) => lire(['show', `${base}:${f}`]),
+  const messages = new Map((journalDe(depot, revisions) ?? []).map((c) => [c.sha, c.message]))
+  const texteA = (arbre) => (f) => lireEnLot(depot, arbre, [f]).get(f) ?? null
+  let commits
+  try {
+    commits = shas.map((sha) => {
+      const fait = ceQueFaitLeCommit(depot, sha)
+      const source = (arbre) => sourceGit({ cwd, arbre, depot })
+      const base = source(fait.base)
+      return {
+        sha,
+        message: messages.get(sha) ?? '',
+        diff: fait.diff(),
+        images: {
+          lirePostImage: texteA(sha),
+          lirePreImage: fait.lirePreImage,
+          renommages: fait.renommages(),
+        },
+        cotes: () => (deplaceLaFrontiere({
+          chemins: fait.chemins(),
+          nesOuMorts: () => fait.chemins('AD'),
+          base,
+          commit: source(sha),
+          racine: cwd,
+        }) ? { base: coteCss(base, { racine: cwd }), commit: coteCss(source(sha), { racine: cwd }) } : null),
+      }
+    })
+  } catch (e) {
+    if (!(e instanceof GitIndisponible)) throw e
+    notes.push(`plage \`${plage}\` illisible : rien n'est jugé`)
+    return { refus: [], reclassements: [], notes, plage, indisponible: e.raison }
   }
+  const bilanEntre = (a, b) => {
+    const change = ceQuiChange(depot, a, b)
+    return bilanDesStocks(change.diff(), { lirePostImage: texteA(b), lirePreImage: change.lirePreImage, renommages: change.renommages() })
+  }
+  const troncDeFin = tronc && avecLeTronc(fin)
+  const bout = debut ?? troncDeFin
+  const troncDuBout = tronc && avecLeTronc(bout)
+  if (tronc && !troncDuBout) notes.push(`\`${bout.slice(0, 9)}\` sans ancêtre commun avec \`${tronc}\` : le cumul ne retranche rien du tronc`)
+  const cumul = seul
+    ? commits.flatMap((c) => bilanDesStocks(c.diff, c.images))
+    : bilanSoustrait(bilanEntre(bout, fin), troncDuBout ? bilanEntre(troncDuBout, troncDeFin) : [])
   return {
-    refus: refusDeLaPlage({ commits, cumule, imagesCumul }),
+    refus: refusDeLaPlage({ commits, cumul }),
+    reclassements: reclassementsDeLaPlage({ commits }),
     notes,
     commits: shas.length,
     plage,

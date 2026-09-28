@@ -14,7 +14,7 @@ import { Row } from '../Layout';
  * ce stockage.
  *
  * REPLI/DÉPLI (retour user 2026-07-25 — « comment je ferme/ouvre le calque de référence ? ») : l'
- * en-tête compact reste TOUJOURS visible (titre + étage + bouton ▾/▸), replié il ne laisse RIEN
+ * en-tête compact reste TOUJOURS visible (titre + étage + chevron de divulgation), replié il ne laisse RIEN
  * d'autre — c'est lui-même l'affordance de réouverture, pas de bouton séparé dans une autre barre.
  * Sans calque chargé, le corps (déplié) ne montre qu'un point d'entrée discret pour en charger un —
  * jamais les réglages (opacité/position/…) sans objet.
@@ -87,6 +87,7 @@ export function TraceLayerPanel({
     <div
       ref={panelRef}
       className={`trace-layer-panel panel${expanded ? '' : ' trace-layer-panel-collapsed'}`}
+      data-depot={dragOver || undefined}
       onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
       onDragLeave={() => setDragOver(false)}
       onDrop={onDrop}
@@ -97,9 +98,7 @@ export function TraceLayerPanel({
         className="btn trace-layer-panel-head"
         onClick={onToggleExpanded}
         aria-expanded={expanded}
-        title={expanded ? 'Replier le panneau' : 'Déplier le panneau'}
       >
-        <span className="trace-layer-panel-chevron">{expanded ? '▾' : '▸'}</span>
         <span>Calque de référence — {layerLabel(layerZ)}</span>
       </button>
 
@@ -114,7 +113,7 @@ export function TraceLayerPanel({
         <>
           <p className="hint">Décalquer une planche de livre (image locale) sous la grille.</p>
           <button
-            className={`btn small${dragOver ? ' btn-primary' : ''}`}
+            className="btn small"
             onClick={() => fileRef.current?.click()}
           >
             Charger une image…

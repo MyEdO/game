@@ -156,7 +156,8 @@ export function InitiativeStrip(p: InitiativeStripProps) {
             ariaLabel={p.hand.ariaLabel}
             enabled={!p.hand.reason}
             {...raisonSi(p.hand.reason)}
-            primary={p.hand.raised}
+            primary={false}
+            ariaPressed={p.hand.raised}
             dense
             onClick={p.hand.onToggle}
           />

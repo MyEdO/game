@@ -30,17 +30,40 @@
 //     (hauteur arrondie au pas d'entrée, CONSTANT). Axe qui ne défile pas = NON MESURÉ ;
 //   · la piste du groupe (`.pd-track`) tient sur UNE ligne (aucune carte à un autre `y`) ;
 //   · quand le rail est DISSOUS (`display: contents`, ≤700), son ouvreur d'écran se pose LUI-MÊME
-//     (position hors flux) et reçoit son clic. ANGLE MORT DÉCLARÉ : cet ouvreur n'est monté que
-//     lorsqu'un navire est en jeu (`CampaignView.tsx`) — le scénario `enc-mutants` sondé ici ne le
-//     porte pas, le verdict est donc CONDITIONNEL à sa présence, et sa structure reste gardée en
-//     unité (`src/ui/ui-ratchets.test.ts`) ;
+//     (position hors flux) et reçoit son clic. Cet ouvreur n'est monté qu'avec un navire en jeu
+//     (`CampaignView.tsx`) : la mise en place du combat en pose un (`vessel`, patron de
+//     `__wfrp.scenario`) ;
 //   · en exploration, la boîte pleine ligne de `.objective-banner` n'avale aucun clic hors de sa
 //     tête : le point sondé à droite de `.objective-head` rend la scène ;
-//   · en exploration, chaque portrait du groupe (`.party-dock .ptile`) reçoit son clic — la pile de
-//     contexte (haut-gauche) ne mord pas sur le haut-centre, qui appartient au GROUPE.
+//   · aux DEUX phases, chaque portrait du groupe (`.party-dock .ptile`) reçoit son clic — la pile de
+//     contexte (haut-gauche) ne mord pas sur le haut-centre, qui appartient au GROUPE ; à ≤560 la
+//     bande REPLIÉE se déplie par clic réel sur sa poignée et le groupe déplié se juge (en combat,
+//     devant le fil d'événements), puis elle se replie ;
+//   · la MATRICE RESPONSIVE du design 2026-07-31 §12, sur les cellules qu'un DOM porte
+//     (`defautsMatrice`) : Groupe — toutes les cartes rendues, vie et nom à toute tranche
+//     (docs/plans/2026-08-16-spec-hud-combat.md:192-194), vie superposée au portrait à
+//     561–700, défilement horizontal de secours, R-M1 à ≤560 (:66-68 — tuile ≥ 44px de large, rognée
+//     seulement par une piste qui défile) ; Initiative — colonne à gauche au-dessus de 900 et cartouche
+//     de Round rendu DANS sa boîte, colonne jusqu'à 701 et entrée au trait entière dans le champ, bande
+//     à 700 et moins et piste défilable, cartouche de Round en PREMIÈRE entrée, bande sous le groupe à
+//     561–700, courant + deux suivants entiers à ≤560 ; Dock — pont de bord à bord, chaque case entière
+//     dans l'écran, hauteur du pont ≤ 21 % dès 1280 et ≤ 45 % à ≤560
+//     (docs/plans/2026-08-16-spec-hud-combat.md Zone 1) ; COMPACITÉ sur la série des largeurs
+//     (`defautsCompacite`) — cartes et colonne d'initiative plus étroites à 701–900 qu'au-delà de 900,
+//     portraits à 561–700 ; CIBLES TACTILES sous `pointer: coarse` émulé (`defautsTactile`) — chaque
+//     commande vissée rendue offre 44px à ≤560.
+//
+// Cellules §12 NON MESURÉES :
+//   · Caméra / inspection >900, 701–900, 561–700 : `ViewControls`, monté en jeu nulle part (#1822 ;
+//     `grep -rn ViewControls src` : `src/ui/editor/EditorCanvas.tsx`, `src/ui/gallery/registry.tsx`) ;
+//   · Dock 701–900 « dock sur deux rangées au besoin » : conditionnel ;
+//   · Dock 561–700 « actions sur deux colonnes » : grille `.cc-dock` réécrite sous #1856 ;
+//   · Dock <=560 « modales plein écran… » : aucune modale de jet ouverte ici — structure gardée par
+//     `src/ui/ui-ratchets.test.ts` ;
+//   · Dock >900 « disposition de référence » : aucun contrat propre hors bord à bord et hauteur.
 //
 // Sortie : exit 1 au premier défaut (liste complète imprimée), exit 0 si tout passe.
-import { openApp, evaluate, setViewport, sleep, clickButtonByText, cliquerSelecteur, resoudreModales, VUE_REFERENCE } from './lib.mjs';
+import { openApp, evaluate, setViewport, sleep, clickButtonByText, cliquerSelecteur, resoudreModales, attendreSelecteur, VUE_REFERENCE } from './lib.mjs';
 
 // Les trois largeurs étroites (700/560/360) portent les recouvrements ; les deux larges portent la
 // zone morte du bandeau d'objectif, dont la boîte n'excède sa tête qu'au-delà de 900px — sonder
@@ -87,8 +110,10 @@ const PROBE = `(() => {
   // Console de combat (pont du tour) : chacune de ses cases se sonde comme une commande de vue.
   // (Aucun accent grave dans cette sonde : elle vit dans un gabarit de chaîne.)
   const pont = document.querySelector('.combat-console');
+  const dansLEcran = (r) => r.x >= -0.5 && r.y >= -0.5 && r.right <= window.innerWidth + 0.5 && r.bottom <= window.innerHeight + 0.5;
   const dockBtns = [...document.querySelectorAll('.combat-console button.cc-cell')].map((b, i) => ({
     i, label: (b.textContent || '').replace(/\\s+/g, ' ').trim().slice(0, 40) || (b.getAttribute('title') || '').trim(), ...reaches(b),
+    entier: dansLEcran(b.getBoundingClientRect()),
   }));
 
   // TIROIR DU JOURNAL : sa réserve du bas ne se juge qu'au panneau DÉPLIÉ (fermé, il ne recouvre
@@ -144,6 +169,30 @@ const PROBE = `(() => {
     const actif = tiles.querySelector('.is-cell[aria-current="step"]');
     const auTraitVisible = actif ? dansLaPiste(actif) : null;
     const round = tiles.querySelector('.is-round');
+    // COURANT + DEUX SUIVANTS (§12 <=560) : chacun ENTIER dans le champ de la piste et hors du
+    // cartouche collé, à la position de défilement que l application a choisie.
+    const cellules = [...tiles.querySelectorAll('.is-cell')];
+    const iCourant = actif ? cellules.indexOf(actif) : -1;
+    const rt0 = tiles.getBoundingClientRect();
+    const rr0 = round ? round.getBoundingClientRect() : null;
+    const entiere = (c) => {
+      const r = c.getBoundingClientRect();
+      const dedans = r.width > 0 && r.x >= rt0.x - 0.5 && r.right <= rt0.right + 0.5 && r.y >= rt0.y - 0.5 && r.bottom <= rt0.bottom + 0.5;
+      const sousTete = rr0 && Math.min(r.right, rr0.right) - Math.max(r.x, rr0.x) > 0.5 && Math.min(r.bottom, rr0.bottom) - Math.max(r.y, rr0.y) > 0.5;
+      return dedans && !sousTete;
+    };
+    let suivants = null;
+    if (iCourant >= 0) {
+      const vus = cellules.slice(iCourant, iCourant + 3);
+      suivants = { attendus: vus.length, entiers: vus.filter(entiere).length };
+    }
+    // COURANT ENTIER (§12 701-900) : l entrée au trait, à la position de défilement choisie par
+    // l application. ROUND INTÉGRÉ (§12 >900) : le cartouche rendu DANS la boîte de la frise.
+    const courantEntier = actif ? entiere(actif) : null;
+    const roundDansColonne = rr0 ? (rr0.width > 0 && rr0.x >= rs.x - 0.5 && rr0.right <= rs.right + 0.5 && rr0.y >= rs.y - 0.5 && rr0.bottom <= rs.bottom + 0.5) : null;
+    // DÉFILABLE (§12 561-700 et <=560) : la piste est un conteneur de défilement horizontal.
+    const defilable = ['auto', 'scroll'].includes(getComputedStyle(tiles).overflowX);
+    const roundPremier = !!round && tiles.firstElementChild === round;
     const enBande = getComputedStyle(tiles).flexDirection === 'row';
     let roundVisible = null;
     // TÊTE DE FRISE : la piste est le conteneur défilant, son rembourrage vit DANS le champ (le clip
@@ -301,6 +350,12 @@ const PROBE = `(() => {
       }
     }
     frise = {
+      rect: box(rs),
+      roundPremier,
+      roundDansColonne,
+      courantEntier,
+      defilable,
+      suivants,
       bande: enBande,
       margeDroite: +(window.innerWidth - rs.right).toFixed(1),
       roundVisible,
@@ -320,15 +375,53 @@ const PROBE = `(() => {
   const track = document.querySelector('.pd-track');
   const rendues = track ? [...track.children].filter((c) => c.getBoundingClientRect().width > 0) : [];
   const poignee = document.querySelector('.party-dock .pd-handle');
-  const groupe = document.querySelector('.party-dock') ? {
+  const dockGroupe = document.querySelector('.party-dock');
+  // CARTES (§12, colonne Groupe) : nom rendu, vie rendue, vie SUPERPOSÉE au portrait, largeur, et
+  // ROGNURE horizontale par le champ de la piste (R-M1).
+  const champPiste = track ? (() => {
+    const r = track.getBoundingClientRect(), s = getComputedStyle(track);
+    return { left: r.left + parseFloat(s.borderLeftWidth), right: r.right - parseFloat(s.borderRightWidth) };
+  })() : null;
+  const cartesDetail = rendues.map((f) => {
+    const rf = f.getBoundingClientRect();
+    const nomEl = f.querySelector('figcaption');
+    const rn = nomEl ? nomEl.getBoundingClientRect() : null;
+    const vieEl = f.querySelector('.life-bar');
+    const rv = vieEl ? vieEl.getBoundingClientRect() : null;
+    const face = f.querySelector('.ptile-face');
+    return {
+      w: +rf.width.toFixed(1),
+      rognee: !!champPiste && (rf.left < champPiste.left - 0.5 || rf.right > champPiste.right + 0.5),
+      nom: !!(rn && rn.width > 0 && rn.height > 0 && (nomEl.textContent || '').trim()),
+      vie: !!(rv && rv.width > 0 && rv.height > 0),
+      vieSurPortrait: !!(rv && face && overlap(rv, face.getBoundingClientRect())),
+    };
+  });
+  const groupe = dockGroupe ? {
+    total: track ? track.querySelectorAll(':scope > figure').length : 0,
+    detail: cartesDetail,
+    defilementSecours: track && rendues.length ? ['auto', 'scroll'].includes(getComputedStyle(track).overflowX) : null,
+    defile: !!track && ['auto', 'scroll'].includes(getComputedStyle(track).overflowX) && track.scrollWidth > track.clientWidth,
+    bas: +dockGroupe.getBoundingClientRect().bottom.toFixed(1),
+    replie: !dockGroupe.classList.contains('on') && !!poignee && poignee.getBoundingClientRect().width > 0,
     cartes: rendues.length,
     lignes: new Set(rendues.map((c) => Math.round(c.getBoundingClientRect().y))).size,
     // Bande REPLIÉE : c'est la poignée qui porte alors l'affordance du groupe.
     poignee: poignee ? reaches(poignee) : null,
   } : null;
 
+  // CIBLES TACTILES (§12 <=560, Caméra / inspection) : sous pointeur grossier seulement, chaque
+  // commande vissée RENDUE du HUD.
+  const grossier = matchMedia('(pointer: coarse)').matches;
+  const cibles = grossier ? [...document.querySelectorAll('.skin-tole[data-ton]')]
+    .filter((b) => { const r = b.getBoundingClientRect(); return r.width > 0 && r.height > 0; })
+    .map((b) => { const r = b.getBoundingClientRect(); return { label: (b.getAttribute('aria-label') || b.getAttribute('title') || b.className.split(' ')[0]).trim().slice(0, 40), w: +r.width.toFixed(1), h: +r.height.toFixed(1) }; }) : null;
+
   return {
     largeur: window.innerWidth,
+    hauteur: window.innerHeight,
+    grossier,
+    cibles,
     combat: !!strip,
     rail: rails,
     frise,
@@ -336,6 +429,9 @@ const PROBE = `(() => {
     portraits: ptiles,
     objectif: objective,
     feedXfrise: overlap(rectOf('.combat-feed'), rectOf('.initiative-strip')),
+    // Le volet DÉPLIÉ ≤560 couvre-t-il le fil d'événements ? Sans recouvrement, le verdict de clic des
+    // portraits n'éprouve pas leur rang : la sortie le DIT.
+    feedXvolet: overlap(rectOf('.combat-feed'), rectOf('.party-dock.on .pd-track')),
     piste: tiles && strip ? {
       scrollWidth: tiles.scrollWidth, clientWidth: tiles.clientWidth, bande: strip.clientWidth,
       defile: tiles.scrollWidth > tiles.clientWidth, tientDansLaBande: tiles.clientWidth <= strip.clientWidth,
@@ -496,19 +592,7 @@ export function defauts(m, phase) {
   for (const b of m.rail?.ouvreurs ?? []) {
     if (!b.ok) out.push(`${phase} ${m.largeur}px : l'ouvreur « ${b.label} » ${JSON.stringify(b.rect)} ne reçoit pas son clic — recouvert par ${b.hitBy}`);
   }
-  // Bande de groupe : UNE ligne. Une rangée enroulée mangeait 21 % de l'écran à 1280 (grief vision).
-  // Seules les cartes RENDUES comptent : repliée, la bande n'en rend aucune (ce n'est pas une ligne
-  // de plus, c'est une autre forme).
-  if (m.groupe && m.groupe.cartes > 0 && m.groupe.lignes > 1) {
-    out.push(`${phase} ${m.largeur}px : la piste du groupe s'enroule sur ${m.groupe.lignes} lignes (${m.groupe.cartes} cartes) — elle doit tenir sur une seule`);
-  }
-  // Le GROUPE reste ATTEIGNABLE, déplié comme replié : une carte rendue, ou la poignée qui la
-  // rouvre. Sans ce verdict, une bande repliée rendait la mesure des portraits verte par VACUITÉ.
-  if (m.groupe && m.groupe.cartes === 0) {
-    if (!m.groupe.poignee) out.push(`${phase} ${m.largeur}px : le groupe ne rend aucune carte ET n'offre aucune poignée — il est hors d'atteinte`);
-    else if (!m.groupe.poignee.rendu) out.push(`${phase} ${m.largeur}px : la poignée du groupe replié n'est pas rendue — le groupe est hors d'atteinte`);
-    else if (!m.groupe.poignee.ok) out.push(`${phase} ${m.largeur}px : la poignée du groupe replié ${JSON.stringify(m.groupe.poignee.rect)} ne reçoit pas son clic — recouverte par ${m.groupe.poignee.hitBy}`);
-  }
+  out.push(...defautsGroupe(m, phase));
   if (m.combat) {
     out.push(...defautsFrise(m, phase));
     // La console doit être MONTÉE et peuplée : sans elle la sonde mesure le bandeau de phase (un seul
@@ -535,14 +619,183 @@ export function defauts(m, phase) {
   } else {
     if (!m.objectif) out.push(`${phase} ${m.largeur}px : aucun bandeau d'objectif — sonde aveugle sur la zone morte`);
     else if (m.objectif.avale) out.push(`${phase} ${m.largeur}px : ${m.objectif.marge}px de carte à droite de l'objectif avalent les clics (${m.objectif.hitBy})`);
-    // Portraits RENDUS seulement : une tuile de bande repliée n'est pas recouverte, elle n'est pas
-    // montée à l'écran — c'est le verdict de POIGNÉE (ci-dessus) qui garde ce cas-là.
-    const rendus = m.portraits.filter((p) => p.rendu);
-    if (!m.portraits.length) out.push(`${phase} ${m.largeur}px : aucun portrait de groupe — sonde aveugle`);
-    for (const p of rendus) {
-      if (!p.ok) out.push(`${phase} ${m.largeur}px : le portrait ${p.i} du groupe ne reçoit pas son clic — recouvert par ${p.hitBy}`);
+  }
+  return out;
+}
+
+/**
+ * Défauts d'ATTEIGNABILITÉ du GROUPE (bande dépliée ou repliée) — extraits parce qu'ils se jugent
+ * aussi sur la bande DÉPLIÉE ≤560, dont la mesure ne doit pas re-juger le reste du HUD. PURE.
+ * @param {any} m mesure rendue par `PROBE` @param {string} phase
+ * @returns {string[]}
+ */
+export function defautsGroupe(m, phase) {
+  const out = [];
+  // Bande de groupe : UNE ligne. Une rangée enroulée mangeait 21 % de l'écran à 1280 (grief vision).
+  // Seules les cartes RENDUES comptent : repliée, la bande n'en rend aucune (ce n'est pas une ligne
+  // de plus, c'est une autre forme).
+  if (m.groupe && m.groupe.cartes > 0 && m.groupe.lignes > 1) {
+    out.push(`${phase} ${m.largeur}px : la piste du groupe s'enroule sur ${m.groupe.lignes} lignes (${m.groupe.cartes} cartes) — elle doit tenir sur une seule`);
+  }
+  // Le GROUPE reste ATTEIGNABLE, déplié comme replié : une carte rendue, ou la poignée qui la
+  // rouvre. Sans ce verdict, une bande repliée rendait la mesure des portraits verte par VACUITÉ.
+  if (m.groupe && m.groupe.cartes === 0) {
+    if (!m.groupe.poignee) out.push(`${phase} ${m.largeur}px : le groupe ne rend aucune carte ET n'offre aucune poignée — il est hors d'atteinte`);
+    else if (!m.groupe.poignee.rendu) out.push(`${phase} ${m.largeur}px : la poignée du groupe replié n'est pas rendue — le groupe est hors d'atteinte`);
+    else if (!m.groupe.poignee.ok) out.push(`${phase} ${m.largeur}px : la poignée du groupe replié ${JSON.stringify(m.groupe.poignee.rect)} ne reçoit pas son clic — recouverte par ${m.groupe.poignee.hitBy}`);
+  }
+  // Portraits du groupe, aux DEUX phases (en combat, la bande dépliée ≤560 doit passer devant le fil
+  // d'événements). RENDUS seulement : une tuile de bande repliée n'est pas recouverte, elle n'est pas
+  // montée à l'écran — c'est le verdict de POIGNÉE (ci-dessus) qui garde ce cas-là.
+  if (!m.portraits.length) out.push(`${phase} ${m.largeur}px : aucun portrait de groupe — sonde aveugle`);
+  for (const p of m.portraits.filter((x) => x.rendu)) {
+    if (!p.ok) out.push(`${phase} ${m.largeur}px : le portrait ${p.i} du groupe ne reçoit pas son clic — recouvert par ${p.hitBy}`);
+  }
+  return out;
+}
+
+/** Tranche de la matrice §12 (docs/superpowers/specs/2026-07-31-hud-combat-exploration-design.md). */
+export function trancheMatrice(largeur) {
+  return largeur > 900 ? '>900' : largeur > 700 ? '701–900' : largeur > 560 ? '561–700' : '<=560';
+}
+
+/** Plafonds de HAUTEUR du pont, en part du viewport : ≥1280 → docs/plans/2026-08-16-spec-hud-combat.md
+ *  Zone 1 (« Hauteur du pont ≤ ~21 % du viewport à ≥1280 ») ; ≤560 → même Zone 1 (« cible ~40-45 % »). */
+export const BUDGET_PONT = { large: { des: 1280, part: 0.21 }, compact: { part: 0.45 } };
+
+/** Largeur minimale d'une tuile du groupe à <=560 : docs/plans/2026-08-16-spec-hud-combat.md:66-68
+ *  (R-M1, « tuiles PLEINES à largeur minimale digne (portrait reconnaissable + PV lisibles, ≥44px) »). */
+export const TUILE_MIN_PX = 44;
+
+/**
+ * Colonne GROUPE de la matrice §12 : cartes toutes rendues, vie et nom à toute tranche, vie
+ * superposée au portrait à 561–700, défilement horizontal de secours ; à <=560, R-M1. PURE.
+ * @param {any} m mesure rendue par `PROBE` @param {string} phase
+ * @returns {string[]}
+ */
+export function defautsMatriceGroupe(m, phase) {
+  const out = [];
+  const t = trancheMatrice(m.largeur);
+  const ou = `${phase} ${m.largeur}px (§12 ${t})`;
+  const g = m.groupe;
+  if (g && g.cartes > 0) {
+    if (g.cartes < g.total) out.push(`${ou} : ${g.total - g.cartes} carte(s) du groupe sur ${g.total} ne sont pas rendues`);
+    if (g.defilementSecours === false) out.push(`${ou} : la piste du groupe n'a aucun défilement horizontal de secours`);
+    // NOM à toute tranche : docs/plans/2026-08-16-spec-hud-combat.md:192-194 (« NOM VISIBLE SOUS LA TUILE »).
+    for (const [i, c] of g.detail.entries()) {
+      if (!c.vie) out.push(`${ou} : la carte ${i} du groupe ne rend pas sa vie`);
+      if (!c.nom) out.push(`${ou} : la carte ${i} du groupe ne rend pas son nom`);
+      if (t === '561–700' && !c.vieSurPortrait) out.push(`${ou} : la vie de la carte ${i} du groupe n'est pas superposée à son portrait`);
+      // R-M1 : docs/plans/2026-08-16-spec-hud-combat.md:66-68.
+      if (t === '<=560' && c.w < TUILE_MIN_PX) out.push(`${ou} : la tuile ${i} du groupe fait ${c.w}px de large — sous ${TUILE_MIN_PX}px (R-M1)`);
+      if (t === '<=560' && c.rognee && !g.defile) out.push(`${ou} : la tuile ${i} du groupe est rognée par le champ de la piste, qui ne défile pas (R-M1)`);
     }
   }
+  return out;
+}
+
+/**
+ * Défauts de la MATRICE RESPONSIVE (§12) — cellules mesurées, voir l'en-tête — sur UNE mesure. PURE.
+ * Chaque verdict ne juge que la mesure qu'il trouve : `defauts` dit déjà une console absente ou une
+ * frise absente (« sonde aveugle »).
+ * @param {any} m mesure rendue par `PROBE` @param {string} phase libellé de l'état sondé
+ * @returns {string[]}
+ */
+export function defautsMatrice(m, phase) {
+  const out = [];
+  const t = trancheMatrice(m.largeur);
+  const ou = `${phase} ${m.largeur}px (§12 ${t})`;
+  const g = m.groupe;
+  out.push(...defautsMatriceGroupe(m, phase));
+  // ── Initiative ──
+  const f = m.frise;
+  if (f) {
+    const enColonne = t === '>900' || t === '701–900';
+    if (enColonne && f.bande) out.push(`${ou} : la frise d'initiative est en bande — la tranche la veut en colonne`);
+    if (!enColonne && !f.bande) out.push(`${ou} : la frise d'initiative est en colonne — la tranche la veut en bande horizontale`);
+    if (t === '>900' && f.rect.x + f.rect.w / 2 > m.largeur / 2) out.push(`${ou} : la colonne d'initiative n'est pas à gauche (centre à ${+(f.rect.x + f.rect.w / 2).toFixed(1)}px)`);
+    if (!f.roundPremier) out.push(`${ou} : le cartouche de Round n'est pas la première entrée de la frise`);
+    if (t === '>900' && f.roundDansColonne === false) out.push(`${ou} : le cartouche de Round n'est pas intégré à la colonne d'initiative (rendu hors de sa boîte)`);
+    if (t === '701–900' && f.courantEntier === false) out.push(`${ou} : l'entrée au trait n'est pas entière dans le champ de la frise`);
+    if (t === '701–900' && f.courantEntier == null) out.push(`${ou} : aucune entrée au trait — sonde aveugle sur le courant entier`);
+    if (!enColonne && f.defilable === false) out.push(`${ou} : la piste d'initiative n'est pas défilable (overflow-x ni auto ni scroll)`);
+    if (t === '561–700' && g && f.rect.y < g.bas - 0.5) out.push(`${ou} : la bande d'initiative (haut ${f.rect.y}px) n'est pas sous le groupe (bas ${g.bas}px)`);
+    if (t === '<=560' && f.suivants && f.suivants.entiers < f.suivants.attendus) {
+      out.push(`${ou} : ${f.suivants.entiers} entrée(s) sur ${f.suivants.attendus} (courant + deux suivants) entières dans le champ de la frise`);
+    }
+  }
+  // ── Dock ──
+  if (m.dock) {
+    const r = m.dock.rect;
+    if (r.x > 0.5 || r.x + r.w < m.largeur - 0.5) out.push(`${ou} : le pont ne va pas de bord à bord (${r.x}..${+(r.x + r.w).toFixed(1)}px sur ${m.largeur}px)`);
+    const part = r.h / m.hauteur;
+    if (m.largeur >= BUDGET_PONT.large.des && part > BUDGET_PONT.large.part) out.push(`${ou} : le pont prend ${(100 * part).toFixed(1)} % de la hauteur (plafond ${100 * BUDGET_PONT.large.part} % dès ${BUDGET_PONT.large.des}px)`);
+    if (t === '<=560' && part > BUDGET_PONT.compact.part) out.push(`${ou} : le pont compact prend ${(100 * part).toFixed(1)} % de la hauteur (plafond ${100 * BUDGET_PONT.compact.part} %)`);
+    for (const b of m.dockBtns) {
+      if (b.rendu && !b.entier) out.push(`${ou} : la case « ${b.label} » ${JSON.stringify(b.rect)} n'est pas entière dans l'écran`);
+    }
+  }
+  return out;
+}
+
+/**
+ * Défauts de CIBLE TACTILE (§12 <=560, colonne Caméra / inspection) : sous `pointer: coarse`, chaque
+ * commande vissée rendue offre 44px sur ses deux côtés. PURE.
+ * @param {any} m mesure rendue par `PROBE` sous émulation tactile @param {string} phase
+ * @returns {string[]}
+ */
+export function defautsTactile(m, phase) {
+  const ou = `${phase} ${m.largeur}px (§12 ${trancheMatrice(m.largeur)}, pointer: coarse)`;
+  if (!m.grossier) return [`${ou} : le pointeur grossier n'est pas émulé — sonde aveugle sur les cibles tactiles`];
+  if (!m.cibles.length) return [`${ou} : aucune commande vissée rendue — sonde aveugle sur les cibles tactiles`];
+  return m.cibles.filter((c) => c.w < 44 || c.h < 44).map((c) => `${ou} : la commande « ${c.label} » offre ${c.w}×${c.h}px — cible tactile sous 44px`);
+}
+
+/**
+ * Défauts de COMPACITÉ, jugés sur la SÉRIE des mesures d'un même état (une par largeur) : à 701–900
+ * les cartes du groupe et la colonne d'initiative, à 561–700 les portraits, sont plus étroits qu'à la
+ * tranche >900 de référence. PURE. Sans mesure >900 dans la série, rien à comparer.
+ * @param {any[]} serie mesures rendues par `PROBE` @param {string} phase
+ * @returns {string[]}
+ */
+export function defautsCompacite(serie, phase) {
+  const out = [];
+  const carte = (m) => (m.groupe?.detail?.length ? Math.max(...m.groupe.detail.map((c) => c.w)) : null);
+  const ref = serie.find((m) => trancheMatrice(m.largeur) === '>900');
+  if (!ref) return out;
+  const refCarte = carte(ref);
+  const refColonne = ref.frise && !ref.frise.bande ? ref.frise.rect.w : null;
+  for (const m of serie) {
+    const t = trancheMatrice(m.largeur);
+    if (t !== '701–900' && t !== '561–700') continue;
+    const c = carte(m);
+    if (refCarte != null && c != null && c >= refCarte) out.push(`${phase} ${m.largeur}px (§12 ${t}) : la carte du groupe fait ${c}px, pas plus compacte que ${refCarte}px à ${ref.largeur}px`);
+    if (t === '701–900' && refColonne != null && m.frise && !m.frise.bande && m.frise.rect.w >= refColonne) {
+      out.push(`${phase} ${m.largeur}px (§12 ${t}) : la colonne d'initiative fait ${m.frise.rect.w}px, pas plus réduite que ${refColonne}px à ${ref.largeur}px`);
+    }
+  }
+  return out;
+}
+
+/**
+ * Bande REPLIÉE (≤560) : elle se DÉPLIE par clic réel sur sa poignée, le groupe déplié se juge
+ * (§12 <=560 : portraits sur une ligne, défilement de secours, chacun reçoit son clic — en combat,
+ * devant le fil d'événements), puis elle se REPLIE : aucune trace pour la largeur suivante.
+ * @returns {Promise<string[]>}
+ */
+async function jugerGroupeDeplie(session, m, phase) {
+  if (!m.groupe?.replie) return [];
+  const p = `${phase} (groupe déplié)`;
+  await cliquerSelecteur(session, '.party-dock .pd-handle');
+  await sleep(400);
+  const d = await evaluate(session, PROBE);
+  const out = d.groupe?.cartes
+    ? [...defautsGroupe(d, p), ...defautsMatriceGroupe(d, p)]
+    : [`${p} ${d.largeur}px : la poignée ne déplie aucune carte — sonde aveugle sur le groupe déplié`];
+  console.log(`${p} ${d.largeur}px — ${d.groupe?.cartes ?? 0} carte(s) sur ${d.groupe?.lignes ?? 0} ligne(s), ${d.portraits.filter((x) => x.rendu && x.ok).length} portrait(s) cliquable(s)${d.combat ? ', volet × fil ' + (d.feedXvolet ? d.feedXvolet.ox + '×' + d.feedXvolet.oy + 'px (rang éprouvé)' : 'aucun recouvrement (rang NON éprouvé)') : ''} → ${out.length ? out.length + ' défaut(s)' : 'OK'}`);
+  dire(out);
+  await cliquerSelecteur(session, '.party-dock .pd-handle');
+  await sleep(300);
   return out;
 }
 
@@ -554,10 +807,16 @@ async function main() {
   const args = parseArgs(process.argv.slice(2));
   const session = await openApp(args.url);
   const echecs = [];
+  const serieExploration = [];
+  const serieCombat = [];
   try {
     // ── Exploration ────────────────────────────────────────────────────────────────────────────
     await evaluate(session, `window.__wfrp.scenario('embuscade', 7)`);
-    await sleep(1500);
+    // L'écran de campagne se monte de façon DIFFÉRÉE (mesuré : ~1,3 s serveur chaud, ~2,9 s à froid),
+    // et sa fenêtre d'introduction de scène avec lui : un délai fixe laissait `resoudreModales` passer
+    // AVANT elle, et toute l'exploration se mesurait sans groupe, puis sous cette fenêtre.
+    await attendreSelecteur(session, '.stage .party-dock', { timeoutMs: 20000 });
+    await sleep(400);
     await resoudreModales(session, 'ouverture');
     // Un objectif courant : c'est ce qu'un effet de scène pose (`combatEffects.ts`, op `objective`).
     // Le scénario de test n'en porte pas — sans lui la zone morte du bandeau n'est pas sondable.
@@ -570,14 +829,19 @@ async function main() {
       await sleep(500);
       const m = await evaluate(session, PROBE);
       if (m.combat) throw new Error(`exploration ${w}px : la frise d'initiative est montée — l'app n'est pas en exploration`);
-      const d = defauts(m, 'exploration');
+      const d = [...defauts(m, 'exploration'), ...defautsMatrice(m, 'exploration')];
+      serieExploration.push(m);
       const bande = !m.groupe ? 'aucune bande de groupe'
         : m.groupe.cartes === 0 ? `bande REPLIÉE sur sa poignée (${m.groupe.poignee ? 'poignée ' + (m.groupe.poignee.ok ? 'atteignable' : 'RECOUVERTE') : 'SANS poignée'})`
           : `${m.groupe.cartes} carte(s) sur ${m.groupe.lignes} ligne(s)`;
       console.log(`exploration ${w}px — ${bande}, ${m.portraits.filter((p) => p.rendu).length} portrait(s) rendu(s), marge morte objectif ${m.objectif ? m.objectif.marge + 'px' : 'n/a'} → ${d.length ? d.length + ' défaut(s)' : 'OK'}`);
       dire(d);
       echecs.push(...d);
+      echecs.push(...await jugerGroupeDeplie(session, m, 'exploration'));
     }
+    const compaciteExploration = defautsCompacite(serieExploration, 'exploration');
+    dire(compaciteExploration);
+    echecs.push(...compaciteExploration);
 
     // ── Combat ─────────────────────────────────────────────────────────────────────────────────
     await setViewport(session, VUE_REFERENCE.largeur, VUE_REFERENCE.hauteur);
@@ -610,17 +874,31 @@ async function main() {
     // d'IA. Son état React traverse les changements de largeur : un seul clic pour les six mesures.
     await cliquerSelecteur(session, '.log-drawer .ld-btn');
     await sleep(400);
+    // Un NAVIRE de campagne : l'ouvreur d'écran du rail n'est monté qu'avec lui
+    // (`src/ui/CampaignView.tsx`, `vessel &&`). Même couture que `__wfrp.scenario`
+    // (`src/state/devtools.ts`, `sc.vessel`), valeur du scénario 14 (`14-voyage-maritime.ts`).
+    const navire = await evaluate(session, `(() => {
+      window.__wfrp.store.setState({ vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } } });
+      return !!window.__wfrp.store.getState().vessel;
+    })()`);
+    if (!navire) throw new Error('mise en place : le navire de campagne ne se pose pas — sonde aveugle sur l’ouvreur du rail');
+    await sleep(300);
 
     for (const w of args.widths) {
       await setViewport(session, w, HEIGHT);
       await sleep(600);
       const m = await evaluate(session, PROBE);
       if (!m.combat) throw new Error(`combat ${w}px : aucune frise d'initiative — le combat n'est pas monté`);
-      const d = defauts(m, 'combat');
+      const d = [...defauts(m, 'combat'), ...defautsMatrice(m, 'combat')];
+      serieCombat.push(m);
       console.log(`combat ${w}px — dock ${m.dock ? m.dock.rect.h + 'px de haut / ' + m.dockBtns.length + ' contrôle(s)' : 'ABSENT'}, piste ${m.piste.clientWidth}/${m.piste.scrollWidth}px dans une bande de ${m.piste.bande}px, frise ${m.frise ? (m.frise.bande ? 'bande' : 'colonne') + ' à ' + m.frise.margeDroite + 'px du bord, Round ' + (m.frise.roundVisible ? 'visible' : 'HORS CHAMP') + ', tête ' + (!m.frise.teteMesuree ? 'non mesurée' : (m.frise.teteDecouverte || m.frise.teteSurCartouche) ? 'DÉCOUVERTE' : 'couverte') + ', pied ' + (!m.frise.piedMesure ? 'non mesuré' : m.frise.piedRogne ? 'DÉBORDE de ' + m.frise.piedRogne.debord + 'px' : 'entier') : 'n/a'}, chevauchement fil×frise ${m.feedXfrise ? m.feedXfrise.ox + '×' + m.feedXfrise.oy + 'px' : 'aucun'} → ${d.length ? d.length + ' défaut(s)' : 'OK'}`);
       dire(d);
       echecs.push(...d);
+      echecs.push(...await jugerGroupeDeplie(session, m, 'combat'));
     }
+    const compaciteCombat = defautsCompacite(serieCombat, 'combat');
+    dire(compaciteCombat);
+    echecs.push(...compaciteCombat);
 
     // ── Combat, ACTEUR AU TRAIT EN BAS DE L'ORDRE ──────────────────────────────────────────────
     // La piste est alors DÉFILÉE à fond (`useRamenerEnVue` amène l'entrée au trait en vue) et le
@@ -649,6 +927,27 @@ async function main() {
       console.log(`combat (au trait en bas) ${w}px — ${auTrait} au trait, frise ${(m.frise.bande ? 'bande' : 'colonne')}, tête ${!m.frise.teteMesuree ? 'non mesurée' : (m.frise.teteDecouverte || m.frise.teteSurCartouche) ? 'DÉCOUVERTE' : 'couverte'}, pied ${!m.frise.piedMesure ? 'non mesuré' : m.frise.piedRogne ? 'DÉBORDE de ' + m.frise.piedRogne.debord + 'px (zone ' + m.frise.piedRogne.zone + 'px)' : 'entier'}, pas ${m.frise.pas ? m.frise.pas.min + '–' + m.frise.pas.max + 'px' : 'n/a'} → ${d.length ? d.length + ' défaut(s)' : 'OK'}`);
       dire(d);
       echecs.push(...d);
+    }
+
+    // ── Combat, POINTEUR GROSSIER (§12 <=560, Caméra / inspection) ─────────────────────────────
+    // L'émulation tactile de CDP (`Emulation.setTouchEmulationEnabled`) fait répondre
+    // `(pointer: coarse)` : la tranche tactile se MESURE, elle ne se lit pas au texte du CSS.
+    const etroites = args.widths.filter((w) => trancheMatrice(w) === '<=560');
+    if (etroites.length) {
+      await session.rpc('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 });
+      try {
+        for (const w of etroites) {
+          await setViewport(session, w, HEIGHT);
+          await sleep(500);
+          const m = await evaluate(session, PROBE);
+          const d = defautsTactile(m, 'combat');
+          console.log(`combat (pointeur grossier) ${w}px — ${m.cibles ? m.cibles.map((c) => c.label + ' ' + c.w + '×' + c.h).join(', ') : 'pointeur fin'} → ${d.length ? d.length + ' défaut(s)' : 'OK'}`);
+          dire(d);
+          echecs.push(...d);
+        }
+      } finally {
+        await session.rpc('Emulation.setTouchEmulationEnabled', { enabled: false });
+      }
     }
   } finally {
     await session.close();

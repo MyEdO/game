@@ -308,7 +308,7 @@ describe('UNE PORTE QUI S’OUVRE arrête la marche sur la case atteinte', () =>
     const t = traceur();
     demarrerMarche(get, { vue: 'iso', dir: 'up' });
     vi.advanceTimersByTime(STEP_MS);
-    pushLayer({ kind: 'fiche-perso', nature: 'modale', onDismiss: () => {} });
+    pushLayer({ kind: 'fiche-perso', nature: 'modale', plan: 'application', onDismiss: () => {} });
     vi.advanceTimersByTime(STEP_MS * 4);
     t.off();
     expect(t.cases.length).toBe(2);
@@ -318,7 +318,7 @@ describe('UNE PORTE QUI S’OUVRE arrête la marche sur la case atteinte', () =>
     const t = traceur();
     demarrerMarche(get, { vue: 'iso', dir: 'up' });
     vi.advanceTimersByTime(STEP_MS);
-    pushLayer({ kind: 'popover-codex', nature: 'popover', onDismiss: () => {} });
+    pushLayer({ kind: 'infobulle', nature: 'popover', plan: 'application', onDismiss: () => {} });
     vi.advanceTimersByTime(STEP_MS);
     t.off();
     expect(t.cases.length).toBe(3);

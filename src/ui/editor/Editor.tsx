@@ -34,6 +34,7 @@ import {
 } from './editorState';
 import { Icon } from '../Icon';
 import { Modal } from '../Modal';
+import { Row } from '../Layout';
 import { TraceLayerPanel } from './TraceLayerPanel';
 import { useEditorAutosave } from './useEditorAutosave';
 import { autosaveDelete } from '../../state/editorAutosave';
@@ -1170,10 +1171,10 @@ export function Editor({
       />
 
       <div className="editor-mobile-bar">
-        <button className={`btn${drawer === 'palette' ? ' btn-primary' : ''}`} onClick={() => setDrawer(drawer === 'palette' ? null : 'palette')}>
+        <button className="btn" aria-pressed={drawer === 'palette'} onClick={() => setDrawer(drawer === 'palette' ? null : 'palette')}>
           <Icon id="map-tool/paint" size="sm" /> Outils
         </button>
-        <button className={`btn${drawer === 'inspector' ? ' btn-primary' : ''}`} onClick={() => setDrawer(drawer === 'inspector' ? null : 'inspector')}>
+        <button className="btn" aria-pressed={drawer === 'inspector'} onClick={() => setDrawer(drawer === 'inspector' ? null : 'inspector')}>
           <Icon id="ui/search" size="sm" /> Inspecteur
         </button>
       </div>
@@ -1185,9 +1186,20 @@ export function Editor({
       )}
       {autosaveRecovery && (
         <Modal
-          variant="plain"
           title="Reprendre une sauvegarde locale ?"
           onClose={hideAutosaveRecovery}
+          footer={
+            <>
+              <button type="button" className="btn-ghost" onClick={dismissAutosave}>
+                Ignorer et supprimer
+              </button>
+              {autosaveRecovery.ok && (
+                <button type="button" className="btn" onClick={restoreAutosave} title="Annulable ensuite par Ctrl+Z — rien ne prouve que cette sauvegarde locale est plus récente que la version chargée">
+                  Restaurer
+                </button>
+              )}
+            </>
+          }
         >
           {autosaveRecovery.ok ? (
             <p className="hint">
@@ -1203,16 +1215,6 @@ export function Editor({
               <ChipDeRefus refus={refusDeLaPorteDuProjet(autosaveRecovery.refus, 'reprise')} />
             </>
           )}
-          <div className="modal-actions">
-            <button type="button" className="btn-ghost" onClick={dismissAutosave}>
-              Ignorer et supprimer
-            </button>
-            {autosaveRecovery.ok && (
-              <button type="button" className="btn" onClick={restoreAutosave} title="Annulable ensuite par Ctrl+Z — rien ne prouve que cette sauvegarde locale est plus récente que la version chargée">
-                Restaurer
-              </button>
-            )}
-          </div>
         </Modal>
       )}
       {worldOpen && (
@@ -1225,13 +1227,14 @@ export function Editor({
         <OpenProjectModal onScenario={loadScenario} onProject={loadSaved} onBuiltin={loadBuiltin} error={loadError} onClose={() => { setOpenOpen(false); setLoadError(null); }} />
       )}
       {refusDuGeste && (
-        <Modal variant="plain" title={refusDuGeste.titre} onClose={() => setRefusDuGeste(null)}>
-          <ChipDeRefus refus={refusDuGeste} />
-          <div className="modal-actions">
+        <Modal title={refusDuGeste.titre} onClose={() => setRefusDuGeste(null)}
+          footer={
             <button className="btn btn-primary" onClick={() => setRefusDuGeste(null)}>
               Fermer
             </button>
-          </div>
+          }
+        >
+          <ChipDeRefus refus={refusDuGeste} />
         </Modal>
       )}
       {saveOpen && (
@@ -1248,32 +1251,42 @@ export function Editor({
 
       {advOpen && (
         <Modal
-          variant="plain"
-          className="wide"
+          taille="large"
           title="Avancé — JSON de la scène (dialogues, triggers, rencontres)"
           onClose={() => setAdvOpen(false)}
           backdropClose
+          footer={
+            <>
+              <button className="btn" onClick={() => setAdvOpen(false)}>
+                Annuler
+              </button>
+              <button className="btn btn-primary" onClick={saveAdvanced}>
+                Appliquer
+              </button>
+            </>
+          }
         >
           <p className="hint">Filet de sécurité pour l'édition en masse ; le format est celui du schéma de Scène.</p>
           {advError && <p className="chip tone-danger" role="alert">{advError}</p>}
           <textarea className="json-editor" value={advText} onChange={(e) => setAdvText(e.target.value)} />
-          <div className="modal-actions">
-            <button className="btn" onClick={() => setAdvOpen(false)}>
-              Annuler
-            </button>
-            <button className="btn btn-primary" onClick={saveAdvanced}>
-              Appliquer
-            </button>
-          </div>
         </Modal>
       )}
       {asciiExport && (
         <Modal
-          variant="plain"
-          className="wide"
+          taille="large"
           title="Export ASCII — grilles de la carte (walled/zoneMap)"
           onClose={() => setAsciiExport(null)}
           backdropClose
+          footer={
+            <>
+              <button className="btn btn-ghost" onClick={() => setAsciiExport(null)}>
+                Fermer
+              </button>
+              <button className="btn btn-primary" onClick={downloadAscii}>
+                Télécharger
+              </button>
+            </>
+          }
         >
           <p className="hint">
             Export PARTIEL : seules les grilles walled/zoneMap et les tables legend/wallLegend/zoneLegend/relief sont
@@ -1286,17 +1299,13 @@ export function Editor({
             ))}
           </ul>
           <textarea className="json-editor" readOnly value={asciiExport.text} />
-          <div className="modal-actions">
-            <button className="btn" onClick={() => setAsciiExport(null)}>
-              Fermer
-            </button>
-            <button className="btn" onClick={() => navigator.clipboard?.writeText(asciiExport.text)}>
+          {/* « Copier » agit sur le TEXTE ci-dessus : une action du corps, pas un geste de sortie
+              (pied à 2 boutons, `docs/charte-ui.md` § Modales). */}
+          <Row justify="end">
+            <button className="btn small" onClick={() => navigator.clipboard?.writeText(asciiExport.text)}>
               Copier
             </button>
-            <button className="btn btn-primary" onClick={downloadAscii}>
-              Télécharger
-            </button>
-          </div>
+          </Row>
         </Modal>
       )}
     </div>

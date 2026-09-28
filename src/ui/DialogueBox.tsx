@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useId, useMemo, useRef } from 'react';
 import { nomDuSiege } from '../state/netFlow';
 import { useGame } from '../state/store';
 import { COUCHE_CONVERSATION, reponsesDuNoeud, type ReponseDeDialogue, type TestAnnonce } from '../state/dialogue';
@@ -12,7 +12,7 @@ import type { IconIdInput } from './icons';
 import { SpeakerBanner } from './SpeakerBanner';
 import { SpectatorChip } from './SpectatorChip';
 import { useOwnsGroupDecision, groupDecisionSeat } from './ownership';
-import { useDismissLayer } from './useDismissLayer';
+import { useModalA11y } from './Modal';
 import { GatedAction, raisonSi } from './GatedAction';
 
 /**
@@ -55,9 +55,17 @@ export function DialogueBox() {
   // primitive, donc un changement d'état qui ne change aucune réponse ne re-rend rien.
   const signature = useGame((s) => JSON.stringify(reponsesDuNoeud(s)));
   const reponses = useMemo(() => JSON.parse(signature) as ReponseDeDialogue[], [signature]);
-  // COUCHE BLOQUANTE : une conversation en cours consomme le congédiement sans rien fermer — on en
-  // sort par une réponse, jamais par Échap (`onDismiss: null`, l'équivalent de `closedBy="none"`).
-  useDismissLayer(COUCHE_CONVERSATION, 'modale', null, !!dialogue);
+  // MODALE de la pile (`useModalA11y`), au plan de la SCÈNE : toute couche d'application est peinte
+  // au-dessus d'elle (`dismissStack`, `coucheDuDessus`). Au-dessus, elle suspend le jeu — registre
+  // clavier et manette muets hors ses réponses (`bindingApplies`), Tab piégé dans ses choix, focus
+  // emprunté à l'ouverture et à chaque nœud. Sans `onClose`, sa couche est BLOQUANTE : on en sort par
+  // une réponse, jamais par Échap (l'équivalent de `closedBy="none"`). Porteur du piège, elle déclare
+  // sa boîte en dialogue modal nommé (`ScreenShell.tsx`, WAI-ARIA APG « Dialog (Modal) Pattern ») :
+  // nom = le locuteur, description = la réplique.
+  const boite = useRef<HTMLDivElement>(null);
+  const nomId = useId();
+  const repliqueId = useId();
+  useModalA11y(boite, undefined, { kind: COUCHE_CONVERSATION, plan: 'scene', actif: !!dialogue, etape: dialogue?.nodeId });
   if (!dialogue) return null;
   const node = dialogue.dialogue.nodes.find((n) => n.id === dialogue.nodeId);
   if (!node) return null;
@@ -69,7 +77,12 @@ export function DialogueBox() {
   const speakerName = speakerEnt?.label;
 
   return (
-    <SpeakerBanner ent={speakerEnt} label={speakerName} variant="dialogue" choices={<>
+    <SpeakerBanner
+      ref={boite} ent={speakerEnt} label={speakerName} variant="dialogue"
+      role="dialog" aria-modal="true"
+      aria-labelledby={speakerName ? nomId : undefined} aria-label={speakerName ? undefined : 'Conversation'}
+      aria-describedby={node.desc ? repliqueId : undefined} labelId={nomId} textId={repliqueId}
+      choices={<>
       {reponses.map((r) => {
         const num = t('dlg.choiceNum', { n: r.rang });
         const tag = r.test ? libelleDuTest(r.test) : '';

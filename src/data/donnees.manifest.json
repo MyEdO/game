@@ -230,7 +230,7 @@
           "files": [
             "regles.json"
           ],
-          "desc": "Procédures / options de jeu au texte VERBATIM (Sombre Pacte, modes d'attaque/défense, Empoignade, Focalisation étendue, Ragot au marché…) — routées en tooltip `CodexRef` (catégorie Codex `regles`), jamais une paraphrase de règle (#392)"
+          "desc": "Procédures / options de jeu (Sombre Pacte, modes d'attaque/défense, Empoignade, Focalisation étendue, Ragot au marché…) dont la prose est ADRESSÉE au passage du livre (`descRef`, #1887), jamais recopiée ni paraphrasée — routées en tooltip `CodexRef` (catégorie Codex `regles`)"
         },
         {
           "files": [
@@ -337,7 +337,7 @@
           "files": [
             "flow-stakes.json"
           ],
-          "desc": "Enjeu d'un JET DE MODALE MONO (#1117), keyé par l'id de jet `{flow, phase}` — descripteur mécanique + foyer de règle (entité porteuse) ou catégorie de l'entrée jouée, lu par `flowStakeRef`/`resolveStake` (`src/data/index.ts`)"
+          "desc": "Enjeu d'un JET DE MODALE MONO (#1117), keyé par son `id` (`FlowStakeId`) — descripteur mécanique + foyer de règle (entité porteuse) ou catégorie de l'entrée jouée, lu par `flowStakeRef`/`resolveStake` (`src/data/index.ts`)"
         },
         {
           "files": [

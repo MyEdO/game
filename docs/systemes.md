@@ -6,8 +6,8 @@
 > transitive des modules racines déclarés par système) — jamais périmée : re-générer après tout ajout.
 
 **Périmètre mesuré / angles morts** — la closure d'import est calculée par `closureOf` (`scripts/guards/lib/importGraph.mjs`) :
-parcours RÉGEX des specifiers `from '…'`/`import('…')`, RÉSOLUS SEULEMENT s'ils sont RELATIFS (`./`, `../`) — un
-import via alias tsconfig ou paquet npm n'est jamais suivi (`resolveImport` renvoie `null`), donc invisible ici sans
+parcours RÉGEX des specifiers `from '…'`/`import('…')`, RÉSOLUS s'ils sont RELATIFS (`./`, `../`) ou sous un alias
+de `tsconfig.json` (`@/…`) — un paquet npm n'est jamais suivi (`resolveImport` renvoie `null`), donc invisible ici sans
 que la primitive soit hors d'usage. L'inventaire « modules non rattachés » est lui-même borné : SURFACE de
 `src/state`/`src/engine` uniquement (`listerDossier` non récursif, `*.test.ts` exclus) — un fichier niché dans un
 sous-dossier, ou situé ailleurs (`src/ui`, `src/gameIso`, `src/data`…), n'y apparaît jamais, rattaché ou non.
@@ -55,6 +55,14 @@ n'exclut pas un usage indirect hors des modules racines déclarés).
 | Primitive | combat | magie | corruption | psychologie | voyage-terre | voyage-fluvial | voyage-maritime | combat-naval | bataille-masse | interlude | commerce | equipage | repos-survie | coop | editeur | codex |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | `ScreenShell` |  |  |  |  | U |  | U | U |  |  | U |  |  |  | U |  |
+| `CadrePied / CadreFermer` |  | U | U |  | U |  | U | U | U | U | U | U | U | U | U | U |
+| `Planche` |  |  |  |  |  |  |  | U |  |  |  |  |  |  |  |  |
+| `Modal` |  | U | U |  | U |  | U | U | U | U | U | U | U | U | U | U |
+| `BoiteAncree / usePlacementAncre / placerAncre` |  | U | U |  | U |  | U | U | U | U | U | U | U | U | U | U |
+| `useInfobulle` |  | U | U |  | U |  | U | U | U | U | U | U | U | U | U | U |
+| `CodexRef / CodexTitre` |  | U | U |  | U |  | U | U | U | U | U | U | U | U | U | U |
+| `useFocusEmprunte / SURFACE / focusSansIntention / poserFocus / visibleFocusables` |  | U | U |  | U |  | U | U | U | U | U | U | U | U | U | U |
+| `useDismissLayer / dialogueDuDessus / surfaceFocalisee` |  | U | U |  | U |  | U | U | U | U | U | U | U | U | U | U |
 | `RollShell` |  | U | U |  | U |  | U | U | U | U | U | U | U |  |  |  |
 | `RollRow` |  | U | U |  | U |  | U | U | U | U | U | U | U |  |  |  |
 | `makeRollFlow/FLOWS` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
@@ -104,12 +112,12 @@ n'exclut pas un usage indirect hors des modules racines déclarés).
 | `QtyStepper` |  | U | U |  | U |  | U | U | U | U | U | U | U |  | U | U |
 | `NumberField` |  | U | U |  | U |  | U | U | U | U | U | U | U |  | U | U |
 | `FREE_ATTACK_LABEL` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
-| `GameOpChips` |  | U | U |  | U |  | U | U | U | U | U | U | U |  |  |  |
+| `GameOpChips` |  | U | U |  | U |  | U | U | U | U | U | U | U |  | U | U |
 | `opRows` |  | U | U |  | U |  | U | U | U | U | U | U | U | U | U | U |
 | `suspendActiveCascade/resumeSuspendedCascade` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 | `CreatorDice` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | `CharacterPreview` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| `GatedAction` |  | U | U |  | U |  | U | U | U | U | U | U | U | U | U | U |
+| `GatedAction / classeBouton` |  | U | U |  | U |  | U | U | U | U | U | U | U | U | U | U |
 | `RoseAxes` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | `MetalStatus` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | `WaxSeal/SealedPlaque` |  | U | U |  | U |  | U | U | U | U | U | U | U | U | U | U |
@@ -160,6 +168,7 @@ n'exclut pas un usage indirect hors des modules racines déclarés).
 | `Coins` |  |  |  |  | U |  | U | U | U | U | U |  | U |  | U |  |
 | `applyAttackResult / jouerLApresCoup / APRES_COUP / SuiteDeCoup / SuiteDeDefense` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 | `accesBase / brancherBasesSimulees` |  |  |  |  |  |  |  |  |  |  |  |  |  |  | U | U |
+| `coupeAuMot` |  | U | U |  | U |  | U | U | U | U | U | U | U | U | U | U |
 | `echapperRegex` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | `alternationDe` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | `alternationDeRegex` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
@@ -275,4 +284,4 @@ unique ne « possède » légitimement ; à trier au fil de l'eau, pas un échec
 - `src/state/sceneEdit.testkit.ts`
 - `src/state/turnEconomy.ts`
 - `src/state/viewLevel.ts`
-<!-- sources-empreinte: 41e705071fd85c0516c1d6fb9c7dea47bbadd0fc (1847 fichiers, 2 dossiers) corps: abf6e17ea0581f88b5f5e1a75b421a17aa65e9bb -->
+<!-- sources-empreinte: d5a1f2fda5ed8e7883908591d65e0c7c6e0e6a91 (1856 fichiers, 2 dossiers) corps: c59225b55dc01aa6156806a975455167622ee30c -->

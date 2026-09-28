@@ -21,40 +21,13 @@
 //
 // Usage : `npm run ops:worktrees` (inventaire seul) ou `npm run ops:worktrees -- --purger`.
 import { fileURLToPath } from 'node:url'
-import { estAncetre, fetchOrigin, lireGit, natureDuChemin } from '../guards/lib/gitPorte.mjs'
+import {
+  TRONC, depotDe, elaguerWorktrees, estAncetre, etatDeLArbre, fetchOrigin, natureDuChemin, retirerWorktree, reussi, supprimerBranche, worktreesDe,
+} from '../guards/lib/gitPorte.mjs'
 import { normaliserRacine } from '../port-dev.mjs'
 
 /** Racine de l'arbre qui porte CE script (le dépôt commun répond pour tous ses worktrees). */
 export const RACINE = fileURLToPath(new URL('../..', import.meta.url))
-
-/**
- * `git worktree list --porcelain` → un enregistrement par worktree. PURE.
- * Blocs séparés par une ligne vide ; le PREMIER bloc est l'arbre principal.
- * @param {string} texte
- * @returns {{chemin: string, head: string|null, branche: string|null, verrouille: boolean,
- *   verrouillePour: string|null, principal: boolean, prunable: string|null, nu: boolean}[]}
- */
-export function parseWorktrees(texte) {
-  const blocs = String(texte ?? '').replace(/\r\n/g, '\n').split(/\n\s*\n/).map((b) => b.trim()).filter(Boolean)
-  return blocs.map((bloc, i) => {
-    const w = {
-      chemin: '', head: null, branche: null, verrouille: false, verrouillePour: null,
-      principal: i === 0, prunable: null, nu: false,
-    }
-    for (const ligne of bloc.split('\n')) {
-      const [cle, ...reste] = ligne.trim().split(' ')
-      const valeur = reste.join(' ').trim()
-      if (cle === 'worktree') w.chemin = valeur
-      else if (cle === 'HEAD') w.head = valeur
-      else if (cle === 'branch') w.branche = valeur.replace(/^refs\/heads\//, '')
-      else if (cle === 'detached') w.branche = null
-      else if (cle === 'bare') w.nu = true
-      else if (cle === 'locked') { w.verrouille = true; w.verrouillePour = valeur || null }
-      else if (cle === 'prunable') w.prunable = valeur || 'prunable'
-    }
-    return w
-  }).filter((w) => w.chemin)
-}
 
 /** Les sept classes, de la plus intouchable à la seule purgeable. */
 export const CLASSES = ['principal', 'tenu', 'absent', 'verrouillé', 'sale', 'propre+hors-main', 'propre+fusionné']
@@ -134,39 +107,44 @@ export function comptesParClasse(worktrees) {
   return comptes
 }
 
+/** Les GESTES au dépôt de l'inventaire — ses questions et `fetchOrigin` —, ceux de l'hôte (`gitPorte.mjs`) : injectables (mesure). */
+export const GESTES_DE_L_INVENTAIRE = Object.freeze({ worktreesDe, fetchOrigin, etatDeLArbre, estAncetre })
+
+/** Les GESTES au dépôt de la purge — ses écrivains —, ceux de l'hôte : injectables (mesure). */
+export const GESTES_DE_LA_PURGE = Object.freeze({ retirerWorktree, supprimerBranche, elaguerWorktrees })
+
 /**
  * Inventaire classé des worktrees du dépôt qui contient `racine`. L'outil se joue depuis N'IMPORTE
  * QUEL worktree : `racine` ne sert qu'à INTERROGER git, et tous les gestes suivants prennent pour
- * `cwd` l'ARBRE PRINCIPAL — le PREMIER bloc de `git worktree list --porcelain`, déjà absolu, donc
- * aucun second `rev-parse` ici. `git`, `fetch` et la sonde de disque sont injectables (mesure).
- * @param {{racine?: string, cwd?: string, git?: Function, fetch?: Function, nature?: Function}} [params]
+ * `cwd` l'ARBRE PRINCIPAL — le premier worktree que rend `worktreesDe`, déjà absolu, donc aucun
+ * second `rev-parse` ici. Les gestes au dépôt et la sonde de disque sont injectables (mesure).
+ * @param {{racine?: string, cwd?: string, gestes?: typeof GESTES_DE_L_INVENTAIRE, nature?: Function}} [params]
  * @returns {{ok: true, worktrees: object[], fusionLue: boolean, principal: string, tenus: Set<string>}
  *   | {ok: false, refus: string}}
  */
-export function inventaire({ racine = RACINE, cwd = process.cwd(), git = lireGit, fetch = fetchOrigin, nature = natureDuChemin } = {}) {
-  const vuListe = git(['worktree', 'list', '--porcelain'], { cwd: racine, site: 'git worktree list' })
-  if (!vuListe.disponible) return { ok: false, refus: `git worktree list illisible : ${vuListe.raison}` }
-  if (vuListe.absent || vuListe.valeur.status !== 0) return { ok: false, refus: 'git worktree list n’a rien rendu' }
-
-  const bruts = parseWorktrees(vuListe.valeur.stdout)
-  const principal = bruts[0]?.chemin
+export function inventaire({ racine = RACINE, cwd = process.cwd(), gestes = GESTES_DE_L_INVENTAIRE, nature = natureDuChemin } = {}) {
+  let bruts
+  try {
+    bruts = gestes.worktreesDe(depotDe(racine))
+  } catch (e) {
+    return { ok: false, refus: `git worktree list illisible : ${e.raison ?? e.message}` }
+  }
+  const principal = bruts?.[0]?.chemin
   if (!principal) return { ok: false, refus: 'git worktree list n’a rien rendu' }
   const tenus = arbresTenus({ worktrees: bruts, racine, cwd })
 
-  const vuFetch = fetch({ cwd: principal })
-  const fusionLue = vuFetch.disponible === true
+  const depot = depotDe(principal)
+  const fusionLue = gestes.fetchOrigin(depot).disponible === true
 
   const worktrees = bruts.map((w) => {
     if (w.principal) return { ...w, absent: false, sale: false, fusionne: null, classe: 'principal' }
     const absent = nature(w.chemin) !== 'repertoire'
-    let sale = false
-    if (!absent) {
-      const vuStatus = git(['-C', w.chemin, 'status', '--porcelain'], { cwd: principal, site: 'git status' })
-      sale = vuStatus.disponible && !vuStatus.absent && vuStatus.valeur.stdout.trim() !== ''
-    }
+    // Un arbre ILLISIBLE n'est pas propre : il ne se purge pas.
+    let illisible = false
+    const sale = !absent && (gestes.etatDeLArbre(depotDe(w.chemin, { enPanne: () => { illisible = true } })).length > 0 || illisible)
     let fusionne = null
     if (fusionLue && !absent && w.head) {
-      const vu = estAncetre(w.head, 'origin/main', { cwd: principal })
+      const vu = gestes.estAncetre(depot, w.head, TRONC.suivi)
       fusionne = vu.disponible && !vu.absent ? vu.valeur === true : null
     }
     const enrichi = { ...w, absent, sale, fusionne }
@@ -185,34 +163,34 @@ export function inventaire({ racine = RACINE, cwd = process.cwd(), git = lireGit
  * vert ou rouge. Un dossier ENCORE PRÉSENT est un geste `ÉCHEC` de plus, qui dit la main à mettre —
  * sans quoi la sortie annonce un retrait qui n'a pas eu lieu (cas mesuré : EPERM sur un arbre tenu ;
  * et un `remove` VERT peut laisser le dossier, un fichier restant tenu par un autre processus).
- * @param {{principal?: string, worktrees: object[], git?: Function, nature?: Function}} params
+ * @param {{principal?: string, worktrees: object[], gestes?: typeof GESTES_DE_LA_PURGE, nature?: Function}} params
  * @returns {{chemin: string, geste: string, ok: boolean, detail: string}[]}
  */
-export function purger({ principal = RACINE, worktrees, git = lireGit, nature = natureDuChemin }) {
-  const gestes = []
+export function purger({ principal = RACINE, worktrees, gestes = GESTES_DE_LA_PURGE, nature = natureDuChemin }) {
+  const depot = depotDe(principal)
+  const joues = []
   const rendu = (vu) => (vu.disponible
     ? (vu.absent ? 'objet absent' : `code ${vu.valeur.status}${vu.valeur.stderr.trim() ? ` — ${vu.valeur.stderr.trim()}` : ''}`)
     : `indisponible — ${vu.raison}`)
-  const reussi = (vu) => vu.disponible && !vu.absent && vu.valeur.status === 0
   const tentes = []
 
   for (const w of worktrees.filter((x) => x.classe === 'propre+fusionné')) {
-    const vuRemove = git(['worktree', 'remove', w.chemin], { cwd: principal, site: 'git worktree remove' })
+    const vuRemove = gestes.retirerWorktree(depot, w.chemin)
     const removeOk = reussi(vuRemove)
     tentes.push({ chemin: w.chemin, branche: w.branche, ok: removeOk })
-    gestes.push({ chemin: w.chemin, geste: `git worktree remove ${w.chemin}`, ok: removeOk, detail: rendu(vuRemove) })
+    joues.push({ chemin: w.chemin, geste: `git worktree remove ${w.chemin}`, ok: removeOk, detail: rendu(vuRemove) })
     if (!removeOk || !w.branche) continue
-    const vuBranche = git(['branch', '-d', w.branche], { cwd: principal, site: 'git branch -d' })
-    gestes.push({ chemin: w.chemin, geste: `git branch -d ${w.branche}`, ok: reussi(vuBranche), detail: rendu(vuBranche) })
+    const vuBranche = gestes.supprimerBranche(depot, w.branche)
+    joues.push({ chemin: w.chemin, geste: `git branch -d ${w.branche}`, ok: reussi(vuBranche), detail: rendu(vuBranche) })
   }
   // Un worktree `absent` (dossier disparu, `prunable`) suffit à justifier la taille : sans cela,
   // l'inventaire le répéterait à chaque passage tant qu'aucun retrait n'a lieu par ailleurs.
-  if (gestes.length || worktrees.some((w) => w.classe === 'absent')) {
-    const vuPrune = git(['worktree', 'prune'], { cwd: principal, site: 'git worktree prune' })
-    gestes.push({ chemin: principal, geste: 'git worktree prune', ok: reussi(vuPrune), detail: rendu(vuPrune) })
+  if (joues.length || worktrees.some((w) => w.classe === 'absent')) {
+    const vuPrune = gestes.elaguerWorktrees(depot)
+    joues.push({ chemin: principal, geste: 'git worktree prune', ok: reussi(vuPrune), detail: rendu(vuPrune) })
   }
   for (const t of tentes.filter((x) => nature(x.chemin) !== 'absent')) {
-    gestes.push({
+    joues.push({
       chemin: t.chemin,
       geste: `re-mesure ${t.chemin}`,
       ok: false,
@@ -222,7 +200,7 @@ export function purger({ principal = RACINE, worktrees, git = lireGit, nature = 
           `branche \`${t.branche ?? 'détachée'}\` conservée`,
     })
   }
-  return gestes
+  return joues
 }
 
 function main() {
@@ -242,10 +220,10 @@ function main() {
     process.stderr.write('[worktrees] --purger refusé : origin/main n’a pas été lu, on ne purge pas sur rien.\n')
     process.exit(1)
   }
-  const gestes = purger({ principal: vu.principal, worktrees: vu.worktrees })
-  if (!gestes.length) process.stdout.write('rien à purger : aucun worktree propre+fusionné\n')
-  for (const g of gestes) process.stdout.write(`${g.ok ? 'ok' : 'ÉCHEC'}\t${g.geste}\t${g.detail}\n`)
-  if (gestes.some((g) => !g.ok)) process.exit(1)
+  const joues = purger({ principal: vu.principal, worktrees: vu.worktrees })
+  if (!joues.length) process.stdout.write('rien à purger : aucun worktree propre+fusionné\n')
+  for (const g of joues) process.stdout.write(`${g.ok ? 'ok' : 'ÉCHEC'}\t${g.geste}\t${g.detail}\n`)
+  if (joues.some((g) => !g.ok)) process.exit(1)
 }
 
 if (import.meta.main) main()

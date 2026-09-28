@@ -1,43 +1,4 @@
-/* ── Cadre de la fiche de personnage (modal, layout, portrait, vitalité) ── */
-/* Fiche de personnage / équipement */
-.sheet-modal {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  width: 880px;
-  max-width: 94vw;
-  height: 88vh; /* hauteur STABLE : changer d'onglet ne redimensionne plus la fenêtre (L1) — le corps scrolle */
-  overflow: hidden;
-  padding-top: 16px; /* bandeau or 4px porté par `.modal` (components.css, #414) */
-}
-/* Overlay de la FICHE : panneau de référence PASSIF → reste SOUS les modales actives (jets, défense…
-   z-index 130) pour qu'un jet lancé DEPUIS la fiche s'affiche AU-DESSUS. Au-dessus de la victoire (120). B3. */
-.sheet-overlay {
-  z-index: 125;
-}
-.sheet-close {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  z-index: 2;
-}
-/* Layout : L'ESSENTIEL à gauche (permanent) · détail en onglets à droite. S'empile ≤700px. */
-.sheet-layout {
-  flex: 1;
-  min-height: 0; /* L1 : remplit la hauteur stable du modal, autorise le scroll interne des colonnes */
-  display: grid;
-  grid-template-columns: 240px minmax(0, 1fr);
-  gap: 16px;
-}
-.sheet-aside {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  border-right: 1px solid var(--border);
-  padding-right: 16px;
-  min-height: 0;
-  overflow-y: auto; /* L1 : la colonne « essentiel » scrolle seule si elle dépasse */
-}
+/* ── Fiche de personnage, contenu de la `Planche` (portrait, vitalité, onglets) ── */
 /* Grand portrait + identité en tête de colonne (illustration du perso). */
 .sheet-portrait {
   display: flex;
@@ -52,12 +13,6 @@
   border-radius: 999px; /* médaillon rond, façon écu */
   border-width: 3px;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
-}
-.sheet-portrait h3 {
-  margin: 0;
-  font-size: 21px;
-  color: var(--gold2);
-  line-height: 1.05;
 }
 /* Barres de vie/Encombrement (croquis colonne 2026-07-17) : la primitive `LifeBar` s'étire pleine
    largeur — sans ça, `align-items: center` du parent la réduirait à son contenu. */
@@ -98,18 +53,6 @@
 .sheet-portrait .life-bar__value {
   text-align: right;
 }
-.sheet-main {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  min-height: 0;
-}
-/* Corps d'onglet : SEUL élément qui scrolle → la hauteur du modal ne bouge pas d'un onglet à l'autre (L1). */
-.sheet-tabbody {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-}
 /* Vitalité + ressources : cartouches = primitive .stat-chip (components.css) ; ici, juste les grilles
    et les accents propres à la fiche. */
 .sheet-vitals {
@@ -121,15 +64,6 @@
   color: var(--gold2);
 }
 @media (max-width: 700px) {
-  .sheet-layout {
-    grid-template-columns: 1fr;
-  }
-  .sheet-aside {
-    border-right: none;
-    border-bottom: 1px solid var(--border);
-    padding-right: 0;
-    padding-bottom: 12px;
-  }
   /* Mobile : la boîte-figurine `hero` (#492 lot « colonne présence ») reste EMPILÉE (une rangée
      portrait+texte n'a plus de sens à 320px de haut) — resserrée pour l'espace vertical restreint. */
   .sheet-portrait .fig-tile.hero {
@@ -139,16 +73,6 @@
     height: 168px;
   }
 }
-/* Onglet Combat de la fiche : la surface = primitive .panel.stack (components.css). */
-.sheet-main > .panel {
-  margin-bottom: 14px;
-}
-
-/* ── Fiche : onglets Fiche / Avancement — primitive `<Tabs>` (components.css) ── */
-.sheet-tabnav {
-  margin-bottom: 12px;
-}
-
 /* ── Panneau d'avancement ── */
 .adv-panel {
   display: flex;
@@ -455,24 +379,6 @@
 /* Compteurs de Seuils (bande `Seuils` en tête du registre) : `NotchGauge` (ton `GaugeTone` porté par
    la primitive), empilées ALIGNÉES via `.notch-gauge-stack` (patron de groupe, `gauges.css`) —
    aucune classe ICI. */
-/* Gangrène du cadre (pt.6, #492) : l'or du bandeau de tête (`.modal { border-top: 4px solid --gold }`,
-   components.css) et le halo se ternissent progressivement de violet-noir depuis un coin, selon la
-   Corruption du héros (`data-corruption`, posé par `CharacterSheet.tsx` via `corruptionThresholdExceeded`,
-   `engine/corruption.ts`) — matière SOBRE (dégradé subtil), jamais un filtre criard. `none` = aucune
-   règle (Corruption à 0, cas courant). */
-.sheet-modal[data-corruption='ronge'] {
-  background:
-    radial-gradient(360px 260px at 100% 0%, color-mix(in srgb, var(--corruption-violet) 14%, transparent), transparent 62%),
-    radial-gradient(520px 300px at 50% 0%, rgba(224, 181, 90, 0.07), transparent 62%),
-    linear-gradient(160deg, var(--atelier-shell-hi), var(--atelier-modal-lo));
-}
-.sheet-modal[data-corruption='seuil'] {
-  border-top-color: var(--corruption-violet);
-  background:
-    radial-gradient(420px 320px at 100% 0%, color-mix(in srgb, var(--corruption-violet) 28%, transparent), transparent 66%),
-    linear-gradient(160deg, var(--atelier-shell-hi), var(--atelier-modal-lo));
-}
-
 /* Faveurs dues (LDB 23 l.139-153, #509) : cartouche `.stat-chip` réétirée en colonne (plus de
    contenu qu'un simple label+valeur) — texte aligné à gauche, action de rupture en pied. */
 .bg-favors { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }

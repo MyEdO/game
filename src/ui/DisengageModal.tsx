@@ -1,5 +1,5 @@
 import { useGame } from '../state/store';
-import { flowStakeRef } from '../data';
+import { flowStakeRef, type FlowStakeId } from '../data';
 import { StakeNote, StakeRule, stakeRuleOf } from './StakeNote';
 import { defenseValue, combatValue, defenseModifiers, baseTestModLines } from '../engine/combat';
 import { calmeValue } from '../engine/psychology';
@@ -13,12 +13,16 @@ import { VsHeader } from './VsHeader';
 import { recapLineOfEvent } from '../gameIso/combatNarration';
 import { ev } from '../state/combatLog';
 import { describeDisengage, describeDisengageFlee } from '../state/flowOutcomes';
-import { fleeBackstab, fleeCalme, fleeNeedCalme } from '../state/pendings';
+import { fleeBackstab, fleeCalme, fleeNeedCalme, type PendingDisengage } from '../state/pendings';
 import { Modal } from './Modal';
+import { Stack } from './Layout';
 import { Icon } from './Icon';
 import { opposedLines, testBreakdown } from './breakdown';
 import { opposedResponded } from './opposedFrozen';
 import { buildRollRow, frozenOpposedRow, type BuiltRollRow } from './rollRowBuild';
+
+/** Enjeu servi par chaque fenêtre du Désengagement. */
+const DISENGAGE_STAKE: Record<PendingDisengage['phase'], FlowStakeId> = { choice: 'disengage-choice', esquive: 'disengage-esquive', fuir: 'disengage-fuir' };
 
 /**
  * Modale de Désengagement (LDB 15 l.43-68). Trois phases, une seule coquille de jet PARTAGÉE :
@@ -60,42 +64,49 @@ export function DisengageModal() {
     // 1 avec Impitoyable) débité de la réserve du camp ; sinon LDB « Sacrifier l'Avantage » (→ 0).
     const groupMode = groupAdvantage();
     const retreatCost = retreatAdvantageCost(mover);
-    const choiceStake = flowStakeRef('disengage', pd.phase);
-    const sacrificeLabel = groupMode ? `↩ Retraite stratégique (${retreatCost} Av)` : "Sacrifier l'Avantage";
+    const choiceStake = flowStakeRef(DISENGAGE_STAKE[pd.phase]);
+    const sacrificeLabel = <><Icon id="melee/disengage" size="sm" /> {groupMode ? `Retraite stratégique (${retreatCost} Av)` : "Sacrifier l'Avantage"}</>;
     const sacrificeTitle = groupMode
       ? `Dépense ${retreatCost} Avantage(s) de la réserve du camp pour rompre le combat, sans coût d'Action`
       : "Tu as l'Avantage supérieur : pars librement, sans coût d'Action";
+    const offertes = [
+      { stake: groupMode ? flowStakeRef('disengage-retraite', { values: { cout: retreatCost } }) : flowStakeRef('disengage-sacrifice'),
+        option: { key: 'sacrifice', label: sacrificeLabel, hidden: !pd.canSacrifice, onSelect: sacrifice, title: sacrificeTitle } },
+      { stake: flowStakeRef('disengage-esquive'),
+        option: { key: 'esquive', label: <><Icon id="melee/tumble" size="sm" /> Esquiver</>, value: defenseValue(mover, 'esquive'), hidden: pd.canEsquive === false, onSelect: esquiver, title: "Test opposé d'Esquive — coûte ton Action" } },
+      { stake: flowStakeRef('disengage-fuir'),
+        option: { key: 'fuir', label: <><Icon id="melee/flee" size="sm" /> Fuir (coup dans le dos)</>, hidden: pd.canEsquive === false, onSelect: flee, title: 'Tu tournes le dos : attaque gratuite contre toi (+20), puis tu cours' } },
+    ].filter((o) => !o.option.hidden);
     return (
-      <Modal title={<>Se désengager <StakeRule rule={stakeRuleOf(choiceStake)} /></>} onClose={cancel}>
-        {header}
-        {/* Z3b : le MENU dit aussi ce qu'il met en jeu (arbitrage « on fait des jets à l'aveugle ») —
-            même primitive que la coquille de jet, l'enjeu venant de la MÊME entrée de donnée. */}
-        <StakeNote stake={choiceStake} />
-        <div className="rm-options">
-          {/* Menu d'options PARTAGÉ (OptionChooser) — Esquiver montre sa valeur effective d'Esquive. */}
-          <OptionChooser
-            layout="grid"
-            options={[
-              { key: 'sacrifice', label: sacrificeLabel, hidden: !pd.canSacrifice, onSelect: sacrifice, title: sacrificeTitle },
-              { key: 'esquive', label: <><Icon id="melee/tumble" size="sm" /> Esquiver</>, value: defenseValue(mover, 'esquive'), hidden: pd.canEsquive === false, primary: true, onSelect: esquiver, title: "Test opposé d'Esquive — coûte ton Action" },
-              { key: 'fuir', label: <><Icon id="melee/flee" size="sm" /> Fuir (coup dans le dos)</>, hidden: pd.canEsquive === false, onSelect: flee, title: 'Tu tournes le dos : attaque gratuite contre toi (+20), puis tu cours' },
-            ]}
-          />
-          {pd.canEsquive === false && (
-            <p className="modal-log">Action déjà dépensée : seul « {groupMode ? 'Retraite stratégique' : "Sacrifier l'Avantage"} » (sans coût d'Action) reste possible.</p>
-          )}
-        </div>
-        <div className="rm-influence">
-          {/* Résilience AVANT le jet (LDB 17 l.68) : Esquive forcée en réussite. */}
-          {pd.canEsquive !== false && (
-            <ResilienceButton resilience={mover.resilience ?? 0} show={(mover.resilience ?? 0) > 0} onForce={() => { esquiver(); forceSuccess(); }} />
-          )}
-        </div>
-        <div className="modal-actions">
-          <button className="btn btn-ghost" onClick={cancel}>
-            Renoncer
-          </button>
-        </div>
+      /* Décision DE COMBAT, champ lisible : les adversaires au contact se lisent sous la fenêtre. */
+      <Modal title={<>Se désengager <StakeRule rule={stakeRuleOf(choiceStake)} /></>} champ onClose={cancel} etape={pd.phase}
+        footer={
+          <>
+            <button className="btn btn-ghost" onClick={cancel}>
+              Renoncer
+            </button>
+          </>
+        }
+      >
+        <Stack gap="md">
+          {header}
+          <div className="rm-options">
+            {/* Menu d'options PARTAGÉ (OptionChooser) — chaque option porte sa note d'enjeu ; Esquiver
+                montre sa valeur effective d'Esquive. */}
+            <OptionChooser layout="grid" options={offertes.map((o) => ({ ...o.option, note: <StakeNote stake={o.stake} /> }))} />
+            {pd.canEsquive === false && (
+              <p className="modal-log">Action déjà dépensée : seul « {groupMode ? 'Retraite stratégique' : "Sacrifier l'Avantage"} » (sans coût d'Action) reste possible.</p>
+            )}
+          </div>
+          {/* Le renoncement (`disengage-choice`) : note du geste « Renoncer » du pied. */}
+          <StakeNote stake={choiceStake} />
+          <div className="rm-influence">
+            {/* Résilience AVANT le jet (LDB 17 l.68) : Esquive forcée en réussite. */}
+            {pd.canEsquive !== false && (
+              <ResilienceButton resilience={mover.resilience ?? 0} show={(mover.resilience ?? 0) > 0} onForce={() => { esquiver(); forceSuccess(); }} />
+            )}
+          </div>
+        </Stack>
       </Modal>
     );
   }
@@ -143,8 +154,9 @@ export function DisengageModal() {
 
     return (
       <RollShell
+        etape={pd.phase}
         flowKey="disengage"
-        stake={flowStakeRef('disengage', pd.phase)}
+        stake={flowStakeRef(DISENGAGE_STAKE[pd.phase])}
         title="Se désengager"
         extra={header}
         rows={rows}
@@ -199,8 +211,9 @@ export function DisengageModal() {
 
   return (
     <RollShell
+      etape={pd.phase}
       flowKey="disengage"
-      stake={flowStakeRef('disengage', pd.phase)}
+      stake={flowStakeRef(DISENGAGE_STAKE[pd.phase])}
       title="Se désengager"
       extra={header}
       rows={[foeRow, moverRow]}

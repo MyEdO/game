@@ -9,102 +9,47 @@
  *      son aspect.
  *   2. ESPACEMENT hors échelle — un `gap`/`padding`/`margin` en littéral `px`/`rem`/`em` au lieu
  *      d'un pas `var(--sp-*)`, en module d'écran ET dans `layout.css` (la couche s'applique sa
- *      propre règle ; les modules de PRIMITIVE, eux, portent leur densité comme leur matière).
+ *      propre règle — identité comprise ; les modules de PRIMITIVE, eux, portent leur densité comme
+ *      leur matière).
  *   3. STYLE INLINE — toute forme de `style=` dans `src/ui` hors l'unique exception légale
  *      (arbitrage A2, 2026-09-18) : un littéral d'objet dont TOUTES les clés sont des variables
  *      CSS, consommées par une classe (patron `.swatch`).
  *
- * FRONTIÈRE module de PRIMITIVE / module d'ÉCRAN : elle dérive du CATALOGUE, jamais d'une liste
- * gravée ici — une primitive déclare au manifeste (`src/data/primitives.manifest.json`, champ
- * `css`) le module qu'elle POSSÈDE. Tout autre `src/ui/styles/*.css` hors feuilles partagées est un
- * module d'écran.
+ * FRONTIÈRE zone exempte / STOCK : elle dérive du CATALOGUE et du graphe d'imports, jamais d'une liste
+ * gravée ici — `modulesExemptes` (`cssCouches.mjs`, #1806 L1).
  *
- * Chaque fonction de mesure est PURE sur les fichiers qu'elle reçoit : les preuves par mutation lui
- * passent des fixtures en mémoire, jamais le disque.
+ * DEUX ÉTAGES : la mesure des volets identité / espacement est PURE et vit dans `cssCouches.mjs`
+ * (les hooks la chargent sous `node` nu) ; ce module-ci compose les trois volets
+ * (`mesureCssCouches`, pur sur ce qu'il reçoit) et LIT les images — disque ou ref git — par le
+ * lecteur unique des hooks (`imageCss`, `cssImages.mjs`).
  */
-import { existsSync, readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readCorpus } from './sourceCorpus.mjs';
-import type { Site } from './stock.mjs';
-import { DECROISSANT, type RegenerationDeStock } from './stockDeSites.mjs';
+import { CHEMIN_STOCK_CSS, COLLECTIONS_VENTILEES, imageCss, sourceGit, ventilationDeGit } from './cssImages.mjs';
+import { TRAVAIL } from './gitPorte.mjs';
+import { DECROISSANT, type PolitiqueDeCroissance, type RegenerationDeStock } from './stockDeSites.mjs';
 import {
+  admisAuRetour,
+  cleDeRegle,
   declarations,
-  estPlacement,
   FEUILLES_PARTAGEES,
-  PROPRIETES_A_ECHELLE,
+  partitionCss,
   reglesCss,
-  valeurHorsEchelle,
+  type Fichier,
+  type ImageCss,
+  type Site,
 } from './cssCouches.mjs';
 
 const RACINE = fileURLToPath(new URL('../../../', import.meta.url));
 
-/** Un fichier tel que `readCorpus` le rend — ou une FIXTURE de même forme. */
-export type Fichier = { rel: string; text: string };
+/** L'image de l'arbre de travail (fichiers non suivis compris), lue par `imageCss` (`cssImages.mjs`) ;
+ *  un git indisponible LÈVE en se nommant : une image vide mesurerait sur rien. */
+export const imageDuDisque = (): ImageCss => imageCss(sourceGit({ cwd: RACINE, arbre: TRAVAIL }), { racine: RACINE });
 
-type EntreeManifeste = { id: string; css?: string };
-
-/** Les modules de `src/ui/styles/` qu'une primitive POSSÈDE (champ `css` du manifeste). */
-export function modulesDePrimitive(
-  manifeste: readonly EntreeManifeste[] = JSON.parse(
-    readFileSync(`${RACINE}src/data/primitives.manifest.json`, 'utf8'),
-  ),
-): Set<string> {
-  return new Set(manifeste.map((e) => e.css).filter((c): c is string => typeof c === 'string'));
-}
-
-/** Les modules d'ÉCRAN : `src/ui/styles/*.css` moins les feuilles partagées, moins les modules de
- *  primitive. Ce sont EUX que le cliquet (xxi) juge. */
-export function modulesDEcran(
-  fichiers: readonly Fichier[] = feuillesDeStyle(),
-  primitives: ReadonlySet<string> = modulesDePrimitive(),
-): Fichier[] {
-  return fichiers.filter((f) => !FEUILLES_PARTAGEES.includes(f.rel) && !primitives.has(f.rel));
-}
-
-/** Toutes les feuilles MESURÉES : `src/ui/styles/` ∪ les modules déclarés par le manifeste (champ
- *  `css`), où qu'ils vivent — une primitive qui n'habite pas `src/ui` (le plateau, `gameIso`) POSSÈDE
- *  quand même sa feuille, et le corpus se lit sur la SOURCE UNIQUE qu'est le manifeste (#1806). */
-export const feuillesDeStyle = (): readonly Fichier[] => {
-  const dansStyles = readCorpus(['src/ui/styles'], { exts: ['.css'] });
-  const dejaLues = new Set(dansStyles.map((f) => f.rel));
-  const ailleurs = [...modulesDePrimitive()].filter((c) => !dejaLues.has(c) && existsSync(`${RACINE}${c}`));
-  return [...dansStyles, ...ailleurs.map((rel) => ({ rel, text: readFileSync(`${RACINE}${rel}`, 'utf8') }))];
-};
-
-/** Le sélecteur NORMALISÉ d'une règle : la liste telle qu'elle est écrite, espaces réduits. Le
- *  contexte `@media` n'entre PAS dans la clé — il n'est pas un abri, et l'y mettre ferait dériver
- *  le stock au moindre déplacement de breakpoint. */
-const cleDeRegle = (selecteurs: readonly string[]) => selecteurs.join(', ').replace(/\s+/g, ' ');
-
-/** Sites d'IDENTITÉ : une déclaration qui n'est pas du PLACEMENT, dans un module d'écran. */
-export function sitesIdentiteEcran(fichiers: readonly Fichier[]): Site[] {
-  const sites: Site[] = [];
-  for (const f of fichiers) {
-    for (const { selecteurs, corps } of reglesCss(f.text)) {
-      const sel = cleDeRegle(selecteurs);
-      for (const { prop } of declarations(corps)) {
-        if (!estPlacement(prop)) sites.push({ file: f.rel, ref: `${sel} :: ${prop}` });
-      }
-    }
-  }
-  return sites;
-}
-
-/** Sites d'ESPACEMENT hors échelle `--sp-*`. */
-export function sitesEspacementHorsEchelle(fichiers: readonly Fichier[]): Site[] {
-  const sites: Site[] = [];
-  for (const f of fichiers) {
-    for (const { selecteurs, corps } of reglesCss(f.text)) {
-      const sel = cleDeRegle(selecteurs);
-      for (const { prop, valeur } of declarations(corps)) {
-        if (PROPRIETES_A_ECHELLE.has(prop) && valeurHorsEchelle(valeur)) {
-          sites.push({ file: f.rel, ref: `${sel} :: ${prop} :: ${valeur.replace(/\s+/g, ' ')}` });
-        }
-      }
-    }
-  }
-  return sites;
-}
+/** Le corpus que juge le volet INLINE : les composants `.tsx` de `src/ui`. */
+export const composantsDuDisque = (): readonly Fichier[] => readCorpus(['src/ui'], { exts: ['.tsx'] });
 
 /** Corps à partir duquel un texte est un GRAND TITRE D'AFFICHAGE, en px. */
 export const SEUIL_GRAND_TITRE_PX = 30;
@@ -409,16 +354,14 @@ function refDeStyleInline(expr: string, src: string, ouvre: number, ferme: numbe
   return [...cles].sort().join(',');
 }
 
-/** Les trois collections mesurées sur le corpus RÉEL. */
-export function mesureCssCouches(): { identite: Site[]; espacement: Site[]; inline: Site[] } {
-  const feuilles = feuillesDeStyle();
-  const ecrans = modulesDEcran(feuilles);
-  const layout = feuilles.filter((f) => f.rel === 'src/ui/styles/layout.css');
-  return {
-    identite: sitesIdentiteEcran(ecrans),
-    espacement: sitesEspacementHorsEchelle([...ecrans, ...layout]),
-    inline: sitesStyleInline(readCorpus(['src/ui'], { exts: ['.tsx'] })),
-  };
+/** Les trois collections du STOCK, PUR sur ce qu'il reçoit : identité et espacement par la partition
+ *  (`partitionCss`), inline sur les composants. Lieu UNIQUE de composition des trois volets. */
+export function mesureCssCouches(
+  image: ImageCss,
+  composants: readonly Fichier[],
+): { identite: Site[]; espacement: Site[]; inline: Site[] } {
+  const { stock } = partitionCss(image);
+  return { ...stock, inline: sitesStyleInline(composants) };
 }
 
 /** Motifs de refus des trois volets (dernière phrase de `refusDeCroissance`, `stock.mjs`). */
@@ -429,15 +372,46 @@ export const MOTIF_ESPACEMENT =
 export const MOTIF_INLINE =
   "Une géométrie calculée se pose en VARIABLE CSS consommée par une classe (patron `.swatch`), elle ne s'entérine pas ici.";
 
+/** La ventilation `HEAD` → arbre de travail dont la régénération admet le RETOURNÉ. */
+export type RetourDeTete = () => ReturnType<typeof ventilationDeGit>;
+
+/**
+ * Politique `DECROISSANT` dont la croissance admise est le RETOURNÉ (#1806 C) : un volet ventilé
+ * (`COLLECTIONS_VENTILEES`) dont `DECROISSANT` refuse les entrées est rejugé sur son stock augmenté de
+ * `admisAuRetour` — les sites que `HEAD` portait et que son stock ne comptait pas, jamais un site neuf.
+ * `retour` n'est lu qu'à ce refus, une fois par politique. Le commit déclare le retourné par une ligne
+ * `CLIQUET:` du porteur.
+ */
+export function decroissantSaufRetourne(retour: RetourDeTete): PolitiqueDeCroissance {
+  const voletDe = new Map(Object.entries(COLLECTIONS_VENTILEES).map(([volet, nom]) => [nom, volet as keyof typeof COLLECTIONS_VENTILEES]));
+  let lu: ReturnType<RetourDeTete> | undefined;
+  const politique: PolitiqueDeCroissance = {
+    nom: 'DECROISSANT_SAUF_RETOURNE',
+    datee: false,
+    refus: (p) => {
+      const refus = DECROISSANT.refus(p);
+      const volet = voletDe.get(p.collection.nom);
+      if (refus === null || volet === undefined) return refus;
+      lu ??= retour();
+      const admis = admisAuRetour(p.entrees, lu.stockAvant[volet], lu[volet].retournes);
+      return DECROISSANT.refus({ ...p, stock: [...p.stock, ...admis] });
+    },
+  };
+  return Object.freeze(politique);
+}
+
 /** La RÉGÉNÉRATION de `cssCouchesStock.mjs`, ses trois collections sur UNE mesure (par défaut, celle du
- *  corpus réel). Commande :
+ *  corpus réel), sous `decroissantSaufRetourne` (par défaut, la ventilation `HEAD` → arbre). Commande :
  *  `npx tsx scripts/guards/lib/regenStock.mts scripts/guards/lib/cssCouchesAudit.ts [--check] [--amorce]`. */
-export const regenerations = (mesure: ReturnType<typeof mesureCssCouches> = mesureCssCouches()): RegenerationDeStock[] => [{
-  chemin: fileURLToPath(new URL('./cssCouchesStock.mjs', import.meta.url)),
-  politique: DECROISSANT,
+export const regenerations = (
+  mesure: ReturnType<typeof mesureCssCouches> = mesureCssCouches(imageDuDisque(), composantsDuDisque()),
+  retour: RetourDeTete = () => ventilationDeGit({ cwd: RACINE, base: 'HEAD' }),
+): RegenerationDeStock[] => [{
+  chemin: resolve(RACINE, CHEMIN_STOCK_CSS),
+  politique: decroissantSaufRetourne(retour),
   collections: [
-    { nom: 'CSS_IDENTITE_ECRAN_RATCHET', sites: mesure.identite, motif: MOTIF_IDENTITE },
-    { nom: 'CSS_ESPACEMENT_RATCHET', sites: mesure.espacement, motif: MOTIF_ESPACEMENT },
+    { nom: COLLECTIONS_VENTILEES.identite, sites: mesure.identite, motif: MOTIF_IDENTITE },
+    { nom: COLLECTIONS_VENTILEES.espacement, sites: mesure.espacement, motif: MOTIF_ESPACEMENT },
     { nom: 'STYLE_INLINE_RATCHET', sites: mesure.inline, motif: MOTIF_INLINE },
   ],
 }];

@@ -5,34 +5,44 @@
 // rouge ne mesure rien, un détecteur sans cas vert crie sur tout.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { defauts } from './hud-clickables.mjs'
+import { defauts, defautsMatrice, defautsMatriceGroupe, defautsTactile, defautsCompacite, trancheMatrice } from './hud-clickables.mjs'
 
 /** Mesure de COMBAT sans aucun défaut (le cas vert de référence). */
 const combat = () => ({
   largeur: 360,
+  hauteur: 740,
+  grossier: false,
+  cibles: null,
   combat: true,
   rail: { dissous: true, ouvreurs: [{ i: 0, label: 'Dossier du navire', position: 'absolute', ok: true, hitBy: 'rien', rect: { x: 300, y: 400, w: 44, h: 44 } }] },
-  frise: { bande: true, margeDroite: 4, roundVisible: true, teteMesuree: true, teteDecouverte: null,
+  frise: { rect: { x: 58, y: 34, w: 298, h: 52 }, roundPremier: true, roundDansColonne: true, courantEntier: true,
+    defilable: true, suivants: { attendus: 3, entiers: 3 },
+    bande: true, margeDroite: 4, roundVisible: true, teteMesuree: true, teteDecouverte: null,
     teteSurCartouche: null, piedMesure: false, piedRogne: null, pas: { min: 40, max: 40 }, auTraitVisible: true,
     auTrait: { lisere: 3.84, controle: null, rogne: { haut: 0, bas: -4.2, gauche: 0, droite: -8.1 }, sousCartouche: null,
       caret: { h: 10, cache: 0, horsChamp: 0 } } },
-  groupe: { cartes: 4, lignes: 1, poignee: null },
-  portraits: [],
+  groupe: { cartes: 4, lignes: 1, poignee: null, total: 4, defilementSecours: true, defile: false, bas: 30, replie: false,
+    detail: [{ w: 79, nom: true, vie: true, vieSurPortrait: true, rognee: false }] },
+  portraits: [{ i: 0, rendu: true, ok: true, hitBy: 'rien', rect: { x: 10, y: 140, w: 44, h: 44 } }],
   objectif: null,
   feedXfrise: null,
   piste: { scrollWidth: 633, clientWidth: 294, bande: 294, defile: true, tientDansLaBande: true },
   tiroir: { ouvert: true, rect: { x: 200, y: 120, w: 160, h: 240 }, surPont: null },
   dock: { rect: { x: 0, y: 380, w: 360, h: 260 } },
-  dockBtns: [{ i: 0, label: 'Attaquer', ok: true, hitBy: 'rien', rect: { x: 8, y: 400, w: 60, h: 40 } }],
+  dockBtns: [{ i: 0, label: 'Attaquer', rendu: true, ok: true, entier: true, hitBy: 'rien', rect: { x: 8, y: 400, w: 60, h: 40 } }],
 })
 
 /** Mesure d'EXPLORATION sans aucun défaut. */
 const exploration = () => ({
   largeur: 360,
+  hauteur: 740,
+  grossier: false,
+  cibles: null,
   combat: false,
   rail: null,
   frise: null,
-  groupe: { cartes: 4, lignes: 1, poignee: null },
+  groupe: { cartes: 4, lignes: 1, poignee: null, total: 4, defilementSecours: true, defile: false, bas: 30, replie: false,
+    detail: [{ w: 79, nom: true, vie: true, vieSurPortrait: true, rognee: false }] },
   portraits: [{ i: 0, rendu: true, ok: true, hitBy: 'rien', rect: { x: 10, y: 10, w: 44, h: 44 } }],
   objectif: { marge: 0, avale: false, hitBy: 'boîte au ras de la tête (aucune marge morte)' },
   feedXfrise: null,
@@ -364,9 +374,273 @@ test('aucun portrait de groupe : sonde aveugle', () => {
   rouge(m, 'exploration', /aucun portrait de groupe — sonde aveugle/)
 })
 
+test('portrait de groupe RECOUVERT EN COMBAT (volet déplié sous le fil) : défaut nommé', () => {
+  const m = combat()
+  m.portraits[0].ok = false
+  m.portraits[0].hitBy = 'combat-feed <DIV>'
+  rouge(m, 'combat', /le portrait 0 du groupe ne reçoit pas son clic — recouvert par combat-feed/)
+})
+
 test('portrait de groupe RECOUVERT : défaut nommé', () => {
   const m = exploration()
   m.portraits[0].ok = false
   m.portraits[0].hitBy = 'objective-banner <DIV>'
   rouge(m, 'exploration', /le portrait 0 du groupe ne reçoit pas son clic/)
+})
+
+// ══ MATRICE RESPONSIVE §12 (docs/superpowers/specs/2026-07-31-hud-combat-exploration-design.md) ══
+// Une mesure SAINE par tranche : la colonne d'initiative à gauche au-dessus de 700, la bande sous le
+// groupe en dessous, le pont de bord à bord dans son budget de hauteur.
+function saine(largeur) {
+  const m = combat()
+  m.largeur = largeur
+  m.hauteur = 780
+  const colonne = largeur > 700
+  m.frise.bande = !colonne
+  m.frise.rect = colonne ? { x: 10, y: 70, w: 86, h: 400 } : { x: 4, y: 140, w: largeur - 8, h: 52 }
+  m.dock.rect = { x: 0, y: 780 - 150, w: largeur, h: 150 }
+  return m
+}
+
+/** La liste doit porter EXACTEMENT un défaut, dont le texte porte `motif`. */
+function unSeul(liste, motif) {
+  assert.equal(liste.length, 1, `attendu 1 défaut, obtenu ${liste.length} : ${liste.join(' | ')}`)
+  assert.match(liste[0], motif)
+}
+
+test('tranches du §12 : bornes 900 / 700 / 560, 360 dans la tranche <=560', () => {
+  assert.deepEqual([1707, 901, 900, 701, 700, 561, 560, 360].map(trancheMatrice),
+    ['>900', '>900', '701–900', '701–900', '561–700', '561–700', '<=560', '<=560'])
+})
+
+test('mesures saines aux quatre tranches : aucun défaut de matrice', () => {
+  for (const l of [1707, 900, 700, 360]) assert.deepEqual(defautsMatrice(saine(l), 'combat'), [], `${l}px`)
+})
+
+// ── Groupe ──
+test('carte du groupe NON RENDUE : défaut compté', () => {
+  const m = saine(1707)
+  m.groupe.cartes = 3
+  unSeul(defautsMatrice(m, 'combat'), /1 carte\(s\) du groupe sur 4 ne sont pas rendues/)
+})
+
+test('piste du groupe SANS défilement de secours : défaut nommé', () => {
+  const m = saine(360)
+  m.groupe.defilementSecours = false
+  unSeul(defautsMatriceGroupe(m, 'combat (groupe déplié)'), /aucun défilement horizontal de secours/)
+})
+
+test('carte sans VIE : défaut à toute tranche', () => {
+  for (const l of [1707, 900, 700, 360]) {
+    const m = saine(l)
+    m.groupe.detail[0].vie = false
+    unSeul(defautsMatrice(m, 'combat'), /la carte 0 du groupe ne rend pas sa vie/)
+  }
+})
+
+test('carte sans NOM : défaut à TOUTE tranche, <=560 compris', () => {
+  for (const l of [1707, 900, 700, 360]) {
+    const m = saine(l)
+    m.groupe.detail[0].nom = false
+    unSeul(defautsMatrice(m, 'combat'), /la carte 0 du groupe ne rend pas son nom/)
+  }
+})
+
+test('R-M1, tuile du groupe sous 44px de large à <=560 : défaut chiffré ; au-dessus, rien', () => {
+  const m = saine(360)
+  m.groupe.detail[0].w = 30
+  unSeul(defautsMatriceGroupe(m, 'combat (groupe déplié)'), /la tuile 0 du groupe fait 30px de large — sous 44px/)
+  const large = saine(700)
+  large.groupe.detail[0].w = 30
+  assert.deepEqual(defautsMatriceGroupe(large, 'combat'), [])
+})
+
+test('R-M1, tuile ROGNÉE par le champ d’une piste qui ne défile pas à <=560 : défaut ; piste qui défile, ou au-dessus, rien', () => {
+  const m = saine(360)
+  m.groupe.detail[0].rognee = true
+  unSeul(defautsMatriceGroupe(m, 'combat (groupe déplié)'), /la tuile 0 du groupe est rognée par le champ de la piste, qui ne défile pas/)
+  m.groupe.defile = true
+  assert.deepEqual(defautsMatriceGroupe(m, 'combat (groupe déplié)'), [])
+  const large = saine(700)
+  large.groupe.detail[0].rognee = true
+  assert.deepEqual(defautsMatriceGroupe(large, 'combat'), [])
+})
+
+test('vie NON superposée au portrait : défaut à 561–700 seulement', () => {
+  const m = saine(700)
+  m.groupe.detail[0].vieSurPortrait = false
+  unSeul(defautsMatrice(m, 'combat'), /la vie de la carte 0 du groupe n'est pas superposée à son portrait/)
+  const large = saine(900)
+  large.groupe.detail[0].vieSurPortrait = false
+  assert.deepEqual(defautsMatrice(large, 'combat'), [])
+})
+
+test('bande repliée (aucune carte rendue) : la colonne Groupe ne juge rien', () => {
+  const m = saine(360)
+  m.groupe = { cartes: 0, lignes: 0, total: 4, detail: [], defilementSecours: null, bas: 30, replie: true, poignee: null }
+  assert.deepEqual(defautsMatriceGroupe(m, 'combat'), [])
+})
+
+// ── Initiative ──
+test('frise en BANDE au-dessus de 700 : défaut nommé', () => {
+  const m = saine(900)
+  m.frise.bande = true
+  unSeul(defautsMatrice(m, 'combat'), /la frise d'initiative est en bande — la tranche la veut en colonne/)
+})
+
+test('frise en COLONNE à 700 et moins : défaut nommé', () => {
+  const m = saine(700)
+  m.frise.bande = false
+  unSeul(defautsMatrice(m, 'combat'), /la frise d'initiative est en colonne — la tranche la veut en bande horizontale/)
+})
+
+test('colonne d’initiative à DROITE au-delà de 900 : défaut chiffré', () => {
+  const m = saine(1707)
+  m.frise.rect = { x: 1600, y: 70, w: 86, h: 400 }
+  unSeul(defautsMatrice(m, 'combat'), /la colonne d'initiative n'est pas à gauche \(centre à 1643px\)/)
+})
+
+test('cartouche de Round qui n’ouvre PAS la frise : défaut nommé', () => {
+  const m = saine(700)
+  m.frise.roundPremier = false
+  unSeul(defautsMatrice(m, 'combat'), /le cartouche de Round n'est pas la première entrée de la frise/)
+})
+
+test('bande d’initiative qui MORD sur le groupe à 561–700 : défaut chiffré ; sous lui, rien', () => {
+  const m = saine(700)
+  m.groupe.bas = 129.6
+  m.frise.rect.y = 84
+  unSeul(defautsMatrice(m, 'combat'), /la bande d'initiative \(haut 84px\) n'est pas sous le groupe \(bas 129.6px\)/)
+  m.frise.rect.y = 130
+  assert.deepEqual(defautsMatrice(m, 'combat'), [])
+})
+
+test('courant + deux suivants PAS tous entiers à <=560 : défaut compté ; au-dessus, rien', () => {
+  const m = saine(360)
+  m.frise.suivants = { attendus: 3, entiers: 2 }
+  unSeul(defautsMatrice(m, 'combat'), /2 entrée\(s\) sur 3 \(courant \+ deux suivants\) entières/)
+  const large = saine(700)
+  large.frise.suivants = { attendus: 3, entiers: 2 }
+  assert.deepEqual(defautsMatrice(large, 'combat'), [])
+})
+
+test('cartouche de Round HORS de la colonne au-delà de 900 : défaut nommé ; en bande, rien', () => {
+  const m = saine(1707)
+  m.frise.roundDansColonne = false
+  unSeul(defautsMatrice(m, 'combat'), /le cartouche de Round n'est pas intégré à la colonne d'initiative/)
+  const bande = saine(700)
+  bande.frise.roundDansColonne = false
+  assert.deepEqual(defautsMatrice(bande, 'combat'), [])
+})
+
+test('entrée au trait PAS entière dans le champ à 701–900 : défaut nommé ; ailleurs, rien', () => {
+  const m = saine(900)
+  m.frise.courantEntier = false
+  unSeul(defautsMatrice(m, 'combat'), /l'entrée au trait n'est pas entière dans le champ de la frise/)
+  const large = saine(1707)
+  large.frise.courantEntier = false
+  assert.deepEqual(defautsMatrice(large, 'combat'), [])
+})
+
+test('aucune entrée au trait à 701–900 : la sonde se déclare AVEUGLE sur le courant entier', () => {
+  const m = saine(900)
+  m.frise.courantEntier = null
+  unSeul(defautsMatrice(m, 'combat'), /aucune entrée au trait — sonde aveugle sur le courant entier/)
+})
+
+test('piste d’initiative NON défilable en bande (561–700 et <=560) : défaut nommé ; en colonne, rien', () => {
+  for (const l of [700, 360]) {
+    const m = saine(l)
+    m.frise.defilable = false
+    unSeul(defautsMatrice(m, 'combat'), /la piste d'initiative n'est pas défilable/)
+  }
+  const colonne = saine(900)
+  colonne.frise.defilable = false
+  assert.deepEqual(defautsMatrice(colonne, 'combat'), [])
+})
+
+test('aucune entrée au trait (pause d’initiative) : aucun verdict de suivants', () => {
+  const m = saine(360)
+  m.frise.suivants = null
+  assert.deepEqual(defautsMatrice(m, 'combat'), [])
+})
+
+// ── Dock ──
+test('pont qui ne va PAS de bord à bord : défaut chiffré', () => {
+  const m = saine(900)
+  m.dock.rect = { x: 0, y: 600, w: 880, h: 150 }
+  unSeul(defautsMatrice(m, 'combat'), /le pont ne va pas de bord à bord \(0\.\.880px sur 900px\)/)
+})
+
+test('pont au-delà de 21 % de la hauteur dès 1280 : défaut chiffré ; sous 1280, rien', () => {
+  const m = saine(1707)
+  m.dock.rect.h = 187.3
+  unSeul(defautsMatrice(m, 'combat'), /le pont prend 24\.0 % de la hauteur \(plafond 21 % dès 1280px\)/)
+  const moyen = saine(1100)
+  moyen.dock.rect.h = 187.3
+  assert.deepEqual(defautsMatrice(moyen, 'combat'), [])
+})
+
+test('pont compact au-delà de 45 % de la hauteur à <=560 : défaut chiffré', () => {
+  const m = saine(360)
+  m.dock.rect.h = 442
+  unSeul(defautsMatrice(m, 'combat'), /le pont compact prend 56\.7 % de la hauteur \(plafond 45 %\)/)
+})
+
+test('case de console NON ENTIÈRE dans l’écran : défaut nommé ; non rendue, rien', () => {
+  const m = saine(900)
+  m.dockBtns[0].entier = false
+  unSeul(defautsMatrice(m, 'combat'), /la case « Attaquer ».*n'est pas entière dans l'écran/)
+  m.dockBtns[0].rendu = false
+  assert.deepEqual(defautsMatrice(m, 'combat'), [])
+})
+
+// ── Cibles tactiles (pointer: coarse) ──
+test('cible tactile sous 44px : défaut chiffré ; à 44, rien', () => {
+  const m = saine(360)
+  m.grossier = true
+  m.cibles = [{ label: 'Menu', w: 44, h: 44 }, { label: 'Journal', w: 44, h: 36 }]
+  unSeul(defautsTactile(m, 'combat'), /la commande « Journal » offre 44×36px — cible tactile sous 44px/)
+  m.cibles[1].h = 44
+  assert.deepEqual(defautsTactile(m, 'combat'), [])
+})
+
+test('pointeur grossier NON émulé, ou aucune commande : la sonde se déclare aveugle', () => {
+  const m = saine(360)
+  unSeul(defautsTactile(m, 'combat'), /le pointeur grossier n'est pas émulé — sonde aveugle/)
+  m.grossier = true
+  m.cibles = []
+  unSeul(defautsTactile(m, 'combat'), /aucune commande vissée rendue — sonde aveugle/)
+})
+
+// ── Compacité (série de largeurs) ──
+test('cartes du groupe PAS plus compactes qu’au-delà de 900 : défaut aux deux tranches moyennes', () => {
+  const serie = [saine(1707), saine(900), saine(700)]
+  for (const m of serie) m.groupe.detail[0].w = 88
+  serie[1].frise.rect.w = 80
+  const d = defautsCompacite(serie, 'combat')
+  assert.equal(d.length, 2, d.join(' | '))
+  assert.match(d[0], /900px \(§12 701–900\) : la carte du groupe fait 88px, pas plus compacte que 88px à 1707px/)
+  assert.match(d[1], /700px \(§12 561–700\) : la carte du groupe fait 88px/)
+})
+
+test('cartes compactées et colonne réduite : aucun défaut', () => {
+  const serie = [saine(1707), saine(900), saine(700)]
+  serie[0].groupe.detail[0].w = 88
+  serie[1].groupe.detail[0].w = 80
+  serie[2].groupe.detail[0].w = 72
+  serie[1].frise.rect.w = 80
+  assert.deepEqual(defautsCompacite(serie, 'combat'), [])
+})
+
+test('colonne d’initiative PAS réduite à 701–900 : défaut chiffré', () => {
+  const serie = [saine(1707), saine(900)]
+  serie[0].groupe.detail[0].w = 88
+  serie[1].groupe.detail[0].w = 80
+  serie[1].frise.rect.w = 86
+  unSeul(defautsCompacite(serie, 'combat'), /la colonne d'initiative fait 86px, pas plus réduite que 86px à 1707px/)
+})
+
+test('série SANS mesure au-delà de 900 : rien à comparer', () => {
+  assert.deepEqual(defautsCompacite([saine(900), saine(700)], 'combat'), [])
 })

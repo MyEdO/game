@@ -8,8 +8,9 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { dirname, join } from 'node:path'
 import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import { REF_PROTEGEE, jugerPush, refsAPousser, verdictDuSha } from './pre-push.mjs'
 import { reinitialiserStub } from '../guards/lib/coursesCi.mjs'
@@ -275,6 +276,37 @@ test('un STOCK nominatif qui grandit dans la plage sans `CLIQUET:` au commit est
   }
 })
 
+test('un module qui FRANCHIT la frontière sans `RECLASSEMENT:` au commit est refusé (#1806 D2″)', () => {
+  const racine = depot()
+  try {
+    const manifeste = 'src/data/primitives.manifest.json'
+    const ecrire = (rel, texte) => {
+      mkdirSync(join(racine, dirname(rel)), { recursive: true })
+      writeFileSync(join(racine, rel), texte)
+    }
+    const commettre = (message) => {
+      git(racine)(['add', '-A'])
+      git(racine)(['commit', '-m', message])
+      return tete(racine)
+    }
+    ecrire('src/ui/styles/console.css', '.c { color: red }\n')
+    ecrire('src/ui/Console.tsx', 'export const Console = 1\n')
+    ecrire('src/ui/Ecran1.tsx', "import { Console } from './Console'\nexport const E1 = Console\n")
+    ecrire(manifeste, JSON.stringify([{ id: 'console', fichier: 'src/ui/Console.tsx', css: 'src/ui/styles/console.css' }]))
+    const base = commettre('chore: socle')
+    ecrire('src/ui/Ecran2.tsx', "import { Console } from './Console'\nexport const E2 = Console\n")
+    commettre('feat: second écran')
+    const { refus } = jugerPush({
+      cwd: racine,
+      stdin: pousse(racine, { refDistante: 'refs/heads/chantier/x', base }),
+      env: stubCi(racine, []),
+    })
+    assert.match(refus.join('\n'), /RECLASSEMENT CSS : [0-9a-f]{9} src\/ui\/styles\/console\.css : franchi au prix 1, aucune ligne/)
+  } finally {
+    jeter(racine)
+  }
+})
+
 // ── Forme de stdin ─────────────────────────────────────────────────────────────────────────────
 
 test('une SUPPRESSION de branche (sha local nul) n’est pas une ref à juger', () => {
@@ -286,4 +318,15 @@ test('deux refs sur stdin donnent deux refs jugées', () => {
     `refs/heads/main ${'a'.repeat(40)} refs/heads/main ${ZERO}\n` +
     `refs/heads/x ${'b'.repeat(40)} refs/heads/x ${ZERO}\n`
   assert.deepEqual(refsAPousser(lignes).map((r) => r.refDistante), ['refs/heads/main', 'refs/heads/x'])
+})
+
+test('git INDISPONIBLE (hors dépôt) : un refus NOMMÉ qui porte la raison de git, jamais « origin absent »', () => {
+  const hors = mkdtempSync(join(tmpdir(), 'pre-push-hors-'))
+  try {
+    const { refus } = jugerPush({ cwd: hors, stdin: '' })
+    assert.equal(refus.length, 1)
+    assert.match(refus[0], /^origin illisible, git indisponible : .*not a git repository/i)
+  } finally {
+    rmSync(hors, { recursive: true, force: true })
+  }
 })

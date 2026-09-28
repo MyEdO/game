@@ -1,15 +1,27 @@
 import { useGame } from '../state/store';
 import { Modal } from './Modal';
-import { OptionChooser, ChoiceButtons } from './OptionChooser';
+import { OptionChooser } from './OptionChooser';
 import { Icon } from './Icon';
-import { flowStakeRef } from '../data';
+import { Stack } from './Layout';
+import type { IconId } from './icons';
+import { flowStakeRef, type FlowStakeId } from '../data';
 import { StakeNote, StakeRule, stakeRuleOf } from './StakeNote';
+import { fateSaveOptions, type FateSaveOption } from '../engine/fortune';
+
+const OPTION: Record<FateSaveOption, { icon: IconId; label: string }> = {
+  survive: { icon: 'resource/lifeline', label: 'Meurs un autre jour' },
+  negate: { icon: 'resource/fortune', label: 'Comment ça a pu rater ?' },
+};
+
+/** Enjeu servi par chaque fenêtre du sauvetage par le Destin. */
+const FATE_SAVE_STAKE: Record<FateSaveOption | 'choice', FlowStakeId> = { choice: 'fate-save-choice', survive: 'fate-save-survive', negate: 'fate-save-negate' };
 
 /**
- * Sauvetage par le Destin (LDB « Destin et Résistance » ch.17 l.31-35) : quand un héros à Destin
- * est sur le point de mourir (coup létal ou mort lente), on suspend et on propose de sacrifier un
- * Point de Destin — « Comment ça a pu rater ? » (annule le coup, coup létal seulement),
- * « Meurs un autre jour » (survit mais quitte la rencontre), ou accepter la mort.
+ * Sauvetage par le Destin : LDB 17 l.29 ; options l.31 (`survive`) et l.32 (`negate`), offertes par
+ * `fateSaveOptions`, que le groupe de choix ET l'enjeu lisent (chaque option porte sa note, puis celle
+ * du refus, `fate-save-choice`, dont la règle est aussi celle du titre).
+ * Pied : « Accepter le sort », la sortie de l'état courant (`docs/charte-ui.md`, `.btn-ghost` et
+ * `.btn.danger`).
  */
 export function FateSaveModal() {
   const p = useGame((s) => s.pendingFateSave);
@@ -21,27 +33,35 @@ export function FateSaveModal() {
   const hero = battle.combatants.find((c) => c.id === p.heroId);
   if (!hero) return null;
   const fate = hero.fate ?? 0;
-  const stake = flowStakeRef('fateSave', 'choice');
+  const offre = fateSaveOptions(p.source);
+  const choisir: Record<FateSaveOption, () => void> = { survive, negate };
+  const refus = flowStakeRef(FATE_SAVE_STAKE.choice);
 
   return (
-    /* Décision DE COMBAT : coquille de jet (voile allégé + ancrage haut) — le coup fatal se lit sous la fenêtre. */
-    <Modal title={<><Icon id="resource/fate" size="sm" /> Le Destin <StakeRule rule={stakeRuleOf(stake)} /></>} subject={hero}>
-      <p className="modal-log">
-        {p.source === 'hit' ? 'Un coup fatal le frappe !' : 'Ses blessures l’emportent…'} Sacrifier un Point de Destin ?
-        (il en reste {fate})
-      </p>
-      {/* Z3b : la fenêtre de décision dit ce qu'elle met en jeu — même primitive, même donnée. */}
-      <StakeNote stake={stake} />
-      <div className="rm-options">
-        <OptionChooser
-          layout="grid"
-          options={[
-            { key: 'negate', label: <><Icon id="resource/fortune" size="sm" /> Comment ça a pu rater ?</>, hidden: p.source !== 'hit', onSelect: negate, title: 'Évite tout le coup et reste en combat (Destin −1)' },
-            { key: 'survive', label: <><Icon id="resource/lifeline" size="sm" /> Meurs un autre jour</>, onSelect: survive, title: 'Survit mais quitte le combat (Destin −1)' },
-          ]}
-        />
-      </div>
-      <ChoiceButtons options={[{ key: 'accept', label: <><Icon id="journal/death" size="sm" /> Accepter le sort</>, primary: true, onSelect: accept, title: 'Le héros meurt' }]} />
+    <Modal
+      title={<><Icon id="resource/fate" size="sm" /> Le Destin <StakeRule rule={stakeRuleOf(refus)} /></>}
+      subject={hero}
+      champ
+      footer={<button type="button" className="btn btn-ghost danger" onClick={accept} title="Le héros meurt"><Icon id="journal/death" size="sm" /> Accepter le sort</button>}
+    >
+      <Stack gap="md">
+        <p className="modal-log">
+          {p.source === 'hit' ? 'Un coup fatal le frappe !' : 'Ses blessures l’emportent…'} Sacrifier un Point de Destin ?
+          (il en reste {fate})
+        </p>
+        <div className="rm-options">
+          <OptionChooser
+            layout="grid"
+            options={offre.map((o) => ({
+              key: o,
+              label: <><Icon id={OPTION[o].icon} size="sm" /> {OPTION[o].label}</>,
+              note: <StakeNote stake={flowStakeRef(FATE_SAVE_STAKE[o])} />,
+              onSelect: choisir[o],
+            }))}
+          />
+        </div>
+        <StakeNote stake={refus} />
+      </Stack>
     </Modal>
   );
 }

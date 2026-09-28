@@ -10,6 +10,7 @@ import { qualityRefLabel } from '../data';
 import { weaponStatParts } from './weaponStats';
 import { Icon } from './Icon';
 import { Band } from './Band';
+import { Grid } from './Layout';
 import { GatedAction } from './GatedAction';
 import { resolveQualities } from '../engine/qualities/dispatch';
 import { objetSourceDeLArme } from '../engine/weaponLoad';
@@ -190,7 +191,7 @@ export function EquipmentPanel({ hero }: { hero: Combatant }) {
     it ? { sub: conjured ? 'Arme invoquée' : undefined, body: weaponStatsBody(it, strBonus) } : undefined;
 
   return (
-    <div className="equip-panel">
+    <Grid cols={2} stackBelow={900} gap="lg" className="equip-panel">
       {/* COLONNE GAUCHE — emplacements d'armure en cellules, PA cumulé en face de chaque localisation */}
       <Band title="Harnois">
       <div className="equip-slots">
@@ -374,6 +375,6 @@ export function EquipmentPanel({ hero }: { hero: Combatant }) {
         </div>
       </div>
       </Band>
-    </div>
+    </Grid>
   );
 }

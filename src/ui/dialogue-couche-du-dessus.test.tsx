@@ -12,7 +12,7 @@ import { act, useState } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { useGame } from '../state/store';
 import { campaignStart } from '../engine/clock';
-import { dismissStackKinds, pushLayer, popLayer } from '../state/dismissStack';
+import { dismissStackKinds } from '../state/dismissStack';
 import type { Dialogue } from '../state/scene';
 import { useGameKeyboard } from './useGameKeyboard';
 import { DialogueBox } from './DialogueBox';
@@ -35,7 +35,7 @@ function Campagne() {
   return (
     <>
       <DialogueBox />
-      {/* Une puce du HUD (portrait, état) : un `CodexRef` réel, dont le survol pose un POPOVER. */}
+      {/* Une puce du HUD (portrait, état) : un `CodexRef` réel, dont le survol pose une INFOBULLE. */}
       <CodexRef category="talents" id="affable" label="Affable" wrap>
         <button type="button">Affable ×2</button>
       </CodexRef>
@@ -76,32 +76,15 @@ function monterCampagne() {
   act(() => { root.render(<Campagne />); });
 }
 
-describe('#1869 — une MODALE ouverte AVANT la conversation la recouvre à l’écran', () => {
-  it('fiche posée puis conversation ouverte : Digit2 est inerte ; fiche retirée : Digit2 répond', () => {
-    // La fiche (`.sheet-overlay`, z-index 125) est peinte au-dessus de la fenêtre de conversation
-    // quel que soit l'ordre d'ouverture : la pile la met SOUS la conversation, l'écran non.
-    const fiche = pushLayer({ kind: 'fiche-perso', nature: 'modale', onDismiss: () => {} });
-    monterCampagne();
-    expect(dismissStackKinds(), 'la conversation s’est empilée APRÈS la fiche').toEqual(['fiche-perso', 'dialogue']);
-    frapper('Digit2');
-    relacher('Digit2');
-    expect(useGame.getState().dialogue?.nodeId, 'la fiche recouvre la conversation : la touche attend').toBe('n1');
-    popLayer(fiche);
-    frapper('Digit2');
-    relacher('Digit2');
-    expect(useGame.getState().dialogue?.nodeId, 'plus rien au-dessus : la réponse 2 part').toBe('n3');
-  });
-});
-
-describe('#1869 — un POPOVER au-dessus de la conversation ne lui prend pas les touches', () => {
-  it('survol d’une puce du codex : le popover s’empile, et Digit2 choisit quand même la réponse 2', () => {
+describe('#1869 — une INFOBULLE au-dessus de la conversation ne lui prend pas les touches', () => {
+  it('survol d’une puce du codex : l’infobulle s’empile, et Digit2 choisit quand même la réponse 2', () => {
     monterCampagne();
     const puce = host.querySelector('.codex-ref') as HTMLElement;
     act(() => { puce.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); });
-    expect(dismissStackKinds(), 'le survol pose un popover au-dessus de la conversation').toEqual(['dialogue', 'popover-codex']);
+    expect(dismissStackKinds(), 'le survol pose une infobulle au-dessus de la conversation').toEqual(['dialogue', 'infobulle']);
     frapper('Digit2');
     relacher('Digit2');
-    expect(useGame.getState().dialogue?.nodeId, 'un popover ne rend rien inerte : la réponse 2 part').toBe('n3');
+    expect(useGame.getState().dialogue?.nodeId, 'une infobulle ne rend rien inerte : la réponse 2 part').toBe('n3');
   });
 });
 

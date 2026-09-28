@@ -28,7 +28,7 @@ jobs:
         with:
           node-version: '22'
           cache: npm
-      # #1738 — le CLASSEMENT du push, AVANT `npm ci` : le module n'importe que `node:*`. Un push
+      # #1738 — le CLASSEMENT du push, AVANT `npm ci` : ses imports n'atteignent aucun paquet. Un push
       # dont TOUS les fichiers changés (contre ce qui ENTRERA dans `main`) tombent sous
       # `DOCUMENTAIRE` (scripts/gates/classerPush.mjs) sort `produit=false`. POLARITÉ FAIL-CLOSED :
       # chaque step conditionné teste `!= 'false'`, donc un output vide, absent ou en erreur fait

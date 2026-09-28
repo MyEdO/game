@@ -94,6 +94,14 @@ test('primitive du MANIFESTE et écran du stock sont tous deux « déclarés »'
   assert.ok(!estDeclare(FANTOME, manifeste, registre))
 })
 
+test('DISJONCTION (#1806 L3) : aucun `fichier` du manifeste des primitives n’est inscrit au registre des écrans', () => {
+  const primitives = new Set(JSON.parse(readFileSync(MANIFESTE_PRIMITIVES, 'utf8')).map((e) => e.fichier))
+  const registre = JSON.parse(readFileSync(REGISTRE_DEFAUT, 'utf8'))
+  assert.ok(primitives.size > 0 && registre.ecrans.length > 0, 'témoin : les deux listes sont lues')
+  assert.deepEqual(registre.ecrans.map(cheminEntree).filter((f) => primitives.has(f)), [],
+    'un composant est une primitive OU un écran : le retirer du registre des écrans')
+})
+
 test('une entrée en CHAÎNE ne déclare pas un fichier NEUF (le stock du 2026-08-16 ne croît pas)', () => {
   avecEntree(FANTOME, (env) => {
     const r = lance(join(REPO, FANTOME), env)

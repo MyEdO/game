@@ -63,7 +63,7 @@ describe('OpenProjectModal — section « Campagnes du jeu » (#367)', () => {
       await act(async () => {
         root.render(<OpenProjectModal onScenario={() => {}} onProject={() => {}} onBuiltin={() => {}} onClose={onClose} />);
       });
-      const fermer = document.querySelector('[role="dialog"] .modal-actions button') as HTMLButtonElement | null;
+      const fermer = document.querySelector('[role="dialog"] .cadre-pied button') as HTMLButtonElement | null;
       expect(fermer?.textContent).toBe('Fermer');
       await act(async () => fermer!.click());
       expect(onClose).toHaveBeenCalledTimes(1);

@@ -14,7 +14,7 @@
  * touche où qu'il vive.
  */
 import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'vitest';
-import { act } from 'react';
+import { act, useRef } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { createPortal } from 'react-dom';
 import { Modal } from './Modal';
@@ -34,15 +34,18 @@ function mount(swallow = false) {
   clicks = 0;
   act(() =>
     root.render(
-      <Modal title="Saisie" variant="plain">
+      <Modal title="Saisie"
+        footer={
+          <>
+            <button className="btn btn-primary" onClick={() => { clicks += 1; }}>Appliquer</button>
+          </>
+        }
+      >
         <input
           className="champ"
           type="number"
           onKeyDown={swallow ? (e) => { if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); } } : undefined}
         />
-        <div className="modal-actions">
-          <button className="btn btn-primary" onClick={() => { clicks += 1; }}>Appliquer</button>
-        </div>
       </Modal>,
     ),
   );
@@ -106,10 +109,13 @@ describe('Modal — un contrôle porté par PORTAL possède ses touches (fronti�
     escapes = 0;
     act(() =>
       root.render(
-        <Modal title="Jet" variant="roll" onClose={() => { escapes += 1; }}>
-          <div className="modal-actions">
-            <button className="btn btn-primary" onClick={() => { clicks += 1; }}>Tout lancer</button>
-          </div>
+        <Modal title="Jet" onClose={() => { escapes += 1; }}
+          footer={
+            <>
+              <button className="btn btn-primary" onClick={() => { clicks += 1; }}>Tout lancer</button>
+            </>
+          }
+        >
           {createPortal(
             <button className="porte" onClick={() => { portalClicks += 1; }}>Ouvrir la fiche</button>,
             document.body,
@@ -141,12 +147,19 @@ describe('Modal — un contrôle porté par PORTAL possède ses touches (fronti�
   it('une COUCHE ouverte au-dessus de la boîte se referme d’abord — la modale reste ouverte', () => {
     clicks = 0; escapes = 0;
     let surfaces = 0;
-    const Surface = () => { useDismissLayer('surface-portee', 'modale', () => { surfaces += 1; }); return null; };
+    const Surface = () => {
+      const boite = useRef<HTMLDivElement>(null);
+      useDismissLayer({ kind: 'surface-portee', nature: 'modale', plan: 'application', boite }, () => { surfaces += 1; });
+      return <div ref={boite} />;
+    };
     const Scene = ({ portee }: { portee: boolean }) => (
-      <Modal title="Jet" variant="roll" onClose={() => { escapes += 1; }}>
-        <div className="modal-actions">
-          <button className="btn btn-primary" onClick={() => { clicks += 1; }}>Tout lancer</button>
-        </div>
+      <Modal title="Jet" onClose={() => { escapes += 1; }}
+        footer={
+          <>
+            <button className="btn btn-primary" onClick={() => { clicks += 1; }}>Tout lancer</button>
+          </>
+        }
+      >
         {portee && createPortal(<Surface />, document.body)}
       </Modal>
     );

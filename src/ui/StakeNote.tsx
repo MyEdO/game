@@ -12,7 +12,7 @@
  * compacte sur la LIGNE DE TITRE de la fenêtre (`CascadeBody.titleNode`, `CascadeModal`), qui porte le
  * libellé du pas COURANT ; dérivé de la MÊME entrée d'enjeu.
  */
-import { isValidElement, type ReactNode } from 'react';
+import { createContext, isValidElement, useContext, type ReactNode } from 'react';
 import { resolveStake, refLabel, type StakeRef } from '../data';
 import { CodexRef } from './compendium/CodexRef';
 import { Icon } from './Icon';
@@ -21,14 +21,19 @@ import { GameOpChips } from './GameOpChips';
 import { EntityRef } from './EntityChip';
 import type { GameOp } from '../engine/ops';
 
+/** La note est celle d'une RANGÉE (`OptionChooser`, verbe | conséquence) : le verbe porte l'icône,
+ *  la note n'en porte pas (juge B12, Q9, #1920). Posé par la rangée, lu par la note. */
+export const NoteDeRangee = createContext(false);
+
 export function StakeNote({ stake }: { stake: StakeRef }) {
+  const enRangee = useContext(NoteDeRangee);
   // Entrée d'enjeu SANS gabarit (#1117) : la donnée porte seulement son foyer de règle — le jet dit
   // ce qu'il met en jeu par ses CHIPS d'ops (`OutcomeNote`), et le verbatim reste au ⓘ du titre.
   const { text } = resolveStake(stake);
   if (!text) return null;
   return (
     <div className="rm-stake">
-      <Icon id="nav/dice" size="sm" />
+      {!enRangee && <Icon id="nav/dice" size="sm" />}
       <div>
         <Prose md={text} />
       </div>

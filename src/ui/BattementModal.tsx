@@ -64,7 +64,7 @@ export function BattementModal() {
   return (
     <RollShell
       flowKey="battement"
-      stake={flowStakeRef('battement', 'roll')}
+      stake={flowStakeRef('battement-roll')}
       title={<><Icon id="action/attack" /> Battement</>}
       /* A→B canonique (décision utilisateur 2026-08-04) : portraits + flèche annotée de la manœuvre
          — jamais une phrase « X bat l'arme de Y ». Le COÛT (l'Action) est un prérequis de ressource,

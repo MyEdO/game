@@ -155,7 +155,16 @@ export function OpenProjectModal({
   };
 
   return (
-    <Modal variant="plain" className="wide" title="Ouvrir" onClose={onClose}>
+    <Modal
+      taille="large"
+      title="Ouvrir"
+      onClose={onClose}
+      footer={
+        <button className="btn" onClick={onClose}>
+          Fermer
+        </button>
+      }
+    >
       {error && <ChipDeRefus refus={error} />}
       {delError && <p className="chip tone-danger" role="alert">{delError}</p>}
       {projects.length > 0 && (
@@ -205,11 +214,6 @@ export function OpenProjectModal({
           </div>
         ))}
       </Stack>
-      <div className="modal-actions">
-        <button className="btn" onClick={onClose}>
-          Fermer
-        </button>
-      </div>
     </Modal>
   );
 }
@@ -238,7 +242,22 @@ export function SaveProjectModal({
   const [start, setStart] = useState(initialStartId);
 
   return (
-    <Modal variant="plain" title="Enregistrer le projet" onClose={onClose}>
+    <Modal title="Enregistrer le projet" onClose={onClose}
+      footer={
+        <>
+          <button className="btn" onClick={onClose}>
+            Annuler
+          </button>
+          <GatedAction
+            id="projet-enregistrer"
+            label="Enregistrer"
+            enabled={!!name.trim()}
+            reason="Un projet se nomme avant d’être enregistré : saisissez un nom dans le champ Nom."
+            onClick={() => onSave(name.trim(), published, start)}
+          />
+        </>
+      }
+    >
       {error && <ChipDeRefus refus={error} />}
       <label className="field">
         <span>Nom</span>
@@ -260,18 +279,6 @@ export function SaveProjectModal({
         <input type="checkbox" checked={published} onChange={(e) => setPublished(e.target.checked)} />
         <span>Jouable depuis le menu principal</span>
       </Row>
-      <div className="modal-actions">
-        <button className="btn" onClick={onClose}>
-          Annuler
-        </button>
-        <GatedAction
-          id="projet-enregistrer"
-          label="Enregistrer"
-          enabled={!!name.trim()}
-          reason="Un projet se nomme avant d’être enregistré : saisissez un nom dans le champ Nom."
-          onClick={() => onSave(name.trim(), published, start)}
-        />
-      </div>
     </Modal>
   );
 }

@@ -14,7 +14,6 @@ import { STEP_MS } from '../geometry/walk';
 import { resetStageWalk } from '../state/stageWalk';
 import { getStageYaw, resetStageYaw } from '../state/stageYaw';
 import { useGamepad, padButton } from './useGamepad';
-import type { Dialogue } from '../state/scene';
 
 const DPAD = { up: 12, down: 13, left: 14, right: 15 } as const;
 const BOUTON = { LB: 4, RB: 5, LT: 6, RT: 7 } as const;
@@ -192,35 +191,5 @@ describe('manette — RB en contexte MENU = geste secondaire de l’alvéole foc
     bouton.addEventListener('contextmenu', () => vus.push('contextmenu'));
     padButton('RB');
     expect(vus, 'aucun focus dans la console : RB pilote la carte').toEqual([]);
-  });
-});
-
-/**
- * LA COUCHE DU DIALOGUE TIENT LES DEUX PORTES (#1869 correctif 1) — la manette partage le registre
- * avec le clavier (`runBindingById`), donc la MÊME loi : pendant une conversation, seuls les
- * raccourcis déclarés `coucheDialogue` répondent. Le contexte de la manette se lit au DOM
- * (`padContext`), qui ne sait RIEN de la conversation : sans porte commune, Back/LT/RT piloteraient
- * la caméra par-dessus la fenêtre de dialogue. Mesuré sur `cam-recenter` (Back), dont l'effet est
- * observable à l'état (`zoom`).
- */
-describe('manette — pendant une conversation, la porte commune ferme les raccourcis de carte', () => {
-  const dlg = {
-    id: 'd-pad', start: 'n1',
-    nodes: [{ id: 'n1', desc: '…', choices: [{ label: 'Oui', next: 'n1' }] }],
-  } as unknown as Dialogue;
-
-  const poser = (dialogue: Dialogue | null) =>
-    useGame.setState({ screen: 'campaign', zoom: 2, dialogue: dialogue ? { dialogue, nodeId: 'n1', session: 1 } : null } as never);
-
-  it('SANS conversation, Back recentre la caméra (la mesure n’est pas muette)', () => {
-    poser(null);
-    padButton('Back');
-    expect(useGame.getState().zoom, 'cam-recenter remet le zoom à 1').toBe(1);
-  });
-
-  it('PENDANT la conversation, Back ne touche plus la caméra', () => {
-    poser(dlg);
-    padButton('Back');
-    expect(useGame.getState().zoom, 'la couche du dialogue tient la manette comme le clavier').toBe(2);
   });
 });

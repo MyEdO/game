@@ -7,17 +7,15 @@ import { execFileSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { SOURCES_LUES } from '../docs/build-all.mjs'
+import { ceQuiChange, depotDe, etatDeLArbre, racineDe, shaDe } from '../guards/lib/gitPorte.mjs'
 
-const git = (args, cwd) => execFileSync('git', args, { cwd, encoding: 'utf8' })
-
-/** Fichiers du lot que le hook vient de recevoir (ORIG_HEAD..HEAD). Sans ORIG_HEAD : `null`
- *  (= inconnu, on régénère). */
+/** Fichiers du lot que le hook vient de recevoir (ORIG_HEAD..HEAD). Sans ORIG_HEAD, ou git
+ *  indisponible : `null` (= inconnu, on régénère). */
 export function touchedFiles(cwd) {
-  try {
-    return git(['diff', '--name-only', 'ORIG_HEAD', 'HEAD'], cwd).split('\n').filter(Boolean)
-  } catch {
-    return null
-  }
+  let panne = false
+  const depot = depotDe(cwd, { enPanne: () => { panne = true } })
+  const chemins = shaDe(depot, 'ORIG_HEAD') === null ? null : ceQuiChange(depot, 'ORIG_HEAD', 'HEAD').chemins()
+  return panne ? null : chemins
 }
 
 /** Les sources MESURÉES de l'arbre (`docs/.sources-lues.json`), ou `null` si le dérivé est illisible. */
@@ -61,7 +59,8 @@ export function touchesDocSources(chemins, mesure) {
 }
 
 function main() {
-  const cwd = git(['rev-parse', '--show-toplevel']).trim()
+  const cwd = racineDe(depotDe(process.cwd()))
+  if (!cwd) return
   if (!touchesDocSources(touchedFiles(cwd), sourcesMesurees(cwd))) return
   try {
     execFileSync(process.execPath, ['scripts/docs/build-all.mjs', '--quiet'], { cwd, stdio: ['ignore', 'ignore', 'inherit'] })
@@ -71,7 +70,9 @@ function main() {
     process.stderr.write(`docs — régénération INTERROMPUE : docs/ possiblement incohérent, \`git checkout -- docs/\` puis corriger la cause.\n`)
     return
   }
-  const changed = git(['diff', '--name-only', '--', 'docs/'], cwd).split('\n').filter(Boolean)
+  const changed = etatDeLArbre(depotDe(cwd))
+    .filter((e) => e.etat !== '??' && e.etat[1] !== ' ' && e.chemins[0].startsWith('docs/'))
+    .map((e) => e.chemins[0])
   if (!changed.length) return
   process.stderr.write(`docs régénérés : à committer (${changed.length}) :\n${changed.map((f) => `  ${f}`).join('\n')}\n`)
 }

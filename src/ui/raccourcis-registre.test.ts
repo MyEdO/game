@@ -31,8 +31,14 @@
 import { describe, it, expect } from 'vitest';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 
-/** Pose d'un écouteur clavier GLOBAL : la cible est la fenêtre ou le document, pas un nœud du rendu. */
-const ECOUTEUR_GLOBAL = /\b(?:window|document)\.addEventListener\(\s*['"]key(?:down|up)['"]/;
+/** Pose d'un écouteur clavier GLOBAL : la cible est la fenêtre ou le document, pas un nœud du rendu ;
+ *  le type est un littéral clavier, ou une VARIABLE dans un fichier qui nomme un type clavier (littéral
+ *  ou clé d'objet) — une table de types délégués n'échappe pas à la garde. */
+const ECOUTEUR_LITTERAL = /\b(?:window|document)\.addEventListener\(\s*['"]key(?:down|up)['"]/;
+const ECOUTEUR_A_TYPE_VARIABLE = /\b(?:window|document)\.addEventListener\(\s*[A-Za-z_$]/;
+const TYPE_CLAVIER_NOMME = /['"]key(?:down|up)['"]|\bkey(?:down|up)\s*:/;
+const ecouteurGlobal = (text: string): boolean =>
+  ECOUTEUR_LITTERAL.test(text) || (ECOUTEUR_A_TYPE_VARIABLE.test(text) && TYPE_CLAVIER_NOMME.test(text));
 /** Déclaration, DANS le fichier, qu'il porte une couche clavier hors registre par nature. */
 const MARQUE_HORS_REGISTRE = /@clavier-hors-registre\s+\S/;
 /** Signal du LECTEUR du registre : il en IMPORTE la table (une mention en commentaire n'est rien). */
@@ -43,7 +49,7 @@ const enTete = (text: string): string => text.split('\n').slice(0, LIGNES_ENTETE
 
 /** Le fichier est-il en règle ? `null` = oui, sinon la RAISON du refus. */
 function verdictClavier(text: string): string | null {
-  if (!ECOUTEUR_GLOBAL.test(text)) return null;
+  if (!ecouteurGlobal(text)) return null;
   if (IMPORTE_LE_REGISTRE.test(text)) return null;
   if (MARQUE_HORS_REGISTRE.test(enTete(text))) return null;
   return MARQUE_HORS_REGISTRE.test(text)
@@ -75,6 +81,13 @@ describe('raccourcis — un seul lecteur de clavier global', () => {
     expect(verdictClavier(enHaut)).toBeNull();
   });
 
+  it('un type d’événement VARIABLE (table de délégation) est un écouteur clavier dès qu’un type clavier est nommé', () => {
+    const delegue = 'const PHASES = { mouseover: false, keydown: true };\n'
+      + 'for (const [type, capture] of Object.entries(PHASES)) document.addEventListener(type, f, capture);\n';
+    expect(verdictClavier(delegue)).toMatch(/hors du registre/);
+    expect(verdictClavier("const SUITE = ['pointermove', 'pointerup'];\nfor (const t of SUITE) window.addEventListener(t, f);\n")).toBeNull();
+  });
+
   it('« lecteur du registre » = un IMPORT réel, jamais la mention `KEYBINDINGS` en commentaire', () => {
     const ecouteur = "window.addEventListener('keydown', onKey);\n";
     expect(verdictClavier('// cf. KEYBINDINGS pour le reste\n' + ecouteur)).toMatch(/hors du registre/);
@@ -84,7 +97,7 @@ describe('raccourcis — un seul lecteur de clavier global', () => {
   it('les couches déclarées hors registre EXISTENT et posent bien un écouteur (aucune marque morte)', () => {
     const marques = CORPUS.filter(({ text }) => MARQUE_HORS_REGISTRE.test(text));
     expect(marques.length, 'la marque doit rester un fait mesuré, pas un vœu').toBeGreaterThan(0);
-    const mortes = marques.filter(({ text }) => !ECOUTEUR_GLOBAL.test(text)).map(({ rel }) => rel);
+    const mortes = marques.filter(({ text }) => !ecouteurGlobal(text)).map(({ rel }) => rel);
     expect(mortes, 'marque « @clavier-hors-registre » sans écouteur clavier global').toEqual([]);
   });
 

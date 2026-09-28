@@ -1533,14 +1533,6 @@
     {
       "famille": "br-litteral",
       "fichier": "Source/WH - V4 - La Mer de Griffe/13 - Navigation maritime.md",
-      "ref": "irregularites-numeriques#1 :: dr effet|||",
-      "occurrence": 1,
-      "lot": "#1384 B1",
-      "date": "2026-09-14"
-    },
-    {
-      "famille": "br-litteral",
-      "fichier": "Source/WH - V4 - La Mer de Griffe/13 - Navigation maritime.md",
       "ref": "irregularites-numeriques#1 :: mouvement|mètres par round|milles par heure (approx.)|nœuds (très approx.)|milles par période de travail de 2 heures|milles par période de travail de 8 heures|",
       "occurrence": 1,
       "lot": "#1384 B1",
@@ -3976,14 +3968,6 @@
       "famille": "br-litteral",
       "fichier": "Source/Warhammer v4 - Livre de base version corrigee/59 - Faire son marche.md",
       "ref": "disponibilite#1 :: |village|ville|cité",
-      "occurrence": 1,
-      "lot": "#1384 B1",
-      "date": "2026-09-14"
-    },
-    {
-      "famille": "br-litteral",
-      "fichier": "Source/Warhammer v4 - Livre de base version corrigee/61 - Encombrement.md",
-      "ref": "surcharge#1 :: enc|pénalité||||",
       "occurrence": 1,
       "lot": "#1384 B1",
       "date": "2026-09-14"

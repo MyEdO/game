@@ -25,18 +25,14 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { DOSSIERS_DE_SUBSTANCE, ascendanceDansHead, derniereRevueArchivee, memeSha } from '../guards/lib/revuePalier.mjs'
+import { ascendanceDansHead, derniereRevueArchivee, memeSha, shasDeSubstance } from '../guards/lib/revuePalier.mjs'
 import { croissancesDeLaPlage } from '../guards/lib/plageStock.mjs'
-import { tenter } from '../guards/lib/gitPorte.mjs'
+import { depotDe, imageDeHead, journalDe, lireEnLot, tenter } from '../guards/lib/gitPorte.mjs'
 import { coursesCi } from '../guards/lib/coursesCi.mjs'
 import { soldesSuivis } from './fermetures-non-citees.mjs'
 import { numerosFermes } from '../guards/lib/fermetures.mjs'
 
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
-
-/** Séparateurs de champ et d'enregistrement du journal git : aucun sujet de commit ne les porte. */
-export const CHAMP = String.fromCharCode(31)
-export const ENREGISTREMENT = String.fromCharCode(30)
 
 /**
  * Arguments de la ligne de commande. PUR.
@@ -72,25 +68,13 @@ export function analyserArguments(argv) {
 export const sortieParDefaut = (base, tete) =>
   join(tmpdir(), 'wfrp-faits-de-palier', `faits-${String(base).slice(0, 9)}-${String(tete).slice(0, 9)}.json`)
 
-/**
- * Commits d'un journal `--format=%H<CHAMP>%s<CHAMP>%B<ENREGISTREMENT>`. PUR.
- * @returns {{ sha: string, sujet: string, corps: string }[]}
- */
-export function parserJournal(brut) {
-  return String(brut ?? '')
-    .split(ENREGISTREMENT)
-    .map((bloc) => bloc.replace(/^\r?\n/, ''))
-    .filter((bloc) => bloc.trim())
-    .map((bloc) => {
-      const [sha = '', sujet = '', corps = ''] = bloc.split(CHAMP)
-      return { sha: sha.trim(), sujet: sujet.trim(), corps }
-    })
-    .filter((c) => c.sha)
-}
+/** Un commit du journal (`journalDe`) en `{ sha, sujet, corps }` : le sujet est la première ligne du
+ *  message, le corps le message entier. PUR. */
+export const commitDuJournal = ({ sha, message }) => ({ sha, sujet: message.split('\n')[0].trim(), corps: message })
 
-/** Marque les commits qui touchent `src`/`scripts` — la SUBSTANCE, au sens du palier. PUR. */
-export function marquerSubstance(commits, shasDeSubstance) {
-  const substantiels = new Set([...(shasDeSubstance ?? [])].map((s) => String(s).trim()).filter(Boolean))
+/** Marque les commits de SUBSTANCE au sens du palier (`shasDeSubstance`, revuePalier.mjs). PUR. */
+export function marquerSubstance(commits, shas) {
+  const substantiels = new Set([...(shas ?? [])].map((s) => String(s).trim()).filter(Boolean))
   return (commits ?? []).map((c) => ({ ...c, substance: substantiels.has(c.sha) }))
 }
 
@@ -133,8 +117,11 @@ export function coursesParCommit(servies, shas) {
 
 // ── Lecture réelle ────────────────────────────────────────────────────────────────────────────
 
-const git = (args, cwd) =>
-  execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 1 << 28 })
+/** La réponse d'une question au dépôt, ou une levée qui nomme `quoi` : ce que git n'a pas rendu. */
+const exiger = (valeur, quoi, cwd) => {
+  if (valeur === null || valeur === undefined) throw new Error(`faits-de-palier : ${quoi} illisible dans ${cwd}`)
+  return valeur
+}
 
 function main() {
   let options
@@ -171,15 +158,21 @@ function main() {
     process.exit(1)
   }
 
+  const depot = depotDe(cwd)
+  const substance = tenter(() => shasDeSubstance(depot, [`${base}..${tete}`]))
+  if (!substance.disponible) {
+    process.stderr.write(`faits-de-palier : ce que font les commits de \`${base}..${tete}\` est illisible — ${substance.raison}.\n`)
+    process.exit(1)
+  }
   const commits = marquerSubstance(
-    parserJournal(git(['log', `--format=%H${CHAMP}%s${CHAMP}%B${ENREGISTREMENT}`, `${base}..${tete}`], cwd)),
-    git(['rev-list', `${base}..${tete}`, '--', ...DOSSIERS_DE_SUBSTANCE], cwd).split('\n').map((l) => l.trim()).filter(Boolean),
+    exiger(journalDe(depot, [`${base}..${tete}`]), `la plage ${base}..${tete}`, cwd).map(commitDuJournal),
+    substance.valeur,
   )
   const shas = commits.map((c) => c.sha)
   const fermetures = fermeturesDesCommits(commits, soldesSuivis(cwd))
-  const stocks = tenter(() => croissancesDeLaPlage({ cwd, avant: base, apres: tete }))
+  const stocks = tenter(() => croissancesDeLaPlage({ cwd, debut: base, fin: tete }))
 
-  const depuis = git(['log', '-1', '--format=%cs', base], cwd).trim()
+  const depuis = exiger(journalDe(depot, [`${base}^!`])?.[0]?.date.slice(0, 10), `la date de ${base}`, cwd)
   const fermeturesHorsCommit = horsLigne
     ? { disponible: false, raison: '`--hors-ligne` : GitHub non consulté' }
     : tenter(() => execFileSync(process.execPath, [join(RACINE, 'scripts', 'ops', 'fermetures-non-citees.mjs'), '--depuis', depuis], {
@@ -202,7 +195,7 @@ function main() {
 
   const texteDeRevue = tenter(() => (revuePrecedente
     ? readFileSync(revuePrecedente, 'utf8')
-    : git(['show', `HEAD:${derniere.chemin}`], cwd)))
+    : exiger(lireEnLot(depot, imageDeHead(depot), [derniere.chemin]).get(derniere.chemin), `HEAD:${derniere.chemin}`, cwd)))
 
   const faitsChemin = sortie ?? sortieParDefaut(base, tete)
   const faits = {

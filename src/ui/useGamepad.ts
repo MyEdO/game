@@ -2,7 +2,7 @@
  * Couche MANETTE du combat (Gamepad API W3C, mapping « standard »). PRINCIPE : la manette ne crée
  * AUCUN chemin parallèle — elle dispatche EXACTEMENT les mêmes intentions que le clavier. La table
  * d'intentions partagée EST le registre de raccourcis (`runBindingById`) ; la nav de focus des
- * menus/modales réutilise le filtre VISIBLE partagé de `Modal` (`visibleFocusables`). Tout passe par
+ * menus/modales réutilise le filtre VISIBLE partagé de `focus.ts` (`visibleFocusables`). Tout passe par
  * les MÊMES `padDir`/`padButton` exportés ici — le hook (vraie manette) ET le shim DEV (Playwright,
  * sans pad réel) les appellent à l'identique, zéro logique dupliquée.
  */
@@ -10,29 +10,28 @@ import { useEffect } from 'react';
 import { useGame } from '../state/store';
 import { runBindingById, runBindingUpById } from '../state/keybindings';
 import { resoudreEchap } from '../state/resoudreEchap';
-import { visibleFocusables } from './Modal';
+import { visibleFocusables } from './focus';
+import { dialogueDuDessus, surfaceFocalisee } from './useDismissLayer';
 
 /** Surface d'AFFORDANCES du combat : le pont de la console (`CombatConsole`), unique conteneur de
  *  cases/boutons de tour. Codé ici une seule fois — les trois sites de la manette le partagent. */
 const CONSOLE_SEL = '.combat-console';
 
-/** Contexte d'entrée courant (DOM pur, pas d'état React) : une modale ouverte capte tout ; sinon, le
+/** Contexte d'entrée courant (pas d'état React) : un dialogue de la pile capte tout ; sinon, le
  *  focus dans la console de combat = navigation de menu ; à défaut = pilotage de la carte (curseur). */
 type PadCtx = 'modal' | 'menu' | 'map';
 function padContext(): PadCtx {
-  if (document.querySelector('[role="dialog"]')) return 'modal';
+  if (dialogueDuDessus()) return 'modal';
   const ae = document.activeElement;
   if (ae && ae.closest(CONSOLE_SEL)) return 'menu';
   return 'map';
 }
 
-/** Conteneur ACTIF du contexte focus : la modale du DESSUS (dernier `[role=dialog]`, cohérent avec le
- *  piège Tab de `Modal`) ou la console de combat. `null` en contexte carte (pas de nav de focus). */
+/** Conteneur ACTIF du contexte focus : en modale, la manette navigue dans la surface qui tient le
+ *  focus au-dessus du dialogue du dessus (bulle épinglée), sinon dans ce dialogue (`surfaceFocalisee`) ;
+ *  le piège Tab de `Modal` lit `dialogueDuDessus`. En menu, la console de combat. `null` en contexte carte. */
 function activeContainer(ctx: PadCtx): HTMLElement | null {
-  if (ctx === 'modal') {
-    const dialogs = document.querySelectorAll<HTMLElement>('[role="dialog"]');
-    return dialogs[dialogs.length - 1] ?? null;
-  }
+  if (ctx === 'modal') return surfaceFocalisee();
   if (ctx === 'menu') return document.querySelector<HTMLElement>(CONSOLE_SEL);
   return null;
 }

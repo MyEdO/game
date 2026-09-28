@@ -57,4 +57,17 @@ describe('DeterminationButton', () => {
     act(() => { pion.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
     expect(depenses, 'la LOGIQUE reste keyée par id').toEqual(['inconscient']);
   });
+
+  it('divulgation ouverte : la bulle Codex du bouton se retire et ne rouvre pas sur l’option révélée', () => {
+    monter([]);
+    const ouvrir = [...container.querySelectorAll('button')].find((b) => b.textContent?.includes('Détermination'))!;
+    const enveloppe = ouvrir.closest<HTMLElement>('.codex-ref')!;
+    act(() => { enveloppe.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); });
+    expect(document.querySelector('.infobulle'), 'survolé et fermé : la bulle de la règle s’affiche').not.toBeNull();
+    act(() => { ouvrir.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+    expect(ouvrir.getAttribute('aria-expanded'), 'la divulgation est ouverte').toBe('true');
+    expect(document.querySelector('.infobulle'), 'ouverte : aucune bulle sur les options révélées').toBeNull();
+    act(() => { enveloppe.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); });
+    expect(document.querySelector('.infobulle'), 'le survol ne la rouvre pas tant que la divulgation est ouverte').toBeNull();
+  });
 });

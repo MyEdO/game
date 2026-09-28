@@ -257,7 +257,7 @@ describe('CampaignView — le refus du repli de défaite vit le temps de la moda
     act(() => { b!.click(); });
   };
   const menuPrincipal = () =>
-    [...host.querySelectorAll<HTMLButtonElement>('.defeat-modal .modal-actions button')].find((x) => x.textContent === 'Menu principal');
+    [...host.querySelectorAll<HTMLButtonElement>('.defeat-modal .cadre-pied button')].find((x) => x.textContent === 'Menu principal');
 
   it('refus affiché, puis levé : la défaite suivante s’ouvre sans lui', () => {
     vi.stubGlobal('matchMedia', (media: string) => ({ matches: false, media, addEventListener() {}, removeEventListener() {} }));

@@ -18,7 +18,8 @@
 import type { GameState } from './store';
 import { useGame, activeCombatant } from './store';
 import { controlsActive } from './netOwnership';
-import { reponsesDuNoeud, conversationRepond, conversationAuDessus } from './dialogue';
+import { reponsesDuNoeud, conversationRepond, COUCHE_CONVERSATION } from './dialogue';
+import { modaleDuDessus } from './dismissStack';
 import { modalHolds } from './modalArbiter';
 import { modalBlocksMapHover } from './mapHover';
 import { hotbar } from './hotbarBridge';
@@ -136,11 +137,11 @@ export interface KeyBinding {
    *  tabindex (flèches d'une liste, d'un menu, d'onglets). Le partage est tranché par le hook
    *  (`ui/useGameKeyboard.ts`), une seule fois pour tout le registre. */
   notWhenControlFocused?: boolean;
-  /** Le raccourci APPARTIENT à la couche DIALOGUE. Une conversation ouverte est une couche
-   *  BLOQUANTE (`ui/useDismissLayer`) : pendant qu'elle est à l'écran, SEULS les raccourcis qui la
-   *  déclarent répondent — les autres se taisent, même si leur `when` est vrai (la grille de
-   *  capacités en plein combat, la fin de tour, la caméra, l'exploration). La loi est tranchée par
-   *  `bindingApplies` ci-dessous, porte COMMUNE au clavier et à la manette. */
+  /** Le raccourci APPARTIENT à la couche de la CONVERSATION (`COUCHE_CONVERSATION`). Sous une modale
+   *  de la pile, SEULS les raccourcis qu'elle déclare répondent — les autres se taisent, même si leur
+   *  `when` est vrai (la grille de capacités en plein combat, la fin de tour, la caméra,
+   *  l'exploration). La loi est tranchée par `bindingApplies` ci-dessous, porte COMMUNE au clavier et
+   *  à la manette. */
   coucheDialogue?: boolean;
   /** RELÂCHEMENT de la touche. Un raccourci qui en porte un est un geste MAINTENU : il agit à
    *  l'enfoncement, dure tant que la touche est tenue, et se termine ici. La répétition automatique du
@@ -207,8 +208,9 @@ const curOrPreempt = (s: GameState) => curMap(s) || preemptCur(s);
  *  où bordée et téléportation ont la leur — que `interlude-exit` prend. Sans ce prédicat, Échap
  *  n'avait aucun barreau pour ces armés-là et retombait sur le menu système. */
 const armeSansInterlude = (s: GameState) => inBattle(s) && !!s.battle!.action && !currentInterludeAction(() => s);
-/** Contexte d'EXPLORATION (carte hors combat) : écran de jeu, mode exploration, hors dialogue. */
-const exploring = (s: GameState) => s.screen === 'campaign' && s.mode === 'exploration' && !s.dialogue;
+/** Contexte d'EXPLORATION (carte hors combat) : écran de jeu, mode exploration. La conversation et
+ *  toute autre modale le taisent à la porte (`bindingApplies`). */
+const exploring = (s: GameState) => s.screen === 'campaign' && s.mode === 'exploration';
 /** Contexte d'exploration en vue SUBJECTIVE (POV) : les ZQSD deviennent cap-relatifs et A/E pivotent le
  *  regard → shadow des raccourcis caméra/pas-iso (mêmes touches) tant que le POV est actif. */
 const exploringPov = (s: GameState) => exploring(s) && s.povActive;
@@ -316,7 +318,7 @@ export const KEYBINDINGS: KeyBinding[] = [
   },
   // ── Curseur de combat (flèches) — la MANETTE réutilise ces mêmes ids via runBindingById. Le curseur
   //    « suit les yeux » (direction écran). Le 1er appui le pose sur le combattant actif.
-  //    `notWhenControlFocused` : un CONTRÔLE focalisé possède ses propres flèches (menu, popover de
+  //    `notWhenControlFocused` : un CONTRÔLE focalisé possède ses propres flèches (menu, infobulle de
   //    règle d'un bouton de pool, liste à roving tabindex). Sans cette garde, le curseur tactique
   //    court AVEC lui sur la même touche — le ↓ qui devait ouvrir la porte de la fiche déplaçait
   //    aussi la visée (recette B3a, capture 04). Même doctrine que `round-start`/`end-turn` pour
@@ -536,24 +538,44 @@ export function effectiveMods(b: KeyBinding, overrides: Record<string, string>):
  * `ui/useGameKeyboard`, manette `ui/useGamepad` via `runBindingById`) — une loi énoncée au registre
  * qu'une seule des deux portes appliquerait ne serait pas une loi.
  *
- * Deux étages, dans cet ordre : la COUCHE (une conversation à l'écran est BLOQUANTE — seuls les
- * raccourcis `coucheDialogue` répondent, même si leur `when` est vrai — et ceux-ci se taisent quand
- * une autre surface est au-dessus de la conversation sur l'écran de CE siège, `conversationAuDessus`),
- * puis le CONTEXTE (`when`).
+ * Deux étages, dans cet ordre : la COUCHE (sous la modale du dessus sur l'écran de CE siège,
+ * `modaleDuDessus`, seules répondent les touches qu'elle déclare — `coucheDialogue` pour la
+ * conversation, aucune pour les autres —, même si leur `when` est vrai), puis le CONTEXTE (`when`).
  * `notWhenControlFocused` n'est PAS de cette classe et reste à la porte clavier : il ne dépend pas de
  * l'ÉTAT mais du FOCUS DOM, que la manette ne subit pas (elle déplace le focus elle-même et active
  * le contrôle focalisé par un clic, `padButton`).
  */
 export function bindingApplies(b: KeyBinding, s: GameState): boolean {
-  if (s.dialogue && b.coucheDialogue !== true) return false;
-  if (b.coucheDialogue && !conversationAuDessus()) return false;
+  const dessus = modaleDuDessus();
+  if (dessus && !(dessus.kind === COUCHE_CONVERSATION && b.coucheDialogue === true)) return false;
   return b.when(s);
 }
+
+/** ÉLECTION d'un raccourci pour une touche : le 1ᵉʳ du registre dont la touche (remappée) et les
+ *  modificateurs tenus répondent, que le contrôle focalisé ne tait pas (`notWhenControlFocused`), et
+ *  que la porte commune laisse passer (`bindingApplies`). Unique pour le clavier (`useGameKeyboard`)
+ *  et l'annulation (`resoudreEchap`). */
+export function elireBinding(
+  code: string,
+  s: GameState,
+  { controlFocused = false, mods = [] }: { controlFocused?: boolean; mods?: readonly KeyMod[] } = {},
+): KeyBinding | undefined {
+  return KEYBINDINGS.find(
+    (k) =>
+      effectiveCodes(k, s.keyOverrides).includes(code) &&
+      modsMatch(effectiveMods(k, s.keyOverrides), mods, code) &&
+      (!k.notWhenControlFocused || !controlFocused) &&
+      bindingApplies(k, s),
+  );
+}
+
+/** Le raccourci d'`id` donné (ids uniques au registre, garde `keybindings.test.ts`). */
+export const bindingParId = (id: string): KeyBinding | undefined => KEYBINDINGS.find((k) => k.id === id);
 
 /** Exécute un raccourci par son `id` (s'il s'applique au contexte courant) — table d'intentions PARTAGÉE
  *  par le clavier ET la manette : un seul endroit porte les couches, la garde `when` et l'action `run`. */
 export function runBindingById(id: string, get: () => GameState): void {
-  const b = KEYBINDINGS.find((k) => k.id === id);
+  const b = bindingParId(id);
   if (b && bindingApplies(b, get())) b.run(get);
 }
 
@@ -561,7 +583,7 @@ export function runBindingById(id: string, get: () => GameState): void {
  *  la manette doit signaler comme le clavier : sans lui, un geste tenu armé par `runBindingById` n'a
  *  aucune fin. Sans garde `when` : un geste s'arrête même si le contexte a changé pendant qu'il durait. */
 export function runBindingUpById(id: string, get: () => GameState): void {
-  KEYBINDINGS.find((k) => k.id === id)?.runUp?.(get);
+  bindingParId(id)?.runUp?.(get);
 }
 
 /** Libellé d'un raccourci pour l'écran Options, résolu À L'APPEL depuis sa clé (+ ses paramètres). */

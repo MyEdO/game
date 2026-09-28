@@ -57,12 +57,8 @@ test('le sujet est BORNÉ à 70 caractères (une ligne de filigrane reste lisibl
   }
 })
 
-test('le lecteur git est injectable pour la mesure, sans changer la FORME de la ligne', () => {
-  const faux = (args) => {
-    if (args[0] === 'status') return 'M a.txt\n?? b.txt\n?? c.txt'
-    if (args[0] === 'rev-parse') return 'abc1234'
-    return 'un sujet'
-  }
+test('les questions du filigrane sont injectables pour la mesure, sans changer la FORME de la ligne', () => {
+  const faux = { sales: () => 3, sha: () => 'abc1234', sujet: () => 'un sujet' }
   assert.equal(enteteArbre('/peu-importe', faux), 'arbre abc1234 « un sujet » + 3 fichier(s) non committé(s)')
 })
 
@@ -77,7 +73,8 @@ test('git INDISPONIBLE (hors dépôt) : ligne DÉGRADÉE nommée, jamais une exc
   }
 })
 
-test('un lecteur injecté qui JETTE ne fait pas tomber le filigrane : la panne est DITE', () => {
-  const ligne = enteteArbre('/peu-importe', () => { throw new Error('git absent du PATH') })
+test('une question qui JETTE ne fait pas tomber le filigrane : la panne est DITE', () => {
+  const jette = () => { throw new Error('git absent du PATH') }
+  const ligne = enteteArbre('/peu-importe', { sales: jette, sha: () => 'abc1234', sujet: () => 'un sujet' })
   assert.equal(ligne, 'arbre (git indisponible : git absent du PATH)')
 })

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Modal } from './Modal';
 import { useGame } from '../state/store';
 import { Grid } from './Layout';
@@ -19,8 +19,11 @@ type HeroKey = 'ambitionShort' | 'ambitionLong' | 'motivation';
  * DEUX issues DISTINCTES, fournies par l'hôte du formulaire : `onDone` reçoit la séance APPLIQUÉE
  * (après `endSession`), `onCancel` le RENONCEMENT. Les confondre rendait « Annuler » destructif dans
  * le récap de chapitre (il cloît le chapitre, archive vidée, sans PX).
+ *
+ * Rend le CORPS et les GESTES à part : le cadre hôte pose `gestes` dans son pied (`Modal` ou
+ * `ScreenShell` `footer`).
  */
-export function SessionEndBody({ onDone, onCancel, apercu }: { onDone: () => void; onCancel: () => void; apercu?: boolean }) {
+export function useSessionEnd({ onDone, onCancel, apercu }: { onDone: () => void; onCancel: () => void; apercu?: boolean }): { corps: ReactNode; gestes: ReactNode } {
   const party = useGame((s) => s.party.filter((h) => h.kind === 'hero'));
   const endSession = useGame((s) => s.endSession);
   const [heroes, setHeroes] = useState<Record<string, Partial<Record<HeroKey, boolean>>>>({});
@@ -29,7 +32,7 @@ export function SessionEndBody({ onDone, onCancel, apercu }: { onDone: () => voi
     setHeroes((h) => ({ ...h, [id]: { ...h[id], [key]: !h[id]?.[key] } }));
   const confirm = () => { endSession({ heroes, group }); onDone(); };
 
-  return (
+  const corps = (
     <div data-apercu={apercu ? '' : undefined} aria-hidden={apercu || undefined}>
       <p className="muted">
         Cochez les Ambitions accomplies (+50 PX court terme, +500 long terme) et les héros ayant
@@ -66,20 +69,24 @@ export function SessionEndBody({ onDone, onCancel, apercu }: { onDone: () => voi
           </section>
         ))}
       </Grid>
-      <div className="modal-actions">
-        <button className="btn" disabled={apercu} onClick={onCancel}>Annuler</button>
-        <button className="btn btn-primary" disabled={apercu} onClick={confirm}>Terminer la séance</button>
-      </div>
     </div>
   );
+  const gestes = (
+    <>
+      <button className="btn" disabled={apercu} onClick={onCancel}>Annuler</button>
+      <button className="btn btn-primary" disabled={apercu} onClick={confirm}>Terminer la séance</button>
+    </>
+  );
+  return { corps, gestes };
 }
 
 /** La fin de séance en MODALE (menu système, Effet `sessionEnd`) — le voile et le piège Tab de
  *  `Modal` autour du corps ci-dessus, SOURCE UNIQUE du formulaire. */
 export function SessionEndModal({ onClose }: { onClose: () => void }) {
+  const { corps, gestes } = useSessionEnd({ onDone: onClose, onCancel: onClose });
   return (
-    <Modal title="Fin de séance" variant="plain" className="session-end" onClose={onClose} backdropClose>
-      <SessionEndBody onDone={onClose} onCancel={onClose} />
+    <Modal title="Fin de séance" onClose={onClose} backdropClose footer={gestes}>
+      {corps}
     </Modal>
   );
 }

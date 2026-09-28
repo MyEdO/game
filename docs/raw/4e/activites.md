@@ -404,7 +404,7 @@ Test de Compétence de Carrière :
 Les Personnages aux Niveaux 3-4 qui entreprennent *Revenus* **maintiennent automatiquement leur Statut** (voir *Avec le pouvoir*).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 8` (l.106-122) → `statusOf`, `incomeSkillOf`, `social-begging-bonus`, `social-charm-intra-tier`, `statusIncomeMax`, `RevenusPane`, `openCatalogActivity`, `runActivityResolver`, `statut`, `statusIncome` — `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/engine/activities.ts`, `src/engine/social.ts`, `src/state/interludeFlow.ts`, `src/ui/InterludeScreen.tsx`
+- `LDB 8` (l.106-122) → `statusOf`, `incomeSkillOf`, `social-begging-bonus`, `social-charm-intra-tier`, `statusIncomeMax`, `RevenusPane`, `openCatalogActivity`, `runActivityResolver`, `statusIncome`, `statut` — `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/engine/activities.ts`, `src/engine/social.ts`, `src/state/interludeFlow.ts`, `src/ui/InterludeScreen.tsx`
 - `LDB 23` (l.187-193) → `revenus`, `ActivityDef`, `everBelongedClasses`, `openCatalogActivity`, `Combatant`, `dernieres-nouvelles`, `entrainement-au-combat`, `observer-une-cible` — `src/data/activities.json`, `src/engine/activities.ts`, `src/engine/types.ts`, `src/state/interludeFlow.ts`
 
 ---
@@ -665,7 +665,7 @@ Le détail : chaque Personnage dispose d'**une Activité par semaine de 8 jours*
 **Voir aussi** : [Activités Répandues (LDB 23)](#activités-répandues-ldb-23) (Apprentissage particulier, Artisanat, Entraînement, Invention !), [Activités de Classe (LDB 23)](#activités-de-classe-ldb-23) (Recherche de savoir, Semer la dissension, Entraînement au combat), [Activités de Guerrier — AA Annexe II](#activités-de-guerrier--aa-annexe-ii), [Commerce d'opportunité (en mer)](#commerce-dopportunité-en-mer), [Cartographie (Activité en mer)](#cartographie-activité-en-mer), [Entraînement d'équipage](#entraînement-déquipage), [Entretien du navire](#entretien-du-navire).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 15` (l.17, l.266-272) → `SeaActivitiesModal`, `WorldMapView`, `SeaVoyageState`, `SEA_WEEK_DAYS`, `startTravel`, `sea-embrigadement-ragot`, `sea-embrigadement-discretion`, `sea-cargo`, `cruiseM`, `activites-en-mer`, +25 — `src/data/regles.json`, `src/data/sea-cargo.json`, `src/data/sea-events.json`, `src/data/voyage-stakes.json`, `src/state/pendings.ts`, `src/state/seaActivities.ts`, +5 fichiers
+- `MDG 15` (l.17, l.266-272) → `SeaActivitiesModal`, `WorldMapView`, `SeaVoyageState`, `SEA_WEEK_DAYS`, `startTravel`, `sea-embrigadement-ragot`, `sea-embrigadement-discretion`, `sea-cargo`, `cruiseM`, `embrigadement`, +25 — `src/data/regles.json`, `src/data/sea-cargo.json`, `src/data/sea-events.json`, `src/data/voyage-stakes.json`, `src/state/pendings.ts`, `src/state/seaActivities.ts`, +5 fichiers
 
 ---
 
@@ -708,7 +708,7 @@ Dessiner une carte revendable et utile à l'orientation. **Test de Métier (Cart
 **Voir aussi** : [Activités en mer — MDG 15](#activités-en-mer--mdg-15), [Opérations Bancaires](#opérations-bancaires) (Planque, découverte sur 10 ou moins), [Activités de Voyage — EDOC 5](#activités-de-voyage--edoc-5) (Établir des Cartes — équivalent terrestre).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 15` (l.288-292) → `SeaActivitiesModal`, `BankDeposit`, `doc`, `sea-cargo`, `sellRefusal`, `buildPostProgressionSteps`, `bankWithdrawOutcome`, `activites-en-mer`, `bankWithdrawInner`, `PendingExtendedTest`, +4 — `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/trappings.ts`, `src/data/sea-cargo.json`, `src/engine/activities.ts`, `src/i18n/messages/fr.ts`, +7 fichiers
+- `MDG 15` (l.288-292) → `SeaActivitiesModal`, `BankDeposit`, `doc`, `sea-cargo`, `sellRefusal`, `buildPostProgressionSteps`, `bankWithdrawOutcome`, `bankWithdrawInner`, `PendingExtendedTest`, `GameState`, +4 — `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/trappings.ts`, `src/data/sea-cargo.json`, `src/engine/activities.ts`, `src/i18n/messages/fr.ts`, +7 fichiers
 
 ---
 
@@ -752,7 +752,7 @@ Réparer l'usure du vaisseau (planches pourries, voiles, coque incrustée). **De
 **Voir aussi** : [Activités en mer — MDG 15](#activités-en-mer--mdg-15), [Artisanat](#artisanat) (Métier, Test étendu).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 15` (l.302-306) → `SeaActivitiesModal`, `BankDeposit`, `commerce`, `minimum-vital`, `sea-cargo`, `port-buy-bargain`, `bankWithdrawOutcome`, `activites-en-mer`, `bankWithdrawInner`, `GameState`, +2 — `src/data/combat-stakes.json`, `src/data/regles.json`, `src/data/schemas/defs/sea-cargo.ts`, `src/data/sea-cargo.json`, `src/engine/activities.ts`, `src/i18n/messages/fr.ts`, +5 fichiers
+- `MDG 15` (l.302-306) → `SeaActivitiesModal`, `BankDeposit`, `commerce`, `minimum-vital`, `sea-cargo`, `port-buy-bargain`, `bankWithdrawOutcome`, `bankWithdrawInner`, `GameState`, `activites-en-mer`, +2 — `src/data/combat-stakes.json`, `src/data/regles.json`, `src/data/schemas/defs/sea-cargo.ts`, `src/data/sea-cargo.json`, `src/engine/activities.ts`, `src/i18n/messages/fr.ts`, +5 fichiers
 
 ---
 

@@ -1,10 +1,18 @@
-import { describe, it, expect } from 'vitest';
+// @vitest-environment jsdom
+import { describe, it, expect, afterEach, beforeAll } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { GameOpEditor, FormulaField, opSummary, newOp, formulaSummary, shapeOf, formulaForShape, OP_LABEL, OP_REF_FIELDS, opMissingRefs, opsMissingRefs } from './GameOpEditor';
 import { datasetArray } from '../../data/overrides';
 import { fallTables } from '../../data/shipCriticals';
 import { lightTones } from '../../data';
 import type { GameOp } from '../../engine/ops';
+import { monterRacine, demonterRacines } from '../../monterRacine.testkit';
+import { entreeDe, menuDe, ouvrirMenu } from './AddMenu.testkit';
+
+beforeAll(() => {
+  (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+});
+afterEach(demonterRacines);
 
 /**
  * ÉDITEUR D'OPS COMPLET — gate de RÉGRESSION : (a) une Formule (`{dice}`/`{charOf}`) se lit/édite sans
@@ -54,11 +62,11 @@ describe('GameOpEditor — Formule sans perte (correction du bug num()→0)', ()
 });
 
 describe('GameOpEditor — menu « + op » COMPLET', () => {
-  it('le menu propose narrative ET grantWeapon (entre autres)', () => {
-    const html = renderToStaticMarkup(<GameOpEditor ops={[]} onChange={() => {}} />);
-    expect(html).toContain('Effet narratif'); // narrative
-    expect(html).toContain('Invoquer une arme magique'); // grantWeapon
-    expect(html).toContain('+ Op mécanique');
+  it('le menu propose narrative ET grantWeapon (entre autres)', async () => {
+    const { container } = monterRacine(<GameOpEditor ops={[]} onChange={() => {}} />);
+    const menu = await ouvrirMenu(menuDe(container, '+ Op mécanique'));
+    expect(entreeDe(menu, OP_LABEL.narrative), 'narrative').toBeDefined();
+    expect(entreeDe(menu, OP_LABEL.grantWeapon), 'grantWeapon').toBeDefined();
   });
 
   it('toutes les op du vocabulaire ont un défaut valide et un libellé', () => {

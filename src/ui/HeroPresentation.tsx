@@ -28,7 +28,17 @@ export function HeroPresentation({ hero, onFullSheet, onClose }: {
   const ambLong = hero.details?.ambitionLong;
 
   return (
-    <Modal variant="plain" className="hero-present" title={hero.label} onClose={onClose} backdropClose>
+    <Modal
+      title={hero.label}
+      onClose={onClose}
+      backdropClose
+      footer={
+        <>
+          <button className="btn" onClick={onClose}>{t('present.close')}</button>
+          {onFullSheet && <button className="btn btn-primary" onClick={onFullSheet}>{t('present.fullSheet')}</button>}
+        </>
+      }
+    >
       <div className="hero-present-body">
         <aside className="hero-present-aside">
           <div className="hero-present-fig">
@@ -62,10 +72,6 @@ export function HeroPresentation({ hero, onFullSheet, onClose }: {
             </section>
           )}
         </div>
-      </div>
-      <div className="hero-present-actions">
-        {onFullSheet && <button className="btn btn-primary" onClick={onFullSheet}>{t('present.fullSheet')}</button>}
-        <button className="btn" onClick={onClose}>{t('present.close')}</button>
       </div>
     </Modal>
   );

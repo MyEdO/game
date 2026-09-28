@@ -34,7 +34,6 @@ export function PartyDock({ heroes, targeting, onOpen }: PartyDockProps) {
         type="button"
         className="chip pd-handle"
         aria-expanded={open}
-        title={open ? `Replier le groupe (${heroes.length})` : `Déplier le groupe (${heroes.length})`}
         onClick={() => setOpen((v) => !v)}
       >
         {/* Le compte dit EXACTEMENT ce que le volet déroule (une tuile par entrée, une micro-jauge

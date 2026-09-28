@@ -23,7 +23,6 @@ import type { EtatDialogue } from './pendings';
 import { condCtx, partyMoneyTotal } from './bourseFlow';
 import { ownsGroupDecision } from './netOwnership';
 import { surfaceTientLaMain } from './modalArbiter';
-import { modalKindsOpen } from './dismissStack';
 import type { GameState } from './store';
 
 /**
@@ -65,17 +64,6 @@ export function conversationRepond(s: GameState): s is GameState & { dialogue: E
 
 /** `kind` de la couche que la fenêtre de conversation pose sur la pile de CE siège (`ui/DialogueBox`). */
 export const COUCHE_CONVERSATION = 'dialogue';
-
-/**
- * La conversation est-elle au-dessus À L'ÉCRAN de CE siège ? Toute surface MODALE PAR SIÈGE (fiche,
- * menu système, codex, écran plein-champ…) est peinte par-dessus la fenêtre de conversation, QUEL QUE
- * SOIT l'ordre d'ouverture : la conversation ne répond au clavier que si AUCUNE modale autre que la
- * sienne n'est ouverte. Elle met en attente les touches de CE joueur, jamais le verbe : l'écran de
- * l'hôte ne refuse pas la réponse de l'invité. Un popover (infobulle du codex) ne prend pas les touches.
- */
-export function conversationAuDessus(): boolean {
-  return modalKindsOpen().every((kind) => kind === COUCHE_CONVERSATION);
-}
 
 /** Pourquoi une réponse VISIBLE n'est pas offerte. Fermé : la fenêtre en rend le texte, la touche
  *  s'en tait — les deux lisent le MÊME verdict `enabled`. */

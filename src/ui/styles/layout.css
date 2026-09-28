@@ -194,19 +194,6 @@ ol.grid {
   display: flex;
   flex-direction: column;
 }
-/* Corps BORNÉ/CENTRÉ (`ScreenShell` prop `body='centered'`) : un écran de PANNEAUX borne et centre
-   son corps pour ne pas laisser un océan vide en large. */
-.screen-body {
-  width: min(960px, 96vw);
-  margin: var(--sp-sm) auto 0;
-}
-/* Variante GRILLE/CATALOGUE (`body='centered-wide'`, politique grand écran de docs/charte-ui.md) —
-   sous 1440px le comportement reste identique à `.screen-body`. */
-@media (min-width: 1440px) {
-  .screen-body.screen-body-wide {
-    width: min(1400px, 96vw);
-  }
-}
 /* Rail DÉFILANT borné d'un écran plein champ : UN SEUL défilement, jamais de scrollbars imbriquées. */
 .screen-scroll {
   flex: 1;

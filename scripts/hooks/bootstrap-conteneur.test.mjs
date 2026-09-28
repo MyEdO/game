@@ -6,69 +6,77 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import {
-  BUDGET_CONSTAT, BUDGET_TOTAL, PREREQUIS, bootstrap, estConteneurDistant, lancer, mettreEnConformite,
+  BUDGET_CONSTAT, BUDGET_TOTAL, GESTES_DU_CONTENEUR, PREREQUIS, bootstrap, estConteneurDistant, lancer, mettreEnConformite,
 } from './bootstrap-conteneur.mjs'
+import { depotDe } from '../guards/lib/gitPorte.mjs'
 import { HOOKS_MONO_SURFACE, NUL, SURFACE_CLAUDE, SURFACE_CODEX, aplatirHooks } from '../agents/compat-core.mjs'
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 const SETTINGS_CLAUDE = join(REPO, SURFACE_CLAUDE)
 const HOOKS_CODEX = join(REPO, SURFACE_CODEX)
 
-/** Faux lanceur : rend la réponse programmée pour `<exe> <premier arg>` et journalise l'appel. */
+/** Faux lanceur : rend la réponse programmée pour `<exe> <premier arg>` et journalise l'appel ; les
+ *  gestes git (`GESTES_DU_CONTENEUR`) sont des QUESTIONS feintes, qui répondent `reponses['git superficiel']`
+ *  et `reponses['git hooks']` et journalisent la question posée. */
 function lanceurFeint(reponses) {
   const vus = []
   const run = (exe, args) => {
     vus.push([exe, ...args].join(' '))
     return reponses[`${exe} ${args[0]}`] ?? { ok: true, valeur: '', rapport: '' }
   }
-  return { run, vus }
+  const gestes = {
+    estSuperficiel: () => { vus.push('git estSuperficiel'); return reponses['git superficiel'] ?? null },
+    dossierDesHooks: () => { vus.push('git dossierDesHooks'); return reponses['git hooks'] ?? null },
+    approfondir: () => { vus.push('git approfondir'); return { disponible: true, valeur: { status: 0, stdout: '', stderr: '' } } },
+  }
+  return { run, gestes, vus }
 }
 
 const CONFORME = {
-  'git rev-parse': { ok: true, valeur: 'false', rapport: 'false' },
-  'git config': { ok: true, valeur: 'scripts/git-hooks', rapport: 'scripts/git-hooks' },
+  'git superficiel': false,
+  'git hooks': 'scripts/git-hooks',
   'gh --version': { ok: true, valeur: 'gh version 2.45.0', rapport: 'gh version 2.45.0' },
 }
 
 test('hors conteneur distant, le hook ne mesure ni ne pose RIEN', () => {
-  const { run, vus } = lanceurFeint({})
+  const { run, gestes, vus } = lanceurFeint({})
   for (const env of [{}, { CLAUDE_CODE_REMOTE: 'false' }, { CLAUDE_CODE_REMOTE: '1' }]) {
     assert.equal(estConteneurDistant(env), false)
-    assert.deepEqual(bootstrap(env, REPO, run), [])
+    assert.deepEqual(bootstrap(env, REPO, run, gestes), [])
   }
   assert.deepEqual(vus, [], 'un environnement local ne doit voir passer aucune commande')
 })
 
 test('conteneur DÉJÀ conforme : silence complet, aucune pose', () => {
-  const { run, vus } = lanceurFeint(CONFORME)
-  assert.deepEqual(bootstrap({ CLAUDE_CODE_REMOTE: 'true' }, REPO, run), [])
+  const { run, gestes, vus } = lanceurFeint(CONFORME)
+  assert.deepEqual(bootstrap({ CLAUDE_CODE_REMOTE: 'true' }, REPO, run, gestes), [])
   assert.deepEqual(
     vus,
-    ['git rev-parse --is-shallow-repository', 'git config core.hooksPath', 'gh --version'],
+    ['git estSuperficiel', 'git dossierDesHooks', 'gh --version'],
     'seuls les constats se jouent',
   )
 })
 
 test('dépôt superficiel : `git fetch --unshallow` posé', () => {
-  const { run, vus } = lanceurFeint({ ...CONFORME, 'git rev-parse': { ok: true, valeur: 'true', rapport: 'true' } })
-  const lignes = bootstrap({ CLAUDE_CODE_REMOTE: 'true' }, REPO, run)
+  const { run, gestes, vus } = lanceurFeint({ ...CONFORME, 'git superficiel': true })
+  const lignes = bootstrap({ CLAUDE_CODE_REMOTE: 'true' }, REPO, run, gestes)
   assert.equal(lignes.length, 1)
   assert.match(lignes[0], /histoire git complète : posé par `git fetch --unshallow origin`\./)
-  assert.ok(vus.includes('git fetch --unshallow origin'), `fetch absent de ${vus.join(' | ')}`)
+  assert.ok(vus.includes('git approfondir'), `fetch absent de ${vus.join(' | ')}`)
 })
 
 test('core.hooksPath vide : `npm install` posé, et lui seul', () => {
-  const { run, vus } = lanceurFeint({ ...CONFORME, 'git config': { ok: false, valeur: '', rapport: '' } })
-  const lignes = bootstrap({ CLAUDE_CODE_REMOTE: 'true' }, REPO, run)
+  const { run, gestes, vus } = lanceurFeint({ ...CONFORME, 'git hooks': null })
+  const lignes = bootstrap({ CLAUDE_CODE_REMOTE: 'true' }, REPO, run, gestes)
   assert.equal(lignes.length, 1)
   assert.match(lignes[0], /hooks git du dépôt : posé par `npm install`\./)
   assert.ok(vus.includes('npm install --no-audit --no-fund'), `npm install absent de ${vus.join(' | ')}`)
-  assert.ok(!vus.some((v) => v.startsWith('apt-get') || v.startsWith('git fetch')), 'rien d’autre à poser')
+  assert.ok(!vus.some((v) => v.startsWith('apt-get') || v === 'git approfondir'), 'rien d’autre à poser')
 })
 
 test('gh absent : apt-get joué, la ligne NOMME le geste', () => {
-  const { run, vus } = lanceurFeint({ ...CONFORME, 'gh --version': { ok: false, valeur: '', rapport: 'spawnSync gh ENOENT' } })
-  const lignes = bootstrap({ CLAUDE_CODE_REMOTE: 'true' }, REPO, run)
+  const { run, gestes, vus } = lanceurFeint({ ...CONFORME, 'gh --version': { ok: false, valeur: '', rapport: 'spawnSync gh ENOENT' } })
+  const lignes = bootstrap({ CLAUDE_CODE_REMOTE: 'true' }, REPO, run, gestes)
   assert.equal(lignes.length, 1)
   assert.match(lignes[0], /exécutable gh : posé par `apt-get update puis apt-get install -y gh`\./)
   assert.ok(vus.includes('apt-get install -y -qq gh'), `apt-get absent de ${vus.join(' | ')}`)
@@ -76,12 +84,12 @@ test('gh absent : apt-get joué, la ligne NOMME le geste', () => {
 })
 
 test('une pose qui ÉCHOUE est rapportée nommément, sans jamais échouer la session', () => {
-  const { run } = lanceurFeint({
+  const { run, gestes } = lanceurFeint({
     ...CONFORME,
     'gh --version': { ok: false, valeur: '', rapport: 'spawnSync gh ENOENT' },
     'apt-get install': { ok: false, valeur: '', rapport: 'E: Unable to locate package gh' },
   })
-  const lignes = bootstrap({ CLAUDE_CODE_REMOTE: 'true' }, REPO, run)
+  const lignes = bootstrap({ CLAUDE_CODE_REMOTE: 'true' }, REPO, run, gestes)
   assert.equal(lignes.length, 1)
   assert.match(lignes[0], /MANQUANT, `apt-get update puis apt-get install -y gh` a échoué — .*Unable to locate package gh/)
 })
@@ -93,9 +101,10 @@ test('un prérequis n’est jamais posé sans son constat (table rejouable à vi
   assert.equal(poses, 0)
 })
 
-// #1803, réfutation du juge : `git config` et `git rev-parse` écrivent leurs avertissements sur
-// stderr. Mêler les deux flux dans la valeur COMPARÉE rendait les deux constats faux — `npm install`
-// à chaque démarrage d'un côté, dépôt superficiel conservé EN SILENCE de l'autre.
+// #1803, réfutation du juge : un outil écrit ses avertissements sur stderr. Mêler les deux flux dans
+// la valeur COMPARÉE rendait les constats faux — `npm install` à chaque démarrage d'un côté, dépôt
+// superficiel conservé EN SILENCE de l'autre. Les constats git sont des questions de l'hôte
+// (`gitPorte.mjs`), qui ne lisent que stdout.
 test('la VALEUR mesurée ne lit que stdout — un bruit sur stderr ne fausse aucun constat', () => {
   const vu = lancer(process.execPath, [
     '-e', "process.stdout.write('scripts/git-hooks\\n'); process.stderr.write('warning: bruit\\n')",
@@ -104,8 +113,20 @@ test('la VALEUR mesurée ne lit que stdout — un bruit sur stderr ne fausse auc
   assert.equal(vu.valeur, 'scripts/git-hooks', 'la valeur mesurée doit ignorer stderr')
   assert.match(vu.rapport, /warning: bruit/, 'le rapport d’échec, lui, garde les deux flux')
 
-  const { run } = lanceurFeint({ ...CONFORME, 'git config': vu })
-  assert.deepEqual(bootstrap({ CLAUDE_CODE_REMOTE: 'true' }, REPO, run), [], 'hooks vivants : rien à poser')
+  const reponses = { 'rev-parse': 'false\n', config: 'scripts/git-hooks\n' }
+  const depot = depotDe(REPO, { spawn: (_git, args) => ({ status: 0, stdout: reponses[args.find((a) => a in reponses)], stderr: 'warning: bruit\n' }) })
+  const run = (exe) => (exe === 'gh' ? { ok: true, valeur: 'gh version 2.45.0', rapport: '' } : assert.fail(`${exe} lancé`))
+  assert.deepEqual(mettreEnConformite({ racine: REPO, run, gestes: GESTES_DU_CONTENEUR, pannes: [], depot }), [], 'hooks vivants : rien à poser')
+})
+
+test('une PANNE de git se NOMME, et le prérequis qu’elle empêche de mesurer n’est pas posé', () => {
+  const pannes = []
+  const depot = depotDe(REPO, { spawn: () => ({ status: 128, stdout: '', stderr: 'fatal: dépôt illisible\n' }), enPanne: (r) => pannes.push(r) })
+  const run = (exe) => (exe === 'gh' ? { ok: true, valeur: 'gh version 2.45.0', rapport: '' } : assert.fail(`${exe} lancé`))
+  assert.deepEqual(mettreEnConformite({ racine: REPO, run, gestes: GESTES_DU_CONTENEUR, pannes, depot }), [
+    '[conteneur] histoire git complète : NON MESURÉ, git indisponible — fatal: dépôt illisible',
+    '[conteneur] hooks git du dépôt : NON MESURÉ, git indisponible — fatal: dépôt illisible',
+  ])
 })
 
 test('`lancer` rend ok:false sur un exécutable absent, en gardant le diagnostic', () => {

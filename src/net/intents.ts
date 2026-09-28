@@ -113,9 +113,10 @@ export const MANUAL_COMBAT_INTENTS: readonly string[] = [
   'steamSaveConfirm',
   // Infirmerie (hors combat) : patients / actes / chirurgie + fermeture — l'hôte valide.
   // Chirurgie : openSurgeryPass POSE la passe, les verbes surgery* dérivés l'influencent,
-  // surgeryNext applique, surgeryCancel annule — une passe n'a AUCUN verbe de résolution inline.
+  // surgeryNext applique, surgeryPassCancel annule la passe, surgeryCancel l'opération — une passe
+  // n'a AUCUN verbe de résolution inline.
   'medicSelectPatient', 'medicAct', 'medicSetWound', 'closeMedic',
-  'openSurgeryPass', 'surgeryNext', 'surgeryCancel',
+  'openSurgeryPass', 'surgeryNext', 'surgeryPassCancel', 'surgeryCancel',
   // Repos (nuit) : chacun règle SES héros (restSet vise un héros, 1er argument) + ready-check.
   'restSet', 'restReady',
   // (Psychologie de COMBAT et à la rencontre : passent par les intents `cascade*` dérivés.)

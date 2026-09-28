@@ -96,6 +96,7 @@ export function AssignRow({
             className="btn small pr-add"
             ref={setBtnAjout}
             aria-label={intitule}
+            aria-haspopup="dialog"
             aria-expanded={ouvert}
             onClick={() => setOuvert((o) => !o)}
           >

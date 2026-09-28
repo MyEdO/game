@@ -105,7 +105,7 @@ export function ShipDossierView({ vessel, party, onClose, initialTab = 'apercu',
 
   return (
     <ScreenShell
-      className="port-overlay ship-dossier"
+      className="ship-dossier"
       title={<>
         <Icon id="travel/sail-ship" size="sm" /> {name}
         <span className="char-sub"> — {vd.label}{rig ? ` · ${libelleDeValeur(rigSchema, rig)}` : ''}</span>
@@ -133,7 +133,7 @@ export function ShipDossierView({ vessel, party, onClose, initialTab = 'apercu',
               <p>Coque : <b>{woundsCur}</b> / {woundsMax} Blessure(s){woundsCur <= 0 ? ' — épave, échouée' : missing > 0 ? ' — avariée' : ' — intacte'}</p>
             </div>
           </section>
-          <Split aside="md" stackBelow={900} gap="xl" pad="xl" className="screen-scroll port-yard">
+          <Split aside="md" stackBelow={900} gap="xl" pad="xl">
             <section className="panel port-section">
               <h3>Jauges</h3>
               <NotchGauge label="Coque" value={woundsCur} max={woundsMax} stacked tone={hullTone} />
@@ -207,7 +207,7 @@ export function ShipDossierView({ vessel, party, onClose, initialTab = 'apercu',
         </>)}
 
         {tab === 'cargaison' && (
-          <Split aside="md" stackBelow={900} gap="xl" pad="xl" className="screen-scroll port-trade">
+          <Split aside="md" stackBelow={900} gap="xl" pad="xl">
             <section className="panel port-section">
               <h3>Cale</h3>
               <NotchGauge label="Soute" value={cargoEnc} max={cargoMax} marks={cargoMarks} stacked tone={cargoTone} format={(v) => `${v} / ${capacity} Enc${overload.palierId ? ` — ${overload.label} (${overload.ratioPct} %)` : ''}`} />
@@ -234,7 +234,7 @@ export function ShipDossierView({ vessel, party, onClose, initialTab = 'apercu',
         )}
 
         {tab === 'equipage' && (
-          <Split aside="md" stackBelow={900} gap="xl" pad="xl" className="screen-scroll port-yard">
+          <Split aside="md" stackBelow={900} gap="xl" pad="xl">
             <section className="panel port-section">
               <h3>Équipage salarié</h3>
               {vessel.crew?.length ? (

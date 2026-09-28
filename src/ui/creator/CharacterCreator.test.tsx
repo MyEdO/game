@@ -36,6 +36,7 @@ import {
 } from './draft';
 import { species as allSpecies, careersForSpecies, findCareerById } from '../../data';
 import { CHAR_LABELS } from '../../engine/types';
+import { echapperRegex } from '../../lib/regex';
 
 // Défauts dérivés (page blanche : plus de pré-tiré dans newDraft) — 1ʳᵉ espèce LDB + sa 1ʳᵉ carrière.
 const SP = allSpecies.find((s) => s.source.book === 'livre-de-base')!;
@@ -45,8 +46,9 @@ const ready = () => withCareer(withSpecies(newDraft(7), SP.id), CAREER.id);
 /** L'option `label` d'une grille est-elle MISE EN AVANT (`btn-primary`) ? Le contrat est la présence
  *  de la classe, jamais l'ORDRE des classes — `OptionChooser` compose `grid` et `actions` par la même
  *  fonction depuis #1689 T2, et l'ordre y a changé sans que rien de visible ne bouge. */
-const estPrimary = (html: string, label: string) =>
-  (html.match(new RegExp(`<button class="([^"]*)"[^>]*>${label}`))?.[1] ?? '').split(' ').includes('btn-primary');
+/** L'option `label` est-elle RETENUE (`aria-pressed`, `selected` d'`OptionChooser`) ? */
+const estRetenue = (html: string, label: string) =>
+  /aria-pressed="true"/.test(html.match(new RegExp(`<button([^>]*)>${echapperRegex(label)}`))?.[1] ?? '');
 
 describe('CharacterCreator (assistant) — ossature 2 zones + page blanche', () => {
   it('étape 1 (Race, #393 P1) : ossature 2 ZONES « Atelier du scribe » (CreatorStepFrame) ; aucune race pré-tirée', () => {
@@ -463,27 +465,30 @@ describe('CharacterCreator (assistant) — ossature 2 zones + page blanche', () 
       expect(withoutChoice).toContain('DR à un Test raté');
       expect(withoutChoice).toContain('matériaux robustes');
       // Raffiné (défaut du résolveur) pré-sélectionné sans que rien ne soit stocké.
-      expect(estPrimary(withoutChoice, 'Raffiné')).toBe(true);
-      expect(estPrimary(withoutChoice, 'Solide')).toBe(false);
+      expect(estRetenue(withoutChoice, 'Raffiné')).toBe(true);
+      expect(estRetenue(withoutChoice, 'Solide')).toBe(false);
 
       const withChoice = renderToStaticMarkup(<TrappingChoiceSlot emplacement={slot} choices={{ [dot([4])]: 'solide' }} onChoicesChange={() => {}} />);
-      expect(estPrimary(withChoice, 'Solide')).toBe(true);
-      expect(estPrimary(withChoice, 'Raffiné')).toBe(false);
+      expect(estRetenue(withChoice, 'Solide')).toBe(true);
+      expect(estRetenue(withChoice, 'Raffiné')).toBe(false);
     });
   });
 
   it("TrappingChoiceSlot `{choice}` imbriquant un `{id, qualityChoice}` : le picker d'Atout se déroule SOUS la branche choisie", () => {
     avecDotations(CARRIERE_FIXTURE, DOTATIONS_FIXTURE, () => {
       const slot = emplacementA(dot([0]));
-      // Défaut (aucun choix) : la 1re branche (Miroir) est effective, aucun picker d'Atout imbriqué.
+      const retenues = (html: string) => (html.match(/aria-pressed="true"/g) ?? []).length;
+      // Aucun choix : aucune branche retenue, aucun picker d'Atout imbriqué.
       const beforeBranch = renderToStaticMarkup(<TrappingChoiceSlot emplacement={slot} choices={{}} onChoicesChange={() => {}} />);
       expect(beforeBranch).not.toContain('matériaux robustes'); // desc de Solide, absent : picker imbriqué non déroulé
+      expect(retenues(beforeBranch), 'aucune branche retenue avant le choix du joueur').toBe(0);
       // Branche « Fleuret de qualité » choisie + Atout Solide choisi dans le picker imbriqué.
       const afterBranch = renderToStaticMarkup(
         <TrappingChoiceSlot emplacement={slot} choices={{ [dot([0])]: 1, [dot([0, 1])]: 'solide' }} onChoicesChange={() => {}} />,
       );
       expect(afterBranch).toContain('matériaux robustes'); // picker imbriqué déroulé
-      expect(estPrimary(afterBranch, 'Solide')).toBe(true);
+      expect(estRetenue(afterBranch, 'Solide')).toBe(true);
+      expect(retenues(afterBranch), 'la branche choisie et son Atout, rien d’autre').toBe(2);
     });
   });
 

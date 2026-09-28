@@ -6,21 +6,23 @@
 // nom se déduit du contenu (`nomDArchiveDeRevue`), et la porte au commit vérifie qu'ils se répondent.
 // Les archives antérieures gardent leur nom (`nomsDArchiveAcceptes`) : la mesure lit leur FENÊTRE.
 //
-// Le palier se MESURE sur l'histoire : les commits touchant `src`/`scripts` depuis la tête de fenêtre
-// de la dernière revue archivée DANS HEAD. C'est une lecture que n'importe qui refait en deux
-// commandes git, et qui rend la même valeur depuis n'importe quel arbre. Un compteur d'événements
+// Le palier se MESURE sur l'histoire : les commits dont CE QU'ILS FONT (`ceQueFaitLeCommit`) touche
+// `src`/`scripts`, depuis la tête de fenêtre de la dernière revue archivée DANS HEAD. C'est une lecture
+// que n'importe qui refait avec git, et qui rend la même valeur depuis n'importe quel arbre. Un compteur d'événements
 // compterait ce que chaque worktree fait de son côté (20 sur ce dépôt, dont des trains qui ne
 // rejoignent jamais `main`) : deux worktrees suffisent à en faire un nombre que rien ne recoupe.
-import { GitIndisponible, estAncetre, lireGit, sortieOuNull } from './gitPorte.mjs'
+import { GitIndisponible, INDEX, ceQuEmporteLIndex, ceQueFaitLeCommit, combienDe, depotDe, estAncetre, fusionnesEnCours, imageDeHead, lireEnLot, listerImage, shasDe } from './gitPorte.mjs'
 import { parUnitesDeCode } from './lister.mjs'
 
-/** Lecture git de ce module : la sortie, ou `''` quand l'objet demandé n'existe pas (un dépôt sans
- *  HEAD ne porte aucune archive, et ce n'est pas une erreur). Une INDISPONIBILITÉ (git absent, hors
- *  dépôt) JETTE — `mesureDuPalier` la rend en `erreur` nommée. */
-const git = (args, cwd) => {
-  const vu = lireGit(args, { cwd })
-  if (!vu.disponible) throw new GitIndisponible(vu.raison)
-  return sortieOuNull(vu) ?? ''
+/** Le dossier des revues archivées. */
+const SOLDES = '.claude/soldes'
+
+/** Le texte de chaque chemin de `chemins` dans l'image `arbre` (`lireEnLot`), `''` quand l'objet
+ *  n'existe pas. Une INDISPONIBILITÉ (git absent, hors dépôt) JETTE — `mesureDuPalier` la rend en
+ *  `erreur` nommée. */
+const textesDe = (depot, arbre, chemins) => {
+  const lus = lireEnLot(depot, arbre, chemins)
+  return (chemin) => lus.get(chemin) ?? ''
 }
 
 const DATE_RE = /\d{4}-\d{2}-\d{2}/g
@@ -102,28 +104,27 @@ export function memeSha(a, b) {
  * @returns {{ chemin: string, date: string|null, base: string|null, tete: string|null }[]}
  */
 export function archivesDe(cwd = process.cwd()) {
-  // Dépôt sans HEAD : `git` rend `''` (objet absent), donc aucune archive — et ce n'est pas une erreur.
-  const suivis = git(['ls-tree', '-r', '--name-only', 'HEAD', '--', '.claude/soldes'], cwd).split('\n').filter(Boolean)
-  return suivis
-    .filter((chemin) => CHEMIN_DE_REVUE_RE.test(chemin))
-    .map((chemin) => ({ chemin, ...fenetreDeRevue(git(['show', `HEAD:${chemin}`], cwd)) }))
+  // Dépôt sans premier commit : son image est l'arbre vide (`imageDeHead`), donc aucune archive.
+  const depot = depotDe(cwd)
+  const head = imageDeHead(depot)
+  const revues = listerImage(depot, head, SOLDES).filter((chemin) => CHEMIN_DE_REVUE_RE.test(chemin))
+  const texte = textesDe(depot, head, revues)
+  return revues.map((chemin) => ({ chemin, ...fenetreDeRevue(texte(chemin)) }))
 }
 
 /**
  * Les revues AJOUTÉES par le commit en cours, avec leur contenu STAGÉ : ce sont elles que la porte au
- * commit valide, et c'est le seul endroit où l'index est lu.
+ * commit valide, et c'est le seul endroit où l'index est lu. AJOUTÉE = absente de CHAQUE parent du
+ * commit : HEAD, et sous une fusion en cours chaque commit fusionné (`fusionnesEnCours`).
  * @returns {{ chemin: string, nom: string, contenu: string }[]}
  */
 export function revuesNeuves(cwd = process.cwd()) {
-  const ajoutees = git(['diff', '--cached', '--name-status', '--diff-filter=A', '--', '.claude/soldes'], cwd)
-    .split('\n')
-    .map((ligne) => ligne.split('\t')[1])
-    .filter((chemin) => chemin && CHEMIN_DE_REVUE_RE.test(chemin))
-  return ajoutees.map((chemin) => ({
-    chemin,
-    nom: chemin.split('/').pop(),
-    contenu: git(['show', `:${chemin}`], cwd),
-  }))
+  const depot = depotDe(cwd)
+  const portees = new Set(fusionnesEnCours(depot).flatMap((parent) => listerImage(depot, parent, SOLDES)))
+  const ajoutees = ceQuEmporteLIndex(depot).chemins('A', [SOLDES])
+    .filter((chemin) => CHEMIN_DE_REVUE_RE.test(chemin) && !portees.has(chemin))
+  const texte = textesDe(depot, INDEX, ajoutees)
+  return ajoutees.map((chemin) => ({ chemin, nom: chemin.split('/').pop(), contenu: texte(chemin) }))
 }
 
 /**
@@ -141,13 +142,14 @@ export function revuesNeuves(cwd = process.cwd()) {
 export function derniereRevueArchivee(cwd = process.cwd()) {
   const archivees = archivesDe(cwd)
   if (archivees.length === 0) return { etat: 'aucune-archive' }
+  const depot = depotDe(cwd)
   const jugeantes = []
   for (const r of archivees) {
     if (!r.tete) continue
-    const vu = estAncetre(r.tete, 'HEAD', { cwd })
+    const vu = estAncetre(depot, r.tete, 'HEAD')
     if (!vu.disponible) return { etat: 'ascendance-indisponible', raison: vu.raison }
     if (vu.absent || vu.valeur !== true) continue
-    jugeantes.push({ ...r, reste: Number.parseInt(git(['rev-list', '--count', `${r.tete}..HEAD`], cwd).trim(), 10) })
+    jugeantes.push({ ...r, reste: combienDe(depot, [`${r.tete}..HEAD`]) ?? Number.NaN })
   }
   jugeantes.sort((a, b) => a.reste - b.reste || parUnitesDeCode(a.chemin, b.chemin))
   if (jugeantes.length === 0) return { etat: 'toutes-orphelines', chemins: archivees.map((r) => r.chemin) }
@@ -159,10 +161,10 @@ export function derniereRevueArchivee(cwd = process.cwd()) {
  *  sha INCONNU rend `absent` — l'appelant en fait « pas dans cette histoire ». Le PRÉDICAT booléen
  *  correspondant est `estDansHead` (`gitPorte.mjs`), partagé avec le garde de solde. */
 export const ascendanceDansHead = (sha, cwd = process.cwd()) =>
-  sha ? estAncetre(sha, 'HEAD', { cwd }) : { disponible: true, absent: true }
+  sha ? estAncetre(depotDe(cwd), sha, 'HEAD') : { disponible: true, absent: true }
 
 /** Les dossiers qui font la SUBSTANCE d'un commit : le moteur et l'outillage. Source unique du
- *  critère — la mesure du palier (`commitsDeSubstanceDepuis`) et la porte du ticket au commit
+ *  critère — la mesure du palier (`shasDeSubstance`) et la porte du ticket au commit
  *  (`evaluatePorteDuTicket`, scripts/hooks/solde-ticket-guard.mjs) lisent la MÊME liste, sinon deux
  *  définitions de « substance » cohabitent et un commit passe l'une sans passer l'autre. */
 export const DOSSIERS_DE_SUBSTANCE = ['src', 'scripts']
@@ -174,23 +176,37 @@ export function estCheminDeSubstance(chemin) {
   return DOSSIERS_DE_SUBSTANCE.some((d) => p === d || p.startsWith(`${d}/`))
 }
 
-/** Commits de SUBSTANCE depuis `tete` : ceux qui touchent `src` ou `scripts`, plus celui que l'index
- *  s'apprête à faire s'il en touche aussi (le commit en cours compte pour le palier qu'il franchit). */
-export function commitsDeSubstanceDepuis(cwd, tete) {
-  const publies = Number.parseInt(
-    git(['rev-list', '--count', `${tete}..HEAD`, '--', ...DOSSIERS_DE_SUBSTANCE], cwd).trim(), 10,
-  )
-  const stage = git(['diff', '--cached', '--name-only', '--', ...DOSSIERS_DE_SUBSTANCE], cwd).trim()
-  return (Number.isFinite(publies) ? publies : 0) + (stage ? 1 : 0)
+/**
+ * Les commits de SUBSTANCE de la plage `revisions` (`shasDe`), du plus ancien au plus récent : ceux dont CE QU'ILS
+ * FONT (`ceQueFaitLeCommit`, contre leur base) touche un chemin de substance (`estCheminDeSubstance`).
+ * Une fusion propre n'en est pas ; une fusion qui apporte une ligne sous `src`/`scripts` en est.
+ * Une plage que git ne rend pas n'en a aucun. `limite` : la lecture s'arrête au `limite`-ième
+ * commit de substance trouvé.
+ * @param {import('./gitPorte.mjs').Depot} depot @param {readonly string[]} revisions
+ * @param {{ limite?: number }} [options]
+ * @returns {string[]}
+ * @throws {GitIndisponible} propagée de `ceQueFaitLeCommit`.
+ */
+export function shasDeSubstance(depot, revisions, { limite = Infinity } = {}) {
+  const vus = []
+  for (const sha of shasDe(depot, revisions) ?? []) {
+    if (vus.length >= limite) break
+    if (ceQueFaitLeCommit(depot, sha).chemins().some(estCheminDeSubstance)) vus.push(sha)
+  }
+  return vus
 }
 
 /**
- * Ce que le contrôle de palier a besoin de savoir, mesuré. `erreur` = le palier est INMESURABLE et le
- * dit ; `compte: 0` sans référence = HEAD ne porte AUCUNE revue archivée, donc le palier n'a pas
- * d'origine à partir de laquelle compter — ce qui n'est pas un défaut de l'arbre jugé.
+ * Ce que le contrôle de palier a besoin de savoir, mesuré. `compte` = les commits de substance depuis
+ * `tete` (`shasDeSubstance`), plus le commit en cours si ce qu'il EMPORTE (`emportes`, la liste que
+ * lit la porte du ticket) est de substance ; le compte s'arrête à `seuil`. `erreur` = le palier est
+ * INMESURABLE et le dit, avec `tete`/`chemin` de la dernière revue quand elle est connue ; `compte: 0`
+ * sans référence = HEAD ne porte AUCUNE revue archivée, donc le palier n'a pas d'origine à partir de
+ * laquelle compter — ce qui n'est pas un défaut de l'arbre jugé.
+ * @param {string} [cwd] @param {{ emportes?: string[], seuil?: number }} [options]
  * @returns {{ compte:number, tete:string|null, chemin:string|null, erreur?:string }}
  */
-export function mesureDuPalier(cwd = process.cwd()) {
+export function mesureDuPalier(cwd = process.cwd(), { emportes = [], seuil = Infinity } = {}) {
   let derniere
   try {
     derniere = derniereRevueArchivee(cwd)
@@ -217,5 +233,13 @@ export function mesureDuPalier(cwd = process.cwd()) {
         + 'et une revue dont la tête de fenêtre est ORPHELINE (rebase) se ré-écrit sur sa fenêtre réelle',
     }
   }
-  return { compte: commitsDeSubstanceDepuis(cwd, derniere.tete), tete: derniere.tete, chemin: derniere.chemin }
+  const { tete, chemin } = derniere
+  const enCours = emportes.some(estCheminDeSubstance) ? 1 : 0
+  try {
+    const publies = shasDeSubstance(depotDe(cwd), [`${tete}..HEAD`], { limite: Math.max(0, seuil - enCours) }).length
+    return { compte: publies + enCours, tete, chemin }
+  } catch (err) {
+    if (!(err instanceof GitIndisponible)) throw err
+    return { compte: 0, tete, chemin, erreur: `ce que font les commits depuis ${tete} est illisible : ${err.raison}` }
+  }
 }

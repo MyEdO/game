@@ -209,7 +209,7 @@ describe('cliquet — un enjeu porte sa RÈGLE (#1117)', () => {
       const pool = POOLS[e.entryCategory];
       if (!pool?.length) { muettes.push(`${e.id} → catégorie « ${e.entryCategory} » inconnue du test`); continue; }
       const entryId = pool[0].id;
-      const kind = 'flow' in e ? `${(e as { flow: string }).flow}/${(e as { phase: string }).phase}` : (e as { kind: string }).kind;
+      const kind = 'kind' in e ? e.kind : e.id;
       // Les TROUS du gabarit sont remplis d'une valeur sonde : `resolveStake` est fail-closed sur un
       // trou vide, et ce test-ci mesure le RENVOI, pas le texte (la valeur réelle vient du producteur).
       const values = Object.fromEntries([...(e.template ?? '').matchAll(/\{(\w+)\}/g)].map((m) => [m[1], '·']));

@@ -215,13 +215,11 @@ export function CastModal() {
       key: 'confirm',
       // Le libellé « (dissipé) » EST le verdict de la comparaison au jet masqué : même calendrier que l'issue (#990).
       label: csp ? (castRevealed && csp.participants.some((p) => p.result?.dispelled) ? 'Appliquer (dissipé)' : 'Appliquer') : placeable ? <><Icon id="map-tool/pin" size="sm" /> Poser la zone</> : 'Appliquer',
-      title: oppPending
-        ? 'Une cible n’a pas encore opposé son Test'
-        : critChoicePending ? 'Choisis l’effet de ton Incantation Critique'
-          : placeable && !csp ? "La modale s'efface — clique une case du champ de bataille pour déposer la zone" : undefined,
+      title: placeable && !csp ? "La modale s'efface — clique une case du champ de bataille pour déposer la zone" : undefined,
       onClick: csp ? cspConfirm : pcs ? oppConfirm : placeable ? () => placeZone(true) : confirm,
       when: 'post',
-      ...(oppPending || critChoicePending ? { disabled: true } : {}),
+      refus: oppPending ? 'Une cible n’a pas encore opposé son Test'
+        : critChoicePending ? 'Choisis l’effet de ton Incantation Critique' : undefined,
     },
   ];
 
@@ -284,7 +282,8 @@ export function CastModal() {
                 {conjureForms.map((f) => (
                   <button
                     key={`${f.group}:${f.weapon}`}
-                    className={`btn small ${selectedForm?.weapon === f.weapon ? 'btn-primary' : ''}`}
+                    className="btn small"
+                    aria-pressed={selectedForm?.weapon === f.weapon}
                     title={`Corps à corps (${f.group}) — l'arme prend la forme : ${f.weapon}`}
                     onClick={() => setConjureForm(f)}
                   >
@@ -411,7 +410,7 @@ export function CastModal() {
                   // des Imparfaites Mineures qui s'applique, pas un des trois effets).
                   const selected = pc.critChoice === val;
                   return (
-                    <button key={val} className={`btn small ${selected ? 'btn-primary' : ''}`} title={tip} onClick={() => setCritChoice(val)}>
+                    <button key={val} className="btn small" aria-pressed={selected} title={tip} onClick={() => setCritChoice(val)}>
                       {label}
                     </button>
                   );

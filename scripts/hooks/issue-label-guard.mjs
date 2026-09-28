@@ -28,6 +28,7 @@
 // tant qu'AUCUN script `open-ticket` n'existe dans ce dépôt — le jour où il en porte un qui appelle
 // `gh issue create`, la création est refusée comme les autres.
 import '../node-requis.mjs'
+import { lireStdinBorne } from '../guards/lib/stdinBorne.mjs'
 import { resolve } from 'node:path'
 import { segmentsProfonds, extractTargetDir, ancrerScriptsNpm } from './solde-ticket-guard.mjs'
 
@@ -192,9 +193,7 @@ export function contexteEmission(command, options) {
 
 // ── Driver stdin (n'exécute QUE lancé en direct, jamais à l'import du module de test) ─────────────
 if (import.meta.main) {
-  let raw = ''
-  process.stdin.setEncoding('utf8')
-  for await (const chunk of process.stdin) raw += chunk
+  const raw = await lireStdinBorne()
   let command = ''
   // Le `cwd` du canal MCP `ctx_shell` (et un `cd`/`git -C` dans la commande) décide du dépôt où
   // s'exécute la commande : `npm run <x>` s'y résout, jamais dans le dépôt du hook.

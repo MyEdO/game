@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useGame, type SheetTab } from '../state/store';
 import { bestDetector } from '../state/merchantFlow';
 import { MINUTES_PER_DAY } from '../engine/clock';
-import { useModalA11y } from './Modal';
+import { Planche } from './Planche';
 import { ramenerEnVue } from './useRamenerEnVue';
 import { Tabs } from './Tabs';
 import { isWeaponActive, setADeuxMains, isOffHandEligible, maxEncumbrance, totalEncumbrance } from '../engine/items';
@@ -111,19 +111,6 @@ export function CharacterSheet({ heroId, onClose }: { heroId: string; onClose: (
   const setSheetAlarmsSeen = useGame((s) => s.setSheetAlarmsSeen);
   const openMedic = useGame((s) => s.openMedic);
   const inBattle = useGame((s) => !!s.battle);
-  const boxRef = useRef<HTMLDivElement>(null);
-  const bodyRef = useRef<HTMLDivElement>(null);
-  // Dialogue au markup spécifique (header à onglets) → hook a11y partagé. `actif` = la condition de
-  // l'early-return `if (!hero) return null` : sans héros, la fiche ne rend rien et n'empile rien.
-  useModalA11y(boxRef, onClose, { kind: 'fiche-perso', actif: !!hero });
-
-  // Restaure le scroll mémorisé de CET onglet à chaque affichage (patron ActivityPane : corps
-  // scrollable, un onglet reprend où on l'a laissé plutôt que de rouvrir en haut). Lecture SANS
-  // abonnement (`getState`) : `onScroll` écrit `sheetScroll` à chaque tick — s'y abonner re-rendrait
-  // toute la fiche en boucle pendant le scroll.
-  useEffect(() => {
-    if (bodyRef.current) bodyRef.current.scrollTop = useGame.getState().sheetScroll[tab] ?? 0;
-  }, [tab]);
 
   // Règle d'atterrissage (§3.2) : force l'onglet État seulement à la PREMIÈRE ouverture depuis une
   // alarme NOUVELLE (empreinte jamais vue pour ce héros) — jamais au switch de héros (deps VIDES :
@@ -162,7 +149,7 @@ export function CharacterSheet({ heroId, onClose }: { heroId: string; onClose: (
   // selon la Corruption — `none` (aucune) / `ronge` (sous le seuil) / `seuil` (seuil de Corruption
   // dépassé, LDB 80). `corruptionThresholdExceeded` = SOURCE UNIQUE du seuil (moteur, `engine/corruption.ts`).
   const corruption = hero.corruption ?? 0;
-  const dataCorruption = corruption <= 0 ? 'none' : corruptionThresholdExceeded(hero) ? 'seuil' : 'ronge';
+  const gangrene = corruption <= 0 ? undefined : corruptionThresholdExceeded(hero) ? 'seuil' : 'ronge';
 
   // Annotation par Caractéristique (base+talents vs effective — buffs/malus actifs) pour la table de
   // Compétences & Talents : composée par `HeroSheet` (`statAnnotations`, data-driven), calculée ICI
@@ -177,115 +164,112 @@ export function CharacterSheet({ heroId, onClose }: { heroId: string; onClose: (
   }
 
   return (
-    <div className="modal-overlay sheet-overlay" onClick={onClose}>
-      <div ref={boxRef} role="dialog" aria-modal="true" className="modal sheet-modal" data-corruption={dataCorruption} onClick={(e) => e.stopPropagation()}>
-        <button className="btn small sheet-close" onClick={onClose} aria-label="Fermer">✕</button>
-
-        {/* L'ESSENTIEL à gauche : la colonne est LA PRÉSENCE (figurine en pied + identité + Blessures +
-            alarmes), zéro scroll — arbitrage user 2026-07-17 (« arrête de polluer l'écran de gauche »).
-            Le switch de héros passe par le PartyDock (HUD, au-dessus de cet overlay) ; le détail vit
-            dans les onglets à droite. */}
-        <div className="sheet-layout">
-          <aside className="sheet-aside">
-            <div className="sheet-portrait">
-              <h3>{hero.label}</h3>
-              <FigTile
-                preview={{ hero }}
-                fig="hero"
-                zoneBadges={tab === 'possessions' ? possessionsZoneBadges(hero) : tab === 'etat' ? etatZoneBadges(hero) : undefined}
-              />
-              <LifeBar stacked label="Blessures" value={hero.wounds.current} max={hero.wounds.max} tone={woundsTone} />
-              {/* Encombrement : ton PAR PALIER (`encumbranceTone`, juge vision 2026-07-17) — le palier de
-                  Surcharge lui-même vit dans le tableau de bord de l'onglet État (`EtatPanel.tsx`), jamais dupliqué ici.
-                  Le dépassement (Enc > max) est porté par l'état DÉPASSEMENT générique de `LifeBar`.
-                  `stacked` (arbitrage 2026-07-17) : valeur au-dessus, piste pleine largeur — les deux
-                  barres de l'aside s'alignent par construction, quelle que soit la longueur du libellé/valeur. */}
-              <LifeBar stacked label="Encombrement" value={totalEncumbrance(hero)} max={maxEncumbrance(hero)} tone={encumbranceTone} />
-              <div className="sheet-idrows">
-                <div className="sheet-idrow">
-                  <span className="sheet-idrow-label">Race</span>
-                  <span className="sheet-idrow-value">
-                    <CodexRef category="races" id={hero.species} label={libelleOuAbsence(findSpeciesById(hero.species), 'race', String(hero.species))}>{speciesSingular(hero.species)}</CodexRef>
-                  </span>
-                </div>
-                <div className="sheet-idrow">
-                  <span className="sheet-idrow-label">Carrière</span>
-                  <span className="sheet-idrow-value">
-                    <CodexRef category="careers" id={hero.career} label={libelleOuAbsence(findCareerById(hero.career), 'carriere', String(hero.career))}>{careerLabelFor(hero)}</CodexRef>
-                    {hero.careerLevel ? ` (niv. ${hero.careerLevel})` : ''}
-                  </span>
-                </div>
-                <div className="sheet-idrow">
-                  <span className="sheet-idrow-label">Statut</span>
-                  <span className="sheet-idrow-value"><MetalStatus status={heroStatusLabel(hero)} /></span>
-                </div>
-                <div className="sheet-idrow">
-                  <span className="sheet-idrow-label">Bourse</span>
-                  <span className="sheet-idrow-value"><Coins money={bourse} /></span>
-                </div>
+    <Planche
+      nom={hero.label}
+      kind="fiche-perso"
+      gangrene={gangrene}
+      onClose={onClose}
+      tabs={
+        <Tabs
+          tabs={tabs.map((t) => ({ key: t, label: TAB_LABELS[t] }))}
+          active={tab}
+          onChange={setSheetTab}
+        />
+      }
+      // Un onglet reprend où on l'a laissé. Lecture SANS abonnement (`getState`) : `retenir` écrit
+      // `sheetScroll` à chaque tick, s'y abonner re-rendrait toute la fiche pendant le défilement.
+      memoire={{ cle: tab, lire: () => useGame.getState().sheetScroll[tab] ?? 0, retenir: (top) => setSheetScroll(tab, top) }}
+      aside={(
+        <>
+          {/* Arbitrage utilisateur 2026-07-17 (#492) : « arrête de polluer l'écran de gauche ». */}
+          <div className="sheet-portrait">
+            <FigTile
+              preview={{ hero }}
+              fig="hero"
+              zoneBadges={tab === 'possessions' ? possessionsZoneBadges(hero) : tab === 'etat' ? etatZoneBadges(hero) : undefined}
+            />
+            <LifeBar stacked label="Blessures" value={hero.wounds.current} max={hero.wounds.max} tone={woundsTone} />
+            {/* Encombrement : ton PAR PALIER (`encumbranceTone`, juge vision 2026-07-17) — le palier de
+                Surcharge lui-même vit dans le tableau de bord de l'onglet État (`EtatPanel.tsx`), jamais dupliqué ici.
+                Le dépassement (Enc > max) est porté par l'état DÉPASSEMENT générique de `LifeBar`.
+                `stacked` (arbitrage 2026-07-17) : valeur au-dessus, piste pleine largeur — les deux
+                barres de l'aside s'alignent par construction, quelle que soit la longueur du libellé/valeur. */}
+            <LifeBar stacked label="Encombrement" value={totalEncumbrance(hero)} max={maxEncumbrance(hero)} tone={encumbranceTone} />
+            <div className="sheet-idrows">
+              <div className="sheet-idrow">
+                <span className="sheet-idrow-label">Race</span>
+                <span className="sheet-idrow-value">
+                  <CodexRef category="races" id={hero.species} label={libelleOuAbsence(findSpeciesById(hero.species), 'race', String(hero.species))}>{speciesSingular(hero.species)}</CodexRef>
+                </span>
+              </div>
+              <div className="sheet-idrow">
+                <span className="sheet-idrow-label">Carrière</span>
+                <span className="sheet-idrow-value">
+                  <CodexRef category="careers" id={hero.career} label={libelleOuAbsence(findCareerById(hero.career), 'carriere', String(hero.career))}>{careerLabelFor(hero)}</CodexRef>
+                  {hero.careerLevel ? ` (niv. ${hero.careerLevel})` : ''}
+                </span>
+              </div>
+              <div className="sheet-idrow">
+                <span className="sheet-idrow-label">Statut</span>
+                <span className="sheet-idrow-value"><MetalStatus status={heroStatusLabel(hero)} /></span>
+              </div>
+              <div className="sheet-idrow">
+                <span className="sheet-idrow-label">Bourse</span>
+                <span className="sheet-idrow-value"><Coins money={bourse} /></span>
               </div>
             </div>
-            <SheetActiveEffects hero={hero} />
-            {canSoigner && (
-              <Row>
-                <button className="btn small" onClick={() => openMedic({ patientId: hero.id })}
-                  title="Soins du groupe (Tests de Guérison) — ouvre l'infirmerie sur ce héros (provisoire — maison PartyDock au lot 6)">
-                  <Icon id="journal/heal" size="sm" /> Soins
-                </button>
-              </Row>
-            )}
-          </aside>
-          <div className="sheet-main">
-            <Tabs
-              className="sheet-tabnav"
-              tabs={tabs.map((t) => ({ key: t, label: TAB_LABELS[t] }))}
-              active={tab}
-              onChange={setSheetTab}
-            />
-            <div className="sheet-tabbody" ref={bodyRef} onScroll={(e) => setSheetScroll(tab, e.currentTarget.scrollTop)}>
-              {tab === 'avancement' ? (
-                <AdvancementPanel hero={hero} />
-              ) : tab === 'magie' ? (
-                <SpellbookSection hero={hero} />
-              ) : tab === 'etat' ? (
-                <EtatPanel hero={hero} />
-              ) : tab === 'histoire' ? (
-                <>
-                  <BackgroundPanel hero={hero} />
-                  {hero.star && (() => {
-                    const s = findStarById(hero.star); // `hero.star` = id STABLE → libellé à l'affichage
-                    const label = s?.label ?? hero.star;
-                    return (
-                      <span className="char-sub star-sub">
-                        ★ <CodexRef category="stars" id={hero.star} label={label}>{label}</CodexRef>
-                        {s?.signe ? ` — ${s.signe}` : ''}
-                      </span>
-                    );
-                  })()}
-                </>
-              ) : tab === 'competences' ? (
-                // Onglet Compétences & Talents : compose la primitive `HeroSheet` (`header={false}` —
-                // figurine/identité restent dans l'aside de la fiche, patron CreatorSummary.tsx) plutôt
-                // que de réassembler son patron à la main (arbitrage 2026-07-17). Table à VALEURS (deux colonnes,
-                // `skillInstanceLabel` codex-lié) — les Talents restent en chips dans les deux variantes.
-                <HeroSheet
-                  hero={hero}
-                  header={false}
-                  sections={['stats', 'derived', 'traits', 'skills', 'talents']}
-                  // Blessures déjà portées par la barre de vie de l'aside (`LifeBar`, #492) — la
-                  // rubrique dérivée de CETTE composition n'en remontre pas le chiffre en double.
-                  derivedFields={['movement', 'fate', 'resilience']}
-                  skillsVariant="valeurs"
-                  statAnnotations={statAnnotations}
-                />
-              ) : (
-                <FicheBody hero={hero} section={tab} />
-              )}
-            </div>
           </div>
-        </div>
-      </div>
-    </div>
+          <SheetActiveEffects hero={hero} />
+          {canSoigner && (
+            <Row>
+              <button className="btn small" onClick={() => openMedic({ patientId: hero.id })}
+                title="Soins du groupe (Tests de Guérison) — ouvre l'infirmerie sur ce héros">
+                <Icon id="journal/heal" size="sm" /> Soins
+              </button>
+            </Row>
+          )}
+        </>
+      )}
+    >
+      {tab === 'avancement' ? (
+        <AdvancementPanel hero={hero} />
+      ) : tab === 'magie' ? (
+        <SpellbookSection hero={hero} />
+      ) : tab === 'etat' ? (
+        <EtatPanel hero={hero} />
+      ) : tab === 'histoire' ? (
+        <>
+          <BackgroundPanel hero={hero} />
+          {hero.star && (() => {
+            const s = findStarById(hero.star); // `hero.star` = id STABLE → libellé à l'affichage
+            const label = s?.label ?? hero.star;
+            return (
+              <span className="char-sub star-sub">
+                ★ <CodexRef category="stars" id={hero.star} label={label}>{label}</CodexRef>
+                {s?.signe ? ` — ${s.signe}` : ''}
+              </span>
+            );
+          })()}
+        </>
+      ) : tab === 'competences' ? (
+        // Onglet Compétences & Talents : compose la primitive `HeroSheet` (`header={false}` —
+        // figurine/identité restent dans l'aside de la fiche, patron CreatorSummary.tsx) plutôt
+        // que de réassembler son patron à la main (arbitrage 2026-07-17). Table à VALEURS (deux colonnes,
+        // `skillInstanceLabel` codex-lié) — les Talents restent en chips dans les deux variantes.
+        <HeroSheet
+          hero={hero}
+          header={false}
+          sections={['stats', 'derived', 'traits', 'skills', 'talents']}
+          // Blessures déjà portées par la barre de vie de l'aside (`LifeBar`, #492) — la
+          // rubrique dérivée de CETTE composition n'en remontre pas le chiffre en double.
+          derivedFields={['movement', 'fate', 'resilience']}
+          skillsVariant="valeurs"
+          statAnnotations={statAnnotations}
+        />
+      ) : (
+        <FicheBody hero={hero} section={tab} />
+      )}
+    </Planche>
   );
 }
 

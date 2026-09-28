@@ -33,7 +33,7 @@ function ChoixDeProfil({ titre, profils, choisi, onChoisir, fiche, game }: {
       <span className="mini-title">{titre}</span>
       <OptionChooser
         layout="grid"
-        options={profils.map((id) => ({ key: id, label: creatureLabel(id), primary: id === choisi, onSelect: () => onChoisir(id) }))}
+        options={profils.map((id) => ({ key: id, label: creatureLabel(id), selected: id === choisi, onSelect: () => onChoisir(id) }))}
       />
       {fiche && game && (
         <p className="tavern-detail">{fiche.label} : valeur de jeu <b>{tavernGameValue(fiche, game)}</b> (de sa fiche).</p>
@@ -176,8 +176,23 @@ export function TavernGameModal() {
     });
   };
 
+  // PIED : les gestes du volet courant — rejouer ou fermer après une partie ; fermer ou jouer avant.
+  const footer = rolling ? undefined : result ? (
+    <>
+      <button className="btn" onClick={() => replay()}>Rejouer</button>
+      <button className="btn btn-primary" onClick={close}>Fermer</button>
+    </>
+  ) : (
+    <>
+      <button className="btn" onClick={close}>Fermer</button>
+      {/* Raison EN CLAIR (`raisonInline`) : dans une modale d'activité, le refus d'entrer en jeu est
+          le seul texte qui explique l'écran — il ne se cache pas derrière un survol. */}
+      <GatedAction id="tavern-play" raisonInline label="Jouer" enabled={canPlay} reason={raison} onClick={onPlay} />
+    </>
+  );
+
   return (
-    <Modal title="Jeux de taverne" variant="plain" className="tavern-modal" onClose={close} backdropClose>
+    <Modal title="Jeux de taverne" onClose={close} backdropClose footer={footer} etape={result ? 'apres' : 'avant'}>
       <SceneBackdrop backdropId="taverne-commune" />
       {rolling ? (
         <div className="tavern-result panel">
@@ -202,10 +217,6 @@ export function TavernGameModal() {
               <Coins money={fromBrass(Math.abs(result.netBrass))} />
             </p>
           )}
-          <div className="modal-actions">
-            <button className="btn" onClick={() => replay()}>Rejouer</button>
-            <button className="btn btn-primary" onClick={close}>Fermer</button>
-          </div>
         </div>
       ) : (
         <div className="tavern-setup">
@@ -213,7 +224,7 @@ export function TavernGameModal() {
             <span className="mini-title">Le jeu</span>
             <OptionChooser
               layout="grid"
-              options={TAVERN_GAMES.map((g) => ({ key: g.id, label: g.label, primary: g.id === gameId, onSelect: () => setGameId(g.id) }))}
+              options={TAVERN_GAMES.map((g) => ({ key: g.id, label: g.label, selected: g.id === gameId, onSelect: () => setGameId(g.id) }))}
             />
           </div>
           {game && (
@@ -264,7 +275,7 @@ export function TavernGameModal() {
                     même collecteur que celle du challenger — jamais une valeur saisie. */}
                 <OptionChooser
                   layout="grid"
-                  options={npcs.map((n) => ({ key: n.id, label: n.label, primary: n.id === npc?.id, onSelect: () => setOppNpcId(n.id) }))}
+                  options={npcs.map((n) => ({ key: n.id, label: n.label, selected: n.id === npc?.id, onSelect: () => setOppNpcId(n.id) }))}
                 />
                 {npc && game && npcActor && (
                   <p className="tavern-detail">{npc.label} : valeur de jeu <b>{tavernGameValue(npcActor, game)}</b> (de sa fiche).</p>
@@ -313,12 +324,6 @@ export function TavernGameModal() {
               </p>
             </div>
           )}
-          <div className="modal-actions">
-            <button className="btn" onClick={close}>Fermer</button>
-            {/* Raison EN CLAIR (`raisonInline`) : dans une modale d'activité, le refus d'entrer en jeu est
-                le seul texte qui explique l'écran — il ne se cache pas derrière un survol. */}
-            <GatedAction id="tavern-play" raisonInline label="Jouer" enabled={canPlay} reason={raison} onClick={onPlay} />
-          </div>
         </div>
       )}
     </Modal>

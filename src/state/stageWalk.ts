@@ -19,7 +19,7 @@
 import type { GameState } from './store';
 import type { ScreenDir } from './combatCursor';
 import { surfaceTientLaMain, type ArbiterState } from './modalArbiter';
-import { modalLayerOpen } from './dismissStack';
+import { modaleDuDessus } from './dismissStack';
 import { walkMs } from '../geometry/walk';
 import { clearTrackedTimer, scheduleFlowTimer } from './combatTimers';
 
@@ -42,7 +42,7 @@ const cle = (p: PasTenu): string => (p.vue === 'iso' ? `iso:${p.dir}` : `pov:${p
  */
 export function marcheAutorisee(s: GameState, pas?: PasTenu): boolean {
   if (s.mode !== 'exploration' || s.dialogue) return false;
-  if (surfaceTientLaMain(s as ArbiterState) || modalLayerOpen()) return false;
+  if (surfaceTientLaMain(s as ArbiterState) || modaleDuDessus()) return false;
   if (!pas) return true;
   return pas.vue === 'pov' ? !!s.povActive : !s.povActive;
 }
