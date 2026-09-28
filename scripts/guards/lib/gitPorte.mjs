@@ -19,6 +19,8 @@
 // `lireEnLot`, `ceQueFaitLeCommit`, `fichiersDuGrep` sur une ref) n'a pas de `null` : vide, elle dirait
 // « rien » d'un objet qui n'existe pas. Une borne NOMMÉE dont l'objet MANQUE n'est pas absente : le
 // dépôt est corrompu, et c'est l'issue 3 (`corrompu`, #1806).
+// L'unique LECTURE D'ÉTAT hors commande git — `MERGE_HEAD` (`fusionnesEnCours`) — passe par
+// `tenter` et `confier` : mêmes trois issues.
 //
 // `status ≠ 0` avec un stderr VIDE n'est pas un échec : c'est la réponse des PRÉDICATS de git
 // (`merge-base --is-ancestor`, `rev-parse --verify --quiet`, `grep`), qui répondent par leur code de
@@ -351,12 +353,15 @@ export const cheminsEnConflit = (depot) => etatDeLArbre(depot).filter((e) => ETA
  *  `cat-file --batch`/`--batch-check`, une requête par ligne (`git help cat-file`, « BATCH OUTPUT »). */
 const porteUnControle = (texte) => [...texte].some((c) => c < ' ' || c === '\x7f')
 
+/** Une révision que l'hôte ne pose pas à git (`revisionsDe`). */
+const revisionFautive = (r) => typeof r !== 'string' || !r || r.startsWith('-') || porteUnControle(r) || r.includes('@{')
+
 /** Les RÉVISIONS d'une question ou d'un geste (`git help revisions`), et les noms qu'un geste pose en
  *  argument positionnel : ni vides, ni des drapeaux, sans caractère de contrôle (`porteUnControle`,
  *  une ligne de `cat-file --batch-check` par borne, `bornesDe`) ni `@{` (reflog, amont :
  *  `cat-file --batch-check` meurt sur un amont absent et perd les bornes suivantes du lot). */
 function revisionsDe(revisions) {
-  const faute = revisions.find((r) => typeof r !== 'string' || !r || r.startsWith('-') || porteUnControle(r) || r.includes('@{'))
+  const faute = revisions.find(revisionFautive)
   if (faute !== undefined || !revisions.length) throw new Error(`plage « ${revisions.join(' ')} » : une révision n'est ni vide ni un drapeau, ni ne porte un caractère de contrôle ou \`@{\``)
   return revisions
 }
@@ -875,16 +880,28 @@ export const brancheDe = (depot) => lire(depot, ['symbolic-ref', '--quiet', '--s
 export const cheminGit = (depot, nom) => lire(depot, ['rev-parse', '--git-path', nom])?.trim() || null
 
 /**
- * Les commits que la FUSION EN COURS fusionne dans HEAD (`MERGE_HEAD`, un sha par ligne : `git help
- * revisions`), vide hors fusion. Avec HEAD, ce sont les PARENTS du commit à venir.
+ * Les commits que la FUSION EN COURS fusionne dans HEAD (`MERGE_HEAD`, une ligne par commit : écrite
+ * `builtin/merge.c:1044-1046`, lue `builtin/commit.c:1773-1778` par `get_merge_parent`, `commit.c:1700`,
+ * git v2.43.0), vide hors fusion. Avec HEAD, ce sont les PARENTS du commit à venir. Un fichier
+ * illisible, ou une ligne qui ne nomme aucun commit (`builtin/commit.c:1778`), va à `confier` : `[]`
+ * sous `enPanne`.
  * @param {Depot} depot @returns {string[]}
  */
 export function fusionnesEnCours(depot) {
   const chemin = cheminGit(depot, 'MERGE_HEAD')
   if (!chemin) return []
   const complet = resolve(depot.cwd, chemin)
-  if (natureDuChemin(complet) !== 'fichier') return []
-  return readFileSync(complet, 'utf8').split(/\s+/).filter(Boolean).map((sha) => shaDe(depot, sha)).filter(Boolean)
+  const lu = tenter(() => (natureDuChemin(complet) === 'absent' ? '' : readFileSync(complet, 'utf8')))
+  if (!lu.disponible) return confier(depot, `MERGE_HEAD illisible : ${lu.raison}`) ?? []
+  const lignes = lu.valeur.split('\n')
+  if (lignes.at(-1) === '') lignes.pop()
+  const shas = []
+  for (const ligne of lignes) {
+    const sha = revisionFautive(ligne) ? null : shaDe(depot, ligne)
+    if (!sha) return confier(depot, `dépôt corrompu : MERGE_HEAD, « ${ligne} » ne nomme aucun commit`) ?? []
+    shas.push(sha)
+  }
+  return shas
 }
 
 /** Le dépôt est-il SUPERFICIEL (`rev-parse --is-shallow-repository`) ? `null` si git ne le dit pas.

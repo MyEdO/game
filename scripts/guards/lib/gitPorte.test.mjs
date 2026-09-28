@@ -6,7 +6,7 @@ import { test } from 'node:test'
 import { Buffer } from 'node:buffer'
 import assert from 'node:assert/strict'
 import { execFileSync, spawnSync } from 'node:child_process'
-import { existsSync, mkdirSync, mkdtempSync, renameSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, relative } from 'node:path'
 import { STATUS_DLL_INIT_FAILED } from './spawnResilient.mjs'
@@ -14,7 +14,7 @@ import {
   BorneAbsente, GitIndisponible, INDEX, OPTIONS_DE_L_HOTE, SUIVI, TRAVAIL, abandonnerRebase, ajouterOrigine, ajouterWorktree, approfondir, arbrePrincipal, arbreVide, attributDe,
   baseCommune, brancheDe, branchesDe, ceQuEmporteLIndex, ceQueFaitLeCommit, ceQuiChange, cheminGit, cheminsEnConflit, classer, combienDe, commitDe,
   depotDe, divergenceDe, dossierDesHooks, elaguerWorktrees, eolsDe, estDansHead, estIgnore, estSuperficiel, etatDeLArbre, enfantsDirects, estAncetre, estRepertoire,
-  fetchOrigin, fichiersDuGrep, fusionDeTextes, initialiserDepot, journalDe, lireEnLot, listerImage, natureDuChemin, origineDe, poserRef, pousser,
+  fetchOrigin, fichiersDuGrep, fusionDeTextes, fusionnesEnCours, initialiserDepot, journalDe, lireEnLot, listerImage, natureDuChemin, origineDe, poserRef, pousser,
   racineDe, raisonCourte, rebaser, reglerDepot, retirerWorktree, reussi, shaDe, shasDe, supprimerBranche, worktreesDe,
 } from './gitPorte.mjs'
 import { envDeDepotForge, envDeLUtilisatrice, instanceDeDepot } from './depotGabarit.mjs'
@@ -1124,4 +1124,67 @@ test('estSuperficiel, dossierDesHooks, estIgnore, attributDe, cheminGit, branche
 test('#1803 : `dossierDesHooks` ne lit que stdout — sous un bruit stderr, les hooks vivants se lisent vivants', () => {
   const d = depotFeint(tmpdir(), () => ({ status: 0, stdout: 'scripts/git-hooks\n', stderr: 'warning: bruit\n' }))
   assert.equal(dossierDesHooks(d), 'scripts/git-hooks')
+})
+
+/** Dépôt jetable arrêté dans une fusion `--no-commit` de `branches` (une par fichier ajouté) : deux
+ *  branches, c'est une fusion octopus. `fusionnes` : le sha de tête de chaque branche, dans l'ordre. */
+function depotEnFusion(branches) {
+  const { racine } = instanceDeDepot({ fichiers: { 'a.txt': 'a\n' }, message: 'socle' })
+  const g = (...a) => execFileSync('git', a, { cwd: racine, env: envDeDepotForge(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()
+  const fusionnes = branches.map((branche) => {
+    g('checkout', '-q', '-b', branche, 'main')
+    writeFileSync(join(racine, `${branche}.txt`), `${branche}\n`)
+    g('add', `${branche}.txt`); g('commit', '-q', '-m', branche)
+    return g('rev-parse', 'HEAD')
+  })
+  g('checkout', '-q', 'main')
+  g('merge', '-q', '--no-commit', '--no-ff', ...branches)
+  return { racine, fusionnes, mergeHead: join(racine, '.git', 'MERGE_HEAD') }
+}
+
+test('fusionnesEnCours : hors fusion, `[]`', () => {
+  const { racine } = depot()
+  try {
+    assert.deepEqual(fusionnesEnCours(forge(racine)), [])
+  } finally { jeter(racine) }
+})
+
+test('fusionnesEnCours : une fusion simple rend le commit fusionné', () => {
+  const { racine, fusionnes } = depotEnFusion(['cote'])
+  try {
+    assert.deepEqual(fusionnesEnCours(forge(racine)), fusionnes)
+  } finally { jeter(racine) }
+})
+
+test('fusionnesEnCours : une fusion OCTOPUS rend ses deux lignes de `MERGE_HEAD`, dans l’ordre', () => {
+  const { racine, fusionnes, mergeHead } = depotEnFusion(['un', 'deux'])
+  try {
+    assert.equal(readFileSync(mergeHead, 'utf8'), `${fusionnes.join('\n')}\n`, 'témoin : git écrit une ligne par commit')
+    assert.deepEqual(fusionnesEnCours(forge(racine)), fusionnes)
+  } finally { jeter(racine) }
+})
+
+test('fusionnesEnCours : une ligne de `MERGE_HEAD` qui ne nomme aucun commit est un dépôt CORROMPU, jamais filtrée', () => {
+  const { racine, fusionnes, mergeHead } = depotEnFusion(['cote'])
+  try {
+    for (const ligne of [ZERO, 'pas-un-commit', '', '-x']) {
+      writeFileSync(mergeHead, `${fusionnes[0]}\n${ligne}\n`)
+      assert.throws(() => fusionnesEnCours(forge(racine)), (e) => e instanceof GitIndisponible && e.raison.startsWith('dépôt corrompu : MERGE_HEAD'), JSON.stringify(ligne))
+      const pannes = []
+      assert.deepEqual(fusionnesEnCours(depotDe(racine, { env: envDeDepotForge(), enPanne: (r) => pannes.push(r) })), [], JSON.stringify(ligne))
+      assert.deepEqual(pannes, [`dépôt corrompu : MERGE_HEAD, « ${ligne} » ne nomme aucun commit`], JSON.stringify(ligne))
+    }
+  } finally { jeter(racine) }
+})
+
+test('fusionnesEnCours : un `MERGE_HEAD` illisible est INDISPONIBLE, jamais « hors fusion »', () => {
+  const { racine, mergeHead } = depotEnFusion(['cote'])
+  try {
+    rmSync(mergeHead)
+    mkdirSync(mergeHead)
+    assert.throws(() => fusionnesEnCours(forge(racine)), (e) => e instanceof GitIndisponible && /^MERGE_HEAD illisible : EISDIR/.test(e.raison))
+    const pannes = []
+    assert.deepEqual(fusionnesEnCours(depotDe(racine, { env: envDeDepotForge(), enPanne: (r) => pannes.push(r) })), [])
+    assert.match(pannes.join('\n'), /^MERGE_HEAD illisible : EISDIR/)
+  } finally { jeter(racine) }
 })
