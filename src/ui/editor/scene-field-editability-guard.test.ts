@@ -10,7 +10,7 @@ import {
   fossileAudit,
   FOSSILES,
 } from '../../../scripts/guards/lib/sceneFieldEditability.mjs';
-import { virtualProgram, VIRTUAL_ROOT } from '../../../scripts/guards/lib/tsProgram.mjs';
+import { repoProgram, virtualProgram, VIRTUAL_ROOT } from '../../../scripts/guards/lib/tsProgram.mjs';
 import { detenteur } from '../../detenteur.testkit';
 
 /**
@@ -338,25 +338,9 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
   // entre pas : l'audit `@fossile` et le SEAM lisent les DÉCLARATIONS du document, jamais les
   // écrivains d'interface — ceux-là se mesurent sur `programmeDuPerimetre(ROOT)`, qui porte l'interface,
   // le pont et le pipeline.
-  const programAvec = (patch: Record<string, string>) => {
-    const cfgPath = ts.findConfigFile(ROOT, ts.sys.fileExists, 'tsconfig.json')!;
-    const cfg = ts.readConfigFile(cfgPath, ts.sys.readFile);
-    const parsed = ts.parseJsonConfigFileContent(cfg.config, ts.sys, path.dirname(cfgPath));
-    const DOCUMENT = ['src/state/scene.ts', 'src/data/schemas/defs-scenes/scene.ts'];
-    const rootNames = parsed.fileNames.filter((f) =>
-      DOCUMENT.includes(path.relative(ROOT, f).split(path.sep).join('/'))
-    );
-    const patche = new Map(Object.entries(patch).map(([rel, texte]) => [path.resolve(ROOT, rel), texte]));
-    const host = ts.createCompilerHost({ ...parsed.options, noEmit: true });
-    const getSource = host.getSourceFile.bind(host);
-    host.getSourceFile = (name, lang, ...reste) => {
-      const texte = patche.get(path.resolve(name));
-      return texte === undefined ? getSource(name, lang, ...reste) : ts.createSourceFile(name, texte, lang, true);
-    };
-    const readFile = host.readFile.bind(host);
-    host.readFile = (name) => patche.get(path.resolve(name)) ?? readFile(name);
-    return ts.createProgram({ rootNames, options: { ...parsed.options, noEmit: true }, host });
-  };
+  const DOCUMENT = ['src/state/scene.ts', 'src/data/schemas/defs-scenes/scene.ts'];
+  const programAvec = (patch: Record<string, string>) =>
+    repoProgram(ROOT, (fileNames) => fileNames.filter((f) => DOCUMENT.includes(path.relative(ROOT, f).split(path.sep).join('/'))), patch);
 
   /** Le module RÉEL, avec `ancre` remplacée — échec bruyant si l'ancre a bougé. */
   const modifie = (rel: string, ancre: string, remplacement: string) => {

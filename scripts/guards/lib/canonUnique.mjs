@@ -10,7 +10,7 @@
 // exemption. Ce module exporte la MÉCANIQUE, sans foyer ; le consommateur la déclare en y joignant son
 // foyer (`{ ...FORMULE_DE_CHEBYSHEV, foyer: 'src/engine/grid.ts' }`) :
 //  - les constructions génériques `FORMULE_DE_CHEBYSHEV`, `ECHAPPEUR_DE_LITTERAL`,
-//    `ECRITURE_DE_STOCK_JSON` et `CONSTRUCTION_DE_TABLE_TOTALE` ;
+//    `CONSTRUCTION_DE_PROGRAMME`, `ECRITURE_DE_STOCK_JSON` et `CONSTRUCTION_DE_TABLE_TOTALE` ;
 //  - deux fabriques : `recopieDeCanon` (un canon, ses membres, six formes de recopie, paramètres
 //    `complet` et `formes`, la forme `membres de type` lisant un type littéral comme une `interface`)
 //    et `cleEnLigne` (la clé d'un site de stock écrite en ligne) ;
@@ -282,6 +282,25 @@ export const ECHAPPEUR_DE_LITTERAL = Object.freeze({
     const [motif, remplacement] = appel.args;
     if (!motif || !ts.isRegularExpressionLiteral(motif) || !/^\/'\/[a-z]*g[a-z]*$/.test(motif.text)) return null;
     return remplacement && ts.isStringLiteralLike(remplacement) && remplacement.text === "\\'" ? 'échappeur de littéral JS recopié (`litteralJs`)' : null;
+  },
+});
+
+/** Nom d'une fabrique de `ts.Program` du compilateur (`createProgram`, `createIncrementalProgram`,
+ *  `createWatchProgram`). */
+const FABRIQUE_DE_PROGRAMME = /^create\w*Program$/;
+
+/** La CONSTRUCTION d'un `ts.Program` : un appel `create*Program(…)`, nu ou membre (#1806) — les
+ *  fabriques partagées sont celles de `tsProgram.mjs`. Un appel écrit dans un littéral (fixture de
+ *  morsure) n'est pas un nœud d'appel : il n'est pas lu. */
+export const CONSTRUCTION_DE_PROGRAMME = Object.freeze({
+  nom: 'CONSTRUCTION_DE_PROGRAMME',
+  indice: (texte) => /create\w*Program/.test(texte),
+  /** @param {ts.Node} n @returns {string | null} */
+  reconnait: (n) => {
+    if (!ts.isCallExpression(n)) return null;
+    const f = n.expression;
+    const nom = ts.isIdentifier(f) ? f.text : ts.isPropertyAccessExpression(f) ? f.name.text : null;
+    return nom && FABRIQUE_DE_PROGRAMME.test(nom) ? `\`${nom}\` hors des fabriques (\`tsProgram.mjs\`)` : null;
   },
 });
 

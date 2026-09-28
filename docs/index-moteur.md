@@ -3183,4 +3183,4 @@ _2174 exports publics mesurés (161 fichiers de `src/engine`, hors tests) — 18
 |---|---|---|---|---|
 | `woundsFromHit` | 30 | function | Blessures infligées par un coup : `totalDamage` (Dégâts d'arme + DR + qualités) moins le Bonus d'Endurance et les PA EFFECTIFS à la `location` (armure portée/naturelle + `extraAP`, matériau ignoré PUIS retrait plat, LDB 62 l.270). | Calcul des Blessures, Blessures, dégâts, soin, guérison, Tests : Degrés de Réussite, Caractéristiques, tables, Qualités d'arme et d'armure |
 
-<!-- sources-empreinte: c1378e264397e1b16d1d804d7487a1fc53482826 (170 fichiers, 6 dossiers) corps: 50fdd252141a349eb42ffc956c4a4b3667ef99cc -->
+<!-- sources-empreinte: 1f328f6542ece67d5d503f0a6d775ec3a7620776 (170 fichiers, 6 dossiers) corps: 50fdd252141a349eb42ffc956c4a4b3667ef99cc -->
