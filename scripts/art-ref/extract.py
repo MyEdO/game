@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
 """Extraction générique de références artistiques depuis un PDF source WFRP.
 
-Fusionne les 3 variantes ad hoc historiques (`art-ref/_extract.py`,
-`_extract_zi.py`, `_extract_opera.py`) + le scan seul (`_scan.py`) en un
-script paramétré : PDF, dossier de sortie, seuils, mots-clés (plats ou
+Script paramétré : PDF, dossier de sortie, seuils, mots-clés (plats ou
 regroupés par créature). `art-ref/` reste GITIGNORÉ (binaires + droits
 Cubicle 7) — seul ce script (sous `scripts/art-ref/`, tracké) survit à un
 clone.
@@ -22,21 +20,23 @@ Options :
                           ni --targets) ; filter = ne traiter que les pages qui
                           matchent --keywords/--targets (défaut sinon)
     --keywords "a,b,c"    mots-clés plats (une page qui contient AU MOINS un mot
-                          matche) — remplace _extract_opera.py / _scan.py
+                          matche)
     --targets-json PATH   JSON {"id-créature": ["mot1", "mot2", ...], ...} — une
-                          page peut matcher plusieurs cibles ; remplace _extract_zi.py
+                          page peut matcher plusieurs cibles
     --min-px N            ignore les images embarquées plus petites que N px sur un
                           côté (défaut 120)
     --dpi N               résolution du rendu pleine page (défaut 150)
     --prefix STR          préfixe des fichiers de sortie (défaut "page")
-    --sized-names         ajoute `_{w}x{h}` au nom des images embarquées (style
-                          `_extract_opera.py` — utile pour repérer visuellement les
-                          plus grandes sans ouvrir le fichier)
+    --sized-names         ajoute `_{w}x{h}` au nom des images embarquées (utile
+                          pour repérer visuellement les plus grandes sans ouvrir
+                          le fichier)
     --big-range A-B       en plus du scan normal, liste (stdout, pas de fichier) les
                           images embarquées >= --min-px sur les pages A..B (1-based)
-                          — reprend le rapport de debug ad hoc de l'ancien _extract.py
-    --scan-only           n'extrait rien, imprime seulement les pages qui matchent
-                          (remplace _scan.py)
+    --pages A-B           ne scanne et n'extrait que les pages A..B (1-based, bornes
+                          incluses) ; se combine avec --mode filter (intersection)
+                          et --mode all ; borne hors du PDF = erreur
+    --scan-only           n'extrait rien, imprime les pages qui matchent et, si
+                          --big-range est demandé, son rapport
 
 Exemples par livre
 -------------------
@@ -57,6 +57,11 @@ Exemples par livre
       --mode all \
       --keywords "mutant,cratinx,knud,diligence,hache,tête de chien,tete de chien,massacre,sosie,chaos,créature,creature,sang sur la route,embuscade,renvers" \
       --big-range 22-32
+
+  L'Ennemi dans l'Ombre, chapitres 1-2 (Folio 12+ à Folio 33+ exclu) :
+    python scripts/art-ref/extract.py \
+      --pdf "$(node scripts/raw/pdf-de.mjs ennemi-dans-l-ombre)" --out art-ref/edo-chapitres \
+      --mode all --pages 12-32 --sized-names
 
   Scan seul, sans extraction (repérage rapide) :
     python scripts/art-ref/extract.py \
@@ -87,6 +92,14 @@ def resolve(path_str: str) -> Path:
     return p if p.is_absolute() else (ROOT / p)
 
 
+def plage(s: str):
+    """Plage de pages `A-B` (1-based) -> (A, B)."""
+    parts = s.split("-")
+    if len(parts) != 2 or not all(p.strip().isdigit() for p in parts):
+        raise argparse.ArgumentTypeError(f"plage attendue sous la forme A-B, reçu {s!r}")
+    return int(parts[0]), int(parts[1])
+
+
 def parse_args():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--pdf", required=True)
@@ -98,9 +111,10 @@ def parse_args():
     ap.add_argument("--dpi", type=int, default=150)
     ap.add_argument("--prefix", default="page")
     ap.add_argument("--sized-names", action="store_true")
-    ap.add_argument("--big-range", default=None, help="ex. 22-32 (pages 1-based)")
+    ap.add_argument("--big-range", type=plage, default=None, help="ex. 22-32 (pages 1-based)")
+    ap.add_argument("--pages", type=plage, default=None, help="ex. 12-32 (pages 1-based, incluses)")
     ap.add_argument("--scan-only", action="store_true")
-    return ap.parse_args()
+    return ap, ap.parse_args()
 
 
 def load_targets(args):
@@ -152,10 +166,9 @@ def extract_page_images(doc, pidx, out_dir, prefix, min_px, sized_names):
 
 
 def main():
-    args = parse_args()
+    ap, args = parse_args()
     pdf_path = resolve(args.pdf)
     out_dir = resolve(args.out)
-    out_dir.mkdir(parents=True, exist_ok=True)
 
     targets = load_targets(args)
     mode = args.mode or ("filter" if targets else "all")
@@ -164,9 +177,20 @@ def main():
     print(f"PDF: {pdf_path}")
     print(f"pages: {doc.page_count}")
 
+    for option, borne in (("--pages", args.pages), ("--big-range", args.big_range)):
+        if borne and (borne[0] < 1 or borne[0] > borne[1] or borne[1] > doc.page_count):
+            ap.error(f"{option} {borne[0]}-{borne[1]} hors de 1-{doc.page_count} ou inversée")
+    if args.pages:
+        a, b = args.pages
+        in_range = range(a - 1, b)
+        print(f"plage: pages {a}-{b}")
+    else:
+        in_range = range(doc.page_count)
+    out_dir.mkdir(parents=True, exist_ok=True)
+
     # ---- scan texte : quelles pages matchent quelle(s) cible(s) --------------
     page_hits = {}  # pidx -> set(cible_id)  ("_keywords" si liste plate)
-    for pidx in range(doc.page_count):
+    for pidx in in_range:
         txt = norm(doc[pidx].get_text("text"))
         for cid, kws in targets.items():
             if any(kw in txt for kw in kws):
@@ -180,13 +204,28 @@ def main():
     else:
         print("  (aucun --keywords/--targets-json : mode 'all', pas de filtrage)")
 
+    # ---- rapport debug optionnel : grosses images embarquées sur une plage -----
+    if args.big_range:
+        a, b = args.big_range
+        print(f"--- BIG EMBEDDED IMAGES (pages {a}-{b}) ---")
+        for pidx in range(a - 1, b):
+            for img in doc[pidx].get_images(full=True):
+                xref = img[0]
+                try:
+                    base = doc.extract_image(xref)
+                except Exception:
+                    continue
+                w, h = base.get("width", 0), base.get("height", 0)
+                if w >= args.min_px and h >= args.min_px:
+                    print(f"page {pidx + 1}: xref {xref} {w}x{h}")
+
     if args.scan_only:
         print("--scan-only : pas d'extraction.")
         return
 
     # ---- extraction -----------------------------------------------------------
     pages_to_process = (
-        sorted(page_hits.keys()) if mode == "filter" else list(range(doc.page_count))
+        sorted(page_hits.keys()) if mode == "filter" else list(in_range)
     )
 
     n_full = n_embedded = 0
@@ -207,21 +246,6 @@ def main():
     print(f"EMBEDDED: {n_embedded}")
     print(f"FULL: {n_full}")
     print(f"DONE -> {out_dir}")
-
-    # ---- rapport debug optionnel : grosses images embarquées sur une plage -----
-    if args.big_range:
-        a, b = (int(x) for x in args.big_range.split("-"))
-        print(f"--- BIG EMBEDDED IMAGES (pages {a}-{b}) ---")
-        for pidx in range(a - 1, b):
-            for img in doc[pidx].get_images(full=True):
-                xref = img[0]
-                try:
-                    base = doc.extract_image(xref)
-                except Exception:
-                    continue
-                w, h = base.get("width", 0), base.get("height", 0)
-                if w >= args.min_px and h >= args.min_px:
-                    print(f"page {pidx + 1}: xref {xref} {w}x{h}")
 
 
 if __name__ == "__main__":
