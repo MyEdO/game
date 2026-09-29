@@ -26,7 +26,7 @@ import { actionGate, ACTION_CANDIDATES, REMEDES } from '../state/actionRegistry'
 import { emptyScene } from '../state/scene';
 import { mdToText } from './Prose';
 import { CombatConsole } from './CombatConsole';
-import { coupeAuMot } from '../lib/coupeAuMot';
+import { coupeAuMot } from '../lib/coupeAuMot.mjs';
 import { BORNE_DU_CORPS } from './compendium/CodexRef';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -106,7 +106,7 @@ function survol(dataCell: string) {
   return {
     title: pop.querySelector('.codex-pop-title')?.textContent ?? null,
     body: pop.querySelector('.codex-pop-body')?.textContent ?? null,
-    /** La PORTE vers la fiche complète (l'infobulle borne son corps, cf. `truncate` dans `CodexRef`). */
+    /** La PORTE vers la fiche complète (l’infobulle borne son corps : `coupeAuMot`, `BORNE_DU_CORPS`). */
     porte: pop.querySelector('.codex-pop-open')?.textContent ?? null,
     source: pop.querySelector('.codex-src')?.textContent ?? null,
     /** La RAISON DU REFUS, quand la case est fermée : elle vit ICI et nulle part ailleurs à l'écran. */

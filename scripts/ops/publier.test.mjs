@@ -867,9 +867,14 @@ test('corpsDePilotage : le temps d’ATTENTE de la CI est dit COMME TEL, jamais 
   assert.doesNotMatch(corpsDePilotage({ ...PILOTAGE, ci: { etat: 'non lue' } }), /attente du verdict CI/)
 })
 
-test('titreDeCommit : première ligne, bornée à 120 caractères', () => {
+test('titreDeCommit : première ligne, coupée AU MOT sous 120 caractères', () => {
   assert.equal(titreDeCommit('un titre\n\ncorps'), 'un titre')
-  assert.equal(titreDeCommit(`${'x'.repeat(200)}`).length, 120)
+  const titre = titreDeCommit('abcdefgh '.repeat(20).trimEnd())
+  assert.ok(titre.length <= 120, titre)
+  assert.equal(titre, `${'abcdefgh '.repeat(12)}abcdefgh…`, 'la coupe tombe entre deux mots, jamais dans un mot')
+  const tient = `${'mot '.repeat(29)}motx`
+  assert.equal(tient.length, 120)
+  assert.equal(titreDeCommit(tient), tient, 'un titre de 120 caractères se rend entier')
 })
 
 test('verdictDuTronc : inchangé, bougé (relance), bougé une SECONDE fois (rouge)', () => {

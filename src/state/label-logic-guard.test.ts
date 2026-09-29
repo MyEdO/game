@@ -15,6 +15,7 @@ import {
 } from '../../scripts/guards/lib/labelLogic.mjs';
 import { listerArbre } from '../../scripts/guards/lib/lister.mjs';
 import { couvertureDuBalayage } from '../../scripts/guards/lib/stock.mjs';
+import { detenteur } from '../detenteur.testkit';
 import { skillRefLabel, talentRefLabel, talents } from '../data';
 import { parseSkillRef, parseTalentRef } from '../ui/editor/refFormatLivre';
 
@@ -35,10 +36,9 @@ import { parseSkillRef, parseTalentRef } from '../ui/editor/refFormatLivre';
  */
 const ROOT = fileURLToPath(new URL('../..', import.meta.url)); // src/state/ → ../../ = racine du projet
 
-/** Le balayage de la garde sur le vrai corpus — mémoïsé : l'inventaire, le cliquet du stock et celui
- *  des coutures périmées jugent le MÊME balayage. */
-let _garde: ReturnType<typeof scanLabelLogicCorpus> | null = null;
-const garde = (): ReturnType<typeof scanLabelLogicCorpus> => (_garde ??= scanLabelLogicCorpus(corpusDeLaGarde()));
+/** Le balayage de la garde sur le vrai corpus, tenu par `detenteur` (#1801) : l'inventaire, le cliquet
+ *  du stock et celui des coutures périmées jugent le MÊME balayage. */
+const garde = detenteur(() => scanLabelLogicCorpus(corpusDeLaGarde()));
 const cleDe = (s: { rel: string; line: number }): string => ratchetShortKey(s);
 
 describe('garde « logique par libellé » : un corpus, une composition, deux statuts de site', () => {

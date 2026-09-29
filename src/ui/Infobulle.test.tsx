@@ -178,3 +178,22 @@ describe('DÉLÉGATION — un seul jeu d’écouteurs du document pour la couche
     expect(poses).toEqual([poses[0], poses[0], poses[0]]);
   });
 });
+
+describe('↓ — pris à la capture du document, sa propagation arrêtée avant le registre écouté à la fenêtre en bulle', () => {
+  /** Appuis `keydown` parvenus à un écouteur de la fenêtre en BULLE (la phase de `useGameKeyboard`). */
+  const appui = (cible: HTMLElement, code: string): { parvenus: number; empeche: boolean } => {
+    let parvenus = 0;
+    const fenetre = () => { parvenus++; };
+    window.addEventListener('keydown', fenetre);
+    const e = new KeyboardEvent('keydown', { key: code, code, bubbles: true, cancelable: true });
+    try { act(() => { cible.focus(); cible.dispatchEvent(e); }); } finally { window.removeEventListener('keydown', fenetre); }
+    return { parvenus, empeche: e.defaultPrevented };
+  };
+
+  it('↓ sur l’ancrage épingle la boîte et n’atteint pas la fenêtre ; une autre touche l’atteint', () => {
+    monter(banc);
+    expect(appui(ancre(), 'KeyA'), 'témoin : une touche que la couche ne prend pas').toEqual({ parvenus: 1, empeche: false });
+    expect(appui(ancre(), 'ArrowDown')).toEqual({ parvenus: 0, empeche: true });
+    expect(boites()).toBe(1);
+  });
+});

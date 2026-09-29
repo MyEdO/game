@@ -8,20 +8,16 @@
 // un cardinal vivant. UN cas, nommé, prouve séparément que le hook lit bien cette table réelle.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { spawnSync } from 'node:child_process'
-import { fileURLToPath } from 'node:url'
-import { dirname, join } from 'node:path'
 import { evaluate, gatesDeLaCi } from './codeur-gates-guard.mjs'
 import { ECRIT_LU } from '../gates/toutes.mjs'
+import { lancerHook } from '../guards/lib/lancerHook.mjs'
 
-const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
-const HOOK = join(REPO, 'scripts', 'hooks', 'codeur-gates-guard.mjs')
 
-/** Sortie BRUTE du driver pour un payload de hook (stdin tel que l'hôte l'envoie). */
+/** Sortie BRUTE du répartiteur pour un payload de hook (stdin tel que l'hôte l'envoie). */
 function sortieDriver(payload) {
-  const run = spawnSync(process.execPath, [HOOK], { input: payload, encoding: 'utf8', cwd: REPO })
-  assert.equal(run.status, 0, `le hook a quitté en ${run.status} : ${run.stderr}`)
-  return run.stdout
+  const run = lancerHook('repartiteur.mjs', payload)
+  assert.equal(run.code, 0, `le hook a quitté en ${run.code} : ${run.err}`)
+  return run.out
 }
 
 /** Payload PreToolUse d'un sous-agent (`agent_type` absent = session principale). */

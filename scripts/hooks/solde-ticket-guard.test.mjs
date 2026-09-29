@@ -37,7 +37,6 @@ import {
   segmentsProfonds,
   pipelinesProfonds,
   motifDuCommitPresume,
-  ancrerScriptsNpm,
   repoRoot,
   readSoldeFile,
   readRefFile,
@@ -48,10 +47,9 @@ import {
   lignesDeHunks,
   verifierCapture,
   estFichierEcran,
-  estArbrePrincipal,
+  natureDeLArbre,
   cheminDEcriture,
   evaluateFermetureHorsCommit,
-  evaluateArbrePrincipal,
   evaluateHunksEmportes,
   fichiersDuCommitGit,
   diffDunSha,
@@ -65,7 +63,9 @@ import {
   evaluateReclassementsCss,
   fichiersCitantTickets,
   listeurDuBudget,
+  garde,
 } from './solde-ticket-guard.mjs'
+import { sousRacineNpm } from '../guards/lib/racineNpm.mjs'
 import { tombalesDansSource, evaluateTombale, EXEMPTIONS_TOMBALE } from './solde-tombale.mjs'
 import { GitIndisponible, INDEX, ceQuEmporteLIndex, depotDe, estDansHead } from '../guards/lib/gitPorte.mjs'
 import {
@@ -1535,19 +1535,16 @@ test('evaluatePorteDuTicket : plusieurs commits — directs jugés, amend hérit
 })
 
 // 5e juge, MEMO-ANCRE-1 : la lecture d'un `npm run` dépend du dépôt ancré, le mémo aussi.
-test('isGitCommitCommand : le mémo suit la racine d\'ancrage npm', () => {
+test('isGitCommitCommand : le mémo suit la racine npm de la portée', () => {
   const base = mkdtempSync(join(tmpdir(), 'memo-ancre-'))
   try {
     for (const [d, c] of [['pa', 'git commit -a -m x'], ['pb', 'echo rien']]) {
       mkdirSync(join(base, d))
       writeFileSync(join(base, d, 'package.json'), JSON.stringify({ scripts: { c } }))
     }
-    ancrerScriptsNpm(join(base, 'pa'))
-    assert.equal(isGitCommitCommand('npm run c'), true)
-    ancrerScriptsNpm(join(base, 'pb'))
-    assert.equal(isGitCommitCommand('npm run c'), false, 'le résultat ancré sur pa ne vaut pas pour pb')
+    assert.equal(sousRacineNpm(join(base, 'pa'), () => isGitCommitCommand('npm run c')), true)
+    assert.equal(sousRacineNpm(join(base, 'pb'), () => isGitCommitCommand('npm run c')), false, 'le résultat lu sous pa ne vaut pas pour pb')
   } finally {
-    ancrerScriptsNpm(null)
     rmSync(base, { recursive: true, force: true })
   }
 })
@@ -2065,7 +2062,7 @@ test('extractMessageSources : commande vide → texte vide, pas d\'erreur', () =
 })
 
 // ── evaluate/evaluateAntiEsquive sur le texte étendu (-F) — intégration bout en bout ───────────────
-test('intégration -F : fermeture via -F sans solde → deny (invisible avec l\'ancien driver, visible maintenant)', () => {
+test('intégration -F : fermeture via -F sans solde → deny', () => {
   const { text } = extractMessageSources('git commit -F commit-415.txt', { readFile: () => 'corrige #415' })
   const d = evaluate({ command: text, today: TODAY, readSolde: () => null })
   assert.ok(d)
@@ -2835,8 +2832,8 @@ test('evaluateFermetureHorsCommit : sur l\'endpoint d\'UN ticket, un corps ILLIS
   assert.match(d.reason, /absent\.json/)
 })
 
-// ── Arbre PRINCIPAL vs worktree ───────────────────────────────────────────────────────────────────
-test('estArbrePrincipal : `.git` DOSSIER = principal, `.git` FICHIER = worktree lié', () => {
+// ── Nature de l'arbre ─────────────────────────────────────────────────────────────────────────────
+test('natureDeLArbre : `.git` DOSSIER = principal, `.git` FICHIER = worktree lié', () => {
   const base = mkdtempSync(join(tmpdir(), 'solde-arbre-'))
   try {
     mkdirSync(join(base, 'principal', '.git'), { recursive: true })
@@ -2844,9 +2841,9 @@ test('estArbrePrincipal : `.git` DOSSIER = principal, `.git` FICHIER = worktree 
     mkdirSync(join(base, 'lie'), { recursive: true })
     writeFileSync(join(base, 'lie', '.git'), 'gitdir: ../principal/.git/worktrees/lie\n', 'utf8')
 
-    assert.equal(estArbrePrincipal(join(base, 'principal')), true)
-    assert.equal(estArbrePrincipal(join(base, 'principal', 'src')), true, 'un sous-dossier remonte à son arbre')
-    assert.equal(estArbrePrincipal(join(base, 'lie')), false)
+    assert.equal(natureDeLArbre(join(base, 'principal')), 'dossier')
+    assert.equal(natureDeLArbre(join(base, 'principal', 'src')), 'dossier', 'un sous-dossier remonte à son arbre')
+    assert.equal(natureDeLArbre(join(base, 'lie')), 'fichier')
   } finally {
     rmSync(base, { recursive: true, force: true })
   }
@@ -2915,16 +2912,6 @@ test('cheminDEcriture : sans preuve positive, le hook garde — aucun chemin, le
     ? [...'ZYXWVUTSRQPONMLKJIHGFE'].find((l) => !existsSync(`${l}:\\`))
     : null
   if (absent) assert.equal(ecriture(`${absent}:\\nope\\x.json`).horsContenu, false, `lecteur ${absent}: absent`)
-})
-
-test('evaluateArbrePrincipal : `ask` (jamais deny) dans l\'arbre principal, silence en worktree', () => {
-  const d = evaluateArbrePrincipal({ command: 'git commit -m "x"', principal: true, fichiersEmportes: ['src/a.ts'] })
-  assert.ok(d)
-  assert.equal(d.decision, 'ask')
-  assert.match(d.reason, /src\/a\.ts/)
-  assert.match(d.reason, /\.wt-<ticket>-L<n>/)
-  assert.equal(evaluateArbrePrincipal({ command: 'git commit -m "x"', principal: false }), null)
-  assert.equal(evaluateArbrePrincipal({ command: 'git status', principal: true }), null)
 })
 
 // ── `git commit -- <paths>` : l'ARBRE, pas l'index ────────────────────────────────────────────────
@@ -3384,29 +3371,10 @@ test('extractTargetDir : `Set-Location`/`sl`/`chdir`/`pushd` déplacent le commi
   }
 })
 
-test('evaluateArbrePrincipal derrière un `Set-Location` : silence en worktree LIÉ, `ask` vers l’arbre PRINCIPAL', () => {
-  const base = mkdtempSync(join(tmpdir(), 'arbres-'))
-  try {
-    mkdirSync(join(base, 'principal', '.git'), { recursive: true })
-    mkdirSync(join(base, 'lie'), { recursive: true })
-    writeFileSync(join(base, 'lie', '.git'), 'gitdir: ../principal/.git/worktrees/lie\n', 'utf8')
-    const commit = (mot, ou) => `${mot} ${ou}; git commit -m "fix(x): refs #1729"`
-    const jugement = (cmd) => evaluateArbrePrincipal({
-      command: cmd,
-      principal: estArbrePrincipal(extractTargetDir(cmd, join(base, 'principal'))),
-    })
-    assert.equal(jugement(commit('Set-Location', '../lie')), null, 'un commit en worktree lié ne demande rien')
-    const versPrincipal = jugement(commit('Set-Location', join(base, 'principal')))
-    assert.equal(versPrincipal?.decision, 'ask', 'le faux négatif inverse : un commit dans l’arbre principal reste demandé')
-  } finally {
-    rmSync(base, { recursive: true, force: true })
-  }
-})
-
 test('avecCibleIgnoree : le refus DIT le répertoire écarté ; sans écart, il n’est pas touché', () => {
-  const refus = { decision: 'ask', reason: '⚠ Commit dans l’ARBRE PRINCIPAL' }
+  const refus = { decision: 'deny', reason: '⛔ solde absent' }
   const dit = avecCibleIgnoree(refus, { chemin: '/base/.wt-x', raison: 'répertoire inexistant au moment du contrôle' })
-  assert.equal(dit.decision, 'ask')
+  assert.equal(dit.decision, 'deny')
   assert.match(dit.reason, /\.wt-x/)
   assert.match(dit.reason, /inexistant/)
   assert.equal(avecCibleIgnoree(refus, null), refus)
@@ -3540,6 +3508,22 @@ test('fichiersCitantTickets : les fichiers de l’INDEX sous `src/` et `scripts/
     assert.deepEqual(fichiersCitantTickets([1806], racine).sort(), ['scripts/b.mjs', 'src/a.ts'])
     assert.deepEqual(fichiersCitantTickets([4242], racine), [], 'aucun match : `git grep` sort en 1, la liste est vide')
     assert.deepEqual(fichiersCitantTickets([], racine), [])
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+// Câblage des pannes sans cale git (#2114) : les `pannes` du contexte du répartiteur atteignent la
+// décision de la garde.
+test('garde.evaluer : une panne de lecture git portée par `contexte.pannes` est un `deny` NOMMÉ', async () => {
+  const { racine } = instanceDeDepot({ fichiers: { 'notes/a.md': '# a\n' }, message: 'socle' })
+  try {
+    const entree = { hook_event_name: 'PreToolUse', tool_name: 'Bash', tool_input: { command: 'git commit -m "docs: a"' } }
+    const contexte = { dir: racine, cibleIgnoree: null, today: '2026-09-28' }
+    assert.equal(await garde.evaluer(entree, { ...contexte, pannes: [] }), null, 'témoin : sans panne, silence')
+    const refus = await garde.evaluer(entree, { ...contexte, pannes: ['fatal: panne simulée'] })
+    assert.equal(refus?.decision, 'deny')
+    assert.match(refus.raison, /⛔ lecture git indisponible : fatal: panne simulée/)
   } finally {
     rmSync(racine, { recursive: true, force: true })
   }

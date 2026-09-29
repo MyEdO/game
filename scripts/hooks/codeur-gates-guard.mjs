@@ -1,4 +1,4 @@
-// Hook PreToolUse (canaux shell) : un sous-agent `codeur` ne joue PAS les gates de la CI.
+// Garde PreToolUse (canaux shell) : un sous-agent `codeur` ne joue PAS les gates de la CI.
 // POURQUOI — verbatims utilisateur du 2026-09-15 :
 //   « C'est absurde ... on a dépêché un agent pour créer un fichier (+ son test, + le lien pour
 //     l'appeler) et ça va nous prendre 25 min ? »
@@ -16,10 +16,9 @@
 //
 // Le champ `agent_type` du payload PreToolUse nomme le type du sous-agent appelant (doc Claude Code,
 // hooks.md § Subagent Behavior) et n'existe pas depuis la session principale : l'orchestrateur n'est
-// jamais visé. Sous Codex (`.codex/hooks.json`, même script) ces champs n'existent pas non plus — le
-// hook y est un no-op silencieux, par construction.
-import '../node-requis.mjs'
-import { lireStdinBorne } from '../guards/lib/stdinBorne.mjs'
+// jamais visé. Sous Codex (`.codex/hooks.json`, même point d'entrée `scripts/hooks/repartiteur.mjs`)
+// ces champs n'existent pas non plus : la garde s'y tait, par construction.
+import { OUTILS_SHELL, commandeDe, verdictDe } from '../guards/lib/contratGarde.mjs'
 import { appelleTscNu, appelleVitestNu, segmentsHorsServer, LECTEURS } from '../guards/lib/appelsRunners.mjs'
 import { segmentsProfonds, basenameExecutable } from './solde-ticket-guard.mjs'
 import { ECRIT_LU } from '../gates/toutes.mjs'
@@ -136,7 +135,7 @@ const raisonDuRefus = (geste) =>
  * Décision PURE du hook.
  * @param {{ agentType?: string|null, commande?: string, gates?: string[] }} entree
  *   `gates` = les noms de scripts npm que la CI joue (défaut : lus dans `ECRIT_LU`).
- * @returns {{ decision: 'deny', reason: string }|null} `null` = rien à dire (exit 0, aucune sortie).
+ * @returns {{ decision: 'deny', reason: string }|null} `null` = rien à dire.
  */
 export function evaluate({ agentType = null, commande = '', gates = gatesDeLaCi(), options } = {}) {
   if (!TYPES_VISES.has(String(agentType ?? ''))) return null
@@ -198,29 +197,11 @@ export function evaluate({ agentType = null, commande = '', gates = gatesDeLaCi(
   return null
 }
 
-// ── Driver stdin (n'exécute QUE lancé en direct, jamais à l'import du module de test) ─────────────
-if (import.meta.main) {
-  const brut = await lireStdinBorne()
-  let agentType = null
-  let commande = ''
-  try {
-    const charge = JSON.parse(brut || '{}')
-    agentType = typeof charge?.agent_type === 'string' ? charge.agent_type : null
-    commande = String(charge?.tool_input?.command ?? '')
-  } catch {
-    /* stdin illisible → silence */
-  }
-  const decision = evaluate({ agentType, commande })
-  if (decision) {
-    console.log(
-      JSON.stringify({
-        hookSpecificOutput: {
-          hookEventName: 'PreToolUse',
-          permissionDecision: decision.decision,
-          permissionDecisionReason: decision.reason,
-        },
-      }),
-    )
-  }
-  process.exit(0)
+export const garde = {
+  nom: 'codeur-gates',
+  outils: OUTILS_SHELL,
+  evaluer: (entree) => verdictDe(evaluate({
+    agentType: typeof entree?.agent_type === 'string' ? entree.agent_type : null,
+    commande: commandeDe(entree),
+  })),
 }

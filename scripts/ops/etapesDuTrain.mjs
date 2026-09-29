@@ -23,6 +23,7 @@ import { MANAGED_ROOTS } from '../agents/compat-core.mjs'
 import { sourcesMesurees, touchesDocSources } from '../git-hooks/docs-rebuild.mjs'
 import { resoudreOutilLocal } from '../lancer-local.mjs'
 import { correspondGlob } from '../guards/lib/lister.mjs'
+import { coupeAuMot } from '../../src/lib/coupeAuMot.mjs'
 
 /** Période de la sonde CI, en millisecondes. */
 export const PERIODE_SONDE_MS = 30_000
@@ -181,10 +182,10 @@ export function decisionDeRebase({ contenu, fusions }) {
 }
 
 
-/** Première ligne d'un message de commit, bornée. PURE. */
+/** Première ligne d'un message de commit, coupée au mot vers `max` (`coupeAuMot`). PURE. */
 export const titreDeCommit = (message, max = 120) => {
   const ligne = String(message ?? '').split('\n')[0].trim()
-  return ligne.length > max ? `${ligne.slice(0, max - 1)}…` : ligne
+  return coupeAuMot(ligne, max)
 }
 
 /**

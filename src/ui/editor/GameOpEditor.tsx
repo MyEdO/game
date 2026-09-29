@@ -34,7 +34,7 @@ import { NumberField } from '../NumberField';
 import type { IconIdInput } from '../icons';
 import { TESTS_DE_CORRUPTION, type TestDeCorruption } from '../../data/schemas/grammaire/valeurs';
 import { OPTIONAL_RULES, ruleDef } from '../../engine/policy';
-import { coupeAuMot } from '../../lib/coupeAuMot';
+import { coupeAuMot } from '../../lib/coupeAuMot.mjs';
 
 /** Aide à la SAISIE de l'atelier : nature d'Influence que chaque Compétence repousse (`LDB 19 l.29`).
  *  Le `Record` est TOTAL sur l'alphabet — un id de plus impose son libellé ici. */

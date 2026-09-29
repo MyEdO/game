@@ -47,7 +47,6 @@
 //   `evaluateFermetureHorsCommit` `gh issue close` & co — la fermeture passe par le commit ;
 //   `evaluateTombale`             (scripts/hooks/solde-tombale.mjs) commentaire de dette citant le
 //                                 ticket fermé ;
-//   `evaluateArbrePrincipal`      `ask` sur un commit hors worktree ;
 //   `evaluateHunksEmportes`       `git commit [-i] [--] <paths>` qui prendrait l'arbre au lieu de
 //                                 l'index ;
 //   `evaluateStocksQuiGrandissent` stock nominatif qui naît ou grandit sans `CLIQUET:` au message ;
@@ -78,10 +77,9 @@
 //     « CLIQUET stocks », joué par `npm run test:hooks`) ; pour les RECLASSEMENTS, le pre-push seul.
 //     Le filet des stocks est plus lâche : un commit n'y est refusé que si la croissance CUMULÉE de
 //     la plage reste positive (`refusDeLaPlage`, `plageStock.mjs`) ;
-//   - la note `additionalContext` des modifications non stagées qu'emporte le commit (fin du driver,
+//   - la note `additionalContext` des modifications non stagées qu'emporte le commit (fin de `evaluerSolde`,
 //     `evaluateHunksEmportes`), rendue seulement quand l'étage 2 ne refuse rien.
-// Dans l'arbre principal, un `ask` d'étage 1 (`evaluateArbrePrincipal`) sort avant l'étage 2 : un stock
-// qui grandit y reçoit ce `ask`, jamais son `deny`. Et `--no-verify` n'est refusé nulle part : un
+// `--no-verify` n'est refusé nulle part : un
 // `git push --no-verify` saute le pre-push, donc le seul filet des reclassements, pas la CI. Ce chiffre
 // se re-mesure quand une décision change d'étage ou que l'étage 1 s'alourdit.
 // Re-mesuré le 2026-09-27 pour la LECTURE de la commande (`commitsDe`, linéaire en jetons) :
@@ -103,7 +101,7 @@
 //     -EncodedCommand` ; tout le reste de la ligne, joint par des espaces, après `cmd /c`/`/k`,
 //     `powershell`/`pwsh -Command`/`-c` et `eval` ; la chaîne de `env -S`/`--split-string` suivie des
 //     arguments restants ; et `npm run <x>` (`npm test`/`start`/`stop`/`restart`), dont le script est
-//     lu dans le `package.json` du dépôt ancré (`ancrerScriptsNpm`) ;
+//     lu dans le `package.json` du dépôt de la portée (`racineNpmCourante`) ;
 //   - commit DIRECT : `git [options globales] commit` en tête d'un segment ainsi lu ;
 //   - commit EMBARQUÉ : sous une tête qui n'est pas CITEUSE, un `git … commit` en argv, ou un argument
 //     à espace — la valeur d'un jeton `<clé>=<valeur>` comprise — relu comme une commande. CITEUSE :
@@ -125,8 +123,6 @@
 // `printf 'commit -a' | xargs git` ; `G=git; $G commit -a` ; `bash ./x.sh`, `make release`,
 // `node --run c`, `yarn c`, `npm --prefix ../autre run c` (script hors du dépôt ancré) ;
 // `python3 -c "os.system('git commit -a')"` (interpréteur non shell).
-import '../node-requis.mjs'
-import { lireStdinBorne } from '../guards/lib/stdinBorne.mjs'
 import { Buffer } from 'node:buffer'
 import { existsSync, readFileSync, statSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
@@ -151,9 +147,12 @@ import {
   DOSSIERS_DE_SUBSTANCE, estCheminDeSubstance, fenetreDeRevue, memeSha, mesureDuPalier,
   nomDArchiveDeRevue, problemesDeRevue, revuesNeuves,
 } from '../guards/lib/revuePalier.mjs'
+import { coupeAuMot } from '../../src/lib/coupeAuMot.mjs'
+import { OUTILS_SHELL, commandeDe, decisionCumulee, verdictDe } from '../guards/lib/contratGarde.mjs'
+import { racineNpmCourante } from '../guards/lib/racineNpm.mjs'
 
 // Message passé par FICHIER (`git commit -F <path>` / `--file <path>` / `--file=<path>`) : le
-// driver stdin ne voit que `tool_input.command` — un message packé dans un fichier externe y est
+// la garde ne voit que `tool_input.command` — un message packé dans un fichier externe y est
 // INVISIBLE, ce qui (a) bloque à tort une fermeture légitime (aucun "corrige #N" vu dans la commande)
 // et (b) pire, laisse le closer de publication (qui LIT le vrai message du commit poussé) fermer un
 // ticket SANS être passé par ce contrôle de solde. Fix découvert en production 2026-07-14.
@@ -655,20 +654,14 @@ const PROFONDEUR_MAX_ENROBEURS = 4
 const SOUS_COMMANDES_RUN = ['run', 'run-script']
 const RACCOURCIS_NPM = ['test', 'start', 'stop', 'restart']
 
-// Dépôt où `npm run <x>` se résout quand l'appelant ne le dit pas. Un driver de hook l'ANCRE sur le
-// répertoire où la commande s'exécute réellement (`extractTargetDir`) : sans cet ancrage, un
+// Dépôt où `npm run <x>` se résout quand l'appelant ne le dit pas : celui de la portée de la garde
+// (`racineNpmCourante`, le répertoire cible du contexte du répartiteur) — sans lui, un
 // `cd <autre dépôt> && npm run x` serait lu dans le dépôt du HOOK. À défaut, le dépôt du hook.
-let racineScriptsNpm = null
-
-/** Ancre le dépôt de résolution des scripts npm pour ce processus (drivers de hook). */
-export function ancrerScriptsNpm(dir) {
-  racineScriptsNpm = dir || null
-}
 
 /** Table `scripts` du `package.json` de `dir` (`{}` s'il est absent ou illisible — un hook ne lève
  *  jamais). Lue une fois par répertoire : un hook décide en quelques millisecondes. */
-const CACHE_SCRIPTS = new Map()
-export function scriptsNpm(dir = racineScriptsNpm ?? repoRoot()) {
+const CACHE_SCRIPTS = new Map() // mémo-pur : répertoire résolu → sa table `scripts`
+export function scriptsNpm(dir = racineNpmCourante() ?? repoRoot()) {
   const clef = resolve(dir)
   if (!CACHE_SCRIPTS.has(clef)) {
     let table = {}
@@ -834,13 +827,13 @@ function estCiteur(segment) {
 const SEGMENTS_MAX = 2000
 const nouveauBudget = () => ({ reste: SEGMENTS_MAX, sature: false })
 
-/** Lecture MÉMOÏSÉE par commande : le driver interroge la même commande pour chaque évaluation. Clé =
- *  racine d'ancrage npm (`ancrerScriptsNpm`) + chaîne ; chaque lecture garde ses `MEMO_MAX` dernières
+/** Lecture MÉMOÏSÉE par commande : la garde interroge la même commande pour chaque évaluation. Clé =
+ *  racine de résolution npm (`racineNpmCourante`) + chaîne ; chaque lecture garde ses `MEMO_MAX` dernières
  *  clés (la plus ancienne sort). La valeur rendue est PARTAGÉE : l'appelant ne la modifie pas. */
 function memoParCommande(calcul) {
   const memo = new Map()
   return (command) => {
-    const clef = `${racineScriptsNpm ?? ''}\0${command}`
+    const clef = `${racineNpmCourante() ?? ''}\0${command}`
     if (memo.has(clef)) return memo.get(clef)
     const valeur = calcul(command)
     if (memo.size >= MEMO_MAX) memo.delete(memo.keys().next().value)
@@ -907,13 +900,13 @@ function collecterCommits(command, profondeur, origine, budget, commits) {
 }
 
 /** Motif d'un commit PRÉSUMÉ, ou `null` : dès que `commitsDe` rend un commit embarqué (ou le présumé
- *  de saturation), avec ou sans commit direct, tout refus du driver le porte en tête — la tête et
+ *  de saturation), avec ou sans commit direct, tout refus de la garde le porte en tête — la tête et
  *  l'extrait du premier embarqué, et la sortie. */
 export function motifDuCommitPresume(command) {
   const embarque = (command ? commitsDe(command) : []).find((c) => c.embarque)
   if (!embarque) return null
   const { origine } = embarque
-  const extrait = (texte) => (texte.length > 80 ? `${texte.slice(0, 80)}…` : texte)
+  const extrait = (texte) => coupeAuMot(texte, 80)
   const cause = origine?.sature
     ? `l'analyse de la commande dépasse ses bornes (\`SEGMENTS_MAX\` segments ré-analysés ou \`PROFONDEUR_MAX_ENROBEURS\` niveaux) : un commit y est présumé`
     : `\`${origine?.tete ?? '?'}\` porte \`git commit\` en argument (\`${extrait(origine?.extrait ?? '')}\`) ; une tête hors CITEURS est présumée l'exécuter`
@@ -1268,7 +1261,7 @@ export function lignesDeHunks(diffU0) {
  * garde-fou d'ÉTOURDERIE (chemin périmé, fichier vide, capture d'avant le geste), PAS de
  * CONTREFAÇON. Rien ici ne dit que l'image montre l'écran modifié : c'est la recette qui le juge.
  */
-export function verifierCapture(chemin, { racine = process.cwd(), mtimeMin = 0 } = {}) {
+export function verifierCapture(chemin, { racine = process.cwd(), mtimeMin = 0, pannes = [] } = {}) {
   const problemes = []
   const norm = String(chemin ?? '').replace(/\\/g, '/').replace(/^\.\//, '')
   if (!norm.startsWith(DOSSIER_CAPTURES)) {
@@ -1279,7 +1272,7 @@ export function verifierCapture(chemin, { racine = process.cwd(), mtimeMin = 0 }
   // solde qui cite une preuve inouvrable. Le refus vient AVANT la lecture du disque — exister sur la
   // machine du geste ne la rend pas opposable. Hors dépôt, la porte ne juge que le disque : le banc
   // de `verifierCapture` travaille hors git.
-  if (estIgnore(depotDuHook(racine), norm, { suivisCompris: true })) {
+  if (estIgnore(depotDuHook(racine, pannes), norm, { suivisCompris: true })) {
     problemes.push(`capture "${norm}" IGNORÉE par git (.gitignore) — un solde ne cite qu'une preuve versionnée : la poser sous public/qc/soldes/`)
     return { ok: false, problemes }
   }
@@ -1452,7 +1445,7 @@ function checkRecetteVisuelle(content, { touchesUi, verifierCaptureDe }) {
 
 /**
  * Valide le CONTENU d'un solde. `today` = date du jour en `YYYY-MM-DD`.
- * Contexte INJECTÉ (le driver le remplit depuis git/le disque, un appel nu ne joue que la grammaire) :
+ * Contexte INJECTÉ (`evaluerSolde` le remplit depuis git/le disque, un appel nu ne joue que la grammaire) :
  * `fichiersEmportes` = chemins que le commit emporte ; `lignesEmportees(fichier)` = lignes que le commit y
  * modifie ; `issuesFermees` = tickets fermés par CE commit ; `touchesUi` = le diff touche un écran ;
  * `verifierCaptureDe(chemin)` = contrôle de la capture de recette (voir `verifierCapture`) ;
@@ -1692,7 +1685,7 @@ const MAX_FICHIERS_NOMMES = 3
 
 /**
  * Décision de la porte du ticket (PURE, testable). `fichiersEmportes` = les chemins que le commit
- * va produire (`analyzeDiffDuCommit(...).fichiers`), injectés par le driver ; quand la commande porte
+ * va produire (`analyzeDiffDuCommit(...).fichiers`), injectés par `evaluerSolde` ; quand la commande porte
  * PLUSIEURS commits, c'est le lot de tous (`formeDuCommit` → `tout`). `messages` = le message de
  * chaque commit (`messagesDesCommits`, calculé sans lire de fichier quand l'appelant ne le fournit
  * pas). UNE règle, par commit : un message LISIBLE cite un ticket (`numerosCites`), direct ou
@@ -1783,7 +1776,7 @@ export function validateRefFile(content) {
 
 /**
  * Décision anti-esquive (PURE, testable). `stagedTouchesSrc`/`stagedTotalLines` = état du diff
- * STAGED (`git diff --cached`), injectés par le driver. `readRefFile(n)` lit
+ * STAGED (`git diff --cached`), injectés par `evaluerSolde`. `readRefFile(n)` lit
  * `.claude/soldes/ref-<n>.md` (ou `null`).
  * @returns {{ reason: string } | null} — non-null = `deny`, null = silence.
  */
@@ -2251,17 +2244,15 @@ export function formeDuCommit(command) {
   return { forme: 'index', pathspecs: [] }
 }
 
-/** Les pannes de lecture du hook : un refus NOMMÉ au rendu (`refusDesPannes`), jamais « rien n'est
- *  emporté ». */
-const pannesDuHook = []
-
 /** Le dépôt des portes du hook dans `dir` (`depotDe`) : une lecture rend `null` pour un objet absent
- *  ou un code de sortie non nul ; une PANNE de git rend `null` elle aussi, et `pannesDuHook` la garde. */
-const depotDuHook = (dir) => depotDe(dir, { enPanne: (raison) => pannesDuHook.push(raison) })
+ *  ou un code de sortie non nul ; une PANNE de git rend `null` elle aussi, et `pannes` (celles du
+ *  contexte de l'appel, `contexte.pannes`) la garde : un refus NOMMÉ au rendu (`refusDesPannes`),
+ *  jamais « rien n'est emporté ». */
+const depotDuHook = (dir, pannes) => depotDe(dir, { enPanne: (raison) => pannes.push(raison) })
 
-/** Le refus des pannes de lecture vues depuis le début du hook, `null` s'il n'y en a aucune. */
-const refusDesPannes = () => (pannesDuHook.length
-  ? { decision: 'deny', reason: `⛔ lecture git indisponible : ${pannesDuHook[0]} — la porte ne juge pas ce que git n'a pas lu. Geste : rejouer le commit depuis un arbre où git répond.` }
+/** Le refus des `pannes` de lecture vues depuis le début de l'appel, `null` s'il n'y en a aucune. */
+const refusDesPannes = (pannes) => (pannes.length
+  ? { decision: 'deny', reason: `⛔ lecture git indisponible : ${pannes[0]} — la porte ne juge pas ce que git n'a pas lu. Geste : rejouer le commit depuis un arbre où git répond.` }
   : null)
 
 /**
@@ -2279,9 +2270,9 @@ const refusDesPannes = () => (pannesDuHook.length
  * (`sourceMelee`) ; forme `inclus` → le même arbre, l'INDEX pour les autres ; forme `tout` → l'arbre
  * de travail des chemins suivis (`SUIVI`).
  */
-export function diffDuCommit(command, dir = process.cwd()) {
+export function diffDuCommit(command, dir = process.cwd(), { pannes = [] } = {}) {
   const { forme, pathspecs } = formeDuCommit(command)
-  const depot = depotDuHook(dir)
+  const depot = depotDuHook(dir, pannes)
   let head = null
   const aHead = () => (head ??= shaDe(depot, 'HEAD') !== null)
   const contreIndex = () => forme === 'index' || !aHead()
@@ -2352,18 +2343,18 @@ export function diffDuCommit(command, dir = process.cwd()) {
 
 /** Chemins que l'arbre de travail change contre l'index (`etatDeLArbre`, colonne Y), ou, sous
  *  `cached`, que l'index change contre `HEAD` (`ceQuiChange`) dans `dir`. */
-export function readChangedNames(dir = process.cwd(), { cached = false } = {}) {
-  const depot = depotDuHook(dir)
+export function readChangedNames(dir = process.cwd(), { cached = false, pannes = [] } = {}) {
+  const depot = depotDuHook(dir, pannes)
   if (cached) return ceQuEmporteLIndex(depot).chemins()
   return etatDeLArbre(depot).filter((e) => e.etat !== '??' && e.etat[1] !== ' ').map((e) => e.chemins[0])
 }
 
 /** Fichiers de l'INDEX qui citent un des `numeros` (pré-filtre `git grep --cached -l`) : le scan de
  *  commentaires ne s'applique qu'à eux, jamais à l'arbre entier. */
-export function fichiersCitantTickets(numeros, dir = process.cwd()) {
+export function fichiersCitantTickets(numeros, dir = process.cwd(), { pannes = [] } = {}) {
   if (numeros.length === 0) return []
   const motif = `#(${numeros.join('|')})([^0-9]|$)`
-  return fichiersDuGrep(depotDuHook(dir), ['--cached'], motif, DOSSIERS_DE_SUBSTANCE)
+  return fichiersDuGrep(depotDuHook(dir, pannes), ['--cached'], motif, DOSSIERS_DE_SUBSTANCE)
 }
 
 /**
@@ -2394,15 +2385,15 @@ export function jugerOuNommerLIndisponible(juger, { cwd = null, horsDepot = fals
 /** Chemins que le commit `sha` touche dans `dir` (`ceQueFaitLeCommit`), `[]` quand sa base est `null`
  *  (`baseDuCommit`, gitPorte.mjs). Une panne de git y rend `null` elle aussi, et `refusDesPannes` la
  *  refuse au rendu ; `BorneAbsente` se lève là où `ceQueFaitLeCommit` la lève. */
-export function fichiersDuCommitGit(sha, dir = process.cwd()) {
-  return ceQueFaitLeCommit(depotDuHook(dir), sha).chemins()
+export function fichiersDuCommitGit(sha, dir = process.cwd(), { pannes = [] } = {}) {
+  return ceQueFaitLeCommit(depotDuHook(dir, pannes), sha).chemins()
 }
 
 /** Diff `-U0` de `fichier` dans le commit `sha` (`ceQueFaitLeCommit`), `''` si le commit ne touche pas
  *  le fichier ou si sa base est `null` (les cas de `fichiersDuCommitGit`) — le diff d'UN SHA DÉJÀ
  *  POSÉ, à ne pas confondre avec `diffDuCommit`, qui lit ce que la commande EN COURS va emporter. */
-export function diffDunSha(sha, fichier, dir = process.cwd()) {
-  return ceQueFaitLeCommit(depotDuHook(dir), sha).diff([fichier])
+export function diffDunSha(sha, fichier, dir = process.cwd(), { pannes = [] } = {}) {
+  return ceQueFaitLeCommit(depotDuHook(dir, pannes), sha).diff([fichier])
 }
 
 /** Date de dernière écriture la plus RÉCENTE parmi `fichiers` (ms, `0` si aucune lisible). */
@@ -2487,7 +2478,7 @@ function corpsInputGh(segment, lire) {
 /**
  * Décision « fermeture d'un ticket HORS commit ». Toute fermeture doit naître d'un `git commit`
  * porteur de `corrige #N` — c'est le seul chemin où le solde est exigé. Le corps d'un
- * `gh api --input <fichier>` est LU (`lire`, injecté par le driver depuis le répertoire d'exécution).
+ * `gh api --input <fichier>` est LU (`lire`, injecté par `evaluerSolde` depuis le répertoire d'exécution).
  *
  * HORS PORTÉE, dit : `gh api --input -`, dont le corps arrive par l'entrée standard. Un fichier
  * annoncé mais ILLISIBLE est refusé, jamais silencé (fail-closed sur sa propre annonce, comme le
@@ -2538,8 +2529,8 @@ export function porteUnGesteGh(command) {
 
 /**
  * Le geste que ce garde JUGE, ou `null`. DEUX gestes, et deux seulement : un `git commit` (tous les
- * évaluateurs de solde, de ticket, d'esquive, de juge, d'amend, de manifeste, d'arbre principal, de
- * hunks et de stocks s'ouvrent sur `isGitCommitCommand`) et une fermeture `gh` hors commit
+ * évaluateurs de solde, de ticket, d'esquive, de juge, d'amend, de manifeste, de hunks et de stocks
+ * s'ouvrent sur `isGitCommitCommand`) et une fermeture `gh` hors commit
  * (`evaluateFermetureHorsCommit`, le seul évaluateur qui ne demande pas de commit).
  *
  * Tout le reste ne se lit pas : une commande de LECTURE (`ls`, `wc`…) lançait `mesureDuPalier` et
@@ -2553,10 +2544,9 @@ export function gesteJuge(command) {
   return porteUnGesteGh(command) ? 'fermeture' : null
 }
 
-// ── Arbre PRINCIPAL vs worktree ───────────────────────────────────────────────────────────────────
-// Régime 2026-09-01 : l'arbre principal est d'INTÉGRATION, les trains vivent en worktree
-// `.wt-<ticket>-L<n>`. Un worktree lié porte un `.git` FICHIER (`gitdir: …`), l'arbre principal un
-// `.git` DOSSIER : le fait se lit, il ne se déclare pas.
+// ── Nature de l'arbre ─────────────────────────────────────────────────────────────────────────────
+// Un worktree lié porte un `.git` FICHIER (`gitdir: …`), l'arbre principal un `.git` DOSSIER : le fait
+// se lit, il ne se déclare pas.
 
 /** Nature du premier `.git` trouvé en remontant depuis `dir` : `'dossier'` (arbre principal),
  *  `'fichier'` (worktree lié), ou `null` — aucun dépôt, ou répertoire illisible. Les trois cas se
@@ -2580,11 +2570,6 @@ function racineDeLArbre(dir = process.cwd()) {
     if (parent === courant) return null
     courant = parent
   }
-}
-
-/** `true` si `dir` (ou un de ses ancêtres) est un arbre git dont le `.git` est un DOSSIER. */
-export function estArbrePrincipal(dir = process.cwd()) {
-  return natureDeLArbre(dir) === 'dossier'
 }
 
 /**
@@ -2627,26 +2612,7 @@ export function cheminDEcriture(toolInput, { base = process.cwd(), platform = pr
 
 /** `true` si git PROUVE que `reel` est ignoré dans l'arbre `racine`. Git indisponible, ou dépôt que
  *  git ne reconnaît pas : aucune preuve, `false` — le hook garde (`gitPorte.mjs`, `estIgnore`). */
-const ignoreParGit = (reel, racine) => estIgnore(depotDuHook(racine), reel)
-
-/**
- * Décision « commit dans l'ARBRE PRINCIPAL ». `ask` (jamais `deny`) : les cas légitimes existent, et
- * une porte bloquante sur un geste ROUTINIER arrêterait le programme en l'absence de l'utilisateur.
- * @returns {{ decision: 'ask', reason: string } | null}
- */
-export function evaluateArbrePrincipal({ command, principal = false, fichiersEmportes = [] }) {
-  if (!command || !isGitCommitCommand(command) || !principal) return null
-  const liste = fichiersEmportes.length
-    ? `${fichiersEmportes.length} chemin(s) emporté(s) : ${fichiersEmportes.slice(0, 8).join(', ')}${fichiersEmportes.length > 8 ? ' …' : ''}`
-    : 'aucun chemin emporté vu par le garde'
-  return {
-    decision: 'ask',
-    reason:
-      `⚠ Commit dans l'ARBRE PRINCIPAL (son .git est un DOSSIER) — ${liste}. Les commits se font en ` +
-      `worktree \`.wt-<ticket>-L<n>\`, l'arbre principal est d'INTÉGRATION (régime 2026-09-01). ` +
-      `Cas légitimes : conflit d'intégration, commit rectificatif, WIP orphelin.`,
-  }
-}
+const ignoreParGit = (reel, racine) => estIgnore(depotDuHook(racine, []), reel)
 
 // ── Hunks stagés emportés par `git commit -- <paths>` ─────────────────────────────────────────────
 // `git commit -- <paths>` prend le contenu de l'ARBRE DE TRAVAIL de ces chemins, PAS l'index : un
@@ -2778,96 +2744,46 @@ export function evaluateBudgetContexte({ command, mesure, reference, plafond }) 
  * `imageDeHead`) pour sa pré-image.
  * @param {string} arbre @param {string} dir @returns {(dossier: string) => string[]}
  */
-export function listeurDuBudget(arbre, dir) {
-  const depot = depotDuHook(dir)
+export function listeurDuBudget(arbre, dir, { pannes = [] } = {}) {
+  const depot = depotDuHook(dir, pannes)
   return (dossier) => enfantsDirects(listerImage(depot, arbre, dossier), dossier)
 }
 
-/** Décision d'ensemble d'un cumul de refus (patron de driver partagé avec `commande-piege-guard` :
- *  la décision est PORTÉE par l'évaluateur, `deny` à défaut). `null` si aucun refus, sinon la PLUS
- *  STRICTE — un seul `deny` fait basculer tout le cumul — et les raisons jointes. */
-export function decisionCumulee(decisions) {
-  const refus = decisions.filter(Boolean)
-  if (refus.length === 0) return null
-  return {
-    decision: refus.some((d) => (d.decision ?? 'deny') === 'deny') ? 'deny' : 'ask',
-    reason: refus.map((d) => d.reason).join(' || '),
-  }
-}
-
-// ── Driver stdin (n'exécute QUE lancé en direct, jamais à l'import du module de test) ─────────
-if (import.meta.main) {
-  const raw = await lireStdinBorne()
-  let command = ''
-  // Canal MCP `ctx_shell` : son `tool_input` porte, en plus de `command` (même nom que
-  // Bash/PowerShell), un `cwd` PERSISTANT propre au canal — le process hook, lui, démarre à
-  // la racine de la session. Sans lui, un commit lancé depuis un worktree via ctx_shell
-  // ferait lire l'index de l'arbre principal. Il sert de base à `extractTargetDir` (un
-  // `cd`/`git -C` dans la commande garde la priorité).
-  let baseCwd = process.cwd()
-  try {
-    const toolInput = JSON.parse(raw)?.tool_input
-    command = String(toolInput?.command ?? '')
-    if (typeof toolInput?.cwd === 'string' && toolInput.cwd) baseCwd = resolve(process.cwd(), toolInput.cwd)
-  } catch { /* stdin illisible → silence */ }
-  // Date LOCALE (pas UTC) : un solde écrit après minuit heure locale porte la date locale.
-  const d = new Date()
-  const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-  // Le répertoire cible n'est retenu que s'il EXISTE : sinon git y rendrait un ENOENT de spawn, et
-  // la porte refuserait « ascendance indisponible » un geste que git exécute (#1729). Ce qui a été
-  // écarté est DIT dans le refus, jamais avalé.
-  const cible = cibleDeLaCommande(command, baseCwd)
-  const targetDir = cible.dir ?? baseCwd
-  // `npm run <x>` se résout dans le package.json du dépôt où la commande s'exécute (un
-  // `cd <autre dépôt> && npm run x` n'y lit pas les scripts de CE dépôt-ci) — même discipline
-  // d'ancrage que `targetDir` pour l'index, le message `-F` et l'histoire git.
-  ancrerScriptsNpm(targetDir)
-  // HORS des deux gestes jugés (commit, fermeture `gh`), le garde ne lit RIEN : ni l'index, ni le
-  // palier, ni l'arbre. Une commande de lecture dans un répertoire hors dépôt se faisait refuser par
-  // l'ascendance d'un commit qu'elle ne portait pas (#1729 sonde 3).
-  if (!gesteJuge(command)) process.exit(0)
-  // HOTE UNIQUE de sortie : TOUT refus rendu par ce driver passe ici, donc porte la cible écartée
-  // (un second `console.log` au site la perdait — le refus `-F illisible` jugeait le cwd de session
-  // sans le dire).
-  const rendre = (decision) => {
-    const dit = avecCibleIgnoree(decision, cible.ignore)
-    if (!dit) return false
-    console.log(JSON.stringify({
-      hookSpecificOutput: {
-        hookEventName: 'PreToolUse',
-        permissionDecision: dit.decision,
-        permissionDecisionReason: dit.reason,
-      },
-    }))
-    return true
-  }
-  // Le contenu jugé est celui que le commit va EMPORTER, pas l'index : la forme de la commande le
-  // décide (`diffDuCommit`), et toutes les évaluations lisent par cette même porte.
-  const commit = diffDuCommit(command, targetDir)
+// ── Garde (#2125) : la porte de fermeture et de commit, sur la commande d'un canal shell ─────────
+/**
+ * Le verdict de la porte sur la commande de `entree`. `contexte` (répartiteur, `construireContexte`) :
+ * `dir` = le répertoire où la commande s'exécute RÉELLEMENT — tout ce que la porte lit sur disque ou
+ * dans git s'y lit (index, message `-F`, palier, revue, histoire) ; `cibleIgnoree` = ce que la
+ * commande nommait sans que ce soit un répertoire réel, DIT dans tout refus ; `today` = date locale ;
+ * `pannes` = les pannes de lecture git de l'appel, refusées au rendu (`refusDesPannes`).
+ */
+async function evaluerSolde(entree, { dir: targetDir, cibleIgnoree, today, pannes }) {
+  const command = commandeDe(entree)
+  // HORS des deux gestes jugés (commit, fermeture `gh`), la garde ne lit RIEN (#1729 sonde 3).
+  if (!gesteJuge(command)) return null
+  // HOTE UNIQUE de sortie : tout refus porte la cible écartée.
+  const dire = (decision) => verdictDe(avecCibleIgnoree(decision, cibleIgnoree))
+  // Le contenu jugé est celui que le commit va EMPORTER, pas l'index (`diffDuCommit`).
+  const commit = diffDuCommit(command, targetDir, { pannes })
   const { touchesSrc, touchesUi, totalLines, fichiers } = analyzeDiffDuCommit(commit.numstat())
-
-  // Message `-F <chemin>` : résolu dans le répertoire où le `git commit` s'exécute RÉELLEMENT
-  // (targetDir), jamais dans celui d'où part la commande — un `cd wt && git commit -F m.txt`
-  // désignait sinon un fichier homonyme de l'arbre de départ (fermeture invisible = fail-open).
+  // Message `-F <chemin>` : résolu dans le répertoire où le `git commit` s'exécute RÉELLEMENT.
   const { text, fileError, messages } = extractMessageSources(command, { cwd: targetDir })
   // Tout refus d'une commande qui porte un commit PRÉSUMÉ commence par son motif.
   const presume = motifDuCommitPresume(command)
   const prefixe = (motif) => (presume ? `${presume} || ${motif}` : motif)
   if (fileError) {
-    rendre({
+    return dire({
       decision: 'deny',
       reason: prefixe(
         `⚠ Message de commit en fichier illisible pour le contrôle de solde (-F/--file "${fileError}") ` +
         `— utiliser -m ou un chemin lisible (fail-closed : pas de fermeture ni de réfutation invisibles).`),
     })
-    process.exit(0)
   }
-
   // Le mtime plancher de la capture de recette est celui du DERNIER fichier d'écran stagé : une
   // capture antérieure au geste montre l'écran d'avant.
   const mtimeEcrans = mtimeMaxDe(fichiers.filter(estFichierEcran), targetDir)
   // Lecture PARESSEUSE et unique : elle a lieu DANS le juge, donc une indisponibilité de git y est
-  // rattrapée et NOMMÉE au lieu d'emporter le hook.
+  // rattrapée et NOMMÉE au lieu d'emporter la garde.
   let revuesVues = null
   const revuesDuGeste = () => (revuesVues ??= revuesDuCommit(revuesNeuves(targetDir), fichiers))
   const decision = jugerOuNommerLIndisponible(() => evaluate({
@@ -2889,18 +2805,18 @@ if (import.meta.main) {
       fichiersEmportes: fichiers,
       lignesEmportees: (f) => lignesDeHunks(commit.diff([f])),
       touchesUi,
-      verifierCaptureDe: (chemin) => verifierCapture(chemin, { racine: targetDir, mtimeMin: mtimeEcrans }),
+      verifierCaptureDe: (chemin) => verifierCapture(chemin, { racine: targetDir, mtimeMin: mtimeEcrans, pannes }),
       commitEstAncetre: (sha) => estDansHead(depotDe(targetDir), sha),
-      fichiersDuCommit: (sha) => fichiersDuCommitGit(sha, targetDir),
-      lignesDuCommit: (sha, fichier) => lignesDeHunks(diffDunSha(sha, fichier, targetDir)),
+      fichiersDuCommit: (sha) => fichiersDuCommitGit(sha, targetDir, { pannes }),
+      lignesDuCommit: (sha, fichier) => lignesDeHunks(diffDunSha(sha, fichier, targetDir, { pannes })),
     },
   }), { cwd: targetDir, horsDepot: natureDeLArbre(targetDir) === null })
   // La porte du ticket juge le lot que le commit EMPORTE (`fichiers`), pas l'index : c'est la même
-  // lecture que toutes les autres évaluations de ce driver.
+  // lecture que toutes les autres évaluations de cette garde.
   const porteDuTicket = evaluatePorteDuTicket({ command: text, fichiersEmportes: fichiers, messages })
-  // TOUT ce que le garde lit sur DISQUE se lit dans le répertoire où le commit s'exécute — comme le
-  // solde stagé, la mesure du palier, le message `-F` et la revue de palier. Lu depuis le dépôt du HOOK, un
-  // fichier de réfutation écrit dans le worktree était invisible, et la porte refusait à tort.
+  // TOUT ce que la garde lit sur DISQUE se lit dans le répertoire où le commit s'exécute — comme le
+  // solde stagé, la mesure du palier, le message `-F` et la revue de palier. Lu depuis le dépôt de la
+  // garde, un fichier de réfutation écrit dans le worktree était invisible, et la porte refusait à tort.
   const antiEsquive = evaluateAntiEsquive({
     command: text,
     stagedTouchesSrc: touchesSrc,
@@ -2928,19 +2844,14 @@ if (import.meta.main) {
     const { evaluateTombale } = await import('./solde-tombale.mjs')
     tombale = evaluateTombale({
       issuesFermees: fermes,
-      fichiers: fichiersCitantTickets(fermes, targetDir),
+      fichiers: fichiersCitantTickets(fermes, targetDir, { pannes }),
       lire: (p) => commit.contenu(p),
     })
   }
-  const arbrePrincipal = evaluateArbrePrincipal({
-    command,
-    principal: estArbrePrincipal(targetDir),
-    fichiersEmportes: fichiers,
-  })
   const hunks = evaluateHunksEmportes({
     command,
-    fichiersModifies: readChangedNames(targetDir),
-    fichiersStages: readChangedNames(targetDir, { cached: true }),
+    fichiersModifies: readChangedNames(targetDir, { pannes }),
+    fichiersStages: readChangedNames(targetDir, { cached: true, pannes }),
   })
   // BUDGET DU CONTEXTE PERMANENT : mesuré seulement si le commit touche un chemin du périmètre —
   // sinon aucune lecture n'est payée au-delà de l'image de `CLAUDE.md`, qui dit les fichiers IMPORTÉS
@@ -2954,22 +2865,23 @@ if (import.meta.main) {
   const budget = fichiers.some((f) => estCheminDuBudget(f, importsDuContexte))
     ? evaluateBudgetContexte({
       command: text,
-      mesure: mesurerBudget(targetDir, { lire: commit.contenu, lister: listeurDuBudget(INDEX, targetDir) }),
-      reference: mesurerBudget(targetDir, { lire: commit.lirePreImage, lister: listeurDuBudget(commit.base(), targetDir) }),
+      mesure: mesurerBudget(targetDir, { lire: commit.contenu, lister: listeurDuBudget(INDEX, targetDir, { pannes }) }),
+      reference: mesurerBudget(targetDir, { lire: commit.lirePreImage, lister: listeurDuBudget(commit.base(), targetDir, { pannes }) }),
       plafond: plafondDeLaSource(commit.lirePreImage(PORTEUR_DU_PLAFOND)),
     })
     : null
   // Voir COÛT (en-tête) : un refus qu'aucun autre étage ne rejuge sort ICI, avant les deux décisions
   // que `scripts/git-hooks/pre-push.mjs` rejuge (`croissancesDeLaPlage`). Tout refus d'un étage porte
   // le motif du commit présumé en tête (`prefixe`).
-  const rendreCumul = (decisions) => {
+  const cumuler = (decisions) => {
     const cumul = decisionCumulee(decisions)
-    return rendre(cumul ? { ...cumul, reason: prefixe(cumul.reason) } : cumul)
+    return cumul ? dire({ ...cumul, reason: prefixe(cumul.reason) }) : null
   }
-  if (rendreCumul([
+  const premier = cumuler([
     decision, porteDuTicket, antiEsquive, juge, amendInvisible, registresPorteurs,
-    horsCommit, tombale, arbrePrincipal, hunks?.decision ? hunks : null, budget, refusDesPannes(),
-  ])) process.exit(0)
+    horsCommit, tombale, hunks?.decision ? hunks : null, budget, refusDesPannes(pannes),
+  ])
+  if (premier) return premier
   // UN `git diff -U0` de ce que le commit emporte (`croissanceDesStocks` n'en lit que les porteurs), et
   // les images des porteurs par lot (`lireEnLot`). Sans porteur, ou hors `git commit`, rien n'est lu.
   const porteursDeStock = isGitCommitCommand(text) ? fichiers.filter(estPorteurDeStock) : []
@@ -2983,11 +2895,11 @@ if (import.meta.main) {
     deplace: () => commit.deplaceLaFrontiereCss(fichiers),
     cotes: commit.cotesCss,
   })
-  const rendu = rendreCumul([stocks, reclassements, refusDesPannes()])
-  if (!rendu && hunks?.contexte) {
-    console.log(JSON.stringify({
-      hookSpecificOutput: { hookEventName: 'PreToolUse', additionalContext: hunks.contexte },
-    }))
-  }
-  process.exit(0)
+  const second = cumuler([stocks, reclassements, refusDesPannes(pannes)])
+  if (second) return second
+  return hunks?.contexte ? { contexte: hunks.contexte } : null
 }
+
+/** La garde de la porte (contrat : `scripts/guards/lib/contratGarde.mjs`) ; son point d'entrée propre :
+ *  `scripts/hooks/solde-ticket-hook.mjs`. */
+export const garde = { nom: 'solde-ticket', outils: OUTILS_SHELL, evaluer: evaluerSolde }

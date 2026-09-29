@@ -10,10 +10,10 @@
 // HORS de ce volet, dit : le canal DONNÉE (un stock JSON/MJS qui déclare un blocage dans une VALEUR,
 // et non dans un commentaire) — la sémantique des stocks se traite avec eux.
 //
-// Chargé par IMPORT DYNAMIQUE depuis le driver de `solde-ticket-guard` : `commentPoison` tire le
+// Chargé par IMPORT DYNAMIQUE depuis `evaluerSolde` (`solde-ticket-guard`) : `commentPoison` tire le
 // vocabulaire RAW derrière lui, et les autres gardes Bash qui importent `solde-ticket-guard` n'ont
 // aucune raison de le payer. Ce module ne dépend d'AUCUN autre garde — les tickets fermés lui sont
-// PASSÉS (une importation en retour vers `solde-ticket-guard` boucle sur son propre driver).
+// PASSÉS (une importation en retour vers `solde-ticket-guard` boucle sur son propre évaluateur).
 import { extractComments, estFichierScanne } from '../guards/lib/commentPoison.mjs'
 
 /** Motifs de DETTE : les tournures par lesquelles un commentaire annonce un travail NON FAIT.
@@ -45,7 +45,7 @@ const SITES_EXEMPTES = new Set(EXEMPTIONS_TOMBALE.map((e) => e.site))
 
 /**
  * Lignes de commentaire qui portent À LA FOIS un motif de dette et la citation d'un des `numeros`.
- * `fichiers` = chemins à scanner, `lire(chemin)` = leur contenu (l'INDEX git côté driver, pour juger
+ * `fichiers` = chemins à scanner, `lire(chemin)` = leur contenu (l'INDEX git côté garde, pour juger
  * ce qui PART dans le commit).
  *
  * La lecture est à la LIGNE, pas au bloc : un en-tête de fichier de plusieurs dizaines de lignes

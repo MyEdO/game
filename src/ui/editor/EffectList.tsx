@@ -35,7 +35,7 @@ import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
 import { sceneKindSchema } from '../../data/schemas/defs/activities';
 import { activitiesFor } from '../../engine/activities';
 import { formatMoney, toMoney } from '../../engine/money';
-import { coupeAuMot } from '../../lib/coupeAuMot';
+import { coupeAuMot } from '../../lib/coupeAuMot.mjs';
 
 /** Noms des maladies câblées (LDB 20) proposés dans l'éditeur. */
 const diseaseNames = memoParVersion('maladies', () => Object.keys(diseaseDefs()));

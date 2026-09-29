@@ -18,6 +18,7 @@ import { appendFileSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { listerDossier, parUnitesDeCode } from '../../guards/lib/lister.mjs'
 import { dansLaMesure } from './chemin-mesure.mjs'
 import path from 'node:path'
+import { coupeAuMot } from '../../../src/lib/coupeAuMot.mjs'
 
 const sha1 = (donnee) => createHash('sha1').update(donnee).digest('hex')
 
@@ -293,11 +294,11 @@ export function deltaSourcesLues(avant, apres) {
   return deltas
 }
 
-/** Largeur maximale d'un côté rendu dans l'aperçu : au-delà, la ligne est coupée et suffixée « … ». */
+/** Un côté rendu dans l'aperçu est coupé au mot vers `LARGEUR` (`coupeAuMot`). */
 const LARGEUR = 240
 
-/** Un côté d'une ligne dans l'aperçu : rendu JSON borné, `<absente>` quand ce côté n'a pas la ligne. */
-const cote = (ligne) => (ligne === undefined ? '<absente>' : JSON.stringify(ligne.length > LARGEUR ? `${ligne.slice(0, LARGEUR)}…` : ligne))
+/** Un côté d'une ligne dans l'aperçu : rendu JSON coupé au mot vers `LARGEUR` (`coupeAuMot`), `<absente>` quand ce côté n'a pas la ligne. */
+const cote = (ligne) => (ligne === undefined ? '<absente>' : JSON.stringify(coupeAuMot(ligne, LARGEUR)))
 
 /** La première divergence, NOMMÉE : ligne présente des deux côtés, ou d'un seul (manque / en trop). */
 function premiereDivergence(k, regeneree, committee) {

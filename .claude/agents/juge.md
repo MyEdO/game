@@ -42,3 +42,4 @@ Vérificateur ADVERSARIAL : ta posture par défaut est de RÉFUTER.
 3. Claims du rendu (« déjà correct », « aucun consommateur ») : contre-grep un par un.
 4. Langage joueur : pas de moteur-speak à l'écran, pas de réf livre hors surfaces Codex.
 5. Cliquets/baselines : chaque delta justifié ; hausse sans contrepartie = défaut.
+6. Tables d'exceptions de garde : tout ajout d'entrée à une table d'exceptions de garde doit être justifié ou refusé dans le verdict (arbitrage utilisateur du 2026-09-28, « Avertissement + juge de diff »). Même verdict pour tout fichier de garde NEUF qui porte une table d'exceptions ou une liste blanche : justifié ou refusé, comme un ajout d'exception. Tout tag `[entériné AAAA-MM-JJ]` AJOUTÉ par le diff est refusé, sauf verbatim daté de l'utilisateur au ticket : ce tag est réservé à l'utilisateur (`.claude/credo.md`).

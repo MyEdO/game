@@ -3,24 +3,20 @@
 // (spawnSync + stdin JSON) ; il n'écrit rien et ne décide rien (PostToolUse = contexte).
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { spawnSync } from 'node:child_process'
 import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
+import { ecriture, lancerHook } from '../guards/lib/lancerHook.mjs'
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
-const HOOK = join(REPO, 'scripts', 'hooks', 'poison-postcheck.mjs')
 
 /** Contexte RENDU par le hook (`''` s'il se tait). */
 function contexteDe(tool_input, env = process.env) {
-  const run = spawnSync(process.execPath, [HOOK], {
-    input: JSON.stringify({ tool_input }), encoding: 'utf8', cwd: REPO, env,
-  })
-  assert.equal(run.status, 0, 'le hook a quitté en ' + run.status + ' : ' + run.stderr)
-  if (!run.stdout.trim()) return ''
-  return JSON.parse(run.stdout).hookSpecificOutput.additionalContext
+  const run = lancerHook('repartiteur.mjs', ecriture(tool_input, tool_input.new_string === undefined ? 'Write' : 'Edit', 'PostToolUse'), { env })
+  assert.equal(run.code, 0, 'le hook a quitté en ' + run.code + ' : ' + run.err)
+  return run.specifique?.additionalContext ?? ''
 }
 
 test('un numéro de ticket NU écrit dans docs/ est signalé, avec la ligne fautive', () => {

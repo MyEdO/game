@@ -16,89 +16,80 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { SURFACE_CLAUDE, SURFACE_CODEX, aplatirHooks } from '../agents/compat-core.mjs'
+import { lancerHook } from '../guards/lib/lancerHook.mjs'
+import { REGISTRE } from './registre.mjs'
+import { REGISTRE_SOLDE } from './solde-ticket-hook.mjs'
+import { garde as commandePiege } from './commande-piege-guard.mjs'
+import { garde as solde } from './solde-ticket-guard.mjs'
+import { garde as issueLabel } from './issue-label-guard.mjs'
+import { garde as runnerCapture } from './runner-capture-guard.mjs'
+import { garde as memoireTombale } from './memoire-tombale-guard.mjs'
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
-// Les DEUX surfaces d'agents : `.codex/hooks.json` est le miroir de `.claude/settings.json`
-// (parité par la clef `key` de `validateHookParity`, `scripts/agents/compat-core.mjs`).
-// Étendre un matcher d'un seul côté casse `npm run agents:check` au pre-commit du repo ENTIER.
+// Les DEUX surfaces d'agents, déclarées par `agents:sync` depuis les registres
+// (`scripts/agents/compat-core.mjs`, `hooksAttendus`).
 const SURFACES = [SURFACE_CLAUDE, SURFACE_CODEX]
 /** Les hooks d'une surface, à plat, par le lecteur de la parité. */
 const hooksDe = (surface) => aplatirHooks(JSON.parse(readFileSync(join(REPO, surface), 'utf8')), surface)
 
-/** Gardes de COMMANDES : nom de script → canaux qui doivent tous matcher. */
+/** Gardes de COMMANDES, avec le point d'entrée dont le registre les porte. */
 const GARDES_COMMANDE = [
-  'commande-piege-guard', 'solde-ticket-guard', 'issue-label-guard', 'runner-capture-guard',
+  [commandePiege, 'repartiteur.mjs', REGISTRE], [solde, 'solde-ticket-hook.mjs', REGISTRE_SOLDE],
+  [issueLabel, 'repartiteur.mjs', REGISTRE], [runnerCapture, 'repartiteur.mjs', REGISTRE],
 ]
 /** Gardes d'ÉCRITURE : mêmes exigences de parité, sur les canaux qui portent un contenu. */
-const GARDES_ECRITURE = ['memoire-tombale-guard']
+const GARDES_ECRITURE = [[memoireTombale, 'repartiteur.mjs', REGISTRE]]
 
 /** Canaux dont le `tool_input` porte un champ `command` — donc gardables par les scripts actuels.
- *  Liste NOMINATIVE : tout canal ajouté à un matcher hors de cette liste est un silence, pas une
- *  garde (cf. en-tête sur `ctx_execute`). */
+ *  Liste NOMINATIVE : tout canal ajouté aux `outils` d'une garde de commande hors de cette liste est
+ *  un silence, pas une garde (cf. en-tête sur `ctx_execute`). */
 const CANAUX_GARDABLES = ['Bash', 'PowerShell', 'mcp__lean-ctx__ctx_shell']
 const CANAUX_REQUIS = CANAUX_GARDABLES
 
-/** Matchers PreToolUse d'une surface dont au moins un hook lance `<script>.mjs`. */
-function matchersFor(surface, script) {
-  return hooksDe(surface).filter((h) => h.phase === 'PreToolUse' && h.script === `${script}.mjs`).map((h) => h.matcher)
-}
+/** Le matcher PreToolUse que `surface` déclare pour le point d'entrée `script`. */
+const matcherDe = (surface, script) =>
+  hooksDe(surface).find((h) => h.phase === 'PreToolUse' && h.script === script)?.matcher ?? null
 
-test('les gardes de commande sont câblées en PreToolUse sur les DEUX surfaces (pas de passe à vide)', () => {
-  for (const surface of SURFACES) {
-    for (const script of GARDES_COMMANDE) {
+test('les gardes de commande sont au registre PreToolUse de leur point d’entrée, câblé sur les DEUX surfaces', () => {
+  for (const [garde, script, registre] of GARDES_COMMANDE) {
+    assert.ok(registre.PreToolUse.includes(garde), `${garde.nom} hors du registre de ${script}`)
+    for (const surface of SURFACES) assert.ok(matcherDe(surface, script) !== null, `${surface} : aucun hook PreToolUse ne lance ${script}`)
+  }
+})
+
+test('chaque garde de commande couvre TOUS les canaux shell, ctx_shell compris, sur les DEUX surfaces', () => {
+  for (const [garde, script] of GARDES_COMMANDE) {
+    for (const canal of CANAUX_REQUIS) {
+      assert.ok(garde.outils.includes(canal), `${garde.nom} ne garde pas le canal « ${canal} »`)
+      for (const surface of SURFACES) {
+        assert.ok(
+          matcherDe(surface, script).split('|').includes(canal),
+          `matcher de ${script} (${surface}) ne couvre pas le canal « ${canal} » — une commande git partie par ce canal échapperait à la garde`,
+        )
+      }
+    }
+  }
+})
+
+test('tout canal d’une garde de commande est GARDABLE (son tool_input fournit `command`)', () => {
+  for (const [garde] of GARDES_COMMANDE) {
+    for (const canal of garde.outils) {
       assert.ok(
-        matchersFor(surface, script).length > 0,
-        `${surface} : aucun hook PreToolUse ne lance ${script}.mjs`,
+        CANAUX_GARDABLES.includes(canal),
+        `${garde.nom} déclare le canal « ${canal} », dont le tool_input ne fournit pas de champ \`command\` : la garde y serait ` +
+        'SILENCIEUSE au lieu de refuser. Adapter la garde à la forme de ce tool_input avant de l\'inscrire.',
       )
     }
   }
 })
 
-test('chaque garde de commande couvre TOUS les canaux shell, ctx_shell compris, sur les DEUX surfaces', () => {
-  for (const surface of SURFACES) {
-    for (const script of GARDES_COMMANDE) {
-      for (const matcher of matchersFor(surface, script)) {
-        for (const canal of CANAUX_REQUIS) {
-          assert.ok(
-            new RegExp(matcher).test(canal),
-            `matcher "${matcher}" (${script}, ${surface}) ne couvre pas le canal "${canal}" — ` +
-            'une commande git partie par ce canal échapperait à la garde',
-          )
-        }
-      }
-    }
-  }
-})
-
-test('tout canal listé au matcher est GARDABLE (son tool_input fournit `command`)', () => {
-  for (const surface of SURFACES) {
-    for (const script of GARDES_COMMANDE) {
-      for (const matcher of matchersFor(surface, script)) {
-        for (const canal of matcher.split('|')) {
-          assert.ok(
-            CANAUX_GARDABLES.includes(canal),
-            `matcher "${matcher}" (${script}, ${surface}) déclare le canal "${canal}", dont le ` +
-            'tool_input ne fournit pas de champ `command` : la garde y serait SILENCIEUSE au lieu ' +
-            'de refuser. Adapter le script à la forme de ce tool_input avant de l\'inscrire.',
-          )
-        }
-      }
-    }
-  }
-})
-
-test('les matchers des gardes sont IDENTIQUES entre .claude et .codex (parité agents:check)', () => {
-  for (const script of [...GARDES_COMMANDE, ...GARDES_ECRITURE]) {
-    const [claude, codex] = SURFACES.map((s) => matchersFor(s, script))
-    assert.deepEqual(
-      codex, claude,
-      `matchers divergents pour ${script} entre .claude/settings.json et .codex/hooks.json — ` +
-      '`npm run agents:check` refuserait tout commit du repo',
-    )
+test('les matchers des points d’entrée sont IDENTIQUES entre .claude et .codex', () => {
+  for (const [, script] of [...GARDES_COMMANDE, ...GARDES_ECRITURE]) {
+    const [claude, codex] = SURFACES.map((s) => matcherDe(s, script))
+    assert.equal(codex, claude, `matchers divergents pour ${script} entre .claude/settings.json et .codex/hooks.json`)
   }
 })
 
@@ -143,32 +134,28 @@ test('cas plantés : le préfixe magique et le texte libre sont refusés, mcp__*
   assert.equal(valide('Bash|PowerShell|mcp__lean-ctx__ctx_shell'), true)
 })
 
-/** Lance le hook RÉEL avec le payload que `mcp__lean-ctx__ctx_shell` produit, et rend sa décision
- *  (`'deny'`/`'ask'`, ou `null` si le hook se tait). */
+/** Lance le point d'entrée RÉEL avec le payload que `mcp__lean-ctx__ctx_shell` produit, et rend sa
+ *  décision (`'deny'`, ou `null` s'il se tait). */
 function decisionOf(script, command) {
-  const payload = JSON.stringify({
+  const run = lancerHook(script, {
     session_id: 'test', hook_event_name: 'PreToolUse',
     tool_name: 'mcp__lean-ctx__ctx_shell', tool_input: { command, cwd: REPO },
   })
-  const run = spawnSync(process.execPath, [join(REPO, 'scripts', 'hooks', script)], {
-    input: payload, encoding: 'utf8', cwd: REPO,
-  })
-  assert.equal(run.status, 0, `${script} a quitté en ${run.status} : ${run.stderr}`)
-  if (!run.stdout.trim()) return null
-  return JSON.parse(run.stdout).hookSpecificOutput.permissionDecision
+  assert.equal(run.code, 0, `${script} a quitté en ${run.code} : ${run.err}`)
+  return run.specifique?.permissionDecision ?? null
 }
 
 test('DRIVER : les gardes de commande décident bien sur un payload ctx_shell (câblage de bout en bout)', () => {
   // Fermeture d'un ticket sans solde : deny quoi qu'il arrive (`.claude/soldes/999999.md` n'existe
   // pas — et un palier atteint denierait tout autant).
-  assert.equal(decisionOf('solde-ticket-guard.mjs', 'git commit -m "feat: x (corrige #999999)"'), 'deny')
-  assert.equal(decisionOf('issue-label-guard.mjs', 'gh issue create --title "X" --body "y"'), 'deny')
-  assert.equal(decisionOf('commande-piege-guard.mjs', 'git show --stat -- 21d0153b7'), 'deny')
-  assert.equal(decisionOf('runner-capture-guard.mjs', 'npx vitest run | tail -20'), 'deny')
+  assert.equal(decisionOf('solde-ticket-hook.mjs', 'git commit -m "feat: x (corrige #999999)"'), 'deny')
+  assert.equal(decisionOf('repartiteur.mjs', 'gh issue create --title "X" --body "y"'), 'deny')
+  assert.equal(decisionOf('repartiteur.mjs', 'git show --stat -- 21d0153b7'), 'deny')
+  assert.equal(decisionOf('repartiteur.mjs', 'npx vitest run | tail -20'), 'deny')
 })
 
-test('DRIVER : une commande anodine passe par toutes les gardes de commande sans décision', () => {
-  for (const script of GARDES_COMMANDE) {
-    assert.equal(decisionOf(`${script}.mjs`, 'git status'), null, `${script} bloque un git status`)
+test('DRIVER : une commande anodine passe par les deux points d’entrée sans décision', () => {
+  for (const script of new Set(GARDES_COMMANDE.map(([, s]) => s))) {
+    assert.equal(decisionOf(script, 'git status'), null, `${script} bloque un git status`)
   }
 })

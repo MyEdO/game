@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { CodexRef, nodeHasText, BORNE_DU_CORPS } from './CodexRef';
-import { coupeAuMot } from '../../lib/coupeAuMot';
+import { coupeAuMot } from '../../lib/coupeAuMot.mjs';
 import { spells } from '../../data';
 import { mdToText } from '../Prose';
 

@@ -1,8 +1,14 @@
 import { readdir, readFile, mkdir, rename, rm, writeFile } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { dirname, join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { SURFACE_CLAUDE, SURFACE_CODEX, buildExpectedOutputs, collectDiffs, validateHookParity, validateRolePairs } from './compat-core.mjs';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import { ENTREES_OUTIL, SURFACE_CLAUDE, SURFACE_CODEX, buildExpectedOutputs, collectDiffs, validateRolePairs } from './compat-core.mjs';
+
+/** Les registres des points d'entrée (`ENTREES_OUTIL`), lus dans les modules de `scripts/hooks/`. */
+export async function chargerRegistres(dossierHooks = join(dirname(fileURLToPath(import.meta.url)), '..', 'hooks')) {
+  return new Map(await Promise.all(ENTREES_OUTIL.map(async ({ script, module, exporte }) =>
+    [script, (await import(pathToFileURL(join(dossierHooks, module)).href))[exporte]])));
+}
 
 async function snapshot(root) {
   const files = new Map();
@@ -28,15 +34,7 @@ function validationDiagnostics(files) {
     if (path.startsWith('.claude/agents/') && path.endsWith('.md')) claude.set(path.slice(15, -3), bytes.toString('utf8'));
     if (path.startsWith('.codex/agents/') && path.endsWith('.toml')) codex.set(path.slice(14, -5), bytes.toString('utf8'));
   }
-  const settings = files.get(SURFACE_CLAUDE);
-  const hooks = files.get(SURFACE_CODEX);
-  const diagnostics = validateRolePairs(claude, codex);
-  if (!settings || !hooks) diagnostics.push({ family: 'hook', destination: !settings ? SURFACE_CLAUDE : SURFACE_CODEX, type: 'missing', message: 'configuration absente' });
-  else {
-    try { diagnostics.push(...validateHookParity(JSON.parse(settings), JSON.parse(hooks))); }
-    catch (error) { diagnostics.push({ family: 'hook', destination: `${SURFACE_CLAUDE}/${SURFACE_CODEX}`, type: 'parse', message: error.message }); }
-  }
-  return diagnostics;
+  return validateRolePairs(claude, codex);
 }
 
 const sleep = (milliseconds) => new Promise((resolveSleep) => setTimeout(resolveSleep, milliseconds));
@@ -66,8 +64,9 @@ export async function runCompat({ root, mode }, dependencies = {}) {
   const takeSnapshot = dependencies.snapshot ?? snapshot;
   const writeAtomically = dependencies.atomicWrite ?? atomicWrite;
   const remove = dependencies.rm ?? rm;
+  const registres = dependencies.registres ?? await chargerRegistres();
   const actual = await takeSnapshot(root);
-  const expected = buildExpectedOutputs(actual);
+  const expected = buildExpectedOutputs(actual, registres);
   const diagnostics = [...collectDiffs(expected, actual), ...validationDiagnostics(actual)];
   if (mode === 'sync') {
     const unsafe = diagnostics.filter((item) => item.safe === false || item.type.startsWith('unsafe-'));
@@ -78,7 +77,7 @@ export async function runCompat({ root, mode }, dependencies = {}) {
       else if (item.type === 'orphan') await remove(join(root, item.destination), { force: true });
     }
     const refreshed = await takeSnapshot(root);
-    return [...collectDiffs(buildExpectedOutputs(refreshed), refreshed), ...validationDiagnostics(refreshed)];
+    return [...collectDiffs(buildExpectedOutputs(refreshed, registres), refreshed), ...validationDiagnostics(refreshed)];
   }
   return diagnostics;
 }

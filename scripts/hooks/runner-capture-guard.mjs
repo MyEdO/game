@@ -1,4 +1,4 @@
-// Hook PreToolUse(Bash|PowerShell|mcp__lean-ctx__ctx_shell) : un runner qui n'ÉCRIT PAS sa sortie
+// Garde PreToolUse(Bash|PowerShell|mcp__lean-ctx__ctx_shell) : un runner qui n'ÉCRIT PAS sa sortie
 // ne se lit pas par un filtre tronquant. Clause RUNNER du skill `orchestrer-des-agents` (audit
 // 2026-08-30) : « toute commande de runner écrit sa sortie COMPLÈTE dans un fichier du scratchpad,
 // puis LIT le fichier ; jamais un filtre inline (`| grep`, `| tail`) comme SEULE lecture ».
@@ -27,8 +27,7 @@
 //     head -5`) n'en forment pas un : rien n'y tronque la sortie du runner, et le garde se tait
 //     (3 faux positifs mesurés avant ce groupement). La profondeur reste couverte : les pipelines
 //     d'un `sh -c "npx vitest | tail"` sont rendus comme les autres.
-import '../node-requis.mjs'
-import { lireStdinBorne } from '../guards/lib/stdinBorne.mjs'
+import { OUTILS_SHELL, commandeDe, verdictDe } from '../guards/lib/contratGarde.mjs'
 import { pipelinesProfonds } from './solde-ticket-guard.mjs'
 
 /** `{ exe, args }` d'un segment : basename sans extension, en minuscules (call-operator sauté). */
@@ -154,20 +153,4 @@ export function evaluate(command) {
   return null
 }
 
-// ── Driver stdin (n'exécute QUE lancé en direct, jamais à l'import du module de test) ─────────────
-if (import.meta.main) {
-  const raw = await lireStdinBorne()
-  let command = ''
-  try { command = String(JSON.parse(raw)?.tool_input?.command ?? '') } catch { /* stdin illisible → silence */ }
-  const decision = evaluate(command)
-  if (decision) {
-    console.log(JSON.stringify({
-      hookSpecificOutput: {
-        hookEventName: 'PreToolUse',
-        permissionDecision: decision.decision ?? 'deny',
-        permissionDecisionReason: decision.reason,
-      },
-    }))
-  }
-  process.exit(0)
-}
+export const garde = { nom: 'runner-capture', outils: OUTILS_SHELL, evaluer: (entree) => verdictDe(evaluate(commandeDe(entree))) }

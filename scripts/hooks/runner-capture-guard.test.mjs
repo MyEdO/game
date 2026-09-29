@@ -1,17 +1,16 @@
 // Garde de CAPTURE des runners : la sortie d'un runner qui n'écrit rien ne se lit pas par un filtre
 // tronquant. Les cas SILENCE sont aussi importants que les refus — `npm test | tail` reste la
 // pratique recommandée (le runner capture `vitest-run-<pid>.txt`), et un refus y bloquerait le
-// travail courant. Le driver est lancé POUR DE VRAI (spawnSync + stdin JSON) sur la forme de payload
+// travail courant. Le répartiteur est lancé POUR DE VRAI (spawnSync + stdin JSON) sur la forme de payload
 // que produit `mcp__lean-ctx__ctx_shell`.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { evaluate, estRunnerNonCapturant, lecteurTronquantDeFlux, capture } from './runner-capture-guard.mjs'
+import { lancerHook } from '../guards/lib/lancerHook.mjs'
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
-const HOOK = join(REPO, 'scripts', 'hooks', 'runner-capture-guard.mjs')
 
 const denies = (cmd) => evaluate(cmd) !== null
 const allows = (cmd) => evaluate(cmd) === null
@@ -101,10 +100,9 @@ function decisionOf(command) {
     session_id: 'test', hook_event_name: 'PreToolUse',
     tool_name: 'mcp__lean-ctx__ctx_shell', tool_input: { command, cwd: REPO },
   })
-  const run = spawnSync(process.execPath, [HOOK], { input: payload, encoding: 'utf8', cwd: REPO })
-  assert.equal(run.status, 0, 'le hook a quitté en ' + run.status + ' : ' + run.stderr)
-  if (!run.stdout.trim()) return null
-  return JSON.parse(run.stdout).hookSpecificOutput.permissionDecision
+  const run = lancerHook('repartiteur.mjs', payload)
+  assert.equal(run.code, 0, 'le hook a quitté en ' + run.code + ' : ' + run.err)
+  return run.specifique?.permissionDecision ?? null
 }
 
 test('DRIVER : le hook décide de bout en bout sur un payload ctx_shell', () => {

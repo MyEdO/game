@@ -11,7 +11,7 @@
 import { describe, it, expect } from 'vitest';
 import { chapterFile, readText, sigleDe } from '../../scripts/guards/lib/rawRefIntegrity.mjs';
 import { NIGHT_STAKES, regles, books, skills, symptoms, etats } from './index';
-import { coupeAuMot } from '../lib/coupeAuMot';
+import { coupeAuMot } from '../lib/coupeAuMot.mjs';
 
 /** FOYERS possibles d'une règle (amendement A, 2026-08-06) : l'entité qui la PORTE d'abord —
  *  `regles.json` n'héberge que les règles de CADRE, sans entité porteuse. */

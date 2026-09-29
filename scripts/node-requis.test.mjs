@@ -35,8 +35,7 @@ const HOOKS_AGENT = [SURFACE_CLAUDE, SURFACE_CODEX].flatMap((surface) =>
 )
 const MODULES_HOOKS_AGENT = [...new Set(HOOKS_AGENT.filter((h) => h.script).map((h) => `scripts/hooks/${h.script}`))]
 const MODULES_LANCES = [/^node (\S+)/.exec(SCRIPTS.gates)[1], ...PILOTES, ...MODULES_HOOKS_AGENT]
-/** Claude Code : seul le code de sortie 2 d'un hook `PreToolUse` bloque l'outil (même contrat que
- *  `scripts/hooks/new-src-file-guard.mjs`). */
+/** Claude Code : seul le code de sortie 2 d'un hook `PreToolUse` bloque l'outil. */
 const CODE_BLOQUANT_PRETOOLUSE = 2
 /** githooks(5) : un hook `post-*` ne peut pas faire échouer l'opération qui vient d'avoir lieu. */
 const estPostHook = (hook) => hook.startsWith('post-')
@@ -147,7 +146,8 @@ test('la porte refuse sous le code qui BLOQUE un hook d’agent `PreToolUse`', (
 
 test('hooks d’agent : lus sur `.claude/settings.json` et `.codex/hooks.json`, chaque commande lance un module de `scripts/hooks/`', () => {
   assert.deepEqual(HOOKS_AGENT.filter((h) => !h.script).map((h) => h.path), [])
-  assert.ok(MODULES_HOOKS_AGENT.includes('scripts/hooks/solde-ticket-guard.mjs'), MODULES_HOOKS_AGENT.join('\n'))
+  for (const entree of ['scripts/hooks/repartiteur.mjs', 'scripts/hooks/solde-ticket-hook.mjs'])
+    assert.ok(MODULES_HOOKS_AGENT.includes(entree), MODULES_HOOKS_AGENT.join('\n'))
 })
 
 /** Chemin POSIX relatif à `RACINE` d'un membre de clôture (rendu relatif au cwd s'il y vit). */

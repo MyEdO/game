@@ -11,6 +11,7 @@
 import { describe, it, expect } from 'vitest';
 import { ESLint } from 'eslint';
 import ts from 'typescript';
+import { virtualProgram } from '../../scripts/guards/lib/tsProgram.mjs';
 import { readFileSync } from 'node:fs';
 
 /** Fichier de test SOUS le périmètre de la règle (jamais un minteur, qui est exempté). */
@@ -224,29 +225,7 @@ pushCombatStep({ id: 'e', kind: 'k' });
 `;
 
 function codesDeDiagnostic(code: string): number[] {
-  const fileName = 'sonde-murage.ts';
-  // `types: []` : la sonde ne dépend d'AUCUN `@types` du dépôt — elle mesure la signature, rien d'autre.
-  const options: ts.CompilerOptions = { strict: true, noEmit: true, target: ts.ScriptTarget.ES2020, types: [], skipLibCheck: true };
-  const libPath = ts.getDefaultLibFilePath(options);
-  const sf = ts.createSourceFile(fileName, code, ts.ScriptTarget.ES2020, true);
-  const host: ts.CompilerHost = {
-    // Hors sonde : seule la bibliothèque standard de TypeScript est servie (références `/// <reference lib>`).
-    getSourceFile: (n) => {
-      if (n === fileName) return sf;
-      const texte = ts.sys.readFile(n);
-      return texte === undefined ? undefined : ts.createSourceFile(n, texte, ts.ScriptTarget.ES2020);
-    },
-    writeFile: () => {},
-    getDefaultLibFileName: () => libPath,
-    useCaseSensitiveFileNames: () => false,
-    getCanonicalFileName: (n) => n.toLowerCase(),
-    getCurrentDirectory: () => '',
-    getNewLine: () => '\n',
-    fileExists: (n) => n === fileName || ts.sys.fileExists(n),
-    readFile: (n) => (n === fileName ? code : ts.sys.readFile(n)),
-  };
-  const program = ts.createProgram([fileName], options, host);
-  return ts.getPreEmitDiagnostics(program).map((d) => d.code);
+  return ts.getPreEmitDiagnostics(virtualProgram({ 'sonde-murage.ts': code })).map((d) => d.code);
 }
 
 describe('#1262 B4 — la sonde de murage de `pushCombatStep` est TUEUSE', () => {

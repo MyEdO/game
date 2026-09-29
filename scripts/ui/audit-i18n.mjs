@@ -20,6 +20,7 @@ import { estFichierVitest } from '../guards/lib/fichierVitest.mjs';
 import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join, dirname, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { coupeAuMot } from '../../src/lib/coupeAuMot.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const SCAN_DIRS = ['src/ui', 'src/state'];
@@ -201,6 +202,6 @@ if (!jsonOut) {
   for (const r of top15) console.log(`  ${w(r.file, 45)} ${r.count}`);
   console.log('\nTop doublons exacts (texte × occurrences) :');
   for (const [textVal, locs] of duplicateGroups.slice(0, 15)) {
-    console.log(`  ×${locs.length}  "${textVal.length > 60 ? textVal.slice(0, 57) + '...' : textVal}"`);
+    console.log(`  ×${locs.length}  "${coupeAuMot(textVal, 60)}"`);
   }
 }

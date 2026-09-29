@@ -108,12 +108,12 @@ C'est le signal qu'un geste manuel a dévié de ce que `npm install` pose seul.
 
 - `Source/` — texte des livres en `.md`, **citable** (réfs `LDB <chap> l.<ligne>`).
 - `src/data/` — données app-owned (124 fichiers JSON commités, éditables au Compendium).
-- Les gardes de données : `scripts/guards/validate-data.mts` + 170 modules
+- Les gardes de données : `scripts/guards/validate-data.mts` + 174 modules
   sous `scripts/guards/lib/` (dont `scripts/guards/lib/commentPoison.mjs`,
   `scripts/guards/lib/emojiAffordance.mjs`, `scripts/guards/lib/hardcode.mjs`,
   `scripts/guards/lib/labelLogic.mjs`).
-- Les gardes de SESSION : 15 scripts déclarés dans `.claude/settings.json`
-  (versionné), sur 17 fichiers `.mjs` hors test sous `scripts/hooks/` — détail au § 5.
+- Les gardes de SESSION : 3 scripts déclarés dans `.claude/settings.json`
+  (versionné), sur 19 fichiers `.mjs` hors test sous `scripts/hooks/` — détail au § 5.
 - Les schémas de données : `src/data/schemas/` (`src/data/schemas/types.ts`,
   `src/data/schemas/validate.ts`, `src/data/schemas/_registry.generated.ts`,
   `src/data/schemas/_ids.generated.ts`, `src/data/schemas/grammaire/` — le vocabulaire partagé —
@@ -168,20 +168,9 @@ refaire `npm install`.
 | Événement | Déclencheur (matcher) | Script | Rôle |
 |---|---|---|---|
 | `SessionStart` | (tous) | `scripts/hooks/bootstrap-conteneur.mjs` | Conformité du conteneur distant (hooks git, gh) |
-| `PreToolUse` | Write \| mcp__lean-ctx__ctx_patch | `scripts/hooks/new-src-file-guard.mjs` | Garde anti-réinvention (nouveau fichier src/) |
-| `PreToolUse` | Write \| Edit | `scripts/hooks/data-edit-guard.mjs` | Grounding donnée (src/data — check-first #148) |
-| `PreToolUse` | Write \| Edit | `scripts/hooks/enterine-guard.mjs` | Tag [entériné] = validation utilisateur |
-| `PreToolUse` | Write \| Edit | `scripts/hooks/exception-add-guard.mjs` | Ajout d'exception de garde = autorisation utilisateur |
-| `PreToolUse` | Write \| Edit \| mcp__lean-ctx__ctx_patch | `scripts/hooks/memoire-tombale-guard.mjs` | Fiche mémoire : réécrire au présent, jamais une pierre tombale |
-| `PreToolUse` | Bash \| PowerShell \| mcp__lean-ctx__ctx_shell | `scripts/hooks/commande-piege-guard.mjs` | Commande piège refusée (lien node_modules, git show -- <sha>) |
-| `PreToolUse` | Bash \| PowerShell \| mcp__lean-ctx__ctx_shell | `scripts/hooks/solde-ticket-guard.mjs` | Fermeture de ticket au commit = solde écrit obligatoire |
-| `PreToolUse` | Bash \| PowerShell \| mcp__lean-ctx__ctx_shell | `scripts/hooks/issue-label-guard.mjs` | Ticket sans label refusé (index du backlog) |
-| `PreToolUse` | Bash \| PowerShell \| mcp__lean-ctx__ctx_shell | `scripts/hooks/runner-fast-reminder.mjs` | Rappel typecheck:fast (tsc nu ~42 s) |
-| `PreToolUse` | Bash \| PowerShell \| mcp__lean-ctx__ctx_shell | `scripts/hooks/codeur-gates-guard.mjs` | Un codeur ne joue pas les gates du train |
-| `PreToolUse` | Bash \| PowerShell \| mcp__lean-ctx__ctx_shell | `scripts/hooks/runner-capture-guard.mjs` | Runner sans capture : sortie complète en fichier |
-| `PreToolUse` | Agent | `scripts/hooks/agent-dispatch-design-reminder.mjs` | Rappel altitude de design (dispatch d'agent) |
-| `PostToolUse` | Write \| Edit | `scripts/hooks/poison-postcheck.mjs` | Garde anti-poison au stylo (tombstone/excuse/label) |
-| `PostToolUse` | Agent | `scripts/hooks/agent-return-judge-reminder.mjs` | Rappel juge adversarial (retour d'agent) |
+| `PreToolUse` | Write \| mcp__lean-ctx__ctx_patch \| Edit \| Bash \| PowerShell \| mcp__lean-ctx__ctx_shell \| Agent | `scripts/hooks/repartiteur.mjs` | Gardes des appels d’outil (répartiteur) |
+| `PreToolUse` | Bash \| PowerShell \| mcp__lean-ctx__ctx_shell | `scripts/hooks/solde-ticket-hook.mjs` | Fermeture de ticket au commit = solde écrit obligatoire |
+| `PostToolUse` | Write \| Edit \| Agent | `scripts/hooks/repartiteur.mjs` | Gardes des appels d’outil (répartiteur) |
 
 **CI GitHub Actions** :
 
@@ -245,4 +234,4 @@ sans place dans ce plan fait REFUSER le run, avec son nom.
 `scripts/guards/lib/npmLockHoisted.mjs` — npx --yes npm@10.9.3 install --package-lock-only, puis valider avec npx npm@10.9.3 ci --dry-run. npm 11 ampute les entrées hoistées
 `@emnapi/*` que `npm ci` exige en CI ; la garde (pre-commit +
 `src/npm-lock-hoisted-guard.test.ts`) refuse un lock amputé.
-<!-- sources-empreinte: 752ffb69125d4a8d913d55b8bf8ebafd672f1a7a (26 fichiers, 8 dossiers) corps: f41c96393449508e6cd36e54aabe3fdc83216ca0 -->
+<!-- sources-empreinte: 24eff4b8e5f1d00628a100277b088ed96c48a75a (27 fichiers, 8 dossiers) corps: fabc1899ae025254a26e41ea8329859b50191246 -->

@@ -10,6 +10,7 @@
 import { fixtureText } from '../i18n/fixtureText';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import ts from 'typescript';
+import { virtualProgram } from '../../scripts/guards/lib/tsProgram.mjs';
 import { useGame } from './store';
 import {
   monoStep, tableStep, tableStepDone, hostStep, openSequence, rollStep,
@@ -512,7 +513,7 @@ describe('#1262 V2 — la FILE d’entretien et la FABRIQUE de nuit n’accepten
  * LE NÉGATIF DE TYPE de l'union `DisplaySpec` (#1262 V2 lot 2) — la possession d'une étape d'affichage
  * est EXCLUSIVE : son concerné (`actorId`) OU le monde (`worldOwner`), jamais les deux, jamais aucun.
  * Aucun scanner ne tient cet invariant : c'est le compilateur, et cette sonde mesure qu'il le tient
- * VRAIMENT (mêmes API que la sonde de murage de `built-brand-lint`, programme TypeScript réel).
+ * VRAIMENT (programme TypeScript réel, `virtualProgram`).
  */
 const SONDE_DISPLAY = (decl: string) => `
 type RecapLine = { text: string };
@@ -524,27 +525,7 @@ displayStep({ id: 'x', kind: 'k', label: 'L'${decl} });
 `;
 
 function diagnosticsDisplay(code: string): number[] {
-  const fileName = 'sonde-display.ts';
-  // `types: []` : la sonde ne dépend d'AUCUN `@types` du dépôt — elle mesure la FORME de l'union, rien d'autre.
-  const options: ts.CompilerOptions = { strict: true, noEmit: true, target: ts.ScriptTarget.ES2020, types: [], skipLibCheck: true };
-  const libPath = ts.getDefaultLibFilePath(options);
-  const sf = ts.createSourceFile(fileName, code, ts.ScriptTarget.ES2020, true);
-  const host: ts.CompilerHost = {
-    getSourceFile: (n) => {
-      if (n === fileName) return sf;
-      const texte = ts.sys.readFile(n);
-      return texte === undefined ? undefined : ts.createSourceFile(n, texte, ts.ScriptTarget.ES2020);
-    },
-    writeFile: () => {},
-    getDefaultLibFileName: () => libPath,
-    useCaseSensitiveFileNames: () => false,
-    getCanonicalFileName: (n) => n.toLowerCase(),
-    getCurrentDirectory: () => '',
-    getNewLine: () => '\n',
-    fileExists: (n) => n === fileName || ts.sys.fileExists(n),
-    readFile: (n) => (n === fileName ? code : ts.sys.readFile(n)),
-  };
-  return ts.getPreEmitDiagnostics(ts.createProgram([fileName], options, host)).map((d) => d.code);
+  return ts.getPreEmitDiagnostics(virtualProgram({ 'sonde-display.ts': code })).map((d) => d.code);
 }
 
 describe('#1262 V2 — la possession d’un AFFICHAGE est exclusive (négatif de type)', () => {

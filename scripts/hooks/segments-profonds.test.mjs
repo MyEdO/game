@@ -1,6 +1,6 @@
 // Tests du SOCLE de reconnaissance de commande partagé par les gardes PreToolUse (#1679 L1a T1) :
 // `segmentsProfonds` (sous-shells + enrobeurs de tête), `extractTargetDir` (répertoire cible réel),
-// le refus de PALIER (mesuré sur l'histoire), et le contrat de sortie du driver.
+// le refus de PALIER (mesuré sur l'histoire), et le contrat de sortie du point d'entrée.
 //
 // Les formes couvertes ici viennent de sondes jouées contre les évaluateurs RÉELS avant écriture :
 // onze formes que le tokenizer voyait déjà par accident, dix-sept qu'il laissait passer (flags avant
@@ -14,10 +14,9 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { Buffer } from 'node:buffer'
 import { mkdtempSync, writeFileSync, rmSync } from 'node:fs'
-import { execFileSync, spawnSync } from 'node:child_process'
+import { execFileSync } from 'node:child_process'
 import { tmpdir } from 'node:os'
-import { fileURLToPath } from 'node:url'
-import { dirname, join, posix, resolve, win32 } from 'node:path'
+import { join, posix, resolve, win32 } from 'node:path'
 import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import {
   segmentsProfonds,
@@ -26,15 +25,15 @@ import {
   extractClosedIssues,
   extractTargetDir,
   versCheminNatif,
-  decisionCumulee,
   scriptsNpm,
-  ancrerScriptsNpm,
   evaluate as evaluateSolde,
 } from './solde-ticket-guard.mjs'
+import { decisionCumulee } from '../guards/lib/contratGarde.mjs'
+import { lancerHook } from '../guards/lib/lancerHook.mjs'
+import { sousRacineNpm } from '../guards/lib/racineNpm.mjs'
 import { evaluate as evaluateLabel } from './issue-label-guard.mjs'
 import { evaluate as evaluateGates } from './codeur-gates-guard.mjs'
 
-const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 // Lecteurs Windows et racines de profil ASSEMBLÉS à l'exécution : ce fichier ne porte aucun chemin
 // absolu littéral, il reste donc soumis à `src/portable-paths-guard.test.ts` comme `scripts/**`.
 const BS = String.fromCharCode(92)
@@ -169,16 +168,11 @@ test('npm run <x> : la résolution suit le dépôt ANCRÉ, pas celui du hook', (
     assert.deepEqual(scriptsNpm(base), { ferme: 'gh issue close 1679' })
     // Sans ancrage : le dépôt du hook, qui ne porte aucun script `ferme`.
     assert.deepEqual(segmentsProfonds('npm run ferme'), [['npm', 'run', 'ferme']])
-    ancrerScriptsNpm(base)
-    try {
-      assert.deepEqual(
-        segmentsProfonds('npm run ferme'),
-        [['gh', 'issue', 'close', '1679'], ['npm', 'run', 'ferme']],
-      )
-    } finally {
-      ancrerScriptsNpm(null)
-    }
-    assert.deepEqual(segmentsProfonds('npm run ferme'), [['npm', 'run', 'ferme']], 'l’ancrage n’a pas été rendu')
+    assert.deepEqual(
+      sousRacineNpm(base, () => segmentsProfonds('npm run ferme')),
+      [['gh', 'issue', 'close', '1679'], ['npm', 'run', 'ferme']],
+    )
+    assert.deepEqual(segmentsProfonds('npm run ferme'), [['npm', 'run', 'ferme']], 'la portée a fui hors de son appel')
   } finally {
     rmSync(base, { recursive: true, force: true })
   }
@@ -282,7 +276,7 @@ test('extractTargetDir : `git -C` prime sur `cd`, et sans ni l\'un ni l\'autre l
   assert.equal(extractTargetDir('git commit -m x', base, 'linux', TOUT_EXISTE), base)
 })
 
-/** Dépôt jetable avec un worktree LIÉ, posé DANS l'instance : le driver s'y joue comme dans un arbre
+/** Dépôt jetable avec un worktree LIÉ, posé DANS l'instance : la garde s'y joue comme dans un arbre
  *  réel — `.gitignore` compris, qui y tient le rôle de l'entrée `.wt-` du dépôt (.gitignore:54) et
  *  garde l'arbre principal PROPRE. */
 function depotAvecWorktree() {
@@ -294,21 +288,18 @@ function depotAvecWorktree() {
 }
 
 // ── Driver : le JSON rendu au hook ────────────────────────────────────────────────────────────────
-/** Sortie BRUTE du driver d'un garde pour un payload de hook. */
-function sortieDriver(garde, command, cwd) {
-  const payload = JSON.stringify({
+/** Sortie BRUTE d'un point d'entrée réel pour un payload de hook. */
+function sortieDriver(script, command, cwd) {
+  const run = lancerHook(script, {
     session_id: 'test', hook_event_name: 'PreToolUse',
     tool_name: 'mcp__lean-ctx__ctx_shell', tool_input: { command, cwd },
   })
-  const run = spawnSync(process.execPath, [join(REPO, 'scripts', 'hooks', garde)], {
-    input: payload, encoding: 'utf8', cwd: REPO,
-  })
-  assert.equal(run.status, 0, `le hook a quitté en ${run.status} : ${run.stderr}`)
-  return run.stdout
+  assert.equal(run.code, 0, `le hook a quitté en ${run.code} : ${run.err}`)
+  return run.out
 }
 
 test('DRIVER : un refus rend le JSON exact attendu par le hook (deny + raison)', () => {
-  const out = sortieDriver('issue-label-guard.mjs', 'sh -c "gh issue create --title x"')
+  const out = sortieDriver('repartiteur.mjs', 'sh -c "gh issue create --title x"')
   const { hookSpecificOutput } = JSON.parse(out)
   assert.equal(hookSpecificOutput.hookEventName, 'PreToolUse')
   assert.equal(hookSpecificOutput.permissionDecision, 'deny')
@@ -317,15 +308,15 @@ test('DRIVER : un refus rend le JSON exact attendu par le hook (deny + raison)',
 })
 
 test('DRIVER : une décision NULLE ne produit AUCUNE sortie (silence, jamais un JSON vide)', () => {
-  assert.equal(sortieDriver('issue-label-guard.mjs', 'gh issue list --state open').trim(), '')
-  assert.equal(sortieDriver('solde-ticket-guard.mjs', 'ls -la').trim(), '')
+  assert.equal(sortieDriver('repartiteur.mjs', 'gh issue list --state open').trim(), '')
+  assert.equal(sortieDriver('solde-ticket-hook.mjs', 'ls -la').trim(), '')
 })
 
 test('DRIVER solde : une fermeture sans solde est refusée, et le refus dit l\'ordre stage-puis-commit', () => {
   const { base, principal } = depotAvecWorktree()
   try {
     // Aucune revue dans l'histoire de ce dépôt : le palier n'a pas d'origine, et c'est le SOLDE qui refuse.
-    const out = sortieDriver('solde-ticket-guard.mjs', 'git commit -m "feat: x (corrige #424242)"', principal)
+    const out = sortieDriver('solde-ticket-hook.mjs', 'git commit -m "feat: x (corrige #424242)"', principal)
     const { hookSpecificOutput } = JSON.parse(out)
     assert.equal(hookSpecificOutput.permissionDecision, 'deny')
     assert.match(hookSpecificOutput.permissionDecisionReason, /424242/)
@@ -362,19 +353,11 @@ test('refus de PALIER : un palier INMESURABLE refuse aussi — jamais un silence
   assert.match(d.reason, /toutes les archives sont orphelines/)
 })
 
-// ── Cumul de refus : la décision la plus stricte l'emporte ──────────────────────────────────
-// Aucun évaluateur de ce fichier ne produit encore d'`ask` (le premier arrive avec la porte de
-// l'arbre principal) : la branche se teste ICI, sur la fonction pure, pour qu'elle ne soit jamais
-// livrée non mesurée.
-test('decisionCumulee : un seul `deny` fait basculer tout le cumul', () => {
-  const d = decisionCumulee([{ decision: 'ask', reason: 'a' }, { decision: 'deny', reason: 'b' }])
+// ── Cumul de refus ──────────────────────────────────────────────────────────────────────────
+test('decisionCumulee : tout refus est un `deny` qui porte les raisons jointes ; aucun refus = null', () => {
+  const d = decisionCumulee([{ reason: 'a' }, null, { reason: 'b' }])
   assert.equal(d.decision, 'deny')
   assert.equal(d.reason, 'a || b')
-})
-
-test('decisionCumulee : `ask` seul reste `ask` ; un refus sans champ vaut `deny` ; aucun refus = null', () => {
-  assert.equal(decisionCumulee([{ decision: 'ask', reason: 'a' }, null]).decision, 'ask')
-  assert.equal(decisionCumulee([{ reason: 'a' }]).decision, 'deny')
   assert.equal(decisionCumulee([null, undefined]), null)
   assert.equal(decisionCumulee([]), null)
 })

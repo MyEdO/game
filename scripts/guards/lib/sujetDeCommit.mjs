@@ -16,6 +16,8 @@
 // PÉRIMÈTRE : le SUJET seul. Le CORPS n'est jamais borné — c'est là que vont le solde, les preuves et
 // les `CLIQUET:`. Les lignes de commentaire (`#`), que git retire du message final, ne sont pas lues.
 
+import { coupeAuMot } from '../../../src/lib/coupeAuMot.mjs'
+
 /** Longueur maximale du SUJET d'un commit. Mesure du 2026-09-13 : 2 795 caractères de sujet en
  *  moyenne sur 20 commits — un sujet qui porte le solde et les preuves n'est plus un sujet, et
  *  aucun outil (git log --oneline, `gh`, la CI) ne le rend lisible. */
@@ -37,6 +39,6 @@ export function refusDeSujet(message) {
   return (
     `⛔ SUJET de commit de ${sujet.length} caractères : sujet ≤ ${SUJET_MAX} caractères, le solde et les `
     + `preuves dans le CORPS (une ligne vide, puis tout le reste). Le sujet lu : `
-    + `« ${sujet.slice(0, 120)}… ».`
+    + `« ${coupeAuMot(sujet, 120)} ».`
   )
 }

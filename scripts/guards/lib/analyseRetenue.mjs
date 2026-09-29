@@ -57,6 +57,7 @@ import { estSuiteVitest } from './fichierVitest.mjs'
 export const FABRIQUES_D_ANALYSE = Object.freeze([
   'repoProgram',
   'virtualProgram',
+  'parsedProgram',
   'createProgram',
   'createIncrementalProgram',
   'createWatchProgram',

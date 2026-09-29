@@ -1,5 +1,5 @@
-/** Fabriques de base : `repoProgram`, `virtualProgram`, les `create*Program`, `createLanguageService`,
- *  `createSourceFile`. */
+/** Fabriques de base : `repoProgram`, `virtualProgram`, `parsedProgram`, les `create*Program`,
+ *  `createLanguageService`, `createSourceFile`. */
 export const FABRIQUES_D_ANALYSE: readonly string[];
 
 /** Sources de CORPUS (`readCorpus`) : leur rendu est l'exception documentée, un dérivé ne l'est pas. */
