@@ -1,8 +1,9 @@
 import { readFileSync, existsSync } from 'node:fs';
-import { posix } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import ts from 'typescript';
 import { describe, it, expect } from 'vitest';
 import { readCorpus } from '../../../scripts/guards/lib/sourceCorpus.mjs';
+import { repoProgram, virtualProgram, VIRTUAL_ROOT } from '../../../scripts/guards/lib/tsProgram.mjs';
 import { codeSeul as sansCommentaires } from '../../../scripts/guards/lib/commentPoison.mjs';
 import { materials, semencesDeScene, terrains } from '../../data';
 
@@ -16,10 +17,10 @@ import { materials, semencesDeScene, terrains } from '../../data';
  * matières, `NEUTRALISEURS_TERRAIN` pour les sols, chacun NOMMÉ, chacun tenu par un test de vie qui
  * le rend ROUGE dès qu'aucun site du périmètre ne l'exerce plus — au grain du CHAMP, une entrée par
  * champ (`neutraliseursDeChamp`), pour qu'un homonyme qui meurt rougisse SEUL. Un homonyme se
- * neutralise par le NOM DU CHAMP (`kind:`, `key:`, `cargoId:`, `weather:`, `part:`, `scope:`), par le
- * VOCABULAIRE d'union déclaré dans le fichier ou IMPORTÉ par son nom, par une UNION de littéraux ÉCRITE EN PLACE (paramètre,
- * champ) ou par une SEMENCE d'authoring GELÉE (`as const satisfies Fige<…Defaults>`) — jamais par un
- * nom de fichier, jamais par un site toléré.
+ * neutralise par le NOM DU CHAMP (`key:`, `cargoId:`, `part:`, `scope:`), par le
+ * TYPE ATTENDU au site du littéral quand c'est un VOCABULAIRE d'union (checker TypeScript), par une
+ * UNION de littéraux ÉCRITE EN PLACE (paramètre, champ) ou par une SEMENCE d'authoring GELÉE
+ * (`as const satisfies Fige<…Defaults>`) — jamais par un nom de fichier, jamais par un site toléré.
  *
  * Le relief était le dernier domaine de `MaterialRef` dont l'id était choisi EN CODE
  * (`floors.ts` : `'pilier'`, `'pierre'`, `'terre'`) ; il vient de la donnée comme les autres — la
@@ -156,8 +157,8 @@ const neutraliseursDeChamp = (vocabulaires: Record<string, string>): { nom: stri
  *  - UNE entrée par CHAMP (`neutraliseursDeChamp`), son libellé portant le VOCABULAIRE du champ :
  *    `part` partie de face, `scope` portée d'un avertissement de validation, `key` clé de récap /
  *    d'IU — chacun a un homonyme au dataset des matières. `kind` (type de sélection d'un éditeur) n'y
- *    figure PAS : aucun `kind:` du périmètre ne porte d'homonyme de MATIÈRE (il n'en porte qu'au
- *    registre des TERRAINS, où le bras terrain le tient) — groupé à `key`, il passait pour vivant ;
+ *    figure PAS : aucun `kind:` du périmètre ne porte d'homonyme de MATIÈRE — groupé à `key`, il
+ *    passait pour vivant ;
  *  - l'UNION de littéraux d'un type : la DÉCLARATION d'un vocabulaire d'état, pas une émission ;
  *  - la comparaison d'un ÉTAT D'ONGLET à une clé déclarée dans le même fichier : le signal est la
  *    GAUCHE de la comparaison (un identifiant d'onglet, `…Tab`), jamais le fichier — `m.material ===
@@ -217,83 +218,113 @@ const idsTerrain = (() => {
 })();
 
 /** CLAUSE PARTAGÉE du bras terrain : une union dont TOUS les membres sont des ids de terrain n'est
- *  pas un vocabulaire propre, c'est une LISTE RÉCITÉE — elle n'entre pas au répertoire
- *  (`vocabulaireDUnion`) et le neutraliseur d'union en place ne la blanchit pas. */
-const membresSontTousDesTerrains = (union: string): boolean => {
-  const membres = membresDUnion(union);
-  return membres.length > 0 && membres.every((v) => idsTerrain().has(v));
+ *  pas un vocabulaire propre, c'est une LISTE RÉCITÉE — ni le type attendu au site
+ *  (`vocabulaireAuSite`) ni le neutraliseur d'union en place ne la blanchissent. */
+const tousDesTerrains = (membres: readonly string[]): boolean => membres.length > 0 && membres.every((v) => idsTerrain().has(v));
+const membresSontTousDesTerrains = (union: string): boolean => tousDesTerrains(membresDUnion(union));
+
+/** Une étendue de littéral à blanchir sur une ligne : colonnes [de, a[, bornes comprises. */
+type Etendue = readonly [number, number];
+/** Par ligne (0-based), les littéraux dont le TYPE ATTENDU au site est un vocabulaire (`vocabulaireAuSite`). */
+type SitesDuVocabulaire = ReadonlyMap<number, readonly Etendue[]>;
+
+const EGALITES = new Set([
+  ts.SyntaxKind.EqualsEqualsEqualsToken,
+  ts.SyntaxKind.ExclamationEqualsEqualsToken,
+  ts.SyntaxKind.EqualsEqualsToken,
+  ts.SyntaxKind.ExclamationEqualsToken,
+]);
+
+/** Le type DÉCLARÉ d'une expression, avant tout rétrécissement de flux : dans `if (v === 'a') v === 'a'`,
+ *  le second `v` rétréci vaut `'a'`, son vocabulaire reste celui de sa déclaration. */
+const typeDeclare = (checker: ts.TypeChecker, e: ts.Expression): ts.Type => {
+  const symbole = checker.getSymbolAtLocation(e);
+  return symbole && symbole.flags & (ts.SymbolFlags.Variable | ts.SymbolFlags.Property)
+    ? checker.getTypeOfSymbol(symbole)
+    : checker.getTypeAtLocation(e);
+};
+
+/** Le TYPE ATTENDU d'un littéral à son site : son type contextuel (`getContextualType` : champ,
+ *  argument, élément, affectation) ; pour l'opérande d'une égalité, le type déclaré de l'autre
+ *  opérande ; pour un `case`, celui de l'expression du `switch` — TypeScript ne donne pas de type
+ *  contextuel à ces deux sites. */
+const typeAttendu = (checker: ts.TypeChecker, lit: ts.StringLiteralLike): ts.Type | undefined => {
+  const p = lit.parent;
+  if (ts.isBinaryExpression(p) && EGALITES.has(p.operatorToken.kind)) return typeDeclare(checker, p.left === lit ? p.right : p.left);
+  if (ts.isCaseClause(p) && p.expression === lit) return typeDeclare(checker, p.parent.parent.expression);
+  return checker.getContextualType(lit);
 };
 
 /**
- * VOCABULAIRE D'UNION déclaré DANS LE FICHIER (`type X = 'a' | 'b' | …`) — le pendant, pour les ids de
- * terrain, de ce que `clesDOnglet` fait des clés d'IU : une valeur qui appartient à un vocabulaire
- * déclaré ici est de CE vocabulaire, pas du registre des sols, et sa lecture (`=== 'vide'`,
- * `capacite: 'porte'`, une table de priorité) est le MÊME signal que sa déclaration.
- *
- * La garde reste fermée sur le cas qui compte : une union dont TOUS les membres sont des ids de
- * terrain n'est pas un vocabulaire propre, c'est une LISTE DE TERRAINS récitée en code — elle
- * n'entre pas dans le répertoire, et la ligne reste comptée.
+ * Les littéraux d'un fichier dont le TYPE ATTENDU au site est un VOCABULAIRE qui les AUTORISE : les
+ * constituants littéraux de chaîne de ce type contiennent la valeur, et ne sont pas TOUS des ids de
+ * terrain — une union tout-terrain est une LISTE RÉCITÉE, même clause que l'union écrite en place.
+ * La valeur est alors de CE vocabulaire, que l'union soit déclarée dans le fichier ou importée. Un
+ * même littéral hors de ce site (`terrain: 'neige'` à côté d'une `Meteo = 'pluie' | 'neige'`) garde
+ * son type attendu à lui, et reste compté.
  */
-const vocabulaireDUnion = (src: string, nom = '\\w+'): Set<string> => {
-  const mots = new Set<string>();
-  for (const m of src.matchAll(new RegExp(`\\btype\\s+${nom}\\s*=\\s*([^;{}]*?);`, 'g'))) {
-    const membres = membresDUnion(m[1]);
-    if (membres.length < 2 || membresSontTousDesTerrains(m[1])) continue;
-    for (const v of membres) mots.add(v);
-  }
-  return mots;
-};
-
-/** Un import NOMMÉ depuis un module RELATIF du dépôt : `import { a, type B as C } from './x'`. */
-const IMPORT_NOMME = /\bimport\s+(?:type\s+)?\{([^}]*)\}\s*from\s*['"](\.{1,2}\/[^'"]+)['"]/g;
-
-/** Les littéraux d'un vocabulaire VIDÉS, bornes gardées. */
-const blanchitVocabulaire = (code: string, mots: Set<string>) =>
-  mots.size ? code.replace(new RegExp(`(['"\`])(?:${[...mots].map((m) => m.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})\\1`, 'g'), (m) => `${m[0]}_${m[0]}`) : code;
-
-/**
- * VOCABULAIRE d'union IMPORTÉ — le même répertoire que `vocabulaireDUnion`, pour un type que le fichier
- * IMPORTE par son nom au lieu de le déclarer (`TypeDArete`, lu par l'éditeur et ses patchs) : la valeur
- * est de CE vocabulaire, que sa déclaration vive ici ou dans le module importé. Même clause : une union
- * dont tous les membres sont des sols reste une liste récitée. `source` = chemin depuis la racine du
- * dépôt ; une source SYNTHÉTIQUE (sans chemin) n'importe rien.
- */
-const vocabulaireImporte = (src: string, source?: string): Set<string> => {
-  const mots = new Set<string>();
-  if (!source) return mots;
-  for (const [, noms, spec] of src.matchAll(IMPORT_NOMME)) {
-    const base = posix.join(posix.dirname(source), spec);
-    const module = [`${base}.ts`, `${base}.tsx`, `${base}/index.ts`].map((f) => RACINE + f).find((f) => existsSync(f));
-    if (!module) continue;
-    const texte = sansCommentaires(readFileSync(module, 'utf8'));
-    for (const brut of noms.split(',')) {
-      const nom = brut.trim().replace(/^type\s+/, '').split(/\s+as\s+/)[0];
-      if (/^\w+$/.test(nom)) for (const v of vocabulaireDUnion(texte, nom)) mots.add(v);
+function vocabulaireAuSite(checker: ts.TypeChecker, sf: ts.SourceFile): SitesDuVocabulaire {
+  const sites = new Map<number, Etendue[]>();
+  const visite = (n: ts.Node): void => {
+    if ((ts.isStringLiteral(n) || ts.isNoSubstitutionTemplateLiteral(n)) && idsTerrain().has(n.text)) {
+      const t = typeAttendu(checker, n);
+      const membres = (t ? (t.isUnion() ? t.types : [t]) : []).filter((x) => x.isStringLiteral()).map((x) => (x as ts.StringLiteralType).value);
+      if (membres.includes(n.text) && !tousDesTerrains(membres)) {
+        const { line, character } = sf.getLineAndCharacterOfPosition(n.getStart(sf));
+        sites.set(line, [...(sites.get(line) ?? []), [character, character + n.getWidth(sf)]]);
+      }
     }
-  }
-  return mots;
-};
+    ts.forEachChild(n, visite);
+  };
+  visite(sf);
+  return sites;
+}
+
+/** Les sites du vocabulaire de TOUS les fichiers du périmètre, par chemin depuis la racine : UN
+ *  Program sur leurs racines, chaque module (déclarant ou importé) résolu une seule fois ; le Program
+ *  ne survit pas à l'appel (`tsProgram.mjs`, aucune rétention). */
+function sitesDuPerimetre(sources: readonly string[]): ReadonlyMap<string, SitesDuVocabulaire> {
+  const program = repoProgram(RACINE, () => sources.map((s) => RACINE + s));
+  const checker = program.getTypeChecker();
+  return new Map(sources.map((s) => {
+    const sf = program.getSourceFile(RACINE + s);
+    if (!sf) throw new Error(`${s} absent du Program`);
+    return [s, vocabulaireAuSite(checker, sf)];
+  }));
+}
+
+/** Les sites du vocabulaire d'une source SYNTHÉTIQUE `principal`, compilée avec ses `modules` voisins
+ *  (chemins relatifs à une racine virtuelle) : les morsures de la garde. */
+function sitesSynthetiques(principal: string, modules: Record<string, string> = {}): SitesDuVocabulaire {
+  const program = virtualProgram({ ...modules, 'fixture.ts': principal });
+  const sf = program.getSourceFiles().find((f) => /[\\/]fixture\.ts$/.test(f.fileName) && f.fileName.replace(/\\/g, '/').startsWith(VIRTUAL_ROOT.replace(/\\/g, '/')));
+  if (!sf) throw new Error('fixture absente du Program virtuel');
+  return vocabulaireAuSite(program.getTypeChecker(), sf);
+}
+
+/** Les littéraux d'une ligne aux `etendues` VIDÉS, bornes gardées : aucune colonne ne bouge. */
+const blanchitEtendues = (code: string, etendues: readonly Etendue[] = []) =>
+  etendues.reduce((c, [de, a]) => `${c.slice(0, de)}${c[de]}${' '.repeat(a - de - 2)}${c[a - 1]}${c.slice(a)}`, code);
 
 /**
  * Les NEUTRALISEURS du bras TERRAIN, chacun NOMMÉ — même contrat que `NEUTRALISEURS` : un neutraliseur
  * que plus aucun site du PÉRIMÈTRE n'exerce est une exemption morte, et le test de vie le rend ROUGE.
  * Aucun nom de fichier, aucune ligne : c'est la FORME qui dit qu'un littéral n'est pas un id de sol.
- *  - le VOCABULAIRE D'UNION déclaré dans le fichier (capacité d'arête, résultat de dépilage…) ;
- *  - le VOCABULAIRE D'UNION IMPORTÉ par son nom d'un module du dépôt (`vocabulaireImporte`) ;
+ *  - le TYPE ATTENDU au site du littéral, quand c'est un VOCABULAIRE d'union qui l'autorise, déclaré
+ *    dans le fichier ou importé (capacité d'arête, résultat de dépilage… — `vocabulaireAuSite`) ;
  *  - une UNION de littéraux ÉCRITE EN PLACE (paramètre, champ) qui porte AU MOINS un membre hors du
  *    registre des sols : elle DÉCLARE un vocabulaire propre, elle n'émet pas. Une union dont TOUS les
- *    membres sont des ids de terrain est une LISTE RÉCITÉE — même clause qu'au répertoire
- *    `vocabulaireDUnion`, et la ligne reste comptée ;
+ *    membres sont des ids de terrain est une LISTE RÉCITÉE — même clause qu'au type attendu
+ *    (`tousDesTerrains`), et la ligne reste comptée ;
  *  - UNE entrée par CHAMP dont le vocabulaire n'est pas celui des sols (`neutraliseursDeChamp`, la
- *    même fabrique que le bras des matières) — `key` (clé de récap / d'IU), `kind` (type de
- *    SÉLECTION d'un éditeur, `route`), `cargoId` (cargaison, `bois`), `weather` (météo, `neige`) :
- *    chacun a un homonyme au registre des terrains, et chacun rougit SEUL quand son site meurt ;
+ *    même fabrique que le bras des matières) — `key` (clé de récap / d'IU), `cargoId` (cargaison,
+ *    `bois`) : chacun a un homonyme au registre des terrains, et chacun rougit SEUL quand son site
+ *    meurt. `kind` (type de SÉLECTION d'un éditeur, `route`) et `weather` (météo, `neige`) n'y
+ *    figurent PAS : leurs sites sont typés par leur vocabulaire, le type attendu les tient ;
  *  - la SEMENCE d'authoring GELÉE (`as const satisfies Fige<…Defaults>`) des migrations de projet.
  */
-type Vocabulaires = { declare: Set<string>; importe: Set<string> };
-const NEUTRALISEURS_TERRAIN: readonly { nom: string; portee: 'ligne' | 'bloc'; applique: (code: string, vocab: Vocabulaires) => string }[] = [
-  { nom: 'VOCABULAIRE d’union déclaré dans le fichier', portee: 'ligne', applique: (code, { declare }) => blanchitVocabulaire(code, declare) },
-  { nom: 'VOCABULAIRE d’union importé par son nom', portee: 'ligne', applique: (code, { importe }) => blanchitVocabulaire(code, importe) },
+const NEUTRALISEURS_TERRAIN: readonly { nom: string; portee: 'ligne' | 'bloc'; applique: (code: string, sites: SitesDuVocabulaire, ligne: number) => string }[] = [
+  { nom: 'TYPE ATTENDU au site : un vocabulaire d’union', portee: 'ligne', applique: (code, sites, ligne) => blanchitEtendues(code, sites.get(ligne)) },
   {
     nom: 'UNION de littéraux écrite en place',
     portee: 'ligne',
@@ -302,25 +333,23 @@ const NEUTRALISEURS_TERRAIN: readonly { nom: string; portee: 'ligne' | 'bloc'; a
   },
   ...neutraliseursDeChamp({
     key: 'clé de récap / d’IU',
-    kind: 'type de sélection d’un éditeur',
     cargoId: 'cargaison',
-    weather: 'météo',
   }).map((n) => ({ ...n, portee: 'ligne' as const })),
   { nom: 'SEMENCE d’authoring GELÉE d’une migration', portee: 'bloc', applique: (code) => code.replace(SEMENCE_DECL, (bloc) => litteraux(bloc)) },
 ];
 
 /** Le code d'une couche SANS ses commentaires ni ses homonymes de terrain, lignes préservées. `sauf` en
  *  retire UN neutraliseur — c'est ainsi que le test de vie mesure ce que chacun blanchit RÉELLEMENT.
- *  Un neutraliseur de portée `bloc` s'applique au TEXTE entier (la semence gelée tient sur 3 lignes). */
-function codeHorsTerrain(src: string, sauf?: string, source?: string): string {
-  const mots: Vocabulaires = { declare: vocabulaireDUnion(src), importe: vocabulaireImporte(src, source) };
+ *  Un neutraliseur de portée `bloc` s'applique au TEXTE entier (la semence gelée tient sur 3 lignes).
+ *  `sites` : les littéraux du fichier au type attendu d'un vocabulaire (`vocabulaireAuSite`). */
+function codeHorsTerrain(src: string, sites: SitesDuVocabulaire = new Map(), sauf?: string): string {
   let texte = codeNu(src).join('\n');
-  for (const n of NEUTRALISEURS_TERRAIN) if (n.portee === 'bloc' && n.nom !== sauf) texte = n.applique(texte, mots);
+  for (const n of NEUTRALISEURS_TERRAIN) if (n.portee === 'bloc' && n.nom !== sauf) texte = n.applique(texte, sites, -1);
   return texte
     .split('\n')
-    .map((l) => {
+    .map((l, i) => {
       let code = l;
-      for (const n of NEUTRALISEURS_TERRAIN) if (n.portee === 'ligne' && n.nom !== sauf) code = n.applique(code, mots);
+      for (const n of NEUTRALISEURS_TERRAIN) if (n.portee === 'ligne' && n.nom !== sauf) code = n.applique(code, sites, i);
       return code;
     })
     .join('\n');
@@ -328,6 +357,10 @@ function codeHorsTerrain(src: string, sauf?: string, source?: string): string {
 
 describe('couches émettrices du monde — aucune matière ni aucun terrain nommé en dur (#1691, #1715, #1716, #1789)', () => {
   const fichiers = fichiersDuPerimetre();
+  const sitesDe = (() => {
+    let parSource: ReadonlyMap<string, SitesDuVocabulaire> | null = null;
+    return (source: string) => (parSource ??= sitesDuPerimetre(fichiers.map((f) => f.source))).get(source);
+  })();
 
   it('le scan couvre les CINQ couches émettrices (sanity)', () => {
     for (const c of COUCHES)
@@ -419,7 +452,7 @@ describe('couches émettrices du monde — aucune matière ni aucun terrain nomm
    *
    * Les HOMONYMES (`porte` capacité d’arête, `vide` résultat de dépilage, `neige` météo, `bois`
    * cargaison, `route` clé de récap et type de SÉLECTION d’éditeur) sont neutralisés par FORME
-   * (`NEUTRALISEURS_TERRAIN`) : vocabulaire d’union déclaré dans le fichier, union écrite en place,
+   * (`NEUTRALISEURS_TERRAIN`) : type attendu au site d’un vocabulaire d’union, union écrite en place,
    * nom de champ, semence gelée. AUCUN site toléré, aucune liste d’exemption, aucun nom de fichier :
    * le stock mesuré est vide.
    *
@@ -430,7 +463,7 @@ describe('couches émettrices du monde — aucune matière ni aucun terrain nomm
     expect(ids.length, 'vocabulaire de terrains VIDE : la garde mesurerait le néant.').toBeGreaterThan(0);
     const fautes: string[] = [];
     for (const f of fichiers) {
-      codeHorsTerrain(f.code, undefined, f.source).split('\n').forEach((l, i) => {
+      codeHorsTerrain(f.code, sitesDe(f.source)).split('\n').forEach((l, i) => {
         for (const id of ids) if (citeId(id).test(l)) fautes.push(`${chemin(f.rel)}:${i + 1} — « ${id} »`);
       });
     }
@@ -456,8 +489,8 @@ describe('couches émettrices du monde — aucune matière ni aucun terrain nomm
     const cite = (l: string) => ids.some((id) => citeId(id).test(l));
     for (const n of NEUTRALISEURS_TERRAIN) {
       const exerce = fichiers.some((f) => {
-        const avec = codeHorsTerrain(f.code, undefined, f.source).split('\n');
-        return codeHorsTerrain(f.code, n.nom, f.source)
+        const avec = codeHorsTerrain(f.code, sitesDe(f.source)).split('\n');
+        return codeHorsTerrain(f.code, sitesDe(f.source), n.nom)
           .split('\n')
           .some((l, i) => cite(l) && !cite(avec[i]));
       });
@@ -487,6 +520,38 @@ describe('couches émettrices du monde — aucune matière ni aucun terrain nomm
     expect(
       compte(`function f(x: '${horsRegistre}' | '${a}') {}`),
       'une union qui porte un membre hors du registre des sols DÉCLARE un vocabulaire : elle se blanchit.',
+    ).toBe(0);
+  });
+
+  /**
+   * MORSURES du type attendu au site (#1883) — sources SYNTHÉTIQUES compilées par le checker,
+   * vocabulaire tiré du dataset : un id de terrain n'est blanchi QUE là où son type attendu est le
+   * vocabulaire qui l'autorise. Le même id posé dans un champ libre reste compté, que le vocabulaire
+   * voisin soit déclaré dans le fichier ou importé.
+   */
+  it('un id de terrain hors du site typé par son vocabulaire reste compté, union déclarée ou importée', () => {
+    const [sol] = terrains.map((t) => t.id);
+    const horsRegistre = 'hors-registre-des-sols';
+    const compte = (principal: string, modules?: Record<string, string>) =>
+      codeHorsTerrain(principal, sitesSynthetiques(principal, modules))
+        .split('\n')
+        .filter((l) => citeId(sol).test(l)).length;
+    const meteo = `export type WeatherFxId = '${horsRegistre}' | '${sol}';\n`;
+    const importe = `import type { WeatherFxId } from './meteo';\nexport const fx: WeatherFxId = '${sol}';\n`;
+    const declare = `type Meteo = '${horsRegistre}' | '${sol}';\nexport const fx: Meteo = '${sol}';\n`;
+    expect(compte(importe, { 'meteo.ts': meteo }), 'le littéral TYPÉ par le vocabulaire importé est de ce vocabulaire.').toBe(0);
+    expect(compte(declare), 'le littéral TYPÉ par le vocabulaire déclaré est de ce vocabulaire.').toBe(0);
+    expect(
+      compte(`${importe}export const tuile = { terrain: '${sol}' };\n`, { 'meteo.ts': meteo }),
+      'un `terrain:` libre dans un fichier qui IMPORTE un vocabulaire homonyme reste une émission de sol.',
+    ).toBe(1);
+    expect(
+      compte(`${declare}export const tuile = { terrain: '${sol}' };\n`),
+      'un `terrain:` libre à côté d’une union DÉCLARÉE homonyme reste une émission de sol.',
+    ).toBe(1);
+    expect(
+      compte(`${declare}declare const m: Meteo;\nexport const pluie = m === '${sol}';\n`),
+      'la comparaison au vocabulaire déclaré est de ce vocabulaire.',
     ).toBe(0);
   });
 

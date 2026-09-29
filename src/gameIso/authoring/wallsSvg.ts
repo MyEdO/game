@@ -112,7 +112,7 @@ function faceSvg(f: Face, el: WallEl, app: StructureAppearanceDef, tintK: number
  *  révisable, calibrée par la garde navigateur `scripts/recette/plancher-trait.mjs`, qui l'importe. */
 export const PLANCHER_DU_COEUR_PX = 3;
 /** PLANCHER ÉCRAN (px) d'un tronçon LE LONG de l'arête (montant, barreau) — valeur UI révisable, bornée
- *  par le jour entre deux barreaux de herse au dézoom (garde `scripts/recette/plancher-trait.mjs`). */
+ *  par le jour entre deux tronçons coupés consécutifs d'une herse au dézoom (garde `scripts/recette/plancher-trait.mjs`). */
 export const PLANCHER_LE_LONG_PX = 2;
 /** LISERÉ (px écran) du bord de chaque côté du cœur. */
 export const LISERE_PX = 1;
@@ -192,14 +192,16 @@ export function dessusDuBlocPlein(ends: readonly [GP, GP], hauteurM: number, dim
  *  CŒUR, un chemin par tronçon. Chaque tronçon est le segment UNITÉ `M-0.5 0L0.5 0` posé en STYLE sur
  *  son milieu, tourné selon l'arête et étiré LE LONG d'elle à max(longueur monde, `PLANCHER_LE_LONG_PX`
  *  écran) ; la largeur EN TRAVERS, en style aussi : cœur = max(largeur monde, `PLANCHER_DU_COEUR_PX`
- *  écran), bord = cœur + `LISERE_PX` écran de chaque côté. Écran lu sur `var(ECHELLE_ECRAN)` du groupe
- *  porteur ; l'étirement n'agit que sur l'axe de l'arête, la largeur du trait n'en dépend pas.
- *  Écart au verdict de design c13 (bord = max(bord monde, cœur + 2 px / k, plancher / k)), déclaré :
- *  aucun bord MONDE n'existe en donnée (`TronconDeCoupe` ne porte que `epaisseurM`,
- *  `builders/walls.ts:coupeDuMur` ; `TraitDuDessus` que `largeur`), et le terme plancher / k est dominé,
- *  cœur ≥ `PLANCHER_DU_COEUR_PX` / k > `PLANCHER_LE_LONG_PX` / k.
+ *  écran), bord = cœur + `LISERE_PX` écran de chaque côté : le liseré vaut `LISERE_PX` écran à TOUTE
+ *  échelle, il ne suit pas le zoom. Écran lu sur `var(ECHELLE_ECRAN)` du groupe porteur ; l'étirement
+ *  n'agit que sur l'axe de l'arête, la largeur du trait n'en dépend pas.
+ *  Le bord n'a pas de terme monde : aucun bord n'existe en donnée (`TronconDeCoupe` ne porte que
+ *  `epaisseurM`, `builders/walls.ts:coupeDuMur` ; `TraitDuDessus` que `largeur`). Il n'a pas non plus de
+ *  terme `PLANCHER_LE_LONG_PX` / k : cœur ≥ `PLANCHER_DU_COEUR_PX` / k > `PLANCHER_LE_LONG_PX` / k.
  *  Le surplomb en tirets `butt` dont `pathLength` et `stroke-dashoffset` calent la phase sur l'origine
- *  de l'arête : même nombre de tirets à toute longueur d'arête, et deux tronçons ne se chevauchent pas. */
+ *  de l'arête : même nombre de tirets à toute longueur d'arête. Deux tronçons de surplomb disjoints au
+ *  monde ne se chevauchent pas tant qu'aucun n'est étiré par `PLANCHER_LE_LONG_PX` ; étiré, un tronçon
+ *  déborde de sa place monde et peut recouvrir son voisin. */
 export function dessusSvg(traits: readonly TraitDuDessus[]): string {
   const k = `var(${ECHELLE_ECRAN})`;
   const peint = ({ classe, troncons, largeur, tons }: TraitDuDessus): string => {
