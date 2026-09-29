@@ -13,6 +13,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
+import { reglesCss, declarations } from '../../scripts/guards/lib/cssCouches.mjs';
 import { useGame, type BattleState } from '../state/store';
 import { createHero } from '../engine/character';
 import type { WorldMap } from '../state/worldMap';
@@ -352,7 +353,7 @@ describe('#1919 — la couche HUD est une grille : chaque surface déclare sa ZO
     expect(el.querySelector('.stage-flot')!.getAttribute('data-pont')).toBe('exploration');
     expect(zoneDe(dock()), 'le pont est dans la couche HUD').toBeNull();
     expect(dock()!.parentElement!.classList.contains('stage'), 'le pont n’est plus une rangée du plateau').toBe(true);
-    expect(zonesPlacees(el).sort()).toEqual(['camera', 'contexte', 'groupe', 'temps']);
+    expect(zonesPlacees(el).sort()).toEqual(['camera', 'contexte', 'groupe', 'parole', 'temps']);
   });
 
   it('COMBAT : frise et fil, rail, bandeau d’ouverture ; la console hors de la couche', () => {
@@ -368,8 +369,56 @@ describe('#1919 — la couche HUD est une grille : chaque surface déclare sa ZO
     const console_ = el.querySelector('.combat-console')!;
     expect(zoneDe(console_), 'la console est dans la couche HUD').toBeNull();
     expect(console_.parentElement!.classList.contains('stage')).toBe(true);
-    expect(zonesPlacees(el).sort()).toEqual(['contexte', 'groupe', 'outils', 'ouverture', 'temps']);
+    expect(zonesPlacees(el).sort()).toEqual(['contexte', 'groupe', 'outils', 'ouverture', 'parole', 'temps']);
     useGame.setState({ pendingRoundStart: null } as never);
+  });
+
+  /** Règles de TOUTES les feuilles de `src/ui/styles` qui posent une boîte hors flux. */
+  const HORS_FLUX = listerDossier(join(process.cwd(), 'src', 'ui', 'styles')).filter((n) => n.endsWith('.css'))
+    .flatMap((f) => reglesCss(readFileSync(join(process.cwd(), 'src', 'ui', 'styles', f), 'utf8'))
+      .filter((r) => declarations(r.corps).some((d) => d.prop === 'position' && /^(absolute|fixed)$/.test(d.valeur.trim())))
+      .flatMap((r) => r.selecteurs.filter((sel) => !sel.includes('::')).map((sel) => `${f} « ${sel} »`)));
+  /** Les SURFACES de la couche — chaque zone et chaque enfant d'une zone —, et les règles hors flux qui
+   *  les visent, dans quelque feuille que ce soit. Tout enfant de la couche est une zone. */
+  function surfacesHorsFlux(el: Element) {
+    const couche = el.querySelector('.stage-flot')!;
+    const sansZone = [...couche.children].filter((c) => !(c as HTMLElement).dataset.zone).map((c) => c.className || c.tagName);
+    expect(sansZone, 'un enfant de la couche sans zone se pose lui-même').toEqual([]);
+    const surfaces = [...couche.children].flatMap((z) => [z, ...z.children]);
+    expect(surfaces.length).toBeGreaterThan(couche.children.length);
+    return HORS_FLUX.filter((regle) => {
+      const sel = regle.slice(regle.indexOf('« ') + 2, -2);
+      return surfaces.some((x) => x.matches(sel));
+    });
+  }
+
+  it('aucune SURFACE de la couche n’est posée hors flux, dans AUCUNE feuille : la zone la place', () => {
+    // Juge de diff H1 (B1) : `.dialogue-box` (components.css) et la puce `[data-pose='ecran']`
+    // (spectator-chip.css) s'ancraient en absolu dans la couche, hors de toute zone. Les feuilles
+    // visées se lisent au DOM rendu, jamais d'une liste : une surface de plus est couverte d'office.
+    useGame.setState({
+      objectives: [{ id: 'o1', text: 'Retrouver la piste' }], povActive: true,
+      dialogue: { dialogue: { id: 'd', start: 'n1', nodes: [{ id: 'n1', desc: 'Halte !', choices: [] }] }, nodeId: 'n1', session: 1 },
+    } as never);
+    const el = monter();
+    expect(surfacesHorsFlux(el)).toEqual([]);
+    expect(zoneDe(el.querySelector('.dialogue-box'))).toBe('parole');
+    act(() => { useGame.setState({ dialogue: null } as never); });
+  });
+
+  it('COMBAT COOP : la puce du siège attendu est une surface de la zone PAROLE, jamais hors flux', () => {
+    enCombat();
+    const autre = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Wilhelm', seed: 9 });
+    autre.id = 'h2';
+    useGame.setState({
+      net: { ...useGame.getState().net, mode: 'host', mySeat: 0, ownership: { h1: 0, h2: 1 }, seatNames: { 0: 'L’hôte', 1: 'Antoine' } },
+      pendingCascade: { participants: [{ id: 's0', kind: 'note', actorId: 'h2', outcome: [] }], cursor: 0, purpose: 'test' },
+    } as never);
+    const el = monter();
+    expect(el.querySelector('.stage-flot .spectator-chip')!.getAttribute('data-pose')).toBe('ecran');
+    expect(zoneDe(el.querySelector('.stage-flot .spectator-chip'))).toBe('parole');
+    expect(surfacesHorsFlux(el)).toEqual([]);
+    act(() => { useGame.setState({ pendingCascade: null, net: { ...useGame.getState().net, mode: 'local', ownership: {} } } as never); });
   });
 });
 

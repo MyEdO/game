@@ -43,10 +43,11 @@
 //     (docs/plans/2026-08-16-spec-hud-combat.md:192-194), vie superposée au portrait à
 //     561–700, défilement horizontal de secours, R-M1 à ≤560 (:66-68 — tuile ≥ 44px de large, rognée
 //     seulement par une piste qui défile) ; Initiative — colonne à gauche au-dessus de 900 et cartouche
-//     de Round rendu DANS sa boîte, colonne jusqu'à 701 et entrée au trait entière dans le champ, bande
-//     à 700 et moins et piste défilable, cartouche de Round en PREMIÈRE entrée, bande sous le groupe à
-//     561–700, courant + deux suivants entiers à ≤560 ; Dock — pont de bord à bord, chaque case entière
-//     dans l'écran, hauteur du pont ≤ 21 % dès 1280 et ≤ 45 % à ≤560
+//     de Round rendu DANS sa boîte, colonne jusqu'à 561 (décision d'écran Q4.3 du 2026-09-24, #1806)
+//     et entrée au trait entière dans le champ à 701–900, bande à 560 et moins et piste défilable,
+//     cartouche de Round en PREMIÈRE entrée, courant + deux suivants entiers à ≤560 ; Dock — pont de
+//     bord à bord, chaque case entière dans l'écran, BANDE ≤ 17 % et EMPREINTE (bande + saillie du
+//     fronton) ≤ 22 % de la hauteur dès 701 (décision d'écran Q2 du 2026-09-24), pont ≤ 45 % à ≤560
 //     (docs/plans/2026-08-16-spec-hud-combat.md Zone 1) ; COMPACITÉ sur la série des largeurs
 //     (`defautsCompacite`) — cartes et colonne d'initiative plus étroites à 701–900 qu'au-delà de 900,
 //     portraits à 561–700 ; CIBLES TACTILES sous `pointer: coarse` émulé (`defautsTactile`) — chaque
@@ -54,15 +55,16 @@
 //   · la COUCHE HUD (#1919, design « Le pont se dimensionne seul », `defautsCouche`), à 3 hauteurs
 //     (`vues-recette.json`) × 7 largeurs × 4 états — exploration, ouverture, tour de héros,
 //     spectateur (atteint par le VRAI geste : « Fin du tour » cliqué deux fois) : le pont est posé au
-//     bas de l'écran, la page ne défile pas, aucune surface d'une zone n'est rognée par la couche, et
-//     chaque commande du HUD et du pont reçoit son clic — exemptée seulement hors du champ de son
-//     ancêtre défilant, ou sous la TÊTE COLLÉE de cet ancêtre.
+//     bas de l'écran, la page ne défile pas, aucune surface d'une zone n'est rognée par la couche, ne
+//     déborde de sa zone ni ne recouvre la surface d'une autre zone, et chaque commande du HUD et du
+//     pont reçoit son clic — exemptée seulement hors du champ de son ancêtre défilant, ou sous la
+//     TÊTE COLLÉE de cet ancêtre.
 //
 // Cellules §12 NON MESURÉES :
 //   · Caméra / inspection >900, 701–900, 561–700 : `ViewControls`, monté en jeu nulle part (#1822 ;
 //     `grep -rn ViewControls src` : `src/ui/editor/EditorCanvas.tsx`, `src/ui/gallery/registry.tsx`) ;
-//   · Dock 701–900 « dock sur deux rangées au besoin » : conditionnel ;
-//   · Dock 561–700 « actions sur deux colonnes » : grille `.cc-dock` réécrite sous #1856 ;
+//   · Dock 561–700 : arche en ligne et deux travées côte à côte (décision Q4.3), aucun plafond de
+//     hauteur propre — seuls le bord à bord et les cases entières s'y jugent ;
 //   · Dock <=560 « modales plein écran… » : aucune modale de jet ouverte ici — structure gardée par
 //     `src/ui/ui-ratchets.test.ts` ;
 //   · Dock >900 « disposition de référence » : aucun contrat propre hors bord à bord et hauteur.
@@ -120,8 +122,9 @@ const PROBE = `(() => {
   // (Aucun accent grave dans cette sonde : elle vit dans un gabarit de chaîne.)
   const pont = document.querySelector('.combat-console');
   const dansLEcran = (r) => r.x >= -0.5 && r.y >= -0.5 && r.right <= window.innerWidth + 0.5 && r.bottom <= window.innerHeight + 0.5;
+  // Une case ne grave plus son nom (décision d'écran Q1 du 2026-09-24) : il est son nom accessible.
   const dockBtns = [...document.querySelectorAll('.combat-console button.cc-cell')].map((b, i) => ({
-    i, label: (b.textContent || '').replace(/\\s+/g, ' ').trim().slice(0, 40) || (b.getAttribute('title') || '').trim(), ...reaches(b),
+    i, label: (b.getAttribute('aria-label') || b.textContent || '').replace(/\\s+/g, ' ').trim().slice(0, 40), ...reaches(b),
     entier: dansLEcran(b.getBoundingClientRect()),
   }));
 
@@ -200,11 +203,17 @@ const PROBE = `(() => {
     const rpt = pontEl ? pontEl.getBoundingClientRect() : null;
     const surfaces = [];
     for (const z of flotEl.querySelectorAll(':scope > [data-zone]')) {
+      const rz = z.getBoundingClientRect();
       for (const el of z.children) {
         if (!rendu(el)) continue;
         const r = el.getBoundingClientRect();
         const rogne = Math.max(rf.top - r.top, r.bottom - rf.bottom, rf.left - r.left, r.right - rf.right);
-        surfaces.push({ zone: z.dataset.zone, surface: String(el.className || el.tagName).split(' ')[0], rect: box(r), rogne: +Math.max(0, rogne).toFixed(1) });
+        // DÉBORD : ce que la surface peint hors de la boîte de SA zone (juge d'écran H1 #1919, A4).
+        const debord = Math.max(rz.top - r.top, r.bottom - rz.bottom, rz.left - r.left, r.right - rz.right);
+        // Nom de la surface : sa première classe PROPRE, jamais celle de la primitive de placement.
+        const nom = String(el.className || '').split(' ').find((k) => k && !['stack', 'row', 'grid', 'split'].includes(k)) || el.tagName;
+        surfaces.push({ zone: z.dataset.zone, surface: nom, rect: box(r), zoneRect: box(rz),
+          rogne: +Math.max(0, rogne).toFixed(1), debord: +Math.max(0, debord).toFixed(1) });
       }
     }
     const commandes = [...flotEl.querySelectorAll('button'), ...(pontEl ? pontEl.querySelectorAll('button') : [])]
@@ -518,7 +527,7 @@ const PROBE = `(() => {
       scrollWidth: tiles.scrollWidth, clientWidth: tiles.clientWidth, bande: strip.clientWidth,
       defile: tiles.scrollWidth > tiles.clientWidth, tientDansLaBande: tiles.clientWidth <= strip.clientWidth,
     } : null,
-    dock: pont ? { rect: box(pont.getBoundingClientRect()) } : null,
+    dock: pont ? { rect: box(pont.getBoundingClientRect()), bande: box(rectOf('.combat-console > .cc-dock')), arche: box(rectOf('.combat-console .cc-arch')) } : null,
     tiroir,
     dockBtns,
   };
@@ -703,6 +712,29 @@ export function defauts(m, phase) {
  * @param {any} m mesure rendue par `PROBE` @param {string} phase libellé de l'état sondé
  * @returns {string[]}
  */
+/** Paires de surfaces de ZONES DIFFÉRENTES dont les boîtes PEINTES (rognées par la couche, qui borne
+ *  son débordement) se recouvrent de plus d'un demi-pixel sur les deux axes. PUR. */
+export function recouvrementsEntreZones(c) {
+  const f = c.flot;
+  const peint = (r) => {
+    if (!f) return r;
+    const x = Math.max(r.x, f.x), y = Math.max(r.y, f.y);
+    return { x, y, w: Math.min(r.x + r.w, f.x + f.w) - x, h: Math.min(r.y + r.h, f.y + f.h) - y };
+  };
+  const paires = [];
+  for (let i = 0; i < c.surfaces.length; i += 1) {
+    for (let j = i + 1; j < c.surfaces.length; j += 1) {
+      const a = c.surfaces[i], b = c.surfaces[j];
+      if (a.zone === b.zone) continue;
+      const ra = peint(a.rect), rb = peint(b.rect);
+      const ox = Math.min(ra.x + ra.w, rb.x + rb.w) - Math.max(ra.x, rb.x);
+      const oy = Math.min(ra.y + ra.h, rb.y + rb.h) - Math.max(ra.y, rb.y);
+      if (ox > 0.5 && oy > 0.5) paires.push([a, b]);
+    }
+  }
+  return paires;
+}
+
 export function defautsCouche(m, phase) {
   const ou = `${phase} ${m.largeur}×${m.hauteur}`;
   const c = m.couche;
@@ -713,6 +745,10 @@ export function defautsCouche(m, phase) {
   if (c.pageDefile) out.push(`${ou} : la page défile — le plateau déborde de l'écran`);
   for (const s of c.surfaces) {
     if (s.rogne > 0.5) out.push(`${ou} : la surface « ${s.surface} » de la zone « ${s.zone} » ${JSON.stringify(s.rect)} est rognée par la couche de ${s.rogne}px`);
+    if (s.debord > 0.5) out.push(`${ou} : la surface « ${s.surface} » ${JSON.stringify(s.rect)} déborde de sa zone « ${s.zone} » ${JSON.stringify(s.zoneRect)} de ${s.debord}px`);
+  }
+  for (const [a, b] of recouvrementsEntreZones(c)) {
+    out.push(`${ou} : la surface « ${a.surface} » (zone « ${a.zone} ») ${JSON.stringify(a.rect)} recouvre « ${b.surface} » (zone « ${b.zone} ») ${JSON.stringify(b.rect)}`);
   }
   if (!c.commandes.length) out.push(`${ou} : aucune commande rendue dans la couche ni sur le pont — sonde aveugle`);
   for (const b of c.commandes) {
@@ -761,9 +797,10 @@ export function trancheMatrice(largeur) {
   return largeur > 900 ? '>900' : largeur > 700 ? '701–900' : largeur > 560 ? '561–700' : '<=560';
 }
 
-/** Plafonds de HAUTEUR du pont, en part du viewport : ≥1280 → docs/plans/2026-08-16-spec-hud-combat.md
- *  Zone 1 (« Hauteur du pont ≤ ~21 % du viewport à ≥1280 ») ; ≤560 → même Zone 1 (« cible ~40-45 % »). */
-export const BUDGET_PONT = { large: { des: 1280, part: 0.21 }, compact: { part: 0.45 } };
+/** Plafonds de HAUTEUR du pont, en part du viewport : dès 701, la BANDE ≤ 17 % et l'EMPREINTE (bande +
+ *  saillie du fronton) ≤ 22 % — décision d'écran Q2 du 2026-09-24 (#1806), sur le budget de
+ *  docs/plans/2026-08-16-spec-hud-combat.md:24-26 ; ≤560 → même Zone 1 (« cible ~40-45 % »). */
+export const BUDGET_PONT = { des: 701, bande: 0.17, empreinte: 0.22, compact: { part: 0.45 } };
 
 /** Largeur minimale d'une tuile du groupe à <=560 : docs/plans/2026-08-16-spec-hud-combat.md:66-68
  *  (R-M1, « tuiles PLEINES à largeur minimale digne (portrait reconnaissable + PV lisibles, ≥44px) »). */
@@ -807,12 +844,11 @@ export function defautsMatrice(m, phase) {
   const out = [];
   const t = trancheMatrice(m.largeur);
   const ou = `${phase} ${m.largeur}px (§12 ${t})`;
-  const g = m.groupe;
   out.push(...defautsMatriceGroupe(m, phase));
   // ── Initiative ──
   const f = m.frise;
   if (f) {
-    const enColonne = t === '>900' || t === '701–900';
+    const enColonne = t !== '<=560';
     if (enColonne && f.bande) out.push(`${ou} : la frise d'initiative est en bande — la tranche la veut en colonne`);
     if (!enColonne && !f.bande) out.push(`${ou} : la frise d'initiative est en colonne — la tranche la veut en bande horizontale`);
     if (t === '>900' && f.rect.x + f.rect.w / 2 > m.largeur / 2) out.push(`${ou} : la colonne d'initiative n'est pas à gauche (centre à ${+(f.rect.x + f.rect.w / 2).toFixed(1)}px)`);
@@ -821,7 +857,6 @@ export function defautsMatrice(m, phase) {
     if (t === '701–900' && f.courantEntier === false) out.push(`${ou} : l'entrée au trait n'est pas entière dans le champ de la frise`);
     if (t === '701–900' && f.courantEntier == null) out.push(`${ou} : aucune entrée au trait — sonde aveugle sur le courant entier`);
     if (!enColonne && f.defilable === false) out.push(`${ou} : la piste d'initiative n'est pas défilable (overflow-x ni auto ni scroll)`);
-    if (t === '561–700' && g && f.rect.y < g.bas - 0.5) out.push(`${ou} : la bande d'initiative (haut ${f.rect.y}px) n'est pas sous le groupe (bas ${g.bas}px)`);
     if (t === '<=560' && f.suivants && f.suivants.entiers < f.suivants.attendus) {
       out.push(`${ou} : ${f.suivants.entiers} entrée(s) sur ${f.suivants.attendus} (courant + deux suivants) entières dans le champ de la frise`);
     }
@@ -830,8 +865,20 @@ export function defautsMatrice(m, phase) {
   if (m.dock) {
     const r = m.dock.rect;
     if (r.x > 0.5 || r.x + r.w < m.largeur - 0.5) out.push(`${ou} : le pont ne va pas de bord à bord (${r.x}..${+(r.x + r.w).toFixed(1)}px sur ${m.largeur}px)`);
+    if (m.largeur >= BUDGET_PONT.des) {
+      const b = m.dock.bande;
+      const a = m.dock.arche;
+      if (!b || !a) out.push(`${ou} : bande ou arche du pont absente — sonde aveugle sur le budget de hauteur`);
+      else {
+        // La SAILLIE est ce dont l'arche dépasse la bande : le fronton COMPTE dans le budget.
+        const saillie = Math.max(0, b.y - a.y);
+        const bande = b.h / m.hauteur;
+        const part = (b.h + saillie) / m.hauteur;
+        if (bande > BUDGET_PONT.bande) out.push(`${ou} : la bande du pont prend ${(100 * bande).toFixed(1)} % de la hauteur (plafond ${100 * BUDGET_PONT.bande} % dès ${BUDGET_PONT.des}px)`);
+        if (part > BUDGET_PONT.empreinte) out.push(`${ou} : le pont, fronton compris, prend ${(100 * part).toFixed(1)} % de la hauteur (plafond ${100 * BUDGET_PONT.empreinte} % dès ${BUDGET_PONT.des}px)`);
+      }
+    }
     const part = r.h / m.hauteur;
-    if (m.largeur >= BUDGET_PONT.large.des && part > BUDGET_PONT.large.part) out.push(`${ou} : le pont prend ${(100 * part).toFixed(1)} % de la hauteur (plafond ${100 * BUDGET_PONT.large.part} % dès ${BUDGET_PONT.large.des}px)`);
     if (t === '<=560' && part > BUDGET_PONT.compact.part) out.push(`${ou} : le pont compact prend ${(100 * part).toFixed(1)} % de la hauteur (plafond ${100 * BUDGET_PONT.compact.part} %)`);
     for (const b of m.dockBtns) {
       if (b.rendu && !b.entier) out.push(`${ou} : la case « ${b.label} » ${JSON.stringify(b.rect)} n'est pas entière dans l'écran`);

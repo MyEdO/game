@@ -26,10 +26,9 @@
 .objective-head[aria-expanded] {
   cursor: pointer;
 }
+/* Le texte s'enroule AU MOT dans la largeur de sa zone (R-M2, docs/plans/2026-08-16-spec-hud-combat.md:71-74). */
 .objective-text {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  min-width: 0;
 }
 .objective-count {
   flex: none;

@@ -367,19 +367,21 @@ export function CampaignView() {
               elle se pilote au GESTE (glisser, molette, pincer) et au CLAVIER (registre
               `state/keybindings`, remappable à l'écran Options). */}
           {mode === 'battle' && (
-            <Stack className="hud-rail skin-bois" data-zone="outils" gap="md" pad="md" rowBelow={700}>
-              {vessel && (
-                <button
-                  type="button"
-                  className="worldmap-btn skin-tole"
-                  data-ton="laiton"
-                  onClick={() => setDossierOpen(true)}
-                  title="Dossier du navire — état, cargaison, équipage"
-                >
-                  <Icon id="travel/sail-ship" size="lg" />
-                </button>
-              )}
-              <LogDrawer battle={battle ? { log: battle.log, combatants: battle.combatants } : null} journal={journal} />
+            <Stack data-zone="outils" align="end">
+              <Stack className="hud-rail skin-bois" gap="md" pad="md" rowBelow={560}>
+                {vessel && (
+                  <button
+                    type="button"
+                    className="worldmap-btn skin-tole"
+                    data-ton="laiton"
+                    onClick={() => setDossierOpen(true)}
+                    title="Dossier du navire — état, cargaison, équipage"
+                  >
+                    <Icon id="travel/sail-ship" size="lg" />
+                  </button>
+                )}
+                <LogDrawer battle={battle ? { log: battle.log, combatants: battle.combatants } : null} journal={journal} />
+              </Stack>
             </Stack>
           )}
           {mode === 'exploration' && povActive && (
@@ -387,11 +389,13 @@ export function CampaignView() {
               <PovControls />
             </Stack>
           )}
-          {dialogue && <DialogueBox />}
-          {/* Arbitre R2 : UNE seule modale de combat à la fois, par priorité (cf. ActiveModal). Il
-              vit dans cette couche parce que sa PUCE d'attente (coop) est une surface basse du champ
-              — ses modales, elles, sont des voiles fixes que la grille ne touche pas. */}
-          <ActiveModal />
+          {/* Zone PAROLE, au pied du champ : la conversation et, sous l'arbitre R2 (UNE seule modale
+              de combat à la fois, par priorité, cf. ActiveModal), la PUCE qui nomme le siège attendu
+              (coop). Les modales de l'arbitre sont des voiles fixes que la grille ne touche pas. */}
+          <Stack data-zone="parole" align="center">
+            {dialogue && <DialogueBox />}
+            <ActiveModal />
+          </Stack>
         </div>
         {merchant && <MerchantPanel />}
         {/* Jeux de taverne (NADJ 16) : la modale se rend seule quand `tavernGames` est ouvert

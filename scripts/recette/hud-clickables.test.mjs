@@ -5,7 +5,7 @@
 // rouge ne mesure rien, un détecteur sans cas vert crie sur tout.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { defauts, defautsCouche, defautsMatrice, defautsMatriceGroupe, defautsTactile, defautsCompacite, trancheMatrice } from './hud-clickables.mjs'
+import { defauts, defautsCouche, recouvrementsEntreZones, defautsMatrice, defautsMatriceGroupe, defautsTactile, defautsCompacite, trancheMatrice } from './hud-clickables.mjs'
 
 /** Mesure de COMBAT sans aucun défaut (le cas vert de référence). */
 const combat = () => ({
@@ -28,7 +28,7 @@ const combat = () => ({
   feedXfrise: null,
   piste: { scrollWidth: 633, clientWidth: 294, bande: 294, defile: true, tientDansLaBande: true },
   tiroir: { ouvert: true, rect: { x: 200, y: 120, w: 160, h: 240 }, surPont: null },
-  dock: { rect: { x: 0, y: 380, w: 360, h: 260 } },
+  dock: { rect: { x: 0, y: 380, w: 360, h: 260 }, bande: { x: 0, y: 380, w: 360, h: 260 }, arche: { x: 10, y: 380, w: 273, h: 100 } },
   dockBtns: [{ i: 0, label: 'Attaquer', rendu: true, ok: true, entier: true, hitBy: 'rien', rect: { x: 8, y: 400, w: 60, h: 40 } }],
 })
 
@@ -380,16 +380,19 @@ test('portrait de groupe RECOUVERT : défaut nommé', () => {
 })
 
 // ══ MATRICE RESPONSIVE §12 (docs/superpowers/specs/2026-07-31-hud-combat-exploration-design.md) ══
-// Une mesure SAINE par tranche : la colonne d'initiative à gauche au-dessus de 700, la bande sous le
-// groupe en dessous, le pont de bord à bord dans son budget de hauteur.
+// Une mesure SAINE par tranche : la colonne d'initiative à gauche au-dessus de 560 (décision d'écran
+// Q4.3 du 2026-09-24), la bande en dessous, le pont de bord à bord dans son budget de hauteur — une
+// bande de 120px et un fronton qui la dépasse de 30px, soit 15,4 % et 19,2 % à 780.
 function saine(largeur) {
   const m = combat()
   m.largeur = largeur
   m.hauteur = 780
-  const colonne = largeur > 700
+  const colonne = largeur > 560
   m.frise.bande = !colonne
   m.frise.rect = colonne ? { x: 10, y: 70, w: 86, h: 400 } : { x: 4, y: 140, w: largeur - 8, h: 52 }
   m.dock.rect = { x: 0, y: 780 - 150, w: largeur, h: 150 }
+  m.dock.bande = { x: 0, y: 780 - 120, w: largeur, h: 120 }
+  m.dock.arche = { x: largeur / 2 - 100, y: 780 - 150, w: 200, h: 150 }
   return m
 }
 
@@ -473,14 +476,16 @@ test('bande repliée (aucune carte rendue) : la colonne Groupe ne juge rien', ()
 })
 
 // ── Initiative ──
-test('frise en BANDE au-dessus de 700 : défaut nommé', () => {
-  const m = saine(900)
-  m.frise.bande = true
-  unSeul(defautsMatrice(m, 'combat'), /la frise d'initiative est en bande — la tranche la veut en colonne/)
+test('frise en BANDE au-dessus de 560 (jusqu’à 561 elle est la colonne de RT) : défaut nommé', () => {
+  for (const l of [900, 700, 561]) {
+    const m = saine(l)
+    m.frise.bande = true
+    unSeul(defautsMatrice(m, 'combat'), /la frise d'initiative est en bande — la tranche la veut en colonne/)
+  }
 })
 
-test('frise en COLONNE à 700 et moins : défaut nommé', () => {
-  const m = saine(700)
+test('frise en COLONNE à 560 et moins : défaut nommé', () => {
+  const m = saine(360)
   m.frise.bande = false
   unSeul(defautsMatrice(m, 'combat'), /la frise d'initiative est en colonne — la tranche la veut en bande horizontale/)
 })
@@ -492,18 +497,9 @@ test('colonne d’initiative à DROITE au-delà de 900 : défaut chiffré', () =
 })
 
 test('cartouche de Round qui n’ouvre PAS la frise : défaut nommé', () => {
-  const m = saine(700)
+  const m = saine(360)
   m.frise.roundPremier = false
   unSeul(defautsMatrice(m, 'combat'), /le cartouche de Round n'est pas la première entrée de la frise/)
-})
-
-test('bande d’initiative qui MORD sur le groupe à 561–700 : défaut chiffré ; sous lui, rien', () => {
-  const m = saine(700)
-  m.groupe.bas = 129.6
-  m.frise.rect.y = 84
-  unSeul(defautsMatrice(m, 'combat'), /la bande d'initiative \(haut 84px\) n'est pas sous le groupe \(bas 129.6px\)/)
-  m.frise.rect.y = 130
-  assert.deepEqual(defautsMatrice(m, 'combat'), [])
 })
 
 test('courant + deux suivants PAS tous entiers à <=560 : défaut compté ; au-dessus, rien', () => {
@@ -519,7 +515,7 @@ test('cartouche de Round HORS de la colonne au-delà de 900 : défaut nommé ; e
   const m = saine(1707)
   m.frise.roundDansColonne = false
   unSeul(defautsMatrice(m, 'combat'), /le cartouche de Round n'est pas intégré à la colonne d'initiative/)
-  const bande = saine(700)
+  const bande = saine(360)
   bande.frise.roundDansColonne = false
   assert.deepEqual(defautsMatrice(bande, 'combat'), [])
 })
@@ -539,15 +535,17 @@ test('aucune entrée au trait à 701–900 : la sonde se déclare AVEUGLE sur le
   unSeul(defautsMatrice(m, 'combat'), /aucune entrée au trait — sonde aveugle sur le courant entier/)
 })
 
-test('piste d’initiative NON défilable en bande (561–700 et <=560) : défaut nommé ; en colonne, rien', () => {
-  for (const l of [700, 360]) {
+test('piste d’initiative NON défilable en bande (<=560) : défaut nommé ; en colonne, rien', () => {
+  for (const l of [560, 360]) {
     const m = saine(l)
     m.frise.defilable = false
     unSeul(defautsMatrice(m, 'combat'), /la piste d'initiative n'est pas défilable/)
   }
-  const colonne = saine(900)
-  colonne.frise.defilable = false
-  assert.deepEqual(defautsMatrice(colonne, 'combat'), [])
+  for (const l of [900, 700]) {
+    const colonne = saine(l)
+    colonne.frise.defilable = false
+    assert.deepEqual(defautsMatrice(colonne, 'combat'), [], `${l}px`)
+  }
 })
 
 test('aucune entrée au trait (pause d’initiative) : aucun verdict de suivants', () => {
@@ -563,13 +561,31 @@ test('pont qui ne va PAS de bord à bord : défaut chiffré', () => {
   unSeul(defautsMatrice(m, 'combat'), /le pont ne va pas de bord à bord \(0\.\.880px sur 900px\)/)
 })
 
-test('pont au-delà de 21 % de la hauteur dès 1280 : défaut chiffré ; sous 1280, rien', () => {
+test('bande du pont au-delà de 17 % dès 701 : défaut chiffré ; à 700, rien', () => {
+  for (const l of [1707, 900, 701]) {
+    const m = saine(l)
+    m.dock.bande = { x: 0, y: 780 - 140, w: l, h: 140 }
+    m.dock.arche.y = 780 - 160
+    unSeul(defautsMatrice(m, 'combat'), /la bande du pont prend 17\.9 % de la hauteur \(plafond 17 % dès 701px\)/)
+  }
+  const etroit = saine(700)
+  etroit.dock.bande.h = 236
+  etroit.dock.bande.y = 780 - 236
+  assert.deepEqual(defautsMatrice(etroit, 'combat'), [])
+})
+
+test('FRONTON compris, le pont au-delà de 22 % dès 701 : défaut chiffré — la saillie COMPTE', () => {
+  const m = saine(900)
+  // Bande à 16,7 % (dans son plafond), mais l'arche la dépasse de 52px : 23,3 % en tout.
+  m.dock.bande = { x: 0, y: 780 - 130, w: 900, h: 130 }
+  m.dock.arche = { x: 350, y: 780 - 182, w: 200, h: 182 }
+  unSeul(defautsMatrice(m, 'combat'), /le pont, fronton compris, prend 23\.3 % de la hauteur \(plafond 22 % dès 701px\)/)
+})
+
+test('bande ou arche non mesurée dès 701 : la sonde se déclare AVEUGLE sur le budget', () => {
   const m = saine(1707)
-  m.dock.rect.h = 187.3
-  unSeul(defautsMatrice(m, 'combat'), /le pont prend 24\.0 % de la hauteur \(plafond 21 % dès 1280px\)/)
-  const moyen = saine(1100)
-  moyen.dock.rect.h = 187.3
-  assert.deepEqual(defautsMatrice(moyen, 'combat'), [])
+  m.dock.arche = null
+  unSeul(defautsMatrice(m, 'combat'), /bande ou arche du pont absente — sonde aveugle sur le budget de hauteur/)
 })
 
 test('pont compact au-delà de 45 % de la hauteur à <=560 : défaut chiffré', () => {
@@ -646,7 +662,10 @@ const couche = () => ({
     pont: { x: 0, y: 467, w: 1366, h: 183 },
     pontAuBas: true,
     pageDefile: false,
-    surfaces: [{ zone: 'temps', surface: 'initiative-strip', rect: { x: 8, y: 59, w: 86, h: 340 }, rogne: 0 }],
+    surfaces: [
+      { zone: 'temps', surface: 'initiative-strip', rect: { x: 8, y: 59, w: 86, h: 340 }, zoneRect: { x: 8, y: 58, w: 235, h: 400 }, rogne: 0, debord: 0 },
+      { zone: 'groupe', surface: 'party-dock', rect: { x: 484, y: 8, w: 398, h: 124 }, zoneRect: { x: 484, y: 8, w: 398, h: 124 }, rogne: 0, debord: 0 },
+    ],
     commandes: [{ label: 'Fin du tour', ok: true, hitBy: 'rien', rect: { x: 1300, y: 560, w: 60, h: 60 }, exempte: null }],
   },
 })
@@ -695,6 +714,38 @@ test('rognure sous le demi-pixel : arrondi de rendu, rien à dire', () => {
   const m = couche()
   m.couche.surfaces[0].rogne = 0.4
   assert.deepEqual(defautsCouche(m, 'tour de héros'), [])
+})
+
+test('surface qui DÉBORDE de sa zone : défaut chiffré, boîtes de la surface et de la zone nommées', () => {
+  const m = couche()
+  Object.assign(m.couche.surfaces[0], { rect: { x: 8, y: 58, w: 360.7, h: 30 }, debord: 125.7 })
+  rougeCouche(m, /la surface « initiative-strip » \{"x":8,"y":58,"w":360\.7,"h":30\} déborde de sa zone « temps » \{"x":8,"y":58,"w":235,"h":400\} de 125\.7px/)
+})
+
+test('débord sous le demi-pixel : arrondi de rendu, rien à dire', () => {
+  const m = couche()
+  m.couche.surfaces[0].debord = 0.4
+  assert.deepEqual(defautsCouche(m, 'tour de héros'), [])
+})
+
+test('surfaces de DEUX ZONES qui se recouvrent : défaut nommé, les deux surfaces et leurs zones', () => {
+  const m = couche()
+  m.couche.surfaces[1].rect = { x: 60, y: 8, w: 398, h: 124 }
+  rougeCouche(m, /la surface « initiative-strip » \(zone « temps »\) .* recouvre « party-dock » \(zone « groupe »\)/)
+})
+
+test('deux surfaces de la MÊME zone se touchent : c’est la zone qui les range, rien à dire', () => {
+  const m = couche()
+  m.couche.surfaces[1] = { ...m.couche.surfaces[0], surface: 'combat-feed', rect: { x: 60, y: 300, w: 200, h: 18 } }
+  assert.deepEqual(defautsCouche(m, 'tour de héros'), [])
+})
+
+test('recouvrement HORS de la couche (parts rognées, jamais peintes) : rien à dire', () => {
+  const m = couche()
+  m.couche.surfaces[1].rect = { x: 8, y: 470, w: 398, h: 124 }
+  m.couche.surfaces[0].rect = { x: 8, y: 400, w: 86, h: 100 }
+  m.couche.surfaces[1].rogne = 0
+  assert.deepEqual(recouvrementsEntreZones(m.couche), [])
 })
 
 test('commande qui ne reçoit pas son clic : défaut nommé, recouvrant compris', () => {

@@ -303,7 +303,7 @@ plafond mesuré, portée, États…).
 
 | Classe | Rôle | Quand l'utiliser / anti-patron |
 |---|---|---|
-| `.dialogue-box` (+ `.dlg-boniment`) | Surface du bandeau (portrait + nom + réplique) | Composée par la primitive `SpeakerBanner` (CLAUDE.md) — `.dialogue-box` seul flotte en overlay bas d'écran (variant `dialogue`) ; `.dlg-boniment` la remet dans le flux normal (variant statique marchand/aubergiste). Jamais recopiée à la main. |
+| `.dialogue-box` (+ `.dlg-boniment`) | Surface du bandeau (portrait + nom + réplique) | Composée par la primitive `SpeakerBanner` (CLAUDE.md) — la surface ne se place pas : la conversation (variant `dialogue`) est posée par la zone `parole` de la couche HUD, au pied du champ ; `.dlg-boniment` suit le flux du panel qui la compose (variant statique marchand/aubergiste). Jamais recopiée à la main. |
 | `.dlg-head` / `.dlg-portrait` / `.dlg-body` | Structure interne (portrait + colonne texte) | Posées par `SpeakerBanner` — le portrait se replie sur un fleuron `Ornaments` sans entité (boniment). |
 | `.dlg-speaker` / `.dlg-text` | Nom de l'interlocuteur / réplique | Idem, posées par `SpeakerBanner`. |
 | `.dlg-choices` (+ `.dlg-choice`, `.dlg-choice-num`, `.dlg-choice-text`, `.dlg-choice-cost`) | Zone de choix du dialogue arborescent | Variant `dialogue` seulement — le contenu des lignes reste au métier (`DialogueBox`), la primitive ne pose que le conteneur. La ligne se lit « `N. [Compétence — Difficulté] libellé (coût)` » : `.dlg-choice-num` porte le RANG de la réponse dans la liste visible, le tag (encre `.muted`, en tête de `.dlg-choice-text`) le Test DÉRIVÉ de son flux (#1869) — jamais une mention recopiée dans le libellé de la donnée. **Le numéro EST la touche** : idiome « N. » (Rogue Trader, #1849), en chiffres tabulaires alignés d'une réponse à l'autre, SEUL marqueur de la ligne (aucun chevron devant) — distinct du badge `.cc-key` d'une grille, qui est l'ADRESSE d'une case (arbitrage d'ingénierie 2026-09-26, révisable). Tag et libellé forment UN bloc de texte (`.dlg-choice-text`) qui reflue d'un tenant sous le numéro ; le tag porte l'encre `.muted`, le libellé reste dominant. |
@@ -343,9 +343,9 @@ module de sa primitive, déclaré au manifeste des primitives (champ `css`) et m
 | `coins.css` | `Coins` | `.coins[data-ton]`, `.coin-gold`, `.coin-silver`, `.coin-copper`, `.coin-sep` |
 | `inspect-panel.css` | `InspectPanel` | `.insp-head`, `.insp-id`, `.insp-lbl`, `.insp-badges`, `.insp-badge`, `.insp-pv-num` |
 | `equipment-panel.css` | `EquipmentPanel` | `.equip-panel`, `.equip-slots`, `.eq-*`, `.equip-sets`, `.set-*`, `.weap-quals` |
-| `combat-console.css` | `CombatConsole` (organisme) | `.combat-console` (l'EMPREINTE du pont — bande + saillie du fronton —, + `[data-forme]`), `.cc-phase` (+ `[data-phase]`, ses TROIS adresses), `.cc-dock` (la BANDE, qui porte la matière), `.cc-bay*`, `.cc-arsenal*`, `.cc-sets`/`.cc-set*`, `.cc-grid*`, `.cc-cell` (l'alvéole, posée à côté de `.chip`), `.cc-ico`, `.cc-lbl`, `.cc-key`, `.cc-cost`, `.cc-quick`, `.cc-arch*` (le fronton), `.cc-gutter*`, `.cc-socle`, `.cc-conduit*`, `.cc-corner`, `.cc-end` — identité et mise en page INTERNE ; la matière de la bande est la peau `.skin-pont`, celle du bandeau de phase la peau `.skin-bois` |
+| `combat-console.css` | `CombatConsole` (organisme) | `.combat-console` (l'EMPREINTE du pont — bande + saillie du fronton —, + `[data-forme]`), `.cc-phase` (+ `[data-phase]`, ses TROIS adresses), `.cc-dock` (la BANDE, qui porte la matière), `.cc-bay*`, `.cc-arsenal*`, `.cc-sets`/`.cc-set*`, `.cc-grid*`, `.cc-cell` (l'alvéole CARRÉE, sans libellé, posée à côté de `.chip`), `.cc-ico`, `.cc-lbl` (le seul nom gravé du pont : « Fin du tour »), `.cc-key`, `.cc-cost`, `.cc-quick`, `.cc-arch*` (le fronton), `.cc-gutter*`, `.cc-socle`, `.cc-conduit*`, `.cc-corner`, `.cc-end` — identité et mise en page INTERNE ; la matière de la bande est la peau `.skin-pont`, celle du bandeau de phase la peau `.skin-bois` |
 | `fx-chip.css` | `FxChip` / `EffectChips` | `.fx-chips` (la rangée), `.fx-chip` (+ tons `.malus`, `.buff`, `.state`, `.more`, compte `<b>`, durée `<em>`), `.fx-chip-label` |
-| `spectator-chip.css` | `SpectatorChip` | `.spectator-chip` — l'ANCRAGE est un état de la primitive (`data-pose='ecran'`), pas une règle recopiée chez chacun de ses trois hôtes |
+| `spectator-chip.css` | `SpectatorChip` | `.spectator-chip` — dans le flux de son panneau par défaut ; la pose à l'écran est un état de la primitive (`data-pose='ecran'`), placé par la zone `parole` de la couche HUD |
 | `ready-row.css` | `ReadyRow` | `.ready-row`, `.ready-chip` (+ `.ok`), `.ready-noportrait` |
 | `gear-assign-list.css` | `GearAssignList` | `.gear-list`, `.gear-row`, `.gear-name`, `.gear-unid`, `.gear-acts`, `.gear-act`, `.gear-assign` |
 | `reward-recap.css` | `RewardRecap` | `.reward-msg`, `.reward-stat` (+ son `<b>`, posée sur un `Row`), `.reward-unit`, `.reward-section` (+ son `h3`) — une seule forme, celle du corps de toute modale : le placement est celui des `Stack`/`Row` qu'elle compose, le GESTE DE SORTIE n'est pas à elle : l'hôte le pose au pied de son cadre (`Modal` `footer`), la rubrique à TOUCHER est un ÉTAT de la primitive (prop `enAvant` d'une `RecapSection` → `.reward-section[data-avant]`, posée sur `.panel.gold`). CLAVIER (butin et victoire, focus canonique de `Modal`) : avec de l'équipement à attribuer, le focus d'entrée est le 1er portrait de la 1re ligne (le `PortraitPicker` est un groupe de choix `.rm-loc-grid` non tranché) ; Entrée répétée donne chaque ligne au 1er héros, puis tombe sur « Continuer » et ferme — assumé : `transferItem` rend toute attribution réversible (banc `RewardRecap.test.tsx`) |
@@ -395,15 +395,29 @@ piste `minmax(0, 1fr)` ne pousse pas une piste `auto`. La couche HUD `.stage-flo
 une grille à elle : chaque surface y déclare sa ZONE (`data-zone`, posé par `CampaignView`) — barre
 haute `contexte`, `groupe`, frise et fil d'événements (ou objectif hors combat) `temps`, bandeau
 d'ouverture `ouverture` (rangée `champ`), rail d'outils `outils`, commandes de première personne
-`camera` — et seules les `grid-template-areas` changent d'une tranche à l'autre, jamais les pistes.
+`camera`, conversation et puce du siège attendu (coop) `parole` — et seules les
+`grid-template-areas` changent, d'une tranche à l'autre et, à ≤700, d'un mode à l'autre (hors combat,
+le lieu prend toute la rangée `haut` et le groupe descend dans la bande), jamais les pistes. En
+combat, la frise reste la colonne de Rogue Trader jusqu'à 561 : elle ne passe en bande, sous le
+groupe, qu'à ≤560 (décision d'écran du 2026-09-24, Q4.3, #1806).
 Critère N+1 : une surface de plus au HUD coûte une ligne de `grid-template-areas` et un `data-zone`,
-sans aucune hauteur lue. Aucune surface ne s'ancre en absolu à des littéraux ; aucune ne lit la
-géométrie d'une voisine. Le seul hors-flux de la couche est le volet déplié du groupe (≤560), qui
-naît de sa poignée (garde : `src/ui/ui-ratchets.test.ts`).
+sans aucune hauteur lue. Trois zones se posent par les LIGNES de la couche plutôt que par une aire,
+parce qu'elles partagent les cellules d'une autre zone : `camera` (coin bas du flanc gauche, que
+`temps` couvre au-dessus de 700), `parole` (pied du champ, sur toute sa largeur) et, à ≤560, `outils`
+(coin haut du champ, flanc droit). Tout enfant de la couche est une zone, et aucune surface — une zone
+ou l'enfant d'une zone — ne s'ancre hors flux, dans aucune feuille : la garde lit les feuilles visées
+au DOM rendu, jamais dans une liste (`src/ui/ExplorationDock.test.tsx`, bloc « #1919 »). Aucune ne lit
+la géométrie d'une voisine. Hors flux, il ne reste que deux PANNEAUX, chacun né de sa commande à
+l'intérieur de sa surface : le volet déplié du groupe (≤560), sous sa poignée (garde :
+`src/ui/ui-ratchets.test.ts`), et le panneau du journal.
 
-Les zones qui ne sont pas des coins ne pèsent sur aucune colonne (`contain: inline-size`) : seuls la
-barre haute, le rail et le groupe dimensionnent les colonnes, et un fil long ou une bande qui déborde
-ne décentre jamais le groupe.
+Les zones `contexte` et `temps` ne pèsent sur aucune colonne (`contain: inline-size`), ni la zone
+`outils`, conteneur de taille : seul le groupe dimensionne la colonne centrale, et les deux flancs se
+partagent le reste à parts égales, jamais sous le contenu minimal de leurs zones
+(`minmax(min-content, 1fr)`, le plancher de `contexte` étant la commande ☰). Un fil long ou une bande
+qui déborde ne décentre donc jamais le groupe. Le TEXTE d'une zone s'enroule au mot dans la largeur
+qu'elle reçoit — le lieu, l'objectif, le fil (R-M2, `docs/plans/2026-08-16-spec-hud-combat.md:71-74`) ;
+qu'une surface tienne dans sa zone se mesure au navigateur (verdict de débord, ci-dessous).
 
 La rangée `reserve` est le débord du bandeau de phase posé sur le parapet du pont (`--cc-phase-h` +
 `--cc-phase-air`), lu une seule fois (`--flot-reserve`). Elle est payée pendant TOUT le combat,
@@ -411,16 +425,21 @@ publiée ou non : l'arbitrage d'immobilité (`src/ui/CombatConsole.tsx:51-53`, 2
 « je ne veux pas que la taille de l'interface ou les boutons bougent ») interdit que la frise change
 de taille à chaque tour spectateur.
 
-Le panneau du journal naît de son BOUTON, hors flux, vers le champ (`log-drawer.css`) — sur le pont
-d'exploration comme dans le rail. Dans le flux du rail, sa largeur devenait la largeur minimale de la
-colonne `outils` : mesuré (sonde du 2026-09-28), le groupe se décentrait de 113 px à 900, 153 px à
-700 et 130 px à 360, et le bouton du journal descendait de 152 px sous le doigt du joueur à toute
-largeur ; ancré à son bouton, rien ne bouge. Aucun Anchor Positioning CSS : l'ancrage est celui d'un
-`position: absolute` dans le tiroir.
+Le panneau du journal naît de sa commande, hors flux, vers le champ (`log-drawer.css`) : sur le pont
+d'exploration, au-dessus de son bouton ; dans le rail, sous le rail, dans la place que la zone
+`outils` lui laisse (`--ld-place`, `100cqh` moins le rail). Dans le flux du rail, sa largeur devenait
+la largeur minimale de la colonne `outils` : mesuré (sonde du 2026-09-28), le groupe se décentrait de
+113 px à 900, 153 px à 700 et 130 px à 360. Et le panneau précède le bouton dans le DOM du tiroir
+(`src/ui/LogDrawer.tsx:25-45`) : en flux, le bouton du journal descendait de 152 px sous le doigt du
+joueur à toute largeur. Hors flux, rien ne bouge. À ≤560, le rail passe au coin haut du CHAMP : le
+panneau qui pend sous lui vit dans le champ, sous la frise et le fil, jamais sur eux (mesuré à
+360×740 : panneau y 208,8..373,8, fil achevé à 139,8 ; à 30 entrées, le panneau est borné à 199 px).
+Aucun Anchor Positioning CSS : l'ancrage est celui d'un `position: absolute` dans le rail.
 
 Une surface qui a besoin de la HAUTEUR DISPONIBLE la lit sur sa ZONE, pas sur le viewport : la zone
-`temps` se déclare conteneur de requête (`container-type: size`) au-dessus de 700, et la frise
-d'initiative borne sa colonne en `cqh`. Un `100vh` moins la hauteur d'un pont est le même couplage
+`temps` se déclare conteneur de requête (`container-type: size`) au-dessus de 560, et la frise
+d'initiative borne sa colonne en `cqh` ; la zone `outils` l'est à toute largeur, et le panneau du
+journal y borne sa hauteur. Un `100vh` moins la hauteur d'un pont est le même couplage
 écrit autrement. Corollaire de doctrine : `container`/`container-type`/`container-name` sont du
 PLACEMENT (même famille que `contain`) — ils déclarent une portée de mise en page, jamais une
 matière ; c'est l'écran qui compose ses rangées (`scripts/guards/lib/cssCouches.mjs`).
@@ -431,11 +450,18 @@ La SAILLIE d'un pont (le fronton qui dépasse sa bande) se tient dans la BOÎTE 
 chaque bascule de forme, muette sous jsdom.
 
 Le rognage de la couche est son seul mode de défaillance : aux vues de référence et aux seuils, HUD
-et pont tiennent ensemble grâce au BUDGET du pont, jamais par une cession de la grille. Preuve
+et pont tiennent ensemble grâce au BUDGET du pont, jamais par une cession de la grille. Ce budget
+(décision d'écran du 2026-09-24, Q1-Q2, #1806) : dès 701, la BANDE tient ≤ 17 % de la hauteur d'écran
+et l'EMPREINTE, fronton compris (`min(52px, 4.8vh)`), ≤ 22 % ; une seule rangée de 701 à toute
+largeur, cases carrées d'un côté UNIQUE, le plus petit d'un plafond de hauteur et d'un plafond de
+largeur (`--cc-cell`, `combat-console.css`) — aucune tranche ne recopie une cote. Le portrait de
+l'arche se tire de la fenêtre, jamais du pont. De 561 à 700, l'arche passe en ligne en tête de bande
+et les deux travées se posent côte à côte ; à ≤560, elles s'empilent. Preuve
 mécanique de la couche : `scripts/recette/hud-clickables.mjs` (`defautsCouche`), 3 hauteurs × 7
 largeurs × 4 états (exploration, ouverture, tour de héros, spectateur atteint par le vrai geste) —
-pont posé au bas de l'écran, page sans défilement, aucune surface rognée, chaque commande du HUD et
-du pont atteignable.
+pont posé au bas de l'écran, page sans défilement, aucune surface rognée, aucune surface qui déborde
+de sa zone ni ne recouvre la surface d'une autre zone (boîtes peintes, rognées par la couche),
+chaque commande du HUD et du pont atteignable.
 
 Preuve mécanique : `scripts/recette/console-pont-formes.mjs` sonde les DEUX ponts — passe EXPLORATION
 (dialogue ouvert, panneau du journal déployé, trois vues jugées) puis passe COMBAT (trois formes,
@@ -693,7 +719,9 @@ l.206-210), qui n'avait jamais été validée en rendu :
 1. **La raison d'un refus vit au SURVOL et au FOCUS, jamais en texte inline.** Verbatim (2026-08-24) :
    « Je n'ai jamais validé ces "textes" impossible a lire sous le nom des capacités, même Rogue
    Trader qui est notre interface de départ n'a pas un tel comportement. » Une case, une pastille, un
-   bouton fermés restent PROPRES (icône + libellé + touche, encre d'état grisé tenant AA ≥ 4,5:1) ; la
+   bouton fermés restent PROPRES (icône et touche — une case de console ne grave pas son nom, qui vit
+   dans l'infobulle et le nom accessible, décision d'écran du 2026-09-24, #1806 —, encre d'état grisé
+   tenant AA ≥ 4,5:1) ; la
    raison naît de l'infobulle PARTAGÉE (`CodexRef` prop `refus`, rendue en tête de sa boîte, couche
    `useInfobulle`) au survol
    souris comme au focus clavier/manette — une seule infobulle par ancrage, jamais une 2ᵉ boîte

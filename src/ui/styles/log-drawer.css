@@ -21,7 +21,7 @@
    Le tiroir s'assoit là où son hôte le pose — sur le pont d'exploration (exploration-dock.css), dans
    le rail d'outils de combat (hud.css) — et son PANNEAU naît de son bouton, hors flux, vers le
    champ : par défaut au-dessus de lui, aligné sur son bord droit. Il ne pèse ainsi sur aucune piste
-   de la couche HUD. */
+   de la couche HUD. Un hôte qui en connaît la place la déclare (`--ld-place`, hud.css). */
 .log-drawer {
   position: relative;
   display: flex;
@@ -40,7 +40,7 @@
   bottom: calc(100% + var(--sp-sm));
   z-index: 46;
   width: min(330px, 86vw);
-  max-height: 38vh;
+  max-height: min(38vh, var(--ld-place, 38vh));
   overflow: auto;
   background: transparent; /* fond transparent par défaut — seul le texte (ombré) flotte sur le champ */
   border: 1px solid transparent;

@@ -1461,16 +1461,13 @@ function CombatConsoleMock() {
           <div className="cc-bay cc-bay-left">
             <div className="cc-bay-body">
               <div className="cc-arsenal">
-                <span className="cc-bay-head">ÉPÉE ET BOUCLIER</span>
+                <span className="cc-bay-head">ÉPÉE ET BOUCLIER <span className="cc-key"><Icon id="ui/rotate-right" size="sm" />X</span></span>
                 <div className="cc-arsenal-body">
                   <div className="cc-sets" role="group" aria-label="Sets d’armes">
                     <button type="button" data-set="s1" data-action="switch-loadout" className="chip cc-set on" aria-label="Épée et bouclier">
-                      <i className="cc-set-n">1</i>
                       <Icon id="item/weapon" size="sm" />
-                      <span className="cc-key">X</span>
                     </button>
                     <button type="button" data-set="s2" data-action="switch-loadout" className="chip cc-set" aria-label="Arquebuse">
-                      <i className="cc-set-n">2</i>
                       <Icon id="item/weapon" size="sm" />
                       <i className="cc-set-load">VIDE</i>
                     </button>
@@ -1516,7 +1513,7 @@ function CombatConsoleMock() {
             <button type="button" data-cell="end-turn" data-action="end-turn" className="chip cc-cell cc-end" aria-label="Finir le tour">
               <span className="cc-ico"><Icon id="ui/turn-end" /></span>
               <span className="cc-lbl">Fin du tour</span>
-              <span className="cc-key">F</span>
+              <span className="cc-key">ESPACE</span>
             </button>
           </div>
         </div>

@@ -7,75 +7,81 @@
    MATIÈRE : relevée sur les spécimens C (aile gauche, plaque d'ACIER), D (arche, bois+laiton) et
    E (aile droite, plaque de LAITON) de `docs/plans/Spec HUD Combat.dc.html` — les valeurs vivent
    en tokens `:root` (base.css, famille `--cc-*`), jamais en hex ici.
-   ≤560px : composition COMPACTE dédiée (arbitrage 2026-08-16) — arche sur UNE ligne, conduit fondu
-   dans le bord haut de la grille, coin en bout de rangée. Les comptes de cases (3 + 6 + 4 + 12) et
-   les 10 colliers ne bougent pas d'un cran. */
+   ≤700px : l'arche passe sur UNE ligne en tête de bande (composition compacte, arbitrage
+   2026-08-16), coin en bout de ligne, deux travées côte à côte ; ≤560px : les travées s'empilent,
+   conduit fondu dans le bord haut de la grille. Les comptes de cases (3 + 6 + 4 + 12) et les 10
+   colliers ne bougent pas d'un cran. */
 
 /* LE PONT (spec §1c-ter) : UNE bande de bord à bord qui PORTE les quatre régions de console
    (travée gauche, arche-fronton, travée droite, coin de sortie). Ce qui séparait les plaques est
    désormais de la MATIÈRE DE PONT : le terrain ne se voit plus entre deux zones. */
 /* GÉOMÉTRIE DU PONT — au `:root` et non sur la console : la HAUTEUR du pont (`--cc-deck-h`) est
-   une grandeur que le reste du HUD doit connaître pour ne pas s'y poser dessus (frise, fil de
-   combat). Une seule source, dérivée du côté d'alvéole ; les tranches ne règlent que ce côté. */
+   une grandeur que le reste du HUD lit (nappe du pont d'exploration, galerie). Décision d'écran du
+   2026-09-24 (#1806, Q1-Q2) : UNE formule par grandeur, bornée par la FENÊTRE seule — les comptes de
+   cases ne bougent jamais (`src/ui/CombatConsole.tsx:51-53`), aucune tranche ne recopie une cote. */
 :root {
-  /* ALVÉOLE PAYSAGE — deux dimensions, jamais un carré (arbitrage utilisateur 2026-08-17, spec
-     « BUDGET DE HAUTEUR » : la planche budgétise 90×66 à 1920, et un carré de 84px faisait un pont de
-     ~28-29 % du viewport chez l'utilisateur là où la planche en tient 20,1 %).
-     LARGEUR : progression continue sur la largeur d'écran (le pont doit porter ses quatre régions avec
-     le fronton CENTRÉ — planche : arche centrée à 959,5/1920 ; mesuré à 1280 : 62,7px de côté pour une
-     travée droite de 412px dans 424px de voie).
-     HAUTEUR : c'est ELLE qui porte le BUDGET, donc elle se calcule sur la HAUTEUR du viewport, jamais sur
-     sa largeur — un écran large et court dépasserait sinon le budget. `10.5vh - 41px` est l'inverse exact
-     du contrat : deck = 2h + écart + socle ≤ 21 % de la hauteur (le socle, du texte, ne se met pas à
-     l'échelle). Bornée en plus à 0,75 × la largeur : l'alvéole reste PAYSAGE à tout format.
-     Le COMPTE de cases, lui, ne bouge jamais. */
-  --cc-cell-w: clamp(52px, 4.9vw, 96px);
-  --cc-cell-h: min(clamp(38px, calc(10.5vh - 41px), 72px), calc(var(--cc-cell-w) * 0.75));
-  /* ICÔNE : une FRACTION de la hauteur utile de sa case (planche : ~la moitié), jamais un px figé — une
-     vignette de 22px dans une case de 84 est le « icones disproportionnés » de l'arbitrage. */
-  --cc-ico: calc(var(--cc-cell-h) * 0.5);
-  --cc-ico-set: calc(var(--cc-cell-h) * 0.34);
+  /* BUDGET (spec « BUDGET DE HAUTEUR », docs/plans/2026-08-16-spec-hud-combat.md:24-26 ; décision
+     Q2) : la BANDE tient 17 % de la hauteur d'écran, le fronton s'y ajoute (22 % au plus). */
+  --cc-bande: 17vh;
+  /* ÉLÉVATION DU FRONTON au-dessus du liseré : le rapport 52/1080 de la planche (spec:237), jamais
+     plus de 52px. */
+  --cc-fronton: min(52px, 4.8vh);
   --cc-gap: 4px;
   /* Écart entre RÉGIONS (travée · arche · travée · coin) : il découvre le pont, jamais le terrain. */
   --cc-bay-gap: clamp(10px, 2vw, 26px);
-  /* Largeur du coin de sortie (plaque `.cc-end`) : elle sert DEUX fois — la plaque elle-même et la
-     réserve miroir qui centre le fronton. Un littéral recopié aurait dérivé. */
+  /* Largeur du coin de sortie : la plaque elle-même et la réserve miroir qui centre le fronton. */
   --cc-corner: 64px;
-  /* MARGE INTERNE de la bande : ce qui sépare une région du bord de l'écran. Elle vaut des deux
-     côtés, la réserve miroir du coin la reprend donc telle quelle. */
+  /* MARGE INTERNE de la bande, des deux côtés. */
   --cc-marge: 10px;
-  /* HAUTEUR DE LA TRAVÉE, donc du pont : deux rangées d'alvéoles + leur écart + le socle de travée
-     (bande de titre des groupes, rembourrages, filet). C'est une hauteur FIXE, pas un plancher : la
-     travée ne dépasse jamais sa boîte, le bord haut du pont ne dépend d'AUCUN contenu.
-     Le socle ne réserve PLUS la rangée de munition : celle-ci est passée dans l'EN-TÊTE de travée
-     (arbitrage #1348, spec § « BUDGET DE HAUTEUR » complément a). Ces 34px (rangée 26 + son écart 8)
-     étaient de la plaque NUE sous TOUS les sets — 47px mesurés à l'écran avant la coupe. */
-  --cc-bay-h: calc(var(--cc-cell-h) * 2 + var(--cc-gap) + 41px);
-  /* ÉLÉVATION DU FRONTON au-dessus du liseré (planche 2026-08-17 : arche y=811, pont y=863). Au
-     `:root` parce que la hauteur du pont se calcule AVEC (l'arche ne pèse sur la bande que de ce
-     qu'elle ne franchit pas) — une valeur portée par le sélecteur de la console serait illisible
-     d'ici. */
-  --cc-fronton: 52px;
-  /* PORTRAIT de l'arche : il DOMINE la région, mais il se dérive du CÔTÉ D'ALVÉOLE — une grandeur
-     d'ENTRÉE — et non de la hauteur du pont. Dérivé du pont, il la faisait croître à son tour
-     (portrait ∝ pont ∝ arche ∝ portrait) : le point fixe de cette boucle dépassait le budget de
-     hauteur, et toute valeur en deçà amputait l'arche (mesuré : 17px de contenu coupé à 900×800). */
-  --cc-portrait: calc(var(--cc-cell-h) * 2.4);
-  /* CHROME de l'arche : tout ce qui, hors portrait, occupe sa hauteur — rembourrages, deux écarts,
-     barre de Blessures, nom gravé, liseré, et le surcroît du CORPS sur le portrait (les gouttières
-     et la niche d'États dépassent la vignette de ~25px).
-     RECALIBRATION : `node scripts/recette/console-pont-formes.mjs --mesures` imprime, par largeur,
-     un bloc `arche {h, pad, gap, enfants[], portrait}` ; le chrome vaut `h − portrait`. Relevé
-     ainsi : 78,3px à 1600×800 (186,8 − 108,5) et 81,2px à 1100×800 (182 − 100,8) — la valeur
-     déclarée porte l'air qui sépare le maximum mesuré du bord. Toute dérive fait rougir le script
-     (débord de région, et hauteur rendue ≠ hauteur déclarée). */
-  --cc-arch-chrome: 84px;
-  --cc-arch-h: calc(var(--cc-portrait) + var(--cc-arch-chrome));
-  /* HAUTEUR DU PONT — la RÉSERVE de la bande dans ses trois formes, et la course de nappe du pont
-     d'exploration (exploration-dock.css). Elle vaut la plus haute des régions : la travée, ou l'arche DIMINUÉE de ce
-     qu'elle franchit (le fronton s'élève au-dessus du liseré, il ne pèse pas sur la bande). Plus le
-     liseré. Le script de recette la RÉFUTE : toute région qui déborderait sa boîte le fait rougir. */
-  --cc-deck-h: calc(max(var(--cc-bay-h), var(--cc-arch-h) - var(--cc-fronton)) + 3px);
+  /* Rembourrage de flanc d'une travée : la valeur que `.cc-bay` pose (littéral au stock d'espacement,
+     `scripts/guards/lib/cssCouchesStock.mjs`). */
+  --cc-bay-pad: 8px;
+  /* Colonne de SETS : une fraction du côté de case. */
+  --cc-sets-part: 0.62;
+  /* SOCLE de travée : ce qui, dans sa hauteur, n'est pas les deux rangées — rembourrages 8 + 10,
+     conduit d'Avantage 15 et son écart 8 (`.cc-bay`, `.cc-conduit`). */
+  --cc-bay-socle: 41px;
+  /* HABILLAGE de l'arche : ce qui, dans sa hauteur, n'est pas son corps — rembourrages 6 + 8, deux
+     écarts de 4, Blessures 15, nom gravé 19, liseré 3. Relevé : `node scripts/recette/
+     console-pont-formes.mjs --mesures` (bloc `arche`, `h` moins l'enfant `cc-arch-body`). */
+  --cc-arch-chrome: 59px;
+  /* FLANCS de l'arche : ce qui, dans sa largeur, n'est pas le portrait — rembourrages, deux
+     gouttières, niche d'États, trois écarts. Même relevé (largeur de `.cc-arch` moins le portrait). */
+  --cc-arch-flancs: 136px;
+  /* L'ARCHE tient toute la bande PLUS le fronton, liseré compris : sa hauteur est une donnée
+     d'ENTRÉE (la hauteur d'écran), jamais la hauteur du pont — aucune boucle portrait ∝ pont. */
+  --cc-arch-h: calc(var(--cc-bande) + var(--cc-fronton) - var(--pont-liseret));
+  /* RANGÉE — ce que la bande porte hors cases et hors arche : les deux marges, le coin, les neuf
+     écarts de case (1 set · 2 arsenal · 1 accès rapide · 5 grille), quatre flancs de travée, et quatre
+     écarts de région (arsenal | accès rapide, puis travée | arche | travée | coin). */
+  --cc-rangee-fixe: calc(2 * var(--cc-marge) + var(--cc-corner) + 9 * var(--cc-gap) + 4 * var(--cc-bay-pad) + 4 * var(--cc-bay-gap));
+  --cc-colonnes: calc(11 + var(--cc-sets-part));
+  /* Plafond de HAUTEUR du côté de case : deux rangées, leur écart et le socle dans la bande. */
+  --cc-cell-haut: calc((var(--cc-bande) - var(--pont-liseret) - var(--cc-bay-socle) - var(--cc-gap)) / 2);
+  /* PORTRAIT (décision Q2) : ce que l'habillage laisse dans l'arche — une donnée d'écran. Sur une
+     fenêtre ÉTROITE, il cède d'abord aux cases (la largeur que la rangée leur laisse à leur plafond de
+     hauteur), jusqu'au portrait de vignette de la ligne compacte. */
+  --cc-portrait-min: 30px;
+  --cc-portrait: clamp(
+    var(--cc-portrait-min),
+    calc(100vw - var(--cc-rangee-fixe) - var(--cc-arch-flancs) - var(--cc-colonnes) * var(--cc-cell-haut)),
+    calc(var(--cc-arch-h) - var(--cc-arch-chrome))
+  );
+  --cc-arch-w: calc(var(--cc-portrait) + var(--cc-arch-flancs));
+  /* CÔTÉ DE CASE, UNIQUE (décision Q1) : le plus petit du plafond de hauteur et du plafond de
+     LARGEUR (11,62 colonnes dans ce que la rangée laisse). */
+  --cc-cell: min(var(--cc-cell-haut), calc((100vw - var(--cc-arch-w) - var(--cc-rangee-fixe)) / var(--cc-colonnes)));
+  /* ICÔNE : 60 % du côté (décision Q1). */
+  --cc-ico: calc(var(--cc-cell) * 0.6);
+  --cc-ico-set: calc(var(--cc-cell) * 0.34);
+  /* HAUTEUR DE LA TRAVÉE : deux rangées, leur écart, le socle. */
+  --cc-bay-h: calc(var(--cc-cell) * 2 + var(--cc-gap) + var(--cc-bay-socle));
+  /* HAUTEUR DU PONT : la plus haute des régions (la travée, ou l'arche diminuée du fronton qu'elle
+     franchit), plus le liseré. `console-pont-formes.mjs` la réfute : toute région qui déborde rougit. */
+  --cc-deck-h: calc(max(var(--cc-bay-h), var(--cc-arch-h) - var(--cc-fronton)) + var(--pont-liseret));
+  /* LARGEUR de la rangée, marges comprises : ce que la RÉSERVE MIROIR du coin peut encore prendre
+     (`.cc-dock`) est la fenêtre moins elle. */
+  --cc-rangee: calc(var(--cc-colonnes) * var(--cc-cell) + var(--cc-arch-w) + var(--cc-rangee-fixe));
   /* HAUTEUR DU BANDEAU DE PHASE, publiée au MÊME titre que `--cc-deck-h` et pour la même raison : le
      bandeau est superposé AU-DESSUS du liseré, il déborde donc dans la couche HUD, qui le réserve
      (rangée `reserve`, hud.css) — sans cette réserve, la colonne d'initiative (z-index 45 contre 5)
@@ -90,7 +96,7 @@
      marge négative). C'est l'EMPREINTE du pont — sa boîte de flux dans la grille du plateau — qui
      la porte en rembourrage haut : sans elle l'arche mordrait la rangée du monde, et les surfaces
      basses retrouveraient une hauteur de pont à connaître. Elle vaut le fronton là où le fronton
-     surplombe, zéro là où les régions s'empilent (≤700, `.cc-arch { margin-top: 0 }`). */
+     surplombe, zéro là où l'arche est une ligne (≤700, `--cc-fronton: 0px`). */
   --cc-saillie: var(--cc-fronton);
   /* Encoche d'angle des plaques (patron d'ébauche : la tôle est coupée, jamais arrondie). Au `:root`
      parce que le bandeau d'OUVERTURE est monté dans la couche HUD, HORS du pont : il en a besoin aussi. */
@@ -101,8 +107,6 @@
    occupe — la bande, PLUS la saillie du fronton, tenue en rembourrage haut. La racine ne peint
    rien : la matière (nappe, liseré, ombre portée) est celle de la BANDE et vit sur `.cc-dock`. */
 .combat-console {
-  /* Le rail des gouttières suit le portrait (dimensionné au `:root`, avec la hauteur de bande). */
-  --cc-rail: calc(var(--cc-portrait) * 0.62);
   position: relative;
   padding-top: var(--cc-saillie);
   display: flex;
@@ -213,36 +217,28 @@
 }
 
 /* Les quatre RÉGIONS, assises sur le pont : une VOIE par flanc, le fronton au milieu, le coin de
-   sortie en bout. Les deux voies sont des pistes `1fr` de MÊME largeur — c'est ce qui met le
-   fronton au centre du VIEWPORT (planche 2026-08-17 : arche centrée à 959,5/1920) alors que les
-   travées, elles, n'ont pas la même largeur : chacune se range CONTRE le fronton (`justify-self`),
-   l'espace qui reste va au bord et découvre le pont.
-   RÉSERVE MIROIR : le coin de sortie est une 5ᵉ colonne à l'extrémité droite ; sans une réserve de
-   même largeur à gauche, le centre des deux voies tomberait à (coin + écart)/2 du centre de
-   l'écran (mesuré −87px à 1920 avant cette passe). D'où le rembourrage gauche, exprimé dans les
-   MÊMES grandeurs que le coin.
-   Les deux voies sont ÉTANCHES (#1856) : `minmax(0, 1fr)`, jamais `min-content` pour plancher. Un
-   plancher de contenu ne cède pas — il poussait la travée droite, son coin de sortie et ses
-   alvéoles HORS de l'écran (mesuré à 1100 : 5 éléments hors fenêtre, dont « Fin du tour » à
-   1040..1104). La grille rend ce qu'elle a ; ce qui ne rentre pas se traite par la COMPOSITION
-   (recomposition empilée ≤700), jamais par un débord silencieux. */
+   sortie en bout. Les deux voies sont des pistes de MÊME largeur (planche 2026-08-17 : arche centrée à
+   959,5/1920), chacune au moins aussi large que sa travée (`min-content`) : le côté de case
+   (`--cc-cell`) est taillé pour que la rangée ENTIÈRE tienne dans la fenêtre (#1856), le plancher ne
+   pousse donc rien hors de l'écran.
+   RÉSERVE MIROIR : le coin est une 5ᵉ colonne à droite ; la même largeur réservée à gauche remet le
+   fronton au centre. Elle ne prend que ce que la fenêtre laisse au-delà de la rangée (`--cc-rangee`). */
 .cc-dock {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto;
+  grid-template-columns: minmax(min-content, 1fr) auto minmax(min-content, 1fr) auto;
   align-items: stretch;
   gap: var(--cc-bay-gap);
   width: 100%;
   /* RÉSERVE DE BANDE : le pont mesure au MOINS la hauteur canon, dans ses TROIS formes — c'est ce
      qui les rend superposables et permet au bandeau de phase de vivre au-dessus du liseré sans
-     jitter. PLANCHER, jamais couperet : `--cc-deck-h` est dimensionnée sur la plus haute des
-     régions, et si un contenu la dépassait malgré tout, il pousserait la bande au lieu d'être
-     coupé (le script de recette mesure les deux : débord ET stabilité entre formes). */
-  min-height: calc(var(--cc-deck-h) - 3px);
+     jitter. PLANCHER, jamais couperet, liseré compris (boîte `border-box`, base.css) : sous 701, la
+     forme spectatrice n'a que la ligne d'arche, et c'est ce plancher seul qui tient sa boîte. */
+  min-height: var(--cc-deck-h);
   /* MARGE INTERNE de la bande (arbitrage user 2026-08-24) : les régions sont posées SUR le pont, pas
      collées à ses bords. Elle s'ajoute des DEUX côtés — l'identité de centrage du fronton
      (`padding-left − padding-right = coin + écart`, contrat P-4) est donc préservée. */
   padding-right: var(--cc-marge);
-  padding-left: calc(var(--cc-corner) + var(--cc-bay-gap) + var(--cc-marge));
+  padding-left: calc(var(--cc-marge) + clamp(0px, 100vw - var(--cc-rangee), var(--cc-corner) + var(--cc-bay-gap)));
   /* DELTA de la peau `.skin-pont` (components.css), portée par la BANDE : l'ombre PORTÉE sur le
      terrain — l'arche, elle, n'a qu'un filet interne. La nappe, le liseré et leurs grandeurs
      (`--pont-band`, `--pont-liseret`) viennent de la peau. */
@@ -310,7 +306,7 @@
 
 .cc-grid {
   display: grid;
-  grid-auto-rows: var(--cc-cell-h);
+  grid-auto-rows: var(--cc-cell);
   gap: var(--cc-gap);
 }
 /* Une alvéole porteuse de RÈGLE est enveloppée par `CodexRef` (mode `wrap`) : c'est cette enveloppe qui
@@ -322,13 +318,13 @@
   min-width: 0;
 }
 .cc-grid-left {
-  grid-template-columns: repeat(3, var(--cc-cell-w));
+  grid-template-columns: repeat(3, var(--cc-cell));
 }
 .cc-grid-quick {
-  grid-template-columns: repeat(2, var(--cc-cell-w));
+  grid-template-columns: repeat(2, var(--cc-cell));
 }
 .cc-grid-right {
-  grid-template-columns: repeat(6, var(--cc-cell-w));
+  grid-template-columns: repeat(6, var(--cc-cell));
 }
 
 /* Composition de la travée GAUCHE (planche 2026-08-17) : deux groupes côte à côte sur la plaque —
@@ -370,7 +366,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--cc-gap);
-  width: calc(var(--cc-cell-w) * 0.62);
+  width: calc(var(--cc-cell) * var(--cc-sets-part));
 }
 /* Même règle que la grille : la vignette porteuse de fiche est enveloppée par `CodexRef` — l'enveloppe
    hérite du partage de hauteur, la plaquette la remplit. */
@@ -380,12 +376,13 @@
   min-height: 0;
 }
 
-/* Alvéole : empreinte STRICTEMENT carrée, jamais dimensionnée par son contenu. Tôle coupée à
-   l'angle, filet d'accent en tête, touche imprimée dans le coin, crans de coût sur le bord. */
+/* Alvéole : empreinte CARRÉE, sans libellé (décision Q1 du 2026-09-24, `Analyse HUD Rogue
+   Trader.dc.html:126-127`) — le nom vit dans l'infobulle et le nom accessible. Tôle coupée à l'angle,
+   filet d'accent en tête, touche imprimée dans le coin, crans de coût sur le bord. */
 .cc-cell {
   position: relative;
-  width: var(--cc-cell-w);
-  height: var(--cc-cell-h);
+  width: var(--cc-cell);
+  height: var(--cc-cell);
   padding: 3px 6px 3px 3px;
   display: flex;
   flex-direction: column;
@@ -492,12 +489,6 @@
   background: var(--cc-cell-edge);
   opacity: 0.55;
 }
-/* La case qui IMPRIME sa touche lui RÉSERVE sa bande au pied — sans quoi un libellé long descend
-   sous le chiffre et les deux se chevauchent (sonde du juge vision : « Immunité Psychologie (2) »).
-   Même patron que l'état de charge d'une vignette de set : la hauteur de l'alvéole ne bouge pas. */
-.cc-cell[data-hotkey] {
-  padding-bottom: 10px;
-}
 /* Touche IMPRIMÉE dans la case (spec zone 8) — coin bas-gauche, gravure de tôle. */
 .cc-key {
   position: absolute;
@@ -532,7 +523,7 @@
   width: 100%;
   height: 100%;
 }
-/* GLYPHE de la case : sa boîte vaut `--cc-ico`, une FRACTION de la hauteur d'alvéole — l'icône suit donc
+/* GLYPHE de la case : sa boîte vaut `--cc-ico`, une FRACTION du côté d'alvéole — l'icône suit donc
    la case à toute largeur, jamais une taille figée au call-site (arbitrage « icones disproportionnés »).
    `Icon`/`ItemIcon` posent leur px en ATTRIBUTS `width`/`height` de `<svg>` : la CSS les surcharge sans
    forcer. Le repli GLYPHE d'`ItemIcon` (objet sans art de rig) écrit, lui, un style INLINE — seule une
@@ -558,33 +549,6 @@
 .cc-cell.on .cc-ico {
   color: var(--cc-cell-lit-ink);
 }
-/* Libellé : JAMAIS tranché en plein glyphe — deux lignes pleines puis ellipse (grief vision :
-   11 libellés écrêtés net à 360px). */
-.cc-lbl {
-  font-family: var(--font-display);
-  font-size: 9px;
-  line-height: 1.05;
-  letter-spacing: 0.2px;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  overflow: hidden;
-  /* R-M2 : AUCUN mot tranché. Le texte ne se coupe qu'ENTRE MOTS (deux lignes au plus) ; un mot
-     seul trop long s'ellipse (« … »), et le libellé complet reste le nom accessible de l'alvéole. */
-  overflow-wrap: normal;
-  word-break: normal;
-  text-overflow: ellipsis;
-  max-width: 100%;
-  color: var(--cc-cell-ink);
-}
-.cc-cell.on .cc-lbl {
-  color: var(--cc-cell-lit-ink);
-}
-/* Case LIBRE : son mot appartient au verre de la carte vide, pas à l'encre d'une case pleine. */
-.cc-cell.cc-empty .cc-lbl {
-  color: var(--cc-void-ink);
-}
 /* Coût en crans d'Avantage : colonne sur le BORD de la case, remplie du bas (patron d'ébauche) —
    un cran allumé = un cran d'Avantage réellement disponible pour le payer. */
 .cc-cost {
@@ -607,7 +571,8 @@
 }
 
 /* VIGNETTE de set : plaquette d'acier à hauteur PARTAGÉE (les SET_SLOTS se répartissent la hauteur
-   des deux rangées d'alvéoles), son rang gravé en tête, l'état de charge dit au pied. */
+   des deux rangées d'alvéoles) ; l'ordre de rotation se lit à la POSITION (décision Q3), l'état de
+   charge au pied. */
 .cc-set {
   position: relative;
   width: 100%;
@@ -639,23 +604,9 @@
   color: var(--cc-void-steel-ink);
   opacity: 0.85;
 }
-/* Rang du set (planche : 1 · 2 · 3) — gravure de coin, jamais un libellé. */
-.cc-set-n {
-  position: absolute;
-  top: 1px;
-  left: 2px;
-  font: 700 8px/1 ui-monospace, monospace;
-  font-style: normal;
-  color: var(--cc-steel-ink);
-}
-.cc-set.on .cc-set-n {
-  color: var(--cc-steel-lit-ink);
-}
 /* ÉTAT DE CHARGE : un MOT ENTIER, jamais la couleur seule (a11y daltoniens) et jamais une abréviation à
-   7px — « déch. » était le plus petit texte du dépôt, mesuré illisible à 360 (trois rangées de pixels)
-   et à cheval sur le « X » de la vignette. Il prend sa BANDE au pied, sur toute la largeur : les trois
-   gravures de la vignette occupent trois coins DISJOINTS (rang en haut à gauche, touche en haut à
-   droite, état au pied) — plus aucun recouvrement possible. */
+   7px — « déch. » était le plus petit texte du dépôt, mesuré illisible à 360. Il prend sa BANDE au
+   pied, sur toute la largeur. */
 .cc-set-load {
   position: absolute;
   bottom: 0;
@@ -667,18 +618,24 @@
   text-align: center;
   color: var(--tooltip-warn);
 }
-/* La touche imprimée d'une vignette se pose dans le coin HAUT-DROIT : le pied appartient à l'état de
-   charge, le coin haut-gauche au rang du set. */
 .cc-set svg {
-  /* La vignette de set a SA fraction de la hauteur d'alvéole (plus petite que la case). */
+  /* La vignette de set a SA fraction du côté d'alvéole (plus petite que la case). */
   width: var(--cc-ico-set);
   height: var(--cc-ico-set);
 }
-.cc-set .cc-key {
-  top: 1px;
-  right: 2px;
-  bottom: auto;
-  left: auto;
+/* LA TOUCHE X, gravée UNE fois dans l'en-tête de la travée (décision Q3 du 2026-09-24, spec:261-262) :
+   la touche fait tourner les sets, elle n'appartient à aucune vignette. Même gravure que la touche
+   imprimée d'une case, posée dans la ligne du titre — elle n'ajoute aucune hauteur. */
+.cc-bay-head .cc-key {
+  position: static;
+  display: inline-flex;
+  align-items: center;
+  margin-left: var(--sp-xs);
+  vertical-align: baseline;
+}
+.cc-bay-head .cc-key svg {
+  width: 1em;
+  height: 1em;
 }
 /* MUNITION dans l'EN-TÊTE de travée : elle se lit à côté du nom du set, sans bandeau à elle (arbitrage
    #1348). Sélecteur d'ATTRIBUT (aucune classe de plus) ; teinte d'acier pour la distinguer du nom. */
@@ -721,6 +678,8 @@
   justify-content: flex-end;
   gap: 4px;
   margin-top: calc(-1 * var(--cc-fronton));
+  /* Sa LARGEUR est celle que la rangée lui compte (`--cc-arch-w`) : le côté de case en dépend. */
+  width: var(--cc-arch-w);
   /* Faîte SERRÉ : le fronton garde son élévation (§1c-ter) mais son espace INTERNE au-dessus du
      portrait se comprime — c'est le portrait qui remplit la région, pas le vide. */
   padding: 6px 14px 8px;
@@ -757,11 +716,18 @@
    primitive — `PortraitTile` pose ses dimensions en STYLE INLINE, seule une déclaration forte les
    reprend (même levier que la composition compacte ≤560, déjà en place). C'est ce qui fait que le
    portrait REMPLIT la région au lieu d'y flotter (arbitrage #1348, complément b). */
-.cc-arch .ptile,
-.cc-arch .ptile-face,
-.cc-arch .rig-portrait {
+.cc-arch .ptile {
   width: var(--cc-portrait) !important;
   height: var(--cc-portrait) !important;
+  /* Le portrait garde son carré en tête du corps : ce sont les gouttières qui en prennent la hauteur. */
+  align-self: flex-start;
+}
+/* Le visage REMPLIT la tuile, liseré d'équipe compris dans sa boîte : posé à la taille de la tuile, il
+   la débordait de l'épaisseur du liseré (3px mesurés sous le corps de l'arche). */
+.cc-arch .ptile-face,
+.cc-arch .rig-portrait {
+  width: 100% !important;
+  height: 100% !important;
 }
 /* Le DESSIN suit sa boîte : `RigPortrait` pose sa taille en ATTRIBUT sur le `<svg>` (72px pour
    `lg`), et un attribut de présentation cède devant n'importe quelle règle CSS — sans celle-ci, une
@@ -783,11 +749,13 @@
   white-space: nowrap;
 }
 /* Corps de l'arche : gouttière Mouvement | portrait | gouttière Action | niche d'États, assis sur la
-   même ligne (ordre de la planche 2026-08-17). */
+   même ligne (ordre de la planche 2026-08-17). Sa HAUTEUR est celle que l'habillage laisse dans
+   l'arche : les gouttières la remplissent, leur rail prend le reste. */
 .cc-arch-body {
   display: flex;
-  align-items: flex-start;
+  align-items: stretch;
   gap: 6px;
+  height: calc(var(--cc-arch-h) - var(--cc-arch-chrome));
 }
 /* BARRE DE BLESSURES de l'arche (planche : « 9 / 9 BLESSURES ») : la primitive `LifeBar` en mode
    superposé (`[data-overlay]`), pleine largeur du corps, posée sous lui. Visée par son MODE et par
@@ -852,7 +820,8 @@
   flex-direction: column-reverse;
   gap: 2px;
   width: 10px;
-  height: var(--cc-rail);
+  flex: 1 1 0;
+  min-height: 0;
   padding: 2px;
   background: linear-gradient(90deg, var(--atelier-shell-lo), var(--cc-arch-well-hi) 40%, var(--cc-arch-well-lo));
   border: 1px solid var(--atelier-wood-etch);
@@ -1032,13 +1001,13 @@ button.cc-socle svg {
   --cc-cell-ink: var(--atelier-brass-vif);
   --cc-cell-key: var(--atelier-brass-meta);
 }
+/* Sa HAUTEUR suit les cases : deux rangées et leur écart (décision Q2 du 2026-09-24), assise au pied
+   comme elles. */
 .cc-end {
   width: var(--cc-corner);
-  height: 100%;
-  align-self: stretch;
-  min-height: 106px;
-  gap: 6px;
-  padding: 8px 4px;
+  height: calc(var(--cc-cell) * 2 + var(--cc-gap));
+  gap: 2px;
+  padding: 4px 3px;
   border-radius: 0;
   color: var(--atelier-brass-vif);
   clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
@@ -1047,9 +1016,7 @@ button.cc-socle svg {
   content: none;
 }
 .cc-end .cc-ico {
-  /* MÉDAILLON du coin : à l'échelle des glyphes de case (planche : un cran au-dessus). */
-  width: calc(var(--cc-ico) * 1.3);
-  height: calc(var(--cc-ico) * 1.3);
+  /* MÉDAILLON du coin : à l'échelle des glyphes de case. */
   align-items: center;
   justify-content: center;
   border-radius: 50%;
@@ -1057,16 +1024,16 @@ button.cc-socle svg {
   border: 1px solid var(--atelier-brass-hover);
   color: var(--cc-end-medal-fg);
 }
+/* Le NOM du coin (planche : « Fin du tour ») coupe ENTRE mots, deux lignes au plus (R-M2, spec:71-74) :
+   aucun de ses mots n'est plus large que la plaque. */
 .cc-end .cc-lbl {
-  font-size: 11px;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
+  font-size: 9px;
+  white-space: normal;
+  text-align: center;
   color: var(--atelier-brass-vif);
 }
-/* 3ᵉ ligne du gabarit (spécimen F) : la TOUCHE au repos, l'ÉTAT DU TOUR quand il y a quelque chose à en
-   dire (« Action non dépensée », « Tour fini », l'armement du 2ᵉ clic) — le mot ne dépend jamais de la
-   couleur de la plaque. Il S'ENROULE : une phrase d'état ne tient pas sur la largeur du coin, et aucun de
-   ses mots n'est plus large que la plaque. */
+/* La TOUCHE, gravée en dur (décision Q4.7 du 2026-09-24) : ESPACE à tout état. L'état du tour se lit à
+   l'armement de la plaque et dans son infobulle. */
 .cc-end .cc-key {
   position: static;
   font: 8px/1.15 ui-monospace, monospace;
@@ -1100,151 +1067,60 @@ button.cc-socle svg {
   border-color: var(--combat-gold);
 }
 
-/* ── Responsive : seul le CÔTÉ de l'alvéole (et l'écart de région) change, jamais le compte de
-   cases — et le PONT va de bord à bord à toute largeur. ── */
-@media (max-width: 900px) {
-  /* Le côté d'alvéole vit au `:root` : c'est lui qui porte AUSSI la hauteur du pont lue par le
-     reste du HUD (`--cc-deck-h`) — le régler sur la console seule ferait mentir la réserve. */
-  :root {
-    --cc-cell-w: 52px;
-    --cc-cell-h: 40px;
-    --cc-bay-gap: 10px;
-    --cc-fronton: 40px;
-  }
-  /* Sous 900 les régions occupent presque toute la largeur du pont : il n'y a plus de quoi payer la
-     réserve miroir du coin (elle ferait déborder la travée droite), le fronton se décale donc de
-     ce que le coin pèse. La MARGE INTERNE de la bande, elle, reste — des deux côtés : elle ne
-     décale rien.
-     La rangée à QUATRE régions reste arithmétiquement infaisable entre 701 et ~1080px (#1856,
-     mesuré : 9 à 14 éléments hors fenêtre à 900 même avec des voies étanches) : c'est une
-     COMPOSITION qui manque à cette tranche, pas un réglage de pistes. */
-  .cc-dock {
-    padding-inline: var(--cc-marge);
-  }
-}
+/* ── Responsive : de 701 à toute largeur, la formule du `:root` suffit (décision Q1 du 2026-09-24 :
+   aucune cassure entre 900 et 901). Sous 701, la RANGÉE ne porte plus l'arche : elle passe en tête
+   de bande, sur UNE ligne (composition compacte, arbitrage 2026-08-16), et les comptes de cases ne
+   bougent pas d'un cran. ── */
 @media (max-width: 700px) {
   :root {
-    --cc-cell-w: 48px;
-    --cc-cell-h: 38px;
-    /* Régions EMPILÉES : le fronton rentre dans le rang (`.cc-arch { margin-top: 0 }`), le pont ne
-       dépasse plus de rien — son empreinte vaut sa bande. */
-    --cc-saillie: 0px;
-  }
-  .cc-dock {
-    /* Régions EMPILÉES : on quitte la voie-par-flanc pour une colonne — le fronton est centré par
-       l'empilement lui-même. */
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    /* Le fronton n'a plus de rangée à surplomber, il rentre dans le pont. */
-    padding-top: 6px;
-  }
-  .cc-arch {
-    margin-top: 0;
-  }
-  /* La travée ne tient plus la hauteur du PONT là où les régions s'EMPILENT : elle reprend la
-     sienne. Depuis que la bande est une rangée de la grille du plateau (#1848), sa hauteur est
-     DÉFINIE — `height: 100%` y valait la pile entière, qui grandissait d'autant (mesuré à 700×780 :
-     dock de 1021px pour 572px de boîte, « Fin du tour » 439px sous le bas du champ). */
-  .cc-bay-left {
-    height: auto;
-  }
-}
-
-/* ── COMPOSITION COMPACTE (≤560px, arbitrage 2026-08-16) — rien ne disparaît : mêmes 8 + 12 cases,
-   mêmes 10 colliers. L'arche tient sur UNE ligne (portrait mini, jauges fines, nom), le conduit se
-   fond dans le bord haut de la grille, le commutateur se replie sur le set actif (déplié au tap),
-   et le coin de fin de tour s'intègre en bout de la rangée d'arche. ── */
-@media (max-width: 560px) {
-  :root {
-    /* Côté d'alvéole re-calé à 36px (arbitrage d'assemblage 2026-08-17) : la console tombe de 311 à
-       ~245px de haut, soit ~38 % de l'écran — le TERRAIN redevient le sujet. Les comptes de cases
-       (8 + 12) et les 10 colliers ne bougent pas d'un cran. */
-    --cc-cell-w: 36px;
-    --cc-cell-h: 32px;
-    --cc-gap: 3px;
-    --cc-bay-gap: 4px;
-    /* Le bandeau compact est plus bas (rembourrage 2px, boutons 11px) : sa RÉSERVE suit, sinon la
-       frise réserverait la boîte de la version large. */
-    --cc-phase-h: 24px;
-    /* La composition compacte se pose SUR LE MÊME PONT (spec §1c-ter, point 5) : la bande garde ses
-       deux bords et son liseré, seul le fronton rentre dans le rang. */
+    /* L'arche est une LIGNE en tête de bande : plus de fronton, un portrait de vignette. */
     --cc-fronton: 0px;
-    /* Portrait de la LIGNE compacte : une vignette, pas une région (cf. la règle de base qui l'applique). */
-    --cc-portrait: 30px;
+    --cc-portrait: var(--cc-portrait-min);
+    /* Hauteur de la ligne d'arche : rembourrages 6 + 6 et la plus haute de ses pièces (relevé
+       `console-pont-formes.mjs --mesures`, bloc `arche`). */
+    --cc-arch-ligne: 100px;
+    --cc-arch-h: var(--cc-arch-ligne);
+    /* La rangée ne compte plus l'arche ni le coin : deux travées côte à côte (décision Q4.3), donc un
+       écart d'arsenal et un écart entre travées. */
+    --cc-arch-w: 0px;
+    --cc-rangee-fixe: calc(2 * var(--cc-marge) + 9 * var(--cc-gap) + 4 * var(--cc-bay-pad) + 2 * var(--cc-bay-gap));
+    /* HAUTEUR DU PONT, dans ses trois formes : la ligne d'arche, puis la rangée des travées. */
+    --cc-deck-h: calc(var(--cc-arch-ligne) + var(--cc-gap) + var(--cc-bay-h) + var(--pont-liseret));
   }
-  /* Nappe RACCOURCIE avec le pont : la grandeur de la peau `.skin-pont` est une variable de
-     CONTEXTE, reposée ici pour le pont ET son fronton (qui en hérite). */
-  .combat-console {
-    --pont-band: 260px;
-  }
-  /* Bandeau de phase compact : pleine largeur JUSTE au-dessus du pont (il ne vole aucune rangée de
-     cases, et à cette largeur il ne peut pas chevaucher le parapet sans couvrir le liseré ET le
-     haut de l'arche — sonde pixel : 280/360 points du liseré masqués quand il était à cheval). */
-  .cc-phase {
-    left: 4px;
-    right: 4px;
-    /* L'ancrage au-dessus du liseré est celui de la règle de base (aucun fronton à retrancher ici :
-       `--cc-saillie` vaut zéro dès 700) — seule la densité change à cette largeur. */
-    padding: 2px 8px;
-    gap: 6px;
-  }
-  .cc-phase-label {
-    font-size: 11px;
-  }
-  .cc-phase .btn {
-    padding: 2px 8px;
-    font-size: 11px;
-  }
+  /* Arche en tête et coin en bout de ligne ; les deux travées côte à côte dessous. */
   .cc-dock {
-    display: grid;
-    width: 100%;
-    grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-areas: 'arch corner' 'left left' 'right right';
-    align-items: stretch;
-    justify-items: center;
-    gap: 4px;
-    /* Aucun fronton à surplomber ici : la rangée d'en-tête du pont ne réserve rien. */
-    padding-top: 0;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas: 'arch arch corner' 'left right right';
+    gap: var(--cc-gap) var(--cc-bay-gap);
+    padding-inline: var(--cc-marge);
   }
   .cc-arch { grid-area: arch; }
-  .cc-corner { grid-area: corner; }
-  .cc-bay-right { grid-area: right; }
-  .cc-bay {
-    width: 100%;
-    align-items: center;
-    /* R-M3 : la dernière rangée respire SOUS son bord (6px) — collée au bord de tôle, elle se
-       lisait « coupée » (sonde pixel du juge : fond de tuile 632, plaque 636). */
-    padding: 4px 4px 6px;
-    gap: 4px;
+  .cc-corner {
+    grid-area: corner;
+    padding: 0;
+    align-items: stretch;
   }
-  /* La travée gauche garde EXACTEMENT sa composition (colonne de sets · 2×3 · ACCÈS RAPIDE 2×2) :
-     à 36px d'alvéole elle mesure ~235px de large pour 336px utiles — rien ne se replie, rien ne
-     quitte la console (R-M3). La RÉSERVE de hauteur tombe : à cette largeur les régions s'EMPILENT (le
-     pont n'est plus une ligne unique), la travée reprend donc sa hauteur naturelle. */
-  .cc-bay-left {
-    grid-area: left;
+  .cc-bay-left { grid-area: left; }
+  .cc-bay-right {
+    grid-area: right;
+    justify-self: end;
+  }
+  /* Le coin prend la hauteur de la ligne d'arche : son médaillon suit le portrait de vignette. */
+  .cc-end {
     height: auto;
   }
-  .cc-bay-body {
-    gap: 6px;
+  .cc-end .cc-ico {
+    width: calc(var(--cc-portrait) * 0.6);
+    height: calc(var(--cc-portrait) * 0.6);
   }
-  .cc-bay-head {
-    font-size: 8px;
-    letter-spacing: 0.4px;
+  /* FORME SPECTATRICE : la boîte reste celle de la bande, l'arche se pose à son PIED (verdict F8,
+     fiche `user-arbitrage-tour-adverse-console-spectatrice-jamais-pont-entier`). */
+  .combat-console[data-forme='spectatrice'] > .cc-dock {
+    align-items: flex-end;
   }
-  .cc-bay-right {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-areas: 'conduit' 'cases';
-    align-items: center;
-    gap: 4px;
-  }
-  .cc-conduit { grid-area: conduit; }
-  .cc-grid-right { grid-area: cases; justify-self: center; }
   /* Arche sur UNE ligne : portrait mini, gouttières courtes, nom à la suite. */
   .cc-arch {
+    width: auto;
     padding: 6px 8px;
     flex-direction: row;
     align-items: center;
@@ -1253,9 +1129,8 @@ button.cc-socle svg {
     clip-path: polygon(18px 0, calc(100% - 18px) 0, 100% 12px, 100% 100%, 0 100%, 0 12px);
   }
   /* SUR LA BANDE PEINTE, elle ne surplombe plus rien : elle est une RÉGION du pont en tête de bande,
-     et laisse donc voir la matière du pont elle-même (aucune nappe propre à recaler — d'où zéro
-     couture, même règle qu'en grand). En forme SPECTATRICE la bande est éteinte : l'arche garde sa
-     peau, sans quoi il ne resterait rien à voir à cette largeur. */
+     et laisse donc voir la matière du pont elle-même. En forme SPECTATRICE la bande est éteinte :
+     l'arche garde sa peau, sans quoi il ne resterait rien à voir. */
   .combat-console[data-forme='complete'] .cc-arch {
     width: 100%;
     background-image: none;
@@ -1265,19 +1140,21 @@ button.cc-socle svg {
     width: 44px;
     height: 8px;
   }
+  /* Ligne unique : le corps (portrait + gouttières) garde sa largeur NATURELLE, c'est le NOM qui
+     cède. */
   .cc-arch-body {
+    flex: 0 0 auto;
+    height: auto;
     align-items: center;
     gap: 4px;
   }
-  /* Portrait MINI : la ligne compacte ne DÉRIVE pas le portrait de l'arche (l'arche y est une ligne,
-     pas une région) — elle repose la VARIABLE, et la règle de base l'applique aux trois boîtes. Sans
-     cela, seule la largeur était reprise et la tuile sortait déformée (30 × 66,6 mesurés à 360). */
   .cc-gutter-rail {
+    flex: 0 0 auto;
     width: 8px;
     height: 26px;
   }
-  /* Niche d'États sur la ligne compacte : les 4 alvéoles restent, en carré 2×2 — c'est la HAUTEUR
-     qui tombe (37px, celle de la rangée), jamais une alvéole. */
+  /* Niche d'États sur la ligne : les 4 alvéoles restent, en carré 2×2 — c'est la HAUTEUR qui tombe,
+     jamais une alvéole. */
   .cc-arch .cc-arch-body [data-reserve] {
     --alv: 15px;
     display: grid;
@@ -1285,8 +1162,7 @@ button.cc-socle svg {
     grid-auto-rows: var(--alv);
     align-self: center;
   }
-  /* Le socle reste un BADGE à la ligne compacte : il maigrit, il ne s'efface pas — libellé compris
-     (« MOUV. »/« ACTION » ne se coupent pas : le badge se cale sur le plus long). */
+  /* Le socle reste un BADGE sur la ligne : il maigrit, il ne s'efface pas. */
   .cc-socle {
     font-size: 10px;
     min-width: 30px;
@@ -1296,9 +1172,8 @@ button.cc-socle svg {
     font-size: 6px;
     letter-spacing: 0.2px;
   }
-  /* Barre de Blessures sur la ligne compacte : piste + CHIFFRES seuls, le mot « BLESSURES » retiré
-     (mesuré 236px de texte pour 292px d'arche : superposé, il débordait la boîte et se posait SUR le
-     nom gravé). Elle partage la rangée avec le nom, qui cède le reste. */
+  /* Barre de Blessures sur la ligne : piste + CHIFFRES seuls, le mot « BLESSURES » retiré (superposé,
+     il débordait la boîte et se posait SUR le nom gravé). Elle partage la rangée avec le nom. */
   .cc-arch > [data-overlay] {
     align-self: center;
     flex: 1 1 56px;
@@ -1317,6 +1192,80 @@ button.cc-socle svg {
   .cc-arch > [data-overlay] > span > i {
     display: none;
   }
+  .cc-arch-name {
+    font-size: 11px;
+    flex: 0 1 auto;
+    min-width: 0;
+  }
+}
+
+/* ── COMPOSITION COMPACTE (≤560px, arbitrage 2026-08-16) — rien ne disparaît : mêmes 8 + 12 cases,
+   mêmes 10 colliers. La ligne d'arche est celle de 700 ; les deux travées s'EMPILENT, et le conduit
+   se fond dans le bord haut de la grille. ── */
+@media (max-width: 560px) {
+  :root {
+    /* Côté d'alvéole re-calé à 36px (arbitrage d'assemblage 2026-08-17) : le TERRAIN redevient le
+       sujet. Les comptes de cases (8 + 12) et les 10 colliers ne bougent pas d'un cran. */
+    --cc-cell: 36px;
+    --cc-gap: 3px;
+    --cc-bay-gap: 4px;
+    /* Socle d'une travée compacte : rembourrages 4 + 6, conduit ou titre 13, écart 4. */
+    --cc-bay-socle: 27px;
+    /* Le bandeau compact est plus bas (rembourrage 2px, boutons 11px) : sa RÉSERVE suit. */
+    --cc-phase-h: 24px;
+    --cc-deck-h: calc(var(--cc-arch-ligne) + 2 * var(--cc-gap) + 2 * var(--cc-bay-h) + var(--pont-liseret));
+  }
+  /* Nappe RACCOURCIE avec le pont : la grandeur de la peau `.skin-pont` est une variable de
+     CONTEXTE, reposée ici pour le pont ET son fronton (qui en hérite). */
+  .combat-console {
+    --pont-band: 260px;
+  }
+  /* Bandeau de phase compact : pleine largeur JUSTE au-dessus du pont (sonde pixel : 280/360 points
+     du liseré masqués quand il était à cheval). */
+  .cc-phase {
+    left: 4px;
+    right: 4px;
+    padding: 2px 8px;
+    gap: 6px;
+  }
+  .cc-phase-label {
+    font-size: 11px;
+  }
+  .cc-phase .btn {
+    padding: 2px 8px;
+    font-size: 11px;
+  }
+  .cc-dock {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: 'arch corner' 'left left' 'right right';
+    justify-items: center;
+    gap: var(--cc-gap);
+  }
+  .cc-bay-right { justify-self: center; }
+  .cc-bay {
+    width: 100%;
+    align-items: center;
+    /* R-M3 : la dernière rangée respire SOUS son bord (6px) — collée au bord de tôle, elle se
+       lisait « coupée » (sonde pixel du juge : fond de tuile 632, plaque 636). */
+    padding: 4px 4px 6px;
+    gap: 4px;
+  }
+  .cc-bay-body {
+    gap: 6px;
+  }
+  .cc-bay-head {
+    font-size: 8px;
+    letter-spacing: 0.4px;
+  }
+  .cc-bay-right {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: 'conduit' 'cases';
+    align-items: center;
+    gap: 4px;
+  }
+  .cc-conduit { grid-area: conduit; }
+  .cc-grid-right { grid-area: cases; justify-self: center; }
   /* Conduit FONDU dans le bord supérieur de la grille : plus d'écart, un seul plan de tôle. */
   .cc-conduit {
     width: 100%;
@@ -1330,58 +1279,14 @@ button.cc-socle svg {
     font-size: 9px;
     letter-spacing: 0.5px;
   }
-  /* La colonne de sets se resserre avec l'alvéole : aucune vignette ne se replie (le repli du
-     commutateur v7 est mort avec la rangée sous la travée). */
+  /* La colonne de sets se resserre avec l'alvéole ; aucune vignette ne se replie. */
   .cc-sets {
     width: 26px;
-  }
-  /* L'état de charge NE rétrécit PAS avec l'alvéole : c'est le plus petit texte du pont, il tient son
-     plancher de 8px à toute largeur (grief vision : illisible à 360). */
-  .cc-end {
-    min-height: 0;
-    height: 100%;
-    padding: 4px 3px;
-    gap: 2px;
-  }
-  /* La plaque de sortie garde ses DEUX lignes : « Fin du tour » se coupe ENTRE MOTS (aucun de ses
-     mots n'est plus large que la plaque), là où une alvéole de 36px n'a la place d'aucun. */
-  .cc-end .cc-lbl {
-    font-size: 9px;
-    display: -webkit-box;
-    white-space: normal;
-    max-height: 2.1em;
-  }
-  /* R-M2 à la composition compacte : UNE ligne, ellipse posée par le moteur de rendu — donc TOUJOURS
-     à la frontière d'un glyphe. La boîte à deux lignes ne posait son ellipse que sur la DERNIÈRE :
-     un mot plus large que l'alvéole de 36px (« Mouvement », « Détermination ») était TRANCHÉ en
-     plein glyphe par le `overflow: hidden` de la première (sonde du juge vision à 360 : « Mouve… »,
-     « Déter… » avec son « 3 » orphelin). Le libellé entier reste le nom accessible de l'alvéole.
-     Aucune coupe DANS un mot n'est autorisée pour autant (ni `overflow-wrap: anywhere`, ni
-     `word-break: break-all`) : le mot n'est pas cassé, il est ellipsé. */
-  .cc-lbl {
-    font-size: 7.5px;
-    letter-spacing: 0;
-    display: block;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-    flex: 0 0 auto;
-    max-height: 1.1em;
-  }
-  /* Ligne unique : le corps (portrait + gouttières) garde sa largeur NATURELLE, c'est le NOM qui
-     cède et se tronque à l'ellipse. */
-  .cc-arch-body {
-    flex: 0 0 auto;
-  }
-  .cc-arch-name {
-    font-size: 11px;
-    flex: 0 1 auto;
-    min-width: 0;
   }
 }
 @media (pointer: coarse) {
   :root {
-    --cc-cell-w: 44px;
-    --cc-cell-h: 36px;
+    --cc-cell: 44px;
   }
   /* Cible tactile de la colonne de sets : la vignette s'élargit, son compte ne change pas. */
   .cc-sets {

@@ -105,6 +105,7 @@ function survol(dataCell: string) {
   if (!pop) throw new Error(`aucune infobulle ouverte au survol de « ${dataCell} »`);
   return {
     title: pop.querySelector('.codex-pop-title')?.textContent ?? null,
+    sub: pop.querySelector('.codex-pop-sub')?.textContent ?? null,
     body: pop.querySelector('.codex-pop-body')?.textContent ?? null,
     /** La PORTE vers la fiche complète (l’infobulle borne son corps : `coupeAuMot`, `BORNE_DU_CORPS`). */
     porte: pop.querySelector('.codex-pop-open')?.textContent ?? null,
@@ -162,6 +163,10 @@ function quitterRefus(el: Element): Element | null {
 /** Une alvéole FERMÉE, dans les DEUX écritures : `disabled` HTML (maquette muette, rien à atteindre)
  *  ou `aria-disabled` (elle PORTE une raison, donc elle reste focalisable — clavier, manette, doigt). */
 const estFermee = (b: HTMLButtonElement) => b.disabled || b.getAttribute('aria-disabled') === 'true';
+
+/** NOM d'une alvéole : la case ne grave plus son libellé (décision d'écran Q1 du 2026-09-24, #1806) —
+ *  il vit dans son nom accessible, suivi des gestes secondaires qu'elle annonce (« — … »). */
+const nomCase = (c: Element) => (c.getAttribute('aria-label') ?? '').split(' — ')[0];
 
 /** TEXTE VISIBLE d'un nœud : son contenu MOINS les copies HORS ÉCRAN (`.hors-ecran`, cibles des
  *  `aria-describedby`). C'est la mesure de « la case reste propre » : aucune raison gravée à l'écran. */
@@ -441,8 +446,8 @@ function evalLen(expr: string, vw: number, vh: number, depth = 0): number {
   // 1) variables du module
   for (let i = 0; i < 8 && e.includes('var('); i++) {
     e = e.replace(/var\((--[\w-]+)\)/g, (_m, nom: string) => {
-      const v = decl(racine(), nom);
-      if (!v) throw new Error(`variable ${nom} absente du :root de combat-console.css`);
+      const v = decl(racine(), nom) ?? new RegExp(`${nom}:\\s*([^;]+);`).exec(BASE_CSS)?.[1];
+      if (!v) throw new Error(`variable ${nom} absente du :root de combat-console.css et de base.css`);
       return `(${String(evalLen(v, vw, vh, depth + 1))}px)`;
     });
   }
@@ -673,14 +678,16 @@ describe('CombatConsole — micro-rendu (sondes pixel du juge vision, 2026-08-17
   // C-1 : à 360 le portrait de l'arche n'avait PAS DE VISAGE — la BOÎTE rétrécit (style inline de la
   // primitive repris à la main), le DESSIN restait à 72px et se cadrait « slice » sur son coin.
   it('C-1 — toute boîte de portrait redimensionnée remet son dessin à l’échelle', () => {
-    // La composition compacte redimensionne bien la boîte — par la VARIABLE de portrait, une seule
-    // source pour les trois boîtes (tuile, face, dessin), au lieu de trois littéraux `!important`.
-    const at560 = mediaBlock(CC_CSS, '@media (max-width: 560px)');
-    // La composition compacte RÉTRÉCIT le portrait : relation à la valeur de base.
-    const portraitBase = evalLen(decl(ruleOf(CC_BASE, ':root'), '--cc-portrait')!, 360, 640);
-    expect(evalLen(decl(ruleOf(at560, ':root'), '--cc-portrait')!, 360, 640)).toBeLessThan(portraitBase);
-    const boites = ruleOf(CC_BASE, '.cc-arch .ptile, .cc-arch .ptile-face, .cc-arch .rig-portrait');
-    expect(decl(boites, 'width')).toBe('var(--cc-portrait) !important');
+    // La ligne d'arche (≤700) redimensionne bien la boîte — par la VARIABLE de portrait, posée sur la
+    // TUILE ; le visage et le dessin la REMPLISSENT, liseré compris (posés à sa taille, ils la
+    // débordaient de l'épaisseur du liseré).
+    const at700 = mediaBlock(CC_CSS, '@media (max-width: 700px)');
+    const portraitBase = evalLen(decl(ruleOf(CC_BASE, ':root'), '--cc-portrait')!, 1366, 650);
+    expect(evalLen(decl(ruleOf(at700, ':root'), '--cc-portrait')!, 700, 780)).toBeLessThan(portraitBase);
+    expect(decl(ruleOf(CC_BASE, '.cc-arch .ptile'), 'width')).toBe('var(--cc-portrait) !important');
+    const visage = ruleOf(CC_BASE, '.cc-arch .ptile-face, .cc-arch .rig-portrait');
+    expect(decl(visage, 'width')).toBe('100% !important');
+    expect(decl(visage, 'height')).toBe('100% !important');
     const svg = ruleOf(CC_BASE, '.cc-arch .rig-portrait > svg');
     expect(decl(svg, 'width')).toBe('100%');
     expect(decl(svg, 'height')).toBe('100%');
@@ -706,29 +713,35 @@ describe('CombatConsole — micro-rendu (sondes pixel du juge vision, 2026-08-17
     expect(seule.querySelector('.ptile')!.classList.contains('team-enemy')).toBe(true);
   });
 
-  // C-4 (R-M2) : « Mouve… », « Déter… » + « 3 » orphelin à 360 — la boîte à deux lignes ne pose son
-  // ellipse que sur la DERNIÈRE ; un mot plus large que l'alvéole était tranché EN PLEIN GLYPHE.
-  it('C-4 — le libellé d’alvéole s’ellipse, jamais coupé dans un mot', () => {
-    const at560 = mediaBlock(CC_CSS, '@media (max-width: 560px)');
-    const lbl = ruleOf(at560, '.cc-lbl');
-    expect(decl(lbl, 'white-space')).toBe('nowrap');
-    expect(decl(lbl, 'text-overflow')).toBe('ellipsis');
-    // Une seule ligne : c'est `nowrap` qui l'impose — le moteur pose alors l'ellipse à la frontière
-    // d'un glyphe, jamais dedans.
-    // … et JAMAIS par la casse d'un mot (R-M2), sur aucun libellé de la console.
+  // C-4 (décision d'écran Q1 du 2026-09-24, #1806 ; R-M2) : la case est CARRÉE et ne grave AUCUN mot —
+  // le nom d'une capacité ne peut donc plus être tranché. Il vit dans le nom accessible et dans
+  // l'infobulle, au survol comme au focus (`Analyse HUD Rogue Trader.dc.html:126-127`).
+  it('C-4 — l’alvéole ne grave aucun mot : son nom vit dans son nom accessible et dans son infobulle', () => {
+    // Seule la plaque de sortie garde son nom gravé (planche 2026-08-17, coin F : « Fin du tour »).
+    expect(CC_CSS.replace(/\.cc-end \.cc-lbl\b/g, ''), 'une règle de libellé d’alvéole survit').not.toMatch(/\.cc-lbl\b/);
     expect(CC_CSS).not.toMatch(/overflow-wrap:\s*(anywhere|break-word)/);
     expect(CC_CSS).not.toMatch(/word-break:\s*break-all/);
-    // Le libellé complet reste le NOM ACCESSIBLE de l'alvéole (`aria-label`) : l'infobulle native est
-    // proscrite (cf. `console-no-title-only.test.ts`), l'ellipse ne doit pas pour autant amputer
-    // l'information. (Une case VIDE ne porte aucun libellé : elle ne nomme aucune capacité.)
     const h = hero('h1', 'Gunnar');
     h.conditions = [];
+    // Un objet CUSTOM (aucune fiche au catalogue) : sa case n'a aucun foyer de règle, et son infobulle
+    // doit la nommer quand même.
+    const fiole = Object.assign(itemFromTrappingById('potion-de-guerison')!, { uid: 'i-fiole', label: 'Fiole du colporteur' });
+    delete (fiole as { trappingId?: string }).trappingId;
+    h.items = [...(h.items ?? []), fiole];
     monter(h);
-    const cases = [...host.querySelectorAll('.cc-grid-right .cc-cell:not(.cc-empty)')].filter((c) => c.querySelector('.cc-lbl'));
+    expect(survol('q-objet-i-fiole').title, 'la case sans fiche ne se nomme pas au survol').toBe('Fiole du colporteur');
+    const cases = [...host.querySelectorAll('.cc-grid .cc-cell:not(.cc-empty)')];
     expect(cases.length).toBeGreaterThan(0);
     for (const cell of cases) {
-      expect(cell.getAttribute('aria-label'), `alvéole sans nom accessible : ${cell.textContent}`).toBeTruthy();
+      const nom = nomCase(cell);
+      expect(nom, `alvéole sans nom accessible : ${cell.getAttribute('data-cell')}`).toBeTruthy();
       expect(cell.getAttribute('title'), 'infobulle native proscrite sur une alvéole').toBeNull();
+      expect(cell.querySelector('.cc-lbl'), `« ${nom} » grave son libellé`).toBeNull();
+      // À l'écran : la touche imprimée et le compte de gestes secondaires, rien d'autre.
+      const signes = [cell.querySelector('.cc-key')?.textContent, cell.querySelector('[data-glyphe-2e]')?.textContent].filter(Boolean) as string[];
+      expect(signes.reduce((t, sg) => t.replace(sg, ''), texteVisible(cell)).trim(), `« ${nom} » grave un mot`).toBe('');
+      // … et TOUTE alvéole pleine ouvre son infobulle, qui la NOMME en tête (la fiche de sa règle dessous).
+      expect(survol(cell.getAttribute('data-cell')!).title, `« ${nom} » : son infobulle ne la nomme pas`).toBe(nom);
     }
   });
 });
@@ -817,7 +830,7 @@ describe('CombatConsole — assemblage : UN PONT, pas des blocs', () => {
     // pour le contrat complet : hauteur FIXE, pas un plancher).
     const haut = decl(ruleOf(CC_BASE, '.cc-bay-left'), 'height');
     expect(haut, 'la travée gauche ne déclare AUCUNE hauteur').toBeTruthy();
-    expect(decl(ruleOf(CC_BASE, ':root'), '--cc-bay-h')!).toMatch(/var\(--cc-cell-h\)/);
+    expect(decl(ruleOf(CC_BASE, ':root'), '--cc-bay-h')!).toMatch(/var\(--cc-cell\)/);
   });
 
   it('P-3 — l’arche est le FRONTON du pont : même matière, aucune couture, DANS le pont', () => {
@@ -839,7 +852,7 @@ describe('CombatConsole — assemblage : UN PONT, pas des blocs', () => {
     expect(decl(peau, 'border-top')).toMatch(/var\(--pont-liseret\)/);
     // Elle S'ÉLÈVE au-dessus du liseré au lieu d'être posée devant (planche : 811 vs 863) : elle
     // remonte EXACTEMENT de la hauteur de fronton déclarée — relation évaluée, pas un texte de calc.
-    const fronton = parseFloat(decl(ruleOf(CC_BASE, ':root'), '--cc-fronton')!);
+    const fronton = evalLen('var(--cc-fronton)', 1920, 1080);
     expect(fronton).toBeGreaterThan(0);
     expect(evalLen(decl(arche, 'margin-top')!, 1920, 1080), 'l’arche ne s’élève pas de son fronton').toBe(-fronton);
     // … et structurellement, elle est DANS le pont, jamais une soeur flottante.
@@ -875,10 +888,16 @@ describe('CombatConsole — assemblage : UN PONT, pas des blocs', () => {
     // région, quelles que soient l'écriture de la formule et la valeur des tokens.
     const coin = evalLen('var(--cc-corner)', 1920, 1080);
     const ecart = evalLen('var(--cc-bay-gap)', 1920, 1080);
-    const gauche = evalLen(decl(dock, 'padding-left')!, 1920, 1080);
-    const droite = evalLen(decl(dock, 'padding-right')!, 1920, 1080);
-    expect(gauche - droite, 'la réserve miroir ne vaut plus coin + écart').toBe(coin + ecart);
+    const miroir = (vw: number, vh: number) => evalLen(decl(dock, 'padding-left')!, vw, vh) - evalLen(decl(dock, 'padding-right')!, vw, vh);
+    expect(miroir(1920, 1080), 'la réserve miroir ne vaut plus coin + écart').toBe(coin + ecart);
     expect(norm(decl(dock, 'padding-right')!)).toBe('var(--cc-marge)');
+    // Sur une fenêtre ÉTROITE, la réserve ne prend que ce que la RANGÉE laisse : rangée et réserve
+    // tiennent toujours dans la fenêtre (#1856 — rien ne sort de l'écran), et la réserve n'est jamais
+    // négative (décision d'écran Q1 du 2026-09-24 : une rangée de 701 à toute largeur).
+    for (const [vw, vh] of [[701, 780], [900, 780], [901, 780], [1100, 780], [1366, 650], [1707, 780]] as [number, number][]) {
+      expect(miroir(vw, vh), `${vw}×${vh} : réserve miroir négative`).toBeGreaterThanOrEqual(0);
+      expect(evalLen('var(--cc-rangee)', vw, vh) + miroir(vw, vh), `${vw}×${vh} : la rangée et sa réserve débordent la fenêtre`).toBeLessThanOrEqual(vw + 1e-6);
+    }
     // … et le coin tire sa largeur du MÊME token : la réserve ne peut pas se désynchroniser de lui.
     expect(decl(ruleOf(CC_BASE, '.cc-end'), 'width')).toBe('var(--cc-corner)');
     expect(parseFloat(decl(ruleOf(CC_BASE, ':root'), '--cc-corner')!)).toBeGreaterThan(0);
@@ -929,7 +948,7 @@ describe('CombatConsole — assemblage : UN PONT, pas des blocs', () => {
     // seul côté d'alvéole. Personne, dans la frise, ne la lit.
     const racine = ruleOf(CC_BASE, ':root');
     expect(decl(racine, '--cc-deck-h')).toMatch(/var\(--cc-bay-h\)/);
-    expect(decl(racine, '--cc-bay-h')).toMatch(/var\(--cc-cell-h\)/);
+    expect(decl(racine, '--cc-bay-h')).toMatch(/var\(--cc-cell\)/);
     expect(STRIP_BASE, 'la frise lit encore une hauteur de pont').not.toMatch(/--cc-deck-h|--xd-deck-h/);
     // La colonne est une surface de sa ZONE (`temps`, couche HUD #1919) : aucune ancre propre, et
     // aucune réserve — la réserve du bandeau de phase est une rangée de la couche.
@@ -1052,10 +1071,14 @@ describe('CombatConsole — trois formes, une seule bande', () => {
     // PLANCHER (`min-height`), jamais couperet : une hauteur imposée AMPUTAIT le pont dès que son
     // contenu réel dépassait la réserve (mesuré : nom du héros 9px hors écran, plaque de sortie
     // 7px, travée droite 17px à 900×800). La réserve, elle, est la même dans les trois formes.
-    // La bande réserve la hauteur du pont MOINS son liseré (que la peau porte) : relation évaluée.
-    const liseret = parseFloat(token('--pont-liseret'));
-    expect(evalLen(decl(ruleOf(CC_BASE, '.cc-dock'), 'min-height')!, 1920, 1080), 'le plancher de bande n’est plus la réserve moins le liseré')
-      .toBe(evalLen('var(--cc-deck-h)', 1920, 1080) - liseret);
+    // La bande réserve la hauteur du pont, liseré COMPRIS : la boîte est `border-box` (base.css) — un
+    // plancher amputé du liseré laissait la forme spectatrice 3px sous la forme complète à 700×780
+    // (233,6 contre 236,6, `hud-clickables.mjs`). Relation évaluée, aux deux régimes de bande.
+    expect(BASE_CSS, 'la boîte universelle n’est plus `border-box`').toMatch(/(^|\n)\*\s*\{\s*box-sizing:\s*border-box;/);
+    for (const [vw, vh] of [[1920, 1080], [700, 780]] as [number, number][]) {
+      expect(evalLen(decl(ruleOf(CC_BASE, '.cc-dock'), 'min-height')!, vw, vh), `le plancher de bande n’est plus la réserve à ${vw}×${vh}`)
+        .toBe(evalLen('var(--cc-deck-h)', vw, vh));
+    }
     expect(decl(ruleOf(CC_BASE, '.cc-dock'), 'height'), 'une hauteur imposée ampute').toBeNull();
     expect(decl(ruleOf(CC_BASE, '.combat-console'), 'height'), 'une hauteur imposée ampute').toBeNull();
     // AUCUNE règle keyée sur une FORME ne touche à une grandeur de hauteur : c'est ce qui garantit
@@ -1084,7 +1107,7 @@ describe('CombatConsole — trois formes, une seule bande', () => {
     expect(decl(ouv, 'inset'), 'l’ancre du bandeau de pont n’est pas neutralisée').toBe('auto');
     for (const cote of ['top', 'right', 'bottom', 'left', 'transform']) expect(decl(ouv, cote), cote).toBeNull();
     expect(CC_CSS, 'une grandeur du haut de l’écran survit').not.toMatch(/--cc-ouverture-top/);
-    for (const tranche of ['@media (max-width: 900px)', '@media (max-width: 700px)', '@media (max-width: 560px)']) {
+    for (const tranche of ['@media (max-width: 700px)', '@media (max-width: 560px)']) {
       expect(mediaBlock(CC_CSS, tranche), `${tranche} replace le bandeau d’ouverture`).not.toContain("data-phase='ouverture'");
     }
   });
@@ -1139,7 +1162,7 @@ describe('CombatConsole — case Recharger : le porteur de l’état est l’ARM
     h.weapons = [pistolet({ loaded: false, reloadProgress: 2 })];
     monter(h);
     const cell = host.querySelector('[data-cell="g4-recharger"]')!;
-    expect(cell.querySelector('.cc-lbl')!.textContent).toBe('Recharger 2/3');
+    expect(nomCase(cell)).toBe('Recharger 2/3');
     expect(cell.classList.contains('on')).toBe(true);
   });
 
@@ -1150,7 +1173,7 @@ describe('CombatConsole — case Recharger : le porteur de l’état est l’ARM
     Object.assign(h, { loaded: false, reloadProgress: 2 });
     monter(h);
     const cell = host.querySelector('[data-cell="g4-recharger"]')!;
-    expect(cell.querySelector('.cc-lbl')!.textContent).toBe('Recharger');
+    expect(nomCase(cell)).toBe('Recharger');
     expect(cell.classList.contains('on')).toBe(false);
   });
 });
@@ -1194,9 +1217,18 @@ describe('CombatConsole — travée gauche : sets, gestes déduits, accès rapid
     expect(vignettes().length).toBe(3);
     expect(vignettes().filter((v) => v.classList.contains('cc-empty')).length).toBe(1);
     expect(vignettes().map((v) => v.classList.contains('on'))).toEqual([true, false, false]);
-    // En-tête de travée = le SET AU POING, libellé DÉRIVÉ de son contenu par le moteur.
+    // En-tête de travée = le SET AU POING, libellé DÉRIVÉ de son contenu par le moteur…
     const head = host.querySelector('.cc-bay-head')!;
-    expect(head.textContent).toBe(loadoutLabel(h.loadouts![0], h));
+    expect([...head.childNodes].filter((n) => n.nodeType === Node.TEXT_NODE).map((n) => n.textContent).join('')).toBe(loadoutLabel(h.loadouts![0], h));
+    // … et la TOUCHE X y est gravée UNE fois (décision d'écran Q3 du 2026-09-24, spec:261-262) : elle
+    // fait tourner les sets, elle n'appartient à aucune vignette. Aucun rang chiffré non plus — l'ordre
+    // de rotation se lit à la position (un chiffre ne s'affiche que s'il est une touche).
+    expect(head.querySelector('.cc-key')?.textContent, 'la touche X n’est pas gravée dans l’en-tête').toBe('X');
+    expect(host.querySelectorAll('.cc-bay-left .cc-key').length, 'la touche X est gravée plus d’une fois').toBe(1);
+    for (const v of vignettes()) {
+      expect(v.querySelector('.cc-key'), 'une vignette de set porte encore une touche').toBeNull();
+      expect(texteVisible(v), 'une vignette de set grave encore son rang').not.toMatch(/\d/);
+    }
     // Un acteur SANS set (statbloc de créature) garde les trois emplacements : géométrie immuable.
     const nu = hero('h2', 'Gunnar');
     nu.conditions = [];
@@ -1204,6 +1236,8 @@ describe('CombatConsole — travée gauche : sets, gestes déduits, accès rapid
     monter(nu);
     expect(vignettes().length).toBe(3);
     expect(vignettes().filter((v) => v.classList.contains('cc-empty')).length).toBe(3);
+    // Rien à faire tourner : pas de touche X.
+    expect(host.querySelector('.cc-bay-head .cc-key')).toBeNull();
   });
 
   it('(a bis) l’état de charge d’un set est lu sur l’ARME, en MOT ENTIER, y compris pour le set NON tenu', () => {
@@ -1244,12 +1278,12 @@ describe('CombatConsole — travée gauche : sets, gestes déduits, accès rapid
       expect(texteVisible(l).trim(), 'une case vide n’écrit rien à l’écran').toBe('');
     }
     // L'Empoignade est une option du combat à MAINS NUES : elle n'est pas un geste d'arme.
-    const labels = casesGauche().map((c) => c.querySelector('.cc-lbl')?.textContent ?? '');
+    const labels = casesGauche().map(nomCase);
     expect(labels.some((l) => /Empoign/i.test(l))).toBe(false);
     expect(host.querySelector('[data-cell="g6-geste-arme"]')).toBeNull();
     // … et ce qui est déduit du set de mêlée l'est bien : l'attaque de l'arme tenue + la Charge.
     expect(casesGauche()[0].getAttribute('data-cell')).toBe('g1-attaque');
-    expect(casesGauche()[0].querySelector('.cc-lbl')!.textContent).toBe('Dague');
+    expect(nomCase(casesGauche()[0])).toBe('Dague');
     expect(casesGauche().map((c) => c.getAttribute('data-cell'))).toContain('g2-charge');
 
     // SET DE TIR au poing : la rangée CHANGE avec le set — le cycle de charge de l'arme y entre, avec sa
@@ -1260,7 +1294,7 @@ describe('CombatConsole — travée gauche : sets, gestes déduits, accès rapid
     const dataCells = casesGauche().map((c) => c.getAttribute('data-cell'));
     expect(dataCells).toContain('g4-recharger');
     expect(dataCells, 'set de tir pur : la Charge n’y a rien à faire').not.toContain('g2-charge');
-    expect(host.querySelector('[data-cell="g4-recharger"] .cc-lbl')!.textContent).toBe('Recharger 1/2');
+    expect(nomCase(host.querySelector('[data-cell="g4-recharger"]')!)).toBe('Recharger 1/2');
   });
 
   it('(c) ACCÈS RAPIDE : consommables GROUPÉS ×N + Soigner, cases restantes dessinées VIDES', () => {
@@ -1270,16 +1304,16 @@ describe('CombatConsole — travée gauche : sets, gestes déduits, accès rapid
     h.items = [...h.items!, objet('potion-de-guerison', 'i-po1'), objet('potion-de-guerison', 'i-po2')];
     monter(h);
     expect(casesRapide().length).toBe(4);
-    const labels = casesRapide().map((c) => c.querySelector('.cc-lbl')?.textContent ?? '');
+    const labels = casesRapide().map(nomCase);
     // Deux potions IDENTIQUES = UNE case à compteur (jamais deux cases du même objet).
     expect(labels.filter((l) => l.startsWith('Potion de guérison')).length).toBe(1);
     expect(labels).toContain('Potion de guérison ×2');
     expect(labels).toContain('Soigner');
     // Les deux restantes sont dessinées, et MUETTES : une alvéole vide ne nomme rien (2026-08-24).
     expect(casesRapide().filter((c) => c.classList.contains('cc-empty')).length).toBe(2);
-    expect(casesRapide().filter((c) => texteVisible(c).trim() === '').length).toBe(2);
+    expect(casesRapide().filter((c) => c.classList.contains('cc-empty')).every((c) => texteVisible(c).trim() === '')).toBe(true);
     // La case d'objet est BRANCHÉE (elle consomme l'objet réel du store), pas une maquette.
-    const potion = casesRapide().find((c) => (c.querySelector('.cc-lbl')?.textContent ?? '').startsWith('Potion'))!;
+    const potion = casesRapide().find((c) => nomCase(c).startsWith('Potion'))!;
     expect(potion.classList.contains('cc-inert')).toBe(false);
 
     // Rubrique nommée, et le compte de cases ne dépend PAS du contenu (héros sans rien).
@@ -1306,13 +1340,13 @@ describe('CombatConsole — travée gauche : sets, gestes déduits, accès rapid
     monter(avecPotions(['i-po1', 'i-po2']));
     const rangs = () => casesRapide().map((c) => c.getAttribute('data-cell'));
     expect(rangs()[2], 'la potion ne s’est pas rendue à l’adresse posée').toBe('q-objet-potion-de-guerison');
-    expect(casesRapide()[2].querySelector('.cc-lbl')!.textContent).toBe('Potion de guérison ×2');
+    expect(nomCase(casesRapide()[2])).toBe('Potion de guérison ×2');
 
     // … une gorgée plus tard : l'instance de tête a disparu du sac (c'est CE `uid` que les args
     // publiaient). La case reste à SON rang, avec un compteur de moins.
     monter(avecPotions(['i-po2']));
     expect(rangs()[2], 'l’adresse a suivi l’uid consommé au lieu du modèle').toBe('q-objet-potion-de-guerison');
-    expect(casesRapide()[2].querySelector('.cc-lbl')!.textContent).toBe('Potion de guérison');
+    expect(nomCase(casesRapide()[2])).toBe('Potion de guérison');
     expect(rangs()[0], 'la potion a repeuplé le rang 0 : l’adresse posée a été perdue').not.toBe('q-objet-potion-de-guerison');
   });
 });
@@ -1446,12 +1480,16 @@ describe('CombatConsole — droit de la travée et du coin (juge vision 2026-08-
     expect(qualite.desc, 'la qualité recharge doit porter son verbatim').toBeTruthy();
     const popCharge = survol('g2-charge');
     const popRech = survol('g4-recharger');
-    expect(popCharge.title).toBe(fiche.label);
+    // En tête, le NOM de la capacité (la case ne le grave plus — décision d'écran Q1 du 2026-09-24) ;
+    // dessous, la fiche de sa règle.
+    expect(popCharge.title).toBe(nomCase(host.querySelector('[data-cell="g2-charge"]')!));
+    expect(popCharge.sub).toBe(fiche.label);
     expect(popCharge.body).toBe(verbatimAttendu(fiche.desc));
     // Le corps est BORNÉ par la primitive : la porte vers la fiche complète doit donc être là.
     expect(popCharge.porte, 'verbatim borné sans porte vers la fiche').toBe('Ouvrir la fiche');
     expect(popCharge.source, 'la source de la règle se lit à l’infobulle').toContain('165');
-    expect(popRech.title).toBe(qualite.label);
+    expect(popRech.title).toBe(nomCase(host.querySelector('[data-cell="g4-recharger"]')!));
+    expect(popRech.sub).toBe(qualite.label);
     expect(popRech.body).toBe(verbatimAttendu(qualite.desc!));
     expect(popCharge.body, 'deux gestes, deux verbatims').not.toBe(popRech.body);
     // Aucun `title` natif nulle part sur ces deux cases.
@@ -1482,14 +1520,21 @@ describe('CombatConsole — droit de la travée et du coin (juge vision 2026-08-
     expect(casesGauche().length).toBe(6);
   });
 
-  // Coin de sortie : la ternaire d'origine n'affichait « Action intacte » que pour un héros INCAPABLE
-  // d'agir (Surpris → `canTakeAction` faux) — l'avertissement ne sortait donc jamais quand il servait.
-  it('D-3 — le coin dit l’état VRAI du tour : Action non dépensée · Tour fini · sa touche', () => {
-    const note = () => host.querySelector('.cc-end .cc-key')!.textContent;
+  // Coin de sortie (décision d'écran Q4.7 du 2026-09-24, #1806) : la TOUCHE est gravée en dur, ESPACE à
+  // tout état — « Action non dépensée » la remplaçait. L'état du tour se lit dans l'INFOBULLE de la
+  // plaque et dans sa description accessible ; l'armement garde son libellé (D-4).
+  it('D-3 — le coin grave toujours ESPACE ; l’état du tour se lit dans son infobulle', () => {
+    const touche = () => host.querySelector('.cc-end .cc-key')!.textContent;
+    const etat = () => {
+      const id = host.querySelector('.cc-end')!.getAttribute('aria-describedby');
+      return id ? host.querySelector(`#${id}`)!.textContent : null;
+    };
     const h = hero('h1', 'Gunnar');
     h.conditions = [];
     monter(h);
-    expect(note(), 'Action non dépensée et utilisable : l’avertissement doit sortir').toBe('Action non dépensée');
+    expect(touche()).toBe('ESPACE');
+    expect(etat(), 'Action non dépensée et utilisable : l’avertissement doit se dire').toBe('Action non dépensée');
+    expect(survol('end-turn').sub, 'l’avertissement ne se lit pas au survol').toBe('Action non dépensée');
 
     const agi = hero('h2', 'Gunnar');
     agi.conditions = [];
@@ -1498,14 +1543,16 @@ describe('CombatConsole — droit de la travée et du coin (juge vision 2026-08-
       const b = useGame.getState().battle!;
       useGame.setState({ battle: { ...b, acted: true } });
     });
-    expect(note()).toBe('Tour fini');
+    expect(touche()).toBe('ESPACE');
+    expect(etat()).toBe('Tour fini');
 
-    // Surpris (`etats.json` : `gating.action = 'none'`) : rien à dépenser, donc aucun reproche — la
-    // plaque imprime SA touche.
+    // Surpris (`etats.json` : `gating.action = 'none'`) : rien à dépenser, donc aucun reproche.
     const surpris = hero('h3', 'Gunnar');
     surpris.conditions = [{ id: 'surpris', value: 1 }] as ConditionInstance[];
     monter(surpris);
-    expect(note()).toBe('ESPACE');
+    expect(touche()).toBe('ESPACE');
+    expect(etat()).toBeNull();
+    expect(survol('end-turn').sub).toBeNull();
   });
 
   it('D-4 — garde-fou 2 clics : le 1ᵉʳ ARME la plaque (rien ne se passe), le 2ᵉ finit le tour', () => {
@@ -1519,7 +1566,7 @@ describe('CombatConsole — droit de la travée et du coin (juge vision 2026-08-
     act(() => plaque().click());
     // 1ᵉʳ clic : armement VISIBLE, tour intact.
     expect(plaque().hasAttribute('data-armed'), 'le 1ᵉʳ clic doit ARMER, pas finir').toBe(true);
-    expect(host.querySelector('.cc-end .cc-key')!.textContent).toBe('Finir quand même ?');
+    expect(host.querySelector('.cc-end .cc-key')!.textContent, 'la touche reste gravée, armée ou non').toBe('ESPACE');
     expect(host.querySelector('.cc-end .cc-lbl')!.textContent).toBe('Finir quand même');
     expect(useGame.getState().battle!.turn).toBe(0);
 
@@ -1667,7 +1714,7 @@ describe('CombatConsole — les cases sont des ENTRÉES du registre (branchement
       'case rendue dont l’id d’action n’existe pas au registre',
     ).toEqual([]);
     // Le libellé de la Défensive n'est pas écrit dans le composant : il est LU dans l'entrée.
-    expect(caseAction('defend')!.querySelector('.cc-lbl')!.textContent).toBe(findActionById('defend')!.label);
+    expect(nomCase(caseAction('defend')!)).toBe(findActionById('defend')!.label);
   });
 
   it('R-2 — la case Défensive EXÉCUTE son dispatcher (`battleDefendTotal`) par le registre', () => {
@@ -1733,7 +1780,7 @@ describe('CombatConsole — les cases sont des ENTRÉES du registre (branchement
   // bande de raison inline mangeait la hauteur, et la raison ÉTAIT ELLE-MÊME tronquée (« AUCUN POINT DE
   // DÉTE… ») : illisible deux fois. La raison partie au survol, la hauteur rendue au nom, la case gatée
   // redevient une case NORMALE — même boîte, même glyphe, deux lignes de nom, encre AA.
-  it('R-7 — case gatée : le NOM ENTIER reste lisible (2 lignes, encre AA), la RAISON n’est plus dans la boîte', () => {
+  it('R-7 — case gatée : le NOM ENTIER vit dans son nom accessible (encre AA), la RAISON n’est plus dans la boîte', () => {
     const h = hero('h1', 'Gunnar');
     h.conditions = [];
     h.resolve = 0;
@@ -1744,19 +1791,14 @@ describe('CombatConsole — les cases sont des ENTRÉES du registre (branchement
     expect(findActionById(pire)!.label.length, 'le pire cas doit être un libellé long').toBeGreaterThan(18);
     for (const id of detIds) {
       const c = caseAction(id)!;
-      // (a) DOM : le nom du geste est un nœud À PART, porteur du libellé ENTIER de l'entrée + sa réserve
-      // — aucune troncature à la source, et plus AUCUN texte de raison à côté de lui.
-      const nom = c.querySelector('.cc-lbl:not([data-gate])')!;
-      expect(nom.textContent).toBe(`${findActionById(id)!.label} (0)`);
-      expect(texteVisible(c).trim(), 'l’alvéole ne montre QUE son nom').toBe(nom.textContent);
+      // (a) DOM : le nom du geste est le libellé ENTIER de l'entrée + sa réserve, porté par le nom
+      // accessible — et l'alvéole ne grave AUCUN texte, ni nom ni raison (décision d'écran Q1).
+      expect(nomCase(c)).toBe(`${findActionById(id)!.label} (0)`);
+      expect(texteVisible(c).trim(), 'l’alvéole gatée grave un texte').toBe('');
     }
     const det = caseAction(pire)!;
-    // (b) CSS : la case gatée n'a plus AUCUNE règle qui rétrécit son contenu — ni bande réservée, ni
-    // clamp à une ligne, ni glyphe à 0,75× ; le libellé garde les DEUX lignes de la primitive.
-    expect(CC_CSS, 'plus aucune règle ne rogne le libellé d’une case gatée')
-      .not.toMatch(/\.cc-cell\[data-gated\][^{]*\.cc-(lbl|ico)/);
-    expect(CC_CSS, 'plus de bande de raison dans l’alvéole').not.toMatch(/\.cc-lbl\[data-gate\]/);
-    expect(decl(ruleOf(CC_BASE, '.cc-lbl'), 'line-clamp'), 'le nom garde ses deux lignes').toBe('2');
+    // (b) CSS : la case gatée n'a AUCUNE règle qui rétrécit son glyphe.
+    expect(CC_CSS, 'une règle rogne le glyphe d’une case gatée').not.toMatch(/\.cc-cell\[data-gated\][^{]*\.cc-ico/);
     // (c) l'ENCRE de la case fermée tient AA (≥ 4,5:1) sur les deux arrêts de l'alvéole : le grief vision
     // « Recharger 2,94:1 » (spec HUD l.85-86) se ferme au TOKEN, pas à l'œil.
     const travee = ruleOf(CC_BASE, '.cc-bay-right');
@@ -1771,30 +1813,21 @@ describe('CombatConsole — les cases sont des ENTRÉES du registre (branchement
     expect(det.querySelector('.cc-key'), 'badge de touche sur une case gatée').toBeNull();
   });
 
-  // Le badge de touche est posé HORS FLUX au pied de l'alvéole : sur un libellé long il passait SOUS
-  // les mots (sonde du juge vision, « Immunité Psychologie (2) » captures 01/07/15). La case qui
-  // IMPRIME sa touche lui réserve donc sa bande au pied.
-  it('R-7bis — la case qui imprime sa touche RÉSERVE sa bande au pied (le chiffre ne mord plus le nom)', () => {
+  // La TOUCHE est imprimée DANS la case, dans son coin (décision d'écran Q1 du 2026-09-24 ;
+  // `Analyse HUD Rogue Trader.dc.html:126` « La touche est imprimée dans la case ») : sans libellé à
+  // mordre, elle ne réserve plus aucune bande — la case reste carrée.
+  it('R-7bis — la touche est imprimée dans le coin de la case, sans réserve', () => {
     const h = hero('h1', 'Gunnar');
     h.conditions = [];
     monter(h, { foes: [foe('e1', 9, 9)] });
-    // Les alvéoles des GRILLES (la plaque de sortie a sa propre boîte et sa propre note de pied).
-    const alveoles = [...host.querySelectorAll('.cc-grid .cc-cell')];
-    const avecTouche = alveoles.filter((c) => c.querySelector('.cc-key'));
+    const avecTouche = [...host.querySelectorAll('.cc-grid .cc-cell')].filter((c) => c.querySelector('.cc-key'));
     expect(avecTouche.length, 'aucune case à touche : la sonde ne mesurerait rien').toBeGreaterThan(0);
-    for (const c of avecTouche) {
-      expect(c.hasAttribute('data-hotkey'), `case « ${c.getAttribute('data-action')} » : touche imprimée sans réserve`).toBe(true);
-    }
-    // … et aucune case SANS badge ne paie la réserve (la géométrie ne se paie que là où elle sert).
-    for (const c of alveoles.filter((x) => !x.querySelector('.cc-key'))) {
-      expect(c.hasAttribute('data-hotkey')).toBe(false);
-    }
-    const regle = ruleOf(CC_BASE, '.cc-cell[data-hotkey]');
-    const bande = parseFloat(decl(regle, 'padding-bottom')!);
-    const badge = ruleOf(CC_BASE, '.cc-key');
-    // La bande couvre le badge : son corps + son fond de ligne.
-    expect(bande, 'réserve plus courte que le badge : le chevauchement revient')
-      .toBeGreaterThanOrEqual(parseFloat(/\b(\d+(?:\.\d+)?)px\b/.exec(decl(badge, 'font')!)![1]) + parseFloat(decl(badge, 'bottom')!));
+    for (const c of avecTouche) expect(c.hasAttribute('data-hotkey'), 'une réserve de touche survit').toBe(false);
+    expect(CC_CSS, 'une case paie encore une bande de touche').not.toMatch(/\[data-hotkey\]/);
+    expect(decl(ruleOf(CC_BASE, '.cc-key'), 'position')).toBe('absolute');
+    const cell = ruleOf(CC_BASE, '.cc-cell');
+    expect(decl(cell, 'width')).toBe('var(--cc-cell)');
+    expect(decl(cell, 'height')).toBe('var(--cc-cell)');
   });
 
   it('R-5 — G6bis : le geste d’ÉTAT du porteur (surface `geste-d-etat`) se dessine quand sa situation l’ouvre', () => {
@@ -1810,7 +1843,7 @@ describe('CombatConsole — les cases sont des ENTRÉES du registre (branchement
     const desc = caseAction('dismount');
     expect(desc, 'en selle : la case G6bis doit être dessinée').not.toBeNull();
     expect(findActionById('dismount')!.surface).toBe('geste-d-etat');
-    expect(desc!.querySelector('.cc-lbl')!.textContent).toBe(findActionById('dismount')!.label);
+    expect(nomCase(desc!)).toBe(findActionById('dismount')!.label);
     // La géométrie ne bouge pas d'un poil : la travée garde son compte de cases.
     expect(host.querySelectorAll('.cc-grid-left .cc-cell').length).toBe(6);
   });
@@ -1912,8 +1945,9 @@ describe('CombatConsole — micro-rendu, 2ᵉ passe du juge vision (2026-08-17)'
       const lu = (e: string) => evalLen(e, vw, vh);
       expect(lu(decl(racine, '--cc-deck-h')!), `réserve de bande à ${vw}×${vh}`)
         .toBe(Math.max(lu('var(--cc-bay-h)'), lu('var(--cc-arch-h)') - lu('var(--cc-fronton)')) + liseret);
-      expect(lu(decl(racine, '--cc-arch-h')!), `hauteur d’arche à ${vw}×${vh}`)
-        .toBe(lu('var(--cc-portrait)') + lu('var(--cc-arch-chrome)'));
+      // L'arche tient son portrait et son habillage : le portrait ne la fait jamais grandir.
+      expect(lu('var(--cc-portrait)') + lu('var(--cc-arch-chrome)'), `portrait trop grand pour l’arche à ${vw}×${vh}`)
+        .toBeLessThanOrEqual(lu(decl(racine, '--cc-arch-h')!) + 1e-6);
     }
     // Ce liseré est bien celui du pont, pas un nombre en l'air : la peau de bande le déclare par le
     // token `--pont-liseret` (base.css), et c'est CE token que la réserve ci-dessus additionne.
@@ -1924,7 +1958,7 @@ describe('CombatConsole — micro-rendu, 2ᵉ passe du juge vision (2026-08-17)'
     // dès que la bande EMPILE ses régions, la travée reprend la sienne, EXPLICITEMENT — elle ne se
     // recalcule pas. La règle se relit donc tranche par tranche, en lisant le régime au `.cc-dock`.
     let empilee = false;
-    for (const q of ['@media (max-width: 900px)', '@media (max-width: 700px)', '@media (max-width: 560px)']) {
+    for (const q of ['@media (max-width: 700px)', '@media (max-width: 560px)']) {
       const tranche = mediaBlock(CC_CSS, q);
       // Les tranches se lisent du plus large au plus étroit et se CUMULENT : une tranche qui n'en
       // reparle pas hérite du régime de la précédente.
@@ -1937,9 +1971,9 @@ describe('CombatConsole — micro-rendu, 2ᵉ passe du juge vision (2026-08-17)'
       }
       if (empilee) expect(blocs.length, `${q} empile ses régions sans relâcher la travée`).toBeGreaterThan(0);
     }
-    const at560 = mediaBlock(CC_CSS, '@media (max-width: 560px)');
-    // … et le fronton y rentre dans le rang, au `:root` : la réserve de bande le lit.
-    expect(parseFloat(decl(ruleOf(at560, ':root'), '--cc-fronton')!)).toBe(0);
+    const at700 = mediaBlock(CC_CSS, '@media (max-width: 700px)');
+    // … et sous 701 le fronton rentre dans le rang, au `:root` : la réserve de bande le lit.
+    expect(parseFloat(decl(ruleOf(at700, ':root'), '--cc-fronton')!)).toBe(0);
     // … et la travée ne porte AUCUNE bande réservée : la munition vit dans l'EN-TÊTE, à côté du set
     // (arbitrage #1348 complément a — 47px de plaque NUE mesurés sous les travées avant la coupe).
     const objet = (id: string, uid: string, over: Partial<ItemInstance> = {}) => Object.assign(itemFromTrappingById(id)!, { uid }, over);
@@ -1969,23 +2003,18 @@ describe('CombatConsole — micro-rendu, 2ᵉ passe du juge vision (2026-08-17)'
 
   // Sondes du juge : « déch. » = 7px (plus petit texte du dépôt, 3 rangées de pixels à 360), à cheval sur
   // le « X », et le set AU POING portait le liseré le PLUS discret de la travée.
-  it('E-4 — vignette de set : mot entier ≥ 8px, trois coins DISJOINTS, set au poing en relief', () => {
+  it('E-4 — vignette de set : mot entier ≥ 8px au pied, aucun rang ni touche gravés, set au poing en relief', () => {
     const load = ruleOf(CC_BASE, '.cc-set-load');
     const px = (v: string) => parseFloat(/(\d+(?:\.\d+)?)px/.exec(v)![1]);
     expect(px(decl(load, 'font')!)).toBeGreaterThanOrEqual(8); // norme: plancher de lisibilité 8px (charte UI — un mot entier, lisible)
     // Aucune tranche compacte ne le rapetisse (il était descendu à 6px sous 560).
-    for (const q of ['@media (max-width: 900px)', '@media (max-width: 700px)', '@media (max-width: 560px)']) {
+    for (const q of ['@media (max-width: 700px)', '@media (max-width: 560px)']) {
       expect(mediaBlock(CC_CSS, q)).not.toMatch(/\.cc-set-load\s*\{/);
     }
-    // Trois gravures, trois coins : rang haut-GAUCHE, touche haut-DROITE, état au PIED pleine largeur.
-    const rang = ruleOf(CC_BASE, '.cc-set-n');
-    const touche = ruleOf(CC_BASE, '.cc-set .cc-key');
-    expect(decl(rang, 'top')).toBeTruthy();
-    expect(decl(rang, 'left')).toBeTruthy();
-    expect(decl(touche, 'top')).toBeTruthy();
-    expect(decl(touche, 'right')).toBeTruthy();
-    expect(decl(touche, 'bottom'), 'la touche quitte le pied, occupé par l’état de charge').toBe('auto');
-    expect(decl(touche, 'left')).toBe('auto');
+    // Une seule gravure : l'état au PIED, pleine largeur. Le rang et la touche ont quitté la vignette
+    // (décision d'écran Q3 du 2026-09-24) — le DOM le garde en (a).
+    expect(CC_CSS, 'le rang gravé du set survit').not.toMatch(/\.cc-set-n\b/);
+    expect(CC_CSS, 'une touche est encore posée sur la vignette').not.toMatch(/\.cc-set \.cc-key/);
     expect(decl(load, 'position')).toBe('absolute');
     expect(decl(load, 'bottom')).toBe('0');
 
@@ -2040,62 +2069,71 @@ describe('CombatConsole — micro-rendu, 2ᵉ passe du juge vision (2026-08-17)'
   });
 });
 
-// ── BUDGET DE HAUTEUR DU PONT — CONTRAT (spec §1c « BUDGET DE HAUTEUR », commit `432e1247`) : la
-//    planche budgétise 217px de pont pour 1080 de haut, soit 20,1 % ; une capture à ~1998px en mesurait
-//    28-29 %. Le pont tient ≤ 21 % du viewport.
-//    On ÉVALUE ici les déclarations réelles (le `clamp`/`min`/`calc` de `--cc-cell-h` et la chaîne
-//    `--cc-bay-h` → `--cc-deck-h`) à viewport simulé : c'est la LOI déclarée qui est jugée, pas un
-//    littéral recopié. La recette re-mesure les mêmes largeurs à l'écran.
-describe('CombatConsole — budget de hauteur du pont (arbitrage user 2026-08-17)', () => {
-  /** Hauteur du pont telle que le CSS la DÉCLARE, à un viewport donné. */
+// ── BUDGET DE HAUTEUR DU PONT — CONTRAT (spec « BUDGET DE HAUTEUR », docs/plans/2026-08-16-spec-hud-combat.md:24-26 ;
+//    décision d'écran Q1-Q2 du 2026-09-24, #1806) : la BANDE tient ≤ 17 % de la hauteur d'écran et
+//    l'EMPREINTE (bande + saillie du fronton) ≤ 22 %, à toute vue ≥ 701 ; le côté de case est UN, carré,
+//    et ne casse pas entre 900 et 901.
+//    On ÉVALUE ici les déclarations réelles à viewport simulé : c'est la LOI déclarée qui est jugée, pas
+//    un littéral recopié. `scripts/recette/hud-clickables.mjs` re-mesure les mêmes plafonds à l'écran.
+describe('CombatConsole — budget de hauteur du pont (arbitrage user 2026-08-17, décision d’écran 2026-09-24)', () => {
+  /** Hauteur de la BANDE telle que le CSS la DÉCLARE, à un viewport donné. */
   const deck = (vw: number, vh: number) => evalLen(decl(racine(), '--cc-deck-h')!, vw, vh);
+  const saillie = (vw: number, vh: number) => evalLen(decl(racine(), '--cc-saillie')!, vw, vh);
+  const cote = (vw: number, vh: number) => evalLen(decl(racine(), '--cc-cell')!, vw, vh);
 
-  // 1998×959 = la résolution de la capture de l'arbitrage ; 1280×800 et 1920×1080 = l'étalon et la planche.
-  const ECRANS: [number, number][] = [[1280, 800], [1600, 900], [1920, 1080], [1998, 959], [2560, 1440]];
+  // Les vues de la décision (701, 900, 901, 1366×650, 1707×780), l'étalon, la planche, la capture de
+  // l'arbitrage (1998×959) et un grand écran.
+  const ECRANS: [number, number][] = [[701, 780], [900, 780], [901, 780], [1100, 780], [1280, 800], [1366, 650], [1707, 780], [1920, 1080], [1998, 959], [2560, 1440]];
 
-  it('F-1 — le pont tient ≤ 21 % du viewport à toutes les largeurs de bureau', () => {
+  it('F-1 — bande ≤ 17 % et empreinte ≤ 22 % de la hauteur d’écran, à toute vue ≥ 701', () => {
     for (const [vw, vh] of ECRANS) {
-      const h = deck(vw, vh);
-      const part = h / vh;
-      expect(part, `${vw}×${vh} : pont ${h.toFixed(1)}px = ${(part * 100).toFixed(1)} % du viewport`).toBeLessThanOrEqual(0.21);
+      const bande = deck(vw, vh);
+      const total = bande + saillie(vw, vh);
+      expect(bande / vh, `${vw}×${vh} : bande ${bande.toFixed(1)}px = ${(100 * bande / vh).toFixed(1)} %`).toBeLessThanOrEqual(0.17 + 1e-9);
+      expect(total / vh, `${vw}×${vh} : empreinte ${total.toFixed(1)}px = ${(100 * total / vh).toFixed(1)} %`).toBeLessThanOrEqual(0.22 + 1e-9);
       // … et il reste PRÉSENT (une console écrasée n'est pas une console).
-      expect(part, `${vw}×${vh} : pont ${(part * 100).toFixed(1)} % — trop maigre`).toBeGreaterThan(0.13);
+      expect(bande / vh, `${vw}×${vh} : bande ${(100 * bande / vh).toFixed(1)} % — trop maigre`).toBeGreaterThan(0.13);
     }
+    // Le fronton COMPTE : c'est la saillie de l'empreinte, bornée au rapport de la planche (spec:237).
+    expect(saillie(1920, 1080)).toBe(evalLen('var(--cc-fronton)', 1920, 1080));
+    expect(evalLen('var(--cc-fronton)', 1920, 2000), 'le fronton dépasse 52px').toBeLessThanOrEqual(52);
   });
 
-  it('F-2 — l’alvéole est PAYSAGE partout (jamais un carré, jamais un portrait)', () => {
+  it('F-2 — l’alvéole est CARRÉE, et son côté ne casse pas entre 900 et 901', () => {
+    const cell = ruleOf(CC_BASE, '.cc-cell');
+    expect(decl(cell, 'width')).toBe('var(--cc-cell)');
+    expect(decl(cell, 'height')).toBe('var(--cc-cell)');
+    expect(CC_CSS, 'un côté de case à deux dimensions survit').not.toMatch(/--cc-cell-[wh]\b/);
+    // Une formule de 701 à toute largeur : aucune tranche ne redéclare le côté au-dessus de 560.
+    expect(decl(ruleOf(mediaBlock(CC_CSS, '@media (max-width: 700px)'), ':root'), '--cc-cell')).toBeNull();
+    expect(Math.abs(cote(901, 780) - cote(900, 780)), 'le côté casse entre 900 et 901').toBeLessThan(1);
+    // La cote de la décision à la vue la plus étroite de la rangée.
+    expect(cote(701, 780), 'case sous la cote de la décision à 701×780').toBeGreaterThanOrEqual(28);
+  });
+
+  it('F-3 — le côté se calcule sur la FENÊTRE (hauteur et largeur), jamais sur le pont', () => {
+    const c = decl(racine(), '--cc-cell')!;
+    expect(c, 'le côté lit une hauteur de pont').not.toMatch(/--cc-deck-h|--cc-bay-h/);
+    // Un même écran, plus haut : la case grandit (le budget est un RATIO, pas un plafond fixe).
+    expect(cote(1920, 1080)).toBeGreaterThan(cote(1920, 800));
+    // Un écran plus ÉTROIT : la rangée tient dans la fenêtre, donc la case cède.
+    expect(cote(701, 780)).toBeLessThan(cote(1707, 780));
     for (const [vw, vh] of ECRANS) {
-      const w = evalLen(decl(racine(), '--cc-cell-w')!, vw, vh);
-      const h = evalLen(decl(racine(), '--cc-cell-h')!, vw, vh);
-      expect(w / h, `${vw}×${vh} : alvéole ${w.toFixed(1)}×${h.toFixed(1)}`).toBeGreaterThan(1.1);
-      // La planche : 90×66 à 1920, ratio 1,36 — on reste dans sa famille de proportions.
-      expect(w / h, `${vw}×${vh} : alvéole trop étirée`).toBeLessThan(1.7);
+      expect(evalLen('var(--cc-rangee)', vw, vh), `${vw}×${vh} : la rangée déborde la fenêtre`).toBeLessThanOrEqual(vw + 1e-6);
     }
   });
 
-  it('F-3 — la HAUTEUR d’alvéole se calcule sur la hauteur du viewport (c’est elle qui porte le budget)', () => {
-    const h = decl(racine(), '--cc-cell-h')!;
-    expect(h, 'un côté keyé sur la LARGEUR laisse un écran large et court dépasser le budget').toMatch(/vh/);
-    expect(h).not.toMatch(/vw\b/);
-    // La largeur, elle, suit la largeur d'écran (le pont doit porter ses quatre régions).
-    expect(decl(racine(), '--cc-cell-w')!).toMatch(/vw/);
-    // Un même écran, deux fois plus haut : le pont grandit (le budget est un RATIO, pas un plafond fixe).
-    expect(deck(1920, 1080)).toBeGreaterThan(deck(1920, 800));
-  });
-
-  it('F-4 — l’icône est une FRACTION de sa case, jamais un px figé (ni au CSS, ni au call-site)', () => {
-    expect(decl(racine(), '--cc-ico')!).toMatch(/var\(--cc-cell-h\)/);
-    expect(decl(racine(), '--cc-ico-set')!).toMatch(/var\(--cc-cell-h\)/);
+  it('F-4 — l’icône vaut 60 % du côté, jamais un px figé (ni au CSS, ni au call-site)', () => {
+    expect(decl(racine(), '--cc-ico')!).toMatch(/var\(--cc-cell\)/);
+    expect(decl(racine(), '--cc-ico-set')!).toMatch(/var\(--cc-cell\)/);
     const ico = ruleOf(CC_BASE, '.cc-ico');
     expect(decl(ico, 'width')).toBe('var(--cc-ico)');
     expect(decl(ico, 'height')).toBe('var(--cc-ico)');
     // … et le glyphe REMPLIT cette boîte (sinon la boîte grandit sans que le dessin suive).
     expect(decl(ruleOf(CC_BASE, '.cc-ico svg'), 'width')).toBe('100%');
-    // ≈ la moitié de la hauteur utile, comme la planche.
     for (const [vw, vh] of ECRANS) {
-      const r = evalLen(decl(racine(), '--cc-ico')!, vw, vh) / evalLen(decl(racine(), '--cc-cell-h')!, vw, vh);
-      expect(r, `${vw}×${vh} : icône/case = ${r.toFixed(2)}`).toBeGreaterThan(0.4);
-      expect(r).toBeLessThan(0.62);
+      const r = evalLen(decl(racine(), '--cc-ico')!, vw, vh) / cote(vw, vh);
+      expect(r, `${vw}×${vh} : icône/case = ${r.toFixed(2)}`).toBeCloseTo(0.6, 6);
     }
     // Aucune taille d'icône FIGÉE au call-site de la console (le CSS est la seule échelle).
     const tsx = readFileSync(join(process.cwd(), 'src', 'ui', 'CombatConsole.tsx'), 'utf8');
@@ -2103,25 +2141,19 @@ describe('CombatConsole — budget de hauteur du pont (arbitrage user 2026-08-17
   });
 
   it('F-5 — le budget MOBILE reste celui de l’arbitrage compact (≤560 : la console peut prendre plus)', () => {
-    // ≤560 les régions s'EMPILENT : le pont y vaut plus que 21 %, c'est l'arbitrage 2026-08-16 (~40-45 %).
-    // Le contrat ici est que la tranche DÉCLARE ses deux côtés (aucun héritage du calcul de bureau).
+    // ≤560 les régions s'EMPILENT : le pont y vaut plus, c'est l'arbitrage 2026-08-16 (~40-45 %). La
+    // tranche DÉCLARE son côté (aucun héritage du calcul de bureau), carré lui aussi.
     const at560 = mediaBlock(CC_CSS, '@media (max-width: 560px)');
-    expect(decl(ruleOf(at560, ':root'), '--cc-cell-w')).toBeTruthy();
-    expect(decl(ruleOf(at560, ':root'), '--cc-cell-h')).toBeTruthy();
-    // … et l'alvéole compacte reste PAYSAGE elle aussi.
-    const w = parseFloat(decl(ruleOf(at560, ':root'), '--cc-cell-w')!);
-    const h = parseFloat(decl(ruleOf(at560, ':root'), '--cc-cell-h')!);
-    expect(w).toBeGreaterThan(h);
+    expect(decl(ruleOf(at560, ':root'), '--cc-cell')).toBeTruthy();
+    expect(evalLen(decl(ruleOf(at560, ':root'), '--cc-cell')!, 360, 740)).toBeGreaterThan(0);
   });
 
   // ── VIDE INTERNE (spec §1c « BUDGET DE HAUTEUR » complément, commit `22004155`). Deux poches
   //    mesurées avant la coupe : 47px de plaque NUE sous les travées à toute largeur de bureau, et un
   //    portrait FIGÉ à 78px sous 116,6px de vide à 1920 (ratio portrait/arche 0,287).
   it('G-1 — la travée ne réserve plus de bande sous ses cases : le socle ne paie que ses titres', () => {
-    const socle = decl(racine(), '--cc-bay-h')!;
-    // Le socle est la CONSTANTE de la formule (`2×h + écart + socle`). Il ne doit plus porter la
-    // rangée de munition (26px) ni son écart (8px).
-    const cst = Number(/\+\s*(\d+(?:\.\d+)?)px\s*\)?\s*$/.exec(socle.trim())![1]);
+    // Le socle est la CONSTANTE de la loi (`2 × côté + écart + socle`), évaluée.
+    const cst = evalLen('var(--cc-bay-h)', 1920, 1080) - 2 * cote(1920, 1080) - evalLen('var(--cc-gap)', 1920, 1080);
     expect(cst, `socle de travée = ${cst}px`).toBeLessThanOrEqual(41);
     expect(cst, 'un socle nul ne porterait plus ses bandes de titre').toBeGreaterThan(20);
     // Aucune règle de bandeau de munition ne subsiste (la classe entière a disparu du module).
@@ -2163,31 +2195,29 @@ describe('CombatConsole — budget de hauteur du pont (arbitrage user 2026-08-17
     expect(host.querySelector('.cc-bay-head [data-ammo]')).toBeNull();
   });
 
-  it('G-3 — le PORTRAIT se dérive de l’ALVÉOLE, et il DOMINE l’arche sans jamais la faire grandir', () => {
+  it('G-3 — le PORTRAIT se tire de la HAUTEUR d’écran, et il REMPLIT l’arche sans jamais la faire grandir', () => {
     const racine = ruleOf(CC_BASE, ':root');
-    const cc = ruleOf(CC_BASE, '.combat-console');
     const portrait = decl(racine, '--cc-portrait')!;
-    // Il suit le CÔTÉ D'ALVÉOLE — une grandeur d'ENTRÉE. Dérivé de la hauteur du pont, il la
-    // faisait croître à son tour (portrait ∝ pont ∝ arche ∝ portrait) : le point fixe de cette
-    // boucle sortait du budget de hauteur, et toute valeur en deçà amputait l'arche.
-    expect(portrait, 'le portrait doit suivre le côté d’alvéole, jamais la hauteur du pont').toMatch(/var\(--cc-cell-h\)/);
-    expect(portrait, 'la boucle portrait→pont→arche→portrait est rouverte').not.toMatch(/--cc-deck-h|--cc-arch-h/);
-    // Il DOMINE l'arche (planche) : au moins la moitié de sa hauteur, à tout écran de bureau.
-    for (const [vw, vh] of ECRANS) {
-      const p = evalLen(portrait, vw, vh);
-      const arche = evalLen(decl(racine, '--cc-arch-h')!, vw, vh);
-      expect(p / arche, `${vw}×${vh} : portrait ${p.toFixed(1)} / arche ${arche.toFixed(1)}`).toBeGreaterThanOrEqual(0.5);
-      expect(p / arche, 'un portrait qui déborde l’arche mangerait gouttières, barre et nom').toBeLessThanOrEqual(0.75);
+    // Décision d'écran Q2 du 2026-09-24 : une donnée d'ENTRÉE (la fenêtre), jamais le pont — la boucle
+    // portrait ∝ pont ∝ arche ∝ portrait sortait du budget de hauteur.
+    expect(portrait, 'la boucle portrait→pont→arche→portrait est rouverte').not.toMatch(/--cc-deck-h|--cc-bay-h|var\(--cc-cell\)/);
+    for (const [vw, vh] of [[1280, 800], [1366, 650], [1707, 780], [1920, 1080], [2560, 1440]] as [number, number][]) {
+      const lu = (e: string) => evalLen(e, vw, vh);
+      // Aux vues larges, le portrait prend TOUT ce que l'habillage laisse dans l'arche…
+      expect(lu('var(--cc-portrait)') + lu('var(--cc-arch-chrome)'), `${vw}×${vh} : le portrait ne remplit pas l’arche`).toBeCloseTo(lu('var(--cc-arch-h)'), 6);
+      // … et il DOMINE l'arche (planche).
+      expect(lu('var(--cc-portrait)') / lu('var(--cc-arch-h)'), `${vw}×${vh} : portrait écrasé`).toBeGreaterThanOrEqual(0.5);
     }
+    // Sur une fenêtre ÉTROITE, il cède aux cases, jusqu'au portrait de vignette — jamais en dessous.
+    expect(evalLen('var(--cc-portrait)', 701, 780)).toBe(evalLen('var(--cc-portrait-min)', 701, 780));
     // La règle qui l'applique reprend bien le style INLINE de la primitive (sinon rien ne bouge).
-    const appl = ruleOf(CC_BASE, '.cc-arch .ptile, .cc-arch .ptile-face, .cc-arch .rig-portrait');
-    expect(decl(appl, 'height')).toBe('var(--cc-portrait) !important');
-    // Le rail des gouttières suit le portrait (il ne peut pas rester plus haut que lui).
-    expect(decl(cc, '--cc-rail')!).toMatch(/var\(--cc-portrait\)/);
-    // Le CHROME de l'arche (tout ce qui n'est pas le portrait) est une grandeur MESURÉE au
-    // navigateur, pas un nombre en l'air : c'est lui qui complète la réserve de bande.
+    expect(decl(ruleOf(CC_BASE, '.cc-arch .ptile'), 'height')).toBe('var(--cc-portrait) !important');
+    // Le corps de l'arche vaut ce que l'habillage laisse ; les gouttières le remplissent (le rail prend
+    // le reste), le portrait n'y pèse pas.
+    expect(decl(ruleOf(CC_BASE, '.cc-arch-body'), 'height')).toBe('calc(var(--cc-arch-h) - var(--cc-arch-chrome))');
+    expect(decl(ruleOf(CC_BASE, '.cc-gutter-rail'), 'flex')).toBe('1 1 0');
+    // Le CHROME de l'arche est une grandeur MESURÉE au navigateur, pas un nombre en l'air.
     expect(parseFloat(decl(racine, '--cc-arch-chrome')!)).toBeGreaterThan(0);
-    expect(decl(ruleOf(CC_BASE, '.cc-gutter-rail'), 'height')).toBe('var(--cc-rail)');
   });
 
   it('G-4 — le FAÎTE de l’arche est serré : son rembourrage haut ne creuse plus un sommet vide', () => {
@@ -2569,7 +2599,7 @@ describe('CombatConsole — Dissiper : alvéole → porteur → panneau-paramèt
     porteur(e, 2);
     monter(h, { foes: [e] });
     const cell = host.querySelector('[data-action="dispel"]') as HTMLButtonElement;
-    expect(cell.querySelector('.cc-lbl')?.textContent).toBe(`${findActionById('dispel')!.label} 2/3`);
+    expect(nomCase(cell)).toBe(`${findActionById('dispel')!.label} 2/3`);
   });
 
   // ON VISE, ON NE LIT PAS : un mode de ciblage armé met les infobulles de règle de la console en
@@ -3631,6 +3661,15 @@ describe('CombatConsole — le pont d’OUVERTURE est celui du JOUEUR, et n’of
     expect(host.querySelector('.cc-arch-name')!.textContent).toBe('Gunnar');
     // Aucun second bandeau sur le parapet : le message ne se dédouble pas.
     expect(host.querySelectorAll('.cc-phase').length).toBe(1);
+  });
+
+  it('combat CLOS pendant l’ouverture : ni bandeau d’ouverture ni pont — UNE notion de l’ouverture', () => {
+    // Juge de diff H1 (R2) : le bandeau testait `over` et la console non. L'ouverture est une seule
+    // question (`estOuverture`), que le pont et la couche HUD posent tous deux.
+    ouverture(hero('h1', 'Gunnar'), foe('e1', 9, 9));
+    act(() => { useGame.setState({ battle: { ...useGame.getState().battle!, over: 'victory' } as BattleState }); });
+    expect(host.querySelectorAll('.cc-phase').length, 'un bandeau d’ouverture sur un combat clos').toBe(0);
+    expect(host.querySelector('.combat-console')).toBeNull();
   });
 
   it('PAUSE DE ROUND SUIVANTE : le bandeau reste sur le PONT (l’arbitrage ne vise que l’ouverture)', () => {

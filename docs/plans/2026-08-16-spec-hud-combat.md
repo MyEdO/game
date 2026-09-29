@@ -25,12 +25,14 @@ gauche se plie en 2×4.
 « avoir 1/4 de l'interface qui est une barre d'action, ça ne va pas etre possible, surtout
 avec tout ce vide et ces icones disproportionnés ») : mesuré chez lui ~28-29 % de viewport
 là où LA PLANCHE budgétise **20,1 %** (pont 217px / 1080). Contrats :
-- **Hauteur du pont ≤ ~21 % du viewport à ≥1280** (le ratio de la planche), garde promue
-  (mesure en recette à chaque largeur ; le budget mobile ≤560 reste celui de l'arbitrage
-  compact ~40-45 %).
-- **Cases PAYSAGE à l'échelle de la planche** (~90×66 à 1920, plus larges que hautes —
-  jamais des carrés de 84px) ; les plafonds de `--cc-cell` se recalent en conséquence.
-- **Icône PROPORTIONNELLE à sa case** (≈ moitié de la hauteur utile, jamais une taille
+- **Hauteur du pont : bande ≤ 17 % et empreinte fronton compris ≤ 22 % du viewport, dès
+  701** (décision d'écran du 2026-09-24 sur #1806, Q2 ; la planche tient 20,1 %), garde
+  promue (`scripts/recette/hud-clickables.mjs`, `BUDGET_PONT` ; le budget mobile ≤560 reste
+  celui de l'arbitrage compact ~40-45 %).
+- **Cases CARRÉES sans libellé, côté unique `--cc-cell`** (décision d'écran du 2026-09-24
+  sur #1806, Q1 : les cases paysage de cette spec étaient une dérivation d'ingénierie, sans
+  verbatim ; retour au modèle RT, doctrine du 2026-08-24).
+- **Icône PROPORTIONNELLE à sa case** (60 % du côté — décision Q1 —, jamais une taille
   figée en px qui rend une vignette de 22px dans une case de 84).
 - Le VIDE se paie au prix des cases : les LIBRE suivent la même échelle — la densité
   augmente encore quand les défauts de remplissage (§1b) peupleront la grille.
@@ -212,13 +214,17 @@ arbitrages du programme et les registres du dépôt :
   planche : Potion ×2 — + cases LIBRES dessinées). En-tête de travée = le set au poing
   (« ÉPÉE + DAGUE »). — Interdits : tout slot legacy non listé au §1a, le débord
   « Capacités N » (l'exhaustif est l'écran de capacités, zone 6).
-- **GRILLE (E)** : 12 cases (icône + libellé + touche + crans) + conduit AVANTAGE
+- **GRILLE (E)** : 12 cases (icône + touche + crans ; le NOM vit dans l'infobulle et le
+  nom accessible — décision d'écran du 2026-09-24 sur #1806, Q1, écart SIGNALÉ à la
+  planche) + conduit AVANTAGE
   AU-DESSUS (colliers + valeur chiffrée) + **onglets de PAGES I/II/III** (planche —
   fonctionnement annoté : II = épinglages joueur, III éteinte tant qu'aucun contexte ;
   la géométrie 2×6 est CONSTANTE par page) [pages NON retenues au lot A — annotation de
   planche (cf. l.256), déviation de la référence RT à faire valider à l'écran]. C'EST TOUT.
-- **COIN (F)** : icône + libellé (« Fin du tour ») + touche (ESPACE) + ligne d'ÉTAT
-  (planche : « Action non dépensée » — l'avertissement garde-fou existant). C'EST TOUT.
+- **COIN (F)** : icône + libellé (« Fin du tour ») + touche (ESPACE, gravée à tout état) ;
+  l'ÉTAT du tour (« Action non dépensée », « Tour fini ») se lit dans l'infobulle de la
+  plaque et à son armement (« Finir quand même ») — décision d'écran du 2026-09-24 sur
+  #1806, Q4.7. Sa hauteur suit les cases : 2 × côté + écart (Q2). C'EST TOUT.
 
 ### 1c-ter. CONTRAT D'ASSEMBLAGE — LA CONSOLE EST UN OBJET UNIQUE (arbitrage user
 2026-08-17, verbatim : « Tu garde le même défaut remonte que la maquette était sensé

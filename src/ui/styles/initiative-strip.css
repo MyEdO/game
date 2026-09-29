@@ -89,7 +89,7 @@
   /* L'entrée visée par un défilement se cale SOUS le cartouche collé : la même tête, moins le pied
      et les filets, plus l'écart qui la sépare du cartouche. Un calage plus court que la tête réelle
      gare la piste trop bas et rogne l'entrée du pied (#1867). Ce calage-ci et le cran d'arrêt `y`
-     ci-dessus valent pour la COLONNE : en bande (≤700) l'axe de défilement est X, et c'est la tranche
+     ci-dessus valent pour la COLONNE : en bande (≤560) l'axe de défilement est X, et c'est la tranche
      qui y pose son propre cran (`scroll-snap-type: x`). */
   scroll-padding-top: calc(var(--is-head-air) + var(--is-round-h) + var(--is-round-margin) + var(--is-gap));
   /* La piste ne descend pas plus bas que la plaque : sa borne est celle de la zone `temps`, qui
@@ -105,7 +105,7 @@
 /* Indicateur de DÉBORD : une RAMPE de fondu posée sur le dernier pouce de la colonne — au bord,
    la matière du panneau est pleine (aucun pixel de vignette à pleine intensité contre le filet),
    et l'atténuation se lit sur 18px. L'axe suit celui de la frise (bas en colonne, droite en bande
-   horizontale ≤700). Elle est ancrée à la PLAQUE : la boîte de la frise l'épouse (`fit-content`
+   horizontale ≤560). Elle est ancrée à la PLAQUE : la boîte de la frise l'épouse (`fit-content`
    ci-dessus), donc la rampe se pose sur le pied du bois et jamais sur du terrain nu. */
 .initiative-strip::after {
   content: '';
@@ -269,8 +269,9 @@
      pas, la tête et le calage par dérivation — rien à recopier. */
   .is-tiles { --is-gap: 5px; --is-head-air: 6px; --is-foot-air: 6px; --is-flank: 5px; padding: 0 var(--is-flank) var(--is-foot); }
 }
-@media (max-width: 700px) {
-  /* La frise quitte la colonne latérale pour une BANDE HORIZONTALE défilable sous le groupe,
+@media (max-width: 560px) {
+  /* La frise quitte la colonne latérale pour une BANDE HORIZONTALE défilable sous le groupe (jusqu'à
+     561 elle reste la colonne de Rogue Trader, décision Q4.3 du 2026-09-24),
      cartouche du Round en tête. Sur l'axe de DÉFILEMENT (X ici), l'air de tête appartient au
      cartouche comme en colonne (`--is-head-air`) — sinon une vignette défilée se voit à son flanc
      gauche. La réserve du badge d'initiative, qui déborde du HAUT de chaque cellule, appartient à la
@@ -331,7 +332,7 @@
     flex: 0 0 auto;
     /* La piste DÉFILE ici sur l'axe X : un cartouche collé par le seul `top` n'est collé sur AUCUN
        axe de défilement et sort du champ dès le premier cran. Il colle donc au bord GAUCHE, comme il
-       colle en tête de colonne au-dessus de 700 (garde : `scripts/recette/hud-clickables.mjs`). */
+       colle en tête de colonne au-dessus de 560 (garde : `scripts/recette/hud-clickables.mjs`). */
     left: 0;
     padding: 0 8px 0 calc(2px + var(--is-head-air));
     /* En bande, l'axe transverse est le BLOC : le flanc à couvrir est la réserve du pied, et le
@@ -347,8 +348,6 @@
   /* La réserve du badge en débord est PORTÉE PAR LA CELLULE : le cartouche étiré couvre alors toute
      la section de la piste, badges compris. */
   .is-cell { flex: 0 0 auto; margin-top: var(--is-badge-air); }
-}
-@media (max-width: 560px) {
   /* Vignettes de frise réduites à 34px : la bande d'ordre reste lisible sans manger le champ. */
   .is-tiles .ptile,
   .is-tiles .ptile-face {

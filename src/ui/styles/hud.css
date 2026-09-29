@@ -70,17 +70,16 @@
   --flot-reserve: calc(var(--cc-phase-h) + var(--cc-phase-air));
 }
 /* La couche ne prend AUCUN clic, ni ses zones : chaque surface reprend le sien. Poids nul — une
-   surface qui n'en veut aucun (le fil d'événements, les interstices de la barre haute) le déclare
-   dans son module. Les enfants SANS zone (conversation, puce d'attente de l'arbitre de modales) se
-   posent eux-mêmes, en absolu dans la couche. */
-:where(.stage-flot > :not([data-zone]), .stage-flot > [data-zone] > *) {
+   surface qui n'en veut aucun (le fil d'événements) le déclare dans son module. */
+:where(.stage-flot > [data-zone] > *) {
   pointer-events: auto;
 }
 [data-zone='contexte'] {
   grid-area: contexte;
   align-self: start;
-  /* La barre ne dicte pas la largeur de son flanc : le lieu s'ellipse dans la part qui lui revient.
-     Le plancher est la commande du menu ☰ (cible tactile `--xd-row`). */
+  /* La barre ne dicte pas la largeur de son flanc : le lieu s'y enroule AU MOT (R-M2,
+     docs/plans/2026-08-16-spec-hud-combat.md:71-74). Le plancher est la commande du menu ☰ (cible
+     tactile `--xd-row`). */
   contain: inline-size;
   min-width: var(--xd-row);
 }
@@ -90,10 +89,12 @@
   align-self: start;
   min-width: 0;
 }
+/* La zone d'OUTILS couvre ses cellules et porte le rail à son coin haut. Elle est le CONTENEUR du
+   panneau du journal, qui pend sous le rail : il y borne sa hauteur (`--ld-place`, log-drawer.css)
+   sans rien savoir des zones voisines ni du pont. */
 [data-zone='outils'] {
   grid-area: outils;
-  justify-self: end;
-  align-self: start;
+  container-type: size;
 }
 /* La zone TEMPS porte, en combat, la frise d'initiative puis le fil d'événements, assis au pied de
    la zone (planche 2026-08-17 : journal `[170,779,330,57]`, juste après la colonne de frise) ; hors
@@ -128,6 +129,14 @@
   align-self: end;
   justify-self: start;
 }
+/* LA PAROLE : la conversation et la puce qui nomme le siège attendu (arbitre de modales, coop),
+   centrées au pied du champ, par-dessus ses zones — une surface qu'on congédie, jamais une piste.
+   Posée par les lignes de la couche, comme la caméra. */
+[data-zone='parole'] {
+  grid-row: champ;
+  grid-column: flanc-g / -1;
+  align-self: end;
+}
 [data-zone='camera'] > .pov-controls {
   display: grid;
   grid-template-columns: repeat(3, auto);
@@ -138,11 +147,16 @@
    navire et journal de bataille vissés sur UN seul plan de matière. Hors combat, ces commandes
    vivent sur le pont d'exploration : le rail n'est pas monté.
    Sa MATIÈRE est la peau partagée `.skin-bois` (components.css), sa pile et ses espacements la
-   primitive `Stack` : ce module n'en porte que le rang. Le panneau du journal naît de son bouton,
-   vers le champ (log-drawer.css) : au haut de l'écran, il pend SOUS lui. */
+   primitive `Stack` : ce module n'en porte que le rang. Le panneau du journal naît du rail, vers le
+   champ (log-drawer.css) : le rail étant au haut de sa zone, il pend SOUS lui, dans la place que la
+   zone lui laisse (`100cqh` moins le rail, `100%` de sa boîte d'ancrage). */
 .hud-rail {
   position: relative;
   z-index: 46;
+  --ld-place: calc(100cqh - 100% - var(--sp-sm));
+}
+.hud-rail .log-drawer {
+  position: static;
 }
 .hud-rail .ld-panel {
   top: calc(100% + var(--sp-sm));
@@ -150,7 +164,7 @@
 }
 
 /* ── Barre HUD supérieure : menu ☰ et, HORS COMBAT, le lieu (design 2026-07-31 §11). UNE rangée
-   qui ne s'enroule pas : le lieu s'ellipse dans la part de flanc qui lui revient. ── */
+   qui ne s'enroule pas : c'est le lieu qui s'enroule, au mot, dans la part qui lui revient. ── */
 .hud-topbar {
   position: relative;
   z-index: 60;
@@ -160,20 +174,13 @@
      pose ICI et non en prop `gap` : `data-gap` déclare `--gap`, propriété HÉRITÉE, et le menu ☰
      entier vit sous cette barre (#1837). */
   gap: var(--sp-sm);
-  pointer-events: none; /* les interstices ne bloquent pas les clics sur la scène */
-}
-.hud-topbar > * {
-  pointer-events: auto;
 }
 /* Lieu courant, désigné par son id de zone, jamais par une classe de plus. Sa MATIÈRE est celle du
    nom (`CodexTitre` → `.codex-pop-title`) posée sur le halo partagé `.halo-champ` (components.css).
-   L'écran n'en garde que le CADRAGE — la ligne unique et son ellipse. */
+   L'écran n'en garde que le CADRAGE : il s'enroule au mot dans la part qui lui revient (R-M2). */
 .hud-topbar [data-hud='place'] {
   align-self: center;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 .game-menu {
   position: relative;
@@ -216,17 +223,36 @@
    vivent dans LEURS modules : la matrice se lit sur l'UNION (`src/ui/ui-ratchets.test.ts`).
    ═══════════════════════════════════════════════════════════════════════════════════════════════ */
 @media (max-width: 700px) {
-  /* La frise quitte le flanc pour la BANDE, pleine largeur, sous le groupe, et le fil passe sous
-     elle ; le bandeau d'ouverture descend au pied du champ. Le rail reste au coin haut, couché en
-     rangée (`rowBelow`, CampaignView) : il ne tient que la hauteur d'une commande. */
+  /* HORS COMBAT, le lieu prend toute la rangée du haut et le groupe descend dans la bande : entre
+     deux flancs, il n'avait que quelques caractères. */
+  .stage > .stage-flot[data-pont='exploration'] {
+    gap: var(--sp-xs);
+    padding: var(--sp-xs);
+    grid-template-areas:
+      'contexte contexte contexte'
+      'groupe   groupe   groupe'
+      'temps    temps    temps'
+      '.        .        .';
+  }
+}
+@media (max-width: 560px) {
+  /* EN COMBAT, la frise quitte le flanc pour la BANDE, pleine largeur, sous le groupe, et le fil passe
+     sous elle ; le bandeau d'ouverture descend au pied du champ. Jusqu'à 561, la frise reste la
+     colonne de Rogue Trader (décision Q4.3 du 2026-09-24, #1806). Le rail, couché en rangée
+     (`rowBelow`, CampaignView), passe au coin haut du CHAMP, par les lignes de la couche : le panneau
+     du journal qui pend sous lui vit dans le champ, jamais sur la frise ni sur le fil. */
   .stage > .stage-flot {
     gap: var(--sp-xs);
     padding: var(--sp-xs);
     grid-template-areas:
-      'contexte  groupe    outils'
+      'contexte  groupe    .'
       'temps     temps     temps'
       'ouverture ouverture ouverture'
       '.         .         .';
+  }
+  [data-zone='outils'] {
+    grid-row: champ;
+    grid-column: flanc-d;
   }
   [data-zone='temps'] {
     container-type: normal;
@@ -237,8 +263,6 @@
   [data-zone='ouverture'] {
     align-self: end;
   }
-}
-@media (max-width: 560px) {
   /* REPLIÉE, la bande n'est que sa poignée : l'arrondi au pas de tuile ne vaut que pour la piste
      (ici le volet, ci-dessous) — appliqué à la poignée, il la rognait et cachait ses micro-jauges. */
   [data-zone='groupe'] > .party-dock {

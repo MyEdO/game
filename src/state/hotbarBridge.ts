@@ -6,8 +6,9 @@
  * State-clean : ne porte QUE l'IDENTITÉ de l'action (`actionId` du registre `src/data/actions.json`),
  * son dispatcher et son état désactivé — aucun ReactNode, aucune closure anonyme (spec HUD zone 12).
  *
- * `run` absent = case DESSINÉE mais non branchée (restriction de site, console en lecture) : elle
- * garde son rang, sa touche ne déclenche rien.
+ * `run` absent = case DESSINÉE mais non branchée (restriction de site) : elle garde son rang, sa
+ * touche ne déclenche rien. En forme spectatrice la console ne publie AUCUN rang
+ * (`CombatConsole.tsx`, `hotbar.capacites = []`).
  */
 export type SlotHotbar = { actionId: string; run?: () => void; disabled?: boolean } | null;
 

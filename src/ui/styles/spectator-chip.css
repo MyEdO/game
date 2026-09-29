@@ -2,11 +2,10 @@
    Puce qui NOMME le siège attendu quand le geste n'appartient pas au siège local (coop). Identité
    entière ici (#1806 2d, arbitrage A1 du 2026-09-18).
    ANCRAGE : la puce suit le FLUX par défaut (elle vit dans le panneau qui porte les commandes
-   désactivées) ; la pose AU BAS DU CHAMP est un ÉTAT de la primitive, `data-pose='ecran'`, posé par
-   l'hôte qui arbitre les modales. Elle se pose dans la boîte qui la porte (couche HUD de
-   l'écran de campagne, `.stage-flot`) : elle n'a donc aucune réserve de pont à tenir. Les trois
-   hôtes partagent la MÊME règle d'ancrage : la recopier chez chacun en ferait trois. Aucune autre
-   règle de `src/ui/styles` ne vise `.spectator-chip`. ══ */
+   désactivées) ; la pose À L'ÉCRAN est un ÉTAT de la primitive, `data-pose='ecran'`, posé par
+   l'hôte qui arbitre les modales, que l'écran de campagne monte dans la zone `parole` de sa couche
+   HUD (hud.css) : la zone la place, la pose n'en retire que la marge du flux. Aucune autre règle de
+   `src/ui/styles` ne vise `.spectator-chip`. ══ */
 .spectator-chip {
   background: rgba(10, 10, 16, 0.85);
   border: 1px solid var(--border);
@@ -19,11 +18,5 @@
   margin-top: 4px;
 }
 .spectator-chip[data-pose='ecran'] {
-  position: absolute;
-  bottom: var(--sp-lg);
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 40;
-  align-self: auto;
   margin-top: 0;
 }

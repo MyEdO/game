@@ -612,14 +612,10 @@ button.chip:hover {
 }
 
 /* ── BANDEAU D'INTERLOCUTEUR (primitive SpeakerBanner.tsx, #371) — portrait + nom + réplique.
-   `.dialogue-box` = surface + position ; en overlay de dialogue (variant `dialogue`, DialogueBox.tsx) elle
-   flotte en bas de l'écran ; `.dlg-boniment` (variant statique, marchand/aubergiste) la remet dans le
-   flux normal du panel qui la compose. ── */
+   `.dialogue-box` = la surface ; son hôte la place : la conversation (variant `dialogue`,
+   DialogueBox.tsx) par la zone `parole` de la couche HUD (hud.css), le boniment (variant statique,
+   marchand/aubergiste) dans le flux du panel qui la compose. ── */
 .dialogue-box {
-  position: absolute;
-  bottom: 18px;
-  left: 50%;
-  transform: translateX(-50%);
   width: min(680px, 94%);
   background: linear-gradient(180deg, var(--panel2), var(--panel));
   border: 1px solid var(--border);
@@ -631,8 +627,6 @@ button.chip:hover {
     inset 0 0 0 1px rgba(201, 162, 39, 0.12);
 }
 .dialogue-box.dlg-boniment {
-  position: static;
-  transform: none;
   width: 100%;
   margin: 0 0 10px;
 }

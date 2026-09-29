@@ -105,11 +105,11 @@ type Cell = {
  *  de capacité met "Libre" »). Seul un lecteur d'écran l'entend nommer, par son texte hors écran.
  *
  *  ZÉRO `title` : l'infobulle native est proscrite (charte + grief du juge vision « la raison n'est
- *  qu'en title »). Ce que la case doit dire passe par TROIS véhicules VISIBLES ou accessibles :
- *  le libellé (+ `aria-label` pour le libellé entier quand l'ellipse le tronque), la copie hors écran
- *  de la RAISON de gate liée par `aria-describedby`, et l'infobulle `CodexRef` (mode `wrap` : le bouton
- *  EST l'affordance de sa règle, sans ⓘ voisin — #1078) qui porte, au survol comme au focus, CETTE
- *  raison (`refus`) puis le verbatim de la donnée.
+ *  qu'en title »). La case ne grave pas son nom (décision Q1 du 2026-09-24) ; ce qu'elle doit dire
+ *  passe par TROIS véhicules : le nom accessible (`aria-label`), la copie hors écran de la RAISON de
+ *  gate liée par `aria-describedby`, et l'infobulle `CodexRef` (mode `wrap` : le bouton EST
+ *  l'affordance de sa règle, sans ⓘ voisin — #1078) qui porte, au survol comme au focus, CETTE raison
+ *  (`refus`), le NOM, puis le verbatim de la donnée.
  *
  *  `ciblageArme` MET CETTE INFOBULLE EN SOURDINE (`sourdine`) : tant qu'on VISE — intention locale
  *  qui peint sa portée sur le terrain (spec zone 4) ou mode de ciblage armé au registre
@@ -143,7 +143,7 @@ export function ConsoleCell({ cell, hotkey, advantage = 0, ciblageArme = false, 
     // Une case VIDE garde son RANG et sa touche imprimée : c'est l'adresse qui s'apprend, pas le
     // contenu du moment (spec zone 8 — la touche suit la CASE). Elle attend le placement du joueur.
     return (
-      <span className="chip cc-cell cc-empty" data-hotkey={hotkey ? '' : undefined}>
+      <span className="chip cc-cell cc-empty">
         {hotkey ? <span className="cc-key">{hotkey}</span> : null}
         <span className="hors-ecran">{t('cc.caseVide')}</span>
       </span>
@@ -178,10 +178,6 @@ export function ConsoleCell({ cell, hotkey, advantage = 0, ciblageArme = false, 
       data-action={cell.id}
       data-family={cell.family}
       data-gated={raison ? '' : undefined}
-      /* La case qui IMPRIME sa touche lui RÉSERVE sa bande au pied (même patron que la bande de
-         raison) : sur un libellé long, le chiffre passait sous les mots (grief du juge vision,
-         « Immunité Psychologie (2) »). La géométrie de la case, elle, ne bouge pas. */
-      data-hotkey={touche ? '' : undefined}
       aria-disabled={fermeParlante || undefined}
       /* Les gestes SECONDAIRES de l'alvéole, nommés en structure : le geste est un CHEMIN, pas une
          case — c'est le seul marqueur par lequel une sonde (ou la garde de surface) le mesure. */
@@ -213,7 +209,6 @@ export function ConsoleCell({ cell, hotkey, advantage = 0, ciblageArme = false, 
           comme la bande de touche — aucune classe de plus). */}
       {secondaires.length ? <span data-glyphe-2e="" aria-hidden="true">{secondaires.length > 1 ? `+${secondaires.length}` : secondaires[0].icon}</span> : null}
       <span className="cc-ico">{cell.icon}</span>
-      <span className="cc-lbl">{cell.label}</span>
       {/* RAISON d'indisponibilité : lue au SURVOL/FOCUS dans l'infobulle partagée (`CodexRef refus`,
           plus bas) ; ce qui reste ICI est sa copie HORS ÉCRAN, cible de l'`aria-describedby`. */}
       {raison ? <span className="hors-ecran" data-gate="" data-gate-2e={cell.gate ? undefined : ''} id={gateId}>{raison}</span> : null}
@@ -229,15 +224,15 @@ export function ConsoleCell({ cell, hotkey, advantage = 0, ciblageArme = false, 
   // Le FOYER de règle enveloppe le bouton sans rien lui prendre (`wrap` : ni clic, ni rôle, ni
   // tabindex) — c'est l'idiome des boutons de dépense (`ChanceButtons`, `DeterminationButton`). C'est
   // la MÊME enveloppe qui porte la RAISON du refus : une seule infobulle par alvéole, jamais deux
-  // boîtes concurrentes sur le même ancrage — et une case gatée sans foyer de règle l'ouvre à elle
-  // seule (`refus` suffit à faire naître l'infobulle).
-  return cell.rule || raison
-    ? (
-      <CodexRef category={cell.rule?.category} id={cell.rule?.id} label={cell.label} refus={raison} wrap sourdine={ciblageArme}>
-        {button}
-      </CodexRef>
-    )
-    : button;
+  // boîtes concurrentes sur le même ancrage. Toute alvéole pleine a la sienne : la case ne grave pas
+  // son NOM (décision Q1 du 2026-09-24), l'infobulle le dit au survol et au focus — sans foyer de
+  // règle, elle ne porte que lui (`fallback`) ; avec un foyer, le nom de la capacité passe en tête et
+  // la fiche dessous (`instance`).
+  return (
+    <CodexRef category={cell.rule?.category} id={cell.rule?.id} label={cell.label} instance={cell.label} refus={raison} wrap sourdine={ciblageArme} fallback={{}}>
+      {button}
+    </CodexRef>
+  );
 }
 
 function icon(id: IconIdInput) {
@@ -506,14 +501,14 @@ function useBandeauDeRound(): PhaseBanner | null {
 /** OUVERTURE d'un combat (arbitrage utilisateur 2026-08-24, référence RT « round 0 », capture
  *  archivée) : la pause du premier Round. Les pauses SUIVANTES gardent leur bandeau sur le parapet
  *  du pont — l'arbitrage ne porte que sur l'ouverture. PUR sur l'état du store. */
-const estOuverture = (b: { battle: unknown; pendingRoundStart: { round: number } | null | undefined }) =>
-  !!b.battle && !!b.pendingRoundStart && b.pendingRoundStart.round <= 1;
+const estOuverture = (b: { battle: { over?: unknown } | null; pendingRoundStart: { round: number } | null | undefined }) =>
+  !!b.battle && !b.battle.over && !!b.pendingRoundStart && b.pendingRoundStart.round <= 1;
 
 /** Le BANDEAU D'OUVERTURE : le bandeau de la pause de Round à son adresse `ouverture`, CENTRÉ EN HAUT
  *  DE LA CARTE. C'est une surface de la couche HUD (zone `ouverture`), que l'écran de campagne monte
  *  — jamais un enfant du pont. Nul hors de l'ouverture. */
 export function BandeauDOuverture() {
-  const ouverture = useGame((s) => estOuverture(s) && !s.battle?.over);
+  const ouverture = useGame(estOuverture);
   const phase = useBandeauDeRound();
   return ouverture && phase ? <PhaseBanner {...phase} adresse="ouverture" /> : null;
 }
@@ -1118,10 +1113,10 @@ export function CombatConsole() {
   const wastingAction = wastesAction(active, battle);
   const arme = endTurnArmed(battle);
   const onEndTurn = () => runAction('end-turn', useGame.getState);
-  // 3ᵉ ligne de la plaque de sortie : elle dit l'état VRAI du tour — l'armement du 2ᵉ geste, sinon
-  // l'avertissement « Action non dépensée », sinon « Tour fini », sinon SA touche (Espace,
-  // `keybindings.ts` `end-turn`). Un héros Sonné n'a rien à dépenser : il lit la touche, pas un reproche.
-  const endNote = arme ? 'Finir quand même ?' : wastingAction ? 'Action non dépensée' : battle.acted ? 'Tour fini' : 'ESPACE';
+  // ÉTAT DU TOUR de la plaque de sortie : il se lit dans son INFOBULLE, jamais à la place de la touche
+  // (décision Q4.7 du 2026-09-24 — la touche ESPACE est gravée en dur, `keybindings.ts` `end-turn`).
+  // Un héros Sonné n'a rien à dépenser : aucun reproche.
+  const etatDuTour = wastingAction ? 'Action non dépensée' : battle.acted ? 'Tour fini' : undefined;
 
   /** « Retirez un État » (LDB 17 l.61) — la 3ᵉ dépense de Détermination est le geste de L'ÉTAT, porté
    *  par SA pastille (arbitrage HUD 2026-08-16 : « Réactions d'État sur la PASTILLE »), jamais une
@@ -1264,6 +1259,9 @@ export function CombatConsole() {
                   distinction actionnable/informatif se lit, elle ne se devine pas. */}
               <span className="cc-bay-head">
                 {setLabel}
+                {/* La touche X fait tourner les sets (`keybindings.ts` `switch-loadout`) : gravée UNE
+                    fois dans l'en-tête, jamais sur une vignette (décision Q3 du 2026-09-24). */}
+                {live && loadouts.length >= 2 ? <span className="cc-key"><Icon id="ui/rotate-right" size="sm" />X</span> : null}
                 {munitions.map((m) => (
                   <Fragment key={m.w.uid}>
                     {' · '}
@@ -1306,9 +1304,7 @@ export function CombatConsole() {
                     const lo = loadouts[i];
                     if (!lo) {
                       return (
-                        <span key={i} className="chip cc-set cc-empty">
-                          <i className="cc-set-n">{i + 1}</i>
-                        </span>
+                        <span key={i} className="chip cc-set cc-empty" />
                       );
                     }
                     const mainItem = lo.main ? active.items?.find((it) => it.uid === lo.main) : undefined;
@@ -1328,13 +1324,10 @@ export function CombatConsole() {
                         aria-label={loadoutLabel(lo, active)}
                         onClick={() => runAction('switch-loadout', useGame.getState, { loadoutId: lo.id })}
                       >
-                        <i className="cc-set-n">{i + 1}</i>
                         {mainItem ? <ItemIcon item={mainItem} /> : <Icon id="item/weapon" size="sm" />}
                         {/* L'état de charge se DIT à l'ÉCRAN (jamais la couleur seule — grief vision a11y,
                             jamais un `title` — grief du juge vision), en MOT ENTIER lisible. */}
                         {unloaded ? <i className="cc-set-load">VIDE</i> : null}
-                        {/* La touche s'imprime sur la case qui l'exécute : X commute le set au poing. */}
-                        {held && live && loadouts.length >= 2 ? <span className="cc-key">X</span> : null}
                       </button>
                     );
                     return mainItem?.trappingId
@@ -1403,22 +1396,26 @@ export function CombatConsole() {
 
         {/* Coin de fin de tour : ISOLÉ des deux travées. */}
         <div className="cc-corner">
-          <button
-            type="button"
-            data-cell="end-turn"
-            data-action="end-turn"
-            data-armed={arme ? '' : undefined}
-            className={`chip cc-cell cc-end${!meaningfulLeft ? ' pulse' : ''}`}
-            disabled={!live}
-            aria-label={arme ? 'Finir le tour quand même' : 'Finir le tour'}
-            onClick={onEndTurn}
-          >
-            <span className="cc-ico">
-              <Icon id={arme ? 'ui/warning' : 'ui/turn-end'} />
-            </span>
-            <span className="cc-lbl">{arme ? 'Finir quand même' : 'Fin du tour'}</span>
-            <span className="cc-key">{endNote}</span>
-          </button>
+          <CodexRef label={arme ? 'Finir quand même' : 'Fin du tour'} wrap sourdine={ciblageArme} fallback={etatDuTour ? { sub: etatDuTour } : {}}>
+            <button
+              type="button"
+              data-cell="end-turn"
+              data-action="end-turn"
+              data-armed={arme ? '' : undefined}
+              className={`chip cc-cell cc-end${!meaningfulLeft ? ' pulse' : ''}`}
+              disabled={!live}
+              aria-label={arme ? 'Finir le tour quand même' : 'Finir le tour'}
+              aria-describedby={etatDuTour ? 'cc-etat-du-tour' : undefined}
+              onClick={onEndTurn}
+            >
+              <span className="cc-ico">
+                <Icon id={arme ? 'ui/warning' : 'ui/turn-end'} />
+              </span>
+              <span className="cc-lbl">{arme ? 'Finir quand même' : 'Fin du tour'}</span>
+              <span className="cc-key">ESPACE</span>
+              {etatDuTour ? <span className="hors-ecran" id="cc-etat-du-tour">{etatDuTour}</span> : null}
+            </button>
+          </CodexRef>
         </div>
       </>
       )}

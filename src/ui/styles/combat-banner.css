@@ -3,7 +3,7 @@
    (`.log-drawer`) garde l'historique COMPLET ; ce fil ne dit que l'événement courant. Les noms par
    camp sont rendus par `TeamSegments` (team-segments.css). */
 /* Fil d'événements : une ligne nue posée sur le terrain, sous la bande haute. Son placement est
-   celui de sa ZONE (`champ`, couche HUD de hud.css) : il n'a aucune géométrie voisine à connaître.
+   celui de sa ZONE (`temps`, couche HUD de hud.css) : il n'a aucune géométrie voisine à connaître.
    Il ne prend aucun clic. */
 .combat-feed {
   position: relative;
@@ -15,11 +15,11 @@
      derrière les cartes et se lisait coupé (grief vision). */
   z-index: 46;
   pointer-events: none;
-  max-width: 42vw;
 }
 /* Ligne NUE : aucune boîte, aucun filet — du texte sur le terrain (planche 2026-08-17). Sa
    lisibilité tient au halo partagé `.halo-champ` (components.css), que `CombatBanner` pose à côté
-   (le voile d'une carte reviendrait à la boîte supprimée). */
+   (le voile d'une carte reviendrait à la boîte supprimée). Elle s'enroule AU MOT dans la largeur de
+   sa zone (R-M2, docs/plans/2026-08-16-spec-hud-combat.md:71-74). */
 .cb-ev {
   display: flex;
   gap: 7px;
@@ -29,7 +29,6 @@
   border-radius: 0;
   padding: 0;
   font-size: 13.5px;
-  white-space: nowrap;
   text-align: left;
 }
 .cb-ev .cb-ic {
@@ -65,7 +64,6 @@
   60% { opacity: 1; transform: scale(1.06) translateY(0); }
   100% { transform: scale(1) translateY(0); }
 }
-@media (max-width: 700px) {
-  .combat-feed { max-width: 94vw; }
-  .cb-ev { white-space: normal; text-align: center; } /* événements longs : retour à la ligne (pas de débord) */
+@media (max-width: 560px) {
+  .cb-ev { text-align: center; }
 }
