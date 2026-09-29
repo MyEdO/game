@@ -1,0 +1,93 @@
+VERDICT : À REPRENDRE — cumul C1b + C1c + C1d (console + HUD, #1806 #1856 #1919)
+Arbre /home/user/game/.wt-1919-H2, HEAD b0f2f1499 ; objet = `git diff HEAD` (38 M) + 3 non suivis (Nom.tsx, nom.css, TeamSegments.test.tsx).
+Contrôle positif : `git hash-object` des 41 fichiers de c1d/blobs-finaux.txt == arbre, 41/41 (bad=0) avant ET après le jugement ; `git status --short` 41 lignes avant/après ; rien écrit dans l'arbre.
+
+PORTES REJOUÉES (rc lu sans pipe)
+- hud-clickables.mjs (passe complète, vite :5397) : rc=1, 762 lignes, 20 défauts ; `diff` avec c1d/sonde-passe3.txt VIDE (juge-c1d/diff-hud-passe3.txt, 0 ligne) — 4e passe identique, sous charge (vitest + tsc concurrents) : déterminisme CONFIRMÉ.
+- console-pont-formes.mjs : rc=0 (juge-c1d/pont-formes.txt).
+- vitest 13 fichiers (CombatConsole, CombatBanner, ExplorationDock, PartyDock, RecapLine, TeamSegments, Layout, css-valeur-en-test, ui-ratchets, comment-poison-guard, css-modules-guard, primitive-owners-guard, coupe-au-caractere-guard) : rc=0, 374/374.
+- node --test : hud-clickables.test 106/106, cssCouches.test 42/42, detecteurs-pont.test 7/7, rc=0 chacun.
+- `npm run typecheck` complet : rc=0. eslint --max-warnings 0 sur les 19 .ts/.tsx/.mjs/.mts : rc=0, sortie vide.
+- regenStock cssCouchesAudit --check : rc=0 « Stock à jour ».
+- NON joués : docs:check, test:recette, gates (portes de l'orchestrateur ; un `gates/toutes.mjs` étranger, PID 4105, tournait).
+
+BLOQUANTS
+
+K1 — Légende du groupe : la borne en signes ne tient PAS deux lignes ; régression face à HEAD (line-clamp retiré).
+- Sonde juge-c1d/sonde-signes.mjs → sonde-signes.out, capture S-signes-701x780.png (REGARDÉE) : héros « Wolfgang Maximilian Wurmwald » (28 signes = NOM_CARTE_SIGNES, donc non coupé) → figcaption 3 lignes, 43 px au lieu de 29, à 701, 900 et 1366 ; la bande du groupe s'allonge.
+- `src/ui/PartyDock.tsx:16-18` (« ce que ses deux lignes portent à la carte la plus étroite ») est FAUX ; `party-dock.css:131-134` (« sur DEUX lignes au plus ») aussi. HEAD garantissait 2 lignes par `line-clamp: 2`.
+- Le nom d'un héros est saisi par le joueur (créateur) : cas réel.
+- Correction : rendre `display:-webkit-box; -webkit-line-clamp:2; line-clamp:2; overflow:hidden` à `.pd-track > figure > figcaption` (les mots étant des boîtes `Nom` insécables, la coupe tombe entre mots) et supprimer `NOM_CARTE_SIGNES` + `coupeAuMot` de PartyDock.tsx (géométrie en signes à la main). Les 3 entrées d'identité retirées reviennent au stock de HEAD (croissance 0 face à HEAD). Garde : la sonde « nom au pire » prend un nom de héros de 28 signes à mots longs.
+
+K2 — B5 NON soldé : la charte ment encore, et une ligne neuve ment.
+- `docs/charte-ui.md:349` : puce « placé par la zone `parole` de la couche HUD » — faux hors CampaignView (`spectator-chip.css:24`, `:not([data-zone='parole'] > *)`, trois hôtes sans couche). Point B5 de C1b, inchangé.
+- `docs/charte-ui.md:446` : « la zone `temps` se déclare conteneur de requête (`container-type: size`) au-dessus de 560 » — faux : c'est `[data-zone='temps'] > [data-piste='frise']` (`hud.css:114-120`). Point B5 de C1b, inchangé, et C1d a rendu la chose plus fausse.
+- `docs/charte-ui.md:407-408` : « et, à ≤560, `outils` (coin haut du champ, flanc droit) » — faux depuis C1d : ≤700, `grid-column: centre / -1` (`hud.css:264-268`), `1 / -1` à ≤560 (`hud.css:290-292`).
+- Correction : réécrire ces trois passages au présent sur le code.
+
+K3 — Référence « juge » AJOUTÉE par le lot, malgré le brief.
+- `src/ui/ExplorationDock.test.tsx:426` : « // Juge de diff C1 (B5) : l'arbitre des modales… » (ligne `+` du diff). Le rendu déclare B5 « fait dans les fichiers du lot » : RÉFUTÉ.
+- Correction : réf nue (#1919 ; `src/ui/ActiveModal.tsx` et ses quatre hôtes).
+
+K4 — PRÉMISSE de l'arbitrage 3 : la classe « journal de la largeur d'un flanc » n'est close qu'à ≤700 ; elle persiste de 701 à ~800.
+- Sonde juge-c1d/sonde-fil.mjs → sonde-fil.out, journal ouvert (clic réel) : `.ld-panel` large de 135 px à 701, 154 à 740, 174 à 780, 194 à 820, 234 à 900, 330 à 1100 ; à 700 il fait 540 px (recette.log c1d). Saut 540 → 135 au seuil.
+- La charte (`docs/charte-ui.md:438-439`) justifie le déplacement par « un panneau de la largeur d'un flanc (60 à 135 px de 561 à 700) ne se lisait pas » : 135 px à 701 est exactement ce cas. Capture c1d/captures/journal-souris-701x780.png REGARDÉE : 1 à 3 mots par ligne, « ! (Round 1) » rejeté en tête de ligne.
+- Cause : `hud.css:176-180` `width: min(330px, calc(100cqw - 1px))` dès 701 (le correctif de N4 a troqué le recouvrement du groupe contre l'étroitesse).
+- Correction proposée (à arbitrer par l'orchestrateur, c'est sa prémisse) : UNE règle à toute largeur — le panneau vit dans la rangée `champ`, sous le groupe, de `centre` au bord (`min(330px, largeur du champ)`), comme à ≤700 ; plus de seuil 700/701 pour le journal. La sonde ajoute un plancher de largeur de panneau.
+
+NON BLOQUANTS (corrections nommées)
+- N-a `combat-console.css:60-62` : `--cc-arch-nom-ligne: 16px` « interligne NORMAL … 16px mesurés » et `.cc-arch-name` (:792-804) ne déclare AUCUN `line-height` : la réserve de deux lignes dépend de la métrique de police (fonte de repli → 3e ligne rognée par `overflow: clip`). Correction : `line-height: var(--cc-arch-nom-ligne)` sur `.cc-arch-name` ; et `:1138` `--cc-arch-nom-h: 16px` → `var(--cc-arch-nom-ligne)` (littéral recopié). Mesuré : 56 signes tiennent 2 lignes à 701/900/1366 (sonde-signes.out, contenu 32 = boîte 32).
+- N-b `hud.css:101` (`+ 2px`), `:165` (`- 2px`), `:178` et `:272` (`- 1px`) : le filet de `.skin-bois` (`components.css:1282`, `border: 1px`) recopié quatre fois à la main. Correction : `--skin-bois-filet: 1px` porté par components.css, consommé par la peau et par hud.css.
+- N-c Tests qui épinglent le TEXTE du CSS, contre l'en-tête de leur propre describe (« jamais le TEXTE d'une formule », CombatConsole.test.tsx:440) : `decl(bay,'padding')).toBe('var(--cc-bay-pad) var(--cc-bay-pad) var(--cc-bay-pied)')`, `.cc-arch-name height toBe('var(--cc-arch-nom-h)')`, `.cc-arch grid-column toBe('2')`, `.cc-dock` dernière colonne `toBe('var(--cc-corner)')` ; F-3 recopie la largeur empilée avec un `+ 6` nu. PartyDock.test.tsx:33-34 épingle le balisage `<figcaption><span><span class="nom-mot">…`.
+- N-d Reste 6 partiel : `console-pont-formes.mjs:469` garde `Math.abs(h - ref[1]) > 1` pour la hauteur de bande ; seule l'arche passe à `TOLERANCE_IMMOBILE`.
+- N-e `.cc-bay-head` : `text-overflow: ellipsis` au caractère (`combat-console.css:396`), préexistant (2 à HEAD, 1 ici), latent. Ticket R-M2.
+- N-f `CombatConsole.tsx:427` `role="img"` sur un nom en texte : nom accessible par aria-label, acceptable ; à revoir au lot a11y.
+- N-g `CampaignView.tsx:329-354` : `<InitiativeStrip>` non réindenté dans le `<Stack data-piste="frise">` neuf.
+
+LES 20 DÉFAUTS RESTANTS DE LA SONDE — PRÉEXISTANTS, non causés par le lot, non bloquants pour lui
+- 16 « vie … pas superposée à son portrait » (700) + 4 « carte … pas plus compacte que 88px » (900, 700).
+- Déjà à HEAD : h1/sonde-2.txt et h1b/sonde-finale.txt portent 16 / 8 lignes (8 + 4 défauts, listés deux fois). La hausse 12 → 20 vient de la couverture (combat ×650 et ×740 à 700 ajoutés), pas d'une régression.
+- Ce sont des cellules §12 de PartyDock jamais implémentées (561-700 vie sur portrait ; 701-900 carte compacte) : TICKET à ouvrir (le codeur n'a pas pu, gh 403). Tant qu'il n'existe pas, la sonde ne sera pas verte (rc=1).
+
+B1-B6 DE C1b ET ARBITRAGES 1-6 : SOLDE
+- B1 frise/fil hors zone 561-660 : SOLDÉ — `contain` retiré de temps (hud.css:108-111), piste `[data-piste='frise']` conteneur ; LARGEURS_COUCHE couvre 561/600/640/701/901 (`hud-clickables.mjs:90`) ; 0 « déborde de sa zone » / « recouvre » dans ma passe.
+- B2 nom au fronton : SOLDÉ à l'arche (deux lignes réservées, Nom, immobilité 84 vues × 2 pointeurs OK) ; voir N-a. Classe transposée à la carte du groupe : K1.
+- B3 budget au doigt : SOLDÉ — `--cc-fronton` clampé sur `--cc-bande-rangee` (combat-console.css:28, :90), F-1 sans exemption d'empreinte, BUDGET_PONT.doigt (hud-clickables.mjs:948), spec § Budget par pointeur.
+- B4 portrait/case : SOLDÉ — formule `--cc-portrait` (combat-console.css:95-98), 0 défaut « le visage cède avant la case ».
+- B5 : NON SOLDÉ (K2, K3).
+- B6 blanchiment : SOLDÉ — `variablesHorsEchelle` (cssCouches.mjs:401-419) ; ma sonde juge-c1d/sites.mjs : sous la garde neuve, HEAD porte déjà les 24 sites ajoutés au stock (neufs = 0 dans 8 feuilles), 12 sites de combat-console partis. Pas de blanchiment.
+- Arb. 1 (A7, écart Q1 à la spec) : FAIT, spec:692-705 (34,3 px, sans renvoi à un verdict).
+- Arb. 2 (plafonds au doigt 0,30/0,48, souris inchangée) : FAIT (spec, charte:465-469, F-5, BUDGET_PONT).
+- Arb. 3 (journal ≤700 dans le champ) : FAIT à ≤700 ; prémisse incomplète au-delà : K4.
+- Arb. 4 (groupe à 561, aucun recouvrement) : FAIT — aires `[data-pont='combat']` ≤700 (hud.css:257-263), 0 « recouvre party-dock » ; règle d'aires, pas de géométrie par largeur.
+- Arb. 5 (snap, bord bas défilant) : FAIT (log-drawer.css:50-57 ; hud-clickables.mjs:337-351, verdict dit).
+- Arb. 6 (stock) : FAIT pour les deux entrées accrues ; mais le stock CROÎT net de +24 face à HEAD (voir CLIQUET).
+
+RÉFUTÉ DU RENDU
+1. « B5 : fait dans les fichiers du lot » — ExplorationDock.test.tsx:426 « Juge de diff C1 (B5) », ligne ajoutée ; charte:349, :446 inchangées ; charte:407 fausse (K2, K3).
+2. `NOM_CARTE_SIGNES` « ce que ses deux lignes portent à la carte la plus étroite » — 3 lignes à 28 signes (K1).
+3. « Reste 6 : la tolérance passe de 1 à TOLERANCE_IMMOBILE » — pour l'arche seulement ; la bande reste à `> 1` (N-d).
+4. « L'outil ne peut pas en ajouter » (24 entrées) — le compte de la porte de plage (`croissanceDesStocks`, juge-c1d/croiss.mjs) donne `ajoutees 24, net 24` pour cssCouchesStock.mjs : la croissance EST dans l'arbre et exige un CLIQUET au commit.
+5. Recette « captures hachées, pas regardées » : journal-souris-701x780.png montre le journal à 135 px (K4). (La coupe « Pierre-de- / Fer. » du fil sur cette capture est un artefact du renommage après narration : en jeu, sonde-fil.out donne 0 mot tranché, noms tonés rendus par `Nom`.)
+
+CONFIRMÉ DU RENDU
+- 3 passes identiques + la mienne (4) ; cause du non-déterminisme (tâche longue, calme en temps de page `hud-clickables.mjs:1184-1206`).
+- #1833 / #1856 / #2101 : non rejoués individuellement ; ma passe complète reproduit la sienne à l'octet.
+- Mutations : non rejouées (hors rôle) ; blobs avant == après cités.
+
+LIGNES POUR LE COMMIT
+JUGE: À REPRENDRE — légende du groupe à 3 lignes pour un nom de 28 signes (line-clamp retiré, PartyDock.tsx:18) ; charte-ui.md:349/:407/:446 fausses (B5 non soldé) ; « Juge de diff C1 (B5) » ajouté à ExplorationDock.test.tsx:426 ; journal à 135 px à 701 (arbitrage 3 clos à ≤700 seulement). Sonde : 20 défauts préexistants (H1), 4 passes identiques ; B1-B4, B6, arbitrages 1, 2, 4, 5, 6 soldés.
+REFUTATION: NOM_CARTE_SIGNES=28 « tient deux lignes » — « Wolfgang Maximilian Wurmwald » rend 3 lignes (43 px) à 701/900/1366 (juge-c1d/sonde-signes.out).
+REFUTATION: « B5 fait dans les fichiers du lot » — ExplorationDock.test.tsx:426 ajoute « Juge de diff C1 (B5) » ; charte-ui.md:349 et :446 inchangées.
+REFUTATION: « tolérance 1 → 0,5 » — console-pont-formes.mjs:469 garde `> 1` sur la hauteur de bande.
+CLIQUET: scripts/guards/lib/cssCouchesStock.mjs +24 — la garde d'espacement lit désormais les propriétés hors échelle du module (variablesHorsEchelle, #1806) : 24 sites déjà présents à HEAD deviennent comptés ; 12 sites de combat-console.css soldés dans le même geste
+
+SONDES DU JUGE (lecture seule, à promouvoir)
+- juge-c1d/sonde-signes.mjs → sonde-signes.out + S-signes-701x780.png : bornes en signes de l'arche (56) et de la carte (28) → à promouvoir dans « nom au pire » de hud-clickables (nom de HÉROS de 28 signes à mots longs).
+- juge-c1d/sonde-fil.mjs → sonde-fil.out + J-701x780.png : largeur du panneau du journal 701-1100, mots tranchés du fil/journal, tonalité des segments.
+- juge-c1d/sites.mjs : sites d'espacement HEAD vs arbre sous la garde neuve. juge-c1d/croiss.mjs : croissance de stock au sens de la porte de plage.
+
+PROCESSUS
+- vite `--port 5397` (setsid + timeout 3600, pgid 5930) : tué par groupe (`kill -- -5930`), curl → 000.
+- hud-clickables (timeout 3000), console-pont-formes (1200), sonde-fil (300), sonde-signes (300) : tous terminés (rc écrits) ; Chromium fermé dans leurs `finally`, `ps` vide ensuite.
+- Incident : un premier `kill` par `pgrep -f` a visé le groupe de MON shell (motif présent dans sa ligne de commande), sans autre effet ; vite tué ensuite par son pgid exact.
