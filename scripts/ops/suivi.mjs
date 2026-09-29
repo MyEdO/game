@@ -38,6 +38,8 @@ import { join } from 'node:path'
 import { arbrePrincipal, depotDe } from '../guards/lib/gitPorte.mjs'
 import { numerosDeLaChaine } from '../guards/lib/fermetures.mjs'
 import { listerDossier } from '../guards/lib/lister.mjs'
+import { coupeAuMot } from '../../src/lib/coupeAuMot.mjs'
+import { tableTotale } from '../../src/lib/tableTotale.ts'
 import { BASE, GESTES_DU_BOARD, JOURS_FUSION_RECENTE, issuesDeGh, mesurer, urlDuTicket } from './board.mjs'
 import { inventaire } from './worktrees.mjs'
 
@@ -57,7 +59,7 @@ const lignesDe = (texte) => String(texte).match(/[^\n]*\n|[^\n]+$/g) ?? []
 /** Une ligne sans sa fin. PURE. */
 const sansFin = (ligne) => ligne.replace(/\r?\n$/, '')
 /** Un extrait d'une ligne, pour une anomalie. PURE. */
-const extrait = (ligne) => `« ${ligne.length > 80 ? `${ligne.slice(0, 79)}…` : ligne} »`
+const extrait = (ligne) => `« ${coupeAuMot(ligne, 80)} »`
 
 /**
  * Les deux zones d'un texte : ses lignes, et l'indice des deux marqueurs (`-1` s'ils sont absents).
@@ -249,7 +251,7 @@ export const gabaritDuSuivi = (epique) => [
  * @returns {{vu: ReturnType<typeof mesurer>, profil: {durees: Record<string, number>, total: number, reste: number}}}
  */
 export function mesureProfilee({ gestes = GESTES_DU_BOARD, inv = inventaire, issues = issuesDeGh, horloge = () => performance.now(), ...params } = {}) {
-  const durees = Object.fromEntries([...Object.keys(GESTES_DU_BOARD), 'inv', 'issues'].map((nom) => [nom, 0]))
+  const durees = tableTotale([...Object.keys(GESTES_DU_BOARD), 'inv', 'issues'], () => 0)
   const envelopper = (nom, geste) => (...args) => {
     const depart = horloge()
     try {
@@ -258,7 +260,7 @@ export function mesureProfilee({ gestes = GESTES_DU_BOARD, inv = inventaire, iss
       durees[nom] += horloge() - depart
     }
   }
-  const enveloppes = Object.fromEntries(Object.keys(GESTES_DU_BOARD).map((nom) => [nom, envelopper(nom, gestes[nom])]))
+  const enveloppes = tableTotale(Object.keys(GESTES_DU_BOARD), (nom) => envelopper(nom, gestes[nom]))
   const depart = horloge()
   let vu
   try {
