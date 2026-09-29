@@ -1,0 +1,290 @@
+exploration 1707px — 4 carte(s) sur 1 ligne(s), 4 portrait(s) rendu(s), marge morte objectif 0px → OK
+exploration 1100px — 4 carte(s) sur 1 ligne(s), 4 portrait(s) rendu(s), marge morte objectif 0px → OK
+exploration 900px — 4 carte(s) sur 1 ligne(s), 4 portrait(s) rendu(s), marge morte objectif 0px → OK
+exploration 700px — 4 carte(s) sur 1 ligne(s), 4 portrait(s) rendu(s), marge morte objectif 0px → 4 défaut(s)
+   · exploration 700px (§12 561–700) : la vie de la carte 0 du groupe n'est pas superposée à son portrait
+   · exploration 700px (§12 561–700) : la vie de la carte 1 du groupe n'est pas superposée à son portrait
+   · exploration 700px (§12 561–700) : la vie de la carte 2 du groupe n'est pas superposée à son portrait
+   · exploration 700px (§12 561–700) : la vie de la carte 3 du groupe n'est pas superposée à son portrait
+exploration 560px — bande REPLIÉE sur sa poignée (poignée atteignable), 0 portrait(s) rendu(s), marge morte objectif 0px → OK
+exploration (groupe déplié) 560px — 4 carte(s) sur 1 ligne(s), 4 portrait(s) cliquable(s) → OK
+exploration 360px — bande REPLIÉE sur sa poignée (poignée atteignable), 0 portrait(s) rendu(s), marge morte objectif 0px → OK
+exploration (groupe déplié) 360px — 4 carte(s) sur 1 ligne(s), 4 portrait(s) cliquable(s) → OK
+   · exploration 900px (§12 701–900) : la carte du groupe fait 88px, pas plus compacte que 88px à 1707px
+   · exploration 700px (§12 561–700) : la carte du groupe fait 88px, pas plus compacte que 88px à 1707px
+couche (exploration, souris) 1707×780 — pont 49px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, souris) 1366×780 — pont 49px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, souris) 1280×780 — pont 49px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, souris) 1279×780 — pont 49px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, souris) 1100×780 — pont 49px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, souris) 901×780 — pont 49px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, souris) 900×780 — pont 49px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, souris) 701×780 — pont 49px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, souris) 700×780 — pont 49px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, souris) 640×780 — pont 49px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, souris) 600×780 — pont 49px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, souris) 561×780 — pont 49px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, souris) 560×780 — pont 49px au bas, 4 surface(s), 5/5 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, souris) 360×780 — pont 49px au bas, 4 surface(s), 5/5 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, souris) 1707×650 — pont 49px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, souris) 1366×650 — pont 49px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, souris) 1280×650 — pont 49px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, souris) 1279×650 — pont 49px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, souris) 1100×650 — pont 49px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, souris) 901×650 — pont 49px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, souris) 900×650 — pont 49px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, souris) 701×650 — pont 49px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, souris) 700×650 — pont 49px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, souris) 640×650 — pont 49px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, souris) 600×650 — pont 49px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, souris) 561×650 — pont 49px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, souris) 560×650 — pont 49px au bas, 4 surface(s), 5/5 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, souris) 360×650 — pont 49px au bas, 4 surface(s), 5/5 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, souris) 1707×740 — pont 49px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, souris) 1366×740 — pont 49px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, souris) 1280×740 — pont 49px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, souris) 1279×740 — pont 49px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, souris) 1100×740 — pont 49px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, souris) 901×740 — pont 49px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, souris) 900×740 — pont 49px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, souris) 701×740 — pont 49px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, souris) 700×740 — pont 49px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, souris) 640×740 — pont 49px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, souris) 600×740 — pont 49px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, souris) 561×740 — pont 49px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, souris) 560×740 — pont 49px au bas, 4 surface(s), 5/5 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, souris) 360×740 — pont 49px au bas, 4 surface(s), 5/5 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, doigt) 1707×780 — pont 51px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, doigt) 1366×780 — pont 51px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, doigt) 1280×780 — pont 51px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, doigt) 1279×780 — pont 51px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, doigt) 1100×780 — pont 51px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, doigt) 901×780 — pont 51px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, doigt) 900×780 — pont 51px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, doigt) 701×780 — pont 51px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, doigt) 700×780 — pont 51px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, doigt) 640×780 — pont 51px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, doigt) 600×780 — pont 51px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, doigt) 561×780 — pont 51px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, doigt) 560×780 — pont 51px au bas, 4 surface(s), 5/5 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, doigt) 360×780 — pont 51px au bas, 4 surface(s), 5/5 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, doigt) 1707×650 — pont 51px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, doigt) 1366×650 — pont 51px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, doigt) 1280×650 — pont 51px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, doigt) 1279×650 — pont 51px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, doigt) 1100×650 — pont 51px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, doigt) 901×650 — pont 51px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, doigt) 900×650 — pont 51px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, doigt) 701×650 — pont 51px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, doigt) 700×650 — pont 51px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, doigt) 640×650 — pont 51px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, doigt) 600×650 — pont 51px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, doigt) 561×650 — pont 51px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, doigt) 560×650 — pont 51px au bas, 4 surface(s), 5/5 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, doigt) 360×650 — pont 51px au bas, 4 surface(s), 5/5 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, doigt) 1707×740 — pont 51px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, doigt) 1366×740 — pont 51px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, doigt) 1280×740 — pont 51px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, doigt) 1279×740 — pont 51px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, doigt) 1100×740 — pont 51px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, doigt) 901×740 — pont 51px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, doigt) 900×740 — pont 51px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, doigt) 701×740 — pont 51px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, doigt) 700×740 — pont 51px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, doigt) 640×740 — pont 51px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, doigt) 600×740 — pont 51px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, doigt) 561×740 — pont 51px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, doigt) 560×740 — pont 51px au bas, 4 surface(s), 5/5 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, doigt) 360×740 — pont 51px au bas, 4 surface(s), 5/5 commande(s) atteinte(s), 0 exemptée(s) → OK
+combat (pause) 1707px — frise colonne, tête couverte, pied entier → OK
+combat (pause) 1100px — frise colonne, tête couverte, pied entier → OK
+combat (pause) 900px — frise colonne, tête couverte, pied entier → OK
+combat (pause) 700px — frise colonne, tête couverte, pied entier → OK
+combat (pause) 560px — frise bande, tête non mesurée, pied non mesuré → OK
+combat (pause) 360px — frise bande, tête couverte, pied non mesuré → OK
+couche (ouverture, souris) 1707×780 — pont 170px au bas, 7 surface(s), 16/20 commande(s) atteinte(s), 4 exemptée(s) → OK
+couche (ouverture, souris) 1366×780 — pont 170px au bas, 7 surface(s), 16/20 commande(s) atteinte(s), 4 exemptée(s) → OK
+couche (ouverture, souris) 1280×780 — pont 170px au bas, 7 surface(s), 16/20 commande(s) atteinte(s), 4 exemptée(s) → OK
+couche (ouverture, souris) 1279×780 — pont 170px au bas, 7 surface(s), 16/20 commande(s) atteinte(s), 4 exemptée(s) → OK
+couche (ouverture, souris) 1100×780 — pont 170px au bas, 7 surface(s), 16/20 commande(s) atteinte(s), 4 exemptée(s) → OK
+couche (ouverture, souris) 901×780 — pont 170px au bas, 7 surface(s), 15/20 commande(s) atteinte(s), 5 exemptée(s) → OK
+couche (ouverture, souris) 900×780 — pont 170px au bas, 7 surface(s), 15/20 commande(s) atteinte(s), 5 exemptée(s) → OK
+couche (ouverture, souris) 701×780 — pont 170px au bas, 7 surface(s), 15/20 commande(s) atteinte(s), 5 exemptée(s) → OK
+couche (ouverture, souris) 700×780 — pont 183.6px au bas, 7 surface(s), 15/20 commande(s) atteinte(s), 5 exemptée(s) → OK
+couche (ouverture, souris) 640×780 — pont 183.6px au bas, 7 surface(s), 15/20 commande(s) atteinte(s), 5 exemptée(s) → OK
+couche (ouverture, souris) 600×780 — pont 177px au bas, 7 surface(s), 15/20 commande(s) atteinte(s), 5 exemptée(s) → OK
+couche (ouverture, souris) 561×780 — pont 170.5px au bas, 7 surface(s), 15/20 commande(s) atteinte(s), 5 exemptée(s) → OK
+couche (ouverture, souris) 560×780 — pont 280px au bas, 7 surface(s), 17/17 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (ouverture, souris) 360×780 — pont 280px au bas, 7 surface(s), 12/17 commande(s) atteinte(s), 5 exemptée(s) → OK
+couche (ouverture, souris) 1707×650 — pont 141.7px au bas, 7 surface(s), 14/20 commande(s) atteinte(s), 6 exemptée(s) → OK
+couche (ouverture, souris) 1366×650 — pont 141.7px au bas, 7 surface(s), 14/20 commande(s) atteinte(s), 6 exemptée(s) → OK
+couche (ouverture, souris) 1280×650 — pont 141.7px au bas, 7 surface(s), 14/20 commande(s) atteinte(s), 6 exemptée(s) → OK
+couche (ouverture, souris) 1279×650 — pont 141.7px au bas, 7 surface(s), 14/20 commande(s) atteinte(s), 6 exemptée(s) → OK
+couche (ouverture, souris) 1100×650 — pont 141.7px au bas, 7 surface(s), 14/20 commande(s) atteinte(s), 6 exemptée(s) → OK
+couche (ouverture, souris) 901×650 — pont 141.7px au bas, 7 surface(s), 13/20 commande(s) atteinte(s), 7 exemptée(s) → OK
+couche (ouverture, souris) 900×650 — pont 141.7px au bas, 7 surface(s), 14/20 commande(s) atteinte(s), 6 exemptée(s) → OK
+couche (ouverture, souris) 701×650 — pont 141.7px au bas, 7 surface(s), 13/20 commande(s) atteinte(s), 7 exemptée(s) → OK
+couche (ouverture, souris) 700×650 — pont 161.5px au bas, 7 surface(s), 13/20 commande(s) atteinte(s), 7 exemptée(s) → OK
+couche (ouverture, souris) 640×650 — pont 161.5px au bas, 7 surface(s), 13/20 commande(s) atteinte(s), 7 exemptée(s) → OK
+couche (ouverture, souris) 600×650 — pont 161.5px au bas, 7 surface(s), 13/20 commande(s) atteinte(s), 7 exemptée(s) → OK
+couche (ouverture, souris) 561×650 — pont 161.5px au bas, 7 surface(s), 12/20 commande(s) atteinte(s), 8 exemptée(s) → OK
+couche (ouverture, souris) 560×650 — pont 280px au bas, 7 surface(s), 17/17 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (ouverture, souris) 360×650 — pont 280px au bas, 7 surface(s), 12/17 commande(s) atteinte(s), 5 exemptée(s) → OK
+couche (ouverture, souris) 1707×740 — pont 161.3px au bas, 7 surface(s), 15/20 commande(s) atteinte(s), 5 exemptée(s) → OK
+couche (ouverture, souris) 1366×740 — pont 161.3px au bas, 7 surface(s), 15/20 commande(s) atteinte(s), 5 exemptée(s) → OK
+couche (ouverture, souris) 1280×740 — pont 161.3px au bas, 7 surface(s), 15/20 commande(s) atteinte(s), 5 exemptée(s) → OK
+couche (ouverture, souris) 1279×740 — pont 161.3px au bas, 7 surface(s), 15/20 commande(s) atteinte(s), 5 exemptée(s) → OK
+couche (ouverture, souris) 1100×740 — pont 161.3px au bas, 7 surface(s), 15/20 commande(s) atteinte(s), 5 exemptée(s) → OK
+couche (ouverture, souris) 901×740 — pont 161.3px au bas, 7 surface(s), 15/20 commande(s) atteinte(s), 5 exemptée(s) → OK
+couche (ouverture, souris) 900×740 — pont 161.3px au bas, 7 surface(s), 15/20 commande(s) atteinte(s), 5 exemptée(s) → OK
+couche (ouverture, souris) 701×740 — pont 161.3px au bas, 7 surface(s), 14/20 commande(s) atteinte(s), 6 exemptée(s) → OK
+couche (ouverture, souris) 700×740 — pont 176.8px au bas, 7 surface(s), 14/20 commande(s) atteinte(s), 6 exemptée(s) → OK
+couche (ouverture, souris) 640×740 — pont 176.8px au bas, 7 surface(s), 14/20 commande(s) atteinte(s), 6 exemptée(s) → OK
+couche (ouverture, souris) 600×740 — pont 176.8px au bas, 7 surface(s), 14/20 commande(s) atteinte(s), 6 exemptée(s) → OK
+couche (ouverture, souris) 561×740 — pont 170.5px au bas, 7 surface(s), 14/20 commande(s) atteinte(s), 6 exemptée(s) → OK
+couche (ouverture, souris) 560×740 — pont 280px au bas, 7 surface(s), 17/17 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (ouverture, souris) 360×740 — pont 280px au bas, 7 surface(s), 12/17 commande(s) atteinte(s), 5 exemptée(s) → OK
+couche (ouverture, doigt) 1707×780 — pont 170px au bas, 7 surface(s), 16/20 commande(s) atteinte(s), 4 exemptée(s) → OK
+couche (ouverture, doigt) 1366×780 — pont 170px au bas, 7 surface(s), 16/20 commande(s) atteinte(s), 4 exemptée(s) → OK
+couche (ouverture, doigt) 1280×780 — pont 170px au bas, 7 surface(s), 16/20 commande(s) atteinte(s), 4 exemptée(s) → OK
+couche (ouverture, doigt) 1279×780 — pont 170px au bas, 7 surface(s), 16/20 commande(s) atteinte(s), 4 exemptée(s) → OK
+couche (ouverture, doigt) 1100×780 — pont 170px au bas, 7 surface(s), 16/20 commande(s) atteinte(s), 4 exemptée(s) → OK
+couche (ouverture, doigt) 901×780 — pont 170px au bas, 7 surface(s), 15/20 commande(s) atteinte(s), 5 exemptée(s) → OK
+couche (ouverture, doigt) 900×780 — pont 183.6px au bas, 7 surface(s), 15/20 commande(s) atteinte(s), 5 exemptée(s) → OK
+couche (ouverture, doigt) 701×780 — pont 183.6px au bas, 7 surface(s), 15/20 commande(s) atteinte(s), 5 exemptée(s) → OK
+couche (ouverture, doigt) 700×780 — pont 312px au bas, 7 surface(s), 13/20 commande(s) atteinte(s), 7 exemptée(s) → OK
+couche (ouverture, doigt) 640×780 — pont 312px au bas, 7 surface(s), 13/20 commande(s) atteinte(s), 7 exemptée(s) → OK
+couche (ouverture, doigt) 600×780 — pont 312px au bas, 7 surface(s), 13/20 commande(s) atteinte(s), 7 exemptée(s) → OK
+couche (ouverture, doigt) 561×780 — pont 312px au bas, 7 surface(s), 12/20 commande(s) atteinte(s), 8 exemptée(s) → OK
+couche (ouverture, doigt) 560×780 — pont 312px au bas, 7 surface(s), 17/17 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (ouverture, doigt) 360×780 — pont 312px au bas, 7 surface(s), 12/17 commande(s) atteinte(s), 5 exemptée(s) → OK
+couche (ouverture, doigt) 1707×650 — pont 143px au bas, 7 surface(s), 14/20 commande(s) atteinte(s), 6 exemptée(s) → OK
+couche (ouverture, doigt) 1366×650 — pont 143px au bas, 7 surface(s), 14/20 commande(s) atteinte(s), 6 exemptée(s) → OK
+couche (ouverture, doigt) 1280×650 — pont 143px au bas, 7 surface(s), 14/20 commande(s) atteinte(s), 6 exemptée(s) → OK
+couche (ouverture, doigt) 1279×650 — pont 143px au bas, 7 surface(s), 14/20 commande(s) atteinte(s), 6 exemptée(s) → OK
+couche (ouverture, doigt) 1100×650 — pont 143px au bas, 7 surface(s), 14/20 commande(s) atteinte(s), 6 exemptée(s) → OK
+couche (ouverture, doigt) 901×650 — pont 143px au bas, 7 surface(s), 13/20 commande(s) atteinte(s), 7 exemptée(s) → OK
+couche (ouverture, doigt) 900×650 — pont 181px au bas, 7 surface(s), 13/20 commande(s) atteinte(s), 7 exemptée(s) → OK
+couche (ouverture, doigt) 701×650 — pont 181px au bas, 7 surface(s), 12/20 commande(s) atteinte(s), 8 exemptée(s) → OK
+couche (ouverture, doigt) 700×650 — pont 312px au bas, 7 surface(s), 9/20 commande(s) atteinte(s), 11 exemptée(s) → OK
+couche (ouverture, doigt) 640×650 — pont 312px au bas, 7 surface(s), 9/20 commande(s) atteinte(s), 11 exemptée(s) → OK
+couche (ouverture, doigt) 600×650 — pont 312px au bas, 7 surface(s), 9/20 commande(s) atteinte(s), 11 exemptée(s) → OK
+couche (ouverture, doigt) 561×650 — pont 312px au bas, 7 surface(s), 9/20 commande(s) atteinte(s), 11 exemptée(s) → OK
+couche (ouverture, doigt) 560×650 — pont 312px au bas, 7 surface(s), 17/17 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (ouverture, doigt) 360×650 — pont 312px au bas, 7 surface(s), 12/17 commande(s) atteinte(s), 5 exemptée(s) → OK
+couche (ouverture, doigt) 1707×740 — pont 162.8px au bas, 7 surface(s), 15/20 commande(s) atteinte(s), 5 exemptée(s) → OK
+couche (ouverture, doigt) 1366×740 — pont 162.8px au bas, 7 surface(s), 15/20 commande(s) atteinte(s), 5 exemptée(s) → OK
+couche (ouverture, doigt) 1280×740 — pont 162.8px au bas, 7 surface(s), 15/20 commande(s) atteinte(s), 5 exemptée(s) → OK
+couche (ouverture, doigt) 1279×740 — pont 162.8px au bas, 7 surface(s), 15/20 commande(s) atteinte(s), 5 exemptée(s) → OK
+couche (ouverture, doigt) 1100×740 — pont 162.8px au bas, 7 surface(s), 15/20 commande(s) atteinte(s), 5 exemptée(s) → OK
+couche (ouverture, doigt) 901×740 — pont 162.8px au bas, 7 surface(s), 15/20 commande(s) atteinte(s), 5 exemptée(s) → OK
+couche (ouverture, doigt) 900×740 — pont 181px au bas, 7 surface(s), 14/20 commande(s) atteinte(s), 6 exemptée(s) → OK
+couche (ouverture, doigt) 701×740 — pont 181px au bas, 7 surface(s), 14/20 commande(s) atteinte(s), 6 exemptée(s) → OK
+couche (ouverture, doigt) 700×740 — pont 312px au bas, 7 surface(s), 12/20 commande(s) atteinte(s), 8 exemptée(s) → OK
+couche (ouverture, doigt) 640×740 — pont 312px au bas, 7 surface(s), 12/20 commande(s) atteinte(s), 8 exemptée(s) → OK
+couche (ouverture, doigt) 600×740 — pont 312px au bas, 7 surface(s), 12/20 commande(s) atteinte(s), 8 exemptée(s) → OK
+couche (ouverture, doigt) 561×740 — pont 312px au bas, 7 surface(s), 12/20 commande(s) atteinte(s), 8 exemptée(s) → OK
+couche (ouverture, doigt) 560×740 — pont 312px au bas, 7 surface(s), 17/17 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (ouverture, doigt) 360×740 — pont 312px au bas, 7 surface(s), 12/17 commande(s) atteinte(s), 5 exemptée(s) → OK
+  (mise en place : premier tour tenu par un héros — ✓ au tour de Klein Bürger)
+couche (tour de héros, souris) 1707×780 — pont 170px au bas, 6 surface(s), 25/27 commande(s) atteinte(s), 2 exemptée(s) → OK
+couche (tour de héros, souris) 1366×780 — pont 170px au bas, 6 surface(s), 25/27 commande(s) atteinte(s), 2 exemptée(s) → OK
+couche (tour de héros, souris) 1280×780 — pont 170px au bas, 6 surface(s), 25/27 commande(s) atteinte(s), 2 exemptée(s) → OK
+couche (tour de héros, souris) 1279×780 — pont 170px au bas, 6 surface(s), 25/27 commande(s) atteinte(s), 2 exemptée(s) → OK
+couche (tour de héros, souris) 1100×780 — pont 170px au bas, 6 surface(s), 25/27 commande(s) atteinte(s), 2 exemptée(s) → OK
+couche (tour de héros, souris) 901×780 — pont 170px au bas, 6 surface(s), 24/27 commande(s) atteinte(s), 3 exemptée(s) → OK
+couche (tour de héros, souris) 900×780 — pont 170px au bas, 6 surface(s), 24/27 commande(s) atteinte(s), 3 exemptée(s) → OK
+couche (tour de héros, souris) 701×780 — pont 170px au bas, 6 surface(s), 24/27 commande(s) atteinte(s), 3 exemptée(s) → OK
+couche (tour de héros, souris) 700×780 — pont 183.6px au bas, 6 surface(s), 24/27 commande(s) atteinte(s), 3 exemptée(s) → OK
+couche (tour de héros, souris) 640×780 — pont 183.6px au bas, 6 surface(s), 24/27 commande(s) atteinte(s), 3 exemptée(s) → OK
+couche (tour de héros, souris) 600×780 — pont 177px au bas, 6 surface(s), 24/27 commande(s) atteinte(s), 3 exemptée(s) → OK
+couche (tour de héros, souris) 561×780 — pont 170.5px au bas, 6 surface(s), 24/27 commande(s) atteinte(s), 3 exemptée(s) → OK
+couche (tour de héros, souris) 560×780 — pont 280px au bas, 6 surface(s), 24/24 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (tour de héros, souris) 360×780 — pont 280px au bas, 6 surface(s), 21/24 commande(s) atteinte(s), 3 exemptée(s) → OK
+couche (tour de héros, souris) 1707×650 — pont 141.7px au bas, 6 surface(s), 23/27 commande(s) atteinte(s), 4 exemptée(s) → OK
+couche (tour de héros, souris) 1366×650 — pont 141.7px au bas, 6 surface(s), 23/27 commande(s) atteinte(s), 4 exemptée(s) → OK
+couche (tour de héros, souris) 1280×650 — pont 141.7px au bas, 6 surface(s), 23/27 commande(s) atteinte(s), 4 exemptée(s) → OK
+couche (tour de héros, souris) 1279×650 — pont 141.7px au bas, 6 surface(s), 23/27 commande(s) atteinte(s), 4 exemptée(s) → OK
+couche (tour de héros, souris) 1100×650 — pont 141.7px au bas, 6 surface(s), 23/27 commande(s) atteinte(s), 4 exemptée(s) → OK
+couche (tour de héros, souris) 901×650 — pont 141.7px au bas, 6 surface(s), 22/27 commande(s) atteinte(s), 5 exemptée(s) → OK
+couche (tour de héros, souris) 900×650 — pont 141.7px au bas, 6 surface(s), 22/27 commande(s) atteinte(s), 5 exemptée(s) → OK
+couche (tour de héros, souris) 701×650 — pont 141.7px au bas, 6 surface(s), 22/27 commande(s) atteinte(s), 5 exemptée(s) → OK
+couche (tour de héros, souris) 700×650 — pont 161.5px au bas, 6 surface(s), 22/27 commande(s) atteinte(s), 5 exemptée(s) → OK
+couche (tour de héros, souris) 640×650 — pont 161.5px au bas, 6 surface(s), 22/27 commande(s) atteinte(s), 5 exemptée(s) → OK
+couche (tour de héros, souris) 600×650 — pont 161.5px au bas, 6 surface(s), 22/27 commande(s) atteinte(s), 5 exemptée(s) → OK
+couche (tour de héros, souris) 561×650 — pont 161.5px au bas, 6 surface(s), 22/27 commande(s) atteinte(s), 5 exemptée(s) → OK
+couche (tour de héros, souris) 560×650 — pont 280px au bas, 6 surface(s), 24/24 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (tour de héros, souris) 360×650 — pont 280px au bas, 6 surface(s), 21/24 commande(s) atteinte(s), 3 exemptée(s) → OK
+couche (tour de héros, souris) 1707×740 — pont 161.3px au bas, 6 surface(s), 24/27 commande(s) atteinte(s), 3 exemptée(s) → OK
+couche (tour de héros, souris) 1366×740 — pont 161.3px au bas, 6 surface(s), 24/27 commande(s) atteinte(s), 3 exemptée(s) → OK
+couche (tour de héros, souris) 1280×740 — pont 161.3px au bas, 6 surface(s), 24/27 commande(s) atteinte(s), 3 exemptée(s) → OK
+couche (tour de héros, souris) 1279×740 — pont 161.3px au bas, 6 surface(s), 24/27 commande(s) atteinte(s), 3 exemptée(s) → OK
+couche (tour de héros, souris) 1100×740 — pont 161.3px au bas, 6 surface(s), 24/27 commande(s) atteinte(s), 3 exemptée(s) → OK
+couche (tour de héros, souris) 901×740 — pont 161.3px au bas, 6 surface(s), 23/27 commande(s) atteinte(s), 4 exemptée(s) → OK
+couche (tour de héros, souris) 900×740 — pont 161.3px au bas, 6 surface(s), 24/27 commande(s) atteinte(s), 3 exemptée(s) → OK
+couche (tour de héros, souris) 701×740 — pont 161.3px au bas, 6 surface(s), 23/27 commande(s) atteinte(s), 4 exemptée(s) → OK
+couche (tour de héros, souris) 700×740 — pont 176.8px au bas, 6 surface(s), 23/27 commande(s) atteinte(s), 4 exemptée(s) → OK
+couche (tour de héros, souris) 640×740 — pont 176.8px au bas, 6 surface(s), 23/27 commande(s) atteinte(s), 4 exemptée(s) → OK
+couche (tour de héros, souris) 600×740 — pont 176.8px au bas, 6 surface(s), 23/27 commande(s) atteinte(s), 4 exemptée(s) → OK
+couche (tour de héros, souris) 561×740 — pont 170.5px au bas, 6 surface(s), 23/27 commande(s) atteinte(s), 4 exemptée(s) → OK
+couche (tour de héros, souris) 560×740 — pont 280px au bas, 6 surface(s), 24/24 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (tour de héros, souris) 360×740 — pont 280px au bas, 6 surface(s), 21/24 commande(s) atteinte(s), 3 exemptée(s) → OK
+couche (tour de héros, doigt) 1707×780 — pont 170px au bas, 6 surface(s), 25/27 commande(s) atteinte(s), 2 exemptée(s) → OK
+couche (tour de héros, doigt) 1366×780 — pont 170px au bas, 6 surface(s), 25/27 commande(s) atteinte(s), 2 exemptée(s) → OK
+couche (tour de héros, doigt) 1280×780 — pont 170px au bas, 6 surface(s), 25/27 commande(s) atteinte(s), 2 exemptée(s) → OK
+couche (tour de héros, doigt) 1279×780 — pont 170px au bas, 6 surface(s), 25/27 commande(s) atteinte(s), 2 exemptée(s) → OK
+couche (tour de héros, doigt) 1100×780 — pont 170px au bas, 6 surface(s), 25/27 commande(s) atteinte(s), 2 exemptée(s) → OK
+couche (tour de héros, doigt) 901×780 — pont 170px au bas, 6 surface(s), 24/27 commande(s) atteinte(s), 3 exemptée(s) → OK
+couche (tour de héros, doigt) 900×780 — pont 183.6px au bas, 6 surface(s), 24/27 commande(s) atteinte(s), 3 exemptée(s) → OK
+couche (tour de héros, doigt) 701×780 — pont 183.6px au bas, 6 surface(s), 24/27 commande(s) atteinte(s), 3 exemptée(s) → OK
+couche (tour de héros, doigt) 700×780 — pont 312px au bas, 6 surface(s), 22/27 commande(s) atteinte(s), 5 exemptée(s) → OK
+couche (tour de héros, doigt) 640×780 — pont 312px au bas, 6 surface(s), 22/27 commande(s) atteinte(s), 5 exemptée(s) → OK
+couche (tour de héros, doigt) 600×780 — pont 312px au bas, 6 surface(s), 22/27 commande(s) atteinte(s), 5 exemptée(s) → OK
+couche (tour de héros, doigt) 561×780 — pont 312px au bas, 6 surface(s), 22/27 commande(s) atteinte(s), 5 exemptée(s) → OK
+couche (tour de héros, doigt) 560×780 — pont 312px au bas, 6 surface(s), 24/24 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (tour de héros, doigt) 360×780 — pont 312px au bas, 6 surface(s), 21/24 commande(s) atteinte(s), 3 exemptée(s) → OK
+couche (tour de héros, doigt) 1707×650 — pont 143px au bas, 6 surface(s), 23/27 commande(s) atteinte(s), 4 exemptée(s) → OK
+couche (tour de héros, doigt) 1366×650 — pont 143px au bas, 6 surface(s), 23/27 commande(s) atteinte(s), 4 exemptée(s) → OK
+couche (tour de héros, doigt) 1280×650 — pont 143px au bas, 6 surface(s), 23/27 commande(s) atteinte(s), 4 exemptée(s) → OK
+couche (tour de héros, doigt) 1279×650 — pont 143px au bas, 6 surface(s), 23/27 commande(s) atteinte(s), 4 exemptée(s) → OK
+couche (tour de héros, doigt) 1100×650 — pont 143px au bas, 6 surface(s), 23/27 commande(s) atteinte(s), 4 exemptée(s) → OK
+couche (tour de héros, doigt) 901×650 — pont 143px au bas, 6 surface(s), 22/27 commande(s) atteinte(s), 5 exemptée(s) → OK
+couche (tour de héros, doigt) 900×650 — pont 181px au bas, 6 surface(s), 22/27 commande(s) atteinte(s), 5 exemptée(s) → OK
+couche (tour de héros, doigt) 701×650 — pont 181px au bas, 6 surface(s), 21/27 commande(s) atteinte(s), 6 exemptée(s) → OK
+couche (tour de héros, doigt) 700×650 — pont 312px au bas, 6 surface(s), 19/27 commande(s) atteinte(s), 8 exemptée(s) → OK
+couche (tour de héros, doigt) 640×650 — pont 312px au bas, 6 surface(s), 19/27 commande(s) atteinte(s), 8 exemptée(s) → OK
+couche (tour de héros, doigt) 600×650 — pont 312px au bas, 6 surface(s), 19/27 commande(s) atteinte(s), 8 exemptée(s) → OK
+couche (tour de héros, doigt) 561×650 — pont 312px au bas, 6 surface(s), 19/27 commande(s) atteinte(s), 8 exemptée(s) → OK
+couche (tour de héros, doigt) 560×650 — pont 312px au bas, 6 surface(s), 24/24 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (tour de héros, doigt) 360×650 — pont 312px au bas, 6 surface(s), 21/24 commande(s) atteinte(s), 3 exemptée(s) → OK
+couche (tour de héros, doigt) 1707×740 — pont 162.8px au bas, 6 surface(s), 24/27 commande(s) atteinte(s), 3 exemptée(s) → OK
+couche (tour de héros, doigt) 1366×740 — pont 162.8px au bas, 6 surface(s), 24/27 commande(s) atteinte(s), 3 exemptée(s) → OK
+couche (tour de héros, doigt) 1280×740 — pont 162.8px au bas, 6 surface(s), 24/27 commande(s) atteinte(s), 3 exemptée(s) → OK
+couche (tour de héros, doigt) 1279×740 — pont 162.8px au bas, 6 surface(s), 24/27 commande(s) atteinte(s), 3 exemptée(s) → OK
+couche (tour de héros, doigt) 1100×740 — pont 162.8px au bas, 6 surface(s), 24/27 commande(s) atteinte(s), 3 exemptée(s) → OK
+couche (tour de héros, doigt) 901×740 — pont 162.8px au bas, 6 surface(s), 23/27 commande(s) atteinte(s), 4 exemptée(s) → OK
+couche (tour de héros, doigt) 900×740 — pont 181px au bas, 6 surface(s), 23/27 commande(s) atteinte(s), 4 exemptée(s) → OK
+couche (tour de héros, doigt) 701×740 — pont 181px au bas, 6 surface(s), 23/27 commande(s) atteinte(s), 4 exemptée(s) → OK
+couche (tour de héros, doigt) 700×740 — pont 312px au bas, 6 surface(s), 21/27 commande(s) atteinte(s), 6 exemptée(s) → OK
+couche (tour de héros, doigt) 640×740 — pont 312px au bas, 6 surface(s), 21/27 commande(s) atteinte(s), 6 exemptée(s) → OK
+couche (tour de héros, doigt) 600×740 — pont 312px au bas, 6 surface(s), 21/27 commande(s) atteinte(s), 6 exemptée(s) → OK
+couche (tour de héros, doigt) 561×740 — pont 312px au bas, 6 surface(s), 21/27 commande(s) atteinte(s), 6 exemptée(s) → OK
+couche (tour de héros, doigt) 560×740 — pont 312px au bas, 6 surface(s), 24/24 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (tour de héros, doigt) 360×740 — pont 312px au bas, 6 surface(s), 21/24 commande(s) atteinte(s), 3 exemptée(s) → OK
+couche (nom le plus long, souris) 1707×780 — pont 170px au bas, 6 surface(s), 25/27 commande(s) atteinte(s), 2 exemptée(s) → OK
+couche (nom le plus long, souris) 1366×780 — pont 170px au bas, 6 surface(s), 25/27 commande(s) atteinte(s), 2 exemptée(s) → OK
+couche (nom le plus long, souris) 1280×780 — pont 170px au bas, 6 surface(s), 25/27 commande(s) atteinte(s), 2 exemptée(s) → OK
+couche (nom le plus long, souris) 1279×780 — pont 170px au bas, 6 surface(s), 25/27 commande(s) atteinte(s), 2 exemptée(s) → OK
+couche (nom le plus long, souris) 1100×780 — pont 170px au bas, 6 surface(s), 25/27 commande(s) atteinte(s), 2 exemptée(s) → OK
+couche (nom le plus long, souris) 901×780 — pont 170px au bas, 6 surface(s), 24/27 commande(s) atteinte(s), 3 exemptée(s) → OK
+couche (nom le plus long, souris) 900×780 — pont 170px au bas, 6 surface(s), 24/27 commande(s) atteinte(s), 3 exemptée(s) → OK
+couche (nom le plus long, souris) 701×780 — pont 170px au bas, 6 surface(s), 24/27 commande(s) atteinte(s), 3 exemptée(s) → OK
+couche (nom le plus long, souris) 700×780 — pont 183.6px au bas, 6 surface(s), 24/27 commande(s) atteinte(s), 3 exemptée(s) → OK
+couche (nom le plus long, souris) 640×780 — pont 183.6px au bas, 6 surface(s), 24/27 commande(s) atteinte(s), 3 exemptée(s) → OK
+couche (nom le plus long, souris) 600×780 — pont 177px au bas, 6 surface(s), 24/27 commande(s) atteinte(s), 3 exemptée(s) → OK
+couche (nom le plus long, souris) 561×780 — pont 170.5px au bas, 6 surface(s), 24/27 commande(s) atteinte(s), 3 exemptée(s) → OK
+couche (nom le plus long, souris) 560×780 — pont 280px au bas, 6 surface(s), 24/24 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (nom le plus long, souris) 360×780 — pont 280px au bas, 6 surface(s), 21/24 commande(s) atteinte(s), 3 exemptée(s) → OK
+couche (nom le plus long, souris) 1707×650 — pont 141.7px au bas, 6 surface(s), 23/27 commande(s) atteinte(s), 4 exemptée(s) → OK
+couche (nom le plus long, souris) 1366×650 — pont 141.7px au bas, 6 surface(s), 23/27 commande(s) atteinte(s), 4 exemptée(s) → OK
+couche (nom le plus long, souris) 1280×650 — pont 141.7px au bas, 6 surface(s), 23/27 commande(s) atteinte(s), 4 exemptée(s) → OK

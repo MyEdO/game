@@ -1,0 +1,52 @@
+TAP version 13
+# Subtest: dialogue occulté par le pont : défaut nommé, avec sa mesure
+ok 1 - dialogue occulté par le pont : défaut nommé, avec sa mesure
+  ---
+  duration_ms: 0.977312
+  type: 'test'
+  ...
+# Subtest: surface qui TOUCHE le pont sans être occultée : aucun défaut
+ok 2 - surface qui TOUCHE le pont sans être occultée : aucun défaut
+  ---
+  duration_ms: 1.27838
+  type: 'test'
+  ...
+# Subtest: tiroir ASSIS sur le pont (descendant) : aucun défaut, même recouvert entièrement
+ok 3 - tiroir ASSIS sur le pont (descendant) : aucun défaut, même recouvert entièrement
+  ---
+  duration_ms: 0.155396
+  type: 'test'
+  ...
+# Subtest: relevé sans aucune intersection : aucun défaut
+ok 4 - relevé sans aucune intersection : aucun défaut
+  ---
+  duration_ms: 1.520111
+  type: 'test'
+  ...
+# Subtest: coin de sortie hors de la fenêtre à droite : défaut nommé, avec son intervalle
+ok 5 - coin de sortie hors de la fenêtre à droite : défaut nommé, avec son intervalle
+  ---
+  duration_ms: 0.380347
+  type: 'test'
+  ...
+# Subtest: élément qui sort par la GAUCHE : défaut nommé de ce côté
+ok 6 - élément qui sort par la GAUCHE : défaut nommé de ce côté
+  ---
+  duration_ms: 0.201166
+  type: 'test'
+  ...
+# Subtest: pistes étanches : rien hors fenêtre, même au pixel près
+ok 7 - pistes étanches : rien hors fenêtre, même au pixel près
+  ---
+  duration_ms: 0.146418
+  type: 'test'
+  ...
+1..7
+# tests 7
+# suites 0
+# pass 7
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 160.027686
