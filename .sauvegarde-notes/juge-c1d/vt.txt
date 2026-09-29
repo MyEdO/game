@@ -3586,3 +3586,43 @@ This ensures that you're testing the behavior the user would see in the browser.
    ✓ CombatConsole — les cases sont des ENTRÉES du registre (branchement) > R-4 — une case gatée porte la RAISON du registre AU SURVOL/FOCUS, et ne s’exécute pas 405ms
    ✓ CombatConsole — budget de hauteur du pont (arbitrage user 2026-08-17, décision d’écran 2026-09-24) > F-3 — le côté se calcule sur la FENÊTRE, et la bande TIENT dans la fenêtre à toute largeur, souris ET doigt 9553ms
    ✓ CombatConsole — pause de Round : UNE porte pour le bouton et la touche > SOLO — le bouton OUVRE le Round (aucun ready-check à respecter) 337ms
+ ✓ src/comment-poison-guard.test.ts (79 tests) 11192ms 451 MB heap used
+   ✓ garde-fou commentaires — pierres tombales (#136, CLAUDE.md règle 6c) > aucun commentaire de src/** ni de scripts/** ne porte une pierre tombale (tolérance ZÉRO) 2256ms
+   ✓ garde-fou commentaires — excuses non tracées (#136, CLAUDE.md règle 6b) > aucune excuse de src/** ni de scripts/** sans tag [entériné AAAA-MM-JJ] (ACTIVE depuis #177) 1714ms
+   ✓ garde-fou commentaires — vocabulaire de l’ancien état (#1486, credo règle 1) > tout site de src/** et scripts/** (tests compris) est au stock nominatif daté, et aucune ligne du stock n’est périmée 5570ms
+   ✓ cliquet : revendications d’autorité dans les fichiers de test (#136, famille 4) > aucun site famille 4 dans src/**/*.test.ts(x) hors liste nominative, et aucune entrée périmée 570ms
+ ✓ src/ui/css-modules-guard.test.ts (17 tests) 15500ms 485 MB heap used
+   ✓ #1806 — un module de primitive est le seul foyer de ce qu’il peint > §5.3 aucun REPEINT neuf d’une classe possédée ailleurs (stock nominatif) 2794ms
+   ✓ #1806 — un module de primitive est le seul foyer de ce qu’il peint > §5.3 preuve par mutation — un écran qui repeint une classe partagée rougit 4739ms
+   ✓ #1806 — un module de primitive est le seul foyer de ce qu’il peint > §5.3 le SUJET d’une règle n’est pas ce que son `:has()` nomme 2188ms
+   ✓ #1806 — un module de primitive est le seul foyer de ce qu’il peint > §5.3 étendue aux CADRES : aucune feuille hors de leur foyer ne vise leurs classes, placement compris 1705ms
+   ✓ #1806 — un module de primitive est le seul foyer de ce qu’il peint > §5.3 étendue, preuve par mutation — un PLACEMENT ou un contexte qui nomme un cadre rougit 1335ms
+   ✓ #1806 — un module de primitive est le seul foyer de ce qu’il peint > §5.4 aucune famille JET recréée dans un module d’écran 1406ms
+   ✓ #1806 — un module de primitive est le seul foyer de ce qu’il peint > §5.4 preuve par mutation — une classe de la famille JET dans un module d’écran rougit 873ms
+ ✓ src/ui/ui-ratchets.test.ts (53 tests) 18626ms 988 MB heap used
+   ✓ #236 — cliquets d’hygiène UI > (xiv) exhaustivité : chaque .css de src est PARTAGÉ, de PRIMITIVE ou d’ÉCRAN, jamais deux 2780ms
+   ✓ canon responsive, peaux et matières partagées de src/ui/styles > matières `.skin-*`/`.display-*` : le DELTA d’un module BAT la matière sur toute propriété qu’elle déclare aussi 2665ms
+   ✓ #1318 V5 — cliquets d’hygiène UI (champ nombre, breakpoints) > (xix) raison de refus MUETTE (`<button disabled title=…>`) : aucune hausse, zéro côté joueur 811ms
+   ✓ #1318 V5 — cliquets d’hygiène UI (champ nombre, breakpoints) > (xix) le stock restant est ENTIÈREMENT dans l’atelier — aucun écran joueur ne porte de refus muet 983ms
+   ✓ #1800 — trois couches CSS : un module d’écran ne pose que du PLACEMENT > (xxi) identité en module d’écran : stock nominatif, décroissant 1399ms
+   ✓ #1800 — trois couches CSS : un module d’écran ne pose que du PLACEMENT > (xxi) espacement hors échelle : stock nominatif, décroissant 1544ms
+   ✓ #1800 — trois couches CSS : un module d’écran ne pose que du PLACEMENT > (xxii) style inline hors variable CSS : stock nominatif, décroissant 1373ms
+   ✓ #1800 — trois couches CSS : un module d’écran ne pose que du PLACEMENT > le stock committé est un point fixe de sa régénération 2748ms
+   ✓ #1800 — trois couches CSS : un module d’écran ne pose que du PLACEMENT > (xxi) le manifeste classe chaque module : un css de primitive existe, et n’est pas une feuille partagée 983ms
+   ✓ #1800 — trois couches CSS : un module d’écran ne pose que du PLACEMENT > (xxi) le balayage n’est pas vide : des modules d’écran, et chacun hors couche partagée 1481ms
+ ✓ src/ui/Layout.test.tsx (10 tests) 98ms 993 MB heap used
+ ✓ src/ui/RecapLine.test.tsx (9 tests) 160ms 1000 MB heap used
+ ✓ src/ui/css-valeur-en-test.test.ts (2 tests) 911ms 1057 MB heap used
+   ✓ cliquet — valeur de design épinglée sur une lecture de CSS, en test unitaire > aucun test de `src/**` ne compare une déclaration CSS à une valeur de design 906ms
+ ✓ src/ui/primitive-owners-guard.test.ts (8 tests) 9723ms 496 MB heap used
+   ✓ #1318 P8/D10 — marqueurs structurels = propriété des primitives (recopie de markup bloquée) > aucune recopie de marqueur hors du fichier propriétaire au-delà du stock mesuré 2594ms
+   ✓ #1318 P8/D10 — marqueurs structurels = propriété des primitives (recopie de markup bloquée) > la baseline est DÉCROISSANTE — aucune entrée périmée 3304ms
+   ✓ #1806 §5.2 — une classe d’un module de primitive est posée par sa primitive > chaque classe DÉFINIE par un module de primitive est posée par la primitive qui le possède 3497ms
+ ✓ src/coupe-au-caractere-guard.test.ts (7 tests) 14493ms 993 MB heap used
+   ✓ coupe au caractère suivie d’une ellipse > aucun site sous `src/` ni `scripts/` 14225ms
+
+ Test Files  13 passed (13)
+      Tests  374 passed (374)
+   Start at  06:14:51
+   Duration  124.23s (transform 49.38s, setup 142.42s, collect 42.45s, tests 101.40s, environment 5.42s, prepare 2.59s)
+

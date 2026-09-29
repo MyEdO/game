@@ -1,0 +1,4 @@
+
+> warhammer-v4-rpg@0.1.0 typecheck
+> node scripts/lancer-local.mjs typescript -- tsc --noEmit --incremental false
+

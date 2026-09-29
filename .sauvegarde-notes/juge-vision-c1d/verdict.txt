@@ -1,0 +1,50 @@
+VERDICT : À REPRENDRE (cumul C1b + C1c + C1d, #1806 #1856 #1919, écran)
+Arbre : /home/user/game/.wt-1919-H2, HEAD b0f2f1499 + WIP. Contrôle positif : git hash-object des 41 fichiers de c1d/blobs-finaux.txt = identiques (n=41 bad=0). Aucun fichier sous src/ scripts/ docs/ plus récent que la dernière capture (05:42:13).
+Empreintes : sha256sum -c c1d/captures/captures.sha256 rc=0, 40/40 OK.
+Instrument du juge : juge-vision-c1d/crop.mjs (CDP du kit, headless, lecture des PNG, recadrage x2-x8), specs s1..s8.json, sorties *.png dans juge-vision-c1d/. Chaque Chromium fermé par session.close ; aucun process restant à moi (les Chromium vivants appartiennent à `hud-clickables.mjs --url :5397` d'un autre agent).
+Le codeur écrit « les captures sont hachées, pas regardées » (rendu-c1d.md, § Recette) : je les ai REGARDÉES ; ce qui suit contredit sa sonde verte sur plusieurs points.
+
+== A1-A8 (verdict C1b) ==
+A1 arche qui saute : SOLDÉ. Boîte de l'arche identique héros / pause / adverse / journal à chaque vue (recette.log : 360 [10,463,273,67] ; 640 [10,599,543,47] ; 701 [205,613,214,167] ; 900 [294,613,230,167] ; 1366 [582,511,202,139] ; 1707 [738,613,230,167] ; doigt 768 [10,824,674,47], 1366 [582,510,203,140]). Visuel conforme (h1366-arche.png contre a1366-arche.png).
+A2 « Knud… » : SOLDÉ dans l'arche (nom au pire sur deux lignes, coupé entre mots). NOTE : le bandeau du groupe coupe toujours « Maistre Marchand / (Services… » par une ellipse, à toutes les vues (heros-souris-1366x650 x 497..580 y 100..125). Ellipse déjà acceptée pour l'arche en C1b ; elle reste une amputation du nom au regard de R-M3.
+A3 pont 561-700 : SOLDÉ au plafond : bande 184/780 = 23,6 % à 640 et 700.
+A4 arche creuse : SOLDÉ. Portrait ≈ 80 px à 701, ≈ 95 px à 900 (contre 48), plus de vide entre MOUV./ACTION et Blessures (h900-arche.png).
+A5 fil « Pierre-/de-Fer » : NON PROUVÉ. Les captures C1d montrent le fil ET le journal tranchés au trait d'union :
+  - fil « Grunni Pierre-de- / Fer. » à 640, 700, 701 (h701-fil.png ; heros-souris-701x780 x 8..127 y 495..543) ;
+  - fil « Grunni Pierre- / de-Fer. » à 900 (h900-fil.png ; heros-souris-900x780 x 8..225 y 510..543) ;
+  - journal « Pierre-de- / Fer. » à 360 (j360-journal.png) et à 701 (j701-journal.png).
+  Cause établie : la recette renomme les combattants par __wfrp ; narrateEvent (src/ui/NarratedLine.tsx:12) ne reconnaît plus « Knud »/« Grunni » parmi les combattants → segments neutres (texte blanc, plus de gras tonné, contre c1b/final où ils sont colorés) → la primitive Nom n'est pas posée → le navigateur coupe au trait d'union. Artefact de mise en place, MAIS : (a) la recette du lot ne prouve donc rien sur R-M2 au fil/journal ; (b) la sonde ne l'a pas vu parce qu'elle ne juge que les boîtes .nom-mot : tout texte NEUTRE contenant un trait d'union se tranche. Portée en jeu réel : INCERTAIN — tranche une sonde qui mesure la coupure d'un mot à trait d'union hors .nom-mot dans .jr-tx / le fil avec les noms d'origine.
+A6 / N1 frise en pause : SOLDÉ en largeur (frise 80 px à 640-900, 86 px à 1366/1707, identique en pause : recette.log). RÉGRESSION de lisibilité : voir R2.
+A7 : RETIRÉ par l'arbitrage 1 (bande pleine largeur, spec:229-240). Le vide x 0..270 et 1090..1290 à 1366 reste visible (heros-souris-1366x650) ; ce n'est plus un grief de ce lot.
+A8 : coin SOLDÉ ; plaque X / icône de set inchangées (non bloquant) ; chiffres de touche sur les glyphes d'Avantage à 701 NON SOLDÉ (h701-avantage.png : « 1 » à « 5 » imprimés sur l'icône), préexistant.
+
+== N1-N6 (verdict C1b) ==
+N1 : SOLDÉ en largeur (voir A6), avec R2 en contrepartie.
+N2 : SOLDÉ. « Maistre Marchand (Services Urbains / Fréquents & Usuels) » coupé entre mots à 701, 900, 1366, 1707 (h1366-arche.png, h900-arche.png, h1707-arche.png).
+N3 : SOLDÉ à ≥701 (deux lignes réservées : arche 139/167 px quel que soit le nom, héros/adverse/pause). CONTREPARTIE à ≤700 : voir R1.
+N4 : SOLDÉ à ≤700 (journal dans le champ, 640 [121,205,510,127], 700 [151,205,540,127], ne touche ni groupe ni frise). NON SOLDÉ dans son esprit à 701 : voir R3.
+N5 : SOLDÉ (360×740 journal : lignes entières ; scroll-snap). Observation : à 560×650 une barre de défilement est visible (x 545..550, y 213..330) alors que les deux lignes tiennent — INCERTAIN, trancher par scrollHeight/clientHeight de .ld-panel à 560×650.
+N6 : SOLDÉ (« Début du / Round 2 », « Commencer le / round 2 » : numéro jamais seul, pause-souris-640x780).
+
+== RÉGRESSIONS / DÉFAUTS NOUVEAUX ==
+R1 (R-M3, BLOQUANT, dû au nom au pire sur deux lignes à ≤700) :
+  - 360×740 : la jauge de Blessures est ÉCRASÉE et RECOUVERTE par le nom — il n'en reste que « / 12 » (héros) et « / 1 » (adverse) à x 10..38, y 511..521 (h360-arche.png, a360-arche.png ; contre b-h360-arche.png où la jauge fait 18..182). Le vivant du personnage actif n'est plus lisible.
+  - 360×740 : le « 1 » d'ACTION est sous l'ornement de faîte (h360-arche.png, x ≈ 150..165 y ≈ 466..474) ; la rangée est remontée d'≈ 7 px par rapport à C1b.
+  - 640 et 700×780 : la jauge de Blessures tombe à une pastille « 12 / 12 » de ≈ 48 px (640, x 258..306) / ≈ 84 px (700), contre ≈ 195 px en C1b : la PROPORTION de vie disparaît (h640-arche.png ; p700-bas.png ; adverse « 1 / 1 »).
+  La sonde est verte sur ces vues : elle ne mesure pas le chevauchement nom/jauge ni la largeur utile de la jauge.
+R2 (lisibilité, contrepartie de N1) : en pause de Round, le badge « ⚡4 » est posé SUR la vignette active, estompé, le « 4 » quasi invisible, et il déborde du cadre doré (p700-frise.png x 250..380/5 ; p1366-frise.png ; pause-souris-1707x780 x 60..88 y 262..280). En C1b il était lisible à côté (b-p700-frise.png). Immobilité acquise au prix de l'information.
+R3 (prémisse de l'arbitrage 3) : à 701×780 le journal ancré au rail fait 135 px de large (recette.log journal [558,73,135,273]) — exactement la plage « 60-135 px illisible » que l'arbitrage 3 veut supprimer. Rendu : « JOURNAL DE / COMBAT », « Le combat / commence / ! (Round 1) » (point d'exclamation orphelin en tête de ligne), 9 lignes pour 2 entrées (j701-journal.png). Le seuil 700 laisse le défaut à 701.
+R4 (R-M3, préexistant NON consigné) : la colonne de 4 cases à droite du portrait a sa case du HAUT rognée par le biseau de l'arche à ≥701 : 900 (h900-arche.png), 1366 souris (h1366-colonne.png) et doigt (hd1366-colonne.png), 1707 (h1707-arche.png). Identique en C1b (b-h1366-colonne.png).
+
+== RESTES DU CODEUR ==
+- 20 défauts de sonde (§12 PartyDock, préexistants) : non vus comme défaut d'écran dans ces captures ; non instruits ici.
+- ESPACE sous le badge « 1 erreur (DEV) » à 701, 900, 1366, 1707 (h1366-coin.png) : inchangé, DEV seulement, lisibilité prod toujours non capturée.
+- .cc-bay-head ellipsis au caractère : latent, non vu.
+
+== ARBITRAGES VÉRIFIÉS À L'ÉCRAN ==
+- Bande pleine largeur : tenue à toute vue.
+- Budget souris : 360×740 37,8 % ; 640/700 23,6 % ; 701-1707 empreinte 21,4 % (167/780) ; 1366×650 21,4 % (139/650). Au doigt : 768×1024 bande 19,8 % ; 1366×650 empreinte 21,5 %. Sous les plafonds 0,48 / 0,30 / 0,22.
+- Tour adverse : la boîte de l'arche reste, matière éteinte (portrait liseré rouge, jauge rouge), à toute vue.
+- Aucune page qui défile (pageDefile false partout).
+
+JUGE-VISION: À REPRENDRE — à 360 la jauge de Blessures est écrasée sous le nom au pire (« / 12 ») et l'ornement couvre « 1 » d'ACTION ; à 640-700 la jauge tombe à une pastille de 48-84 px ; badge d'initiative en pause posé sur la vignette, illisible ; journal à 701 large de 135 px (illisible) ; case haute de la colonne d'états rognée par le biseau à ≥701 ; fil/journal tranchés « Pierre-de-/Fer » dans les captures (noms renommés : R-M2 non prouvé hors .nom-mot). Soldés : A1 A3 A4 N1(largeur) N2 N3(≥701) N4(≤700) N5 N6.
