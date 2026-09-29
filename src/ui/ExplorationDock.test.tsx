@@ -440,7 +440,7 @@ describe('#1919 — la couche HUD est une grille : chaque surface déclare sa ZO
     const puce = host.querySelector('.spectator-chip')!;
     expect(puce.getAttribute('data-pose')).toBe('ecran');
     const poses = HORS_FLUX.filter((regle) => puce.matches(regle.slice(regle.indexOf('« ') + 2, -2)));
-    expect(poses, 'hors couche, la pose à l’écran ne place plus la puce').toEqual(["spectator-chip.css « .spectator-chip[data-pose='ecran']:not([data-zone='parole'] > *) »"]);
+    expect(poses, 'hors couche, la pose à l’écran ne place pas la puce').toEqual(["spectator-chip.css « .spectator-chip[data-pose='ecran']:not([data-zone='parole'] > *) »"]);
     act(() => { useGame.setState({ pendingCascade: null, net: { ...useGame.getState().net, mode: 'local', ownership: {} } } as never); });
   });
 });

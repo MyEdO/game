@@ -1826,7 +1826,6 @@ export const CSS_ESPACEMENT_RATCHET = [
   { fichier: 'src/ui/styles/codex-edit.css', ref: '.de-source :: gap :: 0.5rem', occurrence: 1 },
   { fichier: 'src/ui/styles/combat-banner.css', ref: '.cb-ev :: gap :: 7px', occurrence: 1 },
   { fichier: 'src/ui/styles/combat-banner.css', ref: '.combat-feed :: gap :: 2px', occurrence: 1 },
-  { fichier: 'src/ui/styles/combat-console.css', ref: '.cc-arch .cc-arch-body [data-reserve] :: gap :: 2px', occurrence: 1 },
   { fichier: 'src/ui/styles/combat-console.css', ref: '.cc-arsenal, .cc-quick :: gap :: 4px', occurrence: 1 },
   { fichier: 'src/ui/styles/combat-console.css', ref: '.cc-bay-body :: gap :: 6px', occurrence: 1 },
   { fichier: 'src/ui/styles/combat-console.css', ref: '.cc-bay-right :: gap :: 4px', occurrence: 1 },

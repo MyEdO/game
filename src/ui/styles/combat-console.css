@@ -41,14 +41,14 @@
   --cc-bay-pad: var(--sp-md);
   --cc-bay-pied: 10px;
   --cc-conduit-h: 15px;
-  --cc-bay-ecart: var(--sp-md);
+  --cc-bay-ecart: var(--sp-xs);
   /* Colonne de SETS : une fraction du côté de case. */
   --cc-sets-part: 0.62;
   /* SOCLE de travée : ce qui, dans sa hauteur, n'est pas les deux rangées. */
   --cc-bay-socle: calc(var(--cc-bay-pad) + var(--cc-bay-pied) + var(--cc-conduit-h) + var(--cc-bay-ecart));
   /* ARCHE — ses grandeurs sont la SOURCE que `.cc-arch` et ses enfants consomment : rembourrages,
      écart entre ses rangs, piste de Blessures, ligne du nom gravé, largeur d'une gouttière, écart du
-     corps, alvéole de la niche d'États. */
+     corps, alvéole de la niche d'États et écart entre ses alvéoles. */
   --cc-arch-pad-haut: 6px;
   --cc-arch-pad-bas: 8px;
   --cc-arch-pad-flanc: 14px;
@@ -58,6 +58,7 @@
   --cc-gouttiere: 36px;
   --cc-arch-corps-ecart: 6px;
   --cc-alv: 17px;
+  --cc-niche-ecart: 2px;
   /* HABILLAGE de l'arche : ce qui, dans sa hauteur, n'est pas son corps. */
   --cc-arch-chrome: calc(var(--cc-arch-pad-haut) + var(--cc-arch-pad-bas) + 2 * var(--cc-arch-ecart) + var(--cc-blessures-h) + var(--cc-arch-nom-h) + var(--pont-liseret));
   /* FLANCS de l'arche : ce qui, dans sa largeur, n'est pas le portrait — deux rembourrages, deux
@@ -842,7 +843,7 @@
   flex-direction: column;
   align-items: center;
   align-self: flex-start;
-  gap: 2px;
+  gap: var(--cc-niche-ecart);
 }
 /* GOUTTIÈRE (spécimen D) : le rail est CREUSÉ dans le bois, les crans y sont posés, et le socle
    chiffré se lit au pied. Longueur constante quel que soit le nombre de crans. */
@@ -1115,9 +1116,12 @@ button.cc-socle svg {
     /* L'arche est une LIGNE en tête de bande : plus de fronton, un portrait de vignette. */
     --cc-fronton: 0px;
     --cc-portrait: var(--cc-portrait-vignette);
-    /* HAUTEUR de la ligne d'arche : la SOURCE que `.cc-arch` consomme ci-dessous — la plus haute de ses
-       pièces (la niche d'États en carré 2×2), ses rembourrages et le liseré. */
-    --cc-arch-ligne: 48px;
+    /* HAUTEUR de la ligne d'arche : la SOURCE que `.cc-arch` consomme ci-dessous — le plus haut de ses
+       corps (portrait de vignette, ou niche d'États en carré 2×2), ses rembourrages et le liseré. */
+    --cc-alv: 15px;
+    --cc-arch-nom-h: 16px;
+    --cc-arch-corps-h: max(var(--cc-portrait-vignette), 2 * var(--cc-alv) + var(--cc-niche-ecart));
+    --cc-arch-ligne: calc(var(--cc-arch-corps-h) + 2 * var(--cc-arch-pad-haut) + var(--pont-liseret));
     --cc-arch-h: var(--cc-arch-ligne);
     /* La rangée ne compte ni l'arche ni le coin : deux travées côte à côte (décision Q4.3), donc un
        écart d'arsenal et un écart entre travées. */
@@ -1125,7 +1129,6 @@ button.cc-socle svg {
     --cc-rangee-fixe: calc(2 * var(--cc-marge) + 9 * var(--cc-gap) + 4 * var(--cc-bay-pad) + 2 * var(--cc-bay-gap));
     /* HAUTEUR DU PONT, dans ses trois formes : la ligne d'arche, puis la rangée des travées. */
     --cc-deck-h: calc(var(--cc-arch-ligne) + var(--cc-gap) + var(--cc-bay-h) + var(--pont-liseret));
-    --cc-alv: 15px;
   }
   /* Arche en tête et coin en bout de ligne ; les deux travées côte à côte dessous. Les deux formes
      partagent ces aires : seule dans la bande, l'arche garde sa boîte. */
@@ -1240,7 +1243,6 @@ button.cc-socle svg {
   /* Le nom garde son plus long mot (plancher `min-content`) : c'est la barre de Blessures qui cède. */
   .cc-arch-name {
     font-size: 11px;
-    min-height: 0;
     flex: 0 1 auto;
     text-align: left;
   }
@@ -1253,18 +1255,19 @@ button.cc-socle svg {
 @media (max-width: 560px), (pointer: coarse) and (max-width: 700px) {
   :root {
     /* Côté d'alvéole re-calé à 36px (arbitrage d'assemblage 2026-08-17) : le TERRAIN redevient le
-       sujet. Les comptes de cases (8 + 12) et les 10 colliers ne bougent pas d'un cran. */
+       sujet. Les comptes de cases (8 + 12) et les 10 colliers ne bougent pas d'un cran. La case reste
+       CARRÉE (36×36, là où la table Q2 de la décision du 2026-09-24 écrit 36×32) : le pont compact
+       tient la cible de la Zone 1, ≤ 45 % (docs/plans/2026-08-16-spec-hud-combat.md:60-63). */
     --cc-cell: max(var(--cc-cible), 36px);
     --cc-gap: 3px;
     --cc-bay-gap: 4px;
     --cc-sets-part: 0.72;
-    /* Travée compacte : rembourrages 4 + 6, conduit 13, écart 4. */
+    /* Travée compacte : rembourrages 4 + 6, conduit 13. */
     --cc-bay-pad: var(--sp-xs);
     --cc-bay-pied: var(--sp-sm);
     --cc-conduit-h: 13px;
-    --cc-bay-ecart: var(--sp-xs);
-    /* Ligne d'arche sur DEUX rangs : le corps (niche 2×2), puis Blessures et nom. */
-    --cc-arch-ligne: 68px;
+    /* Ligne d'arche sur DEUX rangs : le corps, puis Blessures et nom. */
+    --cc-arch-ligne: calc(var(--cc-arch-corps-h) + var(--cc-arch-ecart) + var(--cc-arch-nom-h) + 2 * var(--cc-arch-pad-haut) + var(--pont-liseret));
     /* Le bandeau compact est plus bas (rembourrage 2px, boutons 11px) : sa RÉSERVE suit. */
     --cc-phase-h: 24px;
     --cc-deck-h: calc(var(--cc-arch-ligne) + 2 * var(--cc-gap) + 2 * var(--cc-bay-h) + var(--pont-liseret));

@@ -19,11 +19,11 @@
 /* Ligne NUE : aucune boîte, aucun filet — du texte sur le terrain (planche 2026-08-17). Sa
    lisibilité tient au halo partagé `.halo-champ` (components.css), que `CombatBanner` pose à côté
    (le voile d'une carte reviendrait à la boîte supprimée). Elle s'enroule AU MOT dans la largeur de
-   sa zone (R-M2, docs/plans/2026-08-16-spec-hud-combat.md:71-74). */
+   sa zone (R-M2, docs/plans/2026-08-16-spec-hud-combat.md:71-74) ; c'est une RANGÉE (`Row`, qui
+   s'enroule) : quand un nom insécable ne tient plus à côté de son icône, l'icône passe au-dessus
+   plutôt que la ligne ne sorte de sa zone. */
 .cb-ev {
-  display: flex;
   gap: 7px;
-  align-items: center;
   background: none;
   border: 0;
   border-radius: 0;

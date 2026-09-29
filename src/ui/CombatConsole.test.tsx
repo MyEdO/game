@@ -1129,7 +1129,7 @@ describe('CombatConsole — trois formes, une seule bande', () => {
       for (const p of PLACEMENT) expect(decl(bloc[2], p), `« ${norm(bloc[1])} » règle « ${p} » : l’arche change de place d’un tour à l’autre`).toBeNull();
     }
     const cols = decl(ruleOf(CC_BASE, '.cc-dock'), 'grid-template-columns')!;
-    expect(cols.split(/\s+(?![^(]*\))/).at(-1), 'le coin n’est pas compté à sa largeur quand il manque').toBe('var(--cc-corner)');
+    expect(cols.split(/\s+(?![^(]*\))/).slice(-1)[0], 'le coin n’est pas compté à sa largeur quand il manque').toBe('var(--cc-corner)');
     expect(decl(ruleOf(CC_BASE, '.cc-arch'), 'grid-column'), 'seule dans la bande, l’arche glisse dans la première voie').toBe('2');
     // La forme spectatrice ÉTEINT la matière de la bande sans toucher à sa BOÎTE : c'est ce qui rend
     // l'arche immobile au pixel (une bordure retirée faisait sauter le pont de 3px, mesuré à 1707).
@@ -2118,24 +2118,23 @@ describe('CombatConsole — micro-rendu, 2ᵉ passe du juge vision (2026-08-17)'
 //    On ÉVALUE ici les déclarations réelles à viewport simulé : c'est la LOI déclarée qui est jugée, pas
 //    un littéral recopié. `scripts/recette/hud-clickables.mjs` re-mesure les mêmes plafonds à l'écran.
 describe('CombatConsole — budget de hauteur du pont (arbitrage user 2026-08-17, décision d’écran 2026-09-24)', () => {
-  /** Hauteur de la BANDE telle que le CSS la DÉCLARE, à un viewport donné. */
-  const deck = (vw: number, vh: number) => evalLen(decl(racine(), '--cc-deck-h')!, vw, vh);
-  const saillie = (vw: number, vh: number) => evalLen(decl(racine(), '--cc-saillie')!, vw, vh);
+  /** Une grandeur du `:root` telle qu'elle vaut à une vue, pointeur fin ou grossier. */
+  const vaut = (e: string, vw: number, vh: number, grossier = false) => evalLen(e, vw, vh, 0, racineVue(vw, grossier).rac);
+  /** Hauteur de la BANDE telle que le CSS la DÉCLARE à une vue (tranches comprises), et saillie du fronton. */
+  const deck = (vw: number, vh: number, grossier = false) => vaut('var(--cc-deck-h)', vw, vh, grossier);
+  const saillie = (vw: number, vh: number, grossier = false) => vaut('var(--cc-saillie)', vw, vh, grossier);
   const cote = (vw: number, vh: number) => evalLen(decl(racine(), '--cc-cell')!, vw, vh);
 
   // Les vues de la décision (701, 900, 901, 1366×650, 1707×780), l'étalon, la planche, la capture de
   // l'arbitrage (1998×959) et un grand écran.
   const ECRANS: [number, number][] = [[701, 780], [900, 780], [901, 780], [1100, 780], [1280, 800], [1366, 650], [1707, 780], [1920, 1080], [1998, 959], [2560, 1440]];
 
-  /** Une grandeur du `:root` telle qu'elle vaut à une vue, pointeur fin ou grossier. */
-  const vaut = (e: string, vw: number, vh: number, grossier = false) => evalLen(e, vw, vh, 0, racineVue(vw, grossier).rac);
-
   it('F-1 — bande ≤ 17 % et empreinte ≤ 22 % de la hauteur d’écran, à toute vue ≥ 701 — au doigt, sauf case à sa cible', () => {
     for (const grossier of [false, true]) {
       for (const [vw, vh] of ECRANS) {
         if (racineVue(vw, grossier).forme !== 'rangee') continue;
-        const bande = vaut('var(--cc-deck-h)', vw, vh, grossier);
-        const total = bande + vaut('var(--cc-saillie)', vw, vh, grossier);
+        const bande = deck(vw, vh, grossier);
+        const total = bande + saillie(vw, vh, grossier);
         const ou = `${vw}×${vh}${grossier ? ' (pointeur grossier)' : ''}`;
         // … et il reste PRÉSENT (une console écrasée n'est pas une console).
         expect(bande / vh, `${ou} : bande ${(100 * bande / vh).toFixed(1)} % — trop maigre`).toBeGreaterThan(0.13);
@@ -2227,7 +2226,7 @@ describe('CombatConsole — budget de hauteur du pont (arbitrage user 2026-08-17
     for (const [vw, vh, plafond] of [[360, 650, 0.45], [360, 740, 0.45], [560, 650, 0.45], [561, 650, 0.25], [640, 780, 0.25], [700, 650, 0.25], [700, 780, 0.25], [600, 960, 0.25]] as [number, number, number][]) {
       const forme = racineVue(vw, false).forme;
       expect(forme, `${vw}×${vh}`).toBe(vw <= 560 ? 'empilee' : 'ligne');
-      const part = (vaut('var(--cc-deck-h)', vw, vh) + vaut('var(--cc-saillie)', vw, vh)) / vh;
+      const part = (deck(vw, vh) + saillie(vw, vh)) / vh;
       expect(part, `${vw}×${vh} : le pont prend ${(100 * part).toFixed(1)} %`).toBeLessThanOrEqual(plafond + 1e-9);
     }
   });
@@ -2244,6 +2243,11 @@ describe('CombatConsole — budget de hauteur du pont (arbitrage user 2026-08-17
     // diff C1 : une cote relevée à la main se désynchronise en silence).
     for (const nom of ['--cc-bay-socle', '--cc-arch-chrome', '--cc-arch-flancs']) {
       expect(decl(racine(), nom), `${nom} est une cote relevée à la main`).not.toMatch(/(^|[\s(])\d+(\.\d+)?px/);
+    }
+    // … et la LIGNE d'arche des compositions étroites prend la hauteur de ses pièces (verdict d'écran A3
+    // du 2026-09-29 : « une cote relevée à la main »).
+    for (const tranche of ['@media (max-width: 700px)', '@media (max-width: 560px)']) {
+      expect(decl(ruleOf(mediaBlock(CC_CSS, tranche), ':root'), '--cc-arch-ligne'), `${tranche} : la ligne d’arche est une cote relevée à la main`).not.toMatch(/(^|[\s(])\d+(\.\d+)?px/);
     }
     const bay = ruleOf(CC_BASE, '.cc-bay');
     expect(decl(bay, 'padding')).toBe('var(--cc-bay-pad) var(--cc-bay-pad) var(--cc-bay-pied)');

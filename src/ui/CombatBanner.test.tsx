@@ -67,7 +67,7 @@ describe('CombatBanner', () => {
     ]);
     const html = host.innerHTML;
     expect(html).toContain('role="status" aria-live="polite" aria-atomic="true"');
-    expect(html.match(/class="cb-ev /g)?.length).toBe(1);
+    expect(host.querySelectorAll('.cb-ev').length).toBe(1);
     expect(html).toContain('Gunnar');
     expect(html).not.toContain('Ancienne ligne');
   });

@@ -4,6 +4,7 @@ import { combatFeed, narrateIntent, narrateRefus } from '../gameIso/combatNarrat
 import { eteindreRefus, REFUS_MS } from '../state/refusVisible';
 import { scheduleFlowTimer, clearTrackedTimer } from '../state/combatTimers';
 import { Icon } from './Icon';
+import { Row } from './Layout';
 import { TeamSegments } from './TeamSegments';
 
 /**
@@ -42,12 +43,12 @@ export function CombatBanner() {
   return (
     <div className="combat-feed" role="status" aria-live="polite" aria-atomic="true">
       {line && (
-        <div key={key} className={`cb-ev cb-now cb-tone-${line.tone} halo-champ`}>
+        <Row key={key} className={`cb-ev cb-now cb-tone-${line.tone} halo-champ`}>
           <span className="cb-ic"><Icon id={line.icon} size={15} /></span>
           <span className="cb-tx">
             <TeamSegments segments={line.segments} />
           </span>
-        </div>
+        </Row>
       )}
     </div>
   );

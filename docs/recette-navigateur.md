@@ -205,11 +205,12 @@ est relevée `descendant` : ce n'est pas une occlusion.
 chacune de ses régions), une bande dont la hauteur RENDUE est plus COURTE que sa hauteur DÉCLARÉE
 (`--cc-deck-h`, une réserve qui mentirait) ou qui en dérive de plus de 6px, un contrôle du pont qui
 sort du champ, un pont qui recouvre le fil ou la frise, une bande dont la hauteur CHANGE d'une forme
-à l'autre (au-delà de 700, là où le pont est une ligne), un bandeau de phase qui recouvre l'arche,
+à l'autre, un bandeau de phase qui recouvre l'arche,
 le fil ou la frise — à chacune de ses TROIS adresses (`data-phase` : parapet du pont, ouverture au
 haut de la carte, centré au-dessus de l'arche en forme spectatrice) —, un bandeau d'ouverture qui
 recouvre la bande de groupe, la frise, le rail, le fil ou le pont, ou qui quitte le HAUT de la carte
-tant que la zone haute le permet, une arche décentrée, une bande qui garde une région ou sa MATIÈRE
+tant que la zone haute le permet, une arche dont la BOÎTE bouge d'une forme à l'autre (verdict
+d'écran A1 du 2026-09-29), une bande qui garde une région ou sa MATIÈRE
 en forme spectatrice (« les barres gauche et droite »), et un flanc de l'arche où l'on ne touche pas
 le PLATEAU.
 Deux DÉTECTEURS PURS portent le reste du verdict — `scripts/recette/detecteurs-pont.mjs`, testés à

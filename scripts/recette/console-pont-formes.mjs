@@ -17,8 +17,9 @@
 //     (pont complet du tour du joueur · forme spectatrice du tour adverse · ouverture de combat) ;
 //   · BANDEAU DE PHASE — sa boîte ne recouvre ni la bande de groupe, ni la frise d'initiative, ni le
 //     fil de combat, ni l'arche, à aucune de ses trois adresses ;
-//   · ARCHE CENTRÉE — son centre tombe sur celui du champ, et de part et d'autre d'elle c'est le
-//     PLATEAU qu'on touche (forme spectatrice : le pont n'a plus de bande) ;
+//   · ARCHE IMMOBILE — dans les formes spectatrices, sa boîte est celle du pont complet (verdict
+//     d'écran A1 du 2026-09-29, « la boîte reste, la matière s'éteint »), et de part et d'autre
+//     d'elle c'est le PLATEAU qu'on touche (le pont n'a plus de bande) ;
 //   · AUCUNE SURFACE OCCULTÉE par un pont, AUCUN élément hors fenêtre — détecteurs PURS,
 //     `detecteurs-pont.mjs`, testés à fixtures par `test:recette`.
 //
@@ -352,10 +353,6 @@ function defauts(m, w, forme) {
       if (parseFloat(m.bandePeinte.epaisseur) <= 0) out.push(`${ou} : le liseré a perdu son ÉPAISSEUR — le pont saute d'une forme à l'autre`);
     }
     if (!m.archeRect) out.push(`${ou} : aucune arche — la forme spectatrice est vide`);
-    else {
-      const dc = Math.abs(m.archeRect.x + m.archeRect.w / 2 - (m.champ.x + m.champ.w / 2));
-      if (dc > 1) out.push(`${ou} : l'arche est décentrée de ${dc.toFixed(1)}px`);
-    }
     for (const f of m.flancs) {
       if (f.quoi !== 'plateau') out.push(`${ou} : à x=${f.x}, de côté de l'arche, on touche « ${f.quoi} » et non le plateau`);
     }
@@ -462,16 +459,19 @@ async function main() {
         for (const d of m.debords) console.log(`    ${f} [${m.forme}] · ${d.sel} : scroll ${d.scroll} / client ${d.client}${d.deborde > 1 ? `  ← DÉBORDE de ${d.deborde}px` : ''}`);
         if (!args.mesures) echecs.push(...defauts(m, w, f));
       }
-      // BANDE STABLE : la hauteur rendue ne bouge pas d'une forme à l'autre.
-      // BANDE STABLE — exigée là où le pont est une LIGNE (au-delà de 700px). Sous 700 les régions
-      // s'EMPILENT : le pont complet fait alors trois rangées, et réserver cette pile pour un
-      // médaillon avalerait la moitié du terrain. La forme y change donc de hauteur, par dessein.
-      if (w > 700) {
-        const hs = Object.entries(formes).filter(([, m]) => m.pont).map(([f, m]) => [f, m.pont.h]);
-        const ref = hs[0];
-        for (const [f, h] of hs.slice(1)) {
-          if (Math.abs(h - ref[1]) > 1 && !args.mesures) echecs.push(`${w}px : la bande passe de ${ref[1]}px (${ref[0]}) à ${h}px (${f}) — la géométrie bat d'une forme à l'autre`);
-        }
+      // BANDE STABLE et ARCHE IMMOBILE, à toute largeur : la hauteur rendue du pont et la boîte de
+      // l'arche ne bougent pas d'une forme à l'autre (verdict d'écran A1 du 2026-09-29).
+      const hs = Object.entries(formes).filter(([, m]) => m.pont).map(([f, m]) => [f, m.pont.h]);
+      const ref = hs[0];
+      for (const [f, h] of hs.slice(1)) {
+        if (Math.abs(h - ref[1]) > 1 && !args.mesures) echecs.push(`${w}px : la bande passe de ${ref[1]}px (${ref[0]}) à ${h}px (${f}) — la géométrie bat d'une forme à l'autre`);
+      }
+      const a0 = formes['pont complet'].archeRect;
+      for (const f of ['spectatrice', 'ouverture']) {
+        const a = formes[f].archeRect;
+        if (!a0 || !a || args.mesures) continue;
+        const d = Math.max(...['x', 'y', 'w', 'h'].map((k) => Math.abs(a[k] - a0[k])));
+        if (d > 1) echecs.push(`${w}px : l'arche passe de ${JSON.stringify(a0)} (pont complet) à ${JSON.stringify(a)} (${f}) — sa boîte bouge d'un tour à l'autre`);
       }
     }
   } finally {
