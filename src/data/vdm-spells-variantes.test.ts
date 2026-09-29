@@ -18,7 +18,7 @@ import { schema as spellsSchema, VARIANT_RESOLVED_FIELDS } from './schemas/defs/
 import { castLandProbability } from '../engine/magic';
 import { spellFlowFor } from '../engine/flowCore';
 import { learnableSpells } from '../engine/grimoire';
-import { CODEX, invalidateCodexLookup } from '../ui/compendium/registry';
+import { CODEX } from '../ui/compendium/registry';
 import type { Combatant } from '../engine/types';
 
 const RULE = 'magic-vdm-incantation';
@@ -163,7 +163,6 @@ describe('Flow — Lumière de guérison : Résistance Difficile (−20) → Tr�
 
 describe('affichage — la fiche Codex RÉELLE (ui/compendium/registry) suit la règle', () => {
   const fiche = (id: string) => {
-    invalidateCodexLookup();
     return CODEX.find((c) => c.key === 'spells')!.items.find((i) => i.id === id)!;
   };
   const meta = (id: string, label: string) => fiche(id).meta?.find((f) => f.label === label)?.value;

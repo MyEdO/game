@@ -63,7 +63,7 @@ export function CompendiumScreen({ focus: focusProp }: {
   }, [focus]);
 
   // Fraîcheur : re-rend (et invalide les memos sur `cat.items`) après un persist de `CodexEdit`
-  // (`invalidateCodexLookup` → les getters `items`/`facets` re-projettent la donnée persistée).
+  // (écriture au seam des datasets → les getters `items`/`facets` re-projettent la donnée persistée).
   const version = useCodexVersion();
   const cats = useMemo(() => categoriesIn(group), [group]);
   // Barre de catégories : pastilles À PLAT + sous-groupes repliables (`cluster`) — anti-avalanche

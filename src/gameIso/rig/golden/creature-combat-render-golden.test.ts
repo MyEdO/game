@@ -7,7 +7,7 @@
  * asymétriques) » + tirage → cornes + mutation tirée). Filet contre toute régression d'apparence en
  * combat.
  *
- * Non-bipèdes : `enemyRigProfile` renvoie null (rendus par le chemin plan = déjà couvert par
+ * Non-bipèdes : `actorDrawInputs(c).rig` absent (rendus par le chemin plan = déjà couvert par
  * `creature-render-golden`) → ignorés ici.
  *
  * CE QUE LES SNAPSHOTS `back` FIGENT — ce n'est PAS une couverture d'art (#559). Sans art `back`
@@ -23,19 +23,18 @@ import { VIEWS } from '../facing';
 import { describe, it, expect } from 'vitest';
 import { creatures } from '../../../data';
 import { creatureToCombatant } from '../../../state/spawn';
-import { enemyRigProfile } from '../enemyProfile';
-import { combatantAppearance, combatantOverlays } from '../parts/combatantVisuals';
+import { actorDrawInputs } from '../../backends/webgl/sceneMeshes';
 import { resolveRig } from '../composeRig';
 import { bonesToSvg } from '../renderBones';
 
 describe('golden — rendu COMBAT (spawn→enemyRigProfile→visuels d’état) du bestiaire bipède', () => {
   for (const cr of creatures) {
     const c = creatureToCombatant(cr, `g-${cr.label}`, { x: 0, y: 0 });
-    const prof = enemyRigProfile(c);
-    if (!prof) continue; // non-bipède → chemin plan (couvert par creature-render-golden)
+    const rig = actorDrawInputs(c).rig;
+    if (!rig) continue; // non-bipède → chemin plan (couvert par creature-render-golden)
     for (const view of VIEWS)
       it(`${cr.label} / ${view}`, () => {
-        expect(bonesToSvg(resolveRig(combatantAppearance(prof.appearance, c), prof.equip, {}, prof.tenue, view, combatantOverlays(c)))).toMatchSnapshot();
+        expect(bonesToSvg(resolveRig(rig.appearance, rig.equip, {}, rig.tenue, view, rig.overlays))).toMatchSnapshot();
       });
   }
 });

@@ -16,9 +16,9 @@ import { describe, expect, it, vi } from 'vitest';
 import { resetDiagOnce } from '../../rig/devDiag';
 import { actorBillboards, actorPoses, actorPoseKey, actorDrawInputs } from './sceneMeshes';
 import { buildTokens } from '../../builders/tokens';
-import { combatantTokenScale, sizeTokenScale } from '../../sizeScale';
-import { planById, resolveRender } from '../../rig/bodyPlan';
-import { mountedPlanOpts, mountedRest, seatRiderOnMount } from '../../rig/mountedRig';
+import { combatantTokenScale } from '../../sizeScale';
+import { planById, planOptsForRecord, resolveRender } from '../../rig/bodyPlan';
+import { harnaisDeMonture, mountedRest, seatRiderOnMount } from '../../rig/mountedRig';
 import { resolveRig } from '../../rig/composeRig';
 import { bonesToSvg } from '../../rig/renderBones';
 import { isShield } from '../../rig/parts/equipment';
@@ -72,11 +72,12 @@ function coupleAttendu(mount: Combatant, rider: Combatant, view: View): string {
   const mr = resolveRender(mount.species, mount.traits, mount.creatureId ?? mount.label);
   const plan = planById(mr.plan);
   const { appearance, equip, tenue, overlays } = actorDrawInputs(rider).rig!;
-  const osMonture = plan.resolve(mr.species, view, plan.restPose(), mountedPlanOpts(mount.creatureId, mount.appearanceOverride));
+  const osMonture = plan.resolve(mr.species, view, plan.restPose(), harnaisDeMonture(planOptsForRecord(mount.creatureId, mount.appearanceOverride)));
   const arme = equip.weapons?.find((w) => !isShield(w)) ?? equip.weapons?.[0];
   const osCavalier = resolveRig(appearance, equip, mountedRest(view, arme), tenue, view, overlays, false);
-  // k : échelle du cavalier DANS la boîte de la monture — chaîne d'échelles monde (art × Taille).
-  const k = resolveRender(rider.species, rider.traits, rider.creatureId ?? rider.label).scale / (mr.scale * sizeTokenScale(mount.size));
+  // k : échelle du cavalier DANS la boîte de la monture — chaîne d'échelles monde (art × Taille ou
+  // empreinte, `combatantTokenScale`), celle du quad de la monture.
+  const k = resolveRender(rider.species, rider.traits, rider.creatureId ?? rider.label).scale / combatantTokenScale(mount);
   return bonesToSvg(seatRiderOnMount(osMonture, osCavalier, { view, mountScale: 1, riderScale: k }));
 }
 
@@ -177,6 +178,14 @@ describe('Couple monté — UN billboard composite (monture + cavalier)', () => 
     expect(différents).toEqual([]);
   });
 
+  it('monture à EMPREINTE propre : le cavalier suit l’échelle du QUAD de la monture (`combatantTokenScale`)', () => {
+    const mount = monture({ footprint: 3 }), rider = cavalier();
+    expect(combatantTokenScale(mount), 'la sonde mord : l’empreinte change l’échelle du quad').not.toBe(combatantTokenScale(monture()));
+    const attendu = posesDe(coupleAttendu(mount, rider, 'front'));
+    const volumique = posesDe(sujets(mount, rider).subjects[0].svg('front', false, 0));
+    expect([...attendu].filter(([b, t]) => volumique.get(b) !== t).map(([b]) => b)).toEqual([]);
+  });
+
   it('la BOÎTE du couple contient tout le corps : le crâne du cavalier ne sort plus par le haut', () => {
     const s = sujets(monture(), cavalier()).subjects[0];
     expect(s.box.w).toBe(BB_W);
@@ -230,6 +239,7 @@ describe('Couple monté — UN billboard composite (monture + cavalier)', () => 
     expect(subjects).toHaveLength(1);
     expect(osDe(subjects[0].svg('profile', false, 0)).has('tronc')).toBe(true); // la monture est là
     expect(subjects[0].identity.startsWith('acteur:m1+h1|')).toBe(true); // l'identité nomme le couple dont elle hache l'instantané
+    expect(osDe(subjects[0].svg('profile', false, 0)).has('torse')).toBe(false); // et SEULE : le cavalier n'est pas dessiné
     expect(cri).toHaveBeenCalledTimes(1);
     expect(cri.mock.calls[0][0]).toContain('couple monté');
     sujets(monture(), bête); // le même défaut ne se redit pas
@@ -240,7 +250,7 @@ describe('Couple monté — UN billboard composite (monture + cavalier)', () => 
 
 /**
  * CÂBLAGE DU CANAL DONNÉE (#1128) : la monture est rendue PORTÉE — ses opts de gabarit passent par
- * `mountedPlanOpts`, donc son harnachement vient de la DONNÉE. Mesuré sur le fragment RENDU du couple,
+ * `harnaisDeMonture`, donc son harnachement vient de la DONNÉE. Mesuré sur le fragment RENDU du couple,
  * pas sur la fonction seule : un call-site retombé sur `planOptsForRecord` rendrait la bête à cru sans
  * qu'aucun test de la couture ne bronche. Il mesure ce canal sur le sujet volumique, seul rendu du
  * couple.

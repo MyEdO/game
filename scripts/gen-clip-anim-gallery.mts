@@ -12,8 +12,8 @@ import { addPose } from '../src/gameIso/rig/poses';
 import { CLIPS, sampleClip, clipDuration, type Clip } from '../src/gameIso/rig/anim/clips';
 import { spellCastClip } from '../src/gameIso/rig/anim/spellClips';
 import { weaponRest, mountedAttackClip, mountedParryClip, seatedClip } from '../src/gameIso/rig/anim/weaponClips';
-import { seatRiderOnMount, mountedRest, mountedPlanOpts } from '../src/gameIso/rig/mountedRig';
-import { planById, resolveSpecies } from '../src/gameIso/rig/bodyPlan';
+import { seatRiderOnMount, mountedRest, harnaisDeMonture } from '../src/gameIso/rig/mountedRig';
+import { planById, planOptsForRecord, resolveSpecies } from '../src/gameIso/rig/bodyPlan';
 import { sizeTokenScale } from '../src/gameIso/sizeScale';
 import { animatedRig, sampleTimes } from './_lib-anim-rig';
 import type { Appearance } from '../src/gameIso/rig/appearance';
@@ -74,7 +74,7 @@ function mountedTile(label: string, weapon: Weapon | undefined, clip: Clip) {
   const equip: EquipCtx = { weapons: weapon ? [weapon] : [], armour: [] };
   const samples = sampleTimes(dur, N).map((t) => {
     // Monture PORTÉE : le harnachement vient de la couture montée (canal DONNÉE), jamais réexprimé ici.
-    const mountBones = quad.resolve(horse, 'profile', quad.restPose(), mountedPlanOpts(undefined));
+    const mountBones = quad.resolve(horse, 'profile', quad.restPose(), harnaisDeMonture(planOptsForRecord(undefined)));
     const riderPose = addPose(mountedRest('profile', weapon), sampleClip(clip, t).pose);
     const riderBones = resolveRig(soldat, equip, riderPose, TENUE_SOLDAT, 'profile', [], false);
     // Ratio cavalier DÉRIVÉ comme en jeu (`backends/webgl/sceneMeshes`, couple monté) : cavalier ÷ (art monture × Taille).

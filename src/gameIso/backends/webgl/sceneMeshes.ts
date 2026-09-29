@@ -1080,9 +1080,11 @@ function figurantDrawInputs(ent: SceneEntity, enrolled: boolean): ActorDrawInput
   return { render, ground: null, scaleK, rig: { appearance: prof.appearance, equip: prof.equip, tenue: prof.tenue, overlays: [] } };
 }
 
-/** INSTANTANÉ de dessin d'un sujet de billboard : TOUT ce que sa fermeture lit, et rien d'autre (#2097,
- *  #2113). Le sujet en reçoit une COPIE (`structuredClone`) : ni le combattant vivant ni sa place ne sont
- *  relus après la construction. `version` = `versionDesDatasets()` : la composition lit les catalogues. */
+/** INSTANTANÉ de dessin d'un sujet de billboard (#2097, #2113) : tout l'état VIVANT que sa fermeture
+ *  lit — combattant, place —, copié (`structuredClone`) et jamais relu après la construction. Les
+ *  CATALOGUES, eux, sont lus à la première composition d'un couple (vue, sens) : à la `version` hachée
+ *  ou à une version postérieure. Une identité périmée n'est plus redemandée : le stage s'abonne au
+ *  témoin (`abonnerAuxDatasets`), et `versionDesDatasets` ne décroît jamais. */
 export interface DrawSnapshot {
   inputs: ActorDrawInputs;
   /** Cavalier d'un couple MONTÉ. */
@@ -1252,7 +1254,8 @@ function mountedSvg(
     ...(ground ? { wings: 'spread' as const } : {}),
   };
   const arme = mainWeaponOf(rider.rig.equip);
-  // k : échelle du cavalier DANS la boîte de la monture — chaîne d'échelles monde (art × Taille),
+  // k : échelle du cavalier DANS la boîte de la monture — chaîne d'échelles monde (art × Taille ou
+  // empreinte, `combatantTokenScale`),
   // jamais une constante (un cheval recalibré ou une autre monture garde un couple proportionné).
   const k = rider.render.scale / mount.scaleK;
   const osMonture = (view: View) => plan.resolve(mr.species, view, couché ?? plan.restPose(), opts);
@@ -1273,8 +1276,9 @@ function mountedSvg(
   };
 }
 
-/** COMPOSITIONS d'un corps de rig, retenues par (vue, sens) dans la fermeture d'UN sujet. Exactes
- *  parce que ce sujet est une VALEUR : ses entrées de rig sont celles de son instantané (`DrawSnapshot`). */
+/** COMPOSITIONS d'un corps de rig, retenues par (vue, sens) dans la fermeture d'UN sujet, faites à la
+ *  première demande de chaque couple : entrées de rig de l'instantané, catalogues à leur version de ce
+ *  moment (`DrawSnapshot`). */
 function composeur(rig: NonNullable<ActorDrawInputs['rig']>): (view: View, mirror: boolean) => RigComposition {
   const faites = new Map<string, RigComposition>();
   return (view, mirror) => {

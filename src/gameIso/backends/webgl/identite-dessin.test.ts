@@ -17,6 +17,7 @@ import { createHero } from '../../../engine/character';
 import { unloadWeapon } from '../../../engine/items';
 import { loadRegister } from '../../../engine/weaponLoad';
 import { setDataset } from '../../../data/overrides';
+import { abonnerAuxDatasets } from '../../../data/versionDataset';
 import { trappings } from '../../../data';
 import { WEAPON_DEFS } from '../../rig/parts/weapons/_registry.generated';
 import { rigIdleDef } from '../../rig/anim/actorAnimSelect';
@@ -56,27 +57,30 @@ function porteurDeCatalogue(): Combatant {
   return h;
 }
 
-const MUTATIONS: { nom: string; porteur: () => Combatant; muter: (c: Combatant) => void }[] = [
-  { nom: 'unloadWeapon', porteur: arbalétrier, muter: (c) => unloadWeapon(c, c.weapons[0]) },
-  { nom: 'arme retirée en place', porteur: arbalétrier, muter: (c) => void c.weapons.splice(0, 1) },
+/** `dessinChange` : ce que la mutation fait au dessin du sujet RECONSTRUIT. Décharger une arme ne change
+ *  pas le corps ; la retirer, ou changer sa forme au catalogue, si. */
+const MUTATIONS: { nom: string; porteur: () => Combatant; muter: (c: Combatant) => void; dessinChange: boolean }[] = [
+  { nom: 'unloadWeapon', porteur: arbalétrier, muter: (c) => unloadWeapon(c, c.weapons[0]), dessinChange: false },
+  { nom: 'arme retirée en place', porteur: arbalétrier, muter: (c) => void c.weapons.splice(0, 1), dessinChange: true },
   {
     nom: 'setDataset (forme d’arme au catalogue)',
     porteur: porteurDeCatalogue,
+    dessinChange: true,
     muter: () => setDataset('trappings', trappings.map((t) => (t.id === armeDeCatalogue.id ? { ...t, shape: autreForme } : t))),
   },
 ];
 
 describe('un sujet est une VALEUR : l’état vivant muté ne change rien à ce qu’il dessine', () => {
-  for (const { nom, porteur, muter } of MUTATIONS)
-    it(`${nom} : chaque couple (vue, sens) déjà composé rend le MÊME octet, et le sujet reconstruit change d’identité si son dessin change`, () => {
+  for (const { nom, porteur, muter, dessinChange } of MUTATIONS)
+    it(`${nom} : chaque couple (vue, sens) déjà composé rend le MÊME octet, et le sujet reconstruit change d’identité`, () => {
       const c = porteur();
       const s = sujet(pose(c));
       const avant = dessins(s);
       muter(c);
       expect(dessins(s)).toEqual(avant);
       const neuf = sujet(pose(c));
-      const dessinChange = dessins(neuf).some((d, i) => d !== avant[i]);
-      if (dessinChange) expect(neuf.identity).not.toBe(s.identity);
+      expect(dessins(neuf).some((d, i) => d !== avant[i]), 'le dessin du sujet reconstruit').toBe(dessinChange);
+      expect(neuf.identity).not.toBe(s.identity);
     });
 });
 
@@ -92,6 +96,21 @@ describe('#2113 B1 — forme d’arme changée au catalogue : le dessin change, 
     expect(neuf.identity).not.toBe(s.identity);
     expect(actorPoseKey(pose(c))).not.toBe(clés[0]);
     expect(actorIdentityKey(pose(c))).not.toBe(clés[1]);
+  });
+});
+
+describe('catalogue édité : le témoin notifie le stage, et le sujet reconstruit change d’identité', () => {
+  it('`setDataset` appelle l’abonné de `abonnerAuxDatasets`, et l’identité hache la nouvelle version', () => {
+    const c = porteurDeCatalogue();
+    const s = sujet(pose(c));
+    let notifications = 0;
+    const désabonner = abonnerAuxDatasets(() => {
+      notifications += 1;
+    });
+    setDataset('trappings', trappings.map((t) => (t.id === armeDeCatalogue.id ? { ...t, shape: autreForme } : t)));
+    désabonner();
+    expect(notifications, 'l’abonné du stage est notifié').toBeGreaterThan(0);
+    expect(sujet(pose(c)).identity).not.toBe(s.identity);
   });
 });
 

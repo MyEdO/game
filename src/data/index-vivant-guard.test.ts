@@ -119,7 +119,7 @@ describe('#1692 — aucun index figé à l’import sur un dataset mutable', () 
 
   it('le SEAM se DÉRIVE de ce que les fichiers déclarent, pas d’une liste de chemins', () => {
     // Ce qu'il PORTE le désigne : définir `bumperDataset`, ou l'importer pour versionner ses écritures.
-    expect([...fichiersDuSeam()].sort()).toEqual(['src/data/overrides.ts', 'src/data/versionDataset.ts']);
+    expect([...fichiersDuSeam()].sort()).toEqual(['src/data/overrides.ts', 'src/data/versionDataset.ts', 'src/engine/policy.ts']);
   });
 
   it('aucun index NI aucune vue dérivée de niveau module sur un dataset du seam', () => {

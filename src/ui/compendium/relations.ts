@@ -10,8 +10,8 @@
  * `codexLookup`). Aucune regex, aucune logique branchée sur du texte.
  *
  * **Fraîcheur** : comme les projections du registre (`makeCategory`), les index (graphe inverse,
- * catalogue par livre, index de libellés, regex d'auto-liage) sont RE-CALCULÉS quand la version du
- * Codex bouge (`codexLookupVersion` / `invalidateCodexLookup`, bumpée au persist d'une édition). Les
+ * catalogue par livre, index de libellés, regex d'auto-liage) sont RE-CALCULÉS après une écriture au
+ * seam des datasets (`versionDesDatasets`, `memoParVersion`). Les
  * datasets étant mutés EN PLACE (`overrides.ts::setDataset`), re-construire relit la donnée FRAÎCHE —
  * les sections inverses, le contenu des fiches Livre et l'auto-liage suivent une édition sans reload.
  *
@@ -29,7 +29,7 @@ import { isOptionalNote } from '../../engine/statEntry';
 import { effectiveEntry } from '../../engine/variants';
 import { spellEffectOps } from '../../state/flow';
 import type { Flow, TriggeredEffect } from '../../state/flow';
-import { codexLookupVersion } from './registry';
+import { CLES_VERSIONNEES, memoParVersion } from '../../data/versionDataset';
 import { replier } from '../../lib/ordre.mjs';
 import { resolveQualities } from '../../engine/qualities/dispatch';
 
@@ -52,22 +52,9 @@ export interface ReverseGroup {
   referrers: Referrer[];
 }
 
-/** Accès à une projection RE-CALCULÉE quand la version du Codex bouge (persist d'une édition —
- *  `invalidateCodexLookup`) : miroir de `makeCategory` (registry.ts). Construite paresseusement,
- *  cachée tant que `codexLookupVersion()` ne change pas ; le prochain accès après invalidation
- *  reconstruit depuis les datasets live. */
-function versionCached<T>(build: () => T): () => T {
-  let value: T;
-  let builtAt = -1;
-  return () => {
-    const v = codexLookupVersion();
-    if (builtAt !== v) {
-      value = build();
-      builtAt = v;
-    }
-    return value;
-  };
-}
+/** Accès à une projection RE-CALCULÉE après une écriture au seam des datasets : `memoParVersion` sur
+ *  toutes les clés, miroir de `makeCategory` (registry.ts). */
+const versionCached = <T,>(build: () => T): (() => T) => memoParVersion(CLES_VERSIONNEES, build);
 
 // ── Construction du graphe inverse ─────────────────────────────────────────────
 // Clé = `${targetCategory}:${targetId}` → liste BRUTE de référants (dédupliquée à la lecture). Titres

@@ -17,7 +17,7 @@ import { enfantsDe } from '../../data/schemas/grammaire/descente';
 import * as fs from '../../data/fsPersist';
 import { estDerive, inferFields, type FieldDesc } from './editFields';
 import { libelleDeValeur, valeursDe } from '../../data/schemas/grammaire/meta';
-import { categoryByKey, entryKey, invalidateCodexLookup } from './registry';
+import { categoryByKey, entryKey } from './registry';
 import { ACTIVITY_RESOLVERS, RESOLVER_OWNER, resolversOwnedBy } from '../../engine/activities';
 import type { ActivityContext, OutcomeBand, BattleOutcome, BattleSide, BattleOutcomeTarget, BattleOutcomeScale, BattleCond, ActivityResolver, ResolverOwner } from '../../engine/activities';
 import { weatherCondition } from '../../engine/travelStages';
@@ -641,7 +641,6 @@ export function CodexEdit({ categoryKey, id, onClose, isNew }: CodexEditProps) {
       else setDataset(dsKey!, avant as never);
       setSchemaError(schemaErr); setMsg(''); return;
     }
-    invalidateCodexLookup(); // l'index de `codexLookup` repart de la donnée persistée
     setSchemaError(null);
     const text = serializeDataset(root);
     try {

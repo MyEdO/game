@@ -22,6 +22,7 @@ import type { View } from '../../../src/gameIso/rig/facing';
 import type { EquipCtx } from '../../../src/gameIso/rig/parts/equipment';
 import type { Site } from './stock.mjs';
 import { fileURLToPath } from 'node:url';
+import { sep } from 'node:path';
 import { DECROISSANT, type RegenerationDeStock } from './stockDeSites.mjs';
 import type { ItemInstance, HitLocation } from '../../../src/engine/types';
 import { slugId } from '../../../src/data/slug';
@@ -270,7 +271,7 @@ const MOTIF_RIG_VIEW = 'Dessine ces vues ; une vue neuve non dessinée ne s’en
  *  `npx tsx scripts/guards/lib/regenStock.mts scripts/guards/lib/partViewAudit.ts [--check]`. */
 export const regenerations = (parts: Audit = auditPartViews(), rig: RigViewAudit = auditRigPartViews()): RegenerationDeStock[] => [
   {
-    chemin: fileURLToPath(new URL('./rigPartViewStock.mjs', import.meta.url)),
+    chemin: fileURLToPath(new URL('./rigPartViewStock.mjs', import.meta.url)).split(sep).join('/'),
     politique: DECROISSANT,
     collections: [
       { nom: 'PART_VIEW_RATCHET', sites: parts.format, motif: 'Dessine les 3 vues de ces slots (cf. src/gameIso/rig/PART-CONTRACT.md) ; un slot neuf ne s’entérine pas ici.' },
@@ -278,7 +279,7 @@ export const regenerations = (parts: Audit = auditPartViews(), rig: RigViewAudit
     ],
   },
   {
-    chemin: fileURLToPath(new URL('./rigViewStock.mjs', import.meta.url)),
+    chemin: fileURLToPath(new URL('./rigViewStock.mjs', import.meta.url)).split(sep).join('/'),
     politique: DECROISSANT,
     collections: [
       { nom: 'RIG_VIEW_FORMAT_RATCHET', sites: rig.format, motif: MOTIF_RIG_VIEW },
