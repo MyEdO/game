@@ -69,7 +69,8 @@ import { hoverTargeting } from './targeting';
 import { maneuverShip } from './shipManeuver';
 import { etageActif, getViewZ, setViewZ } from './viewLevel';
 import { setRevealAll, computeStateVisible } from './visionState';
-import { doorIsOpen, emptyScene } from './scene';
+import { caseDeLEntite, doorIsOpen, emptyScene } from './scene';
+import type { Pt } from './path';
 import { rule, setRule, ruleDef, OPTIONAL_RULES, type RuleValue } from '../engine/policy';
 import { houseRulesMutability, resetHouseRule } from './houseRules';
 import { cadence } from '../engine/cadence';
@@ -498,8 +499,8 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
     // rouge au geste suivant. « Vide » se mesure sur la scène ACTIVE du store après chargement —
     // aucune scène (`scene` nul) ou aucune entité peuplée (`scene.entities`, la population que lisent
     // le rendu comme les sondes `__wfrp.entities`/`visibleCount`). Le groupe n'y change rien : `setParty`
-    // ne pose que `state.party` (`store.ts:2155`), et c'est `startScene` qui cherche son point de départ
-    // DANS `scene.entities` (`store.ts:2159`, entité `heroStart`) — 0 entité = aucun sol sous le groupe.
+    // ne pose que `state.party` (`store.ts`), et c'est `startScene` qui cherche son point de départ
+    // DANS `scene.entities` (`departDuGroupe`, `scene.ts`, entité `heroStart`) — 0 entité = aucun sol sous le groupe.
     const chargee = g().scene;
     if (!chargee || chargee.entities.length === 0)
       throw new Error(
@@ -569,7 +570,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
         id: e.id,
         label: e.label,
         kind: e.kind,
-        pos: e.pos,
+        pos: caseDeLEntite(e),
         // Ce que l'entité OFFRE, lu au dériveur unique et aux drapeaux vivants — la recette voit la
         // même liste que le joueur, jamais une carte de champs recopiée qui dérive.
         access: actionsDe(g().scene!, e, g().flags).map((a) => a.id).join('+') || '—',
@@ -638,7 +639,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
     talk: (id: string) => {
       const ent = find(id);
       if (!ent) return `✗ « ${id} » introuvable — voir __wfrp.entities()`;
-      useGame.setState({ partyPos: { ...ent.pos } });
+      useGame.setState({ partyPos: caseDeLEntite(ent) });
       g().interactEntity(id);
       const s = g();
       if (s.dialogue) return `✓ dialogue ouvert (${id})`;
@@ -653,7 +654,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
     goto: (idOrXY: string | { x: number; y: number; z?: number }) => {
       // Cible une entité (sa case ET son étage z) ou des coordonnées brutes {x,y,z?}.
       const ent = typeof idOrXY === 'string' ? find(idOrXY) : null;
-      const pt = typeof idOrXY === 'string' ? (ent ? { x: ent.pos.x, y: ent.pos.y, z: ent.z } : undefined) : idOrXY;
+      const pt = typeof idOrXY === 'string' ? (ent ? caseDeLEntite(ent) : undefined) : idOrXY;
       if (!pt) return `✗ cible introuvable`;
       g().moveParty({ ...pt });
       const after = g().partyPos;
@@ -857,15 +858,16 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
     /** Survol PROGRAMMATIQUE (combat) : pose la tuile survolée du monde de campagne comme si la souris y
      *  était — tooltip + réticule se rendent sans chasser les pixels. `null` efface. Accepte un id
      *  de combattant, un id d'entité de scène, ou {x,y}. */
-    hover: (idOrXY: string | { x: number; y: number } | null) => {
-      const hook = (window as unknown as { __wfrpSetHover?: (t: { x: number; y: number } | null) => void }).__wfrpSetHover;
+    hover: (idOrXY: string | Pt | null) => {
+      const hook = (window as unknown as { __wfrpSetHover?: (t: Pt | null) => void }).__wfrpSetHover;
       if (!hook) return '✗ monde de campagne non monté';
       if (idOrXY == null) {
         hook(null);
         return '✓ survol effacé';
       }
+      const ent = typeof idOrXY === 'string' ? find(idOrXY) : undefined;
       const pt = typeof idOrXY === 'string'
-        ? inBattleId(g().battle, idOrXY)?.pos ?? find(idOrXY)?.pos
+        ? inBattleId(g().battle, idOrXY)?.pos ?? (ent ? caseDeLEntite(ent) : undefined)
         : idOrXY;
       if (!pt) return '✗ cible introuvable (combattant ou entité)';
       hook({ ...pt });

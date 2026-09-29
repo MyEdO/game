@@ -1,4 +1,5 @@
-import { type Scene, type SceneEntity, isWalkable } from './scene';
+import { type Scene, type SceneEntity, caseDeLEntite, departDuGroupe, isWalkable } from './scene';
+import { findFreeTile } from './combatGeometry';
 import { entityBlockedAt } from './sceneRules';
 import { pathTo, walkNeighbors, type MoveEnv, type Pt } from './path';
 import { memeCase, placesJouables, seatSlotsOf } from './seating';
@@ -65,7 +66,7 @@ export function exploreMoveDest(sc: Scene, partyPos: Pt, tile: Pt): Pt | null {
   const occupe = !!ent && ent.kind === 'prop' && entityBlockedAt(sc, tile.x, tile.y, tz);
   if (ent && (estUtilisable(sc, ent) || ent.kind === 'personnage' || occupe)) {
     if (aPorteeDe(partyPos, ent)) return null; // déjà à portée → interaction/échange/badaud sur place
-    return adjacentWalkable(sc, ent.pos, partyPos);
+    return adjacentWalkable(sc, caseDeLEntite(ent), partyPos);
   }
   // Déplacement simple : on renvoie la case cliquée telle quelle. Le franchissement vertical s'auto-dérive
   // du relief le long du chemin (`pathTo` via `surfaceLink` — rampe/falaise), plus aucun escalier explicite.
@@ -201,7 +202,7 @@ export function povStepDest(scene: Scene, from: Pt, worldDir: Dir8): Pt | null {
  *  signe du delta : depuis le bord sud d'une carte large on regarde N, pas NE/NO au moindre décalage).
  *  Sans cela, le défaut 'S' fait contempler le VIDE hors-carte en vue subjective (POV) au bord sud.
  *  Entrée déjà au centre → 'S' (aucune direction « vers le contenu » ne domine). PUR.
- *  Une orientation AUTHORÉE (`facing` du heroStart) prime sur ce calcul — arbitré au seam (store). */
+ *  Une orientation AUTHORÉE (`facing` du heroStart) prime sur ce calcul : `arriveeDuGroupe`. */
 export function spawnFacing(pos: { x: number; y: number }, dims: { w: number; h: number }): Dir8 {
   const dx = (dims.w - 1) / 2 - pos.x;
   const dy = (dims.h - 1) / 2 - pos.y;
@@ -210,4 +211,14 @@ export function spawnFacing(pos: { x: number; y: number }, dims: { w: number; h:
   // le plus proche (l'ex-aequo de frontière de secteur arrondit au cran horaire suivant).
   const step = Math.round(Math.atan2(dx, -dy) / (Math.PI / 4));
   return DIR8_ORDER[((step % 8) + 8) % 8];
+}
+
+/** Arrivée du GROUPE dans une scène : point d'entrée nommé, sinon départ authoré (`departDuGroupe`),
+ *  sinon première case libre (`findFreeTile`), étage compris. Cap : `facing` authoré du départ s'il
+ *  est pris, sinon `spawnFacing`. PUR. */
+export function arriveeDuGroupe(scene: Scene, entry?: string): { pos: Pt; facing: Dir8 } {
+  const nomme = entry ? scene.entryPoints?.[entry] : undefined;
+  const depart = nomme ? null : departDuGroupe(scene);
+  const pos = nomme ? { ...nomme } : depart ? depart.pos : findFreeTile(scene);
+  return { pos, facing: depart?.facing ?? spawnFacing(pos, scene.dimensions) };
 }

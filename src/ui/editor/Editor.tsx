@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect, useMemo } from 'react';
 import { useGame } from '../../state/store';
-import { Scene, emptyScene, tileAt } from '../../state/scene';
+import { Scene, caseDeLEntite, emptyScene, tileAt } from '../../state/scene';
 import { resizeGrid, editEntity, TypeNonNomme } from '../../state/sceneEdit';
 import { areteCanonique, cleArete } from '../../geometry/arete';
 import { validateScene, type Warning } from '../../state/validateScene';
@@ -530,9 +530,9 @@ export function Editor({
             + ` | scénarios : ${testScenarios.map((x) => x.id).join(', ')}`;
         },
         // Recette #877 : INVENTAIRE du brouillon — les quatre champs qui identifient une entité,
-        // COPIÉS à plat (`pos` comprise), jamais la référence de l'entité elle-même.
+        // COPIÉS à plat (`pos` comprise, étage compris : `caseDeLEntite`), jamais la référence de l'entité elle-même.
         listerEntites: () => scene.entities.map((e) => ({
-          id: e.id, kind: e.kind, ...(e.ref !== undefined ? { ref: e.ref } : {}), pos: { ...e.pos },
+          id: e.id, kind: e.kind, ...(e.ref !== undefined ? { ref: e.ref } : {}), pos: caseDeLEntite(e),
         })),
         // Recette #877 : patch PARTIEL d'une entité par le seam d'assise de l'éditeur — même voie
         // qu'une édition d'auteur, donc normalisée et annulable.

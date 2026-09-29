@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { buildScene, type MapSpec } from './mapSpec';
-import { layerTiles, isWalkable, wallBetween, setStructureDown, heightAt, tileAt, type BuildingMass, type Terrain } from './scene';
+import { layerTiles, isWalkable, wallBetween, setStructureDown, heightAt, tileAt, departDuGroupe, caseDeLEntite, type BuildingMass, type Terrain } from './scene';
+import { arriveeDuGroupe } from './exploreNav';
+import { useGame } from './store';
 import { pathTo, reachable, walkNeighbors } from './path';
 import { edgeWallState } from '../ui/editor/editorState';
 import { sceneZoneTiles } from './zones';
@@ -562,6 +564,30 @@ describe('buildScene — bind (marqueurs → poses)', () => {
     expect(garde?.weapon).toBe('Arc');
     // les marqueurs ne laissent pas de terrain parasite (nettoyés → base 'herbe')
     expect(layerTiles(s, 0)[0]).toBe('herbe');
+  });
+});
+
+describe("buildScene — bind d'un marqueur d'étage : départ et entrée gardent le z de leur grille (#1883)", () => {
+  const etage = (marque: string, bind: MapSpec['bind']) => buildScene({
+    id: 'bz', label: 'BZ', size: [3, 3],
+    levels: { z0: '...\n...\n...', z1: `WWW\nW${marque}W\nWWW` },
+    legend: { W: 'pierre' }, bind,
+  });
+  it("'@' → heroStart à z1, et le lancement (departDuGroupe, startScene) pose le groupe à z1", () => {
+    const s = etage('@', { '@': 'heroStart' });
+    expect(caseDeLEntite(s.entities.find((e) => e.kind === 'heroStart')!)).toEqual({ x: 1, y: 1, z: 1 });
+    expect(departDuGroupe(s)?.pos).toEqual({ x: 1, y: 1, z: 1 });
+    useGame.getState().startScene(s);
+    expect(useGame.getState().partyPos).toEqual({ x: 1, y: 1, z: 1 });
+  });
+  it("{ entry } → point d'entrée à z1, rendu tel quel par arriveeDuGroupe", () => {
+    const s = etage('*', { '*': { entry: 'haut' } });
+    expect(s.entryPoints?.haut).toEqual({ x: 1, y: 1, z: 1 });
+    expect(arriveeDuGroupe(s, 'haut').pos).toEqual({ x: 1, y: 1, z: 1 });
+  });
+  it('témoin : spec.heroStart { z: 1 } pose déjà le départ à z1', () => {
+    const s = buildScene({ id: 'hz', label: 'HZ', size: [3, 3], levels: { z0: '...\n...\n...', z1: 'WWW\nWWW\nWWW' }, legend: { W: 'pierre' }, heroStart: { x: 1, y: 1, z: 1 } });
+    expect(departDuGroupe(s)?.pos).toEqual({ x: 1, y: 1, z: 1 });
   });
 });
 

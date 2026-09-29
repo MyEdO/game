@@ -813,10 +813,10 @@ export function buildScene(spec: MapSpec): Scene {
     const bind = spec.bind?.[char];
     if (!bind) continue;
     if (bind === 'heroStart') {
-      s = pasteEntity(s, { id: '', kind: 'heroStart', pos }, pos).scene;
+      s = pasteEntity(s, { id: '', kind: 'heroStart', pos, ...(markerZ ? { z: markerZ } : {}) }, pos, markerZ).scene;
     } else if ('entry' in bind && typeof (bind as { entry: string }).entry === 'string') {
       const name = (bind as { entry: string }).entry;
-      s = { ...s, entryPoints: { ...s.entryPoints, [name]: { x: pos.x, y: pos.y } } };
+      s = { ...s, entryPoints: { ...s.entryPoints, [name]: { x: pos.x, y: pos.y, ...(markerZ ? { z: markerZ } : {}) } } };
     } else if ('emplacement' in bind && typeof (bind as { emplacement: string }).emplacement === 'string') {
       const b = bind as { emplacement: string; crew?: string; side?: FireArc; facing?: Dir8; member?: BindMember };
       // z HÉRITÉ de l'étage du marqueur (grille z1 → affût sur le chemin de ronde) ; `facing` = orientation-monde.

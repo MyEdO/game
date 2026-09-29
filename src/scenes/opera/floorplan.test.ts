@@ -159,7 +159,7 @@ describe('plan de l’Opéra — géométrie (relief unifié)', () => {
  */
 describe('plan de l’Opéra — corps architectural et loi de dégagement', () => {
   const s = buildOperaFloorplan();
-  // La carte n'a pas de `heroStart` (`startOf` rend `null`) : les scénarios posent le groupe. Le départ
+  // La carte n'a pas de `heroStart` (`departDuGroupe` rend `null`) : les scénarios posent le groupe. Le départ
   // de QC est donc le seuil d'honneur, l'entrée par laquelle un joueur entre.
   const start = { ...s.entryPoints!['entree-principale'], z: 0 };
   const W = s.dimensions.w, H = s.dimensions.h;

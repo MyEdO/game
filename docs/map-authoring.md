@@ -271,7 +271,6 @@ Fonctions de `src/state/mapQC.ts` (démontrées par `src/state/mapQC.test.ts`) :
 | `zoneWalkableCells` | `src/state/mapQC.ts:24` | Cases MARCHABLES d'une zone descriptive (`zoneAreaTiles` 2D, filtrées par `isWalkable` à l'étage `zone.z ?? 0` de la zone). |
 | `unreachableDescriptiveZones` | `src/state/mapQC.ts:34` | Zones descriptives (pièces nommées, `isDescriptiveZone`) dont AUCUNE case marchable n'est atteignable depuis `start` — vide = toutes les pièces nommées sont accessibles. |
 | `reachedFloors` | `src/state/mapQC.ts:44` | Étages (`z`) présents dans les cases atteignables depuis `start` — preuve de connexité verticale (une carte à étages habités z0..zN doit tous les faire apparaître ici). |
-| `startOf` | `src/state/mapQC.ts:51` | Position du `heroStart` de la scène (départ par défaut du groupe), ou `null` si absent. |
 
 **Jugement visuel** : capture de jeu (patron `scripts/qc/capture-jeu.mjs`) → planche par étage,
 4 rotations, plan source en regard ; juges VISION en RÉFUTATION (pièces manquantes ou déformées,
@@ -335,4 +334,4 @@ Sur les 36 documents de `src/scenes/` qui exposent un littéral `MapSpec` :
 | `stations?` | 1 | `src/scenes/test-scenarios/13-bataille-de-masse.ts` |
 
 Champs sans aucun exemple mesuré dans `src/scenes/` : `music?`, `knownUnsupportedFloor?`, `seatAssignments?`, `restZones?` — leur seule démonstration vit dans `src/state/mapSpec.test.ts`.
-<!-- sources-empreinte: 8b3bc9b70ecb66cdff3a27367267ca23f89f2f26 (65 fichiers, 7 dossiers) corps: 21b4b878d9c6f1a32015f75f43265ef0920ec25f -->
+<!-- sources-empreinte: d3c9f3a6421039c00d542dd0637904fb5381424b (66 fichiers, 7 dossiers) corps: 5aac42bce388bda981b2103063d9933ae2143fa8 -->

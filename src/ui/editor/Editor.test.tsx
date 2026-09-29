@@ -189,6 +189,23 @@ describe('Editor v2 — `editeur.ouvrir` : ouvrir par id sans la modale (#1478)'
     await __resetLibraryForTest();
     __setIdbBackendForTest(null);
   });
+
+  it('`editeur.listerEntites` rend la case d’une entité d’étage, z compris (#1883, `opera-galerie`)', async () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root: Root = createRoot(container);
+    await act(async () => {
+      root.render(<Editor />);
+    });
+    await act(async () => {
+      editeur.ouvrir!('opera-galerie');
+    });
+    expect(editeur.listerEntites!().find((e) => e.kind === 'heroStart')?.pos).toEqual({ x: 9, y: 16, z: 1 });
+    await act(async () => {
+      root.unmount();
+    });
+    container.remove();
+  });
 });
 
 describe('Editor v2 — authoring architectural', () => {

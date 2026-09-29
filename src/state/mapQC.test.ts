@@ -1,16 +1,16 @@
 import { describe, it, expect } from 'vitest';
 import { buildScene } from './mapSpec';
 import { scenario as zonesPiecesScenario } from '../scenes/test-scenarios/zones-pieces';
-import { reachableCells, unreachableDescriptiveZones, reachedFloors, startOf } from './mapQC';
+import { reachableCells, unreachableDescriptiveZones, reachedFloors } from './mapQC';
 import { walkNeighbors, type Pt } from './path';
-import type { Scene } from './scene';
+import { departDuGroupe, type Scene } from './scene';
 import { campaign, diligenceCampaign } from '../scenes/campaign';
 
 describe('mapQC — harnais QC de cartes (#778)', () => {
   it('démo `zones-pieces` (4 pièces cloisonnées) : les 4 pièces sont toutes atteignables depuis heroStart', () => {
     const scene = zonesPiecesScenario.scene;
-    const start = startOf(scene);
-    expect(start).not.toBeNull();
+    const start = departDuGroupe(scene)?.pos;
+    expect(start).toBeDefined();
     expect(unreachableDescriptiveZones(scene, start!)).toEqual([]);
   });
 
@@ -29,8 +29,8 @@ describe('mapQC — harnais QC de cartes (#778)', () => {
       },
       zoneLegend: { R: { label: 'Foyer' }, S: { label: 'Galerie' } },
     });
-    const start = startOf(scene);
-    expect(start).toEqual({ x: 0, y: 1, z: 0 });
+    const start = departDuGroupe(scene)?.pos;
+    expect(start).toEqual({ x: 0, y: 1 });
     const floors = reachedFloors(scene, start!);
     expect(floors.has(0)).toBe(true);
     expect(floors.has(1)).toBe(true);
@@ -53,8 +53,8 @@ describe('mapQC — harnais QC de cartes (#778)', () => {
       zoneMap: { z0: ['.....', '...X.', '.....'].join('\n') },
       zoneLegend: { X: { label: 'Cellule scellée' } },
     });
-    const start = startOf(scene);
-    expect(start).toEqual({ x: 1, y: 1, z: 0 });
+    const start = departDuGroupe(scene)?.pos;
+    expect(start).toEqual({ x: 1, y: 1 });
     const unreachable = unreachableDescriptiveZones(scene, start!);
     expect(unreachable.map((z) => z.label)).toEqual(['Cellule scellée']);
   });
@@ -68,16 +68,16 @@ describe('mapQC — harnais QC de cartes (#778)', () => {
       zoneMap: { z0: ['..Z', '...', '...'].join('\n') },
       zoneLegend: { Z: { label: 'Sur du mur' } },
     });
-    const start = startOf(scene);
+    const start = departDuGroupe(scene)?.pos;
     const unreachable = unreachableDescriptiveZones(scene, start!);
     expect(unreachable.map((z) => z.label)).toEqual(['Sur du mur']);
   });
 
   it('reachableCells depuis heroStart contient bien la case de départ', () => {
     const scene = zonesPiecesScenario.scene;
-    const start = startOf(scene)!;
+    const start = departDuGroupe(scene)!.pos;
     const cells = reachableCells(scene, start);
-    expect(cells.has(`${start.x},${start.y},${start.z}`)).toBe(true);
+    expect(cells.has(`${start.x},${start.y},${start.z ?? 0}`)).toBe(true);
   });
 });
 
@@ -131,7 +131,7 @@ describe('reachableCells — mêmes cases que le parcours en largeur (#1416)', (
   });
 
   const cartes: [string, Scene, { x: number; y: number; z?: number }[]][] = [
-    ['zones-pieces', zonesPiecesScenario.scene, [startOf(zonesPiecesScenario.scene)!, { x: 0, y: 0 }]],
+    ['zones-pieces', zonesPiecesScenario.scene, [departDuGroupe(zonesPiecesScenario.scene)!.pos, { x: 0, y: 0 }]],
     ['cellule scellée', cellule, [{ x: 1, y: 1 }, { x: 3, y: 1 }, { x: 4, y: 2 }]],
     ['deux étages', deuxEtages, [{ x: 0, y: 1 }, { x: 3, y: 0, z: 1 }, { x: 0, y: 0 }]],
     ['arene-hub', campaign.find((c) => c.id === 'arene-hub')!.scene, [{ x: 25, y: 20 }, { x: 1, y: 1 }, { x: 0, y: 0 }]],

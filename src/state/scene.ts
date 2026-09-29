@@ -550,6 +550,19 @@ export function isCrenellated(scene: Scene, x: number, y: number, z = 0): boolea
   return crenellatedAt(scene, x, y, z) !== null;
 }
 
+/** Case d'une entité de scène, étage compris : `pos` et `z` réunis en un `Pt`, `z` présent seulement
+ *  s'il est non nul (forme de `findFreeTile`). */
+export function caseDeLEntite(e: Pick<SceneEntity, 'pos' | 'z'>): Pt {
+  return e.z ? { x: e.pos.x, y: e.pos.y, z: e.z } : { x: e.pos.x, y: e.pos.y };
+}
+
+/** Départ AUTHORÉ du groupe (`heroStart`), étage compris, ou `null` si la scène n'en porte pas. */
+export function departDuGroupe(scene: Scene): { id: string; pos: Pt; facing?: Dir8 } | null {
+  const e = scene.entities.find((en) => en.kind === 'heroStart');
+  if (!e) return null;
+  return { id: e.id, pos: caseDeLEntite(e), ...(e.facing ? { facing: e.facing } : {}) };
+}
+
 export function isWalkable(scene: Scene, x: number, y: number, z = 0, swim?: ReadonlySet<string>): boolean {
   if (z > 0 && tileCollapsed(scene, x, y, z)) return false; // passerelle effondrée → plus marchable
   if (entityBlockedAt(scene, x, y, z)) return false; // empreinte multi-cases d'un décor (foot {w,h}), SA couche seulement

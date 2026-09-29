@@ -66,7 +66,7 @@ seam (`ROLL_SEAM_CORE`) sont hors périmètre — leur pending EST le foyer.
 | `src/state/medicFlow.ts` | 2 | dette | 176, 202 | `pendingHeal` et `pendingSurgery` du soigneur PNJ hors combat -> #1064. |
 | `src/state/merchantFlow.ts` | 1 | dette | 881 | `pendingAppraise` (Évaluation / Intuition de détection) -> #1064. |
 | `src/state/seaVoyageFlow.ts` | 1 | dette | 2099 | `pendingSteamSave` (`openSteamSave`, Test d'Initiative de l'ingénieur) : le flux a bien sa spec canonique (`rollFlowSpecs.ts` `steamSave`, `makeRollFlow`), c'est la FABRIQUE du pending qui reste montée à la main -> #1474. |
-| `src/state/store.ts` | 1 | canonique | 2852 | canonique : re-ciblage d'un `pendingTest` EXISTANT (`{ ...pt, … }`) sur un autre candidat — `target` recopié du candidat DÉJÀ calculé par la fabrique, aucun jet neuf décrit. |
+| `src/state/store.ts` | 1 | canonique | 2846 | canonique : re-ciblage d'un `pendingTest` EXISTANT (`{ ...pt, … }`) sur un autre candidat — `target` recopié du candidat DÉJÀ calculé par la fabrique, aucun jet neuf décrit. |
 
 _15 sites mesurés dans 9 fichiers — par nature : 11 dette, 2 canonique, 2 mixte._
 
@@ -249,4 +249,4 @@ reste `ROLL_SEAM_PHASE2_STOCK`. 29 sites dans 14 fichiers.
 | `src/state/travelPostes.ts` | 1 |
 | `src/state/triggeredEffects.ts` | 1 |
 
-<!-- sources-empreinte: 32f3d44f22260ff4579482f8e9841d3e5829db67 (2109 fichiers, 133 dossiers) corps: 3cbdafa32080f2fe15e2946777989ab591342818 -->
+<!-- sources-empreinte: 7e2de6b1e959ac74414f503530ef5724f9037c77 (2110 fichiers, 133 dossiers) corps: 5f75be9f4655d24ebb2abafa5f852c542b7e146d -->

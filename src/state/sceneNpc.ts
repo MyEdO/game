@@ -6,7 +6,7 @@
  */
 import type { Combatant } from '../engine/types';
 import type { EntityAppearance } from '../engine/authoringAppearance';
-import type { Scene, SceneEntity } from './scene';
+import { caseDeLEntite, type Scene, type SceneEntity } from './scene';
 import { spawnEnemy } from './spawn';
 import type { PorteurDeFiche } from '../engine/statblock';
 import { resolvePresetCreature } from './campaignData';
@@ -29,7 +29,7 @@ function porteurDeFiche(ent: SceneEntity): { porteur: PorteurDeFiche; appearance
 /** La fiche sous le NOM de l'entité (#1463 S3, #1882) : la fiche donne les valeurs, l'entité le nom —
  *  en combat comme hors combat. */
 function fiche(ent: SceneEntity, p: NonNullable<ReturnType<typeof porteurDeFiche>>): Combatant {
-  const c = spawnEnemy(p.porteur, ent.id, ent.z ? { ...ent.pos, z: ent.z } : { ...ent.pos }, {
+  const c = spawnEnemy(p.porteur, ent.id, caseDeLEntite(ent), {
     appearance: p.appearance, weapon: ent.weapon,
     optionals: ent.combat?.optionals, spells: ent.combat?.spells, randomChars: ent.combat?.randomChars, // LDB 76/78
     skills: ent.combat?.skills, // AA 10 l.142-146

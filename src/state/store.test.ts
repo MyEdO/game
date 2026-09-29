@@ -8,7 +8,8 @@ import { buildAdvancementView } from './advancement';
 import { createHero } from '../engine/character';
 import { makeRNG } from '../engine/dice';
 import { testScene } from '../scenes/test-fixture';
-import { emptyScene, type ActionAuthoree } from './scene';
+import { emptyScene, type ActionAuthoree, type Scene } from './scene';
+import { snapshotSave } from './saves';
 import { actionsDe, cleActionJouee } from './usable';
 import { bus, EVT } from './bus';
 import { DIFFICULTY_MODIFIERS, type Combatant, type ItemInstance, type Weapon } from '../engine/types';
@@ -3123,6 +3124,63 @@ describe("Orientation du GROUPE à l'entrée de scène (spawnFacing / heroStart 
     useGame.getState().loadProject([a, b], 'a2');
     useGame.getState().transitionTo('b2');
     expect(capDuGroupe(useGame.getState())).toBe('NE');
+  });
+});
+
+describe("Départ du groupe à l'ÉTAGE : le lancement d'une scène pose `partyPos` au `z` du départ (#1883)", () => {
+  beforeEach(() => reset());
+
+  const lead = { id: 'lead', label: 'L', xp: 0 } as unknown as Combatant;
+  const avecDepart = (id: string, z?: number): Scene => {
+    const sc = emptyScene(30, 40);
+    sc.id = id;
+    sc.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 21, y: 30 }, ...(z ? { z } : {}) });
+    sc.entryPoints = { haut: { x: 21, y: 30, z: 1 } };
+    return sc;
+  };
+  const vide = (id: string): Scene => Object.assign(emptyScene(5, 5), { id });
+
+  it('startScene : départ à z1 → partyPos.z === 1', () => {
+    useGame.getState().setParty([lead]);
+    useGame.getState().startScene(avecDepart('etage-a', 1));
+    expect(useGame.getState().partyPos).toEqual({ x: 21, y: 30, z: 1 });
+  });
+
+  it('transitionTo sans entrée nommée : départ à z1 → partyPos.z === 1', () => {
+    useGame.getState().setParty([lead]);
+    useGame.getState().loadProject([vide('etage-b0'), avecDepart('etage-b', 1)], 'etage-b0');
+    useGame.getState().transitionTo('etage-b');
+    expect(useGame.getState().partyPos).toEqual({ x: 21, y: 30, z: 1 });
+  });
+
+  it('startScene : départ au rez → partyPos sans `z`', () => {
+    useGame.getState().setParty([lead]);
+    useGame.getState().startScene(avecDepart('etage-c'));
+    expect(useGame.getState().partyPos).toStrictEqual({ x: 21, y: 30 });
+  });
+
+  it("témoin — transitionTo par point d'entrée nommé à z1 → partyPos.z === 1", () => {
+    useGame.getState().setParty([lead]);
+    useGame.getState().loadProject([vide('etage-d0'), avecDepart('etage-d')], 'etage-d0');
+    useGame.getState().transitionTo('etage-d', 'haut');
+    expect(useGame.getState().partyPos).toEqual({ x: 21, y: 30, z: 1 });
+  });
+
+  it('témoin — transitionTo par `pos` forcée à z1 → partyPos.z === 1', () => {
+    useGame.getState().setParty([lead]);
+    useGame.getState().loadProject([vide('etage-e0'), avecDepart('etage-e')], 'etage-e0');
+    useGame.getState().transitionTo('etage-e', undefined, { x: 21, y: 30, z: 1 });
+    expect(useGame.getState().partyPos).toEqual({ x: 21, y: 30, z: 1 });
+  });
+
+  it("témoin — une sauvegarde rechargée garde l'étage de partyPos", () => {
+    useGame.getState().setParty([lead]);
+    useGame.getState().startScene(vide('etage-f'));
+    useGame.setState({ partyPos: { x: 21, y: 30, z: 1 } });
+    const save = snapshotSave(useGame.getState() as unknown as Record<string, unknown>, useGame.getInitialState() as unknown as Record<string, unknown>, '2026-09-28T00:00:00.000Z');
+    useGame.getState().startScene(vide('etage-f2'));
+    useGame.getState().importGame(JSON.stringify(save));
+    expect(useGame.getState().partyPos).toEqual({ x: 21, y: 30, z: 1 });
   });
 });
 

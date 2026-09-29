@@ -858,3 +858,46 @@ describe('__wfrp.ascii — le PLAN de la couche, ses trois légendes et son reli
     expect(texte).toContain('z1');
   });
 });
+
+describe('__wfrp.talk — le groupe rejoint le PNJ à SON étage (#1883)', () => {
+  it("un PNJ d'étage : partyPos prend son `z`", () => {
+    const sc = emptyScene(6, 6);
+    sc.id = 'talk-etage';
+    sc.entities.push({ id: 'pnj', kind: 'personnage', ref: 'humain', pos: { x: 2, y: 3 }, z: 1 });
+    useGame.getState().startScene(sc);
+    buildApi().talk('pnj');
+    expect(useGame.getState().partyPos).toEqual({ x: 2, y: 3, z: 1 });
+  });
+});
+
+describe("__wfrp.hover / entities — une entité d'étage est lue avec SON étage (#1883)", () => {
+  const sceneEtage = () => {
+    const sc = emptyScene(6, 6);
+    sc.id = 'hover-etage';
+    sc.entities.push({ id: 'coffre', kind: 'prop', ref: 'coffre', pos: { x: 2, y: 3 }, z: 1 });
+    return sc;
+  };
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('hover(id) transmet la case de l’entité, z compris, au hook du monde', () => {
+    const recu: unknown[] = [];
+    vi.stubGlobal('window', { __wfrpSetHover: (t: unknown) => recu.push(t) });
+    useGame.getState().startScene(sceneEtage());
+    expect(buildApi().hover('coffre')).toBe('✓ survol (2,3)');
+    expect(recu).toEqual([{ x: 2, y: 3, z: 1 }]);
+  });
+
+  it('hover({x,y,z}) transmet l’étage au hook du monde (`Pt`, forme de `useStagePointer`)', () => {
+    const recu: unknown[] = [];
+    vi.stubGlobal('window', { __wfrpSetHover: (t: unknown) => recu.push(t) });
+    expect(buildApi().hover({ x: 2, y: 3, z: 1 })).toBe('✓ survol (2,3)');
+    expect(recu).toEqual([{ x: 2, y: 3, z: 1 }]);
+  });
+
+  it('entities() liste la case de l’entité, z compris', () => {
+    useGame.getState().startScene(sceneEtage());
+    expect(buildApi().entities().find((e) => e.id === 'coffre')?.pos).toEqual({ x: 2, y: 3, z: 1 });
+  });
+});

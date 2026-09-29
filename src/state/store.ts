@@ -24,7 +24,7 @@ import type { BattleClickOpts, TileClickOpts } from './targetingModes';
 import { applyShipCollision } from './shipCollision';
 import type { ConjureForm } from '../engine/conjuredWeapons';
 import type { OvercastAxis } from '../engine/overcast';
-import { findFreeTile, removeEntity, checkTriggers, fireScheduledEffects, applyEffects, applyEffectsLoot, runFlow, reprendreTestSubi, assignGearAt, harvestVictoryCreature, pushReveal, releaseSeatsOfDowned, activeCombatant as activeCombatantOf } from './combatFlow';
+import { removeEntity, checkTriggers, fireScheduledEffects, applyEffects, applyEffectsLoot, runFlow, reprendreTestSubi, assignGearAt, harvestVictoryCreature, pushReveal, releaseSeatsOfDowned, activeCombatant as activeCombatantOf } from './combatFlow';
 import { t } from '../i18n';
 import type { Get, Set } from './flowTypes';
 import { planClimb } from './climbMove';
@@ -153,7 +153,7 @@ import { Scene, Dialogue, isWalkable, sceneMetresPerTile, heightAt, speakerLabel
 import { recordTurn, type DialogueTurn } from './dialogueHistory';
 import { placeCombatant } from './spawn';
 import { chebyshev, Pt } from './path';
-import { aPorteeDe, exploreStepDest, povStepDest, spawnFacing } from './exploreNav';
+import { aPorteeDe, arriveeDuGroupe, exploreStepDest, povStepDest, spawnFacing } from './exploreNav';
 import { bus, EVT } from './bus';
 import { campaign, campaignWorldMap } from '../scenes/campaign';
 import type { NarratifBlock, OuvertureBlock } from './campaignNarratif';
@@ -2171,8 +2171,7 @@ export const useGame = create<GameState>((set, get) => ({
 
   startScene: (scene, narratif) => {
     registerScene(scene);
-    const start = scene.entities.find((e) => e.kind === 'heroStart');
-    const pos = start ? { ...start.pos } : findFreeTile(scene);
+    const { pos, facing: capEntrant } = arriveeDuGroupe(scene);
     // Démarrage d'une partie / d'un scénario : on repart d'un état NEUF. SOURCE UNIQUE et
     // ZÉRO-MAINTENANCE : on réinitialise à l'état de CRÉATION du store (capturé par Zustand) —
     // donc tout nouveau champ d'état ajouté à l'init (système futur) se réinitialise ici sans
@@ -2181,7 +2180,6 @@ export const useGame = create<GameState>((set, get) => ({
     // navigation/vue (screen, caméra, zoom), le groupe (posé par `setParty`) et la SESSION COOP
     // (net : héberger une partie PUIS la lancer ne doit pas dissoudre le salon — Jalon 7).
     const { screen, party, camRot, zoom, viewMode, povActive, inspectEnabled, net } = get();
-    const capEntrant = start?.facing ?? spawnFacing(pos, scene.dimensions);
     set({
       ...(JSON.parse(JSON.stringify(useGame.getInitialState())) as Partial<GameState>),
       screen, party, camRot, zoom, viewMode, povActive, inspectEnabled, net,
@@ -2241,12 +2239,8 @@ export const useGame = create<GameState>((set, get) => ({
       get().log(t('store.sceneMissing', { scene: sceneId }));
       return;
     }
-    const heroStart = target.entities.find((e) => e.kind === 'heroStart');
-    const start = pos || (entry && target.entryPoints?.[entry]) || heroStart?.pos || findFreeTile(target);
-    // Orientation d'ENTRÉE : authorée SEULEMENT si on spawne réellement au heroStart (ni `pos` forcé
-    // ni point d'entrée nommé) ; sinon vers le CONTENU de la NOUVELLE carte (le cap hérité de
-    // l'ancienne scène n'a aucun sens ici — en POV il peut regarder le vide hors-carte).
-    const authored = !pos && !(entry && target.entryPoints?.[entry]) ? heroStart?.facing : undefined;
+    // Cap d'ENTRÉE de la NOUVELLE carte, jamais hérité de l'ancienne scène : pos forcée → `spawnFacing` ; sinon `arriveeDuGroupe`.
+    const arrivee = pos ? { pos, facing: spawnFacing(pos, target.dimensions) } : arriveeDuGroupe(target, entry);
     // Couture UNIVERSELLE de suspension (state/cascade.ts) : une cascade active PARQUÉE au lieu d'être
     // perdue par `resetFields('scene')` ci-dessous (ex. un abordage ouvre `startCombat` PUIS transitionne
     // vers sa scène — l'ORDRE des deux appels varie selon l'appelant, cette couture protège les deux).
@@ -2279,8 +2273,8 @@ export const useGame = create<GameState>((set, get) => ({
       scene,
       sceneInstances,
       mode: 'exploration',
-      partyPos: { ...start },
-      facing: poserCapDuGroupe(s.facing, authored ?? spawnFacing(start, target.dimensions)),
+      partyPos: { ...arrivee.pos },
+      facing: poserCapDuGroupe(s.facing, arrivee.facing),
       lightLevel: null, // nouvelle scène → lumière auto (un setLight ne se propage pas d'une scène à l'autre)
       // flags persistants : on conserve l'état narratif et on ajoute les
       // valeurs par défaut de la nouvelle scène pour les clés absentes.

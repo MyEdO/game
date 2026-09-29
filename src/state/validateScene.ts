@@ -1,5 +1,5 @@
-import { heightAt, isMerScene, isWalkable, type Scene, type Effect } from './scene';
-import { startOf, unreachableDescriptiveZones } from './mapQC';
+import { departDuGroupe, heightAt, isMerScene, isWalkable, type Scene, type Effect } from './scene';
+import { unreachableDescriptiveZones } from './mapQC';
 import { footprintTiles, sizeFootprint } from './footprint';
 import { entitySize } from './spawn';
 import { refEntiteResolue } from '../data';
@@ -88,9 +88,9 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null): War
           addWm(r.id, `Route « ${r.id} » → rencontre d'embuscade inexistante « ${amb.encounter} » dans « ${amb.scene} »`);
       }
     }
-    // DÉPART DU GROUPE d'une scène-DESTINATION. Le runtime replie toujours (`store.ts` : `startScene`
-    // prend `findFreeTile` à défaut de `heroStart` ; `transitionTo` prend `pos`, puis le point d'arrivée
-    // NOMMÉ, puis `heroStart`, puis `findFreeTile`) — d'où un `warn`, jamais une erreur. Ne sont
+    // DÉPART DU GROUPE d'une scène-DESTINATION. Le runtime replie toujours (`exploreNav.arriveeDuGroupe` :
+    // le point d'arrivée NOMMÉ, puis `heroStart`, puis `findFreeTile` ; `transitionTo` prend `pos` avant)
+    // — d'où un `warn`, jamais une erreur. Ne sont
     // concernées que les scènes où l'on débarque SANS point d'arrivée nommé : un lieu qui déclare son
     // `entry` (`MapPlace.entry`) désigne déjà sa case, un POI de plan n'en porte aucun.
     const portesSansEntree = new Map<string, string>();
@@ -101,7 +101,7 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null): War
     }
     for (const [sceneId, porte] of portesSansEntree) {
       const cible = project.find((s) => s.id === sceneId);
-      if (!cible || startOf(cible)) continue;
+      if (!cible || departDuGroupe(cible)) continue;
       out.push({
         level: 'warn', sceneId, scope: 'scene', refId: sceneId,
         message: `Aucun départ du groupe (heroStart) dans « ${cible.label} », où mène ${porte} sans point d'arrivée nommé — le jeu posera le groupe sur la première case libre venue. Pose un départ, ou nomme un point d'arrivée sur la porte.`,
@@ -196,16 +196,16 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null): War
     const echelleDuPas = !isMerScene(s);
     // CONNECTIVITÉ À PIED depuis le départ du groupe (`state/mapQC`, harnais #778 : la même marche que
     // `walkNeighbors` au jeu). Une pièce nommée qu'aucun chemin ne rejoint est du contenu écrit pour rien.
-    const start = startOf(s);
-    const startEntity = s.entities.find((e) => e.kind === 'heroStart');
-    if (start && startEntity && echelleDuPas) {
+    const depart = departDuGroupe(s);
+    if (depart && echelleDuPas) {
+      const start = depart.pos;
       if (!isWalkable(s, start.x, start.y, start.z)) {
-        add('warn', 'entity', startEntity.id, `Départ du groupe en (${start.x},${start.y}) à l'étage ${start.z} : la case n'est pas marchable — pose-le sur un sol praticable, sinon le groupe apparaît dans le décor.`);
+        add('warn', 'entity', depart.id, `Départ du groupe en (${start.x},${start.y}) à l'étage ${start.z ?? 0} : la case n'est pas marchable — pose-le sur un sol praticable, sinon le groupe apparaît dans le décor.`);
       } else {
         // Zones évaluées SEULEMENT depuis un départ praticable : depuis une case murée, la marche ne
         // rejoint rien et TOUTES les pièces se signaleraient — un seul défaut, pas N faux.
         for (const zone of unreachableDescriptiveZones(s, start))
-          add('warn', 'scene', zone.id, `Pièce « ${zone.label ?? zone.id} » inatteignable à pied depuis le départ du groupe (${start.x},${start.y}, étage ${start.z}) — perce une porte, ou relie-la par un escalier ou une rampe.`);
+          add('warn', 'scene', zone.id, `Pièce « ${zone.label ?? zone.id} » inatteignable à pied depuis le départ du groupe (${start.x},${start.y}, étage ${start.z ?? 0}) — perce une porte, ou relie-la par un escalier ou une rampe.`);
       }
     }
     const validRect = (rect: { x: number; y: number; w: number; h: number }) =>
