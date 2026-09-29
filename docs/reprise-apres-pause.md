@@ -41,6 +41,13 @@ dérivées, POUSSE la branche de chantier, attend le run CI de cette branche (bo
 précédent en `<branche>.<AAAAMMJJ-HHMMSS>.log` (péremption 7 jours) — ce n'est pas une archive, le
 `npm ci` d'`ops:chantier` efface `node_modules/.cache/`.
 
+**Suivi de vague.** Toute reprise (compaction, lendemain, pause) commence par RELIRE
+`.git/suivi/<N>.md`, le suivi de l'épique `<N>` : seule source du plan et du prochain geste, il vit
+dans le répertoire git COMMUN, hors versionnement — un clone frais ne l'a pas.
+`npm run ops:suivi -- <N>` (`node scripts/ops/suivi.mjs`) en rafraîchit la zone mesurée (branche,
+avance, état d'issue de chaque ticket prévu) et l'imprime ; `-- <N> --creer` pose le suivi d'une
+vague neuve, et sans `<N>` il liste les suivis présents.
+
 Le port n'est historique QUE pour un arbre principal ou un clone : un **worktree lié** en dérive un
 autre (5174-5272, `scripts/port-dev.mjs`) pour que deux arbres servis en même temps ne se recouvrent
 jamais. `npm run dev` imprime celui qu'il sert.
@@ -245,4 +252,4 @@ sans place dans ce plan fait REFUSER le run, avec son nom.
 `scripts/guards/lib/npmLockHoisted.mjs` — npx --yes npm@10.9.3 install --package-lock-only, puis valider avec npx npm@10.9.3 ci --dry-run. npm 11 ampute les entrées hoistées
 `@emnapi/*` que `npm ci` exige en CI ; la garde (pre-commit +
 `src/npm-lock-hoisted-guard.test.ts`) refuse un lock amputé.
-<!-- sources-empreinte: 28b4c85a2ba89048736aba6742740047490ad126 (27 fichiers, 8 dossiers) corps: 5d900bb6339d4a5b9bcb0e3e9eef88896e3aa375 -->
+<!-- sources-empreinte: e365cd9f3e9d0ac1831f28502040210dd969076e (27 fichiers, 8 dossiers) corps: 334c7962e6ee3441ac412d75940945bfa294d282 -->

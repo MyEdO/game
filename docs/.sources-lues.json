@@ -5632,6 +5632,7 @@
       "scripts/migrations",
       "scripts/migrations/lib",
       "scripts/ops",
+      "scripts/ops/fixtures",
       "scripts/ops/sondes",
       "scripts/ops/sondes/audit-2026-09-01",
       "scripts/ops/sondes/audit-2026-09-01/brutes",

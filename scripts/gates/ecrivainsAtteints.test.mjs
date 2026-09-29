@@ -75,7 +75,8 @@ const ATTENDU = {
     // dépôt — la lecture refusée de l'index ne se fabrique pas autrement. Mesure du 2026-09-27 :
     // `git status --short --ignored` identique avant et après, sur ce worktree et sur l'arbre principal.
     'scripts/git-hooks/pre-commit.test.mjs',
-    'scripts/git-hooks/pre-push.mjs',
+    // −1 le 2026-09-29 (#2132) : `pre-push.mjs` n'écrit plus depuis `50b1a3e92` (#1776), qui a retiré son
+    // `appendFileSync` du journal `derogations.log` — mesuré par `ecrivainsParGate`.
     'scripts/git-hooks/pre-push.test.mjs',
     'scripts/git-hooks/three-way.mjs',
     // +2 le 2026-09-05 (#1679 L3 T2) : les deux tests de l'hôte des lectures git et de la lecture des
@@ -210,13 +211,19 @@ const ATTENDU = {
     'scripts/ops/publier.mjs',
     'scripts/ops/publier.test.mjs',
     'scripts/ops/worktrees.test.mjs',
-    'scripts/test/verrou.mjs',
+    // +2 le 2026-09-29 (#2132) : `suivi.mjs` écrit `.git/suivi/<N>.md` (temporaire voisin puis
+    // `renameSync`), derrière sa porte `import.meta.main` ; son banc `suivi.test.mjs` écrit ses suivis
+    // sous `mkdtempSync` d'os.tmpdir() (`rmSync` en finally) et forge son dépôt par `instanceDeDepot`.
+    // −2 le 2026-09-29 (#2132) : `fermer-depuis-main.test.mjs` n'écrit plus depuis `a0c68642c` (#1813), qui a
+    // retiré ses `writeFileSync`/`rmSync` et son `instanceDeDepot` ; `scripts/test/verrou.mjs` n'est plus
+    // atteint depuis `50b1a3e92` (#1776), qui a retiré son import de `publier.mjs` — mesurés par `ecrivainsParGate`.
+    'scripts/ops/suivi.mjs',
+    'scripts/ops/suivi.test.mjs',
     // +2 le 2026-09-04 (#1679 L2bis) : `faits-de-palier.mjs` écrit le JSON des faits (`--sortie`,
     // défaut sous os.tmpdir()) pour qu'un workflow n'ait pas à le recopier dans chaque prompt, et son
     // test fabrique un dépôt jetable sous os.tmpdir() — aucune écriture DANS l'arbre.
     'scripts/ops/faits-de-palier.mjs',
     'scripts/ops/faits-de-palier.test.mjs',
-    'scripts/ops/fermer-depuis-main.test.mjs',
     'scripts/ops/knip-exports-ratchet.mjs',
     // +2 le 2026-09-16 (#1776) : le ruleset `main` (`scripts/ops/ruleset-main.mjs`).
     // · `ruleset-main.mjs` n'écrit QUE le corps du ruleset dans un fichier d'`os.tmpdir()`, pour le
@@ -308,7 +315,9 @@ const ATTENDU = {
     // l'arbre : même classe que `scripts/guards/lib/depotGabarit.mjs` (test:docs) et les dépôts
     // jetables de `scripts/ops/`.
     'scripts/raw/check-source-format.test.mjs',
-    'scripts/raw/check-refs.test.mjs',
+    // −2 le 2026-09-29 (#2132) : `check-refs.test.mjs` et `reanchor.test.mjs` n'écrivent plus depuis
+    // `95ece188e` (#1825), qui a remplacé leurs `mkdtempSync`/`writeFileSync`/`rmSync` par
+    // `avecAtlasFixture` (`atlasFixture.mjs`, inscrit plus bas) — mesuré par `ecrivainsParGate`.
     'scripts/raw/citation-graphy-guard.test.mjs',
     'scripts/raw/folio-bootstrap.mjs',
     'scripts/raw/folio-bootstrap.test.mjs',
@@ -329,7 +338,6 @@ const ATTENDU = {
     'scripts/raw/lib/pdf-extract.mjs',
     'scripts/raw/reanchor-split.mjs',
     'scripts/raw/reanchor.mjs',
-    'scripts/raw/reanchor.test.mjs',
     'scripts/raw/reconcile.test.mjs',
     // +1 le 2026-09-21 (#1739 S1) : `recouper-source.test.mjs` importe le re-coupeur des `.md` en
     // service pour éprouver son cœur PUR (`recouper`, `planDe`, `contenuDe`, `indexDe`, `recalerStock`)
@@ -359,7 +367,8 @@ const ATTENDU = {
     // dépôt jetable (`instanceDeDepot`) et son env isolé (`envDeDepotForge`). La primitive ne fabrique
     // que sous `mkdtempSync` de os.tmpdir(), et jette ses gabarits à la sortie du process — aucune
     // écriture DANS l'arbre : même classe que `marker-pages.test.mjs` ci-dessus.
-    'scripts/guards/lib/depotGabarit.mjs',
+    // −1 le 2026-09-29 (#2132) : `depotGabarit.mjs` n'est plus atteint par `test:raw` depuis `0339f0dad`
+    // (#1801 #1775), qui a retiré son import de `catalogues-aiguillage.test.mjs` — mesuré par `ecrivainsParGate`.
     // +1 le 2026-09-21 (#1825) : le banc de la PROJECTION écrit les rendus de fixture que
     // `lireRendu` relit (mode de reprise du workflow) sous `mkdtempSync` de os.tmpdir(), `rmSync` en
     // finally ; le module mesuré (`workflow-args.mjs`) ne fait que LIRE.
@@ -424,6 +433,19 @@ test('aucune gate n’acquiert un module ÉCRIVAIN sans que ÉCRIT/LU soit re-me
         `déclare-le dans ECRIT_LU (scripts/gates/toutes.mjs) — ecrit, ou ecritFerme avec sa porte — puis inscris-les ici.`,
     )
   }
+})
+
+test('aucune entrée PÉRIMÉE : chaque écrivain inscrit est encore atteint par sa gate, et encore écrivain', () => {
+  const mesure = ecrivainsParGate(RACINE)
+  const perimes = Object.entries(ATTENDU)
+    .map(([gate, inscrits]) => [gate, inscrits.filter((s) => !(mesure[gate] ?? []).includes(s))])
+    .filter(([, scripts]) => scripts.length)
+  assert.deepEqual(
+    perimes,
+    [],
+    perimes.map(([gate, scripts]) => `« ${gate} » n'atteint plus, ou n'a plus pour écrivain : ${scripts.join(', ')}`).join(' ; ') +
+      ' — retire chaque entrée avec sa ligne datée (« −N le <date> (#<ticket>) : <cause mesurée> »), et relis ECRIT_LU.',
+  )
 })
 
 test('la sonde n’est pas AVEUGLE : elle voit les écrivains connus, et ignore les lecteurs purs', () => {
