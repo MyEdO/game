@@ -1,3 +1,35 @@
 exploration 1707×780 — pont 49px (haut y=731) · dialogue 680×229.2 bas=715 · panneau 330×149 bas=730
 exploration 1366×650 — pont 49px (haut y=601) · dialogue 680×229.2 bas=585 · panneau 330×149 bas=600
 exploration 360×740 — pont 49px (haut y=691) · dialogue 330.9×328.4 bas=683 · panneau 309.6×168 bas=690
+900×780 — bande : pont complet 170px · spectatrice 170px · ouverture 170px · bandeau y=139.6 h=81
+    pont complet [complete] · .cc-dock : scroll 130 / client 130
+    pont complet [complete] · .cc-bay-left : scroll 130 / client 130
+    pont complet [complete] · .cc-bay-right : scroll 130 / client 130
+    pont complet [complete] · .cc-corner : scroll 130 / client 130
+    pont complet [complete] · .cc-arch : scroll 164 / client 164
+    spectatrice [spectatrice] · .cc-dock : scroll 130 / client 130
+    spectatrice [spectatrice] · .cc-arch : scroll 164 / client 164
+    ouverture [spectatrice] · .cc-dock : scroll 130 / client 130
+    ouverture [spectatrice] · .cc-arch : scroll 164 / client 164
+901×780 — bande : pont complet 170px · spectatrice 170px · ouverture 170px · bandeau y=139.6 h=81
+    pont complet [complete] · .cc-dock : scroll 130 / client 130
+    pont complet [complete] · .cc-bay-left : scroll 130 / client 130
+    pont complet [complete] · .cc-bay-right : scroll 130 / client 130
+    pont complet [complete] · .cc-corner : scroll 130 / client 130
+    pont complet [complete] · .cc-arch : scroll 164 / client 164
+    spectatrice [spectatrice] · .cc-dock : scroll 130 / client 130
+    spectatrice [spectatrice] · .cc-arch : scroll 164 / client 164
+    ouverture [spectatrice] · .cc-dock : scroll 130 / client 130
+    ouverture [spectatrice] · .cc-arch : scroll 164 / client 164
+1000×780 — bande : pont complet 170px · spectatrice 170px · ouverture 170px · bandeau y=139.6 h=81
+    pont complet [complete] · .cc-dock : scroll 130 / client 130
+    pont complet [complete] · .cc-bay-left : scroll 130 / client 130
+    pont complet [complete] · .cc-bay-right : scroll 130 / client 130
+    pont complet [complete] · .cc-corner : scroll 130 / client 130
+    pont complet [complete] · .cc-arch : scroll 164 / client 164
+    spectatrice [spectatrice] · .cc-dock : scroll 130 / client 130
+    spectatrice [spectatrice] · .cc-arch : scroll 164 / client 164
+    ouverture [spectatrice] · .cc-dock : scroll 130 / client 130
+    ouverture [spectatrice] · .cc-arch : scroll 164 / client 164
+
+Pont de console : aucune amputation, bande stable dans les trois formes, bandeau d’ouverture dégagé.

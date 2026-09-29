@@ -3,8 +3,9 @@
 ## Où est le travail (tout est sur le dépôt distant)
 - `main` : infobulle R-M2 (lot A) publiée (`27f8e426d`).
 - `chantier/1919` = `b0f2f1499` : H1 (HUD en grille) + H1b + C1 (console, décision d'écran du 2026-09-24), COMMITÉS, jugés À REPRENDRE. NE SE PUBLIENT PAS SEULS.
-- `sauvegarde/1919-c1b` : instantanés (auto toutes les 10 min) de l'arbre du worktree `.wt-1919-H2` par-dessus `b0f2f1499` (lots C1b, C1c, C1d en cours, NON JUGÉS), plus `.sauvegarde-notes/` = ce scratchpad (briefs, verdicts, sondes, rendus).
-  Reprendre : `git fetch origin sauvegarde/1919-c1b && git worktree add .wt-1919 origin/chantier/1919 && cd .wt-1919 && git checkout origin/sauvegarde/1919-c1b -- . ':!.sauvegarde-notes'` (le contenu d'arbre = cumul non jugé), puis `npm ci`.
+- `sauvegarde/1919-notes` (instantané AUTOMATIQUE toutes les 10 min, le plus récent fait foi) : arbre = `b0f2f1499` + `.sauvegarde-notes/` = ce scratchpad (briefs, verdicts, sondes, rendus) + `WIP-worktree.patch` (le cumul C1b+C1c+C1d NON JUGÉ, `git diff HEAD --binary`) + `WIP-non-suivis.tgz` (fichiers neufs non suivis).
+- `sauvegarde/1919-c1b` = `5bfcc7c37` : ancien instantané du cumul C1b+C1c en arbre (remplacé par le patch ci-dessus).
+  Reprendre : `git fetch origin sauvegarde/1919-notes chantier/1919 && git worktree add .wt-1919 origin/chantier/1919 && cd .wt-1919 && git show origin/sauvegarde/1919-notes:.sauvegarde-notes/WIP-worktree.patch | git apply && git show origin/sauvegarde/1919-notes:.sauvegarde-notes/WIP-non-suivis.tgz | tar -xzf -`, puis `npm ci`.
 
 ## Chaîne des lots (briefs dans `.sauvegarde-notes/`)
 brief-h1-1919 → brief-h1b → brief-c1 → brief-c1b → brief-c1c → brief-c1d (en cours au moment de la sauvegarde).
