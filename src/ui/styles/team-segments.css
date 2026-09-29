@@ -10,3 +10,9 @@
   color: var(--danger-soft);
   font-weight: 700;
 }
+/* Un nom se coupe entre ses MOTS, jamais dans un mot composé (R-M2,
+   docs/plans/2026-08-16-spec-hud-combat.md:71-74) : chaque mot est une boîte insécable. */
+.nm-ally > span > span,
+.nm-foe > span > span {
+  white-space: nowrap;
+}

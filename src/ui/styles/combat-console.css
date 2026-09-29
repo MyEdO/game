@@ -7,9 +7,9 @@
    MATIÈRE : relevée sur les spécimens C (aile gauche, plaque d'ACIER), D (arche, bois+laiton) et
    E (aile droite, plaque de LAITON) de `docs/plans/Spec HUD Combat.dc.html` — les valeurs vivent
    en tokens `:root` (base.css, famille `--cc-*`), jamais en hex ici.
-   ≤700px : l'arche passe sur UNE ligne en tête de bande (composition compacte, arbitrage
-   2026-08-16), coin en bout de ligne, deux travées côte à côte ; ≤560px : les travées s'empilent,
-   conduit fondu dans le bord haut de la grille. Les comptes de cases (3 + 6 + 4 + 12) et les 10
+   ≤700px (au doigt, ≤900px) : l'arche passe sur UNE ligne en tête de bande (composition compacte,
+   arbitrage 2026-08-16), coin en bout de ligne, deux travées côte à côte ; ≤560px (au doigt,
+   ≤700px) : les travées s'empilent, conduit fondu dans le bord haut de la grille. Les comptes de cases (3 + 6 + 4 + 12) et les 10
    colliers ne bougent pas d'un cran. */
 
 /* LE PONT (spec §1c-ter) : UNE bande de bord à bord qui PORTE les quatre régions de console
@@ -17,8 +17,8 @@
    désormais de la MATIÈRE DE PONT : le terrain ne se voit plus entre deux zones. */
 /* GÉOMÉTRIE DU PONT — au `:root` et non sur la console : la HAUTEUR du pont (`--cc-deck-h`) est
    une grandeur que le reste du HUD lit (nappe du pont d'exploration, galerie). Décision d'écran du
-   2026-09-24 (#1806, Q1-Q2) : UNE formule par grandeur, bornée par la FENÊTRE seule — les comptes de
-   cases ne bougent jamais (`src/ui/CombatConsole.tsx:51-53`), aucune tranche ne recopie une cote. */
+   2026-09-24 (#1806, Q1-Q2) : UNE formule par grandeur, bornée par la FENÊTRE et, par-dessous, par la
+   cible de pointage (`--cc-cible`) — les comptes de cases ne bougent jamais (`src/ui/CombatConsole.tsx:51-53`), aucune tranche ne recopie une cote. */
 :root {
   /* BUDGET (spec « BUDGET DE HAUTEUR », docs/plans/2026-08-16-spec-hud-combat.md:24-26 ; décision
      Q2) : la BANDE tient 17 % de la hauteur d'écran, le fronton s'y ajoute (22 % au plus). */
@@ -33,21 +33,36 @@
   --cc-corner: 64px;
   /* MARGE INTERNE de la bande, des deux côtés. */
   --cc-marge: 10px;
-  /* Rembourrage de flanc d'une travée : la valeur que `.cc-bay` pose (littéral au stock d'espacement,
-     `scripts/guards/lib/cssCouchesStock.mjs`). */
-  --cc-bay-pad: 8px;
+  /* PLANCHER du côté de case : la cible de pointage. norme: WCAG 2.2, 2.5.8 « Target Size (Minimum) »
+     (24px) au pointeur fin ; 44px au doigt (tranche `pointer: coarse`, WCAG 2.5.5). */
+  --cc-cible: 24px;
+  /* TRAVÉE — ses grandeurs sont la SOURCE que `.cc-bay` et `.cc-conduit` consomment : rembourrage de
+     flanc et de tête, rembourrage de pied, hauteur du conduit d'Avantage, écart conduit | cases. */
+  --cc-bay-pad: var(--sp-md);
+  --cc-bay-pied: 10px;
+  --cc-conduit-h: 15px;
+  --cc-bay-ecart: var(--sp-md);
   /* Colonne de SETS : une fraction du côté de case. */
   --cc-sets-part: 0.62;
-  /* SOCLE de travée : ce qui, dans sa hauteur, n'est pas les deux rangées — rembourrages 8 + 10,
-     conduit d'Avantage 15 et son écart 8 (`.cc-bay`, `.cc-conduit`). */
-  --cc-bay-socle: 41px;
-  /* HABILLAGE de l'arche : ce qui, dans sa hauteur, n'est pas son corps — rembourrages 6 + 8, deux
-     écarts de 4, Blessures 15, nom gravé 19, liseré 3. Relevé : `node scripts/recette/
-     console-pont-formes.mjs --mesures` (bloc `arche`, `h` moins l'enfant `cc-arch-body`). */
-  --cc-arch-chrome: 59px;
-  /* FLANCS de l'arche : ce qui, dans sa largeur, n'est pas le portrait — rembourrages, deux
-     gouttières, niche d'États, trois écarts. Même relevé (largeur de `.cc-arch` moins le portrait). */
-  --cc-arch-flancs: 136px;
+  /* SOCLE de travée : ce qui, dans sa hauteur, n'est pas les deux rangées. */
+  --cc-bay-socle: calc(var(--cc-bay-pad) + var(--cc-bay-pied) + var(--cc-conduit-h) + var(--cc-bay-ecart));
+  /* ARCHE — ses grandeurs sont la SOURCE que `.cc-arch` et ses enfants consomment : rembourrages,
+     écart entre ses rangs, piste de Blessures, ligne du nom gravé, largeur d'une gouttière, écart du
+     corps, alvéole de la niche d'États. */
+  --cc-arch-pad-haut: 6px;
+  --cc-arch-pad-bas: 8px;
+  --cc-arch-pad-flanc: 14px;
+  --cc-arch-ecart: 4px;
+  --cc-blessures-h: 15px;
+  --cc-arch-nom-h: 19px;
+  --cc-gouttiere: 36px;
+  --cc-arch-corps-ecart: 6px;
+  --cc-alv: 17px;
+  /* HABILLAGE de l'arche : ce qui, dans sa hauteur, n'est pas son corps. */
+  --cc-arch-chrome: calc(var(--cc-arch-pad-haut) + var(--cc-arch-pad-bas) + 2 * var(--cc-arch-ecart) + var(--cc-blessures-h) + var(--cc-arch-nom-h) + var(--pont-liseret));
+  /* FLANCS de l'arche : ce qui, dans sa largeur, n'est pas le portrait — deux rembourrages, deux
+     gouttières, la niche d'États et les trois écarts du corps. */
+  --cc-arch-flancs: calc(2 * var(--cc-arch-pad-flanc) + 2 * var(--cc-gouttiere) + var(--cc-alv) + 3 * var(--cc-arch-corps-ecart));
   /* L'ARCHE tient toute la bande PLUS le fronton, liseré compris : sa hauteur est une donnée
      d'ENTRÉE (la hauteur d'écran), jamais la hauteur du pont — aucune boucle portrait ∝ pont. */
   --cc-arch-h: calc(var(--cc-bande) + var(--cc-fronton) - var(--pont-liseret));
@@ -56,24 +71,32 @@
      écarts de région (arsenal | accès rapide, puis travée | arche | travée | coin). */
   --cc-rangee-fixe: calc(2 * var(--cc-marge) + var(--cc-corner) + 9 * var(--cc-gap) + 4 * var(--cc-bay-pad) + 4 * var(--cc-bay-gap));
   --cc-colonnes: calc(11 + var(--cc-sets-part));
-  /* Plafond de HAUTEUR du côté de case : deux rangées, leur écart et le socle dans la bande. */
-  --cc-cell-haut: calc((var(--cc-bande) - var(--pont-liseret) - var(--cc-bay-socle) - var(--cc-gap)) / 2);
-  /* PORTRAIT (décision Q2) : ce que l'habillage laisse dans l'arche — une donnée d'écran. Sur une
-     fenêtre ÉTROITE, il cède d'abord aux cases (la largeur que la rangée leur laisse à leur plafond de
-     hauteur), jusqu'au portrait de vignette de la ligne compacte. */
-  --cc-portrait-min: 30px;
+  /* Plafond de HAUTEUR du côté de case : deux rangées, leur écart et le socle dans la bande — jamais
+     sous la cible de pointage. */
+  --cc-cell-haut: max(var(--cc-cible), calc((var(--cc-bande) - var(--pont-liseret) - var(--cc-bay-socle) - var(--cc-gap)) / 2));
+  /* PORTRAIT (décision Q2) : ce que l'habillage laisse dans l'arche — une donnée d'écran. */
+  --cc-portrait-haut: calc(var(--cc-arch-h) - var(--cc-arch-chrome));
+  /* Portrait de VIGNETTE : celui de la ligne d'arche, et le plus petit visage. */
+  --cc-portrait-vignette: 30px;
+  /* VISAGE : sur une fenêtre étroite, c'est la case qui cède la première, jusqu'à la cible de
+     pointage ; le visage ne descend sous ce plancher que quand la case est à sa cible. */
+  --cc-visage: 48px;
+  --cc-portrait-min: min(
+    var(--cc-portrait-haut),
+    clamp(var(--cc-portrait-vignette), calc(100vw - var(--cc-rangee-fixe) - var(--cc-arch-flancs) - var(--cc-colonnes) * var(--cc-cible)), var(--cc-visage))
+  );
   --cc-portrait: clamp(
     var(--cc-portrait-min),
     calc(100vw - var(--cc-rangee-fixe) - var(--cc-arch-flancs) - var(--cc-colonnes) * var(--cc-cell-haut)),
-    calc(var(--cc-arch-h) - var(--cc-arch-chrome))
+    var(--cc-portrait-haut)
   );
   --cc-arch-w: calc(var(--cc-portrait) + var(--cc-arch-flancs));
   /* CÔTÉ DE CASE, UNIQUE (décision Q1) : le plus petit du plafond de hauteur et du plafond de
-     LARGEUR (11,62 colonnes dans ce que la rangée laisse). */
-  --cc-cell: min(var(--cc-cell-haut), calc((100vw - var(--cc-arch-w) - var(--cc-rangee-fixe)) / var(--cc-colonnes)));
+     LARGEUR (11,62 colonnes dans ce que la rangée laisse), jamais sous la cible de pointage. */
+  --cc-cell: max(var(--cc-cible), min(var(--cc-cell-haut), calc((100vw - var(--cc-arch-w) - var(--cc-rangee-fixe)) / var(--cc-colonnes))));
   /* ICÔNE : 60 % du côté (décision Q1). */
   --cc-ico: calc(var(--cc-cell) * 0.6);
-  --cc-ico-set: calc(var(--cc-cell) * 0.34);
+  --cc-ico-set: calc(var(--cc-cell) * 0.45);
   /* HAUTEUR DE LA TRAVÉE : deux rangées, leur écart, le socle. */
   --cc-bay-h: calc(var(--cc-cell) * 2 + var(--cc-gap) + var(--cc-bay-socle));
   /* HAUTEUR DU PONT : la plus haute des régions (la travée, ou l'arche diminuée du fronton qu'elle
@@ -196,11 +219,10 @@
 .combat-console[data-forme='spectatrice'] > .cc-phase {
   pointer-events: auto;
 }
+/* L'arche SEULE, à la place et à la taille qu'elle a dans la forme complète, à toute largeur : la
+   grille de la bande est la même (colonnes, aires, réserve miroir, coin compté à sa largeur), seules
+   ses autres régions manquent. */
 .combat-console[data-forme='spectatrice'] > .cc-dock {
-  /* L'arche SEULE, centrée, étirée sur toute la bande : la boîte ne bouge pas, son contenu si. */
-  display: flex;
-  justify-content: center;
-  padding-inline: var(--cc-marge);
   /* MATIÈRE ÉTEINTE (la boîte reste) : la nappe et l'ombre ne se peignent plus, et le liseré garde
    son ÉPAISSEUR — seule sa teinte tombe. Une bordure retirée aurait fait sauter le pont de trois
    pixels d'une forme à l'autre (mesuré à 1707 : 187,3 contre 184,3). */
@@ -219,13 +241,15 @@
 /* Les quatre RÉGIONS, assises sur le pont : une VOIE par flanc, le fronton au milieu, le coin de
    sortie en bout. Les deux voies sont des pistes de MÊME largeur (planche 2026-08-17 : arche centrée à
    959,5/1920), chacune au moins aussi large que sa travée (`min-content`) : le côté de case
-   (`--cc-cell`) est taillé pour que la rangée ENTIÈRE tienne dans la fenêtre (#1856), le plancher ne
-   pousse donc rien hors de l'écran.
-   RÉSERVE MIROIR : le coin est une 5ᵉ colonne à droite ; la même largeur réservée à gauche remet le
-   fronton au centre. Elle ne prend que ce que la fenêtre laisse au-delà de la rangée (`--cc-rangee`). */
+   (`--cc-cell`) est taillé pour que la rangée ENTIÈRE tienne dans la fenêtre (#1856), et là où sa
+   cible de pointage ne le permet plus, la bande passe à la composition compacte (tranches plus bas) :
+   le plancher ne pousse donc rien hors de l'écran.
+   RÉSERVE MIROIR : le coin est la dernière colonne, comptée à sa largeur (`--cc-corner`) qu'il soit
+   rendu ou non ; la même largeur réservée à gauche remet le fronton au centre. Elle ne prend que ce
+   que la fenêtre laisse au-delà de la rangée (`--cc-rangee`). */
 .cc-dock {
   display: grid;
-  grid-template-columns: minmax(min-content, 1fr) auto minmax(min-content, 1fr) auto;
+  grid-template-columns: minmax(min-content, 1fr) auto minmax(min-content, 1fr) var(--cc-corner);
   align-items: stretch;
   gap: var(--cc-bay-gap);
   width: 100%;
@@ -250,10 +274,10 @@
 .cc-bay {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--cc-bay-ecart);
   flex: 0 0 auto;
   min-width: 0;
-  padding: 8px 8px 10px;
+  padding: var(--cc-bay-pad) var(--cc-bay-pad) var(--cc-bay-pied);
 }
 /* MATIÈRE UNIQUE DU PONT — arbitrage utilisateur 2026-08-17 (AskUserQuestion, verbatim) : « une matière
    unique, fidèle à la planche : tout le pont dans la même teinte bronze/bois, les régions se distinguent
@@ -358,6 +382,15 @@
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+/* La rubrique ACCÈS RAPIDE ne dicte pas la largeur de son groupe (deux cases, `--cc-rangee-fixe`) :
+   plus large que lui aux cases étroites, elle déborde vers l'arsenal, calée à droite — jamais tranchée
+   (R-M2, docs/plans/2026-08-16-spec-hud-combat.md:71-74). */
+.cc-quick > .cc-bay-head {
+  display: flex;
+  justify-content: flex-end;
+  contain: inline-size;
+  overflow: visible;
 }
 /* COLONNE DE SETS : le commutateur EST cette colonne (il n'y a plus de rangée sous la travée). Sa
    hauteur est celle des deux rangées d'alvéoles, partagée en SET_SLOTS vignettes — le compte de
@@ -605,7 +638,7 @@
   opacity: 0.85;
 }
 /* ÉTAT DE CHARGE : un MOT ENTIER, jamais la couleur seule (a11y daltoniens) et jamais une abréviation à
-   7px — « déch. » était le plus petit texte du dépôt, mesuré illisible à 360. Il prend sa BANDE au
+   7px (« déch. », mesuré illisible à 360). Il prend sa BANDE au
    pied, sur toute la largeur. */
 .cc-set-load {
   position: absolute;
@@ -631,7 +664,10 @@
   display: inline-flex;
   align-items: center;
   margin-left: var(--sp-xs);
+  padding-inline: var(--sp-2xs);
   vertical-align: baseline;
+  /* Une TOUCHE se lit comme une touche : l'encre de touche de la travée passe au laiton vif. */
+  --cc-cell-key: var(--atelier-brass-vif);
 }
 .cc-bay-head .cc-key svg {
   width: 1em;
@@ -671,18 +707,20 @@
    celle du pont. */
 .cc-arch {
   position: relative;
+  /* La voie du fronton, dans les deux formes : seule dans la bande, l'arche ne glisse pas à gauche. */
+  grid-column: 2;
   flex: 0 0 auto;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-end;
-  gap: 4px;
+  gap: var(--cc-arch-ecart);
   margin-top: calc(-1 * var(--cc-fronton));
   /* Sa LARGEUR est celle que la rangée lui compte (`--cc-arch-w`) : le côté de case en dépend. */
   width: var(--cc-arch-w);
   /* Faîte SERRÉ : le fronton garde son élévation (§1c-ter) mais son espace INTERNE au-dessus du
      portrait se comprime — c'est le portrait qui remplit la région, pas le vide. */
-  padding: 6px 14px 8px;
+  padding: var(--cc-arch-pad-haut) var(--cc-arch-pad-flanc) var(--cc-arch-pad-bas);
   border-right: 0;
   border-bottom: 0;
   border-left: 0;
@@ -712,22 +750,22 @@
 .cc-arch .ptile.team-enemy {
   border-style: dashed;
 }
-/* TAILLE du portrait : dérivée de l'arche (`--cc-portrait`), jamais la taille `lg` figée de la
-   primitive — `PortraitTile` pose ses dimensions en STYLE INLINE, seule une déclaration forte les
-   reprend (même levier que la composition compacte ≤560, déjà en place). C'est ce qui fait que le
-   portrait REMPLIT la région au lieu d'y flotter (arbitrage #1348, complément b). */
+/* TAILLE du portrait : dérivée de l'arche (`--cc-portrait`), jamais la taille `lg` de la primitive —
+   `PortraitTile` pose sa taille nominale en VARIABLE (`--ptile-px`, portrait-tile.css) : la règle de
+   la console la reprend à spécificité supérieure. C'est ce qui fait que le portrait REMPLIT la région
+   au lieu d'y flotter (arbitrage #1348, complément b). */
 .cc-arch .ptile {
-  width: var(--cc-portrait) !important;
-  height: var(--cc-portrait) !important;
+  width: var(--cc-portrait);
+  height: var(--cc-portrait);
   /* Le portrait garde son carré en tête du corps : ce sont les gouttières qui en prennent la hauteur. */
   align-self: flex-start;
 }
-/* Le visage REMPLIT la tuile, liseré d'équipe compris dans sa boîte : posé à la taille de la tuile, il
-   la débordait de l'épaisseur du liseré (3px mesurés sous le corps de l'arche). */
+/* Le visage REMPLIT la tuile, liseré d'équipe compris dans sa boîte : posé à la taille nominale, il
+   la débordait de l'épaisseur du liseré. */
 .cc-arch .ptile-face,
 .cc-arch .rig-portrait {
-  width: 100% !important;
-  height: 100% !important;
+  width: 100%;
+  height: 100%;
 }
 /* Le DESSIN suit sa boîte : `RigPortrait` pose sa taille en ATTRIBUT sur le `<svg>` (72px pour
    `lg`), et un attribut de présentation cède devant n'importe quelle règle CSS — sans celle-ci, une
@@ -737,16 +775,15 @@
   width: 100%;
   height: 100%;
 }
-/* Nom du porteur, gravé au pied de l'arche (spécimen D). */
+/* Nom du porteur, gravé au pied de l'arche (spécimen D). Il ne cède jamais par ellipse : il
+   s'enroule au mot (R-M2, docs/plans/2026-08-16-spec-hud-combat.md:71-74). */
 .cc-arch-name {
   font-family: var(--font-display);
   font-size: 13px;
+  min-height: var(--cc-arch-nom-h);
   letter-spacing: 0.4px;
   color: var(--atelier-brass-vif);
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  text-align: center;
 }
 /* Corps de l'arche : gouttière Mouvement | portrait | gouttière Action | niche d'États, assis sur la
    même ligne (ordre de la planche 2026-08-17). Sa HAUTEUR est celle que l'habillage laisse dans
@@ -754,7 +791,7 @@
 .cc-arch-body {
   display: flex;
   align-items: stretch;
-  gap: 6px;
+  gap: var(--cc-arch-corps-ecart);
   height: calc(var(--cc-arch-h) - var(--cc-arch-chrome));
 }
 /* BARRE DE BLESSURES de l'arche (planche : « 9 / 9 BLESSURES ») : la primitive `LifeBar` en mode
@@ -765,7 +802,7 @@
   align-self: stretch;
 }
 .cc-arch > [data-overlay] > div {
-  height: 15px;
+  height: var(--cc-blessures-h);
   border-radius: 0;
   border: 1px solid var(--atelier-wood-etch);
 }
@@ -801,7 +838,7 @@
    `hud.css` où vit le rack, il lui faut donc un cran de spécificité de plus — et aucune classe de la
    primitive n'est redéfinie ici (cliquet xii, `ui-ratchets`). */
 .cc-arch .cc-arch-body [data-reserve] {
-  --alv: 17px;
+  --alv: var(--cc-alv);
   flex-direction: column;
   align-items: center;
   align-self: flex-start;
@@ -814,6 +851,7 @@
   flex-direction: column;
   align-items: center;
   gap: 3px;
+  width: var(--cc-gouttiere);
 }
 .cc-gutter-rail {
   display: flex;
@@ -940,7 +978,7 @@ button.cc-socle svg {
   display: flex;
   align-items: center;
   gap: 8px;
-  height: 15px;
+  height: var(--cc-conduit-h);
 }
 .cc-conduit-label {
   font-family: var(--font-display);
@@ -1068,28 +1106,32 @@ button.cc-socle svg {
 }
 
 /* ── Responsive : de 701 à toute largeur, la formule du `:root` suffit (décision Q1 du 2026-09-24 :
-   aucune cassure entre 900 et 901). Sous 701, la RANGÉE ne porte plus l'arche : elle passe en tête
-   de bande, sur UNE ligne (composition compacte, arbitrage 2026-08-16), et les comptes de cases ne
-   bougent pas d'un cran. ── */
-@media (max-width: 700px) {
+   aucune cassure entre 900 et 901). Quand la rangée ne tient plus — sous 701, ou au doigt sous 901,
+   où la cible de 44px ne laisse plus la place à l'arche —, elle ne porte plus l'arche : l'arche passe
+   en tête de bande, sur UNE ligne (composition compacte, arbitrage 2026-08-16), et les comptes de
+   cases ne bougent pas d'un cran. ── */
+@media (max-width: 700px), (pointer: coarse) and (max-width: 900px) {
   :root {
     /* L'arche est une LIGNE en tête de bande : plus de fronton, un portrait de vignette. */
     --cc-fronton: 0px;
-    --cc-portrait: var(--cc-portrait-min);
-    /* Hauteur de la ligne d'arche : rembourrages 6 + 6 et la plus haute de ses pièces (relevé
-       `console-pont-formes.mjs --mesures`, bloc `arche`). */
-    --cc-arch-ligne: 100px;
+    --cc-portrait: var(--cc-portrait-vignette);
+    /* HAUTEUR de la ligne d'arche : la SOURCE que `.cc-arch` consomme ci-dessous — la plus haute de ses
+       pièces (la niche d'États en carré 2×2), ses rembourrages et le liseré. */
+    --cc-arch-ligne: 48px;
     --cc-arch-h: var(--cc-arch-ligne);
-    /* La rangée ne compte plus l'arche ni le coin : deux travées côte à côte (décision Q4.3), donc un
+    /* La rangée ne compte ni l'arche ni le coin : deux travées côte à côte (décision Q4.3), donc un
        écart d'arsenal et un écart entre travées. */
     --cc-arch-w: 0px;
     --cc-rangee-fixe: calc(2 * var(--cc-marge) + 9 * var(--cc-gap) + 4 * var(--cc-bay-pad) + 2 * var(--cc-bay-gap));
     /* HAUTEUR DU PONT, dans ses trois formes : la ligne d'arche, puis la rangée des travées. */
     --cc-deck-h: calc(var(--cc-arch-ligne) + var(--cc-gap) + var(--cc-bay-h) + var(--pont-liseret));
+    --cc-alv: 15px;
   }
-  /* Arche en tête et coin en bout de ligne ; les deux travées côte à côte dessous. */
+  /* Arche en tête et coin en bout de ligne ; les deux travées côte à côte dessous. Les deux formes
+     partagent ces aires : seule dans la bande, l'arche garde sa boîte. */
   .cc-dock {
-    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-columns: auto minmax(0, 1fr) var(--cc-corner);
+    grid-template-rows: var(--cc-arch-ligne);
     grid-template-areas: 'arch arch corner' 'left right right';
     gap: var(--cc-gap) var(--cc-bay-gap);
     padding-inline: var(--cc-marge);
@@ -1110,29 +1152,24 @@ button.cc-socle svg {
     height: auto;
   }
   .cc-end .cc-ico {
-    width: calc(var(--cc-portrait) * 0.6);
-    height: calc(var(--cc-portrait) * 0.6);
+    width: calc(var(--cc-portrait) * 0.45);
+    height: calc(var(--cc-portrait) * 0.45);
   }
-  /* FORME SPECTATRICE : la boîte reste celle de la bande, l'arche se pose à son PIED (verdict F8,
-     fiche `user-arbitrage-tour-adverse-console-spectatrice-jamais-pont-entier`). */
-  .combat-console[data-forme='spectatrice'] > .cc-dock {
-    align-items: flex-end;
-  }
-  /* Arche sur UNE ligne : portrait mini, gouttières courtes, nom à la suite. */
+  /* Arche sur UNE ligne : portrait de vignette, gouttières couchées, Blessures et nom à la suite. */
   .cc-arch {
     width: auto;
-    padding: 6px 8px;
+    height: var(--cc-arch-ligne);
+    padding: var(--cc-arch-pad-haut) var(--sp-md);
     flex-direction: row;
     align-items: center;
     justify-content: flex-start;
-    gap: 6px;
+    gap: var(--cc-arch-corps-ecart);
     clip-path: polygon(18px 0, calc(100% - 18px) 0, 100% 12px, 100% 100%, 0 100%, 0 12px);
   }
   /* SUR LA BANDE PEINTE, elle ne surplombe plus rien : elle est une RÉGION du pont en tête de bande,
      et laisse donc voir la matière du pont elle-même. En forme SPECTATRICE la bande est éteinte :
      l'arche garde sa peau, sans quoi il ne resterait rien à voir. */
   .combat-console[data-forme='complete'] .cc-arch {
-    width: 100%;
     background-image: none;
     background-color: transparent;
   }
@@ -1140,13 +1177,22 @@ button.cc-socle svg {
     width: 44px;
     height: 8px;
   }
-  /* Ligne unique : le corps (portrait + gouttières) garde sa largeur NATURELLE, c'est le NOM qui
-     cède. */
+  /* Ligne unique : le corps (portrait + gouttières) garde sa largeur NATURELLE. */
   .cc-arch-body {
     flex: 0 0 auto;
     height: auto;
     align-items: center;
-    gap: 4px;
+    gap: var(--sp-xs);
+  }
+  /* GOUTTIÈRE COUCHÉE : rail, socle et place du geste côte à côte — la place du geste reste réservée
+     (loi 1), en largeur. */
+  .cc-gutter {
+    width: auto;
+    flex-direction: row;
+  }
+  .cc-gutter > [data-geste] {
+    height: auto;
+    width: var(--cc-gouttiere);
   }
   .cc-gutter-rail {
     flex: 0 0 auto;
@@ -1156,7 +1202,6 @@ button.cc-socle svg {
   /* Niche d'États sur la ligne : les 4 alvéoles restent, en carré 2×2 — c'est la HAUTEUR qui tombe,
      jamais une alvéole. */
   .cc-arch .cc-arch-body [data-reserve] {
-    --alv: 15px;
     display: grid;
     grid-template-columns: repeat(2, var(--alv));
     grid-auto-rows: var(--alv);
@@ -1192,25 +1237,34 @@ button.cc-socle svg {
   .cc-arch > [data-overlay] > span > i {
     display: none;
   }
+  /* Le nom garde son plus long mot (plancher `min-content`) : c'est la barre de Blessures qui cède. */
   .cc-arch-name {
     font-size: 11px;
+    min-height: 0;
     flex: 0 1 auto;
-    min-width: 0;
+    text-align: left;
   }
 }
 
-/* ── COMPOSITION COMPACTE (≤560px, arbitrage 2026-08-16) — rien ne disparaît : mêmes 8 + 12 cases,
-   mêmes 10 colliers. La ligne d'arche est celle de 700 ; les deux travées s'EMPILENT, et le conduit
-   se fond dans le bord haut de la grille. ── */
-@media (max-width: 560px) {
+/* ── COMPOSITION COMPACTE (≤560px, arbitrage 2026-08-16 ; au doigt sous 701, où deux travées de cases
+   de 44px ne tiennent plus côte à côte) — rien ne disparaît : mêmes 8 + 12 cases, mêmes 10 colliers.
+   La ligne d'arche passe sur deux rangs (le corps, puis les Blessures et le nom) ; les deux travées
+   s'EMPILENT, et le conduit se fond dans le bord haut de la grille. ── */
+@media (max-width: 560px), (pointer: coarse) and (max-width: 700px) {
   :root {
     /* Côté d'alvéole re-calé à 36px (arbitrage d'assemblage 2026-08-17) : le TERRAIN redevient le
        sujet. Les comptes de cases (8 + 12) et les 10 colliers ne bougent pas d'un cran. */
-    --cc-cell: 36px;
+    --cc-cell: max(var(--cc-cible), 36px);
     --cc-gap: 3px;
     --cc-bay-gap: 4px;
-    /* Socle d'une travée compacte : rembourrages 4 + 6, conduit ou titre 13, écart 4. */
-    --cc-bay-socle: 27px;
+    --cc-sets-part: 0.72;
+    /* Travée compacte : rembourrages 4 + 6, conduit 13, écart 4. */
+    --cc-bay-pad: var(--sp-xs);
+    --cc-bay-pied: var(--sp-sm);
+    --cc-conduit-h: 13px;
+    --cc-bay-ecart: var(--sp-xs);
+    /* Ligne d'arche sur DEUX rangs : le corps (niche 2×2), puis Blessures et nom. */
+    --cc-arch-ligne: 68px;
     /* Le bandeau compact est plus bas (rembourrage 2px, boutons 11px) : sa RÉSERVE suit. */
     --cc-phase-h: 24px;
     --cc-deck-h: calc(var(--cc-arch-ligne) + 2 * var(--cc-gap) + 2 * var(--cc-bay-h) + var(--pont-liseret));
@@ -1236,19 +1290,26 @@ button.cc-socle svg {
     font-size: 11px;
   }
   .cc-dock {
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) var(--cc-corner);
+    grid-template-rows: var(--cc-arch-ligne);
     grid-template-areas: 'arch corner' 'left left' 'right right';
     justify-items: center;
     gap: var(--cc-gap);
+  }
+  .cc-arch {
+    justify-self: stretch;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-content: center;
+    row-gap: var(--cc-arch-ecart);
+  }
+  .cc-arch-body {
+    grid-column: 1 / -1;
   }
   .cc-bay-right { justify-self: center; }
   .cc-bay {
     width: 100%;
     align-items: center;
-    /* R-M3 : la dernière rangée respire SOUS son bord (6px) — collée au bord de tôle, elle se
-       lisait « coupée » (sonde pixel du juge : fond de tuile 632, plaque 636). */
-    padding: 4px 4px 6px;
-    gap: 4px;
   }
   .cc-bay-body {
     gap: 6px;
@@ -1269,7 +1330,6 @@ button.cc-socle svg {
   /* Conduit FONDU dans le bord supérieur de la grille : plus d'écart, un seul plan de tôle. */
   .cc-conduit {
     width: 100%;
-    height: 13px;
     gap: 5px;
   }
   .cc-conduit-rail {
@@ -1279,18 +1339,15 @@ button.cc-socle svg {
     font-size: 9px;
     letter-spacing: 0.5px;
   }
-  /* La colonne de sets se resserre avec l'alvéole ; aucune vignette ne se replie. */
-  .cc-sets {
-    width: 26px;
-  }
 }
 @media (pointer: coarse) {
+  /* AU DOIGT, la cible de pointage est de 44px (norme: WCAG 2.2, 2.5.5 « Target Size »), plancher du
+     côté de case dans la formule du `:root` ; la colonne de sets prend un côté entier, et l'air entre
+     régions cède à la cible. */
   :root {
-    --cc-cell: 44px;
-  }
-  /* Cible tactile de la colonne de sets : la vignette s'élargit, son compte ne change pas. */
-  .cc-sets {
-    width: 44px;
+    --cc-cible: 44px;
+    --cc-sets-part: 1;
+    --cc-bay-gap: 10px;
   }
   /* Cible tactile du chip MUNITION : elle s'étend HORS FLUX (calque de touche), sans grandir la ligne
      de l'en-tête — 44px de haut au doigt pour un texte de 10px qui, lui, ne bouge pas. */

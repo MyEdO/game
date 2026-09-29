@@ -96,19 +96,25 @@
   grid-area: outils;
   container-type: size;
 }
-/* La zone TEMPS porte, en combat, la frise d'initiative puis le fil d'événements, assis au pied de
-   la zone (planche 2026-08-17 : journal `[170,779,330,57]`, juste après la colonne de frise) ; hors
-   combat, l'objectif. Dans la colonne du flanc, elle est le CONTENEUR de la frise, qui y borne sa
-   piste (`cqh`) sans rien savoir du pont ni du haut de l'écran. Elle ne pèse sur aucune colonne
-   (`contain`) : un fil long ou une bande qui déborde ne décentre jamais le groupe. */
+/* La zone TEMPS porte, en combat, la frise d'initiative PUIS le fil d'événements, en une seule
+   composition à toute largeur au-dessus de 560 : le fil sous la colonne de frise, au pied de la zone
+   (planche 2026-08-17 : journal au pied, juste après la colonne de frise) ; hors combat, l'objectif.
+   Elle ne pèse sur aucune colonne (`contain`) : un fil long ou une bande qui déborde ne décentre
+   jamais le groupe. */
 [data-zone='temps'] {
   grid-area: temps;
   align-items: flex-start;
   contain: inline-size;
-  container-type: size;
 }
-[data-zone='temps'] > .combat-feed {
-  align-self: flex-end;
+/* PISTE DE LA FRISE : l'enveloppe prend ce que le fil laisse dans la zone, et c'est ELLE le conteneur
+   où la frise borne sa piste (`cqh`, arrondie au pas d'entrée) — le fil, à la hauteur de son contenu,
+   ne sort donc jamais de la zone. */
+[data-zone='temps'] > [data-piste='frise'] {
+  flex: 1 1 0;
+  min-height: 0;
+  align-self: stretch;
+  align-items: flex-start;
+  container-type: size;
 }
 /* L'objectif garde la boîte de son contenu à toute tranche : étirée sur la bande, elle avalait les
    clics du terrain à sa droite. */
@@ -254,7 +260,9 @@
     grid-row: champ;
     grid-column: flanc-d;
   }
-  [data-zone='temps'] {
+  [data-zone='temps'] > [data-piste='frise'] {
+    flex: 0 0 auto;
+    align-items: stretch;
     container-type: normal;
   }
   [data-zone='temps'] > .combat-feed {

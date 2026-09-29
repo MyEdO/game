@@ -164,7 +164,7 @@ function quitterRefus(el: Element): Element | null {
  *  ou `aria-disabled` (elle PORTE une raison, donc elle reste focalisable — clavier, manette, doigt). */
 const estFermee = (b: HTMLButtonElement) => b.disabled || b.getAttribute('aria-disabled') === 'true';
 
-/** NOM d'une alvéole : la case ne grave plus son libellé (décision d'écran Q1 du 2026-09-24, #1806) —
+/** NOM d'une alvéole : la case ne grave pas son libellé (décision d'écran Q1 du 2026-09-24, #1806) —
  *  il vit dans son nom accessible, suivi des gestes secondaires qu'elle annonce (« — … »). */
 const nomCase = (c: Element) => (c.getAttribute('aria-label') ?? '').split(' — ')[0];
 
@@ -440,15 +440,15 @@ const racine = () => ruleOf(CC_BASE, ':root');
  * contrats de GRANDEUR : on juge la LOI déclarée (un rapport, un ordre, un budget), jamais le TEXTE
  * d'une formule — une formule réécrite sans changer le rendu ne doit rien casser.
  */
-function evalLen(expr: string, vw: number, vh: number, depth = 0): number {
-  if (depth > 8) throw new Error(`résolution de variables trop profonde : ${expr}`);
+function evalLen(expr: string, vw: number, vh: number, depth = 0, rac = racine()): number {
+  if (depth > 16) throw new Error(`résolution de variables trop profonde : ${expr}`);
   let e = expr.trim();
   // 1) variables du module
   for (let i = 0; i < 8 && e.includes('var('); i++) {
     e = e.replace(/var\((--[\w-]+)\)/g, (_m, nom: string) => {
-      const v = decl(racine(), nom) ?? new RegExp(`${nom}:\\s*([^;]+);`).exec(BASE_CSS)?.[1];
+      const v = decl(rac, nom) ?? new RegExp(`${nom}:\\s*([^;]+);`).exec(BASE_CSS)?.[1];
       if (!v) throw new Error(`variable ${nom} absente du :root de combat-console.css et de base.css`);
-      return `(${String(evalLen(v, vw, vh, depth + 1))}px)`;
+      return `(${String(evalLen(v, vw, vh, depth + 1, rac))}px)`;
     });
   }
   // 2) fonctions CSS → JS
@@ -460,6 +460,31 @@ function evalLen(expr: string, vw: number, vh: number, depth = 0): number {
   if (/[a-zA-Z_$]/.test(e.replace(/CLAMP|Math\.min|Math\.max/g, ''))) throw new Error(`unité/fonction non gérée : ${expr} → ${e}`);
   const CLAMP = (lo: number, v: number, hi: number) => Math.min(Math.max(v, lo), hi);
   return Function('CLAMP', 'Math', `"use strict"; return (${e});`)(CLAMP, Math) as number;
+}
+
+/**
+ * Le `:root` de la console tel qu'il VAUT à une vue : celui de la base, puis celui de chaque tranche
+ * dont la requête s'applique (largeur, pointeur), dans l'ordre de la feuille — la dernière
+ * déclaration gagne (`decl`). Dit aussi la COMPOSITION de la bande à cette vue.
+ */
+function racineVue(vw: number, grossier: boolean): { rac: string; forme: 'rangee' | 'ligne' | 'empilee' } {
+  let rac = racine();
+  let forme: 'rangee' | 'ligne' | 'empilee' = 'rangee';
+  for (const m of CC_CSS.matchAll(/@media([^{]+)\{/g)) {
+    const vaut = m[1].split(',').some((q) => [...q.matchAll(/\(([^)]+)\)/g)].every(([, c]) => {
+      const [k, v] = c.split(':').map((x) => x.trim());
+      if (k === 'max-width') return vw <= parseFloat(v);
+      if (k === 'pointer') return (v === 'coarse') === grossier;
+      throw new Error(`requête non gérée : ${c}`);
+    }));
+    if (!vaut) continue;
+    const bloc = mediaBlock(CC_CSS, `@media${m[1]}`);
+    const r = /(?:^|\})\s*:root\s*\{([^}]*)\}/.exec(bloc);
+    if (r) rac += `;${r[1]}`;
+    if (/grid-template-areas:[^;]*'left left'/.test(bloc)) forme = 'empilee';
+    else if (/grid-template-areas:[^;]*'left right right'/.test(bloc) && forme === 'rangee') forme = 'ligne';
+  }
+  return { rac, forme };
 }
 
 function token(name: string): string {
@@ -684,10 +709,15 @@ describe('CombatConsole — micro-rendu (sondes pixel du juge vision, 2026-08-17
     const at700 = mediaBlock(CC_CSS, '@media (max-width: 700px)');
     const portraitBase = evalLen(decl(ruleOf(CC_BASE, ':root'), '--cc-portrait')!, 1366, 650);
     expect(evalLen(decl(ruleOf(at700, ':root'), '--cc-portrait')!, 700, 780)).toBeLessThan(portraitBase);
-    expect(decl(ruleOf(CC_BASE, '.cc-arch .ptile'), 'width')).toBe('var(--cc-portrait) !important');
+    expect(decl(ruleOf(CC_BASE, '.cc-arch .ptile'), 'width')).toBe('var(--cc-portrait)');
     const visage = ruleOf(CC_BASE, '.cc-arch .ptile-face, .cc-arch .rig-portrait');
-    expect(decl(visage, 'width')).toBe('100% !important');
-    expect(decl(visage, 'height')).toBe('100% !important');
+    expect(decl(visage, 'width')).toBe('100%');
+    expect(decl(visage, 'height')).toBe('100%');
+    // Sans `!important` : `PortraitTile` pose sa taille nominale en VARIABLE (`--ptile-px`), la règle
+    // de la console la reprend à spécificité supérieure (consigne du 2026-09-20, stock décroissant).
+    for (const sel of ['.cc-arch .ptile', '.cc-arch .ptile-face, .cc-arch .rig-portrait']) {
+      expect(ruleOf(CC_BASE, sel), `${sel} force sa taille`).not.toMatch(/!important/);
+    }
     const svg = ruleOf(CC_BASE, '.cc-arch .rig-portrait > svg');
     expect(decl(svg, 'width')).toBe('100%');
     expect(decl(svg, 'height')).toBe('100%');
@@ -959,7 +989,7 @@ describe('CombatConsole — assemblage : UN PONT, pas des blocs', () => {
     // hauteur disponible se mesure sur le CONTENEUR (`cqh` = sa zone), que hud.css déclare.
     const tiles = ruleOf(STRIP_BASE, '.is-tiles');
     expect(decl(tiles, '--is-avail')).toMatch(/cqh/);
-    expect(decl(ruleOf(HUD_BASE, "[data-zone='temps']"), 'container-type'), 'la zone de la frise n’est pas un conteneur de requête').toBe('size');
+    expect(decl(ruleOf(HUD_BASE, "[data-zone='temps'] > [data-piste='frise']"), 'container-type'), 'la piste de la frise n’est pas un conteneur de requête').toBe('size');
     expect(decl(tiles, 'max-height')).toMatch(/--is-avail/);
     expect(decl(tiles, 'overflow-y')).toBe('auto');
   });
@@ -1089,6 +1119,18 @@ describe('CombatConsole — trois formes, une seule bande', () => {
         expect(decl(bloc[1], p), `une forme règle « ${p} » : le pont bat d’une forme à l’autre`).toBeNull();
       }
     }
+    // … ni à sa PLACE : la forme spectatrice pose l'arche dans la MÊME grille que la forme complète
+    // (colonnes, aires, réserve miroir, coin compté à sa largeur), à toute largeur (verdict d'écran
+    // A1 du 2026-09-29 : « la boîte reste, la matière s'éteint »). Aucune règle keyée sur une forme ne
+    // règle une grandeur de PLACEMENT de la bande ou de l'arche.
+    const PLACEMENT = ['display', 'justify-content', 'justify-items', 'align-items', 'align-content', 'grid-template-columns', 'grid-template-areas', 'grid-template-rows', 'grid-column', 'grid-area', 'padding', 'padding-inline', 'padding-left', 'padding-right', 'width', 'margin', 'margin-top'];
+    for (const bloc of [...CC_CSS.matchAll(/([^{}]*\[data-forme[^{]*)\{([^}]*)\}/g)]) {
+      if (!/\.cc-dock|\.cc-arch\b/.test(bloc[1])) continue;
+      for (const p of PLACEMENT) expect(decl(bloc[2], p), `« ${norm(bloc[1])} » règle « ${p} » : l’arche change de place d’un tour à l’autre`).toBeNull();
+    }
+    const cols = decl(ruleOf(CC_BASE, '.cc-dock'), 'grid-template-columns')!;
+    expect(cols.split(/\s+(?![^(]*\))/).at(-1), 'le coin n’est pas compté à sa largeur quand il manque').toBe('var(--cc-corner)');
+    expect(decl(ruleOf(CC_BASE, '.cc-arch'), 'grid-column'), 'seule dans la bande, l’arche glisse dans la première voie').toBe('2');
     // La forme spectatrice ÉTEINT la matière de la bande sans toucher à sa BOÎTE : c'est ce qui rend
     // l'arche immobile au pixel (une bordure retirée faisait sauter le pont de 3px, mesuré à 1707).
     // Le LISERÉ n'y perd que sa teinte, jamais son épaisseur.
@@ -1480,7 +1522,7 @@ describe('CombatConsole — droit de la travée et du coin (juge vision 2026-08-
     expect(qualite.desc, 'la qualité recharge doit porter son verbatim').toBeTruthy();
     const popCharge = survol('g2-charge');
     const popRech = survol('g4-recharger');
-    // En tête, le NOM de la capacité (la case ne le grave plus — décision d'écran Q1 du 2026-09-24) ;
+    // En tête, le NOM de la capacité (la case ne le grave pas — décision d'écran Q1 du 2026-09-24) ;
     // dessous, la fiche de sa règle.
     expect(popCharge.title).toBe(nomCase(host.querySelector('[data-cell="g2-charge"]')!));
     expect(popCharge.sub).toBe(fiche.label);
@@ -1815,7 +1857,7 @@ describe('CombatConsole — les cases sont des ENTRÉES du registre (branchement
 
   // La TOUCHE est imprimée DANS la case, dans son coin (décision d'écran Q1 du 2026-09-24 ;
   // `Analyse HUD Rogue Trader.dc.html:126` « La touche est imprimée dans la case ») : sans libellé à
-  // mordre, elle ne réserve plus aucune bande — la case reste carrée.
+  // mordre, elle ne réserve aucune bande — la case reste carrée.
   it('R-7bis — la touche est imprimée dans le coin de la case, sans réserve', () => {
     const h = hero('h1', 'Gunnar');
     h.conditions = [];
@@ -2085,21 +2127,32 @@ describe('CombatConsole — budget de hauteur du pont (arbitrage user 2026-08-17
   // l'arbitrage (1998×959) et un grand écran.
   const ECRANS: [number, number][] = [[701, 780], [900, 780], [901, 780], [1100, 780], [1280, 800], [1366, 650], [1707, 780], [1920, 1080], [1998, 959], [2560, 1440]];
 
-  it('F-1 — bande ≤ 17 % et empreinte ≤ 22 % de la hauteur d’écran, à toute vue ≥ 701', () => {
-    for (const [vw, vh] of ECRANS) {
-      const bande = deck(vw, vh);
-      const total = bande + saillie(vw, vh);
-      expect(bande / vh, `${vw}×${vh} : bande ${bande.toFixed(1)}px = ${(100 * bande / vh).toFixed(1)} %`).toBeLessThanOrEqual(0.17 + 1e-9);
-      expect(total / vh, `${vw}×${vh} : empreinte ${total.toFixed(1)}px = ${(100 * total / vh).toFixed(1)} %`).toBeLessThanOrEqual(0.22 + 1e-9);
-      // … et il reste PRÉSENT (une console écrasée n'est pas une console).
-      expect(bande / vh, `${vw}×${vh} : bande ${(100 * bande / vh).toFixed(1)} % — trop maigre`).toBeGreaterThan(0.13);
+  /** Une grandeur du `:root` telle qu'elle vaut à une vue, pointeur fin ou grossier. */
+  const vaut = (e: string, vw: number, vh: number, grossier = false) => evalLen(e, vw, vh, 0, racineVue(vw, grossier).rac);
+
+  it('F-1 — bande ≤ 17 % et empreinte ≤ 22 % de la hauteur d’écran, à toute vue ≥ 701 — au doigt, sauf case à sa cible', () => {
+    for (const grossier of [false, true]) {
+      for (const [vw, vh] of ECRANS) {
+        if (racineVue(vw, grossier).forme !== 'rangee') continue;
+        const bande = vaut('var(--cc-deck-h)', vw, vh, grossier);
+        const total = bande + vaut('var(--cc-saillie)', vw, vh, grossier);
+        const ou = `${vw}×${vh}${grossier ? ' (pointeur grossier)' : ''}`;
+        // … et il reste PRÉSENT (une console écrasée n'est pas une console).
+        expect(bande / vh, `${ou} : bande ${(100 * bande / vh).toFixed(1)} % — trop maigre`).toBeGreaterThan(0.13);
+        // La cible de pointage est une NORME (WCAG 2.5.5 au doigt) : case à sa cible, le budget lui cède.
+        if (vaut('var(--cc-cell)', vw, vh, grossier) <= vaut('var(--cc-cible)', vw, vh, grossier) + 1e-9) continue;
+        expect(bande / vh, `${ou} : bande ${bande.toFixed(1)}px = ${(100 * bande / vh).toFixed(1)} %`).toBeLessThanOrEqual(0.17 + 1e-9);
+        expect(total / vh, `${ou} : empreinte ${total.toFixed(1)}px = ${(100 * total / vh).toFixed(1)} %`).toBeLessThanOrEqual(0.22 + 1e-9);
+      }
     }
+    // Sous la souris, la rangée tient le budget à TOUTES les vues de la décision.
+    for (const [vw, vh] of ECRANS) expect(racineVue(vw, false).forme, `${vw}×${vh}`).toBe('rangee');
     // Le fronton COMPTE : c'est la saillie de l'empreinte, bornée au rapport de la planche (spec:237).
     expect(saillie(1920, 1080)).toBe(evalLen('var(--cc-fronton)', 1920, 1080));
     expect(evalLen('var(--cc-fronton)', 1920, 2000), 'le fronton dépasse 52px').toBeLessThanOrEqual(52);
   });
 
-  it('F-2 — l’alvéole est CARRÉE, et son côté ne casse pas entre 900 et 901', () => {
+  it('F-2 — l’alvéole est CARRÉE, son côté ne casse pas entre 900 et 901, et ne descend jamais sous la cible', () => {
     const cell = ruleOf(CC_BASE, '.cc-cell');
     expect(decl(cell, 'width')).toBe('var(--cc-cell)');
     expect(decl(cell, 'height')).toBe('var(--cc-cell)');
@@ -2107,20 +2160,48 @@ describe('CombatConsole — budget de hauteur du pont (arbitrage user 2026-08-17
     // Une formule de 701 à toute largeur : aucune tranche ne redéclare le côté au-dessus de 560.
     expect(decl(ruleOf(mediaBlock(CC_CSS, '@media (max-width: 700px)'), ':root'), '--cc-cell')).toBeNull();
     expect(Math.abs(cote(901, 780) - cote(900, 780)), 'le côté casse entre 900 et 901').toBeLessThan(1);
-    // La cote de la décision à la vue la plus étroite de la rangée.
-    expect(cote(701, 780), 'case sous la cote de la décision à 701×780').toBeGreaterThanOrEqual(28);
+    // À la vue la plus étroite de la rangée, c'est la CASE qui cède, jusqu'à la cible de pointage ;
+    // le visage garde son plancher (verdict d'écran A4 du 2026-09-29).
+    expect(cote(701, 780), 'case sous la cible de pointage à 701×780').toBeGreaterThanOrEqual(evalLen('var(--cc-cible)', 701, 780));
+    expect(cote(701, 780), 'à 701×780 la case ne cède pas').toBeLessThan(evalLen('var(--cc-cell-haut)', 701, 780));
+    expect(evalLen('var(--cc-portrait)', 701, 780), 'à 701×780 le visage cède avant la case').toBeGreaterThanOrEqual(evalLen('var(--cc-visage)', 701, 780));
+    for (const grossier of [false, true]) {
+      for (const [vw, vh] of [[360, 740], [640, 780], [701, 780], [901, 780], [1366, 650], [1707, 780]] as [number, number][]) {
+        expect(vaut('var(--cc-cell)', vw, vh, grossier), `${vw}×${vh}${grossier ? ' au doigt' : ''} : case sous la cible`)
+          .toBeGreaterThanOrEqual(vaut('var(--cc-cible)', vw, vh, grossier) - 1e-9);
+      }
+    }
   });
 
-  it('F-3 — le côté se calcule sur la FENÊTRE (hauteur et largeur), jamais sur le pont', () => {
+  it('F-3 — le côté se calcule sur la FENÊTRE, et la bande TIENT dans la fenêtre à toute largeur, souris ET doigt', () => {
     const c = decl(racine(), '--cc-cell')!;
     expect(c, 'le côté lit une hauteur de pont').not.toMatch(/--cc-deck-h|--cc-bay-h/);
     // Un même écran, plus haut : la case grandit (le budget est un RATIO, pas un plafond fixe).
     expect(cote(1920, 1080)).toBeGreaterThan(cote(1920, 800));
     // Un écran plus ÉTROIT : la rangée tient dans la fenêtre, donc la case cède.
     expect(cote(701, 780)).toBeLessThan(cote(1707, 780));
-    for (const [vw, vh] of ECRANS) {
-      expect(evalLen('var(--cc-rangee)', vw, vh), `${vw}×${vh} : la rangée déborde la fenêtre`).toBeLessThanOrEqual(vw + 1e-6);
+    // Sonde du juge de diff C1 (`sonde-coarse.mjs`, B2) promue : à chaque largeur, sous chaque
+    // pointeur, la COMPOSITION que la feuille choisit tient dans la fenêtre — la rangée entière, la
+    // ligne d'arche sur deux travées côte à côte, ou les travées empilées.
+    const debords: string[] = [];
+    for (const grossier of [false, true]) {
+      for (let vw = 320; vw <= 2560; vw += 7) {
+        for (const vh of [650, 740, 780, 1024, 1180]) {
+          const { rac, forme } = racineVue(vw, grossier);
+          const L = (e: string) => evalLen(e, vw, vh, 0, rac);
+          const cell = L('var(--cc-cell)');
+          const gap = L('var(--cc-gap)');
+          const pad = L('var(--cc-bay-pad)');
+          const largeur = forme === 'rangee'
+            ? L('var(--cc-rangee)')
+            : forme === 'ligne'
+              ? L('var(--cc-colonnes)') * cell + L('var(--cc-rangee-fixe)')
+              : Math.max(6 * cell + 5 * gap, (5 + L('var(--cc-sets-part)')) * cell + 3 * gap + 6) + 2 * pad + 2 * L('var(--cc-marge)');
+          if (largeur > vw + 0.5) debords.push(`${vw}×${vh}${grossier ? ' au doigt' : ''} (${forme}) : ${largeur.toFixed(1)}px`);
+        }
+      }
     }
+    expect(debords, 'la bande déborde la fenêtre').toEqual([]);
   });
 
   it('F-4 — l’icône vaut 60 % du côté, jamais un px figé (ni au CSS, ni au call-site)', () => {
@@ -2140,12 +2221,15 @@ describe('CombatConsole — budget de hauteur du pont (arbitrage user 2026-08-17
     expect(tsx, 'taille d’icône en px au call-site : l’échelle vit au CSS').not.toMatch(/<ItemIcon[^>]*size=\{\d+\}/);
   });
 
-  it('F-5 — le budget MOBILE reste celui de l’arbitrage compact (≤560 : la console peut prendre plus)', () => {
-    // ≤560 les régions s'EMPILENT : le pont y vaut plus, c'est l'arbitrage 2026-08-16 (~40-45 %). La
-    // tranche DÉCLARE son côté (aucun héritage du calcul de bureau), carré lui aussi.
-    const at560 = mediaBlock(CC_CSS, '@media (max-width: 560px)');
-    expect(decl(ruleOf(at560, ':root'), '--cc-cell')).toBeTruthy();
-    expect(evalLen(decl(ruleOf(at560, ':root'), '--cc-cell')!, 360, 740)).toBeGreaterThan(0);
+  it('F-5 — plafonds des compositions étroites : ligne d’arche ≤ 25 % (561-700), empilée ≤ 45 % (≤560)', () => {
+    // ≤560 les travées s'EMPILENT : l'arbitrage 2026-08-16 (« ~40-45 % », spec:60-63). 561-700 : la
+    // ligne d'arche et deux travées côte à côte, plafond retenu au verdict d'écran A3 du 2026-09-29.
+    for (const [vw, vh, plafond] of [[360, 650, 0.45], [360, 740, 0.45], [560, 650, 0.45], [561, 650, 0.25], [640, 780, 0.25], [700, 650, 0.25], [700, 780, 0.25], [600, 960, 0.25]] as [number, number, number][]) {
+      const forme = racineVue(vw, false).forme;
+      expect(forme, `${vw}×${vh}`).toBe(vw <= 560 ? 'empilee' : 'ligne');
+      const part = (vaut('var(--cc-deck-h)', vw, vh) + vaut('var(--cc-saillie)', vw, vh)) / vh;
+      expect(part, `${vw}×${vh} : le pont prend ${(100 * part).toFixed(1)} %`).toBeLessThanOrEqual(plafond + 1e-9);
+    }
   });
 
   // ── VIDE INTERNE (spec §1c « BUDGET DE HAUTEUR » complément, commit `22004155`). Deux poches
@@ -2156,6 +2240,17 @@ describe('CombatConsole — budget de hauteur du pont (arbitrage user 2026-08-17
     const cst = evalLen('var(--cc-bay-h)', 1920, 1080) - 2 * cote(1920, 1080) - evalLen('var(--cc-gap)', 1920, 1080);
     expect(cst, `socle de travée = ${cst}px`).toBeLessThanOrEqual(41);
     expect(cst, 'un socle nul ne porterait plus ses bandes de titre').toBeGreaterThan(20);
+    // Les HABILLAGES que la formule compte sont DÉRIVÉS des grandeurs que les règles CONSOMMENT (juge de
+    // diff C1 : une cote relevée à la main se désynchronise en silence).
+    for (const nom of ['--cc-bay-socle', '--cc-arch-chrome', '--cc-arch-flancs']) {
+      expect(decl(racine(), nom), `${nom} est une cote relevée à la main`).not.toMatch(/(^|[\s(])\d+(\.\d+)?px/);
+    }
+    const bay = ruleOf(CC_BASE, '.cc-bay');
+    expect(decl(bay, 'padding')).toBe('var(--cc-bay-pad) var(--cc-bay-pad) var(--cc-bay-pied)');
+    expect(decl(bay, 'gap')).toBe('var(--cc-bay-ecart)');
+    expect(decl(ruleOf(CC_BASE, '.cc-conduit'), 'height')).toBe('var(--cc-conduit-h)');
+    expect(decl(ruleOf(CC_BASE, '.cc-gutter'), 'width')).toBe('var(--cc-gouttiere)');
+    expect(decl(ruleOf(CC_BASE, '.cc-arch-name'), 'min-height')).toBe('var(--cc-arch-nom-h)');
     // Aucune règle de bandeau de munition ne subsiste (la classe entière a disparu du module).
     expect(CC_CSS).not.toMatch(/\.cc-loadouts\b/);
     expect(CC_CSS).not.toMatch(/\.cc-ammo\b/);
@@ -2208,21 +2303,26 @@ describe('CombatConsole — budget de hauteur du pont (arbitrage user 2026-08-17
       // … et il DOMINE l'arche (planche).
       expect(lu('var(--cc-portrait)') / lu('var(--cc-arch-h)'), `${vw}×${vh} : portrait écrasé`).toBeGreaterThanOrEqual(0.5);
     }
-    // Sur une fenêtre ÉTROITE, il cède aux cases, jusqu'au portrait de vignette — jamais en dessous.
-    expect(evalLen('var(--cc-portrait)', 701, 780)).toBe(evalLen('var(--cc-portrait-min)', 701, 780));
-    // La règle qui l'applique reprend bien le style INLINE de la primitive (sinon rien ne bouge).
-    expect(decl(ruleOf(CC_BASE, '.cc-arch .ptile'), 'height')).toBe('var(--cc-portrait) !important');
-    // Le corps de l'arche vaut ce que l'habillage laisse ; les gouttières le remplissent (le rail prend
-    // le reste), le portrait n'y pèse pas.
-    expect(decl(ruleOf(CC_BASE, '.cc-arch-body'), 'height')).toBe('calc(var(--cc-arch-h) - var(--cc-arch-chrome))');
+    // Sur une fenêtre ÉTROITE, c'est la CASE qui cède ; le visage garde son plancher tant que la case
+    // n'est pas à sa cible (verdict d'écran A4 du 2026-09-29), jamais sous le portrait de vignette.
+    for (const vw of [701, 760, 820, 900]) {
+      expect(evalLen('var(--cc-portrait)', vw, 780), `${vw}×780 : visage cédé`).toBeGreaterThanOrEqual(evalLen('var(--cc-visage)', vw, 780));
+    }
+    expect(vaut('var(--cc-portrait)', 901, 780, true), 'au doigt, le visage descend sous la vignette').toBeGreaterThanOrEqual(evalLen('var(--cc-portrait-vignette)', 901, 780));
+    // La règle qui l'applique pose bien la grandeur de la console (sinon rien ne bouge).
+    expect(decl(ruleOf(CC_BASE, '.cc-arch .ptile'), 'height')).toBe('var(--cc-portrait)');
+    // Le corps de l'arche vaut ce que l'habillage laisse (relation évaluée) ; les gouttières le
+    // remplissent (le rail prend le reste), le portrait n'y pèse pas.
+    for (const [vw, vh] of [[1366, 650], [1707, 780], [701, 780]] as [number, number][]) {
+      const corps = decl(ruleOf(CC_BASE, '.cc-arch-body'), 'height')!;
+      expect(evalLen(corps, vw, vh) + evalLen('var(--cc-arch-chrome)', vw, vh), `${vw}×${vh} : corps + habillage ≠ arche`).toBeCloseTo(evalLen('var(--cc-arch-h)', vw, vh), 6);
+    }
     expect(decl(ruleOf(CC_BASE, '.cc-gutter-rail'), 'flex')).toBe('1 1 0');
-    // Le CHROME de l'arche est une grandeur MESURÉE au navigateur, pas un nombre en l'air.
-    expect(parseFloat(decl(racine, '--cc-arch-chrome')!)).toBeGreaterThan(0);
   });
 
   it('G-4 — le FAÎTE de l’arche est serré : son rembourrage haut ne creuse plus un sommet vide', () => {
     const arche = ruleOf(CC_BASE, '.cc-arch');
-    const pad = decl(arche, 'padding')!.split(/\s+/).map(parseFloat);
+    const pad = decl(arche, 'padding')!.split(/\s+/).map((v) => evalLen(v, 1920, 1080));
     expect(pad[0], `rembourrage haut de l’arche = ${pad[0]}px`).toBeLessThanOrEqual(8);
   });
 });

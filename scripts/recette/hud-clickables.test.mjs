@@ -561,17 +561,26 @@ test('pont qui ne va PAS de bord à bord : défaut chiffré', () => {
   unSeul(defautsMatrice(m, 'combat'), /le pont ne va pas de bord à bord \(0\.\.880px sur 900px\)/)
 })
 
-test('bande du pont au-delà de 17 % dès 701 : défaut chiffré ; à 700, rien', () => {
+test('bande du pont au-delà de 17 % dès 701 : défaut chiffré ; à 700, c’est le plafond de la LIGNE qui juge', () => {
   for (const l of [1707, 900, 701]) {
     const m = saine(l)
     m.dock.bande = { x: 0, y: 780 - 140, w: l, h: 140 }
     m.dock.arche.y = 780 - 160
     unSeul(defautsMatrice(m, 'combat'), /la bande du pont prend 17\.9 % de la hauteur \(plafond 17 % dès 701px\)/)
   }
+  // Sous 701, la bande PORTE la ligne d'arche : 23,1 % de pont, sous le plafond de la ligne.
   const etroit = saine(700)
-  etroit.dock.bande.h = 236
-  etroit.dock.bande.y = 780 - 236
+  etroit.dock.rect = { x: 0, y: 780 - 180, w: 700, h: 180 }
+  etroit.dock.bande = { x: 0, y: 780 - 180, w: 700, h: 180 }
   assert.deepEqual(defautsMatrice(etroit, 'combat'), [])
+})
+
+test('pont en LIGNE D’ARCHE au-delà de 25 % à 561–700 : défaut chiffré, à chaque largeur de la tranche', () => {
+  for (const l of [700, 640, 561]) {
+    const m = saine(l)
+    m.dock.rect = { x: 0, y: 780 - 236.6, w: l, h: 236.6 }
+    unSeul(defautsMatrice(m, 'combat'), /le pont en ligne d'arche prend 30\.3 % de la hauteur \(plafond 25 %\)/)
+  }
 })
 
 test('FRONTON compris, le pont au-delà de 22 % dès 701 : défaut chiffré — la saillie COMPTE', () => {
@@ -677,6 +686,12 @@ const rougeCouche = (m, motif) => {
 
 test('couche saine : aucun défaut', () => {
   assert.deepEqual(defautsCouche(couche(), 'tour de héros'), [])
+})
+
+test('fil d’événements SUR le bandeau de phase (pause de Round) : défaut chiffré', () => {
+  const m = couche()
+  m.feedXphase = { ox: 131, oy: 7.4 }
+  rougeCouche(m, /le fil d'événements recouvre le bandeau de phase de 131×7\.4px/)
 })
 
 test('couche ABSENTE : la sonde se déclare AVEUGLE', () => {

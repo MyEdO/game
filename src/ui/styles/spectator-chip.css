@@ -3,9 +3,10 @@
    entière ici (#1806 2d, arbitrage A1 du 2026-09-18).
    ANCRAGE : la puce suit le FLUX par défaut (elle vit dans le panneau qui porte les commandes
    désactivées) ; la pose À L'ÉCRAN est un ÉTAT de la primitive, `data-pose='ecran'`, posé par
-   l'hôte qui arbitre les modales, que l'écran de campagne monte dans la zone `parole` de sa couche
-   HUD (hud.css) : la zone la place, la pose n'en retire que la marge du flux. Aucune autre règle de
-   `src/ui/styles` ne vise `.spectator-chip`. ══ */
+   l'arbitre des modales (`ActiveModal`), que montent l'écran de campagne, le groupe, la bataille de
+   masse et l'interlude : la pose centre la puce au pied de l'écran de son hôte. Seule la zone
+   `parole` de la couche HUD (hud.css, écran de campagne) la neutralise — la zone la place. Aucune
+   autre règle de `src/ui/styles` ne vise `.spectator-chip`. ══ */
 .spectator-chip {
   background: rgba(10, 10, 16, 0.85);
   border: 1px solid var(--border);
@@ -19,4 +20,12 @@
 }
 .spectator-chip[data-pose='ecran'] {
   margin-top: 0;
+}
+.spectator-chip[data-pose='ecran']:not([data-zone='parole'] > *) {
+  position: absolute;
+  bottom: var(--sp-lg);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 40;
+  align-self: auto;
 }

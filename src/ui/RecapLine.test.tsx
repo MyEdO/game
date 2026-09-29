@@ -50,8 +50,9 @@ describe('recapLineOfEvent — la COULEUR DE CAMP est préservée', () => {
     // parité porte sur le TEXTE lu et le COMPTE de noms colorés, jamais sur le markup.
     const e = SAMPLE[0];
     const html = renderToStaticMarkup(<RecapLineRow line={recapLineOfEvent(e, combatants)} />);
-    expect(html).toContain('class="nm-ally">Gustav<');
-    expect(html).toContain('class="nm-foe">Rat géant<');
+    const noms = (cls: string) => [...html.matchAll(new RegExp(`class="${cls}">(.*?)</b>`, 'g'))].map((m) => m[1].replace(/<[^>]+>/g, ''));
+    expect(noms('nm-ally')).toEqual(['Gustav']);
+    expect(noms('nm-foe')).toEqual(['Rat géant']);
     const journal = renderToStaticMarkup(<NarratedSegments event={e} combatants={combatants} />);
     expect(html.match(/nm-ally/g)?.length).toBe(journal.match(/nm-ally/g)?.length);
     expect(html.match(/nm-foe/g)?.length).toBe(journal.match(/nm-foe/g)?.length);

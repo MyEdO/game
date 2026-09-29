@@ -20,6 +20,7 @@ import type { WorldMap } from '../state/worldMap';
 import type { NarratifBlock } from '../state/campaignNarratif';
 import { testScene } from '../scenes/test-fixture';
 import { CampaignView } from './CampaignView';
+import { ActiveModal } from './ActiveModal';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -244,7 +245,7 @@ function evalPx(src: string): number {
 /** Résout les `var()` d'une expression depuis un dictionnaire de tokens, puis l'évalue en px. */
 function px(expr: string, tokens: Record<string, string>): number {
   let e = expr;
-  for (let n = 0; n < 8 && e.includes('var('); n++) {
+  for (let n = 0; n < 16 && e.includes('var('); n++) {
     e = e.replace(/var\(\s*(--[a-z0-9-]+)\s*\)/g, (_m, t: string) => {
       if (tokens[t] === undefined) throw new Error(`token inconnu : ${t}`);
       return `(${tokens[t]})`;
@@ -420,6 +421,28 @@ describe('#1919 — la couche HUD est une grille : chaque surface déclare sa ZO
     expect(surfacesHorsFlux(el)).toEqual([]);
     act(() => { useGame.setState({ pendingCascade: null, net: { ...useGame.getState().net, mode: 'local', ownership: {} } } as never); });
   });
+
+  it('HORS de la couche, la puce du siège attendu garde sa pose à l’écran : seule la zone PAROLE la neutralise', () => {
+    // Juge de diff C1 (B5) : l'arbitre des modales (`ActiveModal`) est monté par quatre hôtes
+    // (`CampaignView`, `PartyScreen`, `MassBattleView`, `InterludeScreen`) ; les trois derniers n'ont
+    // pas de couche HUD, et c'est la pose `ecran` de la primitive qui y place la puce.
+    enCombat();
+    const autre = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Wilhelm', seed: 9 });
+    autre.id = 'h2';
+    useGame.setState({
+      net: { ...useGame.getState().net, mode: 'host', mySeat: 0, ownership: { h1: 0, h2: 1 }, seatNames: { 0: 'L’hôte', 1: 'Antoine' } },
+      pendingCascade: { participants: [{ id: 's0', kind: 'note', actorId: 'h2', outcome: [] }], cursor: 0, purpose: 'test' },
+    } as never);
+    host = document.createElement('div');
+    document.body.appendChild(host);
+    root = createRoot(host);
+    act(() => { root.render(<ActiveModal />); });
+    const puce = host.querySelector('.spectator-chip')!;
+    expect(puce.getAttribute('data-pose')).toBe('ecran');
+    const poses = HORS_FLUX.filter((regle) => puce.matches(regle.slice(regle.indexOf('« ') + 2, -2)));
+    expect(poses, 'hors couche, la pose à l’écran ne place plus la puce').toEqual(["spectator-chip.css « .spectator-chip[data-pose='ecran']:not([data-zone='parole'] > *) »"]);
+    act(() => { useGame.setState({ pendingCascade: null, net: { ...useGame.getState().net, mode: 'local', ownership: {} } } as never); });
+  });
 });
 
 describe('Zone 11 — MÊME MATIÈRE que le pont de combat : UNE peau, jamais deux copies', () => {
@@ -476,7 +499,7 @@ describe('Zone 11 — MÊME MATIÈRE que le pont de combat : UNE peau, jamais de
     const tokens: Record<string, string> = {
       ...Object.fromEntries([...bloc(cc, ':root').matchAll(/(--cc-[a-z-]+):([^;]+)/g)].map((m) => [m[1], m[2].trim()])),
       ...Object.fromEntries([...bloc(xd, ':root').matchAll(/(--xd-[a-z-]+):([^;]+)/g)].map((m) => [m[1], m[2].trim()])),
-      ...Object.fromEntries([...styles('base.css').matchAll(/(--pont-[a-z-]+):([^;]+)/g)].map((m) => [m[1], m[2].trim()])),
+      ...Object.fromEntries([...styles('base.css').matchAll(/(--(?:pont|sp)-[a-z-]+):([^;]+)/g)].map((m) => [m[1], m[2].trim()])),
     };
     const liseret = px(tokens['--pont-liseret'], tokens);
     // UNE nappe, UNE hauteur : les deux ponts lisent la même grandeur de la peau.

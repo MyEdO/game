@@ -47,14 +47,16 @@
 //     et entrée au trait entière dans le champ à 701–900, bande à 560 et moins et piste défilable,
 //     cartouche de Round en PREMIÈRE entrée, courant + deux suivants entiers à ≤560 ; Dock — pont de
 //     bord à bord, chaque case entière dans l'écran, BANDE ≤ 17 % et EMPREINTE (bande + saillie du
-//     fronton) ≤ 22 % de la hauteur dès 701 (décision d'écran Q2 du 2026-09-24), pont ≤ 45 % à ≤560
-//     (docs/plans/2026-08-16-spec-hud-combat.md Zone 1) ; COMPACITÉ sur la série des largeurs
+//     fronton) ≤ 22 % de la hauteur dès 701 (décision d'écran Q2 du 2026-09-24), pont en ligne d'arche
+//     ≤ 25 % à 561–700 (verdict d'écran A3 du 2026-09-29), pont ≤ 45 % à ≤560
+//     (docs/plans/2026-08-16-spec-hud-combat.md Zone 1), à chaque hauteur de `vues-recette.json` ; COMPACITÉ sur la série des largeurs
 //     (`defautsCompacite`) — cartes et colonne d'initiative plus étroites à 701–900 qu'au-delà de 900,
 //     portraits à 561–700 ; CIBLES TACTILES sous `pointer: coarse` émulé (`defautsTactile`) — chaque
 //     commande vissée rendue offre 44px à ≤560 ;
 //   · la COUCHE HUD (#1919, design « Le pont se dimensionne seul », `defautsCouche`), à 3 hauteurs
-//     (`vues-recette.json`) × 7 largeurs × 4 états — exploration, ouverture, tour de héros,
-//     spectateur (atteint par le VRAI geste : « Fin du tour » cliqué deux fois) : le pont est posé au
+//     (`vues-recette.json`) × 7 largeurs × 5 états — exploration, ouverture, tour de héros, pause de
+//     Round (le fil ne croise pas le bandeau de phase), spectateur (atteint par le VRAI geste : « Fin
+//     du tour » cliqué deux fois) : le pont est posé au
 //     bas de l'écran, la page ne défile pas, aucune surface d'une zone n'est rognée par la couche, ne
 //     déborde de sa zone ni ne recouvre la surface d'une autre zone, et chaque commande du HUD et du
 //     pont reçoit son clic — exemptée seulement hors du champ de son ancêtre défilant, ou sous la
@@ -63,8 +65,6 @@
 // Cellules §12 NON MESURÉES :
 //   · Caméra / inspection >900, 701–900, 561–700 : `ViewControls`, monté en jeu nulle part (#1822 ;
 //     `grep -rn ViewControls src` : `src/ui/editor/EditorCanvas.tsx`, `src/ui/gallery/registry.tsx`) ;
-//   · Dock 561–700 : arche en ligne et deux travées côte à côte (décision Q4.3), aucun plafond de
-//     hauteur propre — seuls le bord à bord et les cases entières s'y jugent ;
 //   · Dock <=560 « modales plein écran… » : aucune modale de jet ouverte ici — structure gardée par
 //     `src/ui/ui-ratchets.test.ts` ;
 //   · Dock >900 « disposition de référence » : aucun contrat propre hors bord à bord et hauteur.
@@ -122,7 +122,7 @@ const PROBE = `(() => {
   // (Aucun accent grave dans cette sonde : elle vit dans un gabarit de chaîne.)
   const pont = document.querySelector('.combat-console');
   const dansLEcran = (r) => r.x >= -0.5 && r.y >= -0.5 && r.right <= window.innerWidth + 0.5 && r.bottom <= window.innerHeight + 0.5;
-  // Une case ne grave plus son nom (décision d'écran Q1 du 2026-09-24) : il est son nom accessible.
+  // Une case ne grave pas son nom (décision d’écran Q1 du 2026-09-24) : il est son nom accessible.
   const dockBtns = [...document.querySelectorAll('.combat-console button.cc-cell')].map((b, i) => ({
     i, label: (b.getAttribute('aria-label') || b.textContent || '').replace(/\\s+/g, ' ').trim().slice(0, 40), ...reaches(b),
     entier: dansLEcran(b.getBoundingClientRect()),
@@ -520,6 +520,8 @@ const PROBE = `(() => {
     portraits: ptiles,
     objectif: objective,
     feedXfrise: overlap(rectOf('.combat-feed'), rectOf('.initiative-strip')),
+    // Le fil d'événements et le bandeau de phase posé sur le parapet (pause de Round) se croisent-ils ?
+    feedXphase: overlap(rectOf('.combat-feed'), rectOf('.combat-console > .cc-phase')),
     // Le volet DÉPLIÉ ≤560 couvre-t-il le fil d'événements ? Sans recouvrement, le verdict de clic des
     // portraits n'éprouve pas leur rang : la sortie le DIT.
     feedXvolet: overlap(rectOf('.combat-feed'), rectOf('.party-dock.on .pd-track')),
@@ -706,12 +708,6 @@ export function defauts(m, phase) {
   return out;
 }
 
-/**
- * Défauts de la COUCHE HUD (#1919, design « Le pont se dimensionne seul ; le HUD vit dans ce qui
- * reste, et n'en sort pas ») sur UNE mesure. PURE.
- * @param {any} m mesure rendue par `PROBE` @param {string} phase libellé de l'état sondé
- * @returns {string[]}
- */
 /** Paires de surfaces de ZONES DIFFÉRENTES dont les boîtes PEINTES (rognées par la couche, qui borne
  *  son débordement) se recouvrent de plus d'un demi-pixel sur les deux axes. PUR. */
 export function recouvrementsEntreZones(c) {
@@ -735,6 +731,12 @@ export function recouvrementsEntreZones(c) {
   return paires;
 }
 
+/**
+ * Défauts de la COUCHE HUD (#1919, design « Le pont se dimensionne seul ; le HUD vit dans ce qui
+ * reste, et n'en sort pas ») sur UNE mesure. PURE.
+ * @param {any} m mesure rendue par `PROBE` @param {string} phase libellé de l'état sondé
+ * @returns {string[]}
+ */
 export function defautsCouche(m, phase) {
   const ou = `${phase} ${m.largeur}×${m.hauteur}`;
   const c = m.couche;
@@ -750,6 +752,7 @@ export function defautsCouche(m, phase) {
   for (const [a, b] of recouvrementsEntreZones(c)) {
     out.push(`${ou} : la surface « ${a.surface} » (zone « ${a.zone} ») ${JSON.stringify(a.rect)} recouvre « ${b.surface} » (zone « ${b.zone} ») ${JSON.stringify(b.rect)}`);
   }
+  if (m.feedXphase) out.push(`${ou} : le fil d'événements recouvre le bandeau de phase de ${m.feedXphase.ox}×${m.feedXphase.oy}px`);
   if (!c.commandes.length) out.push(`${ou} : aucune commande rendue dans la couche ni sur le pont — sonde aveugle`);
   for (const b of c.commandes) {
     if (!b.ok && !b.exempte) out.push(`${ou} : la commande « ${b.label} » ${JSON.stringify(b.rect)} ne reçoit pas son clic — ${b.hitBy}`);
@@ -799,8 +802,9 @@ export function trancheMatrice(largeur) {
 
 /** Plafonds de HAUTEUR du pont, en part du viewport : dès 701, la BANDE ≤ 17 % et l'EMPREINTE (bande +
  *  saillie du fronton) ≤ 22 % — décision d'écran Q2 du 2026-09-24 (#1806), sur le budget de
- *  docs/plans/2026-08-16-spec-hud-combat.md:24-26 ; ≤560 → même Zone 1 (« cible ~40-45 % »). */
-export const BUDGET_PONT = { des: 701, bande: 0.17, empreinte: 0.22, compact: { part: 0.45 } };
+ *  docs/plans/2026-08-16-spec-hud-combat.md:24-26 ; 561-700, ligne d'arche et deux travées ≤ 25 %
+ *  (verdict d'écran A3 du 2026-09-29) ; ≤560 → même Zone 1 (« cible ~40-45 % »). */
+export const BUDGET_PONT = { des: 701, bande: 0.17, empreinte: 0.22, ligne: { part: 0.25 }, compact: { part: 0.45 } };
 
 /** Largeur minimale d'une tuile du groupe à <=560 : docs/plans/2026-08-16-spec-hud-combat.md:66-68
  *  (R-M1, « tuiles PLEINES à largeur minimale digne (portrait reconnaissable + PV lisibles, ≥44px) »). */
@@ -879,6 +883,7 @@ export function defautsMatrice(m, phase) {
       }
     }
     const part = r.h / m.hauteur;
+    if (t === '561–700' && part > BUDGET_PONT.ligne.part) out.push(`${ou} : le pont en ligne d'arche prend ${(100 * part).toFixed(1)} % de la hauteur (plafond ${100 * BUDGET_PONT.ligne.part} %)`);
     if (t === '<=560' && part > BUDGET_PONT.compact.part) out.push(`${ou} : le pont compact prend ${(100 * part).toFixed(1)} % de la hauteur (plafond ${100 * BUDGET_PONT.compact.part} %)`);
     for (const b of m.dockBtns) {
       if (b.rendu && !b.entier) out.push(`${ou} : la case « ${b.label} » ${JSON.stringify(b.rect)} n'est pas entière dans l'écran`);
@@ -1043,6 +1048,17 @@ async function main() {
     await sleep(300);
     await monterLeDock(session);
     echecs.push(...await jugerCouche(session, 'tour de héros'));
+    // PAUSE DE ROUND (juge de diff C1, B1) : le bandeau de phase se pose sur le parapet, dans la
+    // rangée `reserve` de la couche — le fil ne doit pas y descendre. Mise en place par `__wfrp` (la
+    // pause d'un Round suivant), levée aussitôt.
+    await evaluate(session, `window.__wfrp.store.setState({ pendingRoundStart: { round: 2, readyBySeat: {} } })`);
+    await sleep(400);
+    if (!await evaluate(session, `!!document.querySelector('.combat-console > .cc-phase')`)) {
+      throw new Error('pause de Round posée, mais aucun bandeau de phase sur le pont — sonde aveugle sur le fil × bandeau');
+    }
+    echecs.push(...await jugerCouche(session, 'pause de Round'));
+    await evaluate(session, `window.__wfrp.store.setState({ pendingRoundStart: null })`);
+    await sleep(300);
     await setViewport(session, VUE_REFERENCE.largeur, VUE_REFERENCE.hauteur);
     await sleep(300);
     // Le tiroir du journal ne se juge QU'OUVERT : on le déplie par CLIC RÉEL sur sa poignée (glyphe
@@ -1060,13 +1076,15 @@ async function main() {
     if (!navire) throw new Error('mise en place : le navire de campagne ne se pose pas — sonde aveugle sur l’ouvreur du rail');
     await sleep(300);
 
-    for (const w of args.widths) {
-      await setViewport(session, w, HEIGHT);
+    // La MATRICE se juge à chaque hauteur de `vues-recette.json` (juge de diff C1, B3) ; la série de
+    // compacité reste celle de la vue de référence.
+    for (const [w, h] of HAUTEURS_COUCHE.flatMap((h) => args.widths.map((w) => [w, h]))) {
+      await setViewport(session, w, h);
       await sleep(600);
       const m = await evaluate(session, PROBE);
-      if (!m.combat) throw new Error(`combat ${w}px : aucune frise d'initiative — le combat n'est pas monté`);
-      const d = [...defauts(m, 'combat'), ...defautsMatrice(m, 'combat')];
-      serieCombat.push(m);
+      if (!m.combat) throw new Error(`combat ${w}×${h} : aucune frise d'initiative — le combat n'est pas monté`);
+      const d = [...defauts(m, `combat ×${h}`), ...defautsMatrice(m, `combat ×${h}`)];
+      if (h === HEIGHT) serieCombat.push(m);
       console.log(`combat ${w}px — dock ${m.dock ? m.dock.rect.h + 'px de haut / ' + m.dockBtns.length + ' contrôle(s)' : 'ABSENT'}, piste ${m.piste.clientWidth}/${m.piste.scrollWidth}px dans une bande de ${m.piste.bande}px, frise ${m.frise ? (m.frise.bande ? 'bande' : 'colonne') + ' à ' + m.frise.margeDroite + 'px du bord, Round ' + (m.frise.roundVisible ? 'visible' : 'HORS CHAMP') + ', tête ' + (!m.frise.teteMesuree ? 'non mesurée' : (m.frise.teteDecouverte || m.frise.teteSurCartouche) ? 'DÉCOUVERTE' : 'couverte') + ', pied ' + (!m.frise.piedMesure ? 'non mesuré' : m.frise.piedRogne ? 'DÉBORDE de ' + m.frise.piedRogne.debord + 'px' : 'entier') : 'n/a'}, chevauchement fil×frise ${m.feedXfrise ? m.feedXfrise.ox + '×' + m.feedXfrise.oy + 'px' : 'aucun'} → ${d.length ? d.length + ' défaut(s)' : 'OK'}`);
       dire(d);
       echecs.push(...d);

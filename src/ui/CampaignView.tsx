@@ -323,9 +323,10 @@ export function CampaignView() {
           {/* Zone TEMPS : en combat la frise d'initiative et, à sa suite, le fil d'événements ; hors
               combat l'objectif courant (#238), nul si la pile d'objectifs est vide. La frise tient
               dans sa zone, qui s'arrête au-dessus de la réserve du bandeau de phase. */}
-          <Row data-zone="temps" wrap={false} stackBelow={700}>
+          <Stack data-zone="temps">
             {mode === 'exploration' && <ObjectiveBannerMount />}
             {mode === 'battle' && battle && (
+              <Stack data-piste="frise">
               <InitiativeStrip
                 order={battle.order}
                 turn={battle.turn}
@@ -350,9 +351,10 @@ export function CampaignView() {
                   onToggle: () => runAction(handDef.id, useGame.getState, { toggleOff: handRaised }),
                 }}
               />
+              </Stack>
             )}
             {mode === 'battle' && battle && <CombatBanner />}
-          </Row>
+          </Stack>
           {/* BANDEAU D'OUVERTURE (arbitrage user 2026-08-24, référence RT « round 0 ») : la pause du
               premier Round quitte le pont pour le haut de la carte — une surface de la couche. */}
           {mode === 'battle' && (
