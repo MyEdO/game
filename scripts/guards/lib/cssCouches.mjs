@@ -398,16 +398,43 @@ export function sitesIdentiteEcran(fichiers) {
 }
 
 /**
- * Sites d'ESPACEMENT hors échelle `--sp-*`.
+ * Les propriétés personnalisées d'un module qui portent une valeur HORS ÉCHELLE : un littéral de
+ * longueur, ou une référence à une autre d'entre elles (clôture transitive). Leur `var()` ne ramène
+ * pas une valeur à l'échelle — elle la déplace.
+ * @param {string} text feuille CSS @returns {Set<string>}
+ */
+export function variablesHorsEchelle(text) {
+  const decl = [];
+  for (const { corps } of reglesCss(text)) {
+    for (const { prop, valeur } of declarations(corps)) if (prop.startsWith('--')) decl.push({ prop, valeur });
+  }
+  const hors = new Set(decl.filter((d) => valeurHorsEchelle(d.valeur)).map((d) => d.prop));
+  for (let avant = -1; avant !== hors.size;) {
+    avant = hors.size;
+    for (const d of decl) if (!hors.has(d.prop) && referenceUne(d.valeur, hors)) hors.add(d.prop);
+  }
+  return hors;
+}
+
+/** Vrai si la valeur lit (`var(--x…)`) l'une des propriétés de `noms`. */
+function referenceUne(valeur, noms) {
+  for (const m of valeur.matchAll(/var\(\s*(--[\w-]+)/g)) if (noms.has(m[1])) return true;
+  return false;
+}
+
+/**
+ * Sites d'ESPACEMENT hors échelle `--sp-*` : un littéral de longueur, ou la lecture d'une propriété
+ * personnalisée du module qui en porte un (`variablesHorsEchelle`).
  * @param {readonly { rel: string, text: string }[]} fichiers @returns {{ file: string, ref: string }[]}
  */
 export function sitesEspacementHorsEchelle(fichiers) {
   const sites = [];
   for (const f of fichiers) {
+    const variables = variablesHorsEchelle(f.text);
     for (const { selecteurs, corps } of reglesCss(f.text)) {
       const sel = cleDeRegle(selecteurs);
       for (const { prop, valeur } of declarations(corps)) {
-        if (PROPRIETES_A_ECHELLE.has(prop) && valeurHorsEchelle(valeur)) {
+        if (PROPRIETES_A_ECHELLE.has(prop) && (valeurHorsEchelle(valeur) || referenceUne(valeur, variables))) {
           sites.push({ file: f.rel, ref: `${sel} :: ${prop} :: ${valeur.replace(/\s+/g, ' ')}` });
         }
       }

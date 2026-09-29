@@ -128,11 +128,10 @@
 }
 /* Le bandeau ne marque PAS l'acteur du tour (spec §1c-bis BANDEAU, arbitrage user 2026-08-17) :
    aucune règle de situation sur la carte — la frise d'initiative porte seule l'actif. */
-/* NOM du héros, sous sa carte (planche 2026-08-17) : R-M2 — il ne se coupe qu'ENTRE MOTS, sur DEUX
-   lignes au plus (à une seule ligne, 12 noms sur 13 s'ellipsaient — mesure 1280 du lot) ; un mot seul
-   trop long s'ellipse et le nom complet reste en `title` de la tuile. La boîte suit son CONTENU, avec
-   une ligne au minimum : la réserve de deux lignes était permanente (densité, grief du juge vision),
-   et les tuiles s'alignent par le HAUT de leur boîte, pas par le pied de leur légende. */
+/* NOM du héros, sous sa carte (planche 2026-08-17) : R-M2 — il ne se coupe qu'ENTRE MOTS (primitive
+   `Nom`), sur DEUX lignes au plus : au-delà il est coupé AU MOT (`coupeAuMot`, PartyDock.tsx), et le
+   nom complet reste en `title` de la tuile. La boîte suit son CONTENU, avec une ligne au minimum, et
+   les tuiles s'alignent par le HAUT de leur boîte, pas par le pied de leur légende. */
 .pd-track > figure > figcaption {
   max-width: 100%;
   margin-top: 2px;
@@ -143,14 +142,6 @@
   letter-spacing: 0.3px;
   color: var(--atelier-brass-vif);
   text-align: center;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  overflow-wrap: normal;
-  word-break: normal;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 /* ══ Matrice responsive (canon 900 / 700 / 560) — UN bloc par tranche ══ */

@@ -2160,10 +2160,10 @@ describe('CombatConsole — budget de hauteur du pont (arbitrage user 2026-08-17
     expect(decl(ruleOf(mediaBlock(CC_CSS, '@media (max-width: 700px)'), ':root'), '--cc-cell')).toBeNull();
     expect(Math.abs(cote(901, 780) - cote(900, 780)), 'le côté casse entre 900 et 901').toBeLessThan(1);
     // À la vue la plus étroite de la rangée, c'est la CASE qui cède, jusqu'à la cible de pointage ;
-    // le visage garde son plancher (verdict d'écran A4 du 2026-09-29).
+    // le portrait prend ce qui reste (docs/plans/2026-08-16-spec-hud-combat.md, table Q1).
     expect(cote(701, 780), 'case sous la cible de pointage à 701×780').toBeGreaterThanOrEqual(evalLen('var(--cc-cible)', 701, 780));
     expect(cote(701, 780), 'à 701×780 la case ne cède pas').toBeLessThan(evalLen('var(--cc-cell-haut)', 701, 780));
-    expect(evalLen('var(--cc-portrait)', 701, 780), 'à 701×780 le visage cède avant la case').toBeGreaterThanOrEqual(evalLen('var(--cc-visage)', 701, 780));
+    expect(cote(701, 780), 'à 701×780 le visage cède avant la case').toBeCloseTo(evalLen('var(--cc-cible)', 701, 780), 1);
     for (const grossier of [false, true]) {
       for (const [vw, vh] of [[360, 740], [640, 780], [701, 780], [901, 780], [1366, 650], [1707, 780]] as [number, number][]) {
         expect(vaut('var(--cc-cell)', vw, vh, grossier), `${vw}×${vh}${grossier ? ' au doigt' : ''} : case sous la cible`)
@@ -2254,7 +2254,7 @@ describe('CombatConsole — budget de hauteur du pont (arbitrage user 2026-08-17
     expect(decl(bay, 'gap')).toBe('var(--cc-bay-ecart)');
     expect(decl(ruleOf(CC_BASE, '.cc-conduit'), 'height')).toBe('var(--cc-conduit-h)');
     expect(decl(ruleOf(CC_BASE, '.cc-gutter'), 'width')).toBe('var(--cc-gouttiere)');
-    expect(decl(ruleOf(CC_BASE, '.cc-arch-name'), 'min-height')).toBe('var(--cc-arch-nom-h)');
+    expect(decl(ruleOf(CC_BASE, '.cc-arch-name'), 'height')).toBe('var(--cc-arch-nom-h)');
     // Aucune règle de bandeau de munition ne subsiste (la classe entière a disparu du module).
     expect(CC_CSS).not.toMatch(/\.cc-loadouts\b/);
     expect(CC_CSS).not.toMatch(/\.cc-ammo\b/);
@@ -2307,10 +2307,13 @@ describe('CombatConsole — budget de hauteur du pont (arbitrage user 2026-08-17
       // … et il DOMINE l'arche (planche).
       expect(lu('var(--cc-portrait)') / lu('var(--cc-arch-h)'), `${vw}×${vh} : portrait écrasé`).toBeGreaterThanOrEqual(0.5);
     }
-    // Sur une fenêtre ÉTROITE, c'est la CASE qui cède ; le visage garde son plancher tant que la case
-    // n'est pas à sa cible (verdict d'écran A4 du 2026-09-29), jamais sous le portrait de vignette.
+    // Sur une fenêtre ÉTROITE, c'est la CASE qui cède : un portrait sous sa cote de hauteur n'existe
+    // que case à sa cible, jamais sous le portrait de vignette.
     for (const vw of [701, 760, 820, 900]) {
-      expect(evalLen('var(--cc-portrait)', vw, 780), `${vw}×780 : visage cédé`).toBeGreaterThanOrEqual(evalLen('var(--cc-visage)', vw, 780));
+      if (evalLen('var(--cc-portrait)', vw, 780) < evalLen('var(--cc-portrait-haut)', vw, 780) - 1e-6) {
+        expect(evalLen('var(--cc-cell)', vw, 780), `${vw}×780 : visage cédé avant la case`).toBeCloseTo(evalLen('var(--cc-cible)', vw, 780), 6);
+      }
+      expect(evalLen('var(--cc-portrait)', vw, 780), `${vw}×780 : portrait sous la vignette`).toBeGreaterThanOrEqual(evalLen('var(--cc-portrait-vignette)', vw, 780));
     }
     expect(vaut('var(--cc-portrait)', 901, 780, true), 'au doigt, le visage descend sous la vignette').toBeGreaterThanOrEqual(evalLen('var(--cc-portrait-vignette)', 901, 780));
     // La règle qui l'applique pose bien la grandeur de la console (sinon rien ne bouge).
@@ -2436,8 +2439,8 @@ describe('CombatConsole — bandeau d’interlude : tout ciblage par la carte po
     monter(h, { foes: [foe('e1', 9, 9)] });
     expect(bandeau(), 'un tour ordinaire n’a pas de bandeau de phase').toBeNull();
     act(() => { useGame.setState({ pendingRoundStart: { round: 2, readyBySeat: {} } as never }); });
-    expect(bandeau()?.querySelector('.cc-phase-label')?.textContent).toBe('Début du Round 2');
-    expect(sortie('round-start')?.textContent, 'la pause de Round garde son bouton d’ouverture').toContain('Commencer le round 2');
+    expect(bandeau()?.querySelector('.cc-phase-label')?.textContent).toBe('Début du Round\u00a02');
+    expect(sortie('round-start')?.textContent, 'la pause de Round garde son bouton d’ouverture').toContain('Commencer le round\u00a02');
     sansFlux();
   });
 });
@@ -3786,7 +3789,7 @@ describe('CombatConsole — le pont d’OUVERTURE est celui du JOUEUR, et n’of
     // la forme du pont lui donne (le pont est alors spectatrice, le bandeau se centre sur l'arche).
     expect(bandeau.getAttribute('data-phase'), 'le round 3 n’est pas une ouverture').toBe('spectatrice');
     expect(host.querySelector('.combat-console')!.contains(bandeau)).toBe(true);
-    expect(bandeau.textContent).toContain('Début du Round 3');
+    expect(bandeau.textContent).toContain('Début du Round\u00a03');
   });
 });
 

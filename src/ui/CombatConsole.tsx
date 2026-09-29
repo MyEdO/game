@@ -47,6 +47,8 @@ import { StateChips } from './StateChips';
 import { LifeBar } from './LifeBar';
 import { Icon } from './Icon';
 import { ItemIcon } from './ItemIcon';
+import { Nom } from './Nom';
+import { coupeAuMot } from '../lib/coupeAuMot.mjs';
 import type { IconIdInput } from './icons';
 
 /** Nombre de cases de chaque travée — GÉOMÉTRIE IMMUABLE (arbitrage utilisateur 2026-08-16 :
@@ -362,6 +364,10 @@ export function ArchGutter({ kind, value, max, label, short, unit, spend = 0, ge
   );
 }
 
+/** Borne du nom gravé au pied de l'arche, en signes (`coupeAuMot`) : ce que ses deux lignes réservées
+ *  portent à l'arche la plus étroite de la forme complète. */
+const NOM_ARCHE_SIGNES = 56;
+
 /** ARCHE du pont (spec §1c-bis, planche 2026-08-17) : gouttière MOUVEMENT à GAUCHE, portrait,
  *  gouttière ACTION à DROITE (socles : valeur courante + libellé dessous), NICHE D'ÉTATS
  *  (rack de 4 alvéoles réservées) au flanc droit, BARRE DE BLESSURES chiffrée pleine
@@ -415,9 +421,12 @@ export function ConsoleArch({ active, ring, move, action, etats, retraitDEtat }:
           </>
         )}
       />
-      {/* Le NOM du porteur, gravé au pied de l'arche (spécimen D) : la console dit en entier
-          qui agit — la frise ne le dit qu'à la position et à la taille. */}
-      <span className="cc-arch-name">{active.label}</span>
+      {/* Le NOM du porteur, gravé au pied de l'arche (spécimen D) : la console dit qui agit — la
+          frise ne le dit qu'à la position et à la taille. Deux lignes réservées ; au-delà, coupé AU
+          MOT, le nom entier reste dans l'infobulle et le nom accessible. */}
+      <span className="cc-arch-name" role="img" aria-label={active.label} title={active.label}>
+        <span><Nom texte={coupeAuMot(active.label, NOM_ARCHE_SIGNES)} /></span>
+      </span>
     </div>
   );
 }
@@ -483,13 +492,13 @@ function useBandeauDeRound(): PhaseBanner | null {
   const enReseau = net.mode !== 'local';
   const dejaPret = !!pendingRoundStart.readyBySeat?.[net.mySeat];
   return {
-    label: pendingRoundStart.round <= 1 ? 'Ouverture du combat' : `Début du Round ${pendingRoundStart.round}`,
+    label: pendingRoundStart.round <= 1 ? 'Ouverture du combat' : `Début du Round\u00a0${pendingRoundStart.round}`,
     ready: enReseau ? (pendingRoundStart.readyBySeat ?? {}) : undefined,
     actions: [{
       key: roundStartDef.id,
       label: enReseau
         ? (dejaPret ? 'En attente des autres…' : 'Prêt')
-        : pendingRoundStart.round <= 1 ? 'Commencer le combat' : `Commencer le round ${pendingRoundStart.round}`,
+        : pendingRoundStart.round <= 1 ? 'Commencer le combat' : `Commencer le round\u00a0${pendingRoundStart.round}`,
       icon: <Icon id={roundStartDef.icon as IconIdInput} size="sm" />,
       primary: true,
       disabled: enReseau && dejaPret,

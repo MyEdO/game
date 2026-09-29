@@ -1,0 +1,6 @@
+/* ══════════════════ NOM PROPRE mot à mot (`Nom.tsx`) ══════════════════
+   Un nom se coupe entre ses MOTS, jamais dans un mot composé (R-M2,
+   docs/plans/2026-08-16-spec-hud-combat.md:71-74) : chaque mot est une boîte insécable. */
+.nom-mot {
+  white-space: nowrap;
+}

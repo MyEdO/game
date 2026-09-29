@@ -24,8 +24,9 @@
      Q2) : la BANDE tient 17 % de la hauteur d'écran, le fronton s'y ajoute (22 % au plus). */
   --cc-bande: 17vh;
   /* ÉLÉVATION DU FRONTON au-dessus du liseré : le rapport 52/1080 de la planche (spec:237), jamais
-     plus de 52px. */
-  --cc-fronton: min(52px, 4.8vh);
+     plus de 52px — et jamais au-delà de ce que l'EMPREINTE (22 %) laisse au-dessus de la rangée de
+     cases : au doigt, la case garde sa cible et c'est le fronton qui cède. */
+  --cc-fronton: clamp(0px, 22vh - var(--cc-bande-rangee), min(52px, 4.8vh));
   --cc-gap: 4px;
   /* Écart entre RÉGIONS (travée · arche · travée · coin) : il découvre le pont, jamais le terrain. */
   --cc-bay-gap: clamp(10px, 2vw, 26px);
@@ -49,16 +50,20 @@
   /* ARCHE — ses grandeurs sont la SOURCE que `.cc-arch` et ses enfants consomment : rembourrages,
      écart entre ses rangs, piste de Blessures, ligne du nom gravé, largeur d'une gouttière, écart du
      corps, alvéole de la niche d'États et écart entre ses alvéoles. */
-  --cc-arch-pad-haut: 6px;
-  --cc-arch-pad-bas: 8px;
+  --cc-arch-pad-haut: var(--sp-sm);
+  --cc-arch-pad-bas: var(--sp-xs);
   --cc-arch-pad-flanc: 14px;
-  --cc-arch-ecart: 4px;
+  --cc-arch-ecart: var(--sp-xs);
   --cc-blessures-h: 15px;
-  --cc-arch-nom-h: 19px;
+  /* NOM : DEUX lignes RÉSERVÉES au corps de la ligne d'arche (R-M2, spec:71-74) — la hauteur de
+     l'arche ne dépend pas du nom de l'acteur (CombatConsole.tsx:51-53). */
+  /* Interligne NORMAL de la fonte d'affichage (`--font-display`) au corps de 11px du nom : 16px mesurés. */
+  --cc-arch-nom-ligne: 16px;
+  --cc-arch-nom-h: calc(2 * var(--cc-arch-nom-ligne));
   --cc-gouttiere: 36px;
-  --cc-arch-corps-ecart: 6px;
+  --cc-arch-corps-ecart: var(--sp-sm);
   --cc-alv: 17px;
-  --cc-niche-ecart: 2px;
+  --cc-niche-ecart: var(--sp-2xs);
   /* HABILLAGE de l'arche : ce qui, dans sa hauteur, n'est pas son corps. */
   --cc-arch-chrome: calc(var(--cc-arch-pad-haut) + var(--cc-arch-pad-bas) + 2 * var(--cc-arch-ecart) + var(--cc-blessures-h) + var(--cc-arch-nom-h) + var(--pont-liseret));
   /* FLANCS de l'arche : ce qui, dans sa largeur, n'est pas le portrait — deux rembourrages, deux
@@ -66,7 +71,7 @@
   --cc-arch-flancs: calc(2 * var(--cc-arch-pad-flanc) + 2 * var(--cc-gouttiere) + var(--cc-alv) + 3 * var(--cc-arch-corps-ecart));
   /* L'ARCHE tient toute la bande PLUS le fronton, liseré compris : sa hauteur est une donnée
      d'ENTRÉE (la hauteur d'écran), jamais la hauteur du pont — aucune boucle portrait ∝ pont. */
-  --cc-arch-h: calc(var(--cc-bande) + var(--cc-fronton) - var(--pont-liseret));
+  --cc-arch-h: calc(max(var(--cc-bande), var(--cc-bande-rangee)) + var(--cc-fronton) - var(--pont-liseret));
   /* RANGÉE — ce que la bande porte hors cases et hors arche : les deux marges, le coin, les neuf
      écarts de case (1 set · 2 arsenal · 1 accès rapide · 5 grille), quatre flancs de travée, et quatre
      écarts de région (arsenal | accès rapide, puis travée | arche | travée | coin). */
@@ -75,21 +80,18 @@
   /* Plafond de HAUTEUR du côté de case : deux rangées, leur écart et le socle dans la bande — jamais
      sous la cible de pointage. */
   --cc-cell-haut: max(var(--cc-cible), calc((var(--cc-bande) - var(--pont-liseret) - var(--cc-bay-socle) - var(--cc-gap)) / 2));
+  /* BANDE DE LA RANGÉE : deux rangées de cases au plafond de hauteur, leur écart, le socle et le
+     liseré — elle ne dépasse la bande que quand la case est à sa cible. */
+  --cc-bande-rangee: calc(2 * var(--cc-cell-haut) + var(--cc-gap) + var(--cc-bay-socle) + var(--pont-liseret));
   /* PORTRAIT (décision Q2) : ce que l'habillage laisse dans l'arche — une donnée d'écran. */
   --cc-portrait-haut: calc(var(--cc-arch-h) - var(--cc-arch-chrome));
   /* Portrait de VIGNETTE : celui de la ligne d'arche, et le plus petit visage. */
   --cc-portrait-vignette: 30px;
-  /* VISAGE : sur une fenêtre étroite, c'est la case qui cède la première, jusqu'à la cible de
-     pointage ; le visage ne descend sous ce plancher que quand la case est à sa cible. */
-  --cc-visage: 48px;
-  --cc-portrait-min: min(
+  /* PORTRAIT : sur une fenêtre étroite, c'est la CASE qui cède la première, jusqu'à sa cible de
+     pointage ; le portrait prend alors ce que la rangée laisse, jamais sous le portrait de vignette. */
+  --cc-portrait: min(
     var(--cc-portrait-haut),
-    clamp(var(--cc-portrait-vignette), calc(100vw - var(--cc-rangee-fixe) - var(--cc-arch-flancs) - var(--cc-colonnes) * var(--cc-cible)), var(--cc-visage))
-  );
-  --cc-portrait: clamp(
-    var(--cc-portrait-min),
-    calc(100vw - var(--cc-rangee-fixe) - var(--cc-arch-flancs) - var(--cc-colonnes) * var(--cc-cell-haut)),
-    var(--cc-portrait-haut)
+    max(var(--cc-portrait-vignette), calc(100vw - var(--cc-rangee-fixe) - var(--cc-arch-flancs) - var(--cc-colonnes) * var(--cc-cible)))
   );
   --cc-arch-w: calc(var(--cc-portrait) + var(--cc-arch-flancs));
   /* CÔTÉ DE CASE, UNIQUE (décision Q1) : le plus petit du plafond de hauteur et du plafond de
@@ -761,8 +763,7 @@
   /* Le portrait garde son carré en tête du corps : ce sont les gouttières qui en prennent la hauteur. */
   align-self: flex-start;
 }
-/* Le visage REMPLIT la tuile, liseré d'équipe compris dans sa boîte : posé à la taille nominale, il
-   la débordait de l'épaisseur du liseré. */
+/* Le visage REMPLIT la tuile, liseré d'équipe compris dans sa boîte. */
 .cc-arch .ptile-face,
 .cc-arch .rig-portrait {
   width: 100%;
@@ -776,12 +777,18 @@
   width: 100%;
   height: 100%;
 }
-/* Nom du porteur, gravé au pied de l'arche (spécimen D). Il ne cède jamais par ellipse : il
-   s'enroule au mot (R-M2, docs/plans/2026-08-16-spec-hud-combat.md:71-74). */
+/* Nom du porteur, gravé au pied de l'arche (spécimen D), dans ses deux lignes RÉSERVÉES : il
+   s'enroule au mot (primitive `Nom`), et au-delà de deux lignes il est coupé AU MOT par
+   `coupeAuMot` (CombatConsole.tsx) — jamais une ellipse au caractère (R-M2, spec:71-74). */
 .cc-arch-name {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: stretch;
+  height: var(--cc-arch-nom-h);
+  overflow: clip;
   font-family: var(--font-display);
-  font-size: 13px;
-  min-height: var(--cc-arch-nom-h);
+  font-size: 11px;
   letter-spacing: 0.4px;
   color: var(--atelier-brass-vif);
   text-align: center;
@@ -1242,8 +1249,10 @@ button.cc-socle svg {
   }
   /* Le nom garde son plus long mot (plancher `min-content`) : c'est la barre de Blessures qui cède. */
   .cc-arch-name {
-    font-size: 11px;
+    height: auto;
+    align-self: center;
     flex: 0 1 auto;
+    justify-content: flex-start;
     text-align: left;
   }
 }

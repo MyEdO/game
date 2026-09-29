@@ -95,16 +95,18 @@
 [data-zone='outils'] {
   grid-area: outils;
   container-type: size;
+  /* Conteneur de TAILLE, la zone ne voit plus son contenu : le plancher de son flanc est le rail —
+     une commande vissée (`--xd-row`), le rembourrage `md` de sa pile et le filet de sa plaque. */
+  min-width: calc(var(--xd-row) + 2 * var(--sp-md) + 2px);
 }
 /* La zone TEMPS porte, en combat, la frise d'initiative PUIS le fil d'événements, en une seule
    composition à toute largeur au-dessus de 560 : le fil sous la colonne de frise, au pied de la zone
    (planche 2026-08-17 : journal au pied, juste après la colonne de frise) ; hors combat, l'objectif.
-   Elle ne pèse sur aucune colonne (`contain`) : un fil long ou une bande qui déborde ne décentre
-   jamais le groupe. */
+   La piste de la frise et le plus long mot insécable du fil fixent le plancher de son flanc
+   (`min-content`) : c'est le centre qui cède. */
 [data-zone='temps'] {
   grid-area: temps;
   align-items: flex-start;
-  contain: inline-size;
 }
 /* PISTE DE LA FRISE : l'enveloppe prend ce que le fil laisse dans la zone, et c'est ELLE le conteneur
    où la frise borne sa piste (`cqh`, arrondie au pas d'entrée) — le fil, à la hauteur de son contenu,
@@ -167,6 +169,13 @@
 .hud-rail .ld-panel {
   top: calc(100% + var(--sp-sm));
   bottom: auto;
+}
+/* Dès 701, il tient dans la LARGEUR de sa zone (`100cqw`, moins le filet de la plaque du rail, au bord
+   intérieur duquel il s'ancre) : plus large, il pendait sur le bandeau du groupe. */
+@media (min-width: 701px) {
+  .hud-rail .ld-panel {
+    width: min(330px, calc(100cqw - 1px));
+  }
 }
 
 /* ── Barre HUD supérieure : menu ☰ et, HORS COMBAT, le lieu (design 2026-07-31 §11). UNE rangée
@@ -259,6 +268,10 @@
   [data-zone='outils'] {
     grid-row: champ;
     grid-column: flanc-d;
+  }
+  /* En BANDE pleine largeur, la zone ne dicte aucune colonne : sa piste défile. */
+  [data-zone='temps'] {
+    contain: inline-size;
   }
   [data-zone='temps'] > [data-piste='frise'] {
     flex: 0 0 auto;

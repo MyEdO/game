@@ -11,7 +11,8 @@ import { fileURLToPath } from 'node:url'
 import {
   admisAuRetour, CHEMIN_COUCHES, declarations, decoupeSelecteurs, estPlacement, FEUILLE_LAYOUT,
   FEUILLES_PARTAGEES, feuillesPartageesDe, fichiersReutilises, ligneDeVentilation, manifesteDe,
-  moduleHorsCouche, modulesExemptes, partitionCss, physique, reglesCss, valeurHorsEchelle, ventiler,
+  moduleHorsCouche, modulesExemptes, partitionCss, physique, reglesCss, sitesEspacementHorsEchelle, valeurHorsEchelle,
+  variablesHorsEchelle, ventiler,
 } from './cssCouches.mjs'
 import { regenerations } from './cssCouchesAudit.ts'
 import { CHEMIN_STOCK_CSS, COLLECTIONS_VENTILEES, ventilationDeGit } from './cssImages.mjs'
@@ -124,6 +125,14 @@ test('valeurHorsEchelle : un littéral de longueur NON NUL, et rien d’autre', 
   for (const v of ['0', 'auto', '0 auto', 'var(--sp-md)', 'calc(3 * var(--sp-md))', '50%', '2vw', '0px']) {
     assert.equal(valeurHorsEchelle(v), false, v)
   }
+})
+
+test('espacement : un littéral DÉPLACÉ dans une propriété du module reste hors échelle (#1806)', () => {
+  const text = ':root { --a: 14px; --b: calc(var(--a) + var(--sp-md)); --c: var(--sp-sm); }\n'
+    + '.x { padding: var(--a); gap: var(--b); margin: var(--c); }'
+  assert.deepEqual([...variablesHorsEchelle(text)].sort(), ['--a', '--b'])
+  const refs = sitesEspacementHorsEchelle([{ rel: 'm.css', text }]).map((s) => s.ref)
+  assert.deepEqual(refs, ['.x :: padding :: var(--a)', '.x :: gap :: var(--b)'])
 })
 
 test('reglesCss : une virgule DANS `:has()`/`:is()` ne coupe pas la liste (#1806)', () => {
@@ -276,11 +285,13 @@ test('D5″ : un renommage entre deux modules AU STOCK reporte les clés du pare
 
 const RACINE = fileURLToPath(new URL('../../..', import.meta.url))
 /** Les chiffres signés du juge (commentaire #1806 5803399612, 2026-09-23) ; RETOURNÉ mesuré sur le
- *  stock ÉCRIT au parent, que la règle de réutilisation (L1) rend en partie au stock. */
+ *  stock ÉCRIT au parent, que la règle de réutilisation (L1) rend en partie au stock — la mesure
+ *  d'espacement lit aussi les propriétés du module (`variablesHorsEchelle`) : ce stock écrit n'en
+ *  portait aucune, d'où 11 sites retournés de plus à chaque commit. */
 const ATTENDU = {
-  '41aa406d5': [[19, 0, 0, 19, 3, 227], [0, 0, 0, 0, 0, 77]],
-  'd25652e73': [[21, 0, 0, 21, 0, 450], [3, 0, 0, 3, 0, 133]],
-  'c251f46af': [[352, 0, 158, 194, 111, 0], [122, 0, 48, 74, 38, 0]],
+  '41aa406d5': [[19, 0, 0, 19, 3, 227], [0, 0, 0, 0, 0, 88]],
+  'd25652e73': [[21, 0, 0, 21, 0, 450], [3, 0, 0, 3, 0, 144]],
+  'c251f46af': [[352, 0, 158, 194, 111, 0], [122, 0, 48, 74, 38, 11]],
 }
 for (const [sha, [identite, espacement]] of Object.entries(ATTENDU)) {
   test(`D6″ commit cible ${sha}, lu dans l'histoire : aucun franchissement, la ventilation signée`, () => {

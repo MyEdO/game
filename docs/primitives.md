@@ -27,7 +27,7 @@ manifeste est invisible ici, et rien ne la révèle sauf le hook `new-src-file-g
 mord qu'à la CRÉATION d'un `.tsx` de `src/ui`/`src/gameIso` — un module `.ts`, un fichier antérieur
 au hook, ou une primitive née ailleurs n'y passent jamais.
 
-154 primitives.
+155 primitives.
 
 | Besoin | Primitive | Fichier | CSS possédé | Périmètre | Verrou |
 |---|---|---|---|---|---|
@@ -117,6 +117,7 @@ au hook, ou une primitive née ailleurs n'y passent jamais.
 | cadre de modale (voile + boîte en colonne : tête avec croix `croix`, bandeau sujet, corps défilant, pied `footer`) ; états `data-*` (voile, champ lisible, plein écran, taille, gangrène), a11y dialogue (focus initial `focusTarget`, piège Tab, congédiement) ; son emprunt du focus passe par `useFocusEmprunte` (`src/ui/focus.ts`) | `Modal` | `src/ui/Modal.tsx` | `src/ui/styles/modal.css` | toute fenêtre de dialogue : jet, décision, récapitulatif, planche de fiche, Codex en jeu | primitive-owners-guard.test.ts — aucune classe du cadre posée hors de lui ; css-modules-guard.test.ts §5.3 — aucune feuille tierce ne les vise |
 | bilan MULTI-JETS d’un même temps : portrait, libellé, ligne de jet, note | `MultiRollList` | `src/ui/MultiRollList.tsx` | `src/ui/styles/multi-roll-list.css` | nuit de repos, journée de voyage, conseil de bord, cascade globalisée | — |
 | axe contrôleur (qui tient, qui pilote, qui est jouée par l'IA) et quorum des sièges requis | `ownsLocally/pilotedByHuman/aiDriven/siegesRequis` | `src/state/netOwnership.ts` | — | gating de siège/coop | netOwnership.test.ts |
+| nom propre rendu MOT À MOT : chaque mot est une boîte insécable, le nom ne se coupe qu’entre ses mots (R-M2), jamais dans un mot composé | `Nom` | `src/ui/Nom.tsx` | `src/ui/styles/nom.css` | noms cités de `TeamSegments` (journal, récap, fil d’événements), nom gravé de l’arche de la console, légende des cartes du groupe | TeamSegments.test.tsx — chaque mot est une boîte insécable de nom.css |
 | jauge à CRANS (N/M) avec repère de seuil — quotas, Destin, avaries | `NotchGauge` | `src/ui/NotchGauge.tsx` | `src/ui/styles/gauges.css` | registre État, dossier de navire, bandes de quota | — |
 | champ nombre : variantes complet/champ/nu, bornes optionnelles, commit à la frappe ou au geste | `NumberField` | `src/ui/NumberField.tsx` | — | cascade, réglages de table, atelier du Codex, quantité de marché, dé forcé | réflexe avant toute saisie de nombre brute ; cliquet (xvii) de src/ui/ui-ratchets.test.ts |
 | objectif courant : tête repliable (texte, compte, échéance) et liste dépliée | `ObjectiveBanner` | `src/ui/ObjectiveBanner.tsx` | `src/ui/styles/objective-banner.css` | pile de contexte d'exploration du HUD | — |
@@ -185,4 +186,4 @@ au hook, ou une primitive née ailleurs n'y passent jamais.
 | identifiant et ordre canonique des trois vues (`View` en dérive) ; libellé d'affichage d'une vue, lu par les planches QC | `VIEWS/VIEW_LABEL` | `src/gameIso/rig/facing.ts` | — | tout art orienté, toute table ou liste de vues, les colonnes des planches QC | lectures-de-l-art-guard.test.ts (VIEWS), unions-canon.test.ts |
 | sceau de cire et plaque d’élu scellée | `WaxSeal/SealedPlaque` | `src/ui/WaxSeal.tsx` | — | tuiles de sélection, plaques d’élu | — |
 | rose des vents : direction + force du vent | `WindRose` | `src/ui/WindRose.tsx` | `src/ui/styles/gauges.css` | voyage en mer, dossier de navire | — |
-<!-- sources-empreinte: 2fb7397cb11a9d18804b1f6c9c7b2bff985fdcf8 (8 fichiers, 0 dossiers) corps: cba6d65ea77a2de71b624079f22b6a8fd657e609 -->
+<!-- sources-empreinte: 2fb7397cb11a9d18804b1f6c9c7b2bff985fdcf8 (8 fichiers, 0 dossiers) corps: 92d445c81bc245528bec16f5754afc59ad3b154a -->

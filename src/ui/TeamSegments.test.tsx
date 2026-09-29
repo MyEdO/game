@@ -18,7 +18,7 @@ describe('TeamSegments — un nom composé ne se coupe qu’entre ses mots', () 
     hote.innerHTML = renderToStaticMarkup(<TeamSegments segments={[{ text: 'Grunni Pierre-de-Fer', team: 'ally' }, { text: ' frappe.' }]} />);
     const nom = hote.querySelector('.nm-ally')!;
     expect(nom.textContent).toBe('Grunni Pierre-de-Fer');
-    const insecables = reglesCss(readFileSync(join(process.cwd(), 'src', 'ui', 'styles', 'team-segments.css'), 'utf8'))
+    const insecables = reglesCss(readFileSync(join(process.cwd(), 'src', 'ui', 'styles', 'nom.css'), 'utf8'))
       .filter((r) => declarations(r.corps).some((d) => d.prop === 'white-space' && d.valeur.trim() === 'nowrap'))
       .flatMap((r) => r.selecteurs);
     const mots = [...nom.querySelectorAll('*')].filter((el) => insecables.some((sel) => el.matches(sel))).map((el) => el.textContent);

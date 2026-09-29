@@ -69,6 +69,7 @@ export function feuillesPartageesDe(texte: string | null): string[];
 /** Le sélecteur NORMALISÉ d'une règle (espaces réduits, `@media` hors clé). */
 export function cleDeRegle(selecteurs: readonly string[]): string;
 export function sitesIdentiteEcran(fichiers: readonly Fichier[]): Site[];
+export function variablesHorsEchelle(text: string): Set<string>;
 export function sitesEspacementHorsEchelle(fichiers: readonly Fichier[]): Site[];
 export function modulesDePrimitive(manifeste: readonly EntreeManifeste[]): Set<string>;
 export function importeurCompte(chemin: string): boolean;

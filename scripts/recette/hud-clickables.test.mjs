@@ -5,7 +5,7 @@
 // rouge ne mesure rien, un détecteur sans cas vert crie sur tout.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { defauts, defautsCouche, recouvrementsEntreZones, defautsMatrice, defautsMatriceGroupe, defautsTactile, defautsCompacite, trancheMatrice } from './hud-clickables.mjs'
+import { defauts, defautsCouche, recouvrementsEntreZones, defautsMatrice, defautsMatriceGroupe, defautsTactile, defautsCompacite, trancheMatrice, defautsTexte, defautsImmobilite, defautsBudget, libellesAuPire } from './hud-clickables.mjs'
 
 /** Mesure de COMBAT sans aucun défaut (le cas vert de référence). */
 const combat = () => ({
@@ -781,4 +781,79 @@ test('AUCUNE commande rendue : la sonde se déclare AVEUGLE, elle ne se tait pas
   const m = couche()
   m.couche.commandes = []
   rougeCouche(m, /aucune commande rendue .* sonde aveugle/)
+})
+
+// ── C1c : classes de défaut qu'une passe de juge retrouvait et que la sonde ne voyait pas ──────────
+const textes = (x = {}) => ({ tranches: [], orphelins: [], journal: null, ...x })
+
+test('texte : aucun mot tranché, aucun numéro seul, journal entier — rien à dire', () => {
+  assert.deepEqual(defautsTexte({ largeur: 701, hauteur: 780, grossier: false, textes: textes() }, 'texte'), [])
+})
+
+test('texte : un mot COMPOSÉ sur deux lignes est tranché (R-M2) ; un mot rogné aussi', () => {
+  const m = { largeur: 701, hauteur: 780, grossier: true, textes: textes({ tranches: [
+    { mot: 'Pierre-de-Fer', ou: 'FIGCAPTION', comment: '2 lignes' },
+    { mot: 'ARBALÈTE', ou: 'cc-bay-head', comment: 'rogné par cc-bay-head' }] }) }
+  const d = defautsTexte(m, 'texte (tour de héros)')
+  assert.equal(d.length, 2)
+  assert.match(d[0], /701×780 \(doigt\) : le mot « Pierre-de-Fer » \(FIGCAPTION\) est tranché — 2 lignes/)
+  assert.match(d[1], /« ARBALÈTE » \(cc-bay-head\) est tranché — rogné/)
+})
+
+test('texte : un NUMÉRO seul sur sa ligne et une ligne du journal coupée par son bord sont nommés', () => {
+  const m = { largeur: 640, hauteur: 780, grossier: false, textes: textes({
+    orphelins: [{ ligne: '2', bloc: 'Début du Round / 2', ou: 'cc-phase-label' }],
+    journal: { champ: [73, 219], coupees: [{ texte: 'Grunni Pierre-de-Fer.', rect: { x: 1, y: 200, w: 2, h: 30 } }] } }) }
+  const d = defautsTexte(m, 'texte')
+  assert.equal(d.length, 2)
+  assert.match(d[0], /« 2 » reste seul sur sa ligne dans « Début du Round \/ 2 »/)
+  assert.match(d[1], /la ligne du journal « Grunni Pierre-de-Fer\. ».*coupée par le bord du panneau \[73,219\]/)
+})
+
+test('texte : relevé ABSENT — la sonde se déclare aveugle', () => {
+  unSeul(defautsTexte({ largeur: 360, hauteur: 740 }, 'texte'), /sonde aveugle sur les mots tranchés/)
+})
+
+test('immobilité : une boîte qui bouge de plus d’un demi-pixel d’un état à l’autre est un défaut ; ≤ 0,5 px, rien', () => {
+  const b = (y, h) => ({ x: 10, y, w: 200, h })
+  const releves = { 'souris 1707×780': {
+    'tour de héros': { arche: b(613, 167), bande: b(647, 133), frise: null, coin: b(650, 120) },
+    'nom le plus long': { arche: b(594, 186), bande: b(647, 133), frise: null, coin: b(650.5, 120) },
+    spectateur: { arche: b(613, 167), bande: b(647, 133), frise: null, coin: null } } }
+  const d = defautsImmobilite(releves)
+  assert.equal(d.length, 1, d.join(' | '))
+  assert.match(d[0], /immobilité souris 1707×780 : la boîte « arche » passe de .*\(tour de héros\) à .*\(nom le plus long\) — 19px/)
+})
+
+test('budget au DOIGT dès 701 : la bande dépasse 17 % case à sa cible, jamais l’empreinte 22 %', () => {
+  const m = { largeur: 1366, hauteur: 650, grossier: true, dock: { rect: { x: 0, y: 507, w: 1366, h: 143 },
+    bande: { x: 0, y: 518, w: 1366, h: 132 }, arche: { x: 575, y: 507, w: 214, h: 143 }, case: 44, cible: 44, portrait: 70, portraitHaut: 70 } }
+  assert.deepEqual(defautsBudget(m, 'budget'), [])
+  const haut = { ...m, dock: { ...m.dock, arche: { ...m.dock.arche, y: 489.8 } } }
+  unSeul(defautsBudget(haut, 'budget'), /1366×650px \(§12 >900, pointer: coarse\) : le pont, fronton compris, prend 24\.6 %/)
+  const souris = { ...m, grossier: false, dock: { ...m.dock, case: 33 } }
+  unSeul(defautsBudget(souris, 'budget'), /la bande du pont prend 20\.3 % de la hauteur \(plafond 17 % dès 701px\)/)
+})
+
+test('budget au DOIGT sous 701 : plafonds écrits 40 % (561–700) et 48 % (≤560)', () => {
+  const pont = (l, h, p) => ({ largeur: l, hauteur: h, grossier: true, dock: { rect: { x: 0, y: h - p, w: l, h: p } } })
+  assert.deepEqual(defautsBudget(pont(640, 780, 312), 'budget'), [])
+  unSeul(defautsBudget(pont(640, 650, 312), 'budget'), /le pont empilé prend 48\.0 % de la hauteur \(plafond 40 %\)/)
+  assert.deepEqual(defautsBudget(pont(360, 650, 312), 'budget'), [])
+  unSeul(defautsBudget(pont(360, 600, 312), 'budget'), /le pont compact prend 52\.0 % de la hauteur \(plafond 48 %\)/)
+})
+
+test('le VISAGE cède avant la case : portrait sous sa cote, case au-dessus de sa cible — défaut ; case à sa cible, rien', () => {
+  const m = { largeur: 900, hauteur: 780, grossier: false, dock: { rect: { x: 0, y: 613, w: 900, h: 167 },
+    bande: { x: 0, y: 647, w: 900, h: 132 }, arche: { x: 316, y: 613, w: 183, h: 167 }, case: 42.4, cible: 24, portrait: 48, portraitHaut: 108 } }
+  unSeul(defautsBudget(m, 'budget'), /le portrait de l'arche cède à 48px sous sa cote de 108px alors que la case \(42\.4px\) est au-dessus de sa cible \(24px\)/)
+  assert.deepEqual(defautsBudget({ ...m, dock: { ...m.dock, case: 24 } }, 'budget'), [])
+})
+
+test('libellés au PIRE : lus dans les données, du plus long au plus court ; le plus long nom composé', () => {
+  const r = libellesAuPire([{ label: 'Rat' }, { label: 'Chauve-souris vampire' }, { label: 'Mangeuse d’hommes géante' }],
+    { a: { label: 'Grunni Pierre-de-Fer' }, b: { name: 'Aelindra Feuille-d’Argent' }, c: { label: 'Sigmund Reikhardt Lang' } })
+  assert.deepEqual(r.creaturesParLongueur, ['Mangeuse d’hommes géante', 'Chauve-souris vampire', 'Rat'])
+  assert.equal(r.creatureComposee, 'Chauve-souris vampire')
+  assert.equal(r.heroCompose, 'Aelindra Feuille-d’Argent')
 })

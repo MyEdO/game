@@ -70,6 +70,7 @@
 //   · Dock >900 « disposition de référence » : aucun contrat propre hors bord à bord et hauteur.
 //
 // Sortie : exit 1 au premier défaut (liste complète imprimée), exit 0 si tout passe.
+import { readFileSync } from 'node:fs';
 import { openApp, evaluate, setViewport, sleep, clickButtonByText, cliquerSelecteur, cliquerAction, resoudreModales, attendreSelecteur, freezeTimeout, unfreezeTimeout, VUE_REFERENCE, VUES_RECETTE } from './lib.mjs';
 
 // Les trois largeurs étroites (700/560/360) portent les recouvrements ; les deux larges portent la
@@ -78,10 +79,14 @@ import { openApp, evaluate, setViewport, sleep, clickButtonByText, cliquerSelect
 // La plus large est la vue de RÉFÉRENCE (`vues-recette.json`), jamais un couple recopié (#1847).
 const DEFAULT_WIDTHS = [VUE_REFERENCE.largeur, 1100, 900, 700, 560, 360];
 const HEIGHT = VUE_REFERENCE.hauteur;
-/** Grille de la COUCHE : 7 largeurs (les vues de référence et les seuils canon 900 / 700 / 560, de
- *  part et d'autre) × les hauteurs de `vues-recette.json`. */
-export const LARGEURS_COUCHE = [1707, 1366, 1100, 900, 700, 560, 360];
+/** Grille de la COUCHE : les vues de référence, les DEUX côtés de chaque seuil (1279/1280, 900/901,
+ *  700/701, 560/561), 600 et 640 — où la zone `temps` est la plus étroite —, × les hauteurs de
+ *  `vues-recette.json`, × les deux pointeurs (`POINTEURS`). */
+export const LARGEURS_COUCHE = [1707, 1366, 1280, 1279, 1100, 901, 900, 701, 700, 640, 600, 561, 560, 360];
 export const HAUTEURS_COUCHE = [...new Set(Object.values(VUES_RECETTE).map((v) => v.hauteur))];
+/** Chaque vue de la couche se juge sous la souris ET au doigt (`pointer: coarse`, émulation CDP) :
+ *  les compositions du pont basculent au doigt à d'autres seuils (combat-console.css). */
+export const POINTEURS = ['souris', 'doigt'];
 
 function parseArgs(argv) {
   const out = { url: undefined, widths: DEFAULT_WIDTHS };
@@ -216,6 +221,19 @@ const PROBE = `(() => {
           rogne: +Math.max(0, rogne).toFixed(1), debord: +Math.max(0, debord).toFixed(1) });
       }
     }
+    // SURFACES PROFONDES : ce qu'une surface de zone PORTE et qui peint hors de sa boîte — la frise
+    // dans sa piste, le fil sous elle, le panneau du journal qui pend sous le rail, la bande du
+    // groupe. Chacune se juge contre la boîte de SA zone, comme une surface de premier rang.
+    for (const sel of ['.initiative-strip', '.combat-feed', '.ld-panel', '.party-dock']) {
+      const el = flotEl.querySelector(sel);
+      const z = el ? el.closest('[data-zone]') : null;
+      if (!el || !z || el.parentElement === z || !rendu(el)) continue;
+      const r = el.getBoundingClientRect(), rz = z.getBoundingClientRect();
+      const rogne = Math.max(rf.top - r.top, r.bottom - rf.bottom, rf.left - r.left, r.right - rf.right);
+      const debord = Math.max(rz.top - r.top, r.bottom - rz.bottom, rz.left - r.left, r.right - rz.right);
+      surfaces.push({ zone: z.dataset.zone, surface: sel.slice(1), rect: box(r), zoneRect: box(rz),
+        rogne: +Math.max(0, rogne).toFixed(1), debord: +Math.max(0, debord).toFixed(1), profonde: true });
+    }
     const commandes = [...flotEl.querySelectorAll('button'), ...(pontEl ? pontEl.querySelectorAll('button') : [])]
       .filter(rendu)
       .map((b) => {
@@ -233,6 +251,103 @@ const PROBE = `(() => {
       commandes,
     };
   })() : null;
+
+  // MOTS TRANCHÉS (R-M2, docs/plans/2026-08-16-spec-hud-combat.md:71-74) : chaque mot de la couche et
+  // du pont, mesuré par Range.getClientRects — un mot rendu sur deux lignes (trait d union compris)
+  // ou rogné par un ancêtre qui coupe sans défiler (ellipse au caractère) est TRANCHÉ. NUMÉRO SEUL :
+  // une ligne d un bloc de plusieurs lignes qui ne porte qu un nombre (« Round / 2 »). LIGNES DU
+  // JOURNAL (R-M3, :75-76) : au repos, aucune ligne du panneau ouvert n est coupée par son bord.
+  const textes = (() => {
+    const tranches = [];
+    const orphelins = [];
+    const blocs = new Map();
+    const blocDe = (el) => { for (let e = el; e; e = e.parentElement) { if (!getComputedStyle(e).display.startsWith('inline')) return e; } return el; };
+    const rogneur = (el) => {
+      for (let e = el; e && e !== document.body; e = e.parentElement) {
+        const s = getComputedStyle(e);
+        const o = s.overflowX + ' ' + s.overflowY;
+        if (/(auto|scroll)/.test(o)) return null;
+        if (/(hidden|clip)/.test(o)) return e;
+      }
+      return null;
+    };
+    const lignesDe = (rects) => {
+      const tops = rects.map((x) => x.top).sort((a, b) => a - b);
+      const h = Math.min(...rects.map((x) => x.height));
+      let n = 1;
+      for (let i = 1; i < tops.length; i++) if (tops[i] - tops[i - 1] > h / 2) n++;
+      return n;
+    };
+    for (const racine of [flotEl, pontEl].filter(Boolean)) {
+      const w = document.createTreeWalker(racine, NodeFilter.SHOW_TEXT);
+      for (let n = w.nextNode(); n; n = w.nextNode()) {
+        const parent = n.parentElement;
+        if (!parent || parent.closest('svg') || !rendu(parent)) continue;
+        const clip = rogneur(parent);
+        const cr = clip ? clip.getBoundingClientRect() : null;
+        if (cr && (cr.width < 2 || cr.height < 2)) continue;
+        const re = /\\S+/g;
+        for (let mm = re.exec(n.data); mm; mm = re.exec(n.data)) {
+          const r = document.createRange();
+          r.setStart(n, mm.index);
+          r.setEnd(n, mm.index + mm[0].length);
+          const rects = [...r.getClientRects()].filter((x) => x.width > 0.5 && x.height > 0.5);
+          if (!rects.length) continue;
+          const lignes = lignesDe(rects);
+          const b = r.getBoundingClientRect();
+          const visible = !cr || (b.right > cr.left + 0.5 && b.left < cr.right - 0.5 && b.bottom > cr.top + 0.5 && b.top < cr.bottom - 0.5);
+          // Rogné : coupé en LARGEUR (ellipse au caractère), ou en hauteur de plus du quart de sa ligne —
+          // la boîte d un glyphe dépasse d un pixel une ligne serrée sans que rien ne soit caché.
+          const rogne = !!cr && visible && (b.left < cr.left - 0.5 || b.right > cr.right + 0.5 || cr.top - b.top > b.height / 4 || b.bottom - cr.bottom > b.height / 4);
+          const ou = String(parent.className || parent.tagName).split(' ')[0];
+          if (lignes > 1) tranches.push({ mot: mm[0], ou, comment: lignes + ' lignes' });
+          else if (rogne) tranches.push({ mot: mm[0], ou, comment: 'rogné par ' + String(clip.className || clip.tagName).split(' ')[0] });
+          if (!visible) continue;
+          const bl = blocDe(parent);
+          if (!blocs.has(bl)) blocs.set(bl, []);
+          blocs.get(bl).push({ mot: mm[0], top: rects[0].top, h: rects[0].height });
+        }
+      }
+    }
+    for (const [bl, mots] of blocs) {
+      const h = Math.min(...mots.map((x) => x.h));
+      const lignes = [];
+      for (const m of [...mots].sort((a, b) => a.top - b.top)) {
+        const l = lignes.find((x) => Math.abs(x.top - m.top) <= h / 2);
+        if (l) l.mots.push(m.mot); else lignes.push({ top: m.top, mots: [m.mot] });
+      }
+      if (lignes.length < 2) continue;
+      for (const l of lignes) {
+        if (l.mots.every((x) => /^[0-9]+[.,:;!?]?$/.test(x))) orphelins.push({ ligne: l.mots.join(' '), bloc: lignes.map((x) => x.mots.join(' ')).join(' / '), ou: String(bl.className || bl.tagName).split(' ')[0] });
+      }
+    }
+    let journal = null;
+    const pj = document.querySelector('.ld-panel');
+    if (pj && rendu(pj)) {
+      const c = pj.getBoundingClientRect();
+      const haut = c.top + pj.clientTop, bas = haut + pj.clientHeight;
+      const coupees = [];
+      for (const l of pj.children) {
+        const r = l.getBoundingClientRect();
+        if (r.height < 0.5) continue;
+        if ((r.top < haut - 0.5 && r.bottom > haut + 0.5) || (r.bottom > bas + 0.5 && r.top < bas - 0.5)) {
+          coupees.push({ texte: (l.textContent || '').replace(/\\s+/g, ' ').trim().slice(0, 40), rect: box(r) });
+        }
+      }
+      journal = { champ: [+haut.toFixed(1), +bas.toFixed(1)], coupees };
+    }
+    return { tranches, orphelins, journal };
+  })();
+
+  // BOÎTES DE L IMMOBILITÉ (CombatConsole.tsx:51-53) : arche, bande, frise et coin, comparées d un état
+  // à l autre et d un nom à l autre (defautsImmobilite).
+  const boiteDe = (sel) => { const e = document.querySelector(sel); if (!e) return null; const r = e.getBoundingClientRect(); return r.width > 0.5 && r.height > 0.5 ? box(r) : null; };
+  const boites = {
+    arche: boiteDe('.stage > .combat-console .cc-arch'),
+    bande: boiteDe('.stage > .combat-console > .cc-dock'),
+    frise: boiteDe('.initiative-strip'),
+    coin: boiteDe('.stage > .combat-console .cc-corner'),
+  };
 
   // Frise : réserve de droite et VISIBILITÉ du cartouche de Round à fond de défilement. La mesure
   // déplace la piste puis la REMET où elle était — aucune trace pour les largeurs suivantes.
@@ -529,7 +644,14 @@ const PROBE = `(() => {
       scrollWidth: tiles.scrollWidth, clientWidth: tiles.clientWidth, bande: strip.clientWidth,
       defile: tiles.scrollWidth > tiles.clientWidth, tientDansLaBande: tiles.clientWidth <= strip.clientWidth,
     } : null,
-    dock: pont ? { rect: box(pont.getBoundingClientRect()), bande: box(rectOf('.combat-console > .cc-dock')), arche: box(rectOf('.combat-console .cc-arch')) } : null,
+    dock: pont ? { rect: box(pont.getBoundingClientRect()), bande: box(rectOf('.combat-console > .cc-dock')), arche: box(rectOf('.combat-console .cc-arch')),
+      case: (() => { const c = pont.querySelector('.cc-grid-right .cc-cell'); return c ? +c.getBoundingClientRect().width.toFixed(1) : null; })(),
+      cible: parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--cc-cible')) || null,
+      portrait: (() => { const p = pont.querySelector('.cc-arch .ptile'); return p ? +p.getBoundingClientRect().height.toFixed(1) : null; })(),
+      // Cote de HAUTEUR du portrait (--cc-portrait-haut), résolue par une sonde posée dans le pont.
+      portraitHaut: (() => { const e = document.createElement('div'); e.style.cssText = 'position:absolute;visibility:hidden;height:var(--cc-portrait-haut)'; pont.appendChild(e); const h = e.getBoundingClientRect().height; e.remove(); return +h.toFixed(1); })() } : null,
+    textes,
+    boites,
     tiroir,
     dockBtns,
   };
@@ -800,11 +922,99 @@ export function trancheMatrice(largeur) {
   return largeur > 900 ? '>900' : largeur > 700 ? '701–900' : largeur > 560 ? '561–700' : '<=560';
 }
 
-/** Plafonds de HAUTEUR du pont, en part du viewport : dès 701, la BANDE ≤ 17 % et l'EMPREINTE (bande +
- *  saillie du fronton) ≤ 22 % — décision d'écran Q2 du 2026-09-24 (#1806), sur le budget de
- *  docs/plans/2026-08-16-spec-hud-combat.md:24-26 ; 561-700, ligne d'arche et deux travées ≤ 25 %
- *  (verdict d'écran A3 du 2026-09-29) ; ≤560 → même Zone 1 (« cible ~40-45 % »). */
-export const BUDGET_PONT = { des: 701, bande: 0.17, empreinte: 0.22, ligne: { part: 0.25 }, compact: { part: 0.45 } };
+/** Plafonds de HAUTEUR du pont, en part du viewport (docs/plans/2026-08-16-spec-hud-combat.md,
+ *  Zone 1) : dès 701, la BANDE ≤ 17 % et l'EMPREINTE (bande + saillie du fronton) ≤ 22 %, à tout
+ *  pointeur — au doigt, seule la bande dépasse, quand la case est à sa cible ; 561-700 ≤ 25 % et
+ *  ≤560 ≤ 45 % sous la souris ; au doigt, où la case garde sa cible de 44px, 561-700 ≤ 40 % et ≤560
+ *  ≤ 48 %. */
+export const BUDGET_PONT = { des: 701, bande: 0.17, empreinte: 0.22, ligne: { part: 0.25 }, compact: { part: 0.45 }, doigt: { ligne: 0.40, compact: 0.48 } };
+
+/** Tolérance de l'IMMOBILITÉ, en px : une boîte du pont ou de la frise qui bouge de plus d'un
+ *  demi-pixel d'un état à l'autre, ou d'un nom à l'autre, a bougé. */
+export const TOLERANCE_IMMOBILE = 0.5;
+
+/**
+ * Défauts de BUDGET de hauteur du pont (`BUDGET_PONT`) sur UNE mesure, au pointeur qu'elle porte
+ * (`m.grossier`). PURE.
+ * @param {any} m mesure rendue par `PROBE` @param {string} phase libellé de l'état sondé
+ * @returns {string[]}
+ */
+export function defautsBudget(m, phase) {
+  const out = [];
+  if (!m.dock) return out;
+  const doigt = !!m.grossier;
+  const t = trancheMatrice(m.largeur);
+  const ou = `${phase} ${m.largeur}×${m.hauteur}px (§12 ${t}${doigt ? ', pointer: coarse' : ''})`;
+  if (m.largeur >= BUDGET_PONT.des) {
+    const b = m.dock.bande;
+    const a = m.dock.arche;
+    if (!b || !a) return [`${ou} : bande ou arche du pont absente — sonde aveugle sur le budget de hauteur`];
+    // LE VISAGE CÈDE APRÈS LA CASE (combat-console.css, `--cc-portrait`) : fronton surplombant la bande,
+    // un portrait sous sa cote de hauteur alors que la case est au-dessus de sa cible est un défaut.
+    const d = m.dock;
+    if (a.y < b.y - 0.5 && d.portrait != null && d.portraitHaut != null && d.case != null && d.cible != null
+      && d.portrait < d.portraitHaut - 0.5 && d.case > d.cible + 0.5) {
+      out.push(`${ou} : le portrait de l'arche cède à ${d.portrait}px sous sa cote de ${d.portraitHaut}px alors que la case (${d.case}px) est au-dessus de sa cible (${d.cible}px) — le visage cède avant la case`);
+    }
+    // La SAILLIE est ce dont l'arche dépasse la bande : le fronton COMPTE dans le budget.
+    const saillie = Math.max(0, b.y - a.y);
+    const bande = b.h / m.hauteur;
+    const part = (b.h + saillie) / m.hauteur;
+    const aSaCible = doigt && m.dock.case != null && m.dock.cible != null && m.dock.case <= m.dock.cible + 0.5;
+    if (bande > BUDGET_PONT.bande && !aSaCible) out.push(`${ou} : la bande du pont prend ${(100 * bande).toFixed(1)} % de la hauteur (plafond ${100 * BUDGET_PONT.bande} % dès ${BUDGET_PONT.des}px)`);
+    if (part > BUDGET_PONT.empreinte) out.push(`${ou} : le pont, fronton compris, prend ${(100 * part).toFixed(1)} % de la hauteur (plafond ${100 * BUDGET_PONT.empreinte} % dès ${BUDGET_PONT.des}px)`);
+    return out;
+  }
+  const part = m.dock.rect.h / m.hauteur;
+  const plafond = t === '561–700' ? (doigt ? BUDGET_PONT.doigt.ligne : BUDGET_PONT.ligne.part) : (doigt ? BUDGET_PONT.doigt.compact : BUDGET_PONT.compact.part);
+  const forme = t === '561–700' ? (doigt ? 'empilé' : "en ligne d'arche") : 'compact';
+  if (part > plafond) out.push(`${ou} : le pont ${forme} prend ${(100 * part).toFixed(1)} % de la hauteur (plafond ${Math.round(100 * plafond)} %)`);
+  return out;
+}
+
+/**
+ * Défauts de TEXTE sur UNE mesure (R-M2 et R-M3, docs/plans/2026-08-16-spec-hud-combat.md:71-76) :
+ * mot tranché, numéro seul sur sa ligne, ligne du journal coupée par son bord. PURE.
+ * @param {any} m mesure rendue par `PROBE` @param {string} phase libellé de l'état sondé
+ * @returns {string[]}
+ */
+export function defautsTexte(m, phase) {
+  const ou = `${phase} ${m.largeur}×${m.hauteur}${m.grossier ? ' (doigt)' : ''}`;
+  const t = m.textes;
+  if (!t) return [`${ou} : aucun relevé de texte — sonde aveugle sur les mots tranchés`];
+  return [
+    ...t.tranches.map((x) => `${ou} : le mot « ${x.mot} » (${x.ou}) est tranché — ${x.comment} (R-M2)`),
+    ...t.orphelins.map((x) => `${ou} : « ${x.ligne} » reste seul sur sa ligne dans « ${x.bloc} » (${x.ou})`),
+    ...(t.journal?.coupees ?? []).map((x) => `${ou} : la ligne du journal « ${x.texte} » ${JSON.stringify(x.rect)} est coupée par le bord du panneau ${JSON.stringify(t.journal.champ)} (R-M3)`),
+  ];
+}
+
+/**
+ * Défauts d'IMMOBILITÉ (CombatConsole.tsx:51-53, « je ne veux pas que la taille de l'interface ou les
+ * boutons bougent ») : à une même vue et un même pointeur, la boîte de l'arche, de la bande, de la
+ * frise et du coin est la MÊME dans chaque état relevé (tour du héros, nom le plus long, pause de
+ * Round, journal ouvert, tour adverse). Une boîte absente d'un état (coin en forme spectatrice) ne
+ * se compare pas. PURE.
+ * @param {Record<string, Record<string, Record<string, any>>>} releves vue → état → boîtes
+ * @returns {string[]}
+ */
+export function defautsImmobilite(releves) {
+  const out = [];
+  for (const [vue, etats] of Object.entries(releves)) {
+    const noms = Object.keys(etats);
+    if (noms.length < 2) continue;
+    const ref = noms[0];
+    for (const etat of noms.slice(1)) {
+      for (const [quoi, b] of Object.entries(etats[etat])) {
+        const a = etats[ref][quoi];
+        if (!a || !b) continue;
+        const d = Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y), Math.abs(a.w - b.w), Math.abs(a.h - b.h));
+        if (d > TOLERANCE_IMMOBILE) out.push(`immobilité ${vue} : la boîte « ${quoi} » passe de ${JSON.stringify(a)} (${ref}) à ${JSON.stringify(b)} (${etat}) — ${+d.toFixed(1)}px`);
+      }
+    }
+  }
+  return out;
+}
 
 /** Largeur minimale d'une tuile du groupe à <=560 : docs/plans/2026-08-16-spec-hud-combat.md:66-68
  *  (R-M1, « tuiles PLEINES à largeur minimale digne (portrait reconnaissable + PV lisibles, ≥44px) »). */
@@ -869,22 +1079,7 @@ export function defautsMatrice(m, phase) {
   if (m.dock) {
     const r = m.dock.rect;
     if (r.x > 0.5 || r.x + r.w < m.largeur - 0.5) out.push(`${ou} : le pont ne va pas de bord à bord (${r.x}..${+(r.x + r.w).toFixed(1)}px sur ${m.largeur}px)`);
-    if (m.largeur >= BUDGET_PONT.des) {
-      const b = m.dock.bande;
-      const a = m.dock.arche;
-      if (!b || !a) out.push(`${ou} : bande ou arche du pont absente — sonde aveugle sur le budget de hauteur`);
-      else {
-        // La SAILLIE est ce dont l'arche dépasse la bande : le fronton COMPTE dans le budget.
-        const saillie = Math.max(0, b.y - a.y);
-        const bande = b.h / m.hauteur;
-        const part = (b.h + saillie) / m.hauteur;
-        if (bande > BUDGET_PONT.bande) out.push(`${ou} : la bande du pont prend ${(100 * bande).toFixed(1)} % de la hauteur (plafond ${100 * BUDGET_PONT.bande} % dès ${BUDGET_PONT.des}px)`);
-        if (part > BUDGET_PONT.empreinte) out.push(`${ou} : le pont, fronton compris, prend ${(100 * part).toFixed(1)} % de la hauteur (plafond ${100 * BUDGET_PONT.empreinte} % dès ${BUDGET_PONT.des}px)`);
-      }
-    }
-    const part = r.h / m.hauteur;
-    if (t === '561–700' && part > BUDGET_PONT.ligne.part) out.push(`${ou} : le pont en ligne d'arche prend ${(100 * part).toFixed(1)} % de la hauteur (plafond ${100 * BUDGET_PONT.ligne.part} %)`);
-    if (t === '<=560' && part > BUDGET_PONT.compact.part) out.push(`${ou} : le pont compact prend ${(100 * part).toFixed(1)} % de la hauteur (plafond ${100 * BUDGET_PONT.compact.part} %)`);
+    out.push(...defautsBudget(m, phase));
     for (const b of m.dockBtns) {
       if (b.rendu && !b.entier) out.push(`${ou} : la case « ${b.label} » ${JSON.stringify(b.rect)} n'est pas entière dans l'écran`);
     }
@@ -953,26 +1148,82 @@ async function jugerGroupeDeplie(session, m, phase) {
   return out;
 }
 
+/** Signature de la géométrie que la sonde mesure : boîtes des surfaces, du pont et de la frise,
+ *  défilement de la piste, état des polices. Deux relevés identiques à 120ms d'écart = rendu STABLE. */
+const SIGNATURE = `(() => {
+  const r = (s) => [...document.querySelectorAll(s)].map((e) => { const b = e.getBoundingClientRect(); return [b.x, b.y, b.width, b.height].map((v) => Math.round(v * 2)).join(','); }).join(';');
+  const t = document.querySelector('.is-tiles');
+  const j = document.querySelector('.ld-panel');
+  return [document.fonts.status, r('.stage-flot [data-zone] > *, .initiative-strip, .is-cell, .combat-feed, .ld-panel, .stage > .combat-console, .cc-arch, .cc-dock'),
+    t ? t.scrollLeft + ',' + t.scrollTop : '', j ? j.scrollTop : ''].join('|');
+})()`;
+
 /**
- * La COUCHE HUD à chaque vue de sa grille (`HAUTEURS_COUCHE` × `LARGEURS_COUCHE`), dans l'état où
- * se trouve le jeu. Une ligne par vue, chaque défaut nommé.
+ * Attend un rendu STABLE avant de mesurer (déterminisme de la sonde) : polices chargées, et deux
+ * signatures successives identiques — la mise en vue de l'entrée au trait (`ramenerEnVue`) défile en
+ * `smooth`, et un délai fixe la mesurait en vol. Un rendu qui ne se pose pas est un DÉFAUT, jamais
+ * une mesure prise au hasard.
+ * @returns {Promise<string|null>} `null` si stable, sinon le défaut
+ */
+async function attendreStable(session, ou, { maxMs = 5000 } = {}) {
+  await sleep(150);
+  let avant = await evaluate(session, SIGNATURE);
+  for (let t = 0; t < maxMs; t += 120) {
+    await sleep(120);
+    const apres = await evaluate(session, SIGNATURE);
+    if (apres === avant && !apres.startsWith('loading')) return null;
+    avant = apres;
+  }
+  return `${ou} : le rendu ne se stabilise pas en ${maxMs}ms — sonde non déterministe`;
+}
+
+/** Pointeur de la session : le doigt est l'émulation tactile de CDP, qui fait répondre
+ *  `(pointer: coarse)`. */
+async function poserPointeur(session, pointeur) {
+  await session.rpc('Emulation.setTouchEmulationEnabled', pointeur === 'doigt' ? { enabled: true, maxTouchPoints: 5 } : { enabled: false });
+}
+
+/**
+ * La COUCHE HUD à chaque vue de sa grille (`POINTEURS` × `HAUTEURS_COUCHE` × `LARGEURS_COUCHE`), dans
+ * l'état où se trouve le jeu. Une ligne par vue, chaque défaut nommé. Juge aussi les TEXTES
+ * (`defautsTexte`) et, si `budget`, la hauteur du pont (`defautsBudget`) ; si `releves` est fourni,
+ * y consigne les boîtes de l'immobilité sous `pointeur largeur×hauteur` → `phase`.
  * @returns {Promise<string[]>}
  */
-async function jugerCouche(session, phase) {
+async function jugerCouche(session, phase, { releves = null, budget = false } = {}) {
   const out = [];
-  for (const h of HAUTEURS_COUCHE) {
-    for (const w of LARGEURS_COUCHE) {
-      await setViewport(session, w, h);
-      await sleep(450);
-      const m = await evaluate(session, PROBE);
-      const d = defautsCouche(m, `couche (${phase})`);
-      const c = m.couche;
-      console.log(`couche (${phase}) ${w}×${h} — pont ${c?.pont ? c.pont.h + 'px' + (c.pontAuBas ? ' au bas' : ' DÉCOLLÉ') : 'absent'}, ${c ? c.surfaces.length : 0} surface(s), ${c ? c.commandes.filter((b) => b.ok).length + '/' + c.commandes.length : 0} commande(s) atteinte(s)${c ? ', ' + c.commandes.filter((b) => b.exempte).length + ' exemptée(s)' : ''} → ${d.length ? d.length + ' défaut(s)' : 'OK'}`);
-      dire(d);
-      out.push(...d);
+  try {
+    for (const pointeur of POINTEURS) {
+      await poserPointeur(session, pointeur);
+      for (const h of HAUTEURS_COUCHE) {
+        for (const w of LARGEURS_COUCHE) {
+          await setViewport(session, w, h);
+          const instable = await attendreStable(session, `couche (${phase}) ${w}×${h} (${pointeur})`);
+          const m = await evaluate(session, PROBE);
+          const d = [...(instable ? [instable] : []), ...defautsCouche(m, `couche (${phase}, ${pointeur})`), ...defautsTexte(m, `texte (${phase})`),
+            ...(budget ? defautsBudget(m, `budget (${phase})`) : [])];
+          if (releves) (releves[`${pointeur} ${w}×${h}`] ??= {})[phase] = m.boites;
+          const c = m.couche;
+          console.log(`couche (${phase}, ${pointeur}) ${w}×${h} — pont ${c?.pont ? c.pont.h + 'px' + (c.pontAuBas ? ' au bas' : ' DÉCOLLÉ') : 'absent'}, ${c ? c.surfaces.length : 0} surface(s), ${c ? c.commandes.filter((b) => b.ok).length + '/' + c.commandes.length : 0} commande(s) atteinte(s)${c ? ', ' + c.commandes.filter((b) => b.exempte).length + ' exemptée(s)' : ''} → ${d.length ? d.length + ' défaut(s)' : 'OK'}`);
+          dire(d);
+          out.push(...d);
+        }
+      }
     }
+  } finally {
+    await poserPointeur(session, 'souris');
   }
   return out;
+}
+
+/** Libellés au PIRE, lus dans les données au lancement (jamais recopiés) : les libellés de créature
+ *  du plus long au plus court, et le plus long nom de pré-tiré composé à traits d'union. */
+export function libellesAuPire(creatures, pregens) {
+  const liste = (d) => (Array.isArray(d) ? d : Object.values(d));
+  const creaturesParLongueur = [...new Set(liste(creatures).map((c) => c.label).filter(Boolean))].sort((a, b) => b.length - a.length || a.localeCompare(b));
+  const creatureComposee = creaturesParLongueur.find((l) => l.includes('-')) ?? null;
+  const heroCompose = liste(pregens).map((p) => p.label ?? p.name).filter((n) => typeof n === 'string' && n.includes('-')).sort((a, b) => b.length - a.length || a.localeCompare(b))[0] ?? null;
+  return { creaturesParLongueur, creatureComposee, heroCompose };
 }
 
 /** Chaque défaut est NOMMÉ là où il est mesuré : un compte « 4 défaut(s) » ne dit rien, et le bilan
@@ -1047,7 +1298,43 @@ async function main() {
     await setViewport(session, VUE_REFERENCE.largeur, VUE_REFERENCE.hauteur);
     await sleep(300);
     await monterLeDock(session);
-    echecs.push(...await jugerCouche(session, 'tour de héros'));
+    const releves = {};
+    echecs.push(...await jugerCouche(session, 'tour de héros', { releves, budget: true }));
+    // NOMS AU PIRE (données réelles) : l'acteur au trait porte le plus long libellé de créature, les
+    // autres adversaires les suivants, un autre héros le plus long nom composé des pré-tirés. La
+    // boîte de l'arche, de la bande, de la frise et du coin ne bouge pas (`defautsImmobilite`).
+    const { creaturesParLongueur, creatureComposee, heroCompose } = libellesAuPire(
+      JSON.parse(readFileSync(new URL('../../src/data/creatures.json', import.meta.url), 'utf8')),
+      JSON.parse(readFileSync(new URL('../../src/data/pregens.json', import.meta.url), 'utf8')));
+    const nomsCourts = await evaluate(session, `(() => {
+      const b = window.__wfrp.store.getState().battle;
+      const longs = ${JSON.stringify(creaturesParLongueur)};
+      const actif = b.order[b.turn];
+      let k = 1;
+      let compose = ${JSON.stringify(heroCompose)};
+      const avant = Object.fromEntries(b.combatants.map((c) => [c.id, c.label]));
+      const combatants = b.combatants.map((c) => {
+        if (c.id === actif) return { ...c, label: longs[0] };
+        if (c.kind !== 'hero') return { ...c, label: longs[k++ % longs.length] };
+        if (compose) { const l = compose; compose = null; return { ...c, label: l }; }
+        return c;
+      });
+      window.__wfrp.store.setState({ battle: { ...b, combatants } });
+      return avant;
+    })()`);
+    echecs.push(...await jugerCouche(session, 'nom le plus long', { releves, budget: true }));
+    // … et le plus long libellé COMPOSÉ à traits d'union, au trait : un mot composé est insécable.
+    await evaluate(session, `(() => {
+      const b = window.__wfrp.store.getState().battle;
+      const actif = b.order[b.turn];
+      window.__wfrp.store.setState({ battle: { ...b, combatants: b.combatants.map((c) => (c.id === actif ? { ...c, label: ${JSON.stringify(creatureComposee)} } : c)) } });
+    })()`);
+    echecs.push(...await jugerCouche(session, 'nom composé', { releves, budget: true }));
+    await evaluate(session, `(() => {
+      const b = window.__wfrp.store.getState().battle;
+      const avant = ${JSON.stringify(nomsCourts)};
+      window.__wfrp.store.setState({ battle: { ...b, combatants: b.combatants.map((c) => ({ ...c, label: avant[c.id] ?? c.label })) } });
+    })()`);
     // PAUSE DE ROUND (juge de diff C1, B1) : le bandeau de phase se pose sur le parapet, dans la
     // rangée `reserve` de la couche — le fil ne doit pas y descendre. Mise en place par `__wfrp` (la
     // pause d'un Round suivant), levée aussitôt.
@@ -1056,7 +1343,7 @@ async function main() {
     if (!await evaluate(session, `!!document.querySelector('.combat-console > .cc-phase')`)) {
       throw new Error('pause de Round posée, mais aucun bandeau de phase sur le pont — sonde aveugle sur le fil × bandeau');
     }
-    echecs.push(...await jugerCouche(session, 'pause de Round'));
+    echecs.push(...await jugerCouche(session, 'pause de Round', { releves }));
     await evaluate(session, `window.__wfrp.store.setState({ pendingRoundStart: null })`);
     await sleep(300);
     await setViewport(session, VUE_REFERENCE.largeur, VUE_REFERENCE.hauteur);
@@ -1066,6 +1353,7 @@ async function main() {
     // d'IA. Son état React traverse les changements de largeur : un seul clic pour les six mesures.
     await cliquerSelecteur(session, '.log-drawer .ld-btn');
     await sleep(400);
+    echecs.push(...await jugerCouche(session, 'journal ouvert', { releves }));
     // Un NAVIRE de campagne : l'ouvreur d'écran du rail n'est monté qu'avec lui
     // (`src/ui/CampaignView.tsx`, `vessel &&`). Même couture que `__wfrp.scenario`
     // (`src/state/devtools.ts`, `sc.vessel`), valeur du scénario 14 (`14-voyage-maritime.ts`).
@@ -1109,15 +1397,19 @@ async function main() {
     })()`;
     for (const w of args.widths) {
       await setViewport(session, w, HEIGHT);
-      await sleep(400);
+      // Le trait rendu au PREMIER de l'ordre ramène la piste en tête en `smooth` : le second trait,
+      // donné avant que ce défilement ne se pose, était écrasé par lui (piste restée en tête, acteur
+      // au trait hors champ une passe sur deux). Chaque geste attend un rendu stable.
+      const avantTete = await attendreStable(session, `combat (au trait en bas) ${w}px, avant le trait en tête`);
       await evaluate(session, `window.__wfrp.turn(window.__wfrp.store.getState().battle.order[0])`);
-      await sleep(200);
+      const tete = await attendreStable(session, `combat (au trait en bas) ${w}px, trait en tête`);
+      if (avantTete || tete) echecs.push(...[avantTete, tete].filter(Boolean));
       const auTrait = await evaluate(session, AU_TRAIT_EN_BAS);
       if (!auTrait) throw new Error(`combat ${w}px : aucun combattant de l'ordre ne peut prendre le trait`);
-      await sleep(600);
+      const instable = await attendreStable(session, `combat (au trait en bas) ${w}px`);
       const m = await evaluate(session, PROBE);
       if (!m.frise) throw new Error(`combat ${w}px (au trait en bas) : aucune frise d'initiative`);
-      const d = defautsFrise(m, 'combat (au trait en bas)');
+      const d = [...(instable ? [instable] : []), ...defautsFrise(m, 'combat (au trait en bas)')];
       console.log(`combat (au trait en bas) ${w}px — ${auTrait} au trait, frise ${(m.frise.bande ? 'bande' : 'colonne')}, tête ${!m.frise.teteMesuree ? 'non mesurée' : (m.frise.teteDecouverte || m.frise.teteSurCartouche) ? 'DÉCOUVERTE' : 'couverte'}, pied ${!m.frise.piedMesure ? 'non mesuré' : m.frise.piedRogne ? 'DÉBORDE de ' + m.frise.piedRogne.debord + 'px (zone ' + m.frise.piedRogne.zone + 'px)' : 'entier'}, pas ${m.frise.pas ? m.frise.pas.min + '–' + m.frise.pas.max + 'px' : 'n/a'} → ${d.length ? d.length + ' défaut(s)' : 'OK'}`);
       dire(d);
       echecs.push(...d);
@@ -1182,7 +1474,11 @@ async function main() {
       await sleep(600);
       const spectateur = await evaluate(session, `!!document.querySelector(".combat-console[data-forme='spectatrice']")`);
       if (!spectateur) throw new Error('après « Fin du tour » confirmé, le pont n’est pas en forme spectatrice — tour adverse non atteint');
-      echecs.push(...await jugerCouche(session, 'spectateur'));
+      echecs.push(...await jugerCouche(session, 'spectateur', { releves }));
+      const immobile = defautsImmobilite(releves);
+      console.log(`immobilité — ${Object.keys(releves).length} vue(s) × ${POINTEURS.length} pointeur(s) comparées → ${immobile.length ? immobile.length + ' défaut(s)' : 'OK'}`);
+      dire(immobile);
+      echecs.push(...immobile);
     } finally {
       await unfreezeTimeout(session);
     }

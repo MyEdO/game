@@ -848,6 +848,16 @@
     "verrou": "—"
   },
   {
+    "id": "nom",
+    "type": "primitives.manifest",
+    "label": "Nom",
+    "fichier": "src/ui/Nom.tsx",
+    "css": "src/ui/styles/nom.css",
+    "concept": "nom propre rendu MOT À MOT : chaque mot est une boîte insécable, le nom ne se coupe qu’entre ses mots (R-M2), jamais dans un mot composé",
+    "perimetre": "noms cités de `TeamSegments` (journal, récap, fil d’événements), nom gravé de l’arche de la console, légende des cartes du groupe",
+    "verrou": "TeamSegments.test.tsx — chaque mot est une boîte insécable de nom.css"
+  },
+  {
     "id": "teamSegments",
     "type": "primitives.manifest",
     "label": "TeamSegments",

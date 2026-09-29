@@ -1,6 +1,8 @@
 import { useState, type CSSProperties } from 'react';
 import { useGame } from '../state/store';
 import { PortraitTile } from './PortraitTile';
+import { Nom } from './Nom';
+import { coupeAuMot } from '../lib/coupeAuMot.mjs';
 import { hpColor } from '../gameIso/teamColors';
 import type { Combatant } from '../engine/types';
 
@@ -10,6 +12,10 @@ const DOCK_RING = 'var(--atelier-brass-hover)';
 /** Alvéoles d'États réservées par tuile — GÉOMÉTRIE de la carte (planche 2026-08-17 : 1 colonne de
  *  3 cases dessinées). Le compte ne dépend jamais des États portés. */
 const DOCK_STATE_CELLS = 3;
+
+/** Borne du nom sous la carte, en signes (`coupeAuMot`) : ce que ses deux lignes portent à la carte
+ *  la plus étroite ; le nom entier reste dans l'infobulle de la tuile. */
+const NOM_CARTE_SIGNES = 28;
 
 /** Dock de compagnie composé de portraits complets. FICHE OUVERTE, la bande expose l'état en
  *  ATTRIBUT (`data-fiche`) ; le rang qu'il commande appartient à l'écran qui la monte (`hud.css`). La bande est
@@ -76,7 +82,7 @@ export function PartyDock({ heroes, targeting, onOpen }: PartyDockProps) {
           />
           {/* NOM VISIBLE sous la tuile (planche 2026-08-17 : la bande nomme chaque héros en
               permanence — l'interdit « nom au survol » est levé, spec §1c-bis). */}
-          <figcaption>{c.label}</figcaption>
+          <figcaption><Nom texte={coupeAuMot(c.label, NOM_CARTE_SIGNES)} /></figcaption>
         </figure>
       ))}
       </div>

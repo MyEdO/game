@@ -225,6 +225,16 @@
   color: var(--hud-frise-edge);
 }
 .is-score.lente { color: var(--muted); border-color: rgba(163, 147, 111, 0.5); }
+/* Les badges de PREMIER COUP et de PRÉ-EMPTION vivent DANS la boîte de l'entrée, posés sur le coin
+   bas de la vignette : une entrée qui en porte un garde la largeur des autres, et la frise ne
+   s'élargit pas en pause de Round (CombatConsole.tsx:51-53). */
+.is-first,
+.is-preempt {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  z-index: 3;
+}
 .is-first {
   font-size: 10px;
   background: rgba(255, 224, 102, 0.14);

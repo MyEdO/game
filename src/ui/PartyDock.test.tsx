@@ -30,8 +30,8 @@ describe('PartyDock', () => {
     const html = renderToStaticMarkup(<PartyDock heroes={[h1, h2]} onOpen={() => {}} />);
     expect(html).toContain('title="Gunnar — fiche du personnage"');
     expect(html).toContain('aria-label="Elsa — fiche du personnage"');
-    expect(html).toContain('<figcaption>Gunnar</figcaption>');
-    expect(html).toContain('<figcaption>Elsa</figcaption>');
+    expect(html).toContain('<figcaption><span><span class="nom-mot">Gunnar</span></span></figcaption>');
+    expect(html).toContain('<figcaption><span><span class="nom-mot">Elsa</span></span></figcaption>');
     // Balises retirées : ne reste que ce qu'un joueur LIT à l'écran.
     const visible = html.replace(/<[^>]*>/g, ' ');
     expect(visible).toContain('Gunnar');
@@ -146,8 +146,8 @@ describe('PartyDock — micro-rendu (sondes pixel du juge vision, 2026-08-17)', 
     const legende = ruleOf('.pd-track > figure > figcaption');
     expect(legende).not.toMatch(/(^|[;\s])height\s*:/);
     expect(legende).toMatch(/min-height:\s*1\.3em/);
-    // Deux lignes AU PLUS restent permises (R-M2 : coupe entre mots), mais plus réservées.
-    expect(legende).toMatch(/line-clamp:\s*2/);
+    // Deux lignes AU PLUS (R-M2 : coupe entre mots, `coupeAuMot`), jamais une ellipse au caractère.
+    expect(legende).not.toMatch(/text-overflow|line-clamp/);
     // Les cartes s'alignent par le HAUT de leur boîte : une légende plus courte ne remonte rien.
     expect(ruleOf('.pd-track')).toMatch(/align-items:\s*flex-start/);
   });

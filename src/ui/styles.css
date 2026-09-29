@@ -27,6 +27,7 @@
 @import './styles/multi-roll-list.css'; /* bilan multi-jets (MultiRollList) — APRÈS roll-line.css : `.mrl-roll .rm-roll-block` borne la ligne */
 @import './styles/reveal-body.css'; /* corps de révélation (RevealBody) : critique/imparfaite/mutation */
 @import './styles/vs-header.css'; /* en-tête d'opposition A→B (VsHeader) */
+@import './styles/nom.css'; /* nom propre mot à mot (Nom) */
 @import './styles/team-segments.css'; /* segments tonés par camp (TeamSegments) */
 @import './styles/combat-banner.css'; /* fil d'événements de combat (CombatBanner) */
 @import './styles/log-drawer.css'; /* journal de combat (LogDrawer, NarratedLine) : tiroir, commande de coin, ligne narrée */
