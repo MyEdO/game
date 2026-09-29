@@ -1,0 +1,44 @@
+exploration 1707px — 4 carte(s) sur 1 ligne(s), 4 portrait(s) rendu(s), marge morte objectif 0px → OK
+exploration 1100px — 4 carte(s) sur 1 ligne(s), 4 portrait(s) rendu(s), marge morte objectif 0px → OK
+exploration 900px — 4 carte(s) sur 1 ligne(s), 4 portrait(s) rendu(s), marge morte objectif 0px → OK
+exploration 700px — 4 carte(s) sur 1 ligne(s), 4 portrait(s) rendu(s), marge morte objectif 0px → 4 défaut(s)
+   · exploration 700px (§12 561–700) : la vie de la carte 0 du groupe n'est pas superposée à son portrait
+   · exploration 700px (§12 561–700) : la vie de la carte 1 du groupe n'est pas superposée à son portrait
+   · exploration 700px (§12 561–700) : la vie de la carte 2 du groupe n'est pas superposée à son portrait
+   · exploration 700px (§12 561–700) : la vie de la carte 3 du groupe n'est pas superposée à son portrait
+exploration 560px — bande REPLIÉE sur sa poignée (poignée atteignable), 0 portrait(s) rendu(s), marge morte objectif 0px → OK
+exploration (groupe déplié) 560px — 4 carte(s) sur 1 ligne(s), 4 portrait(s) cliquable(s) → OK
+exploration 360px — bande REPLIÉE sur sa poignée (poignée atteignable), 0 portrait(s) rendu(s), marge morte objectif 0px → OK
+exploration (groupe déplié) 360px — 4 carte(s) sur 1 ligne(s), 4 portrait(s) cliquable(s) → OK
+   · exploration 900px (§12 701–900) : la carte du groupe fait 88px, pas plus compacte que 88px à 1707px
+   · exploration 700px (§12 561–700) : la carte du groupe fait 88px, pas plus compacte que 88px à 1707px
+couche (exploration, souris) 701×780 — pont 49px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → 1 défaut(s)
+   · texte (exploration) 701×780 : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+couche (exploration, souris) 360×740 — pont 49px au bas, 4 surface(s), 5/5 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, souris) 1366×650 — pont 49px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → 1 défaut(s)
+   · texte (exploration) 1366×650 : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+couche (exploration, doigt) 701×780 — pont 51px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → 1 défaut(s)
+   · texte (exploration) 701×780 (doigt) : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+couche (exploration, doigt) 360×740 — pont 51px au bas, 4 surface(s), 5/5 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration, doigt) 1366×650 — pont 51px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → 1 défaut(s)
+   · texte (exploration) 1366×650 (doigt) : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+combat (pause) 1707px — frise colonne, tête couverte, pied entier → OK
+combat (pause) 1100px — frise colonne, tête couverte, pied entier → OK
+combat (pause) 900px — frise colonne, tête couverte, pied entier → OK
+combat (pause) 700px — frise colonne, tête couverte, pied entier → OK
+combat (pause) 560px — frise bande, tête non mesurée, pied non mesuré → OK
+combat (pause) 360px — frise bande, tête couverte, pied non mesuré → OK
+couche (ouverture, souris) 701×780 — pont 170px au bas, 7 surface(s), 15/20 commande(s) atteinte(s), 5 exemptée(s) → 1 défaut(s)
+   · texte (ouverture) 701×780 : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+couche (ouverture, souris) 360×740 — pont 280px au bas, 7 surface(s), 12/17 commande(s) atteinte(s), 5 exemptée(s) → OK
+couche (ouverture, souris) 1366×650 — pont 141.7px au bas, 7 surface(s), 14/20 commande(s) atteinte(s), 6 exemptée(s) → 1 défaut(s)
+   · texte (ouverture) 1366×650 : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+couche (ouverture, doigt) 701×780 — pont 183.6px au bas, 7 surface(s), 15/20 commande(s) atteinte(s), 5 exemptée(s) → 1 défaut(s)
+   · texte (ouverture) 701×780 (doigt) : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+couche (ouverture, doigt) 360×740 — pont 312px au bas, 7 surface(s), 12/17 commande(s) atteinte(s), 5 exemptée(s) → OK
+couche (ouverture, doigt) 1366×650 — pont 143px au bas, 7 surface(s), 14/20 commande(s) atteinte(s), 6 exemptée(s) → 1 défaut(s)
+   · texte (ouverture) 1366×650 (doigt) : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+  (mise en place : premier tour tenu par un héros — ✓ au tour de Klein Bürger)
+couche (tour de héros, souris) 701×780 — pont 170px au bas, 6 surface(s), 24/27 commande(s) atteinte(s), 3 exemptée(s) → 2 défaut(s)
+   · texte (tour de héros) 701×780 : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+   · texte (tour de héros) 701×780 : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
