@@ -1,0 +1,101 @@
+[
+ {
+  "id": "M1",
+  "fichier": "src/ui/Infobulle.tsx",
+  "avant": "080f8ed5167c9baef4e6cf8e7af63852afb15a4c",
+  "mute": "e9ed7f2d501d1ba26cf197a7b31ec0228e17f977",
+  "apres": "080f8ed5167c9baef4e6cf8e7af63852afb15a4c",
+  "identique": true,
+  "exit": 1,
+  "cible": "X1",
+  "rouges": [
+   "× X1 — après la fiche ouverte par la porte, le focus revient au contrôle de l’ancrage > depuis l’ancrage 134ms",
+   "× X1 — après la fiche ouverte par la porte, le focus revient au contrôle de l’ancrage > depuis un autre contrôle 22ms",
+   "× X1 — après la fiche ouverte par la porte, le focus revient au contrôle de l’ancrage > depuis body 21ms",
+   "FAIL  src/ui/Infobulle.test.tsx > X1 — après la fiche ouverte par la porte, le focus revient au contrôle de l’ancrage > depuis l’ancrage",
+   "AssertionError: depuis l’ancrage : après la fiche, le focus est au contrôle de l’ancrage: expected 'body' to be 'BUTTON«Affable ×2»' // Object.is equality",
+   "FAIL  src/ui/Infobulle.test.tsx > X1 — après la fiche ouverte par la porte, le focus revient au contrôle de l’ancrage > depuis un autre contrôle"
+  ]
+ },
+ {
+  "id": "M2",
+  "fichier": "src/ui/Infobulle.tsx",
+  "avant": "080f8ed5167c9baef4e6cf8e7af63852afb15a4c",
+  "mute": "a3bd60d8d4c7564b2627b6e83dca7ec407fad49e",
+  "apres": "080f8ed5167c9baef4e6cf8e7af63852afb15a4c",
+  "identique": true,
+  "exit": 1,
+  "cible": "X2",
+  "rouges": [
+   "× X2 — congédiée par Échap, la boîte ne se rouvre pas sur ce qui occupe encore l’ancrage > épinglée puis congédiée : un focus redonné sans départ ne la rouvre pas ; une entrée neuve, si 22ms",
+   "FAIL  src/ui/Infobulle.test.tsx > X2 — congédiée par Échap, la boîte ne se rouvre pas sur ce qui occupe encore l’ancrage > épinglée puis congédiée : un focus redonné sans départ ne la rouvre pas ; une entrée neuve, si",
+   "AssertionError: refocus sans départ : la boîte congédiée reste fermée: expected 1 to be +0 // Object.is equality"
+  ]
+ },
+ {
+  "id": "M3",
+  "fichier": "src/ui/focus.ts",
+  "avant": "71d81cbebf6cab33c889ec54aad7ecf695897452",
+  "mute": "800a836608c6ebaa1e0db43eb6cfc924f8c1db0f",
+  "apres": "71d81cbebf6cab33c889ec54aad7ecf695897452",
+  "identique": true,
+  "exit": 1,
+  "cible": "Q2DIAL",
+  "rouges": [
+   "× Q2DIAL — une origine sortie du document cède la place à celle de la surface qui la contenait > A fermé sous B : le focus reste dans B ; B fermé : le focus va au déclencheur de A 43ms",
+   "FAIL  src/ui/Infobulle.test.tsx > Q2DIAL — une origine sortie du document cède la place à celle de la surface qui la contenait > A fermé sous B : le focus reste dans B ; B fermé : le focus va au déclencheur de A",
+   "AssertionError: B fermé : le focus va au déclencheur de A, jamais à body: expected 'body' to be 'BUTTON«Déclencheur»' // Object.is equality"
+  ]
+ },
+ {
+  "id": "M4",
+  "fichier": "src/ui/BoiteAncree.tsx",
+  "avant": "d5a55c9a50ec00dc4387da1feb9523622fdf0e98",
+  "mute": "90453f7b5eb7e157ae842e042605b37b5ec0c3ed",
+  "apres": "d5a55c9a50ec00dc4387da1feb9523622fdf0e98",
+  "identique": true,
+  "exit": 1,
+  "cible": "B2 / commit d’ouverture",
+  "rouges": [
+   "× usePlacementAncre — le placement naît au commit d’ouverture > le commit qui reçoit l’ancrage porte déjà la boîte placée 48ms",
+   "× usePlacementAncre — le placement naît au commit d’ouverture > un ancrage détaché du document ne pose aucune boîte 14ms",
+   "× usePlacementAncre — le placement naît au commit d’ouverture > rendu serveur : aucun avertissement d’effet de mise en page 5ms",
+   "FAIL  src/ui/BoiteAncree.test.tsx > usePlacementAncre — le placement naît au commit d’ouverture > le commit qui reçoit l’ancrage porte déjà la boîte placée",
+   "AssertionError: un effet du commit d’ouverture trouve la boîte: expected [ Array(1) ] to deeply equal [ Array(1) ]",
+   "FAIL  src/ui/BoiteAncree.test.tsx > usePlacementAncre — le placement naît au commit d’ouverture > le commit qui reçoit l’ancrage porte déjà la boîte placée"
+  ]
+ },
+ {
+  "id": "M5",
+  "fichier": "src/ui/BoiteAncree.tsx",
+  "avant": "d5a55c9a50ec00dc4387da1feb9523622fdf0e98",
+  "mute": "740fe94aa11dfae77018700cec6dd0aef1798710",
+  "apres": "d5a55c9a50ec00dc4387da1feb9523622fdf0e98",
+  "identique": true,
+  "exit": 1,
+  "cible": "F11 ancrage détaché",
+  "rouges": [
+   "× usePlacementAncre — le placement naît au commit d’ouverture > un ancrage détaché du document ne pose aucune boîte 18ms",
+   "× usePlacementAncre — le placement naît au commit d’ouverture > rendu serveur : aucun avertissement d’effet de mise en page 5ms",
+   "FAIL  src/ui/BoiteAncree.test.tsx > usePlacementAncre — le placement naît au commit d’ouverture > un ancrage détaché du document ne pose aucune boîte",
+   "AssertionError: ancrage hors du document : aucune boîte: expected <div …(2)></div> to be null",
+   "FAIL  src/ui/BoiteAncree.test.tsx > usePlacementAncre — le placement naît au commit d’ouverture > un ancrage détaché du document ne pose aucune boîte",
+   "FAIL  src/ui/BoiteAncree.test.tsx > usePlacementAncre — le placement naît au commit d’ouverture > rendu serveur : aucun avertissement d’effet de mise en page"
+  ]
+ },
+ {
+  "id": "M6",
+  "fichier": "src/ui/BoiteAncree.tsx",
+  "avant": "d5a55c9a50ec00dc4387da1feb9523622fdf0e98",
+  "mute": "e87a0ccaab73e1e68444f053f45225757c0b67e7",
+  "apres": "d5a55c9a50ec00dc4387da1feb9523622fdf0e98",
+  "identique": true,
+  "exit": 1,
+  "cible": "E2 rendu serveur",
+  "rouges": [
+   "× usePlacementAncre — le placement naît au commit d’ouverture > rendu serveur : aucun avertissement d’effet de mise en page 16ms",
+   "FAIL  src/ui/BoiteAncree.test.tsx > usePlacementAncre — le placement naît au commit d’ouverture > rendu serveur : aucun avertissement d’effet de mise en page",
+   "AssertionError: expected [ Array(1) ] to deeply equal []"
+  ]
+ }
+]

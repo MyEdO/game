@@ -1,0 +1,15 @@
+## Publication f843bbc84
+
+Plage publiée : `53e50ddac → f843bbc84` sur `main`.
+
+### Commits (2)
+- `d25652e73` refactor(ui): refs #1806 #1835 — grand titre en couche partagée, famille Combat à zéro au stock
+- `f843bbc84` chore(docs): refs #1806 refs #1835 — docs dérivés
+
+### CI
+- verte — course `35526991650` : https://github.com/cgauche/game/actions/runs/35526991650
+- attente du verdict CI : 11.3 min (temps d’attente, pas de machine locale).
+
+#1806 est rattaché (`refs`) par cette publication, non fermé.
+
+<!-- publier: f843bbc842f3bd90d347113f38bb4db3d3edf31b -->

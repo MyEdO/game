@@ -1,0 +1,5 @@
+REFUS : /home/user/game/.wt-1919-H2/scripts/guards/lib/cssCouchesStock.mjs : CSS_IDENTITE_ECRAN_RATCHET porte 1 entrée(s) NEUVE(S) ou ACCRUE(S) au regard du stock en place (1751 entrée(s)) :
+   :: src/ui/styles/combat-console.css :: .cc-arch-name :: line-height :: 1
+
+Cet outil ne peut qu'écrire un stock PLUS PETIT. Une classe d'écran qui PEINT se corrige en portant son aspect dans le module de sa primitive, elle ne s'entérine pas ici.
+Relancer : npx tsx scripts/guards/lib/regenStock.mts scripts/guards/lib/cssCouchesAudit.ts

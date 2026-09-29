@@ -1,0 +1,11 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1806-L2
+
+ ✓ src/coupe-au-caractere-guard.test.ts (7 tests | 6 skipped) 38ms 393 MB heap used
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 6 skipped (7)
+   Start at  18:12:33
+   Duration  15.00s (transform 9.01s, setup 13.93s, collect 526ms, tests 38ms, environment 0ms, prepare 67ms)
+

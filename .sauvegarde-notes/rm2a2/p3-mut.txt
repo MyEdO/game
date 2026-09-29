@@ -1,0 +1,39 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1806-L1
+
+ ❯ src/ui/Infobulle.test.tsx (6 tests | 1 failed) 239ms 445 MB heap used
+   × DÉLÉGATION — un seul jeu d’écouteurs du document pour la couche, quel que soit le nombre d’ancrages > 1, 10 et 50 ancrages montés posent le même nombre d’écouteurs, et le démontage les retire tous 37ms
+     → expected [ 7, 70, 350 ] to deeply equal [ 7, 7, 7 ]
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/ui/Infobulle.test.tsx > DÉLÉGATION — un seul jeu d’écouteurs du document pour la couche, quel que soit le nombre d’ancrages > 1, 10 et 50 ancrages montés posent le même nombre d’écouteurs, et le démontage les retire tous
+AssertionError: expected [ 7, 70, 350 ] to deeply equal [ 7, 7, 7 ]
+
+- Expected
++ Received
+
+  Array [
+    7,
+-   7,
+-   7,
++   70,
++   350,
+  ]
+
+ ❯ src/ui/Infobulle.test.tsx:178:19
+    176|     });
+    177|     expect(poses[0]).toBeGreaterThan(0);
+    178|     expect(poses).toEqual([poses[0], poses[0], poses[0]]);
+       |                   ^
+    179|   });
+    180| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 5 passed (6)
+   Start at  12:57:53
+   Duration  18.15s (transform 11.21s, setup 12.74s, collect 4.18s, tests 239ms, environment 600ms, prepare 59ms)
+

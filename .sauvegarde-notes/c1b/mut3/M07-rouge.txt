@@ -1,0 +1,34 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1919-H2
+
+ ❯ src/ui/CombatConsole.test.tsx (151 tests | 1 failed | 150 skipped) 37ms 449 MB heap used
+   × CombatConsole — budget de hauteur du pont (arbitrage user 2026-08-17, décision d’écran 2026-09-24) > F-2 — l’alvéole est CARRÉE, son côté ne casse pas entre 900 et 901, et ne descend jamais sous la cible 36ms
+     → expected '40px' to be null
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 150 skipped (151)
+   Start at  01:58:47
+   Duration  19.30s (transform 11.85s, setup 13.02s, collect 5.14s, tests 37ms, environment 706ms, prepare 63ms)
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/ui/CombatConsole.test.tsx > CombatConsole — budget de hauteur du pont (arbitrage user 2026-08-17, décision d’écran 2026-09-24) > F-2 — l’alvéole est CARRÉE, son côté ne casse pas entre 900 et 901, et ne descend jamais sous la cible
+AssertionError: expected '40px' to be null
+
+- Expected: 
+null
+
++ Received: 
+"40px"
+
+ ❯ src/ui/CombatConsole.test.tsx:2160:97
+    2158|     expect(CC_CSS, 'un côté de case à deux dimensions survit').not.toM…
+    2159|     // Une formule de 701 à toute largeur : aucune tranche ne redéclar…
+    2160|     expect(decl(ruleOf(mediaBlock(CC_CSS, '@media (max-width: 700px)')…
+       |                                                                                                 ^
+    2161|     expect(Math.abs(cote(901, 780) - cote(900, 780)), 'le côté casse e…
+    2162|     // À la vue la plus étroite de la rangée, c'est la CASE qui cède, …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+

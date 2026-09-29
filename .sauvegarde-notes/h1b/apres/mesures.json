@@ -1,0 +1,3970 @@
+{
+ "exploration-360x740": {
+  "vue": [
+   360,
+   740
+  ],
+  "surfaces": {
+   "topbar": [
+    4,
+    4,
+    352,
+    42
+   ],
+   "groupe": [
+    99.8,
+    50,
+    160.5,
+    27
+   ],
+   "frise": null,
+   "fil": null,
+   "ouverture": null,
+   "rail": null,
+   "journal": null,
+   "objectif": [
+    4,
+    81,
+    309.6,
+    45
+   ],
+   "pont": [
+    0,
+    691,
+    360,
+    49
+   ],
+   "flot": [
+    0,
+    0,
+    360,
+    691
+   ],
+   "phasePont": null
+  },
+  "zones": [
+   {
+    "zone": "contexte",
+    "r": [
+     4,
+     4,
+     352,
+     42
+    ]
+   },
+   {
+    "zone": "groupe",
+    "r": [
+     99.8,
+     50,
+     160.5,
+     27
+    ]
+   },
+   {
+    "zone": "temps",
+    "r": [
+     4,
+     81,
+     352,
+     602
+    ]
+   },
+   {
+    "zone": "parole",
+    "r": [
+     4,
+     683,
+     352,
+     0
+    ]
+   }
+  ],
+  "lieu": {
+   "texte": "Du Sang sur la Route — scène de test",
+   "r": [
+    52,
+    13.5,
+    210.8,
+    23
+   ],
+   "lignes": null,
+   "scrollW": 211,
+   "clientW": 211
+  },
+  "journalSur": null,
+  "debords": [],
+  "rows": "[haut] 42px [bande] 27px [champ] 602px [reserve] 0px",
+  "cols": "[flanc-g] 172px [centre] 0px [flanc-d] 172px",
+  "pontBasAuBord": 0,
+  "debordPage": false,
+  "boutons": 5,
+  "inatteignables": []
+ },
+ "exploration-700x780": {
+  "vue": [
+   700,
+   780
+  ],
+  "surfaces": {
+   "topbar": [
+    4,
+    4,
+    692,
+    42
+   ],
+   "groupe": [
+    151,
+    50,
+    398,
+    123.6
+   ],
+   "frise": null,
+   "fil": null,
+   "ouverture": null,
+   "rail": null,
+   "journal": null,
+   "objectif": [
+    4,
+    177.6,
+    360.7,
+    30
+   ],
+   "pont": [
+    0,
+    731,
+    700,
+    49
+   ],
+   "flot": [
+    0,
+    0,
+    700,
+    731
+   ],
+   "phasePont": null
+  },
+  "zones": [
+   {
+    "zone": "contexte",
+    "r": [
+     4,
+     4,
+     692,
+     42
+    ]
+   },
+   {
+    "zone": "groupe",
+    "r": [
+     151,
+     50,
+     398,
+     123.6
+    ]
+   },
+   {
+    "zone": "temps",
+    "r": [
+     4,
+     177.6,
+     692,
+     545.4
+    ]
+   },
+   {
+    "zone": "parole",
+    "r": [
+     4,
+     723,
+     692,
+     0
+    ]
+   }
+  ],
+  "lieu": {
+   "texte": "Du Sang sur la Route — scène de test",
+   "r": [
+    52,
+    13.5,
+    210.8,
+    23
+   ],
+   "lignes": null,
+   "scrollW": 211,
+   "clientW": 211
+  },
+  "journalSur": null,
+  "debords": [],
+  "rows": "[haut] 42px [bande] 123.594px [champ] 545.406px [reserve] 0px",
+  "cols": "[flanc-g] 342px [centre] 0px [flanc-d] 342px",
+  "pontBasAuBord": 0,
+  "debordPage": false,
+  "boutons": 8,
+  "inatteignables": []
+ },
+ "exploration-900x780": {
+  "vue": [
+   900,
+   780
+  ],
+  "surfaces": {
+   "topbar": [
+    8,
+    8,
+    235,
+    46
+   ],
+   "groupe": [
+    251,
+    8,
+    398,
+    123.6
+   ],
+   "frise": null,
+   "fil": null,
+   "ouverture": null,
+   "rail": null,
+   "journal": null,
+   "objectif": [
+    8,
+    62,
+    235,
+    45
+   ],
+   "pont": [
+    0,
+    731,
+    900,
+    49
+   ],
+   "flot": [
+    0,
+    0,
+    900,
+    731
+   ],
+   "phasePont": null
+  },
+  "zones": [
+   {
+    "zone": "contexte",
+    "r": [
+     8,
+     8,
+     235,
+     46
+    ]
+   },
+   {
+    "zone": "groupe",
+    "r": [
+     251,
+     8,
+     398,
+     123.6
+    ]
+   },
+   {
+    "zone": "temps",
+    "r": [
+     8,
+     62,
+     235,
+     653
+    ]
+   },
+   {
+    "zone": "parole",
+    "r": [
+     8,
+     715,
+     884,
+     0
+    ]
+   }
+  ],
+  "lieu": {
+   "texte": "Du Sang sur la Route — scène de test",
+   "r": [
+    56,
+    8,
+    187,
+    46
+   ],
+   "lignes": null,
+   "scrollW": 187,
+   "clientW": 187
+  },
+  "journalSur": null,
+  "debords": [],
+  "rows": "[haut] 46px [bande] 69.5938px [champ] 575.406px [reserve] 0px",
+  "cols": "[flanc-g] 235px [centre] 398px [flanc-d] 235px",
+  "pontBasAuBord": 0,
+  "debordPage": false,
+  "boutons": 8,
+  "inatteignables": []
+ },
+ "exploration-1366x650": {
+  "vue": [
+   1366,
+   650
+  ],
+  "surfaces": {
+   "topbar": [
+    8,
+    8,
+    468,
+    42
+   ],
+   "groupe": [
+    484,
+    8,
+    398,
+    123.6
+   ],
+   "frise": null,
+   "fil": null,
+   "ouverture": null,
+   "rail": null,
+   "journal": null,
+   "objectif": [
+    8,
+    58,
+    360.7,
+    30
+   ],
+   "pont": [
+    0,
+    601,
+    1366,
+    49
+   ],
+   "flot": [
+    0,
+    0,
+    1366,
+    601
+   ],
+   "phasePont": null
+  },
+  "zones": [
+   {
+    "zone": "contexte",
+    "r": [
+     8,
+     8,
+     468,
+     42
+    ]
+   },
+   {
+    "zone": "groupe",
+    "r": [
+     484,
+     8,
+     398,
+     123.6
+    ]
+   },
+   {
+    "zone": "temps",
+    "r": [
+     8,
+     58,
+     468,
+     527
+    ]
+   },
+   {
+    "zone": "parole",
+    "r": [
+     8,
+     585,
+     1350,
+     0
+    ]
+   }
+  ],
+  "lieu": {
+   "texte": "Du Sang sur la Route — scène de test",
+   "r": [
+    56,
+    17.5,
+    210.8,
+    23
+   ],
+   "lignes": null,
+   "scrollW": 211,
+   "clientW": 211
+  },
+  "journalSur": null,
+  "debords": [],
+  "rows": "[haut] 42px [bande] 73.5938px [champ] 445.406px [reserve] 0px",
+  "cols": "[flanc-g] 468px [centre] 398px [flanc-d] 468px",
+  "pontBasAuBord": 0,
+  "debordPage": false,
+  "boutons": 8,
+  "inatteignables": []
+ },
+ "exploration-1707x780": {
+  "vue": [
+   1707,
+   780
+  ],
+  "surfaces": {
+   "topbar": [
+    8,
+    8,
+    638.5,
+    42
+   ],
+   "groupe": [
+    654.5,
+    8,
+    398,
+    123.6
+   ],
+   "frise": null,
+   "fil": null,
+   "ouverture": null,
+   "rail": null,
+   "journal": null,
+   "objectif": [
+    8,
+    58,
+    360.7,
+    30
+   ],
+   "pont": [
+    0,
+    731,
+    1707,
+    49
+   ],
+   "flot": [
+    0,
+    0,
+    1707,
+    731
+   ],
+   "phasePont": null
+  },
+  "zones": [
+   {
+    "zone": "contexte",
+    "r": [
+     8,
+     8,
+     638.5,
+     42
+    ]
+   },
+   {
+    "zone": "groupe",
+    "r": [
+     654.5,
+     8,
+     398,
+     123.6
+    ]
+   },
+   {
+    "zone": "temps",
+    "r": [
+     8,
+     58,
+     638.5,
+     657
+    ]
+   },
+   {
+    "zone": "parole",
+    "r": [
+     8,
+     715,
+     1691,
+     0
+    ]
+   }
+  ],
+  "lieu": {
+   "texte": "Du Sang sur la Route — scène de test",
+   "r": [
+    56,
+    17.5,
+    210.8,
+    23
+   ],
+   "lignes": null,
+   "scrollW": 211,
+   "clientW": 211
+  },
+  "journalSur": null,
+  "debords": [],
+  "rows": "[haut] 42px [bande] 73.5938px [champ] 575.406px [reserve] 0px",
+  "cols": "[flanc-g] 638.5px [centre] 398px [flanc-d] 638.5px",
+  "pontBasAuBord": 0,
+  "debordPage": false,
+  "boutons": 8,
+  "inatteignables": []
+ },
+ "clic-vide-exploration": {
+  "x": 846.92,
+  "y": 292.5,
+  "tag": "svg",
+  "cls": "iso-stage",
+  "recu": "svg.iso-stage"
+ },
+ "volet-360": [
+  {
+   "tuile": [
+    44,
+    62
+   ],
+   "chiffre": "12/12",
+   "police": "9px",
+   "visible": true
+  },
+  {
+   "tuile": [
+    44,
+    62
+   ],
+   "chiffre": "16/16",
+   "police": "9px",
+   "visible": true
+  },
+  {
+   "tuile": [
+    44,
+    62
+   ],
+   "chiffre": "14/14",
+   "police": "9px",
+   "visible": true
+  },
+  {
+   "tuile": [
+    44,
+    62
+   ],
+   "chiffre": "10/10",
+   "police": "9px",
+   "visible": true
+  }
+ ],
+ "exploration-journal-360x740": {
+  "vue": [
+   360,
+   740
+  ],
+  "surfaces": {
+   "topbar": [
+    4,
+    4,
+    352,
+    42
+   ],
+   "groupe": [
+    99.8,
+    50,
+    160.5,
+    27
+   ],
+   "frise": null,
+   "fil": null,
+   "ouverture": null,
+   "rail": null,
+   "journal": [
+    44.4,
+    522,
+    309.6,
+    168
+   ],
+   "objectif": [
+    4,
+    81,
+    309.6,
+    45
+   ],
+   "pont": [
+    0,
+    691,
+    360,
+    49
+   ],
+   "flot": [
+    0,
+    0,
+    360,
+    691
+   ],
+   "phasePont": null
+  },
+  "zones": [
+   {
+    "zone": "contexte",
+    "r": [
+     4,
+     4,
+     352,
+     42
+    ]
+   },
+   {
+    "zone": "groupe",
+    "r": [
+     99.8,
+     50,
+     160.5,
+     27
+    ]
+   },
+   {
+    "zone": "temps",
+    "r": [
+     4,
+     81,
+     352,
+     602
+    ]
+   },
+   {
+    "zone": "parole",
+    "r": [
+     4,
+     683,
+     352,
+     0
+    ]
+   }
+  ],
+  "lieu": {
+   "texte": "Du Sang sur la Route — scène de test",
+   "r": [
+    52,
+    13.5,
+    210.8,
+    23
+   ],
+   "lignes": null,
+   "scrollW": 211,
+   "clientW": 211
+  },
+  "journalSur": {
+   "frise": null,
+   "fil": null,
+   "groupe": null,
+   "pont": null
+  },
+  "debords": [],
+  "rows": "[haut] 42px [bande] 27px [champ] 602px [reserve] 0px",
+  "cols": "[flanc-g] 172px [centre] 0px [flanc-d] 172px",
+  "pontBasAuBord": 0,
+  "debordPage": false,
+  "boutons": 5,
+  "inatteignables": []
+ },
+ "exploration-journal-700x780": {
+  "vue": [
+   700,
+   780
+  ],
+  "surfaces": {
+   "topbar": [
+    4,
+    4,
+    692,
+    42
+   ],
+   "groupe": [
+    151,
+    50,
+    398,
+    123.6
+   ],
+   "frise": null,
+   "fil": null,
+   "ouverture": null,
+   "rail": null,
+   "journal": [
+    364,
+    581,
+    330,
+    149
+   ],
+   "objectif": [
+    4,
+    177.6,
+    360.7,
+    30
+   ],
+   "pont": [
+    0,
+    731,
+    700,
+    49
+   ],
+   "flot": [
+    0,
+    0,
+    700,
+    731
+   ],
+   "phasePont": null
+  },
+  "zones": [
+   {
+    "zone": "contexte",
+    "r": [
+     4,
+     4,
+     692,
+     42
+    ]
+   },
+   {
+    "zone": "groupe",
+    "r": [
+     151,
+     50,
+     398,
+     123.6
+    ]
+   },
+   {
+    "zone": "temps",
+    "r": [
+     4,
+     177.6,
+     692,
+     545.4
+    ]
+   },
+   {
+    "zone": "parole",
+    "r": [
+     4,
+     723,
+     692,
+     0
+    ]
+   }
+  ],
+  "lieu": {
+   "texte": "Du Sang sur la Route — scène de test",
+   "r": [
+    52,
+    13.5,
+    210.8,
+    23
+   ],
+   "lignes": null,
+   "scrollW": 211,
+   "clientW": 211
+  },
+  "journalSur": {
+   "frise": null,
+   "fil": null,
+   "groupe": null,
+   "pont": null
+  },
+  "debords": [],
+  "rows": "[haut] 42px [bande] 123.594px [champ] 545.406px [reserve] 0px",
+  "cols": "[flanc-g] 342px [centre] 0px [flanc-d] 342px",
+  "pontBasAuBord": 0,
+  "debordPage": false,
+  "boutons": 8,
+  "inatteignables": []
+ },
+ "exploration-journal-900x780": {
+  "vue": [
+   900,
+   780
+  ],
+  "surfaces": {
+   "topbar": [
+    8,
+    8,
+    235,
+    46
+   ],
+   "groupe": [
+    251,
+    8,
+    398,
+    123.6
+   ],
+   "frise": null,
+   "fil": null,
+   "ouverture": null,
+   "rail": null,
+   "journal": [
+    560,
+    581,
+    330,
+    149
+   ],
+   "objectif": [
+    8,
+    62,
+    235,
+    45
+   ],
+   "pont": [
+    0,
+    731,
+    900,
+    49
+   ],
+   "flot": [
+    0,
+    0,
+    900,
+    731
+   ],
+   "phasePont": null
+  },
+  "zones": [
+   {
+    "zone": "contexte",
+    "r": [
+     8,
+     8,
+     235,
+     46
+    ]
+   },
+   {
+    "zone": "groupe",
+    "r": [
+     251,
+     8,
+     398,
+     123.6
+    ]
+   },
+   {
+    "zone": "temps",
+    "r": [
+     8,
+     62,
+     235,
+     653
+    ]
+   },
+   {
+    "zone": "parole",
+    "r": [
+     8,
+     715,
+     884,
+     0
+    ]
+   }
+  ],
+  "lieu": {
+   "texte": "Du Sang sur la Route — scène de test",
+   "r": [
+    56,
+    8,
+    187,
+    46
+   ],
+   "lignes": null,
+   "scrollW": 187,
+   "clientW": 187
+  },
+  "journalSur": {
+   "frise": null,
+   "fil": null,
+   "groupe": null,
+   "pont": null
+  },
+  "debords": [],
+  "rows": "[haut] 46px [bande] 69.5938px [champ] 575.406px [reserve] 0px",
+  "cols": "[flanc-g] 235px [centre] 398px [flanc-d] 235px",
+  "pontBasAuBord": 0,
+  "debordPage": false,
+  "boutons": 8,
+  "inatteignables": []
+ },
+ "exploration-journal-1366x650": {
+  "vue": [
+   1366,
+   650
+  ],
+  "surfaces": {
+   "topbar": [
+    8,
+    8,
+    468,
+    42
+   ],
+   "groupe": [
+    484,
+    8,
+    398,
+    123.6
+   ],
+   "frise": null,
+   "fil": null,
+   "ouverture": null,
+   "rail": null,
+   "journal": [
+    1026,
+    451,
+    330,
+    149
+   ],
+   "objectif": [
+    8,
+    58,
+    360.7,
+    30
+   ],
+   "pont": [
+    0,
+    601,
+    1366,
+    49
+   ],
+   "flot": [
+    0,
+    0,
+    1366,
+    601
+   ],
+   "phasePont": null
+  },
+  "zones": [
+   {
+    "zone": "contexte",
+    "r": [
+     8,
+     8,
+     468,
+     42
+    ]
+   },
+   {
+    "zone": "groupe",
+    "r": [
+     484,
+     8,
+     398,
+     123.6
+    ]
+   },
+   {
+    "zone": "temps",
+    "r": [
+     8,
+     58,
+     468,
+     527
+    ]
+   },
+   {
+    "zone": "parole",
+    "r": [
+     8,
+     585,
+     1350,
+     0
+    ]
+   }
+  ],
+  "lieu": {
+   "texte": "Du Sang sur la Route — scène de test",
+   "r": [
+    56,
+    17.5,
+    210.8,
+    23
+   ],
+   "lignes": null,
+   "scrollW": 211,
+   "clientW": 211
+  },
+  "journalSur": {
+   "frise": null,
+   "fil": null,
+   "groupe": null,
+   "pont": null
+  },
+  "debords": [],
+  "rows": "[haut] 42px [bande] 73.5938px [champ] 445.406px [reserve] 0px",
+  "cols": "[flanc-g] 468px [centre] 398px [flanc-d] 468px",
+  "pontBasAuBord": 0,
+  "debordPage": false,
+  "boutons": 8,
+  "inatteignables": []
+ },
+ "exploration-journal-1707x780": {
+  "vue": [
+   1707,
+   780
+  ],
+  "surfaces": {
+   "topbar": [
+    8,
+    8,
+    638.5,
+    42
+   ],
+   "groupe": [
+    654.5,
+    8,
+    398,
+    123.6
+   ],
+   "frise": null,
+   "fil": null,
+   "ouverture": null,
+   "rail": null,
+   "journal": [
+    1367,
+    581,
+    330,
+    149
+   ],
+   "objectif": [
+    8,
+    58,
+    360.7,
+    30
+   ],
+   "pont": [
+    0,
+    731,
+    1707,
+    49
+   ],
+   "flot": [
+    0,
+    0,
+    1707,
+    731
+   ],
+   "phasePont": null
+  },
+  "zones": [
+   {
+    "zone": "contexte",
+    "r": [
+     8,
+     8,
+     638.5,
+     42
+    ]
+   },
+   {
+    "zone": "groupe",
+    "r": [
+     654.5,
+     8,
+     398,
+     123.6
+    ]
+   },
+   {
+    "zone": "temps",
+    "r": [
+     8,
+     58,
+     638.5,
+     657
+    ]
+   },
+   {
+    "zone": "parole",
+    "r": [
+     8,
+     715,
+     1691,
+     0
+    ]
+   }
+  ],
+  "lieu": {
+   "texte": "Du Sang sur la Route — scène de test",
+   "r": [
+    56,
+    17.5,
+    210.8,
+    23
+   ],
+   "lignes": null,
+   "scrollW": 211,
+   "clientW": 211
+  },
+  "journalSur": {
+   "frise": null,
+   "fil": null,
+   "groupe": null,
+   "pont": null
+  },
+  "debords": [],
+  "rows": "[haut] 42px [bande] 73.5938px [champ] 575.406px [reserve] 0px",
+  "cols": "[flanc-g] 638.5px [centre] 398px [flanc-d] 638.5px",
+  "pontBasAuBord": 0,
+  "debordPage": false,
+  "boutons": 8,
+  "inatteignables": []
+ },
+ "combat-ouverture-360x740": {
+  "vue": [
+   360,
+   740
+  ],
+  "surfaces": {
+   "topbar": [
+    4,
+    4,
+    91.8,
+    42
+   ],
+   "groupe": [
+    99.8,
+    4,
+    160.5,
+    27
+   ],
+   "frise": [
+    4,
+    50,
+    352,
+    63.8
+   ],
+   "fil": [
+    54.1,
+    121.8,
+    251.8,
+    18
+   ],
+   "ouverture": [
+    76.5,
+    531,
+    207,
+    60
+   ],
+   "rail": [
+    296,
+    143.8,
+    60,
+    60
+   ],
+   "journal": null,
+   "objectif": null,
+   "pont": [
+    0,
+    626,
+    360,
+    114
+   ],
+   "flot": [
+    0,
+    0,
+    360,
+    626
+   ],
+   "phasePont": null
+  },
+  "zones": [
+   {
+    "zone": "contexte",
+    "r": [
+     4,
+     4,
+     91.8,
+     42
+    ]
+   },
+   {
+    "zone": "groupe",
+    "r": [
+     99.8,
+     4,
+     160.5,
+     27
+    ]
+   },
+   {
+    "zone": "temps",
+    "r": [
+     4,
+     50,
+     352,
+     89.8
+    ]
+   },
+   {
+    "zone": "ouverture",
+    "r": [
+     76.5,
+     531,
+     207,
+     60
+    ]
+   },
+   {
+    "zone": "outils",
+    "r": [
+     264.3,
+     143.8,
+     91.8,
+     447.2
+    ]
+   },
+   {
+    "zone": "parole",
+    "r": [
+     4,
+     591,
+     352,
+     0
+    ]
+   }
+  ],
+  "lieu": null,
+  "journalSur": null,
+  "debords": [],
+  "rows": "[haut] 42px [bande] 89.8281px [champ] 447.172px [reserve] 27px",
+  "cols": "[flanc-g] 91.75px [centre] 160.5px [flanc-d] 91.75px",
+  "pontBasAuBord": 0,
+  "debordPage": false,
+  "boutons": 17,
+  "inatteignables": [
+   "Terenz",
+   "Johann",
+   "Grunni Pierre-de-Fer",
+   "Dépense 1 point de Chance pour qu'Grunni",
+   "Frère Anselm",
+   "Dépense 1 point de Chance pour qu'Frère "
+  ]
+ },
+ "combat-ouverture-700x780": {
+  "vue": [
+   700,
+   780
+  ],
+  "surfaces": {
+   "topbar": [
+    4,
+    4,
+    143,
+    42
+   ],
+   "groupe": [
+    151,
+    4,
+    398,
+    123.6
+   ],
+   "frise": [
+    4,
+    131.6,
+    692,
+    73.8
+   ],
+   "fil": [
+    224.1,
+    213.4,
+    251.8,
+    18
+   ],
+   "ouverture": [
+    222,
+    451,
+    256.1,
+    81
+   ],
+   "rail": [
+    636,
+    235.4,
+    60,
+    60
+   ],
+   "journal": null,
+   "objectif": null,
+   "pont": [
+    0,
+    591,
+    700,
+    189
+   ],
+   "flot": [
+    0,
+    0,
+    700,
+    591
+   ],
+   "phasePont": null
+  },
+  "zones": [
+   {
+    "zone": "contexte",
+    "r": [
+     4,
+     4,
+     143,
+     42
+    ]
+   },
+   {
+    "zone": "groupe",
+    "r": [
+     151,
+     4,
+     398,
+     123.6
+    ]
+   },
+   {
+    "zone": "temps",
+    "r": [
+     4,
+     131.6,
+     692,
+     99.8
+    ]
+   },
+   {
+    "zone": "ouverture",
+    "r": [
+     222,
+     451,
+     256.1,
+     81
+    ]
+   },
+   {
+    "zone": "outils",
+    "r": [
+     553,
+     235.4,
+     143,
+     296.5
+    ]
+   },
+   {
+    "zone": "parole",
+    "r": [
+     4,
+     532,
+     692,
+     0
+    ]
+   }
+  ],
+  "lieu": null,
+  "journalSur": null,
+  "debords": [],
+  "rows": "[haut] 123.594px [bande] 99.8281px [champ] 296.547px [reserve] 51px",
+  "cols": "[flanc-g] 143px [centre] 398px [flanc-d] 143px",
+  "pontBasAuBord": 0,
+  "debordPage": false,
+  "boutons": 20,
+  "inatteignables": []
+ },
+ "combat-ouverture-900x780": {
+  "vue": [
+   900,
+   780
+  ],
+  "surfaces": {
+   "topbar": [
+    8,
+    8,
+    235,
+    42
+   ],
+   "groupe": [
+    251,
+    8,
+    398,
+    123.6
+   ],
+   "frise": [
+    8,
+    72.1,
+    97.6,
+    440.8
+   ],
+   "fil": [
+    113.6,
+    479,
+    129.4,
+    48
+   ],
+   "ouverture": [
+    322,
+    139.6,
+    256.1,
+    81
+   ],
+   "rail": [
+    832,
+    8,
+    60,
+    60
+   ],
+   "journal": null,
+   "objectif": null,
+   "pont": [
+    0,
+    594,
+    900,
+    186
+   ],
+   "flot": [
+    0,
+    0,
+    900,
+    594
+   ],
+   "phasePont": null
+  },
+  "zones": [
+   {
+    "zone": "contexte",
+    "r": [
+     8,
+     8,
+     235,
+     42
+    ]
+   },
+   {
+    "zone": "groupe",
+    "r": [
+     251,
+     8,
+     398,
+     123.6
+    ]
+   },
+   {
+    "zone": "temps",
+    "r": [
+     8,
+     58,
+     235,
+     469
+    ]
+   },
+   {
+    "zone": "ouverture",
+    "r": [
+     322,
+     139.6,
+     256.1,
+     81
+    ]
+   },
+   {
+    "zone": "outils",
+    "r": [
+     657,
+     8,
+     235,
+     519
+    ]
+   },
+   {
+    "zone": "parole",
+    "r": [
+     8,
+     527,
+     884,
+     0
+    ]
+   }
+  ],
+  "lieu": null,
+  "journalSur": null,
+  "debords": [],
+  "rows": "[haut] 42px [bande] 73.5938px [champ] 387.391px [reserve] 51px",
+  "cols": "[flanc-g] 235px [centre] 398px [flanc-d] 235px",
+  "pontBasAuBord": 0,
+  "debordPage": false,
+  "boutons": 20,
+  "inatteignables": [
+   "Grunni Pierre-de-Fer",
+   "Dépense 1 point de Chance pour qu'Grunni",
+   "Frère Anselm",
+   "Dépense 1 point de Chance pour qu'Frère "
+  ]
+ },
+ "combat-ouverture-1366x650": {
+  "vue": [
+   1366,
+   650
+  ],
+  "surfaces": {
+   "topbar": [
+    8,
+    8,
+    468,
+    42
+   ],
+   "groupe": [
+    484,
+    8,
+    398,
+    123.6
+   ],
+   "frise": [
+    8,
+    59,
+    103.6,
+    340
+   ],
+   "fil": [
+    119.6,
+    382,
+    251.8,
+    18
+   ],
+   "ouverture": [
+    555,
+    139.6,
+    256.1,
+    81
+   ],
+   "rail": [
+    1298,
+    8,
+    60,
+    60
+   ],
+   "journal": null,
+   "objectif": null,
+   "pont": [
+    0,
+    467,
+    1366,
+    183
+   ],
+   "flot": [
+    0,
+    0,
+    1366,
+    467
+   ],
+   "phasePont": null
+  },
+  "zones": [
+   {
+    "zone": "contexte",
+    "r": [
+     8,
+     8,
+     468,
+     42
+    ]
+   },
+   {
+    "zone": "groupe",
+    "r": [
+     484,
+     8,
+     398,
+     123.6
+    ]
+   },
+   {
+    "zone": "temps",
+    "r": [
+     8,
+     58,
+     468,
+     342
+    ]
+   },
+   {
+    "zone": "ouverture",
+    "r": [
+     555,
+     139.6,
+     256.1,
+     81
+    ]
+   },
+   {
+    "zone": "outils",
+    "r": [
+     890,
+     8,
+     468,
+     392
+    ]
+   },
+   {
+    "zone": "parole",
+    "r": [
+     8,
+     400,
+     1350,
+     0
+    ]
+   }
+  ],
+  "lieu": null,
+  "journalSur": null,
+  "debords": [],
+  "rows": "[haut] 42px [bande] 73.5938px [champ] 260.375px [reserve] 51px",
+  "cols": "[flanc-g] 468px [centre] 398px [flanc-d] 468px",
+  "pontBasAuBord": 0,
+  "debordPage": false,
+  "boutons": 20,
+  "inatteignables": [
+   "Terenz",
+   "Johann",
+   "Grunni Pierre-de-Fer",
+   "Dépense 1 point de Chance pour qu'Grunni",
+   "Frère Anselm",
+   "Dépense 1 point de Chance pour qu'Frère "
+  ]
+ },
+ "combat-ouverture-1707x780": {
+  "vue": [
+   1707,
+   780
+  ],
+  "surfaces": {
+   "topbar": [
+    8,
+    8,
+    638.5,
+    42
+   ],
+   "groupe": [
+    654.5,
+    8,
+    398,
+    123.6
+   ],
+   "frise": [
+    8,
+    65.8,
+    103.6,
+    452
+   ],
+   "fil": [
+    119.6,
+    507.7,
+    251.8,
+    18
+   ],
+   "ouverture": [
+    725.5,
+    139.6,
+    256.1,
+    81
+   ],
+   "rail": [
+    1639,
+    8,
+    60,
+    60
+   ],
+   "journal": null,
+   "objectif": null,
+   "pont": [
+    0,
+    592.7,
+    1707,
+    187.3
+   ],
+   "flot": [
+    0,
+    0,
+    1707,
+    592.7
+   ],
+   "phasePont": null
+  },
+  "zones": [
+   {
+    "zone": "contexte",
+    "r": [
+     8,
+     8,
+     638.5,
+     42
+    ]
+   },
+   {
+    "zone": "groupe",
+    "r": [
+     654.5,
+     8,
+     398,
+     123.6
+    ]
+   },
+   {
+    "zone": "temps",
+    "r": [
+     8,
+     58,
+     638.5,
+     467.7
+    ]
+   },
+   {
+    "zone": "ouverture",
+    "r": [
+     725.5,
+     139.6,
+     256.1,
+     81
+    ]
+   },
+   {
+    "zone": "outils",
+    "r": [
+     1060.5,
+     8,
+     638.5,
+     517.7
+    ]
+   },
+   {
+    "zone": "parole",
+    "r": [
+     8,
+     525.7,
+     1691,
+     0
+    ]
+   }
+  ],
+  "lieu": null,
+  "journalSur": null,
+  "debords": [],
+  "rows": "[haut] 42px [bande] 73.5938px [champ] 386.062px [reserve] 51px",
+  "cols": "[flanc-g] 638.5px [centre] 398px [flanc-d] 638.5px",
+  "pontBasAuBord": 0,
+  "debordPage": false,
+  "boutons": 20,
+  "inatteignables": [
+   "Grunni Pierre-de-Fer",
+   "Dépense 1 point de Chance pour qu'Grunni",
+   "Frère Anselm",
+   "Dépense 1 point de Chance pour qu'Frère "
+  ]
+ },
+ "tourHeros": "✓ au tour de Klein Bürger",
+ "combat-heros-360x740": {
+  "vue": [
+   360,
+   740
+  ],
+  "surfaces": {
+   "topbar": [
+    4,
+    4,
+    91.8,
+    42
+   ],
+   "groupe": [
+    99.8,
+    4,
+    160.5,
+    27
+   ],
+   "frise": [
+    4,
+    50,
+    352,
+    63.8
+   ],
+   "fil": [
+    21.2,
+    121.8,
+    317.7,
+    18
+   ],
+   "ouverture": null,
+   "rail": [
+    296,
+    143.8,
+    60,
+    60
+   ],
+   "journal": null,
+   "objectif": null,
+   "pont": [
+    0,
+    442,
+    360,
+    298
+   ],
+   "flot": [
+    0,
+    0,
+    360,
+    442
+   ],
+   "phasePont": null
+  },
+  "zones": [
+   {
+    "zone": "contexte",
+    "r": [
+     4,
+     4,
+     91.8,
+     42
+    ]
+   },
+   {
+    "zone": "groupe",
+    "r": [
+     99.8,
+     4,
+     160.5,
+     27
+    ]
+   },
+   {
+    "zone": "temps",
+    "r": [
+     4,
+     50,
+     352,
+     89.8
+    ]
+   },
+   {
+    "zone": "ouverture",
+    "r": [
+     180,
+     407,
+     0,
+     0
+    ]
+   },
+   {
+    "zone": "outils",
+    "r": [
+     264.3,
+     143.8,
+     91.8,
+     263.2
+    ]
+   },
+   {
+    "zone": "parole",
+    "r": [
+     4,
+     407,
+     352,
+     0
+    ]
+   }
+  ],
+  "lieu": null,
+  "journalSur": null,
+  "debords": [],
+  "rows": "[haut] 42px [bande] 89.8281px [champ] 263.172px [reserve] 27px",
+  "cols": "[flanc-g] 91.75px [centre] 160.5px [flanc-d] 91.75px",
+  "pontBasAuBord": 0,
+  "debordPage": false,
+  "boutons": 24,
+  "inatteignables": [
+   "Johann",
+   "Grunni Pierre-de-Fer",
+   "Frère Anselm"
+  ]
+ },
+ "combat-heros-700x780": {
+  "vue": [
+   700,
+   780
+  ],
+  "surfaces": {
+   "topbar": [
+    4,
+    4,
+    143,
+    42
+   ],
+   "groupe": [
+    151,
+    4,
+    398,
+    123.6
+   ],
+   "frise": [
+    4,
+    131.6,
+    692,
+    73.8
+   ],
+   "fil": [
+    191.2,
+    213.4,
+    317.7,
+    18
+   ],
+   "ouverture": null,
+   "rail": [
+    636,
+    235.4,
+    60,
+    60
+   ],
+   "journal": null,
+   "objectif": null,
+   "pont": [
+    0,
+    205,
+    700,
+    575
+   ],
+   "flot": [
+    0,
+    0,
+    700,
+    205
+   ],
+   "phasePont": null
+  },
+  "zones": [
+   {
+    "zone": "contexte",
+    "r": [
+     4,
+     4,
+     143,
+     42
+    ]
+   },
+   {
+    "zone": "groupe",
+    "r": [
+     151,
+     4,
+     398,
+     123.6
+    ]
+   },
+   {
+    "zone": "temps",
+    "r": [
+     4,
+     131.6,
+     692,
+     99.8
+    ]
+   },
+   {
+    "zone": "ouverture",
+    "r": [
+     350,
+     235.4,
+     0,
+     0
+    ]
+   },
+   {
+    "zone": "outils",
+    "r": [
+     553,
+     235.4,
+     143,
+     0
+    ]
+   },
+   {
+    "zone": "parole",
+    "r": [
+     4,
+     235.4,
+     692,
+     0
+    ]
+   }
+  ],
+  "lieu": null,
+  "journalSur": null,
+  "debords": [
+   {
+    "zone": "outils",
+    "surface": "stack",
+    "de": 60
+   }
+  ],
+  "rows": "[haut] 123.594px [bande] 99.8281px [champ] 0px [reserve] 51px",
+  "cols": "[flanc-g] 143px [centre] 398px [flanc-d] 143px",
+  "pontBasAuBord": 0,
+  "debordPage": false,
+  "boutons": 27,
+  "inatteignables": [
+   "Ouvrir le journal"
+  ]
+ },
+ "combat-heros-900x780": {
+  "vue": [
+   900,
+   780
+  ],
+  "surfaces": {
+   "topbar": [
+    8,
+    8,
+    235,
+    42
+   ],
+   "groupe": [
+    251,
+    8,
+    398,
+    123.6
+   ],
+   "frise": [
+    8,
+    72.1,
+    80.2,
+    440.8
+   ],
+   "fil": [
+    96.2,
+    479,
+    146.8,
+    48
+   ],
+   "ouverture": null,
+   "rail": [
+    832,
+    8,
+    60,
+    60
+   ],
+   "journal": null,
+   "objectif": null,
+   "pont": [
+    0,
+    594,
+    900,
+    186
+   ],
+   "flot": [
+    0,
+    0,
+    900,
+    594
+   ],
+   "phasePont": null
+  },
+  "zones": [
+   {
+    "zone": "contexte",
+    "r": [
+     8,
+     8,
+     235,
+     42
+    ]
+   },
+   {
+    "zone": "groupe",
+    "r": [
+     251,
+     8,
+     398,
+     123.6
+    ]
+   },
+   {
+    "zone": "temps",
+    "r": [
+     8,
+     58,
+     235,
+     469
+    ]
+   },
+   {
+    "zone": "ouverture",
+    "r": [
+     450,
+     139.6,
+     0,
+     0
+    ]
+   },
+   {
+    "zone": "outils",
+    "r": [
+     657,
+     8,
+     235,
+     519
+    ]
+   },
+   {
+    "zone": "parole",
+    "r": [
+     8,
+     527,
+     884,
+     0
+    ]
+   }
+  ],
+  "lieu": null,
+  "journalSur": null,
+  "debords": [],
+  "rows": "[haut] 42px [bande] 73.5938px [champ] 387.391px [reserve] 51px",
+  "cols": "[flanc-g] 235px [centre] 398px [flanc-d] 235px",
+  "pontBasAuBord": 0,
+  "debordPage": false,
+  "boutons": 27,
+  "inatteignables": [
+   "Grunni Pierre-de-Fer",
+   "Frère Anselm",
+   "1X",
+   "2",
+   "Ignorer les modificateurs de critique (0"
+  ]
+ },
+ "combat-heros-1366x650": {
+  "vue": [
+   1366,
+   650
+  ],
+  "surfaces": {
+   "topbar": [
+    8,
+    8,
+    468,
+    42
+   ],
+   "groupe": [
+    484,
+    8,
+    398,
+    123.6
+   ],
+   "frise": [
+    8,
+    59,
+    86.2,
+    340
+   ],
+   "fil": [
+    102.2,
+    382,
+    317.7,
+    18
+   ],
+   "ouverture": null,
+   "rail": [
+    1298,
+    8,
+    60,
+    60
+   ],
+   "journal": null,
+   "objectif": null,
+   "pont": [
+    0,
+    467,
+    1366,
+    183
+   ],
+   "flot": [
+    0,
+    0,
+    1366,
+    467
+   ],
+   "phasePont": null
+  },
+  "zones": [
+   {
+    "zone": "contexte",
+    "r": [
+     8,
+     8,
+     468,
+     42
+    ]
+   },
+   {
+    "zone": "groupe",
+    "r": [
+     484,
+     8,
+     398,
+     123.6
+    ]
+   },
+   {
+    "zone": "temps",
+    "r": [
+     8,
+     58,
+     468,
+     342
+    ]
+   },
+   {
+    "zone": "ouverture",
+    "r": [
+     683,
+     139.6,
+     0,
+     0
+    ]
+   },
+   {
+    "zone": "outils",
+    "r": [
+     890,
+     8,
+     468,
+     392
+    ]
+   },
+   {
+    "zone": "parole",
+    "r": [
+     8,
+     400,
+     1350,
+     0
+    ]
+   }
+  ],
+  "lieu": null,
+  "journalSur": null,
+  "debords": [],
+  "rows": "[haut] 42px [bande] 73.5938px [champ] 260.375px [reserve] 51px",
+  "cols": "[flanc-g] 468px [centre] 398px [flanc-d] 468px",
+  "pontBasAuBord": 0,
+  "debordPage": false,
+  "boutons": 27,
+  "inatteignables": [
+   "Terenz",
+   "Johann",
+   "Grunni Pierre-de-Fer",
+   "Frère Anselm"
+  ]
+ },
+ "combat-heros-1707x780": {
+  "vue": [
+   1707,
+   780
+  ],
+  "surfaces": {
+   "topbar": [
+    8,
+    8,
+    638.5,
+    42
+   ],
+   "groupe": [
+    654.5,
+    8,
+    398,
+    123.6
+   ],
+   "frise": [
+    8,
+    65.8,
+    86.2,
+    452
+   ],
+   "fil": [
+    102.2,
+    507.7,
+    317.7,
+    18
+   ],
+   "ouverture": null,
+   "rail": [
+    1639,
+    8,
+    60,
+    60
+   ],
+   "journal": null,
+   "objectif": null,
+   "pont": [
+    0,
+    592.7,
+    1707,
+    187.3
+   ],
+   "flot": [
+    0,
+    0,
+    1707,
+    592.7
+   ],
+   "phasePont": null
+  },
+  "zones": [
+   {
+    "zone": "contexte",
+    "r": [
+     8,
+     8,
+     638.5,
+     42
+    ]
+   },
+   {
+    "zone": "groupe",
+    "r": [
+     654.5,
+     8,
+     398,
+     123.6
+    ]
+   },
+   {
+    "zone": "temps",
+    "r": [
+     8,
+     58,
+     638.5,
+     467.7
+    ]
+   },
+   {
+    "zone": "ouverture",
+    "r": [
+     853.5,
+     139.6,
+     0,
+     0
+    ]
+   },
+   {
+    "zone": "outils",
+    "r": [
+     1060.5,
+     8,
+     638.5,
+     517.7
+    ]
+   },
+   {
+    "zone": "parole",
+    "r": [
+     8,
+     525.7,
+     1691,
+     0
+    ]
+   }
+  ],
+  "lieu": null,
+  "journalSur": null,
+  "debords": [],
+  "rows": "[haut] 42px [bande] 73.5938px [champ] 386.062px [reserve] 51px",
+  "cols": "[flanc-g] 638.5px [centre] 398px [flanc-d] 638.5px",
+  "pontBasAuBord": 0,
+  "debordPage": false,
+  "boutons": 27,
+  "inatteignables": [
+   "Grunni Pierre-de-Fer",
+   "Frère Anselm"
+  ]
+ },
+ "clic-vide-combat": {
+  "x": 846.92,
+  "y": 260,
+  "tag": "svg",
+  "cls": "iso-stage",
+  "recu": "svg.iso-stage"
+ },
+ "combat-journal-360x740": {
+  "vue": [
+   360,
+   740
+  ],
+  "surfaces": {
+   "topbar": [
+    4,
+    4,
+    91.8,
+    42
+   ],
+   "groupe": [
+    99.8,
+    4,
+    160.5,
+    27
+   ],
+   "frise": [
+    4,
+    50,
+    352,
+    63.8
+   ],
+   "fil": [
+    55.1,
+    121.8,
+    249.9,
+    18
+   ],
+   "ouverture": null,
+   "rail": [
+    296,
+    143.8,
+    60,
+    60
+   ],
+   "journal": [
+    45.4,
+    208.8,
+    309.6,
+    165
+   ],
+   "objectif": null,
+   "pont": [
+    0,
+    442,
+    360,
+    298
+   ],
+   "flot": [
+    0,
+    0,
+    360,
+    442
+   ],
+   "phasePont": null
+  },
+  "zones": [
+   {
+    "zone": "contexte",
+    "r": [
+     4,
+     4,
+     91.8,
+     42
+    ]
+   },
+   {
+    "zone": "groupe",
+    "r": [
+     99.8,
+     4,
+     160.5,
+     27
+    ]
+   },
+   {
+    "zone": "temps",
+    "r": [
+     4,
+     50,
+     352,
+     89.8
+    ]
+   },
+   {
+    "zone": "ouverture",
+    "r": [
+     180,
+     407,
+     0,
+     0
+    ]
+   },
+   {
+    "zone": "outils",
+    "r": [
+     264.3,
+     143.8,
+     91.8,
+     263.2
+    ]
+   },
+   {
+    "zone": "parole",
+    "r": [
+     4,
+     407,
+     352,
+     0
+    ]
+   }
+  ],
+  "lieu": null,
+  "journalSur": {
+   "frise": null,
+   "fil": null,
+   "groupe": null,
+   "pont": null
+  },
+  "debords": [],
+  "rows": "[haut] 42px [bande] 89.8281px [champ] 263.172px [reserve] 27px",
+  "cols": "[flanc-g] 91.75px [centre] 160.5px [flanc-d] 91.75px",
+  "pontBasAuBord": 0,
+  "debordPage": false,
+  "boutons": 24,
+  "inatteignables": [
+   "Johann",
+   "Grunni Pierre-de-Fer",
+   "Frère Anselm"
+  ]
+ },
+ "combat-journal-700x780": {
+  "vue": [
+   700,
+   780
+  ],
+  "surfaces": {
+   "topbar": [
+    4,
+    4,
+    143,
+    42
+   ],
+   "groupe": [
+    151,
+    4,
+    398,
+    123.6
+   ],
+   "frise": [
+    4,
+    131.6,
+    692,
+    73.8
+   ],
+   "fil": [
+    191.2,
+    213.4,
+    317.7,
+    18
+   ],
+   "ouverture": null,
+   "rail": [
+    636,
+    235.4,
+    60,
+    60
+   ],
+   "journal": [
+    365,
+    300.4,
+    330,
+    18
+   ],
+   "objectif": null,
+   "pont": [
+    0,
+    205,
+    700,
+    575
+   ],
+   "flot": [
+    0,
+    0,
+    700,
+    205
+   ],
+   "phasePont": null
+  },
+  "zones": [
+   {
+    "zone": "contexte",
+    "r": [
+     4,
+     4,
+     143,
+     42
+    ]
+   },
+   {
+    "zone": "groupe",
+    "r": [
+     151,
+     4,
+     398,
+     123.6
+    ]
+   },
+   {
+    "zone": "temps",
+    "r": [
+     4,
+     131.6,
+     692,
+     99.8
+    ]
+   },
+   {
+    "zone": "ouverture",
+    "r": [
+     350,
+     235.4,
+     0,
+     0
+    ]
+   },
+   {
+    "zone": "outils",
+    "r": [
+     553,
+     235.4,
+     143,
+     0
+    ]
+   },
+   {
+    "zone": "parole",
+    "r": [
+     4,
+     235.4,
+     692,
+     0
+    ]
+   }
+  ],
+  "lieu": null,
+  "journalSur": {
+   "frise": null,
+   "fil": null,
+   "groupe": null,
+   "pont": [
+    330,
+    18
+   ]
+  },
+  "debords": [
+   {
+    "zone": "outils",
+    "surface": "stack",
+    "de": 60
+   }
+  ],
+  "rows": "[haut] 123.594px [bande] 99.8281px [champ] 0px [reserve] 51px",
+  "cols": "[flanc-g] 143px [centre] 398px [flanc-d] 143px",
+  "pontBasAuBord": 0,
+  "debordPage": false,
+  "boutons": 27,
+  "inatteignables": [
+   "Fermer le journal"
+  ]
+ },
+ "combat-journal-900x780": {
+  "vue": [
+   900,
+   780
+  ],
+  "surfaces": {
+   "topbar": [
+    8,
+    8,
+    235,
+    42
+   ],
+   "groupe": [
+    251,
+    8,
+    398,
+    123.6
+   ],
+   "frise": [
+    8,
+    72.1,
+    80.2,
+    440.8
+   ],
+   "fil": [
+    96.2,
+    479,
+    146.8,
+    48
+   ],
+   "ouverture": null,
+   "rail": [
+    832,
+    8,
+    60,
+    60
+   ],
+   "journal": [
+    561,
+    73,
+    330,
+    146
+   ],
+   "objectif": null,
+   "pont": [
+    0,
+    594,
+    900,
+    186
+   ],
+   "flot": [
+    0,
+    0,
+    900,
+    594
+   ],
+   "phasePont": null
+  },
+  "zones": [
+   {
+    "zone": "contexte",
+    "r": [
+     8,
+     8,
+     235,
+     42
+    ]
+   },
+   {
+    "zone": "groupe",
+    "r": [
+     251,
+     8,
+     398,
+     123.6
+    ]
+   },
+   {
+    "zone": "temps",
+    "r": [
+     8,
+     58,
+     235,
+     469
+    ]
+   },
+   {
+    "zone": "ouverture",
+    "r": [
+     450,
+     139.6,
+     0,
+     0
+    ]
+   },
+   {
+    "zone": "outils",
+    "r": [
+     657,
+     8,
+     235,
+     519
+    ]
+   },
+   {
+    "zone": "parole",
+    "r": [
+     8,
+     527,
+     884,
+     0
+    ]
+   }
+  ],
+  "lieu": null,
+  "journalSur": {
+   "frise": null,
+   "fil": null,
+   "groupe": [
+    88,
+    58.6
+   ],
+   "pont": null
+  },
+  "debords": [],
+  "rows": "[haut] 42px [bande] 73.5938px [champ] 387.391px [reserve] 51px",
+  "cols": "[flanc-g] 235px [centre] 398px [flanc-d] 235px",
+  "pontBasAuBord": 0,
+  "debordPage": false,
+  "boutons": 27,
+  "inatteignables": [
+   "Grunni Pierre-de-Fer",
+   "Frère Anselm",
+   "1X",
+   "2",
+   "Ignorer les modificateurs de critique (0"
+  ]
+ },
+ "combat-journal-1366x650": {
+  "vue": [
+   1366,
+   650
+  ],
+  "surfaces": {
+   "topbar": [
+    8,
+    8,
+    468,
+    42
+   ],
+   "groupe": [
+    484,
+    8,
+    398,
+    123.6
+   ],
+   "frise": [
+    8,
+    59,
+    86.2,
+    340
+   ],
+   "fil": [
+    102.2,
+    382,
+    317.7,
+    18
+   ],
+   "ouverture": null,
+   "rail": [
+    1298,
+    8,
+    60,
+    60
+   ],
+   "journal": [
+    1027,
+    73,
+    330,
+    146
+   ],
+   "objectif": null,
+   "pont": [
+    0,
+    467,
+    1366,
+    183
+   ],
+   "flot": [
+    0,
+    0,
+    1366,
+    467
+   ],
+   "phasePont": null
+  },
+  "zones": [
+   {
+    "zone": "contexte",
+    "r": [
+     8,
+     8,
+     468,
+     42
+    ]
+   },
+   {
+    "zone": "groupe",
+    "r": [
+     484,
+     8,
+     398,
+     123.6
+    ]
+   },
+   {
+    "zone": "temps",
+    "r": [
+     8,
+     58,
+     468,
+     342
+    ]
+   },
+   {
+    "zone": "ouverture",
+    "r": [
+     683,
+     139.6,
+     0,
+     0
+    ]
+   },
+   {
+    "zone": "outils",
+    "r": [
+     890,
+     8,
+     468,
+     392
+    ]
+   },
+   {
+    "zone": "parole",
+    "r": [
+     8,
+     400,
+     1350,
+     0
+    ]
+   }
+  ],
+  "lieu": null,
+  "journalSur": {
+   "frise": null,
+   "fil": null,
+   "groupe": null,
+   "pont": null
+  },
+  "debords": [],
+  "rows": "[haut] 42px [bande] 73.5938px [champ] 260.375px [reserve] 51px",
+  "cols": "[flanc-g] 468px [centre] 398px [flanc-d] 468px",
+  "pontBasAuBord": 0,
+  "debordPage": false,
+  "boutons": 27,
+  "inatteignables": [
+   "Terenz",
+   "Johann",
+   "Grunni Pierre-de-Fer",
+   "Frère Anselm"
+  ]
+ },
+ "combat-journal-1707x780": {
+  "vue": [
+   1707,
+   780
+  ],
+  "surfaces": {
+   "topbar": [
+    8,
+    8,
+    638.5,
+    42
+   ],
+   "groupe": [
+    654.5,
+    8,
+    398,
+    123.6
+   ],
+   "frise": [
+    8,
+    65.8,
+    86.2,
+    452
+   ],
+   "fil": [
+    102.2,
+    507.7,
+    317.7,
+    18
+   ],
+   "ouverture": null,
+   "rail": [
+    1639,
+    8,
+    60,
+    60
+   ],
+   "journal": [
+    1368,
+    73,
+    330,
+    146
+   ],
+   "objectif": null,
+   "pont": [
+    0,
+    592.7,
+    1707,
+    187.3
+   ],
+   "flot": [
+    0,
+    0,
+    1707,
+    592.7
+   ],
+   "phasePont": null
+  },
+  "zones": [
+   {
+    "zone": "contexte",
+    "r": [
+     8,
+     8,
+     638.5,
+     42
+    ]
+   },
+   {
+    "zone": "groupe",
+    "r": [
+     654.5,
+     8,
+     398,
+     123.6
+    ]
+   },
+   {
+    "zone": "temps",
+    "r": [
+     8,
+     58,
+     638.5,
+     467.7
+    ]
+   },
+   {
+    "zone": "ouverture",
+    "r": [
+     853.5,
+     139.6,
+     0,
+     0
+    ]
+   },
+   {
+    "zone": "outils",
+    "r": [
+     1060.5,
+     8,
+     638.5,
+     517.7
+    ]
+   },
+   {
+    "zone": "parole",
+    "r": [
+     8,
+     525.7,
+     1691,
+     0
+    ]
+   }
+  ],
+  "lieu": null,
+  "journalSur": {
+   "frise": null,
+   "fil": null,
+   "groupe": null,
+   "pont": null
+  },
+  "debords": [],
+  "rows": "[haut] 42px [bande] 73.5938px [champ] 386.062px [reserve] 51px",
+  "cols": "[flanc-g] 638.5px [centre] 398px [flanc-d] 638.5px",
+  "pontBasAuBord": 0,
+  "debordPage": false,
+  "boutons": 27,
+  "inatteignables": [
+   "Grunni Pierre-de-Fer",
+   "Frère Anselm"
+  ]
+ },
+ "logAvant": 2,
+ "combat-journal-long-360x740": {
+  "vue": [
+   360,
+   740
+  ],
+  "surfaces": {
+   "topbar": [
+    4,
+    4,
+    91.8,
+    42
+   ],
+   "groupe": [
+    99.8,
+    4,
+    160.5,
+    27
+   ],
+   "frise": [
+    4,
+    50,
+    352,
+    63.8
+   ],
+   "fil": [
+    21.2,
+    121.8,
+    317.7,
+    18
+   ],
+   "ouverture": null,
+   "rail": [
+    296,
+    143.8,
+    60,
+    60
+   ],
+   "journal": [
+    45.4,
+    208.8,
+    309.6,
+    199.2
+   ],
+   "objectif": null,
+   "pont": [
+    0,
+    442,
+    360,
+    298
+   ],
+   "flot": [
+    0,
+    0,
+    360,
+    442
+   ],
+   "phasePont": null
+  },
+  "zones": [
+   {
+    "zone": "contexte",
+    "r": [
+     4,
+     4,
+     91.8,
+     42
+    ]
+   },
+   {
+    "zone": "groupe",
+    "r": [
+     99.8,
+     4,
+     160.5,
+     27
+    ]
+   },
+   {
+    "zone": "temps",
+    "r": [
+     4,
+     50,
+     352,
+     89.8
+    ]
+   },
+   {
+    "zone": "ouverture",
+    "r": [
+     180,
+     407,
+     0,
+     0
+    ]
+   },
+   {
+    "zone": "outils",
+    "r": [
+     264.3,
+     143.8,
+     91.8,
+     263.2
+    ]
+   },
+   {
+    "zone": "parole",
+    "r": [
+     4,
+     407,
+     352,
+     0
+    ]
+   }
+  ],
+  "lieu": null,
+  "journalSur": {
+   "frise": null,
+   "fil": null,
+   "groupe": null,
+   "pont": null
+  },
+  "debords": [],
+  "rows": "[haut] 42px [bande] 89.8281px [champ] 263.172px [reserve] 27px",
+  "cols": "[flanc-g] 91.75px [centre] 160.5px [flanc-d] 91.75px",
+  "pontBasAuBord": 0,
+  "debordPage": false,
+  "boutons": 24,
+  "inatteignables": [
+   "Johann",
+   "Grunni Pierre-de-Fer",
+   "Frère Anselm"
+  ]
+ },
+ "combat-journal-long-700x780": {
+  "vue": [
+   700,
+   780
+  ],
+  "surfaces": {
+   "topbar": [
+    4,
+    4,
+    143,
+    42
+   ],
+   "groupe": [
+    151,
+    4,
+    398,
+    123.6
+   ],
+   "frise": [
+    4,
+    131.6,
+    692,
+    73.8
+   ],
+   "fil": [
+    191.2,
+    213.4,
+    317.7,
+    18
+   ],
+   "ouverture": null,
+   "rail": [
+    636,
+    235.4,
+    60,
+    60
+   ],
+   "journal": null,
+   "objectif": null,
+   "pont": [
+    0,
+    205,
+    700,
+    575
+   ],
+   "flot": [
+    0,
+    0,
+    700,
+    205
+   ],
+   "phasePont": null
+  },
+  "zones": [
+   {
+    "zone": "contexte",
+    "r": [
+     4,
+     4,
+     143,
+     42
+    ]
+   },
+   {
+    "zone": "groupe",
+    "r": [
+     151,
+     4,
+     398,
+     123.6
+    ]
+   },
+   {
+    "zone": "temps",
+    "r": [
+     4,
+     131.6,
+     692,
+     99.8
+    ]
+   },
+   {
+    "zone": "ouverture",
+    "r": [
+     350,
+     235.4,
+     0,
+     0
+    ]
+   },
+   {
+    "zone": "outils",
+    "r": [
+     553,
+     235.4,
+     143,
+     0
+    ]
+   },
+   {
+    "zone": "parole",
+    "r": [
+     4,
+     235.4,
+     692,
+     0
+    ]
+   }
+  ],
+  "lieu": null,
+  "journalSur": null,
+  "debords": [
+   {
+    "zone": "outils",
+    "surface": "stack",
+    "de": 60
+   }
+  ],
+  "rows": "[haut] 123.594px [bande] 99.8281px [champ] 0px [reserve] 51px",
+  "cols": "[flanc-g] 143px [centre] 398px [flanc-d] 143px",
+  "pontBasAuBord": 0,
+  "debordPage": false,
+  "boutons": 27,
+  "inatteignables": [
+   "Ouvrir le journal"
+  ]
+ },
+ "tourAdverse": "✓ au tour de Knud Cratinx",
+ "combat-adverse-360x740": {
+  "vue": [
+   360,
+   740
+  ],
+  "surfaces": {
+   "topbar": [
+    4,
+    4,
+    91.8,
+    42
+   ],
+   "groupe": [
+    99.8,
+    4,
+    160.5,
+    27
+   ],
+   "frise": [
+    4,
+    50,
+    352,
+    63.8
+   ],
+   "fil": [
+    21.2,
+    121.8,
+    317.7,
+    18
+   ],
+   "ouverture": null,
+   "rail": [
+    296,
+    143.8,
+    60,
+    60
+   ],
+   "journal": null,
+   "objectif": null,
+   "pont": [
+    0,
+    626,
+    360,
+    114
+   ],
+   "flot": [
+    0,
+    0,
+    360,
+    626
+   ],
+   "phasePont": [
+    124.2,
+    599,
+    111.6,
+    24
+   ]
+  },
+  "zones": [
+   {
+    "zone": "contexte",
+    "r": [
+     4,
+     4,
+     91.8,
+     42
+    ]
+   },
+   {
+    "zone": "groupe",
+    "r": [
+     99.8,
+     4,
+     160.5,
+     27
+    ]
+   },
+   {
+    "zone": "temps",
+    "r": [
+     4,
+     50,
+     352,
+     89.8
+    ]
+   },
+   {
+    "zone": "ouverture",
+    "r": [
+     180,
+     591,
+     0,
+     0
+    ]
+   },
+   {
+    "zone": "outils",
+    "r": [
+     264.3,
+     143.8,
+     91.8,
+     447.2
+    ]
+   },
+   {
+    "zone": "parole",
+    "r": [
+     4,
+     591,
+     352,
+     0
+    ]
+   }
+  ],
+  "lieu": null,
+  "journalSur": null,
+  "debords": [],
+  "rows": "[haut] 42px [bande] 89.8281px [champ] 447.172px [reserve] 27px",
+  "cols": "[flanc-g] 91.75px [centre] 160.5px [flanc-d] 91.75px",
+  "pontBasAuBord": 0,
+  "debordPage": false,
+  "boutons": 13,
+  "inatteignables": [
+   "Johann",
+   "Grunni Pierre-de-Fer",
+   "Frère Anselm"
+  ]
+ },
+ "combat-adverse-700x780": {
+  "vue": [
+   700,
+   780
+  ],
+  "surfaces": {
+   "topbar": [
+    4,
+    4,
+    143,
+    42
+   ],
+   "groupe": [
+    151,
+    4,
+    398,
+    123.6
+   ],
+   "frise": [
+    4,
+    131.6,
+    692,
+    73.8
+   ],
+   "fil": [
+    191.2,
+    213.4,
+    317.7,
+    18
+   ],
+   "ouverture": null,
+   "rail": [
+    636,
+    235.4,
+    60,
+    60
+   ],
+   "journal": null,
+   "objectif": null,
+   "pont": [
+    0,
+    591,
+    700,
+    189
+   ],
+   "flot": [
+    0,
+    0,
+    700,
+    591
+   ],
+   "phasePont": [
+    284,
+    540,
+    132,
+    48
+   ]
+  },
+  "zones": [
+   {
+    "zone": "contexte",
+    "r": [
+     4,
+     4,
+     143,
+     42
+    ]
+   },
+   {
+    "zone": "groupe",
+    "r": [
+     151,
+     4,
+     398,
+     123.6
+    ]
+   },
+   {
+    "zone": "temps",
+    "r": [
+     4,
+     131.6,
+     692,
+     99.8
+    ]
+   },
+   {
+    "zone": "ouverture",
+    "r": [
+     350,
+     532,
+     0,
+     0
+    ]
+   },
+   {
+    "zone": "outils",
+    "r": [
+     553,
+     235.4,
+     143,
+     296.5
+    ]
+   },
+   {
+    "zone": "parole",
+    "r": [
+     4,
+     532,
+     692,
+     0
+    ]
+   }
+  ],
+  "lieu": null,
+  "journalSur": null,
+  "debords": [],
+  "rows": "[haut] 123.594px [bande] 99.8281px [champ] 296.547px [reserve] 51px",
+  "cols": "[flanc-g] 143px [centre] 398px [flanc-d] 143px",
+  "pontBasAuBord": 0,
+  "debordPage": false,
+  "boutons": 16,
+  "inatteignables": []
+ },
+ "combat-adverse-900x780": {
+  "vue": [
+   900,
+   780
+  ],
+  "surfaces": {
+   "topbar": [
+    8,
+    8,
+    235,
+    42
+   ],
+   "groupe": [
+    251,
+    8,
+    398,
+    123.6
+   ],
+   "frise": [
+    8,
+    72.1,
+    80.2,
+    440.8
+   ],
+   "fil": [
+    96.2,
+    479,
+    146.8,
+    48
+   ],
+   "ouverture": null,
+   "rail": [
+    832,
+    8,
+    60,
+    60
+   ],
+   "journal": null,
+   "objectif": null,
+   "pont": [
+    0,
+    594,
+    900,
+    186
+   ],
+   "flot": [
+    0,
+    0,
+    900,
+    594
+   ],
+   "phasePont": [
+    384,
+    543,
+    132,
+    48
+   ]
+  },
+  "zones": [
+   {
+    "zone": "contexte",
+    "r": [
+     8,
+     8,
+     235,
+     42
+    ]
+   },
+   {
+    "zone": "groupe",
+    "r": [
+     251,
+     8,
+     398,
+     123.6
+    ]
+   },
+   {
+    "zone": "temps",
+    "r": [
+     8,
+     58,
+     235,
+     469
+    ]
+   },
+   {
+    "zone": "ouverture",
+    "r": [
+     450,
+     139.6,
+     0,
+     0
+    ]
+   },
+   {
+    "zone": "outils",
+    "r": [
+     657,
+     8,
+     235,
+     519
+    ]
+   },
+   {
+    "zone": "parole",
+    "r": [
+     8,
+     527,
+     884,
+     0
+    ]
+   }
+  ],
+  "lieu": null,
+  "journalSur": null,
+  "debords": [],
+  "rows": "[haut] 42px [bande] 73.5938px [champ] 387.391px [reserve] 51px",
+  "cols": "[flanc-g] 235px [centre] 398px [flanc-d] 235px",
+  "pontBasAuBord": 0,
+  "debordPage": false,
+  "boutons": 16,
+  "inatteignables": [
+   "Grunni Pierre-de-Fer",
+   "Frère Anselm"
+  ]
+ },
+ "combat-adverse-1366x650": {
+  "vue": [
+   1366,
+   650
+  ],
+  "surfaces": {
+   "topbar": [
+    8,
+    8,
+    468,
+    42
+   ],
+   "groupe": [
+    484,
+    8,
+    398,
+    123.6
+   ],
+   "frise": [
+    8,
+    59,
+    86.2,
+    340
+   ],
+   "fil": [
+    102.2,
+    382,
+    317.7,
+    18
+   ],
+   "ouverture": null,
+   "rail": [
+    1298,
+    8,
+    60,
+    60
+   ],
+   "journal": null,
+   "objectif": null,
+   "pont": [
+    0,
+    467,
+    1366,
+    183
+   ],
+   "flot": [
+    0,
+    0,
+    1366,
+    467
+   ],
+   "phasePont": [
+    617,
+    416,
+    132,
+    48
+   ]
+  },
+  "zones": [
+   {
+    "zone": "contexte",
+    "r": [
+     8,
+     8,
+     468,
+     42
+    ]
+   },
+   {
+    "zone": "groupe",
+    "r": [
+     484,
+     8,
+     398,
+     123.6
+    ]
+   },
+   {
+    "zone": "temps",
+    "r": [
+     8,
+     58,
+     468,
+     342
+    ]
+   },
+   {
+    "zone": "ouverture",
+    "r": [
+     683,
+     139.6,
+     0,
+     0
+    ]
+   },
+   {
+    "zone": "outils",
+    "r": [
+     890,
+     8,
+     468,
+     392
+    ]
+   },
+   {
+    "zone": "parole",
+    "r": [
+     8,
+     400,
+     1350,
+     0
+    ]
+   }
+  ],
+  "lieu": null,
+  "journalSur": null,
+  "debords": [],
+  "rows": "[haut] 42px [bande] 73.5938px [champ] 260.375px [reserve] 51px",
+  "cols": "[flanc-g] 468px [centre] 398px [flanc-d] 468px",
+  "pontBasAuBord": 0,
+  "debordPage": false,
+  "boutons": 16,
+  "inatteignables": [
+   "Terenz",
+   "Johann",
+   "Grunni Pierre-de-Fer",
+   "Frère Anselm"
+  ]
+ },
+ "combat-adverse-1707x780": {
+  "vue": [
+   1707,
+   780
+  ],
+  "surfaces": {
+   "topbar": [
+    8,
+    8,
+    638.5,
+    42
+   ],
+   "groupe": [
+    654.5,
+    8,
+    398,
+    123.6
+   ],
+   "frise": [
+    8,
+    65.8,
+    86.2,
+    452
+   ],
+   "fil": [
+    102.2,
+    507.7,
+    317.7,
+    18
+   ],
+   "ouverture": null,
+   "rail": [
+    1639,
+    8,
+    60,
+    60
+   ],
+   "journal": null,
+   "objectif": null,
+   "pont": [
+    0,
+    592.7,
+    1707,
+    187.3
+   ],
+   "flot": [
+    0,
+    0,
+    1707,
+    592.7
+   ],
+   "phasePont": [
+    787.5,
+    541.7,
+    132,
+    48
+   ]
+  },
+  "zones": [
+   {
+    "zone": "contexte",
+    "r": [
+     8,
+     8,
+     638.5,
+     42
+    ]
+   },
+   {
+    "zone": "groupe",
+    "r": [
+     654.5,
+     8,
+     398,
+     123.6
+    ]
+   },
+   {
+    "zone": "temps",
+    "r": [
+     8,
+     58,
+     638.5,
+     467.7
+    ]
+   },
+   {
+    "zone": "ouverture",
+    "r": [
+     853.5,
+     139.6,
+     0,
+     0
+    ]
+   },
+   {
+    "zone": "outils",
+    "r": [
+     1060.5,
+     8,
+     638.5,
+     517.7
+    ]
+   },
+   {
+    "zone": "parole",
+    "r": [
+     8,
+     525.7,
+     1691,
+     0
+    ]
+   }
+  ],
+  "lieu": null,
+  "journalSur": null,
+  "debords": [],
+  "rows": "[haut] 42px [bande] 73.5938px [champ] 386.062px [reserve] 51px",
+  "cols": "[flanc-g] 638.5px [centre] 398px [flanc-d] 638.5px",
+  "pontBasAuBord": 0,
+  "debordPage": false,
+  "boutons": 16,
+  "inatteignables": [
+   "Grunni Pierre-de-Fer",
+   "Frère Anselm"
+  ]
+ },
+ "console": [
+  {
+   "type": "exception",
+   "text": "TypeError: Cannot assign to read only property 'loaded' of object '#<Object>'\n    at unloadWeapon (http://localhost:5236/src/engine/items.ts:708:16)\n    at appliquerLaTouche (http://localhost:5236/src/state/combatFlow.ts:1719:7)\n    at applyAttackResult (http://localhost:5236/src/state/combatFlow.ts:1481:7)\n    at doAttack (http://localhost:5236/src/state/combatFlow.ts:2370:10)\n    at http://localhost:5236/src/state/combatFlow.ts:5093:95\n    at http://localhost:5236/src/state/combatTimers.ts:5:5"
+  }
+ ]
+}

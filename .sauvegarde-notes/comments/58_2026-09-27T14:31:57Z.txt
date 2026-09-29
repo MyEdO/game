@@ -1,0 +1,336 @@
+## Portes git, commit 1 : juge de quatrième reprise après E16g, et brief E16h, 2026-09-27
+
+**Verdict : À REPRENDRE.**
+
+Ce qui tient :
+- R1 à R4 sont faits, et la liste blanche des modules intégrés est juste ;
+- 15 mutations neuves et 21 rejouées sont vérifiées ;
+- la plage d'E17 est intacte (33 et 12 cas, 0 écart) ;
+- tsc, lint, `test:hooks` (1376 réussis, 0 échec), `test:ops` et `check-doc-refs` sont verts.
+
+Défauts :
+- **D1 (bloquant)** : les accès ambiants (`fetch`, `process`, `globalThis`) ne sont gardés que dans le module des étapes. Un utilitaire d'un autre module de la clôture qui appelle l'API passe au vert.
+  - C'est la cinquième passe sur cette classe. La règle doit donc se fermer par construction : les ambiants passent en liste blanche, comme les modules intégrés, et chaque source de capacité d'un module reçoit sa règle dans une table.
+- **D2 (bloquant, CI rouge)** : `portable-paths-guard` lit la regex `\d\d:\d\d` de `gitPorte.test.mjs:1013` comme un lecteur Windows. Ni le codeur ni le juge précédent ne jouaient les gardes qui lisent le corpus de `scripts/**` ; ils sont désormais au brief.
+- **D3** : `merge-tree` joue les pilotes de fusion du disque et écrit ses fichiers temporaires dans l'arbre partagé pendant une lecture de porte. Le juge révise son jugement de design : `--attr-source=<arbre vide>` sur ce seul site. Mesure : 0 pilote lancé, plage intacte.
+- **D4 à D6 (mineurs)** : une tête inconnue était appelée « base inconnue » ; `crypto` était admis en entier ; la panne de `diffDeLIndex` n'avait pas de test.
+- **Raison tronquée** : l'hôte met les chemins avant le nom du refus, et la troncature coupe le nom. Le test du lot rougit donc sous tout chemin profond, poste Windows compris. C'est pris dans ce commit : le motif d'abord, les chemins ensuite.
+
+Suite : le codeur E16h reprend dans `.wt-1806-e16`.
+
+---
+
+<details><summary>Verdict du juge E16g (verbatim)</summary>
+
+# Verdict juge E16g (portes git, commit 1 après E16g, #1806), 2026-09-27
+
+## VERDICT : À REPRENDRE
+
+- Arbre : `/home/claude/game/.wt-1806-e16`, `git log --oneline -1` = `543ba1e13`.
+- Contrôle positif : `git diff 9e211b4af --stat` ne diffère de l'arbre que par les 4 non-suivis. Ces 4 fichiers sont identiques à leur blob dans `9e211b4af` (`cmp` OK ×4).
+- `git status --short` : 56 lignes, `sha1sum` = `ed8a23d61e6dbdf8bf2f528f6dab8fd04139192f` au début ET à la fin (`status-debut.txt`, `status-fin.txt`, `diff` vide). Aucun `.merge_file_*` à la racine en fin.
+- Horloge : départ 14:06:40 UTC, fin vers 14:32 UTC.
+- Discipline :
+  - aucune commande git mutante, aucun `git commit`, aucun WebFetch ;
+  - mutations et sondes rejouées EN MÉMOIRE (`fs.readFileSync` + hook `load`) ;
+  - dépôts forgés sous `juge-e16g/tmp/`, supprimés en fin.
+- Kill : UN seul, sur mon propre processus. `timeout` pid 19493, parent 19469 = mon shell de fond ; sa ligne de commande a été lue avant le `kill`. C'était une sonde lancée avec un `MUT_JSON` mal cité, relancée ensuite (voir « Tâches de fond »).
+
+R1, R2 et R4 sont faits tels que retenus. R3 est fait, avec une réserve réelle (D4). Les 15 mutations neuves et les 21 rejouées tiennent, la plage d'E17 est intacte, et tsc, lint, `test:hooks`, `test:ops` et doc-refs sont verts. Deux défauts restent BLOQUANTS :
+- **D1** : la liste blanche R1 est juste, mais `AMBIANTS` n'est gardé que sur le module des étapes. Un utilitaire de la clôture qui appelle `fetch` ou `process` passe au vert ;
+- **D2** : un vitest de la CI est ROUGE, `portable-paths-guard`, sur une ligne neuve de ce lot. Ni le codeur ni mon verdict E16f ne l'avaient joué.
+
+---
+
+## Défauts, du plus grave au moins grave
+
+### D1 (bloquant) : `AMBIANTS` ne se propage pas dans la clôture. Une retouche de bonne foi, « un utilitaire qui appelle l'API », passe
+- Où :
+  - `scripts/ops/etapesDuTrain.test.mjs:110` : `if (AMBIANTS.has(n.text)) lu.ambiants.push(n.text)` ne marque pas la déclaration comme `racine` ;
+  - `AMBIANTS` n'est jugé qu'au test 4 (`:275-278`), sur `lectureDe(ETAPES)` seul.
+- Conséquence : une déclaration d'un module de la clôture qui référence `fetch`, `process` ou `globalThis` n'est PAS lanceuse. Les étapes l'importent sans rougir.
+- Preuve : `juge-e16g/sonde-d1.mjs`, commande `SONDE_AJOUT=<cas> timeout 300 node --import juge-e16g/sonde-d1.mjs --test scripts/ops/etapesDuTrain.test.mjs` (sortie `sonde-d1-table.txt`).
+
+  | cas | ajout | exit | lecture |
+  |---|---|---|---|
+  | temoin | étapes : `import { commitDe } …` | 1, `not ok 3` | sonde saine |
+  | fsPromises / fsPromisesSub / fsNu | `promises` de `node:fs`, `writeFile` de `node:fs/promises`, `writeFileSync` de `'fs'` | 1, `not ok 3` ×3 | FERMÉ |
+  | dynLitEtapes / dynLitCloture | `await import('node:fs')` dans les étapes / dans `lister.mjs`, importé par les étapes | 1, `not ok 3` ×2 | FERMÉ |
+  | createRequireCloture | `lister.mjs` exporte `requis = createRequire(import.meta.url)` | 1, `not ok 3` | FERMÉ |
+  | json | `import pkg from '../../package.json' with { type: 'json' }` | 1, `not ok 3` | FERMÉ |
+  | fsDefautCloture | `lister.mjs` : `import fs from 'node:fs'` ; `ecrireVia = (f) => fs.writeFileSync(f, '')` | 1, `not ok 3` | FERMÉ |
+  | **fetchUtil** | `lister.mjs` : `export const appeler = (u, o) => fetch(u, o)` ; étapes : `appeler('https://api.github.com/…/git/refs/heads/main', { method: 'PATCH' })` | **0**, 4/0 | OUVERT, bonne foi plausible |
+  | **processUtilNu** | `lister.mjs` : `export const remplacer = (f, argv) => process.execve(f, argv)` ; étapes : `remplacer('/usr/bin/git', […'push','--force'…])` | **0**, 4/0 | OUVERT |
+  | **processUtil** | `lister.mjs` : `export const leProcessus = () => globalThis.process` ; étapes : `leProcessus().execve(…)` | **0**, 4/0 | OUVERT |
+  | cryptoSetEngine | `import { setEngine } from 'node:crypto'` | 0, 4/0 | voir D5 |
+- Plausibilité : `fetchApi` est le cas que R1 voulait fermer. Il est fermé DANS les étapes (mutation `R1-fetchApi`, rouge), mais un helper réseau posé dans un module utilitaire est la forme naturelle de la même retouche.
+- Les en-têtes mentent donc encore :
+  - `etapesDuTrain.mjs:6-9` (« refuse à ce module toute liaison, importée de n'importe quel module de sa clôture, qui atteint un lancement… et toute mention … du réseau ») ;
+  - `publier.mjs:25-29`, de même.
+
+  Aucun des deux ne nomme ce cas au résidu, et ce n'est pas un cas hostile.
+- **Correction retenue** : la règle d'`AMBIANTS` des étapes, étendue à toute la clôture. Une déclaration de tête qui référence un `AMBIANTS` est RACINE (lanceuse), comme une mention de `MENTIONS`.
+  - Coût mesuré : la correction jouée en mémoire (`:110` → `if (AMBIANTS.has(n.text)) { lu.ambiants.push(n.text); racine = true }`) laisse l'arbre réel VERT, exit=0, 4/0 (`correctif-ambiants.txt`).
+  - Elle rougit les 3 cas ouverts : `not ok 3` ×3 (`correctif-ambiants-table.txt`).
+  - Elle rougit aussi `processEnvUtil` (`envDe = () => process.env`, exit=1). C'est prudent, et c'est la même règle que celle déjà appliquée aux étapes.
+  - Banc (test 2) : un `g.mjs` avec `export const env = () => process` et `export const appel = (u) => fetch(u)`, attendus lanceurs.
+  - Mutations : `fetchUtil`, `processUtilNu` et `processUtil` doivent rougir le test.
+  - En-têtes : `etapesDuTrain.mjs`, `publier.mjs` et `etapesDuTrain.test.mjs:4-12` disent « … ou qui référence un accès ambiant ».
+
+### D2 (bloquant, CI rouge, attribution : COMMIT) : `portable-paths-guard` rougit sur `scripts/guards/lib/gitPorte.test.mjs:1013`
+- La ligne :
+  ```js
+  assert.match(b.dernierCommitISO, /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d[+-]\d\d:\d\d$/)
+  ```
+- Sortie (`vitest.txt:183-193`) :
+  ```
+  FAIL  src/portable-paths-guard.test.ts > … aucune source du périmètre ne porte de chemin absolu de machine (tolérance ZÉRO)
+  scripts/guards/lib/gitPorte.test.mjs:1013 → d:\d
+  ```
+- Cause : `WIN_DRIVE` (`src/portable-paths-guard.test.ts:37`) lit `d:\d` comme un lecteur Windows.
+- Attribution :
+  - la ligne est ABSENTE de `HEAD` et d'`origin/main` (`git show <ref>:… | grep` vide) ;
+  - elle est PRÉSENTE dans `9eb200941` et dans `9e211b4af` : elle est entrée avant E16f ;
+  - le garde lui-même est inchangé (`cmp` avec `HEAD`).
+- Qui l'a manquée : ma liste vitest d'E16f et celle du codeur. Elles partaient des IMPORTEURS des modules touchés, et `portable-paths-guard` lit `scripts/**` par CORPUS, pas par import.
+- Preuve de la correction (`sonde-winDrive.mjs`, sortie `sonde-winDrive.txt`) :
+  - la ligne actuelle donne 3 correspondances ;
+  - la forme `/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}$/` n'en donne AUCUNE ;
+  - le langage est identique sur les deux témoins.
+- **Correction** : récrire la regex avec des quantificateurs `{2}`. Et la liste vitest d'un lot qui touche `scripts/**` inclut les gardes qui en lisent le CORPUS. Ici, les 95 autres fichiers de `src/**` qui nomment `scripts` sont verts : `vitest2.txt`, 95/95, 1953 tests, exit=0.
+
+### D3 (commit 1, H2 révisé) : `merge-tree` joue les pilotes de fusion du DISQUE. La lecture de porte écrit dans l'arbre partagé et lance `node`
+- Où : `gitPorte.mjs:554` (`baseDuCommit`).
+- Mon jugement de design (`juge-design-85/verdict.md:95`, « voulu (même base en CI après `npm install`) ») est **RÉVISÉ**. La prémisse était fausse : le pilote joué n'est pas une fonction des commits lus. C'est `node scripts/git-hooks/merge-docs.mjs`, en chemin RELATIF au `cwd`, donc le script de l'arbre de travail, WIP d'une autre session compris. En plus, git crée ses `.merge_file_*` dans la racine du worktree partagé, où un `git status` ou un `git add` voisin les voit. La base d'une fusion dépend donc de l'état du disque, pas de l'histoire.
+- Preuves :
+  - `sonde-pilote.sh` (dépôt forgé, pilote qui écrit `MARQUE`) :
+    - sans neutralisation : `JOUE … .merge_file_XmnZgg .merge_file_aCETap .merge_file_uw42tk`, arbre `2a3891fa2` ;
+    - avec `git --attr-source=4b825dc6… merge-tree` : `MARQUE absente : pilote NON joué`, arbre `90a55e8de` ;
+    - `GIT_ATTR_SOURCE` : même résultat ;
+    - `git version 2.43.0`, et `GIT_MERGE_TREE` exige déjà la 2.40.
+  - Fusion réelle `543ba1e13`, `ceQueFaitLeCommit` sous `strace -f -e execve` :
+    - sans patch : 8 `execve … merge-docs.mjs` (`strace-sans.txt`) ;
+    - avec le patch en mémoire (`mut-attr.json`) : 0 pilote, 12 `--attr-source` (`strace-avec.txt`) ;
+    - `chemins` = 9 dans les deux cas.
+  - Non-régression de la plage d'E17 SOUS le patch : `sonde-plage-attrsource.txt`, `cas 33 ecarts 0`, exit=0.
+- **Correction, dans le commit 1** (H2 : « ce qui reste lu dans la configuration par la plomberie… voulu ou neutralisé » ; `design-85.md:26` nomme nommément `merge.*.driver` et `.gitattributes`) :
+  - `lire(depot, ['--attr-source=<arbre vide>', 'merge-tree', …])`, sur CE site seul. Pas dans `OPTIONS_DE_L_HOTE` : `eolsDe` et `ls-files --eol` ont besoin des attributs ;
+  - l'arbre vide se prend par `arbreVide(depot)`, déjà là ;
+  - la doc de `baseDuCommit` dit « sans pilote ni attribut » ;
+  - test : dépôt forgé avec un pilote qui écrit une marque, puis `ceQueFaitLeCommit` sur la fusion. Aucune marque, aucun `.merge_file_*` ;
+  - mutation : l'option retirée doit rougir le test.
+
+### D4 (mineur, commit 1) : R3 a laissé une imprécision atteignable. Une TÊTE inconnue s'appelle « base inconnue »
+- Où : `plageFermante.mjs:74-76`. `estAncetre` rend `absent` si l'une ou l'autre borne manque.
+- Preuve (`sonde-r3-tete.mjs`, sortie `sonde-r3-tete.txt`) :
+  ```
+  base connue, tete inconnue => base 549e1d95… inconnue de ce dépôt (non fetchée, ou dépôt corrompu) — aucune fermeture n'est jugée
+  ```
+  Le motif accuse la base, qui est connue.
+- Atteignable ? Pas par le job `fermetures` (`ci.yml:182`, où `SHA` = `github.sha`, qui est extrait). Mais oui par le geste manuel que le credo prescrit (« à la main : `npm run ops:fermer -- <plage>` », `package.json:69` → `fermer-depuis-main.mjs:89`), avec une tête tapée à la main ou non fetchée. La réserve du codeur est donc ATTEIGNABLE.
+- **Correction** : `absent` donne « une borne de ${plage} est inconnue de ce dépôt (non fetchée, ou dépôt corrompu) — aucune fermeture n'est jugée ». Ou alors, nommer la borne absente par `shaDe` sur chacune. Ajouter un test avec une tête `e…e`.
+
+### D5 (mineur, commit 1) : `['crypto', '*']` tient `setEngine` pour inerte
+- Où : `etapesDuTrain.test.mjs:34`.
+- `typeof setEngine = function` (Node v22.22.2). Il charge une bibliothèque d'engine par CHEMIN : `setEngine('/nonexistent.so')` donne `ERR_CRYPTO_ENGINE_UNKNOWN`, donc c'est du code natif chargé. Le cas `cryptoSetEngine` reste vert.
+- C'est hostile : il faut un `.so` sur le disque. Mais la paire la plus étroite ne coûte rien : la clôture n'importe de `node:crypto` que `createHash` (`empreinte-sources.mjs:15`).
+- **Correction** : `['crypto', new Set(['createHash'])]`. C'était mon erreur de liste en E16f.
+
+### D6 (mineur, commit 1) : la panne de `diffDeLIndex` (`pre-commit.mjs:104-113`) n'a ni test ni mutation
+- R2 ne couvre que `texteAJuger` (le nom à tabulation).
+- **Correction** : une cale `git` qui échoue sur `diff-index`, sur le modèle de celle de `classerPush.test.mjs`. Attendu : exit 1 et une ligne `diff de l'index illisible — …`. Mutation : `catch (e) { return '' }` doit rougir.
+
+### Hors commit 1 : issue à ouvrir. Une raison tronquée PERD son nom (réponse à Q5b)
+- Ce n'est pas un test fragile : c'est un défaut de l'ORDRE du message. `arbrePrincipal` (`gitPorte.mjs:821-824`) écrit `le répertoire git de ${cwd} est hors d'un arbre (${brut}) — dépôt nu …`. Deux chemins de longueur libre PRÉCÈDENT le nom, et `raisonCourte` coupe à `RAISON_MAX` = 200 (`:45`, `:85`).
+- Sortie `e16g/t-gp15-avec.out:13` : `actual: "le répertoire git de /tmp/claude-0/…/depot.git est hors d'un arbre (/tmp/claude-0/…-5c…"`. Tout chemin profond (poste Windows, espace CI) tombe dans ce cas, pas seulement un `TMPDIR` long.
+- Le défaut est préexistant (`HEAD:gitPorte.mjs:552`). La même famille couvre les messages `… depuis ${cwd} : <raison>`.
+- Correction à instruire : le motif fixe D'ABORD, les chemins ENSUITE, pour toute raison de l'hôte. Test sous un `cwd` de plus de 200 caractères. Le test actuel a raison d'exiger le nom.
+
+---
+
+## Q1 : R1 à R4
+| | état | preuve |
+|---|---|---|
+| R1 | FAIT, liste blanche juste sauf `crypto` (D5). La CLASSE n'est pas fermée : D1 | 11 mutations R1 rouges et le test visé est le bon (Q7). `realpathSync` : lecture seule. `statSync` sur un FIFO : `stat` n'ouvre pas le fichier, rien ne bloque. `readFileSync` sur un FIFO bloquerait, mais ce n'est pas un lancement |
+| écart `lancer-local.mjs:17` | JUSTE | le défaut de `node:fs` est le module entier, écritures comprises. `grep '\bfs\b'` ne rend que `:17` : aucun autre usage. La mutation inverse rougit `not ok 3` (`verif-lancer-local.txt`) |
+| entrée `ecrivainsAtteints` (`etapesDuTrain.test.mjs`) | LÉGITIME | `writeFileSync` n'apparaît qu'en `:240` et `:245`, dans des CHAÎNES du banc. Le fichier n'importe que `existsSync`, `readFileSync`, `isBuiltin`, `resolve` et `fileURLToPath`, plus `dialecte` et `importGraph`. Aucun écrivain réel n'est masqué aujourd'hui. Le grain SCRIPT masquerait un écrivain futur : c'est la limite écrite en tête de `ecrivainsAtteints.test.mjs:13` |
+| R2 | FAIT | les trois sites et le lock passent par `texteAJuger`. Le `try` de `ROOT` est retiré (`:65-66`). Mutations `R2-*` : `not ok 1` ×2. Voir aussi D6 |
+| R3 | FAIT, réserve D4 | `R3-absent-confondu` : `not ok 10`. Le commentaire flottant est rattaché (`:67-68`) |
+| R4 | FAIT pour le résidu hostile de #2073 (les quatre cas de l'issue y sont, verbatim) ; FAUX pour D1 | `etapesDuTrain.mjs:3-11`, `publier.mjs:25-38`, `publier.mjs:518-522` |
+
+## Q2 : classe D1, quatrième passe : NON FERMÉE pour la bonne foi (D1)
+- Fermées : `fs.promises`, `node:fs/promises`, `'fs'` nu, `import('node:fs')` littéral (dans les étapes et dans la clôture), `createRequire` dans la clôture, module JSON, défaut de `node:fs` dans la clôture (table de D1).
+- `createRequire` HORS de la clôture : il n'est joignable que par le contexte. Or les clés du contexte sont figées par un cliquet, `publier.test.mjs:350-351` (`deepEqual(cles, […17 clés…])` et `Object.keys(ctx.questions)`). Donc fermé.
+- Ouvert : un `globalThis.process`, un `process` ou un `fetch` lu par un utilitaire d'un module pur de la clôture (D1).
+- En-têtes et #2073 : #2073 décrit le résidu hostile sans mentir (`ctorFunction`, `injectionAssign`, `injectionSetter`, `chargement`). Les en-têtes renvoient à #2073 avec les trois mêmes familles. Ce qu'ils mentent : D1.
+
+## Q3 : R2 et sa contre-classe
+- `texteAJuger` : en mode stagé, une levée devient TOUJOURS un fautif nommé puis `null` ; jamais `continue` en silence. Mode `argFiles` : `readFileSync` illisible donne `null`, comme à `HEAD`.
+- `staged` (`:84`) et `eolsDe` (`:384-390`, fautif nommé) : une panne lève ou est nommée.
+- `diffDeLIndex` : nommé. Aucun test (D6).
+- `classerPush.mjs:118-135` :
+  - `depotDe(cwd, { enPanne })` ;
+  - une panne donne `motif … — git indisponible : <raison> : conservateur` ;
+  - le test `ok 20` de `test-hooks.txt:121` vérifie le motif exact ;
+  - sur `main` avec `before`, le `ceQuiChange` de `:140` lève `GitIndisponible` : le CLI sort en exit 1 (`:154`). Fermé.
+- Contre-grep par une autre méthode : `catch-ast.mjs`, un AST TypeScript sur les 56 fichiers du lot. Il marque chaque `catch` RELANCE, LIT-ERREUR ou AVALE, et marque GIT les `try` qui appellent (point fixe local) un nom importé de `gitPorte`, `plageStock`, `plageFermante`, `classerPush`, `revuePalier`, `faitsDePalier` ou `depotGabarit`. 68 `catch` sont vus (`catch-ast.txt`).
+  - AVALE + GIT : 6 sites, tous relus. Ce sont des faux positifs de mon heuristique, des lectures `fs` :
+    - `docs-rebuild.mjs:68` : build interrompu, NOMMÉ sur stderr ;
+    - `solde-ticket-guard.mjs:161` (`fileError` rendu), `:912` (problème nommé), `:1991` (`stat`) et `:2149` (`statSync` de `.git`) ;
+    - `gitPorte.test.mjs:452` : conflit voulu.
+  - AVALE non-GIT (22) : aucun ne lit git. `pre-commit.mjs:321` (`citeUnMort` avale l'échec de `check-plans-anchors`) est fail-open, mais préexistant et hors de la classe git.
+  - Les listes du codeur (`contre-grep-catch.txt`, `contre-grep-catch-nus.txt`) sont COMPLÈTES pour la classe « panne git avalée ».
+
+## Q4 : réserve R3 : ATTEIGNABLE, par `ops:fermer` à la main (D4)
+
+## Q5 : trouvailles du codeur
+- `merge-tree` et les pilotes : jugement RÉVISÉ. Correction dans le COMMIT 1 (D3), coût mesuré sur la plage : 0 écart.
+- `gitPorte.test.mjs:239-259` : défaut de l'ordre du message tronqué, pas un test fragile. Issue (voir « Hors commit 1 »).
+
+## Q6 : plage d'E17 : INTACTE
+Commande : `NODE_PATH=…/node_modules TMPDIR=juge-e16g/tmp timeout 1200 node --import ./enregistre.mjs …`, lancée depuis `juge-e16/`, départ 14:07 UTC.
+- `sonde-plage.txt` :
+  ```
+  EGAL  | fenetre large 9aa86ba0f..HEAD chantier | commits 6 refus 0 reclass 0 indisp null
+  cas 33 ecarts 0
+  exit=0 7.24 6.91 5.21 6/338 19038 Sun Sep 27 14:17:22 UTC 2026
+  ```
+- `sonde-plage-renommages.txt` (1be7d75aa 31c64f4a9 50b1a3e92 9816eac37 d25652e73 fcefd6283) :
+  ```
+  EGAL  | fenetre fcefd6283^..fcefd6283 main | commits 1 refus 0 reclass 0 indisp null
+  cas 12 ecarts 0
+  exit=0 9.77 7.64 5.57 10/336 23476 Sun Sep 27 14:18:21 UTC 2026
+  ```
+- Sous le patch D3 : `sonde-plage-attrsource.txt`, `cas 33 ecarts 0`, exit=0.
+
+## Q7 : mutations : CONFIRMÉ, 15/15 et 21/21
+Script `verif-mutations.py`, sorties `verif-neuves.txt` et `verif-rejeu.txt`. Pour chaque mutation :
+- `ancien` est trouvé 1 fois ;
+- le hash muté est reproduit par `hash-object --stdin` ;
+- le blob actuel est égal à « avant » et à « après » ;
+- le rouge est rejoué en mémoire. `NODE_OPTIONS=--import mut-preload.mjs` est hérité par le hook que lance `pre-commit.test.mjs`.
+
+Détail :
+- 14/15 passent au premier tour. `R1-lancer-local-fs-defaut` sortait KO par une limite de MON préchargement (deux remplacements sur le même fichier). Rejoué avec `mut-preload-multi.mjs` : `n 1` ×2, muté `01ecebd1e…` = archive, `exit 1`, `not ok 3` (`verif-lancer-local.txt`).
+- Chaque rouge vient du test visé et porte le numéro archivé :
+  - `R2-*` : `pre-commit.test.mjs` `not ok 1` ;
+  - `R2-classerPush` : `not ok 20` ;
+  - `R3` : `plageFermante.test.mjs` `not ok 10` ;
+  - `R1-fetchApi` : `3, 4`.
+- Rejeu des 21 d'E16f : 21/21 `OK`, mêmes rouges. Le `not ok 15` archivé par le codeur (le `TMPDIR` long) est absent sous le `TMPDIR` par défaut, ce qui CONFIRME sa cause.
+
+## Q8 : langue et architecture
+- En-têtes de `etapesDuTrain.mjs`, `publier.mjs` et `etapesDuTrain.test.mjs` : ils mentent pour D1, et justes sinon.
+- Doc de `motifDePlageIllisible` (`:65-68`) : elle dit « base inconnue du dépôt », et c'est faux pour une tête inconnue (D4).
+- Aucune excuse ni pierre tombale sur l'écart. `lanceuse`, `inertes` et `INERTES` : un terme par concept.
+- Le commentaire de `ecrivainsAtteints.test.mjs:66-69` porte sa mesure datée.
+
+## Q9 : portes
+`ps` avant les runners : aucun runner d'autrui (`ps-avant-portes.txt`, `ps-avant-mutations.txt`, `ps-avant-vitest.txt`, `ps-avant-vitest2.txt`).
+
+| porte | résultat | attribution |
+|---|---|---|
+| `npx tsc --noEmit --incremental false` | exit=0, aucune ligne (`tsc.txt`) | — |
+| `npm run lint` | exit=0 (`lint.txt`) | — |
+| `npm run test:hooks` ENTIER | exit=0 : 1382 tests, 1376 pass, 0 fail, 6 skipped | — |
+| `npm run test:ops` ENTIER | exit=0 : 294/294 | — |
+| `check-doc-refs.mjs` | « docs:check — OK (34 docs vivantes…) », exit=0 | — |
+| vitest, 20 importeurs (`vitest-liste.txt`, dont `comment-poison-guard`) | exit=1 : 19 fichiers joués, 2 fail, 577 pass. `gitPorte.marque.test.ts` n'est pas joué : hors de `test.include`, `vite.config.ts:71`, et vérifié par tsc, comme le dit son en-tête | voir les deux lignes suivantes |
+| rouge 1 : `comment-poison-guard` | « Ligne(s) du stock sans site… `.hero-present-chips` » | BASE (`legacyVocabStock.mjs:1930`), seul rouge du fichier |
+| rouge 2 : `portable-paths-guard` | `gitPorte.test.mjs:1013 → d:\d` | **COMMIT** (D2) |
+| vitest, les 95 autres gardes de `src/**` qui nomment `scripts` (`gardes-scripts-a-jouer.txt`) | exit=0, 95/95, 1953 tests (`vitest2.txt`) | — |
+
+Liste d'importeurs, tirée de `git grep -l --untracked` sur les 30 modules touchés (`importeurs-ts.txt`, détail `importeurs-ts-detail.txt`), plus les tests des importeurs `.ts`. Les mentions en commentaire (`src/data/index.ts`, `normalize.ts`, …) sont écartées.
+
+## Q10 : prêt à committer ? NON. Ce qui reste, dans l'ordre
+1. **D2** : `gitPorte.test.mjs:1013`, regex en `\d{2}`. Rejouer `src/portable-paths-guard.test.ts`.
+2. **D1** : `etapesDuTrain.test.mjs:110`, `racine = true` sur un `AMBIANTS`. Banc `g.mjs`, mutations `fetchUtil`, `processUtilNu` et `processUtil`, et les trois en-têtes.
+3. **D3** : `--attr-source=<arbre vide>` sur le seul `merge-tree` de `baseDuCommit`, sa doc, un test à pilote marqueur et sa mutation. Rejouer la plage (33/0 attendu, déjà mesuré sous patch).
+4. **D4** : motif « une borne … inconnue » dans `plageFermante.mjs:75`, et un test avec une tête `e…e`.
+5. **D5** : `['crypto', new Set(['createHash'])]`.
+6. **D6** : test de la panne de `diffDeLIndex`, et sa mutation.
+7. Issue « raison tronquée avant son nom » (`gitPorte.mjs:821-824`, famille `… depuis ${cwd} :`), avec `e16g/t-gp15-avec.out`. À ouvrir avant le commit.
+8. Rejouer tsc, lint, `test:hooks`, `test:ops`, doc-refs et vitest : importeurs ET gardes de corpus `scripts/**`.
+
+---
+
+## Sondes (`juge-e16g/`)
+- `sonde-d1.mjs` : table de D1. `SONDE_AJOUT=<cas> node --import sonde-d1.mjs --test scripts/ops/etapesDuTrain.test.mjs` ; sorties `sonde-d1-<cas>.txt` et `sonde-d1-table.txt`.
+- `correctif-ambiants*.txt` : la correction de D1 jouée en mémoire avec `mut-preload.mjs` (d'E16f).
+- `sonde-winDrive.mjs` : D2.
+- `sonde-pilote.sh`, `sonde-base-fusion.mjs`, `strace-sans.txt`, `strace-avec.txt`, `mut-attr.json` et `sonde-plage-attrsource.txt` : D3.
+- `sonde-r3-tete.mjs` : D4.
+- `catch-ast.mjs` : Q3.
+- `verif-mutations.py`, `mut-preload-multi.mjs`, `mut-hook-multi.mjs` et `verif-lancer-local.txt` : Q7.
+
+## Tâches de fond (toutes terminées, aucune ne survit)
+- `bgo0do0gp` : `portes.sh` (tsc, `test:hooks`, `test:ops`, doc-refs, lint), chaque porte sous `timeout`. Terminée, exit 0.
+- `bzncwiaw6` : les deux sondes de plage sous `timeout 1200`. Terminée, exit 0.
+- `bkhmaij94` : `verif-mutations.py`, neuves puis rejeu, sous `timeout 1500` et `2400`. Terminée, exit 0.
+- `b1ou10ppu` : vitest sur les importeurs, `timeout 900`. Terminée, exit 1 (rouges attribués ci-dessus).
+- `bum700upl` : vitest sur les 95 gardes, `timeout 1200`. Terminée, exit 0.
+- `b3edd9uqu` : plage sous patch D3, première tentative. `MUT_JSON` était mal cité et le patch pas appliqué. Arrêtée par `kill 19493` (mon `timeout`, parent 19469 = mon shell), puis la tâche a rendu exit 0.
+- `br92rtyt8` : plage sous patch D3, relancée avec `mut-attr.json`. Terminée, exit 0.
+- `ps` final : aucun processus à moi. Le seul vitest qui tourne (`dialogue-du-dessus.test.tsx`, pid 20235) appartient à une autre session, et je n'y ai pas touché.
+- `juge-e16g/tmp/` et `tmp-attr/` : vides.
+- Aucune commande n'a demandé de permission.
+
+</details>
+
+<details><summary>Brief du codeur E16h (verbatim)</summary>
+
+# Brief du codeur E16h : cinquième reprise des portes git, commit 1 (#1806, lot des portes git), 2026-09-27
+
+Tu es orchestrateur de ton lot. Tu peux déléguer une lecture de masse (`lecteur`) ou une vérification fermée (`verif-mecanique`), mais tu relis tout ce qu'un agent te rend, et le code est à toi.
+
+## Worktree et état VÉRIFIÉ (2026-09-27, par le juge E16g)
+- Worktree : `/home/claude/game/.wt-1806-e16`, branche `wt/1806-e16`, HEAD `543ba1e13`.
+  - Le travail E16 à E16g est dans l'arbre, non committé : 56 lignes de `git status --short`, `UU` attendus sur `plageStock.mjs` et `publier.mjs`, quatre fichiers neufs (`scripts/ops/etapesDuTrain.mjs`, `scripts/ops/etapesDuTrain.test.mjs`, `scripts/guards/lib/gitPorte.marque.test.ts`, `scripts/git-hooks/pre-commit.test.mjs`).
+  - Instantané de cet état : `refs/wip/1806-portes-git-e16g` = `9e211b4af` (le juge a vérifié l'égalité).
+- Règles, interdits, invariant, cas canonique et design jugé : ceux du brief E16b (`/tmp/claude-0/-home-claude-game/b2c1dcf4-ee89-5cd4-b2df-036dbf03e24e/scratchpad/brief-e16b.md`), qui valent ici mot pour mot. Interdits en plus : aucun `git commit` (même `-h` ou `--only`), aucun WebFetch ; toute commande qui demanderait une permission, tu ne la lances pas et tu la nommes au rendu.
+- Lis le verdict du juge EN ENTIER : `scratchpad/juge-e16g/verdict.md`. Ses sondes sont sous `scratchpad/juge-e16g/` (dont `sonde-d1.mjs`, `sonde-winDrive.mjs`, `sonde-pilote.sh`, `mut-attr.json`, `sonde-r3-tete.mjs`, `gardes-scripts-a-jouer.txt`). Puis ton rendu précédent : `scratchpad/rendu-e16g.md` (sorties sous `e16g/`).
+- SI un livrable existe déjà dans l'arbre, PIVOTE en revue.
+- Un codeur travaille dans `.wt-1920d` : avant tout vitest ou `node --test` de plus de 20 fichiers, vérifie qu'aucun autre ne tourne (`ps -eo pid,etime,cmd | grep -E '[v]itest|[n]ode --test'`, sortie collée) ; s'il en tourne un, attends qu'il sorte.
+- Processus : avant tout `kill`, lis le PPID et la ligne de commande du parent ; tu ne tues que ce que ta commande a lancé. Jamais `pkill` ni `killall`.
+- Budget : 1 h 30 d'horloge. Relève `date -u` au départ et avant chaque étape longue. À l'échéance, rends ce qui est fait, l'arbre dans un état STABLE (portes du périmètre vertes), et le reste NOMMÉ.
+
+## La classe D1, cinquième passe : les AMBIANTS passent en liste blanche, comme les modules intégrés
+Cinq juges ont trouvé la même classe ouverte. E16g a inversé le défaut des modules intégrés (liste blanche `INERTES`) ; le juge E16g trouve que les accès AMBIANTS (`fetch`, `process`, `globalThis`) ne sont gardés que dans le module des étapes, par une liste NOIRE (`AMBIANTS`). Deux passes sur la même classe signalent un défaut de design : la règle doit se fermer par construction, pas par énumération des trous.
+
+1. **Minimum, retenu par le juge (D1)** : `etapesDuTrain.test.mjs:110`, une déclaration de tête qui référence un ambiant est RACINE (lanceuse), dans TOUTE la clôture. Banc `g.mjs` (`export const env = () => process` ; `export const appel = (u) => fetch(u)`), mutations `fetchUtil`, `processUtilNu` et `processUtil` de `juge-e16g/sonde-d1.mjs` rouges.
+2. **Forme générale, à livrer si elle tient (sinon, prouve par une sonde pourquoi, et livre le minimum)** : les ambiants passent en LISTE BLANCHE, comme les modules intégrés. Les noms globaux sont lus à l'exécution du test (`Object.getOwnPropertyNames(globalThis)`, plus `globalThis`) ; un identifiant de la clôture qui porte l'un de ces noms, en position de LECTURE (pas un nom de propriété `x.fetch`, pas une clé d'objet, pas une déclaration locale), est lanceur s'il n'est pas dans une liste blanche de globaux inertes, justifiée ligne par ligne. Un global neuf de Node est donc lanceur par défaut, et N+1 global inerte = 1 ligne. Mesure et colle la liste des globaux que la clôture lit aujourd'hui. Réponds en sortie : quels globaux « inertes » donnent quand même accès au constructeur de fonction (ce résidu est à #2073 : dis seulement si la liste blanche l'élargit).
+3. En tête de `etapesDuTrain.test.mjs`, une table des SOURCES de capacité d'un module (import d'un module intégré, import d'un paquet, import d'un module du dépôt, import dynamique, `createRequire`, accès ambiant, évaluation), chacune avec la règle qui la garde ; une source neuve = une ligne. Les en-têtes de `etapesDuTrain.mjs`, `publier.mjs` et du test disent exactement cette table, et renvoient le reste à #2073.
+
+## Travail, dans l'ordre du juge (Q10)
+Pour chaque défaut, le verdict donne une correction. Tu l'implémentes telle qu'écrite, sauf là où ce brief l'étend ; si tu la trouves fausse, prouve-le par une sonde avant d'en changer, et dis-le au rendu.
+1. **D2 (CI rouge)** : `gitPorte.test.mjs:1013`, regex en `\d{2}`. Rejoue `src/portable-paths-guard.test.ts`.
+2. **D1** : ci-dessus.
+3. **D3** : `--attr-source=<arbre vide>` (par `arbreVide(depot)`) sur le seul `merge-tree` de `baseDuCommit` (`gitPorte.mjs:554`), pas dans `OPTIONS_DE_L_HOTE` ; sa doc dit « sans pilote ni attribut » ; test à pilote marqueur sur un dépôt forgé (aucune marque, aucun `.merge_file_*`), et mutation (l'option retirée rougit). Rejoue la plage.
+4. **D4** : `plageFermante.mjs:75`, le motif nomme la borne absente (par `shaDe` sur chacune, ou « une borne de <plage> est inconnue… ») ; test avec une tête `e…e` et sa mutation.
+5. **D5** : `['crypto', new Set(['createHash'])]`.
+6. **D6** : test de la panne de `diffDeLIndex` (cale `git` qui échoue sur `diff-index`, sur le modèle de `classerPush.test.mjs`), attendu exit 1 et `diff de l'index illisible — …` ; mutation `catch (e) { return '' }` rouge.
+7. **La raison tronquée qui perd son nom** (verdict, « Hors commit 1 ») : je la prends DANS ce commit, parce que le test du lot `gitPorte.test.mjs:239-259` rougit sous tout chemin profond (poste Windows compris). Pour toute raison que l'hôte compose avec un chemin (`arbrePrincipal`, `gitPorte.mjs:821-824`, et la famille `… depuis ${cwd} : …`), le motif fixe vient D'ABORD, les chemins ENSUITE. Contre-grep des raisons de l'hôte qui interpolent un chemin avant leur motif (sortie collée). Test sous un `cwd` de plus de 200 caractères, et sa mutation.
+
+## Preuves (obligatoires)
+- Mutations sur les blobs FINAUX : empreintes `git hash-object` avant et après, rouge constaté avec sa ligne `exit=`, remise identique, argv archivé. Au minimum : les trois de D1 (et, si le point 2 est livré, un global neuf non listé qui rougit), une pour D3, D4, D6 et le point 7.
+- Les 15 mutations d'E16g et les 21 d'E16f rejouées si ta retouche touche leurs fichiers.
+- Les cas de `juge-e16g/sonde-d1.mjs` et de `juge-e16f/sonde-cloture-preload.mjs`, rejoués après ta dernière retouche : table cas → exit → pass/fail.
+- La plage d'E17 : `juge-e16/sonde-plage.mjs` et `juge-e16/sonde-plage-renommages.mjs` (avec ses 6 shas), attendu `ecarts 0`. Laisse-lui 1200 s.
+
+## Portes (sortie BRUTE collée, avec la ligne `exit=` écrite par la commande)
+- `npm run typecheck:fast`.
+- `node --test` sur les tests des fichiers touchés, les importeurs des modules touchés (liste par `git grep -l --untracked`, collée) et les tests de `scripts/gates/` qui lisent un inventaire (dont `ecrivainsAtteints.test.mjs`), par paquets de 20 au plus.
+- vitest sur les importeurs `.ts` des modules touchés, PLUS les gardes de `src/**` qui lisent le corpus de `scripts/**` (la liste du juge `juge-e16g/gardes-scripts-a-jouer.txt`, 95 fichiers, dont `src/portable-paths-guard.test.ts` et `src/comment-poison-guard.test.ts`), par paquets de 20 au plus. Rouge de base attendu : `comment-poison-guard` sur `legacyVocabStock.mjs:1930` ; tout autre rouge est à toi.
+- eslint sur les fichiers que tu touches.
+
+## Livrable
+`/tmp/claude-0/-home-claude-game/b2c1dcf4-ee89-5cd4-b2df-036dbf03e24e/scratchpad/rendu-e16h.md`, sorties sous `scratchpad/e16h/` :
+- `git diff --stat HEAD` et les fichiers neufs ;
+- chaque défaut, D1 à D6 et le point 7, fait ou reste, avec sa preuve ; pour D1, le point 2 livré ou non, et pourquoi ;
+- la table des mutations ;
+- les sorties des sondes et des portes.
+
+</details>
+
+---
+_Generated by [Claude Code](https://claude.ai/code)_

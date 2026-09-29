@@ -1,0 +1,1234 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1806-L1
+
+ ✓ src/ui/editor/editorState.test.ts (82 tests) 318ms 380 MB heap used
+ ✓ src/comment-poison-guard.test.ts (79 tests) 4970ms 468 MB heap used
+   ✓ garde-fou commentaires — pierres tombales (#136, CLAUDE.md règle 6c) > aucun commentaire de src/** ni de scripts/** ne porte une pierre tombale (tolérance ZÉRO) 685ms
+   ✓ garde-fou commentaires — excuses non tracées (#136, CLAUDE.md règle 6b) > aucune excuse de src/** ni de scripts/** sans tag [entériné AAAA-MM-JJ] (ACTIVE depuis #177) 720ms
+   ✓ garde-fou commentaires — vocabulaire de l’ancien état (#1486, credo règle 1) > tout site de src/** et scripts/** (tests compris) est au stock nominatif daté, et aucune ligne du stock n’est périmée 2882ms
+   ✓ cliquet : revendications d’autorité dans les fichiers de test (#136, famille 4) > aucun site famille 4 dans src/**/*.test.ts(x) hors liste nominative, et aucune entrée périmée 310ms
+ ✓ src/ui/ui-ratchets.test.ts (53 tests) 8274ms 516 MB heap used
+   ✓ #236 — cliquets d’hygiène UI > (xiv) exhaustivité : chaque .css de src est PARTAGÉ, de PRIMITIVE ou d’ÉCRAN, jamais deux 983ms
+   ✓ canon responsive, peaux et matières partagées de src/ui/styles > matières `.skin-*`/`.display-*` : le DELTA d’un module BAT la matière sur toute propriété qu’elle déclare aussi 1146ms
+   ✓ #1318 V5 — cliquets d’hygiène UI (champ nombre, breakpoints) > (xix) raison de refus MUETTE (`<button disabled title=…>`) : aucune hausse, zéro côté joueur 461ms
+   ✓ #1318 V5 — cliquets d’hygiène UI (champ nombre, breakpoints) > (xix) le stock restant est ENTIÈREMENT dans l’atelier — aucun écran joueur ne porte de refus muet 392ms
+   ✓ #1800 — trois couches CSS : un module d’écran ne pose que du PLACEMENT > (xxi) identité en module d’écran : stock nominatif, décroissant 739ms
+   ✓ #1800 — trois couches CSS : un module d’écran ne pose que du PLACEMENT > (xxi) espacement hors échelle : stock nominatif, décroissant 730ms
+   ✓ #1800 — trois couches CSS : un module d’écran ne pose que du PLACEMENT > (xxii) style inline hors variable CSS : stock nominatif, décroissant 650ms
+   ✓ #1800 — trois couches CSS : un module d’écran ne pose que du PLACEMENT > le stock committé est un point fixe de sa régénération 1229ms
+   ✓ #1800 — trois couches CSS : un module d’écran ne pose que du PLACEMENT > (xxi) le manifeste classe chaque module : un css de primitive existe, et n’est pas une feuille partagée 764ms
+   ✓ #1800 — trois couches CSS : un module d’écran ne pose que du PLACEMENT > (xxi) le balayage n’est pas vide : des modules d’écran, et chacun hors couche partagée 547ms
+ ✓ src/ui/editor/seam-assise-guard.test.ts (24 tests) 1645ms 612 MB heap used
+   ✓ INVARIANT #2 — un seul seam d’assise pour toute mutation d’entité > aucun fichier de `src/ui/**` ne pose la propriété `entities` dans un littéral 1221ms
+ ✓ src/ui/choix-retenu-guard.test.ts (27 tests) 5292ms 508 MB heap used
+   ✓ état de bouton — son attribut, jamais le ton primaire > aucun site de `src/ui` ne peint un état de bouton en primaire 1563ms
+   ✓ divulgation — son état est le chevron canonique, quelle que soit la matière du contrôle > aucune divulgation de `src` n’écrit son propre état 3586ms
+ ✓ src/ui/editor/editorState-builder.test.ts (17 tests) 164ms 510 MB heap used
+ ✓ src/ui/editor/ConditionEditor.test.tsx (21 tests) 157ms 542 MB heap used
+ ✓ src/ui/primitive-owners-guard.test.ts (8 tests) 4774ms 676 MB heap used
+   ✓ #1318 P8/D10 — marqueurs structurels = propriété des primitives (recopie de markup bloquée) > aucune recopie de marqueur hors du fichier propriétaire au-delà du stock mesuré 1527ms
+   ✓ #1318 P8/D10 — marqueurs structurels = propriété des primitives (recopie de markup bloquée) > la baseline est DÉCROISSANTE — aucune entrée périmée 1489ms
+   ✓ #1806 §5.2 — une classe d’un module de primitive est posée par sa primitive > chaque classe DÉFINIE par un module de primitive est posée par la primitive qui le possède 1612ms
+ ✓ src/ui/editor/editor-walls-height.test.ts (17 tests) 78ms 672 MB heap used
+ ✓ src/ui/raccourcis-registre.test.ts (6 tests) 98ms 672 MB heap used
+ ✓ src/ui/editor-quarantine-guard.test.ts (2 tests) 110ms 667 MB heap used
+ ✓ src/vi-mock-isolate-guard.test.ts (7 tests) 213ms 701 MB heap used
+ ✓ src/ui/editor/editorState-z-layers.test.ts (9 tests) 41ms 705 MB heap used
+ ✓ src/ui/editor/LogicDock.test.tsx (5 tests) 88ms 727 MB heap used
+ ✓ src/ui/compendium/CodexRef.test.tsx (8 tests) 119ms 730 MB heap used
+ ✓ src/ui/editor/editor-layers.test.ts (2 tests) 21ms 738 MB heap used
+ ✓ src/ui/editor/no-datalist.test.ts (2 tests) 54ms 741 MB heap used
+ ✓ src/ui/editor/editor-un-fait-un-proprietaire.test.tsx (9 tests) 75ms 564 MB heap used
+ ✓ src/ui/editor/editorLayers.test.ts (5 tests) 31ms 734 MB heap used
+ ✓ src/ui/editor/lampMarker.test.ts (11 tests) 55ms 573 MB heap used
+ ✓ src/ui/editor/statblock-skillref-roundtrip.test.ts (9 tests) 48ms 735 MB heap used
+ ✓ src/ui/editor/propDefaults.test.ts (6 tests) 19ms 572 MB heap used
+ ✓ src/ui/editor/scene-field-editability-guard.test.ts (19 tests) 50567ms 2128 MB heap used
+   ✓ #841 — chaque champ du document de scène a un chemin d’écriture ATTEIGNABLE PAR L’AUTEUR > aucun champ n’est joignable seulement par le pipeline d’authoring, hors cliquet nommé 19948ms
+   ✓ #841 — chaque champ du document de scène a un chemin d’écriture ATTEIGNABLE PAR L’AUTEUR > crédite une écriture qui traverse `Array.map` — sonde réelle : `SceneEffectZone.tiles` ← `mapSpec.ts` 1068ms
+   ✓ #841 — chaque champ du document de scène a un chemin d’écriture ATTEIGNABLE PAR L’AUTEUR > NON VACANTE (c) : à travers `Array.map`, seule l’annotation de la COLLECTION crédite — pas un homonyme 319ms
+   ✓ #841 — chaque champ du document de scène a un chemin d’écriture ATTEIGNABLE PAR L’AUTEUR > le périmètre inclut par IDENTITÉ — une feuille d’un AUTRE module composée par le document y entre, un nœud-frontière n’y entre pas 301ms
+   ✓ #841 — chaque champ du document de scène a un chemin d’écriture ATTEIGNABLE PAR L’AUTEUR > la frontière porte sur la DÉCLARATION DE PROPRIÉTÉ — un corps inféré d’un schéma est dans le périmètre et se NOMME de son schéma, le vocabulaire partagé n’y est pas 331ms
+   ✓ #841 — chaque champ du document de scène a un chemin d’écriture ATTEIGNABLE PAR L’AUTEUR > le SEAM manuscrit/schéma ne diverge QU’EN optionalité, sur les 6 champs que la note de `scene.ts` nomme 5584ms
+   ✓ #841 — chaque champ du document de scène a un chemin d’écriture ATTEIGNABLE PAR L’AUTEUR > gate @fossile (cas A) : un champ EXISTANT que l’on tague sans l’inscrire au registre est ROUGE 7060ms
+   ✓ #841 — chaque champ du document de scène a un chemin d’écriture ATTEIGNABLE PAR L’AUTEUR > gate @fossile (cas B) : un champ NEUF né tagué — LE canal d’évasion — est ROUGE, et il RESTE dans le périmètre 4357ms
+   ✓ #841 — chaque champ du document de scène a un chemin d’écriture ATTEIGNABLE PAR L’AUTEUR > gate @fossile : une ENTRÉE du registre que plus aucun tag ne porte est ROUGE (le registre ne survit pas à son shim) 9768ms
+   ✓ #841 — chaque champ du document de scène a un chemin d’écriture ATTEIGNABLE PAR L’AUTEUR > NON VACANTE (a) : un champ frais, écrit par personne, est rapporté orphelin 308ms
+   ✓ #841 — chaque champ du document de scène a un chemin d’écriture ATTEIGNABLE PAR L’AUTEUR > NON VACANTE (e) : un HOMONYME appelé depuis l’interface ne réveille pas la primitive muette 304ms
+   ✓ #841 — chaque champ du document de scène a un chemin d’écriture ATTEIGNABLE PAR L’AUTEUR > un APPELANT d’interface, même indirect via une autre primitive appelée, crédite 313ms
+stderr | src/ui/editor/Inspector.test.tsx > Inspector — l’empreinte d’un décor n’est plus une propriété d’instance > un décor SANS type l’annonce dans le sélecteur, sur une option non élisible
+[décor] id « (aucun type nommé) » absent du catalogue — repli VISIBLE, donnée à corriger.
+
+stderr | src/ui/editor/Inspector.test.tsx > Inspector — l’empreinte d’un décor n’est plus une propriété d’instance > un décor à type DISPARU du catalogue nomme l’id fautif, au lieu d’emprunter un autre décor
+[décor] id « tonneau-imaginaire » absent du catalogue — repli VISIBLE, donnée à corriger.
+
+stderr | src/ui/editor/Inspector.test.tsx > Inspector — l’empreinte d’un décor n’est plus une propriété d’instance > l’id fautif se relit ENTIER hors du sélecteur (alerte) et au survol (title)
+[décor] id « tonneau-imaginaire-au-nom-tres-long-que-le-champ-coupe » absent du catalogue — repli VISIBLE, donnée à corriger.
+
+stderr | src/ui/editor/Inspector.test.tsx > Inspector — l’empreinte d’un décor n’est plus une propriété d’instance > depuis cet état, élire un type l’ÉCRIT sur l’instance et l’état disparaît
+[décor] id « (aucun type nommé) » absent du catalogue — repli VISIBLE, donnée à corriger.
+
+stderr | src/ui/editor/editeur-monde-volumique.test.tsx > Éditeur — ce que le monde volumique donne à voir (#1176, P3-3) > mode ISOLÉ : un jeton d’une couche masquée ne reste pas au canevas (aucun corps fantôme)
+GameStage3D: billboard « perso:embusque-1 » sauté — texture non rasterisée : TypeError: URL.createObjectURL is not a function
+    at rasterizeSvg (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:55:19)
+    at Module.svgToTexture (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:82:28)
+    at rasteriser (/home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:59:28)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:74:14
+    at Object.run (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:165:60)
+    at pump (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:151:30)
+    at /home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:135:85
+    at invokeTheCallbackFunction (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/generated/idl/Function.js:19:26)
+    at runAnimationFrameCallbacks (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:635:13)
+    at Timeout.<anonymous> (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:613:11)
+
+stderr | src/ui/editor/editeur-monde-volumique.test.tsx > Éditeur — ce que le monde volumique donne à voir (#1176, P3-3) > le décor d’une couche du DESSUS ne revient pas au canevas ; celui du DESSOUS reste en gabarit
+GameStage3D: billboard « prop:prop:decor-rez|feu-camp||1 » sauté — texture non rasterisée : TypeError: URL.createObjectURL is not a function
+    at rasterizeSvg (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:55:19)
+    at Module.svgToTexture (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:82:28)
+    at rasteriser (/home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:59:28)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:74:14
+    at Object.run (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:165:60)
+    at pump (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:151:30)
+    at /home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:135:85
+    at invokeTheCallbackFunction (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/generated/idl/Function.js:19:26)
+    at runAnimationFrameCallbacks (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:635:13)
+    at Timeout.<anonymous> (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:613:11)
+GameStage3D: billboard « prop:prop:decor-etage|feu-camp||1 » sauté — texture non rasterisée : TypeError: URL.createObjectURL is not a function
+    at rasterizeSvg (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:55:19)
+    at Module.svgToTexture (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:82:28)
+    at rasteriser (/home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:59:28)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:74:14
+    at Object.run (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:165:60)
+    at pump (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:151:30)
+    at /home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:135:85
+    at invokeTheCallbackFunction (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/generated/idl/Function.js:19:26)
+    at runAnimationFrameCallbacks (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:635:13)
+    at Timeout.<anonymous> (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:613:11)
+
+stderr | src/ui/editor/editeur-monde-volumique.test.tsx > Éditeur — ce que le monde volumique donne à voir (#1176, P3-3) > la GOMME retire le sujet à l’instant du clic — sans geler la cadence, sans recuire le monde
+GameStage3D: billboard « perso:embusque-1 » sauté — texture non rasterisée : TypeError: URL.createObjectURL is not a function
+    at rasterizeSvg (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:55:19)
+    at Module.svgToTexture (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:82:28)
+    at rasteriser (/home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:59:28)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:74:14
+    at Object.run (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:165:60)
+    at pump (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:151:30)
+    at /home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:135:85
+    at invokeTheCallbackFunction (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/generated/idl/Function.js:19:26)
+    at runAnimationFrameCallbacks (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:635:13)
+    at Timeout.<anonymous> (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:613:11)
+
+stderr | src/ui/editor/Inspector.test.tsx > Inspector — champs FU-E de l’instance d’entité (#841) > upgrades[] : une amélioration navale ajoutée atterrit dans la Scène et survit au round-trip
+[décor] id « cogue » absent du catalogue — repli VISIBLE, donnée à corriger.
+
+stderr | src/ui/editor/Inspector.test.tsx > Inspector — champs FU-E de l’instance d’entité (#841) > upgrades[] : une amélioration navale ajoutée atterrit dans la Scène et survit au round-trip
+[décor] id « cogue » absent du catalogue — repli VISIBLE, donnée à corriger.
+
+stderr | src/ui/editor/Inspector.test.tsx > Inspector — champs FU-E de l’instance d’entité (#841) > upgrades[] : authorable sur une coque SANS emplacement d’artillerie (Blindage/Lissage seuls, MDG 12 — #834 audit-2 défaut 8)
+[décor] id « cogue » absent du catalogue — repli VISIBLE, donnée à corriger.
+
+stderr | src/ui/editor/Inspector.test.tsx > Inspector — champs FU-E de l’instance d’entité (#841) > upgrades[] : authorable sur une coque SANS emplacement d’artillerie (Blindage/Lissage seuls, MDG 12 — #834 audit-2 défaut 8)
+[décor] id « cogue » absent du catalogue — repli VISIBLE, donnée à corriger.
+
+stderr | src/ui/editor/editeur-monde-volumique.test.tsx > Éditeur — grille de cases et marques d’entité (#1176, P3-3) > …et sa marque est un CONTOUR au sol, jamais un aplat qui barre le corps
+GameStage3D: billboard « perso:embusque-1 » sauté — texture non rasterisée : TypeError: URL.createObjectURL is not a function
+    at rasterizeSvg (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:55:19)
+    at Module.svgToTexture (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:82:28)
+    at rasteriser (/home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:59:28)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:74:14
+    at Object.run (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:165:60)
+    at pump (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:151:30)
+    at /home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:135:85
+    at invokeTheCallbackFunction (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/generated/idl/Function.js:19:26)
+    at runAnimationFrameCallbacks (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:635:13)
+    at Timeout.<anonymous> (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:613:11)
+
+stderr | src/ui/editor/Inspector.test.tsx > Inspector — la coiffure imposée suit le pool du sexe > coiffure M déjà posée sur un PNJ F (donnée importée) : l’aperçu montre la chevelure d’erreur
+[rig] coiffure « cheveux-courts-soignes-raie-sur-le-cote-m » hors du pool (espèce humain, sexe F) — chevelure d'erreur visible, donnée à corriger.
+
+ ✓ src/ui/editor/Inspector.test.tsx (32 tests) 1917ms 516 MB heap used
+ ✓ src/ui/editor/editeur-monde-volumique.test.tsx (32 tests) 2270ms 555 MB heap used
+stderr | src/ui/editor/Editor.test.tsx
+Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.
+    at EditorCanvas (/home/user/game/.wt-1806-L1/src/ui/editor/EditorCanvas.tsx:125:3)
+    at SceneErrorBoundary (/home/user/game/.wt-1806-L1/src/ui/SceneErrorBoundary.tsx:8:1)
+    at div
+    at div
+    at div
+    at Editor (/home/user/game/.wt-1806-L1/src/ui/editor/Editor.tsx:132:43)
+
+ ✓ src/ui/editor/editor-affordances-cablage.test.tsx (17 tests) 981ms 554 MB heap used
+stderr | src/ui/editor/Editor.test.tsx > Editor v2 — « Ouvrir » une campagne built-in ouvre une COPIE (#367) > charge la campagne en projet SANS id (Enregistrer créera un NOUVEAU projet, jamais un écrasement du source)
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+THREE.WebGLRenderer: THREE.WebGLRenderer: Error creating WebGL context.
+GameStage3D: aucun contexte WebGL — le monde ne peut pas être peint. Error: THREE.WebGLRenderer: Error creating WebGL context.
+    at new WebGLRenderer (file:///home/user/game/.wt-1806-L1/node_modules/three/build/three.module.js:16399:13)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/GameStage3D.tsx:1548:64
+    at commitHookEffectListMount (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:23189:26)
+    at commitPassiveMountOnFiber (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24970:11)
+    at commitPassiveMountEffects_complete (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24930:9)
+    at commitPassiveMountEffects_begin (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24917:7)
+    at commitPassiveMountEffects (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24905:3)
+    at flushPassiveEffectsImpl (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:27078:3)
+    at flushPassiveEffects (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:27023:14)
+    at /home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:26808:9
+
+stderr | src/ui/editor/Editor.test.tsx > Editor v2 — « Ouvrir » une campagne built-in ouvre une COPIE (#367) > charge la campagne en projet SANS id (Enregistrer créera un NOUVEAU projet, jamais un écrasement du source)
+GameStage3D: billboard « perso:enemy-enc-mutants-0 » sauté — texture non rasterisée : TypeError: URL.createObjectURL is not a function
+    at rasterizeSvg (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:55:19)
+    at Module.svgToTexture (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:82:28)
+    at rasteriser (/home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:59:28)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:74:14
+    at Object.run (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:165:60)
+    at pump (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:151:30)
+    at /home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:135:85
+    at invokeTheCallbackFunction (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/generated/idl/Function.js:19:26)
+    at runAnimationFrameCallbacks (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:635:13)
+    at Timeout.<anonymous> (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:613:11)
+
+stderr | src/ui/editor/Editor.test.tsx > Editor v2 — « Ouvrir » une campagne built-in ouvre une COPIE (#367) > charge la campagne en projet SANS id (Enregistrer créera un NOUVEAU projet, jamais un écrasement du source)
+GameStage3D: billboard « perso:enemy-enc-mutants-1 » sauté — texture non rasterisée : TypeError: URL.createObjectURL is not a function
+    at rasterizeSvg (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:55:19)
+    at Module.svgToTexture (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:82:28)
+    at rasteriser (/home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:59:28)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:74:14
+    at Object.run (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:165:60)
+    at pump (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:151:30)
+    at /home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:135:85
+    at invokeTheCallbackFunction (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/generated/idl/Function.js:19:26)
+    at runAnimationFrameCallbacks (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:635:13)
+    at Timeout.<anonymous> (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:613:11)
+GameStage3D: billboard « perso:enemy-enc-mutants-2 » sauté — texture non rasterisée : TypeError: URL.createObjectURL is not a function
+    at rasterizeSvg (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:55:19)
+    at Module.svgToTexture (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:82:28)
+    at rasteriser (/home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:59:28)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:74:14
+    at Object.run (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:165:60)
+    at pump (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:151:30)
+    at /home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:135:85
+    at invokeTheCallbackFunction (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/generated/idl/Function.js:19:26)
+    at runAnimationFrameCallbacks (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:635:13)
+    at Timeout.<anonymous> (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:613:11)
+
+ ✓ src/ui/editor/EditorCanvas.test.tsx (21 tests) 1503ms 651 MB heap used
+stderr | src/ui/editor/editor-enregistre-repasse-parseProject.test.tsx > Éditeur — un projet ENREGISTRÉ repasse sa propre porte `parseProject` > un projet JAMAIS nommé se NOMME au geste d’enregistrement, et le document écrit repasse sa porte
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+THREE.WebGLRenderer: THREE.WebGLRenderer: Error creating WebGL context.
+GameStage3D: aucun contexte WebGL — le monde ne peut pas être peint. Error: THREE.WebGLRenderer: Error creating WebGL context.
+    at new WebGLRenderer (file:///home/user/game/.wt-1806-L1/node_modules/three/build/three.module.js:16399:13)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/GameStage3D.tsx:1548:64
+    at commitHookEffectListMount (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:23189:26)
+    at commitPassiveMountOnFiber (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24970:11)
+    at commitPassiveMountEffects_complete (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24930:9)
+    at commitPassiveMountEffects_begin (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24917:7)
+    at commitPassiveMountEffects (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24905:3)
+    at flushPassiveEffectsImpl (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:27078:3)
+    at flushPassiveEffects (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:27023:14)
+    at /home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:26808:9
+
+stderr | src/ui/editor/editor-enregistre-repasse-parseProject.test.tsx > Éditeur — un projet que la porte REFUSE ne s’écrit pas > rien n’est écrit, et le refus NOMME la scène et l’entité à corriger
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+THREE.WebGLRenderer: THREE.WebGLRenderer: Error creating WebGL context.
+GameStage3D: aucun contexte WebGL — le monde ne peut pas être peint. Error: THREE.WebGLRenderer: Error creating WebGL context.
+    at new WebGLRenderer (file:///home/user/game/.wt-1806-L1/node_modules/three/build/three.module.js:16399:13)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/GameStage3D.tsx:1548:64
+    at commitHookEffectListMount (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:23189:26)
+    at commitPassiveMountOnFiber (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24970:11)
+    at commitPassiveMountEffects_complete (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24930:9)
+    at commitPassiveMountEffects_begin (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24917:7)
+    at commitPassiveMountEffects (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24905:3)
+    at flushPassiveEffectsImpl (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:27078:3)
+    at flushPassiveEffects (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:27023:14)
+    at commitRootImpl (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:26974:5)
+
+stderr | src/ui/editor/editor-enregistre-repasse-parseProject.test.tsx > Éditeur — un projet que la porte REFUSE ne s’écrit pas > rien n’est écrit, et le refus NOMME la scène et l’entité à corriger
+[décor] id « (aucun type nommé) » absent du catalogue — repli VISIBLE, donnée à corriger.
+[décor] id « (aucun type nommé) » absent du catalogue — repli VISIBLE, donnée à corriger.
+[décor] id « (aucun type nommé) » absent du catalogue — repli VISIBLE, donnée à corriger.
+[décor] id « (aucun type nommé) » absent du catalogue — repli VISIBLE, donnée à corriger.
+GameStage3D: billboard « prop:prop:p0|[sans type]||1 » sauté — texture non rasterisée : TypeError: URL.createObjectURL is not a function
+    at rasterizeSvg (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:55:19)
+    at Module.svgToTexture (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:82:28)
+    at rasteriser (/home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:59:28)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:74:14
+    at Object.run (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:165:60)
+    at pump (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:151:30)
+    at /home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:135:85
+    at invokeTheCallbackFunction (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/generated/idl/Function.js:19:26)
+    at runAnimationFrameCallbacks (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:635:13)
+    at Timeout.<anonymous> (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:613:11)
+
+stderr | src/ui/editor/editor-enregistre-repasse-parseProject.test.tsx > Éditeur — un projet que la porte REFUSE ne s’écrit pas > un projet SAIN s’enregistre comme avant — la porte ne barre que ce qui est fautif
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+THREE.WebGLRenderer: THREE.WebGLRenderer: Error creating WebGL context.
+GameStage3D: aucun contexte WebGL — le monde ne peut pas être peint. Error: THREE.WebGLRenderer: Error creating WebGL context.
+    at new WebGLRenderer (file:///home/user/game/.wt-1806-L1/node_modules/three/build/three.module.js:16399:13)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/GameStage3D.tsx:1548:64
+    at commitHookEffectListMount (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:23189:26)
+    at commitPassiveMountOnFiber (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24970:11)
+    at commitPassiveMountEffects_complete (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24930:9)
+    at commitPassiveMountEffects_begin (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24917:7)
+    at commitPassiveMountEffects (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24905:3)
+    at flushPassiveEffectsImpl (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:27078:3)
+    at flushPassiveEffects (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:27023:14)
+    at commitRootImpl (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:26974:5)
+
+stderr | src/ui/editor/Editor.test.tsx > Editor v2 — « Ouvrir » une campagne built-in ouvre une COPIE (#367) > charge la campagne en projet SANS id (Enregistrer créera un NOUVEAU projet, jamais un écrasement du source)
+GameStage3D: billboard « perso:enemy-enc-zone1-0 » sauté — texture non rasterisée : TypeError: URL.createObjectURL is not a function
+    at rasterizeSvg (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:55:19)
+    at Module.svgToTexture (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:82:28)
+    at rasteriser (/home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:59:28)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:74:14
+    at Object.run (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:165:60)
+    at pump (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:151:30)
+    at /home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:135:85
+    at invokeTheCallbackFunction (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/generated/idl/Function.js:19:26)
+    at runAnimationFrameCallbacks (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:635:13)
+    at Timeout.<anonymous> (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:613:11)
+GameStage3D: billboard « perso:enemy-enc-zone1-1 » sauté — texture non rasterisée : TypeError: URL.createObjectURL is not a function
+    at rasterizeSvg (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:55:19)
+    at Module.svgToTexture (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:82:28)
+    at rasteriser (/home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:59:28)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:74:14
+    at Object.run (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:165:60)
+    at pump (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:151:30)
+    at /home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:135:85
+    at invokeTheCallbackFunction (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/generated/idl/Function.js:19:26)
+    at runAnimationFrameCallbacks (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:635:13)
+    at Timeout.<anonymous> (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:613:11)
+GameStage3D: billboard « perso:enemy-enc-zone1-2 » sauté — texture non rasterisée : TypeError: URL.createObjectURL is not a function
+    at rasterizeSvg (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:55:19)
+    at Module.svgToTexture (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:82:28)
+    at rasteriser (/home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:59:28)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:74:14
+    at Object.run (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:165:60)
+    at pump (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:151:30)
+    at /home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:135:85
+    at invokeTheCallbackFunction (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/generated/idl/Function.js:19:26)
+    at runAnimationFrameCallbacks (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:635:13)
+    at Timeout.<anonymous> (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:613:11)
+GameStage3D: billboard « perso:enemy-enc-zone1-3 » sauté — texture non rasterisée : TypeError: URL.createObjectURL is not a function
+    at rasterizeSvg (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:55:19)
+    at Module.svgToTexture (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:82:28)
+    at rasteriser (/home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:59:28)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:74:14
+    at Object.run (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:165:60)
+    at pump (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:151:30)
+    at /home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:135:85
+    at invokeTheCallbackFunction (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/generated/idl/Function.js:19:26)
+    at runAnimationFrameCallbacks (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:635:13)
+    at Timeout.<anonymous> (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:613:11)
+GameStage3D: billboard « perso:enemy-enc-zone1-4 » sauté — texture non rasterisée : TypeError: URL.createObjectURL is not a function
+    at rasterizeSvg (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:55:19)
+    at Module.svgToTexture (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:82:28)
+    at rasteriser (/home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:59:28)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:74:14
+    at Object.run (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:165:60)
+    at pump (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:151:30)
+    at /home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:135:85
+    at invokeTheCallbackFunction (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/generated/idl/Function.js:19:26)
+    at runAnimationFrameCallbacks (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:635:13)
+    at Timeout.<anonymous> (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:613:11)
+
+stderr | src/ui/editor/Editor.test.tsx > Editor v2 — « Ouvrir » une campagne built-in ouvre une COPIE (#367) > charge la campagne en projet SANS id (Enregistrer créera un NOUVEAU projet, jamais un écrasement du source)
+GameStage3D: billboard « perso:enemy-enc-zone1-5 » sauté — texture non rasterisée : TypeError: URL.createObjectURL is not a function
+    at rasterizeSvg (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:55:19)
+    at Module.svgToTexture (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:82:28)
+    at rasteriser (/home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:59:28)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:74:14
+    at Object.run (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:165:60)
+    at pump (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:151:30)
+    at /home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:135:85
+    at invokeTheCallbackFunction (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/generated/idl/Function.js:19:26)
+    at runAnimationFrameCallbacks (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:635:13)
+    at Timeout.<anonymous> (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:613:11)
+GameStage3D: billboard « prop:prop:p7|etendard||1 » sauté — texture non rasterisée : TypeError: URL.createObjectURL is not a function
+    at rasterizeSvg (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:55:19)
+    at Module.svgToTexture (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:82:28)
+    at rasteriser (/home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:59:28)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:74:14
+    at Object.run (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:165:60)
+    at pump (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:151:30)
+    at /home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:135:85
+    at invokeTheCallbackFunction (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/generated/idl/Function.js:19:26)
+    at runAnimationFrameCallbacks (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:635:13)
+    at Timeout.<anonymous> (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:613:11)
+GameStage3D: billboard « prop:prop:p8|feu-camp||1 » sauté — texture non rasterisée : TypeError: URL.createObjectURL is not a function
+    at rasterizeSvg (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:55:19)
+    at Module.svgToTexture (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:82:28)
+    at rasteriser (/home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:59:28)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:74:14
+    at Object.run (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:165:60)
+    at pump (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:151:30)
+    at /home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:135:85
+    at invokeTheCallbackFunction (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/generated/idl/Function.js:19:26)
+    at runAnimationFrameCallbacks (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:635:13)
+    at Timeout.<anonymous> (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:613:11)
+GameStage3D: billboard « prop:prop:p9|barriere||1 » sauté — texture non rasterisée : TypeError: URL.createObjectURL is not a function
+    at rasterizeSvg (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:55:19)
+    at Module.svgToTexture (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:82:28)
+    at rasteriser (/home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:59:28)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:74:14
+    at Object.run (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:165:60)
+    at pump (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:151:30)
+    at /home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:135:85
+    at invokeTheCallbackFunction (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/generated/idl/Function.js:19:26)
+    at runAnimationFrameCallbacks (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:635:13)
+    at Timeout.<anonymous> (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:613:11)
+GameStage3D: billboard « prop:prop:p10|barriere||1 » sauté — texture non rasterisée : TypeError: URL.createObjectURL is not a function
+    at rasterizeSvg (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:55:19)
+    at Module.svgToTexture (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:82:28)
+    at rasteriser (/home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:59:28)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:74:14
+    at Object.run (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:165:60)
+    at pump (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:151:30)
+    at /home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:135:85
+    at invokeTheCallbackFunction (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/generated/idl/Function.js:19:26)
+    at runAnimationFrameCallbacks (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:635:13)
+    at Timeout.<anonymous> (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:613:11)
+
+stderr | src/ui/editor/editor-enregistre-repasse-parseProject.test.tsx > Éditeur — un projet de bibliothèque d’AVANT #1552 se ROUVRE > sans identité au document : l’identité DE L’ENTRÉE est reconduite, le projet CHARGE et se réenregistre
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+THREE.WebGLRenderer: THREE.WebGLRenderer: Error creating WebGL context.
+GameStage3D: aucun contexte WebGL — le monde ne peut pas être peint. Error: THREE.WebGLRenderer: Error creating WebGL context.
+    at new WebGLRenderer (file:///home/user/game/.wt-1806-L1/node_modules/three/build/three.module.js:16399:13)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/GameStage3D.tsx:1548:64
+    at commitHookEffectListMount (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:23189:26)
+    at commitPassiveMountOnFiber (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24970:11)
+    at commitPassiveMountEffects_complete (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24930:9)
+    at commitPassiveMountEffects_begin (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24917:7)
+    at commitPassiveMountEffects (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24905:3)
+    at flushPassiveEffectsImpl (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:27078:3)
+    at flushPassiveEffects (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:27023:14)
+    at commitRootImpl (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:26974:5)
+
+stderr | src/ui/editor/Editor.test.tsx > Editor v2 — `editeur.ouvrir` : ouvrir par id sans la modale (#1478) > publie la commande au montage, ouvre un scénario de test par id, refuse un id inconnu, et se retire au démontage
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+THREE.WebGLRenderer: THREE.WebGLRenderer: Error creating WebGL context.
+GameStage3D: aucun contexte WebGL — le monde ne peut pas être peint. Error: THREE.WebGLRenderer: Error creating WebGL context.
+    at new WebGLRenderer (file:///home/user/game/.wt-1806-L1/node_modules/three/build/three.module.js:16399:13)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/GameStage3D.tsx:1548:64
+    at commitHookEffectListMount (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:23189:26)
+    at commitPassiveMountOnFiber (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24970:11)
+    at commitPassiveMountEffects_complete (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24930:9)
+    at commitPassiveMountEffects_begin (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24917:7)
+    at commitPassiveMountEffects (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24905:3)
+    at flushPassiveEffectsImpl (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:27078:3)
+    at flushPassiveEffects (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:27023:14)
+    at commitRootImpl (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:26974:5)
+
+stderr | src/ui/editor/editor-enregistre-repasse-parseProject.test.tsx > Éditeur — un projet de bibliothèque d’AVANT #1552 se ROUVRE > avec identité au document : l’id et la version sont CEUX DU DOCUMENT, le nom est CELUI DE L’ENTRÉE
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+THREE.WebGLRenderer: THREE.WebGLRenderer: Error creating WebGL context.
+GameStage3D: aucun contexte WebGL — le monde ne peut pas être peint. Error: THREE.WebGLRenderer: Error creating WebGL context.
+    at new WebGLRenderer (file:///home/user/game/.wt-1806-L1/node_modules/three/build/three.module.js:16399:13)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/GameStage3D.tsx:1548:64
+    at commitHookEffectListMount (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:23189:26)
+    at commitPassiveMountOnFiber (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24970:11)
+    at commitPassiveMountEffects_complete (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24930:9)
+    at commitPassiveMountEffects_begin (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24917:7)
+    at commitPassiveMountEffects (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24905:3)
+    at flushPassiveEffectsImpl (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:27078:3)
+    at flushPassiveEffects (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:27023:14)
+    at commitRootImpl (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:26974:5)
+
+stderr | src/ui/editor/export-passe-la-porte.test.tsx > Éditeur — « Exporter JSON » passe la MÊME porte qu’« Enregistrer » (#877) > projet SAIN : le fichier téléchargé RE-PARSE par `parseProject`
+Not implemented: navigation to another Document
+
+stderr | src/ui/editor/editor-enregistre-repasse-parseProject.test.tsx > Éditeur — un projet de bibliothèque d’AVANT #1552 se ROUVRE > copie d’une campagne du jeu d’AVANT E5 (document au nom du paquet, entrée au nom de l’auteur) : s’ouvre et se réenregistre sous le nom de l’ENTRÉE
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+THREE.WebGLRenderer: THREE.WebGLRenderer: Error creating WebGL context.
+GameStage3D: aucun contexte WebGL — le monde ne peut pas être peint. Error: THREE.WebGLRenderer: Error creating WebGL context.
+    at new WebGLRenderer (file:///home/user/game/.wt-1806-L1/node_modules/three/build/three.module.js:16399:13)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/GameStage3D.tsx:1548:64
+    at commitHookEffectListMount (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:23189:26)
+    at commitPassiveMountOnFiber (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24970:11)
+    at commitPassiveMountEffects_complete (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24930:9)
+    at commitPassiveMountEffects_begin (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24917:7)
+    at commitPassiveMountEffects (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24905:3)
+    at flushPassiveEffectsImpl (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:27078:3)
+    at flushPassiveEffects (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:27023:14)
+    at commitRootImpl (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:26974:5)
+
+stderr | src/ui/editor/export-passe-la-porte.test.tsx > Éditeur — « Exporter JSON » passe la MÊME porte qu’« Enregistrer » (#877) > projet FAUTIF (décor à type MORT) : RIEN n’est téléchargé, et le refus nomme la scène et l’entité
+[décor] id « decor-absent-du-catalogue » absent du catalogue — repli VISIBLE, donnée à corriger.
+[décor] id « decor-absent-du-catalogue » absent du catalogue — repli VISIBLE, donnée à corriger.
+[décor] id « decor-absent-du-catalogue » absent du catalogue — repli VISIBLE, donnée à corriger.
+[décor] id « decor-absent-du-catalogue » absent du catalogue — repli VISIBLE, donnée à corriger.
+
+stderr | src/ui/editor/editor-enregistre-repasse-parseProject.test.tsx > Éditeur — un projet de bibliothèque d’AVANT #1552 se ROUVRE > IRRÉCUPÉRABLE (entrée sans nom ni id) : refus en mots d’AUTEUR, détail technique dessous — jamais une boîte du navigateur
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+THREE.WebGLRenderer: THREE.WebGLRenderer: Error creating WebGL context.
+GameStage3D: aucun contexte WebGL — le monde ne peut pas être peint. Error: THREE.WebGLRenderer: Error creating WebGL context.
+    at new WebGLRenderer (file:///home/user/game/.wt-1806-L1/node_modules/three/build/three.module.js:16399:13)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/GameStage3D.tsx:1548:64
+    at commitHookEffectListMount (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:23189:26)
+    at commitPassiveMountOnFiber (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24970:11)
+    at commitPassiveMountEffects_complete (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24930:9)
+    at commitPassiveMountEffects_begin (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24917:7)
+    at commitPassiveMountEffects (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24905:3)
+    at flushPassiveEffectsImpl (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:27078:3)
+    at flushPassiveEffects (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:27023:14)
+    at commitRootImpl (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:26974:5)
+
+stderr | src/ui/editor/editor-enregistre-repasse-parseProject.test.tsx > Éditeur — un projet de bibliothèque d’AVANT #1552 se ROUVRE > document SANS SCÈNE : le refus se LIT dans la modale « Ouvrir », jamais un clic muet
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+THREE.WebGLRenderer: THREE.WebGLRenderer: Error creating WebGL context.
+GameStage3D: aucun contexte WebGL — le monde ne peut pas être peint. Error: THREE.WebGLRenderer: Error creating WebGL context.
+    at new WebGLRenderer (file:///home/user/game/.wt-1806-L1/node_modules/three/build/three.module.js:16399:13)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/GameStage3D.tsx:1548:64
+    at commitHookEffectListMount (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:23189:26)
+    at commitPassiveMountOnFiber (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24970:11)
+    at commitPassiveMountEffects_complete (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24930:9)
+    at commitPassiveMountEffects_begin (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24917:7)
+    at commitPassiveMountEffects (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24905:3)
+    at flushPassiveEffectsImpl (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:27078:3)
+    at flushPassiveEffects (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:27023:14)
+    at commitRootImpl (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:26974:5)
+
+stderr | src/ui/editor/editor-enregistre-repasse-parseProject.test.tsx > Éditeur — un projet de bibliothèque d’AVANT #1552 se ROUVRE > entrée dont la scène de départ n’existe pas : l’éditeur l’OUVRE quand même (c’est là qu’on la répare)
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+THREE.WebGLRenderer: THREE.WebGLRenderer: Error creating WebGL context.
+GameStage3D: aucun contexte WebGL — le monde ne peut pas être peint. Error: THREE.WebGLRenderer: Error creating WebGL context.
+    at new WebGLRenderer (file:///home/user/game/.wt-1806-L1/node_modules/three/build/three.module.js:16399:13)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/GameStage3D.tsx:1548:64
+    at commitHookEffectListMount (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:23189:26)
+    at commitPassiveMountOnFiber (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24970:11)
+    at commitPassiveMountEffects_complete (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24930:9)
+    at commitPassiveMountEffects_begin (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24917:7)
+    at commitPassiveMountEffects (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24905:3)
+    at flushPassiveEffectsImpl (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:27078:3)
+    at flushPassiveEffects (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:27023:14)
+    at commitRootImpl (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:26974:5)
+
+stderr | src/ui/editor/editor-enregistre-repasse-parseProject.test.tsx > Éditeur — un projet de bibliothèque d’AVANT #1552 se ROUVRE > document que la MIGRATION ne traverse pas (scènes nulles) : le refus se LIT dans « Ouvrir »
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+THREE.WebGLRenderer: THREE.WebGLRenderer: Error creating WebGL context.
+GameStage3D: aucun contexte WebGL — le monde ne peut pas être peint. Error: THREE.WebGLRenderer: Error creating WebGL context.
+    at new WebGLRenderer (file:///home/user/game/.wt-1806-L1/node_modules/three/build/three.module.js:16399:13)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/GameStage3D.tsx:1548:64
+    at commitHookEffectListMount (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:23189:26)
+    at commitPassiveMountOnFiber (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24970:11)
+    at commitPassiveMountEffects_complete (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24930:9)
+    at commitPassiveMountEffects_begin (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24917:7)
+    at commitPassiveMountEffects (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24905:3)
+    at flushPassiveEffectsImpl (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:27078:3)
+    at flushPassiveEffects (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:27023:14)
+    at commitRootImpl (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:26974:5)
+
+stderr | src/ui/editor/editor-enregistre-repasse-parseProject.test.tsx > Éditeur — un projet de bibliothèque d’AVANT #1552 se ROUVRE > document que la MIGRATION ne traverse pas (scène en chaîne) : le refus se LIT dans « Ouvrir »
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+THREE.WebGLRenderer: THREE.WebGLRenderer: Error creating WebGL context.
+GameStage3D: aucun contexte WebGL — le monde ne peut pas être peint. Error: THREE.WebGLRenderer: Error creating WebGL context.
+    at new WebGLRenderer (file:///home/user/game/.wt-1806-L1/node_modules/three/build/three.module.js:16399:13)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/GameStage3D.tsx:1548:64
+    at commitHookEffectListMount (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:23189:26)
+    at commitPassiveMountOnFiber (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24970:11)
+    at commitPassiveMountEffects_complete (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24930:9)
+    at commitPassiveMountEffects_begin (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24917:7)
+    at commitPassiveMountEffects (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24905:3)
+    at flushPassiveEffectsImpl (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:27078:3)
+    at flushPassiveEffects (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:27023:14)
+    at commitRootImpl (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:26974:5)
+
+stderr | src/ui/editor/editor-enregistre-repasse-parseProject.test.tsx > Éditeur — un projet de bibliothèque d’AVANT #1552 se ROUVRE > une entrée SANS NOM se rend « (sans nom) » dans « Ouvrir », jamais une rangée muette
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+THREE.WebGLRenderer: THREE.WebGLRenderer: Error creating WebGL context.
+GameStage3D: aucun contexte WebGL — le monde ne peut pas être peint. Error: THREE.WebGLRenderer: Error creating WebGL context.
+    at new WebGLRenderer (file:///home/user/game/.wt-1806-L1/node_modules/three/build/three.module.js:16399:13)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/GameStage3D.tsx:1548:64
+    at commitHookEffectListMount (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:23189:26)
+    at commitPassiveMountOnFiber (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24970:11)
+    at commitPassiveMountEffects_complete (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24930:9)
+    at commitPassiveMountEffects_begin (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24917:7)
+    at commitPassiveMountEffects (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24905:3)
+    at flushPassiveEffectsImpl (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:27078:3)
+    at flushPassiveEffects (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:27023:14)
+    at commitRootImpl (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:26974:5)
+
+stderr | src/ui/editor/export-passe-la-porte.test.tsx > Éditeur — « ▶ Tester » passe la MÊME porte que les autres sorties (#877) > projet FAUTIF avec un groupe : le refus NOMME scène et entité, l’écran reste l’éditeur
+[décor] id « decor-absent-du-catalogue » absent du catalogue — repli VISIBLE, donnée à corriger.
+[décor] id « decor-absent-du-catalogue » absent du catalogue — repli VISIBLE, donnée à corriger.
+[décor] id « decor-absent-du-catalogue » absent du catalogue — repli VISIBLE, donnée à corriger.
+[décor] id « decor-absent-du-catalogue » absent du catalogue — repli VISIBLE, donnée à corriger.
+GameStage3D: billboard « prop:prop:p0|decor-absent-du-catalogue||1 » sauté — texture non rasterisée : TypeError: URL.createObjectURL is not a function
+    at rasterizeSvg (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:55:19)
+    at Module.svgToTexture (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:82:28)
+    at rasteriser (/home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:59:28)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:74:14
+    at Object.run (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:165:60)
+    at pump (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:151:30)
+    at /home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:135:85
+    at invokeTheCallbackFunction (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/generated/idl/Function.js:19:26)
+    at runAnimationFrameCallbacks (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:635:13)
+    at Timeout.<anonymous> (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:613:11)
+
+stderr | src/ui/editor/editor-enregistre-repasse-parseProject.test.tsx > Éditeur — un projet IMPORTÉ garde son identité jusqu’à la bibliothèque > import → enregistrement : l’ENTRÉE et le DOCUMENT portent le MÊME id et le MÊME nom
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+THREE.WebGLRenderer: THREE.WebGLRenderer: Error creating WebGL context.
+GameStage3D: aucun contexte WebGL — le monde ne peut pas être peint. Error: THREE.WebGLRenderer: Error creating WebGL context.
+    at new WebGLRenderer (file:///home/user/game/.wt-1806-L1/node_modules/three/build/three.module.js:16399:13)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/GameStage3D.tsx:1548:64
+    at commitHookEffectListMount (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:23189:26)
+    at commitPassiveMountOnFiber (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24970:11)
+    at commitPassiveMountEffects_complete (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24930:9)
+    at commitPassiveMountEffects_begin (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24917:7)
+    at commitPassiveMountEffects (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24905:3)
+    at flushPassiveEffectsImpl (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:27078:3)
+    at flushPassiveEffects (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:27023:14)
+    at commitRootImpl (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:26974:5)
+
+stderr | src/ui/editor/editor-enregistre-repasse-parseProject.test.tsx > Éditeur — une campagne du jeu ouverte en copie s’enregistre sous le nom SAISI > le label du document écrit et celui de l’entrée sont le nom tapé
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+THREE.WebGLRenderer: THREE.WebGLRenderer: Error creating WebGL context.
+GameStage3D: aucun contexte WebGL — le monde ne peut pas être peint. Error: THREE.WebGLRenderer: Error creating WebGL context.
+    at new WebGLRenderer (file:///home/user/game/.wt-1806-L1/node_modules/three/build/three.module.js:16399:13)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/GameStage3D.tsx:1548:64
+    at commitHookEffectListMount (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:23189:26)
+    at commitPassiveMountOnFiber (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24970:11)
+    at commitPassiveMountEffects_complete (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24930:9)
+    at commitPassiveMountEffects_begin (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24917:7)
+    at commitPassiveMountEffects (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24905:3)
+    at flushPassiveEffectsImpl (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:27078:3)
+    at flushPassiveEffects (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:27023:14)
+    at commitRootImpl (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:26974:5)
+
+stderr | src/ui/editor/export-passe-la-porte.test.tsx > __wfrp.editorPatchEntity — SETUP de recette par le pont d’INTENTION (#877) > pose une clé, en retire une autre, et le DOCUMENT exporté le porte
+Not implemented: navigation to another Document
+
+ ✓ src/ui/editor/export-passe-la-porte.test.tsx (16 tests) 2444ms 832 MB heap used
+stderr | src/ui/editor/editor-enregistre-repasse-parseProject.test.tsx > Éditeur — une campagne du jeu ouverte en copie s’enregistre sous le nom SAISI > le label du document écrit et celui de l’entrée sont le nom tapé
+GameStage3D: billboard « perso:enemy-enc-zone1-0 » sauté — texture non rasterisée : TypeError: URL.createObjectURL is not a function
+    at rasterizeSvg (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:55:19)
+    at Module.svgToTexture (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:82:28)
+    at rasteriser (/home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:59:28)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:74:14
+    at Object.run (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:165:60)
+    at pump (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:151:30)
+    at /home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:135:85
+    at invokeTheCallbackFunction (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/generated/idl/Function.js:19:26)
+    at runAnimationFrameCallbacks (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:635:13)
+    at Timeout.<anonymous> (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:613:11)
+GameStage3D: billboard « perso:enemy-enc-zone1-1 » sauté — texture non rasterisée : TypeError: URL.createObjectURL is not a function
+    at rasterizeSvg (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:55:19)
+    at Module.svgToTexture (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:82:28)
+    at rasteriser (/home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:59:28)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:74:14
+    at Object.run (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:165:60)
+    at pump (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:151:30)
+    at /home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:135:85
+    at invokeTheCallbackFunction (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/generated/idl/Function.js:19:26)
+    at runAnimationFrameCallbacks (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:635:13)
+    at Timeout.<anonymous> (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:613:11)
+GameStage3D: billboard « perso:enemy-enc-zone1-2 » sauté — texture non rasterisée : TypeError: URL.createObjectURL is not a function
+    at rasterizeSvg (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:55:19)
+    at Module.svgToTexture (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:82:28)
+    at rasteriser (/home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:59:28)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:74:14
+    at Object.run (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:165:60)
+    at pump (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:151:30)
+    at /home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:135:85
+    at invokeTheCallbackFunction (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/generated/idl/Function.js:19:26)
+    at runAnimationFrameCallbacks (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:635:13)
+    at Timeout.<anonymous> (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:613:11)
+GameStage3D: billboard « perso:enemy-enc-zone1-3 » sauté — texture non rasterisée : TypeError: URL.createObjectURL is not a function
+    at rasterizeSvg (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:55:19)
+    at Module.svgToTexture (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:82:28)
+    at rasteriser (/home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:59:28)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:74:14
+    at Object.run (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:165:60)
+    at pump (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:151:30)
+    at /home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:135:85
+    at invokeTheCallbackFunction (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/generated/idl/Function.js:19:26)
+    at runAnimationFrameCallbacks (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:635:13)
+    at Timeout.<anonymous> (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:613:11)
+
+stderr | src/ui/editor/editor-enregistre-repasse-parseProject.test.tsx > Éditeur — une campagne du jeu ouverte en copie s’enregistre sous le nom SAISI > le label du document écrit et celui de l’entrée sont le nom tapé
+GameStage3D: billboard « perso:enemy-enc-zone1-4 » sauté — texture non rasterisée : TypeError: URL.createObjectURL is not a function
+    at rasterizeSvg (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:55:19)
+    at Module.svgToTexture (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:82:28)
+    at rasteriser (/home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:59:28)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:74:14
+    at Object.run (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:165:60)
+    at pump (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:151:30)
+    at /home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:135:85
+    at invokeTheCallbackFunction (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/generated/idl/Function.js:19:26)
+    at runAnimationFrameCallbacks (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:635:13)
+    at Timeout.<anonymous> (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:613:11)
+GameStage3D: billboard « perso:enemy-enc-zone1-5 » sauté — texture non rasterisée : TypeError: URL.createObjectURL is not a function
+    at rasterizeSvg (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:55:19)
+    at Module.svgToTexture (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:82:28)
+    at rasteriser (/home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:59:28)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:74:14
+    at Object.run (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:165:60)
+    at pump (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:151:30)
+    at /home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:135:85
+    at invokeTheCallbackFunction (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/generated/idl/Function.js:19:26)
+    at runAnimationFrameCallbacks (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:635:13)
+    at Timeout.<anonymous> (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:613:11)
+GameStage3D: billboard « prop:prop:p7|etendard||1 » sauté — texture non rasterisée : TypeError: URL.createObjectURL is not a function
+    at rasterizeSvg (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:55:19)
+    at Module.svgToTexture (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:82:28)
+    at rasteriser (/home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:59:28)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:74:14
+    at Object.run (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:165:60)
+    at pump (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:151:30)
+    at /home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:135:85
+    at invokeTheCallbackFunction (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/generated/idl/Function.js:19:26)
+    at runAnimationFrameCallbacks (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:635:13)
+    at Timeout.<anonymous> (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:613:11)
+GameStage3D: billboard « prop:prop:p8|feu-camp||1 » sauté — texture non rasterisée : TypeError: URL.createObjectURL is not a function
+    at rasterizeSvg (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:55:19)
+    at Module.svgToTexture (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:82:28)
+    at rasteriser (/home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:59:28)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:74:14
+    at Object.run (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:165:60)
+    at pump (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:151:30)
+    at /home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:135:85
+    at invokeTheCallbackFunction (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/generated/idl/Function.js:19:26)
+    at runAnimationFrameCallbacks (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:635:13)
+    at Timeout.<anonymous> (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:613:11)
+GameStage3D: billboard « prop:prop:p9|barriere||1 » sauté — texture non rasterisée : TypeError: URL.createObjectURL is not a function
+    at rasterizeSvg (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:55:19)
+    at Module.svgToTexture (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:82:28)
+    at rasteriser (/home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:59:28)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:74:14
+    at Object.run (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:165:60)
+    at pump (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:151:30)
+    at /home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:135:85
+    at invokeTheCallbackFunction (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/generated/idl/Function.js:19:26)
+    at runAnimationFrameCallbacks (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:635:13)
+    at Timeout.<anonymous> (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:613:11)
+GameStage3D: billboard « prop:prop:p10|barriere||1 » sauté — texture non rasterisée : TypeError: URL.createObjectURL is not a function
+    at rasterizeSvg (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:55:19)
+    at Module.svgToTexture (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:82:28)
+    at rasteriser (/home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:59:28)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:74:14
+    at Object.run (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:165:60)
+    at pump (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:151:30)
+    at /home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:135:85
+    at invokeTheCallbackFunction (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/generated/idl/Function.js:19:26)
+    at runAnimationFrameCallbacks (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:635:13)
+    at Timeout.<anonymous> (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:613:11)
+
+stderr | src/ui/editor/editor-enregistre-repasse-parseProject.test.tsx > Éditeur — une campagne du jeu ouverte en copie s’enregistre sous le nom SAISI > la copie garde le BLOC NARRATIF de son paquet : le document écrit le porte
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+THREE.WebGLRenderer: THREE.WebGLRenderer: Error creating WebGL context.
+GameStage3D: aucun contexte WebGL — le monde ne peut pas être peint. Error: THREE.WebGLRenderer: Error creating WebGL context.
+    at new WebGLRenderer (file:///home/user/game/.wt-1806-L1/node_modules/three/build/three.module.js:16399:13)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/GameStage3D.tsx:1548:64
+    at commitHookEffectListMount (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:23189:26)
+    at commitPassiveMountOnFiber (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24970:11)
+    at commitPassiveMountEffects_complete (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24930:9)
+    at commitPassiveMountEffects_begin (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24917:7)
+    at commitPassiveMountEffects (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24905:3)
+    at flushPassiveEffectsImpl (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:27078:3)
+    at flushPassiveEffects (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:27023:14)
+    at commitRootImpl (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:26974:5)
+
+ ✓ src/ui/editor/editor-enregistre-repasse-parseProject.test.tsx (16 tests) 3958ms 792 MB heap used
+   ✓ Éditeur — un projet de bibliothèque d’AVANT #1552 se ROUVRE > copie d’une campagne du jeu d’AVANT E5 (document au nom du paquet, entrée au nom de l’auteur) : s’ouvre et se réenregistre sous le nom de l’ENTRÉE 309ms
+   ✓ Éditeur — une campagne du jeu ouverte en copie s’enregistre sous le nom SAISI > le label du document écrit et celui de l’entrée sont le nom tapé 1045ms
+   ✓ Éditeur — une campagne du jeu ouverte en copie s’enregistre sous le nom SAISI > la copie garde le BLOC NARRATIF de son paquet : le document écrit le porte 333ms
+ ✓ src/ui/editor/EffectList.test.tsx (21 tests) 411ms 811 MB heap used
+ ✓ src/ui/compendium/CodexRef.hooks.test.tsx (12 tests) 267ms 818 MB heap used
+ ✓ src/ui/editor/useEditorAutosave.test.tsx (14 tests) 1957ms 832 MB heap used
+   ✓ useEditorAutosave — filet de crash de l’éditeur > propose une RESTAURATION (jamais un écrasement silencieux) quand une sauvegarde plus récente diverge de la scène chargée 1712ms
+stderr | src/ui/editor/Editor.test.tsx > Editor v2 — `editeur.ouvrir` : ouvrir par id sans la modale (#1478) > publie la commande au montage, ouvre un scénario de test par id, refuse un id inconnu, et se retire au démontage
+GameStage3D: billboard « perso:enemy-enc-mutants-0 » sauté — texture non rasterisée : TypeError: URL.createObjectURL is not a function
+    at rasterizeSvg (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:55:19)
+    at Module.svgToTexture (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:82:28)
+    at rasteriser (/home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:59:28)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:74:14
+    at Object.run (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:165:60)
+    at pump (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:151:30)
+    at /home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:135:85
+    at invokeTheCallbackFunction (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/generated/idl/Function.js:19:26)
+    at runAnimationFrameCallbacks (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:635:13)
+    at Timeout.<anonymous> (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:613:11)
+GameStage3D: billboard « perso:enemy-enc-mutants-1 » sauté — texture non rasterisée : TypeError: URL.createObjectURL is not a function
+    at rasterizeSvg (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:55:19)
+    at Module.svgToTexture (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:82:28)
+    at rasteriser (/home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:59:28)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:74:14
+    at Object.run (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:165:60)
+    at pump (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:151:30)
+    at /home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:135:85
+    at invokeTheCallbackFunction (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/generated/idl/Function.js:19:26)
+    at runAnimationFrameCallbacks (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:635:13)
+    at Timeout.<anonymous> (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:613:11)
+GameStage3D: billboard « perso:enemy-enc-mutants-2 » sauté — texture non rasterisée : TypeError: URL.createObjectURL is not a function
+    at rasterizeSvg (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:55:19)
+    at Module.svgToTexture (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:82:28)
+    at rasteriser (/home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:59:28)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:74:14
+    at Object.run (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:165:60)
+    at pump (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:151:30)
+    at /home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:135:85
+    at invokeTheCallbackFunction (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/generated/idl/Function.js:19:26)
+    at runAnimationFrameCallbacks (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:635:13)
+    at Timeout.<anonymous> (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:613:11)
+
+ ✓ src/ui/editor/useEditorView.test.ts (19 tests) 133ms 838 MB heap used
+stderr | src/ui/editor/Editor.test.tsx > Editor v2 — `editeur.ouvrir` : ouvrir par id sans la modale (#1478) > un projet enregistré que la porte `parseProject` REFUSE rend ✗ avec le motif, jamais ✓
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+THREE.WebGLRenderer: THREE.WebGLRenderer: Error creating WebGL context.
+GameStage3D: aucun contexte WebGL — le monde ne peut pas être peint. Error: THREE.WebGLRenderer: Error creating WebGL context.
+    at new WebGLRenderer (file:///home/user/game/.wt-1806-L1/node_modules/three/build/three.module.js:16399:13)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/GameStage3D.tsx:1548:64
+    at commitHookEffectListMount (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:23189:26)
+    at commitPassiveMountOnFiber (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24970:11)
+    at commitPassiveMountEffects_complete (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24930:9)
+    at commitPassiveMountEffects_begin (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24917:7)
+    at commitPassiveMountEffects (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24905:3)
+    at flushPassiveEffectsImpl (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:27078:3)
+    at flushPassiveEffects (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:27023:14)
+    at commitRootImpl (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:26974:5)
+
+stderr | src/ui/editor/Editor.test.tsx > Editor v2 — `editeur.ouvrir` : ouvrir par id sans la modale (#1478) > un projet enregistré que la porte `parseProject` REFUSE rend ✗ avec le motif, jamais ✓
+GameStage3D: billboard « perso:enemy-enc-mutants-0 » sauté — texture non rasterisée : TypeError: URL.createObjectURL is not a function
+    at rasterizeSvg (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:55:19)
+    at Module.svgToTexture (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:82:28)
+    at rasteriser (/home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:59:28)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:74:14
+    at Object.run (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:165:60)
+    at pump (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:151:30)
+    at /home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:135:85
+    at invokeTheCallbackFunction (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/generated/idl/Function.js:19:26)
+    at runAnimationFrameCallbacks (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:635:13)
+    at Timeout.<anonymous> (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:613:11)
+GameStage3D: billboard « perso:enemy-enc-mutants-1 » sauté — texture non rasterisée : TypeError: URL.createObjectURL is not a function
+    at rasterizeSvg (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:55:19)
+    at Module.svgToTexture (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:82:28)
+    at rasteriser (/home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:59:28)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:74:14
+    at Object.run (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:165:60)
+    at pump (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:151:30)
+    at /home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:135:85
+    at invokeTheCallbackFunction (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/generated/idl/Function.js:19:26)
+    at runAnimationFrameCallbacks (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:635:13)
+    at Timeout.<anonymous> (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:613:11)
+GameStage3D: billboard « perso:enemy-enc-mutants-2 » sauté — texture non rasterisée : TypeError: URL.createObjectURL is not a function
+    at rasterizeSvg (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:55:19)
+    at Module.svgToTexture (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:82:28)
+    at rasteriser (/home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:59:28)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:74:14
+    at Object.run (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:165:60)
+    at pump (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:151:30)
+    at /home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:135:85
+    at invokeTheCallbackFunction (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/generated/idl/Function.js:19:26)
+    at runAnimationFrameCallbacks (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:635:13)
+    at Timeout.<anonymous> (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:613:11)
+
+stderr | src/ui/editor/Editor.test.tsx > Editor v2 — authoring architectural > ouvre dans l’inspecteur la section ciblée par un warning de feature
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+THREE.WebGLRenderer: THREE.WebGLRenderer: Error creating WebGL context.
+GameStage3D: aucun contexte WebGL — le monde ne peut pas être peint. Error: THREE.WebGLRenderer: Error creating WebGL context.
+    at new WebGLRenderer (file:///home/user/game/.wt-1806-L1/node_modules/three/build/three.module.js:16399:13)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/GameStage3D.tsx:1548:64
+    at commitHookEffectListMount (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:23189:26)
+    at commitPassiveMountOnFiber (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24970:11)
+    at commitPassiveMountEffects_complete (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24930:9)
+    at commitPassiveMountEffects_begin (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24917:7)
+    at commitPassiveMountEffects (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24905:3)
+    at flushPassiveEffectsImpl (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:27078:3)
+    at flushPassiveEffects (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:27023:14)
+    at commitRootImpl (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:26974:5)
+
+ ✓ src/ui/editor/GameOpEditor.test.tsx (20 tests) 224ms 844 MB heap used
+stderr | src/ui/editor/Editor.test.tsx > Editor v2 — authoring architectural > allume TOUTES les cases fautives d’un défaut de plan, et les éteint au clic d’un autre avertissement
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+THREE.WebGLRenderer: THREE.WebGLRenderer: Error creating WebGL context.
+GameStage3D: aucun contexte WebGL — le monde ne peut pas être peint. Error: THREE.WebGLRenderer: Error creating WebGL context.
+    at new WebGLRenderer (file:///home/user/game/.wt-1806-L1/node_modules/three/build/three.module.js:16399:13)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/GameStage3D.tsx:1548:64
+    at commitHookEffectListMount (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:23189:26)
+    at commitPassiveMountOnFiber (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24970:11)
+    at commitPassiveMountEffects_complete (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24930:9)
+    at commitPassiveMountEffects_begin (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24917:7)
+    at commitPassiveMountEffects (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24905:3)
+    at flushPassiveEffectsImpl (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:27078:3)
+    at flushPassiveEffects (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:27023:14)
+    at commitRootImpl (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:26974:5)
+
+stderr | src/ui/editor/Editor.test.tsx > Editor v2 — authoring architectural > crée un corps, une masse de toiture, et édite son emprise
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+THREE.WebGLRenderer: THREE.WebGLRenderer: Error creating WebGL context.
+GameStage3D: aucun contexte WebGL — le monde ne peut pas être peint. Error: THREE.WebGLRenderer: Error creating WebGL context.
+    at new WebGLRenderer (file:///home/user/game/.wt-1806-L1/node_modules/three/build/three.module.js:16399:13)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/GameStage3D.tsx:1548:64
+    at commitHookEffectListMount (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:23189:26)
+    at commitPassiveMountOnFiber (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24970:11)
+    at commitPassiveMountEffects_complete (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24930:9)
+    at commitPassiveMountEffects_begin (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24917:7)
+    at commitPassiveMountEffects (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24905:3)
+    at flushPassiveEffectsImpl (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:27078:3)
+    at flushPassiveEffects (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:27023:14)
+    at commitRootImpl (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:26974:5)
+
+ ✓ src/ui/editor/ProjectModals.test.tsx (27 tests) 527ms 557 MB heap used
+stderr | src/ui/editor/Editor.test.tsx > Editor v2 — authoring architectural > applique l’étage actif aux parties, façades et toitures puis crée une feature
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+THREE.WebGLRenderer: THREE.WebGLRenderer: Error creating WebGL context.
+GameStage3D: aucun contexte WebGL — le monde ne peut pas être peint. Error: THREE.WebGLRenderer: Error creating WebGL context.
+    at new WebGLRenderer (file:///home/user/game/.wt-1806-L1/node_modules/three/build/three.module.js:16399:13)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/GameStage3D.tsx:1548:64
+    at commitHookEffectListMount (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:23189:26)
+    at commitPassiveMountOnFiber (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24970:11)
+    at commitPassiveMountEffects_complete (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24930:9)
+    at commitPassiveMountEffects_begin (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24917:7)
+    at commitPassiveMountEffects (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24905:3)
+    at flushPassiveEffectsImpl (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:27078:3)
+    at flushPassiveEffects (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:27023:14)
+    at commitRootImpl (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:26974:5)
+
+ ✓ src/ui/Infobulle.test.tsx (6 tests) 236ms 569 MB heap used
+ ✓ src/ui/editor/WorldMapEditor.test.tsx (13 tests) 2629ms 692 MB heap used
+   ✓ WorldMapEditor — panneau Lieu (#419) > sélectionne un lieu et édite le nom, l’icône, le fond, la scène liée, l’entrée 473ms
+   ✓ WorldMapEditor — panneau Lieu (#419) > coche un service du lieu (catalogue lieux-services.json) 338ms
+   ✓ WorldMapEditor — panneau Lieu / Commerce (#419) > active le port, le résout du catalogue via le picker de ref UNIQUE, édite Taille/cosmopolite/phare 607ms
+   ✓ WorldMapEditor — panneau Lieu / Plan du hub (#419) > ajoute un POI, édite son libellé/icône/position, et lie sa cible via le picker de ref UNIQUE (scène puis service) 583ms
+stderr | src/ui/editor/personnage-fiche-editeur.test.tsx > Inspecteur — aucun geste ne retire le dernier porteur de fiche (#1882) > un preset SEUL porteur ne se retire pas : « aucun » est inéligible, et redevient éligible dès qu’une fiche le double
+[bodyPlan] « /pnj » : aucune espèce résolue (ni Espèce explicite, ni record de créature) — donnée à corriger.
+[rig] entité « pnj » (sans libellé) : ni réf de créature ni Espèce — donnée de scène à corriger.
+
+ ✓ src/ui/editor/personnage-fiche-editeur.test.tsx (9 tests) 768ms 621 MB heap used
+ ✓ src/ui/editor/SeatAssignmentsField.test.tsx (11 tests) 165ms 689 MB heap used
+ ✓ src/ui/editor/useEditorView.test.tsx (8 tests) 49ms 618 MB heap used
+stderr | src/ui/editor/Editor.test.tsx > Editor v2 — authoring architectural > le CORPS reste atteignable : entrer en Architecture le sélectionne, et re-désigner la cible le ramène
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+THREE.WebGLRenderer: THREE.WebGLRenderer: Error creating WebGL context.
+GameStage3D: aucun contexte WebGL — le monde ne peut pas être peint. Error: THREE.WebGLRenderer: Error creating WebGL context.
+    at new WebGLRenderer (file:///home/user/game/.wt-1806-L1/node_modules/three/build/three.module.js:16399:13)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/GameStage3D.tsx:1548:64
+    at commitHookEffectListMount (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:23189:26)
+    at commitPassiveMountOnFiber (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24970:11)
+    at commitPassiveMountEffects_complete (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24930:9)
+    at commitPassiveMountEffects_begin (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24917:7)
+    at commitPassiveMountEffects (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24905:3)
+    at flushPassiveEffectsImpl (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:27078:3)
+    at flushPassiveEffects (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:27023:14)
+    at commitRootImpl (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:26974:5)
+
+ ✓ src/ui/editor/ValidationPanel.test.tsx (7 tests) 476ms 633 MB heap used
+   ✓ ValidationPanel — garde anti-faux-vert > « La Diligence » (carte RÉELLE) : quel que soit l’état du plan, le panneau dit la vérité 404ms
+stderr | src/ui/editor/Editor.test.tsx > Editor v2 — sauvegarde locale de secours (#834 audit) > Échap sur la modale de reprise ne détruit PAS la sauvegarde locale, et la proposition peut revenir (pt. A)
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+THREE.WebGLRenderer: THREE.WebGLRenderer: Error creating WebGL context.
+GameStage3D: aucun contexte WebGL — le monde ne peut pas être peint. Error: THREE.WebGLRenderer: Error creating WebGL context.
+    at new WebGLRenderer (file:///home/user/game/.wt-1806-L1/node_modules/three/build/three.module.js:16399:13)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/GameStage3D.tsx:1548:64
+    at commitHookEffectListMount (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:23189:26)
+    at commitPassiveMountOnFiber (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24970:11)
+    at commitPassiveMountEffects_complete (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24930:9)
+    at commitPassiveMountEffects_begin (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24917:7)
+    at commitPassiveMountEffects (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24905:3)
+    at flushPassiveEffectsImpl (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:27078:3)
+    at flushPassiveEffects (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:27023:14)
+    at commitRootImpl (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:26974:5)
+
+stderr | src/ui/editor/Editor.test.tsx > Editor v2 — sauvegarde locale de secours (#834 audit) > #834 audit-2 DÉFAUT 5 — une restauration reste ANNULABLE (Ctrl+Z), jamais l’action par défaut visuelle
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+THREE.WebGLRenderer: THREE.WebGLRenderer: Error creating WebGL context.
+GameStage3D: aucun contexte WebGL — le monde ne peut pas être peint. Error: THREE.WebGLRenderer: Error creating WebGL context.
+    at new WebGLRenderer (file:///home/user/game/.wt-1806-L1/node_modules/three/build/three.module.js:16399:13)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/GameStage3D.tsx:1548:64
+    at commitHookEffectListMount (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:23189:26)
+    at commitPassiveMountOnFiber (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24970:11)
+    at commitPassiveMountEffects_complete (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24930:9)
+    at commitPassiveMountEffects_begin (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24917:7)
+    at commitPassiveMountEffects (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24905:3)
+    at flushPassiveEffectsImpl (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:27078:3)
+    at flushPassiveEffects (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:27023:14)
+    at commitRootImpl (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:26974:5)
+
+ ✓ src/ui/editor/editor-stair-flight.test.tsx (7 tests) 98ms 636 MB heap used
+stderr | src/ui/editor/Editor.test.tsx > Editor v2 — sauvegarde locale de secours (#834 audit) > #834 audit-2 DÉFAUTS 4/6 — « Enregistrer » purge le filet de TOUTES les scènes du projet, mais RIEN si le succès est DÉGRADÉ
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+THREE.WebGLRenderer: THREE.WebGLRenderer: Error creating WebGL context.
+GameStage3D: aucun contexte WebGL — le monde ne peut pas être peint. Error: THREE.WebGLRenderer: Error creating WebGL context.
+    at new WebGLRenderer (file:///home/user/game/.wt-1806-L1/node_modules/three/build/three.module.js:16399:13)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/GameStage3D.tsx:1548:64
+    at commitHookEffectListMount (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:23189:26)
+    at commitPassiveMountOnFiber (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24970:11)
+    at commitPassiveMountEffects_complete (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24930:9)
+    at commitPassiveMountEffects_begin (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24917:7)
+    at commitPassiveMountEffects (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24905:3)
+    at flushPassiveEffectsImpl (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:27078:3)
+    at flushPassiveEffects (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:27023:14)
+    at commitRootImpl (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:26974:5)
+
+ ✓ src/ui/editor/GameOpEditor.minimum.test.tsx (7 tests) 134ms 642 MB heap used
+stderr | src/ui/editor/Editor.test.tsx > Editor v2 — sauvegarde locale de secours (#834 audit) > le message de reprise n’affirme PLUS une fraîcheur relative jamais vérifiée (pt. B)
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+THREE.WebGLRenderer: THREE.WebGLRenderer: Error creating WebGL context.
+GameStage3D: aucun contexte WebGL — le monde ne peut pas être peint. Error: THREE.WebGLRenderer: Error creating WebGL context.
+    at new WebGLRenderer (file:///home/user/game/.wt-1806-L1/node_modules/three/build/three.module.js:16399:13)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/GameStage3D.tsx:1548:64
+    at commitHookEffectListMount (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:23189:26)
+    at commitPassiveMountOnFiber (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24970:11)
+    at commitPassiveMountEffects_complete (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24930:9)
+    at commitPassiveMountEffects_begin (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24917:7)
+    at commitPassiveMountEffects (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24905:3)
+    at flushPassiveEffectsImpl (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:27078:3)
+    at flushPassiveEffects (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:27023:14)
+    at commitRootImpl (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:26974:5)
+
+stderr | src/ui/editor/Editor.test.tsx > Editor v2 — #811 échec de sauvegarde REMONTÉ à l’auteur > « Fichier → Enregistrer » dont projectSave échoue affiche l’échec à l’auteur (pas seulement journalisé)
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+THREE.WebGLRenderer: THREE.WebGLRenderer: Error creating WebGL context.
+GameStage3D: aucun contexte WebGL — le monde ne peut pas être peint. Error: THREE.WebGLRenderer: Error creating WebGL context.
+    at new WebGLRenderer (file:///home/user/game/.wt-1806-L1/node_modules/three/build/three.module.js:16399:13)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/GameStage3D.tsx:1548:64
+    at commitHookEffectListMount (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:23189:26)
+    at commitPassiveMountOnFiber (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24970:11)
+    at commitPassiveMountEffects_complete (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24930:9)
+    at commitPassiveMountEffects_begin (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24917:7)
+    at commitPassiveMountEffects (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24905:3)
+    at flushPassiveEffectsImpl (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:27078:3)
+    at flushPassiveEffects (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:27023:14)
+    at commitRootImpl (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:26974:5)
+
+stderr | src/ui/editor/Editor.test.tsx > Editor v2 — #811 échec de sauvegarde REMONTÉ à l’auteur > « Fichier → Enregistrer » dont projectSave échoue affiche l’échec à l’auteur (pas seulement journalisé)
+GameStage3D: billboard « perso:enemy-enc-mutants-0 » sauté — texture non rasterisée : TypeError: URL.createObjectURL is not a function
+    at rasterizeSvg (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:55:19)
+    at Module.svgToTexture (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:82:28)
+    at rasteriser (/home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:59:28)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:74:14
+    at Object.run (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:165:60)
+    at pump (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:151:30)
+    at /home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:135:85
+    at invokeTheCallbackFunction (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/generated/idl/Function.js:19:26)
+    at runAnimationFrameCallbacks (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:635:13)
+    at Timeout.<anonymous> (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:613:11)
+GameStage3D: billboard « perso:enemy-enc-mutants-1 » sauté — texture non rasterisée : TypeError: URL.createObjectURL is not a function
+    at rasterizeSvg (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:55:19)
+    at Module.svgToTexture (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:82:28)
+    at rasteriser (/home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:59:28)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:74:14
+    at Object.run (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:165:60)
+    at pump (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:151:30)
+    at /home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:135:85
+    at invokeTheCallbackFunction (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/generated/idl/Function.js:19:26)
+    at runAnimationFrameCallbacks (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:635:13)
+    at Timeout.<anonymous> (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:613:11)
+GameStage3D: billboard « perso:enemy-enc-mutants-2 » sauté — texture non rasterisée : TypeError: URL.createObjectURL is not a function
+    at rasterizeSvg (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:55:19)
+    at Module.svgToTexture (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:82:28)
+    at rasteriser (/home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:59:28)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:74:14
+    at Object.run (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:165:60)
+    at pump (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:151:30)
+    at /home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:135:85
+    at invokeTheCallbackFunction (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/generated/idl/Function.js:19:26)
+    at runAnimationFrameCallbacks (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:635:13)
+    at Timeout.<anonymous> (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:613:11)
+
+stderr | src/ui/editor/Editor.test.tsx > Editor v2 — #811 échec de sauvegarde REMONTÉ à l’auteur > « Fichier → Enregistrer » dont projectSave échoue affiche l’échec à l’auteur (pas seulement journalisé)
+[projectLibrary] persistance IndexedDB du projet « La Diligence » en échec — stockage local indisponible : aucun filet, risque de perte réel. DOMException {}
+
+stderr | src/ui/editor/Editor.test.tsx > Editor v2 — le document ÉCRIT s’ouvre sur son identité (`id`, `type`, `label`) > « Fichier → Enregistrer » couche un projet dont les 3 premières clés sont `id`, `type`, `label`
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+THREE.WebGLRenderer: THREE.WebGLRenderer: Error creating WebGL context.
+GameStage3D: aucun contexte WebGL — le monde ne peut pas être peint. Error: THREE.WebGLRenderer: Error creating WebGL context.
+    at new WebGLRenderer (file:///home/user/game/.wt-1806-L1/node_modules/three/build/three.module.js:16399:13)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/GameStage3D.tsx:1548:64
+    at commitHookEffectListMount (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:23189:26)
+    at commitPassiveMountOnFiber (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24970:11)
+    at commitPassiveMountEffects_complete (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24930:9)
+    at commitPassiveMountEffects_begin (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24917:7)
+    at commitPassiveMountEffects (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24905:3)
+    at flushPassiveEffectsImpl (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:27078:3)
+    at flushPassiveEffects (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:27023:14)
+    at commitRootImpl (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:26974:5)
+
+ ✓ src/ui/editor/Editor.test.tsx (28 tests) 10145ms 986 MB heap used
+   ✓ Editor v2 — « Ouvrir » une campagne built-in ouvre une COPIE (#367) > charge la campagne en projet SANS id (Enregistrer créera un NOUVEAU projet, jamais un écrasement du source) 1525ms
+   ✓ Editor v2 — `editeur.ouvrir` : ouvrir par id sans la modale (#1478) > publie la commande au montage, ouvre un scénario de test par id, refuse un id inconnu, et se retire au démontage 4928ms
+   ✓ Editor v2 — authoring architectural > allume TOUTES les cases fautives d’un défaut de plan, et les éteint au clic d’un autre avertissement 335ms
+   ✓ Editor v2 — authoring architectural > le CORPS reste atteignable : entrer en Architecture le sélectionne, et re-désigner la cible le ramène 1576ms
+ ✓ src/ui/editor/apparence-une-rubrique.test.tsx (5 tests) 491ms 730 MB heap used
+ ✓ src/ui/BoiteAncree.test.tsx (12 tests) 74ms 989 MB heap used
+ ✓ src/ui/editor/GameOpEditor.offTerrainMod.test.tsx (7 tests) 89ms 732 MB heap used
+ ✓ src/ui/editor/AddMenu.test.tsx (5 tests) 22ms 734 MB heap used
+ ✓ src/ui/editor/worldmap-gating-editable.test.tsx (3 tests) 747ms 685 MB heap used
+   ✓ #684 L3 — panneau LIEU : « Visible si » (MapPlace.when) > pose une condition de visibilité puis la retire (« Toujours » = pas de condition) 410ms
+ ✓ src/ui/editor/MonsterPartsFields.test.tsx (7 tests) 112ms 690 MB heap used
+stderr | src/ui/editor/traceLayer-export-safety.test.tsx > calque de référence — ABSENT de tout export (#830) > le calque chargé n'apparaît ni dans l'export JSON, ni dans l'export ASCII
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+THREE.WebGLRenderer: THREE.WebGLRenderer: Error creating WebGL context.
+GameStage3D: aucun contexte WebGL — le monde ne peut pas être peint. Error: THREE.WebGLRenderer: Error creating WebGL context.
+    at new WebGLRenderer (file:///home/user/game/.wt-1806-L1/node_modules/three/build/three.module.js:16399:13)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/GameStage3D.tsx:1548:64
+    at commitHookEffectListMount (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:23189:26)
+    at commitPassiveMountOnFiber (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24970:11)
+    at commitPassiveMountEffects_complete (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24930:9)
+    at commitPassiveMountEffects_begin (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24917:7)
+    at commitPassiveMountEffects (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24905:3)
+    at flushPassiveEffectsImpl (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:27078:3)
+    at flushPassiveEffects (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:27023:14)
+    at /home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:26808:9
+
+stderr | src/ui/editor/traceLayer-export-safety.test.tsx > calque de référence — ABSENT de tout export (#830) > le calque chargé n'apparaît ni dans l'export JSON, ni dans l'export ASCII
+GameStage3D: billboard « perso:enemy-enc-mutants-0 » sauté — texture non rasterisée : TypeError: URL.createObjectURL is not a function
+    at rasterizeSvg (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:55:19)
+    at Module.svgToTexture (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:82:28)
+    at rasteriser (/home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:59:28)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:74:14
+    at Object.run (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:165:60)
+    at pump (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:151:30)
+    at /home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:135:85
+    at invokeTheCallbackFunction (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/generated/idl/Function.js:19:26)
+    at runAnimationFrameCallbacks (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:635:13)
+    at Timeout.<anonymous> (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:613:11)
+GameStage3D: billboard « perso:enemy-enc-mutants-1 » sauté — texture non rasterisée : TypeError: URL.createObjectURL is not a function
+    at rasterizeSvg (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:55:19)
+    at Module.svgToTexture (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:82:28)
+    at rasteriser (/home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:59:28)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:74:14
+    at Object.run (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:165:60)
+    at pump (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:151:30)
+    at /home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:135:85
+    at invokeTheCallbackFunction (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/generated/idl/Function.js:19:26)
+    at runAnimationFrameCallbacks (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:635:13)
+    at Timeout.<anonymous> (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:613:11)
+GameStage3D: billboard « perso:enemy-enc-mutants-2 » sauté — texture non rasterisée : TypeError: URL.createObjectURL is not a function
+    at rasterizeSvg (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:55:19)
+    at Module.svgToTexture (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:82:28)
+    at rasteriser (/home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:59:28)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:74:14
+    at Object.run (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:165:60)
+    at pump (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:151:30)
+    at /home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:135:85
+    at invokeTheCallbackFunction (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/generated/idl/Function.js:19:26)
+    at runAnimationFrameCallbacks (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:635:13)
+    at Timeout.<anonymous> (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:613:11)
+
+stderr | src/ui/editor/traceLayer-export-safety.test.tsx > calque de référence — ABSENT de tout export (#830) > le calque chargé n'apparaît ni dans l'export JSON, ni dans l'export ASCII
+Not implemented: navigation to another Document
+
+ ✓ src/ui/editor/traceLayer-export-safety.test.tsx (1 test) 374ms 746 MB heap used
+   ✓ calque de référence — ABSENT de tout export (#830) > le calque chargé n'apparaît ni dans l'export JSON, ni dans l'export ASCII 374ms
+ ✓ src/ui/editor/GameOpEditor.fenetre-determination.test.tsx (6 tests) 55ms 742 MB heap used
+ ✓ src/ui/editor/NarratifEditor.test.tsx (7 tests) 682ms 1014 MB heap used
+stderr | src/ui/editor/editor-monde-sous-filet.test.tsx > Éditeur — une espèce hors domaine se voit, elle ne lève pas > le canevas tient, le rendu signale le corps d’erreur, la Validation nomme l’espèce
+GameStage3D: aucun contexte WebGL — le monde ne peut pas être peint. Error: THREE.WebGLRenderer: Error creating WebGL context.
+    at new WebGLRenderer (file:///home/user/game/.wt-1806-L1/node_modules/three/build/three.module.js:16399:13)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/GameStage3D.tsx:1548:64
+    at commitHookEffectListMount (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:23189:26)
+    at commitPassiveMountOnFiber (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24970:11)
+    at commitPassiveMountEffects_complete (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24930:9)
+    at commitPassiveMountEffects_begin (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24917:7)
+    at commitPassiveMountEffects (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24905:3)
+    at flushPassiveEffectsImpl (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:27078:3)
+    at flushPassiveEffects (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:27023:14)
+    at /home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:26808:9
+
+ ✓ src/ui/editor/GameOpEditor.etat-porte.test.tsx (3 tests) 69ms 1020 MB heap used
+stderr | src/ui/editor/editor-monde-sous-filet.test.tsx > Éditeur — une espèce hors domaine se voit, elle ne lève pas > le canevas tient, le rendu signale le corps d’erreur, la Validation nomme l’espèce
+GameStage3D: billboard « perso:pnj-faute » sauté — texture non rasterisée : TypeError: URL.createObjectURL is not a function
+    at rasterizeSvg (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:55:19)
+    at Module.svgToTexture (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/svgTexture.ts:82:28)
+    at rasteriser (/home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:59:28)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/texturesStatiques.ts:74:14
+    at Object.run (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:165:60)
+    at pump (/home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:151:30)
+    at /home/user/game/.wt-1806-L1/src/gameIso/backends/webgl/atlasBake.ts:135:85
+    at invokeTheCallbackFunction (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/generated/idl/Function.js:19:26)
+    at runAnimationFrameCallbacks (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:635:13)
+    at Timeout.<anonymous> (/home/user/game/.wt-1806-L1/node_modules/jsdom/lib/jsdom/browser/Window.js:613:11)
+
+stderr | src/ui/editor/editor-monde-sous-filet.test.tsx > Éditeur — une sauvegarde locale fautive est écartée > la modale nomme la faute et son lieu, sans « Restaurer » ; la scène chargée reste
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+THREE.WebGLRenderer: THREE.WebGLRenderer: Error creating WebGL context.
+GameStage3D: aucun contexte WebGL — le monde ne peut pas être peint. Error: THREE.WebGLRenderer: Error creating WebGL context.
+    at new WebGLRenderer (file:///home/user/game/.wt-1806-L1/node_modules/three/build/three.module.js:16399:13)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/GameStage3D.tsx:1548:64
+    at commitHookEffectListMount (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:23189:26)
+    at commitPassiveMountOnFiber (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24970:11)
+    at commitPassiveMountEffects_complete (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24930:9)
+    at commitPassiveMountEffects_begin (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24917:7)
+    at commitPassiveMountEffects (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24905:3)
+    at flushPassiveEffectsImpl (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:27078:3)
+    at flushPassiveEffects (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:27023:14)
+    at commitRootImpl (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:26974:5)
+
+ ✓ src/ui/editor/palette-empreinte.test.tsx (2 tests) 95ms 1021 MB heap used
+ ✓ src/ui/editor/editor-monde-sous-filet.test.tsx (2 tests) 287ms 753 MB heap used
+ ✓ src/ui/editor/WeaponField.test.tsx (5 tests) 37ms 758 MB heap used
+stderr | src/ui/editor/editor-creation-au-survol.test.tsx > Éditeur — l’architecture naît sur la case SURVOLÉE (jamais à l’origine de la scène) > le CORPS naît sur la case survolée
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+THREE.WebGLRenderer: THREE.WebGLRenderer: Error creating WebGL context.
+GameStage3D: aucun contexte WebGL — le monde ne peut pas être peint. Error: THREE.WebGLRenderer: Error creating WebGL context.
+    at new WebGLRenderer (file:///home/user/game/.wt-1806-L1/node_modules/three/build/three.module.js:16399:13)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/GameStage3D.tsx:1548:64
+    at commitHookEffectListMount (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:23189:26)
+    at commitPassiveMountOnFiber (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24970:11)
+    at commitPassiveMountEffects_complete (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24930:9)
+    at commitPassiveMountEffects_begin (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24917:7)
+    at commitPassiveMountEffects (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24905:3)
+    at flushPassiveEffectsImpl (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:27078:3)
+    at flushPassiveEffects (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:27023:14)
+    at /home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:26808:9
+
+ ✓ src/ui/editor/FlowEditor.test.tsx (5 tests) 103ms 768 MB heap used
+ ✓ src/ui/editor/GameOpEditor.payload-strict.test.tsx (2 tests) 23ms 769 MB heap used
+stderr | src/ui/editor/editor-creation-au-survol.test.tsx > Éditeur — l’architecture naît sur la case SURVOLÉE (jamais à l’origine de la scène) > la PARTIE et la SECTION DE TOITURE naissent sur la case survolée
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+THREE.WebGLRenderer: THREE.WebGLRenderer: Error creating WebGL context.
+GameStage3D: aucun contexte WebGL — le monde ne peut pas être peint. Error: THREE.WebGLRenderer: Error creating WebGL context.
+    at new WebGLRenderer (file:///home/user/game/.wt-1806-L1/node_modules/three/build/three.module.js:16399:13)
+    at /home/user/game/.wt-1806-L1/src/gameIso/stage/GameStage3D.tsx:1548:64
+    at commitHookEffectListMount (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:23189:26)
+    at commitPassiveMountOnFiber (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24970:11)
+    at commitPassiveMountEffects_complete (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24930:9)
+    at commitPassiveMountEffects_begin (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24917:7)
+    at commitPassiveMountEffects (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:24905:3)
+    at flushPassiveEffectsImpl (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:27078:3)
+    at flushPassiveEffects (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:27023:14)
+    at commitRootImpl (/home/user/game/.wt-1806-L1/node_modules/react-dom/cjs/react-dom.development.js:26974:5)
+
+ ✓ src/ui/editor/StatblockEditor.test.tsx (3 tests) 75ms 779 MB heap used
+ ✓ src/ui/editor/editor-creation-au-survol.test.tsx (2 tests) 420ms 1038 MB heap used
+ ✓ src/ui/editor/GameOpEditor.seeds.test.tsx (4 tests) 2022ms 874 MB heap used
+   ✓ GameOpEditor — création au CLIC : aucune valeur pré-semée, raison visible > TOUTE op créable depuis la palette naît sans réf élue 1713ms
+
+ Test Files  62 passed (62)
+      Tests  852 passed (852)
+   Start at  14:00:52
+   Duration  104.97s (transform 35.63s, setup 88.07s, collect 33.32s, tests 114.28s, environment 3.25s, prepare 536ms)
+

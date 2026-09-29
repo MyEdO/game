@@ -1,0 +1,21 @@
+fix(gardes): refs #1806 — R-M2 train 7 : gardes par l'origine, tsProgram au manifeste
+
+Restes du juge du train 6 de R-M2 lot A (#1806).
+- G1 : `liaisonDAppele` (sur `liaisonDe`) rend la liaison d'un appelé, identifiant ou membre d'un
+  espace importé ; `CONSTRUCTION_DE_PROGRAMME` reconnaît un `create*Program`/`createLanguageService`
+  venu du paquet `typescript` (import renommé compris ; homonyme local écarté) ; `estAppelDeclare`
+  la consomme (tables de vérité identiques) ; le contrat d'`origineImportee` ne change pas.
+  `estSelectionDerivee` juge le récepteur par `origineImportee` (`SCHEMAS_DU_CANON` en table).
+  Les formes hors de portée sont déclarées au JSDoc et au témoin (13 formes, 6 sélections).
+- G2 : entrée `tsProgram` au manifeste des primitives (154 entrées).
+
+Preuves (orchestrateur, worktree sur 20b8afba5) : `npm run gates` — 24 gates de ci.yml vertes ;
+8 mutants de `canonUnique.mjs` rouges, chaque cas neuf rougi par au moins un.
+
+CLIQUET: scripts/guards/lib/canonUnique.mjs +1 — SCHEMAS_DU_CANON change de FORME (liste de 3 noms → table chemin → mêmes 3 noms, pour origineImportee) : le canon lui-même, pas une exemption
+JUGE: juge adversarial du train 7 (#1806) : TIENT, 0 bloquant — liaisonDAppele équivalent pour estAppelDeclare, 13 formes au verdict attendu, disponibilite.ts:20 toujours blanchi, manifeste conforme ; 3 restes portés sur #2135
+REFUTATION: sonde en lecture seule sur 11 formes hors témoin (sous-chemin typescript/, appelé parenthésé ou non-null : 0 site, portés sur #2135) ; consommateurs d'estAppelDeclare 112/112 ; ancien cas réécrit avec son import jugé légitime
+JUGE-VISION: aucun écran touché : gardes d'outillage, manifeste et docs générés seuls ; aucun rendu ne change
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_0167t7jpCF61Qutt6mU1dbAt

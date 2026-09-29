@@ -1,0 +1,219 @@
+[
+ {
+  "nom": "M1-zone-temps",
+  "fichier": "src/ui/CampaignView.tsx",
+  "avant": "fc0bde90845f6e9fb3b5093671311e6a582d1117",
+  "mute": "a93c06d250e3725638a0d4c0d4013fbb682f0d0f",
+  "apres": "fc0bde90845f6e9fb3b5093671311e6a582d1117",
+  "identique": true,
+  "rouge_exit": 1,
+  "rouges": [
+   "#1919 — la couche HUD est une grille : chaque surface déclare sa ZONE > COMBAT : frise et fil, rail, bandeau d’ouverture ; la console hors de la couche",
+   "#1919 — la couche HUD est une grille : chaque surface déclare sa ZONE > EXPLORATION : barre haute, groupe, objectif et caméra ; le pont hors de la couche"
+  ],
+  "vert_exit": 0,
+  "vert_fails": []
+ },
+ {
+  "nom": "M2-ouverture-hors-zone",
+  "fichier": "src/ui/CampaignView.tsx",
+  "avant": "fc0bde90845f6e9fb3b5093671311e6a582d1117",
+  "mute": "816c1aa4b5d263622e206b67e2b4fab6de00f6c2",
+  "apres": "fc0bde90845f6e9fb3b5093671311e6a582d1117",
+  "identique": true,
+  "rouge_exit": 1,
+  "rouges": [
+   "#1919 — la couche HUD est une grille : chaque surface déclare sa ZONE > COMBAT : frise et fil, rail, bandeau d’ouverture ; la console hors de la couche"
+  ],
+  "vert_exit": 0,
+  "vert_fails": []
+ },
+ {
+  "nom": "M3-tiroir-reserve",
+  "fichier": "src/ui/styles/exploration-dock.css",
+  "avant": "d0b975e7facd5ccbc333c29ff98e90ad4f3b4613",
+  "mute": "d7f3e9b45f783c9a2e3aac2ba951c8379dbdd8c6",
+  "apres": "d0b975e7facd5ccbc333c29ff98e90ad4f3b4613",
+  "identique": true,
+  "rouge_exit": 1,
+  "rouges": [
+   "Zone 11 — la RÉSERVE du pont est lisible, et le pont est COMPACT > le tiroir-journal est assis SUR le pont, et son panneau naît de son bouton"
+  ],
+  "vert_exit": 0,
+  "vert_fails": []
+ },
+ {
+  "nom": "M4-stage-rangees",
+  "fichier": "src/ui/styles/hud.css",
+  "avant": "0598c93531ea72289529ef90312aa88c593b0a8c",
+  "mute": "513097294e1546be694d6a3303c8d7bd814de46e",
+  "apres": "0598c93531ea72289529ef90312aa88c593b0a8c",
+  "identique": true,
+  "rouge_exit": 1,
+  "rouges": [
+   "CombatConsole — assemblage : UN PONT, pas des blocs > P-1 — UN élément-pont unique, de bord à bord, porte les QUATRE régions de console"
+  ],
+  "vert_exit": 0,
+  "vert_fails": []
+ },
+ {
+  "nom": "M5-fil-ancre",
+  "fichier": "src/ui/styles/combat-banner.css",
+  "avant": "5979596b8f2cbc195ff2cd587c307ce9340c14ac",
+  "mute": "9a4029d7b6b0df08716fa259d756fa6799c30fac",
+  "apres": "5979596b8f2cbc195ff2cd587c307ce9340c14ac",
+  "identique": true,
+  "rouge_exit": 1,
+  "rouges": [
+   "CombatConsole — assemblage : UN PONT, pas des blocs > P-5 — le fil de combat n’a AUCUNE ancre propre, et se lit en lignes NUES"
+  ],
+  "vert_exit": 0,
+  "vert_fails": []
+ },
+ {
+  "nom": "M6-frise-reserve",
+  "fichier": "src/ui/styles/initiative-strip.css",
+  "avant": "08faee7c7db0a83ad020c1c3046906a28e108f27",
+  "mute": "1221953f3f590b050468fee24a0d775127f5d33f",
+  "apres": "08faee7c7db0a83ad020c1c3046906a28e108f27",
+  "identique": true,
+  "rouge_exit": 1,
+  "rouges": [
+   "CombatConsole — assemblage : UN PONT, pas des blocs > P-6 — la frise borne sa hauteur à la RANGÉE du monde, sans lire aucune hauteur de pont"
+  ],
+  "vert_exit": 0,
+  "vert_fails": []
+ },
+ {
+  "nom": "M7-reserve-couche",
+  "fichier": "src/ui/styles/hud.css",
+  "avant": "0598c93531ea72289529ef90312aa88c593b0a8c",
+  "mute": "5ed6c1adf41f504b65403ea8765c6cf58546f980",
+  "apres": "0598c93531ea72289529ef90312aa88c593b0a8c",
+  "identique": true,
+  "rouge_exit": 0,
+  "rouges": [],
+  "vert_exit": 0,
+  "vert_fails": []
+ },
+ {
+  "nom": "M8-ouverture-ancre",
+  "fichier": "src/ui/styles/combat-console.css",
+  "avant": "446c1c8ef491a1f7829b4c92c98768bba17b0953",
+  "mute": "cd083a544b09d6bf8f5ab4e55182593d5395f89c",
+  "apres": "446c1c8ef491a1f7829b4c92c98768bba17b0953",
+  "identique": true,
+  "rouge_exit": 1,
+  "rouges": [
+   "CombatConsole — trois formes, une seule bande > le bandeau d’OUVERTURE n’a AUCUNE ancre propre : sa zone de la couche HUD le pose"
+  ],
+  "vert_exit": 0,
+  "vert_fails": []
+ },
+ {
+  "nom": "M9-bandeau-ouverture-nul",
+  "fichier": "src/ui/CombatConsole.tsx",
+  "avant": "94fac818b6fa8de52633326760116b60da366d4d",
+  "mute": "449418ab2908a468264f6f9de82c3ae5a2c2d6ec",
+  "apres": "94fac818b6fa8de52633326760116b60da366d4d",
+  "identique": true,
+  "rouge_exit": 1,
+  "rouges": [
+   "CombatConsole — le pont d’OUVERTURE est celui du JOUEUR, et n’offre rien de mort > OUVERTURE : bandeau CENTRÉ hors du pont, arche d’un héros SEULE, pas une seule case",
+   "CombatConsole — le pont d’OUVERTURE est celui du JOUEUR, et n’offre rien de mort > tête d’initiative ENNEMIE : le pont montre le héros contrôlé, jamais l’adversaire"
+  ],
+  "vert_exit": 0,
+  "vert_fails": []
+ },
+ {
+  "nom": "M10-rail-hors-flux",
+  "fichier": "src/ui/styles/hud.css",
+  "avant": "0598c93531ea72289529ef90312aa88c593b0a8c",
+  "mute": "657a23dbea42efa661f7d49f3f2855f8563e8226",
+  "apres": "0598c93531ea72289529ef90312aa88c593b0a8c",
+  "identique": true,
+  "rouge_exit": 1,
+  "rouges": [
+   "canon responsive, peaux et matières partagées de src/ui/styles > couche HUD (#1919) : aucune surface n’est posée hors flux, seul le VOLET du groupe l’est"
+  ],
+  "vert_exit": 0,
+  "vert_fails": []
+ },
+ {
+  "nom": "M11-volet-rang",
+  "fichier": "src/ui/styles/hud.css",
+  "avant": "0598c93531ea72289529ef90312aa88c593b0a8c",
+  "mute": "f003fb6ecc3e1ee628c1b7f7ff3190c0e7cd5b54",
+  "apres": "0598c93531ea72289529ef90312aa88c593b0a8c",
+  "identique": true,
+  "rouge_exit": 1,
+  "rouges": [
+   "canon responsive, peaux et matières partagées de src/ui/styles > ≤560, bande DÉPLIÉE : son rang passe devant le fil d’événements, et la règle BAT l’ancrage de repos"
+  ],
+  "vert_exit": 0,
+  "vert_fails": []
+ },
+ {
+  "nom": "M12-rpc-socket-fermee",
+  "fichier": "scripts/recette/lib.mjs",
+  "avant": "48b3f978ece035f238b0225c9c65a3f41f330ec7",
+  "mute": "c94a0f92363f1ffb76902f38930ff4fd9dd584fc",
+  "apres": "48b3f978ece035f238b0225c9c65a3f41f330ec7",
+  "identique": true,
+  "rouge_exit": 1,
+  "rouges": [
+   "appel CDP sur une socket FERMÉE : rejeté tout de suite, typé cible perdue, rien d’envoyé",
+   "appel CDP sur une socket OUVERTE : message envoyé, session portée, réglé par sa réponse"
+  ],
+  "vert_exit": 0,
+  "vert_fails": []
+ },
+ {
+  "nom": "M13-couche-muette",
+  "fichier": "scripts/recette/hud-clickables.mjs",
+  "avant": "a0c6edac2fdfd1fa0d18268001358db59c5a59bc",
+  "mute": "24a60de144383e9ce7b090bd223d6486f4175b88",
+  "apres": "a0c6edac2fdfd1fa0d18268001358db59c5a59bc",
+  "identique": true,
+  "rouge_exit": 1,
+  "rouges": [
+   "AUCUNE commande rendue : la sonde se déclare AVEUGLE, elle ne se tait pas",
+   "commande qui ne reçoit pas son clic : défaut nommé, recouvrant compris",
+   "couche ABSENTE : la sonde se déclare AVEUGLE",
+   "page qui DÉFILE : le plateau déborde de l’écran",
+   "pont ABSENT sous la couche : sonde aveugle sur sa pose",
+   "pont DÉCOLLÉ du bas de l’écran : défaut nommé, boîte comprise",
+   "surface ROGNÉE par la couche : défaut chiffré, zone et surface nommées"
+  ],
+  "vert_exit": 0,
+  "vert_fails": []
+ },
+ {
+  "nom": "M14-exemption-ignoree",
+  "fichier": "scripts/recette/hud-clickables.mjs",
+  "avant": "a0c6edac2fdfd1fa0d18268001358db59c5a59bc",
+  "mute": "7dd32ca350464a2c23874ef80e01b76f73e92c33",
+  "apres": "a0c6edac2fdfd1fa0d18268001358db59c5a59bc",
+  "identique": true,
+  "rouge_exit": 1,
+  "rouges": [
+   "commande EXEMPTÉE (hors du champ de son défilant, ou sous sa tête collée) : rien à dire"
+  ],
+  "vert_exit": 0,
+  "vert_fails": []
+ },
+ {
+  "nom": "M15-seuil-rognure",
+  "fichier": "scripts/recette/hud-clickables.mjs",
+  "avant": "a0c6edac2fdfd1fa0d18268001358db59c5a59bc",
+  "mute": "d83604b2bf4d544c02f39ccfceb614db3d1830cb",
+  "apres": "a0c6edac2fdfd1fa0d18268001358db59c5a59bc",
+  "identique": true,
+  "rouge_exit": 1,
+  "rouges": [
+   "rognure sous le demi-pixel : arrondi de rendu, rien à dire"
+  ],
+  "vert_exit": 0,
+  "vert_fails": []
+ }
+]

@@ -1,0 +1,19 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1806-L1
+
+ ✓ src/ui/raccourcis-registre.test.ts (6 tests) 102ms 395 MB heap used
+ ✓ src/ui/choix-retenu-guard.test.ts (27 tests) 4432ms 443 MB heap used
+   ✓ état de bouton — son attribut, jamais le ton primaire > aucun site de `src/ui` ne peint un état de bouton en primaire 1199ms
+   ✓ divulgation — son état est le chevron canonique, quelle que soit la matière du contrôle > aucune divulgation de `src` n’écrit son propre état 3048ms
+ ✓ src/comment-poison-guard.test.ts (79 tests) 4827ms 461 MB heap used
+   ✓ garde-fou commentaires — pierres tombales (#136, CLAUDE.md règle 6c) > aucun commentaire de src/** ni de scripts/** ne porte une pierre tombale (tolérance ZÉRO) 838ms
+   ✓ garde-fou commentaires — excuses non tracées (#136, CLAUDE.md règle 6b) > aucune excuse de src/** ni de scripts/** sans tag [entériné AAAA-MM-JJ] (ACTIVE depuis #177) 677ms
+   ✓ garde-fou commentaires — vocabulaire de l’ancien état (#1486, credo règle 1) > tout site de src/** et scripts/** (tests compris) est au stock nominatif daté, et aucune ligne du stock n’est périmée 2726ms
+ ✓ src/ui/Infobulle.test.tsx (6 tests) 222ms 444 MB heap used
+
+ Test Files  4 passed (4)
+      Tests  118 passed (118)
+   Start at  13:54:38
+   Duration  36.94s (transform 20.49s, setup 52.53s, collect 5.66s, tests 9.58s, environment 629ms, prepare 272ms)
+

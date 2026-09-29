@@ -1,0 +1,22 @@
+## Sous-lot 2d, bloc γ, étape 2 (temps 2 : coop) — publié
+
+État MESURÉ après le commit `7f98bebfc` (`scripts/guards/lib/cssCouchesStock.mjs`, `scripts/ui/css-conservation.mjs`) :
+
+| Mesure | Avant (γ2 temps 1) | Après (γ2 temps 2) |
+|---|---|---|
+| déclarations CSS du corpus | 8213 | 8165 |
+| stock identité | 1382 | 1359 |
+| stock espacement | 628 | 613 |
+| `style=` inline | 97 | 97 |
+| `combat-ui.css` | 149 lignes | 23 lignes (le beat d'ouverture seul) |
+| `!important` (toutes feuilles) | 28 | 26 |
+
+**SOLDÉ contre DÉPLACÉ** — 38 entrées de stock retirées, 0 ajoutée : **26 SOLDÉES** (règles mortes par composition de `MenuSubScreen`, `.panel`, `Stack`/`Row`/`Grid`, `.muted`, `chip tone-danger`) et **12 DÉPLACÉES** mot pour mot vers `coop-panels.css` (plaque `.coop-code` 8 + son padding, champ `.coop-code-input` 3) — feuille que sa déclaration au manifeste des primitives exempte du cliquet : ces 12 ne sont PAS un solde. Le compte a été établi par le juge, contre celui du codeur (« 38 soldées ») et contre le mien (24/14).
+
+**Ce qui change à l'écran** (régime de convergence, consigne du 2026-09-20 sur #1811) : le salon « Jouer en ligne » devient un sous-écran de menu comme Options (carte canonique, en-tête Retour + titre) ; le menu ☰ Coopération montre les MÊMES trois sections que le salon hôte ; le bandeau de liaison est un chip ; le titre de tout sous-écran est centré sur la carte ; toute carte de menu resserre ses flancs ≤700 px (elle n'avait aucune tranche responsive : 238 px utiles à 360). Captures `public/qc/soldes/1806-2d-g2c-apres-*.png` contre `1806-2d-g2c-avant-*.png`.
+
+**Défauts trouvés et corrigés dans le geste** : sous-écran Coopération en champ court (360×640) — carte à −33 px, « Retour » inatteignable → `wide` ; plaque de code `<div onClick>` sans rôle ni clavier → affichage sélectionnable, la copie passe par les boutons ; `label.coop-assign-row span` atteignait le visage du portrait → `> span` ; bandeau sans région live → `role="status"`.
+
+**Reste avant la clôture de #1806** :
+1. Les 9 unités d'identité + 4 d'espacement de `hud.css` (plaque de bois du rail, inscription du lieu) — plan en cours de conception, sera jugé avant exécution.
+2. #1835 décision 1 — l'art réellement unique d'un écran (les 15 unités du beat d'ouverture, `combat-ui.css`) : en attente de l'utilisateur.

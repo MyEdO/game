@@ -1,0 +1,15 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game
+
+ ✓ src/comment-poison-guard.test.ts (79 tests) 5582ms 446 MB heap used
+   ✓ garde-fou commentaires — pierres tombales (#136, CLAUDE.md règle 6c) > aucun commentaire de src/** ni de scripts/** ne porte une pierre tombale (tolérance ZÉRO) 1045ms
+   ✓ garde-fou commentaires — excuses non tracées (#136, CLAUDE.md règle 6b) > aucune excuse de src/** ni de scripts/** sans tag [entériné AAAA-MM-JJ] (ACTIVE depuis #177) 793ms
+   ✓ garde-fou commentaires — vocabulaire de l’ancien état (#1486, credo règle 1) > tout site de src/** et scripts/** (tests compris) est au stock nominatif daté, et aucune ligne du stock n’est périmée 2841ms
+   ✓ cliquet : revendications d’autorité dans les fichiers de test (#136, famille 4) > aucun site famille 4 dans src/**/*.test.ts(x) hors liste nominative, et aucune entrée périmée 391ms
+
+ Test Files  1 passed (1)
+      Tests  79 passed (79)
+   Start at  09:13:23
+   Duration  25.84s (transform 11.71s, setup 18.82s, collect 959ms, tests 5.58s, environment 0ms, prepare 77ms)
+

@@ -1,0 +1,44 @@
+Mon Sep 28 09:10:42 UTC 2026
+$ git grep -n "suppressPopover\|\bwrap\b\|refus=" -- src/**/*.tsx (consommateurs, hors tests)
+src/ui/ChanceButtons.tsx:38:    <CodexRef category={RULE_REF['sombre-pacte'].category} id={RULE_REF['sombre-pacte'].id} label="Sombre Pacte" wrap>
+src/ui/ChanceButtons.tsx:48:    <CodexRef category={rerollRef.category} id={rerollRef.id} label={freeReroll ? 'Bénédiction de Chance' : 'Chance'} wrap>
+src/ui/ChanceButtons.tsx:64:        <CodexRef category={RULE_REF.chance.category} id={RULE_REF.chance.id} label="Chance" wrap>
+src/ui/CombatConsole.tsx:114: *  `ciblageArme` MET CE POPOVER EN SOURDINE (`suppressPopover`) : tant qu'on VISE — intention locale
+src/ui/CombatConsole.tsx:236:      <CodexRef category={cell.rule?.category} id={cell.rule?.id} label={cell.label} refus={raison} wrap suppressPopover={ciblageArme}>
+src/ui/CombatConsole.tsx:542:  // (`suppressPopover`, plus bas), sans plus aucun moyen de le refermer.
+src/ui/CombatConsole.tsx:1255:                    <CodexRef category="trappings" id={m.ammo.trappingId ?? ''} label={m.ammo.label} refus={m.raison} wrap suppressPopover={ciblageArme || ammoOuvert === m.w.uid}>
+src/ui/CombatConsole.tsx:1326:                      ? <CodexRef key={lo.id} category="trappings" id={mainItem.trappingId} label={loadoutLabel(lo, active)} wrap suppressPopover={ciblageArme}>{vignette}</CodexRef>
+src/ui/DeterminationButton.tsx:25:      <CodexRef category={RULE_REF.determination.category} id={RULE_REF.determination.id} label="Détermination" wrap suppressPopover={open}>
+src/ui/EquipmentPanel.tsx:142:      <CodexRef category="trappings" id={item.trappingId} label={itemLabel(item)} className="eq-slot-icon" tooltipOnly fallback={fallback} refus={refusCellule}>
+src/ui/GatedAction.tsx:186:        ? <CodexRef label={ariaLabel ?? nodeText(label)} refus={reason} wrap>{button}</CodexRef>
+src/ui/MedicModal.tsx:225:                  <CodexRef category={rule?.category} id={rule?.id} label={meta.label} instance={meta.label} refus={raison} wrap>{bouton}</CodexRef>
+src/ui/ResilienceButton.tsx:19:    <CodexRef category="characteristics" id="resilience" label="Résilience" instance="Je ne faillirai pas !" wrap>
+src/ui/RollRow.tsx:109:    <CodexRef category={RULE_REF.determination.category} id={RULE_REF.determination.id} label="Détermination" wrap>
+src/ui/compendium/CodexRef.tsx:110:  suppressPopover = false,
+src/ui/compendium/CodexRef.tsx:167:  suppressPopover?: boolean;
+src/ui/compendium/CodexRef.tsx:200:    if (suppressPopover) return;
+src/ui/compendium/CodexRef.tsx:204:  }, [cancelHide, suppressPopover]);
+src/ui/compendium/CodexRef.tsx:222:  // Le drapeau `suppressPopover` se lève souvent APRÈS l'ouverture : le focus que le clic donne au
+src/ui/compendium/CodexRef.tsx:226:  useEffect(() => { if (suppressPopover) unpin(); }, [suppressPopover, unpin]);
+src/ui/compendium/CodexRef.tsx:283:  const toggle = () => { if (pinned) unpin(); else if (!suppressPopover) { showAt(); setPinned(true); } };
+src/ui/compendium/CodexRef.tsx:291:  const pinFromWrap = wrap && openFiche && !suppressPopover;
+
+$ git grep -l "<CodexRef" -- src ":!*.test.*" | wc -l
+30
+$ App.tsx Suspense
+1:import { lazy, Suspense, useEffect } from 'react';
+24:const CodexOverlay = lazy(() => import('./compendium/CompendiumScreen').then((m) => ({ default: m.CodexOverlay })));
+76:        <Suspense fallback={<div className="lazy-fallback" role="status">Chargement…</div>}>
+90:          {codexOverlay && <CodexOverlay />}
+99:        </Suspense>
+101:          <Suspense fallback={null}>
+103:          </Suspense>
+$ git grep -n "useFocusEmprunte(" -- src
+src/ui/Modal.tsx:103:  useFocusEmprunte(boxRef, actif, cibleDialogue, etape);
+src/ui/RollShell.tsx:388:  useFocusEmprunte(ref, true, cibleEmbarquee, etape);
+src/ui/cadre-focus-initial.test.tsx:235:      useFocusEmprunte(ref, true, premierBouton);
+src/ui/cadre-focus-initial.test.tsx:289:      useFocusEmprunte(ref, true, cibleEmbarquee);
+src/ui/cadre-focus-initial.test.tsx:323:      useFocusEmprunte(ref, true, cibleEmbarquee);
+src/ui/cadre-focus-initial.test.tsx:374:      useFocusEmprunte(ref, ouvert, premier);
+src/ui/compendium/CodexRef.tsx:258:  useFocusEmprunte(popRef, pinned && wrap, porteDeLaBulle);
+src/ui/focus.ts:48:export function useFocusEmprunte(

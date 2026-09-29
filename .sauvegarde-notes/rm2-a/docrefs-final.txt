@@ -1,0 +1,2 @@
+docs:check — OK (34 docs vivantes, chemins & symboles vérifiés)
+exit=0

@@ -1,0 +1,48 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1919-H1
+
+ ❯ src/ui/CombatConsole.test.tsx (150 tests | 2 failed | 146 skipped) 217ms 458 MB heap used
+   × CombatConsole — le pont d’OUVERTURE est celui du JOUEUR, et n’offre rien de mort > tête d’initiative ENNEMIE : le pont montre le héros contrôlé, jamais l’adversaire 112ms
+     → la pause de Round garde son bandeau: expected null to be truthy
+   × CombatConsole — le pont d’OUVERTURE est celui du JOUEUR, et n’offre rien de mort > OUVERTURE : bandeau CENTRÉ hors du pont, arche d’un héros SEULE, pas une seule case 40ms
+     → aucun bandeau d’ouverture: expected null not to be null
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 2 passed | 146 skipped (150)
+   Start at  20:46:34
+   Duration  20.70s (transform 12.40s, setup 13.70s, collect 5.74s, tests 217ms, environment 643ms, prepare 55ms)
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/ui/CombatConsole.test.tsx > CombatConsole — le pont d’OUVERTURE est celui du JOUEUR, et n’offre rien de mort > tête d’initiative ENNEMIE : le pont montre le héros contrôlé, jamais l’adversaire
+AssertionError: la pause de Round garde son bandeau: expected null to be truthy
+
+- Expected: 
+true
+
++ Received: 
+null
+
+ ❯ src/ui/CombatConsole.test.tsx:3595:84
+    3593|     // Le bandeau de phase est bien là, mais l'identité de l'arche est…
+    3594|     // portrait, son nom — jamais l'adversaire qui ouvre l'initiative.
+    3595|     expect(host.querySelector('.cc-phase'), 'la pause de Round garde s…
+       |                                                                                    ^
+    3596|     expect(host.querySelector('.cc-arch-name')?.textContent).toBe('Gun…
+    3597|     expect(host.querySelector('.cc-arch .ptile')?.classList.contains('…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/ui/CombatConsole.test.tsx > CombatConsole — le pont d’OUVERTURE est celui du JOUEUR, et n’offre rien de mort > OUVERTURE : bandeau CENTRÉ hors du pont, arche d’un héros SEULE, pas une seule case
+AssertionError: aucun bandeau d’ouverture: expected null not to be null
+ ❯ src/ui/CombatConsole.test.tsx:3616:54
+    3614|     // `ouverture`, montée par l'écran de campagne), pas un enfant de …
+    3615|     const bandeau = host.querySelector('.cc-phase[data-phase="ouvertur…
+    3616|     expect(bandeau, 'aucun bandeau d’ouverture').not.toBeNull();
+       |                                                      ^
+    3617|     expect(host.querySelector('.combat-console')!.contains(bandeau), '…
+    3618|     expect(bandeau.textContent).toContain('Ouverture du combat');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+

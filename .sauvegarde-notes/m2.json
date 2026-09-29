@@ -1,0 +1,19 @@
+{
+ "fichier": "scripts/guards/lib/gitPorte.mjs",
+ "avant": "67b8d82a4f12b3071438540b33d6ffe58573f4df",
+ "mute": "e9ad387f2961d696eed69d1213d122620dede11e",
+ "apres": "67b8d82a4f12b3071438540b33d6ffe58573f4df",
+ "identique": true,
+ "rouge": {
+  "code": 1,
+  "echecs": [
+   "not ok 5 - fusionnesEnCours : un `MERGE_HEAD` illisible est INDISPONIBLE, jamais « hors fusion »"
+  ],
+  "sommaire": "# pass 5 # fail 1"
+ },
+ "vert": {
+  "code": 0,
+  "echecs": [],
+  "sommaire": "# pass 6 # fail 0"
+ }
+}

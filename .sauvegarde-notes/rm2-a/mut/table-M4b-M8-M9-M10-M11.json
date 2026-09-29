@@ -1,0 +1,84 @@
+[
+ {
+  "id": "M4b",
+  "fichier": "src/ui/Infobulle.tsx",
+  "avant": "080f8ed5167c9baef4e6cf8e7af63852afb15a4c",
+  "mute": "8af9322fc7d78eb5b76374237fecb30e8b8d66db",
+  "apres": "080f8ed5167c9baef4e6cf8e7af63852afb15a4c",
+  "identique": true,
+  "exit": 1,
+  "cible": "B2 ↓ après Échap",
+  "rouges": [
+   "× CodexRef — chemin ÉPINGLÉ et interception de clic (#1117) > Échap puis ↓ sur l’ancrage dont la boîte est fermée : elle s’épingle ET le focus y entre 20ms",
+   "FAIL  src/ui/compendium/CodexRef.hooks.test.tsx > CodexRef — chemin ÉPINGLÉ et interception de clic (#1117) > Échap puis ↓ sur l’ancrage dont la boîte est fermée : elle s’épingle ET le focus y entre",
+   "AssertionError: ↓ rouvre et épingle la boîte: expected null to be truthy"
+  ]
+ },
+ {
+  "id": "M8",
+  "fichier": "src/ui/BoiteAncree.tsx",
+  "avant": "d5a55c9a50ec00dc4387da1feb9523622fdf0e98",
+  "mute": "7521359c8ac070929ca86c18eea1b0471eaa70cd",
+  "apres": "d5a55c9a50ec00dc4387da1feb9523622fdf0e98",
+  "identique": true,
+  "exit": 1,
+  "cible": "R4 ancré par le bas",
+  "rouges": [
+   "× AddMenu — le menu d’ajout se pose TOUJOURS entier à l’écran (`BoiteAncree`) > un bouton au BAS du dock Logique ouvre le menu VERS LE HAUT, collé à son bouton 14ms",
+   "FAIL  src/ui/editor/AddMenu.test.tsx > AddMenu — le menu d’ajout se pose TOUJOURS entier à l’écran (`BoiteAncree`) > un bouton au BAS du dock Logique ouvre le menu VERS LE HAUT, collé à son bouton",
+   "AssertionError: ancré par le BAS : un menu court reste collé à son bouton: expected 258 to be undefined"
+  ]
+ },
+ {
+  "id": "M9",
+  "fichier": "src/ui/BoiteAncree.tsx",
+  "avant": "d5a55c9a50ec00dc4387da1feb9523622fdf0e98",
+  "mute": "28b5e50b402779b5ab0ae2ee90026fa203767b4a",
+  "apres": "d5a55c9a50ec00dc4387da1feb9523622fdf0e98",
+  "identique": true,
+  "exit": 1,
+  "cible": "suit son bouton",
+  "rouges": [
+   "× AddMenu — le menu ouvert reste SOLIDAIRE de son bouton > suit son bouton quand le panneau qui le porte défile 49ms",
+   "FAIL  src/ui/editor/AddMenu.test.tsx > AddMenu — le menu ouvert reste SOLIDAIRE de son bouton > suit son bouton quand le panneau qui le porte défile",
+   "AssertionError: expected '326px' to be '146px' // Object.is equality",
+   "FAIL  src/ui/editor/AddMenu.test.tsx > AddMenu — le menu ouvert reste SOLIDAIRE de son bouton > suit son bouton quand le panneau qui le porte défile"
+  ]
+ },
+ {
+  "id": "M10",
+  "fichier": "src/state/keybindings.ts",
+  "avant": "d897d38f2f8fa014b89b35e8f8e099f085e9ba0b",
+  "mute": "a51126fa793c205bdd4ca0583a1592261b9948e6",
+  "apres": "d897d38f2f8fa014b89b35e8f8e099f085e9ba0b",
+  "identique": true,
+  "exit": 1,
+  "cible": "ids uniques",
+  "rouges": [
+   "× raccourcis — aucune collision de touche NON DÉCLARÉE > un id, un raccourci : les ids du registre sont UNIQUES (`bindingParId` rend le premier) 15ms",
+   "× raccourcis — aucune collision de touche NON DÉCLARÉE > `sharedBy` ne nomme que des ids EXISTANTS qui partagent réellement une touche (pas une déclaration morte) 5ms",
+   "FAIL  src/state/keybindings.test.ts > raccourcis — aucune collision de touche NON DÉCLARÉE > un id, un raccourci : les ids du registre sont UNIQUES (`bindingParId` rend le premier)",
+   "AssertionError: expected [ 'intent-cancel' ] to deeply equal []",
+   "FAIL  src/state/keybindings.test.ts > raccourcis — aucune collision de touche NON DÉCLARÉE > `sharedBy` ne nomme que des ids EXISTANTS qui partagent réellement une touche (pas une déclaration morte)",
+   "AssertionError: expected [ …(6) ] to deeply equal []"
+  ]
+ },
+ {
+  "id": "M11",
+  "fichier": "src/state/keybindings.ts",
+  "avant": "d897d38f2f8fa014b89b35e8f8e099f085e9ba0b",
+  "mute": "c2f7c08e08f33f96957239949c88049b2e933913",
+  "apres": "d897d38f2f8fa014b89b35e8f8e099f085e9ba0b",
+  "identique": true,
+  "exit": 1,
+  "cible": "élection (notWhenControlFocused)",
+  "rouges": [
+   "× (A) SOCLE — un contrôle focalisé possède ses flèches (#1078) > MÊME contexte, un BOUTON focalisé : le registre n’élit PLUS le curseur 11ms",
+   "× (A) SOCLE — un contrôle focalisé possède ses flèches (#1078) > les QUATRE flèches sont couvertes (pas seulement celle de la recette) 8ms",
+   "FAIL  src/ui/wrap-keyboard-vs-cursor.test.tsx > (A) SOCLE — un contrôle focalisé possède ses flèches (#1078) > MÊME contexte, un BOUTON focalisé : le registre n’élit PLUS le curseur",
+   "AssertionError: expected { id: 'cursor-down', …(7) } to be undefined",
+   "FAIL  src/ui/wrap-keyboard-vs-cursor.test.tsx > (A) SOCLE — un contrôle focalisé possède ses flèches (#1078) > les QUATRE flèches sont couvertes (pas seulement celle de la recette)",
+   "AssertionError: ArrowUp vole encore le focus: expected { id: 'cursor-up', …(7) } to be undefined"
+  ]
+ }
+]

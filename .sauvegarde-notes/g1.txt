@@ -1,0 +1,12 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1806-L1
+
+ ✓ src/coupe-au-caractere-guard.test.ts (2 tests) 4820ms 470 MB heap used
+   ✓ coupe au caractère suivie d’une ellipse > aucun site sous `src/` 4631ms
+
+ Test Files  1 passed (1)
+      Tests  2 passed (2)
+   Start at  13:14:39
+   Duration  18.18s (transform 8.91s, setup 12.90s, collect 58ms, tests 4.82s, environment 0ms, prepare 63ms)
+

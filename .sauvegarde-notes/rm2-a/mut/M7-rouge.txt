@@ -1,0 +1,62 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game
+
+ ❯ src/ui/App.surcouche-codex.test.tsx (1 test | 1 failed) 119ms 488 MB heap used
+   × App — la surcouche du Codex ne suspend pas l’écran qu’elle couvre > à l’ouverture de la fiche, le menu reste visible et aucun « Chargement… » ne le remplace 117ms
+     → la fiche en chargement a remplacé l’écran par « Chargement… »: expected <div class="lazy-fallback" …(1)></div> to be null
+stderr | printWarning (/home/user/game/node_modules/react-dom/cjs/react-dom.development.js:86:30)
+Warning: A suspended resource finished loading inside a test, but the event was not wrapped in act(...).
+
+When testing, code that resolves suspended data should be wrapped into act(...):
+
+act(() => {
+  /* finish loading suspended data */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+Warning: A suspended resource finished loading inside a test, but the event was not wrapped in act(...).
+
+When testing, code that resolves suspended data should be wrapped into act(...):
+
+act(() => {
+  /* finish loading suspended data */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/ui/App.surcouche-codex.test.tsx > App — la surcouche du Codex ne suspend pas l’écran qu’elle couvre > à l’ouverture de la fiche, le menu reste visible et aucun « Chargement… » ne le remplace
+AssertionError: la fiche en chargement a remplacé l’écran par « Chargement… »: expected <div class="lazy-fallback" …(1)></div> to be null
+
+- Expected: 
+null
+
++ Received: 
+<div
+  class="lazy-fallback"
+  role="status"
+>
+  Chargement…
+</div>
+
+ ❯ src/ui/App.surcouche-codex.test.tsx:41:120
+     39| 
+     40|     act(() => { useGame.getState().openCodex({ category: 'talents', id…
+     41|     expect(container.querySelector('.lazy-fallback'), 'la fiche en cha…
+       |                                                                                                                        ^
+     42|     expect(menu()?.style.display, 'la fiche en chargement a masqué l’é…
+     43| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+ Test Files  1 failed (1)
+      Tests  1 failed (1)
+   Start at  09:48:46
+   Duration  23.56s (transform 14.74s, setup 14.66s, collect 7.56s, tests 119ms, environment 707ms, prepare 73ms)
+
+exit=1

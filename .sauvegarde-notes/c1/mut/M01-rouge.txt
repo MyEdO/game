@@ -1,0 +1,38 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1919-H2
+
+ ❯ src/ui/CombatConsole.test.tsx (151 tests | 1 failed | 150 skipped) 339ms 467 MB heap used
+   × CombatConsole — micro-rendu (sondes pixel du juge vision, 2026-08-17) > C-4 — l’alvéole ne grave aucun mot : son nom vit dans son nom accessible et dans son infobulle 337ms
+     → « Arme simple » grave son libellé: expected <span class="cc-lbl"></span> to be null
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 150 skipped (151)
+   Start at  23:24:40
+   Duration  18.36s (transform 11.23s, setup 12.18s, collect 4.81s, tests 339ms, environment 621ms, prepare 50ms)
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/ui/CombatConsole.test.tsx > CombatConsole — micro-rendu (sondes pixel du juge vision, 2026-08-17) > C-4 — l’alvéole ne grave aucun mot : son nom vit dans son nom accessible et dans son infobulle
+AssertionError: « Arme simple » grave son libellé: expected <span class="cc-lbl"></span> to be null
+
+- Expected: 
+null
+
++ Received: 
+<span
+  class="cc-lbl"
+>
+  Arme simple
+</span>
+
+ ❯ src/ui/CombatConsole.test.tsx:739:77
+    737|       expect(nom, `alvéole sans nom accessible : ${cell.getAttribute('…
+    738|       expect(cell.getAttribute('title'), 'infobulle native proscrite s…
+    739|       expect(cell.querySelector('.cc-lbl'), `« ${nom} » grave son libe…
+       |                                                                             ^
+    740|       // À l'écran : la touche imprimée et le compte de gestes seconda…
+    741|       const signes = [cell.querySelector('.cc-key')?.textContent, cell…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+

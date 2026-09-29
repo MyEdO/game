@@ -1,0 +1,32 @@
+fix(ui): refs #1806 — R-M2 lot A train 2 : placement, coupe au mot, délégation unique, CI verte
+
+Répare la CI rouge de 395e1d4c4 (npm test : 17 échecs dans 7 fichiers ; test:hooks : 1) et solde
+les restes nommés de ce commit.
+- CI : `CodexRef` quitte le registre des écrans (primitive depuis le lot A, garde de disjonction) ;
+  la garde `raccourcis-registre` voit un écouteur global à type variable et `Infobulle` se déclare
+  `@clavier-hors-registre` ; spécimen de galerie au chevron canonique ; les tests de l'éditeur
+  ouvrent le menu d'ajout par le geste joueur (`AddMenu.testkit.ts`) — une boîte ancrée n'existe
+  qu'ouverte, les tests cliquaient les entrées d'un menu fermé.
+- Placement : `placerAncre` aligne la boîte sur le bord droit de l'ancrage quand le gauche déborde
+  (à 900×780, le refus de « Lumière » ne couvre plus « Fin du tour » : x 572-892 → 332-652).
+- Coupe au mot (R-M2) : `coupeAuMot` (`src/lib/coupeAuMot.ts`), une fonction pour les 14 sites de
+  la classe sous `src/` (0 restant), garde AST `coupeAuCaractere` ; 0 sort tranché (164 avant).
+- Délégation unique : la couche pose 7 écouteurs document quel que soit N (1/10/50 : 7/70/350 →
+  7/7/7), sur le patron de `useDismissLayer`.
+
+Preuves (orchestrateur, dans le worktree) : `npx vitest run` 1820 fichiers, 25416 tests, exit 0 ;
+`npm run test:hooks` pass 1584 fail 0 ; `tsc --noEmit --incremental false` 0 erreur ;
+`docs:build` puis `docs:check` exit 0. Mutations des codeurs rouges sur leur assertion nommée.
+
+JUGE: juge adversarial du cumul train 2 (délégation, placement, coupe, gardes, tests réécrits) : À REPRENDRE — docs:check (corrigé ici par docs:build) ; D2-D8 au train suivant
+REFUTATION: sondes jsdom du juge sous StrictMode (3 ancrages imbriqués : 7 écouteurs puis 0, ↓ arrêté avant la fenêtre), placerAncre (gauche, droite, marge), tests de l'éditeur ouverts par le geste : tiennent
+JUGE-VISION: refus de « Lumière » à 900×780 avant/après (sha256 9d2b3f68… → 12aeb04e…) : la boîte ne couvre plus « Fin du tour » ; le reste de l'écran est inchangé depuis le jugement d'écran de 395e1d4c4
+
+Restes, au train suivant (verdict du juge) : raison du `@clavier-hors-registre` à réécrire (↓ est
+retenu par l'arrêt à la capture, pas par `notWhenControlFocused`) ; `coupeAuMot` d'un texte à blanc
+initial ; référence orpheline `truncate` (`CombatConsole.test.tsx:109`) ; `coupeAuMot` en
+`.mjs`+`.d.mts` pour les 8 sites de `scripts/` (patron `src/lib/ordre.mjs`) ; gardes par l'AST
+(forme JSX, constante nommée ; résolution du type d'écouteur) ; démontage par `monterRacine.testkit`.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_0167t7jpCF61Qutt6mU1dbAt

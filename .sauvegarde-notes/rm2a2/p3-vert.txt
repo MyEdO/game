@@ -1,0 +1,11 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1806-L1
+
+ ✓ src/ui/Infobulle.test.tsx (6 tests) 242ms 444 MB heap used
+
+ Test Files  1 passed (1)
+      Tests  6 passed (6)
+   Start at  12:57:19
+   Duration  17.22s (transform 10.75s, setup 11.81s, collect 4.17s, tests 242ms, environment 630ms, prepare 49ms)
+

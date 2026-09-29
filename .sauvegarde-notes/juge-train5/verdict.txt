@@ -1,0 +1,61 @@
+VERDICT : À REPRENDRE (3 retouches de texte, petites ; plus une classe résiduelle à absorber ou à ticketer avant le commit). Le code de F1, F2 et F3 TIENT.
+Arbre : .wt-1806-L2, HEAD eb3a49429, train 5 indexé (45 fichiers). Contrôle positif : tsProgram.mjs:86 `export function parsedProgram` ; coupeAuMot.test.ts:335 « balayage à graine fixe » ; coupeAuCaractere.mjs:217 filtre `ts.isJsxExpression(f) && !f.expression`. `git status` : aucun fichier non indexé.
+
+DÉFAUTS
+D1 [F1, titre de test inexact] src/lib/coupeAuMot.test.ts:335. Le titre promet « un préfixe du texte, non vide ». C'est faux pour un texte fait de seuls blancs, et le test ne le vérifie pas : le contrôle :357 ne s'applique que si `s.trim() !== ''`.
+  Preuve (sonde-balayage.mjs) : coupeAuMot('      ', 3) -> "" ; coupeAuMot('    ', 2) -> "".
+  Correction retenue : le titre dit « non vide s'il porte autre chose que des blancs » (ou « rien de perdu »).
+  Renfort conseillé, sans coût : le balayage ne tue pas deux mutants qui contredisent l'en-tête (:12-13 « ils se rendent entiers », « suivi de « … » »). Mutant exceptionRendTout (le texte ENTIER rendu dans l'exception) : 0 faute. Mutant sansEllipse : 0 faute. Seuls les cas fixes :31-32 les tuent. Deux assertions dans la boucle les tueraient :
+    (a) si `rendu.length > n` alors `base === s.slice(0, teteEtMot)` ;
+    (b) `rendu.endsWith('…') === (base.length < s.trimEnd().length)`.
+D2 [F2, référence vivante périmée] scripts/guards/lib/analyseRetenue.d.mts:1-2 énumère les « Fabriques de base : `repoProgram`, `virtualProgram`, les `create*Program`… ». `parsedProgram` manque, alors que analyseRetenue.mjs:60 l'ajoute à FABRIQUES_D_ANALYSE.
+  Correction : ajouter `parsedProgram` à cette énumération.
+D3 [F2, référence vivante périmée] scripts/guards/lib/tsProgram.mjs:1 dit « PARTAGÉES par les gardes ». :6 dit « `virtualProgram` : […] pour les morsures de garde ». :45-46 dit « support des preuves de non-vacance : on y déclare de faux modules ». Or scripts/docs/lib/jsdocUnion.mjs:238 consomme maintenant `virtualProgram` sur le texte RÉEL d'un fichier du dépôt, pour générer docs/campagne-effects.md.
+  Correction : :1 dit « par les gardes et générateurs » ; :6 et :45 disent « des sources EN MÉMOIRE, bibliothèque standard comprise, sans disque ni import » (morsures de garde, et texte déjà lu d'un générateur).
+D4 [classe F2 résiduelle, point 4] trois sites de test posent un `ts.createProgram` hors de la fabrique (détail ci-dessous). Le rendu les liste honnêtement mais ne les traite pas, et n'ouvre pas d'issue (le codeur n'a pas gh).
+  Correction retenue, au choix de l'orchestrateur : les absorber dans ce lot (2 sites -> `virtualProgram` ; 1 site -> `repoProgram` étendu d'un recouvrement), ou ouvrir l'issue dédupliquée par label (credo) AVANT le commit. Une garde « `createProgram` hors tsProgram.mjs » fermerait la classe ; exception : la morsure analyse-retention-guard.test.ts:118.
+
+POINT 4, SITE PAR SITE
+- src/state/built-brand-lint.test.ts:157-181 (`codesDeDiagnostic`) : MÊME CLASSE, couverte par `virtualProgram`.
+  Ce qu'il fait : un fichier en mémoire + la lib standard, strict, ES2020, `types: []`, puis `getPreEmitDiagnostics`.
+  Preuve (sonde-f4.mjs, réplique verbatim de l'hôte contre `virtualProgram({'sonde.ts': code})`) : 7 gabarits (SONDE, _ENJEU, _MONO, _RANGEE, _CHOIX, _TEXTE, _PORTE), soit 14 variantes. Codes identiques, [] contre [2578] à chaque fois.
+- src/state/roll-seam-mints.test.ts:526-548 (`diagnosticsDisplay`) : MÊME CLASSE, copie à l'identique de l'hôte ci-dessus (le commentaire :514 le dit : « mêmes API que la sonde de murage de `built-brand-lint` »). Doublon double : entre ces deux tests, et avec `virtualProgram`.
+  Preuve : les 4 variantes de SONDE_DISPLAY donnent [], [], [2322], [2345] dans les deux programmes ; « ecarts 0 » sur 18 variantes.
+- src/ui/editor/scene-field-editability-guard.test.ts:341-359 (`programAvec`) : BESOIN DISTINCT, qu'aucune fabrique ne couvre telle quelle, et DUPLICATION partielle.
+  Ce qu'il fait : le programme du DÉPÔT (tsconfig, fichiers sur disque, fermeture d'imports) avec des modules RECOUVERTS en mémoire.
+  Pourquoi aucune fabrique ne suffit : `virtualProgram` ne lit pas le disque (tsProgram.mjs:65-66, seulement les sources et libDir). `repoProgram(root, choisirRootNames)` (tsProgram.mjs:33-43) ne prend ni hôte ni recouvrement.
+  Duplication : les lignes :342-344 (findConfigFile, readConfigFile, parseJsonConfigFileContent) recopient tsProgram.mjs:35-38.
+  Correction : un 3e paramètre optionnel de recouvrement dans `repoProgram`, pas une 4e fabrique.
+
+TIENNENT
+- F1, en-tête : coupeAuMot.mjs:11-13 dit exactement l'exception mesurée.
+  Fuzz du juge 4 rejoué sur cet arbre (juge-train4/fuzz.mjs, 200 000 cas), rc=0 : { viol: 0, exc: 31985, perte: 0, vide: 0 }.
+  Cas limites vérifiés : '   abc def',5 -> '   abc…' ; '       ab cd',3 -> '       ab…' (les blancs seuls dépassent déjà n-1 : c'est couvert par « ensemble ») ; '   abcdef   ',5 -> '   abcdef' (rien ne suit, pas de « … »).
+  Le balayage (graine 42, 20 000 cas, U+00A0 dans l'alphabet) prouve les quatre propriétés nommées au brief : entier s'il tient, dépassement seulement dans l'exception, préfixe, rien de perdu. Seule réserve : « non vide », voir D1.
+  Réserve méthodologique : `teteEtMot` recopie la définition de `debut` de l'implémentation (`s.search(/\S/)`), donc le test fige cette définition plutôt que de la dériver.
+- F2, nécessité de `parsedProgram` : ce n'est pas une variante déguisée.
+  Mesure (sonde-f2b.mjs) : 20 programmes sur un petit fichier coûtent 22 ms avec `parsedProgram`, 6 782 ms avec `virtualProgram` (chargement de la lib), soit environ 300 fois plus. La garde construit un vérificateur par fichier candidat du corpus : le coût de la lib y est rédhibitoire.
+  Il réutilise aussi l'arbre DÉJÀ parsé par `ast()`.
+- F2, écart jsdocUnion -> `virtualProgram` : la raison du codeur est CONFIRMÉE. Les deux écarts avec l'ancien programme ne changent pas le résultat mesuré (sortie identique, ci-dessous).
+  Code : mecanique.ts:1007 `export type FamilleMecanique = ReturnType<typeof construire>;` ; mecanique.ts:1044 `export const effectOpSchema = FERMEE.effectOp;` (la ligne 1043 citée au brief est `gameOpSchema`).
+  Sonde sf-2 : `parsedProgram` rend le symbole null ; `virtualProgram` rend `effectOp` (ShorthandPropertyAssignment l.1003).
+  Contre-épreuve sf-2b : la même source, précédée d'un `type ReturnType<…>` local, rend `effectOp` sous `parsedProgram`. La lib manquante est donc bien la cause.
+  `node scripts/docs/build-effects.mjs --check` : rc=0, « docs:effects — OK (docs/campagne-effects.md à jour, 58 Effects) ». Dans docs/campagne-effects.md, `corps: 3d2fdf07…` est inchangé ; seule la `sources-empreinte` bouge (8 -> 9 fichiers).
+  Écarts avec l'ancien programme : ES2022 devient ES2020, `strict` ; `noResolve` disparaît, mais l'hôte ne sert pas le disque, donc l'effet est le même.
+- F2, garde #1801 : analyseRetenue.mjs:60 porte 'parsedProgram' ; analyse-retention-guard.test.ts:521 vérifie la non-vacuité avec lui. Vitest vert (ci-dessous).
+- F3 : coupe-au-caractere-guard.test.ts:301 -> ['temoin.tsx:3'].
+  Sonde sf-3 : exprVide ["temoin.tsx:3"] ; deuxVides (`{/* a */}{}` puis `{/* b */}` puis `…`) ["temoin.tsx:3"] ; videPuisBalise [] ; exprNonVide `{x}` [].
+  L'en-tête PORTÉE (:9-10) le dit.
+- Chargement paresseux : coupeAuCaractere.mjs importe maintenant tsProgram.mjs, donc `typescript` en tête de module, contre dialecte.mjs:8-12 « SEUL chargeur ». C'est acceptable : le seul importeur est src/coupe-au-caractere-guard.test.ts:8 (git grep), et ni le garde PreToolUse ni une migration datée n'atteignent ce module.
+- Règle 6, langue : les commentaires ajoutés portent des réfs nues (#1806, `tsProgram.mjs`, en-tête), sans paraphrase, excuse ni pierre tombale. vitest comment-poison-guard : rc=0, 79/79.
+- Docs générés : diff limité aux lignes `sources-empreinte` et à .sources-lues.json (grep `^[-+][^-+]` hors empreinte : seulement des entrées « scripts/guards/lib/tsProgram.mjs »).
+
+REJEU
+- vitest --no-cache, 3 fichiers (coupeAuMot, coupe-au-caractere-guard, analyse-retention-guard) : rc=0, 36/36.
+- vitest comment-poison-guard : rc=0, 79/79.
+- build-effects --check : rc=0.
+- Sondes, toutes rc=0, dans juge-train5/ : sonde-balayage.mjs, sonde-f2.mjs, sonde-f2b.mjs, sonde-f3.mjs, sonde-f4.mjs, avec leurs .out.
+- Aucune commande en arrière-plan ; toutes au premier plan, bornées par `timeout`, terminées.
+
+JUGE: juge adversarial du train 5 R-M2 lot A (#1806) sur eb3a49429+index : À REPRENDRE, retouches de texte seulement — titre du balayage « non vide » faux pour un texte blanc, analyseRetenue.d.mts:1 sans parsedProgram, en-tête tsProgram.mjs qui réserve virtualProgram aux morsures alors que jsdocUnion le consomme ; code F1/F2/F3 tenu ; 3 sites createProgram de src/ : 2 couverts par virtualProgram (0 écart sur 18 variantes), 1 besoin distinct (repoProgram + recouvrement).
+REFUTATION: fuzz 200k rejoué (0 violation), mutants en mémoire contre le balayage (exceptionRendTout et sansEllipse survivent), parsedProgram vs virtualProgram sur mecanique.ts (null vs effectOp, contre-épreuve ReturnType local), coût 22 ms vs 6 782 ms, build-effects --check rc=0 avec corps inchangé, sondes JSX 4 cas, diagnostics identiques sur 18 variantes des sondes de type ; vitest 36/36 + 79/79.

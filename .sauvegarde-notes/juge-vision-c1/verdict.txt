@@ -1,0 +1,70 @@
+VERDICT : À REPRENDRE (cumul H1+H1b+C1, #1919/#1806)
+Arbre : /home/user/game HEAD 27f8e426d ; captures C1 produites depuis /home/user/game/.wt-1919-H2 (HEAD fc2388866 + index H1b/C1 non committé, c1/recette.mjs:5). Contrôle positif dans cet arbre : CombatConsole.tsx:1414-1415 `cc-lbl` = « Fin du tour » seul + `cc-key` ESPACE en dur ; :1264 plaque X en en-tête ; aucun `cc-set-n`. Empreintes : sha256sum -c c1/apres.sha256 → 32/32 OK, rc=0.
+
+LENTILLE 1 — défauts du verdict H1
+- Lieu tranché à 360 : RÉSOLU (h1b/exploration-360x740 : « Du Sang sur la Route — scène de test » entier). Pas de capture d'exploration en C1.
+- Journal sur la frise à 360 : RÉSOLU en H1b (h1b/combat-journal-360x740 : journal dans le champ, sous le fil). INCERTAIN pour C1 : pas de recapture, alors que log-drawer.css est dans l'index de .wt-1919-H2. Pour trancher : capture combat-journal-360x740 sur cet arbre.
+- Objectif hors zone à 900 : RÉSOLU (h1b/exploration-900x780 : objectif x 8..243, dans sa zone).
+- Fil perdu à 700 : RÉSOLU en C1 (A-700 : fil y 451.8..499.8 < flot 543.4, lisible).
+
+(a) DÛS AU CUMUL
+A1 — Tour adverse ≤700 : la boîte NE reste PAS (contraire à l'arbitrage « la boîte reste, la matière s'éteint »).
+  - 700 : arche [10,546,602×100] au tour du héros → [239,680,223×100] au tour adverse (mesures adverse vs geo).
+  - 640 : [10,546,543] → [209,680,223].
+  - 360 : [10,430,273] → [69,640,223].
+  - L'arche saute de 134 px en hauteur et perd deux tiers de sa largeur (C-700x780 contre A-700x780). ≥1366 : immobile au pixel.
+A2 — Tour adverse 700 et 640 : nom tranché « Knud… » dans l'arche en ligne (C-700x780, C-640x780, bas centre). En h1b, adverse-700 affichait « Knud Cratinx » entier. Contraire à R-M2.
+A3 — Pont à 561-700 : 236.6 px = 30.3 % (visé ≈ 19 %). Le défaut SE VOIT sur A-700x780 et A-640x780 :
+  - une ligne d'arche de 100 px dont le contenu tient dans y 555..615, suivie d'une bande vide jusqu'à 650 ;
+  - un vide de 106 px entre les deux travées (x 294..400 à 700).
+  Nette amélioration sur AVANT (575 px), mais l'écart avec la décision Q4.3 est visible à l'œil.
+A4 — Portrait du héros qui cède à la LARGEUR, contraire à Q2 (« se déduit de la HAUTEUR D'ÉCRAN ») :
+  - `combat-console.css:65-69` (.wt-1919-H2) : `clamp(30px, 100vw - …, …)` ;
+  - à 780 de haut : 30 px à 701, 48.5 px à 900, 49.4 px à 901, 108 px à 1707 (décision ≈ 66) ;
+  - A-701x780 et A-900x780 : un visage plus petit qu'une vignette de frise, flottant dans une arche creuse (vide entre MOUV./ACTION et la jauge de Blessures) ;
+  - h1b/combat-heros-900 : ≈ 96 px (lecture de capture), donc régression ×0,5 à 900.
+  L'écart n'est ni signalé ni arbitré : le commentaire :61 le présente comme « décision Q2 ».
+A5 — Fil tranché au trait d'union :
+  - A-701x780 : 6 lignes, « Pierre- / de-Fer » (fil w 77 px) ;
+  - A-640x780 : « Knud / Cratinx / … / Pierre-de- / Fer. » (w 105).
+  Même classe que le C3 du verdict H1 (R-M2), étendue au fil par sa colonne.
+A6 — Frise à 700 et 640 : une dalle sombre dépasse à droite, sous la dernière vignette (x 88..143, y ≈ 420..444 à 700). La boîte de la frise prend la largeur du fil (frise.w 135 = fil.w 135 ; 105 = 105 à 640). Artefact visible (juge-vision-c1/a700-frise.png).
+A7 — Cotes sous la décision Q1 :
+  - case 31.3 px et icône 18.8 px à 1366×650 (décision ≈ 37) ;
+  - case 42.3 px à 1707 (≈ 47) et à 900 (≈ 45) ;
+  - le contenu du pont se tasse au centre : à 1366, x 0..315 et x 1035..1290 sont opaques et vides (A-1366x650). C'est le « tout ce vide » du verbatim budget.
+A8 — Mineurs :
+  - le coin « Fin du tour » colle au bord à 701 : cc-corner r = 701, contre 10 px de marge ailleurs, et le liseré droit n'est pas visible (juge-vision-c1/a701-corner.png) ;
+  - la plaque X de l'en-tête mesure 13.6×8 px, pâle (« ◌X ») : à peine lisible comme touche (a1707-left.png) ;
+  - les icônes des vignettes de set font ≈ 0.34 × case, soit ≈ 10 px à 701 : illisibles.
+
+(b) PRÉEXISTANTS
+B1 — Console NON vide : TypeError « Cannot assign to read only property 'loaded' » dans unloadWeapon (src/engine/items.ts:708, via combatFlow.ts:1719). L'erreur est présente dans les mesures h1/avant, h1b et c1. Le badge « 1 erreur (DEV) » qui en résulte recouvre ESPACE à 1366 et 701, et en partie à 900 et 1707. ESPACE est bien dans le DOM à chaque vue (fin.touche = « ESPACE » ×8, :1415) et lisible à 360, 640, 700, 900 et 1707. Sa lisibilité en production à 1366 et 701 reste INCERTAINE tant que l'exception n'est pas corrigée.
+B2 — L'arche se déplace entre le tour du héros et le tour adverse à 900, 901 et 701 : Δx de 42, 42 et 30 px. Même classe en h1b à 900 (≈ 37 px, lecture de capture).
+B3 — « Klein Bürg… » à 360, « Grunni Pierre-de- / Fer » dans le bandeau, « (Round / 1) » dans le journal à 360 (verdict H1 C3/C4).
+
+(c) PRÉVU AU LOT C2
+C1 — L'infobulle de refus couvre toute la console à 360 (B-360x740-focus) et la moitié droite de la travée à 700 (B-700x780-survol). La prose y est désormais ENTIÈRE (le « q… » a disparu) : R-M3 tenu, mais l'infobulle n'est pas courte.
+C2 — Bandeau du groupe opaque (≈ 131 px à 650).
+C3 — Dernière vignette de la frise coupée au bord droit à 360 (A-360x740, C-360x740).
+
+RENDU DES ARBITRAGES (vérifiés)
+- Cases carrées sans libellé : OUI. Seul `.cc-lbl` restant : « Fin du tour ».
+- Nom dans l'infobulle : non capturé sur une case DISPONIBLE, INCERTAIN. Il faut un survol d'une case active.
+- Budget : bande 17 %, total 21.8 % à 701, 900, 901, 1366 et 1707.
+- Une seule rangée de 701 à 1279 : OUI (régions à y 650 ; 511 à 650).
+- 561-700 : arche en ligne + deux travées côte à côte : OUI.
+- Sets sans rang et X unique en en-tête : OUI (setN 0).
+- ESPACE toujours dans le DOM : OUI (voir B1).
+- Tour adverse : la matière s'éteint et le clic à côté atteint svg.iso-stage à toutes les vues. La boîte ne reste pas à ≤700 (A1).
+
+GAINS CONSTATÉS
+- 900 : la travée de gauche est entière (« Dague » et les sets visibles ; ils étaient hors écran à x −36 avant). Défaut B2 du verdict H1 résolu.
+- Plus aucun libellé tranché dans les cases (« Immunité Psy… », « Mouvem… » disparus).
+- Plus de rang « 3 » sur un set vide.
+- Pont à 700 : 575 → 236.6 px.
+- Tour adverse éteint à ≤700.
+
+Prototype ou produit : produit à 1366 et 1707 (hors vide horizontal A7). Prototype de 640 à 901 : arche creuse à portrait de 30 à 48 px, arche qui saute d'un tour à l'autre, pont vide à 30 %.
+
+JUGE-VISION: À REPRENDRE — ≤700 l'arche saute de y546/w602 à y680/w223 au tour adverse (« la boîte reste » violé) et tranche « Knud… » ; pont 561-700 à 30,3 % visiblement vide ; portrait cédé à la largeur (30 px à 701, 48 à 900, contre ≈66 en Q2) ; fil « Pierre- / de-Fer » à 640/701

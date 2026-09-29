@@ -1,0 +1,21 @@
+fix(portes): refs #1806 — MERGE_HEAD en un cat-file, rebase entamé lu par l'hôte
+
+Verdict du juge de diff de 46bac485e (2026-09-28), À REPRENDRE, trois défauts levés :
+- D1 : sous enPanne, une panne de git pendant la résolution d'une ligne ajoutait un faux
+  « dépôt corrompu » (sonde du juge : 2 pannes, la seconde fausse). Les lignes de MERGE_HEAD se
+  résolvent en UN `cat-file --batch-check` sur le patron de `bornesDe` ; `null` = panne confiée
+  une fois. La ligne de reste de 46bac485e (« instance de la classe gitPorte.mjs:397-418 ») était
+  fausse : c'était un recul de ce diff, il est corrigé.
+- D2 : l'en-tête disait « l'unique lecture d'état » alors qu'`etapesDuTrain.mjs` lisait
+  rebase-merge/rebase-apply par existsSync. La question `rebaseEntame` entre dans l'hôte
+  (wt-status.c `wt_status_check_rebase`), le train la consomme par `questionsDuTrain` ;
+  `cheminGit` sort du contexte du train. L'en-tête dit ce qui est vrai.
+- D3 : la sonde du juge devient un test (pannes = ['fatal: boum'], requêtes exactes) ; le test
+  « illisible » exige une seule panne ; `rebaseEntame` a ses tests (vrai dépôt, panne, illisible).
+
+Preuves : gitPorte.test 63/63, etapesDuTrain.test 4/4, publier.test 84/84 (rejoués par
+l'orchestrateur), solde-ticket-guard 334/334, eslint vide ; cinq mutations, chacune rouge sur son
+test nommé puis remise à l'empreinte d'origine.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_0167t7jpCF61Qutt6mU1dbAt

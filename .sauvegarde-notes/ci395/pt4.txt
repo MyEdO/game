@@ -1,0 +1,21 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1806-L1
+
+ ✓ src/ui/editor/GameOpEditor.test.tsx (20 tests) 270ms 428 MB heap used
+ ✓ src/ui/editor/AddMenu.test.tsx (5 tests) 43ms 428 MB heap used
+ ✓ src/ui/editor/EffectList.test.tsx (21 tests) 528ms 446 MB heap used
+   ✓ changer le type d’un effet CONVERTIT — un seul vocabulaire, un seul geste > le texte saisi SURVIT au changement de type, et à l’aller-retour Journal → Flag → Journal 315ms
+ ✓ src/ui/editor/FlowEditor.test.tsx (5 tests) 133ms 447 MB heap used
+ ✓ src/ui/editor/GameOpEditor.seeds.test.tsx (4 tests) 1981ms 601 MB heap used
+   ✓ GameOpEditor — création au CLIC : aucune valeur pré-semée, raison visible > TOUTE op créable depuis la palette naît sans réf élue 1558ms
+ ✓ src/ui/editor/WorldMapEditor.test.tsx (13 tests) 1826ms 580 MB heap used
+   ✓ WorldMapEditor — panneau Lieu (#419) > sélectionne un lieu et édite le nom, l’icône, le fond, la scène liée, l’entrée 475ms
+   ✓ WorldMapEditor — panneau Lieu / Commerce (#419) > active le port, le résout du catalogue via le picker de ref UNIQUE, édite Taille/cosmopolite/phare 306ms
+   ✓ WorldMapEditor — panneau Lieu / Plan du hub (#419) > ajoute un POI, édite son libellé/icône/position, et lie sa cible via le picker de ref UNIQUE (scène puis service) 409ms
+
+ Test Files  6 passed (6)
+      Tests  68 passed (68)
+   Start at  13:53:03
+   Duration  21.51s (transform 12.88s, setup 38.77s, collect 7.37s, tests 4.78s, environment 2.83s, prepare 222ms)
+

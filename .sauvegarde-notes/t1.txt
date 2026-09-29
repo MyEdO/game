@@ -1,0 +1,58 @@
+TAP version 13
+# Subtest: fusionnesEnCours : hors fusion, `[]`
+ok 1 - fusionnesEnCours : hors fusion, `[]`
+  ---
+  duration_ms: 102.907805
+  type: 'test'
+  ...
+# Subtest: fusionnesEnCours : une fusion simple rend le commit fusionné
+ok 2 - fusionnesEnCours : une fusion simple rend le commit fusionné
+  ---
+  duration_ms: 106.635297
+  type: 'test'
+  ...
+# Subtest: fusionnesEnCours : une fusion OCTOPUS rend ses deux lignes de `MERGE_HEAD`, dans l’ordre
+ok 3 - fusionnesEnCours : une fusion OCTOPUS rend ses deux lignes de `MERGE_HEAD`, dans l’ordre
+  ---
+  duration_ms: 162.060425
+  type: 'test'
+  ...
+# Subtest: fusionnesEnCours : une ligne de `MERGE_HEAD` qui ne nomme aucun commit est un dépôt CORROMPU, jamais filtrée
+ok 4 - fusionnesEnCours : une ligne de `MERGE_HEAD` qui ne nomme aucun commit est un dépôt CORROMPU, jamais filtrée
+  ---
+  duration_ms: 112.061899
+  type: 'test'
+  ...
+# Subtest: fusionnesEnCours : un `MERGE_HEAD` illisible est INDISPONIBLE, jamais « hors fusion »
+ok 5 - fusionnesEnCours : un `MERGE_HEAD` illisible est INDISPONIBLE, jamais « hors fusion »
+  ---
+  duration_ms: 74.104758
+  type: 'test'
+  ...
+# Subtest: fusionnesEnCours : git EN PANNE sur les lignes de `MERGE_HEAD` — UNE requête, UNE panne, la sienne
+ok 6 - fusionnesEnCours : git EN PANNE sur les lignes de `MERGE_HEAD` — UNE requête, UNE panne, la sienne
+  ---
+  duration_ms: 2.767496
+  type: 'test'
+  ...
+# Subtest: rebaseEntame : `null` hors rebase, puis le NOM du chemin d’état présent sous le répertoire git
+ok 7 - rebaseEntame : `null` hors rebase, puis le NOM du chemin d’état présent sous le répertoire git
+  ---
+  duration_ms: 56.321382
+  type: 'test'
+  ...
+# Subtest: rebaseEntame : git en panne ou chemin d’état ILLISIBLE — INDISPONIBLE, une panne, jamais « hors rebase »
+ok 8 - rebaseEntame : git en panne ou chemin d’état ILLISIBLE — INDISPONIBLE, une panne, jamais « hors rebase »
+  ---
+  duration_ms: 0.956587
+  type: 'test'
+  ...
+1..8
+# tests 8
+# suites 0
+# pass 8
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 859.103844

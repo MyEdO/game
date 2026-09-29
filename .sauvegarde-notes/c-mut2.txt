@@ -1,0 +1,12 @@
+
+> warhammer-v4-rpg@0.1.0 typecheck:fast
+> node scripts/typecheck-fast.mjs
+
+typecheck:fast — 5 erreur(s)
+src/ui/BoiteAncree.tsx(39,7): error TS2322: Type 'readonly ["left", "top", "bottom", "maxHeight", "width"]' is not assignable to type 'never'.
+src/ui/BoiteAncree.tsx(61,36): error TS2339: Property 'every' does not exist on type 'never'.
+src/ui/BoiteAncree.tsx(61,43): error TS7006: Parameter 'k' implicitly has an 'any' type.
+src/ui/BoiteAncree.tsx(61,49): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type 'PlacementAncre'.
+src/ui/BoiteAncree.tsx(61,58): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type 'PlacementAncre'.
+sortie complète : /home/user/game/node_modules/.cache/typecheck-last.txt
+mode incrémental — au doute : npm run typecheck (full)

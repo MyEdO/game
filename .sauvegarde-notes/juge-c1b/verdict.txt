@@ -1,0 +1,153 @@
+VERDICT : À REPRENDRE — lot C1b (console + HUD, #1806 #1856 #1919)
+Arbre /home/user/game/.wt-1919-H2, HEAD b0f2f1499 ; objet = `git diff HEAD` (24 fichiers, +484/−239) + src/ui/TeamSegments.test.tsx (non suivi).
+Contrôle positif : `git hash-object` des 11 fichiers du lot == c1b/blobs-finaux.txt (combat-console.css 5db0775e7, hud.css d589438f4, TeamSegments.tsx 1c05667b4, hud-clickables.mjs 240fa2f82, CombatConsole.test.tsx aac6ea446…). `git status --short` : 25 lignes avant et après le jugement (rien écrit dans l'arbre).
+
+PORTES REJOUÉES (code lu sans pipe)
+- vitest, 12 fichiers du rendu : rc=0, 366 + 7 = 373/373 (juge-c1b/vt.txt, vt2.txt) — dont css-valeur-en-test vert : rouge de gate TOMBÉ, CONFIRMÉ.
+- node --test hud-clickables.test + detecteurs-pont.test : rc=0, 102/102 (nt.txt).
+- `npm run typecheck` (complet, --incremental false) : rc=0 (tc.txt).
+- eslint --max-warnings 0 sur les 12 JS/TS du lot : rc=0, sortie vide.
+- `npx tsx scripts/guards/lib/regenStock.mts scripts/guards/lib/cssCouchesAudit.ts --check` : rc=0 « Stock à jour ».
+- `npm run docs:check` : rc=0.
+- console-pont-formes.mjs (défaut, puis 13 largeurs 1100…360) : rc=0 les deux fois.
+- hud-clickables.mjs : rc=1, couche 105/105 OK ; 35 puis 31 défauts sur deux passes du MÊME arbre (le rendu : 28).
+- Mutations : non rejouées (hors rôle) ; les 32 lignes de c1b/mut3/resultats.jsonl portent les blobs finaux, avant == après, rouge rc=1 → vert rc=0.
+
+BLOQUANTS
+
+B1 — La frise et le fil sortent de la zone `temps` de 561 à ~660, et la frise recouvre le groupe (classe B1/A6 non close).
+- Mesures (juge-c1b/sonde.out, sonde-561.out ; zone temps = (vw − 430)/2) :
+  - 600 : zone 85 px ; 561 : zone 65,5 px.
+  - Fil 105 px dans toutes les formes : +20 px hors zone à 600, +39,5 px à 561.
+  - Frise 80,2 px : +14,7 px à 561, au tour du héros et au tour adverse.
+  - En pause de Round, la frise fait 97,6 à 113,7 px : +8,7 à 640, +28,7 à 600, +48,2 à 561.
+  - Frise × groupe : 6,7×65,8 px à 561 (héros), 24,1×65,8 à 561 (pause), 4,6×69 à 600 (pause).
+  - Capture juge-c1b/captures/P-561x780.png : la dalle de la frise masque « Si » de « Sigmund Reikhardt » dans le bandeau du groupe.
+- Causes :
+  - `hud.css:83` `contain: inline-size` sur `[data-zone='temps']` : le flanc `minmax(min-content, 1fr)` (`hud.css:62`) ne voit plus le contenu de la zone. Le commentaire `hud.css:46-48` (« Un flanc ne descend jamais sous le contenu de sa zone ») est faux pour `temps`.
+  - Le mot insécable « Pierre-de-Fer. » (A5) fixe à 105 px le min-content du fil.
+  - La sonde ne balaie ni 561, ni 600, ni 640, ni 701 : `LARGEURS_COUCHE = [1707, 1366, 1100, 900, 700, 560, 360]` (`hud-clickables.mjs:83`).
+- Correction retenue :
+  - Retirer `contain: inline-size` de la zone (`hud.css:83`) et le poser sur ce qui ne doit pas dimensionner, c'est-à-dire l'objectif (`hud.css:103-107`).
+  - La piste de la frise et le plus long mot insécable du fil fixent alors le minimum du flanc gauche ; le centre (`minmax(0, auto)`) cède.
+  - `LARGEURS_COUCHE` prend les deux côtés de chaque seuil (901/900, 701/700, 561/560) et 640.
+  - Le verdict « déborde de sa zone » / « recouvre une autre zone » juge ensuite la pause à 561-700.
+
+B2 — Reste 1 (nom au fronton) : l'arche change de taille d'un acteur à l'autre, le budget saute, et le nom est coupé au trait d'union. Réel, pas hypothétique.
+- Mesures (juge-c1b/sonde-nom.out) :
+  - 701 et 900 : lignes ["Knud Cratinx Klein Bürger-", "de-Fer"]. Coupe au trait d'union, R-M2 (A5).
+  - Libellé réel d'une créature (`creatures.json`, porté tel quel par `src/state/spawn.ts:287` `label: creature.label`) : « Mangeuse d'hommes de la Drakwald (Araignée Géante) ».
+    - Arche 167 → 186 px à 1707×780 : 24,2 %.
+    - 138,7 → 157,7 px à 1366×650 : 24,7 %, aux VUES DE RÉFÉRENCE.
+  - L'arche « respire » à chaque tour de cette créature, ce qui viole l'immobilité (« je ne veux pas que la taille de l'interface ou les boutons bougent ») et le 22 %.
+  - Le calcul `--cc-arch-chrome` (:63) compte un nom de 19 px (:57) ; le rendu en fait 38.
+- Option tranchée : deux lignes RÉSERVÉES au nom du fronton (R-M2 autorise « coupe entre mots (2 lignes max) »), à UN seul corps de 11 px, celui de la ligne d'arche (:1244-1248).
+  - `--cc-arch-nom-h` = 2 × hauteur de ligne de ce corps, soit ≈ +7 px d'habillage au lieu de +19.
+  - Portrait à 1366×650 : 79,7 → ≈ 72,7 px, soit 0,52 de l'arche, G-3 tenu.
+  - Chaque mot devient une boîte insécable par la MÊME primitive que le fil : `Nom` sort de `TeamSegments.tsx:15-17` en primitive partagée, que `.cc-arch-name` et, en C2, le bandeau du groupe consomment.
+  - Au-delà de deux lignes : ellipse à la frontière de mot (mot = boîte atomique, puis `line-clamp: 2`), nom complet dans le nom accessible de l'arche.
+  - Garde : la sonde compare la hauteur RENDUE de `.cc-arch` à `--cc-arch-h` (tolérance 0,5 px) avec ce libellé de créature en fixture.
+
+B3 — Reste 4 (budget au doigt) : au-dessus de 1/4 de l'écran, et le test l'exempte.
+- Mesures au doigt (émulation CDP, juge-c1b/sonde.out, lignes T) :
+  - 1024×600 : 26,8 % ; 1366×650 : 25,1 % ; 901×650 : 25,1 % ; 1280×720 : 23,1 %.
+  - 360×650 et 560×650 : 48 % ; 640×780 et 700×780 (empilé au doigt) : 40 %.
+- Verbatim utilisateur 2026-08-17 (spec:24-26) : « avoir 1/4 de l'interface qui est une barre d'action, ça ne va pas etre possible ».
+- F-1 (CombatConsole.test.tsx, bloc F-1) : `if (case <= cible) continue` saute justement ces vues. F-5 ne juge que la souris, alors qu'un téléphone est TOUJOURS au doigt.
+- Option tranchée :
+  - La cible de 44 px reste la NORME (`docs/charte-ui.md:95`).
+  - Dès 701, c'est le FRONTON qui cède, pas l'empreinte : `--cc-bande-rangee: calc(2 * var(--cc-cell-haut) + var(--cc-gap) + var(--cc-bay-socle) + var(--pont-liseret))`. Sans cycle : `--cc-cell-haut` ne lit que la bande et la cible.
+  - `--cc-fronton: clamp(0px, 22vh - var(--cc-bande-rangee), min(52px, 4.8vh))` (:28).
+  - `--cc-arch-h: calc(max(var(--cc-bande), var(--cc-bande-rangee)) + var(--cc-fronton) - var(--pont-liseret))`.
+  - Effet : l'empreinte ≤ 22 % à toute vue ≥701 et à tout pointeur (1366×650 au doigt : fronton ≈ 11 px, portrait ≈ 81) ; à la souris, rien ne bouge.
+  - F-1 asserte l'EMPREINTE sans exemption ; seule la bande peut dépasser 17 % quand la case est à sa cible.
+  - À ≤700 au doigt, la norme l'emporte sur le « ~40-45 % » : le plafond est ÉCRIT (0,48 à ≤560, 0,40 empilé à 561-700). Il est jugé au doigt dans F-5 et dans la sonde (`defautsTactile`), et la spec Zone 1 le dit.
+
+B4 — A4 inversé : le portrait cède à la largeur, pas la case. Le commentaire qui dit le contraire ment.
+- Portrait 48 px à 701, 800, 900 et 901, alors que sa cote de hauteur vaut 108 ; la case vaut 42,4 à 900, loin de sa cible de 24.
+- C'est donc le VISAGE qui a cédé le premier (108 → 48). `combat-console.css:82-83` (« c'est la case qui cède la première ») est FAUX. Le message du test F-2 (« le visage cède avant la case ») se contredit avec son assertion.
+- L'arche reste creuse : ≈ 60 px de vide sous le portrait à 701 et 900 (c1b/final/A-heros-701x780.png). Q2 (« le portrait se déduit de la HAUTEUR D'ÉCRAN ») n'est pas tenu entre 701 et ~1000.
+- Correction retenue (celle du brief) : `--cc-portrait: min(var(--cc-portrait-haut), max(var(--cc-visage), calc(100vw - var(--cc-rangee-fixe) - var(--cc-arch-flancs) - var(--cc-colonnes) * var(--cc-cible))))`, `--cc-cell` inchangé.
+  - 900 : portrait 108, case ≈ 37,3.
+  - 701 : portrait ≈ 79, case 24.
+  - La table Q1 de la spec se réécrit à ces cotes. Coût : icône de set ≈ 10,8 px à 701 (A8).
+
+B5 — Docs vivants qui mentent.
+- `docs/charte-ui.md:348` : la pose `ecran` de la puce y est encore « placé par la zone `parole` de la couche HUD ». Or B5 exigeait « la charte dit vrai », et trois hôtes n'ont pas de couche.
+- `docs/charte-ui.md:440` : « `temps` se déclare conteneur de requête (`container-type: size`) au-dessus de 560 ». Faux : c'est `[data-piste='frise']` (`hud.css:112-118`).
+- `docs/charte-ui.md:452-464` :
+  - « dès 701 … ≤ 22 % » et « une seule rangée de 701 à toute largeur » sont faux au doigt, où la ligne d'arche vaut jusqu'à 900 et l'empilement jusqu'à 700 (`combat-console.css:1114`, `:1255`) ;
+  - « 3 hauteurs × 7 largeurs × 4 états » : il y en a 5 ;
+  - le plafond de 25 % à 561-700 n'y figure pas.
+- `docs/plans/2026-08-16-spec-hud-combat.md:24-29` (Zone 1) : aucune exception au doigt, aucun plafond 561-700.
+- Les valeurs de design (25 %, plancher de visage 48) ne sont justifiées que par « verdict d'écran A3/A4 du 2026-09-29 » et « juge de diff C1 (B2) … `sonde-coarse.mjs` ». Ces références ne se résolvent pas dans le dépôt : CombatConsole.test.tsx (F-2, F-3, F-5, G-1, G-3), hud-clickables.mjs:50-51, 802-807, 1051 et 1079, docs/recette-navigateur.md:212. Règle 6 : il faut une réf nue citable (commentaire d'issue #1806/#1919 ou ligne de spec).
+- Correction : réécrire ces passages, avec la décision et sa date à la spec.
+
+B6 — Le stock d'espacement se solde par blanchiment.
+- 702 → 685 : au moins 9 entrées « soldées » en déplaçant le littéral dans une propriété personnalisée du module, que `gap`/`padding` consomment ensuite :
+  - `--cc-arch-pad-haut: 6px` (:52), `--cc-arch-pad-bas: 8px` (:53), `--cc-arch-pad-flanc: 14px` (:54), `--cc-arch-ecart: 4px` (:55), `--cc-arch-corps-ecart: 6px` (:59), `--cc-niche-ecart: 2px` (:61), `--cc-bay-pied: 10px` (:42) ;
+  - consommateurs : :281, :724, :795, :846, :1165, :1169.
+- La garde laisse passer tout `var()` : `valeurHorsEchelle` (`scripts/guards/lib/cssCouches.mjs:325-334`).
+- Correction :
+  - 6, 8, 4, 6 et 2 px deviennent `var(--sp-sm|md|xs|sm|2xs)` (base.css:259-262), comme `--cc-bay-pad`, qui le fait déjà (:40) ;
+  - 14 et 10 px restent au stock, et la garde de CLASSE est étendue : `sitesEspacementHorsEchelle` résout les `var(--x)` déclarés en littéral dans le même module ;
+  - puis le stock est régénéré honnêtement.
+
+NON BLOQUANTS
+- Reste 3 (A7), ACCEPTÉ :
+  - La formule de la décision (0,17h − 37)/2 omet le liseré (3) et l'écart entre rangées (4). Le budget prime, et la case vaut 33,3 à 1366×650.
+  - À écrire dans la table Q1 de la spec (B5). Les bandes opaques vides à 1366 restent : largeur à perte, bord à bord de la planche.
+- Reste 5 (A8) :
+  - La plaque X (8 px) suit la même encre monospace de 8 px que toutes les touches de case (`combat-console.css:531`) : classe préexistante.
+  - Icône de set 12 px à 701 (≈ 10,8 avec B4).
+  - Ticket de lisibilité des touches, hors lot.
+- Reste 6 : Δx de 1,0 px entre formes à 900 (316,5 / 317,5) et à 901 (317 / 318), 0,5 à 800, alors que la fiche dit « immobile au pixel ».
+  - La sonde le laisse passer (`console-pont-formes.mjs`, `if (d > 1)`).
+  - Correction : tolérance 0,5 ; cause dans les voies `minmax(min-content, 1fr)` (:253).
+- Reste 7 : confirmé hors lot. Touches « X » / « ESPACE » en dur malgré `keybindings` remappable ; exception `items.ts:708` (#2141). Ticket à ouvrir par l'orchestrateur.
+- `combat-console.css:242-248` : « Les deux voies sont des pistes de MÊME largeur (… arche centrée) » est faux de 701 à ~1000.
+  - Décentrage : 39 px à 701 (centre 311,5 contre 350,5), 42 px à 900.
+  - Le verdict « arche centrée » de console-pont-formes a été retiré. C'est cohérent avec la formule à 11,62 colonnes de la décision, mais le commentaire doit le dire.
+- Fil à ≤700 : l'icône seule sur sa ligne au-dessus du texte (`CombatBanner.tsx:46`, Row qui s'enroule ; capture A-heros-700x780). Cosmétique.
+- `.cc-bay-head` : ellipse au caractère (:383-385). Classe R-M2 préexistante, aggravée par les cases de 701.
+- La mesure « mots coupés » (c1b/recette.mjs, `motsCoupes`) n'est pas promue dans la sonde : c'est pourquoi la coupe « Bürger- / de-Fer » de l'arche est passée inaperçue.
+- La sonde hud-clickables n'est pas déterministe dans la classe « au trait en bas » (préexistante, frise tronquée, C2 Q4.6) : 28, 35 puis 31 défauts sur un arbre identique. Un « 0 APPARU » par diff de défauts n'y prouve rien.
+- La case de 26,7 px à 701 est sous le « ≥ 28 » de la table Q1 (G-2 réécrit sur la cible) : à écrire dans la spec (B5).
+- Commentaire au passé : `combat-console.css:764-765` « il la débordait de l'épaisseur du liseré » (règle 6).
+
+CONFIRMÉ
+- Fil × bandeau de phase : aucun, aux 105 vues de la couche et aux 13 vues de ma sonde, états A/P/C.
+- B2 débord de rangée : 0 case hors écran à 16 vues émulées au doigt (360×650 → 1366×1024).
+- B3 à la souris : ≤560 à 43,1 % ; 561-700 de 22,1 à 23,5 % (plafond 25 % en F-5 et `BUDGET_PONT.ligne`) ; matrice aux 3 hauteurs ; `hud-clickables.test.mjs` « à 700 » réécrit.
+- B5 au code :
+  - `spectator-chip.css:24-31` `:not([data-zone='parole'] > *)` ;
+  - la puce est enfant direct de `parole` (`CampaignView.tsx:397-400`) ;
+  - test ExplorationDock, mutation N11.
+- A1 à ≤700 : boîte d'arche identique en A, P et C à 700/680/640/600/561/560/360.
+- A3 : 23,5 %.
+- `!important` : 5 (fc2388866) → 7 (HEAD) → 3, et `PortraitTile.tsx:73` pose bien `--ptile-px`.
+- JSDoc `defautsCouche` replacée (`hud-clickables.mjs:734-739`).
+- `--cc-bay-socle`, `--cc-arch-chrome` et `--cc-arch-flancs` sont dérivés.
+
+RÉFUTÉ DU RENDU
+1. « B4 … vérifié avec « Knud Cratinx Klein Bürger-de-Fer » à 7 vues : débord 0, aucune coupe ».
+   Sonde-nom.out, 701 et 900 : `"lignes":["Knud Cratinx Klein Bürger-","de-Fer"]`.
+2. « A6 fait en tour de héros et en tour adverse (frise 80,2 px dans sa piste) ».
+   À 561 (A et C) : frise [8,65.8,80.2,…] dans une zone [8,58,65.5,…], soit +14,7 px, et `friseXgroupe` [6.7, 65.8].
+3. Reste 2 « 8,7 px à 640 » est sous-évalué : pause +28,7 (600) et +48,2 (561) ; fil +20 et +39,5 hors zone dans toutes les formes.
+4. « A4 fait … c'est la case qui cède » : portrait 48 à 800, 900 et 901 avec une case à 34,5, 42,4 et 42,5, au-dessus de la cible.
+5. « Aucun nom du scénario de recette n'y arrive » : le libellé de `creatures.json`, via `spawn.ts:287`, donne 24,2 % à 1707×780 et 24,7 % à 1366×650.
+6. « Au doigt … 1366×650 : 25,1 % » comme pire cas : c'est 26,8 % à 1024×600.
+7. « 28 défauts … 0 apparu » n'est pas reproductible : 35 puis 31 sur deux passes, même arbre (juge-c1b/hud.txt, hud2.txt).
+8. « Stock … 702 → 685 (APPARU 0) » : juste en compte, mais au moins 9 sorties sont blanchies (B6).
+
+SONDES (lecture seule, à promouvoir)
+- juge-c1b/sonde.mjs → sonde.out : zone, piste, frise et fil, fil × phase, boîte d'arche A/P/C, nom long, 16 vues au doigt.
+- juge-c1b/sonde-nom.mjs → sonde-nom.out : lignes du nom d'arche, pont %.
+- juge-c1b/sonde-561.mjs → sonde-561.out et captures/{A,P}-{561,600}x780.png : frise × groupe.
+- La vieille juge-c1/sonde-coarse.mjs, rejouée (sonde-coarse.out, rc=0), ne connaît pas les nouvelles tranches au doigt. Ses « débords » de 701 à 900 sont des artefacts, démentis au navigateur (hors 0).
+
+PROCESSUS
+- vite `--port 5391` (PID 11214, sous `timeout 2400`) : tué ; curl rend 000 ensuite.
+- Chromium : sessions fermées dans les `finally` des scripts ; `pgrep -af chrom` est vide.
+- Un `node scripts/test/run.mjs` étranger (PID 8967, pas le mien) tournait pendant les mesures.

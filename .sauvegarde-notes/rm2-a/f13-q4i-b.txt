@@ -1,0 +1,17 @@
+[Q4i setup] ✓ Tireur (entraînement) reçoit « Carreau nain norse » ×6
+[F13] clic porte → {"boites":0,"fiche":true,"ancreBulle":null,"bulle":null}
+[F13] Échap → {"boites":0,"fiche":false,"ancreBulle":null,"bulle":null} pointeur en {"x":1417,"y":646}
+[F13] focus après la fiche : defend
+[F13 pin 1] ↓ → {"boites":1,"fiche":false,"ancreBulle":"3Défensive","bulle":"Sur la défensive"}
+[F13 pin 1] Entrée → {"boites":0,"fiche":true,"ancreBulle":null,"bulle":null}
+[F13 pin 1] Échap → {"boites":0,"fiche":false,"ancreBulle":null,"bulle":null}
+[F13 pin 2] ↓ → {"boites":1,"fiche":false,"ancreBulle":"3Défensive","bulle":"Sur la défensive"}
+[F13 pin 2] Entrée → {"boites":0,"fiche":true,"ancreBulle":null,"bulle":null}
+[F13 pin 2] Échap → {"boites":0,"fiche":false,"ancreBulle":null,"bulle":null}
+[F13 pin 3] ↓ → {"boites":1,"fiche":false,"ancreBulle":"3Défensive","bulle":"Sur la défensive"}
+[F13 pin 3] Entrée → {"boites":0,"fiche":true,"ancreBulle":null,"bulle":null}
+[F13 pin 3] Échap → {"boites":0,"fiche":false,"ancreBulle":null,"bulle":null}
+[F13 hors écran] Entrée → {"boites":0,"fiche":true,"ancreBulle":null,"bulle":null}
+[Q4i] chip de munition absent
+console : erreurs = 0 []
+exit=0

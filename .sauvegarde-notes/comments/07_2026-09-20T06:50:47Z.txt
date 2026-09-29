@@ -1,0 +1,14 @@
+## Publication 0645a8886
+
+Plage publiée : `41aa406d5 → 0645a8886` sur `main`.
+
+### Commits (1)
+- `0645a8886` refactor(ui): refs #1806 — sous-lot 2d α+β : quatre primitives quittent combat-ui.css
+
+### CI
+- verte — course `35494879749` : https://github.com/cgauche/game/actions/runs/35494879749
+- attente du verdict CI : 9.3 min (temps d’attente, pas de machine locale).
+
+#1806 est rattaché (`refs`) par cette publication, non fermé.
+
+<!-- publier: 0645a88861bdeae43bceb7605ad698d56d6b6004 -->

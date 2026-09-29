@@ -1,0 +1,30 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game
+
+ ✓ src/ui/css-definitions-guard.test.ts (6 tests) 29ms 421 MB heap used
+ ✓ src/ui/css-modules-guard.test.ts (17 tests) 8238ms 941 MB heap used
+   ✓ #1806 — un module de primitive est le seul foyer de ce qu’il peint > §5.3 aucun REPEINT neuf d’une classe possédée ailleurs (stock nominatif) 1287ms
+   ✓ #1806 — un module de primitive est le seul foyer de ce qu’il peint > §5.3 preuve par mutation — un écran qui repeint une classe partagée rougit 2800ms
+   ✓ #1806 — un module de primitive est le seul foyer de ce qu’il peint > §5.3 le SUJET d’une règle n’est pas ce que son `:has()` nomme 1131ms
+   ✓ #1806 — un module de primitive est le seul foyer de ce qu’il peint > §5.3 étendue aux CADRES : aucune feuille hors de leur foyer ne vise leurs classes, placement compris 774ms
+   ✓ #1806 — un module de primitive est le seul foyer de ce qu’il peint > §5.3 étendue, preuve par mutation — un PLACEMENT ou un contexte qui nomme un cadre rougit 586ms
+   ✓ #1806 — un module de primitive est le seul foyer de ce qu’il peint > §5.4 aucune famille JET recréée dans un module d’écran 650ms
+   ✓ #1806 — un module de primitive est le seul foyer de ce qu’il peint > §5.4 preuve par mutation — une classe de la famille JET dans un module d’écran rougit 831ms
+ ✓ src/ui/ui-ratchets.test.ts (53 tests) 8977ms 665 MB heap used
+   ✓ #236 — cliquets d’hygiène UI > (xiv) exhaustivité : chaque .css de src est PARTAGÉ, de PRIMITIVE ou d’ÉCRAN, jamais deux 1046ms
+   ✓ canon responsive, peaux et matières partagées de src/ui/styles > matières `.skin-*`/`.display-*` : le DELTA d’un module BAT la matière sur toute propriété qu’elle déclare aussi 1789ms
+   ✓ #1318 V5 — cliquets d’hygiène UI (champ nombre, breakpoints) > (xix) raison de refus MUETTE (`<button disabled title=…>`) : aucune hausse, zéro côté joueur 388ms
+   ✓ #1318 V5 — cliquets d’hygiène UI (champ nombre, breakpoints) > (xix) le stock restant est ENTIÈREMENT dans l’atelier — aucun écran joueur ne porte de refus muet 345ms
+   ✓ #1800 — trois couches CSS : un module d’écran ne pose que du PLACEMENT > (xxi) identité en module d’écran : stock nominatif, décroissant 866ms
+   ✓ #1800 — trois couches CSS : un module d’écran ne pose que du PLACEMENT > (xxi) espacement hors échelle : stock nominatif, décroissant 782ms
+   ✓ #1800 — trois couches CSS : un module d’écran ne pose que du PLACEMENT > (xxii) style inline hors variable CSS : stock nominatif, décroissant 761ms
+   ✓ #1800 — trois couches CSS : un module d’écran ne pose que du PLACEMENT > le stock committé est un point fixe de sa régénération 1092ms
+   ✓ #1800 — trois couches CSS : un module d’écran ne pose que du PLACEMENT > (xxi) le manifeste classe chaque module : un css de primitive existe, et n’est pas une feuille partagée 604ms
+   ✓ #1800 — trois couches CSS : un module d’écran ne pose que du PLACEMENT > (xxi) le balayage n’est pas vide : des modules d’écran, et chacun hors couche partagée 624ms
+
+ Test Files  3 passed (3)
+      Tests  76 passed (76)
+   Start at  09:42:48
+   Duration  23.13s (transform 9.45s, setup 39.70s, collect 1.47s, tests 17.24s, environment 1ms, prepare 255ms)
+

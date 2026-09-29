@@ -1,0 +1,19 @@
+{
+ "fichier": "scripts/guards/lib/gitPorte.mjs",
+ "avant": "67b8d82a4f12b3071438540b33d6ffe58573f4df",
+ "mute": "d2e366c985a094405d4bab9ec35841c5993cffe3",
+ "apres": "67b8d82a4f12b3071438540b33d6ffe58573f4df",
+ "identique": true,
+ "rouge": {
+  "code": 1,
+  "echecs": [
+   "not ok 1 - rebaseEntame : `null` hors rebase, puis le NOM du chemin d’état présent sous le répertoire git"
+  ],
+  "sommaire": "# pass 1 # fail 1"
+ },
+ "vert": {
+  "code": 0,
+  "echecs": [],
+  "sommaire": "# pass 2 # fail 0"
+ }
+}

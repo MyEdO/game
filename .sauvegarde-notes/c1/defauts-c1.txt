@@ -1,0 +1,24 @@
+   · combat (au trait en bas) Npx : l'acteur au trait est hors du champ de la frise — rien ne l'y ramène (scrollIntoView)
+   · combat (au trait en bas) Npx : la boîte peinte de la vignette au trait dépasse de Npx le bord bas du champ de la piste — son liseré (Npx) y est rogné
+   · combat (au trait en bas) Npx : le chevron de l'unité au trait est masqué sur Npx de Npx — la tête et le pied doivent lui réserver sa place
+   · combat Npx (§12 561–700) : la carte du groupe fait Npx, pas plus compacte que Npx à Npx
+   · combat Npx (§12 561–700) : la vie de la carte 0 du groupe n'est pas superposée à son portrait
+   · combat Npx (§12 561–700) : la vie de la carte 1 du groupe n'est pas superposée à son portrait
+   · combat Npx (§12 561–700) : la vie de la carte 2 du groupe n'est pas superposée à son portrait
+   · combat Npx (§12 561–700) : la vie de la carte 3 du groupe n'est pas superposée à son portrait
+   · combat Npx (§12 701–900) : la carte du groupe fait Npx, pas plus compacte que Npx à Npx
+   · couche (ouverture) 700×650 : la surface « combat-feed » {"x":8,"y":341.8,"w":135,"h":48} déborde de sa zone « temps » {"x":8,"y":58,"w":135,"h":310.5} de Npx
+   · couche (ouverture) 700×740 : la surface « combat-feed » {"x":8,"y":396.8,"w":135,"h":48} déborde de sa zone « temps » {"x":8,"y":58,"w":135,"h":385.2} de Npx
+   · couche (ouverture) 700×780 : la surface « combat-feed » {"x":8,"y":451.8,"w":135,"h":48} déborde de sa zone « temps » {"x":8,"y":58,"w":135,"h":418.4} de Npx
+   · couche (spectateur) 700×650 : la surface « combat-feed » {"x":8,"y":341.8,"w":135,"h":48} déborde de sa zone « temps » {"x":8,"y":58,"w":135,"h":310.5} de Npx
+   · couche (spectateur) 700×740 : la surface « combat-feed » {"x":8,"y":396.8,"w":135,"h":48} déborde de sa zone « temps » {"x":8,"y":58,"w":135,"h":385.2} de Npx
+   · couche (spectateur) 700×780 : la surface « combat-feed » {"x":8,"y":451.8,"w":135,"h":48} déborde de sa zone « temps » {"x":8,"y":58,"w":135,"h":418.4} de Npx
+   · couche (tour de héros) 700×650 : la surface « combat-feed » {"x":8,"y":341.8,"w":135,"h":48} déborde de sa zone « temps » {"x":8,"y":58,"w":135,"h":310.5} de Npx
+   · couche (tour de héros) 700×740 : la surface « combat-feed » {"x":8,"y":396.8,"w":135,"h":48} déborde de sa zone « temps » {"x":8,"y":58,"w":135,"h":385.2} de Npx
+   · couche (tour de héros) 700×780 : la surface « combat-feed » {"x":8,"y":451.8,"w":135,"h":48} déborde de sa zone « temps » {"x":8,"y":58,"w":135,"h":418.4} de Npx
+   · exploration Npx (§12 561–700) : la carte du groupe fait Npx, pas plus compacte que Npx à Npx
+   · exploration Npx (§12 561–700) : la vie de la carte 0 du groupe n'est pas superposée à son portrait
+   · exploration Npx (§12 561–700) : la vie de la carte 1 du groupe n'est pas superposée à son portrait
+   · exploration Npx (§12 561–700) : la vie de la carte 2 du groupe n'est pas superposée à son portrait
+   · exploration Npx (§12 561–700) : la vie de la carte 3 du groupe n'est pas superposée à son portrait
+   · exploration Npx (§12 701–900) : la carte du groupe fait Npx, pas plus compacte que Npx à Npx

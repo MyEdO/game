@@ -1,0 +1,34 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1919-H2
+
+ ❯ src/ui/CombatConsole.test.tsx (151 tests | 1 failed | 150 skipped) 55ms 448 MB heap used
+   × CombatConsole — trois formes, une seule bande > la RÉSERVE de bande est déclarée UNE fois, en PLANCHER, et aucune forme ne la reprend 53ms
+     → le plancher de bande n’est plus la réserve à 1920×1080: expected 180.6 to be 183.6 // Object.is equality
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 150 skipped (151)
+   Start at  01:36:27
+   Duration  20.68s (transform 12.31s, setup 13.83s, collect 5.66s, tests 55ms, environment 731ms, prepare 61ms)
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/ui/CombatConsole.test.tsx > CombatConsole — trois formes, une seule bande > la RÉSERVE de bande est déclarée UNE fois, en PLANCHER, et aucune forme ne la reprend
+AssertionError: le plancher de bande n’est plus la réserve à 1920×1080: expected 180.6 to be 183.6 // Object.is equality
+
+- Expected
++ Received
+
+- 183.6
++ 180.6
+
+ ❯ src/ui/CombatConsole.test.tsx:1110:10
+    1108|     for (const [vw, vh] of [[1920, 1080], [700, 780]] as [number, numb…
+    1109|       expect(evalLen(decl(ruleOf(CC_BASE, '.cc-dock'), 'min-height')!,…
+    1110|         .toBe(evalLen('var(--cc-deck-h)', vw, vh));
+       |          ^
+    1111|     }
+    1112|     expect(decl(ruleOf(CC_BASE, '.cc-dock'), 'height'), 'une hauteur i…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+

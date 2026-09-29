@@ -1,0 +1,126 @@
+
+> warhammer-v4-rpg@0.1.0 gates
+> node scripts/gates/toutes.mjs
+
+[gates] arbre f45c18692 « fix(ui): refs #1806 — R-M2 lot A train 2 : placement, coupe au mot, dé » + 78 fichier(s) non committé(s)
+[gates] 24 gate(s) lues dans ci.yml
+[gates] machine de 4 cœur(s), pas au-delà des 10 de la suite : une seule lane, dans l’ordre de ci.yml (`lanesPortees`)
+[gates] docs:check:tout — à jouer : npm run docs:check:tout
+[gates] agents:check — à jouer : npm run agents:check
+[gates] test:agents — à jouer : npm run test:agents
+[gates] test:hooks — à jouer : npm run test:hooks
+[gates] test:ops — à jouer : npm run test:ops
+[gates] test:runner — à jouer : npm run test:runner
+[gates] test:docs — à jouer : npm run test:docs
+[gates] deps:unused — à jouer : npm run deps:unused
+[gates] test:recette — à jouer : npm run test:recette
+[gates] typecheck — à jouer : npm run typecheck
+[gates] lint — à jouer : npm run lint
+[gates] test — à jouer : npm test
+[gates] build — à jouer : npm run build
+[gates] docs:empreinte — à jouer : npm run docs:empreinte
+[gates] test:raw — à jouer : npm run test:raw
+[gates] raw:check-refs — à jouer : npm run raw:check-refs
+[gates] raw:check-code-refs — à jouer : npm run raw:check-code-refs
+[gates] raw:check-ancres — à jouer : npm run raw:check-ancres
+[gates] raw:check-folio-continuity — à jouer : npm run raw:check-folio-continuity
+[gates] raw:check-source-tables — à jouer : npm run raw:check-source-tables
+[gates] raw:check-source-format — à jouer : npm run raw:check-source-format
+[gates] raw:check-source-puces — à jouer : npm run raw:check-source-puces
+[gates] raw:check-renvois — à jouer : npm run raw:check-renvois
+[gates] server:typecheck — à jouer : npm run server:typecheck
+[gates] gen — registres à jour en 3.2 s
+[gates] docs:check:tout — vert (exit 0) en 181.9 s · /home/user/game/.wt-1806-L1/node_modules/.cache/gates/docs%3Acheck%3Atout-4252.txt
+[gates] agents:check — vert (exit 0) en 0.2 s · /home/user/game/.wt-1806-L1/node_modules/.cache/gates/agents%3Acheck-4252.txt
+[gates] test:agents — vert (exit 0) en 0.5 s · /home/user/game/.wt-1806-L1/node_modules/.cache/gates/test%3Aagents-4252.txt
+[gates] test:hooks — vert (exit 0) en 103.9 s · /home/user/game/.wt-1806-L1/node_modules/.cache/gates/test%3Ahooks-4252.txt
+[gates] test:ops — vert (exit 0) en 3.6 s · /home/user/game/.wt-1806-L1/node_modules/.cache/gates/test%3Aops-4252.txt
+[gates] test:runner — vert (exit 0) en 4.7 s · /home/user/game/.wt-1806-L1/node_modules/.cache/gates/test%3Arunner-4252.txt
+[gates] test:docs — vert (exit 0) en 28.2 s · /home/user/game/.wt-1806-L1/node_modules/.cache/gates/test%3Adocs-4252.txt
+[gates] deps:unused — vert (exit 0) en 13.4 s · /home/user/game/.wt-1806-L1/node_modules/.cache/gates/deps%3Aunused-4252.txt
+[gates] test:recette — vert (exit 0) en 4.9 s · /home/user/game/.wt-1806-L1/node_modules/.cache/gates/test%3Arecette-4252.txt
+[gates] typecheck — vert (exit 0) en 101.7 s · /home/user/game/.wt-1806-L1/node_modules/.cache/gates/typecheck-4252.txt
+[gates] lint — vert (exit 0) en 89.2 s · /home/user/game/.wt-1806-L1/node_modules/.cache/gates/lint-4252.txt
+[gates] test — ROUGE (exit 1) en 446.6 s · /home/user/game/.wt-1806-L1/node_modules/.cache/gates/test-4252.txt
+[gates] build — vert (exit 0) en 27.5 s · /home/user/game/.wt-1806-L1/node_modules/.cache/gates/build-4252.txt
+[gates] docs:empreinte — vert (exit 0) en 0.8 s · /home/user/game/.wt-1806-L1/node_modules/.cache/gates/docs%3Aempreinte-4252.txt
+[gates] test:raw — vert (exit 0) en 12.6 s · /home/user/game/.wt-1806-L1/node_modules/.cache/gates/test%3Araw-4252.txt
+[gates] raw:check-refs — vert (exit 0) en 0.4 s · /home/user/game/.wt-1806-L1/node_modules/.cache/gates/raw%3Acheck-refs-4252.txt
+[gates] raw:check-code-refs — vert (exit 0) en 4.2 s · /home/user/game/.wt-1806-L1/node_modules/.cache/gates/raw%3Acheck-code-refs-4252.txt
+[gates] raw:check-ancres — vert (exit 0) en 0.5 s · /home/user/game/.wt-1806-L1/node_modules/.cache/gates/raw%3Acheck-ancres-4252.txt
+[gates] raw:check-folio-continuity — vert (exit 0) en 0.6 s · /home/user/game/.wt-1806-L1/node_modules/.cache/gates/raw%3Acheck-folio-continuity-4252.txt
+[gates] raw:check-source-tables — vert (exit 0) en 1.1 s · /home/user/game/.wt-1806-L1/node_modules/.cache/gates/raw%3Acheck-source-tables-4252.txt
+[gates] raw:check-source-format — vert (exit 0) en 0.6 s · /home/user/game/.wt-1806-L1/node_modules/.cache/gates/raw%3Acheck-source-format-4252.txt
+[gates] raw:check-source-puces — vert (exit 0) en 0.4 s · /home/user/game/.wt-1806-L1/node_modules/.cache/gates/raw%3Acheck-source-puces-4252.txt
+[gates] raw:check-renvois — vert (exit 0) en 0.6 s · /home/user/game/.wt-1806-L1/node_modules/.cache/gates/raw%3Acheck-renvois-4252.txt
+[gates] server:typecheck — ROUGE (exit 1) en 0.0 s · /home/user/game/.wt-1806-L1/node_modules/.cache/gates/server%3Atypecheck-4252.txt
+
+[gates] ——— résumé ———
+[gates] docs:check:tout — vert (exit 0) — 181.9 s — /home/user/game/.wt-1806-L1/node_modules/.cache/gates/docs%3Acheck%3Atout-4252.txt
+[gates] agents:check — vert (exit 0) — 0.2 s — /home/user/game/.wt-1806-L1/node_modules/.cache/gates/agents%3Acheck-4252.txt
+[gates] test:agents — vert (exit 0) — 0.5 s — /home/user/game/.wt-1806-L1/node_modules/.cache/gates/test%3Aagents-4252.txt
+[gates] test:hooks — vert (exit 0) — 103.9 s — /home/user/game/.wt-1806-L1/node_modules/.cache/gates/test%3Ahooks-4252.txt
+[gates] test:ops — vert (exit 0) — 3.6 s — /home/user/game/.wt-1806-L1/node_modules/.cache/gates/test%3Aops-4252.txt
+[gates] test:runner — vert (exit 0) — 4.7 s — /home/user/game/.wt-1806-L1/node_modules/.cache/gates/test%3Arunner-4252.txt
+[gates] test:docs — vert (exit 0) — 28.2 s — /home/user/game/.wt-1806-L1/node_modules/.cache/gates/test%3Adocs-4252.txt
+[gates] deps:unused — vert (exit 0) — 13.4 s — /home/user/game/.wt-1806-L1/node_modules/.cache/gates/deps%3Aunused-4252.txt
+[gates] test:recette — vert (exit 0) — 4.9 s — /home/user/game/.wt-1806-L1/node_modules/.cache/gates/test%3Arecette-4252.txt
+[gates] typecheck — vert (exit 0) — 101.7 s — /home/user/game/.wt-1806-L1/node_modules/.cache/gates/typecheck-4252.txt
+[gates] lint — vert (exit 0) — 89.2 s — /home/user/game/.wt-1806-L1/node_modules/.cache/gates/lint-4252.txt
+[gates] test — ROUGE (exit 1) — 446.6 s — /home/user/game/.wt-1806-L1/node_modules/.cache/gates/test-4252.txt
+[gates]   |  ✓ src/gameIso/AnimatedRigToken.test.tsx (1 test) 6ms 1213 MB heap used
+[gates]   |  ✓ src/state/entityId.test.ts (3 tests) 21ms 1680 MB heap used
+[gates]   |  ✓ src/scenes/test-scenarios/_shared.test.ts (1 test) 9ms 1219 MB heap used
+[gates]   |  ✓ src/engine/appraisal.test.ts (1 test) 10ms 1673 MB heap used
+[gates]   |  ✓ src/gameIso/rig/bones.test.ts (2 tests) 15ms 1212 MB heap used
+[gates]   |  ✓ src/engine/timeCost.test.ts (1 test) 6ms 1679 MB heap used
+[gates]   |  ✓ src/engine/dice.test.ts (3 tests) 9ms 1222 MB heap used
+[gates]   |  ✓ src/data/fsPersist.test.ts (1 test) 6ms 1684 MB heap used
+[gates]   |  ✓ src/state/merchants/merchants.test.ts (1 test) 4ms 1213 MB heap used
+[gates]   |  ✓ src/ui/FxChip.test.tsx (1 test) 8ms 1678 MB heap used
+[gates]   |  ✓ src/tas-des-workers.test.ts (1 test) 4ms 1220 MB heap used
+[gates]   |  ✓ src/data/schemas/grammaire/lecture-def-zod-guard.test.ts (2 tests) 7206ms 791 MB heap used
+[gates]   |    ✓ GARDE — `_zod.def` et les champs d’enfants ne se lisent que dans `descente.ts` > aucune lecture hors de `descente.ts` 7200ms
+[gates]   | ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+[gates]   |  FAIL  src/analyse-retention-guard.test.ts > garde de classe #1801 — une structure d’analyse ne vit pas en portée de collection > aucun module chargé par la suite ne retient une structure d’analyse
+[gates]   | AssertionError: expected [ …(2) ] to deeply equal []
+[gates]   | - Expected
+[gates]   | + Received
+[gates]   | - Array []
+[gates]   | + Array [
+[gates]   | +   "src/ui/raccourcis-registre.test.ts:50 arbres (.set()",
+[gates]   | +   "src/ui/raccourcis-registre.test.ts:169 DEPOT (initialisée)",
+[gates]   | + ]
+[gates]   |  ❯ src/analyse-retention-guard.test.ts:524:83
+[gates]   |     522|     );
+[gates]   |     523|     const retentions = lus.flatMap(({ rel, text }) => retentionsDAnaly…
+[gates]   |     524|     expect(retentions.map((r) => `${r.rel}:${r.line} ${r.liaison} (${r…
+[gates]   |        |                                                                                   ^
+[gates]   |     525|   });
+[gates]   |     526| });
+[gates]   | ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+[gates]   |  Test Files  1 failed | 1820 passed (1821)
+[gates]   |       Tests  1 failed | 25424 passed | 4 skipped | 2 todo (25431)
+[gates]   |    Start at  15:20:23
+[gates]   |    Duration  443.08s (transform 68.55s, setup 93.77s, collect 177.15s, tests 1017.75s, environment 5.19s, prepare 1.22s)
+[gates]   | [diag] machine : 4 cœurs · 15.7 Go · disponible 13.2 Go → 3 workers portés · réserve de 1 parent · borné par cœurs · mono (seuil 7) · maxWorkers=3
+[gates]   | [diag] mémoire système max : 12.5 Go / 15.7 Go (79 %) · rss lanceur max 60 Mo · fenêtre 446.4 s
+[gates]   | [diag] sentinelles : act hors act 405 · act chevauchants 0 · unmount pendant rendu 0 · React coincé 0 · test expiré 0 · worker perdu 0
+[gates]   | [diag] tas max d'un worker : 2272 Mo / 3072 Mo (74 %)
+[gates]   | capture : /home/user/game/.wt-1806-L1/node_modules/.cache/vitest-run-26507.txt
+[gates] build — vert (exit 0) — 27.5 s — /home/user/game/.wt-1806-L1/node_modules/.cache/gates/build-4252.txt
+[gates] docs:empreinte — vert (exit 0) — 0.8 s — /home/user/game/.wt-1806-L1/node_modules/.cache/gates/docs%3Aempreinte-4252.txt
+[gates] test:raw — vert (exit 0) — 12.6 s — /home/user/game/.wt-1806-L1/node_modules/.cache/gates/test%3Araw-4252.txt
+[gates] raw:check-refs — vert (exit 0) — 0.4 s — /home/user/game/.wt-1806-L1/node_modules/.cache/gates/raw%3Acheck-refs-4252.txt
+[gates] raw:check-code-refs — vert (exit 0) — 4.2 s — /home/user/game/.wt-1806-L1/node_modules/.cache/gates/raw%3Acheck-code-refs-4252.txt
+[gates] raw:check-ancres — vert (exit 0) — 0.5 s — /home/user/game/.wt-1806-L1/node_modules/.cache/gates/raw%3Acheck-ancres-4252.txt
+[gates] raw:check-folio-continuity — vert (exit 0) — 0.6 s — /home/user/game/.wt-1806-L1/node_modules/.cache/gates/raw%3Acheck-folio-continuity-4252.txt
+[gates] raw:check-source-tables — vert (exit 0) — 1.1 s — /home/user/game/.wt-1806-L1/node_modules/.cache/gates/raw%3Acheck-source-tables-4252.txt
+[gates] raw:check-source-format — vert (exit 0) — 0.6 s — /home/user/game/.wt-1806-L1/node_modules/.cache/gates/raw%3Acheck-source-format-4252.txt
+[gates] raw:check-source-puces — vert (exit 0) — 0.4 s — /home/user/game/.wt-1806-L1/node_modules/.cache/gates/raw%3Acheck-source-puces-4252.txt
+[gates] raw:check-renvois — vert (exit 0) — 0.6 s — /home/user/game/.wt-1806-L1/node_modules/.cache/gates/raw%3Acheck-renvois-4252.txt
+[gates] server:typecheck — ROUGE (exit 1) — 0.0 s — /home/user/game/.wt-1806-L1/node_modules/.cache/gates/server%3Atypecheck-4252.txt
+[gates]   | [gates] server:typecheck — prérequis absent : `server/node_modules` (le pose : `npm --prefix server ci`)
+[gates] total 1028.1 s · série équivalente 1028.1 s · lanes : serie 1028.1 s
+[gates] 2 spawn(s) rejoué(s) — pression système (le processus n'avait pas démarré)
+exit=1

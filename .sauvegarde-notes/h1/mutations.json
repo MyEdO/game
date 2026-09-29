@@ -1,0 +1,107 @@
+[
+ {
+  "nom": "M1-zone-temps",
+  "fichier": "src/ui/CampaignView.tsx",
+  "de": "<Row data-zone=\"temps\" wrap={false} stackBelow={700}>",
+  "vers": "<Row data-zone=\"champ\" wrap={false} stackBelow={700}>",
+  "cmd": "npx vitest run --no-cache src/ui/ExplorationDock.test.tsx -t \"#1919\""
+ },
+ {
+  "nom": "M2-ouverture-hors-zone",
+  "fichier": "src/ui/CampaignView.tsx",
+  "de": "            <Stack data-zone=\"ouverture\">\n              <BandeauDOuverture />\n            </Stack>",
+  "vers": "            <BandeauDOuverture />",
+  "cmd": "npx vitest run --no-cache src/ui/ExplorationDock.test.tsx -t \"#1919\""
+ },
+ {
+  "nom": "M3-tiroir-reserve",
+  "fichier": "src/ui/styles/exploration-dock.css",
+  "de": ".xd-openers {\n  margin-left: auto;",
+  "vers": ".exploration-dock .ld-panel { max-height: calc(100vh - 70px); }\n.xd-openers {\n  margin-left: auto;",
+  "cmd": "npx vitest run --no-cache src/ui/ExplorationDock.test.tsx -t \"tiroir-journal est assis\""
+ },
+ {
+  "nom": "M4-stage-rangees",
+  "fichier": "src/ui/styles/hud.css",
+  "de": "grid-template-rows: [flot] minmax(0, 1fr) [pont] auto;",
+  "vers": "grid-template-rows: [flot] 1fr [pont] auto;",
+  "cmd": "npx vitest run --no-cache src/ui/CombatConsole.test.tsx -t \"P-1\""
+ },
+ {
+  "nom": "M5-fil-ancre",
+  "fichier": "src/ui/styles/combat-banner.css",
+  "de": ".combat-feed {\n  position: relative;",
+  "vers": ".combat-feed {\n  position: relative;\n  left: 130px;",
+  "cmd": "npx vitest run --no-cache src/ui/CombatConsole.test.tsx -t \"P-5\""
+ },
+ {
+  "nom": "M6-frise-reserve",
+  "fichier": "src/ui/styles/initiative-strip.css",
+  "de": "  --is-avail: 100cqh;",
+  "vers": "  --is-avail: calc(100cqh - var(--cc-phase-h));",
+  "cmd": "npx vitest run --no-cache src/ui/CombatConsole.test.tsx -t \"P-6\""
+ },
+ {
+  "nom": "M7-reserve-couche",
+  "fichier": "src/ui/styles/hud.css",
+  "de": "  --flot-reserve: calc(var(--cc-phase-h) + var(--cc-phase-air));",
+  "vers": "  --flot-reserve: calc(var(--cc-phase-h) - 20px);",
+  "cmd": "npx vitest run --no-cache src/ui/CombatConsole.test.tsx -t \"P-7\""
+ },
+ {
+  "nom": "M8-ouverture-ancre",
+  "fichier": "src/ui/styles/combat-console.css",
+  "de": "  inset: auto;\n  flex-direction: column;",
+  "vers": "  inset: auto;\n  top: var(--sp-lg);\n  flex-direction: column;",
+  "cmd": "npx vitest run --no-cache src/ui/CombatConsole.test.tsx -t \"OUVERTURE n’a AUCUNE ancre\""
+ },
+ {
+  "nom": "M9-bandeau-ouverture-nul",
+  "fichier": "src/ui/CombatConsole.tsx",
+  "de": "  return ouverture && phase ? <PhaseBanner {...phase} adresse=\"ouverture\" /> : null;",
+  "vers": "  return ouverture && phase ? null : null;",
+  "cmd": "npx vitest run --no-cache src/ui/CombatConsole.test.tsx -t \"OUVERTURE\""
+ },
+ {
+  "nom": "M10-rail-hors-flux",
+  "fichier": "src/ui/styles/hud.css",
+  "de": ".hud-rail {\n  position: relative;",
+  "vers": ".hud-rail {\n  position: absolute;",
+  "cmd": "npx vitest run --no-cache src/ui/ui-ratchets.test.ts -t \"couche HUD\""
+ },
+ {
+  "nom": "M11-volet-rang",
+  "fichier": "src/ui/styles/hud.css",
+  "de": "  [data-zone='groupe'] > .party-dock.on {\n    z-index: 60;\n  }",
+  "vers": "  [data-zone='groupe'] > .party-dock.on {\n    z-index: 40;\n  }",
+  "cmd": "npx vitest run --no-cache src/ui/ui-ratchets.test.ts -t \"bande DÉPLIÉE\""
+ },
+ {
+  "nom": "M12-rpc-socket-fermee",
+  "fichier": "scripts/recette/lib.mjs",
+  "de": "    if (ws.readyState !== WebSocket.OPEN) { reject(cibleFermee()); return; }\n",
+  "vers": "",
+  "cmd": "node --test --test-name-pattern=\"appel CDP\" scripts/recette/lib.test.mjs"
+ },
+ {
+  "nom": "M13-couche-muette",
+  "fichier": "scripts/recette/hud-clickables.mjs",
+  "de": "  const c = m.couche;\n  if (!c) return",
+  "vers": "  const c = m.couche;\n  if (c || !c) return [];\n  if (!c) return",
+  "cmd": "node --test --test-name-pattern=\"couche|pont|page|surface|rognure|commande\" scripts/recette/hud-clickables.test.mjs"
+ },
+ {
+  "nom": "M14-exemption-ignoree",
+  "fichier": "scripts/recette/hud-clickables.mjs",
+  "de": "    if (!b.ok && !b.exempte) out.push",
+  "vers": "    if (!b.ok) out.push",
+  "cmd": "node --test --test-name-pattern=\"EXEMPTÉE\" scripts/recette/hud-clickables.test.mjs"
+ },
+ {
+  "nom": "M15-seuil-rognure",
+  "fichier": "scripts/recette/hud-clickables.mjs",
+  "de": "    if (s.rogne > 0.5) out.push",
+  "vers": "    if (s.rogne > 0) out.push",
+  "cmd": "node --test --test-name-pattern=\"demi-pixel\" scripts/recette/hud-clickables.test.mjs"
+ }
+]

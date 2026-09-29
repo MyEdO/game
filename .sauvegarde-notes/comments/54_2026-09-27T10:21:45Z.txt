@@ -1,0 +1,106 @@
+## Portes git, commit 1 (lot #85) : verdict du juge et brief de reprise E16d, 2026-09-27
+
+**Verdict du juge de diff (E16 + E16b + E16c) : À REPRENDRE.**
+
+Ce qui tient :
+- la plage d'E17 est intacte (45 cas sur 45, dont 12 renommages) ;
+- les étapes et refus du train sont inchangés ;
+- `classerPush` reste sans paquet et fail-closed ;
+- les écrivains gardent la configuration de l'utilisateur ;
+- la poignée opaque derrière une `WeakMap` tient à rebours ;
+- toutes les portes passent (tsc, lint, test:hooks 1352/1358 avec 6 skip, test:ops 285/285, docs:check, vitest des importeurs), sauf le rouge de BASE `legacyVocabStock.mjs:1930` (comment-poison-guard), que le lot B purge.
+
+Défauts, par gravité :
+- **D1 (bloquant)** : `commitDe` sans `chemins` joue `git add -A` puis un commit sans chemins (`gitPorte.mjs:843-847`), et `ctx.commit({ message })` le rend exprimable depuis le train (`publier.mjs:743`). L'en-tête `publier.mjs:25-30`, qui les dit inexprimables, ment.
+- **D2 (bloquant)** : une option libre passe encore par une borne (`ceQuiChange` avec `--output=` a fait écrire un fichier). `revisionsDe` est posé site par site, pas en règle.
+- **D3 (bloquant)** : un objet absent reçoit trois réponses (`[]`, panne, `null`). La seule porte touchée, `classerPush`, est corrigée par un cas particulier (`classerPush.mjs:153-154`).
+- **D4** : la forge dépend de la machine (`GIT_AUTHOR_*` hérités), et son test le masque.
+- **D5** : oracles perdus. L'argv des 14 écrivains n'est jamais asserté ; trois tests de lecture du board sont supprimés ; les questions n'ont qu'un oracle différentiel ; l'assertion #1803 a disparu.
+- **D6** : deux mutations ont été jouées sur des blobs antérieurs aux finaux.
+- **D7** : des commentaires mentent (`gitPorte.mjs:505`, `:597-598`, `pre-push.mjs:112-113`, `bootstrap-conteneur.test.mjs:106`).
+- **D8** : la liste des lanceurs H1 est juste mais incomplète (48 lanceurs dans 29 fichiers, dont la chaîne pre-commit).
+- **D9** : langue. Quatre noms pour les tables d'injection, deux `WeakMap`, un type `Depot` structurel.
+
+Suite : le codeur E16d reprend dans `.wt-1806-e16`, dans l'ordre du juge. Le commit 1 entrera sur `chantier/1806` après la publication du lot B sur main, parce que le train publie avec son propre `publier.mjs`.
+
+---
+
+<details><summary>Brief du codeur E16d (verbatim)</summary>
+
+# Brief du codeur E16d : reprise des portes git, commit 1, après le juge (#1806, lot #85), 2026-09-27
+
+Tu es orchestrateur de ton lot. Tu peux déléguer une lecture de masse (`lecteur`) ou une vérification fermée (`verif-mecanique`), mais tu relis tout ce qu'un agent te rend, et le code est à toi.
+
+## Worktree et état VÉRIFIÉ (2026-09-27, par l'orchestrateur)
+- Worktree : `/home/claude/game/.wt-1806-e16`, branche `wt/1806-e16`, HEAD `543ba1e13`.
+  - Le travail E16, E16b et E16c est dans l'arbre, non committé : 43 lignes de `git status --short`.
+  - `plageStock.mjs` et `publier.mjs` restent `UU` à l'index ; c'est normal, je marque la résolution au commit.
+  - Instantané de cet état : `refs/wip/1806-portes-git-e16c` = `a9df46028` (le juge a vérifié `git diff --stat a9df46028` vide).
+- Règles, interdits, invariant, cas canonique et design jugé : ceux du brief E16b (`/tmp/claude-0/-home-claude-game/b2c1dcf4-ee89-5cd4-b2df-036dbf03e24e/scratchpad/brief-e16b.md`), qui valent ici mot pour mot. Lis-le en entier.
+- Lis ensuite le verdict du juge EN ENTIER : `scratchpad/juge-e16/verdict.md`. Ses sondes sont sous `scratchpad/juge-e16/` (lancement : `NODE_PATH=/home/claude/game/.wt-1806-e16/node_modules node --import ./enregistre.mjs <sonde>`, depuis ce dossier).
+- Le rendu précédent : `scratchpad/rendu-e16c.md`, sorties sous `scratchpad/e16c/` (dont `muter.py`).
+- SI un livrable existe déjà dans l'arbre, PIVOTE en revue : ne le refais pas, prouve-le.
+- Un autre codeur travaille dans `.wt-1920d` : avant tout vitest ou `node --test` de plus de 20 fichiers, vérifie qu'aucun autre ne tourne (`ps -eo pid,etime,cmd | grep -E '[v]itest|[n]ode --test'`, sortie collée).
+- Processus : avant tout `kill`, lis le PPID et la ligne de commande du parent ; tu ne tues que ce que ta commande a lancé. Jamais `pkill` ni `killall`.
+- Budget : 2 h d'horloge. Relève `date -u` au départ et avant chaque étape longue. À l'échéance, rends ce qui est fait, l'arbre dans un état STABLE (portes du périmètre vertes), et le reste NOMMÉ.
+
+## Travail, dans l'ordre du juge (« Q9 : prêt à committer ? NON »)
+Pour chaque défaut, le verdict donne une « Correction retenue ». Tu l'implémentes telle qu'écrite ; si tu la trouves fausse, prouve-le par une sonde avant d'en changer, et dis-le au rendu.
+
+1. **D1, les interdits du train.**
+   - `commitDe` EXIGE `chemins` et lève sinon ; `add -A` sort de l'hôte.
+   - La forge passe ses chemins (`depotGabarit.mjs:144`).
+   - Le ctx de `publier.mjs` n'expose plus la poignée `depot` : le test des clés du ctx voit AUSSI les clés non-fonctions.
+   - L'en-tête `publier.mjs:25-30` redevient vrai.
+2. **D2 avec D3, les bornes.**
+   - Toute révision positionnelle passe par `revisionsDe`, sauf les marques `INDEX`, `SUIVI` et `TRAVAIL`. Tout chemin passe après `--`, ou un `-` initial est refusé.
+   - Sites nommés par le juge : `ceQuiChange`, `listerImage`, `baseDuCommit`/`ceQueFaitLeCommit`, `poserRef`, `ajouterWorktree`, `retirerWorktree`, `supprimerBranche`, `fusionDeTextes`. Contre-grep les autres toi-même.
+   - `ceQuiChange` résout ses bornes à la construction ; une borne absente LÈVE une erreur nommée (`classerPush.test.mjs:423` l'exige déjà). `classerPush.mjs:146-147` et `:153-154` meurent.
+   - « not a tree object » entre dans `MOTIFS_ABSENT`.
+   - L'en-tête de l'hôte (`gitPorte.mjs:4-12`) dit les trois issues. Question à trancher au rendu, avec la ligne d'en-tête qui en résulte : où passe la frontière entre « objet absent » (issue 2, un fait) et « borne absente » (une faute de l'appelant, qui lève) ? Une seule forme par cas, dans tout l'hôte.
+   - Deux tests par table : chaque question et chaque écrivain refusent une borne qui commence par `-` ; chaque question joue une borne absente.
+3. **D4, la forge.** `envDeDepotForge` retire TOUTE variable `GIT_*`, puis pose `GIT_CONFIG_GLOBAL` (vide) et `GIT_CONFIG_NOSYSTEM`. `VARIABLES_LOCALES`, `variablesLocales` et le filtre d'`envDeLUtilisatrice` meurent. Le test de la forge pose `GIT_AUTHOR_NAME=Intrus` dans l'environnement réel et exige `mesure`.
+4. **D5, les oracles.**
+   - Dans l'espion des écrivains, l'argv EXACT de chacun des 14 écrivains, en `deepEqual` (une table).
+   - Les trois tests de lecture du board supprimés reviennent comme oracles de VALEUR sur les questions : fin de ligne CRLF, sens avance/retard, message sur plusieurs lignes.
+   - `sonde-questions.mjs` du juge se promeut en test : oracle de valeur pour `divergenceDe`, `branchesDe`, `combienDe`, `estSuperficiel`, `dossierDesHooks`, `estIgnore`, `cheminGit`, `brancheDe`, `racineDe` et `origineDe`, sur dépôt forgé.
+   - L'assertion #1803 (« hooks vivants : rien à poser » sous un bruit stderr) revient pour `dossierDesHooks`.
+5. **D7, les commentaires qui mentent** : `gitPorte.mjs:505`, `:597-598`, `pre-push.mjs:112-113`, `bootstrap-conteneur.test.mjs:106`.
+   - `pre-push.mjs:114` jette la raison d'une panne (`enPanne: () => {}`), contre son commentaire. La panne y devient un refus NOMMÉ.
+   - Même classe, huit sites (liste au verdict, D9) : pour chacun, dis ce que l'appelant conclut sur une panne. Là où une panne se lit comme une absence ou comme « propre » et ouvre un geste (`worktrees.mjs:142` notamment, préexistant mais dans un fichier que tu touches), corrige dans le geste ; ailleurs, dis pourquoi la lecture est juste, `fichier:ligne` à l'appui.
+6. **D6, les mutations sur les blobs finaux.** Rejoue `quotePath` et `sommeDesCommits` sur les blobs FINAUX de `gitPorte.mjs` et `plageStock.mjs`. Archive l'argv exact de `muter.py` pour chaque mutation.
+7. **D9, la langue.**
+   - Les tables d'injection prennent UN terme pour questions et écrivains : `GESTES`. Aucun écrivain (`fetchOrigin`) ne reste dans une table nommée « questions ».
+   - `gitPorte.test.mjs:609` ne nomme plus `git` une poignée.
+   - L'état de la poignée vit dans UNE `WeakMap` (`versionsLues` fusionnée).
+   - Le type `Depot` est marqué (brand) : un `{ cwd }` écrit à la main ne passe plus tsc. Preuve : une ligne `// @ts-expect-error` dans un test de types, ou une sonde tsc collée.
+8. **D8, les lanceurs H1.** Ne les migre pas : ils sont au commit 2. Rends la liste COMPLÈTE de tout lanceur git hors de l'hôte, par une méthode DIFFÉRENTE de celle du juge (`juge-e16/lanceurs-git-hors-hote.txt`), et compare les deux listes. Livre-la dans `scratchpad/e16d/lanceurs-h1.txt`, une ligne par site (`fichier:ligne`, sous-commande), groupée par chaîne (pre-commit, CI, ops, sondes) ; elle ira au message du commit.
+
+## Preuves (obligatoires)
+- Mutations sur les blobs FINAUX : empreintes `git hash-object` avant et après, rouge constaté avec sa ligne `exit=`, remise identique, argv de `muter.py` archivé. Au minimum :
+  - `commitDe` sans `chemins` accepté (D1) ;
+  - `revisionsDe` retiré d'un site (D2) ;
+  - `ceQuiChange` qui rend `[]` sur une borne absente (D3) ;
+  - `envDeDepotForge` qui garde `GIT_AUTHOR_NAME` (D4) ;
+  - un `--force` ajouté à `retirerWorktree`, et `-D` à `supprimerBranche` (D5) ;
+  - `quotePath` et `sommeDesCommits` (D6) ;
+  - a, b, b2 et d d'E16c, rejouées si ta retouche touche leurs fichiers.
+- Les sondes du juge `sonde-interdits.mjs`, `sonde-bornes.mjs` et `sonde-forge.mjs`, rejouées après ta dernière retouche, sorties collées.
+- La plage d'E17 reste intacte : rejoue `sonde-plage.mjs` et `sonde-plage-renommages.mjs` du juge, sorties collées (attendu : `ecarts 0`).
+
+## Portes (sortie BRUTE collée, avec la ligne `exit=` écrite par la commande)
+- `npm run typecheck:fast`.
+- `node --test` sur `gitPorte.test.mjs`, `depotGabarit.test.mjs`, `plageStock.test.mjs`, `scripts/hooks/stocks-nominatifs.test.mjs`, `publier.test.mjs`, `classerPush.test.mjs`, les tests des fichiers touchés et les importeurs des modules que tu modifies (liste par `git grep -l`, collée), par paquets de 20 au plus.
+- eslint sur les fichiers que tu touches.
+
+## Livrable
+`/tmp/claude-0/-home-claude-game/b2c1dcf4-ee89-5cd4-b2df-036dbf03e24e/scratchpad/rendu-e16d.md`, sorties sous `scratchpad/e16d/` :
+- `git diff --stat HEAD` et les fichiers neufs ;
+- chaque défaut, D1 à D9, fait ou reste, avec sa preuve ;
+- la table des mutations ;
+- les sorties des sondes et des portes.
+
+</details>
+
+---
+_Generated by [Claude Code](https://claude.ai/code)_

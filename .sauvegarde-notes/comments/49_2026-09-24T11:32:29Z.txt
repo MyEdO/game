@@ -1,0 +1,60 @@
+Brief du codeur E16 (2026-09-24), commit 1 du lot des portes git selon le verdict ci-dessus. Brief verbatim :
+
+# Brief du codeur E16 : les portes lisent git par question, en plomberie (#1806, lot #85 commit 1), 2026-09-24
+
+Tu es orchestrateur de ton lot : tu peux déléguer une lecture de masse (agent `lecteur`) ou une vérification fermée (`verif-mecanique`), mais tu relis tout ce qu'un agent te rend, et le code est à toi.
+
+## Worktree et interdits
+- Worktree : `/home/claude/game/.wt-1806`, branche `chantier/1806`, HEAD `00f7e84cd` (commit 12, poussé, CI verte). Arbre propre au départ : ton travail est `git diff`.
+- `node_modules` est une copie par liens durs : aucune écriture dedans, `npm install` compris.
+- Interdits : tout `git checkout/restore/reset/stash/add/commit/apply/write-tree/init/update-index`, et toute suppression récursive. Un dépôt jetable passe par `depotGabarit` / `envDeDepotForge`. Je committe moi-même.
+- Hors de ton lot (commits suivants du même design) : le mur ESLint et l'hôte de processus (H1), la purge des variables au lanceur de tests (H3 points 2 et 3), les imports de fonction (H4), M1, M3, M4 et la marche `--topo-order` (H5). `gitHorsHote.mjs` survit à ton commit ; seul son appel à git change de forme.
+- **Processus** : avant tout `kill`, lis le PPID et la ligne de commande du parent (`ps -o pid,ppid,cmd`) : tu ne tues que ce que ta propre commande a lancé. Jamais `pkill`, `killall`, ni `ps … | grep … | xargs kill`. La machine a 4 cœurs et d'autres agents y tournent : avant de lancer vitest ou `node --test` sur plus de 20 fichiers, vérifie qu'aucun autre ne tourne (`ps -eo pid,etime,cmd | grep -E '[v]itest|[n]ode --test'`, sortie collée) ; sinon, fais d'abord le reste et reviens-y. Colle `/proc/loadavg` à côté de tout rouge par délai.
+- Budget : 2 h d'horloge. Travaille dans l'ordre ; à l'échéance, rends ce qui est fait, le reste NOMMÉ.
+- Hors de ton geste : `docs:check`, `docs:build`, `docs:reprise`, `test:hooks`, les suites entières et le typecheck complet. Je les joue au commit.
+
+## Invariant
+- En-tête de `scripts/guards/lib/gitPorte.mjs:1-2`, verbatim : « LECTURES GIT DES PORTES — l'hôte UNIQUE de la forme d'union et des commandes git que les portes (pre-push, garde de solde, revue de palier, stocks de plage, faits de palier, closer) exécutent. »
+- Credo (`.claude/credo.md`), verbatim : « Une garde de synchronisation est un smell : une seule source de vérité. » ; « Règles GÉNÉRALES, jamais spécifiques. Corriger la classe entière du problème, pas le cas rencontré. »
+- Consigne de Clément (2026-09-20, #1806), verbatim : « L'application c'est un dépot de stock decroissant. Surtout que c'est toi qui a mis ces !important il y a quelques jours ». Aucun registre neuf, aucune liste d'exceptions.
+- Question à laquelle ils répondent : comment une porte lit-elle git de façon que ni la forme de l'appel, ni la configuration git de l'utilisateur, ni un test ne puissent changer ce qu'elle voit ?
+
+## Cas canonique déjà couvert
+- **Un lecteur par question, qui fixe lui-même sa commande et sa forme** : `ceQueFaitLeCommit(git, sha)` (`gitPorte.mjs:369`) et `lireEnLot(git, arbre, rels)` (`:455`, `cat-file --batch`). Preuve d'instance à rendre : chaque lecteur que tu poses en est une instance (l'appelant pose une question, jamais une sous-commande ni des drapeaux).
+
+## Design jugé :
+- Verdict du juge de design du 2026-09-24 : `/tmp/claude-0/-home-claude-game/b2c1dcf4-ee89-5cd4-b2df-036dbf03e24e/scratchpad/juge-design-85/verdict.md` (lis-le en entier ; sondes et sorties dans le même dossier). Ton lot est son commit 1 (section « Q6 — Découpage ») : « DESIGN CORRIGÉ H2 » points 1 à 6, « DESIGN CORRIGÉ H3 » point (1), M2 de la section Q5, et la forme « un lecteur par QUESTION » de la section Q7.
+
+## Travail, dans cet ordre
+1. **La carte des appels.** Pour chacun des 28 fichiers qui nomment `lireGit` ou `lecteurGit` (`git grep -l -E '\b(lireGit|lecteurGit)\b'`, sortie collée) et pour chaque appel aux lecteurs à arguments libres de l'hôte (`cheminsDe`, `numstatDe`, `nameStatusDe`, `etatsDe`, `journalDe`, `eolsDe`, `listerImage`, `fichiersDuGrep`, `commitsDe`, `estAncetre`, `estDansHead`, `arbrePrincipal`) : la table `site → question posée → lecteur cible`, et les ÉCRITURES à part. Dis quels lecteurs actuels deviennent des lecteurs par question et lesquels meurent.
+2. **Les lecteurs par question** (Q7 du verdict), chacun avec sa commande fixée : lectures de commit et d'index en plomberie seule (point 1 du design H2) ; `grep` et l'état de l'arbre de travail en porcelaine à drapeaux qui priment sur la config, posés par le lecteur (point 2) ; l'arbre de travail contre l'index par `status` (qui rafraîchit), jamais par `diff-files` (verdict, preuve 2 : 7265 faux positifs). La sous-commande n'est plus un paramètre ; `lireGit` et `lecteurGit` sortent de l'API publique (`gitPorte.mjs`, `gitPorte.d.mts`).
+3. **`OPTIONS_DE_L_HOTE`** (point 3) : liste fermée de ce que la plomberie lit encore, chaque ligne avec sa réf nue.
+4. **Le test sous configuration hostile** (point 4) : `gitPorte.test.mjs` joue chaque lecteur sous un `GIT_CONFIG_GLOBAL` hostile (fixture : les réglages mesurés au verdict, `textconv` compris) et exige des sorties identiques à celles d'une config vide. Les sondes `h2-reglages`, `h2-index`, `h2-stat-status`, `h2-status-merge` du juge deviennent ce test.
+5. **Les écrivains nommés** (point 5) : chaque écriture de la table du point 1 passe par un écrivain nommé de l'hôte, qui garde la config de l'utilisateur (identité, signature). `scripts/ops/publier.mjs` est le train de publication : son comportement ne change pas, preuve par ses tests.
+6. **La forge isolée** (H3 point 1) : `envDeDepotForge` isole aussi la config (`GIT_CONFIG_GLOBAL` vers un fichier vide, `GIT_CONFIG_NOSYSTEM=1`). L'oracle `gitPorte.test.mjs:497` ne dépend plus de la machine : preuve sous `color.ui=always` global.
+7. **`carte-lignes.mjs:118`** (point 6) passe par un lecteur de l'hôte ; sa pile de drapeaux meurt.
+8. **M2** : `lirePreImage` et `texteDeBase` (`solde-ticket-guard.mjs:1907`, `:1912`), et le contrat `lirePreImage` de `stocksNominatifs.mjs:65-66` et `plageStock.mjs:166` : un concept, un terme. Dis lequel et pourquoi.
+
+Dans chaque zone touchée : un concept, un terme ; morts purgés ; commentaires à réf nue.
+
+## Preuves (obligatoires)
+- Contre-grep final de `lireGit`, `lecteurGit` et des anciens noms de lecteurs hors de `gitPorte.mjs`, sortie collée.
+- Preuve par mutation pour chaque test neuf ou réécrit : fichier muté, empreinte `git hash-object` avant et après, rouge constaté, remise identique. Les mutations se jouent sur le blob FINAL, après ta dernière retouche, et chaque restauration a sa sortie verte en fichier. Au minimum : un lecteur repassé en porcelaine rougit le test hostile ; une ligne retirée d'`OPTIONS_DE_L_HOTE` rougit le test ; `envDeDepotForge` sans isolation rougit l'oracle sous config hostile.
+- Pour chaque fail-open prouvé au verdict (c11 et les 6 neufs, `merge.conflictStyle`) : la sortie du lecteur neuf sous le réglage, collée.
+
+## Portes (sortie BRUTE collée, avec la ligne `exit=` écrite par la commande)
+- `npm run typecheck:fast`.
+- `node --test` sur : `scripts/guards/lib/gitPorte.test.mjs`, `scripts/guards/lib/depotGabarit.test.mjs`, les tests des 28 fichiers migrés et de `carte-lignes.mjs` (liste par `git ls-files`, collée), les tests qui importent un module que tu modifies (liste par `git grep -l`, collée).
+- eslint sur les fichiers que tu touches.
+
+## Livrable
+Données brutes dans `/tmp/claude-0/-home-claude-game/b2c1dcf4-ee89-5cd4-b2df-036dbf03e24e/scratchpad/rendu-e16.md` (sondes et sorties dans `scratchpad/e16/`) :
+- `git diff --stat` et la liste des fichiers neufs ;
+- la table du point 1 ;
+- pour chaque point, fait ou reste, avec sa preuve ;
+- le terme retenu pour M2 ;
+- la table des mutations ;
+- les sorties des portes.
+
+---
+_Generated by [Claude Code](https://claude.ai/code)_

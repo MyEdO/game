@@ -1,0 +1,113 @@
+src/data/primitives.manifest.json:89:    "concept": "couche de congédiement de la pile (`src/state/dismissStack.ts`) : `useDismissLayer` empile une COUCHE le temps de son ouverture, déclarée en entier (identifiant stable, nature `modale`/`popover`, plan `scene`/`application`, boîte) ; `dialogueDuDessus` rend la boîte de la modale du dessus (`coucheDuDessus` : plan le plus haut, puis la dernière ouverte), la même couche que lisent Échap (`resoudreEchap`), les touches (`bindingApplies`) et la marche — lue par l'emprunt, le sauvetage et la restitution du focus, le piège Tab et la manette ; `surfaceFocalisee` rend la surface où navigue la manette (bulle épinglée qui tient le focus, sinon le dialogue du dessus)",
+src/data/primitives.manifest.json:368:    "concept": "sélecteur visuel (déclencheur + popover de rangées média + texte) là où un <select> natif ne peut pas porter d'icône",
+src/state/keybindings.ts:321:  //    `notWhenControlFocused` : un CONTRÔLE focalisé possède ses propres flèches (menu, popover de
+src/state/resoudreEchap.ts:7: *     popovers, panneaux-paramètre, dialogue). Dès qu'une couche existe, la couche du dessus
+src/state/stageWalk.test.ts:317:  it('un POPOVER (infobulle du codex) posé à la 2ᵉ case : la 3ᵉ case est parcourue', () => {
+src/state/stageWalk.test.ts:321:    pushLayer({ kind: 'infobulle', nature: 'popover', plan: 'application', onDismiss: () => {} });
+src/ui/CombatConsole.test.tsx:88:/** SURVOL d'une alvéole : ouvre le popover `CodexRef` (mode `wrap`) qui l'enveloppe et rend son contenu.
+src/ui/CombatConsole.test.tsx:89: *  Le popover vit en PORTAL sur `document.body` (hors du `host`) — c'est là qu'on le lit. `mouseover` est
+src/ui/CombatConsole.test.tsx:96:  // Un popover déjà ouvert (survol précédent) vit dans le MÊME portal : Échap le referme — sans quoi on
+src/ui/CombatConsole.test.tsx:103:  if (!pop) throw new Error(`aucun popover ouvert au survol de « ${dataCell} »`);
+src/ui/CombatConsole.test.tsx:107:    /** La PORTE vers la fiche complète (le popover borne son corps, cf. `truncate` dans `CodexRef`). */
+src/ui/CombatConsole.test.tsx:146:/** Le pointeur QUITTE le contrôle : l'infobulle meurt (le pont de survol différé, quand le popover
+src/ui/CombatConsole.test.tsx:172:/** Le VERBATIM d'une donnée tel que le popover le rend : prose démarquée (`mdToText`) puis bornée par la
+src/ui/CombatConsole.test.tsx:1451:    // (iv) set MIXTE lame+pistolet → les deux cases coexistent, chacune ENVELOPPÉE par le popover de SA
+src/ui/CombatConsole.test.tsx:1469:    expect(popCharge.source, 'la source de la règle se lit au popover').toContain('165');
+src/ui/CombatConsole.test.tsx:2217: * INTENTION ARMÉE (spec HUD zone 4) — le popover de règle se TAIT tant que la portée est peinte.
+src/ui/CombatConsole.test.tsx:2220: * bouton, le popover `CodexRef` (mode `wrap`) s'ouvre par ce focus… et sa boîte recouvre le champ à
+src/ui/CombatConsole.test.tsx:2221: * l'instant PRÉCIS où le joueur a demandé à voir la portée. Le popover reste le canon d'information
+src/ui/CombatConsole.test.tsx:2224:describe('CombatConsole — intention armée : aucun popover de règle au-dessus du champ', () => {
+src/ui/CombatConsole.test.tsx:2226:  const popovers = () => [...document.body.querySelectorAll('.infobulle[role="tooltip"]')];
+src/ui/CombatConsole.test.tsx:2246:  it('le clic qui ARME l’intention referme le popover que le survol/focus avait ouvert', () => {
+src/ui/CombatConsole.test.tsx:2249:    expect(popovers().length, 'hors intention, le popover de règle doit s’ouvrir (comportement INCHANGÉ)').toBe(1);
+src/ui/CombatConsole.test.tsx:2252:    expect(popovers().length, 'un popover de règle recouvre la portée peinte').toBe(0);
+src/ui/CombatConsole.test.tsx:2255:  it('intention armée : plus AUCUN popover ne s’ouvre — et le désarmement rend la règle', () => {
+src/ui/CombatConsole.test.tsx:2261:    expect(popovers().length, 'la case armée rouvre son popover au survol').toBe(0);
+src/ui/CombatConsole.test.tsx:2263:    expect(popovers().length, 'une case VOISINE rouvre son popover au survol').toBe(0);
+src/ui/CombatConsole.test.tsx:2268:    expect(popovers().length, 'intention dissoute : le popover de règle doit revenir').toBe(1);
+src/ui/CombatConsole.test.tsx:2591:  // ON VISE, ON NE LIT PAS : un mode de ciblage armé met les popovers de règle de la console en
+src/ui/CombatConsole.test.tsx:2595:  it('mode de ciblage ARMÉ : le popover de règle de la case se tait, et revient au désarmement', () => {
+src/ui/CombatConsole.tsx:84:   *  qui porte le texte de règle, en VERBATIM, dans le popover `CodexRef`. Aucune prose de règle n'est
+src/ui/CombatConsole.tsx:233:  // seule (`refus` suffit à faire naître le popover).
+src/ui/CombatConsole.tsx:624:  // ON VISE — source UNIQUE de la mise en sourdine des popovers de règle de la console (`ConsoleCell`,
+src/ui/CombatConsole.tsx:894:    // du registre (`charge-possible`), le verbatim du popover de sa fiche.
+src/ui/CombatConsole.tsx:1245:                  Chaque chip porte sa fiche (popover `CodexRef`), comme toute possession de la console,
+src/ui/CombatConsole.tsx:1302:                    // La VIGNETTE porte sa fiche : le popover `CodexRef` (mode `wrap`) montre l'arme du
+src/ui/Infobulle.tsx:198:  useDismissLayer({ kind: 'infobulle', nature: 'popover', plan: 'application', boite: boxRef }, fermer, ouverte, fermer);
+src/ui/ResilienceButton.test.tsx:78:    // 2. ↓ épingle le popover et y porte le focus : la PORTE est atteignable au clavier bien que le
+src/ui/ResilienceButton.test.tsx:89:    // …et le popover s'est refermé derrière elle.
+src/ui/ResilienceButton.test.tsx:93:  it('la PORTE est dans le popover, JAMAIS sur le contrôle : le déclencheur n’est pas cliquable', () => {
+src/ui/RollLine-codex-chips.test.tsx:6: *  2. son popover s'ouvre DANS le corps DÉFILABLE d'une `RollShell` (`.modal-body` de `Modal`) sans être
+src/ui/RollLine-codex-chips.test.tsx:50:    act(() => { root.unmount(); }); // démonte aussi les portals de popover (React les possède)
+src/ui/RollLine-codex-chips.test.tsx:66:    // La ligne sans règle ne prétend rien : ni popover, ni clic.
+src/ui/RollLine-codex-chips.test.tsx:71:  it('POPOVER dans le corps DÉFILÉ (.modal-body) : porté sur document.body, hors du scrollport', () => {
+src/ui/RollLine-codex-chips.test.tsx:80:    expect(pop, 'le popover est rendu').not.toBeNull();
+src/ui/RollLine-codex-chips.test.tsx:81:    // Le PORTAL : le popover n'est PAS un descendant du scrollport (aucun clipping `overflow`
+src/ui/RollLine-codex-chips.test.tsx:91:  //    rattachés à rien) : ils vivent DANS le popover de la chip, qui porte déjà sa règle.
+src/ui/RollLine-codex-chips.test.tsx:92:  it('provenance `by` : AUCUN badge inline — les noms partent au popover de la chip', () => {
+src/ui/RollLine-codex-chips.test.tsx:116:    expect(container.textContent).not.toContain('Perdita'); // au popover, pas sur la ligne
+src/ui/RollLine-codex-chips.test.tsx:121:  //    l'autre bout : le popover de la chip, atteignable au survol ET au focus clavier, les NOMME.
+src/ui/RollLine-codex-chips.test.tsx:122:  it('le popover de la chip Soutien NOMME les soutiens (survol)', () => {
+src/ui/RollLine-etat-chips.test.tsx:4: * popover. CONTRAT : la pastille porte le NOM de l'État qui octroie la pénalité (jamais l'étiquette
+src/ui/RollLine-etat-chips.test.tsx:11: *  2. la chip EST l'affordance Codex, et son popover s'OUVRE ;
+src/ui/RollLine-etat-chips.test.tsx:65:describe('Chips de pénalité — texte EXACT et popover, du Combatant à l’écran (#1117 L4)', () => {
+src/ui/RollLine-etat-chips.test.tsx:72:    act(() => { root.unmount(); }); // démonte aussi les portals de popover
+src/ui/RollLine-etat-chips.test.tsx:83:    // Les DEUX portent leur affordance Codex (aucune pastille muette), et leur popover s'ouvre.
+src/ui/RollLine-etat-chips.test.tsx:89:      expect(pop, `popover ouvert pour « ${chip.textContent} »`).not.toBeNull();
+src/ui/RollLine-etat-chips.test.tsx:139:      expect(document.querySelector('.infobulle'), `popover de « ${chip.textContent} »`).not.toBeNull();
+src/ui/compendium/CodexRef.hooks.test.tsx:22: * popover de ce banc. Même geste que les deux autres bancs de la couture (`ui/echap-pile-lifo.test.tsx:48`,
+src/ui/compendium/CodexRef.hooks.test.tsx:28: * PRÉMISSE d'un appui d'Échap : la couche du DESSUS est bien celle de ce popover. Le congédiement va
+src/ui/compendium/CodexRef.hooks.test.tsx:29: * à la couche du DESSUS (`dismissTop`) — sommet étranger = l'appui va à l'autre surface, le popover reste à l'écran,
+src/ui/compendium/CodexRef.hooks.test.tsx:30: * et le banc rougirait sur « le popover n'est pas null » sans jamais nommer la vraie cause. Mesuré : une
+src/ui/compendium/CodexRef.hooks.test.tsx:34:const sommetEstLePopover = (quoi: string): void => {
+src/ui/compendium/CodexRef.hooks.test.tsx:74: * #1117 (recette 2026-08-05, vécu 3 fois) — un popover de chip AFFICHÉ (survol/focus sous `wrap`,
+src/ui/compendium/CodexRef.hooks.test.tsx:77: * « Échap en couches ») ne visait que le popover ÉPINGLÉ — cas jamais couvert, pas régression.
+src/ui/compendium/CodexRef.hooks.test.tsx:79:describe('CodexRef — Échap ferme le popover AFFICHÉ, pas seulement l’épinglé (#1117)', () => {
+src/ui/compendium/CodexRef.hooks.test.tsx:90:  /** Chip de RESSOURCE : `wrap` (le popover porte la seule porte vers la fiche, il est actionnable). */
+src/ui/compendium/CodexRef.hooks.test.tsx:99:  it('le popover affiché au survol se ferme sur Échap', () => {
+src/ui/compendium/CodexRef.hooks.test.tsx:103:    expect(pop(), 'le survol affiche le popover').toBeTruthy();
+src/ui/compendium/CodexRef.hooks.test.tsx:104:    sommetEstLePopover('le popover affiché au survol doit être la couche que l’appui adresse');
+src/ui/compendium/CodexRef.hooks.test.tsx:110:  it('sans popover affiché, Échap ne fait rien ici (la modale garde sa couche)', () => {
+src/ui/compendium/CodexRef.hooks.test.tsx:165: * #1117 — les deux CHEMINS distincts du popover, chacun sa preuve :
+src/ui/compendium/CodexRef.hooks.test.tsx:166: *  - ÉPINGLÉ (le focus est parti DANS le popover) : Échap doit RENDRE le focus au contrôle englobé ;
+src/ui/compendium/CodexRef.hooks.test.tsx:167: *  - NON épinglé : le popover ne doit JAMAIS voler le clic d'un bouton situé sous lui — c'est le
+src/ui/compendium/CodexRef.hooks.test.tsx:193:    expect(document.querySelector('.infobulle'), 'le popover est épinglé').toBeTruthy();
+src/ui/compendium/CodexRef.hooks.test.tsx:194:    expect(document.activeElement, 'le focus est ENTRÉ dans le popover, sur sa porte')
+src/ui/compendium/CodexRef.hooks.test.tsx:196:    sommetEstLePopover('le popover épinglé doit être la couche que l’appui adresse');
+src/ui/compendium/CodexRef.hooks.test.tsx:237:  it('NON épinglé : un bouton SOUS le popover reçoit bien le clic (plus d’interception)', () => {
+src/ui/compendium/CodexRef.hooks.test.tsx:247:    expect(pop, 'le popover est affiché (survol)').toBeTruthy();
+src/ui/compendium/CodexRef.hooks.test.tsx:248:    // Le clic part sur le CTA : il ne doit pas être capté par la surface du popover restée ouverte.
+src/ui/compendium/CodexRef.hooks.test.tsx:255:    // Et le `mousedown` hors popover l'a refermé : la surface ne reste pas au-dessus du CTA.
+src/ui/compendium/CodexRef.test.tsx:5:describe('CodexRef — affordance clic (#tooltipOnly bascule le popover, jamais un survol-only)', () => {
+src/ui/compendium/CodexRef.test.tsx:19:  it('hors tooltipOnly (même entrée) : le clic ouvre la fiche — affordance visible, pas d’aria-expanded (pas de bascule popover)', () => {
+src/ui/dialogue-couche-du-dessus.test.tsx:38:      {/* Une puce du HUD (portrait, état) : un `CodexRef` réel, dont le survol pose un POPOVER. */}
+src/ui/dialogue-couche-du-dessus.test.tsx:79:describe('#1869 — un POPOVER au-dessus de la conversation ne lui prend pas les touches', () => {
+src/ui/dialogue-couche-du-dessus.test.tsx:80:  it('survol d’une puce du codex : le popover s’empile, et Digit2 choisit quand même la réponse 2', () => {
+src/ui/dialogue-couche-du-dessus.test.tsx:84:    expect(dismissStackKinds(), 'le survol pose un popover au-dessus de la conversation').toEqual(['dialogue', 'infobulle']);
+src/ui/dialogue-couche-du-dessus.test.tsx:87:    expect(useGame.getState().dialogue?.nodeId, 'un popover ne rend rien inerte : la réponse 2 part').toBe('n3');
+src/ui/echap-pile-lifo.test.tsx:7: * Bug d'origine : chaque surface posait son propre écouteur. Le popover de règle se fermait ET
+src/ui/echap-pile-lifo.test.tsx:91:  it('POPOVER ÉPINGLÉ : Échap le referme et n’ouvre PAS le menu système (bug d’origine du ticket)', () => {
+src/ui/echap-pile-lifo.test.tsx:102:    expect(document.querySelector('.infobulle'), 'le popover est épinglé').toBeTruthy();
+src/ui/echap-pile-lifo.test.tsx:105:    expect(document.querySelector('.infobulle'), 'Échap referme le popover').toBeNull();
+src/ui/echap-pile-lifo.test.tsx:147:    expect(document.querySelector('.infobulle'), 'le survol affiche le popover').toBeTruthy();
+src/ui/jetProps/useAttackJetProps.conformance.test.tsx:249: *  2. ces circonstances ne sont plus des chips — le palier les porte (composition au popover) ;
+src/ui/jetProps/useAttackJetProps.conformance.test.tsx:259:  /** Le palier est-il sa PROPRE affordance de règle (déclencheur `CodexRef` → popover de composition,
+src/ui/jetProps/useAttackJetProps.conformance.test.tsx:263:  /** OUVRE le popover du palier (survol) et rend son contenu : le popover est un PORTAL monté à la
+src/ui/jetProps/useAttackJetProps.conformance.test.tsx:265:  const popover = (v: HTMLDivElement): string => {
+src/ui/jetProps/useAttackJetProps.conformance.test.tsx:275:  /** Le NOM du jet (la Compétence lancée) est-il une porte Codex ? Il l'est PAR SON POPOVER seul :
+src/ui/jetProps/useAttackJetProps.conformance.test.tsx:287:    expect(porte(v), 'le palier DÉRIVÉ porte le popover de sa composition').toBe('Très difficile (−30)');
+src/ui/jetProps/useAttackJetProps.conformance.test.tsx:344:    expect(popover(v)).toContain('+20 Courte portée');
+src/ui/jetProps/useAttackJetProps.conformance.test.tsx:345:    expect(popover(v)).toContain('−20 Localisation visée');
+src/ui/jetProps/useAttackJetProps.conformance.test.tsx:346:    expect(popover(v)).toContain('−10 Tir en bougeant');
+src/ui/jetProps/useAttackJetProps.conformance.test.tsx:347:    expect(popover(v), 'aucune amputation : le plafond ne mord pas sur −10').not.toContain('plafond Difficultés');
+src/ui/jetProps/useAttackJetProps.conformance.test.tsx:354:   * Le palier ne se contente pas d'être une porte : son popover DIT sa composition. Sans cette
+src/ui/jetProps/useAttackJetProps.conformance.test.tsx:358:  it('le POPOVER du palier énumère les circonstances qui le composent', () => {
+src/ui/jetProps/useAttackJetProps.conformance.test.tsx:360:    const pop = popover(v);
+src/ui/jetProps/useAttackJetProps.conformance.test.tsx:361:    expect(pop, 'l’instance lue à l’écran ouvre le popover').toContain('Très difficile (−30)');
+src/ui/jetProps/useAttackJetProps.conformance.test.tsx:385:   * s'ouvre par son SEUL popover : le (i) reste au palier (arbitrage user 2026-08-10).
+src/ui/jetProps/useAttackJetProps.conformance.test.tsx:387:  it('le NOM du jet est une porte Codex — popover SEUL, sans (i)', () => {
+src/ui/jetProps/useAttackJetProps.conformance.test.tsx:393:    expect(nom!.querySelector('svg.icon'), 'aucun (i) sur la Compétence : le popover suffit').toBeNull();
+src/ui/jetProps/useAttackJetProps.conformance.test.tsx:396:  it('le POPOVER du nom du jet donne la règle de la Compétence lancée', () => {
+src/ui/styles.css:45:@import './styles/media-select.css'; /* sélecteur visuel (MediaSelect) : déclencheur + popover de rangées média */
+src/ui/styles/components.css:1337:   nom d'INSTANCE qui le surmonte. UN poseur, `CodexTitre`, monté sur trois zones (le popover du
+src/ui/wrap-keyboard-vs-cursor.test.tsx:4: * bouton de pool ouvrait le popover ET déplaçait le curseur tactique (binding `cursor-down`), qui

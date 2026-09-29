@@ -1,0 +1,14 @@
+## Publication cf4c2ee7b
+
+Plage publiée : `a3585421d → cf4c2ee7b` sur `main`.
+
+### Commits (1)
+- `cf4c2ee7b` refactor(ui): refs #1806 — hud.css ne déclare plus que du placement (peau bois, halo partagé)
+
+### CI
+- verte — course `35520954425` : https://github.com/cgauche/game/actions/runs/35520954425
+- attente du verdict CI : 10.3 min (temps d’attente, pas de machine locale).
+
+#1806 est rattaché (`refs`) par cette publication, non fermé.
+
+<!-- publier: cf4c2ee7b08d5594fc4f8276176037d61101f025 -->

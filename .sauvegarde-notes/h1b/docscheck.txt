@@ -1,0 +1,114 @@
+
+> warhammer-v4-rpg@0.1.0 docs:check
+> node scripts/docs/build-all.mjs --check
+
+docs:check — scripts/gen-registry.mjs — rejoué : aucune cible signée (bloc injecté ou cible de code) : rien à juger frais
+docs:check — scripts/gen-quality-ids.mjs — rejoué : aucune cible signée (bloc injecté ou cible de code) : rien à juger frais
+docs:check — scripts/raw/build-atlas-index.mjs — rejoué : aucune cible signée (bloc injecté ou cible de code) : rien à juger frais
+docs:check — scripts/raw/build-implemente.mjs — rejoué : aucune cible signée (bloc injecté ou cible de code) : rien à juger frais
+docs:check — scripts/docs/build-registre-jets.mjs — rejoué : sources du disque 7195fd61c53f ≠ index 7153f3eac9ef
+docs:check — scripts/docs/build-usages-jets.mjs — rejoué : sources du disque db0c5951f94c ≠ index 64381060095f
+docs:check — scripts/docs/build-entity-orphans.mjs — rejoué : sources du disque 4e92d3f33bf6 ≠ index 0432fa9eea89
+docs:check — scripts/docs/build-field-consumers.mts — rejoué : sources du disque 8e931f9a35c3 ≠ index b0cd65c0fe88
+docs:check — scripts/raw/reconcile.mjs — rejoué : sources du disque 4a7cb524d672 ≠ index 9aee7d66fa04
+gen-registry --check: CREATURES à jour (114 fichiers, src/gameIso/rig/creatures/defs)
+gen-registry --check: SCENARIOS à jour (41 fichiers, src/scenes/test-scenarios)
+gen-registry --check: MONSTER_PARTS à jour (24 fichiers, src/gameIso/rig/parts/monster/defs)
+gen-registry --check: QUAD_HEAD_DEFS à jour (15 fichiers, src/gameIso/rig/quadruped/heads/defs)
+gen-registry --check: QUAD_TAIL_DEFS à jour (12 fichiers, src/gameIso/rig/quadruped/tails/defs)
+gen-registry --check: QUAD_MANE_DEFS à jour (3 fichiers, src/gameIso/rig/quadruped/manes/defs)
+gen-registry --check: QUAD_HARNAIS_DEFS à jour (3 fichiers, src/gameIso/rig/quadruped/harnais/defs)
+gen-registry --check: APPENDAGE_DEFS à jour (9 fichiers, src/gameIso/rig/parts/appendages/defs)
+gen-registry --check: PROSTHESIS_DEFS à jour (7 fichiers, src/gameIso/rig/parts/prosthesis/defs)
+gen-registry --check: BODY_DEFS à jour (2 fichiers, src/gameIso/rig/parts/bodies/defs)
+gen-registry --check: EYE_DEFS à jour (9 fichiers, src/gameIso/rig/parts/eyes/defs)
+gen-registry --check: CAPE_DEFS à jour (1 fichiers, src/gameIso/rig/parts/capes/defs)
+gen-registry --check: WING_DEFS à jour (2 fichiers, src/gameIso/rig/parts/wings/defs)
+gen-registry --check: TENUE_DEFS à jour (109 fichiers, src/gameIso/rig/parts/tenues/defs)
+gen-registry --check: HEAD_DEFS à jour (10 fichiers, src/gameIso/rig/parts/heads/defs)
+gen-registry --check: HAIRSTYLE_DEFS à jour (13 fichiers, src/gameIso/rig/parts/hairstyles/defs)
+gen-registry --check: SWARM_FORM_DEFS à jour (8 fichiers, src/gameIso/rig/swarm/defs)
+gen-registry --check: ELEMENT_DEFS à jour (70 fichiers, src/gameIso/rig/parts/elements/defs)
+gen-registry --check: WEAPON_DEFS à jour (90 fichiers, src/gameIso/rig/parts/weapons/defs)
+gen-registry --check: SHIELD_DEFS à jour (4 fichiers, src/gameIso/rig/parts/shields/defs)
+gen-registry --check: ARMOUR_DEFS à jour (4 fichiers, src/gameIso/rig/parts/armour/defs)
+gen-registry --check: ENGIN_ARTS à jour (13 fichiers, src/gameIso/rig/engin/defs)
+gen-registry --check: SHIP_ARTS à jour (20 fichiers, src/gameIso/rig/ship/defs)
+gen-registry --check: LAND_ARTS à jour (5 fichiers, src/gameIso/rig/land/defs)
+gen-registry --check: GABARIT_DEFS à jour (13 fichiers, src/gameIso/rig/gabarits/defs)
+gen-registry --check: PLAN_LIST à jour (19 fichiers, src/gameIso/rig/plans/defs)
+gen-registry --check: PROP_DEFS à jour (124 fichiers, src/gameIso/catalog/decor/defs)
+gen-registry --check: ICON_FAMILIES à jour (28 fichiers, src/ui/icons/defs)
+gen-registry --check: BACKDROP_DEFS à jour (4 fichiers, src/ui/backdrops/defs)
+gen-registry --check: SOUND_DEFS à jour (16 fichiers, src/audio/defs)
+gen-registry --check: SCHEMA_DEFS à jour (124 fichiers, src/data/schemas/defs)
+gen-registry --check: SCHEMA_DEFS_SCENES à jour (4 fichiers, src/data/schemas/defs-scenes)
+gen-registry --check: projections d'art à jour (ESPECES_DE_CREATURE=114, SEXE_DE_COIFFURE=13, FORMES_DE_NUEE=8, src/data/schemas/_art.generated.ts)
+gen-espaces: IDS_PAR_ESPACE ← 7188 ids / 362 espaces (src/data/schemas/_ids.generated.ts), CLES_DE_DATASET ← 134 clés (src/data/schemas/_cles-de-dataset.generated.ts), RACINES_VIVANTES ← 105 documents (src/data/schemas/_racines-vivantes.generated.ts) [inchangé]
+gen:quality-ids — OK (src/engine/qualities/qualityId.generated.ts à jour, 59 ids)
+build-atlas-index — OK (bloc des cœurs à jour dans docs/raw/00-index.md)
+build-atlas-index — OK (bloc des domaines du cœur « 4e » à jour dans docs/raw/4e/00-index.md)
+build-atlas-index — OK (bloc des domaines du cœur « 5e » à jour dans docs/raw/5e/00-index.md)
+docs:check — scripts/raw/build-catalogs.mjs — frais (sources e7039c3628f2, corps 5789cd654d5f), non rejoué
+raw:implemente — OK (champs Implémente à jour · tout non-implémenté ticketé · toute dette de fiche couvre un topic)
+docs:check — scripts/docs/build-primitives.mjs — frais (sources 2fb7397cb11a, corps cba6d65ea77a), non rejoué
+docs:check — scripts/docs/build-systemes.mjs — frais (sources 2aca8e63aa47, corps c8d23c31547a), non rejoué
+docs:check — scripts/docs/build-donnees.mjs — frais (sources 7406a67893f7, corps b1c506fab81c), non rejoué
+docs:check — scripts/docs/build-sources-vf.mjs — frais (sources 1119e32694c0, corps da8cffdb50dd), non rejoué
+docs:check — scripts/docs/build-effects.mjs — frais (sources ec88f680dd67, corps 3d2fdf07b755), non rejoué
+docs:check — scripts/docs/build-vocabulaire.mjs — frais (sources cfbeab55e3b8, corps 26fa5bb27733), non rejoué
+docs:check — scripts/docs/build-index-moteur.mjs — frais (sources 1f328f6542ec, corps 50fdd252141a), non rejoué
+build-registre-jets — docs/registre-jets.md à jour
+build-usages-jets — docs/usages-jets.md à jour
+docs:orphelines — OK (docs/orphelines-donnees.md à jour, 364/1094 orphelines mesurées)
+docs:check — scripts/docs/build-test-scenarios.mjs — frais (sources afcabc4d85c7, corps dea2ceda2833), non rejoué
+docs:check — scripts/docs/build-reprise.mjs — frais (sources 9d3a316cf507, corps 5d900bb6339d), non rejoué
+docs:check — scripts/docs/build-icones.mjs — frais (sources 53860ccc6d01, corps e02688e6eab8), non rejoué
+docs:check — scripts/docs/build-codex-relations.mjs — frais (sources 9c1be3db9ecb, corps 35cdca834145), non rejoué
+docs:check — scripts/docs/build-map-authoring.mjs — frais (sources 88140d7e8e7d, corps fb6af6de7e52), non rejoué
+docs:check — scripts/docs/build-passifs.mjs — frais (sources 0c49a9bfb15b, corps bfe6a2cf1feb), non rejoué
+docs:check — scripts/docs/build-rendu-pipeline.mjs — frais (sources 4c182f1248a7, corps 54932f16d69e), non rejoué
+docs:check — scripts/docs/build-flux-de-jet.mjs — frais (sources a996dfcce48d, corps 4711c3823e31), non rejoué
+docs:check — scripts/docs/build-mecanique.mjs — frais (sources 84b57be17551, corps a6d0ed57d3a1), non rejoué
+docs:check — scripts/docs/build-sort.mjs — frais (sources 8b73e5a97ba4, corps 211e8707ba03), non rejoué
+docs:check — scripts/docs/build-ajouter-donnee.mjs — frais (sources c88f18944899, corps 2523c80a365c), non rejoué
+docs:check — scripts/docs/build-regles-optionnelles.mjs — frais (sources d4b886ffb5c4, corps a13d2de95429), non rejoué
+docs:check — scripts/docs/build-doctrines.mjs — frais (sources d671b1295c56, corps 8d4433227ab2), non rejoué
+docs:check — scripts/gen-sorts-doc.mts — frais (sources 978165548e19, corps 5867e9eda60b), non rejoué
+docs:field-consumers — OK (docs/consommateurs-de-champs.md à jour, 5/160 champs « 0 lecteur » PROPRES)
+docs:build — scripts/docs/build-field-consumers.mts : 24 chemin(s) lu(s) hors racine, écarté(s) de la mesure.
+docs:check — scripts/docs/build-structures.mts — frais (sources eb6d76f44e47, corps 496f11d9ede7), non rejoué
+docs:check — scripts/raw/coverage.mjs — frais (sources 72ec6e35edfb, corps a45356c9e88d), non rejoué
+Sens A : 12 trou(s) dur(s) chapitre-livre · 11 chapitre(s)-livre à lignes non pinées · 0 réf(s) sans chapitre (hors mesure) · folios Atlas ignorés 2
+  ADE I : 1 trous durs · 1 chapitres non pinés · 0 réfs sans chapitre
+  ADE II : 0 trous durs · 1 chapitres non pinés · 0 réfs sans chapitre
+  EDO : 1 trous durs · 2 chapitres non pinés · 0 réfs sans chapitre
+  EDOC : 2 trous durs · 2 chapitres non pinés · 0 réfs sans chapitre
+  MCLB : 1 trous durs · 0 chapitres non pinés · 0 réfs sans chapitre
+  MDG : 2 trous durs · 1 chapitres non pinés · 0 réfs sans chapitre
+  MSRC : 1 trous durs · 2 chapitres non pinés · 0 réfs sans chapitre
+  NADJ : 2 trous durs · 1 chapitres non pinés · 0 réfs sans chapitre
+  PDT : 2 trous durs · 0 chapitres non pinés · 0 réfs sans chapitre
+  VDM : 0 trous durs · 1 chapitres non pinés · 0 réfs sans chapitre
+Sens B1 : 19 (non implémenté) — 17 sous dette déclarée, 0 sans entrée, 2 hors champ Implémente
+  dette de fiche 5e/tests.md (#1873) : couvre 16 topic(s) sur 16
+Sens B2 LDB (cœur 4e) : 12 → 1 chapitre(s) Atlas hors-code (11 crédité(s) par folio, 0 sous dette de fiche)
+Sens B2 CRB (cœur 5e) : 47 → 0 chapitre(s) Atlas hors-code (0 crédité(s) par folio, 47 sous dette de fiche)
+Cœur étranger : aucune des 23 fiche(s) ne cite le livre de cœur d'un autre cœur que le sien.
+Cliquet des trous durs : 13 trou(s) dur(s), tous au stock (13 entrée(s)) — aucun neuf, aucun périmé, aucun livre de cœur.
+docs:check — scripts/raw/reanchor.mjs — frais (sources 0a28d27fc98c, corps fba5ec033738), non rejoué
+docs:check — OK (34 docs vivantes, chemins & symboles vérifiés)
+check-atlas-counts — OK (aucun compte manuscrit dans 29 fichier(s) manuscrit(s) de l'Atlas ; 17 livres dans BOOKS)
+progression : 108/108 Carrières appariées à une bande du PDF (111 bandes, livres extraits : archives-de-l-empire-1, archives-de-l-empire-2, aux-armes, livre-de-base, mer-des-griffes, middenheim, vents-de-la-magie)
+  archives-de-l-empire-1 : 4
+  archives-de-l-empire-2 : 3
+  aux-armes : 15
+  livre-de-base : 64
+  mer-des-griffes : 9
+  middenheim : 1
+  vents-de-la-magie : 12
+  BANDE HORS DONNÉE livre-de-base folio 46 (page PDF 48, y=389.5) : aucune Carrière de la donnée ne la réclame — titres de la page ["CARRIÈRES","CLASSES ET CARRIÈRES","CLASSES","CARRIÈRES"]
+  BANDE HORS DONNÉE vents-de-la-magie folio 188 (page PDF 192, y=753.1) : aucune Carrière de la donnée ne la réclame — titres de la page ["FAMILIER DE COMBAT","Évolution de Carrière","FAMILIER DE SORTS","Évolution de Carrière"]
+  BANDE HORS DONNÉE vents-de-la-magie folio 188 (page PDF 192, y=373.8) : aucune Carrière de la donnée ne la réclame — titres de la page ["FAMILIER DE SORTS","FAMILIER DE COMBAT","Évolution de Carrière","FAMILIER DE SORTS","Évolution de Carrière"]
+progression : OK
+docs:check — OK (docs/.sources-lues.json à jour, 9 générateur(s) rejoué(s) sous linux, 25 frais, 4 vérificateur(s))

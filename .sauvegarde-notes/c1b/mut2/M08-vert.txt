@@ -1,0 +1,12 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1919-H2
+
+ ✓ src/ui/CombatConsole.test.tsx (151 tests | 150 skipped) 6971ms 484 MB heap used
+   ✓ CombatConsole — budget de hauteur du pont (arbitrage user 2026-08-17, décision d’écran 2026-09-24) > F-3 — le côté se calcule sur la FENÊTRE, et la bande TIENT dans la fenêtre à toute largeur, souris ET doigt 6969ms
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 150 skipped (151)
+   Start at  01:35:11
+   Duration  25.72s (transform 11.64s, setup 12.32s, collect 5.36s, tests 6.97s, environment 634ms, prepare 65ms)
+

@@ -1,0 +1,10 @@
+scripts/docs/lib/jsdocUnion.mjs:236:    programme = ts.createProgram({
+scripts/guards/lib/analyseRetenue.mjs:6:// FABRIQUE : `FABRIQUES_D_ANALYSE` (appel nu ou membre, `ts.createProgram`) ; toute fonction NOMMÉE du
+scripts/guards/lib/analyseRetenue.mjs:60:  'createProgram',
+scripts/guards/lib/coupeAuCaractere.mjs:42:  return ts.createProgram({ rootNames: [racine.fileName], options, host }).getTypeChecker()
+scripts/guards/lib/tsProgram.mjs:37:  return ts.createProgram({
+scripts/guards/lib/tsProgram.mjs:79:  return ts.createProgram({ rootNames: [...sources.keys()], options, host });
+src/analyse-retention-guard.test.ts:118:export const DIRECT = ts.createProgram({ rootNames: [], options: {} });
+src/state/built-brand-lint.test.ts:179:  const program = ts.createProgram([fileName], options, host);
+src/state/roll-seam-mints.test.ts:547:  return ts.getPreEmitDiagnostics(ts.createProgram([fileName], options, host)).map((d) => d.code);
+src/ui/editor/scene-field-editability-guard.test.ts:358:    return ts.createProgram({ rootNames, options: { ...parsed.options, noEmit: true }, host });

@@ -1,0 +1,106 @@
+TAP version 13
+# Subtest: deltaSourcesLues : deux mesures identiques ne rendent rien
+ok 1 - deltaSourcesLues : deux mesures identiques ne rendent rien
+  ---
+  duration_ms: 3.192499
+  type: 'test'
+  ...
+# Subtest: deltaSourcesLues : un fichier AJOUTÉ, un dossier RETIRÉ, nommés par champ
+ok 2 - deltaSourcesLues : un fichier AJOUTÉ, un dossier RETIRÉ, nommés par champ
+  ---
+  duration_ms: 0.348941
+  type: 'test'
+  ...
+# Subtest: deltaSourcesLues : un générateur absent d'un côté rend TOUT son champ
+ok 3 - deltaSourcesLues : un générateur absent d'un côté rend TOUT son champ
+  ---
+  duration_ms: 0.409281
+  type: 'test'
+  ...
+# Subtest: deltaSourcesLues : ordre des chemins et des générateurs déterministe
+ok 4 - deltaSourcesLues : ordre des chemins et des générateurs déterministe
+  ---
+  duration_ms: 0.246843
+  type: 'test'
+  ...
+# Subtest: apercuDivergences : doc committé ABSENT
+ok 5 - apercuDivergences : doc committé ABSENT
+  ---
+  duration_ms: 0.307147
+  type: 'test'
+  ...
+# Subtest: apercuDivergences : corps IDENTIQUES, aucun aperçu
+ok 6 - apercuDivergences : corps IDENTIQUES, aucun aperçu
+  ---
+  duration_ms: 0.110271
+  type: 'test'
+  ...
+# Subtest: apercuDivergences : ligne qui DIVERGE, nommée puis rendue des DEUX côtés
+ok 7 - apercuDivergences : ligne qui DIVERGE, nommée puis rendue des DEUX côtés
+  ---
+  duration_ms: 0.14934
+  type: 'test'
+  ...
+# Subtest: apercuDivergences : committé PRÉFIXE du régénéré — la ligne MANQUE, jamais « undefined »
+ok 8 - apercuDivergences : committé PRÉFIXE du régénéré — la ligne MANQUE, jamais « undefined »
+  ---
+  duration_ms: 0.143024
+  type: 'test'
+  ...
+# Subtest: apercuDivergences : régénéré PRÉFIXE du committé — la ligne est EN TROP, jamais « ligne 0 »
+ok 9 - apercuDivergences : régénéré PRÉFIXE du committé — la ligne est EN TROP, jamais « ligne 0 »
+  ---
+  duration_ms: 0.337398
+  type: 'test'
+  ...
+# Subtest: apercuDivergences : toutes les lignes divergentes des deux côtés, le reste COMPTÉ
+ok 10 - apercuDivergences : toutes les lignes divergentes des deux côtés, le reste COMPTÉ
+  ---
+  duration_ms: 0.290756
+  type: 'test'
+  ...
+# Subtest: apercuDivergences : une ligne longue est coupée AU MOT sous 240 caractères (`coupeAuMot`), jamais dans un mot
+ok 11 - apercuDivergences : une ligne longue est coupée AU MOT sous 240 caractères (`coupeAuMot`), jamais dans un mot
+  ---
+  duration_ms: 0.421606
+  type: 'test'
+  ...
+# Subtest: ecrireOuVerifier --check : corps à jour (pied compris) → vert, rien d’écrit
+ok 12 - ecrireOuVerifier --check : corps à jour (pied compris) → vert, rien d’écrit
+  ---
+  duration_ms: 69.384991
+  type: 'test'
+  ...
+# Subtest: ecrireOuVerifier --check : corps PÉRIMÉ → bit CODE_CORPS_PERIME, divergence NOMMÉE, rien d’écrit
+ok 13 - ecrireOuVerifier --check : corps PÉRIMÉ → bit CODE_CORPS_PERIME, divergence NOMMÉE, rien d’écrit
+  ---
+  duration_ms: 68.69758
+  type: 'test'
+  ...
+# Subtest: ecrireOuVerifier --check : un cliquet posé AVANT garde son bit — les deux rouges se lisent au code
+ok 14 - ecrireOuVerifier --check : un cliquet posé AVANT garde son bit — les deux rouges se lisent au code
+  ---
+  duration_ms: 73.08099
+  type: 'test'
+  ...
+# Subtest: ecrireOuVerifier en écriture : réécrit le corps en CONSERVANT le pied, rend l’état d’avant
+ok 15 - ecrireOuVerifier en écriture : réécrit le corps en CONSERVANT le pied, rend l’état d’avant
+  ---
+  duration_ms: 154.414486
+  type: 'test'
+  ...
+# Subtest: estUnDocMarkdown : un doc Markdown, jamais une cible de code
+ok 16 - estUnDocMarkdown : un doc Markdown, jamais une cible de code
+  ---
+  duration_ms: 0.200718
+  type: 'test'
+  ...
+1..16
+# tests 16
+# suites 0
+# pass 16
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 485.689922

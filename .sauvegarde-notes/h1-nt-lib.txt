@@ -1,0 +1,406 @@
+TAP version 13
+# Subtest: classification : le code TARGET_NAVIGATED marque l'erreur rejouable
+ok 1 - classification : le code TARGET_NAVIGATED marque l'erreur rejouable
+  ---
+  duration_ms: 1.766039
+  type: 'test'
+  ...
+# Subtest: classification : « Inspected target navigated or closed » est rejouable
+ok 2 - classification : « Inspected target navigated or closed » est rejouable
+  ---
+  duration_ms: 0.310142
+  type: 'test'
+  ...
+# Subtest: classification : « Execution context was destroyed. » est rejouable
+ok 3 - classification : « Execution context was destroyed. » est rejouable
+  ---
+  duration_ms: 0.184907
+  type: 'test'
+  ...
+# Subtest: classification : « Cannot find context with specified id » est rejouable
+ok 4 - classification : « Cannot find context with specified id » est rejouable
+  ---
+  duration_ms: 0.177592
+  type: 'test'
+  ...
+# Subtest: classification : « Target closed » est rejouable
+ok 5 - classification : « Target closed » est rejouable
+  ---
+  duration_ms: 0.198557
+  type: 'test'
+  ...
+# Subtest: classification : « Session with given id not found » est rejouable
+ok 6 - classification : « Session with given id not found » est rejouable
+  ---
+  duration_ms: 0.122549
+  type: 'test'
+  ...
+# Subtest: classification : « No target with given id » est rejouable
+ok 7 - classification : « No target with given id » est rejouable
+  ---
+  duration_ms: 0.332227
+  type: 'test'
+  ...
+# Subtest: classification : casse indifférente (les motifs CDP sont insensibles à la casse)
+ok 8 - classification : casse indifférente (les motifs CDP sont insensibles à la casse)
+  ---
+  duration_ms: 0.186465
+  type: 'test'
+  ...
+# Subtest: classification : helper de DEV évaporé — lecture sur undefined/null
+ok 9 - classification : helper de DEV évaporé — lecture sur undefined/null
+  ---
+  duration_ms: 0.453124
+  type: 'test'
+  ...
+# Subtest: classification : helper de DEV évaporé — window.__wfrp is not a function / undefined
+ok 10 - classification : helper de DEV évaporé — window.__wfrp is not a function / undefined
+  ---
+  duration_ms: 0.393374
+  type: 'test'
+  ...
+# Subtest: classification : une CHAÎNE nue est classée sur son texte
+ok 11 - classification : une CHAÎNE nue est classée sur son texte
+  ---
+  duration_ms: 0.217974
+  type: 'test'
+  ...
+# Subtest: classification : une erreur quelconque n'est PAS rejouable
+ok 12 - classification : une erreur quelconque n'est PAS rejouable
+  ---
+  duration_ms: 0.09338
+  type: 'test'
+  ...
+# Subtest: classification : absence d'erreur ou message vide — pas rejouable
+ok 13 - classification : absence d'erreur ou message vide — pas rejouable
+  ---
+  duration_ms: 0.237052
+  type: 'test'
+  ...
+# Subtest: withReloadRetry : une erreur rejouable est rejouée `tries` fois puis abandonnée, l'erreur d'origine en cause
+ok 14 - withReloadRetry : une erreur rejouable est rejouée `tries` fois puis abandonnée, l'erreur d'origine en cause
+  ---
+  duration_ms: 1097.780876
+  type: 'test'
+  ...
+# Subtest: withReloadRetry : une erreur NON rejouable remonte telle quelle, AUCUN rejeu
+ok 15 - withReloadRetry : une erreur NON rejouable remonte telle quelle, AUCUN rejeu
+  ---
+  duration_ms: 26.399089
+  type: 'test'
+  ...
+# Subtest: withReloadRetry : le succès au 2e essai rend le résultat
+ok 16 - withReloadRetry : le succès au 2e essai rend le résultat
+  ---
+  duration_ms: 555.508624
+  type: 'test'
+  ...
+# Subtest: withReloadRetry : `resettle` remet l'écran entre deux tentatives
+ok 17 - withReloadRetry : `resettle` remet l'écran entre deux tentatives
+  ---
+  duration_ms: 545.11875
+  type: 'test'
+  ...
+# Subtest: withReloadRetry : `contextCleared` déclenche le rejeu même sur une erreur non classée
+ok 18 - withReloadRetry : `contextCleared` déclenche le rejeu même sur une erreur non classée
+  ---
+  duration_ms: 532.269646
+  type: 'test'
+  ...
+# Subtest: withReloadRetry : le succès au 1er essai n'appelle ni onRetry ni resettle
+ok 19 - withReloadRetry : le succès au 1er essai n'appelle ni onRetry ni resettle
+  ---
+  duration_ms: 14.017817
+  type: 'test'
+  ...
+# Subtest: arbre servi : en-tête ABSENT = refus (fail-closed, jamais un silence)
+ok 20 - arbre servi : en-tête ABSENT = refus (fail-closed, jamais un silence)
+  ---
+  duration_ms: 0.225269
+  type: 'test'
+  ...
+# Subtest: arbre servi : racine servie ≠ cwd = refus NOMMANT les deux arbres
+ok 21 - arbre servi : racine servie ≠ cwd = refus NOMMANT les deux arbres
+  ---
+  duration_ms: 0.238277
+  type: 'test'
+  ...
+# Subtest: arbre servi : MÊME arbre écrit autrement (casse, backslash, slash final) = accepté
+ok 22 - arbre servi : MÊME arbre écrit autrement (casse, backslash, slash final) = accepté
+  ---
+  duration_ms: 0.144829
+  type: 'test'
+  ...
+# Subtest: checkServer : un serveur qui sert un AUTRE arbre est REFUSÉ (aucune session ouverte)
+ok 23 - checkServer : un serveur qui sert un AUTRE arbre est REFUSÉ (aucune session ouverte)
+  ---
+  duration_ms: 0.340135
+  type: 'test'
+  ...
+# Subtest: checkServer : le serveur de CET arbre passe
+ok 24 - checkServer : le serveur de CET arbre passe
+  ---
+  duration_ms: 0.126345
+  type: 'test'
+  ...
+# Subtest: empreinte : le fichier le plus RÉCENT et le cardinal sont relevés
+ok 25 - empreinte : le fichier le plus RÉCENT et le cardinal sont relevés
+  ---
+  duration_ms: 0.116064
+  type: 'test'
+  ...
+# Subtest: arbre gelé : mtime IDENTIQUE = aucun verdict
+ok 26 - arbre gelé : mtime IDENTIQUE = aucun verdict
+  ---
+  duration_ms: 0.048381
+  type: 'test'
+  ...
+# Subtest: arbre gelé : un mtime qui bouge NOMME le fichier
+ok 27 - arbre gelé : un mtime qui bouge NOMME le fichier
+  ---
+  duration_ms: 0.079713
+  type: 'test'
+  ...
+# Subtest: arbre gelé : un fichier AJOUTÉ à mtime inchangé est vu aussi
+ok 28 - arbre gelé : un fichier AJOUTÉ à mtime inchangé est vu aussi
+  ---
+  duration_ms: 0.137146
+  type: 'test'
+  ...
+# Subtest: withReloadRetry : arbre MODIFIÉ pendant la recette = échec nommé, AUCUN rejeu
+ok 29 - withReloadRetry : arbre MODIFIÉ pendant la recette = échec nommé, AUCUN rejeu
+  ---
+  duration_ms: 0.306696
+  type: 'test'
+  ...
+# Subtest: withReloadRetry : arbre GELÉ — le rejeu garde son comportement
+ok 30 - withReloadRetry : arbre GELÉ — le rejeu garde son comportement
+  ---
+  duration_ms: 501.641801
+  type: 'test'
+  ...
+# Subtest: evaluate : une expression qui ne rend jamais la main REJETTE au lieu de figer
+ok 31 - evaluate : une expression qui ne rend jamais la main REJETTE au lieu de figer
+  ---
+  duration_ms: 62.408547
+  type: 'test'
+  ...
+# Subtest: evaluate : le plafond est PASSÉ à la page (paramètre timeout du CDP)
+ok 32 - evaluate : le plafond est PASSÉ à la page (paramètre timeout du CDP)
+  ---
+  duration_ms: 0.595563
+  type: 'test'
+  ...
+# Subtest: evaluate : sans plafond explicite, le défaut du kit est appliqué
+ok 33 - evaluate : sans plafond explicite, le défaut du kit est appliqué
+  ---
+  duration_ms: 3.085711
+  type: 'test'
+  ...
+# Subtest: stockage : l'instantané est relu depuis la page, les deux zones
+ok 34 - stockage : l'instantané est relu depuis la page, les deux zones
+  ---
+  duration_ms: 0.368
+  type: 'test'
+  ...
+# Subtest: stockage : l'expression de restauration VIDE puis repose chaque clé des deux zones
+ok 35 - stockage : l'expression de restauration VIDE puis repose chaque clé des deux zones
+  ---
+  duration_ms: 0.159284
+  type: 'test'
+  ...
+# Subtest: stockage : un instantané VIDE vide les deux zones (aucun résidu de recette)
+ok 36 - stockage : un instantané VIDE vide les deux zones (aucun résidu de recette)
+  ---
+  duration_ms: 0.067551
+  type: 'test'
+  ...
+# Subtest: stockage : restaurerStockage envoie CETTE expression à la page
+ok 37 - stockage : restaurerStockage envoie CETTE expression à la page
+  ---
+  duration_ms: 0.363448
+  type: 'test'
+  ...
+# Subtest: evaluate : un plafond ATTEINT côté navigateur est requalifié (le CDP rend « Internal error » nu)
+ok 38 - evaluate : un plafond ATTEINT côté navigateur est requalifié (le CDP rend « Internal error » nu)
+  ---
+  duration_ms: 41.5064
+  type: 'test'
+  ...
+# Subtest: evaluate : une erreur de scénario AVANT le plafond remonte telle quelle
+ok 39 - evaluate : une erreur de scénario AVANT le plafond remonte telle quelle
+  ---
+  duration_ms: 0.542855
+  type: 'test'
+  ...
+# Subtest: realKey* : UNE forme d’argument — la TOUCHE, la même pour les trois helpers
+ok 40 - realKey* : UNE forme d’argument — la TOUCHE, la même pour les trois helpers
+  ---
+  duration_ms: 0.577113
+  type: 'test'
+  ...
+# Subtest: realKey : une touche d’un seul caractère émet aussi le `char`, et le code se déduit
+ok 41 - realKey : une touche d’un seul caractère émet aussi le `char`, et le code se déduit
+  ---
+  duration_ms: 0.586768
+  type: 'test'
+  ...
+# Subtest: realKey : Entrée émet son TEXTE `\\r` — c’est lui qui active le bouton focalisé
+ok 42 - realKey : Entrée émet son TEXTE `\\r` — c’est lui qui active le bouton focalisé
+  ---
+  duration_ms: 0.235585
+  type: 'test'
+  ...
+# Subtest: realKey* : `code` et code virtuel IMPOSÉS par l’appelant priment (`ALT`), et `modifiers` ne suit que l’APPUI
+ok 43 - realKey* : `code` et code virtuel IMPOSÉS par l’appelant priment (`ALT`), et `modifiers` ne suit que l’APPUI
+  ---
+  duration_ms: 0.227613
+  type: 'test'
+  ...
+# Subtest: realKey* : la CHAÎNE nue est refusée par un message qui NOMME la forme attendue
+ok 44 - realKey* : la CHAÎNE nue est refusée par un message qui NOMME la forme attendue
+  ---
+  duration_ms: 0.449967
+  type: 'test'
+  ...
+# Subtest: frapperTouche : l’alias français EST `realKey` (même geste, même forme)
+ok 45 - frapperTouche : l’alias français EST `realKey` (même geste, même forme)
+  ---
+  duration_ms: 0.083822
+  type: 'test'
+  ...
+# Subtest: champParLibelle : sans racine, le PREMIER champ du document porteur du libellé
+ok 46 - champParLibelle : sans racine, le PREMIER champ du document porteur du libellé
+  ---
+  duration_ms: 97.852777
+  type: 'test'
+  ...
+# Subtest: champParLibelle : `dans` vise le champ de CETTE racine quand le libellé vit deux fois
+ok 47 - champParLibelle : `dans` vise le champ de CETTE racine quand le libellé vit deux fois
+  ---
+  duration_ms: 15.612442
+  type: 'test'
+  ...
+# Subtest: champParLibelle : racine `dans` absente = null, comme un libellé introuvable
+ok 48 - champParLibelle : racine `dans` absente = null, comme un libellé introuvable
+  ---
+  duration_ms: 9.273276
+  type: 'test'
+  ...
+# Subtest: clickButtonByText : `rangee` vise le bouton de la rangée qui porte ce texte, pas le premier
+ok 49 - clickButtonByText : `rangee` vise le bouton de la rangée qui porte ce texte, pas le premier
+  ---
+  duration_ms: 14.755904
+  type: 'test'
+  ...
+# Subtest: clickButtonByText : `rangee` normalise l’apostrophe comme le libellé (DOM « L’Arène », rangee « L'Arène »)
+ok 50 - clickButtonByText : `rangee` normalise l’apostrophe comme le libellé (DOM « L’Arène », rangee « L'Arène »)
+  ---
+  duration_ms: 18.288406
+  type: 'test'
+  ...
+# Subtest: clickButtonByText : `rangee` normalise l’apostrophe comme le libellé (DOM « L'Arène », rangee « L’Arène »)
+ok 51 - clickButtonByText : `rangee` normalise l’apostrophe comme le libellé (DOM « L'Arène », rangee « L’Arène »)
+  ---
+  duration_ms: 17.189539
+  type: 'test'
+  ...
+# Subtest: clickButtonByText : `rangee` introuvable = refus NOMMANT la rangée, aucun clic
+ok 52 - clickButtonByText : `rangee` introuvable = refus NOMMANT la rangée, aucun clic
+  ---
+  duration_ms: 15.364879
+  type: 'test'
+  ...
+# Subtest: poserFichier : pose le chemin ABSOLU sur l’input de la racine `dans`
+ok 53 - poserFichier : pose le chemin ABSOLU sur l’input de la racine `dans`
+  ---
+  duration_ms: 8.813612
+  type: 'test'
+  ...
+# Subtest: poserFichier : input absent = refus NOMMANT le sélecteur, rien de posé
+ok 54 - poserFichier : input absent = refus NOMMANT le sélecteur, rien de posé
+  ---
+  duration_ms: 10.345167
+  type: 'test'
+  ...
+# Subtest: poserFichier : racine `dans` absente = refus NOMMANT la racine
+ok 55 - poserFichier : racine `dans` absente = refus NOMMANT la racine
+  ---
+  duration_ms: 8.25307
+  type: 'test'
+  ...
+# Subtest: Chrome : CHROME_PATH prime sur tout le reste
+ok 56 - Chrome : CHROME_PATH prime sur tout le reste
+  ---
+  duration_ms: 0.250664
+  type: 'test'
+  ...
+# Subtest: Chrome : le chemin EXPLICITE de l’appelant prime sur CHROME_PATH
+ok 57 - Chrome : le chemin EXPLICITE de l’appelant prime sur CHROME_PATH
+  ---
+  duration_ms: 0.055996
+  type: 'test'
+  ...
+# Subtest: Chrome : un chemin Windows présent passe avant Playwright, sur win32
+ok 58 - Chrome : un chemin Windows présent passe avant Playwright, sur win32
+  ---
+  duration_ms: 0.067231
+  type: 'test'
+  ...
+# Subtest: Chrome : hors win32, un chemin Windows n’est jamais essayé — il se résoudrait contre le dossier courant
+ok 59 - Chrome : hors win32, un chemin Windows n’est jamais essayé — il se résoudrait contre le dossier courant
+  ---
+  duration_ms: 0.148365
+  type: 'test'
+  ...
+# Subtest: Chrome : Chromium Playwright trouvé par LECTURE du dossier, version la plus haute, headless_shell écarté
+ok 60 - Chrome : Chromium Playwright trouvé par LECTURE du dossier, version la plus haute, headless_shell écarté
+  ---
+  duration_ms: 0.106211
+  type: 'test'
+  ...
+# Subtest: Chrome : sans PLAYWRIGHT_BROWSERS_PATH, la racine est /opt/pw-browsers
+ok 61 - Chrome : sans PLAYWRIGHT_BROWSERS_PATH, la racine est /opt/pw-browsers
+  ---
+  duration_ms: 0.060509
+  type: 'test'
+  ...
+# Subtest: Chrome : un dossier chromium-N sans exécutable est ignoré
+ok 62 - Chrome : un dossier chromium-N sans exécutable est ignoré
+  ---
+  duration_ms: 0.076199
+  type: 'test'
+  ...
+# Subtest: Chrome : --no-sandbox en root SEULEMENT
+ok 63 - Chrome : --no-sandbox en root SEULEMENT
+  ---
+  duration_ms: 0.065985
+  type: 'test'
+  ...
+# Subtest: Chrome : aucun candidat — refus NOMMANT les chemins essayés
+ok 64 - Chrome : aucun candidat — refus NOMMANT les chemins essayés
+  ---
+  duration_ms: 0.199083
+  type: 'test'
+  ...
+# Subtest: appel CDP sur une socket FERMÉE : rejeté tout de suite, typé cible perdue, rien d’envoyé
+ok 65 - appel CDP sur une socket FERMÉE : rejeté tout de suite, typé cible perdue, rien d’envoyé
+  ---
+  duration_ms: 0.305825
+  type: 'test'
+  ...
+# Subtest: appel CDP sur une socket OUVERTE : message envoyé, session portée, réglé par sa réponse
+ok 66 - appel CDP sur une socket OUVERTE : message envoyé, session portée, réglé par sa réponse
+  ---
+  duration_ms: 0.142086
+  type: 'test'
+  ...
+1..66
+# tests 66
+# suites 0
+# pass 66
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 4352.446203

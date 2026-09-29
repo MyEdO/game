@@ -1,0 +1,53 @@
+exploration 1707×780 — pont 49px (haut y=731) · dialogue 680×229.2 bas=715 · panneau 330×149 bas=730
+exploration 1366×650 — pont 49px (haut y=601) · dialogue 680×229.2 bas=585 · panneau 330×149 bas=600
+exploration 360×740 — pont 49px (haut y=691) · dialogue 330.9×328.4 bas=683 · panneau 309.6×168 bas=690
+    arche {"h":184.3,"pad":"6px/8px","gap":"4px","enfants":[{"q":"cc-arch-body","h":125.3},{"q":"life-bar","h":15},{"q":"cc-arch-name","h":19}],"portrait":98.2}
+    zones hautes — groupe {"x":654.5,"y":8,"w":398,"h":123.6,"bottom":131.6,"right":1052.5} · frise {"x":8,"y":65.8,"w":103.6,"h":452,"bottom":517.8,"right":111.6} · fil {"x":119.6,"y":507.7,"w":317.7,"h":18,"bottom":525.7,"right":437.2}
+1707×780 — bande : pont complet 187.3px · spectatrice 187.3px · ouverture 187.3px · bandeau y=139.6 h=81
+    pont complet [complete] · .cc-dock : scroll 132 / client 132
+    pont complet [complete] · .cc-bay-left : scroll 132 / client 132
+    pont complet [complete] · .cc-bay-right : scroll 132 / client 132
+    pont complet [complete] · .cc-corner : scroll 132 / client 132
+    pont complet [complete] · .cc-arch : scroll 181 / client 181
+    spectatrice [spectatrice] · .cc-dock : scroll 132 / client 132
+    spectatrice [spectatrice] · .cc-arch : scroll 181 / client 181
+    ouverture [spectatrice] · .cc-dock : scroll 132 / client 132
+    ouverture [spectatrice] · .cc-arch : scroll 181 / client 181
+    arche {"h":180,"pad":"6px/8px","gap":"4px","enfants":[{"q":"cc-arch-body","h":121},{"q":"life-bar","h":15},{"q":"cc-arch-name","h":19}],"portrait":91.2}
+    zones hautes — groupe {"x":484,"y":8,"w":398,"h":123.6,"bottom":131.6,"right":882} · frise {"x":8,"y":59,"w":103.6,"h":340,"bottom":399,"right":111.6} · fil {"x":119.6,"y":382,"w":317.7,"h":18,"bottom":400,"right":437.2}
+1366×650 — bande : pont complet 183px · spectatrice 183px · ouverture 183px · bandeau y=139.6 h=81
+    pont complet [complete] · .cc-dock : scroll 128 / client 128
+    pont complet [complete] · .cc-bay-left : scroll 128 / client 128
+    pont complet [complete] · .cc-bay-right : scroll 128 / client 128
+    pont complet [complete] · .cc-corner : scroll 128 / client 128
+    pont complet [complete] · .cc-arch : scroll 177 / client 177
+    spectatrice [spectatrice] · .cc-dock : scroll 128 / client 128
+    spectatrice [spectatrice] · .cc-arch : scroll 177 / client 177
+    ouverture [spectatrice] · .cc-dock : scroll 128 / client 128
+    ouverture [spectatrice] · .cc-arch : scroll 177 / client 177
+    arche {"h":183,"pad":"6px/8px","gap":"4px","enfants":[{"q":"cc-arch-body","h":124},{"q":"life-bar","h":15},{"q":"cc-arch-name","h":19}],"portrait":96}
+    zones hautes — groupe {"x":251,"y":8,"w":398,"h":123.6,"bottom":131.6,"right":649} · frise {"x":8,"y":72.1,"w":97.6,"h":440.8,"bottom":512.9,"right":105.6} · fil {"x":113.6,"y":479,"w":129.4,"h":48,"bottom":527,"right":243}
+900×780 — bande : pont complet 186px · spectatrice 186px · ouverture 186px · bandeau y=139.6 h=81
+    pont complet [complete] · .cc-dock : scroll 143 / client 143
+    pont complet [complete] · .cc-bay-left : scroll 143 / client 143
+    pont complet [complete] · .cc-bay-right : scroll 143 / client 143
+    pont complet [complete] · .cc-corner : scroll 143 / client 143
+    pont complet [complete] · .cc-arch : scroll 180 / client 180
+    spectatrice [spectatrice] · .cc-dock : scroll 143 / client 143
+    spectatrice [spectatrice] · .cc-arch : scroll 180 / client 180
+    ouverture [spectatrice] · .cc-dock : scroll 143 / client 143
+    ouverture [spectatrice] · .cc-arch : scroll 180 / client 180
+    arche {"h":180,"pad":"6px/8px","gap":"4px","enfants":[{"q":"cc-arch-body","h":121},{"q":"life-bar","h":15},{"q":"cc-arch-name","h":19}],"portrait":91.2}
+    zones hautes — groupe {"x":151,"y":4,"w":398,"h":123.6,"bottom":127.6,"right":549} · frise {"x":4,"y":131.6,"w":692,"h":73.8,"bottom":205.4,"right":696} · fil {"x":191.2,"y":213.4,"w":317.7,"h":18,"bottom":231.4,"right":508.8}
+700×780 — bande : pont complet 575px · spectatrice 189px · ouverture 189px · bandeau y=451 h=81
+    pont complet [complete] · .cc-dock : scroll 572 / client 572
+    pont complet [complete] · .cc-bay-left : scroll 117 / client 117
+    pont complet [complete] · .cc-bay-right : scroll 121 / client 121
+    pont complet [complete] · .cc-corner : scroll 124 / client 124
+    pont complet [complete] · .cc-arch : scroll 177 / client 177
+    spectatrice [spectatrice] · .cc-dock : scroll 186 / client 186
+    spectatrice [spectatrice] · .cc-arch : scroll 177 / client 177
+    ouverture [spectatrice] · .cc-dock : scroll 186 / client 186
+    ouverture [spectatrice] · .cc-arch : scroll 177 / client 177
+
+Pont de console : aucune amputation, bande stable dans les trois formes, bandeau d’ouverture dégagé.

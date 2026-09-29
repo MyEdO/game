@@ -1,0 +1,27 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1919-H2
+
+ ❯ src/ui/CombatConsole.test.tsx (151 tests | 1 failed | 150 skipped) 52ms 451 MB heap used
+   × CombatConsole — budget de hauteur du pont (arbitrage user 2026-08-17, décision d’écran 2026-09-24) > F-3 — le côté se calcule sur la FENÊTRE, et la bande TIENT dans la fenêtre à toute largeur, souris ET doigt 49ms
+     → expected 44.3 to be less than 44.3
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 150 skipped (151)
+   Start at  01:59:31
+   Duration  19.11s (transform 11.53s, setup 12.89s, collect 5.19s, tests 52ms, environment 590ms, prepare 53ms)
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/ui/CombatConsole.test.tsx > CombatConsole — budget de hauteur du pont (arbitrage user 2026-08-17, décision d’écran 2026-09-24) > F-3 — le côté se calcule sur la FENÊTRE, et la bande TIENT dans la fenêtre à toute largeur, souris ET doigt
+AssertionError: expected 44.3 to be less than 44.3
+ ❯ src/ui/CombatConsole.test.tsx:2181:28
+    2179|     expect(cote(1920, 1080)).toBeGreaterThan(cote(1920, 800));
+    2180|     // Un écran plus ÉTROIT : la rangée tient dans la fenêtre, donc la…
+    2181|     expect(cote(701, 780)).toBeLessThan(cote(1707, 780));
+       |                            ^
+    2182|     // Sonde du juge de diff C1 (`sonde-coarse.mjs`, B2) promue : à ch…
+    2183|     // pointeur, la COMPOSITION que la feuille choisit tient dans la f…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+

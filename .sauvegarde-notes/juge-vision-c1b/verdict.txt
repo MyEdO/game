@@ -1,0 +1,69 @@
+VERDICT : À REPRENDRE (lot C1b, #1806 #1856 #1919, écran)
+Arbre : /home/user/game/.wt-1919-H2, HEAD b0f2f1499, avec le WIP C1b (24 M + 1 ??). Contrôle positif : `git hash-object` des 8 fichiers de c1b/blobs-finaux.txt est identique (combat-console.css 5db0775e73, TeamSegments.tsx 1c05667b47, hud-clickables.mjs 240fa2f823, spectator-chip.css 722325e5de, CombatBanner.tsx f63113baa1, hud.css d589438f48, CampaignView.tsx 43264eec95, team-segments.css f8ccee216d). Dernière écriture sous src/ à 02:20:36, captures prises de 02:26 à 02:27 : elles montrent bien cet arbre.
+Empreintes : `sha256sum -c c1b/final/captures.sha256` rc=0, 40/40 OK.
+Sondes du juge (lecture seule, serveur de dev :5236 lancé par setsid+timeout, PID 5752, tué par son groupe ; pgrep vite/chrom vide ensuite, hors le vitest d'un autre agent) : juge-vision-c1b/sonde.mjs (infobulle au survol réel, nom long dans l'arche SPECTATRICE) et sonde2.mjs (noms réels de creatures.json/pregens.json). Sorties : sonde.json, sonde2.json ; captures S-*, N-*, N2-* ; empreintes : captures-juge.sha256. Renommage = mise en place par __wfrp, capture seule.
+
+== A1-A8 ==
+A1 (l'arche saute au tour adverse) : SOLDÉ pour un nom qui tient sur une ligne. Boîte de l'arche identique en A, pause, J et C à 360×740 [10,463,273,67], 640 [10,599.4,543.2,47], 700 [10,599.4,602,47], 701 [220,613,183,167], 1366 [575.7,511.3,214.7,138.7], 1707 [732,613,243,167], et au doigt à 768×1024 [10,822,674,47] (geo.json). Seul écart : Δx 1 px à 900 (316.5 contre 317.5), invisible (C-adverse-900x780 contre A-heros-900x780).
+  NON SOLDÉ dès que le nom passe sur deux lignes, avec des noms RÉELS : voir N3.
+A2 (« Knud… » tranché) : SOLDÉ pour l'ellipse. Mon renommage en « Knud Cratinx Klein Bürger-de-Fer » dans la forme SPECTATRICE donne un nom entier, débord 0, à 360, 560, 640 et 700 (sonde.json nomLong ; N-nomlong-adverse-360x740 : nom sur une ligne, x 124..275).
+  À ≥701, le correctif produit une coupe au trait d'union : voir N2.
+A3 (pont à 561-700) : SOLDÉ pour le plafond du brief. 23,5 % ≤ 25 % à 640 et 700×780. La ligne d'arche fait 47 px, sans vide vertical (a700-bas.png).
+  RESTE visible : un vide horizontal d'environ 100 px entre les deux travées à 700 (x 297..396, a700-bas.png). C'est le même vide que A3 notait en C1.
+A4 (portrait cédé à la largeur) : PARTIEL.
+  - Le visage ne descend plus sous 48 à ≥701 (48 à 701 et 900, contre 30 en C1).
+  - Mais à 780 de haut, le portrait vaut 48 / 48 / 108 à 701 / 900 / 1707 : il suit toujours la LARGEUR.
+  - L'arche reste creuse : ≈36 px de vide entre MOUV./ACTION et Blessures (y ≈ 697..733) à 900 et 701 (a900-arche.png, a701-bas.png), alors que --cc-portrait-haut vaut 108 à cette hauteur (combat-console.css:79 et :90-94).
+  - Le plancher est une constante (`--cc-visage: 48px`, :85). Le brief demandait un plancher qui « vient d'abord de la hauteur ».
+A5 (fil « Pierre- / de-Fer ») : SOLDÉ dans le fil à toutes les vues (« Grunni / Pierre-de-Fer. » entier à 640, 700 et 701 ; motsCoupes [] partout).
+  CLASSE NON SOLDÉE ailleurs :
+  - bandeau « Grunni Pierre-de- / Fer » à chaque vue ≥640 (A-heros-640 … 1707, x ≈ 230..320, y 100..125), préexistant (B3 de C1) ;
+  - nom de l'arche, N2 (neuf).
+A6 (dalle de frise) : SOLDÉ en A, C et J (frise 80,2 px dans sa piste). NON SOLDÉ en pause de Round, à toute vue ≥640 : voir N1.
+A7 (cotes Q1, vide à 1366) : NON SOLDÉ (reste 3).
+  - Case 33,3 à 1366×650, contre ≈37 dans la décision.
+  - Bandes opaques vides : x 0..305 et 1050..1290 à 1366 (A-heros-1366x650) ; x 0..400 et 1300..1630 à 1707 (A-heros-1707x780). C'est le « tout ce vide » du verbatim budget.
+A8 :
+  - coin SOLDÉ (bord droit à 10 px à toute vue, liseré visible, a701-coin.png) ;
+  - plaque X PARTIELLE (17,6×8, laiton plus vif, toujours 8 px de haut, a1707-x.png) ;
+  - icône de set PARTIELLE (12 px à 701 ; case 26,7, sous le « ≥ 28 » de la table Q1 à 701) ;
+  - les chiffres de touche chevauchent les icônes d'Avantage à 701 (a701-bas.png, « 1 », « 3 », « 4 » sur le glyphe), préexistant (c1-a701-bas.png).
+
+== DÉFAUTS NOUVEAUX ou non consignés ==
+N1 (immobilité, classe A6) : en pause de Round, la frise s'élargit à chaque vue ≥640.
+  - 80,2 → 113,7 px à 640, 700, 701 et 900 ; 86,2 → 119,7 à 1366 et 1707 (geo.json P-pause).
+  - Le badge « ⚡4 » ajoute une dalle sombre à droite des vignettes (p1366-frise.png, P-pause-700x780 x 88..121, p640-frise.png).
+  - À 640, la frise déborde sa piste de 8,7 px (113,7 dans 105).
+  - Le reste 2 du codeur ne déclare que le débord à 640 : il sous-estime le défaut.
+N2 (R-M2, neuf, dû au retrait de nowrap/ellipsis sur .cc-arch-name, combat-console.css:781-788) : à ≥701, le nom de l'arche se coupe au trait d'union.
+  - « Knud Cratinx Klein Bürger- / de-Fer » en forme spectatrice à 701 et 900 (N-nomlong-adverse-701x780, n701-nom.png, n900-nom.png).
+  - Le codeur écrit « débord 0, aucune coupe ». RÉFUTÉ : sa sonde (c1b/geo-nom.js) compte les lignes et le débord, pas la coupure d'un mot composé.
+  - Le correctif canonique existe (un mot = une boîte nowrap, TeamSegments.tsx) mais n'est pas appliqué à l'arche.
+N3 (reste 1 ATTEINT par des données réelles ; immobilité + budget) : des noms de creatures.json font monter l'arche (sonde2.json).
+  - « Chevalier Mort-Vivant (Revenant) » et « Chauve-souris vampire (Varghulf) » : arche 167 → 186 à 701 et 900, y 613 → 594. Empreinte 23,8 % > 22 %.
+  - « Prêtre-Voleur de Ranald (I.C - Criminalité Urbaine) » : 138,7 → 157,7 à 1366×650, soit 24,3 %.
+  - Au passage, la frise perd une vignette : 5 visibles au lieu de 6 à 701 (N-nomlong-adverse-701x780 contre C-adverse-701x780).
+  - L'arche et la frise bougent donc d'un tour à l'autre selon le combattant actif, contre « je ne veux pas que la taille de l'interface ou les boutons bougent ».
+  - « Aucun nom du scénario de recette n'y arrive » est vrai de la recette, faux du jeu.
+N4 (R-M3, préexistant, non consigné) : le journal ouvert chevauche le bandeau du groupe à 640, 700, 701 et 900.
+  - « JOURNAL DE COMBAT » s'imprime sur « Frère Anselm » et « Klein Bürger » (j700-haut.png ; J-journal-640/700/701/900).
+  - Déjà présent à 900 en H1b (h1b/apres/combat-journal-900x780) ; il s'étend maintenant à 640-701.
+N5 (R-M3, préexistant probable) : à 360×650, journal ouvert, la ligne « Pierre-de-Fer. » est tranchée à mi-hauteur par le bord de défilement (j360-650.png).
+N6 (mineur, même classe que B3 « (Round / 1) ») : en pause à 640, « Début du Round / 2 » et « Commencer le round / 2 » laissent le numéro seul sur sa ligne (p640-bas.png).
+
+== RESTES DU CODEUR (vus à l'écran) ==
+1. Nom long sur deux lignes : BLOQUANT. Il est atteint par creatures.json (N3) et coupe au trait d'union (N2).
+2. Pause de Round à 640 : BLOQUANT, et sous-déclaré. L'élargissement touche toute vue ≥640 (N1).
+3. A7 : BLOQUANT tant que le budget est présenté comme tenu. Le vide horizontal est visible à 1366 et 1707. L'écart de formule (liseré + écart de rangée) est réel et demande un arbitrage de la décision.
+4. Budget au doigt : BLOQUANT sans arbitrage utilisateur. 25,1 % à 1366×650 au doigt (T-doigt-heros-1366x650), c'est littéralement « 1/4 de l'interface ». F-1 tranche « le budget lui cède » sans verbatim. Les 48 % à 360×650 au doigt sont calculés, non capturés.
+5. Plaque X à 8 px, icône de set à 12 px : non bloquant (lisible, laiton vif).
+6. Δx 1 px à 900 : non bloquant (invisible).
+7. X/ESPACE en dur, exception items.ts (#2141) : non bloquant pour ce lot. Le badge « 1 erreur (DEV) » masque toujours ESPACE à 701, 900, 1366 et 1707 (A-heros-*), si bien que la lisibilité d'ESPACE en production n'est pas prouvée par capture.
+
+== ARBITRAGES VÉRIFIÉS ==
+- Tour adverse : la boîte reste et la matière s'éteint à toute vue, souris et doigt (C-adverse-*, T-doigt-adverse-*), nom court seulement.
+- Budget souris : 21,8 % à ≥701 (nom sur une ligne) ; 23,5 % à 561-700 ; 37,8 à 43,1 % à ≤560 (≤ 45 %).
+- Nom dans l'infobulle d'une case DISPONIBLE : CONFIRMÉ (survol réel de « Course » à 900, 701 et 360 : titre « Course », S-survol-900x780.png). L'infobulle couvre le conduit d'Avantage (x 525..845, y 401..671) et sa prose finit par « … » : c'est le lot C2.
+- Aucun défilement de page, aucune case hors écran (geo.json).
+
+JUGE-VISION: À REPRENDRE — frise élargie en pause à toute vue ≥640 (80→114) ; nom d'arche tranché « Bürger- / de-Fer » à ≥701 ; des noms réels du bestiaire font monter l'arche à 23,8-24,3 % ; budget au doigt à 25,1 % sans arbitrage ; vide horizontal A7 intact ; arche creuse (portrait 48 contre 108 possible)

@@ -1,0 +1,81 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1919-H1
+
+ ❯ src/ui/ExplorationDock.test.tsx (19 tests | 2 failed | 17 skipped) 464ms 535 MB heap used
+   × #1919 — la couche HUD est une grille : chaque surface déclare sa ZONE > EXPLORATION : barre haute, groupe, objectif et caméra ; le pont hors de la couche 266ms
+     → expected 'champ' to be 'temps' // Object.is equality
+   × #1919 — la couche HUD est une grille : chaque surface déclare sa ZONE > COMBAT : frise et fil, rail, bandeau d’ouverture ; la console hors de la couche 197ms
+     → expected 'champ' to be 'temps' // Object.is equality
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 17 skipped (19)
+   Start at  20:39:48
+   Duration  25.70s (transform 15.79s, setup 14.23s, collect 9.94s, tests 464ms, environment 642ms, prepare 54ms)
+
+stderr | src/ui/ExplorationDock.test.tsx > #1919 — la couche HUD est une grille : chaque surface déclare sa ZONE > EXPLORATION : barre haute, groupe, objectif et caméra ; le pont hors de la couche
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+THREE.WebGLRenderer: THREE.WebGLRenderer: Error creating WebGL context.
+GameStage3D: aucun contexte WebGL — le monde ne peut pas être peint. Error: THREE.WebGLRenderer: Error creating WebGL context.
+    at new WebGLRenderer (file:///home/user/game/.wt-1919-H1/node_modules/three/build/three.module.js:16399:13)
+    at /home/user/game/.wt-1919-H1/src/gameIso/stage/GameStage3D.tsx:1548:64
+    at commitHookEffectListMount (/home/user/game/.wt-1919-H1/node_modules/react-dom/cjs/react-dom.development.js:23189:26)
+    at commitPassiveMountOnFiber (/home/user/game/.wt-1919-H1/node_modules/react-dom/cjs/react-dom.development.js:24970:11)
+    at commitPassiveMountEffects_complete (/home/user/game/.wt-1919-H1/node_modules/react-dom/cjs/react-dom.development.js:24930:9)
+    at commitPassiveMountEffects_begin (/home/user/game/.wt-1919-H1/node_modules/react-dom/cjs/react-dom.development.js:24917:7)
+    at commitPassiveMountEffects (/home/user/game/.wt-1919-H1/node_modules/react-dom/cjs/react-dom.development.js:24905:3)
+    at flushPassiveEffectsImpl (/home/user/game/.wt-1919-H1/node_modules/react-dom/cjs/react-dom.development.js:27078:3)
+    at flushPassiveEffects (/home/user/game/.wt-1919-H1/node_modules/react-dom/cjs/react-dom.development.js:27023:14)
+    at /home/user/game/.wt-1919-H1/node_modules/react-dom/cjs/react-dom.development.js:26808:9
+
+stderr | src/ui/ExplorationDock.test.tsx > #1919 — la couche HUD est une grille : chaque surface déclare sa ZONE > COMBAT : frise et fil, rail, bandeau d’ouverture ; la console hors de la couche
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+THREE.WebGLRenderer: THREE.WebGLRenderer: Error creating WebGL context.
+GameStage3D: aucun contexte WebGL — le monde ne peut pas être peint. Error: THREE.WebGLRenderer: Error creating WebGL context.
+    at new WebGLRenderer (file:///home/user/game/.wt-1919-H1/node_modules/three/build/three.module.js:16399:13)
+    at /home/user/game/.wt-1919-H1/src/gameIso/stage/GameStage3D.tsx:1548:64
+    at commitHookEffectListMount (/home/user/game/.wt-1919-H1/node_modules/react-dom/cjs/react-dom.development.js:23189:26)
+    at commitPassiveMountOnFiber (/home/user/game/.wt-1919-H1/node_modules/react-dom/cjs/react-dom.development.js:24970:11)
+    at commitPassiveMountEffects_complete (/home/user/game/.wt-1919-H1/node_modules/react-dom/cjs/react-dom.development.js:24930:9)
+    at commitPassiveMountEffects_begin (/home/user/game/.wt-1919-H1/node_modules/react-dom/cjs/react-dom.development.js:24917:7)
+    at commitPassiveMountEffects (/home/user/game/.wt-1919-H1/node_modules/react-dom/cjs/react-dom.development.js:24905:3)
+    at flushPassiveEffectsImpl (/home/user/game/.wt-1919-H1/node_modules/react-dom/cjs/react-dom.development.js:27078:3)
+    at flushPassiveEffects (/home/user/game/.wt-1919-H1/node_modules/react-dom/cjs/react-dom.development.js:27023:14)
+    at /home/user/game/.wt-1919-H1/node_modules/react-dom/cjs/react-dom.development.js:26808:9
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/ui/ExplorationDock.test.tsx > #1919 — la couche HUD est une grille : chaque surface déclare sa ZONE > EXPLORATION : barre haute, groupe, objectif et caméra ; le pont hors de la couche
+AssertionError: expected 'champ' to be 'temps' // Object.is equality
+
+Expected: "temps"
+Received: "champ"
+
+ ❯ src/ui/ExplorationDock.test.tsx:350:59
+    348|     expect(zoneDe(el.querySelector('.hud-topbar'))).toBe('contexte');
+    349|     expect(zoneDe(el.querySelector('.party-dock'))).toBe('groupe');
+    350|     expect(zoneDe(el.querySelector('.objective-banner'))).toBe('temps'…
+       |                                                           ^
+    351|     expect(zoneDe(el.querySelector('.pov-controls'))).toBe('camera');
+    352|     expect(el.querySelector('.stage-flot')!.getAttribute('data-pont'))…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/ui/ExplorationDock.test.tsx > #1919 — la couche HUD est une grille : chaque surface déclare sa ZONE > COMBAT : frise et fil, rail, bandeau d’ouverture ; la console hors de la couche
+AssertionError: expected 'champ' to be 'temps' // Object.is equality
+
+Expected: "temps"
+Received: "champ"
+
+ ❯ src/ui/ExplorationDock.test.tsx:362:59
+    360|     useGame.setState({ pendingRoundStart: { round: 1, readyBySeat: {} …
+    361|     const el = monter();
+    362|     expect(zoneDe(el.querySelector('.initiative-strip'))).toBe('temps'…
+       |                                                           ^
+    363|     expect(zoneDe(el.querySelector('.combat-feed'))).toBe('temps');
+    364|     expect(zoneDe(el.querySelector('.hud-rail'))).toBe('outils');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+

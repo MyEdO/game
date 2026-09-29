@@ -1,0 +1,70 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1806-L2
+
+ ✓ src/comment-poison-guard.test.ts (79 tests) 5230ms 461 MB heap used
+   ✓ garde-fou commentaires — pierres tombales (#136, CLAUDE.md règle 6c) > aucun commentaire de src/** ni de scripts/** ne porte une pierre tombale (tolérance ZÉRO) 859ms
+   ✓ garde-fou commentaires — excuses non tracées (#136, CLAUDE.md règle 6b) > aucune excuse de src/** ni de scripts/** sans tag [entériné AAAA-MM-JJ] (ACTIVE depuis #177) 735ms
+   ✓ garde-fou commentaires — vocabulaire de l’ancien état (#1486, credo règle 1) > tout site de src/** et scripts/** (tests compris) est au stock nominatif daté, et aucune ligne du stock n’est périmée 2879ms
+   ✓ cliquet : revendications d’autorité dans les fichiers de test (#136, famille 4) > aucun site famille 4 dans src/**/*.test.ts(x) hors liste nominative, et aucune entrée périmée 395ms
+ ✓ src/data/field-consumers.test.ts (20 tests) 55843ms 558 MB heap used
+   ✓ cas fondateur #903 — qui lit TrappingRef.spec ? > `TrappingRef.spec` : DEUX lecteurs, résolution et matérialisation — aucun dans le rendu 26895ms
+   ✓ DÉTERMINISME cross-OS — le rapport ne dépend pas du système de fichiers > le `.md` bâti sur le corpus en ordre INVERSÉ est BYTE-IDENTIQUE 23702ms
+   ✓ MORSURE du détecteur — fixtures en mémoire > CONJONCTION (1)∧(2) — le porteur doit être du type, la propriété doit être la sienne 370ms
+   ✓ MORSURE du détecteur — fixtures en mémoire > le DÉCLARANT compte toutes les lectures de la propriété qu’il déclare (c’est son renommage qui les casse) 383ms
+   ✓ MORSURE du détecteur — fixtures en mémoire > FORME identique, DÉCLARATIONS distinctes : un type ANONYME ne crédite RIEN (pas de faux positif structurel) 1066ms
+   ✓ MORSURE du détecteur — fixtures en mémoire > un `home` qui ne DÉCLARE pas le type est une ERREUR nommée, jamais une table muette 353ms
+   ✓ MORSURE du détecteur — fixtures en mémoire > un même `cache` porté par DEUX Programs rend DEUX contextes — le premier ne se rejoue pas 653ms
+   ✓ MORSURE du détecteur — fixtures en mémoire > HOMONYMIE : deux `Ref` de modules différents ne se croisent jamais 875ms
+   ✓ MORSURE du détecteur — fixtures en mémoire > shape → type inféré : le DÉCLARANT est reconnu par SYMBOLE du schéma, pas par son nom 595ms
+   ✓ MORSURE du détecteur — fixtures en mémoire > shape → type inféré : un type qui COMPOSE le corps inféré ne capte pas les lecteurs du déclarant 580ms
+ ✓ src/ui/editor/scene-field-editability-guard.test.ts (19 tests) 56822ms 2125 MB heap used
+   ✓ #841 — chaque champ du document de scène a un chemin d’écriture ATTEIGNABLE PAR L’AUTEUR > aucun champ n’est joignable seulement par le pipeline d’authoring, hors cliquet nommé 20623ms
+   ✓ #841 — chaque champ du document de scène a un chemin d’écriture ATTEIGNABLE PAR L’AUTEUR > crédite une écriture qui traverse `Array.map` — sonde réelle : `SceneEffectZone.tiles` ← `mapSpec.ts` 1091ms
+   ✓ #841 — chaque champ du document de scène a un chemin d’écriture ATTEIGNABLE PAR L’AUTEUR > NON VACANTE (c) : à travers `Array.map`, seule l’annotation de la COLLECTION crédite — pas un homonyme 478ms
+   ✓ #841 — chaque champ du document de scène a un chemin d’écriture ATTEIGNABLE PAR L’AUTEUR > le périmètre inclut par IDENTITÉ — une feuille d’un AUTRE module composée par le document y entre, un nœud-frontière n’y entre pas 362ms
+   ✓ #841 — chaque champ du document de scène a un chemin d’écriture ATTEIGNABLE PAR L’AUTEUR > la frontière porte sur la DÉCLARATION DE PROPRIÉTÉ — un corps inféré d’un schéma est dans le périmètre et se NOMME de son schéma, le vocabulaire partagé n’y est pas 334ms
+   ✓ #841 — chaque champ du document de scène a un chemin d’écriture ATTEIGNABLE PAR L’AUTEUR > le SEAM manuscrit/schéma ne diverge QU’EN optionalité, sur les 6 champs que la note de `scene.ts` nomme 7393ms
+   ✓ #841 — chaque champ du document de scène a un chemin d’écriture ATTEIGNABLE PAR L’AUTEUR > gate @fossile (cas A) : un champ EXISTANT que l’on tague sans l’inscrire au registre est ROUGE 8642ms
+   ✓ #841 — chaque champ du document de scène a un chemin d’écriture ATTEIGNABLE PAR L’AUTEUR > gate @fossile (cas B) : un champ NEUF né tagué — LE canal d’évasion — est ROUGE, et il RESTE dans le périmètre 4813ms
+   ✓ #841 — chaque champ du document de scène a un chemin d’écriture ATTEIGNABLE PAR L’AUTEUR > gate @fossile : une ENTRÉE du registre que plus aucun tag ne porte est ROUGE (le registre ne survit pas à son shim) 10947ms
+   ✓ #841 — chaque champ du document de scène a un chemin d’écriture ATTEIGNABLE PAR L’AUTEUR > NON VACANTE (a) : un champ frais, écrit par personne, est rapporté orphelin 322ms
+   ✓ #841 — chaque champ du document de scène a un chemin d’écriture ATTEIGNABLE PAR L’AUTEUR > le crédit suit les MAPPINGS du chemin d’édition réel (`Partial<T>`, patch passé en argument) 322ms
+   ✓ #841 — chaque champ du document de scène a un chemin d’écriture ATTEIGNABLE PAR L’AUTEUR > NON VACANTE (d) : une primitive hors interface RÉ-EXPORTÉE mais jamais APPELÉE ne crédite rien 358ms
+   ✓ #841 — chaque champ du document de scène a un chemin d’écriture ATTEIGNABLE PAR L’AUTEUR > NON VACANTE (e) : un HOMONYME appelé depuis l’interface ne réveille pas la primitive muette 388ms
+   ✓ #841 — chaque champ du document de scène a un chemin d’écriture ATTEIGNABLE PAR L’AUTEUR > un APPELANT d’interface, même indirect via une autre primitive appelée, crédite 354ms
+ ✓ src/lib/coupeAuMot.test.ts (9 tests) 93ms 2133 MB heap used
+ ✓ src/analyse-retention-guard.test.ts (20 tests) 54851ms 732 MB heap used
+   ✓ garde de classe #1801 — une structure d’analyse ne vit pas en portée de collection > aucun module chargé par la suite ne retient une structure d’analyse 54522ms
+ ❯ src/coupe-au-caractere-guard.test.ts (7 tests | 1 failed) 9296ms 543 MB heap used
+   × coupe au caractère suivie d’une ellipse > aucun site sous `src/` ni `scripts/` 9225ms
+     → expected [ 'src/lib/coupeAuMot.test.ts:68' ] to deeply equal []
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/coupe-au-caractere-guard.test.ts > coupe au caractère suivie d’une ellipse > aucun site sous `src/` ni `scripts/`
+AssertionError: expected [ 'src/lib/coupeAuMot.test.ts:68' ] to deeply equal []
+
+- Expected
++ Received
+
+- Array []
++ Array [
++   "src/lib/coupeAuMot.test.ts:68",
++ ]
+
+ ❯ src/coupe-au-caractere-guard.test.ts:75:39
+     73|   it('aucun site sous `src/` ni `scripts/`', () => {
+     74|     const corpus = readCorpus(['src', 'scripts'], { exts: ['.ts', '.ts…
+     75|     expect(coupesAuCaractere(corpus)).toEqual([]);
+       |                                       ^
+     76|   });
+     77| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+ Test Files  1 failed | 5 passed (6)
+      Tests  1 failed | 153 passed (154)
+   Start at  18:08:33
+   Duration  79.91s (transform 9.78s, setup 40.23s, collect 2.65s, tests 182.13s, environment 1ms, prepare 236ms)
+

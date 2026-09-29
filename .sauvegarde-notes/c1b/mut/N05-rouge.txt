@@ -1,0 +1,27 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1919-H2
+
+ ❯ src/ui/CombatConsole.test.tsx (151 tests | 1 failed | 150 skipped) 51ms 451 MB heap used
+   × CombatConsole — budget de hauteur du pont (arbitrage user 2026-08-17, décision d’écran 2026-09-24) > G-3 — le PORTRAIT se tire de la HAUTEUR d’écran, et il REMPLIT l’arche sans jamais la faire grandir 49ms
+     → 701×780 : visage cédé: expected 30 to be greater than or equal to 48
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 150 skipped (151)
+   Start at  00:46:37
+   Duration  20.54s (transform 12.18s, setup 14.05s, collect 5.19s, tests 51ms, environment 794ms, prepare 56ms)
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/ui/CombatConsole.test.tsx > CombatConsole — budget de hauteur du pont (arbitrage user 2026-08-17, décision d’écran 2026-09-24) > G-3 — le PORTRAIT se tire de la HAUTEUR d’écran, et il REMPLIT l’arche sans jamais la faire grandir
+AssertionError: 701×780 : visage cédé: expected 30 to be greater than or equal to 48
+ ❯ src/ui/CombatConsole.test.tsx:2309:81
+    2307|     // n'est pas à sa cible (verdict d'écran A4 du 2026-09-29), jamais…
+    2308|     for (const vw of [701, 760, 820, 900]) {
+    2309|       expect(evalLen('var(--cc-portrait)', vw, 780), `${vw}×780 : visa…
+       |                                                                                 ^
+    2310|     }
+    2311|     expect(vaut('var(--cc-portrait)', 901, 780, true), 'au doigt, le v…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+

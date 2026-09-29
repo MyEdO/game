@@ -1,0 +1,36 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1806-L1
+
+ ❯ src/ui/raccourcis-registre.test.ts (6 tests | 1 failed) 80ms 397 MB heap used
+   × raccourcis — un seul lecteur de clavier global > tout écouteur clavier GLOBAL est le lecteur du registre, ou se déclare hors registre par nature 46ms
+     → expected [ Array(1) ] to deeply equal []
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/ui/raccourcis-registre.test.ts > raccourcis — un seul lecteur de clavier global > tout écouteur clavier GLOBAL est le lecteur du registre, ou se déclare hors registre par nature
+AssertionError: expected [ Array(1) ] to deeply equal []
+
+- Expected
++ Received
+
+- Array []
++ Array [
++   "src/ui/Infobulle.tsx : écouteur clavier global hors du registre — pose le raccourci dans `state/keybindings.ts` (le hook `useGameKeyboard` le jouera), ou déclare la couche dans l'en-tête du fichier par « @clavier-hors-registre <raison> »",
++ ]
+
+ ❯ src/ui/raccourcis-registre.test.ts:71:20
+     69|       .filter(({ raison }) => raison !== null)
+     70|       .map(({ rel, raison }) => `${rel} : ${raison}`);
+     71|     expect(fautes).toEqual([]);
+       |                    ^
+     72|   });
+     73| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 5 passed (6)
+   Start at  13:55:55
+   Duration  14.03s (transform 8.90s, setup 13.36s, collect 160ms, tests 80ms, environment 0ms, prepare 63ms)
+

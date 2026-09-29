@@ -1,0 +1,34 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1919-H2
+
+ ❯ src/ui/CombatConsole.test.tsx (151 tests | 1 failed | 150 skipped) 54ms 450 MB heap used
+   × CombatConsole — trois formes, une seule bande > la RÉSERVE de bande est déclarée UNE fois, en PLANCHER, et aucune forme ne la reprend 53ms
+     → « .combat-console[data-forme='spectatrice'] > .cc-dock » règle « display » : l’arche change de place d’un tour à l’autre: expected 'flex' to be null
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 150 skipped (151)
+   Start at  01:28:25
+   Duration  19.63s (transform 11.85s, setup 12.98s, collect 5.61s, tests 54ms, environment 589ms, prepare 55ms)
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/ui/CombatConsole.test.tsx > CombatConsole — trois formes, une seule bande > la RÉSERVE de bande est déclarée UNE fois, en PLANCHER, et aucune forme ne la reprend
+AssertionError: « .combat-console[data-forme='spectatrice'] > .cc-dock » règle « display » : l’arche change de place d’un tour à l’autre: expected 'flex' to be null
+
+- Expected: 
+null
+
++ Received: 
+"flex"
+
+ ❯ src/ui/CombatConsole.test.tsx:1129:144
+    1127|     for (const bloc of [...CC_CSS.matchAll(/([^{}]*\[data-forme[^{]*)\…
+    1128|       if (!/\.cc-dock|\.cc-arch\b/.test(bloc[1])) continue;
+    1129|       for (const p of PLACEMENT) expect(decl(bloc[2], p), `« ${norm(bl…
+       |                                                                                                                                                ^
+    1130|     }
+    1131|     const cols = decl(ruleOf(CC_BASE, '.cc-dock'), 'grid-template-colu…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+

@@ -1,0 +1,11 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1919-H1
+
+ ✓ src/ui/ui-ratchets.test.ts (53 tests | 52 skipped) 18ms 378 MB heap used
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 52 skipped (53)
+   Start at  20:48:19
+   Duration  14.69s (transform 9.12s, setup 13.94s, collect 354ms, tests 18ms, environment 0ms, prepare 51ms)
+

@@ -1,0 +1,3740 @@
+{
+ "A-heros": [
+  {
+   "vue": [
+    360,
+    740
+   ],
+   "doigt": false,
+   "forme": "complete",
+   "pont": 280,
+   "pontPct": 37.8,
+   "bande": {
+    "x": 0,
+    "y": 460,
+    "w": 360,
+    "h": 280
+   },
+   "arche": {
+    "x": 10,
+    "y": 463,
+    "w": 273,
+    "h": 67
+   },
+   "portrait": {
+    "x": 102,
+    "y": 473,
+    "w": 30,
+    "h": 30
+   },
+   "nom": {
+    "texte": "Sigmund Reikhardt",
+    "x": 188.3,
+    "y": 508,
+    "w": 86.7,
+    "h": 16,
+    "lignes": 16,
+    "debord": 0,
+    "ellipse": "clip"
+   },
+   "case": {
+    "x": 64.5,
+    "y": 658.9,
+    "w": 36,
+    "h": 36
+   },
+   "icone": {
+    "x": 70.2,
+    "y": 666.1,
+    "w": 21.6,
+    "h": 21.6
+   },
+   "iconeSet": {
+    "x": 72.9,
+    "y": 555.7,
+    "w": 16.2,
+    "h": 16.2
+   },
+   "horsEcran": 0,
+   "coin": {
+    "x": 286,
+    "y": 463,
+    "w": 64,
+    "h": 67
+   },
+   "coinBordDroit": 10,
+   "fin": {
+    "x": 286,
+    "y": 463,
+    "w": 64,
+    "h": 46.7
+   },
+   "toucheX": {
+    "texte": "X",
+    "x": 125.9,
+    "y": 538,
+    "w": 17.2,
+    "h": 8
+   },
+   "fil": {
+    "x": 21.2,
+    "y": 121.8,
+    "w": 317.7,
+    "h": 18
+   },
+   "phase": null,
+   "filXphase": null,
+   "filXfrise": null,
+   "motsCoupes": [],
+   "frise": {
+    "x": 4,
+    "y": 50,
+    "w": 352,
+    "h": 63.8
+   },
+   "piste": {
+    "x": 4,
+    "y": 50,
+    "w": 352,
+    "h": 63.8
+   },
+   "zoneTemps": {
+    "x": 4,
+    "y": 50,
+    "w": 352,
+    "h": 89.8
+   },
+   "defilePage": false
+  },
+  {
+   "vue": [
+    360,
+    650
+   ],
+   "doigt": false,
+   "forme": "complete",
+   "pont": 280,
+   "pontPct": 43.1,
+   "bande": {
+    "x": 0,
+    "y": 370,
+    "w": 360,
+    "h": 280
+   },
+   "arche": {
+    "x": 10,
+    "y": 373,
+    "w": 273,
+    "h": 67
+   },
+   "portrait": {
+    "x": 102,
+    "y": 383,
+    "w": 30,
+    "h": 30
+   },
+   "nom": {
+    "texte": "Sigmund Reikhardt",
+    "x": 188.3,
+    "y": 418,
+    "w": 86.7,
+    "h": 16,
+    "lignes": 16,
+    "debord": 0,
+    "ellipse": "clip"
+   },
+   "case": {
+    "x": 64.5,
+    "y": 568.9,
+    "w": 36,
+    "h": 36
+   },
+   "icone": {
+    "x": 70.2,
+    "y": 576.1,
+    "w": 21.6,
+    "h": 21.6
+   },
+   "iconeSet": {
+    "x": 72.9,
+    "y": 465.7,
+    "w": 16.2,
+    "h": 16.2
+   },
+   "horsEcran": 0,
+   "coin": {
+    "x": 286,
+    "y": 373,
+    "w": 64,
+    "h": 67
+   },
+   "coinBordDroit": 10,
+   "fin": {
+    "x": 286,
+    "y": 373,
+    "w": 64,
+    "h": 46.7
+   },
+   "toucheX": {
+    "texte": "X",
+    "x": 125.9,
+    "y": 448,
+    "w": 17.2,
+    "h": 8
+   },
+   "fil": {
+    "x": 21.2,
+    "y": 121.8,
+    "w": 317.7,
+    "h": 18
+   },
+   "phase": null,
+   "filXphase": null,
+   "filXfrise": null,
+   "motsCoupes": [],
+   "frise": {
+    "x": 4,
+    "y": 50,
+    "w": 352,
+    "h": 63.8
+   },
+   "piste": {
+    "x": 4,
+    "y": 50,
+    "w": 352,
+    "h": 63.8
+   },
+   "zoneTemps": {
+    "x": 4,
+    "y": 50,
+    "w": 352,
+    "h": 89.8
+   },
+   "defilePage": false
+  },
+  {
+   "vue": [
+    560,
+    650
+   ],
+   "doigt": false,
+   "forme": "complete",
+   "pont": 280,
+   "pontPct": 43.1,
+   "bande": {
+    "x": 0,
+    "y": 370,
+    "w": 560,
+    "h": 280
+   },
+   "arche": {
+    "x": 10,
+    "y": 373,
+    "w": 473,
+    "h": 67
+   },
+   "portrait": {
+    "x": 102,
+    "y": 383,
+    "w": 30,
+    "h": 30
+   },
+   "nom": {
+    "texte": "Sigmund Reikhardt",
+    "x": 388.3,
+    "y": 418,
+    "w": 86.7,
+    "h": 16,
+    "lignes": 16,
+    "debord": 0,
+    "ellipse": "clip"
+   },
+   "case": {
+    "x": 164.5,
+    "y": 568.9,
+    "w": 36,
+    "h": 36
+   },
+   "icone": {
+    "x": 170.2,
+    "y": 576.1,
+    "w": 21.6,
+    "h": 21.6
+   },
+   "iconeSet": {
+    "x": 172.9,
+    "y": 465.7,
+    "w": 16.2,
+    "h": 16.2
+   },
+   "horsEcran": 0,
+   "coin": {
+    "x": 486,
+    "y": 373,
+    "w": 64,
+    "h": 67
+   },
+   "coinBordDroit": 10,
+   "fin": {
+    "x": 486,
+    "y": 373,
+    "w": 64,
+    "h": 46.7
+   },
+   "toucheX": {
+    "texte": "X",
+    "x": 225.9,
+    "y": 448,
+    "w": 17.2,
+    "h": 8
+   },
+   "fil": {
+    "x": 121.2,
+    "y": 121.8,
+    "w": 317.7,
+    "h": 18
+   },
+   "phase": null,
+   "filXphase": null,
+   "filXfrise": null,
+   "motsCoupes": [],
+   "frise": {
+    "x": 4,
+    "y": 50,
+    "w": 552,
+    "h": 63.8
+   },
+   "piste": {
+    "x": 4,
+    "y": 50,
+    "w": 552,
+    "h": 63.8
+   },
+   "zoneTemps": {
+    "x": 4,
+    "y": 50,
+    "w": 552,
+    "h": 89.8
+   },
+   "defilePage": false
+  },
+  {
+   "vue": [
+    640,
+    780
+   ],
+   "doigt": false,
+   "forme": "complete",
+   "pont": 183.6,
+   "pontPct": 23.5,
+   "bande": {
+    "x": 0,
+    "y": 596.4,
+    "w": 640,
+    "h": 183.6
+   },
+   "arche": {
+    "x": 10,
+    "y": 599.4,
+    "w": 543.2,
+    "h": 47
+   },
+   "portrait": {
+    "x": 102,
+    "y": 609.4,
+    "w": 30,
+    "h": 30
+   },
+   "nom": {
+    "texte": "Sigmund Reikhardt",
+    "x": 458.5,
+    "y": 616.4,
+    "w": 86.7,
+    "h": 16,
+    "lignes": 16,
+    "debord": 0,
+    "ellipse": "clip"
+   },
+   "case": {
+    "x": 336.2,
+    "y": 677.4,
+    "w": 44.3,
+    "h": 44.3
+   },
+   "icone": {
+    "x": 343.6,
+    "y": 686.3,
+    "w": 26.6,
+    "h": 26.6
+   },
+   "iconeSet": {
+    "x": 21.8,
+    "y": 680.9,
+    "w": 19.9,
+    "h": 19.9
+   },
+   "horsEcran": 0,
+   "coin": {
+    "x": 566,
+    "y": 599.4,
+    "w": 64,
+    "h": 47
+   },
+   "coinBordDroit": 10,
+   "fin": {
+    "x": 566,
+    "y": 599.4,
+    "w": 64,
+    "h": 46.7
+   },
+   "toucheX": {
+    "texte": "X",
+    "x": 92.6,
+    "y": 661.4,
+    "w": 17.6,
+    "h": 8
+   },
+   "fil": {
+    "x": 8,
+    "y": 456.4,
+    "w": 105,
+    "h": 73
+   },
+   "phase": null,
+   "filXphase": null,
+   "filXfrise": null,
+   "motsCoupes": [],
+   "frise": {
+    "x": 8,
+    "y": 60.3,
+    "w": 80.2,
+    "h": 385.8
+   },
+   "piste": {
+    "x": 8,
+    "y": 58,
+    "w": 105,
+    "h": 390.4
+   },
+   "zoneTemps": {
+    "x": 8,
+    "y": 58,
+    "w": 105,
+    "h": 471.4
+   },
+   "defilePage": false
+  },
+  {
+   "vue": [
+    700,
+    780
+   ],
+   "doigt": false,
+   "forme": "complete",
+   "pont": 183.6,
+   "pontPct": 23.5,
+   "bande": {
+    "x": 0,
+    "y": 596.4,
+    "w": 700,
+    "h": 183.6
+   },
+   "arche": {
+    "x": 10,
+    "y": 599.4,
+    "w": 602,
+    "h": 47
+   },
+   "portrait": {
+    "x": 102,
+    "y": 609.4,
+    "w": 30,
+    "h": 30
+   },
+   "nom": {
+    "texte": "Sigmund Reikhardt",
+    "x": 517.3,
+    "y": 616.4,
+    "w": 86.7,
+    "h": 16,
+    "lignes": 16,
+    "debord": 0,
+    "ellipse": "clip"
+   },
+   "case": {
+    "x": 396.2,
+    "y": 677.4,
+    "w": 44.3,
+    "h": 44.3
+   },
+   "icone": {
+    "x": 403.6,
+    "y": 686.3,
+    "w": 26.6,
+    "h": 26.6
+   },
+   "iconeSet": {
+    "x": 21.8,
+    "y": 680.9,
+    "w": 19.9,
+    "h": 19.9
+   },
+   "horsEcran": 0,
+   "coin": {
+    "x": 626,
+    "y": 599.4,
+    "w": 64,
+    "h": 47
+   },
+   "coinBordDroit": 10,
+   "fin": {
+    "x": 626,
+    "y": 599.4,
+    "w": 64,
+    "h": 46.7
+   },
+   "toucheX": {
+    "texte": "X",
+    "x": 92.6,
+    "y": 661.4,
+    "w": 17.6,
+    "h": 8
+   },
+   "fil": {
+    "x": 8,
+    "y": 456.4,
+    "w": 135,
+    "h": 73
+   },
+   "phase": null,
+   "filXphase": null,
+   "filXfrise": null,
+   "motsCoupes": [],
+   "frise": {
+    "x": 8,
+    "y": 60.3,
+    "w": 80.2,
+    "h": 385.8
+   },
+   "piste": {
+    "x": 8,
+    "y": 58,
+    "w": 135,
+    "h": 390.4
+   },
+   "zoneTemps": {
+    "x": 8,
+    "y": 58,
+    "w": 135,
+    "h": 471.4
+   },
+   "defilePage": false
+  },
+  {
+   "vue": [
+    701,
+    780
+   ],
+   "doigt": false,
+   "forme": "complete",
+   "pont": 170,
+   "pontPct": 21.8,
+   "bande": {
+    "x": 0,
+    "y": 647.4,
+    "w": 701,
+    "h": 132.6
+   },
+   "arche": {
+    "x": 220,
+    "y": 613,
+    "w": 183,
+    "h": 167
+   },
+   "portrait": {
+    "x": 276,
+    "y": 622,
+    "w": 48,
+    "h": 48
+   },
+   "nom": {
+    "texte": "Sigmund Reikhardt",
+    "x": 260.9,
+    "y": 753,
+    "w": 101.2,
+    "h": 19,
+    "lignes": 19,
+    "debord": 0,
+    "ellipse": "clip"
+   },
+   "case": {
+    "x": 425,
+    "y": 677.4,
+    "w": 26.7,
+    "h": 26.7
+   },
+   "icone": {
+    "x": 428.8,
+    "y": 682.7,
+    "w": 16,
+    "h": 16
+   },
+   "iconeSet": {
+    "x": 20.4,
+    "y": 679,
+    "w": 12,
+    "h": 12
+   },
+   "horsEcran": 0,
+   "coin": {
+    "x": 627,
+    "y": 650.4,
+    "w": 64,
+    "h": 129.6
+   },
+   "coinBordDroit": 10,
+   "fin": {
+    "x": 627,
+    "y": 712.7,
+    "w": 64,
+    "h": 57.3
+   },
+   "toucheX": {
+    "texte": "X",
+    "x": 92.7,
+    "y": 661.4,
+    "w": 17.6,
+    "h": 8
+   },
+   "fil": {
+    "x": 8,
+    "y": 470,
+    "w": 135.5,
+    "h": 73
+   },
+   "phase": null,
+   "filXphase": null,
+   "filXfrise": null,
+   "motsCoupes": [],
+   "frise": {
+    "x": 8,
+    "y": 67.1,
+    "w": 80.2,
+    "h": 385.8
+   },
+   "piste": {
+    "x": 8,
+    "y": 58,
+    "w": 135.5,
+    "h": 404
+   },
+   "zoneTemps": {
+    "x": 8,
+    "y": 58,
+    "w": 135.5,
+    "h": 485
+   },
+   "defilePage": false
+  },
+  {
+   "vue": [
+    900,
+    780
+   ],
+   "doigt": false,
+   "forme": "complete",
+   "pont": 170,
+   "pontPct": 21.8,
+   "bande": {
+    "x": 0,
+    "y": 647.4,
+    "w": 900,
+    "h": 132.6
+   },
+   "arche": {
+    "x": 316.5,
+    "y": 613,
+    "w": 183,
+    "h": 167
+   },
+   "portrait": {
+    "x": 372.5,
+    "y": 622,
+    "w": 48,
+    "h": 48
+   },
+   "nom": {
+    "texte": "Sigmund Reikhardt",
+    "x": 357.3,
+    "y": 753,
+    "w": 101.2,
+    "h": 19,
+    "lignes": 19,
+    "debord": 0,
+    "ellipse": "clip"
+   },
+   "case": {
+    "x": 525.5,
+    "y": 677.4,
+    "w": 42.4,
+    "h": 42.4
+   },
+   "icone": {
+    "x": 532.5,
+    "y": 685.9,
+    "w": 25.5,
+    "h": 25.5
+   },
+   "iconeSet": {
+    "x": 21.7,
+    "y": 680.7,
+    "w": 19.1,
+    "h": 19.1
+   },
+   "horsEcran": 0,
+   "coin": {
+    "x": 826,
+    "y": 650.4,
+    "w": 64,
+    "h": 129.6
+   },
+   "coinBordDroit": 10,
+   "fin": {
+    "x": 826,
+    "y": 681.2,
+    "w": 64,
+    "h": 88.8
+   },
+   "toucheX": {
+    "texte": "X",
+    "x": 92.6,
+    "y": 661.4,
+    "w": 17.6,
+    "h": 8
+   },
+   "fil": {
+    "x": 8,
+    "y": 486,
+    "w": 235,
+    "h": 57
+   },
+   "phase": null,
+   "filXphase": null,
+   "filXfrise": null,
+   "motsCoupes": [],
+   "frise": {
+    "x": 8,
+    "y": 75.1,
+    "w": 80.2,
+    "h": 385.8
+   },
+   "piste": {
+    "x": 8,
+    "y": 58,
+    "w": 235,
+    "h": 420
+   },
+   "zoneTemps": {
+    "x": 8,
+    "y": 58,
+    "w": 235,
+    "h": 485
+   },
+   "defilePage": false
+  },
+  {
+   "vue": [
+    1366,
+    650
+   ],
+   "doigt": false,
+   "forme": "complete",
+   "pont": 141.7,
+   "pontPct": 21.8,
+   "bande": {
+    "x": 0,
+    "y": 539.5,
+    "w": 1366,
+    "h": 110.5
+   },
+   "arche": {
+    "x": 575.7,
+    "y": 511.3,
+    "w": 214.7,
+    "h": 138.7
+   },
+   "portrait": {
+    "x": 631.7,
+    "y": 520.3,
+    "w": 79.7,
+    "h": 79.7
+   },
+   "nom": {
+    "texte": "Sigmund Reikhardt",
+    "x": 632.4,
+    "y": 623,
+    "w": 101.2,
+    "h": 19,
+    "lignes": 19,
+    "debord": 0,
+    "ellipse": "clip"
+   },
+   "case": {
+    "x": 824.3,
+    "y": 569.5,
+    "w": 33.3,
+    "h": 33.3
+   },
+   "icone": {
+    "x": 829.5,
+    "y": 576.2,
+    "w": 19.9,
+    "h": 19.9
+   },
+   "iconeSet": {
+    "x": 315.6,
+    "y": 571.8,
+    "w": 15,
+    "h": 15
+   },
+   "horsEcran": 0,
+   "coin": {
+    "x": 1292,
+    "y": 542.5,
+    "w": 64,
+    "h": 107.5
+   },
+   "coinBordDroit": 10,
+   "fin": {
+    "x": 1292,
+    "y": 569.5,
+    "w": 64,
+    "h": 70.5
+   },
+   "toucheX": {
+    "texte": "X",
+    "x": 387.4,
+    "y": 553.5,
+    "w": 17.6,
+    "h": 8
+   },
+   "fil": {
+    "x": 8,
+    "y": 423.3,
+    "w": 317.7,
+    "h": 18
+   },
+   "phase": null,
+   "filXphase": null,
+   "filXfrise": null,
+   "motsCoupes": [],
+   "frise": {
+    "x": 8,
+    "y": 66.7,
+    "w": 86.2,
+    "h": 340
+   },
+   "piste": {
+    "x": 8,
+    "y": 58,
+    "w": 468,
+    "h": 357.3
+   },
+   "zoneTemps": {
+    "x": 8,
+    "y": 58,
+    "w": 468,
+    "h": 383.3
+   },
+   "defilePage": false
+  },
+  {
+   "vue": [
+    1707,
+    780
+   ],
+   "doigt": false,
+   "forme": "complete",
+   "pont": 170,
+   "pontPct": 21.8,
+   "bande": {
+    "x": 0,
+    "y": 647.4,
+    "w": 1707,
+    "h": 132.6
+   },
+   "arche": {
+    "x": 732,
+    "y": 613,
+    "w": 243,
+    "h": 167
+   },
+   "portrait": {
+    "x": 788,
+    "y": 622,
+    "w": 108,
+    "h": 108
+   },
+   "nom": {
+    "texte": "Sigmund Reikhardt",
+    "x": 802.9,
+    "y": 753,
+    "w": 101.2,
+    "h": 19,
+    "lignes": 19,
+    "debord": 0,
+    "ellipse": "clip"
+   },
+   "case": {
+    "x": 1009,
+    "y": 677.4,
+    "w": 44.3,
+    "h": 44.3
+   },
+   "icone": {
+    "x": 1016.4,
+    "y": 686.3,
+    "w": 26.6,
+    "h": 26.6
+   },
+   "iconeSet": {
+    "x": 410.8,
+    "y": 680.9,
+    "w": 19.9,
+    "h": 19.9
+   },
+   "horsEcran": 0,
+   "coin": {
+    "x": 1633,
+    "y": 650.4,
+    "w": 64,
+    "h": 129.6
+   },
+   "coinBordDroit": 10,
+   "fin": {
+    "x": 1633,
+    "y": 677.4,
+    "w": 64,
+    "h": 92.6
+   },
+   "toucheX": {
+    "texte": "X",
+    "x": 481.6,
+    "y": 661.4,
+    "w": 17.6,
+    "h": 8
+   },
+   "fil": {
+    "x": 8,
+    "y": 525,
+    "w": 317.7,
+    "h": 18
+   },
+   "phase": null,
+   "filXphase": null,
+   "filXfrise": null,
+   "motsCoupes": [],
+   "frise": {
+    "x": 8,
+    "y": 61.5,
+    "w": 86.2,
+    "h": 452
+   },
+   "piste": {
+    "x": 8,
+    "y": 58,
+    "w": 638.5,
+    "h": 459
+   },
+   "zoneTemps": {
+    "x": 8,
+    "y": 58,
+    "w": 638.5,
+    "h": 485
+   },
+   "defilePage": false
+  }
+ ],
+ "P-pause": [
+  {
+   "vue": [
+    360,
+    740
+   ],
+   "doigt": false,
+   "forme": "spectatrice",
+   "pont": 280,
+   "pontPct": 37.8,
+   "bande": {
+    "x": 0,
+    "y": 460,
+    "w": 360,
+    "h": 280
+   },
+   "arche": {
+    "x": 10,
+    "y": 463,
+    "w": 273,
+    "h": 67
+   },
+   "portrait": {
+    "x": 102,
+    "y": 473,
+    "w": 30,
+    "h": 30
+   },
+   "nom": {
+    "texte": "Sigmund Reikhardt",
+    "x": 188.3,
+    "y": 508,
+    "w": 86.7,
+    "h": 16,
+    "lignes": 16,
+    "debord": 0,
+    "ellipse": "clip"
+   },
+   "case": null,
+   "icone": null,
+   "iconeSet": null,
+   "horsEcran": 0,
+   "coin": null,
+   "coinBordDroit": null,
+   "fin": null,
+   "toucheX": null,
+   "fil": {
+    "x": 21.2,
+    "y": 121.8,
+    "w": 317.7,
+    "h": 18
+   },
+   "phase": {
+    "x": 90,
+    "y": 419,
+    "w": 180,
+    "h": 38
+   },
+   "filXphase": null,
+   "filXfrise": null,
+   "motsCoupes": [],
+   "frise": {
+    "x": 4,
+    "y": 50,
+    "w": 352,
+    "h": 63.8
+   },
+   "piste": {
+    "x": 4,
+    "y": 50,
+    "w": 352,
+    "h": 63.8
+   },
+   "zoneTemps": {
+    "x": 4,
+    "y": 50,
+    "w": 352,
+    "h": 89.8
+   },
+   "defilePage": false
+  },
+  {
+   "vue": [
+    360,
+    650
+   ],
+   "doigt": false,
+   "forme": "spectatrice",
+   "pont": 280,
+   "pontPct": 43.1,
+   "bande": {
+    "x": 0,
+    "y": 370,
+    "w": 360,
+    "h": 280
+   },
+   "arche": {
+    "x": 10,
+    "y": 373,
+    "w": 273,
+    "h": 67
+   },
+   "portrait": {
+    "x": 102,
+    "y": 383,
+    "w": 30,
+    "h": 30
+   },
+   "nom": {
+    "texte": "Sigmund Reikhardt",
+    "x": 188.3,
+    "y": 418,
+    "w": 86.7,
+    "h": 16,
+    "lignes": 16,
+    "debord": 0,
+    "ellipse": "clip"
+   },
+   "case": null,
+   "icone": null,
+   "iconeSet": null,
+   "horsEcran": 0,
+   "coin": null,
+   "coinBordDroit": null,
+   "fin": null,
+   "toucheX": null,
+   "fil": {
+    "x": 21.2,
+    "y": 121.8,
+    "w": 317.7,
+    "h": 18
+   },
+   "phase": {
+    "x": 90,
+    "y": 329,
+    "w": 180,
+    "h": 38
+   },
+   "filXphase": null,
+   "filXfrise": null,
+   "motsCoupes": [],
+   "frise": {
+    "x": 4,
+    "y": 50,
+    "w": 352,
+    "h": 63.8
+   },
+   "piste": {
+    "x": 4,
+    "y": 50,
+    "w": 352,
+    "h": 63.8
+   },
+   "zoneTemps": {
+    "x": 4,
+    "y": 50,
+    "w": 352,
+    "h": 89.8
+   },
+   "defilePage": false
+  },
+  {
+   "vue": [
+    560,
+    650
+   ],
+   "doigt": false,
+   "forme": "spectatrice",
+   "pont": 280,
+   "pontPct": 43.1,
+   "bande": {
+    "x": 0,
+    "y": 370,
+    "w": 560,
+    "h": 280
+   },
+   "arche": {
+    "x": 10,
+    "y": 373,
+    "w": 473,
+    "h": 67
+   },
+   "portrait": {
+    "x": 102,
+    "y": 383,
+    "w": 30,
+    "h": 30
+   },
+   "nom": {
+    "texte": "Sigmund Reikhardt",
+    "x": 388.3,
+    "y": 418,
+    "w": 86.7,
+    "h": 16,
+    "lignes": 16,
+    "debord": 0,
+    "ellipse": "clip"
+   },
+   "case": null,
+   "icone": null,
+   "iconeSet": null,
+   "horsEcran": 0,
+   "coin": null,
+   "coinBordDroit": null,
+   "fin": null,
+   "toucheX": null,
+   "fil": {
+    "x": 121.2,
+    "y": 121.8,
+    "w": 317.7,
+    "h": 18
+   },
+   "phase": {
+    "x": 151.1,
+    "y": 341,
+    "w": 257.8,
+    "h": 26
+   },
+   "filXphase": null,
+   "filXfrise": null,
+   "motsCoupes": [],
+   "frise": {
+    "x": 4,
+    "y": 50,
+    "w": 552,
+    "h": 63.8
+   },
+   "piste": {
+    "x": 4,
+    "y": 50,
+    "w": 552,
+    "h": 63.8
+   },
+   "zoneTemps": {
+    "x": 4,
+    "y": 50,
+    "w": 552,
+    "h": 89.8
+   },
+   "defilePage": false
+  },
+  {
+   "vue": [
+    640,
+    780
+   ],
+   "doigt": false,
+   "forme": "spectatrice",
+   "pont": 183.6,
+   "pontPct": 23.5,
+   "bande": {
+    "x": 0,
+    "y": 596.4,
+    "w": 640,
+    "h": 183.6
+   },
+   "arche": {
+    "x": 10,
+    "y": 599.4,
+    "w": 543.2,
+    "h": 47
+   },
+   "portrait": {
+    "x": 102,
+    "y": 609.4,
+    "w": 30,
+    "h": 30
+   },
+   "nom": {
+    "texte": "Sigmund Reikhardt",
+    "x": 458.5,
+    "y": 616.4,
+    "w": 86.7,
+    "h": 16,
+    "lignes": 16,
+    "debord": 0,
+    "ellipse": "clip"
+   },
+   "case": null,
+   "icone": null,
+   "iconeSet": null,
+   "horsEcran": 0,
+   "coin": null,
+   "coinBordDroit": null,
+   "fin": null,
+   "toucheX": null,
+   "fil": {
+    "x": 8,
+    "y": 456.4,
+    "w": 105,
+    "h": 73
+   },
+   "phase": {
+    "x": 160,
+    "y": 529.4,
+    "w": 320,
+    "h": 64
+   },
+   "filXphase": null,
+   "filXfrise": null,
+   "motsCoupes": [],
+   "frise": {
+    "x": 8,
+    "y": 60.3,
+    "w": 113.7,
+    "h": 385.8
+   },
+   "piste": {
+    "x": 8,
+    "y": 58,
+    "w": 105,
+    "h": 390.4
+   },
+   "zoneTemps": {
+    "x": 8,
+    "y": 58,
+    "w": 105,
+    "h": 471.4
+   },
+   "defilePage": false
+  },
+  {
+   "vue": [
+    700,
+    780
+   ],
+   "doigt": false,
+   "forme": "spectatrice",
+   "pont": 183.6,
+   "pontPct": 23.5,
+   "bande": {
+    "x": 0,
+    "y": 596.4,
+    "w": 700,
+    "h": 183.6
+   },
+   "arche": {
+    "x": 10,
+    "y": 599.4,
+    "w": 602,
+    "h": 47
+   },
+   "portrait": {
+    "x": 102,
+    "y": 609.4,
+    "w": 30,
+    "h": 30
+   },
+   "nom": {
+    "texte": "Sigmund Reikhardt",
+    "x": 517.3,
+    "y": 616.4,
+    "w": 86.7,
+    "h": 16,
+    "lignes": 16,
+    "debord": 0,
+    "ellipse": "clip"
+   },
+   "case": null,
+   "icone": null,
+   "iconeSet": null,
+   "horsEcran": 0,
+   "coin": null,
+   "coinBordDroit": null,
+   "fin": null,
+   "toucheX": null,
+   "fil": {
+    "x": 8,
+    "y": 456.4,
+    "w": 135,
+    "h": 73
+   },
+   "phase": {
+    "x": 183.8,
+    "y": 545.4,
+    "w": 332.5,
+    "h": 48
+   },
+   "filXphase": null,
+   "filXfrise": null,
+   "motsCoupes": [],
+   "frise": {
+    "x": 8,
+    "y": 60.3,
+    "w": 113.7,
+    "h": 385.8
+   },
+   "piste": {
+    "x": 8,
+    "y": 58,
+    "w": 135,
+    "h": 390.4
+   },
+   "zoneTemps": {
+    "x": 8,
+    "y": 58,
+    "w": 135,
+    "h": 471.4
+   },
+   "defilePage": false
+  },
+  {
+   "vue": [
+    701,
+    780
+   ],
+   "doigt": false,
+   "forme": "spectatrice",
+   "pont": 170,
+   "pontPct": 21.8,
+   "bande": {
+    "x": 0,
+    "y": 647.4,
+    "w": 701,
+    "h": 132.6
+   },
+   "arche": {
+    "x": 220,
+    "y": 613,
+    "w": 183,
+    "h": 167
+   },
+   "portrait": {
+    "x": 276,
+    "y": 622,
+    "w": 48,
+    "h": 48
+   },
+   "nom": {
+    "texte": "Sigmund Reikhardt",
+    "x": 260.9,
+    "y": 753,
+    "w": 101.2,
+    "h": 19,
+    "lignes": 19,
+    "debord": 0,
+    "ellipse": "clip"
+   },
+   "case": null,
+   "icone": null,
+   "iconeSet": null,
+   "horsEcran": 0,
+   "coin": null,
+   "coinBordDroit": null,
+   "fin": null,
+   "toucheX": null,
+   "fil": {
+    "x": 8,
+    "y": 470,
+    "w": 135.5,
+    "h": 73
+   },
+   "phase": {
+    "x": 184.3,
+    "y": 559,
+    "w": 332.5,
+    "h": 48
+   },
+   "filXphase": null,
+   "filXfrise": null,
+   "motsCoupes": [],
+   "frise": {
+    "x": 8,
+    "y": 67.1,
+    "w": 113.7,
+    "h": 385.8
+   },
+   "piste": {
+    "x": 8,
+    "y": 58,
+    "w": 135.5,
+    "h": 404
+   },
+   "zoneTemps": {
+    "x": 8,
+    "y": 58,
+    "w": 135.5,
+    "h": 485
+   },
+   "defilePage": false
+  },
+  {
+   "vue": [
+    900,
+    780
+   ],
+   "doigt": false,
+   "forme": "spectatrice",
+   "pont": 170,
+   "pontPct": 21.8,
+   "bande": {
+    "x": 0,
+    "y": 647.4,
+    "w": 900,
+    "h": 132.6
+   },
+   "arche": {
+    "x": 317.5,
+    "y": 613,
+    "w": 183,
+    "h": 167
+   },
+   "portrait": {
+    "x": 373.5,
+    "y": 622,
+    "w": 48,
+    "h": 48
+   },
+   "nom": {
+    "texte": "Sigmund Reikhardt",
+    "x": 358.4,
+    "y": 753,
+    "w": 101.2,
+    "h": 19,
+    "lignes": 19,
+    "debord": 0,
+    "ellipse": "clip"
+   },
+   "case": null,
+   "icone": null,
+   "iconeSet": null,
+   "horsEcran": 0,
+   "coin": null,
+   "coinBordDroit": null,
+   "fin": null,
+   "toucheX": null,
+   "fil": {
+    "x": 8,
+    "y": 486,
+    "w": 235,
+    "h": 57
+   },
+   "phase": {
+    "x": 283.8,
+    "y": 559,
+    "w": 332.5,
+    "h": 48
+   },
+   "filXphase": null,
+   "filXfrise": null,
+   "motsCoupes": [],
+   "frise": {
+    "x": 8,
+    "y": 75.1,
+    "w": 113.7,
+    "h": 385.8
+   },
+   "piste": {
+    "x": 8,
+    "y": 58,
+    "w": 235,
+    "h": 420
+   },
+   "zoneTemps": {
+    "x": 8,
+    "y": 58,
+    "w": 235,
+    "h": 485
+   },
+   "defilePage": false
+  },
+  {
+   "vue": [
+    1366,
+    650
+   ],
+   "doigt": false,
+   "forme": "spectatrice",
+   "pont": 141.7,
+   "pontPct": 21.8,
+   "bande": {
+    "x": 0,
+    "y": 539.5,
+    "w": 1366,
+    "h": 110.5
+   },
+   "arche": {
+    "x": 575.7,
+    "y": 511.3,
+    "w": 214.7,
+    "h": 138.7
+   },
+   "portrait": {
+    "x": 631.7,
+    "y": 520.3,
+    "w": 79.7,
+    "h": 79.7
+   },
+   "nom": {
+    "texte": "Sigmund Reikhardt",
+    "x": 632.4,
+    "y": 623,
+    "w": 101.2,
+    "h": 19,
+    "lignes": 19,
+    "debord": 0,
+    "ellipse": "clip"
+   },
+   "case": null,
+   "icone": null,
+   "iconeSet": null,
+   "horsEcran": 0,
+   "coin": null,
+   "coinBordDroit": null,
+   "fin": null,
+   "toucheX": null,
+   "fil": {
+    "x": 8,
+    "y": 423.3,
+    "w": 317.7,
+    "h": 18
+   },
+   "phase": {
+    "x": 516.8,
+    "y": 457.3,
+    "w": 332.5,
+    "h": 48
+   },
+   "filXphase": null,
+   "filXfrise": null,
+   "motsCoupes": [],
+   "frise": {
+    "x": 8,
+    "y": 66.7,
+    "w": 119.7,
+    "h": 340
+   },
+   "piste": {
+    "x": 8,
+    "y": 58,
+    "w": 468,
+    "h": 357.3
+   },
+   "zoneTemps": {
+    "x": 8,
+    "y": 58,
+    "w": 468,
+    "h": 383.3
+   },
+   "defilePage": false
+  },
+  {
+   "vue": [
+    1707,
+    780
+   ],
+   "doigt": false,
+   "forme": "spectatrice",
+   "pont": 170,
+   "pontPct": 21.8,
+   "bande": {
+    "x": 0,
+    "y": 647.4,
+    "w": 1707,
+    "h": 132.6
+   },
+   "arche": {
+    "x": 732,
+    "y": 613,
+    "w": 243,
+    "h": 167
+   },
+   "portrait": {
+    "x": 788,
+    "y": 622,
+    "w": 108,
+    "h": 108
+   },
+   "nom": {
+    "texte": "Sigmund Reikhardt",
+    "x": 802.9,
+    "y": 753,
+    "w": 101.2,
+    "h": 19,
+    "lignes": 19,
+    "debord": 0,
+    "ellipse": "clip"
+   },
+   "case": null,
+   "icone": null,
+   "iconeSet": null,
+   "horsEcran": 0,
+   "coin": null,
+   "coinBordDroit": null,
+   "fin": null,
+   "toucheX": null,
+   "fil": {
+    "x": 8,
+    "y": 525,
+    "w": 317.7,
+    "h": 18
+   },
+   "phase": {
+    "x": 687.3,
+    "y": 559,
+    "w": 332.5,
+    "h": 48
+   },
+   "filXphase": null,
+   "filXfrise": null,
+   "motsCoupes": [],
+   "frise": {
+    "x": 8,
+    "y": 61.5,
+    "w": 119.7,
+    "h": 452
+   },
+   "piste": {
+    "x": 8,
+    "y": 58,
+    "w": 638.5,
+    "h": 459
+   },
+   "zoneTemps": {
+    "x": 8,
+    "y": 58,
+    "w": 638.5,
+    "h": 485
+   },
+   "defilePage": false
+  }
+ ],
+ "J-journal": [
+  {
+   "vue": [
+    360,
+    740
+   ],
+   "doigt": false,
+   "forme": "complete",
+   "pont": 280,
+   "pontPct": 37.8,
+   "bande": {
+    "x": 0,
+    "y": 460,
+    "w": 360,
+    "h": 280
+   },
+   "arche": {
+    "x": 10,
+    "y": 463,
+    "w": 273,
+    "h": 67
+   },
+   "portrait": {
+    "x": 102,
+    "y": 473,
+    "w": 30,
+    "h": 30
+   },
+   "nom": {
+    "texte": "Sigmund Reikhardt",
+    "x": 188.3,
+    "y": 508,
+    "w": 86.7,
+    "h": 16,
+    "lignes": 16,
+    "debord": 0,
+    "ellipse": "clip"
+   },
+   "case": {
+    "x": 64.5,
+    "y": 658.9,
+    "w": 36,
+    "h": 36
+   },
+   "icone": {
+    "x": 70.2,
+    "y": 666.1,
+    "w": 21.6,
+    "h": 21.6
+   },
+   "iconeSet": {
+    "x": 72.9,
+    "y": 555.7,
+    "w": 16.2,
+    "h": 16.2
+   },
+   "horsEcran": 0,
+   "coin": {
+    "x": 286,
+    "y": 463,
+    "w": 64,
+    "h": 67
+   },
+   "coinBordDroit": 10,
+   "fin": {
+    "x": 286,
+    "y": 463,
+    "w": 64,
+    "h": 46.7
+   },
+   "toucheX": {
+    "texte": "X",
+    "x": 125.9,
+    "y": 538,
+    "w": 17.2,
+    "h": 8
+   },
+   "fil": {
+    "x": 21.2,
+    "y": 121.8,
+    "w": 317.7,
+    "h": 18
+   },
+   "phase": null,
+   "filXphase": null,
+   "filXfrise": null,
+   "motsCoupes": [],
+   "frise": {
+    "x": 4,
+    "y": 50,
+    "w": 352,
+    "h": 63.8
+   },
+   "piste": {
+    "x": 4,
+    "y": 50,
+    "w": 352,
+    "h": 63.8
+   },
+   "zoneTemps": {
+    "x": 4,
+    "y": 50,
+    "w": 352,
+    "h": 89.8
+   },
+   "defilePage": false
+  },
+  {
+   "vue": [
+    360,
+    650
+   ],
+   "doigt": false,
+   "forme": "complete",
+   "pont": 280,
+   "pontPct": 43.1,
+   "bande": {
+    "x": 0,
+    "y": 370,
+    "w": 360,
+    "h": 280
+   },
+   "arche": {
+    "x": 10,
+    "y": 373,
+    "w": 273,
+    "h": 67
+   },
+   "portrait": {
+    "x": 102,
+    "y": 383,
+    "w": 30,
+    "h": 30
+   },
+   "nom": {
+    "texte": "Sigmund Reikhardt",
+    "x": 188.3,
+    "y": 418,
+    "w": 86.7,
+    "h": 16,
+    "lignes": 16,
+    "debord": 0,
+    "ellipse": "clip"
+   },
+   "case": {
+    "x": 64.5,
+    "y": 568.9,
+    "w": 36,
+    "h": 36
+   },
+   "icone": {
+    "x": 70.2,
+    "y": 576.1,
+    "w": 21.6,
+    "h": 21.6
+   },
+   "iconeSet": {
+    "x": 72.9,
+    "y": 465.7,
+    "w": 16.2,
+    "h": 16.2
+   },
+   "horsEcran": 0,
+   "coin": {
+    "x": 286,
+    "y": 373,
+    "w": 64,
+    "h": 67
+   },
+   "coinBordDroit": 10,
+   "fin": {
+    "x": 286,
+    "y": 373,
+    "w": 64,
+    "h": 46.7
+   },
+   "toucheX": {
+    "texte": "X",
+    "x": 125.9,
+    "y": 448,
+    "w": 17.2,
+    "h": 8
+   },
+   "fil": {
+    "x": 21.2,
+    "y": 121.8,
+    "w": 317.7,
+    "h": 18
+   },
+   "phase": null,
+   "filXphase": null,
+   "filXfrise": null,
+   "motsCoupes": [],
+   "frise": {
+    "x": 4,
+    "y": 50,
+    "w": 352,
+    "h": 63.8
+   },
+   "piste": {
+    "x": 4,
+    "y": 50,
+    "w": 352,
+    "h": 63.8
+   },
+   "zoneTemps": {
+    "x": 4,
+    "y": 50,
+    "w": 352,
+    "h": 89.8
+   },
+   "defilePage": false
+  },
+  {
+   "vue": [
+    560,
+    650
+   ],
+   "doigt": false,
+   "forme": "complete",
+   "pont": 280,
+   "pontPct": 43.1,
+   "bande": {
+    "x": 0,
+    "y": 370,
+    "w": 560,
+    "h": 280
+   },
+   "arche": {
+    "x": 10,
+    "y": 373,
+    "w": 473,
+    "h": 67
+   },
+   "portrait": {
+    "x": 102,
+    "y": 383,
+    "w": 30,
+    "h": 30
+   },
+   "nom": {
+    "texte": "Sigmund Reikhardt",
+    "x": 388.3,
+    "y": 418,
+    "w": 86.7,
+    "h": 16,
+    "lignes": 16,
+    "debord": 0,
+    "ellipse": "clip"
+   },
+   "case": {
+    "x": 164.5,
+    "y": 568.9,
+    "w": 36,
+    "h": 36
+   },
+   "icone": {
+    "x": 170.2,
+    "y": 576.1,
+    "w": 21.6,
+    "h": 21.6
+   },
+   "iconeSet": {
+    "x": 172.9,
+    "y": 465.7,
+    "w": 16.2,
+    "h": 16.2
+   },
+   "horsEcran": 0,
+   "coin": {
+    "x": 486,
+    "y": 373,
+    "w": 64,
+    "h": 67
+   },
+   "coinBordDroit": 10,
+   "fin": {
+    "x": 486,
+    "y": 373,
+    "w": 64,
+    "h": 46.7
+   },
+   "toucheX": {
+    "texte": "X",
+    "x": 225.9,
+    "y": 448,
+    "w": 17.2,
+    "h": 8
+   },
+   "fil": {
+    "x": 121.2,
+    "y": 121.8,
+    "w": 317.7,
+    "h": 18
+   },
+   "phase": null,
+   "filXphase": null,
+   "filXfrise": null,
+   "motsCoupes": [],
+   "frise": {
+    "x": 4,
+    "y": 50,
+    "w": 552,
+    "h": 63.8
+   },
+   "piste": {
+    "x": 4,
+    "y": 50,
+    "w": 552,
+    "h": 63.8
+   },
+   "zoneTemps": {
+    "x": 4,
+    "y": 50,
+    "w": 552,
+    "h": 89.8
+   },
+   "defilePage": false
+  },
+  {
+   "vue": [
+    640,
+    780
+   ],
+   "doigt": false,
+   "forme": "complete",
+   "pont": 183.6,
+   "pontPct": 23.5,
+   "bande": {
+    "x": 0,
+    "y": 596.4,
+    "w": 640,
+    "h": 183.6
+   },
+   "arche": {
+    "x": 10,
+    "y": 599.4,
+    "w": 543.2,
+    "h": 47
+   },
+   "portrait": {
+    "x": 102,
+    "y": 609.4,
+    "w": 30,
+    "h": 30
+   },
+   "nom": {
+    "texte": "Sigmund Reikhardt",
+    "x": 458.5,
+    "y": 616.4,
+    "w": 86.7,
+    "h": 16,
+    "lignes": 16,
+    "debord": 0,
+    "ellipse": "clip"
+   },
+   "case": {
+    "x": 336.2,
+    "y": 677.4,
+    "w": 44.3,
+    "h": 44.3
+   },
+   "icone": {
+    "x": 343.6,
+    "y": 686.3,
+    "w": 26.6,
+    "h": 26.6
+   },
+   "iconeSet": {
+    "x": 21.8,
+    "y": 680.9,
+    "w": 19.9,
+    "h": 19.9
+   },
+   "horsEcran": 0,
+   "coin": {
+    "x": 566,
+    "y": 599.4,
+    "w": 64,
+    "h": 47
+   },
+   "coinBordDroit": 10,
+   "fin": {
+    "x": 566,
+    "y": 599.4,
+    "w": 64,
+    "h": 46.7
+   },
+   "toucheX": {
+    "texte": "X",
+    "x": 92.6,
+    "y": 661.4,
+    "w": 17.6,
+    "h": 8
+   },
+   "fil": {
+    "x": 8,
+    "y": 456.4,
+    "w": 105,
+    "h": 73
+   },
+   "phase": null,
+   "filXphase": null,
+   "filXfrise": null,
+   "motsCoupes": [],
+   "frise": {
+    "x": 8,
+    "y": 60.3,
+    "w": 80.2,
+    "h": 385.8
+   },
+   "piste": {
+    "x": 8,
+    "y": 58,
+    "w": 105,
+    "h": 390.4
+   },
+   "zoneTemps": {
+    "x": 8,
+    "y": 58,
+    "w": 105,
+    "h": 471.4
+   },
+   "defilePage": false
+  },
+  {
+   "vue": [
+    700,
+    780
+   ],
+   "doigt": false,
+   "forme": "complete",
+   "pont": 183.6,
+   "pontPct": 23.5,
+   "bande": {
+    "x": 0,
+    "y": 596.4,
+    "w": 700,
+    "h": 183.6
+   },
+   "arche": {
+    "x": 10,
+    "y": 599.4,
+    "w": 602,
+    "h": 47
+   },
+   "portrait": {
+    "x": 102,
+    "y": 609.4,
+    "w": 30,
+    "h": 30
+   },
+   "nom": {
+    "texte": "Sigmund Reikhardt",
+    "x": 517.3,
+    "y": 616.4,
+    "w": 86.7,
+    "h": 16,
+    "lignes": 16,
+    "debord": 0,
+    "ellipse": "clip"
+   },
+   "case": {
+    "x": 396.2,
+    "y": 677.4,
+    "w": 44.3,
+    "h": 44.3
+   },
+   "icone": {
+    "x": 403.6,
+    "y": 686.3,
+    "w": 26.6,
+    "h": 26.6
+   },
+   "iconeSet": {
+    "x": 21.8,
+    "y": 680.9,
+    "w": 19.9,
+    "h": 19.9
+   },
+   "horsEcran": 0,
+   "coin": {
+    "x": 626,
+    "y": 599.4,
+    "w": 64,
+    "h": 47
+   },
+   "coinBordDroit": 10,
+   "fin": {
+    "x": 626,
+    "y": 599.4,
+    "w": 64,
+    "h": 46.7
+   },
+   "toucheX": {
+    "texte": "X",
+    "x": 92.6,
+    "y": 661.4,
+    "w": 17.6,
+    "h": 8
+   },
+   "fil": {
+    "x": 8,
+    "y": 456.4,
+    "w": 135,
+    "h": 73
+   },
+   "phase": null,
+   "filXphase": null,
+   "filXfrise": null,
+   "motsCoupes": [],
+   "frise": {
+    "x": 8,
+    "y": 60.3,
+    "w": 80.2,
+    "h": 385.8
+   },
+   "piste": {
+    "x": 8,
+    "y": 58,
+    "w": 135,
+    "h": 390.4
+   },
+   "zoneTemps": {
+    "x": 8,
+    "y": 58,
+    "w": 135,
+    "h": 471.4
+   },
+   "defilePage": false
+  },
+  {
+   "vue": [
+    701,
+    780
+   ],
+   "doigt": false,
+   "forme": "complete",
+   "pont": 170,
+   "pontPct": 21.8,
+   "bande": {
+    "x": 0,
+    "y": 647.4,
+    "w": 701,
+    "h": 132.6
+   },
+   "arche": {
+    "x": 220,
+    "y": 613,
+    "w": 183,
+    "h": 167
+   },
+   "portrait": {
+    "x": 276,
+    "y": 622,
+    "w": 48,
+    "h": 48
+   },
+   "nom": {
+    "texte": "Sigmund Reikhardt",
+    "x": 260.9,
+    "y": 753,
+    "w": 101.2,
+    "h": 19,
+    "lignes": 19,
+    "debord": 0,
+    "ellipse": "clip"
+   },
+   "case": {
+    "x": 425,
+    "y": 677.4,
+    "w": 26.7,
+    "h": 26.7
+   },
+   "icone": {
+    "x": 428.8,
+    "y": 682.7,
+    "w": 16,
+    "h": 16
+   },
+   "iconeSet": {
+    "x": 20.4,
+    "y": 679,
+    "w": 12,
+    "h": 12
+   },
+   "horsEcran": 0,
+   "coin": {
+    "x": 627,
+    "y": 650.4,
+    "w": 64,
+    "h": 129.6
+   },
+   "coinBordDroit": 10,
+   "fin": {
+    "x": 627,
+    "y": 712.7,
+    "w": 64,
+    "h": 57.3
+   },
+   "toucheX": {
+    "texte": "X",
+    "x": 92.7,
+    "y": 661.4,
+    "w": 17.6,
+    "h": 8
+   },
+   "fil": {
+    "x": 8,
+    "y": 470,
+    "w": 135.5,
+    "h": 73
+   },
+   "phase": null,
+   "filXphase": null,
+   "filXfrise": null,
+   "motsCoupes": [],
+   "frise": {
+    "x": 8,
+    "y": 67.1,
+    "w": 80.2,
+    "h": 385.8
+   },
+   "piste": {
+    "x": 8,
+    "y": 58,
+    "w": 135.5,
+    "h": 404
+   },
+   "zoneTemps": {
+    "x": 8,
+    "y": 58,
+    "w": 135.5,
+    "h": 485
+   },
+   "defilePage": false
+  },
+  {
+   "vue": [
+    900,
+    780
+   ],
+   "doigt": false,
+   "forme": "complete",
+   "pont": 170,
+   "pontPct": 21.8,
+   "bande": {
+    "x": 0,
+    "y": 647.4,
+    "w": 900,
+    "h": 132.6
+   },
+   "arche": {
+    "x": 316.5,
+    "y": 613,
+    "w": 183,
+    "h": 167
+   },
+   "portrait": {
+    "x": 372.5,
+    "y": 622,
+    "w": 48,
+    "h": 48
+   },
+   "nom": {
+    "texte": "Sigmund Reikhardt",
+    "x": 357.3,
+    "y": 753,
+    "w": 101.2,
+    "h": 19,
+    "lignes": 19,
+    "debord": 0,
+    "ellipse": "clip"
+   },
+   "case": {
+    "x": 525.5,
+    "y": 677.4,
+    "w": 42.4,
+    "h": 42.4
+   },
+   "icone": {
+    "x": 532.5,
+    "y": 685.9,
+    "w": 25.5,
+    "h": 25.5
+   },
+   "iconeSet": {
+    "x": 21.7,
+    "y": 680.7,
+    "w": 19.1,
+    "h": 19.1
+   },
+   "horsEcran": 0,
+   "coin": {
+    "x": 826,
+    "y": 650.4,
+    "w": 64,
+    "h": 129.6
+   },
+   "coinBordDroit": 10,
+   "fin": {
+    "x": 826,
+    "y": 681.2,
+    "w": 64,
+    "h": 88.8
+   },
+   "toucheX": {
+    "texte": "X",
+    "x": 92.6,
+    "y": 661.4,
+    "w": 17.6,
+    "h": 8
+   },
+   "fil": {
+    "x": 8,
+    "y": 486,
+    "w": 235,
+    "h": 57
+   },
+   "phase": null,
+   "filXphase": null,
+   "filXfrise": null,
+   "motsCoupes": [],
+   "frise": {
+    "x": 8,
+    "y": 75.1,
+    "w": 80.2,
+    "h": 385.8
+   },
+   "piste": {
+    "x": 8,
+    "y": 58,
+    "w": 235,
+    "h": 420
+   },
+   "zoneTemps": {
+    "x": 8,
+    "y": 58,
+    "w": 235,
+    "h": 485
+   },
+   "defilePage": false
+  },
+  {
+   "vue": [
+    1366,
+    650
+   ],
+   "doigt": false,
+   "forme": "complete",
+   "pont": 141.7,
+   "pontPct": 21.8,
+   "bande": {
+    "x": 0,
+    "y": 539.5,
+    "w": 1366,
+    "h": 110.5
+   },
+   "arche": {
+    "x": 575.7,
+    "y": 511.3,
+    "w": 214.7,
+    "h": 138.7
+   },
+   "portrait": {
+    "x": 631.7,
+    "y": 520.3,
+    "w": 79.7,
+    "h": 79.7
+   },
+   "nom": {
+    "texte": "Sigmund Reikhardt",
+    "x": 632.4,
+    "y": 623,
+    "w": 101.2,
+    "h": 19,
+    "lignes": 19,
+    "debord": 0,
+    "ellipse": "clip"
+   },
+   "case": {
+    "x": 824.3,
+    "y": 569.5,
+    "w": 33.3,
+    "h": 33.3
+   },
+   "icone": {
+    "x": 829.5,
+    "y": 576.2,
+    "w": 19.9,
+    "h": 19.9
+   },
+   "iconeSet": {
+    "x": 315.6,
+    "y": 571.8,
+    "w": 15,
+    "h": 15
+   },
+   "horsEcran": 0,
+   "coin": {
+    "x": 1292,
+    "y": 542.5,
+    "w": 64,
+    "h": 107.5
+   },
+   "coinBordDroit": 10,
+   "fin": {
+    "x": 1292,
+    "y": 569.5,
+    "w": 64,
+    "h": 70.5
+   },
+   "toucheX": {
+    "texte": "X",
+    "x": 387.4,
+    "y": 553.5,
+    "w": 17.6,
+    "h": 8
+   },
+   "fil": {
+    "x": 8,
+    "y": 423.3,
+    "w": 317.7,
+    "h": 18
+   },
+   "phase": null,
+   "filXphase": null,
+   "filXfrise": null,
+   "motsCoupes": [],
+   "frise": {
+    "x": 8,
+    "y": 66.7,
+    "w": 86.2,
+    "h": 340
+   },
+   "piste": {
+    "x": 8,
+    "y": 58,
+    "w": 468,
+    "h": 357.3
+   },
+   "zoneTemps": {
+    "x": 8,
+    "y": 58,
+    "w": 468,
+    "h": 383.3
+   },
+   "defilePage": false
+  },
+  {
+   "vue": [
+    1707,
+    780
+   ],
+   "doigt": false,
+   "forme": "complete",
+   "pont": 170,
+   "pontPct": 21.8,
+   "bande": {
+    "x": 0,
+    "y": 647.4,
+    "w": 1707,
+    "h": 132.6
+   },
+   "arche": {
+    "x": 732,
+    "y": 613,
+    "w": 243,
+    "h": 167
+   },
+   "portrait": {
+    "x": 788,
+    "y": 622,
+    "w": 108,
+    "h": 108
+   },
+   "nom": {
+    "texte": "Sigmund Reikhardt",
+    "x": 802.9,
+    "y": 753,
+    "w": 101.2,
+    "h": 19,
+    "lignes": 19,
+    "debord": 0,
+    "ellipse": "clip"
+   },
+   "case": {
+    "x": 1009,
+    "y": 677.4,
+    "w": 44.3,
+    "h": 44.3
+   },
+   "icone": {
+    "x": 1016.4,
+    "y": 686.3,
+    "w": 26.6,
+    "h": 26.6
+   },
+   "iconeSet": {
+    "x": 410.8,
+    "y": 680.9,
+    "w": 19.9,
+    "h": 19.9
+   },
+   "horsEcran": 0,
+   "coin": {
+    "x": 1633,
+    "y": 650.4,
+    "w": 64,
+    "h": 129.6
+   },
+   "coinBordDroit": 10,
+   "fin": {
+    "x": 1633,
+    "y": 677.4,
+    "w": 64,
+    "h": 92.6
+   },
+   "toucheX": {
+    "texte": "X",
+    "x": 481.6,
+    "y": 661.4,
+    "w": 17.6,
+    "h": 8
+   },
+   "fil": {
+    "x": 8,
+    "y": 525,
+    "w": 317.7,
+    "h": 18
+   },
+   "phase": null,
+   "filXphase": null,
+   "filXfrise": null,
+   "motsCoupes": [],
+   "frise": {
+    "x": 8,
+    "y": 61.5,
+    "w": 86.2,
+    "h": 452
+   },
+   "piste": {
+    "x": 8,
+    "y": 58,
+    "w": 638.5,
+    "h": 459
+   },
+   "zoneTemps": {
+    "x": 8,
+    "y": 58,
+    "w": 638.5,
+    "h": 485
+   },
+   "defilePage": false
+  }
+ ],
+ "T-doigt-heros": [
+  {
+   "vue": [
+    768,
+    1024
+   ],
+   "doigt": true,
+   "forme": "complete",
+   "pont": 205,
+   "pontPct": 20,
+   "bande": {
+    "x": 0,
+    "y": 819,
+    "w": 768,
+    "h": 205
+   },
+   "arche": {
+    "x": 10,
+    "y": 822,
+    "w": 674,
+    "h": 47
+   },
+   "portrait": {
+    "x": 102,
+    "y": 832,
+    "w": 30,
+    "h": 30
+   },
+   "nom": {
+    "texte": "Sigmund Reikhardt",
+    "x": 589.3,
+    "y": 839,
+    "w": 86.7,
+    "h": 16,
+    "lignes": 16,
+    "debord": 0,
+    "ellipse": "clip"
+   },
+   "case": {
+    "x": 400,
+    "y": 900,
+    "w": 55,
+    "h": 55
+   },
+   "icone": {
+    "x": 409.5,
+    "y": 911,
+    "w": 33,
+    "h": 33
+   },
+   "iconeSet": {
+    "x": 33.1,
+    "y": 904.6,
+    "w": 24.8,
+    "h": 24.8
+   },
+   "horsEcran": 0,
+   "coin": {
+    "x": 694,
+    "y": 822,
+    "w": 64,
+    "h": 47
+   },
+   "coinBordDroit": 10,
+   "fin": {
+    "x": 694,
+    "y": 822,
+    "w": 64,
+    "h": 46.7
+   },
+   "toucheX": {
+    "texte": "X",
+    "x": 92.6,
+    "y": 884,
+    "w": 17.6,
+    "h": 8
+   },
+   "fil": {
+    "x": 8,
+    "y": 695,
+    "w": 169,
+    "h": 57
+   },
+   "phase": null,
+   "filXphase": null,
+   "filXfrise": null,
+   "motsCoupes": [],
+   "frise": {
+    "x": 8,
+    "y": 98.1,
+    "w": 80.2,
+    "h": 550.8
+   },
+   "piste": {
+    "x": 8,
+    "y": 60,
+    "w": 169,
+    "h": 627
+   },
+   "zoneTemps": {
+    "x": 8,
+    "y": 60,
+    "w": 169,
+    "h": 692
+   },
+   "defilePage": false
+  },
+  {
+   "vue": [
+    1366,
+    650
+   ],
+   "doigt": true,
+   "forme": "complete",
+   "pont": 163.2,
+   "pontPct": 25.1,
+   "bande": {
+    "x": 0,
+    "y": 518,
+    "w": 1366,
+    "h": 132
+   },
+   "arche": {
+    "x": 575.7,
+    "y": 489.8,
+    "w": 214.7,
+    "h": 160.2
+   },
+   "portrait": {
+    "x": 631.7,
+    "y": 520.3,
+    "w": 79.7,
+    "h": 79.7
+   },
+   "nom": {
+    "texte": "Sigmund Reikhardt",
+    "x": 632.4,
+    "y": 623,
+    "w": 101.2,
+    "h": 19,
+    "lignes": 19,
+    "debord": 0,
+    "ellipse": "clip"
+   },
+   "case": {
+    "x": 808.3,
+    "y": 548,
+    "w": 44,
+    "h": 44
+   },
+   "icone": {
+    "x": 815.6,
+    "y": 556.8,
+    "w": 26.4,
+    "h": 26.4
+   },
+   "iconeSet": {
+    "x": 279.8,
+    "y": 551.4,
+    "w": 19.8,
+    "h": 19.8
+   },
+   "horsEcran": 0,
+   "coin": {
+    "x": 1292,
+    "y": 521,
+    "w": 64,
+    "h": 129
+   },
+   "coinBordDroit": 10,
+   "fin": {
+    "x": 1292,
+    "y": 548,
+    "w": 64,
+    "h": 92
+   },
+   "toucheX": {
+    "texte": "X",
+    "x": 342.2,
+    "y": 532,
+    "w": 17.6,
+    "h": 8
+   },
+   "fil": {
+    "x": 8,
+    "y": 401.8,
+    "w": 317.7,
+    "h": 18
+   },
+   "phase": null,
+   "filXphase": null,
+   "filXfrise": null,
+   "motsCoupes": [],
+   "frise": {
+    "x": 8,
+    "y": 84.9,
+    "w": 86.2,
+    "h": 284
+   },
+   "piste": {
+    "x": 8,
+    "y": 60,
+    "w": 468,
+    "h": 333.8
+   },
+   "zoneTemps": {
+    "x": 8,
+    "y": 60,
+    "w": 468,
+    "h": 359.8
+   },
+   "defilePage": false
+  }
+ ],
+ "C-adverse": [
+  {
+   "vue": [
+    360,
+    740
+   ],
+   "doigt": false,
+   "forme": "spectatrice",
+   "pont": 280,
+   "pontPct": 37.8,
+   "bande": {
+    "x": 0,
+    "y": 460,
+    "w": 360,
+    "h": 280
+   },
+   "arche": {
+    "x": 10,
+    "y": 463,
+    "w": 273,
+    "h": 67
+   },
+   "portrait": {
+    "x": 102,
+    "y": 473,
+    "w": 30,
+    "h": 30
+   },
+   "nom": {
+    "texte": "Mikael",
+    "x": 242.9,
+    "y": 508,
+    "w": 32.1,
+    "h": 16,
+    "lignes": 16,
+    "debord": 0,
+    "ellipse": "clip"
+   },
+   "case": null,
+   "icone": null,
+   "iconeSet": null,
+   "horsEcran": 0,
+   "coin": null,
+   "coinBordDroit": null,
+   "fin": null,
+   "toucheX": null,
+   "fil": {
+    "x": 21.2,
+    "y": 121.8,
+    "w": 317.7,
+    "h": 18
+   },
+   "phase": {
+    "x": 124.2,
+    "y": 433,
+    "w": 111.6,
+    "h": 24
+   },
+   "filXphase": null,
+   "filXfrise": null,
+   "motsCoupes": [],
+   "frise": {
+    "x": 4,
+    "y": 50,
+    "w": 352,
+    "h": 63.8
+   },
+   "piste": {
+    "x": 4,
+    "y": 50,
+    "w": 352,
+    "h": 63.8
+   },
+   "zoneTemps": {
+    "x": 4,
+    "y": 50,
+    "w": 352,
+    "h": 89.8
+   },
+   "defilePage": false
+  },
+  {
+   "vue": [
+    360,
+    650
+   ],
+   "doigt": false,
+   "forme": "spectatrice",
+   "pont": 280,
+   "pontPct": 43.1,
+   "bande": {
+    "x": 0,
+    "y": 370,
+    "w": 360,
+    "h": 280
+   },
+   "arche": {
+    "x": 10,
+    "y": 373,
+    "w": 273,
+    "h": 67
+   },
+   "portrait": {
+    "x": 102,
+    "y": 383,
+    "w": 30,
+    "h": 30
+   },
+   "nom": {
+    "texte": "Mikael",
+    "x": 242.9,
+    "y": 418,
+    "w": 32.1,
+    "h": 16,
+    "lignes": 16,
+    "debord": 0,
+    "ellipse": "clip"
+   },
+   "case": null,
+   "icone": null,
+   "iconeSet": null,
+   "horsEcran": 0,
+   "coin": null,
+   "coinBordDroit": null,
+   "fin": null,
+   "toucheX": null,
+   "fil": {
+    "x": 21.2,
+    "y": 121.8,
+    "w": 317.7,
+    "h": 18
+   },
+   "phase": {
+    "x": 124.2,
+    "y": 343,
+    "w": 111.6,
+    "h": 24
+   },
+   "filXphase": null,
+   "filXfrise": null,
+   "motsCoupes": [],
+   "frise": {
+    "x": 4,
+    "y": 50,
+    "w": 352,
+    "h": 63.8
+   },
+   "piste": {
+    "x": 4,
+    "y": 50,
+    "w": 352,
+    "h": 63.8
+   },
+   "zoneTemps": {
+    "x": 4,
+    "y": 50,
+    "w": 352,
+    "h": 89.8
+   },
+   "defilePage": false
+  },
+  {
+   "vue": [
+    560,
+    650
+   ],
+   "doigt": false,
+   "forme": "spectatrice",
+   "pont": 280,
+   "pontPct": 43.1,
+   "bande": {
+    "x": 0,
+    "y": 370,
+    "w": 560,
+    "h": 280
+   },
+   "arche": {
+    "x": 10,
+    "y": 373,
+    "w": 473,
+    "h": 67
+   },
+   "portrait": {
+    "x": 102,
+    "y": 383,
+    "w": 30,
+    "h": 30
+   },
+   "nom": {
+    "texte": "Mikael",
+    "x": 442.9,
+    "y": 418,
+    "w": 32.1,
+    "h": 16,
+    "lignes": 16,
+    "debord": 0,
+    "ellipse": "clip"
+   },
+   "case": null,
+   "icone": null,
+   "iconeSet": null,
+   "horsEcran": 0,
+   "coin": null,
+   "coinBordDroit": null,
+   "fin": null,
+   "toucheX": null,
+   "fil": {
+    "x": 121.2,
+    "y": 121.8,
+    "w": 317.7,
+    "h": 18
+   },
+   "phase": {
+    "x": 224.2,
+    "y": 343,
+    "w": 111.6,
+    "h": 24
+   },
+   "filXphase": null,
+   "filXfrise": null,
+   "motsCoupes": [],
+   "frise": {
+    "x": 4,
+    "y": 50,
+    "w": 552,
+    "h": 63.8
+   },
+   "piste": {
+    "x": 4,
+    "y": 50,
+    "w": 552,
+    "h": 63.8
+   },
+   "zoneTemps": {
+    "x": 4,
+    "y": 50,
+    "w": 552,
+    "h": 89.8
+   },
+   "defilePage": false
+  },
+  {
+   "vue": [
+    640,
+    780
+   ],
+   "doigt": false,
+   "forme": "spectatrice",
+   "pont": 183.6,
+   "pontPct": 23.5,
+   "bande": {
+    "x": 0,
+    "y": 596.4,
+    "w": 640,
+    "h": 183.6
+   },
+   "arche": {
+    "x": 10,
+    "y": 599.4,
+    "w": 543.2,
+    "h": 47
+   },
+   "portrait": {
+    "x": 102,
+    "y": 609.4,
+    "w": 30,
+    "h": 30
+   },
+   "nom": {
+    "texte": "Mikael",
+    "x": 513.1,
+    "y": 616.4,
+    "w": 32.1,
+    "h": 16,
+    "lignes": 16,
+    "debord": 0,
+    "ellipse": "clip"
+   },
+   "case": null,
+   "icone": null,
+   "iconeSet": null,
+   "horsEcran": 0,
+   "coin": null,
+   "coinBordDroit": null,
+   "fin": null,
+   "toucheX": null,
+   "fil": {
+    "x": 8,
+    "y": 456.4,
+    "w": 105,
+    "h": 73
+   },
+   "phase": {
+    "x": 254,
+    "y": 545.4,
+    "w": 132,
+    "h": 48
+   },
+   "filXphase": null,
+   "filXfrise": null,
+   "motsCoupes": [],
+   "frise": {
+    "x": 8,
+    "y": 60.3,
+    "w": 80.2,
+    "h": 385.8
+   },
+   "piste": {
+    "x": 8,
+    "y": 58,
+    "w": 105,
+    "h": 390.4
+   },
+   "zoneTemps": {
+    "x": 8,
+    "y": 58,
+    "w": 105,
+    "h": 471.4
+   },
+   "defilePage": false
+  },
+  {
+   "vue": [
+    700,
+    780
+   ],
+   "doigt": false,
+   "forme": "spectatrice",
+   "pont": 183.6,
+   "pontPct": 23.5,
+   "bande": {
+    "x": 0,
+    "y": 596.4,
+    "w": 700,
+    "h": 183.6
+   },
+   "arche": {
+    "x": 10,
+    "y": 599.4,
+    "w": 602,
+    "h": 47
+   },
+   "portrait": {
+    "x": 102,
+    "y": 609.4,
+    "w": 30,
+    "h": 30
+   },
+   "nom": {
+    "texte": "Mikael",
+    "x": 571.9,
+    "y": 616.4,
+    "w": 32.1,
+    "h": 16,
+    "lignes": 16,
+    "debord": 0,
+    "ellipse": "clip"
+   },
+   "case": null,
+   "icone": null,
+   "iconeSet": null,
+   "horsEcran": 0,
+   "coin": null,
+   "coinBordDroit": null,
+   "fin": null,
+   "toucheX": null,
+   "fil": {
+    "x": 8,
+    "y": 456.4,
+    "w": 135,
+    "h": 73
+   },
+   "phase": {
+    "x": 284,
+    "y": 545.4,
+    "w": 132,
+    "h": 48
+   },
+   "filXphase": null,
+   "filXfrise": null,
+   "motsCoupes": [],
+   "frise": {
+    "x": 8,
+    "y": 60.3,
+    "w": 80.2,
+    "h": 385.8
+   },
+   "piste": {
+    "x": 8,
+    "y": 58,
+    "w": 135,
+    "h": 390.4
+   },
+   "zoneTemps": {
+    "x": 8,
+    "y": 58,
+    "w": 135,
+    "h": 471.4
+   },
+   "defilePage": false
+  },
+  {
+   "vue": [
+    701,
+    780
+   ],
+   "doigt": false,
+   "forme": "spectatrice",
+   "pont": 170,
+   "pontPct": 21.8,
+   "bande": {
+    "x": 0,
+    "y": 647.4,
+    "w": 701,
+    "h": 132.6
+   },
+   "arche": {
+    "x": 220,
+    "y": 613,
+    "w": 183,
+    "h": 167
+   },
+   "portrait": {
+    "x": 276,
+    "y": 622,
+    "w": 48,
+    "h": 48
+   },
+   "nom": {
+    "texte": "Mikael",
+    "x": 292.8,
+    "y": 753,
+    "w": 37.5,
+    "h": 19,
+    "lignes": 19,
+    "debord": 0,
+    "ellipse": "clip"
+   },
+   "case": null,
+   "icone": null,
+   "iconeSet": null,
+   "horsEcran": 0,
+   "coin": null,
+   "coinBordDroit": null,
+   "fin": null,
+   "toucheX": null,
+   "fil": {
+    "x": 8,
+    "y": 470,
+    "w": 135.5,
+    "h": 73
+   },
+   "phase": {
+    "x": 284.5,
+    "y": 559,
+    "w": 132,
+    "h": 48
+   },
+   "filXphase": null,
+   "filXfrise": null,
+   "motsCoupes": [],
+   "frise": {
+    "x": 8,
+    "y": 67.1,
+    "w": 80.2,
+    "h": 385.8
+   },
+   "piste": {
+    "x": 8,
+    "y": 58,
+    "w": 135.5,
+    "h": 404
+   },
+   "zoneTemps": {
+    "x": 8,
+    "y": 58,
+    "w": 135.5,
+    "h": 485
+   },
+   "defilePage": false
+  },
+  {
+   "vue": [
+    900,
+    780
+   ],
+   "doigt": false,
+   "forme": "spectatrice",
+   "pont": 170,
+   "pontPct": 21.8,
+   "bande": {
+    "x": 0,
+    "y": 647.4,
+    "w": 900,
+    "h": 132.6
+   },
+   "arche": {
+    "x": 317.5,
+    "y": 613,
+    "w": 183,
+    "h": 167
+   },
+   "portrait": {
+    "x": 373.5,
+    "y": 622,
+    "w": 48,
+    "h": 48
+   },
+   "nom": {
+    "texte": "Mikael",
+    "x": 390.3,
+    "y": 753,
+    "w": 37.5,
+    "h": 19,
+    "lignes": 19,
+    "debord": 0,
+    "ellipse": "clip"
+   },
+   "case": null,
+   "icone": null,
+   "iconeSet": null,
+   "horsEcran": 0,
+   "coin": null,
+   "coinBordDroit": null,
+   "fin": null,
+   "toucheX": null,
+   "fil": {
+    "x": 8,
+    "y": 486,
+    "w": 235,
+    "h": 57
+   },
+   "phase": {
+    "x": 384,
+    "y": 559,
+    "w": 132,
+    "h": 48
+   },
+   "filXphase": null,
+   "filXfrise": null,
+   "motsCoupes": [],
+   "frise": {
+    "x": 8,
+    "y": 75.1,
+    "w": 80.2,
+    "h": 385.8
+   },
+   "piste": {
+    "x": 8,
+    "y": 58,
+    "w": 235,
+    "h": 420
+   },
+   "zoneTemps": {
+    "x": 8,
+    "y": 58,
+    "w": 235,
+    "h": 485
+   },
+   "defilePage": false
+  },
+  {
+   "vue": [
+    1366,
+    650
+   ],
+   "doigt": false,
+   "forme": "spectatrice",
+   "pont": 141.7,
+   "pontPct": 21.8,
+   "bande": {
+    "x": 0,
+    "y": 539.5,
+    "w": 1366,
+    "h": 110.5
+   },
+   "arche": {
+    "x": 575.7,
+    "y": 511.3,
+    "w": 214.7,
+    "h": 138.7
+   },
+   "portrait": {
+    "x": 631.7,
+    "y": 520.3,
+    "w": 79.7,
+    "h": 79.7
+   },
+   "nom": {
+    "texte": "Mikael",
+    "x": 664.3,
+    "y": 623,
+    "w": 37.5,
+    "h": 19,
+    "lignes": 19,
+    "debord": 0,
+    "ellipse": "clip"
+   },
+   "case": null,
+   "icone": null,
+   "iconeSet": null,
+   "horsEcran": 0,
+   "coin": null,
+   "coinBordDroit": null,
+   "fin": null,
+   "toucheX": null,
+   "fil": {
+    "x": 8,
+    "y": 423.3,
+    "w": 317.7,
+    "h": 18
+   },
+   "phase": {
+    "x": 617,
+    "y": 457.3,
+    "w": 132,
+    "h": 48
+   },
+   "filXphase": null,
+   "filXfrise": null,
+   "motsCoupes": [],
+   "frise": {
+    "x": 8,
+    "y": 66.7,
+    "w": 86.2,
+    "h": 340
+   },
+   "piste": {
+    "x": 8,
+    "y": 58,
+    "w": 468,
+    "h": 357.3
+   },
+   "zoneTemps": {
+    "x": 8,
+    "y": 58,
+    "w": 468,
+    "h": 383.3
+   },
+   "defilePage": false
+  },
+  {
+   "vue": [
+    1707,
+    780
+   ],
+   "doigt": false,
+   "forme": "spectatrice",
+   "pont": 170,
+   "pontPct": 21.8,
+   "bande": {
+    "x": 0,
+    "y": 647.4,
+    "w": 1707,
+    "h": 132.6
+   },
+   "arche": {
+    "x": 732,
+    "y": 613,
+    "w": 243,
+    "h": 167
+   },
+   "portrait": {
+    "x": 788,
+    "y": 622,
+    "w": 108,
+    "h": 108
+   },
+   "nom": {
+    "texte": "Mikael",
+    "x": 834.8,
+    "y": 753,
+    "w": 37.5,
+    "h": 19,
+    "lignes": 19,
+    "debord": 0,
+    "ellipse": "clip"
+   },
+   "case": null,
+   "icone": null,
+   "iconeSet": null,
+   "horsEcran": 0,
+   "coin": null,
+   "coinBordDroit": null,
+   "fin": null,
+   "toucheX": null,
+   "fil": {
+    "x": 8,
+    "y": 525,
+    "w": 317.7,
+    "h": 18
+   },
+   "phase": {
+    "x": 787.5,
+    "y": 559,
+    "w": 132,
+    "h": 48
+   },
+   "filXphase": null,
+   "filXfrise": null,
+   "motsCoupes": [],
+   "frise": {
+    "x": 8,
+    "y": 61.5,
+    "w": 86.2,
+    "h": 452
+   },
+   "piste": {
+    "x": 8,
+    "y": 58,
+    "w": 638.5,
+    "h": 459
+   },
+   "zoneTemps": {
+    "x": 8,
+    "y": 58,
+    "w": 638.5,
+    "h": 485
+   },
+   "defilePage": false
+  }
+ ],
+ "T-doigt-adverse": [
+  {
+   "vue": [
+    768,
+    1024
+   ],
+   "doigt": true,
+   "forme": "spectatrice",
+   "pont": 205,
+   "pontPct": 20,
+   "bande": {
+    "x": 0,
+    "y": 819,
+    "w": 768,
+    "h": 205
+   },
+   "arche": {
+    "x": 10,
+    "y": 822,
+    "w": 674,
+    "h": 47
+   },
+   "portrait": {
+    "x": 102,
+    "y": 832,
+    "w": 30,
+    "h": 30
+   },
+   "nom": {
+    "texte": "Mikael",
+    "x": 643.9,
+    "y": 839,
+    "w": 32.1,
+    "h": 16,
+    "lignes": 16,
+    "debord": 0,
+    "ellipse": "clip"
+   },
+   "case": null,
+   "icone": null,
+   "iconeSet": null,
+   "horsEcran": 0,
+   "coin": null,
+   "coinBordDroit": null,
+   "fin": null,
+   "toucheX": null,
+   "fil": {
+    "x": 8,
+    "y": 695,
+    "w": 169,
+    "h": 57
+   },
+   "phase": {
+    "x": 318,
+    "y": 768,
+    "w": 132,
+    "h": 48
+   },
+   "filXphase": null,
+   "filXfrise": null,
+   "motsCoupes": [],
+   "frise": {
+    "x": 8,
+    "y": 98.1,
+    "w": 80.2,
+    "h": 550.8
+   },
+   "piste": {
+    "x": 8,
+    "y": 60,
+    "w": 169,
+    "h": 627
+   },
+   "zoneTemps": {
+    "x": 8,
+    "y": 60,
+    "w": 169,
+    "h": 692
+   },
+   "defilePage": false
+  },
+  {
+   "vue": [
+    1366,
+    650
+   ],
+   "doigt": true,
+   "forme": "spectatrice",
+   "pont": 163.2,
+   "pontPct": 25.1,
+   "bande": {
+    "x": 0,
+    "y": 518,
+    "w": 1366,
+    "h": 132
+   },
+   "arche": {
+    "x": 575.7,
+    "y": 489.8,
+    "w": 214.7,
+    "h": 160.2
+   },
+   "portrait": {
+    "x": 631.7,
+    "y": 520.3,
+    "w": 79.7,
+    "h": 79.7
+   },
+   "nom": {
+    "texte": "Mikael",
+    "x": 664.3,
+    "y": 623,
+    "w": 37.5,
+    "h": 19,
+    "lignes": 19,
+    "debord": 0,
+    "ellipse": "clip"
+   },
+   "case": null,
+   "icone": null,
+   "iconeSet": null,
+   "horsEcran": 0,
+   "coin": null,
+   "coinBordDroit": null,
+   "fin": null,
+   "toucheX": null,
+   "fil": {
+    "x": 8,
+    "y": 401.8,
+    "w": 317.7,
+    "h": 18
+   },
+   "phase": {
+    "x": 617,
+    "y": 435.8,
+    "w": 132,
+    "h": 48
+   },
+   "filXphase": null,
+   "filXfrise": null,
+   "motsCoupes": [],
+   "frise": {
+    "x": 8,
+    "y": 84.9,
+    "w": 86.2,
+    "h": 284
+   },
+   "piste": {
+    "x": 8,
+    "y": 60,
+    "w": 468,
+    "h": 333.8
+   },
+   "zoneTemps": {
+    "x": 8,
+    "y": 60,
+    "w": 468,
+    "h": 359.8
+   },
+   "defilePage": false
+  }
+ ],
+ "console": [
+  {
+   "type": "exception",
+   "text": "TypeError: Cannot assign to read only property 'loaded' of object '#<Object>'\n    at unloadWeapon (http://localhost:5236/src/engine/items.ts:708:16)\n    at appliquerLaTouche (http://localhost:5236/src/state/combatFlow.ts:1719:7)\n    at applyAttackResult (http://localhost:5236/src/state/combatFlow.ts:1481:7)\n    at doAttack (http://localhost:5236/src/state/combatFlow.ts:2370:10)\n    at http://localhost:5236/src/state/combatFlow.ts:5093:95\n    at http://localhost:5236/src/state/combatTimers.ts:5:5"
+  }
+ ]
+}

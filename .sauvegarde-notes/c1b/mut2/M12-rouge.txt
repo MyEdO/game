@@ -1,0 +1,27 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1919-H2
+
+ ❯ src/ui/CombatConsole.test.tsx (151 tests | 1 failed | 150 skipped) 42ms 449 MB heap used
+   × CombatConsole — assemblage : UN PONT, pas des blocs > P-4 — le fronton est centré : deux voies `1fr` égales + réserve MIROIR du coin 40ms
+     → 701×780 : la rangée et sa réserve débordent la fenêtre: expected 779.02 to be less than or equal to 701.000001
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 150 skipped (151)
+   Start at  01:37:15
+   Duration  20.29s (transform 12.23s, setup 13.36s, collect 5.78s, tests 42ms, environment 655ms, prepare 51ms)
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/ui/CombatConsole.test.tsx > CombatConsole — assemblage : UN PONT, pas des blocs > P-4 — le fronton est centré : deux voies `1fr` égales + réserve MIROIR du coin
+AssertionError: 701×780 : la rangée et sa réserve débordent la fenêtre: expected 779.02 to be less than or equal to 701.000001
+ ❯ src/ui/CombatConsole.test.tsx:929:130
+    927|     for (const [vw, vh] of [[701, 780], [900, 780], [901, 780], [1100,…
+    928|       expect(miroir(vw, vh), `${vw}×${vh} : réserve miroir négative`).…
+    929|       expect(evalLen('var(--cc-rangee)', vw, vh) + miroir(vw, vh), `${…
+       |                                                                                                                                  ^
+    930|     }
+    931|     // … et le coin tire sa largeur du MÊME token : la réserve ne peut…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+

@@ -1,0 +1,26 @@
+## Sous-lot 2a (HUD) — publié
+
+État MESURÉ après le commit `9e6fffcdd` (main `37873ae15`, CI verte : course 35476624747) (`scripts/guards/lib/cssCouchesStock.mjs`) :
+
+| Stock | Avant (2c) | Après (2a) |
+|---|---|---|
+| identité | 1993 | 1719 |
+| espacement | 789 | 724 |
+| `style=` inline | 100 | 99 |
+| `hud.css` (identité) | 297 | 9 |
+
+**Reste dans `hud.css` avant la clôture de #1806 — 9 unités :**
+- 6 : la puce de lieu `.hud-topbar [data-hud='place']` ;
+- 3 : la plaque de bois de `.hud-rail`.
+
+**Neuf modules de primitive** : `portrait-tile`, `state-chips`, `initiative-strip`, `party-dock`, `media-select`, `objective-banner`, `view-controls`, `dr-bar`, `coins`. Manifeste : 86 entrées (7 neuves). Peau partagée `.skin-tole[data-ton]` dans `components.css`.
+
+**Outil né du lot** : `node scripts/ui/css-conservation.mjs [--base <ref>]` (lib `scripts/guards/lib/cssConservation.mjs`, 10 cas). Preuve statique de conservation : déclarations disparues / apparues, bascules de cascade par changement de sélecteur, inversions d'ordre à poids égal. Elle a trouvé quatre régressions invisibles aux tests (`.vc-btn` 20 → 19 px, `.medic-purse`, `.modal-actions` ≤700, portrait de la fiche de navire) et la classe du bloquant du juge (rang de la bande dépliée écrasé par l'ancrage de l'hôte). Reliquat relu sur l'arbre final : 5 bascules et 32 inversions, aucune ne visant un même élément. À jouer AVANT le commit des sous-lots 2b et 2d.
+
+**Garde généralisée** : la matrice responsive de `src/ui/ui-ratchets.test.ts` ne lit plus une liste de modules du HUD tenue à la main. Les deux règles (une tranche du canon écrite au plus une fois par module, aucun breakpoint hors 900 / 700 / 560) portent sur tout `src/ui/styles`, contre un stock de naissance de 13 sites dans 8 modules hors famille Combat, à solder aux lots d'écran de l'épic #1811.
+
+**Dette révélée, à solder au 2b** : 3 spécialisations de `.ptile` par `combat-console.css` (`REPEINTS_STOCK` de `src/ui/css-modules-guard.test.ts`, +1 net), exemptes par construction quand la console devient un organisme au manifeste.
+
+**Recette joueur** : console à 0 erreur ; captures `public/qc/soldes/1806-2a-*.png`, dont la bande des héros dépliée à 360 px (rang mesuré 60 contre 46 pour le fil d'événements). Non atteints : inspection et `ViewControls` en jeu (#1822), écran de victoire (#1823).
+
+**Suite** : #1829 (le dock devient la tête de la fiche, arbitrage utilisateur du 2026-09-19 consigné là-bas) est débloqué par cette publication. Restent 2b (console), 2d (combat-ui), puis les 9 unités ci-dessus.

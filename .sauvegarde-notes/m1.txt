@@ -1,0 +1,40 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1806-L2
+
+ ❯ src/lib/coupeAuMot.test.ts (9 tests | 1 failed | 8 skipped) 15ms 363 MB heap used
+   × coupeAuMot — la coupe tombe à une FRONTIÈRE DE MOT (R-M2) > balayage à graine fixe : entier s’il tient, sinon un préfixe du texte, non vide, d’au plus `n` caractères hors la seule sortie 14ms
+     → expected [ …(5) ] to deeply equal []
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/lib/coupeAuMot.test.ts > coupeAuMot — la coupe tombe à une FRONTIÈRE DE MOT (R-M2) > balayage à graine fixe : entier s’il tient, sinon un préfixe du texte, non vide, d’au plus `n` caractères hors la seule sortie
+AssertionError: expected [ …(5) ] to deeply equal []
+
+- Expected
++ Received
+
+- Array []
++ Array [
++   "au-delà de n : \"\\nb\\nac\\n   ca\\n  \\nc\" 5 -> \"\\nb\\nac…\"",
++   "au-delà de n : \"é b     bcc   é\" 3 -> \"é b…\"",
++   "au-delà de n : \"é    ba   ab    c\" 12 -> \"é    ba   ab…\"",
++   "au-delà de n : \"é   écacééb     é c \" 17 -> \"é   écacééb     é…\"",
++   "au-delà de n : \" ca é    \\nc bébb\" 5 -> \" ca é…\"",
++ ]
+
+ ❯ src/lib/coupeAuMot.test.ts:72:20
+     70|       if (base.trim() === '' && s.trim() !== '') fautes.push(`texte pe…
+     71|     }
+     72|     expect(fautes).toEqual([]);
+       |                    ^
+     73|   }, 5000);
+     74| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 8 skipped (9)
+   Start at  18:10:45
+   Duration  14.78s (transform 9.53s, setup 14.37s, collect 14ms, tests 15ms, environment 0ms, prepare 53ms)
+

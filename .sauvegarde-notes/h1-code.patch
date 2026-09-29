@@ -1,0 +1,2228 @@
+diff --git a/docs/charte-ui.md b/docs/charte-ui.md
+index c54e50a4e..92d6722fa 100644
+--- a/docs/charte-ui.md
++++ b/docs/charte-ui.md
+@@ -383,31 +383,59 @@ terrain. Deux boîtes la posent sur deux écrans : le rail d'outils `.hud-rail`
+ (`CampaignView`) et le bandeau de phase `.cc-phase` du pont (`CombatConsole`, à ses TROIS adresses).
+ Chaque porteur n'en garde que son delta — l'ancrage du rail, l'encoche d'angle du bandeau.
+ 
+-### Une réserve de pont se tient par le FLUX, jamais par une valeur (#1848)
+-
+-Le bas du champ de l'écran de jeu est une **rangée de grille**, pas une pile d'ancrages : `.stage`
+-est en `grid-template-rows: 1fr auto`, le PONT (console de combat ou pont d'exploration) EST la
+-rangée basse, et toutes les surfaces qui s'ancrent au bas du champ vivent dans `.stage-flot`, la
+-rangée du monde (`hud.css`). Conséquence : `bottom: 0` y signifie « juste au-dessus du pont », et
+-**aucune feuille ne lit plus la hauteur d'un pont pour s'en écarter**.
+-
+-Devant tout `bottom:` d'une surface basse, la question est : « cette valeur connaît-elle la hauteur
+-d'un pont ? » — si oui, elle meurt. Une variable mesurée au rendu (hook + `ResizeObserver`) ne règle
+-rien : c'est une garde de synchronisation, fausse d'une frame à chaque bascule de forme, muette sous
+-jsdom, et elle couple une primitive au runtime d'un écran. Ce qui reste légitime : la SAILLIE d'un
+-pont (le fronton qui dépasse sa bande) se tient dans la BOÎTE du pont (`--cc-saillie` en rembourrage
+-haut : sa boîte vaut son EMPREINTE), et une surface SUPERPOSÉE au parapet (le bandeau de phase)
+-publie sa propre grandeur, que le fil d'événements réserve. Critère : ajouter une surface ancrée en
+-bas doit coûter ZÉRO ligne de réserve, et changer la hauteur du pont ne doit toucher aucune autre
+-feuille.
+-
+-Une surface qui a besoin de la HAUTEUR DISPONIBLE (et non d'un simple ancrage) la lit sur sa rangée,
+-pas sur le viewport : `.stage-flot` se déclare conteneur de requête (`container-type: size`), et la
+-frise d'initiative borne sa colonne en `cqh` — `min(84cqh, calc(100cqh - …))`. Un `100vh` moins la
+-hauteur d'un pont est le même couplage écrit autrement. Corollaire de doctrine : `container`/
+-`container-type`/`container-name` sont du PLACEMENT (même famille que `contain`) — ils déclarent une
+-portée de mise en page, jamais une matière ; c'est l'écran qui compose ses rangées
+-(`scripts/guards/lib/cssCouches.mjs`).
++### Le pont se dimensionne seul ; le HUD vit dans ce qui reste, et n'en sort pas (#1848, #1919)
++
++« `.stage` porte deux rangées, `[flot] minmax(0, 1fr) [pont] auto`. La couche HUD est une grille
++propre posée dans `flot` ; elle borne son débordement (`overflow: clip`) et porte seule les rangées
++`haut`/`bande`/`champ`/`reserve`. Le pont ne lit ni ne subit aucune rangée du HUD, et sa hauteur est
++tenue par son budget, à chaque tranche. » (design retenu par le juge de design, #1919, 2026-09-23)
++
++Le PONT (console de combat ou pont d'exploration) est la rangée `pont`, à la hauteur qu'il fait : une
++piste `minmax(0, 1fr)` ne pousse pas une piste `auto`. La couche HUD `.stage-flot` (`hud.css`) est
++une grille à elle : chaque surface y déclare sa ZONE (`data-zone`, posé par `CampaignView`) — barre
++haute `contexte`, `groupe`, frise et fil d'événements (ou objectif hors combat) `temps`, bandeau
++d'ouverture `ouverture` (rangée `champ`), rail d'outils `outils`, commandes de première personne
++`camera` — et seules les `grid-template-areas` changent d'une tranche à l'autre, jamais les pistes.
++Critère N+1 : une surface de plus au HUD coûte une ligne de `grid-template-areas` et un `data-zone`,
++sans aucune hauteur lue. Aucune surface ne s'ancre en absolu à des littéraux ; aucune ne lit la
++géométrie d'une voisine. Le seul hors-flux de la couche est le volet déplié du groupe (≤560), qui
++naît de sa poignée (garde : `src/ui/ui-ratchets.test.ts`).
++
++Les zones qui ne sont pas des coins ne pèsent sur aucune colonne (`contain: inline-size`) : seuls la
++barre haute, le rail et le groupe dimensionnent les colonnes, et un fil long ou une bande qui déborde
++ne décentre jamais le groupe.
++
++La rangée `reserve` est le débord du bandeau de phase posé sur le parapet du pont (`--cc-phase-h` +
++`--cc-phase-air`), lu une seule fois (`--flot-reserve`). Elle est payée pendant TOUT le combat,
++publiée ou non : l'arbitrage d'immobilité (`src/ui/CombatConsole.tsx:51-53`, 2026-08-16, verbatim :
++« je ne veux pas que la taille de l'interface ou les boutons bougent ») interdit que la frise change
++de taille à chaque tour spectateur.
++
++Le panneau du journal naît de son BOUTON, hors flux, vers le champ (`log-drawer.css`) — sur le pont
++d'exploration comme dans le rail. Dans le flux du rail, sa largeur devenait la largeur minimale de la
++colonne `outils` : mesuré (sonde du 2026-09-28), le groupe se décentrait de 113 px à 900, 153 px à
++700 et 130 px à 360, et le bouton du journal descendait de 152 px sous le doigt du joueur à toute
++largeur ; ancré à son bouton, rien ne bouge. Aucun Anchor Positioning CSS : l'ancrage est celui d'un
++`position: absolute` dans le tiroir.
++
++Une surface qui a besoin de la HAUTEUR DISPONIBLE la lit sur sa ZONE, pas sur le viewport : la zone
++`temps` se déclare conteneur de requête (`container-type: size`) au-dessus de 700, et la frise
++d'initiative borne sa colonne en `cqh`. Un `100vh` moins la hauteur d'un pont est le même couplage
++écrit autrement. Corollaire de doctrine : `container`/`container-type`/`container-name` sont du
++PLACEMENT (même famille que `contain`) — ils déclarent une portée de mise en page, jamais une
++matière ; c'est l'écran qui compose ses rangées (`scripts/guards/lib/cssCouches.mjs`).
++
++La SAILLIE d'un pont (le fronton qui dépasse sa bande) se tient dans la BOÎTE du pont
++(`--cc-saillie` en rembourrage haut : sa boîte vaut son EMPREINTE). Une variable mesurée au rendu
++(hook + `ResizeObserver`) ne règle rien : c'est une garde de synchronisation, fausse d'une frame à
++chaque bascule de forme, muette sous jsdom.
++
++Le rognage de la couche est son seul mode de défaillance : aux vues de référence et aux seuils, HUD
++et pont tiennent ensemble grâce au BUDGET du pont, jamais par une cession de la grille. Preuve
++mécanique de la couche : `scripts/recette/hud-clickables.mjs` (`defautsCouche`), 3 hauteurs × 7
++largeurs × 4 états (exploration, ouverture, tour de héros, spectateur atteint par le vrai geste) —
++pont posé au bas de l'écran, page sans défilement, aucune surface rognée, chaque commande du HUD et
++du pont atteignable.
+ 
+ Preuve mécanique : `scripts/recette/console-pont-formes.mjs` sonde les DEUX ponts — passe EXPLORATION
+ (dialogue ouvert, panneau du journal déployé, trois vues jugées) puis passe COMBAT (trois formes,
+diff --git a/scripts/guards/lib/cssCouchesStock.mjs b/scripts/guards/lib/cssCouchesStock.mjs
+index 55adf0cb8..b7fd8c58a 100644
+--- a/scripts/guards/lib/cssCouchesStock.mjs
++++ b/scripts/guards/lib/cssCouchesStock.mjs
+@@ -2172,7 +2172,6 @@ export const CSS_ESPACEMENT_RATCHET = [
+   { fichier: 'src/ui/styles/inspect-panel.css', ref: '.insp-lbl :: padding-top :: 2px', occurrence: 1 },
+   { fichier: 'src/ui/styles/inspect-panel.css', ref: '.insp-row :: margin :: 5px 0', occurrence: 1 },
+   { fichier: 'src/ui/styles/log-drawer.css', ref: '.jr-line :: gap :: 6px', occurrence: 1 },
+-  { fichier: 'src/ui/styles/log-drawer.css', ref: '.ld-panel :: margin-bottom :: 6px', occurrence: 1 },
+   { fichier: 'src/ui/styles/log-drawer.css', ref: '.ld-panel :: padding :: 8px 10px', occurrence: 1 },
+   { fichier: 'src/ui/styles/log-drawer.css', ref: '.log-drawer :: gap :: 6px', occurrence: 1 },
+   { fichier: 'src/ui/styles/mass-battle.css', ref: '.mb-actions :: gap :: 8px', occurrence: 1 },
+diff --git a/scripts/recette/hud-clickables.mjs b/scripts/recette/hud-clickables.mjs
+index 79fcf8cf9..dbae612f3 100644
+--- a/scripts/recette/hud-clickables.mjs
++++ b/scripts/recette/hud-clickables.mjs
+@@ -29,8 +29,7 @@
+ //     comparés) ; au repos, toute entrée qui COMMENCE dans la zone utile de la colonne y FINIT
+ //     (hauteur arrondie au pas d'entrée, CONSTANT). Axe qui ne défile pas = NON MESURÉ ;
+ //   · la piste du groupe (`.pd-track`) tient sur UNE ligne (aucune carte à un autre `y`) ;
+-//   · quand le rail est DISSOUS (`display: contents`, ≤700), son ouvreur d'écran se pose LUI-MÊME
+-//     (position hors flux) et reçoit son clic. Cet ouvreur n'est monté qu'avec un navire en jeu
++//   · l'ouvreur d'écran du rail d'outils reçoit son clic. Il n'est monté qu'avec un navire en jeu
+ //     (`CampaignView.tsx`) : la mise en place du combat en pose un (`vessel`, patron de
+ //     `__wfrp.scenario`) ;
+ //   · en exploration, la boîte pleine ligne de `.objective-banner` n'avale aucun clic hors de sa
+@@ -51,7 +50,13 @@
+ //     (docs/plans/2026-08-16-spec-hud-combat.md Zone 1) ; COMPACITÉ sur la série des largeurs
+ //     (`defautsCompacite`) — cartes et colonne d'initiative plus étroites à 701–900 qu'au-delà de 900,
+ //     portraits à 561–700 ; CIBLES TACTILES sous `pointer: coarse` émulé (`defautsTactile`) — chaque
+-//     commande vissée rendue offre 44px à ≤560.
++//     commande vissée rendue offre 44px à ≤560 ;
++//   · la COUCHE HUD (#1919, design « Le pont se dimensionne seul », `defautsCouche`), à 3 hauteurs
++//     (`vues-recette.json`) × 7 largeurs × 4 états — exploration, ouverture, tour de héros,
++//     spectateur (atteint par le VRAI geste : « Fin du tour » cliqué deux fois) : le pont est posé au
++//     bas de l'écran, la page ne défile pas, aucune surface d'une zone n'est rognée par la couche, et
++//     chaque commande du HUD et du pont reçoit son clic — exemptée seulement hors du champ de son
++//     ancêtre défilant, ou sous la TÊTE COLLÉE de cet ancêtre.
+ //
+ // Cellules §12 NON MESURÉES :
+ //   · Caméra / inspection >900, 701–900, 561–700 : `ViewControls`, monté en jeu nulle part (#1822 ;
+@@ -63,7 +68,7 @@
+ //   · Dock >900 « disposition de référence » : aucun contrat propre hors bord à bord et hauteur.
+ //
+ // Sortie : exit 1 au premier défaut (liste complète imprimée), exit 0 si tout passe.
+-import { openApp, evaluate, setViewport, sleep, clickButtonByText, cliquerSelecteur, resoudreModales, attendreSelecteur, VUE_REFERENCE } from './lib.mjs';
++import { openApp, evaluate, setViewport, sleep, clickButtonByText, cliquerSelecteur, cliquerAction, resoudreModales, attendreSelecteur, freezeTimeout, unfreezeTimeout, VUE_REFERENCE, VUES_RECETTE } from './lib.mjs';
+ 
+ // Les trois largeurs étroites (700/560/360) portent les recouvrements ; les deux larges portent la
+ // zone morte du bandeau d'objectif, dont la boîte n'excède sa tête qu'au-delà de 900px — sonder
+@@ -71,6 +76,10 @@ import { openApp, evaluate, setViewport, sleep, clickButtonByText, cliquerSelect
+ // La plus large est la vue de RÉFÉRENCE (`vues-recette.json`), jamais un couple recopié (#1847).
+ const DEFAULT_WIDTHS = [VUE_REFERENCE.largeur, 1100, 900, 700, 560, 360];
+ const HEIGHT = VUE_REFERENCE.hauteur;
++/** Grille de la COUCHE : 7 largeurs (les vues de référence et les seuils canon 900 / 700 / 560, de
++ *  part et d'autre) × les hauteurs de `vues-recette.json`. */
++export const LARGEURS_COUCHE = [1707, 1366, 1100, 900, 700, 560, 360];
++export const HAUTEURS_COUCHE = [...new Set(Object.values(VUES_RECETTE).map((v) => v.hauteur))];
+ 
+ function parseArgs(argv) {
+   const out = { url: undefined, widths: DEFAULT_WIDTHS };
+@@ -119,7 +128,16 @@ const PROBE = `(() => {
+   // TIROIR DU JOURNAL : sa réserve du bas ne se juge qu'au panneau DÉPLIÉ (fermé, il ne recouvre
+   // rien). C'est le seul état où la question « passe-t-il sous la console ? » a un sens.
+   const panneau = document.querySelector('.ld-panel');
+-  const rp = panneau ? panneau.getBoundingClientRect() : null;
++  // Ce que le panneau PEINT : dans la couche HUD, sa boîte rognée par la couche (overflow: clip) —
++  // un recouvrement calculé sans le rognage accusait un panneau qu'on ne voit pas (juge G3 #1919).
++  const coucheDuPanneau = panneau ? panneau.closest('.stage-flot') : null;
++  const rp = panneau ? (() => {
++    const r = panneau.getBoundingClientRect();
++    if (!coucheDuPanneau) return r;
++    const c = coucheDuPanneau.getBoundingClientRect();
++    const x = Math.max(r.left, c.left), y = Math.max(r.top, c.top);
++    return new DOMRect(x, y, Math.max(0, Math.min(r.right, c.right) - x), Math.max(0, Math.min(r.bottom, c.bottom) - y));
++  })() : null;
+   const tiroir = document.querySelector('.log-drawer') ? {
+     ouvert: !!(rp && rp.width > 0 && rp.height > 0),
+     rect: box(rp),
+@@ -144,16 +162,69 @@ const PROBE = `(() => {
+     }
+   }
+ 
+-  // Rail d'outils DISSOUS (≤700, hud.css) : il ne porte plus l'ancrage de ses enfants, son ouvreur
+-  // d'écran doit se poser lui-même (sinon il retombe dans le flux du stage).
++  // Rail d'outils : son ouvreur d'écran reçoit son clic.
+   const rail = document.querySelector('.hud-rail');
+   const rails = rail ? {
+-    dissous: getComputedStyle(rail).display === 'contents',
+     ouvreurs: [...document.querySelectorAll('.hud-rail > .worldmap-btn')].map((b, i) => ({
+-      i, label: (b.getAttribute('title') || '').trim(), position: getComputedStyle(b).position, ...reaches(b),
++      i, label: (b.getAttribute('title') || '').trim(), ...reaches(b),
+     })),
+   } : null;
+ 
++  // COUCHE HUD (#1919) : la grille de .stage-flot, ses zones, le pont sous elle.
++  const flotEl = document.querySelector('.stage-flot');
++  const pontEl = document.querySelector('.stage > .combat-console, .stage > .exploration-dock');
++  const rendu = (el) => { const r = el.getBoundingClientRect(); const s = getComputedStyle(el); return r.width > 0.5 && r.height > 0.5 && s.visibility !== 'hidden'; };
++  // EXEMPTION d'une commande qui ne reçoit pas son clic : elle n'est pas ENTIÈRE dans le champ de son
++  // ancêtre défilant (on la ramène en défilant), ou elle est sous la TÊTE COLLÉE (sticky) de cet
++  // ancêtre. Rien d'autre.
++  const exemption = (b) => {
++    const r = b.getBoundingClientRect();
++    const cx = r.x + r.width / 2, cy = r.y + r.height / 2;
++    for (let e = b.parentElement; e && e !== document.body; e = e.parentElement) {
++      const s = getComputedStyle(e);
++      const defile = /(auto|scroll)/.test(s.overflowX + ' ' + s.overflowY) && (e.scrollWidth > e.clientWidth + 1 || e.scrollHeight > e.clientHeight + 1);
++      if (!defile) continue;
++      const c = e.getBoundingClientRect();
++      const champ = { left: c.left + e.clientLeft, top: c.top + e.clientTop, right: c.left + e.clientLeft + e.clientWidth, bottom: c.top + e.clientTop + e.clientHeight };
++      if (r.left < champ.left - 0.5 || r.right > champ.right + 0.5 || r.top < champ.top - 0.5 || r.bottom > champ.bottom + 0.5) return 'hors du champ de son défilant';
++      const dessus = document.elementFromPoint(cx, cy);
++      for (let t = dessus; t && t !== e; t = t.parentElement) {
++        if (getComputedStyle(t).position === 'sticky' && e.contains(t)) return 'sous la tête collée de son défilant';
++      }
++      return null;
++    }
++    return null;
++  };
++  const couche = flotEl ? (() => {
++    const rf = flotEl.getBoundingClientRect();
++    const rpt = pontEl ? pontEl.getBoundingClientRect() : null;
++    const surfaces = [];
++    for (const z of flotEl.querySelectorAll(':scope > [data-zone]')) {
++      for (const el of z.children) {
++        if (!rendu(el)) continue;
++        const r = el.getBoundingClientRect();
++        const rogne = Math.max(rf.top - r.top, r.bottom - rf.bottom, rf.left - r.left, r.right - rf.right);
++        surfaces.push({ zone: z.dataset.zone, surface: String(el.className || el.tagName).split(' ')[0], rect: box(r), rogne: +Math.max(0, rogne).toFixed(1) });
++      }
++    }
++    const commandes = [...flotEl.querySelectorAll('button'), ...(pontEl ? pontEl.querySelectorAll('button') : [])]
++      .filter(rendu)
++      .map((b) => {
++        const t = reaches(b);
++        return { label: ((b.getAttribute('title') || b.getAttribute('aria-label') || b.textContent || '').replace(/\\s+/g, ' ').trim().slice(0, 40)),
++          ok: t.ok, hitBy: t.hitBy, rect: t.rect, exempte: t.ok ? null : exemption(b) };
++      });
++    const de = document.documentElement;
++    return {
++      flot: box(rf),
++      pont: box(rpt),
++      pontAuBas: rpt ? Math.abs(rpt.bottom - window.innerHeight) <= 0.5 : null,
++      pageDefile: de.scrollHeight > window.innerHeight + 0.5 || de.scrollWidth > window.innerWidth + 0.5,
++      surfaces,
++      commandes,
++    };
++  })() : null;
++
+   // Frise : réserve de droite et VISIBILITÉ du cartouche de Round à fond de défilement. La mesure
+   // déplace la piste puis la REMET où elle était — aucune trace pour les largeurs suivantes.
+   let frise = null;
+@@ -408,6 +479,16 @@ const PROBE = `(() => {
+     lignes: new Set(rendues.map((c) => Math.round(c.getBoundingClientRect().y))).size,
+     // Bande REPLIÉE : c'est la poignée qui porte alors l'affordance du groupe.
+     poignee: poignee ? reaches(poignee) : null,
++    // … et la vie de chacun, en micro-jauges ENTIÈRES dans leur rangée (qui rogne son débord).
++    micro: (() => {
++      // Mesurée dès que la POIGNÉE est rendue : une rangée écrasée à 0 de large cache TOUTES ses
++      // barres, ce n'est pas une rangée absente.
++      const rang = document.querySelector('.party-dock .pd-micro');
++      if (!rang || !poignee || poignee.getBoundingClientRect().width === 0) return null;
++      const rr = rang.getBoundingClientRect();
++      const barres = [...rang.children];
++      return { attendues: barres.length, visibles: barres.filter((i) => { const r = i.getBoundingClientRect(); return r.width > 0 && r.left >= rr.left - 0.5 && r.right <= rr.right + 0.5; }).length };
++    })(),
+   } : null;
+ 
+   // CIBLES TACTILES (§12 <=560, Caméra / inspection) : sous pointeur grossier seulement, chaque
+@@ -424,6 +505,7 @@ const PROBE = `(() => {
+     cibles,
+     combat: !!strip,
+     rail: rails,
++    couche,
+     frise,
+     groupe,
+     portraits: ptiles,
+@@ -581,14 +663,6 @@ export function defautsFrise(m, phase) {
+  */
+ export function defauts(m, phase) {
+   const out = [];
+-  // Rail DISSOUS : son ouvreur d'écran porte son propre ancrage, ou il retombe dans le flux.
+-  if (m.rail?.dissous) {
+-    // Un rail dissous SANS ouvreur ne rendait aucun verdict : la mesure était verte par VACUITÉ.
+-    if (!m.rail.ouvreurs.length) out.push(`${phase} ${m.largeur}px : le rail d'outils est dissous et ne porte aucun ouvreur d'écran — sonde aveugle sur l'accès à la carte`);
+-    for (const b of m.rail.ouvreurs) {
+-      if (b.position === 'static') out.push(`${phase} ${m.largeur}px : l'ouvreur « ${b.label} » du rail dissous est en flux (position: static) — il retombe dans le stage`);
+-    }
+-  }
+   for (const b of m.rail?.ouvreurs ?? []) {
+     if (!b.ok) out.push(`${phase} ${m.largeur}px : l'ouvreur « ${b.label} » ${JSON.stringify(b.rect)} ne reçoit pas son clic — recouvert par ${b.hitBy}`);
+   }
+@@ -623,6 +697,30 @@ export function defauts(m, phase) {
+   return out;
+ }
+ 
++/**
++ * Défauts de la COUCHE HUD (#1919, design « Le pont se dimensionne seul ; le HUD vit dans ce qui
++ * reste, et n'en sort pas ») sur UNE mesure. PURE.
++ * @param {any} m mesure rendue par `PROBE` @param {string} phase libellé de l'état sondé
++ * @returns {string[]}
++ */
++export function defautsCouche(m, phase) {
++  const ou = `${phase} ${m.largeur}×${m.hauteur}`;
++  const c = m.couche;
++  if (!c) return [`${ou} : aucune couche HUD (.stage-flot) — sonde aveugle`];
++  const out = [];
++  if (!c.pont) out.push(`${ou} : aucun pont sous la couche — sonde aveugle sur sa pose`);
++  else if (!c.pontAuBas) out.push(`${ou} : le pont ${JSON.stringify(c.pont)} n'est pas posé au bas de l'écran`);
++  if (c.pageDefile) out.push(`${ou} : la page défile — le plateau déborde de l'écran`);
++  for (const s of c.surfaces) {
++    if (s.rogne > 0.5) out.push(`${ou} : la surface « ${s.surface} » de la zone « ${s.zone} » ${JSON.stringify(s.rect)} est rognée par la couche de ${s.rogne}px`);
++  }
++  if (!c.commandes.length) out.push(`${ou} : aucune commande rendue dans la couche ni sur le pont — sonde aveugle`);
++  for (const b of c.commandes) {
++    if (!b.ok && !b.exempte) out.push(`${ou} : la commande « ${b.label} » ${JSON.stringify(b.rect)} ne reçoit pas son clic — ${b.hitBy}`);
++  }
++  return out;
++}
++
+ /**
+  * Défauts d'ATTEIGNABILITÉ du GROUPE (bande dépliée ou repliée) — extraits parce qu'ils se jugent
+  * aussi sur la bande DÉPLIÉE ≤560, dont la mesure ne doit pas re-juger le reste du HUD. PURE.
+@@ -643,6 +741,10 @@ export function defautsGroupe(m, phase) {
+     if (!m.groupe.poignee) out.push(`${phase} ${m.largeur}px : le groupe ne rend aucune carte ET n'offre aucune poignée — il est hors d'atteinte`);
+     else if (!m.groupe.poignee.rendu) out.push(`${phase} ${m.largeur}px : la poignée du groupe replié n'est pas rendue — le groupe est hors d'atteinte`);
+     else if (!m.groupe.poignee.ok) out.push(`${phase} ${m.largeur}px : la poignée du groupe replié ${JSON.stringify(m.groupe.poignee.rect)} ne reçoit pas son clic — recouverte par ${m.groupe.poignee.hitBy}`);
++    // Repliée, la vie du groupe se lit en micro-jauges : une par héros, chacune entière (juge G2
++    // #1919, pt.5 : l'arrondi au pas de tuile rognait la poignée et les cachait toutes).
++    const mj = m.groupe.micro;
++    if (mj && mj.visibles < mj.attendues) out.push(`${phase} ${m.largeur}px : la poignée du groupe replié ne montre que ${mj.visibles} micro-jauge(s) sur ${mj.attendues}`);
+   }
+   // Portraits du groupe, aux DEUX phases (en combat, la bande dépliée ≤560 doit passer devant le fil
+   // d'événements). RENDUS seulement : une tuile de bande repliée n'est pas recouverte, elle n'est pas
+@@ -799,6 +901,28 @@ async function jugerGroupeDeplie(session, m, phase) {
+   return out;
+ }
+ 
++/**
++ * La COUCHE HUD à chaque vue de sa grille (`HAUTEURS_COUCHE` × `LARGEURS_COUCHE`), dans l'état où
++ * se trouve le jeu. Une ligne par vue, chaque défaut nommé.
++ * @returns {Promise<string[]>}
++ */
++async function jugerCouche(session, phase) {
++  const out = [];
++  for (const h of HAUTEURS_COUCHE) {
++    for (const w of LARGEURS_COUCHE) {
++      await setViewport(session, w, h);
++      await sleep(450);
++      const m = await evaluate(session, PROBE);
++      const d = defautsCouche(m, `couche (${phase})`);
++      const c = m.couche;
++      console.log(`couche (${phase}) ${w}×${h} — pont ${c?.pont ? c.pont.h + 'px' + (c.pontAuBas ? ' au bas' : ' DÉCOLLÉ') : 'absent'}, ${c ? c.surfaces.length : 0} surface(s), ${c ? c.commandes.filter((b) => b.ok).length + '/' + c.commandes.length : 0} commande(s) atteinte(s)${c ? ', ' + c.commandes.filter((b) => b.exempte).length + ' exemptée(s)' : ''} → ${d.length ? d.length + ' défaut(s)' : 'OK'}`);
++      dire(d);
++      out.push(...d);
++    }
++  }
++  return out;
++}
++
+ /** Chaque défaut est NOMMÉ là où il est mesuré : un compte « 4 défaut(s) » ne dit rien, et le bilan
+  *  final ne s'imprime jamais si la mise en place meurt à la phase suivante. */
+ const dire = (liste) => { for (const e of liste) console.log(`   · ${e}`); };
+@@ -842,6 +966,7 @@ async function main() {
+     const compaciteExploration = defautsCompacite(serieExploration, 'exploration');
+     dire(compaciteExploration);
+     echecs.push(...compaciteExploration);
++    echecs.push(...await jugerCouche(session, 'exploration'));
+ 
+     // ── Combat ─────────────────────────────────────────────────────────────────────────────────
+     await setViewport(session, VUE_REFERENCE.largeur, VUE_REFERENCE.hauteur);
+@@ -866,9 +991,13 @@ async function main() {
+       dire(d);
+       echecs.push(...d);
+     }
++    echecs.push(...await jugerCouche(session, 'ouverture'));
+     await setViewport(session, VUE_REFERENCE.largeur, VUE_REFERENCE.hauteur);
+     await sleep(300);
+     await monterLeDock(session);
++    echecs.push(...await jugerCouche(session, 'tour de héros'));
++    await setViewport(session, VUE_REFERENCE.largeur, VUE_REFERENCE.hauteur);
++    await sleep(300);
+     // Le tiroir du journal ne se juge QU'OUVERT : on le déplie par CLIC RÉEL sur sa poignée (glyphe
+     // seul → par sélecteur), au PREMIER tour tenu par un héros — console complète, avant tout tour
+     // d'IA. Son état React traverse les changements de largeur : un seul clic pour les six mesures.
+@@ -949,6 +1078,49 @@ async function main() {
+         await session.rpc('Emulation.setTouchEmulationEnabled', { enabled: false });
+       }
+     }
++
++    // Le tiroir du journal se REFERME (clic réel) : un panneau ouvert par le joueur n'est pas un état
++    // de la couche.
++    await cliquerSelecteur(session, '.log-drawer.open .ld-btn');
++    await sleep(300);
++
++    // ── Combat, TOUR SPECTATEUR, atteint par le VRAI geste (juge G4 #1919, pt.5) ─────────────────
++    // Mise en place : le trait au héros qui PRÉCÈDE un adversaire dans l'ordre (`__wfrp.turn`). Puis
++    // le joueur finit son tour : « Fin du tour » cliqué deux fois (armer, confirmer — garde-fou de
++    // l'Action non dépensée). Les minuteries de l'IA sont figées le temps de la mesure : le tour
++    // adverse ne s'achève pas sous la sonde.
++    await setViewport(session, VUE_REFERENCE.largeur, VUE_REFERENCE.hauteur);
++    await sleep(300);
++    const avantAdversaire = await evaluate(session, `(() => {
++      const b = window.__wfrp.store.getState().battle;
++      const kind = (id) => (b.combatants.find((c) => c.id === id) || {}).kind;
++      for (let i = 0; i < b.order.length; i++) {
++        const suivant = b.order[(i + 1) % b.order.length];
++        if (kind(b.order[i]) === 'hero' && kind(suivant) !== 'hero') {
++          const r = window.__wfrp.turn(b.order[i]);
++          if (typeof r === 'string' && r.startsWith('\u2713')) return b.order[i];
++        }
++      }
++      return null;
++    })()`);
++    if (!avantAdversaire) throw new Error('aucun héros ne précède un adversaire dans l’ordre — tour spectateur inatteignable');
++    await sleep(800);
++    await resoudreModales(session, 'tour avant adversaire');
++    await cliquerAction(session, 'end-turn');
++    await sleep(250);
++    await freezeTimeout(session, [3600000]);
++    try {
++      if (!await evaluate(session, `!document.querySelector(".combat-console[data-forme='spectatrice']")`)) {
++        throw new Error('le premier clic sur « Fin du tour » a déjà passé la main — le garde-fou n’a rien armé');
++      }
++      await cliquerAction(session, 'end-turn');
++      await sleep(600);
++      const spectateur = await evaluate(session, `!!document.querySelector(".combat-console[data-forme='spectatrice']")`);
++      if (!spectateur) throw new Error('après « Fin du tour » confirmé, le pont n’est pas en forme spectatrice — tour adverse non atteint');
++      echecs.push(...await jugerCouche(session, 'spectateur'));
++    } finally {
++      await unfreezeTimeout(session);
++    }
+   } finally {
+     await session.close();
+   }
+diff --git a/scripts/recette/hud-clickables.test.mjs b/scripts/recette/hud-clickables.test.mjs
+index 03770a6f0..508a87fb1 100644
+--- a/scripts/recette/hud-clickables.test.mjs
++++ b/scripts/recette/hud-clickables.test.mjs
+@@ -5,7 +5,7 @@
+ // rouge ne mesure rien, un détecteur sans cas vert crie sur tout.
+ import { test } from 'node:test'
+ import assert from 'node:assert/strict'
+-import { defauts, defautsMatrice, defautsMatriceGroupe, defautsTactile, defautsCompacite, trancheMatrice } from './hud-clickables.mjs'
++import { defauts, defautsCouche, defautsMatrice, defautsMatriceGroupe, defautsTactile, defautsCompacite, trancheMatrice } from './hud-clickables.mjs'
+ 
+ /** Mesure de COMBAT sans aucun défaut (le cas vert de référence). */
+ const combat = () => ({
+@@ -14,7 +14,7 @@ const combat = () => ({
+   grossier: false,
+   cibles: null,
+   combat: true,
+-  rail: { dissous: true, ouvreurs: [{ i: 0, label: 'Dossier du navire', position: 'absolute', ok: true, hitBy: 'rien', rect: { x: 300, y: 400, w: 44, h: 44 } }] },
++  rail: { ouvreurs: [{ i: 0, label: 'Dossier du navire', ok: true, hitBy: 'rien', rect: { x: 300, y: 400, w: 44, h: 44 } }] },
+   frise: { rect: { x: 58, y: 34, w: 298, h: 52 }, roundPremier: true, roundDansColonne: true, courantEntier: true,
+     defilable: true, suivants: { attendus: 3, entiers: 3 },
+     bande: true, margeDroite: 4, roundVisible: true, teteMesuree: true, teteDecouverte: null,
+@@ -68,26 +68,7 @@ test('mesure d’exploration saine : aucun défaut', () => {
+   assert.deepEqual(defauts(exploration(), 'exploration'), [])
+ })
+ 
+-// ── Rail dissous : l'ouvreur d'écran porte son propre ancrage ─────────────────────────────────────
+-test('ouvreur du rail dissous en FLUX : défaut nommé', () => {
+-  const m = combat()
+-  m.rail.ouvreurs[0].position = 'static'
+-  rouge(m, 'combat', /retombe dans le stage/)
+-})
+-
+-test('rail dissous SANS aucun ouvreur : la sonde se déclare AVEUGLE, elle ne se tait pas', () => {
+-  const m = combat()
+-  m.rail.ouvreurs = []
+-  rouge(m, 'combat', /le rail d'outils est dissous et ne porte aucun ouvreur d'écran — sonde aveugle/)
+-})
+-
+-test('rail NON dissous : la position en flux ne dit rien (le rail porte alors l’ancrage)', () => {
+-  const m = combat()
+-  m.rail.dissous = false
+-  m.rail.ouvreurs[0].position = 'static'
+-  assert.deepEqual(defauts(m, 'combat'), [])
+-})
+-
++// ── Rail d'outils : son ouvreur d'écran reçoit son clic ──────────────────────────────────────────
+ test('ouvreur du rail RECOUVERT : défaut nommé, recouvrant compris', () => {
+   const m = combat()
+   m.rail.ouvreurs[0].ok = false
+@@ -113,6 +94,16 @@ test('bande REPLIÉE dont la poignée reçoit son clic : aucun défaut', () => {
+   assert.deepEqual(defauts(m, 'exploration'), [])
+ })
+ 
++test('bande REPLIÉE dont la poignée cache des MICRO-JAUGES : défaut chiffré', () => {
++  const m = combat()
++  Object.assign(m.groupe, { cartes: 0, lignes: 0, replie: true, detail: [],
++    poignee: { rendu: true, ok: true, hitBy: 'rien', rect: { x: 133, y: 4, w: 93, h: 27 } }, micro: { attendues: 4, visibles: 0 } })
++  m.portraits = [{ i: 0, rendu: false, ok: false, hitBy: 'rien', rect: { x: 0, y: 0, w: 0, h: 0 } }]
++  rouge(m, 'combat', /ne montre que 0 micro-jauge\(s\) sur 4/)
++  m.groupe.micro.visibles = 4
++  assert.deepEqual(defauts(m, 'combat'), [])
++})
++
+ test('bande REPLIÉE dont la poignée n’est PAS RENDUE : le groupe est hors d’atteinte', () => {
+   const m = exploration()
+   m.groupe = { cartes: 0, lignes: 0, poignee: { rendu: false, ok: false, hitBy: 'rien', rect: { x: 0, y: 0, w: 0, h: 0 } } }
+@@ -644,3 +635,84 @@ test('colonne d’initiative PAS réduite à 701–900 : défaut chiffré', () =
+ test('série SANS mesure au-delà de 900 : rien à comparer', () => {
+   assert.deepEqual(defautsCompacite([saine(900), saine(700)], 'combat'), [])
+ })
++
++// ── COUCHE HUD (#1919) : `defautsCouche`, un cas ROUGE et un cas VERT par verdict ────────────────
++/** Mesure de couche SAINE : pont au bas, rien de rogné, chaque commande atteinte. */
++const couche = () => ({
++  largeur: 1366,
++  hauteur: 650,
++  couche: {
++    flot: { x: 0, y: 0, w: 1366, h: 467 },
++    pont: { x: 0, y: 467, w: 1366, h: 183 },
++    pontAuBas: true,
++    pageDefile: false,
++    surfaces: [{ zone: 'temps', surface: 'initiative-strip', rect: { x: 8, y: 59, w: 86, h: 340 }, rogne: 0 }],
++    commandes: [{ label: 'Fin du tour', ok: true, hitBy: 'rien', rect: { x: 1300, y: 560, w: 60, h: 60 }, exempte: null }],
++  },
++})
++const rougeCouche = (m, motif) => {
++  const d = defautsCouche(m, 'tour de héros')
++  assert.equal(d.length, 1, `attendu 1 défaut, obtenu ${d.length} : ${d.join(' | ')}`)
++  assert.match(d[0], motif)
++}
++
++test('couche saine : aucun défaut', () => {
++  assert.deepEqual(defautsCouche(couche(), 'tour de héros'), [])
++})
++
++test('couche ABSENTE : la sonde se déclare AVEUGLE', () => {
++  const m = couche()
++  m.couche = null
++  rougeCouche(m, /aucune couche HUD \(\.stage-flot\) — sonde aveugle/)
++})
++
++test('pont ABSENT sous la couche : sonde aveugle sur sa pose', () => {
++  const m = couche()
++  m.couche.pont = null
++  m.couche.pontAuBas = null
++  rougeCouche(m, /aucun pont sous la couche/)
++})
++
++test('pont DÉCOLLÉ du bas de l’écran : défaut nommé, boîte comprise', () => {
++  const m = couche()
++  m.couche.pontAuBas = false
++  rougeCouche(m, /le pont \{"x":0,"y":467,"w":1366,"h":183\} n'est pas posé au bas de l'écran/)
++})
++
++test('page qui DÉFILE : le plateau déborde de l’écran', () => {
++  const m = couche()
++  m.couche.pageDefile = true
++  rougeCouche(m, /la page défile/)
++})
++
++test('surface ROGNÉE par la couche : défaut chiffré, zone et surface nommées', () => {
++  const m = couche()
++  m.couche.surfaces[0].rogne = 42.5
++  rougeCouche(m, /la surface « initiative-strip » de la zone « temps » .* est rognée par la couche de 42\.5px/)
++})
++
++test('rognure sous le demi-pixel : arrondi de rendu, rien à dire', () => {
++  const m = couche()
++  m.couche.surfaces[0].rogne = 0.4
++  assert.deepEqual(defautsCouche(m, 'tour de héros'), [])
++})
++
++test('commande qui ne reçoit pas son clic : défaut nommé, recouvrant compris', () => {
++  const m = couche()
++  Object.assign(m.couche.commandes[0], { ok: false, hitBy: 'iso-stage <svg>' })
++  rougeCouche(m, /la commande « Fin du tour » .* ne reçoit pas son clic — iso-stage <svg>/)
++})
++
++test('commande EXEMPTÉE (hors du champ de son défilant, ou sous sa tête collée) : rien à dire', () => {
++  for (const exempte of ['hors du champ de son défilant', 'sous la tête collée de son défilant']) {
++    const m = couche()
++    Object.assign(m.couche.commandes[0], { ok: false, hitBy: 'is-round <DIV>', exempte })
++    assert.deepEqual(defautsCouche(m, 'tour de héros'), [], exempte)
++  }
++})
++
++test('AUCUNE commande rendue : la sonde se déclare AVEUGLE, elle ne se tait pas', () => {
++  const m = couche()
++  m.couche.commandes = []
++  rougeCouche(m, /aucune commande rendue .* sonde aveugle/)
++})
+diff --git a/scripts/recette/lib.mjs b/scripts/recette/lib.mjs
+index 47c4ddfa0..48b3f978e 100644
+--- a/scripts/recette/lib.mjs
++++ b/scripts/recette/lib.mjs
+@@ -298,6 +298,34 @@ export async function pourChaqueVue(session, fn, { reposMs = 500 } = {}) {
+  * proportions », #393), et les 900px de haut des recettes suivantes ne tiennent sur AUCUN de ses
+  * écrans. Une recette responsive passe sa vue explicitement (`pourChaqueVue`, `setMobileViewport`).
+  */
++/** Erreur TYPÉE d'une cible perdue (navigation, fermeture, socket coupée) — `isNavigationError`. */
++function cibleFermee() {
++  const e = new Error('Inspected target navigated or closed');
++  e.code = TARGET_NAVIGATED;
++  return e;
++}
++
++/**
++ * L'APPEL CDP d'une session : un message sur la socket, réglé par sa réponse (`pending`). Sur une
++ * socket qui n'est plus OUVERTE, `send` n'échoue pas (WHATWG : le message est jeté) — l'appel est
++ * donc REJETÉ tout de suite, typé, au lieu de pendre pour toujours (juge G3 #1919, pt.4 : Node sortait
++ * en 0 sans conclure). PUR sur ses entrées.
++ * @param {{ readyState: number, send: (m: string) => void }} ws
++ * @param {Map<number, { resolve: Function, reject: Function }>} pending
++ * @param {() => string | null} lireSession @param {() => number} prochainId
++ */
++export function appelCdp(ws, pending, lireSession, prochainId) {
++  return (method, params = {}) => new Promise((resolve, reject) => {
++    if (ws.readyState !== WebSocket.OPEN) { reject(cibleFermee()); return; }
++    const mid = prochainId();
++    const msg = { id: mid, method, params };
++    const sessionId = lireSession();
++    if (sessionId) msg.sessionId = sessionId;
++    pending.set(mid, { resolve, reject });
++    ws.send(JSON.stringify(msg));
++  });
++}
++
+ export async function launchSession({ chromePath, width = VUE_REFERENCE.largeur, height = VUE_REFERENCE.hauteur, port, mobile = false, timeoutMs = 10000 } = {}) {
+   const lancement = chromeDeLaMachine(chromePath);
+   const cdpPort = port ?? 9222 + Math.floor(Math.random() * 2000);
+@@ -337,21 +365,13 @@ export async function launchSession({ chromePath, width = VUE_REFERENCE.largeur,
+     ws.addEventListener('close', () => {
+       for (const [mid, { reject }] of pending) {
+         pending.delete(mid);
+-        const e = new Error('Inspected target navigated or closed');
+-        e.code = TARGET_NAVIGATED;
+-        reject(e);
++        reject(cibleFermee());
+       }
+     });
+ 
+     const session = { ws, chrome, listeners, sessionId: null, targetId: null, profile, contextCleared: false };
+ 
+-    session.rpc = (method, params = {}) => new Promise((resolve, reject) => {
+-      const mid = ++id;
+-      const msg = { id: mid, method, params };
+-      if (session.sessionId) msg.sessionId = session.sessionId;
+-      pending.set(mid, { resolve, reject });
+-      ws.send(JSON.stringify(msg));
+-    });
++    session.rpc = appelCdp(ws, pending, () => session.sessionId, () => ++id);
+ 
+     const { targetId } = await session.rpc('Target.createTarget', { url: 'about:blank' });
+     session.targetId = targetId;
+diff --git a/scripts/recette/lib.test.mjs b/scripts/recette/lib.test.mjs
+index 4de8f8756..31f254154 100644
+--- a/scripts/recette/lib.test.mjs
++++ b/scripts/recette/lib.test.mjs
+@@ -8,6 +8,7 @@ import { isAbsolute } from 'node:path'
+ import {
+   ALT,
+   DELAI_EVALUATE,
++  appelCdp,
+   champParLibelle,
+   clickButtonByText,
+   MOD_ALT,
+@@ -606,3 +607,28 @@ test('Chrome : aucun candidat — refus NOMMANT les chemins essayés', () => {
+     return true
+   })
+ })
++
++// ── Appel CDP sur une socket fermée (juge G3 #1919, pt.4) : WHATWG jette le message sans lever, la
++//    promesse pendait pour toujours et Node sortait en 0 sans conclure. ─────────────────────────────
++test('appel CDP sur une socket FERMÉE : rejeté tout de suite, typé cible perdue, rien d’envoyé', async () => {
++  const envoyes = []
++  const pending = new Map()
++  const ws = { readyState: WebSocket.CLOSED, send: (m) => envoyes.push(m) }
++  await assert.rejects(appelCdp(ws, pending, () => null, () => 1)('Runtime.evaluate'), (e) => {
++    assert.equal(e.code, TARGET_NAVIGATED)
++    assert.equal(isNavigationError(e), true)
++    return true
++  })
++  assert.deepEqual(envoyes, [])
++  assert.equal(pending.size, 0)
++})
++
++test('appel CDP sur une socket OUVERTE : message envoyé, session portée, réglé par sa réponse', async () => {
++  const envoyes = []
++  const pending = new Map()
++  const ws = { readyState: WebSocket.OPEN, send: (m) => envoyes.push(JSON.parse(m)) }
++  const appel = appelCdp(ws, pending, () => 'S1', () => 7)('Page.enable', { a: 1 })
++  assert.deepEqual(envoyes, [{ id: 7, method: 'Page.enable', params: { a: 1 }, sessionId: 'S1' }])
++  pending.get(7).resolve({ ok: true })
++  assert.deepEqual(await appel, { ok: true })
++})
+diff --git a/src/ui/CampaignView.tsx b/src/ui/CampaignView.tsx
+index 4e19ca103..fc0bde908 100644
+--- a/src/ui/CampaignView.tsx
++++ b/src/ui/CampaignView.tsx
+@@ -14,7 +14,7 @@ import { PovControls } from './PovControls';
+ import { DialogueBox } from './DialogueBox';
+ import { MerchantPanel } from './MerchantPanel';
+ import { TavernGameModal } from './TavernGameModal';
+-import { CombatConsole } from './CombatConsole';
++import { BandeauDOuverture, CombatConsole } from './CombatConsole';
+ import { PosteSheet } from './ShipSheet';
+ import { isVehicle } from '../engine/vehicle';
+ import { isEngin } from '../engine/structures';
+@@ -264,24 +264,6 @@ export function CampaignView() {
+         {/* Ciblage par carte (Frappe Mortelle / Des deux armes / Surincantation / pose de zone /
+             bordée / téléportation) : la console porte le bandeau d'interlude et SA sortie, tirés du
+             registre des actions (`surface: 'interlude'`, cf. CombatConsole). */}
+-        {/* Barre HUD supérieure : le menu ☰, le nom du LIEU et l'OBJECTIF — rien d'autre, en AUCUN
+-            mode (spec HUD combat § « Zone 11 ») : la date vit au menu ☰ et sur les écrans plein-champ
+-            (`ScreenMeta`), les ouvreurs d'écrans à l'extrémité droite du pont d'exploration hors
+-            combat, sur le rail d'outils en combat. Sauvegarder : exploration seulement (refusée en
+-            combat) et jamais l'invité (la save vit chez l'hôte). */}
+-        <Row className="hud-topbar" align="start">
+-        <GameMenu sceneName={scene?.label} time={gameTime} onQuit={() => setScreen('party')} onSaveLoad={mode === 'exploration' && netMode !== 'guest' ? () => setSaveOpen(true) : undefined} onEndSession={mode === 'exploration' && netMode !== 'guest' ? () => setSessionOpen(true) : undefined} />
+-        {/* Lieu courant : premier étage de la pile — le nom de la scène se lit sur le HUD, sans ouvrir
+-            le menu. Sans nom authoré, aucune plaque (rien à annoncer). La MATIÈRE du nom est celle du
+-            chrome de nom (`CodexTitre`), posée sur le halo partagé des textes du monde nu. */}
+-        {mode === 'exploration' && scene?.label && (
+-          <strong data-hud="place" className="halo-champ" title={scene.label}><CodexTitre title={scene.label} /></strong>
+-        )}
+-        {/* Objectif courant (#238) — dernier étage de la pile de contexte : il occupe sa propre ligne
+-            sous le lieu (CSS `.hud-topbar > .objective-banner`). Masqué en combat (l'écran tactique
+-            se réserve le HUD) ; nul si la pile d'objectifs est vide. */}
+-        {mode === 'exploration' && <ObjectiveBannerMount />}
+-        </Row>
+         {/* PONT D'EXPLORATION (spec § « Zone 11 ») : la bande basse allégée, montée hors combat
+             seulement — en combat, le pont est la console (`CombatConsole`). Les conditions
+             d'apparition des ouvreurs restent ICI (un rappel absent = pas d'entrée). */}
+@@ -317,51 +299,75 @@ export function CampaignView() {
+             modale système au-dessus resterait invisible/inatteignable sous elle sans cette garde. */}
+         {saveOpen && !dialogue && <SaveLoadModal mode="save" onClose={() => setSaveOpen(false)} />}
+         {(sessionOpen || sessionEndOpen) && !dialogue && <SessionEndModal onClose={() => { setSessionOpen(false); closeSessionEnd(); }} />}
+-        <PartyDock heroes={dockHeroes} targeting={isTargeting} onOpen={onDockPortrait} />
+-        {/* LA RANGÉE DU MONDE (#1848, `.stage-flot` — hud.css) : tout ce qui s'ancre AU BAS DU CHAMP
+-            vit ICI, dans la rangée du plateau qui s'arrête au bord haut du pont. Aucune de ces
+-            surfaces ne connaît plus de hauteur de pont : `bottom: 0` y signifie « juste au-dessus
+-            du pont », dans les deux modes et à toute forme de console. */}
+-        <div className="stage-flot">
+-          {/* La FRISE est une surface de cette rangée comme les autres : elle s'arrête au bord haut du
+-              pont parce que sa rangée s'y arrête, et la hauteur qui lui reste est celle de la rangée
+-              (`cqh`, initiative-strip.css) — plus aucune hauteur de pont à relire. */}
+-          {mode === 'battle' && battle && (
+-            <InitiativeStrip
+-              order={battle.order}
+-              turn={battle.turn}
+-              round={battle.round}
+-              combatants={battle.combatants}
+-              over={battle.over != null}
+-              canFirstIds={canFirstIds}
+-              freeFirstIds={freeFirstIds}
+-              targeting={isTargeting || !!preemptAiming}
+-              onActivate={onStripPortrait}
+-              onHover={setHoverCombatant}
+-              hoveredId={hovered}
+-              onPromote={roundStartPromote}
+-              canPreemptIds={canPreemptIds}
+-              preemptArmedId={preemptAiming}
+-              onPreempt={armPreempt}
+-              hand={netMode === 'local' ? undefined : {
+-                raised: handRaised,
+-                reason: handVerdict.ok ? undefined : handVerdict.reason,
+-                label: <><Icon id={handDef.icon as IconIdInput} size="sm" /> {handRaised ? 'Pause demandée' : 'Pause'}{autresMains > 0 ? ` +${autresMains}` : ''}</>,
+-                ariaLabel: `${handRaised ? `${handDef.label} : retirer ma demande` : handDef.label}${autresMains > 0 ? ` — déjà demandée par ${autresMains} autre${autresMains > 1 ? 's' : ''} joueur${autresMains > 1 ? 's' : ''}` : ''}`,
+-                onToggle: () => runAction(handDef.id, useGame.getState, { toggleOff: handRaised }),
+-              }}
+-            />
++        {/* LA COUCHE HUD (#1919, `.stage-flot` — hud.css) : une grille à elle, posée dans la rangée
++            `flot` du plateau, au-dessus du pont. Chaque surface y déclare sa ZONE (`data-zone`) ;
++            aucune ne connaît la hauteur du pont ni la boîte d'une voisine. */}
++        <div className="stage-flot" data-pont={mode === 'battle' ? 'combat' : 'exploration'}>
++          {/* Barre HUD supérieure : le menu ☰ et le nom du LIEU — rien d'autre, en AUCUN mode (spec
++              HUD combat § « Zone 11 ») : la date vit au menu ☰ et sur les écrans plein-champ
++              (`ScreenMeta`), les ouvreurs d'écrans à l'extrémité droite du pont d'exploration hors
++              combat, sur le rail d'outils en combat. Sauvegarder : exploration seulement (refusée en
++              combat) et jamais l'invité (la save vit chez l'hôte). */}
++          <Row className="hud-topbar" data-zone="contexte" align="start" wrap={false}>
++            <GameMenu sceneName={scene?.label} time={gameTime} onQuit={() => setScreen('party')} onSaveLoad={mode === 'exploration' && netMode !== 'guest' ? () => setSaveOpen(true) : undefined} onEndSession={mode === 'exploration' && netMode !== 'guest' ? () => setSessionOpen(true) : undefined} />
++            {/* Lieu courant — le nom de la scène se lit sur le HUD, sans ouvrir le menu. Sans nom
++                authoré, aucune plaque (rien à annoncer). La MATIÈRE du nom est celle du chrome de
++                nom (`CodexTitre`), posée sur le halo partagé des textes du monde nu. */}
++            {mode === 'exploration' && scene?.label && (
++              <strong data-hud="place" className="halo-champ" title={scene.label}><CodexTitre title={scene.label} /></strong>
++            )}
++          </Row>
++          <Stack data-zone="groupe" align="center">
++            <PartyDock heroes={dockHeroes} targeting={isTargeting} onOpen={onDockPortrait} />
++          </Stack>
++          {/* Zone TEMPS : en combat la frise d'initiative et, à sa suite, le fil d'événements ; hors
++              combat l'objectif courant (#238), nul si la pile d'objectifs est vide. La frise tient
++              dans sa zone, qui s'arrête au-dessus de la réserve du bandeau de phase. */}
++          <Row data-zone="temps" wrap={false} stackBelow={700}>
++            {mode === 'exploration' && <ObjectiveBannerMount />}
++            {mode === 'battle' && battle && (
++              <InitiativeStrip
++                order={battle.order}
++                turn={battle.turn}
++                round={battle.round}
++                combatants={battle.combatants}
++                over={battle.over != null}
++                canFirstIds={canFirstIds}
++                freeFirstIds={freeFirstIds}
++                targeting={isTargeting || !!preemptAiming}
++                onActivate={onStripPortrait}
++                onHover={setHoverCombatant}
++                hoveredId={hovered}
++                onPromote={roundStartPromote}
++                canPreemptIds={canPreemptIds}
++                preemptArmedId={preemptAiming}
++                onPreempt={armPreempt}
++                hand={netMode === 'local' ? undefined : {
++                  raised: handRaised,
++                  reason: handVerdict.ok ? undefined : handVerdict.reason,
++                  label: <><Icon id={handDef.icon as IconIdInput} size="sm" /> {handRaised ? 'Pause demandée' : 'Pause'}{autresMains > 0 ? ` +${autresMains}` : ''}</>,
++                  ariaLabel: `${handRaised ? `${handDef.label} : retirer ma demande` : handDef.label}${autresMains > 0 ? ` — déjà demandée par ${autresMains} autre${autresMains > 1 ? 's' : ''} joueur${autresMains > 1 ? 's' : ''}` : ''}`,
++                  onToggle: () => runAction(handDef.id, useGame.getState, { toggleOff: handRaised }),
++                }}
++              />
++            )}
++            {mode === 'battle' && battle && <CombatBanner />}
++          </Row>
++          {/* BANDEAU D'OUVERTURE (arbitrage user 2026-08-24, référence RT « round 0 ») : la pause du
++              premier Round quitte le pont pour le haut de la carte — une surface de la couche. */}
++          {mode === 'battle' && (
++            <Stack data-zone="ouverture">
++              <BandeauDOuverture />
++            </Stack>
+           )}
+-          {mode === 'battle' && battle && <CombatBanner />}{/* fil SOUS la frise (CSS .combat-feed) */}
+-          {/* RAIL D'OUTILS (épure G) EN COMBAT : UN panneau vertical encadré au bord droit — le journal
+-              de bataille et l'ouvreur de dossier de navire y sont vissés, plus rien d'épars sur le champ
+-              ni dans la barre haute. Hors combat, ces commandes vivent sur le pont d'exploration : le
+-              rail ne se rend plus (la planche ne le veut qu'en tactique). La caméra n'y a plus de plaque :
++          {/* RAIL D'OUTILS (épure G) EN COMBAT : UN panneau vertical encadré — le journal de bataille
++              et l'ouvreur de dossier de navire y sont vissés, plus rien d'épars sur le champ ni dans
++              la barre haute. Hors combat, ces commandes vivent sur le pont d'exploration : le rail ne
++              se rend plus (la planche ne le veut qu'en tactique). La caméra n'y a plus de plaque :
+               elle se pilote au GESTE (glisser, molette, pincer) et au CLAVIER (registre
+-              `state/keybindings`, remappable à l'écran Options). Aux tranches étroites le rail se dissout
+-              (`display: contents`) et chaque surface reprend son ancrage mobile propre. */}
++              `state/keybindings`, remappable à l'écran Options). */}
+           {mode === 'battle' && (
+-            <Stack className="hud-rail skin-bois" gap="md" pad="md">
++            <Stack className="hud-rail skin-bois" data-zone="outils" gap="md" pad="md" rowBelow={700}>
+               {vessel && (
+                 <button
+                   type="button"
+@@ -376,10 +382,14 @@ export function CampaignView() {
+               <LogDrawer battle={battle ? { log: battle.log, combatants: battle.combatants } : null} journal={journal} />
+             </Stack>
+           )}
+-          {mode === 'exploration' && povActive && <PovControls />}
++          {mode === 'exploration' && povActive && (
++            <Stack data-zone="camera">
++              <PovControls />
++            </Stack>
++          )}
+           {dialogue && <DialogueBox />}
+           {/* Arbitre R2 : UNE seule modale de combat à la fois, par priorité (cf. ActiveModal). Il
+-              vit dans cette rangée parce que sa PUCE d'attente (coop) est une surface basse du champ
++              vit dans cette couche parce que sa PUCE d'attente (coop) est une surface basse du champ
+               — ses modales, elles, sont des voiles fixes que la grille ne touche pas. */}
+           <ActiveModal />
+         </div>
+diff --git a/src/ui/CombatConsole.test.tsx b/src/ui/CombatConsole.test.tsx
+index 6884b9f92..1f2162011 100644
+--- a/src/ui/CombatConsole.test.tsx
++++ b/src/ui/CombatConsole.test.tsx
+@@ -25,7 +25,7 @@ import { vehicleCombatant } from '../engine/vehicle';
+ import { actionGate, ACTION_CANDIDATES, REMEDES } from '../state/actionRegistry';
+ import { emptyScene } from '../state/scene';
+ import { mdToText } from './Prose';
+-import { CombatConsole } from './CombatConsole';
++import { BandeauDOuverture, CombatConsole } from './CombatConsole';
+ import { coupeAuMot } from '../lib/coupeAuMot.mjs';
+ import { BORNE_DU_CORPS } from './compendium/CodexRef';
+ import { readFileSync } from 'node:fs';
+@@ -762,18 +762,17 @@ describe('CombatConsole — assemblage : UN PONT, pas des blocs', () => {
+     for (const cote of ['left', 'right', 'bottom']) expect(decl(bande, cote), cote).toBeNull();
+     expect(decl(bande, 'padding-top')).toBe('var(--cc-saillie)');
+     expect(decl(ruleOf(HUD_BASE, '.stage'), 'display')).toBe('grid');
+-    // La RANGÉE dit tout : le plateau a une rangée de monde puis une rangée DE PONT, dimensionnée sur
+-    // le pont (`auto`) ; le pont occupe la DERNIÈRE, et les surfaces en flot (`.stage-flot`) vivent
+-    // dans une rangée STRICTEMENT au-dessus. C'est cette relation — pas un nombre — qui retire à toute
+-    // surface basse la hauteur du pont à lire : si les deux partageaient une rangée, le recouvrement
+-    // reviendrait le lendemain.
+-    const pistes = decl(ruleOf(HUD_BASE, '.stage'), 'grid-template-rows')!.trim().split(/\s+/);
+-    const rangeeDe = (sel: string) => Number(decl(ruleOf(HUD_BASE, sel), 'grid-area')!.split('/')[0].trim());
+-    expect(rangeeDe('.stage > .combat-console, .stage > .exploration-dock'), 'le pont n’est pas dans la DERNIÈRE rangée')
+-      .toBe(pistes.length);
+-    expect(pistes[pistes.length - 1], 'la rangée du pont ne se dimensionne pas sur lui').toBe('auto');
+-    expect(rangeeDe('.stage > .stage-flot'), 'les surfaces en flot partagent la rangée du pont')
+-      .toBeLessThan(rangeeDe('.stage > .combat-console, .stage > .exploration-dock'));
++    // La RANGÉE dit tout (#1919, docs/charte-ui.md) : le plateau porte `[flot] minmax(0, 1fr) [pont]
++    // auto` — la rangée du pont est la DERNIÈRE et se dimensionne sur lui, la couche HUD (`.stage-flot`)
++    // s'arrête à la ligne `pont`. C'est cette relation — pas un nombre — qui retire à toute surface du
++    // HUD la hauteur du pont à lire, et au HUD le pouvoir de pousser le pont.
++    const pistes = decl(ruleOf(HUD_BASE, '.stage'), 'grid-template-rows')!;
++    expect(pistes, 'la rangée du pont n’est pas la dernière, dimensionnée sur lui').toMatch(/\[pont\] auto$/);
++    expect(pistes, 'le HUD peut pousser le pont : sa rangée n’est pas bornée à zéro').toMatch(/^\[flot\] minmax\(0, 1fr\) /);
++    const aire = (sel: string) => decl(ruleOf(HUD_BASE, sel), 'grid-area')!.split('/').map((x) => x.trim());
++    expect(aire('.stage > .combat-console, .stage > .exploration-dock')[0], 'le pont n’est pas dans sa rangée').toBe('pont');
++    const flot = aire('.stage > .stage-flot');
++    expect([flot[0], flot[2]], 'la couche HUD déborde sur la rangée du pont').toEqual(['flot', 'pont']);
+     // La MATIÈRE de la bande est la peau `.skin-pont`, que la BANDE POSE (la racine, elle, ne peint
+     // rien) : la nappe et le liseré se lisent donc là, une seule fois pour les trois boîtes de pont.
+     expect(host.querySelector('.cc-dock')!.classList.contains('skin-pont'), 'la bande POSE la peau').toBe(true);
+@@ -899,20 +898,12 @@ describe('CombatConsole — assemblage : UN PONT, pas des blocs', () => {
+   // ── P-5 : LE FIL DE COMBAT descend BAS-GAUCHE, en texte NU sur le terrain, juste au-dessus du
+   //    pont (planche 2026-08-17 : journal `[170,779,330,57]`, aucun cadre, aligné à gauche). Il
+   //    était en haut-centre, en pastilles cadrées (`top: 136px; left: 50%`).
+-  it('P-5 — le fil de combat est ancré bas-gauche sur la réserve du pont, en lignes NUES', () => {
++  it('P-5 — le fil de combat n’a AUCUNE ancre propre, et se lit en lignes NUES', () => {
++    // Sa ZONE le pose (couche HUD #1919 : `temps`, au pied de la frise — rendu jsdom dans
++    // ExplorationDock.test.tsx, géométrie par `scripts/recette/hud-clickables.mjs`) : le module du fil
++    // ne connaît ni le bord de l'écran, ni la frise, ni le pont.
+     const feed = ruleOf(BANNER_BASE, '.combat-feed');
+-    expect(decl(feed, 'top')).toBe('auto');
+-    expect(decl(feed, 'transform')).toBe('none');
+-    // Ancré au BAS de la RANGÉE DU MONDE (#1848) : le pont est la rangée d'en dessous, le fil n'a
+-    // donc plus aucune hauteur de pont à connaître — seul le bandeau de phase, SUPERPOSÉ au parapet,
+-    // déborde dans sa rangée, et c'est la grandeur que le bandeau publie qu'il réserve.
+-    expect(decl(feed, 'bottom')).not.toMatch(/var\(--cc-deck-h\)/);
+-    expect(decl(feed, 'bottom')).toMatch(/var\(--cc-phase-h\)/);
+-    expect(readFileSync(join(process.cwd(), 'src', 'ui', 'CampaignView.tsx'), 'utf8'))
+-      .toMatch(/<div className="stage-flot">[\s\S]*<CombatBanner \/>/);
+-    // … à GAUCHE : une valeur en px depuis le bord, jamais un centrage.
+-    expect(decl(feed, 'left')).toMatch(/^\d+(\.\d+)?px$/);
+-    expect(decl(feed, 'align-items')).toBe('flex-start');
++    for (const cote of ['top', 'right', 'bottom', 'left', 'inset']) expect(decl(feed, cote), cote).toBeNull();
+     // Lignes NUES : plus de carte (fond, filet, arrondi, rembourrage) — la lisibilité tient au halo
+     // PARTAGÉ `.halo-champ`, que la ligne POSE.
+     const ev = ruleOf(BANNER_BASE, '.cb-ev');
+@@ -940,16 +931,16 @@ describe('CombatConsole — assemblage : UN PONT, pas des blocs', () => {
+     expect(decl(racine, '--cc-deck-h')).toMatch(/var\(--cc-bay-h\)/);
+     expect(decl(racine, '--cc-bay-h')).toMatch(/var\(--cc-cell-h\)/);
+     expect(STRIP_BASE, 'la frise lit encore une hauteur de pont').not.toMatch(/--cc-deck-h|--xd-deck-h/);
+-    // La colonne est une surface de la RANGÉE : c'est l'écran qui l'y pose (`.stage-flot`), et son
+-    // bord bas réserve seulement le bandeau de phase, seule boîte qui déborde dans cette rangée.
++    // La colonne est une surface de sa ZONE (`temps`, couche HUD #1919) : aucune ancre propre, et
++    // aucune réserve — la réserve du bandeau de phase est une rangée de la couche.
+     const strip = ruleOf(STRIP_BASE, '.initiative-strip');
+-    expect(decl(strip, 'bottom')).toMatch(/var\(--cc-phase-h\)/);
+-    expect(parseFloat(decl(strip, 'top')!)).toBeGreaterThanOrEqual(44); // norme: la frise part SOUS le coin du menu ☰, dont la cible au doigt fait 44px (charte UI règle 4)
+-    // La PISTE aussi : au-delà elle défile (aucune entrée ne disparaît, rien ne dépasse sur le pont).
+-    // Sa hauteur disponible se mesure sur le CONTENEUR (`cqh` = la rangée), que hud.css déclare.
++    for (const cote of ['top', 'bottom', 'left', 'right']) expect(decl(strip, cote), cote).toBeNull();
++    expect(STRIP_BASE, 'la frise relit la réserve du bandeau de phase').not.toMatch(/--cc-phase-h|--cc-phase-air/);
++    // La PISTE : au-delà elle défile (aucune entrée ne disparaît, rien ne dépasse sur le pont). Sa
++    // hauteur disponible se mesure sur le CONTENEUR (`cqh` = sa zone), que hud.css déclare.
+     const tiles = ruleOf(STRIP_BASE, '.is-tiles');
+     expect(decl(tiles, '--is-avail')).toMatch(/cqh/);
+-    expect(decl(ruleOf(HUD_BASE, '.stage > .stage-flot'), 'container-type'), 'la rangée n’est pas un conteneur de requête').toBe('size');
++    expect(decl(ruleOf(HUD_BASE, "[data-zone='temps']"), 'container-type'), 'la zone de la frise n’est pas un conteneur de requête').toBe('size');
+     expect(decl(tiles, 'max-height')).toMatch(/--is-avail/);
+     expect(decl(tiles, 'overflow-y')).toBe('auto');
+   });
+@@ -962,7 +953,7 @@ describe('CombatConsole — assemblage : UN PONT, pas des blocs', () => {
+   //    réserve du bas de la frise ne connaissait que le pont.
+   //    Le contrat est ARITHMÉTIQUE, dans les tokens déclarés : une hauteur de pont arbitraire suffit,
+   //    seules les RELATIONS entre les deux boîtes sont jugées.
+-  it('P-7 — le bandeau de phase se pose AU-DESSUS du liseré, et la frise réserve sa hauteur', () => {
++  it('P-7 — le bandeau de phase se pose AU-DESSUS du liseré, et la couche HUD réserve son débord', () => {
+     // Le liseré est celui de la peau de bande : son épaisseur est un token du `:root` (base.css).
+     const liseret = parseFloat(token('--pont-liseret'));
+     expect(decl(ruleOf(COMPONENTS_BASE, '.skin-pont'), 'border-top')).toMatch(/var\(--pont-liseret\)/);
+@@ -984,13 +975,17 @@ describe('CombatConsole — assemblage : UN PONT, pas des blocs', () => {
+     const basBandeau = pxCalc(decl(phase, 'bottom')!, env);
+     expect(basBandeau, 'le bandeau redescend sur le liseré du pont').toBeGreaterThanOrEqual(D);
+     const hautBandeau = basBandeau + P;
+-    // La frise se mesure depuis SA RANGÉE, dont le bord bas est le bord haut du pont — soit
+-    // l'EMPREINTE (bande + saillie) au-dessus du bas du viewport : conversion de repère, la frise ne
+-    // lit rien du pont et le bandeau reste dégagé par construction.
+-    const basFrise = (D + S) + pxCalc(decl(ruleOf(STRIP_BASE, '.initiative-strip'), 'bottom')!, env);
+-    expect(basFrise, 'la frise descend dans la bande du bandeau de phase').toBeGreaterThanOrEqual(hautBandeau);
+-    // La piste borne sa hauteur sur la MÊME réserve (sinon elle déborderait là où la boîte s'arrête).
+-    expect(decl(ruleOf(STRIP_BASE, '.is-tiles'), '--is-avail')).toMatch(/var\(--cc-phase-h\)/);
++    // Ce que le bandeau DÉBORDE au-dessus de l'empreinte du pont tient dans la RÉSERVE de la couche
++    // HUD (#1919) — la rangée `reserve`, payée pendant tout le combat : aucune zone, frise comprise,
++    // ne descend dans la bande du bandeau.
++    // Le pire cas est l'adresse SPECTATRICE : posée au-dessus de l'empreinte entière, elle déborde de
++    // toute sa boîte plus son air.
++    const reserve = pxCalc(decl(ruleOf(HUD_BASE, ".stage > .stage-flot[data-pont='combat']"), '--flot-reserve')!, env);
++    const hautSpectatrice = pxCalc(decl(ruleOf(CC_BASE, ".cc-phase[data-phase='spectatrice']"), 'bottom')!, env) + P;
++    for (const [adresse, haut] of [['pont', hautBandeau], ['spectatrice', hautSpectatrice]] as const) {
++      expect(haut - (D + S), `le bandeau (${adresse}) déborde hors de la réserve de la couche`).toBeLessThanOrEqual(reserve);
++    }
++    expect(decl(ruleOf(HUD_BASE, '.stage > .stage-flot'), 'grid-template-rows')).toMatch(/\[reserve\] var\(--flot-reserve\)$/);
+ 
+     // … et la RAMPE de débord suit la PLAQUE : la boîte de la frise épouse son contenu au lieu d'être
+     // étirée jusqu'à la réserve (sonde B6 : 174px de terrain nu, puis 20px de bois dans le vide).
+@@ -1081,29 +1076,17 @@ describe('CombatConsole — trois formes, une seule bande', () => {
+     expect(decl(eteinte, 'background-image')).toBe('none');
+   });
+ 
+-  it('le bandeau d’OUVERTURE s’ancre sur des grandeurs DÉCLARÉES, jamais sur un nombre sans origine', () => {
+-    // Le recouvrement se juge sur des BOÎTES RENDUES, que jsdom ne calcule pas : c'est
+-    // `scripts/recette/console-pont-formes.mjs` qui refuse tout chevauchement de la bande de groupe,
+-    // de la frise, du rail, du fil et du pont — à six largeurs, dans les trois formes.
+-    // ANGLE MORT DÉCLARÉ de ce contrat-ci : il ne juge que l'ANCRAGE déclaré.
+-    // Au-delà de 900, le bandeau se pose en haut du champ, sous la zone haute.
++  it('le bandeau d’OUVERTURE n’a AUCUNE ancre propre : sa zone de la couche HUD le pose', () => {
++    // Zone `ouverture` de la couche HUD (#1919) — rendu jsdom dans ExplorationDock.test.tsx, boîtes
++    // rendues par `scripts/recette/hud-clickables.mjs`. Le module de la console n'en garde que
++    // l'identité : aucune ancre, aucune tranche, aucune grandeur du haut de l'écran.
+     const ouv = ruleOf(CC_BASE, ".cc-phase[data-phase='ouverture']");
+-    expect(decl(ouv, 'top')).toBe('var(--cc-ouverture-top)');
+-    expect(decl(ouv, 'bottom')).toBe('auto');
+-    expect(centrage(ouv), 'le bandeau d’ouverture n’est pas centré en largeur').toBe('axe X');
+-    expect(parseFloat(decl(ruleOf(CC_BASE, ':root'), '--cc-ouverture-top')!)).toBeGreaterThan(0);
+-    // Cette position tient jusqu'à 701px inclus (mesuré libre de tout recouvrement à 901, 900, 800
+-    // et 701). Sous 700 SEULEMENT — là où la frise quitte sa colonne pour une bande haute et où le
+-    // fil monte en haut du champ — il descend au bas du champ. Enfant du CHAMP et non du pont, il
+-    // vit dans la RANGÉE DU MONDE (#1848) : il n'a plus aucune hauteur de pont à relire.
+-    expect(mediaBlock(CC_CSS, '@media (max-width: 900px)'), 'la tranche 700-900 n’est pas contrainte : le bandeau y garde le haut')
+-      .not.toContain("data-phase='ouverture'");
+-    const ouv700 = ruleOf(mediaBlock(CC_CSS, '@media (max-width: 700px)'), ".cc-phase[data-phase='ouverture']");
+-    expect(decl(ouv700, 'top')).toBe('auto');
+-    expect(decl(ouv700, 'bottom')).not.toContain('var(--cc-deck-h)');
+-    expect(decl(ruleOf(CC_BASE, '.stage > .cc-phase'), 'grid-area'), 'le bandeau du champ n’est pas dans la rangée du monde').toBeTruthy();
+-    // … et le fil de combat non plus : les deux se rangent dans le même repère.
+-    expect(decl(ruleOf(BANNER_BASE, '.combat-feed'), 'bottom')).not.toContain('var(--cc-deck-h)');
++    expect(decl(ouv, 'inset'), 'l’ancre du bandeau de pont n’est pas neutralisée').toBe('auto');
++    for (const cote of ['top', 'right', 'bottom', 'left', 'transform']) expect(decl(ouv, cote), cote).toBeNull();
++    expect(CC_CSS, 'une grandeur du haut de l’écran survit').not.toMatch(/--cc-ouverture-top/);
++    for (const tranche of ['@media (max-width: 900px)', '@media (max-width: 700px)', '@media (max-width: 560px)']) {
++      expect(mediaBlock(CC_CSS, tranche), `${tranche} replace le bandeau d’ouverture`).not.toContain("data-phase='ouverture'");
++    }
+   });
+ 
+   it('la forme SPECTATRICE ne publie AUCUN slot au pont clavier (pas de touche sans case)', () => {
+@@ -3600,7 +3583,8 @@ describe('CombatConsole — le pont d’OUVERTURE est celui du JOUEUR, et n’of
+         } as unknown as BattleState,
+       });
+     });
+-    act(() => { root.render(<CombatConsole />); });
++    // Les DEUX montages de l'écran de campagne : le bandeau d'ouverture (couche HUD) et le pont.
++    act(() => { root.render(<><BandeauDOuverture /><CombatConsole /></>); });
+   }
+ 
+   afterEach(() => { act(() => { useGame.setState({ pendingRoundStart: null }); }); });
+@@ -3631,18 +3615,13 @@ describe('CombatConsole — le pont d’OUVERTURE est celui du JOUEUR, et n’of
+     knud.label = 'Knud';
+     ouverture(h, knud);
+ 
+-    // Le bandeau quitte le pont : il est enfant du CHAMP, pas de la console (il flotte sur la carte).
++    // Le bandeau quitte le pont : c'est `BandeauDOuverture`, une surface de la couche HUD (zone
++    // `ouverture`, montée par l'écran de campagne), pas un enfant de la console.
+     const bandeau = host.querySelector('.cc-phase[data-phase="ouverture"]')!;
+-    expect(bandeau, 'aucun bandeau d’ouverture centré').not.toBeNull();
++    expect(bandeau, 'aucun bandeau d’ouverture').not.toBeNull();
+     expect(host.querySelector('.combat-console')!.contains(bandeau), 'le bandeau est resté DANS le pont').toBe(false);
+     expect(bandeau.textContent).toContain('Ouverture du combat');
+     expect(bandeau.querySelector('button[data-action="round-start"]')!.textContent).toContain('Commencer le combat');
+-    // … et il est CENTRÉ EN HAUT : ancré au haut du champ, ramené au centre par sa demi-largeur.
+-    const regle = ruleOf(CC_BASE, ".cc-phase[data-phase='ouverture']");
+-    expect(decl(regle, 'top')).toBe('var(--cc-ouverture-top)');
+-    expect(decl(regle, 'bottom')).toBe('auto');
+-    expect(centrage(regle), 'le bandeau d’ouverture n’est pas centré en largeur').toBe('axe X');
+-    expect(parseFloat(decl(ruleOf(CC_BASE, ':root'), '--cc-ouverture-top')!)).toBeGreaterThan(0);
+     // La console basse : l'ARCHE SEULE, et RIEN d'autre — ni bande, ni case, ni set, ni fin de tour
+     // (arbitrage 2026-09-20, verbatim : « … et avant le début du combat »).
+     expect(host.querySelector('.combat-console')!.getAttribute('data-forme')).toBe('spectatrice');
+diff --git a/src/ui/CombatConsole.tsx b/src/ui/CombatConsole.tsx
+index 60645b465..94fac818b 100644
+--- a/src/ui/CombatConsole.tsx
++++ b/src/ui/CombatConsole.tsx
+@@ -476,6 +476,48 @@ function pontDOuverture(battle: BattleState): Combatant | undefined {
+     ?? inBattleId(battle, battle.order[0]);
+ }
+ 
++/** LE BANDEAU DE LA PAUSE DE ROUND, source unique : le geste est l'ENTRÉE `round-start` du registre
++ *  — la MÊME porte que la touche (`keybindings.round-start`), donc le même arbitrage solo/coop. En
++ *  réseau, le bouton ne lance rien : il marque CE siège prêt, et la bande montre les sièges REQUIS et
++ *  leur état (`ReadyRow`). Nul hors de la pause. Lu par le pont et par le bandeau d'ouverture. */
++function useBandeauDeRound(): PhaseBanner | null {
++  const net = useGame((s) => s.net);
++  const pendingRoundStart = useGame((s) => s.pendingRoundStart);
++  const roundStartDef = pendingRoundStart ? findActionById('round-start') : undefined;
++  if (!pendingRoundStart || !roundStartDef) return null;
++  const enReseau = net.mode !== 'local';
++  const dejaPret = !!pendingRoundStart.readyBySeat?.[net.mySeat];
++  return {
++    label: pendingRoundStart.round <= 1 ? 'Ouverture du combat' : `Début du Round ${pendingRoundStart.round}`,
++    ready: enReseau ? (pendingRoundStart.readyBySeat ?? {}) : undefined,
++    actions: [{
++      key: roundStartDef.id,
++      label: enReseau
++        ? (dejaPret ? 'En attente des autres…' : 'Prêt')
++        : pendingRoundStart.round <= 1 ? 'Commencer le combat' : `Commencer le round ${pendingRoundStart.round}`,
++      icon: <Icon id={roundStartDef.icon as IconIdInput} size="sm" />,
++      primary: true,
++      disabled: enReseau && dejaPret,
++      run: () => runAction(roundStartDef.id, useGame.getState),
++    }],
++  };
++}
++
++/** OUVERTURE d'un combat (arbitrage utilisateur 2026-08-24, référence RT « round 0 », capture
++ *  archivée) : la pause du premier Round. Les pauses SUIVANTES gardent leur bandeau sur le parapet
++ *  du pont — l'arbitrage ne porte que sur l'ouverture. PUR sur l'état du store. */
++const estOuverture = (b: { battle: unknown; pendingRoundStart: { round: number } | null | undefined }) =>
++  !!b.battle && !!b.pendingRoundStart && b.pendingRoundStart.round <= 1;
++
++/** Le BANDEAU D'OUVERTURE : le bandeau de la pause de Round à son adresse `ouverture`, CENTRÉ EN HAUT
++ *  DE LA CARTE. C'est une surface de la couche HUD (zone `ouverture`), que l'écran de campagne monte
++ *  — jamais un enfant du pont. Nul hors de l'ouverture. */
++export function BandeauDOuverture() {
++  const ouverture = useGame((s) => estOuverture(s) && !s.battle?.over);
++  const phase = useBandeauDeRound();
++  return ouverture && phase ? <PhaseBanner {...phase} adresse="ouverture" /> : null;
++}
++
+ export function CombatConsole() {
+   const battle = useGame((s) => s.battle);
+   const party = useGame((s) => s.party);
+@@ -483,6 +525,7 @@ export function CombatConsole() {
+   // Heure de jeu : le QUART courant borne la chanson de marin (une par quart, MDG 09 l.40).
+   const gameTime = useGame((s) => s.gameTime);
+   const pendingRoundStart = useGame((s) => s.pendingRoundStart);
++  const bandeauDeRound = useBandeauDeRound();
+   // Intention LOCALE armée (spec zone 4) : elle allume SA case. Jamais un intent réseau — c'est un
+   // mode d'écran, le geste qu'il commet part, lui, par les chemins de clic habituels.
+   const localIntent = useGame((s) => s.localIntent);
+@@ -552,55 +595,30 @@ export function CombatConsole() {
+   // (l'action `surface: 'interlude'` du mode courant, § registre). Un interlude sans bandeau serait un
+   // ciblage SANS SORTIE — le joueur aurait seulement le clic-carte pour en sortir.
+   const interlude = interludeId ? findActionById(interludeId) : undefined;
+-  // PAUSE DE ROUND : le geste est l'ENTRÉE `round-start` du registre — la MÊME porte que la touche
+-  // (`keybindings.round-start`), donc le même arbitrage solo/coop. En réseau, le bouton ne lance rien :
+-  // il marque CE siège prêt, et la bande montre les sièges REQUIS et leur état (`ReadyRow`).
+-  const roundStartDef = pendingRoundStart ? findActionById('round-start') : undefined;
+-  const enReseau = net.mode !== 'local';
+-  const dejaPret = !!pendingRoundStart?.readyBySeat?.[net.mySeat];
+-  const phase: PhaseBanner | null = pendingRoundStart && roundStartDef
++  const phase: PhaseBanner | null = bandeauDeRound ?? (interlude
+     ? {
+-        label: pendingRoundStart.round <= 1 ? 'Ouverture du combat' : `Début du Round ${pendingRoundStart.round}`,
+-        ready: enReseau ? (pendingRoundStart.readyBySeat ?? {}) : undefined,
++        label: (interlude.mode && targetingModeLabel(interlude.mode)) ?? interlude.label,
+         actions: [{
+-          key: roundStartDef.id,
+-          label: enReseau
+-            ? (dejaPret ? 'En attente des autres…' : 'Prêt')
+-            : pendingRoundStart.round <= 1 ? 'Commencer le combat' : `Commencer le round ${pendingRoundStart.round}`,
+-          icon: <Icon id={roundStartDef.icon as IconIdInput} size="sm" />,
+-          primary: true,
+-          disabled: enReseau && dejaPret,
+-          run: () => runAction(roundStartDef.id, useGame.getState),
++          key: interlude.id,
++          label: interlude.label,
++          icon: <Icon id={interlude.icon as IconIdInput} size="sm" />,
++          primary: !bandeauDiscret(interlude),
++          run: () => runAction(interlude.id, useGame.getState),
+         }],
+       }
+-    : interlude
+-      ? {
+-          label: (interlude.mode && targetingModeLabel(interlude.mode)) ?? interlude.label,
+-          actions: [{
+-            key: interlude.id,
+-            label: interlude.label,
+-            icon: <Icon id={interlude.icon as IconIdInput} size="sm" />,
+-            primary: !bandeauDiscret(interlude),
+-            run: () => runAction(interlude.id, useGame.getState),
+-          }],
+-        }
+-      : null;
++    : null);
+   // Pendant la PAUSE de Round, `battle.turn` vaut -1 : personne n'agit encore. La console ne
+   // DISPARAÎT pas pour autant (loi 1 : la géométrie ne bouge jamais) — elle passe en LECTURE, sous le
+   // bandeau de phase (spec zone 7), sur un combattant que le JOUEUR CONTRÔLE. Elle montrait la tête de
+   // l'INITIATIVE : sur une embuscade, un ENNEMI (Knud) portait portrait, stats et arsenal dans le
+   // cadre du joueur. Le pont est celui du joueur — le premier contrôlé, sinon le premier héros du
+   // groupe (partie entièrement en Auto-combat), sinon seulement la tête d'ordre.
+-  /** OUVERTURE d'un combat (arbitrage utilisateur 2026-08-24, référence RT « round 0 », capture
+-   *  archivée) : le bandeau de phase et son bouton quittent le coin du pont pour le HAUT DE LA
+-   *  CARTE, centrés. Les pauses de round SUIVANTES gardent leur bandeau sur le parapet du pont —
+-   *  l'arbitrage ne porte que sur l'ouverture. */
+-  const ouverture = !!pendingRoundStart && pendingRoundStart.round <= 1;
++  // À l'OUVERTURE, le bandeau quitte le pont pour la couche HUD (`BandeauDOuverture`).
++  const ouverture = estOuverture({ battle, pendingRoundStart });
+   const active = activeCombatant(battle) ?? (phase ? pontDOuverture(battle) : undefined);
+   if (!active) {
+     return phase ? (
+       <>
+-        {ouverture && <PhaseBanner {...phase} adresse="ouverture" />}
+         <div className="combat-console" data-forme="spectatrice" onContextMenu={avalerMenuNatif}>{!ouverture && <PhaseBanner {...phase} adresse="spectatrice" />}</div>
+       </>
+     ) : null;
+@@ -1184,9 +1202,6 @@ export function CombatConsole() {
+ 
+   return (
+     <>
+-    {/* BANDEAU D'OUVERTURE : enfant du CHAMP (`.stage`), jamais du pont — à l'ouverture il se pose
+-        CENTRÉ EN HAUT de la carte (référence RT « round 0 »), au-dessus du terrain. */}
+-    {ouverture && phase && <PhaseBanner {...phase} adresse="ouverture" />}
+     {/* LE PONT : la bande porteuse, à HAUTEUR FIXE. La racine est l'EMPREINTE du pont — la bande
+         PLUS la saillie du fronton — et ne peint rien : la MATIÈRE de bande (peau `.skin-pont`) est
+         portée par la bande elle-même, `.cc-dock`. Le bandeau de phase est le seul enfant HORS FLUX
+diff --git a/src/ui/ExplorationDock.test.tsx b/src/ui/ExplorationDock.test.tsx
+index 290b15529..26557e4f1 100644
+--- a/src/ui/ExplorationDock.test.tsx
++++ b/src/ui/ExplorationDock.test.tsx
+@@ -310,13 +310,66 @@ describe('Zone 11 — la RÉSERVE du pont est lisible, et le pont est COMPACT',
+     expect(prop(bloc(coarseSkin![1], '.skin-tole[data-ton]'), 'min-height')).toBe('44px');
+   });
+ 
+-  it('le tiroir-journal LIT la réserve pour s’ancrer au-dessus du pont (jamais un nombre recopié)', () => {
+-    const hud = styles('exploration-dock.css');
+-    const tiroir = bloc(hud, '.exploration-dock .log-drawer');
+-    // Le pont porte l'ancrage : le tiroir ne flotte plus (les calages mobiles ≤700/≤560 sont annulés).
+-    expect(prop(tiroir, 'position')).toBe('relative');
+-    expect(prop(tiroir, 'inset')).toBe('auto');
+-    expect(prop(bloc(hud, '.exploration-dock .ld-panel'), 'max-height')).toContain('var(--xd-deck-h)');
++  it('le tiroir-journal est assis SUR le pont, et son panneau naît de son bouton', () => {
++    // Hors combat le tiroir appartient au PONT, pas à la couche HUD : aucune zone ne le porte, et son
++    // panneau ouvert est un enfant du tiroir — il naît de son bouton, sans lire aucune hauteur.
++    const el = monter();
++    const tiroir = el.querySelector('.exploration-dock .log-drawer')!;
++    expect(tiroir, 'le tiroir n’est pas assis sur le pont').not.toBeNull();
++    expect(tiroir.closest('[data-zone]'), 'le tiroir du pont vit dans une zone du HUD').toBeNull();
++    act(() => { (tiroir.querySelector('.ld-btn') as HTMLButtonElement).click(); });
++    expect(tiroir.querySelector('.ld-panel'), 'le panneau ne naît pas de son tiroir').not.toBeNull();
++    expect(styles('exploration-dock.css'), 'le pont relit une réserve du HUD pour borner le panneau').not.toMatch(/\.ld-panel|70px/);
++  });
++});
++
++/** Zone de la couche HUD qui porte un élément, ou `null` hors de la couche. */
++const zoneDe = (el: Element | null) => (el?.closest('[data-zone]') as HTMLElement | null)?.dataset.zone ?? null;
++
++describe('#1919 — la couche HUD est une grille : chaque surface déclare sa ZONE', () => {
++  // La GÉOMÉTRIE relève de la sonde navigateur (`scripts/recette/hud-clickables.mjs`, jsdom ne met
++  // rien en page) ; ici, la RELATION : qui déclare quelle zone, et que la couche place chacune.
++  const hud = () => styles('hud.css');
++  /** Chaque zone montée est un enfant DIRECT de la couche, et la couche la place (aire ou lignes). */
++  function zonesPlacees(el: Element) {
++    const couche = el.querySelector('.stage-flot')!;
++    const zones = [...el.querySelectorAll('[data-zone]')] as HTMLElement[];
++    for (const z of zones) {
++      expect(z.parentElement, `zone « ${z.dataset.zone} » hors de la couche`).toBe(couche);
++      expect(hud(), `zone « ${z.dataset.zone} » sans placement dans hud.css`)
++        .toMatch(new RegExp(`\\[data-zone='${z.dataset.zone}'\\]\\s*\\{[^}]*grid-(area|row)`));
++    }
++    return zones.map((z) => z.dataset.zone);
++  }
++
++  it('EXPLORATION : barre haute, groupe, objectif et caméra ; le pont hors de la couche', () => {
++    useGame.setState({ objectives: [{ id: 'o1', text: 'Retrouver la piste' }], povActive: true } as never);
++    const el = monter();
++    expect(zoneDe(el.querySelector('.hud-topbar'))).toBe('contexte');
++    expect(zoneDe(el.querySelector('.party-dock'))).toBe('groupe');
++    expect(zoneDe(el.querySelector('.objective-banner'))).toBe('temps');
++    expect(zoneDe(el.querySelector('.pov-controls'))).toBe('camera');
++    expect(el.querySelector('.stage-flot')!.getAttribute('data-pont')).toBe('exploration');
++    expect(zoneDe(dock()), 'le pont est dans la couche HUD').toBeNull();
++    expect(dock()!.parentElement!.classList.contains('stage'), 'le pont n’est plus une rangée du plateau').toBe(true);
++    expect(zonesPlacees(el).sort()).toEqual(['camera', 'contexte', 'groupe', 'temps']);
++  });
++
++  it('COMBAT : frise et fil, rail, bandeau d’ouverture ; la console hors de la couche', () => {
++    enCombat();
++    useGame.setState({ pendingRoundStart: { round: 1, readyBySeat: {} } } as never);
++    const el = monter();
++    expect(zoneDe(el.querySelector('.initiative-strip'))).toBe('temps');
++    expect(zoneDe(el.querySelector('.combat-feed'))).toBe('temps');
++    expect(zoneDe(el.querySelector('.hud-rail'))).toBe('outils');
++    expect(zoneDe(el.querySelector(".cc-phase[data-phase='ouverture']"))).toBe('ouverture');
++    expect(zoneDe(el.querySelector('.party-dock'))).toBe('groupe');
++    expect(el.querySelector('.stage-flot')!.getAttribute('data-pont'), 'la réserve du bandeau de phase n’est pas payée en combat').toBe('combat');
++    const console_ = el.querySelector('.combat-console')!;
++    expect(zoneDe(console_), 'la console est dans la couche HUD').toBeNull();
++    expect(console_.parentElement!.classList.contains('stage')).toBe(true);
++    expect(zonesPlacees(el).sort()).toEqual(['contexte', 'groupe', 'outils', 'ouverture', 'temps']);
++    useGame.setState({ pendingRoundStart: null } as never);
+   });
+ });
+ 
+diff --git a/src/ui/PovControls.tsx b/src/ui/PovControls.tsx
+index 78d11b2f3..6119cae8e 100644
+--- a/src/ui/PovControls.tsx
++++ b/src/ui/PovControls.tsx
+@@ -39,8 +39,7 @@ export function PovControls() {
+       {label}
+     </button>
+   );
+-  // Le PLACEMENT du pavé vit chez l'écran qui le monte (`.stage-flot > .pov-controls`, hud.css) :
+-  // il s'ancre au bas de la RANGÉE DU MONDE, au-dessus du pont, sans en connaître la hauteur.
++  // Le PLACEMENT du pavé est celui de sa zone dans la couche HUD (`[data-zone='camera']`, hud.css).
+   return (
+     <div className="pov-controls" onPointerDown={(e) => e.stopPropagation()}>
+       {btn('pov-turn-l', '⟲', 'Pivoter le regard à gauche (A)')}
+diff --git a/src/ui/styles/combat-banner.css b/src/ui/styles/combat-banner.css
+index b8ae9a59a..5979596b8 100644
+--- a/src/ui/styles/combat-banner.css
++++ b/src/ui/styles/combat-banner.css
+@@ -2,28 +2,17 @@
+    Le BEAT : une ligne nue posée sur le terrain, au-dessus du pont de console. Le tiroir du journal
+    (`.log-drawer`) garde l'historique COMPLET ; ce fil ne dit que l'événement courant. Les noms par
+    camp sont rendus par `TeamSegments` (team-segments.css). */
+-/* Fil d'événements — BAS-GAUCHE, posé SUR LE TERRAIN juste au-dessus du pont de console (planche
+-   2026-08-17 : journal `[170,779,330,57]`, aucun cadre, aligné à gauche). Il n'appartient PAS au
+-   pont : il vit dans la RANGÉE DU MONDE (`.stage-flot`, hud.css), dont la boîte s'arrête au bord
+-   haut du pont — il n'a donc AUCUNE hauteur de pont à connaître. */
++/* Fil d'événements : une ligne nue posée sur le terrain, sous la bande haute. Son placement est
++   celui de sa ZONE (`champ`, couche HUD de hud.css) : il n'a aucune géométrie voisine à connaître.
++   Il ne prend aucun clic. */
+ .combat-feed {
+-  position: absolute;
+-  /* Après la plaque de frise (colonne x 10..114 mesurée) — la planche pose le journal à 170/1920. */
+-  left: 130px;
+-  right: auto;
+-  top: auto;
+-  /* Seule réserve qui reste : le bandeau de phase, SUPERPOSÉ au parapet du pont (il déborde donc
+-     dans la rangée du monde, de sa boîte plus son air) — sans elle, le fil et le bouton « Commencer
+-     le round » se recouvraient en pause de Round (mesuré à 1280). Les deux grandeurs sont celles que
+-     le bandeau déclare (`--cc-phase-h`, `--cc-phase-air`, combat-console.css), jamais un nombre. */
+-  bottom: calc(var(--cc-phase-h) + var(--cc-phase-air));
+-  transform: none;
++  position: relative;
+   display: flex;
+   flex-direction: column;
+-  align-items: flex-start;
++  align-items: center;
+   gap: 2px;
+   /* AU-DESSUS du bandeau de groupe (`.party-dock`, z-index 45) : le message d'ouverture passait
+-     derrière les cartes et se lisait coupé (grief vision). Le fil ne prend aucun clic. */
++     derrière les cartes et se lisait coupé (grief vision). */
+   z-index: 46;
+   pointer-events: none;
+   max-width: 42vw;
+@@ -76,26 +65,7 @@
+   60% { opacity: 1; transform: scale(1.06) translateY(0); }
+   100% { transform: scale(1) translateY(0); }
+ }
+-/* Le fil d'événements RESTE EN HAUT sous 700px : le pont s'y empile sur trois rangées (mesuré
+-   616,5px de haut à 700×800) et le coin bas-gauche appartient au tiroir du journal — il n'y a pas
+-   de bande de terrain au-dessus du pont où poser le fil. Il passe donc sous la bande
+-   d'initiative (le groupe, puis le round, puis le flux) : le `top` se pose sous le BAS MESURÉ de
+-   la bande en combat ENGAGÉ (84 + 100 = 184px, recette `hud-clickables.mjs`) plus l'air — le
+-   message du flux et la frise n'ont aucune surface commune. */
+ @media (max-width: 700px) {
+-  .combat-feed {
+-    top: 192px;
+-    bottom: auto;
+-    left: 50%;
+-    transform: translateX(-50%);
+-    align-items: center;
+-    max-width: 94vw;
+-  }
++  .combat-feed { max-width: 94vw; }
+   .cb-ev { white-space: normal; text-align: center; } /* événements longs : retour à la ligne (pas de débord) */
+ }
+-@media (max-width: 560px) {
+-  /* Le fil d'événements se pose SOUS le bandeau haut, jamais au milieu du terrain : il annonce, il
+-     ne s'installe pas dans le champ (grief d'assemblage — le toast traversait le ruban de jeu).
+-     Repère : bande de groupe repliée (6..30), frise (34..86), caméra (92..136), fil à 140. */
+-  .combat-feed { top: 140px; }
+-}
+diff --git a/src/ui/styles/combat-console.css b/src/ui/styles/combat-console.css
+index bbf2ce8f3..446c1c8ef 100644
+--- a/src/ui/styles/combat-console.css
++++ b/src/ui/styles/combat-console.css
+@@ -71,17 +71,16 @@
+      (débord de région, et hauteur rendue ≠ hauteur déclarée). */
+   --cc-arch-chrome: 84px;
+   --cc-arch-h: calc(var(--cc-portrait) + var(--cc-arch-chrome));
+-  /* HAUTEUR DU PONT lue par le reste du HUD (frise, fil de combat) — et RÉSERVE de la bande dans
+-     ses trois formes. Elle vaut la plus haute des régions : la travée, ou l'arche DIMINUÉE de ce
++  /* HAUTEUR DU PONT — la RÉSERVE de la bande dans ses trois formes, et la course de nappe du pont
++     d'exploration (exploration-dock.css). Elle vaut la plus haute des régions : la travée, ou l'arche DIMINUÉE de ce
+      qu'elle franchit (le fronton s'élève au-dessus du liseré, il ne pèse pas sur la bande). Plus le
+      liseré. Le script de recette la RÉFUTE : toute région qui déborderait sa boîte le fait rougir. */
+   --cc-deck-h: calc(max(var(--cc-bay-h), var(--cc-arch-h) - var(--cc-fronton)) + 3px);
+   /* HAUTEUR DU BANDEAU DE PHASE, publiée au MÊME titre que `--cc-deck-h` et pour la même raison : le
+-     bandeau est superposé AU-DESSUS du liseré, il occupe donc de la bande de terrain que la frise ne
+-     doit pas revendiquer (sans cette réserve, la colonne d'initiative — z-index 45 contre 5 — passait
+-     par-dessus le titre et le décapitait, sonde pixel B6 : le « B » et l'accent de « Bordée » perdus
+-     sur quatre captures). C'est un plancher TENU (`min-height` ci-dessous) : la réserve ne peut pas
+-     être plus courte que la boîte qu'elle décrit. */
++     bandeau est superposé AU-DESSUS du liseré, il déborde donc dans la couche HUD, qui le réserve
++     (rangée `reserve`, hud.css) — sans cette réserve, la colonne d'initiative (z-index 45 contre 5)
++     passait par-dessus le titre et le décapitait (sonde pixel B6). C'est un plancher TENU
++     (`min-height` ci-dessous) : la réserve ne peut pas être plus courte que la boîte qu'elle décrit. */
+   --cc-phase-h: 48px;
+   /* AIR entre le bandeau et le parapet : il se pose AU-DESSUS du liseré, jamais à cheval. Publié au
+      même titre que sa hauteur — qui réserve la boîte réserve aussi son air (le fil d'événements,
+@@ -93,15 +92,8 @@
+      basses retrouveraient une hauteur de pont à connaître. Elle vaut le fronton là où le fronton
+      surplombe, zéro là où les régions s'empilent (≤700, `.cc-arch { margin-top: 0 }`). */
+   --cc-saillie: var(--cc-fronton);
+-  /* ANCRAGE HAUT du bandeau d'OUVERTURE (arbitrage user 2026-08-24) : il se pose sur la CARTE, sous
+-     la bande de groupe. Au `:root` parce qu'un autre flottant du champ doit pouvoir s'y ranger
+-     dessous (le fil de combat, tranche ≤700 de hud.css). */
+-  /* Il se pose SOUS la zone haute du champ : bande de groupe (`.party-dock`, ancrée à 10px, boîte
+-     mesurée 123,6px — tuile `--pd-tile` 88 + nom + rembourrages, invariante en largeur) plus l'air.
+-     Le script de recette REFUSE tout recouvrement de la bande de groupe, de la frise et du fil. */
+-  --cc-ouverture-top: 152px;
+   /* Encoche d'angle des plaques (patron d'ébauche : la tôle est coupée, jamais arrondie). Au `:root`
+-     parce que le bandeau d'OUVERTURE est monté sur la carte, HORS du pont : il en a besoin aussi. */
++     parce que le bandeau d'OUVERTURE est monté dans la couche HUD, HORS du pont : il en a besoin aussi. */
+   --cc-notch: 4px;
+ }
+ /* LA BOÎTE DU PONT EST SON EMPREINTE (#1848) : la console n'est plus ancrée au bas du champ, elle
+@@ -126,7 +118,7 @@
+    du LISERÉ, pas de son côté intérieur : `100%` porte sur la boîte de rembourrage, donc SOUS la
+    bordure. À cheval (`calc(100% - 10px)`), il descendait dans la bande de la frise d'initiative, qui
+    le recouvre (z-index 45 contre 5) et lui décapitait son titre. Sa boîte est un plancher TENU :
+-   c'est elle que la frise réserve (`--cc-phase-h`, `hud.css`).
++   c'est elle que la couche HUD réserve (`--cc-phase-h`, `hud.css`).
+    Sa MATIÈRE est la peau partagée `.skin-bois` (components.css), que le bandeau POSE — la même
+    plaque que le rail d'outils du HUD ; ce module n'en garde que le DELTA : l'encoche d'angle. */
+ .cc-phase {
+@@ -170,22 +162,12 @@
+    d'un combat, le message de phase et son bouton quittent le coin du pont pour le HAUT DE LA CARTE,
+    centrés — c'est là que la référence les pose (« Préparez-vous au combat », « DÉMARRER LE COMBAT »).
+    C'est la MÊME boîte que `.cc-phase` (même matière, même primitive) posée ailleurs : le bandeau est
+-   alors un enfant du champ (`.stage`), pas du pont — il ne lui appartient pas.
+-   Aux pauses de round SUIVANTES, le bandeau reste sur le pont : l'arbitrage ne parle que de
+-   l'ouverture. Son ancrage haut vit au `:root` (avec `--cc-phase-h`) : il tient sous la bande de
+-   groupe et AU-DESSUS du fil de combat à toute largeur, sans qu'aucun des deux n'ait à se pousser.
+-   L'ADRESSE est un attribut du bandeau, jamais une classe de plus (cliquet xii). */
+-/* Enfant du CHAMP, il vit dans la RANGÉE DU MONDE de la grille du plateau (hud.css) : sa boîte
+-   s'arrête au bord haut du pont, il ne peut ni le recouvrir ni avoir à le mesurer. */
+-.stage > .cc-phase {
+-  grid-area: 1 / 1 / 2 / 2;
+-}
++   alors une surface de la couche HUD (zone `ouverture`, hud.css), pas du pont — il ne lui appartient
++   pas. Aux pauses de round SUIVANTES, le bandeau reste sur le pont : l'arbitrage ne parle que de
++   l'ouverture. L'ADRESSE est un attribut du bandeau, jamais une classe de plus (cliquet xii). */
+ .cc-phase[data-phase='ouverture'] {
+-  left: 50%;
+-  right: auto;
+-  bottom: auto;
+-  top: var(--cc-ouverture-top);
+-  transform: translateX(-50%);
++  position: relative;
++  inset: auto;
+   flex-direction: column;
+   gap: 6px;
+   padding: 8px 26px;
+@@ -1168,23 +1150,6 @@ button.cc-socle svg {
+   .cc-bay-left {
+     height: auto;
+   }
+-  /* BANDEAU D'OUVERTURE sous 700 — et SEULEMENT là : c'est à cette largeur que la frise
+-     d'initiative quitte sa colonne pour une BANDE HAUTE et que le fil de combat monte en haut du
+-     champ. La zone haute devient alors pleine (bande de groupe jusqu'à 129,6px, frise jusqu'à
+-     150px, fil à 192px — mesures `scripts/recette/console-pont-formes.mjs`) et la boîte réelle du
+-     bandeau, 77px, n'entre pas dans les 42px qui restent. Il descend donc AU-DESSUS du pont et du
+-     fil, pleine largeur, en relisant leur réserve. Jusqu'à 701px inclus il garde la position de la
+-     référence RT — mesuré libre de tout recouvrement à 901, 900, 800 et 701. */
+-  .cc-phase[data-phase='ouverture'] {
+-    left: 4px;
+-    right: 4px;
+-    top: auto;
+-    /* Au BAS de la rangée du monde, pleine largeur : le pont est la rangée d'en dessous et le fil
+-       d'événements est remonté en haut du champ à cette largeur — plus rien à réserver. */
+-    bottom: var(--sp-lg);
+-    transform: none;
+-    align-items: center;
+-  }
+ }
+ 
+ /* ── COMPOSITION COMPACTE (≤560px, arbitrage 2026-08-16) — rien ne disparaît : mêmes 8 + 12 cases,
+diff --git a/src/ui/styles/exploration-dock.css b/src/ui/styles/exploration-dock.css
+index aa2c855b4..d0b975e7f 100644
+--- a/src/ui/styles/exploration-dock.css
++++ b/src/ui/styles/exploration-dock.css
+@@ -3,13 +3,12 @@
+    MÊME matière et MÊME liseré que `.combat-console` — la peau PARTAGÉE `.skin-pont`
+    (components.css), posée par les deux ponts —, à hauteur d'une rangée d'icônes. Aucune boîte
+    flottante : les ouvreurs d'écrans ET le tiroir-journal sont assis SUR le pont, à son extrémité
+-   droite ; le reste est du pont nu.
++   droite ; le reste est du pont nu. Le panneau du tiroir naît de son bouton (log-drawer.css).
+    Les grandeurs viennent du `:root` (base.css pour les teintes et `--pont-*`, combat-console.css
+    pour `--cc-bay-gap` et `--cc-deck-h`) — jamais un littéral recopié ici. */
+ 
+-/* GÉOMÉTRIE DU PONT — au `:root` : le côté de la cible tactile sert aux DEUX bords de la rangée du
+-   monde (l'ouvreur du rail dissous s'empile sur le tiroir-journal, hud.css ≤700), et la hauteur de
+-   bande borne le panneau du tiroir qui naît sur le pont.
++/* GÉOMÉTRIE DU PONT — au `:root` : le côté de la cible tactile est celui de toutes les commandes
++   vissées (`.skin-tole`), et la couche HUD en fait le plancher du coin du menu ☰ (hud.css).
+    Hauteur COMPACTE : hors combat, se déplacer EST cliquer au sol — chaque pixel de pont est du sol
+    avalé sur toute la largeur. Le pont ne porte donc que sa rangée (cible tactile `--xd-row`), sa
+    respiration et son liseré. */
+@@ -47,8 +46,8 @@
+   box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.55);
+ }
+ /* Rangée d'icônes-écrans : à l'extrémité DROITE du pont, jamais au milieu du champ. Le tiroir-journal
+-   en est le DERNIER élément hors combat (§1c-ter : une plaque unique, jamais des éléments épars) ;
+-   son ancrage sur le pont vit ci-dessous. Les ouvreurs portent la peau PARTAGÉE « tôle vissée »
++   en est le DERNIER élément hors combat (§1c-ter : une plaque unique, jamais des éléments épars).
++   Les ouvreurs portent la peau PARTAGÉE « tôle vissée »
+    (`.skin-tole[data-ton='laiton']`, components.css) : aucune propriété de bouton n'est réécrite
+    depuis ce module d'écran. */
+ .xd-openers {
+@@ -57,29 +56,6 @@
+   align-items: center;
+   gap: 6px;
+ }
+-/* LE TIROIR-JOURNAL SUR LE PONT (§1c-ter : une plaque unique, jamais des éléments épars) — le PONT
+-   porte l'ancrage, comme le rail en combat. Hors toute tranche : sans cette remise à zéro, le
+-   calage de coin du tiroir (log-drawer.css, ancré au bas de la rangée du monde) le renverrait
+-   flotter au-dessus du pont alors que son bouton est assis dans la rangée d'ouvreurs. */
+-.exploration-dock .log-drawer {
+-  position: relative;
+-  inset: auto;
+-  align-items: flex-end;
+-}
+-/* Le panneau naît de son bouton et s'ouvre VERS LE HAUT, borné par la bande de terrain disponible :
+-   il lit la hauteur de SA PROPRE bande (`--xd-deck-h`, ci-dessus — il naît dessus) et la réserve du
+-   haut de la frise (70px, initiative-strip.css), jamais un nombre recopié. */
+-.exploration-dock .ld-panel {
+-  position: absolute;
+-  /* Ancre inline COMPLÈTE (les deux côtés) : le panneau pend au bord DROIT de son bouton, qui est
+-     lui-même à l'extrémité droite du pont. Une moitié d'ancre laisserait le `left` des tranches
+-     étroites (log-drawer.css) sur-contraindre la boîte et la pousser hors écran. */
+-  right: 0;
+-  left: auto;
+-  bottom: calc(100% + 6px);
+-  max-height: calc(100vh - 70px - var(--xd-deck-h) - 12px);
+-}
+-
+ /* ── Matrice responsive (règle stricte 4 : 900 / 700 / 560, puis pointeur grossier) ── */
+ @media (max-width: 700px) {
+   .exploration-dock {
+diff --git a/src/ui/styles/hud.css b/src/ui/styles/hud.css
+index 70594093c..989a18225 100644
+--- a/src/ui/styles/hud.css
++++ b/src/ui/styles/hud.css
+@@ -15,120 +15,162 @@
+   flex-direction: row;
+   position: relative;
+ }
+-/* LE PLATEAU EST UNE GRILLE À DEUX RANGÉES (#1848) : le monde et tout ce qui flotte dessus occupent
+-   la rangée haute, le PONT — console de combat ou pont d'exploration — EST la rangée basse, EN
+-   FLUX. Une surface ancrée en bas du champ n'a donc plus aucune hauteur de pont à connaître : elle
+-   vit dans `.stage-flot` et s'ancre au bord bas de CETTE rangée. Changer la forme, la composition
+-   ou la hauteur du pont ne touche aucune autre feuille ; ajouter une surface basse ne coûte aucune
+-   ligne de réserve.
++/* LE PLATEAU PORTE DEUX RANGÉES (#1848, #1919) : `flot`, où vit le HUD, puis `pont` — console de
++   combat ou pont d'exploration —, à la hauteur qu'il fait. Une piste `minmax(0, 1fr)` ne pousse pas
++   une piste `auto` : rien au-dessus du pont ne peut le pousser (docs/charte-ui.md § « Le pont se
++   dimensionne seul »).
+    Tout autre enfant du plateau couvre les DEUX rangées : le monde (absolu, `inset: 0`), les écrans
+-   plein champ, les modales et les surfaces ancrées en haut — l'état d'avant la grille, déclaré une
+-   fois pour tous. */
++   plein champ et les modales. */
+ .stage {
+   flex: 1;
+   position: relative;
+   overflow: hidden;
+   min-width: 0;
+   display: grid;
+-  grid-template-rows: 1fr auto;
++  grid-template-rows: [flot] minmax(0, 1fr) [pont] auto;
+ }
+ .stage > * {
+   grid-area: 1 / 1 / -1 / -1;
+ }
+-/* LA RANGÉE DU MONDE : le conteneur des surfaces qui s'ancrent AU BAS DU CHAMP — fil d'événements,
+-   rail d'outils et tiroir-journal, commandes de première personne, bandeau de dialogue, puce
+-   d'attente de l'arbitre de modales. Sa boîte s'arrête au bord haut du pont (fronton compris) :
+-   `bottom: 0` y signifie « juste au-dessus du pont », sans réserve.
+-   Elle ne prend AUCUN clic — chaque surface reprend le sien (même patron que `.hud-topbar`) ; le
+-   fil d'événements est le seul à n'en vouloir aucun, il le déclare dans son module. */
++.stage > .combat-console,
++.stage > .exploration-dock {
++  grid-area: pont / 1 / auto / 2;
++}
++
++/* LA COUCHE HUD (#1919) : une grille à ELLE, posée dans `flot`. Elle porte seule les rangées
++   `haut` / `bande` / `champ` / `reserve` et borne son débordement (`overflow: clip`) : aucune de
++   ses surfaces ne descend sur le pont. Chaque surface y déclare sa ZONE (`data-zone`, posé par
++   `CampaignView`) ; une surface de plus coûte une ligne de `grid-template-areas` et un
++   `data-zone`, et aucune hauteur n'est lue.
++   Colonnes : deux FLANCS égaux autour du CENTRE, qui prend la largeur de son contenu (le groupe).
++   Un flanc ne descend jamais sous le contenu de sa zone (`min-content`) : le menu ☰ et le rail
++   d'outils ne passent pas sous le groupe, qui reste centré tant que la largeur le permet.
++   La RÉSERVE est le débord du bandeau de phase posé sur le parapet du pont (`--cc-phase-h` +
++   `--cc-phase-air`, combat-console.css). Elle est payée pendant TOUT le combat
++   (`src/ui/CombatConsole.tsx:51-53`), et lue ici seulement. */
+ .stage > .stage-flot {
+-  grid-area: 1 / 1 / 2 / 2;
++  grid-area: flot / 1 / pont / 2;
+   position: relative;
++  min-height: 0;
++  overflow: clip;
+   pointer-events: none;
+-  /* … et elle est le CONTENEUR de référence de ses surfaces : une hauteur disponible s'y exprime en
+-     `cqh` (la rangée), jamais en `vh` moins la hauteur d'un pont. C'est ce qui permet à la frise
+-     d'initiative de borner sa colonne sans rien savoir du pont d'en dessous. */
+-  container-type: size;
+-  container-name: flot;
++  display: grid;
++  gap: var(--sp-md);
++  padding: var(--sp-md);
++  --flot-reserve: 0px;
++  grid-template-rows: [haut] auto [bande] auto [champ] minmax(0, 1fr) [reserve] var(--flot-reserve);
++  grid-template-columns: [flanc-g] minmax(min-content, 1fr) [centre] minmax(0, auto) [flanc-d] minmax(min-content, 1fr);
++  grid-template-areas:
++    'contexte groupe    outils'
++    'temps    groupe    outils'
++    'temps    ouverture outils'
++    '.        .         .';
+ }
+-.stage-flot > *:not(.combat-feed) {
++.stage > .stage-flot[data-pont='combat'] {
++  --flot-reserve: calc(var(--cc-phase-h) + var(--cc-phase-air));
++}
++/* La couche ne prend AUCUN clic, ni ses zones : chaque surface reprend le sien. Poids nul — une
++   surface qui n'en veut aucun (le fil d'événements, les interstices de la barre haute) le déclare
++   dans son module. Les enfants SANS zone (conversation, puce d'attente de l'arbitre de modales) se
++   posent eux-mêmes, en absolu dans la couche. */
++:where(.stage-flot > :not([data-zone]), .stage-flot > [data-zone] > *) {
+   pointer-events: auto;
+ }
+-/* LES DEUX PONTS sont la rangée BASSE, en flux : ils ne portent plus d'ancrage (ni `position`, ni
+-   `left/right/bottom`) — c'est la grille qui les pose, de bord à bord, à la hauteur qu'ils font. */
+-.stage > .combat-console,
+-.stage > .exploration-dock {
+-  grid-area: 2 / 1 / 3 / 2;
++[data-zone='contexte'] {
++  grid-area: contexte;
++  align-self: start;
++  /* La barre ne dicte pas la largeur de son flanc : le lieu s'ellipse dans la part qui lui revient.
++     Le plancher est la commande du menu ☰ (cible tactile `--xd-row`). */
++  contain: inline-size;
++  min-width: var(--xd-row);
++}
++[data-zone='groupe'] {
++  grid-area: groupe;
++  justify-self: center;
++  align-self: start;
++  min-width: 0;
++}
++[data-zone='outils'] {
++  grid-area: outils;
++  justify-self: end;
++  align-self: start;
++}
++/* La zone TEMPS porte, en combat, la frise d'initiative puis le fil d'événements, assis au pied de
++   la zone (planche 2026-08-17 : journal `[170,779,330,57]`, juste après la colonne de frise) ; hors
++   combat, l'objectif. Dans la colonne du flanc, elle est le CONTENEUR de la frise, qui y borne sa
++   piste (`cqh`) sans rien savoir du pont ni du haut de l'écran. Elle ne pèse sur aucune colonne
++   (`contain`) : un fil long ou une bande qui déborde ne décentre jamais le groupe. */
++[data-zone='temps'] {
++  grid-area: temps;
++  align-items: flex-start;
++  contain: inline-size;
++  container-type: size;
++}
++[data-zone='temps'] > .combat-feed {
++  align-self: flex-end;
++}
++/* L'objectif garde la boîte de son contenu à toute tranche : étirée sur la bande, elle avalait les
++   clics du terrain à sa droite. */
++[data-zone='temps'] > .objective-banner {
++  align-self: flex-start;
++}
++/* Le BANDEAU D'OUVERTURE est une zone de la rangée `champ`, sous le groupe. */
++[data-zone='ouverture'] {
++  grid-area: ouverture;
++  justify-self: center;
++  align-self: start;
+ }
+-/* COMMANDES DE PREMIÈRE PERSONNE (`PovControls`) : coin bas-gauche de la rangée du monde. L'écran
+-   qui les monte porte leur placement — la primitive n'a pas à savoir où elle est posée. */
+-.stage-flot > .pov-controls {
+-  position: absolute;
+-  left: 16px;
+-  bottom: var(--sp-lg);
+-  z-index: 5;
++/* COMMANDES DE PREMIÈRE PERSONNE : coin bas du flanc gauche, posées par les lignes de la couche
++   (hors combat, le flanc n'a pas de frise). */
++[data-zone='camera'] {
++  grid-row: champ;
++  grid-column: flanc-g;
++  align-self: end;
++  justify-self: start;
++}
++[data-zone='camera'] > .pov-controls {
+   display: grid;
+   grid-template-columns: repeat(3, auto);
+   gap: var(--sp-md);
+ }
+ 
+-/* RAIL D'OUTILS (épure G) : colonne encadrée du bord droit, montée par `CampaignView` EN COMBAT —
+-   dossier de navire et journal de bataille vissés sur UN seul plan de matière, plus aucun bouton posé
+-   à nu sur le champ ni dans la barre haute. Les enfants y sont STATIQUES (le rail porte l'ancrage).
+-   Hors combat, ces commandes vivent sur le pont d'exploration (`.exploration-dock .log-drawer`,
+-   exploration-dock.css) : le rail n'est pas monté.
++/* RAIL D'OUTILS (épure G) : colonne encadrée, montée par `CampaignView` EN COMBAT — dossier de
++   navire et journal de bataille vissés sur UN seul plan de matière. Hors combat, ces commandes
++   vivent sur le pont d'exploration : le rail n'est pas monté.
+    Sa MATIÈRE est la peau partagée `.skin-bois` (components.css), sa pile et ses espacements la
+-   primitive `Stack` : ce module n'en porte que l'ANCRAGE. */
++   primitive `Stack` : ce module n'en porte que le rang. Le panneau du journal naît de son bouton,
++   vers le champ (log-drawer.css) : au haut de l'écran, il pend SOUS lui. */
+ .hud-rail {
+-  position: absolute;
+-  top: 16px;
+-  right: 16px;
++  position: relative;
+   z-index: 46;
+ }
+-/* Le tiroir ne devient statique QUE là où le rail existe (au-dessus de 700px) : sous cette largeur le
+-   rail se dissout et le tiroir reprend son ancrage propre — une règle non bornée gagnait en
+-   spécificité sur les tranches étroites et rapatriait le tiroir en haut de l'écran (mesuré). */
+-@media (min-width: 701px) {
+-  .hud-rail > .log-drawer {
+-    position: static;
+-    inset: auto;
+-    transform: none;
+-    align-items: center;
+-  }
++.hud-rail .ld-panel {
++  top: calc(100% + var(--sp-sm));
++  bottom: auto;
+ }
+ 
+-/* ── Barre HUD supérieure (haut-gauche, les deux modes) : menu ☰ + raccourcis de lieu, et HORS
+-   COMBAT la pile de contexte — lieu, date, objectif (design 2026-07-31 §11). UN conteneur en
+-   rangée qui s'enroule ≤700px. ── */
++/* ── Barre HUD supérieure : menu ☰ et, HORS COMBAT, le lieu (design 2026-07-31 §11). UNE rangée
++   qui ne s'enroule pas : le lieu s'ellipse dans la part de flanc qui lui revient. ── */
+ .hud-topbar {
+-  position: absolute;
+-  top: 10px;
+-  left: 10px;
++  position: relative;
+   z-index: 60;
+-  /* CONTEXTE D'EMPILEMENT (#1752) : `position: absolute` + `z-index: 60` — les rangs de ses enfants
+-     (☰ 131 au-dessus du voile 130) se comparent ICI, jamais au rang racine où vivent les modales. */
+-  /* La rangée et son enroulement viennent de la primitive `Row` ; la barre RESSERRE sa gouttière
+-     d'un pas. La valeur se pose ICI et non en prop `gap` : `data-gap` déclare `--gap`, propriété
+-     HÉRITÉE, et le menu ☰ entier vit sous cette barre (#1837). */
++  /* CONTEXTE D'EMPILEMENT (#1752) : `position` + `z-index: 60` — les rangs de ses enfants (☰ 131
++     au-dessus du voile 130) se comparent ICI, jamais au rang racine où vivent les modales. */
++  /* La rangée vient de la primitive `Row` ; la barre RESSERRE sa gouttière d'un pas. La valeur se
++     pose ICI et non en prop `gap` : `data-gap` déclare `--gap`, propriété HÉRITÉE, et le menu ☰
++     entier vit sous cette barre (#1837). */
+   gap: var(--sp-sm);
+-  /* Le haut-centre appartient au GROUPE (design 2026-07-31 §2) : la pile s'arrête avant le dock,
+-     centré et large d'environ 242px pour quatre portraits. `50vw - 160px` = la moitié gauche moins
+-     la demi-largeur du dock et son air ; le plancher garde la barre utilisable sous 700px, où le
+-     dock passe en rangée défilable et ne se fait plus voler ses portraits. */
+-  max-width: min(560px, max(200px, calc(50vw - 160px)));
+   pointer-events: none; /* les interstices ne bloquent pas les clics sur la scène */
+ }
+ .hud-topbar > * {
+   pointer-events: auto;
+ }
+-/* Lieu courant : premier étage de la pile de contexte, désigné par son id de zone, jamais par une
+-   classe de plus. Sa MATIÈRE est celle du nom (`CodexTitre` → `.codex-pop-title`) posée sur le halo
+-   partagé `.halo-champ` (components.css) : une inscription sans fond, et non la chip `.hud-clock` de
+-   `ScreenMeta` (pilule `--panel2` à filet). L'écran n'en garde que le CADRAGE — la ligne unique et
+-   son ellipse, bornées à la part de barre que le lieu peut prendre. */
++/* Lieu courant, désigné par son id de zone, jamais par une classe de plus. Sa MATIÈRE est celle du
++   nom (`CodexTitre` → `.codex-pop-title`) posée sur le halo partagé `.halo-champ` (components.css).
++   L'écran n'en garde que le CADRAGE — la ligne unique et son ellipse. */
+ .hud-topbar [data-hud='place'] {
+   align-self: center;
+-  max-width: 40vw;
++  min-width: 0;
+   overflow: hidden;
+   text-overflow: ellipsis;
+   white-space: nowrap;
+@@ -137,7 +179,7 @@
+   position: relative;
+ }
+ /* Le menu système garde SON coin (spécimen G) — la matière est la peau partagée
+-   `.skin-tole[data-ton='laiton']` (components.css) ; ce module n'en porte que l'ANCRAGE.
++   `.skin-tole[data-ton='laiton']` (components.css) ; ce module n'en porte que le RANG.
+    ATTEIGNABLE MENU OUVERT (#1752, même geste que `.wm-zoom` #1117) : le voile `.game-menu-overlay`
+    (z-index 130) est son FRÈRE dans le DOM et le recouvrait, alors qu'il annonce « Fermer le menu »
+    (`aria-label`, `aria-expanded`). Son rang passe devant ce voile DANS le contexte d'empilement de
+@@ -147,119 +189,76 @@
+   z-index: 131;
+ }
+ 
+-/* ── Objectif courant (#238) — DERNIER étage de la pile de contexte d'exploration (lieu, date,
+-   objectif) : il vit DANS `.hud-topbar` et occupe sa propre ligne (`flex-basis: 100%`), donc son
+-   ancrage suit la barre à toute largeur. La bannière elle-même est une primitive
+-   (`objective-banner.css`). ── */
+-.hud-topbar > .objective-banner {
+-  flex: 1 0 100%;
+-  /* La marge dégage la rangée de portraits du groupe (haut-centre), dont la boîte descend plus bas
+-     que celle des boutons de la barre. Elle est RELATIVE à la barre : quand celle-ci s'enroule,
+-     l'objectif suit. */
+-  margin-top: calc(3 * var(--sp-md));
+-  /* La boîte tient toute la ligne, mais la SURFACE CLIQUABLE est la tête seule : le reste de la
+-     ligne rend la scène (`.hud-topbar > *` accorde `auto` à tous les étages de la pile). */
+-  pointer-events: none;
+-}
+-.hud-topbar > .objective-banner > * {
+-  pointer-events: auto;
+-}
+-
+-/* ── ANCRAGE de la BANDE DE GROUPE (`PartyDock`, primitive : party-dock.css) ─────────────────────
+-   L'écran qui monte la bande porte SEUL son placement : la primitive ne sait pas où elle est posée
+-   (elle se montera aussi comme première rangée de la coquille de fiche — arbitrage user 2026-09-19).
+-   PLACEMENT SEUL, aucune déclaration d'identité ici.
+-   `max-width` réserve les DEUX coins hauts de l'écran, RE-MESURÉE après le dégraissage du rail (il
+-   ne porte plus la plaque de caméra : dossier de navire + journal, 42px de commande + 2 × 8 de
+-   rembourrage + 2 × 1 de filet = 60px de large, posé à 16px du bord → 76px, plus 10px d'air = 86px).
+-   À gauche, le menu ☰ (10..50) demande 60px : c'est le coin DROIT qui borne. La bande étant centrée,
+-   la réserve compte des DEUX côtés — un seul littéral, cité deux fois.
+-   L'arrondi porte sur la LARGEUR DE CONTENU (les 2 × `--pd-pad` sont dans la boîte, `box-sizing:
+-   border-box`) — sinon la dernière tuile restait tranchée de la valeur du rembourrage ; le pas
+-   (`--pd-pitch`) vient de la primitive, qui seule connaît sa tuile. ── */
+-.stage > .party-dock {
+-  position: absolute;
+-  top: 10px;
+-  left: 50%;
+-  transform: translateX(-50%);
++/* ── LA BANDE DE GROUPE (`PartyDock`, primitive : party-dock.css) dans sa zone. L'écran qui la
++   monte porte SEUL son placement : la primitive ne sait pas où elle est posée (elle se montera aussi
++   comme première rangée de la coquille de fiche — arbitrage user 2026-09-19). Sa largeur est celle
++   de sa zone, arrondie AU PAS DE TUILE sur la largeur de contenu (les 2 × `--pd-edge` sont dans la
++   boîte, `box-sizing: border-box`) ; le pas vient de la primitive, qui seule connaît sa tuile. ── */
++[data-zone='groupe'] > .party-dock {
++  position: relative;
+   z-index: 45;
+-  --pd-corners: 172px;
+-  max-width: calc(100vw - var(--pd-corners));
++  max-width: 100%;
+   max-width: calc(
+-    round(down, calc(100vw - var(--pd-corners) - 2 * var(--pd-edge) + var(--pd-gap)), var(--pd-pitch))
++    round(down, calc(100% - 2 * var(--pd-edge) + var(--pd-gap)), var(--pd-pitch))
+     - var(--pd-gap) + 2 * var(--pd-edge)
+   );
+ }
+ /* FICHE OUVERTE : la bande passe au-dessus du voile de la fiche (125, `sheet.css`). L'état est un
+    ATTRIBUT, jamais un `style=` (arbitrage user A2, 2026-09-18). Recouvrement de la fiche : #1829. */
+-.stage > .party-dock[data-fiche] {
++[data-zone='groupe'] > .party-dock[data-fiche] {
+   z-index: 126;
+ }
+ 
+ /* ══ Matrice responsive du HUD (design 2026-07-31 §12) ═══════════════════════════════════════════
+-   Breakpoints canon 900 / 700 / 560, plus `pointer: coarse` — dans CET ordre, une tranche chacun :
+-   la cascade se lit de haut en bas, une largeur plus étroite affine la précédente. 360px est une
+-   largeur de RECETTE, elle appartient à la tranche ≤560. Les tranches des PRIMITIVES du HUD vivent
+-   dans LEURS modules : la matrice se lit sur l'UNION (`src/ui/ui-ratchets.test.ts`).
++   Breakpoints canon 900 / 700 / 560, plus `pointer: coarse` — dans CET ordre, une tranche chacun.
++   360px est une largeur de RECETTE, elle appartient à la tranche ≤560. Seules les AIRES de la
++   couche changent d'une tranche à l'autre, jamais ses pistes. Les tranches des PRIMITIVES du HUD
++   vivent dans LEURS modules : la matrice se lit sur l'UNION (`src/ui/ui-ratchets.test.ts`).
+    ═══════════════════════════════════════════════════════════════════════════════════════════════ */
+ @media (max-width: 700px) {
+-  .stage > .party-dock { top: 6px; }
+-  /* Le rail se DISSOUT sous 700px : chaque surface reprend son ancrage propre (frise horizontale
+-     en haut, tiroir au coin bas) — le panneau encadré n'a plus la place d'une colonne. */
+-  .hud-rail {
+-    display: contents;
++  /* La frise quitte le flanc pour la BANDE, pleine largeur, sous le groupe, et le fil passe sous
++     elle ; le bandeau d'ouverture descend au pied du champ. Le rail reste au coin haut, couché en
++     rangée (`rowBelow`, CampaignView) : il ne tient que la hauteur d'une commande. */
++  .stage > .stage-flot {
++    gap: var(--sp-xs);
++    padding: var(--sp-xs);
++    grid-template-areas:
++      'contexte  groupe    outils'
++      'temps     temps     temps'
++      'ouverture ouverture ouverture'
++      '.         .         .';
+   }
+-  /* Le rail dissous ne porte plus l'ancrage : son ouvreur d'écran (dossier de navire, combat) se pose
+-     LUI-MÊME, juste au-dessus du tiroir avec lequel il faisait colonne — au bas de la RANGÉE DU
+-     MONDE, d'où la seule grandeur qu'il ait à connaître est le CÔTÉ de la commande vissée qu'il
+-     surmonte (`--xd-row`, la cible tactile partagée des quatre poseurs de `.skin-tole`), jamais une
+-     hauteur de pont. Sans cet ancrage, il retombait dans le flux. */
+-  .hud-rail > .worldmap-btn {
+-    position: absolute;
+-    right: 8px;
+-    bottom: calc(var(--sp-md) + var(--xd-row) + var(--sp-sm));
+-    z-index: 46;
++  [data-zone='temps'] {
++    container-type: normal;
++  }
++  [data-zone='temps'] > .combat-feed {
++    align-self: center;
++  }
++  [data-zone='ouverture'] {
++    align-self: end;
+   }
+ }
+ @media (max-width: 560px) {
+-  /* La bande DÉGAGE le coin du menu ☰ (44px au doigt + air) : elle ne part plus du bord gauche, où
+-     sa première carte passait sous le bouton (grief vision, chevauchement mesuré). */
+-  .stage > .party-dock {
+-    left: 58px;
+-    transform: none;
+-    max-width: calc(100vw - 66px);
+-    max-width: calc(
+-      round(down, calc(100vw - 66px - 2 * var(--pd-edge) + var(--pd-gap)), var(--pd-pitch))
+-      - var(--pd-gap) + 2 * var(--pd-edge)
+-    );
++  /* REPLIÉE, la bande n'est que sa poignée : l'arrondi au pas de tuile ne vaut que pour la piste
++     (ici le volet, ci-dessous) — appliqué à la poignée, il la rognait et cachait ses micro-jauges. */
++  [data-zone='groupe'] > .party-dock {
++    max-width: 100%;
+   }
+-  /* Bande DÉPLIÉE : son rang passe au-dessus du fil d'événements (`.combat-feed`, 46) et de la barre
+-     haute. Poids 0-3-0 : l'ancrage ci-dessus (0-2-0) porte le rang de repos. */
+-  .stage > .party-dock.on {
++  /* Bande DÉPLIÉE : son rang passe au-dessus de la frise et du fil d'événements. */
++  [data-zone='groupe'] > .party-dock.on {
+     z-index: 60;
+   }
+-  /* Le VOLET naît hors flux SOUS la rangée d'outils (92..134 mesurés) et couvre le fil d'événements
+-     (140..206) en entier — aucun contrôle n'est coupé en deux. Sa largeur est bornée à l'écran et
+-     arrondie AU PAS DE TUILE (`--pd-pitch`, de la primitive) ; repli simple d'abord.
+-     Il reste FIXE, et c'est son repère qui le dit : il se pose sous la BARRE HAUTE, elle-même ancrée
+-     au viewport — le passer en absolu le mesurerait depuis la boîte de la bande (`top: 6px`), soit le
+-     même nombre déplacé dans un autre repère. Aucune hauteur de pont n'entre ici. */
+-  .stage > .party-dock.on .pd-track {
+-    position: fixed;
+-    top: 138px;
+-    left: 4px;
+-    right: auto;
+-    max-width: calc(100vw - 8px);
++  /* Le VOLET naît sous la poignée, hors flux, centré sur elle — donc sur l'écran, puisque la zone
++     du groupe est la colonne centrale. Sa largeur est bornée à l'écran et arrondie AU PAS DE TUILE
++     (`--pd-pitch`, de la primitive) ; repli simple d'abord. */
++  [data-zone='groupe'] > .party-dock.on .pd-track {
++    position: absolute;
++    top: calc(100% + var(--sp-xs));
++    left: 50%;
++    transform: translateX(-50%);
++    max-width: calc(100vw - 2 * var(--sp-xs));
+     max-width: calc(
+-      round(down, calc(100vw - 8px - 6px + var(--pd-gap)), var(--pd-pitch)) - var(--pd-gap) + 6px
++      round(down, calc(100vw - 2 * var(--sp-xs) - 6px + var(--pd-gap)), var(--pd-pitch)) - var(--pd-gap) + 6px
+     );
+   }
+-  /* L'ouvreur du rail dissous (dossier de navire, combat) prend le coin BAS-DROIT à la MÊME hauteur
+-     que le tiroir (`.log-drawer` ≤560, log-drawer.css), qui passe au coin bas-GAUCHE : les deux
+-     commandes ne partagent plus de colonne, aucune n'a à surmonter l'autre. */
+-  .hud-rail > .worldmap-btn {
+-    right: 4px;
+-    bottom: var(--sp-md);
+-  }
+-  .hud-topbar [data-hud='place'] { max-width: 52vw; }
+ }
+diff --git a/src/ui/styles/initiative-strip.css b/src/ui/styles/initiative-strip.css
+index 21e8b56f4..08faee7c7 100644
+--- a/src/ui/styles/initiative-strip.css
++++ b/src/ui/styles/initiative-strip.css
+@@ -3,34 +3,20 @@
+    cartouche de Round collé en tête, une entrée par combattant, badges de premier coup et de
+    pré-emption en débord. Identité entière ici (#1806 2a, arbitrage A1 du 2026-09-18).
+    Dépendances écrites : la vignette est `PortraitTile` (portrait-tile.css) — les règles
+-   `.is-tiles .ptile*` ci-dessous en sont des spécialisations CONTEXTUELLES ; la réserve du bas est
+-   celle du BANDEAU DE PHASE (`--cc-phase-h`/`--cc-phase-air`, publiées par la console), la seule
+-   surface qui déborde dans la rangée du monde. ══ */
++   `.is-tiles .ptile*` ci-dessous en sont des spécialisations CONTEXTUELLES. Son placement est celui
++   de sa ZONE (`temps`, couche HUD de hud.css) : la frise n'y lit aucune géométrie voisine. ══ */
+ 
+-/* ── Frise d'initiative → COLONNE À GAUCHE (inversée avec le dock du groupe — demande utilisateur).
+-   Défile verticalement si beaucoup de combattants (R4 : plus de débordement hors écran).
+-   ELLE S'ARRÊTE AU-DESSUS DU PONT de console (planche 2026-08-17 : plaque de frise `[0,132,133,472]`,
+-   pont à y=863) — non parce qu'elle en connaît la hauteur, mais parce qu'elle vit dans la RANGÉE DU
+-   MONDE (`.stage-flot`, hud.css), qui s'y arrête (#1848). Elle est sous le coin du menu ☰ (44px au
+-   doigt + air) et s'y centre. Centrée sur le VIEWPORT, sa plaque descendait derrière le bout gauche
+-   de la console (mesuré 103,6 × 97,3px de recouvrement à 1280, points de frise par-dessus le pont au
+-   hit-test) ; ancrée en haut seulement, son cartouche de Round passait sous le bouton de menu.
+-   La SEULE réserve du bas qui reste est le bandeau de phase, qui se pose sur le parapet du pont et
+-   déborde donc dans cette rangée (`--cc-phase-h` + `--cc-phase-air`, les grandeurs que le bandeau
+-   déclare — même réserve que le fil d'événements) : la colonne est en z-index 45 contre 5 pour la
+-   console, elle recouvrait sinon le titre du bandeau et le décapitait (sonde pixel, quatre captures
+-   sur quatre).
++/* ── Frise d'initiative → COLONNE du flanc gauche (inversée avec le dock du groupe — demande
++   utilisateur). Défile verticalement si beaucoup de combattants (R4 : plus de débordement hors
++   écran). Elle vit dans sa zone de la couche HUD (`temps`, hud.css), qui s'arrête au-dessus de la
++   réserve du bandeau de phase : elle ne connaît ni le pont ni le haut de l'écran.
+    La boîte ÉPOUSE SA PLAQUE (`height: fit-content` + marges automatiques qui la centrent dans la
+-   bande) : étirée du haut au bas de la bande, elle emportait sa rampe de débord loin sous la dernière
+-   vignette — 174px de terrain nu, puis 20px de bois suspendu dans le vide (sonde B6). ── */
++   zone) : étirée, elle emportait sa rampe de débord loin sous la dernière vignette — 174px de
++   terrain nu, puis 20px de bois suspendu dans le vide (sonde B6). ── */
+ .initiative-strip {
+-  position: absolute;
+-  top: 70px;
+-  bottom: calc(var(--cc-phase-h) + var(--cc-phase-air));
+-  left: 10px;
++  position: relative;
+   height: fit-content;
+   margin-block: auto;
+-  transform: none;
+   z-index: 45;
+   display: flex;
+   flex-direction: column;
+@@ -106,12 +92,10 @@
+      ci-dessus valent pour la COLONNE : en bande (≤700) l'axe de défilement est X, et c'est la tranche
+      qui y pose son propre cran (`scroll-snap-type: x`). */
+   scroll-padding-top: calc(var(--is-head-air) + var(--is-round-h) + var(--is-round-margin) + var(--is-gap));
+-  /* La piste ne descend pas plus bas que la plaque : sa borne est celle de la colonne, arrondie au
+-     pas d'entrée. Au-delà, elle DÉFILE — aucune entrée ne disparaît, et rien ne dépasse sur le pont.
+-     L'espace disponible est celui de la RANGÉE DU MONDE elle-même (`cqh`, conteneur `.stage-flot`,
+-     hud.css) moins les deux réserves de cette rangée : le coin du menu ☰ en haut, le bandeau de
+-     phase en bas. La hauteur du pont n'entre plus dans ce calcul — c'est la rangée qui l'exclut. */
+-  --is-avail: min(84cqh, calc(100cqh - 70px - var(--cc-phase-h) - var(--cc-phase-air) - 12px));
++  /* La piste ne descend pas plus bas que la plaque : sa borne est celle de la zone `temps`, qui
++     est son conteneur (`cqh`, hud.css), arrondie au pas d'entrée. Au-delà, elle DÉFILE — aucune
++     entrée ne disparaît, et rien ne dépasse sur le pont. */
++  --is-avail: 100cqh;
+   max-height: var(--is-avail);
+   max-height: calc(round(down, calc(var(--is-avail) - var(--is-head)), var(--is-pitch)) + var(--is-head));
+ }
+@@ -292,19 +276,12 @@
+      gauche. La réserve du badge d'initiative, qui déborde du HAUT de chaque cellule, appartient à la
+      CELLULE (`margin-top`) : portée par la piste, elle tombe hors de la boîte du cartouche étiré et
+      laisse voir le sommet des badges défilés dans sa propre section (#1867).
+-     PLUS DE RÉSERVE DE DROITE : la plaque de caméra a quitté l'écran de jeu et le rail dégraissé
+-     s'ancre désormais en BAS à cette largeur (hud.css, `.hud-rail > .worldmap-btn`) — le haut-droite
+-     est libre, la bande va jusqu'au bord comme à gauche.
++     Sa zone est la BANDE de la couche HUD (hud.css), pleine largeur, sous le groupe.
+      `align-items: stretch` CONTRAINT la piste à la largeur de la bande : `overflow-x: auto` ne mord
+      que sur une boîte bornée — alignée en `flex-start` elle prend la largeur de son contenu et
+      déborde du HUD sans jamais défiler. */
+   .initiative-strip {
+-    top: 84px;
+-    left: 4px;
+-    right: 4px;
+-    bottom: auto;
+-    transform: none;
+-    max-height: none;
++    margin-block: 0;
+     align-items: stretch;
+   }
+   .is-tiles {
+@@ -372,16 +349,7 @@
+   .is-cell { flex: 0 0 auto; margin-top: var(--is-badge-air); }
+ }
+ @media (max-width: 560px) {
+-  /* Empilement HAUT re-mesuré à 360px, bande de groupe REPLIÉE : groupe (6..30), frise (34..86),
+-     fil d'événements (140..) — puis le TERRAIN jusqu'à la console.
+-     Vignettes de frise réduites à 34px : la bande d'ordre reste lisible sans manger le champ. */
+-  .initiative-strip {
+-    top: 34px;
+-    /* Elle part APRÈS le coin du menu ☰ (44px au doigt + air), comme la bande de groupe : à 4px du
+-       bord, sa tête passait sous le bouton (chevauchement mesuré 42×18). */
+-    left: 58px;
+-    right: 4px;
+-  }
++  /* Vignettes de frise réduites à 34px : la bande d'ordre reste lisible sans manger le champ. */
+   .is-tiles .ptile,
+   .is-tiles .ptile-face {
+     width: 34px !important;
+diff --git a/src/ui/styles/log-drawer.css b/src/ui/styles/log-drawer.css
+index e551a6bac..02fe7e648 100644
+--- a/src/ui/styles/log-drawer.css
++++ b/src/ui/styles/log-drawer.css
+@@ -17,18 +17,13 @@
+   flex: 1;
+ }
+ 
+-/* ── Le TIROIR lui-même : ancrage, commande de coin, panneau révélé au survol (#1806 2a) ──
+-   Au-dessus de 700px, le tiroir vit à DROITE du dock d'action : recouvrement nul mesuré à 900px
+-   (dock x219-681, tiroir x846-888) — le calage vertical ne joue qu'aux tranches étroites.
+-   Son ancrage SUR LE PONT d'exploration appartient au pont (exploration-dock.css), et son ancrage
+-   dans le rail de combat à l'écran qui monte le rail (`.hud-rail > .log-drawer`, hud.css).
+-   Le coin BAS où il se pose est celui de la RANGÉE DU MONDE (`.stage-flot`, hud.css) : le pont est
+-   la rangée d'en dessous, le tiroir n'a donc aucune réserve à tenir — seulement son air. */
++/* ── Le TIROIR lui-même : commande de coin, panneau révélé au survol (#1806 2a) ──
++   Le tiroir s'assoit là où son hôte le pose — sur le pont d'exploration (exploration-dock.css), dans
++   le rail d'outils de combat (hud.css) — et son PANNEAU naît de son bouton, hors flux, vers le
++   champ : par défaut au-dessus de lui, aligné sur son bord droit. Il ne pèse ainsi sur aucune piste
++   de la couche HUD. */
+ .log-drawer {
+-  position: absolute;
+-  right: 12px;
+-  bottom: var(--sp-md);
+-  z-index: 46;
++  position: relative;
+   display: flex;
+   flex-direction: column;
+   align-items: flex-end;
+@@ -40,6 +35,10 @@
+   border-color: var(--gold);
+ }
+ .ld-panel {
++  position: absolute;
++  right: 0;
++  bottom: calc(100% + var(--sp-sm));
++  z-index: 46;
+   width: min(330px, 86vw);
+   max-height: 38vh;
+   overflow: auto;
+@@ -57,29 +56,3 @@
+   border-color: var(--border);
+   text-shadow: none;
+ }
+-
+-/* ══ Matrice responsive (canon 700 / 560) — UN bloc par tranche ══ */
+-@media (max-width: 700px) {
+-  /* Le bord de l'écran se resserre avec le reste du HUD : seul l'écart droit change. */
+-  .log-drawer { right: 8px; }
+-}
+-@media (max-width: 560px) {
+-  /* Le tiroir passe au coin BAS-GAUCHE de la rangée du monde : la colonne de droite porte déjà
+-     l'ouvreur du rail dissous (`.hud-rail > .worldmap-btn`, hud.css). */
+-  .log-drawer {
+-    left: 4px;
+-    right: auto;
+-  }
+-  /* Le panneau NAÎT de son déclencheur et sort du flux : sans cela, le tiroir occupait 309px de
+-     large même FERMÉ et mordait la colonne voisine (chevauchement mesuré 30×16).
+-     Une ancre inline se déclare par PAIRE : une demi-ancre laisse l'autre côté en place et
+-     SUR-CONTRAINT la boîte — le panneau du pont d'exploration, ancré à droite par son pont, gardait
+-     ce `left: 0` et sortait de 261px hors écran à 360 (mesuré x=312..621,6 pour 360px). */
+-  .ld-panel {
+-    position: absolute;
+-    bottom: 100%;
+-    left: 0;
+-    right: auto;
+-    margin-bottom: 6px;
+-  }
+-}
+diff --git a/src/ui/styles/objective-banner.css b/src/ui/styles/objective-banner.css
+index 236991888..574421b6b 100644
+--- a/src/ui/styles/objective-banner.css
++++ b/src/ui/styles/objective-banner.css
+@@ -1,8 +1,7 @@
+ /* ══ ObjectiveBanner — module de la primitive (`src/ui/ObjectiveBanner.tsx`, manifeste
+    `objectiveBanner`) ══ L'OBJECTIF COURANT (#238) : une tête repliable (texte + compte + échéance)
+    et la liste dépliée. Identité entière ici (#1806 2a, arbitrage A1 du 2026-09-18).
+-   Son ANCRAGE dans la pile de contexte d'exploration appartient à l'écran qui la monte
+-   (`.hud-topbar > .objective-banner`, hud.css). ══ */
++   Son placement est celui de sa ZONE dans la couche HUD (`temps`, hud.css). ══ */
+ .objective-banner {
+   max-width: min(520px, 70vw);
+   display: flex;
+diff --git a/src/ui/styles/party-dock.css b/src/ui/styles/party-dock.css
+index c161148df..b18fd675a 100644
+--- a/src/ui/styles/party-dock.css
++++ b/src/ui/styles/party-dock.css
+@@ -12,7 +12,7 @@
+    d'initiative — la carte de celui QUI AGIT y est seulement surlignée (planche 2026-08-17, spec
+    §1c-bis « actif surligné »).
+    Son ANCRAGE (position, bord, rang d'empilement, réserve des coins de l'écran) appartient à
+-   l'HÔTE qui la monte — `.stage > .party-dock` dans `hud.css`. ── */
++   l'HÔTE qui la monte — `[data-zone='groupe'] > .party-dock` dans `hud.css`. ── */
+ .party-dock {
+   display: flex;
+   flex-direction: column;
+@@ -226,7 +226,7 @@
+   }
+   /* DÉPLIÉE, la bande devient un VOLET : un panneau opaque né sous la poignée. Re-tap = fermeture.
+      OÙ il naît (hors flux, coordonnées, rang, largeur bornée à l'écran) appartient à l'écran qui
+-     monte la bande : `.stage > .party-dock.on` (`hud.css`). Ici, sa MATIÈRE et sa mise en page. */
++     monte la bande : `[data-zone='groupe'] > .party-dock.on` (`hud.css`). Ici, sa MATIÈRE et sa mise en page. */
+   .party-dock.on {
+     overflow: visible;
+   }
+@@ -235,8 +235,7 @@
+     background: linear-gradient(180deg, var(--atelier-wood-top), var(--atelier-wood-bottom));
+     border: 1px solid var(--atelier-wood-etch);
+   }
+-  /* Vignettes du volet à 44px : la hauteur totale (poignée 24 + volet 56) tient dans la bande
+-     libre au-dessus de la rangée d'outils — le volet ne mord jamais sur le rail. */
++  /* Vignettes du volet à 44px : R-M1, le minimum digne (docs/plans/2026-08-16-spec-hud-combat.md:66-67). */
+   .party-dock.on .pd-track .ptile,
+   .party-dock.on .pd-track .ptile-face {
+     width: 44px !important;
+diff --git a/src/ui/styles/spectator-chip.css b/src/ui/styles/spectator-chip.css
+index d6936e6fa..a9b70c456 100644
+--- a/src/ui/styles/spectator-chip.css
++++ b/src/ui/styles/spectator-chip.css
+@@ -3,7 +3,7 @@
+    entière ici (#1806 2d, arbitrage A1 du 2026-09-18).
+    ANCRAGE : la puce suit le FLUX par défaut (elle vit dans le panneau qui porte les commandes
+    désactivées) ; la pose AU BAS DU CHAMP est un ÉTAT de la primitive, `data-pose='ecran'`, posé par
+-   l'hôte qui arbitre les modales. Elle se pose dans la boîte qui la porte (rangée du monde sur
++   l'hôte qui arbitre les modales. Elle se pose dans la boîte qui la porte (couche HUD de
+    l'écran de campagne, `.stage-flot`) : elle n'a donc aucune réserve de pont à tenir. Les trois
+    hôtes partagent la MÊME règle d'ancrage : la recopier chez chacun en ferait trois. Aucune autre
+    règle de `src/ui/styles` ne vise `.spectator-chip`. ══ */
+diff --git a/src/ui/ui-ratchets.test.ts b/src/ui/ui-ratchets.test.ts
+index d4e78debc..6d6442044 100644
+--- a/src/ui/ui-ratchets.test.ts
++++ b/src/ui/ui-ratchets.test.ts
+@@ -703,18 +703,17 @@ describe('canon responsive, peaux et matières partagées de src/ui/styles', ()
+     expect(ecartsResponsive(), 'écart NEUF : une section responsive ordonnée ne pose chaque tranche qu’une fois (360 et 420 sont des largeurs de RECETTE) ; écart SOLDÉ : retirer son entrée du stock').toEqual(ECARTS_RESPONSIVE_STOCK);
+   });
+ 
+-  it('≤700 : le rail se DISSOUT, et son ouvreur d’écran reprend un ancrage hors flux', () => {
+-    // CE QUI RESTE EN UNITÉ : la STRUCTURE. Un rail en `display: contents` ne porte plus l'ancrage de
+-    // ses enfants ; sans ancrage propre, l'ouvreur retombe dans le flux du stage. La PLACE exacte
+-    // (bord, réserve, recouvrement) se mesure au navigateur — aucune valeur ici.
+-    const hud700 = mediaBlock(read('hud.css'), '@media (max-width: 700px)');
+-    expect(hud700).toMatch(/\.hud-rail\s*\{[^}]*display:\s*contents/);
+-    const ouvreur = /\.hud-rail\s*>\s*\.worldmap-btn\s*\{([^}]*)\}/.exec(hud700);
+-    expect(ouvreur, 'l’ouvreur d’écran du rail dissous déclare son propre ancrage ≤700').not.toBeNull();
+-    expect(ouvreur![1], 'un ancrage RELATIF suit encore le flux : il faut le sortir').toMatch(/position:\s*(absolute|fixed)/);
+-    // Les VERDICTS DE RENDU de cette tranche (la bande défile, elle va jusqu'au bord droit, son
+-    // cartouche de Round tient à tout défilement, l'ouvreur reçoit son clic) sont MESURÉS par
+-    // `scripts/recette/hud-clickables.mjs` — jsdom n'applique aucune tranche et ne met rien en page.
++  it('couche HUD (#1919) : aucune surface n’est posée hors flux, seul le VOLET du groupe l’est', () => {
++    // CE QUI RESTE EN UNITÉ : la STRUCTURE. Chaque surface du HUD se place par sa ZONE (`data-zone`,
++    // aire de la grille de `.stage-flot`) : une ancre absolue lirait de nouveau la géométrie d'une
++    // voisine. Le seul hors-flux du module est le volet déplié du groupe (≤560), qui naît de sa
++    // poignée par-dessus la bande. La PLACE exacte se mesure au navigateur
++    // (`scripts/recette/hud-clickables.mjs`) — aucune valeur ici.
++    const horsFlux = reglesCss(read('hud.css'))
++      .filter((r) => declarations(r.corps).some((d) => d.prop === 'position' && /^(absolute|fixed)$/.test(d.valeur.trim())))
++      .flatMap((r) => r.selecteurs);
++    expect(horsFlux).toEqual(["[data-zone='groupe'] > .party-dock.on .pd-track"]);
++    expect(read('hud.css'), 'un rail dissous rend ses enfants à des ancres hors flux').not.toMatch(/display:\s*contents/);
+   });
+ 
+   it('la piste du groupe ne s’enroule JAMAIS : la règle vit hors de toute tranche', () => {
+@@ -890,16 +889,17 @@ describe('canon responsive, peaux et matières partagées de src/ui/styles', ()
+       const regle = reglesCss(css).find((r) => r.selecteurs.includes(selecteur) && declarations(r.corps).some((d) => d.prop === 'z-index'));
+       return regle ? Number(declarations(regle.corps).find((d) => d.prop === 'z-index')!.valeur) : null;
+     };
+-    const depliee = reglesCss(hud).find((r) => r.media?.includes('max-width: 560px') && r.selecteurs.includes('.stage > .party-dock.on'));
++    const depliee = reglesCss(hud).find((r) => r.media?.includes('max-width: 560px') && r.selecteurs.includes("[data-zone='groupe'] > .party-dock.on"));
+     expect(depliee, 'la tranche ≤560 de `hud.css` porte le rang de la bande dépliée').toBeDefined();
+     const rangDeplie = Number(declarations(depliee!.corps).find((d) => d.prop === 'z-index')?.valeur);
+     const fil = rang(readFileSync(join(UI, 'styles', 'combat-banner.css'), 'utf8'), '.combat-feed');
+     expect(fil, '`.combat-feed` porte un rang').not.toBeNull();
+     expect(rangDeplie).toBeGreaterThan(fil!);
+-    // À poids ÉGAL c'est l'ordre qui tranche, et l'ancrage de repos (`.stage > .party-dock`) suit
+-    // la primitive dans le graphe d'imports : le rang déplié se lit donc à un poids SUPÉRIEUR.
+-    expect(comparerPoids('.stage > .party-dock.on', '.stage > .party-dock')).toBe(1);
+-    expect(rang(hud, '.stage > .party-dock'), 'rang de repos').toBeLessThan(rangDeplie);
++    // À poids ÉGAL c'est l'ordre qui tranche, et le rang de repos (`[data-zone='groupe'] >
++    // .party-dock`) suit la primitive dans le graphe d'imports : le rang déplié se lit donc à un
++    // poids SUPÉRIEUR.
++    expect(comparerPoids("[data-zone='groupe'] > .party-dock.on", "[data-zone='groupe'] > .party-dock")).toBe(1);
++    expect(rang(hud, "[data-zone='groupe'] > .party-dock"), 'rang de repos').toBeLessThan(rangDeplie);
+   });
+ 
+   // Une MATIÈRE partagée se pose À CÔTÉ d'une classe de module : les deux visent le MÊME élément.

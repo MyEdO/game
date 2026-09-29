@@ -1,0 +1,12 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1919-H2
+
+ ✓ src/ui/CombatConsole.test.tsx (151 tests | 150 skipped) 314ms 467 MB heap used
+   ✓ CombatConsole — travée gauche : sets, gestes déduits, accès rapide > (a) dessine la COLONNE de sets — compte constant, set au poing en relief, en-tête = son libellé 313ms
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 150 skipped (151)
+   Start at  23:06:24
+   Duration  20.40s (transform 12.10s, setup 13.91s, collect 5.18s, tests 314ms, environment 611ms, prepare 53ms)
+

@@ -1,0 +1,11 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game
+
+ ✓ src/ui/compendium/CodexRef.hooks.test.tsx (12 tests) 330ms 421 MB heap used
+
+ Test Files  1 passed (1)
+      Tests  12 passed (12)
+   Start at  09:32:49
+   Duration  14.60s (transform 8.74s, setup 12.46s, collect 683ms, tests 330ms, environment 715ms, prepare 62ms)
+

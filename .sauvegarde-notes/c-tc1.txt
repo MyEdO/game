@@ -1,0 +1,8 @@
+
+> warhammer-v4-rpg@0.1.0 typecheck:fast
+> node scripts/typecheck-fast.mjs
+
+typecheck:fast — 1 erreur(s)
+src/ui/BoiteAncree.tsx(39,7): error TS6133: '_c' is declared but its value is never read.
+sortie complète : /home/user/game/node_modules/.cache/typecheck-last.txt
+mode incrémental — au doute : npm run typecheck (full)

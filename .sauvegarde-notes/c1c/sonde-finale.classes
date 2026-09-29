@@ -1,0 +1,14 @@
+total defauts (bilan): 202
+    2  autre: combat #px (§# #–#) : la carte du groupe fait #px, pas plus compacte que #px à #px
+   12  autre: combat ×# #px (§# #–#) : la vie de la carte # du groupe n'est pas superposée à son portrait
+    2  autre: exploration #px (§# #–#) : la carte du groupe fait #px, pas plus compacte que #px à #px
+    4  autre: exploration #px (§# #–#) : la vie de la carte # du groupe n'est pas superposée à son portrait
+   24  budget doigt empilé
+   18  budget doigt fronton
+   36  débord ld-panel hors outils
+    3  immobilité arche tour de héros→pause de Round
+    3  immobilité arche tour de héros→spectateur
+    2  journal ligne coupée
+   36  recouvre party-dock×DIV
+   36  recouvre party-dock×hud-rail
+   24  recouvre party-dock×ld-panel

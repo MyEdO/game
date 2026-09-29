@@ -1,0 +1,275 @@
+{
+ "nomLong": [
+  {
+   "nomv": "Chevalier Mort-Vivant (Revenant)",
+   "forme": "spectatrice",
+   "nom": "Chevalier Mort-Vivant (Revenant)",
+   "nomR": [
+    234,
+    734,
+    155,
+    38
+   ],
+   "debord": 0,
+   "arche": [
+    220,
+    594,
+    183,
+    186
+   ],
+   "vue": [
+    701,
+    780
+   ]
+  },
+  {
+   "nomv": "Chevalier Mort-Vivant (Revenant)",
+   "forme": "spectatrice",
+   "nom": "Chevalier Mort-Vivant (Revenant)",
+   "nomR": [
+    331.5,
+    734,
+    155,
+    38
+   ],
+   "debord": 0,
+   "arche": [
+    317.5,
+    594,
+    183,
+    186
+   ],
+   "vue": [
+    900,
+    780
+   ]
+  },
+  {
+   "nomv": "Chevalier Mort-Vivant (Revenant)",
+   "forme": "spectatrice",
+   "nom": "Chevalier Mort-Vivant (Revenant)",
+   "nomR": [
+    594.4,
+    623,
+    177.2,
+    19
+   ],
+   "debord": 0,
+   "arche": [
+    575.7,
+    511.3,
+    214.7,
+    138.7
+   ],
+   "vue": [
+    1366,
+    650
+   ]
+  },
+  {
+   "nomv": "Aelindra Feuille-d’Argent",
+   "forme": "spectatrice",
+   "nom": "Aelindra Feuille-d’Argent",
+   "nomR": [
+    244.3,
+    753,
+    134.3,
+    19
+   ],
+   "debord": 0,
+   "arche": [
+    220,
+    613,
+    183,
+    167
+   ],
+   "vue": [
+    701,
+    780
+   ]
+  },
+  {
+   "nomv": "Aelindra Feuille-d’Argent",
+   "forme": "spectatrice",
+   "nom": "Aelindra Feuille-d’Argent",
+   "nomR": [
+    341.8,
+    753,
+    134.3,
+    19
+   ],
+   "debord": 0,
+   "arche": [
+    317.5,
+    613,
+    183,
+    167
+   ],
+   "vue": [
+    900,
+    780
+   ]
+  },
+  {
+   "nomv": "Aelindra Feuille-d’Argent",
+   "forme": "spectatrice",
+   "nom": "Aelindra Feuille-d’Argent",
+   "nomR": [
+    615.8,
+    623,
+    134.3,
+    19
+   ],
+   "debord": 0,
+   "arche": [
+    575.7,
+    511.3,
+    214.7,
+    138.7
+   ],
+   "vue": [
+    1366,
+    650
+   ]
+  },
+  {
+   "nomv": "Chauve-souris vampire (Varghulf)",
+   "forme": "spectatrice",
+   "nom": "Chauve-souris vampire (Varghulf)",
+   "nomR": [
+    234,
+    734,
+    155,
+    38
+   ],
+   "debord": 0,
+   "arche": [
+    220,
+    594,
+    183,
+    186
+   ],
+   "vue": [
+    701,
+    780
+   ]
+  },
+  {
+   "nomv": "Chauve-souris vampire (Varghulf)",
+   "forme": "spectatrice",
+   "nom": "Chauve-souris vampire (Varghulf)",
+   "nomR": [
+    331.5,
+    734,
+    155,
+    38
+   ],
+   "debord": 0,
+   "arche": [
+    317.5,
+    594,
+    183,
+    186
+   ],
+   "vue": [
+    900,
+    780
+   ]
+  },
+  {
+   "nomv": "Chauve-souris vampire (Varghulf)",
+   "forme": "spectatrice",
+   "nom": "Chauve-souris vampire (Varghulf)",
+   "nomR": [
+    596.3,
+    623,
+    173.4,
+    19
+   ],
+   "debord": 0,
+   "arche": [
+    575.7,
+    511.3,
+    214.7,
+    138.7
+   ],
+   "vue": [
+    1366,
+    650
+   ]
+  },
+  {
+   "nomv": "Prêtre-Voleur de Ranald (I.C - Criminalité Urbaine)",
+   "forme": "spectatrice",
+   "nom": "Prêtre-Voleur de Ranald (I.C - Criminalité Urbaine)",
+   "nomR": [
+    234,
+    734,
+    155,
+    38
+   ],
+   "debord": 0,
+   "arche": [
+    220,
+    594,
+    183,
+    186
+   ],
+   "vue": [
+    701,
+    780
+   ]
+  },
+  {
+   "nomv": "Prêtre-Voleur de Ranald (I.C - Criminalité Urbaine)",
+   "forme": "spectatrice",
+   "nom": "Prêtre-Voleur de Ranald (I.C - Criminalité Urbaine)",
+   "nomR": [
+    331.5,
+    734,
+    155,
+    38
+   ],
+   "debord": 0,
+   "arche": [
+    317.5,
+    594,
+    183,
+    186
+   ],
+   "vue": [
+    900,
+    780
+   ]
+  },
+  {
+   "nomv": "Prêtre-Voleur de Ranald (I.C - Criminalité Urbaine)",
+   "forme": "spectatrice",
+   "nom": "Prêtre-Voleur de Ranald (I.C - Criminalité Urbaine)",
+   "nomR": [
+    589.7,
+    604,
+    186.7,
+    38
+   ],
+   "debord": 0,
+   "arche": [
+    575.7,
+    492.3,
+    214.7,
+    157.7
+   ],
+   "vue": [
+    1366,
+    650
+   ]
+  }
+ ],
+ "renomme": "enemy-enc-mutants-1",
+ "console": [
+  {
+   "type": "exception",
+   "text": "TypeError: Cannot assign to read only property 'loaded' of object '#<Object>'\n    at unloadWeapon (http://localhost:5236/src/engine/items.ts:708:16)\n    at appliquerLaTouche (http://localhost:5236/src/state/combatFlow.ts:1719:7)\n    at applyAttackResult (http://localhost:5236/src/state/combatFlow.ts:1481:7)\n    at doAttack (http://localhost:5236/src/state/combatFlow.ts:2370:10)\n    at http://localhost:5236/src/state/combatFlow.ts:5093:95\n    at http://localhost:5236/src/state/combatTimers.ts:5:5"
+  }
+ ]
+}

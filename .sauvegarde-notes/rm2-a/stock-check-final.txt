@@ -1,0 +1,2 @@
+/home/user/game/scripts/guards/lib/cssCouchesStock.mjs : Stock à jour
+exit=0

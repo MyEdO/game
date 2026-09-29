@@ -1,0 +1,68 @@
+## Juge du commit 11 (`ea31877d8`) : À REPRENDRE, et suite (2026-09-24)
+
+**CI rouge** (run 35981160660, `test:hooks`) : `scripts/guards/lib/gitPorte.test.mjs:492-494` lance git sans `env: envDeDepotForge()` sur la ligne, refusé par `depotGabarit.test.mjs:321`. Corrigé par E15.
+
+**Défauts** : D1 CI ; D2 réglages git de l'utilisateur (`color.ui`, `diff.external`, `diff.mnemonicPrefix`, `diff.relative`) qui aveuglent les lectures des portes, A6 n'ayant fixé que `diff.renames` ; D3 le `catch` de `mesureDuPalier` perd la tête de fenêtre ; D4 le commit en cours a encore deux définitions de la substance ; D5 coût non borné (palier mesuré à chaque commit, 733 ms sur 66 commits) ; D6 restes de langue.
+
+**Décision** : D2 est la deuxième passe de juge sur la classe « la lecture dépend de la configuration de l'utilisateur » (A6 au commit 10). Elle remonte d'un niveau et rejoint le lot ESLint des portes (A-1 à A-3) en design jugé. E15 traite D1, D3 à D6 et les mineurs.
+
+**Registre des fossiles, ajout** : la lecture du commit en cours par le palier contre HEAD pour une fusion en cours (`scripts/guards/lib/revuePalier.mjs:189`). Tuée par A-5 (`jugerLeCommit`) : la base d'une fusion en cours se calcule depuis HEAD et `MERGE_HEAD`, extension de l'entrée `baseDuCommit(git, sha)`. Toujours au registre : les abréviations d'options (`--reuse`, `--mess`, `--temp`, `--auth`) lues comme pathspecs (D5 du commit 10).
+
+### Brief E15
+
+# Codeur E15 : CI rouge du commit 11 et défauts de son juge (#1806), 2026-09-24
+
+Tu es orchestrateur de ton lot : tu peux déléguer une lecture de masse (agent `lecteur`) ou une vérification fermée (`verif-mecanique`), mais tu relis tout ce qu'un agent te rend, et le code est à toi.
+
+## Worktree et interdits
+- Worktree : `/home/claude/game/.wt-1806`, branche `chantier/1806`, HEAD `ea31877d8` (commit 11, poussé, CI 35981160660 ROUGE au job `build`, étape `test:hooks`). Arbre propre au départ : ton travail est exactement `git diff`.
+- Interdits : tout `git checkout/restore/reset/stash/add/commit/apply/write-tree/init`, et toute suppression récursive. Un dépôt jetable pour un test ou une sonde passe par `depotGabarit` / `envDeDepotForge` / `instanceDeDepot` (`scripts/guards/lib/depotGabarit.mjs`), jamais par un `git init` à la main. Je committe moi-même.
+- **Processus** : avant tout `kill`, lis le PPID et la ligne de commande du parent (`ps -o pid,ppid,cmd`). Tu ne tues que ce que ta propre commande a lancé. Jamais `pkill`, `killall` ni `ps … | grep … | xargs kill`. Le serveur de dev sur le port 5204 n'est pas à toi. La machine porte d'autres agents (4 cœurs) : colle `/proc/loadavg` à côté de toute mesure de durée.
+- Budget : 1 h 15 d'horloge. Travaille dans l'ordre ; à l'échéance, rends ce qui est fait, le reste NOMMÉ point par point.
+- Hors de ton geste : `docs:check`, `docs:build`, `test:hooks`, le typecheck complet et les suites entières. Je les joue au commit.
+
+## Invariant
+- `scripts/guards/lib/revuePalier.mjs:158-161`, verbatim : « Source unique du critère — la mesure du palier (`shasDeSubstance`) et la porte du ticket au commit (`evaluatePorteDuTicket`, scripts/hooks/solde-ticket-guard.mjs) lisent la MÊME liste, sinon deux définitions de « substance » cohabitent et un commit passe l'une sans passer l'autre. »
+  - Question à laquelle il répond : quels commits sont de substance ? Corollaire pour ce lot : le commit EN COURS se juge sur ce qu'il emporte réellement, la même liste pour le palier et pour la porte.
+- Credo (`.claude/credo.md`), verbatim : « Une garde de synchronisation est un smell : une seule source de vérité. » ; « Une référence vivante se met à jour dans le MÊME commit que le code qu'elle décrit ».
+- Consigne de Clément (2026-09-23), verbatim : « Fais les choses bien, le but n'est pas que vider la dette a 0, mais aussi régler les mauvaises décisions découvert en chemin fait par un model des anciennes générations pour une structure plus adapté ».
+
+## Cas canonique déjà couvert
+- **Ce qu'emporte le commit en cours** : la porte du ticket le lit par la lecture du hook (`scripts/hooks/solde-ticket-guard.mjs:2352`, `:2401`, `-a`, `-i`, `-- chemins` compris). Preuve d'instance à rendre : le « +1 » du palier pour le commit en cours (`revuePalier.mjs:189`, `git diff --cached -- src scripts` contre HEAD) est la même question, et se répond par cette même liste passée à `estCheminDeSubstance`.
+
+## Design jugé :
+- Verdict du juge du commit 11 : `/tmp/claude-0/-home-claude-game/b2c1dcf4-ee89-5cd4-b2df-036dbf03e24e/scratchpad/juge-c11/verdict.md`, sondes dans le même dossier (`sonde-c11.mjs`, `sonde-index.mjs`, `sonde-chainage.mjs`, `cout.mjs`, sorties `.txt`). Tu traites D1, D3, D4, D5, D6 et les mineurs. **Hors de ce lot** : D2 (réglages git de l'utilisateur qui aveuglent les lectures : `color.ui`, `diff.external`, `diff.mnemonicPrefix`, `diff.relative`). Deux passes de juge sur la même classe : elle remonte d'un niveau au lot suivant, en design jugé. N'y touche pas.
+
+## Travail, dans cet ordre
+1. **D1, la CI.** `scripts/guards/lib/gitPorte.test.mjs:492-494` lance git par un helper sans `env: envDeDepotForge()` écrit sur la ligne du lanceur ; la garde `scripts/guards/lib/depotGabarit.test.mjs:321` le refuse. Chaque lanceur porte l'env isolé sur sa ligne. Reproduis le rouge d'abord (`node --test scripts/guards/lib/depotGabarit.test.mjs`, sortie collée), puis le vert.
+2. **D3, le `catch` de `mesureDuPalier`** (`revuePalier.mjs:226-232`) :
+   - il garde `tete: derniere.tete` quand elle est connue, pour que le contrôle d'enchaînement d'une revue neuve (`solde-ticket-guard.mjs:1157`) reste actif (sonde du juge `sonde-chainage.mjs`) ;
+   - un test atteint la branche : une fusion à trois parents dans la fenêtre lève `GitIndisponible` (dépôt jetable) ;
+   - `scripts/ops/faits-de-palier.mjs:163` appelle `shasDeSubstance` sous `tenter`, l'erreur nommée ;
+   - le paragraphe de coût dit que, sous un git plus ancien que 2.40, une fusion dans la fenêtre bloque les fermetures.
+3. **D4, une définition pour le commit en cours.** Le palier compte le commit en cours par la liste que lit la porte (ce que le commit emporte), jugée par `estCheminDeSubstance`. Tests : `git commit -- docs/…` (0 au palier, rien à la porte) et `git commit -a` avec des changements `src` non indexés (+1 au palier, porte active). Une fusion en cours reste lue contre HEAD : je l'inscris au registre des fossiles (tuée par A-5), ne la traite pas.
+4. **D5, le coût.** Le palier ne se mesure que quand `evaluate` s'en sert (fermeture ou revue neuve), jamais à chaque commit (`solde-ticket-guard.mjs:2382`), et le compte s'arrête au seuil `PALIER`. Remesure (`cout.mjs` du juge, fenêtre de 66 commits) avant et après, sorties et `/proc/loadavg` collés. Le paragraphe de coût (`:55-76`) chiffre ce qui reste, selon sa propre règle de re-mesure (`:75-76`).
+5. **D6, la langue.** `scripts/git-hooks/pre-push.mjs:10` dit « contre sa base » ; `solde-ticket-guard.mjs:1894`, l'accesseur `avant` et `sourceDeLaBase` sur la même ligne désignent la même chose : un terme ; le titre du test `solde-ticket-guard.test.mjs:582` dit ce que fait la fusion (elle ajoute `src/mal.txt`).
+6. **Mineurs.** La fixture du test `shasDeSubstance` (`solde-ticket-guard.test.mjs:583`, `:598`) pose un chemin hors de `docs/` (par exemple `notes/d.md`), pour ne lier le test à l'existence d'aucune doc ni tomber sous `check-doc-refs`.
+
+Dans chaque zone touchée : un concept, un terme ; morts purgés ; commentaires à réf nue.
+
+## Preuves (obligatoires)
+- Preuve par mutation pour chaque test neuf ou réécrit : fichier muté, empreinte `git hash-object` avant et après, rouge constaté, remise identique. Les mutations se jouent sur le blob FINAL, après ta dernière retouche, et chaque restauration a sa sortie verte en fichier.
+
+## Portes (sortie BRUTE collée, avec le code de sortie lu hors pipe)
+- `npm run typecheck:fast`.
+- `node --test` sur les fichiers de `scratchpad/e14/liste-portes.txt`, plus `scripts/guards/lib/depotGabarit.test.mjs`, plus tout test qui importe un module que tu modifies (liste par `git grep -l`, collée).
+- `npx vitest run --no-cache src/comment-poison-guard.test.ts`.
+- eslint sur les modules que tu touches.
+
+## Livrable
+Données brutes dans `/tmp/claude-0/-home-claude-game/b2c1dcf4-ee89-5cd4-b2df-036dbf03e24e/scratchpad/rendu-e15.md` (sondes et sorties dans `scratchpad/e15/`) :
+- `git diff --stat` et la liste des fichiers neufs ;
+- pour chaque point, fait ou reste, avec sa preuve ;
+- la table des mutations ;
+- les sorties des portes.
+
+
+---
+_Generated by [Claude Code](https://claude.ai/code)_

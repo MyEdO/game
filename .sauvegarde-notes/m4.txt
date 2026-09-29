@@ -1,0 +1,36 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1806-L2
+
+ ❯ src/coupe-au-caractere-guard.test.ts (7 tests | 1 failed | 6 skipped) 45ms 392 MB heap used
+   × coupe au caractère suivie d’une ellipse > témoin : un nom se résout par son SYMBOLE — l’homonyme d’une autre portée n’est pas lui 43ms
+     → constante du module vue d’une portée interne: expected [] to deeply equal [ 'temoin.tsx:2' ]
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/coupe-au-caractere-guard.test.ts > coupe au caractère suivie d’une ellipse > témoin : un nom se résout par son SYMBOLE — l’homonyme d’une autre portée n’est pas lui
+AssertionError: constante du module vue d’une portée interne: expected [] to deeply equal [ 'temoin.tsx:2' ]
+
+- Expected
++ Received
+
+- Array [
+-   "temoin.tsx:2",
+- ]
++ Array []
+
+ ❯ src/coupe-au-caractere-guard.test.ts:52:128
+     50|     expect(vus("const E = 'x';\nfunction f() { const E = '…'; return E…
+     51|     expect(vus("const E = '…';\nfunction f() { const E = 'x'; return s…
+     52|     expect(vus("const E = '…';\nfunction f() { return s.slice(0, 20) +…
+       |                                                                                                                                ^
+     53|     expect(vus('const p = s.slice(0, 20);\nfunction g(p) { return `${p…
+     54|     expect(vus('const p = s.slice(0, 20);\nfunction g() { return `${p}…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 6 skipped (7)
+   Start at  18:12:51
+   Duration  14.47s (transform 8.77s, setup 13.49s, collect 516ms, tests 45ms, environment 0ms, prepare 52ms)
+

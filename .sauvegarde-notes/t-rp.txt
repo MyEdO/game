@@ -1,0 +1,2014 @@
+TAP version 13
+# Subtest: DRIVER : un message -F est lu dans le répertoire où le commit S'EXÉCUTE (cd/worktree)
+ok 1 - DRIVER : un message -F est lu dans le répertoire où le commit S'EXÉCUTE (cd/worktree)
+  ---
+  duration_ms: 541.765378
+  type: 'test'
+  ...
+# Subtest: DRIVER : hors des gestes jugés, silence même hors dépôt ; un commit hors dépôt nomme « hors dépôt »
+ok 2 - DRIVER : hors des gestes jugés, silence même hors dépôt ; un commit hors dépôt nomme « hors dépôt »
+  ---
+  duration_ms: 462.21599
+  type: 'test'
+  ...
+# Subtest: DRIVER : un -F introuvable est fail-CLOSED (jamais un silence)
+ok 3 - DRIVER : un -F introuvable est fail-CLOSED (jamais un silence)
+  ---
+  duration_ms: 161.055541
+  type: 'test'
+  ...
+# Subtest: DRIVER : tout refus porte la cible écartée, le `-F illisible` compris
+ok 4 - DRIVER : tout refus porte la cible écartée, le `-F illisible` compris
+  ---
+  duration_ms: 177.970684
+  type: 'test'
+  ...
+# Subtest: DRIVER : « corrigé par <sha> » est confronté à l'histoire git RÉELLE du dépôt cible
+ok 5 - DRIVER : « corrigé par <sha> » est confronté à l'histoire git RÉELLE du dépôt cible
+  ---
+  duration_ms: 721.540108
+  type: 'test'
+  ...
+# Subtest: DRIVER : un stock nominatif qui GRANDIT dans l'index est refusé, sauf CLIQUET au message
+ok 6 - DRIVER : un stock nominatif qui GRANDIT dans l'index est refusé, sauf CLIQUET au message
+  ---
+  duration_ms: 1035.153771
+  type: 'test'
+  ...
+# Subtest: DRIVER : le palier compte le commit en cours par ce qu’il emporte -- `-a` non indexé le franchit, `-- <note>` non
+ok 7 - DRIVER : le palier compte le commit en cours par ce qu’il emporte -- `-a` non indexé le franchit, `-- <note>` non
+  ---
+  duration_ms: 1103.604209
+  type: 'test'
+  ...
+# Subtest: DRIVER : un refus d’étage 1 sort SANS jouer l’étage 2 (stocks, reclassements)
+ok 8 - DRIVER : un refus d’étage 1 sort SANS jouer l’étage 2 (stocks, reclassements)
+  ---
+  duration_ms: 231.457403
+  type: 'test'
+  ...
+# Subtest: DRIVER : un `git mv` de porteur ne grandit pas ; renommé PLUS une entrée vaut +1
+ok 9 - DRIVER : un `git mv` de porteur ne grandit pas ; renommé PLUS une entrée vaut +1
+  ---
+  duration_ms: 1012.343453
+  type: 'test'
+  ...
+# Subtest: DRIVER : un porteur SCINDÉ en deux ne grandit pas ; renommé MOINS une entrée non plus
+ok 10 - DRIVER : un porteur SCINDÉ en deux ne grandit pas ; renommé MOINS une entrée non plus
+  ---
+  duration_ms: 485.655631
+  type: 'test'
+  ...
+# Subtest: DRIVER : sur un renommage, le lot porte les DEUX chemins (solde au site, écran)
+ok 11 - DRIVER : sur un renommage, le lot porte les DEUX chemins (solde au site, écran)
+  ---
+  duration_ms: 339.242749
+  type: 'test'
+  ...
+# Subtest: DRIVER : les TROIS formes de commit sont jugées sur ce qu'elles emportent, sans `git add`
+ok 12 - DRIVER : les TROIS formes de commit sont jugées sur ce qu'elles emportent, sans `git add`
+  ---
+  duration_ms: 1997.303657
+  type: 'test'
+  ...
+# Subtest: DRIVER : un stock au chemin NON-ASCII qui grandit est refusé — le patch le nomme en clair
+ok 13 - DRIVER : un stock au chemin NON-ASCII qui grandit est refusé — le patch le nomme en clair
+  ---
+  duration_ms: 1080.277553
+  type: 'test'
+  ...
+# Subtest: DRIVER : un pathspec à JOKER ne rend pas le garde MUET
+ok 14 - DRIVER : un pathspec à JOKER ne rend pas le garde MUET
+  ---
+  duration_ms: 552.117214
+  type: 'test'
+  ...
+# Subtest: DRIVER : un pathspec par SUBSTITUTION ne rend pas la porte du juge MUETTE
+ok 15 - DRIVER : un pathspec par SUBSTITUTION ne rend pas la porte du juge MUETTE
+  ---
+  duration_ms: 259.898454
+  type: 'test'
+  ...
+# Subtest: DRIVER : un commit sous `xargs` ne rend pas la porte du juge MUETTE
+ok 16 - DRIVER : un commit sous `xargs` ne rend pas la porte du juge MUETTE
+  ---
+  duration_ms: 228.814526
+  type: 'test'
+  ...
+# Subtest: DRIVER : un commit sous `find -exec` ne rend pas la porte du juge MUETTE
+ok 17 - DRIVER : un commit sous `find -exec` ne rend pas la porte du juge MUETTE
+  ---
+  duration_ms: 229.190675
+  type: 'test'
+  ...
+# Subtest: DRIVER : `echo git commit` sur un arbre à `src/` non stagé se tait
+ok 18 - DRIVER : `echo git commit` sur un arbre à `src/` non stagé se tait
+  ---
+  duration_ms: 680.618918
+  type: 'test'
+  ...
+# Subtest: DRIVER : deux commits dont un embarqué `-a` — la substance de l'arbre est jugée
+ok 19 - DRIVER : deux commits dont un embarqué `-a` — la substance de l'arbre est jugée
+  ---
+  duration_ms: 265.690277
+  type: 'test'
+  ...
+# Subtest: DRIVER : deux commits `-F` — le message du SECOND est lu, sa substance sans ticket est refusée
+ok 20 - DRIVER : deux commits `-F` — le message du SECOND est lu, sa substance sans ticket est refusée
+  ---
+  duration_ms: 285.547512
+  type: 'test'
+  ...
+# Subtest: DRIVER : un commit PRÉSUMÉ (`sed` qui cite `git commit`) porte son propre motif
+ok 21 - DRIVER : un commit PRÉSUMÉ (`sed` qui cite `git commit`) porte son propre motif
+  ---
+  duration_ms: 276.839722
+  type: 'test'
+  ...
+# Subtest: DRIVER : un commit PRÉSUMÉ au `-F` illisible porte le motif PRÉSUMÉ en tête
+ok 22 - DRIVER : un commit PRÉSUMÉ au `-F` illisible porte le motif PRÉSUMÉ en tête
+  ---
+  duration_ms: 240.868003
+  type: 'test'
+  ...
+# Subtest: DRIVER : un message lisible sans ticket est refusé même si la ligne cite un ticket ailleurs
+ok 23 - DRIVER : un message lisible sans ticket est refusé même si la ligne cite un ticket ailleurs
+  ---
+  duration_ms: 530.610305
+  type: 'test'
+  ...
+# Subtest: DRIVER : `env -S 'git' commit …` est un commit, jugé par la porte
+ok 24 - DRIVER : `env -S 'git' commit …` est un commit, jugé par la porte
+  ---
+  duration_ms: 230.790441
+  type: 'test'
+  ...
+# Subtest: DRIVER : `-m"ajoute…"` collé ne se lit pas comme un `-a` — l'index stagé reste jugé
+ok 25 - DRIVER : `-m"ajoute…"` collé ne se lit pas comme un `-a` — l'index stagé reste jugé
+  ---
+  duration_ms: 1080.831043
+  type: 'test'
+  ...
+# Subtest: DRIVER : un solde stagé HORS pathspec ne vaut pas preuve — le refus dit pourquoi
+ok 26 - DRIVER : un solde stagé HORS pathspec ne vaut pas preuve — le refus dit pourquoi
+  ---
+  duration_ms: 609.040946
+  type: 'test'
+  ...
+# Subtest: DRIVER : « corrigé par <sha> » dont le commit n'existe pas dans le dépôt cible → refus
+ok 27 - DRIVER : « corrigé par <sha> » dont le commit n'existe pas dans le dépôt cible → refus
+  ---
+  duration_ms: 319.985152
+  type: 'test'
+  ...
+# Subtest: DRIVER : un commit de substance sans ticket est refusé ; avec `refs \#N`, il passe
+ok 28 - DRIVER : un commit de substance sans ticket est refusé ; avec `refs \#N`, il passe
+  ---
+  duration_ms: 422.153027
+  type: 'test'
+  ...
+# Subtest: DRIVER : un commit hors src/ et scripts/ passe sans ticket
+ok 29 - DRIVER : un commit hors src/ et scripts/ passe sans ticket
+  ---
+  duration_ms: 263.982844
+  type: 'test'
+  ...
+# Subtest: DRIVER : une PANNE de lecture du contenu emporté (objet de base CORROMPU, ou `diff-index` en panne) est un `deny` NOMMÉ
+ok 30 - DRIVER : une PANNE de lecture du contenu emporté (objet de base CORROMPU, ou `diff-index` en panne) est un `deny` NOMMÉ
+  ---
+  duration_ms: 659.51721
+  type: 'test'
+  ...
+# Subtest: DRIVER : un dépôt SANS premier commit et un commit qui touche `CLAUDE.md` — la base est l’arbre vide, le hook ne tombe pas
+ok 31 - DRIVER : un dépôt SANS premier commit et un commit qui touche `CLAUDE.md` — la base est l’arbre vide, le hook ne tombe pas
+  ---
+  duration_ms: 316.073004
+  type: 'test'
+  ...
+# Subtest: extractClosedIssues : mono-fermeture
+ok 32 - extractClosedIssues : mono-fermeture
+  ---
+  duration_ms: 9.872245
+  type: 'test'
+  ...
+# Subtest: extractClosedIssues : multi-fermeture dédupliquée/triée
+ok 33 - extractClosedIssues : multi-fermeture dédupliquée/triée
+  ---
+  duration_ms: 0.603741
+  type: 'test'
+  ...
+# Subtest: extractClosedIssues : here-string / heredoc PowerShell/bash
+ok 34 - extractClosedIssues : here-string / heredoc PowerShell/bash
+  ---
+  duration_ms: 0.533533
+  type: 'test'
+  ...
+# Subtest: extractClosedIssues : aucun mot-clef → vide
+ok 35 - extractClosedIssues : aucun mot-clef → vide
+  ---
+  duration_ms: 0.396431
+  type: 'test'
+  ...
+# Subtest: extractClosedIssues : pas un commit → vide même avec mot-clef
+ok 36 - extractClosedIssues : pas un commit → vide même avec mot-clef
+  ---
+  duration_ms: 0.280042
+  type: 'test'
+  ...
+# Subtest: validateSolde : conforme (RAS, verdict CONFIRMÉ)
+ok 37 - validateSolde : conforme (RAS, verdict CONFIRMÉ)
+  ---
+  duration_ms: 1.784937
+  type: 'test'
+  ...
+# Subtest: validateSolde : conforme (items avec dispositions variées, verdict PARTIEL)
+ok 38 - validateSolde : conforme (items avec dispositions variées, verdict PARTIEL)
+  ---
+  duration_ms: 2.491827
+  type: 'test'
+  ...
+# Subtest: validateSolde : verdict sans accent accepté (CONFIRME/REFUTE)
+ok 39 - validateSolde : verdict sans accent accepté (CONFIRME/REFUTE)
+  ---
+  duration_ms: 0.188877
+  type: 'test'
+  ...
+# Subtest: validateSolde : fichier absent
+ok 40 - validateSolde : fichier absent
+  ---
+  duration_ms: 0.388027
+  type: 'test'
+  ...
+# Subtest: validateSolde : ligne VERIFIE absente
+ok 41 - validateSolde : ligne VERIFIE absente
+  ---
+  duration_ms: 1.152736
+  type: 'test'
+  ...
+# Subtest: validateSolde : VERIFIE trop court
+ok 42 - validateSolde : VERIFIE trop court
+  ---
+  duration_ms: 0.45476
+  type: 'test'
+  ...
+# Subtest: validateSolde : section Restes absente
+ok 43 - validateSolde : section Restes absente
+  ---
+  duration_ms: 0.221086
+  type: 'test'
+  ...
+# Subtest: validateSolde : item sans disposition
+ok 44 - validateSolde : item sans disposition
+  ---
+  duration_ms: 0.163133
+  type: 'test'
+  ...
+# Subtest: section Restes : 5 restes routants AÉRÉS comptent 5, comme la même liste compacte
+ok 45 - section Restes : 5 restes routants AÉRÉS comptent 5, comme la même liste compacte
+  ---
+  duration_ms: 0.461723
+  type: 'test'
+  ...
+# Subtest: section Restes : une disposition INVALIDE derrière une ligne blanche est toujours vue
+ok 46 - section Restes : une disposition INVALIDE derrière une ligne blanche est toujours vue
+  ---
+  duration_ms: 0.209083
+  type: 'test'
+  ...
+# Subtest: section Restes : un SOUS-TITRE structure la section — ses items comptent, lui non
+ok 47 - section Restes : un SOUS-TITRE structure la section — ses items comptent, lui non
+  ---
+  duration_ms: 0.226319
+  type: 'test'
+  ...
+# Subtest: section Restes : la borne reste le PROCHAIN titre de niveau 2
+ok 48 - section Restes : la borne reste le PROCHAIN titre de niveau 2
+  ---
+  duration_ms: 0.282823
+  type: 'test'
+  ...
+# Subtest: section Restes : un titre DUPLIQUÉ est refusé (la seconde section échapperait au plafond)
+ok 49 - section Restes : un titre DUPLIQUÉ est refusé (la seconde section échapperait au plafond)
+  ---
+  duration_ms: 0.204163
+  type: 'test'
+  ...
+# Subtest: section Restes : « RAS » pour le tout reste conforme, même suivi d'un pied de fichier
+ok 50 - section Restes : « RAS » pour le tout reste conforme, même suivi d'un pied de fichier
+  ---
+  duration_ms: 0.131116
+  type: 'test'
+  ...
+# Subtest: validateSolde : section Réfutation absente
+ok 51 - validateSolde : section Réfutation absente
+  ---
+  duration_ms: 0.330047
+  type: 'test'
+  ...
+# Subtest: validateSolde : verdict RÉFUTÉ → refused=true, deny explicite
+ok 52 - validateSolde : verdict RÉFUTÉ → refused=true, deny explicite
+  ---
+  duration_ms: 0.208948
+  type: 'test'
+  ...
+# Subtest: validateSolde : verdict REFUTE sans accent → refused=true
+ok 53 - validateSolde : verdict REFUTE sans accent → refused=true
+  ---
+  duration_ms: 0.227575
+  type: 'test'
+  ...
+# Subtest: validateSolde : ligne verdict absente dans Réfutation
+ok 54 - validateSolde : ligne verdict absente dans Réfutation
+  ---
+  duration_ms: 0.130668
+  type: 'test'
+  ...
+# Subtest: validateSolde : Réfutation trop maigre
+ok 55 - validateSolde : Réfutation trop maigre
+  ---
+  duration_ms: 0.128126
+  type: 'test'
+  ...
+# Subtest: validateSolde : date du jour absente
+ok 56 - validateSolde : date du jour absente
+  ---
+  duration_ms: 0.131226
+  type: 'test'
+  ...
+# Subtest: validateSolde : date d'un autre jour ne compte pas (anti-réchauffé)
+ok 57 - validateSolde : date d'un autre jour ne compte pas (anti-réchauffé)
+  ---
+  duration_ms: 0.173822
+  type: 'test'
+  ...
+# Subtest: validateRevuePalier : conforme
+ok 58 - validateRevuePalier : conforme
+  ---
+  duration_ms: 0.575249
+  type: 'test'
+  ...
+# Subtest: validateRevuePalier : fichier absent
+ok 59 - validateRevuePalier : fichier absent
+  ---
+  duration_ms: 0.133475
+  type: 'test'
+  ...
+# Subtest: validateRevuePalier : synthèse trop maigre
+ok 60 - validateRevuePalier : synthèse trop maigre
+  ---
+  duration_ms: 0.192718
+  type: 'test'
+  ...
+# Subtest: validateRevuePalier : date absente
+ok 61 - validateRevuePalier : date absente
+  ---
+  duration_ms: 0.114745
+  type: 'test'
+  ...
+# Subtest: validateRevuePalier : une revue que l’archiveur ne saurait NOMMER est refusée au commit
+ok 62 - validateRevuePalier : une revue que l’archiveur ne saurait NOMMER est refusée au commit
+  ---
+  duration_ms: 0.204485
+  type: 'test'
+  ...
+# Subtest: fenetreDeRevue : la DERNIÈRE date de la 1re ligne, la PREMIÈRE fenêtre du corps
+ok 63 - fenetreDeRevue : la DERNIÈRE date de la 1re ligne, la PREMIÈRE fenêtre du corps
+  ---
+  duration_ms: 0.280631
+  type: 'test'
+  ...
+# Subtest: nomDArchiveDeRevue : même date et même base, têtes DIFFÉRENTES → deux noms
+ok 64 - nomDArchiveDeRevue : même date et même base, têtes DIFFÉRENTES → deux noms
+  ---
+  duration_ms: 0.296882
+  type: 'test'
+  ...
+# Subtest: nomsDArchiveAcceptes : les graphies ANTÉRIEURES restent reconnues, la courante est la 1re
+ok 65 - nomsDArchiveAcceptes : les graphies ANTÉRIEURES restent reconnues, la courante est la 1re
+  ---
+  duration_ms: 0.253187
+  type: 'test'
+  ...
+# Subtest: toute revue ACCEPTÉE par la porte est NOMMABLE par l’archiveur (variantes fabriquées)
+ok 66 - toute revue ACCEPTÉE par la porte est NOMMABLE par l’archiveur (variantes fabriquées)
+  ---
+  duration_ms: 0.52065
+  type: 'test'
+  ...
+# Subtest: evaluate : sans mot-clef de fermeture → silence total
+ok 67 - evaluate : sans mot-clef de fermeture → silence total
+  ---
+  duration_ms: 0.702127
+  type: 'test'
+  ...
+# Subtest: evaluate : solde conforme, palier <10 → silence (commit passe)
+ok 68 - evaluate : solde conforme, palier <10 → silence (commit passe)
+  ---
+  duration_ms: 0.46147
+  type: 'test'
+  ...
+# Subtest: evaluate : solde absent → deny actionnable
+ok 69 - evaluate : solde absent → deny actionnable
+  ---
+  duration_ms: 0.342672
+  type: 'test'
+  ...
+# Subtest: evaluate : multi-fermeture — un seul solde manquant listé nommément
+ok 70 - evaluate : multi-fermeture — un seul solde manquant listé nommément
+  ---
+  duration_ms: 0.435391
+  type: 'test'
+  ...
+# Subtest: evaluate : verdict RÉFUTÉ → deny même si le reste du solde est conforme
+ok 71 - evaluate : verdict RÉFUTÉ → deny même si le reste du solde est conforme
+  ---
+  duration_ms: 0.389862
+  type: 'test'
+  ...
+# Subtest: evaluate : le palier ne se MESURE que pour une fermeture ou une revue neuve, et une seule fois
+ok 72 - evaluate : le palier ne se MESURE que pour une fermeture ou une revue neuve, et une seule fois
+  ---
+  duration_ms: 0.655557
+  type: 'test'
+  ...
+# Subtest: evaluate : palier <10 sans revue neuve -> solde seul suffit (silence)
+ok 73 - evaluate : palier <10 sans revue neuve -> solde seul suffit (silence)
+  ---
+  duration_ms: 0.201175
+  type: 'test'
+  ...
+# Subtest: evaluate : palier >=10 sans revue neuve -> deny palier, quel que soit le solde
+ok 74 - evaluate : palier >=10 sans revue neuve -> deny palier, quel que soit le solde
+  ---
+  duration_ms: 0.43103
+  type: 'test'
+  ...
+# Subtest: evaluate : palier >=10 + revue neuve ENCHAINEE et conforme -> pass (solde encore requis)
+ok 75 - evaluate : palier >=10 + revue neuve ENCHAINEE et conforme -> pass (solde encore requis)
+  ---
+  duration_ms: 0.270497
+  type: 'test'
+  ...
+# Subtest: evaluate : revue neuve dont le CONTENU est trop maigre -> deny nomme
+ok 76 - evaluate : revue neuve dont le CONTENU est trop maigre -> deny nomme
+  ---
+  duration_ms: 0.376682
+  type: 'test'
+  ...
+# Subtest: evaluate : revue neuve dont le NOM ne repond pas au CONTENU -> deny qui dit les deux
+ok 77 - evaluate : revue neuve dont le NOM ne repond pas au CONTENU -> deny qui dit les deux
+  ---
+  duration_ms: 0.215259
+  type: 'test'
+  ...
+# Subtest: evaluate : revue neuve dont la fenetre NE S’ENCHAINE PAS -> deny, base attendue NOMMEE
+ok 78 - evaluate : revue neuve dont la fenetre NE S’ENCHAINE PAS -> deny, base attendue NOMMEE
+  ---
+  duration_ms: 0.155323
+  type: 'test'
+  ...
+# Subtest: evaluate : revue neuve dont la TETE est hors de l’histoire de HEAD -> deny
+ok 79 - evaluate : revue neuve dont la TETE est hors de l’histoire de HEAD -> deny
+  ---
+  duration_ms: 0.228849
+  type: 'test'
+  ...
+# Subtest: evaluate : une revue neuve FAUSSE refuse le commit MEME hors palier et SANS fermeture
+ok 80 - evaluate : une revue neuve FAUSSE refuse le commit MEME hors palier et SANS fermeture
+  ---
+  duration_ms: 0.185691
+  type: 'test'
+  ...
+# Subtest: evaluate : revue neuve conforme HORS palier -> acceptee (aucune fermeture, silence)
+ok 81 - evaluate : revue neuve conforme HORS palier -> acceptee (aucune fermeture, silence)
+  ---
+  duration_ms: 0.310793
+  type: 'test'
+  ...
+# Subtest: evaluate : la revue abregee autrement que la precedente reste ENCHAINEE (prefixe de sha)
+ok 82 - evaluate : la revue abregee autrement que la precedente reste ENCHAINEE (prefixe de sha)
+  ---
+  duration_ms: 0.250269
+  type: 'test'
+  ...
+# Subtest: evaluate : palier INMESURABLE -> deny nomme, jamais un silence qui laisse fermer
+ok 83 - evaluate : palier INMESURABLE -> deny nomme, jamais un silence qui laisse fermer
+  ---
+  duration_ms: 0.147184
+  type: 'test'
+  ...
+# Subtest: mesureDuPalier : compte les commits de substance depuis la derniere revue de HEAD
+ok 84 - mesureDuPalier : compte les commits de substance depuis la derniere revue de HEAD
+  ---
+  duration_ms: 393.450964
+  type: 'test'
+  ...
+# Subtest: mesureDuPalier : le commit en cours compte par la liste que lit la porte du ticket -- `-- <doc>` 0, `-a` non indexé +1
+ok 85 - mesureDuPalier : le commit en cours compte par la liste que lit la porte du ticket -- `-- <doc>` 0, `-a` non indexé +1
+  ---
+  duration_ms: 209.381098
+  type: 'test'
+  ...
+# Subtest: mesureDuPalier : une fusion à trois parents dans la fenêtre rend l’erreur NOMMÉE, avec la tête et l’archive de la dernière revue
+ok 86 - mesureDuPalier : une fusion à trois parents dans la fenêtre rend l’erreur NOMMÉE, avec la tête et l’archive de la dernière revue
+  ---
+  duration_ms: 219.793049
+  type: 'test'
+  ...
+# Subtest: shasDeSubstance : une fusion PROPRE n’est pas de substance, une fusion qui ajoute src/mal.txt l’est -- ce que fait le commit, pas sa simplification d’histoire
+ok 87 - shasDeSubstance : une fusion PROPRE n’est pas de substance, une fusion qui ajoute src/mal.txt l’est -- ce que fait le commit, pas sa simplification d’histoire
+  ---
+  duration_ms: 272.238588
+  type: 'test'
+  ...
+# Subtest: MORSURE : la revue neuve du commit REMET le palier a zero — elle est dans HEAD tout de suite
+ok 88 - MORSURE : la revue neuve du commit REMET le palier a zero — elle est dans HEAD tout de suite
+  ---
+  duration_ms: 535.013379
+  type: 'test'
+  ...
+# Subtest: revuesNeuves sous une FUSION en cours : la revue que porte le parent fusionne n’est pas neuve, celle ecrite dans la fusion l’est
+ok 89 - revuesNeuves sous une FUSION en cours : la revue que porte le parent fusionne n’est pas neuve, celle ecrite dans la fusion l’est
+  ---
+  duration_ms: 122.080845
+  type: 'test'
+  ...
+# Subtest: mesureDuPalier : une revue dont la TETE de fenetre est ORPHELINE ne juge rien -- et le DIT
+ok 90 - mesureDuPalier : une revue dont la TETE de fenetre est ORPHELINE ne juge rien -- et le DIT
+  ---
+  duration_ms: 68.65132
+  type: 'test'
+  ...
+# Subtest: mesureDuPalier : entre deux revues, la plus PROCHE de HEAD fait reference
+ok 91 - mesureDuPalier : entre deux revues, la plus PROCHE de HEAD fait reference
+  ---
+  duration_ms: 121.836381
+  type: 'test'
+  ...
+# Subtest: FORME du commit : une revue stagee HORS des pathspecs ne franchit RIEN, et le refus la NOMME
+ok 92 - FORME du commit : une revue stagee HORS des pathspecs ne franchit RIEN, et le refus la NOMME
+  ---
+  duration_ms: 589.068376
+  type: 'test'
+  ...
+# Subtest: revuesDuCommit : le partage stagees/emportees se lit sur les chemins du commit
+ok 93 - revuesDuCommit : le partage stagees/emportees se lit sur les chemins du commit
+  ---
+  duration_ms: 0.344266
+  type: 'test'
+  ...
+# Subtest: CAS REEL : la CHAINE des revues de HEAD est continue, et chaque tete est dans l’histoire
+ok 94 - CAS REEL : la CHAINE des revues de HEAD est continue, et chaque tete est dans l’histoire
+  ---
+  duration_ms: 1620.26973
+  type: 'test'
+  ...
+# Subtest: extractRefIssues : "ref \#N" et "refs \#N" reconnus, dédupliqués/triés
+ok 95 - extractRefIssues : "ref \#N" et "refs \#N" reconnus, dédupliqués/triés
+  ---
+  duration_ms: 1.03989
+  type: 'test'
+  ...
+# Subtest: extractRefIssues : la CHAÎNE `refs \#A \#B \#C` rend TOUS ses numéros, en nombres triés
+ok 96 - extractRefIssues : la CHAÎNE `refs \#A \#B \#C` rend TOUS ses numéros, en nombres triés
+  ---
+  duration_ms: 0.901122
+  type: 'test'
+  ...
+# Subtest: extractRefIssues : aucun mot-clef → vide
+ok 97 - extractRefIssues : aucun mot-clef → vide
+  ---
+  duration_ms: 0.296412
+  type: 'test'
+  ...
+# Subtest: extractRefIssues : pas un commit → vide même avec mot-clef
+ok 98 - extractRefIssues : pas un commit → vide même avec mot-clef
+  ---
+  duration_ms: 0.20793
+  type: 'test'
+  ...
+# Subtest: validateRefFile : conforme
+ok 99 - validateRefFile : conforme
+  ---
+  duration_ms: 0.254171
+  type: 'test'
+  ...
+# Subtest: validateRefFile : fichier absent
+ok 100 - validateRefFile : fichier absent
+  ---
+  duration_ms: 0.139248
+  type: 'test'
+  ...
+# Subtest: validateRefFile : section Réfutation trop maigre
+ok 101 - validateRefFile : section Réfutation trop maigre
+  ---
+  duration_ms: 0.175195
+  type: 'test'
+  ...
+# Subtest: analyzeDiffDuCommit : touche src/**, compte les lignes
+ok 102 - analyzeDiffDuCommit : touche src/**, compte les lignes
+  ---
+  duration_ms: 0.192629
+  type: 'test'
+  ...
+# Subtest: analyzeDiffDuCommit : docs-only ne touche pas src
+ok 103 - analyzeDiffDuCommit : docs-only ne touche pas src
+  ---
+  duration_ms: 0.121954
+  type: 'test'
+  ...
+# Subtest: analyzeDiffDuCommit : vide/absent → aucune touche, 0 ligne
+ok 104 - analyzeDiffDuCommit : vide/absent → aucune touche, 0 ligne
+  ---
+  duration_ms: 0.147369
+  type: 'test'
+  ...
+# Subtest: analyzeDiffDuCommit : touche src/ui/** → touchesUi
+ok 105 - analyzeDiffDuCommit : touche src/ui/** → touchesUi
+  ---
+  duration_ms: 0.136052
+  type: 'test'
+  ...
+# Subtest: analyzeDiffDuCommit : src/** hors src/ui/** → touchesUi false
+ok 106 - analyzeDiffDuCommit : src/** hors src/ui/** → touchesUi false
+  ---
+  duration_ms: 0.141244
+  type: 'test'
+  ...
+# Subtest: analyzeDiffDuCommit : lit le numstat TEL QUEL, sans second filtrage de chemins
+ok 107 - analyzeDiffDuCommit : lit le numstat TEL QUEL, sans second filtrage de chemins
+  ---
+  duration_ms: 0.148962
+  type: 'test'
+  ...
+# Subtest: analyzeDiffDuCommit : `git commit -- .` — le lot borné par git est vu ENTIER
+ok 108 - analyzeDiffDuCommit : `git commit -- .` — le lot borné par git est vu ENTIER
+  ---
+  duration_ms: 126.785841
+  type: 'test'
+  ...
+# Subtest: isGitCommitCommand : git commit simple → true
+ok 109 - isGitCommitCommand : git commit simple → true
+  ---
+  duration_ms: 0.321028
+  type: 'test'
+  ...
+# Subtest: isGitCommitCommand : git -C <path> commit → true (flag global sauté)
+ok 110 - isGitCommitCommand : git -C <path> commit → true (flag global sauté)
+  ---
+  duration_ms: 0.433199
+  type: 'test'
+  ...
+# Subtest: isGitCommitCommand : enchaînement cmd1 && git commit → true
+ok 111 - isGitCommitCommand : enchaînement cmd1 && git commit → true
+  ---
+  duration_ms: 0.500709
+  type: 'test'
+  ...
+# Subtest: isGitCommitCommand : gh issue create citant "git commit" dans le corps → false (jamais un grep de sous-chaîne, \#591 défaut 3)
+ok 112 - isGitCommitCommand : gh issue create citant "git commit" dans le corps → false (jamais un grep de sous-chaîne, \#591 défaut 3)
+  ---
+  duration_ms: 0.15429
+  type: 'test'
+  ...
+# Subtest: isGitCommitCommand : git log --grep "git commit" → false (sous-commande ≠ commit)
+ok 113 - isGitCommitCommand : git log --grep "git commit" → false (sous-commande ≠ commit)
+  ---
+  duration_ms: 0.108138
+  type: 'test'
+  ...
+# Subtest: isGitCommitCommand : here-string PowerShell git commit -m @'...'@ → true
+ok 114 - isGitCommitCommand : here-string PowerShell git commit -m @'...'@ → true
+  ---
+  duration_ms: 0.161424
+  type: 'test'
+  ...
+# Subtest: extractCommitPathspecs : "git commit -- <paths> -m <msg>" → `-m` et le message sont des chemins, comme dans git
+ok 115 - extractCommitPathspecs : "git commit -- <paths> -m <msg>" → `-m` et le message sont des chemins, comme dans git
+  ---
+  duration_ms: 0.31186
+  type: 'test'
+  ...
+# Subtest: extractCommitPathspecs : pas de pathspec (commit -m seul) → []
+ok 116 - extractCommitPathspecs : pas de pathspec (commit -m seul) → []
+  ---
+  duration_ms: 0.095514
+  type: 'test'
+  ...
+# Subtest: extractCommitPathspecs : pas un commit → []
+ok 117 - extractCommitPathspecs : pas un commit → []
+  ---
+  duration_ms: 0.136133
+  type: 'test'
+  ...
+# Subtest: extractCommitPathspecs : une REDIRECTION, un PIPE ou un `&` n'est jamais un pathspec
+ok 118 - extractCommitPathspecs : une REDIRECTION, un PIPE ou un `&` n'est jamais un pathspec
+  ---
+  duration_ms: 0.923591
+  type: 'test'
+  ...
+# Subtest: shorts groupés : le PREMIER `m`/`F` décide, comme dans git
+ok 119 - shorts groupés : le PREMIER `m`/`F` décide, comme dans git
+  ---
+  duration_ms: 0.257625
+  type: 'test'
+  ...
+# Subtest: formeDuCommit : un pathspec à JOKER rend `tout` — jamais `index`, qui serait MUET
+ok 120 - formeDuCommit : un pathspec à JOKER rend `tout` — jamais `index`, qui serait MUET
+  ---
+  duration_ms: 0.436693
+  type: 'test'
+  ...
+# Subtest: pathspecsDuCommit : une SUBSTITUTION ou une EXPANSION shell est non résolue, quel que soit le fragment
+ok 121 - pathspecsDuCommit : une SUBSTITUTION ou une EXPANSION shell est non résolue, quel que soit le fragment
+  ---
+  duration_ms: 1.033023
+  type: 'test'
+  ...
+# Subtest: pathspecsDuCommit : un jeton sous quote simple est littéral, sous quote double seuls `$` et le backtick comptent
+ok 122 - pathspecsDuCommit : un jeton sous quote simple est littéral, sous quote double seuls `$` et le backtick comptent
+  ---
+  duration_ms: 0.307511
+  type: 'test'
+  ...
+# Subtest: formeDuCommit : `-i`/`--include`, groupé compris, rend `inclus` avec ses chemins
+ok 123 - formeDuCommit : `-i`/`--include`, groupé compris, rend `inclus` avec ses chemins
+  ---
+  duration_ms: 0.324811
+  type: 'test'
+  ...
+# Subtest: jetonsDuCommit : la valeur d'une option n'est jamais un pathspec — `-C`, `-c`, `-t`, `--cleanup`, `-S`
+ok 124 - jetonsDuCommit : la valeur d'une option n'est jamais un pathspec — `-C`, `-c`, `-t`, `--cleanup`, `-S`
+  ---
+  duration_ms: 0.583031
+  type: 'test'
+  ...
+# Subtest: jetonsDuCommit : une option longue ABRÉGÉE se résout ; ambiguë ou inconnue, elle est non résolue
+ok 125 - jetonsDuCommit : une option longue ABRÉGÉE se résout ; ambiguë ou inconnue, elle est non résolue
+  ---
+  duration_ms: 0.724175
+  type: 'test'
+  ...
+# Subtest: isGitCommitCommand : `find -exec`, `parallel` — un commit EMBARQUÉ est vu, non résolu
+ok 126 - isGitCommitCommand : `find -exec`, `parallel` — un commit EMBARQUÉ est vu, non résolu
+  ---
+  duration_ms: 0.398775
+  type: 'test'
+  ...
+# Subtest: isGitCommitCommand : une tête CITEUSE ne commite pas ; toute autre tête EMBARQUE le commit
+ok 127 - isGitCommitCommand : une tête CITEUSE ne commite pas ; toute autre tête EMBARQUE le commit
+  ---
+  duration_ms: 1.232568
+  type: 'test'
+  ...
+# Subtest: isGitCommitCommand : la CHAÎNE portée en argument par une tête non citeuse est ré-analysée
+ok 128 - isGitCommitCommand : la CHAÎNE portée en argument par une tête non citeuse est ré-analysée
+  ---
+  duration_ms: 0.436485
+  type: 'test'
+  ...
+# Subtest: isGitCommitCommand : un exécuteur en argv qui ENROBE le commit l'embarque
+ok 129 - isGitCommitCommand : un exécuteur en argv qui ENROBE le commit l'embarque
+  ---
+  duration_ms: 0.475857
+  type: 'test'
+  ...
+# Subtest: isGitCommitCommand : sous-shell après `time`/`{`/`(`/`!`, et mots réservés POSIX en tête
+ok 130 - isGitCommitCommand : sous-shell après `time`/`{`/`(`/`!`, et mots réservés POSIX en tête
+  ---
+  duration_ms: 0.523311
+  type: 'test'
+  ...
+# Subtest: formeDuCommit : deux commits ou plus rendent `tout` ; le message de CHAQUE commit est lu
+ok 131 - formeDuCommit : deux commits ou plus rendent `tout` ; le message de CHAQUE commit est lu
+  ---
+  duration_ms: 0.84853
+  type: 'test'
+  ...
+# Subtest: extractMessageSources : le -F de CHAQUE commit est lu ; le premier illisible est fail-closed
+ok 132 - extractMessageSources : le -F de CHAQUE commit est lu ; le premier illisible est fail-closed
+  ---
+  duration_ms: 1.399456
+  type: 'test'
+  ...
+# Subtest: motifDuCommitPresume : la tête, l'extrait et la sortie ; rien quand un commit direct existe
+ok 133 - motifDuCommitPresume : la tête, l'extrait et la sortie ; rien quand un commit direct existe
+  ---
+  duration_ms: 31.448988
+  type: 'test'
+  ...
+# Subtest: isGitCommitCommand : coût linéaire ; au-delà des bornes, un commit EMBARQUÉ présumé, sans exception
+ok 134 - isGitCommitCommand : coût linéaire ; au-delà des bornes, un commit EMBARQUÉ présumé, sans exception
+  ---
+  duration_ms: 1073.00037
+  type: 'test'
+  ...
+# Subtest: isGitCommitCommand : `env -S`, valeur collée `--opt=<commande>`, antislash d'un mot nu
+ok 135 - isGitCommitCommand : `env -S`, valeur collée `--opt=<commande>`, antislash d'un mot nu
+  ---
+  duration_ms: 2.131089
+  type: 'test'
+  ...
+# Subtest: argumentChaine : `env -S` suivi de ses arguments ; `cmd /c`, `-Command`, `eval` prennent le reste
+ok 136 - argumentChaine : `env -S` suivi de ses arguments ; `cmd /c`, `-Command`, `eval` prennent le reste
+  ---
+  duration_ms: 1.366951
+  type: 'test'
+  ...
+# Subtest: isGitCommitCommand : `git commit -h`/`--help` rend l'aide, aucun commit
+ok 137 - isGitCommitCommand : `git commit -h`/`--help` rend l'aide, aucun commit
+  ---
+  duration_ms: 0.40304
+  type: 'test'
+  ...
+# Subtest: \#2071 NON COUVERT — un commit dans une substitution `$(…)`, backtick ou `<(…)` n'est pas vu
+ok 138 - \#2071 NON COUVERT — un commit dans une substitution `$(…)`, backtick ou `<(…)` n'est pas vu
+  ---
+  duration_ms: 0.219227
+  type: 'test'
+  ...
+# Subtest: \#2071 NON COUVERT — une sous-commande git lue comme citeuse qui exécute (alias `!`, filter-branch, `-c core.pager`)
+ok 139 - \#2071 NON COUVERT — une sous-commande git lue comme citeuse qui exécute (alias `!`, filter-branch, `-c core.pager`)
+  ---
+  duration_ms: 0.612573
+  type: 'test'
+  ...
+# Subtest: \#2071 NON COUVERT — le corps lu sur stdin par un shell ou un exécuteur n'est pas vu
+ok 140 - \#2071 NON COUVERT — le corps lu sur stdin par un shell ou un exécuteur n'est pas vu
+  ---
+  duration_ms: 0.620767
+  type: 'test'
+  ...
+# Subtest: \#2071 NON COUVERT — des arguments venus de stdin (`xargs git`) ne sont pas vus
+ok 141 - \#2071 NON COUVERT — des arguments venus de stdin (`xargs git`) ne sont pas vus
+  ---
+  duration_ms: 0.124073
+  type: 'test'
+  ...
+# Subtest: \#2071 NON COUVERT — un exécutable ou une sous-commande par variable n'est pas vu
+ok 142 - \#2071 NON COUVERT — un exécutable ou une sous-commande par variable n'est pas vu
+  ---
+  duration_ms: 0.207145
+  type: 'test'
+  ...
+# Subtest: \#2071 NON COUVERT — un commit dans un fichier de script n'est pas vu
+ok 143 - \#2071 NON COUVERT — un commit dans un fichier de script n'est pas vu
+  ---
+  duration_ms: 0.27934
+  type: 'test'
+  ...
+# Subtest: \#2071 NON COUVERT — une porcelaine qui crée un commit sans `git commit` n'est pas vue
+ok 144 - \#2071 NON COUVERT — une porcelaine qui crée un commit sans `git commit` n'est pas vue
+  ---
+  duration_ms: 0.280119
+  type: 'test'
+  ...
+# Subtest: \#2071 NON COUVERT — un alias git défini hors de la ligne n'est pas vu
+ok 145 - \#2071 NON COUVERT — un alias git défini hors de la ligne n'est pas vu
+  ---
+  duration_ms: 0.187926
+  type: 'test'
+  ...
+# Subtest: \#2071 NON COUVERT — une variable de tête consommée comme commande par git n'est pas vue
+ok 146 - \#2071 NON COUVERT — une variable de tête consommée comme commande par git n'est pas vue
+  ---
+  duration_ms: 0.210102
+  type: 'test'
+  ...
+# Subtest: \#2071 NON COUVERT — une tête citeuse qui exécute (`gh alias set --shell`) n'est pas vue
+ok 147 - \#2071 NON COUVERT — une tête citeuse qui exécute (`gh alias set --shell`) n'est pas vue
+  ---
+  duration_ms: 0.10544
+  type: 'test'
+  ...
+# Subtest: isGitCommitCommand : les builtins d'affectation citent (`export`, `declare`, `local`, `readonly`, `typeset`)
+ok 148 - isGitCommitCommand : les builtins d'affectation citent (`export`, `declare`, `local`, `readonly`, `typeset`)
+  ---
+  duration_ms: 0.16649
+  type: 'test'
+  ...
+# Subtest: \#2071 NON COUVERT — un commit dans le code d'un interpréteur non shell n'est pas vu
+ok 149 - \#2071 NON COUVERT — un commit dans le code d'un interpréteur non shell n'est pas vu
+  ---
+  duration_ms: 0.275622
+  type: 'test'
+  ...
+# Subtest: evaluatePorteDuTicket : plusieurs commits — directs jugés, amend hérité, présumé nommé
+ok 150 - evaluatePorteDuTicket : plusieurs commits — directs jugés, amend hérité, présumé nommé
+  ---
+  duration_ms: 4.395921
+  type: 'test'
+  ...
+# Subtest: isGitCommitCommand : le mémo suit la racine d'ancrage npm
+ok 151 - isGitCommitCommand : le mémo suit la racine d'ancrage npm
+  ---
+  duration_ms: 1.665496
+  type: 'test'
+  ...
+# Subtest: pathspecsDuCommit : un antislash dans un mot nu le rend non résolu
+ok 152 - pathspecsDuCommit : un antislash dans un mot nu le rend non résolu
+  ---
+  duration_ms: 0.282345
+  type: 'test'
+  ...
+# Subtest: pathspecsDuCommit : un sous-shell parenthésé rend ses chemins ; une substitution reste non résolue
+ok 153 - pathspecsDuCommit : un sous-shell parenthésé rend ses chemins ; une substitution reste non résolue
+  ---
+  duration_ms: 0.465949
+  type: 'test'
+  ...
+# Subtest: evaluateHunksEmportes : sous `-i`/`--include`, le texte dit que l'index ENTIER part
+ok 154 - evaluateHunksEmportes : sous `-i`/`--include`, le texte dit que l'index ENTIER part
+  ---
+  duration_ms: 0.685266
+  type: 'test'
+  ...
+# Subtest: formeDuCommit : la VALEUR d'un `-m` collé n'est pas une liste d'options courtes
+ok 155 - formeDuCommit : la VALEUR d'un `-m` collé n'est pas une liste d'options courtes
+  ---
+  duration_ms: 0.311678
+  type: 'test'
+  ...
+# Subtest: extractCommitPathspecs : --file=<path> ne devient pas un pathspec
+ok 156 - extractCommitPathspecs : --file=<path> ne devient pas un pathspec
+  ---
+  duration_ms: 0.125812
+  type: 'test'
+  ...
+# Subtest: extractCommitPathspecs : "-am" (shorts groupés) → le message n'est PAS un pathspec, [] (index entier)
+ok 157 - extractCommitPathspecs : "-am" (shorts groupés) → le message n'est PAS un pathspec, [] (index entier)
+  ---
+  duration_ms: 0.099745
+  type: 'test'
+  ...
+# Subtest: extractCommitPathspecs : "-am" APRÈS -- est un chemin, comme le message qui le suit
+ok 158 - extractCommitPathspecs : "-am" APRÈS -- est un chemin, comme le message qui le suit
+  ---
+  duration_ms: 0.123468
+  type: 'test'
+  ...
+# Subtest: extractCommitPathspecs : "-cam" est `-c am` — le mot suivant est un chemin, comme dans git
+ok 159 - extractCommitPathspecs : "-cam" est `-c am` — le mot suivant est un chemin, comme dans git
+  ---
+  duration_ms: 0.135266
+  type: 'test'
+  ...
+# Subtest: formeDuCommit : `-C`, `-c`, `-t` portent une VALEUR, jamais un pathspec ; `-u<mode>` et `-S<clé>` ne sont pas `-a`
+ok 160 - formeDuCommit : `-C`, `-c`, `-t` portent une VALEUR, jamais un pathspec ; `-u<mode>` et `-S<clé>` ne sont pas `-a`
+  ---
+  duration_ms: 0.608503
+  type: 'test'
+  ...
+# Subtest: extractMessageSources : `-C <commit>` et `-t <modèle>` ne sont pas un fichier de message ; `-F` qui les suit l’est
+ok 161 - extractMessageSources : `-C <commit>` et `-t <modèle>` ne sont pas un fichier de message ; `-F` qui les suit l’est
+  ---
+  duration_ms: 0.298502
+  type: 'test'
+  ...
+# Subtest: formeDuCommit : "-am" est un `-a`, et son MESSAGE n'est pas un pathspec
+ok 162 - formeDuCommit : "-am" est un `-a`, et son MESSAGE n'est pas un pathspec
+  ---
+  duration_ms: 0.149085
+  type: 'test'
+  ...
+# Subtest: extractCommitPathspecs : pathspec avec glob ("src/**/*.tsx") → [] (index entier, jamais silencé)
+ok 163 - extractCommitPathspecs : pathspec avec glob ("src/**/*.tsx") → [] (index entier, jamais silencé)
+  ---
+  duration_ms: 0.122738
+  type: 'test'
+  ...
+# Subtest: extractCommitPathspecs : un seul pathspec glob parmi plusieurs invalide TOUT le scoping
+ok 164 - extractCommitPathspecs : un seul pathspec glob parmi plusieurs invalide TOUT le scoping
+  ---
+  duration_ms: 0.155288
+  type: 'test'
+  ...
+# Subtest: isGitCommitCommand : call-operator PowerShell avec chemin absolu vers git.exe → true
+ok 165 - isGitCommitCommand : call-operator PowerShell avec chemin absolu vers git.exe → true
+  ---
+  duration_ms: 0.172776
+  type: 'test'
+  ...
+# Subtest: extractClosedIssues : call-operator PowerShell reconnu → ferme le ticket
+ok 166 - extractClosedIssues : call-operator PowerShell reconnu → ferme le ticket
+  ---
+  duration_ms: 0.130195
+  type: 'test'
+  ...
+# Subtest: isGitCommitCommand : call-operator sur un exécutable non-git → false
+ok 167 - isGitCommitCommand : call-operator sur un exécutable non-git → false
+  ---
+  duration_ms: 0.112654
+  type: 'test'
+  ...
+# Subtest: tokenizeCommand (via extractCommitPathspecs) : "--message=" multi-mots ne fuit PAS en pathspecs
+ok 168 - tokenizeCommand (via extractCommitPathspecs) : "--message=" multi-mots ne fuit PAS en pathspecs
+  ---
+  duration_ms: 0.105977
+  type: 'test'
+  ...
+# Subtest: tokenizeCommand (via extractCommitPathspecs) : "-m" valeur COLLÉE (sans espace) ne fuit PAS en pathspecs
+ok 169 - tokenizeCommand (via extractCommitPathspecs) : "-m" valeur COLLÉE (sans espace) ne fuit PAS en pathspecs
+  ---
+  duration_ms: 0.10233
+  type: 'test'
+  ...
+# Subtest: extractCommitPathspecs : "--message=solo" (mono-mot, déjà vert) reste []
+ok 170 - extractCommitPathspecs : "--message=solo" (mono-mot, déjà vert) reste []
+  ---
+  duration_ms: 0.105619
+  type: 'test'
+  ...
+# Subtest: extractCommitPathspecs : "--message=" APRÈS -- est un chemin, jamais un message
+ok 171 - extractCommitPathspecs : "--message=" APRÈS -- est un chemin, jamais un message
+  ---
+  duration_ms: 0.262341
+  type: 'test'
+  ...
+# Subtest: extractCommitPathspecs : "-cam" groupé + valeur COLLÉE ("-cam\\"a b c\\"") reste []
+ok 172 - extractCommitPathspecs : "-cam" groupé + valeur COLLÉE ("-cam\\"a b c\\"") reste []
+  ---
+  duration_ms: 0.182126
+  type: 'test'
+  ...
+# Subtest: extractClosedIssues : "--message=" multi-mots reconnaît toujours le mot-clef de fermeture
+ok 173 - extractClosedIssues : "--message=" multi-mots reconnaît toujours le mot-clef de fermeture
+  ---
+  duration_ms: 0.168485
+  type: 'test'
+  ...
+# Subtest: porte du ticket : un commit qui touche src/ sans aucun ticket est REFUSÉ, fichier nommé
+ok 174 - porte du ticket : un commit qui touche src/ sans aucun ticket est REFUSÉ, fichier nommé
+  ---
+  duration_ms: 1.846097
+  type: 'test'
+  ...
+# Subtest: porte du ticket : `scripts/` est de la substance au même titre que `src/`
+ok 175 - porte du ticket : `scripts/` est de la substance au même titre que `src/`
+  ---
+  duration_ms: 0.198145
+  type: 'test'
+  ...
+# Subtest: porte du ticket : `refs \#N` suffit, `corrige \#N` aussi
+ok 176 - porte du ticket : `refs \#N` suffit, `corrige \#N` aussi
+  ---
+  duration_ms: 0.252039
+  type: 'test'
+  ...
+# Subtest: porte du ticket : docs/ et .claude/ seuls passent sans ticket (docs dérivés, mémoire)
+ok 177 - porte du ticket : docs/ et .claude/ seuls passent sans ticket (docs dérivés, mémoire)
+  ---
+  duration_ms: 0.171175
+  type: 'test'
+  ...
+# Subtest: porte du ticket : un fichier GÉNÉRÉ de src/ reste de la substance
+ok 178 - porte du ticket : un fichier GÉNÉRÉ de src/ reste de la substance
+  ---
+  duration_ms: 0.206045
+  type: 'test'
+  ...
+# Subtest: porte du ticket : un message que la commande NE PORTE PAS (éditeur, --amend) est dit comme tel
+ok 179 - porte du ticket : un message que la commande NE PORTE PAS (éditeur, --amend) est dit comme tel
+  ---
+  duration_ms: 0.563903
+  type: 'test'
+  ...
+# Subtest: porte du ticket : ce qui n’est pas un `git commit` ne déclenche rien
+ok 180 - porte du ticket : ce qui n’est pas un `git commit` ne déclenche rien
+  ---
+  duration_ms: 0.205165
+  type: 'test'
+  ...
+# Subtest: evaluateAntiEsquive : pas un commit → silence
+ok 181 - evaluateAntiEsquive : pas un commit → silence
+  ---
+  duration_ms: 0.276692
+  type: 'test'
+  ...
+# Subtest: evaluateAntiEsquive : diff ne touche pas src → silence
+ok 182 - evaluateAntiEsquive : diff ne touche pas src → silence
+  ---
+  duration_ms: 0.119037
+  type: 'test'
+  ...
+# Subtest: evaluateAntiEsquive : diff < 10 lignes → silence (one-liner sur la suite verte)
+ok 183 - evaluateAntiEsquive : diff < 10 lignes → silence (one-liner sur la suite verte)
+  ---
+  duration_ms: 0.099032
+  type: 'test'
+  ...
+# Subtest: evaluateAntiEsquive : fermeture déjà couverte par evaluate() → silence
+ok 184 - evaluateAntiEsquive : fermeture déjà couverte par evaluate() → silence
+  ---
+  duration_ms: 0.123863
+  type: 'test'
+  ...
+# Subtest: evaluateAntiEsquive : "ref \#N" src touché sans réfutation → deny
+ok 185 - evaluateAntiEsquive : "ref \#N" src touché sans réfutation → deny
+  ---
+  duration_ms: 0.331914
+  type: 'test'
+  ...
+# Subtest: evaluateAntiEsquive : "ref \#N" avec ligne REFUTATION: inline valide → pass
+ok 186 - evaluateAntiEsquive : "ref \#N" avec ligne REFUTATION: inline valide → pass
+  ---
+  duration_ms: 0.220446
+  type: 'test'
+  ...
+# Subtest: evaluateAntiEsquive : "ref \#N" avec ligne REFUTATION: trop courte → deny
+ok 187 - evaluateAntiEsquive : "ref \#N" avec ligne REFUTATION: trop courte → deny
+  ---
+  duration_ms: 0.179837
+  type: 'test'
+  ...
+# Subtest: evaluateAntiEsquive : "ref \#N" avec fichier ref-N.md conforme → pass
+ok 188 - evaluateAntiEsquive : "ref \#N" avec fichier ref-N.md conforme → pass
+  ---
+  duration_ms: 0.167404
+  type: 'test'
+  ...
+# Subtest: evaluateAntiEsquive : "ref \#N" avec fichier ref-N.md non conforme → deny
+ok 189 - evaluateAntiEsquive : "ref \#N" avec fichier ref-N.md non conforme → deny
+  ---
+  duration_ms: 0.18574
+  type: 'test'
+  ...
+# Subtest: evaluateAntiEsquive : aucun ticket rattaché (ni fermeture, ni ref \#N), src touché → silence (\#591)
+ok 190 - evaluateAntiEsquive : aucun ticket rattaché (ni fermeture, ni ref \#N), src touché → silence (\#591)
+  ---
+  duration_ms: 0.777379
+  type: 'test'
+  ...
+# Subtest: validateJugeFile : conforme
+ok 191 - validateJugeFile : conforme
+  ---
+  duration_ms: 0.305515
+  type: 'test'
+  ...
+# Subtest: validateJugeFile : fichier absent
+ok 192 - validateJugeFile : fichier absent
+  ---
+  duration_ms: 0.069956
+  type: 'test'
+  ...
+# Subtest: validateJugeFile : section absente
+ok 193 - validateJugeFile : section absente
+  ---
+  duration_ms: 0.202768
+  type: 'test'
+  ...
+# Subtest: validateJugeFile : section trop maigre
+ok 194 - validateJugeFile : section trop maigre
+  ---
+  duration_ms: 0.08138
+  type: 'test'
+  ...
+# Subtest: validateJugeVisionFile : conforme
+ok 195 - validateJugeVisionFile : conforme
+  ---
+  duration_ms: 0.265928
+  type: 'test'
+  ...
+# Subtest: validateJugeVisionFile : section absente
+ok 196 - validateJugeVisionFile : section absente
+  ---
+  duration_ms: 0.186686
+  type: 'test'
+  ...
+# Subtest: evaluateJuge : pas un commit → silence
+ok 197 - evaluateJuge : pas un commit → silence
+  ---
+  duration_ms: 0.163892
+  type: 'test'
+  ...
+# Subtest: evaluateJuge : diff ne touche pas src → silence
+ok 198 - evaluateJuge : diff ne touche pas src → silence
+  ---
+  duration_ms: 0.068083
+  type: 'test'
+  ...
+# Subtest: evaluateJuge : diff < 10 lignes → silence
+ok 199 - evaluateJuge : diff < 10 lignes → silence
+  ---
+  duration_ms: 0.114384
+  type: 'test'
+  ...
+# Subtest: evaluateJuge : fermeture de ticket → silence (déjà couverte par le solde)
+ok 200 - evaluateJuge : fermeture de ticket → silence (déjà couverte par le solde)
+  ---
+  duration_ms: 0.068201
+  type: 'test'
+  ...
+# Subtest: evaluateJuge : aucun ticket rattaché, src touché → silence (\#591)
+ok 201 - evaluateJuge : aucun ticket rattaché, src touché → silence (\#591)
+  ---
+  duration_ms: 0.083467
+  type: 'test'
+  ...
+# Subtest: evaluateJuge : "ref \#N" src touché sans ligne JUGE → deny
+ok 202 - evaluateJuge : "ref \#N" src touché sans ligne JUGE → deny
+  ---
+  duration_ms: 0.310194
+  type: 'test'
+  ...
+# Subtest: evaluateJuge : "ref \#N" src touché avec ligne JUGE: valide, hors UI → pass
+ok 203 - evaluateJuge : "ref \#N" src touché avec ligne JUGE: valide, hors UI → pass
+  ---
+  duration_ms: 0.642263
+  type: 'test'
+  ...
+# Subtest: evaluateJuge : "ref \#N" ligne JUGE: trop courte → deny
+ok 204 - evaluateJuge : "ref \#N" ligne JUGE: trop courte → deny
+  ---
+  duration_ms: 0.221982
+  type: 'test'
+  ...
+# Subtest: evaluateJuge : "ref \#N" src/ui touché avec JUGE: seul (sans JUGE-VISION) → deny
+ok 205 - evaluateJuge : "ref \#N" src/ui touché avec JUGE: seul (sans JUGE-VISION) → deny
+  ---
+  duration_ms: 0.435689
+  type: 'test'
+  ...
+# Subtest: evaluateJuge : "ref \#N" src/ui touché avec JUGE: et JUGE-VISION: → pass
+ok 206 - evaluateJuge : "ref \#N" src/ui touché avec JUGE: et JUGE-VISION: → pass
+  ---
+  duration_ms: 0.223344
+  type: 'test'
+  ...
+# Subtest: evaluateJuge : "ref \#N" avec fichier ref-N.md portant "\#\# Juge" conforme, hors UI → pass
+ok 207 - evaluateJuge : "ref \#N" avec fichier ref-N.md portant "\#\# Juge" conforme, hors UI → pass
+  ---
+  duration_ms: 0.115226
+  type: 'test'
+  ...
+# Subtest: evaluateJuge : "ref \#N" UI touchée, fichier ref-N.md sans "\#\# Juge-Vision" → deny
+ok 208 - evaluateJuge : "ref \#N" UI touchée, fichier ref-N.md sans "\#\# Juge-Vision" → deny
+  ---
+  duration_ms: 0.172619
+  type: 'test'
+  ...
+# Subtest: evaluateJuge : "ref \#N" UI touchée, fichier ref-N.md avec "\#\# Juge" ET "\#\# Juge-Vision" → pass
+ok 209 - evaluateJuge : "ref \#N" UI touchée, fichier ref-N.md avec "\#\# Juge" ET "\#\# Juge-Vision" → pass
+  ---
+  duration_ms: 0.106564
+  type: 'test'
+  ...
+# Subtest: extractMessageSources : pas de -F → texte = commande telle quelle
+ok 210 - extractMessageSources : pas de -F → texte = commande telle quelle
+  ---
+  duration_ms: 0.122516
+  type: 'test'
+  ...
+# Subtest: extractMessageSources : -F <path> lu et concaténé
+ok 211 - extractMessageSources : -F <path> lu et concaténé
+  ---
+  duration_ms: 0.176905
+  type: 'test'
+  ...
+# Subtest: extractMessageSources : --file=<path> (forme =) lu
+ok 212 - extractMessageSources : --file=<path> (forme =) lu
+  ---
+  duration_ms: 0.125281
+  type: 'test'
+  ...
+# Subtest: extractMessageSources : --file <path> (forme espace) lu
+ok 213 - extractMessageSources : --file <path> (forme espace) lu
+  ---
+  duration_ms: 0.140755
+  type: 'test'
+  ...
+# Subtest: extractMessageSources : chemin quoté (doubles/simples) dépouillé avant lecture
+ok 214 - extractMessageSources : chemin quoté (doubles/simples) dépouillé avant lecture
+  ---
+  duration_ms: 0.301988
+  type: 'test'
+  ...
+# Subtest: extractMessageSources : ligne REFUTATION: dans le fichier -F visible dans le texte
+ok 215 - extractMessageSources : ligne REFUTATION: dans le fichier -F visible dans le texte
+  ---
+  duration_ms: 0.13112
+  type: 'test'
+  ...
+# Subtest: extractMessageSources : -F présent mais fichier illisible → fileError renseigné, texte = commande seule
+ok 216 - extractMessageSources : -F présent mais fichier illisible → fileError renseigné, texte = commande seule
+  ---
+  duration_ms: 0.184789
+  type: 'test'
+  ...
+# Subtest: extractMessageSources : commande vide → texte vide, pas d'erreur
+ok 217 - extractMessageSources : commande vide → texte vide, pas d'erreur
+  ---
+  duration_ms: 0.132693
+  type: 'test'
+  ...
+# Subtest: intégration -F : fermeture via -F sans solde → deny (invisible avec l'ancien driver, visible maintenant)
+ok 218 - intégration -F : fermeture via -F sans solde → deny (invisible avec l'ancien driver, visible maintenant)
+  ---
+  duration_ms: 0.502024
+  type: 'test'
+  ...
+# Subtest: intégration -F : fermeture via -F avec solde conforme → pass
+ok 219 - intégration -F : fermeture via -F avec solde conforme → pass
+  ---
+  duration_ms: 0.555756
+  type: 'test'
+  ...
+# Subtest: intégration -F : REFUTATION: dans le fichier -F accepte l'anti-esquive
+ok 220 - intégration -F : REFUTATION: dans le fichier -F accepte l'anti-esquive
+  ---
+  duration_ms: 0.415816
+  type: 'test'
+  ...
+# Subtest: evaluateAmendInvisible : pas un commit → silence
+ok 221 - evaluateAmendInvisible : pas un commit → silence
+  ---
+  duration_ms: 0.113381
+  type: 'test'
+  ...
+# Subtest: evaluateAmendInvisible : pas --amend → silence
+ok 222 - evaluateAmendInvisible : pas --amend → silence
+  ---
+  duration_ms: 0.122931
+  type: 'test'
+  ...
+# Subtest: evaluateAmendInvisible : --amend avec -m → silence (message visible)
+ok 223 - evaluateAmendInvisible : --amend avec -m → silence (message visible)
+  ---
+  duration_ms: 0.10779
+  type: 'test'
+  ...
+# Subtest: evaluateAmendInvisible : --amend avec -F → silence (message visible via -F)
+ok 224 - evaluateAmendInvisible : --amend avec -F → silence (message visible via -F)
+  ---
+  duration_ms: 0.152184
+  type: 'test'
+  ...
+# Subtest: evaluateAmendInvisible : --amend sans -m/-F, diff staged touche src → deny
+ok 225 - evaluateAmendInvisible : --amend sans -m/-F, diff staged touche src → deny
+  ---
+  duration_ms: 0.190681
+  type: 'test'
+  ...
+# Subtest: evaluateAmendInvisible : `-C`/`-c <commit>`, graphies longues et abrégées comprises → deny
+ok 226 - evaluateAmendInvisible : `-C`/`-c <commit>`, graphies longues et abrégées comprises → deny
+  ---
+  duration_ms: 0.41369
+  type: 'test'
+  ...
+# Subtest: evaluateAmendInvisible : `--fixup`/`--squash <commit>` → deny, avec ou sans -m/-F
+ok 227 - evaluateAmendInvisible : `--fixup`/`--squash <commit>` → deny, avec ou sans -m/-F
+  ---
+  duration_ms: 0.266388
+  type: 'test'
+  ...
+# Subtest: evaluateAmendInvisible : --amend sans -m/-F, diff staged ne touche pas src → silence
+ok 228 - evaluateAmendInvisible : --amend sans -m/-F, diff staged ne touche pas src → silence
+  ---
+  duration_ms: 0.071637
+  type: 'test'
+  ...
+# Subtest: ticketsDuRegistre : extrait les \#N (ticket et bloque), dédupliqués
+ok 229 - ticketsDuRegistre : extrait les \#N (ticket et bloque), dédupliqués
+  ---
+  duration_ms: 0.212374
+  type: 'test'
+  ...
+# Subtest: ticketsDuRegistre : null/vide → ensemble vide
+ok 230 - ticketsDuRegistre : null/vide → ensemble vide
+  ---
+  duration_ms: 0.061708
+  type: 'test'
+  ...
+# Subtest: evaluateRegistresPorteurs : fermeture avec entrée encore présente → bloqué, et le refus NOMME le fichier
+ok 231 - evaluateRegistresPorteurs : fermeture avec entrée encore présente → bloqué, et le refus NOMME le fichier
+  ---
+  duration_ms: 0.591142
+  type: 'test'
+  ...
+# Subtest: evaluateRegistresPorteurs : TOUT registre de la liste mord, pas seulement le premier
+ok 232 - evaluateRegistresPorteurs : TOUT registre de la liste mord, pas seulement le premier
+  ---
+  duration_ms: 0.177964
+  type: 'test'
+  ...
+# Subtest: evaluateRegistresPorteurs : marque retirée dans le MÊME commit (contenu emporté sans \#N) → passe
+ok 233 - evaluateRegistresPorteurs : marque retirée dans le MÊME commit (contenu emporté sans \#N) → passe
+  ---
+  duration_ms: 0.104667
+  type: 'test'
+  ...
+# Subtest: evaluateRegistresPorteurs : registre hors du lot — le contenu lu (HEAD) mord comme avant
+ok 234 - evaluateRegistresPorteurs : registre hors du lot — le contenu lu (HEAD) mord comme avant
+  ---
+  duration_ms: 0.190754
+  type: 'test'
+  ...
+# Subtest: evaluateRegistresPorteurs : commit sans fermeture → intact (silence)
+ok 235 - evaluateRegistresPorteurs : commit sans fermeture → intact (silence)
+  ---
+  duration_ms: 0.148708
+  type: 'test'
+  ...
+# Subtest: evaluateRegistresPorteurs : \#N porté par aucun registre → intact (silence)
+ok 236 - evaluateRegistresPorteurs : \#N porté par aucun registre → intact (silence)
+  ---
+  duration_ms: 0.157948
+  type: 'test'
+  ...
+# Subtest: evaluateRegistresPorteurs : multi-fermeture — seuls les tickets encore portés listés
+ok 237 - evaluateRegistresPorteurs : multi-fermeture — seuls les tickets encore portés listés
+  ---
+  duration_ms: 0.279846
+  type: 'test'
+  ...
+# Subtest: evaluateRegistresPorteurs : liste ABSENTE du commit → la FERMETURE refuse en nommant la cause
+ok 238 - evaluateRegistresPorteurs : liste ABSENTE du commit → la FERMETURE refuse en nommant la cause
+  ---
+  duration_ms: 0.297421
+  type: 'test'
+  ...
+# Subtest: evaluateRegistresPorteurs : liste au JSON CASSÉ → refus de fermeture, jamais une levée
+ok 239 - evaluateRegistresPorteurs : liste au JSON CASSÉ → refus de fermeture, jamais une levée
+  ---
+  duration_ms: 0.285613
+  type: 'test'
+  ...
+# Subtest: evaluateRegistresPorteurs : la liste NEUVE du commit jugé fait foi — pas celle d’un autre arbre
+ok 240 - evaluateRegistresPorteurs : la liste NEUVE du commit jugé fait foi — pas celle d’un autre arbre
+  ---
+  duration_ms: 0.164586
+  type: 'test'
+  ...
+# Subtest: \#1825 : chaque chemin de `registres-porteurs.json` désigne un fichier qui EXISTE
+ok 241 - \#1825 : chaque chemin de `registres-porteurs.json` désigne un fichier qui EXISTE
+  ---
+  duration_ms: 0.651564
+  type: 'test'
+  ...
+# Subtest: extractTargetDir : "cd <path> && git commit" → résolu contre cwd, pas le cwd de la session
+ok 242 - extractTargetDir : "cd <path> && git commit" → résolu contre cwd, pas le cwd de la session
+  ---
+  duration_ms: 0.522623
+  type: 'test'
+  ...
+# Subtest: extractTargetDir : pas de cd → cwd inchangé (comportement d'origine hors worktree)
+ok 243 - extractTargetDir : pas de cd → cwd inchangé (comportement d'origine hors worktree)
+  ---
+  duration_ms: 0.133942
+  type: 'test'
+  ...
+# Subtest: extractTargetDir : commande vide → cwd inchangé
+ok 244 - extractTargetDir : commande vide → cwd inchangé
+  ---
+  duration_ms: 0.069025
+  type: 'test'
+  ...
+# Subtest: extractTargetDir : chemin quoté avec espaces (doubles/simples) dépouillé avant résolution
+ok 245 - extractTargetDir : chemin quoté avec espaces (doubles/simples) dépouillé avant résolution
+  ---
+  duration_ms: 0.194448
+  type: 'test'
+  ...
+# Subtest: extractTargetDir : "git -C <path> commit" reconnu même sans cd
+ok 246 - extractTargetDir : "git -C <path> commit" reconnu même sans cd
+  ---
+  duration_ms: 0.120794
+  type: 'test'
+  ...
+# Subtest: extractTargetDir : chemin absolu résolu tel quel
+ok 247 - extractTargetDir : chemin absolu résolu tel quel
+  ---
+  duration_ms: 0.125504
+  type: 'test'
+  ...
+# Subtest: extractMessageSources : « -F » en PROSE d un message -m n est pas un flag fichier (git refuse -m+-F — faux positif vécu 2026-07-14)
+ok 248 - extractMessageSources : « -F » en PROSE d un message -m n est pas un flag fichier (git refuse -m+-F — faux positif vécu 2026-07-14)
+  ---
+  duration_ms: 0.135535
+  type: 'test'
+  ...
+# Subtest: extractMessageSources : le -F de « gh api -X PATCH … -F corps=@fichier » n est PAS un message de commit
+ok 249 - extractMessageSources : le -F de « gh api -X PATCH … -F corps=@fichier » n est PAS un message de commit
+  ---
+  duration_ms: 0.18446
+  type: 'test'
+  ...
+# Subtest: extractMessageSources : une ligne de todo qui CITE le drapeau ne cherche aucun fichier
+ok 250 - extractMessageSources : une ligne de todo qui CITE le drapeau ne cherche aucun fichier
+  ---
+  duration_ms: 0.109223
+  type: 'test'
+  ...
+# Subtest: extractMessageSources : « gh issue comment --body-file » n est pas un flag fichier de commit
+ok 251 - extractMessageSources : « gh issue comment --body-file » n est pas un flag fichier de commit
+  ---
+  duration_ms: 0.1365
+  type: 'test'
+  ...
+# Subtest: extractMessageSources : un VRAI git commit -F sur un fichier absent reste REFUSÉ (fail-closed)
+ok 252 - extractMessageSources : un VRAI git commit -F sur un fichier absent reste REFUSÉ (fail-closed)
+  ---
+  duration_ms: 0.141963
+  type: 'test'
+  ...
+# Subtest: extractMessageSources : le -F d un `git commit` ENCHAÎNÉ derrière un `gh` est bien lu
+ok 253 - extractMessageSources : le -F d un `git commit` ENCHAÎNÉ derrière un `gh` est bien lu
+  ---
+  duration_ms: 0.137555
+  type: 'test'
+  ...
+# Subtest: repoRoot : résolu depuis l'emplacement du script, retrouve la racine du dépôt même hors cwd
+ok 254 - repoRoot : résolu depuis l'emplacement du script, retrouve la racine du dépôt même hors cwd
+  ---
+  duration_ms: 1.081408
+  type: 'test'
+  ...
+# Subtest: readSoldeFile/readRefFile : lisent le RÉPERTOIRE du commit, pas le dépôt du hook
+ok 255 - readSoldeFile/readRefFile : lisent le RÉPERTOIRE du commit, pas le dépôt du hook
+  ---
+  duration_ms: 1.485643
+  type: 'test'
+  ...
+# Subtest: evaluate : solde STAGÉ conforme → silence (le commit passe)
+ok 256 - evaluate : solde STAGÉ conforme → silence (le commit passe)
+  ---
+  duration_ms: 0.473131
+  type: 'test'
+  ...
+# Subtest: evaluate : solde conforme sur le DISQUE mais absent de l'index → deny actionnable (git add)
+ok 257 - evaluate : solde conforme sur le DISQUE mais absent de l'index → deny actionnable (git add)
+  ---
+  duration_ms: 0.217647
+  type: 'test'
+  ...
+# Subtest: evaluate : ni index ni disque → "fichier absent" (jamais le message de staging)
+ok 258 - evaluate : ni index ni disque → "fichier absent" (jamais le message de staging)
+  ---
+  duration_ms: 0.114728
+  type: 'test'
+  ...
+# Subtest: diffDuCommit.contenu : le solde EMPORTÉ suit la forme — index oui, hors pathspec non
+ok 259 - diffDuCommit.contenu : le solde EMPORTÉ suit la forme — index oui, hors pathspec non
+  ---
+  duration_ms: 119.873518
+  type: 'test'
+  ...
+# Subtest: diffDuCommit : sous `-i`/`--include`, l’INDEX hors pathspec part aussi — contenu et diff, pas HEAD
+ok 260 - diffDuCommit : sous `-i`/`--include`, l’INDEX hors pathspec part aussi — contenu et diff, pas HEAD
+  ---
+  duration_ms: 231.669485
+  type: 'test'
+  ...
+# Subtest: diffDuCommit : sous `-i`, un renommage stagé qui TRAVERSE le pathspec garde ses deux bouts — comme `git show --numstat` après le commit
+ok 261 - diffDuCommit : sous `-i`, un renommage stagé qui TRAVERSE le pathspec garde ses deux bouts — comme `git show --numstat` après le commit
+  ---
+  duration_ms: 143.111059
+  type: 'test'
+  ...
+# Subtest: diffDuCommit : sous `diff.renames=copies`, une COPIE stagée se lit comme sans cette configuration — sous `-i`, son source reste l’INDEX, comme `git show --numstat --no-renames` après le commit
+ok 262 - diffDuCommit : sous `diff.renames=copies`, une COPIE stagée se lit comme sans cette configuration — sous `-i`, son source reste l’INDEX, comme `git show --numstat --no-renames` après le commit
+  ---
+  duration_ms: 158.374306
+  type: 'test'
+  ...
+# Subtest: diffDuCommit : `diff()` rend en UN diff par côté tout ce que le commit emporte, et `images` lit par lot ce qui part et ce qui était
+ok 263 - diffDuCommit : `diff()` rend en UN diff par côté tout ce que le commit emporte, et `images` lit par lot ce qui part et ce qui était
+  ---
+  duration_ms: 135.9224
+  type: 'test'
+  ...
+# Subtest: readChangedNames : le modifié NON stagé, ou le stagé sous `cached` — chemin non-ASCII et espace en clair
+ok 264 - readChangedNames : le modifié NON stagé, ou le stagé sous `cached` — chemin non-ASCII et espace en clair
+  ---
+  duration_ms: 82.671971
+  type: 'test'
+  ...
+# Subtest: validateSolde : UN reste routé passe
+ok 265 - validateSolde : UN reste routé passe
+  ---
+  duration_ms: 0.286449
+  type: 'test'
+  ...
+# Subtest: validateSolde : DEUX restes routés → le ticket reste ouvert sur ce reste
+ok 266 - validateSolde : DEUX restes routés → le ticket reste ouvert sur ce reste
+  ---
+  duration_ms: 0.230905
+  type: 'test'
+  ...
+# Subtest: restesItems / restesRoutants : « RAS » global ne compte aucun item
+ok 267 - restesItems / restesRoutants : « RAS » global ne compte aucun item
+  ---
+  duration_ms: 0.240529
+  type: 'test'
+  ...
+# Subtest: validateSolde : « corrigé dans ce commit » sans fichier:ligne → refus
+ok 268 - validateSolde : « corrigé dans ce commit » sans fichier:ligne → refus
+  ---
+  duration_ms: 0.46779
+  type: 'test'
+  ...
+# Subtest: validateSolde : « corrigé dans ce commit » citant un fichier HORS du diff stagé → refus (cas \#584)
+ok 269 - validateSolde : « corrigé dans ce commit » citant un fichier HORS du diff stagé → refus (cas \#584)
+  ---
+  duration_ms: 0.287218
+  type: 'test'
+  ...
+# Subtest: validateSolde : « corrigé dans ce commit » citant une ligne HORS des hunks → refus
+ok 270 - validateSolde : « corrigé dans ce commit » citant une ligne HORS des hunks → refus
+  ---
+  duration_ms: 0.22157
+  type: 'test'
+  ...
+# Subtest: validateSolde : site cité présent dans le diff ET dans un hunk → passe
+ok 271 - validateSolde : site cité présent dans le diff ET dans un hunk → passe
+  ---
+  duration_ms: 0.151603
+  type: 'test'
+  ...
+# Subtest: lignesDeHunks : les deux côtés du @@ sont recevables (une correction peut SUPPRIMER)
+ok 272 - lignesDeHunks : les deux côtés du @@ sont recevables (une correction peut SUPPRIMER)
+  ---
+  duration_ms: 0.425514
+  type: 'test'
+  ...
+# Subtest: lignesDeHunks : une SUPPRESSION pure rend les lignes DISPARUES (le chemin mort retiré se prouve)
+ok 273 - lignesDeHunks : une SUPPRESSION pure rend les lignes DISPARUES (le chemin mort retiré se prouve)
+  ---
+  duration_ms: 0.469885
+  type: 'test'
+  ...
+# Subtest: validateSolde : « inventaire \#<épic> » ne compte PAS comme un reste routé
+ok 274 - validateSolde : « inventaire \#<épic> » ne compte PAS comme un reste routé
+  ---
+  duration_ms: 0.255802
+  type: 'test'
+  ...
+# Subtest: validateSolde : « inventaire » sans état lisible → refus
+ok 275 - validateSolde : « inventaire » sans état lisible → refus
+  ---
+  duration_ms: 0.147175
+  type: 'test'
+  ...
+# Subtest: validateSolde : écart porté à un épic que CE COMMIT ferme → convertir en ticket par classe
+ok 276 - validateSolde : écart porté à un épic que CE COMMIT ferme → convertir en ticket par classe
+  ---
+  duration_ms: 0.192079
+  type: 'test'
+  ...
+# Subtest: tombalesDansSource : un commentaire de dette citant le ticket fermé est TROUVÉ
+ok 277 - tombalesDansSource : un commentaire de dette citant le ticket fermé est TROUVÉ
+  ---
+  duration_ms: 0.893647
+  type: 'test'
+  ...
+# Subtest: tombalesDansSource : le MÊME motif dans une CHAÎNE n'est pas un commentaire
+ok 278 - tombalesDansSource : le MÊME motif dans une CHAÎNE n'est pas un commentaire
+  ---
+  duration_ms: 0.155519
+  type: 'test'
+  ...
+# Subtest: tombalesDansSource : citer la PROVENANCE d'un choix (sans motif de dette) est toléré
+ok 279 - tombalesDansSource : citer la PROVENANCE d'un choix (sans motif de dette) est toléré
+  ---
+  duration_ms: 0.276296
+  type: 'test'
+  ...
+# Subtest: tombalesDansSource : hors périmètre de fichier (racine ou extension) → rien
+ok 280 - tombalesDansSource : hors périmètre de fichier (racine ou extension) → rien
+  ---
+  duration_ms: 0.115296
+  type: 'test'
+  ...
+# Subtest: evaluateTombale : deny NOMMÉ fichier:ligne ; silence sans fermeture
+ok 281 - evaluateTombale : deny NOMMÉ fichier:ligne ; silence sans fermeture
+  ---
+  duration_ms: 0.329126
+  type: 'test'
+  ...
+# Subtest: evaluateFermetureHorsCommit : `gh issue close` refusé, y compris derrière un sous-shell
+ok 282 - evaluateFermetureHorsCommit : `gh issue close` refusé, y compris derrière un sous-shell
+  ---
+  duration_ms: 0.746485
+  type: 'test'
+  ...
+# Subtest: evaluateFermetureHorsCommit : silence sur ce qui ne ferme pas
+ok 283 - evaluateFermetureHorsCommit : silence sur ce qui ne ferme pas
+  ---
+  duration_ms: 0.362094
+  type: 'test'
+  ...
+# Subtest: evaluateFermetureHorsCommit : un corps `--input` porteur de "state": "closed" est refusé
+ok 284 - evaluateFermetureHorsCommit : un corps `--input` porteur de "state": "closed" est refusé
+  ---
+  duration_ms: 0.48511
+  type: 'test'
+  ...
+# Subtest: evaluateFermetureHorsCommit : les gestes `--input` qui ne peuvent pas FERMER passent en silence
+ok 285 - evaluateFermetureHorsCommit : les gestes `--input` qui ne peuvent pas FERMER passent en silence
+  ---
+  duration_ms: 0.329649
+  type: 'test'
+  ...
+# Subtest: evaluateFermetureHorsCommit : un corps `--input` qui ne ferme pas passe ; `--input -` est HORS PORTÉE
+ok 286 - evaluateFermetureHorsCommit : un corps `--input` qui ne ferme pas passe ; `--input -` est HORS PORTÉE
+  ---
+  duration_ms: 0.256628
+  type: 'test'
+  ...
+# Subtest: evaluateFermetureHorsCommit : sur l'endpoint d'UN ticket, un corps ILLISIBLE est refusé (fail-closed)
+ok 287 - evaluateFermetureHorsCommit : sur l'endpoint d'UN ticket, un corps ILLISIBLE est refusé (fail-closed)
+  ---
+  duration_ms: 0.177858
+  type: 'test'
+  ...
+# Subtest: estArbrePrincipal : `.git` DOSSIER = principal, `.git` FICHIER = worktree lié
+ok 288 - estArbrePrincipal : `.git` DOSSIER = principal, `.git` FICHIER = worktree lié
+  ---
+  duration_ms: 1.703254
+  type: 'test'
+  ...
+# Subtest: cheminDEcriture : dans un dépôt, racine + relatif, contenu versionné — graphie native ou MSYS
+ok 289 - cheminDEcriture : dans un dépôt, racine + relatif, contenu versionné — graphie native ou MSYS
+  ---
+  duration_ms: 63.665204
+  type: 'test'
+  ...
+# Subtest: cheminDEcriture : hors de tout arbre → `horsContenu`, graphie native, MSYS, ou relatif résolu contre `base`
+ok 290 - cheminDEcriture : hors de tout arbre → `horsContenu`, graphie native, MSYS, ou relatif résolu contre `base`
+  ---
+  duration_ms: 12.327225
+  type: 'test'
+  ...
+# Subtest: cheminDEcriture : IGNORÉ par git → `horsContenu` ; un fichier SUIVI qu’un motif couvre reste du contenu
+ok 291 - cheminDEcriture : IGNORÉ par git → `horsContenu` ; un fichier SUIVI qu’un motif couvre reste du contenu
+  ---
+  duration_ms: 106.297025
+  type: 'test'
+  ...
+# Subtest: cheminDEcriture : sans preuve positive, le hook garde — aucun chemin, lecteur absent
+ok 292 - cheminDEcriture : sans preuve positive, le hook garde — aucun chemin, lecteur absent
+  ---
+  duration_ms: 0.383098
+  type: 'test'
+  ...
+# Subtest: evaluateArbrePrincipal : `ask` (jamais deny) dans l'arbre principal, silence en worktree
+ok 293 - evaluateArbrePrincipal : `ask` (jamais deny) dans l'arbre principal, silence en worktree
+  ---
+  duration_ms: 0.574764
+  type: 'test'
+  ...
+# Subtest: evaluateHunksEmportes : chemin nommé stagé ET modifié → deny
+ok 294 - evaluateHunksEmportes : chemin nommé stagé ET modifié → deny
+  ---
+  duration_ms: 0.32256
+  type: 'test'
+  ...
+# Subtest: evaluateHunksEmportes : chemin nommé modifié SEULEMENT → contexte, jamais un refus
+ok 295 - evaluateHunksEmportes : chemin nommé modifié SEULEMENT → contexte, jamais un refus
+  ---
+  duration_ms: 0.253062
+  type: 'test'
+  ...
+# Subtest: evaluateHunksEmportes : commit NU (sans pathspec) → silence
+ok 296 - evaluateHunksEmportes : commit NU (sans pathspec) → silence
+  ---
+  duration_ms: 0.144526
+  type: 'test'
+  ...
+# Subtest: estFichierEcran : src/ui et src/gameIso, jamais leurs tests
+ok 297 - estFichierEcran : src/ui et src/gameIso, jamais leurs tests
+  ---
+  duration_ms: 0.133406
+  type: 'test'
+  ...
+# Subtest: analyzeDiffDuCommit : src/gameIso/** compte comme écran
+ok 298 - analyzeDiffDuCommit : src/gameIso/** compte comme écran
+  ---
+  duration_ms: 0.653007
+  type: 'test'
+  ...
+# Subtest: verifierCapture : une capture PLAUSIBLE passe ; les six défauts sont NOMMÉS
+ok 299 - verifierCapture : une capture PLAUSIBLE passe ; les six défauts sont NOMMÉS
+  ---
+  duration_ms: 60.359837
+  type: 'test'
+  ...
+# Subtest: verifierCapture : une capture IGNORÉE par git est refusée, la même sous public/qc/soldes/ passe
+ok 300 - verifierCapture : une capture IGNORÉE par git est refusée, la même sous public/qc/soldes/ passe
+  ---
+  duration_ms: 30.125617
+  type: 'test'
+  ...
+# Subtest: validateSolde : un commit qui touche un ÉCRAN exige « \#\# Recette visuelle » et sa capture
+ok 301 - validateSolde : un commit qui touche un ÉCRAN exige « \#\# Recette visuelle » et sa capture
+  ---
+  duration_ms: 1.417011
+  type: 'test'
+  ...
+# Subtest: tombalesDansSource : la dette et le ticket doivent tenir sur la MÊME ligne de commentaire
+ok 302 - tombalesDansSource : la dette et le ticket doivent tenir sur la MÊME ligne de commentaire
+  ---
+  duration_ms: 0.46617
+  type: 'test'
+  ...
+# Subtest: validateSolde : « corrigé par <sha> » conforme (ancêtre de HEAD, touche le fichier cité)
+ok 303 - validateSolde : « corrigé par <sha> » conforme (ancêtre de HEAD, touche le fichier cité)
+  ---
+  duration_ms: 0.472976
+  type: 'test'
+  ...
+# Subtest: validateSolde : « corrigé par <sha> » ne compte PAS comme un reste routé
+ok 304 - validateSolde : « corrigé par <sha> » ne compte PAS comme un reste routé
+  ---
+  duration_ms: 0.158344
+  type: 'test'
+  ...
+# Subtest: validateSolde : « corrigé par <sha> » dont le sha n'est PAS un ancêtre de HEAD → refus
+ok 305 - validateSolde : « corrigé par <sha> » dont le sha n'est PAS un ancêtre de HEAD → refus
+  ---
+  duration_ms: 0.25864
+  type: 'test'
+  ...
+# Subtest: validateSolde : « corrigé par <sha> » citant un fichier que le commit ne touche PAS → refus
+ok 306 - validateSolde : « corrigé par <sha> » citant un fichier que le commit ne touche PAS → refus
+  ---
+  duration_ms: 0.302099
+  type: 'test'
+  ...
+# Subtest: validateSolde : « corrigé par <sha> » citant une LIGNE hors des hunks du commit → refus
+ok 307 - validateSolde : « corrigé par <sha> » citant une LIGNE hors des hunks du commit → refus
+  ---
+  duration_ms: 0.198624
+  type: 'test'
+  ...
+# Subtest: validateSolde : « corrigé par <sha> » dont le diff du fichier est VIDE ne tranche pas la ligne
+ok 308 - validateSolde : « corrigé par <sha> » dont le diff du fichier est VIDE ne tranche pas la ligne
+  ---
+  duration_ms: 0.182519
+  type: 'test'
+  ...
+# Subtest: validateSolde : « corrigé par » sans sha ni site reste hors grammaire
+ok 309 - validateSolde : « corrigé par » sans sha ni site reste hors grammaire
+  ---
+  duration_ms: 0.147704
+  type: 'test'
+  ...
+# Subtest: validateSolde : « corrigé par <fusion> <fichier>:<ligne> » d’un travail AMENÉ par la fusion → refus (git réel)
+ok 310 - validateSolde : « corrigé par <fusion> <fichier>:<ligne> » d’un travail AMENÉ par la fusion → refus (git réel)
+  ---
+  duration_ms: 155.991121
+  type: 'test'
+  ...
+# Subtest: estDansHead / fichiersDuCommitGit : le cas fondateur \#584 tient contre git RÉEL
+ok 311 - estDansHead / fichiersDuCommitGit : le cas fondateur \#584 tient contre git RÉEL
+  ---
+  duration_ms: 1640.14655
+  type: 'test'
+  ...
+# Subtest: le solde \#584 de l'arbre est CONFORME à sa propre grammaire
+ok 312 - le solde \#584 de l'arbre est CONFORME à sa propre grammaire
+  ---
+  duration_ms: 66.160925
+  type: 'test'
+  ...
+# Subtest: fichiersDuCommitGit : un RENOMMAGE rend les deux chemins NUS, jamais « {ancien => nouveau} »
+ok 313 - fichiersDuCommitGit : un RENOMMAGE rend les deux chemins NUS, jamais « {ancien => nouveau} »
+  ---
+  duration_ms: 98.888565
+  type: 'test'
+  ...
+# Subtest: fichiersDuCommitGit : une FUSION propre ne touche rien — le correctif appartient au commit de la branche
+ok 314 - fichiersDuCommitGit : une FUSION propre ne touche rien — le correctif appartient au commit de la branche
+  ---
+  duration_ms: 186.834867
+  type: 'test'
+  ...
+# Subtest: EXEMPTIONS_TOMBALE : stock NOMINATIF au site, borné, chaque entrée justifiée
+ok 315 - EXEMPTIONS_TOMBALE : stock NOMINATIF au site, borné, chaque entrée justifiée
+  ---
+  duration_ms: 0.436859
+  type: 'test'
+  ...
+# Subtest: tombalesDansSource : un mot d'ÉTAT du domaine n'est pas une dette
+ok 316 - tombalesDansSource : un mot d'ÉTAT du domaine n'est pas une dette
+  ---
+  duration_ms: 0.41127
+  type: 'test'
+  ...
+# Subtest: tombalesDansSource : une dette DÉCLARÉE ÉTEINTE sur la ligne n'en est plus une
+ok 317 - tombalesDansSource : une dette DÉCLARÉE ÉTEINTE sur la ligne n'en est plus une
+  ---
+  duration_ms: 0.203414
+  type: 'test'
+  ...
+# Subtest: estFichierEcran : borné au RENDU — un module de calcul sous src/ui n'est pas un écran
+ok 318 - estFichierEcran : borné au RENDU — un module de calcul sous src/ui n'est pas un écran
+  ---
+  duration_ms: 0.083315
+  type: 'test'
+  ...
+# Subtest: evaluateHunksEmportes : `git commit -a` emporte TOUT le modifié suivi → contexte nommé
+ok 319 - evaluateHunksEmportes : `git commit -a` emporte TOUT le modifié suivi → contexte nommé
+  ---
+  duration_ms: 0.280879
+  type: 'test'
+  ...
+# Subtest: estDansHead HORS dépôt : JETTE une indisponibilité nommée, ne rend pas false
+ok 320 - estDansHead HORS dépôt : JETTE une indisponibilité nommée, ne rend pas false
+  ---
+  duration_ms: 7.965542
+  type: 'test'
+  ...
+# Subtest: jugerOuNommerLIndisponible : le refus NOMME ce que git n’a pas lu ; toute autre erreur remonte
+ok 321 - jugerOuNommerLIndisponible : le refus NOMME ce que git n’a pas lu ; toute autre erreur remonte
+  ---
+  duration_ms: 0.485832
+  type: 'test'
+  ...
+# Subtest: gesteJuge : commit et fermeture `gh` ; toute autre commande est hors sujet
+ok 322 - gesteJuge : commit et fermeture `gh` ; toute autre commande est hors sujet
+  ---
+  duration_ms: 0.843019
+  type: 'test'
+  ...
+# Subtest: tokenizeCommand : `\\` POSIX et backtick PowerShell en fin de ligne ne coupent pas la commande
+ok 323 - tokenizeCommand : `\\` POSIX et backtick PowerShell en fin de ligne ne coupent pas la commande
+  ---
+  duration_ms: 0.729078
+  type: 'test'
+  ...
+# Subtest: cibleDeLaCommande : un chemin INEXISTANT ou NON EXPANSÉ n’est pas un cwd, et la raison est dite
+ok 324 - cibleDeLaCommande : un chemin INEXISTANT ou NON EXPANSÉ n’est pas un cwd, et la raison est dite
+  ---
+  duration_ms: 1.348913
+  type: 'test'
+  ...
+# Subtest: extractTargetDir : `Set-Location`/`sl`/`chdir`/`pushd` déplacent le commit comme `cd`
+ok 325 - extractTargetDir : `Set-Location`/`sl`/`chdir`/`pushd` déplacent le commit comme `cd`
+  ---
+  duration_ms: 0.80448
+  type: 'test'
+  ...
+# Subtest: evaluateArbrePrincipal derrière un `Set-Location` : silence en worktree LIÉ, `ask` vers l’arbre PRINCIPAL
+ok 326 - evaluateArbrePrincipal derrière un `Set-Location` : silence en worktree LIÉ, `ask` vers l’arbre PRINCIPAL
+  ---
+  duration_ms: 1.394044
+  type: 'test'
+  ...
+# Subtest: avecCibleIgnoree : le refus DIT le répertoire écarté ; sans écart, il n’est pas touché
+ok 327 - avecCibleIgnoree : le refus DIT le répertoire écarté ; sans écart, il n’est pas touché
+  ---
+  duration_ms: 0.154602
+  type: 'test'
+  ...
+# Subtest: isGitCommitCommand : un heredoc qui ÉCRIT un texte citant « git commit » n’est pas un commit
+ok 328 - isGitCommitCommand : un heredoc qui ÉCRIT un texte citant « git commit » n’est pas un commit
+  ---
+  duration_ms: 0.612179
+  type: 'test'
+  ...
+# Subtest: problemesDeRevueNeuve SANS lecteur d’ascendance : le contrôle est DIT non joué, jamais présumé vrai
+ok 329 - problemesDeRevueNeuve SANS lecteur d’ascendance : le contrôle est DIT non joué, jamais présumé vrai
+  ---
+  duration_ms: 0.240723
+  type: 'test'
+  ...
+# Subtest: un poste SUPPRIMÉ par le commit sort de la mesure et reste dans la RÉFÉRENCE
+ok 330 - un poste SUPPRIMÉ par le commit sort de la mesure et reste dans la RÉFÉRENCE
+  ---
+  duration_ms: 99.682803
+  type: 'test'
+  ...
+# Subtest: hors dépôt, le listeur d’image rend [] — comme le listeur de disque devant un dossier absent
+ok 331 - hors dépôt, le listeur d’image rend [] — comme le listeur de disque devant un dossier absent
+  ---
+  duration_ms: 7.228543
+  type: 'test'
+  ...
+# Subtest: le budget qui grandit sans CLIQUET est refusé, avec CLIQUET il passe, et hors commit il se tait
+ok 332 - le budget qui grandit sans CLIQUET est refusé, avec CLIQUET il passe, et hors commit il se tait
+  ---
+  duration_ms: 1.264965
+  type: 'test'
+  ...
+# Subtest: reclassement CSS (\#1806 D2″) : jugé sur un commit qui touche la frontière ou porte une ligne, module par module
+ok 333 - reclassement CSS (\#1806 D2″) : jugé sur un commit qui touche la frontière ou porte une ligne, module par module
+  ---
+  duration_ms: 4.60461
+  type: 'test'
+  ...
+# Subtest: fichiersCitantTickets : les fichiers de l’INDEX sous `src/` et `scripts/` qui citent le ticket, par l’unique `fichiersDuGrep`
+ok 334 - fichiersCitantTickets : les fichiers de l’INDEX sous `src/` et `scripts/` qui citent le ticket, par l’unique `fichiersDuGrep`
+  ---
+  duration_ms: 75.037103
+  type: 'test'
+  ...
+1..334
+# tests 334
+# suites 0
+# pass 334
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 16964.111634

@@ -1,0 +1,23 @@
+## Sous-lot 2b (console de combat) — publié
+
+État MESURÉ après le commit `41aa406d5` (entré dans main, CI verte : course 35481269616) (`scripts/guards/lib/cssCouchesStock.mjs`) :
+
+| Stock | Avant (2a) | Après (2b) |
+|---|---|---|
+| identité | 1719 | 1499 |
+| espacement | 724 | 673 |
+| `style=` inline | 99 | 99 |
+
+**À lire avec ces comptes.** Déclarer la console ORGANISME (`combatConsole`, `nature: 'organisme'`) RECLASSE 265 sites (214 + 51) hors du cliquet des modules d'écran : il ne les solde pas. Seules les 6 unités de `exploration-dock.css` absorbées par la peau partagée sont réellement soldées. Conséquence : la garde des repeints ne voit plus, par construction, un repeint ancré sur une classe `.cc-*`.
+
+**Peau partagée `.skin-pont`** (`components.css`) : la nappe de bois du pont était écrite trois fois (`.combat-console`, `.cc-arch`, `.exploration-dock`) et un test comparait les copies. Une définition ; le test de synchronisation devient un contrat (une seule occurrence du dégradé dans tout `src/ui/styles`, les trois boîtes posent la peau). La garde de poids des peaux couvre toute classe `.skin-*`, sans registre.
+
+**Aucun ancrage déplacé.** Règle retenue : l'ancrage va à l'hôte quand la primitive a plus d'un hôte (le dock, #1829). Le juge a démontré que déplacer l'ancrage du bandeau d'ouverture tuait sa tranche ≤700 — la classe de défaut du 2a.
+
+**Spécimen** : maquette sans store (le singleton `useGame` aurait injecté un combat factice dans la partie en cours), qui COMPOSE les sous-composants réels : `ConsoleCell`, `PhaseBanner`, `ArchGutter`, et `ConsoleArch` (extraction mécanique de l'arche).
+
+**Mesuré, pas tranché** : `.chip` posé à côté de `.cc-cell` / `.cc-set` / `.cc-socle` / `.cc-end` n'est pas inerte (1 à 5 déclarations survivent par site : police, survol, transition). Rien n'est retiré.
+
+**Défaut ANTÉRIEUR trouvé par la recette** : #1833 — la bande rendue dépasse sa hauteur déclarée de 3 px à 1100 / 900 / 800 (chrome d'arche constant, gouttières proportionnelles au portrait).
+
+**Reste avant la clôture de #1806** : sous-lot 2d (`combat-ui.css`), puis les 9 unités de `hud.css` — à instruire sur la FAMILLE de bois (12 sites à 160°, 2 à 180°) pour la plaque du rail ; pour la puce de lieu, la fusion avec `.fold-title` / `.dlg-speaker` est un faux ami MESURÉ (noyau commun = 2 jetons).

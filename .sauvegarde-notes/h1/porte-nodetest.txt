@@ -1,0 +1,1956 @@
+TAP version 13
+# Subtest: deplierImports : ordre de cascade, import déplié AVANT sa feuille, feuille absente ignorée
+ok 1 - deplierImports : ordre de cascade, import déplié AVANT sa feuille, feuille absente ignorée
+  ---
+  duration_ms: 2.542863
+  type: 'test'
+  ...
+# Subtest: specificite et sujet : composé de droite, attributs et pseudo-classes en classes
+ok 2 - specificite et sujet : composé de droite, attributs et pseudo-classes en classes
+  ---
+  duration_ms: 1.233326
+  type: 'test'
+  ...
+# Subtest: ecarts : une règle DÉPLACÉE telle quelle ne laisse aucun reliquat
+ok 3 - ecarts : une règle DÉPLACÉE telle quelle ne laisse aucun reliquat
+  ---
+  duration_ms: 1.230544
+  type: 'test'
+  ...
+# Subtest: ecarts : une déclaration PERDUE au déplacement est nommée, une valeur changée sort des deux côtés
+ok 4 - ecarts : une déclaration PERDUE au déplacement est nommée, une valeur changée sort des deux côtés
+  ---
+  duration_ms: 0.430346
+  type: 'test'
+  ...
+# Subtest: ecarts : le MÉDIA fait partie de l’identité — une règle sortie de son @media est un écart
+ok 5 - ecarts : le MÉDIA fait partie de l’identité — une règle sortie de son @media est un écart
+  ---
+  duration_ms: 0.411936
+  type: 'test'
+  ...
+# Subtest: inversions : à spécificité ÉGALE, deux règles réparties dans deux modules importés à l’envers
+ok 6 - inversions : à spécificité ÉGALE, deux règles réparties dans deux modules importés à l’envers
+  ---
+  duration_ms: 0.699152
+  type: 'test'
+  ...
+# Subtest: inversions : une base passée APRÈS sa surcharge responsive est vue ; une spécificité différente ne l’est pas
+ok 7 - inversions : une base passée APRÈS sa surcharge responsive est vue ; une spécificité différente ne l’est pas
+  ---
+  duration_ms: 2.100599
+  type: 'test'
+  ...
+# Subtest: inversions : une paire `!important` / non important n’en est pas une (l’importance tranche avant l’ordre)
+ok 8 - inversions : une paire `!important` / non important n’en est pas une (l’importance tranche avant l’ordre)
+  ---
+  duration_ms: 0.509393
+  type: 'test'
+  ...
+# Subtest: bascules : un sélecteur RE-PONDÉRÉ qui passe devant une déclaration conservée est nommé
+ok 9 - bascules : un sélecteur RE-PONDÉRÉ qui passe devant une déclaration conservée est nommé
+  ---
+  duration_ms: 0.919287
+  type: 'test'
+  ...
+# Subtest: inversions : un bloc DÉPLACÉ vers une feuille plus précoce nomme la rivale de poids égal qu’il ne bat plus
+ok 10 - inversions : un bloc DÉPLACÉ vers une feuille plus précoce nomme la rivale de poids égal qu’il ne bat plus
+  ---
+  duration_ms: 0.531124
+  type: 'test'
+  ...
+# Subtest: bascules : un sujet d’ÉLÉMENT re-pondéré est vu comme un sujet de classe
+ok 11 - bascules : un sujet d’ÉLÉMENT re-pondéré est vu comme un sujet de classe
+  ---
+  duration_ms: 0.705284
+  type: 'test'
+  ...
+# Subtest: bascules : un renommage qui garde le même verdict contre ses rivales ne rapporte rien
+ok 12 - bascules : un renommage qui garde le même verdict contre ses rivales ne rapporte rien
+  ---
+  duration_ms: 0.224607
+  type: 'test'
+  ...
+# Subtest: bascules : un composé `h3.titre` nomme AUSSI l’élément — à poids ÉGAL, la rivale qui porte une classe est vue
+ok 13 - bascules : un composé `h3.titre` nomme AUSSI l’élément — à poids ÉGAL, la rivale qui porte une classe est vue
+  ---
+  duration_ms: 0.506909
+  type: 'test'
+  ...
+# Subtest: reglesCss : règle de premier niveau — sélecteurs séparés, corps rendu, media nul
+ok 14 - reglesCss : règle de premier niveau — sélecteurs séparés, corps rendu, media nul
+  ---
+  duration_ms: 2.351867
+  type: 'test'
+  ...
+# Subtest: reglesCss : blocs IMBRIQUÉS — le contexte at-rule est empilé, rendu, et n’abrite rien
+ok 15 - reglesCss : blocs IMBRIQUÉS — le contexte at-rule est empilé, rendu, et n’abrite rien
+  ---
+  duration_ms: 0.507648
+  type: 'test'
+  ...
+# Subtest: reglesCss : @keyframes / @font-face sautés en BLOC (leur corps n’est pas fait de sélecteurs)
+ok 16 - reglesCss : @keyframes / @font-face sautés en BLOC (leur corps n’est pas fait de sélecteurs)
+  ---
+  duration_ms: 0.312481
+  type: 'test'
+  ...
+# Subtest: reglesCss : un commentaire ne déclare rien, un prélude at-rule n’est jamais un sélecteur
+ok 17 - reglesCss : un commentaire ne déclare rien, un prélude at-rule n’est jamais un sélecteur
+  ---
+  duration_ms: 0.395943
+  type: 'test'
+  ...
+# Subtest: reglesCss : une at-rule DÉCLARATION se clôt sur son `;` et ne colle pas à la règle suivante
+ok 18 - reglesCss : une at-rule DÉCLARATION se clôt sur son `;` et ne colle pas à la règle suivante
+  ---
+  duration_ms: 0.205688
+  type: 'test'
+  ...
+# Subtest: reglesCss : une accolade CITÉE dans une valeur ne ferme pas le bloc
+ok 19 - reglesCss : une accolade CITÉE dans une valeur ne ferme pas le bloc
+  ---
+  duration_ms: 0.120016
+  type: 'test'
+  ...
+# Subtest: declarations : sépare sur les `;` de premier niveau seulement
+ok 20 - declarations : sépare sur les `;` de premier niveau seulement
+  ---
+  duration_ms: 0.276023
+  type: 'test'
+  ...
+# Subtest: estPlacement : les propriétés nommées et les familles à préfixe placent, tout le reste PEINT
+ok 21 - estPlacement : les propriétés nommées et les familles à préfixe placent, tout le reste PEINT
+  ---
+  duration_ms: 0.509114
+  type: 'test'
+  ...
+# Subtest: estPlacement : un PORTEUR d’image (`list-style`, `list-style-type`) peint dès que sa valeur APPELLE une fonction autre que `symbols()` — `var()` compris ; une chaîne reste le marqueur, qui place
+ok 22 - estPlacement : un PORTEUR d’image (`list-style`, `list-style-type`) peint dès que sa valeur APPELLE une fonction autre que `symbols()` — `var()` compris ; une chaîne reste le marqueur, qui place
+  ---
+  duration_ms: 0.65058
+  type: 'test'
+  ...
+# Subtest: physique : une propriété LOGIQUE se classe comme son équivalent physique
+ok 23 - physique : une propriété LOGIQUE se classe comme son équivalent physique
+  ---
+  duration_ms: 0.500039
+  type: 'test'
+  ...
+# Subtest: valeurHorsEchelle : un littéral de longueur NON NUL, et rien d’autre
+ok 24 - valeurHorsEchelle : un littéral de longueur NON NUL, et rien d’autre
+  ---
+  duration_ms: 0.45957
+  type: 'test'
+  ...
+# Subtest: reglesCss : une virgule DANS `:has()`/`:is()` ne coupe pas la liste (\#1806)
+ok 25 - reglesCss : une virgule DANS `:has()`/`:is()` ne coupe pas la liste (\#1806)
+  ---
+  duration_ms: 0.142546
+  type: 'test'
+  ...
+# Subtest: decoupeSelecteurs : niveau 0 seulement, espaces réduits, vides écartés
+ok 26 - decoupeSelecteurs : niveau 0 seulement, espaces réduits, vides écartés
+  ---
+  duration_ms: 0.067272
+  type: 'test'
+  ...
+# Subtest: moduleHorsCouche : `src/ui/styles/`, ou la zone du `fichier` hors de `src/ui` (\#1806 A3)
+ok 27 - moduleHorsCouche : `src/ui/styles/`, ou la zone du `fichier` hors de `src/ui` (\#1806 A3)
+  ---
+  duration_ms: 0.106656
+  type: 'test'
+  ...
+# Subtest: partition : écran et layout au stock (identité ET espacement), primitive réutilisée et partagée exemptées
+ok 28 - partition : écran et layout au stock (identité ET espacement), primitive réutilisée et partagée exemptées
+  ---
+  duration_ms: 0.563267
+  type: 'test'
+  ...
+# Subtest: L1 : réutilisée = ≥ 2 importeurs de `src/` hors suites et galerie, ou le `fichier` d’une autre primitive
+ok 29 - L1 : réutilisée = ≥ 2 importeurs de `src/` hors suites et galerie, ou le `fichier` d’une autre primitive
+  ---
+  duration_ms: 0.428435
+  type: 'test'
+  ...
+# Subtest: D1″/D6″ S1 Q franchit, X +4
+ok 30 - D1″/D6″ S1 Q franchit, X +4
+  ---
+  duration_ms: 1.271168
+  type: 'test'
+  ...
+# Subtest: D1″/D6″ S2 P fraîche + Q franchit
+ok 31 - D1″/D6″ S2 P fraîche + Q franchit
+  ---
+  duration_ms: 0.38731
+  type: 'test'
+  ...
+# Subtest: D1″/D6″ S3 cure Y→E établie + P fraîche
+ok 32 - D1″/D6″ S3 cure Y→E établie + P fraîche
+  ---
+  duration_ms: 0.470639
+  type: 'test'
+  ...
+# Subtest: D1″/D6″ S4 X +4 après un franchissement de Q
+ok 33 - D1″/D6″ S4 X +4 après un franchissement de Q
+  ---
+  duration_ms: 0.29192
+  type: 'test'
+  ...
+# Subtest: D1″/D6″ S5 E rendue exemptée
+ok 34 - D1″/D6″ S5 E rendue exemptée
+  ---
+  duration_ms: 0.23787
+  type: 'test'
+  ...
+# Subtest: D1″/D6″ S6 souche MONO-hôte
+ok 35 - D1″/D6″ S6 souche MONO-hôte
+  ---
+  duration_ms: 0.161839
+  type: 'test'
+  ...
+# Subtest: D1″/D6″ S6 souche RÉUTILISÉE
+ok 36 - D1″/D6″ S6 souche RÉUTILISÉE
+  ---
+  duration_ms: 0.39468
+  type: 'test'
+  ...
+# Subtest: D1″/D6″ S7 échange E↔Q
+ok 37 - D1″/D6″ S7 échange E↔Q
+  ---
+  duration_ms: 0.4589
+  type: 'test'
+  ...
+# Subtest: D1″/D6″ S8 mv Y→P retouché, P réutilisée
+ok 38 - D1″/D6″ S8 mv Y→P retouché, P réutilisée
+  ---
+  duration_ms: 0.366826
+  type: 'test'
+  ...
+# Subtest: D1″/D6″ S9 franchit et cure au même commit
+ok 39 - D1″/D6″ S9 franchit et cure au même commit
+  ---
+  duration_ms: 0.21449
+  type: 'test'
+  ...
+# Subtest: D1″/D6″ S10 mv réindenté, P mono-hôte
+ok 40 - D1″/D6″ S10 mv réindenté, P mono-hôte
+  ---
+  duration_ms: 0.179718
+  type: 'test'
+  ...
+# Subtest: D1″/D6″ S10 mv réindenté, P réutilisée
+ok 41 - D1″/D6″ S10 mv réindenté, P réutilisée
+  ---
+  duration_ms: 0.161764
+  type: 'test'
+  ...
+# Subtest: D1″/D6″ S11 composant gagne son 2e importeur
+ok 42 - D1″/D6″ S11 composant gagne son 2e importeur
+  ---
+  duration_ms: 0.126205
+  type: 'test'
+  ...
+# Subtest: D1″/D6″ S12 composant perd son 2e importeur
+ok 43 - D1″/D6″ S12 composant perd son 2e importeur
+  ---
+  duration_ms: 0.211071
+  type: 'test'
+  ...
+# Subtest: D1″ : un module ABSENT du parent ne franchit pas — il naît exempté, sa matière est APPARUE en zone exempte
+ok 44 - D1″ : un module ABSENT du parent ne franchit pas — il naît exempté, sa matière est APPARUE en zone exempte
+  ---
+  duration_ms: 0.292736
+  type: 'test'
+  ...
+# Subtest: D5″ : un renommage entre deux modules AU STOCK reporte les clés du parent — rien ne sort, rien n’apparaît
+ok 45 - D5″ : un renommage entre deux modules AU STOCK reporte les clés du parent — rien ne sort, rien n’apparaît
+  ---
+  duration_ms: 0.859057
+  type: 'test'
+  ...
+# Subtest: D6″ commit cible 41aa406d5, lu dans l'histoire : aucun franchissement, la ventilation signée
+ok 46 - D6″ commit cible 41aa406d5, lu dans l'histoire : aucun franchissement, la ventilation signée
+  ---
+  duration_ms: 3126.880841
+  type: 'test'
+  ...
+# Subtest: D6″ commit cible d25652e73, lu dans l'histoire : aucun franchissement, la ventilation signée
+ok 47 - D6″ commit cible d25652e73, lu dans l'histoire : aucun franchissement, la ventilation signée
+  ---
+  duration_ms: 2713.329435
+  type: 'test'
+  ...
+# Subtest: D6″ commit cible c251f46af, lu dans l'histoire : aucun franchissement, la ventilation signée
+ok 48 - D6″ commit cible c251f46af, lu dans l'histoire : aucun franchissement, la ventilation signée
+  ---
+  duration_ms: 2225.620979
+  type: 'test'
+  ...
+# Subtest: D (\#1806) : sur un changement de frontière, Σ CLIQUET du stock CSS = APPARU + RETOURNÉ
+ok 49 - D (\#1806) : sur un changement de frontière, Σ CLIQUET du stock CSS = APPARU + RETOURNÉ
+  ---
+  duration_ms: 5.505624
+  type: 'test'
+  ...
+# Subtest: C (\#1806) : l'admission rend au stock les sites que HEAD portait, et refuse un site NEUF du module qui quitte la zone
+ok 50 - C (\#1806) : l'admission rend au stock les sites que HEAD portait, et refuse un site NEUF du module qui quitte la zone
+  ---
+  duration_ms: 0.862612
+  type: 'test'
+  ...
+# Subtest: C (\#1806) : la régénération du stock CSS admet le RETOURNÉ, refuse un site NEUF, et ne lit la ventilation qu’au refus
+ok 51 - C (\#1806) : la régénération du stock CSS admet le RETOURNÉ, refuse un site NEUF, et ne lit la ventilation qu’au refus
+  ---
+  duration_ms: 3.246567
+  type: 'test'
+  ...
+# Subtest: ligneDeVentilation : SORTI décomposé, puis APPARU et RETOURNÉ
+ok 52 - ligneDeVentilation : SORTI décomposé, puis APPARU et RETOURNÉ
+  ---
+  duration_ms: 0.287484
+  type: 'test'
+  ...
+# Subtest: feuillesPartageesDe : lit la liste dans le TEXTE de cssCouches.mjs ; absent → [] ; illisible → refus nommé
+ok 53 - feuillesPartageesDe : lit la liste dans le TEXTE de cssCouches.mjs ; absent → [] ; illisible → refus nommé
+  ---
+  duration_ms: 1.237313
+  type: 'test'
+  ...
+# Subtest: manifesteDe : UN lecteur — absent → [], JSON invalide ou non-tableau → refus nommé, jamais [] silencieux
+ok 54 - manifesteDe : UN lecteur — absent → [], JSON invalide ou non-tableau → refus nommé, jamais [] silencieux
+  ---
+  duration_ms: 0.217029
+  type: 'test'
+  ...
+# fatal: path 'src/state/crit-test-porte.test.ts' exists on disk, but not in '571f54287'
+# Subtest: périmètre — les porteurs de stock, et eux seuls
+ok 55 - périmètre — les porteurs de stock, et eux seuls
+  ---
+  duration_ms: 1.817815
+  type: 'test'
+  ...
+# Subtest: périmètre — tout JSON suivi dont la FORME est un stock tombe sous un motif de PORTEURS
+ok 56 - périmètre — tout JSON suivi dont la FORME est un stock tombe sous un motif de PORTEURS
+  ---
+  duration_ms: 112.836999
+  type: 'test'
+  ...
+# Subtest: baseline de compte — une CLÉ neuve est une croissance déclarable
+ok 57 - baseline de compte — une CLÉ neuve est une croissance déclarable
+  ---
+  duration_ms: 228.252317
+  type: 'test'
+  ...
+# Subtest: baseline de compte — LIMITE dite : un NOMBRE relevé est invisible
+ok 58 - baseline de compte — LIMITE dite : un NOMBRE relevé est invisible
+  ---
+  duration_ms: 1.327888
+  type: 'test'
+  ...
+# Subtest: porteur — une entrée qui ne NOMME aucun fichier n est vue par AUCUNE porte
+ok 59 - porteur — une entrée qui ne NOMME aucun fichier n est vue par AUCUNE porte
+  ---
+  duration_ms: 1.790592
+  type: 'test'
+  ...
+# Subtest: stock NOMINATIF de l Atlas RAW — une entrée ajoutée est une croissance déclarable, exemple cité
+ok 60 - stock NOMINATIF de l Atlas RAW — une entrée ajoutée est une croissance déclarable, exemple cité
+  ---
+  duration_ms: 1.787555
+  type: 'test'
+  ...
+# Subtest: CAS B — reclasser une entrée d’un stock vers un AUTRE est une croissance NETTE du receveur
+ok 61 - CAS B — reclasser une entrée d’un stock vers un AUTRE est une croissance NETTE du receveur
+  ---
+  duration_ms: 2.795361
+  type: 'test'
+  ...
+# Subtest: stock NOMINATIF de l Atlas RAW — une entrée qui nomme une FICHE (docs/raw) est vue elle aussi
+ok 62 - stock NOMINATIF de l Atlas RAW — une entrée qui nomme une FICHE (docs/raw) est vue elle aussi
+  ---
+  duration_ms: 2.462293
+  type: 'test'
+  ...
+# Subtest: stock NOMINATIF de l Atlas RAW — l entrée qui nomme « Warhammer v4 - Livre de base version corrigee » est vue (espaces et apostrophe admis)
+ok 63 - stock NOMINATIF de l Atlas RAW — l entrée qui nomme « Warhammer v4 - Livre de base version corrigee » est vue (espaces et apostrophe admis)
+  ---
+  duration_ms: 2.999254
+  type: 'test'
+  ...
+# Subtest: stock NOMINATIF de l Atlas RAW — l entrée qui nomme « Warhammer v4 - Les archives de l'Empire volume 1 » est vue (espaces et apostrophe admis)
+ok 64 - stock NOMINATIF de l Atlas RAW — l entrée qui nomme « Warhammer v4 - Les archives de l'Empire volume 1 » est vue (espaces et apostrophe admis)
+  ---
+  duration_ms: 3.544807
+  type: 'test'
+  ...
+# Subtest: stock NOMINATIF de l Atlas RAW — l entrée qui nomme « Warhammer v4 - Aldorf la Couronne de l'Empire » est vue (espaces et apostrophe admis)
+ok 65 - stock NOMINATIF de l Atlas RAW — l entrée qui nomme « Warhammer v4 - Aldorf la Couronne de l'Empire » est vue (espaces et apostrophe admis)
+  ---
+  duration_ms: 1.026852
+  type: 'test'
+  ...
+# Subtest: racine `Source/` — ce qui n en est PAS : prose à espaces, dossier sans `.md`, extension étrangère
+ok 66 - racine `Source/` — ce qui n en est PAS : prose à espaces, dossier sans `.md`, extension étrangère
+  ---
+  duration_ms: 2.416835
+  type: 'test'
+  ...
+# Subtest: entrée MULTILIGNE — une entrée DÉPLACÉE dans son stock ne rend RIEN
+ok 67 - entrée MULTILIGNE — une entrée DÉPLACÉE dans son stock ne rend RIEN
+  ---
+  duration_ms: 13.065742
+  type: 'test'
+  ...
+# Subtest: entrée MULTILIGNE — un champ NON nommant modifié (la date) ne rend RIEN
+ok 68 - entrée MULTILIGNE — un champ NON nommant modifié (la date) ne rend RIEN
+  ---
+  duration_ms: 1.352763
+  type: 'test'
+  ...
+# Subtest: entrée MULTILIGNE — la ligne `fichier` REMPLACÉE ne rend RIEN (échange en place)
+ok 69 - entrée MULTILIGNE — la ligne `fichier` REMPLACÉE ne rend RIEN (échange en place)
+  ---
+  duration_ms: 1.159508
+  type: 'test'
+  ...
+# Subtest: entrée — élément de liste, clé d objet et balise commentée comptent
+ok 70 - entrée — élément de liste, clé d objet et balise commentée comptent
+  ---
+  duration_ms: 0.585653
+  type: 'test'
+  ...
+# Subtest: entrée — le cas FONDATEUR : une clé de registre en NOM DE FICHIER nu
+ok 71 - entrée — le cas FONDATEUR : une clé de registre en NOM DE FICHIER nu
+  ---
+  duration_ms: 0.084718
+  type: 'test'
+  ...
+# Subtest: entrée — tuple dont le fichier est la CLÉ ou la QUEUE
+ok 72 - entrée — tuple dont le fichier est la CLÉ ou la QUEUE
+  ---
+  duration_ms: 2.162221
+  type: 'test'
+  ...
+# Subtest: entrée — un chemin cité en PROSE ou en commentaire n en est pas une
+ok 73 - entrée — un chemin cité en PROSE ou en commentaire n en est pas une
+  ---
+  duration_ms: 0.447984
+  type: 'test'
+  ...
+# Subtest: croissance — un stock qui NAÎT est une croissance nette, avec ses exemples
+ok 74 - croissance — un stock qui NAÎT est une croissance nette, avec ses exemples
+  ---
+  duration_ms: 0.338426
+  type: 'test'
+  ...
+# Subtest: croissance — un stock qui DÉCROÎT ne dit rien ; une clé neuve ne se cache pas derrière une clé qui baisse (\#1806 D5″)
+ok 75 - croissance — un stock qui DÉCROÎT ne dit rien ; une clé neuve ne se cache pas derrière une clé qui baisse (\#1806 D5″)
+  ---
+  duration_ms: 0.268164
+  type: 'test'
+  ...
+# Subtest: croissance par CLÉ (\#1806 D5″, sonde `j3-cliquet-net.mjs`) : X +3 derrière Q −3 dans le même porteur exige `CLIQUET: +3`
+ok 76 - croissance par CLÉ (\#1806 D5″, sonde `j3-cliquet-net.mjs`) : X +3 derrière Q −3 dans le même porteur exige `CLIQUET: +3`
+  ---
+  duration_ms: 8.653239
+  type: 'test'
+  ...
+# Subtest: fichierNommePar : la clé d’une entrée est le fichier qu’elle nomme, sans `:ligne`, `:symbole` ni balise
+ok 77 - fichierNommePar : la clé d’une entrée est le fichier qu’elle nomme, sans `:ligne`, `:symbole` ni balise
+  ---
+  duration_ms: 0.203414
+  type: 'test'
+  ...
+# Subtest: croissance — un diff qui n’est PAS une chaîne LÈVE, et un « 0 » ne peut plus mentir
+ok 78 - croissance — un diff qui n’est PAS une chaîne LÈVE, et un « 0 » ne peut plus mentir
+  ---
+  duration_ms: 0.564063
+  type: 'test'
+  ...
+# Subtest: croissance — hors fichier PORTEUR, la règle se tait
+ok 79 - croissance — hors fichier PORTEUR, la règle se tait
+  ---
+  duration_ms: 0.142525
+  type: 'test'
+  ...
+# Subtest: CLIQUET — le message couvre le fichier s il annonce le BON compte et un motif
+ok 80 - CLIQUET — le message couvre le fichier s il annonce le BON compte et un motif
+  ---
+  duration_ms: 0.330278
+  type: 'test'
+  ...
+# Subtest: déclarations — UN lecteur par mot-clé : `CLIQUET:` et `RECLASSEMENT:` ne se lisent jamais l’un pour l’autre
+ok 81 - déclarations — UN lecteur par mot-clé : `CLIQUET:` et `RECLASSEMENT:` ne se lisent jamais l’un pour l’autre
+  ---
+  duration_ms: 0.476778
+  type: 'test'
+  ...
+# Subtest: CLIQUET — un compte FAUX ou un motif de tampon ne couvre rien, et le refus le dit
+ok 82 - CLIQUET — un compte FAUX ou un motif de tampon ne couvre rien, et le refus le dit
+  ---
+  duration_ms: 0.528015
+  type: 'test'
+  ...
+# Subtest: CLIQUET — deux lignes pour le MÊME fichier (`+999` puis le bon compte) → refus nommé : une déclaration par porteur
+ok 83 - CLIQUET — deux lignes pour le MÊME fichier (`+999` puis le bon compte) → refus nommé : une déclaration par porteur
+  ---
+  duration_ms: 0.211771
+  type: 'test'
+  ...
+# Subtest: refus — nomme le fichier, le compte et jusqu à trois exemples
+ok 84 - refus — nomme le fichier, le compte et jusqu à trois exemples
+  ---
+  duration_ms: 0.19913
+  type: 'test'
+  ...
+# Subtest: portée — le MÊME littéral compte en constante de module, jamais dans un corps de test
+ok 85 - portée — le MÊME littéral compte en constante de module, jamais dans un corps de test
+  ---
+  duration_ms: 2.597602
+  type: 'test'
+  ...
+# Subtest: portée — quand le lecteur rend `null`, le REPLI juge et l'entrée COMPTE
+ok 86 - portée — quand le lecteur rend `null`, le REPLI juge et l'entrée COMPTE
+  ---
+  duration_ms: 0.155743
+  type: 'test'
+  ...
+# Subtest: portée — le RETRAIT se juge sur le PRÉ-image : retirer une fixture ne compense pas un ajout
+ok 87 - portée — le RETRAIT se juge sur le PRÉ-image : retirer une fixture ne compense pas un ajout
+  ---
+  duration_ms: 2.635658
+  type: 'test'
+  ...
+# Subtest: portée — aucune ENVELOPPE ne cache un stock de module
+ok 88 - portée — aucune ENVELOPPE ne cache un stock de module
+  ---
+  duration_ms: 2.806127
+  type: 'test'
+  ...
+# Subtest: définition — les quatre formes de stock sont VUES en portée de module
+ok 89 - définition — les quatre formes de stock sont VUES en portée de module
+  ---
+  duration_ms: 1.06342
+  type: 'test'
+  ...
+# Subtest: définition — les mêmes formes, écrites DANS un test, ne sont aucune entrée
+ok 90 - définition — les mêmes formes, écrites DANS un test, ne sont aucune entrée
+  ---
+  duration_ms: 1.267835
+  type: 'test'
+  ...
+# Subtest: définition — une entrée MULTILIGNE vit à la ligne de son PREMIER caractère
+ok 91 - définition — une entrée MULTILIGNE vit à la ligne de son PREMIER caractère
+  ---
+  duration_ms: 0.409847
+  type: 'test'
+  ...
+# Subtest: définition — un FOYER déclaré n’est pas une entrée : la valeur de `foyer` n’est jamais lue
+ok 92 - définition — un FOYER déclaré n’est pas une entrée : la valeur de `foyer` n’est jamais lue
+  ---
+  duration_ms: 2.264153
+  type: 'test'
+  ...
+# Subtest: définition — un porteur JSON se lit comme les autres
+ok 93 - définition — un porteur JSON se lit comme les autres
+  ---
+  duration_ms: 0.64921
+  type: 'test'
+  ...
+# Subtest: repli — sur une image `null`, une entrée à ACCOLADE n’est pas vue, et l’en-tête le dit
+ok 94 - repli — sur une image `null`, une entrée à ACCOLADE n’est pas vue, et l’en-tête le dit
+  ---
+  duration_ms: 0.452263
+  type: 'test'
+  ...
+# Subtest: lecteur — un appel SANS lecteur d’image est REFUSÉ nommément, jamais compté
+ok 95 - lecteur — un appel SANS lecteur d’image est REFUSÉ nommément, jamais compté
+  ---
+  duration_ms: 0.491405
+  type: 'test'
+  ...
+# Subtest: naissance — un `*-stock.json` qui naît compte ses entrées sur l’image du lecteur
+ok 96 - naissance — un `*-stock.json` qui naît compte ses entrées sur l’image du lecteur
+  ---
+  duration_ms: 1.963709
+  type: 'test'
+  ...
+# Subtest: image — une extension hors de `DIALECTE` n’a pas d’image : `entreesNominatives` rend `null`
+ok 97 - image — une extension hors de `DIALECTE` n’a pas d’image : `entreesNominatives` rend `null`
+  ---
+  duration_ms: 1.519727
+  type: 'test'
+  ...
+# Subtest: porteurs réels — l’image lit des entrées, et jamais moins que le repli de ligne
+ok 98 - porteurs réels — l’image lit des entrées, et jamais moins que le repli de ligne
+  ---
+  duration_ms: 173.960502
+  type: 'test'
+  ...
+# scripts/guards/lib/slotsStock.mjs — image 270 entrée(s), repli 0 ligne(s)
+# scripts/guards/lib/structuresStock.mjs — image 1035 entrée(s), repli 0 ligne(s)
+# scripts/guards/lib/legacyVocabStock.mjs — image 245 entrée(s), repli 0 ligne(s)
+# scripts/hooks/ecrans-ui.json — image 172 entrée(s), repli 172 ligne(s)
+# Subtest: stocks de `scripts/raw` — la porte voit CHAQUE entrée déclarée (corpus par GLOB)
+ok 99 - stocks de `scripts/raw` — la porte voit CHAQUE entrée déclarée (corpus par GLOB)
+  ---
+  duration_ms: 114.510294
+  type: 'test'
+  ...
+# scripts/raw/empty-folios-benignes-stock.json — 34 vue(s) / 34 déclarée(s)
+# scripts/raw/empty-folios-perdues-stock.json — 23 vue(s) / 23 déclarée(s)
+# scripts/raw/folio-gaps-stock.json — 76 vue(s) / 76 déclarée(s)
+# scripts/raw/graphy-stock.json — 91 vue(s) / 91 déclarée(s)
+# scripts/raw/reconciliation-stock.json — 13 vue(s) / 13 déclarée(s)
+# scripts/raw/renvois-stock.json — 21 vue(s) / 21 déclarée(s)
+# scripts/raw/sonde-titres-stock.json — 367 vue(s) / 367 déclarée(s)
+# scripts/raw/source-format-stock.json — 997 vue(s) / 997 déclarée(s)
+# scripts/raw/source-puces-stock.json — 466 vue(s) / 466 déclarée(s)
+# scripts/raw/source-tables-stock.json — 678 vue(s) / 678 déclarée(s)
+# Subtest: stocks `.mjs` de garde à la forme NOMINATIVE — la porte voit CHAQUE entrée déclarée (corpus par GLOB)
+ok 100 - stocks `.mjs` de garde à la forme NOMINATIVE — la porte voit CHAQUE entrée déclarée (corpus par GLOB)
+  ---
+  duration_ms: 93.975428
+  type: 'test'
+  ...
+# scripts/guards/lib/cssCouchesStock.mjs — 2565 vue(s) / 2565 déclarée(s)
+# scripts/guards/lib/entityOrphanStock.mjs — 364 vue(s) / 364 déclarée(s)
+# scripts/guards/lib/folioLineAlignStock.mjs — 42 vue(s) / 42 déclarée(s)
+# scripts/guards/lib/fuitesPartageesStock.mjs — 28 vue(s) / 28 déclarée(s)
+# scripts/guards/lib/horsStrateStock.mjs — 1204 vue(s) / 1204 déclarée(s)
+# scripts/guards/lib/jambesGabaritStock.mjs — 97 vue(s) / 97 déclarée(s)
+# scripts/guards/lib/legacyVocabStock.mjs — 245 vue(s) / 245 déclarée(s)
+# scripts/guards/lib/paletteLiteralStock.mjs — 1138 vue(s) / 1138 déclarée(s)
+# scripts/guards/lib/quadDecoStock.mjs — 73 vue(s) / 73 déclarée(s)
+# scripts/guards/lib/rigPartViewStock.mjs — 79 vue(s) / 79 déclarée(s)
+# scripts/guards/lib/rigViewStock.mjs — 127 vue(s) / 127 déclarée(s)
+# scripts/guards/lib/spellNarratifStock.mjs — 620 vue(s) / 620 déclarée(s)
+# scripts/guards/lib/tableConsumerStock.mjs — 1 vue(s) / 1 déclarée(s)
+# Subtest: stock `.mjs` nominatif — une entrée AJOUTÉE est vue par la porte de plage (net 1, exemple nommant)
+ok 101 - stock `.mjs` nominatif — une entrée AJOUTÉE est vue par la porte de plage (net 1, exemple nommant)
+  ---
+  duration_ms: 2.484155
+  type: 'test'
+  ...
+# Subtest: fenêtre — les deux plus gros stocks du dépôt sont comptés à l’entrée comme à la sortie
+ok 102 - fenêtre — les deux plus gros stocks du dépôt sont comptés à l’entrée comme à la sortie
+  ---
+  duration_ms: 861.424205
+  type: 'test'
+  ...
+# Subtest: fenêtre — les croissances non couvertes de la plage, par commit
+ok 103 - fenêtre — les croissances non couvertes de la plage, par commit
+  ---
+  duration_ms: 2426.836225
+  type: 'test'
+  ...
+# c8d3105ae src/data/migration-b2c-fidelite.test.ts +1
+# c8d3105ae src/engine/ship-crew-hit-noeud-test.test.ts +1
+# c8d3105ae src/state/flowtest-derived-stake.test.ts +2
+# Subtest: fenêtre — un stock OBJET dont les valeurs sont des tableaux est rendu, avec son déclaré
+ok 104 - fenêtre — un stock OBJET dont les valeurs sont des tableaux est rendu, avec son déclaré
+  ---
+  duration_ms: 629.617661
+  type: 'test'
+  ...
+# Subtest: CLIQUET stocks : la PLAGE POUSSÉE ne fait grossir aucun stock en silence
+ok 105 - CLIQUET stocks : la PLAGE POUSSÉE ne fait grossir aucun stock en silence
+  ---
+  duration_ms: 107.131035
+  type: 'test'
+  ...
+# 0 commit(s) jugé(s)
+# Subtest: portée — une entrée écrite en GABARIT à substitution est vue par l’IMAGE comme par le repli
+ok 106 - portée — une entrée écrite en GABARIT à substitution est vue par l’IMAGE comme par le repli
+  ---
+  duration_ms: 1.000234
+  type: 'test'
+  ...
+# Subtest: argument — le stock RÉEL d’un `const` de module reste compté (contre-preuve)
+ok 107 - argument — le stock RÉEL d’un `const` de module reste compté (contre-preuve)
+  ---
+  duration_ms: 0.445756
+  type: 'test'
+  ...
+# Subtest: argument — la même liste de RACINES : comptée au module, exempte en argument
+ok 108 - argument — la même liste de RACINES : comptée au module, exempte en argument
+  ---
+  duration_ms: 0.236801
+  type: 'test'
+  ...
+# Subtest: argument — une liste de RACINES passée à un APPEL n’est une entrée à aucun niveau
+ok 109 - argument — une liste de RACINES passée à un APPEL n’est une entrée à aucun niveau
+  ---
+  duration_ms: 0.446435
+  type: 'test'
+  ...
+# Subtest: argument — sept FAÇADES d’une ligne ne cachent pas un stock qui NOMME des fichiers
+ok 110 - argument — sept FAÇADES d’une ligne ne cachent pas un stock qui NOMME des fichiers
+  ---
+  duration_ms: 0.79053
+  type: 'test'
+  ...
+# Subtest: argument — un ÉLÉMENT de stock qui nomme son fichier via un appel reste une entrée
+ok 111 - argument — un ÉLÉMENT de stock qui nomme son fichier via un appel reste une entrée
+  ---
+  duration_ms: 2.516491
+  type: 'test'
+  ...
+# Subtest: argument — une flèche à corps CONCIS qui APPELLE ne compte rien, mais son littéral NU compte
+ok 112 - argument — une flèche à corps CONCIS qui APPELLE ne compte rien, mais son littéral NU compte
+  ---
+  duration_ms: 0.404877
+  type: 'test'
+  ...
+# Subtest: argument — la forme VÉCUE, dans un `describe` comme au module, ne compte rien
+ok 113 - argument — la forme VÉCUE, dans un `describe` comme au module, ne compte rien
+  ---
+  duration_ms: 0.716691
+  type: 'test'
+  ...
+# Subtest: surface PLEIN CHAMP qui défile : scrollport de page sous un autre nom — défaut nommé
+ok 114 - surface PLEIN CHAMP qui défile : scrollport de page sous un autre nom — défaut nommé
+  ---
+  duration_ms: 1.46522
+  type: 'test'
+  ...
+# Subtest: CADRE borné qui défile dans son écran : aucun défaut, si haut soit son contenu
+ok 115 - CADRE borné qui défile dans son écran : aucun défaut, si haut soit son contenu
+  ---
+  duration_ms: 1.331396
+  type: 'test'
+  ...
+# Subtest: menu plus haut que la fenêtre : la PAGE défile — défaut nommé, avec sa mesure
+ok 116 - menu plus haut que la fenêtre : la PAGE défile — défaut nommé, avec sa mesure
+  ---
+  duration_ms: 0.240718
+  type: 'test'
+  ...
+# Subtest: page qui déborde ALORS QU’un cadre défilant est monté : le défaut NOMME le cadre
+ok 117 - page qui déborde ALORS QU’un cadre défilant est monté : le défaut NOMME le cadre
+  ---
+  duration_ms: 1.799104
+  type: 'test'
+  ...
+# Subtest: CONTENU DE 5130px qui défile DANS son cadre : aucun défaut
+ok 118 - CONTENU DE 5130px qui défile DANS son cadre : aucun défaut
+  ---
+  duration_ms: 0.248656
+  type: 'test'
+  ...
+# Subtest: arrondi de sous-pixel : pas un débord
+ok 119 - arrondi de sous-pixel : pas un débord
+  ---
+  duration_ms: 0.279696
+  type: 'test'
+  ...
+# Subtest: aucune mesure de page : la sonde se déclare AVEUGLE au lieu de se taire
+ok 120 - aucune mesure de page : la sonde se déclare AVEUGLE au lieu de se taire
+  ---
+  duration_ms: 0.12762
+  type: 'test'
+  ...
+# Subtest: CADRE qui commence SOUS la fenêtre : le défaut nomme le cadre, pas les 3px de page
+ok 121 - CADRE qui commence SOUS la fenêtre : le défaut nomme le cadre, pas les 3px de page
+  ---
+  duration_ms: 0.157333
+  type: 'test'
+  ...
+# Subtest: fenêtre qui défile SANS contrat publié : défaut nommé — la sonde ne devient pas muette
+ok 122 - fenêtre qui défile SANS contrat publié : défaut nommé — la sonde ne devient pas muette
+  ---
+  duration_ms: 0.470348
+  type: 'test'
+  ...
+# Subtest: même fenêtre, contrat publié : elle ne tient pas ce qu’elle réclame — défaut chiffré
+ok 123 - même fenêtre, contrat publié : elle ne tient pas ce qu’elle réclame — défaut chiffré
+  ---
+  duration_ms: 0.444891
+  type: 'test'
+  ...
+# Subtest: écran trop bas : la fenêtre prend TOUT ce que l’écran laisse — aucun défaut
+ok 124 - écran trop bas : la fenêtre prend TOUT ce que l’écran laisse — aucun défaut
+  ---
+  duration_ms: 0.181623
+  type: 'test'
+  ...
+# Subtest: écran assez haut : la fenêtre tient EXACTEMENT ce qu’elle réclame — aucun défaut
+ok 125 - écran assez haut : la fenêtre tient EXACTEMENT ce qu’elle réclame — aucun défaut
+  ---
+  duration_ms: 0.084165
+  type: 'test'
+  ...
+# Subtest: corps qui NE défile pas : rien à juger, si petite soit la fenêtre
+ok 126 - corps qui NE défile pas : rien à juger, si petite soit la fenêtre
+  ---
+  duration_ms: 0.059011
+  type: 'test'
+  ...
+# Subtest: bouton AU-DELÀ de la course restante : défaut nommé, avec son bas et la course
+ok 127 - bouton AU-DELÀ de la course restante : défaut nommé, avec son bas et la course
+  ---
+  duration_ms: 0.319384
+  type: 'test'
+  ...
+# Subtest: bouton SOUS LE PLI mais dans la course restante : aucun défaut
+ok 128 - bouton SOUS LE PLI mais dans la course restante : aucun défaut
+  ---
+  duration_ms: 0.074093
+  type: 'test'
+  ...
+# Subtest: carte sans course, commandes toutes dans le corps : aucun défaut
+ok 129 - carte sans course, commandes toutes dans le corps : aucun défaut
+  ---
+  duration_ms: 0.089819
+  type: 'test'
+  ...
+# Subtest: acteur au trait hors de sa piste : défaut nommé, avec le côté et la mesure
+ok 130 - acteur au trait hors de sa piste : défaut nommé, avec le côté et la mesure
+  ---
+  duration_ms: 0.198162
+  type: 'test'
+  ...
+# Subtest: acteur au trait ramené dans le champ : aucun défaut
+ok 131 - acteur au trait ramené dans le champ : aucun défaut
+  ---
+  duration_ms: 0.061956
+  type: 'test'
+  ...
+# Subtest: personne au trait (pause d’initiative, combat fini) : rien à dire
+ok 132 - personne au trait (pause d’initiative, combat fini) : rien à dire
+  ---
+  duration_ms: 0.117842
+  type: 'test'
+  ...
+# Subtest: pied de cadre SOUS la fenêtre : défaut nommé, avec sa mesure
+ok 133 - pied de cadre SOUS la fenêtre : défaut nommé, avec sa mesure
+  ---
+  duration_ms: 0.394978
+  type: 'test'
+  ...
+# Subtest: pied de cadre dans la fenêtre, le corps défilant au-dessus : aucun défaut
+ok 134 - pied de cadre dans la fenêtre, le corps défilant au-dessus : aucun défaut
+  ---
+  duration_ms: 0.079794
+  type: 'test'
+  ...
+# Subtest: pied rogné d’un sous-pixel : pas un défaut
+ok 135 - pied rogné d’un sous-pixel : pas un défaut
+  ---
+  duration_ms: 0.136885
+  type: 'test'
+  ...
+# Subtest: écran à pied NOMMÉ mais absent du relevé : défaut nommé, jamais un vert
+ok 136 - écran à pied NOMMÉ mais absent du relevé : défaut nommé, jamais un vert
+  ---
+  duration_ms: 0.094257
+  type: 'test'
+  ...
+# Subtest: écran sans pied attendu, aucun pied relevé : rien à dire
+ok 137 - écran sans pied attendu, aucun pied relevé : rien à dire
+  ---
+  duration_ms: 0.0483
+  type: 'test'
+  ...
+# Subtest: contenu d’un cadre sous son bord, sans défileur : défaut nommé, avec sa mesure
+ok 138 - contenu d’un cadre sous son bord, sans défileur : défaut nommé, avec sa mesure
+  ---
+  duration_ms: 0.154434
+  type: 'test'
+  ...
+# Subtest: contenu du cadre porté par un défileur (rien de libre sous le bord) : aucun défaut
+ok 139 - contenu du cadre porté par un défileur (rien de libre sous le bord) : aucun défaut
+  ---
+  duration_ms: 0.048238
+  type: 'test'
+  ...
+# Subtest: élément libre qui dépasse d’un sous-pixel : pas un défaut
+ok 140 - élément libre qui dépasse d’un sous-pixel : pas un défaut
+  ---
+  duration_ms: 0.046782
+  type: 'test'
+  ...
+# Subtest: écran de cadre NOMMÉ mais aucun cadre relevé : défaut nommé, jamais un vert
+ok 141 - écran de cadre NOMMÉ mais aucun cadre relevé : défaut nommé, jamais un vert
+  ---
+  duration_ms: 0.044111
+  type: 'test'
+  ...
+# Subtest: écran nommé ABSENT, un autre cadre présent : défaut nommé, le cadre présent ne vaut pas preuve
+ok 142 - écran nommé ABSENT, un autre cadre présent : défaut nommé, le cadre présent ne vaut pas preuve
+  ---
+  duration_ms: 0.105926
+  type: 'test'
+  ...
+# Subtest: écran nommé absent, rien de monté : défaut nommé
+ok 143 - écran nommé absent, rien de monté : défaut nommé
+  ---
+  duration_ms: 0.058782
+  type: 'test'
+  ...
+# Subtest: écran nommé monté mais RECOUVERT par une fenêtre de jet : défaut nommé, avec ce qui le couvre
+ok 144 - écran nommé monté mais RECOUVERT par une fenêtre de jet : défaut nommé, avec ce qui le couvre
+  ---
+  duration_ms: 0.068107
+  type: 'test'
+  ...
+# Subtest: écran nommé monté et au-dessus : aucun défaut
+ok 145 - écran nommé monté et au-dessus : aucun défaut
+  ---
+  duration_ms: 0.046675
+  type: 'test'
+  ...
+# Subtest: preuve DOM de `contenuSousLeBord` (sonde-r3 du juge B8) : planche de navire à 360×740 sans défileur de corps d’onglet
+ok 146 - preuve DOM de `contenuSousLeBord` (sonde-r3 du juge B8) : planche de navire à 360×740 sans défileur de corps d’onglet
+  ---
+  duration_ms: 0.212398
+  type: 'test'
+  ...
+# Subtest: contenu d’une colonne qui passe sous la suivante : défaut nommé, avec sa mesure
+ok 147 - contenu d’une colonne qui passe sous la suivante : défaut nommé, avec sa mesure
+  ---
+  duration_ms: 0.23849
+  type: 'test'
+  ...
+# Subtest: colonnes empilées l’une sous l’autre : aucun défaut
+ok 148 - colonnes empilées l’une sous l’autre : aucun défaut
+  ---
+  duration_ms: 0.153619
+  type: 'test'
+  ...
+# Subtest: colonnes CÔTE À CÔTE, même hauteur : aucun défaut (le recouvrement se juge sur les deux axes)
+ok 149 - colonnes CÔTE À CÔTE, même hauteur : aucun défaut (le recouvrement se juge sur les deux axes)
+  ---
+  duration_ms: 0.081446
+  type: 'test'
+  ...
+# Subtest: frères qui se touchent à un sous-pixel près : pas un défaut
+ok 150 - frères qui se touchent à un sous-pixel près : pas un défaut
+  ---
+  duration_ms: 0.059542
+  type: 'test'
+  ...
+# Subtest: le détecteur juge TOUT cadre et toute fratrie, pas seulement la planche
+ok 151 - le détecteur juge TOUT cadre et toute fratrie, pas seulement la planche
+  ---
+  duration_ms: 0.112078
+  type: 'test'
+  ...
+# Subtest: clic d’onglet qui renvoie la planche en haut : la présence en vue, le corps sous le pli — défaut nommé
+ok 152 - clic d’onglet qui renvoie la planche en haut : la présence en vue, le corps sous le pli — défaut nommé
+  ---
+  duration_ms: 0.199712
+  type: 'test'
+  ...
+# Subtest: barre d’onglets en tête de la planche, corps juste dessous : aucun défaut
+ok 153 - barre d’onglets en tête de la planche, corps juste dessous : aucun défaut
+  ---
+  duration_ms: 0.066415
+  type: 'test'
+  ...
+# Subtest: planche en fin de course : la barre ne peut pas monter plus haut, aucun défaut
+ok 154 - planche en fin de course : la barre ne peut pas monter plus haut, aucun défaut
+  ---
+  duration_ms: 0.085224
+  type: 'test'
+  ...
+# Subtest: barre d’onglets au-dessus de la planche : défaut nommé
+ok 155 - barre d’onglets au-dessus de la planche : défaut nommé
+  ---
+  duration_ms: 1.010966
+  type: 'test'
+  ...
+# Subtest: corps d’onglet sous le bord : défaut nommé
+ok 156 - corps d’onglet sous le bord : défaut nommé
+  ---
+  duration_ms: 0.192178
+  type: 'test'
+  ...
+# Subtest: nom de planche sous la bande de groupe : défaut nommé, avec ce qui le couvre
+ok 157 - nom de planche sous la bande de groupe : défaut nommé, avec ce qui le couvre
+  ---
+  duration_ms: 0.138007
+  type: 'test'
+  ...
+# Subtest: nom de planche dans son dialogue : aucun défaut
+ok 158 - nom de planche dans son dialogue : aucun défaut
+  ---
+  duration_ms: 0.054711
+  type: 'test'
+  ...
+# Subtest: aucun nom relevé : sonde aveugle, défaut nommé — jamais un vert
+ok 159 - aucun nom relevé : sonde aveugle, défaut nommé — jamais un vert
+  ---
+  duration_ms: 0.057355
+  type: 'test'
+  ...
+# Subtest: dialogue occulté par le pont : défaut nommé, avec sa mesure
+ok 160 - dialogue occulté par le pont : défaut nommé, avec sa mesure
+  ---
+  duration_ms: 0.936191
+  type: 'test'
+  ...
+# Subtest: surface qui TOUCHE le pont sans être occultée : aucun défaut
+ok 161 - surface qui TOUCHE le pont sans être occultée : aucun défaut
+  ---
+  duration_ms: 1.190672
+  type: 'test'
+  ...
+# Subtest: tiroir ASSIS sur le pont (descendant) : aucun défaut, même recouvert entièrement
+ok 162 - tiroir ASSIS sur le pont (descendant) : aucun défaut, même recouvert entièrement
+  ---
+  duration_ms: 0.213917
+  type: 'test'
+  ...
+# Subtest: relevé sans aucune intersection : aucun défaut
+ok 163 - relevé sans aucune intersection : aucun défaut
+  ---
+  duration_ms: 1.325
+  type: 'test'
+  ...
+# Subtest: coin de sortie hors de la fenêtre à droite : défaut nommé, avec son intervalle
+ok 164 - coin de sortie hors de la fenêtre à droite : défaut nommé, avec son intervalle
+  ---
+  duration_ms: 0.361247
+  type: 'test'
+  ...
+# Subtest: élément qui sort par la GAUCHE : défaut nommé de ce côté
+ok 165 - élément qui sort par la GAUCHE : défaut nommé de ce côté
+  ---
+  duration_ms: 0.267127
+  type: 'test'
+  ...
+# Subtest: pistes étanches : rien hors fenêtre, même au pixel près
+ok 166 - pistes étanches : rien hors fenêtre, même au pixel près
+  ---
+  duration_ms: 0.154593
+  type: 'test'
+  ...
+# Subtest: mesure de combat saine : aucun défaut
+ok 167 - mesure de combat saine : aucun défaut
+  ---
+  duration_ms: 3.230232
+  type: 'test'
+  ...
+# Subtest: mesure d’exploration saine : aucun défaut
+ok 168 - mesure d’exploration saine : aucun défaut
+  ---
+  duration_ms: 0.310274
+  type: 'test'
+  ...
+# Subtest: ouvreur du rail RECOUVERT : défaut nommé, recouvrant compris
+ok 169 - ouvreur du rail RECOUVERT : défaut nommé, recouvrant compris
+  ---
+  duration_ms: 0.257749
+  type: 'test'
+  ...
+# Subtest: piste du groupe ENROULÉE : défaut nommé, aux deux phases
+ok 170 - piste du groupe ENROULÉE : défaut nommé, aux deux phases
+  ---
+  duration_ms: 0.154709
+  type: 'test'
+  ...
+# Subtest: bande REPLIÉE dont la poignée reçoit son clic : aucun défaut
+ok 171 - bande REPLIÉE dont la poignée reçoit son clic : aucun défaut
+  ---
+  duration_ms: 0.198543
+  type: 'test'
+  ...
+# Subtest: bande REPLIÉE dont la poignée cache des MICRO-JAUGES : défaut chiffré
+ok 172 - bande REPLIÉE dont la poignée cache des MICRO-JAUGES : défaut chiffré
+  ---
+  duration_ms: 0.298455
+  type: 'test'
+  ...
+# Subtest: bande REPLIÉE dont la poignée n’est PAS RENDUE : le groupe est hors d’atteinte
+ok 173 - bande REPLIÉE dont la poignée n’est PAS RENDUE : le groupe est hors d’atteinte
+  ---
+  duration_ms: 0.127064
+  type: 'test'
+  ...
+# Subtest: bande REPLIÉE dont la poignée est RECOUVERTE : défaut nommé
+ok 174 - bande REPLIÉE dont la poignée est RECOUVERTE : défaut nommé
+  ---
+  duration_ms: 0.183717
+  type: 'test'
+  ...
+# Subtest: bande sans carte rendue NI poignée : le groupe est hors d’atteinte
+ok 175 - bande sans carte rendue NI poignée : le groupe est hors d’atteinte
+  ---
+  duration_ms: 0.383014
+  type: 'test'
+  ...
+# Subtest: portrait NON RENDU : jamais « recouvert » (faux positif de bande repliée)
+ok 176 - portrait NON RENDU : jamais « recouvert » (faux positif de bande repliée)
+  ---
+  duration_ms: 0.359569
+  type: 'test'
+  ...
+# Subtest: frise en BANDE qui réserve sa droite : défaut au-delà de 8px
+ok 177 - frise en BANDE qui réserve sa droite : défaut au-delà de 8px
+  ---
+  duration_ms: 0.223735
+  type: 'test'
+  ...
+# Subtest: frise en COLONNE : la marge de droite ne dit rien (la colonne vit à gauche)
+ok 178 - frise en COLONNE : la marge de droite ne dit rien (la colonne vit à gauche)
+  ---
+  duration_ms: 0.102183
+  type: 'test'
+  ...
+# Subtest: cartouche de Round HORS CHAMP à fond de défilement : défaut nommé
+ok 179 - cartouche de Round HORS CHAMP à fond de défilement : défaut nommé
+  ---
+  duration_ms: 0.092205
+  type: 'test'
+  ...
+# Subtest: cartouche de Round ABSENT : la sonde se déclare AVEUGLE, elle ne se tait pas
+ok 180 - cartouche de Round ABSENT : la sonde se déclare AVEUGLE, elle ne se tait pas
+  ---
+  duration_ms: 0.069276
+  type: 'test'
+  ...
+# Subtest: vignette VISIBLE dans la tête de frise, piste défilée : défaut chiffré
+ok 181 - vignette VISIBLE dans la tête de frise, piste défilée : défaut chiffré
+  ---
+  duration_ms: 0.095598
+  type: 'test'
+  ...
+# Subtest: BADGE de score visible dans la tête : défaut nommé par son mobilier
+ok 182 - BADGE de score visible dans la tête : défaut nommé par son mobilier
+  ---
+  duration_ms: 1.152031
+  type: 'test'
+  ...
+# Subtest: mobilier qui PEINT SUR le cartouche (rang égal) : défaut chiffré, rangs dits
+ok 183 - mobilier qui PEINT SUR le cartouche (rang égal) : défaut chiffré, rangs dits
+  ---
+  duration_ms: 0.188097
+  type: 'test'
+  ...
+# Subtest: tête de frise COUVERTE par le cartouche : rien à dire
+ok 184 - tête de frise COUVERTE par le cartouche : rien à dire
+  ---
+  duration_ms: 0.183082
+  type: 'test'
+  ...
+# Subtest: axe qui NE DÉFILE PAS : aucun verdict de tête (l’état est porté par la mesure)
+ok 185 - axe qui NE DÉFILE PAS : aucun verdict de tête (l’état est porté par la mesure)
+  ---
+  duration_ms: 0.065187
+  type: 'test'
+  ...
+# Subtest: entrée du PIED rognée au repos : défaut chiffré
+ok 186 - entrée du PIED rognée au repos : défaut chiffré
+  ---
+  duration_ms: 0.076809
+  type: 'test'
+  ...
+# Subtest: pas d’entrée NON CONSTANT : défaut chiffré, sans attendre un pied rogné
+ok 187 - pas d’entrée NON CONSTANT : défaut chiffré, sans attendre un pied rogné
+  ---
+  duration_ms: 0.079507
+  type: 'test'
+  ...
+# Subtest: vignette au trait qui RECOUVRE un contrôle : défaut nommé, cible et surface
+ok 188 - vignette au trait qui RECOUVRE un contrôle : défaut nommé, cible et surface
+  ---
+  duration_ms: 0.066389
+  type: 'test'
+  ...
+# Subtest: boîte peinte ROGNÉE par un bord du champ : défaut chiffré, côté nommé
+ok 189 - boîte peinte ROGNÉE par un bord du champ : défaut chiffré, côté nommé
+  ---
+  duration_ms: 0.056193
+  type: 'test'
+  ...
+# Subtest: chevron de l’unité au trait MASQUÉ par le cartouche : défaut chiffré
+ok 190 - chevron de l’unité au trait MASQUÉ par le cartouche : défaut chiffré
+  ---
+  duration_ms: 0.074918
+  type: 'test'
+  ...
+# Subtest: aucune unité au trait (pause d’initiative) : aucun verdict de relief
+ok 191 - aucune unité au trait (pause d’initiative) : aucun verdict de relief
+  ---
+  duration_ms: 0.473135
+  type: 'test'
+  ...
+# Subtest: pas d’entrée constant : rien à dire
+ok 192 - pas d’entrée constant : rien à dire
+  ---
+  duration_ms: 0.160264
+  type: 'test'
+  ...
+# Subtest: colonne qui ne défile pas : aucun verdict de pied (l’arrondi n’y est pas en jeu)
+ok 193 - colonne qui ne défile pas : aucun verdict de pied (l’arrondi n’y est pas en jeu)
+  ---
+  duration_ms: 0.095201
+  type: 'test'
+  ...
+# Subtest: colonne défilée dont le pied tient entier : rien à dire
+ok 194 - colonne défilée dont le pied tient entier : rien à dire
+  ---
+  duration_ms: 0.054915
+  type: 'test'
+  ...
+# Subtest: bande horizontale : aucun verdict de pied
+ok 195 - bande horizontale : aucun verdict de pied
+  ---
+  duration_ms: 0.045947
+  type: 'test'
+  ...
+# Subtest: acteur AU TRAIT hors du champ de la frise : défaut nommé
+ok 196 - acteur AU TRAIT hors du champ de la frise : défaut nommé
+  ---
+  duration_ms: 0.05858
+  type: 'test'
+  ...
+# Subtest: aucune entrée au trait (pause d’initiative) : rien à ramener, aucun verdict
+ok 197 - aucune entrée au trait (pause d’initiative) : rien à ramener, aucun verdict
+  ---
+  duration_ms: 0.040682
+  type: 'test'
+  ...
+# Subtest: console ABSENTE en combat : sonde aveugle
+ok 198 - console ABSENTE en combat : sonde aveugle
+  ---
+  duration_ms: 0.092479
+  type: 'test'
+  ...
+# Subtest: console SANS case : sonde aveugle
+ok 199 - console SANS case : sonde aveugle
+  ---
+  duration_ms: 0.056002
+  type: 'test'
+  ...
+# Subtest: case de console RECOUVERTE : défaut nommé
+ok 200 - case de console RECOUVERTE : défaut nommé
+  ---
+  duration_ms: 0.140072
+  type: 'test'
+  ...
+# Subtest: tiroir du journal OUVERT qui recouvre la console : défaut chiffré
+ok 201 - tiroir du journal OUVERT qui recouvre la console : défaut chiffré
+  ---
+  duration_ms: 0.087956
+  type: 'test'
+  ...
+# Subtest: tiroir du journal qui ne s’ouvre pas : sonde aveugle sur sa réserve
+ok 202 - tiroir du journal qui ne s’ouvre pas : sonde aveugle sur sa réserve
+  ---
+  duration_ms: 0.12573
+  type: 'test'
+  ...
+# Subtest: aucun tiroir monté : rien à dire (l’écran ne le porte pas)
+ok 203 - aucun tiroir monté : rien à dire (l’écran ne le porte pas)
+  ---
+  duration_ms: 0.076804
+  type: 'test'
+  ...
+# Subtest: le fil recouvre la frise : défaut chiffré
+ok 204 - le fil recouvre la frise : défaut chiffré
+  ---
+  duration_ms: 0.059522
+  type: 'test'
+  ...
+# Subtest: piste qui DÉBORDE de sa bande : défaut nommé
+ok 205 - piste qui DÉBORDE de sa bande : défaut nommé
+  ---
+  duration_ms: 0.053927
+  type: 'test'
+  ...
+# Subtest: piste plus longue que la bande qui NE DÉFILE PAS : défaut nommé
+ok 206 - piste plus longue que la bande qui NE DÉFILE PAS : défaut nommé
+  ---
+  duration_ms: 0.049949
+  type: 'test'
+  ...
+# Subtest: piste qui tient d’un bloc : le défilement n’est pas exigé
+ok 207 - piste qui tient d’un bloc : le défilement n’est pas exigé
+  ---
+  duration_ms: 0.061574
+  type: 'test'
+  ...
+# Subtest: bandeau d’objectif ABSENT : sonde aveugle sur la zone morte
+ok 208 - bandeau d’objectif ABSENT : sonde aveugle sur la zone morte
+  ---
+  duration_ms: 0.058212
+  type: 'test'
+  ...
+# Subtest: zone morte de l’objectif qui AVALE le clic : défaut chiffré
+ok 209 - zone morte de l’objectif qui AVALE le clic : défaut chiffré
+  ---
+  duration_ms: 0.065508
+  type: 'test'
+  ...
+# Subtest: aucun portrait de groupe : sonde aveugle
+ok 210 - aucun portrait de groupe : sonde aveugle
+  ---
+  duration_ms: 0.121885
+  type: 'test'
+  ...
+# Subtest: portrait de groupe RECOUVERT EN COMBAT (volet déplié sous le fil) : défaut nommé
+ok 211 - portrait de groupe RECOUVERT EN COMBAT (volet déplié sous le fil) : défaut nommé
+  ---
+  duration_ms: 0.133508
+  type: 'test'
+  ...
+# Subtest: portrait de groupe RECOUVERT : défaut nommé
+ok 212 - portrait de groupe RECOUVERT : défaut nommé
+  ---
+  duration_ms: 0.078149
+  type: 'test'
+  ...
+# Subtest: tranches du §12 : bornes 900 / 700 / 560, 360 dans la tranche <=560
+ok 213 - tranches du §12 : bornes 900 / 700 / 560, 360 dans la tranche <=560
+  ---
+  duration_ms: 0.181963
+  type: 'test'
+  ...
+# Subtest: mesures saines aux quatre tranches : aucun défaut de matrice
+ok 214 - mesures saines aux quatre tranches : aucun défaut de matrice
+  ---
+  duration_ms: 0.4127
+  type: 'test'
+  ...
+# Subtest: carte du groupe NON RENDUE : défaut compté
+ok 215 - carte du groupe NON RENDUE : défaut compté
+  ---
+  duration_ms: 0.206272
+  type: 'test'
+  ...
+# Subtest: piste du groupe SANS défilement de secours : défaut nommé
+ok 216 - piste du groupe SANS défilement de secours : défaut nommé
+  ---
+  duration_ms: 0.133806
+  type: 'test'
+  ...
+# Subtest: carte sans VIE : défaut à toute tranche
+ok 217 - carte sans VIE : défaut à toute tranche
+  ---
+  duration_ms: 0.281279
+  type: 'test'
+  ...
+# Subtest: carte sans NOM : défaut à TOUTE tranche, <=560 compris
+ok 218 - carte sans NOM : défaut à TOUTE tranche, <=560 compris
+  ---
+  duration_ms: 0.128465
+  type: 'test'
+  ...
+# Subtest: R-M1, tuile du groupe sous 44px de large à <=560 : défaut chiffré ; au-dessus, rien
+ok 219 - R-M1, tuile du groupe sous 44px de large à <=560 : défaut chiffré ; au-dessus, rien
+  ---
+  duration_ms: 0.09024
+  type: 'test'
+  ...
+# Subtest: R-M1, tuile ROGNÉE par le champ d’une piste qui ne défile pas à <=560 : défaut ; piste qui défile, ou au-dessus, rien
+ok 220 - R-M1, tuile ROGNÉE par le champ d’une piste qui ne défile pas à <=560 : défaut ; piste qui défile, ou au-dessus, rien
+  ---
+  duration_ms: 0.080475
+  type: 'test'
+  ...
+# Subtest: vie NON superposée au portrait : défaut à 561–700 seulement
+ok 221 - vie NON superposée au portrait : défaut à 561–700 seulement
+  ---
+  duration_ms: 0.070055
+  type: 'test'
+  ...
+# Subtest: bande repliée (aucune carte rendue) : la colonne Groupe ne juge rien
+ok 222 - bande repliée (aucune carte rendue) : la colonne Groupe ne juge rien
+  ---
+  duration_ms: 0.128343
+  type: 'test'
+  ...
+# Subtest: frise en BANDE au-dessus de 700 : défaut nommé
+ok 223 - frise en BANDE au-dessus de 700 : défaut nommé
+  ---
+  duration_ms: 0.076912
+  type: 'test'
+  ...
+# Subtest: frise en COLONNE à 700 et moins : défaut nommé
+ok 224 - frise en COLONNE à 700 et moins : défaut nommé
+  ---
+  duration_ms: 0.090495
+  type: 'test'
+  ...
+# Subtest: colonne d’initiative à DROITE au-delà de 900 : défaut chiffré
+ok 225 - colonne d’initiative à DROITE au-delà de 900 : défaut chiffré
+  ---
+  duration_ms: 0.160884
+  type: 'test'
+  ...
+# Subtest: cartouche de Round qui n’ouvre PAS la frise : défaut nommé
+ok 226 - cartouche de Round qui n’ouvre PAS la frise : défaut nommé
+  ---
+  duration_ms: 0.082385
+  type: 'test'
+  ...
+# Subtest: bande d’initiative qui MORD sur le groupe à 561–700 : défaut chiffré ; sous lui, rien
+ok 227 - bande d’initiative qui MORD sur le groupe à 561–700 : défaut chiffré ; sous lui, rien
+  ---
+  duration_ms: 0.145199
+  type: 'test'
+  ...
+# Subtest: courant + deux suivants PAS tous entiers à <=560 : défaut compté ; au-dessus, rien
+ok 228 - courant + deux suivants PAS tous entiers à <=560 : défaut compté ; au-dessus, rien
+  ---
+  duration_ms: 0.089017
+  type: 'test'
+  ...
+# Subtest: cartouche de Round HORS de la colonne au-delà de 900 : défaut nommé ; en bande, rien
+ok 229 - cartouche de Round HORS de la colonne au-delà de 900 : défaut nommé ; en bande, rien
+  ---
+  duration_ms: 0.074296
+  type: 'test'
+  ...
+# Subtest: entrée au trait PAS entière dans le champ à 701–900 : défaut nommé ; ailleurs, rien
+ok 230 - entrée au trait PAS entière dans le champ à 701–900 : défaut nommé ; ailleurs, rien
+  ---
+  duration_ms: 0.11004
+  type: 'test'
+  ...
+# Subtest: aucune entrée au trait à 701–900 : la sonde se déclare AVEUGLE sur le courant entier
+ok 231 - aucune entrée au trait à 701–900 : la sonde se déclare AVEUGLE sur le courant entier
+  ---
+  duration_ms: 0.076795
+  type: 'test'
+  ...
+# Subtest: piste d’initiative NON défilable en bande (561–700 et <=560) : défaut nommé ; en colonne, rien
+ok 232 - piste d’initiative NON défilable en bande (561–700 et <=560) : défaut nommé ; en colonne, rien
+  ---
+  duration_ms: 0.09986
+  type: 'test'
+  ...
+# Subtest: aucune entrée au trait (pause d’initiative) : aucun verdict de suivants
+ok 233 - aucune entrée au trait (pause d’initiative) : aucun verdict de suivants
+  ---
+  duration_ms: 0.061661
+  type: 'test'
+  ...
+# Subtest: pont qui ne va PAS de bord à bord : défaut chiffré
+ok 234 - pont qui ne va PAS de bord à bord : défaut chiffré
+  ---
+  duration_ms: 0.08489
+  type: 'test'
+  ...
+# Subtest: pont au-delà de 21 % de la hauteur dès 1280 : défaut chiffré ; sous 1280, rien
+ok 235 - pont au-delà de 21 % de la hauteur dès 1280 : défaut chiffré ; sous 1280, rien
+  ---
+  duration_ms: 0.101846
+  type: 'test'
+  ...
+# Subtest: pont compact au-delà de 45 % de la hauteur à <=560 : défaut chiffré
+ok 236 - pont compact au-delà de 45 % de la hauteur à <=560 : défaut chiffré
+  ---
+  duration_ms: 0.064184
+  type: 'test'
+  ...
+# Subtest: case de console NON ENTIÈRE dans l’écran : défaut nommé ; non rendue, rien
+ok 237 - case de console NON ENTIÈRE dans l’écran : défaut nommé ; non rendue, rien
+  ---
+  duration_ms: 0.127721
+  type: 'test'
+  ...
+# Subtest: cible tactile sous 44px : défaut chiffré ; à 44, rien
+ok 238 - cible tactile sous 44px : défaut chiffré ; à 44, rien
+  ---
+  duration_ms: 0.156841
+  type: 'test'
+  ...
+# Subtest: pointeur grossier NON émulé, ou aucune commande : la sonde se déclare aveugle
+ok 239 - pointeur grossier NON émulé, ou aucune commande : la sonde se déclare aveugle
+  ---
+  duration_ms: 0.113266
+  type: 'test'
+  ...
+# Subtest: cartes du groupe PAS plus compactes qu’au-delà de 900 : défaut aux deux tranches moyennes
+ok 240 - cartes du groupe PAS plus compactes qu’au-delà de 900 : défaut aux deux tranches moyennes
+  ---
+  duration_ms: 0.219865
+  type: 'test'
+  ...
+# Subtest: cartes compactées et colonne réduite : aucun défaut
+ok 241 - cartes compactées et colonne réduite : aucun défaut
+  ---
+  duration_ms: 0.097105
+  type: 'test'
+  ...
+# Subtest: colonne d’initiative PAS réduite à 701–900 : défaut chiffré
+ok 242 - colonne d’initiative PAS réduite à 701–900 : défaut chiffré
+  ---
+  duration_ms: 0.123061
+  type: 'test'
+  ...
+# Subtest: série SANS mesure au-delà de 900 : rien à comparer
+ok 243 - série SANS mesure au-delà de 900 : rien à comparer
+  ---
+  duration_ms: 0.066465
+  type: 'test'
+  ...
+# Subtest: couche saine : aucun défaut
+ok 244 - couche saine : aucun défaut
+  ---
+  duration_ms: 0.16477
+  type: 'test'
+  ...
+# Subtest: couche ABSENTE : la sonde se déclare AVEUGLE
+ok 245 - couche ABSENTE : la sonde se déclare AVEUGLE
+  ---
+  duration_ms: 0.149292
+  type: 'test'
+  ...
+# Subtest: pont ABSENT sous la couche : sonde aveugle sur sa pose
+ok 246 - pont ABSENT sous la couche : sonde aveugle sur sa pose
+  ---
+  duration_ms: 0.097491
+  type: 'test'
+  ...
+# Subtest: pont DÉCOLLÉ du bas de l’écran : défaut nommé, boîte comprise
+ok 247 - pont DÉCOLLÉ du bas de l’écran : défaut nommé, boîte comprise
+  ---
+  duration_ms: 0.074318
+  type: 'test'
+  ...
+# Subtest: page qui DÉFILE : le plateau déborde de l’écran
+ok 248 - page qui DÉFILE : le plateau déborde de l’écran
+  ---
+  duration_ms: 0.062657
+  type: 'test'
+  ...
+# Subtest: surface ROGNÉE par la couche : défaut chiffré, zone et surface nommées
+ok 249 - surface ROGNÉE par la couche : défaut chiffré, zone et surface nommées
+  ---
+  duration_ms: 0.159347
+  type: 'test'
+  ...
+# Subtest: rognure sous le demi-pixel : arrondi de rendu, rien à dire
+ok 250 - rognure sous le demi-pixel : arrondi de rendu, rien à dire
+  ---
+  duration_ms: 0.122618
+  type: 'test'
+  ...
+# Subtest: commande qui ne reçoit pas son clic : défaut nommé, recouvrant compris
+ok 251 - commande qui ne reçoit pas son clic : défaut nommé, recouvrant compris
+  ---
+  duration_ms: 0.1378
+  type: 'test'
+  ...
+# Subtest: commande EXEMPTÉE (hors du champ de son défilant, ou sous sa tête collée) : rien à dire
+ok 252 - commande EXEMPTÉE (hors du champ de son défilant, ou sous sa tête collée) : rien à dire
+  ---
+  duration_ms: 0.120014
+  type: 'test'
+  ...
+# Subtest: AUCUNE commande rendue : la sonde se déclare AVEUGLE, elle ne se tait pas
+ok 253 - AUCUNE commande rendue : la sonde se déclare AVEUGLE, elle ne se tait pas
+  ---
+  duration_ms: 4.65512
+  type: 'test'
+  ...
+# Subtest: classification : le code TARGET_NAVIGATED marque l'erreur rejouable
+ok 254 - classification : le code TARGET_NAVIGATED marque l'erreur rejouable
+  ---
+  duration_ms: 1.379493
+  type: 'test'
+  ...
+# Subtest: classification : « Inspected target navigated or closed » est rejouable
+ok 255 - classification : « Inspected target navigated or closed » est rejouable
+  ---
+  duration_ms: 0.256923
+  type: 'test'
+  ...
+# Subtest: classification : « Execution context was destroyed. » est rejouable
+ok 256 - classification : « Execution context was destroyed. » est rejouable
+  ---
+  duration_ms: 0.155209
+  type: 'test'
+  ...
+# Subtest: classification : « Cannot find context with specified id » est rejouable
+ok 257 - classification : « Cannot find context with specified id » est rejouable
+  ---
+  duration_ms: 0.125988
+  type: 'test'
+  ...
+# Subtest: classification : « Target closed » est rejouable
+ok 258 - classification : « Target closed » est rejouable
+  ---
+  duration_ms: 3.25716
+  type: 'test'
+  ...
+# Subtest: classification : « Session with given id not found » est rejouable
+ok 259 - classification : « Session with given id not found » est rejouable
+  ---
+  duration_ms: 0.148823
+  type: 'test'
+  ...
+# Subtest: classification : « No target with given id » est rejouable
+ok 260 - classification : « No target with given id » est rejouable
+  ---
+  duration_ms: 0.195028
+  type: 'test'
+  ...
+# Subtest: classification : casse indifférente (les motifs CDP sont insensibles à la casse)
+ok 261 - classification : casse indifférente (les motifs CDP sont insensibles à la casse)
+  ---
+  duration_ms: 0.11458
+  type: 'test'
+  ...
+# Subtest: classification : helper de DEV évaporé — lecture sur undefined/null
+ok 262 - classification : helper de DEV évaporé — lecture sur undefined/null
+  ---
+  duration_ms: 0.495559
+  type: 'test'
+  ...
+# Subtest: classification : helper de DEV évaporé — window.__wfrp is not a function / undefined
+ok 263 - classification : helper de DEV évaporé — window.__wfrp is not a function / undefined
+  ---
+  duration_ms: 0.366286
+  type: 'test'
+  ...
+# Subtest: classification : une CHAÎNE nue est classée sur son texte
+ok 264 - classification : une CHAÎNE nue est classée sur son texte
+  ---
+  duration_ms: 0.196355
+  type: 'test'
+  ...
+# Subtest: classification : une erreur quelconque n'est PAS rejouable
+ok 265 - classification : une erreur quelconque n'est PAS rejouable
+  ---
+  duration_ms: 0.074476
+  type: 'test'
+  ...
+# Subtest: classification : absence d'erreur ou message vide — pas rejouable
+ok 266 - classification : absence d'erreur ou message vide — pas rejouable
+  ---
+  duration_ms: 0.055012
+  type: 'test'
+  ...
+# Subtest: withReloadRetry : une erreur rejouable est rejouée `tries` fois puis abandonnée, l'erreur d'origine en cause
+ok 267 - withReloadRetry : une erreur rejouable est rejouée `tries` fois puis abandonnée, l'erreur d'origine en cause
+  ---
+  duration_ms: 1152.782746
+  type: 'test'
+  ...
+# Subtest: withReloadRetry : une erreur NON rejouable remonte telle quelle, AUCUN rejeu
+ok 268 - withReloadRetry : une erreur NON rejouable remonte telle quelle, AUCUN rejeu
+  ---
+  duration_ms: 16.066826
+  type: 'test'
+  ...
+# Subtest: withReloadRetry : le succès au 2e essai rend le résultat
+ok 269 - withReloadRetry : le succès au 2e essai rend le résultat
+  ---
+  duration_ms: 539.114532
+  type: 'test'
+  ...
+# Subtest: withReloadRetry : `resettle` remet l'écran entre deux tentatives
+ok 270 - withReloadRetry : `resettle` remet l'écran entre deux tentatives
+  ---
+  duration_ms: 568.656088
+  type: 'test'
+  ...
+# Subtest: withReloadRetry : `contextCleared` déclenche le rejeu même sur une erreur non classée
+ok 271 - withReloadRetry : `contextCleared` déclenche le rejeu même sur une erreur non classée
+  ---
+  duration_ms: 533.253603
+  type: 'test'
+  ...
+# Subtest: withReloadRetry : le succès au 1er essai n'appelle ni onRetry ni resettle
+ok 272 - withReloadRetry : le succès au 1er essai n'appelle ni onRetry ni resettle
+  ---
+  duration_ms: 14.988635
+  type: 'test'
+  ...
+# Subtest: arbre servi : en-tête ABSENT = refus (fail-closed, jamais un silence)
+ok 273 - arbre servi : en-tête ABSENT = refus (fail-closed, jamais un silence)
+  ---
+  duration_ms: 0.237714
+  type: 'test'
+  ...
+# Subtest: arbre servi : racine servie ≠ cwd = refus NOMMANT les deux arbres
+ok 274 - arbre servi : racine servie ≠ cwd = refus NOMMANT les deux arbres
+  ---
+  duration_ms: 0.295839
+  type: 'test'
+  ...
+# Subtest: arbre servi : MÊME arbre écrit autrement (casse, backslash, slash final) = accepté
+ok 275 - arbre servi : MÊME arbre écrit autrement (casse, backslash, slash final) = accepté
+  ---
+  duration_ms: 0.249895
+  type: 'test'
+  ...
+# Subtest: checkServer : un serveur qui sert un AUTRE arbre est REFUSÉ (aucune session ouverte)
+ok 276 - checkServer : un serveur qui sert un AUTRE arbre est REFUSÉ (aucune session ouverte)
+  ---
+  duration_ms: 0.386903
+  type: 'test'
+  ...
+# Subtest: checkServer : le serveur de CET arbre passe
+ok 277 - checkServer : le serveur de CET arbre passe
+  ---
+  duration_ms: 0.253844
+  type: 'test'
+  ...
+# Subtest: empreinte : le fichier le plus RÉCENT et le cardinal sont relevés
+ok 278 - empreinte : le fichier le plus RÉCENT et le cardinal sont relevés
+  ---
+  duration_ms: 0.19752
+  type: 'test'
+  ...
+# Subtest: arbre gelé : mtime IDENTIQUE = aucun verdict
+ok 279 - arbre gelé : mtime IDENTIQUE = aucun verdict
+  ---
+  duration_ms: 0.098456
+  type: 'test'
+  ...
+# Subtest: arbre gelé : un mtime qui bouge NOMME le fichier
+ok 280 - arbre gelé : un mtime qui bouge NOMME le fichier
+  ---
+  duration_ms: 0.085952
+  type: 'test'
+  ...
+# Subtest: arbre gelé : un fichier AJOUTÉ à mtime inchangé est vu aussi
+ok 281 - arbre gelé : un fichier AJOUTÉ à mtime inchangé est vu aussi
+  ---
+  duration_ms: 0.132894
+  type: 'test'
+  ...
+# Subtest: withReloadRetry : arbre MODIFIÉ pendant la recette = échec nommé, AUCUN rejeu
+ok 282 - withReloadRetry : arbre MODIFIÉ pendant la recette = échec nommé, AUCUN rejeu
+  ---
+  duration_ms: 0.259283
+  type: 'test'
+  ...
+# Subtest: withReloadRetry : arbre GELÉ — le rejeu garde son comportement
+ok 283 - withReloadRetry : arbre GELÉ — le rejeu garde son comportement
+  ---
+  duration_ms: 501.358532
+  type: 'test'
+  ...
+# Subtest: evaluate : une expression qui ne rend jamais la main REJETTE au lieu de figer
+ok 284 - evaluate : une expression qui ne rend jamais la main REJETTE au lieu de figer
+  ---
+  duration_ms: 61.610279
+  type: 'test'
+  ...
+# Subtest: evaluate : le plafond est PASSÉ à la page (paramètre timeout du CDP)
+ok 285 - evaluate : le plafond est PASSÉ à la page (paramètre timeout du CDP)
+  ---
+  duration_ms: 0.512763
+  type: 'test'
+  ...
+# Subtest: evaluate : sans plafond explicite, le défaut du kit est appliqué
+ok 286 - evaluate : sans plafond explicite, le défaut du kit est appliqué
+  ---
+  duration_ms: 0.32655
+  type: 'test'
+  ...
+# Subtest: stockage : l'instantané est relu depuis la page, les deux zones
+ok 287 - stockage : l'instantané est relu depuis la page, les deux zones
+  ---
+  duration_ms: 0.463609
+  type: 'test'
+  ...
+# Subtest: stockage : l'expression de restauration VIDE puis repose chaque clé des deux zones
+ok 288 - stockage : l'expression de restauration VIDE puis repose chaque clé des deux zones
+  ---
+  duration_ms: 0.217218
+  type: 'test'
+  ...
+# Subtest: stockage : un instantané VIDE vide les deux zones (aucun résidu de recette)
+ok 289 - stockage : un instantané VIDE vide les deux zones (aucun résidu de recette)
+  ---
+  duration_ms: 0.114293
+  type: 'test'
+  ...
+# Subtest: stockage : restaurerStockage envoie CETTE expression à la page
+ok 290 - stockage : restaurerStockage envoie CETTE expression à la page
+  ---
+  duration_ms: 0.34696
+  type: 'test'
+  ...
+# Subtest: evaluate : un plafond ATTEINT côté navigateur est requalifié (le CDP rend « Internal error » nu)
+ok 291 - evaluate : un plafond ATTEINT côté navigateur est requalifié (le CDP rend « Internal error » nu)
+  ---
+  duration_ms: 40.678756
+  type: 'test'
+  ...
+# Subtest: evaluate : une erreur de scénario AVANT le plafond remonte telle quelle
+ok 292 - evaluate : une erreur de scénario AVANT le plafond remonte telle quelle
+  ---
+  duration_ms: 0.44762
+  type: 'test'
+  ...
+# Subtest: realKey* : UNE forme d’argument — la TOUCHE, la même pour les trois helpers
+ok 293 - realKey* : UNE forme d’argument — la TOUCHE, la même pour les trois helpers
+  ---
+  duration_ms: 0.874409
+  type: 'test'
+  ...
+# Subtest: realKey : une touche d’un seul caractère émet aussi le `char`, et le code se déduit
+ok 294 - realKey : une touche d’un seul caractère émet aussi le `char`, et le code se déduit
+  ---
+  duration_ms: 0.238313
+  type: 'test'
+  ...
+# Subtest: realKey : Entrée émet son TEXTE `\\r` — c’est lui qui active le bouton focalisé
+ok 295 - realKey : Entrée émet son TEXTE `\\r` — c’est lui qui active le bouton focalisé
+  ---
+  duration_ms: 0.142852
+  type: 'test'
+  ...
+# Subtest: realKey* : `code` et code virtuel IMPOSÉS par l’appelant priment (`ALT`), et `modifiers` ne suit que l’APPUI
+ok 296 - realKey* : `code` et code virtuel IMPOSÉS par l’appelant priment (`ALT`), et `modifiers` ne suit que l’APPUI
+  ---
+  duration_ms: 0.097648
+  type: 'test'
+  ...
+# Subtest: realKey* : la CHAÎNE nue est refusée par un message qui NOMME la forme attendue
+ok 297 - realKey* : la CHAÎNE nue est refusée par un message qui NOMME la forme attendue
+  ---
+  duration_ms: 0.617416
+  type: 'test'
+  ...
+# Subtest: frapperTouche : l’alias français EST `realKey` (même geste, même forme)
+ok 298 - frapperTouche : l’alias français EST `realKey` (même geste, même forme)
+  ---
+  duration_ms: 0.077334
+  type: 'test'
+  ...
+# Subtest: champParLibelle : sans racine, le PREMIER champ du document porteur du libellé
+ok 299 - champParLibelle : sans racine, le PREMIER champ du document porteur du libellé
+  ---
+  duration_ms: 133.797601
+  type: 'test'
+  ...
+# Subtest: champParLibelle : `dans` vise le champ de CETTE racine quand le libellé vit deux fois
+ok 300 - champParLibelle : `dans` vise le champ de CETTE racine quand le libellé vit deux fois
+  ---
+  duration_ms: 20.24138
+  type: 'test'
+  ...
+# Subtest: champParLibelle : racine `dans` absente = null, comme un libellé introuvable
+ok 301 - champParLibelle : racine `dans` absente = null, comme un libellé introuvable
+  ---
+  duration_ms: 17.915364
+  type: 'test'
+  ...
+# Subtest: clickButtonByText : `rangee` vise le bouton de la rangée qui porte ce texte, pas le premier
+ok 302 - clickButtonByText : `rangee` vise le bouton de la rangée qui porte ce texte, pas le premier
+  ---
+  duration_ms: 14.60962
+  type: 'test'
+  ...
+# Subtest: clickButtonByText : `rangee` normalise l’apostrophe comme le libellé (DOM « L’Arène », rangee « L'Arène »)
+ok 303 - clickButtonByText : `rangee` normalise l’apostrophe comme le libellé (DOM « L’Arène », rangee « L'Arène »)
+  ---
+  duration_ms: 11.483141
+  type: 'test'
+  ...
+# Subtest: clickButtonByText : `rangee` normalise l’apostrophe comme le libellé (DOM « L'Arène », rangee « L’Arène »)
+ok 304 - clickButtonByText : `rangee` normalise l’apostrophe comme le libellé (DOM « L'Arène », rangee « L’Arène »)
+  ---
+  duration_ms: 11.392373
+  type: 'test'
+  ...
+# Subtest: clickButtonByText : `rangee` introuvable = refus NOMMANT la rangée, aucun clic
+ok 305 - clickButtonByText : `rangee` introuvable = refus NOMMANT la rangée, aucun clic
+  ---
+  duration_ms: 10.201393
+  type: 'test'
+  ...
+# Subtest: poserFichier : pose le chemin ABSOLU sur l’input de la racine `dans`
+ok 306 - poserFichier : pose le chemin ABSOLU sur l’input de la racine `dans`
+  ---
+  duration_ms: 9.822871
+  type: 'test'
+  ...
+# Subtest: poserFichier : input absent = refus NOMMANT le sélecteur, rien de posé
+ok 307 - poserFichier : input absent = refus NOMMANT le sélecteur, rien de posé
+  ---
+  duration_ms: 12.272152
+  type: 'test'
+  ...
+# Subtest: poserFichier : racine `dans` absente = refus NOMMANT la racine
+ok 308 - poserFichier : racine `dans` absente = refus NOMMANT la racine
+  ---
+  duration_ms: 9.013814
+  type: 'test'
+  ...
+# Subtest: Chrome : CHROME_PATH prime sur tout le reste
+ok 309 - Chrome : CHROME_PATH prime sur tout le reste
+  ---
+  duration_ms: 0.394422
+  type: 'test'
+  ...
+# Subtest: Chrome : le chemin EXPLICITE de l’appelant prime sur CHROME_PATH
+ok 310 - Chrome : le chemin EXPLICITE de l’appelant prime sur CHROME_PATH
+  ---
+  duration_ms: 0.077127
+  type: 'test'
+  ...
+# Subtest: Chrome : un chemin Windows présent passe avant Playwright, sur win32
+ok 311 - Chrome : un chemin Windows présent passe avant Playwright, sur win32
+  ---
+  duration_ms: 0.184176
+  type: 'test'
+  ...
+# Subtest: Chrome : hors win32, un chemin Windows n’est jamais essayé — il se résoudrait contre le dossier courant
+ok 312 - Chrome : hors win32, un chemin Windows n’est jamais essayé — il se résoudrait contre le dossier courant
+  ---
+  duration_ms: 0.241842
+  type: 'test'
+  ...
+# Subtest: Chrome : Chromium Playwright trouvé par LECTURE du dossier, version la plus haute, headless_shell écarté
+ok 313 - Chrome : Chromium Playwright trouvé par LECTURE du dossier, version la plus haute, headless_shell écarté
+  ---
+  duration_ms: 0.251492
+  type: 'test'
+  ...
+# Subtest: Chrome : sans PLAYWRIGHT_BROWSERS_PATH, la racine est /opt/pw-browsers
+ok 314 - Chrome : sans PLAYWRIGHT_BROWSERS_PATH, la racine est /opt/pw-browsers
+  ---
+  duration_ms: 0.086262
+  type: 'test'
+  ...
+# Subtest: Chrome : un dossier chromium-N sans exécutable est ignoré
+ok 315 - Chrome : un dossier chromium-N sans exécutable est ignoré
+  ---
+  duration_ms: 0.089086
+  type: 'test'
+  ...
+# Subtest: Chrome : --no-sandbox en root SEULEMENT
+ok 316 - Chrome : --no-sandbox en root SEULEMENT
+  ---
+  duration_ms: 0.077247
+  type: 'test'
+  ...
+# Subtest: Chrome : aucun candidat — refus NOMMANT les chemins essayés
+ok 317 - Chrome : aucun candidat — refus NOMMANT les chemins essayés
+  ---
+  duration_ms: 0.297739
+  type: 'test'
+  ...
+# Subtest: appel CDP sur une socket FERMÉE : rejeté tout de suite, typé cible perdue, rien d’envoyé
+ok 318 - appel CDP sur une socket FERMÉE : rejeté tout de suite, typé cible perdue, rien d’envoyé
+  ---
+  duration_ms: 0.529524
+  type: 'test'
+  ...
+# Subtest: appel CDP sur une socket OUVERTE : message envoyé, session portée, réglé par sa réponse
+ok 319 - appel CDP sur une socket OUVERTE : message envoyé, session portée, réglé par sa réponse
+  ---
+  duration_ms: 0.26793
+  type: 'test'
+  ...
+1..319
+# tests 319
+# suites 0
+# pass 319
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 8327.463352

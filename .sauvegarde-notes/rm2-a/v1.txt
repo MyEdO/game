@@ -1,0 +1,231 @@
+gen-registry: 33 registres à jour
+gen-espaces: IDS_PAR_ESPACE ← 7184 ids / 362 espaces (src/data/schemas/_ids.generated.ts), CLES_DE_DATASET ← 134 clés (src/data/schemas/_cles-de-dataset.generated.ts), RACINES_VIVANTES ← 105 documents (src/data/schemas/_racines-vivantes.generated.ts)
+
+ RUN  v2.1.9 /home/user/game
+
+ ✓ src/ui/editor/AddMenu.test.tsx (5 tests) 78ms 394 MB heap used
+ ❯ src/ui/BoiteAncree.test.tsx (8 tests | 2 failed) 91ms 403 MB heap used
+   × usePlacementAncre — le placement naît au commit d’ouverture > un ancrage détaché du document ne pose aucune boîte 34ms
+     → Cannot read properties of undefined (reading 'URL')
+     → Nœud(s) laissé(s) dans document.body par src/ui/BoiteAncree.test.tsx (1) : <div>
+Sous test.isolate:false, react-dom est partagé par tout le worker : une racine restée montée se met à jour hors act() pendant les fichiers SUIVANTS, qui rendent alors le vide (#1619).
+Démonter ce que le test monte (act(() => root.unmount()) en afterEach, ou cleanup()) — jamais ajouter une ligne au stock.
+   × usePlacementAncre — le placement naît au commit d’ouverture > rendu serveur : aucun avertissement d’effet de mise en page 6ms
+     → Nœud(s) laissé(s) dans document.body par src/ui/BoiteAncree.test.tsx (1) : <div>
+Sous test.isolate:false, react-dom est partagé par tout le worker : une racine restée montée se met à jour hors act() pendant les fichiers SUIVANTS, qui rendent alors le vide (#1619).
+Démonter ce que le test monte (act(() => root.unmount()) en afterEach, ou cleanup()) — jamais ajouter une ligne au stock.
+ ❯ src/ui/compendium/CodexRef.hooks.test.tsx (11 tests | 8 failed) 361ms 431 MB heap used
+   × CodexRef — Échap ferme le popover AFFICHÉ, pas seulement l’épinglé (#1117) > le popover affiché au survol se ferme sur Échap 120ms
+     → le survol affiche le popover: expected null to be truthy
+   × CodexRef — bascule `tooltipOnly` en TOGGLETIP : la bulle est ANNONCÉE par une région `role="status"` > Entrée, Espace et clic : le texte de la bulle entre dans la région ; Entrée, Échap et clic ailleurs la vident 24ms
+     → Entrée ouvre la bulle: expected null to be truthy
+   × CodexRef — chemin ÉPINGLÉ et interception de clic (#1117) > ÉPINGLÉ (↓ depuis le contrôle focalisé) puis désépinglé (Échap) : le focus revient au contrôle englobé, et ce retour n’ouvre pas la bulle 13ms
+     → le focus du joueur ouvre la bulle: expected null to be truthy
+   × CodexRef — chemin ÉPINGLÉ et interception de clic (#1117) > ÉPINGLÉ puis désépinglé par un clic sur un AUTRE contrôle : le focus reste sur ce contrôle, l’invocateur ne le vole pas 25ms
+     → épinglé : le focus est sur la porte: expected <button type="button" …(2)></button> to be null // Object.is equality
+   × CodexRef — chemin ÉPINGLÉ et interception de clic (#1117) > NON épinglé : un bouton SOUS le popover reçoit bien le clic (plus d’interception) 16ms
+     → le popover est affiché (survol): expected null to be truthy
+   × CodexRef — la raison d’un refus s’atteint au survol, au FOCUS et au TAP > FOCUS RÉEL du contrôle (clavier, manette) : la raison s’ouvre, le blur la referme 13ms
+     → le focus n’ouvre pas la raison: expected null to be 'Vous êtes Engagé.' // Object.is equality
+   × CodexRef — la raison d’un refus s’atteint au survol, au FOCUS et au TAP > TAP (aucun survol, aucun focus préalable) : le clic MONTRE la raison au lieu d’agir 11ms
+     → au doigt, rien n’ouvrait la raison: expected null to be 'Vous êtes Engagé.' // Object.is equality
+   × CodexRef — la raison d’un refus s’atteint au survol, au FOCUS et au TAP > boîte de SECOURS (`fallback` sous `wrap`) : elle reste atteignable au pointeur 19ms
+     → le repli doit s’afficher: expected null to be truthy
+ ✓ src/ui/PanneauParametre.test.tsx (8 tests) 219ms 435 MB heap used
+ ✓ src/ui/compendium/CodexRef.test.tsx (7 tests) 67ms 391 MB heap used
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 10 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/ui/BoiteAncree.test.tsx > usePlacementAncre — le placement naît au commit d’ouverture > un ancrage détaché du document ne pose aucune boîte
+TypeError: Cannot read properties of undefined (reading 'URL')
+ ❯ reportException node_modules/jsdom/lib/jsdom/living/helpers/runtime-script-errors.js:56:78
+ ❯ innerInvokeEventListeners node_modules/jsdom/lib/jsdom/living/events/EventTarget-impl.js:363:9
+ ❯ invokeEventListeners node_modules/jsdom/lib/jsdom/living/events/EventTarget-impl.js:296:3
+ ❯ HTMLUnknownElementImpl._dispatch node_modules/jsdom/lib/jsdom/living/events/EventTarget-impl.js:243:9
+ ❯ HTMLUnknownElementImpl.dispatchEvent node_modules/jsdom/lib/jsdom/living/events/EventTarget-impl.js:114:17
+ ❯ HTMLUnknownElement.dispatchEvent node_modules/jsdom/lib/generated/idl/EventTarget.js:241:34
+ ❯ Object.invokeGuardedCallbackDev node_modules/react-dom/cjs/react-dom.development.js:4213:16
+ ❯ invokeGuardedCallback node_modules/react-dom/cjs/react-dom.development.js:4277:31
+ ❯ reportUncaughtErrorInDEV node_modules/react-dom/cjs/react-dom.development.js:22877:5
+ ❯ captureCommitPhaseError node_modules/react-dom/cjs/react-dom.development.js:27165:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/11]⎯
+
+ FAIL  src/ui/BoiteAncree.test.tsx > usePlacementAncre — le placement naît au commit d’ouverture > un ancrage détaché du document ne pose aucune boîte
+ FAIL  src/ui/BoiteAncree.test.tsx > usePlacementAncre — le placement naît au commit d’ouverture > rendu serveur : aucun avertissement d’effet de mise en page
+Error: Nœud(s) laissé(s) dans document.body par src/ui/BoiteAncree.test.tsx (1) : <div>
+Sous test.isolate:false, react-dom est partagé par tout le worker : une racine restée montée se met à jour hors act() pendant les fichiers SUIVANTS, qui rendent alors le vide (#1619).
+Démonter ce que le test monte (act(() => root.unmount()) en afterEach, ou cleanup()) — jamais ajouter une ligne au stock.
+ ❯ src/test-setup.ts:395:24
+    393|       } else {
+    394|         const msg = messageResiduDom(fichier, residus);
+    395|         if (msg) throw new Error(msg);
+       |                        ^
+    396|       }
+    397|     }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/11]⎯
+
+ FAIL  src/ui/compendium/CodexRef.hooks.test.tsx > CodexRef — Échap ferme le popover AFFICHÉ, pas seulement l’épinglé (#1117) > le popover affiché au survol se ferme sur Échap
+AssertionError: le survol affiche le popover: expected null to be truthy
+
+- Expected: 
+true
+
++ Received: 
+null
+
+ ❯ src/ui/compendium/CodexRef.hooks.test.tsx:103:51
+    101|     const trigger = container.querySelector('.codex-ref') as HTMLEleme…
+    102|     act(() => { trigger.dispatchEvent(new MouseEvent('mouseover', { bu…
+    103|     expect(pop(), 'le survol affiche le popover').toBeTruthy();
+       |                                                   ^
+    104|     sommetEstLePopover('le popover affiché au survol doit être la couc…
+    105|     act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/11]⎯
+
+ FAIL  src/ui/compendium/CodexRef.hooks.test.tsx > CodexRef — bascule `tooltipOnly` en TOGGLETIP : la bulle est ANNONCÉE par une région `role="status"` > Entrée, Espace et clic : le texte de la bulle entre dans la région ; Entrée, Échap et clic ailleurs la vident
+AssertionError: Entrée ouvre la bulle: expected null to be truthy
+
+- Expected: 
+true
+
++ Received: 
+null
+
+ ❯ src/ui/compendium/CodexRef.hooks.test.tsx:153:48
+    151|       ouvrir();
+    152|       const bulle = document.querySelector<HTMLElement>('.codex-pop');
+    153|       expect(bulle, `${geste} ouvre la bulle`).toBeTruthy();
+       |                                                ^
+    154|       expect(region()!.textContent, `${geste} : la région annonce la b…
+    155|       expect(region()!.textContent!.length, `${geste} : la région port…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/11]⎯
+
+ FAIL  src/ui/compendium/CodexRef.hooks.test.tsx > CodexRef — chemin ÉPINGLÉ et interception de clic (#1117) > ÉPINGLÉ (↓ depuis le contrôle focalisé) puis désépinglé (Échap) : le focus revient au contrôle englobé, et ce retour n’ouvre pas la bulle
+AssertionError: le focus du joueur ouvre la bulle: expected null to be truthy
+
+- Expected: 
+true
+
++ Received: 
+null
+
+ ❯ src/ui/compendium/CodexRef.hooks.test.tsx:191:87
+    189|     const inner = container.querySelector('.codex-ref button') as HTML…
+    190|     act(() => { inner.focus(); });
+    191|     expect(document.querySelector('.codex-pop'), 'le focus du joueur o…
+       |                                                                                       ^
+    192|     act(() => { inner.dispatchEvent(new KeyboardEvent('keydown', { key…
+    193|     expect(document.querySelector('.codex-pop'), 'le popover est éping…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/11]⎯
+
+ FAIL  src/ui/compendium/CodexRef.hooks.test.tsx > CodexRef — chemin ÉPINGLÉ et interception de clic (#1117) > ÉPINGLÉ puis désépinglé par un clic sur un AUTRE contrôle : le focus reste sur ce contrôle, l’invocateur ne le vole pas
+AssertionError: épinglé : le focus est sur la porte: expected <button type="button" …(2)></button> to be null // Object.is equality
+
+- Expected: 
+null
+
++ Received: 
+<button
+  class="btn btn-ghost codex-pop-open"
+  data-atteignable=""
+  type="button"
+>
+  Ouvrir la fiche
+</button>
+
+ ❯ src/ui/compendium/CodexRef.hooks.test.tsx:214:75
+    212|     act(() => { inner.focus(); });
+    213|     act(() => { inner.dispatchEvent(new KeyboardEvent('keydown', { key…
+    214|     expect(document.activeElement, 'épinglé : le focus est sur la port…
+       |                                                                           ^
+    215|     // Un clic réel : `mousedown` (qui désépingle) puis, action par dé…
+    216|     act(() => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/11]⎯
+
+ FAIL  src/ui/compendium/CodexRef.hooks.test.tsx > CodexRef — chemin ÉPINGLÉ et interception de clic (#1117) > NON épinglé : un bouton SOUS le popover reçoit bien le clic (plus d’interception)
+AssertionError: le popover est affiché (survol): expected null to be truthy
+
+- Expected: 
+true
+
++ Received: 
+null
+
+ ❯ src/ui/compendium/CodexRef.hooks.test.tsx:234:52
+    232|     act(() => { trigger.dispatchEvent(new MouseEvent('mouseover', { bu…
+    233|     const pop = document.querySelector('.codex-pop') as HTMLElement;
+    234|     expect(pop, 'le popover est affiché (survol)').toBeTruthy();
+       |                                                    ^
+    235|     // Le clic part sur le CTA : il ne doit pas être capté par la surf…
+    236|     let clicked = 0;
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/11]⎯
+
+ FAIL  src/ui/compendium/CodexRef.hooks.test.tsx > CodexRef — la raison d’un refus s’atteint au survol, au FOCUS et au TAP > FOCUS RÉEL du contrôle (clavier, manette) : la raison s’ouvre, le blur la referme
+AssertionError: le focus n’ouvre pas la raison: expected null to be 'Vous êtes Engagé.' // Object.is equality
+
+- Expected: 
+"Vous êtes Engagé."
+
++ Received: 
+null
+
+ ❯ src/ui/compendium/CodexRef.hooks.test.tsx:280:56
+    278|     act(() => { btn.focus(); });
+    279|     expect(document.activeElement, 'le contrôle refusé doit prendre le…
+    280|     expect(raison(), 'le focus n’ouvre pas la raison').toBe('Vous êtes…
+       |                                                        ^
+    281|     act(() => { btn.blur(); });
+    282|     expect(document.querySelector('.codex-pop'), 'le blur doit referme…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/11]⎯
+
+ FAIL  src/ui/compendium/CodexRef.hooks.test.tsx > CodexRef — la raison d’un refus s’atteint au survol, au FOCUS et au TAP > TAP (aucun survol, aucun focus préalable) : le clic MONTRE la raison au lieu d’agir
+AssertionError: au doigt, rien n’ouvrait la raison: expected null to be 'Vous êtes Engagé.' // Object.is equality
+
+- Expected: 
+"Vous êtes Engagé."
+
++ Received: 
+null
+
+ ❯ src/ui/compendium/CodexRef.hooks.test.tsx:294:60
+    292|     const btn = container.querySelector('button') as HTMLButtonElement;
+    293|     act(() => { btn.dispatchEvent(new MouseEvent('click', { bubbles: t…
+    294|     expect(raison(), 'au doigt, rien n’ouvrait la raison').toBe('Vous …
+       |                                                            ^
+    295|     // Le tap reste ÉPINGLÉ (il n'y a pas de survol au doigt pour la m…
+    296|     act(() => { btn.dispatchEvent(new MouseEvent('click', { bubbles: t…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/11]⎯
+
+ FAIL  src/ui/compendium/CodexRef.hooks.test.tsx > CodexRef — la raison d’un refus s’atteint au survol, au FOCUS et au TAP > boîte de SECOURS (`fallback` sous `wrap`) : elle reste atteignable au pointeur
+AssertionError: le repli doit s’afficher: expected null to be truthy
+
+- Expected: 
+true
+
++ Received: 
+null
+
+ ❯ src/ui/compendium/CodexRef.hooks.test.tsx:311:45
+    309|     act(() => { trigger.dispatchEvent(new MouseEvent('mouseover', { bu…
+    310|     const pop = document.querySelector('.codex-pop') as HTMLElement;
+    311|     expect(pop, 'le repli doit s’afficher').toBeTruthy();
+       |                                             ^
+    312|     expect(pop.hasAttribute('data-atteignable'), 'une boîte affichée m…
+    313|     // … et le pont de survol la maintient le temps que le pointeur y …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/11]⎯
+
+ Test Files  2 failed | 3 passed (5)
+      Tests  10 failed | 29 passed (39)
+   Start at  09:22:54
+   Duration  35.95s (transform 23.27s, setup 59.67s, collect 6.44s, tests 816ms, environment 3.28s, prepare 350ms)
+

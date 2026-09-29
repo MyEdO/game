@@ -1,0 +1,88 @@
+## Portes git, commit 1 (lot #85) : juge de reprise après E16d, et brief E16e, 2026-09-27
+
+**Verdict du juge de reprise : À REPRENDRE.**
+
+Ce qui tient :
+- D2 à D7 et D9 sont corrigés ;
+- la plage d'E17 est intacte (33 et 12 cas, 0 écart) ;
+- les 24 mutations d'E16d sont reproduites, chaque rouge venant du test visé ;
+- tsc, lint, docs:check, test:ops (288/288) et les importeurs `.ts` passent.
+
+Défauts :
+- **N0 (bloquant)** : `npm run test:hooks` est rouge, à cause de la reprise. `ecrivainsAtteints.test.mjs:454` voit un nouveau test écrivain (`docs-rebuild.test.mjs`) qui n'est pas déclaré.
+- **N1, N2 et N6 (bloquants pour les deux premiers)** : le train peut encore exprimer un geste libre.
+  - `commitDe` accepte `.` ou `:/`, ce qui revient à `add -A`.
+  - `ctx.npm` lance un script libre sous `shell: true`.
+  - Le module des étapes importe tous les écrivains.
+  
+  C'est la même classe que D1, trouvée une seconde fois. La réponse devient structurelle : les étapes vivent dans un module qui n'atteint aucun écrivain, tenu par un test de clôture d'imports, et le ctx ne porte que des gestes nommés aux arguments validés.
+- **N3 (bloquant)** : la garde de solde lit une panne de lecture de contenu comme « rien n'est emporté » (`solde-ticket-guard.mjs:1835`). C'est un fail-open prouvé.
+- **N4** : un `'HEAD'` écrit en dur lève dans un dépôt sans premier commit.
+- **N5** : des motifs d'absence classent un dépôt corrompu en « absent ».
+- **N7** : des caractères de contrôle passent dans les révisions.
+- **N8** : la marque `Depot` n'a pas de test.
+- **N9** : deux lanceurs H1 manquent (51 sites en tout).
+- **N10** : mineurs.
+
+Suite : le codeur E16e reprend N0 à N10 dans `.wt-1806-e16`. Le commit 1 entrera sur `chantier/1806` après la publication du lot B.
+
+---
+
+<details><summary>Brief du codeur E16e (verbatim)</summary>
+
+# Brief du codeur E16e : seconde reprise des portes git, commit 1 (#1806, lot #85), 2026-09-27
+
+Tu es orchestrateur de ton lot. Tu peux déléguer une lecture de masse (`lecteur`) ou une vérification fermée (`verif-mecanique`), mais tu relis tout ce qu'un agent te rend, et le code est à toi.
+
+## Worktree et état VÉRIFIÉ (2026-09-27, par l'orchestrateur)
+- Worktree : `/home/claude/game/.wt-1806-e16`, branche `wt/1806-e16`, HEAD `543ba1e13`.
+  - Le travail E16 à E16d est dans l'arbre, non committé : 46 lignes de `git status --short`, `UU` attendus sur `plageStock.mjs` et `publier.mjs`.
+  - Instantané de cet état : `refs/wip/1806-portes-git-e16d` = `bbb779c53` (le juge a vérifié `git diff bbb779c53 --stat` vide).
+- Règles, interdits, invariant, cas canonique et design jugé : ceux du brief E16b (`/tmp/claude-0/-home-claude-game/b2c1dcf4-ee89-5cd4-b2df-036dbf03e24e/scratchpad/brief-e16b.md`), qui valent ici mot pour mot.
+- Lis le verdict du juge EN ENTIER : `scratchpad/juge-e16d/verdict.md`. Ses sondes sont sous `scratchpad/juge-e16d/` (lancement : `TMPDIR=<ce dossier>/tmp node <sonde>`, depuis ce dossier). Puis ton rendu précédent : `scratchpad/rendu-e16d.md` (sorties sous `e16d/`).
+- SI un livrable existe déjà dans l'arbre, PIVOTE en revue.
+- Un codeur travaille dans `.wt-1920d` : avant tout vitest ou `node --test` de plus de 20 fichiers, et avant `npm run test:hooks`, vérifie qu'aucun autre ne tourne (`ps -eo pid,etime,cmd | grep -E '[v]itest|[n]ode --test'`, sortie collée).
+- Processus : avant tout `kill`, lis le PPID et la ligne de commande du parent ; tu ne tues que ce que ta commande a lancé. Jamais `pkill` ni `killall`.
+- Budget : 2 h d'horloge. Relève `date -u` au départ et avant chaque étape longue. À l'échéance, rends ce qui est fait, l'arbre dans un état STABLE (portes du périmètre vertes), et le reste NOMMÉ.
+
+## Pourquoi la classe D1 change d'altitude
+Deux passes de juge ont trouvé la même classe : « le train peut exprimer un geste git non nommé » (D1, puis N1, N2 et N6). On ne rustine plus site par site. La réponse est STRUCTURELLE, celle que le juge retient en N6 : les étapes du train vivent dans un module dont la clôture d'imports n'atteint aucun écrivain de `gitPorte.mjs`, et ne tiennent que le ctx. Le ctx ne porte que des gestes nommés dont les arguments sont validés par l'hôte (N1 pour `commitDe`, N2 pour `npm`). Un test de clôture d'imports, sur le modèle de `classerPush.test.mjs:389`, le tient. L'en-tête `publier.mjs:25-31` dit alors vrai.
+
+## Travail, dans cet ordre
+Pour chaque défaut, le verdict donne une « Correction retenue ». Tu l'implémentes telle qu'écrite ; si tu la trouves fausse, prouve-le par une sonde avant d'en changer, et dis-le au rendu.
+1. **N0** : `docs-rebuild.test.mjs` déclaré dans `ECRIT_LU` et `ATTENDU['test:hooks']`, sur le précédent `plageStock.test.mjs`.
+2. **N6, N1 et N2 ensemble** (la section ci-dessus) :
+   - `ETAPES` dans un module sans écrivain, avec son test de clôture ;
+   - `commitDe` : `--literal-pathspecs`, refus de `.`, des répertoires et des chemins finissant par `/`, `--only` sous `vide` ; une mutation pour la classe N1 ;
+   - `ctx.npm` : `shell` seulement sous win32, `script` validé, et `ctx.npm('x; git add -A')` LÈVE dans le test des clés ; le commentaire `:745` dit vrai.
+3. **N3**, la garde de solde : le collecteur de pannes et `refusDesPannes()` dans les deux `decisionCumulee`, tels que le verdict les écrit, et les commentaires `:1780-1784`, `:1833-1834`, `:1960-1963`. `sonde-solde.mjs` du juge se promeut en test.
+4. **N4** : la question `imageDeHead(depot)` dans l'hôte, employée par `ceQuEmporteLIndex` et par chaque appelant qui lit une pré-image de `'HEAD'` (le verdict nomme `listeurDuBudget`, `memoryLinks.mjs:148`, `revuePalier.mjs:109`, `faits-de-palier.mjs:198`, `carte-lignes.mjs:119` ; contre-grep les autres). Test : un dépôt sans premier commit.
+5. **N7 et N8** : `revisionsDe` refuse les caractères de contrôle (et `@{`, ou l'en-tête de `bornesDe` le dit) ; la marque `Depot` gagne un test de types committé (forme : `src/engine/testOutcome.test.ts:20-24`) et un test de sa levée `TypeError` à l'exécution.
+6. **N5** : dans `bornesDe`, une borne-NOM déclarée absente mais que `rev-parse --verify --quiet` résout lève `GitIndisponible('dépôt corrompu : …')`. Même contrôle sur la voie `absent` des questions à `null`. Tests sur un dépôt forgé corrompu (`sonde-motifs.mjs`, `sonde-parse.mjs`, `sonde-grep.mjs` du juge). Corrige au passage la cause attribuée dans ton rendu (« unable to parse object » vient de `git grep <ref>`).
+7. **N10** : les commentaires qui renvoient à « juge E16, Dn » (document hors dépôt) portent une réf nue du dépôt ou disparaissent ; les lectures d'avant le `try` de `main` (`publier.mjs:1098-1110`, `:1155`) sortent en rouge nommé.
+8. **N9** : la liste `e16d/lanceurs-h1.txt` complétée des deux sites de `scripts/ops/sondes/audit-2026-09-01/brutes/m2.mjs` (`:14`, `:31`, derrière l'enrobeur `R`), soit 51 sites. Dis pourquoi ta méthode AST les a manqués, et corrige-la.
+
+## Preuves (obligatoires)
+- Mutations sur les blobs FINAUX : empreintes `git hash-object` avant et après, rouge constaté avec sa ligne `exit=`, remise identique, argv archivé. Au minimum, une par défaut N1 à N8. Pour N6 : un import d'écrivain réintroduit dans le module des étapes rougit le test de clôture.
+- Les 24 mutations d'E16d rejouées si ta retouche touche leurs fichiers (liste des fichiers touchés contre `e16d/mutations.txt`).
+- Les sondes du juge `sonde-reprise.mjs`, `sonde-solde.mjs`, `sonde-budget.mjs` et `sonde-motifs.mjs`, rejouées après ta dernière retouche, sorties collées.
+- La plage d'E17 : `juge-e16/sonde-plage.mjs` et `juge-e16/sonde-plage-renommages.mjs` (avec ses 6 shas), attendu `ecarts 0`.
+
+## Portes (sortie BRUTE collée, avec la ligne `exit=` écrite par la commande)
+- `npm run typecheck:fast`.
+- `node --test` sur les tests des fichiers touchés et les importeurs des modules touchés (liste par `git grep -l`, collée), par paquets de 20 au plus.
+- N0 est venu d'un test qui n'importe aucun fichier touché mais LIT les listes de la CI (`scripts/gates/ecrivainsAtteints.test.mjs`). Ajoute donc à ta liste les tests de `scripts/gates/` qui lisent `toutes.mjs`, `package.json` ou un inventaire de fichiers (liste collée, avec la méthode qui l'a trouvée).
+- vitest sur les importeurs `.ts` des modules touchés (liste par `git grep -l`, collée).
+- eslint sur les fichiers que tu touches.
+
+## Livrable
+`/tmp/claude-0/-home-claude-game/b2c1dcf4-ee89-5cd4-b2df-036dbf03e24e/scratchpad/rendu-e16e.md`, sorties sous `scratchpad/e16e/` :
+- `git diff --stat HEAD` et les fichiers neufs ;
+- chaque défaut, N0 à N10, fait ou reste, avec sa preuve ;
+- la table des mutations ;
+- les sorties des sondes et des portes.
+
+</details>
+
+---
+_Generated by [Claude Code](https://claude.ai/code)_

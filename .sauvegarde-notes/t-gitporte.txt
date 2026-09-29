@@ -1,0 +1,391 @@
+TAP version 13
+# [spawn] rejeu — le processus n’a pas démarré : git rev-parse — git (essai 2/3)
+# [spawn] rejeu — le processus n’a pas démarré : git rev-parse — git (essai 3/3)
+# Automatic merge went well; stopped before committing as requested
+# Subtest: un dépôt dont le cwd est INEXISTANT se nomme, il ne se confond pas avec un git absent
+ok 1 - un dépôt dont le cwd est INEXISTANT se nomme, il ne se confond pas avec un git absent
+  ---
+  duration_ms: 6.66741
+  type: 'test'
+  ...
+# Subtest: un dépôt dont le cwd EXISTE sans être un répertoire se nomme pour ce qu’il est
+ok 2 - un dépôt dont le cwd EXISTE sans être un répertoire se nomme pour ce qu’il est
+  ---
+  duration_ms: 91.56298
+  type: 'test'
+  ...
+# Subtest: classer : le verdict d’un spawn échoué ne dépend PAS du code (ENOENT win32 / ENOTDIR POSIX)
+ok 3 - classer : le verdict d’un spawn échoué ne dépend PAS du code (ENOENT win32 / ENOTDIR POSIX)
+  ---
+  duration_ms: 0.612773
+  type: 'test'
+  ...
+# Subtest: status 0 rend un FAIT porteur de la sortie
+ok 4 - status 0 rend un FAIT porteur de la sortie
+  ---
+  duration_ms: 36.409971
+  type: 'test'
+  ...
+# Subtest: un PRÉDICAT qui rend 1 sans stderr est un FAIT porteur du code, jamais une panne
+ok 5 - un PRÉDICAT qui rend 1 sans stderr est un FAIT porteur du code, jamais une panne
+  ---
+  duration_ms: 62.716747
+  type: 'test'
+  ...
+# Subtest: les six ABSENCES de la porte sont des ABSENTS, jamais des pannes (dépôt réel)
+ok 6 - les six ABSENCES de la porte sont des ABSENTS, jamais des pannes (dépôt réel)
+  ---
+  duration_ms: 101.644633
+  type: 'test'
+  ...
+# Subtest: HORS dépôt, c’est INDISPONIBLE — et la raison le dit : l’union la porte, une question la JETTE
+ok 7 - HORS dépôt, c’est INDISPONIBLE — et la raison le dit : l’union la porte, une question la JETTE
+  ---
+  duration_ms: 22.309919
+  type: 'test'
+  ...
+# Subtest: `racineDe` : `null` hors d’un arbre, une PANNE de git reste une panne (JETÉE, ou confiée à `enPanne`)
+ok 8 - `racineDe` : `null` hors d’un arbre, une PANNE de git reste une panne (JETÉE, ou confiée à `enPanne`)
+  ---
+  duration_ms: 0.553668
+  type: 'test'
+  ...
+# Subtest: un git ABSENT du système (ENOENT) est INDISPONIBLE, jamais un absent
+ok 9 - un git ABSENT du système (ENOENT) est INDISPONIBLE, jamais un absent
+  ---
+  duration_ms: 0.773138
+  type: 'test'
+  ...
+# Subtest: un processus TUÉ par un signal est INDISPONIBLE
+ok 10 - un processus TUÉ par un signal est INDISPONIBLE
+  ---
+  duration_ms: 0.637705
+  type: 'test'
+  ...
+# Subtest: le processus qui n’a pas DÉMARRÉ est REJOUÉ (spawnResilient), pas classé indisponible
+ok 11 - le processus qui n’a pas DÉMARRÉ est REJOUÉ (spawnResilient), pas classé indisponible
+  ---
+  duration_ms: 1.759486
+  type: 'test'
+  ...
+# Subtest: estAncetre : vrai, faux, et un sha inconnu qui rend ABSENT
+ok 12 - estAncetre : vrai, faux, et un sha inconnu qui rend ABSENT
+  ---
+  duration_ms: 61.665631
+  type: 'test'
+  ...
+# Subtest: fetchOrigin : une origine LOCALE réelle met `origin/main` à jour ; sans origine, INDISPONIBLE
+ok 13 - fetchOrigin : une origine LOCALE réelle met `origin/main` à jour ; sans origine, INDISPONIBLE
+  ---
+  duration_ms: 136.444754
+  type: 'test'
+  ...
+# Subtest: arbrePrincipal : le PARENT du .git commun, séparateurs POSIX, casse CONSERVÉE
+ok 14 - arbrePrincipal : le PARENT du .git commun, séparateurs POSIX, casse CONSERVÉE
+  ---
+  duration_ms: 0.841904
+  type: 'test'
+  ...
+# Subtest: arbrePrincipal : deux refus NOMMÉS, jamais un repli sur le cwd
+ok 15 - arbrePrincipal : deux refus NOMMÉS, jamais un repli sur le cwd
+  ---
+  duration_ms: 24.582837
+  type: 'test'
+  ...
+# Subtest: arbrePrincipal : sous un cwd de plus de 200 caractères, le refus garde son MOTIF (git réel)
+ok 16 - arbrePrincipal : sous un cwd de plus de 200 caractères, le refus garde son MOTIF (git réel)
+  ---
+  duration_ms: 18.147698
+  type: 'test'
+  ...
+# Subtest: arbrePrincipal : depuis un WORKTREE RÉEL, la réponse est l’arbre PRINCIPAL (git réel)
+ok 17 - arbrePrincipal : depuis un WORKTREE RÉEL, la réponse est l’arbre PRINCIPAL (git réel)
+  ---
+  duration_ms: 62.941299
+  type: 'test'
+  ...
+# Subtest: classer : la RAISON est la première ligne significative, bornée à 200 caractères
+ok 18 - classer : la RAISON est la première ligne significative, bornée à 200 caractères
+  ---
+  duration_ms: 0.315406
+  type: 'test'
+  ...
+# Subtest: listerImage : l’unique listeur d’image — ref, INDEX, SUIVI et TRAVAIL rendent chacun LEURS fichiers ; enfantsDirects en projette les noms
+ok 19 - listerImage : l’unique listeur d’image — ref, INDEX, SUIVI et TRAVAIL rendent chacun LEURS fichiers ; enfantsDirects en projette les noms
+  ---
+  duration_ms: 124.784206
+  type: 'test'
+  ...
+# Subtest: listerImage : un suivi SUPPRIMÉ du disque sort de SUIVI et de TRAVAIL (`git commit -a` le supprime), pas de l’INDEX
+ok 20 - listerImage : un suivi SUPPRIMÉ du disque sort de SUIVI et de TRAVAIL (`git commit -a` le supprime), pas de l’INDEX
+  ---
+  duration_ms: 87.884318
+  type: 'test'
+  ...
+# Subtest: lireEnLot : un seul `cat-file --batch` rend le texte de chaque chemin, multi-octet compris, `null` pour un absent — ref et INDEX
+ok 21 - lireEnLot : un seul `cat-file --batch` rend le texte de chaque chemin, multi-octet compris, `null` pour un absent — ref et INDEX
+  ---
+  duration_ms: 68.612271
+  type: 'test'
+  ...
+# Subtest: lireEnLot : une sortie de `cat-file` dont le bloc ne finit pas à sa taille LÈVE en nommant le chemin
+ok 22 - lireEnLot : une sortie de `cat-file` dont le bloc ne finit pas à sa taille LÈVE en nommant le chemin
+  ---
+  duration_ms: 0.697317
+  type: 'test'
+  ...
+# Subtest: listerImage, ceQuiChange, eolsDe, fichiersDuGrep : un chemin non-ASCII ou à espace est rendu EN CLAIR — ls-files, ls-tree, diff-index, numstat, grep -l, --eol
+ok 23 - listerImage, ceQuiChange, eolsDe, fichiersDuGrep : un chemin non-ASCII ou à espace est rendu EN CLAIR — ls-files, ls-tree, diff-index, numstat, grep -l, --eol
+  ---
+  duration_ms: 128.03818
+  type: 'test'
+  ...
+# Subtest: etatDeLArbre : `status --porcelain=v2` en `{ etat, chemins }`, renommage en ses deux bouts, non-suivi et chemin non-ASCII EN CLAIR
+ok 24 - etatDeLArbre : `status --porcelain=v2` en `{ etat, chemins }`, renommage en ses deux bouts, non-suivi et chemin non-ASCII EN CLAIR
+  ---
+  duration_ms: 73.184389
+  type: 'test'
+  ...
+# Subtest: sourceGit : `citants` ne rend que les MODULES de code de `src/`, `lireTout` leur texte par lot — ref, INDEX, suivi et travail
+ok 25 - sourceGit : `citants` ne rend que les MODULES de code de `src/`, `lireTout` leur texte par lot — ref, INDEX, suivi et travail
+  ---
+  duration_ms: 108.04039
+  type: 'test'
+  ...
+# Subtest: ceQueFaitLeCommit : une fusion PROPRE n’apporte rien — ni le fichier ni les lignes de la branche fusionnée
+ok 26 - ceQueFaitLeCommit : une fusion PROPRE n’apporte rien — ni le fichier ni les lignes de la branche fusionnée
+  ---
+  duration_ms: 343.856787
+  type: 'test'
+  ...
+# Subtest: ceQueFaitLeCommit : une fusion qui RÉSOUT un conflit apporte sa résolution, lue contre la fusion automatique
+ok 27 - ceQueFaitLeCommit : une fusion qui RÉSOUT un conflit apporte sa résolution, lue contre la fusion automatique
+  ---
+  duration_ms: 339.884588
+  type: 'test'
+  ...
+# Subtest: ceQueFaitLeCommit : une fusion « maléfique » apporte la ligne qu’aucun parent ne porte, et seulement elle
+ok 28 - ceQueFaitLeCommit : une fusion « maléfique » apporte la ligne qu’aucun parent ne porte, et seulement elle
+  ---
+  duration_ms: 205.522289
+  type: 'test'
+  ...
+# Subtest: ceQueFaitLeCommit : la base d’une fusion se lit SANS pilote de fusion ni attribut — aucun processus lancé, rien écrit dans l’arbre
+ok 29 - ceQueFaitLeCommit : la base d’une fusion se lit SANS pilote de fusion ni attribut — aucun processus lancé, rien écrit dans l’arbre
+  ---
+  duration_ms: 326.700686
+  type: 'test'
+  ...
+# Subtest: ceQueFaitLeCommit : une fusion SANS ANCÊTRE COMMUN se lit comme `git show --remerge-diff` — chemins et patch
+ok 30 - ceQueFaitLeCommit : une fusion SANS ANCÊTRE COMMUN se lit comme `git show --remerge-diff` — chemins et patch
+  ---
+  duration_ms: 120.552026
+  type: 'test'
+  ...
+# Subtest: ceQueFaitLeCommit : un commit à un parent se lit contre lui — chemins, texte de base, naissance et renommage
+ok 31 - ceQueFaitLeCommit : un commit à un parent se lit contre lui — chemins, texte de base, naissance et renommage
+  ---
+  duration_ms: 93.674328
+  type: 'test'
+  ...
+# Subtest: ceQueFaitLeCommit : sous git 2.39, un commit ordinaire se lit, une FUSION lève une raison NOMMÉE
+ok 32 - ceQueFaitLeCommit : sous git 2.39, un commit ordinaire se lit, une FUSION lève une raison NOMMÉE
+  ---
+  duration_ms: 0.963796
+  type: 'test'
+  ...
+# Subtest: ceQuiChange.numstat : un chemin à TABULATION entier, un binaire en `null` (git réel)
+ok 33 - ceQuiChange.numstat : un chemin à TABULATION entier, un binaire en `null` (git réel)
+  ---
+  duration_ms: 95.89997
+  type: 'test'
+  ...
+# Subtest: etatDeLArbre : un renommage de l’ARBRE (colonne Y) rend ses deux bouts, `status.renames` n’y fait rien (git réel, `add -N`)
+ok 34 - etatDeLArbre : un renommage de l’ARBRE (colonne Y) rend ses deux bouts, `status.renames` n’y fait rien (git réel, `add -N`)
+  ---
+  duration_ms: 81.509421
+  type: 'test'
+  ...
+# Subtest: eolsDe : un attribut à ESPACES (`attr/text eol=lf`) est lu entier, un enregistrement hors forme LÈVE en se nommant
+ok 35 - eolsDe : un attribut à ESPACES (`attr/text eol=lf`) est lu entier, un enregistrement hors forme LÈVE en se nommant
+  ---
+  duration_ms: 63.907766
+  type: 'test'
+  ...
+# Subtest: config HOSTILE : chaque lecteur de l’hôte rend sous les réglages de l’utilisateur ce qu’il rend sous une config vide
+ok 36 - config HOSTILE : chaque lecteur de l’hôte rend sous les réglages de l’utilisateur ce qu’il rend sous une config vide
+  ---
+  duration_ms: 1604.511439
+  type: 'test'
+  ...
+# Subtest: ÉCRIVAINS : l’argv EXACT que git reçoit de chacun — aucune option de l’hôte, aucun geste forçant
+ok 37 - ÉCRIVAINS : l’argv EXACT que git reçoit de chacun — aucune option de l’hôte, aucun geste forçant
+  ---
+  duration_ms: 1.042521
+  type: 'test'
+  ...
+# Subtest: commitDe : sans `chemins`, ou à chemins vides hors `vide`, LÈVE avant tout spawn — ni `add -A`, ni commit de tout l’index
+ok 38 - commitDe : sans `chemins`, ou à chemins vides hors `vide`, LÈVE avant tout spawn — ni `add -A`, ni commit de tout l’index
+  ---
+  duration_ms: 0.327323
+  type: 'test'
+  ...
+# Subtest: commitDe : un chemin qui n’est pas un FICHIER — `.`, `:/`, `*`, un répertoire (sur le disque ou supprimé), `…/` — ne committe jamais l’arbre ; `vide` ne committe pas l’index
+ok 39 - commitDe : un chemin qui n’est pas un FICHIER — `.`, `:/`, `*`, un répertoire (sur le disque ou supprimé), `…/` — ne committe jamais l’arbre ; `vide` ne committe pas l’index
+  ---
+  duration_ms: 177.164498
+  type: 'test'
+  ...
+# Subtest: ÉCRIVAINS sous config HOSTILE : l’identité de l’UTILISATEUR signe le commit et le rebase
+ok 40 - ÉCRIVAINS sous config HOSTILE : l’identité de l’UTILISATEUR signe le commit et le rebase
+  ---
+  duration_ms: 126.73461
+  type: 'test'
+  ...
+# Subtest: pousser : `--force-with-lease` vers le tronc est REFUSÉ avant tout spawn, sous ses deux noms
+ok 41 - pousser : `--force-with-lease` vers le tronc est REFUSÉ avant tout spawn, sous ses deux noms
+  ---
+  duration_ms: 0.429918
+  type: 'test'
+  ...
+# Subtest: fusionDeTextes : la fusion à trois de `merge-file`, conflit dit par le code de sortie, style `merge`
+ok 42 - fusionDeTextes : la fusion à trois de `merge-file`, conflit dit par le code de sortie, style `merge`
+  ---
+  duration_ms: 10.530376
+  type: 'test'
+  ...
+# Subtest: une BORNE qui commence par `-` est REFUSÉE par chaque question et chaque écrivain, avant d’atteindre git
+ok 43 - une BORNE qui commence par `-` est REFUSÉE par chaque question et chaque écrivain, avant d’atteindre git
+  ---
+  duration_ms: 31.248559
+  type: 'test'
+  ...
+# Subtest: une BORNE à caractère de CONTRÔLE ou à `@{` est REFUSÉE par chaque question et chaque écrivain, avant d’atteindre git
+ok 44 - une BORNE à caractère de CONTRÔLE ou à `@{` est REFUSÉE par chaque question et chaque écrivain, avant d’atteindre git
+  ---
+  duration_ms: 39.639585
+  type: 'test'
+  ...
+# Subtest: un CHEMIN à caractère de CONTRÔLE est REFUSÉ par `lireEnLot` avant d’atteindre git : il lirait un autre objet que le fichier
+ok 45 - un CHEMIN à caractère de CONTRÔLE est REFUSÉ par `lireEnLot` avant d’atteindre git : il lirait un autre objet que le fichier
+  ---
+  duration_ms: 45.961491
+  type: 'test'
+  ...
+# Subtest: un `{ cwd }` écrit à la main n’est pas un dépôt : chaque question LÈVE `TypeError` à l’exécution
+ok 46 - un `{ cwd }` écrit à la main n’est pas un dépôt : chaque question LÈVE `TypeError` à l’exécution
+  ---
+  duration_ms: 40.681929
+  type: 'test'
+  ...
+# Subtest: un NOM dont l’objet MANQUE (dépôt corrompu, refs intactes) : `GitIndisponible` nommée, jamais une absence ni `BorneAbsente`
+ok 47 - un NOM dont l’objet MANQUE (dépôt corrompu, refs intactes) : `GitIndisponible` nommée, jamais une absence ni `BorneAbsente`
+  ---
+  duration_ms: 316.396011
+  type: 'test'
+  ...
+# Subtest: une ÉTIQUETTE annotée dont le commit cible MANQUE : `GitIndisponible` nommée, sous son nom comme sous `^{commit}`, `~n` et `^n`
+ok 48 - une ÉTIQUETTE annotée dont le commit cible MANQUE : `GitIndisponible` nommée, sous son nom comme sous `^{commit}`, `~n` et `^n`
+  ---
+  duration_ms: 152.496233
+  type: 'test'
+  ...
+# Subtest: un CHEMIN positionnel qui commence par `-` passe APRÈS `--` : git le lit comme un chemin, jamais comme une option
+ok 49 - un CHEMIN positionnel qui commence par `-` passe APRÈS `--` : git le lit comme un chemin, jamais comme une option
+  ---
+  duration_ms: 0.783236
+  type: 'test'
+  ...
+# Subtest: une BORNE ABSENTE : `null` (ou `absent`, `false`) pour une question qui le porte, `BorneAbsente` levée pour une collection — jamais le vide
+ok 50 - une BORNE ABSENTE : `null` (ou `absent`, `false`) pour une question qui le porte, `BorneAbsente` levée pour une collection — jamais le vide
+  ---
+  duration_ms: 201.548962
+  type: 'test'
+  ...
+# Subtest: divergenceDe, combienDe, branchesDe, journalDe : les VALEURS — la gauche en RETARD, la droite en AVANCE, message sur plusieurs lignes
+ok 51 - divergenceDe, combienDe, branchesDe, journalDe : les VALEURS — la gauche en RETARD, la droite en AVANCE, message sur plusieurs lignes
+  ---
+  duration_ms: 131.298511
+  type: 'test'
+  ...
+# Subtest: journalDe, branchesDe : la date ISO 8601 stricte en `±hh:mm`, UTC compris, sous toute version de git
+ok 52 - journalDe, branchesDe : la date ISO 8601 stricte en `±hh:mm`, UTC compris, sous toute version de git
+  ---
+  duration_ms: 75.862723
+  type: 'test'
+  ...
+# Subtest: branchesDe, divergenceDe, combienDe : une sortie en fin de ligne CRLF rend les mêmes valeurs
+ok 53 - branchesDe, divergenceDe, combienDe : une sortie en fin de ligne CRLF rend les mêmes valeurs
+  ---
+  duration_ms: 0.516646
+  type: 'test'
+  ...
+# Subtest: estSuperficiel, dossierDesHooks, estIgnore, attributDe, cheminGit, brancheDe, racineDe, origineDe : les VALEURS sur dépôt forgé
+ok 54 - estSuperficiel, dossierDesHooks, estIgnore, attributDe, cheminGit, brancheDe, racineDe, origineDe : les VALEURS sur dépôt forgé
+  ---
+  duration_ms: 203.325309
+  type: 'test'
+  ...
+# Subtest: \#1803 : `dossierDesHooks` ne lit que stdout — sous un bruit stderr, les hooks vivants se lisent vivants
+ok 55 - \#1803 : `dossierDesHooks` ne lit que stdout — sous un bruit stderr, les hooks vivants se lisent vivants
+  ---
+  duration_ms: 0.30996
+  type: 'test'
+  ...
+# Subtest: fusionnesEnCours : hors fusion, `[]`
+ok 56 - fusionnesEnCours : hors fusion, `[]`
+  ---
+  duration_ms: 37.834892
+  type: 'test'
+  ...
+# Subtest: fusionnesEnCours : une fusion simple rend le commit fusionné
+ok 57 - fusionnesEnCours : une fusion simple rend le commit fusionné
+  ---
+  duration_ms: 59.767039
+  type: 'test'
+  ...
+# Subtest: fusionnesEnCours : une fusion OCTOPUS rend ses deux lignes de `MERGE_HEAD`, dans l’ordre
+ok 58 - fusionnesEnCours : une fusion OCTOPUS rend ses deux lignes de `MERGE_HEAD`, dans l’ordre
+  ---
+  duration_ms: 148.93492
+  type: 'test'
+  ...
+# Subtest: fusionnesEnCours : une ligne de `MERGE_HEAD` qui ne nomme aucun commit est un dépôt CORROMPU, jamais filtrée
+ok 59 - fusionnesEnCours : une ligne de `MERGE_HEAD` qui ne nomme aucun commit est un dépôt CORROMPU, jamais filtrée
+  ---
+  duration_ms: 108.540431
+  type: 'test'
+  ...
+# Subtest: fusionnesEnCours : un `MERGE_HEAD` illisible est INDISPONIBLE, jamais « hors fusion »
+ok 60 - fusionnesEnCours : un `MERGE_HEAD` illisible est INDISPONIBLE, jamais « hors fusion »
+  ---
+  duration_ms: 57.701502
+  type: 'test'
+  ...
+# Subtest: fusionnesEnCours : git EN PANNE sur les lignes de `MERGE_HEAD` — UNE requête, UNE panne, la sienne
+ok 61 - fusionnesEnCours : git EN PANNE sur les lignes de `MERGE_HEAD` — UNE requête, UNE panne, la sienne
+  ---
+  duration_ms: 1.766367
+  type: 'test'
+  ...
+# Subtest: rebaseEntame : `null` hors rebase, puis le NOM du chemin d’état présent sous le répertoire git
+ok 62 - rebaseEntame : `null` hors rebase, puis le NOM du chemin d’état présent sous le répertoire git
+  ---
+  duration_ms: 69.939413
+  type: 'test'
+  ...
+# Subtest: rebaseEntame : git en panne ou chemin d’état ILLISIBLE — INDISPONIBLE, une panne, jamais « hors rebase »
+ok 63 - rebaseEntame : git en panne ou chemin d’état ILLISIBLE — INDISPONIBLE, une panne, jamais « hors rebase »
+  ---
+  duration_ms: 1.155634
+  type: 'test'
+  ...
+1..63
+# tests 63
+# suites 0
+# pass 63
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 6781.050862

@@ -1,0 +1,78 @@
+VERDICT : À REPRENDRE. Seulement des retouches : la couche, le socle du focus et BoiteAncree TIENNENT. Il reste trois défauts dans les fichiers du diff (D1 à D3) et un fait d'index (D4) à régler avant le commit.
+
+ÉPINGLAGE. Arbre /home/user/game, branche chantier/1806, HEAD d3b9fdf6f. `git diff --cached --name-only | wc -l` = 47. Contrôle positif : les blobs indexés sont ceux du rendu du codeur (git hash-object : Infobulle.tsx 080f8ed516…, BoiteAncree.tsx d7565e3c27…, focus.ts 71d81cbebf…).
+
+DÉFAUTS
+D1. src/ui/BoiteAncree.tsx:18-21 et :36-42, plus l'entrée `boite-ancree` de src/data/primitives.manifest.json (« table `VARIABLES` unique »). F10 est déclaré « partiel », mais le code prétend plus qu'il ne fait.
+  Preuve : les VALEURS de `VARIABLES` ('--ancre-left'…) ne sont lues par personne. `grep -n "VARIABLES\|CHAMPS"` → :36 (déclaration), :44 (`CHAMPS = Object.keys(VARIABLES)`), :66 (égalité par les clés). Le style (:108-114) réécrit les cinq noms à la main. Le test (BoiteAncree.test.tsx:84) parcourt SA PROPRE liste en dur, pas la table. Si on ajoute un champ à PlacementAncre et à VARIABLES sans l'ajouter au littéral, le test reste vert. Si on renomme une valeur de VARIABLES, rien ne rougit. L'en-tête « `BoiteAncree.test.tsx` vérifie qu'il n'en manque aucune » est donc faux.
+  La raison de l'écart TIENT : la garde (xxii) refuse `satisfies` et les clés calculées (scripts/guards/lib/cssCouchesAudit.ts:337-356 : `apres` doit valoir `as …`, clé `^\[?[A-Za-z_$][\w$]*\]?:`, `...` refusé).
+  Correction retenue :
+  - `VARIABLES` devient la liste des CHAMPS : `const CHAMPS = ['left','top','bottom','maxHeight','width'] as const satisfies readonly (keyof PlacementAncre)[];`, avec un contrôle d'exhaustivité de type `type _Complet = Exclude<keyof PlacementAncre, (typeof CHAMPS)[number]> extends never ? true : never; const _c: _Complet = true;`.
+  - Le littéral de :108-114 reste la seule écriture des noms de variables.
+  - L'en-tête :18-21 et le manifeste disent vrai : « la complétude du littéral n'est pas prouvée par le type, la garde (xxii) l'interdit ; le test vérifie les cinq variables qu'il nomme ».
+D2. Un concept, un terme : « popover » désigne encore la boîte de la couche, contrairement à R2 et à la consigne du brief (« dans chaque zone touchée : un concept, un terme »).
+  - Lignes AJOUTÉES par ce diff : src/ui/CombatConsole.test.tsx:2226 (`const popovers`), src/ui/RollLine-etat-chips.test.tsx:139, src/ui/compendium/CodexRef.hooks.test.tsx:193, src/ui/dialogue-couche-du-dessus.test.tsx:84, src/ui/echap-pile-lifo.test.tsx:102,105,147.
+  - Lignes restées dans des fichiers touchés : src/ui/CombatConsole.tsx:84,233,624,894,1245,1302 ; src/ui/CombatConsole.test.tsx:96 ; src/ui/compendium/CodexRef.test.tsx:5,19 ; src/ui/compendium/CodexRef.hooks.test.tsx:22-34 (dont `sommetEstLePopover`), 74-79 ; src/ui/styles/components.css:1337 ; src/state/keybindings.ts:321.
+  - Hors défaut : stageWalk.test.ts:321 et Infobulle.tsx:198 (`nature: 'popover'`) désignent la `LayerNature` de dismissStack, un autre concept.
+  Correction retenue : remplacer « popover » par « infobulle », ou par « boîte » quand il s'agit de la boîte, sur ces lignes.
+D3. src/ui/compendium/CodexRef.tsx:88-90 contredit :178. Le diff a réécrit :90 (« jamais un `title` : l'infobulle native est proscrite, la couche d'infobulle EST le mécanisme »), alors que :178 pose `title` sous `wrap && porte`, et que wrap-keyboard-vs-cursor.test.tsx:97 le verrouille.
+  Garder le `title` jusqu'au lot B est conforme au découpage du design (29_, « Lot B : … migrations (feuilles, JS, `title`) » ; lot A « à comportement CONSTANT »). Le commentaire, lui, ment dans une zone touchée.
+  Correction retenue : :88-90 dit la réalité (« … Rendu en `aria-label` SEUL. Le `title` de la porte ↓ (:178) est une 2ᵉ boîte native, purgée au lot B, design R-M2 v4 »), ou le `title` part maintenant avec l'assertion :97. `aria-keyshortcuts` annonce déjà la porte (Infobulle.tsx:208).
+D4. FAIT D'INDEX, pas de code. Les 24 docs générés ne sont PAS dans l'index : `git diff --cached --name-status` ne compte que 2 docs (charte-ui.md, primitives.md). `git status` montre les 24 en ` M`, et docs/primitives.md en `MM`. La prémisse du brief (« 47 chemins, dont 24 docs ») est fausse. Contenu : voir lentille 7. Le commit doit les ajouter par chemin (primitives.md compris, sa part non indexée étant l'empreinte), sinon docs:check rougit.
+
+LENTILLES
+1. Socle du focus : CONFIRMÉ, un seul mécanisme.
+   - `useFocusEmprunte` (focus.ts:64-102) garde un seul retour. `origine` est un paramètre (défaut `activeElement`, :85). La chaîne `chaineDOrigines` (:19-22) est un instantané pris à l'ouverture et lu par `find(isConnected)` (:94).
+   - Surface contenante fermée (A fermée, puis B) : la chaîne de B vaut [Ouvrir B, déclencheur de A, …] et le focus va au déclencheur de A. C'est juste : test Q2DIAL vert, Infobulle.test.tsx:129-143.
+   - Surface contenante encore ouverte avec une origine morte : on retombe sur l'origine de A, peinte sous A, donc `dessus.contains` est faux → blur (:99), puis le repli de Modal.tsx:127-148. Juste.
+   - WeakMap : pas de fuite qui croît. Clé = boîte, une entrée écrasée à chaque ouverture. Elle retient ses origines (nœuds détachés possibles) tant que la boîte vit.
+   - Observation non bloquante : `originesDeBoite.set` écrit aussi pour les boîtes sans rôle de SURFACE (EmbeddedShell `.rs-embedded`, RollShell.tsx:388). Ces écritures ne sont jamais lues par `closest(SURFACE)`, et une origine prise dans une zone embarquée saute l'origine de la zone.
+   - Tests promus rejoués (X1 ×3, X2, Q2DIAL, B2 « Échap puis ↓ ») : verts, voir 8.
+2. Couche Infobulle : CONFIRMÉ.
+   - Aucune branche par consommateur : quatre booléens (Infobulle.tsx:47-56).
+   - Ancrage au balisage par `data-infobulle` (:205-209). Délégation au document (:175-181). Arrêt sur la racine de la boîte (:218).
+   - `congediee` est posé de façon synchrone par `fermer` (:84), appelé par la couche de pile (:198). Il est lu par `entre` (:89) et levé seulement par un geste : `quitte` :95, entrée neuve :130/:147, ↓ ou bascule :105. Aucun effet ne le lit ni ne l'écrit.
+   - Le seul point d'ordre (X1 synchrone) : le nettoyage de l'emprunt de la boîte passe AVANT le montage de la fiche. C'est la sémantique garantie de React 18 (tous les nettoyages passifs avant les montages d'un commit), pas un hasard. Avec la fiche en chunk différé, l'ordre ne joue plus (la sonde 5 le confirme : focus sur la case pendant le chargement, sur « Monde » une fois la fiche montée).
+   - Bémol, non bloquant : `sourdine` ferme par un effet (:117), mais `entre` relit la sourdine au rendu (:69, :89). Aucun invariant n'en dépend.
+3. BoiteAncree : CONFIRMÉ, hors D1.
+   - Placement mesuré pendant le rendu qui reçoit l'ancrage (:72-77), puis re-mesure après le commit (:84). Ancrage détaché → null (:69).
+   - `grep useLayoutEffect` sur BoiteAncree/Infobulle/PanneauParametre/AddMenu/CodexRef : exit=1.
+   - La raison de F10 « partiel » TIENT (garde (xxii), citée en D1), mais sa déclaration est fausse (D1).
+4. Test d'hôte CombatConsole : CONFIRMÉ, c'est le comportement joueur voulu et pas un test tordu.
+   - Forme retenue du verdict A6+A7 (47_), verbatim : « un état `congediee` (APG Tooltip, « Escape: Dismisses the Tooltip »), posé par `unpin`, qui fait ignorer `survol` jusqu'au prochain `quitte` de l'ancrage ».
+   - Le `mouseover` sur body modélise l'arrivée d'ailleurs, sans laquelle aucun survol réel ne peut se produire.
+   - Il est même nécessaire à la sonde « Dissiper » (CombatConsole.test.tsx:2600-2607). Sans lui, le 2ᵉ `survole()` après armement renverrait null par congédiement et non par sourdine : l'assertion passerait à vide.
+   - La clause du design « sans réécriture » (29_, Lot A) est supplantée par X2.
+5. Échap pendant le chargement à froid : REPRODUIT, 2 runs sur 2. Défaut PRÉEXISTANT, hors lot.
+   - Sortie (CompendiumScreen.tsx retenu 6 s par CDP Fetch), fichier sonde-b-avecEchap.txt :
+     Entrée → {"codex":"sur-la-defensive","fiche":false,"menu":false,…,"actif":"BUTTON«Défensive»[defend]"}
+     Échap pendant le chargement → {"codex":"sur-la-defensive","fiche":false,"menu":true,"menuDom":true,…,"actif":"BUTTON«Reprendre»"}
+     chunk arrivé → {"codex":"sur-la-defensive","fiche":true,"menu":true,…}   (la fiche s'ouvre PAR-DESSUS le menu système)
+     2e Échap → {"codex":null,"fiche":false,"menu":true,…}
+     console : erreurs = 0 ; exit=0
+   - Témoin sans Échap (sonde-b-sansEchap.txt) : fiche:true à l'arrivée du chunk, menu:false.
+   - Pourquoi c'est préexistant :
+     - La couche de la fiche n'est empilée que par son effet de montage (useModalA11y → useDismissLayer), sur la base comme sur le lot.
+     - `toggle-menu.when` (keybindings.ts:464-467) ne lit pas `codexOverlay`, et `modalHolds` non plus (modalArbiter.ts:218, codexOverlay absent de MODAL_DEFS).
+     - L'élection d'Échap est identique : le diff de resoudreEchap.ts remplace le `find` en ligne par le même prédicat (`elireBinding`).
+     - Le lot remplace seulement « Chargement… » par rien (App.tsx, `fallback={null}`).
+     - Non rejoué au navigateur sur la base : cela exige un second arbre servi, ce que mon rôle n'autorise pas.
+   - Issue hors périmètre à ouvrir : une surface demandée (codexOverlay posé) ne tient pas Échap tant que son chunk charge.
+6. Langue et primitives : RÉFUTÉ pour « popover » (D2).
+   - `title` de CodexRef conservé : conforme au découpage, mais le commentaire ment (D3).
+   - Élément nu, mineur : spécimen `InfobulleDemo`, `<span>` de contenu sans classe (registry.tsx, dans le hunk +850). À juger à la charte : aucune occurrence de « élément nu » dans docs/charte-ui.md ni docs/primitives.md (grep vide).
+   - Les 6 signaux « revendication d'autorité » sont PRÉEXISTANTS, aux mêmes lignes sur HEAD : `git show HEAD:src/ui/CombatConsole.tsx` → 52, 277, 594, 616, 1209. registry.tsx:1524 = HEAD:1469, décalé de +55 lignes par les hunks +25 (+3) et +850 (+52). Aucun hunk de CombatConsole.tsx (110, 114, 236, 541, 1255, 1326) ne les touche.
+7. Docs générés : CONFIRMÉ, ce sont des conséquences du lot seules. Empreintes `sources-empreinte`, décomptes du manifeste 148 → 151, +3 lignes « css », `.sources-lues.json` (+Infobulle, BoiteAncree, leurs tests et trois css), systemes.md (+3 primitives, SURFACE).
+8. Portes :
+   - Commande : `npx vitest run --no-cache <perimetre.txt du codeur moins src/state/resoudreEchap.test.ts, inexistant> src/ui/css-modules-guard.test.ts src/ui/css-definitions-guard.test.ts src/ui/aria-primitive-guard.test.ts`. Elle inclut vi-mock-isolate-guard, comment-poison-guard, primitive-owners-guard et ui-ratchets.
+   - Sortie (juge-rm2a/vitest.txt), code capturé par `echo "exit=$?"` sans pipe : « Test Files 38 passed (38) / Tests 709 passed (709) / exit=0 ».
+9. Architecture à rebours :
+   - TIENDRAIENT : useFocusEmprunte comme couture unique, avec l'origine en paramètre ; l'état `congediee` comme donnée ; BoiteAncree comme une seule mesure pour trois consommateurs ; `elireBinding` comme une seule élection.
+   - NE TIENDRAIT PAS tel quel : `VARIABLES` comme table des variables (D1).
+   - INCERTAIN : la délégation vit dans chaque INSTANCE (7 écouteurs de document par CodexRef monté, :175-181), et non une fois pour la couche. Pour trancher, compter les CodexRef montés en combat (`document.querySelectorAll('[data-infobulle]').length`) et mesurer le coût d'un mouseover.
+
+PROCESSUS
+- vitest en arrière-plan (timeout 900) : terminé, exit=0.
+- vite :5199 (PIDs 7579 timeout, 7580 lancer-local, 7589 vite) : tués par PID à 12:09 UTC ; `ps` ensuite ne montre aucun :5199.
+- Chromium de mes 3 sondes : fermés par `session.close()` (exit=0 ×3). Restent des zombies `<defunct>` chrome et crashpad (PIDs 9282-9350), sans processus vivant.
+- vite :5173 (PIDs 2768-2784) : appartient au recetteur, je n'y ai pas touché.

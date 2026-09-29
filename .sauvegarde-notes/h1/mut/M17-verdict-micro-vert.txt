@@ -1,0 +1,16 @@
+TAP version 13
+# Subtest: bande REPLIÉE dont la poignée cache des MICRO-JAUGES : défaut chiffré
+ok 1 - bande REPLIÉE dont la poignée cache des MICRO-JAUGES : défaut chiffré
+  ---
+  duration_ms: 3.440255
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 115.768908

@@ -1,0 +1,35 @@
+total defauts (bilan): 1905
+    5  autre: budget (nom composé) #×#px (§# #–#) : le portrait de l'arche cède à #px sous sa cote de #px alors que la case 
+    2  autre: budget (nom composé) #×#px (§# >#) : le portrait de l'arche cède à #px sous sa cote de #px alors que la case (
+    5  autre: budget (nom le plus long) #×#px (§# #–#) : le portrait de l'arche cède à #px sous sa cote de #px alors que la 
+    2  autre: budget (nom le plus long) #×#px (§# >#) : le portrait de l'arche cède à #px sous sa cote de #px alors que la c
+    5  autre: budget (tour de héros) #×#px (§# #–#) : le portrait de l'arche cède à #px sous sa cote de #px alors que la cas
+    2  autre: budget (tour de héros) #×#px (§# >#) : le portrait de l'arche cède à #px sous sa cote de #px alors que la case
+    2  autre: combat #px (§# #–#) : la carte du groupe fait #px, pas plus compacte que #px à #px
+   12  autre: combat ×# #px (§# #–#) : la vie de la carte # du groupe n'est pas superposée à son portrait
+    2  autre: combat ×# #×#px (§# #–#) : le portrait de l'arche cède à #px sous sa cote de #px alors que la case (#px) est a
+    2  autre: exploration #px (§# #–#) : la carte du groupe fait #px, pas plus compacte que #px à #px
+    4  autre: exploration #px (§# #–#) : la vie de la carte # du groupe n'est pas superposée à son portrait
+   24  budget doigt empilé
+   66  budget doigt fronton
+   48  budget souris bande
+   48  budget souris fronton
+   78  débord combat-feed hors temps
+   54  débord initiative-strip hors temps
+   54  débord ld-panel hors outils
+   36  immobilité arche tour de héros→nom composé
+   36  immobilité arche tour de héros→nom le plus long
+    9  immobilité arche tour de héros→pause de Round
+    9  immobilité arche tour de héros→spectateur
+   36  immobilité bande tour de héros→nom composé
+   36  immobilité bande tour de héros→nom le plus long
+   36  immobilité coin tour de héros→nom composé
+   36  immobilité coin tour de héros→nom le plus long
+   36  immobilité frise tour de héros→nom composé
+   36  immobilité frise tour de héros→nom le plus long
+   72  immobilité frise tour de héros→pause de Round
+    2  journal ligne coupée
+ 1008  mot tranché: FIGCAPTION
+    6  numéro seul
+   54  recouvre party-dock×initiative-strip
+   42  recouvre party-dock×ld-panel

@@ -1,0 +1,24 @@
+## Dernier sous-lot CSS — `hud.css` à zéro — publié
+
+État MESURÉ après le commit `cf4c2ee7b` (`scripts/guards/lib/cssCouchesStock.mjs`, `scripts/ui/css-conservation.mjs`) :
+
+| Mesure | Avant | Après |
+|---|---|---|
+| déclarations CSS du corpus | 8165 | 8145 |
+| stock identité | 1359 | 1345 |
+| stock espacement | 613 | 609 |
+| `style=` inline | 97 | 97 |
+
+**Famille Combat, entrées restantes aux trois stocks** : `hud.css` 0 · `combat-modals.css` 0 · `combat-console.css` 0 · `combat-ui.css` **16** (le beat d'ouverture : 15 identité + 1 espacement) · `style=` inline des `.tsx` de la famille 0. La DoD de ce ticket ne tient plus qu'à **#1835 décision 1** (où vit l'art unique d'un écran), qui est à l'utilisateur.
+
+**SOLDÉ contre DÉPLACÉ** (ventilation établie par le juge, contre la mienne) — 18 entrées retirées, 0 ajoutée : DÉPLACÉ vers `components.css` (exempte) **9** · SOLDÉ **5** · passé en PROP de primitive **2** · remis sur l'échelle, toujours déclaré par l'écran **2**. La moitié de la décrue du stock est un déménagement ; ce que le lot solde vraiment se lit au corpus : **−20 déclarations**, dont quatre copies d'un même halo et une copie d'une même plaque.
+
+**Ce que le lot a mutualisé** :
+- `.halo-champ` — la double ombre d'encre d'un texte posé sur un fond qu'il ne maîtrise pas était écrite CINQ fois, réglée à la main pour chaque corps de texte (plaques de nom, lieu du HUD, journal, fil de combat, chiffre de barre de vie). Une seule matière, en `em`. Le plan en voyait trois, le juge a trouvé la quatrième, la garde neuve la cinquième.
+- `.skin-bois` — la plaque du rail d'outils et celle du bandeau de phase. Le volet de `PartyDock` est EXCLU (il aurait fallu du JS dans une primitive que #1829 retouche).
+
+**Gardes neuves, toutes sans liste d'exceptions** : toute peau `.skin-*` a au moins deux fichiers poseurs ; aucune feuille hors couche partagée ne réécrit une double ombre d'encre.
+
+**Défauts trouvés** : corrigé dans le geste — le bandeau d'OUVERTURE perdait son encoche d'angle (`--cc-notch` défini sur la console, hors de laquelle il est monté). Ouvert — **#1841** : au-delà de 4 héros, la pile de contexte (lieu, objectif) recouvre la bande de groupe ; mesuré à l'identique avant et après ce lot.
+
+Captures `public/qc/soldes/1806-hud-apres-*.png` contre `1806-hud-avant-*.png`.

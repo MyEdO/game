@@ -1,0 +1,11 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game
+
+ ✓ src/ui/wrap-keyboard-vs-cursor.test.tsx (8 tests) 248ms 418 MB heap used
+
+ Test Files  1 passed (1)
+      Tests  8 passed (8)
+   Start at  09:49:35
+   Duration  16.17s (transform 9.76s, setup 13.81s, collect 1.01s, tests 248ms, environment 685ms, prepare 66ms)
+

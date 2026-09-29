@@ -1,0 +1,18 @@
+## Publication e301b5991
+
+Plage publiée : `3ca748115 → e301b5991` sur `main`.
+
+### Commits (5)
+- `208733587` fix(gates): refs #1750 — la lane `test` déclare qu'elle LIT `scripts/` en entier
+- `c251f46af` refactor(ui): refs #1806 — sous-lot 2c : l'identité du JET vit au module de sa primitive
+- `661039fc6` chore(docs): refs #1750 refs #1806 — docs dérivés
+- `012aee6e3` chore(docs): refs #1750 refs #1806 — docs dérivés
+- `e301b5991` chore(docs): refs #1750 refs #1806 — docs dérivés
+
+### CI
+- verte — course `35428810753` : https://github.com/cgauche/game/actions/runs/35428810753
+- attente du verdict CI : 10.3 min (temps d’attente, pas de machine locale).
+
+#1806 est rattaché (`refs`) par cette publication, non fermé.
+
+<!-- publier: e301b5991f455ccd515fac106154bd383607285e -->

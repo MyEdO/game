@@ -1,0 +1,57 @@
+# Brief du codeur, lot A6 de R-M2 : le focus revient à l'ancrage, la boîte ancrée dit vrai (#1806), 2026-09-24
+
+Tu es orchestrateur de ton lot : tu peux déléguer une lecture de masse (agent `lecteur`) ou une vérification fermée (`verif-mecanique`), mais tu relis tout ce qu'un agent te rend, et le code est à toi.
+
+## Worktree et interdits
+- Worktree : `/home/claude/game/.wt-rm2a`, branche `wt/rm2a`, HEAD `a8d993dd6`. Les lots A à A5 y sont INDEXÉS en entier (instantané `8c1e5a8c6`) : ton travail est exactement `git diff`. Aucune modification non indexée au départ.
+- `node_modules` est une copie par liens durs, caches exclus : aucune écriture dedans, `npm install` compris.
+- Interdits : tout `git checkout/restore/reset/stash/add/commit/apply/write-tree/init`, et toute suppression récursive. Je committe moi-même.
+- **Processus** : un serveur de dev et un Chromium sans tête sont permis pour vérifier ; arrête-les par PID avant de rendre. Avant tout `kill`, lis le PPID et la ligne de commande du parent (`ps -o pid,ppid,cmd`) : tu ne tues que ce que ta propre commande a lancé. Jamais `pkill`, `killall`, ni `ps … | grep chrome | xargs kill`. Le serveur du port 5204 et ceux des autres arbres ne sont pas à toi. La machine a 4 cœurs et trois autres agents y tournent : un serveur et un Chromium à la fois ; avant de lancer vitest sur plus de 20 fichiers, vérifie qu'aucun autre vitest ne tourne (`ps -eo pid,etime,cmd | grep '[v]itest'`, sortie collée) ; sinon, fais d'abord le reste et reviens-y. Colle `/proc/loadavg` à côté de toute mesure de durée et de tout rouge par délai.
+- Pas de captures.
+- Budget : 1 h 30 d'horloge. Travaille dans l'ordre ; à l'échéance, rends ce qui est fait, le reste NOMMÉ.
+- Hors de ton geste : `docs:check`, `docs:build`, `docs:reprise` et le typecheck complet. Je les joue au commit.
+
+## Invariant
+- Arbitrage de Clément (2026-08-24), fiche `.claude/memory/user-arbitrage-raison-de-refus-au-survol-jamais-inline.md`, verbatim : « Je n’ai jamais validé ces "textes" impossible a lire sous le nom des capacités, même Rogue Trader qui est notre interface de départ n’a pas un tel comportement. » Le commit qui l'applique (`fc8d809a5`) en tire, verbatim : « la raison d'un refus vit au SURVOL (et s'ATTEINT au clavier, à la manette, au doigt) ».
+- Credo (`.claude/credo.md`), verbatim : « Règles GÉNÉRALES, jamais spécifiques. Corriger la classe entière du problème, pas le cas rencontré. » ; « La CÉRÉMONIE d'arbitrage est réservée aux RÈGLES DE JEU […] L'ingénierie révisable (UI/UX, confort, chantier inachevé) s'en passe. »
+- Consigne de Clément (2026-09-20, #1806), verbatim : « L'application c'est un dépot de stock decroissant. Surtout que c'est toi qui a mis ces !important il y a quelques jours ». Conséquence : aucun registre neuf, aucune liste d'exceptions, aucun `!important` neuf.
+- Consigne de Clément (2026-09-23), verbatim : « Fais les choses bien, le but n'est pas que vider la dette a 0, mais aussi régler les mauvaises décisions découvert en chemin fait par un model des anciennes générations pour une structure plus adapté ».
+
+## Cas canonique déjà couvert
+- **Le focus rendu à la fermeture d'un dialogue** : `useModalA11y` mémorise l'élément focalisé à l'ouverture et le lui rend à la fermeture (`src/ui/Modal.tsx:77`). Preuve d'instance à rendre : la fiche ouverte depuis la porte « Ouvrir la fiche » d'une infobulle en est une instance, dont l'élément d'origine est l'ancrage de l'infobulle, puisque la porte meurt avec elle.
+
+## Design jugé :
+- Verdict du juge A5 : `/tmp/claude-0/-home-claude-game/b2c1dcf4-ee89-5cd4-b2df-036dbf03e24e/scratchpad/juge-rm2a5/verdict.md`, sondes dans le même dossier (dont `couture.j5.sonde.test.tsx`). Décision du juge sur D1, que je retiens : le focus revient à l'ancrage (patron de dialogue WAI-ARIA, « return focus to the element that invoked the dialog »), couture unique `fermer: congedier` à `src/ui/Infobulle.tsx:241`, sans patch dans `CodexRef`. Il réfute l'objection du rendu A5 : sous la fiche, aucune boîte (`App.surcouche-codex.test.tsx:97-98` tient) ; après la fermeture, l'infobulle non épinglée que le joueur voyait déjà revient.
+- Forme retenue pour F10 : une table unique des champs de `PlacementAncre`, `satisfies Record<keyof PlacementAncre, …>`, dont le style et l'égalité dérivent.
+
+## Travail, dans cet ordre
+1. **D1** : `fermer` rend le focus à l'ancrage. La sonde `couture.j5.sonde.test.tsx`, cas `rendre=true`, devient un test ; mutation : ton correctif retiré, le test rougit sur son assertion.
+2. **F9** : l'en-tête de `src/ui/BoiteAncree.tsx:9` et le commentaire de `:42` disent ce que fait le code (le juge : 3 passes et 2 commits à l'ouverture, un rendu au 1ᵉʳ défilement égal après ↓).
+3. **F10** : une table unique des champs de `PlacementAncre` (`BoiteAncree.tsx:19-20`, `:70`) ; un champ ajouté ne peut plus être oublié par l'égalité ni par le style (preuve : ajoute un champ sur une copie de travail, montre l'erreur de type, retire-le).
+4. **F11** : un ancrage détaché du document ne pose aucune boîte (`BoiteAncree.tsx:16-17`), avec son test. Le lot B posera des ancrages hors contrôle : dis ce qu'un consommateur voit alors.
+5. **F12, un concept, un terme** : `raccourciParId` voisine avec `runBindingById` et `runBindingUpById` (`src/state/keybindings.ts:520`, `:526`, `:535`). Mesure d'abord (`git grep -c` des deux termes sous `src/`, sortie collée), puis donne UN terme à la zone touchée et dis jusqu'où tu l'as porté et pourquoi. La 3ᵉ recherche par id en `Map` et les élections partielles recopiées en test (`keybindings.test.ts:95,114,261,302`, `echap-desarme-mode-arme.test.tsx:73`, `raccourcis-modificateurs.test.tsx:36`) passent par la fonction du registre. Une garde d'unicité des ids du registre, avec sa mutation.
+
+Dans chaque zone touchée : un concept, un terme ; morts purgés ; commentaires à réf nue.
+
+## Preuves (obligatoires)
+- Preuve par mutation pour chaque test neuf ou réécrit : fichier muté, empreinte `git hash-object` avant et après, rouge constaté, remise identique. Les mutations se jouent sur le blob FINAL, après ta dernière retouche, et chaque restauration a sa sortie verte en fichier.
+- Navigateur, en joueur (clavier réel ; `__wfrp` seulement pour poser la situation), console à 0 erreur, 3 fois : en combat, focus sur une case, ↓ (le focus entre dans la boîte), Entrée ouvre la fiche, Échap la ferme et le focus revient à la case. Colle `document.activeElement` après chaque geste.
+
+## Portes (sortie BRUTE collée, avec la ligne `exit=` écrite par la commande)
+- `npm run typecheck:fast`.
+- `npx vitest run src/ui --no-cache` EN ENTIER, puis `src/state --no-cache`, après avoir vérifié qu'aucun autre vitest ne tourne (sortie `ps` collée).
+- `npx vitest run --no-cache src/vi-mock-isolate-guard.test.ts src/comment-poison-guard.test.ts` et la garde neuve.
+- `node scripts/docs/check-doc-refs.mjs`.
+- `npx tsx scripts/ui/regen-css-couches-stock.mts --check` et `--ventiler a8d993dd6` (APPARU 0).
+
+## Livrable
+Données brutes dans `/tmp/claude-0/-home-claude-game/b2c1dcf4-ee89-5cd4-b2df-036dbf03e24e/scratchpad/rendu-rm2a6.md` (sondes et sorties dans `scratchpad/a6/`) :
+- `git diff --stat` et la liste des fichiers neufs ;
+- pour chaque point, fait ou reste, avec sa preuve ;
+- au point 5, la mesure des termes et la portée retenue ;
+- la table des mutations ;
+- les sorties des portes.
+
+
+---
+_Generated by [Claude Code](https://claude.ai/code)_

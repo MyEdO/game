@@ -1,0 +1,58 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1806-L2
+
+ ❯ src/lib/coupeAuMot.test.ts (9 tests | 2 failed | 7 skipped) 21ms 365 MB heap used
+   × coupeAuMot — la coupe tombe à une FRONTIÈRE DE MOT (R-M2) > quand les blancs de tête et le premier mot dépassent ensemble `n - 1`, ils se rendent entiers (suivis de « … » si du texte les suit) : seule sortie au-delà de `n` 12ms
+     → expected '…' to be '   abc…' // Object.is equality
+   × coupeAuMot — la coupe tombe à une FRONTIÈRE DE MOT (R-M2) > balayage à graine fixe : entier s’il tient, sinon un préfixe du texte, non vide, d’au plus `n` caractères hors la seule sortie 8ms
+     → expected [ …(5) ] to deeply equal []
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/lib/coupeAuMot.test.ts > coupeAuMot — la coupe tombe à une FRONTIÈRE DE MOT (R-M2) > quand les blancs de tête et le premier mot dépassent ensemble `n - 1`, ils se rendent entiers (suivis de « … » si du texte les suit) : seule sortie au-delà de `n`
+AssertionError: expected '…' to be '   abc…' // Object.is equality
+
+Expected: "   abc…"
+Received: "…"
+
+ ❯ src/lib/coupeAuMot.test.ts:45:41
+     43|     expect(coupeAuMot('Anticonstitutionnellement', 10)).toBe('Anticons…
+     44|     expect(coupeAuMot('Anticonstitutionnellement dit-il', 10)).toBe('A…
+     45|     expect(coupeAuMot('   abc def', 5)).toBe('   abc…');
+       |                                         ^
+     46|   });
+     47| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/lib/coupeAuMot.test.ts > coupeAuMot — la coupe tombe à une FRONTIÈRE DE MOT (R-M2) > balayage à graine fixe : entier s’il tient, sinon un préfixe du texte, non vide, d’au plus `n` caractères hors la seule sortie
+AssertionError: expected [ …(5) ] to deeply equal []
+
+- Expected
++ Received
+
+- Array []
++ Array [
++   "texte perdu : \" c \\n \\nb  \\n c cb cé éccca  \" 3 -> \"…\"",
++   "texte perdu : \" \\n écéé\\n   c é   ba\" 4 -> \"…\"",
++   "texte perdu : \"  é\\nca\" 1 -> \"…\"",
++   "texte perdu : \"      \\nbaéa    a     ba\" 5 -> \"…\"",
++   "texte perdu : \"  c      b\" 3 -> \"…\"",
++ ]
+
+ ❯ src/lib/coupeAuMot.test.ts:72:20
+     70|       if (base.trim() === '' && s.trim() !== '') fautes.push(`texte pe…
+     71|     }
+     72|     expect(fautes).toEqual([]);
+       |                    ^
+     73|   }, 5000);
+     74| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 7 skipped (9)
+   Start at  18:11:31
+   Duration  14.34s (transform 9.11s, setup 13.88s, collect 16ms, tests 21ms, environment 0ms, prepare 66ms)
+

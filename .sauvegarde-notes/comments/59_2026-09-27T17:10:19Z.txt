@@ -1,0 +1,62 @@
+## Portes git, commit 1 : rendu du codeur E16i et brief du juge de cinquième reprise, 2026-09-27
+
+**Rendu E16i** (instantané `refs/wip/1806-portes-git-e16i` = `04ca29641`, écart d'E16i : 2 fichiers, +29/−14) :
+- **La raison tronquée garde son nom.** Dans `arbrePrincipal`, les cinq refus passent par une seule forme, le motif d'abord et le chemin ensuite. Un test neuf tourne sous un `cwd` de plus de 200 caractères. Deux tests de la même classe, qui rougissaient sous un `TMPDIR` long parce qu'ils comparaient la raison entière, sont corrigés.
+- **8 mutations formelles**, toutes rouges puis vertes à la remise : D1 ×3, un global neuf non listé (`structuredClone`), D3, D4, D6 et la raison tronquée. Rejeux : 15/15 d'E16g, 21/21 d'E16f, 14/14 cas de la sonde D1.
+- **#2073** : la liste blanche des globaux n'a aucun nom en commun avec l'ancienne liste noire, et le constructeur de fonction s'atteint sans aucun global. Elle n'élargit donc pas le résidu hostile.
+- **Plage d'E17** intacte : 33 et 12 cas, 0 écart.
+- Portes : typecheck et eslint verts ; `node --test` 973/973 ; vitest sur 113 fichiers (dont les 95 gardes qui lisent `scripts/**`), seul rouge : le rouge de base `comment-poison-guard` sur `legacyVocabStock.mjs:1930`.
+
+Suite : le juge de cinquième reprise lit l'écart E16h + E16i (`9e211b4af` → `04ca29641`). Le commit 1 entre sur `chantier/1806` après la publication du lot B.
+
+<details><summary>Brief du juge E16i, verbatim</summary>
+
+# Juge de cinquième reprise : portes git, commit 1 après E16h et E16i (#1806, lot des portes git), 2026-09-27
+
+## Règles
+- Lecture seule stricte. Tu n'écris que sous `/tmp/claude-0/-home-claude-game/b2c1dcf4-ee89-5cd4-b2df-036dbf03e24e/scratchpad/juge-e16i/`. Aucune commande git mutante, aucune mutation de fichier du dépôt, même sur copie ou dépôt jetable hors de `depotGabarit`. La preuve par mutation appartient au codeur : tu la VÉRIFIES (empreintes, sorties rouges) et tu rejoues ses tests. Tes rejeux en mémoire (hook `load`, comme `juge-e16f/mut-preload.mjs` ou `e16i/sonde-2073-preload.mjs`) restent permis.
+- Interdits en plus : aucun `git commit` (même `-h`), aucun WebFetch ; toute commande qui demanderait une permission, tu ne la lances pas et tu la nommes au verdict.
+- Arbre : `/home/claude/game/.wt-1806-e16`, branche `wt/1806-e16`, HEAD `543ba1e13`.
+  - Le travail est non committé : `git diff HEAD` (52 fichiers suivis), plus 4 fichiers neufs non suivis : `scripts/ops/etapesDuTrain.mjs`, `scripts/ops/etapesDuTrain.test.mjs`, `scripts/guards/lib/gitPorte.marque.test.ts`, `scripts/git-hooks/pre-commit.test.mjs`.
+  - Instantané de l'arbre actuel : `refs/wip/1806-portes-git-e16i` = `04ca29641` (vérifie l'égalité, chemin par chemin, non suivis compris). Instantané jugé la fois précédente : `refs/wip/1806-portes-git-e16g` = `9e211b4af`. L'écart à juger : `git diff 9e211b4af 04ca29641` (E16h, 8 fichiers, puis E16i, 2 fichiers : `git diff 84ac36a6e 04ca29641`).
+  - `git status --short` doit être identique au début et à la fin (56 lignes, colle leur empreinte `sha1sum`). Les `UU` sur `plageStock.mjs` et `publier.mjs` sont attendus.
+- `node_modules` : n'y écris pas. tsc en `--incremental false`, jamais `npm run typecheck:fast`. Vitest en `--no-cache`.
+- Processus : avant tout `kill`, lis le PPID et la ligne de commande du parent (`ps -o pid,ppid,cmd`) ; tu ne tues que ce que ta commande a lancé. Jamais `pkill` ni `killall`. Un codeur travaille dans `.wt-1920d` : avant tout vitest ou `node --test` de plus de 20 fichiers, et avant `npm run test:hooks` ou `npm run test:ops`, vérifie qu'aucun autre ne tourne (`ps -eo pid,etime,cmd | grep -E '[v]itest|[n]ode --test'`, sortie collée) ; s'il en tourne un, attends qu'il sorte. Colle `/proc/loadavg` à côté de tout rouge par délai.
+- Budget : 1 h 15 d'horloge. Relève `date -u` au départ. À l'échéance, rends ce qui est jugé et NOMME le reste.
+- Livrable UNIQUE : `juge-e16i/verdict.md`. Il commence par le verdict (TIENT / À REPRENDRE), puis chaque défaut avec `fichier:ligne`, sa preuve et la correction que tu retiens, prête à recopier dans un brief. Jamais de score.
+
+## Objet
+- Ton verdict précédent : `scratchpad/juge-e16g/verdict.md` (D1 à D6, et « la raison tronquée »), avec ses sondes sous `juge-e16g/`.
+- Briefs et rendus de la reprise : `scratchpad/brief-e16h.md` et `scratchpad/rendu-e16h.md` (sorties `e16h/`, rendu partiel arrêté à l'échéance) ; `scratchpad/brief-e16i.md` et `scratchpad/rendu-e16i.md` (sorties `e16i/`, dont `mutations.txt`, `rejeu-e16g.txt`, `rejeu-e16f.txt`, `sonde-d1-table.txt`, `sonde-cloture-table.txt`, `sonde-2073.out`, `contre-grep-raisons-apres.txt`).
+- Issues : #2073 (commit 2 : hôte de processus unique, résidu hostile hors AST), #2074 (restes de la plage d'E17), #2075 (message anglais de git). Lis-les : `gh api repos/cgauche/game/issues/<N> --jq .body`.
+- Invariant, en-tête de `scripts/guards/lib/gitPorte.mjs:1-2`, verbatim : « LECTURES GIT DES PORTES — l'hôte UNIQUE de la forme d'union et des commandes git que les portes (pre-push, garde de solde, revue de palier, stocks de plage, faits de palier, closer) exécutent. »
+- Credo, verbatim : « Une garde de synchronisation est un smell : une seule source de vérité. » ; « Règles GÉNÉRALES, jamais spécifiques. Corriger la classe entière du problème, pas le cas rencontré. »
+- Le skill d'orchestration, verbatim : « deux passes sur la même classe = défaut de design, remonter d'un niveau ». La classe D1 en est à sa sixième passe ; E16h l'a remontée d'un niveau (défaut refusé, liste blanche des globaux, table des sources de capacité).
+
+## Questions
+1. **D1, forme générale : la classe est-elle fermée PAR CONSTRUCTION pour une retouche de bonne foi ?**
+   - Un global neuf de Node est-il lanceur par défaut, sans qu'aucune ligne ne le nomme ? La position de LECTURE est-elle juste : nom de propriété `x.fetch`, clé d'objet, paramètre ou déclaration locale qui masque un global (`const process = …`, `function f(fetch)`), déstructuration `const { fetch } = globalThis`, accès calculé `globalThis[k]`, `global`, `self`, globaux lus dans un gabarit ou un argument par défaut ?
+   - La liste blanche des globaux inertes : chaque ligne est-elle justifiée, et chaque nom est-il VRAIMENT inerte pour une porte (`setTimeout`, `queueMicrotask`, `Buffer`, `URL`, `WebAssembly`, `structuredClone`, `Atomics`, `SharedArrayBuffer`) ? Un inerte qui ne l'est pas est un défaut.
+   - La table des sources de capacité (tête de `etapesDuTrain.test.mjs`) : complète (import statique, dynamique, `createRequire`, `require` ambiant, `import.meta`, ambiant, évaluation, module JSON, `node:` sous-chemin, paquet) ? Chaque source a-t-elle une règle qui la garde RÉELLEMENT (une sonde par source) ? Les en-têtes de `etapesDuTrain.mjs`, `publier.mjs` et du test disent-ils exactement cette table, et renvoient-ils le reste à #2073 sans mentir ?
+   - La sonde #2073 du codeur (`e16i/sonde-2073.mjs`) prouve-t-elle ce qu'elle dit (la liste blanche n'élargit pas le résidu) ?
+2. **D2 à D6** : chacun est-il corrigé tel que tu l'as retenu ? Pour D3 en particulier : `arbreVide(depot)` écrit-il un objet dans `.git/objects` pendant une lecture de porte (`strace` ou lecture du code) ? Le test à pilote marqueur prouve-t-il « 0 pilote lancé, aucun `.merge_file_*` » sur un dépôt forgé qui en déclare un ?
+3. **Point 7, la raison tronquée** (E16i) :
+   - La forme unique `refus` d'`arbrePrincipal` (`gitPorte.mjs:813`) : le motif vient-il d'abord partout ? La raison `cwd inexistant : <chemin> (depuis <chemin>)` répète-t-elle le chemin, et faut-il le corriger ?
+   - Les tests `gitPorte.test.mjs:55` et `:72` comparent maintenant à `raisonCourte(…)` : la comparaison garde-t-elle un pouvoir de détection (une raison fausse dont les 200 premiers caractères sont justes passerait-elle) ?
+   - Le contre-grep du codeur est-il complet ? Refais-le par une méthode différente, sur tout `scripts/`, pour les raisons que l'hôte TRONQUE. `revuePalier.mjs:211` (hors hôte, non tronquée) : juste de la laisser ?
+4. **Mutations** : vérifie les 8 neuves d'E16i et les rejeux des 15 d'E16g et des 21 d'E16f (`e16i/`) : empreintes égales à l'arbre, rouge, remise identique, et chaque rouge vient du test visé. La réancre de `R3-absent-confondu` teste-t-elle encore ce que R3 visait ?
+5. **La plage d'E17 reste intacte** : rejoue `juge-e16/sonde-plage.mjs` et `juge-e16/sonde-plage-renommages.mjs` (avec ses 6 shas, voir `rendu-e16i.md`), sorties collées. Laisse-leur 1200 s.
+6. **Langue et architecture à rebours** sur l'écart : un concept un terme, commentaires en réf nue, rien qui mente. Si on partait de zéro avec la cible d'aujourd'hui, cette couture (liste blanche des globaux et des modules intégrés dans un test de clôture) existerait-elle, ou la cible est-elle l'hôte de processus unique de #2073 ? Dis-le sans rejuger #2073.
+7. **Portes**, chaque rouge attribué (reprise, commit, base ou charge) :
+   - `npx tsc --noEmit --incremental false` ;
+   - `npm run lint` ;
+   - `npm run test:hooks` EN ENTIER ;
+   - `npm run test:ops` EN ENTIER ;
+   - `node scripts/docs/check-doc-refs.mjs` ;
+   - vitest sur les importeurs `.ts` des modules touchés (liste par `git grep -l --untracked`, collée) et sur les 95 gardes de `juge-e16g/gardes-scripts-a-jouer.txt`, par paquets de 20 au plus. Rouge de BASE attendu : `comment-poison-guard` sur `legacyVocabStock.mjs:1930` ; dis s'il y en a un autre.
+8. **Prêt à committer ?** Sinon, la liste exacte de ce qui reste, dans l'ordre. Si oui, écris les lignes `JUGE:` et `REFUTATION:` du message du commit 1 des portes git (chacune au moins 40 caractères, sans identifiant de modèle), qui résument les jugements du lot (E16 à E16i).
+
+</details>
+
+---
+_Generated by [Claude Code](https://claude.ai/code)_

@@ -1,0 +1,6 @@
+scripts/guards/lib/litteralJs.test.mjs
+scripts/guards/lib/stockDeSites.test.mjs
+src/data/schemas/unions-canon.test.ts
+src/engine/grid.test.ts
+src/lib/tableTotale.test.ts
+src/state/roll-seam-exclusivity-guard.test.ts

@@ -1,0 +1,1945 @@
+{
+ "exploration-360x740": {
+  "vue": [
+   360,
+   740
+  ],
+  "surfaces": {
+   "topbar": [
+    10,
+    10,
+    200,
+    131
+   ],
+   "groupe": [
+    58,
+    6,
+    160.5,
+    27
+   ],
+   "frise": null,
+   "fil": null,
+   "ouverture": null,
+   "rail": null,
+   "journal": null,
+   "objectif": [
+    10,
+    111,
+    309.6,
+    30
+   ],
+   "pont": [
+    0,
+    691,
+    360,
+    49
+   ],
+   "flot": [
+    0,
+    0,
+    360,
+    691
+   ],
+   "phasePont": null
+  },
+  "zones": [],
+  "rows": "none",
+  "cols": "none",
+  "pontBasAuBord": 0,
+  "debordPage": false,
+  "boutons": 3,
+  "inatteignables": []
+ },
+ "exploration-700x780": {
+  "vue": [
+   700,
+   780
+  ],
+  "surfaces": {
+   "topbar": [
+    10,
+    10,
+    200,
+    131
+   ],
+   "groupe": [
+    151,
+    6,
+    398,
+    123.6
+   ],
+   "frise": null,
+   "fil": null,
+   "ouverture": null,
+   "rail": null,
+   "journal": null,
+   "objectif": [
+    10,
+    111,
+    360.7,
+    30
+   ],
+   "pont": [
+    0,
+    731,
+    700,
+    49
+   ],
+   "flot": [
+    0,
+    0,
+    700,
+    731
+   ],
+   "phasePont": null
+  },
+  "zones": [],
+  "rows": "none",
+  "cols": "none",
+  "pontBasAuBord": 0,
+  "debordPage": false,
+  "boutons": 3,
+  "inatteignables": []
+ },
+ "exploration-900x780": {
+  "vue": [
+   900,
+   780
+  ],
+  "surfaces": {
+   "topbar": [
+    10,
+    10,
+    290,
+    102
+   ],
+   "groupe": [
+    251,
+    10,
+    398,
+    123.6
+   ],
+   "frise": null,
+   "fil": null,
+   "ouverture": null,
+   "rail": null,
+   "journal": null,
+   "objectif": [
+    10,
+    82,
+    360.7,
+    30
+   ],
+   "pont": [
+    0,
+    731,
+    900,
+    49
+   ],
+   "flot": [
+    0,
+    0,
+    900,
+    731
+   ],
+   "phasePont": null
+  },
+  "zones": [],
+  "rows": "none",
+  "cols": "none",
+  "pontBasAuBord": 0,
+  "debordPage": false,
+  "boutons": 3,
+  "inatteignables": []
+ },
+ "exploration-1366x650": {
+  "vue": [
+   1366,
+   650
+  ],
+  "surfaces": {
+   "topbar": [
+    10,
+    10,
+    523,
+    102
+   ],
+   "groupe": [
+    484,
+    10,
+    398,
+    123.6
+   ],
+   "frise": null,
+   "fil": null,
+   "ouverture": null,
+   "rail": null,
+   "journal": null,
+   "objectif": [
+    10,
+    82,
+    520,
+    30
+   ],
+   "pont": [
+    0,
+    601,
+    1366,
+    49
+   ],
+   "flot": [
+    0,
+    0,
+    1366,
+    601
+   ],
+   "phasePont": null
+  },
+  "zones": [],
+  "rows": "none",
+  "cols": "none",
+  "pontBasAuBord": 0,
+  "debordPage": false,
+  "boutons": 3,
+  "inatteignables": []
+ },
+ "exploration-1707x780": {
+  "vue": [
+   1707,
+   780
+  ],
+  "surfaces": {
+   "topbar": [
+    10,
+    10,
+    560,
+    102
+   ],
+   "groupe": [
+    654.5,
+    10,
+    398,
+    123.6
+   ],
+   "frise": null,
+   "fil": null,
+   "ouverture": null,
+   "rail": null,
+   "journal": null,
+   "objectif": [
+    10,
+    82,
+    520,
+    30
+   ],
+   "pont": [
+    0,
+    731,
+    1707,
+    49
+   ],
+   "flot": [
+    0,
+    0,
+    1707,
+    731
+   ],
+   "phasePont": null
+  },
+  "zones": [],
+  "rows": "none",
+  "cols": "none",
+  "pontBasAuBord": 0,
+  "debordPage": false,
+  "boutons": 3,
+  "inatteignables": []
+ },
+ "clic-vide-exploration": {
+  "x": 846.92,
+  "y": 292.5,
+  "tag": "svg",
+  "cls": "iso-stage",
+  "recu": "svg.iso-stage"
+ },
+ "exploration-journal-360x740": {
+  "vue": [
+   360,
+   740
+  ],
+  "surfaces": {
+   "topbar": [
+    10,
+    10,
+    200,
+    131
+   ],
+   "groupe": [
+    58,
+    6,
+    160.5,
+    27
+   ],
+   "frise": null,
+   "fil": null,
+   "ouverture": null,
+   "rail": null,
+   "journal": [
+    44.4,
+    516,
+    309.6,
+    168
+   ],
+   "objectif": [
+    10,
+    111,
+    309.6,
+    30
+   ],
+   "pont": [
+    0,
+    691,
+    360,
+    49
+   ],
+   "flot": [
+    0,
+    0,
+    360,
+    691
+   ],
+   "phasePont": null
+  },
+  "zones": [],
+  "rows": "none",
+  "cols": "none",
+  "pontBasAuBord": 0,
+  "debordPage": false,
+  "boutons": 3,
+  "inatteignables": []
+ },
+ "exploration-journal-700x780": {
+  "vue": [
+   700,
+   780
+  ],
+  "surfaces": {
+   "topbar": [
+    10,
+    10,
+    200,
+    131
+   ],
+   "groupe": [
+    151,
+    6,
+    398,
+    123.6
+   ],
+   "frise": null,
+   "fil": null,
+   "ouverture": null,
+   "rail": null,
+   "journal": [
+    364,
+    581,
+    330,
+    149
+   ],
+   "objectif": [
+    10,
+    111,
+    360.7,
+    30
+   ],
+   "pont": [
+    0,
+    731,
+    700,
+    49
+   ],
+   "flot": [
+    0,
+    0,
+    700,
+    731
+   ],
+   "phasePont": null
+  },
+  "zones": [],
+  "rows": "none",
+  "cols": "none",
+  "pontBasAuBord": 0,
+  "debordPage": false,
+  "boutons": 3,
+  "inatteignables": []
+ },
+ "exploration-journal-900x780": {
+  "vue": [
+   900,
+   780
+  ],
+  "surfaces": {
+   "topbar": [
+    10,
+    10,
+    290,
+    102
+   ],
+   "groupe": [
+    251,
+    10,
+    398,
+    123.6
+   ],
+   "frise": null,
+   "fil": null,
+   "ouverture": null,
+   "rail": null,
+   "journal": [
+    560,
+    581,
+    330,
+    149
+   ],
+   "objectif": [
+    10,
+    82,
+    360.7,
+    30
+   ],
+   "pont": [
+    0,
+    731,
+    900,
+    49
+   ],
+   "flot": [
+    0,
+    0,
+    900,
+    731
+   ],
+   "phasePont": null
+  },
+  "zones": [],
+  "rows": "none",
+  "cols": "none",
+  "pontBasAuBord": 0,
+  "debordPage": false,
+  "boutons": 3,
+  "inatteignables": []
+ },
+ "exploration-journal-1366x650": {
+  "vue": [
+   1366,
+   650
+  ],
+  "surfaces": {
+   "topbar": [
+    10,
+    10,
+    523,
+    102
+   ],
+   "groupe": [
+    484,
+    10,
+    398,
+    123.6
+   ],
+   "frise": null,
+   "fil": null,
+   "ouverture": null,
+   "rail": null,
+   "journal": [
+    1026,
+    451,
+    330,
+    149
+   ],
+   "objectif": [
+    10,
+    82,
+    520,
+    30
+   ],
+   "pont": [
+    0,
+    601,
+    1366,
+    49
+   ],
+   "flot": [
+    0,
+    0,
+    1366,
+    601
+   ],
+   "phasePont": null
+  },
+  "zones": [],
+  "rows": "none",
+  "cols": "none",
+  "pontBasAuBord": 0,
+  "debordPage": false,
+  "boutons": 3,
+  "inatteignables": []
+ },
+ "exploration-journal-1707x780": {
+  "vue": [
+   1707,
+   780
+  ],
+  "surfaces": {
+   "topbar": [
+    10,
+    10,
+    560,
+    102
+   ],
+   "groupe": [
+    654.5,
+    10,
+    398,
+    123.6
+   ],
+   "frise": null,
+   "fil": null,
+   "ouverture": null,
+   "rail": null,
+   "journal": [
+    1367,
+    581,
+    330,
+    149
+   ],
+   "objectif": [
+    10,
+    82,
+    520,
+    30
+   ],
+   "pont": [
+    0,
+    731,
+    1707,
+    49
+   ],
+   "flot": [
+    0,
+    0,
+    1707,
+    731
+   ],
+   "phasePont": null
+  },
+  "zones": [],
+  "rows": "none",
+  "cols": "none",
+  "pontBasAuBord": 0,
+  "debordPage": false,
+  "boutons": 3,
+  "inatteignables": []
+ },
+ "combat-ouverture-360x740": {
+  "vue": [
+   360,
+   740
+  ],
+  "surfaces": {
+   "topbar": [
+    10,
+    10,
+    42,
+    42
+   ],
+   "groupe": [
+    58,
+    6,
+    160.5,
+    27
+   ],
+   "frise": [
+    58,
+    34,
+    298,
+    63.8
+   ],
+   "fil": [
+    90,
+    140,
+    180,
+    32
+   ],
+   "ouverture": [
+    4,
+    554,
+    352,
+    60
+   ],
+   "rail": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "journal": null,
+   "objectif": null,
+   "pont": [
+    0,
+    626,
+    360,
+    114
+   ],
+   "flot": [
+    0,
+    0,
+    360,
+    626
+   ],
+   "phasePont": null
+  },
+  "zones": [],
+  "rows": "none",
+  "cols": "none",
+  "pontBasAuBord": 0,
+  "debordPage": false,
+  "boutons": 14,
+  "inatteignables": [
+   "Erik",
+   "Terenz",
+   "Johann",
+   "Grunni Pierre-de-Fer",
+   "Dépense 1 point de Chance pour qu'Grunni",
+   "Frère Anselm",
+   "Dépense 1 point de Chance pour qu'Frère ",
+   "Ouvrir le journal"
+  ]
+ },
+ "combat-ouverture-700x780": {
+  "vue": [
+   700,
+   780
+  ],
+  "surfaces": {
+   "topbar": [
+    10,
+    10,
+    42,
+    42
+   ],
+   "groupe": [
+    151,
+    6,
+    398,
+    123.6
+   ],
+   "frise": [
+    4,
+    84,
+    692,
+    73.8
+   ],
+   "fil": [
+    224.1,
+    192,
+    251.8,
+    18
+   ],
+   "ouverture": [
+    4,
+    498,
+    692,
+    81
+   ],
+   "rail": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "journal": null,
+   "objectif": null,
+   "pont": [
+    0,
+    591,
+    700,
+    189
+   ],
+   "flot": [
+    0,
+    0,
+    700,
+    591
+   ],
+   "phasePont": null
+  },
+  "zones": [],
+  "rows": "none",
+  "cols": "none",
+  "pontBasAuBord": 0,
+  "debordPage": false,
+  "boutons": 14,
+  "inatteignables": [
+   "Ouvrir le journal"
+  ]
+ },
+ "combat-ouverture-900x780": {
+  "vue": [
+   900,
+   780
+  ],
+  "surfaces": {
+   "topbar": [
+    10,
+    10,
+    42,
+    42
+   ],
+   "groupe": [
+    251,
+    10,
+    398,
+    123.6
+   ],
+   "frise": [
+    10,
+    86.1,
+    97.6,
+    440.8
+   ],
+   "fil": [
+    130,
+    525,
+    251.8,
+    18
+   ],
+   "ouverture": [
+    322,
+    152,
+    256.1,
+    81
+   ],
+   "rail": [
+    824,
+    16,
+    60,
+    60
+   ],
+   "journal": null,
+   "objectif": null,
+   "pont": [
+    0,
+    594,
+    900,
+    186
+   ],
+   "flot": [
+    0,
+    0,
+    900,
+    594
+   ],
+   "phasePont": null
+  },
+  "zones": [],
+  "rows": "none",
+  "cols": "none",
+  "pontBasAuBord": 0,
+  "debordPage": false,
+  "boutons": 14,
+  "inatteignables": [
+   "Grunni Pierre-de-Fer",
+   "Dépense 1 point de Chance pour qu'Grunni",
+   "Frère Anselm",
+   "Dépense 1 point de Chance pour qu'Frère "
+  ]
+ },
+ "combat-ouverture-1366x650": {
+  "vue": [
+   1366,
+   650
+  ],
+  "surfaces": {
+   "topbar": [
+    10,
+    10,
+    42,
+    42
+   ],
+   "groupe": [
+    484,
+    10,
+    398,
+    123.6
+   ],
+   "frise": [
+    10,
+    101,
+    103.6,
+    284
+   ],
+   "fil": [
+    130,
+    398,
+    251.8,
+    18
+   ],
+   "ouverture": [
+    555,
+    152,
+    256.1,
+    81
+   ],
+   "rail": [
+    1290,
+    16,
+    60,
+    60
+   ],
+   "journal": null,
+   "objectif": null,
+   "pont": [
+    0,
+    467,
+    1366,
+    183
+   ],
+   "flot": [
+    0,
+    0,
+    1366,
+    467
+   ],
+   "phasePont": null
+  },
+  "zones": [],
+  "rows": "none",
+  "cols": "none",
+  "pontBasAuBord": 0,
+  "debordPage": false,
+  "boutons": 14,
+  "inatteignables": [
+   "Erik",
+   "Terenz",
+   "Johann",
+   "Grunni Pierre-de-Fer",
+   "Dépense 1 point de Chance pour qu'Grunni",
+   "Frère Anselm",
+   "Dépense 1 point de Chance pour qu'Frère "
+  ]
+ },
+ "combat-ouverture-1707x780": {
+  "vue": [
+   1707,
+   780
+  ],
+  "surfaces": {
+   "topbar": [
+    10,
+    10,
+    42,
+    42
+   ],
+   "groupe": [
+    654.5,
+    10,
+    398,
+    123.6
+   ],
+   "frise": [
+    10,
+    79.8,
+    103.6,
+    452
+   ],
+   "fil": [
+    130,
+    523.7,
+    251.8,
+    18
+   ],
+   "ouverture": [
+    725.5,
+    152,
+    256.1,
+    81
+   ],
+   "rail": [
+    1631,
+    16,
+    60,
+    60
+   ],
+   "journal": null,
+   "objectif": null,
+   "pont": [
+    0,
+    592.7,
+    1707,
+    187.3
+   ],
+   "flot": [
+    0,
+    0,
+    1707,
+    592.7
+   ],
+   "phasePont": null
+  },
+  "zones": [],
+  "rows": "none",
+  "cols": "none",
+  "pontBasAuBord": 0,
+  "debordPage": false,
+  "boutons": 14,
+  "inatteignables": [
+   "Grunni Pierre-de-Fer",
+   "Dépense 1 point de Chance pour qu'Grunni",
+   "Frère Anselm",
+   "Dépense 1 point de Chance pour qu'Frère "
+  ]
+ },
+ "tourHeros": "✓ au tour de Klein Bürger",
+ "combat-heros-360x740": {
+  "vue": [
+   360,
+   740
+  ],
+  "surfaces": {
+   "topbar": [
+    10,
+    10,
+    42,
+    42
+   ],
+   "groupe": [
+    58,
+    6,
+    160.5,
+    27
+   ],
+   "frise": [
+    58,
+    34,
+    298,
+    63.8
+   ],
+   "fil": [
+    90,
+    140,
+    180,
+    48
+   ],
+   "ouverture": null,
+   "rail": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "journal": null,
+   "objectif": null,
+   "pont": [
+    0,
+    442,
+    360,
+    298
+   ],
+   "flot": [
+    0,
+    0,
+    360,
+    442
+   ],
+   "phasePont": null
+  },
+  "zones": [],
+  "rows": "none",
+  "cols": "none",
+  "pontBasAuBord": 0,
+  "debordPage": false,
+  "boutons": 22,
+  "inatteignables": [
+   "Terenz",
+   "Johann",
+   "Grunni Pierre-de-Fer",
+   "Frère Anselm"
+  ]
+ },
+ "combat-heros-700x780": {
+  "vue": [
+   700,
+   780
+  ],
+  "surfaces": {
+   "topbar": [
+    10,
+    10,
+    42,
+    42
+   ],
+   "groupe": [
+    151,
+    6,
+    398,
+    123.6
+   ],
+   "frise": [
+    4,
+    84,
+    692,
+    73.8
+   ],
+   "fil": [
+    191.2,
+    192,
+    317.7,
+    18
+   ],
+   "ouverture": null,
+   "rail": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "journal": null,
+   "objectif": null,
+   "pont": [
+    0,
+    205,
+    700,
+    575
+   ],
+   "flot": [
+    0,
+    0,
+    700,
+    205
+   ],
+   "phasePont": null
+  },
+  "zones": [],
+  "rows": "none",
+  "cols": "none",
+  "pontBasAuBord": 0,
+  "debordPage": false,
+  "boutons": 22,
+  "inatteignables": []
+ },
+ "combat-heros-900x780": {
+  "vue": [
+   900,
+   780
+  ],
+  "surfaces": {
+   "topbar": [
+    10,
+    10,
+    42,
+    42
+   ],
+   "groupe": [
+    251,
+    10,
+    398,
+    123.6
+   ],
+   "frise": [
+    10,
+    86.1,
+    80.2,
+    440.8
+   ],
+   "fil": [
+    130,
+    525,
+    317.7,
+    18
+   ],
+   "ouverture": null,
+   "rail": [
+    824,
+    16,
+    60,
+    60
+   ],
+   "journal": null,
+   "objectif": null,
+   "pont": [
+    0,
+    594,
+    900,
+    186
+   ],
+   "flot": [
+    0,
+    0,
+    900,
+    594
+   ],
+   "phasePont": null
+  },
+  "zones": [],
+  "rows": "none",
+  "cols": "none",
+  "pontBasAuBord": 0,
+  "debordPage": false,
+  "boutons": 22,
+  "inatteignables": [
+   "Grunni Pierre-de-Fer",
+   "Frère Anselm",
+   "1X",
+   "2",
+   "Ignorer les modificateurs de critique (0"
+  ]
+ },
+ "combat-heros-1366x650": {
+  "vue": [
+   1366,
+   650
+  ],
+  "surfaces": {
+   "topbar": [
+    10,
+    10,
+    42,
+    42
+   ],
+   "groupe": [
+    484,
+    10,
+    398,
+    123.6
+   ],
+   "frise": [
+    10,
+    101,
+    86.2,
+    284
+   ],
+   "fil": [
+    130,
+    398,
+    317.7,
+    18
+   ],
+   "ouverture": null,
+   "rail": [
+    1290,
+    16,
+    60,
+    60
+   ],
+   "journal": null,
+   "objectif": null,
+   "pont": [
+    0,
+    467,
+    1366,
+    183
+   ],
+   "flot": [
+    0,
+    0,
+    1366,
+    467
+   ],
+   "phasePont": null
+  },
+  "zones": [],
+  "rows": "none",
+  "cols": "none",
+  "pontBasAuBord": 0,
+  "debordPage": false,
+  "boutons": 22,
+  "inatteignables": [
+   "Erik",
+   "Terenz",
+   "Johann",
+   "Grunni Pierre-de-Fer",
+   "Frère Anselm"
+  ]
+ },
+ "combat-heros-1707x780": {
+  "vue": [
+   1707,
+   780
+  ],
+  "surfaces": {
+   "topbar": [
+    10,
+    10,
+    42,
+    42
+   ],
+   "groupe": [
+    654.5,
+    10,
+    398,
+    123.6
+   ],
+   "frise": [
+    10,
+    79.8,
+    86.2,
+    452
+   ],
+   "fil": [
+    130,
+    523.7,
+    317.7,
+    18
+   ],
+   "ouverture": null,
+   "rail": [
+    1631,
+    16,
+    60,
+    60
+   ],
+   "journal": null,
+   "objectif": null,
+   "pont": [
+    0,
+    592.7,
+    1707,
+    187.3
+   ],
+   "flot": [
+    0,
+    0,
+    1707,
+    592.7
+   ],
+   "phasePont": null
+  },
+  "zones": [],
+  "rows": "none",
+  "cols": "none",
+  "pontBasAuBord": 0,
+  "debordPage": false,
+  "boutons": 22,
+  "inatteignables": [
+   "Grunni Pierre-de-Fer",
+   "Frère Anselm"
+  ]
+ },
+ "clic-vide-combat": {
+  "x": 846.92,
+  "y": 260,
+  "tag": "svg",
+  "cls": "iso-stage",
+  "recu": "svg.iso-stage"
+ },
+ "combat-journal-360x740": {
+  "vue": [
+   360,
+   740
+  ],
+  "surfaces": {
+   "topbar": [
+    10,
+    10,
+    42,
+    42
+   ],
+   "groupe": [
+    58,
+    6,
+    160.5,
+    27
+   ],
+   "frise": [
+    58,
+    34,
+    298,
+    63.8
+   ],
+   "fil": [
+    90,
+    140,
+    180,
+    32
+   ],
+   "ouverture": null,
+   "rail": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "journal": [
+    4,
+    221,
+    309.6,
+    165
+   ],
+   "objectif": null,
+   "pont": [
+    0,
+    442,
+    360,
+    298
+   ],
+   "flot": [
+    0,
+    0,
+    360,
+    442
+   ],
+   "phasePont": null
+  },
+  "zones": [],
+  "rows": "none",
+  "cols": "none",
+  "pontBasAuBord": 0,
+  "debordPage": false,
+  "boutons": 22,
+  "inatteignables": [
+   "Terenz",
+   "Johann",
+   "Grunni Pierre-de-Fer",
+   "Frère Anselm"
+  ]
+ },
+ "combat-journal-700x780": {
+  "vue": [
+   700,
+   780
+  ],
+  "surfaces": {
+   "topbar": [
+    10,
+    10,
+    42,
+    42
+   ],
+   "groupe": [
+    151,
+    6,
+    398,
+    123.6
+   ],
+   "frise": [
+    4,
+    84,
+    692,
+    73.8
+   ],
+   "fil": [
+    191.2,
+    192,
+    317.7,
+    18
+   ],
+   "ouverture": null,
+   "rail": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "journal": [
+    362,
+    3,
+    330,
+    146
+   ],
+   "objectif": null,
+   "pont": [
+    0,
+    205,
+    700,
+    575
+   ],
+   "flot": [
+    0,
+    0,
+    700,
+    205
+   ],
+   "phasePont": null
+  },
+  "zones": [],
+  "rows": "none",
+  "cols": "none",
+  "pontBasAuBord": 0,
+  "debordPage": false,
+  "boutons": 22,
+  "inatteignables": [
+   "Terenz",
+   "Johann",
+   "Grunni Pierre-de-Fer",
+   "Frère Anselm"
+  ]
+ },
+ "combat-journal-900x780": {
+  "vue": [
+   900,
+   780
+  ],
+  "surfaces": {
+   "topbar": [
+    10,
+    10,
+    42,
+    42
+   ],
+   "groupe": [
+    251,
+    10,
+    398,
+    123.6
+   ],
+   "frise": [
+    10,
+    86.1,
+    80.2,
+    440.8
+   ],
+   "fil": [
+    130,
+    525,
+    317.7,
+    18
+   ],
+   "ouverture": null,
+   "rail": [
+    536,
+    16,
+    348,
+    212
+   ],
+   "journal": [
+    545,
+    25,
+    330,
+    146
+   ],
+   "objectif": null,
+   "pont": [
+    0,
+    594,
+    900,
+    186
+   ],
+   "flot": [
+    0,
+    0,
+    900,
+    594
+   ],
+   "phasePont": null
+  },
+  "zones": [],
+  "rows": "none",
+  "cols": "none",
+  "pontBasAuBord": 0,
+  "debordPage": false,
+  "boutons": 22,
+  "inatteignables": [
+   "Grunni Pierre-de-Fer",
+   "Frère Anselm",
+   "1X",
+   "2",
+   "Ignorer les modificateurs de critique (0"
+  ]
+ },
+ "combat-journal-1366x650": {
+  "vue": [
+   1366,
+   650
+  ],
+  "surfaces": {
+   "topbar": [
+    10,
+    10,
+    42,
+    42
+   ],
+   "groupe": [
+    484,
+    10,
+    398,
+    123.6
+   ],
+   "frise": [
+    10,
+    101,
+    86.2,
+    284
+   ],
+   "fil": [
+    130,
+    398,
+    317.7,
+    18
+   ],
+   "ouverture": null,
+   "rail": [
+    1002,
+    16,
+    348,
+    212
+   ],
+   "journal": [
+    1011,
+    25,
+    330,
+    146
+   ],
+   "objectif": null,
+   "pont": [
+    0,
+    467,
+    1366,
+    183
+   ],
+   "flot": [
+    0,
+    0,
+    1366,
+    467
+   ],
+   "phasePont": null
+  },
+  "zones": [],
+  "rows": "none",
+  "cols": "none",
+  "pontBasAuBord": 0,
+  "debordPage": false,
+  "boutons": 22,
+  "inatteignables": [
+   "Erik",
+   "Terenz",
+   "Johann",
+   "Grunni Pierre-de-Fer",
+   "Frère Anselm"
+  ]
+ },
+ "combat-journal-1707x780": {
+  "vue": [
+   1707,
+   780
+  ],
+  "surfaces": {
+   "topbar": [
+    10,
+    10,
+    42,
+    42
+   ],
+   "groupe": [
+    654.5,
+    10,
+    398,
+    123.6
+   ],
+   "frise": [
+    10,
+    79.8,
+    86.2,
+    452
+   ],
+   "fil": [
+    130,
+    523.7,
+    317.7,
+    18
+   ],
+   "ouverture": null,
+   "rail": [
+    1343,
+    16,
+    348,
+    212
+   ],
+   "journal": [
+    1352,
+    25,
+    330,
+    146
+   ],
+   "objectif": null,
+   "pont": [
+    0,
+    592.7,
+    1707,
+    187.3
+   ],
+   "flot": [
+    0,
+    0,
+    1707,
+    592.7
+   ],
+   "phasePont": null
+  },
+  "zones": [],
+  "rows": "none",
+  "cols": "none",
+  "pontBasAuBord": 0,
+  "debordPage": false,
+  "boutons": 22,
+  "inatteignables": [
+   "Grunni Pierre-de-Fer",
+   "Frère Anselm"
+  ]
+ },
+ "tourAdverse": "✓ au tour de Knud Cratinx",
+ "combat-adverse-360x740": {
+  "vue": [
+   360,
+   740
+  ],
+  "surfaces": {
+   "topbar": [
+    10,
+    10,
+    42,
+    42
+   ],
+   "groupe": [
+    58,
+    6,
+    160.5,
+    27
+   ],
+   "frise": [
+    58,
+    34,
+    298,
+    63.8
+   ],
+   "fil": [
+    90,
+    140,
+    180,
+    48
+   ],
+   "ouverture": null,
+   "rail": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "journal": null,
+   "objectif": null,
+   "pont": [
+    0,
+    626,
+    360,
+    114
+   ],
+   "flot": [
+    0,
+    0,
+    360,
+    626
+   ],
+   "phasePont": [
+    124.2,
+    599,
+    111.6,
+    24
+   ]
+  },
+  "zones": [],
+  "rows": "none",
+  "cols": "none",
+  "pontBasAuBord": 0,
+  "debordPage": false,
+  "boutons": 11,
+  "inatteignables": [
+   "Terenz",
+   "Johann",
+   "Grunni Pierre-de-Fer",
+   "Frère Anselm"
+  ]
+ },
+ "combat-adverse-700x780": {
+  "vue": [
+   700,
+   780
+  ],
+  "surfaces": {
+   "topbar": [
+    10,
+    10,
+    42,
+    42
+   ],
+   "groupe": [
+    151,
+    6,
+    398,
+    123.6
+   ],
+   "frise": [
+    4,
+    84,
+    692,
+    73.8
+   ],
+   "fil": [
+    191.2,
+    192,
+    317.7,
+    18
+   ],
+   "ouverture": null,
+   "rail": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "journal": null,
+   "objectif": null,
+   "pont": [
+    0,
+    591,
+    700,
+    189
+   ],
+   "flot": [
+    0,
+    0,
+    700,
+    591
+   ],
+   "phasePont": [
+    284,
+    540,
+    132,
+    48
+   ]
+  },
+  "zones": [],
+  "rows": "none",
+  "cols": "none",
+  "pontBasAuBord": 0,
+  "debordPage": false,
+  "boutons": 11,
+  "inatteignables": []
+ },
+ "combat-adverse-900x780": {
+  "vue": [
+   900,
+   780
+  ],
+  "surfaces": {
+   "topbar": [
+    10,
+    10,
+    42,
+    42
+   ],
+   "groupe": [
+    251,
+    10,
+    398,
+    123.6
+   ],
+   "frise": [
+    10,
+    86.1,
+    80.2,
+    440.8
+   ],
+   "fil": [
+    130,
+    525,
+    317.7,
+    18
+   ],
+   "ouverture": null,
+   "rail": [
+    824,
+    16,
+    60,
+    60
+   ],
+   "journal": null,
+   "objectif": null,
+   "pont": [
+    0,
+    594,
+    900,
+    186
+   ],
+   "flot": [
+    0,
+    0,
+    900,
+    594
+   ],
+   "phasePont": [
+    384,
+    543,
+    132,
+    48
+   ]
+  },
+  "zones": [],
+  "rows": "none",
+  "cols": "none",
+  "pontBasAuBord": 0,
+  "debordPage": false,
+  "boutons": 11,
+  "inatteignables": [
+   "Grunni Pierre-de-Fer",
+   "Frère Anselm"
+  ]
+ },
+ "combat-adverse-1366x650": {
+  "vue": [
+   1366,
+   650
+  ],
+  "surfaces": {
+   "topbar": [
+    10,
+    10,
+    42,
+    42
+   ],
+   "groupe": [
+    484,
+    10,
+    398,
+    123.6
+   ],
+   "frise": [
+    10,
+    101,
+    86.2,
+    284
+   ],
+   "fil": [
+    130,
+    398,
+    317.7,
+    18
+   ],
+   "ouverture": null,
+   "rail": [
+    1290,
+    16,
+    60,
+    60
+   ],
+   "journal": null,
+   "objectif": null,
+   "pont": [
+    0,
+    467,
+    1366,
+    183
+   ],
+   "flot": [
+    0,
+    0,
+    1366,
+    467
+   ],
+   "phasePont": [
+    617,
+    416,
+    132,
+    48
+   ]
+  },
+  "zones": [],
+  "rows": "none",
+  "cols": "none",
+  "pontBasAuBord": 0,
+  "debordPage": false,
+  "boutons": 11,
+  "inatteignables": [
+   "Erik",
+   "Terenz",
+   "Johann",
+   "Grunni Pierre-de-Fer",
+   "Frère Anselm"
+  ]
+ },
+ "combat-adverse-1707x780": {
+  "vue": [
+   1707,
+   780
+  ],
+  "surfaces": {
+   "topbar": [
+    10,
+    10,
+    42,
+    42
+   ],
+   "groupe": [
+    654.5,
+    10,
+    398,
+    123.6
+   ],
+   "frise": [
+    10,
+    79.8,
+    86.2,
+    452
+   ],
+   "fil": [
+    130,
+    523.7,
+    317.7,
+    18
+   ],
+   "ouverture": null,
+   "rail": [
+    1631,
+    16,
+    60,
+    60
+   ],
+   "journal": null,
+   "objectif": null,
+   "pont": [
+    0,
+    592.7,
+    1707,
+    187.3
+   ],
+   "flot": [
+    0,
+    0,
+    1707,
+    592.7
+   ],
+   "phasePont": [
+    787.5,
+    541.7,
+    132,
+    48
+   ]
+  },
+  "zones": [],
+  "rows": "none",
+  "cols": "none",
+  "pontBasAuBord": 0,
+  "debordPage": false,
+  "boutons": 11,
+  "inatteignables": [
+   "Grunni Pierre-de-Fer",
+   "Frère Anselm"
+  ]
+ },
+ "console": [
+  {
+   "type": "exception",
+   "text": "TypeError: Cannot assign to read only property 'loaded' of object '#<Object>'\n    at unloadWeapon (http://localhost:5246/src/engine/items.ts:708:16)\n    at appliquerLaTouche (http://localhost:5246/src/state/combatFlow.ts:1719:7)\n    at applyAttackResult (http://localhost:5246/src/state/combatFlow.ts:1481:7)\n    at doAttack (http://localhost:5246/src/state/combatFlow.ts:2370:10)\n    at http://localhost:5246/src/state/combatFlow.ts:5093:95\n    at http://localhost:5246/src/state/combatTimers.ts:5:5"
+  }
+ ]
+}

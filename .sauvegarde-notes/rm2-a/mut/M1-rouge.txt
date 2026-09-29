@@ -1,0 +1,69 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game
+
+ ❯ src/ui/Infobulle.test.tsx (5 tests | 3 failed) 243ms 439 MB heap used
+   × X1 — après la fiche ouverte par la porte, le focus revient au contrôle de l’ancrage > depuis l’ancrage 168ms
+     → depuis l’ancrage : après la fiche, le focus est au contrôle de l’ancrage: expected 'body' to be 'BUTTON«Affable ×2»' // Object.is equality
+   × X1 — après la fiche ouverte par la porte, le focus revient au contrôle de l’ancrage > depuis un autre contrôle 20ms
+     → depuis un autre contrôle : après la fiche, le focus est au contrôle de l’ancrage: expected 'body' to be 'BUTTON«Affable ×2»' // Object.is equality
+   × X1 — après la fiche ouverte par la porte, le focus revient au contrôle de l’ancrage > depuis body 15ms
+     → depuis body : après la fiche, le focus est au contrôle de l’ancrage: expected 'body' to be 'BUTTON«Affable ×2»' // Object.is equality
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/ui/Infobulle.test.tsx > X1 — après la fiche ouverte par la porte, le focus revient au contrôle de l’ancrage > depuis l’ancrage
+AssertionError: depuis l’ancrage : après la fiche, le focus est au contrôle de l’ancrage: expected 'body' to be 'BUTTON«Affable ×2»' // Object.is equality
+
+Expected: "BUTTON«Affable ×2»"
+Received: "body"
+
+ ❯ src/ui/Infobulle.test.tsx:85:89
+     83|       echap();
+     84|       expect(document.querySelector('[role="dialog"]'), `${nom} : Écha…
+     85|       expect(actif(), `${nom} : après la fiche, le focus est au contrô…
+       |                                                                                         ^
+     86|       expect(boites(), `${nom} : le focus rendu n’ouvre aucune boîte`)…
+     87|     });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  src/ui/Infobulle.test.tsx > X1 — après la fiche ouverte par la porte, le focus revient au contrôle de l’ancrage > depuis un autre contrôle
+AssertionError: depuis un autre contrôle : après la fiche, le focus est au contrôle de l’ancrage: expected 'body' to be 'BUTTON«Affable ×2»' // Object.is equality
+
+Expected: "BUTTON«Affable ×2»"
+Received: "body"
+
+ ❯ src/ui/Infobulle.test.tsx:85:89
+     83|       echap();
+     84|       expect(document.querySelector('[role="dialog"]'), `${nom} : Écha…
+     85|       expect(actif(), `${nom} : après la fiche, le focus est au contrô…
+       |                                                                                         ^
+     86|       expect(boites(), `${nom} : le focus rendu n’ouvre aucune boîte`)…
+     87|     });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  src/ui/Infobulle.test.tsx > X1 — après la fiche ouverte par la porte, le focus revient au contrôle de l’ancrage > depuis body
+AssertionError: depuis body : après la fiche, le focus est au contrôle de l’ancrage: expected 'body' to be 'BUTTON«Affable ×2»' // Object.is equality
+
+Expected: "BUTTON«Affable ×2»"
+Received: "body"
+
+ ❯ src/ui/Infobulle.test.tsx:85:89
+     83|       echap();
+     84|       expect(document.querySelector('[role="dialog"]'), `${nom} : Écha…
+     85|       expect(actif(), `${nom} : après la fiche, le focus est au contrô…
+       |                                                                                         ^
+     86|       expect(boites(), `${nom} : le focus rendu n’ouvre aucune boîte`)…
+     87|     });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+ Test Files  1 failed (1)
+      Tests  3 failed | 2 passed (5)
+   Start at  10:06:35
+   Duration  18.86s (transform 11.92s, setup 13.19s, collect 4.27s, tests 243ms, environment 696ms, prepare 73ms)
+
+
+exit=1

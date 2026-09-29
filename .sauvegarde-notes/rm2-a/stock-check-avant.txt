@@ -1,0 +1,2 @@
+/home/user/game/scripts/guards/lib/cssCouchesStock.mjs : Stock PÉRIMÉ (CSS_IDENTITE_ECRAN_RATCHET=1774, CSS_ESPACEMENT_RATCHET=704, STYLE_INLINE_RATCHET=93)
+Relancer : npx tsx scripts/guards/lib/regenStock.mts scripts/guards/lib/cssCouchesAudit.ts

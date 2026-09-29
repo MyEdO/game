@@ -1,0 +1,24 @@
+fix(gardes): refs #1806 — R-M2 train 5 : exception de coupeAuMot dite, 3e fabrique de programme
+
+Restes du juge du train 4 de R-M2 lot A (#1806).
+- F1 : l'en-tête et le test de `coupeAuMot` disent l'exception exacte (blancs de tête et premier mot
+  qui dépassent ensemble `n - 1`) ; le fuzz du juge devient un balayage à graine fixe.
+- F2 : `parsedProgram` (arbre déjà parsé, sans lib ni import) rejoint `tsProgram.mjs` ;
+  `coupeAuCaractere` le consomme (le littéral `lib.d.ts` quitte la garde) ; `jsdocUnion` consomme
+  `virtualProgram` (la lib standard est requise : `ReturnType`, `mecanique.ts:1007`) ; la garde
+  #1801 connaît la nouvelle fabrique.
+- F3 : la garde `coupeAuCaractere` saute une expression JSX vide.
+
+Preuves (orchestrateur, worktree sur eb3a49429 = main) : `npm run gates` — 24 gates de ci.yml vertes ;
+`build-effects --check` sortie identique ; mutations des codeurs rouges sur leur assertion nommée.
+
+JUGE: juge adversarial du train 5 (#1806) : code F1/F2/F3 tenu ; À REPRENDRE sur des textes (titre du balayage, analyseRetenue.d.mts, en-tête tsProgram.mjs) et 3 sites de test hors fabrique, au train suivant
+REFUTATION: fuzz 200k rejoué (0 violation), parsedProgram contre virtualProgram sur mecanique.ts (null contre effectOp, contre-épreuve ReturnType local), coût 22 ms contre 6782 ms, build-effects --check corps inchangé, sondes JSX 4 cas
+JUGE-VISION: aucun écran touché : primitive de coupe (en-tête et test), fabriques de programme et gardes seuls ; aucun rendu ne change
+
+Restes (train suivant) : titre du balayage et deux assertions de plus ; `analyseRetenue.d.mts` ;
+en-tête de `tsProgram.mjs` ; trois sites de test sur les fabriques (`virtualProgram`, `repoProgram`
+avec remplacement) et une garde « `createProgram` hors `tsProgram.mjs` ».
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_0167t7jpCF61Qutt6mU1dbAt

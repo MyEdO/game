@@ -1,0 +1,81 @@
+VERDICT : À REPRENDRE — cumul H1b + C1, arbre /home/user/game/.wt-1919-H2, HEAD fc2388866 + index (28 fichiers, +909/−802).
+Contrôle positif : index == arbre (aucun non indexé). Blobs de l'index : combat-console.css 04f02fae7, CombatConsole.tsx 5563b4d3d, identiques à ceux des mutations M01-M17.
+Rejeu : vitest (CombatConsole, ExplorationDock, camera-sans-plaque) rc=0, 175/175 ; node --test hud-clickables.test.mjs rc=0, 93/93.
+Stocks rejoués depuis HEAD et l'index : identité 1770→1751, espacement 702→696, inline 93→93, APPARU 0 partout (CONFIRMÉ).
+
+BLOQUANTS
+B1 Le fil d'événements déborde de la zone `temps` à 700, dans la rangée `reserve` (9 défauts APPARUS dans la sonde du lot).
+   - Chiffres exacts : 1,6 à 23,4 px, pas « 53,6 » (sonde-finale.txt:47-145). À 700×780, la zone va de 58 à 476,4 et le fil de 451,8 à 499,8.
+   - Pourquoi c'est grave : la réserve existe pour le bandeau de phase (hud.css:48-50 ; combat-console.css:85-89, « décapitait » B6).
+     - Aux pauses de Round, le bandeau se pose de y 492,4 à 540,4 (pont 236,6, --cc-phase-h 48, air 3).
+     - Le fil (z-index 46) le chevauche donc sur 7,4 px, sur x 12..143.
+     - La co-présence fil + bandeau n'est pas sondée : il faut un état « pause de Round 2 » à 700×780, en mesurant l'intersection du fil et de .cc-phase.
+   - Correction : réserver la place du fil dans la zone.
+     - Soit `temps` devient une grille à deux pistes (frise en minmax(0,1fr) dans un enveloppe container-type:size, fil en auto) : la frise arrondit au pas d'entrée dans ce qui reste, R-M3 est tenu.
+     - Soit le fil reçoit sa propre zone sous `temps`.
+B2 `@media (pointer: coarse) :root { --cc-cell: 44px }` (combat-console.css:1287-1290, réécrit par le lot) court-circuite l'unique formule.
+   - La rangée déborde la fenêtre sur écran tactile. Même loi que F-3, voir la sonde ci-dessous.
+     - De 701 à 1023 : +20,7 à +201 px.
+     - Tablettes : 768×1024 +139,4 ; 820×1180 +91,6 ; 834×1112 +78,7.
+     - De 600 à 640 : +40 et +1,6.
+   - Le budget saute aussi : 1366×650 tactile, empreinte 25,7 % et bande 20,9 %.
+   - Textes rendus faux : css:20-21 (« bornée par la FENÊTRE seule ») et css:222-223 (« la rangée ENTIÈRE tienne dans la fenêtre »).
+   - Pourquoi la suite reste verte : F-2 ne regarde que le bloc ≤700 ; F-3 et F-1 ignorent le pointeur grossier.
+   - Correction : la cible tactile devient un PLANCHER dans la formule, et la composition compacte se déclenche quand la rangée ne tient plus à ce plancher ; F-3 et F-1 évalués aussi sous coarse.
+B3 Budget compact dégradé, non déclaré, et ses tests passent à vide.
+   - Le pont ≤560 passe de 298 à 313 px : cases 36×36 au lieu de 36×32, alors que la table de la décision Q2 dit « ≤560 | 36×32 ».
+   - Résultat : 360×740 à 42,3 % (40,3 % avant) ; 360×650 et 560×650 à 48,2 %, au-delà du « ~40-45 % » que la spec (:24-32) et la charte réaffirment.
+   - La sonde ne juge ce budget qu'à 780 de haut (hud-clickables.mjs:1064 setViewport(w, HEIGHT)).
+   - F-5 (CombatConsole.test.tsx:2143-2149) porte le titre « le budget MOBILE reste celui de l'arbitrage compact » mais n'asserte que `--cc-cell` > 0 : il passe à vide.
+   - 561-700 n'a AUCUN plafond, ni en test, ni en sonde. hud-clickables.test.mjs:564 verrouille même « à 700, rien ».
+   - Correction : déclarer l'écart ≤560 par écrit, ou reprendre 32 carré ; F-5 évalue --cc-deck-h/vh ≤ 0,45 à 360×{650,740} ; un plafond 561-700 chiffré (≈ 0,31 aujourd'hui) en test et en sonde ; defautsMatrice à toutes les HAUTEURS_COUCHE.
+B4 R-M2 en régression à 561-700 : en forme spectatrice, le nom de l'acteur est tranché « Knud… ».
+   - Preuve : capture C-700x780.png (sha 1164ae57c1b7). À 700 sur H1b, « Knud Cratinx » était entier (h1b/apres/combat-adverse-700x780.png).
+   - Cause : la ligne d'arche, étendue de ≤560 à 561-700, garde `.cc-arch-name { white-space: nowrap; text-overflow: ellipsis }` (css:741-750, 1195-1199), alors que la bande a la largeur libre.
+   - Correction : toute la classe, ≤560 compris (préexistant, « Klein Bürger » à 360). En ligne, le nom ne cède jamais par ellipse : l'arche spectatrice prend sa largeur de contenu, et le nom s'enroule au mot.
+B5 H1b a retiré la pose à l'écran de la puce coop sur TROIS hôtes, en se fondant sur une affirmation fausse.
+   - La pose retirée : `.spectator-chip[data-pose='ecran'] { position:absolute; bottom; left:50%; … }`.
+   - L'affirmation (rendu-h1b.md:99) : « commentaire périmé : il n'existe qu'un poseur ».
+   - Le poseur est bien unique (ActiveModal.tsx:76), mais ActiveModal est monté par 4 hôtes : CampaignView.tsx:397, PartyScreen.tsx:597, MassBattleView.tsx:51, InterludeScreen.tsx:253.
+   - Sur les trois derniers, « X joue… » retombe dans le flux, en fin d'écran.
+   - Deux textes sont faux : spectator-chip.css:5-8 (« que l'écran de campagne monte dans la zone parole ») et la ligne spectator-chip de docs/charte-ui.md.
+   - Correction : la pose `ecran` reste un état de la primitive pour les hôtes sans couche HUD ; seule la zone `parole` la neutralise.
+   - Preuve visuelle non faite (navigateur interdit) : recette coop sur InterludeScreen.
+
+RESTES
+- Écart 1 (plafond de largeur du portrait) : ACCEPTABLE.
+  - Il reste une donnée de fenêtre, sans boucle, et colle à l'arithmétique F1 de la décision (arche ≈170 px à 701).
+  - Mais le portrait fait 30 px dans une arche de 164 px de 701 à ~1000 (capture A-701), et G-3 ne juge « domine ≥0,5 » qu'à ≥1280.
+  - Le fronton est décentré de 42 px à 900/901.
+- Écart 2 (pont 30,3 % à 561-700) : acceptable EN PRINCIPE.
+  - Le « ≈ 19 % » de la décision (Q4.3) est infaisable : à 40 px de case, la travée seule fait 2×40+4+41+3 = 128 px, soit 16,4 % à 780.
+  - Mais « 100 px à elle seule » est faux comme incompressible : ~35 px de vide visible sous la ligne d'arche (A-700x780, y≈615-650).
+  - Et --cc-arch-ligne: 100px est une cote relevée à la main.
+  - Ticket : réduire la ligne (cible ≈ 23 %) ; plafond chiffré exigé par B3.
+- Écart 3 (.cc-lbl gardé sur le coin) : OK. Seule dette de nommage : l'exception est codée dans le test (CombatConsole.test.tsx:721).
+- Écart 4 (case vide qui garde sa touche) : OK. « Reste une vitre nue » décrit l'état existant, et spec zone 8 dit que la touche suit la case.
+- Écart 5 (plaque X sans repli à ≤560) : OK. Le commutateur n'a plus de repli, la décision est sans objet.
+- Écart 6 (focus posé par el.focus()) : OK pour la recette. Dette clavier : #2126.
+- Écart 7 (--cc-bay-pad) : duplication évitable.
+  - --sp-md vaut 8px (base.css:262). `--cc-bay-pad: var(--sp-md)` consommé par `.cc-bay` ferait BAISSER le stock d'espacement.
+  - Même classe de garde de synchronisation : --cc-bay-socle 41 (8+10+15+8, avec .cc-conduit height 15 en littéral), --cc-arch-chrome 59, --cc-arch-flancs 136, --cc-arch-ligne 100.
+  - Direction : ces variables deviennent la SOURCE que les règles consomment.
+  - G-3 (test.tsx:2219-2220) dit « MESURÉE au navigateur » mais n'asserte que > 0.
+- `!important` : 5 → 7 dans combat-console.css.
+  - Scission de `.cc-arch .ptile/.ptile-face/.rig-portrait` : 2 déclarations neuves, width/height 100% !important, css:729-730.
+  - Non déclarées. Correction : PortraitTile accepte un mode « remplir ».
+- Touches imprimées en dur (« X » neuf à tsx:1264, « ESPACE » à tsx:1415) alors que keybindings est remappable (keybindings.ts:281, 368) : même classe que les chiffres des cases, préexistante.
+- Sonde :
+  - La JSDoc de defautsCouche est désormais posée sur recouvrementsEntreZones (hud-clickables.mjs:709-716).
+  - Les mutations S1-S4 ont été prouvées sur le blob 2428628782 ; l'index porte 5ae9c5063 : elles ne sont pas rejouées sur le fichier final.
+- À 701, le fil est comprimé mot par mot dans ~57 px à côté de la frise (A-701) ; à 700, il passe dessous. Deux compositions pour 1 px d'écart.
+- Commentaires au passé (« ne grave plus », « était le plus petit texte ») : pierre tombale légère (CombatConsole.test.tsx, combat-console.css).
+- Lentille 4 :
+  - ExplorationDock.test.tsx:383-420 est une garde de CLASSE légitime : feuilles lues au DOM rendu, pas une liste ; elle ne voit que CampaignView, d'où B5.
+  - camera-sans-plaque.test.ts réécrit : légitime.
+  - --ld-place, estOuverture avec `over`, enroulement au mot de l'objectif et du fil : CONFIRMÉS.
+- Lentille 1 : Q1, Q2, Q3, Q4.2, Q4.7 CONFIRMÉS.
+  - Mesures : 17,0 % et 21,8 % (pont-formes : 170/780 et 141,7/650, saillie comprise) ; une formule unique de 701 à toute largeur, hors B2 ; cases carrées, icône à 60 %.
+
+SONDE (lecture seule) : scratchpad/juge-c1/sonde-coarse.mjs → sonde-coarse.out, rc=0. Elle reproduit les cotes du lot (28,1 / 236,6 / 313), puis le débord tactile.
+Processus : aucun en arrière-plan ; vitest et node en premier plan sous timeout, terminés.

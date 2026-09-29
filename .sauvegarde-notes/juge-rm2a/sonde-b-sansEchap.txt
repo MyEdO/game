@@ -1,0 +1,10 @@
+CompendiumScreen déjà chargé avant le geste : []
+case : defend ; CompendiumScreen chargé avant ↓ : []
+↓      → {"codex":null,"fiche":false,"menu":false,"menuDom":false,"boites":1,"actif":"BUTTON«Ouvrir la fiche»"}
+Entrée → {"codex":"sur-la-defensive","fiche":false,"menu":false,"menuDom":false,"boites":0,"actif":"BUTTON«Défensive»[defend]"} ; requêtes retenues : ["http://localhost:5199/src/ui/compendium/CompendiumScreen.tsx"]
+aucun Échap, pendant le chargement → {"codex":"sur-la-defensive","fiche":false,"menu":false,"menuDom":false,"boites":0,"actif":"BUTTON«Défensive»[defend]"}
+chunk arrivé → {"codex":"sur-la-defensive","fiche":true,"menu":false,"menuDom":false,"boites":0,"actif":"BUTTON«Monde»"}
+2e Échap → {"codex":null,"fiche":false,"menu":false,"menuDom":false,"boites":0,"actif":"BUTTON«Défensive»[defend]"}
++8 s → {"codex":null,"fiche":false,"menu":false,"menuDom":false,"boites":0,"actif":"BUTTON«Défensive»[defend]"}
+console : erreurs = 0 []
+exit=0

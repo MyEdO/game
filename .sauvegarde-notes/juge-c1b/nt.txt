@@ -1,0 +1,622 @@
+TAP version 13
+# Subtest: dialogue occulté par le pont : défaut nommé, avec sa mesure
+ok 1 - dialogue occulté par le pont : défaut nommé, avec sa mesure
+  ---
+  duration_ms: 1.004681
+  type: 'test'
+  ...
+# Subtest: surface qui TOUCHE le pont sans être occultée : aucun défaut
+ok 2 - surface qui TOUCHE le pont sans être occultée : aucun défaut
+  ---
+  duration_ms: 1.294055
+  type: 'test'
+  ...
+# Subtest: tiroir ASSIS sur le pont (descendant) : aucun défaut, même recouvert entièrement
+ok 3 - tiroir ASSIS sur le pont (descendant) : aucun défaut, même recouvert entièrement
+  ---
+  duration_ms: 0.147529
+  type: 'test'
+  ...
+# Subtest: relevé sans aucune intersection : aucun défaut
+ok 4 - relevé sans aucune intersection : aucun défaut
+  ---
+  duration_ms: 2.145156
+  type: 'test'
+  ...
+# Subtest: coin de sortie hors de la fenêtre à droite : défaut nommé, avec son intervalle
+ok 5 - coin de sortie hors de la fenêtre à droite : défaut nommé, avec son intervalle
+  ---
+  duration_ms: 0.467503
+  type: 'test'
+  ...
+# Subtest: élément qui sort par la GAUCHE : défaut nommé de ce côté
+ok 6 - élément qui sort par la GAUCHE : défaut nommé de ce côté
+  ---
+  duration_ms: 0.192997
+  type: 'test'
+  ...
+# Subtest: pistes étanches : rien hors fenêtre, même au pixel près
+ok 7 - pistes étanches : rien hors fenêtre, même au pixel près
+  ---
+  duration_ms: 0.120998
+  type: 'test'
+  ...
+# Subtest: mesure de combat saine : aucun défaut
+ok 8 - mesure de combat saine : aucun défaut
+  ---
+  duration_ms: 2.809588
+  type: 'test'
+  ...
+# Subtest: mesure d’exploration saine : aucun défaut
+ok 9 - mesure d’exploration saine : aucun défaut
+  ---
+  duration_ms: 0.353428
+  type: 'test'
+  ...
+# Subtest: ouvreur du rail RECOUVERT : défaut nommé, recouvrant compris
+ok 10 - ouvreur du rail RECOUVERT : défaut nommé, recouvrant compris
+  ---
+  duration_ms: 0.317711
+  type: 'test'
+  ...
+# Subtest: piste du groupe ENROULÉE : défaut nommé, aux deux phases
+ok 11 - piste du groupe ENROULÉE : défaut nommé, aux deux phases
+  ---
+  duration_ms: 0.170861
+  type: 'test'
+  ...
+# Subtest: bande REPLIÉE dont la poignée reçoit son clic : aucun défaut
+ok 12 - bande REPLIÉE dont la poignée reçoit son clic : aucun défaut
+  ---
+  duration_ms: 0.148427
+  type: 'test'
+  ...
+# Subtest: bande REPLIÉE dont la poignée cache des MICRO-JAUGES : défaut chiffré
+ok 13 - bande REPLIÉE dont la poignée cache des MICRO-JAUGES : défaut chiffré
+  ---
+  duration_ms: 0.34042
+  type: 'test'
+  ...
+# Subtest: bande REPLIÉE dont la poignée n’est PAS RENDUE : le groupe est hors d’atteinte
+ok 14 - bande REPLIÉE dont la poignée n’est PAS RENDUE : le groupe est hors d’atteinte
+  ---
+  duration_ms: 0.1501
+  type: 'test'
+  ...
+# Subtest: bande REPLIÉE dont la poignée est RECOUVERTE : défaut nommé
+ok 15 - bande REPLIÉE dont la poignée est RECOUVERTE : défaut nommé
+  ---
+  duration_ms: 0.186381
+  type: 'test'
+  ...
+# Subtest: bande sans carte rendue NI poignée : le groupe est hors d’atteinte
+ok 16 - bande sans carte rendue NI poignée : le groupe est hors d’atteinte
+  ---
+  duration_ms: 0.334874
+  type: 'test'
+  ...
+# Subtest: portrait NON RENDU : jamais « recouvert » (faux positif de bande repliée)
+ok 17 - portrait NON RENDU : jamais « recouvert » (faux positif de bande repliée)
+  ---
+  duration_ms: 0.469467
+  type: 'test'
+  ...
+# Subtest: frise en BANDE qui réserve sa droite : défaut au-delà de 8px
+ok 18 - frise en BANDE qui réserve sa droite : défaut au-delà de 8px
+  ---
+  duration_ms: 0.380191
+  type: 'test'
+  ...
+# Subtest: frise en COLONNE : la marge de droite ne dit rien (la colonne vit à gauche)
+ok 19 - frise en COLONNE : la marge de droite ne dit rien (la colonne vit à gauche)
+  ---
+  duration_ms: 0.167571
+  type: 'test'
+  ...
+# Subtest: cartouche de Round HORS CHAMP à fond de défilement : défaut nommé
+ok 20 - cartouche de Round HORS CHAMP à fond de défilement : défaut nommé
+  ---
+  duration_ms: 0.098673
+  type: 'test'
+  ...
+# Subtest: cartouche de Round ABSENT : la sonde se déclare AVEUGLE, elle ne se tait pas
+ok 21 - cartouche de Round ABSENT : la sonde se déclare AVEUGLE, elle ne se tait pas
+  ---
+  duration_ms: 1.137566
+  type: 'test'
+  ...
+# Subtest: vignette VISIBLE dans la tête de frise, piste défilée : défaut chiffré
+ok 22 - vignette VISIBLE dans la tête de frise, piste défilée : défaut chiffré
+  ---
+  duration_ms: 0.330634
+  type: 'test'
+  ...
+# Subtest: BADGE de score visible dans la tête : défaut nommé par son mobilier
+ok 23 - BADGE de score visible dans la tête : défaut nommé par son mobilier
+  ---
+  duration_ms: 0.177418
+  type: 'test'
+  ...
+# Subtest: mobilier qui PEINT SUR le cartouche (rang égal) : défaut chiffré, rangs dits
+ok 24 - mobilier qui PEINT SUR le cartouche (rang égal) : défaut chiffré, rangs dits
+  ---
+  duration_ms: 0.115367
+  type: 'test'
+  ...
+# Subtest: tête de frise COUVERTE par le cartouche : rien à dire
+ok 25 - tête de frise COUVERTE par le cartouche : rien à dire
+  ---
+  duration_ms: 0.068261
+  type: 'test'
+  ...
+# Subtest: axe qui NE DÉFILE PAS : aucun verdict de tête (l’état est porté par la mesure)
+ok 26 - axe qui NE DÉFILE PAS : aucun verdict de tête (l’état est porté par la mesure)
+  ---
+  duration_ms: 0.051449
+  type: 'test'
+  ...
+# Subtest: entrée du PIED rognée au repos : défaut chiffré
+ok 27 - entrée du PIED rognée au repos : défaut chiffré
+  ---
+  duration_ms: 0.065674
+  type: 'test'
+  ...
+# Subtest: pas d’entrée NON CONSTANT : défaut chiffré, sans attendre un pied rogné
+ok 28 - pas d’entrée NON CONSTANT : défaut chiffré, sans attendre un pied rogné
+  ---
+  duration_ms: 0.071694
+  type: 'test'
+  ...
+# Subtest: vignette au trait qui RECOUVRE un contrôle : défaut nommé, cible et surface
+ok 29 - vignette au trait qui RECOUVRE un contrôle : défaut nommé, cible et surface
+  ---
+  duration_ms: 0.0657
+  type: 'test'
+  ...
+# Subtest: boîte peinte ROGNÉE par un bord du champ : défaut chiffré, côté nommé
+ok 30 - boîte peinte ROGNÉE par un bord du champ : défaut chiffré, côté nommé
+  ---
+  duration_ms: 0.056356
+  type: 'test'
+  ...
+# Subtest: chevron de l’unité au trait MASQUÉ par le cartouche : défaut chiffré
+ok 31 - chevron de l’unité au trait MASQUÉ par le cartouche : défaut chiffré
+  ---
+  duration_ms: 0.056295
+  type: 'test'
+  ...
+# Subtest: aucune unité au trait (pause d’initiative) : aucun verdict de relief
+ok 32 - aucune unité au trait (pause d’initiative) : aucun verdict de relief
+  ---
+  duration_ms: 0.215119
+  type: 'test'
+  ...
+# Subtest: pas d’entrée constant : rien à dire
+ok 33 - pas d’entrée constant : rien à dire
+  ---
+  duration_ms: 0.156453
+  type: 'test'
+  ...
+# Subtest: colonne qui ne défile pas : aucun verdict de pied (l’arrondi n’y est pas en jeu)
+ok 34 - colonne qui ne défile pas : aucun verdict de pied (l’arrondi n’y est pas en jeu)
+  ---
+  duration_ms: 0.065062
+  type: 'test'
+  ...
+# Subtest: colonne défilée dont le pied tient entier : rien à dire
+ok 35 - colonne défilée dont le pied tient entier : rien à dire
+  ---
+  duration_ms: 0.048344
+  type: 'test'
+  ...
+# Subtest: bande horizontale : aucun verdict de pied
+ok 36 - bande horizontale : aucun verdict de pied
+  ---
+  duration_ms: 0.042243
+  type: 'test'
+  ...
+# Subtest: acteur AU TRAIT hors du champ de la frise : défaut nommé
+ok 37 - acteur AU TRAIT hors du champ de la frise : défaut nommé
+  ---
+  duration_ms: 0.179388
+  type: 'test'
+  ...
+# Subtest: aucune entrée au trait (pause d’initiative) : rien à ramener, aucun verdict
+ok 38 - aucune entrée au trait (pause d’initiative) : rien à ramener, aucun verdict
+  ---
+  duration_ms: 0.103721
+  type: 'test'
+  ...
+# Subtest: console ABSENTE en combat : sonde aveugle
+ok 39 - console ABSENTE en combat : sonde aveugle
+  ---
+  duration_ms: 0.113694
+  type: 'test'
+  ...
+# Subtest: console SANS case : sonde aveugle
+ok 40 - console SANS case : sonde aveugle
+  ---
+  duration_ms: 0.169668
+  type: 'test'
+  ...
+# Subtest: case de console RECOUVERTE : défaut nommé
+ok 41 - case de console RECOUVERTE : défaut nommé
+  ---
+  duration_ms: 0.14845
+  type: 'test'
+  ...
+# Subtest: tiroir du journal OUVERT qui recouvre la console : défaut chiffré
+ok 42 - tiroir du journal OUVERT qui recouvre la console : défaut chiffré
+  ---
+  duration_ms: 0.097519
+  type: 'test'
+  ...
+# Subtest: tiroir du journal qui ne s’ouvre pas : sonde aveugle sur sa réserve
+ok 43 - tiroir du journal qui ne s’ouvre pas : sonde aveugle sur sa réserve
+  ---
+  duration_ms: 0.069597
+  type: 'test'
+  ...
+# Subtest: aucun tiroir monté : rien à dire (l’écran ne le porte pas)
+ok 44 - aucun tiroir monté : rien à dire (l’écran ne le porte pas)
+  ---
+  duration_ms: 0.057037
+  type: 'test'
+  ...
+# Subtest: le fil recouvre la frise : défaut chiffré
+ok 45 - le fil recouvre la frise : défaut chiffré
+  ---
+  duration_ms: 0.05372
+  type: 'test'
+  ...
+# Subtest: piste qui DÉBORDE de sa bande : défaut nommé
+ok 46 - piste qui DÉBORDE de sa bande : défaut nommé
+  ---
+  duration_ms: 0.054949
+  type: 'test'
+  ...
+# Subtest: piste plus longue que la bande qui NE DÉFILE PAS : défaut nommé
+ok 47 - piste plus longue que la bande qui NE DÉFILE PAS : défaut nommé
+  ---
+  duration_ms: 0.048628
+  type: 'test'
+  ...
+# Subtest: piste qui tient d’un bloc : le défilement n’est pas exigé
+ok 48 - piste qui tient d’un bloc : le défilement n’est pas exigé
+  ---
+  duration_ms: 0.058619
+  type: 'test'
+  ...
+# Subtest: bandeau d’objectif ABSENT : sonde aveugle sur la zone morte
+ok 49 - bandeau d’objectif ABSENT : sonde aveugle sur la zone morte
+  ---
+  duration_ms: 0.057667
+  type: 'test'
+  ...
+# Subtest: zone morte de l’objectif qui AVALE le clic : défaut chiffré
+ok 50 - zone morte de l’objectif qui AVALE le clic : défaut chiffré
+  ---
+  duration_ms: 0.099822
+  type: 'test'
+  ...
+# Subtest: aucun portrait de groupe : sonde aveugle
+ok 51 - aucun portrait de groupe : sonde aveugle
+  ---
+  duration_ms: 0.067676
+  type: 'test'
+  ...
+# Subtest: portrait de groupe RECOUVERT EN COMBAT (volet déplié sous le fil) : défaut nommé
+ok 52 - portrait de groupe RECOUVERT EN COMBAT (volet déplié sous le fil) : défaut nommé
+  ---
+  duration_ms: 0.065738
+  type: 'test'
+  ...
+# Subtest: portrait de groupe RECOUVERT : défaut nommé
+ok 53 - portrait de groupe RECOUVERT : défaut nommé
+  ---
+  duration_ms: 0.057248
+  type: 'test'
+  ...
+# Subtest: tranches du §12 : bornes 900 / 700 / 560, 360 dans la tranche <=560
+ok 54 - tranches du §12 : bornes 900 / 700 / 560, 360 dans la tranche <=560
+  ---
+  duration_ms: 0.160166
+  type: 'test'
+  ...
+# Subtest: mesures saines aux quatre tranches : aucun défaut de matrice
+ok 55 - mesures saines aux quatre tranches : aucun défaut de matrice
+  ---
+  duration_ms: 0.526046
+  type: 'test'
+  ...
+# Subtest: carte du groupe NON RENDUE : défaut compté
+ok 56 - carte du groupe NON RENDUE : défaut compté
+  ---
+  duration_ms: 0.201002
+  type: 'test'
+  ...
+# Subtest: piste du groupe SANS défilement de secours : défaut nommé
+ok 57 - piste du groupe SANS défilement de secours : défaut nommé
+  ---
+  duration_ms: 0.095425
+  type: 'test'
+  ...
+# Subtest: carte sans VIE : défaut à toute tranche
+ok 58 - carte sans VIE : défaut à toute tranche
+  ---
+  duration_ms: 0.264392
+  type: 'test'
+  ...
+# Subtest: carte sans NOM : défaut à TOUTE tranche, <=560 compris
+ok 59 - carte sans NOM : défaut à TOUTE tranche, <=560 compris
+  ---
+  duration_ms: 0.143519
+  type: 'test'
+  ...
+# Subtest: R-M1, tuile du groupe sous 44px de large à <=560 : défaut chiffré ; au-dessus, rien
+ok 60 - R-M1, tuile du groupe sous 44px de large à <=560 : défaut chiffré ; au-dessus, rien
+  ---
+  duration_ms: 0.15147
+  type: 'test'
+  ...
+# Subtest: R-M1, tuile ROGNÉE par le champ d’une piste qui ne défile pas à <=560 : défaut ; piste qui défile, ou au-dessus, rien
+ok 61 - R-M1, tuile ROGNÉE par le champ d’une piste qui ne défile pas à <=560 : défaut ; piste qui défile, ou au-dessus, rien
+  ---
+  duration_ms: 0.148108
+  type: 'test'
+  ...
+# Subtest: vie NON superposée au portrait : défaut à 561–700 seulement
+ok 62 - vie NON superposée au portrait : défaut à 561–700 seulement
+  ---
+  duration_ms: 0.099886
+  type: 'test'
+  ...
+# Subtest: bande repliée (aucune carte rendue) : la colonne Groupe ne juge rien
+ok 63 - bande repliée (aucune carte rendue) : la colonne Groupe ne juge rien
+  ---
+  duration_ms: 0.077735
+  type: 'test'
+  ...
+# Subtest: frise en BANDE au-dessus de 560 (jusqu’à 561 elle est la colonne de RT) : défaut nommé
+ok 64 - frise en BANDE au-dessus de 560 (jusqu’à 561 elle est la colonne de RT) : défaut nommé
+  ---
+  duration_ms: 0.098209
+  type: 'test'
+  ...
+# Subtest: frise en COLONNE à 560 et moins : défaut nommé
+ok 65 - frise en COLONNE à 560 et moins : défaut nommé
+  ---
+  duration_ms: 0.082251
+  type: 'test'
+  ...
+# Subtest: colonne d’initiative à DROITE au-delà de 900 : défaut chiffré
+ok 66 - colonne d’initiative à DROITE au-delà de 900 : défaut chiffré
+  ---
+  duration_ms: 0.0829
+  type: 'test'
+  ...
+# Subtest: cartouche de Round qui n’ouvre PAS la frise : défaut nommé
+ok 67 - cartouche de Round qui n’ouvre PAS la frise : défaut nommé
+  ---
+  duration_ms: 0.064301
+  type: 'test'
+  ...
+# Subtest: courant + deux suivants PAS tous entiers à <=560 : défaut compté ; au-dessus, rien
+ok 68 - courant + deux suivants PAS tous entiers à <=560 : défaut compté ; au-dessus, rien
+  ---
+  duration_ms: 0.087315
+  type: 'test'
+  ...
+# Subtest: cartouche de Round HORS de la colonne au-delà de 900 : défaut nommé ; en bande, rien
+ok 69 - cartouche de Round HORS de la colonne au-delà de 900 : défaut nommé ; en bande, rien
+  ---
+  duration_ms: 0.10577
+  type: 'test'
+  ...
+# Subtest: entrée au trait PAS entière dans le champ à 701–900 : défaut nommé ; ailleurs, rien
+ok 70 - entrée au trait PAS entière dans le champ à 701–900 : défaut nommé ; ailleurs, rien
+  ---
+  duration_ms: 0.070383
+  type: 'test'
+  ...
+# Subtest: aucune entrée au trait à 701–900 : la sonde se déclare AVEUGLE sur le courant entier
+ok 71 - aucune entrée au trait à 701–900 : la sonde se déclare AVEUGLE sur le courant entier
+  ---
+  duration_ms: 0.077287
+  type: 'test'
+  ...
+# Subtest: piste d’initiative NON défilable en bande (<=560) : défaut nommé ; en colonne, rien
+ok 72 - piste d’initiative NON défilable en bande (<=560) : défaut nommé ; en colonne, rien
+  ---
+  duration_ms: 0.108135
+  type: 'test'
+  ...
+# Subtest: aucune entrée au trait (pause d’initiative) : aucun verdict de suivants
+ok 73 - aucune entrée au trait (pause d’initiative) : aucun verdict de suivants
+  ---
+  duration_ms: 0.058776
+  type: 'test'
+  ...
+# Subtest: pont qui ne va PAS de bord à bord : défaut chiffré
+ok 74 - pont qui ne va PAS de bord à bord : défaut chiffré
+  ---
+  duration_ms: 0.06999
+  type: 'test'
+  ...
+# Subtest: bande du pont au-delà de 17 % dès 701 : défaut chiffré ; à 700, c’est le plafond de la LIGNE qui juge
+ok 75 - bande du pont au-delà de 17 % dès 701 : défaut chiffré ; à 700, c’est le plafond de la LIGNE qui juge
+  ---
+  duration_ms: 0.114809
+  type: 'test'
+  ...
+# Subtest: pont en LIGNE D’ARCHE au-delà de 25 % à 561–700 : défaut chiffré, à chaque largeur de la tranche
+ok 76 - pont en LIGNE D’ARCHE au-delà de 25 % à 561–700 : défaut chiffré, à chaque largeur de la tranche
+  ---
+  duration_ms: 0.107086
+  type: 'test'
+  ...
+# Subtest: FRONTON compris, le pont au-delà de 22 % dès 701 : défaut chiffré — la saillie COMPTE
+ok 77 - FRONTON compris, le pont au-delà de 22 % dès 701 : défaut chiffré — la saillie COMPTE
+  ---
+  duration_ms: 0.068954
+  type: 'test'
+  ...
+# Subtest: bande ou arche non mesurée dès 701 : la sonde se déclare AVEUGLE sur le budget
+ok 78 - bande ou arche non mesurée dès 701 : la sonde se déclare AVEUGLE sur le budget
+  ---
+  duration_ms: 0.134144
+  type: 'test'
+  ...
+# Subtest: pont compact au-delà de 45 % de la hauteur à <=560 : défaut chiffré
+ok 79 - pont compact au-delà de 45 % de la hauteur à <=560 : défaut chiffré
+  ---
+  duration_ms: 0.088106
+  type: 'test'
+  ...
+# Subtest: case de console NON ENTIÈRE dans l’écran : défaut nommé ; non rendue, rien
+ok 80 - case de console NON ENTIÈRE dans l’écran : défaut nommé ; non rendue, rien
+  ---
+  duration_ms: 0.158215
+  type: 'test'
+  ...
+# Subtest: cible tactile sous 44px : défaut chiffré ; à 44, rien
+ok 81 - cible tactile sous 44px : défaut chiffré ; à 44, rien
+  ---
+  duration_ms: 0.159943
+  type: 'test'
+  ...
+# Subtest: pointeur grossier NON émulé, ou aucune commande : la sonde se déclare aveugle
+ok 82 - pointeur grossier NON émulé, ou aucune commande : la sonde se déclare aveugle
+  ---
+  duration_ms: 0.071697
+  type: 'test'
+  ...
+# Subtest: cartes du groupe PAS plus compactes qu’au-delà de 900 : défaut aux deux tranches moyennes
+ok 83 - cartes du groupe PAS plus compactes qu’au-delà de 900 : défaut aux deux tranches moyennes
+  ---
+  duration_ms: 0.499384
+  type: 'test'
+  ...
+# Subtest: cartes compactées et colonne réduite : aucun défaut
+ok 84 - cartes compactées et colonne réduite : aucun défaut
+  ---
+  duration_ms: 0.214617
+  type: 'test'
+  ...
+# Subtest: colonne d’initiative PAS réduite à 701–900 : défaut chiffré
+ok 85 - colonne d’initiative PAS réduite à 701–900 : défaut chiffré
+  ---
+  duration_ms: 0.168501
+  type: 'test'
+  ...
+# Subtest: série SANS mesure au-delà de 900 : rien à comparer
+ok 86 - série SANS mesure au-delà de 900 : rien à comparer
+  ---
+  duration_ms: 0.07642
+  type: 'test'
+  ...
+# Subtest: couche saine : aucun défaut
+ok 87 - couche saine : aucun défaut
+  ---
+  duration_ms: 0.52489
+  type: 'test'
+  ...
+# Subtest: fil d’événements SUR le bandeau de phase (pause de Round) : défaut chiffré
+ok 88 - fil d’événements SUR le bandeau de phase (pause de Round) : défaut chiffré
+  ---
+  duration_ms: 0.165689
+  type: 'test'
+  ...
+# Subtest: couche ABSENTE : la sonde se déclare AVEUGLE
+ok 89 - couche ABSENTE : la sonde se déclare AVEUGLE
+  ---
+  duration_ms: 0.224776
+  type: 'test'
+  ...
+# Subtest: pont ABSENT sous la couche : sonde aveugle sur sa pose
+ok 90 - pont ABSENT sous la couche : sonde aveugle sur sa pose
+  ---
+  duration_ms: 0.12174
+  type: 'test'
+  ...
+# Subtest: pont DÉCOLLÉ du bas de l’écran : défaut nommé, boîte comprise
+ok 91 - pont DÉCOLLÉ du bas de l’écran : défaut nommé, boîte comprise
+  ---
+  duration_ms: 0.241653
+  type: 'test'
+  ...
+# Subtest: page qui DÉFILE : le plateau déborde de l’écran
+ok 92 - page qui DÉFILE : le plateau déborde de l’écran
+  ---
+  duration_ms: 0.099924
+  type: 'test'
+  ...
+# Subtest: surface ROGNÉE par la couche : défaut chiffré, zone et surface nommées
+ok 93 - surface ROGNÉE par la couche : défaut chiffré, zone et surface nommées
+  ---
+  duration_ms: 0.278226
+  type: 'test'
+  ...
+# Subtest: rognure sous le demi-pixel : arrondi de rendu, rien à dire
+ok 94 - rognure sous le demi-pixel : arrondi de rendu, rien à dire
+  ---
+  duration_ms: 0.088458
+  type: 'test'
+  ...
+# Subtest: surface qui DÉBORDE de sa zone : défaut chiffré, boîtes de la surface et de la zone nommées
+ok 95 - surface qui DÉBORDE de sa zone : défaut chiffré, boîtes de la surface et de la zone nommées
+  ---
+  duration_ms: 0.117626
+  type: 'test'
+  ...
+# Subtest: débord sous le demi-pixel : arrondi de rendu, rien à dire
+ok 96 - débord sous le demi-pixel : arrondi de rendu, rien à dire
+  ---
+  duration_ms: 0.071023
+  type: 'test'
+  ...
+# Subtest: surfaces de DEUX ZONES qui se recouvrent : défaut nommé, les deux surfaces et leurs zones
+ok 97 - surfaces de DEUX ZONES qui se recouvrent : défaut nommé, les deux surfaces et leurs zones
+  ---
+  duration_ms: 0.27477
+  type: 'test'
+  ...
+# Subtest: deux surfaces de la MÊME zone se touchent : c’est la zone qui les range, rien à dire
+ok 98 - deux surfaces de la MÊME zone se touchent : c’est la zone qui les range, rien à dire
+  ---
+  duration_ms: 0.172395
+  type: 'test'
+  ...
+# Subtest: recouvrement HORS de la couche (parts rognées, jamais peintes) : rien à dire
+ok 99 - recouvrement HORS de la couche (parts rognées, jamais peintes) : rien à dire
+  ---
+  duration_ms: 0.235199
+  type: 'test'
+  ...
+# Subtest: commande qui ne reçoit pas son clic : défaut nommé, recouvrant compris
+ok 100 - commande qui ne reçoit pas son clic : défaut nommé, recouvrant compris
+  ---
+  duration_ms: 0.169641
+  type: 'test'
+  ...
+# Subtest: commande EXEMPTÉE (hors du champ de son défilant, ou sous sa tête collée) : rien à dire
+ok 101 - commande EXEMPTÉE (hors du champ de son défilant, ou sous sa tête collée) : rien à dire
+  ---
+  duration_ms: 0.102868
+  type: 'test'
+  ...
+# Subtest: AUCUNE commande rendue : la sonde se déclare AVEUGLE, elle ne se tait pas
+ok 102 - AUCUNE commande rendue : la sonde se déclare AVEUGLE, elle ne se tait pas
+  ---
+  duration_ms: 0.25765
+  type: 'test'
+  ...
+1..102
+# tests 102
+# suites 0
+# pass 102
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 179.136884

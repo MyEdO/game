@@ -1,0 +1,24 @@
+gen-registry: 33 registres à jour
+gen-espaces: IDS_PAR_ESPACE ← 7189 ids / 362 espaces (src/data/schemas/_ids.generated.ts), CLES_DE_DATASET ← 134 clés (src/data/schemas/_cles-de-dataset.generated.ts), RACINES_VIVANTES ← 105 documents (src/data/schemas/_racines-vivantes.generated.ts)
+
+ RUN  v2.1.9 /home/user/game/.wt-1919-H2
+
+ ✓ src/ui/primitive-owners-guard.test.ts (8 tests) 4015ms 439 MB heap used
+   ✓ #1318 P8/D10 — marqueurs structurels = propriété des primitives (recopie de markup bloquée) > aucune recopie de marqueur hors du fichier propriétaire au-delà du stock mesuré 1283ms
+   ✓ #1318 P8/D10 — marqueurs structurels = propriété des primitives (recopie de markup bloquée) > la baseline est DÉCROISSANTE — aucune entrée périmée 1231ms
+   ✓ #1806 §5.2 — une classe d’un module de primitive est posée par sa primitive > chaque classe DÉFINIE par un module de primitive est posée par la primitive qui le possède 1351ms
+ ✓ src/ui/css-modules-guard.test.ts (17 tests) 5454ms 1072 MB heap used
+   ✓ #1806 — un module de primitive est le seul foyer de ce qu’il peint > §5.3 aucun REPEINT neuf d’une classe possédée ailleurs (stock nominatif) 1023ms
+   ✓ #1806 — un module de primitive est le seul foyer de ce qu’il peint > §5.3 preuve par mutation — un écran qui repeint une classe partagée rougit 1713ms
+   ✓ #1806 — un module de primitive est le seul foyer de ce qu’il peint > §5.3 le SUJET d’une règle n’est pas ce que son `:has()` nomme 852ms
+   ✓ #1806 — un module de primitive est le seul foyer de ce qu’il peint > §5.3 étendue aux CADRES : aucune feuille hors de leur foyer ne vise leurs classes, placement compris 458ms
+   ✓ #1806 — un module de primitive est le seul foyer de ce qu’il peint > §5.3 étendue, preuve par mutation — un PLACEMENT ou un contexte qui nomme un cadre rougit 410ms
+   ✓ #1806 — un module de primitive est le seul foyer de ce qu’il peint > §5.4 aucune famille JET recréée dans un module d’écran 436ms
+   ✓ #1806 — un module de primitive est le seul foyer de ce qu’il peint > §5.4 preuve par mutation — une classe de la famille JET dans un module d’écran rougit 409ms
+ ✓ src/ui/TeamSegments.test.tsx (1 test) 58ms 400 MB heap used
+
+ Test Files  3 passed (3)
+      Tests  26 passed (26)
+   Start at  04:35:39
+   Duration  33.66s (transform 17.22s, setup 39.10s, collect 774ms, tests 9.53s, environment 559ms, prepare 216ms)
+

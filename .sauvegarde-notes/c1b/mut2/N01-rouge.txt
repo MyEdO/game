@@ -1,0 +1,165 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1919-H2
+
+ ❯ src/ui/CombatConsole.test.tsx (151 tests | 1 failed | 150 skipped) 8032ms 479 MB heap used
+   × CombatConsole — budget de hauteur du pont (arbitrage user 2026-08-17, décision d’écran 2026-09-24) > F-3 — le côté se calcule sur la FENÊTRE, et la bande TIENT dans la fenêtre à toute largeur, souris ET doigt 8030ms
+     → la bande déborde la fenêtre: expected [ …(130) ] to deeply equal []
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 150 skipped (151)
+   Start at  01:20:12
+   Duration  27.13s (transform 11.96s, setup 12.82s, collect 5.26s, tests 8.03s, environment 615ms, prepare 53ms)
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/ui/CombatConsole.test.tsx > CombatConsole — budget de hauteur du pont (arbitrage user 2026-08-17, décision d’écran 2026-09-24) > F-3 — le côté se calcule sur la FENÊTRE, et la bande TIENT dans la fenêtre à toute largeur, souris ET doigt
+AssertionError: la bande déborde la fenêtre: expected [ …(130) ] to deeply equal []
+
+- Expected
++ Received
+
+- Array []
++ Array [
++   "705×650 au doigt (rangee) : 885.0px",
++   "705×740 au doigt (rangee) : 885.0px",
++   "705×780 au doigt (rangee) : 885.0px",
++   "705×1024 au doigt (rangee) : 885.0px",
++   "705×1180 au doigt (rangee) : 885.0px",
++   "712×650 au doigt (rangee) : 885.0px",
++   "712×740 au doigt (rangee) : 885.0px",
++   "712×780 au doigt (rangee) : 885.0px",
++   "712×1024 au doigt (rangee) : 885.0px",
++   "712×1180 au doigt (rangee) : 885.0px",
++   "719×650 au doigt (rangee) : 885.0px",
++   "719×740 au doigt (rangee) : 885.0px",
++   "719×780 au doigt (rangee) : 885.0px",
++   "719×1024 au doigt (rangee) : 885.0px",
++   "719×1180 au doigt (rangee) : 885.0px",
++   "726×650 au doigt (rangee) : 885.0px",
++   "726×740 au doigt (rangee) : 885.0px",
++   "726×780 au doigt (rangee) : 885.0px",
++   "726×1024 au doigt (rangee) : 885.0px",
++   "726×1180 au doigt (rangee) : 885.0px",
++   "733×650 au doigt (rangee) : 885.0px",
++   "733×740 au doigt (rangee) : 885.0px",
++   "733×780 au doigt (rangee) : 885.0px",
++   "733×1024 au doigt (rangee) : 885.0px",
++   "733×1180 au doigt (rangee) : 885.0px",
++   "740×650 au doigt (rangee) : 885.0px",
++   "740×740 au doigt (rangee) : 885.0px",
++   "740×780 au doigt (rangee) : 885.0px",
++   "740×1024 au doigt (rangee) : 885.0px",
++   "740×1180 au doigt (rangee) : 885.0px",
++   "747×650 au doigt (rangee) : 885.0px",
++   "747×740 au doigt (rangee) : 885.0px",
++   "747×780 au doigt (rangee) : 885.0px",
++   "747×1024 au doigt (rangee) : 885.0px",
++   "747×1180 au doigt (rangee) : 885.0px",
++   "754×650 au doigt (rangee) : 885.0px",
++   "754×740 au doigt (rangee) : 885.0px",
++   "754×780 au doigt (rangee) : 885.0px",
++   "754×1024 au doigt (rangee) : 885.0px",
++   "754×1180 au doigt (rangee) : 885.0px",
++   "761×650 au doigt (rangee) : 885.0px",
++   "761×740 au doigt (rangee) : 885.0px",
++   "761×780 au doigt (rangee) : 885.0px",
++   "761×1024 au doigt (rangee) : 885.0px",
++   "761×1180 au doigt (rangee) : 885.0px",
++   "768×650 au doigt (rangee) : 885.0px",
++   "768×740 au doigt (rangee) : 885.0px",
++   "768×780 au doigt (rangee) : 885.0px",
++   "768×1024 au doigt (rangee) : 885.0px",
++   "768×1180 au doigt (rangee) : 885.0px",
++   "775×650 au doigt (rangee) : 885.0px",
++   "775×740 au doigt (rangee) : 885.0px",
++   "775×780 au doigt (rangee) : 885.0px",
++   "775×1024 au doigt (rangee) : 885.0px",
++   "775×1180 au doigt (rangee) : 885.0px",
++   "782×650 au doigt (rangee) : 885.0px",
++   "782×740 au doigt (rangee) : 885.0px",
++   "782×780 au doigt (rangee) : 885.0px",
++   "782×1024 au doigt (rangee) : 885.0px",
++   "782×1180 au doigt (rangee) : 885.0px",
++   "789×650 au doigt (rangee) : 885.0px",
++   "789×740 au doigt (rangee) : 885.0px",
++   "789×780 au doigt (rangee) : 885.0px",
++   "789×1024 au doigt (rangee) : 885.0px",
++   "789×1180 au doigt (rangee) : 885.0px",
++   "796×650 au doigt (rangee) : 885.0px",
++   "796×740 au doigt (rangee) : 885.0px",
++   "796×780 au doigt (rangee) : 885.0px",
++   "796×1024 au doigt (rangee) : 885.0px",
++   "796×1180 au doigt (rangee) : 885.0px",
++   "803×650 au doigt (rangee) : 885.0px",
++   "803×740 au doigt (rangee) : 885.0px",
++   "803×780 au doigt (rangee) : 885.0px",
++   "803×1024 au doigt (rangee) : 885.0px",
++   "803×1180 au doigt (rangee) : 885.0px",
++   "810×650 au doigt (rangee) : 885.0px",
++   "810×740 au doigt (rangee) : 885.0px",
++   "810×780 au doigt (rangee) : 885.0px",
++   "810×1024 au doigt (rangee) : 885.0px",
++   "810×1180 au doigt (rangee) : 885.0px",
++   "817×650 au doigt (rangee) : 885.0px",
++   "817×740 au doigt (rangee) : 885.0px",
++   "817×780 au doigt (rangee) : 885.0px",
++   "817×1024 au doigt (rangee) : 885.0px",
++   "817×1180 au doigt (rangee) : 885.0px",
++   "824×650 au doigt (rangee) : 885.0px",
++   "824×740 au doigt (rangee) : 885.0px",
++   "824×780 au doigt (rangee) : 885.0px",
++   "824×1024 au doigt (rangee) : 885.0px",
++   "824×1180 au doigt (rangee) : 885.0px",
++   "831×650 au doigt (rangee) : 885.0px",
++   "831×740 au doigt (rangee) : 885.0px",
++   "831×780 au doigt (rangee) : 885.0px",
++   "831×1024 au doigt (rangee) : 885.0px",
++   "831×1180 au doigt (rangee) : 885.0px",
++   "838×650 au doigt (rangee) : 885.0px",
++   "838×740 au doigt (rangee) : 885.0px",
++   "838×780 au doigt (rangee) : 885.0px",
++   "838×1024 au doigt (rangee) : 885.0px",
++   "838×1180 au doigt (rangee) : 885.0px",
++   "845×650 au doigt (rangee) : 885.0px",
++   "845×740 au doigt (rangee) : 885.0px",
++   "845×780 au doigt (rangee) : 885.0px",
++   "845×1024 au doigt (rangee) : 885.0px",
++   "845×1180 au doigt (rangee) : 885.0px",
++   "852×650 au doigt (rangee) : 885.0px",
++   "852×740 au doigt (rangee) : 885.0px",
++   "852×780 au doigt (rangee) : 885.0px",
++   "852×1024 au doigt (rangee) : 885.0px",
++   "852×1180 au doigt (rangee) : 885.0px",
++   "859×650 au doigt (rangee) : 885.0px",
++   "859×740 au doigt (rangee) : 885.0px",
++   "859×780 au doigt (rangee) : 885.0px",
++   "859×1024 au doigt (rangee) : 885.0px",
++   "859×1180 au doigt (rangee) : 885.0px",
++   "866×650 au doigt (rangee) : 885.0px",
++   "866×740 au doigt (rangee) : 885.0px",
++   "866×780 au doigt (rangee) : 885.0px",
++   "866×1024 au doigt (rangee) : 885.0px",
++   "866×1180 au doigt (rangee) : 885.0px",
++   "873×650 au doigt (rangee) : 885.0px",
++   "873×740 au doigt (rangee) : 885.0px",
++   "873×780 au doigt (rangee) : 885.0px",
++   "873×1024 au doigt (rangee) : 885.0px",
++   "873×1180 au doigt (rangee) : 885.0px",
++   "880×650 au doigt (rangee) : 885.0px",
++   "880×740 au doigt (rangee) : 885.0px",
++   "880×780 au doigt (rangee) : 885.0px",
++   "880×1024 au doigt (rangee) : 885.0px",
++   "880×1180 au doigt (rangee) : 885.0px",
++ ]
+
+ ❯ src/ui/CombatConsole.test.tsx:2203:52
+    2201|       }
+    2202|     }
+    2203|     expect(debords, 'la bande déborde la fenêtre').toEqual([]);
+       |                                                    ^
+    2204|   });
+    2205| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+

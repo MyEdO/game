@@ -1,0 +1,25 @@
+[passe 2] cases à porte : ["g1-attaque","g4-recharger","g3-viser","g5-posture","g5-posture-tas","course","mouvement","defend","resolve-psych-immune","resolve-ignore-crit"]
+[passe 2] case retenue : defend
+[passe 2] [cyc 1] focus posé (setup) → BUTTON «Défensive» [data-cell=defend] ; {"boites":1,"fiche":false,"codex":null,"bulle":"Sur la défensive"}
+[passe 2] [cyc 1] ↓ → BUTTON «Ouvrir la fiche» dansBoite ; {"boites":1,"fiche":false,"codex":null,"bulle":"Sur la défensive"}
+[passe 2] [cyc 1] Entrée → BUTTON «Monde» dansDialogue ; {"boites":0,"fiche":true,"codex":"sur-la-defensive","bulle":null}
+[passe 2] [cyc 1] Échap → BUTTON «Défensive» [data-cell=defend] ; {"boites":0,"fiche":false,"codex":null,"bulle":null} ; sur la case = true
+[passe 2] [cyc 2] focus posé (setup) → BUTTON «Défensive» [data-cell=defend] ; {"boites":0,"fiche":false,"codex":null,"bulle":null}
+[passe 2] [cyc 2] ↓ → BUTTON «Ouvrir la fiche» dansBoite ; {"boites":1,"fiche":false,"codex":null,"bulle":"Sur la défensive"}
+[passe 2] [cyc 2] Entrée → BUTTON «Monde» dansDialogue ; {"boites":0,"fiche":true,"codex":"sur-la-defensive","bulle":null}
+[passe 2] [cyc 2] Échap → BUTTON «Défensive» [data-cell=defend] ; {"boites":0,"fiche":false,"codex":null,"bulle":null} ; sur la case = true
+[passe 2] [cyc 3] focus posé (setup) → BUTTON «Défensive» [data-cell=defend] ; {"boites":0,"fiche":false,"codex":null,"bulle":null}
+[passe 2] [cyc 3] ↓ → BUTTON «Ouvrir la fiche» dansBoite ; {"boites":1,"fiche":false,"codex":null,"bulle":"Sur la défensive"}
+[passe 2] [cyc 3] Entrée → BUTTON «Monde» dansDialogue ; {"boites":0,"fiche":true,"codex":"sur-la-defensive","bulle":null}
+[passe 2] [cyc 3] Échap → BUTTON «Défensive» [data-cell=defend] ; {"boites":0,"fiche":false,"codex":null,"bulle":null} ; sur la case = true
+[passe 2] [cyc 4] avant survol → BUTTON «Défensive» [data-cell=defend]
+[passe 2] [cyc 4] survol → BUTTON «Défensive» [data-cell=defend] ; {"boites":1,"fiche":false,"codex":null,"bulle":"Sur la défensive"}
+[passe 2] [cyc 4] clic porte (pointeur laissé en 1417,646) → BUTTON «Monde» dansDialogue ; {"boites":0,"fiche":true,"codex":"sur-la-defensive","bulle":null}
+[passe 2] [cyc 4] Échap → BUTTON «Défensive» [data-cell=defend] ; {"boites":0,"fiche":false,"codex":null,"bulle":null} ; sur la case = true
+[passe 2] [cyc 5] avant survol → body
+[passe 2] [cyc 5] survol → body ; {"boites":1,"fiche":false,"codex":null,"bulle":"Sur la défensive"}
+[passe 2] [cyc 5] clic porte (pointeur laissé en 1417,646) → BUTTON «Monde» dansDialogue ; {"boites":0,"fiche":true,"codex":"sur-la-defensive","bulle":null}
+[passe 2] [cyc 5] pointeur hors zone → {"boites":0,"fiche":true,"codex":"sur-la-defensive","bulle":null}
+[passe 2] [cyc 5] Échap → BUTTON «Défensive» [data-cell=defend] ; {"boites":0,"fiche":false,"codex":null,"bulle":null} ; sur la case = true
+[passe 2] console : erreurs = 0 []
+exit=0

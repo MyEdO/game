@@ -1,0 +1,78 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game
+
+ ✓ src/ui/etat-aria-guard.test.ts (2 tests) 1314ms 403 MB heap used
+   ✓ état ARIA — jamais doublé par une classe > `src/ui` : les classes qui doublent un état ARIA ne sont que celles du stock 1289ms
+ ✓ src/ui/css-definitions-guard.test.ts (6 tests) 21ms 453 MB heap used
+ ✓ src/ui/influence-affordance-guard.test.ts (3 tests) 233ms 455 MB heap used
+ ✓ src/ui/aria-primitive-guard.test.ts (1 test) 31ms 455 MB heap used
+ ✓ src/ui/gamepad-selectors-guard.test.ts (4 tests) 15ms 450 MB heap used
+ ✓ src/ui/codex-inline-refs-guard.test.ts (10 tests) 2941ms 427 MB heap used
+   ✓ refs Codex écrites EN LITTÉRAL dans l’UI — chacune pointe une fiche RÉELLE > CÂBLAGE : le scan de CORPUS mesure réellement des sites, dans plusieurs fichiers et deux formes 1751ms
+   ✓ refs Codex écrites EN LITTÉRAL dans l’UI — chacune pointe une fiche RÉELLE > chaque ref littérale de `src/ui/**` résout au Codex, par id STABLE 1054ms
+ ❯ src/ui/css-modules-guard.test.ts (17 tests | 1 failed) 7986ms 807 MB heap used
+   × #1806 — un module de primitive est le seul foyer de ce qu’il peint > §5.3 aucun REPEINT neuf d’une classe possédée ailleurs (stock nominatif) 1382ms
+     → Classe REPEINTE hors de son module propriétaire — la matière doit rester UNIQUE :
+src/ui/styles/compendium.css|.codex-ref.ab-codex-info
+src/ui/styles/compendium.css|.codex-ref.ab-codex-info:hover
+src/ui/styles/compendium.css|.codex-ref.ab-codex-info:focus-visible
+src/ui/styles/compendium.css|.codex-ref.ab-codex-info: expected [ …(4) ] to deeply equal []
+   ✓ #1806 — un module de primitive est le seul foyer de ce qu’il peint > §5.3 preuve par mutation — un écran qui repeint une classe partagée rougit 3370ms
+   ✓ #1806 — un module de primitive est le seul foyer de ce qu’il peint > §5.3 le SUJET d’une règle n’est pas ce que son `:has()` nomme 1062ms
+   ✓ #1806 — un module de primitive est le seul foyer de ce qu’il peint > §5.3 étendue aux CADRES : aucune feuille hors de leur foyer ne vise leurs classes, placement compris 544ms
+   ✓ #1806 — un module de primitive est le seul foyer de ce qu’il peint > §5.3 étendue, preuve par mutation — un PLACEMENT ou un contexte qui nomme un cadre rougit 498ms
+   ✓ #1806 — un module de primitive est le seul foyer de ce qu’il peint > §5.4 aucune famille JET recréée dans un module d’écran 481ms
+   ✓ #1806 — un module de primitive est le seul foyer de ce qu’il peint > §5.4 preuve par mutation — une classe de la famille JET dans un module d’écran rougit 466ms
+stderr | src/ui/compendium/CompendiumScreen.test.tsx > CompendiumScreen — toggle des clusters repliables (#399) > replier/déplier un cluster de la famille Tables ne crashe pas (currentTarget lu APRÈS reset natif)
+Warning: An update to CompendiumScreen inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CompendiumScreen (/home/user/game/src/ui/compendium/CompendiumScreen.tsx:31:43)
+    at Boundary (/home/user/game/src/ui/compendium/CompendiumScreen.test.tsx:23:1)
+
+ ✓ src/ui/compendium/CompendiumScreen.test.tsx (3 tests) 451ms 453 MB heap used
+   ✓ CompendiumScreen — toggle des clusters repliables (#399) > replier/déplier un cluster de la famille Tables ne crashe pas (currentTarget lu APRÈS reset natif) 350ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/ui/css-modules-guard.test.ts > #1806 — un module de primitive est le seul foyer de ce qu’il peint > §5.3 aucun REPEINT neuf d’une classe possédée ailleurs (stock nominatif)
+AssertionError: Classe REPEINTE hors de son module propriétaire — la matière doit rester UNIQUE :
+src/ui/styles/compendium.css|.codex-ref.ab-codex-info
+src/ui/styles/compendium.css|.codex-ref.ab-codex-info:hover
+src/ui/styles/compendium.css|.codex-ref.ab-codex-info:focus-visible
+src/ui/styles/compendium.css|.codex-ref.ab-codex-info: expected [ …(4) ] to deeply equal []
+
+- Expected
++ Received
+
+- Array []
++ Array [
++   "src/ui/styles/compendium.css|.codex-ref.ab-codex-info",
++   "src/ui/styles/compendium.css|.codex-ref.ab-codex-info:hover",
++   "src/ui/styles/compendium.css|.codex-ref.ab-codex-info:focus-visible",
++   "src/ui/styles/compendium.css|.codex-ref.ab-codex-info",
++ ]
+
+ ❯ src/ui/css-modules-guard.test.ts:378:125
+    376|     const mesures = sitesRepeint(feuilles);
+    377|     const neufs = mesures.filter((s) => !REPEINTS_STOCK.includes(s));
+    378|     expect(neufs, `Classe REPEINTE hors de son module propriétaire — l…
+       |                                                                                                                             ^
+    379|     const soldes = REPEINTS_STOCK.filter((s) => !mesures.includes(s));
+    380|     expect(soldes, `Entrée(s) SOLDÉE(s) du stock de repeints — retirer…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+ Test Files  1 failed | 7 passed (8)
+      Tests  1 failed | 45 passed (46)
+   Start at  09:41:36
+   Duration  42.91s (transform 22.46s, setup 54.50s, collect 8.41s, tests 12.99s, environment 634ms, prepare 257ms)
+

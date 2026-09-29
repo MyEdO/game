@@ -1,0 +1,34 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1919-H1
+
+ ❯ src/ui/CombatConsole.test.tsx (150 tests | 1 failed | 149 skipped) 272ms 465 MB heap used
+   × CombatConsole — assemblage : UN PONT, pas des blocs > P-1 — UN élément-pont unique, de bord à bord, porte les QUATRE régions de console 269ms
+     → le HUD peut pousser le pont : sa rangée n’est pas bornée à zéro: expected '[flot] 1fr [pont] auto' to match /^\[flot\] minmax\(0, 1fr\) /
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 149 skipped (150)
+   Start at  20:42:38
+   Duration  19.96s (transform 12.38s, setup 13.44s, collect 5.11s, tests 272ms, environment 697ms, prepare 65ms)
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/ui/CombatConsole.test.tsx > CombatConsole — assemblage : UN PONT, pas des blocs > P-1 — UN élément-pont unique, de bord à bord, porte les QUATRE régions de console
+AssertionError: le HUD peut pousser le pont : sa rangée n’est pas bornée à zéro: expected '[flot] 1fr [pont] auto' to match /^\[flot\] minmax\(0, 1fr\) /
+
+- Expected: 
+/^\[flot\] minmax\(0, 1fr\) /
+
++ Received: 
+"[flot] 1fr [pont] auto"
+
+ ❯ src/ui/CombatConsole.test.tsx:771:87
+    769|     const pistes = decl(ruleOf(HUD_BASE, '.stage'), 'grid-template-row…
+    770|     expect(pistes, 'la rangée du pont n’est pas la dernière, dimension…
+    771|     expect(pistes, 'le HUD peut pousser le pont : sa rangée n’est pas …
+       |                                                                                       ^
+    772|     const aire = (sel: string) => decl(ruleOf(HUD_BASE, sel), 'grid-ar…
+    773|     expect(aire('.stage > .combat-console, .stage > .exploration-dock'…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+

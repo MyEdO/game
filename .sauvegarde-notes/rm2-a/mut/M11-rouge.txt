@@ -1,0 +1,84 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game
+
+ ❯ src/ui/wrap-keyboard-vs-cursor.test.tsx (8 tests | 2 failed) 184ms 418 MB heap used
+   × (A) SOCLE — un contrôle focalisé possède ses flèches (#1078) > MÊME contexte, un BOUTON focalisé : le registre n’élit PLUS le curseur 12ms
+     → expected { id: 'cursor-down', …(7) } to be undefined
+   × (A) SOCLE — un contrôle focalisé possède ses flèches (#1078) > les QUATRE flèches sont couvertes (pas seulement celle de la recette) 8ms
+     → ArrowUp vole encore le focus: expected { id: 'cursor-up', …(7) } to be undefined
+ ✓ src/state/push-keyboard-commit.test.ts (3 tests) 136ms 367 MB heap used
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/ui/wrap-keyboard-vs-cursor.test.tsx > (A) SOCLE — un contrôle focalisé possède ses flèches (#1078) > MÊME contexte, un BOUTON focalisé : le registre n’élit PLUS le curseur
+AssertionError: expected { id: 'cursor-down', …(7) } to be undefined
+
+- Expected: 
+undefined
+
++ Received: 
+Object {
+  "codes": Array [
+    "ArrowDown",
+  ],
+  "id": "cursor-down",
+  "labelKey": "key.cursorDown",
+  "notWhenControlFocused": true,
+  "run": [Function run],
+  "section": "curseur",
+  "sharedBy": Array [
+    "editeur-nudge-down",
+  ],
+  "when": [Function curOrPreempt],
+}
+
+ ❯ src/ui/wrap-keyboard-vs-cursor.test.tsx:39:63
+     37| 
+     38|   it('MÊME contexte, un BOUTON focalisé : le registre n’élit PLUS le c…
+     39|     expect(dispatchBinding('ArrowDown', combatState(), true)).toBeUnde…
+       |                                                               ^
+     40|   });
+     41| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/ui/wrap-keyboard-vs-cursor.test.tsx > (A) SOCLE — un contrôle focalisé possède ses flèches (#1078) > les QUATRE flèches sont couvertes (pas seulement celle de la recette)
+AssertionError: ArrowUp vole encore le focus: expected { id: 'cursor-up', …(7) } to be undefined
+
+- Expected: 
+undefined
+
++ Received: 
+Object {
+  "codes": Array [
+    "ArrowUp",
+  ],
+  "id": "cursor-up",
+  "labelKey": "key.cursorUp",
+  "notWhenControlFocused": true,
+  "run": [Function run],
+  "section": "curseur",
+  "sharedBy": Array [
+    "editeur-nudge-up",
+  ],
+  "when": [Function curOrPreempt],
+}
+
+ ❯ src/ui/wrap-keyboard-vs-cursor.test.tsx:44:90
+     42|   it('les QUATRE flèches sont couvertes (pas seulement celle de la rec…
+     43|     for (const code of ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRig…
+     44|       expect(dispatchBinding(code, combatState(), true), `${code} vole…
+       |                                                                                          ^
+     45|     }
+     46|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+ Test Files  1 failed | 1 passed (2)
+      Tests  2 failed | 9 passed (11)
+   Start at  10:10:38
+   Duration  29.11s (transform 17.92s, setup 26.49s, collect 898ms, tests 320ms, environment 656ms, prepare 122ms)
+
+
+exit=1

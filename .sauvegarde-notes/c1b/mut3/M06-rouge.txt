@@ -1,0 +1,27 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1919-H2
+
+ ❯ src/ui/CombatConsole.test.tsx (151 tests | 1 failed | 150 skipped) 46ms 449 MB heap used
+   × CombatConsole — budget de hauteur du pont (arbitrage user 2026-08-17, décision d’écran 2026-09-24) > F-1 — bande ≤ 17 % et empreinte ≤ 22 % de la hauteur d’écran, à toute vue ≥ 701 — au doigt, sauf case à sa cible 45ms
+     → 701×780 : empreinte 184.6px = 23.7 %: expected 0.23666666666666666 to be less than or equal to 0.220000001
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 150 skipped (151)
+   Start at  01:58:01
+   Duration  19.63s (transform 11.97s, setup 13.34s, collect 5.15s, tests 46ms, environment 674ms, prepare 62ms)
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/ui/CombatConsole.test.tsx > CombatConsole — budget de hauteur du pont (arbitrage user 2026-08-17, décision d’écran 2026-09-24) > F-1 — bande ≤ 17 % et empreinte ≤ 22 % de la hauteur d’écran, à toute vue ≥ 701 — au doigt, sauf case à sa cible
+AssertionError: 701×780 : empreinte 184.6px = 23.7 %: expected 0.23666666666666666 to be less than or equal to 0.220000001
+ ❯ src/ui/CombatConsole.test.tsx:2144:108
+    2142|         if (vaut('var(--cc-cell)', vw, vh, grossier) <= vaut('var(--cc…
+    2143|         expect(bande / vh, `${ou} : bande ${bande.toFixed(1)}px = ${(1…
+    2144|         expect(total / vh, `${ou} : empreinte ${total.toFixed(1)}px = …
+       |                                                                                                            ^
+    2145|       }
+    2146|     }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+

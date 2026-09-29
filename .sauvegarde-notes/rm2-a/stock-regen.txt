@@ -1,0 +1,1 @@
+/home/user/game/scripts/guards/lib/cssCouchesStock.mjs : Stock régénéré (CSS_IDENTITE_ECRAN_RATCHET=1770, CSS_ESPACEMENT_RATCHET=703, STYLE_INLINE_RATCHET=93)

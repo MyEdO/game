@@ -1,0 +1,23 @@
+feat(ui): refs #1919 #1806 — HUD H1b et console C1 : zones corrigées, géométrie de la décision
+
+ÉTAPE DE CHANTIER, ne se publie pas seule : les verdicts de diff et d'écran de ce cumul sont
+À REPRENDRE (restes au lot C1b, en cours). Poussée sur `chantier/1919` pour ne rien perdre.
+- H1b (#1919) : lieu entier (aires par mode), zone `outils` qui borne le journal, zone `parole`
+  (conversation, puce d'attente), objectif et fil enroulés au mot ; sonde : débord hors zone et
+  recouvrement entre zones ; `estOuverture` inclut la fin de combat.
+- C1 (#1806, #1856 ; décision d'écran du 2026-09-24) : une rangée dès 701, côté de case unique et
+  carré, cases sans libellé (nom dans l'infobulle), icône à 60 % ; fronton `min(52px, 4.8vh)` compté
+  dans le budget (bande 17,0 %, total 21,8 % de 701 à 1707) ; 561-700 en arche en ligne et deux
+  travées ; sets sans rang, X en en-tête ; « Fin du tour » affiche ESPACE ; sonde : `BUDGET_PONT`
+  0,17/0,22 dès 701. À 700×780, frise, fil et rail entiers et atteignables (pont 575 → 237 px).
+
+Preuves : `npm run gates` (worktree sur fc2388866) — 23 gates vertes, 1 rouge
+(`src/ui/css-valeur-en-test.test.ts` : `CombatConsole.test.tsx:2217` épingle un `calc` lu, repris au
+lot C1b) ; 21 + 8 mutations ; ventilation identité 1770 → 1751, espacement 702 → 696, APPARU 0.
+
+JUGE: juge de diff du cumul H1b+C1 : À REPRENDRE, 5 bloquants (fil hors zone à 700, cible tactile qui court-circuite la formule, budget ≤560 à 48 % et test vide, nom tranché dans l'arche, pose de la puce coop) au lot C1b
+REFUTATION: sonde du juge sous pointer coarse (rangée +139 px à 768×1024), budget recalculé (298 → 313 px à ≤560), quatre hôtes d'ActiveModal ; Q1, Q2, Q3, Q4.2, Q4.7 confirmées au-dessus de 701 à la souris
+JUGE-VISION: 32 captures C1 et 34 H1b jugées contre l'avant : défauts H1 résolus (lieu à 360, journal, objectif à 900, fil à 700) ; À REPRENDRE — arche qui saute au tour adverse à ≤700, « Knud… » tranché, pont 561-700 à 30 %, portrait à 30 px à 701
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_0167t7jpCF61Qutt6mU1dbAt

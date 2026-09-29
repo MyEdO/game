@@ -1,0 +1,47 @@
+ M docs/.sources-lues.json
+ M docs/ajouter-une-icone.md
+ M docs/codex-relations.md
+ M docs/consommateurs-de-champs.md
+ M docs/donnees.md
+ M docs/orphelines-donnees.md
+ M docs/primitives.md
+ M docs/raw/reconciliation.md
+ M docs/registre-jets.md
+ M docs/reprise-apres-pause.md
+ M docs/sorts-implementation.md
+ M docs/structures-donnees.md
+ M docs/systemes.md
+ M docs/usages-jets.md
+ M docs/vocabulaire-mecanique.md
+ M scripts/hooks/ecrans-ui.json
+ M src/data/night-stake-form.test.ts
+ M src/data/night-stakes-rules.test.ts
+ M src/data/primitives.manifest.json
+ M src/data/schemas/_ids.generated.ts
+ M src/data/schemas/defs-scenes/trous-de-validation.test.ts
+ M src/scenes/bundled-projects.test.ts
+ M src/ui/BoiteAncree.test.tsx
+ M src/ui/BoiteAncree.tsx
+ M src/ui/CombatConsole.test.tsx
+ M src/ui/Infobulle.test.tsx
+ M src/ui/Infobulle.tsx
+ M src/ui/compendium/CodexRef.test.tsx
+ M src/ui/compendium/CodexRef.tsx
+ M src/ui/creator/CharacterCreator.tsx
+ M src/ui/editor/AddMenu.test.tsx
+ M src/ui/editor/DialogueDetail.tsx
+ M src/ui/editor/EffectList.test.tsx
+ M src/ui/editor/EffectList.tsx
+ M src/ui/editor/FlowEditor.test.tsx
+ M src/ui/editor/GameOpEditor.seeds.test.tsx
+ M src/ui/editor/GameOpEditor.test.tsx
+ M src/ui/editor/GameOpEditor.tsx
+ M src/ui/editor/WorldMapEditor.test.tsx
+ M src/ui/gallery/registry.tsx
+ M src/ui/raccourcis-registre.test.ts
+?? scripts/guards/lib/coupeAuCaractere.d.mts
+?? scripts/guards/lib/coupeAuCaractere.mjs
+?? src/coupe-au-caractere-guard.test.ts
+?? src/lib/coupeAuMot.test.ts
+?? src/lib/coupeAuMot.ts
+?? src/ui/editor/AddMenu.testkit.ts

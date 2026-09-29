@@ -1,0 +1,45 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1919-H2
+
+stderr | src/ui/ExplorationDock.test.tsx > #1919 — la couche HUD est une grille : chaque surface déclare sa ZONE > aucune SURFACE de la couche n’est posée hors flux, dans AUCUNE feuille : la zone la place
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+THREE.WebGLRenderer: THREE.WebGLRenderer: Error creating WebGL context.
+GameStage3D: aucun contexte WebGL — le monde ne peut pas être peint. Error: THREE.WebGLRenderer: Error creating WebGL context.
+    at new WebGLRenderer (file:///home/user/game/.wt-1919-H2/node_modules/three/build/three.module.js:16399:13)
+    at /home/user/game/.wt-1919-H2/src/gameIso/stage/GameStage3D.tsx:1548:64
+    at commitHookEffectListMount (/home/user/game/.wt-1919-H2/node_modules/react-dom/cjs/react-dom.development.js:23189:26)
+    at commitPassiveMountOnFiber (/home/user/game/.wt-1919-H2/node_modules/react-dom/cjs/react-dom.development.js:24970:11)
+    at commitPassiveMountEffects_complete (/home/user/game/.wt-1919-H2/node_modules/react-dom/cjs/react-dom.development.js:24930:9)
+    at commitPassiveMountEffects_begin (/home/user/game/.wt-1919-H2/node_modules/react-dom/cjs/react-dom.development.js:24917:7)
+    at commitPassiveMountEffects (/home/user/game/.wt-1919-H2/node_modules/react-dom/cjs/react-dom.development.js:24905:3)
+    at flushPassiveEffectsImpl (/home/user/game/.wt-1919-H2/node_modules/react-dom/cjs/react-dom.development.js:27078:3)
+    at flushPassiveEffects (/home/user/game/.wt-1919-H2/node_modules/react-dom/cjs/react-dom.development.js:27023:14)
+    at /home/user/game/.wt-1919-H2/node_modules/react-dom/cjs/react-dom.development.js:26808:9
+
+stderr | src/ui/ExplorationDock.test.tsx > #1919 — la couche HUD est une grille : chaque surface déclare sa ZONE > COMBAT COOP : la puce du siège attendu est une surface de la zone PAROLE, jamais hors flux
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+THREE.WebGLRenderer: THREE.WebGLRenderer: Error creating WebGL context.
+GameStage3D: aucun contexte WebGL — le monde ne peut pas être peint. Error: THREE.WebGLRenderer: Error creating WebGL context.
+    at new WebGLRenderer (file:///home/user/game/.wt-1919-H2/node_modules/three/build/three.module.js:16399:13)
+    at /home/user/game/.wt-1919-H2/src/gameIso/stage/GameStage3D.tsx:1548:64
+    at commitHookEffectListMount (/home/user/game/.wt-1919-H2/node_modules/react-dom/cjs/react-dom.development.js:23189:26)
+    at commitPassiveMountOnFiber (/home/user/game/.wt-1919-H2/node_modules/react-dom/cjs/react-dom.development.js:24970:11)
+    at commitPassiveMountEffects_complete (/home/user/game/.wt-1919-H2/node_modules/react-dom/cjs/react-dom.development.js:24930:9)
+    at commitPassiveMountEffects_begin (/home/user/game/.wt-1919-H2/node_modules/react-dom/cjs/react-dom.development.js:24917:7)
+    at commitPassiveMountEffects (/home/user/game/.wt-1919-H2/node_modules/react-dom/cjs/react-dom.development.js:24905:3)
+    at flushPassiveEffectsImpl (/home/user/game/.wt-1919-H2/node_modules/react-dom/cjs/react-dom.development.js:27078:3)
+    at flushPassiveEffects (/home/user/game/.wt-1919-H2/node_modules/react-dom/cjs/react-dom.development.js:27023:14)
+    at /home/user/game/.wt-1919-H2/node_modules/react-dom/cjs/react-dom.development.js:26808:9
+
+ ✓ src/ui/ExplorationDock.test.tsx (22 tests | 19 skipped) 667ms 537 MB heap used
+   ✓ #1919 — la couche HUD est une grille : chaque surface déclare sa ZONE > aucune SURFACE de la couche n’est posée hors flux, dans AUCUNE feuille : la zone la place 310ms
+   ✓ #1919 — la couche HUD est une grille : chaque surface déclare sa ZONE > COMBAT COOP : la puce du siège attendu est une surface de la zone PAROLE, jamais hors flux 337ms
+
+ Test Files  1 passed (1)
+      Tests  3 passed | 19 skipped (22)
+   Start at  00:21:32
+   Duration  26.78s (transform 16.03s, setup 14.45s, collect 10.62s, tests 667ms, environment 620ms, prepare 62ms)
+

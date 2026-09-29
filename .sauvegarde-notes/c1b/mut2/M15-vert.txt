@@ -1,0 +1,11 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1919-H2
+
+ ✓ src/ui/CombatConsole.test.tsx (151 tests | 149 skipped) 282ms 464 MB heap used
+
+ Test Files  1 passed (1)
+      Tests  2 passed | 149 skipped (151)
+   Start at  01:40:08
+   Duration  20.63s (transform 12.23s, setup 13.47s, collect 5.72s, tests 282ms, environment 684ms, prepare 64ms)
+

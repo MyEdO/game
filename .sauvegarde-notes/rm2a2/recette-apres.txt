@@ -1,0 +1,7 @@
+cases marquées {"lumiere":{"texte":"8LumièreFocaliser : ce Sort ne se focalise pas","gated":true},"autre":"Bâton de combat"}
+P1 mesure {"bulle":{"x":332,"r":652,"y":377,"b":706},"lumiere":{"x":600,"r":652,"y":712,"b":752},"finDuTour":{"x":826,"r":890,"y":645,"b":770},"recouvre":false,"texte":"Focaliser : ce Sort ne se focalise pasLumièreMagie mineureNI 0 · Portée Vous · C"}
+P1 capture /tmp/claude-0/-home-user-game/365ab83c-b2bf-5700-91e2-3605a34e86da/scratchpad/rm2a2/refus-lumiere-900x780-apres.png
+P3 cycle [data-recette-lumiere] {"ouverte1":true,"apresEchap":false,"survolSansSortie":false,"reSurvol":true}
+P3 cycle [data-recette-autre] {"ouverte1":true,"apresEchap":false,"survolSansSortie":false,"reSurvol":true}
+Erreurs console: []
+---OK---

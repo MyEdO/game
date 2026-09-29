@@ -1,0 +1,54 @@
+## Brief du codeur A7 (R-M2, infobulle), 2026-09-24
+
+Rend A6 (5 points faits, 6 mutations, recette 3/3). Trois restes du rendu A6, traités dans ce lot plutôt que reportés.
+
+
+Tu es orchestrateur de ton lot : tu peux déléguer une lecture de masse (agent `lecteur`) ou une vérification fermée (`verif-mecanique`), mais tu relis tout ce qu'un agent te rend, et le code est à toi.
+
+## Worktree et interdits
+- Worktree : `/home/claude/game/.wt-rm2a`, branche `wt/rm2a`, HEAD `a8d993dd6`. Les lots A à A6 y sont INDEXÉS en entier (arbre `2bb4664fb`) : ton travail est exactement `git diff`. Aucune modification non indexée au départ.
+- `node_modules` est une copie par liens durs, caches exclus : aucune écriture dedans, `npm install` compris.
+- Interdits : tout `git checkout/restore/reset/stash/add/commit/apply/write-tree/init`, et toute suppression récursive. Je committe moi-même.
+- **Processus** : un serveur de dev et un Chromium sans tête sont permis pour vérifier ; arrête-les par PID avant de rendre. Avant tout `kill`, lis le PPID et la ligne de commande du parent (`ps -o pid,ppid,cmd`) : tu ne tues que ce que ta propre commande a lancé. Jamais `pkill`, `killall`, ni `ps … | grep chrome | xargs kill`. Le serveur du port 5204 et ceux des autres arbres ne sont pas à toi. La machine a 4 cœurs et trois autres agents y tournent : un serveur et un Chromium à la fois ; avant de lancer vitest, vérifie qu'aucun autre vitest de plus de 20 fichiers ne tourne (`ps -eo pid,etime,cmd | grep '[v]itest'`, sortie collée) ; sinon, fais d'abord le reste et reviens-y. Colle `/proc/loadavg` à côté de toute mesure de durée et de tout rouge par délai.
+- Pas de captures.
+- Budget : 50 min d'horloge. Travaille dans l'ordre ; à l'échéance, rends ce qui est fait, le reste NOMMÉ.
+- Hors de ton geste : `docs:check`, `docs:build`, les suites entières et le typecheck complet. Je les joue au commit.
+
+## Invariant
+- Patron WAI-ARIA du dialogue, APG « Dialog (Modal) Pattern », verbatim : « When a dialog closes, focus returns to the element that invoked the dialog ». Question à laquelle il répond : où va le focus quand une surface qui l'a pris se ferme ?
+- Arbitrage de Clément (2026-08-24), fiche `.claude/memory/user-arbitrage-raison-de-refus-au-survol-jamais-inline.md`, verbatim : « Je n'ai jamais validé ces "textes" impossible a lire sous le nom des capacités, même Rogue Trader qui est notre interface de départ n'a pas un tel comportement. » Le commit qui l'applique (`fc8d809a5`) en tire, verbatim : « la raison d'un refus vit au SURVOL (et s'ATTEINT au clavier, à la manette, au doigt) ».
+- Credo (`.claude/credo.md`), verbatim : « Règles GÉNÉRALES, jamais spécifiques. Corriger la classe entière du problème, pas le cas rencontré. » ; « Un commentaire porte une réf nue » (règle 6 de `CLAUDE.md`, garde `src/comment-poison-guard.test.ts`).
+- Consigne de Clément (2026-09-20, #1806), verbatim : « L'application c'est un dépot de stock decroissant. Surtout que c'est toi qui a mis ces !important il y a quelques jours ». Conséquence : aucun registre neuf, aucune liste d'exceptions, aucun `!important` neuf.
+
+## Cas canonique déjà couvert
+- **Le focus rendu à qui l'avait** : `useModalA11y` lit `document.activeElement` à l'ouverture et le lui rend à la fermeture (`src/ui/Modal.tsx:77-81`). Preuve d'instance à rendre, ou sa réfutation citée : l'entrée du focus dans la boîte d'infobulle (`src/ui/Infobulle.tsx:202-204`, et tout autre chemin d'entrée que tu trouves) est-elle la même ouverture, dont l'élément d'origine est celui qui avait le focus à cet instant ? Aujourd'hui `congedier` (`Infobulle.tsx:183-187`) rend le focus à `visibleFocusables(ancre)[0]`, le 1ᵉʳ DESCENDANT focalisable de l'ancrage : un ancrage qui est lui-même le contrôle ne récupère rien (rendu A6, écart E1).
+
+## Design jugé :
+- Verdict du juge A5 : `/tmp/claude-0/-home-claude-game/b2c1dcf4-ee89-5cd4-b2df-036dbf03e24e/scratchpad/juge-rm2a5/verdict.md`, dont la ligne 37 sur #1117. Rendu A6 : `scratchpad/rendu-rm2a6.md`, section « Écarts et restes » (E1, E2, E3).
+
+## Travail, dans cet ordre
+1. **E1, le focus revient à qui l'avait.** Dis par quel(s) chemin(s) le focus entre dans la boîte (sortie de grep collée) et ce que `congedier` doit rendre sur chacun. Le correctif réutilise le mécanisme canonique au lieu d'en poser un second : si `useModalA11y` ne peut pas le porter tel quel, dis pourquoi (`fichier:ligne`), et extrais la part commune plutôt que de la recopier. Tests : un ancrage qui EST le bouton (la sonde du juge A5, `scratchpad/juge-rm2a5/couture.j5.sonde.test.tsx`, bouton nu) et un ancrage qui l'ENVELOPPE (`CodexRef`) ; les deux rendent le focus à l'élément d'origine. `CodexRef.hooks.test.tsx:146` (Échap ne rouvre pas la boîte) reste vert.
+2. **E3, le commentaire de `Infobulle.tsx:181-182`.** Il cite « recette #1117 », dont le titre (`gh api repos/cgauche/game/issues/1117 --jq .title`, sortie collée) ne porte pas cet interdit. Le commentaire porte la réf nue de ce qui le verrouille (le test), ou disparaît si le code, après le point 1, le dit seul.
+3. **E2, le warning de rendu serveur.** `Infobulle.test.tsx:13,18` et `compendium/CodexRef.test.tsx` rendent `CodexRef` par `renderToStaticMarkup`, et `usePlacementAncre` (`BoiteAncree.tsx`, né dans ce chantier) y émet « useLayoutEffect does nothing on the server ». Mesure d'abord : l'application rend-elle quoi que ce soit côté serveur (`git grep -n "react-dom/server" -- src`, sortie collée, production et tests séparés) ? Puis corrige la cause, au bon étage (le test ou le hook), et dis pourquoi cet étage. Ni `vi.spyOn(console)`, ni filtre de warning.
+
+Dans chaque zone touchée : un concept, un terme ; morts purgés ; commentaires à réf nue.
+
+## Preuves (obligatoires)
+- Preuve par mutation pour chaque test neuf ou réécrit : fichier muté, empreinte `git hash-object` avant et après, rouge constaté, remise identique. Les mutations se jouent sur le blob FINAL, après ta dernière retouche, et chaque restauration a sa sortie verte en fichier.
+- Navigateur, en joueur (clavier réel ; `__wfrp` seulement pour poser la situation), console à 0 erreur, 3 fois : rejoue `scratchpad/a6/a6-recette-focus.mjs` (combat, focus sur une case, ↓, Entrée ouvre la fiche, Échap la ferme, le focus revient à la case), `document.activeElement` collé après chaque geste.
+
+## Portes (sortie BRUTE collée, avec la ligne `exit=` écrite par la commande)
+- `npm run typecheck:fast`.
+- `npx vitest run --no-cache` sur les fichiers nommés un par un : `src/ui/Infobulle.test.tsx`, `src/ui/BoiteAncree.test.tsx`, `src/ui/compendium/CodexRef.test.tsx`, `src/ui/compendium/CodexRef.hooks.test.tsx`, `src/ui/App.surcouche-codex.test.tsx`, `src/ui/PanneauParametre.test.tsx`, `src/ui/editor/AddMenu.test.tsx`, `src/ui/Modal.test.tsx` s'il existe, tout test que tu crées, plus `src/vi-mock-isolate-guard.test.ts` et `src/comment-poison-guard.test.ts`. Si tu touches `Modal.tsx`, ajoute ses importeurs de test par `git grep -l`, liste collée.
+- `npx tsx scripts/ui/regen-css-couches-stock.mts --check`.
+- eslint sur les fichiers que tu touches.
+
+## Livrable
+Données brutes dans `/tmp/claude-0/-home-claude-game/b2c1dcf4-ee89-5cd4-b2df-036dbf03e24e/scratchpad/rendu-rm2a7.md` (sondes et sorties dans `scratchpad/a7/`) :
+- `git diff --stat` et la liste des fichiers neufs ;
+- pour chaque point, fait ou reste, avec sa preuve ;
+- la table des mutations ;
+- les sorties des portes.
+
+---
+_Generated by [Claude Code](https://claude.ai/code)_

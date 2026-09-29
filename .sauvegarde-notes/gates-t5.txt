@@ -1,0 +1,85 @@
+
+> warhammer-v4-rpg@0.1.0 gates
+> node scripts/gates/toutes.mjs
+
+[gates] arbre eb3a49429 « fix(ui): refs #1806 — R-M2 trains 3-4 : coupeAuMot partout, gardes par » + 45 fichier(s) non committé(s)
+[gates] 24 gate(s) lues dans ci.yml
+[gates] machine de 4 cœur(s), pas au-delà des 10 de la suite : une seule lane, dans l’ordre de ci.yml (`lanesPortees`)
+[gates] docs:check:tout — à jouer : npm run docs:check:tout
+[gates] agents:check — à jouer : npm run agents:check
+[gates] test:agents — à jouer : npm run test:agents
+[gates] test:hooks — à jouer : npm run test:hooks
+[gates] test:ops — à jouer : npm run test:ops
+[gates] test:runner — à jouer : npm run test:runner
+[gates] test:docs — à jouer : npm run test:docs
+[gates] deps:unused — à jouer : npm run deps:unused
+[gates] test:recette — à jouer : npm run test:recette
+[gates] typecheck — à jouer : npm run typecheck
+[gates] lint — à jouer : npm run lint
+[gates] test — à jouer : npm test
+[gates] build — à jouer : npm run build
+[gates] docs:empreinte — à jouer : npm run docs:empreinte
+[gates] test:raw — à jouer : npm run test:raw
+[gates] raw:check-refs — à jouer : npm run raw:check-refs
+[gates] raw:check-code-refs — à jouer : npm run raw:check-code-refs
+[gates] raw:check-ancres — à jouer : npm run raw:check-ancres
+[gates] raw:check-folio-continuity — à jouer : npm run raw:check-folio-continuity
+[gates] raw:check-source-tables — à jouer : npm run raw:check-source-tables
+[gates] raw:check-source-format — à jouer : npm run raw:check-source-format
+[gates] raw:check-source-puces — à jouer : npm run raw:check-source-puces
+[gates] raw:check-renvois — à jouer : npm run raw:check-renvois
+[gates] server:typecheck — à jouer : npm run server:typecheck
+[gates] gen — registres à jour en 3.4 s
+[gates] docs:check:tout — vert (exit 0) en 188.3 s · /home/user/game/.wt-1806-L2/node_modules/.cache/gates/docs%3Acheck%3Atout-20853.txt
+[gates] agents:check — vert (exit 0) en 0.2 s · /home/user/game/.wt-1806-L2/node_modules/.cache/gates/agents%3Acheck-20853.txt
+[gates] test:agents — vert (exit 0) en 0.6 s · /home/user/game/.wt-1806-L2/node_modules/.cache/gates/test%3Aagents-20853.txt
+[gates] test:hooks — vert (exit 0) en 97.3 s · /home/user/game/.wt-1806-L2/node_modules/.cache/gates/test%3Ahooks-20853.txt
+[gates] test:ops — vert (exit 0) en 3.4 s · /home/user/game/.wt-1806-L2/node_modules/.cache/gates/test%3Aops-20853.txt
+[gates] test:runner — vert (exit 0) en 3.9 s · /home/user/game/.wt-1806-L2/node_modules/.cache/gates/test%3Arunner-20853.txt
+[gates] test:docs — vert (exit 0) en 28.7 s · /home/user/game/.wt-1806-L2/node_modules/.cache/gates/test%3Adocs-20853.txt
+[gates] deps:unused — vert (exit 0) en 13.9 s · /home/user/game/.wt-1806-L2/node_modules/.cache/gates/deps%3Aunused-20853.txt
+[gates] test:recette — vert (exit 0) en 4.8 s · /home/user/game/.wt-1806-L2/node_modules/.cache/gates/test%3Arecette-20853.txt
+[gates] typecheck — vert (exit 0) en 104.5 s · /home/user/game/.wt-1806-L2/node_modules/.cache/gates/typecheck-20853.txt
+[gates] lint — vert (exit 0) en 92.7 s · /home/user/game/.wt-1806-L2/node_modules/.cache/gates/lint-20853.txt
+[gates] test — vert (exit 0) en 454.2 s · /home/user/game/.wt-1806-L2/node_modules/.cache/gates/test-20853.txt
+[gates] build — vert (exit 0) en 29.3 s · /home/user/game/.wt-1806-L2/node_modules/.cache/gates/build-20853.txt
+[gates] docs:empreinte — vert (exit 0) en 0.9 s · /home/user/game/.wt-1806-L2/node_modules/.cache/gates/docs%3Aempreinte-20853.txt
+[gates] test:raw — vert (exit 0) en 15.3 s · /home/user/game/.wt-1806-L2/node_modules/.cache/gates/test%3Araw-20853.txt
+[gates] raw:check-refs — vert (exit 0) en 0.4 s · /home/user/game/.wt-1806-L2/node_modules/.cache/gates/raw%3Acheck-refs-20853.txt
+[gates] raw:check-code-refs — vert (exit 0) en 4.3 s · /home/user/game/.wt-1806-L2/node_modules/.cache/gates/raw%3Acheck-code-refs-20853.txt
+[gates] raw:check-ancres — vert (exit 0) en 0.6 s · /home/user/game/.wt-1806-L2/node_modules/.cache/gates/raw%3Acheck-ancres-20853.txt
+[gates] raw:check-folio-continuity — vert (exit 0) en 0.6 s · /home/user/game/.wt-1806-L2/node_modules/.cache/gates/raw%3Acheck-folio-continuity-20853.txt
+[gates] raw:check-source-tables — vert (exit 0) en 1.1 s · /home/user/game/.wt-1806-L2/node_modules/.cache/gates/raw%3Acheck-source-tables-20853.txt
+[gates] raw:check-source-format — vert (exit 0) en 0.6 s · /home/user/game/.wt-1806-L2/node_modules/.cache/gates/raw%3Acheck-source-format-20853.txt
+[gates] raw:check-source-puces — vert (exit 0) en 0.4 s · /home/user/game/.wt-1806-L2/node_modules/.cache/gates/raw%3Acheck-source-puces-20853.txt
+[gates] raw:check-renvois — vert (exit 0) en 0.6 s · /home/user/game/.wt-1806-L2/node_modules/.cache/gates/raw%3Acheck-renvois-20853.txt
+[gates] server:typecheck — vert (exit 0) en 1.1 s · /home/user/game/.wt-1806-L2/node_modules/.cache/gates/server%3Atypecheck-20853.txt
+
+[gates] ——— résumé ———
+[gates] docs:check:tout — vert (exit 0) — 188.3 s — /home/user/game/.wt-1806-L2/node_modules/.cache/gates/docs%3Acheck%3Atout-20853.txt
+[gates] agents:check — vert (exit 0) — 0.2 s — /home/user/game/.wt-1806-L2/node_modules/.cache/gates/agents%3Acheck-20853.txt
+[gates] test:agents — vert (exit 0) — 0.6 s — /home/user/game/.wt-1806-L2/node_modules/.cache/gates/test%3Aagents-20853.txt
+[gates] test:hooks — vert (exit 0) — 97.3 s — /home/user/game/.wt-1806-L2/node_modules/.cache/gates/test%3Ahooks-20853.txt
+[gates] test:ops — vert (exit 0) — 3.4 s — /home/user/game/.wt-1806-L2/node_modules/.cache/gates/test%3Aops-20853.txt
+[gates] test:runner — vert (exit 0) — 3.9 s — /home/user/game/.wt-1806-L2/node_modules/.cache/gates/test%3Arunner-20853.txt
+[gates] test:docs — vert (exit 0) — 28.7 s — /home/user/game/.wt-1806-L2/node_modules/.cache/gates/test%3Adocs-20853.txt
+[gates] deps:unused — vert (exit 0) — 13.9 s — /home/user/game/.wt-1806-L2/node_modules/.cache/gates/deps%3Aunused-20853.txt
+[gates] test:recette — vert (exit 0) — 4.8 s — /home/user/game/.wt-1806-L2/node_modules/.cache/gates/test%3Arecette-20853.txt
+[gates] typecheck — vert (exit 0) — 104.5 s — /home/user/game/.wt-1806-L2/node_modules/.cache/gates/typecheck-20853.txt
+[gates] lint — vert (exit 0) — 92.7 s — /home/user/game/.wt-1806-L2/node_modules/.cache/gates/lint-20853.txt
+[gates] test — vert (exit 0) — 454.2 s — /home/user/game/.wt-1806-L2/node_modules/.cache/gates/test-20853.txt
+[gates] build — vert (exit 0) — 29.3 s — /home/user/game/.wt-1806-L2/node_modules/.cache/gates/build-20853.txt
+[gates] docs:empreinte — vert (exit 0) — 0.9 s — /home/user/game/.wt-1806-L2/node_modules/.cache/gates/docs%3Aempreinte-20853.txt
+[gates] test:raw — vert (exit 0) — 15.3 s — /home/user/game/.wt-1806-L2/node_modules/.cache/gates/test%3Araw-20853.txt
+[gates] raw:check-refs — vert (exit 0) — 0.4 s — /home/user/game/.wt-1806-L2/node_modules/.cache/gates/raw%3Acheck-refs-20853.txt
+[gates] raw:check-code-refs — vert (exit 0) — 4.3 s — /home/user/game/.wt-1806-L2/node_modules/.cache/gates/raw%3Acheck-code-refs-20853.txt
+[gates] raw:check-ancres — vert (exit 0) — 0.6 s — /home/user/game/.wt-1806-L2/node_modules/.cache/gates/raw%3Acheck-ancres-20853.txt
+[gates] raw:check-folio-continuity — vert (exit 0) — 0.6 s — /home/user/game/.wt-1806-L2/node_modules/.cache/gates/raw%3Acheck-folio-continuity-20853.txt
+[gates] raw:check-source-tables — vert (exit 0) — 1.1 s — /home/user/game/.wt-1806-L2/node_modules/.cache/gates/raw%3Acheck-source-tables-20853.txt
+[gates] raw:check-source-format — vert (exit 0) — 0.6 s — /home/user/game/.wt-1806-L2/node_modules/.cache/gates/raw%3Acheck-source-format-20853.txt
+[gates] raw:check-source-puces — vert (exit 0) — 0.4 s — /home/user/game/.wt-1806-L2/node_modules/.cache/gates/raw%3Acheck-source-puces-20853.txt
+[gates] raw:check-renvois — vert (exit 0) — 0.6 s — /home/user/game/.wt-1806-L2/node_modules/.cache/gates/raw%3Acheck-renvois-20853.txt
+[gates] server:typecheck — vert (exit 0) — 1.1 s — /home/user/game/.wt-1806-L2/node_modules/.cache/gates/server%3Atypecheck-20853.txt
+[gates] total 1047.8 s · série équivalente 1047.8 s · lanes : serie 1047.8 s
+[gates] 2 spawn(s) rejoué(s) — pression système (le processus n'avait pas démarré)
+exit=0

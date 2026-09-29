@@ -1,0 +1,22 @@
+
+> warhammer-v4-rpg@0.1.0 test
+> node scripts/test/run.mjs src/lib/coupeAuMot.test.ts src/coupe-au-caractere-guard.test.ts
+
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1806-L2
+
+ ✓ src/lib/coupeAuMot.test.ts (9 tests) 68ms 370 MB heap used
+ ✓ src/coupe-au-caractere-guard.test.ts (7 tests) 9004ms 546 MB heap used
+   ✓ coupe au caractère suivie d’une ellipse > aucun site sous `src/` ni `scripts/` 8846ms
+
+ Test Files  2 passed (2)
+      Tests  16 passed (16)
+   Start at  18:10:03
+   Duration  24.65s (transform 9.80s, setup 29.11s, collect 610ms, tests 9.07s, environment 0ms, prepare 124ms)
+
+[diag] machine : 4 cœurs · 15.7 Go · disponible 13.2 Go → 3 workers portés · réserve de 1 parent · borné par cœurs · mono (seuil 7) · maxWorkers=3
+[diag] mémoire système max : 2.2 Go / 15.7 Go (14 %) · rss lanceur max 50 Mo · fenêtre 27.9 s
+[diag] sentinelles : act hors act 0 · act chevauchants 0 · unmount pendant rendu 0 · React coincé 0 · test expiré 0 · worker perdu 0
+[diag] tas max d'un worker : 546 Mo / 3072 Mo (18 %)
+capture : /home/user/game/.wt-1806-L2/node_modules/.cache/vitest-run-15314.txt

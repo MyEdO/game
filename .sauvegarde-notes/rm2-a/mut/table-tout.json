@@ -1,0 +1,219 @@
+[
+ {
+  "id": "M1",
+  "fichier": "src/ui/Infobulle.tsx",
+  "avant": "080f8ed5167c9baef4e6cf8e7af63852afb15a4c",
+  "mute": "e9ed7f2d501d1ba26cf197a7b31ec0228e17f977",
+  "apres": "080f8ed5167c9baef4e6cf8e7af63852afb15a4c",
+  "identique": true,
+  "exit": 1,
+  "cible": "X1",
+  "rouges": [
+   "× X1 — après la fiche ouverte par la porte, le focus revient au contrôle de l’ancrage > depuis l’ancrage 168ms",
+   "× X1 — après la fiche ouverte par la porte, le focus revient au contrôle de l’ancrage > depuis un autre contrôle 20ms",
+   "× X1 — après la fiche ouverte par la porte, le focus revient au contrôle de l’ancrage > depuis body 15ms",
+   "FAIL  src/ui/Infobulle.test.tsx > X1 — après la fiche ouverte par la porte, le focus revient au contrôle de l’ancrage > depuis l’ancrage",
+   "AssertionError: depuis l’ancrage : après la fiche, le focus est au contrôle de l’ancrage: expected 'body' to be 'BUTTON«Affable ×2»' // Object.is equality",
+   "FAIL  src/ui/Infobulle.test.tsx > X1 — après la fiche ouverte par la porte, le focus revient au contrôle de l’ancrage > depuis un autre contrôle"
+  ]
+ },
+ {
+  "id": "M2",
+  "fichier": "src/ui/Infobulle.tsx",
+  "avant": "080f8ed5167c9baef4e6cf8e7af63852afb15a4c",
+  "mute": "a3bd60d8d4c7564b2627b6e83dca7ec407fad49e",
+  "apres": "080f8ed5167c9baef4e6cf8e7af63852afb15a4c",
+  "identique": true,
+  "exit": 1,
+  "cible": "X2",
+  "rouges": [
+   "× X2 — congédiée par Échap, la boîte ne se rouvre pas sur ce qui occupe encore l’ancrage > épinglée puis congédiée : un focus redonné sans départ ne la rouvre pas ; une entrée neuve, si 26ms",
+   "FAIL  src/ui/Infobulle.test.tsx > X2 — congédiée par Échap, la boîte ne se rouvre pas sur ce qui occupe encore l’ancrage > épinglée puis congédiée : un focus redonné sans départ ne la rouvre pas ; une entrée neuve, si",
+   "AssertionError: refocus sans départ : la boîte congédiée reste fermée: expected 1 to be +0 // Object.is equality"
+  ]
+ },
+ {
+  "id": "M3",
+  "fichier": "src/ui/focus.ts",
+  "avant": "71d81cbebf6cab33c889ec54aad7ecf695897452",
+  "mute": "800a836608c6ebaa1e0db43eb6cfc924f8c1db0f",
+  "apres": "71d81cbebf6cab33c889ec54aad7ecf695897452",
+  "identique": true,
+  "exit": 1,
+  "cible": "Q2DIAL",
+  "rouges": [
+   "× Q2DIAL — une origine sortie du document cède la place à celle de la surface qui la contenait > A fermé sous B : le focus reste dans B ; B fermé : le focus va au déclencheur de A 26ms",
+   "FAIL  src/ui/Infobulle.test.tsx > Q2DIAL — une origine sortie du document cède la place à celle de la surface qui la contenait > A fermé sous B : le focus reste dans B ; B fermé : le focus va au déclencheur de A",
+   "AssertionError: B fermé : le focus va au déclencheur de A, jamais à body: expected 'body' to be 'BUTTON«Déclencheur»' // Object.is equality"
+  ]
+ },
+ {
+  "id": "M4",
+  "fichier": "src/ui/BoiteAncree.tsx",
+  "avant": "d7565e3c276d1695c90ed1a78888a7b3defabb0b",
+  "mute": "602bc4660b345609e58cfef8763b433b9950f201",
+  "apres": "d7565e3c276d1695c90ed1a78888a7b3defabb0b",
+  "identique": true,
+  "exit": 1,
+  "cible": "B2 / commit d’ouverture",
+  "rouges": [
+   "× usePlacementAncre — le placement naît au commit d’ouverture > le commit qui reçoit l’ancrage porte déjà la boîte placée 45ms",
+   "× usePlacementAncre — le placement naît au commit d’ouverture > le commit d’ouverture qui déplace l’ancrage : la boîte suit sa position mesurée après ce commit 10ms",
+   "× usePlacementAncre — le placement naît au commit d’ouverture > un ancrage détaché du document ne pose aucune boîte 8ms",
+   "× usePlacementAncre — le placement naît au commit d’ouverture > rendu serveur : aucun avertissement d’effet de mise en page 4ms",
+   "FAIL  src/ui/BoiteAncree.test.tsx > usePlacementAncre — le placement naît au commit d’ouverture > le commit qui reçoit l’ancrage porte déjà la boîte placée",
+   "AssertionError: un effet du commit d’ouverture trouve la boîte: expected [ Array(1) ] to deeply equal [ Array(1) ]"
+  ]
+ },
+ {
+  "id": "M4b",
+  "fichier": "src/ui/Infobulle.tsx",
+  "avant": "080f8ed5167c9baef4e6cf8e7af63852afb15a4c",
+  "mute": "8af9322fc7d78eb5b76374237fecb30e8b8d66db",
+  "apres": "080f8ed5167c9baef4e6cf8e7af63852afb15a4c",
+  "identique": true,
+  "exit": 1,
+  "cible": "B2 ↓ après Échap",
+  "rouges": [
+   "× CodexRef — chemin ÉPINGLÉ et interception de clic (#1117) > Échap puis ↓ sur l’ancrage dont la boîte est fermée : elle s’épingle ET le focus y entre 18ms",
+   "FAIL  src/ui/compendium/CodexRef.hooks.test.tsx > CodexRef — chemin ÉPINGLÉ et interception de clic (#1117) > Échap puis ↓ sur l’ancrage dont la boîte est fermée : elle s’épingle ET le focus y entre",
+   "AssertionError: ↓ rouvre et épingle la boîte: expected null to be truthy"
+  ]
+ },
+ {
+  "id": "M12",
+  "fichier": "src/ui/useGameKeyboard.ts",
+  "avant": "129e9d02795a81027a00174e0a8e2af0862112b2",
+  "mute": "5714c938c3ca5b39818312ba910b15ad83304508",
+  "apres": "129e9d02795a81027a00174e0a8e2af0862112b2",
+  "identique": true,
+  "exit": 1,
+  "cible": "SURFACE possède Entrée",
+  "rouges": [
+   "× (C) SURFACE — un bouton focalisé dans un dialogue ou une infobulle possède Entrée > role=\"tooltip\" : Entrée active le bouton, le curseur tactique ne commet rien 19ms",
+   "× (C) SURFACE — un bouton focalisé dans un dialogue ou une infobulle possède Entrée > role=\"dialog\" : Entrée active le bouton, le curseur tactique ne commet rien 8ms",
+   "FAIL  src/ui/wrap-keyboard-vs-cursor.test.tsx > (C) SURFACE — un bouton focalisé dans un dialogue ou une infobulle possède Entrée > role=\"tooltip\" : Entrée active le bouton, le curseur tactique ne commet rien",
+   "AssertionError: Entrée sur un bouton d’une surface tooltip a commis le curseur derrière: expected 1 to be +0 // Object.is equality",
+   "FAIL  src/ui/wrap-keyboard-vs-cursor.test.tsx > (C) SURFACE — un bouton focalisé dans un dialogue ou une infobulle possède Entrée > role=\"dialog\" : Entrée active le bouton, le curseur tactique ne commet rien",
+   "AssertionError: Entrée sur un bouton d’une surface dialog a commis le curseur derrière: expected 1 to be +0 // Object.is equality"
+  ]
+ },
+ {
+  "id": "M13",
+  "fichier": "src/ui/BoiteAncree.tsx",
+  "avant": "d7565e3c276d1695c90ed1a78888a7b3defabb0b",
+  "mute": "c07a60d51adcb7544f524ef6b179d0d1bff0b1f5",
+  "apres": "d7565e3c276d1695c90ed1a78888a7b3defabb0b",
+  "identique": true,
+  "exit": 1,
+  "cible": "Q4i mesure après le commit",
+  "rouges": [
+   "× usePlacementAncre — le placement naît au commit d’ouverture > le commit d’ouverture qui déplace l’ancrage : la boîte suit sa position mesurée après ce commit 21ms",
+   "× usePlacementAncre — le placement naît au commit d’ouverture > un ancrage détaché du document ne pose aucune boîte 14ms",
+   "× usePlacementAncre — le placement naît au commit d’ouverture > rendu serveur : aucun avertissement d’effet de mise en page 7ms",
+   "FAIL  src/ui/BoiteAncree.test.tsx > usePlacementAncre — le placement naît au commit d’ouverture > le commit d’ouverture qui déplace l’ancrage : la boîte suit sa position mesurée après ce commit",
+   "AssertionError: placée à la position de l’ancrage après le commit: expected '126px' to be '326px' // Object.is equality",
+   "FAIL  src/ui/BoiteAncree.test.tsx > usePlacementAncre — le placement naît au commit d’ouverture > le commit d’ouverture qui déplace l’ancrage : la boîte suit sa position mesurée après ce commit"
+  ]
+ },
+ {
+  "id": "M5",
+  "fichier": "src/ui/BoiteAncree.tsx",
+  "avant": "d7565e3c276d1695c90ed1a78888a7b3defabb0b",
+  "mute": "6248f932c064969846b56b7dd836f32c558bb36c",
+  "apres": "d7565e3c276d1695c90ed1a78888a7b3defabb0b",
+  "identique": true,
+  "exit": 1,
+  "cible": "F11 ancrage détaché",
+  "rouges": [
+   "× usePlacementAncre — le placement naît au commit d’ouverture > un ancrage détaché du document ne pose aucune boîte 23ms",
+   "× usePlacementAncre — le placement naît au commit d’ouverture > rendu serveur : aucun avertissement d’effet de mise en page 5ms",
+   "FAIL  src/ui/BoiteAncree.test.tsx > usePlacementAncre — le placement naît au commit d’ouverture > un ancrage détaché du document ne pose aucune boîte",
+   "AssertionError: ancrage hors du document : aucune boîte: expected <div …(2)></div> to be null",
+   "FAIL  src/ui/BoiteAncree.test.tsx > usePlacementAncre — le placement naît au commit d’ouverture > un ancrage détaché du document ne pose aucune boîte",
+   "FAIL  src/ui/BoiteAncree.test.tsx > usePlacementAncre — le placement naît au commit d’ouverture > rendu serveur : aucun avertissement d’effet de mise en page"
+  ]
+ },
+ {
+  "id": "M6",
+  "fichier": "src/ui/BoiteAncree.tsx",
+  "avant": "d7565e3c276d1695c90ed1a78888a7b3defabb0b",
+  "mute": "ee247ca24840f10ba1a824bf766d218b8514ac66",
+  "apres": "d7565e3c276d1695c90ed1a78888a7b3defabb0b",
+  "identique": true,
+  "exit": 1,
+  "cible": "E2 rendu serveur",
+  "rouges": [
+   "× usePlacementAncre — le placement naît au commit d’ouverture > rendu serveur : aucun avertissement d’effet de mise en page 20ms",
+   "FAIL  src/ui/BoiteAncree.test.tsx > usePlacementAncre — le placement naît au commit d’ouverture > rendu serveur : aucun avertissement d’effet de mise en page",
+   "AssertionError: expected [ Array(1) ] to deeply equal []"
+  ]
+ },
+ {
+  "id": "M8",
+  "fichier": "src/ui/BoiteAncree.tsx",
+  "avant": "d7565e3c276d1695c90ed1a78888a7b3defabb0b",
+  "mute": "aabff05dcb11bcd7c22e7f3b07cef9e7026fc6ae",
+  "apres": "d7565e3c276d1695c90ed1a78888a7b3defabb0b",
+  "identique": true,
+  "exit": 1,
+  "cible": "R4 ancré par le bas",
+  "rouges": [
+   "× AddMenu — le menu d’ajout se pose TOUJOURS entier à l’écran (`BoiteAncree`) > un bouton au BAS du dock Logique ouvre le menu VERS LE HAUT, collé à son bouton 14ms",
+   "FAIL  src/ui/editor/AddMenu.test.tsx > AddMenu — le menu d’ajout se pose TOUJOURS entier à l’écran (`BoiteAncree`) > un bouton au BAS du dock Logique ouvre le menu VERS LE HAUT, collé à son bouton",
+   "AssertionError: ancré par le BAS : un menu court reste collé à son bouton: expected 258 to be undefined"
+  ]
+ },
+ {
+  "id": "M9",
+  "fichier": "src/ui/BoiteAncree.tsx",
+  "avant": "d7565e3c276d1695c90ed1a78888a7b3defabb0b",
+  "mute": "0d22b8a947b738eba11f762ca27eb3570a918775",
+  "apres": "d7565e3c276d1695c90ed1a78888a7b3defabb0b",
+  "identique": true,
+  "exit": 1,
+  "cible": "suit son bouton",
+  "rouges": [
+   "× AddMenu — le menu ouvert reste SOLIDAIRE de son bouton > suit son bouton quand le panneau qui le porte défile 49ms",
+   "FAIL  src/ui/editor/AddMenu.test.tsx > AddMenu — le menu ouvert reste SOLIDAIRE de son bouton > suit son bouton quand le panneau qui le porte défile",
+   "AssertionError: expected '326px' to be '146px' // Object.is equality",
+   "FAIL  src/ui/editor/AddMenu.test.tsx > AddMenu — le menu ouvert reste SOLIDAIRE de son bouton > suit son bouton quand le panneau qui le porte défile"
+  ]
+ },
+ {
+  "id": "M10",
+  "fichier": "src/state/keybindings.ts",
+  "avant": "d897d38f2f8fa014b89b35e8f8e099f085e9ba0b",
+  "mute": "a51126fa793c205bdd4ca0583a1592261b9948e6",
+  "apres": "d897d38f2f8fa014b89b35e8f8e099f085e9ba0b",
+  "identique": true,
+  "exit": 1,
+  "cible": "ids uniques",
+  "rouges": [
+   "× raccourcis — aucune collision de touche NON DÉCLARÉE > un id, un raccourci : les ids du registre sont UNIQUES (`bindingParId` rend le premier) 14ms",
+   "× raccourcis — aucune collision de touche NON DÉCLARÉE > `sharedBy` ne nomme que des ids EXISTANTS qui partagent réellement une touche (pas une déclaration morte) 5ms",
+   "FAIL  src/state/keybindings.test.ts > raccourcis — aucune collision de touche NON DÉCLARÉE > un id, un raccourci : les ids du registre sont UNIQUES (`bindingParId` rend le premier)",
+   "AssertionError: expected [ 'intent-cancel' ] to deeply equal []",
+   "FAIL  src/state/keybindings.test.ts > raccourcis — aucune collision de touche NON DÉCLARÉE > `sharedBy` ne nomme que des ids EXISTANTS qui partagent réellement une touche (pas une déclaration morte)",
+   "AssertionError: expected [ …(6) ] to deeply equal []"
+  ]
+ },
+ {
+  "id": "M11",
+  "fichier": "src/state/keybindings.ts",
+  "avant": "d897d38f2f8fa014b89b35e8f8e099f085e9ba0b",
+  "mute": "c2f7c08e08f33f96957239949c88049b2e933913",
+  "apres": "d897d38f2f8fa014b89b35e8f8e099f085e9ba0b",
+  "identique": true,
+  "exit": 1,
+  "cible": "élection (notWhenControlFocused)",
+  "rouges": [
+   "× (A) SOCLE — un contrôle focalisé possède ses flèches (#1078) > MÊME contexte, un BOUTON focalisé : le registre n’élit PLUS le curseur 12ms",
+   "× (A) SOCLE — un contrôle focalisé possède ses flèches (#1078) > les QUATRE flèches sont couvertes (pas seulement celle de la recette) 8ms",
+   "FAIL  src/ui/wrap-keyboard-vs-cursor.test.tsx > (A) SOCLE — un contrôle focalisé possède ses flèches (#1078) > MÊME contexte, un BOUTON focalisé : le registre n’élit PLUS le curseur",
+   "AssertionError: expected { id: 'cursor-down', …(7) } to be undefined",
+   "FAIL  src/ui/wrap-keyboard-vs-cursor.test.tsx > (A) SOCLE — un contrôle focalisé possède ses flèches (#1078) > les QUATRE flèches sont couvertes (pas seulement celle de la recette)",
+   "AssertionError: ArrowUp vole encore le focus: expected { id: 'cursor-up', …(7) } to be undefined"
+  ]
+ }
+]

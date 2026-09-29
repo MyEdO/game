@@ -1,0 +1,36 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1919-H1
+
+ ❯ src/ui/ui-ratchets.test.ts (53 tests | 1 failed | 52 skipped) 27ms 378 MB heap used
+   × canon responsive, peaux et matières partagées de src/ui/styles > couche HUD (#1919) : aucune surface n’est posée hors flux, seul le VOLET du groupe l’est 24ms
+     → expected [ '.hud-rail', …(1) ] to deeply equal [ Array(1) ]
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 52 skipped (53)
+   Start at  20:47:24
+   Duration  14.24s (transform 8.74s, setup 13.45s, collect 356ms, tests 27ms, environment 0ms, prepare 65ms)
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/ui/ui-ratchets.test.ts > canon responsive, peaux et matières partagées de src/ui/styles > couche HUD (#1919) : aucune surface n’est posée hors flux, seul le VOLET du groupe l’est
+AssertionError: expected [ '.hud-rail', …(1) ] to deeply equal [ Array(1) ]
+
+- Expected
++ Received
+
+  Array [
++   ".hud-rail",
+    "[data-zone='groupe'] > .party-dock.on .pd-track",
+  ]
+
+ ❯ src/ui/ui-ratchets.test.ts:715:22
+    713|       .filter((r) => declarations(r.corps).some((d) => d.prop === 'pos…
+    714|       .flatMap((r) => r.selecteurs);
+    715|     expect(horsFlux).toEqual(["[data-zone='groupe'] > .party-dock.on .…
+       |                      ^
+    716|     expect(read('hud.css'), 'un rail dissous rend ses enfants à des an…
+    717|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+

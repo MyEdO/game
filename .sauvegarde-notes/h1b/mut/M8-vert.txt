@@ -1,0 +1,11 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1919-H2
+
+ ✓ src/ui/camera-sans-plaque.test.ts (3 tests) 22ms 358 MB heap used
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Start at  22:13:25
+   Duration  13.26s (transform 8.43s, setup 12.81s, collect 8ms, tests 22ms, environment 0ms, prepare 61ms)
+

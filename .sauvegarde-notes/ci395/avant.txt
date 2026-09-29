@@ -1,0 +1,269 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1806-L1
+
+ ✓ src/ui/raccourcis-registre.test.ts (5 tests) 103ms 394 MB heap used
+ ❯ src/ui/editor/FlowEditor.test.tsx (5 tests | 1 failed) 116ms 429 MB heap used
+   × FlowEditor — menu « + Bloc » : effets, condition et test > propose les nœuds logiques (si / test) ET les feuilles d’effet 16ms
+     → expected '<div class="flow-list eff-list"><deta…' to contain 'Condition (si…)'
+ ❯ src/ui/editor/GameOpEditor.test.tsx (20 tests | 1 failed) 159ms 400 MB heap used
+   × GameOpEditor — menu « + op » COMPLET > le menu propose narrative ET grantWeapon (entre autres) 12ms
+     → expected '<div class="eff-list"><details class=…' to contain 'Effet narratif'
+ ❯ src/ui/choix-retenu-guard.test.ts (27 tests | 1 failed) 3900ms 446 MB heap used
+   ✓ état de bouton — son attribut, jamais le ton primaire > aucun site de `src/ui` ne peint un état de bouton en primaire 1262ms
+   × divulgation — son état est le chevron canonique, quelle que soit la matière du contrôle > aucune divulgation de `src` n’écrit son propre état 2514ms
+     → expected [ 'src/ui/gallery/registry.tsx:894' ] to deeply equal []
+ ❯ src/ui/editor/GameOpEditor.seeds.test.tsx (4 tests | 4 failed) 142ms 427 MB heap used
+   × GameOpEditor — création au CLIC : aucune valeur pré-semée, raison visible > créer « Accorder un Talent » n’élit aucun talent et affiche la raison 33ms
+     → bouton « Accorder un Talent » absent de la palette
+     → Nœud(s) laissé(s) dans document.body par src/ui/editor/GameOpEditor.seeds.test.tsx (1) : <div>
+Sous test.isolate:false, react-dom est partagé par tout le worker : une racine restée montée se met à jour hors act() pendant les fichiers SUIVANTS, qui rendent alors le vide (#1619).
+Démonter ce que le test monte (act(() => root.unmount()) en afterEach, ou cleanup()) — jamais ajouter une ligne au stock.
+   × GameOpEditor — création au CLIC : aucune valeur pré-semée, raison visible > créer « Invoquer une créature » n’élit aucune créature (fin du mannequin « Loup ») 5ms
+     → bouton « Invoquer une créature » absent de la palette
+     → Nœud(s) laissé(s) dans document.body par src/ui/editor/GameOpEditor.seeds.test.tsx (2) : <div> <div>
+Sous test.isolate:false, react-dom est partagé par tout le worker : une racine restée montée se met à jour hors act() pendant les fichiers SUIVANTS, qui rendent alors le vide (#1619).
+Démonter ce que le test monte (act(() => root.unmount()) en afterEach, ou cleanup()) — jamais ajouter une ligne au stock.
+   × GameOpEditor — création au CLIC : aucune valeur pré-semée, raison visible > « Dôme protecteur » : le formulaire porte TOUT ce que l’op porte — Trait et Indice, et RIEN de plus 4ms
+     → bouton « Dôme protecteur » absent de la palette
+     → Nœud(s) laissé(s) dans document.body par src/ui/editor/GameOpEditor.seeds.test.tsx (3) : <div> <div> <div>
+Sous test.isolate:false, react-dom est partagé par tout le worker : une racine restée montée se met à jour hors act() pendant les fichiers SUIVANTS, qui rendent alors le vide (#1619).
+Démonter ce que le test monte (act(() => root.unmount()) en afterEach, ou cleanup()) — jamais ajouter une ligne au stock.
+   × GameOpEditor — création au CLIC : aucune valeur pré-semée, raison visible > TOUTE op créable depuis la palette naît sans réf élue 99ms
+     → Nœud(s) laissé(s) dans document.body par src/ui/editor/GameOpEditor.seeds.test.tsx (3) : <div> <div> <div>
+Sous test.isolate:false, react-dom est partagé par tout le worker : une racine restée montée se met à jour hors act() pendant les fichiers SUIVANTS, qui rendent alors le vide (#1619).
+Démonter ce que le test monte (act(() => root.unmount()) en afterEach, ou cleanup()) — jamais ajouter une ligne au stock.
+ ❯ src/ui/editor/EffectList.test.tsx (21 tests | 8 failed) 315ms 432 MB heap used
+   × changer le type d’un effet CONVERTIT — un seul vocabulaire, un seul geste > le texte saisi SURVIT au changement de type, et à l’aller-retour Journal → Flag → Journal 53ms
+     → Cannot read properties of undefined (reading 'click')
+     → Nœud(s) laissé(s) dans document.body par src/ui/editor/EffectList.test.tsx (1) : <div>
+Sous test.isolate:false, react-dom est partagé par tout le worker : une racine restée montée se met à jour hors act() pendant les fichiers SUIVANTS, qui rendent alors le vide (#1619).
+Démonter ce que le test monte (act(() => root.unmount()) en afterEach, ou cleanup()) — jamais ajouter une ligne au stock.
+   × #1318 E1 — les bornes des rangées d’atelier sont TENUES à la saisie (cale de NumberField) > startPursuit : la distance de départ reste dans 1–9 et le seuil d’évasion au-dessus de 2 40ms
+     → Nœud(s) laissé(s) dans document.body par src/ui/editor/EffectList.test.tsx (1) : <div>
+Sous test.isolate:false, react-dom est partagé par tout le worker : une racine restée montée se met à jour hors act() pendant les fichiers SUIVANTS, qui rendent alors le vide (#1619).
+Démonter ce que le test monte (act(() => root.unmount()) en afterEach, ou cleanup()) — jamais ajouter une ligne au stock.
+   × #1318 E1 — les bornes des rangées d’atelier sont TENUES à la saisie (cale de NumberField) > giveMoney : chaque champ écrit SA clé de `Money` DANS l’enveloppe `montant` (pistole = silver, sou = brass, money.ts l.9) 23ms
+     → Nœud(s) laissé(s) dans document.body par src/ui/editor/EffectList.test.tsx (1) : <div>
+Sous test.isolate:false, react-dom est partagé par tout le worker : une racine restée montée se met à jour hors act() pendant les fichiers SUIVANTS, qui rendent alors le vide (#1619).
+Démonter ce que le test monte (act(() => root.unmount()) en afterEach, ou cleanup()) — jamais ajouter une ligne au stock.
+   × #1874 C0 — cibles d’un Effet `ops` : la table vient de la racine > racine `declenche` : `target` sélectionnée parmi cible/porteur, et retirer une op ne réécrit pas `on` 43ms
+     → Nœud(s) laissé(s) dans document.body par src/ui/editor/EffectList.test.tsx (1) : <div>
+Sous test.isolate:false, react-dom est partagé par tout le worker : une racine restée montée se met à jour hors act() pendant les fichiers SUIVANTS, qui rendent alors le vide (#1619).
+Démonter ce que le test monte (act(() => root.unmount()) en afterEach, ou cleanup()) — jamais ajouter une ligne au stock.
+   × #1874 C0 — cibles d’un Effet `ops` : la table vient de la racine > racine `sort` : deux options, la cible et le lanceur 7ms
+     → Nœud(s) laissé(s) dans document.body par src/ui/editor/EffectList.test.tsx (1) : <div>
+Sous test.isolate:false, react-dom est partagé par tout le worker : une racine restée montée se met à jour hors act() pendant les fichiers SUIVANTS, qui rendent alors le vide (#1619).
+Démonter ce que le test monte (act(() => root.unmount()) en afterEach, ou cleanup()) — jamais ajouter une ligne au stock.
+   × #1874 C0 — cibles d’un Effet `ops` : la table vient de la racine > racine `maladie` : une seule cible, AUCUN sélecteur, le résumé la nomme 15ms
+     → Nœud(s) laissé(s) dans document.body par src/ui/editor/EffectList.test.tsx (1) : <div>
+Sous test.isolate:false, react-dom est partagé par tout le worker : une racine restée montée se met à jour hors act() pendant les fichiers SUIVANTS, qui rendent alors le vide (#1619).
+Démonter ce que le test monte (act(() => root.unmount()) en afterEach, ou cleanup()) — jamais ajouter une ligne au stock.
+   × #1874 C0 — cibles d’un Effet `ops` : la table vient de la racine > racine SCÈNE : deux options, groupe et héros 3ms
+     → Nœud(s) laissé(s) dans document.body par src/ui/editor/EffectList.test.tsx (1) : <div>
+Sous test.isolate:false, react-dom est partagé par tout le worker : une racine restée montée se met à jour hors act() pendant les fichiers SUIVANTS, qui rendent alors le vide (#1619).
+Démonter ce que le test monte (act(() => root.unmount()) en afterEach, ou cleanup()) — jamais ajouter une ligne au stock.
+   × #1874 C0 — cibles d’un Effet `ops` : la table vient de la racine > effectSummary dit la cible de la racine, et nomme un `on` hors de son vocabulaire 2ms
+     → Nœud(s) laissé(s) dans document.body par src/ui/editor/EffectList.test.tsx (1) : <div>
+Sous test.isolate:false, react-dom est partagé par tout le worker : une racine restée montée se met à jour hors act() pendant les fichiers SUIVANTS, qui rendent alors le vide (#1619).
+Démonter ce que le test monte (act(() => root.unmount()) en afterEach, ou cleanup()) — jamais ajouter une ligne au stock.
+ ❯ src/ui/editor/WorldMapEditor.test.tsx (13 tests | 1 failed) 1831ms 579 MB heap used
+   ✓ WorldMapEditor — panneau Lieu (#419) > sélectionne un lieu et édite le nom, l’icône, le fond, la scène liée, l’entrée 448ms
+   ✓ WorldMapEditor — panneau Lieu / Commerce (#419) > active le port, le résout du catalogue via le picker de ref UNIQUE, édite Taille/cosmopolite/phare 307ms
+   ✓ WorldMapEditor — panneau Lieu / Plan du hub (#419) > ajoute un POI, édite son libellé/icône/position, et lie sa cible via le picker de ref UNIQUE (scène puis service) 417ms
+   × WorldMapEditor — panneau Route / Péripéties (#419) > ajoute et édite une péripétie d’auteur (libellé, probabilité, effet) 56ms
+     → Cannot read properties of null (reading 'dispatchEvent')
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 16 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/ui/choix-retenu-guard.test.ts > divulgation — son état est le chevron canonique, quelle que soit la matière du contrôle > aucune divulgation de `src` n’écrit son propre état
+AssertionError: expected [ 'src/ui/gallery/registry.tsx:894' ] to deeply equal []
+
+- Expected
++ Received
+
+- Array []
++ Array [
++   "src/ui/gallery/registry.tsx:894",
++ ]
+
+ ❯ src/ui/choix-retenu-guard.test.ts:291:96
+    289| 
+    290|   it('aucune divulgation de `src` n’écrit son propre état', () => {
+    291|     expect(readCorpus(['src']).flatMap((f) => divulgationsQuiEcriventL…
+       |                                                                                                ^
+    292|   });
+    293| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/20]⎯
+
+ FAIL  src/ui/editor/EffectList.test.tsx > changer le type d’un effet CONVERTIT — un seul vocabulaire, un seul geste > le texte saisi SURVIT au changement de type, et à l’aller-retour Journal → Flag → Journal
+TypeError: Cannot read properties of undefined (reading 'click')
+ ❯ src/ui/editor/EffectList.test.tsx:167:16
+    165|       ) as HTMLButtonElement;
+    166|       await act(async () => {
+    167|         rangee.click();
+       |                ^
+    168|       });
+    169|     };
+ ❯ Proxy.act node_modules/react/cjs/react.development.js:2512:16
+ ❯ choisirType src/ui/editor/EffectList.test.tsx:166:13
+ ❯ src/ui/editor/EffectList.test.tsx:171:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/20]⎯
+
+ FAIL  src/ui/editor/EffectList.test.tsx > changer le type d’un effet CONVERTIT — un seul vocabulaire, un seul geste > le texte saisi SURVIT au changement de type, et à l’aller-retour Journal → Flag → Journal
+ FAIL  src/ui/editor/EffectList.test.tsx > #1318 E1 — les bornes des rangées d’atelier sont TENUES à la saisie (cale de NumberField) > startPursuit : la distance de départ reste dans 1–9 et le seuil d’évasion au-dessus de 2
+ FAIL  src/ui/editor/EffectList.test.tsx > #1318 E1 — les bornes des rangées d’atelier sont TENUES à la saisie (cale de NumberField) > giveMoney : chaque champ écrit SA clé de `Money` DANS l’enveloppe `montant` (pistole = silver, sou = brass, money.ts l.9)
+ FAIL  src/ui/editor/EffectList.test.tsx > #1874 C0 — cibles d’un Effet `ops` : la table vient de la racine > racine `declenche` : `target` sélectionnée parmi cible/porteur, et retirer une op ne réécrit pas `on`
+ FAIL  src/ui/editor/EffectList.test.tsx > #1874 C0 — cibles d’un Effet `ops` : la table vient de la racine > racine `sort` : deux options, la cible et le lanceur
+ FAIL  src/ui/editor/EffectList.test.tsx > #1874 C0 — cibles d’un Effet `ops` : la table vient de la racine > racine `maladie` : une seule cible, AUCUN sélecteur, le résumé la nomme
+ FAIL  src/ui/editor/EffectList.test.tsx > #1874 C0 — cibles d’un Effet `ops` : la table vient de la racine > racine SCÈNE : deux options, groupe et héros
+ FAIL  src/ui/editor/EffectList.test.tsx > #1874 C0 — cibles d’un Effet `ops` : la table vient de la racine > effectSummary dit la cible de la racine, et nomme un `on` hors de son vocabulaire
+Error: Nœud(s) laissé(s) dans document.body par src/ui/editor/EffectList.test.tsx (1) : <div>
+Sous test.isolate:false, react-dom est partagé par tout le worker : une racine restée montée se met à jour hors act() pendant les fichiers SUIVANTS, qui rendent alors le vide (#1619).
+Démonter ce que le test monte (act(() => root.unmount()) en afterEach, ou cleanup()) — jamais ajouter une ligne au stock.
+ ❯ src/test-setup.ts:395:24
+    393|       } else {
+    394|         const msg = messageResiduDom(fichier, residus);
+    395|         if (msg) throw new Error(msg);
+       |                        ^
+    396|       }
+    397|     }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/20]⎯
+
+ FAIL  src/ui/editor/FlowEditor.test.tsx > FlowEditor — menu « + Bloc » : effets, condition et test > propose les nœuds logiques (si / test) ET les feuilles d’effet
+AssertionError: expected '<div class="flow-list eff-list"><deta…' to contain 'Condition (si…)'
+
+Expected: "Condition (si…)"
+Received: "<div class="flow-list eff-list"><details class="eff-add"><summary class="btn small">+ Bloc</summary></details></div>"
+
+ ❯ src/ui/editor/FlowEditor.test.tsx:31:18
+     29|   it('propose les nœuds logiques (si / test) ET les feuilles d’effet',…
+     30|     const html = renderToStaticMarkup(<FlowEditor flow={EMPTY_FLOW} on…
+     31|     expect(html).toContain('Condition (si…)');
+       |                  ^
+     32|     expect(html).toContain('Test de compétence');
+     33|     expect(html).toContain('Journal'); // une feuille d'effet (do)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/20]⎯
+
+ FAIL  src/ui/editor/GameOpEditor.seeds.test.tsx > GameOpEditor — création au CLIC : aucune valeur pré-semée, raison visible > créer « Accorder un Talent » n’élit aucun talent et affiche la raison
+Error: bouton « Accorder un Talent » absent de la palette
+ ❯ Object.click src/ui/editor/GameOpEditor.seeds.test.tsx:29:23
+     27|     click: (label: string) => {
+     28|       const btn = Array.from(container.querySelectorAll('button')).fin…
+     29|       if (!btn) throw new Error(`bouton « ${label} » absent de la pale…
+       |                       ^
+     30|       return act(async () => { (btn as HTMLButtonElement).click(); });
+     31|     },
+ ❯ src/ui/editor/GameOpEditor.seeds.test.tsx:40:13
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/20]⎯
+
+ FAIL  src/ui/editor/GameOpEditor.seeds.test.tsx > GameOpEditor — création au CLIC : aucune valeur pré-semée, raison visible > créer « Accorder un Talent » n’élit aucun talent et affiche la raison
+Error: Nœud(s) laissé(s) dans document.body par src/ui/editor/GameOpEditor.seeds.test.tsx (1) : <div>
+Sous test.isolate:false, react-dom est partagé par tout le worker : une racine restée montée se met à jour hors act() pendant les fichiers SUIVANTS, qui rendent alors le vide (#1619).
+Démonter ce que le test monte (act(() => root.unmount()) en afterEach, ou cleanup()) — jamais ajouter une ligne au stock.
+ ❯ src/test-setup.ts:395:24
+    393|       } else {
+    394|         const msg = messageResiduDom(fichier, residus);
+    395|         if (msg) throw new Error(msg);
+       |                        ^
+    396|       }
+    397|     }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/20]⎯
+
+ FAIL  src/ui/editor/GameOpEditor.seeds.test.tsx > GameOpEditor — création au CLIC : aucune valeur pré-semée, raison visible > créer « Invoquer une créature » n’élit aucune créature (fin du mannequin « Loup »)
+Error: bouton « Invoquer une créature » absent de la palette
+ ❯ Object.click src/ui/editor/GameOpEditor.seeds.test.tsx:29:23
+     27|     click: (label: string) => {
+     28|       const btn = Array.from(container.querySelectorAll('button')).fin…
+     29|       if (!btn) throw new Error(`bouton « ${label} » absent de la pale…
+       |                       ^
+     30|       return act(async () => { (btn as HTMLButtonElement).click(); });
+     31|     },
+ ❯ src/ui/editor/GameOpEditor.seeds.test.tsx:55:13
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/20]⎯
+
+ FAIL  src/ui/editor/GameOpEditor.seeds.test.tsx > GameOpEditor — création au CLIC : aucune valeur pré-semée, raison visible > créer « Invoquer une créature » n’élit aucune créature (fin du mannequin « Loup »)
+Error: Nœud(s) laissé(s) dans document.body par src/ui/editor/GameOpEditor.seeds.test.tsx (2) : <div> <div>
+Sous test.isolate:false, react-dom est partagé par tout le worker : une racine restée montée se met à jour hors act() pendant les fichiers SUIVANTS, qui rendent alors le vide (#1619).
+Démonter ce que le test monte (act(() => root.unmount()) en afterEach, ou cleanup()) — jamais ajouter une ligne au stock.
+ ❯ src/test-setup.ts:395:24
+    393|       } else {
+    394|         const msg = messageResiduDom(fichier, residus);
+    395|         if (msg) throw new Error(msg);
+       |                        ^
+    396|       }
+    397|     }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/20]⎯
+
+ FAIL  src/ui/editor/GameOpEditor.seeds.test.tsx > GameOpEditor — création au CLIC : aucune valeur pré-semée, raison visible > « Dôme protecteur » : le formulaire porte TOUT ce que l’op porte — Trait et Indice, et RIEN de plus
+Error: bouton « Dôme protecteur » absent de la palette
+ ❯ Object.click src/ui/editor/GameOpEditor.seeds.test.tsx:29:23
+     27|     click: (label: string) => {
+     28|       const btn = Array.from(container.querySelectorAll('button')).fin…
+     29|       if (!btn) throw new Error(`bouton « ${label} » absent de la pale…
+       |                       ^
+     30|       return act(async () => { (btn as HTMLButtonElement).click(); });
+     31|     },
+ ❯ src/ui/editor/GameOpEditor.seeds.test.tsx:68:13
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/20]⎯
+
+ FAIL  src/ui/editor/GameOpEditor.seeds.test.tsx > GameOpEditor — création au CLIC : aucune valeur pré-semée, raison visible > « Dôme protecteur » : le formulaire porte TOUT ce que l’op porte — Trait et Indice, et RIEN de plus
+ FAIL  src/ui/editor/GameOpEditor.seeds.test.tsx > GameOpEditor — création au CLIC : aucune valeur pré-semée, raison visible > TOUTE op créable depuis la palette naît sans réf élue
+Error: Nœud(s) laissé(s) dans document.body par src/ui/editor/GameOpEditor.seeds.test.tsx (3) : <div> <div> <div>
+Sous test.isolate:false, react-dom est partagé par tout le worker : une racine restée montée se met à jour hors act() pendant les fichiers SUIVANTS, qui rendent alors le vide (#1619).
+Démonter ce que le test monte (act(() => root.unmount()) en afterEach, ou cleanup()) — jamais ajouter une ligne au stock.
+ ❯ src/test-setup.ts:395:24
+    393|       } else {
+    394|         const msg = messageResiduDom(fichier, residus);
+    395|         if (msg) throw new Error(msg);
+       |                        ^
+    396|       }
+    397|     }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/20]⎯
+
+ FAIL  src/ui/editor/GameOpEditor.test.tsx > GameOpEditor — menu « + op » COMPLET > le menu propose narrative ET grantWeapon (entre autres)
+AssertionError: expected '<div class="eff-list"><details class=…' to contain 'Effet narratif'
+
+Expected: "Effet narratif"
+Received: "<div class="eff-list"><details class="eff-add"><summary class="btn small">+ Op mécanique</summary></details></div>"
+
+ ❯ src/ui/editor/GameOpEditor.test.tsx:59:18
+     57|   it('le menu propose narrative ET grantWeapon (entre autres)', () => {
+     58|     const html = renderToStaticMarkup(<GameOpEditor ops={[]} onChange=…
+     59|     expect(html).toContain('Effet narratif'); // narrative
+       |                  ^
+     60|     expect(html).toContain('Invoquer une arme magique'); // grantWeapon
+     61|     expect(html).toContain('+ Op mécanique');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/20]⎯
+
+ FAIL  src/ui/editor/WorldMapEditor.test.tsx > WorldMapEditor — panneau Route / Péripéties (#419) > ajoute et édite une péripétie d’auteur (libellé, probabilité, effet)
+TypeError: Cannot read properties of null (reading 'dispatchEvent')
+ ❯ src/ui/editor/WorldMapEditor.test.tsx:71:18
+     69| 
+     70| function click(el: Element) {
+     71|   act(() => { el.dispatchEvent(new MouseEvent('click', { bubbles: true…
+       |                  ^
+     72| }
+     73| function tab(text: string): HTMLButtonElement {
+ ❯ Proxy.act node_modules/react/cjs/react.development.js:2512:16
+ ❯ click src/ui/editor/WorldMapEditor.test.tsx:71:3
+ ❯ src/ui/editor/WorldMapEditor.test.tsx:307:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/20]⎯
+
+ Test Files  6 failed | 1 passed (7)
+      Tests  16 failed | 79 passed (95)
+   Start at  13:48:22
+   Duration  37.05s (transform 21.72s, setup 74.35s, collect 9.75s, tests 6.57s, environment 2.46s, prepare 417ms)
+

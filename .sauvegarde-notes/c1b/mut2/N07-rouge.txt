@@ -1,0 +1,31 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1919-H2
+
+ ❯ src/ui/CombatConsole.test.tsx (151 tests | 1 failed | 149 skipped) 294ms 460 MB heap used
+   × CombatConsole — micro-rendu (sondes pixel du juge vision, 2026-08-17) > C-1 — toute boîte de portrait redimensionnée remet son dessin à l’échelle 46ms
+     → expected 'var(--cc-portrait) !important' to be 'var(--cc-portrait)' // Object.is equality
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 1 passed | 149 skipped (151)
+   Start at  01:26:53
+   Duration  19.65s (transform 12.03s, setup 12.63s, collect 5.67s, tests 294ms, environment 633ms, prepare 55ms)
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/ui/CombatConsole.test.tsx > CombatConsole — micro-rendu (sondes pixel du juge vision, 2026-08-17) > C-1 — toute boîte de portrait redimensionnée remet son dessin à l’échelle
+AssertionError: expected 'var(--cc-portrait) !important' to be 'var(--cc-portrait)' // Object.is equality
+
+Expected: "var(--cc-portrait)"
+Received: "var(--cc-portrait) !important"
+
+ ❯ src/ui/CombatConsole.test.tsx:712:63
+    710|     const portraitBase = evalLen(decl(ruleOf(CC_BASE, ':root'), '--cc-…
+    711|     expect(evalLen(decl(ruleOf(at700, ':root'), '--cc-portrait')!, 700…
+    712|     expect(decl(ruleOf(CC_BASE, '.cc-arch .ptile'), 'width')).toBe('va…
+       |                                                               ^
+    713|     const visage = ruleOf(CC_BASE, '.cc-arch .ptile-face, .cc-arch .ri…
+    714|     expect(decl(visage, 'width')).toBe('100%');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+

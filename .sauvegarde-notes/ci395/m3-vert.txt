@@ -1,0 +1,13 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1806-L1
+
+ ✓ src/ui/choix-retenu-guard.test.ts (27 tests) 3745ms 426 MB heap used
+   ✓ état de bouton — son attribut, jamais le ton primaire > aucun site de `src/ui` ne peint un état de bouton en primaire 946ms
+   ✓ divulgation — son état est le chevron canonique, quelle que soit la matière du contrôle > aucune divulgation de `src` n’écrit son propre état 2673ms
+
+ Test Files  1 passed (1)
+      Tests  27 passed (27)
+   Start at  13:57:23
+   Duration  18.96s (transform 9.06s, setup 14.22s, collect 586ms, tests 3.75s, environment 0ms, prepare 56ms)
+

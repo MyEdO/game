@@ -1,0 +1,19 @@
+{
+ "fichier": "scripts/guards/lib/gitPorte.mjs",
+ "avant": "67b8d82a4f12b3071438540b33d6ffe58573f4df",
+ "mute": "a76929e1d7e752c1bd220da61cf634712d5d62b7",
+ "apres": "67b8d82a4f12b3071438540b33d6ffe58573f4df",
+ "identique": true,
+ "rouge": {
+  "code": 1,
+  "echecs": [
+   "not ok 6 - fusionnesEnCours : git EN PANNE sur les lignes de `MERGE_HEAD` — UNE requête, UNE panne, la sienne"
+  ],
+  "sommaire": "# pass 5 # fail 1"
+ },
+ "vert": {
+  "code": 0,
+  "echecs": [],
+  "sommaire": "# pass 6 # fail 0"
+ }
+}

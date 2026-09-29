@@ -1,0 +1,11 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game
+
+ ✓ src/ui/Infobulle.test.tsx (5 tests) 229ms 436 MB heap used
+
+ Test Files  1 passed (1)
+      Tests  5 passed (5)
+   Start at  09:32:14
+   Duration  18.60s (transform 11.71s, setup 13.27s, collect 4.03s, tests 229ms, environment 675ms, prepare 57ms)
+

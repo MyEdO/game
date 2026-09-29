@@ -1,0 +1,19 @@
+{
+ "fichier": "scripts/guards/lib/gitPorte.mjs",
+ "avant": "67b8d82a4f12b3071438540b33d6ffe58573f4df",
+ "mute": "e505c698a48ea71758f03cf6389de5321acb1a27",
+ "apres": "67b8d82a4f12b3071438540b33d6ffe58573f4df",
+ "identique": true,
+ "rouge": {
+  "code": 1,
+  "echecs": [
+   "not ok 2 - rebaseEntame : git en panne ou chemin d’état ILLISIBLE — INDISPONIBLE, une panne, jamais « hors rebase »"
+  ],
+  "sommaire": "# pass 1 # fail 1"
+ },
+ "vert": {
+  "code": 0,
+  "echecs": [],
+  "sommaire": "# pass 2 # fail 0"
+ }
+}

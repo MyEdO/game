@@ -1,0 +1,90 @@
+{
+ "360x740": {
+  "dialogue": [
+   14.6,
+   395,
+   330.9,
+   288
+  ],
+  "zone": "parole",
+  "zoneRect": [
+   4,
+   395,
+   352,
+   288
+  ],
+  "flot": [
+   0,
+   0,
+   360,
+   691
+  ],
+  "pont": [
+   0,
+   691,
+   360,
+   49
+  ],
+  "objectif": null,
+  "position": "static"
+ },
+ "900x780": {
+  "dialogue": [
+   110,
+   501.4,
+   680,
+   213.6
+  ],
+  "zone": "parole",
+  "zoneRect": [
+   8,
+   501.4,
+   884,
+   213.6
+  ],
+  "flot": [
+   0,
+   0,
+   900,
+   731
+  ],
+  "pont": [
+   0,
+   731,
+   900,
+   49
+  ],
+  "objectif": null,
+  "position": "static"
+ },
+ "1366x650": {
+  "dialogue": [
+   343,
+   371.4,
+   680,
+   213.6
+  ],
+  "zone": "parole",
+  "zoneRect": [
+   8,
+   371.4,
+   1350,
+   213.6
+  ],
+  "flot": [
+   0,
+   0,
+   1366,
+   601
+  ],
+  "pont": [
+   0,
+   601,
+   1366,
+   49
+  ],
+  "objectif": null,
+  "position": "static"
+ },
+ "console": []
+}

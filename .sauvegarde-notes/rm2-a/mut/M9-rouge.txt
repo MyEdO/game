@@ -1,0 +1,50 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game
+
+ ❯ src/ui/editor/AddMenu.test.tsx (5 tests | 1 failed) 67ms 394 MB heap used
+   × AddMenu — le menu ouvert reste SOLIDAIRE de son bouton > suit son bouton quand le panneau qui le porte défile 49ms
+     → expected '326px' to be '146px' // Object.is equality
+     → Nœud(s) laissé(s) dans document.body par src/ui/editor/AddMenu.test.tsx (2) : <div> <div class="boite-ancree eff-add-menu panel">
+Sous test.isolate:false, react-dom est partagé par tout le worker : une racine restée montée se met à jour hors act() pendant les fichiers SUIVANTS, qui rendent alors le vide (#1619).
+Démonter ce que le test monte (act(() => root.unmount()) en afterEach, ou cleanup()) — jamais ajouter une ligne au stock.
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/ui/editor/AddMenu.test.tsx > AddMenu — le menu ouvert reste SOLIDAIRE de son bouton > suit son bouton quand le panneau qui le porte défile
+AssertionError: expected '326px' to be '146px' // Object.is equality
+
+Expected: "146px"
+Received: "326px"
+
+ ❯ src/ui/editor/AddMenu.test.tsx:100:21
+     98|       container.dispatchEvent(new Event('scroll'));
+     99|     });
+    100|     expect(posee()).toBe(attendu(120));
+       |                     ^
+    101|     expect(attendu(120)).not.toBe(attendu(300));
+    102| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/ui/editor/AddMenu.test.tsx > AddMenu — le menu ouvert reste SOLIDAIRE de son bouton > suit son bouton quand le panneau qui le porte défile
+Error: Nœud(s) laissé(s) dans document.body par src/ui/editor/AddMenu.test.tsx (2) : <div> <div class="boite-ancree eff-add-menu panel">
+Sous test.isolate:false, react-dom est partagé par tout le worker : une racine restée montée se met à jour hors act() pendant les fichiers SUIVANTS, qui rendent alors le vide (#1619).
+Démonter ce que le test monte (act(() => root.unmount()) en afterEach, ou cleanup()) — jamais ajouter une ligne au stock.
+ ❯ src/test-setup.ts:395:24
+    393|       } else {
+    394|         const msg = messageResiduDom(fichier, residus);
+    395|         if (msg) throw new Error(msg);
+       |                        ^
+    396|       }
+    397|     }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 4 passed (5)
+   Start at  10:10:01
+   Duration  14.77s (transform 9.02s, setup 13.31s, collect 88ms, tests 67ms, environment 808ms, prepare 79ms)
+
+
+exit=1

@@ -1,0 +1,38 @@
+## Publication c160fc3c3
+
+Plage publiée : `8201ecc66 → c160fc3c3` sur `main`.
+
+### Commits (25)
+- `76ed069e8` feat(ui): refs #1806 — compteur CSS ventilé, garde RECLASSEMENT, équipement en Grid, sonde §12
+- `5927e4a4d` feat(gates): refs #1806 — garde du stock CSS fusionnée : zone exempte L1, RETOURNÉ, frontière
+- `9c2014086` fix(gates): refs #1806 — stock pur, un listeur d'image, import exact, classifieur logique
+- `7eecd1e26` fix(gates): refs #1806 — frontière fidèle au graphe d'import, raccourci peint, table logique
+- `4cd677173` fix(gates): refs #1806 — garde du stock CSS fidèle par construction au graphe d'import
+- `a8d993dd6` fix(gates): refs #1806 — déclencheur exact sur les arcs, source lue par lot, modules de code seuls
+- `d5138fccb` fix(gates): refs #1806 — chemins lus en -z, un seul lanceur git, une source par forme de commit
+- `d2f5df241` fix(gates): refs #1806 — git des portes par l'hôte seul, garde gitHorsHote, lecteurs nommés
+- `9aa86ba0f` fix(gates): refs #1806 — hook en deux étages, frontière par import de l'hôte, fusion, commit -i
+- `9223f3ec1` fix(gates): refs #1806 — un lecteur de ce que fait le commit, un git diff pour tous les stocks
+- `ea31877d8` fix(gates): refs #1806 — une définition de la substance, une base sans ancêtre, un terme
+- `00f7e84cd` fix(gates): refs #1806 — CI verte, le commit en cours compte ce qu'il emporte, palier paresseux
+- `a2c9b8bd2` chore(merge): refs #1806 — fusion d'origin/main (ed846ca41) dans chantier/1806 avant publication
+- `17ec76e7e` fix(gates): refs #1806 — la plage jugée au push ne rejuge pas le tronc, et le tronc a une source
+- `543ba1e13` chore(merge): refs #1806 — fusion d'origin/main (a214fb549) dans chantier/1806 avant publication
+- `ce0880e57` feat(ui): refs #1920 #1806 — la modale porte titre, corps et pied ; la pile dit qui est au-dessus
+- `7b6cb05c2` chore(merge): refs #1920 #1806 #1987 — fusion de main 089aa7711 dans le lot B, une seule pile
+- `b87a0b7d7` chore(merge): refs #1920 #1806 — fusion de main 748eabe36 dans le lot B, la modale de main au pied
+- `9fdbe93b2` fix(ui): refs #1806 #1920 — MonsterPartsFields est une primitive, il sort du registre des écrans
+- `b8d5ae45b` refactor(portes): refs #1806 #2074 — les portes lisent git par question, en plomberie
+- `6b378ec97` chore(merge): refs #1920 #1806 #1801 — fusion de main ce68999a6 dans le lot B et les portes
+- `707dce2ab` fix(solde): refs #1806 #1801 — une revue de palier que porte un parent fusionné n'est pas neuve
+- `12d0339ce` fix(portes): refs #1806 #2074 — dates et shaDe des portes identiques sous git 2.43 et 2.55
+- `8f7fae1de` chore(merge): refs #1806 #1920 #1903 — fusion de main 8201ecc66 (stocks de sites S3a-2a)
+- `c160fc3c3` fix(gardes): refs #1806 #1903 — deux tables du lot construites par tableTotale
+
+### CI
+- verte — course `36389743959` : https://github.com/cgauche/game/actions/runs/36389743959
+- attente du verdict CI : 16.2 min (temps d’attente, pas de machine locale).
+
+#1806 est rattaché (`refs`) par cette publication, non fermé.
+
+<!-- publier: c160fc3c3b5e08562b99adb94607be005d3508d3 -->

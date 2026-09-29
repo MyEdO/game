@@ -1,0 +1,284 @@
+Verdict du juge de design du lot des portes git (lot 1, amendements A-1 à A-3 et restes des juges c11 et c12), 2026-09-24, sur `00f7e84cd`. Aucune hypothèse ne tient telle qu'écrite : le lot se découpe en trois commits (H2 et la forge isolée ; puis le mur, l'hôte de processus unique et les imports de fonction ; puis H5). Verdict verbatim :
+
+# Juge de design, lot #85 (#1806, lot 1 des portes git), 2026-09-24
+
+Arbre épinglé : `/home/claude/game/.wt-1806-j10`, `git log --oneline -1` = `00f7e84cd fix(gates): refs #1806 — CI verte, le commit en cours compte ce qu'il emporte, palier paresseux`. Contrôle positif : `gitPorte.mjs:173` `OPTIONS_DE_L_HOTE = ['-c','core.quotePath=false']`, `:182` `lireGit`, `:200` `lecteurGit`, `revuePalier.mjs:133` `derniereRevueArchivee`. `git status --short` = 0 ligne avant et après. git 2.43.0.
+Méthode : aucun dépôt jetable. Config hostile posée par `-c` sous `GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1`, index jetables (`GIT_INDEX_FILE`), objets jetables (`GIT_OBJECT_DIRECTORY=juge-design-85/objs`), un arbre de travail jetable fait d'un seul fichier (`wt-status/neuf.txt`) lu contre le `.git` réel, sans ref écrite. Sondes et sorties : `juge-design-85/*.mjs` et `*.txt`.
+Écart de rôle à déclarer : mon premier `git -C .wt-1806-combat status --short` est parti SANS `--no-optional-locks`. Il a pu rafraîchir les stats de l'index de cet arbre, sans toucher son contenu. Les lectures suivantes portent `--no-optional-locks`.
+Charge : loadavg 15.75, puis 12.34, puis 11.37. Aucune mesure de durée n'est faite dans ce verdict.
+
+## Verdicts
+
+- **H1 le mur : FRAGILE.** La portée « tout le dépôt » est juste, car `src/` a 10 tests qui importent `child_process`. Mais le piège de la flat config est PIRE que celui du précédent : c'est 9 fichiers témoins sur 11 qui sont touchés, dans les deux positions du bloc. « Deux hôtes » est sous-compté : `spawnResilient.mjs`, `lancer-local.mjs`, les lanceurs de tests et `gates/toutes.mjs` lancent aussi des processus.
+- **H2 la plomberie : FRAGILE.** La plomberie tue toute la classe c11, et 6 réglages de plus que la liste de repli `-c` du design ne couvrait pas. Mais « zéro ligne » et « plomberie seule » sont réfutés :
+  - `grep` et l'état de l'arbre de travail n'ont pas d'équivalent de plomberie ;
+  - `diff-files` sans rafraîchissement rend 7265 faux positifs ;
+  - `merge-tree` lit `merge.conflictStyle`.
+  La prémisse de l'alternative « env isolé = celui d'`envDeDepotForge` » est fausse.
+- **H3 la forge : FRAGILE.** La garde à fenêtre peut mourir sans perte, mais PAS par la raison donnée. Le trou réel est un lecteur de PRODUCTION à `cwd` libre sous un `GIT_DIR` hérité (prouvé). Ni la garde actuelle ni un `instanceDeDepot` qui rend un lecteur ne le ferment.
+- **H4 les sous-processus node : FRAGILE.** Trois des cibles du pre-commit n'ont AUCUN export et appellent `process.exit` au niveau module. `build-all:161` DOIT rester un processus, à cause de l'enregistreur de lectures `--import`.
+- **H5 M1 à M4 : TIENT.** **La marche de Q4 : RÉFUTÉE telle qu'écrite.** « La première tête rencontrée » n'est pas celle qui a le moins de commits jusqu'à HEAD (prouvé). Une forme bornée juste existe.
+- **Découpage : RÉFUTÉ en « un seul lot », et l'ordre H1 puis H2 est inversé.** Trois commits, sans conflit mesuré avec les lots en attente, sauf `scripts/recette/lib.mjs`.
+- **Architecture à rebours** : un seul hôte de processus ; des lecteurs par QUESTION, pas par sous-commande ; une forge qui isole la config.
+
+---
+
+## Q1 / H2 — la plomberie
+
+### Preuve 1 : réglages × commande
+Sonde `h2-reglages.mjs`, sur `HEAD^..HEAD`, depuis la racine et depuis `scripts/hooks`. Sortie `h2-reglages.txt`. « plomb » = `diff-tree -r` ; « porc » = `git diff` :
+
+| réglage | porc `diff -U0` | plomb `diff-tree -r -p -U0` |
+|---|---|---|
+| (aucun) | 24225 o, `plus=174`, `+++ b/…` | identique |
+| `color.ui=always` / `color.diff=always` | 28489 o, `ESC=true`, `plus=0` | 24225 o, `plus=174` |
+| `diff.external=true` | 0 octet | 24225 o |
+| `diff.noprefix=true` | `+++ docs/…` | `+++ b/…` |
+| `diff.relative=true`, depuis le sous-dossier | `--name-only` n=4 (au lieu de 9), `plus=140` | n=9, `plus=174` |
+| `core.attributesFile` + `diff.tc.textconv` | **rc=128**, git EXÉCUTE le programme de l'utilisateur | rc=0, identique |
+| `diff.interHunkContext=50` | **34698 o** (du contexte injecté en `-U0`) | 24225 o |
+| `diff.mnemonicPrefix`, `diff.renames=copies`, `indentHeuristic`, `algorithm=patience`, `suppressBlankEmpty`, `context=7`, `orderFile` | sans effet sur ce couple de commits | identique |
+
+Sur l'INDEX (`h2-index.txt`, index jetable = `HEAD^`), la plomberie est `diff-index --cached -p -U0 HEAD` :
+
+| réglage | porc `diff --cached -U0` | plomberie |
+|---|---|---|
+| `diff.mnemonicPrefix=true` | `diff --git c/… i/…` | `a/… b/…` |
+| `diff.noprefix=true` | sans préfixe | `a/… b/…` |
+| `color.ui=always` | `ESC=true` | inchangé |
+| `diff.external=true` | 0 octet | 24398 o |
+
+Pour les 7 réglages de c11, la plomberie est immune et la porcelaine ne l'est pas : **CONFIRMÉ**. `diff.renames` n'a d'effet ni sur l'une ni sur l'autre en `--no-renames`/plomberie. **Hors liste c11, la porcelaine est aussi rompue par** :
+- `textconv`, via `core.attributesFile` global ;
+- `diff.interHunkContext` ;
+- `log.showSignature=true` (`h2-index.txt`) : `log -z --format=%H%x1f%B` rend `"No signature\n00f7e84cd…"`, et le sha de `journalDe` (`gitPorte.mjs:293-297`) est corrompu. `show -s --format=%B` rend `"No signature\nfix(gates)…"`. `rev-list --no-commit-header --format=%H%x1f%B%x00` est immune. HEAD est signé ssh.
+- `color.grep=always` / `color.ui=always` sur `grep -z -l` : `"\u001b[35mscripts/guards/lib/gitPorte.mjs\u001b[m\u0000"`, alors que `fichiersDuGrep` (`gitPorte.mjs:442-445`) est lu par :
+  - `gitHorsHote.mjs:49` : `MODULE = /\.(?:mjs…)$/` échoue sur `…mjs\x1b[m`, donc le périmètre se vide ; c'est un fail-open de la garde elle-même ;
+  - `solde-ticket-guard.mjs:1941` ;
+  - `cssImages.mjs:133`.
+- `grep.fullName=true` depuis un sous-dossier : `lib/gitPorte.mjs` devient `scripts/guards/lib/gitPorte.mjs`.
+- `status.showUntrackedFiles=no` (`h2-status-merge.txt`) : `status --porcelain -z` rend `""` au lieu de `"?? neuf.txt"`. Les lecteurs touchés sont `publier.mjs:1087` (l'état sale de l'arbre) et `worktrees.mjs:164`. `ls-files --others --exclude-standard` rend `neuf.txt` sous les deux réglages.
+- Hors de l'hôte, `raw/lib/carte-lignes.mjs:118` porte DÉJÀ sa propre pile de neutralisation (`-c core.quotePath=false … --no-color --no-ext-diff --no-textconv`) : c'est une seconde source de la même règle.
+
+### Preuve 2 : ce qui n'a PAS d'équivalent de plomberie, ou n'est pas équivalent
+- **Arbre de travail** (`h2-stat-status.txt`). Index jetable par `read-tree HEAD`, dont les stats sont à 0 :
+  ```
+  plomb diff-files --name-only -z (en premier) : n: 7265
+  plomb diff-index --name-only -z HEAD         : n: 7265
+  porc diff --name-only -z (en premier)        : n: 0
+  plomb diff-files --name-only -z (après)      : n: 0
+  ```
+  `git diff` RAFRAÎCHIT et RÉÉCRIT l'index (malgré `GIT_OPTIONAL_LOCKS=0`), et `diff-files` ne le fait pas. Remplacer `diff` par `diff-files` pour lire l'arbre de travail (`docs-rebuild.mjs:77`, `solde:1933`, `publier.mjs:872`) rend donc des faux positifs sur tout fichier dont seules les stats bougent (docs regénérées à l'identique). Pour être équivalente, la plomberie exige `update-index -q --refresh`, une ÉCRITURE. Le `core.checkstat minimal` et le `core.trustctime false` de `/root/.gitconfig` changent ce verdict de stats selon la machine.
+- **`grep`** : aucune plomberie. La réécrire en `ls-files` + `cat-file` + une regex JS change le dialecte du motif (ERE contre JS).
+- **`status`** : aucune plomberie unique. La décomposer demande `diff-index --cached HEAD` + `diff-files` rafraîchi + `ls-files --others --exclude-standard` + `ls-files -u`.
+- **`--remerge-diff` / `--diff-merges`** : l'hôte ne les emploie plus (`ceQueFaitLeCommit` = `merge-tree` puis `diff base sha`, `gitPorte.mjs:340-379`). Sonde sur la fusion `b780a99e7` :
+  ```
+  git diff-tree --remerge-diff -r --name-only b780a99e7…  -> rc=134 err=BUG: log-tree.c:1058: did a remerge diff without remerge_objdir?!?
+  git diff-tree --diff-merges=remerge …                  -> rc=134 (même BUG)
+  git diff-tree --diff-merges=first-parent …             -> rc=0 557 lignes
+  git diff-tree --cc --name-only …                       -> rc=0 2 lignes
+  ```
+  L'équivalent de plomberie de l'hôte est `diff-tree -r <base> <sha>`, et il existe. `--remerge-diff` n'existe en plomberie que sous forme cassée en 2.43. Je n'ai pas lu le source de git pour savoir si le BUG tient à l'env `GIT_OBJECT_DIRECTORY` : `diff-tree` sans objets jetables écrirait dans le vrai `.git/objects`. L'oracle de test `gitPorte.test.mjs:497` (`show --remerge-diff`, en porcelaine, sur un dépôt forgé qui hérite de la config globale) rougit sous `color.ui=always` : c'est un fail-closed, mais le test dépend de la machine.
+- **Écritures** passées par `lireGit` :
+  - `publier.mjs:688,690,870,884,952,1014` (`add`, `commit`, `rebase`, `push`) ;
+  - `worktrees.mjs:200,205,211` ;
+  - `chantier.mjs:177` ;
+  - `bootstrap-conteneur.mjs:72` ;
+  - `classerPush.mjs:141` ;
+  - `replay-head.mjs:89`.
+
+  H2 ne parle que de lecteurs : ces écritures n'ont pas de destination, et elles EXIGENT la config de l'utilisateur (identité, `commit.gpgsign`, proxy, credentials).
+
+### Configuration que la plomberie lit ENCORE (liste mesurée)
+| réglage | qui le lit | mesure | voulu ? |
+|---|---|---|---|
+| `core.quotePath` | en-têtes de patch de `diff-tree -p` / `diff-index -p` | `-z` ne couvre pas le patch | neutralisé, `OPTIONS_DE_L_HOTE` RESTE |
+| `merge.conflictStyle` | `merge-tree` (`baseDuCommit`, `gitPorte.mjs:348`) | `h2-status-merge.txt` : `f="<<<<<<< …\nb\n=======\nc\n>>>>>>> …"` devient `diff3` → `"…b\n||||||| 4b422d45c\na\n=======…"`, et l'arbre passe de `e2c6eccaf` à `3b7dc01af`. La base d'une fusion en conflit change, donc `texteDeBase` et `diff()` changent. | NON voulu, à épingler : `-c merge.conflictStyle=merge` |
+| `merge.<pilote>.driver` + `.gitattributes` | `merge-tree` exécute `node scripts/git-hooks/merge-docs.mjs` | `git config --show-origin` sous config isolée → `file:/home/claude/game/.git/config` | voulu (même base en CI après `npm install`). Mais un clone sans `npm install` voit une autre base (pilote absent). |
+| `merge.renames` / `diff.renames` | `merge-tree` | sans effet sur la sonde de renommage (`[f,y]` sous les trois) | sans effet mesuré |
+| `core.excludesFile` (global) | `ls-files --others --exclude-standard` (`listerImage` `TRAVAIL`) | lecture de doc, non sondé | voulu : c'est la sémantique d'ignore de git elle-même |
+| `core.checkStat`, `core.trustctime` | `diff-files` / rafraîchissement | présents dans `/root/.gitconfig` | voulu, par l'index |
+| `i18n.logOutputEncoding` | `rev-list --format` comme `log` | aucun effet sur HEAD | à épingler si les messages se lisent en UTF-8 : `-c i18n.logOutputEncoding=UTF-8` |
+
+### Les alternatives, par le critère N+1
+- **`-c` et drapeaux dans `OPTIONS_DE_L_HOTE`** : la liste du design (`--no-color --no-ext-diff`, `mnemonicPrefix`, `noprefix`, `relative`) aurait laissé passer 6 réglages mesurés : `textconv`, `interHunkContext`, `log.showSignature`, `color.grep`, `grep.fullName`, `status.showUntrackedFiles`. S'y ajoutent les réglages que git ajoutera. Par connaissance, NON mesurable en 2.43 : `diff.srcPrefix`/`diff.dstPrefix`, arrivés en git 2.45 et lus par la porcelaine. N+1 = une ligne par réglage, à découvrir APRÈS l'incident. C'est une liste ouverte.
+- **Env isolé (`GIT_CONFIG_GLOBAL`, `GIT_CONFIG_NOSYSTEM`)** :
+  - (a) La prémisse « le même que `envDeDepotForge` » est FAUSSE : `depotGabarit.mjs:45-51` ne fait que supprimer les variables de `git rev-parse --local-env-vars`, sans aucune isolation de config.
+  - (b) L'isolation ne touche PAS `.git/config` : les pilotes de fusion survivent (mesuré), mais un `diff.external` posé en LOCAL par l'utilisateur survit aussi. La classe n'est donc pas fermée.
+  - (c) Elle casse ce dont le dépôt réel a besoin : `core.autocrlf` et `safe.directory` sous Windows, proxy et credentials pour `fetch`, identité et signature pour les écritures de `publier`.
+  - Pour le dépôt RÉEL, c'est rejeté. Pour le dépôt FORGÉ, c'est JUSTE (voir H3).
+- **La plomberie** : N+1 = 0 ligne pour `diff-tree`, `diff-index --cached`, `cat-file`, `rev-list`, `ls-files` et `ls-tree`, soit toutes les lectures de commit et d'index. Elle coûte une ligne pour `merge-tree` (conflictStyle), `grep` et l'état de l'arbre de travail.
+
+### DESIGN CORRIGÉ H2
+1. **Lectures de COMMIT et d'INDEX : plomberie seule.**
+   - `diff-tree -r` ;
+   - `diff-index --cached <HEAD|arbre vide>` ;
+   - `cat-file --batch` (`lireEnLot`), qui remplace les 11 `show <x>:<chemin>` ;
+   - `rev-list --no-commit-header --format=…%x00`, qui remplace `log` et `show -s`.
+2. **Lectures qui n'ont pas de plomberie** (`grep`, état de l'arbre de travail) : porcelaine à DRAPEAUX QUI PRIMENT SUR LA CONFIG, posés par le lecteur, jamais par l'appelant.
+   - `grep --no-color --full-name -z` ;
+   - `status --porcelain=v2 -z --untracked-files=all --no-renames --ignore-submodules=none` ;
+   - l'arbre de travail contre l'index passe par ce `status` (qui rafraîchit), pas par `diff-files`.
+3. **`OPTIONS_DE_L_HOTE` = ce que la plomberie lit ENCORE** : `core.quotePath=false`, `merge.conflictStyle=merge`, `i18n.logOutputEncoding=UTF-8`. C'est une liste FERMÉE et courte, justifiée ligne par ligne par la table ci-dessus.
+4. **Le détecteur N+1 est un TEST, pas l'hôte.** `gitPorte.test.mjs` joue CHAQUE lecteur typé sous un `GIT_CONFIG_GLOBAL` hostile (fichier de fixture : les 20 réglages ci-dessus, `textconv` compris) et exige des sorties identiques à celles d'une config vide. Un réglage neuf coûte une ligne de FIXTURE, et seulement pour les lecteurs 2 et 3.
+5. **Les écritures** reçoivent des écrivains NOMMÉS, qui gardent la config de l'utilisateur (identité, signature) :
+   - `commitDe`, `rebaser`, `pousser`, `ajouterWorktree`, `retirerWorktree` ;
+   - `fetchOrigin` existe déjà ;
+   - l'écrivain de `replay-head`.
+6. `carte-lignes.mjs:118` passe par le lecteur de patch de l'hôte : sa pile de drapeaux meurt.
+
+**Ce que ça tue** :
+- les fail-open c11 et les 6 fail-open neufs ;
+- le fail-open de `gitHorsHote` par grep coloré, qui meurt de toute façon avec H1 ;
+- la seconde pile de `carte-lignes` ;
+- la base de fusion qui dépend de la machine par `conflictStyle`.
+
+**Critère N+1 mesuré** : 0 ligne pour les lectures de commit et d'index ; 1 ligne de fixture pour grep, status et merge-tree.
+
+## Q2 / H1 — le mur
+
+Sonde `h1-mur.mjs` (API `ESLint.calculateConfigForFile`, avec la config réelle IMPORTÉE et le bloc mur ajouté en mémoire). Sortie `h1-mur.txt` :
+```
+## mur EN TÊTE      → MUR seulement sur solde-ticket-guard.mjs et src/net/server/index.ts ; 9/11 : « sans-mur+autre »
+## mur EN QUEUE     → MUR sur 11/11, mais ORDRE_TOTAL (1627 c.), pureté engine (917 c.), state (815 c.), POLICE_POSSESSION (256 c.), data (1089 c.) ÉCRASÉS
+```
+- `eslint.config.js` compte 17 déclarations de `no-restricted-imports`/`no-restricted-syntax` (`:205` à `:406`). Le « redire » du précédent (`:309-313`) coûterait ici une ligne dans CHACUN de ces blocs, et une de plus à tout bloc futur : c'est une garde de synchronisation, ce que le credo proscrit.
+- **Correctif** : une règle de NOM PROPRE, qu'aucun autre bloc ne déclare.
+  - Plugin local `scripts/eslint/` avec une règle `processus/hote-unique`, en AST : `ImportDeclaration` / `ImportExpression` / `require` / `createRequire` / `process.getBuiltinModule|binding` vers `child_process`, `worker_threads` ou `vm`.
+  - Un bloc unique `files: ['**/*.{js,mjs,cjs,ts,tsx,mts,cts}']`, les hôtes en `ignores`.
+  - N+1 = 0 ligne par bloc de règle futur.
+  - Le dépôt n'a encore aucun plugin local (seuls `@eslint/js` et `typescript-eslint`, `eslint.config.js:1-3`). C'est une couture neuve, mais c'est la SEULE forme sans redire.
+- `src/` : 10 tests sous `src/` importent `child_process` (`src/data/*.test.ts`, `src/engine/qualities/ids.test.ts`, `src/gameIso/rig/…/quad-harnais.test.ts`), et `src/net/server/index.ts` n'est couvert par aucune règle d'import. La portée « tout le dépôt » est donc nécessaire, et suffisante pour `src/`.
+- Angle mort de portée : `eslint.config.js:152` ignore globalement `*.config.*` et `.claude/**`. Aucun ne lance de processus aujourd'hui (`git grep -l child_process -- ':!scripts' ':!src'` : 0), mais le mur ne les voit pas. Il faut le dire dans le bloc, ou réduire l'ignore global.
+- **« Deux hôtes » est RÉFUTÉ par la mesure.** Il y a 66 modules non-tests qui importent `child_process` (`cp-non-tests.txt`), dont des lanceurs génériques :
+  - `spawnResilient.mjs:54` (`execFileResilient(commande, …)`, déjà utilisé avec `'git'` en `gates/toutes.mjs:848`) ;
+  - `lancer-local.mjs:78,102` ;
+  - `gates/toutes.mjs:795` (`spawn(commande ?? process.execPath)`) ;
+  - `test/run.mjs:203,276` et `test/node-tests.mjs:50` ;
+  - `bootstrap-conteneur.mjs:43` ;
+  - `ops/deps-report.mjs:13` ;
+  - `gen-galleries.mjs:33` (`execSync(cmd)`, avec shell).
+
+  Les commandes lancées : `'git'` 156 sites, `process.execPath` 65, `'gh'` 6, `'npm'` 5, `'taskkill'` 3, plus des variables. `taskkill` manque à l'énumération « node, gh, npm ».
+
+**DESIGN CORRIGÉ H1** :
+- UN hôte de processus, `scripts/guards/lib/processus.mjs`. C'est le canonique, qui existe déjà : `spawnResilient.mjs`, promu. Il porte le rejeu `STATUS_DLL_INIT_FAILED`, que `gitPorte.mjs:18-21` compose déjà.
+- API sync, async et flux (pour `run.mjs`), avec une commande ÉNUMÉRÉE `{node, gh, npm, taskkill}`.
+- `git` en est une entrée PRIVÉE, importable du seul `gitPorte.mjs`. La même règle AST (`importNames`) restreint `lancerGit` à `gitPorte.mjs`.
+- Les hôtes en `ignores` : `processus.mjs` seul, tout le reste compose.
+
+**Ce que ça tue** : `gitHorsHote.mjs` et son test, `LANCEUR`/`DECOUPE`/`FORME`/`DOSSIERS_DES_PORTES`, et les 6 lanceurs génériques parallèles.
+
+**N+1** : 0 ligne par porte, par test ou par bloc ESLint ; 1 ligne par primitive d'acquisition neuve de Node.
+
+## Q3 / H3 — la forge
+
+- **Sous H1 corrigé, un test ne lance plus git lui-même : CONFIRMÉ, à UNE condition.** L'hôte de processus doit refuser `git` hors de `gitPorte`. Aujourd'hui, `execFileResilient('git', …)` passe (`toutes.mjs:848`). Sans cette condition, H3 retombe.
+- **Le trou que ni la garde ni H3 ne ferment** (sonde `h3-env-herite.mjs`, `h3-env-herite.txt`) :
+  ```
+  GIT_DIR hérité = /home/claude/game/.git
+  lecteurGit(cwd=<dossier qui n'est pas un dépôt>) env hérité     : "/home/claude/game\nb027d548da7…"
+  lecteurGit(cwd) envDeDepotForge: JETTE git indisponible : fatal: not a git repository
+  ```
+  Un test qui forge un dépôt puis appelle une fonction de PRODUCTION à `cwd` (`lecteurDe(dir)`, `solde-ticket-guard.mjs:1846` ; `archivesDe(cwd)`, `revuePalier.mjs:100`…) lit le dépôt PARENT dès que `GIT_DIR` est hérité. La garde D ne regarde que les `execFileSync('git'` écrits dans le test. Un `instanceDeDepot` qui rend un lecteur lié ne change rien pour ces appels, puisque la production construit son propre lecteur.
+- **La garde à fenêtre meurt-elle sans perte ?** Oui si le design corrigé tient, et c'est un gain : la fenêtre a un fail-open prouvé (juge c12, Q5).
+- **Compte nominatif `:332`** : `LANCEURS_ARBRE_REEL` (`depotGabarit.test.mjs:258-275`, 4 entrées pour 5 sites).
+  - `git grep` ne lui trouve AUCUN lecteur hors de son fichier.
+  - Il est vu comme STOCK par `stocksNominatifs` (revue `.claude/soldes/revue-palier-2026-09-23-95248a08c-36a12877a.md:124`, `depotGabarit.test.mjs +4 1 -> 5`). Sa mort est une DÉCROISSANCE, conforme à la consigne du 2026-09-20.
+  - `scripts/gates/ecrivainsAtteints.test.mjs:70` nomme `depotGabarit.test.mjs`, mais le fichier survit : rien à toucher.
+
+**DESIGN CORRIGÉ H3** :
+- (1) `envDeDepotForge` = purge des `--local-env-vars` ET `GIT_CONFIG_GLOBAL=<fichier vide>` + `GIT_CONFIG_NOSYSTEM=1`. Un dépôt forgé ne doit dépendre ni du parent ni de l'utilisateur. Aujourd'hui, un `color.ui=always` global rougit l'oracle `gitPorte.test.mjs:497`.
+- (2) La purge des variables locales se fait UNE fois au LANCEMENT des processus de test : `scripts/test/node-tests.mjs:50` et `scripts/test/run.mjs:203,276`, par l'hôte de processus. Tout lecteur de production appelé par un test voit alors le dépôt de son `cwd`.
+- (3) `instanceDeDepot` rend `{ racine, sha, git }`, avec `git` = le lecteur et l'écrivain liés, par commodité.
+
+**Ce que ça tue** : la Sonde D entière (`:239-332`), `LANCEURS_ARBRE_REEL` et l'import obligatoire d'`envDeDepotForge` dans 10 forgeurs.
+
+**N+1** : 0 ligne par test qui forge.
+
+## Q4 / H4 — les sous-processus node
+
+Liste mesurée des sites non-tests `(spawnSync|execFileSync|spawn|execFileResilient)(process.execPath` :
+
+| site | cible | peut devenir un import ? |
+|---|---|---|
+| `pre-commit.mjs:241` `check-doc-refs.mjs` | 0 export, `process.exit` au module | OUI, APRÈS extraction d'une fonction (le module n'est pas importable tel quel) |
+| `pre-commit.mjs:252` `check-docs-vs-head.mjs` | 0 export, 2 `process.exit` | idem |
+| `pre-commit.mjs:318,325` `check-plans-anchors.mjs` | 0 export, 2 `process.exit` | idem |
+| `pre-commit.mjs:340` `build-implemente.mjs --check` | 45 exports, garde de point d'entrée | OUI |
+| `pre-commit.mjs:357` `build-doctrines.mjs --check` | 11 exports, garde | OUI |
+| `pre-commit.mjs:285` `build-all.mjs --empreinte --only` | 14 exports | OUI pour l'appel. Mais build-all relance chaque générateur, voir la ligne suivante. |
+| `docs-rebuild.mjs:70` `build-all.mjs --quiet` | idem | OUI |
+| `build-all.mjs:161` générateurs | `NODE_OPTIONS=--import ENREGISTREUR` (lectures par processus) | **NON**, l'isolation est le but |
+| `faits-de-palier.mjs:177` `fermetures-non-citees.mjs`, `:182` `audit-stock.mjs` | exports et garde | OUI |
+| `publier.mjs:916,921` `build-all.mjs --check/--quiet` | | OUI |
+| `lintStage.mjs:99` (eslint), `typecheck-fast.mjs:51` (tsc), `lancer-local.mjs:78,102` | binaires d'outils | NON, lanceur |
+| `test/node-tests.mjs:50`, `test/run.mjs:203,234,276` | `node --test`, vitest | NON, lanceur |
+| `migrations/lib/croissance.mjs:238`, `lib/joue.mjs:19`, `replay.mjs:188` | scripts de migration à effets de module | NON, lanceur : chaque migration est un programme |
+
+- **Lancés par git lui-même**, hors de notre code et donc hors du mur :
+  - les hooks (`core.hooksPath scripts/git-hooks`) ;
+  - le pilote de fusion `node scripts/git-hooks/merge-docs.mjs`, lancé par `merge-tree` DANS `baseDuCommit`.
+- **Tests qui lancent le VRAI point d'entrée** (contrat stdin, code de sortie, JSON de hook) : `commit-msg.test.mjs` (2), `solde-ticket-guard-driver.test.mjs`, `runner-*-driver.test.mjs`, `settings-guard-canaux`, `segments-profonds`, `poison-postcheck`, `new-src-file-guard`, `memoire-tombale-guard`, `enterine-guard`, `codeur-gates-guard`, `typecheck-fast-wrapper`, `lancer-local.test`, `run-capture.test`, `enregistreur-lectures.test`, `spawnResilient.test`, `empreinteRejeu.test`, `pdf-de.test`, `coverage.test`, `build-atlas-index.test`, `map/check.test.ts`, et 7 tests sous `src/`. Ils passent par le lanceur.
+
+**DESIGN CORRIGÉ H4** : A-3 s'applique à 12 sites. Trois d'entre eux (`check-doc-refs`, `check-docs-vs-head`, `check-plans-anchors`) exigent d'abord d'extraire une fonction `verifier…()` qui REND ses fautes au lieu de `process.exit`, et le `main` garde l'exit. `build-all:161` reste un processus, par l'hôte.
+
+## Q5 / H5 — les restes du juge c12
+
+- **M1** (`emportes` → `fichiersEmportes`, `revuePalier.mjs:202`) : TIENT, 1 paramètre et 1 appelant (`solde:2396`).
+- **M2** (`lirePreImage` à côté de `texteDeBase`, `solde:1907/1912`) : TIENT, À CONDITION de renommer le CONTRAT `stocksNominatifs` (`lirePreImage`, cité aussi en `stocksNominatifs.mjs:65-66`, `plageStock.mjs:166`) dans le même commit que H2, qui réécrit de toute façon ces lecteurs en `lireEnLot`/`cat-file`. Isolé, il élargit le diff sans rien tuer.
+- **M3** (`derniere()` / `compte()` paresseux) : TIENT.
+- **M4** (test de `faits-de-palier.mjs:161-165`) : TIENT. Le `main` n'est pas exporté (`:233` `if (process.argv[1] && …) main()`) et la branche fait `process.exit(1)`. Il faut extraire `faitsDePalier({cwd, base, tete}) → {erreur}|{…}` : même patron que H4.
+- **La marche bornée de Q4 : RÉFUTÉE telle qu'écrite.** Sonde `h5-marche.mjs` (objets jetables, aucune ref), sortie `h5-marche.txt` :
+  ```
+  rev-list M (ordre par défaut)  : M Ta B1 Tb R B0
+  rev-list --topo-order M        : M B1 Tb B0 Ta R
+  rev-list --count Ta..M = 4
+  rev-list --count Tb..M = 3
+  première tête rencontrée : Ta
+  ```
+  « Arrêtée à la première tête d'archive » choisit `Ta` (4). Le critère d'aujourd'hui (`revuePalier.mjs:143-145`, `reste` minimal) choisit `Tb` (3). La `tete` change, et avec elle l'enchaînement (`solde:1166`) et le compte. La forme de l'histoire est réelle : les fusions `origin/main → branche` (juge git, `b780a99e7`).
+  **Forme juste et bornée** : `rev-list --topo-order HEAD` lu en flux. En ordre topologique, tout commit listé avant `T` n'est pas un ancêtre de `T`, donc `count(T..HEAD) ≥ position(T)`. On garde le meilleur `c*` (un `rev-list --count` par tête rencontrée), et on s'arrête dès que `position ≥ c*`. Le coût est borné par la fenêtre du palier, avec les contenus en un seul `lireEnLot`. Un test de cette histoire à deux têtes accompagne le commit.
+
+## Q6 — Découpage
+
+- Mesure : `lot1-fichiers.txt` = 149 fichiers (importeurs de `child_process`, `lireGit`/`lecteurGit`, plus eslint, gitHorsHote, depotGabarit.test, revuePalier, solde, faits-de-palier).
+
+| lot | base commune avec 00f7e84cd | fichiers | communs avec le lot 1 | `merge-tree --write-tree --name-only 00f7e84cd <lot>` |
+|---|---|---|---|---|
+| B #1920 `ebf498d7d` | `a8d993dd6` | 174 | `scripts/recette/lib.mjs` | rc=0, 0 conflit |
+| A R-M2 `e979d92f0` | `a8d993dd6` | 116 | 0 | rc=0, 0 conflit |
+| `.wt-1806-combat` (HEAD `a8d993dd6`, WIP de 70 chemins) | — | 70 | `scripts/recette/lib.mjs` | — |
+
+  Aucun lot en attente n'AJOUTE d'importeur de `child_process`/`lireGit` hors de `scripts/recette/lib.mjs` (`taskkill` de chrome, `lib.mjs:180`). Le mur, posé après, ne rougira donc que sur ce fichier.
+- **« Un seul lot » : RÉFUTÉ.** Faire H1 avant H2 migrerait les 64 tests vers `lireGit`/`lecteurGit`, que H2 retire ensuite : double migration. **Trois commits, dans cet ordre** :
+  1. **H2 + H3(1)** : les lecteurs de plomberie, les drapeaux et `OPTIONS_DE_L_HOTE` fermé, la fixture hostile, les écrivains nommés, la forge isolée, `carte-lignes` rendue à l'hôte, M2 (contrat `lirePreImage`). Fichiers : `gitPorte.mjs`/`.d.mts`/`.test.mjs`, `depotGabarit.mjs`, les 28 porteurs de `lireGit`/`lecteurGit`, `carte-lignes.mjs`, `stocksNominatifs.mjs`, `plageStock.mjs`. Il tue les fail-open et `lireGit`/`lecteurGit` publics.
+  2. **H1 + H3(2,3) + H4** : le plugin et la règle, `processus.mjs`, les 66 modules et 62 tests migrés, la purge au lanceur de tests, les extractions `check-*`, la mort de `gitHorsHote` et de la Sonde D. Seul contact avec les lots en attente : `scripts/recette/lib.mjs`.
+  3. **H5** : M1, M3, M4 et la marche `--topo-order`. Fichiers `revuePalier.mjs`, `solde-ticket-guard.mjs` (`:1205-1240`, `:2396`) et `faits-de-palier.mjs`. Ce commit est indépendant du mur et peut partir en premier s'il faut.
+
+## Q7 — Architecture à rebours
+
+- **`gitPorte.mjs` à deux hôtes** : NON. En partant de zéro, un seul module possède `child_process` (`processus.mjs`, rejeu compris), et `gitPorte` est le seul client de son entrée `git`. Deux hôtes indépendants referaient deux politiques de rejeu, alors que `gitPorte.mjs:18-19` dit « il n'y a pas deux politiques de rejeu dans ce dépôt ».
+- **Lecteurs « à sous-commande énumérée »** (A-2 : `{sous-commande, bornes, pathspecs, filtre}`) : NON. C'est `lireGit` avec une liste blanche, où l'appelant choisit encore la forme. De zéro, on a un lecteur par QUESTION :
+  - `ceQueFaitLeCommit(sha)`, qui existe ;
+  - `ceQuEmporteLIndex()` ;
+  - `etatDeLArbre()` ;
+  - `textesA(arbre, chemins)` (`lireEnLot`) ;
+  - `journal(plage)` ;
+  - `fichiersQuiCitent(motif, portee)`.
+
+  Chacun fixe sa commande de plomberie et ses drapeaux. La sous-commande n'est plus un paramètre.
+- **`instanceDeDepot` seule forge** : OUI, mais c'est la forge qui ISOLE (la config comme les variables locales), et la purge des variables se fait au lanceur de tests. Un lecteur lié rendu par la forge est une commodité, pas la garantie.
+
+## Sondes (toutes dans `juge-design-85/`)
+- `h2-reglages.mjs`, `h2-index.mjs`, `h2-stat-status.mjs`, `h2-status-merge.mjs` (et `attributs-tc`, `wt-status/`, `objs/`) : H2 ;
+- `h1-mur.mjs` : H1 ;
+- `h3-env-herite.mjs` (et `pas-un-depot/`) : H3 ;
+- `h5-marche.mjs` : Q4 ;
+- `cp-non-tests.txt`, `lot1-fichiers.txt`, `lot-*.txt`, `mt-*.txt`, `combat-wip.txt` : Q6.
+
+Chaque sonde a son `.txt`. Les index jetables sont supprimés en fin de sonde.
+Aucune suite, aucun vitest n'a été lancé. Aucun processus n'a été tué.
+
+---
+_Generated by [Claude Code](https://claude.ai/code)_

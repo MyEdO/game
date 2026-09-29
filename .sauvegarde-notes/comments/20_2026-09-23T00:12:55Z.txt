@@ -1,0 +1,8 @@
+## Grief C de la revue de palier `95248a08c..36a12877a` (2026-09-23) — récidive du grief 1, 2ᵉ palier
+
+Revue : `.claude/soldes/revue-palier-2026-09-23-95248a08c-36a12877a.md` (verdict PARTIEL). La décrue du stock CSS est majoritairement réelle sur la fenêtre (2134 → 2019 sites pour −79 déclarations au corpus ; `!important` 34 → 26). Mais la part DÉMÉNAGÉE ne se distingue de la part SOLDÉE qu'en prose de commit (« La moitié de la décrue du stock est donc un déménagement », `cf4c2ee7b`) :
+- `components.css` (feuille exempte) : +29 déclarations ;
+- `hud.css` : stock 13 → 0 sites, déclarations 84 → 84 ;
+- `combatStartSplash`, organisme neuf : 26 déclarations sortent du stock par déclaration d'organisme.
+
+Attendu, porté ici puisque ce ticket possède la famille : l'instrument rend TROIS nombres (disparu / migré / reclassé) et le cliquet compte les feuilles partagées. Sites : `scripts/guards/lib/cssCouches.mjs:18-23`, `scripts/guards/lib/cssCouchesStock.mjs`, `src/ui/styles/components.css`.

@@ -1,0 +1,13 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1919-H2
+
+ ✓ src/lib/coupeAuMot.test.ts (9 tests) 70ms 374 MB heap used
+ ✓ src/coupe-au-caractere-guard.test.ts (7 tests) 9794ms 755 MB heap used
+   ✓ coupe au caractère suivie d’une ellipse > aucun site sous `src/` ni `scripts/` 9650ms
+
+ Test Files  2 passed (2)
+      Tests  16 passed (16)
+   Start at  02:41:57
+   Duration  27.51s (transform 10.96s, setup 32.14s, collect 604ms, tests 9.86s, environment 0ms, prepare 235ms)
+

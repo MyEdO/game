@@ -1,0 +1,36 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1806-L2
+
+ ❯ src/coupe-au-caractere-guard.test.ts (7 tests | 1 failed | 6 skipped) 47ms 392 MB heap used
+   × coupe au caractère suivie d’une ellipse > témoin : JSX sur plusieurs lignes, le texte fait de seuls blancs et l’expression vide entre la coupe et l’ellipse sont sautés 45ms
+     → expected [] to deeply equal [ 'temoin.tsx:3' ]
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/coupe-au-caractere-guard.test.ts > coupe au caractère suivie d’une ellipse > témoin : JSX sur plusieurs lignes, le texte fait de seuls blancs et l’expression vide entre la coupe et l’ellipse sont sautés
+AssertionError: expected [] to deeply equal [ 'temoin.tsx:3' ]
+
+- Expected
++ Received
+
+- Array [
+-   "temoin.tsx:3",
+- ]
++ Array []
+
+ ❯ src/coupe-au-caractere-guard.test.ts:43:111
+     41| 
+     42|   it('témoin : JSX sur plusieurs lignes, le texte fait de seuls blancs…
+     43|     expect(vus("const X = () => (\n  <span>\n    {s.slice(0, 20)}\n   …
+       |                                                                                                               ^
+     44|     expect(vus("const X = () => (\n  <span>\n    {s.slice(0, 20)}\n   …
+     45|     expect(vus('const X = () => (\n  <span>\n    {s.slice(0, 20)}\n   …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 6 skipped (7)
+   Start at  18:12:07
+   Duration  14.30s (transform 8.60s, setup 13.29s, collect 590ms, tests 47ms, environment 0ms, prepare 55ms)
+

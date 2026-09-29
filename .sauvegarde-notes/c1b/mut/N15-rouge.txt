@@ -1,0 +1,27 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1919-H2
+
+ ❯ src/ui/CombatConsole.test.tsx (151 tests | 1 failed | 150 skipped) 92ms 450 MB heap used
+   × CombatConsole — budget de hauteur du pont (arbitrage user 2026-08-17, décision d’écran 2026-09-24) > F-1 — bande ≤ 17 % et empreinte ≤ 22 % de la hauteur d’écran, à toute vue ≥ 701 — au doigt, sauf case à sa cible 90ms
+     → 1100×780 (pointeur grossier) : bande 156.0px = 20.0 %: expected 0.2 to be less than or equal to 0.170000001
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 150 skipped (151)
+   Start at  00:51:25
+   Duration  20.35s (transform 12.09s, setup 13.55s, collect 5.62s, tests 92ms, environment 632ms, prepare 64ms)
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/ui/CombatConsole.test.tsx > CombatConsole — budget de hauteur du pont (arbitrage user 2026-08-17, décision d’écran 2026-09-24) > F-1 — bande ≤ 17 % et empreinte ≤ 22 % de la hauteur d’écran, à toute vue ≥ 701 — au doigt, sauf case à sa cible
+AssertionError: 1100×780 (pointeur grossier) : bande 156.0px = 20.0 %: expected 0.2 to be less than or equal to 0.170000001
+ ❯ src/ui/CombatConsole.test.tsx:2144:104
+    2142|         // La cible de pointage est une NORME (WCAG 2.5.5 au doigt) : …
+    2143|         if (vaut('var(--cc-cell)', vw, vh, grossier) <= vaut('var(--cc…
+    2144|         expect(bande / vh, `${ou} : bande ${bande.toFixed(1)}px = ${(1…
+       |                                                                                                        ^
+    2145|         expect(total / vh, `${ou} : empreinte ${total.toFixed(1)}px = …
+    2146|       }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+

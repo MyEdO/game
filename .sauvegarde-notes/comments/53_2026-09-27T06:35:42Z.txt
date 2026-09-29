@@ -1,0 +1,518 @@
+## PILOTAGE #1806, 2026-09-27 07:00 UTC
+
+Autorisation de Clément, 2026-09-26 20:48 (relais du coordinateur), verbatim : « Pour tous les autres chantiers bloqués et même pour la suite, j'authorise a main : ops:publier ».
+
+**Fait sur `chantier/1806`** (tête locale `543ba1e13`, pas encore poussée) :
+- `a2c9b8bd2` : fusion d'`origin/main` (`ed846ca41`).
+- `17ec76e7e` (E17) : la plage jugée au push ne rejuge plus le tronc, et `TRONC` a une source unique dans `gitPorte.mjs`. Trois passes de juge, toutes closes sur sondes rejouées (verdicts ci-dessous), avec les mutations M1-M6, N1-N5 et D1-D4.
+- `543ba1e13` : seconde fusion d'`origin/main` (`a214fb549`, dont #1903 et #1998). Un conflit dans l'étape `rebase` de `publier.mjs` : la décision de #1998 est prise telle quelle, avec `TRONC.suivi`.
+- Seul rouge connu de la tête : une entrée périmée de `legacyVocabStock.mjs` (`ui-ratchets.test.ts`, « repassent mono-consommateur »). Le lot B la purge.
+
+**En vol :**
+- Lot B (#1920) : B2 à B15b rejoués sur `543ba1e13` (instantané `05ced5fd4`). Un juge de diff et d'écran juge le cumul avant le commit (brief posté sur #1920).
+- Lot portes git, commit 1 (E16b) : le travail E16 est rejoué sur `543ba1e13` dans un arbre neuf. Deux conflits avec E17 (`plageStock.mjs`, `publier.mjs`) sont confiés au codeur, sous la règle « la sémantique d'E17 ne change pas, seule la forme de ses lectures ». Brief ci-dessous.
+
+**Séquence :**
+1. Commit du lot B sur `chantier/1806`, puis train `ops:publier` vers main.
+2. A8 (X1, X2, I1 de l'infobulle) sur la base B.
+3. D2a puis D2b (Destin, #1958).
+4. Portes git, commits 1 à 3.
+5. Console F10 et sa planche.
+6. Cure S0.
+
+**Restes nommés de la plage E17**, au lot portes git :
+- `cancel-in-progress` face à `before` en CI de branche ;
+- ajout non déclaré avant le renommage d'un porteur ;
+- fusions en croix ;
+- la porte de commit juge une fusion contre son premier parent : les croissances de main y demandent une ligne `CLIQUET:`, comme dans `543ba1e13`.
+
+**Frontière (Q4 du juge de fusion)** : `modulesExemptes` (`scripts/guards/lib/cssCouches.mjs:469`) ne compte que les importeurs du fichier propriétaire. Une feuille globale importée une fois (`gameStage`, 7 poseurs) y devient dette d'écran. Instruit au lot S0 avec les gardes G1 à G3.
+
+<details><summary>Brief E17c (2026-09-26)</summary>
+
+# Brief E17c : second verdict du juge sur la plage jugée au push (#1806), 2026-09-27
+
+Même worktree, mêmes interdits, même régime de processus que tes briefs E17 et E17b ; ton diff non committé est la base. Budget : 45 minutes d'horloge (relève `date -u` au départ), puis rendre ce qui est fait, le reste NOMMÉ. Un autre codeur travaille dans `.wt-1920c` : vérifie les runners avant tout `node --test` de plus d'un dossier ou vitest de plus de 5 fichiers (sortie collée).
+
+Verdict : `/tmp/claude-0/-home-claude-game/b2c1dcf4-ee89-5cd4-b2df-036dbf03e24e/scratchpad/juge-e17/verdict-b.md`, sondes dans le même dossier (`sonde-r3.mjs` surtout). Lis-le en entier. Q4 et Q2 y sont closes ; restent R3, R4 et des trous de tests.
+
+## 1. `debut` nul (R3, régression hors CI)
+Sonde du juge : hors CI, HEAD sur `main` locale ou tête détachée, `debut` nul → plage `fin^..fin` ; sur une fusion, `rev-list fin^..fin` rend tout le côté du second parent (64 commits, 2 refus sur des commits du tronc) et la note « a2c9b8bd2 seul est jugé » ment. Le code de HEAD jugeait `origin/main..HEAD` (13 commits, 0 refus). Même chemin pour le canari (`.github/workflows/canari.yml`, `GITHUB_REF` = `refs/heads/main`, sans `before`).
+- Question : quand `debut` est nul, quel est « ce que le push apporte au tronc » quel que soit `vers` ? Réponds en une règle, sans branche de plus que nécessaire, et dis ce que devient la note « push vers le tronc » quand `debut` est nul.
+- « `fin` seul » doit juger `fin` seul, fusion comprise (cherche la forme de révision git qui exclut tous les parents), et la note dire vrai.
+- `sonde-r3.mjs` du juge rejouée après ta correction, sortie collée : aucun cas ne juge un commit du tronc.
+
+## 2. Une seule source pour le tronc (R4, RÉFUTÉ)
+Contre-grep du juge : `scripts/gates/classerPush.mjs:107` (`REF_TRONC = 'refs/heads/main'`) et `:124-148` (`baseDuDiff` : `before` sur main, `merge-base origin/main` ailleurs, repli par fetch) portent la même partition que `croissancesDeLaPlage` ; `scripts/ops/ruleset-main.mjs:58`, `publier.mjs` (l.768, 865, 870, 890, 1006), `chantier.mjs:177,183`, `worktrees.mjs:169`, `board.mjs:39` écrivent le tronc en dur.
+- Le tronc a UNE définition, dans le module le plus bas qui puisse la porter sans dépendance nouvelle (dis lequel et pourquoi) ; chaque site ci-dessus l'importe. Contre-grep final de `'refs/heads/main'` et `'origin/main'` dans `scripts/` et `.github/`, sortie collée, chaque reste justifié (commentaire, fixture de test, YAML qui ne peut pas importer).
+- `baseDuDiff` et la borne de `croissancesDeLaPlage` : est-ce la même question (« ce que le push apporte au tronc ») ? Si oui, une fonction, deux consommateurs ; si non, dis sur pièces ce qui les distingue. Le repli par fetch de `classerPush` n'entre pas dans la lib de plage (lecture seule).
+
+## 3. Tests manquants (R2, R5)
+- Chemin branche neuve AVEC tronc (`debut` nul, `vers` une chantier) : un test forgé que la mutation `bout = debut ?? fin` rougit.
+- La note « sans ancêtre commun avec le tronc » : un test.
+- `debut` nul et `vers` = `TRONC.branche` ; tête détachée : tests forgés du point 1.
+- Le trou du tronc local périmé (R2, pre-push seulement, la CI refetche) : pas de code ; dis-le en une phrase dans l'en-tête de `plageStock.mjs` si et seulement si c'est un contrat que le lecteur doit connaître, sinon rien.
+
+## 4. Stock de vocabulaire
+N'y touche pas : je le traite.
+
+## Preuves et portes
+- Mutation sur le blob FINAL pour chaque test neuf ; chaque trace de mutation porte sa ligne `exit=` écrite par la commande.
+- `node --test` : `scripts/guards/lib/plageStock.test.mjs`, `scripts/hooks/stocks-nominatifs.test.mjs`, `scripts/guards/lib/gitHorsHote.test.mjs`, `scripts/git-hooks/pre-push.test.mjs`, `scripts/ops/faits-de-palier.test.mjs`, et les tests de chaque fichier touché au point 2 (`classerPush`, `publier`, `chantier`, `worktrees`, `board`, `ruleset-main` : trouve-les, liste collée) ; eslint sur les fichiers touchés. Sortie BRUTE, ligne `exit=`.
+- La sonde de ton brief E17 rejouée sur `fin = a2c9b8bd2`.
+
+Livrable : `scratchpad/rendu-e17c.md`.
+
+</details>
+
+<details><summary>Brief E17d (2026-09-26)</summary>
+
+# Brief E17d : restes du troisième verdict (#1806), 2026-09-27
+
+Même worktree, mêmes interdits, même régime de processus que E17 à E17c ; ton diff non committé est la base. Budget : 30 minutes d'horloge (`date -u` au départ), puis rendre ce qui est fait, le reste NOMMÉ. Ne touche pas à `legacyVocabStock.mjs`.
+
+Verdict : `/tmp/claude-0/-home-claude-game/b2c1dcf4-ee89-5cd4-b2df-036dbf03e24e/scratchpad/juge-e17/verdict-c.md` (S1 clos, S3 tient, S5 sans rouge neuf). Sondes : `sonde-s2.mjs`, `sonde-s3.mjs` du même dossier.
+
+1. **S2, la doc ment et rien ne garde.** `scripts/gates/classerPush.mjs:3-4` (« Module FEUILLE : il n'importe que `node:*` et la constante SANS DÉPENDANCE… »), `.github/workflows/ci.yml:31` et le message de `scripts/gates/classerPush.test.mjs:128` disent un contrat que l'import de `gitPorte.mjs` a changé. Écris le contrat vrai (ce qui compte pour le step `classer`, qui tourne avant `npm ci` : `ci.yml:38-45`). La sonde `sonde-s2.mjs` du juge (fermeture transitive des imports) devient un test dans `classerPush.test.mjs` : aucun import hors `node:*` et fichiers du dépôt dans la fermeture ; mutation : un import npm posé dans un fichier de la fermeture le rougit.
+2. **S3, trois chemins d'échec sans test** : `merge-base` en échec alors que le tronc est présent ; `sha^` en échec sur `main` (commit racine) ; `diff` en échec (levée, puis exit 1 et stdout vide au CLI, donc fail-closed). Un test chacun, sur les forges du dépôt ; mutation pour chacun.
+3. **S4, trois sites écrivent encore le tronc** : `scripts/ops/publier.mjs:1014` (`'HEAD:main'`), `scripts/ops/publier.mjs:506` (regex du refus `--force-with-lease` vers le tronc), `scripts/guards/lib/coursesCi.mjs:77` (`branche = 'main'`). Chacun lit `TRONC`. Pour la regex, construis-la depuis `TRONC` sans perdre ce qu'elle refuse (tests de `publier` qui la couvrent : cite-les).
+
+Preuves et portes : mutation sur le blob FINAL pour chaque test neuf, trace avec sa ligne `exit=` ; `node --test` sur `scripts/gates/classerPush.test.mjs`, `scripts/ops/publier.test.mjs`, les tests de `coursesCi` (trouve-les), `scripts/guards/lib/gitHorsHote.test.mjs`, `scripts/guards/lib/plageStock.test.mjs`, `scripts/hooks/stocks-nominatifs.test.mjs`, `scripts/git-hooks/pre-push.test.mjs` ; eslint sur les fichiers touchés ; `node scripts/ci/…` n'existe pas : pour `ci.yml`, un `git diff` suffit. Sortie BRUTE, ligne `exit=`.
+
+Livrable : `scratchpad/rendu-e17d.md`.
+
+</details>
+
+<details><summary>Verdict du juge E17 (1re passe)</summary>
+
+# Verdict juge E17 (#1806), 2026-09-26
+
+Arbre : /home/claude/game/.wt-1806-j10, `git log --oneline -1` = `a2c9b8bd2 chore(merge): refs #1806 — fusion d'origin/main (ed846ca41) ...`.
+Diff non committé : 5 fichiers, `git diff --stat` 179+/64-. Contrôle positif : `git hash-object scripts/guards/lib/plageStock.mjs` = 6d1ea2983041aa7efafdf91efdc19968c0388889, le blob final annoncé (cmp avec e17/plageStock.final.mjs : exit 0) ; plageStock.test.mjs = 04b2823907a98a1c391e7d91e18d17e99161a36b.
+Sondes et sorties : /tmp/claude-0/-home-claude-game/b2c1dcf4-ee89-5cd4-b2df-036dbf03e24e/scratchpad/juge-e17/
+(ancien-*.mjs = `git show HEAD:` des deux libs, imports réécrits en absolu, rien d'autre).
+
+## Q1 : partition PUSH / FENÊTRE. TIENT
+Contre-grep `croissancesDeLaPlage|refusDeLaPlage` dans scripts/ src/ .github/ docs/, appelants réels :
+- scripts/git-hooks/pre-push.mjs:124 : `tronc: TRONC`
+- scripts/hooks/stocks-nominatifs.test.mjs:1128 : `tronc: TRONC` (CLIQUET plage poussée)
+- scripts/hooks/stocks-nominatifs.test.mjs:1092 et :1108 : fenêtres `{debut:'2c11fdd9a',...}` et `{debut:'da3acf95c',...}` (l.1064-1065), debut explicite, sans tronc
+- scripts/ops/faits-de-palier.mjs:172 : `debut: base`, sans tronc
+- scripts/ops/workflows-joues.test.mjs:49 : une chaîne dans une fixture, pas un appel
+- src/ : 0 appel.
+Qui dépendait de « debut nul → origin/main » : personne. faits-de-palier.mjs:49-54 lève si `--base` manque, donc `base` n'est jamais nul. Les seuls appelants à SHA_NUL (stocks-nominatifs.test.mjs:49-53, plageStock.test.mjs:131, :788) passent TRONC, sauf plageStock.test.mjs:131 qui vise justement le cas « HEAD seul » (regex /plage inconnue/, toujours vert).
+Réserve (FRAGILE, mineure) : le titre du test plageStock.test.mjs:127 dit « base NULLE sans `origin/main` », alors que la condition est désormais « sans tronc passé ». Le titre nomme une condition qui ne décide plus rien.
+
+## Q2 : somme des bilans ≠ `diff debut..fin`, même sans commit du tronc. FRAGILE (4 écarts)
+Sonde pure `juge-e17/sonde-q2.mjs` : l'ancien `refusDeLaPlage({commits,cumule,imagesCumul})` (HEAD) contre le neuf, mêmes commits. Sortie (exit=0) :
+```
+ECART | B renommage de cle sur 2 commits (git mv a->z au c1, stock a->z au c2)
+   ancien []
+   neuf   [["c2","scripts/x.test.mjs",1]]
+ECART | C deplacement P->P2 sur 2 commits (c1 supprime P, c2 ajoute a P2)
+   ancien []
+   neuf   [["c2","scripts/y.test.mjs",2]]
+EGAL  | D porteur renomme au c1 puis entree ajoutee au c2
+   ancien [["c2","scripts/y.test.mjs",1]]
+   neuf   [["c2","scripts/y.test.mjs",1]]
+EGAL  | D' entree ajoutee au c1 puis porteur renomme au c2
+   ancien []
+   neuf   []
+ECART | E fusion d une branche laterale (hors tronc) : retrait de A DOUBLE (c1 et x1), fusion propre (resolution 0), puis +2 sous la cle a sans cliquet
+   ancien [["c3","scripts/x.test.mjs",2]]
+   neuf   []
+ECART | E2 ajout de A DOUBLE (c1 et x1, fusion propre) puis retrait unique de A
+   ancien []
+   neuf   [["c1","scripts/x.test.mjs",1],["x1","scripts/x.test.mjs",1]]
+EGAL  | A ajoute puis retire
+   ancien []
+   neuf   []
+```
+Chaque cas :
+- Ajouté puis retiré : équivalent.
+- B, renommage de clé sur 2 commits : REFUSE À TORT par rapport à l'ancien. `renommages` et `apparierLesDeplacements` sont par diff (stocksNominatifs.mjs:584, :604-608), et la carte a→z du c1 ne reporte pas le retrait du c2. Même verdict que la porte du commit (solde-ticket-guard.mjs:2291 juge c2 seul) : pas de faux rouge pour un commit passé par son hook, mais c'en est un pour un commit `--no-verify`.
+- C, déplacement entre porteurs sur 2 commits : même mécanisme, refuse à tort.
+- Porteur renommé en cours de plage (D) : équivalent. D' (ajout non déclaré AVANT le renommage du porteur) passe dans les DEUX, parce que le cumul est keyé par le chemin du porteur (plageStock.mjs:61-63) et que le candidat porte l'ancien nom. C'est un trou PRÉEXISTANT, hors diff, qui laisse passer une croissance non déclarée.
+- Fusion (E) : la somme compte DEUX FOIS un changement que les deux parents portent (cherry-pick sur une branche latérale non-tronc). La fusion, lue par `ceQueFaitLeCommit`, ne rend que la résolution (0) et ne décompte pas le doublon. Résultats :
+  - un retrait doublé paie +2 non déclarés : LAISSE PASSER une croissance non déclarée ;
+  - un ajout doublé puis retiré une fois reste à +1 : REFUSE À TORT (E2).
+  Portée : plage manuelle avec fusion d'une branche hors tronc. Le train `ops:publier` rebase avant push-branche (publier.mjs:9-21), ce qui linéarise et élimine le doublon. Chemin résiduel : push manuel d'une histoire fusionnée (précisément l'état de HEAD a2c9b8bd2).
+- Variante tronc, non discriminée par le diff : un cherry-pick sur la branche d'un retrait fait par le tronc, suivi d'une fusion du tronc, reste un commit JUGÉ qui paie. `-1` (c1) + 0 (fusion) + `+1` (ajout non déclaré) = 0, donc passe, alors que l'apport réel au tronc vaut +1. L'ancien code passait aussi. L'en-tête plageStock.mjs:21-24 (« une baisse faite par un commit NON jugé ne paie rien ») est vrai, mais une baisse dupliquée par un commit jugé paie encore.
+
+## Q3 : refactor stocksNominatifs. TIENT
+Sonde `juge-e17/sonde-q3.mjs` : ancien contre neuf `croissanceDesStocks` et `croissancesNonCouvertes` sur les 400 derniers commits non-fusion du dépôt réel (images `sha:`/`sha^:`, `renommagesDe`). Sortie (exit=0) :
+```
+commits 400 croissances-non-vides 75 non-couvertes-non-vides 10 ecarts 0
+EGAL  levee objet : TypeError: croissanceDesStocks(diffU0, images) attend le diff en CHAÎNE, reçu object — ...
+EGAL  levee sans lecteur : Error: croissanceDesStocks : aucun lecteur d'image post — ...
+EGAL  levee nc sans lecteur : Error: croissanceDesStocks : aucun lecteur d'image post — ...
+```
+Autres appelants (contre-grep) : solde-ticket-guard.mjs:2291 (`croissancesNonCouvertes`), cssCouches.test.mjs:317, plageStock.test.mjs:259/:355/:374, stocks-nominatifs.test.mjs:1082 (`croissanceDesStocks`). L'API ne change pas et les sorties sont identiques octet pour octet sur 400 commits.
+Nuance (Q6) : les levées de `bilanDesStocks` se nomment toujours `croissanceDesStocks` (stocksNominatifs.mjs:501, :507), y compris quand c'est plageStock.mjs:59 qui appelle.
+
+## Q4 : réalité CI. RÉFUTÉ sur `main` (porte muette), TIENT sur `chantier/**`
+- La CI a bien origin/main : ci.yml:24-26 `fetch-depth: 0`, job.log l.92 `fetch ... +refs/heads/*:refs/remotes/origin/*`, l.149 `* [new branch] main -> origin/main`. Événements : ci.yml:3-5 `push: branches: [main, 'chantier/**', 'feat/**']`, `pull_request`.
+- Push sur main, sonde `juge-e17/sonde-q4.mjs` (HEAD = after = origin/main, debut = origin/main~1). Sortie (exit=0) :
+```
+tronc ["origin/main"] plage 2a7feaf48...ed846ca41... ^origin/main commits 0 refus 0 notes []
+tronc [] plage 2a7feaf48...ed846ca41... commits 1 refus 0 notes []
+```
+  0 commit jugé, AUCUNE note : la porte est muette sur main, sans le dire.
+- Est-ce voulu par l'invariant ? Non. Sur un push à main, les commits `before..after` sont ceux qui ARRIVENT au tronc, pas des commits « déjà sur le tronc ». Le tronc correct est `before` lui-même, déjà donné comme `debut`, et exclure `origin/main` (= after) ne sert qu'à tout effacer.
+- Le ruleset (ruleset-main.mjs:10-13, :59-67 : `required_status_checks`, `strict: false`, `non_fast_forward`) exige la tête verte. Mais la CI de branche annule le run en vol (ci.yml:13-15, `cancel-in-progress` hors main) : sur push1 (X) puis push2 (Y), le run2 juge `before=push1..Y` et X n'est jugé par AUCUNE CI de branche. Avant le diff, la CI de main (`before..after`) rattrapait X après coup. Le diff retire ce filet ; le rendu le mentionne (« juge 0 commit ») sans l'instruire.
+- Correction à instruire : ne pas passer TRONC quand l'événement est un push sur `refs/heads/main` (debut = before suffit), ou exclure `before` plutôt que `origin/main`. Une note doit nommer le cas.
+
+## Q5 : tests neufs et rejeu. TIENT (réserve mineure)
+- Rejeu demandé. Aucun autre runner avant (`juge-e17/ps-avant.txt` ne contient que ma propre ligne bash). Sortie `juge-e17/portes.txt` :
+  - commande : `node --test scripts/guards/lib/plageStock.test.mjs scripts/hooks/stocks-nominatifs.test.mjs scripts/guards/lib/gitHorsHote.test.mjs`
+  - résultat : `# tests 96  # pass 96  # fail 0`, exit=0 ; diagnostic local `# 13 commit(s) jugé(s)` (= `git rev-list --count origin/main..HEAD` = 13).
+- Les 4 tests TRONC contre l'ANCIEN code (HEAD), sans mutation : copie en lecture `juge-e17/tronc-sur-ancien.test.mjs`, qui importe ancien-plage.mjs et définit `const TRONC=['origin/main']`. Sortie `tronc-sur-ancien.txt` : `# pass 0 # fail 4`, exit=1, et chaque échec est une AssertionError :
+  - test 1 : expected 2, actual 3 (commit du tronc compté) ;
+  - test 2 : refus en plus du commit du tronc `6dbe56ef5` ;
+  - test 3 : `[]` au lieu du refus (le trou) ;
+  - test 4 : échoue à l.792 (note du tronc absent). Sa PREMIÈRE moitié (l.788-791, debut SHA_NUL + TRONC) PASSE sur l'ancien code (l'ancien défaut `origin/main` donnait la même chose) : cette moitié ne discrimine pas.
+- Traces du codeur (e17/mut1-rouge.txt, mut2-rouge.txt) : `not ok 31-34 # fail 4` puis `not ok 33,34 # fail 2`. Les vert donnent `# pass 34 # fail 0`. Aucune ligne `exit=` dans ces fichiers : les « exit=1 » du rendu ne sont pas tracés, seule la TAP l'atteste.
+- Autres portes rejouées (`juge-e17/portes2.txt`) : pre-push.test.mjs + faits-de-palier.test.mjs donnent `# tests 31 # pass 31 # fail 0`, exit=0. eslint sur les 5 fichiers : exit=0, sortie vide.
+- Aucun test ne couvre Q4 (push sur main) ni les écarts B, C, E de Q2.
+
+## Q6 : langue. FRAGILE (mineur)
+- `src/comment-poison-guard.test.ts` ne relève aucun site dans les 5 fichiers (le seul échec est hors diff, voir Q7). grep des ajouts (`juge-e17/ajouts.txt`) sur désormais / ne…plus / pour l'instant / déplacé / remplacé / ancien : 0, sauf :
+  - plageStock.test.mjs (bloc `// Le TROU du filtre cumulé`) : « Au cumul `debut..fin`, la clé est nette à 0 et la branche passait ». L'imparfait raconte l'ancien code : pierre tombale légère, hors familles gardées (« était <participe> » est exclu, comment-poison-guard.test.ts:60).
+- Un concept = un terme : `debut` (API) et `depuis` (plageStock.mjs:138-145) désignent la même borne. Les messages `croissanceDesStocks : …` sont levés par `bilanDesStocks`. Le titre plageStock.test.mjs:127 est périmé (Q1).
+- tronc / plage / fenêtre / bilan sont cohérents dans l'en-tête plageStock.mjs:8-10, :21-24.
+
+## Q7 : autre rougeur CI de branche. RÉFUTÉ (rouge présent, HORS diff : dans HEAD a2c9b8bd2)
+`npx vitest run src/comment-poison-guard.test.ts` (`juge-e17/poison.txt`) : `Tests 1 failed | 77 passed`, exit=1.
+```
+AssertionError: Ligne(s) du stock sans site correspondant : purger `scripts/guards/lib/legacyVocabStock.mjs` dans le MÊME commit.
++   "src/ui/ui-ratchets.test.ts — désormais : `.hero-present-chips` repassent mono-consommateur — le détail candidat compose désormais `SkillChip`/",
+```
+Cause : la fusion a2c9b8bd2 a résolu `src/ui/ui-ratchets.test.ts` côté branche, sans la ligne de ed846ca41. Mesure `grep -c "repassent mono-consommateur"` :
+
+| ref | ui-ratchets.test.ts | legacyVocabStock.mjs |
+|---|---|---|
+| 00f7e84cd | 0 | 0 |
+| ed846ca41 | 1 | 1 |
+| HEAD | 0 | 1 |
+
+La ligne de stock venue de main est gardée sans son site : la CI de la branche rougira, avec ou sans ce diff. À purger (ou à rétablir le site) dans le commit de publication.
+Non joués (budget) : typecheck, docs:check, suites entières.
+
+</details>
+
+<details><summary>Verdict du juge E17b (2e passe)</summary>
+
+# Verdict juge E17b (#1806), 2026-09-26
+
+- **Arbre** : `/home/claude/game/.wt-1806-j10`, `git log --oneline -1` = `a2c9b8bd2`, diff non committé sur 5 fichiers (+324/−66).
+- **Contrôle positif** : `git hash-object scripts/guards/lib/plageStock.mjs` = `3beda805d65ccda7d0ffe804e963f873435e429e`.
+- **Copie finale du codeur** : `cmp` avec `e17/plageStock.final-b.mjs` → exit 0.
+- **Où sont les pièces** : sondes et sorties dans `scratchpad/juge-e17/`. `e17-plage.mjs` = le blob E17 `6d1ea298…` (`e17/plageStock.final.mjs`) ; `ancien-plage.mjs` = `git show HEAD:`. Les deux ont leurs imports réécrits en chemins absolus, rien d'autre.
+
+## R1 : Q4 et Q2 (E, E2, B, C) sont-elles closes ? CLOSES
+**Q4.** Sonde `sonde-r3.mjs` (exit=0) :
+```
+CI push main (before=origin/main~1, fin=origin/main)
+   plage 2a7feaf48..ed846ca41 commits 1 refus 0 notes ["push vers le tronc (`refs/heads/main`) : `debut` est le tronc d'avant, rien d'autre n'est exclu"]
+```
+Le push sur main juge 1 commit au lieu de 0, et la note le dit.
+
+**Q2, jugée sans aucune mutation.**
+- Les tests neufs, rejoués contre le code E17 (`cumul-sur-e17.test.mjs`, pattern CUMUL|TRONC) : `# pass 0 # fail 9`, exit=1, 9 échecs sur 9 en `AssertionError`.
+  - E, E2, B, C (tests 6 à 9) échouent sur la somme des bilans : ils discriminent bien E17.
+- Les mêmes tests, contre le code de HEAD (`neufs-sur-ancien.test.mjs`) :
+  - CUMUL E/E2/B/C : `ok 6-9`. Ils reproduisent l'ancien cumul `debut..fin`, voulu.
+  - TRONC 1 à 5 : `not ok 1-5`, AssertionError.
+- Mécanisme : `plageStock.mjs:203-212` calcule le cumul comme un bilan d'états, par un diff d'arbres entre deux bouts. Les renommages valent pour la paire `[a, b]` (`renommagesDe`), et un changement porté par deux parents d'une fusion n'est compté qu'une fois.
+
+## R2 : la formule d'état résiste à 4 cas sur 5 ; un trou reste avec un tronc local périmé. FRAGILE
+Formule `plageStock.mjs:206-212` : `cumul = bilan(bout..fin) − bilan(mb(bout,T)..mb(fin,T))`, avec `bout = debut ?? mb(fin,T)`.
+
+- **Branche neuve : TIENT.** `bout = mb(fin,T)`, donc `mb(bout,T) = bout`, et le terme soustrait est vide. Le cumul vaut le diff à trois points `mbF..fin`, l'apport exact.
+  - Sonde `sonde-r3`, « chantier, debut nul » : `plage a2c9b8bd2 ^origin/main commits 13 refus 0 notes []`.
+  - Ce chemin n'a AUCUN test forgé : `grep -n "SHA_NUL" plageStock.test.mjs` → seule l.138, avec `vers` absent. La moitié « sans debut » du test a été retirée. Une mutation `bout = debut ?? fin`, qui rendrait un cumul vide et donc zéro refus, resterait verte dans `plageStock.test.mjs`.
+- **Force-push d'une chantier : TIENT.** Le cas : rebase de `O = T1+X` vers `F = T2+X'+Y`. `bilan(O..F) − bilan(T1..T2) = (X'−X) + Y`, donc seul l'apport neuf Y est retenu. X, déjà jugé au push de O, ne coûte rien. `bilanSoustrait` est une algèbre clé par clé (`plageStock.mjs:54-67`).
+- **Fusion du tronc puis revert (`revert -m1`) : TIENT.**
+  - Tronc qui RETIRE une entrée de la clé k : cumul k = +1, et le commit de revert est un candidat +1, donc refusé. Apport réel au tronc : +1, le refus est juste.
+  - Tronc qui AJOUTE une entrée de la clé k : cumul k = −1. Une entrée non déclarée ajoutée sous k donne 0 et passe, mais l'apport réel sous la clé k vaut aussi 0 (le revert retire l'entrée du tronc). La comptabilité est par clé, et c'est son contrat (#1806 D5″).
+- **PR `refs/pull/N/merge` : TIENT.**
+  - `vers` ≠ main, donc `^origin/main` est exclu, et `mb(M,T)` est la base de la PR.
+  - Sonde « pull_request » : `commits 13 refus 0 notes []`.
+  - Sur un `synchronize`, le payload porte `before` = l'ancienne tête de PR, et la formule se ramène au cas du force-push.
+- **Tronc local périmé : LAISSE PASSER (pre-push seulement).**
+  - `mb(·,T)` ne lit que `origin/main` (`plageStock.mjs:153`, `TRONC.suivi`).
+  - Scénario : la chantier A fusionne la chantier B, qui a déjà fusionné le tronc T2, après un `git fetch origin chantier/B`. Ce fetch ne rafraîchit que `origin/chantier/B`, donc le `origin/main` local reste à T1.
+  - Alors `mbD = mbF = T1`, rien n'est soustrait, et une baisse de T1..T2 paie une croissance non déclarée de A sous la même clé : le TROU de Q2 rouvre.
+  - En CI, `checkout` refetche `+refs/heads/*` (job.log l.92), donc la CI ferme ce trou.
+  - Le codeur conclut à un « côté prudent » : c'est vrai pour la liste des commits jugés, faux pour le filtre cumulé.
+- **Fusions en croix (plusieurs merge-bases)** : `git merge-base` n'en rend qu'une. Non instruit.
+
+## R3 : ce que juge `refPoussee()` (`stocks-nominatifs.test.mjs:58-61`). FRAGILE, régression hors CI
+Sonde `sonde-r3.mjs`, sortie exacte (exit=0) :
+```
+hors CI, HEAD sur main locale (vers main, debut nul)
+   plage a2c9b8bd2^..a2c9b8bd2 commits 64 refus 2 notes ["push vers le tronc (`refs/heads/main`) : `debut` est le tronc d'avant, rien d'autre n'est exclu","plage inconnue : ni sha distant ni tronc — a2c9b8bd2 seul est jugé"]
+hors CI, tete detachee (vers null, debut nul)
+   plage a2c9b8bd2^..a2c9b8bd2 commits 64 refus 2 notes ["plage inconnue : ni sha distant ni tronc — a2c9b8bd2 seul est jugé"]
+hors CI, chantier (vers chantier, debut nul)
+   plage a2c9b8bd2 ^origin/main commits 13 refus 0 notes []
+CI push chantier (before=00f7e84cd)
+   plage 00f7e84cd..a2c9b8bd2 ^origin/main commits 1 refus 0 notes []
+CI push main (before=origin/main~1, fin=origin/main)
+   plage 2a7feaf48..ed846ca41 commits 1 refus 0 notes ["push vers le tronc ..."]
+CI pull_request opened (refs/pull/1/merge, debut nul)
+   plage a2c9b8bd2 ^origin/main commits 13 refus 0 notes []
+reference origin/main..HEAD = 13
+```
+- **Hors CI, sur main ou en tête détachée : RÉGRESSION.**
+  - La plage retombe sur `fin^..fin`. Quand HEAD est une FUSION, `fin^` est le premier parent et le côté second parent entre en entier : 64 commits jugés, dont 2 refus du tronc (f4b01419d, 9e058cf41). C'est un verdict rétroactif, et la note ment (« a2c9b8bd2 seul est jugé »).
+  - Le code de HEAD jugeait `origin/main..HEAD` : 13 commits, 0 refus.
+  - Sur main locale, les deux notes se contredisent : « debut est le tronc d'avant » alors que `debut` est nul, puis « plage inconnue ».
+  - Sur main locale linéaire, seul HEAD est jugé ; les commits intermédiaires non poussés échappent (avant : `origin/main..HEAD`).
+- **Canari** (`.github/workflows/canari.yml:3-6`, `:51`) : `schedule`/`workflow_dispatch` sur main, avec `GITHUB_REF=refs/heads/main` et aucun `before`. Il tombe dans le même cas (avant : 0 commit ; maintenant `fin^..fin`, soit 64 commits si main pointe une fusion).
+- **Hors CI chantier, CI chantier, CI main, pull_request : TIENNENT** (sortie ci-dessus).
+- **Correctif à instruire** : `debut` nul ET `vers === TRONC.branche` → exclure `TRONC.suivi` (les commits non poussés). La note « seul est jugé » doit compter ce que `fin^..fin` juge réellement ; le repli `fin^` sur une fusion est un vice préexistant, désormais atteint plus souvent.
+
+## R4 : une source pour le tronc ? RÉFUTÉ, ce n'est pas le cas dans scripts/
+`REF_PROTEGEE = TRONC.branche` (`pre-push.mjs:44`) ne supprime qu'un littéral. Contre-grep des littéraux `'refs/heads/main'` et `'origin/main'` dans `scripts/`, fichiers de test et commentaires exclus :
+```
+scripts/ops/worktrees.mjs:169:      const vu = estAncetre(w.head, 'origin/main', { cwd: principal })
+scripts/ops/ruleset-main.mjs:58:    conditions: { ref_name: { include: ['refs/heads/main'], exclude: [] } },
+scripts/ops/board.mjs:39:export const BASE = 'origin/main'
+scripts/ops/publier.mjs:768:      return { disponible: true, sha: lu(['rev-parse', 'origin/main'], racine) }
+scripts/ops/publier.mjs:865:      ... journal.base === lu(['rev-parse', 'origin/main'], ctx.racine) ...
+scripts/ops/publier.mjs:870:      const vu = ctx.git(['rebase', 'origin/main'])
+scripts/ops/publier.mjs:890:      journal.base = lu(['rev-parse', 'origin/main'], racine)
+scripts/ops/publier.mjs:1006:      const vu = estAncetre(journal.tete, 'origin/main', { cwd: ctx.racine })
+scripts/ops/chantier.mjs:177:  ... git(['worktree', 'add', '-b', branche, cible, 'origin/main'] ...
+scripts/ops/chantier.mjs:183:  ... git(['rev-parse', '--short', 'origin/main'] ...
+scripts/gates/classerPush.mjs:107:const REF_TRONC = 'refs/heads/main'
+scripts/gates/classerPush.mjs:147:    return { base: git(['merge-base', 'origin/main', sha], cwd) }
+scripts/guards/lib/plageStock.mjs:46:export const TRONC = { branche: 'refs/heads/main', suivi: 'origin/main' }
+```
+- **Doublon exact : `classerPush.mjs:107-148`, `baseDuDiff`.** Sa doc (l.124-127) dit « Sur `main`, l'incrément poussé (`BEFORE`…). Ailleurs, ce qui ENTRERA dans `main` (`merge-base origin/main SHA`) ». C'est la MÊME partition que `croissancesDeLaPlage` (`vers === TRONC.branche` → `debut` ; sinon `merge-base(fin, origin/main)`), avec son propre `REF_TRONC` et un repli `troncConnu`/fetch.
+- `ruleset-main.mjs:58` porte la ref protégée, la même chose que `REF_PROTEGEE`.
+- `publier.mjs`, `chantier.mjs`, `worktrees.mjs` et `board.mjs` écrivent `'origin/main'` en dur : c'est `TRONC.suivi`.
+
+## R5 : langue, tests, autre rouge CI. TIENT, avec des réserves
+- **Langue.** grep des ajouts (`b-ajouts.txt`) sur désormais / ne…plus / plus que / pour l'instant / déplacé / remplacé / ancien / passait : 0 site.
+  - Le commentaire du TROU est réécrit en contrat (`plageStock.test.mjs:780-781`).
+  - Les levées nomment `bilanDesStocks` (`stocksNominatifs.mjs:502`, `:508`).
+  - `debut` est un terme unique.
+  - Réserve : la note « push vers le tronc… `debut` est le tronc d'avant » est émise aussi quand `debut` est nul (R3). Elle est alors fausse.
+- **Tests.** Chaque test neuf est rouge sur l'ancien code ou sur le code E17, sans aucune mutation (R1).
+  - Traces M1 à M6 du codeur : les `not ok` correspondent aux titres. Aucune ligne `exit=` n'est tracée, mais le `# fail N ≥ 1` implique exit≠0. `cmp` final identique.
+  - Non couverts :
+    - branche neuve avec tronc (R2) ;
+    - note « sans ancêtre commun » (`grep -n "sans ancêtre commun" plageStock.test.mjs` → exit 1) ;
+    - `refPoussee()` hors CI (R3).
+- **Portes rejouées** (aucun runner concurrent : `b-ps.txt` vide).
+  - `node --test plageStock.test.mjs stocks-nominatifs.test.mjs gitHorsHote.test.mjs` : `# tests 101 # pass 101 # fail 0`, exit=0, diagnostic `# 13 commit(s) jugé(s)`.
+  - `node --test pre-push.test.mjs faits-de-palier.test.mjs classerPush.test.mjs` : `# tests 48 # pass 48 # fail 0`, exit=0.
+  - eslint sur les 5 fichiers : exit=0, sortie vide.
+- **Autre rouge de CI de branche : 0 hors l'entrée connue.** `npx vitest run src/comment-poison-guard.test.ts` : `Tests 1 failed | 77 passed (78)`, exit=1. Seul échec : l'entrée de `legacyVocabStock.mjs` `src/ui/ui-ratchets.test.ts — désormais : .hero-present-chips repassent mono-consommateur…`, déjà connue et venue de HEAD. Non joués : typecheck, docs:check, suites entières.
+
+</details>
+
+<details><summary>Verdict du juge E17c (3e passe)</summary>
+
+# Verdict juge E17c (#1806), 2026-09-26
+
+- Arbre `/home/claude/game/.wt-1806-j10`, `git log --oneline -1` = `a2c9b8bd2`.
+- Diff non committé : 12 fichiers (+453/−97).
+- `git hash-object scripts/guards/lib/plageStock.mjs` = `23da507fc54db8f78168678579647884468ffb3d` (blob annoncé).
+- Sondes et sorties dans `scratchpad/juge-e17/` (préfixes `sonde-s*`, `sonde-r3c`, `c-`). Avant chaque runner : `c-ps.txt` vide.
+
+## S1 : R3 est-il clos ? CLOS
+**Sonde `sonde-r3c.mjs`** : c'est `sonde-r3.mjs`, dont seul l'import de `TRONC` change (il vient désormais de `gitPorte.mjs`). Sortie, exit=0 :
+```
+hors CI, HEAD sur main locale (vers main, debut nul)
+   plage a2c9b8bd2 ^origin/main commits 13 refus 0 notes []
+hors CI, tete detachee (vers null, debut nul)
+   plage a2c9b8bd2 ^origin/main commits 13 refus 0 notes []
+hors CI, chantier (vers chantier, debut nul)
+   plage a2c9b8bd2 ^origin/main commits 13 refus 0 notes []
+CI push chantier (before=00f7e84cd)
+   plage 00f7e84cd..a2c9b8bd2 ^origin/main commits 1 refus 0 notes []
+CI push main (before=origin/main~1, fin=origin/main)
+   plage 2a7feaf48..ed846ca41 commits 1 refus 0 notes ["push vers le tronc (`refs/heads/main`) : `debut` est le tronc d'avant, rien d'autre n'est exclu"]
+CI pull_request opened (refs/pull/1/merge, debut nul)
+   plage a2c9b8bd2 ^origin/main commits 13 refus 0 notes []
+reference origin/main..HEAD = 13
+```
+**Sonde `sonde-s1-seul.mjs`** : lecteur réel, avec le seul `merge-base … origin/main` masqué ; `fin` = la fusion `a2c9b8bd2`. Sortie, exit=0 :
+```
+vers null / refs/heads/main / refs/heads/chantier/1806 : plage a2c9b8bd2^! commits 1 refus 0
+notes ["tronc `origin/main` illisible depuis a2c9b8bd2 : …", "plage inconnue : … a2c9b8bd2 seul est jugé, sans ses parents"]
+```
+- Le 64 → 1 est corrigé.
+- La note est vraie.
+- La contradiction « debut est le tronc d'avant » avec un `debut` nul a disparu : la note n'est émise que si `debut` est présent (`plageStock.mjs`, `if (debut && vers === TRONC.branche)`).
+
+## S2 : `TRONC` dans `gitPorte.mjs`, et classerPush avant `npm ci`. TIENT pour l'exécution, FRAGILE pour la documentation et la garde
+**Ordre des steps** : `ci.yml:38-45` place `id: classer` (`node scripts/gates/classerPush.mjs`) AVANT `id: install` (`npm ci`).
+
+**Fermeture transitive des imports** : sonde `sonde-s2.mjs`, qui parcourt les imports statiques et dynamiques (`import(`) ; `grep require(|createRequire` → exit 1. Sortie, exit=0 :
+```
+scripts/gates/classerPush.mjs -> node:process, node:url, node:path, scripts/raw/gate-catalogues.mjs, scripts/guards/lib/gitPorte.mjs
+scripts/raw/gate-catalogues.mjs ->
+scripts/guards/lib/gitPorte.mjs -> node:buffer, node:child_process, node:fs, scripts/port-dev.mjs, scripts/guards/lib/spawnResilient.mjs
+scripts/port-dev.mjs -> node:fs, node:path, node:url
+scripts/guards/lib/spawnResilient.mjs -> node:child_process
+fichiers 5 ; imports non node: et non relatifs : AUCUN
+```
+**Documentation qui ment**, dans le fichier même du diff :
+- `scripts/gates/classerPush.mjs:3-4` : « Module FEUILLE : il n'importe que `node:*` et la constante SANS DÉPENDANCE du pathspec des catalogues ». Il importe désormais aussi l'hôte `gitPorte.mjs` et sa fermeture de 3 fichiers.
+- Même affirmation à `ci.yml:31` (« le module n'importe que `node:*` ») et dans le message d'assertion de `classerPush.test.mjs:128`.
+
+**Aucune garde** : `classerPush.test.mjs:119` ne vérifie que l'ORDRE des steps, pas que la fermeture reste sans npm. `gitPorte.mjs` est l'hôte partagé de toutes les portes, et un import npm ajouté un jour y casserait le step `classer` avant `npm ci`.
+
+## S3 : classerPush par l'hôte, fail-closed ? TIENT ; 3 chemins d'échec sans test
+**Rejeu** : `node --test scripts/gates/classerPush.test.mjs` → `# tests 17 # pass 17 # fail 0`, exit=0.
+
+**Chemins d'échec, sonde `sonde-s3.mjs`** (dépôt réel, en lecture ; `origin/main` présent, donc aucun fetch). Sortie, exit=0 :
+```
+merge-base en echec (sha inexistant, branche)         produit=true base=null motifs=["merge-base origin/main en échec : conservateur"]
+main, before nul, sha racine (sha^ en echec)          produit=true base=null motifs=["main sans parent lisible pour a07572abd… : conservateur"]
+main, before inexistant (diff en echec)               LEVEE Error: git diff -z --name-only --no-renames ffff… HEAD : en échec
+main, sha inexistant, before valide (diff en echec)   LEVEE Error: git diff -z --name-only --no-renames HEAD~1 ffff… : en échec
+pull_request, cwd hors depot (git indisponible)       produit=true base=null motifs=["origin/main absent après fetch : conservateur"]
+```
+Le dernier cas tente un `git fetch` dans `/tmp` (pas un dépôt) : il échoue sans aucun effet.
+
+**Le CLI sur un échec de `diff`** : `REF=refs/heads/main BEFORE=ffff… SHA=HEAD node scripts/gates/classerPush.mjs` →
+- exit=1 ;
+- `stdout=[]` ;
+- stderr : `[classerPush] erreur git non prévue : git diff … : en échec`.
+
+**Pourquoi c'est fail-closed** :
+- `produit` reste vide, et chaque step teste `produit != 'false'` (`ci.yml:58`, `64`, `71`) ;
+- le step `classer` est rouge, `install` est sauté, et le job est rouge ;
+- aucun chemin d'échec ne rend DOCUMENTAIRE.
+
+**Chemins d'échec SANS test** dans `classerPush.test.mjs` (titres l.273, 294, 315, 344 : `single-branch`, `sans origin`, `BEFORE` fait de zéros, branche fiche) :
+- `merge-base` en échec, avec le tronc présent ;
+- `sha^` en échec sur main (commit racine) ;
+- `diff` en échec (la levée, puis exit 1 et un stdout vide du CLI).
+
+## S4 : reste-t-il un littéral du tronc ? RÉFUTÉ, 3 sites de code
+Le contre-grep des littéraux entre guillemets (hors tests et commentaires) ne trouve que `scripts/guards/lib/gitPorte.mjs:565` (la définition). Le grep élargi (`'main'`, `:main`, regex) trouve du CODE qui nomme le tronc :
+```
+scripts/ops/publier.mjs:1014:      const vu = ctx.git(['push', 'origin', 'HEAD:main'])
+scripts/ops/publier.mjs:506:  if (sous === 'push' && porte('--force-with-lease') && a.some((x) => /(^|:)(main|refs\/heads\/main)$/.test(String(x))))
+scripts/guards/lib/coursesCi.mjs:77:  branche = 'main', commit = null, spawn = spawnSync,
+```
+- `publier.mjs:1014` : le fast-forward du tronc, soit `HEAD:${TRONC.nom}`.
+- `publier.mjs:506` : la regex du refus de `--force-with-lease` vers le tronc, qui écrit `main` et `refs/heads/main` en dur.
+- `coursesCi.mjs:77` : la branche par défaut des runs CI lus par le pre-push et `publier`.
+
+**Hors grief** :
+- `ruleset-main.mjs:36` `NOM = 'main'` est le NOM du ruleset (`name: NOM`, l.56, l.82), pas une ref ;
+- `depotGabarit.mjs:80` est la branche par défaut d'une forge de test ;
+- `scripts/ops/sondes/audit-2026-09-01/*` sont des sondes datées.
+
+## S5 : rouge de CI hors l'entrée connue ; les commentaires neufs ajoutent-ils un site ? AUCUN
+**Garde des commentaires** : `npx vitest run src/comment-poison-guard.test.ts` → `Tests 1 failed | 77 passed (78)`, exit=1. Seul échec :
+```
++   "src/ui/ui-ratchets.test.ts — désormais : `.hero-present-chips` repassent mono-consommateur — le détail candidat compose désormais `SkillChip`/",
+```
+- Dans ce même `it`, l'assertion `nouveaux` (`comment-poison-guard.test.ts:757-760`) est évaluée AVANT celle des lignes périmées et PASSE : aucun site neuf de vocabulaire de l'ancien état.
+- Les autres `it` (pierres tombales, excuses, famille 4) sont verts.
+
+**Portes rejouées** :
+- `node --test plageStock.test.mjs stocks-nominatifs.test.mjs gitHorsHote.test.mjs` → `# tests 106 # pass 106 # fail 0`, exit=0, `# 13 commit(s) jugé(s)` ;
+- `classerPush.test.mjs` : 17/17, exit=0.
+
+Non joués : typecheck, docs:check, les suites de `publier`, `chantier`, `worktrees`, `board`, `ruleset-main`, `gitPorte` (le codeur les donne vertes, `e17/c-final-*.txt`), et les suites entières.
+
+</details>
+
+<details><summary>Brief E16b, portes git commit 1, reprise (2026-09-27)</summary>
+
+# Brief du codeur E16b : les portes lisent git par question, reprise sur la tête de publication (#1806, lot #85 commit 1), 2026-09-27
+
+Tu es orchestrateur de ton lot. Tu peux déléguer une lecture de masse (agent `lecteur`) ou une vérification fermée (`verif-mecanique`), mais tu relis tout ce qu'un agent te rend, et le code est à toi.
+
+## Worktree et état VÉRIFIÉ (2026-09-27, par l'orchestrateur)
+- Worktree NEUF : `/home/claude/game/.wt-1806-e16`, branche `wt/1806-e16`, HEAD `543ba1e13`. C'est la tête de `chantier/1806` : elle porte la correction de la plage `17ec76e7e` (E17) et deux fusions de main.
+- `node_modules` est une copie par liens durs, SANS cache : aucune écriture dedans, `npm install` compris. `npm run typecheck:fast` y crée son cache neuf : c'est permis.
+- Le travail E16 du 2026-09-24 (instantané `b491236f0`, sur `00f7e84cd`) y est rejoué par `git cherry-pick --no-commit` :
+  - 12 fichiers s'appliquent sans conflit (indexés) ;
+  - DEUX fichiers portent des marqueurs de conflit : `scripts/guards/lib/plageStock.mjs` (2 blocs : imports l.38-44, cumul l.206-227) et `scripts/ops/publier.mjs` (1 bloc : imports l.41-45).
+- Lis en entier :
+  - le brief E16 (`/tmp/claude-0/-home-claude-game/b2c1dcf4-ee89-5cd4-b2df-036dbf03e24e/scratchpad/brief-e16.md`) ;
+  - son rendu (`scratchpad/rendu-e16.md`, sondes sous `scratchpad/e16/`) ;
+  - le message du commit `17ec76e7e` (`git show -s 17ec76e7e`) et son diff.
+- SI un livrable existe déjà dans l'arbre, PIVOTE en revue : ne le refais pas, prouve-le.
+
+## Interdits
+- Tout `git checkout/restore/reset/stash/add/commit/apply/write-tree/init/update-index/merge/cherry-pick/rm`, et toute suppression récursive. Tu résous un conflit en ÉDITANT le fichier ; je marque la résolution et je committe moi-même. Un dépôt jetable passe par `depotGabarit` / `envDeDepotForge`.
+- Hors de ton lot (commits suivants du même design) : le mur ESLint et l'hôte de processus (H1), la purge des variables au lanceur de tests (H3 points 2 et 3), les imports de fonction (H4), M1, M3, M4 et la marche `--topo-order` (H5). Les restes de la plage E17 (`cancel-in-progress` face à `before`, ajout non déclaré avant le renommage d'un porteur, fusions en croix) ne sont pas à toi non plus.
+- Processus :
+  - Avant tout `kill`, lis le PPID et la ligne de commande du parent (`ps -o pid,ppid,cmd`) : tu ne tues que ce que ta propre commande a lancé. Jamais `pkill`, `killall` ni `ps … | xargs kill`.
+  - La machine a 4 cœurs, et un juge y joue des suites en ce moment. Avant de lancer vitest ou `node --test` sur plus de 20 fichiers, vérifie qu'aucun autre ne tourne (`ps -eo pid,etime,cmd | grep -E '[v]itest|[n]ode --test'`, sortie collée) ; sinon, fais d'abord le reste et reviens-y.
+  - Colle `/proc/loadavg` à côté de tout rouge par délai.
+- Budget : 2 h d'horloge. Relève `date -u` au départ et avant chaque étape longue. À l'échéance, rends ce qui est fait et le reste NOMMÉ.
+- Hors de ton geste : `docs:check`, `docs:build`, `docs:reprise`, `test:hooks`, les suites entières, le typecheck complet. Ce sont des gates du train, joués au commit et par le run CI de la branche.
+
+## Invariant
+- En-tête de `scripts/guards/lib/gitPorte.mjs:1-2`, verbatim : « LECTURES GIT DES PORTES — l'hôte UNIQUE de la forme d'union et des commandes git que les portes (pre-push, garde de solde, revue de palier, stocks de plage, faits de palier, closer) exécutent. »
+- Credo (`.claude/credo.md`), verbatim :
+  - « Une garde de synchronisation est un smell : une seule source de vérité. »
+  - « Règles GÉNÉRALES, jamais spécifiques. Corriger la classe entière du problème, pas le cas rencontré. »
+- Consigne de Clément (2026-09-20, #1806), verbatim : « L'application c'est un dépot de stock decroissant. Surtout que c'est toi qui a mis ces !important il y a quelques jours ». Aucun registre neuf, aucune liste d'exceptions.
+- Question à laquelle ils répondent : comment une porte lit-elle git de façon que ni la forme de l'appel, ni la configuration git de l'utilisateur, ni un test ne puissent changer ce qu'elle voit ?
+
+## Cas canonique déjà couvert
+- Un lecteur par question, qui fixe lui-même sa commande et sa forme : `ceQueFaitLeCommit(git, sha)` et `lireEnLot(git, arbre, rels)` dans `gitPorte.mjs`, puis `ceQuiChange` posé par E16. Donne `fichier:ligne` sur l'arbre rejoué.
+- Preuve d'instance à rendre : chaque lecteur que tu poses ou migres en est une instance. L'appelant pose une question, jamais une sous-commande ni des drapeaux.
+
+## Design jugé :
+- Verdict du juge de design du 2026-09-24 : `scratchpad/juge-design-85/verdict.md`. Lis-le en entier ; sondes et sorties dans le même dossier.
+- Ton lot est son commit 1 (section « Q6 — Découpage ») : « DESIGN CORRIGÉ H2 » points 1 à 6, « DESIGN CORRIGÉ H3 » point (1), M2 de la section Q5, et la forme « un lecteur par QUESTION » de la section Q7.
+- La sémantique de la plage posée par E17 est jugée (trois passes, verdicts `scratchpad/juge-e17/verdict.md`, `verdict-b.md`, `verdict-c.md`) : elle ne change pas. Ton lot change seulement la FORME de ses lectures.
+
+## Travail, dans cet ordre
+0. **Les deux conflits.**
+   - `plageStock.mjs`, cumul : garde EXACTEMENT la sémantique d'E17 : bilan d'ÉTATS `bilanSoustrait(bilanEntre(bout, fin), bilanEntre(mb(bout, T), mb(fin, T)))`, `seul` en `fin^!`, notes, `vers`, `TRONC`. Exprime `bilanEntre(a, b)` comme une INSTANCE de `ceQuiChange(lire, a, b)` (diff, pré-image, renommages) et de `lireEnLot` pour la post-image. Il ne doit rester aucun `lire(['diff' …])`, `lire(['show' …])` ni `renommagesDe`.
+   - Imports des deux fichiers : l'union de ce que les deux côtés emploient réellement, pas plus.
+   - Vérifie aussi les fichiers fusionnés SANS conflit que les deux côtés touchent (`gitPorte.mjs`, `plageStock.test.mjs`, `solde-ticket-guard.mjs`, `carte-lignes.mjs`, `publier.mjs`). Pour chacun, dis ce qu'E17 y a posé et comment ta version le garde (`TRONC`, `relationAuTronc`, `decisionDeRebase`, `REFUS_TRAIN_DE_FUSION`).
+   - Preuve : `plageStock.test.mjs`, `scripts/hooks/stocks-nominatifs.test.mjs`, `gitPorte.test.mjs`, `publier.test.mjs` et `classerPush.test.mjs` verts, sortie brute.
+1. **Les lectures R de la table du rendu E16**, migrées vers des questions. Deux questions neuves : `shasDe` et `journalDe` daté. Il faut aussi les questions nommées de `rev-parse`, `remote`, `check-ignore`, `merge-file` et `worktree list`. S'y ajoutent les sites venus d'E17, de #1998 et de main depuis le 2026-09-24 : liste-les par `git grep` (sortie collée). Au moins :
+   - `relationAuTronc` et l'étape `rebase` de `publier.mjs` ;
+   - la lecture de `classerPush.mjs`, qui tourne AVANT `npm ci` : sa fermeture d'imports ne porte aucun paquet, et une garde le tient déjà (`classerPush.test.mjs`) ;
+   - `ignoreParGit` de `solde-ticket-guard.mjs`.
+2. **La poignée de dépôt, puis la sortie de `lireGit`/`lecteurGit`** de l'API publique (`gitPorte.mjs`, `gitPorte.d.mts`). Le rendu E16 propose `depotDe(cwd, { env, spawn })`, avec le lanceur privé derrière une `WeakMap`. Tranche la forme, et dis pourquoi en une phrase. Réécris les tests à faux `git(args)` des ops (`board`, `worktrees`, `chantier`, `publier`, `bootstrap`) en faux par QUESTION.
+3. **Point 5 : les écrivains nommés.** Chaque écriture de la table E16 passe par un écrivain nommé de l'hôte, qui garde la config de l'utilisateur (identité, signature). La forge de `depotGabarit` y compte. `publier.mjs` est le train de publication : son comportement ne change pas, et ses tests le prouvent.
+4. **`cheminsDe` meurt** quand `listerImage` couvre ses sites ; `gitHorsHote.LECTEURS` se vide alors, ou meurt.
+5. **Test hostile** : ajoute l'assertion « chemin non-ASCII en clair dans le patch », pour que le retrait de `core.quotePath` rougisse le test hostile lui-même.
+
+Dans chaque zone touchée : un concept, un terme ; morts purgés ; commentaires à réf nue.
+
+## Preuves (obligatoires)
+- Contre-grep final de `lireGit`, `lecteurGit`, `cheminsDe` et des anciens noms de lecteurs hors de `gitPorte.mjs`, sortie collée.
+- Preuve par mutation pour chaque test neuf ou réécrit : fichier muté, empreintes `git hash-object` avant et après, rouge constaté avec sa ligne `exit=`, remise identique. Les mutations se jouent sur les blobs FINAUX, après ta dernière retouche. Au minimum :
+  - la sémantique d'E17 : un cumul qui somme les bilans des commits au lieu du bilan d'états rougit un test de `plageStock.test.mjs` ;
+  - un lecteur repassé en porcelaine rougit le test hostile ;
+  - un écrivain qui pose `-c user.name=…` ou écarte la config de l'utilisateur rougit son test ;
+  - le retrait de `core.quotePath` rougit le test hostile.
+- La table finale `site → question → lecteur ou écrivain`, avec l'état (fait ou reste) de chaque ligne.
+
+## Portes (sortie BRUTE collée, avec la ligne `exit=` écrite par la commande)
+- `npm run typecheck:fast`.
+- `node --test` sur `gitPorte.test.mjs`, `depotGabarit.test.mjs`, les tests des fichiers migrés, et les tests qui importent un module que tu modifies (liste par `git grep -l`, collée), par paquets de 20 au plus.
+- eslint sur les fichiers que tu touches.
+
+## Livrable
+Données brutes dans `/tmp/claude-0/-home-claude-game/b2c1dcf4-ee89-5cd4-b2df-036dbf03e24e/scratchpad/rendu-e16b.md`, sondes et sorties dans `scratchpad/e16b/` :
+- `git diff --stat HEAD` et la liste des fichiers neufs ;
+- la résolution des deux conflits ;
+- la table du point 1 ;
+- chaque point, fait ou reste, avec sa preuve ;
+- la table des mutations ;
+- les sorties des portes.
+
+</details>
+
+---
+_Generated by [Claude Code](https://claude.ai/code)_

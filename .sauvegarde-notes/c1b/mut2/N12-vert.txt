@@ -1,0 +1,11 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1919-H2
+
+ ✓ src/ui/TeamSegments.test.tsx (1 test) 53ms 400 MB heap used
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  01:32:06
+   Duration  14.61s (transform 8.75s, setup 13.35s, collect 60ms, tests 53ms, environment 748ms, prepare 64ms)
+

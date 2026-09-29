@@ -1,0 +1,137 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1806-L1
+
+ ❯ src/ui/editor/GameOpEditor.test.tsx (20 tests | 1 failed) 205ms 431 MB heap used
+   × GameOpEditor — menu « + op » COMPLET > le menu propose narrative ET grantWeapon (entre autres) 75ms
+     → narrative: expected undefined to be defined
+ ❯ src/ui/editor/EffectList.test.tsx (21 tests | 1 failed) 339ms 429 MB heap used
+   × changer le type d’un effet CONVERTIT — un seul vocabulaire, un seul geste > le texte saisi SURVIT au changement de type, et à l’aller-retour Journal → Flag → Journal 79ms
+     → entrée « Document (handout) » absente du menu
+ ❯ src/ui/editor/FlowEditor.test.tsx (5 tests | 1 failed) 107ms 437 MB heap used
+   × FlowEditor — menu « + Bloc » : effets, condition et test > propose les nœuds logiques (si / test) ET les feuilles d’effet 23ms
+     → Condition (si…): expected undefined to be defined
+ ❯ src/ui/editor/GameOpEditor.seeds.test.tsx (4 tests | 4 failed) 213ms 432 MB heap used
+   × GameOpEditor — création au CLIC : aucune valeur pré-semée, raison visible > créer « Accorder un Talent » n’élit aucun talent et affiche la raison 19ms
+     → entrée « Accorder un Talent » absente du menu
+   × GameOpEditor — création au CLIC : aucune valeur pré-semée, raison visible > créer « Invoquer une créature » n’élit aucune créature (fin du mannequin « Loup ») 12ms
+     → entrée « Invoquer une créature » absente du menu
+   × GameOpEditor — création au CLIC : aucune valeur pré-semée, raison visible > « Dôme protecteur » : le formulaire porte TOUT ce que l’op porte — Trait et Indice, et RIEN de plus 10ms
+     → entrée « Dôme protecteur » absente du menu
+   × GameOpEditor — création au CLIC : aucune valeur pré-semée, raison visible > TOUTE op créable depuis la palette naît sans réf élue 171ms
+     → témoin : la palette ouverte propose des ops à réf: expected 0 to be greater than 0
+ ❯ src/ui/editor/WorldMapEditor.test.tsx (13 tests | 1 failed) 1910ms 580 MB heap used
+   ✓ WorldMapEditor — panneau Lieu (#419) > sélectionne un lieu et édite le nom, l’icône, le fond, la scène liée, l’entrée 455ms
+   ✓ WorldMapEditor — panneau Lieu / Commerce (#419) > active le port, le résout du catalogue via le picker de ref UNIQUE, édite Taille/cosmopolite/phare 329ms
+   ✓ WorldMapEditor — panneau Lieu / Plan du hub (#419) > ajoute un POI, édite son libellé/icône/position, et lie sa cible via le picker de ref UNIQUE (scène puis service) 386ms
+   × WorldMapEditor — panneau Route / Péripéties (#419) > ajoute et édite une péripétie d’auteur (libellé, probabilité, effet) 55ms
+     → entrée « Journal » absente du menu
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 8 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/ui/editor/EffectList.test.tsx > changer le type d’un effet CONVERTIT — un seul vocabulaire, un seul geste > le texte saisi SURVIT au changement de type, et à l’aller-retour Journal → Flag → Journal
+Error: entrée « Document (handout) » absente du menu
+ ❯ Module.choisirDansMenu src/ui/editor/AddMenu.testkit.ts:39:22
+     37| export async function choisirDansMenu(menu: HTMLDetailsElement, libell…
+     38|   const entree = entreeDe(await ouvrirMenu(menu), libelle);
+     39|   if (!entree) throw new Error(`entrée « ${libelle} » absente du menu`…
+       |                      ^
+     40|   await act(async () => { entree.click(); });
+     41| }
+ ❯ src/ui/editor/EffectList.test.tsx:165:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/8]⎯
+
+ FAIL  src/ui/editor/FlowEditor.test.tsx > FlowEditor — menu « + Bloc » : effets, condition et test > propose les nœuds logiques (si / test) ET les feuilles d’effet
+AssertionError: Condition (si…): expected undefined to be defined
+ ❯ src/ui/editor/FlowEditor.test.tsx:41:48
+     39|     const menu = await ouvrirMenu(menuDe(container, '+ Bloc'));
+     40|     for (const libelle of ['Condition (si…)', 'Test de compétence', 'J…
+     41|       expect(entreeDe(menu, libelle), libelle).toBeDefined();
+       |                                                ^
+     42|     }
+     43|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/8]⎯
+
+ FAIL  src/ui/editor/GameOpEditor.seeds.test.tsx > GameOpEditor — création au CLIC : aucune valeur pré-semée, raison visible > créer « Accorder un Talent » n’élit aucun talent et affiche la raison
+Error: entrée « Accorder un Talent » absente du menu
+ ❯ Module.choisirDansMenu src/ui/editor/AddMenu.testkit.ts:39:22
+     37| export async function choisirDansMenu(menu: HTMLDetailsElement, libell…
+     38|   const entree = entreeDe(await ouvrirMenu(menu), libelle);
+     39|   if (!entree) throw new Error(`entrée « ${libelle} » absente du menu`…
+       |                      ^
+     40|   await act(async () => { entree.click(); });
+     41| }
+ ❯ src/ui/editor/GameOpEditor.seeds.test.tsx:48:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/8]⎯
+
+ FAIL  src/ui/editor/GameOpEditor.seeds.test.tsx > GameOpEditor — création au CLIC : aucune valeur pré-semée, raison visible > créer « Invoquer une créature » n’élit aucune créature (fin du mannequin « Loup »)
+Error: entrée « Invoquer une créature » absente du menu
+ ❯ Module.choisirDansMenu src/ui/editor/AddMenu.testkit.ts:39:22
+     37| export async function choisirDansMenu(menu: HTMLDetailsElement, libell…
+     38|   const entree = entreeDe(await ouvrirMenu(menu), libelle);
+     39|   if (!entree) throw new Error(`entrée « ${libelle} » absente du menu`…
+       |                      ^
+     40|   await act(async () => { entree.click(); });
+     41| }
+ ❯ src/ui/editor/GameOpEditor.seeds.test.tsx:63:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/8]⎯
+
+ FAIL  src/ui/editor/GameOpEditor.seeds.test.tsx > GameOpEditor — création au CLIC : aucune valeur pré-semée, raison visible > « Dôme protecteur » : le formulaire porte TOUT ce que l’op porte — Trait et Indice, et RIEN de plus
+Error: entrée « Dôme protecteur » absente du menu
+ ❯ Module.choisirDansMenu src/ui/editor/AddMenu.testkit.ts:39:22
+     37| export async function choisirDansMenu(menu: HTMLDetailsElement, libell…
+     38|   const entree = entreeDe(await ouvrirMenu(menu), libelle);
+     39|   if (!entree) throw new Error(`entrée « ${libelle} » absente du menu`…
+       |                      ^
+     40|   await act(async () => { entree.click(); });
+     41| }
+ ❯ src/ui/editor/GameOpEditor.seeds.test.tsx:76:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/8]⎯
+
+ FAIL  src/ui/editor/GameOpEditor.seeds.test.tsx > GameOpEditor — création au CLIC : aucune valeur pré-semée, raison visible > TOUTE op créable depuis la palette naît sans réf élue
+AssertionError: témoin : la palette ouverte propose des ops à réf: expected 0 to be greater than 0
+ ❯ src/ui/editor/GameOpEditor.seeds.test.tsx:102:73
+    100|       await h.teardown();
+    101|     }
+    102|     expect(creees, 'témoin : la palette ouverte propose des ops à réf'…
+       |                                                                         ^
+    103|   });
+    104| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/8]⎯
+
+ FAIL  src/ui/editor/GameOpEditor.test.tsx > GameOpEditor — menu « + op » COMPLET > le menu propose narrative ET grantWeapon (entre autres)
+AssertionError: narrative: expected undefined to be defined
+ ❯ src/ui/editor/GameOpEditor.test.tsx:68:61
+     66|     const { container } = monterRacine(<GameOpEditor ops={[]} onChange…
+     67|     const menu = await ouvrirMenu(menuDe(container, '+ Op mécanique'));
+     68|     expect(entreeDe(menu, OP_LABEL.narrative), 'narrative').toBeDefine…
+       |                                                             ^
+     69|     expect(entreeDe(menu, OP_LABEL.grantWeapon), 'grantWeapon').toBeDe…
+     70|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/8]⎯
+
+ FAIL  src/ui/editor/WorldMapEditor.test.tsx > WorldMapEditor — panneau Route / Péripéties (#419) > ajoute et édite une péripétie d’auteur (libellé, probabilité, effet)
+Error: entrée « Journal » absente du menu
+ ❯ Module.choisirDansMenu src/ui/editor/AddMenu.testkit.ts:39:22
+     37| export async function choisirDansMenu(menu: HTMLDetailsElement, libell…
+     38|   const entree = entreeDe(await ouvrirMenu(menu), libelle);
+     39|   if (!entree) throw new Error(`entrée « ${libelle} » absente du menu`…
+       |                      ^
+     40|   await act(async () => { entree.click(); });
+     41| }
+ ❯ src/ui/editor/WorldMapEditor.test.tsx:307:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/8]⎯
+
+ Test Files  5 failed (5)
+      Tests  8 failed | 55 passed (63)
+   Start at  13:58:44
+   Duration  22.99s (transform 13.85s, setup 41.57s, collect 8.49s, tests 2.77s, environment 2.62s, prepare 243ms)
+

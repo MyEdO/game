@@ -1,0 +1,36 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game
+
+ ❯ src/ui/Infobulle.test.tsx (5 tests | 1 failed) 234ms 437 MB heap used
+   × X2 — congédiée par Échap, la boîte ne se rouvre pas sur ce qui occupe encore l’ancrage > épinglée puis congédiée : un focus redonné sans départ ne la rouvre pas ; une entrée neuve, si 26ms
+     → refocus sans départ : la boîte congédiée reste fermée: expected 1 to be +0 // Object.is equality
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/ui/Infobulle.test.tsx > X2 — congédiée par Échap, la boîte ne se rouvre pas sur ce qui occupe encore l’ancrage > épinglée puis congédiée : un focus redonné sans départ ne la rouvre pas ; une entrée neuve, si
+AssertionError: refocus sans départ : la boîte congédiée reste fermée: expected 1 to be +0 // Object.is equality
+
+- Expected
++ Received
+
+- 0
++ 1
+
+ ❯ src/ui/Infobulle.test.tsx:101:79
+     99|     expect(boites(), 'Échap : la boîte est fermée').toBe(0);
+    100|     act(() => { ancre().dispatchEvent(new FocusEvent('focusin', { bubb…
+    101|     expect(boites(), 'refocus sans départ : la boîte congédiée reste f…
+       |                                                                               ^
+    102|     act(() => { ancre().blur(); });
+    103|     act(() => { ancre().focus(); });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 4 passed (5)
+   Start at  10:06:57
+   Duration  19.55s (transform 11.61s, setup 13.62s, collect 4.56s, tests 234ms, environment 677ms, prepare 60ms)
+
+
+exit=1

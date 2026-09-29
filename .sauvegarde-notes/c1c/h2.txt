@@ -1,0 +1,31 @@
+  · combat (au trait en bas) 1100px : l'acteur au trait est hors du champ de la frise — rien ne l'y ramène (scrollIntoView)
+  · combat (au trait en bas) 1100px : la boîte peinte de la vignette au trait dépasse de 110.8px le bord bas du champ de la piste — son liseré (3.84px) y est rogné
+  · combat (au trait en bas) 1100px : le chevron de l'unité au trait est masqué sur 49px de 10px — la tête et le pied doivent lui réserver sa place
+  · combat (au trait en bas) 1707px : l'acteur au trait est hors du champ de la frise — rien ne l'y ramène (scrollIntoView)
+  · combat (au trait en bas) 1707px : la boîte peinte de la vignette au trait dépasse de 110.8px le bord bas du champ de la piste — son liseré (3.84px) y est rogné
+  · combat (au trait en bas) 1707px : le chevron de l'unité au trait est masqué sur 49px de 10px — la tête et le pied doivent lui réserver sa place
+  · combat (au trait en bas) 700px : l'acteur au trait est hors du champ de la frise — rien ne l'y ramène (scrollIntoView)
+  · combat (au trait en bas) 700px : la boîte peinte de la vignette au trait dépasse de 55px le bord bas du champ de la piste — son liseré (3.84px) y est rogné
+  · combat (au trait en bas) 900px : l'acteur au trait est hors du champ de la frise — rien ne l'y ramène (scrollIntoView)
+  · combat (au trait en bas) 900px : la boîte peinte de la vignette au trait dépasse de 165px le bord bas du champ de la piste — son liseré (3.84px) y est rogné
+  · combat (au trait en bas) 900px : le chevron de l'unité au trait est masqué sur 103.2px de 10px — la tête et le pied doivent lui réserver sa place
+  · combat 700px (§12 561–700) : la carte du groupe fait 88px, pas plus compacte que 88px à 1707px
+  · combat 900px (§12 701–900) : la carte du groupe fait 88px, pas plus compacte que 88px à 1707px
+  · combat ×650 700px (§12 561–700) : la vie de la carte 0 du groupe n'est pas superposée à son portrait
+  · combat ×650 700px (§12 561–700) : la vie de la carte 1 du groupe n'est pas superposée à son portrait
+  · combat ×650 700px (§12 561–700) : la vie de la carte 2 du groupe n'est pas superposée à son portrait
+  · combat ×650 700px (§12 561–700) : la vie de la carte 3 du groupe n'est pas superposée à son portrait
+  · combat ×740 700px (§12 561–700) : la vie de la carte 0 du groupe n'est pas superposée à son portrait
+  · combat ×740 700px (§12 561–700) : la vie de la carte 1 du groupe n'est pas superposée à son portrait
+  · combat ×740 700px (§12 561–700) : la vie de la carte 2 du groupe n'est pas superposée à son portrait
+  · combat ×740 700px (§12 561–700) : la vie de la carte 3 du groupe n'est pas superposée à son portrait
+  · combat ×780 700px (§12 561–700) : la vie de la carte 0 du groupe n'est pas superposée à son portrait
+  · combat ×780 700px (§12 561–700) : la vie de la carte 1 du groupe n'est pas superposée à son portrait
+  · combat ×780 700px (§12 561–700) : la vie de la carte 2 du groupe n'est pas superposée à son portrait
+  · combat ×780 700px (§12 561–700) : la vie de la carte 3 du groupe n'est pas superposée à son portrait
+  · exploration 700px (§12 561–700) : la carte du groupe fait 88px, pas plus compacte que 88px à 1707px
+  · exploration 700px (§12 561–700) : la vie de la carte 0 du groupe n'est pas superposée à son portrait
+  · exploration 700px (§12 561–700) : la vie de la carte 1 du groupe n'est pas superposée à son portrait
+  · exploration 700px (§12 561–700) : la vie de la carte 2 du groupe n'est pas superposée à son portrait
+  · exploration 700px (§12 561–700) : la vie de la carte 3 du groupe n'est pas superposée à son portrait
+  · exploration 900px (§12 701–900) : la carte du groupe fait 88px, pas plus compacte que 88px à 1707px

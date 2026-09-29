@@ -1,0 +1,39 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game
+
+ ❯ src/ui/BoiteAncree.test.tsx (9 tests | 1 failed) 112ms 404 MB heap used
+   × usePlacementAncre — le placement naît au commit d’ouverture > rendu serveur : aucun avertissement d’effet de mise en page 20ms
+     → expected [ Array(1) ] to deeply equal []
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/ui/BoiteAncree.test.tsx > usePlacementAncre — le placement naît au commit d’ouverture > rendu serveur : aucun avertissement d’effet de mise en page
+AssertionError: expected [ Array(1) ] to deeply equal []
+
+- Expected
++ Received
+
+- Array []
++ Array [
++   "Warning: useLayoutEffect does nothing on the server, because its effect cannot be encoded into the server renderer's output format. This will lead to a mismatch between the initial, non-hydrated UI and the intended UI. To avoid this, useLayoutEffect should only be used in components that render exclusively on the client. See https://reactjs.org/link/uselayouteffect-ssr for common fixes.%s 
++     at Banc (/home/user/game/src/ui/BoiteAncree.test.tsx:49:17)",
++ ]
+
+ ❯ src/ui/BoiteAncree.test.tsx:131:74
+    129|       console.error = origine;
+    130|     }
+    131|     expect(erreurs.filter((e) => String(e).includes('useLayoutEffect')…
+       |                                                                          ^
+    132|   });
+    133| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 8 passed (9)
+   Start at  10:09:22
+   Duration  14.71s (transform 9.07s, setup 13.30s, collect 126ms, tests 112ms, environment 746ms, prepare 70ms)
+
+
+exit=1

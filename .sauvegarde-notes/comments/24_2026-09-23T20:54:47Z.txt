@@ -1,0 +1,57 @@
+## Garde du stock CSS : design FUSIONNÉ, signé le 2026-09-23 (remplace D1′-D6 et L1-L4 ci-dessus)
+
+Le codeur s'est arrêté avant tout code sur trois contradictions du paragraphe D1′-D6 :
+- **C1.** `d25652e73` ne franchit pas le seuil ½ de la source : 7 réfs captées sur 16.
+- **C2.** D6 donne des nombres négatifs sur l'échange S7.
+- **C3.** Le sens de « hors stock au parent » était ambigu.
+
+Le juge de design a confirmé C1 et C2, retenu la lecture du codeur pour C3, et trouvé un quatrième écart (C4) : APPARU n'est pas égal aux `CLIQUET:`, il en est un majorant.
+
+**Le cas (b), appariement d'une source supprimée, meurt avec L1.** Il ne voyait qu'un cas particulier d'une classe plus large : verser les règles d'un écran dans le module EXISTANT d'une primitive réutilisée, en inscrivant l'écran dans son `poseurs`. §5.2 l'accepte aujourd'hui, car l'ensemble permis est `fichier` ∪ `poseurs` (`src/ui/primitive-owners-guard.test.ts:397`, `:414-416`). Cette classe se ferme par L5.
+
+### Design
+
+- **L1, zone exempte.** Elle comprend :
+  - les feuilles de `FEUILLES_PARTAGEES`, hors `layout.css` ;
+  - tout module `css` dont au moins un propriétaire est RÉUTILISÉ, c'est-à-dire dont le `fichier` est importé directement par au moins 2 fichiers de `src/` (hors tests et `src/ui/gallery/`), ou par le `fichier` d'une autre entrée du manifeste (`directImportsOf`, `scripts/guards/lib/importGraph.mjs`).
+
+  `modulesExemptes` reste la source unique de la frontière.
+- **L2.** `nature: "organisme"` ne sert plus qu'à la garde de généricité. La phrase de `docs/charte-ui.md:445-451` qui fait de l'organisme un porteur d'exemption est réécrite.
+- **L3.** Garde de disjonction : aucun `fichier` du manifeste ne figure dans `scripts/hooks/ecrans-ui.json`. Les 28 fichiers en double sont retirés du registre des écrans.
+- **L4.** Le retour au stock des sites qui sortent de la zone exempte se déclare par `CLIQUET:`, fichier par fichier.
+- **L5.** Une classe définie par un module exempté doit être posée par le `fichier` d'un propriétaire réutilisé, ou par au moins 2 fichiers. Un `poseurs` ne légitime plus une classe qu'un seul fichier pose. C'est une extension de §5.2, pas une garde parallèle. Son coût est à mesurer sur les 11 entrées à `poseurs` avant d'écrire la règle.
+- **D1″, franchissement.** `m` franchit si et seulement si `m ∈ ex(commit)`, `m ∉ ex(parent)`, et `m` existe au parent. Cela couvre une revendication au manifeste, un second importeur gagné, ou l'ajout à `FEUILLES_PARTAGEES`. Pas de git, pas de seuil.
+
+  Prix(m), par volet = le nombre de clés (m, réf) sorties du stock et entrées en zone exempte sous la même clé.
+- **D2″.** Une ligne `RECLASSEMENT: <m> +N — <motif #ticket>` par module franchi, avec N exact. Trois refus : un franchissement sans ligne, une ligne sans franchissement, un N faux.
+- **D3″.** Chaque commit est jugé contre son parent. Le recalcul sur la plage cumulée disparaît.
+- **D4″.** La matière qui monte dans un module déjà exempté est PRIMITIVISÉE, sans ligne. Sa légitimité est tenue par L1, L5, §5.3 et (xiii).
+- **D5″, cliquet par clé.** La croissance se compte par (porteur, fichier nommé par l'entrée), en net par clé. Les clés du parent sont d'abord réécrites par la carte des renommages du commit, pour les couples dont les deux chemins sont hors zone exempte.
+- **(xiii) nominatif.** `SHARED_LEAK_BASELINE` (`src/ui/ui-ratchets.test.ts:320`) devient un stock nominatif `{ fichier, ref: '.<classe>' }`.
+- **D6″, ventilation par volet.** Les multisets sont clés par (fichier, réf) : Sb/Sh pour le stock et Eb/Eh pour la zone exempte, au parent (b) et au commit (h).
+  - SORTI = Sb − Sh ; APPARU = Sh − Sb ; ENTRÉ = Eh − Eb.
+  - RECLASSÉ = Σ prix(m), consommé à la clé.
+  - PRIMITIVISÉ = le SORTI restant apparié à l'ENTRÉ restant par réf, sans fichier, chaque clé consommée une seule fois.
+  - DISPARU = le SORTI restant.
+
+  Tous les nombres sont ≥ 0. Invariants : Δstock = APPARU − SORTI, SORTI = RECLASSÉ + PRIMITIVISÉ + DISPARU, APPARU ≥ Σ des `CLIQUET:` par fichier.
+
+**Angles morts, dits :**
+- un second importeur fantôme : un import mort, mais visible ;
+- une substitution de réf dans un même fichier : muette pour le `CLIQUET:`, visible dans APPARU ;
+- la perte d'un second importeur (S12) : les sites retournent au stock, ce qui exige un `CLIQUET:` dans un commit en apparence sans rapport. C'est voulu, parce que c'est la vérité du stock.
+
+### Chiffres attendus
+
+Sonde `j6-final.mjs`, fixtures S1 à S12 : toutes les lignes tiennent les invariants.
+
+| Commit | Franchissements | SORTI (id/esp) | PRIMITIVISÉ | DISPARU | APPARU |
+|---|---|---|---|---|---|
+| `41aa406d5` | aucun : `CombatConsole` n'a qu'un importeur, la console reste au stock | 19/0 | 0/0 | 19/0 | 3/0 |
+| `d25652e73` | aucun | 28/3 | 0/0 | 28/3 | 7/0 |
+| `c251f46af` | aucun | 352/122 | 158/48 | 194/74 | 111/38 |
+
+Coût sur 200 commits de `main` : `RECLASSEMENT:` exigé 0 fois hors naissance du stock. APPARU > 0 sur 7 des 15 commits postérieurs à la naissance (`9e6fffcdd` 219, `c251f46af` 149, `0645a8886` 29, `8fe2a96eb` 8, `3dcf69f6b` 5, `41aa406d5` 3, `07d9f850d` 1). C'est le prix de L1 : une extraction vers un module à un seul hôte déplace de la dette d'un fichier d'écran vers un autre.
+
+---
+_Generated by [Claude Code](https://claude.ai/code)_

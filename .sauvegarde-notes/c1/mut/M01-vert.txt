@@ -1,0 +1,12 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1919-H2
+
+ ✓ src/ui/CombatConsole.test.tsx (151 tests | 150 skipped) 360ms 468 MB heap used
+   ✓ CombatConsole — micro-rendu (sondes pixel du juge vision, 2026-08-17) > C-4 — l’alvéole ne grave aucun mot : son nom vit dans son nom accessible et dans son infobulle 358ms
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 150 skipped (151)
+   Start at  23:25:01
+   Duration  18.89s (transform 11.21s, setup 12.43s, collect 5.03s, tests 360ms, environment 639ms, prepare 54ms)
+

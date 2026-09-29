@@ -1,0 +1,66 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game
+
+ ❯ src/state/keybindings.test.ts (29 tests | 2 failed) 125ms 362 MB heap used
+   × raccourcis — aucune collision de touche NON DÉCLARÉE > un id, un raccourci : les ids du registre sont UNIQUES (`bindingParId` rend le premier) 14ms
+     → expected [ 'intent-cancel' ] to deeply equal []
+   × raccourcis — aucune collision de touche NON DÉCLARÉE > `sharedBy` ne nomme que des ids EXISTANTS qui partagent réellement une touche (pas une déclaration morte) 5ms
+     → expected [ …(6) ] to deeply equal []
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/state/keybindings.test.ts > raccourcis — aucune collision de touche NON DÉCLARÉE > un id, un raccourci : les ids du registre sont UNIQUES (`bindingParId` rend le premier)
+AssertionError: expected [ 'intent-cancel' ] to deeply equal []
+
+- Expected
++ Received
+
+- Array []
++ Array [
++   "intent-cancel",
++ ]
+
+ ❯ src/state/keybindings.test.ts:92:22
+     90|     const vus = new Set<string>();
+     91|     const doublons = KEYBINDINGS.map((b) => b.id).filter((id) => (vus.…
+     92|     expect(doublons).toEqual([]);
+       |                      ^
+     93|   });
+     94| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/state/keybindings.test.ts > raccourcis — aucune collision de touche NON DÉCLARÉE > `sharedBy` ne nomme que des ids EXISTANTS qui partagent réellement une touche (pas une déclaration morte)
+AssertionError: expected [ …(6) ] to deeply equal []
+
+- Expected
++ Received
+
+- Array []
++ Array [
++   "« intent-cancel » nomme « cursor-cancel », absent du registre",
++   "« clear-preview » nomme « cursor-cancel », absent du registre",
++   "« interlude-exit » nomme « cursor-cancel », absent du registre",
++   "« action-disarm » nomme « cursor-cancel », absent du registre",
++   "« toggle-menu » nomme « cursor-cancel », absent du registre",
++   "« editeur-echap » nomme « cursor-cancel », absent du registre",
++ ]
+
+ ❯ src/state/keybindings.test.ts:127:20
+    125|       }
+    126|     }
+    127|     expect(fautes).toEqual([]);
+       |                    ^
+    128|   });
+    129| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 27 passed (29)
+   Start at  10:10:20
+   Duration  14.39s (transform 9.06s, setup 13.83s, collect 24ms, tests 125ms, environment 0ms, prepare 57ms)
+
+
+exit=1

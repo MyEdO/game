@@ -1,0 +1,27 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1919-H1
+
+ ❯ src/ui/ui-ratchets.test.ts (53 tests | 1 failed | 52 skipped) 21ms 377 MB heap used
+   × canon responsive, peaux et matières partagées de src/ui/styles > ≤560, bande DÉPLIÉE : son rang passe devant le fil d’événements, et la règle BAT l’ancrage de repos 19ms
+     → expected 40 to be greater than 46
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 52 skipped (53)
+   Start at  20:48:00
+   Duration  14.67s (transform 9.01s, setup 13.95s, collect 327ms, tests 21ms, environment 0ms, prepare 56ms)
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/ui/ui-ratchets.test.ts > canon responsive, peaux et matières partagées de src/ui/styles > ≤560, bande DÉPLIÉE : son rang passe devant le fil d’événements, et la règle BAT l’ancrage de repos
+AssertionError: expected 40 to be greater than 46
+ ❯ src/ui/ui-ratchets.test.ts:897:24
+    895|     const fil = rang(readFileSync(join(UI, 'styles', 'combat-banner.cs…
+    896|     expect(fil, '`.combat-feed` porte un rang').not.toBeNull();
+    897|     expect(rangDeplie).toBeGreaterThan(fil!);
+       |                        ^
+    898|     // À poids ÉGAL c'est l'ordre qui tranche, et le rang de repos (`[…
+    899|     // .party-dock`) suit la primitive dans le graphe d'imports : le r…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+

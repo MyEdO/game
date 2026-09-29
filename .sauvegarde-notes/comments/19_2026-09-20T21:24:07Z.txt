@@ -1,0 +1,17 @@
+## Publication 9e03cbb9c
+
+Plage publiée : `17079f831 → 9e03cbb9c` sur `main`.
+
+### Commits (4)
+- `77c2b633b` test(ui): refs #1806 — les contrats CSS de rendu passent du test unitaire à la sonde navigateur
+- `36cd9e36b` fix(gardes): refs #1806 — la garde des valeurs CSS consomme `estSuiteVitest`
+- `ccbdd8da8` chore(docs): refs #1806 — docs dérivés
+- `9e03cbb9c` chore(docs): refs #1806 — docs dérivés
+
+### CI
+- verte — course `35538013021` : https://github.com/cgauche/game/actions/runs/35538013021
+- attente du verdict CI : 10.8 min (temps d’attente, pas de machine locale).
+
+#1806 est rattaché (`refs`) par cette publication, non fermé.
+
+<!-- publier: 9e03cbb9c1144807193b763795289fe3e17bee38 -->

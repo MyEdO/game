@@ -1,0 +1,30 @@
+VERDICT : TIENT (0 BLOQUANT, 3 RESTES)
+
+Arbre : /home/user/game/.wt-1806-L2, HEAD 20b8afba5, train 7 indexé (19 fichiers), aucun fichier modifié hors de l'index (`git status --short | grep -v '^M  '` ne rend rien).
+Contrôle positif : canonUnique.mjs:407 liaisonDAppele ; :318 reconnait par liaisonDAppele(n.expression, sf, ['*','default']) ; :53 SCHEMAS_DU_CANON en table ; :79-81 estSelectionDerivee par origineImportee ; manifeste :1417 id tsProgram ; témoin ts-program-fabrique-guard.test.ts:34-52.
+
+BLOQUANTS : aucun.
+
+LENTILLES
+L1 liaisonDAppele / estAppelDeclare, CONFIRMÉ sans régression. Ancien code : identifiant → nom = liaison.nom ; membre → nom seulement si liaison.nom === '*' ; rejet si !liaison || nom === null. Nouveau (:447-452) : liaisonDAppele(…, ['*']) rend liaisonDe pour l'identifiant, et pour le membre {spec, nom: membre} seulement si l.nom est dans ['*'], null sinon ; rejet si !nom. Les deux tables de vérité sont les mêmes (le seul écart, nom === '' contre null, ne peut pas arriver : un identifiant n'est jamais vide). Consommateurs rejoués : roll-seam-exclusivity-guard, cle-de-site-guard, registry-id-branch-guard → rc=0, 3 fichiers, 112/112 (vt2.out).
+L2 CONSTRUCTION_DE_PROGRAMME, CONFIRMÉ. Les 13 formes donnent leur verdict attendu : ts-program-fabrique-guard.test.ts, 16 tests verts (vt1.out). Le JSDoc :302-311 dit vrai sur ses dires : l'import par défaut vaut l'espace de noms, l'homonyme, l'autre objet et le littéral ne sont pas lus, le masquage local est confondu (sonde `masque` → [2]), et chaque forme HORS DE PORTÉE est au témoin. Corpus : 0 site (test « aucun site » vert). Les sites de gabarit analyse-retention-guard.test.ts:118/:201/:202/:203/:251/:252 sont dans des littéraux.
+L3 SCHEMAS_DU_CANON / estSelectionDerivee, CONFIRMÉ. disponibilite.ts:20 importe availabilitySchema de '../grammaire/valeurs' (disponibilite.ts, ligne d'import) et reste blanchi : le test corpus d'unions-canon est vert. Le seul appelant de reconnait est :585 et il passe sf (git grep "reconnait(" : aucun autre). Aucun lecteur de SCHEMAS_DU_CANON hors de canonUnique.mjs, donc le changement de forme ne casse rien. L'ancien cas réécrit « avec son import » est LÉGITIME. Le contrat neuf exige la liaison, et l'ancien cas « sans import → [] » verrouillait précisément le défaut (un homonyme local blanchi). Sa forme multiligne est gardée (SELECTIONS[0]), et le contraire (« HOMONYME local, sans import » → 1) est au témoin. Le cas « AUTRE module » résout vraiment : src/data/schemas/defs/disponibilite.ts existe, et il n'exporte pas availabilitySchema. Le test ne passe donc pas grâce à un import irrésolu.
+L4 Manifeste, CONFIRMÉ. Mêmes 7 clés que les voisines (id, type, label, fichier, concept, perimetre, verrou). Les 4 noms du label sont exportés (tsProgram.mjs:26, :37, :61, :99). analyse-retention-guard.test.ts importe bien repoProgram et virtualProgram (:30, :68, :166, :185). La ligne orpheline de systemes.md suit les voisines (:214 et suivantes). `npm run docs:check` rc=0, « 30 frais » (dc.out).
+L5 Règle 6, CONFIRMÉ. Les JSDoc neufs portent le contrat et les HORS DE PORTÉE, sans paraphrase de règle, ni excuse, ni pierre tombale.
+
+RESTES
+R1 canonUnique.mjs:318 : le spécificateur `typescript` est comparé en égalité stricte. Sonde : `import ts from 'typescript/lib/tsserverlibrary'; ts.createProgram()` → []. Le train 6 voyait cette forme par son nom : c'est une perte, sur une forme ni déclarée ni présente dans le dépôt (git grep des imports `typescript/` : 0). Correction : accepter `spec === 'typescript' || spec.startsWith('typescript/')`, ou l'ajouter aux HORS DE PORTÉE du JSDoc et au témoin.
+R2 canonUnique.mjs:407-411 : l'appelé parenthésé `(ts.createProgram)()` et la non-nullité `ts.createProgram!()` → [] (la sonde le montre). Le train 6 ne les voyait pas non plus, et elles ne sont pas déclarées. Correction : faire passer e par le `sansEnveloppe` existant dans liaisonDAppele, ou les déclarer HORS DE PORTÉE.
+R3 Hors lot, la même classe qu'avant : valeurs-de-champ.test.ts:320-322 (RX_SELECTION) lit un nom écrit, et les globaux lus par leur nom (canonUnique.mjs:237/:267/:332/:369/:98-99). Le rendu les signale ; il faut une issue au gabarit #101 si elle n'existe pas.
+
+SONDE (juge-train7/sonde.mjs, rc=0, sonde.out) :
+optChain [2] · parenth [] · nonNull [] · sousChemin [] · defaultDuNs [] · masque [2] · mjs [2] · mjsRel [2] · importType [2] · lsNu [2] · nomNonFabrique []
+TESTS REJOUÉS (code lu par $?, sans pipe) :
+- vitest --no-cache ts-program-fabrique-guard + unions-canon : rc=0, 34/34 (vt1.out ; le 3e chemin passé était faux, il est rejoué en vt2).
+- vitest --no-cache roll-seam-exclusivity-guard + cle-de-site-guard + registry-id-branch-guard : rc=0, 112/112.
+- npm run docs:check : rc=0.
+Mutations M1-M8 : je ne les ai pas rejouées (hors rôle). Le témoin rougit sous la lecture par nom : `require` et `import()`, vus au train 6, sont maintenant vus [] (M1 le décrit), ce qui concorde.
+Processus : aucun processus en arrière-plan. Toutes les commandes ont tourné au premier plan, bornées par timeout, et sont terminées.
+
+JUGE: juge adversarial du train 7 R-M2 lot A (#1806) sur 20b8afba5+index : TIENT. liaisonDAppele est équivalent pour estAppelDeclare (112/112 chez ses consommateurs), les 13 formes du témoin sont au verdict attendu, disponibilite.ts:20 est toujours blanchi par sa liaison, et le manifeste tsProgram a la forme des voisines, docs:check vert.
+REFUTATION: sonde en lecture seule sur 11 formes hors témoin : sous-chemin typescript/lib, parenthésé et non-null échappent sans être déclarés (RESTES R1/R2, 0 site) ; vitest 34/34 + 112/112, docs:check rc=0 ; ancien cas réécrit avec import jugé légitime (contraire au témoin).

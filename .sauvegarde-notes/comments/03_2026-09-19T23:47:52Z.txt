@@ -1,0 +1,17 @@
+## Publication 37873ae15
+
+Plage publiée : `c623f5062 → 37873ae15` sur `main`.
+
+### Commits (4)
+- `9e6fffcdd` refactor(ui): refs #1806 — sous-lot 2a : l'identité du HUD vit au module de sa primitive
+- `f73b309a1` chore(docs): refs #1806 — docs dérivés
+- `e65606591` fix(tests): refs #1806 — le verrou des importeurs de DrBar exempte la vitrine, par classe
+- `37873ae15` chore(docs): refs #1806 — docs dérivés
+
+### CI
+- verte — course `35476624747` : https://github.com/cgauche/game/actions/runs/35476624747
+- attente du verdict CI : 10.3 min (temps d’attente, pas de machine locale).
+
+#1806 est rattaché (`refs`) par cette publication, non fermé.
+
+<!-- publier: 37873ae150f0637a18cf5c872d003e58a2a24b1b -->

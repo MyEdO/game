@@ -1,0 +1,37 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1806-L1
+
+ ❯ src/ui/choix-retenu-guard.test.ts (27 tests | 1 failed) 4097ms 445 MB heap used
+   ✓ état de bouton — son attribut, jamais le ton primaire > aucun site de `src/ui` ne peint un état de bouton en primaire 1042ms
+   × divulgation — son état est le chevron canonique, quelle que soit la matière du contrôle > aucune divulgation de `src` n’écrit son propre état 2935ms
+     → expected [ 'src/ui/gallery/registry.tsx:894' ] to deeply equal []
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/ui/choix-retenu-guard.test.ts > divulgation — son état est le chevron canonique, quelle que soit la matière du contrôle > aucune divulgation de `src` n’écrit son propre état
+AssertionError: expected [ 'src/ui/gallery/registry.tsx:894' ] to deeply equal []
+
+- Expected
++ Received
+
+- Array []
++ Array [
++   "src/ui/gallery/registry.tsx:894",
++ ]
+
+ ❯ src/ui/choix-retenu-guard.test.ts:291:96
+    289| 
+    290|   it('aucune divulgation de `src` n’écrit son propre état', () => {
+    291|     expect(readCorpus(['src']).flatMap((f) => divulgationsQuiEcriventL…
+       |                                                                                                ^
+    292|   });
+    293| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 26 passed (27)
+   Start at  13:57:00
+   Duration  20.04s (transform 9.56s, setup 14.91s, collect 611ms, tests 4.10s, environment 0ms, prepare 65ms)
+

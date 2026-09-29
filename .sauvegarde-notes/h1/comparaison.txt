@@ -1,0 +1,27 @@
+combat-heros-1707x780
+  avant groupe=[654.5,10,398,123.6] frise=[10,79.8,86.2,452] fil=[130,523.7,317.7,18] ouverture=null rail=[1631,16,60,60] topbar=[10,10,42,42] objectif=null pont=[0,592.7,1707,187.3]
+  apres groupe=[654.5,8,398,123.6] frise=[8,65.8,86.2,452] fil=[102.2,507.7,317.7,18] ouverture=null rail=[1639,8,60,60] topbar=[8,8,638.5,42] objectif=null pont=[0,592.7,1707,187.3]
+combat-heros-1366x650
+  avant groupe=[484,10,398,123.6] frise=[10,101,86.2,284] fil=[130,398,317.7,18] ouverture=null rail=[1290,16,60,60] topbar=[10,10,42,42] objectif=null pont=[0,467,1366,183]
+  apres groupe=[484,8,398,123.6] frise=[8,59,86.2,340] fil=[102.2,382,317.7,18] ouverture=null rail=[1298,8,60,60] topbar=[8,8,468,42] objectif=null pont=[0,467,1366,183]
+combat-heros-900x780
+  avant groupe=[251,10,398,123.6] frise=[10,86.1,80.2,440.8] fil=[130,525,317.7,18] ouverture=null rail=[824,16,60,60] topbar=[10,10,42,42] objectif=null pont=[0,594,900,186]
+  apres groupe=[251,8,398,123.6] frise=[8,72.1,80.2,440.8] fil=[96.2,509,317.7,18] ouverture=null rail=[832,8,60,60] topbar=[8,8,235,42] objectif=null pont=[0,594,900,186]
+combat-heros-700x780
+  avant groupe=[151,6,398,123.6] frise=[4,84,692,73.8] fil=[191.2,192,317.7,18] ouverture=null rail=[0,0,0,0] topbar=[10,10,42,42] objectif=null pont=[0,205,700,575]
+  apres groupe=[151,4,398,123.6] frise=[4,131.6,692,73.8] fil=[191.2,213.4,317.7,18] ouverture=null rail=[636,4,60,60] topbar=[4,4,143,42] objectif=null pont=[0,205,700,575]
+combat-heros-360x740
+  avant groupe=[58,6,160.5,27] frise=[58,34,298,63.8] fil=[90,140,180,48] ouverture=null rail=[0,0,0,0] topbar=[10,10,42,42] objectif=null pont=[0,442,360,298]
+  apres groupe=[133.5,4,93,27] frise=[4,68,352,63.8] fil=[21.2,139.8,317.7,18] ouverture=null rail=[296,4,60,60] topbar=[4,4,91.8,42] objectif=null pont=[0,442,360,298]
+combat-ouverture-1707x780
+  avant groupe=[654.5,10,398,123.6] frise=[10,79.8,103.6,452] fil=[130,523.7,251.8,18] ouverture=[725.5,152,256.1,81] rail=[1631,16,60,60] topbar=[10,10,42,42] objectif=null pont=[0,592.7,1707,187.3]
+  apres groupe=[654.5,8,398,123.6] frise=[8,65.8,103.6,452] fil=[119.6,507.7,251.8,18] ouverture=[725.5,139.6,256.1,81] rail=[1639,8,60,60] topbar=[8,8,638.5,42] objectif=null pont=[0,592.7,1707,187.3]
+combat-ouverture-360x740
+  avant groupe=[58,6,160.5,27] frise=[58,34,298,63.8] fil=[90,140,180,32] ouverture=[4,554,352,60] rail=[0,0,0,0] topbar=[10,10,42,42] objectif=null pont=[0,626,360,114]
+  apres groupe=[133.5,4,93,27] frise=[4,68,352,63.8] fil=[54.1,139.8,251.8,18] ouverture=[76.5,531,207,60] rail=[296,4,60,60] topbar=[4,4,91.8,42] objectif=null pont=[0,626,360,114]
+exploration-1366x650
+  avant groupe=[484,10,398,123.6] frise=null fil=null ouverture=null rail=null topbar=[10,10,523,102] objectif=[10,82,520,30] pont=[0,601,1366,49]
+  apres groupe=[484,8,398,123.6] frise=null fil=null ouverture=null rail=null topbar=[8,8,468,42] objectif=[8,58,360.7,30] pont=[0,601,1366,49]
+exploration-360x740
+  avant groupe=[58,6,160.5,27] frise=null fil=null ouverture=null rail=null topbar=[10,10,200,131] objectif=[10,111,309.6,30] pont=[0,691,360,49]
+  apres groupe=[133.5,4,93,27] frise=null fil=null ouverture=null rail=null topbar=[4,4,91.8,42] objectif=[4,50,309.6,30] pont=[0,691,360,49]

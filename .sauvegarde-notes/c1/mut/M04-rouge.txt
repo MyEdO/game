@@ -1,0 +1,31 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1919-H2
+
+ ❯ src/ui/CombatConsole.test.tsx (151 tests | 1 failed | 150 skipped) 288ms 463 MB heap used
+   × CombatConsole — droit de la travée et du coin (juge vision 2026-08-17) > D-3 — le coin grave toujours ESPACE ; l’état du tour se lit dans son infobulle 286ms
+     → expected 'Action non dépensée' to be 'ESPACE' // Object.is equality
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 150 skipped (151)
+   Start at  23:06:47
+   Duration  20.26s (transform 11.98s, setup 13.31s, collect 5.59s, tests 288ms, environment 659ms, prepare 66ms)
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/ui/CombatConsole.test.tsx > CombatConsole — droit de la travée et du coin (juge vision 2026-08-17) > D-3 — le coin grave toujours ESPACE ; l’état du tour se lit dans son infobulle
+AssertionError: expected 'Action non dépensée' to be 'ESPACE' // Object.is equality
+
+Expected: "ESPACE"
+Received: "Action non dépensée"
+
+ ❯ src/ui/CombatConsole.test.tsx:1525:22
+    1523|     h.conditions = [];
+    1524|     monter(h);
+    1525|     expect(touche()).toBe('ESPACE');
+       |                      ^
+    1526|     expect(etat(), 'Action non dépensée et utilisable : l’avertissemen…
+    1527|     expect(survol('end-turn').sub, 'l’avertissement ne se lit pas au s…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+

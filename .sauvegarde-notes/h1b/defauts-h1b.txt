@@ -1,0 +1,67 @@
+  · combat (au trait en bas) 1100px : l'acteur au trait est hors du champ de la frise — rien ne l'y ramène (scrollIntoView)
+  · combat (au trait en bas) 1100px : la boîte peinte de la vignette au trait dépasse de 110.8px le bord bas du champ de la piste — son liseré (3.84px) y est rogné
+  · combat (au trait en bas) 1100px : le chevron de l'unité au trait est masqué sur 49px de 10px — la tête et le pied doivent lui réserver sa place
+  · combat (au trait en bas) 1707px : l'acteur au trait est hors du champ de la frise — rien ne l'y ramène (scrollIntoView)
+  · combat (au trait en bas) 1707px : la boîte peinte de la vignette au trait dépasse de 110.8px le bord bas du champ de la piste — son liseré (3.84px) y est rogné
+  · combat (au trait en bas) 1707px : le chevron de l'unité au trait est masqué sur 49px de 10px — la tête et le pied doivent lui réserver sa place
+  · combat (au trait en bas) 900px : l'acteur au trait est hors du champ de la frise — rien ne l'y ramène (scrollIntoView)
+  · combat (au trait en bas) 900px : la boîte peinte de la vignette au trait dépasse de 110px le bord bas du champ de la piste — son liseré (3.84px) y est rogné
+  · combat (au trait en bas) 900px : le chevron de l'unité au trait est masqué sur 48.2px de 10px — la tête et le pied doivent lui réserver sa place
+  · combat 1707px (§12 >900) : le pont prend 24.0 % de la hauteur (plafond 21 % dès 1280px)
+  · combat 700px (§12 561–700) : la carte du groupe fait 88px, pas plus compacte que 88px à 1707px
+  · combat 700px (§12 561–700) : la vie de la carte 0 du groupe n'est pas superposée à son portrait
+  · combat 700px (§12 561–700) : la vie de la carte 1 du groupe n'est pas superposée à son portrait
+  · combat 700px (§12 561–700) : la vie de la carte 2 du groupe n'est pas superposée à son portrait
+  · combat 700px (§12 561–700) : la vie de la carte 3 du groupe n'est pas superposée à son portrait
+  · combat 700px : l'ouvreur « Dossier du navire — état, cargaison, équipage » {"x":595,"y":244.4,"w":42,"h":42} ne reçoit pas son clic — recouvert par cc-dock skin-pont <DIV>
+  · combat 700px : le tiroir du journal ne s'ouvre pas (panneau non rendu) — sonde aveugle sur sa réserve du bas
+  · combat 900px (§12 701–900) : la carte du groupe fait 88px, pas plus compacte que 88px à 1707px
+  · combat 900px : la case « Ignorer les modificateurs de critique (0 » {"x":824.3,"y":668,"w":52,"h":40} ne reçoit pas son clic — recouverte par icon <svg>
+  · couche (tour de héros) 700×650 : la commande « Erik » {"x":322.9,"y":143.6,"w":44,"h":50} ne reçoit pas son clic — chip cc-cell cc-empty <SPAN>
+  · couche (tour de héros) 700×650 : la commande « Frère Anselm » {"x":546.9,"y":143.6,"w":44,"h":50} ne reçoit pas son clic — cc-dock skin-pont <DIV>
+  · couche (tour de héros) 700×650 : la commande « Grunni Pierre-de-Fer » {"x":490.9,"y":143.6,"w":44,"h":50} ne reçoit pas son clic — cc-dock skin-pont <DIV>
+  · couche (tour de héros) 700×650 : la commande « Johann » {"x":434.9,"y":143.6,"w":44,"h":50} ne reçoit pas son clic — chip cc-cell cc-empty <SPAN>
+  · couche (tour de héros) 700×650 : la commande « Klein Bürger » {"x":138.8,"y":136.6,"w":56.3,"h":64} ne reçoit pas son clic — cc-dock skin-pont <DIV>
+  · couche (tour de héros) 700×650 : la commande « Knud Cratinx » {"x":82.8,"y":143.6,"w":44,"h":50} ne reçoit pas son clic — cc-dock skin-pont <DIV>
+  · couche (tour de héros) 700×650 : la commande « Mikael » {"x":266.9,"y":143.6,"w":44,"h":50} ne reçoit pas son clic — chip cc-cell cc-empty <SPAN>
+  · couche (tour de héros) 700×650 : la commande « Ouvrir le journal » {"x":645,"y":244.4,"w":42,"h":42} ne reçoit pas son clic — cc-dock skin-pont <DIV>
+  · couche (tour de héros) 700×650 : la commande « Sigmund Reikhardt » {"x":210.9,"y":143.6,"w":44,"h":50} ne reçoit pas son clic — cc-arsenal-body <DIV>
+  · couche (tour de héros) 700×650 : la commande « Terenz » {"x":378.9,"y":143.6,"w":44,"h":50} ne reçoit pas son clic — chip cc-cell cc-empty <SPAN>
+  · couche (tour de héros) 700×650 : la surface « X » de la zone « outils » {"x":636,"y":235.4,"w":60,"h":60} est rognée par la couche de 220.5px
+  · couche (tour de héros) 700×650 : la surface « X » {"x":636,"y":235.4,"w":60,"h":60} déborde de sa zone « outils » {"x":553,"y":235.4,"w":143,"h":0} de 60px
+  · couche (tour de héros) 700×650 : la surface « combat-feed » de la zone « temps » {"x":191.2,"y":213.4,"w":317.7,"h":18} est rognée par la couche de 156.5px
+  · couche (tour de héros) 700×650 : la surface « initiative-strip » de la zone « temps » {"x":4,"y":131.6,"w":692,"h":73.8} est rognée par la couche de 130.5px
+  · couche (tour de héros) 700×650 : la surface « party-dock » de la zone « groupe » {"x":151,"y":4,"w":398,"h":123.6} est rognée par la couche de 52.6px
+  · couche (tour de héros) 700×740 : la commande « Erik » {"x":322.9,"y":143.6,"w":44,"h":50} ne reçoit pas son clic — cc-dock skin-pont <DIV>
+  · couche (tour de héros) 700×740 : la commande « Frère Anselm » {"x":546.9,"y":143.6,"w":44,"h":50} ne reçoit pas son clic — cc-dock skin-pont <DIV>
+  · couche (tour de héros) 700×740 : la commande « Grunni Pierre-de-Fer » {"x":490.9,"y":143.6,"w":44,"h":50} ne reçoit pas son clic — cc-dock skin-pont <DIV>
+  · couche (tour de héros) 700×740 : la commande « Johann » {"x":434.9,"y":143.6,"w":44,"h":50} ne reçoit pas son clic — cc-dock skin-pont <DIV>
+  · couche (tour de héros) 700×740 : la commande « Klein Bürger » {"x":138.8,"y":136.6,"w":56.3,"h":64} ne reçoit pas son clic — cc-dock skin-pont <DIV>
+  · couche (tour de héros) 700×740 : la commande « Knud Cratinx » {"x":82.8,"y":143.6,"w":44,"h":50} ne reçoit pas son clic — cc-dock skin-pont <DIV>
+  · couche (tour de héros) 700×740 : la commande « Mikael » {"x":266.9,"y":143.6,"w":44,"h":50} ne reçoit pas son clic — cc-dock skin-pont <DIV>
+  · couche (tour de héros) 700×740 : la commande « Ouvrir le journal » {"x":645,"y":244.4,"w":42,"h":42} ne reçoit pas son clic — cc-dock skin-pont <DIV>
+  · couche (tour de héros) 700×740 : la commande « Sigmund Reikhardt » {"x":210.9,"y":143.6,"w":44,"h":50} ne reçoit pas son clic — cc-dock skin-pont <DIV>
+  · couche (tour de héros) 700×740 : la commande « Terenz » {"x":378.9,"y":143.6,"w":44,"h":50} ne reçoit pas son clic — cc-dock skin-pont <DIV>
+  · couche (tour de héros) 700×740 : la surface « X » de la zone « outils » {"x":636,"y":235.4,"w":60,"h":60} est rognée par la couche de 130.5px
+  · couche (tour de héros) 700×740 : la surface « X » {"x":636,"y":235.4,"w":60,"h":60} déborde de sa zone « outils » {"x":553,"y":235.4,"w":143,"h":0} de 60px
+  · couche (tour de héros) 700×740 : la surface « combat-feed » de la zone « temps » {"x":191.2,"y":213.4,"w":317.7,"h":18} est rognée par la couche de 66.5px
+  · couche (tour de héros) 700×740 : la surface « initiative-strip » de la zone « temps » {"x":4,"y":131.6,"w":692,"h":73.8} est rognée par la couche de 40.5px
+  · couche (tour de héros) 700×780 : la commande « Ouvrir le journal » {"x":645,"y":244.4,"w":42,"h":42} ne reçoit pas son clic — cc-dock skin-pont <DIV>
+  · couche (tour de héros) 700×780 : la surface « X » de la zone « outils » {"x":636,"y":235.4,"w":60,"h":60} est rognée par la couche de 90.5px
+  · couche (tour de héros) 700×780 : la surface « X » {"x":636,"y":235.4,"w":60,"h":60} déborde de sa zone « outils » {"x":553,"y":235.4,"w":143,"h":0} de 60px
+  · couche (tour de héros) 700×780 : la surface « combat-feed » de la zone « temps » {"x":191.2,"y":213.4,"w":317.7,"h":18} est rognée par la couche de 26.5px
+  · couche (tour de héros) 900×650 : la commande « Dague » {"x":-36.6,"y":534,"w":32.2,"h":24} ne reçoit pas son clic — rien
+  · couche (tour de héros) 900×650 : la commande « Ignorer les modificateurs de critique (0 » {"x":824.3,"y":538,"w":52,"h":40} ne reçoit pas son clic — icon <svg>
+  · couche (tour de héros) 900×650 : la commande « Mains nues » {"x":-36.6,"y":562,"w":32.2,"h":26} ne reçoit pas son clic — rien
+  · couche (tour de héros) 900×740 : la commande « Dague » {"x":-36.6,"y":624,"w":32.2,"h":24} ne reçoit pas son clic — rien
+  · couche (tour de héros) 900×740 : la commande « Ignorer les modificateurs de critique (0 » {"x":824.3,"y":628,"w":52,"h":40} ne reçoit pas son clic — icon <svg>
+  · couche (tour de héros) 900×740 : la commande « Mains nues » {"x":-36.6,"y":652,"w":32.2,"h":26} ne reçoit pas son clic — rien
+  · couche (tour de héros) 900×780 : la commande « Dague » {"x":-36.6,"y":664,"w":32.2,"h":24} ne reçoit pas son clic — rien
+  · couche (tour de héros) 900×780 : la commande « Ignorer les modificateurs de critique (0 » {"x":824.3,"y":668,"w":52,"h":40} ne reçoit pas son clic — icon <svg>
+  · couche (tour de héros) 900×780 : la commande « Mains nues » {"x":-36.6,"y":692,"w":32.2,"h":26} ne reçoit pas son clic — rien
+  · exploration 700px (§12 561–700) : la carte du groupe fait 88px, pas plus compacte que 88px à 1707px
+  · exploration 700px (§12 561–700) : la vie de la carte 0 du groupe n'est pas superposée à son portrait
+  · exploration 700px (§12 561–700) : la vie de la carte 1 du groupe n'est pas superposée à son portrait
+  · exploration 700px (§12 561–700) : la vie de la carte 2 du groupe n'est pas superposée à son portrait
+  · exploration 700px (§12 561–700) : la vie de la carte 3 du groupe n'est pas superposée à son portrait
+  · exploration 900px (§12 701–900) : la carte du groupe fait 88px, pas plus compacte que 88px à 1707px

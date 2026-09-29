@@ -1,0 +1,50 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1806-L1
+
+ ❯ src/ui/raccourcis-registre.test.ts (6 tests | 2 failed) 80ms 398 MB heap used
+   × raccourcis — un seul lecteur de clavier global > un type d’événement VARIABLE (table de délégation) est un écouteur clavier dès qu’un type clavier est nommé 15ms
+     → .toMatch() expects to receive a string, but got object
+   × raccourcis — un seul lecteur de clavier global > les couches déclarées hors registre EXISTENT et posent bien un écouteur (aucune marque morte) 25ms
+     → marque « @clavier-hors-registre » sans écouteur clavier global: expected [ 'src/ui/Infobulle.tsx' ] to deeply equal []
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/ui/raccourcis-registre.test.ts > raccourcis — un seul lecteur de clavier global > un type d’événement VARIABLE (table de délégation) est un écouteur clavier dès qu’un type clavier est nommé
+TypeError: .toMatch() expects to receive a string, but got object
+ ❯ src/ui/raccourcis-registre.test.ts:87:37
+     85|     const delegue = 'const PHASES = { mouseover: false, keydown: true …
+     86|       + 'for (const [type, capture] of Object.entries(PHASES)) documen…
+     87|     expect(verdictClavier(delegue)).toMatch(/hors du registre/);
+       |                                     ^
+     88|     expect(verdictClavier("const SUITE = ['pointermove', 'pointerup'];…
+     89|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/ui/raccourcis-registre.test.ts > raccourcis — un seul lecteur de clavier global > les couches déclarées hors registre EXISTENT et posent bien un écouteur (aucune marque morte)
+AssertionError: marque « @clavier-hors-registre » sans écouteur clavier global: expected [ 'src/ui/Infobulle.tsx' ] to deeply equal []
+
+- Expected
++ Received
+
+- Array []
++ Array [
++   "src/ui/Infobulle.tsx",
++ ]
+
+ ❯ src/ui/raccourcis-registre.test.ts:101:86
+     99|     expect(marques.length, 'la marque doit rester un fait mesuré, pas …
+    100|     const mortes = marques.filter(({ text }) => !ecouteurGlobal(text))…
+    101|     expect(mortes, 'marque « @clavier-hors-registre » sans écouteur cl…
+       |                                                                                      ^
+    102|   });
+    103| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 4 passed (6)
+   Start at  13:56:13
+   Duration  13.05s (transform 8.10s, setup 12.41s, collect 163ms, tests 80ms, environment 0ms, prepare 54ms)
+

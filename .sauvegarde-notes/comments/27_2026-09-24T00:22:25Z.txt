@@ -1,0 +1,67 @@
+## Cure du stock de la famille Combat : design jugé du 2026-09-24
+
+Question posée : où vit l'identité d'un organisme qui n'a qu'un seul hôte ? Sept modules de la famille ont chacun leur primitive au manifeste, mais un seul importeur (`CampaignView.tsx`). Leurs sites sont donc au stock, par la zone exempte L1. Carte du lecteur et verdict du juge de design : scratchpad `lecteur-cure/`, `juge-cure/`.
+
+### Invariant
+- A1, Clément (2026-09-18, #1800) : « Un module CSS d'écran ne déclare que du PLACEMENT (grille, gap, largeur, position) ; toute IDENTITÉ (couleur, bordure, police, rayon, ombre) vit dans une primitive. Le nombre de classes n'est plus compté. »
+- Clément (2026-07-12), fiche `user-doctrine-ui-coherente-par-primitives-comme-les-donnees` : « J'y crois pas une seule seconde à des classes mono-écrans personnellement, c'est une excuse à la dérive ».
+- Clément (2026-09-20, #1811) : « Pour certains écrans ils n'ont pas forcement besoin d'etre identique, chaque écran avaient été créé sans cohérence avec les autres ».
+
+Une primitive est donc ce qui a **au moins deux porteurs mesurés au commit**, jamais ce qui pourrait en avoir.
+
+### Qui possède quoi
+- **L'organisme** (console, frise, dock, bannières) ne possède que son placement et sa géométrie. Ses variables `--x` ne portent que des jetons `var(--…)`, jamais un littéral peint.
+- **La matière peinte** vit à l'un de ces trois endroits :
+  1. une primitive réutilisée existante, avec sa variante `data-*` dans la primitive (`.chip`, `PortraitTile`, `.clamp`) ;
+  2. une peau partagée de `components.css` (`.skin-pont`, `.skin-bois`, `.skin-tole`), posée par au moins 2 fichiers ;
+  3. une molécule déclarée, seulement si elle a elle-même au moins 2 porteurs.
+- **Une molécule posée par un seul organisme reste un fragment d'écran, donc au stock.** La réutilisation s'hérite du composeur, elle ne se confère pas.
+- **Critère N+1** : N ≥ 2 mesuré au commit. Le porteur N+1 coûte alors une ligne (un import, un jeton de classe, un `data-*`).
+
+### Verdicts
+- **(a) Molécules privées déclarées sous l'organisme : REJETÉ.** C'est une voie de blanchiment, prouvée : la seconde clause de L1 (« importé par le `fichier` d'une autre entrée du manifeste ») exempte une molécule dont le seul importeur est l'organisme (sonde `juge-cure/sonde-blanchiment.mjs`). La forme du corps de ce ticket (« primitive alvéole à DÉCLARER ») tombe avec elle : l'alvéole EST `.chip`, avec laquelle elle est déjà co-posée (`className="chip cc-cell…"`).
+- **(b) Migration vers les primitives réutilisées existantes : TIENT.** C'est la voie principale : environ 190 sites déjà identifiés.
+  - 114 sites surchargent `.chip`.
+  - 41 sont des deltas de `.skin-pont` et `.skin-bois`.
+  - 17 surchargent `ptile`, `rig-portrait` et `btn`.
+  - `line-clamp` est recopié alors que `.clamp` existe.
+  - Les pastilles d'objectif réécrivent `.chip`.
+  - L'aspect converge vers la primitive : la citation de #1811 ci-dessus l'autorise. Chaque sous-lot montre sa planche avant et après à Clément avant son commit d'écran.
+- **(c) Concepts communs devenus une primitive : marginal.**
+  - La hachure devient une variante `data-*` de `PortraitTile`, ce qui relève du (b).
+  - La cellule de laiton n'a qu'un porteur.
+- **(d) Propriétaire mal déclaré : `fx-chip.css`.** `.fx-chip` est posée par `EffectChips.tsx`, importé par 3 fichiers (`CharacterSheet`, `InspectPanel`, `InterludeScreen`). Le manifeste l'accroche pourtant à `FxChip.tsx`, qui n'a qu'un importeur. Correction : `EffectChips` devient propriétaire, et le franchissement se déclare par `RECLASSEMENT: … +23`.
+- **(e) `party-dock.css` attend #1829**, qui donne à `PartyDock` un second hôte réel. Ses sites franchiront la frontière par `RECLASSEMENT:`, sans cure préalable.
+
+### Périmètre corrigé
+- **La famille compte 488 sites** en 9 modules. `inspect-panel.css` (22) et `reveal-body.css` (30), nés de `c251f46af`, en font partie.
+- `party.css` relève du lot 5, Fiche (plan `docs/plans/2026-09-18-1800-couche-layout.md:393`).
+- **DoD.** Un sous-lot qui ne trouve aucune primitive à au moins 2 porteurs rend ses sites **au stock, dits**, jamais sous une molécule privée.
+
+### Gardes (sous-lot S0)
+- **G1.** La seconde clause de L1 devient « …par le `fichier` d'une autre entrée du manifeste **elle-même réutilisée** ». Coût mesuré : 0 module (`C2-seule 0`).
+- **G2.** L5 s'étend aux feuilles partagées et aux variantes `[data-*]`, où une paire (classe, attribut=valeur) compte comme une classe. Aujourd'hui, §5.2 saute les classes de `FEUILLES_PARTAGEES`, et L5 n'est implémentée nulle part. 57 classes de `components.css` ont un seul poseur : c'est à mesurer.
+- **G3.** Aucune variable `--x` hors `base.css` ne porte de littéral peint. Coût mesuré : 0.
+
+### Sous-lots et séquence
+
+| # | Cible | Sites | Bloqué par |
+|---|---|---:|---|
+| S0 | Gardes G1, G2, G3 ; commentaires qui mentent (« Identité entière ici » dans 5 modules au stock, charte `:325`, `:333`, manifeste `:845`) | 0 | garde E8 en cours |
+| S1 | Propriétaire `EffectChips`, `RECLASSEMENT` | 23 | S0 |
+| S10 | Inspection et révélation (`inspect-panel`, `reveal-body`) | 52 | S0 |
+| S2a | `.chip` : alvéoles d'action et sets d'armes | 57 | intégration HUD et console, S0 |
+| S2b | `.chip` : fin de tour et socle | 57 | S2a |
+| S3 | Deltas `.skin-pont` / `.skin-bois`, surcharges de l'arche, `.clamp` | ~47 | intégration HUD et console |
+| S4 | Variante `data-*` de `PortraitTile` (hachure), surcharges de tuile de la frise | ~18 | intégration HUD |
+| S5 | Résidu de la frise, cible à instruire | 53 | S4 |
+| S6 | Pastilles d'objectif vers `.chip` | 30 | intégration HUD |
+| S7 | Bannière, journal, splash | 31 | intégration HUD |
+| S8 | Résidu de la console (conduit, gouttière, baie), cible à instruire | 58 | S2a, S2b, S3 |
+| S9 | Racine et typographie de la console | 41 | S8 |
+| — | `party-dock.css` | 34 | #1829 |
+
+Chaque sous-lot nomme sa PORTE : le geste joueur qui atteint l'écran. Le tableau complet est au verdict du juge.
+
+---
+_Generated by [Claude Code](https://claude.ai/code)_

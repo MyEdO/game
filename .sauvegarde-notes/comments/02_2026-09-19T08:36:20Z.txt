@@ -1,0 +1,1 @@
+Recouvrement dock / fiche constaté au 2c : arbitré par l'utilisateur le 2026-09-19 et suivi dans #1829 (la compagnie devient la tête de la fiche). Le sous-lot 2a n'en fait que la préparation : l'inline `zIndex: 126` devient un attribut d'état, et l'ANCRAGE du dock sur le terrain reste du placement porté par l'hôte (`hud.css`), séparé de l'identité de la bande (`party-dock.css`).

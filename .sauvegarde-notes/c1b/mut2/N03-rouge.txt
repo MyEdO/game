@@ -1,0 +1,27 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1919-H2
+
+ ❯ src/ui/CombatConsole.test.tsx (151 tests | 1 failed | 150 skipped) 51ms 449 MB heap used
+   × CombatConsole — budget de hauteur du pont (arbitrage user 2026-08-17, décision d’écran 2026-09-24) > F-5 — plafonds des compositions étroites : ligne d’arche ≤ 25 % (561-700), empilée ≤ 45 % (≤560) 49ms
+     → 561×650 : le pont prend 32.8 %: expected 0.32846153846153847 to be less than or equal to 0.250000001
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 150 skipped (151)
+   Start at  01:21:59
+   Duration  19.59s (transform 11.81s, setup 13.16s, collect 5.33s, tests 51ms, environment 662ms, prepare 56ms)
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/ui/CombatConsole.test.tsx > CombatConsole — budget de hauteur du pont (arbitrage user 2026-08-17, décision d’écran 2026-09-24) > F-5 — plafonds des compositions étroites : ligne d’arche ≤ 25 % (561-700), empilée ≤ 45 % (≤560)
+AssertionError: 561×650 : le pont prend 32.8 %: expected 0.32846153846153847 to be less than or equal to 0.250000001
+ ❯ src/ui/CombatConsole.test.tsx:2230:80
+    2228|       expect(forme, `${vw}×${vh}`).toBe(vw <= 560 ? 'empilee' : 'ligne…
+    2229|       const part = (deck(vw, vh) + saillie(vw, vh)) / vh;
+    2230|       expect(part, `${vw}×${vh} : le pont prend ${(100 * part).toFixed…
+       |                                                                                ^
+    2231|     }
+    2232|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+

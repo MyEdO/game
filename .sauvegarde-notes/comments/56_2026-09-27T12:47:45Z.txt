@@ -1,0 +1,80 @@
+## Portes git, commit 1 (lot #85) : juge de seconde reprise après E16e, et brief E16f, 2026-09-27
+
+**Verdict : À REPRENDRE.**
+
+Ce qui tient :
+- N0, N2 à N4, N8 à N10 sont corrigés ;
+- la plage d'E17 est intacte (33 et 12 cas, 0 écart) ;
+- les 35 mutations sont confirmées, chaque rouge venant du test visé ;
+- toutes les portes passent, y compris `test:hooks` en entier (1370 réussis, 0 échec) et `test:ops` (292/292). Le seul rouge est celui de base, `legacyVocabStock.mjs:1930`, que le lot B purge.
+
+Défauts :
+- **P1 (bloquant)** : une étape du train peut encore lancer un geste libre, par un lanceur générique de sa clôture d'imports (`execFileResilient`, `appelGhRunner`, `sortieOutilLocal`, `process.getBuiltinModule`), et `ctx.gh` prend un argv libre. C'est la troisième passe sur cette classe. La frontière passe donc du NOM à la CAPACITÉ : un test en point fixe refuse que les étapes acquièrent un export qui atteint un lancement de processus, et `ctx.gh` devient trois gestes nommés. Les 51 lanceurs H1 restent au commit 2, comme le design du lot le prévoit : les étapes ne peuvent simplement plus les atteindre.
+- **P2 (bloquant)** : `lireEnLot` accepte un chemin qui porte un saut de ligne, la même injection que celle fermée pour les bornes.
+- **P3** : `commitDe` accepte un répertoire supprimé du disque, et committe alors tout son contenu.
+- **P4** : une étiquette annotée corrompue est lue comme une absence.
+- **P5** : `memoryLinks` avale une panne git sans la nommer.
+
+Suite : le codeur E16f reprend dans `.wt-1806-e16`.
+
+---
+
+<details><summary>Brief du codeur E16f (verbatim)</summary>
+
+# Brief du codeur E16f : troisième reprise des portes git, commit 1 (#1806, lot #85), 2026-09-27
+
+Tu es orchestrateur de ton lot. Tu peux déléguer une lecture de masse (`lecteur`) ou une vérification fermée (`verif-mecanique`), mais tu relis tout ce qu'un agent te rend, et le code est à toi.
+
+## Worktree et état VÉRIFIÉ (2026-09-27, par l'orchestrateur)
+- Worktree : `/home/claude/game/.wt-1806-e16`, branche `wt/1806-e16`, HEAD `543ba1e13`.
+  - Le travail E16 à E16e est dans l'arbre, non committé : 52 lignes de `git status --short`, `UU` attendus sur `plageStock.mjs` et `publier.mjs`, trois fichiers neufs (`scripts/ops/etapesDuTrain.mjs`, `scripts/ops/etapesDuTrain.test.mjs`, `scripts/guards/lib/gitPorte.marque.test.ts`).
+  - Instantané de cet état : `refs/wip/1806-portes-git-e16e` = `e60f060f2` (le juge a vérifié l'égalité).
+- Règles, interdits, invariant, cas canonique et design jugé : ceux du brief E16b (`/tmp/claude-0/-home-claude-game/b2c1dcf4-ee89-5cd4-b2df-036dbf03e24e/scratchpad/brief-e16b.md`), qui valent ici mot pour mot.
+- Lis le verdict du juge EN ENTIER : `scratchpad/juge-e16e/verdict.md`. Ses sondes sont sous `scratchpad/juge-e16e/` (dont `sonde-cloture-preload.mjs`, `sonde-cloture-hote-preload.mjs`, `cloture.mjs`, `sonde-lot-rels.mjs`, `sonde-n1-repertoire.mjs`, `sonde-tag-corrompu.mjs`). Puis ton rendu précédent : `scratchpad/rendu-e16e.md` (sorties sous `e16e/`).
+- SI un livrable existe déjà dans l'arbre, PIVOTE en revue.
+- Un codeur travaille dans `.wt-1920d` : avant tout vitest ou `node --test` de plus de 20 fichiers, vérifie qu'aucun autre ne tourne (`ps -eo pid,etime,cmd | grep -E '[v]itest|[n]ode --test'`, sortie collée).
+- Processus : avant tout `kill`, lis le PPID et la ligne de commande du parent ; tu ne tues que ce que ta commande a lancé. Jamais `pkill` ni `killall`.
+- Budget : 1 h 45 d'horloge. Relève `date -u` au départ et avant chaque étape longue. À l'échéance, rends ce qui est fait, l'arbre dans un état STABLE (portes du périmètre vertes), et le reste NOMMÉ.
+
+## La classe D1, troisième passe : la frontière est la CAPACITÉ
+Trois juges ont trouvé la même classe ouverte : « une étape du train exprime un geste non nommé ». Les deux frontières précédentes étaient des NOMS (les écrivains de l'hôte, puis « appelle `ecrire` »). Le juge retient une frontière de CAPACITÉ (P1, points 1 à 6) : le module des étapes n'acquiert aucun export qui atteint un lancement de processus, depuis n'importe quel module, et le ctx ne porte que des gestes nommés. Cette frontière ne demande PAS de migrer les 51 lanceurs H1 (ils restent au commit 2) : elle interdit seulement aux étapes de les atteindre.
+
+## Travail, dans l'ordre du juge (Q9)
+Pour chaque défaut, le verdict donne une correction. Tu l'implémentes telle qu'écrite ; si tu la trouves fausse, prouve-le par une sonde avant d'en changer, et dis-le au rendu.
+1. **P1**, points 1 à 6 du verdict :
+   - le test de clôture calcule en point fixe inter-modules les exports qui atteignent un lancement (liaisons de `node:child_process`, `process.getBuiltinModule`, `process.binding`, `createRequire`) et refuse que les étapes en acquièrent un ;
+   - le module des étapes ne mentionne ni `getBuiltinModule`, ni `binding`, ni `createRequire` (test AST) ;
+   - côté hôte, le critère devient « atteint `interroger`, `lire` ou `lancer` » : les étapes ne tiennent de l'hôte que des purs ;
+   - `ctx.gh` disparaît au profit de `ctx.lireTicket(numero)`, `ctx.commenter(numero, corps)` et `ctx.coursesCi(sha)`, qui remplace l'appel direct de `etapesDuTrain.mjs:464` ; chacun valide ses arguments ;
+   - les quatre lignes de la table de preuve du verdict deviennent quatre mutations, rouges ;
+   - les en-têtes `publier.mjs:25-31`, `:496-499` et `etapesDuTrain.mjs:3-8` disent exactement ce que le test garde.
+2. **P2** : `lireEnLot` refuse un chemin qui porte un caractère de contrôle, par UN prédicat partagé avec `revisionsDe` ; test et mutation.
+3. **P3** : `commitDe` n'accepte un chemin absent du disque que s'il est une entrée EXACTE de l'index (refus si l'index porte une entrée sous `c + '/'`, lue par une question de l'hôte) ; test et mutation.
+4. **Reste (1)** : le choix du shell de `ctx.npm` devient une fonction pure testée par plateforme ; la mutation `shell: true` rougit.
+5. **P5** : `memoryLinks.mjs:152-154` distingue « hors dépôt » (`racineDe(depot) === null`) d'une panne, qui remonte ou se nomme.
+6. **P4** : dans `corrompu`, contrôle `<sha>^{}` et, pour un commit, `<sha>^{}^{tree}` ; dans `nomsDe`, retire les suffixes `^{…}`, `~n`, `^n` avant `rev-parse`. Test sur étiquette annotée corrompue (`sonde-tag-corrompu.mjs`).
+7. **Reste (4)** (sha complet dont l'objet manque, objet manquant au milieu d'une histoire lue par shas) : dis, par sonde, ce que CHAQUE porte appelante conclut. Si une porte conclut « rien à juger » (fail-open), corrige. Sinon, rends le constat exact (commande, sortie, `fichier:ligne`) : j'ouvre l'issue.
+
+## Preuves (obligatoires)
+- Mutations sur les blobs FINAUX : empreintes `git hash-object` avant et après, rouge constaté avec sa ligne `exit=`, remise identique, argv archivé. Au minimum : les quatre de P1, une pour P2, P3, le reste (1), P4 et P5.
+- Les 35 mutations d'E16e (`e16e/mutations.txt`) rejouées si ta retouche touche leurs fichiers.
+- Les sondes du juge `sonde-cloture-preload.mjs`, `sonde-cloture-hote-preload.mjs`, `sonde-lot-rels.mjs`, `sonde-n1-repertoire.mjs` et `sonde-tag-corrompu.mjs`, rejouées après ta dernière retouche, sorties collées.
+- La plage d'E17 : `juge-e16/sonde-plage.mjs` et `juge-e16/sonde-plage-renommages.mjs` (avec ses 6 shas), attendu `ecarts 0`. Laisse-lui 1200 s.
+
+## Portes (sortie BRUTE collée, avec la ligne `exit=` écrite par la commande)
+- `npm run typecheck:fast`.
+- `node --test` sur les tests des fichiers touchés, les importeurs des modules touchés (liste par `git grep -l --untracked`, collée) et les tests de `scripts/gates/` qui lisent un inventaire (dont `ecrivainsAtteints.test.mjs`), par paquets de 20 au plus.
+- vitest sur les importeurs `.ts` des modules touchés.
+- eslint sur les fichiers que tu touches.
+
+## Livrable
+`/tmp/claude-0/-home-claude-game/b2c1dcf4-ee89-5cd4-b2df-036dbf03e24e/scratchpad/rendu-e16f.md`, sorties sous `scratchpad/e16f/` :
+- `git diff --stat HEAD` et les fichiers neufs ;
+- chaque défaut, P1 à P5 et les restes (1) et (4), fait ou reste, avec sa preuve ;
+- la table des mutations ;
+- les sorties des sondes et des portes.
+
+</details>
+
+---
+_Generated by [Claude Code](https://claude.ai/code)_

@@ -1,0 +1,27 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1919-H2
+
+ ❯ src/ui/CombatConsole.test.tsx (151 tests | 1 failed | 150 skipped) 41ms 449 MB heap used
+   × CombatConsole — budget de hauteur du pont (arbitrage user 2026-08-17, décision d’écran 2026-09-24) > F-1 — bande ≤ 17 % et empreinte ≤ 22 % de la hauteur d’écran, à toute vue ≥ 701 39ms
+     → 701×780 : bande 140.4px = 18.0 %: expected 0.18000000000000002 to be less than or equal to 0.170000001
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 150 skipped (151)
+   Start at  23:07:35
+   Duration  19.33s (transform 11.62s, setup 12.94s, collect 5.30s, tests 41ms, environment 652ms, prepare 61ms)
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/ui/CombatConsole.test.tsx > CombatConsole — budget de hauteur du pont (arbitrage user 2026-08-17, décision d’écran 2026-09-24) > F-1 — bande ≤ 17 % et empreinte ≤ 22 % de la hauteur d’écran, à toute vue ≥ 701
+AssertionError: 701×780 : bande 140.4px = 18.0 %: expected 0.18000000000000002 to be less than or equal to 0.170000001
+ ❯ src/ui/CombatConsole.test.tsx:2082:108
+    2080|       const bande = deck(vw, vh);
+    2081|       const total = bande + saillie(vw, vh);
+    2082|       expect(bande / vh, `${vw}×${vh} : bande ${bande.toFixed(1)}px = …
+       |                                                                                                            ^
+    2083|       expect(total / vh, `${vw}×${vh} : empreinte ${total.toFixed(1)}p…
+    2084|       // … et il reste PRÉSENT (une console écrasée n'est pas une cons…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+

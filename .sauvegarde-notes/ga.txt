@@ -1,0 +1,18 @@
+scripts/guards/lib/gitPorte.mjs:22:// L'unique LECTURE D'ÉTAT hors commande git — `MERGE_HEAD` (`fusionnesEnCours`) — passe par
+scripts/guards/lib/gitPorte.mjs:883: * Les commits que la FUSION EN COURS fusionne dans HEAD (`MERGE_HEAD`, une ligne par commit : écrite
+scripts/guards/lib/gitPorte.mjs:891:  const chemin = cheminGit(depot, 'MERGE_HEAD')
+scripts/guards/lib/gitPorte.mjs:895:  if (!lu.disponible) return confier(depot, `MERGE_HEAD illisible : ${lu.raison}`) ?? []
+scripts/guards/lib/gitPorte.mjs:901:    if (!sha) return confier(depot, `dépôt corrompu : MERGE_HEAD, « ${ligne} » ne nomme aucun commit`) ?? []
+scripts/guards/lib/gitPorte.test.mjs:688:    lieux: [racineDe(d), cheminGit(d, 'rebase-merge'), origineDe(d), dossierDesHooks(d), estSuperficiel(d)],
+scripts/guards/lib/gitPorte.test.mjs:1108:    assert.equal(cheminGit(d, 'rebase-merge'), '.git/rebase-merge')
+scripts/guards/lib/gitPorte.test.mjs:1142:  return { racine, fusionnes, mergeHead: join(racine, '.git', 'MERGE_HEAD') }
+scripts/guards/lib/gitPorte.test.mjs:1159:test('fusionnesEnCours : une fusion OCTOPUS rend ses deux lignes de `MERGE_HEAD`, dans l’ordre', () => {
+scripts/guards/lib/gitPorte.test.mjs:1167:test('fusionnesEnCours : une ligne de `MERGE_HEAD` qui ne nomme aucun commit est un dépôt CORROMPU, jamais filtrée', () => {
+scripts/guards/lib/gitPorte.test.mjs:1172:      assert.throws(() => fusionnesEnCours(forge(racine)), (e) => e instanceof GitIndisponible && e.raison.startsWith('dépôt corrompu : MERGE_HEAD'), JSON.stringify(ligne))
+scripts/guards/lib/gitPorte.test.mjs:1175:      assert.deepEqual(pannes, [`dépôt corrompu : MERGE_HEAD, « ${ligne} » ne nomme aucun commit`], JSON.stringify(ligne))
+scripts/guards/lib/gitPorte.test.mjs:1180:test('fusionnesEnCours : un `MERGE_HEAD` illisible est INDISPONIBLE, jamais « hors fusion »', () => {
+scripts/guards/lib/gitPorte.test.mjs:1185:    assert.throws(() => fusionnesEnCours(forge(racine)), (e) => e instanceof GitIndisponible && /^MERGE_HEAD illisible : EISDIR/.test(e.raison))
+scripts/guards/lib/gitPorte.test.mjs:1188:    assert.match(pannes.join('\n'), /^MERGE_HEAD illisible : EISDIR/)
+scripts/ops/etapesDuTrain.mjs:299:      for (const nom of ['rebase-merge', 'rebase-apply']) {
+scripts/ops/etapesDuTrain.mjs:371:        const entame = ['rebase-merge', 'rebase-apply'].some((nom) => {
+scripts/ops/publier.test.mjs:380:  assert.throws(() => ctx.questions.cheminGit('rebase-merge'), GitIndisponible)

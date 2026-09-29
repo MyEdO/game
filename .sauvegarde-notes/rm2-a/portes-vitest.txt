@@ -1,0 +1,3399 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game
+
+stderr | src/ui/forcedDieRow.pre-roll.test.tsx > « Dé fixé » PRÉ-jet — le champ écrit vraiment (option ON, héros piloté) > la saisie LANCE le jet puis substitue la valeur au d100
+[combat] rederiveAttack : re-dérivation SANS Difficulté transportée — le détail d’origine n’en portait pas.
+[combat] rederivePassiveAttack : re-dérivation SANS Difficulté transportée — recomposée depuis un contexte appauvri (ni distance, ni env, ni flanc/dos). Passer `frozenDifficulty(detail d'origine)` au call-site.
+
+stderr | src/ui/forcedDieRow.pre-roll.test.tsx > « Dé fixé » PRÉ-jet — le champ écrit vraiment (option ON, héros piloté) > commit TERMINAL (#955) : les frappes de « 50 » ne lancent RIEN ; Entrée lance UNE fois, avec 50
+[combat] rederiveAttack : re-dérivation SANS Difficulté transportée — le détail d’origine n’en portait pas.
+[combat] rederivePassiveAttack : re-dérivation SANS Difficulté transportée — recomposée depuis un contexte appauvri (ni distance, ni env, ni flanc/dos). Passer `frozenDifficulty(detail d'origine)` au call-site.
+
+stderr | src/ui/forcedDieRow.pre-roll.test.tsx > « Dé fixé » PRÉ-jet — le champ écrit vraiment (option ON, héros piloté) > POST-résolution fixée : UNE seule surface — l’étiquette du champ devient « Dé fixé », la pastille ne double pas
+[combat] rederiveAttack : re-dérivation SANS Difficulté transportée — le détail d’origine n’en portait pas.
+[combat] rederivePassiveAttack : re-dérivation SANS Difficulté transportée — recomposée depuis un contexte appauvri (ni distance, ni env, ni flanc/dos). Passer `frozenDifficulty(detail d'origine)` au call-site.
+
+stderr | src/ui/forcedDieRow.pre-roll.test.tsx > « Dé fixé » PRÉ-jet — le champ écrit vraiment (option ON, héros piloté) > UNE seule marque « Dé fixé » à l’écran : l’en-tête du sélecteur, pas un doublon de rangée
+[combat] rederiveAttack : re-dérivation SANS Difficulté transportée — le détail d’origine n’en portait pas.
+[combat] rederivePassiveAttack : re-dérivation SANS Difficulté transportée — recomposée depuis un contexte appauvri (ni distance, ni env, ni flanc/dos). Passer `frozenDifficulty(detail d'origine)` au call-site.
+
+stderr | src/ui/forcedDieRow.pre-roll.test.tsx > « Dé fixé » PRÉ-jet — le champ DANS une vraie modale > Entrée pose le dé et RIEN d’autre : un jet à 50, zéro clic sur l’action primaire
+[combat] rederiveAttack : re-dérivation SANS Difficulté transportée — le détail d’origine n’en portait pas.
+[combat] rederivePassiveAttack : re-dérivation SANS Difficulté transportée — recomposée depuis un contexte appauvri (ni distance, ni env, ni flanc/dos). Passer `frozenDifficulty(detail d'origine)` au call-site.
+
+stderr | src/ui/forcedDieRow.pre-roll.test.tsx > « Fixer le dé » PRÉ-jet — taper PUIS cliquer « Lancer » (sans Entrée) pose bien le dé (#1117) > le dé SAISI est celui du jet — pas un d100 naturel
+[combat] rederiveAttack : re-dérivation SANS Difficulté transportée — le détail d’origine n’en portait pas.
+[combat] rederivePassiveAttack : re-dérivation SANS Difficulté transportée — recomposée depuis un contexte appauvri (ni distance, ni env, ni flanc/dos). Passer `frozenDifficulty(detail d'origine)` au call-site.
+
+stderr | src/ui/forcedDieRow.pre-roll.test.tsx > « Fixer le dé » PRÉ-jet — taper PUIS cliquer « Lancer » (sans Entrée) pose bien le dé (#1117) > le jet ne part QU’UNE fois (poser le dé lance déjà — pas de double jet)
+[combat] rederiveAttack : re-dérivation SANS Difficulté transportée — le détail d’origine n’en portait pas.
+[combat] rederivePassiveAttack : re-dérivation SANS Difficulté transportée — recomposée depuis un contexte appauvri (ni distance, ni env, ni flanc/dos). Passer `frozenDifficulty(detail d'origine)` au call-site.
+
+stderr | src/ui/forcedDieRow.pre-roll.test.tsx > CTA HISSÉ de la coquille (hôte réel d’une cascade) — le dé saisi est celui du jet (#1117) > taper 95 PUIS cliquer le « Lancer » HISSÉ : le jet part avec 95, pas un dé naturel
+[combat] rederiveAttack : re-dérivation SANS Difficulté transportée — le détail d’origine n’en portait pas.
+[combat] rederivePassiveAttack : re-dérivation SANS Difficulté transportée — recomposée depuis un contexte appauvri (ni distance, ni env, ni flanc/dos). Passer `frozenDifficulty(detail d'origine)` au call-site.
+
+stderr | src/ui/forcedDieRow.pre-roll.test.tsx > CTA HISSÉ de la coquille (hôte réel d’une cascade) — le dé saisi est celui du jet (#1117) > le jet hissé ne part QU’UNE fois (poser le dé lance déjà)
+[combat] rederiveAttack : re-dérivation SANS Difficulté transportée — le détail d’origine n’en portait pas.
+[combat] rederivePassiveAttack : re-dérivation SANS Difficulté transportée — recomposée depuis un contexte appauvri (ni distance, ni env, ni flanc/dos). Passer `frozenDifficulty(detail d'origine)` au call-site.
+
+stderr | src/ui/forcedDieRow.pre-roll.test.tsx > ORDRE RÉEL blur → clic : les 3 hôtes consomment quand même le dé saisi (#1117) > CTA de RANGÉE : blur puis clic « Lancer » → le dé saisi résout
+[combat] rederiveAttack : re-dérivation SANS Difficulté transportée — le détail d’origine n’en portait pas.
+[combat] rederivePassiveAttack : re-dérivation SANS Difficulté transportée — recomposée depuis un contexte appauvri (ni distance, ni env, ni flanc/dos). Passer `frozenDifficulty(detail d'origine)` au call-site.
+
+stderr | src/ui/forcedDieRow.pre-roll.test.tsx > ORDRE RÉEL blur → clic : les 3 hôtes consomment quand même le dé saisi (#1117) > CTA HISSÉ de la coquille (cascade) : blur puis clic → le dé saisi résout
+[combat] rederiveAttack : re-dérivation SANS Difficulté transportée — le détail d’origine n’en portait pas.
+[combat] rederivePassiveAttack : re-dérivation SANS Difficulté transportée — recomposée depuis un contexte appauvri (ni distance, ni env, ni flanc/dos). Passer `frozenDifficulty(detail d'origine)` au call-site.
+
+ ✓ src/ui/forcedDieRow.pre-roll.test.tsx (29 tests) 1224ms 479 MB heap used
+ ✓ src/ui/jetProps/useAttackJetProps.conformance.test.tsx (18 tests) 1573ms 554 MB heap used
+ ✓ src/ui/cadre-focus-initial.test.tsx (19 tests) 611ms 576 MB heap used
+ ✓ src/ui/compendium/CodexRef.hooks.test.tsx (12 tests) 260ms 586 MB heap used
+ ✓ src/ui/raccourcis-modificateurs.test.tsx (16 tests) 149ms 599 MB heap used
+ ✓ src/ui/cadre-focus-etape.test.tsx (8 tests) 297ms 596 MB heap used
+ ✓ src/ui/ResilienceButton.test.tsx (10 tests) 117ms 596 MB heap used
+ ✓ src/ui/RollLine-etat-chips.test.tsx (5 tests) 103ms 609 MB heap used
+ ✓ src/ui/determination-reachability.test.tsx (7 tests) 419ms 628 MB heap used
+ ✓ src/ui/RollLine-codex-chips.test.tsx (7 tests) 122ms 631 MB heap used
+ ✓ src/ui/echap-pile-lifo.test.tsx (7 tests) 89ms 631 MB heap used
+ ✓ src/ui/modal-entree-champ-de-saisie.test.tsx (8 tests) 62ms 638 MB heap used
+ ✓ src/ui/RewardRecap.test.tsx (8 tests) 211ms 641 MB heap used
+ ✓ src/ui/echap-desarme-mode-arme.test.tsx (9 tests) 185ms 655 MB heap used
+ ✓ src/ui/Infobulle.test.tsx (5 tests) 82ms 648 MB heap used
+ ✓ src/ui/PanneauParametre.test.tsx (8 tests) 54ms 654 MB heap used
+ ✓ src/ui/editor/AddMenu.test.tsx (5 tests) 27ms 657 MB heap used
+ ✓ src/ui/BoiteAncree.test.tsx (8 tests) 29ms 663 MB heap used
+ ✓ src/ui/wrap-keyboard-vs-cursor.test.tsx (5 tests) 41ms 657 MB heap used
+ ✓ src/ui/dialogue-couche-du-dessus.test.tsx (2 tests) 64ms 665 MB heap used
+ ✓ src/gameIso/stage/plaques-de-nom.test.tsx (5 tests) 43ms 662 MB heap used
+ ✓ src/ui/DeterminationButton.test.tsx (2 tests) 38ms 662 MB heap used
+ ✓ src/ui/dialogue-du-dessus.test.tsx (25 tests) 7747ms 540 MB heap used
+   ✓ infirmerie ouverte depuis la fiche — le dialogue du dessus est celui de la pile > Tab depuis « Lancer » reste dans l’infirmerie 940ms
+   ✓ infirmerie ouverte depuis la fiche — le dialogue du dessus est celui de la pile > Lancer résolu : le focus reste dans l’infirmerie, sur « Appliquer » ; Entrée résout ; Terminer rend la fiche 2642ms
+   ✓ infirmerie ouverte depuis la fiche — le dialogue du dessus est celui de la pile > pointeur sur une puce Codex du corps (couche de survol au sommet) : même flux 2519ms
+   ✓ registre de raccourcis — il se tait sous un dialogue de la pile (même verdict que la manette) > (a) infirmerie ouverte depuis la fiche : F, Q, E, W, V, C et ↑ ne partent pas, focus sur <body> puis sur un geste 306ms
+ ✓ src/ui/App.surcouche-codex.test.tsx (1 test) 1333ms 724 MB heap used
+   ✓ App — la surcouche du Codex ne suspend pas l’écran qu’elle couvre > à l’ouverture de la fiche, le menu reste visible et aucun « Chargement… » ne le remplace 1332ms
+stderr | src/ui/CombatConsole.test.tsx > CombatConsole — droit de la travée et du coin (juge vision 2026-08-17) > D-5bis — la DISPOSITION du porteur commande l’adresse : case vidée, case posée, id inconnu
+disposition de console : action « action-qui-nexiste-pas » inconnue du registre — case laissée vide
+
+stderr | src/ui/CombatConsole.test.tsx > CombatConsole — Dissiper : alvéole → porteur → panneau-paramètre > l’alvéole Dissiper existe dès qu’un Sort permanent est en jeu, et le clic ARME le mode
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+
+stderr | src/ui/CombatConsole.test.tsx > CombatConsole — Dissiper : alvéole → porteur → panneau-paramètre > clic-porteur (2 Sorts) → panneau BORNÉ à SES Sorts ; le clic COMMET `dispel-spell` avec les bons ids
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+
+stderr | src/ui/CombatConsole.test.tsx > CombatConsole — Dissiper : alvéole → porteur → panneau-paramètre > ÉCHAP referme le panneau sans rien dissiper (annulation gratuite)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+
+stderr | src/ui/CombatConsole.test.tsx > CombatConsole — Dissiper : alvéole → porteur → panneau-paramètre > l’alvéole PORTE la progression du Test étendu (DR cumulé / NI) dès qu’un Sort est entamé
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+
+stderr | src/ui/CombatConsole.test.tsx > CombatConsole — Dissiper : alvéole → porteur → panneau-paramètre > mode de ciblage ARMÉ : le popover de règle de la case se tait, et revient au désarmement
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+
+stderr | src/ui/CombatConsole.test.tsx > CombatConsole — munition : le chip de l’en-tête est le DÉCLENCHEUR du choix > DEUX munitions compatibles : le chip est un BOUTON qui ouvre un panneau BORNÉ à ces munitions
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+
+stderr | src/ui/CombatConsole.test.tsx > CombatConsole — munition : le chip de l’en-tête est le DÉCLENCHEUR du choix > le clic COMMET `select-ammo` avec les bons ids : l’arme change de munition ET se décharge
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+
+stderr | src/ui/CombatConsole.test.tsx > CombatConsole — munition : le chip de l’en-tête est le DÉCLENCHEUR du choix > la CONSÉQUENCE n’est rendue que là où le dispatcher déchargera VRAIMENT (arme non chargée : aucune)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+
+stderr | src/ui/CombatConsole.test.tsx > CombatConsole — munition : le chip de l’en-tête est le DÉCLENCHEUR du choix > ÉCHAP referme sans rien engager (annulation gratuite : la munition ne bouge pas)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+
+stderr | src/ui/CombatConsole.test.tsx > CombatConsole — munition : le chip de l’en-tête est le DÉCLENCHEUR du choix > UNE SEULE munition compatible : chip INFORMATIF seul — aucun panneau à un candidat
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+
+stderr | src/ui/CombatConsole.test.tsx > CombatConsole — munition : le chip de l’en-tête est le DÉCLENCHEUR du choix > FRÉNÉSIE : le choix est REFUSÉ et le refus se LIT au survol (raison du registre), jamais escamoté
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+
+stderr | src/ui/CombatConsole.test.tsx > CombatConsole — munition : le chip de l’en-tête est le DÉCLENCHEUR du choix > COMMUTER DE SET referme le panneau (il appartient à l’arme qui l’a ouvert)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+
+stderr | src/ui/CombatConsole.test.tsx > CombatConsole — deux armes à distance : une case, un paramètre à élire > DEUX pistolets : UNE seule case Recharger (géométrie inchangée), et le clic OUVRE le choix de l’arme
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+
+stderr | src/ui/CombatConsole.test.tsx > CombatConsole — deux armes à distance : une case, un paramètre à élire > le candidat élu COMMET `reload` avec SON uid (la 2ᵉ arme, pas la première du sac)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+
+stderr | src/ui/CombatConsole.test.tsx > CombatConsole — deux armes à distance : une case, un paramètre à élire > ÉCHAP referme sans rien engager (annulation gratuite)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+
+stderr | src/ui/CombatConsole.test.tsx > CombatConsole — deux armes à distance : une case, un paramètre à élire > UNE arme à distance : dispatch DIRECT sur son uid — aucun panneau à un candidat
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+
+stderr | src/ui/CombatConsole.test.tsx > CombatConsole — deux armes à distance : une case, un paramètre à élire > une arme DÉJÀ CHARGÉE reste au panneau, INERTE et son état dit (même mesure que le dispatcher)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+
+stderr | src/ui/CombatConsole.test.tsx > CombatConsole — deux armes à distance : une case, un paramètre à élire > MUNITION : une chip PAR arme dans l’en-tête, et la 2ᵉ commet `select-ammo` sur SON arme
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+
+stderr | src/ui/CombatConsole.test.tsx > CombatConsole — geste secondaire de l’alvéole (Focaliser) > un sort ARCANE : l’alvéole porte le geste, le clic droit le DISPATCHE (N=1 → aucun panneau)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+
+stderr | src/ui/CombatConsole.test.tsx > CombatConsole — geste secondaire de l’alvéole (Focaliser) > la touche MENU (et Maj+F10) prend le MÊME chemin que le clic droit
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+
+stderr | src/ui/CombatConsole.test.tsx > CombatConsole — geste secondaire de l’alvéole (Focaliser) > l’APPUI LONG déclenche le geste, et le clic qui le suit est AVALÉ (pas d’incantation armée)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+
+stderr | src/ui/CombatConsole.test.tsx > CombatConsole — geste secondaire de l’alvéole (Focaliser) > une PRIÈRE : N=1 REFUSÉ — aucun panneau, la raison se lit À LA CASE, rien au journal
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+
+stderr | src/ui/CombatConsole.test.tsx > CombatConsole — geste secondaire de l’alvéole (Focaliser) > SANS la Compétence Focalisation : le geste est refusé à la CASE, et le journal reste muet
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+
+stderr | src/ui/CombatConsole.test.tsx > CombatConsole — geste secondaire de l’alvéole (Focaliser) > MODE ARMÉ discriminé : le sort ÉLU allume SON alvéole, pas celle du voisin
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+
+stderr | src/ui/CombatConsole.test.tsx > CombatConsole — geste secondaire de l’alvéole (Focaliser) > DEUX gestes secondaires sur le même hôte (entrée FABRIQUÉE) : panneau ancré, 2 candidats, Échap gratuit
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+
+stderr | src/ui/CombatConsole.test.tsx > CombatConsole — geste secondaire de l’alvéole (Focaliser) > SURFACE ⇄ RENDEUR : le geste secondaire n’a pas d’alvéole propre — son rendeur est celle de son HÔTE
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+
+stderr | src/ui/CombatConsole.test.tsx > CombatConsole — geste secondaire de l’alvéole (Focaliser) > la PROGRESSION du Test étendu se lit sur le geste (DR cumulé / NI du sort)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+
+stderr | src/ui/CombatConsole.test.tsx > CombatConsole — geste secondaire de l’alvéole (Focaliser) > APPUI LONG puis `contextmenu` NATIF : UN seul déclenchement (le doigt ne bascule pas le panneau)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+
+stderr | src/ui/CombatConsole.test.tsx > CombatConsole — geste secondaire de l’alvéole (Focaliser) > CLIC DROIT sur une case SANS geste secondaire : aucun menu natif en plein HUD
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+
+stderr | src/ui/CombatConsole.test.tsx > CombatConsole — geste secondaire de l’alvéole (Focaliser) > APPUI LONG GLISSÉ hors de la case : le geste est ANNULÉ (un glissement n’est pas un appui)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+
+stderr | src/ui/CombatConsole.test.tsx > CombatConsole — geste secondaire de l’alvéole (Focaliser) > un `pointerleave` sous un pointeur IMMOBILE n’annule pas l’appui (une case qui bouge n’est pas un glissement)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+
+stderr | src/ui/CombatConsole.test.tsx > CombatConsole — geste secondaire de l’alvéole (Focaliser) > l’alvéole demande la CAPTURE du pointeur : la suite du geste lui revient même hors de sa bbox
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+
+stderr | src/ui/CombatConsole.test.tsx > CombatConsole — geste secondaire de l’alvéole (Focaliser) > CLIC DROIT MAINTENU (contextmenu À L’APPUI, macOS/Linux) : le minuteur d’appui long ne rejoue pas le geste
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+
+stderr | src/ui/CombatConsole.test.tsx > CombatConsole — geste secondaire de l’alvéole (Focaliser) > case FERMÉE (Action dépensée) : aucun glyphe, aucun geste promis — aucune surface ne peut le prendre
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+
+stderr | src/ui/CombatConsole.test.tsx > CombatConsole — geste secondaire de l’alvéole (Focaliser) > un geste secondaire déclaré sur `reload` (entrée FABRIQUÉE) est rendu par l’alvéole de SON hôte
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+Warning: An update to CombatConsole inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at CombatConsole (/home/user/game/src/ui/CombatConsole.tsx:422:40)
+
+ ✓ src/ui/CombatConsole.test.tsx (150 tests) 11561ms 656 MB heap used
+   ✓ CombatConsole — arche > dessine la niche d’États même quand le héros n’en porte AUCUN : 4 alvéoles réservées 439ms
+   ✓ CombatConsole — trois formes, une seule bande > la forme SPECTATRICE ne publie AUCUN slot au pont clavier (pas de touche sans case) 396ms
+ ✓ src/ui/gallery/gallery-smoke.test.tsx (89 tests) 2275ms 654 MB heap used
+ ✓ src/state/keybindings.test.ts (29 tests) 111ms 362 MB heap used
+ ✓ src/ui/primitive-owners-guard.test.ts (8 tests) 4376ms 438 MB heap used
+   ✓ #1318 P8/D10 — marqueurs structurels = propriété des primitives (recopie de markup bloquée) > aucune recopie de marqueur hors du fichier propriétaire au-delà du stock mesuré 1519ms
+   ✓ #1318 P8/D10 — marqueurs structurels = propriété des primitives (recopie de markup bloquée) > la baseline est DÉCROISSANTE — aucune entrée périmée 1381ms
+   ✓ #1806 §5.2 — une classe d’un module de primitive est posée par sa primitive > chaque classe DÉFINIE par un module de primitive est posée par la primitive qui le possède 1315ms
+ ✓ src/state/stageWalk.test.ts (23 tests) 331ms 448 MB heap used
+ ✓ src/vi-mock-isolate-guard.test.ts (7 tests) 220ms 482 MB heap used
+ ✓ src/comment-poison-guard.test.ts (79 tests) 5349ms 467 MB heap used
+   ✓ garde-fou commentaires — pierres tombales (#136, CLAUDE.md règle 6c) > aucun commentaire de src/** ni de scripts/** ne porte une pierre tombale (tolérance ZÉRO) 851ms
+   ✓ garde-fou commentaires — excuses non tracées (#136, CLAUDE.md règle 6b) > aucune excuse de src/** ni de scripts/** sans tag [entériné AAAA-MM-JJ] (ACTIVE depuis #177) 882ms
+   ✓ garde-fou commentaires — vocabulaire de l’ancien état (#1486, credo règle 1) > tout site de src/** et scripts/** (tests compris) est au stock nominatif daté, et aucune ligne du stock n’est périmée 2918ms
+   ✓ cliquet : revendications d’autorité dans les fichiers de test (#136, famille 4) > aucun site famille 4 dans src/**/*.test.ts(x) hors liste nominative, et aucune entrée périmée 362ms
+ ✓ src/ui/compendium/CodexRef.test.tsx (7 tests) 81ms 510 MB heap used
+ ✓ src/state/push-keyboard-commit.test.ts (3 tests) 156ms 469 MB heap used
+ ❯ src/ui/ui-ratchets.test.ts (53 tests | 4 failed) 11942ms 933 MB heap used
+   ✓ #236 — cliquets d’hygiène UI > (xiv) exhaustivité : chaque .css de src est PARTAGÉ, de PRIMITIVE ou d’ÉCRAN, jamais deux 1079ms
+   ✓ canon responsive, peaux et matières partagées de src/ui/styles > matières `.skin-*`/`.display-*` : le DELTA d’un module BAT la matière sur toute propriété qu’elle déclare aussi 1169ms
+   ✓ #1318 V5 — cliquets d’hygiène UI (champ nombre, breakpoints) > (xix) raison de refus MUETTE (`<button disabled title=…>`) : aucune hausse, zéro côté joueur 375ms
+   ✓ #1318 V5 — cliquets d’hygiène UI (champ nombre, breakpoints) > (xix) le stock restant est ENTIÈREMENT dans l’atelier — aucun écran joueur ne porte de refus muet 366ms
+   × #1800 — trois couches CSS : un module d’écran ne pose que du PLACEMENT > (xxi) identité en module d’écran : stock nominatif, décroissant 646ms
+     → Identité NEUVE dans un module d’ÉCRAN — la porter dans le module de sa primitive (manifeste, champ `css`) :
+ :: src/ui/styles/infobulle.css :: .infobulle :: background :: 1 — site NEUF : corriger la réf, ou déclarer une entrée dans scripts/guards/lib/cssCouchesStock.mjs (CSS_IDENTITE_ECRAN_RATCHET) et la porter au message par `CLIQUET:`.
+ :: src/ui/styles/infobulle.css :: .infobulle :: border :: 1 — site NEUF : corriger la réf, ou déclarer une entrée dans scripts/guards/lib/cssCouchesStock.mjs (CSS_IDENTITE_ECRAN_RATCHET) et la porter au message par `CLIQUET:`.
+ :: src/ui/styles/infobulle.css :: .infobulle :: border-radius :: 1 — site NEUF : corriger la réf, ou déclarer une entrée dans scripts/guards/lib/cssCouchesStock.mjs (CSS_IDENTITE_ECRAN_RATCHET) et la porter au message par `CLIQUET:`.
+ :: src/ui/styles/infobulle.css :: .infobulle :: box-shadow :: 1 — site NEUF : corriger la réf, ou déclarer une entrée dans scripts/guards/lib/cssCouchesStock.mjs (CSS_IDENTITE_ECRAN_RATCHET) et la porter au message par `CLIQUET:`.
+ :: src/ui/styles/infobulle.css :: .infobulle :: font-weight :: 1 — site NEUF : corriger la réf, ou déclarer une entrée dans scripts/guards/lib/cssCouchesStock.mjs (CSS_IDENTITE_ECRAN_RATCHET) et la porter au message par `CLIQUET:`.
+ :: src/ui/styles/compendium.css :: .codex-pop-refus :: font-size :: 1 — site NEUF : corriger la réf, ou déclarer une entrée dans scripts/guards/lib/cssCouchesStock.mjs (CSS_IDENTITE_ECRAN_RATCHET) et la porter au message par `CLIQUET:`.
+ :: src/ui/styles/compendium.css :: .codex-pop-refus :: font-weight :: 1 — site NEUF : corriger la réf, ou déclarer une entrée dans scripts/guards/lib/cssCouchesStock.mjs (CSS_IDENTITE_ECRAN_RATCHET) et la porter au message par `CLIQUET:`.
+ :: src/ui/styles/compendium.css :: .codex-pop-refus :: line-height :: 1 — site NEUF : corriger la réf, ou déclarer une entrée dans scripts/guards/lib/cssCouchesStock.mjs (CSS_IDENTITE_ECRAN_RATCHET) et la porter au message par `CLIQUET:`.
+ :: src/ui/styles/compendium.css :: .codex-pop-refus :: color :: 1 — site NEUF : corriger la réf, ou déclarer une entrée dans scripts/guards/lib/cssCouchesStock.mjs (CSS_IDENTITE_ECRAN_RATCHET) et la porter au message par `CLIQUET:`.: expected [ …(9) ] to deeply equal []
+   × #1800 — trois couches CSS : un module d’écran ne pose que du PLACEMENT > (xxi) espacement hors échelle : stock nominatif, décroissant 756ms
+     → Espacement NEUF hors de l’échelle `--sp-*` (base.css) :
+ :: src/ui/styles/infobulle.css :: .infobulle :: gap :: 5px :: 1 — site NEUF : corriger la réf, ou déclarer une entrée dans scripts/guards/lib/cssCouchesStock.mjs (CSS_ESPACEMENT_RATCHET) et la porter au message par `CLIQUET:`.
+ :: src/ui/styles/infobulle.css :: .infobulle :: padding :: 9px 11px :: 1 — site NEUF : corriger la réf, ou déclarer une entrée dans scripts/guards/lib/cssCouchesStock.mjs (CSS_ESPACEMENT_RATCHET) et la porter au message par `CLIQUET:`.: expected [ …(2) ] to deeply equal []
+   × #1800 — trois couches CSS : un module d’écran ne pose que du PLACEMENT > (xxii) style inline hors variable CSS : stock nominatif, décroissant 596ms
+     → `style=` NEUF (arbitrage user A2, 2026-09-18 : la seule forme légale est un objet dont TOUTES les clés sont des variables CSS) :
+ :: src/ui/BoiteAncree.tsx :: div.boite-ancree :: expr :: 1 — site NEUF : corriger la réf, ou déclarer une entrée dans scripts/guards/lib/cssCouchesStock.mjs (STYLE_INLINE_RATCHET) et la porter au message par `CLIQUET:`.: expected [ Array(1) ] to deeply equal []
+   × #1800 — trois couches CSS : un module d’écran ne pose que du PLACEMENT > le stock committé est un point fixe de sa régénération 4925ms
+     → expected 'REFUS : /home/user/game/scripts/guard…' to be null
+   ✓ #1800 — trois couches CSS : un module d’écran ne pose que du PLACEMENT > (xxi) le manifeste classe chaque module : un css de primitive existe, et n’est pas une feuille partagée 631ms
+   ✓ #1800 — trois couches CSS : un module d’écran ne pose que du PLACEMENT > (xxi) le balayage n’est pas vide : des modules d’écran, et chacun hors couche partagée 786ms
+ ✓ src/ui/gallery/gallery-exhaustive.test.ts (3 tests) 12ms 550 MB heap used
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/ui/ui-ratchets.test.ts > #1800 — trois couches CSS : un module d’écran ne pose que du PLACEMENT > (xxi) identité en module d’écran : stock nominatif, décroissant
+AssertionError: Identité NEUVE dans un module d’ÉCRAN — la porter dans le module de sa primitive (manifeste, champ `css`) :
+ :: src/ui/styles/infobulle.css :: .infobulle :: background :: 1 — site NEUF : corriger la réf, ou déclarer une entrée dans scripts/guards/lib/cssCouchesStock.mjs (CSS_IDENTITE_ECRAN_RATCHET) et la porter au message par `CLIQUET:`.
+ :: src/ui/styles/infobulle.css :: .infobulle :: border :: 1 — site NEUF : corriger la réf, ou déclarer une entrée dans scripts/guards/lib/cssCouchesStock.mjs (CSS_IDENTITE_ECRAN_RATCHET) et la porter au message par `CLIQUET:`.
+ :: src/ui/styles/infobulle.css :: .infobulle :: border-radius :: 1 — site NEUF : corriger la réf, ou déclarer une entrée dans scripts/guards/lib/cssCouchesStock.mjs (CSS_IDENTITE_ECRAN_RATCHET) et la porter au message par `CLIQUET:`.
+ :: src/ui/styles/infobulle.css :: .infobulle :: box-shadow :: 1 — site NEUF : corriger la réf, ou déclarer une entrée dans scripts/guards/lib/cssCouchesStock.mjs (CSS_IDENTITE_ECRAN_RATCHET) et la porter au message par `CLIQUET:`.
+ :: src/ui/styles/infobulle.css :: .infobulle :: font-weight :: 1 — site NEUF : corriger la réf, ou déclarer une entrée dans scripts/guards/lib/cssCouchesStock.mjs (CSS_IDENTITE_ECRAN_RATCHET) et la porter au message par `CLIQUET:`.
+ :: src/ui/styles/compendium.css :: .codex-pop-refus :: font-size :: 1 — site NEUF : corriger la réf, ou déclarer une entrée dans scripts/guards/lib/cssCouchesStock.mjs (CSS_IDENTITE_ECRAN_RATCHET) et la porter au message par `CLIQUET:`.
+ :: src/ui/styles/compendium.css :: .codex-pop-refus :: font-weight :: 1 — site NEUF : corriger la réf, ou déclarer une entrée dans scripts/guards/lib/cssCouchesStock.mjs (CSS_IDENTITE_ECRAN_RATCHET) et la porter au message par `CLIQUET:`.
+ :: src/ui/styles/compendium.css :: .codex-pop-refus :: line-height :: 1 — site NEUF : corriger la réf, ou déclarer une entrée dans scripts/guards/lib/cssCouchesStock.mjs (CSS_IDENTITE_ECRAN_RATCHET) et la porter au message par `CLIQUET:`.
+ :: src/ui/styles/compendium.css :: .codex-pop-refus :: color :: 1 — site NEUF : corriger la réf, ou déclarer une entrée dans scripts/guards/lib/cssCouchesStock.mjs (CSS_IDENTITE_ECRAN_RATCHET) et la porter au message par `CLIQUET:`.: expected [ …(9) ] to deeply equal []
+
+- Expected
++ Received
+
+- Array []
++ Array [
++   " :: src/ui/styles/infobulle.css :: .infobulle :: background :: 1 — site NEUF : corriger la réf, ou déclarer une entrée dans scripts/guards/lib/cssCouchesStock.mjs (CSS_IDENTITE_ECRAN_RATCHET) et la porter au message par `CLIQUET:`.",
++   " :: src/ui/styles/infobulle.css :: .infobulle :: border :: 1 — site NEUF : corriger la réf, ou déclarer une entrée dans scripts/guards/lib/cssCouchesStock.mjs (CSS_IDENTITE_ECRAN_RATCHET) et la porter au message par `CLIQUET:`.",
++   " :: src/ui/styles/infobulle.css :: .infobulle :: border-radius :: 1 — site NEUF : corriger la réf, ou déclarer une entrée dans scripts/guards/lib/cssCouchesStock.mjs (CSS_IDENTITE_ECRAN_RATCHET) et la porter au message par `CLIQUET:`.",
++   " :: src/ui/styles/infobulle.css :: .infobulle :: box-shadow :: 1 — site NEUF : corriger la réf, ou déclarer une entrée dans scripts/guards/lib/cssCouchesStock.mjs (CSS_IDENTITE_ECRAN_RATCHET) et la porter au message par `CLIQUET:`.",
++   " :: src/ui/styles/infobulle.css :: .infobulle :: font-weight :: 1 — site NEUF : corriger la réf, ou déclarer une entrée dans scripts/guards/lib/cssCouchesStock.mjs (CSS_IDENTITE_ECRAN_RATCHET) et la porter au message par `CLIQUET:`.",
++   " :: src/ui/styles/compendium.css :: .codex-pop-refus :: font-size :: 1 — site NEUF : corriger la réf, ou déclarer une entrée dans scripts/guards/lib/cssCouchesStock.mjs (CSS_IDENTITE_ECRAN_RATCHET) et la porter au message par `CLIQUET:`.",
++   " :: src/ui/styles/compendium.css :: .codex-pop-refus :: font-weight :: 1 — site NEUF : corriger la réf, ou déclarer une entrée dans scripts/guards/lib/cssCouchesStock.mjs (CSS_IDENTITE_ECRAN_RATCHET) et la porter au message par `CLIQUET:`.",
++   " :: src/ui/styles/compendium.css :: .codex-pop-refus :: line-height :: 1 — site NEUF : corriger la réf, ou déclarer une entrée dans scripts/guards/lib/cssCouchesStock.mjs (CSS_IDENTITE_ECRAN_RATCHET) et la porter au message par `CLIQUET:`.",
++   " :: src/ui/styles/compendium.css :: .codex-pop-refus :: color :: 1 — site NEUF : corriger la réf, ou déclarer une entrée dans scripts/guards/lib/cssCouchesStock.mjs (CSS_IDENTITE_ECRAN_RATCHET) et la porter au message par `CLIQUET:`.",
++ ]
+
+ ❯ src/ui/ui-ratchets.test.ts:1464:155
+    1462|       ou: 'scripts/guards/lib/cssCouchesStock.mjs (CSS_IDENTITE_ECRAN_…
+    1463|     });
+    1464|     expect(neuves, `Identité NEUVE dans un module d’ÉCRAN — la porter …
+       |                                                                                                                                                           ^
+    1465|     expect(perimees, `Entrée(s) SOLDÉE(s) — relancer \`npx tsx scripts…
+    1466|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  src/ui/ui-ratchets.test.ts > #1800 — trois couches CSS : un module d’écran ne pose que du PLACEMENT > (xxi) espacement hors échelle : stock nominatif, décroissant
+AssertionError: Espacement NEUF hors de l’échelle `--sp-*` (base.css) :
+ :: src/ui/styles/infobulle.css :: .infobulle :: gap :: 5px :: 1 — site NEUF : corriger la réf, ou déclarer une entrée dans scripts/guards/lib/cssCouchesStock.mjs (CSS_ESPACEMENT_RATCHET) et la porter au message par `CLIQUET:`.
+ :: src/ui/styles/infobulle.css :: .infobulle :: padding :: 9px 11px :: 1 — site NEUF : corriger la réf, ou déclarer une entrée dans scripts/guards/lib/cssCouchesStock.mjs (CSS_ESPACEMENT_RATCHET) et la porter au message par `CLIQUET:`.: expected [ …(2) ] to deeply equal []
+
+- Expected
++ Received
+
+- Array []
++ Array [
++   " :: src/ui/styles/infobulle.css :: .infobulle :: gap :: 5px :: 1 — site NEUF : corriger la réf, ou déclarer une entrée dans scripts/guards/lib/cssCouchesStock.mjs (CSS_ESPACEMENT_RATCHET) et la porter au message par `CLIQUET:`.",
++   " :: src/ui/styles/infobulle.css :: .infobulle :: padding :: 9px 11px :: 1 — site NEUF : corriger la réf, ou déclarer une entrée dans scripts/guards/lib/cssCouchesStock.mjs (CSS_ESPACEMENT_RATCHET) et la porter au message par `CLIQUET:`.",
++ ]
+
+ ❯ src/ui/ui-ratchets.test.ts:1474:103
+    1472|       ou: 'scripts/guards/lib/cssCouchesStock.mjs (CSS_ESPACEMENT_RATC…
+    1473|     });
+    1474|     expect(neuves, `Espacement NEUF hors de l’échelle \`--sp-*\` (base…
+       |                                                                                                       ^
+    1475|     expect(perimees, `Entrée(s) SOLDÉE(s) — relancer le régénérateur :…
+    1476|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  src/ui/ui-ratchets.test.ts > #1800 — trois couches CSS : un module d’écran ne pose que du PLACEMENT > (xxii) style inline hors variable CSS : stock nominatif, décroissant
+AssertionError: `style=` NEUF (arbitrage user A2, 2026-09-18 : la seule forme légale est un objet dont TOUTES les clés sont des variables CSS) :
+ :: src/ui/BoiteAncree.tsx :: div.boite-ancree :: expr :: 1 — site NEUF : corriger la réf, ou déclarer une entrée dans scripts/guards/lib/cssCouchesStock.mjs (STYLE_INLINE_RATCHET) et la porter au message par `CLIQUET:`.: expected [ Array(1) ] to deeply equal []
+
+- Expected
++ Received
+
+- Array []
++ Array [
++   " :: src/ui/BoiteAncree.tsx :: div.boite-ancree :: expr :: 1 — site NEUF : corriger la réf, ou déclarer une entrée dans scripts/guards/lib/cssCouchesStock.mjs (STYLE_INLINE_RATCHET) et la porter au message par `CLIQUET:`.",
++ ]
+
+ ❯ src/ui/ui-ratchets.test.ts:1484:176
+    1482|       ou: 'scripts/guards/lib/cssCouchesStock.mjs (STYLE_INLINE_RATCHE…
+    1483|     });
+    1484|     expect(neuves, `\`style=\` NEUF (arbitrage user A2, 2026-09-18 : l…
+       |                                                                                                                                                                                ^
+    1485|     expect(perimees, `Entrée(s) SOLDÉE(s) — relancer le régénérateur :…
+    1486|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  src/ui/ui-ratchets.test.ts > #1800 — trois couches CSS : un module d’écran ne pose que du PLACEMENT > le stock committé est un point fixe de sa régénération
+AssertionError: expected 'REFUS : /home/user/game/scripts/guard…' to be null
+
+- Expected: 
+null
+
++ Received: 
+"REFUS : /home/user/game/scripts/guards/lib/cssCouchesStock.mjs : CSS_IDENTITE_ECRAN_RATCHET porte 9 entrée(s) NEUVE(S) ou ACCRUE(S) au regard du stock en place (1800 entrée(s)) :
+   :: src/ui/styles/compendium.css :: .codex-pop-refus :: color :: 1
+   :: src/ui/styles/compendium.css :: .codex-pop-refus :: font-size :: 1
+   :: src/ui/styles/compendium.css :: .codex-pop-refus :: font-weight :: 1
+   :: src/ui/styles/compendium.css :: .codex-pop-refus :: line-height :: 1
+   :: src/ui/styles/infobulle.css :: .infobulle :: background :: 1
+   :: src/ui/styles/infobulle.css :: .infobulle :: border :: 1
+   :: src/ui/styles/infobulle.css :: .infobulle :: border-radius :: 1
+   :: src/ui/styles/infobulle.css :: .infobulle :: box-shadow :: 1
+   :: src/ui/styles/infobulle.css :: .infobulle :: font-weight :: 1
+
+Cet outil ne peut qu'écrire un stock PLUS PETIT. Une classe d'écran qui PEINT se corrige en portant son aspect dans le module de sa primitive, elle ne s'entérine pas ici."
+
+ ❯ src/ui/ui-ratchets.test.ts:1489:93
+    1487| 
+    1488|   it('le stock committé est un point fixe de sa régénération', () => {
+    1489|     for (const r of regenerations()) expect(ecartDeRegeneration(r, tex…
+       |                                                                                             ^
+    1490|   });
+    1491| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+ Test Files  1 failed | 34 passed (35)
+      Tests  4 failed | 676 passed (680)
+   Start at  09:34:49
+   Duration  59.73s (transform 33.51s, setup 77.39s, collect 32.79s, tests 51.29s, environment 2.70s, prepare 455ms)
+
+exit=1

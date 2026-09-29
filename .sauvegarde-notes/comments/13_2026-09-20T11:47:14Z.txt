@@ -1,0 +1,15 @@
+## Publication a3585421d
+
+Plage publiée : `2e213446a → a3585421d` sur `main`.
+
+### Commits (2)
+- `7f98bebfc` refactor(ui): refs #1806 — 2d γ2 coop : le salon compose MenuSubScreen, briques coop à props
+- `a3585421d` chore(docs): refs #1806 — docs dérivés
+
+### CI
+- verte — course `35508419085` : https://github.com/cgauche/game/actions/runs/35508419085
+- attente du verdict CI : 8.2 min (temps d’attente, pas de machine locale).
+
+#1806 est rattaché (`refs`) par cette publication, non fermé.
+
+<!-- publier: a3585421df6fe65635dc4d621e97462d3790c450 -->

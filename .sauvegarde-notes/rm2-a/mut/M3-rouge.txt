@@ -1,0 +1,33 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game
+
+ ❯ src/ui/Infobulle.test.tsx (5 tests | 1 failed) 215ms 436 MB heap used
+   × Q2DIAL — une origine sortie du document cède la place à celle de la surface qui la contenait > A fermé sous B : le focus reste dans B ; B fermé : le focus va au déclencheur de A 26ms
+     → B fermé : le focus va au déclencheur de A, jamais à body: expected 'body' to be 'BUTTON«Déclencheur»' // Object.is equality
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/ui/Infobulle.test.tsx > Q2DIAL — une origine sortie du document cède la place à celle de la surface qui la contenait > A fermé sous B : le focus reste dans B ; B fermé : le focus va au déclencheur de A
+AssertionError: B fermé : le focus va au déclencheur de A, jamais à body: expected 'body' to be 'BUTTON«Déclencheur»' // Object.is equality
+
+Expected: "BUTTON«Déclencheur»"
+Received: "body"
+
+ ❯ src/ui/Infobulle.test.tsx:142:81
+    140|     expect(dansB(), 'A fermé sous B : le focus reste dans B').toBe(tru…
+    141|     act(() => { bouton('Fermer B').click(); });
+    142|     expect(actif(), 'B fermé : le focus va au déclencheur de A, jamais…
+       |                                                                                 ^
+    143|   });
+    144| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 4 passed (5)
+   Start at  10:07:21
+   Duration  19.80s (transform 11.93s, setup 13.96s, collect 4.50s, tests 215ms, environment 697ms, prepare 72ms)
+
+
+exit=1

@@ -1,0 +1,34 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1919-H2
+
+ ❯ src/ui/CombatConsole.test.tsx (151 tests | 1 failed | 150 skipped) 260ms 459 MB heap used
+   × CombatConsole — travée gauche : sets, gestes déduits, accès rapide > (a) dessine la COLONNE de sets — compte constant, set au poing en relief, en-tête = son libellé 258ms
+     → la touche X est gravée plus d’une fois: expected 2 to be 1 // Object.is equality
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 150 skipped (151)
+   Start at  23:06:00
+   Duration  19.85s (transform 11.94s, setup 12.96s, collect 5.59s, tests 260ms, environment 625ms, prepare 60ms)
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/ui/CombatConsole.test.tsx > CombatConsole — travée gauche : sets, gestes déduits, accès rapide > (a) dessine la COLONNE de sets — compte constant, set au poing en relief, en-tête = son libellé
+AssertionError: la touche X est gravée plus d’une fois: expected 2 to be 1 // Object.is equality
+
+- Expected
++ Received
+
+- 1
++ 2
+
+ ❯ src/ui/CombatConsole.test.tsx:1221:108
+    1219|     // de rotation se lit à la position (un chiffre ne s'affiche que s…
+    1220|     expect(head.querySelector('.cc-key')?.textContent, 'la touche X n’…
+    1221|     expect(host.querySelectorAll('.cc-bay-left .cc-key').length, 'la t…
+       |                                                                                                            ^
+    1222|     for (const v of vignettes()) {
+    1223|       expect(v.querySelector('.cc-key'), 'une vignette de set porte en…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+

@@ -1,0 +1,122 @@
+
+> warhammer-v4-rpg@0.1.0 postinstall
+> git config core.hooksPath scripts/git-hooks && git config merge.docs-generes.driver "node scripts/git-hooks/merge-docs.mjs generes %O %A %B %P" && git config merge.docs-generes.name "docs generes: garde la version courante, docs:build regenere" && git config merge.docs-catalogue.driver "node scripts/git-hooks/merge-docs.mjs catalogue %O %A %B %P" && git config merge.docs-catalogue.name "docs catalogue: garde la version courante, refuse la perte d un bloc X-INTEGRATION" && git config merge.docs-fiche-raw.driver "node scripts/git-hooks/merge-docs.mjs fiche-raw %O %A %B %P" && git config merge.docs-fiche-raw.name "docs fiche raw: fusion de la prose, champ Implemente reinjecte par identite" && git config merge.stocks.driver "node scripts/git-hooks/merge-stocks.mjs %O %A %B %P" && git config merge.stocks.name "stocks de sites: fusion par groupe de site"
+
+
+added 365 packages in 5s
+
+added 42 packages in 3s
+
+> warhammer-v4-rpg@0.1.0 docs:build
+> node scripts/docs/build-all.mjs
+
+gen-registry: CREATURES ← 114 fichiers, src/gameIso/rig/creatures/defs [inchangé]
+gen-registry: SCENARIOS ← 41 fichiers, src/scenes/test-scenarios [inchangé]
+gen-registry: MONSTER_PARTS ← 24 fichiers, src/gameIso/rig/parts/monster/defs [inchangé]
+gen-registry: QUAD_HEAD_DEFS ← 15 fichiers, src/gameIso/rig/quadruped/heads/defs [inchangé]
+gen-registry: QUAD_TAIL_DEFS ← 12 fichiers, src/gameIso/rig/quadruped/tails/defs [inchangé]
+gen-registry: QUAD_MANE_DEFS ← 3 fichiers, src/gameIso/rig/quadruped/manes/defs [inchangé]
+gen-registry: QUAD_HARNAIS_DEFS ← 3 fichiers, src/gameIso/rig/quadruped/harnais/defs [inchangé]
+gen-registry: APPENDAGE_DEFS ← 9 fichiers, src/gameIso/rig/parts/appendages/defs [inchangé]
+gen-registry: PROSTHESIS_DEFS ← 7 fichiers, src/gameIso/rig/parts/prosthesis/defs [inchangé]
+gen-registry: BODY_DEFS ← 2 fichiers, src/gameIso/rig/parts/bodies/defs [inchangé]
+gen-registry: EYE_DEFS ← 9 fichiers, src/gameIso/rig/parts/eyes/defs [inchangé]
+gen-registry: CAPE_DEFS ← 1 fichiers, src/gameIso/rig/parts/capes/defs [inchangé]
+gen-registry: WING_DEFS ← 2 fichiers, src/gameIso/rig/parts/wings/defs [inchangé]
+gen-registry: TENUE_DEFS ← 109 fichiers, src/gameIso/rig/parts/tenues/defs [inchangé]
+gen-registry: HEAD_DEFS ← 10 fichiers, src/gameIso/rig/parts/heads/defs [inchangé]
+gen-registry: HAIRSTYLE_DEFS ← 13 fichiers, src/gameIso/rig/parts/hairstyles/defs [inchangé]
+gen-registry: SWARM_FORM_DEFS ← 8 fichiers, src/gameIso/rig/swarm/defs [inchangé]
+gen-registry: ELEMENT_DEFS ← 70 fichiers, src/gameIso/rig/parts/elements/defs [inchangé]
+gen-registry: WEAPON_DEFS ← 90 fichiers, src/gameIso/rig/parts/weapons/defs [inchangé]
+gen-registry: SHIELD_DEFS ← 4 fichiers, src/gameIso/rig/parts/shields/defs [inchangé]
+gen-registry: ARMOUR_DEFS ← 4 fichiers, src/gameIso/rig/parts/armour/defs [inchangé]
+gen-registry: ENGIN_ARTS ← 13 fichiers, src/gameIso/rig/engin/defs [inchangé]
+gen-registry: SHIP_ARTS ← 20 fichiers, src/gameIso/rig/ship/defs [inchangé]
+gen-registry: LAND_ARTS ← 5 fichiers, src/gameIso/rig/land/defs [inchangé]
+gen-registry: GABARIT_DEFS ← 13 fichiers, src/gameIso/rig/gabarits/defs [inchangé]
+gen-registry: PLAN_LIST ← 19 fichiers, src/gameIso/rig/plans/defs [inchangé]
+gen-registry: PROP_DEFS ← 124 fichiers, src/gameIso/catalog/decor/defs [inchangé]
+gen-registry: ICON_FAMILIES ← 28 fichiers, src/ui/icons/defs [inchangé]
+gen-registry: BACKDROP_DEFS ← 4 fichiers, src/ui/backdrops/defs [inchangé]
+gen-registry: SOUND_DEFS ← 16 fichiers, src/audio/defs [inchangé]
+gen-registry: SCHEMA_DEFS ← 124 fichiers, src/data/schemas/defs [inchangé]
+gen-registry: SCHEMA_DEFS_SCENES ← 4 fichiers, src/data/schemas/defs-scenes [inchangé]
+gen-registry: projections d'art ← ESPECES_DE_CREATURE=114, SEXE_DE_COIFFURE=13, FORMES_DE_NUEE=8, src/data/schemas/_art.generated.ts [inchangé]
+gen-espaces: IDS_PAR_ESPACE ← 7188 ids / 362 espaces (src/data/schemas/_ids.generated.ts), CLES_DE_DATASET ← 134 clés (src/data/schemas/_cles-de-dataset.generated.ts), RACINES_VIVANTES ← 105 documents (src/data/schemas/_racines-vivantes.generated.ts) [inchangé]
+src/engine/qualities/qualityId.generated.ts — 59 ids générés depuis src/data/qualities.json.
+build-atlas-index — OK (bloc des cœurs à jour dans docs/raw/00-index.md)
+build-atlas-index — OK (bloc des domaines du cœur « 4e » à jour dans docs/raw/4e/00-index.md)
+build-atlas-index — OK (bloc des domaines du cœur « 5e » à jour dans docs/raw/5e/00-index.md)
+catalogue-creatures.md : 34 ch., 1303 Ko
+catalogue-sorts.md : 15 ch., 542 Ko
+catalogue-divin.md : 24 ch., 244 Ko
+catalogue-equipement.md : 33 ch., 873 Ko
+catalogue-carrieres.md : 11 ch., 521 Ko
+catalogue-divers.md : 9 ch., 302 Ko
+fiches : 0/23 · champs : 326 · implémentés : 309 · non implémentés : 17 · tests seulement : 0 · anomalies (non-début-de-ligne) : 0
+folio : 4108 résolus · 148 introuvables · 0 ambigus · 465 hors-Atlas (slug sans abbr) · 74 sans page
+  AA : 318 résolus · 0 introuvables · 0 ambigus
+  ACE : 5 résolus · 0 introuvables · 0 ambigus
+  ADE I : 40 résolus · 0 introuvables · 0 ambigus
+  ADE II : 156 résolus · 16 introuvables · 0 ambigus
+  EDO : 45 résolus · 0 introuvables · 0 ambigus
+  EDOC : 120 résolus · 71 introuvables · 0 ambigus
+  LDB : 1972 résolus · 58 introuvables · 0 ambigus
+  MCLB : 62 résolus · 3 introuvables · 0 ambigus
+  MDG : 565 résolus · 0 introuvables · 0 ambigus
+  MSR : 1 résolus · 0 introuvables · 0 ambigus
+  MSRC : 123 résolus · 0 introuvables · 0 ambigus
+  NADJ : 23 résolus · 0 introuvables · 0 ambigus
+  PDT : 1 résolus · 0 introuvables · 0 ambigus
+  VDM : 554 résolus · 0 introuvables · 0 ambigus
+  ZI : 123 résolus · 0 introuvables · 0 ambigus
+docs/primitives.md — 154 primitives.
+docs/systemes.md — 16 systèmes, 154 primitives, 48 primitive(s) orpheline(s), 19 module(s) non rattaché(s).
+docs/donnees.md — 124 fichiers cartographiés, 124/124 sous contrat de schéma.
+docs/sources-vf.md — 17 livres extraits référencés.
+docs/campagne-effects.md — 58 Effects (58 membres d'union avant fusion).
+docs/vocabulaire-mecanique.md — 110 GameOp (87 exécutées / 15 inertes au switch / 8 hors switch, 7 sans usage en donnée).
+docs/index-moteur.md — 2174 exports (1878 documentés / 296 sans JSDoc).
+build-registre-jets — docs/registre-jets.md écrit (15 sites (F), 81 call-sites (D), 8 familles, 142 nœuds authorés dont 0 NON routés)
+build-usages-jets — docs/usages-jets.md écrit (38 consommateurs, 48 sites JSX, 8 producteurs de props, 20 zones de coquille, 26/29 zones de rangée consommées)
+docs/orphelines-donnees.md — 364/1094 orphelines mesurées sur 8 catalogues.
+docs/test-scenarios.md : 41 scénarios
+docs/reprise-apres-pause.md — 4 workflows, 5 hooks Git, 17 gardes de session référencés.
+docs/ajouter-une-icone.md — 28 familles, 255 icônes, 10 fichiers de données porteurs.
+docs/codex-relations.md — 31 arêtes inverses, 131 catégories, 131 clés déclarées.
+docs/map-authoring.md — 38 champs de MapSpec, 10 étapes de compilation, 36 documents mesurés.
+docs/systeme-passifs.md — 10 kinds, 14 branches de collecteur, 6 producteurs, 9 documents porteurs.
+docs/rendu-pipeline.md — 5 membres de SceneEl, 7 builders, 9 sous-dossiers, 3 catalogues.
+docs/ajouter-un-flux-de-jet.md — 40 flux (29 mono, 11 multi), 9 primitives partagées, 4 atomes, 5 gardes.
+docs/ajouter-une-mecanique.md — 20 déclencheurs, 8 kinds de source, 4 interfaces de capacités, 6 gardes.
+docs/ajouter-un-sort.md — 526 sorts (438 curés, 17 rituels), 18 champs, 9 gardes.
+docs/ajouter-une-donnee.md — 124 datasets, 30 livres (clé « abbr »), 11 clés d'enveloppe, 6 gardes.
+docs/regles-optionnelles.md — 87 règles, 15 groupes, 3 formes de contrôle, 33 maison.
+build-doctrines — docs/doctrines.md écrit (38 doctrines, 13134 octets)
+docs/sorts-implementation.md : 526 sorts — ✅ 92 · 🟡 178 · 📜 256 · curés 438
+docs/consommateurs-de-champs.md — 5/160 champs « 0 lecteur » PROPRES sur 23 types.
+docs:build — scripts/docs/build-field-consumers.mts : 24 chemin(s) lu(s) hors racine, écarté(s) de la mesure.
+docs/structures-donnees.md — 128 documents (2 racines), 5983 ids indexés, 873 lignes de forme, 99 signatures orphelines, 4 homonymes, 46 redéclarations locales, 394 lignes d’op / 2228 ops.
+coverage profondeur : ✅ 122 · 📖 78 · 🟡 19 · ⬜ 68 (sur 287 chapitres) · sections non-fiche : catalogue 639 · hors-règle 2463 · scénario 61 · règle 681 · 🔻enfoui 12 · folios ignorés 2
+par livre : LDB ✅40·📖33·🟡0·⬜1 · CRB ✅33·📖0·🟡17·⬜67 · AA ✅9·📖4·🟡0·⬜0 · VDM ✅4·📖10·🟡0·⬜0 · ADE I ✅0·📖2·🟡0·⬜0 · ADE II ✅3·📖3·🟡0·⬜0 · MCLB ✅0·📖5·🟡0·⬜0 · ACE ✅1·📖2·🟡0·⬜0 · ZI ✅4·📖10·🟡0·⬜0 · MDG ✅8·📖2·🟡0·⬜0 · EDOC ✅4·📖0·🟡1·⬜0 · MSRC ✅3·📖4·🟡1·⬜0 · AU1 ✅1·📖0·🟡0·⬜0 · NADJ ✅6·📖0·🟡0·⬜0 · EDO ✅4·📖0·🟡0·⬜0 · MSR ✅0·📖1·🟡0·⬜0 · PDT ✅2·📖2·🟡0·⬜0
+Sens A : 12 trou(s) dur(s) chapitre-livre · 11 chapitre(s)-livre à lignes non pinées · 0 réf(s) sans chapitre (hors mesure) · folios Atlas ignorés 2
+  ADE I : 1 trous durs · 1 chapitres non pinés · 0 réfs sans chapitre
+  ADE II : 0 trous durs · 1 chapitres non pinés · 0 réfs sans chapitre
+  EDO : 1 trous durs · 2 chapitres non pinés · 0 réfs sans chapitre
+  EDOC : 2 trous durs · 2 chapitres non pinés · 0 réfs sans chapitre
+  MCLB : 1 trous durs · 0 chapitres non pinés · 0 réfs sans chapitre
+  MDG : 2 trous durs · 1 chapitres non pinés · 0 réfs sans chapitre
+  MSRC : 1 trous durs · 2 chapitres non pinés · 0 réfs sans chapitre
+  NADJ : 2 trous durs · 1 chapitres non pinés · 0 réfs sans chapitre
+  PDT : 2 trous durs · 0 chapitres non pinés · 0 réfs sans chapitre
+  VDM : 0 trous durs · 1 chapitres non pinés · 0 réfs sans chapitre
+Sens B1 : 19 (non implémenté) — 17 sous dette déclarée, 0 sans entrée, 2 hors champ Implémente
+  dette de fiche 5e/tests.md (#1873) : couvre 16 topic(s) sur 16
+Sens B2 LDB (cœur 4e) : 12 → 1 chapitre(s) Atlas hors-code (11 crédité(s) par folio, 0 sous dette de fiche)
+Sens B2 CRB (cœur 5e) : 47 → 0 chapitre(s) Atlas hors-code (0 crédité(s) par folio, 47 sous dette de fiche)
+Cœur étranger : aucune des 23 fiche(s) ne cite le livre de cœur d'un autre cœur que le sien.
+Cliquet des trous durs : 13 trou(s) dur(s), tous au stock (13 entrée(s)) — aucun neuf, aucun périmé, aucun livre de cœur.
+ré-ancrage : ✅ 662 · 🔧 0 dérives (relancer --apply) · 🟡 0 · ❌ 0 · ➖ 3593 (⛔0 ⚠️0)
+662 citations vérifiées sur 4255 réfs (29 fiches)
+docs/.sources-lues.json — 34 générateur(s) mesuré(s).

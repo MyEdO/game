@@ -1,0 +1,36 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game
+
+ ❯ src/ui/editor/AddMenu.test.tsx (5 tests | 1 failed) 79ms 395 MB heap used
+   × AddMenu — le menu d’ajout se pose TOUJOURS entier à l’écran (`BoiteAncree`) > un bouton au BAS du dock Logique ouvre le menu VERS LE HAUT, collé à son bouton 14ms
+     → ancré par le BAS : un menu court reste collé à son bouton: expected 258 to be undefined
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/ui/editor/AddMenu.test.tsx > AddMenu — le menu d’ajout se pose TOUJOURS entier à l’écran (`BoiteAncree`) > un bouton au BAS du dock Logique ouvre le menu VERS LE HAUT, collé à son bouton
+AssertionError: ancré par le BAS : un menu court reste collé à son bouton: expected 258 to be undefined
+
+- Expected: 
+undefined
+
++ Received: 
+258
+
+ ❯ src/ui/editor/AddMenu.test.tsx:35:80
+     33|     const hautDuBouton = VP.height - 48;
+     34|     const p = placer({ top: hautDuBouton, bottom: hautDuBouton + 20, l…
+     35|     expect(p.top, 'ancré par le BAS : un menu court reste collé à son …
+       |                                                                                ^
+     36|     expect(bords(p).bas).toBeLessThanOrEqual(hautDuBouton); // au-dess…
+     37|     expect(p.maxHeight).toBeGreaterThan(300); // la place du dessus, b…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 4 passed (5)
+   Start at  10:09:41
+   Duration  16.03s (transform 9.51s, setup 14.66s, collect 105ms, tests 79ms, environment 730ms, prepare 78ms)
+
+
+exit=1

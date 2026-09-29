@@ -1,0 +1,130 @@
+TAP version 13
+# Subtest: le fantôme de test n’existe pas (sinon la garde ne serait jamais sollicitée)
+ok 1 - le fantôme de test n’existe pas (sinon la garde ne serait jamais sollicitée)
+  ---
+  duration_ms: 1.433543
+  type: 'test'
+  ...
+# Subtest: composant d’UI NEUF non déclaré → sortie non-zéro + geste attendu dans le message
+ok 2 - composant d’UI NEUF non déclaré → sortie non-zéro + geste attendu dans le message
+  ---
+  duration_ms: 60.96737
+  type: 'test'
+  ...
+# Subtest: un .tsx NEUF de src/gameIso est BLOQUÉ au même titre (32 .tsx mesurés, aucune exception)
+ok 3 - un .tsx NEUF de src/gameIso est BLOQUÉ au même titre (32 .tsx mesurés, aucune exception)
+  ---
+  duration_ms: 57.870453
+  type: 'test'
+  ...
+# Subtest: un composant qui EXISTE déjà (édition, pas création) ne déclenche rien
+ok 4 - un composant qui EXISTE déjà (édition, pas création) ne déclenche rien
+  ---
+  duration_ms: 53.62068
+  type: 'test'
+  ...
+# Subtest: primitive du MANIFESTE et écran du stock sont tous deux « déclarés »
+ok 5 - primitive du MANIFESTE et écran du stock sont tous deux « déclarés »
+  ---
+  duration_ms: 1.126329
+  type: 'test'
+  ...
+# Subtest: DISJONCTION (\#1806 L3) : aucun `fichier` du manifeste des primitives n’est inscrit au registre des écrans
+ok 6 - DISJONCTION (\#1806 L3) : aucun `fichier` du manifeste des primitives n’est inscrit au registre des écrans
+  ---
+  duration_ms: 2.010757
+  type: 'test'
+  ...
+# Subtest: une entrée en CHAÎNE ne déclare pas un fichier NEUF (le stock du 2026-08-16 ne croît pas)
+ok 7 - une entrée en CHAÎNE ne déclare pas un fichier NEUF (le stock du 2026-08-16 ne croît pas)
+  ---
+  duration_ms: 67.434096
+  type: 'test'
+  ...
+# Subtest: une entrée OBJET SANS maquette est refusée ; AVEC maquette, la création passe
+ok 8 - une entrée OBJET SANS maquette est refusée ; AVEC maquette, la création passe
+  ---
+  duration_ms: 118.420322
+  type: 'test'
+  ...
+# Subtest: une maquette de RÉSERVATION (« TODO ») ne déclare rien
+ok 9 - une maquette de RÉSERVATION (« TODO ») ne déclare rien
+  ---
+  duration_ms: 340.193105
+  type: 'test'
+  ...
+# Subtest: échappement SKIP_NEW_SRC_GUARD=1 → passe, et LOGGUE la dérogation
+ok 10 - échappement SKIP_NEW_SRC_GUARD=1 → passe, et LOGGUE la dérogation
+  ---
+  duration_ms: 62.61113
+  type: 'test'
+  ...
+# Subtest: un harnais .test.tsx et un fichier hors src/ui ne sont pas bloqués
+ok 11 - un harnais .test.tsx et un fichier hors src/ui ne sont pas bloqués
+  ---
+  duration_ms: 73.41387
+  type: 'test'
+  ...
+# Subtest: relPath : chemin POSIX relatif à la RACINE du dépôt, null hors du dépôt
+ok 12 - relPath : chemin POSIX relatif à la RACINE du dépôt, null hors du dépôt
+  ---
+  duration_ms: 0.743678
+  type: 'test'
+  ...
+# Subtest: un chemin HORS du dépôt (autre projet) n’est jamais bloqué
+ok 13 - un chemin HORS du dépôt (autre projet) n’est jamais bloqué
+  ---
+  duration_ms: 49.266369
+  type: 'test'
+  ...
+# Subtest: ctx_patch op=create porte le chemin en `path` : même refus que Write
+ok 14 - ctx_patch op=create porte le chemin en `path` : même refus que Write
+  ---
+  duration_ms: 55.973343
+  type: 'test'
+  ...
+# Subtest: les DEUX surfaces matchent Write ET mcp__lean-ctx__ctx_patch (sinon la garde passe à vide)
+ok 15 - les DEUX surfaces matchent Write ET mcp__lean-ctx__ctx_patch (sinon la garde passe à vide)
+  ---
+  duration_ms: 1.646582
+  type: 'test'
+  ...
+# Subtest: registre ILLISIBLE → refus fail-closed dont le corps dit de RÉPARER, pas d’inscrire
+ok 16 - registre ILLISIBLE → refus fail-closed dont le corps dit de RÉPARER, pas d’inscrire
+  ---
+  duration_ms: 67.265308
+  type: 'test'
+  ...
+# Subtest: le registre COMMITTÉ reste le défaut, et rien de ce test ne l’écrit
+ok 17 - le registre COMMITTÉ reste le défaut, et rien de ce test ne l’écrit
+  ---
+  duration_ms: 0.206853
+  type: 'test'
+  ...
+# Subtest: le registre est trié, sans doublon SUR LA CLEF NORMALISÉE, et ne cite que des composants existants
+ok 18 - le registre est trié, sans doublon SUR LA CLEF NORMALISÉE, et ne cite que des composants existants
+  ---
+  duration_ms: 1.344853
+  type: 'test'
+  ...
+# Subtest: CLIQUET : le stock d’entrées en CHAÎNE (207 mesurées le 2026-08-16) décroît, jamais l’inverse
+ok 19 - CLIQUET : le stock d’entrées en CHAÎNE (207 mesurées le 2026-08-16) décroît, jamais l’inverse
+  ---
+  duration_ms: 0.333462
+  type: 'test'
+  ...
+# Subtest: le tri sur la clef normalisée MORD sur un registre mixte désordonné (cas planté)
+ok 20 - le tri sur la clef normalisée MORD sur un registre mixte désordonné (cas planté)
+  ---
+  duration_ms: 0.217707
+  type: 'test'
+  ...
+1..20
+# tests 20
+# suites 0
+# pass 20
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1129.540487

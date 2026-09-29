@@ -1,0 +1,46 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1806-L2
+
+ ✓ src/comment-poison-guard.test.ts (79 tests) 5153ms 461 MB heap used
+   ✓ garde-fou commentaires — pierres tombales (#136, CLAUDE.md règle 6c) > aucun commentaire de src/** ni de scripts/** ne porte une pierre tombale (tolérance ZÉRO) 965ms
+   ✓ garde-fou commentaires — excuses non tracées (#136, CLAUDE.md règle 6b) > aucune excuse de src/** ni de scripts/** sans tag [entériné AAAA-MM-JJ] (ACTIVE depuis #177) 628ms
+   ✓ garde-fou commentaires — vocabulaire de l’ancien état (#1486, credo règle 1) > tout site de src/** et scripts/** (tests compris) est au stock nominatif daté, et aucune ligne du stock n’est périmée 2930ms
+ ✓ src/data/field-consumers.test.ts (20 tests) 55418ms 557 MB heap used
+   ✓ cas fondateur #903 — qui lit TrappingRef.spec ? > `TrappingRef.spec` : DEUX lecteurs, résolution et matérialisation — aucun dans le rendu 25347ms
+   ✓ DÉTERMINISME cross-OS — le rapport ne dépend pas du système de fichiers > le `.md` bâti sur le corpus en ordre INVERSÉ est BYTE-IDENTIQUE 24506ms
+   ✓ MORSURE du détecteur — fixtures en mémoire > CONJONCTION (1)∧(2) — le porteur doit être du type, la propriété doit être la sienne 402ms
+   ✓ MORSURE du détecteur — fixtures en mémoire > le DÉCLARANT compte toutes les lectures de la propriété qu’il déclare (c’est son renommage qui les casse) 372ms
+   ✓ MORSURE du détecteur — fixtures en mémoire > FORME identique, DÉCLARATIONS distinctes : un type ANONYME ne crédite RIEN (pas de faux positif structurel) 909ms
+   ✓ MORSURE du détecteur — fixtures en mémoire > un `home` qui ne DÉCLARE pas le type est une ERREUR nommée, jamais une table muette 549ms
+   ✓ MORSURE du détecteur — fixtures en mémoire > un même `cache` porté par DEUX Programs rend DEUX contextes — le premier ne se rejoue pas 720ms
+   ✓ MORSURE du détecteur — fixtures en mémoire > HOMONYMIE : deux `Ref` de modules différents ne se croisent jamais 917ms
+   ✓ MORSURE du détecteur — fixtures en mémoire > shape → type inféré : le DÉCLARANT est reconnu par SYMBOLE du schéma, pas par son nom 735ms
+   ✓ MORSURE du détecteur — fixtures en mémoire > shape → type inféré : un type qui COMPOSE le corps inféré ne capte pas les lecteurs du déclarant 604ms
+ ✓ src/ui/editor/scene-field-editability-guard.test.ts (19 tests) 56764ms 2122 MB heap used
+   ✓ #841 — chaque champ du document de scène a un chemin d’écriture ATTEIGNABLE PAR L’AUTEUR > aucun champ n’est joignable seulement par le pipeline d’authoring, hors cliquet nommé 19322ms
+   ✓ #841 — chaque champ du document de scène a un chemin d’écriture ATTEIGNABLE PAR L’AUTEUR > crédite une écriture qui traverse `Array.map` — sonde réelle : `SceneEffectZone.tiles` ← `mapSpec.ts` 954ms
+   ✓ #841 — chaque champ du document de scène a un chemin d’écriture ATTEIGNABLE PAR L’AUTEUR > NON VACANTE (c) : à travers `Array.map`, seule l’annotation de la COLLECTION crédite — pas un homonyme 440ms
+   ✓ #841 — chaque champ du document de scène a un chemin d’écriture ATTEIGNABLE PAR L’AUTEUR > le périmètre inclut par IDENTITÉ — une feuille d’un AUTRE module composée par le document y entre, un nœud-frontière n’y entre pas 326ms
+   ✓ #841 — chaque champ du document de scène a un chemin d’écriture ATTEIGNABLE PAR L’AUTEUR > la frontière porte sur la DÉCLARATION DE PROPRIÉTÉ — un corps inféré d’un schéma est dans le périmètre et se NOMME de son schéma, le vocabulaire partagé n’y est pas 339ms
+   ✓ #841 — chaque champ du document de scène a un chemin d’écriture ATTEIGNABLE PAR L’AUTEUR > le SEAM manuscrit/schéma ne diverge QU’EN optionalité, sur les 6 champs que la note de `scene.ts` nomme 7148ms
+   ✓ #841 — chaque champ du document de scène a un chemin d’écriture ATTEIGNABLE PAR L’AUTEUR > gate @fossile (cas A) : un champ EXISTANT que l’on tague sans l’inscrire au registre est ROUGE 9545ms
+   ✓ #841 — chaque champ du document de scène a un chemin d’écriture ATTEIGNABLE PAR L’AUTEUR > gate @fossile (cas B) : un champ NEUF né tagué — LE canal d’évasion — est ROUGE, et il RESTE dans le périmètre 5032ms
+   ✓ #841 — chaque champ du document de scène a un chemin d’écriture ATTEIGNABLE PAR L’AUTEUR > gate @fossile : une ENTRÉE du registre que plus aucun tag ne porte est ROUGE (le registre ne survit pas à son shim) 11471ms
+   ✓ #841 — chaque champ du document de scène a un chemin d’écriture ATTEIGNABLE PAR L’AUTEUR > NON VACANTE (a) : un champ frais, écrit par personne, est rapporté orphelin 303ms
+   ✓ #841 — chaque champ du document de scène a un chemin d’écriture ATTEIGNABLE PAR L’AUTEUR > NON VACANTE (b) : un champ dont le seul « écrivain » est un HOMONYME d’un autre type reste orphelin 396ms
+   ✓ #841 — chaque champ du document de scène a un chemin d’écriture ATTEIGNABLE PAR L’AUTEUR > le crédit suit les MAPPINGS du chemin d’édition réel (`Partial<T>`, patch passé en argument) 332ms
+   ✓ #841 — chaque champ du document de scène a un chemin d’écriture ATTEIGNABLE PAR L’AUTEUR > NON VACANTE (d) : une primitive hors interface RÉ-EXPORTÉE mais jamais APPELÉE ne crédite rien 356ms
+   ✓ #841 — chaque champ du document de scène a un chemin d’écriture ATTEIGNABLE PAR L’AUTEUR > NON VACANTE (e) : un HOMONYME appelé depuis l’interface ne réveille pas la primitive muette 346ms
+   ✓ #841 — chaque champ du document de scène a un chemin d’écriture ATTEIGNABLE PAR L’AUTEUR > un APPELANT d’interface, même indirect via une autre primitive appelée, crédite 340ms
+ ✓ src/lib/coupeAuMot.test.ts (9 tests) 84ms 2125 MB heap used
+ ✓ src/analyse-retention-guard.test.ts (20 tests) 54431ms 598 MB heap used
+   ✓ garde de classe #1801 — une structure d’analyse ne vit pas en portée de collection > aucun module chargé par la suite ne retient une structure d’analyse 54044ms
+ ✓ src/coupe-au-caractere-guard.test.ts (7 tests) 9558ms 546 MB heap used
+   ✓ coupe au caractère suivie d’une ellipse > aucun site sous `src/` ni `scripts/` 9457ms
+
+ Test Files  6 passed (6)
+      Tests  154 passed (154)
+   Start at  18:15:47
+   Duration  79.81s (transform 9.58s, setup 39.54s, collect 3.08s, tests 181.41s, environment 1ms, prepare 189ms)
+

@@ -1,0 +1,57 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game
+
+ ❯ src/ui/wrap-keyboard-vs-cursor.test.tsx (8 tests | 2 failed) 190ms 420 MB heap used
+   × (C) SURFACE — un bouton focalisé dans un dialogue ou une infobulle possède Entrée > role="tooltip" : Entrée active le bouton, le curseur tactique ne commet rien 19ms
+     → Entrée sur un bouton d’une surface tooltip a commis le curseur derrière: expected 1 to be +0 // Object.is equality
+   × (C) SURFACE — un bouton focalisé dans un dialogue ou une infobulle possède Entrée > role="dialog" : Entrée active le bouton, le curseur tactique ne commet rien 8ms
+     → Entrée sur un bouton d’une surface dialog a commis le curseur derrière: expected 1 to be +0 // Object.is equality
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/ui/wrap-keyboard-vs-cursor.test.tsx > (C) SURFACE — un bouton focalisé dans un dialogue ou une infobulle possède Entrée > role="tooltip" : Entrée active le bouton, le curseur tactique ne commet rien
+AssertionError: Entrée sur un bouton d’une surface tooltip a commis le curseur derrière: expected 1 to be +0 // Object.is equality
+
+- Expected
++ Received
+
+- 0
++ 1
+
+ ❯ src/ui/wrap-keyboard-vs-cursor.test.tsx:137:97
+    135|       act(() => { useGame.setState(etat()); });
+    136|       entree();
+    137|       expect(commis, `Entrée sur un bouton d’une surface ${role} a com…
+       |                                                                                                 ^
+    138|     });
+    139|   }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/ui/wrap-keyboard-vs-cursor.test.tsx > (C) SURFACE — un bouton focalisé dans un dialogue ou une infobulle possède Entrée > role="dialog" : Entrée active le bouton, le curseur tactique ne commet rien
+AssertionError: Entrée sur un bouton d’une surface dialog a commis le curseur derrière: expected 1 to be +0 // Object.is equality
+
+- Expected
++ Received
+
+- 0
++ 1
+
+ ❯ src/ui/wrap-keyboard-vs-cursor.test.tsx:137:97
+    135|       act(() => { useGame.setState(etat()); });
+    136|       entree();
+    137|       expect(commis, `Entrée sur un bouton d’une surface ${role} a com…
+       |                                                                                                 ^
+    138|     });
+    139|   }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 6 passed (8)
+   Start at  10:08:23
+   Duration  15.96s (transform 9.44s, setup 13.62s, collect 910ms, tests 190ms, environment 764ms, prepare 74ms)
+
+
+exit=1

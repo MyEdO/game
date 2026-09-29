@@ -1,0 +1,27 @@
+fix(gardes): refs #1806 — R-M2 train 6 : programmes par les fabriques, garde de la classe
+
+Restes du juge du train 5 de R-M2 lot A (#1806).
+- `repoProgram(root, choisirRootNames, recouvrement)` : le programme du dépôt avec des modules
+  remplacés en mémoire, un seul chemin ; `scene-field-editability-guard` le consomme (sa lecture
+  recopiée du tsconfig meurt).
+- `built-brand-lint` et `roll-seam-mints` passent par `virtualProgram` : leurs deux hôtes recopiés
+  meurent (0 écart de diagnostics sur 18 variantes, sonde du juge).
+- Garde `CONSTRUCTION_DE_PROGRAMME` (`canonUnique.mjs`, `src/ts-program-fabrique-guard.test.ts`) : un
+  `create*Program` hors du foyer `tsProgram.mjs` rougit.
+- `coupeAuMot` : titre du balayage exact, deux assertions de plus (tuent `exceptionRendTout` et
+  `sansEllipse`), tête et mot dérivés de l'en-tête ; en-têtes de `tsProgram.mjs` et
+  `analyseRetenue.d.mts` à jour.
+
+Preuves (orchestrateur, worktree sur 7270396a6) : `npm run gates` — 24 gates de ci.yml vertes ;
+mutations des codeurs rouges sur leur assertion nommée.
+
+JUGE: juge adversarial du train 6 (#1806) : D1-D4 tiennent ; À REPRENDRE sur la garde (import renommé, accès calculé, createLanguageService) et tsProgram.mjs absent du manifeste, au train suivant
+REFUTATION: sondes du juge : repoProgram ancien contre neuf sur 1532 fichiers (mêmes noms, mêmes diagnostics), mutants du balayage tués 2412/14304, sonde-f4 à 0 écart, garde sur 10 formes ; vitest 53/53 et 76/76
+JUGE-VISION: aucun écran touché : fabriques de programme, gardes et tests d'outillage seuls ; aucun rendu ne change
+
+Restes (train suivant) : la garde résout l'identifiant par `origineImportee` et couvre
+`createLanguageService` (formes hors de portée déclarées) ; entrée `tsProgram` au manifeste des
+primitives.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_0167t7jpCF61Qutt6mU1dbAt

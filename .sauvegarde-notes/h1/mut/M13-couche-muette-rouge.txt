@@ -1,0 +1,247 @@
+TAP version 13
+# Subtest: vignette au trait qui RECOUVRE un contrôle : défaut nommé, cible et surface
+ok 1 - vignette au trait qui RECOUVRE un contrôle : défaut nommé, cible et surface
+  ---
+  duration_ms: 2.075236
+  type: 'test'
+  ...
+# Subtest: pont qui ne va PAS de bord à bord : défaut chiffré
+ok 2 - pont qui ne va PAS de bord à bord : défaut chiffré
+  ---
+  duration_ms: 0.958281
+  type: 'test'
+  ...
+# Subtest: pont au-delà de 21 % de la hauteur dès 1280 : défaut chiffré ; sous 1280, rien
+ok 3 - pont au-delà de 21 % de la hauteur dès 1280 : défaut chiffré ; sous 1280, rien
+  ---
+  duration_ms: 1.525393
+  type: 'test'
+  ...
+# Subtest: pont compact au-delà de 45 % de la hauteur à <=560 : défaut chiffré
+ok 4 - pont compact au-delà de 45 % de la hauteur à <=560 : défaut chiffré
+  ---
+  duration_ms: 0.173607
+  type: 'test'
+  ...
+# Subtest: pointeur grossier NON émulé, ou aucune commande : la sonde se déclare aveugle
+ok 5 - pointeur grossier NON émulé, ou aucune commande : la sonde se déclare aveugle
+  ---
+  duration_ms: 0.307052
+  type: 'test'
+  ...
+# Subtest: couche saine : aucun défaut
+ok 6 - couche saine : aucun défaut
+  ---
+  duration_ms: 1.576898
+  type: 'test'
+  ...
+# Subtest: couche ABSENTE : la sonde se déclare AVEUGLE
+not ok 7 - couche ABSENTE : la sonde se déclare AVEUGLE
+  ---
+  duration_ms: 0.881831
+  type: 'test'
+  location: '/home/user/game/.wt-1919-H1/scripts/recette/hud-clickables.test.mjs:653:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    attendu 1 défaut, obtenu 0 : 
+    
+    0 !== 1
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 1
+  actual: 0
+  operator: 'strictEqual'
+  stack: |-
+    rougeCouche (file:///home/user/game/.wt-1919-H1/scripts/recette/hud-clickables.test.mjs:645:10)
+    TestContext.<anonymous> (file:///home/user/game/.wt-1919-H1/scripts/recette/hud-clickables.test.mjs:656:3)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: pont ABSENT sous la couche : sonde aveugle sur sa pose
+not ok 8 - pont ABSENT sous la couche : sonde aveugle sur sa pose
+  ---
+  duration_ms: 0.191927
+  type: 'test'
+  location: '/home/user/game/.wt-1919-H1/scripts/recette/hud-clickables.test.mjs:659:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    attendu 1 défaut, obtenu 0 : 
+    
+    0 !== 1
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 1
+  actual: 0
+  operator: 'strictEqual'
+  stack: |-
+    rougeCouche (file:///home/user/game/.wt-1919-H1/scripts/recette/hud-clickables.test.mjs:645:10)
+    TestContext.<anonymous> (file:///home/user/game/.wt-1919-H1/scripts/recette/hud-clickables.test.mjs:663:3)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: pont DÉCOLLÉ du bas de l’écran : défaut nommé, boîte comprise
+not ok 9 - pont DÉCOLLÉ du bas de l’écran : défaut nommé, boîte comprise
+  ---
+  duration_ms: 0.293583
+  type: 'test'
+  location: '/home/user/game/.wt-1919-H1/scripts/recette/hud-clickables.test.mjs:666:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    attendu 1 défaut, obtenu 0 : 
+    
+    0 !== 1
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 1
+  actual: 0
+  operator: 'strictEqual'
+  stack: |-
+    rougeCouche (file:///home/user/game/.wt-1919-H1/scripts/recette/hud-clickables.test.mjs:645:10)
+    TestContext.<anonymous> (file:///home/user/game/.wt-1919-H1/scripts/recette/hud-clickables.test.mjs:669:3)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: page qui DÉFILE : le plateau déborde de l’écran
+not ok 10 - page qui DÉFILE : le plateau déborde de l’écran
+  ---
+  duration_ms: 0.35499
+  type: 'test'
+  location: '/home/user/game/.wt-1919-H1/scripts/recette/hud-clickables.test.mjs:672:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    attendu 1 défaut, obtenu 0 : 
+    
+    0 !== 1
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 1
+  actual: 0
+  operator: 'strictEqual'
+  stack: |-
+    rougeCouche (file:///home/user/game/.wt-1919-H1/scripts/recette/hud-clickables.test.mjs:645:10)
+    TestContext.<anonymous> (file:///home/user/game/.wt-1919-H1/scripts/recette/hud-clickables.test.mjs:675:3)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: surface ROGNÉE par la couche : défaut chiffré, zone et surface nommées
+not ok 11 - surface ROGNÉE par la couche : défaut chiffré, zone et surface nommées
+  ---
+  duration_ms: 0.417876
+  type: 'test'
+  location: '/home/user/game/.wt-1919-H1/scripts/recette/hud-clickables.test.mjs:678:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    attendu 1 défaut, obtenu 0 : 
+    
+    0 !== 1
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 1
+  actual: 0
+  operator: 'strictEqual'
+  stack: |-
+    rougeCouche (file:///home/user/game/.wt-1919-H1/scripts/recette/hud-clickables.test.mjs:645:10)
+    TestContext.<anonymous> (file:///home/user/game/.wt-1919-H1/scripts/recette/hud-clickables.test.mjs:681:3)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: rognure sous le demi-pixel : arrondi de rendu, rien à dire
+ok 12 - rognure sous le demi-pixel : arrondi de rendu, rien à dire
+  ---
+  duration_ms: 0.150884
+  type: 'test'
+  ...
+# Subtest: commande qui ne reçoit pas son clic : défaut nommé, recouvrant compris
+not ok 13 - commande qui ne reçoit pas son clic : défaut nommé, recouvrant compris
+  ---
+  duration_ms: 0.256542
+  type: 'test'
+  location: '/home/user/game/.wt-1919-H1/scripts/recette/hud-clickables.test.mjs:690:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    attendu 1 défaut, obtenu 0 : 
+    
+    0 !== 1
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 1
+  actual: 0
+  operator: 'strictEqual'
+  stack: |-
+    rougeCouche (file:///home/user/game/.wt-1919-H1/scripts/recette/hud-clickables.test.mjs:645:10)
+    TestContext.<anonymous> (file:///home/user/game/.wt-1919-H1/scripts/recette/hud-clickables.test.mjs:693:3)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: commande EXEMPTÉE (hors du champ de son défilant, ou sous sa tête collée) : rien à dire
+ok 14 - commande EXEMPTÉE (hors du champ de son défilant, ou sous sa tête collée) : rien à dire
+  ---
+  duration_ms: 0.151532
+  type: 'test'
+  ...
+# Subtest: AUCUNE commande rendue : la sonde se déclare AVEUGLE, elle ne se tait pas
+not ok 15 - AUCUNE commande rendue : la sonde se déclare AVEUGLE, elle ne se tait pas
+  ---
+  duration_ms: 0.133584
+  type: 'test'
+  location: '/home/user/game/.wt-1919-H1/scripts/recette/hud-clickables.test.mjs:704:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    attendu 1 défaut, obtenu 0 : 
+    
+    0 !== 1
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 1
+  actual: 0
+  operator: 'strictEqual'
+  stack: |-
+    rougeCouche (file:///home/user/game/.wt-1919-H1/scripts/recette/hud-clickables.test.mjs:645:10)
+    TestContext.<anonymous> (file:///home/user/game/.wt-1919-H1/scripts/recette/hud-clickables.test.mjs:707:3)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+1..15
+# tests 15
+# suites 0
+# pass 8
+# fail 7
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 131.580446

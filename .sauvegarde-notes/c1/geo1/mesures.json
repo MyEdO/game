@@ -1,0 +1,1491 @@
+{
+ "geo": {
+  "A-1707x780": {
+   "vue": [
+    1707,
+    780
+   ],
+   "forme": "complete",
+   "total": 170,
+   "bande": 132.6,
+   "totalPct": 21.8,
+   "bandePct": 17,
+   "case": {
+    "x": 1009.5,
+    "y": 681.4,
+    "w": 42.3,
+    "h": 42.3,
+    "b": 723.7,
+    "r": 1051.8
+   },
+   "icone": {
+    "x": 1016.5,
+    "y": 689.9,
+    "w": 25.4,
+    "h": 25.4,
+    "b": 715.2,
+    "r": 1041.8
+   },
+   "portrait": {
+    "x": 786.1,
+    "y": 622,
+    "w": 108,
+    "h": 108,
+    "b": 730,
+    "r": 894.2
+   },
+   "arche": {
+    "x": 731.5,
+    "y": 613,
+    "w": 244,
+    "h": 167,
+    "b": 780,
+    "r": 975.5
+   },
+   "archeCentre": 0,
+   "rangees": 2,
+   "regions": [
+    {
+     "q": "cc-bay cc-bay-left",
+     "x": 409.8,
+     "y": 650.4,
+     "w": 295.7,
+     "h": 129.6,
+     "b": 780,
+     "r": 705.5,
+     "deborde": 0,
+     "debordeX": 0
+    },
+    {
+     "q": "cc-arch skin-pont",
+     "x": 731.5,
+     "y": 613,
+     "w": 244,
+     "h": 167,
+     "b": 780,
+     "r": 975.5,
+     "deborde": 0,
+     "debordeX": 0
+    },
+    {
+     "q": "cc-bay cc-bay-right",
+     "x": 1001.5,
+     "y": 650.4,
+     "w": 289.8,
+     "h": 129.6,
+     "b": 780,
+     "r": 1291.3,
+     "deborde": 0,
+     "debordeX": 0
+    },
+    {
+     "q": "cc-corner",
+     "x": 1633,
+     "y": 650.4,
+     "w": 64,
+     "h": 129.6,
+     "b": 780,
+     "r": 1697,
+     "deborde": 0,
+     "debordeX": 0
+    }
+   ],
+   "horsEcran": [],
+   "debordes": [
+    "cc-arch-body 0x3 "
+   ],
+   "lbl": 0,
+   "setN": 0,
+   "sets": [
+    "tenu",
+    "set",
+    "vide"
+   ],
+   "grille": [
+    "Course",
+    "·",
+    "Mouvement",
+    "Défensive",
+    "Intuition",
+    "Immunité Psy",
+    "Ignorer les ",
+    "·",
+    "·",
+    "·",
+    "·",
+    "·"
+   ],
+   "toucheX": {
+    "texte": "X",
+    "x": 454.5,
+    "y": 661.4,
+    "w": 14.6,
+    "h": 8,
+    "b": 669.4,
+    "r": 469.2,
+    "tete": {
+     "x": 417.8,
+     "y": 658.4,
+     "w": 165.1,
+     "h": 15,
+     "b": 673.4,
+     "r": 582.9
+    }
+   },
+   "fin": {
+    "touche": "ESPACE",
+    "arme": false,
+    "nom": "Fin du tour",
+    "etat": "Action non dépensée"
+   },
+   "flot": {
+    "x": 0,
+    "y": 0,
+    "w": 1707,
+    "h": 610,
+    "b": 610,
+    "r": 1707
+   },
+   "frise": {
+    "x": 8,
+    "y": 74.5,
+    "w": 86.2,
+    "h": 452,
+    "b": 526.5,
+    "r": 94.2
+   },
+   "fil": {
+    "x": 102.2,
+    "y": 525,
+    "w": 317.7,
+    "h": 18,
+    "b": 543,
+    "r": 419.8
+   },
+   "rail": {
+    "x": 1639,
+    "y": 8,
+    "w": 60,
+    "h": 60,
+    "b": 68,
+    "r": 1699
+   },
+   "groupe": {
+    "x": 654.5,
+    "y": 8,
+    "w": 398,
+    "h": 123.6,
+    "b": 131.6,
+    "r": 1052.5
+   },
+   "vars": [
+    "--cc-cell=min(calc((17vh - 3px - 41px - ",
+    "--cc-portrait=clamp(\n    30px,\n    calc(100v",
+    "--cc-deck-h=calc(max(calc(min(calc((17vh -"
+   ]
+  },
+  "A-1366x650": {
+   "vue": [
+    1366,
+    650
+   ],
+   "forme": "complete",
+   "total": 141.7,
+   "bande": 110.5,
+   "totalPct": 21.8,
+   "bandePct": 17,
+   "case": {
+    "x": 824.8,
+    "y": 573.5,
+    "w": 31.3,
+    "h": 31.3,
+    "b": 604.8,
+    "r": 856.1
+   },
+   "icone": {
+    "x": 829.6,
+    "y": 579.8,
+    "w": 18.8,
+    "h": 18.8,
+    "b": 598.5,
+    "r": 848.3
+   },
+   "portrait": {
+    "x": 629.8,
+    "y": 520.3,
+    "w": 79.7,
+    "h": 79.7,
+    "b": 600,
+    "r": 709.5
+   },
+   "arche": {
+    "x": 575.2,
+    "y": 511.3,
+    "w": 215.7,
+    "h": 138.7,
+    "b": 650,
+    "r": 790.8
+   },
+   "archeCentre": 0,
+   "rangees": 2,
+   "regions": [
+    {
+     "q": "cc-bay cc-bay-left",
+     "x": 312,
+     "y": 542.5,
+     "w": 237.1,
+     "h": 107.5,
+     "b": 650,
+     "r": 549.2,
+     "deborde": 0,
+     "debordeX": 0
+    },
+    {
+     "q": "cc-arch skin-pont",
+     "x": 575.2,
+     "y": 511.3,
+     "w": 215.7,
+     "h": 138.7,
+     "b": 650,
+     "r": 790.8,
+     "deborde": 0,
+     "debordeX": 0
+    },
+    {
+     "q": "cc-bay cc-bay-right",
+     "x": 816.8,
+     "y": 542.5,
+     "w": 223.5,
+     "h": 107.5,
+     "b": 650,
+     "r": 1040.3,
+     "deborde": 0,
+     "debordeX": 0
+    },
+    {
+     "q": "cc-corner",
+     "x": 1292,
+     "y": 542.5,
+     "w": 64,
+     "h": 107.5,
+     "b": 650,
+     "r": 1356,
+     "deborde": 0,
+     "debordeX": 0
+    }
+   ],
+   "horsEcran": [],
+   "debordes": [
+    "cc-arch-body 0x3 "
+   ],
+   "lbl": 0,
+   "setN": 0,
+   "sets": [
+    "tenu",
+    "set",
+    "vide"
+   ],
+   "grille": [
+    "Course",
+    "·",
+    "Mouvement",
+    "Défensive",
+    "Intuition",
+    "Immunité Psy",
+    "Ignorer les ",
+    "·",
+    "·",
+    "·",
+    "·",
+    "·"
+   ],
+   "toucheX": {
+    "texte": "X",
+    "x": 356.8,
+    "y": 553.5,
+    "w": 14.6,
+    "h": 8,
+    "b": 561.5,
+    "r": 371.4,
+    "tete": {
+     "x": 320,
+     "y": 550.5,
+     "w": 125.1,
+     "h": 15,
+     "b": 565.5,
+     "r": 445.2
+    }
+   },
+   "fin": {
+    "touche": "ESPACE",
+    "arme": false,
+    "nom": "Fin du tour",
+    "etat": "Action non dépensée"
+   },
+   "flot": {
+    "x": 0,
+    "y": 0,
+    "w": 1366,
+    "h": 508.3,
+    "b": 508.3,
+    "r": 1366
+   },
+   "frise": {
+    "x": 8,
+    "y": 79.7,
+    "w": 86.2,
+    "h": 340,
+    "b": 419.7,
+    "r": 94.2
+   },
+   "fil": {
+    "x": 102.2,
+    "y": 423.3,
+    "w": 317.7,
+    "h": 18,
+    "b": 441.3,
+    "r": 419.8
+   },
+   "rail": {
+    "x": 1298,
+    "y": 8,
+    "w": 60,
+    "h": 60,
+    "b": 68,
+    "r": 1358
+   },
+   "groupe": {
+    "x": 484,
+    "y": 8,
+    "w": 398,
+    "h": 123.6,
+    "b": 131.6,
+    "r": 882
+   },
+   "vars": [
+    "--cc-cell=min(calc((17vh - 3px - 41px - ",
+    "--cc-portrait=clamp(\n    30px,\n    calc(100v",
+    "--cc-deck-h=calc(max(calc(min(calc((17vh -"
+   ]
+  },
+  "A-901x780": {
+   "vue": [
+    901,
+    780
+   ],
+   "forme": "complete",
+   "total": 170,
+   "bande": 132.6,
+   "totalPct": 21.8,
+   "bandePct": 17,
+   "case": {
+    "x": 527.2,
+    "y": 681.4,
+    "w": 42.3,
+    "h": 42.3,
+    "b": 723.7,
+    "r": 569.5
+   },
+   "icone": {
+    "x": 534.2,
+    "y": 689.9,
+    "w": 25.4,
+    "h": 25.4,
+    "b": 715.2,
+    "r": 559.5
+   },
+   "portrait": {
+    "x": 370.5,
+    "y": 622,
+    "w": 49.4,
+    "h": 49.4,
+    "b": 671.4,
+    "r": 419.8
+   },
+   "arche": {
+    "x": 315.8,
+    "y": 613,
+    "w": 185.4,
+    "h": 167,
+    "b": 780,
+    "r": 501.2
+   },
+   "archeCentre": -42,
+   "rangees": 2,
+   "regions": [
+    {
+     "q": "cc-bay cc-bay-left",
+     "x": 10.1,
+     "y": 650.4,
+     "w": 287.7,
+     "h": 129.6,
+     "b": 780,
+     "r": 297.8,
+     "deborde": 0,
+     "debordeX": 0
+    },
+    {
+     "q": "cc-arch skin-pont",
+     "x": 315.8,
+     "y": 613,
+     "w": 185.4,
+     "h": 167,
+     "b": 780,
+     "r": 501.2,
+     "deborde": 0,
+     "debordeX": 0
+    },
+    {
+     "q": "cc-bay cc-bay-right",
+     "x": 519.2,
+     "y": 650.4,
+     "w": 289.8,
+     "h": 129.6,
+     "b": 780,
+     "r": 809,
+     "deborde": 0,
+     "debordeX": 0
+    },
+    {
+     "q": "cc-corner",
+     "x": 827,
+     "y": 650.4,
+     "w": 64,
+     "h": 129.6,
+     "b": 780,
+     "r": 891,
+     "deborde": 0,
+     "debordeX": 0
+    }
+   ],
+   "horsEcran": [],
+   "debordes": [],
+   "lbl": 0,
+   "setN": 0,
+   "sets": [
+    "tenu",
+    "set",
+    "vide"
+   ],
+   "grille": [
+    "Course",
+    "·",
+    "Mouvement",
+    "Défensive",
+    "Intuition",
+    "Immunité Psy",
+    "Ignorer les ",
+    "·",
+    "·",
+    "·",
+    "·",
+    "·"
+   ],
+   "toucheX": {
+    "texte": "X",
+    "x": 54.8,
+    "y": 661.4,
+    "w": 14.6,
+    "h": 8,
+    "b": 669.4,
+    "r": 69.4,
+    "tete": {
+     "x": 18.1,
+     "y": 658.4,
+     "w": 165.1,
+     "h": 15,
+     "b": 673.4,
+     "r": 183.2
+    }
+   },
+   "fin": {
+    "touche": "ESPACE",
+    "arme": false,
+    "nom": "Fin du tour",
+    "etat": "Action non dépensée"
+   },
+   "flot": {
+    "x": 0,
+    "y": 0,
+    "w": 901,
+    "h": 610,
+    "b": 610,
+    "r": 901
+   },
+   "frise": {
+    "x": 8,
+    "y": 74.5,
+    "w": 86.2,
+    "h": 452,
+    "b": 526.5,
+    "r": 94.2
+   },
+   "fil": {
+    "x": 102.2,
+    "y": 495,
+    "w": 141.3,
+    "h": 48,
+    "b": 543,
+    "r": 243.5
+   },
+   "rail": {
+    "x": 833,
+    "y": 8,
+    "w": 60,
+    "h": 60,
+    "b": 68,
+    "r": 893
+   },
+   "groupe": {
+    "x": 251.5,
+    "y": 8,
+    "w": 398,
+    "h": 123.6,
+    "b": 131.6,
+    "r": 649.5
+   },
+   "vars": [
+    "--cc-cell=min(calc((17vh - 3px - 41px - ",
+    "--cc-portrait=clamp(\n    30px,\n    calc(100v",
+    "--cc-deck-h=calc(max(calc(min(calc((17vh -"
+   ]
+  },
+  "A-900x780": {
+   "vue": [
+    900,
+    780
+   ],
+   "forme": "complete",
+   "total": 170,
+   "bande": 132.6,
+   "totalPct": 21.8,
+   "bandePct": 17,
+   "case": {
+    "x": 526.2,
+    "y": 681.4,
+    "w": 42.3,
+    "h": 42.3,
+    "b": 723.7,
+    "r": 568.5
+   },
+   "icone": {
+    "x": 533.2,
+    "y": 689.9,
+    "w": 25.4,
+    "h": 25.4,
+    "b": 715.2,
+    "r": 558.5
+   },
+   "portrait": {
+    "x": 370.4,
+    "y": 622,
+    "w": 48.5,
+    "h": 48.5,
+    "b": 670.4,
+    "r": 418.9
+   },
+   "arche": {
+    "x": 315.8,
+    "y": 613,
+    "w": 184.5,
+    "h": 167,
+    "b": 780,
+    "r": 500.2
+   },
+   "archeCentre": -42,
+   "rangees": 2,
+   "regions": [
+    {
+     "q": "cc-bay cc-bay-left",
+     "x": 10,
+     "y": 650.4,
+     "w": 287.7,
+     "h": 129.6,
+     "b": 780,
+     "r": 297.8,
+     "deborde": 0,
+     "debordeX": 0
+    },
+    {
+     "q": "cc-arch skin-pont",
+     "x": 315.8,
+     "y": 613,
+     "w": 184.5,
+     "h": 167,
+     "b": 780,
+     "r": 500.2,
+     "deborde": 0,
+     "debordeX": 0
+    },
+    {
+     "q": "cc-bay cc-bay-right",
+     "x": 518.2,
+     "y": 650.4,
+     "w": 289.8,
+     "h": 129.6,
+     "b": 780,
+     "r": 808,
+     "deborde": 0,
+     "debordeX": 0
+    },
+    {
+     "q": "cc-corner",
+     "x": 826,
+     "y": 650.4,
+     "w": 64,
+     "h": 129.6,
+     "b": 780,
+     "r": 890,
+     "deborde": 0,
+     "debordeX": 0
+    }
+   ],
+   "horsEcran": [],
+   "debordes": [],
+   "lbl": 0,
+   "setN": 0,
+   "sets": [
+    "tenu",
+    "set",
+    "vide"
+   ],
+   "grille": [
+    "Course",
+    "·",
+    "Mouvement",
+    "Défensive",
+    "Intuition",
+    "Immunité Psy",
+    "Ignorer les ",
+    "·",
+    "·",
+    "·",
+    "·",
+    "·"
+   ],
+   "toucheX": {
+    "texte": "X",
+    "x": 54.8,
+    "y": 661.4,
+    "w": 14.6,
+    "h": 8,
+    "b": 669.4,
+    "r": 69.4,
+    "tete": {
+     "x": 18,
+     "y": 658.4,
+     "w": 165.1,
+     "h": 15,
+     "b": 673.4,
+     "r": 183.2
+    }
+   },
+   "fin": {
+    "touche": "ESPACE",
+    "arme": false,
+    "nom": "Fin du tour",
+    "etat": "Action non dépensée"
+   },
+   "flot": {
+    "x": 0,
+    "y": 0,
+    "w": 900,
+    "h": 610,
+    "b": 610,
+    "r": 900
+   },
+   "frise": {
+    "x": 8,
+    "y": 80.1,
+    "w": 80.2,
+    "h": 440.8,
+    "b": 520.9,
+    "r": 88.2
+   },
+   "fil": {
+    "x": 96.2,
+    "y": 495,
+    "w": 146.8,
+    "h": 48,
+    "b": 543,
+    "r": 243
+   },
+   "rail": {
+    "x": 832,
+    "y": 8,
+    "w": 60,
+    "h": 60,
+    "b": 68,
+    "r": 892
+   },
+   "groupe": {
+    "x": 251,
+    "y": 8,
+    "w": 398,
+    "h": 123.6,
+    "b": 131.6,
+    "r": 649
+   },
+   "vars": [
+    "--cc-cell=min(calc((17vh - 3px - 41px - ",
+    "--cc-portrait=clamp(\n    30px,\n    calc(100v",
+    "--cc-deck-h=calc(max(calc(min(calc((17vh -"
+   ]
+  },
+  "A-701x780": {
+   "vue": [
+    701,
+    780
+   ],
+   "forme": "complete",
+   "total": 170,
+   "bande": 132.6,
+   "totalPct": 21.8,
+   "bandePct": 17,
+   "case": {
+    "x": 425.9,
+    "y": 681.4,
+    "w": 28.1,
+    "h": 28.1,
+    "b": 709.5,
+    "r": 454
+   },
+   "icone": {
+    "x": 430,
+    "y": 687,
+    "w": 16.9,
+    "h": 16.9,
+    "b": 703.9,
+    "r": 446.9
+   },
+   "portrait": {
+    "x": 292.5,
+    "y": 622,
+    "w": 30,
+    "h": 30,
+    "b": 652,
+    "r": 322.5
+   },
+   "arche": {
+    "x": 237.8,
+    "y": 613,
+    "w": 166,
+    "h": 167,
+    "b": 780,
+    "r": 403.8
+   },
+   "archeCentre": -29.7,
+   "rangees": 2,
+   "regions": [
+    {
+     "q": "cc-bay cc-bay-left",
+     "x": 10,
+     "y": 650.4,
+     "w": 213.8,
+     "h": 129.6,
+     "b": 780,
+     "r": 223.8,
+     "deborde": 0,
+     "debordeX": 0
+    },
+    {
+     "q": "cc-arch skin-pont",
+     "x": 237.8,
+     "y": 613,
+     "w": 166,
+     "h": 167,
+     "b": 780,
+     "r": 403.8,
+     "deborde": 0,
+     "debordeX": 0
+    },
+    {
+     "q": "cc-bay cc-bay-right",
+     "x": 417.9,
+     "y": 650.4,
+     "w": 204.8,
+     "h": 129.6,
+     "b": 780,
+     "r": 622.6,
+     "deborde": 0,
+     "debordeX": 0
+    },
+    {
+     "q": "cc-corner",
+     "x": 636.6,
+     "y": 650.4,
+     "w": 64,
+     "h": 129.6,
+     "b": 780,
+     "r": 700.6,
+     "deborde": 0,
+     "debordeX": 0
+    }
+   ],
+   "horsEcran": [],
+   "debordes": [],
+   "lbl": 0,
+   "setN": 0,
+   "sets": [
+    "tenu",
+    "set",
+    "vide"
+   ],
+   "grille": [
+    "Course",
+    "·",
+    "Mouvement",
+    "Défensive",
+    "Intuition",
+    "Immunité Psy",
+    "Ignorer les ",
+    "·",
+    "·",
+    "·",
+    "·",
+    "·"
+   ],
+   "toucheX": {
+    "texte": "X",
+    "x": 54.8,
+    "y": 661.4,
+    "w": 14.6,
+    "h": 8,
+    "b": 669.4,
+    "r": 69.4,
+    "tete": {
+     "x": 18,
+     "y": 658.4,
+     "w": 113.8,
+     "h": 15,
+     "b": 673.4,
+     "r": 131.8
+    }
+   },
+   "fin": {
+    "touche": "ESPACE",
+    "arme": false,
+    "nom": "Fin du tour",
+    "etat": "Action non dépensée"
+   },
+   "flot": {
+    "x": 0,
+    "y": 0,
+    "w": 710.6,
+    "h": 610,
+    "b": 610,
+    "r": 710.6
+   },
+   "frise": {
+    "x": 8,
+    "y": 80.1,
+    "w": 80.2,
+    "h": 440.8,
+    "b": 520.9,
+    "r": 88.2
+   },
+   "fil": {
+    "x": 96.2,
+    "y": 447,
+    "w": 77.1,
+    "h": 96,
+    "b": 543,
+    "r": 173.2
+   },
+   "rail": {
+    "x": 642.6,
+    "y": 8,
+    "w": 60,
+    "h": 60,
+    "b": 68,
+    "r": 702.6
+   },
+   "groupe": {
+    "x": 156.3,
+    "y": 8,
+    "w": 398,
+    "h": 123.6,
+    "b": 131.6,
+    "r": 554.3
+   },
+   "vars": [
+    "--cc-cell=min(calc((17vh - 3px - 41px - ",
+    "--cc-portrait=clamp(\n    30px,\n    calc(100v",
+    "--cc-deck-h=calc(max(calc(min(calc((17vh -"
+   ]
+  },
+  "A-700x780": {
+   "vue": [
+    700,
+    780
+   ],
+   "forme": "complete",
+   "total": 236.6,
+   "bande": 236.6,
+   "totalPct": 30.3,
+   "bandePct": 30.3,
+   "case": {
+    "x": 408.2,
+    "y": 681.4,
+    "w": 42.3,
+    "h": 42.3,
+    "b": 723.7,
+    "r": 450.5
+   },
+   "icone": {
+    "x": 415.2,
+    "y": 689.9,
+    "w": 25.4,
+    "h": 25.4,
+    "b": 715.2,
+    "r": 440.5
+   },
+   "portrait": {
+    "x": 52,
+    "y": 582.9,
+    "w": 30,
+    "h": 30,
+    "b": 612.9,
+    "r": 82
+   },
+   "arche": {
+    "x": 10,
+    "y": 546.4,
+    "w": 602,
+    "h": 100,
+    "b": 646.4,
+    "r": 612
+   },
+   "archeCentre": -39,
+   "rangees": 2,
+   "regions": [
+    {
+     "q": "cc-bay cc-bay-left",
+     "x": 10,
+     "y": 650.4,
+     "w": 283.7,
+     "h": 129.6,
+     "b": 780,
+     "r": 293.7,
+     "deborde": 0,
+     "debordeX": 0
+    },
+    {
+     "q": "cc-arch skin-pont",
+     "x": 10,
+     "y": 546.4,
+     "w": 602,
+     "h": 100,
+     "b": 646.4,
+     "r": 612,
+     "deborde": 0,
+     "debordeX": 0
+    },
+    {
+     "q": "cc-bay cc-bay-right",
+     "x": 400.2,
+     "y": 650.4,
+     "w": 289.8,
+     "h": 129.6,
+     "b": 780,
+     "r": 690,
+     "deborde": 0,
+     "debordeX": 0
+    },
+    {
+     "q": "cc-corner",
+     "x": 626,
+     "y": 546.4,
+     "w": 64,
+     "h": 100,
+     "b": 646.4,
+     "r": 690,
+     "deborde": 0,
+     "debordeX": 0
+    }
+   ],
+   "horsEcran": [],
+   "debordes": [],
+   "lbl": 0,
+   "setN": 0,
+   "sets": [
+    "tenu",
+    "set",
+    "vide"
+   ],
+   "grille": [
+    "Course",
+    "·",
+    "Mouvement",
+    "Défensive",
+    "Intuition",
+    "Immunité Psy",
+    "Ignorer les ",
+    "·",
+    "·",
+    "·",
+    "·",
+    "·"
+   ],
+   "toucheX": {
+    "texte": "X",
+    "x": 54.8,
+    "y": 661.4,
+    "w": 14.6,
+    "h": 8,
+    "b": 669.4,
+    "r": 69.4,
+    "tete": {
+     "x": 18,
+     "y": 658.4,
+     "w": 165.1,
+     "h": 15,
+     "b": 673.4,
+     "r": 183.1
+    }
+   },
+   "fin": {
+    "touche": "ESPACE",
+    "arme": false,
+    "nom": "Fin du tour",
+    "etat": "Action non dépensée"
+   },
+   "flot": {
+    "x": 0,
+    "y": 0,
+    "w": 700,
+    "h": 543.4,
+    "b": 543.4,
+    "r": 700
+   },
+   "frise": {
+    "x": 4,
+    "y": 131.6,
+    "w": 692,
+    "h": 73.8,
+    "b": 205.4,
+    "r": 696
+   },
+   "fil": {
+    "x": 191.2,
+    "y": 213.4,
+    "w": 317.7,
+    "h": 18,
+    "b": 231.4,
+    "r": 508.8
+   },
+   "rail": {
+    "x": 636,
+    "y": 235.4,
+    "w": 60,
+    "h": 60,
+    "b": 295.4,
+    "r": 696
+   },
+   "groupe": {
+    "x": 151,
+    "y": 4,
+    "w": 398,
+    "h": 123.6,
+    "b": 127.6,
+    "r": 549
+   },
+   "vars": [
+    "--cc-cell=min(calc((17vh - 3px - 41px - ",
+    "--cc-portrait=30px",
+    "--cc-deck-h=calc(50px + 4px + calc(min(cal"
+   ]
+  },
+  "A-640x780": {
+   "vue": [
+    640,
+    780
+   ],
+   "forme": "complete",
+   "total": 236.6,
+   "bande": 236.6,
+   "totalPct": 30.3,
+   "bandePct": 30.3,
+   "case": {
+    "x": 348.2,
+    "y": 681.4,
+    "w": 42.3,
+    "h": 42.3,
+    "b": 723.7,
+    "r": 390.5
+   },
+   "icone": {
+    "x": 355.2,
+    "y": 689.9,
+    "w": 25.4,
+    "h": 25.4,
+    "b": 715.2,
+    "r": 380.5
+   },
+   "portrait": {
+    "x": 52,
+    "y": 582.9,
+    "w": 30,
+    "h": 30,
+    "b": 612.9,
+    "r": 82
+   },
+   "arche": {
+    "x": 10,
+    "y": 546.4,
+    "w": 543.2,
+    "h": 100,
+    "b": 646.4,
+    "r": 553.2
+   },
+   "archeCentre": -38.4,
+   "rangees": 2,
+   "regions": [
+    {
+     "q": "cc-bay cc-bay-left",
+     "x": 10,
+     "y": 650.4,
+     "w": 282.5,
+     "h": 129.6,
+     "b": 780,
+     "r": 292.5,
+     "deborde": 0,
+     "debordeX": 0
+    },
+    {
+     "q": "cc-arch skin-pont",
+     "x": 10,
+     "y": 546.4,
+     "w": 543.2,
+     "h": 100,
+     "b": 646.4,
+     "r": 553.2,
+     "deborde": 0,
+     "debordeX": 0
+    },
+    {
+     "q": "cc-bay cc-bay-right",
+     "x": 340.2,
+     "y": 650.4,
+     "w": 289.8,
+     "h": 129.6,
+     "b": 780,
+     "r": 630,
+     "deborde": 0,
+     "debordeX": 0
+    },
+    {
+     "q": "cc-corner",
+     "x": 566,
+     "y": 546.4,
+     "w": 64,
+     "h": 100,
+     "b": 646.4,
+     "r": 630,
+     "deborde": 0,
+     "debordeX": 0
+    }
+   ],
+   "horsEcran": [],
+   "debordes": [],
+   "lbl": 0,
+   "setN": 0,
+   "sets": [
+    "tenu",
+    "set",
+    "vide"
+   ],
+   "grille": [
+    "Course",
+    "·",
+    "Mouvement",
+    "Défensive",
+    "Intuition",
+    "Immunité Psy",
+    "Ignorer les ",
+    "·",
+    "·",
+    "·",
+    "·",
+    "·"
+   ],
+   "toucheX": {
+    "texte": "X",
+    "x": 54.8,
+    "y": 661.4,
+    "w": 14.6,
+    "h": 8,
+    "b": 669.4,
+    "r": 69.4,
+    "tete": {
+     "x": 18,
+     "y": 658.4,
+     "w": 165.1,
+     "h": 15,
+     "b": 673.4,
+     "r": 183.1
+    }
+   },
+   "fin": {
+    "touche": "ESPACE",
+    "arme": false,
+    "nom": "Fin du tour",
+    "etat": "Action non dépensée"
+   },
+   "flot": {
+    "x": 0,
+    "y": 0,
+    "w": 640,
+    "h": 543.4,
+    "b": 543.4,
+    "r": 640
+   },
+   "frise": {
+    "x": 4,
+    "y": 131.6,
+    "w": 632,
+    "h": 73.8,
+    "b": 205.4,
+    "r": 636
+   },
+   "fil": {
+    "x": 161.2,
+    "y": 213.4,
+    "w": 317.7,
+    "h": 18,
+    "b": 231.4,
+    "r": 478.8
+   },
+   "rail": {
+    "x": 576,
+    "y": 235.4,
+    "w": 60,
+    "h": 60,
+    "b": 295.4,
+    "r": 636
+   },
+   "groupe": {
+    "x": 121,
+    "y": 4,
+    "w": 398,
+    "h": 123.6,
+    "b": 127.6,
+    "r": 519
+   },
+   "vars": [
+    "--cc-cell=min(calc((17vh - 3px - 41px - ",
+    "--cc-portrait=30px",
+    "--cc-deck-h=calc(50px + 4px + calc(min(cal"
+   ]
+  },
+  "A-360x740": {
+   "vue": [
+    360,
+    740
+   ],
+   "forme": "complete",
+   "total": 312,
+   "bande": 312,
+   "totalPct": 42.2,
+   "bandePct": 42.2,
+   "case": {
+    "x": 64.5,
+    "y": 659,
+    "w": 36,
+    "h": 36,
+    "b": 695,
+    "r": 100.5
+   },
+   "icone": {
+    "x": 70.2,
+    "y": 666.2,
+    "w": 21.6,
+    "h": 21.6,
+    "b": 687.8,
+    "r": 91.8
+   },
+   "portrait": {
+    "x": 52,
+    "y": 467.5,
+    "w": 30,
+    "h": 30,
+    "b": 497.5,
+    "r": 82
+   },
+   "arche": {
+    "x": 10,
+    "y": 431,
+    "w": 273,
+    "h": 100,
+    "b": 531,
+    "r": 283
+   },
+   "archeCentre": -33.5,
+   "rangees": 3,
+   "regions": [
+    {
+     "q": "cc-bay cc-bay-left",
+     "x": 10,
+     "y": 534,
+     "w": 340,
+     "h": 101,
+     "b": 635,
+     "r": 350,
+     "deborde": 0,
+     "debordeX": 0
+    },
+    {
+     "q": "cc-arch skin-pont",
+     "x": 10,
+     "y": 431,
+     "w": 273,
+     "h": 100,
+     "b": 531,
+     "r": 283,
+     "deborde": 0,
+     "debordeX": 0
+    },
+    {
+     "q": "cc-bay cc-bay-right",
+     "x": 10,
+     "y": 638,
+     "w": 340,
+     "h": 102,
+     "b": 740,
+     "r": 350,
+     "deborde": 0,
+     "debordeX": 0
+    },
+    {
+     "q": "cc-corner",
+     "x": 286,
+     "y": 431,
+     "w": 64,
+     "h": 100,
+     "b": 531,
+     "r": 350,
+     "deborde": 0,
+     "debordeX": 0
+    }
+   ],
+   "horsEcran": [],
+   "debordes": [],
+   "lbl": 0,
+   "setN": 0,
+   "sets": [
+    "tenu",
+    "set",
+    "vide"
+   ],
+   "grille": [
+    "Course",
+    "·",
+    "Mouvement",
+    "Défensive",
+    "Intuition",
+    "Immunité Psy",
+    "Ignorer les ",
+    "·",
+    "·",
+    "·",
+    "·",
+    "·"
+   ],
+   "toucheX": {
+    "texte": "X",
+    "x": 97,
+    "y": 539,
+    "w": 14.2,
+    "h": 8,
+    "b": 547,
+    "r": 111.2,
+    "tete": {
+     "x": 68,
+     "y": 538,
+     "w": 143,
+     "h": 12,
+     "b": 550,
+     "r": 211
+    }
+   },
+   "fin": {
+    "touche": "ESPACE",
+    "arme": false,
+    "nom": "Fin du tour",
+    "etat": "Action non dépensée"
+   },
+   "flot": {
+    "x": 0,
+    "y": 0,
+    "w": 360,
+    "h": 428,
+    "b": 428,
+    "r": 360
+   },
+   "frise": {
+    "x": 4,
+    "y": 50,
+    "w": 352,
+    "h": 63.8,
+    "b": 113.8,
+    "r": 356
+   },
+   "fil": {
+    "x": 21.2,
+    "y": 121.8,
+    "w": 317.7,
+    "h": 18,
+    "b": 139.8,
+    "r": 338.8
+   },
+   "rail": {
+    "x": 296,
+    "y": 143.8,
+    "w": 60,
+    "h": 60,
+    "b": 203.8,
+    "r": 356
+   },
+   "groupe": {
+    "x": 99.8,
+    "y": 4,
+    "w": 160.5,
+    "h": 27,
+    "b": 31,
+    "r": 260.3
+   },
+   "vars": [
+    "--cc-cell=36px",
+    "--cc-portrait=30px",
+    "--cc-deck-h=calc(50px + 2 * 3px + 2 * calc"
+   ]
+  }
+ },
+ "refus": {},
+ "adverse": {},
+ "setupA": {
+  "tour": "✓ au tour de Klein Bürger",
+  "heros": "Klein Bürger",
+  "sets": 2,
+  "loadouts": [
+   "lo-61",
+   "lo-62"
+  ],
+  "items": [
+   "vetements",
+   "dague",
+   "bourse",
+   "besace",
+   "bougie",
+   "pied-de-biche",
+   "veste-de-cuir",
+   "sac"
+  ]
+ },
+ "console": [
+  {
+   "type": "exception",
+   "text": "TypeError: Cannot assign to read only property 'loaded' of object '#<Object>'\n    at unloadWeapon (http://localhost:5236/src/engine/items.ts:708:16)\n    at appliquerLaTouche (http://localhost:5236/src/state/combatFlow.ts:1719:7)\n    at applyAttackResult (http://localhost:5236/src/state/combatFlow.ts:1481:7)\n    at doAttack (http://localhost:5236/src/state/combatFlow.ts:2370:10)\n    at http://localhost:5236/src/state/combatFlow.ts:5093:95\n    at http://localhost:5236/src/state/combatTimers.ts:5:5"
+  }
+ ]
+}

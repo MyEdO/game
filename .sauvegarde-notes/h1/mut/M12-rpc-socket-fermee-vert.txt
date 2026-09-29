@@ -1,0 +1,22 @@
+TAP version 13
+# Subtest: appel CDP sur une socket FERMÉE : rejeté tout de suite, typé cible perdue, rien d’envoyé
+ok 1 - appel CDP sur une socket FERMÉE : rejeté tout de suite, typé cible perdue, rien d’envoyé
+  ---
+  duration_ms: 3.548628
+  type: 'test'
+  ...
+# Subtest: appel CDP sur une socket OUVERTE : message envoyé, session portée, réglé par sa réponse
+ok 2 - appel CDP sur une socket OUVERTE : message envoyé, session portée, réglé par sa réponse
+  ---
+  duration_ms: 0.666787
+  type: 'test'
+  ...
+1..2
+# tests 2
+# suites 0
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 747.493873

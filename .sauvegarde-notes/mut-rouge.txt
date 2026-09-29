@@ -1,0 +1,36 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1806-L1
+
+ ❯ src/coupe-au-caractere-guard.test.ts (2 tests | 1 failed) 4412ms 470 MB heap used
+   × coupe au caractère suivie d’une ellipse > aucun site sous `src/` 4218ms
+     → expected [ 'src/ui/editor/EffectList.tsx:161' ] to deeply equal []
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/coupe-au-caractere-guard.test.ts > coupe au caractère suivie d’une ellipse > aucun site sous `src/`
+AssertionError: expected [ 'src/ui/editor/EffectList.tsx:161' ] to deeply equal []
+
+- Expected
++ Received
+
+- Array []
++ Array [
++   "src/ui/editor/EffectList.tsx:161",
++ ]
+
+ ❯ src/coupe-au-caractere-guard.test.ts:27:92
+     25| 
+     26|   it('aucun site sous `src/`', () => {
+     27|     expect(coupesAuCaractere(readCorpus(['src'], { exts: ['.ts', '.tsx…
+       |                                                                                            ^
+     28|   });
+     29| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 1 passed (2)
+   Start at  13:15:38
+   Duration  17.37s (transform 8.49s, setup 12.53s, collect 42ms, tests 4.41s, environment 0ms, prepare 52ms)
+

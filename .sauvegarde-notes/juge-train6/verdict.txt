@@ -1,0 +1,31 @@
+VERDICT : À REPRENDRE (2 défauts : la garde neuve laisse des voies ouvertes dans sa classe, et tsProgram.mjs manque au manifeste des primitives). D1 (coupeAuMot), D2, D3 et D4 côté code tiennent.
+
+Arbre : /home/user/game/.wt-1806-L2, HEAD 7270396a6, train 6 indexé (33 fichiers), aucun fichier modifié hors index.
+Contrôle positif : canonUnique.mjs:295 CONSTRUCTION_DE_PROGRAMME, tsProgram.mjs:37 repoProgram(root, choisirRootNames, recouvrement = {}), src/ts-program-fabrique-guard.test.ts (A).
+Empreintes de l'arbre = empreintes « remis » du rendu : coupeAuMot.mjs 0c943cf8, tsProgram.mjs 4856e2d0, built-brand-lint.test.ts d1d18d3c, coupeAuMot.test.ts b7fe2bbb.
+
+DÉFAUTS
+G1 [garde qui ne ferme pas toute la classe] scripts/guards/lib/canonUnique.mjs:288-305. `reconnait` ne lit que le nom de l'appelé écrit dans le texte (identifiant ou `.name`). Sonde sonde-garde.mjs, en src/x.ts :
+   membre [1], nu [1], builder [1] : vus.
+   alias `import { createProgram as fab } …; fab()` : [] ; destructure `const { createProgram: fab } = ts` : [] ; `ts['createProgram']()` : [] ; `ts.createLanguageService(h)` : [].
+   Un homonyme métier `function createProgram(){}` est vu [1] : faux positif possible, 0 site aujourd'hui.
+  createLanguageService appartient à la MÊME classe : un LanguageService construit son Program (`getProgram()`), et analyseRetenue.mjs:64 le range déjà dans FABRIQUES_D_ANALYSE. Aujourd'hui il n'a aucun site réel : `git grep createLanguageService` ne trouve que les fixtures en gabarit analyse-retention-guard.test.ts:201 et :252 (plus les listes analyseRetenue.mjs:64 et .d.mts:2).
+  Correction retenue : (a) regex `/^create(\w*Program|LanguageService)$/` et une ligne `ts.createLanguageService(h)` au témoin ; (b) résoudre un identifiant nu par la liaison canonique `origineImportee(id, sf)` (canonUnique.mjs:404 ; `reconnait(n, sf)` reçoit déjà sf, :565), qui attrape l'import renommé ; (c) l'accès calculé et la déstructuration renommée sont soit reconnus, soit déclarés HORS DE PORTÉE dans le JSDoc, comme analyseRetenue.mjs:43-52. Chaque cas va au témoin.
+G2 [primitive absente du catalogue] src/data/primitives.manifest.json : aucune entrée pour scripts/guards/lib/tsProgram.mjs (`grep tsProgram` rend 0). Le manifeste porte bien les primitives d'OUTILLAGE : 14 entrées `"fichier": "scripts/…"`, dont stock.mjs :1340, stockDeSites :1349, sourceCorpus.mjs :1403, canonUnique.mjs :1412, commentPoison.mjs :1439. Le train fait maintenant de tsProgram.mjs le SEUL foyer autorisé par une garde, et cette primitive reste introuvable par docs/primitives.md.
+  Correction retenue : une entrée `tsProgram` (label repoProgram/virtualProgram/parsedProgram/VIRTUAL_ROOT, fichier, concept « fabriques de ts.Program : dépôt avec recouvrement, sources en mémoire, arbre déjà parsé », verrou ts-program-fabrique-guard.test.ts, analyse-retention-guard.test.ts), puis `npm run docs:build`.
+
+LENTILLES TENUES
+L1 repoProgram, un seul chemin : sonde-repo.mjs compare l'ancien repoProgram (répliqué de HEAD, sans hôte) au neuf avec recouvrement vide, sur les racines DOCUMENT : 1532/1532 fichiers, mêmes noms (true), mêmes codes de diagnostic. Le recouvrement est servi (true) et le disque reste intact (true). Appelants existants inchangés (2 arguments) : fieldConsumers.mjs:184, gameOpRefFk.mjs:125, sceneFieldEditability.mjs:153. Morsure M4 (t6-m4.out) : 3 échecs dans gate @fossile cas A, cas B et « entrée du registre », c'est-à-dire exactement les tests qui passent par programAvec.
+L2 virtualProgram : le corps n'a pas changé dans le diff (seuls les commentaires bougent). La sonde du juge 5 (sonde-f4) rejouée sur l'arbre donne « ecarts 0 » sur 18 variantes (f4-rejeu.out). Les options diffèrent de l'ancien hôte (types:[] absent, module ESNext/Bundler en plus) sans effet mesuré. Le 19e appel, SONDE_DISPLAY(', worldOwner: false') à roll-seam-mints.test.ts:546, n'était pas dans la sonde, mais le test est vert (vt2).
+L3 Écart 1 du rendu vrai : analyse-retention-guard.test.ts:118 est à l'intérieur du gabarit ouvert en :116. Le témoin cas `f` le montre, et le foyer est exempté par `foyer` (sAppliqueA). Aucun create*Program réel hors du foyer (tsProgram.mjs:55, :94, :112). Commentaire et JSDoc : [] (pas de faux positif).
+L4 D1 : sonde-d1.mjs rejoue le balayage (graine 42, 20 000 cas) avec les mutants en mémoire. Réel {} ; exceptionRendTout -> « sortie non entière » ×2412 ; sansEllipse -> « ellipse fausse » ×14304. TETE_ET_MOT (coupeAuMot.test.ts:53) vient de l'en-tête, sans `debut`/`search` de l'implémentation. Écart `.trimEnd()` juste : sans lui, le réel rougit (778 cas, par exemple "ab…" pour n=1, mot clos par une insécable), parce que coupeAuMot.mjs:23 applique trimEnd à tout préfixe. Cas du rendu : coupeAuMot("b    \n  ccbaaaa", 1) = "b…".
+L5 D2 : analyseRetenue.d.mts:1 porte parsedProgram. D3 : tsProgram.mjs:1-10 et le JSDoc de virtualProgram sont vrais ; jsdocUnion.mjs:230 « sans import » reste vrai (une seule source). Remarque sans grief : « sans disque » à tsProgram.mjs:7/:58 alors que la lib est lue sur disque (:76), le « bibliothèque standard comprise » accolé le dit. Règle 6 : réfs nues, ni excuse ni pierre tombale. Label du manifeste, verrou, docs/primitives.md et docs/systemes.md cohérents.
+
+TESTS REJOUÉS (code lu par $? sans pipe)
+- vitest coupeAuMot + ts-program-fabrique-guard + built-brand-lint : rc=0, 3 fichiers, 53/53 (vt1.out).
+- vitest roll-seam-mints + scene-field-editability-guard : rc=0, 2 fichiers, 76/76 (vt2.out).
+- sondes : sonde-d1 rc=0, sonde-garde rc=0, sonde-repo rc=0, sonde-f4 rejouée rc=0.
+Processus : aucun en arrière-plan ; toutes les commandes au premier plan, bornées par timeout, terminées.
+
+JUGE: juge adversarial du train 6 R-M2 lot A (#1806) sur 7270396a6+index : À REPRENDRE — D1-D4 tenus (mutants tués 2412/14304, repoProgram équivalent 1532 fichiers, 0 écart de diagnostics), mais CONSTRUCTION_DE_PROGRAMME laisse passer l'import renommé, l'accès calculé et createLanguageService (même classe), et tsProgram.mjs manque au manifeste qui porte 14 primitives d'outillage.
+REFUTATION: sondes en lecture seule : garde sur 10 formes (alias/destructure/element/LanguageService à []), ancien contre nouveau repoProgram (fichiers, noms, diagnostics, recouvrement), balayage avec mutants en mémoire et sans trimEnd, sonde-f4 rejouée 0 écart ; vitest 53/53 + 76/76.

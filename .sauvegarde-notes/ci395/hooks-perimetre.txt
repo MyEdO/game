@@ -1,0 +1,516 @@
+TAP version 13
+# Subtest: le fantôme de test n’existe pas (sinon la garde ne serait jamais sollicitée)
+ok 1 - le fantôme de test n’existe pas (sinon la garde ne serait jamais sollicitée)
+  ---
+  duration_ms: 1.478512
+  type: 'test'
+  ...
+# Subtest: composant d’UI NEUF non déclaré → sortie non-zéro + geste attendu dans le message
+ok 2 - composant d’UI NEUF non déclaré → sortie non-zéro + geste attendu dans le message
+  ---
+  duration_ms: 61.816066
+  type: 'test'
+  ...
+# Subtest: un .tsx NEUF de src/gameIso est BLOQUÉ au même titre (32 .tsx mesurés, aucune exception)
+ok 3 - un .tsx NEUF de src/gameIso est BLOQUÉ au même titre (32 .tsx mesurés, aucune exception)
+  ---
+  duration_ms: 57.387653
+  type: 'test'
+  ...
+# Subtest: un composant qui EXISTE déjà (édition, pas création) ne déclenche rien
+ok 4 - un composant qui EXISTE déjà (édition, pas création) ne déclenche rien
+  ---
+  duration_ms: 52.922578
+  type: 'test'
+  ...
+# Subtest: primitive du MANIFESTE et écran du stock sont tous deux « déclarés »
+ok 5 - primitive du MANIFESTE et écran du stock sont tous deux « déclarés »
+  ---
+  duration_ms: 0.988941
+  type: 'test'
+  ...
+# Subtest: DISJONCTION (\#1806 L3) : aucun `fichier` du manifeste des primitives n’est inscrit au registre des écrans
+ok 6 - DISJONCTION (\#1806 L3) : aucun `fichier` du manifeste des primitives n’est inscrit au registre des écrans
+  ---
+  duration_ms: 2.613957
+  type: 'test'
+  ...
+# Subtest: une entrée en CHAÎNE ne déclare pas un fichier NEUF (le stock du 2026-08-16 ne croît pas)
+ok 7 - une entrée en CHAÎNE ne déclare pas un fichier NEUF (le stock du 2026-08-16 ne croît pas)
+  ---
+  duration_ms: 53.50319
+  type: 'test'
+  ...
+# Subtest: une entrée OBJET SANS maquette est refusée ; AVEC maquette, la création passe
+ok 8 - une entrée OBJET SANS maquette est refusée ; AVEC maquette, la création passe
+  ---
+  duration_ms: 116.5647
+  type: 'test'
+  ...
+# Subtest: une maquette de RÉSERVATION (« TODO ») ne déclare rien
+ok 9 - une maquette de RÉSERVATION (« TODO ») ne déclare rien
+  ---
+  duration_ms: 415.567577
+  type: 'test'
+  ...
+# Subtest: échappement SKIP_NEW_SRC_GUARD=1 → passe, et LOGGUE la dérogation
+ok 10 - échappement SKIP_NEW_SRC_GUARD=1 → passe, et LOGGUE la dérogation
+  ---
+  duration_ms: 67.053221
+  type: 'test'
+  ...
+# Subtest: un harnais .test.tsx et un fichier hors src/ui ne sont pas bloqués
+ok 11 - un harnais .test.tsx et un fichier hors src/ui ne sont pas bloqués
+  ---
+  duration_ms: 64.685826
+  type: 'test'
+  ...
+# Subtest: relPath : chemin POSIX relatif à la RACINE du dépôt, null hors du dépôt
+ok 12 - relPath : chemin POSIX relatif à la RACINE du dépôt, null hors du dépôt
+  ---
+  duration_ms: 0.682472
+  type: 'test'
+  ...
+# Subtest: un chemin HORS du dépôt (autre projet) n’est jamais bloqué
+ok 13 - un chemin HORS du dépôt (autre projet) n’est jamais bloqué
+  ---
+  duration_ms: 51.322212
+  type: 'test'
+  ...
+# Subtest: ctx_patch op=create porte le chemin en `path` : même refus que Write
+ok 14 - ctx_patch op=create porte le chemin en `path` : même refus que Write
+  ---
+  duration_ms: 56.328601
+  type: 'test'
+  ...
+# Subtest: les DEUX surfaces matchent Write ET mcp__lean-ctx__ctx_patch (sinon la garde passe à vide)
+ok 15 - les DEUX surfaces matchent Write ET mcp__lean-ctx__ctx_patch (sinon la garde passe à vide)
+  ---
+  duration_ms: 1.952492
+  type: 'test'
+  ...
+# Subtest: registre ILLISIBLE → refus fail-closed dont le corps dit de RÉPARER, pas d’inscrire
+ok 16 - registre ILLISIBLE → refus fail-closed dont le corps dit de RÉPARER, pas d’inscrire
+  ---
+  duration_ms: 72.183639
+  type: 'test'
+  ...
+# Subtest: le registre COMMITTÉ reste le défaut, et rien de ce test ne l’écrit
+ok 17 - le registre COMMITTÉ reste le défaut, et rien de ce test ne l’écrit
+  ---
+  duration_ms: 0.153711
+  type: 'test'
+  ...
+# Subtest: le registre est trié, sans doublon SUR LA CLEF NORMALISÉE, et ne cite que des composants existants
+ok 18 - le registre est trié, sans doublon SUR LA CLEF NORMALISÉE, et ne cite que des composants existants
+  ---
+  duration_ms: 1.327405
+  type: 'test'
+  ...
+# Subtest: CLIQUET : le stock d’entrées en CHAÎNE (207 mesurées le 2026-08-16) décroît, jamais l’inverse
+ok 19 - CLIQUET : le stock d’entrées en CHAÎNE (207 mesurées le 2026-08-16) décroît, jamais l’inverse
+  ---
+  duration_ms: 0.286564
+  type: 'test'
+  ...
+# Subtest: le tri sur la clef normalisée MORD sur un registre mixte désordonné (cas planté)
+ok 20 - le tri sur la clef normalisée MORD sur un registre mixte désordonné (cas planté)
+  ---
+  duration_ms: 0.166235
+  type: 'test'
+  ...
+# fatal: path 'src/state/crit-test-porte.test.ts' exists on disk, but not in '571f54287'
+# Subtest: périmètre — les porteurs de stock, et eux seuls
+ok 21 - périmètre — les porteurs de stock, et eux seuls
+  ---
+  duration_ms: 1.720034
+  type: 'test'
+  ...
+# Subtest: périmètre — tout JSON suivi dont la FORME est un stock tombe sous un motif de PORTEURS
+ok 22 - périmètre — tout JSON suivi dont la FORME est un stock tombe sous un motif de PORTEURS
+  ---
+  duration_ms: 104.781924
+  type: 'test'
+  ...
+# Subtest: baseline de compte — une CLÉ neuve est une croissance déclarable
+ok 23 - baseline de compte — une CLÉ neuve est une croissance déclarable
+  ---
+  duration_ms: 212.452611
+  type: 'test'
+  ...
+# Subtest: baseline de compte — LIMITE dite : un NOMBRE relevé est invisible
+ok 24 - baseline de compte — LIMITE dite : un NOMBRE relevé est invisible
+  ---
+  duration_ms: 1.893466
+  type: 'test'
+  ...
+# Subtest: porteur — une entrée qui ne NOMME aucun fichier n est vue par AUCUNE porte
+ok 25 - porteur — une entrée qui ne NOMME aucun fichier n est vue par AUCUNE porte
+  ---
+  duration_ms: 2.031909
+  type: 'test'
+  ...
+# Subtest: stock NOMINATIF de l Atlas RAW — une entrée ajoutée est une croissance déclarable, exemple cité
+ok 26 - stock NOMINATIF de l Atlas RAW — une entrée ajoutée est une croissance déclarable, exemple cité
+  ---
+  duration_ms: 1.499921
+  type: 'test'
+  ...
+# Subtest: CAS B — reclasser une entrée d’un stock vers un AUTRE est une croissance NETTE du receveur
+ok 27 - CAS B — reclasser une entrée d’un stock vers un AUTRE est une croissance NETTE du receveur
+  ---
+  duration_ms: 2.866534
+  type: 'test'
+  ...
+# Subtest: stock NOMINATIF de l Atlas RAW — une entrée qui nomme une FICHE (docs/raw) est vue elle aussi
+ok 28 - stock NOMINATIF de l Atlas RAW — une entrée qui nomme une FICHE (docs/raw) est vue elle aussi
+  ---
+  duration_ms: 1.001907
+  type: 'test'
+  ...
+# Subtest: stock NOMINATIF de l Atlas RAW — l entrée qui nomme « Warhammer v4 - Livre de base version corrigee » est vue (espaces et apostrophe admis)
+ok 29 - stock NOMINATIF de l Atlas RAW — l entrée qui nomme « Warhammer v4 - Livre de base version corrigee » est vue (espaces et apostrophe admis)
+  ---
+  duration_ms: 2.130375
+  type: 'test'
+  ...
+# Subtest: stock NOMINATIF de l Atlas RAW — l entrée qui nomme « Warhammer v4 - Les archives de l'Empire volume 1 » est vue (espaces et apostrophe admis)
+ok 30 - stock NOMINATIF de l Atlas RAW — l entrée qui nomme « Warhammer v4 - Les archives de l'Empire volume 1 » est vue (espaces et apostrophe admis)
+  ---
+  duration_ms: 1.532909
+  type: 'test'
+  ...
+# Subtest: stock NOMINATIF de l Atlas RAW — l entrée qui nomme « Warhammer v4 - Aldorf la Couronne de l'Empire » est vue (espaces et apostrophe admis)
+ok 31 - stock NOMINATIF de l Atlas RAW — l entrée qui nomme « Warhammer v4 - Aldorf la Couronne de l'Empire » est vue (espaces et apostrophe admis)
+  ---
+  duration_ms: 1.183803
+  type: 'test'
+  ...
+# Subtest: racine `Source/` — ce qui n en est PAS : prose à espaces, dossier sans `.md`, extension étrangère
+ok 32 - racine `Source/` — ce qui n en est PAS : prose à espaces, dossier sans `.md`, extension étrangère
+  ---
+  duration_ms: 0.787202
+  type: 'test'
+  ...
+# Subtest: entrée MULTILIGNE — une entrée DÉPLACÉE dans son stock ne rend RIEN
+ok 33 - entrée MULTILIGNE — une entrée DÉPLACÉE dans son stock ne rend RIEN
+  ---
+  duration_ms: 2.250017
+  type: 'test'
+  ...
+# Subtest: entrée MULTILIGNE — un champ NON nommant modifié (la date) ne rend RIEN
+ok 34 - entrée MULTILIGNE — un champ NON nommant modifié (la date) ne rend RIEN
+  ---
+  duration_ms: 1.398516
+  type: 'test'
+  ...
+# Subtest: entrée MULTILIGNE — la ligne `fichier` REMPLACÉE ne rend RIEN (échange en place)
+ok 35 - entrée MULTILIGNE — la ligne `fichier` REMPLACÉE ne rend RIEN (échange en place)
+  ---
+  duration_ms: 1.269937
+  type: 'test'
+  ...
+# Subtest: entrée — élément de liste, clé d objet et balise commentée comptent
+ok 36 - entrée — élément de liste, clé d objet et balise commentée comptent
+  ---
+  duration_ms: 0.489291
+  type: 'test'
+  ...
+# Subtest: entrée — le cas FONDATEUR : une clé de registre en NOM DE FICHIER nu
+ok 37 - entrée — le cas FONDATEUR : une clé de registre en NOM DE FICHIER nu
+  ---
+  duration_ms: 0.081007
+  type: 'test'
+  ...
+# Subtest: entrée — tuple dont le fichier est la CLÉ ou la QUEUE
+ok 38 - entrée — tuple dont le fichier est la CLÉ ou la QUEUE
+  ---
+  duration_ms: 0.371664
+  type: 'test'
+  ...
+# Subtest: entrée — un chemin cité en PROSE ou en commentaire n en est pas une
+ok 39 - entrée — un chemin cité en PROSE ou en commentaire n en est pas une
+  ---
+  duration_ms: 0.356991
+  type: 'test'
+  ...
+# Subtest: croissance — un stock qui NAÎT est une croissance nette, avec ses exemples
+ok 40 - croissance — un stock qui NAÎT est une croissance nette, avec ses exemples
+  ---
+  duration_ms: 0.267756
+  type: 'test'
+  ...
+# Subtest: croissance — un stock qui DÉCROÎT ne dit rien ; une clé neuve ne se cache pas derrière une clé qui baisse (\#1806 D5″)
+ok 41 - croissance — un stock qui DÉCROÎT ne dit rien ; une clé neuve ne se cache pas derrière une clé qui baisse (\#1806 D5″)
+  ---
+  duration_ms: 0.371356
+  type: 'test'
+  ...
+# Subtest: croissance par CLÉ (\#1806 D5″, sonde `j3-cliquet-net.mjs`) : X +3 derrière Q −3 dans le même porteur exige `CLIQUET: +3`
+ok 42 - croissance par CLÉ (\#1806 D5″, sonde `j3-cliquet-net.mjs`) : X +3 derrière Q −3 dans le même porteur exige `CLIQUET: +3`
+  ---
+  duration_ms: 8.09019
+  type: 'test'
+  ...
+# Subtest: fichierNommePar : la clé d’une entrée est le fichier qu’elle nomme, sans `:ligne`, `:symbole` ni balise
+ok 43 - fichierNommePar : la clé d’une entrée est le fichier qu’elle nomme, sans `:ligne`, `:symbole` ni balise
+  ---
+  duration_ms: 0.121148
+  type: 'test'
+  ...
+# Subtest: croissance — un diff qui n’est PAS une chaîne LÈVE, et un « 0 » ne peut plus mentir
+ok 44 - croissance — un diff qui n’est PAS une chaîne LÈVE, et un « 0 » ne peut plus mentir
+  ---
+  duration_ms: 0.495883
+  type: 'test'
+  ...
+# Subtest: croissance — hors fichier PORTEUR, la règle se tait
+ok 45 - croissance — hors fichier PORTEUR, la règle se tait
+  ---
+  duration_ms: 0.199002
+  type: 'test'
+  ...
+# Subtest: CLIQUET — le message couvre le fichier s il annonce le BON compte et un motif
+ok 46 - CLIQUET — le message couvre le fichier s il annonce le BON compte et un motif
+  ---
+  duration_ms: 0.347185
+  type: 'test'
+  ...
+# Subtest: déclarations — UN lecteur par mot-clé : `CLIQUET:` et `RECLASSEMENT:` ne se lisent jamais l’un pour l’autre
+ok 47 - déclarations — UN lecteur par mot-clé : `CLIQUET:` et `RECLASSEMENT:` ne se lisent jamais l’un pour l’autre
+  ---
+  duration_ms: 0.654323
+  type: 'test'
+  ...
+# Subtest: CLIQUET — un compte FAUX ou un motif de tampon ne couvre rien, et le refus le dit
+ok 48 - CLIQUET — un compte FAUX ou un motif de tampon ne couvre rien, et le refus le dit
+  ---
+  duration_ms: 0.687317
+  type: 'test'
+  ...
+# Subtest: CLIQUET — deux lignes pour le MÊME fichier (`+999` puis le bon compte) → refus nommé : une déclaration par porteur
+ok 49 - CLIQUET — deux lignes pour le MÊME fichier (`+999` puis le bon compte) → refus nommé : une déclaration par porteur
+  ---
+  duration_ms: 0.304824
+  type: 'test'
+  ...
+# Subtest: refus — nomme le fichier, le compte et jusqu à trois exemples
+ok 50 - refus — nomme le fichier, le compte et jusqu à trois exemples
+  ---
+  duration_ms: 0.146371
+  type: 'test'
+  ...
+# Subtest: portée — le MÊME littéral compte en constante de module, jamais dans un corps de test
+ok 51 - portée — le MÊME littéral compte en constante de module, jamais dans un corps de test
+  ---
+  duration_ms: 2.68086
+  type: 'test'
+  ...
+# Subtest: portée — quand le lecteur rend `null`, le REPLI juge et l'entrée COMPTE
+ok 52 - portée — quand le lecteur rend `null`, le REPLI juge et l'entrée COMPTE
+  ---
+  duration_ms: 0.175154
+  type: 'test'
+  ...
+# Subtest: portée — le RETRAIT se juge sur le PRÉ-image : retirer une fixture ne compense pas un ajout
+ok 53 - portée — le RETRAIT se juge sur le PRÉ-image : retirer une fixture ne compense pas un ajout
+  ---
+  duration_ms: 1.087761
+  type: 'test'
+  ...
+# Subtest: portée — aucune ENVELOPPE ne cache un stock de module
+ok 54 - portée — aucune ENVELOPPE ne cache un stock de module
+  ---
+  duration_ms: 2.879633
+  type: 'test'
+  ...
+# Subtest: définition — les quatre formes de stock sont VUES en portée de module
+ok 55 - définition — les quatre formes de stock sont VUES en portée de module
+  ---
+  duration_ms: 0.927203
+  type: 'test'
+  ...
+# Subtest: définition — les mêmes formes, écrites DANS un test, ne sont aucune entrée
+ok 56 - définition — les mêmes formes, écrites DANS un test, ne sont aucune entrée
+  ---
+  duration_ms: 1.22853
+  type: 'test'
+  ...
+# Subtest: définition — une entrée MULTILIGNE vit à la ligne de son PREMIER caractère
+ok 57 - définition — une entrée MULTILIGNE vit à la ligne de son PREMIER caractère
+  ---
+  duration_ms: 0.370396
+  type: 'test'
+  ...
+# Subtest: définition — un FOYER déclaré n’est pas une entrée : la valeur de `foyer` n’est jamais lue
+ok 58 - définition — un FOYER déclaré n’est pas une entrée : la valeur de `foyer` n’est jamais lue
+  ---
+  duration_ms: 0.947834
+  type: 'test'
+  ...
+# Subtest: définition — un porteur JSON se lit comme les autres
+ok 59 - définition — un porteur JSON se lit comme les autres
+  ---
+  duration_ms: 0.478316
+  type: 'test'
+  ...
+# Subtest: repli — sur une image `null`, une entrée à ACCOLADE n’est pas vue, et l’en-tête le dit
+ok 60 - repli — sur une image `null`, une entrée à ACCOLADE n’est pas vue, et l’en-tête le dit
+  ---
+  duration_ms: 0.51323
+  type: 'test'
+  ...
+# Subtest: lecteur — un appel SANS lecteur d’image est REFUSÉ nommément, jamais compté
+ok 61 - lecteur — un appel SANS lecteur d’image est REFUSÉ nommément, jamais compté
+  ---
+  duration_ms: 0.389698
+  type: 'test'
+  ...
+# Subtest: naissance — un `*-stock.json` qui naît compte ses entrées sur l’image du lecteur
+ok 62 - naissance — un `*-stock.json` qui naît compte ses entrées sur l’image du lecteur
+  ---
+  duration_ms: 1.179968
+  type: 'test'
+  ...
+# Subtest: image — une extension hors de `DIALECTE` n’a pas d’image : `entreesNominatives` rend `null`
+ok 63 - image — une extension hors de `DIALECTE` n’a pas d’image : `entreesNominatives` rend `null`
+  ---
+  duration_ms: 0.485919
+  type: 'test'
+  ...
+# Subtest: porteurs réels — l’image lit des entrées, et jamais moins que le repli de ligne
+ok 64 - porteurs réels — l’image lit des entrées, et jamais moins que le repli de ligne
+  ---
+  duration_ms: 118.219587
+  type: 'test'
+  ...
+# scripts/guards/lib/slotsStock.mjs — image 270 entrée(s), repli 0 ligne(s)
+# scripts/guards/lib/structuresStock.mjs — image 1035 entrée(s), repli 0 ligne(s)
+# scripts/guards/lib/legacyVocabStock.mjs — image 245 entrée(s), repli 0 ligne(s)
+# scripts/hooks/ecrans-ui.json — image 172 entrée(s), repli 172 ligne(s)
+# Subtest: stocks de `scripts/raw` — la porte voit CHAQUE entrée déclarée (corpus par GLOB)
+ok 65 - stocks de `scripts/raw` — la porte voit CHAQUE entrée déclarée (corpus par GLOB)
+  ---
+  duration_ms: 78.067779
+  type: 'test'
+  ...
+# scripts/raw/empty-folios-benignes-stock.json — 34 vue(s) / 34 déclarée(s)
+# scripts/raw/empty-folios-perdues-stock.json — 23 vue(s) / 23 déclarée(s)
+# scripts/raw/folio-gaps-stock.json — 76 vue(s) / 76 déclarée(s)
+# scripts/raw/graphy-stock.json — 91 vue(s) / 91 déclarée(s)
+# scripts/raw/reconciliation-stock.json — 13 vue(s) / 13 déclarée(s)
+# scripts/raw/renvois-stock.json — 21 vue(s) / 21 déclarée(s)
+# scripts/raw/sonde-titres-stock.json — 367 vue(s) / 367 déclarée(s)
+# scripts/raw/source-format-stock.json — 997 vue(s) / 997 déclarée(s)
+# scripts/raw/source-puces-stock.json — 466 vue(s) / 466 déclarée(s)
+# scripts/raw/source-tables-stock.json — 680 vue(s) / 680 déclarée(s)
+# Subtest: stocks `.mjs` de garde à la forme NOMINATIVE — la porte voit CHAQUE entrée déclarée (corpus par GLOB)
+ok 66 - stocks `.mjs` de garde à la forme NOMINATIVE — la porte voit CHAQUE entrée déclarée (corpus par GLOB)
+  ---
+  duration_ms: 106.53144
+  type: 'test'
+  ...
+# scripts/guards/lib/cssCouchesStock.mjs — 2566 vue(s) / 2566 déclarée(s)
+# scripts/guards/lib/entityOrphanStock.mjs — 364 vue(s) / 364 déclarée(s)
+# scripts/guards/lib/folioLineAlignStock.mjs — 42 vue(s) / 42 déclarée(s)
+# scripts/guards/lib/fuitesPartageesStock.mjs — 28 vue(s) / 28 déclarée(s)
+# scripts/guards/lib/horsStrateStock.mjs — 1204 vue(s) / 1204 déclarée(s)
+# scripts/guards/lib/jambesGabaritStock.mjs — 97 vue(s) / 97 déclarée(s)
+# scripts/guards/lib/legacyVocabStock.mjs — 245 vue(s) / 245 déclarée(s)
+# scripts/guards/lib/paletteLiteralStock.mjs — 1138 vue(s) / 1138 déclarée(s)
+# scripts/guards/lib/quadDecoStock.mjs — 73 vue(s) / 73 déclarée(s)
+# scripts/guards/lib/rigPartViewStock.mjs — 79 vue(s) / 79 déclarée(s)
+# scripts/guards/lib/rigViewStock.mjs — 127 vue(s) / 127 déclarée(s)
+# scripts/guards/lib/spellNarratifStock.mjs — 620 vue(s) / 620 déclarée(s)
+# scripts/guards/lib/tableConsumerStock.mjs — 1 vue(s) / 1 déclarée(s)
+# Subtest: stock `.mjs` nominatif — une entrée AJOUTÉE est vue par la porte de plage (net 1, exemple nommant)
+ok 67 - stock `.mjs` nominatif — une entrée AJOUTÉE est vue par la porte de plage (net 1, exemple nommant)
+  ---
+  duration_ms: 2.328006
+  type: 'test'
+  ...
+# Subtest: fenêtre — les deux plus gros stocks du dépôt sont comptés à l’entrée comme à la sortie
+ok 68 - fenêtre — les deux plus gros stocks du dépôt sont comptés à l’entrée comme à la sortie
+  ---
+  duration_ms: 850.453202
+  type: 'test'
+  ...
+# Subtest: fenêtre — les croissances non couvertes de la plage, par commit
+ok 69 - fenêtre — les croissances non couvertes de la plage, par commit
+  ---
+  duration_ms: 2696.975393
+  type: 'test'
+  ...
+# c8d3105ae src/data/migration-b2c-fidelite.test.ts +1
+# c8d3105ae src/engine/ship-crew-hit-noeud-test.test.ts +1
+# c8d3105ae src/state/flowtest-derived-stake.test.ts +2
+# Subtest: fenêtre — un stock OBJET dont les valeurs sont des tableaux est rendu, avec son déclaré
+ok 70 - fenêtre — un stock OBJET dont les valeurs sont des tableaux est rendu, avec son déclaré
+  ---
+  duration_ms: 710.658715
+  type: 'test'
+  ...
+# Subtest: CLIQUET stocks : la PLAGE POUSSÉE ne fait grossir aucun stock en silence
+ok 71 - CLIQUET stocks : la PLAGE POUSSÉE ne fait grossir aucun stock en silence
+  ---
+  duration_ms: 5358.222274
+  type: 'test'
+  ...
+# 3 commit(s) jugé(s)
+# Subtest: portée — une entrée écrite en GABARIT à substitution est vue par l’IMAGE comme par le repli
+ok 72 - portée — une entrée écrite en GABARIT à substitution est vue par l’IMAGE comme par le repli
+  ---
+  duration_ms: 1.413564
+  type: 'test'
+  ...
+# Subtest: argument — le stock RÉEL d’un `const` de module reste compté (contre-preuve)
+ok 73 - argument — le stock RÉEL d’un `const` de module reste compté (contre-preuve)
+  ---
+  duration_ms: 0.593275
+  type: 'test'
+  ...
+# Subtest: argument — la même liste de RACINES : comptée au module, exempte en argument
+ok 74 - argument — la même liste de RACINES : comptée au module, exempte en argument
+  ---
+  duration_ms: 0.476557
+  type: 'test'
+  ...
+# Subtest: argument — une liste de RACINES passée à un APPEL n’est une entrée à aucun niveau
+ok 75 - argument — une liste de RACINES passée à un APPEL n’est une entrée à aucun niveau
+  ---
+  duration_ms: 0.663533
+  type: 'test'
+  ...
+# Subtest: argument — sept FAÇADES d’une ligne ne cachent pas un stock qui NOMME des fichiers
+ok 76 - argument — sept FAÇADES d’une ligne ne cachent pas un stock qui NOMME des fichiers
+  ---
+  duration_ms: 1.433824
+  type: 'test'
+  ...
+# Subtest: argument — un ÉLÉMENT de stock qui nomme son fichier via un appel reste une entrée
+ok 77 - argument — un ÉLÉMENT de stock qui nomme son fichier via un appel reste une entrée
+  ---
+  duration_ms: 0.317021
+  type: 'test'
+  ...
+# Subtest: argument — une flèche à corps CONCIS qui APPELLE ne compte rien, mais son littéral NU compte
+ok 78 - argument — une flèche à corps CONCIS qui APPELLE ne compte rien, mais son littéral NU compte
+  ---
+  duration_ms: 0.460826
+  type: 'test'
+  ...
+# Subtest: argument — la forme VÉCUE, dans un `describe` comme au module, ne compte rien
+ok 79 - argument — la forme VÉCUE, dans un `describe` comme au module, ne compte rien
+  ---
+  duration_ms: 0.638156
+  type: 'test'
+  ...
+1..79
+# tests 79
+# suites 0
+# pass 79
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 10529.223758

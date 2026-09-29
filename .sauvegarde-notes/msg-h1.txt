@@ -1,0 +1,29 @@
+feat(ui): refs #1919 — HUD en grille, lot H1 : la couche porte ses zones, le pont se dimensionne
+
+Reprise après perte du travail G2-G5 (jamais poussé), design du 2026-09-23 (#1919, « Le pont se
+dimensionne seul ; le HUD vit dans ce qui reste, et n'en sort pas »).
+- `.stage` : `[flot] minmax(0, 1fr) [pont] auto` ; la couche `.stage-flot` est une grille à elle
+  (`haut`/`bande`/`champ`/`reserve`, `min-height: 0`, `overflow: clip`) ; seules les aires varient par
+  largeur ; chaque surface déclare sa `data-zone` (`contexte`, `groupe`, `temps`, `ouverture`,
+  `outils`, `camera`), montée par `Row`/`Stack` depuis `CampaignView`.
+- Bandeau d'ouverture sorti de la console (`BandeauDOuverture`, `useBandeauDeRound`), zone de la couche.
+- Littéraux de placement retirés (70px ×3, 172px, `50vw - 160px`, 58/66px, 138px,
+  `--cc-ouverture-top`, 130/192/140px du fil) ; réserve de phase lue une fois, payée tout le combat
+  (arbitrage d'immobilité) ; journal ancré à son bouton, sans Anchor Positioning.
+- Tests par `data-zone` (rendu jsdom) ; sonde `hud-clickables` : 3 hauteurs × 7 largeurs × 4 états,
+  tour spectateur par vrais clics, micro-jauges ; `appelCdp` ne laisse plus pendre une promesse sur
+  socket fermée. Charte : la phrase retenue remplace l'ancienne section.
+
+Preuves : `npm run gates` (worktree sur 27f8e426d) — 24 gates vertes ; 17 mutations rouges puis vertes ;
+ventilation identité 1770 → 1770, espacement 703 → 702, APPARU 0 ; aucun `!important` neuf.
+
+NE SE PUBLIE PAS SEUL (juge de diff) : à 561-700, sous un pont de 575 px, la couche rogne le fil et la
+frise ; le correctif est le budget du pont (décision d'écran de la console, #1806, Q4.3), qui part dans
+le même train.
+
+JUGE: juge de diff H1 (#1919) : le code tient comme étape (grille, primitives, réserve, tests par zone, sonde) ; À REPRENDRE — charte:400-401 et combat-banner.css:6 faux ; publication conditionnée au budget du pont (lot console)
+REFUTATION: le juge a réfuté « le seul hors-flux de la couche est le volet » (dialogue-box, puce d'attente en absolu) ; rejoué vitest 222/222, node --test 153/153, ventilation APPARU 0 ; cause du fil perdu à 700 établie au code (rangée bande sous 205 px)
+JUGE-VISION: 61 captures avant/après jugées — À REPRENDRE : à 360 (réf) lieu « Du S… » et journal ouvert sur la frise ; à 900 objectif hors de sa zone ; à 700 fil perdu ; gains : frise hors du groupe à 700, 5 entrées à 1366, rien de perdu à 1366/1707
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_0167t7jpCF61Qutt6mU1dbAt

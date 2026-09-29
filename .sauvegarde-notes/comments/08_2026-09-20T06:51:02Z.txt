@@ -1,0 +1,23 @@
+## Sous-lot 2d, blocs α et β — publié
+
+État MESURÉ après le commit `0645a8886` (entré dans main, CI verte : course 35494879749) (`scripts/guards/lib/cssCouchesStock.mjs`) :
+
+| Stock | Avant (2b) | Après (2d α+β) |
+|---|---|---|
+| identité | 1499 | 1430 |
+| espacement | 673 | 657 |
+| `style=` inline | 99 | 97 |
+| `combat-ui.css` (identité / espacement) | 155 / 64 | 86 / 48 |
+
+**À lire avec ces comptes.** Les sélecteurs d'élément de formulaire ont rejoint `base.css`, qui n'a aucune entrée au stock : cette part de la baisse est un transfert vers une feuille exempte, pas une primitivisation.
+
+**Fait** : quatre modules de primitive (`fx-chip`, `spectator-chip`, `rig-portrait`, `ready-row`), manifeste 87 → 90 ; l'ancrage de `SpectatorChip` devient un état de la primitive (`pose="ecran"`), flux par défaut ; deux sites A2 soldés (`RigPortrait`, minuteur de fermeture → `RevealTimer`) ; `.pv-badge` → `src/gameIso/anim.css` (reliquat du 2c) ; cinq règles mortes supprimées.
+
+**Outil** : `scripts/guards/lib/cssConservation.mjs` ne voyait un sujet que par ses classes. Il apparente maintenant deux composés qui nomment le même ÉLÉMENT (`.panel h3`, `.zone-section > h3`, `h3.titre`) ; deux tests-contrats prouvés par mutation.
+
+**Rectification** : l'écran de victoire EST atteignable en recette (`__wfrp.killEnemies`, `docs/recette-navigateur.md:360`). Je l'avais déclaré inatteignable aux sous-lots 2c, 2a et 2b. Il a été joué et capturé avec ce commit (`public/qc/soldes/1806-2d-02-victoire-*.png`) ; rectifié aussi sur #1823, qui reste valide pour son vrai sujet.
+
+**Reste avant la clôture de #1806** :
+1. Bloc γ du 2d — coop, victoire, butin, beat d'ouverture (86 unités). La table d'origine portait deux « mêmes matières » fausses une fois mesurées, et `.victory-*` est posé par DEUX écrans (`VictoryScreen`, `LootModal`) : il est re-tablé, recette navigateur de l'écran de victoire comme porte.
+2. #1834 — `.panel h3` / `.panel label` / `.radio`, couche partagée logée dans `combat-ui.css` : les déplacer inverse 8 décisions de cascade à poids égal.
+3. Les 9 unités de `hud.css` (plaque de bois du rail : à instruire sur la FAMILLE de bois ; puce de lieu).

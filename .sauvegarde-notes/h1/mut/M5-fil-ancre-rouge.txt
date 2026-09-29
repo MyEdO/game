@@ -1,0 +1,34 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1919-H1
+
+ ❯ src/ui/CombatConsole.test.tsx (150 tests | 1 failed | 149 skipped) 39ms 448 MB heap used
+   × CombatConsole — assemblage : UN PONT, pas des blocs > P-5 — le fil de combat n’a AUCUNE ancre propre, et se lit en lignes NUES 37ms
+     → left: expected '130px' to be null
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 149 skipped (150)
+   Start at  20:43:26
+   Duration  20.72s (transform 12.50s, setup 13.92s, collect 5.66s, tests 39ms, environment 682ms, prepare 62ms)
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/ui/CombatConsole.test.tsx > CombatConsole — assemblage : UN PONT, pas des blocs > P-5 — le fil de combat n’a AUCUNE ancre propre, et se lit en lignes NUES
+AssertionError: left: expected '130px' to be null
+
+- Expected: 
+null
+
++ Received: 
+"130px"
+
+ ❯ src/ui/CombatConsole.test.tsx:906:100
+    904|     // ne connaît ni le bord de l'écran, ni la frise, ni le pont.
+    905|     const feed = ruleOf(BANNER_BASE, '.combat-feed');
+    906|     for (const cote of ['top', 'right', 'bottom', 'left', 'inset']) ex…
+       |                                                                                                    ^
+    907|     // Lignes NUES : plus de carte (fond, filet, arrondi, rembourrage)…
+    908|     // PARTAGÉ `.halo-champ`, que la ligne POSE.
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+

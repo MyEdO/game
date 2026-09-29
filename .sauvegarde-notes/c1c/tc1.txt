@@ -1,0 +1,7 @@
+
+> warhammer-v4-rpg@0.1.0 typecheck:fast
+> node scripts/typecheck-fast.mjs
+
+typecheck:fast — 0 erreur(s)
+sortie complète : /home/user/game/.wt-1919-H2/node_modules/.cache/typecheck-last.txt
+mode incrémental — au doute : npm run typecheck (full)

@@ -1,0 +1,224 @@
+## Console de combat : décision d'écran, tranchée par l'état de l'art (2026-09-24)
+
+Clément, 2026-09-24, verbatim : « Et pour les écrans, on est sur un jeu vidéo, tu n'as aucune notion d'UX/UI ? » ; « Tu sais ces régles sont dans le credo » ; « Ou dans la vision ». Credo, verbatim : « L'ingénierie révisable (UI/UX, confort, chantier inachevé) s'en passe. » La décision est donc prise sans carte, sur Rogue Trader et les jeux du genre (workflow `wf_181221d7-02e` : état de l'art RT, état de l'art du genre, deux designs, un juge qui tranche). Clément valide la planche.
+
+À noter pour la planche : les cases carrées sans libellé changent ce que montrait la planche validée du 2026-08-17 (« 12 cases (icône + libellé + touche + crans) »). Le retour au modèle RT est permis par la doctrine du 2026-08-24 (« pourquoi on réinvente des trucs qui n'existent même pas dans notre interface cible ni dans aucun jeux video du genre ? »), et la planche le signale.
+
+Décision du juge, recopiée telle quelle :
+
+---
+
+Arbre jugé : `/home/claude/game/.wt-combat-j3` à `03ddd90ce` (« Instantané Combat G4+G5+F5-F8 (#1806) pour le juge, jamais publié »). Contrôle positif : `combat-console.css:1086-1131` contient bien `grid-template-rows: auto auto`. J'ai regardé moi-même 5 captures : refus 1366×650, 900×780, 700×780 et 360×740, adverse 700×780. Rien n'a été exécuté hors lectures, `grep` et `sed`.
+
+## 1. Défauts des deux designs
+
+**Communs aux deux :**
+
+- **D1 — La garde du budget est mal décrite, par les deux : RÉFUTÉ.**
+  - Les deux citent `hud-clickables.mjs:75`. Cette ligne est un commentaire ; `HEIGHT = VUE_REFERENCE.hauteur` est en `:99`.
+  - Ce `HEIGHT` ne sert pas à la passe du pont. Le pont se mesure à chaque couple largeur × hauteur :
+    - `:1123` `PONT_HAUTEURS = [...new Set(VUES_RECETTE.map((v) => v.hauteur))]` ;
+    - `:1125` `PONT_VUES = [...PONT_HAUTEURS.flatMap((h) => PONT_LARGEURS.map((w) => [w, h])), ...]` ;
+    - `:1417-1418` `for (const [w, h] of PONT_VUES) { await setViewport(session, w, h);`.
+  - 1366×650 est donc bien mesuré.
+  - Le vrai trou est ailleurs :
+    - `:1333` `const part = m.pont.bande / m.hauteur` : le fronton est exclu du calcul ;
+    - `:727` `large: { des: 1280, part: 0.21 }` et `:1335` : la plage 561–1279 n'a aucun plafond. C'est pour cela que le pont à 900×780 (38,9 %) passe la garde.
+- **D2 — Cotes du Q2 intenables : les deux promettent une bande de 110 px à 1366×650 avec des cases de 38 px.**
+  - Les cases font DÉJÀ 38 px aujourd'hui : `--cc-cell-h: min(clamp(38px, calc(10.5vh - 41px), 72px), …)` (`combat-console.css:35`, 10,5 × 6,5 − 41 = 27, remonté au plancher de 38). La bande mesure pourtant 130 px.
+  - Ce qui fixe la hauteur, c'est le coin de fin de tour : `--cc-end-h: 106px` (`:42`), lu en `min-height` (`:1017`), plus les marges 8/10 px de `.cc-corner` (`:1006`). Le commentaire de `:39-40` le dit lui-même : « sous de petites alvéoles, c'est le coin … qui porte la ligne ».
+  - Aucun des deux designers ne nomme cette variable. Sans elle, leur cote de 17 % à 650 est irréalisable.
+- **D3 — Le portrait cible (≈ 81 px à 650, côté fidélité RT) déborde.**
+  - L'arche garde un habillage fixe : socle 28,5, Blessures 15, marge basse 8 (`:48-51`), plus le nom (≈ 13) et la marge haute (≈ 4). Total ≈ 69 px.
+  - Avec un total de 143 px (22 % de 650), le portrait tient en 143 − 69 ≈ 74 px.
+  - Côté consignes : « portrait réglé sur la hauteur de la bande ». C'est exactement la boucle que le code interdit : `:48-51` « portrait ∝ pont ∝ arche ∝ portrait … dépassait le budget ».
+- **D4 — Aucun des deux ne signale la planche validée.**
+  - La planche du 2026-08-17 « VALIDÉE PAR L'UTILISATEUR » (`spec:58`) fait foi sur « ce que chaque zone MONTRE » (`spec:174`). Elle montre « 12 cases (icône + libellé + touche + crans) » (`spec:215`).
+  - Le commentaire `combat-console.css:21-23` attribue « jamais un carré » à un « arbitrage utilisateur 2026-08-17 ». Or le verbatim de ce jour-là (`spec:25-26`) ne parle ni de carré ni de paysage : c'est une dérivation d'ingénierie, révisable.
+  - Retirer le libellé est donc un retour au modèle RT, permis par la doctrine du 2026-08-24 (`user-doctrine-reference-rt-par-defaut-deviation-validee.md:8`). Mais c'est un changement visible par rapport à la planche validée : il doit figurer sur la planche. Le côté fidélité RT le signale à moitié (`spec:30-31` cède) ; le côté consignes l'omet.
+- **D5 — Défaut visible oublié par les deux : le bandeau du groupe.**
+  - Capture 1366×650 : panneau opaque de y≈8 à y≈130, soit ≈ 20 % de la hauteur, en plus du pont (28 %).
+  - Modèle RT (`Analyse HUD Rogue Trader.dc.html:52`) : « Le fond du bandeau est une vitre : le champ de bataille reste visible au travers » ; « La barre de vie est dans le cadre, sous le visage ».
+- **D6 — Le Q3 oublie une source plus forte.** La planche validée portait déjà la touche X sur l'EN-TÊTE de la travée : « “X FAIT TOURNER” dans l'en-tête de travée (= la touche X commute les sets, pas un libellé) » (`spec:261-262`).
+
+**Propres au design fidélité RT :**
+
+- **F1** — Le calcul de largeur (`(largeur − arche − 64 − 28 − 102)/11`) suppose une arche de 170 px à 701 sans le justifier. Le portrait tiré de la hauteur (D3) donne une arche plus large, donc des cases d'environ 28 px au lieu de 30. Ça reste au-dessus du minimum de 24 px (WCAG 2.5.8 — mémoire, non vérifié).
+- **F2** — « Seule la ligne compacte, environ 48 px » à ≤700 contredit la fiche : « La BOÎTE de la bande reste — c'est elle qui tient l'arche immobile au pixel d'une forme à l'autre — sa MATIÈRE s'éteint » (`user-arbitrage-tour-adverse-…md`, How to apply). Correction : la boîte reste, la matière s'éteint, et le clic passe au plateau.
+
+**Propres au design consignes :**
+
+- **C1 — Le Q4.2 vise la mauvaise couture.** « Action non dépensée » n'est pas une ligne sous le bouton : c'est le texte de la TOUCHE.
+  - `CombatConsole.tsx:1121` `const endNote = arme ? 'Finir quand même ?' : wastingAction ? 'Action non dépensée' : battle.acted ? 'Tour fini' : 'ESPACE';`
+  - `:1430` `<span className="cc-key">{endNote}</span>`
+  - « Supprimer la ligne » supprime aussi ESPACE. Le vrai défaut : la touche disparaît quand l'avertissement s'affiche.
+- **C2** — La dalle du tour adverse est chiffrée à « ~100 px ». La capture adverse 700×780 montre un pont de y≈482 à 780, soit ≈ 298 px (38 %).
+- **C3** — « Ellipse + `title` » pour les noms du bandeau heurte `spec` §1c-quater : « JAMAIS DE `title` SEUL, LE CANON EST `CodexRef` ».
+- **C4** — L'infobulle « courte puis étendue » de BG3 est un modèle non sourcé (« mémoire, non vérifié ») : ce n'est pas une référence recevable.
+- **C5** — Il oublie la plage 561–700 : sur la capture refus 700×780, les deux travées sont empilées au centre et le conduit d'Avantage est coincé en bas à gauche.
+- **C6** — « 12 colonnes » est faux. La colonne des sets fait 0,62 × la largeur de case (`css:355`). Soit 11 colonnes + 0,62. Écart sans conséquence.
+
+**Corrections de faits du brief, confirmées :**
+
+- **Q3 « même encre » : RÉFUTÉ.** `.cc-set-n` : `font: 700 8px/1 ui-monospace`, couleur `var(--cc-steel-ink)` (`css:616-622`). `.cc-key` : même police, couleur `--cc-cell-key` (`css:482-487`). Seule la police est commune.
+- **« 47 % à 650 » : non vérifié.** Aucune sonde ne le porte ; pour trancher, il faut mesurer `.cc-dock` et `.cc-arch` à 900×650.
+
+## 2. Décision finale
+
+### Q1 — Console entre 701 et 900 px
+
+**À l'écran :** une seule rangée, identique à ≥901. Ordre : sets, arsenal 2×3, accès rapide 2×2, arche en fronton, grille 2×6, « Fin du tour ».
+- Cases CARRÉES, sans libellé.
+- Icône = 60 % du côté.
+- Touche imprimée dans la case.
+- Nom de la capacité dans l'infobulle au survol et au focus ; `aria-label` conservé.
+- Une case vide reste une vitre nue.
+
+**Cote :** même formule de 701 à 1279, donc aucune cassure entre 900 et 901.
+- côté = min((0,17 × hauteur − 37) / 2 ; (largeur − largeur de l'arche − 194) / 11,62) ;
+- où 37 = conduit 15 + marges 8/10 + écart 4, et 194 = coin 64 + marges + écarts entre régions.
+
+| Vue | Case | Icône | Bande | Total avec fronton |
+|---|---|---|---|---|
+| 900×780 | ≈ 45 px | 27 px | ≤ 17 % (≤ 132 px) | ≤ 22 % (≤ 171 px) — aujourd'hui 38,9 % |
+| 901×780 | ≈ 45 px | 27 px (5,9 px aujourd'hui, `geo901.txt`) | ≤ 17 % | ≤ 22 % |
+| 701×780 | ≥ 28 px | ≥ 17 px | ≤ 17 % (l'arche fixe la hauteur) | ≤ 22 % |
+
+**Modèle :** Rogue Trader, `Analyse HUD Rogue Trader.dc.html` :
+- `:126` « Deux rangées de sept. L'art est plein cadre … La touche est imprimée dans la case » ;
+- `:127` « Trois informations par case — identité, touche, coût — sans une ligne de texte ».
+- Aucun jeu du corpus ne passe sa barre sur deux étages.
+
+**Consignes tenues :**
+- Budget (2026-08-17) : « avoir 1/4 de l'interface qui est une barre d'action, ça ne va pas etre possible, surtout avec tout ce vide et ces icones disproportionnés ».
+- R-M2 (`spec:71`) : « Aucun mot tranché, nulle part ».
+- R-M3 (`spec:75-76`).
+- Barre (2026-08-24) : « RIEN ne glisse jamais ».
+- Immobilité : les nombres de cases sont fixes ; la géométrie ne dépend que de la fenêtre.
+
+**Ce qui cède :**
+- la matrice §12 « dock sur deux rangées au besoin » (`css:1095`), évaluation d'ingénierie sans verbatim ;
+- `spec:31` (cases paysage), dérivé d'ingénierie : voir D4.
+
+### Q2 — L'arche qui dépasse de 52 px
+
+**Décision : le fronton COMPTE dans le budget.**
+- Hauteur du fronton = `min(52px, 4.8vh)`, soit le rapport 52/1080 de la planche (`spec:237`).
+- Bande ≤ 17 % et empreinte totale (bande + fronton) ≤ 22 %, à toute vue ≥701.
+- La hauteur du coin suit les cases : 2 × case + écart, au lieu de 106 px fixes.
+- Le portrait se déduit de la HAUTEUR D'ÉCRAN (une donnée d'entrée), jamais du pont : portrait ≈ 22 % de la hauteur − 37 (fronton) − 69 (habillage de l'arche).
+
+| Vue | Fronton | Case | Bande | Total | Portrait | Aujourd'hui |
+|---|---|---|---|---|---|---|
+| 1707×780 | 37 | ≈ 47 | ≤ 132 (16,9 %) | ≤ 169 (21,7 %) | ≈ 66 | 23,9 % |
+| 1366×650 | 31 | ≈ 37 | ≤ 112 (17 %) | ≤ 143 (22 %) | ≈ 74 | 28,0 % |
+| ≤560 | 0 (`css:1155`) | 36×32 | forme compacte | ≈ 40-45 % (`spec:60-63`) | 30 | 40,3 % à 360×740 |
+
+**Modèle :**
+- Le fronton de RT, « la pièce la plus travaillée de l'écran » (`Analyse:194`), est gardé.
+- L'écart de taille en pixels fixes est justifié par le budget du 2026-08-17 et par les plaintes Steam contre l'interface fixe de RT (« no native way » de la mettre à l'échelle, « take up a third of the screen » en 4K).
+- La planche : empreinte de 24,9 % (`spec:231-237`). On garde la proportion, pas les pixels.
+
+**Consignes tenues :** Budget (28 % = « ~28-29 % », le chiffre même de la plainte, `spec:26`) ; Immobilité (rien ne varie en cours de partie) ; R-M3.
+
+### Q3 — Le rang 1, 2, 3 des sets d'armes
+
+**Décision :**
+- On supprime `.cc-set-n` partout, vignettes vides comprises (`CombatConsole.tsx:1316` et `:1335`).
+- L'ordre de rotation se lit à la position : colonne de haut en bas, en boucle.
+- Le set tenu garde son cadre allumé (`.on`).
+- La touche X quitte la vignette du set tenu (`:1342`) : elle ment, puisque X passe au set SUIVANT (`keybindings.ts:271-282`).
+- X devient une plaque-flèche unique, gravée dans l'EN-TÊTE de la travée (ligne « DAGUE »), sans hauteur ajoutée. Elle suit le style de `.cc-key`, puisque c'est une vraie touche.
+- Le clic direct sur une vignette reste possible.
+- À ≤560, la plaque se replie avec le commutateur (`spec:62`).
+
+**Modèle :**
+- RT : « press x or use the arrow above the weapon set in the UI » (https://steamcommunity.com/app/2186680/discussions/0/4027970580231390098/).
+- Planche validée : « X FAIT TOURNER » dans l'en-tête de travée (`spec:261-262`).
+
+**Principe :** un chiffre ne s'affiche que s'il correspond à une touche.
+
+## 3. Q4 — défauts retenus, par gravité
+
+1. **L'infobulle de refus masque le jeu.**
+   - À 360×740, elle couvre toute la console et coupe la prose au milieu d'un mot (« Mouvement 4 q… », capture refus 360), ce qui viole R-M2.
+   - À 1366×650 et 900×780, elle couvre la grille de droite et le coin.
+   - Correction : infobulle courte (raison, nom, touche, « Ouvrir la fiche »), sans prose (la prose reste dans la fiche, règle 5). Elle naît AU-DESSUS du liseré, jamais sur le pont. À ≤560, elle se place dans la bande au-dessus de la console.
+   - Modèle : RT, les plaques naissent du bord qui touche leur déclencheur (`Analyse:281`, lu par le designer fidélité RT, non relu par moi) ; fiche `user-arbitrage-raison-de-refus-au-survol-jamais-inline.md:9`.
+2. **Tour adverse à ≤700 : dalle éteinte de ≈ 298 px** (capture adverse 700×780).
+   - L'extinction de la matière n'existe qu'à `@media (min-width: 701px)` (`css:181`).
+   - Correction : même extinction à toute largeur ; la boîte reste, la matière s'éteint, le clic passe au plateau (fiche tour adverse, How to apply).
+   - Modèle : RT `Analyse:331` « les alvéoles d'objets, les raccourcis et la plaque de fin de tour disparaissent ».
+3. **Chrome total à 700×780 ≈ 63 % de l'écran** (lecture de capture) : bandeau + frise horizontale de y 0 à 195, pont de 482 à 780.
+   - Les héros apparaissent deux fois, au bandeau et à la frise.
+   - La plage 561–700 empile les deux travées (capture refus 700).
+   - Correction : l'arche en une ligne (forme ≤560 du 2026-08-16) + les deux travées côte à côte, cases ≈ 40 px, pont ≈ 19 %. La frise verticale de RT jusqu'à 561 px.
+   - Modèle : RT §B (`Analyse:75-76`, lu par le designer, non relu par moi) ; R-M1 (`spec:66-68`).
+4. **Libellés tranchés et icônes minuscules dans les cases.**
+   - « Immunité Psy… », « Ignorer les m… » à 1366 ; « Mouvem… » à 900.
+   - Cause : `--icon-taille: calc(var(--cc-cell-h) * 0.34)` (`css:653`) contre « ≈ moitié » exigé par `spec:34`.
+   - Correction : Q1.
+5. **Le bandeau du groupe prend ≈ 20 % de la hauteur à 650.** Fond opaque, et nom sur deux lignes (« Grunni Pierre-de- / Fer »).
+   - Correction : fond en vitre, hauteur de tuile indexée sur la hauteur d'écran, nom sur une ligne coupé à la frontière de mot, nom complet via `CodexRef` (§1c-quater).
+   - Modèle : RT `Analyse:52`.
+6. **Frise tronquée** : vignette coupée en pied à 1366×650, au bord droit à 360.
+   - Correction : vignettes entières seulement, défilement par vignette entière, acteur actif toujours visible.
+   - Modèle : RT §B ; R-M3.
+7. **« Fin du tour » perd sa touche : « Action non dépensée » remplace ESPACE** (`CombatConsole.tsx:1121`, `:1430`).
+   - Correction : `.cc-key` affiche toujours ESPACE. L'avertissement passe par l'état armé déjà présent (« Finir quand même », `:1429`) et par l'infobulle.
+   - Modèle : RT §G, touche Space gravée en dur ; `spec:262` laissait ce texte « à CONFIRMER ».
+8. **Sets** : le chiffre 3 sur un set vide, et « 1 » + « X » côte à côte sur le set tenu (capture 1366). Correction : Q3.
+
+## 4. Coutures à changer (instantané)
+
+**`src/ui/styles/combat-console.css`**
+- `:21-35`
+  - Réécrire le commentaire qui attribue « jamais un carré » à l'utilisateur.
+  - Remplacer `--cc-cell-w` et `--cc-cell-h` par un côté carré unique : min(plafond de hauteur, plafond de largeur).
+- `:42` : `--cc-end-h` suit 2 × case + écart.
+- `:47` : `--cc-fronton: min(52px, 4.8vh)`.
+- `:52` : `--cc-portrait` tiré de la hauteur d'écran, plus de `--cc-cell-h` (sans boucle, cf. `:48-51`).
+- `:653-656` : icône à 60 % du côté.
+- `:1086-1131` : supprimer toute la composition sur deux rangées.
+- `:1141` : à 561–700, arche en ligne + deux travées côte à côte.
+- `:181` : l'extinction spectatrice s'applique à toute largeur.
+- `:616-622` : supprimer `.cc-set-n`.
+- `:1243-1246` : commentaire de la famille « excuse » renvoyant à #1806 (signalé par F8).
+
+**`src/ui/CombatConsole.tsx`**
+- `:1316` et `:1335` : supprimer `<i className="cc-set-n">`.
+- `:1342` : retirer X de la vignette ; plaque X en en-tête de travée.
+- `:1121` et `:1430` : la touche reste ESPACE.
+- Retirer `cc-lbl` des cases de grille ; le nom va dans l'infobulle et dans `aria-label`.
+
+**Infobulle de refus** (`CodexRef` / popover) : forme courte, ancrée au-dessus du liseré.
+
+**`scripts/recette/hud-clickables.mjs`**
+- `:727` : `BUDGET_PONT` → bande 0,17 et empreinte 0,22, appliqué dès 701.
+- `:1333-1336` : `part` = (bande + saillie) / hauteur.
+
+**`src/ui/CombatConsole.test.tsx`** (budget de hauteur du pont) : réécrit sur ces mêmes plafonds.
+
+**Docs**
+- `docs/charte-ui.md:682` (« icône + libellé + touche ») à corriger.
+- `docs/plans/2026-08-16-spec-hud-combat.md` : `:31` et `:215` à corriger, `:220-221` (le coin) aussi.
+- `src/state/hotbarBridge.ts:11-12` : commentaire faux (signalé par F8), à traiter dans le même lot.
+
+## 5. Planche pour Clément
+
+- **Vues :** 1707×780, 1366×650, 901×780, 900×780, 701×780, 640×780, 360×740.
+- **États, à chaque vue :**
+  - **A. Tour du héros :** 3 sets dont un vide, une case vide intercalée dans la grille, action non dépensée.
+  - **B. Refus au survol et au focus clavier :** infobulle courte au-dessus du liseré, pont entièrement visible.
+  - **C. Tour adverse et avant le début du combat :** arche seule, matière éteinte, plateau visible et cliquable autour.
+- **Ce qu'elle montre :**
+  - une seule rangée à ≥701 ;
+  - cases carrées sans libellé, icône à 60 % : c'est un changement signalé par rapport à la planche du 2026-08-17 ;
+  - pas de rang sur les sets ; X gravé une seule fois, en en-tête de travée ;
+  - « Fin du tour » affiche toujours ESPACE ;
+  - bandeau en vitre, frise et noms jamais tranchés ;
+  - en marge de chaque vignette : bande % et total fronton compris %, côté de case et d'icône en px, portrait en px, nombre de rangées — chiffres de la sonde, pas du brief ;
+  - chaque capture épinglée à un hash git réel (R-M4, `spec:77-79`).
+
+---
+_Generated by [Claude Code](https://claude.ai/code)_

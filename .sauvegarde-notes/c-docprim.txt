@@ -1,0 +1,5 @@
+
+> warhammer-v4-rpg@0.1.0 docs:primitives
+> node scripts/docs/build-primitives.mjs
+
+docs/primitives.md — 151 primitives.

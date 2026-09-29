@@ -1,0 +1,253 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1806-L1
+
+ ❯ src/ui/compendium/CodexRef.test.tsx (14 tests | 4 failed) 125ms 397 MB heap used
+   × CodexRef — la coupe du corps et de la ligne méta tombe à une FRONTIÈRE DE MOT (R-M2) > aucun sort long ne rend un mot tranché (données réelles) 30ms
+     → expected [ 'bruits', 'feux-follets', …(162) ] to deeply equal []
+   × CodexRef — la coupe du corps et de la ligne méta tombe à une FRONTIÈRE DE MOT (R-M2) > ponctuation : elle reste collée à son mot, le trait d’union ne coupe pas 5ms
+     → expected 'Grunni Pierre-d…' to be 'Grunni…' // Object.is equality
+   × CodexRef — la coupe du corps et de la ligne méta tombe à une FRONTIÈRE DE MOT (R-M2) > une espace insécable ne coupe pas 3ms
+     → expected 'Portée…' to be 'Portée :…' // Object.is equality
+   × CodexRef — la coupe du corps et de la ligne méta tombe à une FRONTIÈRE DE MOT (R-M2) > un premier mot plus long que n se rend entier 4ms
+     → expected 'Anticonsti…' to be 'Anticonstitutionnellement' // Object.is equality
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/ui/compendium/CodexRef.test.tsx > CodexRef — la coupe du corps et de la ligne méta tombe à une FRONTIÈRE DE MOT (R-M2) > aucun sort long ne rend un mot tranché (données réelles)
+AssertionError: expected [ 'bruits', 'feux-follets', …(162) ] to deeply equal []
+
+- Expected
++ Received
+
+- Array []
++ Array [
++   "bruits",
++   "feux-follets",
++   "purification-de-l-eau",
++   "attaques-en-chaine",
++   "aura-ordinaire",
++   "deplacement-d-objet",
++   "dome",
++   "la-lance-d-ambre",
++   "langue-bestiale",
++   "vol-du-destin",
++   "comete-de-cassandora",
++   "cauteriser",
++   "grands-feux-d-u-zhul",
++   "mur-de-feu",
++   "purification",
++   "festin-des-damnes",
++   "goutemort",
++   "la-gueule",
++   "trollboyaux",
++   "fauche-demon",
++   "filet-d-amyntok",
++   "protection-de-pha",
++   "creuset-de-chamon",
++   "transmutation-de-chamon",
++   "illusion",
++   "linceul-d-invisibilite",
++   "configuration-du-terrain",
++   "don-de-vie",
++   "foret-d-epines",
++   "degradation",
++   "horreur-obsedante",
++   "menace-rampante",
++   "destruction-de-demon-mineur",
++   "manifestation-de-demon-mineur",
++   "crane-hurlant",
++   "reanimation",
++   "allure-demoniaque",
++   "aspect-sublime",
++   "esclave-des-tenebres",
++   "obsession",
++   "odieux-messager",
++   "flot-de-corruption",
++   "consentement",
++   "trahison-de-tzeentch",
++   "avantage-de-tzeentch",
++   "eclair-du-changement",
++   "feu-bleu-de-tzeentch",
++   "feu-rose-de-tzeentch",
++   "feu-spirituel",
++   "flammes-vacillantes-du-capricieux-destin",
++   "la-main-pourpre",
++   "malediction-de-tzeentch",
++   "tempete-de-feu-de-tzeentch",
++   "transformation-de-tzeentch",
++   "encalmine",
++   "condamne",
++   "main-de-morr",
++   "seuil-du-portail",
++   "riche-pauvre-mendiant-voleur",
++   "yeux-de-chat",
++   "caresse-de-rhya",
++   "baume-pour-un-esprit-blesse",
++   "innocence-immaculee",
++   "comete-a-deux-queues",
++   "feu-de-l-ame",
++   "n-ecoutez-point-la-sorciere",
++   "enchevetrement-2",
++   "seigneur-de-la-chasse",
++   "hurlement-du-loup",
++   "morsure-de-l-hiver",
++   "entraves-a-la-verite",
++   "epee-de-justice",
++   "justice-aveugle",
++   "la-verite-eclatera",
++   "bon-baiser-d-la-fosse-noire",
++   "nuee-d-escampette",
++   "crevasse",
++   "desarroi",
++   "ouverture",
++   "faire-fi-de-l-humeur-de-manann",
++   "malediction-de-la-maitresse-cruelle",
++   "tourbillon",
++   "bienfait-de-bel-shanaar",
++   "solution-de-tir-optimal-de-niezlib",
++   "bibliothecaire-instantane-de-meissner",
++   "edifice-erige",
++   "edifice-illumine",
++   "mains-de-karkora",
++   "manteau-miroitant",
++   "yeux-de-volans",
++   "cage-doree",
++   "contact-dore",
++   "defaut-metal",
++   "devoiler-l-inconnu",
++   "inscription",
++   "malediction-de-la-rouille",
++   "reparer-du-metal",
++   "reproduction-de-levorg",
++   "almanach",
++   "apotheose-verdoyante",
++   "cercueil-de-jade",
++   "chant-revigorant",
++   "cri-de-guerre-du-druide",
++   "escalier-en-colimacon",
++   "etres-du-dessous",
++   "geyser",
++   "murmure-de-la-nature",
++   "transmutation-fantasmagorique-de-colchis",
++   "trouver-des-lignes-de-force-telluriques",
++   "la-voie-de-paranoth",
++   "arche-de-saphir",
++   "lames-d-azur",
++   "lentille-celeste",
++   "malediction-du-destin",
++   "miroir-mystique",
++   "mistral-de-la-stratosphere",
++   "premonition",
++   "projection-astrale",
++   "ailes-grises",
++   "bosquet-d-ombre",
++   "charme-changeant",
++   "chut",
++   "danse-du-desespoir",
++   "desorientation",
++   "illusion-grandiose",
++   "illusion-retroactive-de-ribauld",
++   "ombre-errante",
++   "poches-profondes",
++   "puits-de-tarnus",
++   "substance-de-l-ombre",
++   "traitre-de-tarn",
++   "ame-emprisonnee",
++   "apercu-de-la-mort",
++   "contraindre-les-esprits",
++   "embrasser-son-destin",
++   "le-labyrinthe-de-cristal",
++   "membre-fletri",
++   "poids-des-annees",
++   "shyish-a-decouvert",
++   "telepathie",
++   "blizzard-ardent-d-ygethmor",
++   "cognat-de-l-atre",
++   "colerique",
++   "corps-de-feu",
++   "epees-sanguines",
++   "flamme-fascinante",
++   "flamme-inextinguible",
++   "fournaise-fletrissante",
++   "gout-du-feu",
++   "sang-bouillant",
++   "tempete-de-magma",
++   "capuche-vengeresse",
++   "malediction-d-anraheir",
++   "transe-ambree",
++   "traversee-rapide",
++   "ver-fretillant",
++   "decrypter-une-malediction",
++   "piqures-de-moustiques",
++   "corrompre-une-pierre-gardienne",
++   "creer-une-propriete-de-pierre-gardienne",
++   "les-faux-croisees",
++   "invocation-de-demon",
++   "lier-un-esprit-a-une-pierre-de-pouvoir",
++   "materialiser-le-marais-vivant",
++ ]
+
+ ❯ src/ui/compendium/CodexRef.test.tsx:90:41
+     88|     expect(longs.length).toBeGreaterThan(0);
+     89|     const tranches = longs.filter((sp) => { const t = mdToText(sp.desc…
+     90|     expect(tranches.map((sp) => sp.id)).toEqual([]);
+       |                                         ^
+     91|   });
+     92| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  src/ui/compendium/CodexRef.test.tsx > CodexRef — la coupe du corps et de la ligne méta tombe à une FRONTIÈRE DE MOT (R-M2) > ponctuation : elle reste collée à son mot, le trait d’union ne coupe pas
+AssertionError: expected 'Grunni Pierre-d…' to be 'Grunni…' // Object.is equality
+
+Expected: "Grunni…"
+Received: "Grunni Pierre-d…"
+
+ ❯ src/ui/compendium/CodexRef.test.tsx:107:56
+    105| 
+    106|   it('ponctuation : elle reste collée à son mot, le trait d’union ne c…
+    107|     expect(truncate('Grunni Pierre-de-Feu, nain', 15)).toBe('Grunni…');
+       |                                                        ^
+    108|     expect(truncate('Cible : un allié proche', 9)).toBe('Cible :…');
+    109|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  src/ui/compendium/CodexRef.test.tsx > CodexRef — la coupe du corps et de la ligne méta tombe à une FRONTIÈRE DE MOT (R-M2) > une espace insécable ne coupe pas
+AssertionError: expected 'Portée…' to be 'Portée :…' // Object.is equality
+
+Expected: "Portée :…"
+Received: "Portée…"
+
+ ❯ src/ui/compendium/CodexRef.test.tsx:112:64
+    110| 
+    111|   it('une espace insécable ne coupe pas', () => {
+    112|     expect(truncate('Portée\u00A0: Toucher, cible unique', 7)).toBe('P…
+       |                                                                ^
+    113|   });
+    114| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  src/ui/compendium/CodexRef.test.tsx > CodexRef — la coupe du corps et de la ligne méta tombe à une FRONTIÈRE DE MOT (R-M2) > un premier mot plus long que n se rend entier
+AssertionError: expected 'Anticonsti…' to be 'Anticonstitutionnellement' // Object.is equality
+
+Expected: "Anticonstitutionnellement"
+Received: "Anticonsti…"
+
+ ❯ src/ui/compendium/CodexRef.test.tsx:116:55
+    114| 
+    115|   it('un premier mot plus long que n se rend entier', () => {
+    116|     expect(truncate('Anticonstitutionnellement', 10)).toBe('Anticonsti…
+       |                                                       ^
+    117|     expect(truncate('Anticonstitutionnellement dit-il', 10)).toBe('Ant…
+    118|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+ Test Files  1 failed (1)
+      Tests  4 failed | 10 passed (14)
+   Start at  12:53:27
+   Duration  15.26s (transform 9.48s, setup 14.18s, collect 559ms, tests 125ms, environment 0ms, prepare 56ms)
+

@@ -1,0 +1,12 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1806-L1
+
+ ✓ src/ui/editor/AddMenu.test.tsx (5 tests) 79ms 395 MB heap used
+ ✓ src/ui/BoiteAncree.test.tsx (12 tests) 127ms 408 MB heap used
+
+ Test Files  2 passed (2)
+      Tests  17 passed (17)
+   Start at  12:49:24
+   Duration  16.65s (transform 10.72s, setup 30.05s, collect 313ms, tests 206ms, environment 1.60s, prepare 217ms)
+

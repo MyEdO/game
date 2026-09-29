@@ -1,0 +1,37 @@
+feat(ui): refs #1806 — R-M2 lot A : la couche Infobulle, une par ancrage, et BoiteAncree
+
+Reconstruction du lot A de R-M2 (design v4 du 2026-09-24, #1806), dont le travail A2-A7 non poussé
+est perdu : la cible livrée d'un geste, avec les corrections des juges A2 à A7 et les trois
+bloquants restés ouverts au verdict A6+A7 (X1, X2, I1).
+- `Infobulle` (couche extraite de `CodexRef` à comportement constant) : ancrage déclaré au
+  balisage (`data-infobulle`), délégation au document, marqueur d'arrêt à la racine de la boîte ;
+  quatre booléens du contenu (atteignable, épinglable, sourdine, au toucher), aucune branche par
+  consommateur. X2 : état `congediee` synchrone (APG Tooltip, « Escape: Dismisses the Tooltip »).
+- `useFocusEmprunte` reçoit l'ORIGINE en paramètre : une infobulle passe le contrôle de son ancrage
+  (X1) ; une origine sortie du document cède la place à celle de la surface qui la contenait
+  (Q2DIAL). Un seul mécanisme de retour de focus (I1). `SURFACE` défini une fois (`focus.ts`),
+  consommé par la propriété des touches (`useGameKeyboard.ts`, P10).
+- `BoiteAncree` + `usePlacementAncre` : une mesure d'ancrage pour la couche, `AddMenu` (`placeMenu`
+  meurt) et `PanneauParametre` ; placement au rendu qui reçoit l'ancrage (B2), ancrage détaché =
+  aucune boîte (F11), aucun `useLayoutEffect` (E2) ; `CHAMPS` complet par le type (D1 du juge).
+- Élection d'un raccourci : `elireBinding`/`bindingParId`, garde d'unicité des ids (F3, F12).
+- Surcouche du Codex sous sa propre frontière `Suspense` (D7).
+- « popover » ne désigne plus la boîte de la couche (113 → 6 lignes, les 6 = d'autres concepts).
+- Charte : trois modules de primitive au catalogue ; spécimens de galerie ; docs générés.
+
+Stock CSS : identité 1800 → 1770, espacement 708 → 703, style inline 95 → 93.
+Preuves : tsc --noEmit --incremental false exit 0 (orchestrateur) ; vitest rejoué par le juge
+38 fichiers, 709 tests verts ; corrections D1-D3 : 19 fichiers, 436 tests ; 14 + 2 mutations
+rouges sur leur assertion nommée ; recette navigateur en joueur, console 0 erreur.
+
+JUGE: juge de diff 2026-09-28 (focus, couche, BoiteAncree, langue, docs, portes) — À REPRENDRE sur D1-D3, corrigés dans ce commit (liste de champs typée, « popover » renommé, commentaire du title)
+REFUTATION: le juge a attaqué X1 (3 entrées), X2 (re-survol après Échap), Q2DIAL, B2, la chaîne d'origines et le test d'hôte CombatConsole : tous tiennent ; F13 non reproduit en 10 cycles
+JUGE-VISION: tooltip{,-refus}-{360x740,700x780,900x780,1366x650,1707x780} + editor-addmenu-{haut,bas-1366x650} jugées — À REPRENDRE : à 900 le refus couvre « Fin du tour » (BoiteAncree.tsx:51) ; truncate de CodexRef tranche des mots (151/227 sorts) ; corrigés au train suivant
+
+Restes, au train suivant de ce chantier : placement horizontal de `BoiteAncree` aligné sur le bord
+droit de l'ancrage ; `truncate` à la frontière de mot ; délégation au document UNE fois pour la
+couche (mesure : 7 écouteurs par `CodexRef`, 56 en combat). Hors lot, tickets ouverts : #2120
+(Échap pendant le chargement de la fiche), #2126 (Tab pris par target-next en combat).
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_0167t7jpCF61Qutt6mU1dbAt

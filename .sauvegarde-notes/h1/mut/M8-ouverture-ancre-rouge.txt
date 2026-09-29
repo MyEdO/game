@@ -1,0 +1,34 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1919-H1
+
+ ❯ src/ui/CombatConsole.test.tsx (150 tests | 1 failed | 149 skipped) 40ms 448 MB heap used
+   × CombatConsole — trois formes, une seule bande > le bandeau d’OUVERTURE n’a AUCUNE ancre propre : sa zone de la couche HUD le pose 39ms
+     → top: expected 'var(--sp-lg)' to be null
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 149 skipped (150)
+   Start at  20:45:48
+   Duration  20.23s (transform 12.08s, setup 13.29s, collect 5.79s, tests 40ms, environment 701ms, prepare 63ms)
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/ui/CombatConsole.test.tsx > CombatConsole — trois formes, une seule bande > le bandeau d’OUVERTURE n’a AUCUNE ancre propre : sa zone de la couche HUD le pose
+AssertionError: top: expected 'var(--sp-lg)' to be null
+
+- Expected: 
+null
+
++ Received: 
+"var(--sp-lg)"
+
+ ❯ src/ui/CombatConsole.test.tsx:1080:103
+    1078|     const ouv = ruleOf(CC_BASE, ".cc-phase[data-phase='ouverture']");
+    1079|     expect(decl(ouv, 'inset'), 'l’ancre du bandeau de pont n’est pas n…
+    1080|     for (const cote of ['top', 'right', 'bottom', 'left', 'transform']…
+       |                                                                                                       ^
+    1081|     expect(CC_CSS, 'une grandeur du haut de l’écran survit').not.toMat…
+    1082|     for (const tranche of ['@media (max-width: 900px)', '@media (max-w…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+

@@ -1,0 +1,36 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game
+
+ ❯ src/ui/compendium/CodexRef.hooks.test.tsx (12 tests | 1 failed) 308ms 421 MB heap used
+   × CodexRef — chemin ÉPINGLÉ et interception de clic (#1117) > Échap puis ↓ sur l’ancrage dont la boîte est fermée : elle s’épingle ET le focus y entre 18ms
+     → ↓ rouvre et épingle la boîte: expected null to be truthy
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/ui/compendium/CodexRef.hooks.test.tsx > CodexRef — chemin ÉPINGLÉ et interception de clic (#1117) > Échap puis ↓ sur l’ancrage dont la boîte est fermée : elle s’épingle ET le focus y entre
+AssertionError: ↓ rouvre et épingle la boîte: expected null to be truthy
+
+- Expected: 
+true
+
++ Received: 
+null
+
+ ❯ src/ui/compendium/CodexRef.hooks.test.tsx:211:82
+    209|     expect(document.activeElement, 'le focus reste sur le contrôle').t…
+    210|     act(() => { inner.dispatchEvent(new KeyboardEvent('keydown', { key…
+    211|     expect(document.querySelector('.infobulle'), '↓ rouvre et épingle …
+       |                                                                                  ^
+    212|     expect(document.activeElement, '↓ : le focus ENTRE dans la boîte, …
+    213|       .toBe(document.querySelector('.infobulle button'));
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 11 passed (12)
+   Start at  10:08:04
+   Duration  15.19s (transform 8.94s, setup 13.22s, collect 654ms, tests 308ms, environment 621ms, prepare 56ms)
+
+
+exit=1

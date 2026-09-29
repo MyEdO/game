@@ -1,0 +1,14 @@
+## Publication 41aa406d5
+
+Plage publiée : `37873ae15 → 41aa406d5` sur `main`.
+
+### Commits (1)
+- `41aa406d5` refactor(ui): refs #1806 — sous-lot 2b : console en organisme, nappe de pont en peau partagée
+
+### CI
+- verte — course `35481269616` : https://github.com/cgauche/game/actions/runs/35481269616
+- attente du verdict CI : 10.3 min (temps d’attente, pas de machine locale).
+
+#1806 est rattaché (`refs`) par cette publication, non fermé.
+
+<!-- publier: 41aa406d52fd878b619b274b3f1a6a8f87b05975 -->

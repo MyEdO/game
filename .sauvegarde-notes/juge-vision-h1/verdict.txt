@@ -1,0 +1,32 @@
+VERDICT : À REPRENDRE (lot H1 #1919, captures h1/avant @20b8afba5 vs h1/apres = WIP non committé de /home/user/game/.wt-1919-H1, base 20b8afba5, 26 fichiers M)
+Empreintes vérifiées (sha256sum -c, rc=0) : avant/combat-heros-700x780, avant/exploration-360x740, apres/combat-heros-700x780, apres/exploration-journal-1366x650.
+
+(a) DÉFAUTS DU LOT H1
+A1 — 360x740 (VUE DE RÉFÉRENCE), exploration : le LIEU est perdu. Avant « Du Sang sur la Route — scène… » ; après « Du S… » (apres/exploration-360x740.png, zone contexte 91.8 px dont ☰ 42 px, mesures.json). Mot tranché (R-M2) et information perdue ; la promesse « aucun rognage aux vues de référence » est rompue.
+A2 — 700x780, exploration : même classe. Avant « Du Sang sur la Route — scène d… », après « Du Sang sur l… » (apres/exploration-700x780.png, contexte 143 px). « Route » est perdu.
+A3 — 360x740 (VUE DE RÉFÉRENCE), journal de combat ouvert : le panneau pend désormais SOUS le bouton du rail, en haut à droite (journal y 61..226). Il recouvre la frise (y 68..132) et le fil (y 139.8). Texte transparent superposé : illisible (apres/combat-journal-360x740.png). mesures.json « inatteignables » passe de 4 à 9 noms (Knud Cratinx, Klein Bürger, Sigmund Reikhardt, Mikael, Erik…), soit la frise entière. Avant, le panneau vivait dans le champ (y 221..386) et restait lisible. « Il ne déplace rien » : vrai ; « il reste entier et ne recouvre rien » : FAUX.
+A4 — 900x780 (SEUIL), exploration : l'objectif déborde de sa zone. Zone temps x 8..243, objectif x 8..368.7 : il sort de sa zone et passe SOUS le groupe (z 45). Texte coupé « Retrouver la piste des mutants da[…]s » (apres/exploration-900x780.png). Viole « le HUD vit dans ce qui reste, et n'en sort pas ». La sonde ne le voit pas : aucun verdict de débord de zone ni de recouvrement entre surfaces, sonde-finale.txt ne liste rien en exploration 900. Avant, l'objectif recouvrait la jauge et le nom de Sigmund : même classe, victime inversée.
+A5 — 700x780, tour de héros : le FIL « Knud Cratinx vise Grunni Pierre-de-Fer » est PERDU (orchestrateur CONFIRMÉ). Avant y 192, lisible (avant/combat-heros-700x780.png) ; après y 213.4 > flot 205, rogné de 26.5 px (sonde-finale.txt:72), invisible (apres/combat-heros-700x780.png). Cause mixte : le pont fait 575 px (b), mais c'est H1 qui pose la frise SOUS le groupe (131.6..205.4, rangée champ = 0 px) et pousse le fil hors couche. Contrepartie réelle : les noms et jauges du groupe, masqués par la frise avant, sont rendus. Perdu pour le joueur à 700 : la narration de la dernière action (seul le journal la garde). À 700x650, le groupe est rogné de 52.6 px, la frise de 130.5 px (9 entrées sous le pont) et le fil de 156.5 px (sonde-finale.txt:83-85).
+
+(b) DÉFAUTS DU PONT TROP HAUT (lot console, NOMMÉS)
+B1 — 700x780/740/650, tour de héros : pont 575 px, flot 205 px. Perdus : le fil (les trois hauteurs) ; à 740, 40.5 px de frise ; à 650, 52.6 px du groupe (noms et jauges) plus la frise. Voir A5 pour la part de H1.
+B2 — 900x780, tour de héros : la rangée Dague/Charger commence à x ≈ 0, et « Dague », « Mains nues » sont hors écran (x −36.6). « Ignorer les modificateurs de critique » est recouvert. Identique sur la base (inatteignables identiques avant/après).
+
+(c) PRÉEXISTANTS (identiques avant/après)
+C1 — Frise verticale : le badge d'initiative de la dernière entrée est tranché au bas du cadre (« 27 » à 900 et 1707, « 30 » à 1366, combat-ouverture-*). Viole R-M3.
+C2 — Frise horizontale 360 : la dernière vignette est coupée au bord droit (combat-heros/adverse/ouverture-360x740). Viole R-M3.
+C3 — Noms sur deux lignes, coupés au trait d'union : « Grunni Pierre-de- / Fer » à toutes les largeurs ; « Sigmund / Reikhardt » dans le volet 360. « (Round / 1) » dans le journal 360. Viole R-M2.
+C4 — Ellipses de texte : « Klein Bürg… » (pont 360), « Ignorer les » (1366/1707), objectif « …dans l… » (360).
+C5 — Journal de combat ouvert à 700 et 900 : il recouvre les noms et tuiles du groupe et la frise. Avant il était opaque par l'effet du survol, après il est transparent. Même recouvrement, cf. A3 pour la classe.
+C6 — Journal d'exploration ouvert à 360 : panneau mesuré (309.6x168), mais aucun texte visible, avant comme après. INCERTAIN : il faut une capture avec survol et un dump de .ld-panel innerText pour trancher.
+C7 — Hiérarchie : ☰ fait 42 px, le bouton journal du rail 60 px. Le journal est en haut à droite en combat et en bas à droite (pont) en exploration.
+
+GAINS CONSTATÉS
+- 700 : la frise ne recouvre plus le groupe (noms et jauges lisibles), en ouverture, en tour de héros et en tour adverse.
+- 360 : le fil passe sur une ligne, le groupe est centré, la frise gagne une entrée.
+- 1366 : la frise passe de 4 à 5 entrées.
+- 1707 et 1366 : rien de perdu, hors A-journal-transparent qui n'est qu'un artefact de survol : la capture redimensionne après le clic et le pointeur quitte le bouton (capture.mjs:114-116).
+
+« Prototype ou produit ? » : produit à 1366 et 1707. Prototype à 360, 700 et 900 : lieu perdu, journal sur la frise, objectif sous le groupe.
+
+JUGE-VISION: À REPRENDRE — 360 (réf) perd le lieu « Du S… » et le journal ouvert recouvre frise+fil (9 inatteignables vs 4) ; 900 objectif hors zone sous le groupe ; 700 fil perdu (pont 575 px + frise sous groupe)

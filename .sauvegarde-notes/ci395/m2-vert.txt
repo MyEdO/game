@@ -1,0 +1,11 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1806-L1
+
+ ✓ src/ui/raccourcis-registre.test.ts (6 tests) 85ms 396 MB heap used
+
+ Test Files  1 passed (1)
+      Tests  6 passed (6)
+   Start at  13:56:30
+   Duration  15.26s (transform 9.41s, setup 14.58s, collect 166ms, tests 85ms, environment 0ms, prepare 73ms)
+

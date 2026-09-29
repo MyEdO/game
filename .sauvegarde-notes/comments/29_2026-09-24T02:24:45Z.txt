@@ -1,0 +1,65 @@
+## Design : aucun mot tranché (R-M2), v4 du 2026-09-24
+
+Évaluation d'ingénierie révisable : aucun verbatim utilisateur ne tranche la forme ; la RÈGLE, elle, est validée par Clément.
+- v1 et v2 : À AMENDER. Deux passes ont repris la même classe (« comment le texte entier atteint son lecteur ») : v3 est remontée d'un niveau, l'infobulle devient UNE couche, clé par ancrage.
+- v3 : À AMENDER sur le détail ; le découpage de la couche TIENT (3e passe, Q2). v4 applique ses neuf amendements.
+- Traces : `scratchpad/juge-design-rm2/`, `juge-design-rm2-v2/`, `juge-design-rm2-v3/` (verdicts, sondes, sorties).
+
+### Invariant
+- Spec HUD validée (`docs/plans/2026-08-16-spec-hud-combat.md:71-74`), verbatim : « **R-M2 Aucun mot tranché, nulle part** : un libellé se rend en entier, ou s'ellipse à la FRONTIÈRE DE MOT (une ligne + `title`), ou coupe entre mots (2 lignes max) — jamais `overflow-wrap:anywhere` sur du texte de libellé. S'applique aussi aux noms du bandeau À 1280 (13/13 ellipsés = défaut : la tuile se dimensionne pour son contenu type). »
+  - Question à laquelle elle répond : comment un texte qui ne tient pas dans sa boîte se rend-il, et comment lit-on alors son texte entier ?
+- R-M3 (`spec:75-76`), verbatim : « Tout élément rendu est ENTIER : une rangée qui ne tient pas ne se tronque pas — la géométrie se recalcule (garde de recette : sonde pixel bord-bas, promue) ».
+- Charte (`docs/charte-ui.md:646`) : « une seule infobulle par ancrage, jamais une 2ᵉ boîte concurrente ».
+- Mesures : `text-overflow: ellipsis` coupe au glyphe (« Immunité Psycholog… », « Mouveme… » à 900) ; `-webkit-line-clamp` coupe au glyphe dès que l'ellipse ne tient pas en fin de ligne (« Bénédiction d… » à 121 px) ou qu'un mot seul déborde ; aucune forme en CSS seul ne tient R-M2.
+
+### Qui possède quoi (trois propriétaires)
+- **P1. La COUPE : la primitive `Clamp`.**
+  - `.clamp` (`components.css:92-99`, charte `:153`) est le concept ; `Clamp` en est l'unique propriétaire React, seul à poser `.clamp`. Le porteur en JS qui coupe au caractère passe aussi par `Clamp` : `CodexRef.tsx:22` (`truncate`, corps et `metaLine`), `EffectList.tsx:135`, `DialogueDetail.tsx:71` et `:131`, `GameOpEditor.tsx:728`, `CharacterCreator.tsx:210`.
+  - **Place disponible, jamais la boîte que le texte dimensionne.** La LARGEUR de la boîte `.clamp` vient de l'hôte (piste définie : `minmax(0, 1fr)`, ou `flex: 1 1 0` avec `min-width: 0`) : la coupe rendue ne la change jamais (verrou évité : `sonde3-out.txt`, `boiteLbl` 41 px dans une case de 82 px). En hauteur, seul un hôte à hauteur IMPOSÉE garde sa boîte fixe ; un hôte à hauteur de contenu converge en au plus deux passes.
+  - **Nombre de lignes** : lignes rendues = min(plafond du rôle, lignes que contient la hauteur imposée par l'hôte) ; un hôte à hauteur de contenu reçoit le plafond du rôle. Plafonds (table unique du module de `Clamp`, reprise dans la charte) : `libelle` 2 et `nom` 2 (« 2 lignes max »), `accroche` 3 (valeur actuelle de la primitive, `components.css:98`). Un hôte qui montre moins de lignes aujourd'hui (console compacte, `.card-hook` à 1 ligne, `party.css:538`) l'obtient par une hauteur imposée (placement), jamais par un `max-height` sur le texte (`combat-console.css:1403` meurt). `Clamp` expose le nombre rendu en `data-lignes`.
+  - **Déclencheurs** : un `ResizeObserver` partagé, possédé par le module de `Clamp`, observe la boîte et un jumeau invisible du texte entier, sans retour à la ligne, dans la même boîte ; le jumeau prend la bascule de police (`src/main.tsx:9-10`) et le `font-size` de requête média (`combat-console.css:584`, `:1399`). Mesuré : 15 jumeaux sur 15 signalés, 2 ms de pose, 0,1 à 0,2 ms par rappel.
+  - **Calcul sans mise en page forcée par candidat** : largeur des préfixes au canvas (`measureText`, police calculée de l'élément), une seule lecture de mise en page groupée par passe pour vérifier. La coupe naïve (une mise en page par mot) coûte 85,5 ms à 1707 : interdite.
+  - **Forme** : le texte entier s'il tient ; sinon le plus long préfixe de mots, coupé à une ESPACE, suivi de « … ». Les retours à la ligne restent au navigateur, qui coupe aussi après un trait d'union ; l'ellipse, jamais (« Grunni… », pas « Grunni Pierre-… »). Aucune césure.
+- **P2. Le TEXTE ENTIER : la couche d'infobulle, une par ancrage.**
+  - La couche est extraite de `CodexRef` ; elle porte la position, le pont de survol, l'épinglage, la sourdine, Échap, le clic hors de la boîte, `aria-describedby`, le portail, le toucher et ↓. Restent au contenu : la fiche, le refus, `CodexTitre`, la porte « Ouvrir la fiche », le rôle, l'activation, le nom accessible. La couche ne connaît que trois booléens dérivés du contenu (atteignable, épinglable, sourdine) : aucune branche par consommateur (3e passe, Q2, table ligne par ligne).
+  - **Ancrage déclaré au balisage** (attribut posé au rendu, présent avant tout effet). L'ancrage d'un `CodexRef` est la `span` qu'il rend (`CodexRef.tsx:305`), y compris sous `wrap`.
+  - **Déclenchement par délégation au document**, possédée par la couche : survol, focus (y compris d'un descendant), toucher et Échap résolvent l'ancrage au moment de l'événement, sur le patron d'écoute au document déjà en place (`CodexRef.tsx:254`). La couche n'écoute jamais un élément qu'elle ne rend pas.
+  - **Recherche d'ancrage** : un `Clamp` coupé cherche l'ancrage le plus proche parmi ses ancêtres DOM. La racine du popover porte un marqueur d'ARRÊT : un `Clamp` coupé dans une fiche ne contribue à rien et ne s'ancre pas (la fiche, atteinte par « Ouvrir la fiche », porte le texte entier).
+  - **Sans ancrage** : l'hôte qui a un contrôle voisin déclare l'ancrage sur l'élément qui les contient (bandeau : la `figure` qui porte la tuile et son nom, `PartyDock.tsx:80`) ; à défaut (accroches `.card-hook`, `.voyage-day-summary`), le `Clamp` coupé déclare l'ancrage sur lui-même et devient un arrêt de tabulation tant qu'il coupe.
+  - **Contributions** : registre clé par élément d'ancrage, avec abonnement (la coupe n'est connue qu'après la mesure). La tête du popover affiche, dédoublonnés : les textes entiers publiés (ordre du DOM), PUIS `instance`, PUIS le titre de la fiche. `instance` reste transmise à `openCodex` (`CodexRef.tsx:286`) ; elle ne disparaît jamais (`ResilienceButton.tsx:18`).
+  - **Nom accessible** : la partie visible coupée est `aria-hidden`, le texte entier vit dans `.hors-ecran` (`base.css:479`), dans tous les cas.
+  - **Jamais de `title`** : CHOIX d'ingénierie, pas une déduction de la charte. La charte du 2026-08-24 (`:640-642`) supplante la spec l.291 et l.206-210, pas l.71 ; la garde `console-no-title-only.test.ts` (grief du 2026-08-17 : invisible au tactile et au clavier) ne couvre que la console. Le lot purge les `title` de sa zone : `TestScenariosScreen.tsx:67` (sur un `.clamp`), `CodexRef.tsx:316` (que le composant proscrit lui-même, `:132`), `PortraitTile.tsx:78`, `VoyageScreen.tsx:364`.
+- **P3. La GÉOMÉTRIE qui évite la coupe : l'hôte (R-M3).**
+  - `Clamp` ne coupe jamais dans le premier mot. S'il déborde, ou si la boîte contient 0 ligne, c'est un défaut de géométrie de l'hôte, corrigé DANS le lot.
+  - Doctrine qui répond : R-M3 (« la géométrie se recalcule ») ; `spec:73-74` (« la tuile se dimensionne pour son contenu type ») ; arbitrage du 2026-08-16 (`spec:60-63`, « composition COMPACTE … sans rien perdre ») ; R-M1 (« DÉFILEMENT à tuiles pleines — jamais des tranches »). Le contenu type est le plus large premier mot que l'hôte peut porter : une géométrie fixe par vue, donc l'immobilité du 2026-08-16 tient.
+  - Console complète : l'hôte donne aujourd'hui 1 ligne (9 à 10,56 px libres pour une ligne de 9,45 px) et 0 dans les cases à touche (2 à 3,56 px). Le lot rend au moins une ligne entière aux cases à touche et garde 1 ligne ailleurs ; passer à 2 lignes changerait la console et attend une planche.
+  - Premiers mots qui débordent (4 héros, mot / boîte en px) : à 360 et 560, Mouvement 34,5/25, Défensive 27,3/25, Intuition 25,6/25, Immunité 28/25, Bénédiction 33,6/25 ; à 700, Mouvement 41,4/37, Bénédiction 40,3/37 ; à 900, 1366×650 et 1707, aucun.
+  - Le bandeau du groupe à 1280 (« la tuile se dimensionne pour son contenu type ») est une géométrie d'hôte : il entre dans le lot.
+  - **700 px** : la forme de la console à 700 attend la question posée à Clément (carte du fil « Couche layout », rappelée le 2026-09-24 à 00:04 UTC ; pilotage de #1806, commentaire 5805893520), sans réponse à ce jour. Tout le reste se livre ; seule la géométrie de la console à 700 attend, et le lot B ne se ferme pas avant. Une question neuve ne naît que d'un conflit MESURÉ entre ses clauses (budget du 2026-08-17, immobilité, « sans rien perdre »), liste mesurée à l'appui.
+
+### Gardes : la CLASSE « coupe dans un mot », tolérance zéro, sans registre
+- CSS : `text-overflow` et `line-clamp` n'apparaissent que dans la feuille de `Clamp` (23 déclarations `text-overflow` à migrer, `party-dock.css:153` compris) ; `word-break`, `overflow-wrap` et `hyphens` nulle part. `creator.css:759` (`word-break: break-word`, nom de médaillon) est l'interdit même de R-M2 ; les remises à `normal` (`combat-console.css:593-594`, `party-dock.css:150-151`) meurent avec ce qu'elles remettaient.
+- JS : aucune troncature au nombre de caractères qui produit « … ».
+- Balisage : `.clamp` entre à `OWNERS` (`primitive-owners-guard.test.ts`).
+- Accessibilité : tout `[data-coupe]` a un ancrage atteignable au clavier.
+- **Rendu**, en étendant les détecteurs existants (`scripts/recette/detecteurs-hauteur.mjs`), jamais une sonde parallèle :
+  - Vues : celles de `vues-recette.json` (1707×780, 1366×650, 360×740) ET les largeurs du canon de la règle 4 (900, 700, 560), lues à leur source unique (`LARGEURS_CANON`, `ui-ratchets.test.ts:654`, aujourd'hui dans un test : le codeur dit s'il faut la promouvoir en module).
+  - Texte rogné : les rectangles des nœuds de texte, jugés contre la boîte qui les coupe ; `.hors-ecran` et le jumeau invisible exclus ; chaque texte attribué à un seul ancêtre. La tolérance se fixe sur capture zoomée des trois cas limites mesurés (« Dague », « Charger » à 900, « Fin du tour » à 360, ≤ 2 px), jamais devinée.
+  - Contrat DOM de `Clamp` : le texte entier (copie `.hors-ecran`), `data-lignes`, et `data-coupe` quand il coupe. Oracle de maximalité : le préfixe de k+1 mots suivi de « … » déborde-t-il ? Oracle de forme : texte entier, ou préfixe coupé à une espace + « … », sur au moins une ligne de haut.
+- Les tests qui verrouillent l'ellipse au glyphe se réécrivent depuis R-M2 : `C-4` (`CombatConsole.test.tsx:708-730`), `R-7` (`:1747-1776`), `B-2` (`PartyDock.test.tsx:145-153`).
+
+### Critère N+1
+Un texte borné neuf coûte `<Clamp role="…">{texte}</Clamp>` dans une piste de largeur définie, zéro ligne de CSS de troncature, et zéro câblage d'infobulle.
+
+### Portée
+Tout texte borné : libellés, noms et accroches en prose (`.card-hook`, `.voyage-day-summary`). C'est une extension du mot « libellé », portée par le titre de la règle (« nulle part ») et par la charte `:153`, qui donne `.clamp` aux accroches.
+
+### Deux lots
+- **Lot A, la couche d'infobulle** : extraite de `CodexRef` à comportement CONSTANT, ancrage au balisage, délégation au document, marqueur d'arrêt à la racine du popover. Preuve : les suites existantes de `CodexRef` et de ses hôtes restent vertes sans réécriture. Il ne touche aucun fichier des lots en vol : il part tout de suite, de la tête de `chantier/1806`.
+- **Lot B, la coupe** : `Clamp`, contributions, table des plafonds, migrations (feuilles, JS, `title`), géométries d'hôte, gardes. Il touche `combat-console.css`, `party-dock.css`, `hud.css:133`, `CombatConsole.tsx` : il part après le commit des lots console (F6), HUD (G5) et modales (B7), et après le lot A.
+
+### Hors de ce design
+- `docs/charte-ui.md:724` accepte un `title` pour l'explication optionnelle d'un champ : autre objet, non tranché ici.
+
+---
+_Generated by [Claude Code](https://claude.ai/code)_

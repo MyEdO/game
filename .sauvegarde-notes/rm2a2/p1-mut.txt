@@ -1,0 +1,34 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1806-L1
+
+ ❯ src/ui/BoiteAncree.test.tsx (12 tests | 1 failed) 177ms 408 MB heap used
+   × placerAncre — la boîte tient dans le viewport, du côté qui a le plus de place > horizontal : alignée sur le bord DROIT de l’ancrage quand la gauche déborde à droite 13ms
+     → expected 672 to be 532 // Object.is equality
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/ui/BoiteAncree.test.tsx > placerAncre — la boîte tient dans le viewport, du côté qui a le plus de place > horizontal : alignée sur le bord DROIT de l’ancrage quand la gauche déborde à droite
+AssertionError: expected 672 to be 532 // Object.is equality
+
+- Expected
++ Received
+
+- 532
++ 672
+
+ ❯ src/ui/BoiteAncree.test.tsx:51:20
+     49|   it('horizontal : alignée sur le bord DROIT de l’ancrage quand la gau…
+     50|     const p = placerAncre({ left: 800, right: 852, top: 100, bottom: 1…
+     51|     expect(p.left).toBe(852 - L);
+       |                    ^
+     52|   });
+     53| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 11 passed (12)
+   Start at  12:49:54
+   Duration  20.26s (transform 12.64s, setup 18.75s, collect 166ms, tests 177ms, environment 674ms, prepare 91ms)
+

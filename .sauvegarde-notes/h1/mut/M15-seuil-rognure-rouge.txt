@@ -1,0 +1,39 @@
+TAP version 13
+# Subtest: rognure sous le demi-pixel : arrondi de rendu, rien à dire
+not ok 1 - rognure sous le demi-pixel : arrondi de rendu, rien à dire
+  ---
+  duration_ms: 3.62421
+  type: 'test'
+  location: '/home/user/game/.wt-1919-H1/scripts/recette/hud-clickables.test.mjs:684:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+    
+    + [
+    +   'tour de héros 1366×650 : la surface « initiative-strip » de la zone « temps » {"x":8,"y":59,"w":86,"h":340} est rognée par la couche de 0.4px'
+    + ]
+    - []
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual:
+    0: 'tour de héros 1366×650 : la surface « initiative-strip » de la zone « temps » {"x":8,"y":59,"w":86,"h":340} est rognée par la couche de 0.4px'
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///home/user/game/.wt-1919-H1/scripts/recette/hud-clickables.test.mjs:687:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.start (node:internal/test_runner/test:944:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 124.887404

@@ -1,0 +1,49 @@
+$ git grep -c -e "binding" -e "Binding" -- src/state/keybindings.ts src/ui/useGameKeyboard.ts src/state/resoudreEchap.ts src/ui/useGamepad.ts
+src/state/keybindings.ts:37
+src/state/resoudreEchap.ts:4
+src/ui/useGameKeyboard.ts:8
+src/ui/useGamepad.ts:20
+$ git grep -c -i "raccourci" (mêmes fichiers)
+src/state/keybindings.ts:20
+src/state/resoudreEchap.ts:4
+src/ui/useGameKeyboard.ts:9
+src/ui/useGamepad.ts:2
+$ identifiants exportés de keybindings.ts
+export type KeyBindingSection
+export const keySectionLabel
+export type KeyMod
+export function eventMods
+export function modsDeLaTouche
+export function modsMatch
+export interface KeyBinding
+export const tournerCamera
+export const relacherCamera
+export const KEYBINDINGS
+export const CODE_ECHAP
+export function formatCombo
+export function parseCombo
+export function effectiveCodes
+export function effectiveMods
+export function bindingApplies
+export function runBindingById
+export function runBindingUpById
+export const bindingLabel
+export function keyLabel
+export function comboLabel
+$ git grep -c "runBindingById\|bindingApplies" -- src
+src/data/primitives.manifest.json:1
+src/scenes/test-scenarios/dialogue-multi.test.ts:5
+src/state/dialogue-surface-tient-la-main.test.ts:5
+src/state/intention-geste-par-defaut.test.ts:3
+src/state/intention-portee.test.ts:2
+src/state/keybindings.ts:8
+src/state/push-keyboard-commit.test.ts:2
+src/state/resoudreEchap.ts:3
+src/state/round-start-keybind.test.ts:4
+src/ui/DialogueBox.tsx:1
+src/ui/PovControls.tsx:3
+src/ui/dialogue-du-dessus.test.tsx:2
+src/ui/fin-de-tour-deux-temps.test.tsx:11
+src/ui/useGameKeyboard.ts:3
+src/ui/useGamepad.ts:14
+src/ui/wrap-keyboard-vs-cursor.test.tsx:2

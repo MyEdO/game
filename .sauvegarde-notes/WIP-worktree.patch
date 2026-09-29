@@ -1,0 +1,2904 @@
+diff --git a/docs/.sources-lues.json b/docs/.sources-lues.json
+index 9ee010fae..964ea7cc8 100644
+--- a/docs/.sources-lues.json
++++ b/docs/.sources-lues.json
+@@ -20263,6 +20263,7 @@
+       "src/ui/TavernGameModal.test.tsx",
+       "src/ui/TavernGameModal.tsx",
+       "src/ui/TeamPortrait.tsx",
++      "src/ui/TeamSegments.test.tsx",
+       "src/ui/TeamSegments.tsx",
+       "src/ui/TestScenariosScreen.test.tsx",
+       "src/ui/TestScenariosScreen.tsx",
+@@ -25455,6 +25456,7 @@
+       "src/ui/TavernGameModal.test.tsx",
+       "src/ui/TavernGameModal.tsx",
+       "src/ui/TeamPortrait.tsx",
++      "src/ui/TeamSegments.test.tsx",
+       "src/ui/TeamSegments.tsx",
+       "src/ui/TestScenariosScreen.test.tsx",
+       "src/ui/TestScenariosScreen.tsx",
+diff --git a/docs/charte-ui.md b/docs/charte-ui.md
+index 105acb4ed..3bab7d2ee 100644
+--- a/docs/charte-ui.md
++++ b/docs/charte-ui.md
+@@ -329,6 +329,7 @@ module de sa primitive, déclaré au manifeste des primitives (champ `css`) et m
+ | `reveal-body.css` | `RevealBody` / `RevealTimer` | `.crit-stats`, `.crit-stat`, `.crit-effects`, `.crit-effect`, `.crit-cond` ; minuteur de fermeture : `.reveal-timer`, `@keyframes reveal-timer-drain`, durée en variable `--reveal-timer-duree` |
+ | `vs-header.css` | `VsHeader` | `.rm-vs`, `.rm-vs-arrow`, `.rm-weapon` — `.rm-weapon` sert aussi de QUALIFICATIF hors bandeau A→B (l'arme dégainée de `HandGateModal`, déclarée en `poseurs` au manifeste) : c'est la même matière, pas une copie |
+ | `team-segments.css` | `TeamSegments` | `.nm-ally`, `.nm-foe` |
++| `nom.css` | `Nom` | `.nom-mot` — un nom propre rendu mot à mot : chaque mot est une boîte insécable, le nom se coupe entre ses mots, jamais dans un mot composé (R-M2) |
+ | `combat-banner.css` | `CombatBanner` | `.combat-feed`, `.cb-ev`, `.cb-now`, `.cb-tone-strong`, `.cb-tone-grave` |
+ | `log-drawer.css` | `LogDrawer` / `NarratedLine` | `.log-drawer` (+ `.open`), `.ld-btn`, `.ld-panel`, `.jr-line`, `.jr-ic`, `.jr-tx` |
+ | `rig-portrait.css` | `RigPortrait` | `.rig-portrait` (et son `<svg>`) — taille, anneau et FORME du trait (R9) arrivent en variables `--rp-taille` / `--rp-anneau` / `--rp-trait` posées par la primitive ; la tuile, la frise, la bande, la console et la fiche le SPÉCIALISENT en descendant |
+@@ -431,9 +432,14 @@ d'exploration, au-dessus de son bouton ; dans le rail, sous le rail, dans la pla
+ la largeur minimale de la colonne `outils` : mesuré (sonde du 2026-09-28), le groupe se décentrait de
+ 113 px à 900, 153 px à 700 et 130 px à 360. Et le panneau précède le bouton dans le DOM du tiroir
+ (`src/ui/LogDrawer.tsx:25-45`) : en flux, le bouton du journal descendait de 152 px sous le doigt du
+-joueur à toute largeur. Hors flux, rien ne bouge. À ≤560, le rail passe au coin haut du CHAMP : le
+-panneau qui pend sous lui vit dans le champ, sous la frise et le fil, jamais sur eux (mesuré à
+-360×740 : panneau y 208,8..373,8, fil achevé à 139,8 ; à 30 entrées, le panneau est borné à 199 px).
++joueur à toute largeur. Hors flux, rien ne bouge. À ≤700, le rail passe au coin haut du CHAMP,
++couché en rangée : le panneau qui pend sous lui prend la LARGEUR du champ (ce que la frise laisse,
++toute la rangée à ≤560) et la hauteur que le champ lui laisse, jamais sur le groupe, la frise, le fil
++ni le pont — un panneau de la largeur d'un flanc (60 à 135 px de 561 à 700) ne se lisait pas. Le
++flanc droit libéré, le groupe a la largeur de son contenu entre la frise et le bord dès 561. Son
++pas de défilement est la LIGNE (`scroll-snap`, R-M3 de `docs/plans/2026-08-16-spec-hud-combat.md:75-76`) :
++la ligne du haut est toujours entière, et le bord BAS d'un panneau qui défile est l'affordance du
++défilement — la sonde n'y accepte une ligne coupée que si le panneau défile réellement.
+ Aucun Anchor Positioning CSS : l'ancrage est celui d'un `position: absolute` dans le rail.
+ 
+ Une surface qui a besoin de la HAUTEUR DISPONIBLE la lit sur sa ZONE, pas sur le viewport : la zone
+@@ -456,12 +462,18 @@ et l'EMPREINTE, fronton compris (`min(52px, 4.8vh)`), ≤ 22 % ; une seule rang
+ largeur, cases carrées d'un côté UNIQUE, le plus petit d'un plafond de hauteur et d'un plafond de
+ largeur (`--cc-cell`, `combat-console.css`) — aucune tranche ne recopie une cote. Le portrait de
+ l'arche se tire de la fenêtre, jamais du pont. De 561 à 700, l'arche passe en ligne en tête de bande
+-et les deux travées se posent côte à côte ; à ≤560, elles s'empilent. Preuve
+-mécanique de la couche : `scripts/recette/hud-clickables.mjs` (`defautsCouche`), 3 hauteurs × 7
+-largeurs × 4 états (exploration, ouverture, tour de héros, spectateur atteint par le vrai geste) —
+-pont posé au bas de l'écran, page sans défilement, aucune surface rognée, aucune surface qui déborde
+-de sa zone ni ne recouvre la surface d'une autre zone (boîtes peintes, rognées par la couche),
+-chaque commande du HUD et du pont atteignable.
++et les deux travées se posent côte à côte (≤ 25 %) ; à ≤560, elles s'empilent (≤ 45 %). AU DOIGT, la
++cible de 44px ci-dessus est une norme et prime : les compositions basculent un seuil plus tôt (arche
++en ligne dès 900, travées empilées dès 700) et chaque plafond au doigt vient de cette cible, mesuré —
++dès 901 l'empreinte ≤ 22 % (le fronton cède, la bande dépasse 17 % case à sa cible), 701-900 ≤ 30 %,
++≤ 700 ≤ 48 % (`docs/plans/2026-08-16-spec-hud-combat.md`, § Budget par pointeur). Preuve mécanique de la couche :
++`scripts/recette/hud-clickables.mjs` (`defautsCouche`), 3 hauteurs × 14 largeurs (les deux côtés de
++chaque seuil) × 2 pointeurs (souris, doigt émulé) × les états exploration, ouverture, tour de héros
++(nom court, nom le plus long des données, nom composé), pause de Round, journal ouvert et spectateur
++atteint par le vrai geste — pont posé au bas de l'écran, page sans défilement, aucune surface rognée,
++aucune surface qui déborde de sa zone ni ne recouvre la surface d'une autre zone (boîtes peintes,
++rognées par la couche), aucun mot tranché, chaque commande du HUD et du pont atteignable, et la boîte
++de l'arche, de la bande, de la frise et du coin IMMOBILE d'un état à l'autre (≤ 0,5 px).
+ 
+ Preuve mécanique : `scripts/recette/console-pont-formes.mjs` sonde les DEUX ponts — passe EXPLORATION
+ (dialogue ouvert, panneau du journal déployé, trois vues jugées) puis passe COMBAT (trois formes,
+diff --git a/docs/consommateurs-de-champs.md b/docs/consommateurs-de-champs.md
+index c89e01212..dbc90e89f 100644
+--- a/docs/consommateurs-de-champs.md
++++ b/docs/consommateurs-de-champs.md
+@@ -301,4 +301,4 @@ Le détecteur SYNTAXIQUE qui a précédé (annotation littérale du type) rendai
+ Le champ `spec` d'une référence de dotation a 2 lecteur(s) mesuré(s) — `src/engine/items.ts:309`, `src/engine/trappingChoices.ts:36`.
+ 
+ `trappingRefLabel` (`src/data/index.ts`, SOURCE UNIQUE du libellé affiché d'une `TrappingRef`) ne lit PAS `ref.spec` — le rendu « base (spec) » passe par `refConcrete`, partagée par toute `RefDesignee`.
+-<!-- sources-empreinte: dd5e0287dd124fd1c4ac69683c9bb1b97dd9dcc5 (2138 fichiers, 174 dossiers) corps: ca3630fcc7bbd493daad0cf86ec475c6bc29c7a6 -->
++<!-- sources-empreinte: e62b9d6cdda034fe2e07330c9abc5ebd24a3aa16 (2138 fichiers, 174 dossiers) corps: ca3630fcc7bbd493daad0cf86ec475c6bc29c7a6 -->
+diff --git a/docs/orphelines-donnees.md b/docs/orphelines-donnees.md
+index 4882a5062..89093f6ab 100644
+--- a/docs/orphelines-donnees.md
++++ b/docs/orphelines-donnees.md
+@@ -420,4 +420,4 @@ mesure du canal label (qui n'est PAS la cause) : en-tête de `scripts/docs/build
+ - `p-tarix-celui-qui-ecrit` — P'tarix, Celui qui écrit
+ - `xirat-p-celui-qui-lit` — Xirat'p, Celui qui lit
+ 
+-<!-- sources-empreinte: 3458da6010f8f0d74cc1dc70e032bb7f31854bf2 (2139 fichiers, 136 dossiers) corps: b0426b44380bef3f7613baf260ad6b490541b5b3 -->
++<!-- sources-empreinte: 612e9b100d5d42e6c1d836e1bc399092439be5a6 (2139 fichiers, 136 dossiers) corps: b0426b44380bef3f7613baf260ad6b490541b5b3 -->
+diff --git a/docs/plans/2026-08-16-spec-hud-combat.md b/docs/plans/2026-08-16-spec-hud-combat.md
+index 53be421eb..6b4f6713a 100644
+--- a/docs/plans/2026-08-16-spec-hud-combat.md
++++ b/docs/plans/2026-08-16-spec-hud-combat.md
+@@ -27,8 +27,8 @@ avec tout ce vide et ces icones disproportionnés ») : mesuré chez lui ~28-29
+ là où LA PLANCHE budgétise **20,1 %** (pont 217px / 1080). Contrats :
+ - **Hauteur du pont : bande ≤ 17 % et empreinte fronton compris ≤ 22 % du viewport, dès
+   701** (décision d'écran du 2026-09-24 sur #1806, Q2 ; la planche tient 20,1 %), garde
+-  promue (`scripts/recette/hud-clickables.mjs`, `BUDGET_PONT` ; le budget mobile ≤560 reste
+-  celui de l'arbitrage compact ~40-45 %).
++  promue (`scripts/recette/hud-clickables.mjs`, `BUDGET_PONT`) ; sous 701 et AU DOIGT, les
++  plafonds et l'écart mesuré de la formule Q1 : § « Budget par pointeur », fin de spec.
+ - **Cases CARRÉES sans libellé, côté unique `--cc-cell`** (décision d'écran du 2026-09-24
+   sur #1806, Q1 : les cases paysage de cette spec étaient une dérivation d'ingénierie, sans
+   verbatim ; retour au modèle RT, doctrine du 2026-08-24).
+@@ -688,3 +688,17 @@ Lois d'accompagnement (fondées par la même recherche) :
+ - Une intention armée ne bloque JAMAIS les modes de ciblage (`cast`/`teleport`/`push`/zone) — verrouillé par `intention-geste-par-defaut.test.ts` (contrat (b), à conserver sous le nouveau modèle).
+ 
+ Conséquence : le verbatim du 2026-08-16 porté par `src/state/localIntent.ts:4-9` est SUPPLANTÉ sur le point « actions par défaut du grid » — le lot d'implémentation met à jour ce commentaire et réécrit le contrat (a)/(c) de `intention-geste-par-defaut.test.ts` sur le présent arbitrage.
++
++## Budget par pointeur, et écart de la formule Q1 (mesures du 2026-09-29, #1806)
++
++- **Sous la souris** : dès 701, bande ≤ 17 % et empreinte ≤ 22 % (Zone 1) ; de 561 à 700,
++  arche en ligne et travées côte à côte, ≤ 25 % ; à ≤560, travées empilées, ≤ 45 % (arbitrage
++  compact ~40-45 %, Zone 1).
++- **Au DOIGT, la cible de 44px est la norme et prime** (`docs/charte-ui.md:95`) : chaque plafond
++  au doigt vient d'elle, mesuré par la sonde `hud-clickables.mjs` — dès 901, empreinte ≤ 22 % (le
++  fronton cède ; la bande dépasse 17 % case à sa cible) ; de 701 à 900, où l'arche passe en
++  ligne, ≤ 30 % ; à ≤ 700, où les travées s'empilent, ≤ 48 %.
++- **Écart de la formule Q1** : la décision chiffre la case à ≈ 37 px à 1366×650 ; rendue dans la
++  bande de 17 %, elle fait 34,3 px — la décision ne compte ni le liseré du pont ni l'écart entre
++  ses deux rangées. Le budget prime : la bande reste de bord à bord (1c-ter, « UN PONT CONTINU
++  pleine largeur »).
+diff --git a/docs/primitives.md b/docs/primitives.md
+index 0c31058e1..8b2ef924c 100644
+--- a/docs/primitives.md
++++ b/docs/primitives.md
+@@ -27,7 +27,7 @@ manifeste est invisible ici, et rien ne la révèle sauf le hook `new-src-file-g
+ mord qu'à la CRÉATION d'un `.tsx` de `src/ui`/`src/gameIso` — un module `.ts`, un fichier antérieur
+ au hook, ou une primitive née ailleurs n'y passent jamais.
+ 
+-154 primitives.
++155 primitives.
+ 
+ | Besoin | Primitive | Fichier | CSS possédé | Périmètre | Verrou |
+ |---|---|---|---|---|---|
+@@ -117,6 +117,7 @@ au hook, ou une primitive née ailleurs n'y passent jamais.
+ | cadre de modale (voile + boîte en colonne : tête avec croix `croix`, bandeau sujet, corps défilant, pied `footer`) ; états `data-*` (voile, champ lisible, plein écran, taille, gangrène), a11y dialogue (focus initial `focusTarget`, piège Tab, congédiement) ; son emprunt du focus passe par `useFocusEmprunte` (`src/ui/focus.ts`) | `Modal` | `src/ui/Modal.tsx` | `src/ui/styles/modal.css` | toute fenêtre de dialogue : jet, décision, récapitulatif, planche de fiche, Codex en jeu | primitive-owners-guard.test.ts — aucune classe du cadre posée hors de lui ; css-modules-guard.test.ts §5.3 — aucune feuille tierce ne les vise |
+ | bilan MULTI-JETS d’un même temps : portrait, libellé, ligne de jet, note | `MultiRollList` | `src/ui/MultiRollList.tsx` | `src/ui/styles/multi-roll-list.css` | nuit de repos, journée de voyage, conseil de bord, cascade globalisée | — |
+ | axe contrôleur (qui tient, qui pilote, qui est jouée par l'IA) et quorum des sièges requis | `ownsLocally/pilotedByHuman/aiDriven/siegesRequis` | `src/state/netOwnership.ts` | — | gating de siège/coop | netOwnership.test.ts |
++| nom propre rendu MOT À MOT : chaque mot est une boîte insécable, le nom ne se coupe qu’entre ses mots (R-M2), jamais dans un mot composé | `Nom` | `src/ui/Nom.tsx` | `src/ui/styles/nom.css` | noms cités de `TeamSegments` (journal, récap, fil d’événements), nom gravé de l’arche de la console, légende des cartes du groupe | TeamSegments.test.tsx — chaque mot est une boîte insécable de nom.css |
+ | jauge à CRANS (N/M) avec repère de seuil — quotas, Destin, avaries | `NotchGauge` | `src/ui/NotchGauge.tsx` | `src/ui/styles/gauges.css` | registre État, dossier de navire, bandes de quota | — |
+ | champ nombre : variantes complet/champ/nu, bornes optionnelles, commit à la frappe ou au geste | `NumberField` | `src/ui/NumberField.tsx` | — | cascade, réglages de table, atelier du Codex, quantité de marché, dé forcé | réflexe avant toute saisie de nombre brute ; cliquet (xvii) de src/ui/ui-ratchets.test.ts |
+ | objectif courant : tête repliable (texte, compte, échéance) et liste dépliée | `ObjectiveBanner` | `src/ui/ObjectiveBanner.tsx` | `src/ui/styles/objective-banner.css` | pile de contexte d'exploration du HUD | — |
+@@ -185,4 +186,4 @@ au hook, ou une primitive née ailleurs n'y passent jamais.
+ | identifiant et ordre canonique des trois vues (`View` en dérive) ; libellé d'affichage d'une vue, lu par les planches QC | `VIEWS/VIEW_LABEL` | `src/gameIso/rig/facing.ts` | — | tout art orienté, toute table ou liste de vues, les colonnes des planches QC | lectures-de-l-art-guard.test.ts (VIEWS), unions-canon.test.ts |
+ | sceau de cire et plaque d’élu scellée | `WaxSeal/SealedPlaque` | `src/ui/WaxSeal.tsx` | — | tuiles de sélection, plaques d’élu | — |
+ | rose des vents : direction + force du vent | `WindRose` | `src/ui/WindRose.tsx` | `src/ui/styles/gauges.css` | voyage en mer, dossier de navire | — |
+-<!-- sources-empreinte: 2fb7397cb11a9d18804b1f6c9c7b2bff985fdcf8 (8 fichiers, 0 dossiers) corps: cba6d65ea77a2de71b624079f22b6a8fd657e609 -->
++<!-- sources-empreinte: 2fb7397cb11a9d18804b1f6c9c7b2bff985fdcf8 (8 fichiers, 0 dossiers) corps: 92d445c81bc245528bec16f5754afc59ad3b154a -->
+diff --git a/docs/raw/reconciliation.md b/docs/raw/reconciliation.md
+index 1412566ef..45f0b37e3 100644
+--- a/docs/raw/reconciliation.md
++++ b/docs/raw/reconciliation.md
+@@ -209,4 +209,4 @@ _Aucun._
+ 
+ Code : AA, ACE, ADE I, ADE II, EDO, EDOC, LDB, MCLB, MDG, MSRC, NADJ, PDT, VDM, ZI
+ Atlas : AA, ACE, ADE I, ADE II, AU1, CRB, EDO, EDOC, LDB, MCLB, MDG, MSR, MSRC, NADJ, PDT, VDM, ZI
+-<!-- sources-empreinte: b6aee830c8d7a58d463c800b7c8c0d914cb1711f (4368 fichiers, 154 dossiers) corps: 6e233e7aa9c4f822a5740370e088a9051eaa6217 -->
++<!-- sources-empreinte: 9834242e3b1cd24749ccee0e620635cca4678605 (4369 fichiers, 154 dossiers) corps: 6e233e7aa9c4f822a5740370e088a9051eaa6217 -->
+diff --git a/docs/recette-navigateur.md b/docs/recette-navigateur.md
+index 11bffc70b..98a8e1104 100644
+--- a/docs/recette-navigateur.md
++++ b/docs/recette-navigateur.md
+@@ -205,11 +205,12 @@ est relevée `descendant` : ce n'est pas une occlusion.
+ chacune de ses régions), une bande dont la hauteur RENDUE est plus COURTE que sa hauteur DÉCLARÉE
+ (`--cc-deck-h`, une réserve qui mentirait) ou qui en dérive de plus de 6px, un contrôle du pont qui
+ sort du champ, un pont qui recouvre le fil ou la frise, une bande dont la hauteur CHANGE d'une forme
+-à l'autre (au-delà de 700, là où le pont est une ligne), un bandeau de phase qui recouvre l'arche,
++à l'autre, un bandeau de phase qui recouvre l'arche,
+ le fil ou la frise — à chacune de ses TROIS adresses (`data-phase` : parapet du pont, ouverture au
+ haut de la carte, centré au-dessus de l'arche en forme spectatrice) —, un bandeau d'ouverture qui
+ recouvre la bande de groupe, la frise, le rail, le fil ou le pont, ou qui quitte le HAUT de la carte
+-tant que la zone haute le permet, une arche décentrée, une bande qui garde une région ou sa MATIÈRE
++tant que la zone haute le permet, une arche dont la BOÎTE bouge d'une forme à l'autre
++(`src/ui/CombatConsole.tsx:51-53`), une bande qui garde une région ou sa MATIÈRE
+ en forme spectatrice (« les barres gauche et droite »), et un flanc de l'arche où l'on ne touche pas
+ le PLATEAU.
+ Deux DÉTECTEURS PURS portent le reste du verdict — `scripts/recette/detecteurs-pont.mjs`, testés à
+diff --git a/docs/registre-jets.md b/docs/registre-jets.md
+index bdd2745e4..b236dc771 100644
+--- a/docs/registre-jets.md
++++ b/docs/registre-jets.md
+@@ -249,4 +249,4 @@ reste `ROLL_SEAM_PHASE2_STOCK`. 29 sites dans 14 fichiers.
+ | `src/state/travelPostes.ts` | 1 |
+ | `src/state/triggeredEffects.ts` | 1 |
+ 
+-<!-- sources-empreinte: 45053cb95591082390a5e4ef568a73a6d564aa8a (2142 fichiers, 136 dossiers) corps: ae57ab24d4d236c5e6ae8a493bac77419a1cfd9e -->
++<!-- sources-empreinte: 4c1e6f902f4aa475429051ec249ab84f3dc37fe6 (2142 fichiers, 136 dossiers) corps: ae57ab24d4d236c5e6ae8a493bac77419a1cfd9e -->
+diff --git a/docs/systemes.md b/docs/systemes.md
+index 3a090f289..839dd1744 100644
+--- a/docs/systemes.md
++++ b/docs/systemes.md
+@@ -287,4 +287,4 @@ unique ne « possède » légitimement ; à trier au fil de l'eau, pas un échec
+ - `src/state/sceneEdit.testkit.ts`
+ - `src/state/turnEconomy.ts`
+ - `src/state/viewLevel.ts`
+-<!-- sources-empreinte: 09cf56bc6adc1b38ed9b53931a4652a6285f8262 (1856 fichiers, 2 dossiers) corps: c8d23c31547abacc48ecb6b560e1521cc90fd0ad -->
++<!-- sources-empreinte: 7fae88acff779136fa6529d39940d9ff73d12f55 (1856 fichiers, 2 dossiers) corps: c8d23c31547abacc48ecb6b560e1521cc90fd0ad -->
+diff --git a/docs/usages-jets.md b/docs/usages-jets.md
+index 6cd7d53c3..4ef6d3441 100644
+--- a/docs/usages-jets.md
++++ b/docs/usages-jets.md
+@@ -247,4 +247,4 @@ est un angle mort, et les voici :
+ - Les **ids de zone** (`Zn`) affichés sont ceux que le JSDoc des props DÉCLARE. Une zone du contrat non
+   encore taguée à la primitive n'a pas d'id ici — ce document RELÈVE les ids, il ne les attribue pas.
+ 
+-<!-- sources-empreinte: cdf81f7fb2af077772d12d02bcddd3770fd69048 (2009 fichiers, 136 dossiers) corps: 24ea5f99dcf1d7226121260694ac71341399c65f -->
++<!-- sources-empreinte: b9f6207470503052efb3b101b0d7080e97beb00f (2009 fichiers, 136 dossiers) corps: 24ea5f99dcf1d7226121260694ac71341399c65f -->
+diff --git a/scripts/guards/lib/cssCouches.d.mts b/scripts/guards/lib/cssCouches.d.mts
+index b1cc4c5bd..df2deb612 100644
+--- a/scripts/guards/lib/cssCouches.d.mts
++++ b/scripts/guards/lib/cssCouches.d.mts
+@@ -69,6 +69,7 @@ export function feuillesPartageesDe(texte: string | null): string[];
+ /** Le sélecteur NORMALISÉ d'une règle (espaces réduits, `@media` hors clé). */
+ export function cleDeRegle(selecteurs: readonly string[]): string;
+ export function sitesIdentiteEcran(fichiers: readonly Fichier[]): Site[];
++export function variablesHorsEchelle(text: string): Set<string>;
+ export function sitesEspacementHorsEchelle(fichiers: readonly Fichier[]): Site[];
+ export function modulesDePrimitive(manifeste: readonly EntreeManifeste[]): Set<string>;
+ export function importeurCompte(chemin: string): boolean;
+diff --git a/scripts/guards/lib/cssCouches.mjs b/scripts/guards/lib/cssCouches.mjs
+index 644a0f20f..6a10b79c4 100644
+--- a/scripts/guards/lib/cssCouches.mjs
++++ b/scripts/guards/lib/cssCouches.mjs
+@@ -398,16 +398,43 @@ export function sitesIdentiteEcran(fichiers) {
+ }
+ 
+ /**
+- * Sites d'ESPACEMENT hors échelle `--sp-*`.
++ * Les propriétés personnalisées d'un module qui portent une valeur HORS ÉCHELLE : un littéral de
++ * longueur, ou une référence à une autre d'entre elles (clôture transitive). Leur `var()` ne ramène
++ * pas une valeur à l'échelle — elle la déplace.
++ * @param {string} text feuille CSS @returns {Set<string>}
++ */
++export function variablesHorsEchelle(text) {
++  const decl = [];
++  for (const { corps } of reglesCss(text)) {
++    for (const { prop, valeur } of declarations(corps)) if (prop.startsWith('--')) decl.push({ prop, valeur });
++  }
++  const hors = new Set(decl.filter((d) => valeurHorsEchelle(d.valeur)).map((d) => d.prop));
++  for (let avant = -1; avant !== hors.size;) {
++    avant = hors.size;
++    for (const d of decl) if (!hors.has(d.prop) && referenceUne(d.valeur, hors)) hors.add(d.prop);
++  }
++  return hors;
++}
++
++/** Vrai si la valeur lit (`var(--x…)`) l'une des propriétés de `noms`. */
++function referenceUne(valeur, noms) {
++  for (const m of valeur.matchAll(/var\(\s*(--[\w-]+)/g)) if (noms.has(m[1])) return true;
++  return false;
++}
++
++/**
++ * Sites d'ESPACEMENT hors échelle `--sp-*` : un littéral de longueur, ou la lecture d'une propriété
++ * personnalisée du module qui en porte un (`variablesHorsEchelle`).
+  * @param {readonly { rel: string, text: string }[]} fichiers @returns {{ file: string, ref: string }[]}
+  */
+ export function sitesEspacementHorsEchelle(fichiers) {
+   const sites = [];
+   for (const f of fichiers) {
++    const variables = variablesHorsEchelle(f.text);
+     for (const { selecteurs, corps } of reglesCss(f.text)) {
+       const sel = cleDeRegle(selecteurs);
+       for (const { prop, valeur } of declarations(corps)) {
+-        if (PROPRIETES_A_ECHELLE.has(prop) && valeurHorsEchelle(valeur)) {
++        if (PROPRIETES_A_ECHELLE.has(prop) && (valeurHorsEchelle(valeur) || referenceUne(valeur, variables))) {
+           sites.push({ file: f.rel, ref: `${sel} :: ${prop} :: ${valeur.replace(/\s+/g, ' ')}` });
+         }
+       }
+diff --git a/scripts/guards/lib/cssCouches.test.mjs b/scripts/guards/lib/cssCouches.test.mjs
+index 0cf840bbd..6d0dec2dd 100644
+--- a/scripts/guards/lib/cssCouches.test.mjs
++++ b/scripts/guards/lib/cssCouches.test.mjs
+@@ -11,7 +11,8 @@ import { fileURLToPath } from 'node:url'
+ import {
+   admisAuRetour, CHEMIN_COUCHES, declarations, decoupeSelecteurs, estPlacement, FEUILLE_LAYOUT,
+   FEUILLES_PARTAGEES, feuillesPartageesDe, fichiersReutilises, ligneDeVentilation, manifesteDe,
+-  moduleHorsCouche, modulesExemptes, partitionCss, physique, reglesCss, valeurHorsEchelle, ventiler,
++  moduleHorsCouche, modulesExemptes, partitionCss, physique, reglesCss, sitesEspacementHorsEchelle, valeurHorsEchelle,
++  variablesHorsEchelle, ventiler,
+ } from './cssCouches.mjs'
+ import { regenerations } from './cssCouchesAudit.ts'
+ import { CHEMIN_STOCK_CSS, COLLECTIONS_VENTILEES, ventilationDeGit } from './cssImages.mjs'
+@@ -126,6 +127,14 @@ test('valeurHorsEchelle : un littéral de longueur NON NUL, et rien d’autre',
+   }
+ })
+ 
++test('espacement : un littéral DÉPLACÉ dans une propriété du module reste hors échelle (#1806)', () => {
++  const text = ':root { --a: 14px; --b: calc(var(--a) + var(--sp-md)); --c: var(--sp-sm); }\n'
++    + '.x { padding: var(--a); gap: var(--b); margin: var(--c); }'
++  assert.deepEqual([...variablesHorsEchelle(text)].sort(), ['--a', '--b'])
++  const refs = sitesEspacementHorsEchelle([{ rel: 'm.css', text }]).map((s) => s.ref)
++  assert.deepEqual(refs, ['.x :: padding :: var(--a)', '.x :: gap :: var(--b)'])
++})
++
+ test('reglesCss : une virgule DANS `:has()`/`:is()` ne coupe pas la liste (#1806)', () => {
+   const regles = reglesCss('label:has(> a, > .btn) { color: red }')
+   assert.deepEqual(regles[0].selecteurs, ['label:has(> a, > .btn)'])
+@@ -276,11 +285,13 @@ test('D5″ : un renommage entre deux modules AU STOCK reporte les clés du pare
+ 
+ const RACINE = fileURLToPath(new URL('../../..', import.meta.url))
+ /** Les chiffres signés du juge (commentaire #1806 5803399612, 2026-09-23) ; RETOURNÉ mesuré sur le
+- *  stock ÉCRIT au parent, que la règle de réutilisation (L1) rend en partie au stock. */
++ *  stock ÉCRIT au parent, que la règle de réutilisation (L1) rend en partie au stock — la mesure
++ *  d'espacement lit aussi les propriétés du module (`variablesHorsEchelle`) : ce stock écrit n'en
++ *  portait aucune, d'où 11 sites retournés de plus à chaque commit. */
+ const ATTENDU = {
+-  '41aa406d5': [[19, 0, 0, 19, 3, 227], [0, 0, 0, 0, 0, 77]],
+-  'd25652e73': [[21, 0, 0, 21, 0, 450], [3, 0, 0, 3, 0, 133]],
+-  'c251f46af': [[352, 0, 158, 194, 111, 0], [122, 0, 48, 74, 38, 0]],
++  '41aa406d5': [[19, 0, 0, 19, 3, 227], [0, 0, 0, 0, 0, 88]],
++  'd25652e73': [[21, 0, 0, 21, 0, 450], [3, 0, 0, 3, 0, 144]],
++  'c251f46af': [[352, 0, 158, 194, 111, 0], [122, 0, 48, 74, 38, 11]],
+ }
+ for (const [sha, [identite, espacement]] of Object.entries(ATTENDU)) {
+   test(`D6″ commit cible ${sha}, lu dans l'histoire : aucun franchissement, la ventilation signée`, () => {
+diff --git a/scripts/guards/lib/cssCouchesStock.mjs b/scripts/guards/lib/cssCouchesStock.mjs
+index 99761099f..321fba99b 100644
+--- a/scripts/guards/lib/cssCouchesStock.mjs
++++ b/scripts/guards/lib/cssCouchesStock.mjs
+@@ -198,7 +198,6 @@ export const CSS_IDENTITE_ECRAN_RATCHET = [
+   { fichier: 'src/ui/styles/combat-console.css', ref: '.cc-arch-name :: color', occurrence: 1 },
+   { fichier: 'src/ui/styles/combat-console.css', ref: '.cc-arch-name :: font-family', occurrence: 1 },
+   { fichier: 'src/ui/styles/combat-console.css', ref: '.cc-arch-name :: font-size', occurrence: 1 },
+-  { fichier: 'src/ui/styles/combat-console.css', ref: '.cc-arch-name :: font-size', occurrence: 2 },
+   { fichier: 'src/ui/styles/combat-console.css', ref: '.cc-arch-name :: letter-spacing', occurrence: 1 },
+   { fichier: 'src/ui/styles/combat-console.css', ref: '.cc-arch::before :: background', occurrence: 1 },
+   { fichier: 'src/ui/styles/combat-console.css', ref: '.cc-arch::before :: clip-path', occurrence: 1 },
+@@ -1277,13 +1276,10 @@ export const CSS_IDENTITE_ECRAN_RATCHET = [
+   { fichier: 'src/ui/styles/party-dock.css', ref: '.pd-micro > i :: background', occurrence: 1 },
+   { fichier: 'src/ui/styles/party-dock.css', ref: '.pd-micro > i :: border', occurrence: 1 },
+   { fichier: 'src/ui/styles/party-dock.css', ref: '.pd-track :: scrollbar-width', occurrence: 1 },
+-  { fichier: 'src/ui/styles/party-dock.css', ref: '.pd-track > figure > figcaption :: -webkit-box-orient', occurrence: 1 },
+-  { fichier: 'src/ui/styles/party-dock.css', ref: '.pd-track > figure > figcaption :: -webkit-line-clamp', occurrence: 1 },
+   { fichier: 'src/ui/styles/party-dock.css', ref: '.pd-track > figure > figcaption :: color', occurrence: 1 },
+   { fichier: 'src/ui/styles/party-dock.css', ref: '.pd-track > figure > figcaption :: font-family', occurrence: 1 },
+   { fichier: 'src/ui/styles/party-dock.css', ref: '.pd-track > figure > figcaption :: font-size', occurrence: 1 },
+   { fichier: 'src/ui/styles/party-dock.css', ref: '.pd-track > figure > figcaption :: letter-spacing', occurrence: 1 },
+-  { fichier: 'src/ui/styles/party-dock.css', ref: '.pd-track > figure > figcaption :: line-clamp', occurrence: 1 },
+   { fichier: 'src/ui/styles/party-dock.css', ref: '.pd-track > figure > figcaption :: line-height', occurrence: 1 },
+   { fichier: 'src/ui/styles/party.css', ref: '.camp-plate :: background', occurrence: 1 },
+   { fichier: 'src/ui/styles/party.css', ref: '.camp-plate :: border', occurrence: 1 },
+@@ -1826,19 +1822,11 @@ export const CSS_ESPACEMENT_RATCHET = [
+   { fichier: 'src/ui/styles/codex-edit.css', ref: '.de-source :: gap :: 0.5rem', occurrence: 1 },
+   { fichier: 'src/ui/styles/combat-banner.css', ref: '.cb-ev :: gap :: 7px', occurrence: 1 },
+   { fichier: 'src/ui/styles/combat-banner.css', ref: '.combat-feed :: gap :: 2px', occurrence: 1 },
+-  { fichier: 'src/ui/styles/combat-console.css', ref: '.cc-arch .cc-arch-body [data-reserve] :: gap :: 2px', occurrence: 1 },
+-  { fichier: 'src/ui/styles/combat-console.css', ref: '.cc-arch :: gap :: 4px', occurrence: 1 },
+-  { fichier: 'src/ui/styles/combat-console.css', ref: '.cc-arch :: gap :: 6px', occurrence: 1 },
+-  { fichier: 'src/ui/styles/combat-console.css', ref: '.cc-arch :: padding :: 6px 14px 8px', occurrence: 1 },
+-  { fichier: 'src/ui/styles/combat-console.css', ref: '.cc-arch :: padding :: 6px 8px', occurrence: 1 },
+-  { fichier: 'src/ui/styles/combat-console.css', ref: '.cc-arch-body :: gap :: 4px', occurrence: 1 },
+-  { fichier: 'src/ui/styles/combat-console.css', ref: '.cc-arch-body :: gap :: 6px', occurrence: 1 },
++  { fichier: 'src/ui/styles/combat-console.css', ref: '.cc-arch :: margin-top :: calc(-1 * var(--cc-fronton))', occurrence: 1 },
+   { fichier: 'src/ui/styles/combat-console.css', ref: '.cc-arsenal, .cc-quick :: gap :: 4px', occurrence: 1 },
+-  { fichier: 'src/ui/styles/combat-console.css', ref: '.cc-bay :: gap :: 4px', occurrence: 1 },
+-  { fichier: 'src/ui/styles/combat-console.css', ref: '.cc-bay :: gap :: 8px', occurrence: 1 },
+-  { fichier: 'src/ui/styles/combat-console.css', ref: '.cc-bay :: padding :: 4px 4px 6px', occurrence: 1 },
+-  { fichier: 'src/ui/styles/combat-console.css', ref: '.cc-bay :: padding :: 8px 8px 10px', occurrence: 1 },
++  { fichier: 'src/ui/styles/combat-console.css', ref: '.cc-arsenal-body :: gap :: var(--cc-gap)', occurrence: 1 },
+   { fichier: 'src/ui/styles/combat-console.css', ref: '.cc-bay-body :: gap :: 6px', occurrence: 1 },
++  { fichier: 'src/ui/styles/combat-console.css', ref: '.cc-bay-body :: gap :: var(--cc-bay-gap)', occurrence: 1 },
+   { fichier: 'src/ui/styles/combat-console.css', ref: '.cc-bay-right :: gap :: 4px', occurrence: 1 },
+   { fichier: 'src/ui/styles/combat-console.css', ref: '.cc-cell :: gap :: 2px', occurrence: 1 },
+   { fichier: 'src/ui/styles/combat-console.css', ref: '.cc-cell :: padding :: 3px 6px 3px 3px', occurrence: 1 },
+@@ -1848,8 +1836,15 @@ export const CSS_ESPACEMENT_RATCHET = [
+   { fichier: 'src/ui/styles/combat-console.css', ref: '.cc-conduit-rail :: padding :: 1px', occurrence: 1 },
+   { fichier: 'src/ui/styles/combat-console.css', ref: '.cc-corner :: padding :: 8px 0 10px', occurrence: 1 },
+   { fichier: 'src/ui/styles/combat-console.css', ref: '.cc-cost :: gap :: 2px', occurrence: 1 },
++  { fichier: 'src/ui/styles/combat-console.css', ref: '.cc-dock :: gap :: var(--cc-bay-gap)', occurrence: 1 },
++  { fichier: 'src/ui/styles/combat-console.css', ref: '.cc-dock :: gap :: var(--cc-gap)', occurrence: 1 },
++  { fichier: 'src/ui/styles/combat-console.css', ref: '.cc-dock :: gap :: var(--cc-gap) var(--cc-bay-gap)', occurrence: 1 },
++  { fichier: 'src/ui/styles/combat-console.css', ref: '.cc-dock :: padding-inline :: var(--cc-marge)', occurrence: 1 },
++  { fichier: 'src/ui/styles/combat-console.css', ref: '.cc-dock :: padding-left :: calc(var(--cc-marge) + clamp(0px, 100vw - var(--cc-rangee), var(--cc-corner) + var(--cc-bay-gap)))', occurrence: 1 },
++  { fichier: 'src/ui/styles/combat-console.css', ref: '.cc-dock :: padding-right :: var(--cc-marge)', occurrence: 1 },
+   { fichier: 'src/ui/styles/combat-console.css', ref: '.cc-end :: gap :: 2px', occurrence: 1 },
+   { fichier: 'src/ui/styles/combat-console.css', ref: '.cc-end :: padding :: 4px 3px', occurrence: 1 },
++  { fichier: 'src/ui/styles/combat-console.css', ref: '.cc-grid :: gap :: var(--cc-gap)', occurrence: 1 },
+   { fichier: 'src/ui/styles/combat-console.css', ref: '.cc-gutter :: gap :: 3px', occurrence: 1 },
+   { fichier: 'src/ui/styles/combat-console.css', ref: '.cc-gutter-rail :: gap :: 2px', occurrence: 1 },
+   { fichier: 'src/ui/styles/combat-console.css', ref: '.cc-gutter-rail :: padding :: 2px', occurrence: 1 },
+@@ -1862,10 +1857,12 @@ export const CSS_ESPACEMENT_RATCHET = [
+   { fichier: 'src/ui/styles/combat-console.css', ref: '.cc-phase[data-phase=\'ouverture\'] :: gap :: 6px', occurrence: 1 },
+   { fichier: 'src/ui/styles/combat-console.css', ref: '.cc-phase[data-phase=\'ouverture\'] :: padding :: 8px 26px', occurrence: 1 },
+   { fichier: 'src/ui/styles/combat-console.css', ref: '.cc-set :: gap :: 1px', occurrence: 1 },
++  { fichier: 'src/ui/styles/combat-console.css', ref: '.cc-sets :: gap :: var(--cc-gap)', occurrence: 1 },
+   { fichier: 'src/ui/styles/combat-console.css', ref: '.cc-socle :: padding :: 1px 2px', occurrence: 1 },
+   { fichier: 'src/ui/styles/combat-console.css', ref: '.cc-socle :: padding :: 2px 3px', occurrence: 1 },
+   { fichier: 'src/ui/styles/combat-console.css', ref: '.combat-console .cc-arch > [data-overlay] > span :: padding :: 0 3px', occurrence: 1 },
+   { fichier: 'src/ui/styles/combat-console.css', ref: '.combat-console .cc-arch > [data-overlay] > span :: padding :: 0 5px', occurrence: 1 },
++  { fichier: 'src/ui/styles/combat-console.css', ref: '.combat-console :: padding-top :: var(--cc-saillie)', occurrence: 1 },
+   { fichier: 'src/ui/styles/combat-console.css', ref: 'button.cc-socle :: gap :: 1px', occurrence: 1 },
+   { fichier: 'src/ui/styles/combat-console.css', ref: 'button.cc-socle :: padding :: 2px 3px', occurrence: 1 },
+   { fichier: 'src/ui/styles/compendium.css', ref: '.codex-body :is(td, th) :: padding :: 3px 7px', occurrence: 1 },
+@@ -2132,12 +2129,23 @@ export const CSS_ESPACEMENT_RATCHET = [
+   { fichier: 'src/ui/styles/house-rules.css', ref: '.house-rules .hr-row :: padding :: 0.4rem 0.5rem', occurrence: 1 },
+   { fichier: 'src/ui/styles/initiative-strip.css', ref: '.initiative-strip :: gap :: 4px', occurrence: 1 },
+   { fichier: 'src/ui/styles/initiative-strip.css', ref: '.is-cell :: gap :: 4px', occurrence: 1 },
++  { fichier: 'src/ui/styles/initiative-strip.css', ref: '.is-cell :: margin-top :: var(--is-badge-air)', occurrence: 1 },
+   { fichier: 'src/ui/styles/initiative-strip.css', ref: '.is-cell :: padding-left :: 7px', occurrence: 1 },
+   { fichier: 'src/ui/styles/initiative-strip.css', ref: '.is-first :: padding :: 1px 4px', occurrence: 1 },
+   { fichier: 'src/ui/styles/initiative-strip.css', ref: '.is-preempt :: padding :: 1px 4px', occurrence: 1 },
++  { fichier: 'src/ui/styles/initiative-strip.css', ref: '.is-round :: margin-block-end :: calc(-1 * var(--is-foot))', occurrence: 1 },
++  { fichier: 'src/ui/styles/initiative-strip.css', ref: '.is-round :: margin-bottom :: var(--is-round-margin)', occurrence: 1 },
++  { fichier: 'src/ui/styles/initiative-strip.css', ref: '.is-round :: margin-inline :: calc(-1 * var(--is-flank))', occurrence: 1 },
+   { fichier: 'src/ui/styles/initiative-strip.css', ref: '.is-round :: padding :: 0 8px 0 calc(2px + var(--is-head-air))', occurrence: 1 },
++  { fichier: 'src/ui/styles/initiative-strip.css', ref: '.is-round :: padding-block-end :: var(--is-foot)', occurrence: 1 },
+   { fichier: 'src/ui/styles/initiative-strip.css', ref: '.is-round :: padding-bottom :: 5px', occurrence: 1 },
++  { fichier: 'src/ui/styles/initiative-strip.css', ref: '.is-round :: padding-inline :: var(--is-flank)', occurrence: 1 },
++  { fichier: 'src/ui/styles/initiative-strip.css', ref: '.is-round :: padding-top :: var(--is-head-air)', occurrence: 1 },
+   { fichier: 'src/ui/styles/initiative-strip.css', ref: '.is-score :: padding :: 0 3px', occurrence: 1 },
++  { fichier: 'src/ui/styles/initiative-strip.css', ref: '.is-tiles :: gap :: var(--is-gap)', occurrence: 1 },
++  { fichier: 'src/ui/styles/initiative-strip.css', ref: '.is-tiles :: padding :: 0 var(--is-flank) var(--is-foot)', occurrence: 1 },
++  { fichier: 'src/ui/styles/initiative-strip.css', ref: '.is-tiles :: padding :: 0 var(--is-flank) var(--is-foot)', occurrence: 2 },
++  { fichier: 'src/ui/styles/initiative-strip.css', ref: '.is-tiles :: padding :: 0 var(--is-flank) var(--is-foot) 0', occurrence: 1 },
+   { fichier: 'src/ui/styles/inspect-panel.css', ref: '.insp-badge :: padding :: 2px 8px', occurrence: 1 },
+   { fichier: 'src/ui/styles/inspect-panel.css', ref: '.insp-badges :: gap :: 6px', occurrence: 1 },
+   { fichier: 'src/ui/styles/inspect-panel.css', ref: '.insp-badges :: margin-bottom :: 8px', occurrence: 1 },
+@@ -2232,6 +2240,7 @@ export const CSS_ESPACEMENT_RATCHET = [
+   { fichier: 'src/ui/styles/party-dock.css', ref: '.pd-handle :: gap :: 6px', occurrence: 1 },
+   { fichier: 'src/ui/styles/party-dock.css', ref: '.pd-handle :: padding :: 2px 6px', occurrence: 1 },
+   { fichier: 'src/ui/styles/party-dock.css', ref: '.pd-micro :: gap :: 3px', occurrence: 1 },
++  { fichier: 'src/ui/styles/party-dock.css', ref: '.pd-track :: gap :: var(--pd-gap)', occurrence: 1 },
+   { fichier: 'src/ui/styles/party-dock.css', ref: '.pd-track > figure > figcaption :: margin-top :: 2px', occurrence: 1 },
+   { fichier: 'src/ui/styles/party.css', ref: '.camp-plate :: gap :: 6px', occurrence: 1 },
+   { fichier: 'src/ui/styles/party.css', ref: '.camp-plate :: padding :: 8px 10px', occurrence: 1 },
+diff --git a/scripts/recette/console-pont-formes.mjs b/scripts/recette/console-pont-formes.mjs
+index dd30a2a05..4a2f51e1c 100644
+--- a/scripts/recette/console-pont-formes.mjs
++++ b/scripts/recette/console-pont-formes.mjs
+@@ -17,14 +17,16 @@
+ //     (pont complet du tour du joueur · forme spectatrice du tour adverse · ouverture de combat) ;
+ //   · BANDEAU DE PHASE — sa boîte ne recouvre ni la bande de groupe, ni la frise d'initiative, ni le
+ //     fil de combat, ni l'arche, à aucune de ses trois adresses ;
+-//   · ARCHE CENTRÉE — son centre tombe sur celui du champ, et de part et d'autre d'elle c'est le
+-//     PLATEAU qu'on touche (forme spectatrice : le pont n'a plus de bande) ;
++//   · ARCHE IMMOBILE — dans les formes spectatrices, sa boîte est celle du pont complet, à un
++//     demi-pixel près (src/ui/CombatConsole.tsx:51-53), et de part et d'autre d'elle c'est le
++//     PLATEAU qu'on touche (le pont n'a plus de bande) ;
+ //   · AUCUNE SURFACE OCCULTÉE par un pont, AUCUN élément hors fenêtre — détecteurs PURS,
+ //     `detecteurs-pont.mjs`, testés à fixtures par `test:recette`.
+ //
+ // Sortie : exit 1 au premier défaut (liste complète imprimée), exit 0 si tout passe.
+ import { openApp, evaluate, setViewport, sleep, clickButtonByText, cliquerSelecteur, resoudreModales, VUES_RECETTE } from './lib.mjs';
+ import { surfaceOcculteeParUnPont, elementsHorsFenetre } from './detecteurs-pont.mjs';
++import { TOLERANCE_IMMOBILE } from './hud-clickables.mjs';
+ 
+ /** VUES de la passe EXPLORATION : les trois vues JUGÉES (bureau, portable, mobile), lues à leur
+  *  source UNIQUE `vues-recette.json` — jamais recopiées. Le pont léger n'a qu'une forme : ce qui
+@@ -352,10 +354,6 @@ function defauts(m, w, forme) {
+       if (parseFloat(m.bandePeinte.epaisseur) <= 0) out.push(`${ou} : le liseré a perdu son ÉPAISSEUR — le pont saute d'une forme à l'autre`);
+     }
+     if (!m.archeRect) out.push(`${ou} : aucune arche — la forme spectatrice est vide`);
+-    else {
+-      const dc = Math.abs(m.archeRect.x + m.archeRect.w / 2 - (m.champ.x + m.champ.w / 2));
+-      if (dc > 1) out.push(`${ou} : l'arche est décentrée de ${dc.toFixed(1)}px`);
+-    }
+     for (const f of m.flancs) {
+       if (f.quoi !== 'plateau') out.push(`${ou} : à x=${f.x}, de côté de l'arche, on touche « ${f.quoi} » et non le plateau`);
+     }
+@@ -462,16 +460,20 @@ async function main() {
+         for (const d of m.debords) console.log(`    ${f} [${m.forme}] · ${d.sel} : scroll ${d.scroll} / client ${d.client}${d.deborde > 1 ? `  ← DÉBORDE de ${d.deborde}px` : ''}`);
+         if (!args.mesures) echecs.push(...defauts(m, w, f));
+       }
+-      // BANDE STABLE : la hauteur rendue ne bouge pas d'une forme à l'autre.
+-      // BANDE STABLE — exigée là où le pont est une LIGNE (au-delà de 700px). Sous 700 les régions
+-      // s'EMPILENT : le pont complet fait alors trois rangées, et réserver cette pile pour un
+-      // médaillon avalerait la moitié du terrain. La forme y change donc de hauteur, par dessein.
+-      if (w > 700) {
+-        const hs = Object.entries(formes).filter(([, m]) => m.pont).map(([f, m]) => [f, m.pont.h]);
+-        const ref = hs[0];
+-        for (const [f, h] of hs.slice(1)) {
+-          if (Math.abs(h - ref[1]) > 1 && !args.mesures) echecs.push(`${w}px : la bande passe de ${ref[1]}px (${ref[0]}) à ${h}px (${f}) — la géométrie bat d'une forme à l'autre`);
+-        }
++      // BANDE STABLE et ARCHE IMMOBILE, à toute largeur : la hauteur rendue du pont et la boîte de
++      // l'arche ne bougent pas d'une forme à l'autre (src/ui/CombatConsole.tsx:51-53), à la
++      // tolérance de l'immobilité (`TOLERANCE_IMMOBILE`, hud-clickables.mjs).
++      const hs = Object.entries(formes).filter(([, m]) => m.pont).map(([f, m]) => [f, m.pont.h]);
++      const ref = hs[0];
++      for (const [f, h] of hs.slice(1)) {
++        if (Math.abs(h - ref[1]) > 1 && !args.mesures) echecs.push(`${w}px : la bande passe de ${ref[1]}px (${ref[0]}) à ${h}px (${f}) — la géométrie bat d'une forme à l'autre`);
++      }
++      const a0 = formes['pont complet'].archeRect;
++      for (const f of ['spectatrice', 'ouverture']) {
++        const a = formes[f].archeRect;
++        if (!a0 || !a || args.mesures) continue;
++        const d = Math.max(...['x', 'y', 'w', 'h'].map((k) => Math.abs(a[k] - a0[k])));
++        if (d > TOLERANCE_IMMOBILE) echecs.push(`${w}px : l'arche passe de ${JSON.stringify(a0)} (pont complet) à ${JSON.stringify(a)} (${f}) — sa boîte bouge d'un tour à l'autre`);
+       }
+     }
+   } finally {
+diff --git a/scripts/recette/hud-clickables.mjs b/scripts/recette/hud-clickables.mjs
+index 5ae9c5063..3a17e0979 100644
+--- a/scripts/recette/hud-clickables.mjs
++++ b/scripts/recette/hud-clickables.mjs
+@@ -7,6 +7,7 @@
+ // Usage :
+ //   node scripts/recette/hud-clickables.mjs
+ //   node scripts/recette/hud-clickables.mjs --widths 700,560,360
++//   node scripts/recette/hud-clickables.mjs --vues 360x740,701x780     # la couche à ces vues seules
+ //   node scripts/recette/hud-clickables.mjs --url <autre serveur>   # défaut : le port de CET arbre
+ //
+ // Sans `--url`, la cible est le serveur de DEV de cet arbre (`DEFAULT_URL`, scripts/port-dev.mjs) ;
+@@ -47,29 +48,34 @@
+ //     et entrée au trait entière dans le champ à 701–900, bande à 560 et moins et piste défilable,
+ //     cartouche de Round en PREMIÈRE entrée, courant + deux suivants entiers à ≤560 ; Dock — pont de
+ //     bord à bord, chaque case entière dans l'écran, BANDE ≤ 17 % et EMPREINTE (bande + saillie du
+-//     fronton) ≤ 22 % de la hauteur dès 701 (décision d'écran Q2 du 2026-09-24), pont ≤ 45 % à ≤560
+-//     (docs/plans/2026-08-16-spec-hud-combat.md Zone 1) ; COMPACITÉ sur la série des largeurs
++//     fronton) ≤ 22 % de la hauteur dès 701 (décision d'écran Q2 du 2026-09-24), pont en ligne d'arche
++//     ≤ 25 % à 561–700, pont ≤ 45 % à ≤560 ; au doigt, les plafonds de la cible de 44px — empreinte
++//     ≤ 22 % dès 901, ≤ 30 % à 701–900, ≤ 48 % à ≤700 (docs/plans/2026-08-16-spec-hud-combat.md,
++//     § Budget par pointeur, `BUDGET_PONT`), à chaque hauteur de `vues-recette.json` ; COMPACITÉ sur la série des largeurs
+ //     (`defautsCompacite`) — cartes et colonne d'initiative plus étroites à 701–900 qu'au-delà de 900,
+ //     portraits à 561–700 ; CIBLES TACTILES sous `pointer: coarse` émulé (`defautsTactile`) — chaque
+ //     commande vissée rendue offre 44px à ≤560 ;
+-//   · la COUCHE HUD (#1919, design « Le pont se dimensionne seul », `defautsCouche`), à 3 hauteurs
+-//     (`vues-recette.json`) × 7 largeurs × 4 états — exploration, ouverture, tour de héros,
+-//     spectateur (atteint par le VRAI geste : « Fin du tour » cliqué deux fois) : le pont est posé au
+-//     bas de l'écran, la page ne défile pas, aucune surface d'une zone n'est rognée par la couche, ne
+-//     déborde de sa zone ni ne recouvre la surface d'une autre zone, et chaque commande du HUD et du
+-//     pont reçoit son clic — exemptée seulement hors du champ de son ancêtre défilant, ou sous la
+-//     TÊTE COLLÉE de cet ancêtre.
++//   · la COUCHE HUD (#1919, design « Le pont se dimensionne seul », `defautsCouche`), aux hauteurs
++//     de `vues-recette.json` × `LARGEURS_COUCHE` (les deux côtés de chaque seuil) × `POINTEURS`
++//     (souris, doigt émulé) × les états exploration, ouverture, tour de héros (nom court, nom le plus
++//     long des données, nom composé), pause de Round (le fil ne croise pas le bandeau de phase),
++//     journal ouvert (clic réel) et spectateur (atteint par le VRAI geste : « Fin du tour » cliqué
++//     deux fois) : le pont est posé au bas de l'écran, la page ne défile pas, aucune surface d'une
++//     zone n'est rognée par la couche, ne déborde de sa zone ni ne recouvre la surface d'une autre
++//     zone, aucun mot n'est tranché (`defautsTexte`), les boîtes de l'arche, de la bande, de la frise
++//     et du coin ne bougent pas d'un état à l'autre (`defautsImmobilite`), et chaque commande du HUD
++//     et du pont reçoit son clic — exemptée seulement hors du champ de son ancêtre défilant, ou sous
++//     la TÊTE COLLÉE de cet ancêtre.
+ //
+ // Cellules §12 NON MESURÉES :
+ //   · Caméra / inspection >900, 701–900, 561–700 : `ViewControls`, monté en jeu nulle part (#1822 ;
+ //     `grep -rn ViewControls src` : `src/ui/editor/EditorCanvas.tsx`, `src/ui/gallery/registry.tsx`) ;
+-//   · Dock 561–700 : arche en ligne et deux travées côte à côte (décision Q4.3), aucun plafond de
+-//     hauteur propre — seuls le bord à bord et les cases entières s'y jugent ;
+ //   · Dock <=560 « modales plein écran… » : aucune modale de jet ouverte ici — structure gardée par
+ //     `src/ui/ui-ratchets.test.ts` ;
+ //   · Dock >900 « disposition de référence » : aucun contrat propre hors bord à bord et hauteur.
+ //
+ // Sortie : exit 1 au premier défaut (liste complète imprimée), exit 0 si tout passe.
++import { readFileSync } from 'node:fs';
+ import { openApp, evaluate, setViewport, sleep, clickButtonByText, cliquerSelecteur, cliquerAction, resoudreModales, attendreSelecteur, freezeTimeout, unfreezeTimeout, VUE_REFERENCE, VUES_RECETTE } from './lib.mjs';
+ 
+ // Les trois largeurs étroites (700/560/360) portent les recouvrements ; les deux larges portent la
+@@ -78,17 +84,25 @@ import { openApp, evaluate, setViewport, sleep, clickButtonByText, cliquerSelect
+ // La plus large est la vue de RÉFÉRENCE (`vues-recette.json`), jamais un couple recopié (#1847).
+ const DEFAULT_WIDTHS = [VUE_REFERENCE.largeur, 1100, 900, 700, 560, 360];
+ const HEIGHT = VUE_REFERENCE.hauteur;
+-/** Grille de la COUCHE : 7 largeurs (les vues de référence et les seuils canon 900 / 700 / 560, de
+- *  part et d'autre) × les hauteurs de `vues-recette.json`. */
+-export const LARGEURS_COUCHE = [1707, 1366, 1100, 900, 700, 560, 360];
++/** Grille de la COUCHE : les vues de référence, les DEUX côtés de chaque seuil (1279/1280, 900/901,
++ *  700/701, 560/561), 600 et 640 — où la zone `temps` est la plus étroite —, × les hauteurs de
++ *  `vues-recette.json`, × les deux pointeurs (`POINTEURS`). */
++export const LARGEURS_COUCHE = [1707, 1366, 1280, 1279, 1100, 901, 900, 701, 700, 640, 600, 561, 560, 360];
+ export const HAUTEURS_COUCHE = [...new Set(Object.values(VUES_RECETTE).map((v) => v.hauteur))];
++/** Chaque vue de la couche se juge sous la souris ET au doigt (`pointer: coarse`, émulation CDP) :
++ *  les compositions du pont basculent au doigt à d'autres seuils (combat-console.css). */
++export const POINTEURS = ['souris', 'doigt'];
++/** Les vues de la couche : chaque hauteur × chaque largeur de la grille, sauf `--vues` (une preuve de
++ *  mutation se rejoue sur les vues qu'elle touche). */
++export const VUES_COUCHE = HAUTEURS_COUCHE.flatMap((h) => LARGEURS_COUCHE.map((w) => [w, h]));
+ 
+ function parseArgs(argv) {
+-  const out = { url: undefined, widths: DEFAULT_WIDTHS };
++  const out = { url: undefined, widths: DEFAULT_WIDTHS, vues: VUES_COUCHE };
+   for (let i = 0; i < argv.length; i++) {
+     const a = argv[i];
+     if (a === '--url') out.url = argv[++i];
+     else if (a === '--widths') out.widths = argv[++i].split(',').map((n) => Number(n.trim()));
++    else if (a === '--vues') out.vues = argv[++i].split(',').map((v) => v.trim().split('x').map(Number));
+     else throw new Error(`Option inconnue : ${a}`);
+   }
+   return out;
+@@ -122,7 +136,7 @@ const PROBE = `(() => {
+   // (Aucun accent grave dans cette sonde : elle vit dans un gabarit de chaîne.)
+   const pont = document.querySelector('.combat-console');
+   const dansLEcran = (r) => r.x >= -0.5 && r.y >= -0.5 && r.right <= window.innerWidth + 0.5 && r.bottom <= window.innerHeight + 0.5;
+-  // Une case ne grave plus son nom (décision d'écran Q1 du 2026-09-24) : il est son nom accessible.
++  // Une case ne grave pas son nom (décision d’écran Q1 du 2026-09-24) : il est son nom accessible.
+   const dockBtns = [...document.querySelectorAll('.combat-console button.cc-cell')].map((b, i) => ({
+     i, label: (b.getAttribute('aria-label') || b.textContent || '').replace(/\\s+/g, ' ').trim().slice(0, 40), ...reaches(b),
+     entier: dansLEcran(b.getBoundingClientRect()),
+@@ -132,7 +146,7 @@ const PROBE = `(() => {
+   // rien). C'est le seul état où la question « passe-t-il sous la console ? » a un sens.
+   const panneau = document.querySelector('.ld-panel');
+   // Ce que le panneau PEINT : dans la couche HUD, sa boîte rognée par la couche (overflow: clip) —
+-  // un recouvrement calculé sans le rognage accusait un panneau qu'on ne voit pas (juge G3 #1919).
++  // un recouvrement calculé sans le rognage accusait un panneau qu'on ne voit pas (#1919).
+   const coucheDuPanneau = panneau ? panneau.closest('.stage-flot') : null;
+   const rp = panneau ? (() => {
+     const r = panneau.getBoundingClientRect();
+@@ -208,7 +222,7 @@ const PROBE = `(() => {
+         if (!rendu(el)) continue;
+         const r = el.getBoundingClientRect();
+         const rogne = Math.max(rf.top - r.top, r.bottom - rf.bottom, rf.left - r.left, r.right - rf.right);
+-        // DÉBORD : ce que la surface peint hors de la boîte de SA zone (juge d'écran H1 #1919, A4).
++        // DÉBORD : ce que la surface peint hors de la boîte de SA zone (#1919).
+         const debord = Math.max(rz.top - r.top, r.bottom - rz.bottom, rz.left - r.left, r.right - rz.right);
+         // Nom de la surface : sa première classe PROPRE, jamais celle de la primitive de placement.
+         const nom = String(el.className || '').split(' ').find((k) => k && !['stack', 'row', 'grid', 'split'].includes(k)) || el.tagName;
+@@ -216,6 +230,19 @@ const PROBE = `(() => {
+           rogne: +Math.max(0, rogne).toFixed(1), debord: +Math.max(0, debord).toFixed(1) });
+       }
+     }
++    // SURFACES PROFONDES : ce qu'une surface de zone PORTE et qui peint hors de sa boîte — la frise
++    // dans sa piste, le fil sous elle, le panneau du journal qui pend sous le rail, la bande du
++    // groupe. Chacune se juge contre la boîte de SA zone, comme une surface de premier rang.
++    for (const sel of ['.initiative-strip', '.combat-feed', '.ld-panel', '.party-dock']) {
++      const el = flotEl.querySelector(sel);
++      const z = el ? el.closest('[data-zone]') : null;
++      if (!el || !z || el.parentElement === z || !rendu(el)) continue;
++      const r = el.getBoundingClientRect(), rz = z.getBoundingClientRect();
++      const rogne = Math.max(rf.top - r.top, r.bottom - rf.bottom, rf.left - r.left, r.right - rf.right);
++      const debord = Math.max(rz.top - r.top, r.bottom - rz.bottom, rz.left - r.left, r.right - rz.right);
++      surfaces.push({ zone: z.dataset.zone, surface: sel.slice(1), rect: box(r), zoneRect: box(rz),
++        rogne: +Math.max(0, rogne).toFixed(1), debord: +Math.max(0, debord).toFixed(1), profonde: true });
++    }
+     const commandes = [...flotEl.querySelectorAll('button'), ...(pontEl ? pontEl.querySelectorAll('button') : [])]
+       .filter(rendu)
+       .map((b) => {
+@@ -234,6 +261,111 @@ const PROBE = `(() => {
+     };
+   })() : null;
+ 
++  // MOTS TRANCHÉS (R-M2, docs/plans/2026-08-16-spec-hud-combat.md:71-74) : chaque mot de la couche et
++  // du pont, mesuré par Range.getClientRects — un mot rendu sur deux lignes (trait d union compris)
++  // ou rogné par un ancêtre qui coupe sans défiler (ellipse au caractère) est TRANCHÉ. NUMÉRO SEUL :
++  // une ligne d un bloc de plusieurs lignes qui ne porte qu un nombre (« Round / 2 »). LIGNES DU
++  // JOURNAL (R-M3, :75-76) : au repos, aucune ligne du panneau ouvert n est coupée par son bord.
++  const textes = (() => {
++    const tranches = [];
++    const orphelins = [];
++    const blocs = new Map();
++    const blocDe = (el) => { for (let e = el; e; e = e.parentElement) { if (!getComputedStyle(e).display.startsWith('inline')) return e; } return el; };
++    const rogneur = (el) => {
++      for (let e = el; e && e !== document.body; e = e.parentElement) {
++        const s = getComputedStyle(e);
++        const o = s.overflowX + ' ' + s.overflowY;
++        if (/(auto|scroll)/.test(o)) return null;
++        if (/(hidden|clip)/.test(o)) return e;
++      }
++      return null;
++    };
++    const lignesDe = (rects) => {
++      const tops = rects.map((x) => x.top).sort((a, b) => a - b);
++      const h = Math.min(...rects.map((x) => x.height));
++      let n = 1;
++      for (let i = 1; i < tops.length; i++) if (tops[i] - tops[i - 1] > h / 2) n++;
++      return n;
++    };
++    for (const racine of [flotEl, pontEl].filter(Boolean)) {
++      const w = document.createTreeWalker(racine, NodeFilter.SHOW_TEXT);
++      for (let n = w.nextNode(); n; n = w.nextNode()) {
++        const parent = n.parentElement;
++        if (!parent || parent.closest('svg') || !rendu(parent)) continue;
++        const clip = rogneur(parent);
++        const cr = clip ? clip.getBoundingClientRect() : null;
++        if (cr && (cr.width < 2 || cr.height < 2)) continue;
++        const re = /\\S+/g;
++        for (let mm = re.exec(n.data); mm; mm = re.exec(n.data)) {
++          const r = document.createRange();
++          r.setStart(n, mm.index);
++          r.setEnd(n, mm.index + mm[0].length);
++          const rects = [...r.getClientRects()].filter((x) => x.width > 0.5 && x.height > 0.5);
++          if (!rects.length) continue;
++          const lignes = lignesDe(rects);
++          const b = r.getBoundingClientRect();
++          const visible = !cr || (b.right > cr.left + 0.5 && b.left < cr.right - 0.5 && b.bottom > cr.top + 0.5 && b.top < cr.bottom - 0.5);
++          // Rogné : coupé en LARGEUR (ellipse au caractère), ou en hauteur de plus du quart de sa ligne —
++          // la boîte d un glyphe dépasse d un pixel une ligne serrée sans que rien ne soit caché.
++          const rogne = !!cr && visible && (b.left < cr.left - 0.5 || b.right > cr.right + 0.5 || cr.top - b.top > b.height / 4 || b.bottom - cr.bottom > b.height / 4);
++          const ou = String(parent.className || parent.tagName).split(' ')[0];
++          if (lignes > 1) tranches.push({ mot: mm[0], ou, comment: lignes + ' lignes' });
++          else if (rogne) tranches.push({ mot: mm[0], ou, comment: 'rogné par ' + String(clip.className || clip.tagName).split(' ')[0] });
++          if (!visible) continue;
++          const bl = blocDe(parent);
++          if (!blocs.has(bl)) blocs.set(bl, []);
++          blocs.get(bl).push({ mot: mm[0], top: rects[0].top, h: rects[0].height });
++        }
++      }
++    }
++    for (const [bl, mots] of blocs) {
++      const h = Math.min(...mots.map((x) => x.h));
++      const lignes = [];
++      for (const m of [...mots].sort((a, b) => a.top - b.top)) {
++        const l = lignes.find((x) => Math.abs(x.top - m.top) <= h / 2);
++        if (l) l.mots.push(m.mot); else lignes.push({ top: m.top, mots: [m.mot] });
++      }
++      if (lignes.length < 2) continue;
++      for (const l of lignes) {
++        if (l.mots.every((x) => /^[0-9]+[.,:;!?]?$/.test(x))) orphelins.push({ ligne: l.mots.join(' '), bloc: lignes.map((x) => x.mots.join(' ')).join(' / '), ou: String(bl.className || bl.tagName).split(' ')[0] });
++      }
++    }
++    let journal = null;
++    const pj = document.querySelector('.ld-panel');
++    if (pj && rendu(pj)) {
++      const c = pj.getBoundingClientRect();
++      const haut = c.top + pj.clientTop, bas = haut + pj.clientHeight;
++      // Le bord BAS d'un panneau qui DÉFILE est l'affordance de défilement : une ligne qu'il coupe
++      // n'est acceptée que si le panneau défile réellement, et le verdict le dit (auBordDefilant).
++      // Le bord HAUT coupe toujours à tort : le pas de défilement est la ligne (R-M3, spec:75-76).
++      const defile = pj.scrollHeight > pj.clientHeight + 0.5;
++      const coupees = [];
++      let auBordDefilant = null;
++      for (const l of pj.children) {
++        const r = l.getBoundingClientRect();
++        if (r.height < 0.5) continue;
++        const texte = (l.textContent || '').replace(/\\s+/g, ' ').trim().slice(0, 40);
++        if (r.top < haut - 0.5 && r.bottom > haut + 0.5) coupees.push({ texte, rect: box(r) });
++        else if (r.bottom > bas + 0.5 && r.top < bas - 0.5) {
++          if (defile) auBordDefilant = { texte, scrollHeight: pj.scrollHeight, clientHeight: pj.clientHeight };
++          else coupees.push({ texte, rect: box(r) });
++        }
++      }
++      journal = { champ: [+haut.toFixed(1), +bas.toFixed(1)], coupees, auBordDefilant };
++    }
++    return { tranches, orphelins, journal };
++  })();
++
++  // BOÎTES DE L IMMOBILITÉ (CombatConsole.tsx:51-53) : arche, bande, frise et coin, comparées d un état
++  // à l autre et d un nom à l autre (defautsImmobilite).
++  const boiteDe = (sel) => { const e = document.querySelector(sel); if (!e) return null; const r = e.getBoundingClientRect(); return r.width > 0.5 && r.height > 0.5 ? box(r) : null; };
++  const boites = {
++    arche: boiteDe('.stage > .combat-console .cc-arch'),
++    bande: boiteDe('.stage > .combat-console > .cc-dock'),
++    frise: boiteDe('.initiative-strip'),
++    coin: boiteDe('.stage > .combat-console .cc-corner'),
++  };
++
+   // Frise : réserve de droite et VISIBILITÉ du cartouche de Round à fond de défilement. La mesure
+   // déplace la piste puis la REMET où elle était — aucune trace pour les largeurs suivantes.
+   let frise = null;
+@@ -520,6 +652,8 @@ const PROBE = `(() => {
+     portraits: ptiles,
+     objectif: objective,
+     feedXfrise: overlap(rectOf('.combat-feed'), rectOf('.initiative-strip')),
++    // Le fil d'événements et le bandeau de phase posé sur le parapet (pause de Round) se croisent-ils ?
++    feedXphase: overlap(rectOf('.combat-feed'), rectOf('.combat-console > .cc-phase')),
+     // Le volet DÉPLIÉ ≤560 couvre-t-il le fil d'événements ? Sans recouvrement, le verdict de clic des
+     // portraits n'éprouve pas leur rang : la sortie le DIT.
+     feedXvolet: overlap(rectOf('.combat-feed'), rectOf('.party-dock.on .pd-track')),
+@@ -527,7 +661,14 @@ const PROBE = `(() => {
+       scrollWidth: tiles.scrollWidth, clientWidth: tiles.clientWidth, bande: strip.clientWidth,
+       defile: tiles.scrollWidth > tiles.clientWidth, tientDansLaBande: tiles.clientWidth <= strip.clientWidth,
+     } : null,
+-    dock: pont ? { rect: box(pont.getBoundingClientRect()), bande: box(rectOf('.combat-console > .cc-dock')), arche: box(rectOf('.combat-console .cc-arch')) } : null,
++    dock: pont ? { rect: box(pont.getBoundingClientRect()), bande: box(rectOf('.combat-console > .cc-dock')), arche: box(rectOf('.combat-console .cc-arch')),
++      case: (() => { const c = pont.querySelector('.cc-grid-right .cc-cell'); return c ? +c.getBoundingClientRect().width.toFixed(1) : null; })(),
++      cible: parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--cc-cible')) || null,
++      portrait: (() => { const p = pont.querySelector('.cc-arch .ptile'); return p ? +p.getBoundingClientRect().height.toFixed(1) : null; })(),
++      // Cote de HAUTEUR du portrait (--cc-portrait-haut), résolue par une sonde posée dans le pont.
++      portraitHaut: (() => { const e = document.createElement('div'); e.style.cssText = 'position:absolute;visibility:hidden;height:var(--cc-portrait-haut)'; pont.appendChild(e); const h = e.getBoundingClientRect().height; e.remove(); return +h.toFixed(1); })() } : null,
++    textes,
++    boites,
+     tiroir,
+     dockBtns,
+   };
+@@ -706,12 +847,6 @@ export function defauts(m, phase) {
+   return out;
+ }
+ 
+-/**
+- * Défauts de la COUCHE HUD (#1919, design « Le pont se dimensionne seul ; le HUD vit dans ce qui
+- * reste, et n'en sort pas ») sur UNE mesure. PURE.
+- * @param {any} m mesure rendue par `PROBE` @param {string} phase libellé de l'état sondé
+- * @returns {string[]}
+- */
+ /** Paires de surfaces de ZONES DIFFÉRENTES dont les boîtes PEINTES (rognées par la couche, qui borne
+  *  son débordement) se recouvrent de plus d'un demi-pixel sur les deux axes. PUR. */
+ export function recouvrementsEntreZones(c) {
+@@ -735,6 +870,12 @@ export function recouvrementsEntreZones(c) {
+   return paires;
+ }
+ 
++/**
++ * Défauts de la COUCHE HUD (#1919, design « Le pont se dimensionne seul ; le HUD vit dans ce qui
++ * reste, et n'en sort pas ») sur UNE mesure. PURE.
++ * @param {any} m mesure rendue par `PROBE` @param {string} phase libellé de l'état sondé
++ * @returns {string[]}
++ */
+ export function defautsCouche(m, phase) {
+   const ou = `${phase} ${m.largeur}×${m.hauteur}`;
+   const c = m.couche;
+@@ -750,6 +891,7 @@ export function defautsCouche(m, phase) {
+   for (const [a, b] of recouvrementsEntreZones(c)) {
+     out.push(`${ou} : la surface « ${a.surface} » (zone « ${a.zone} ») ${JSON.stringify(a.rect)} recouvre « ${b.surface} » (zone « ${b.zone} ») ${JSON.stringify(b.rect)}`);
+   }
++  if (m.feedXphase) out.push(`${ou} : le fil d'événements recouvre le bandeau de phase de ${m.feedXphase.ox}×${m.feedXphase.oy}px`);
+   if (!c.commandes.length) out.push(`${ou} : aucune commande rendue dans la couche ni sur le pont — sonde aveugle`);
+   for (const b of c.commandes) {
+     if (!b.ok && !b.exempte) out.push(`${ou} : la commande « ${b.label} » ${JSON.stringify(b.rect)} ne reçoit pas son clic — ${b.hitBy}`);
+@@ -777,8 +919,8 @@ export function defautsGroupe(m, phase) {
+     if (!m.groupe.poignee) out.push(`${phase} ${m.largeur}px : le groupe ne rend aucune carte ET n'offre aucune poignée — il est hors d'atteinte`);
+     else if (!m.groupe.poignee.rendu) out.push(`${phase} ${m.largeur}px : la poignée du groupe replié n'est pas rendue — le groupe est hors d'atteinte`);
+     else if (!m.groupe.poignee.ok) out.push(`${phase} ${m.largeur}px : la poignée du groupe replié ${JSON.stringify(m.groupe.poignee.rect)} ne reçoit pas son clic — recouverte par ${m.groupe.poignee.hitBy}`);
+-    // Repliée, la vie du groupe se lit en micro-jauges : une par héros, chacune entière (juge G2
+-    // #1919, pt.5 : l'arrondi au pas de tuile rognait la poignée et les cachait toutes).
++    // Repliée, la vie du groupe se lit en micro-jauges : une par héros, chacune entière (#1919 :
++    // l'arrondi au pas de tuile rognait la poignée et les cachait toutes).
+     const mj = m.groupe.micro;
+     if (mj && mj.visibles < mj.attendues) out.push(`${phase} ${m.largeur}px : la poignée du groupe replié ne montre que ${mj.visibles} micro-jauge(s) sur ${mj.attendues}`);
+   }
+@@ -797,10 +939,113 @@ export function trancheMatrice(largeur) {
+   return largeur > 900 ? '>900' : largeur > 700 ? '701–900' : largeur > 560 ? '561–700' : '<=560';
+ }
+ 
+-/** Plafonds de HAUTEUR du pont, en part du viewport : dès 701, la BANDE ≤ 17 % et l'EMPREINTE (bande +
+- *  saillie du fronton) ≤ 22 % — décision d'écran Q2 du 2026-09-24 (#1806), sur le budget de
+- *  docs/plans/2026-08-16-spec-hud-combat.md:24-26 ; ≤560 → même Zone 1 (« cible ~40-45 % »). */
+-export const BUDGET_PONT = { des: 701, bande: 0.17, empreinte: 0.22, compact: { part: 0.45 } };
++/** Plafonds de HAUTEUR du pont, en part du viewport (docs/plans/2026-08-16-spec-hud-combat.md,
++ *  Zone 1 et § Budget par pointeur). Sous la souris : dès 701, la BANDE ≤ 17 % et l'EMPREINTE (bande + saillie du fronton)
++ *  ≤ 22 % ; 561-700 ≤ 25 % ; ≤560 ≤ 45 %. Au DOIGT, la case garde sa cible de 44px
++ *  (docs/charte-ui.md:95) et les plafonds sont ceux que cette cible impose, mesurés : dès 901,
++ *  l'empreinte ≤ 22 % (le fronton cède, la bande dépasse 17 % case à sa cible) ; 701-900, en ligne
++ *  d'arche, ≤ 30 % ; ≤ 700, empilé, ≤ 48 %. */
++export const BUDGET_PONT = { des: 701, bande: 0.17, empreinte: 0.22, ligne: { part: 0.25 }, compact: { part: 0.45 }, doigt: { arche: 0.30, empile: 0.48 } };
++
++/** Tolérance de l'IMMOBILITÉ, en px : une boîte du pont ou de la frise qui bouge de plus d'un
++ *  demi-pixel d'un état à l'autre, ou d'un nom à l'autre, a bougé. */
++export const TOLERANCE_IMMOBILE = 0.5;
++
++/**
++ * Défauts de BUDGET de hauteur du pont (`BUDGET_PONT`) sur UNE mesure, au pointeur qu'elle porte
++ * (`m.grossier`). PURE.
++ * @param {any} m mesure rendue par `PROBE` @param {string} phase libellé de l'état sondé
++ * @returns {string[]}
++ */
++export function defautsBudget(m, phase) {
++  const out = [];
++  if (!m.dock) return out;
++  const doigt = !!m.grossier;
++  const t = trancheMatrice(m.largeur);
++  const ou = `${phase} ${m.largeur}×${m.hauteur}px (§12 ${t}${doigt ? ', pointer: coarse' : ''})`;
++  if (m.largeur >= BUDGET_PONT.des) {
++    const b = m.dock.bande;
++    const a = m.dock.arche;
++    if (!b || !a) return [`${ou} : bande ou arche du pont absente — sonde aveugle sur le budget de hauteur`];
++    // LE VISAGE CÈDE APRÈS LA CASE (combat-console.css, `--cc-portrait`) : fronton surplombant la bande,
++    // un portrait sous sa cote de hauteur alors que la case est au-dessus de sa cible est un défaut.
++    const d = m.dock;
++    if (a.y < b.y - 0.5 && d.portrait != null && d.portraitHaut != null && d.case != null && d.cible != null
++      && d.portrait < d.portraitHaut - 0.5 && d.case > d.cible + 0.5) {
++      out.push(`${ou} : le portrait de l'arche cède à ${d.portrait}px sous sa cote de ${d.portraitHaut}px alors que la case (${d.case}px) est au-dessus de sa cible (${d.cible}px) — le visage cède avant la case`);
++    }
++    // La SAILLIE est ce dont l'arche dépasse la bande : le fronton COMPTE dans le budget.
++    const saillie = Math.max(0, b.y - a.y);
++    const bande = b.h / m.hauteur;
++    const part = (b.h + saillie) / m.hauteur;
++    // Au doigt, 701-900 est la LIGNE D'ARCHE (combat-console.css) : le pont entier y a UN plafond, celui
++    // de la cible ; la bande de 17 % est celle de la rangée.
++    if (doigt && t === '701–900') {
++      if (part > BUDGET_PONT.doigt.arche) out.push(`${ou} : le pont, fronton compris, prend ${(100 * part).toFixed(1)} % de la hauteur (plafond ${Math.round(100 * BUDGET_PONT.doigt.arche)} % en ligne d'arche au doigt)`);
++      return out;
++    }
++    const aSaCible = doigt && m.dock.case != null && m.dock.cible != null && m.dock.case <= m.dock.cible + 0.5;
++    if (bande > BUDGET_PONT.bande && !aSaCible) out.push(`${ou} : la bande du pont prend ${(100 * bande).toFixed(1)} % de la hauteur (plafond ${100 * BUDGET_PONT.bande} % dès ${BUDGET_PONT.des}px)`);
++    if (part > BUDGET_PONT.empreinte) out.push(`${ou} : le pont, fronton compris, prend ${(100 * part).toFixed(1)} % de la hauteur (plafond ${100 * BUDGET_PONT.empreinte} % dès ${BUDGET_PONT.des}px)`);
++    return out;
++  }
++  const part = m.dock.rect.h / m.hauteur;
++  const plafond = doigt ? BUDGET_PONT.doigt.empile : t === '561–700' ? BUDGET_PONT.ligne.part : BUDGET_PONT.compact.part;
++  const forme = doigt ? 'empilé' : t === '561–700' ? "en ligne d'arche" : 'compact';
++  if (part > plafond) out.push(`${ou} : le pont ${forme} prend ${(100 * part).toFixed(1)} % de la hauteur (plafond ${Math.round(100 * plafond)} %)`);
++  return out;
++}
++
++/**
++ * Défauts de TEXTE sur UNE mesure (R-M2 et R-M3, docs/plans/2026-08-16-spec-hud-combat.md:71-76) :
++ * mot tranché, numéro seul sur sa ligne, ligne du journal coupée par son bord. PURE.
++ * @param {any} m mesure rendue par `PROBE` @param {string} phase libellé de l'état sondé
++ * @returns {string[]}
++ */
++export function defautsTexte(m, phase) {
++  const ou = `${phase} ${m.largeur}×${m.hauteur}${m.grossier ? ' (doigt)' : ''}`;
++  const t = m.textes;
++  if (!t) return [`${ou} : aucun relevé de texte — sonde aveugle sur les mots tranchés`];
++  return [
++    ...t.tranches.map((x) => `${ou} : le mot « ${x.mot} » (${x.ou}) est tranché — ${x.comment} (R-M2)`),
++    ...t.orphelins.map((x) => `${ou} : « ${x.ligne} » reste seul sur sa ligne dans « ${x.bloc} » (${x.ou})`),
++    ...(t.journal?.coupees ?? []).map((x) => `${ou} : la ligne du journal « ${x.texte} » ${JSON.stringify(x.rect)} est coupée par le bord du panneau ${JSON.stringify(t.journal.champ)} (R-M3)`),
++  ];
++}
++
++/** Ce que le verdict ACCEPTE au bord bas du journal, dit en clair : une ligne coupée par le bord
++ *  d'un panneau qui défile réellement (scrollHeight > clientHeight). PURE. */
++export function bordDefilant(m) {
++  const b = m.textes?.journal?.auBordDefilant;
++  return b ? `, journal : « ${b.texte} » au bord bas, accepté — le panneau défile (scrollHeight ${b.scrollHeight} > clientHeight ${b.clientHeight})` : '';
++}
++
++/**
++ * Défauts d'IMMOBILITÉ (CombatConsole.tsx:51-53, « je ne veux pas que la taille de l'interface ou les
++ * boutons bougent ») : à une même vue et un même pointeur, la boîte de l'arche, de la bande, de la
++ * frise et du coin est la MÊME dans chaque état relevé (tour du héros, nom le plus long, pause de
++ * Round, journal ouvert, tour adverse). Une boîte absente d'un état (coin en forme spectatrice) ne
++ * se compare pas. PURE.
++ * @param {Record<string, Record<string, Record<string, any>>>} releves vue → état → boîtes
++ * @returns {string[]}
++ */
++export function defautsImmobilite(releves) {
++  const out = [];
++  for (const [vue, etats] of Object.entries(releves)) {
++    const noms = Object.keys(etats);
++    if (noms.length < 2) continue;
++    const ref = noms[0];
++    for (const etat of noms.slice(1)) {
++      for (const [quoi, b] of Object.entries(etats[etat])) {
++        const a = etats[ref][quoi];
++        if (!a || !b) continue;
++        const d = Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y), Math.abs(a.w - b.w), Math.abs(a.h - b.h));
++        if (d > TOLERANCE_IMMOBILE) out.push(`immobilité ${vue} : la boîte « ${quoi} » passe de ${JSON.stringify(a)} (${ref}) à ${JSON.stringify(b)} (${etat}) — ${+d.toFixed(1)}px`);
++      }
++    }
++  }
++  return out;
++}
+ 
+ /** Largeur minimale d'une tuile du groupe à <=560 : docs/plans/2026-08-16-spec-hud-combat.md:66-68
+  *  (R-M1, « tuiles PLEINES à largeur minimale digne (portrait reconnaissable + PV lisibles, ≥44px) »). */
+@@ -865,21 +1110,7 @@ export function defautsMatrice(m, phase) {
+   if (m.dock) {
+     const r = m.dock.rect;
+     if (r.x > 0.5 || r.x + r.w < m.largeur - 0.5) out.push(`${ou} : le pont ne va pas de bord à bord (${r.x}..${+(r.x + r.w).toFixed(1)}px sur ${m.largeur}px)`);
+-    if (m.largeur >= BUDGET_PONT.des) {
+-      const b = m.dock.bande;
+-      const a = m.dock.arche;
+-      if (!b || !a) out.push(`${ou} : bande ou arche du pont absente — sonde aveugle sur le budget de hauteur`);
+-      else {
+-        // La SAILLIE est ce dont l'arche dépasse la bande : le fronton COMPTE dans le budget.
+-        const saillie = Math.max(0, b.y - a.y);
+-        const bande = b.h / m.hauteur;
+-        const part = (b.h + saillie) / m.hauteur;
+-        if (bande > BUDGET_PONT.bande) out.push(`${ou} : la bande du pont prend ${(100 * bande).toFixed(1)} % de la hauteur (plafond ${100 * BUDGET_PONT.bande} % dès ${BUDGET_PONT.des}px)`);
+-        if (part > BUDGET_PONT.empreinte) out.push(`${ou} : le pont, fronton compris, prend ${(100 * part).toFixed(1)} % de la hauteur (plafond ${100 * BUDGET_PONT.empreinte} % dès ${BUDGET_PONT.des}px)`);
+-      }
+-    }
+-    const part = r.h / m.hauteur;
+-    if (t === '<=560' && part > BUDGET_PONT.compact.part) out.push(`${ou} : le pont compact prend ${(100 * part).toFixed(1)} % de la hauteur (plafond ${100 * BUDGET_PONT.compact.part} %)`);
++    out.push(...defautsBudget(m, phase));
+     for (const b of m.dockBtns) {
+       if (b.rendu && !b.entier) out.push(`${ou} : la case « ${b.label} » ${JSON.stringify(b.rect)} n'est pas entière dans l'écran`);
+     }
+@@ -948,28 +1179,94 @@ async function jugerGroupeDeplie(session, m, phase) {
+   return out;
+ }
+ 
++/** Durée de CALME exigée, en temps de page : aucune boîte ni aucun défilement n'y a bougé d'une image
++ *  à l'autre. */
++export const CALME_MS = 250;
++
++/** Signature de la géométrie que la sonde mesure : boîtes des surfaces, du pont et de la frise,
++ *  défilement de la piste et du journal, état des polices. */
++const SIGNATURE = `() => {
++  const r = (s) => [...document.querySelectorAll(s)].map((e) => { const b = e.getBoundingClientRect(); return [b.x, b.y, b.width, b.height].map((v) => Math.round(v * 2)).join(','); }).join(';');
++  const t = document.querySelector('.is-tiles');
++  const j = document.querySelector('.ld-panel');
++  return [document.fonts.status, r('.stage-flot [data-zone] > *, .initiative-strip, .is-cell, .combat-feed, .ld-panel, .stage > .combat-console, .cc-arch, .cc-dock'),
++    t ? t.scrollLeft + ',' + t.scrollTop : '', j ? j.scrollTop : ''].join('|');
++}`;
++
++/**
++ * Attend un rendu STABLE avant de mesurer (déterminisme de la sonde) : polices chargées, et une
++ * signature inchangée d'IMAGE en IMAGE (`requestAnimationFrame`) pendant `CALME_MS` de temps de page.
++ * Échantillonnée depuis Node, elle se lisait deux fois de suite identique PENDANT la tâche longue
++ * qui suit un changement de tour (≈ 1,2 s mesurée à 1707) — avant que la mise en vue de l'entrée au
++ * trait (`ramenerEnVue`, `smooth`) ne démarre : l'acteur au trait était mesuré hors champ une passe sur
++ * deux. Une image ne se peint qu'après la tâche longue : le calme ne se compte qu'entre deux images.
++ * Un rendu qui ne se pose pas est un DÉFAUT, jamais une mesure prise au hasard.
++ * @returns {Promise<string|null>} `null` si stable, sinon le défaut
++ */
++async function attendreStable(session, ou, { maxMs = 5000 } = {}) {
++  const stable = await evaluate(session, `(async () => {
++    const signature = ${SIGNATURE};
++    const image = () => new Promise((r) => requestAnimationFrame(() => r(performance.now())));
++    const t0 = await image();
++    let avant = signature();
++    let depuis = t0;
++    for (let t = t0; t - t0 < ${maxMs}; ) {
++      t = await image();
++      const apres = signature();
++      if (apres !== avant || apres.startsWith('loading')) { avant = apres; depuis = t; } else if (t - depuis >= ${CALME_MS}) return true;
++    }
++    return false;
++  })()`, { timeoutMs: maxMs + 5000 });
++  return stable ? null : `${ou} : le rendu ne se stabilise pas en ${maxMs}ms — sonde non déterministe`;
++}
++
++/** Pointeur de la session : le doigt est l'émulation tactile de CDP, qui fait répondre
++ *  `(pointer: coarse)`. */
++async function poserPointeur(session, pointeur) {
++  await session.rpc('Emulation.setTouchEmulationEnabled', pointeur === 'doigt' ? { enabled: true, maxTouchPoints: 5 } : { enabled: false });
++}
++
+ /**
+- * La COUCHE HUD à chaque vue de sa grille (`HAUTEURS_COUCHE` × `LARGEURS_COUCHE`), dans l'état où
+- * se trouve le jeu. Une ligne par vue, chaque défaut nommé.
++ * La COUCHE HUD à chaque vue de `vues` (`VUES_COUCHE` par défaut) × `POINTEURS`, dans
++ * l'état où se trouve le jeu. Une ligne par vue, chaque défaut nommé. Juge aussi les TEXTES
++ * (`defautsTexte`) et, si `budget`, la hauteur du pont (`defautsBudget`) ; si `releves` est fourni,
++ * y consigne les boîtes de l'immobilité sous `pointeur largeur×hauteur` → `phase`.
+  * @returns {Promise<string[]>}
+  */
+-async function jugerCouche(session, phase) {
++async function jugerCouche(session, vues, phase, { releves = null, budget = false } = {}) {
+   const out = [];
+-  for (const h of HAUTEURS_COUCHE) {
+-    for (const w of LARGEURS_COUCHE) {
+-      await setViewport(session, w, h);
+-      await sleep(450);
+-      const m = await evaluate(session, PROBE);
+-      const d = defautsCouche(m, `couche (${phase})`);
+-      const c = m.couche;
+-      console.log(`couche (${phase}) ${w}×${h} — pont ${c?.pont ? c.pont.h + 'px' + (c.pontAuBas ? ' au bas' : ' DÉCOLLÉ') : 'absent'}, ${c ? c.surfaces.length : 0} surface(s), ${c ? c.commandes.filter((b) => b.ok).length + '/' + c.commandes.length : 0} commande(s) atteinte(s)${c ? ', ' + c.commandes.filter((b) => b.exempte).length + ' exemptée(s)' : ''} → ${d.length ? d.length + ' défaut(s)' : 'OK'}`);
+-      dire(d);
+-      out.push(...d);
++  try {
++    for (const pointeur of POINTEURS) {
++      await poserPointeur(session, pointeur);
++      for (const [w, h] of vues) {
++        await setViewport(session, w, h);
++        const instable = await attendreStable(session, `couche (${phase}) ${w}×${h} (${pointeur})`);
++        const m = await evaluate(session, PROBE);
++        const d = [...(instable ? [instable] : []), ...defautsCouche(m, `couche (${phase}, ${pointeur})`), ...defautsTexte(m, `texte (${phase})`),
++          ...(budget ? defautsBudget(m, `budget (${phase})`) : [])];
++        if (releves) (releves[`${pointeur} ${w}×${h}`] ??= {})[phase] = m.boites;
++        const c = m.couche;
++        console.log(`couche (${phase}, ${pointeur}) ${w}×${h} — pont ${c?.pont ? c.pont.h + 'px' + (c.pontAuBas ? ' au bas' : ' DÉCOLLÉ') : 'absent'}, ${c ? c.surfaces.length : 0} surface(s), ${c ? c.commandes.filter((b) => b.ok).length + '/' + c.commandes.length : 0} commande(s) atteinte(s)${c ? ', ' + c.commandes.filter((b) => b.exempte).length + ' exemptée(s)' : ''}${bordDefilant(m)} → ${d.length ? d.length + ' défaut(s)' : 'OK'}`);
++        dire(d);
++        out.push(...d);
++      }
+     }
++  } finally {
++    await poserPointeur(session, 'souris');
+   }
+   return out;
+ }
+ 
++/** Libellés au PIRE, lus dans les données au lancement (jamais recopiés) : les libellés de créature
++ *  du plus long au plus court, et le plus long nom de pré-tiré composé à traits d'union. */
++export function libellesAuPire(creatures, pregens) {
++  const liste = (d) => (Array.isArray(d) ? d : Object.values(d));
++  const creaturesParLongueur = [...new Set(liste(creatures).map((c) => c.label).filter(Boolean))].sort((a, b) => b.length - a.length || a.localeCompare(b));
++  const creatureComposee = creaturesParLongueur.find((l) => l.includes('-')) ?? null;
++  const heroCompose = liste(pregens).map((p) => p.label ?? p.name).filter((n) => typeof n === 'string' && n.includes('-')).sort((a, b) => b.length - a.length || a.localeCompare(b))[0] ?? null;
++  return { creaturesParLongueur, creatureComposee, heroCompose };
++}
++
+ /** Chaque défaut est NOMMÉ là où il est mesuré : un compte « 4 défaut(s) » ne dit rien, et le bilan
+  *  final ne s'imprime jamais si la mise en place meurt à la phase suivante. */
+ const dire = (liste) => { for (const e of liste) console.log(`   · ${e}`); };
+@@ -1013,7 +1310,7 @@ async function main() {
+     const compaciteExploration = defautsCompacite(serieExploration, 'exploration');
+     dire(compaciteExploration);
+     echecs.push(...compaciteExploration);
+-    echecs.push(...await jugerCouche(session, 'exploration'));
++    echecs.push(...await jugerCouche(session, args.vues, 'exploration'));
+ 
+     // ── Combat ─────────────────────────────────────────────────────────────────────────────────
+     await setViewport(session, VUE_REFERENCE.largeur, VUE_REFERENCE.hauteur);
+@@ -1038,11 +1335,58 @@ async function main() {
+       dire(d);
+       echecs.push(...d);
+     }
+-    echecs.push(...await jugerCouche(session, 'ouverture'));
++    echecs.push(...await jugerCouche(session, args.vues, 'ouverture'));
+     await setViewport(session, VUE_REFERENCE.largeur, VUE_REFERENCE.hauteur);
+     await sleep(300);
+     await monterLeDock(session);
+-    echecs.push(...await jugerCouche(session, 'tour de héros'));
++    const releves = {};
++    echecs.push(...await jugerCouche(session, args.vues, 'tour de héros', { releves, budget: true }));
++    // NOMS AU PIRE (données réelles) : l'acteur au trait porte le plus long libellé de créature, les
++    // autres adversaires les suivants, un autre héros le plus long nom composé des pré-tirés. La
++    // boîte de l'arche, de la bande, de la frise et du coin ne bouge pas (`defautsImmobilite`).
++    const { creaturesParLongueur, creatureComposee, heroCompose } = libellesAuPire(
++      JSON.parse(readFileSync(new URL('../../src/data/creatures.json', import.meta.url), 'utf8')),
++      JSON.parse(readFileSync(new URL('../../src/data/pregens.json', import.meta.url), 'utf8')));
++    const nomsCourts = await evaluate(session, `(() => {
++      const b = window.__wfrp.store.getState().battle;
++      const longs = ${JSON.stringify(creaturesParLongueur)};
++      const actif = b.order[b.turn];
++      let k = 1;
++      let compose = ${JSON.stringify(heroCompose)};
++      const avant = Object.fromEntries(b.combatants.map((c) => [c.id, c.label]));
++      const combatants = b.combatants.map((c) => {
++        if (c.id === actif) return { ...c, label: longs[0] };
++        if (c.kind !== 'hero') return { ...c, label: longs[k++ % longs.length] };
++        if (compose) { const l = compose; compose = null; return { ...c, label: l }; }
++        return c;
++      });
++      window.__wfrp.store.setState({ battle: { ...b, combatants } });
++      return avant;
++    })()`);
++    echecs.push(...await jugerCouche(session, args.vues, 'nom le plus long', { releves, budget: true }));
++    // … et le plus long libellé COMPOSÉ à traits d'union, au trait : un mot composé est insécable.
++    await evaluate(session, `(() => {
++      const b = window.__wfrp.store.getState().battle;
++      const actif = b.order[b.turn];
++      window.__wfrp.store.setState({ battle: { ...b, combatants: b.combatants.map((c) => (c.id === actif ? { ...c, label: ${JSON.stringify(creatureComposee)} } : c)) } });
++    })()`);
++    echecs.push(...await jugerCouche(session, args.vues, 'nom composé', { releves, budget: true }));
++    await evaluate(session, `(() => {
++      const b = window.__wfrp.store.getState().battle;
++      const avant = ${JSON.stringify(nomsCourts)};
++      window.__wfrp.store.setState({ battle: { ...b, combatants: b.combatants.map((c) => ({ ...c, label: avant[c.id] ?? c.label })) } });
++    })()`);
++    // PAUSE DE ROUND : le bandeau de phase se pose sur le parapet, dans la
++    // rangée `reserve` de la couche — le fil ne doit pas y descendre. Mise en place par `__wfrp` (la
++    // pause d'un Round suivant), levée aussitôt.
++    await evaluate(session, `window.__wfrp.store.setState({ pendingRoundStart: { round: 2, readyBySeat: {} } })`);
++    await sleep(400);
++    if (!await evaluate(session, `!!document.querySelector('.combat-console > .cc-phase')`)) {
++      throw new Error('pause de Round posée, mais aucun bandeau de phase sur le pont — sonde aveugle sur le fil × bandeau');
++    }
++    echecs.push(...await jugerCouche(session, args.vues, 'pause de Round', { releves }));
++    await evaluate(session, `window.__wfrp.store.setState({ pendingRoundStart: null })`);
++    await sleep(300);
+     await setViewport(session, VUE_REFERENCE.largeur, VUE_REFERENCE.hauteur);
+     await sleep(300);
+     // Le tiroir du journal ne se juge QU'OUVERT : on le déplie par CLIC RÉEL sur sa poignée (glyphe
+@@ -1050,6 +1394,7 @@ async function main() {
+     // d'IA. Son état React traverse les changements de largeur : un seul clic pour les six mesures.
+     await cliquerSelecteur(session, '.log-drawer .ld-btn');
+     await sleep(400);
++    echecs.push(...await jugerCouche(session, args.vues, 'journal ouvert', { releves }));
+     // Un NAVIRE de campagne : l'ouvreur d'écran du rail n'est monté qu'avec lui
+     // (`src/ui/CampaignView.tsx`, `vessel &&`). Même couture que `__wfrp.scenario`
+     // (`src/state/devtools.ts`, `sc.vessel`), valeur du scénario 14 (`14-voyage-maritime.ts`).
+@@ -1060,13 +1405,15 @@ async function main() {
+     if (!navire) throw new Error('mise en place : le navire de campagne ne se pose pas — sonde aveugle sur l’ouvreur du rail');
+     await sleep(300);
+ 
+-    for (const w of args.widths) {
+-      await setViewport(session, w, HEIGHT);
++    // La MATRICE se juge à chaque hauteur de `vues-recette.json` ; la série de
++    // compacité reste celle de la vue de référence.
++    for (const [w, h] of HAUTEURS_COUCHE.flatMap((h) => args.widths.map((w) => [w, h]))) {
++      await setViewport(session, w, h);
+       await sleep(600);
+       const m = await evaluate(session, PROBE);
+-      if (!m.combat) throw new Error(`combat ${w}px : aucune frise d'initiative — le combat n'est pas monté`);
+-      const d = [...defauts(m, 'combat'), ...defautsMatrice(m, 'combat')];
+-      serieCombat.push(m);
++      if (!m.combat) throw new Error(`combat ${w}×${h} : aucune frise d'initiative — le combat n'est pas monté`);
++      const d = [...defauts(m, `combat ×${h}`), ...defautsMatrice(m, `combat ×${h}`)];
++      if (h === HEIGHT) serieCombat.push(m);
+       console.log(`combat ${w}px — dock ${m.dock ? m.dock.rect.h + 'px de haut / ' + m.dockBtns.length + ' contrôle(s)' : 'ABSENT'}, piste ${m.piste.clientWidth}/${m.piste.scrollWidth}px dans une bande de ${m.piste.bande}px, frise ${m.frise ? (m.frise.bande ? 'bande' : 'colonne') + ' à ' + m.frise.margeDroite + 'px du bord, Round ' + (m.frise.roundVisible ? 'visible' : 'HORS CHAMP') + ', tête ' + (!m.frise.teteMesuree ? 'non mesurée' : (m.frise.teteDecouverte || m.frise.teteSurCartouche) ? 'DÉCOUVERTE' : 'couverte') + ', pied ' + (!m.frise.piedMesure ? 'non mesuré' : m.frise.piedRogne ? 'DÉBORDE de ' + m.frise.piedRogne.debord + 'px' : 'entier') : 'n/a'}, chevauchement fil×frise ${m.feedXfrise ? m.feedXfrise.ox + '×' + m.feedXfrise.oy + 'px' : 'aucun'} → ${d.length ? d.length + ' défaut(s)' : 'OK'}`);
+       dire(d);
+       echecs.push(...d);
+@@ -1091,15 +1438,19 @@ async function main() {
+     })()`;
+     for (const w of args.widths) {
+       await setViewport(session, w, HEIGHT);
+-      await sleep(400);
++      // Le trait rendu au PREMIER de l'ordre ramène la piste en tête en `smooth` : le second trait,
++      // donné avant que ce défilement ne se pose, était écrasé par lui (piste restée en tête, acteur
++      // au trait hors champ une passe sur deux). Chaque geste attend un rendu stable.
++      const avantTete = await attendreStable(session, `combat (au trait en bas) ${w}px, avant le trait en tête`);
+       await evaluate(session, `window.__wfrp.turn(window.__wfrp.store.getState().battle.order[0])`);
+-      await sleep(200);
++      const tete = await attendreStable(session, `combat (au trait en bas) ${w}px, trait en tête`);
++      if (avantTete || tete) echecs.push(...[avantTete, tete].filter(Boolean));
+       const auTrait = await evaluate(session, AU_TRAIT_EN_BAS);
+       if (!auTrait) throw new Error(`combat ${w}px : aucun combattant de l'ordre ne peut prendre le trait`);
+-      await sleep(600);
++      const instable = await attendreStable(session, `combat (au trait en bas) ${w}px`);
+       const m = await evaluate(session, PROBE);
+       if (!m.frise) throw new Error(`combat ${w}px (au trait en bas) : aucune frise d'initiative`);
+-      const d = defautsFrise(m, 'combat (au trait en bas)');
++      const d = [...(instable ? [instable] : []), ...defautsFrise(m, 'combat (au trait en bas)')];
+       console.log(`combat (au trait en bas) ${w}px — ${auTrait} au trait, frise ${(m.frise.bande ? 'bande' : 'colonne')}, tête ${!m.frise.teteMesuree ? 'non mesurée' : (m.frise.teteDecouverte || m.frise.teteSurCartouche) ? 'DÉCOUVERTE' : 'couverte'}, pied ${!m.frise.piedMesure ? 'non mesuré' : m.frise.piedRogne ? 'DÉBORDE de ' + m.frise.piedRogne.debord + 'px (zone ' + m.frise.piedRogne.zone + 'px)' : 'entier'}, pas ${m.frise.pas ? m.frise.pas.min + '–' + m.frise.pas.max + 'px' : 'n/a'} → ${d.length ? d.length + ' défaut(s)' : 'OK'}`);
+       dire(d);
+       echecs.push(...d);
+@@ -1131,7 +1482,7 @@ async function main() {
+     await cliquerSelecteur(session, '.log-drawer.open .ld-btn');
+     await sleep(300);
+ 
+-    // ── Combat, TOUR SPECTATEUR, atteint par le VRAI geste (juge G4 #1919, pt.5) ─────────────────
++    // ── Combat, TOUR SPECTATEUR, atteint par le VRAI geste (#1919) ─────────────────
+     // Mise en place : le trait au héros qui PRÉCÈDE un adversaire dans l'ordre (`__wfrp.turn`). Puis
+     // le joueur finit son tour : « Fin du tour » cliqué deux fois (armer, confirmer — garde-fou de
+     // l'Action non dépensée). Les minuteries de l'IA sont figées le temps de la mesure : le tour
+@@ -1164,7 +1515,11 @@ async function main() {
+       await sleep(600);
+       const spectateur = await evaluate(session, `!!document.querySelector(".combat-console[data-forme='spectatrice']")`);
+       if (!spectateur) throw new Error('après « Fin du tour » confirmé, le pont n’est pas en forme spectatrice — tour adverse non atteint');
+-      echecs.push(...await jugerCouche(session, 'spectateur'));
++      echecs.push(...await jugerCouche(session, args.vues, 'spectateur', { releves }));
++      const immobile = defautsImmobilite(releves);
++      console.log(`immobilité — ${Object.keys(releves).length} vue(s) × ${POINTEURS.length} pointeur(s) comparées → ${immobile.length ? immobile.length + ' défaut(s)' : 'OK'}`);
++      dire(immobile);
++      echecs.push(...immobile);
+     } finally {
+       await unfreezeTimeout(session);
+     }
+diff --git a/scripts/recette/hud-clickables.test.mjs b/scripts/recette/hud-clickables.test.mjs
+index 09854fa8e..436d9ffc9 100644
+--- a/scripts/recette/hud-clickables.test.mjs
++++ b/scripts/recette/hud-clickables.test.mjs
+@@ -5,7 +5,7 @@
+ // rouge ne mesure rien, un détecteur sans cas vert crie sur tout.
+ import { test } from 'node:test'
+ import assert from 'node:assert/strict'
+-import { defauts, defautsCouche, recouvrementsEntreZones, defautsMatrice, defautsMatriceGroupe, defautsTactile, defautsCompacite, trancheMatrice } from './hud-clickables.mjs'
++import { defauts, defautsCouche, recouvrementsEntreZones, defautsMatrice, defautsMatriceGroupe, defautsTactile, defautsCompacite, trancheMatrice, defautsTexte, defautsImmobilite, defautsBudget, libellesAuPire, bordDefilant } from './hud-clickables.mjs'
+ 
+ /** Mesure de COMBAT sans aucun défaut (le cas vert de référence). */
+ const combat = () => ({
+@@ -561,19 +561,28 @@ test('pont qui ne va PAS de bord à bord : défaut chiffré', () => {
+   unSeul(defautsMatrice(m, 'combat'), /le pont ne va pas de bord à bord \(0\.\.880px sur 900px\)/)
+ })
+ 
+-test('bande du pont au-delà de 17 % dès 701 : défaut chiffré ; à 700, rien', () => {
++test('bande du pont au-delà de 17 % dès 701 : défaut chiffré ; à 700, c’est le plafond de la LIGNE qui juge', () => {
+   for (const l of [1707, 900, 701]) {
+     const m = saine(l)
+     m.dock.bande = { x: 0, y: 780 - 140, w: l, h: 140 }
+     m.dock.arche.y = 780 - 160
+     unSeul(defautsMatrice(m, 'combat'), /la bande du pont prend 17\.9 % de la hauteur \(plafond 17 % dès 701px\)/)
+   }
++  // Sous 701, la bande PORTE la ligne d'arche : 23,1 % de pont, sous le plafond de la ligne.
+   const etroit = saine(700)
+-  etroit.dock.bande.h = 236
+-  etroit.dock.bande.y = 780 - 236
++  etroit.dock.rect = { x: 0, y: 780 - 180, w: 700, h: 180 }
++  etroit.dock.bande = { x: 0, y: 780 - 180, w: 700, h: 180 }
+   assert.deepEqual(defautsMatrice(etroit, 'combat'), [])
+ })
+ 
++test('pont en LIGNE D’ARCHE au-delà de 25 % à 561–700 : défaut chiffré, à chaque largeur de la tranche', () => {
++  for (const l of [700, 640, 561]) {
++    const m = saine(l)
++    m.dock.rect = { x: 0, y: 780 - 236.6, w: l, h: 236.6 }
++    unSeul(defautsMatrice(m, 'combat'), /le pont en ligne d'arche prend 30\.3 % de la hauteur \(plafond 25 %\)/)
++  }
++})
++
+ test('FRONTON compris, le pont au-delà de 22 % dès 701 : défaut chiffré — la saillie COMPTE', () => {
+   const m = saine(900)
+   // Bande à 16,7 % (dans son plafond), mais l'arche la dépasse de 52px : 23,3 % en tout.
+@@ -679,6 +688,12 @@ test('couche saine : aucun défaut', () => {
+   assert.deepEqual(defautsCouche(couche(), 'tour de héros'), [])
+ })
+ 
++test('fil d’événements SUR le bandeau de phase (pause de Round) : défaut chiffré', () => {
++  const m = couche()
++  m.feedXphase = { ox: 131, oy: 7.4 }
++  rougeCouche(m, /le fil d'événements recouvre le bandeau de phase de 131×7\.4px/)
++})
++
+ test('couche ABSENTE : la sonde se déclare AVEUGLE', () => {
+   const m = couche()
+   m.couche = null
+@@ -767,3 +782,96 @@ test('AUCUNE commande rendue : la sonde se déclare AVEUGLE, elle ne se tait pas
+   m.couche.commandes = []
+   rougeCouche(m, /aucune commande rendue .* sonde aveugle/)
+ })
++
++// ── Texte, immobilité, budget par pointeur (R-M2/R-M3, spec:71-76 ; CombatConsole.tsx:51-53) ────────
++const textes = (x = {}) => ({ tranches: [], orphelins: [], journal: null, ...x })
++
++test('texte : aucun mot tranché, aucun numéro seul, journal entier — rien à dire', () => {
++  assert.deepEqual(defautsTexte({ largeur: 701, hauteur: 780, grossier: false, textes: textes() }, 'texte'), [])
++})
++
++test('journal : une ligne au bord BAS d’un panneau qui défile est acceptée, et le verdict le DIT', () => {
++  assert.equal(bordDefilant({ textes: textes() }), '')
++  const m = { textes: textes({ journal: { champ: [209.8, 334.8], coupees: [], auBordDefilant: { texte: 'Knud vise Grunni.', scrollHeight: 412, clientHeight: 125 } } }) }
++  assert.match(bordDefilant(m), /journal : « Knud vise Grunni\. » au bord bas, accepté — le panneau défile \(scrollHeight 412 > clientHeight 125\)/)
++  assert.deepEqual(defautsTexte({ largeur: 360, hauteur: 650, grossier: false, ...m }, 'texte'), [])
++})
++
++test('texte : un mot COMPOSÉ sur deux lignes est tranché (R-M2) ; un mot rogné aussi', () => {
++  const m = { largeur: 701, hauteur: 780, grossier: true, textes: textes({ tranches: [
++    { mot: 'Pierre-de-Fer', ou: 'FIGCAPTION', comment: '2 lignes' },
++    { mot: 'ARBALÈTE', ou: 'cc-bay-head', comment: 'rogné par cc-bay-head' }] }) }
++  const d = defautsTexte(m, 'texte (tour de héros)')
++  assert.equal(d.length, 2)
++  assert.match(d[0], /701×780 \(doigt\) : le mot « Pierre-de-Fer » \(FIGCAPTION\) est tranché — 2 lignes/)
++  assert.match(d[1], /« ARBALÈTE » \(cc-bay-head\) est tranché — rogné/)
++})
++
++test('texte : un NUMÉRO seul sur sa ligne et une ligne du journal coupée par son bord sont nommés', () => {
++  const m = { largeur: 640, hauteur: 780, grossier: false, textes: textes({
++    orphelins: [{ ligne: '2', bloc: 'Début du Round / 2', ou: 'cc-phase-label' }],
++    journal: { champ: [73, 219], coupees: [{ texte: 'Grunni Pierre-de-Fer.', rect: { x: 1, y: 200, w: 2, h: 30 } }] } }) }
++  const d = defautsTexte(m, 'texte')
++  assert.equal(d.length, 2)
++  assert.match(d[0], /« 2 » reste seul sur sa ligne dans « Début du Round \/ 2 »/)
++  assert.match(d[1], /la ligne du journal « Grunni Pierre-de-Fer\. ».*coupée par le bord du panneau \[73,219\]/)
++})
++
++test('texte : relevé ABSENT — la sonde se déclare aveugle', () => {
++  unSeul(defautsTexte({ largeur: 360, hauteur: 740 }, 'texte'), /sonde aveugle sur les mots tranchés/)
++})
++
++test('immobilité : une boîte qui bouge de plus d’un demi-pixel d’un état à l’autre est un défaut ; ≤ 0,5 px, rien', () => {
++  const b = (y, h) => ({ x: 10, y, w: 200, h })
++  const releves = { 'souris 1707×780': {
++    'tour de héros': { arche: b(613, 167), bande: b(647, 133), frise: null, coin: b(650, 120) },
++    'nom le plus long': { arche: b(594, 186), bande: b(647, 133), frise: null, coin: b(650.5, 120) },
++    spectateur: { arche: b(613, 167), bande: b(647, 133), frise: null, coin: null } } }
++  const d = defautsImmobilite(releves)
++  assert.equal(d.length, 1, d.join(' | '))
++  assert.match(d[0], /immobilité souris 1707×780 : la boîte « arche » passe de .*\(tour de héros\) à .*\(nom le plus long\) — 19px/)
++})
++
++test('budget au DOIGT dès 701 : la bande dépasse 17 % case à sa cible, jamais l’empreinte 22 %', () => {
++  const m = { largeur: 1366, hauteur: 650, grossier: true, dock: { rect: { x: 0, y: 507, w: 1366, h: 143 },
++    bande: { x: 0, y: 518, w: 1366, h: 132 }, arche: { x: 575, y: 507, w: 214, h: 143 }, case: 44, cible: 44, portrait: 70, portraitHaut: 70 } }
++  assert.deepEqual(defautsBudget(m, 'budget'), [])
++  const haut = { ...m, dock: { ...m.dock, arche: { ...m.dock.arche, y: 489.8 } } }
++  unSeul(defautsBudget(haut, 'budget'), /1366×650px \(§12 >900, pointer: coarse\) : le pont, fronton compris, prend 24\.6 %/)
++  const souris = { ...m, grossier: false, dock: { ...m.dock, case: 33 } }
++  unSeul(defautsBudget(souris, 'budget'), /la bande du pont prend 20\.3 % de la hauteur \(plafond 17 % dès 701px\)/)
++})
++
++test('budget au DOIGT sous 701 : le pont empilé tient 48 %, à 561–700 comme à ≤560', () => {
++  const pont = (l, h, p) => ({ largeur: l, hauteur: h, grossier: true, dock: { rect: { x: 0, y: h - p, w: l, h: p } } })
++  assert.deepEqual(defautsBudget(pont(640, 650, 312), 'budget'), [])
++  unSeul(defautsBudget(pont(640, 600, 312), 'budget'), /640×600px \(§12 561–700, pointer: coarse\) : le pont empilé prend 52\.0 % de la hauteur \(plafond 48 %\)/)
++  assert.deepEqual(defautsBudget(pont(360, 650, 312), 'budget'), [])
++  unSeul(defautsBudget(pont(360, 600, 312), 'budget'), /le pont empilé prend 52\.0 % de la hauteur \(plafond 48 %\)/)
++})
++
++test('budget au DOIGT à 701–900 : la ligne d’arche tient 30 %, pas l’empreinte 22 %', () => {
++  const m = { largeur: 900, hauteur: 650, grossier: true, dock: { rect: { x: 0, y: 466.4, w: 900, h: 183.6 },
++    bande: { x: 0, y: 466.4, w: 900, h: 183.6 }, arche: { x: 10, y: 466.4, w: 806, h: 47 }, case: 45.3, cible: 44 } }
++  assert.deepEqual(defautsBudget(m, 'budget'), [], 'case au-dessus de sa cible : la bande de 17 % n’est pas celle de la ligne d’arche')
++  const haut = { ...m, hauteur: 600, dock: { ...m.dock, bande: { ...m.dock.bande, y: 416.4 }, arche: { ...m.dock.arche, y: 416.4 } } }
++  unSeul(defautsBudget(haut, 'budget'), /900×600px \(§12 701–900, pointer: coarse\) : le pont, fronton compris, prend 30\.6 % de la hauteur \(plafond 30 % en ligne d'arche au doigt\)/)
++  const souris = defautsBudget({ ...m, grossier: false, dock: { ...m.dock, case: 30 } }, 'budget')
++  assert.equal(souris.length, 2, souris.join(' | '))
++  assert.match(souris[1], /900×650px \(§12 701–900\) : le pont, fronton compris, prend 28\.2 % de la hauteur \(plafond 22 % dès 701px\)/)
++})
++
++test('le VISAGE cède avant la case : portrait sous sa cote, case au-dessus de sa cible — défaut ; case à sa cible, rien', () => {
++  const m = { largeur: 900, hauteur: 780, grossier: false, dock: { rect: { x: 0, y: 613, w: 900, h: 167 },
++    bande: { x: 0, y: 647, w: 900, h: 132 }, arche: { x: 316, y: 613, w: 183, h: 167 }, case: 42.4, cible: 24, portrait: 48, portraitHaut: 108 } }
++  unSeul(defautsBudget(m, 'budget'), /le portrait de l'arche cède à 48px sous sa cote de 108px alors que la case \(42\.4px\) est au-dessus de sa cible \(24px\)/)
++  assert.deepEqual(defautsBudget({ ...m, dock: { ...m.dock, case: 24 } }, 'budget'), [])
++})
++
++test('libellés au PIRE : lus dans les données, du plus long au plus court ; le plus long nom composé', () => {
++  const r = libellesAuPire([{ label: 'Rat' }, { label: 'Chauve-souris vampire' }, { label: 'Mangeuse d’hommes géante' }],
++    { a: { label: 'Grunni Pierre-de-Fer' }, b: { name: 'Aelindra Feuille-d’Argent' }, c: { label: 'Sigmund Reikhardt Lang' } })
++  assert.deepEqual(r.creaturesParLongueur, ['Mangeuse d’hommes géante', 'Chauve-souris vampire', 'Rat'])
++  assert.equal(r.creatureComposee, 'Chauve-souris vampire')
++  assert.equal(r.heroCompose, 'Aelindra Feuille-d’Argent')
++})
+diff --git a/src/data/primitives.manifest.json b/src/data/primitives.manifest.json
+index b96959bcb..a88eb23c4 100644
+--- a/src/data/primitives.manifest.json
++++ b/src/data/primitives.manifest.json
+@@ -847,6 +847,16 @@
+     "perimetre": "Coup Critique, Imparfaite, Mutation — étape d’affichage comme étape de choix de déviation",
+     "verrou": "—"
+   },
++  {
++    "id": "nom",
++    "type": "primitives.manifest",
++    "label": "Nom",
++    "fichier": "src/ui/Nom.tsx",
++    "css": "src/ui/styles/nom.css",
++    "concept": "nom propre rendu MOT À MOT : chaque mot est une boîte insécable, le nom ne se coupe qu’entre ses mots (R-M2), jamais dans un mot composé",
++    "perimetre": "noms cités de `TeamSegments` (journal, récap, fil d’événements), nom gravé de l’arche de la console, légende des cartes du groupe",
++    "verrou": "TeamSegments.test.tsx — chaque mot est une boîte insécable de nom.css"
++  },
+   {
+     "id": "teamSegments",
+     "type": "primitives.manifest",
+diff --git a/src/data/schemas/_ids.generated.ts b/src/data/schemas/_ids.generated.ts
+index e273e7717..b08bea848 100644
+--- a/src/data/schemas/_ids.generated.ts
++++ b/src/data/schemas/_ids.generated.ts
+@@ -70,7 +70,7 @@ const IDS = {
+   'oups.json': ['vous-vous-blessez-en-attaquant-perdez-1-blessure-ignore-be-pa', 'arme-abimee-1-degat-vous-agirez-en-dernier-au-prochain-round', '10-a-votre-action-au-prochain-round', 'vous-trebuchez-vous-perdez-votre-prochain-mouvement', 'vous-lachez-ou-ratez-vous-perdez-votre-prochaine-action', 'vous-vous-tordez-la-cheville-dechirure-musculaire-mineure-compte-comme-blessure-critique', 'vous-touchez-un-allie-au-hasard-ou-vous-meme-sonne', 'incident-de-tir-l-arme-explose-dans-votre-main-degats-au-bras-principal-arme-detruite'],
+   'peripeties.json': ['voyage-reposant', 'quelque-chose-d-interessant', 'a-present-c-est-utile', 'voyage-ereintant', 'poursuivis', 'voleurs', 'pas-encore', 'mauvaise-influence', 'meme-la-nature-vous-deteste', 'attaques'],
+   'pregens.json': ['sigmund-reikhardt', 'grunni-pierre-de-fer', 'wilhelmina-faust', 'frere-anselm', 'aelindra-feuille-d-argent', 'rosa-brandt', 'klein-burger', 'otto-hammerfest'],
+-  'primitives.manifest.json': ['screenShell', 'cadre', 'planche', 'modal', 'boite-ancree', 'infobulle', 'codex-ref', 'focus', 'dismissLayer', 'rollShell', 'rollRow', 'makeRollFlow', 'rollSeam', 'optionChooser', 'breakdown', 'influenceRow', 'vsHeader', 'portraitTile', 'searchFilterField', 'findTableEntry', 'baseTestMods', 'actorIn', 'meneurDuMonde', 'applyOps', 'gameOpEditor', 'passiveMods', 'fireTriggers', 'resolveFreeAttacks', 'shipDamage', 'cascade', 'policy', 'netOwnership', 'refField', 'prose', 'resolveRender', 'masterDetail', 'itemIcon', 'mediaSelect', 'genRegistry', 'pointDEntree', 'descendre', 'coDescendre', 'menuCard', 'screenMeta', 'tabs', 'rovingFocus', 'useRamenerEnVue', 'useLongPress', 'coopPanels', 'readyRow', 'panneauParametre', 'lifeBar', 'tradeTable', 'parchmentCard', 'activityPane', 'qtyStepper', 'numberField', 'freeAttackLabel', 'gameOpChips', 'opRows', 'cascadeSuspension', 'creatorDice', 'characterPreview', 'gatedAction', 'roseAxes', 'metalStatus', 'waxSeal', 'careerPath', 'figTile', 'groupedPickGrid', 'detailFrame', 'plaqueRow', 'creatorStepFrame', 'band', 'reglagesApparence', 'heroSheet', 'designGallery', 'layout', 'ornaments', 'notchGauge', 'windRose', 'rollLine', 'rollPanel', 'diceRoll', 'forcedRollPicker', 'recapLine', 'multiRollList', 'revealBody', 'teamSegments', 'combatBanner', 'combatConsole', 'combatStartSplash', 'rigPortrait', 'fxChip', 'spectatorChip', 'gearAssignList', 'rewardRecap', 'errorBoundary', 'logDrawer', 'inspectPanel', 'equipmentPanel', 'gameStage', 'isoStage', 'plaquesDeNom', 'pastilleEntite', 'stateChips', 'initiativeStrip', 'partyDock', 'objectiveBanner', 'viewControls', 'drBar', 'coins', 'suiteDuCoup', 'indexedDb', 'coupeAuMot', 'posePartagee', 'echapperRegex', 'alternationDe', 'alternationDeRegex', 'espacesExtensibles', 'clesDePalette', 'paletteDeclaree', 'paletteDEspeceSchema', 'declarationsInertes', 'coucheDEspece', 'jetonsDeLArt', 'gammeDePalette', 'vuesDuRig', 'formatsDArtOriente', 'lectureDUneVue', 'viewOrFront', 'tableTotale', 'isDrawnView', 'lireDegradeDerive', 'fxGradientIds', 'cleDeSite', 'stockDeSites', 'regenererStock', 'entreesNominatives', 'threeWay', 'litteralJs', 'ast', 'perimetreDUneDeclaration', 'constructionsReservees', 'tsProgram', 'lecturesDeLArt', 'gardeCleDeSite', 'secondNomEtPerimetre', 'reponsesDuNoeud', 'surfaceTientLaMain', 'ordreTotal', 'stockageWeb', 'playerText', 'dataLabel'],
++  'primitives.manifest.json': ['screenShell', 'cadre', 'planche', 'modal', 'boite-ancree', 'infobulle', 'codex-ref', 'focus', 'dismissLayer', 'rollShell', 'rollRow', 'makeRollFlow', 'rollSeam', 'optionChooser', 'breakdown', 'influenceRow', 'vsHeader', 'portraitTile', 'searchFilterField', 'findTableEntry', 'baseTestMods', 'actorIn', 'meneurDuMonde', 'applyOps', 'gameOpEditor', 'passiveMods', 'fireTriggers', 'resolveFreeAttacks', 'shipDamage', 'cascade', 'policy', 'netOwnership', 'refField', 'prose', 'resolveRender', 'masterDetail', 'itemIcon', 'mediaSelect', 'genRegistry', 'pointDEntree', 'descendre', 'coDescendre', 'menuCard', 'screenMeta', 'tabs', 'rovingFocus', 'useRamenerEnVue', 'useLongPress', 'coopPanels', 'readyRow', 'panneauParametre', 'lifeBar', 'tradeTable', 'parchmentCard', 'activityPane', 'qtyStepper', 'numberField', 'freeAttackLabel', 'gameOpChips', 'opRows', 'cascadeSuspension', 'creatorDice', 'characterPreview', 'gatedAction', 'roseAxes', 'metalStatus', 'waxSeal', 'careerPath', 'figTile', 'groupedPickGrid', 'detailFrame', 'plaqueRow', 'creatorStepFrame', 'band', 'reglagesApparence', 'heroSheet', 'designGallery', 'layout', 'ornaments', 'notchGauge', 'windRose', 'rollLine', 'rollPanel', 'diceRoll', 'forcedRollPicker', 'recapLine', 'multiRollList', 'revealBody', 'nom', 'teamSegments', 'combatBanner', 'combatConsole', 'combatStartSplash', 'rigPortrait', 'fxChip', 'spectatorChip', 'gearAssignList', 'rewardRecap', 'errorBoundary', 'logDrawer', 'inspectPanel', 'equipmentPanel', 'gameStage', 'isoStage', 'plaquesDeNom', 'pastilleEntite', 'stateChips', 'initiativeStrip', 'partyDock', 'objectiveBanner', 'viewControls', 'drBar', 'coins', 'suiteDuCoup', 'indexedDb', 'coupeAuMot', 'posePartagee', 'echapperRegex', 'alternationDe', 'alternationDeRegex', 'espacesExtensibles', 'clesDePalette', 'paletteDeclaree', 'paletteDEspeceSchema', 'declarationsInertes', 'coucheDEspece', 'jetonsDeLArt', 'gammeDePalette', 'vuesDuRig', 'formatsDArtOriente', 'lectureDUneVue', 'viewOrFront', 'tableTotale', 'isDrawnView', 'lireDegradeDerive', 'fxGradientIds', 'cleDeSite', 'stockDeSites', 'regenererStock', 'entreesNominatives', 'threeWay', 'litteralJs', 'ast', 'perimetreDUneDeclaration', 'constructionsReservees', 'tsProgram', 'lecturesDeLArt', 'gardeCleDeSite', 'secondNomEtPerimetre', 'reponsesDuNoeud', 'surfaceTientLaMain', 'ordreTotal', 'stockageWeb', 'playerText', 'dataLabel'],
+   'props.json': ['feu-camp', 'brasero', 'chandelier', 'lampadaire', 'pupitre-chef', 'barriere', 'cloture', 'palissade', 'tribune', 'balustrade-loge', 'rangee-sieges', 'rideau-scene', 'statue', 'gargouille', 'menhir', 'rocher', 'stalagmite', 'colonne-brisee', 'autel', 'idole-chaos', 'fontaine', 'puits', 'abreuvoir', 'sarcophage', 'tombe', 'gibet', 'pilori', 'cage', 'arbre', 'arbre-mort', 'souche', 'tonneau', 'tonneaux-pile', 'caisse', 'coffre', 'urne', 'marmite', 'oeuf-dragon', 'charrette', 'epave-carrosse', 'barque', 'table', 'table-2x1', 'chaise', 'banc', 'tabouret', 'armoire', 'bureau', 'bureau-2x1', 'etabli', 'etabli-2x1', 'lit', 'miroir', 'etagere', 'rack-armes', 'rack-lances', 'mannequin', 'mannequin-couturier', 'fauteuil-loge', 'plante-pot', 'etal-marche', 'tente', 'tas-foin', 'cheval-mort', 'balustrade-bois', 'canon-de-pont', 'cuve-brasserie', 'ecoutille', 'enclume', 'escalier-bois', 'escalier-loge', 'foyer-de-forge', 'passerelle-d-embarquement', 'rouleau-de-cordage', 'stalle-ecurie', 'cheminee-interieure', 'comptoir-droit', 'comptoir-angle', 'table-ronde-4-tabourets', 'table-murale-2-tabourets', 'cheminee', 'enseigne', 'clocheton', 'applique-murale', 'ancre-de-navire', 'arche-ruine', 'banniere-chaos', 'barre-de-navire', 'bastingage', 'bourse', 'buisson', 'cabestan', 'cadavre', 'canape', 'cercle-runique', 'champignon', 'cle', 'cocon', 'coiffeuse', 'crane-monstre', 'decor-flat', 'detritus', 'etendard', 'gravats', 'grille', 'lanterne-de-poupe', 'lettre', 'lustre-opera', 'mare-sang', 'mat-de-navire', 'nenuphars', 'ossements', 'panneau', 'paravent', 'pieu', 'portant-costumes', 'roseaux', 'roue-dentee', 'scie-chevalet', 'siege', 'tas-or', 'terrier', 'toile', 'trophee-cranes'],
+   'props.json?volume': ['pupitre-chef', 'rangee-sieges', 'rideau-scene', 'statue', 'colonne-brisee', 'tonneau', 'tonneaux-pile', 'caisse', 'coffre', 'urne', 'charrette', 'table', 'table-2x1', 'chaise', 'banc', 'tabouret', 'armoire', 'bureau', 'bureau-2x1', 'etabli', 'etabli-2x1', 'miroir', 'etagere', 'rack-armes', 'mannequin', 'mannequin-couturier', 'fauteuil-loge', 'plante-pot', 'etal-marche', 'cheminee-interieure', 'comptoir-droit', 'comptoir-angle', 'table-ronde-4-tabourets', 'table-murale-2-tabourets', 'cheminee', 'enseigne', 'clocheton', 'applique-murale', 'canape', 'coiffeuse', 'decor-flat', 'lustre-opera', 'paravent', 'portant-costumes', 'scie-chevalet', 'siege'],
+   'psychology.json': ['frenesie', 'peur', 'terreur', 'animosite', 'haine', 'prejuge', 'amour', 'camaraderie', 'phobie'],
+diff --git a/src/ui/CampaignView.tsx b/src/ui/CampaignView.tsx
+index 5f218af93..1f2806ef2 100644
+--- a/src/ui/CampaignView.tsx
++++ b/src/ui/CampaignView.tsx
+@@ -323,9 +323,10 @@ export function CampaignView() {
+           {/* Zone TEMPS : en combat la frise d'initiative et, à sa suite, le fil d'événements ; hors
+               combat l'objectif courant (#238), nul si la pile d'objectifs est vide. La frise tient
+               dans sa zone, qui s'arrête au-dessus de la réserve du bandeau de phase. */}
+-          <Row data-zone="temps" wrap={false} stackBelow={700}>
++          <Stack data-zone="temps">
+             {mode === 'exploration' && <ObjectiveBannerMount />}
+             {mode === 'battle' && battle && (
++              <Stack data-piste="frise">
+               <InitiativeStrip
+                 order={battle.order}
+                 turn={battle.turn}
+@@ -350,9 +351,10 @@ export function CampaignView() {
+                   onToggle: () => runAction(handDef.id, useGame.getState, { toggleOff: handRaised }),
+                 }}
+               />
++              </Stack>
+             )}
+             {mode === 'battle' && battle && <CombatBanner />}
+-          </Row>
++          </Stack>
+           {/* BANDEAU D'OUVERTURE (arbitrage user 2026-08-24, référence RT « round 0 ») : la pause du
+               premier Round quitte le pont pour le haut de la carte — une surface de la couche. */}
+           {mode === 'battle' && (
+@@ -368,7 +370,7 @@ export function CampaignView() {
+               `state/keybindings`, remappable à l'écran Options). */}
+           {mode === 'battle' && (
+             <Stack data-zone="outils" align="end">
+-              <Stack className="hud-rail skin-bois" gap="md" pad="md" rowBelow={560}>
++              <Stack className="hud-rail skin-bois" gap="md" pad="md" rowBelow={700}>
+                 {vessel && (
+                   <button
+                     type="button"
+diff --git a/src/ui/CombatBanner.test.tsx b/src/ui/CombatBanner.test.tsx
+index 0e7613f5b..21f6c2d3b 100644
+--- a/src/ui/CombatBanner.test.tsx
++++ b/src/ui/CombatBanner.test.tsx
+@@ -67,7 +67,7 @@ describe('CombatBanner', () => {
+     ]);
+     const html = host.innerHTML;
+     expect(html).toContain('role="status" aria-live="polite" aria-atomic="true"');
+-    expect(html.match(/class="cb-ev /g)?.length).toBe(1);
++    expect(host.querySelectorAll('.cb-ev').length).toBe(1);
+     expect(html).toContain('Gunnar');
+     expect(html).not.toContain('Ancienne ligne');
+   });
+diff --git a/src/ui/CombatBanner.tsx b/src/ui/CombatBanner.tsx
+index 8204e82a6..f63113baa 100644
+--- a/src/ui/CombatBanner.tsx
++++ b/src/ui/CombatBanner.tsx
+@@ -4,6 +4,7 @@ import { combatFeed, narrateIntent, narrateRefus } from '../gameIso/combatNarrat
+ import { eteindreRefus, REFUS_MS } from '../state/refusVisible';
+ import { scheduleFlowTimer, clearTrackedTimer } from '../state/combatTimers';
+ import { Icon } from './Icon';
++import { Row } from './Layout';
+ import { TeamSegments } from './TeamSegments';
+ 
+ /**
+@@ -42,12 +43,12 @@ export function CombatBanner() {
+   return (
+     <div className="combat-feed" role="status" aria-live="polite" aria-atomic="true">
+       {line && (
+-        <div key={key} className={`cb-ev cb-now cb-tone-${line.tone} halo-champ`}>
++        <Row key={key} className={`cb-ev cb-now cb-tone-${line.tone} halo-champ`}>
+           <span className="cb-ic"><Icon id={line.icon} size={15} /></span>
+           <span className="cb-tx">
+             <TeamSegments segments={line.segments} />
+           </span>
+-        </div>
++        </Row>
+       )}
+     </div>
+   );
+diff --git a/src/ui/CombatConsole.test.tsx b/src/ui/CombatConsole.test.tsx
+index b9377027c..f03117fae 100644
+--- a/src/ui/CombatConsole.test.tsx
++++ b/src/ui/CombatConsole.test.tsx
+@@ -164,7 +164,7 @@ function quitterRefus(el: Element): Element | null {
+  *  ou `aria-disabled` (elle PORTE une raison, donc elle reste focalisable — clavier, manette, doigt). */
+ const estFermee = (b: HTMLButtonElement) => b.disabled || b.getAttribute('aria-disabled') === 'true';
+ 
+-/** NOM d'une alvéole : la case ne grave plus son libellé (décision d'écran Q1 du 2026-09-24, #1806) —
++/** NOM d'une alvéole : la case ne grave pas son libellé (décision d'écran Q1 du 2026-09-24, #1806) —
+  *  il vit dans son nom accessible, suivi des gestes secondaires qu'elle annonce (« — … »). */
+ const nomCase = (c: Element) => (c.getAttribute('aria-label') ?? '').split(' — ')[0];
+ 
+@@ -440,15 +440,15 @@ const racine = () => ruleOf(CC_BASE, ':root');
+  * contrats de GRANDEUR : on juge la LOI déclarée (un rapport, un ordre, un budget), jamais le TEXTE
+  * d'une formule — une formule réécrite sans changer le rendu ne doit rien casser.
+  */
+-function evalLen(expr: string, vw: number, vh: number, depth = 0): number {
+-  if (depth > 8) throw new Error(`résolution de variables trop profonde : ${expr}`);
++function evalLen(expr: string, vw: number, vh: number, depth = 0, rac = racine()): number {
++  if (depth > 16) throw new Error(`résolution de variables trop profonde : ${expr}`);
+   let e = expr.trim();
+   // 1) variables du module
+   for (let i = 0; i < 8 && e.includes('var('); i++) {
+     e = e.replace(/var\((--[\w-]+)\)/g, (_m, nom: string) => {
+-      const v = decl(racine(), nom) ?? new RegExp(`${nom}:\\s*([^;]+);`).exec(BASE_CSS)?.[1];
++      const v = decl(rac, nom) ?? new RegExp(`${nom}:\\s*([^;]+);`).exec(BASE_CSS)?.[1];
+       if (!v) throw new Error(`variable ${nom} absente du :root de combat-console.css et de base.css`);
+-      return `(${String(evalLen(v, vw, vh, depth + 1))}px)`;
++      return `(${String(evalLen(v, vw, vh, depth + 1, rac))}px)`;
+     });
+   }
+   // 2) fonctions CSS → JS
+@@ -462,6 +462,31 @@ function evalLen(expr: string, vw: number, vh: number, depth = 0): number {
+   return Function('CLAMP', 'Math', `"use strict"; return (${e});`)(CLAMP, Math) as number;
+ }
+ 
++/**
++ * Le `:root` de la console tel qu'il VAUT à une vue : celui de la base, puis celui de chaque tranche
++ * dont la requête s'applique (largeur, pointeur), dans l'ordre de la feuille — la dernière
++ * déclaration gagne (`decl`). Dit aussi la COMPOSITION de la bande à cette vue.
++ */
++function racineVue(vw: number, grossier: boolean): { rac: string; forme: 'rangee' | 'ligne' | 'empilee' } {
++  let rac = racine();
++  let forme: 'rangee' | 'ligne' | 'empilee' = 'rangee';
++  for (const m of CC_CSS.matchAll(/@media([^{]+)\{/g)) {
++    const vaut = m[1].split(',').some((q) => [...q.matchAll(/\(([^)]+)\)/g)].every(([, c]) => {
++      const [k, v] = c.split(':').map((x) => x.trim());
++      if (k === 'max-width') return vw <= parseFloat(v);
++      if (k === 'pointer') return (v === 'coarse') === grossier;
++      throw new Error(`requête non gérée : ${c}`);
++    }));
++    if (!vaut) continue;
++    const bloc = mediaBlock(CC_CSS, `@media${m[1]}`);
++    const r = /(?:^|\})\s*:root\s*\{([^}]*)\}/.exec(bloc);
++    if (r) rac += `;${r[1]}`;
++    if (/grid-template-areas:[^;]*'left left'/.test(bloc)) forme = 'empilee';
++    else if (/grid-template-areas:[^;]*'left right right'/.test(bloc) && forme === 'rangee') forme = 'ligne';
++  }
++  return { rac, forme };
++}
++
+ function token(name: string): string {
+   const m = new RegExp(`${name}:\\s*([^;]+);`).exec(BASE_CSS);
+   expect(m, `token ${name} absent de base.css`).not.toBeNull();
+@@ -684,10 +709,15 @@ describe('CombatConsole — micro-rendu (sondes pixel du juge vision, 2026-08-17
+     const at700 = mediaBlock(CC_CSS, '@media (max-width: 700px)');
+     const portraitBase = evalLen(decl(ruleOf(CC_BASE, ':root'), '--cc-portrait')!, 1366, 650);
+     expect(evalLen(decl(ruleOf(at700, ':root'), '--cc-portrait')!, 700, 780)).toBeLessThan(portraitBase);
+-    expect(decl(ruleOf(CC_BASE, '.cc-arch .ptile'), 'width')).toBe('var(--cc-portrait) !important');
++    expect(decl(ruleOf(CC_BASE, '.cc-arch .ptile'), 'width')).toBe('var(--cc-portrait)');
+     const visage = ruleOf(CC_BASE, '.cc-arch .ptile-face, .cc-arch .rig-portrait');
+-    expect(decl(visage, 'width')).toBe('100% !important');
+-    expect(decl(visage, 'height')).toBe('100% !important');
++    expect(decl(visage, 'width')).toBe('100%');
++    expect(decl(visage, 'height')).toBe('100%');
++    // Sans `!important` : `PortraitTile` pose sa taille nominale en VARIABLE (`--ptile-px`), la règle
++    // de la console la reprend à spécificité supérieure (consigne du 2026-09-20, stock décroissant).
++    for (const sel of ['.cc-arch .ptile', '.cc-arch .ptile-face, .cc-arch .rig-portrait']) {
++      expect(ruleOf(CC_BASE, sel), `${sel} force sa taille`).not.toMatch(/!important/);
++    }
+     const svg = ruleOf(CC_BASE, '.cc-arch .rig-portrait > svg');
+     expect(decl(svg, 'width')).toBe('100%');
+     expect(decl(svg, 'height')).toBe('100%');
+@@ -959,7 +989,7 @@ describe('CombatConsole — assemblage : UN PONT, pas des blocs', () => {
+     // hauteur disponible se mesure sur le CONTENEUR (`cqh` = sa zone), que hud.css déclare.
+     const tiles = ruleOf(STRIP_BASE, '.is-tiles');
+     expect(decl(tiles, '--is-avail')).toMatch(/cqh/);
+-    expect(decl(ruleOf(HUD_BASE, "[data-zone='temps']"), 'container-type'), 'la zone de la frise n’est pas un conteneur de requête').toBe('size');
++    expect(decl(ruleOf(HUD_BASE, "[data-zone='temps'] > [data-piste='frise']"), 'container-type'), 'la piste de la frise n’est pas un conteneur de requête').toBe('size');
+     expect(decl(tiles, 'max-height')).toMatch(/--is-avail/);
+     expect(decl(tiles, 'overflow-y')).toBe('auto');
+   });
+@@ -1089,6 +1119,18 @@ describe('CombatConsole — trois formes, une seule bande', () => {
+         expect(decl(bloc[1], p), `une forme règle « ${p} » : le pont bat d’une forme à l’autre`).toBeNull();
+       }
+     }
++    // … ni à sa PLACE : la forme spectatrice pose l'arche dans la MÊME grille que la forme complète
++    // (colonnes, aires, réserve miroir, coin compté à sa largeur), à toute largeur
++    // (CombatConsole.tsx:51-53). Aucune règle keyée sur une forme ne
++    // règle une grandeur de PLACEMENT de la bande ou de l'arche.
++    const PLACEMENT = ['display', 'justify-content', 'justify-items', 'align-items', 'align-content', 'grid-template-columns', 'grid-template-areas', 'grid-template-rows', 'grid-column', 'grid-area', 'padding', 'padding-inline', 'padding-left', 'padding-right', 'width', 'margin', 'margin-top'];
++    for (const bloc of [...CC_CSS.matchAll(/([^{}]*\[data-forme[^{]*)\{([^}]*)\}/g)]) {
++      if (!/\.cc-dock|\.cc-arch\b/.test(bloc[1])) continue;
++      for (const p of PLACEMENT) expect(decl(bloc[2], p), `« ${norm(bloc[1])} » règle « ${p} » : l’arche change de place d’un tour à l’autre`).toBeNull();
++    }
++    const cols = decl(ruleOf(CC_BASE, '.cc-dock'), 'grid-template-columns')!;
++    expect(cols.split(/\s+(?![^(]*\))/).slice(-1)[0], 'le coin n’est pas compté à sa largeur quand il manque').toBe('var(--cc-corner)');
++    expect(decl(ruleOf(CC_BASE, '.cc-arch'), 'grid-column'), 'seule dans la bande, l’arche glisse dans la première voie').toBe('2');
+     // La forme spectatrice ÉTEINT la matière de la bande sans toucher à sa BOÎTE : c'est ce qui rend
+     // l'arche immobile au pixel (une bordure retirée faisait sauter le pont de 3px, mesuré à 1707).
+     // Le LISERÉ n'y perd que sa teinte, jamais son épaisseur.
+@@ -1480,7 +1522,7 @@ describe('CombatConsole — droit de la travée et du coin (juge vision 2026-08-
+     expect(qualite.desc, 'la qualité recharge doit porter son verbatim').toBeTruthy();
+     const popCharge = survol('g2-charge');
+     const popRech = survol('g4-recharger');
+-    // En tête, le NOM de la capacité (la case ne le grave plus — décision d'écran Q1 du 2026-09-24) ;
++    // En tête, le NOM de la capacité (la case ne le grave pas — décision d'écran Q1 du 2026-09-24) ;
+     // dessous, la fiche de sa règle.
+     expect(popCharge.title).toBe(nomCase(host.querySelector('[data-cell="g2-charge"]')!));
+     expect(popCharge.sub).toBe(fiche.label);
+@@ -1815,7 +1857,7 @@ describe('CombatConsole — les cases sont des ENTRÉES du registre (branchement
+ 
+   // La TOUCHE est imprimée DANS la case, dans son coin (décision d'écran Q1 du 2026-09-24 ;
+   // `Analyse HUD Rogue Trader.dc.html:126` « La touche est imprimée dans la case ») : sans libellé à
+-  // mordre, elle ne réserve plus aucune bande — la case reste carrée.
++  // mordre, elle ne réserve aucune bande — la case reste carrée.
+   it('R-7bis — la touche est imprimée dans le coin de la case, sans réserve', () => {
+     const h = hero('h1', 'Gunnar');
+     h.conditions = [];
+@@ -2076,30 +2118,41 @@ describe('CombatConsole — micro-rendu, 2ᵉ passe du juge vision (2026-08-17)'
+ //    On ÉVALUE ici les déclarations réelles à viewport simulé : c'est la LOI déclarée qui est jugée, pas
+ //    un littéral recopié. `scripts/recette/hud-clickables.mjs` re-mesure les mêmes plafonds à l'écran.
+ describe('CombatConsole — budget de hauteur du pont (arbitrage user 2026-08-17, décision d’écran 2026-09-24)', () => {
+-  /** Hauteur de la BANDE telle que le CSS la DÉCLARE, à un viewport donné. */
+-  const deck = (vw: number, vh: number) => evalLen(decl(racine(), '--cc-deck-h')!, vw, vh);
+-  const saillie = (vw: number, vh: number) => evalLen(decl(racine(), '--cc-saillie')!, vw, vh);
++  /** Une grandeur du `:root` telle qu'elle vaut à une vue, pointeur fin ou grossier. */
++  const vaut = (e: string, vw: number, vh: number, grossier = false) => evalLen(e, vw, vh, 0, racineVue(vw, grossier).rac);
++  /** Hauteur de la BANDE telle que le CSS la DÉCLARE à une vue (tranches comprises), et saillie du fronton. */
++  const deck = (vw: number, vh: number, grossier = false) => vaut('var(--cc-deck-h)', vw, vh, grossier);
++  const saillie = (vw: number, vh: number, grossier = false) => vaut('var(--cc-saillie)', vw, vh, grossier);
+   const cote = (vw: number, vh: number) => evalLen(decl(racine(), '--cc-cell')!, vw, vh);
+ 
+   // Les vues de la décision (701, 900, 901, 1366×650, 1707×780), l'étalon, la planche, la capture de
+   // l'arbitrage (1998×959) et un grand écran.
+   const ECRANS: [number, number][] = [[701, 780], [900, 780], [901, 780], [1100, 780], [1280, 800], [1366, 650], [1707, 780], [1920, 1080], [1998, 959], [2560, 1440]];
+ 
+-  it('F-1 — bande ≤ 17 % et empreinte ≤ 22 % de la hauteur d’écran, à toute vue ≥ 701', () => {
+-    for (const [vw, vh] of ECRANS) {
+-      const bande = deck(vw, vh);
+-      const total = bande + saillie(vw, vh);
+-      expect(bande / vh, `${vw}×${vh} : bande ${bande.toFixed(1)}px = ${(100 * bande / vh).toFixed(1)} %`).toBeLessThanOrEqual(0.17 + 1e-9);
+-      expect(total / vh, `${vw}×${vh} : empreinte ${total.toFixed(1)}px = ${(100 * total / vh).toFixed(1)} %`).toBeLessThanOrEqual(0.22 + 1e-9);
+-      // … et il reste PRÉSENT (une console écrasée n'est pas une console).
+-      expect(bande / vh, `${vw}×${vh} : bande ${(100 * bande / vh).toFixed(1)} % — trop maigre`).toBeGreaterThan(0.13);
++  it('F-1 — bande ≤ 17 % et empreinte ≤ 22 % de la hauteur d’écran, à toute vue ≥ 701 — au doigt, la bande seule cède, case à sa cible', () => {
++    for (const grossier of [false, true]) {
++      for (const [vw, vh] of ECRANS) {
++        if (racineVue(vw, grossier).forme !== 'rangee') continue;
++        const bande = deck(vw, vh, grossier);
++        const total = bande + saillie(vw, vh, grossier);
++        const ou = `${vw}×${vh}${grossier ? ' (pointeur grossier)' : ''}`;
++        // … et il reste PRÉSENT (une console écrasée n'est pas une console).
++        expect(bande / vh, `${ou} : bande ${(100 * bande / vh).toFixed(1)} % — trop maigre`).toBeGreaterThan(0.13);
++        // La cible de pointage est une NORME (WCAG 2.5.5 au doigt) : case à sa cible, la BANDE lui cède ;
++        // l'empreinte, jamais — c'est le fronton qui cède (docs/plans/2026-08-16-spec-hud-combat.md, § Budget par pointeur).
++        expect(total / vh, `${ou} : empreinte ${total.toFixed(1)}px = ${(100 * total / vh).toFixed(1)} %`).toBeLessThanOrEqual(0.22 + 1e-9);
++        if (vaut('var(--cc-cell)', vw, vh, grossier) <= vaut('var(--cc-cible)', vw, vh, grossier) + 1e-9) continue;
++        expect(bande / vh, `${ou} : bande ${bande.toFixed(1)}px = ${(100 * bande / vh).toFixed(1)} %`).toBeLessThanOrEqual(0.17 + 1e-9);
++      }
+     }
++    // Sous la souris, la rangée tient le budget à TOUTES les vues de la décision.
++    for (const [vw, vh] of ECRANS) expect(racineVue(vw, false).forme, `${vw}×${vh}`).toBe('rangee');
+     // Le fronton COMPTE : c'est la saillie de l'empreinte, bornée au rapport de la planche (spec:237).
+     expect(saillie(1920, 1080)).toBe(evalLen('var(--cc-fronton)', 1920, 1080));
+     expect(evalLen('var(--cc-fronton)', 1920, 2000), 'le fronton dépasse 52px').toBeLessThanOrEqual(52);
+   });
+ 
+-  it('F-2 — l’alvéole est CARRÉE, et son côté ne casse pas entre 900 et 901', () => {
++  it('F-2 — l’alvéole est CARRÉE, son côté ne casse pas entre 900 et 901, et ne descend jamais sous la cible', () => {
+     const cell = ruleOf(CC_BASE, '.cc-cell');
+     expect(decl(cell, 'width')).toBe('var(--cc-cell)');
+     expect(decl(cell, 'height')).toBe('var(--cc-cell)');
+@@ -2107,20 +2160,48 @@ describe('CombatConsole — budget de hauteur du pont (arbitrage user 2026-08-17
+     // Une formule de 701 à toute largeur : aucune tranche ne redéclare le côté au-dessus de 560.
+     expect(decl(ruleOf(mediaBlock(CC_CSS, '@media (max-width: 700px)'), ':root'), '--cc-cell')).toBeNull();
+     expect(Math.abs(cote(901, 780) - cote(900, 780)), 'le côté casse entre 900 et 901').toBeLessThan(1);
+-    // La cote de la décision à la vue la plus étroite de la rangée.
+-    expect(cote(701, 780), 'case sous la cote de la décision à 701×780').toBeGreaterThanOrEqual(28);
++    // À la vue la plus étroite de la rangée, c'est la CASE qui cède, jusqu'à la cible de pointage ;
++    // le portrait prend ce qui reste (docs/plans/2026-08-16-spec-hud-combat.md, table Q1).
++    expect(cote(701, 780), 'case sous la cible de pointage à 701×780').toBeGreaterThanOrEqual(evalLen('var(--cc-cible)', 701, 780));
++    expect(cote(701, 780), 'à 701×780 la case ne cède pas').toBeLessThan(evalLen('var(--cc-cell-haut)', 701, 780));
++    expect(cote(701, 780), 'à 701×780 le visage cède avant la case').toBeCloseTo(evalLen('var(--cc-cible)', 701, 780), 1);
++    for (const grossier of [false, true]) {
++      for (const [vw, vh] of [[360, 740], [640, 780], [701, 780], [901, 780], [1366, 650], [1707, 780]] as [number, number][]) {
++        expect(vaut('var(--cc-cell)', vw, vh, grossier), `${vw}×${vh}${grossier ? ' au doigt' : ''} : case sous la cible`)
++          .toBeGreaterThanOrEqual(vaut('var(--cc-cible)', vw, vh, grossier) - 1e-9);
++      }
++    }
+   });
+ 
+-  it('F-3 — le côté se calcule sur la FENÊTRE (hauteur et largeur), jamais sur le pont', () => {
++  it('F-3 — le côté se calcule sur la FENÊTRE, et la bande TIENT dans la fenêtre à toute largeur, souris ET doigt', () => {
+     const c = decl(racine(), '--cc-cell')!;
+     expect(c, 'le côté lit une hauteur de pont').not.toMatch(/--cc-deck-h|--cc-bay-h/);
+     // Un même écran, plus haut : la case grandit (le budget est un RATIO, pas un plafond fixe).
+     expect(cote(1920, 1080)).toBeGreaterThan(cote(1920, 800));
+     // Un écran plus ÉTROIT : la rangée tient dans la fenêtre, donc la case cède.
+     expect(cote(701, 780)).toBeLessThan(cote(1707, 780));
+-    for (const [vw, vh] of ECRANS) {
+-      expect(evalLen('var(--cc-rangee)', vw, vh), `${vw}×${vh} : la rangée déborde la fenêtre`).toBeLessThanOrEqual(vw + 1e-6);
++    // À chaque largeur, sous chaque
++    // pointeur, la COMPOSITION que la feuille choisit tient dans la fenêtre — la rangée entière, la
++    // ligne d'arche sur deux travées côte à côte, ou les travées empilées.
++    const debords: string[] = [];
++    for (const grossier of [false, true]) {
++      for (let vw = 320; vw <= 2560; vw += 7) {
++        for (const vh of [650, 740, 780, 1024, 1180]) {
++          const { rac, forme } = racineVue(vw, grossier);
++          const L = (e: string) => evalLen(e, vw, vh, 0, rac);
++          const cell = L('var(--cc-cell)');
++          const gap = L('var(--cc-gap)');
++          const pad = L('var(--cc-bay-pad)');
++          const largeur = forme === 'rangee'
++            ? L('var(--cc-rangee)')
++            : forme === 'ligne'
++              ? L('var(--cc-colonnes)') * cell + L('var(--cc-rangee-fixe)')
++              : Math.max(6 * cell + 5 * gap, (5 + L('var(--cc-sets-part)')) * cell + 3 * gap + 6) + 2 * pad + 2 * L('var(--cc-marge)');
++          if (largeur > vw + 0.5) debords.push(`${vw}×${vh}${grossier ? ' au doigt' : ''} (${forme}) : ${largeur.toFixed(1)}px`);
++        }
++      }
+     }
++    expect(debords, 'la bande déborde la fenêtre').toEqual([]);
+   });
+ 
+   it('F-4 — l’icône vaut 60 % du côté, jamais un px figé (ni au CSS, ni au call-site)', () => {
+@@ -2140,12 +2221,23 @@ describe('CombatConsole — budget de hauteur du pont (arbitrage user 2026-08-17
+     expect(tsx, 'taille d’icône en px au call-site : l’échelle vit au CSS').not.toMatch(/<ItemIcon[^>]*size=\{\d+\}/);
+   });
+ 
+-  it('F-5 — le budget MOBILE reste celui de l’arbitrage compact (≤560 : la console peut prendre plus)', () => {
+-    // ≤560 les régions s'EMPILENT : le pont y vaut plus, c'est l'arbitrage 2026-08-16 (~40-45 %). La
+-    // tranche DÉCLARE son côté (aucun héritage du calcul de bureau), carré lui aussi.
+-    const at560 = mediaBlock(CC_CSS, '@media (max-width: 560px)');
+-    expect(decl(ruleOf(at560, ':root'), '--cc-cell')).toBeTruthy();
+-    expect(evalLen(decl(ruleOf(at560, ':root'), '--cc-cell')!, 360, 740)).toBeGreaterThan(0);
++  it('F-5 — plafonds des compositions étroites : souris 25 % / 45 %, doigt 30 % / 48 % (cible de 44px)', () => {
++    // Sous la souris : ≤560 les travées s'EMPILENT, l'arbitrage 2026-08-16 (« ~40-45 % », spec:60-63) ;
++    // 561-700, la ligne d'arche et deux travées côte à côte (≤ 25 %). Au DOIGT, la cible de 44px est la
++    // norme (docs/charte-ui.md:95) : 701-900 en ligne d'arche ≤ 30 %, ≤700 empilé ≤ 48 %
++    // (docs/plans/2026-08-16-spec-hud-combat.md, § Budget par pointeur).
++    const vues: [number, number, boolean, 'ligne' | 'empilee', number][] = [
++      [360, 650, false, 'empilee', 0.45], [360, 740, false, 'empilee', 0.45], [560, 650, false, 'empilee', 0.45],
++      [561, 650, false, 'ligne', 0.25], [640, 780, false, 'ligne', 0.25], [700, 650, false, 'ligne', 0.25], [700, 780, false, 'ligne', 0.25], [600, 960, false, 'ligne', 0.25],
++      [360, 650, true, 'empilee', 0.48], [561, 650, true, 'empilee', 0.48], [700, 650, true, 'empilee', 0.48], [700, 740, true, 'empilee', 0.48],
++      [701, 650, true, 'ligne', 0.30], [900, 650, true, 'ligne', 0.30], [900, 780, true, 'ligne', 0.30],
++    ];
++    for (const [vw, vh, grossier, attendue, plafond] of vues) {
++      const ou = `${vw}×${vh}${grossier ? ' au doigt' : ''}`;
++      expect(racineVue(vw, grossier).forme, ou).toBe(attendue);
++      const part = (deck(vw, vh, grossier) + saillie(vw, vh, grossier)) / vh;
++      expect(part, `${ou} : le pont prend ${(100 * part).toFixed(1)} %`).toBeLessThanOrEqual(plafond + 1e-9);
++    }
+   });
+ 
+   // ── VIDE INTERNE (spec §1c « BUDGET DE HAUTEUR » complément, commit `22004155`). Deux poches
+@@ -2156,6 +2248,21 @@ describe('CombatConsole — budget de hauteur du pont (arbitrage user 2026-08-17
+     const cst = evalLen('var(--cc-bay-h)', 1920, 1080) - 2 * cote(1920, 1080) - evalLen('var(--cc-gap)', 1920, 1080);
+     expect(cst, `socle de travée = ${cst}px`).toBeLessThanOrEqual(41);
+     expect(cst, 'un socle nul ne porterait plus ses bandes de titre').toBeGreaterThan(20);
++    // Les HABILLAGES que la formule compte sont DÉRIVÉS des grandeurs que les règles CONSOMMENT : une cote
++    // relevée à la main se désynchronise en silence.
++    for (const nom of ['--cc-bay-socle', '--cc-arch-chrome', '--cc-arch-flancs']) {
++      expect(decl(racine(), nom), `${nom} est une cote relevée à la main`).not.toMatch(/(^|[\s(])\d+(\.\d+)?px/);
++    }
++    // … et la LIGNE d'arche des compositions étroites prend la hauteur de ses pièces.
++    for (const tranche of ['@media (max-width: 700px)', '@media (max-width: 560px)']) {
++      expect(decl(ruleOf(mediaBlock(CC_CSS, tranche), ':root'), '--cc-arch-ligne'), `${tranche} : la ligne d’arche est une cote relevée à la main`).not.toMatch(/(^|[\s(])\d+(\.\d+)?px/);
++    }
++    const bay = ruleOf(CC_BASE, '.cc-bay');
++    expect(decl(bay, 'padding')).toBe('var(--cc-bay-pad) var(--cc-bay-pad) var(--cc-bay-pied)');
++    expect(decl(bay, 'gap')).toBe('var(--cc-bay-ecart)');
++    expect(decl(ruleOf(CC_BASE, '.cc-conduit'), 'height')).toBe('var(--cc-conduit-h)');
++    expect(decl(ruleOf(CC_BASE, '.cc-gutter'), 'width')).toBe('var(--cc-gouttiere)');
++    expect(decl(ruleOf(CC_BASE, '.cc-arch-name'), 'height')).toBe('var(--cc-arch-nom-h)');
+     // Aucune règle de bandeau de munition ne subsiste (la classe entière a disparu du module).
+     expect(CC_CSS).not.toMatch(/\.cc-loadouts\b/);
+     expect(CC_CSS).not.toMatch(/\.cc-ammo\b/);
+@@ -2208,21 +2315,29 @@ describe('CombatConsole — budget de hauteur du pont (arbitrage user 2026-08-17
+       // … et il DOMINE l'arche (planche).
+       expect(lu('var(--cc-portrait)') / lu('var(--cc-arch-h)'), `${vw}×${vh} : portrait écrasé`).toBeGreaterThanOrEqual(0.5);
+     }
+-    // Sur une fenêtre ÉTROITE, il cède aux cases, jusqu'au portrait de vignette — jamais en dessous.
+-    expect(evalLen('var(--cc-portrait)', 701, 780)).toBe(evalLen('var(--cc-portrait-min)', 701, 780));
+-    // La règle qui l'applique reprend bien le style INLINE de la primitive (sinon rien ne bouge).
+-    expect(decl(ruleOf(CC_BASE, '.cc-arch .ptile'), 'height')).toBe('var(--cc-portrait) !important');
+-    // Le corps de l'arche vaut ce que l'habillage laisse ; les gouttières le remplissent (le rail prend
+-    // le reste), le portrait n'y pèse pas.
+-    expect(decl(ruleOf(CC_BASE, '.cc-arch-body'), 'height')).toBe('calc(var(--cc-arch-h) - var(--cc-arch-chrome))');
++    // Sur une fenêtre ÉTROITE, c'est la CASE qui cède : un portrait sous sa cote de hauteur n'existe
++    // que case à sa cible, jamais sous le portrait de vignette.
++    for (const vw of [701, 760, 820, 900]) {
++      if (evalLen('var(--cc-portrait)', vw, 780) < evalLen('var(--cc-portrait-haut)', vw, 780) - 1e-6) {
++        expect(evalLen('var(--cc-cell)', vw, 780), `${vw}×780 : visage cédé avant la case`).toBeCloseTo(evalLen('var(--cc-cible)', vw, 780), 6);
++      }
++      expect(evalLen('var(--cc-portrait)', vw, 780), `${vw}×780 : portrait sous la vignette`).toBeGreaterThanOrEqual(evalLen('var(--cc-portrait-vignette)', vw, 780));
++    }
++    expect(vaut('var(--cc-portrait)', 901, 780, true), 'au doigt, le visage descend sous la vignette').toBeGreaterThanOrEqual(evalLen('var(--cc-portrait-vignette)', 901, 780));
++    // La règle qui l'applique pose bien la grandeur de la console (sinon rien ne bouge).
++    expect(decl(ruleOf(CC_BASE, '.cc-arch .ptile'), 'height')).toBe('var(--cc-portrait)');
++    // Le corps de l'arche vaut ce que l'habillage laisse (relation évaluée) ; les gouttières le
++    // remplissent (le rail prend le reste), le portrait n'y pèse pas.
++    for (const [vw, vh] of [[1366, 650], [1707, 780], [701, 780]] as [number, number][]) {
++      const corps = decl(ruleOf(CC_BASE, '.cc-arch-body'), 'height')!;
++      expect(evalLen(corps, vw, vh) + evalLen('var(--cc-arch-chrome)', vw, vh), `${vw}×${vh} : corps + habillage ≠ arche`).toBeCloseTo(evalLen('var(--cc-arch-h)', vw, vh), 6);
++    }
+     expect(decl(ruleOf(CC_BASE, '.cc-gutter-rail'), 'flex')).toBe('1 1 0');
+-    // Le CHROME de l'arche est une grandeur MESURÉE au navigateur, pas un nombre en l'air.
+-    expect(parseFloat(decl(racine, '--cc-arch-chrome')!)).toBeGreaterThan(0);
+   });
+ 
+   it('G-4 — le FAÎTE de l’arche est serré : son rembourrage haut ne creuse plus un sommet vide', () => {
+     const arche = ruleOf(CC_BASE, '.cc-arch');
+-    const pad = decl(arche, 'padding')!.split(/\s+/).map(parseFloat);
++    const pad = decl(arche, 'padding')!.split(/\s+/).map((v) => evalLen(v, 1920, 1080));
+     expect(pad[0], `rembourrage haut de l’arche = ${pad[0]}px`).toBeLessThanOrEqual(8);
+   });
+ });
+@@ -2332,8 +2447,8 @@ describe('CombatConsole — bandeau d’interlude : tout ciblage par la carte po
+     monter(h, { foes: [foe('e1', 9, 9)] });
+     expect(bandeau(), 'un tour ordinaire n’a pas de bandeau de phase').toBeNull();
+     act(() => { useGame.setState({ pendingRoundStart: { round: 2, readyBySeat: {} } as never }); });
+-    expect(bandeau()?.querySelector('.cc-phase-label')?.textContent).toBe('Début du Round 2');
+-    expect(sortie('round-start')?.textContent, 'la pause de Round garde son bouton d’ouverture').toContain('Commencer le round 2');
++    expect(bandeau()?.querySelector('.cc-phase-label')?.textContent).toBe('Début du Round\u00a02');
++    expect(sortie('round-start')?.textContent, 'la pause de Round garde son bouton d’ouverture').toContain('Commencer le round\u00a02');
+     sansFlux();
+   });
+ });
+@@ -3682,7 +3797,7 @@ describe('CombatConsole — le pont d’OUVERTURE est celui du JOUEUR, et n’of
+     // la forme du pont lui donne (le pont est alors spectatrice, le bandeau se centre sur l'arche).
+     expect(bandeau.getAttribute('data-phase'), 'le round 3 n’est pas une ouverture').toBe('spectatrice');
+     expect(host.querySelector('.combat-console')!.contains(bandeau)).toBe(true);
+-    expect(bandeau.textContent).toContain('Début du Round 3');
++    expect(bandeau.textContent).toContain('Début du Round\u00a03');
+   });
+ });
+ 
+diff --git a/src/ui/CombatConsole.tsx b/src/ui/CombatConsole.tsx
+index 5563b4d3d..48d4da0e5 100644
+--- a/src/ui/CombatConsole.tsx
++++ b/src/ui/CombatConsole.tsx
+@@ -47,6 +47,8 @@ import { StateChips } from './StateChips';
+ import { LifeBar } from './LifeBar';
+ import { Icon } from './Icon';
+ import { ItemIcon } from './ItemIcon';
++import { Nom } from './Nom';
++import { coupeAuMot } from '../lib/coupeAuMot.mjs';
+ import type { IconIdInput } from './icons';
+ 
+ /** Nombre de cases de chaque travée — GÉOMÉTRIE IMMUABLE (arbitrage utilisateur 2026-08-16 :
+@@ -362,6 +364,10 @@ export function ArchGutter({ kind, value, max, label, short, unit, spend = 0, ge
+   );
+ }
+ 
++/** Borne du nom gravé au pied de l'arche, en signes (`coupeAuMot`) : ce que ses deux lignes réservées
++ *  portent à l'arche la plus étroite de la forme complète. */
++const NOM_ARCHE_SIGNES = 56;
++
+ /** ARCHE du pont (spec §1c-bis, planche 2026-08-17) : gouttière MOUVEMENT à GAUCHE, portrait,
+  *  gouttière ACTION à DROITE (socles : valeur courante + libellé dessous), NICHE D'ÉTATS
+  *  (rack de 4 alvéoles réservées) au flanc droit, BARRE DE BLESSURES chiffrée pleine
+@@ -415,9 +421,12 @@ export function ConsoleArch({ active, ring, move, action, etats, retraitDEtat }:
+           </>
+         )}
+       />
+-      {/* Le NOM du porteur, gravé au pied de l'arche (spécimen D) : la console dit en entier
+-          qui agit — la frise ne le dit qu'à la position et à la taille. */}
+-      <span className="cc-arch-name">{active.label}</span>
++      {/* Le NOM du porteur, gravé au pied de l'arche (spécimen D) : la console dit qui agit — la
++          frise ne le dit qu'à la position et à la taille. Deux lignes réservées ; au-delà, coupé AU
++          MOT, le nom entier reste dans l'infobulle et le nom accessible. */}
++      <span className="cc-arch-name" role="img" aria-label={active.label} title={active.label}>
++        <span><Nom texte={coupeAuMot(active.label, NOM_ARCHE_SIGNES)} /></span>
++      </span>
+     </div>
+   );
+ }
+@@ -483,13 +492,13 @@ function useBandeauDeRound(): PhaseBanner | null {
+   const enReseau = net.mode !== 'local';
+   const dejaPret = !!pendingRoundStart.readyBySeat?.[net.mySeat];
+   return {
+-    label: pendingRoundStart.round <= 1 ? 'Ouverture du combat' : `Début du Round ${pendingRoundStart.round}`,
++    label: pendingRoundStart.round <= 1 ? 'Ouverture du combat' : `Début du Round\u00a0${pendingRoundStart.round}`,
+     ready: enReseau ? (pendingRoundStart.readyBySeat ?? {}) : undefined,
+     actions: [{
+       key: roundStartDef.id,
+       label: enReseau
+         ? (dejaPret ? 'En attente des autres…' : 'Prêt')
+-        : pendingRoundStart.round <= 1 ? 'Commencer le combat' : `Commencer le round ${pendingRoundStart.round}`,
++        : pendingRoundStart.round <= 1 ? 'Commencer le combat' : `Commencer le round\u00a0${pendingRoundStart.round}`,
+       icon: <Icon id={roundStartDef.icon as IconIdInput} size="sm" />,
+       primary: true,
+       disabled: enReseau && dejaPret,
+diff --git a/src/ui/ExplorationDock.test.tsx b/src/ui/ExplorationDock.test.tsx
+index 87430ba4c..f5a73ba43 100644
+--- a/src/ui/ExplorationDock.test.tsx
++++ b/src/ui/ExplorationDock.test.tsx
+@@ -20,6 +20,7 @@ import type { WorldMap } from '../state/worldMap';
+ import type { NarratifBlock } from '../state/campaignNarratif';
+ import { testScene } from '../scenes/test-fixture';
+ import { CampaignView } from './CampaignView';
++import { ActiveModal } from './ActiveModal';
+ 
+ beforeAll(() => {
+   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+@@ -244,7 +245,7 @@ function evalPx(src: string): number {
+ /** Résout les `var()` d'une expression depuis un dictionnaire de tokens, puis l'évalue en px. */
+ function px(expr: string, tokens: Record<string, string>): number {
+   let e = expr;
+-  for (let n = 0; n < 8 && e.includes('var('); n++) {
++  for (let n = 0; n < 16 && e.includes('var('); n++) {
+     e = e.replace(/var\(\s*(--[a-z0-9-]+)\s*\)/g, (_m, t: string) => {
+       if (tokens[t] === undefined) throw new Error(`token inconnu : ${t}`);
+       return `(${tokens[t]})`;
+@@ -420,6 +421,28 @@ describe('#1919 — la couche HUD est une grille : chaque surface déclare sa ZO
+     expect(surfacesHorsFlux(el)).toEqual([]);
+     act(() => { useGame.setState({ pendingCascade: null, net: { ...useGame.getState().net, mode: 'local', ownership: {} } } as never); });
+   });
++
++  it('HORS de la couche, la puce du siège attendu garde sa pose à l’écran : seule la zone PAROLE la neutralise', () => {
++    // Juge de diff C1 (B5) : l'arbitre des modales (`ActiveModal`) est monté par quatre hôtes
++    // (`CampaignView`, `PartyScreen`, `MassBattleView`, `InterludeScreen`) ; les trois derniers n'ont
++    // pas de couche HUD, et c'est la pose `ecran` de la primitive qui y place la puce.
++    enCombat();
++    const autre = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Wilhelm', seed: 9 });
++    autre.id = 'h2';
++    useGame.setState({
++      net: { ...useGame.getState().net, mode: 'host', mySeat: 0, ownership: { h1: 0, h2: 1 }, seatNames: { 0: 'L’hôte', 1: 'Antoine' } },
++      pendingCascade: { participants: [{ id: 's0', kind: 'note', actorId: 'h2', outcome: [] }], cursor: 0, purpose: 'test' },
++    } as never);
++    host = document.createElement('div');
++    document.body.appendChild(host);
++    root = createRoot(host);
++    act(() => { root.render(<ActiveModal />); });
++    const puce = host.querySelector('.spectator-chip')!;
++    expect(puce.getAttribute('data-pose')).toBe('ecran');
++    const poses = HORS_FLUX.filter((regle) => puce.matches(regle.slice(regle.indexOf('« ') + 2, -2)));
++    expect(poses, 'hors couche, la pose à l’écran ne place pas la puce').toEqual(["spectator-chip.css « .spectator-chip[data-pose='ecran']:not([data-zone='parole'] > *) »"]);
++    act(() => { useGame.setState({ pendingCascade: null, net: { ...useGame.getState().net, mode: 'local', ownership: {} } } as never); });
++  });
+ });
+ 
+ describe('Zone 11 — MÊME MATIÈRE que le pont de combat : UNE peau, jamais deux copies', () => {
+@@ -476,7 +499,7 @@ describe('Zone 11 — MÊME MATIÈRE que le pont de combat : UNE peau, jamais de
+     const tokens: Record<string, string> = {
+       ...Object.fromEntries([...bloc(cc, ':root').matchAll(/(--cc-[a-z-]+):([^;]+)/g)].map((m) => [m[1], m[2].trim()])),
+       ...Object.fromEntries([...bloc(xd, ':root').matchAll(/(--xd-[a-z-]+):([^;]+)/g)].map((m) => [m[1], m[2].trim()])),
+-      ...Object.fromEntries([...styles('base.css').matchAll(/(--pont-[a-z-]+):([^;]+)/g)].map((m) => [m[1], m[2].trim()])),
++      ...Object.fromEntries([...styles('base.css').matchAll(/(--(?:pont|sp)-[a-z-]+):([^;]+)/g)].map((m) => [m[1], m[2].trim()])),
+     };
+     const liseret = px(tokens['--pont-liseret'], tokens);
+     // UNE nappe, UNE hauteur : les deux ponts lisent la même grandeur de la peau.
+diff --git a/src/ui/PartyDock.test.tsx b/src/ui/PartyDock.test.tsx
+index 7e8b2099b..0c2bfee9a 100644
+--- a/src/ui/PartyDock.test.tsx
++++ b/src/ui/PartyDock.test.tsx
+@@ -30,8 +30,8 @@ describe('PartyDock', () => {
+     const html = renderToStaticMarkup(<PartyDock heroes={[h1, h2]} onOpen={() => {}} />);
+     expect(html).toContain('title="Gunnar — fiche du personnage"');
+     expect(html).toContain('aria-label="Elsa — fiche du personnage"');
+-    expect(html).toContain('<figcaption>Gunnar</figcaption>');
+-    expect(html).toContain('<figcaption>Elsa</figcaption>');
++    expect(html).toContain('<figcaption><span><span class="nom-mot">Gunnar</span></span></figcaption>');
++    expect(html).toContain('<figcaption><span><span class="nom-mot">Elsa</span></span></figcaption>');
+     // Balises retirées : ne reste que ce qu'un joueur LIT à l'écran.
+     const visible = html.replace(/<[^>]*>/g, ' ');
+     expect(visible).toContain('Gunnar');
+@@ -146,8 +146,8 @@ describe('PartyDock — micro-rendu (sondes pixel du juge vision, 2026-08-17)',
+     const legende = ruleOf('.pd-track > figure > figcaption');
+     expect(legende).not.toMatch(/(^|[;\s])height\s*:/);
+     expect(legende).toMatch(/min-height:\s*1\.3em/);
+-    // Deux lignes AU PLUS restent permises (R-M2 : coupe entre mots), mais plus réservées.
+-    expect(legende).toMatch(/line-clamp:\s*2/);
++    // Deux lignes AU PLUS (R-M2 : coupe entre mots, `coupeAuMot`), jamais une ellipse au caractère.
++    expect(legende).not.toMatch(/text-overflow|line-clamp/);
+     // Les cartes s'alignent par le HAUT de leur boîte : une légende plus courte ne remonte rien.
+     expect(ruleOf('.pd-track')).toMatch(/align-items:\s*flex-start/);
+   });
+diff --git a/src/ui/PartyDock.tsx b/src/ui/PartyDock.tsx
+index 5911f3565..0234fe203 100644
+--- a/src/ui/PartyDock.tsx
++++ b/src/ui/PartyDock.tsx
+@@ -1,6 +1,8 @@
+ import { useState, type CSSProperties } from 'react';
+ import { useGame } from '../state/store';
+ import { PortraitTile } from './PortraitTile';
++import { Nom } from './Nom';
++import { coupeAuMot } from '../lib/coupeAuMot.mjs';
+ import { hpColor } from '../gameIso/teamColors';
+ import type { Combatant } from '../engine/types';
+ 
+@@ -11,6 +13,10 @@ const DOCK_RING = 'var(--atelier-brass-hover)';
+  *  3 cases dessinées). Le compte ne dépend jamais des États portés. */
+ const DOCK_STATE_CELLS = 3;
+ 
++/** Borne du nom sous la carte, en signes (`coupeAuMot`) : ce que ses deux lignes portent à la carte
++ *  la plus étroite ; le nom entier reste dans l'infobulle de la tuile. */
++const NOM_CARTE_SIGNES = 28;
++
+ /** Dock de compagnie composé de portraits complets. FICHE OUVERTE, la bande expose l'état en
+  *  ATTRIBUT (`data-fiche`) ; le rang qu'il commande appartient à l'écran qui la monte (`hud.css`). La bande est
+  *  strictement IDENTITAIRE : elle ne marque pas l'acteur du tour (spec §1c-bis BANDEAU, arbitrage user
+@@ -76,7 +82,7 @@ export function PartyDock({ heroes, targeting, onOpen }: PartyDockProps) {
+           />
+           {/* NOM VISIBLE sous la tuile (planche 2026-08-17 : la bande nomme chaque héros en
+               permanence — l'interdit « nom au survol » est levé, spec §1c-bis). */}
+-          <figcaption>{c.label}</figcaption>
++          <figcaption><Nom texte={coupeAuMot(c.label, NOM_CARTE_SIGNES)} /></figcaption>
+         </figure>
+       ))}
+       </div>
+diff --git a/src/ui/RecapLine.test.tsx b/src/ui/RecapLine.test.tsx
+index 19fe144dc..b86f4c204 100644
+--- a/src/ui/RecapLine.test.tsx
++++ b/src/ui/RecapLine.test.tsx
+@@ -50,8 +50,9 @@ describe('recapLineOfEvent — la COULEUR DE CAMP est préservée', () => {
+     // parité porte sur le TEXTE lu et le COMPTE de noms colorés, jamais sur le markup.
+     const e = SAMPLE[0];
+     const html = renderToStaticMarkup(<RecapLineRow line={recapLineOfEvent(e, combatants)} />);
+-    expect(html).toContain('class="nm-ally">Gustav<');
+-    expect(html).toContain('class="nm-foe">Rat géant<');
++    const noms = (cls: string) => [...html.matchAll(new RegExp(`class="${cls}">(.*?)</b>`, 'g'))].map((m) => m[1].replace(/<[^>]+>/g, ''));
++    expect(noms('nm-ally')).toEqual(['Gustav']);
++    expect(noms('nm-foe')).toEqual(['Rat géant']);
+     const journal = renderToStaticMarkup(<NarratedSegments event={e} combatants={combatants} />);
+     expect(html.match(/nm-ally/g)?.length).toBe(journal.match(/nm-ally/g)?.length);
+     expect(html.match(/nm-foe/g)?.length).toBe(journal.match(/nm-foe/g)?.length);
+diff --git a/src/ui/TeamSegments.tsx b/src/ui/TeamSegments.tsx
+index 4a621f36a..a9a54c9ba 100644
+--- a/src/ui/TeamSegments.tsx
++++ b/src/ui/TeamSegments.tsx
+@@ -1,10 +1,12 @@
+ /**
+  * RENDU UNIQUE d'un texte découpé en SEGMENTS TONÉS PAR CAMP — les noms cités s'affichent en gras,
+- * allié (`.nm-ally`) ou ennemi (`.nm-foe`), le reste en texte neutre. Module FEUILLE (aucun import) :
+- * les deux vocabulaires de segments du projet (`NarratedSegment` de la narration de combat,
++ * allié (`.nm-ally`) ou ennemi (`.nm-foe`), le reste en texte neutre. Les deux vocabulaires de segments du projet (`NarratedSegment` de la narration de combat,
+  * `RecapSegment` d'une ligne de récap) ont la MÊME forme et partagent donc ce rendu — le journal
+- * (`NarratedSegments`) et la ligne de récap (`RecapLineRow`) le composent, aucun ne le recopie.
++ * (`NarratedSegments`) et la ligne de récap (`RecapLineRow`) le composent, aucun ne le recopie. Le nom
++ * cité est rendu par la primitive `Nom` : il ne se coupe qu'entre ses mots.
+  */
++import { Nom } from './Nom';
++
+ export interface TeamSegment {
+   text: string;
+   team?: 'ally' | 'enemy';
+@@ -14,7 +16,7 @@ export function TeamSegments({ segments }: { segments: readonly TeamSegment[] })
+   return (
+     <>
+       {segments.map((s, i) => (s.team
+-        ? <b key={i} className={s.team === 'ally' ? 'nm-ally' : 'nm-foe'}>{s.text}</b>
++        ? <b key={i} className={s.team === 'ally' ? 'nm-ally' : 'nm-foe'}><Nom texte={s.text} /></b>
+         : <span key={i}>{s.text}</span>))}
+     </>
+   );
+diff --git a/src/ui/styles.css b/src/ui/styles.css
+index 12a93ccea..731713a58 100644
+--- a/src/ui/styles.css
++++ b/src/ui/styles.css
+@@ -27,6 +27,7 @@
+ @import './styles/multi-roll-list.css'; /* bilan multi-jets (MultiRollList) — APRÈS roll-line.css : `.mrl-roll .rm-roll-block` borne la ligne */
+ @import './styles/reveal-body.css'; /* corps de révélation (RevealBody) : critique/imparfaite/mutation */
+ @import './styles/vs-header.css'; /* en-tête d'opposition A→B (VsHeader) */
++@import './styles/nom.css'; /* nom propre mot à mot (Nom) */
+ @import './styles/team-segments.css'; /* segments tonés par camp (TeamSegments) */
+ @import './styles/combat-banner.css'; /* fil d'événements de combat (CombatBanner) */
+ @import './styles/log-drawer.css'; /* journal de combat (LogDrawer, NarratedLine) : tiroir, commande de coin, ligne narrée */
+diff --git a/src/ui/styles/combat-banner.css b/src/ui/styles/combat-banner.css
+index d8b96e6f3..4d3b1fce0 100644
+--- a/src/ui/styles/combat-banner.css
++++ b/src/ui/styles/combat-banner.css
+@@ -19,11 +19,11 @@
+ /* Ligne NUE : aucune boîte, aucun filet — du texte sur le terrain (planche 2026-08-17). Sa
+    lisibilité tient au halo partagé `.halo-champ` (components.css), que `CombatBanner` pose à côté
+    (le voile d'une carte reviendrait à la boîte supprimée). Elle s'enroule AU MOT dans la largeur de
+-   sa zone (R-M2, docs/plans/2026-08-16-spec-hud-combat.md:71-74). */
++   sa zone (R-M2, docs/plans/2026-08-16-spec-hud-combat.md:71-74) ; c'est une RANGÉE (`Row`, qui
++   s'enroule) : quand un nom insécable ne tient plus à côté de son icône, l'icône passe au-dessus
++   plutôt que la ligne ne sorte de sa zone. */
+ .cb-ev {
+-  display: flex;
+   gap: 7px;
+-  align-items: center;
+   background: none;
+   border: 0;
+   border-radius: 0;
+diff --git a/src/ui/styles/combat-console.css b/src/ui/styles/combat-console.css
+index 04f02fae7..8c250fb16 100644
+--- a/src/ui/styles/combat-console.css
++++ b/src/ui/styles/combat-console.css
+@@ -7,9 +7,9 @@
+    MATIÈRE : relevée sur les spécimens C (aile gauche, plaque d'ACIER), D (arche, bois+laiton) et
+    E (aile droite, plaque de LAITON) de `docs/plans/Spec HUD Combat.dc.html` — les valeurs vivent
+    en tokens `:root` (base.css, famille `--cc-*`), jamais en hex ici.
+-   ≤700px : l'arche passe sur UNE ligne en tête de bande (composition compacte, arbitrage
+-   2026-08-16), coin en bout de ligne, deux travées côte à côte ; ≤560px : les travées s'empilent,
+-   conduit fondu dans le bord haut de la grille. Les comptes de cases (3 + 6 + 4 + 12) et les 10
++   ≤700px (au doigt, ≤900px) : l'arche passe sur UNE ligne en tête de bande (composition compacte,
++   arbitrage 2026-08-16), coin en bout de ligne, deux travées côte à côte ; ≤560px (au doigt,
++   ≤700px) : les travées s'empilent, conduit fondu dans le bord haut de la grille. Les comptes de cases (3 + 6 + 4 + 12) et les 10
+    colliers ne bougent pas d'un cran. */
+ 
+ /* LE PONT (spec §1c-ter) : UNE bande de bord à bord qui PORTE les quatre régions de console
+@@ -17,15 +17,16 @@
+    désormais de la MATIÈRE DE PONT : le terrain ne se voit plus entre deux zones. */
+ /* GÉOMÉTRIE DU PONT — au `:root` et non sur la console : la HAUTEUR du pont (`--cc-deck-h`) est
+    une grandeur que le reste du HUD lit (nappe du pont d'exploration, galerie). Décision d'écran du
+-   2026-09-24 (#1806, Q1-Q2) : UNE formule par grandeur, bornée par la FENÊTRE seule — les comptes de
+-   cases ne bougent jamais (`src/ui/CombatConsole.tsx:51-53`), aucune tranche ne recopie une cote. */
++   2026-09-24 (#1806, Q1-Q2) : UNE formule par grandeur, bornée par la FENÊTRE et, par-dessous, par la
++   cible de pointage (`--cc-cible`) — les comptes de cases ne bougent jamais (`src/ui/CombatConsole.tsx:51-53`), aucune tranche ne recopie une cote. */
+ :root {
+   /* BUDGET (spec « BUDGET DE HAUTEUR », docs/plans/2026-08-16-spec-hud-combat.md:24-26 ; décision
+      Q2) : la BANDE tient 17 % de la hauteur d'écran, le fronton s'y ajoute (22 % au plus). */
+   --cc-bande: 17vh;
+   /* ÉLÉVATION DU FRONTON au-dessus du liseré : le rapport 52/1080 de la planche (spec:237), jamais
+-     plus de 52px. */
+-  --cc-fronton: min(52px, 4.8vh);
++     plus de 52px — et jamais au-delà de ce que l'EMPREINTE (22 %) laisse au-dessus de la rangée de
++     cases : au doigt, la case garde sa cible et c'est le fronton qui cède. */
++  --cc-fronton: clamp(0px, 22vh - var(--cc-bande-rangee), min(52px, 4.8vh));
+   --cc-gap: 4px;
+   /* Écart entre RÉGIONS (travée · arche · travée · coin) : il découvre le pont, jamais le terrain. */
+   --cc-bay-gap: clamp(10px, 2vw, 26px);
+@@ -33,47 +34,77 @@
+   --cc-corner: 64px;
+   /* MARGE INTERNE de la bande, des deux côtés. */
+   --cc-marge: 10px;
+-  /* Rembourrage de flanc d'une travée : la valeur que `.cc-bay` pose (littéral au stock d'espacement,
+-     `scripts/guards/lib/cssCouchesStock.mjs`). */
+-  --cc-bay-pad: 8px;
++  /* PLANCHER du côté de case : la cible de pointage. norme: WCAG 2.2, 2.5.8 « Target Size (Minimum) »
++     (24px) au pointeur fin ; 44px au doigt (tranche `pointer: coarse`, WCAG 2.5.5). */
++  --cc-cible: 24px;
++  /* TRAVÉE — ses grandeurs sont la SOURCE que `.cc-bay` et `.cc-conduit` consomment : rembourrage de
++     flanc et de tête, rembourrage de pied, hauteur du conduit d'Avantage, écart conduit | cases. */
++  --cc-bay-pad: var(--sp-md);
++  --cc-bay-pied: var(--sp-md);
++  --cc-conduit-h: 15px;
++  --cc-bay-ecart: var(--sp-xs);
+   /* Colonne de SETS : une fraction du côté de case. */
+   --cc-sets-part: 0.62;
+-  /* SOCLE de travée : ce qui, dans sa hauteur, n'est pas les deux rangées — rembourrages 8 + 10,
+-     conduit d'Avantage 15 et son écart 8 (`.cc-bay`, `.cc-conduit`). */
+-  --cc-bay-socle: 41px;
+-  /* HABILLAGE de l'arche : ce qui, dans sa hauteur, n'est pas son corps — rembourrages 6 + 8, deux
+-     écarts de 4, Blessures 15, nom gravé 19, liseré 3. Relevé : `node scripts/recette/
+-     console-pont-formes.mjs --mesures` (bloc `arche`, `h` moins l'enfant `cc-arch-body`). */
+-  --cc-arch-chrome: 59px;
+-  /* FLANCS de l'arche : ce qui, dans sa largeur, n'est pas le portrait — rembourrages, deux
+-     gouttières, niche d'États, trois écarts. Même relevé (largeur de `.cc-arch` moins le portrait). */
+-  --cc-arch-flancs: 136px;
++  /* SOCLE de travée : ce qui, dans sa hauteur, n'est pas les deux rangées. */
++  --cc-bay-socle: calc(var(--cc-bay-pad) + var(--cc-bay-pied) + var(--cc-conduit-h) + var(--cc-bay-ecart));
++  /* ARCHE — ses grandeurs sont la SOURCE que `.cc-arch` et ses enfants consomment : rembourrages,
++     écart entre ses rangs, piste de Blessures, ligne du nom gravé, largeur d'une gouttière, écart du
++     corps, alvéole de la niche d'États et écart entre ses alvéoles. */
++  --cc-arch-pad-haut: var(--sp-sm);
++  --cc-arch-pad-bas: var(--sp-xs);
++  --cc-arch-pad-flanc: var(--sp-lg);
++  --cc-arch-ecart: var(--sp-xs);
++  --cc-blessures-h: 15px;
++  /* NOM : DEUX lignes RÉSERVÉES au corps de la ligne d'arche (R-M2, spec:71-74) — la hauteur de
++     l'arche ne dépend pas du nom de l'acteur (CombatConsole.tsx:51-53). */
++  /* Interligne NORMAL de la fonte d'affichage (`--font-display`) au corps de 11px du nom : 16px mesurés. */
++  --cc-arch-nom-ligne: 16px;
++  --cc-arch-nom-h: calc(2 * var(--cc-arch-nom-ligne));
++  --cc-gouttiere: 36px;
++  --cc-arch-corps-ecart: var(--sp-sm);
++  --cc-alv: 17px;
++  --cc-niche-ecart: var(--sp-2xs);
++  /* HABILLAGE de l'arche : ce qui, dans sa hauteur, n'est pas son corps. */
++  --cc-arch-chrome: calc(var(--cc-arch-pad-haut) + var(--cc-arch-pad-bas) + 2 * var(--cc-arch-ecart) + var(--cc-blessures-h) + var(--cc-arch-nom-h) + var(--pont-liseret));
++  /* FLANCS de l'arche : ce qui, dans sa largeur, n'est pas le portrait — deux rembourrages, deux
++     gouttières, la niche d'États et les trois écarts du corps. */
++  --cc-arch-flancs: calc(2 * var(--cc-arch-pad-flanc) + 2 * var(--cc-gouttiere) + var(--cc-alv) + 3 * var(--cc-arch-corps-ecart));
+   /* L'ARCHE tient toute la bande PLUS le fronton, liseré compris : sa hauteur est une donnée
+      d'ENTRÉE (la hauteur d'écran), jamais la hauteur du pont — aucune boucle portrait ∝ pont. */
+-  --cc-arch-h: calc(var(--cc-bande) + var(--cc-fronton) - var(--pont-liseret));
++  --cc-arch-h: calc(max(var(--cc-bande), var(--cc-bande-rangee)) + var(--cc-fronton) - var(--pont-liseret));
+   /* RANGÉE — ce que la bande porte hors cases et hors arche : les deux marges, le coin, les neuf
+      écarts de case (1 set · 2 arsenal · 1 accès rapide · 5 grille), quatre flancs de travée, et quatre
+      écarts de région (arsenal | accès rapide, puis travée | arche | travée | coin). */
+   --cc-rangee-fixe: calc(2 * var(--cc-marge) + var(--cc-corner) + 9 * var(--cc-gap) + 4 * var(--cc-bay-pad) + 4 * var(--cc-bay-gap));
+   --cc-colonnes: calc(11 + var(--cc-sets-part));
+-  /* Plafond de HAUTEUR du côté de case : deux rangées, leur écart et le socle dans la bande. */
+-  --cc-cell-haut: calc((var(--cc-bande) - var(--pont-liseret) - var(--cc-bay-socle) - var(--cc-gap)) / 2);
+-  /* PORTRAIT (décision Q2) : ce que l'habillage laisse dans l'arche — une donnée d'écran. Sur une
+-     fenêtre ÉTROITE, il cède d'abord aux cases (la largeur que la rangée leur laisse à leur plafond de
+-     hauteur), jusqu'au portrait de vignette de la ligne compacte. */
+-  --cc-portrait-min: 30px;
+-  --cc-portrait: clamp(
+-    var(--cc-portrait-min),
+-    calc(100vw - var(--cc-rangee-fixe) - var(--cc-arch-flancs) - var(--cc-colonnes) * var(--cc-cell-haut)),
+-    calc(var(--cc-arch-h) - var(--cc-arch-chrome))
++  /* Plafond de HAUTEUR du côté de case : deux rangées, leur écart et le socle dans la bande — jamais
++     sous la cible de pointage. */
++  --cc-cell-haut: max(var(--cc-cible), calc((var(--cc-bande) - var(--pont-liseret) - var(--cc-bay-socle) - var(--cc-gap)) / 2));
++  /* BANDE DE LA RANGÉE : deux rangées de cases au plafond de hauteur, leur écart, le socle et le
++     liseré — elle ne dépasse la bande que quand la case est à sa cible. */
++  --cc-bande-rangee: calc(2 * var(--cc-cell-haut) + var(--cc-gap) + var(--cc-bay-socle) + var(--pont-liseret));
++  /* PORTRAIT (décision Q2) : ce que l'habillage laisse dans l'arche — une donnée d'écran. */
++  --cc-portrait-haut: calc(var(--cc-arch-h) - var(--cc-arch-chrome));
++  /* Portrait de VIGNETTE : celui de la ligne d'arche, et le plus petit visage. */
++  --cc-portrait-vignette: 30px;
++  /* PORTRAIT : sur une fenêtre étroite, c'est la CASE qui cède la première, jusqu'à sa cible de
++     pointage ; le portrait prend alors ce que la rangée laisse, jamais sous le portrait de vignette. */
++  --cc-portrait: min(
++    var(--cc-portrait-haut),
++    max(var(--cc-portrait-vignette), calc(100vw - var(--cc-rangee-fixe) - var(--cc-arch-flancs) - var(--cc-colonnes) * var(--cc-cible)))
+   );
+   --cc-arch-w: calc(var(--cc-portrait) + var(--cc-arch-flancs));
+   /* CÔTÉ DE CASE, UNIQUE (décision Q1) : le plus petit du plafond de hauteur et du plafond de
+-     LARGEUR (11,62 colonnes dans ce que la rangée laisse). */
+-  --cc-cell: min(var(--cc-cell-haut), calc((100vw - var(--cc-arch-w) - var(--cc-rangee-fixe)) / var(--cc-colonnes)));
++     LARGEUR (11,62 colonnes dans ce que la rangée laisse), jamais sous la cible de pointage. */
++  --cc-cell: max(var(--cc-cible), min(var(--cc-cell-haut), calc((100vw - var(--cc-arch-w) - var(--cc-rangee-fixe)) / var(--cc-colonnes))));
+   /* ICÔNE : 60 % du côté (décision Q1). */
+   --cc-ico: calc(var(--cc-cell) * 0.6);
+-  --cc-ico-set: calc(var(--cc-cell) * 0.34);
++  --cc-ico-set: calc(var(--cc-cell) * 0.45);
++  /* LARGEUR DES TRAVÉES : leurs cases, leurs écarts et leurs flancs — à gauche la colonne de sets, les
++     trois colonnes d'arsenal et les deux d'accès rapide (quatre écarts de case et un écart de région),
++     à droite les six colonnes de la grille (cinq écarts). */
++  --cc-travee-g: calc(2 * var(--cc-bay-pad) + (var(--cc-sets-part) + 5) * var(--cc-cell) + 4 * var(--cc-gap) + var(--cc-bay-gap));
++  --cc-travee-d: calc(2 * var(--cc-bay-pad) + 6 * var(--cc-cell) + 5 * var(--cc-gap));
+   /* HAUTEUR DE LA TRAVÉE : deux rangées, leur écart, le socle. */
+   --cc-bay-h: calc(var(--cc-cell) * 2 + var(--cc-gap) + var(--cc-bay-socle));
+   /* HAUTEUR DU PONT : la plus haute des régions (la travée, ou l'arche diminuée du fronton qu'elle
+@@ -196,11 +227,10 @@
+ .combat-console[data-forme='spectatrice'] > .cc-phase {
+   pointer-events: auto;
+ }
++/* L'arche SEULE, à la place et à la taille qu'elle a dans la forme complète, à toute largeur : la
++   grille de la bande est la même (colonnes, aires, réserve miroir, coin compté à sa largeur), seules
++   ses autres régions manquent. */
+ .combat-console[data-forme='spectatrice'] > .cc-dock {
+-  /* L'arche SEULE, centrée, étirée sur toute la bande : la boîte ne bouge pas, son contenu si. */
+-  display: flex;
+-  justify-content: center;
+-  padding-inline: var(--cc-marge);
+   /* MATIÈRE ÉTEINTE (la boîte reste) : la nappe et l'ombre ne se peignent plus, et le liseré garde
+    son ÉPAISSEUR — seule sa teinte tombe. Une bordure retirée aurait fait sauter le pont de trois
+    pixels d'une forme à l'autre (mesuré à 1707 : 187,3 contre 184,3). */
+@@ -217,15 +247,21 @@
+ }
+ 
+ /* Les quatre RÉGIONS, assises sur le pont : une VOIE par flanc, le fronton au milieu, le coin de
+-   sortie en bout. Les deux voies sont des pistes de MÊME largeur (planche 2026-08-17 : arche centrée à
+-   959,5/1920), chacune au moins aussi large que sa travée (`min-content`) : le côté de case
+-   (`--cc-cell`) est taillé pour que la rangée ENTIÈRE tienne dans la fenêtre (#1856), le plancher ne
+-   pousse donc rien hors de l'écran.
+-   RÉSERVE MIROIR : le coin est une 5ᵉ colonne à droite ; la même largeur réservée à gauche remet le
+-   fronton au centre. Elle ne prend que ce que la fenêtre laisse au-delà de la rangée (`--cc-rangee`). */
++   sortie en bout. Les deux voies se partagent la largeur à parts ÉGALES (planche 2026-08-17 : arche
++   centrée à 959,5/1920), chacune jamais sous la largeur de SA travée, lue dans sa formule
++   (`--cc-travee-g`, `--cc-travee-d`) et non dans son contenu : les deux formes, travées rendues ou
++   non, ont les MÊMES pistes, et l'arche ne bouge pas d'une forme à l'autre. Là où la fenêtre ne
++   laisse plus sa part à la plus large des deux, sa voie garde sa travée et l'arche se décale de la
++   moitié de leur écart (une case de sets de moins qu'une colonne de grille, plus l'écart de région
++   moins un écart de case). Le côté de case (`--cc-cell`) est taillé pour que la rangée ENTIÈRE
++   tienne dans la fenêtre (#1856), et là où sa cible de pointage ne le permet plus, la bande passe à
++   la composition compacte (tranches plus bas) : le plancher ne pousse donc rien hors de l'écran.
++   RÉSERVE MIROIR : le coin est la dernière colonne, comptée à sa largeur (`--cc-corner`) qu'il soit
++   rendu ou non ; la même largeur réservée à gauche remet le fronton au centre. Elle ne prend que ce
++   que la fenêtre laisse au-delà de la rangée (`--cc-rangee`). */
+ .cc-dock {
+   display: grid;
+-  grid-template-columns: minmax(min-content, 1fr) auto minmax(min-content, 1fr) auto;
++  grid-template-columns: minmax(var(--cc-travee-g), 1fr) auto minmax(var(--cc-travee-d), 1fr) var(--cc-corner);
+   align-items: stretch;
+   gap: var(--cc-bay-gap);
+   width: 100%;
+@@ -250,10 +286,10 @@
+ .cc-bay {
+   display: flex;
+   flex-direction: column;
+-  gap: 8px;
++  gap: var(--cc-bay-ecart);
+   flex: 0 0 auto;
+   min-width: 0;
+-  padding: 8px 8px 10px;
++  padding: var(--cc-bay-pad) var(--cc-bay-pad) var(--cc-bay-pied);
+ }
+ /* MATIÈRE UNIQUE DU PONT — arbitrage utilisateur 2026-08-17 (AskUserQuestion, verbatim) : « une matière
+    unique, fidèle à la planche : tout le pont dans la même teinte bronze/bois, les régions se distinguent
+@@ -359,6 +395,15 @@
+   white-space: nowrap;
+   text-overflow: ellipsis;
+ }
++/* La rubrique ACCÈS RAPIDE ne dicte pas la largeur de son groupe (deux cases, `--cc-rangee-fixe`) :
++   plus large que lui aux cases étroites, elle déborde vers l'arsenal, calée à droite — jamais tranchée
++   (R-M2, docs/plans/2026-08-16-spec-hud-combat.md:71-74). */
++.cc-quick > .cc-bay-head {
++  display: flex;
++  justify-content: flex-end;
++  contain: inline-size;
++  overflow: visible;
++}
+ /* COLONNE DE SETS : le commutateur EST cette colonne (il n'y a plus de rangée sous la travée). Sa
+    hauteur est celle des deux rangées d'alvéoles, partagée en SET_SLOTS vignettes — le compte de
+    vignettes ne bouge pas (un set absent se dessine vide). */
+@@ -605,7 +650,7 @@
+   opacity: 0.85;
+ }
+ /* ÉTAT DE CHARGE : un MOT ENTIER, jamais la couleur seule (a11y daltoniens) et jamais une abréviation à
+-   7px — « déch. » était le plus petit texte du dépôt, mesuré illisible à 360. Il prend sa BANDE au
++   7px (« déch. », mesuré illisible à 360). Il prend sa BANDE au
+    pied, sur toute la largeur. */
+ .cc-set-load {
+   position: absolute;
+@@ -631,7 +676,10 @@
+   display: inline-flex;
+   align-items: center;
+   margin-left: var(--sp-xs);
++  padding-inline: var(--sp-2xs);
+   vertical-align: baseline;
++  /* Une TOUCHE se lit comme une touche : l'encre de touche de la travée passe au laiton vif. */
++  --cc-cell-key: var(--atelier-brass-vif);
+ }
+ .cc-bay-head .cc-key svg {
+   width: 1em;
+@@ -671,18 +719,20 @@
+    celle du pont. */
+ .cc-arch {
+   position: relative;
++  /* La voie du fronton, dans les deux formes : seule dans la bande, l'arche ne glisse pas à gauche. */
++  grid-column: 2;
+   flex: 0 0 auto;
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   justify-content: flex-end;
+-  gap: 4px;
++  gap: var(--cc-arch-ecart);
+   margin-top: calc(-1 * var(--cc-fronton));
+   /* Sa LARGEUR est celle que la rangée lui compte (`--cc-arch-w`) : le côté de case en dépend. */
+   width: var(--cc-arch-w);
+   /* Faîte SERRÉ : le fronton garde son élévation (§1c-ter) mais son espace INTERNE au-dessus du
+      portrait se comprime — c'est le portrait qui remplit la région, pas le vide. */
+-  padding: 6px 14px 8px;
++  padding: var(--cc-arch-pad-haut) var(--cc-arch-pad-flanc) var(--cc-arch-pad-bas);
+   border-right: 0;
+   border-bottom: 0;
+   border-left: 0;
+@@ -712,22 +762,21 @@
+ .cc-arch .ptile.team-enemy {
+   border-style: dashed;
+ }
+-/* TAILLE du portrait : dérivée de l'arche (`--cc-portrait`), jamais la taille `lg` figée de la
+-   primitive — `PortraitTile` pose ses dimensions en STYLE INLINE, seule une déclaration forte les
+-   reprend (même levier que la composition compacte ≤560, déjà en place). C'est ce qui fait que le
+-   portrait REMPLIT la région au lieu d'y flotter (arbitrage #1348, complément b). */
++/* TAILLE du portrait : dérivée de l'arche (`--cc-portrait`), jamais la taille `lg` de la primitive —
++   `PortraitTile` pose sa taille nominale en VARIABLE (`--ptile-px`, portrait-tile.css) : la règle de
++   la console la reprend à spécificité supérieure. C'est ce qui fait que le portrait REMPLIT la région
++   au lieu d'y flotter (arbitrage #1348, complément b). */
+ .cc-arch .ptile {
+-  width: var(--cc-portrait) !important;
+-  height: var(--cc-portrait) !important;
++  width: var(--cc-portrait);
++  height: var(--cc-portrait);
+   /* Le portrait garde son carré en tête du corps : ce sont les gouttières qui en prennent la hauteur. */
+   align-self: flex-start;
+ }
+-/* Le visage REMPLIT la tuile, liseré d'équipe compris dans sa boîte : posé à la taille de la tuile, il
+-   la débordait de l'épaisseur du liseré (3px mesurés sous le corps de l'arche). */
++/* Le visage REMPLIT la tuile, liseré d'équipe compris dans sa boîte. */
+ .cc-arch .ptile-face,
+ .cc-arch .rig-portrait {
+-  width: 100% !important;
+-  height: 100% !important;
++  width: 100%;
++  height: 100%;
+ }
+ /* Le DESSIN suit sa boîte : `RigPortrait` pose sa taille en ATTRIBUT sur le `<svg>` (72px pour
+    `lg`), et un attribut de présentation cède devant n'importe quelle règle CSS — sans celle-ci, une
+@@ -737,16 +786,21 @@
+   width: 100%;
+   height: 100%;
+ }
+-/* Nom du porteur, gravé au pied de l'arche (spécimen D). */
++/* Nom du porteur, gravé au pied de l'arche (spécimen D), dans ses deux lignes RÉSERVÉES : il
++   s'enroule au mot (primitive `Nom`), et au-delà de deux lignes il est coupé AU MOT par
++   `coupeAuMot` (CombatConsole.tsx) — jamais une ellipse au caractère (R-M2, spec:71-74). */
+ .cc-arch-name {
++  display: flex;
++  align-items: center;
++  justify-content: center;
++  align-self: stretch;
++  height: var(--cc-arch-nom-h);
++  overflow: clip;
+   font-family: var(--font-display);
+-  font-size: 13px;
++  font-size: 11px;
+   letter-spacing: 0.4px;
+   color: var(--atelier-brass-vif);
+-  max-width: 100%;
+-  overflow: hidden;
+-  text-overflow: ellipsis;
+-  white-space: nowrap;
++  text-align: center;
+ }
+ /* Corps de l'arche : gouttière Mouvement | portrait | gouttière Action | niche d'États, assis sur la
+    même ligne (ordre de la planche 2026-08-17). Sa HAUTEUR est celle que l'habillage laisse dans
+@@ -754,7 +808,7 @@
+ .cc-arch-body {
+   display: flex;
+   align-items: stretch;
+-  gap: 6px;
++  gap: var(--cc-arch-corps-ecart);
+   height: calc(var(--cc-arch-h) - var(--cc-arch-chrome));
+ }
+ /* BARRE DE BLESSURES de l'arche (planche : « 9 / 9 BLESSURES ») : la primitive `LifeBar` en mode
+@@ -765,7 +819,7 @@
+   align-self: stretch;
+ }
+ .cc-arch > [data-overlay] > div {
+-  height: 15px;
++  height: var(--cc-blessures-h);
+   border-radius: 0;
+   border: 1px solid var(--atelier-wood-etch);
+ }
+@@ -801,11 +855,11 @@
+    `hud.css` où vit le rack, il lui faut donc un cran de spécificité de plus — et aucune classe de la
+    primitive n'est redéfinie ici (cliquet xii, `ui-ratchets`). */
+ .cc-arch .cc-arch-body [data-reserve] {
+-  --alv: 17px;
++  --alv: var(--cc-alv);
+   flex-direction: column;
+   align-items: center;
+   align-self: flex-start;
+-  gap: 2px;
++  gap: var(--cc-niche-ecart);
+ }
+ /* GOUTTIÈRE (spécimen D) : le rail est CREUSÉ dans le bois, les crans y sont posés, et le socle
+    chiffré se lit au pied. Longueur constante quel que soit le nombre de crans. */
+@@ -814,6 +868,7 @@
+   flex-direction: column;
+   align-items: center;
+   gap: 3px;
++  width: var(--cc-gouttiere);
+ }
+ .cc-gutter-rail {
+   display: flex;
+@@ -940,7 +995,7 @@ button.cc-socle svg {
+   display: flex;
+   align-items: center;
+   gap: 8px;
+-  height: 15px;
++  height: var(--cc-conduit-h);
+ }
+ .cc-conduit-label {
+   font-family: var(--font-display);
+@@ -1068,28 +1123,34 @@ button.cc-socle svg {
+ }
+ 
+ /* ── Responsive : de 701 à toute largeur, la formule du `:root` suffit (décision Q1 du 2026-09-24 :
+-   aucune cassure entre 900 et 901). Sous 701, la RANGÉE ne porte plus l'arche : elle passe en tête
+-   de bande, sur UNE ligne (composition compacte, arbitrage 2026-08-16), et les comptes de cases ne
+-   bougent pas d'un cran. ── */
+-@media (max-width: 700px) {
++   aucune cassure entre 900 et 901). Quand la rangée ne tient plus — sous 701, ou au doigt sous 901,
++   où la cible de 44px ne laisse plus la place à l'arche —, elle ne porte plus l'arche : l'arche passe
++   en tête de bande, sur UNE ligne (composition compacte, arbitrage 2026-08-16), et les comptes de
++   cases ne bougent pas d'un cran. ── */
++@media (max-width: 700px), (pointer: coarse) and (max-width: 900px) {
+   :root {
+     /* L'arche est une LIGNE en tête de bande : plus de fronton, un portrait de vignette. */
+     --cc-fronton: 0px;
+-    --cc-portrait: var(--cc-portrait-min);
+-    /* Hauteur de la ligne d'arche : rembourrages 6 + 6 et la plus haute de ses pièces (relevé
+-       `console-pont-formes.mjs --mesures`, bloc `arche`). */
+-    --cc-arch-ligne: 100px;
++    --cc-portrait: var(--cc-portrait-vignette);
++    /* HAUTEUR de la ligne d'arche : la SOURCE que `.cc-arch` consomme ci-dessous — le plus haut de ses
++       corps (portrait de vignette, ou niche d'États en carré 2×2), ses rembourrages et le liseré. */
++    --cc-alv: 15px;
++    --cc-arch-nom-h: 16px;
++    --cc-arch-corps-h: max(var(--cc-portrait-vignette), 2 * var(--cc-alv) + var(--cc-niche-ecart));
++    --cc-arch-ligne: calc(var(--cc-arch-corps-h) + 2 * var(--cc-arch-pad-haut) + var(--pont-liseret));
+     --cc-arch-h: var(--cc-arch-ligne);
+-    /* La rangée ne compte plus l'arche ni le coin : deux travées côte à côte (décision Q4.3), donc un
++    /* La rangée ne compte ni l'arche ni le coin : deux travées côte à côte (décision Q4.3), donc un
+        écart d'arsenal et un écart entre travées. */
+     --cc-arch-w: 0px;
+     --cc-rangee-fixe: calc(2 * var(--cc-marge) + 9 * var(--cc-gap) + 4 * var(--cc-bay-pad) + 2 * var(--cc-bay-gap));
+     /* HAUTEUR DU PONT, dans ses trois formes : la ligne d'arche, puis la rangée des travées. */
+     --cc-deck-h: calc(var(--cc-arch-ligne) + var(--cc-gap) + var(--cc-bay-h) + var(--pont-liseret));
+   }
+-  /* Arche en tête et coin en bout de ligne ; les deux travées côte à côte dessous. */
++  /* Arche en tête et coin en bout de ligne ; les deux travées côte à côte dessous. Les deux formes
++     partagent ces aires : seule dans la bande, l'arche garde sa boîte. */
+   .cc-dock {
+-    grid-template-columns: auto minmax(0, 1fr) auto;
++    grid-template-columns: auto minmax(0, 1fr) var(--cc-corner);
++    grid-template-rows: var(--cc-arch-ligne);
+     grid-template-areas: 'arch arch corner' 'left right right';
+     gap: var(--cc-gap) var(--cc-bay-gap);
+     padding-inline: var(--cc-marge);
+@@ -1110,29 +1171,24 @@ button.cc-socle svg {
+     height: auto;
+   }
+   .cc-end .cc-ico {
+-    width: calc(var(--cc-portrait) * 0.6);
+-    height: calc(var(--cc-portrait) * 0.6);
+-  }
+-  /* FORME SPECTATRICE : la boîte reste celle de la bande, l'arche se pose à son PIED (verdict F8,
+-     fiche `user-arbitrage-tour-adverse-console-spectatrice-jamais-pont-entier`). */
+-  .combat-console[data-forme='spectatrice'] > .cc-dock {
+-    align-items: flex-end;
++    width: calc(var(--cc-portrait) * 0.45);
++    height: calc(var(--cc-portrait) * 0.45);
+   }
+-  /* Arche sur UNE ligne : portrait mini, gouttières courtes, nom à la suite. */
++  /* Arche sur UNE ligne : portrait de vignette, gouttières couchées, Blessures et nom à la suite. */
+   .cc-arch {
+     width: auto;
+-    padding: 6px 8px;
++    height: var(--cc-arch-ligne);
++    padding: var(--cc-arch-pad-haut) var(--sp-md);
+     flex-direction: row;
+     align-items: center;
+     justify-content: flex-start;
+-    gap: 6px;
++    gap: var(--cc-arch-corps-ecart);
+     clip-path: polygon(18px 0, calc(100% - 18px) 0, 100% 12px, 100% 100%, 0 100%, 0 12px);
+   }
+   /* SUR LA BANDE PEINTE, elle ne surplombe plus rien : elle est une RÉGION du pont en tête de bande,
+      et laisse donc voir la matière du pont elle-même. En forme SPECTATRICE la bande est éteinte :
+      l'arche garde sa peau, sans quoi il ne resterait rien à voir. */
+   .combat-console[data-forme='complete'] .cc-arch {
+-    width: 100%;
+     background-image: none;
+     background-color: transparent;
+   }
+@@ -1140,13 +1196,22 @@ button.cc-socle svg {
+     width: 44px;
+     height: 8px;
+   }
+-  /* Ligne unique : le corps (portrait + gouttières) garde sa largeur NATURELLE, c'est le NOM qui
+-     cède. */
++  /* Ligne unique : le corps (portrait + gouttières) garde sa largeur NATURELLE. */
+   .cc-arch-body {
+     flex: 0 0 auto;
+     height: auto;
+     align-items: center;
+-    gap: 4px;
++    gap: var(--sp-xs);
++  }
++  /* GOUTTIÈRE COUCHÉE : rail, socle et place du geste côte à côte — la place du geste reste réservée
++     (loi 1), en largeur. */
++  .cc-gutter {
++    width: auto;
++    flex-direction: row;
++  }
++  .cc-gutter > [data-geste] {
++    height: auto;
++    width: var(--cc-gouttiere);
+   }
+   .cc-gutter-rail {
+     flex: 0 0 auto;
+@@ -1156,7 +1221,6 @@ button.cc-socle svg {
+   /* Niche d'États sur la ligne : les 4 alvéoles restent, en carré 2×2 — c'est la HAUTEUR qui tombe,
+      jamais une alvéole. */
+   .cc-arch .cc-arch-body [data-reserve] {
+-    --alv: 15px;
+     display: grid;
+     grid-template-columns: repeat(2, var(--alv));
+     grid-auto-rows: var(--alv);
+@@ -1192,25 +1256,36 @@ button.cc-socle svg {
+   .cc-arch > [data-overlay] > span > i {
+     display: none;
+   }
++  /* Le nom garde son plus long mot (plancher `min-content`) : c'est la barre de Blessures qui cède. */
+   .cc-arch-name {
+-    font-size: 11px;
++    height: auto;
++    align-self: center;
+     flex: 0 1 auto;
+-    min-width: 0;
++    justify-content: flex-start;
++    text-align: left;
+   }
+ }
+ 
+-/* ── COMPOSITION COMPACTE (≤560px, arbitrage 2026-08-16) — rien ne disparaît : mêmes 8 + 12 cases,
+-   mêmes 10 colliers. La ligne d'arche est celle de 700 ; les deux travées s'EMPILENT, et le conduit
+-   se fond dans le bord haut de la grille. ── */
+-@media (max-width: 560px) {
++/* ── COMPOSITION COMPACTE (≤560px, arbitrage 2026-08-16 ; au doigt sous 701, où deux travées de cases
++   de 44px ne tiennent plus côte à côte) — rien ne disparaît : mêmes 8 + 12 cases, mêmes 10 colliers.
++   La ligne d'arche passe sur deux rangs (le corps, puis les Blessures et le nom) ; les deux travées
++   s'EMPILENT, et le conduit se fond dans le bord haut de la grille. ── */
++@media (max-width: 560px), (pointer: coarse) and (max-width: 700px) {
+   :root {
+     /* Côté d'alvéole re-calé à 36px (arbitrage d'assemblage 2026-08-17) : le TERRAIN redevient le
+-       sujet. Les comptes de cases (8 + 12) et les 10 colliers ne bougent pas d'un cran. */
+-    --cc-cell: 36px;
++       sujet. Les comptes de cases (8 + 12) et les 10 colliers ne bougent pas d'un cran. La case reste
++       CARRÉE (36×36, là où la table Q2 de la décision du 2026-09-24 écrit 36×32) : le pont compact
++       tient la cible de la Zone 1, ≤ 45 % (docs/plans/2026-08-16-spec-hud-combat.md:60-63). */
++    --cc-cell: max(var(--cc-cible), 36px);
+     --cc-gap: 3px;
+     --cc-bay-gap: 4px;
+-    /* Socle d'une travée compacte : rembourrages 4 + 6, conduit ou titre 13, écart 4. */
+-    --cc-bay-socle: 27px;
++    --cc-sets-part: 0.72;
++    /* Travée compacte : rembourrages 4 + 6, conduit 13. */
++    --cc-bay-pad: var(--sp-xs);
++    --cc-bay-pied: var(--sp-sm);
++    --cc-conduit-h: 13px;
++    /* Ligne d'arche sur DEUX rangs : le corps, puis Blessures et nom. */
++    --cc-arch-ligne: calc(var(--cc-arch-corps-h) + var(--cc-arch-ecart) + var(--cc-arch-nom-h) + 2 * var(--cc-arch-pad-haut) + var(--pont-liseret));
+     /* Le bandeau compact est plus bas (rembourrage 2px, boutons 11px) : sa RÉSERVE suit. */
+     --cc-phase-h: 24px;
+     --cc-deck-h: calc(var(--cc-arch-ligne) + 2 * var(--cc-gap) + 2 * var(--cc-bay-h) + var(--pont-liseret));
+@@ -1236,19 +1311,26 @@ button.cc-socle svg {
+     font-size: 11px;
+   }
+   .cc-dock {
+-    grid-template-columns: minmax(0, 1fr) auto;
++    grid-template-columns: minmax(0, 1fr) var(--cc-corner);
++    grid-template-rows: var(--cc-arch-ligne);
+     grid-template-areas: 'arch corner' 'left left' 'right right';
+     justify-items: center;
+     gap: var(--cc-gap);
+   }
++  .cc-arch {
++    justify-self: stretch;
++    display: grid;
++    grid-template-columns: minmax(0, 1fr) auto;
++    align-content: center;
++    row-gap: var(--cc-arch-ecart);
++  }
++  .cc-arch-body {
++    grid-column: 1 / -1;
++  }
+   .cc-bay-right { justify-self: center; }
+   .cc-bay {
+     width: 100%;
+     align-items: center;
+-    /* R-M3 : la dernière rangée respire SOUS son bord (6px) — collée au bord de tôle, elle se
+-       lisait « coupée » (sonde pixel du juge : fond de tuile 632, plaque 636). */
+-    padding: 4px 4px 6px;
+-    gap: 4px;
+   }
+   .cc-bay-body {
+     gap: 6px;
+@@ -1269,7 +1351,6 @@ button.cc-socle svg {
+   /* Conduit FONDU dans le bord supérieur de la grille : plus d'écart, un seul plan de tôle. */
+   .cc-conduit {
+     width: 100%;
+-    height: 13px;
+     gap: 5px;
+   }
+   .cc-conduit-rail {
+@@ -1279,18 +1360,15 @@ button.cc-socle svg {
+     font-size: 9px;
+     letter-spacing: 0.5px;
+   }
+-  /* La colonne de sets se resserre avec l'alvéole ; aucune vignette ne se replie. */
+-  .cc-sets {
+-    width: 26px;
+-  }
+ }
+ @media (pointer: coarse) {
++  /* AU DOIGT, la cible de pointage est de 44px (norme: WCAG 2.2, 2.5.5 « Target Size »), plancher du
++     côté de case dans la formule du `:root` ; la colonne de sets prend un côté entier, et l'air entre
++     régions cède à la cible. */
+   :root {
+-    --cc-cell: 44px;
+-  }
+-  /* Cible tactile de la colonne de sets : la vignette s'élargit, son compte ne change pas. */
+-  .cc-sets {
+-    width: 44px;
++    --cc-cible: 44px;
++    --cc-sets-part: 1;
++    --cc-bay-gap: 10px;
+   }
+   /* Cible tactile du chip MUNITION : elle s'étend HORS FLUX (calque de touche), sans grandir la ligne
+      de l'en-tête — 44px de haut au doigt pour un texte de 10px qui, lui, ne bouge pas. */
+diff --git a/src/ui/styles/hud.css b/src/ui/styles/hud.css
+index 0e7d76efc..e66bdd6d9 100644
+--- a/src/ui/styles/hud.css
++++ b/src/ui/styles/hud.css
+@@ -95,20 +95,28 @@
+ [data-zone='outils'] {
+   grid-area: outils;
+   container-type: size;
++  /* Conteneur de TAILLE, la zone ne voit plus son contenu : le plancher de son flanc est le rail —
++     une commande vissée (`--xd-row`), le rembourrage `md` de sa pile et le filet de sa plaque. */
++  min-width: calc(var(--xd-row) + 2 * var(--sp-md) + 2px);
+ }
+-/* La zone TEMPS porte, en combat, la frise d'initiative puis le fil d'événements, assis au pied de
+-   la zone (planche 2026-08-17 : journal `[170,779,330,57]`, juste après la colonne de frise) ; hors
+-   combat, l'objectif. Dans la colonne du flanc, elle est le CONTENEUR de la frise, qui y borne sa
+-   piste (`cqh`) sans rien savoir du pont ni du haut de l'écran. Elle ne pèse sur aucune colonne
+-   (`contain`) : un fil long ou une bande qui déborde ne décentre jamais le groupe. */
++/* La zone TEMPS porte, en combat, la frise d'initiative PUIS le fil d'événements, en une seule
++   composition à toute largeur au-dessus de 560 : le fil sous la colonne de frise, au pied de la zone
++   (planche 2026-08-17 : journal au pied, juste après la colonne de frise) ; hors combat, l'objectif.
++   La piste de la frise et le plus long mot insécable du fil fixent le plancher de son flanc
++   (`min-content`) : c'est le centre qui cède. */
+ [data-zone='temps'] {
+   grid-area: temps;
+   align-items: flex-start;
+-  contain: inline-size;
+-  container-type: size;
+ }
+-[data-zone='temps'] > .combat-feed {
+-  align-self: flex-end;
++/* PISTE DE LA FRISE : l'enveloppe prend ce que le fil laisse dans la zone, et c'est ELLE le conteneur
++   où la frise borne sa piste (`cqh`, arrondie au pas d'entrée) — le fil, à la hauteur de son contenu,
++   ne sort donc jamais de la zone. */
++[data-zone='temps'] > [data-piste='frise'] {
++  flex: 1 1 0;
++  min-height: 0;
++  align-self: stretch;
++  align-items: flex-start;
++  container-type: size;
+ }
+ /* L'objectif garde la boîte de son contenu à toute tranche : étirée sur la bande, elle avalait les
+    clics du terrain à sa droite. */
+@@ -149,11 +157,12 @@
+    Sa MATIÈRE est la peau partagée `.skin-bois` (components.css), sa pile et ses espacements la
+    primitive `Stack` : ce module n'en porte que le rang. Le panneau du journal naît du rail, vers le
+    champ (log-drawer.css) : le rail étant au haut de sa zone, il pend SOUS lui, dans la place que la
+-   zone lui laisse (`100cqh` moins le rail, `100%` de sa boîte d'ancrage). */
++   zone lui laisse (`100cqh` moins le rail, `100%` de sa boîte d'ancrage, et les deux filets de la
++   plaque, que `100%` ne compte pas : il mesure la boîte de REMBOURRAGE du rail). */
+ .hud-rail {
+   position: relative;
+   z-index: 46;
+-  --ld-place: calc(100cqh - 100% - var(--sp-sm));
++  --ld-place: calc(100cqh - 100% - var(--sp-sm) - 2px);
+ }
+ .hud-rail .log-drawer {
+   position: static;
+@@ -162,6 +171,13 @@
+   top: calc(100% + var(--sp-sm));
+   bottom: auto;
+ }
++/* Dès 701, il tient dans la LARGEUR de sa zone (`100cqw`, moins le filet de la plaque du rail, au bord
++   intérieur duquel il s'ancre) : plus large, il pendait sur le bandeau du groupe. */
++@media (min-width: 701px) {
++  .hud-rail .ld-panel {
++    width: min(330px, calc(100cqw - 1px));
++  }
++}
+ 
+ /* ── Barre HUD supérieure : menu ☰ et, HORS COMBAT, le lieu (design 2026-07-31 §11). UNE rangée
+    qui ne s'enroule pas : c'est le lieu qui s'enroule, au mot, dans la part qui lui revient. ── */
+@@ -234,14 +250,35 @@
+       'temps    temps    temps'
+       '.        .        .';
+   }
++  /* EN COMBAT, le rail d'outils quitte le flanc droit pour le coin haut du CHAMP, couché en rangée
++     (`rowBelow`, CampaignView), posé par les lignes de la couche : le flanc droit ne dicte plus
++     aucune colonne, et le groupe a la largeur de son contenu entre la frise et le bord. Le champ
++     est ce que la frise laisse : du centre au bord. */
++  .stage > .stage-flot[data-pont='combat'] {
++    grid-template-areas:
++      'contexte groupe    .'
++      'temps    groupe    .'
++      'temps    ouverture .'
++      '.        .         .';
++  }
++  [data-zone='outils'] {
++    grid-row: champ;
++    grid-column: centre / -1;
++    min-width: 0;
++  }
++  /* Le panneau du journal, qui pend sous le rail, prend la LARGEUR du champ et la hauteur que le
++     champ lui laisse (`--ld-place`) : jamais sur le groupe, la frise, le fil ni le pont. */
++  .hud-rail .ld-panel {
++    width: calc(100cqw - 1px);
++    max-height: var(--ld-place);
++  }
+ }
+ @media (max-width: 560px) {
+   /* EN COMBAT, la frise quitte le flanc pour la BANDE, pleine largeur, sous le groupe, et le fil passe
+      sous elle ; le bandeau d'ouverture descend au pied du champ. Jusqu'à 561, la frise reste la
+-     colonne de Rogue Trader (décision Q4.3 du 2026-09-24, #1806). Le rail, couché en rangée
+-     (`rowBelow`, CampaignView), passe au coin haut du CHAMP, par les lignes de la couche : le panneau
+-     du journal qui pend sous lui vit dans le champ, jamais sur la frise ni sur le fil. */
+-  .stage > .stage-flot {
++     colonne de Rogue Trader (décision Q4.3 du 2026-09-24, #1806). Le champ n'a plus de frise : le
++     rail et le panneau du journal y prennent toute la largeur. */
++  .stage > .stage-flot[data-pont='combat'] {
+     gap: var(--sp-xs);
+     padding: var(--sp-xs);
+     grid-template-areas:
+@@ -251,10 +288,15 @@
+       '.         .         .';
+   }
+   [data-zone='outils'] {
+-    grid-row: champ;
+-    grid-column: flanc-d;
++    grid-column: 1 / -1;
+   }
++  /* En BANDE pleine largeur, la zone ne dicte aucune colonne : sa piste défile. */
+   [data-zone='temps'] {
++    contain: inline-size;
++  }
++  [data-zone='temps'] > [data-piste='frise'] {
++    flex: 0 0 auto;
++    align-items: stretch;
+     container-type: normal;
+   }
+   [data-zone='temps'] > .combat-feed {
+diff --git a/src/ui/styles/initiative-strip.css b/src/ui/styles/initiative-strip.css
+index 6badc74e4..aabf4c8aa 100644
+--- a/src/ui/styles/initiative-strip.css
++++ b/src/ui/styles/initiative-strip.css
+@@ -225,6 +225,16 @@
+   color: var(--hud-frise-edge);
+ }
+ .is-score.lente { color: var(--muted); border-color: rgba(163, 147, 111, 0.5); }
++/* Les badges de PREMIER COUP et de PRÉ-EMPTION vivent DANS la boîte de l'entrée, posés sur le coin
++   bas de la vignette : une entrée qui en porte un garde la largeur des autres, et la frise ne
++   s'élargit pas en pause de Round (CombatConsole.tsx:51-53). */
++.is-first,
++.is-preempt {
++  position: absolute;
++  right: -4px;
++  bottom: -4px;
++  z-index: 3;
++}
+ .is-first {
+   font-size: 10px;
+   background: rgba(255, 224, 102, 0.14);
+diff --git a/src/ui/styles/log-drawer.css b/src/ui/styles/log-drawer.css
+index 33124bf4d..cb27bd2e1 100644
+--- a/src/ui/styles/log-drawer.css
++++ b/src/ui/styles/log-drawer.css
+@@ -47,6 +47,13 @@
+   border-radius: 10px;
+   padding: 8px 10px;
+   transition: background 0.15s ease, border-color 0.15s ease;
++  /* Le pas de défilement est la LIGNE (R-M3, docs/plans/2026-08-16-spec-hud-combat.md:75-76) : la
++     ligne du haut est toujours entière ; le bord BAS, lui, est l'affordance du défilement. */
++  scroll-snap-type: y mandatory;
++  scroll-padding-top: var(--sp-md);
++}
++.ld-panel > * {
++  scroll-snap-align: start;
+ }
+ /* Au survol du tiroir (panneau ou bouton du journal), on révèle le fond opaque ; sinon il reste
+    transparent et le texte flotte sur le champ par le halo PARTAGÉ (`.halo-champ`, components.css,
+diff --git a/src/ui/styles/party-dock.css b/src/ui/styles/party-dock.css
+index b18fd675a..c986bf306 100644
+--- a/src/ui/styles/party-dock.css
++++ b/src/ui/styles/party-dock.css
+@@ -128,11 +128,10 @@
+ }
+ /* Le bandeau ne marque PAS l'acteur du tour (spec §1c-bis BANDEAU, arbitrage user 2026-08-17) :
+    aucune règle de situation sur la carte — la frise d'initiative porte seule l'actif. */
+-/* NOM du héros, sous sa carte (planche 2026-08-17) : R-M2 — il ne se coupe qu'ENTRE MOTS, sur DEUX
+-   lignes au plus (à une seule ligne, 12 noms sur 13 s'ellipsaient — mesure 1280 du lot) ; un mot seul
+-   trop long s'ellipse et le nom complet reste en `title` de la tuile. La boîte suit son CONTENU, avec
+-   une ligne au minimum : la réserve de deux lignes était permanente (densité, grief du juge vision),
+-   et les tuiles s'alignent par le HAUT de leur boîte, pas par le pied de leur légende. */
++/* NOM du héros, sous sa carte (planche 2026-08-17) : R-M2 — il ne se coupe qu'ENTRE MOTS (primitive
++   `Nom`), sur DEUX lignes au plus : au-delà il est coupé AU MOT (`coupeAuMot`, PartyDock.tsx), et le
++   nom complet reste en `title` de la tuile. La boîte suit son CONTENU, avec une ligne au minimum, et
++   les tuiles s'alignent par le HAUT de leur boîte, pas par le pied de leur légende. */
+ .pd-track > figure > figcaption {
+   max-width: 100%;
+   margin-top: 2px;
+@@ -143,14 +142,6 @@
+   letter-spacing: 0.3px;
+   color: var(--atelier-brass-vif);
+   text-align: center;
+-  display: -webkit-box;
+-  -webkit-box-orient: vertical;
+-  -webkit-line-clamp: 2;
+-  line-clamp: 2;
+-  overflow-wrap: normal;
+-  word-break: normal;
+-  overflow: hidden;
+-  text-overflow: ellipsis;
+ }
+ 
+ /* ══ Matrice responsive (canon 900 / 700 / 560) — UN bloc par tranche ══ */
+diff --git a/src/ui/styles/spectator-chip.css b/src/ui/styles/spectator-chip.css
+index 5095e916a..722325e5d 100644
+--- a/src/ui/styles/spectator-chip.css
++++ b/src/ui/styles/spectator-chip.css
+@@ -3,9 +3,10 @@
+    entière ici (#1806 2d, arbitrage A1 du 2026-09-18).
+    ANCRAGE : la puce suit le FLUX par défaut (elle vit dans le panneau qui porte les commandes
+    désactivées) ; la pose À L'ÉCRAN est un ÉTAT de la primitive, `data-pose='ecran'`, posé par
+-   l'hôte qui arbitre les modales, que l'écran de campagne monte dans la zone `parole` de sa couche
+-   HUD (hud.css) : la zone la place, la pose n'en retire que la marge du flux. Aucune autre règle de
+-   `src/ui/styles` ne vise `.spectator-chip`. ══ */
++   l'arbitre des modales (`ActiveModal`), que montent l'écran de campagne, le groupe, la bataille de
++   masse et l'interlude : la pose centre la puce au pied de l'écran de son hôte. Seule la zone
++   `parole` de la couche HUD (hud.css, écran de campagne) la neutralise — la zone la place. Aucune
++   autre règle de `src/ui/styles` ne vise `.spectator-chip`. ══ */
+ .spectator-chip {
+   background: rgba(10, 10, 16, 0.85);
+   border: 1px solid var(--border);
+@@ -20,3 +21,11 @@
+ .spectator-chip[data-pose='ecran'] {
+   margin-top: 0;
+ }
++.spectator-chip[data-pose='ecran']:not([data-zone='parole'] > *) {
++  position: absolute;
++  bottom: var(--sp-lg);
++  left: 50%;
++  transform: translateX(-50%);
++  z-index: 40;
++  align-self: auto;
++}

@@ -1,0 +1,12 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1919-H2
+
+ ✓ src/ui/CombatConsole.test.tsx (151 tests | 150 skipped) 382ms 464 MB heap used
+   ✓ CombatConsole — assemblage : UN PONT, pas des blocs > P-4 — le fronton est centré : deux voies `1fr` égales + réserve MIROIR du coin 379ms
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 150 skipped (151)
+   Start at  23:13:09
+   Duration  20.20s (transform 12.03s, setup 13.29s, collect 5.46s, tests 382ms, environment 639ms, prepare 52ms)
+

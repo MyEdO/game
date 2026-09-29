@@ -1,0 +1,17 @@
+fix(portes): refs #1806 — fusionnesEnCours : MERGE_HEAD illisible ou corrompu va à confier
+
+Retouches 1 à 4 du juge des correctifs 707dce2ab et 12d0339ce (pilotage #1806 du 2026-09-28) :
+- une erreur de lecture de MERGE_HEAD (répertoire compris) et une ligne qui ne nomme aucun commit
+  vont à `confier` au lieu d'être rendues vides ou filtrées en silence ;
+- la JSDoc cite le source de git v2.43.0 lu (builtin/merge.c:1044-1046, builtin/commit.c:1773-1778,
+  commit.c:1700) ; les lignes 1141 et 1873 du juge venaient d'une autre version ;
+- l'en-tête de l'hôte déclare cette lecture d'état ;
+- cinq tests directs (hors fusion, simple, octopus à deux lignes, ligne corrompue, illisible),
+  chacun rougi par mutation.
+`revisionFautive` sort de `revisionsDe` pour que le prédicat n'existe qu'une fois.
+
+Reste, rattaché à la classe « sous enPanne, une panne confiée deux fois » (gitPorte.mjs:397-418) :
+sous enPanne, une panne de git pendant `shaDe` d'une ligne ajoute une seconde raison.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_0167t7jpCF61Qutt6mU1dbAt

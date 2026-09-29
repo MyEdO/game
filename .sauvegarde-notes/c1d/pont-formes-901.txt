@@ -1,0 +1,3 @@
+exploration 1707×780 — pont 49px (haut y=731) · dialogue 680×229.2 bas=715 · panneau 330×149 bas=730
+exploration 1366×650 — pont 49px (haut y=601) · dialogue 680×229.2 bas=585 · panneau 330×149 bas=600
+exploration 360×740 — pont 49px (haut y=691) · dialogue 330.9×328.4 bas=683 · panneau 309.6×168 bas=690

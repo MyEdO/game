@@ -1,0 +1,29 @@
+VERDICT : À REPRENDRE (un défaut, petit, correction en une ligne par site) — arbre f45c18692 + index (78 fichiers). Contrôle positif : A src/lib/coupeAuMot.mjs, .d.mts, posePartagee.ts/.test.ts, scripts/guards/lib/dialecte.d.mts ; D src/lib/coupeAuMot.ts ; rien hors index.
+
+DÉFAUTS
+E1 [RÉGRESSION introduite par le train : un texte qui TIENT est coupé] 4 sites passent `max - 1` pour borner le rendu, ellipse comprise. Or coupeAuMot(s,n) rend s entier seulement si s.length <= n. Un texte de exactement `max` caractères, entier à HEAD, est donc coupé maintenant :
+  scripts/source/prose-source-plugin.mjs:81 (TITRE_MAX=60, titre de chapitre de l'éditeur DescRefField, visible dans l'app ; HEAD : `propre.length > TITRE_MAX ? … : propre`)
+  scripts/ops/etapesDuTrain.mjs:188 (max=120), scripts/guards/lib/gitPorte.mjs:89 (RAISON_MAX=200), scripts/ui/audit-i18n.mjs:205 (59 ; HEAD : seuil > 60).
+  Sonde juge-train3/sonde-borne.mjs, rc=0 :
+    titreDeCommit 120 car. : 120 -> 116 COUPÉ
+    raisonCourte 200 car. : 200 -> 196 COUPÉ
+    titreDeChapitre 60 car. : "Les Répurgateurs et la Chasse aux Sorcières dans le…" (HEAD : le titre entier, « Reikland » compris)
+  Aucun test ne garde cette frontière : publier.test.mjs:870-875 et gitPorte.test.mjs:321-330 testent seulement ≤ max.
+  Correction retenue (règle générale) : la primitive prend comme contrat « n borne le RENDU, ellipse comprise » : s entier si s.length <= n, sinon coupe cherchée à n-1. Les 4 sites passent alors `max`. Le test de la primitive porte les deux frontières (longueur n : entier ; n+1 : coupé, rendu ≤ n). Les 8 sites src/ se relisent à ±1.
+E2 [mineur, commentaires devenus faux] gitPorte.mjs:47 « Longueur maximale d'une `raison` » et empreinte-sources.mjs:300 « rendu JSON borné » : un premier mot plus long que la borne passe maintenant entier (empreinte-sources.test.mjs:111, 'z'×300 rendu entier). L'arbitrage accepte cette perte, mais les commentaires doivent la dire. Correction : « coupée au mot vers N (`coupeAuMot`) ».
+E3 [mineur, D6 trou] coupeAuCaractere.mjs:88-94 `suiviEnJsx` ne regarde que le frère IMMÉDIAT. En JSX sur plusieurs lignes, ce frère est un JsxText qui ne contient que des blancs. Sonde juge-train3/sonde-garde.mts : « jsxSautDeLigne [] » pour `<span>\n{s.slice(0, 20)}\n{'…'}\n</span>`. Correction : sauter les JsxText `containsOnlyTriviaWhiteSpaces`, et ajouter ce cas au témoin. Faux positifs de portée, sans site aujourd'hui : « constOmbree ['x.tsx:3'] » (`litteraux` indexé par nom sur tout le fichier) et « deuxInstrPortéeInterne ['x.tsx:1'] » (paramètre homonyme). L'en-tête dit « réassignée (`let`) » : en fait tout `let` échappe (« deuxInstrTrimLet [] »).
+E4 [mineur, canon] raccourcis-registre.test.ts:44-140 : le résolveur AST (`valeurs`/`resoudre`/`ecouteurGlobal`, environ 100 lignes) vit dans le fichier de test. Le patron du lot, coupeAuCaractere.mjs + .d.mts, le met sous scripts/guards/lib/ (credo : « sa garde mécanique (`scripts/guards/lib/`) »). Correction : scripts/guards/lib/raccourcisGlobaux.mjs + .d.mts, consommé par le test.
+
+TIENNENT
+- D2 : Infobulle.tsx:27-30 dit ce qui est vrai : PHASES.keydown=true (l.69-70), stopPropagation (l.211), useGameKeyboard.ts:112 window bulle ; aucun notWhenControlFocused. Le test Infobulle.test.tsx:182-199 compare avec un témoin (KeyA {parvenus:1}) et ↓ ({parvenus:0, empeche:true}) : il prouve bien « n'atteint pas la fenêtre ».
+- D3 : coupeAuMot.mjs:14-24 : le blanc initial est gardé (' Anticonstitutionnellement…'), U+2007 est insécable (l.7), et le .d.mts porte la signature exacte. Le texte fait seulement de blancs rend "", un cas hors contrat et sans consommateur.
+- D5 : les 9 sites. Leurs messages sont relus par du code : HORS_ARBRE (gitPorte.mjs:865, motif en tête de la 1re ligne git) tient. Contre-grep des lecteurs de `.raison`/reason/detail : testsParGate.mjs:86 (interpolation), migration 1389:96 (interpolation), reanchor.md (0 ligne DRIFT/MEDIUM/LOW, corps fba5ec03 inchangé). Aucun matcher cassé. Les 3 listes de dépôts jetables sont complètes (grep src/lib/ordre.mjs : 3 listes, les 3 portent coupeAuMot.mjs).
+- D6 : les 6 formes de sonde4 rougissent (sonde-garde : 6×1 site). L'exclusion par sAppliqueA({foyer}) (sourceCorpus.mjs:91-93) est la primitive canonique, déjà partagée par canonUnique et commentPoison. C'est un foyer unique, pas une liste. Le test « sous un autre chemin est vu » le prouve. Corpus src+scripts, tests compris : 0 site.
+- D7 : l'AST est bien là, et un type non résolu produit un refus distinct (« NON RÉSOLU »). dialecte.d.mts est exact (3 exports : typescript, scriptKindDe, ast) et nécessaire (tsconfig sans allowJs, raccourcis-registre.test.ts est le seul importeur TS).
+- posePartagee : une seule couture, et les 2 consommateurs gardent leurs addEventListener littéraux. vider() rend les remises antérieures inertes : c'est PLUS sûr que HEAD. À HEAD, un démontage postérieur à reset faisait retomber montees à 0 et retirait la porte d'une couche vivante.
+- #2034 existe (ouverte). Son commentaire porte la classe « dépôts jetables recopient à la main la liste des modules », avec les 3 mêmes fichiers.
+- D4, D8, docs générés (diff = compteurs 152→153, empreintes, entrée posePartagee), aucun orphelin (brancherPorte, montees, coupeAuMot.ts : 0).
+- Rejeu : vitest 5 fichiers rc=0, 29 passed ; node --test empreinte-sources + gitPorte rc=0, 79/79.
+
+JUGE: juge adversarial du train 3 R-M2 lot A (#1806) sur f45c18692+index : À REPRENDRE — coupeAuMot(s, max-1) coupe un texte de exactement max caractères (titre de chapitre 60 car. tronqué dans l'éditeur, titreDeCommit, raisonCourte, audit-i18n) ; D2-D8, posePartagee, dialecte.d.mts et #2034 tiennent.
+REFUTATION: sondes node sonde-borne.mjs (120→116, 200→196, titre 60 car. coupé « …dans le… »), tsx sonde-garde.mts (6 formes vues, JSX sur plusieurs lignes manqué, 2 faux positifs de portée), contre-grep des lecteurs de raison ; vitest 5 fichiers 29/29, node --test 79/79.

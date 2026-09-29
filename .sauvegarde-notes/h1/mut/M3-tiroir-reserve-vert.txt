@@ -1,0 +1,27 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1919-H1
+
+ ✓ src/ui/ExplorationDock.test.tsx (19 tests | 18 skipped) 275ms 526 MB heap used
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 18 skipped (19)
+   Start at  20:42:11
+   Duration  24.24s (transform 14.61s, setup 13.26s, collect 9.66s, tests 275ms, environment 602ms, prepare 58ms)
+
+stderr | src/ui/ExplorationDock.test.tsx > Zone 11 — la RÉSERVE du pont est lisible, et le pont est COMPACT > le tiroir-journal est assis SUR le pont, et son panneau naît de son bouton
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+THREE.WebGLRenderer: THREE.WebGLRenderer: Error creating WebGL context.
+GameStage3D: aucun contexte WebGL — le monde ne peut pas être peint. Error: THREE.WebGLRenderer: Error creating WebGL context.
+    at new WebGLRenderer (file:///home/user/game/.wt-1919-H1/node_modules/three/build/three.module.js:16399:13)
+    at /home/user/game/.wt-1919-H1/src/gameIso/stage/GameStage3D.tsx:1548:64
+    at commitHookEffectListMount (/home/user/game/.wt-1919-H1/node_modules/react-dom/cjs/react-dom.development.js:23189:26)
+    at commitPassiveMountOnFiber (/home/user/game/.wt-1919-H1/node_modules/react-dom/cjs/react-dom.development.js:24970:11)
+    at commitPassiveMountEffects_complete (/home/user/game/.wt-1919-H1/node_modules/react-dom/cjs/react-dom.development.js:24930:9)
+    at commitPassiveMountEffects_begin (/home/user/game/.wt-1919-H1/node_modules/react-dom/cjs/react-dom.development.js:24917:7)
+    at commitPassiveMountEffects (/home/user/game/.wt-1919-H1/node_modules/react-dom/cjs/react-dom.development.js:24905:3)
+    at flushPassiveEffectsImpl (/home/user/game/.wt-1919-H1/node_modules/react-dom/cjs/react-dom.development.js:27078:3)
+    at flushPassiveEffects (/home/user/game/.wt-1919-H1/node_modules/react-dom/cjs/react-dom.development.js:27023:14)
+    at /home/user/game/.wt-1919-H1/node_modules/react-dom/cjs/react-dom.development.js:26808:9
+

@@ -1,0 +1,34 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1919-H2
+
+ ❯ src/ui/CombatConsole.test.tsx (151 tests | 1 failed | 150 skipped) 142ms 459 MB heap used
+   × CombatConsole — le pont d’OUVERTURE est celui du JOUEUR, et n’offre rien de mort > combat CLOS pendant l’ouverture : ni bandeau d’ouverture ni pont — UNE notion de l’ouverture 139ms
+     → un bandeau d’ouverture sur un combat clos: expected 1 to be +0 // Object.is equality
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/ui/CombatConsole.test.tsx > CombatConsole — le pont d’OUVERTURE est celui du JOUEUR, et n’offre rien de mort > combat CLOS pendant l’ouverture : ni bandeau d’ouverture ni pont — UNE notion de l’ouverture
+AssertionError: un bandeau d’ouverture sur un combat clos: expected 1 to be +0 // Object.is equality
+
+- Expected
++ Received
+
+- 0
++ 1
+
+ ❯ src/ui/CombatConsole.test.tsx:3641:100
+    3639|     ouverture(hero('h1', 'Gunnar'), foe('e1', 9, 9));
+    3640|     act(() => { useGame.setState({ battle: { ...useGame.getState().bat…
+    3641|     expect(host.querySelectorAll('.cc-phase').length, 'un bandeau d’ou…
+       |                                                                                                    ^
+    3642|     expect(host.querySelector('.combat-console')).toBeNull();
+    3643|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 150 skipped (151)
+   Start at  22:05:38
+   Duration  20.00s (transform 11.96s, setup 13.41s, collect 5.52s, tests 142ms, environment 528ms, prepare 56ms)
+

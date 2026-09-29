@@ -1,0 +1,21 @@
+## Sous-lot « grand titre d'affichage » — la famille Combat est à ZÉRO aux trois stocks ; le ticket reste OUVERT
+
+Commit `d25652e73` publié dans `main` le 2026-09-20 (CI verte, course 35526991650).
+
+| Mesure | Avant | Après |
+|---|---|---|
+| déclarations CSS du corpus (`css-conservation`) | 8145 | 8121 |
+| stock identité | 1345 | 1317 |
+| stock espacement | 609 | 606 |
+| `style=` inline | 97 | 97 |
+
+**Famille Combat** : `hud.css` 0 · `combat-modals.css` (n'existe plus) · `combat-console.css` 0 · `combat-ui.css` → `combat-start-splash.css`, module de l'organisme `CombatStartSplash` déclaré au manifeste · inline 0. Le premier item de la DoD est tenu.
+
+**SOLDÉ / DÉPLACÉ / EXEMPTÉ** — 31 entrées retirées du stock, 0 ajoutée, recomptées sur `git diff -U0` : SOLDÉ **18** · DÉPLACÉ **6** (les six déclarations de `.display-title`, en `components.css`) · EXEMPTÉ EN PLACE **7** (les 2 `animation` et les 5 déclarations du sous-titre du beat, toujours écrites, dans le module de leur organisme). Le solde réel se lit au corpus : **−24 déclarations**.
+
+**Ce qui RESTE avant de fermer** — mesuré le 2026-09-20, et que mes notes précédentes avaient omis en ne regardant que le stock :
+- « Attendu » **(b)** : les blocs `@media` de placement seul de la famille en props `stackBelow`/`rowBelow`. Aucun `.tsx` de la famille n'en pose ; il reste 3 blocs `@media` dans `hud.css` et 4 dans `combat-console.css`, à trier (placement seul → prop ; le reste appartient à une primitive).
+- « Attendu » **(d)** : la matrice responsive du HUD (`src/ui/ui-ratchets.test.ts`, « matrice responsive canonique (design 2026-07-31 §12) ») asserte toujours le TEXTE des `@media` par expressions régulières, pas les props rendues.
+- Second item de la DoD : la recette à 700 et 900 des écrans touchés (les sous-lots ont été recettés à 1440 et 360).
+
+**Tickets nés de ce sous-lot** : #1845 (76 déclarations de module PERDANTES contre `.btn`/`.panel`/`.chip`/`.modal`, levées en généralisant la garde « le delta bat sa matière »). Relevés sans ticket propre, à porter par leurs familles (#1807–#1810) : trois titres d'écran à 24-26px écrits trois fois (`.step-head-title`, `.party-acts-title`, `.codex-h1`).

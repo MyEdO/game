@@ -1,0 +1,37 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1919-H2
+
+ ❯ src/ui/TeamSegments.test.tsx (1 test | 1 failed) 58ms 401 MB heap used
+   × TeamSegments — un nom composé ne se coupe qu’entre ses mots > chaque MOT d’un nom est une boîte insécable ; le texte lu est intact 57ms
+     → un mot du nom peut se couper: expected [] to deeply equal [ 'Grunni', 'Pierre-de-Fer' ]
+
+ Test Files  1 failed (1)
+      Tests  1 failed (1)
+   Start at  01:56:34
+   Duration  14.69s (transform 8.79s, setup 13.53s, collect 60ms, tests 58ms, environment 654ms, prepare 50ms)
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/ui/TeamSegments.test.tsx > TeamSegments — un nom composé ne se coupe qu’entre ses mots > chaque MOT d’un nom est une boîte insécable ; le texte lu est intact
+AssertionError: un mot du nom peut se couper: expected [] to deeply equal [ 'Grunni', 'Pierre-de-Fer' ]
+
+- Expected
++ Received
+
+- Array [
+-   "Grunni",
+-   "Pierre-de-Fer",
+- ]
++ Array []
+
+ ❯ src/ui/TeamSegments.test.tsx:25:50
+     23|       .flatMap((r) => r.selecteurs);
+     24|     const mots = [...nom.querySelectorAll('*')].filter((el) => insecab…
+     25|     expect(mots, 'un mot du nom peut se couper').toEqual(['Grunni', 'P…
+       |                                                  ^
+     26|   });
+     27| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+

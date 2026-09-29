@@ -1,0 +1,97 @@
+## Briefs E17 et E17b : la plage jugée au push ne rejuge pas le tronc (2026-09-26)
+
+Contexte : la fusion d'`origin/main` (`ed846ca41`) dans `chantier/1806` (commit `a2c9b8bd2`, non poussé) a montré au juge de fusion que la plage du pre-push et du test CI rejugeait les 63 commits de main avec la lib de la branche (2 refus sur des commits de main). Décision d'ingénierie (révisable) : option A, la plage d'un PUSH exclut le tronc, une FENÊTRE mesurée n'en passe pas.
+
+### Brief E17 (verbatim)
+
+### Brief du codeur E17 : la plage jugée au push ne rejuge pas le tronc (#1806), 2026-09-26
+
+Tu es orchestrateur de ton lot : tu peux déléguer une lecture de masse (`lecteur`) ou une vérification fermée (`verif-mecanique`), mais tu relis tout ce qu'un agent te rend, et le code est à toi.
+
+#### Worktree et interdits
+- Worktree : `/home/claude/game/.wt-1806-j10`, branche `chantier/1806`, HEAD `a2c9b8bd2` (fusion d'`origin/main` `ed846ca41` sur `00f7e84cd`). Arbre propre au départ. Ton travail est `git diff`.
+- Interdits : tout `git checkout/restore/reset/stash/add/commit/apply/merge/rebase/push`, et toute suppression récursive. Un dépôt jetable passe par les forges existantes du dépôt (`depotGabarit` / `envDeDepotForge`, cherche-les). Je committe moi-même.
+- Processus : avant tout `kill`, lis le PPID et la ligne de commande du parent (`ps -o pid,ppid,cmd`) : tu ne tues que ce que ta propre commande a lancé. Jamais `pkill`, `killall`. La machine a 4 cœurs : aucun vitest de plus de 5 fichiers ni suite `node --test` de plus d'un dossier sans avoir vérifié (`ps -eo pid,etime,cmd | grep -E '[v]itest|[n]ode --test'`, sortie collée) qu'aucun autre ne tourne. Aucun serveur, aucun navigateur.
+- Budget : 45 minutes d'horloge. À l'échéance, rends ce qui est fait, le reste NOMMÉ.
+- Hors de ton geste : `docs:build`, `docs:check`, les suites entières, le typecheck complet. Je les joue au commit.
+
+#### Invariant
+- `scripts/hooks/stocks-nominatifs.test.mjs:33-36`, verbatim : « Une porte juge les commits qui la PORTENT ; condamner l'histoire d'avant serait un verdict rétroactif, et l'échapper par un stock de shas rendrait à cette porte le vice qu'elle combat. »
+- `scripts/ops/ruleset-main.mjs:13`, verbatim : « `non_fast_forward` — `main` n'est jamais réécrite ; ».
+- Question à laquelle ils répondent : quels commits la plage d'un push juge-t-elle ? Ceux que ce push APPORTE au tronc. Un commit déjà sur `origin/main` a été jugé à sa publication par la lib de son temps, et aucun refus sur lui ne peut plus rien corriger.
+
+#### Le défaut, mesuré (hypothèse à réfuter par ta propre sonde)
+`croissancesDeLaPlage` (`scripts/guards/lib/plageStock.mjs`, `rev-list --reverse <debut>..<fin>`) liste TOUT ce qui n'est pas dans `debut`. Sur une branche qui a fusionné `main`, `debut` = l'ancienne tête de la branche (`before` de l'événement CI, `debutDeLaPlage` de `stocks-nominatifs.test.mjs:47`, ou le sha distant du pre-push `scripts/git-hooks/pre-push.mjs:124`) : la plage embarque alors les commits de `main`, rejugés par la lib de la branche. Sonde du juge (2026-09-26), à rejouer telle quelle :
+```js
+const R = '/home/claude/game/.wt-1806-j10'
+const { croissancesDeLaPlage } = await import(`${R}/scripts/guards/lib/plageStock.mjs`)
+const v = croissancesDeLaPlage({ cwd: R, debut: '00f7e84cd610f05308105031f291de0e7b178ee4', fin: 'a2c9b8bd2' })
+console.log('commits', v.commits, 'refus stocks', v.refus.length)
+for (const r of v.refus) console.log('  ', r.sha.slice(0, 9), r.fichier, '+' + r.net, 'declare', r.declare)
+console.log('reclassements', v.reclassements.length)
+```
+Rendu du juge sur `fin` = `ed846ca41` : 63 commits, 2 refus (`f4b01419d scripts/gates/ecrivainsAtteints.test.mjs +5 declare 4`, `9e058cf41 scripts/guards/lib/legacyVocabStock.mjs +283 declare 282`), tous deux des commits de `main`. Rejoue-la sur `fin` = `a2c9b8bd2` (la fusion committée) et colle la sortie.
+
+#### Cas canonique déjà couvert
+- Le chemin local : sans `GITHUB_EVENT_PATH`, `debutDeLaPlage` rend `SHA_NUL` et `croissancesDeLaPlage` prend `origin/main` pour début (`plageStock.mjs`, bloc `if (!debut || debut === SHA_NUL)`). La plage jugée y est déjà « ce qui n'est pas sur le tronc ». Preuve d'instance à rendre : le cas d'un `debut` donné en est une instance (exclure `debut` ET `origin/main`), pas une branche de plus.
+- Lis `scripts/ops/` pour le classement du push (#1738, `merge-base origin/main`, cité dans `.github/workflows/ci.yml:20-23`) : si une lecture « commits apportés au tronc » y existe déjà, c'est elle qu'on réutilise, pas une seconde.
+
+#### Travail
+1. Dans `croissancesDeLaPlage`, la liste des commits jugés exclut ceux atteignables depuis `origin/main` quand cette ref existe (en CI : `fetch-depth: 0`, `.github/workflows/ci.yml:24-26` ; dis si `refs/remotes/origin/main` y est bien présente, preuve à l'appui). Une seule définition de « ce que le push apporte », consommée par le pre-push et par le test CI. Décide, preuve à l'appui, ce que deviennent `cumule` (le filtre cumulé) et `reclassementsDeLaPlage` avec la nouvelle liste : même plage, ou non, et pourquoi.
+2. Un test sur dépôt forgé : un tronc qui porte un commit dont la croissance de stock n'est pas déclarée, une branche qui fusionne ce tronc, et un commit propre à la branche qui grossit un stock sans `CLIQUET:`. Attendu : le commit du tronc n'est pas jugé, celui de la branche est refusé ; et une fusion dont la résolution ajoute au stock est refusée sans sa ligne. Le test vit à côté des tests existants de la plage (trouve-les).
+3. Les commentaires de tête de `plageStock.mjs` disent la nouvelle règle en une phrase, réf nue vers `stocks-nominatifs.test.mjs:33-36`.
+
+#### Preuves (obligatoires)
+- Preuve par mutation pour chaque test neuf : fichier muté (retirer l'exclusion), empreinte `git hash-object` avant et après, rouge constaté, remise identique ; la mutation se joue sur le blob FINAL, sortie verte de la remise en fichier.
+- La sonde ci-dessus, avant et après ton changement, sorties collées.
+
+#### Portes (sortie BRUTE collée, avec la ligne `exit=`)
+- `node --test` sur les fichiers de test que tu touches et sur `scripts/hooks/stocks-nominatifs.test.mjs`, `scripts/guards/lib/gitHorsHote.test.mjs`.
+- eslint sur les fichiers touchés.
+
+#### Livrable
+Données brutes dans `<scratchpad>/rendu-e17.md` (sondes et sorties dans `scratchpad/e17/`) : `git diff --stat`, chaque point fait ou reste avec sa preuve, la table des mutations, les sorties des portes.
+
+### Verdict du juge sur E17 (résumé, 2026-09-26)
+
+- Q1 partition push / fenêtre : TIENT. Q3 refactor de `stocksNominatifs.mjs` : TIENT (400 commits réels, 0 écart).
+- Q4 : RÉFUTÉ sur `main` : un push vers le tronc exclut `origin/main` = `after`, la porte juge 0 commit sans le dire.
+- Q2 : FRAGILE : la somme des bilans par commit compte deux fois un changement porté par les deux parents d'une fusion (+2 non déclarés passent), et perd les renommages de plage.
+- Q7 : `comment-poison-guard` rouge à `a2c9b8bd2` : une entrée de `legacyVocabStock.mjs` sans site (la fusion a retiré le site).
+- Q5, Q6 : réserves de test et de langue.
+
+### Brief E17b (verbatim)
+
+### Brief E17b : reprise du juge sur la plage jugée au push (#1806), 2026-09-26
+
+Même worktree, mêmes interdits, même livrable que ton brief E17 (`scratchpad/brief-e17.md`) ; ton diff non committé est la base. Budget : 45 minutes d'horloge, puis rendre ce qui est fait, le reste NOMMÉ. Un vitest de plus de 5 fichiers ou une suite `node --test` de plus d'un dossier : vérifie avant (`ps -eo pid,etime,cmd | grep -E '[v]itest|[n]ode --test'`, sortie collée). Plus aucun autre codeur ne tourne sur la machine.
+
+Verdict du juge : `<scratchpad>/juge-e17/verdict.md`, sondes dans le même dossier (`sonde-q2.mjs`, `sonde-q4.mjs`, `tronc-sur-ancien.test.mjs`). Lis-le en entier avant de toucher.
+
+#### 1. Push VERS le tronc (Q4, RÉFUTÉ)
+Sonde du juge : sur un push à `main` en CI, `origin/main` vaut `after`, la plage `before..after ^origin/main` juge 0 commit, sans note. Sur un push vers le tronc, le tronc d'AVANT le push est `debut` lui-même. Une seule définition, dans `plageStock.mjs`, de la borne d'exclusion en fonction de la ref POUSSÉE ; consommée par `pre-push.mjs` (ref distante de chaque ligne de stdin) et par `stocks-nominatifs.test.mjs` (ref de l'événement CI : dis laquelle, preuve à l'appui dans `.github/workflows/ci.yml` ou la doc de l'événement `push`). Test sur dépôt forgé : un push vers `main` juge ses commits.
+
+#### 2. Le filtre cumulé (Q2, FRAGILE) : hypothèse à réfuter
+La somme des bilans par commit compte DEUX fois un changement que les deux parents d'une fusion portent (cas E : +2 non déclarés passent ; E2 : faux refus), et perd les renommages de plage (B, C). Hypothèse : le compte d'une clé est une fonction d'ÉTAT, donc le cumul juste est
+`net(clé) = [compte(fin) − compte(debut)] − [compte(mbF) − compte(mbD)]`, avec `mbD = merge-base(debut, tronc)` et `mbF = merge-base(fin, tronc)` : ce que la plage change, moins ce que le tronc a changé entre l'état qu'en connaissait `debut` et celui qu'en connaît `fin`. Sans fusion du tronc dans la plage, `mbD = mbF` et l'on retombe sur l'ancien `diff debut..fin` (renommages de plage compris) ; `debut` nul prend `mbF` (diff à trois points) ; tronc absent ou push vers le tronc : pas de soustraction.
+- Réfute ou confirme par sonde : rejoue `sonde-q2.mjs` du juge (adapte-la à ton API, garde ses cas) ; attendu : B, C, D, D', E, E2 et « ajouté puis retiré » ÉGAUX à l'ancien code, et ton test du TROU (`plageStock.test.mjs`, tronc qui retire, branche qui ajoute sous la même clé) toujours refusé. Nomme tout cas où l'hypothèse est fausse avant de coder.
+- Si elle tient : le cœur pur reçoit le bilan cumulé signé (deux `bilanDesStocks` soustraits clé par clé, renommages de chaque paire de bouts), la liste des commits jugés ne change pas. Les tests E et E2 et les cas B, C entrent au fichier de tests de la plage.
+
+#### 3. Langue et tests (Q5, Q6)
+- `debut` et `depuis` : un concept, un terme.
+- Les levées de `bilanDesStocks` nomment la fonction qui lève.
+- Titre périmé `plageStock.test.mjs:127` ; « la branche passait » (bloc du TROU) est une pierre tombale : le commentaire dit le contrat, pas l'histoire.
+- La première moitié du test « sans `debut` » (l.788-791) passe aussi sur l'ancien code : rends-la discriminante ou retire-la.
+
+#### 4. Stock de vocabulaire (Q7)
+`npx vitest run src/comment-poison-guard.test.ts` est rouge à HEAD : l'entrée `src/ui/ui-ratchets.test.ts` / `désormais` / « `.hero-present-chips` repassent mono-consommateur … » de `scripts/guards/lib/legacyVocabStock.mjs` n'a plus de site (la fusion a retiré le site). Retire-la, à l'identique de `git -C /home/claude/game/.wt-1920c diff -- scripts/guards/lib/legacyVocabStock.mjs` ; la garde doit rendre 78/78.
+
+#### Preuves et portes
+- Mutation sur le blob FINAL pour chaque test neuf ou réécrit (empreintes avant/après, rouge avec sa ligne `exit=`, remise identique).
+- `node --test` sur `scripts/guards/lib/plageStock.test.mjs`, `scripts/hooks/stocks-nominatifs.test.mjs`, `scripts/guards/lib/gitHorsHote.test.mjs`, `scripts/git-hooks/pre-push.test.mjs`, `scripts/ops/faits-de-palier.test.mjs` ; `npx vitest run src/comment-poison-guard.test.ts` ; eslint sur les fichiers touchés. Sortie BRUTE, ligne `exit=`.
+- La sonde de ton brief E17 rejouée sur `fin = a2c9b8bd2` (attendu : la fusion seule jugée, 0 refus) et `sonde-q4.mjs` du juge.
+
+Livrable : `scratchpad/rendu-e17b.md`.
+
+---
+_Generated by [Claude Code](https://claude.ai/code)_

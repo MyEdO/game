@@ -1,0 +1,26 @@
+## Sous-lot 2d, bloc γ, étape 1 — publié
+
+État MESURÉ après le commit `3dcf69f6b` (entré dans main avec `50c145b83`, CI verte : course 35498944965) (`scripts/guards/lib/cssCouchesStock.mjs`) :
+
+| Stock | Avant (2d α+β) | Après (2d γ étape 1) |
+|---|---|---|
+| identité | 1430 | 1400 |
+| espacement | 657 | 637 |
+| `style=` inline | 97 | 97 |
+| `combat-ui.css` | 333 lignes | 217 lignes |
+
+**À lire avec ces comptes.** Les réglages audio (`.audio-controls*`, 2 unités d'espacement) ont rejoint la section du menu système de `components.css`, feuille exempte du stock : c'est un transfert, pas un solde.
+
+**Fait** : `RewardRecap` — le récapitulatif de gain que `VictoryScreen` et `LootModal` écrivaient chacun de leur côté est UNE brique à props (`.reward-*`) ; l'ancrage qui diverge reste chez l'hôte (`loot-modal.css`, placement seul). Deux autres primitives : `gearAssignList` (`.gear-*`), `errorBoundary`. Manifeste 90 → 93. `.victory-foe` meurt (son poseur compose `.chip`), six classes posées sans règle quittent les `.tsx`, `.is-ambush` → `[data-ton='embuscade']`.
+
+**Preuve** : écran de victoire rejoué par le flux (graine 42) et comparé AU PIXEL aux captures d'avant, dans le rectangle de `.victory-screen` : 0 pixel différent à 1440 (256 880 px) et à 360 (172 120 px). Sonde de conservation : 76 disparues / 73 apparues, 16 bascules inertes (ancêtres réels relus par le juge), 0 inversion.
+
+**Deux défauts préexistants trouvés en recette et corrigés dans le même commit** :
+1. Le beat d'ouverture se montait PENDANT la cascade de Surprise, jouait « COMBAT ! » sous la fenêtre, et son animation (jouée au montage seulement) était finie quand le mot passait à « EMBUSCADE ! » : le joueur ne voyait jamais l'embuscade. Le beat attend la clôture de la cascade ; test sur le chemin réel, prouvé par mutation ; captures `public/qc/soldes/1806-2d-g1-ouverture-*.png`.
+2. #377 (« un compteur à zéro ne s'affiche jamais nu ») n'était tenu que par l'écran de victoire ; la fenêtre de butin aurait rendu une bourse à zéro. La brique masque elle-même PX et bourse nuls.
+
+**Reste avant la clôture de #1806** :
+1. Bloc γ, étape 2 (CHANGE le rendu) : `.panel.gold` reçoit la vraie matière or et `.victory-section-gear` meurt ; coop (`coopPanels`, `coop-lobby.css`, erreur en `chip tone-danger` + `role="alert"`).
+2. #1834 — `.panel h3` / `.panel label` / `.radio`.
+3. Les 9 unités de `hud.css`.
+4. #1835 — art unique d'un écran (boîte de victoire, beat d'ouverture) : décision utilisateur.

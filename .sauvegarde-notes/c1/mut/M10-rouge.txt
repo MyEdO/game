@@ -1,0 +1,27 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1919-H2
+
+ ❯ src/ui/CombatConsole.test.tsx (151 tests | 1 failed | 150 skipped) 44ms 450 MB heap used
+   × CombatConsole — budget de hauteur du pont (arbitrage user 2026-08-17, décision d’écran 2026-09-24) > G-3 — le PORTRAIT se tire de la HAUTEUR d’écran, et il REMPLIT l’arche sans jamais la faire grandir 42ms
+     → 1280×800 : le portrait ne remplit pas l’arche: expected 230.4 to be close to 171.4, received difference is 59, but expected 5e-7
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 150 skipped (151)
+   Start at  23:11:17
+   Duration  19.41s (transform 11.88s, setup 13.16s, collect 5.24s, tests 44ms, environment 555ms, prepare 54ms)
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/ui/CombatConsole.test.tsx > CombatConsole — budget de hauteur du pont (arbitrage user 2026-08-17, décision d’écran 2026-09-24) > G-3 — le PORTRAIT se tire de la HAUTEUR d’écran, et il REMPLIT l’arche sans jamais la faire grandir
+AssertionError: 1280×800 : le portrait ne remplit pas l’arche: expected 230.4 to be close to 171.4, received difference is 59, but expected 5e-7
+ ❯ src/ui/CombatConsole.test.tsx:2197:122
+    2195|       const lu = (e: string) => evalLen(e, vw, vh);
+    2196|       // Aux vues larges, le portrait prend TOUT ce que l'habillage la…
+    2197|       expect(lu('var(--cc-portrait)') + lu('var(--cc-arch-chrome)'), `…
+       |                                                                                                                          ^
+    2198|       // … et il DOMINE l'arche (planche).
+    2199|       expect(lu('var(--cc-portrait)') / lu('var(--cc-arch-h)'), `${vw}…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+

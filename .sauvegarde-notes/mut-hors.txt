@@ -1,0 +1,53 @@
+TAP version 13
+# Subtest: fusionnesEnCours : hors fusion, `[]`
+not ok 1 - fusionnesEnCours : hors fusion, `[]`
+  ---
+  duration_ms: 77.572626
+  type: 'test'
+  location: '/home/user/game/scripts/guards/lib/gitPorte.test.mjs:1145:1'
+  failureType: 'testCodeFailure'
+  error: "git indisponible : MERGE_HEAD illisible : ENOENT: no such file or directory, open '/tmp/depot-Yu8a2f/.git/MERGE_HEAD'"
+  code: 'ERR_TEST_FAILURE'
+  name: 'GitIndisponible'
+  stack: |-
+    confier (file:///home/user/game/scripts/guards/lib/gitPorte.mjs:259:23)
+    fusionnesEnCours (file:///home/user/game/scripts/guards/lib/gitPorte.mjs:895:30)
+    TestContext.<anonymous> (file:///home/user/game/scripts/guards/lib/gitPorte.test.mjs:1148:22)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.start (node:internal/test_runner/test:944:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)
+  ...
+# Subtest: fusionnesEnCours : une fusion simple rend le commit fusionné
+ok 2 - fusionnesEnCours : une fusion simple rend le commit fusionné
+  ---
+  duration_ms: 85.22169
+  type: 'test'
+  ...
+# Subtest: fusionnesEnCours : une fusion OCTOPUS rend ses deux lignes de `MERGE_HEAD`, dans l’ordre
+ok 3 - fusionnesEnCours : une fusion OCTOPUS rend ses deux lignes de `MERGE_HEAD`, dans l’ordre
+  ---
+  duration_ms: 134.89141
+  type: 'test'
+  ...
+# Subtest: fusionnesEnCours : une ligne de `MERGE_HEAD` qui ne nomme aucun commit est un dépôt CORROMPU, jamais filtrée
+ok 4 - fusionnesEnCours : une ligne de `MERGE_HEAD` qui ne nomme aucun commit est un dépôt CORROMPU, jamais filtrée
+  ---
+  duration_ms: 153.091921
+  type: 'test'
+  ...
+# Subtest: fusionnesEnCours : un `MERGE_HEAD` illisible est INDISPONIBLE, jamais « hors fusion »
+ok 5 - fusionnesEnCours : un `MERGE_HEAD` illisible est INDISPONIBLE, jamais « hors fusion »
+  ---
+  duration_ms: 47.439919
+  type: 'test'
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 4
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 694.231277

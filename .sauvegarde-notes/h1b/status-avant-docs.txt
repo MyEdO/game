@@ -1,0 +1,14 @@
+ M docs/charte-ui.md
+ M scripts/recette/hud-clickables.mjs
+ M scripts/recette/hud-clickables.test.mjs
+ M src/ui/CampaignView.tsx
+ M src/ui/CombatConsole.test.tsx
+ M src/ui/CombatConsole.tsx
+ M src/ui/ExplorationDock.test.tsx
+ M src/ui/camera-sans-plaque.test.ts
+ M src/ui/styles/combat-banner.css
+ M src/ui/styles/components.css
+ M src/ui/styles/hud.css
+ M src/ui/styles/log-drawer.css
+ M src/ui/styles/objective-banner.css
+ M src/ui/styles/spectator-chip.css

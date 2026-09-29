@@ -1,0 +1,20 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1806-L1
+
+ ✓ src/ui/editor/GameOpEditor.test.tsx (20 tests) 251ms 428 MB heap used
+ ✓ src/ui/editor/AddMenu.test.tsx (5 tests) 27ms 429 MB heap used
+ ✓ src/ui/editor/EffectList.test.tsx (21 tests) 436ms 445 MB heap used
+ ✓ src/ui/editor/FlowEditor.test.tsx (5 tests) 164ms 444 MB heap used
+ ✓ src/ui/editor/GameOpEditor.seeds.test.tsx (4 tests) 1611ms 601 MB heap used
+   ✓ GameOpEditor — création au CLIC : aucune valeur pré-semée, raison visible > TOUTE op créable depuis la palette naît sans réf élue 1245ms
+ ✓ src/ui/editor/WorldMapEditor.test.tsx (13 tests) 1679ms 580 MB heap used
+   ✓ WorldMapEditor — panneau Lieu (#419) > sélectionne un lieu et édite le nom, l’icône, le fond, la scène liée, l’entrée 402ms
+   ✓ WorldMapEditor — panneau Lieu / Commerce (#419) > active le port, le résout du catalogue via le picker de ref UNIQUE, édite Taille/cosmopolite/phare 313ms
+   ✓ WorldMapEditor — panneau Lieu / Plan du hub (#419) > ajoute un POI, édite son libellé/icône/position, et lie sa cible via le picker de ref UNIQUE (scène puis service) 393ms
+
+ Test Files  6 passed (6)
+      Tests  68 passed (68)
+   Start at  13:59:11
+   Duration  20.53s (transform 12.11s, setup 38.52s, collect 6.79s, tests 4.17s, environment 2.22s, prepare 214ms)
+

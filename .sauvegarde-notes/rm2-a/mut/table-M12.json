@@ -1,0 +1,20 @@
+[
+ {
+  "id": "M12",
+  "fichier": "src/ui/useGameKeyboard.ts",
+  "avant": "129e9d02795a81027a00174e0a8e2af0862112b2",
+  "mute": "5714c938c3ca5b39818312ba910b15ad83304508",
+  "apres": "129e9d02795a81027a00174e0a8e2af0862112b2",
+  "identique": true,
+  "exit": 1,
+  "cible": "SURFACE possède Entrée",
+  "rouges": [
+   "× (C) SURFACE — un bouton focalisé dans un dialogue ou une infobulle possède Entrée > role=\"tooltip\" : Entrée active le bouton, le curseur tactique ne commet rien 16ms",
+   "× (C) SURFACE — un bouton focalisé dans un dialogue ou une infobulle possède Entrée > role=\"dialog\" : Entrée active le bouton, le curseur tactique ne commet rien 7ms",
+   "FAIL  src/ui/wrap-keyboard-vs-cursor.test.tsx > (C) SURFACE — un bouton focalisé dans un dialogue ou une infobulle possède Entrée > role=\"tooltip\" : Entrée active le bouton, le curseur tactique ne commet rien",
+   "AssertionError: Entrée sur un bouton d’une surface tooltip a commis le curseur derrière: expected 1 to be +0 // Object.is equality",
+   "FAIL  src/ui/wrap-keyboard-vs-cursor.test.tsx > (C) SURFACE — un bouton focalisé dans un dialogue ou une infobulle possède Entrée > role=\"dialog\" : Entrée active le bouton, le curseur tactique ne commet rien",
+   "AssertionError: Entrée sur un bouton d’une surface dialog a commis le curseur derrière: expected 1 to be +0 // Object.is equality"
+  ]
+ }
+]

@@ -1,0 +1,15 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game
+
+ ✓ src/ui/compendium/CodexRef.hooks.test.tsx (12 tests) 400ms 420 MB heap used
+ ✓ src/ui/editor/AddMenu.test.tsx (5 tests) 32ms 424 MB heap used
+ ✓ src/ui/BoiteAncree.test.tsx (8 tests) 45ms 430 MB heap used
+ ✓ src/ui/PanneauParametre.test.tsx (8 tests) 145ms 436 MB heap used
+ ✓ src/ui/Infobulle.test.tsx (5 tests) 308ms 435 MB heap used
+
+ Test Files  5 passed (5)
+      Tests  38 passed (38)
+   Start at  10:03:02
+   Duration  20.15s (transform 12.93s, setup 42.70s, collect 9.61s, tests 930ms, environment 2.53s, prepare 219ms)
+

@@ -1,0 +1,15 @@
+## Publication 50c145b83
+
+Plage publiée : `0519ef621 → 50c145b83` sur `main`.
+
+### Commits (2)
+- `3dcf69f6b` refactor(ui): refs #1806 — 2d γ étape 1 : victoire et butin composent RewardRecap
+- `50c145b83` chore(docs): refs #1806 — docs dérivés
+
+### CI
+- verte — course `35498944965` : https://github.com/cgauche/game/actions/runs/35498944965
+- attente du verdict CI : 10.8 min (temps d’attente, pas de machine locale).
+
+#1806 est rattaché (`refs`) par cette publication, non fermé.
+
+<!-- publier: 50c145b831636ec7258d2424ad9f8d4ff792de28 -->

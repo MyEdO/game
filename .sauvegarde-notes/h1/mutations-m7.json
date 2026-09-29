@@ -1,0 +1,1 @@
+[{"nom": "M7-reserve-couche", "fichier": "src/ui/styles/hud.css", "de": "  --flot-reserve: calc(var(--cc-phase-h) + var(--cc-phase-air));", "vers": "  --flot-reserve: calc(var(--cc-phase-h) - 20px);", "cmd": "npx vitest run --no-cache src/ui/CombatConsole.test.tsx -t \"P-7\""}]

@@ -1,0 +1,38 @@
+## Sous-lot 2c (famille JET) — publié : `c251f46af`, tête `e301b5991`, CI verte (course 35428810753)
+
+Premier des quatre sous-lots ; le ticket reste OUVERT (2a HUD, 2b console, 2d combat-ui).
+
+### État mesuré (`npx tsx scripts/ui/regen-css-couches-stock.mts --check`)
+
+| Stock | Avant 2c | Après 2c |
+|---|---|---|
+| Identité en module d'écran | 2339 | 1993 |
+| Espacement hors échelle | 910 | 789 |
+| `style=` inline | 100 | 100 |
+| `combat-modals.css` | 224 | 0 (fichier supprimé) |
+| `hud.css` | 335 | 297 |
+| `sheet.css` | 152 | 76 |
+
+Seize modules de primitive nés, 13 entrées de manifeste neuves, 4 enrichies d'un `css`.
+
+### Deux stocks NOMINATIFS nés avec leurs gardes (dette vers zéro, à solder sous l'épic #1811)
+
+- `src/ui/css-modules-guard.test.ts` — 22 repeints d'une classe de primitive par un module d'écran (garde §5.3).
+- `src/ui/primitive-owners-guard.test.ts` — 13 identités d'écran parquées dans un module de primitive AVANT ce lot : 9 classes `sea-voyage*` / `sv-weather` et `notch-gauge-stack` dans `gauges.css`, `rose-corner` dans `rose.css`, `tx-parchment` / `tx-ink` dans `ornaments.css`. Hors famille Combat : elles reviennent au lot de leur écran.
+
+### Trouvé derrière le codeur par la relecture de l'orchestrateur, corrigé dans le commit
+
+1. `scripts/docs/build-primitives.mjs` refusait le module d'une primitive hors `src/ui/styles/` (`gameStage` → `src/gameIso/anim.css`) : `docs:build` rouge, jamais rejoué par le codeur. Règle portée par `moduleHorsCouche` (`scripts/guards/lib/cssCouches.mjs`), testée.
+2. Fourchette de tuile collée au libellé (« bas01-35 ») : régression du passage à la prop `range`, l'ancien site séparait d'un ESPACE et la marge CSS ne s'appliquait jamais (libellé en nœud texte → `.rm-range:first-child`).
+3. `DocumentModal` en Markdown : le rapport de naufrage joignait ses lignes d'un saut simple, que Markdown fusionne en un paragraphe. Producteur corrigé (`src/state/shipwreck.ts`), contrat écrit au type du store ; les 8 handouts authorés (Arène 3, Loup et Saumure 5) ne portaient aucun saut simple.
+4. Trois rouges du périmètre `src/ui` que les tests ciblés du codeur ne jouaient pas : site de prose non déclaré (`SITES_PROSE`), et une non-vacuité prouvée par un cardinal vivant (`rm-class-guard`, `> 30` atteint par la décrue) → sentinelle.
+
+### Recette navigateur — atteint / non atteint
+
+Atteint, console à 0 erreur : fenêtre d'attaque à 5 largeurs, incantation + pas de surcharge, modale de Destin, panneau d'équipement, lignes d'éditeur et de compendium, dés du créateur, galerie (17 spécimens), `DocumentModal`, puces de poste.
+NON atteint : fenêtre de défense (le tour ennemi ne rend pas la main en headless), écran de victoire (#1823), modales HandGate / Disengage / Corruption.
+
+### Pour 2a (HUD), constaté pendant la recette
+
+- `src/ui/PartyDock.tsx:29` pose `style={{ zIndex: 126 }}` quand une fiche est ouverte : le dock de groupe RECOUVRE les onglets de la fiche de navire à 1440 (capture `public/qc/soldes/1806-2c-42-shipsheet-dock-1440.png`). C'est aussi une entrée du stock `style=` inline (arbitrage A2).
+- Inspection sans contrôle visible et panneau ouvert défilé : #1822.

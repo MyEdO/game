@@ -1,0 +1,27 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1919-H2
+
+ ❯ src/ui/CombatConsole.test.tsx (151 tests | 1 failed | 150 skipped) 57ms 451 MB heap used
+   × CombatConsole — budget de hauteur du pont (arbitrage user 2026-08-17, décision d’écran 2026-09-24) > F-2 — l’alvéole est CARRÉE, son côté ne casse pas entre 900 et 901, et ne descend jamais sous la cible 55ms
+     → 360×740 au doigt : case sous la cible: expected 36 to be greater than or equal to 43.999999999
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 150 skipped (151)
+   Start at  00:44:15
+   Duration  19.83s (transform 12.06s, setup 13.27s, collect 5.50s, tests 57ms, environment 597ms, prepare 60ms)
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/ui/CombatConsole.test.tsx > CombatConsole — budget de hauteur du pont (arbitrage user 2026-08-17, décision d’écran 2026-09-24) > F-2 — l’alvéole est CARRÉE, son côté ne casse pas entre 900 et 901, et ne descend jamais sous la cible
+AssertionError: 360×740 au doigt : case sous la cible: expected 36 to be greater than or equal to 43.999999999
+ ❯ src/ui/CombatConsole.test.tsx:2171:12
+    2169|       for (const [vw, vh] of [[360, 740], [640, 780], [701, 780], [901…
+    2170|         expect(vaut('var(--cc-cell)', vw, vh, grossier), `${vw}×${vh}$…
+    2171|           .toBeGreaterThanOrEqual(vaut('var(--cc-cible)', vw, vh, gros…
+       |            ^
+    2172|       }
+    2173|     }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+

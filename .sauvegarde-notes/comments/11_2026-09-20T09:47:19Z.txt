@@ -1,0 +1,14 @@
+## Publication 09880b160
+
+Plage publiée : `95248a08c → 09880b160` sur `main`.
+
+### Commits (1)
+- `09880b160` refactor(ui): refs #1806 refs #1834 — 2d γ2 : la victoire compose Modal, .panel h3 partagé
+
+### CI
+- verte — course `35502936268` : https://github.com/cgauche/game/actions/runs/35502936268
+- attente du verdict CI : 7.2 min (temps d’attente, pas de machine locale).
+
+#1806 est rattaché (`refs`) par cette publication, non fermé.
+
+<!-- publier: 09880b160b7842197224fc0d46327e2fe37c40b6 -->

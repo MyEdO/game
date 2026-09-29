@@ -1,0 +1,96 @@
+Verdict du juge A6+A7 (R-M2 infobulle), 2026-09-24, sur l'instantané `e979d92f0`. À REPRENDRE : X1 (origine du focus d'une infobulle = son ancrage), X2 (état `congediee` explicite), I1 (un seul mécanisme de rendu du focus dans `Modal.tsx` à la fusion avec le lot B `ebf498d7d`). Le lot A8 passera sur la base du lot B, après le verdict du juge B12. Verdict verbatim :
+
+À REPRENDRE. A6+A7 lèvent D1 (chemin ↓), F9, F10, F11, F12. Trois défauts restent : X1 (l'origine du focus d'une infobulle est son ANCRAGE, pas `activeElement` au pin ni `relatedTarget`), X2 (invariant « Échap ne rouvre pas » implicite, prouvé fragile), et l'intégration avec le lot B (conflit `Modal.tsx`, deux mécanismes « rendre le focus » à unifier en un).
+
+# Juge R-M2 A6+A7 (#1806), 2026-09-24
+Arbre `/home/claude/game/.wt-rm2a-j5`, `git log --oneline -1` = `e979d92f0 instantané R-M2 A..A7 (#1806), jamais publié`. `git status --short` : 0 ligne en fin.
+Contrôle positif (blobs HEAD = rendu A7) : Modal `f49fab6ca`, Infobulle `11763e59f`, BoiteAncree `4d8f2c1ea`, Infobulle.test `78baf446a`, CodexRef.hooks.test `94125a586`, keybindings.ts `d9651819a` (= A6 M3..M6).
+
+## Q1. Verdict A5
+| # | État | Preuve |
+|---|---|---|
+| D1 | LEVÉ sur le chemin ↓ (clavier/manette) ; NON levé sur le chemin souris (X1) | Navigateur `recette-{1,2,3}.txt` (exit=0, console 0) : 7 cycles sur 9 `[pin n] Échap → codex = null ; fiche = false ; focus = BUTTON «1X» ; sur la case = true`. Les 2 autres (passe 1 pin 1, passe 3 pin 2) : voir F13. Souris, cycle 6, 3/3 : `[cyc 6] Échap → codex = null ; fiche = false ; focus = body ; sur la case = false`. jsdom : `Infobulle.test.tsx:222-263` vert (portes). |
+| F9 | LEVÉ | `BoiteAncree.tsx:9-12` ne dit plus « un placement égal ne rend rien » ; il dit 3 passes/2 commits (mesure A5). |
+| F10 | LEVÉ | `BoiteAncree.tsx:24-30` `VARIABLES … satisfies Record<keyof PlacementAncre, …>`, égalité `:33` et style `:83` en dérivent (preuve de type du codeur `a6/f10.txt`, exit=2 muté). |
+| F11 | LEVÉ | `BoiteAncree.tsx:20` `ancre?.isConnected ? … : null` ; test `BoiteAncree.test.tsx:93` vert. |
+| F12 | LEVÉ, un reste | Anciens noms : `git grep -n -e raccourciParId -e elireRaccourci` exit=1 (`q5-grep.txt`). Garde d'unicité `keybindings.test.ts:105`. Reste : Q5. |
+
+## Q2. `useFocusEmprunte` (`Modal.tsx:65-81`)
+- **Instance, pas second mécanisme : CONFIRMÉ.** C'est l'effet ex-`useModalA11y` (`a8d993dd6` : `previouslyFocused` capturé, `focusTarget(box,'initial')`, rendu à la fermeture), paramétré par `cible`. `useModalA11y` l'appelle (`:96`), `useInfobulle` aussi (`Infobulle.tsx:197`). `congedier` et `visibleFocusables(ancre)` purgés (diff).
+- **Règle `:77` (« pas de rendu si le focus est déjà sur un vivant hors surface ») : JUSTE pour les deux, avec une lacune.** Sonde `focus.j7.sonde.test.tsx` (`sondes.txt`, `Tests 6 passed`, exit=0) :
+  ```
+  Q2DIAL {"aOuvert":"BUTTON«A»","bOuvert":"BUTTON«B»","aFermeSousB":"BUTTON«B»","bFerme":"body"}
+  Q2BULLE {"epinglee":"BUTTON«porte» dansBulle","apres":"BUTTON«autre»","boites":0}
+  ```
+  - Dialogue A fermé sous B : le focus RESTE dans B. L'ancienne règle (`document.body.contains(previouslyFocused)` seul) le volait vers le déclencheur de A : correction réelle.
+  - Infobulle fermée après un focus parti sur un contrôle vivant : il y reste. Juste.
+  - **Lacune** : à la fermeture de B, `bFerme = body`. L'origine de B (un bouton de A) est morte ; l'origine de A (`déclencheur`) n'est plus rendue par personne. Avant A7, le focus finissait sur `déclencheur` (volé au passage). Une origine morte doit se résoudre en l'origine de la surface qui la contenait : c'est la question de Q6.
+
+## Q3. Restes A7
+- **X1 : CONFIRMÉ, et la proposition `relatedTarget` RÉFUTÉE.**
+  - jsdom (`sondes.txt`), focus posé par le joueur dans la boîte non épinglée, puis porte → fiche → fermeture :
+    ```
+    X1 {"entree":"depuis-ancre",…"relatedTarget":"a"},…"apresFiche":{"focus":"body","boites":0}}
+    X1 {"entree":"depuis-autre",…"relatedTarget":"autre"},…"apresFiche":{"focus":"body","boites":0}}
+    X1 {"entree":"depuis-body",…"relatedTarget":null},…"apresFiche":{"focus":"body","boites":0}}
+    ```
+  - Navigateur, clic souris réel sur « Ouvrir la fiche » (cycle 6), 3/3 : `dans la boîte = true ; focus = body` puis après la fiche `focus = body ; sur la case = false`.
+  - Tab : **aucune entrée par Tab n'existe en combat**. Cycle 5, 3/3 : `Tab 1 → focus = BUTTON «1X»` … `dans la boîte = false` après 80 Tab (la touche ne quitte pas la case). Le chemin « Tab jusqu'au portail » du rendu est théorique ici.
+  - `relatedTarget` rend `autre` (le contrôle précédent, pas l'invocateur) ou `null` (souris depuis `body`, et Chrome ne focalise rien au clic : `focus = body`). Il ne donne l'ancrage que si le focus y était déjà.
+  - **Forme juste (une règle, toutes surfaces)** : l'origine d'une surface est son INVOCATEUR. Dialogue : `activeElement` à l'ouverture (il l'est par construction). Infobulle : son ANCRAGE (le contrôle focalisable qu'il désigne : lui-même s'il est focalisable, sinon son 1ᵉʳ descendant, écart E1 d'A6). `useFocusEmprunte` reçoit l'origine en paramètre (défaut `activeElement`), et l'emprunt de l'infobulle est actif tant que le focus est DANS la boîte (`pinned` ou `focusin`), pas seulement `pinned`.
+- **X2 : CONFIRMÉ.** Lecture : `Infobulle.tsx:164-171` met `gestes.current` à jour dans un `useEffect` sans dépendances ; React 18 joue tous les nettoyages passifs avant les montages. Le `origine.focus()` rendu (`Modal.tsx:78`) tombe donc sur l'ancien `survol` (`show` avec `pinned=true`, `:153`), qui ne fait rien. Sonde :
+  ```
+  X2 {"epinglee":{"focus":"BUTTON«porte» dansBulle","boites":1},"apresEchap":{"focus":"BUTTON«ancre»","boites":0},"refocusApres":{"focus":"BUTTON«ancre»","boites":1}}
+  ```
+  Le même focus, une passe plus tard, rouvre la boîte : seul l'ordre des effets tient l'invariant.
+  - **Forme explicite** : un état `congediee` (APG Tooltip, « Escape: Dismisses the Tooltip »), posé par `unpin`, qui fait ignorer `survol` jusqu'au prochain `quitte` de l'ancrage. L'invariant devient une donnée testable, indépendante de l'ordre des effets.
+- **X3 : la réf n'est pas fausse, elle est de CHANTIER.** `git log -S'#1117' -- CodexRef.hooks.test.tsx` → seul `0ce3e4d23 2026-08-05`. Ce commit liste `#1117 (contrat du pourquoi + Z5 partout)` dans ses Restes, et la date de recette du commentaire (`recette 2026-08-05`) est la sienne. Le corps de #1117 (`x3-gh.txt:22-23`) fait des popovers CodexRef la « porte » de l'enjeu de jet : la recette où l'infobulle a volé « Continuer » est celle de ce chantier. Aucun commentaire de #1117 ne consigne ce symptôme (grep `Continuer|intercept` : 0). Verdict : garder `#1117` aux lignes `CodexRef.hooks.test.tsx:75,80,120,125` (réf du chantier de la recette). Pas de réf plus juste (la recherche d'issues est bloquée en session : `HTTP 403`, `x3-gh2.txt`).
+
+## Q4. E2, `useEffect` (`BoiteAncree.tsx:16,49`)
+- **Étage : le HOOK, CONFIRMÉ.** Portes `portes.txt` : `grep -c "useLayoutEffect does nothing"` = 0. Un `typeof window` ne tairait pas les bancs jsdom.
+- **Consommateur qui déplace l'ancrage dans le commit d'ouverture : aucun TROUVÉ, INCERTAIN pour la console.** Infobulle (seul `aria-describedby` change sur l'ancrage), AddMenu (`summary` avant le contenu du `details`) : non. Le lot B : `git grep BoiteAncree ebf498d7d -- src` = 0 ligne. `CombatConsole.tsx:1414-1453` : 4 panneaux ancrés aux alvéoles, ouverts par un état de store (`dispelCarrier`, `rechargeOuverte`…). Personne n'a mesuré si ce commit re-dispose la travée. Pour trancher : au navigateur, relever `--ancre-left/top` au 1ᵉʳ rendu puis après `placer()` à l'ouverture de chaque panneau (un écart ≠ 0 = une image mal placée).
+
+## Q5. F12, `binding`
+- Un terme dans les identifiants (`elireBinding`, `candidatsBinding`, `bindingParId`, `runBindingById`, `KeyBinding`) ; `toucheDesigne` et `repond` sont des prédicats, pas des concepts. Tient.
+- **`candidatsBinding` n'a AUCUN appelant de production : CONFIRMÉ** (`q5-grep.txt`) : `keybindings.test.ts:265,306`, `echap-desarme-mode-arme.test.tsx:73`, et c'est tout. Il fait passer les tests par le prédicat même de production (`repond`, `keybindings.ts:511`), à la place des élections partielles recopiées : ça reste un gain. Non bloquant. `raccourcis-modificateurs.test.tsx:36` recopie encore un `KEYBINDINGS.filter(toucheDesigne…)`, sans `when` par choix déclaré.
+
+## Q6. Intégration avec le lot B
+- `git merge-tree --write-tree --name-only e979d92f0 ebf498d7d` (`q6-mergetree.txt`) : CONFLITS `docs/charte-ui.md`, `src/data/schemas/_ids.generated.ts`, **`src/ui/Modal.tsx`**, `src/ui/RollLine-codex-chips.test.tsx`.
+- Dans `Modal.tsx`, B garde l'effet inline ex-`useModalA11y` (`previouslyFocused`) et ajoute une pile `invocateurs` (noms accessibles des gestes démontés) dans l'observateur de sauvetage. Fusionner les deux côtés donnerait DEUX mécanismes « rendre le focus à qui l'avait ».
+- **Cible après fusion : UN mécanisme, dans `Modal.tsx`.** `useFocusEmprunte` porte l'ORIGINE d'un emprunt comme `(nœud, nom accessible, surface parente)`. Au rendu, il prend le nœud s'il est vivant, sinon le geste du même nom revenu dans la même surface (cas B, « Soigner » après un jet annulé), sinon l'origine de la surface qui le contenait (lacune Q2, `bFerme = body`). Le sauvetage de B consomme cette même résolution. `focusTarget` de B (non nul, `.focus()` direct) remplace `cibleDialogue`.
+
+## Q7. Navigateur (serveur `:5311`, `j7-recette-focus.mjs` = `a6-recette-focus.mjs` repointé plus les cycles 5 et 6, `diff` : chemin de lib, port et bloc ajouté)
+- 3 passes, `exit=0`, `console : erreurs = 0 []` ×3. `/proc/loadavg` en fin : `12.80 11.67 7.16`, `17.44 14.20 9.30`, `17.49 16.97 12.22`.
+- Cycles ↓ : voir Q1/D1. Carte : ancre `{"top":675,"bottom":699,"left":193,"right":245}` et boîte `{"top":529,"bottom":669,"left":193,"right":513}`, identiques avant et après la molette, 3/3.
+- **F13 (non attribué)** : passe 1 pin 1 et passe 3 pin 2 : `Entrée → … fiche = true ; … bulle = "Dague…"`, puis `Échap → codex = dague ; fiche = true ; … bulle = null`. Une infobulle se montre SOUS/AVEC la fiche, et le 1ᵉʳ Échap la ferme, pas la fiche. Le pointeur était resté en (433,642) après le clic du cycle 6, dans l'aire de la boîte. Hypothèse : un survol souris d'un ancrage sous le pointeur quand la boîte disparaît, avant que le voile de la fiche ne couvre. Les runs du codeur, sans cycle 6, n'en montrent pas. Pour trancher : même script, pointeur posé sur la case puis hors écran, avec la base `a8d993dd6` en regard, et l'`id` de l'ancrage de la boîte relevé.
+
+## Q8. Portes
+- `npx tsc --noEmit --incremental false` (`tc.txt`) : aucune ligne `error TS`, `exit=0`.
+- `ps` avant les portes (`ps-avant-portes.txt`) : 2 vitest étrangers de 1 fichier chacun, charge `14.61`.
+- `npx vitest run --no-cache` sur 11 fichiers (Infobulle, BoiteAncree, CodexRef, CodexRef.hooks, App.surcouche-codex, state/keybindings, et les importeurs de Modal en test `importeurs-modal.txt` : CombatConsole, Infobulle, echap-pile-lifo, forcedDieRow.pre-roll, modal-entree-champ-de-saisie, plus comment-poison-guard) : `Test Files 11 passed (11)`, `Tests 346 passed (346)`, `exit=0` (`portes.txt`).
+- `regen-css-couches-stock.mts --check` : `Stock à jour (CSS_IDENTITE_ECRAN_RATCHET=1744, CSS_ESPACEMENT_RATCHET=718, STYLE_INLINE_RATCHET=94).`, `exit=0`.
+- Aucun rouge.
+
+## Q9. Architecture à rebours
+- **Tiendraient** : `useFocusEmprunte` comme SEULE couture d'emprunt de focus (mais avec l'origine en paramètre, X1) ; `VARIABLES` comme source unique des champs du placement.
+- **Ne tiendrait pas tel quel** : `candidatsBinding` comme export sans consommateur de production (de zéro : `elireBinding = candidats[0]`, ou le prédicat seul exporté). Non bloquant.
+- **Prêt à committer après le lot B : NON.** Le conflit `Modal.tsx` se résout en un seul mécanisme (Q6), pas en juxtaposant les deux. X1 et X2 se corrigent dans le même geste, puisqu'ils touchent la même couture.
+
+## Défauts
+| # | Où | Quoi | Bloquant |
+|---|---|---|---|
+| X1 | `src/ui/Infobulle.tsx:197` × `src/ui/Modal.tsx:73` | Origine = `activeElement` au pin, emprunt limité à `pinned`. Un focus entré sans ↓ (souris) finit sur `body` après la fiche : 3/3 au navigateur, et en jsdom. Forme : l'origine d'une infobulle est son ancrage. | OUI |
+| X2 | `src/ui/Infobulle.tsx:164-171`, `:153` | « Échap ne rouvre pas » ne tient que par l'ordre des effets passifs (`X2 … refocusApres boites 1`). Forme : état `congediee`. | OUI (même couture) |
+| I1 | `src/ui/Modal.tsx`, fusion avec `ebf498d7d` | Conflit, et deux mécanismes de rendu du focus. Un seul, `useFocusEmprunte` avec une origine résolue (Q6), qui comble aussi `bFerme = body`. | OUI pour le commit après B |
+| F13 | navigateur, 2 cycles sur 9 | Infobulle visible avec la fiche, le 1ᵉʳ Échap la ferme. Non attribué (Q7). | à instruire |
+| Q4i | `CombatConsole.tsx:1414-1453` | Image de retard d'E2 non mesurée pour les panneaux de la console. | non |
+| Q5r | `keybindings.ts:522` | `candidatsBinding` sert aux tests seulement. | non |
+
+## Sondes et sorties (ce dossier)
+- **`focus.j7.sonde.test.tsx`** (config `vitest-j7.config.mts`) → `sondes.txt` : sondes X1, X2, Q2DIAL et Q2BULLE, **à promouvoir** (X2 : `refocusApres` doit rester à 0 boîte ; X1 : `apresFiche.focus` = ancrage pour les 3 entrées ; Q2DIAL : `bFerme` = déclencheur).
+- `j7-recette-focus.mjs` (généré par `gen-recette.py` + `cycles-5-6.mjs.part`), `vite-j7.mts` → `recette-1..3.txt`.
+- `tc.txt`, `portes.txt`, `ps-avant-portes.txt`, `stock-check.txt`, `importeurs-modal.txt`, `q5-grep.txt`, `q6-mergetree.txt`, `x3*.txt`.
+- Processus : vite (npm 3597 PPID 1, sh 3644, node 3645, esbuild 3698, lancés par ma commande) tués par PID, `<defunct>` ensuite. Chromium de mes recettes fermés par `s.close()`. Le Chromium 26193 (parent 26168) n'est pas à moi : je n'y ai pas touché.
+
+---
+_Generated by [Claude Code](https://claude.ai/code)_

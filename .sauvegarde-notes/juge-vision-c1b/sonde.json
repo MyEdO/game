@@ -1,0 +1,193 @@
+{
+ "survol": [
+  {
+   "vue": [
+    900,
+    780
+   ],
+   "tips": [
+    {
+     "cls": "boite-ancree infobulle",
+     "txt": "CourseÀ votre tour, vous pouvez utiliser votre Action pour courir. Vous avez besoin d'un Test d'Athlétisme Accessible (+20), et la distance couverte vient en plus de celle parcourue par votre Mouvemen",
+     "r": [
+      525.5,
+      401.2,
+      320,
+      270.3
+     ]
+    }
+   ]
+  },
+  {
+   "vue": [
+    701,
+    780
+   ],
+   "tips": [
+    {
+     "cls": "boite-ancree infobulle",
+     "txt": "CourseÀ votre tour, vous pouvez utiliser votre Action pour courir. Vous avez besoin d'un Test d'Athlétisme Accessible (+20), et la distance couverte vient en plus de celle parcourue par votre Mouvemen",
+     "r": [
+      131.7,
+      401.2,
+      320,
+      270.3
+     ]
+    }
+   ]
+  },
+  {
+   "vue": [
+    360,
+    740
+   ],
+   "tips": [
+    {
+     "cls": "boite-ancree infobulle",
+     "txt": "CourseÀ votre tour, vous pouvez utiliser votre Action pour courir. Vous avez besoin d'un Test d'Athlétisme Accessible (+20), et la distance couverte vient en plus de celle parcourue par votre Mouvemen",
+     "r": [
+      32,
+      382.6,
+      320,
+      270.3
+     ]
+    }
+   ]
+  }
+ ],
+ "renomme": "enemy-enc-mutants-1",
+ "nomLong": [
+  {
+   "forme": "spectatrice",
+   "nom": "Knud Cratinx Klein Bürger-de-Fer",
+   "nomR": [
+    123.9,
+    508,
+    151.1,
+    16
+   ],
+   "debord": 0,
+   "arche": [
+    10,
+    463,
+    273,
+    67
+   ],
+   "vue": [
+    360,
+    740
+   ]
+  },
+  {
+   "forme": "spectatrice",
+   "nom": "Knud Cratinx Klein Bürger-de-Fer",
+   "nomR": [
+    323.9,
+    418,
+    151.1,
+    16
+   ],
+   "debord": 0,
+   "arche": [
+    10,
+    373,
+    473,
+    67
+   ],
+   "vue": [
+    560,
+    650
+   ]
+  },
+  {
+   "forme": "spectatrice",
+   "nom": "Knud Cratinx Klein Bürger-de-Fer",
+   "nomR": [
+    394.1,
+    616.4,
+    151.1,
+    16
+   ],
+   "debord": 0,
+   "arche": [
+    10,
+    599.4,
+    543.2,
+    47
+   ],
+   "vue": [
+    640,
+    780
+   ]
+  },
+  {
+   "forme": "spectatrice",
+   "nom": "Knud Cratinx Klein Bürger-de-Fer",
+   "nomR": [
+    452.9,
+    616.4,
+    151.1,
+    16
+   ],
+   "debord": 0,
+   "arche": [
+    10,
+    599.4,
+    602,
+    47
+   ],
+   "vue": [
+    700,
+    780
+   ]
+  },
+  {
+   "forme": "spectatrice",
+   "nom": "Knud Cratinx Klein Bürger-de-Fer",
+   "nomR": [
+    234,
+    734,
+    155,
+    38
+   ],
+   "debord": 0,
+   "arche": [
+    220,
+    594,
+    183,
+    186
+   ],
+   "vue": [
+    701,
+    780
+   ]
+  },
+  {
+   "forme": "spectatrice",
+   "nom": "Knud Cratinx Klein Bürger-de-Fer",
+   "nomR": [
+    331.5,
+    734,
+    155,
+    38
+   ],
+   "debord": 0,
+   "arche": [
+    317.5,
+    594,
+    183,
+    186
+   ],
+   "vue": [
+    900,
+    780
+   ]
+  }
+ ],
+ "console": [
+  {
+   "type": "exception",
+   "text": "TypeError: Cannot assign to read only property 'loaded' of object '#<Object>'\n    at unloadWeapon (http://localhost:5236/src/engine/items.ts:708:16)\n    at appliquerLaTouche (http://localhost:5236/src/state/combatFlow.ts:1719:7)\n    at applyAttackResult (http://localhost:5236/src/state/combatFlow.ts:1481:7)\n    at doAttack (http://localhost:5236/src/state/combatFlow.ts:2370:10)\n    at http://localhost:5236/src/state/combatFlow.ts:5093:95\n    at http://localhost:5236/src/state/combatTimers.ts:5:5"
+  }
+ ]
+}

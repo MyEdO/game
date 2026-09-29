@@ -1,0 +1,36 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1919-H2
+
+ ❯ src/ui/ExplorationDock.test.tsx (22 tests | 1 failed | 21 skipped) 111ms 514 MB heap used
+   × #1919 — la couche HUD est une grille : chaque surface déclare sa ZONE > HORS de la couche, la puce du siège attendu garde sa pose à l’écran : seule la zone PAROLE la neutralise 107ms
+     → hors couche, la pose à l’écran ne place plus la puce: expected [] to deeply equal [ Array(1) ]
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 21 skipped (22)
+   Start at  00:52:18
+   Duration  24.95s (transform 15.34s, setup 14.13s, collect 9.71s, tests 111ms, environment 564ms, prepare 70ms)
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/ui/ExplorationDock.test.tsx > #1919 — la couche HUD est une grille : chaque surface déclare sa ZONE > HORS de la couche, la puce du siège attendu garde sa pose à l’écran : seule la zone PAROLE la neutralise
+AssertionError: hors couche, la pose à l’écran ne place plus la puce: expected [] to deeply equal [ Array(1) ]
+
+- Expected
++ Received
+
+- Array [
+-   "spectator-chip.css « .spectator-chip[data-pose='ecran']:not([data-zone='parole'] > *) »",
+- ]
++ Array []
+
+ ❯ src/ui/ExplorationDock.test.tsx:443:75
+    441|     expect(puce.getAttribute('data-pose')).toBe('ecran');
+    442|     const poses = HORS_FLUX.filter((regle) => puce.matches(regle.slice…
+    443|     expect(poses, 'hors couche, la pose à l’écran ne place plus la puc…
+       |                                                                           ^
+    444|     act(() => { useGame.setState({ pendingCascade: null, net: { ...use…
+    445|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+

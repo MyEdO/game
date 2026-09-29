@@ -1,0 +1,325 @@
+## Portes git, commit 1 : juge de troisième reprise après E16f, et brief E16g, 2026-09-27
+
+**Verdict : À REPRENDRE.**
+
+Ce qui tient :
+- P2 à P5 et le reste (1) sont corrigés ; les 21 mutations se vérifient, chaque rouge rejoué sur le test visé ;
+- la plage d'E17 est intacte (33 et 12 cas, 0 écart) ;
+- toutes les portes passent : `test:hooks` en entier (1380 tests, 0 échec), `test:ops` (294/294), tsc, lint, `check-doc-refs`. Le seul rouge est celui de base, `legacyVocabStock.mjs:1930`, que le lot B purge.
+
+Défauts :
+- **R1 (bloquant)** : le test de clôture tient tout module intégré absent de sa liste pour inerte, l'inverse du défaut qu'il applique aux paquets. Six ajouts aux étapes restent verts, dont un de bonne foi plausible : écrire la ref de `main` par `node:fs`. Correction : une liste blanche de liaisons intégrées inertes, par paire module et nom.
+- **R4 (bloquant avec R1)** : les en-têtes promettent des gestes « inexprimables ». Une évaluation par `.constructor`, un état mutable posé par un autre module ou un effet au chargement passent, et aucune règle d'AST ne les ferme. Les en-têtes disent désormais ce que le test garde, contre une retouche de bonne foi. Le résidu est versé à #2073, où un confinement à l'exécution est posé comme question de design.
+- **R2** : P2 refuse une tabulation dans un chemin, et `pre-commit.mjs` avale cette levée ; le fichier n'est plus scanné. Un refus ou une panne devient un fautif nommé.
+- **R3** : une base inconnue du dépôt est appelée « non fast-forward ». Il faut deux motifs.
+
+**Issues ouvertes :**
+- #2073 : commit 2 du lot (mur ESLint, hôte de processus unique), avec le résidu hostile ;
+- #2074 : restes de la plage d'E17, dont le fail-open d'un `debut` absent ;
+- #2075 : lecture du message anglais de git.
+
+Suite : le codeur E16g reprend dans `.wt-1806-e16`.
+
+---
+
+<details><summary>Verdict du juge E16f (verbatim)</summary>
+
+# Verdict juge E16f (portes git, commit 1 après E16f, #1806 lot #85), 2026-09-27
+
+## VERDICT : À REPRENDRE
+
+- Arbre épinglé : `/home/claude/game/.wt-1806-e16`, branche `wt/1806-e16`, `git log --oneline -1` = `543ba1e13`.
+- Contrôle positif :
+  - `git diff 9eb200941 --stat` ne diffère de l'arbre que par les 3 non-suivis ;
+  - ces 3 fichiers (`etapesDuTrain.mjs`, `etapesDuTrain.test.mjs`, `gitPorte.marque.test.ts`) sont identiques à leur blob dans `9eb200941` (`diff <(git show …)` vide) ;
+  - les 21 empreintes « avant » de `e16f/mutations.txt` et des 2 ré-ancrées sont égales à `git hash-object` de l'arbre (Q6).
+- `git status --short` : 53 lignes, `UU` sur `plageStock.mjs` et `publier.mjs`. Identique au début, au milieu (`status-verif.txt`) et à la fin (`status-fin.txt`) : les `diff` sont vides.
+- Horloge : départ 13:20:05 UTC ; fin : voir le pied de page.
+- Discipline : aucune commande git mutante dans le dépôt, aucun kill. Les mutations sont rejouées EN MÉMOIRE (`mut-preload.mjs` : `fs.readFileSync` et hook `load`), et les sondes de clôture aussi. Les dépôts forgés vivent sous `juge-e16f/tmp/`.
+
+P2, P3, P4 et P5 sont corrigés, reste (1) aussi. Les 21 mutations se vérifient. Toutes les portes sont vertes, sauf le rouge de BASE attendu. Il reste pourtant quatre points :
+- **R1 (bloquant)** : la classe D1 n'est PAS fermée par une retouche PLAUSIBLE. Tout module intégré hors de `LANCEMENT` est tenu pour INERTE. Du coup :
+  - `node:fs` écrit une ref de branche : c'est un `update-ref` sans git ;
+  - `node:process` fournit `execve` ;
+  - `node:inspector` et `node:test` lancent ou évaluent.
+  Avec chacun de ces ajouts, le test reste vert.
+- **R2 (à corriger ici)** : le prédicat de P2 refuse désormais une TABULATION. Or `pre-commit.mjs` avale cette levée (`catch { continue; }`) : un fichier stagé dont le nom porte une tabulation n'est plus SCANNÉ. Sonde jointe.
+- **R3 (mineur, ici)** : `motifDePlageIllisible` appelle « non fast-forward » une base INCONNUE.
+- **R4** : les en-têtes « INTERDITS, INEXPRIMABLES » mentent. Une évaluation par `.constructor` passe avec ZÉRO import, et le test reste vert.
+
+---
+
+## Défauts, du plus grave au moins grave
+
+### R1 (bloquant) : la frontière de CAPACITÉ tient les modules intégrés pour inertes PAR DÉFAUT. C'est l'inverse du défaut que le test applique aux paquets
+- `scripts/ops/etapesDuTrain.test.mjs:65-66` :
+  ```js
+  const versModule = (spec) => (LANCEMENT.test(spec) ? { lancement: true }
+    : spec.startsWith('node:') ? { inerte: true }
+  ```
+  Un paquet non lu est tenu pour lanceur (`:143-145`, `:157`), mais un module intégré inconnu est tenu pour inerte. `LANCEMENT` (`:23`) est une LISTE NOIRE.
+- Preuve. `juge-e16f/sonde-cloture-preload.mjs` ajoute EN MÉMOIRE des lignes au texte LU par le test (`SONDE_AJOUT=<cas> node --import … --test scripts/ops/etapesDuTrain.test.mjs`). Aucune ligne ajoutée n'est exécutée : le test lit l'AST, il n'importe pas les étapes.
+
+  | cas (ajouté aux étapes) | exit | pass/fail | lecture |
+  |---|---|---|---|
+  | témoin `import { commitDe } …gitPorte.mjs` | 1 | 3/1 (`not ok 3`) | sonde saine |
+  | **fsRef** `import { writeFileSync } from 'node:fs'` ; `writeFileSync(ctx.questions.cheminGit('refs/heads/main'), sha + '\n')` | **0** | 4/0 | fait avancer `main` SANS git, par un chemin que le ctx fournit |
+  | **fsHook** `writeFileSync(racine + '/.git/hooks/post-commit', '#!/bin/sh\ngit push --force …', { mode: 0o755 })` | **0** | 4/0 | un geste NOMMÉ (`ctx.commit`) l'exécute |
+  | **processExecve** `import { execve } from 'node:process'` ; `execve('/usr/bin/git', ['git','push','--force','origin','HEAD:main'])` | **0** | 4/0 | `typeof execve = function` (Node v22.22.2) ; `execve.mjs` sur `git --version` rend `git version 2.43.0` |
+  | **inspector** `import { Session } from 'node:inspector'` ; `Runtime.evaluate` | **0** | 4/0 | `insp.mjs` → `inspector -> git version 2.43.0` |
+  | **testRun** `import { run } from 'node:test'` ; `run({ files: [f] })` | **0** | 4/0 | lance un processus node sur `f` |
+  | **fetchApi** `fetch('https://api.github.com/…/git/refs/heads/main', { method: 'PATCH', … })`, jeton lu par `node:fs` et `node:os` | **0** | 4/0 | geste git DISTANT, sans processus |
+  | json : `import pkg from '../../package.json' with { type: 'json' }` | 1 | 3/1 | prudent : un module hors lecture est tenu pour lanceur |
+
+  Les preuves d'exécution (lecture seule, `git --version`) sont sous `juge-e16f/rt/*.mjs` et `*.out`, exit 0 pour chacune.
+- Plausibilité :
+  - `fsRef` est une retouche de BONNE FOI plausible. Les étapes importent déjà `node:fs` (`etapesDuTrain.mjs:10`, `existsSync`) et tiennent `ctx.questions.cheminGit`. « Avancer main en écrivant la ref » est un anti-patron connu.
+  - `processExecve`, `inspector` et `testRun` relèvent d'une intention.
+  - Tous se ferment par la MÊME règle générale.
+- **Correction retenue** : inverser le défaut, comme pour les paquets.
+  - Une LISTE BLANCHE de liaisons intégrées INERTES, par paire (module, nom) : `node:path`, `node:url`, `node:buffer` et `node:crypto` en entier ; pour `node:fs`, les seules lectures (`existsSync`, `readFileSync`, `statSync`, `lstatSync`, `readdirSync`, `realpathSync`).
+  - Toute autre liaison d'un module intégré est lanceuse, `LANCEMENT` compris, qui devient inutile.
+  - La clôture d'aujourd'hui n'importe que `node:buffer`, `node:child_process`, `node:crypto`, `node:fs`, `node:path` et `node:url` (`juge-e16f/cloture.txt`, 21 modules). Le coût est donc de N+1 = 1 ligne par liaison inerte neuve.
+  - Ajouter `fetch` et `WebSocket` à `AMBIANTS` (`:27`).
+  - Mutations à jouer : `fsRef`, `fsHook`, `processExecve`, `inspector`, `testRun` et `fetchApi` doivent rougir le test.
+
+### R2 (à corriger dans ce commit) : P2 rend LEVANTE la lecture d'un nom à tabulation, et `pre-commit.mjs` saute le fichier en silence (fail-open du scan)
+- `scripts/git-hooks/pre-commit.mjs:115-118`, et la même forme en `:185-188` et `:374-377` :
+  ```js
+  try { text = argFiles.length ? readFileSync(join(ROOT, rel), 'utf8') : texteIndexe(rel); } catch { continue; }
+  ```
+- Preuve (`juge-e16f/sonde-tab-precommit.mjs`, dépôt forgé, exit=0) :
+  ```
+  chemins ACMR = ["src/x\t.ts"]
+  LEVEE (donc `continue`, fichier NON scanné) : lireEnLot : un chemin tient sur une ligne du lot, sans caractère de contrôle — refusés : ["src/x\t.ts"]
+  ```
+  Le fichier porte `// déplacé vers y.ts` (pierre tombale). Il n'est pas scanné.
+- C'est la classe de P5, une panne avalée. Le même `catch` avale aussi une vraie `GitIndisponible` de `lireEnLot`. Et `:65-70` (`try { racineDe … } catch { return HOOK_TREE; }`) n'avale plus QUE des pannes, puisque `racineDe` rend désormais `null` hors arbre.
+- **Correction** :
+  - en mode stagé, aucun `catch` : un refus ou une panne de `lireEnLot` devient un offender nommé (`<rel> : illisible dans l'index — <raison>`). Le `catch` ne reste qu'autour de `readFileSync` (mode `argFiles`) ;
+  - retirer le `try/catch` de `ROOT` (`:65-70`) ;
+  - ajouter un test (nom à tabulation stagé → refus nommé) et sa mutation (`catch { continue; }` remis → vert = rouge attendu).
+
+### R3 (mineur, à corriger dans ce commit) : `plageFermante.mjs:77-78` appelle « non fast-forward » une base INCONNUE du dépôt
+- `if (vu.absent || vu.valeur !== true) return \`base ${base} inatteignable depuis ${tete} : push non fast-forward sur main, interdit par le pre-push\``.
+- `vu.absent` veut dire « objet absent » : un distant non fetché, ou un dépôt corrompu. La ligne `:75` est migrée par ce lot (`estAncetre(depotDe(cwd), …)`).
+- Preuve : `e16f/sonde-reste4.txt`, `motifDePlageIllisible(etranger..tete)` et `(milieu..tete)` rendent tous deux « push non fast-forward ».
+- **Correction** : deux motifs. `absent` donne « base X inconnue de ce dépôt (non fetchée, ou dépôt corrompu) — aucune fermeture n'est jugée », et `valeur !== true` donne le motif actuel. Ajouter un test sur une base `f…f`.
+
+### R4 (bloquant avec R1) : les en-têtes promettent « INEXPRIMABLES », et le RÉSIDU HOSTILE n'est ni nommé ni fermé
+- `scripts/ops/etapesDuTrain.mjs:3-9` (« INTERDITS, INEXPRIMABLES … ce module ne lance aucun processus lui-même ») et `scripts/ops/publier.mjs:25-29` (« Une étape ne lance donc rien hors du contexte »).
+- Contre-exemples, test VERT (même sonde) :
+
+  | cas | exit | pass/fail | preuve d'exécution |
+  |---|---|---|---|
+  | **ctorFunction** `(() => {}).constructor("return process.getBuiltinModule('node:child_process')")().spawnSync('git', …)`, ZÉRO import | 0 | 4/0 | `rt/ctor.mjs` → `git version 2.43.0` |
+  | **processCalcule** `import p from 'node:process'` ; `p['getBuiltin' + 'Module'](…)` | 0 | 4/0 | `rt/calc.mjs` → `git version 2.43.0` |
+  | **injectionAssign** `lister.mjs` gagne `export const BOITE = {}` ; `coursesCi.mjs` (lanceur de la clôture) gagne `Object.assign(BOITE, { spawnSync })` ; les étapes importent `BOITE` | 0 | 4/0 | `rt/etape.mjs` → `injectionAssign -> git version 2.43.0` |
+  | **injectionSetter** `export let crochet` et `poser(f)` dans `lister.mjs` ; `poser(spawnSync)` au chargement de `coursesCi.mjs` | 0 | 4/0 | `rt/etape.mjs` → `injectionSetter -> git version 2.43.0` |
+  | **chargement** `lister.mjs` gagne une instruction de tête `S2('git', ['add', '-A'])` | 0 | 4/0 | effet au chargement des étapes |
+
+  Témoins, qui prouvent que les ajouts aux AUTRES modules sont bien LUS :
+  - `injectionTemoin` (`lister.mjs` exporte `spawnSync`) : exit=1, `not ok 3` ;
+  - `injectionTemoin2` (`coursesCi.mjs`) : exit=1, `not ok 3`.
+- Aucune règle d'AST ne ferme `ctorFunction`. Une clé calculée peut toujours épeler `constructor`, et l'injection peut venir d'un module HORS de la clôture (`publier.mjs` qui appelle un `poser`). La même limite vaut pour H1, commit 2 : sa règle `processus/hote-unique` est elle aussi en AST (`juge-design-85/verdict.md:145`), et `ctorFunction` lui échappe.
+- `processCalcule` se ferme par R1 (`node:process` n'est plus inerte).
+- **Correction** :
+  1. Les deux en-têtes disent ce que le test garde : « contre une retouche de bonne foi ». Ils nomment le résidu hostile qu'il ne garde pas : évaluation par `.constructor`, état partagé MUTABLE posé par un autre module, effet au chargement d'un module de la clôture.
+  2. Le résidu va dans l'issue du commit 2 (H1), avec la sonde. La question d'un confinement À L'EXÉCUTION (étapes dans un processus fils sous `node --permission` sans `--allow-child-process` ni `--allow-fs-write`) y est posée comme un choix de design. Elle n'est pas un prérequis du commit 1.
+
+---
+
+## Q1 : P1 à P5
+| défaut | état | preuve |
+|---|---|---|
+| P1 | CORRIGÉ pour les quatre voies nommées et l'écrivain d'hôte par `interroger`. NON FERMÉ au sens de la classe : R1 et R4 | rejeu des sondes E16e sur l'arbre : `resilient`, `ghrunner`, `lancerlocal` et `hote` donnent exit=1, `not ok 3` ; `builtin` donne exit=1, `not ok 4` (`rejeu-cloture-*.txt`, `rejeu-sonde-cloture-hote.txt`). `ctx.gh` a disparu (`git grep "ctx\.gh"` : 0) ; `coursesCi`, `lireTicket` et `commenter` valident (`publier.mjs:543-551`) |
+| P2 | CORRIGÉ (`porteUnControle`, `gitPorte.mjs:352`, partagé avec `revisionsDe`). Effet de bord : R2 | `rejeu-sonde-lot-rels.txt` : `LEVEE … refusés : ["nope\nHEAD"]` ×2, exit=0 |
+| P3 | CORRIGÉ | `rejeu-sonde-n1-repertoire.txt` : `LEVEE commitDe : … refusés : ["src"]`, `status après = "M c.txt\n D src/a.txt\n D src/b.txt"` |
+| P4 | CORRIGÉ | `rejeu-sonde-tag-corrompu.txt` : `listerImage`, `ceQuiChange`, `shaDe(v1^{commit})` et `baseCommune` lèvent `dépôt corrompu : v1 → <sha>^{} manquant` |
+| P5 | CORRIGÉ dans `memoryLinks.mjs:145-153`. La même classe reste dans `pre-commit.mjs:65-70` (R2) | mutation P5 rejouée en mémoire : `memoryLinks.test.mjs` exit=1, `not ok 9` et `10` (« HORS dépôt… une PANNE de git LÈVE ») |
+
+## Q2 : classe D1, frontière de capacité (troisième passe) : NON FERMÉE
+- **Train, commit 1** : R1, fermable par une règle générale ; les en-têtes, R4.
+- **Hôte de processus, commit 2 (H1)** : le résidu hostile de R4 (`ctorFunction`, injection, effet de chargement). H1, étant en AST, ne le ferme pas non plus. Il faut le dire dans l'issue H1 et non le promettre.
+- Voies essayées et FERMÉES :
+  - module JSON : tenu pour lanceur (exit=1) ;
+  - `new Worker` : `typeof Worker` global = `undefined` sous Node v22.22.2, et `worker_threads` est dans `LANCEMENT` ;
+  - `import()` calculé dans les étapes : `lu.dynamiques` (`:98-101`) ;
+  - fabrique ou objet qui PORTE un lanceur, déclaré dans un module de la clôture : vu, puisque la déclaration référence le lanceur (témoin `injectionTemoin`, `not ok 3`).
+- Voies OUVERTES : `fsRef`, `fsHook`, `processExecve` et `inspector`/`testRun` sont atteignables par une retouche plausible ou par un fichier écrit puis joué par un geste nommé (R1). `ctorFunction`, l'injection par état mutable et l'effet de chargement demandent une intention (R4). `fetchApi` demande aussi une intention (jeton).
+
+## Q3 : écarts déclarés du codeur
+- **P5, `racineDe`** : CONFIRMÉ. La base levait hors dépôt (sonde du codeur), et la doc disait `null`. Les appelants :
+  - `docs-rebuild.mjs:63-64` : `if (!cwd) return`. Juste.
+  - `horsStrateAudit.ts:69-70` : lève « racine du dépôt non résolue ». Juste.
+  - `publier.mjs:585-588` : REFUS, exit 1 ; une panne remonte en `GitIndisponible`. Juste.
+  - `memoryLinks.mjs:149` : juste.
+  - `pre-commit.mjs:67-69` : le `catch` n'avale plus que des pannes. Voir R2.
+  - `grammaireGuard.mjs:201` a un `racineDe` LOCAL, homonyme, sans rapport.
+- **Réserve, INCERTAIN** : `HORS_ARBRE` (`gitPorte.mjs:849`) lit un message ANGLAIS de git, comme `MOTIFS_ABSENT` (`:92-107`, préexistant). Sous un git traduit, hors arbre donnerait une levée : l'échec reste FERMÉ, jamais ouvert. Ce qui trancherait : `LANGUAGE=fr LANG=fr_FR.UTF-8 git rev-parse --show-toplevel` hors dépôt, avec `git.mo` fr installé. Ce n'est pas mesurable ici (`locale -a` = `C`, `C.utf8`, `POSIX`). La classe est préexistante et hors de ce lot : issue « l'hôte lit un stderr localisé », dont la correction est d'épingler `LC_ALL=C` dans l'env de `lancer`.
+- **P1, `cluster`, `worker_threads`, `module` et `vm` comptés comme lanceurs** : aucun faux positif sur la clôture actuelle, qui n'importe aucun de ces modules (`cloture.txt`). C'est prudent. `AMBIANTS` ne donne pas de faux positif non plus (tests 4/4 verts). Il est contourné par un alias (`import p from 'node:process'`), ce que R1 ferme.
+- **P2, tabulation** : c'est R2. Chemin vide : **RÉFUTÉ** tel que le décrit le codeur (« `HEAD:` lit l'arbre racine »). `sonde-chemin-vide.txt` donne `HEAD LEVEE git cat-file --batch illisible à HEAD: : « … tree 33 »` et `INDEX [""] => null`. Le lot échoue donc fermé, et ce n'est pas un défaut.
+- **`ctx.questions.commitsDeLaPlage`** : CONFIRMÉ. `e60f060f2` importait `commitsDeLaPlage` de `plageFermante.mjs:16`, et le test neuf l'a trouvé. C'est une question : `journalDe`, bornes passées par `revisionsDe`.
+
+## Q4 : le reste (4)
+- **La prémisse du codeur est RÉFUTÉE.** Les verdicts d'E17 ne jugent PAS le cas « `debut` inconnu » (sha complet absent). `grep -n -i inconnu` sur les trois verdicts ne rend que « plage inconnue », c'est-à-dire un `debut` NUL :
+  - `verdict.md:16` : « sauf plageStock.test.mjs:131 qui vise justement le cas « HEAD seul » (regex /plage inconnue/, toujours vert) » ;
+  - `verdict-b.md:50,52` : notes « plage inconnue : ni sha distant ni tronc — a2c9b8bd2 seul est jugé » (`debut nul`) ;
+  - `verdict-b.md:66` : « Sur main locale, les deux notes se contredisent : « debut est le tronc d'avant » alors que `debut` est nul, puis « plage inconnue ». » ;
+  - `verdict-c.md:28` : « plage inconnue : … a2c9b8bd2 seul est jugé, sans ses parents ».
+
+  Le seul sha `ffff…` des verdicts est `verdict-c.md:59-60` (`classerPush`, « LEVEE Error: git diff … ffff… : en échec »), et il n'est pas jugé comme voulu.
+- Le cas `debut inconnu` n'existe que dans MA sonde de non-régression (`juge-e16/sonde-plage.mjs:17`). `EGAL` y veut dire « l'ancien rend comme le neuf », pas « c'est juste ».
+- **C'est un fail-open de porte, pas une sémantique voulue.** Sur un push vers une branche de chantier dont le sha distant n'est pas fetché (push `--force` après un avancement ailleurs), `plageStock.mjs:156-159` rend `indisponible: null` avec la note « rien n'est jugé ». `pre-push.mjs:126-130` ne refuse pas, et `:138` ne refuse que sur `main` (`e16f/sonde-reste4.txt`, A).
+- **Suite retenue** : le verser aux restes de la plage d'E17, qui sont de la même famille (« `before` illisible » : cancel-in-progress contre `before`). PAS dans le commit 1 : c'est préexistant (EGAL ancien/neuf), c'est la sémantique d'E17 que le brief E16b interdit de changer, et c'est un autre module.
+  - Une issue s'ouvre AVANT le commit 1 : `fichier:ligne`, la sonde `e16f/sonde-reste4.mjs` et sa sortie. Le message du commit 1 la cite.
+  - Correction à y instruire : un `debut` ABSENT se juge comme un `debut` nul (`fin ^origin/main`), avec une note ; jamais « rien n'est jugé » sans refus.
+- Le mauvais nom « base inatteignable » : se corrige ICI (R3). La ligne est migrée par ce lot, et la correction ne change aucune sémantique.
+
+## Q5 : plage d'E17
+Voir « Plage » en fin de fichier.
+
+## Q6 : mutations. CONFIRMÉ, 21/21
+- `juge-e16f/verif-mutations.py`, sortie `verif-mutations.txt`. Pour chaque mutation, fichiers `autres` compris :
+  - `ancien` est trouvé 1 fois dans le blob actuel ;
+  - le hash muté est reproduit par `hash-object --stdin` ;
+  - le blob actuel est égal à « avant » et à « après » ;
+  - puis le ROUGE est REJOUÉ EN MÉMOIRE (`mut-preload.mjs`) sur le test visé.
+- Les 19 neuves et les 2 ré-ancrées (N1 répertoire → `gitPorte.test.mjs` `not ok 37` ; N7 contrôle → `not ok 42`) : `OK`. Le rouge rejoué porte les MÊMES numéros que l'archive, à une exception près : P5-hors-arbre sur `memoryLinks.test.mjs` donne `9, 10` rejoué seul, contre `61, 62` dans l'archive, qui comptait les deux fichiers ensemble. Mêmes titres (`rejeu-P5-memoryLinks.txt`).
+- Il MANQUE les mutations de R1 (6), de R2 (1) et de R3 (1).
+
+## Q7 : langue et architecture
+- `etapesDuTrain.mjs:3-9` et `publier.mjs:25-29` mentent : voir R1 et R4. `publier.mjs:29-37` (gestes validés, « jamais la poignée du dépôt ni un argv libre ») dit vrai pour le CONTEXTE.
+- La doc de `contexteDe` dit « chaque processus d'une étape passe par un geste d'ici ». C'est faux par `processExecve` et `inspector` tant que R1 n'est pas fait.
+- `etapesDuTrain.test.mjs:1-9` : juste pour ce qu'il mesure. Il doit nommer le résidu (R4).
+- Un concept, un terme : `ctx.commenter` et `poserCommentaire` nomment le même geste, sous l'enrobeur. C'est acceptable, puisque le geste du ctx est nommé par le verdict E16e.
+- Aucun commentaire d'excuse ni de pierre tombale sur l'écart.
+- `plageFermante.mjs:65-66` est un commentaire FLOTTANT : il n'y a plus de `git` sous lui. Mineur. Il faut le rattacher à la doc de `motifDePlageIllisible`/`commitsDeLaPlage`, ou le retirer.
+
+## Q8 : portes
+- `ps` avant les runners : aucun vitest ni `node --test` (`ps-avant-runners.txt`, loadavg 0.73).
+- Avant vitest, un vitest d'AUTRUI tournait (`.wt-1920d`, 10 fichiers). Le mien : 9 fichiers + 1, sous le seuil de 20 (`ps-avant-vitest.txt`, loadavg 9.11).
+
+| porte | résultat | attribution |
+|---|---|---|
+| `npx tsc --noEmit --incremental false` | exit=0, 0 ligne (`tsc.txt`) | — |
+| `npm run lint` | exit=0 (`lint.txt`) | — |
+| `npm run test:hooks` ENTIER | exit=0 : 1380 tests, 1374 pass, 0 fail, 6 skipped (`test-hooks.txt`) | — |
+| `npm run test:ops` ENTIER | exit=0 : 294/294 (`test-ops.txt`) | — |
+| `node scripts/docs/check-doc-refs.mjs` | « docs:check — OK (34 docs vivantes…) », exit=0 | — |
+| vitest, importeurs `.ts` des modules touchés | exit=0 : 9 fichiers, 193 tests (`vitest.txt`) | — |
+| `src/comment-poison-guard.test.ts` | exit=1 : 1 fail sur 78, « Ligne(s) du stock sans site correspondant : src/ui/ui-ratchets.test.ts — … `.hero-present-chips` repassent mono-consommateur… » | BASE : `legacyVocabStock.mjs:1930`. `git diff HEAD --stat` est vide sur les deux fichiers. AUCUN autre rouge |
+
+Liste vitest (`vitest-liste.txt`), tirée de `git grep -l --untracked` sur les noms des 30 modules touchés dans `*.ts|*.tsx|*.mts` (`importeurs-ts-brut.txt`), puis des tests qui importent les importeurs `.ts` (`horsStrateAudit`, `cssCouchesAudit`, `regen-*`) :
+```
+src/data/grammaire-guard.test.ts
+src/data/scene-prose-graphie-guard.test.ts
+src/data/source/prose-source.test.ts
+src/data/source/reparer-adresses.test.ts
+src/data/structures-contrat.test.ts
+src/data/slots-contrat.test.ts
+src/ui/css-modules-guard.test.ts
+src/ui/ui-ratchets.test.ts
+src/ui/registry-id-branch-guard.test.ts
+```
+
+## Q9 : prêt à committer ? NON. Ce qui reste, dans l'ordre
+1. **R1** :
+   - liste blanche des liaisons intégrées inertes (paire module/nom) : toute autre liaison intégrée est lanceuse ;
+   - `fetch` et `WebSocket` dans `AMBIANTS` ;
+   - mutations `fsRef`, `fsHook`, `processExecve`, `inspector`, `testRun` et `fetchApi`, toutes rouges.
+2. **R4** : réécrire `etapesDuTrain.mjs:3-9`, `publier.mjs:25-29`, la doc de `contexteDe` et `etapesDuTrain.test.mjs:1-9` pour qu'ils disent ce que le test garde et nomment le résidu hostile. Le résidu va à l'issue H1 (commit 2), avec `sonde-cloture-preload.mjs` (cas `ctorFunction`, `injectionAssign`, `injectionSetter`, `chargement`).
+3. **R2** : `pre-commit.mjs:65-70`, `:115-118`, `:185-188` et `:374-377`. Un refus ou une panne de `lireEnLot` devient un offender nommé, et le `try` de `ROOT` est retiré. Ajouter un test (nom à tabulation) et sa mutation.
+4. **R3** : `plageFermante.mjs:77-78`, deux motifs, un test sur une base `f…f` ; `:65-66` rattaché ou retiré.
+5. Issue du reste (4), ouverte AVANT le commit, `sonde-reste4` jointe, versée aux restes de la plage d'E17 et citée au message. Issue « stderr localisé » (`HORS_ARBRE`, `MOTIFS_ABSENT`).
+6. Rejouer les portes ci-dessus, dont `test:hooks` et `test:ops` ENTIERS, et la plage d'E17.
+
+## Plage (Q5) : NON RÉFUTÉE
+Lancée depuis `juge-e16/` avec `NODE_PATH=…/node_modules TMPDIR=juge-e16f/tmp timeout 1200 node --import ./enregistre.mjs`, départ Sun Sep 27 13:24:11 UTC 2026 2.20 2.72 3.62 3/169 7136.
+- `sonde-plage.mjs` (`sonde-plage.txt`) :
+  ```
+EGAL  | debut inconnu | commits undefined refus 0 reclass 0 indisp null
+EGAL  | fenetre large 9aa86ba0f..HEAD chantier | commits 6 refus 0 reclass 0 indisp null
+cas 33 ecarts 0
+exit=0 2.93 5.68 5.07 1/163 19528 Sun Sep 27 13:33:42 UTC 2026
+  ```
+- `sonde-plage-renommages.mjs 1be7d75aa 31c64f4a9 50b1a3e92 9816eac37 d25652e73 fcefd6283` (`sonde-plage-renommages.txt`) :
+  ```
+EGAL  | fenetre fcefd6283^..fcefd6283 main | commits 1 refus 0 reclass 0 indisp null
+cas 12 ecarts 0
+exit=0 2.59 5.31 4.97 1/157 22231 Sun Sep 27 13:34:14 UTC 2026
+  ```
+
+## Tâches de fond (toutes terminées, aucune ne survit)
+- `b4lplf14t` : `juge-e16f/portes.sh` (tsc, test:hooks, test:ops, check-doc-refs, lint), chaque porte sous `timeout`. Terminée, exit 0.
+- `bvmi8bp77` : les deux sondes de plage sous `timeout 1200`. Terminée, exit 0.
+- `biq44entb` : `verif-mutations.py` sous `timeout 1500` (chaque rejeu sous `timeout 300`). Terminée, exit 0.
+- `b8vi3lj36` : vitest (importeurs, puis poison) sous `timeout 900` et `600`. Terminée.
+- Attente de fin de plage : boucle bornée (55 × 10 s). Sortie sur `exit=`.
+- `ps` final : aucun processus à moi. `juge-e16f/tmp/` : vide.
+- Note : le cas `chargement` de la sonde de clôture ajoute au texte LU de `lister.mjs` un appel `git add -A`. Il n'est PAS exécuté : le test lit l'AST, et `lister.mjs` n'est pas dans son graphe d'imports (`grep lister.mjs importGraph.mjs dialecte.mjs` : 0). Le `git status` pris juste après est identique (`status-verif.txt`).
+
+## Sondes (`juge-e16f/`)
+- `sonde-cloture-preload.mjs`, cas `temoin`, `ctorFunction`, `processExecve`, `processCalcule`, `inspector`, `testRun`, `fsHook`, `fsRef`, `injectionAssign`, `injectionSetter`, `injectionTemoin`, `injectionTemoin2`, `chargement`, `json` et `fetchApi`. Sorties : `sonde-cloture-<cas>.txt`. Commande : `SONDE_AJOUT=<cas> timeout 300 node --import juge-e16f/sonde-cloture-preload.mjs --test scripts/ops/etapesDuTrain.test.mjs`.
+- `rt/*.mjs` et `*.out` : preuves d'exécution, en lecture seule (`git --version`).
+- `sonde-tab-precommit.mjs` (R2), `sonde-chemin-vide.mjs` (Q3) et `cloture.mjs` (Q2, Q3).
+- `mut-preload.mjs`, `mut-hook.mjs` et `verif-mutations.py` (Q6).
+- Sondes E16e rejouées : `rejeu-sonde-*.txt`, `rejeu-cloture-*.txt`.
+
+Fin : Sun Sep 27 13:34:36 UTC 2026.
+
+</details>
+
+<details><summary>Brief du codeur E16g (verbatim)</summary>
+
+# Brief du codeur E16g : quatrième reprise des portes git, commit 1 (#1806, lot des portes git), 2026-09-27
+
+Tu es orchestrateur de ton lot. Tu peux déléguer une lecture de masse (`lecteur`) ou une vérification fermée (`verif-mecanique`), mais tu relis tout ce qu'un agent te rend, et le code est à toi.
+
+## Worktree et état VÉRIFIÉ (2026-09-27, par le juge E16f)
+- Worktree : `/home/claude/game/.wt-1806-e16`, branche `wt/1806-e16`, HEAD `543ba1e13`.
+  - Le travail E16 à E16f est dans l'arbre, non committé : 53 lignes de `git status --short`, `UU` attendus sur `plageStock.mjs` et `publier.mjs`, trois fichiers neufs (`scripts/ops/etapesDuTrain.mjs`, `scripts/ops/etapesDuTrain.test.mjs`, `scripts/guards/lib/gitPorte.marque.test.ts`).
+  - Instantané de cet état : `refs/wip/1806-portes-git-e16f` = `9eb200941` (le juge a vérifié l'égalité).
+- Règles, interdits, invariant, cas canonique et design jugé : ceux du brief E16b (`/tmp/claude-0/-home-claude-game/b2c1dcf4-ee89-5cd4-b2df-036dbf03e24e/scratchpad/brief-e16b.md`), qui valent ici mot pour mot. Interdits en plus : aucun `git commit` (même `-h` ou `--only`), aucun WebFetch ; toute commande qui demanderait une permission, tu ne la lances pas et tu la nommes au rendu.
+- Lis le verdict du juge EN ENTIER : `scratchpad/juge-e16f/verdict.md`. Ses sondes sont sous `scratchpad/juge-e16f/` (dont `sonde-cloture-preload.mjs` et ses 15 cas, `sonde-tab-precommit.mjs`, `rt/`). Puis ton rendu précédent : `scratchpad/rendu-e16f.md` (sorties sous `e16f/`, dont `sonde-reste4.mjs`).
+- SI un livrable existe déjà dans l'arbre, PIVOTE en revue.
+- Un juge travaille dans `.wt-1920d` : avant tout vitest ou `node --test` de plus de 20 fichiers, vérifie qu'aucun autre ne tourne (`ps -eo pid,etime,cmd | grep -E '[v]itest|[n]ode --test'`, sortie collée).
+- Processus : avant tout `kill`, lis le PPID et la ligne de commande du parent ; tu ne tues que ce que ta commande a lancé. Jamais `pkill` ni `killall`.
+- Budget : 1 h 30 d'horloge. Relève `date -u` au départ et avant chaque étape longue. À l'échéance, rends ce qui est fait, l'arbre dans un état STABLE (portes du périmètre vertes), et le reste NOMMÉ.
+
+## La classe D1, quatrième passe : le défaut s'inverse, et la promesse devient exacte
+La frontière de capacité (E16f) tient pour les paquets et les modules du dépôt, mais elle tient tout module INTÉGRÉ absent de `LANCEMENT` pour inerte (`etapesDuTrain.test.mjs:65-66`) : c'est une liste noire. Le juge retient une LISTE BLANCHE de liaisons intégrées inertes, par paire (module, nom), comme le test le fait déjà pour les paquets. Le résidu qu'aucune règle d'AST ne ferme (évaluation par `.constructor`, état mutable posé par un autre module, effet au chargement) n'est PAS à fermer ici : il est versé à #2073, et les en-têtes doivent dire exactement ce que le test garde.
+
+## Travail, dans l'ordre du juge (Q9)
+Pour chaque défaut, le verdict donne une correction. Tu l'implémentes telle qu'écrite ; si tu la trouves fausse, prouve-le par une sonde avant d'en changer, et dis-le au rendu.
+1. **R1** (verdict, section R1, « Correction retenue ») :
+   - une liste blanche de liaisons intégrées inertes, par paire (module, nom) : toute autre liaison d'un module intégré est lanceuse, et `LANCEMENT` devient inutile ;
+   - `fetch` et `WebSocket` dans `AMBIANTS` ;
+   - les six cas `fsRef`, `fsHook`, `processExecve`, `inspector`, `testRun` et `fetchApi` de `sonde-cloture-preload.mjs` deviennent six mutations, rouges ; les témoins `temoin` et `json` gardent leur verdict.
+2. **R4** : réécris `scripts/ops/etapesDuTrain.mjs:3-9`, `scripts/ops/publier.mjs:25-29`, la doc de `contexteDe` (`publier.mjs:519`) et `scripts/ops/etapesDuTrain.test.mjs:1-9`. Ils disent ce que le test garde (« contre une retouche de bonne foi ») et nomment le résidu qu'il ne garde pas, avec la réf nue `#2073`. Aucune paraphrase au-delà : la réf porte le détail. Rejoue les cas `ctorFunction`, `injectionAssign`, `injectionSetter` et `chargement`, et colle leur sortie : ils restent verts, et c'est ce que l'en-tête doit dire.
+3. **R2** : `scripts/git-hooks/pre-commit.mjs:65-70`, `:115-118`, `:185-188` et `:374-377`. En mode stagé, un refus ou une panne de `lireEnLot` devient un fautif nommé (`<rel> : illisible dans l'index — <raison>`) ; le `catch` ne reste qu'autour de `readFileSync` (mode `argFiles`) ; le `try` de `ROOT` se retire. Test (nom à tabulation stagé → refus nommé, en partant de `sonde-tab-precommit.mjs`) et mutation (`catch { continue; }` remis → le test rougit). Contre-grep : tout autre `catch` qui avale une levée d'une question de `gitPorte.mjs` dans les fichiers de ce lot est de la même classe ; liste-les (sortie collée) et traite-les de la même façon.
+4. **R3** : `scripts/guards/lib/plageFermante.mjs:77-78`, deux motifs (`absent` : « base X inconnue de ce dépôt (non fetchée, ou dépôt corrompu) — aucune fermeture n'est jugée » ; `valeur !== true` : le motif actuel) ; un test sur une base `f…f` et sa mutation. Le commentaire flottant `:65-66` est rattaché à la doc de `motifDePlageIllisible` ou retiré.
+
+## Preuves (obligatoires)
+- Mutations sur les blobs FINAUX : empreintes `git hash-object` avant et après, rouge constaté avec sa ligne `exit=`, remise identique, argv archivé. Au minimum : les six de R1, une pour R2, une pour R3.
+- Les 21 mutations d'E16f (`e16f/mutations.txt`) rejouées si ta retouche touche leurs fichiers.
+- Les 15 cas de `juge-e16f/sonde-cloture-preload.mjs`, rejoués après ta dernière retouche : table cas → exit → pass/fail.
+- La plage d'E17 : `juge-e16/sonde-plage.mjs` et `juge-e16/sonde-plage-renommages.mjs` (avec ses 6 shas), attendu `ecarts 0`. Laisse-lui 1200 s.
+
+## Portes (sortie BRUTE collée, avec la ligne `exit=` écrite par la commande)
+- `npm run typecheck:fast`.
+- `node --test` sur les tests des fichiers touchés, les importeurs des modules touchés (liste par `git grep -l --untracked`, collée) et les tests de `scripts/gates/` qui lisent un inventaire (dont `ecrivainsAtteints.test.mjs`), par paquets de 20 au plus.
+- vitest sur les importeurs `.ts` des modules touchés.
+- eslint sur les fichiers que tu touches.
+
+## Livrable
+`/tmp/claude-0/-home-claude-game/b2c1dcf4-ee89-5cd4-b2df-036dbf03e24e/scratchpad/rendu-e16g.md`, sorties sous `scratchpad/e16g/` :
+- `git diff --stat HEAD` et les fichiers neufs ;
+- chaque défaut, R1 à R4, fait ou reste, avec sa preuve ;
+- la table des mutations ;
+- les sorties des sondes et des portes.
+
+</details>
+
+---
+_Generated by [Claude Code](https://claude.ai/code)_

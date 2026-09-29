@@ -1,0 +1,181 @@
+exploration 1707px — 4 carte(s) sur 1 ligne(s), 4 portrait(s) rendu(s), marge morte objectif 0px → OK
+exploration 1100px — 4 carte(s) sur 1 ligne(s), 4 portrait(s) rendu(s), marge morte objectif 0px → OK
+exploration 900px — 4 carte(s) sur 1 ligne(s), 4 portrait(s) rendu(s), marge morte objectif 0px → OK
+exploration 700px — 4 carte(s) sur 1 ligne(s), 4 portrait(s) rendu(s), marge morte objectif 0px → 4 défaut(s)
+   · exploration 700px (§12 561–700) : la vie de la carte 0 du groupe n'est pas superposée à son portrait
+   · exploration 700px (§12 561–700) : la vie de la carte 1 du groupe n'est pas superposée à son portrait
+   · exploration 700px (§12 561–700) : la vie de la carte 2 du groupe n'est pas superposée à son portrait
+   · exploration 700px (§12 561–700) : la vie de la carte 3 du groupe n'est pas superposée à son portrait
+exploration 560px — bande REPLIÉE sur sa poignée (poignée atteignable), 0 portrait(s) rendu(s), marge morte objectif 0px → OK
+exploration (groupe déplié) 560px — 4 carte(s) sur 1 ligne(s), 4 portrait(s) cliquable(s) → OK
+exploration 360px — bande REPLIÉE sur sa poignée (poignée atteignable), 0 portrait(s) rendu(s), marge morte objectif 0px → OK
+exploration (groupe déplié) 360px — 4 carte(s) sur 1 ligne(s), 4 portrait(s) cliquable(s) → OK
+   · exploration 900px (§12 701–900) : la carte du groupe fait 88px, pas plus compacte que 88px à 1707px
+   · exploration 700px (§12 561–700) : la carte du groupe fait 88px, pas plus compacte que 88px à 1707px
+couche (exploration) 1707×780 — pont 49px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration) 1366×780 — pont 49px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration) 1100×780 — pont 49px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration) 900×780 — pont 49px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration) 700×780 — pont 49px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration) 560×780 — pont 49px au bas, 4 surface(s), 5/5 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration) 360×780 — pont 49px au bas, 4 surface(s), 5/5 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration) 1707×650 — pont 49px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration) 1366×650 — pont 49px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration) 1100×650 — pont 49px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration) 900×650 — pont 49px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration) 700×650 — pont 49px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration) 560×650 — pont 49px au bas, 4 surface(s), 5/5 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration) 360×650 — pont 49px au bas, 4 surface(s), 5/5 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration) 1707×740 — pont 49px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration) 1366×740 — pont 49px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration) 1100×740 — pont 49px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration) 900×740 — pont 49px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration) 700×740 — pont 49px au bas, 4 surface(s), 8/8 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration) 560×740 — pont 49px au bas, 4 surface(s), 5/5 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (exploration) 360×740 — pont 49px au bas, 4 surface(s), 5/5 commande(s) atteinte(s), 0 exemptée(s) → OK
+combat (pause) 1707px — frise colonne, tête couverte, pied entier → OK
+combat (pause) 1100px — frise colonne, tête couverte, pied entier → OK
+combat (pause) 900px — frise colonne, tête couverte, pied entier → OK
+combat (pause) 700px — frise colonne, tête couverte, pied entier → OK
+combat (pause) 560px — frise bande, tête couverte, pied non mesuré → OK
+combat (pause) 360px — frise bande, tête couverte, pied non mesuré → OK
+couche (ouverture) 1707×780 — pont 170px au bas, 6 surface(s), 16/20 commande(s) atteinte(s), 4 exemptée(s) → OK
+couche (ouverture) 1366×780 — pont 170px au bas, 6 surface(s), 16/20 commande(s) atteinte(s), 4 exemptée(s) → OK
+couche (ouverture) 1100×780 — pont 170px au bas, 6 surface(s), 16/20 commande(s) atteinte(s), 4 exemptée(s) → OK
+couche (ouverture) 900×780 — pont 170px au bas, 6 surface(s), 16/20 commande(s) atteinte(s), 4 exemptée(s) → OK
+couche (ouverture) 700×780 — pont 236.6px au bas, 6 surface(s), 15/20 commande(s) atteinte(s), 5 exemptée(s) → 1 défaut(s)
+   · couche (ouverture) 700×780 : la surface « combat-feed » {"x":8,"y":451.8,"w":135,"h":48} déborde de sa zone « temps » {"x":8,"y":58,"w":135,"h":418.4} de 23.4px
+couche (ouverture) 560×780 — pont 313px au bas, 6 surface(s), 16/17 commande(s) atteinte(s), 1 exemptée(s) → OK
+couche (ouverture) 360×780 — pont 313px au bas, 6 surface(s), 11/17 commande(s) atteinte(s), 6 exemptée(s) → OK
+couche (ouverture) 1707×650 — pont 141.7px au bas, 6 surface(s), 14/20 commande(s) atteinte(s), 6 exemptée(s) → OK
+couche (ouverture) 1366×650 — pont 141.7px au bas, 6 surface(s), 14/20 commande(s) atteinte(s), 6 exemptée(s) → OK
+couche (ouverture) 1100×650 — pont 141.7px au bas, 6 surface(s), 14/20 commande(s) atteinte(s), 6 exemptée(s) → OK
+couche (ouverture) 900×650 — pont 141.7px au bas, 6 surface(s), 14/20 commande(s) atteinte(s), 6 exemptée(s) → OK
+couche (ouverture) 700×650 — pont 214.5px au bas, 6 surface(s), 13/20 commande(s) atteinte(s), 7 exemptée(s) → 1 défaut(s)
+   · couche (ouverture) 700×650 : la surface « combat-feed » {"x":8,"y":341.8,"w":135,"h":48} déborde de sa zone « temps » {"x":8,"y":58,"w":135,"h":310.5} de 21.3px
+couche (ouverture) 560×650 — pont 313px au bas, 6 surface(s), 16/17 commande(s) atteinte(s), 1 exemptée(s) → OK
+couche (ouverture) 360×650 — pont 313px au bas, 6 surface(s), 11/17 commande(s) atteinte(s), 6 exemptée(s) → OK
+couche (ouverture) 1707×740 — pont 161.3px au bas, 6 surface(s), 16/20 commande(s) atteinte(s), 4 exemptée(s) → OK
+couche (ouverture) 1366×740 — pont 161.3px au bas, 6 surface(s), 16/20 commande(s) atteinte(s), 4 exemptée(s) → OK
+couche (ouverture) 1100×740 — pont 161.3px au bas, 6 surface(s), 16/20 commande(s) atteinte(s), 4 exemptée(s) → OK
+couche (ouverture) 900×740 — pont 161.3px au bas, 6 surface(s), 16/20 commande(s) atteinte(s), 4 exemptée(s) → OK
+couche (ouverture) 700×740 — pont 229.8px au bas, 6 surface(s), 14/20 commande(s) atteinte(s), 6 exemptée(s) → 1 défaut(s)
+   · couche (ouverture) 700×740 : la surface « combat-feed » {"x":8,"y":396.8,"w":135,"h":48} déborde de sa zone « temps » {"x":8,"y":58,"w":135,"h":385.2} de 1.6px
+couche (ouverture) 560×740 — pont 313px au bas, 6 surface(s), 16/17 commande(s) atteinte(s), 1 exemptée(s) → OK
+couche (ouverture) 360×740 — pont 313px au bas, 6 surface(s), 11/17 commande(s) atteinte(s), 6 exemptée(s) → OK
+  (mise en place : premier tour tenu par un héros — ✓ au tour de Klein Bürger)
+couche (tour de héros) 1707×780 — pont 170px au bas, 5 surface(s), 25/27 commande(s) atteinte(s), 2 exemptée(s) → OK
+couche (tour de héros) 1366×780 — pont 170px au bas, 5 surface(s), 25/27 commande(s) atteinte(s), 2 exemptée(s) → OK
+couche (tour de héros) 1100×780 — pont 170px au bas, 5 surface(s), 25/27 commande(s) atteinte(s), 2 exemptée(s) → OK
+couche (tour de héros) 900×780 — pont 170px au bas, 5 surface(s), 25/27 commande(s) atteinte(s), 2 exemptée(s) → OK
+couche (tour de héros) 700×780 — pont 236.6px au bas, 5 surface(s), 24/27 commande(s) atteinte(s), 3 exemptée(s) → 1 défaut(s)
+   · couche (tour de héros) 700×780 : la surface « combat-feed » {"x":8,"y":451.8,"w":135,"h":48} déborde de sa zone « temps » {"x":8,"y":58,"w":135,"h":418.4} de 23.4px
+couche (tour de héros) 560×780 — pont 313px au bas, 5 surface(s), 24/24 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (tour de héros) 360×780 — pont 313px au bas, 5 surface(s), 21/24 commande(s) atteinte(s), 3 exemptée(s) → OK
+couche (tour de héros) 1707×650 — pont 141.7px au bas, 5 surface(s), 23/27 commande(s) atteinte(s), 4 exemptée(s) → OK
+couche (tour de héros) 1366×650 — pont 141.7px au bas, 5 surface(s), 23/27 commande(s) atteinte(s), 4 exemptée(s) → OK
+couche (tour de héros) 1100×650 — pont 141.7px au bas, 5 surface(s), 23/27 commande(s) atteinte(s), 4 exemptée(s) → OK
+couche (tour de héros) 900×650 — pont 141.7px au bas, 5 surface(s), 23/27 commande(s) atteinte(s), 4 exemptée(s) → OK
+couche (tour de héros) 700×650 — pont 214.5px au bas, 5 surface(s), 22/27 commande(s) atteinte(s), 5 exemptée(s) → 1 défaut(s)
+   · couche (tour de héros) 700×650 : la surface « combat-feed » {"x":8,"y":341.8,"w":135,"h":48} déborde de sa zone « temps » {"x":8,"y":58,"w":135,"h":310.5} de 21.3px
+couche (tour de héros) 560×650 — pont 313px au bas, 5 surface(s), 24/24 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (tour de héros) 360×650 — pont 313px au bas, 5 surface(s), 21/24 commande(s) atteinte(s), 3 exemptée(s) → OK
+couche (tour de héros) 1707×740 — pont 161.3px au bas, 5 surface(s), 25/27 commande(s) atteinte(s), 2 exemptée(s) → OK
+couche (tour de héros) 1366×740 — pont 161.3px au bas, 5 surface(s), 25/27 commande(s) atteinte(s), 2 exemptée(s) → OK
+couche (tour de héros) 1100×740 — pont 161.3px au bas, 5 surface(s), 25/27 commande(s) atteinte(s), 2 exemptée(s) → OK
+couche (tour de héros) 900×740 — pont 161.3px au bas, 5 surface(s), 25/27 commande(s) atteinte(s), 2 exemptée(s) → OK
+couche (tour de héros) 700×740 — pont 229.8px au bas, 5 surface(s), 23/27 commande(s) atteinte(s), 4 exemptée(s) → 1 défaut(s)
+   · couche (tour de héros) 700×740 : la surface « combat-feed » {"x":8,"y":396.8,"w":135,"h":48} déborde de sa zone « temps » {"x":8,"y":58,"w":135,"h":385.2} de 1.6px
+couche (tour de héros) 560×740 — pont 313px au bas, 5 surface(s), 24/24 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (tour de héros) 360×740 — pont 313px au bas, 5 surface(s), 21/24 commande(s) atteinte(s), 3 exemptée(s) → OK
+combat 1707px — dock 170px de haut / 9 contrôle(s), piste 83/83px dans une bande de 86px, frise colonne à 1612.8px du bord, Round visible, tête couverte, pied entier, chevauchement fil×frise aucun → OK
+combat 1100px — dock 170px de haut / 9 contrôle(s), piste 83/83px dans une bande de 86px, frise colonne à 1005.8px du bord, Round visible, tête couverte, pied entier, chevauchement fil×frise aucun → OK
+combat 900px — dock 170px de haut / 9 contrôle(s), piste 77/77px dans une bande de 80px, frise colonne à 811.8px du bord, Round visible, tête couverte, pied entier, chevauchement fil×frise aucun → OK
+combat 700px — dock 236.6px de haut / 9 contrôle(s), piste 77/77px dans une bande de 135px, frise colonne à 557px du bord, Round visible, tête couverte, pied entier, chevauchement fil×frise aucun → 4 défaut(s)
+   · combat 700px (§12 561–700) : la vie de la carte 0 du groupe n'est pas superposée à son portrait
+   · combat 700px (§12 561–700) : la vie de la carte 1 du groupe n'est pas superposée à son portrait
+   · combat 700px (§12 561–700) : la vie de la carte 2 du groupe n'est pas superposée à son portrait
+   · combat 700px (§12 561–700) : la vie de la carte 3 du groupe n'est pas superposée à son portrait
+combat 560px — dock 313px de haut / 9 contrôle(s), piste 549/549px dans une bande de 552px, frise bande à 4px du bord, Round visible, tête non mesurée, pied non mesuré, chevauchement fil×frise aucun → OK
+combat (groupe déplié) 560px — 4 carte(s) sur 1 ligne(s), 4 portrait(s) cliquable(s), volet × fil 317.7×16.8px (rang éprouvé) → OK
+combat 360px — dock 313px de haut / 9 contrôle(s), piste 349/492px dans une bande de 352px, frise bande à 4px du bord, Round visible, tête couverte, pied non mesuré, chevauchement fil×frise aucun → OK
+combat (groupe déplié) 360px — 4 carte(s) sur 1 ligne(s), 4 portrait(s) cliquable(s), volet × fil 317.7×16.8px (rang éprouvé) → OK
+   · combat 900px (§12 701–900) : la carte du groupe fait 88px, pas plus compacte que 88px à 1707px
+   · combat 700px (§12 561–700) : la carte du groupe fait 88px, pas plus compacte que 88px à 1707px
+combat (au trait en bas) 1707px — pregen-808 au trait, frise colonne, tête couverte, pied entier, pas 50–50px → 3 défaut(s)
+   · combat (au trait en bas) 1707px : la boîte peinte de la vignette au trait dépasse de 110.8px le bord bas du champ de la piste — son liseré (3.84px) y est rogné
+   · combat (au trait en bas) 1707px : le chevron de l'unité au trait est masqué sur 49px de 10px — la tête et le pied doivent lui réserver sa place
+   · combat (au trait en bas) 1707px : l'acteur au trait est hors du champ de la frise — rien ne l'y ramène (scrollIntoView)
+combat (au trait en bas) 1100px — pregen-808 au trait, frise colonne, tête couverte, pied entier, pas 50–50px → 3 défaut(s)
+   · combat (au trait en bas) 1100px : la boîte peinte de la vignette au trait dépasse de 110.8px le bord bas du champ de la piste — son liseré (3.84px) y est rogné
+   · combat (au trait en bas) 1100px : le chevron de l'unité au trait est masqué sur 49px de 10px — la tête et le pied doivent lui réserver sa place
+   · combat (au trait en bas) 1100px : l'acteur au trait est hors du champ de la frise — rien ne l'y ramène (scrollIntoView)
+combat (au trait en bas) 900px — pregen-808 au trait, frise colonne, tête couverte, pied entier, pas 50–50px → 3 défaut(s)
+   · combat (au trait en bas) 900px : la boîte peinte de la vignette au trait dépasse de 110px le bord bas du champ de la piste — son liseré (3.84px) y est rogné
+   · combat (au trait en bas) 900px : le chevron de l'unité au trait est masqué sur 48.2px de 10px — la tête et le pied doivent lui réserver sa place
+   · combat (au trait en bas) 900px : l'acteur au trait est hors du champ de la frise — rien ne l'y ramène (scrollIntoView)
+combat (au trait en bas) 700px — pregen-808 au trait, frise colonne, tête couverte, pied entier, pas 50–50px → 2 défaut(s)
+   · combat (au trait en bas) 700px : la boîte peinte de la vignette au trait dépasse de 55px le bord bas du champ de la piste — son liseré (3.84px) y est rogné
+   · combat (au trait en bas) 700px : l'acteur au trait est hors du champ de la frise — rien ne l'y ramène (scrollIntoView)
+combat (au trait en bas) 560px — pregen-808 au trait, frise bande, tête non mesurée, pied non mesuré, pas 40–40px → OK
+combat (au trait en bas) 360px — pregen-808 au trait, frise bande, tête couverte, pied non mesuré, pas 40–40px → OK
+combat (pointeur grossier) 560px — Menu 44×44, Dossier du navire — état, cargaison, équ 44×44, Fermer le journal 44×44 → OK
+combat (pointeur grossier) 360px — Menu 44×44, Dossier du navire — état, cargaison, équ 44×44, Fermer le journal 44×44 → OK
+couche (spectateur) 1707×780 — pont 170px au bas, 5 surface(s), 15/17 commande(s) atteinte(s), 2 exemptée(s) → OK
+couche (spectateur) 1366×780 — pont 170px au bas, 5 surface(s), 15/17 commande(s) atteinte(s), 2 exemptée(s) → OK
+couche (spectateur) 1100×780 — pont 170px au bas, 5 surface(s), 15/17 commande(s) atteinte(s), 2 exemptée(s) → OK
+couche (spectateur) 900×780 — pont 170px au bas, 5 surface(s), 15/17 commande(s) atteinte(s), 2 exemptée(s) → OK
+couche (spectateur) 700×780 — pont 236.6px au bas, 5 surface(s), 14/17 commande(s) atteinte(s), 3 exemptée(s) → 1 défaut(s)
+   · couche (spectateur) 700×780 : la surface « combat-feed » {"x":8,"y":451.8,"w":135,"h":48} déborde de sa zone « temps » {"x":8,"y":58,"w":135,"h":418.4} de 23.4px
+couche (spectateur) 560×780 — pont 313px au bas, 5 surface(s), 14/14 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (spectateur) 360×780 — pont 313px au bas, 5 surface(s), 11/14 commande(s) atteinte(s), 3 exemptée(s) → OK
+couche (spectateur) 1707×650 — pont 141.7px au bas, 5 surface(s), 13/17 commande(s) atteinte(s), 4 exemptée(s) → OK
+couche (spectateur) 1366×650 — pont 141.7px au bas, 5 surface(s), 13/17 commande(s) atteinte(s), 4 exemptée(s) → OK
+couche (spectateur) 1100×650 — pont 141.7px au bas, 5 surface(s), 13/17 commande(s) atteinte(s), 4 exemptée(s) → OK
+couche (spectateur) 900×650 — pont 141.7px au bas, 5 surface(s), 13/17 commande(s) atteinte(s), 4 exemptée(s) → OK
+couche (spectateur) 700×650 — pont 214.5px au bas, 5 surface(s), 12/17 commande(s) atteinte(s), 5 exemptée(s) → 1 défaut(s)
+   · couche (spectateur) 700×650 : la surface « combat-feed » {"x":8,"y":341.8,"w":135,"h":48} déborde de sa zone « temps » {"x":8,"y":58,"w":135,"h":310.5} de 21.3px
+couche (spectateur) 560×650 — pont 313px au bas, 5 surface(s), 14/14 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (spectateur) 360×650 — pont 313px au bas, 5 surface(s), 11/14 commande(s) atteinte(s), 3 exemptée(s) → OK
+couche (spectateur) 1707×740 — pont 161.3px au bas, 5 surface(s), 15/17 commande(s) atteinte(s), 2 exemptée(s) → OK
+couche (spectateur) 1366×740 — pont 161.3px au bas, 5 surface(s), 15/17 commande(s) atteinte(s), 2 exemptée(s) → OK
+couche (spectateur) 1100×740 — pont 161.3px au bas, 5 surface(s), 15/17 commande(s) atteinte(s), 2 exemptée(s) → OK
+couche (spectateur) 900×740 — pont 161.3px au bas, 5 surface(s), 15/17 commande(s) atteinte(s), 2 exemptée(s) → OK
+couche (spectateur) 700×740 — pont 229.8px au bas, 5 surface(s), 13/17 commande(s) atteinte(s), 4 exemptée(s) → 1 défaut(s)
+   · couche (spectateur) 700×740 : la surface « combat-feed » {"x":8,"y":396.8,"w":135,"h":48} déborde de sa zone « temps » {"x":8,"y":58,"w":135,"h":385.2} de 1.6px
+couche (spectateur) 560×740 — pont 313px au bas, 5 surface(s), 14/14 commande(s) atteinte(s), 0 exemptée(s) → OK
+couche (spectateur) 360×740 — pont 313px au bas, 5 surface(s), 11/14 commande(s) atteinte(s), 3 exemptée(s) → OK
+
+32 défaut(s) d'atteignabilité du HUD :
+  · exploration 700px (§12 561–700) : la vie de la carte 0 du groupe n'est pas superposée à son portrait
+  · exploration 700px (§12 561–700) : la vie de la carte 1 du groupe n'est pas superposée à son portrait
+  · exploration 700px (§12 561–700) : la vie de la carte 2 du groupe n'est pas superposée à son portrait
+  · exploration 700px (§12 561–700) : la vie de la carte 3 du groupe n'est pas superposée à son portrait
+  · exploration 900px (§12 701–900) : la carte du groupe fait 88px, pas plus compacte que 88px à 1707px
+  · exploration 700px (§12 561–700) : la carte du groupe fait 88px, pas plus compacte que 88px à 1707px
+  · couche (ouverture) 700×780 : la surface « combat-feed » {"x":8,"y":451.8,"w":135,"h":48} déborde de sa zone « temps » {"x":8,"y":58,"w":135,"h":418.4} de 23.4px
+  · couche (ouverture) 700×650 : la surface « combat-feed » {"x":8,"y":341.8,"w":135,"h":48} déborde de sa zone « temps » {"x":8,"y":58,"w":135,"h":310.5} de 21.3px
+  · couche (ouverture) 700×740 : la surface « combat-feed » {"x":8,"y":396.8,"w":135,"h":48} déborde de sa zone « temps » {"x":8,"y":58,"w":135,"h":385.2} de 1.6px
+  · couche (tour de héros) 700×780 : la surface « combat-feed » {"x":8,"y":451.8,"w":135,"h":48} déborde de sa zone « temps » {"x":8,"y":58,"w":135,"h":418.4} de 23.4px
+  · couche (tour de héros) 700×650 : la surface « combat-feed » {"x":8,"y":341.8,"w":135,"h":48} déborde de sa zone « temps » {"x":8,"y":58,"w":135,"h":310.5} de 21.3px
+  · couche (tour de héros) 700×740 : la surface « combat-feed » {"x":8,"y":396.8,"w":135,"h":48} déborde de sa zone « temps » {"x":8,"y":58,"w":135,"h":385.2} de 1.6px
+  · combat 700px (§12 561–700) : la vie de la carte 0 du groupe n'est pas superposée à son portrait
+  · combat 700px (§12 561–700) : la vie de la carte 1 du groupe n'est pas superposée à son portrait
+  · combat 700px (§12 561–700) : la vie de la carte 2 du groupe n'est pas superposée à son portrait
+  · combat 700px (§12 561–700) : la vie de la carte 3 du groupe n'est pas superposée à son portrait
+  · combat 900px (§12 701–900) : la carte du groupe fait 88px, pas plus compacte que 88px à 1707px
+  · combat 700px (§12 561–700) : la carte du groupe fait 88px, pas plus compacte que 88px à 1707px
+  · combat (au trait en bas) 1707px : la boîte peinte de la vignette au trait dépasse de 110.8px le bord bas du champ de la piste — son liseré (3.84px) y est rogné
+  · combat (au trait en bas) 1707px : le chevron de l'unité au trait est masqué sur 49px de 10px — la tête et le pied doivent lui réserver sa place
+  · combat (au trait en bas) 1707px : l'acteur au trait est hors du champ de la frise — rien ne l'y ramène (scrollIntoView)
+  · combat (au trait en bas) 1100px : la boîte peinte de la vignette au trait dépasse de 110.8px le bord bas du champ de la piste — son liseré (3.84px) y est rogné
+  · combat (au trait en bas) 1100px : le chevron de l'unité au trait est masqué sur 49px de 10px — la tête et le pied doivent lui réserver sa place
+  · combat (au trait en bas) 1100px : l'acteur au trait est hors du champ de la frise — rien ne l'y ramène (scrollIntoView)
+  · combat (au trait en bas) 900px : la boîte peinte de la vignette au trait dépasse de 110px le bord bas du champ de la piste — son liseré (3.84px) y est rogné
+  · combat (au trait en bas) 900px : le chevron de l'unité au trait est masqué sur 48.2px de 10px — la tête et le pied doivent lui réserver sa place
+  · combat (au trait en bas) 900px : l'acteur au trait est hors du champ de la frise — rien ne l'y ramène (scrollIntoView)
+  · combat (au trait en bas) 700px : la boîte peinte de la vignette au trait dépasse de 55px le bord bas du champ de la piste — son liseré (3.84px) y est rogné
+  · combat (au trait en bas) 700px : l'acteur au trait est hors du champ de la frise — rien ne l'y ramène (scrollIntoView)
+  · couche (spectateur) 700×780 : la surface « combat-feed » {"x":8,"y":451.8,"w":135,"h":48} déborde de sa zone « temps » {"x":8,"y":58,"w":135,"h":418.4} de 23.4px
+  · couche (spectateur) 700×650 : la surface « combat-feed » {"x":8,"y":341.8,"w":135,"h":48} déborde de sa zone « temps » {"x":8,"y":58,"w":135,"h":310.5} de 21.3px
+  · couche (spectateur) 700×740 : la surface « combat-feed » {"x":8,"y":396.8,"w":135,"h":48} déborde de sa zone « temps » {"x":8,"y":58,"w":135,"h":385.2} de 1.6px

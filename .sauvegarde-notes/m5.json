@@ -1,0 +1,19 @@
+{
+ "fichier": "scripts/ops/publier.mjs",
+ "avant": "b840c312ee02f38a22b9964ced7becdbb60144b1",
+ "mute": "79c789216bfb8f51a154c0b85334f1f149286884",
+ "apres": "b840c312ee02f38a22b9964ced7becdbb60144b1",
+ "identique": true,
+ "rouge": {
+  "code": 1,
+  "echecs": [
+   "not ok 1 - git INDISPONIBLE : le train LÈVE `GitIndisponible` — ni tête `null`, ni arbre lu propre"
+  ],
+  "sommaire": "# pass 0 # fail 1"
+ },
+ "vert": {
+  "code": 0,
+  "echecs": [],
+  "sommaire": "# pass 1 # fail 0"
+ }
+}

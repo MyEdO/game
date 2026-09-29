@@ -1,0 +1,1602 @@
+diff --git a/scripts/docs/lib/empreinte-sources.mjs b/scripts/docs/lib/empreinte-sources.mjs
+index 52b5cd344..596e6d4c9 100644
+--- a/scripts/docs/lib/empreinte-sources.mjs
++++ b/scripts/docs/lib/empreinte-sources.mjs
+@@ -18,6 +18,7 @@ import { appendFileSync, readFileSync, statSync, writeFileSync } from 'node:fs'
+ import { listerDossier, parUnitesDeCode } from '../../guards/lib/lister.mjs'
+ import { dansLaMesure } from './chemin-mesure.mjs'
+ import path from 'node:path'
++import { coupeAuMot } from '../../../src/lib/coupeAuMot.mjs'
+ 
+ const sha1 = (donnee) => createHash('sha1').update(donnee).digest('hex')
+ 
+@@ -293,11 +294,11 @@ export function deltaSourcesLues(avant, apres) {
+   return deltas
+ }
+ 
+-/** Largeur maximale d'un côté rendu dans l'aperçu : au-delà, la ligne est coupée et suffixée « … ». */
++/** Un côté rendu dans l'aperçu est coupé au mot vers `LARGEUR` (`coupeAuMot`). */
+ const LARGEUR = 240
+ 
+-/** Un côté d'une ligne dans l'aperçu : rendu JSON borné, `<absente>` quand ce côté n'a pas la ligne. */
+-const cote = (ligne) => (ligne === undefined ? '<absente>' : JSON.stringify(ligne.length > LARGEUR ? `${ligne.slice(0, LARGEUR)}…` : ligne))
++/** Un côté d'une ligne dans l'aperçu : rendu JSON coupé au mot vers `LARGEUR` (`coupeAuMot`), `<absente>` quand ce côté n'a pas la ligne. */
++const cote = (ligne) => (ligne === undefined ? '<absente>' : JSON.stringify(coupeAuMot(ligne, LARGEUR)))
+ 
+ /** La première divergence, NOMMÉE : ligne présente des deux côtés, ou d'un seul (manque / en trop). */
+ function premiereDivergence(k, regeneree, committee) {
+diff --git a/scripts/docs/lib/empreinte-sources.test.mjs b/scripts/docs/lib/empreinte-sources.test.mjs
+index 4f16655ab..a2ce5d72b 100644
+--- a/scripts/docs/lib/empreinte-sources.test.mjs
++++ b/scripts/docs/lib/empreinte-sources.test.mjs
+@@ -104,10 +104,11 @@ test('apercuDivergences : toutes les lignes divergentes des deux côtés, le res
+   )
+ })
+ 
+-test('apercuDivergences : une ligne longue est BORNÉE à 240 caractères', () => {
+-  const apercu = apercuDivergences('z'.repeat(300), 'a')
+-  assert.ok(apercu.includes(`${'z'.repeat(240)}…`))
+-  assert.ok(!apercu.includes('z'.repeat(241)))
++test('apercuDivergences : une ligne longue est coupée AU MOT sous 240 caractères (`coupeAuMot`), jamais dans un mot', () => {
++  const apercu = apercuDivergences('mot '.repeat(100).trimEnd(), 'a')
++  assert.ok(apercu.includes(`"${'mot '.repeat(59)}mot…"`), apercu)
++  assert.ok(!apercu.includes('mot '.repeat(61)))
++  assert.ok(apercuDivergences('z'.repeat(300), 'a').includes(`"${'z'.repeat(300)}"`), 'un mot seul se rend entier')
+ })
+ 
+ /**
+diff --git a/scripts/guards/lib/coupeAuCaractere.mjs b/scripts/guards/lib/coupeAuCaractere.mjs
+index a5fe22622..45be912e2 100644
+--- a/scripts/guards/lib/coupeAuCaractere.mjs
++++ b/scripts/guards/lib/coupeAuCaractere.mjs
+@@ -1,20 +1,50 @@
+ // COUPE AU CARACTÈRE (#1806, R-M2 de `docs/plans/2026-08-16-spec-hud-combat.md`) — un texte coupé
+ // à un nombre de caractères puis suivi d'une ellipse tranche un mot. La seule coupe d'un texte
+-// ellipsé est `coupeAuMot` (`src/lib/coupeAuMot.ts`). Consommateur : `src/coupe-au-caractere-guard.test.ts`.
+-// Module ESM pur.
++// ellipsé est `coupeAuMot` (`src/lib/coupeAuMot.mjs`), FOYER de cette garde (`sAppliqueA`).
++// Consommateur : `src/coupe-au-caractere-guard.test.ts`. Module ESM pur.
++//
++// PORTÉE, par l'arbre syntaxique d'un seul fichier et sans flux de données : l'expression de texte qui
++// emporte la coupe (gabarit, concaténation, ternaire, parenthèses, `trim*`, `padEnd`, `concat`, le
++// `join` d'un tableau de caractères), le nœud JSX qui suit l'expression de la coupe (les textes JSX
++// faits de seuls blancs sautés), une constante `const` littérale nommée à la place de l'ellipse, et une
++// coupe liée à une `const` puis ellipsée sous ce nom. Un nom se résout par son SYMBOLE (vérificateur de
++// TypeScript sur le seul fichier) : un homonyme d'une autre portée n'est pas lui. HORS PORTÉE : une
++// coupe passée en argument, rendue par une fonction, liée à un `let` ou un `var`, ou ellipsée dans un
++// autre fichier ; une constante importée.
+ 
+ import { ast, typescript } from './dialecte.mjs'
++import { sAppliqueA } from './sourceCorpus.mjs'
+ 
+ /** Méthodes qui prennent un préfixe au caractère. */
+ const COUPES = new Set(['slice', 'substring', 'substr'])
+-/** Méthodes qui gardent le préfixe pour texte : `x.slice(0, n).trimEnd()` reste une coupe. */
+-const BLANCS = new Set(['trim', 'trimEnd', 'trimRight'])
++/** Méthodes d'une chaîne qui gardent le préfixe pour texte : `x.slice(0, n).trimEnd()` reste une coupe. */
++const SUITES_DE_TEXTE = new Set(['trim', 'trimEnd', 'trimRight', 'padEnd', 'concat'])
+ /** L'ellipse, typographique ou en trois points. */
+ const ELLIPSE = /…|\.\.\./
++/** La coupe elle-même. */
++const DECLARATION = { foyer: 'src/lib/coupeAuMot.mjs' }
++
++/** Vérificateur de TypeScript sur le seul arbre `racine` (ni bibliothèque ni import) : il résout un
++ *  nom du fichier en son symbole. Vit dans l'appel (`tsProgram.mjs`, en-tête). */
++function verificateurDe(ts, racine) {
++  const host = {
++    getSourceFile: (nom) => (nom === racine.fileName ? racine : undefined),
++    getDefaultLibFileName: () => 'lib.d.ts',
++    writeFile: () => {},
++    getCurrentDirectory: () => '/',
++    getCanonicalFileName: (nom) => nom,
++    useCaseSensitiveFileNames: () => true,
++    getNewLine: () => '\n',
++    fileExists: (nom) => nom === racine.fileName,
++    readFile: () => undefined,
++  }
++  const options = { noLib: true, noResolve: true, allowJs: true, noEmit: true, types: [] }
++  return ts.createProgram({ rootNames: [racine.fileName], options, host }).getTypeChecker()
++}
+ 
+ /**
+- * Sites d'un préfixe `x.slice|substring|substr(0, n)` dont l'expression de texte qui l'emporte
+- * (gabarit, concaténation, ternaire, parenthèses, `trim`) porte une ellipse littérale.
++ * Sites d'un préfixe `x.slice|substring|substr(0, n)` dont l'expression de texte qui l'emporte porte
++ * une ellipse (voir PORTÉE, en-tête).
+  * @param {readonly { rel: string, text: string }[]} fichiers
+  * @returns {string[]} `chemin:ligne`
+  */
+@@ -22,36 +52,86 @@ export function coupesAuCaractere(fichiers) {
+   const ts = typescript()
+   const sites = []
+   for (const fichier of fichiers) {
++    if (!sAppliqueA(fichier, DECLARATION)) continue
+     const racine = ast(fichier)
+     if (!racine) continue
++
++    let verificateur
++    /** Le symbole d'un nom du fichier. */
++    const symbole = (id) => (verificateur ??= verificateurDe(ts, racine)).getSymbolAtLocation(id)
++    /** La déclaration `const` que désigne le nom `id`. */
++    const constanteDe = (id) => {
++      const decl = symbole(id)?.valueDeclaration
++      return decl && ts.isVariableDeclaration(decl) && (ts.getCombinedNodeFlags(decl) & ts.NodeFlags.Const) ? decl : undefined
++    }
++    const litteralEllipse = (n) => !!n && (ts.isStringLiteral(n) || ts.isNoSubstitutionTemplateLiteral(n)) && ELLIPSE.test(n.text)
++
++    const texteEllipse = (n) =>
++      ((ts.isStringLiteral(n) || ts.isNoSubstitutionTemplateLiteral(n) || ts.isTemplateHead(n)
++        || ts.isTemplateMiddle(n) || ts.isTemplateTail(n) || ts.isJsxText(n)) && ELLIPSE.test(n.text))
++      || (ts.isIdentifier(n) && litteralEllipse(constanteDe(n)?.initializer))
+     const porteEllipse = (noeud) => {
+       let vu = false
+       const visite = (n) => {
+         if (vu) return
+-        if ((ts.isStringLiteral(n) || ts.isNoSubstitutionTemplateLiteral(n) || ts.isTemplateHead(n)
+-          || ts.isTemplateMiddle(n) || ts.isTemplateTail(n)) && ELLIPSE.test(n.text)) vu = true
++        if (texteEllipse(n)) vu = true
+         else ts.forEachChild(n, visite)
+       }
+       visite(noeud)
+       return vu
+     }
+-    const englobant = (appel) => {
+-      let n = appel
++    /** Tableau de CARACTÈRES : `[...s]` ou `Array.from(s)`. */
++    const tableauDeCaracteres = (n) =>
++      (ts.isArrayLiteralExpression(n) && n.elements.length === 1 && ts.isSpreadElement(n.elements[0]))
++      || (ts.isCallExpression(n) && ts.isPropertyAccessExpression(n.expression) && n.expression.name.text === 'from'
++        && ts.isIdentifier(n.expression.expression) && n.expression.expression.text === 'Array' && n.arguments.length === 1)
++    /** L'expression de texte qui emporte `depart` ; `caracteres` : `depart` est un tableau de caractères. */
++    const englobant = (depart, caracteres) => {
++      let n = depart
+       for (;;) {
+         const p = n.parent
+         if (!p) return n
+-        if (ts.isPropertyAccessExpression(p) && p.expression === n && BLANCS.has(p.name.text) && ts.isCallExpression(p.parent)) { n = p.parent; continue }
++        if (ts.isPropertyAccessExpression(p) && p.expression === n && ts.isCallExpression(p.parent)
++          && (SUITES_DE_TEXTE.has(p.name.text) || (caracteres && p.name.text === 'join'))) { n = p.parent; continue }
+         if (ts.isTemplateSpan(p)) { n = p.parent; continue }
+         if (ts.isParenthesizedExpression(p) || ts.isConditionalExpression(p)
+           || (ts.isBinaryExpression(p) && p.operatorToken.kind === ts.SyntaxKind.PlusToken)) { n = p; continue }
+         return n
+       }
+     }
++    /** `{coupe}…` : le nœud JSX qui SUIT l'expression de la coupe, blancs sautés, porte l'ellipse. */
++    const suiviEnJsx = (n) => {
++      const expr = n.parent
++      if (!expr || !ts.isJsxExpression(expr) || !expr.parent || !('children' in expr.parent)) return false
++      const freres = [...expr.parent.children]
++      const suivant = freres.slice(freres.indexOf(expr) + 1).find((f) => !(ts.isJsxText(f) && f.containsOnlyTriviaWhiteSpaces))
++      return !!suivant && porteEllipse(suivant)
++    }
++    const ellipse = (depart, caracteres) => {
++      const e = englobant(depart, caracteres)
++      return porteEllipse(e) || suiviEnJsx(e)
++    }
++    /** Coupe liée à une `const`, puis ellipsée sous ce nom (même symbole). */
++    const ellipseeParSonNom = (e) => {
++      const decl = e.parent
++      if (!decl || !ts.isVariableDeclaration(decl) || decl.initializer !== e || !ts.isIdentifier(decl.name)
++        || !(ts.getCombinedNodeFlags(decl) & ts.NodeFlags.Const)) return false
++      let vu = false
++      const visite = (n) => {
++        if (vu) return
++        if (ts.isIdentifier(n) && n !== decl.name && n.text === decl.name.text && constanteDe(n) === decl && ellipse(n, false)) vu = true
++        else ts.forEachChild(n, visite)
++      }
++      visite(racine)
++      return vu
++    }
+     const visite = (n) => {
+       if (ts.isCallExpression(n) && ts.isPropertyAccessExpression(n.expression) && COUPES.has(n.expression.name.text)
+-        && n.arguments.length === 2 && ts.isNumericLiteral(n.arguments[0]) && n.arguments[0].text === '0'
+-        && porteEllipse(englobant(n)))
+-        sites.push(`${fichier.rel}:${racine.getLineAndCharacterOfPosition(n.getStart(racine)).line + 1}`)
++        && n.arguments.length === 2 && ts.isNumericLiteral(n.arguments[0]) && n.arguments[0].text === '0') {
++        const caracteres = tableauDeCaracteres(n.expression.expression)
++        if (ellipse(n, caracteres) || ellipseeParSonNom(englobant(n, caracteres)))
++          sites.push(`${fichier.rel}:${racine.getLineAndCharacterOfPosition(n.getStart(racine)).line + 1}`)
++      }
+       ts.forEachChild(n, visite)
+     }
+     visite(racine)
+diff --git a/scripts/guards/lib/dialecte.d.mts b/scripts/guards/lib/dialecte.d.mts
+new file mode 100644
+index 000000000..f57c79f4a
+--- /dev/null
++++ b/scripts/guards/lib/dialecte.d.mts
+@@ -0,0 +1,8 @@
++import type * as TS from 'typescript';
++
++/** Le compilateur TypeScript du dépôt, chargé au PREMIER appel. */
++export const typescript: () => typeof TS;
++/** `ts.ScriptKind` du fichier, d'après sa seule extension (contrat : `dialecte.mjs`). */
++export function scriptKindDe(fichier: string, options?: { inconnu?: 'TS' | 'refus' }): TS.ScriptKind | null;
++/** Arbre syntaxique d'un fichier lu, dans le dialecte de son extension (contrat : `dialecte.mjs`). */
++export function ast(fichier: { rel: string; text: string }, options?: { inconnu?: 'TS' | 'refus' }): TS.SourceFile | null;
+diff --git a/scripts/guards/lib/gitPorte.mjs b/scripts/guards/lib/gitPorte.mjs
+index 67b8d82a4..0c4b7ea67 100644
+--- a/scripts/guards/lib/gitPorte.mjs
++++ b/scripts/guards/lib/gitPorte.mjs
+@@ -43,8 +43,9 @@ import { readFileSync, statSync } from 'node:fs'
+ import { join, resolve } from 'node:path'
+ import { normaliserRacine } from '../../port-dev.mjs'
+ import { BACKOFFS_MS, MARQUE_REJEU, attendreSync, estEchecDeChargement, rejeux } from './spawnResilient.mjs'
++import { coupeAuMot } from '../../../src/lib/coupeAuMot.mjs'
+ 
+-/** Longueur maximale d'une `raison` : elle est DITE dans un refus de hook, une fois. */
++/** Une `raison` est coupée au mot vers `RAISON_MAX` (`coupeAuMot`) : elle est DITE dans un refus de hook, une fois. */
+ const RAISON_MAX = 200
+ 
+ /** git a répondu. @param {*} valeur */
+@@ -77,7 +78,7 @@ export class BorneAbsente extends Error {
+ }
+ 
+ /**
+- * Première ligne SIGNIFICATIVE d'une sortie d'erreur, bornée. PURE.
++ * Première ligne SIGNIFICATIVE d'une sortie d'erreur, coupée au mot vers `RAISON_MAX` (`coupeAuMot`). PURE.
+  * @param {string} brut @returns {string}
+  */
+ export function raisonCourte(brut) {
+@@ -85,7 +86,7 @@ export function raisonCourte(brut) {
+     .split(/\r?\n/)
+     .map((l) => l.trim())
+     .find(Boolean) ?? 'raison non dite'
+-  return ligne.length > RAISON_MAX ? `${ligne.slice(0, RAISON_MAX - 1)}…` : ligne
++  return coupeAuMot(ligne, RAISON_MAX)
+ }
+ 
+ /**
+diff --git a/scripts/guards/lib/gitPorte.test.mjs b/scripts/guards/lib/gitPorte.test.mjs
+index ffdd99eed..9a5ceb594 100644
+--- a/scripts/guards/lib/gitPorte.test.mjs
++++ b/scripts/guards/lib/gitPorte.test.mjs
+@@ -300,7 +300,7 @@ test('arbrePrincipal : sous un cwd de plus de 200 caractères, le refus garde so
+ 
+     const jamais = join(profond, 'absent')
+     const enPanne = arbrePrincipal(depotFeint(jamais, () => ({ error: new Error('spawnSync git ENOENT'), status: null })))
+-    assert.match(enPanne.raison, /^arbre principal non résolu : cwd inexistant : /)
++    assert.match(enPanne.raison, /^arbre principal non résolu : cwd inexistant :/)
+   } finally { jeter(base) }
+ })
+ 
+@@ -318,12 +318,18 @@ test('arbrePrincipal : depuis un WORKTREE RÉEL, la réponse est l’arbre PRINC
+   } finally { jeter(racine) }
+ })
+ 
+-test('classer : la RAISON est la première ligne significative, bornée à 200 caractères', () => {
+-  const vu = classer({ status: 128, stdout: '', stderr: `\n\nfatal: ${'x'.repeat(400)}\nune seconde ligne` })
++test('classer : la RAISON est la première ligne significative, coupée AU MOT sous 200 caractères', () => {
++  const ligne = `fatal: ${'mot '.repeat(100).trimEnd()}`
++  const vu = classer({ status: 128, stdout: '', stderr: `\n\n${ligne}\nune seconde ligne` })
+   assert.equal(vu.disponible, false)
+-  assert.equal(vu.raison.length, 200)
++  assert.ok(vu.raison.length <= 200, vu.raison)
++  assert.ok(vu.raison.endsWith('mot…'), vu.raison)
++  assert.equal(ligne[vu.raison.length - 1], ' ', 'la coupe tombe à une espace')
+   assert.ok(!vu.raison.includes('une seconde ligne'))
+   assert.equal(raisonCourte('   \n  premier mot  \nsuite'), 'premier mot')
++  const tient = `${'mot '.repeat(49)}motx`
++  assert.equal(tient.length, 200)
++  assert.equal(raisonCourte(tient), tient, 'une raison de 200 caractères se rend entière')
+ })
+ 
+ test('listerImage : l’unique listeur d’image — ref, INDEX, SUIVI et TRAVAIL rendent chacun LEURS fichiers ; enfantsDirects en projette les noms', () => {
+diff --git a/scripts/guards/lib/raccourcisGlobaux.d.mts b/scripts/guards/lib/raccourcisGlobaux.d.mts
+new file mode 100644
+index 000000000..d67b83f6e
+--- /dev/null
++++ b/scripts/guards/lib/raccourcisGlobaux.d.mts
+@@ -0,0 +1,10 @@
++type Fichier = { rel: string; text: string };
++
++/** EN-TÊTE d'un fichier, en lignes : la marque `@clavier-hors-registre` s'y ancre (contrat : `raccourcisGlobaux.mjs`). */
++export const LIGNES_ENTETE: number;
++/** Verdict d'UN fichier, ses imports résolus parmi `depot` : `null` = en règle, sinon la raison. */
++export function verdictClavier(fichier: Fichier, depot?: readonly Fichier[]): string | null;
++/** Fichiers hors de la règle, imports résolus parmi eux : `chemin : raison`. */
++export function fautesClavier(fichiers: readonly Fichier[]): string[];
++/** Fichiers marqués `@clavier-hors-registre`, et ceux dont la marque est MORTE. */
++export function marquesHorsRegistre(fichiers: readonly Fichier[]): { marques: string[]; mortes: string[] };
+diff --git a/scripts/guards/lib/raccourcisGlobaux.mjs b/scripts/guards/lib/raccourcisGlobaux.mjs
+new file mode 100644
+index 000000000..acba2dba8
+--- /dev/null
++++ b/scripts/guards/lib/raccourcisGlobaux.mjs
+@@ -0,0 +1,181 @@
++// UN SEUL LECTEUR DE CLAVIER GLOBAL (#1687 lot 0) — tout écouteur clavier posé sur `window` ou
++// `document` est le LECTEUR du registre (`state/keybindings.ts`) ou une couche déclarée hors registre
++// par nature, dans l'EN-TÊTE de son fichier. Consommateur et contrat : `src/ui/raccourcis-registre.test.ts`.
++// Module ESM pur.
++//
++// PORTÉE, par l'arbre syntaxique : le type d'événement d'un `window|document.addEventListener(type, …)`
++// se résout depuis un littéral, un gabarit sans trou, une table (clés et valeurs d'un objet, éléments
++// d'un tableau), une constante du fichier ou importée d'un module du dépôt passé en `fichiers`, la
++// variable d'une boucle `for…of` ou d'un rappel `forEach` sur une table. Tout autre type est NON RÉSOLU.
++// Les arbres d'une passe vivent dans l'appel (`tsProgram.mjs`, en-tête).
++
++import { posix } from 'node:path'
++import { ast, typescript } from './dialecte.mjs'
++
++/** Types d'événement d'un CLAVIER. */
++const TYPE_CLAVIER = /^key(?:down|up)$/
++/** Cibles GLOBALES : la fenêtre ou le document, jamais un nœud du rendu. */
++const CIBLES_GLOBALES = new Set(['window', 'document'])
++/** Extensions essayées pour résoudre un import relatif du dépôt. */
++const SUFFIXES = ['', '.ts', '.tsx', '.mjs', '.js', '/index.ts', '/index.tsx']
++/** Profondeur de résolution au-delà de laquelle un type est NON RÉSOLU. */
++const PROFONDEUR = 8
++/** Déclaration, DANS le fichier, qu'il porte une couche clavier hors registre par nature. */
++const MARQUE_HORS_REGISTRE = /@clavier-hors-registre\s+\S/
++/** Signal du LECTEUR du registre : il en IMPORTE la table (une mention en commentaire n'est rien). */
++const IMPORTE_LE_REGISTRE = /import\s*(?:type\s*)?\{[^}]*\bKEYBINDINGS\b[^}]*\}\s*from\s*['"][^'"]*keybindings['"]/
++/** EN-TÊTE d'un fichier : ce qu'on lit en l'ouvrant. L'exemption s'y ancre, ou elle n'existe pas. */
++export const LIGNES_ENTETE = 40
++const enTete = (text) => text.split('\n').slice(0, LIGNES_ENTETE).join('\n')
++
++/** Une passe sur les `fichiers` du dépôt : chaque arbre n'y est parsé qu'une fois. */
++function passe(fichiers) {
++  const ts = typescript()
++  const depot = new Map(fichiers.map((f) => [f.rel, f]))
++  const arbres = new Map()
++  const arbreDe = (f) => {
++    const cle = `${f.rel}\0${f.text}`
++    if (!arbres.has(cle)) arbres.set(cle, ast(f))
++    return arbres.get(cle)
++  }
++
++  /** Nom lié par une déclaration de variable ou un motif de déstructuration. */
++  const lie = (nom, b) =>
++    ts.isIdentifier(b) ? b.text === nom : b.elements.some((e) => !ts.isOmittedExpression(e) && lie(nom, e.name))
++
++  /** Les chaînes que peut valoir une expression de type d'événement ; `null` : non résolue. */
++  function valeurs(expr, sf, f, prof = 0) {
++    if (prof > PROFONDEUR) return null
++    const suite = (n) => valeurs(n, sf, f, prof + 1)
++    if (ts.isParenthesizedExpression(expr) || ts.isAsExpression(expr) || ts.isSatisfiesExpression(expr)
++      || ts.isTypeAssertionExpression(expr) || ts.isNonNullExpression(expr)) return suite(expr.expression)
++    if (ts.isStringLiteral(expr) || ts.isNoSubstitutionTemplateLiteral(expr)) return [expr.text]
++    if (ts.isArrayLiteralExpression(expr)) {
++      const vs = expr.elements.map((e) => suite(ts.isSpreadElement(e) ? e.expression : e))
++      return vs.some((v) => v === null) ? null : vs.flat()
++    }
++    if (ts.isObjectLiteralExpression(expr)) {
++      const vs = []
++      for (const p of expr.properties) {
++        if (p.name && (ts.isIdentifier(p.name) || ts.isStringLiteral(p.name))) vs.push(p.name.text)
++        if (ts.isPropertyAssignment(p)) vs.push(...(suite(p.initializer) ?? []))
++      }
++      return vs
++    }
++    if (ts.isCallExpression(expr) && ts.isPropertyAccessExpression(expr.expression) && ts.isIdentifier(expr.expression.expression)
++      && expr.expression.expression.text === 'Object' && expr.arguments.length === 1) return suite(expr.arguments[0])
++    if (ts.isIdentifier(expr)) return resoudre(expr.text, expr, sf, f, prof)
++    return null
++  }
++
++  function resoudre(nom, depuis, sf, f, prof) {
++    const suite = (n) => valeurs(n, sf, f, prof + 1)
++    for (let n = depuis; n; n = n.parent) {
++      if (ts.isForOfStatement(n) && ts.isVariableDeclarationList(n.initializer)
++        && n.initializer.declarations.some((d) => lie(nom, d.name))) return suite(n.expression)
++      if (ts.isFunctionLike(n) && n.parameters.some((p) => lie(nom, p.name))) {
++        const appel = n.parent
++        return appel && ts.isCallExpression(appel) && ts.isPropertyAccessExpression(appel.expression)
++          && appel.expression.name.text === 'forEach' ? suite(appel.expression.expression) : null
++      }
++      if (ts.isBlock(n) || ts.isSourceFile(n)) {
++        for (const st of n.statements) {
++          if (ts.isVariableStatement(st)) {
++            const d = st.declarationList.declarations.find((x) => ts.isIdentifier(x.name) && x.name.text === nom)
++            if (d?.initializer) return suite(d.initializer)
++          }
++          if (ts.isImportDeclaration(st) && ts.isStringLiteral(st.moduleSpecifier) && st.importClause?.namedBindings
++            && ts.isNamedImports(st.importClause.namedBindings)) {
++            const spec = st.importClause.namedBindings.elements.find((e) => e.name.text === nom)
++            if (!spec) continue
++            const chemin = st.moduleSpecifier.text
++            const cible = chemin.startsWith('.')
++              ? SUFFIXES.map((x) => posix.join(posix.dirname(f.rel), chemin.replace(/\.m?js$/, '')) + x)
++                .map((c) => depot.get(c)).find(Boolean)
++              : undefined
++            const sfCible = cible ? arbreDe(cible) : null
++            if (!cible || !sfCible) return null
++            return resoudre((spec.propertyName ?? spec.name).text, sfCible, sfCible, cible, prof + 1)
++          }
++        }
++      }
++    }
++    return null
++  }
++
++  /** `'clavier'` : le fichier pose un écouteur clavier global ; `'non résolu'` : un type d'écouteur
++   *  global ne se résout pas ; `null` : aucun. */
++  const ecouteurGlobal = (f) => {
++    const sf = arbreDe(f)
++    if (!sf) return null
++    let verdict = null
++    const visite = (n) => {
++      if (verdict === 'clavier') return
++      if (ts.isCallExpression(n) && ts.isPropertyAccessExpression(n.expression) && n.expression.name.text === 'addEventListener'
++        && ts.isIdentifier(n.expression.expression) && CIBLES_GLOBALES.has(n.expression.expression.text) && n.arguments.length > 0) {
++        const types = valeurs(n.arguments[0], sf, f)
++        if (types === null) verdict = 'non résolu'
++        else if (types.some((t) => TYPE_CLAVIER.test(t))) verdict = 'clavier'
++      }
++      ts.forEachChild(n, visite)
++    }
++    visite(sf)
++    return verdict
++  }
++
++  /** Le fichier est-il en règle ? `null` = oui, sinon la RAISON du refus. */
++  const verdict = (f) => {
++    const ecouteur = ecouteurGlobal(f)
++    if (!ecouteur) return null
++    if (IMPORTE_LE_REGISTRE.test(f.text)) return null
++    if (MARQUE_HORS_REGISTRE.test(enTete(f.text))) return null
++    if (MARQUE_HORS_REGISTRE.test(f.text)) {
++      return `marque « @clavier-hors-registre » hors de l'EN-TÊTE (${LIGNES_ENTETE} premières lignes) — `
++        + "l'exemption se lit d'emblée, au SITE, ou elle n'exempte rien"
++    }
++    return ecouteur === 'non résolu'
++      ? "écouteur global au type d'événement NON RÉSOLU (ni littéral, ni constante, ni table du dépôt) — "
++        + 'nomme le type par un littéral ou une table, ou déclare la couche « @clavier-hors-registre <raison> »'
++      : 'écouteur clavier global hors du registre — pose le raccourci dans `state/keybindings.ts` '
++        + "(le hook `useGameKeyboard` le jouera), ou déclare la couche dans l'en-tête du fichier par "
++        + '« @clavier-hors-registre <raison> »'
++  }
++
++  return { ecouteurGlobal, verdict }
++}
++
++/**
++ * Verdict d'UN fichier, ses imports résolus parmi `depot`. `null` = en règle, sinon la raison.
++ * @param {{ rel: string, text: string }} fichier
++ * @param {readonly { rel: string, text: string }[]} [depot]
++ * @returns {string | null}
++ */
++export const verdictClavier = (fichier, depot = []) => passe(depot).verdict(fichier)
++
++/**
++ * Fichiers de `fichiers` hors de la règle, imports résolus parmi eux.
++ * @param {readonly { rel: string, text: string }[]} fichiers
++ * @returns {string[]} `chemin : raison`
++ */
++export function fautesClavier(fichiers) {
++  const { verdict } = passe(fichiers)
++  return fichiers.flatMap((f) => {
++    const raison = verdict(f)
++    return raison === null ? [] : [`${f.rel} : ${raison}`]
++  })
++}
++
++/**
++ * Fichiers qui portent la marque `@clavier-hors-registre`, et ceux d'entre eux qui ne posent aucun
++ * écouteur clavier global (marque MORTE).
++ * @param {readonly { rel: string, text: string }[]} fichiers
++ * @returns {{ marques: string[], mortes: string[] }}
++ */
++export function marquesHorsRegistre(fichiers) {
++  const { ecouteurGlobal } = passe(fichiers)
++  const marques = fichiers.filter(({ text }) => MARQUE_HORS_REGISTRE.test(text))
++  return {
++    marques: marques.map(({ rel }) => rel),
++    mortes: marques.filter((f) => ecouteurGlobal(f) !== 'clavier').map(({ rel }) => rel),
++  }
++}
+diff --git a/scripts/guards/lib/sujetDeCommit.mjs b/scripts/guards/lib/sujetDeCommit.mjs
+index e062ca95c..19d35a0ad 100644
+--- a/scripts/guards/lib/sujetDeCommit.mjs
++++ b/scripts/guards/lib/sujetDeCommit.mjs
+@@ -16,6 +16,8 @@
+ // PÉRIMÈTRE : le SUJET seul. Le CORPS n'est jamais borné — c'est là que vont le solde, les preuves et
+ // les `CLIQUET:`. Les lignes de commentaire (`#`), que git retire du message final, ne sont pas lues.
+ 
++import { coupeAuMot } from '../../../src/lib/coupeAuMot.mjs'
++
+ /** Longueur maximale du SUJET d'un commit. Mesure du 2026-09-13 : 2 795 caractères de sujet en
+  *  moyenne sur 20 commits — un sujet qui porte le solde et les preuves n'est plus un sujet, et
+  *  aucun outil (git log --oneline, `gh`, la CI) ne le rend lisible. */
+@@ -37,6 +39,6 @@ export function refusDeSujet(message) {
+   return (
+     `⛔ SUJET de commit de ${sujet.length} caractères : sujet ≤ ${SUJET_MAX} caractères, le solde et les `
+     + `preuves dans le CORPS (une ligne vide, puis tout le reste). Le sujet lu : `
+-    + `« ${sujet.slice(0, 120)}… ».`
++    + `« ${coupeAuMot(sujet, 120)} ».`
+   )
+ }
+diff --git a/scripts/hooks/solde-ticket-guard.mjs b/scripts/hooks/solde-ticket-guard.mjs
+index 33718bc53..5858f934e 100644
+--- a/scripts/hooks/solde-ticket-guard.mjs
++++ b/scripts/hooks/solde-ticket-guard.mjs
+@@ -150,6 +150,7 @@ import {
+   DOSSIERS_DE_SUBSTANCE, estCheminDeSubstance, fenetreDeRevue, memeSha, mesureDuPalier,
+   nomDArchiveDeRevue, problemesDeRevue, revuesNeuves,
+ } from '../guards/lib/revuePalier.mjs'
++import { coupeAuMot } from '../../src/lib/coupeAuMot.mjs'
+ 
+ // Message passé par FICHIER (`git commit -F <path>` / `--file <path>` / `--file=<path>`) : le
+ // driver stdin ne voit que `tool_input.command` — un message packé dans un fichier externe y est
+@@ -912,7 +913,7 @@ export function motifDuCommitPresume(command) {
+   const embarque = (command ? commitsDe(command) : []).find((c) => c.embarque)
+   if (!embarque) return null
+   const { origine } = embarque
+-  const extrait = (texte) => (texte.length > 80 ? `${texte.slice(0, 80)}…` : texte)
++  const extrait = (texte) => coupeAuMot(texte, 80)
+   const cause = origine?.sature
+     ? `l'analyse de la commande dépasse ses bornes (\`SEGMENTS_MAX\` segments ré-analysés ou \`PROFONDEUR_MAX_ENROBEURS\` niveaux) : un commit y est présumé`
+     : `\`${origine?.tete ?? '?'}\` porte \`git commit\` en argument (\`${extrait(origine?.extrait ?? '')}\`) ; une tête hors CITEURS est présumée l'exécuter`
+diff --git a/scripts/migrations/lib/1825-stocks-atlas-chemins-par-coeur.test.mjs b/scripts/migrations/lib/1825-stocks-atlas-chemins-par-coeur.test.mjs
+index 66428e9da..2321c8a18 100644
+--- a/scripts/migrations/lib/1825-stocks-atlas-chemins-par-coeur.test.mjs
++++ b/scripts/migrations/lib/1825-stocks-atlas-chemins-par-coeur.test.mjs
+@@ -13,7 +13,7 @@ import { tableTotale } from '../../../src/lib/tableTotale.ts';
+ const MIGRATION = '2026-09-20-1825-stocks-atlas-chemins-par-coeur.mjs';
+ 
+ /** Ce que la migration LIT hors de l'Atlas et des stocks : la couture `_lib.mjs` et ses imports. */
+-const LUS = ['scripts/raw', 'scripts/guards/lib', 'scripts/port-dev.mjs', 'scripts/source/nom-ascii.mjs', 'src/data/books.json', 'src/data/hash.ts', 'src/data/source', 'src/lib/ordre.mjs', 'src/lib/regex.ts'];
++const LUS = ['scripts/raw', 'scripts/guards/lib', 'scripts/port-dev.mjs', 'scripts/source/nom-ascii.mjs', 'src/data/books.json', 'src/data/hash.ts', 'src/data/source', 'src/lib/ordre.mjs', 'src/lib/coupeAuMot.mjs', 'src/lib/regex.ts'];
+ 
+ // Chemins d'Atlas composés à l'exécution : `DOC_REF_RE` de scripts/docs/check-doc-refs.mjs.
+ const RAWDIR = path.posix.join('docs', 'raw');
+diff --git a/scripts/migrations/lib/1897-sorts-fan-par-le-pont-portes.test.mjs b/scripts/migrations/lib/1897-sorts-fan-par-le-pont-portes.test.mjs
+index 9dcd30c28..0b1b25358 100644
+--- a/scripts/migrations/lib/1897-sorts-fan-par-le-pont-portes.test.mjs
++++ b/scripts/migrations/lib/1897-sorts-fan-par-le-pont-portes.test.mjs
+@@ -28,7 +28,7 @@ const DOSSIER_FAN = 'Source/Warhammer - Habitants & Creatures  du Vieux-Monde (D
+ const CHAPITRE_FIXTURE = `${DOSSIER_FAN}/99 - Fixture.md`;
+ const COPIES = [
+   'scripts/data/lib', 'scripts/raw', 'scripts/guards/lib', 'scripts/source', 'scripts/port-dev.mjs',
+-  'src/data/source', 'src/data/hash.ts', 'src/data/books.json', 'src/lib/ordre.mjs', 'src/lib/normalize.ts', 'src/lib/regex.ts', F_FUSIONS, DOSSIER_FAN,
++  'src/data/source', 'src/data/hash.ts', 'src/data/books.json', 'src/lib/ordre.mjs', 'src/lib/coupeAuMot.mjs', 'src/lib/normalize.ts', 'src/lib/regex.ts', F_FUSIONS, DOSSIER_FAN,
+ ];
+ 
+ /** Les entrées fan NEUVES de la migration (`NEUVES`), dernières de `spells.json`. */
+diff --git a/scripts/migrations/lib/idempotence-ordre-des-cles.test.mjs b/scripts/migrations/lib/idempotence-ordre-des-cles.test.mjs
+index 98a1504d6..05ead65a6 100644
+--- a/scripts/migrations/lib/idempotence-ordre-des-cles.test.mjs
++++ b/scripts/migrations/lib/idempotence-ordre-des-cles.test.mjs
+@@ -126,7 +126,7 @@ const renverse = (doc) => {
+  * Ce que les migrations lisent de `Source/`, ce sont les extractions `.md` ; les `.pdf` (lourds,
+  * gitignorés) sont écartés de la copie par leur EXTENSION — jamais par le nom de leur dossier.
+  */
+-const CORPUS = ['src/data', 'src/scenes', 'scripts', 'src/gameIso/catalog', 'src/lib/ordre.mjs', 'src/lib/normalize.ts', 'src/lib/regex.ts', 'src/lib/tableTotale.ts', 'docs/raw', 'Source'];
++const CORPUS = ['src/data', 'src/scenes', 'scripts', 'src/gameIso/catalog', 'src/lib/ordre.mjs', 'src/lib/coupeAuMot.mjs', 'src/lib/normalize.ts', 'src/lib/regex.ts', 'src/lib/tableTotale.ts', 'docs/raw', 'Source'];
+ 
+ test('les migrations DATÉES sont NO-OP sur `src/data` ENTIER aux clés renversées', (t) => {
+   const racine = fs.mkdtempSync(path.join(os.tmpdir(), 'migr-corpus-'));
+diff --git a/scripts/ops/etapesDuTrain.mjs b/scripts/ops/etapesDuTrain.mjs
+index 72938706f..13b2b11c8 100644
+--- a/scripts/ops/etapesDuTrain.mjs
++++ b/scripts/ops/etapesDuTrain.mjs
+@@ -23,6 +23,7 @@ import { MANAGED_ROOTS } from '../agents/compat-core.mjs'
+ import { sourcesMesurees, touchesDocSources } from '../git-hooks/docs-rebuild.mjs'
+ import { resoudreOutilLocal } from '../lancer-local.mjs'
+ import { correspondGlob } from '../guards/lib/lister.mjs'
++import { coupeAuMot } from '../../src/lib/coupeAuMot.mjs'
+ 
+ /** Période de la sonde CI, en millisecondes. */
+ export const PERIODE_SONDE_MS = 30_000
+@@ -181,10 +182,10 @@ export function decisionDeRebase({ contenu, fusions }) {
+ }
+ 
+ 
+-/** Première ligne d'un message de commit, bornée. PURE. */
++/** Première ligne d'un message de commit, coupée au mot vers `max` (`coupeAuMot`). PURE. */
+ export const titreDeCommit = (message, max = 120) => {
+   const ligne = String(message ?? '').split('\n')[0].trim()
+-  return ligne.length > max ? `${ligne.slice(0, max - 1)}…` : ligne
++  return coupeAuMot(ligne, max)
+ }
+ 
+ /**
+diff --git a/scripts/ops/publier.test.mjs b/scripts/ops/publier.test.mjs
+index 87654772d..3b68f2caa 100644
+--- a/scripts/ops/publier.test.mjs
++++ b/scripts/ops/publier.test.mjs
+@@ -867,9 +867,14 @@ test('corpsDePilotage : le temps d’ATTENTE de la CI est dit COMME TEL, jamais
+   assert.doesNotMatch(corpsDePilotage({ ...PILOTAGE, ci: { etat: 'non lue' } }), /attente du verdict CI/)
+ })
+ 
+-test('titreDeCommit : première ligne, bornée à 120 caractères', () => {
++test('titreDeCommit : première ligne, coupée AU MOT sous 120 caractères', () => {
+   assert.equal(titreDeCommit('un titre\n\ncorps'), 'un titre')
+-  assert.equal(titreDeCommit(`${'x'.repeat(200)}`).length, 120)
++  const titre = titreDeCommit('abcdefgh '.repeat(20).trimEnd())
++  assert.ok(titre.length <= 120, titre)
++  assert.equal(titre, `${'abcdefgh '.repeat(12)}abcdefgh…`, 'la coupe tombe entre deux mots, jamais dans un mot')
++  const tient = `${'mot '.repeat(29)}motx`
++  assert.equal(tient.length, 120)
++  assert.equal(titreDeCommit(tient), tient, 'un titre de 120 caractères se rend entier')
+ })
+ 
+ test('verdictDuTronc : inchangé, bougé (relance), bougé une SECONDE fois (rouge)', () => {
+diff --git a/scripts/raw/reanchor.mjs b/scripts/raw/reanchor.mjs
+index 1768ab252..a3d9f7b01 100644
+--- a/scripts/raw/reanchor.mjs
++++ b/scripts/raw/reanchor.mjs
+@@ -36,6 +36,7 @@ import { ecartDuVolet } from '../guards/lib/stock.mjs'
+ import { SOUS_LOT, lireEntreesDeSite } from '../guards/lib/stockDeSites.mjs'
+ import { ecrireOuVerifier } from '../docs/lib/empreinte-sources.mjs'
+ import { carteDuFichier, destinEnTexte } from './lib/carte-lignes.mjs'
++import { coupeAuMot } from '../../src/lib/coupeAuMot.mjs'
+ 
+ const APPLY = process.argv.includes('--apply')
+ // --remap : ré-ancre les réfs de SYNTHÈSE (sans citation) et leurs CONTINUATIONS nues par la carte
+@@ -283,11 +284,11 @@ export function scan(rawDir = RAWDIR, { apply = false, remap = false, classes =
+           return xc ? { label: `${abbr} ${xc.ch} l.${xc.line}` } : null
+         }
+         const r = li ? classifyQuote(li, citedStart, rawQuote, findCross) : { status: 'NO-SOURCE' }
+-        const snippet = (r.norm || normalize(rawQuote)).slice(0, 46)
++        const snippet = coupeAuMot(r.norm || normalize(rawQuote), 46)
+         if (r.status === 'OK') { tally.OK++; continue }
+         tally[r.status]++
+         if (r.status === 'DRIFT') {
+-          const detail = `« ${snippet}… » → l.${r.foundStart}` + (r.edited ? ' (ancre partielle)' : '')
++          const detail = `« ${snippet} » → l.${r.foundStart}` + (r.edited ? ' (ancre partielle)' : '')
+           rows.push({ full, status: 'DRIFT', cited: citedStart, found: r.foundStart, detail })
+           if (apply) {
+             // réécrit l.X→l.found ; plage -Y : largeur préservée (translatée du même décalage)
+@@ -300,9 +301,9 @@ export function scan(rawDir = RAWDIR, { apply = false, remap = false, classes =
+             appliedTotal++
+           }
+         } else if (r.status === 'MEDIUM') {
+-          rows.push({ full, status: 'MEDIUM', cited: citedStart, found: r.foundStart, detail: `« ${snippet}… » candidats l.${r.candidates.join('/')} → plus proche l.${r.foundStart}` })
++          rows.push({ full, status: 'MEDIUM', cited: citedStart, found: r.foundStart, detail: `« ${snippet} » candidats l.${r.candidates.join('/')} → plus proche l.${r.foundStart}` })
+         } else if (r.status === 'LOW') {
+-          const detail = `« ${snippet}… » — ${r.reason}`
++          const detail = `« ${snippet} » — ${r.reason}`
+           rows.push({ full, status: 'LOW', cited: citedStart, detail })
+           lowRows.push({ doc: path.split('\\').join('/'), full, detail })
+         } else if (r.status === 'NO-SOURCE') {
+diff --git a/scripts/source/derive-decoupes.mjs b/scripts/source/derive-decoupes.mjs
+index 9b62eec88..6e28fda6d 100644
+--- a/scripts/source/derive-decoupes.mjs
++++ b/scripts/source/derive-decoupes.mjs
+@@ -23,6 +23,7 @@ import {
+ } from '../../src/data/source/decoupe.ts'
+ import { chapitresDe, lireChapitre } from './lecteur-fs.mjs'
+ import { sigleDe } from '../raw/_lib.mjs'
++import { coupeAuMot } from '../../src/lib/coupeAuMot.mjs'
+ 
+ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
+ 
+@@ -125,7 +126,7 @@ export function judge(entry) {
+   const orphan = paras.find((p) => !chapitres.some(({ chapitre }) => findRuns(chapitre, p))) ?? D
+   return {
+     verdict: 'ECHEC',
+-    reason: sub ? 'sous-bloc (desc = fragment d\'un bloc)' : `introuvable: « ${orphan.slice(0, 70)} … »`,
++    reason: sub ? 'sous-bloc (desc = fragment d\'un bloc)' : `introuvable: « ${coupeAuMot(orphan, 70)} »`,
+   }
+ }
+ 
+diff --git a/scripts/source/prose-source-plugin.mjs b/scripts/source/prose-source-plugin.mjs
+index da591f89d..c34f4223e 100644
+--- a/scripts/source/prose-source-plugin.mjs
++++ b/scripts/source/prose-source-plugin.mjs
+@@ -29,6 +29,7 @@ import { basename } from 'node:path'
+ import { chapitresDe, lireChapitre, oublierChapitre } from './lecteur-fs.mjs'
+ import { cheminChapitre, materialiser } from './resoudre.mjs'
+ import { BOOKS, REGISTRE_LIVRES, estLivreExtrait, readText, sigleDe } from '../raw/_lib.mjs'
++import { coupeAuMot } from '../../src/lib/coupeAuMot.mjs'
+ 
+ /** Documents de catalogue, et eux seuls : `src/data/<nom>.json` à plat (les projets de `src/scenes`
+  *  entrent au périmètre quand leur schéma compose la prose adressable). */
+@@ -42,7 +43,7 @@ const ROUTE = /^\/source\/([a-z0-9-]+)\/(\d+)\.md$/
+ /** Route publique du manifeste : `/source/manifest.json`. */
+ const ROUTE_MANIFESTE = '/source/manifest.json'
+ 
+-/** Longueur maximale d'un titre de chapitre au manifeste (au-delà, il ne tient plus dans une liste). */
++/** Un titre de chapitre au manifeste est coupé au mot vers `TITRE_MAX` (`coupeAuMot`) : au-delà, il ne tient plus dans une liste. */
+ const TITRE_MAX = 60
+ /**
+  * Un heading dont le titre n'est qu'une ANCRE de conversion Word (`# _GoBack`, `# _gjdgxs`) — reconnu
+@@ -77,7 +78,7 @@ export function titreDeChapitre(chapitre, texte = '') {
+       .replace(/\s+/g, ' ')
+       .trim()
+     if (!propre) continue
+-    return propre.length > TITRE_MAX ? `${propre.slice(0, TITRE_MAX - 1).trimEnd()}…` : propre
++    return coupeAuMot(propre, TITRE_MAX)
+   }
+   return ''
+ }
+diff --git a/scripts/ui/audit-i18n.mjs b/scripts/ui/audit-i18n.mjs
+index 806ccbd16..640ed167a 100644
+--- a/scripts/ui/audit-i18n.mjs
++++ b/scripts/ui/audit-i18n.mjs
+@@ -20,6 +20,7 @@ import { estFichierVitest } from '../guards/lib/fichierVitest.mjs';
+ import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+ import { join, dirname, relative } from 'node:path';
+ import { fileURLToPath } from 'node:url';
++import { coupeAuMot } from '../../src/lib/coupeAuMot.mjs';
+ 
+ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
+ const SCAN_DIRS = ['src/ui', 'src/state'];
+@@ -201,6 +202,6 @@ if (!jsonOut) {
+   for (const r of top15) console.log(`  ${w(r.file, 45)} ${r.count}`);
+   console.log('\nTop doublons exacts (texte × occurrences) :');
+   for (const [textVal, locs] of duplicateGroups.slice(0, 15)) {
+-    console.log(`  ×${locs.length}  "${textVal.length > 60 ? textVal.slice(0, 57) + '...' : textVal}"`);
++    console.log(`  ×${locs.length}  "${coupeAuMot(textVal, 60)}"`);
+   }
+ }
+diff --git a/src/coupe-au-caractere-guard.test.ts b/src/coupe-au-caractere-guard.test.ts
+index c7113ef4a..55580a133 100644
+--- a/src/coupe-au-caractere-guard.test.ts
++++ b/src/coupe-au-caractere-guard.test.ts
+@@ -1,12 +1,14 @@
+ /**
+- * GARDE — aucun texte coupé au caractère puis ellipsé sous `src/` (#1806, R-M2 de
++ * GARDE — aucun texte coupé au caractère puis ellipsé sous `src/` ni `scripts/` (#1806, R-M2 de
+  * `docs/plans/2026-08-16-spec-hud-combat.md`) : la coupe d'un texte ellipsé est `coupeAuMot`
+- * (`src/lib/coupeAuMot.ts`). Tolérance zéro, sans registre ; tests compris.
++ * (`src/lib/coupeAuMot.mjs`). Tolérance zéro, sans registre ; tests compris.
+  */
+ import { describe, it, expect } from 'vitest';
+ import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
+ import { coupesAuCaractere } from '../scripts/guards/lib/coupeAuCaractere.mjs';
+ 
++const vus = (text: string, rel = 'temoin.tsx') => coupesAuCaractere([{ rel, text }]);
++
+ describe('coupe au caractère suivie d’une ellipse', () => {
+   it('témoin : gabarit, concaténation, ternaire, `trimEnd`, ellipse en trois points — vus ; tableau et préfixe sans ellipse — non', () => {
+     const texte = [
+@@ -20,10 +22,55 @@ describe('coupe au caractère suivie d’une ellipse', () => {
+       "// `${s.slice(0, n)}…` en commentaire",
+       "const h = '`${s.slice(0, n)}…`';",
+     ].join('\n');
+-    expect(coupesAuCaractere([{ rel: 'temoin.ts', text: texte }])).toEqual(['temoin.ts:1', 'temoin.ts:2', 'temoin.ts:3', 'temoin.ts:4', 'temoin.ts:5']);
++    expect(vus(texte, 'temoin.ts')).toEqual(['temoin.ts:1', 'temoin.ts:2', 'temoin.ts:3', 'temoin.ts:4', 'temoin.ts:5']);
++  });
++
++  it('témoin : chaque forme vue sans flux de données — texte JSX voisin, constante nommée, `padEnd`, `concat`, tableau de caractères, deux instructions', () => {
++    expect(vus('const X = () => <span>{s.slice(0, 20)}…</span>;')).toEqual(['temoin.tsx:1']);
++    expect(vus("const X = () => <span>{s.slice(0, 20)}{'…'}</span>;")).toEqual(['temoin.tsx:1']);
++    expect(vus("const ELLIPSE = '…';\nconst a = s.slice(0, 20) + ELLIPSE;")).toEqual(['temoin.tsx:2']);
++    expect(vus("const a = s.slice(0, 20).padEnd(21, '…');")).toEqual(['temoin.tsx:1']);
++    expect(vus("const a = s.slice(0, 20).concat('…');")).toEqual(['temoin.tsx:1']);
++    expect(vus("const a = [...s].slice(0, 20).join('') + '…';")).toEqual(['temoin.tsx:1']);
++    expect(vus("const a = Array.from(s).slice(0, 20).join('') + '…';")).toEqual(['temoin.tsx:1']);
++    expect(vus('const p = s.slice(0, 20);\nconst a = `${p}…`;')).toEqual(['temoin.tsx:1']);
++    expect(vus('function f(s) {\n  const p = s.slice(0, 20).trimEnd();\n  return p.length < s.length ? `${p}…` : p;\n}')).toEqual(['temoin.tsx:2']);
++    expect(vus("const X = () => <span title={s.slice(0, 20) + '…'} />;")).toEqual(['temoin.tsx:1']);
++    expect(vus("const a = s.slice(0, 20) + '\\u2026';")).toEqual(['temoin.tsx:1']);
++  });
++
++  it('témoin : JSX sur plusieurs lignes, le texte fait de seuls blancs entre la coupe et l’ellipse est sauté', () => {
++    expect(vus("const X = () => (\n  <span>\n    {s.slice(0, 20)}\n    {'…'}\n  </span>\n);")).toEqual(['temoin.tsx:3']);
++    expect(vus('const X = () => (\n  <span>\n    {s.slice(0, 20)}\n    …\n  </span>\n);')).toEqual(['temoin.tsx:3']);
++    expect(vus("const X = () => (\n  <span>\n    {s.slice(0, 20)}\n    <b>fin</b>\n    {'…'}\n  </span>\n);")).toEqual([]);
++  });
++
++  it('témoin : un nom se résout par son SYMBOLE — l’homonyme d’une autre portée n’est pas lui', () => {
++    expect(vus("const E = 'x';\nfunction f() { const E = '…'; return E; }\nconst a = s.slice(0, 20) + E;"), 'constante ombrée').toEqual([]);
++    expect(vus("const E = '…';\nfunction f() { const E = 'x'; return s.slice(0, 20) + E; }"), 'constante locale qui masque').toEqual([]);
++    expect(vus("const E = '…';\nfunction f() { return s.slice(0, 20) + E; }"), 'constante du module vue d’une portée interne').toEqual(['temoin.tsx:2']);
++    expect(vus('const p = s.slice(0, 20);\nfunction g(p) { return `${p}…`; }'), 'paramètre homonyme').toEqual([]);
++    expect(vus('const p = s.slice(0, 20);\nfunction g() { return `${p}…`; }'), 'la coupe ellipsée d’une portée interne').toEqual(['temoin.tsx:1']);
++  });
++
++  it('témoin : ce qui n’est pas une coupe ellipsée reste muet', () => {
++    expect(vus('const X = () => <span>{s.slice(0, 20)}</span>;')).toEqual([]);
++    expect(vus("const X = () => <span>…{s.slice(0, 20)}</span>;")).toEqual([]);
++    expect(vus("const NOM = 'un nom';\nconst a = s.slice(0, 20) + NOM;")).toEqual([]);
++    expect(vus("const a = xs.slice(0, 20).join(', ') + ' et d’autres';")).toEqual([]);
++    expect(vus('const p = s.slice(0, 20);\nfunction g() { const p = 1; }\nconst a = `${p} fin`;')).toEqual([]);
++    expect(vus('let p = s.slice(0, 20);\nconst a = `${p}…`;'), 'liée à un `let` : hors portée (en-tête)').toEqual([]);
++  });
++
++  it('le FOYER (`coupeAuMot` elle-même) est seul hors de la garde : son corps, sous un autre chemin, est vu', () => {
++    const [foyer] = readCorpus(['src/lib'], { exts: ['.mjs'] }).filter(({ rel }) => rel === 'src/lib/coupeAuMot.mjs');
++    expect(foyer, 'le foyer existe').toBeTruthy();
++    expect(coupesAuCaractere([foyer])).toEqual([]);
++    expect(coupesAuCaractere([{ rel: 'copie.mjs', text: foyer.text }])).toHaveLength(1);
+   });
+ 
+-  it('aucun site sous `src/`', () => {
+-    expect(coupesAuCaractere(readCorpus(['src'], { exts: ['.ts', '.tsx'], tests: true }))).toEqual([]);
++  it('aucun site sous `src/` ni `scripts/`', () => {
++    const corpus = readCorpus(['src', 'scripts'], { exts: ['.ts', '.tsx', '.mts', '.cts', '.js', '.jsx', '.mjs', '.cjs'], tests: true });
++    expect(coupesAuCaractere(corpus)).toEqual([]);
+   });
+ });
+diff --git a/src/data/night-stake-form.test.ts b/src/data/night-stake-form.test.ts
+index f796ec023..01da66693 100644
+--- a/src/data/night-stake-form.test.ts
++++ b/src/data/night-stake-form.test.ts
+@@ -17,7 +17,7 @@ import { chapterFile, readText, sigleDe } from '../../scripts/guards/lib/rawRefI
+ import { NIGHT_STAKES, FLOW_STAKES, ACTIVITY_STAKES, etats, regles } from './index';
+ import { ACTIVITIES } from '../engine/activities';
+ import { STAKE_FORMS, type StakeForm } from '../engine/types';
+-import { coupeAuMot } from '../lib/coupeAuMot';
++import { coupeAuMot } from '../lib/coupeAuMot.mjs';
+ 
+ const RULE_IDS = new Set(regles.map((r) => r.id));
+ 
+diff --git a/src/data/night-stakes-rules.test.ts b/src/data/night-stakes-rules.test.ts
+index e15ac0606..078c10107 100644
+--- a/src/data/night-stakes-rules.test.ts
++++ b/src/data/night-stakes-rules.test.ts
+@@ -11,7 +11,7 @@
+ import { describe, it, expect } from 'vitest';
+ import { chapterFile, readText, sigleDe } from '../../scripts/guards/lib/rawRefIntegrity.mjs';
+ import { NIGHT_STAKES, regles, books, skills, symptoms, etats } from './index';
+-import { coupeAuMot } from '../lib/coupeAuMot';
++import { coupeAuMot } from '../lib/coupeAuMot.mjs';
+ 
+ /** FOYERS possibles d'une règle (amendement A, 2026-08-06) : l'entité qui la PORTE d'abord —
+  *  `regles.json` n'héberge que les règles de CADRE, sans entité porteuse. */
+diff --git a/src/data/primitives.manifest.json b/src/data/primitives.manifest.json
+index 573ac91ee..f7bfe1bd9 100644
+--- a/src/data/primitives.manifest.json
++++ b/src/data/primitives.manifest.json
+@@ -1148,11 +1148,20 @@
+     "id": "coupeAuMot",
+     "type": "primitives.manifest",
+     "label": "coupeAuMot",
+-    "fichier": "src/lib/coupeAuMot.ts",
+-    "concept": "coupe d'un texte à `n` caractères à une FRONTIÈRE DE MOT, suivie de « … » (R-M2) ; seule coupe ellipsée sous `src/`",
+-    "perimetre": "tout texte borné puis ellipsé : infobulle `CodexRef` (corps, méta), résumés d'effet et d'op de l'éditeur, nœuds et choix de dialogue, extraits du créateur, messages de diagnostic des tests",
++    "fichier": "src/lib/coupeAuMot.mjs",
++    "concept": "coupe d'un texte à `n` caractères à une FRONTIÈRE DE MOT, suivie de « … » (R-M2) ; seule coupe ellipsée sous `src/` et `scripts/`",
++    "perimetre": "tout texte borné puis ellipsé : infobulle `CodexRef` (corps, méta), résumés d'effet et d'op de l'éditeur, nœuds et choix de dialogue, extraits du créateur, titres de chapitre du plugin de prose, messages des gardes, hooks et outils, messages de diagnostic des tests",
+     "verrou": "coupeAuMot.test.ts ; src/coupe-au-caractere-guard.test.ts — aucune coupe au caractère ellipsée"
+   },
++  {
++    "id": "posePartagee",
++    "type": "primitives.manifest",
++    "label": "posePartagee",
++    "fichier": "src/lib/posePartagee.ts",
++    "concept": "écouteurs posés à la PREMIÈRE prise et retirés à la DERNIÈRE remise, quel que soit le nombre de preneurs ; `vider` retire la pose et rend inertes les remises antérieures",
++    "perimetre": "porte clavier de la pile (`useDismissLayer`), délégation de la couche d'infobulle (`Infobulle`)",
++    "verrou": "posePartagee.test.ts ; Infobulle.test.tsx — DÉLÉGATION, un seul jeu d'écouteurs"
++  },
+   {
+     "id": "echapperRegex",
+     "type": "primitives.manifest",
+diff --git a/src/data/schemas/_ids.generated.ts b/src/data/schemas/_ids.generated.ts
+index 84d2890ca..c1985d15d 100644
+--- a/src/data/schemas/_ids.generated.ts
++++ b/src/data/schemas/_ids.generated.ts
+@@ -70,7 +70,7 @@ const IDS = {
+   'oups.json': ['vous-vous-blessez-en-attaquant-perdez-1-blessure-ignore-be-pa', 'arme-abimee-1-degat-vous-agirez-en-dernier-au-prochain-round', '10-a-votre-action-au-prochain-round', 'vous-trebuchez-vous-perdez-votre-prochain-mouvement', 'vous-lachez-ou-ratez-vous-perdez-votre-prochaine-action', 'vous-vous-tordez-la-cheville-dechirure-musculaire-mineure-compte-comme-blessure-critique', 'vous-touchez-un-allie-au-hasard-ou-vous-meme-sonne', 'incident-de-tir-l-arme-explose-dans-votre-main-degats-au-bras-principal-arme-detruite'],
+   'peripeties.json': ['voyage-reposant', 'quelque-chose-d-interessant', 'a-present-c-est-utile', 'voyage-ereintant', 'poursuivis', 'voleurs', 'pas-encore', 'mauvaise-influence', 'meme-la-nature-vous-deteste', 'attaques'],
+   'pregens.json': ['sigmund-reikhardt', 'grunni-pierre-de-fer', 'wilhelmina-faust', 'frere-anselm', 'aelindra-feuille-d-argent', 'rosa-brandt', 'klein-burger', 'otto-hammerfest'],
+-  'primitives.manifest.json': ['screenShell', 'cadre', 'planche', 'modal', 'boite-ancree', 'infobulle', 'codex-ref', 'focus', 'dismissLayer', 'rollShell', 'rollRow', 'makeRollFlow', 'rollSeam', 'optionChooser', 'breakdown', 'influenceRow', 'vsHeader', 'portraitTile', 'searchFilterField', 'findTableEntry', 'baseTestMods', 'actorIn', 'meneurDuMonde', 'applyOps', 'gameOpEditor', 'passiveMods', 'fireTriggers', 'resolveFreeAttacks', 'shipDamage', 'cascade', 'policy', 'netOwnership', 'refField', 'prose', 'resolveRender', 'masterDetail', 'itemIcon', 'mediaSelect', 'genRegistry', 'pointDEntree', 'descendre', 'coDescendre', 'menuCard', 'screenMeta', 'tabs', 'rovingFocus', 'useRamenerEnVue', 'useLongPress', 'coopPanels', 'readyRow', 'panneauParametre', 'lifeBar', 'tradeTable', 'parchmentCard', 'activityPane', 'qtyStepper', 'numberField', 'freeAttackLabel', 'gameOpChips', 'opRows', 'cascadeSuspension', 'creatorDice', 'characterPreview', 'gatedAction', 'roseAxes', 'metalStatus', 'waxSeal', 'careerPath', 'figTile', 'groupedPickGrid', 'detailFrame', 'plaqueRow', 'creatorStepFrame', 'band', 'reglagesApparence', 'heroSheet', 'designGallery', 'layout', 'ornaments', 'notchGauge', 'windRose', 'rollLine', 'rollPanel', 'diceRoll', 'forcedRollPicker', 'recapLine', 'multiRollList', 'revealBody', 'teamSegments', 'combatBanner', 'combatConsole', 'combatStartSplash', 'rigPortrait', 'fxChip', 'spectatorChip', 'gearAssignList', 'rewardRecap', 'errorBoundary', 'logDrawer', 'inspectPanel', 'equipmentPanel', 'gameStage', 'isoStage', 'plaquesDeNom', 'pastilleEntite', 'stateChips', 'initiativeStrip', 'partyDock', 'objectiveBanner', 'viewControls', 'drBar', 'coins', 'suiteDuCoup', 'indexedDb', 'coupeAuMot', 'echapperRegex', 'alternationDe', 'alternationDeRegex', 'espacesExtensibles', 'clesDePalette', 'paletteDeclaree', 'paletteDEspeceSchema', 'declarationsInertes', 'coucheDEspece', 'jetonsDeLArt', 'gammeDePalette', 'vuesDuRig', 'formatsDArtOriente', 'lectureDUneVue', 'viewOrFront', 'tableTotale', 'isDrawnView', 'lireDegradeDerive', 'fxGradientIds', 'cleDeSite', 'stockDeSites', 'regenererStock', 'entreesNominatives', 'threeWay', 'litteralJs', 'ast', 'perimetreDUneDeclaration', 'constructionsReservees', 'lecturesDeLArt', 'gardeCleDeSite', 'secondNomEtPerimetre', 'reponsesDuNoeud', 'surfaceTientLaMain', 'ordreTotal', 'stockageWeb', 'playerText', 'dataLabel'],
++  'primitives.manifest.json': ['screenShell', 'cadre', 'planche', 'modal', 'boite-ancree', 'infobulle', 'codex-ref', 'focus', 'dismissLayer', 'rollShell', 'rollRow', 'makeRollFlow', 'rollSeam', 'optionChooser', 'breakdown', 'influenceRow', 'vsHeader', 'portraitTile', 'searchFilterField', 'findTableEntry', 'baseTestMods', 'actorIn', 'meneurDuMonde', 'applyOps', 'gameOpEditor', 'passiveMods', 'fireTriggers', 'resolveFreeAttacks', 'shipDamage', 'cascade', 'policy', 'netOwnership', 'refField', 'prose', 'resolveRender', 'masterDetail', 'itemIcon', 'mediaSelect', 'genRegistry', 'pointDEntree', 'descendre', 'coDescendre', 'menuCard', 'screenMeta', 'tabs', 'rovingFocus', 'useRamenerEnVue', 'useLongPress', 'coopPanels', 'readyRow', 'panneauParametre', 'lifeBar', 'tradeTable', 'parchmentCard', 'activityPane', 'qtyStepper', 'numberField', 'freeAttackLabel', 'gameOpChips', 'opRows', 'cascadeSuspension', 'creatorDice', 'characterPreview', 'gatedAction', 'roseAxes', 'metalStatus', 'waxSeal', 'careerPath', 'figTile', 'groupedPickGrid', 'detailFrame', 'plaqueRow', 'creatorStepFrame', 'band', 'reglagesApparence', 'heroSheet', 'designGallery', 'layout', 'ornaments', 'notchGauge', 'windRose', 'rollLine', 'rollPanel', 'diceRoll', 'forcedRollPicker', 'recapLine', 'multiRollList', 'revealBody', 'teamSegments', 'combatBanner', 'combatConsole', 'combatStartSplash', 'rigPortrait', 'fxChip', 'spectatorChip', 'gearAssignList', 'rewardRecap', 'errorBoundary', 'logDrawer', 'inspectPanel', 'equipmentPanel', 'gameStage', 'isoStage', 'plaquesDeNom', 'pastilleEntite', 'stateChips', 'initiativeStrip', 'partyDock', 'objectiveBanner', 'viewControls', 'drBar', 'coins', 'suiteDuCoup', 'indexedDb', 'coupeAuMot', 'posePartagee', 'echapperRegex', 'alternationDe', 'alternationDeRegex', 'espacesExtensibles', 'clesDePalette', 'paletteDeclaree', 'paletteDEspeceSchema', 'declarationsInertes', 'coucheDEspece', 'jetonsDeLArt', 'gammeDePalette', 'vuesDuRig', 'formatsDArtOriente', 'lectureDUneVue', 'viewOrFront', 'tableTotale', 'isDrawnView', 'lireDegradeDerive', 'fxGradientIds', 'cleDeSite', 'stockDeSites', 'regenererStock', 'entreesNominatives', 'threeWay', 'litteralJs', 'ast', 'perimetreDUneDeclaration', 'constructionsReservees', 'lecturesDeLArt', 'gardeCleDeSite', 'secondNomEtPerimetre', 'reponsesDuNoeud', 'surfaceTientLaMain', 'ordreTotal', 'stockageWeb', 'playerText', 'dataLabel'],
+   'props.json': ['feu-camp', 'brasero', 'chandelier', 'lampadaire', 'pupitre-chef', 'barriere', 'cloture', 'palissade', 'tribune', 'balustrade-loge', 'rangee-sieges', 'rideau-scene', 'statue', 'gargouille', 'menhir', 'rocher', 'stalagmite', 'colonne-brisee', 'autel', 'idole-chaos', 'fontaine', 'puits', 'abreuvoir', 'sarcophage', 'tombe', 'gibet', 'pilori', 'cage', 'arbre', 'arbre-mort', 'souche', 'tonneau', 'tonneaux-pile', 'caisse', 'coffre', 'urne', 'marmite', 'oeuf-dragon', 'charrette', 'epave-carrosse', 'barque', 'table', 'table-2x1', 'chaise', 'banc', 'tabouret', 'armoire', 'bureau', 'bureau-2x1', 'etabli', 'etabli-2x1', 'lit', 'miroir', 'etagere', 'rack-armes', 'rack-lances', 'mannequin', 'mannequin-couturier', 'fauteuil-loge', 'plante-pot', 'etal-marche', 'tente', 'tas-foin', 'cheval-mort', 'balustrade-bois', 'canon-de-pont', 'cuve-brasserie', 'ecoutille', 'enclume', 'escalier-bois', 'escalier-loge', 'foyer-de-forge', 'passerelle-d-embarquement', 'rouleau-de-cordage', 'stalle-ecurie', 'cheminee-interieure', 'comptoir-droit', 'comptoir-angle', 'table-ronde-4-tabourets', 'table-murale-2-tabourets', 'cheminee', 'enseigne', 'clocheton', 'applique-murale', 'ancre-de-navire', 'arche-ruine', 'banniere-chaos', 'barre-de-navire', 'bastingage', 'bourse', 'buisson', 'cabestan', 'cadavre', 'canape', 'cercle-runique', 'champignon', 'cle', 'cocon', 'coiffeuse', 'crane-monstre', 'decor-flat', 'detritus', 'etendard', 'gravats', 'grille', 'lanterne-de-poupe', 'lettre', 'lustre-opera', 'mare-sang', 'mat-de-navire', 'nenuphars', 'ossements', 'panneau', 'paravent', 'pieu', 'portant-costumes', 'roseaux', 'roue-dentee', 'scie-chevalet', 'siege', 'tas-or', 'terrier', 'toile', 'trophee-cranes'],
+   'props.json?volume': ['pupitre-chef', 'rangee-sieges', 'rideau-scene', 'statue', 'colonne-brisee', 'tonneau', 'tonneaux-pile', 'caisse', 'coffre', 'urne', 'charrette', 'table', 'table-2x1', 'chaise', 'banc', 'tabouret', 'armoire', 'bureau', 'bureau-2x1', 'etabli', 'etabli-2x1', 'miroir', 'etagere', 'rack-armes', 'mannequin', 'mannequin-couturier', 'fauteuil-loge', 'plante-pot', 'etal-marche', 'cheminee-interieure', 'comptoir-droit', 'comptoir-angle', 'table-ronde-4-tabourets', 'table-murale-2-tabourets', 'cheminee', 'enseigne', 'clocheton', 'applique-murale', 'canape', 'coiffeuse', 'decor-flat', 'lustre-opera', 'paravent', 'portant-costumes', 'scie-chevalet', 'siege'],
+   'psychology.json': ['frenesie', 'peur', 'terreur', 'animosite', 'haine', 'prejuge', 'amour', 'camaraderie', 'phobie'],
+diff --git a/src/data/schemas/defs-scenes/trous-de-validation.test.ts b/src/data/schemas/defs-scenes/trous-de-validation.test.ts
+index 5c224c1f5..fdd903b10 100644
+--- a/src/data/schemas/defs-scenes/trous-de-validation.test.ts
++++ b/src/data/schemas/defs-scenes/trous-de-validation.test.ts
+@@ -15,7 +15,7 @@ import { estFichierVitest } from '../../../../scripts/guards/lib/fichierVitest.m
+ import { tmpdir } from 'node:os';
+ import { join } from 'node:path';
+ import { TROUS_DE_VALIDATION } from './trous-de-validation';
+-import { coupeAuMot } from '../../../lib/coupeAuMot';
++import { coupeAuMot } from '../../../lib/coupeAuMot.mjs';
+ 
+ const GARDE = {
+   question:
+diff --git a/src/data/source/prose-source.test.ts b/src/data/source/prose-source.test.ts
+index 386b11d36..cf90fcb5a 100644
+--- a/src/data/source/prose-source.test.ts
++++ b/src/data/source/prose-source.test.ts
+@@ -191,6 +191,9 @@ describe('plugin `wfrp:prose-source` — chapitres SERVIS EN DEV', () => {
+     const long = titreDeChapitre(parseChapitre(md), md);
+     expect(long.length).toBeLessThanOrEqual(60);
+     expect(long.endsWith('…')).toBe(true);
++    const tient = 'Les Répurgateurs et la Chasse aux Sorcières dans le Reikland';
++    expect(tient.length).toBe(60);
++    expect(titre(`# ${tient}\n`), 'un titre de 60 caractères se rend entier').toBe(tient);
+   });
+ });
+ 
+diff --git a/src/lib/coupeAuMot.d.mts b/src/lib/coupeAuMot.d.mts
+new file mode 100644
+index 000000000..a76e6ed53
+--- /dev/null
++++ b/src/lib/coupeAuMot.d.mts
+@@ -0,0 +1 @@
++export function coupeAuMot(s: string, n: number): string;
+diff --git a/src/lib/coupeAuMot.mjs b/src/lib/coupeAuMot.mjs
+new file mode 100644
+index 000000000..e678f43ae
+--- /dev/null
++++ b/src/lib/coupeAuMot.mjs
+@@ -0,0 +1,26 @@
++// COUPE AU MOT (#1806, R-M2 de `docs/plans/2026-08-16-spec-hud-combat.md`) — module PUR sans import,
++// composé par `src/` et par `scripts/` (patron de `src/lib/ordre.mjs` : un `.mjs` entre dans la
++// clôture statique de `npm run gates`, qui ne porte aucun module TypeScript). SEULE coupe d'un texte
++// suivie d'une ellipse (garde `src/coupe-au-caractere-guard.test.ts`).
++
++/** Espace où un texte peut se couper : tout blanc, sauf les insécables (U+00A0, U+2007, U+202F). */
++const ESPACE_SECABLE = /[^\S\u00A0\u2007\u202F]/
++
++/** `n` borne le RENDU, ellipse comprise. Le texte entier s'il tient en `n` caractères ; sinon le plus
++ *  long préfixe de mots d'au plus `n - 1` caractères, coupé à une espace sécable, suivi de « … » : au plus
++ *  `n` caractères. Les blancs de tête ne sont pas un mot : la coupe se cherche après eux. Seule sortie
++ *  au-delà de `n` : un premier mot plus long que `n - 1` se rend entier (suivi de « … » si du texte le
++ *  suit).
++ *  @type {(s: string, n: number) => string} */
++export function coupeAuMot(s, n) {
++  if (s.length <= n) return s
++  const debut = Math.max(0, s.search(/\S/))
++  let coupe = n - 1
++  while (coupe > debut && !ESPACE_SECABLE.test(s[coupe])) coupe--
++  if (coupe <= debut) {
++    const fin = s.slice(debut).search(ESPACE_SECABLE)
++    coupe = fin < 0 ? s.length : debut + fin
++  }
++  const prefixe = s.slice(0, coupe).trimEnd()
++  return prefixe.length === s.trimEnd().length ? prefixe : `${prefixe}…`
++}
+diff --git a/src/lib/coupeAuMot.test.ts b/src/lib/coupeAuMot.test.ts
+index 8512f4f2a..2a801f94e 100644
+--- a/src/lib/coupeAuMot.test.ts
++++ b/src/lib/coupeAuMot.test.ts
+@@ -1,14 +1,27 @@
+ import { describe, it, expect } from 'vitest';
+-import { coupeAuMot } from './coupeAuMot';
++import { coupeAuMot } from './coupeAuMot.mjs';
+ 
+ describe('coupeAuMot — la coupe tombe à une FRONTIÈRE DE MOT (R-M2)', () => {
+   it('le texte qui tient se rend entier', () => {
+     expect(coupeAuMot('Arme de poing', 13)).toBe('Arme de poing');
+   });
+ 
++  it('`n` borne le RENDU, ellipse comprise : longueur `n` entière, au-delà coupée en au plus `n`', () => {
++    const texte = (longueur: number) => 'mot '.repeat(longueur).slice(0, longueur).replace(/ $/, 'x');
++    for (const n of [7, 8, 25, 59, 60, 119, 120, 200]) {
++      expect(coupeAuMot(texte(n), n), `longueur ${n}`).toBe(texte(n));
++      for (const longueur of [n + 1, n + 2, n + 3, n + 4, n + 5]) {
++        const coupe = coupeAuMot(texte(longueur), n);
++        expect(coupe.endsWith('…'), `longueur ${longueur} : ${coupe}`).toBe(true);
++        expect(coupe.length, `longueur ${longueur} : ${coupe}`).toBeLessThanOrEqual(n);
++      }
++    }
++  });
++
+   it('le plus long préfixe de mots qui tient, sans l’espace, suivi de « … »', () => {
+     expect(coupeAuMot('Dégâts +4 · Allonge Moyenne', 20)).toBe('Dégâts +4 · Allonge…');
+-    expect(coupeAuMot('un deux trois', 7)).toBe('un deux…');
++    expect(coupeAuMot('un deux trois', 8)).toBe('un deux…');
++    expect(coupeAuMot('un deux trois', 7)).toBe('un…');
+   });
+ 
+   it('espaces multiples : la coupe ne garde aucune espace avant « … »', () => {
+@@ -20,12 +33,20 @@ describe('coupeAuMot — la coupe tombe à une FRONTIÈRE DE MOT (R-M2)', () =>
+     expect(coupeAuMot('Cible : un allié proche', 9)).toBe('Cible :…');
+   });
+ 
+-  it('une espace insécable ne coupe pas', () => {
++  it('une espace insécable ne coupe pas (U+00A0, U+2007, U+202F)', () => {
+     expect(coupeAuMot('Portée\u00A0: Toucher, cible unique', 7)).toBe('Portée\u00A0:…');
++    expect(coupeAuMot('un\u2007deux trois', 4)).toBe('un\u2007deux…');
++    expect(coupeAuMot('12\u202F500 couronnes', 4)).toBe('12\u202F500…');
+   });
+ 
+-  it('un premier mot plus long que n se rend entier', () => {
++  it('un premier mot plus long que `n - 1` se rend entier : seule sortie au-delà de `n`', () => {
+     expect(coupeAuMot('Anticonstitutionnellement', 10)).toBe('Anticonstitutionnellement');
+     expect(coupeAuMot('Anticonstitutionnellement dit-il', 10)).toBe('Anticonstitutionnellement…');
+   });
++
++  it('les blancs de tête ne sont pas un mot : le texte n’est jamais perdu', () => {
++    expect(coupeAuMot(' Anticonstitutionnellement dit', 10)).toBe(' Anticonstitutionnellement…');
++    expect(coupeAuMot('   abcdefghij klm', 5)).toBe('   abcdefghij…');
++    expect(coupeAuMot('  un deux trois', 8)).toBe('  un…');
++  });
+ });
+diff --git a/src/lib/coupeAuMot.ts b/src/lib/coupeAuMot.ts
+deleted file mode 100644
+index 6135ade68..000000000
+--- a/src/lib/coupeAuMot.ts
++++ /dev/null
+@@ -1,16 +0,0 @@
+-/** COUPE AU MOT (`docs/plans/2026-08-16-spec-hud-combat.md`, R-M2) : le texte entier s'il tient en `n`
+- *  caractères ; sinon le plus long préfixe de mots coupé à une espace, suivi de « … ». Une espace
+- *  insécable ne coupe pas. Un premier mot plus long que `n` se rend entier. SEULE coupe d'un texte
+- *  suivie d'une ellipse sous `src/` (garde `src/coupe-au-caractere-guard.test.ts`). */
+-const ESPACE_SECABLE = /[^\S\u00A0\u202F]/;
+-export function coupeAuMot(s: string, n: number): string {
+-  if (s.length <= n) return s;
+-  let coupe = n;
+-  while (coupe > 0 && !ESPACE_SECABLE.test(s[coupe])) coupe--;
+-  if (coupe === 0) {
+-    const fin = s.search(ESPACE_SECABLE);
+-    coupe = fin < 0 ? s.length : fin;
+-  }
+-  const prefixe = s.slice(0, coupe).trimEnd();
+-  return prefixe.length === s.trimEnd().length ? prefixe : `${prefixe}…`;
+-}
+diff --git a/src/lib/posePartagee.test.ts b/src/lib/posePartagee.test.ts
+new file mode 100644
+index 000000000..44607df2c
+--- /dev/null
++++ b/src/lib/posePartagee.test.ts
+@@ -0,0 +1,43 @@
++import { describe, it, expect } from 'vitest';
++import { posePartagee } from './posePartagee';
++
++describe('posePartagee — posée à la première prise, retirée à la dernière remise', () => {
++  const journal = () => {
++    const faits: string[] = [];
++    return { faits, pose: posePartagee(() => faits.push('pose'), () => faits.push('retrait')) };
++  };
++
++  it('trois preneurs : une pose, un retrait, à la dernière remise seulement', () => {
++    const { faits, pose } = journal();
++    const r = [pose.prendre(), pose.prendre(), pose.prendre()];
++    expect(faits).toEqual(['pose']);
++    r[1](); r[0]();
++    expect(faits).toEqual(['pose']);
++    r[2]();
++    expect(faits).toEqual(['pose', 'retrait']);
++    pose.prendre();
++    expect(faits).toEqual(['pose', 'retrait', 'pose']);
++  });
++
++  it('une remise n’agit qu’une fois', () => {
++    const { faits, pose } = journal();
++    const a = pose.prendre();
++    pose.prendre();
++    a(); a();
++    expect(faits).toEqual(['pose']);
++  });
++
++  it('`vider` retire la pose et rend inertes les remises antérieures', () => {
++    const { faits, pose } = journal();
++    const ancienne = pose.prendre();
++    pose.vider();
++    expect(faits).toEqual(['pose', 'retrait']);
++    const neuve = pose.prendre();
++    ancienne();
++    expect(faits).toEqual(['pose', 'retrait', 'pose']);
++    neuve();
++    expect(faits).toEqual(['pose', 'retrait', 'pose', 'retrait']);
++    pose.vider();
++    expect(faits).toEqual(['pose', 'retrait', 'pose', 'retrait']);
++  });
++});
+diff --git a/src/lib/posePartagee.ts b/src/lib/posePartagee.ts
+new file mode 100644
+index 000000000..e9ff6f771
+--- /dev/null
++++ b/src/lib/posePartagee.ts
+@@ -0,0 +1,31 @@
++/** POSE PARTAGÉE (#1806) : des écouteurs posés à la PREMIÈRE prise et retirés à la DERNIÈRE rendue,
++ *  quel que soit le nombre de preneurs. Composée par la porte clavier de la pile (`useDismissLayer`) et
++ *  par la délégation de la couche d'infobulle (`Infobulle`). */
++export interface PosePartagee {
++  /** Prend la pose (la pose au premier preneur) ; rend sa remise, qui n'agit qu'une fois. */
++  prendre(): () => void;
++  /** Retire la pose si elle est posée et oublie tout preneur : les remises antérieures n'agissent plus. */
++  vider(): void;
++}
++
++export function posePartagee(poser: () => void, retirer: () => void): PosePartagee {
++  let preneurs = 0;
++  let generation = 0;
++  return {
++    prendre() {
++      if (preneurs++ === 0) poser();
++      const sienne = generation;
++      let rendue = false;
++      return () => {
++        if (rendue || sienne !== generation) return;
++        rendue = true;
++        if (--preneurs === 0) retirer();
++      };
++    },
++    vider() {
++      if (preneurs > 0) retirer();
++      preneurs = 0;
++      generation++;
++    },
++  };
++}
+diff --git a/src/scenes/bundled-projects.test.ts b/src/scenes/bundled-projects.test.ts
+index d10fc3384..dba96f29e 100644
+--- a/src/scenes/bundled-projects.test.ts
++++ b/src/scenes/bundled-projects.test.ts
+@@ -14,7 +14,7 @@ import { rigSpeciesVocab } from '../gameIso/rig/appearance';
+ import { TENUE_BY_ID } from '../gameIso/rig/parts/tenues';
+ import type { Effect } from '../state/scene';
+ import type { Flow } from '../state/flow';
+-import { coupeAuMot } from '../lib/coupeAuMot';
++import { coupeAuMot } from '../lib/coupeAuMot.mjs';
+ 
+ /**
+  * Garde TRANSVERSE (#809) : tout paquet bundlé `src/scenes/*.../*-projet.json` doit se relire dans
+diff --git a/src/ui/CombatConsole.test.tsx b/src/ui/CombatConsole.test.tsx
+index 9418b9335..6884b9f92 100644
+--- a/src/ui/CombatConsole.test.tsx
++++ b/src/ui/CombatConsole.test.tsx
+@@ -26,7 +26,7 @@ import { actionGate, ACTION_CANDIDATES, REMEDES } from '../state/actionRegistry'
+ import { emptyScene } from '../state/scene';
+ import { mdToText } from './Prose';
+ import { CombatConsole } from './CombatConsole';
+-import { coupeAuMot } from '../lib/coupeAuMot';
++import { coupeAuMot } from '../lib/coupeAuMot.mjs';
+ import { BORNE_DU_CORPS } from './compendium/CodexRef';
+ import { readFileSync } from 'node:fs';
+ import { join } from 'node:path';
+@@ -106,7 +106,7 @@ function survol(dataCell: string) {
+   return {
+     title: pop.querySelector('.codex-pop-title')?.textContent ?? null,
+     body: pop.querySelector('.codex-pop-body')?.textContent ?? null,
+-    /** La PORTE vers la fiche complète (l'infobulle borne son corps, cf. `truncate` dans `CodexRef`). */
++    /** La PORTE vers la fiche complète (l’infobulle borne son corps : `coupeAuMot`, `BORNE_DU_CORPS`). */
+     porte: pop.querySelector('.codex-pop-open')?.textContent ?? null,
+     source: pop.querySelector('.codex-src')?.textContent ?? null,
+     /** La RAISON DU REFUS, quand la case est fermée : elle vit ICI et nulle part ailleurs à l'écran. */
+diff --git a/src/ui/Infobulle.test.tsx b/src/ui/Infobulle.test.tsx
+index e5420e589..967cbd96f 100644
+--- a/src/ui/Infobulle.test.tsx
++++ b/src/ui/Infobulle.test.tsx
+@@ -178,3 +178,22 @@ describe('DÉLÉGATION — un seul jeu d’écouteurs du document pour la couche
+     expect(poses).toEqual([poses[0], poses[0], poses[0]]);
+   });
+ });
++
++describe('↓ — pris à la capture du document, sa propagation arrêtée avant le registre écouté à la fenêtre en bulle', () => {
++  /** Appuis `keydown` parvenus à un écouteur de la fenêtre en BULLE (la phase de `useGameKeyboard`). */
++  const appui = (cible: HTMLElement, code: string): { parvenus: number; empeche: boolean } => {
++    let parvenus = 0;
++    const fenetre = () => { parvenus++; };
++    window.addEventListener('keydown', fenetre);
++    const e = new KeyboardEvent('keydown', { key: code, code, bubbles: true, cancelable: true });
++    try { act(() => { cible.focus(); cible.dispatchEvent(e); }); } finally { window.removeEventListener('keydown', fenetre); }
++    return { parvenus, empeche: e.defaultPrevented };
++  };
++
++  it('↓ sur l’ancrage épingle la boîte et n’atteint pas la fenêtre ; une autre touche l’atteint', () => {
++    monter(banc);
++    expect(appui(ancre(), 'KeyA'), 'témoin : une touche que la couche ne prend pas').toEqual({ parvenus: 1, empeche: false });
++    expect(appui(ancre(), 'ArrowDown')).toEqual({ parvenus: 0, empeche: true });
++    expect(boites()).toBe(1);
++  });
++});
+diff --git a/src/ui/Infobulle.tsx b/src/ui/Infobulle.tsx
+index 1fcfcc42f..f3b1afcc8 100644
+--- a/src/ui/Infobulle.tsx
++++ b/src/ui/Infobulle.tsx
+@@ -11,7 +11,7 @@
+  * la boîte porte un marqueur d'ARRÊT : un nœud de la boîte ne résout aucun ancrage au-delà d'elle.
+  *
+  * DÉLÉGATION UNIQUE : un seul jeu d'écouteurs du document pour toute la couche, posé à la première
+- * instance inscrite et retiré à la dernière (patron de `useDismissLayer.ts`, `brancherPorte`). Chaque
++ * instance inscrite et retiré à la dernière (`posePartagee`, `src/lib/posePartagee.ts`). Chaque
+  * événement est routé à l'instance qui POSSÈDE l'ancrage résolu (`inscrites`, clé : la valeur
+  * `data-infobulle` de l'ancrage), et les autres instances l'apprennent comme un geste AILLEURS.
+  *
+@@ -24,14 +24,16 @@
+  * FOCUS : tant que la boîte est épinglée ou tient le focus, elle l'EMPRUNTE (`useFocusEmprunte`), et
+  * son origine est le contrôle de l'ancrage (`controleDe`) — jamais le nœud focalisé au hasard.
+  *
+- * @clavier-hors-registre ↓ appartient au CONTRÔLE focalisé de l'ancrage (`aria-keyshortcuts`), où le
+- * registre s'efface (`notWhenControlFocused`, `state/keybindings.ts`) ; la délégation le lit au document
+- * parce que la couche n'écoute jamais l'ancrage. Échap passe par la pile (`useDismissLayer`).
++ * @clavier-hors-registre ↓ appartient à l'ancrage épinglable (`aria-keyshortcuts`) : la délégation le
++ * prend à la CAPTURE du document et en arrête la propagation (`PHASES`, `keydown` du routage) avant
++ * l'écouteur du registre, posé en bulle sur la fenêtre (`useGameKeyboard.ts`). Échap passe par la pile
++ * (`useDismissLayer`).
+  */
+ import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 'react';
+ import { BoiteAncree, usePlacementAncre } from './BoiteAncree';
+ import { useDismissLayer } from './useDismissLayer';
+ import { focusSansIntention, useFocusEmprunte } from './focus';
++import { posePartagee } from '../lib/posePartagee';
+ 
+ const ANCRE = 'data-infobulle';
+ const ARRET = 'data-infobulle-arret';
+@@ -87,12 +89,17 @@ function deleguer(e: Event): void {
+   }
+ }
+ 
++const DELEGATION = posePartagee(
++  () => { for (const [type, capture] of Object.entries(PHASES)) document.addEventListener(type, deleguer, capture); },
++  () => { for (const [type, capture] of Object.entries(PHASES)) document.removeEventListener(type, deleguer, capture); },
++);
++
+ function inscrire(id: string, routage: Routage): () => void {
+-  if (inscrites.size === 0) for (const [type, capture] of Object.entries(PHASES)) document.addEventListener(type, deleguer, capture);
++  const rendre = DELEGATION.prendre();
+   inscrites.set(id, routage);
+   return () => {
+     inscrites.delete(id);
+-    if (inscrites.size === 0) for (const [type, capture] of Object.entries(PHASES)) document.removeEventListener(type, deleguer, capture);
++    rendre();
+   };
+ }
+ 
+diff --git a/src/ui/compendium/CodexRef.test.tsx b/src/ui/compendium/CodexRef.test.tsx
+index f9ea6d04b..9d54d2f08 100644
+--- a/src/ui/compendium/CodexRef.test.tsx
++++ b/src/ui/compendium/CodexRef.test.tsx
+@@ -1,7 +1,7 @@
+ import { describe, it, expect } from 'vitest';
+ import { renderToStaticMarkup } from 'react-dom/server';
+ import { CodexRef, nodeHasText, BORNE_DU_CORPS } from './CodexRef';
+-import { coupeAuMot } from '../../lib/coupeAuMot';
++import { coupeAuMot } from '../../lib/coupeAuMot.mjs';
+ import { spells } from '../../data';
+ import { mdToText } from '../Prose';
+ 
+diff --git a/src/ui/compendium/CodexRef.tsx b/src/ui/compendium/CodexRef.tsx
+index a4ea4f5bf..785270a16 100644
+--- a/src/ui/compendium/CodexRef.tsx
++++ b/src/ui/compendium/CodexRef.tsx
+@@ -12,7 +12,7 @@ import { useGame } from '../../state/store';
+ import { codexLookup, codexLookupById } from './registry';
+ import { mdToText } from '../Prose';
+ import { useInfobulle } from '../Infobulle';
+-import { coupeAuMot } from '../../lib/coupeAuMot';
++import { coupeAuMot } from '../../lib/coupeAuMot.mjs';
+ 
+ /** Borne du corps de l'infobulle, en caractères (`coupeAuMot`). */
+ export const BORNE_DU_CORPS = 400;
+diff --git a/src/ui/creator/CharacterCreator.tsx b/src/ui/creator/CharacterCreator.tsx
+index a00cbb2b4..767049f5b 100644
+--- a/src/ui/creator/CharacterCreator.tsx
++++ b/src/ui/creator/CharacterCreator.tsx
+@@ -177,7 +177,7 @@ import { XP_CAREER_FIRST, XP_CAREER_TOP3, XP_STAR_ROLLED, parseStatus, speciesAl
+ import { PARTY_MAX, garanti } from '../../state/combatants';
+ import { GatedAction } from '../GatedAction';
+ import { Grid, Row } from '../Layout';
+-import { coupeAuMot } from '../../lib/coupeAuMot';
++import { coupeAuMot } from '../../lib/coupeAuMot.mjs';
+ 
+ /** Métadonnées d'étape : libellé FR + ÉCRAN de plein rendu. Les HUIT pas passent par la MÊME porte —
+  *  un pas pose ses propres hooks puis compose `CreatorStepFrame` (seule Présentation garde un
+diff --git a/src/ui/editor/DialogueDetail.tsx b/src/ui/editor/DialogueDetail.tsx
+index 97e02057a..e07a584ee 100644
+--- a/src/ui/editor/DialogueDetail.tsx
++++ b/src/ui/editor/DialogueDetail.tsx
+@@ -15,7 +15,7 @@ import { WhenEditor, condSummary } from './ConditionEditor';
+ import { ListRow } from '../ListRow';
+ import { NumberField } from '../NumberField';
+ import { Row, Stack } from '../Layout';
+-import { coupeAuMot } from '../../lib/coupeAuMot';
++import { coupeAuMot } from '../../lib/coupeAuMot.mjs';
+ 
+ /** Ids posables au clic pour `DialogueChoice.icon` — DÉRIVÉS du registre d'icônes (`ICON_DEFS`,
+  *  généré depuis `icons/defs/`), jamais une liste tenue à la main. */
+diff --git a/src/ui/editor/EffectList.tsx b/src/ui/editor/EffectList.tsx
+index 30713a8a4..b51a11216 100644
+--- a/src/ui/editor/EffectList.tsx
++++ b/src/ui/editor/EffectList.tsx
+@@ -35,7 +35,7 @@ import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
+ import { sceneKindSchema } from '../../data/schemas/defs/activities';
+ import { activitiesFor } from '../../engine/activities';
+ import { formatMoney, toMoney } from '../../engine/money';
+-import { coupeAuMot } from '../../lib/coupeAuMot';
++import { coupeAuMot } from '../../lib/coupeAuMot.mjs';
+ 
+ /** Noms des maladies câblées (LDB 20) proposés dans l'éditeur. */
+ const diseaseNames = memoParVersion('maladies', () => Object.keys(diseaseDefs()));
+diff --git a/src/ui/editor/GameOpEditor.seeds.test.tsx b/src/ui/editor/GameOpEditor.seeds.test.tsx
+index 337c73994..bf277405a 100644
+--- a/src/ui/editor/GameOpEditor.seeds.test.tsx
++++ b/src/ui/editor/GameOpEditor.seeds.test.tsx
+@@ -1,18 +1,16 @@
+ // @vitest-environment jsdom
+ import { describe, it, expect, beforeAll, afterEach } from 'vitest';
+ import { act } from 'react';
+-import { createRoot, type Root } from 'react-dom/client';
+ import { GameOpEditor, OP_LABEL, OP_REF_FIELDS, opRefValue } from './GameOpEditor';
+ import type { GameOp } from '../../engine/ops';
+ import { choisirDansMenu, entreeDe, menuDe, ouvrirMenu } from './AddMenu.testkit';
++import { monterRacine, demonterRacines } from '../../monterRacine.testkit';
+ 
+ beforeAll(() => {
+   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+ });
+ 
+-/** Démontages en attente : un test qui échoue avant son `teardown` est démonté par l'`afterEach`. */
+-const montes = new Set<() => Promise<void>>();
+-afterEach(async () => { for (const t of [...montes]) await t(); });
++afterEach(demonterRacines);
+ 
+ /**
+  * PREUVE D'INTERACTION (montage réel, clic réel) : ce que l'auteur obtient EN CLIQUANT dans la palette
+@@ -20,31 +18,21 @@ afterEach(async () => { for (const t of [...montes]) await t(); });
+  * `ref: 'Loup'`) naissait précisément du CLIC de création.
+  */
+ function mount() {
+-  const container = document.createElement('div');
+-  document.body.appendChild(container);
+-  const root: Root = createRoot(container);
+   let ops: GameOp[] = [];
+-  const render = () => root.render(<GameOpEditor ops={ops} onChange={(next) => { ops = next; render(); }} />);
+-  const teardown = async () => {
+-    if (!montes.delete(teardown)) return;
+-    await act(async () => { root.unmount(); });
+-    container.remove();
+-  };
+-  montes.add(teardown);
++  const editeur = () => <GameOpEditor ops={ops} onChange={(next) => { ops = next; montage.rendre(editeur()); }} />;
++  const montage = monterRacine(editeur());
++  const { container } = montage;
+   return {
+-    container, root,
++    container,
+     opsOf: () => ops,
+-    mount: () => act(async () => { render(); }),
+     palette: () => ouvrirMenu(menuDe(container, '+ Op mécanique')),
+     click: (label: string) => choisirDansMenu(menuDe(container, '+ Op mécanique'), label),
+-    teardown,
+   };
+ }
+ 
+ describe('GameOpEditor — création au CLIC : aucune valeur pré-semée, raison visible', () => {
+   it('créer « Accorder un Talent » n’élit aucun talent et affiche la raison', async () => {
+     const h = mount();
+-    await h.mount();
+     await h.click(OP_LABEL.grantTalent);
+ 
+     expect(h.opsOf()).toHaveLength(1);
+@@ -54,17 +42,14 @@ describe('GameOpEditor — création au CLIC : aucune valeur pré-semée, raison
+     const select = Array.from(h.container.querySelectorAll('select')).find((s) => s.value === '');
+     expect(select, 'sélecteur de talent sur la sentinelle vide').toBeTruthy();
+     expect(h.container.innerHTML).toContain('(choisir dans talents)');
+-    await h.teardown();
+   });
+ 
+   it('créer « Invoquer une créature » n’élit aucune créature (fin du mannequin « Loup »)', async () => {
+     const h = mount();
+-    await h.mount();
+     await h.click(OP_LABEL.summon);
+ 
+     expect((h.opsOf()[0] as Extract<GameOp, { op: 'summon' }>).ref).toBe('');
+     expect(h.container.textContent).toContain('Créature à choisir');
+-    await h.teardown();
+   });
+ 
+   it('« Dôme protecteur » : le formulaire porte TOUT ce que l’op porte — Trait et Indice, et RIEN de plus', async () => {
+@@ -72,7 +57,6 @@ describe('GameOpEditor — création au CLIC : aucune valeur pré-semée, raison
+     // que l'op porte, sinon un champ devient inéditable sans que rien ne rougisse (vécu : le rayon).
+     // La ZONE, elle, n'est PAS de l'op : elle vit dans la ligne « Cible » du sort (ZdE), un seul endroit.
+     const h = mount();
+-    await h.mount();
+     await h.click(OP_LABEL.domeWard);
+ 
+     const op = h.opsOf()[0] as Extract<GameOp, { op: 'domeWard' }>;
+@@ -80,24 +64,22 @@ describe('GameOpEditor — création au CLIC : aucune valeur pré-semée, raison
+     expect(h.container.textContent ?? '', 'l’Indice de la sauvegarde s’édite').toContain('Indice');
+     expect(h.container.innerHTML, 'le Trait s’élit dans le registre').toContain('(choisir dans traits)');
+     expect(h.container.querySelectorAll('textarea').length, 'plus de trappe JSON quand le formulaire est complet').toBe(0);
+-    await h.teardown();
+   });
+ 
+   it('TOUTE op créable depuis la palette naît sans réf élue', async () => {
+     let creees = 0;
+     for (const [k, fields] of Object.entries(OP_REF_FIELDS) as [GameOp['op'], typeof OP_REF_FIELDS[GameOp['op']]][]) {
+       const h = mount();
+-      await h.mount();
+       const label = OP_LABEL[k];
+       const entree = entreeDe(await h.palette(), label);
+-      if (!entree) { await h.teardown(); continue; }
++      if (!entree) { demonterRacines(); continue; }
+       await act(async () => { entree.click(); });
+       creees += 1;
+       const fresh = h.opsOf()[0] as unknown as Record<string, unknown>;
+       for (const f of fields ?? []) {
+         expect([undefined, ''], `${k}.${f.field} pré-semé au clic`).toContain(opRefValue(fresh, f.field));
+       }
+-      await h.teardown();
++      demonterRacines();
+     }
+     expect(creees, 'témoin : la palette ouverte propose des ops à réf').toBeGreaterThan(0);
+   });
+diff --git a/src/ui/editor/GameOpEditor.tsx b/src/ui/editor/GameOpEditor.tsx
+index 19e93919f..11ea466dd 100644
+--- a/src/ui/editor/GameOpEditor.tsx
++++ b/src/ui/editor/GameOpEditor.tsx
+@@ -34,7 +34,7 @@ import { NumberField } from '../NumberField';
+ import type { IconIdInput } from '../icons';
+ import { TESTS_DE_CORRUPTION, type TestDeCorruption } from '../../data/schemas/grammaire/valeurs';
+ import { OPTIONAL_RULES, ruleDef } from '../../engine/policy';
+-import { coupeAuMot } from '../../lib/coupeAuMot';
++import { coupeAuMot } from '../../lib/coupeAuMot.mjs';
+ 
+ /** Aide à la SAISIE de l'atelier : nature d'Influence que chaque Compétence repousse (`LDB 19 l.29`).
+  *  Le `Record` est TOTAL sur l'alphabet — un id de plus impose son libellé ici. */
+diff --git a/src/ui/raccourcis-registre.test.ts b/src/ui/raccourcis-registre.test.ts
+index bca7fdd3e..8c06c7be0 100644
+--- a/src/ui/raccourcis-registre.test.ts
++++ b/src/ui/raccourcis-registre.test.ts
+@@ -19,6 +19,8 @@
+  *  3. le registre, son hook et `resoudreEchap` ne lisent jamais `e.key` : les touches sont des
+  *     POSITIONS (`e.code`).
+  *
++ * DÉTECTION : `scripts/guards/lib/raccourcisGlobaux.mjs`.
++ *
+  * PÉRIMÈTRE RESTANT, hors de cette garde et NOMMÉ comme un lot de #1687 (garde « jeu FERMÉ ∪
+  * `rovingKeyDown` ») : les `onKeyDown` de JSX — 20 sites hors tests, dans 15 fichiers (mesuré
+  * 2026-09-09). 7 sont produits par la primitive `rovingKeyDown` (`ui/rovingFocus.ts`, 4 fichiers) ;
+@@ -30,79 +32,62 @@
+  */
+ import { describe, it, expect } from 'vitest';
+ import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
++import { LIGNES_ENTETE, fautesClavier, marquesHorsRegistre, verdictClavier } from '../../scripts/guards/lib/raccourcisGlobaux.mjs';
+ 
+-/** Pose d'un écouteur clavier GLOBAL : la cible est la fenêtre ou le document, pas un nœud du rendu ;
+- *  le type est un littéral clavier, ou une VARIABLE dans un fichier qui nomme un type clavier (littéral
+- *  ou clé d'objet) — une table de types délégués n'échappe pas à la garde. */
+-const ECOUTEUR_LITTERAL = /\b(?:window|document)\.addEventListener\(\s*['"]key(?:down|up)['"]/;
+-const ECOUTEUR_A_TYPE_VARIABLE = /\b(?:window|document)\.addEventListener\(\s*[A-Za-z_$]/;
+-const TYPE_CLAVIER_NOMME = /['"]key(?:down|up)['"]|\bkey(?:down|up)\s*:/;
+-const ecouteurGlobal = (text: string): boolean =>
+-  ECOUTEUR_LITTERAL.test(text) || (ECOUTEUR_A_TYPE_VARIABLE.test(text) && TYPE_CLAVIER_NOMME.test(text));
+-/** Déclaration, DANS le fichier, qu'il porte une couche clavier hors registre par nature. */
+-const MARQUE_HORS_REGISTRE = /@clavier-hors-registre\s+\S/;
+-/** Signal du LECTEUR du registre : il en IMPORTE la table (une mention en commentaire n'est rien). */
+-const IMPORTE_LE_REGISTRE = /import\s*(?:type\s*)?\{[^}]*\bKEYBINDINGS\b[^}]*\}\s*from\s*['"][^'"]*keybindings['"]/;
+-/** EN-TÊTE d'un fichier : ce qu'on lit en l'ouvrant. L'exemption s'y ancre, ou elle n'existe pas. */
+-const LIGNES_ENTETE = 40;
+-const enTete = (text: string): string => text.split('\n').slice(0, LIGNES_ENTETE).join('\n');
+-
+-/** Le fichier est-il en règle ? `null` = oui, sinon la RAISON du refus. */
+-function verdictClavier(text: string): string | null {
+-  if (!ecouteurGlobal(text)) return null;
+-  if (IMPORTE_LE_REGISTRE.test(text)) return null;
+-  if (MARQUE_HORS_REGISTRE.test(enTete(text))) return null;
+-  return MARQUE_HORS_REGISTRE.test(text)
+-    ? `marque « @clavier-hors-registre » hors de l'EN-TÊTE (${LIGNES_ENTETE} premières lignes) — `
+-      + "l'exemption se lit d'emblée, au SITE, ou elle n'exempte rien"
+-    : 'écouteur clavier global hors du registre — pose le raccourci dans `state/keybindings.ts` '
+-      + "(le hook `useGameKeyboard` le jouera), ou déclare la couche dans l'en-tête du fichier par "
+-      + '« @clavier-hors-registre <raison> »';
+-}
+-
+-const CORPUS = readCorpus(['src']);
++/** Témoin : un fichier seul, sous un chemin neutre. */
++const temoin = (text: string) => verdictClavier({ rel: 'temoin.ts', text });
+ 
+ describe('raccourcis — un seul lecteur de clavier global', () => {
+   it('tout écouteur clavier GLOBAL est le lecteur du registre, ou se déclare hors registre par nature', () => {
+-    const fautes = CORPUS
+-      .map(({ rel, text }) => ({ rel, raison: verdictClavier(text) }))
+-      .filter(({ raison }) => raison !== null)
+-      .map(({ rel, raison }) => `${rel} : ${raison}`);
+-    expect(fautes).toEqual([]);
++    expect(fautesClavier(readCorpus(['src']))).toEqual([]);
+   });
+ 
+   it('une marque enfouie EN BAS de fichier n’exempte rien — elle s’ancre dans l’en-tête', () => {
+     const ecouteur = "window.addEventListener('keydown', onKey);\n";
+     const enBas = 'const x = 1;\n'.repeat(LIGNES_ENTETE) + ecouteur
+       + '// @clavier-hors-registre une raison posée là où personne ne la lit\n';
+-    expect(verdictClavier(enBas)).toMatch(/hors de l'EN-TÊTE/);
++    expect(temoin(enBas)).toMatch(/hors de l'EN-TÊTE/);
+     const enHaut = '/** @clavier-hors-registre la couche du dessus possède la touche. */\n'
+       + 'const x = 1;\n'.repeat(LIGNES_ENTETE) + ecouteur;
+-    expect(verdictClavier(enHaut)).toBeNull();
++    expect(temoin(enHaut)).toBeNull();
+   });
+ 
+-  it('un type d’événement VARIABLE (table de délégation) est un écouteur clavier dès qu’un type clavier est nommé', () => {
++  it('un type d’événement VARIABLE se résout : table locale, boucle, rappel `forEach`', () => {
+     const delegue = 'const PHASES = { mouseover: false, keydown: true };\n'
+       + 'for (const [type, capture] of Object.entries(PHASES)) document.addEventListener(type, f, capture);\n';
+-    expect(verdictClavier(delegue)).toMatch(/hors du registre/);
+-    expect(verdictClavier("const SUITE = ['pointermove', 'pointerup'];\nfor (const t of SUITE) window.addEventListener(t, f);\n")).toBeNull();
++    expect(temoin(delegue)).toMatch(/hors du registre/);
++    expect(temoin("const SUITE = ['pointermove', 'pointerup'];\nfor (const t of SUITE) window.addEventListener(t, f);\n")).toBeNull();
++    expect(temoin("const T = ['keyup'] as const;\nT.forEach((t) => window.addEventListener(t, f));\n")).toMatch(/hors du registre/);
++    expect(temoin('const TYPE = "keydown";\ndocument.addEventListener(TYPE, f);\n')).toMatch(/hors du registre/);
++    expect(temoin('function poser(type: string) { window.addEventListener(type, f); }\n')).toMatch(/NON RÉSOLU/);
++  });
++
++  it('la CLASSE, pas la co-occurrence : écouteur local, mot en commentaire, table importée, gabarit', () => {
++    expect(temoin("window.addEventListener('pointermove', f);\nbouton.addEventListener('keydown', g);\n"),
++      'un écouteur clavier LOCAL à côté d’un écouteur global de pointeur').toBeNull();
++    expect(temoin("// 'keydown' n'est ici qu'un mot\nconst T = ['pointermove'];\nfor (const t of T) window.addEventListener(t, f);\n"),
++      '« keydown » dans un commentaire').toBeNull();
++    const table = { rel: 'src/x/types.ts', text: "export const TYPES = ['keydown', 'keyup'] as const;\n" };
++    const lecteur = { rel: 'src/x/lecteur.ts', text: "import { TYPES } from './types';\nfor (const t of TYPES) document.addEventListener(t, f);\n" };
++    expect(verdictClavier(lecteur, [table, lecteur]), 'table importée d’un module du dépôt')
++      .toMatch(/hors du registre/);
++    expect(temoin('window.addEventListener(`keydown`, f);\n'), 'gabarit sans trou').toMatch(/hors du registre/);
+   });
+ 
+   it('« lecteur du registre » = un IMPORT réel, jamais la mention `KEYBINDINGS` en commentaire', () => {
+     const ecouteur = "window.addEventListener('keydown', onKey);\n";
+-    expect(verdictClavier('// cf. KEYBINDINGS pour le reste\n' + ecouteur)).toMatch(/hors du registre/);
+-    expect(verdictClavier("import { KEYBINDINGS } from '../state/keybindings';\n" + ecouteur)).toBeNull();
++    expect(temoin('// cf. KEYBINDINGS pour le reste\n' + ecouteur)).toMatch(/hors du registre/);
++    expect(temoin("import { KEYBINDINGS } from '../state/keybindings';\n" + ecouteur)).toBeNull();
+   });
+ 
+   it('les couches déclarées hors registre EXISTENT et posent bien un écouteur (aucune marque morte)', () => {
+-    const marques = CORPUS.filter(({ text }) => MARQUE_HORS_REGISTRE.test(text));
++    const { marques, mortes } = marquesHorsRegistre(readCorpus(['src']));
+     expect(marques.length, 'la marque doit rester un fait mesuré, pas un vœu').toBeGreaterThan(0);
+-    const mortes = marques.filter(({ text }) => !ecouteurGlobal(text)).map(({ rel }) => rel);
+     expect(mortes, 'marque « @clavier-hors-registre » sans écouteur clavier global').toEqual([]);
+   });
+ 
+   it('le registre et son hook raisonnent en POSITIONS de touche (`e.code`), jamais en caractères', () => {
+-    const surKey = CORPUS
++    const surKey = readCorpus(['src'])
+       .filter(({ rel }) => /state[\\/]keybindings\.ts$|ui[\\/]useGameKeyboard\.ts$|state[\\/]resoudreEchap\.ts$/.test(rel))
+       .filter(({ text }) => /\be\.key\b/.test(text))
+       .map(({ rel }) => rel);
+diff --git a/src/ui/useDismissLayer.ts b/src/ui/useDismissLayer.ts
+index a57d29971..25a170291 100644
+--- a/src/ui/useDismissLayer.ts
++++ b/src/ui/useDismissLayer.ts
+@@ -28,8 +28,7 @@ import {
+   type DismissHandle, type LayerNature, type LayerPlan, type OnDismiss,
+ } from '../state/dismissStack';
+ import { resoudreEchap, echapRelachee } from '../state/resoudreEchap';
+-
+-let montees = 0;
++import { posePartagee } from '../lib/posePartagee';
+ 
+ const onKeyDown = (e: KeyboardEvent) => {
+   // `code` (position physique) ou `key` : la manette virtuelle et les bancs de test émettent l'un ou
+@@ -45,26 +44,22 @@ const onKeyUp = (e: KeyboardEvent) => {
+   if (e.code === CODE_ECHAP || e.key === CODE_ECHAP) echapRelachee();
+ };
+ 
+-function brancherPorte(): void {
+-  if (montees++ > 0) return;
+-  window.addEventListener('keydown', onKeyDown, true);
+-  window.addEventListener('keyup', onKeyUp, true);
+-}
+-function debrancherPorte(): void {
+-  if (--montees > 0) return;
+-  window.removeEventListener('keydown', onKeyDown, true);
+-  window.removeEventListener('keyup', onKeyUp, true);
+-}
++const PORTE = posePartagee(
++  () => {
++    window.addEventListener('keydown', onKeyDown, true);
++    window.addEventListener('keyup', onKeyUp, true);
++  },
++  () => {
++    window.removeEventListener('keydown', onKeyDown, true);
++    window.removeEventListener('keyup', onKeyUp, true);
++  },
++);
+ 
+-/** Remise à zéro de la pile ET de sa porte clavier (refcount + écouteurs) — bancs de test seulement :
+- *  un refcount survivant laisserait la porte branchée entre deux fichiers de test. */
++/** Remise à zéro de la pile ET de sa porte clavier (preneurs + écouteurs) — bancs de test seulement :
++ *  un preneur survivant laisserait la porte branchée entre deux fichiers de test. */
+ export function resetDismissLayers(): void {
+   resetDismissStack();
+-  if (montees > 0) {
+-    window.removeEventListener('keydown', onKeyDown, true);
+-    window.removeEventListener('keyup', onKeyUp, true);
+-  }
+-  montees = 0;
++  PORTE.vider();
+   echapRelachee();
+ }
+ 
+@@ -153,7 +148,7 @@ export function useDismissLayer(
+   couvertRef.current = onCouvert;
+   useEffect(() => {
+     if (!actif) return;
+-    brancherPorte();
++    const rendrePorte = PORTE.prendre();
+     const { kind, nature, plan, boite } = declarationRef.current;
+     // Bloquante (`onDismiss: null`) → elle RESTE : l'appui est consommé, la pile ne bouge pas.
+     const h = pushLayer({ kind, nature, plan, onDismiss: () => (dismissRef.current ? dismissRef.current() : false) });
+@@ -166,7 +161,7 @@ export function useDismissLayer(
+     return () => {
+       desabonner();
+       popLayer(h);
+-      debrancherPorte();
++      rendrePorte();
+     };
+   }, [actif]);
+ }

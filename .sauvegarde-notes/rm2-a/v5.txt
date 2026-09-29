@@ -1,0 +1,12 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game
+
+ ✓ src/ui/App.surcouche-codex.test.tsx (1 test) 1087ms 502 MB heap used
+   ✓ App — la surcouche du Codex ne suspend pas l’écran qu’elle couvre > à l’ouverture de la fiche, le menu reste visible et aucun « Chargement… » ne le remplace 1086ms
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  09:30:59
+   Duration  22.98s (transform 14.86s, setup 13.85s, collect 6.96s, tests 1.09s, environment 655ms, prepare 69ms)
+

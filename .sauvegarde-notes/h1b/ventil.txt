@@ -1,0 +1,4 @@
+ventilation fc2388866 → arbre de travail
+identité   stock 1770 → 1770 · exempté 1138 → 1138 · SORTI 0 = RECLASSÉ 0 + PRIMITIVISÉ 0 + DISPARU 0 · APPARU 0 · RETOURNÉ 0
+espacement stock 702 → 702 · exempté 274 → 274 · SORTI 0 = RECLASSÉ 0 + PRIMITIVISÉ 0 + DISPARU 0 · APPARU 0 · RETOURNÉ 0
+modules franchis : 0

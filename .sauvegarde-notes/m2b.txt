@@ -1,0 +1,11 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1806-L2
+
+ ✓ src/lib/coupeAuMot.test.ts (9 tests | 7 skipped) 46ms 350 MB heap used
+
+ Test Files  1 passed (1)
+      Tests  2 passed | 7 skipped (9)
+   Start at  18:11:49
+   Duration  14.51s (transform 9.06s, setup 14.05s, collect 21ms, tests 46ms, environment 0ms, prepare 52ms)
+

@@ -1,0 +1,27 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1919-H2
+
+ ❯ src/ui/CombatConsole.test.tsx (151 tests | 1 failed | 150 skipped) 41ms 452 MB heap used
+   × CombatConsole — budget de hauteur du pont (arbitrage user 2026-08-17, décision d’écran 2026-09-24) > F-4 — l’icône vaut 60 % du côté, jamais un px figé (ni au CSS, ni au call-site) 39ms
+     → 701×780 : icône/case = 0.50: expected 0.5 to be close to 0.6, received difference is 0.09999999999999998, but expected 5e-7
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 150 skipped (151)
+   Start at  02:00:25
+   Duration  20.87s (transform 12.42s, setup 13.83s, collect 5.87s, tests 41ms, environment 709ms, prepare 61ms)
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/ui/CombatConsole.test.tsx > CombatConsole — budget de hauteur du pont (arbitrage user 2026-08-17, décision d’écran 2026-09-24) > F-4 — l’icône vaut 60 % du côté, jamais un px figé (ni au CSS, ni au call-site)
+AssertionError: 701×780 : icône/case = 0.50: expected 0.5 to be close to 0.6, received difference is 0.09999999999999998, but expected 5e-7
+ ❯ src/ui/CombatConsole.test.tsx:2216:63
+    2214|     for (const [vw, vh] of ECRANS) {
+    2215|       const r = evalLen(decl(racine(), '--cc-ico')!, vw, vh) / cote(vw…
+    2216|       expect(r, `${vw}×${vh} : icône/case = ${r.toFixed(2)}`).toBeClos…
+       |                                                               ^
+    2217|     }
+    2218|     // Aucune taille d'icône FIGÉE au call-site de la console (le CSS …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+

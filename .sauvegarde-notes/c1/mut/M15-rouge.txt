@@ -1,0 +1,31 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1919-H2
+
+ ❯ src/ui/CombatConsole.test.tsx (151 tests | 1 failed | 149 skipped) 309ms 460 MB heap used
+   × CombatConsole — micro-rendu (sondes pixel du juge vision, 2026-08-17) > C-1 — toute boîte de portrait redimensionnée remet son dessin à l’échelle 53ms
+     → expected 'var(--cc-portrait) !important' to be '100% !important' // Object.is equality
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 1 passed | 149 skipped (151)
+   Start at  23:15:04
+   Duration  19.85s (transform 11.89s, setup 13.26s, collect 5.30s, tests 309ms, environment 574ms, prepare 50ms)
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/ui/CombatConsole.test.tsx > CombatConsole — micro-rendu (sondes pixel du juge vision, 2026-08-17) > C-1 — toute boîte de portrait redimensionnée remet son dessin à l’échelle
+AssertionError: expected 'var(--cc-portrait) !important' to be '100% !important' // Object.is equality
+
+Expected: "100% !important"
+Received: "var(--cc-portrait) !important"
+
+ ❯ src/ui/CombatConsole.test.tsx:689:35
+    687|     expect(decl(ruleOf(CC_BASE, '.cc-arch .ptile'), 'width')).toBe('va…
+    688|     const visage = ruleOf(CC_BASE, '.cc-arch .ptile-face, .cc-arch .ri…
+    689|     expect(decl(visage, 'width')).toBe('100% !important');
+       |                                   ^
+    690|     expect(decl(visage, 'height')).toBe('100% !important');
+    691|     const svg = ruleOf(CC_BASE, '.cc-arch .rig-portrait > svg');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+

@@ -1,0 +1,542 @@
+TAP version 13
+# Subtest: optionsDe : les drapeaux et l’option à valeur, sans grammaire empruntée
+ok 1 - optionsDe : les drapeaux et l’option à valeur, sans grammaire empruntée
+  ---
+  duration_ms: 5.221674
+  type: 'test'
+  ...
+# Subtest: nomDeJournal : une branche devient un NOM DE FICHIER légal
+ok 2 - nomDeJournal : une branche devient un NOM DE FICHIER légal
+  ---
+  duration_ms: 0.671648
+  type: 'test'
+  ...
+# Subtest: planDeReprise : journal vide → la première étape
+ok 3 - planDeReprise : journal vide → la première étape
+  ---
+  duration_ms: 0.367381
+  type: 'test'
+  ...
+# Subtest: planDeReprise : la première étape NON verte
+ok 4 - planDeReprise : la première étape NON verte
+  ---
+  duration_ms: 0.261026
+  type: 'test'
+  ...
+# Subtest: planDeReprise : tout vert POUR CETTE TÊTE → rien à jouer
+ok 5 - planDeReprise : tout vert POUR CETTE TÊTE → rien à jouer
+  ---
+  duration_ms: 0.353762
+  type: 'test'
+  ...
+# Subtest: planDeReprise : une étape verte pour une AUTRE tête est À FAIRE (2ᵉ lot sur la même branche)
+ok 6 - planDeReprise : une étape verte pour une AUTRE tête est À FAIRE (2ᵉ lot sur la même branche)
+  ---
+  duration_ms: 0.384117
+  type: 'test'
+  ...
+# Subtest: planDeReprise : la règle de tête porte sur la tête VIVANTE, et une étape SANS estampille est à faire
+ok 7 - planDeReprise : la règle de tête porte sur la tête VIVANTE, et une étape SANS estampille est à faire
+  ---
+  duration_ms: 0.461305
+  type: 'test'
+  ...
+# Subtest: planDeReprise / etatDeLEtape : une étape SANS estampille est à faire, MÊME sans tête vivante
+ok 8 - planDeReprise / etatDeLEtape : une étape SANS estampille est à faire, MÊME sans tête vivante
+  ---
+  duration_ms: 0.267698
+  type: 'test'
+  ...
+# Subtest: jouerLeTrain : joue dans l’ordre et rend vert
+ok 9 - jouerLeTrain : joue dans l’ordre et rend vert
+  ---
+  duration_ms: 1.373017
+  type: 'test'
+  ...
+# Subtest: jouerLeTrain : ARRÊTE à la première rouge
+ok 10 - jouerLeTrain : ARRÊTE à la première rouge
+  ---
+  duration_ms: 0.795416
+  type: 'test'
+  ...
+# Subtest: jouerLeTrain : saute ce que dejaFaite déclare
+ok 11 - jouerLeTrain : saute ce que dejaFaite déclare
+  ---
+  duration_ms: 0.420374
+  type: 'test'
+  ...
+# Subtest: jouerLeTrain : une étape DÉJÀ FAITE s’ENREGISTRE, estampillée à la tête VIVANTE du ctx
+ok 12 - jouerLeTrain : une étape DÉJÀ FAITE s’ENREGISTRE, estampillée à la tête VIVANTE du ctx
+  ---
+  duration_ms: 0.859812
+  type: 'test'
+  ...
+# Subtest: jouerLeTrain : le journal est écrit APRÈS CHAQUE étape
+ok 13 - jouerLeTrain : le journal est écrit APRÈS CHAQUE étape
+  ---
+  duration_ms: 0.328601
+  type: 'test'
+  ...
+# Subtest: jouerLeTrain : une étape INDÉTERMINÉE arrête le train sans le rougir
+ok 14 - jouerLeTrain : une étape INDÉTERMINÉE arrête le train sans le rougir
+  ---
+  duration_ms: 0.235797
+  type: 'test'
+  ...
+# Subtest: jouerLeTrain : une RELANCE remet les étapes nommées à faire et reprend du début
+ok 15 - jouerLeTrain : une RELANCE remet les étapes nommées à faire et reprend du début
+  ---
+  duration_ms: 0.356425
+  type: 'test'
+  ...
+# Subtest: verdictDesRuns : absente, en vol, verte, rouges, annulée
+ok 16 - verdictDesRuns : absente, en vol, verte, rouges, annulée
+  ---
+  duration_ms: 0.37905
+  type: 'test'
+  ...
+# Subtest: verdictDesRuns : un sha ABSENT de la liste, et une course d’un AUTRE workflow, ne disent rien
+ok 17 - verdictDesRuns : un sha ABSENT de la liste, et une course d’un AUTRE workflow, ne disent rien
+  ---
+  duration_ms: 0.189676
+  type: 'test'
+  ...
+# Subtest: verdictDesRuns : une conclusion INCONNUE n’est pas verte, et se dit inattendue
+ok 18 - verdictDesRuns : une conclusion INCONNUE n’est pas verte, et se dit inattendue
+  ---
+  duration_ms: 0.204711
+  type: 'test'
+  ...
+# Subtest: verdictDesRuns : la PREMIÈRE course de la liste triée gouverne
+ok 19 - verdictDesRuns : la PREMIÈRE course de la liste triée gouverne
+  ---
+  duration_ms: 0.195869
+  type: 'test'
+  ...
+# Subtest: estDocDerive
+    # Subtest: estDocDerive : les cibles, les injections et les globs sont DÉRIVÉS
+    ok 1 - estDocDerive : les cibles, les injections et les globs sont DÉRIVÉS
+      ---
+      duration_ms: 1.363637
+      type: 'test'
+      ...
+    # Subtest: estDocDerive : la mesure `.sources-lues.json` et les sorties d’agents:sync sont DÉRIVÉES
+    ok 2 - estDocDerive : la mesure `.sources-lues.json` et les sorties d’agents:sync sont DÉRIVÉES
+      ---
+      duration_ms: 0.19708
+      type: 'test'
+      ...
+    # Subtest: estDocDerive : un MANUSCRIT n’est pas dérivé
+    ok 3 - estDocDerive : un MANUSCRIT n’est pas dérivé
+      ---
+      duration_ms: 0.32563
+      type: 'test'
+      ...
+    # Subtest: partitionSales : des DÉRIVÉS seuls — aucun manuscrit à refuser
+    ok 4 - partitionSales : des DÉRIVÉS seuls — aucun manuscrit à refuser
+      ---
+      duration_ms: 0.36438
+      type: 'test'
+      ...
+    # Subtest: partitionSales : des MANUSCRITS seuls
+    ok 5 - partitionSales : des MANUSCRITS seuls
+      ---
+      duration_ms: 0.269333
+      type: 'test'
+      ...
+    # Subtest: partitionSales : MIXTE — chaque chemin dans son tas, l’ordre conservé
+    ok 6 - partitionSales : MIXTE — chaque chemin dans son tas, l’ordre conservé
+      ---
+      duration_ms: 0.292047
+      type: 'test'
+      ...
+    # Subtest: partitionSales : rien de sale — deux tas vides (et `undefined` ne jette pas)
+    ok 7 - partitionSales : rien de sale — deux tas vides (et `undefined` ne jette pas)
+      ---
+      duration_ms: 0.277383
+      type: 'test'
+      ...
+    1..7
+ok 20 - estDocDerive
+  ---
+  duration_ms: 3.723569
+  type: 'suite'
+  ...
+# Subtest: le contexte du train ne porte que des QUESTIONS et des gestes NOMMÉS aux arguments validés : ni poignée du dépôt, ni commande libre
+ok 21 - le contexte du train ne porte que des QUESTIONS et des gestes NOMMÉS aux arguments validés : ni poignée du dépôt, ni commande libre
+  ---
+  duration_ms: 2.767609
+  type: 'test'
+  ...
+# Subtest: lancementNpm : `npm run <script>` sans shell hors win32 ; `npm.cmd` sous shell sous win32
+ok 22 - lancementNpm : `npm run <script>` sans shell hors win32 ; `npm.cmd` sous shell sous win32
+  ---
+  duration_ms: 0.257643
+  type: 'test'
+  ...
+# Subtest: git INDISPONIBLE : le train LÈVE `GitIndisponible` — ni tête `null`, ni arbre lu propre
+ok 23 - git INDISPONIBLE : le train LÈVE `GitIndisponible` — ni tête `null`, ni arbre lu propre
+  ---
+  duration_ms: 14.009338
+  type: 'test'
+  ...
+# Subtest: git INDISPONIBLE avant le train (racine, branche, tête) : une ligne finale `PUBLICATION: rouge` NOMMÉE, jamais une pile brute
+ok 24 - git INDISPONIBLE avant le train (racine, branche, tête) : une ligne finale `PUBLICATION: rouge` NOMMÉE, jamais une pile brute
+  ---
+  duration_ms: 91.131683
+  type: 'test'
+  ...
+# Subtest: `ctx.commit` sans chemins, ou à chemins vides, LÈVE avant tout spawn : ni `git add -A`, ni commit de tout l’index
+ok 25 - `ctx.commit` sans chemins, ou à chemins vides, LÈVE avant tout spawn : ni `git add -A`, ni commit de tout l’index
+  ---
+  duration_ms: 0.59719
+  type: 'test'
+  ...
+# Subtest: `pousser` refuse `--force-with-lease` vers `main`, sous ses deux noms, AVANT tout spawn
+ok 26 - `pousser` refuse `--force-with-lease` vers `main`, sous ses deux noms, AVANT tout spawn
+  ---
+  duration_ms: 0.387925
+  type: 'test'
+  ...
+# Subtest: ÉCRIVAIN sous config HOSTILE : le commit du train est signé par l’identité de l’UTILISATRICE
+ok 27 - ÉCRIVAIN sous config HOSTILE : le commit du train est signé par l’identité de l’UTILISATRICE
+  ---
+  duration_ms: 134.937576
+  type: 'test'
+  ...
+# Subtest: la SOURCE du train : `gh api` en GET ou POST — aucune route GraphQL, aucun geste de FERMETURE
+ok 28 - la SOURCE du train : `gh api` en GET ou POST — aucune route GraphQL, aucun geste de FERMETURE
+  ---
+  duration_ms: 7.439017
+  type: 'test'
+  ...
+# Subtest: le train n’IMPORTE pas le module qui FERME — l’invariant tient sur les imports, pas sur les argv
+ok 29 - le train n’IMPORTE pas le module qui FERME — l’invariant tient sur les imports, pas sur les argv
+  ---
+  duration_ms: 451.48594
+  type: 'test'
+  ...
+# Subtest: la table des ÉTAPES nomme les neuf étapes, dans l’ordre du régime
+ok 30 - la table des ÉTAPES nomme les neuf étapes, dans l’ordre du régime
+  ---
+  duration_ms: 0.143105
+  type: 'test'
+  ...
+# Subtest: messageDeDerives : un SUJET que la règle du dépôt accepte, le motif au CORPS, pour les deux étapes
+ok 31 - messageDeDerives : un SUJET que la règle du dépôt accepte, le motif au CORPS, pour les deux étapes
+  ---
+  duration_ms: 1.839669
+  type: 'test'
+  ...
+# Subtest: finDeSortie : la FIN de la sortie — les lignes `⛔` si la sortie en porte
+ok 32 - finDeSortie : la FIN de la sortie — les lignes `⛔` si la sortie en porte
+  ---
+  duration_ms: 0.197179
+  type: 'test'
+  ...
+# Subtest: plageDeCitations : le journal quand il PORTE la plage, `origin/main..HEAD` avant le rebase
+ok 33 - plageDeCitations : le journal quand il PORTE la plage, `origin/main..HEAD` avant le rebase
+  ---
+  duration_ms: 0.13739
+  type: 'test'
+  ...
+# Subtest: journalInitial : sans --reprendre, un lot NEUF ignore le journal du disque
+ok 34 - journalInitial : sans --reprendre, un lot NEUF ignore le journal du disque
+  ---
+  duration_ms: 0.237488
+  type: 'test'
+  ...
+# Subtest: journalInitial : avec --reprendre, le journal LU est repris et ses vertes comptées
+ok 35 - journalInitial : avec --reprendre, le journal LU est repris et ses vertes comptées
+  ---
+  duration_ms: 0.146408
+  type: 'test'
+  ...
+# Subtest: journalInitial : --reprendre sans journal sur disque part d’un journal NEUF
+ok 36 - journalInitial : --reprendre sans journal sur disque part d’un journal NEUF
+  ---
+  duration_ms: 0.108014
+  type: 'test'
+  ...
+# Subtest: attenteCiSecondes : le temps d’ATTENTE de la CI vit sur l’étape `ci`, séparé du temps local
+ok 37 - attenteCiSecondes : le temps d’ATTENTE de la CI vit sur l’étape `ci`, séparé du temps local
+  ---
+  duration_ms: 0.099541
+  type: 'test'
+  ...
+# Subtest: modeDuLog : le log suit le journal — lot NEUF tronque, `--reprendre` ajoute
+ok 38 - modeDuLog : le log suit le journal — lot NEUF tronque, `--reprendre` ajoute
+  ---
+  duration_ms: 0.088768
+  type: 'test'
+  ...
+# Subtest: modeDuLog : l’ENFANT de `--detache` n’ouvre JAMAIS en troncature — le parent a déjà tronqué
+ok 39 - modeDuLog : l’ENFANT de `--detache` n’ouvre JAMAIS en troncature — le parent a déjà tronqué
+  ---
+  duration_ms: 0.068165
+  type: 'test'
+  ...
+# Subtest: nomDeRotation : `<nom>.log` devient `<nom>.<AAAAMMJJ-HHMMSS>.log`
+ok 40 - nomDeRotation : `<nom>.log` devient `<nom>.<AAAAMMJJ-HHMMSS>.log`
+  ---
+  duration_ms: 0.221414
+  type: 'test'
+  ...
+# Subtest: rotationnerLog
+    # Subtest: un log NON VIDE est tourné ; le log courant libéré ; un log vide ou absent ne l’est pas
+    ok 1 - un log NON VIDE est tourné ; le log courant libéré ; un log vide ou absent ne l’est pas
+      ---
+      duration_ms: 2.072311
+      type: 'test'
+      ...
+    # Subtest: le bornage est par PÉREMPTION d’ÂGE, et il ne touche QUE les logs tournés
+    ok 2 - le bornage est par PÉREMPTION d’ÂGE, et il ne touche QUE les logs tournés
+      ---
+      duration_ms: 2.139157
+      type: 'test'
+      ...
+    1..2
+ok 41 - rotationnerLog
+  ---
+  duration_ms: 4.754352
+  type: 'suite'
+  ...
+# Subtest: motifDeRotation : il ne prend QUE les logs tournés — ni le log courant, ni le tmp du journal
+ok 42 - motifDeRotation : il ne prend QUE les logs tournés — ni le log courant, ni le tmp du journal
+  ---
+  duration_ms: 0.161924
+  type: 'test'
+  ...
+# Subtest: étape `docs` : déjà faite sur la tête ENREGISTRÉE, pas sur `journal.tete`
+ok 43 - étape `docs` : déjà faite sur la tête ENREGISTRÉE, pas sur `journal.tete`
+  ---
+  duration_ms: 0.153393
+  type: 'test'
+  ...
+# Subtest: synchroniserAgents
+    # Subtest: `agents:check` VERT : `agents:check` est le seul script joué, et l’étape continue
+    ok 1 - `agents:check` VERT : `agents:check` est le seul script joué, et l’étape continue
+      ---
+      duration_ms: 0.28504
+      type: 'test'
+      ...
+    # Subtest: `agents:check` ROUGE : `agents:sync` est joué APRÈS lui, et l’étape continue
+    ok 2 - `agents:check` ROUGE : `agents:sync` est joué APRÈS lui, et l’étape continue
+      ---
+      duration_ms: 0.115478
+      type: 'test'
+      ...
+    # Subtest: `agents:sync` ROUGE : refus qui NOMME le script, son code et ce que le pre-commit ferait
+    ok 3 - `agents:sync` ROUGE : refus qui NOMME le script, son code et ce que le pre-commit ferait
+      ---
+      duration_ms: 0.089545
+      type: 'test'
+      ...
+    1..3
+ok 44 - synchroniserAgents
+  ---
+  duration_ms: 0.599805
+  type: 'suite'
+  ...
+# Subtest: ligneDeDetachement : la trace MACHINE que le parent laisse dans le log
+ok 45 - ligneDeDetachement : la trace MACHINE que le parent laisse dans le log
+  ---
+  duration_ms: 0.115642
+  type: 'test'
+  ...
+# Subtest: citerArgv : un token que `CommandLineToArgvW` relit comme UN argument
+ok 46 - citerArgv : un token que `CommandLineToArgvW` relit comme UN argument
+  ---
+  duration_ms: 0.286843
+  type: 'test'
+  ...
+# Subtest: lancerDetache : sous win32, le train reçoit une console CACHÉE (dont ses enfants héritent)
+ok 47 - lancerDetache : sous win32, le train reçoit une console CACHÉE (dont ses enfants héritent)
+  ---
+  duration_ms: 0.747859
+  type: 'test'
+  ...
+# Subtest: lancerDetache : sous win32, une apostrophe du chemin est CITÉE, jamais interpolée
+ok 48 - lancerDetache : sous win32, une apostrophe du chemin est CITÉE, jamais interpolée
+  ---
+  duration_ms: 0.536075
+  type: 'test'
+  ...
+# Subtest: lancerDetache : sous win32, un chemin de script à ESPACE reste UN argument du train
+ok 49 - lancerDetache : sous win32, un chemin de script à ESPACE reste UN argument du train
+  ---
+  duration_ms: 0.465031
+  type: 'test'
+  ...
+# Subtest: lancerDetache : sous win32, un pid illisible ARRÊTE le lancement au lieu d’annoncer un train fantôme
+ok 50 - lancerDetache : sous win32, un pid illisible ARRÊTE le lancement au lieu d’annoncer un train fantôme
+  ---
+  duration_ms: 0.54646
+  type: 'test'
+  ...
+# Subtest: lancerDetache : hors win32, le détachement reste `detached` + le fd du journal en stdio
+ok 51 - lancerDetache : hors win32, le détachement reste `detached` + le fd du journal en stdio
+  ---
+  duration_ms: 0.493014
+  type: 'test'
+  ...
+# Subtest: filetDuTrainEnfant : la chute d’un train détaché va DANS son journal, avec sa ligne PUBLICATION
+ok 52 - filetDuTrainEnfant : la chute d’un train détaché va DANS son journal, avec sa ligne PUBLICATION
+  ---
+  duration_ms: 0.403773
+  type: 'test'
+  ...
+# Subtest: filetDuTrainEnfant : une promesse rompue tombe par le MÊME filet
+ok 53 - filetDuTrainEnfant : une promesse rompue tombe par le MÊME filet
+  ---
+  duration_ms: 0.137857
+  type: 'test'
+  ...
+# Subtest: corpsDePilotage : un ticket FERMÉ par la plage l’annonce, la marque est la DERNIÈRE ligne
+ok 54 - corpsDePilotage : un ticket FERMÉ par la plage l’annonce, la marque est la DERNIÈRE ligne
+  ---
+  duration_ms: 0.345377
+  type: 'test'
+  ...
+# Subtest: corpsDePilotage : un ticket RATTACHÉ le dit, sans promettre de fermeture
+ok 55 - corpsDePilotage : un ticket RATTACHÉ le dit, sans promettre de fermeture
+  ---
+  duration_ms: 0.176569
+  type: 'test'
+  ...
+# Subtest: corpsDePilotage : fermé par la CI avant le rendu de l’étape `ci`, et fermé par un AUTRE geste
+ok 56 - corpsDePilotage : fermé par la CI avant le rendu de l’étape `ci`, et fermé par un AUTRE geste
+  ---
+  duration_ms: 0.297957
+  type: 'test'
+  ...
+# Subtest: corpsDePilotage : le temps d’ATTENTE de la CI est dit COMME TEL, jamais comme du temps machine
+ok 57 - corpsDePilotage : le temps d’ATTENTE de la CI est dit COMME TEL, jamais comme du temps machine
+  ---
+  duration_ms: 0.179976
+  type: 'test'
+  ...
+# Subtest: titreDeCommit : première ligne, bornée à 120 caractères
+ok 58 - titreDeCommit : première ligne, bornée à 120 caractères
+  ---
+  duration_ms: 0.101748
+  type: 'test'
+  ...
+# Subtest: verdictDuTronc : inchangé, bougé (relance), bougé une SECONDE fois (rouge)
+ok 59 - verdictDuTronc : inchangé, bougé (relance), bougé une SECONDE fois (rouge)
+  ---
+  duration_ms: 0.115581
+  type: 'test'
+  ...
+# Subtest: sortieDe / refusDeGit : la sortie d’un git en échec, jamais vide
+ok 60 - sortieDe / refusDeGit : la sortie d’un git en échec, jamais vide
+  ---
+  duration_ms: 0.271998
+  type: 'test'
+  ...
+# Subtest: ff-main : un refus de git sur un tronc qui a BOUGÉ rend la relance, pas une panne
+ok 61 - ff-main : un refus de git sur un tronc qui a BOUGÉ rend la relance, pas une panne
+  ---
+  duration_ms: 0.284623
+  type: 'test'
+  ...
+# Subtest: ff-main : un refus de git sur un tronc INCHANGÉ est rouge, et DIT ce que git a imprimé
+ok 62 - ff-main : un refus de git sur un tronc INCHANGÉ est rouge, et DIT ce que git a imprimé
+  ---
+  duration_ms: 0.134745
+  type: 'test'
+  ...
+# Subtest: ff-main : un refus SANS sortie nomme le code de sortie
+ok 63 - ff-main : un refus SANS sortie nomme le code de sortie
+  ---
+  duration_ms: 0.10861
+  type: 'test'
+  ...
+# Subtest: ff-main : un tronc bougé une SECONDE fois est rouge — avant comme après le push
+ok 64 - ff-main : un tronc bougé une SECONDE fois est rouge — avant comme après le push
+  ---
+  duration_ms: 0.133618
+  type: 'test'
+  ...
+# Subtest: ff-main : tronc intact et fast-forward accepté → vert
+ok 65 - ff-main : tronc intact et fast-forward accepté → vert
+  ---
+  duration_ms: 0.149752
+  type: 'test'
+  ...
+# Subtest: push-branche : pousse la TÊTE sur SA branche, par un bail — c’est lui qui déclenche la CI
+ok 66 - push-branche : pousse la TÊTE sur SA branche, par un bail — c’est lui qui déclenche la CI
+  ---
+  duration_ms: 0.19733
+  type: 'test'
+  ...
+# Subtest: push-branche : un refus de git est ROUGE et porte ce que git a imprimé
+ok 67 - push-branche : un refus de git est ROUGE et porte ce que git a imprimé
+  ---
+  duration_ms: 0.117362
+  type: 'test'
+  ...
+# Subtest: ci : un run VERT sur la tête rend vert, et le journal porte le temps d’ATTENTE
+ok 68 - ci : un run VERT sur la tête rend vert, et le journal porte le temps d’ATTENTE
+  ---
+  duration_ms: 0.340644
+  type: 'test'
+  ...
+# Subtest: ci : un run ROUGE rend le job et l’URL du run — et RIEN n’est entré dans main
+ok 69 - ci : un run ROUGE rend le job et l’URL du run — et RIEN n’est entré dans main
+  ---
+  duration_ms: 0.216842
+  type: 'test'
+  ...
+# Subtest: ci : une course ANNULÉE n’est pas un vert — elle rougit, en se nommant
+ok 70 - ci : une course ANNULÉE n’est pas un vert — elle rougit, en se nommant
+  ---
+  duration_ms: 0.124935
+  type: 'test'
+  ...
+# Subtest: ci : la borne ÉCOULÉE rend INDÉTERMINÉ, jamais un vert — et le dit
+ok 71 - ci : la borne ÉCOULÉE rend INDÉTERMINÉ, jamais un vert — et le dit
+  ---
+  duration_ms: 0.102594
+  type: 'test'
+  ...
+# Subtest: decisionDeRebase : tronc contenu → aucun rebase ; fusions hors tronc → refus ; sinon rebase
+ok 72 - decisionDeRebase : tronc contenu → aucun rebase ; fusions hors tronc → refus ; sinon rebase
+  ---
+  duration_ms: 0.088959
+  type: 'test'
+  ...
+# Subtest: étape `rebase` sur un VRAI dépôt : train de fusion, puis tronc qui avance
+    # Subtest: tronc CONTENU : relation « contenu », aucun rebase, journal posé, « tronc déjà contenu »
+    ok 1 - tronc CONTENU : relation « contenu », aucun rebase, journal posé, « tronc déjà contenu »
+      ---
+      duration_ms: 42.021866
+      type: 'test'
+      ...
+    # Subtest: le tronc AVANCE : relation « non contenu + fusions », refus NOMMÉ, aucun rebase, histoire intacte
+    ok 2 - le tronc AVANCE : relation « non contenu + fusions », refus NOMMÉ, aucun rebase, histoire intacte
+      ---
+      duration_ms: 73.27362
+      type: 'test'
+      ...
+    # Subtest: branche LINÉAIRE non contenue : un VRAI `git rebase origin/main` sous le contexte RÉEL, histoire linéaire
+    ok 3 - branche LINÉAIRE non contenue : un VRAI `git rebase origin/main` sous le contexte RÉEL, histoire linéaire
+      ---
+      duration_ms: 142.575382
+      type: 'test'
+      ...
+    1..3
+ok 73 - étape `rebase` sur un VRAI dépôt : train de fusion, puis tronc qui avance
+  ---
+  duration_ms: 261.124953
+  type: 'suite'
+  ...
+1..73
+# tests 84
+# suites 4
+# pass 84
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1479.067093

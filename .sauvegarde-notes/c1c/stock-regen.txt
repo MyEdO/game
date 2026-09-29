@@ -1,0 +1,5 @@
+REFUS : /home/user/game/.wt-1919-H2/scripts/guards/lib/cssCouchesStock.mjs : CSS_ESPACEMENT_RATCHET porte 2 entrée(s) NEUVE(S) ou ACCRUE(S) au regard du stock en place (709 entrée(s)) :
+   :: src/ui/styles/combat-console.css :: .cc-arch :: padding :: var(--cc-arch-pad-haut) var(--cc-arch-pad-flanc) var(--cc-arch-pad-bas) :: 1
+   :: src/ui/styles/combat-console.css :: .cc-bay :: padding :: var(--cc-bay-pad) var(--cc-bay-pad) var(--cc-bay-pied) :: 1
+
+Cet outil ne peut qu'écrire un stock PLUS PETIT. Un espacement se pose sur l'échelle `var(--sp-*)` de base.css, il ne s'entérine pas ici.

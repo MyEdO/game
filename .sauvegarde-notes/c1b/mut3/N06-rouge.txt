@@ -1,0 +1,34 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1919-H2
+
+ ❯ src/ui/CombatConsole.test.tsx (151 tests | 1 failed | 150 skipped) 47ms 449 MB heap used
+   × CombatConsole — budget de hauteur du pont (arbitrage user 2026-08-17, décision d’écran 2026-09-24) > G-1 — la travée ne réserve plus de bande sous ses cases : le socle ne paie que ses titres 45ms
+     → --cc-arch-chrome est une cote relevée à la main: expected '59px' not to match /(^|[\s(])\d+(\.\d+)?px/
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 150 skipped (151)
+   Start at  01:49:46
+   Duration  20.52s (transform 12.34s, setup 13.62s, collect 5.74s, tests 47ms, environment 655ms, prepare 58ms)
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/ui/CombatConsole.test.tsx > CombatConsole — budget de hauteur du pont (arbitrage user 2026-08-17, décision d’écran 2026-09-24) > G-1 — la travée ne réserve plus de bande sous ses cases : le socle ne paie que ses titres
+AssertionError: --cc-arch-chrome est une cote relevée à la main: expected '59px' not to match /(^|[\s(])\d+(\.\d+)?px/
+
+- Expected: 
+/(^|[\s(])\d+(\.\d+)?px/
+
++ Received: 
+"59px"
+
+ ❯ src/ui/CombatConsole.test.tsx:2245:80
+    2243|     // diff C1 : une cote relevée à la main se désynchronise en silenc…
+    2244|     for (const nom of ['--cc-bay-socle', '--cc-arch-chrome', '--cc-arc…
+    2245|       expect(decl(racine(), nom), `${nom} est une cote relevée à la ma…
+       |                                                                                ^
+    2246|     }
+    2247|     // … et la LIGNE d'arche des compositions étroites prend la hauteu…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+

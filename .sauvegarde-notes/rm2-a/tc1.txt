@@ -1,0 +1,9 @@
+
+> warhammer-v4-rpg@0.1.0 typecheck:fast
+> node scripts/typecheck-fast.mjs
+
+typecheck:fast — 2 erreur(s)
+src/ui/compendium/CodexRef.test.tsx(3,10): error TS2305: Module '"./CodexRef"' has no exported member 'computePopoverPos'.
+src/ui/editor/AddMenu.test.tsx(6,19): error TS2305: Module '"./AddMenu"' has no exported member 'placeMenu'.
+sortie complète : /home/user/game/node_modules/.cache/typecheck-last.txt
+mode incrémental — au doute : npm run typecheck (full)

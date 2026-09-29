@@ -1,0 +1,27 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1919-H1
+
+ ❯ src/ui/CombatConsole.test.tsx (150 tests | 1 failed | 149 skipped) 36ms 448 MB heap used
+   × CombatConsole — assemblage : UN PONT, pas des blocs > P-7 — le bandeau de phase se pose AU-DESSUS du liseré, et la frise réserve sa hauteur 34ms
+     → le bandeau (spectatrice) déborde hors de la réserve de la couche: expected 51 to be less than or equal to 28
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 149 skipped (150)
+   Start at  20:48:59
+   Duration  19.30s (transform 12.26s, setup 12.60s, collect 5.68s, tests 36ms, environment 594ms, prepare 49ms)
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/ui/CombatConsole.test.tsx > CombatConsole — assemblage : UN PONT, pas des blocs > P-7 — le bandeau de phase se pose AU-DESSUS du liseré, et la frise réserve sa hauteur
+AssertionError: le bandeau (spectatrice) déborde hors de la réserve de la couche: expected 51 to be less than or equal to 28
+ ❯ src/ui/CombatConsole.test.tsx:986:97
+    984|     const hautSpectatrice = pxCalc(decl(ruleOf(CC_BASE, ".cc-phase[dat…
+    985|     for (const [adresse, haut] of [['pont', hautBandeau], ['spectatric…
+    986|       expect(haut - (D + S), `le bandeau (${adresse}) déborde hors de …
+       |                                                                                                 ^
+    987|     }
+    988|     expect(decl(ruleOf(HUD_BASE, '.stage > .stage-flot'), 'grid-templa…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+

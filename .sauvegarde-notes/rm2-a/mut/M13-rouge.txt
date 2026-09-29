@@ -1,0 +1,98 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game
+
+ ❯ src/ui/BoiteAncree.test.tsx (9 tests | 3 failed) 126ms 401 MB heap used
+   × usePlacementAncre — le placement naît au commit d’ouverture > le commit d’ouverture qui déplace l’ancrage : la boîte suit sa position mesurée après ce commit 21ms
+     → placée à la position de l’ancrage après le commit: expected '126px' to be '326px' // Object.is equality
+     → Nœud(s) laissé(s) dans document.body par src/ui/BoiteAncree.test.tsx (2) : <div> <div class="boite-ancree banc-boite">
+Sous test.isolate:false, react-dom est partagé par tout le worker : une racine restée montée se met à jour hors act() pendant les fichiers SUIVANTS, qui rendent alors le vide (#1619).
+Démonter ce que le test monte (act(() => root.unmount()) en afterEach, ou cleanup()) — jamais ajouter une ligne au stock.
+   × usePlacementAncre — le placement naît au commit d’ouverture > un ancrage détaché du document ne pose aucune boîte 14ms
+     → ancrage hors du document : aucune boîte: expected <div …(2)></div> to be null
+     → Nœud(s) laissé(s) dans document.body par src/ui/BoiteAncree.test.tsx (3) : <div> <div class="boite-ancree banc-boite"> <div>
+Sous test.isolate:false, react-dom est partagé par tout le worker : une racine restée montée se met à jour hors act() pendant les fichiers SUIVANTS, qui rendent alors le vide (#1619).
+Démonter ce que le test monte (act(() => root.unmount()) en afterEach, ou cleanup()) — jamais ajouter une ligne au stock.
+   × usePlacementAncre — le placement naît au commit d’ouverture > rendu serveur : aucun avertissement d’effet de mise en page 7ms
+     → Nœud(s) laissé(s) dans document.body par src/ui/BoiteAncree.test.tsx (3) : <div> <div class="boite-ancree banc-boite"> <div>
+Sous test.isolate:false, react-dom est partagé par tout le worker : une racine restée montée se met à jour hors act() pendant les fichiers SUIVANTS, qui rendent alors le vide (#1619).
+Démonter ce que le test monte (act(() => root.unmount()) en afterEach, ou cleanup()) — jamais ajouter une ligne au stock.
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/ui/BoiteAncree.test.tsx > usePlacementAncre — le placement naît au commit d’ouverture > le commit d’ouverture qui déplace l’ancrage : la boîte suit sa position mesurée après ce commit
+AssertionError: placée à la position de l’ancrage après le commit: expected '126px' to be '326px' // Object.is equality
+
+Expected: "326px"
+Received: "126px"
+
+ ❯ src/ui/BoiteAncree.test.tsx:105:110
+    103|     act(() => { bouton.click(); });
+    104|     const boite = document.querySelector<HTMLElement>('.banc-boite')!;
+    105|     expect(boite.style.getPropertyValue('--ancre-top'), 'placée à la p…
+       |                                                                                                              ^
+    106|     act(() => { root.unmount(); });
+    107|     container.remove();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/5]⎯
+
+ FAIL  src/ui/BoiteAncree.test.tsx > usePlacementAncre — le placement naît au commit d’ouverture > le commit d’ouverture qui déplace l’ancrage : la boîte suit sa position mesurée après ce commit
+Error: Nœud(s) laissé(s) dans document.body par src/ui/BoiteAncree.test.tsx (2) : <div> <div class="boite-ancree banc-boite">
+Sous test.isolate:false, react-dom est partagé par tout le worker : une racine restée montée se met à jour hors act() pendant les fichiers SUIVANTS, qui rendent alors le vide (#1619).
+Démonter ce que le test monte (act(() => root.unmount()) en afterEach, ou cleanup()) — jamais ajouter une ligne au stock.
+ ❯ src/test-setup.ts:395:24
+    393|       } else {
+    394|         const msg = messageResiduDom(fichier, residus);
+    395|         if (msg) throw new Error(msg);
+       |                        ^
+    396|       }
+    397|     }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/5]⎯
+
+ FAIL  src/ui/BoiteAncree.test.tsx > usePlacementAncre — le placement naît au commit d’ouverture > un ancrage détaché du document ne pose aucune boîte
+AssertionError: ancrage hors du document : aucune boîte: expected <div …(2)></div> to be null
+
+- Expected: 
+null
+
++ Received: 
+<div
+  class="boite-ancree banc-boite"
+  style="--ancre-left: 40px; --ancre-top: 126px; --ancre-bottom: auto; --ancre-h: 460px; --ancre-w: 320px;"
+>
+  boîte
+</div>
+
+ ❯ src/ui/BoiteAncree.test.tsx:117:94
+    115|     act(() => { root.render(<Banc journal={journal} detacher />); });
+    116|     act(() => { container.querySelector('button')!.click(); });
+    117|     expect(document.querySelector('.banc-boite'), 'ancrage hors du doc…
+       |                                                                                              ^
+    118|     act(() => { root.unmount(); });
+    119|     container.remove();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/5]⎯
+
+ FAIL  src/ui/BoiteAncree.test.tsx > usePlacementAncre — le placement naît au commit d’ouverture > un ancrage détaché du document ne pose aucune boîte
+ FAIL  src/ui/BoiteAncree.test.tsx > usePlacementAncre — le placement naît au commit d’ouverture > rendu serveur : aucun avertissement d’effet de mise en page
+Error: Nœud(s) laissé(s) dans document.body par src/ui/BoiteAncree.test.tsx (3) : <div> <div class="boite-ancree banc-boite"> <div>
+Sous test.isolate:false, react-dom est partagé par tout le worker : une racine restée montée se met à jour hors act() pendant les fichiers SUIVANTS, qui rendent alors le vide (#1619).
+Démonter ce que le test monte (act(() => root.unmount()) en afterEach, ou cleanup()) — jamais ajouter une ligne au stock.
+ ❯ src/test-setup.ts:395:24
+    393|       } else {
+    394|         const msg = messageResiduDom(fichier, residus);
+    395|         if (msg) throw new Error(msg);
+       |                        ^
+    396|       }
+    397|     }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/5]⎯
+
+ Test Files  1 failed (1)
+      Tests  3 failed | 6 passed (9)
+   Start at  10:08:43
+   Duration  15.67s (transform 9.45s, setup 14.25s, collect 117ms, tests 126ms, environment 720ms, prepare 71ms)
+
+
+exit=1

@@ -1,0 +1,27 @@
+ docs/charte-ui.md                       |  78 +++++---
+ docs/consommateurs-de-champs.md         |   2 +-
+ docs/orphelines-donnees.md              |   2 +-
+ docs/raw/reconciliation.md              |   2 +-
+ docs/registre-jets.md                   |   2 +-
+ docs/usages-jets.md                     |   2 +-
+ scripts/guards/lib/cssCouchesStock.mjs  |   1 -
+ scripts/recette/hud-clickables.mjs      | 192 ++++++++++++++++--
+ scripts/recette/hud-clickables.test.mjs | 106 +++++++---
+ scripts/recette/lib.mjs                 |  40 +++-
+ scripts/recette/lib.test.mjs            |  26 +++
+ src/ui/CampaignView.tsx                 | 136 +++++++------
+ src/ui/CombatConsole.test.tsx           | 123 +++++-------
+ src/ui/CombatConsole.tsx                |  91 +++++----
+ src/ui/ExplorationDock.test.tsx         |  67 ++++++-
+ src/ui/PovControls.tsx                  |   3 +-
+ src/ui/styles/combat-banner.css         |  44 +----
+ src/ui/styles/combat-console.css        |  61 ++----
+ src/ui/styles/exploration-dock.css      |  34 +---
+ src/ui/styles/hud.css                   | 332 ++++++++++++++++----------------
+ src/ui/styles/initiative-strip.css      |  64 ++----
+ src/ui/styles/log-drawer.css            |  47 +----
+ src/ui/styles/objective-banner.css      |   3 +-
+ src/ui/styles/party-dock.css            |   7 +-
+ src/ui/styles/spectator-chip.css        |   2 +-
+ src/ui/ui-ratchets.test.ts              |  34 ++--
+ 26 files changed, 847 insertions(+), 654 deletions(-)

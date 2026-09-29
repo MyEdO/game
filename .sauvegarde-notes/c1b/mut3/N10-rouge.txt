@@ -1,0 +1,31 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1919-H2
+
+ ❯ src/ui/CombatConsole.test.tsx (151 tests | 1 failed | 150 skipped) 70ms 450 MB heap used
+   × CombatConsole — trois formes, une seule bande > la RÉSERVE de bande est déclarée UNE fois, en PLANCHER, et aucune forme ne la reprend 68ms
+     → le coin n’est pas compté à sa largeur quand il manque: expected 'auto' to be 'var(--cc-corner)' // Object.is equality
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 150 skipped (151)
+   Start at  01:54:05
+   Duration  19.07s (transform 11.53s, setup 12.64s, collect 5.37s, tests 70ms, environment 583ms, prepare 50ms)
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/ui/CombatConsole.test.tsx > CombatConsole — trois formes, une seule bande > la RÉSERVE de bande est déclarée UNE fois, en PLANCHER, et aucune forme ne la reprend
+AssertionError: le coin n’est pas compté à sa largeur quand il manque: expected 'auto' to be 'var(--cc-corner)' // Object.is equality
+
+Expected: "var(--cc-corner)"
+Received: "auto"
+
+ ❯ src/ui/CombatConsole.test.tsx:1132:112
+    1130|     }
+    1131|     const cols = decl(ruleOf(CC_BASE, '.cc-dock'), 'grid-template-colu…
+    1132|     expect(cols.split(/\s+(?![^(]*\))/).slice(-1)[0], 'le coin n’est p…
+       |                                                                                                                ^
+    1133|     expect(decl(ruleOf(CC_BASE, '.cc-arch'), 'grid-column'), 'seule da…
+    1134|     // La forme spectatrice ÉTEINT la matière de la bande sans toucher…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+

@@ -1,0 +1,27 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1919-H2
+
+ ❯ src/ui/CombatConsole.test.tsx (151 tests | 1 failed | 150 skipped) 87ms 453 MB heap used
+   × CombatConsole — budget de hauteur du pont (arbitrage user 2026-08-17, décision d’écran 2026-09-24) > G-3 — le PORTRAIT se tire de la HAUTEUR d’écran, et il REMPLIT l’arche sans jamais la faire grandir 85ms
+     → 1366×650 : corps + habillage ≠ arche: expected 135.7 to be close to 138.7, received difference is 3, but expected 5e-7
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 150 skipped (151)
+   Start at  01:52:30
+   Duration  21.29s (transform 13.09s, setup 14.57s, collect 5.55s, tests 87ms, environment 662ms, prepare 58ms)
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/ui/CombatConsole.test.tsx > CombatConsole — budget de hauteur du pont (arbitrage user 2026-08-17, décision d’écran 2026-09-24) > G-3 — le PORTRAIT se tire de la HAUTEUR d’écran, et il REMPLIT l’arche sans jamais la faire grandir
+AssertionError: 1366×650 : corps + habillage ≠ arche: expected 135.7 to be close to 138.7, received difference is 3, but expected 5e-7
+ ❯ src/ui/CombatConsole.test.tsx:2322:124
+    2320|     for (const [vw, vh] of [[1366, 650], [1707, 780], [701, 780]] as […
+    2321|       const corps = decl(ruleOf(CC_BASE, '.cc-arch-body'), 'height')!;
+    2322|       expect(evalLen(corps, vw, vh) + evalLen('var(--cc-arch-chrome)',…
+       |                                                                                                                            ^
+    2323|     }
+    2324|     expect(decl(ruleOf(CC_BASE, '.cc-gutter-rail'), 'flex')).toBe('1 1…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+

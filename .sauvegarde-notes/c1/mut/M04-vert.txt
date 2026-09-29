@@ -1,0 +1,12 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1919-H2
+
+ ✓ src/ui/CombatConsole.test.tsx (151 tests | 150 skipped) 410ms 461 MB heap used
+   ✓ CombatConsole — droit de la travée et du coin (juge vision 2026-08-17) > D-3 — le coin grave toujours ESPACE ; l’état du tour se lit dans son infobulle 408ms
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 150 skipped (151)
+   Start at  23:07:11
+   Duration  20.13s (transform 11.80s, setup 13.08s, collect 5.59s, tests 410ms, environment 577ms, prepare 60ms)
+

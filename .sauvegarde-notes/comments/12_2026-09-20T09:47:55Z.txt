@@ -1,0 +1,26 @@
+## Sous-lot 2d, bloc γ, étape 2 (temps 1) — publié
+
+État MESURÉ après le commit `09880b160` (entré dans main, CI de branche verte) (`scripts/guards/lib/cssCouchesStock.mjs`) :
+
+| Stock | Avant (γ étape 1) | Après (γ2 temps 1) |
+|---|---|---|
+| identité | 1400 | 1382 |
+| espacement | 637 | 628 |
+| `style=` inline | 97 | 97 |
+| `combat-ui.css` | 217 lignes | 149 lignes |
+| `!important` (toutes feuilles) | 32 | 28 |
+
+**SOLDÉ contre DÉPLACÉ** (distinction désormais tenue à chaque lot) : les 27 entrées retirées sont celles de la boîte de victoire, SOLDÉES par composition (`VictoryScreen` compose `Modal`, la rubrique d'équipement compose `.panel.gold`) — ces règles n'existent plus. `.panel h3` / `.panel label` / `.radio` sont DÉPLACÉES vers la couche partagée (`components.css`, exempte du stock) : c'est le contrat de #1834, pas un solde d'identité.
+
+**Régime** : consigne utilisateur du 2026-09-20 consignée sur #1811 (la conservation au pixel n'est plus exigée : on converge vers la primitive canonique, captures avant / après). Ce commit CHANGE le rendu de l'écran de victoire : titre `<h1>` 40px or centré → titre de modale ; rubrique Équipement → `.panel.gold` ; boîte = matière des modales. Captures `public/qc/soldes/1806-2d-g2-victoire-*.png` (après) contre `1806-2d-02-victoire-*.png` (avant). Tout le reste est prouvé inchangé AU PIXEL (fenêtre de butin ; dossier de navire, écran entier, 1440 et 360).
+
+**Seconde consigne du jour** (verbatim, à propos de ma proposition d'un stock décroissant de plus pour les `!important`) : « L'application c'est un dépot de stock decroissant. Surtout que c'est toi qui a mis ces !important il y a quelques jours ». Vérifié au `git log` : `74b952861` (2026-09-18, #1792) a posé 11 `!important` dans `base.css` et une garde qui les exige. Conséquence : AUCUN registre neuf ; une classe de défaut trouvée se corrige à zéro avec une garde absolue, ou devient un ticket.
+
+**Tickets ouverts** : #1838 (zéro `!important` : typer les sélecteurs `input` trop généraux, tuer `.panel label`) ; #1837 (`--gap` hérite : une primitive de layout imbriquée sans `gap` prend l'écart de son parent).
+
+**#1834** : contrat tenu dans ce commit ; sa fermeture suit dans un commit de clôture (solde écrit), après la revue de palier que le garde exige.
+
+**Reste avant la clôture de #1806** :
+1. Bloc γ, temps 2 : coop (`MenuSubScreen`, `coopPanels` découpé en parties à props pour avoir un spécimen, erreur en `chip tone-danger` + `role="alert"`, les 2 `!important` de `.coop-assign-row`).
+2. Les 9 unités de `hud.css`.
+3. #1835 décision 1 — l'art réellement unique d'un écran (le beat d'ouverture).

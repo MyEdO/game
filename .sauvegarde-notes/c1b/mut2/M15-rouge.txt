@@ -1,0 +1,31 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1919-H2
+
+ ❯ src/ui/CombatConsole.test.tsx (151 tests | 1 failed | 149 skipped) 293ms 460 MB heap used
+   × CombatConsole — micro-rendu (sondes pixel du juge vision, 2026-08-17) > C-1 — toute boîte de portrait redimensionnée remet son dessin à l’échelle 44ms
+     → expected 'var(--cc-portrait)' to be '100%' // Object.is equality
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 1 passed | 149 skipped (151)
+   Start at  01:39:44
+   Duration  19.92s (transform 12.11s, setup 12.95s, collect 5.69s, tests 293ms, environment 594ms, prepare 53ms)
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/ui/CombatConsole.test.tsx > CombatConsole — micro-rendu (sondes pixel du juge vision, 2026-08-17) > C-1 — toute boîte de portrait redimensionnée remet son dessin à l’échelle
+AssertionError: expected 'var(--cc-portrait)' to be '100%' // Object.is equality
+
+Expected: "100%"
+Received: "var(--cc-portrait)"
+
+ ❯ src/ui/CombatConsole.test.tsx:714:35
+    712|     expect(decl(ruleOf(CC_BASE, '.cc-arch .ptile'), 'width')).toBe('va…
+    713|     const visage = ruleOf(CC_BASE, '.cc-arch .ptile-face, .cc-arch .ri…
+    714|     expect(decl(visage, 'width')).toBe('100%');
+       |                                   ^
+    715|     expect(decl(visage, 'height')).toBe('100%');
+    716|     // Sans `!important` : `PortraitTile` pose sa taille nominale en V…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+

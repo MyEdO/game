@@ -1,0 +1,27 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1919-H2
+
+ ❯ src/ui/CombatConsole.test.tsx (151 tests | 1 failed | 150 skipped) 64ms 449 MB heap used
+   × CombatConsole — micro-rendu, 2ᵉ passe du juge vision (2026-08-17) > E-3 — la hauteur du pont est FIXE : la rangée de munition est réservée, jamais ajoutée 61ms
+     → portrait trop grand pour l’arche à 1920×1080: expected 242.44 to be less than or equal to 232.440001
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 150 skipped (151)
+   Start at  01:40:32
+   Duration  20.48s (transform 12.39s, setup 13.52s, collect 5.84s, tests 64ms, environment 631ms, prepare 68ms)
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/ui/CombatConsole.test.tsx > CombatConsole — micro-rendu, 2ᵉ passe du juge vision (2026-08-17) > E-3 — la hauteur du pont est FIXE : la rangée de munition est réservée, jamais ajoutée
+AssertionError: portrait trop grand pour l’arche à 1920×1080: expected 242.44 to be less than or equal to 232.440001
+ ❯ src/ui/CombatConsole.test.tsx:1992:10
+    1990|       // L'arche tient son portrait et son habillage : le portrait ne …
+    1991|       expect(lu('var(--cc-portrait)') + lu('var(--cc-arch-chrome)'), `…
+    1992|         .toBeLessThanOrEqual(lu(decl(racine, '--cc-arch-h')!) + 1e-6);
+       |          ^
+    1993|     }
+    1994|     // Ce liseré est bien celui du pont, pas un nombre en l'air : la p…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+

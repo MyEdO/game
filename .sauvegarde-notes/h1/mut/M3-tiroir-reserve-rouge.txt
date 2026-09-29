@@ -1,0 +1,110 @@
+gen-registry: 33 registres à jour
+
+ RUN  v2.1.9 /home/user/game/.wt-1919-H1
+
+ ❯ src/ui/ExplorationDock.test.tsx (19 tests | 1 failed | 18 skipped) 261ms 526 MB heap used
+   × Zone 11 — la RÉSERVE du pont est lisible, et le pont est COMPACT > le tiroir-journal est assis SUR le pont, et son panneau naît de son bouton 259ms
+     → le pont relit une réserve du HUD pour borner le panneau: expected '\n\n\n:root {\n  \n  --xd-row: 42px;\…' not to match /\.ld-panel|70px/
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 18 skipped (19)
+   Start at  20:41:42
+   Duration  25.33s (transform 15.23s, setup 14.34s, collect 9.66s, tests 261ms, environment 620ms, prepare 70ms)
+
+stderr | src/ui/ExplorationDock.test.tsx > Zone 11 — la RÉSERVE du pont est lisible, et le pont est COMPACT > le tiroir-journal est assis SUR le pont, et son panneau naît de son bouton
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+THREE.WebGLRenderer: THREE.WebGLRenderer: Error creating WebGL context.
+GameStage3D: aucun contexte WebGL — le monde ne peut pas être peint. Error: THREE.WebGLRenderer: Error creating WebGL context.
+    at new WebGLRenderer (file:///home/user/game/.wt-1919-H1/node_modules/three/build/three.module.js:16399:13)
+    at /home/user/game/.wt-1919-H1/src/gameIso/stage/GameStage3D.tsx:1548:64
+    at commitHookEffectListMount (/home/user/game/.wt-1919-H1/node_modules/react-dom/cjs/react-dom.development.js:23189:26)
+    at commitPassiveMountOnFiber (/home/user/game/.wt-1919-H1/node_modules/react-dom/cjs/react-dom.development.js:24970:11)
+    at commitPassiveMountEffects_complete (/home/user/game/.wt-1919-H1/node_modules/react-dom/cjs/react-dom.development.js:24930:9)
+    at commitPassiveMountEffects_begin (/home/user/game/.wt-1919-H1/node_modules/react-dom/cjs/react-dom.development.js:24917:7)
+    at commitPassiveMountEffects (/home/user/game/.wt-1919-H1/node_modules/react-dom/cjs/react-dom.development.js:24905:3)
+    at flushPassiveEffectsImpl (/home/user/game/.wt-1919-H1/node_modules/react-dom/cjs/react-dom.development.js:27078:3)
+    at flushPassiveEffects (/home/user/game/.wt-1919-H1/node_modules/react-dom/cjs/react-dom.development.js:27023:14)
+    at /home/user/game/.wt-1919-H1/node_modules/react-dom/cjs/react-dom.development.js:26808:9
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/ui/ExplorationDock.test.tsx > Zone 11 — la RÉSERVE du pont est lisible, et le pont est COMPACT > le tiroir-journal est assis SUR le pont, et son panneau naît de son bouton
+AssertionError: le pont relit une réserve du HUD pour borner le panneau: expected '\n\n\n:root {\n  \n  --xd-row: 42px;\…' not to match /\.ld-panel|70px/
+
+- Expected: 
+/\.ld-panel|70px/
+
++ Received: 
+"
+
+
+:root {
+  
+  --xd-row: 42px;
+  
+  --xd-deck-h: calc(var(--xd-row) + 4px + var(--pont-liseret));
+}
+@media (pointer: coarse) {
+  :root {
+    --xd-row: 44px;
+  }
+}
+
+.exploration-dock {
+  position: relative;
+  z-index: 5;
+  min-height: var(--xd-deck-h);
+  display: flex;
+  align-items: center;
+  gap: var(--cc-bay-gap);
+  padding: 2px 10px;
+  
+  --pont-pos: 0 calc(var(--cc-deck-h) - var(--pont-liseret) - var(--pont-band));
+  
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.55);
+}
+
+.exploration-dock .ld-panel { max-height: calc(100vh - 70px); }
+.xd-openers {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+@media (max-width: 700px) {
+  .exploration-dock {
+    padding-left: 6px;
+    padding-right: 6px;
+  }
+  .xd-openers {
+    gap: 5px;
+  }
+}
+@media (max-width: 560px) {
+  
+  .xd-openers {
+    min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .xd-openers::-webkit-scrollbar {
+    display: none;
+  }
+  .xd-openers > * {
+    flex: 0 0 auto;
+  }
+}
+"
+
+ ❯ src/ui/ExplorationDock.test.tsx:322:107
+    320|     act(() => { (tiroir.querySelector('.ld-btn') as HTMLButtonElement)…
+    321|     expect(tiroir.querySelector('.ld-panel'), 'le panneau ne naît pas …
+    322|     expect(styles('exploration-dock.css'), 'le pont relit une réserve …
+       |                                                                                                           ^
+    323|   });
+    324| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
