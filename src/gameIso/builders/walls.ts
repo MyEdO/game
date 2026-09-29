@@ -31,6 +31,7 @@ import {
 } from './roofs';
 import { facadeDeLArete, type FacadeEdge } from '../../state/facadeEdges';
 import { cleArete, areteEntre } from '../../geometry/arete';
+import { chebyshev } from '../../engine/grid';
 
 // ── Constantes de FORME (fractions de WALL_H / de l'arête, épaisseurs px-iso converties en mètres) ──
 /** Ouverture d'une baie dont l'apparence ne déclare pas de bloc `door` : arête que `validateScene` refuse
@@ -350,7 +351,7 @@ export function coupeDuMur(faces: readonly Face[], ends: readonly [GP, GP], hc: 
     }
     const epaisseurM = faceDepthM(face) ?? 0;
     const demiCroix = face.poly.length === 2
-      ? ((epaisseurM / 2) * Math.max(Math.abs(B.x - A.x), Math.abs(B.y - A.y))) / L / (L * mpt)
+      ? ((epaisseurM / 2) * chebyshev(A, B)) / L / (L * mpt)
       : 0;
     out.push({ part, apparence: face.material.id, t0: Math.min(...span) - demiCroix, t1: Math.max(...span) + demiCroix, epaisseurM, classe });
   }

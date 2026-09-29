@@ -5,7 +5,8 @@ import { catalogEntry, MISSING_ID, MISSING_TONE, MISSING_TONE_DARK } from '../mi
 export type { StructureAppearanceDef, WallPart } from './types';
 export { WALL_PARTS } from './types';
 
-const MAP: Record<string, StructureAppearanceDef> = Object.fromEntries(structureAppearances.map((s) => [s.id, s]));
+/** Apparences de structure par id — le registre que `structureAppearance` lit à l'appel. */
+export const STRUCTURE_APPEARANCE_BY_ID: Record<string, StructureAppearanceDef> = Object.fromEntries(structureAppearances.map((s) => [s.id, s]));
 
 /** Entrée de REPLI VISIBLE (#877) : un mur au ton d'alarme, jamais l'apparence d'une autre structure. */
 const MISSING: StructureAppearanceDef = {
@@ -22,7 +23,7 @@ const MISSING: StructureAppearanceDef = {
  *  `validateScene` nomme (#832) : repli VISIBLE + avertissement DEV, jamais l'identité d'une autre
  *  apparence. */
 export function structureAppearance(id: string | undefined): StructureAppearanceDef {
-  return catalogEntry((cle) => MAP[cle], id ?? MISSING_ID, 'structure', MISSING);
+  return catalogEntry((cle) => STRUCTURE_APPEARANCE_BY_ID[cle], id ?? MISSING_ID, 'structure', MISSING);
 }
 
 /** Couleur ÉMISSIVE d'une fenêtre allumée (nuit) — celle du bloc `window` de la def. Source unique iso + POV. */

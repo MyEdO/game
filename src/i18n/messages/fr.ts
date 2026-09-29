@@ -2482,4 +2482,14 @@ export const fr = {
   'chap.tombesVide': 'Aucune perte — la compagnie est entière.',
   'chap.seance': 'Fin de séance',
   'chap.poursuivre': 'Poursuivre',
+  // Compatibilité apparence × forme des arêtes et des façades (#1883) — refus que `validateScene` émet
+  // (`state/compatibiliteArete.ts`).
+  'arete.apparenceAbsente': '{ou} : l’apparence « {id} » est absente du catalogue des apparences de mur.',
+  'arete.formeNonHabillee': '{ou} : l’apparence « {apparence} » n’habille pas la forme {formes} — elle admet {admises}. Change l’apparence, ou la nature de l’arête.',
+  'arete.lieu': 'Arête {arete}',
+  'facade.presetInconnu': 'Façade « {section} » ({corps}) : « {apparence} » n’est pas un préset de façade.',
+  'facade.lieuOrnement': 'Façade « {section} » ({corps}), ornement « {ornement} » ({libelle})',
+  'facade.decorAbsent': '{ou} : le préset « {preset} » n’a pas de décor « {libelle} ».',
+  'facade.sansApparence': '{ou} : aucune apparence — ni la sienne, ni celle que route le préset « {preset} ».',
+  'facade.fenetreNonHabillee': '{ou} : l’apparence « {apparence} » n’habille pas la forme {forme}.',
 } as const;

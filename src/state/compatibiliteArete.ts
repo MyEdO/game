@@ -9,6 +9,7 @@ import { facadeFeatureKindSchema } from '../data/schemas/defs-scenes/scene';
 import { valeursDe } from '../data/schemas/grammaire/meta';
 import { formesAdmises, type FormeArete } from '../data/formesDArete';
 import { apparenceDeLArete, apparenceDOrnement, apparenceParId, formesHorsCompatibilite, libelleArete } from './formeArete';
+import { t } from '../i18n';
 
 const LIBELLE_FORME: Record<FormeArete, string> = {
   'mur-nu': 'mur nu',
@@ -30,17 +31,17 @@ const LIBELLE_ORNEMENT = valeursDe(facadeFeatureKindSchema) as Readonly<Record<F
 export function aretesHorsCompatibilite(scene: Pick<Scene, 'walls' | 'architecture'>): string[] {
   const out: string[] = [];
   for (const w of scene.walls ?? []) {
-    const ou = `Arête ${libelleArete(w)}`;
+    const ou = t('arete.lieu', { arete: libelleArete(w) });
     const id = apparenceDeLArete(scene, w);
     if (id === undefined) continue;
     const app = apparenceParId(id);
     if (!app) {
-      out.push(`${ou} : l’apparence « ${id} » est absente du catalogue des apparences de mur.`);
+      out.push(t('arete.apparenceAbsente', { ou, id }));
       continue;
     }
     const hors = formesHorsCompatibilite(w, app);
     if (hors.length)
-      out.push(`${ou} : l’apparence « ${app.label} » n’habille pas la forme ${libelles(hors)} — elle admet ${libelles(formesAdmises(app))}. Change l’apparence, ou la nature de l’arête.`);
+      out.push(t('arete.formeNonHabillee', { ou, apparence: app.label, formes: libelles(hors), admises: libelles(formesAdmises(app)) }));
   }
   return out;
 }
@@ -55,22 +56,22 @@ export function facadesHorsCompatibilite(scene: Pick<Scene, 'architecture'>): st
     for (const section of body.facades) {
       const preset = facadePreset(section.appearance);
       if (!preset) {
-        out.push(`Façade « ${section.id} » (${body.id}) : « ${section.appearance} » n’est pas un préset de façade.`);
+        out.push(t('facade.presetInconnu', { section: section.id, corps: body.id, apparence: section.appearance }));
         continue;
       }
       for (const feature of section.features ?? []) {
         const libelle = LIBELLE_ORNEMENT[feature.kind];
-        const ou = `Façade « ${section.id} » (${body.id}), ornement « ${feature.id} » (${libelle})`;
+        const ou = t('facade.lieuOrnement', { section: section.id, corps: body.id, ornement: feature.id, libelle });
         if (KINDS_DE_DECOR.has(feature.kind)) {
-          if (!preset.features[feature.kind]) out.push(`${ou} : le préset « ${preset.id} » n’a pas de décor « ${libelle} ».`);
+          if (!preset.features[feature.kind]) out.push(t('facade.decorAbsent', { ou, preset: preset.id, libelle }));
           continue;
         }
         const id = apparenceDOrnement(section.appearance, feature);
         const app = id === undefined ? undefined : apparenceParId(id);
-        if (id === undefined) out.push(`${ou} : aucune apparence — ni la sienne, ni celle que route le préset « ${preset.id} ».`);
-        else if (!app) out.push(`${ou} : l’apparence « ${id} » est absente du catalogue des apparences de mur.`);
+        if (id === undefined) out.push(t('facade.sansApparence', { ou, preset: preset.id }));
+        else if (!app) out.push(t('arete.apparenceAbsente', { ou, id }));
         else if (feature.kind === 'window-band' && !formesAdmises(app).includes('mur-fenetre'))
-          out.push(`${ou} : l’apparence « ${app.label} » n’habille pas la forme « ${LIBELLE_FORME['mur-fenetre']} ».`);
+          out.push(t('facade.fenetreNonHabillee', { ou, apparence: app.label, forme: libelles(['mur-fenetre']) }));
       }
     }
   return out;

@@ -1,9 +1,9 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { buildWalls, coupeDuMur, wallEnds, HAUTEUR_DE_COUPE_M, PLANCHES, POIGNEE_BORD, POIGNEE_LARGEUR } from './walls';
 import type { WallEl } from './types';
 import { WALL_H_M, isoPxToM } from '../iso';
 import { METRES_PER_LEVEL } from '../../state/relief';
-import { structureAppearance, wallPartRelief, type WallPart } from '../catalog/structures';
+import { STRUCTURE_APPEARANCE_BY_ID, structureAppearance, wallPartRelief, type StructureAppearanceDef, type WallPart } from '../catalog/structures';
 import { MISSING_ID } from '../catalog/missing';
 import { emptyScene, sceneMetresPerTile, setDoorOpen, setStructureDown, type BuildingMass, type Scene, type SceneEffectZone, type WallSeg } from '../../state/scene';
 import { structureAppearances } from '../../data';
@@ -14,13 +14,13 @@ import { wallSideSchema } from '../../data/schemas/defs-scenes/communs';
 
 /** Apparence d'ESSAI à matière MINCE (`relief.wallM` sous la largeur du poteau, `UPRIGHT_WIDTH_M`) : le
  *  poteau d'extrémité y déborde le jambage, ce qu'aucune apparence du catalogue ne montre. Servie par
- *  `structureAppearance` sous son seul id ; toute autre id passe au catalogue. */
-const { APPARENCE_MINCE } = vi.hoisted(() => ({ APPARENCE_MINCE: 'essai-matiere-mince' }));
-vi.mock('../catalog/structures', async (importOriginal) => {
-  const catalogue = await importOriginal<typeof import('../catalog/structures')>();
-  const mince = { ...catalogue.structureAppearance('solide-porte-en-bois'), id: APPARENCE_MINCE, relief: { wallM: 0.12 } };
-  return { ...catalogue, structureAppearance: (id: string | undefined) => (id === APPARENCE_MINCE ? mince : catalogue.structureAppearance(id)) };
-});
+ *  `structureAppearance` sous son seul id, le temps du `run`, par le registre lu à l'appel. */
+const APPARENCE_MINCE = 'essai-matiere-mince';
+function withApparence<T>(def: StructureAppearanceDef, run: () => T): T {
+  STRUCTURE_APPEARANCE_BY_ID[def.id] = def;
+  try { return run(); } finally { delete STRUCTURE_APPEARANCE_BY_ID[def.id]; }
+}
+const mince = (): StructureAppearanceDef => ({ ...structureAppearance('solide-porte-en-bois'), id: APPARENCE_MINCE, relief: { wallM: 0.12 } });
 
 /**
  * Builder de MURS du pivot : on teste la sortie MONDE (camera-free) — l'aiguillage d'arête unique
@@ -360,7 +360,7 @@ describe('buildWalls — porte FERMÉE = VANTAIL (se lit comme une porte, pas un
   it.each(ARETES_DE_VANTAIL)('arête %s, %s m/tuile, apparence %s : les joints partagent la partie VISIBLE du vantail (entre les croix de TOUS les montants de chaque borne) en PLANCHES égales, la poignée y tient sa distance RELATIVE au bord — lus sur le rendu', (side, metresPerTile, appearance) => {
     const s = sceneWith([{ x: 2, y: 2, side, door: true, closed: true, ...(appearance ? { appearance } : {}) }]);
     s.metresPerTile = metresPerTile;
-    const el = one(s);
+    const el = withApparence(mince(), () => one(s));
     const [A, B] = wallEnds({ x: 2, y: 2, side });
     const t = (p: { x: number; y: number }) => ((p.x - A.x) * (B.x - A.x) + (p.y - A.y) * (B.y - A.y)) / ((B.x - A.x) ** 2 + (B.y - A.y) ** 2);
     const troncon = (f: { poly: { x: number; y: number }[] }) => [Math.min(...f.poly.map(t)), Math.max(...f.poly.map(t))];

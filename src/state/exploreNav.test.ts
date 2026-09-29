@@ -91,7 +91,7 @@ describe('exploreMoveDest — case d’arrivée partagée survol/clic (explorati
   });
 
   it("personnage d'une couche haute (z1) : la case d'abord est à SON étage (#1883)", () => {
-    const sc = sceneWith([{ id: 'pnj', kind: 'personnage', pos: { x: 5, y: 5 }, z: 1 }]);
+    const sc = sceneWith([{ id: 'pnj', kind: 'personnage', ref: 'humain', pos: { x: 5, y: 5 }, z: 1 }]);
     sc.layers.push({ z: 1, tiles: new Array(100).fill('plancher'), height: new Array(100).fill(4) });
     expect(exploreMoveDest(sc, { x: 1, y: 1, z: 1 }, { x: 5, y: 5, z: 1 })?.z).toBe(1);
   });

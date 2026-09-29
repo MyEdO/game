@@ -194,9 +194,10 @@ export async function checkServer(url = DEFAULT_URL, { recuperer = fetch, racine
   if (refus) throw new Error(`${refus} (URL interrogée : ${url})`);
 }
 
-async function waitForWsUrl(port, timeoutMs = 10000) {
+async function waitForWsUrl(port, timeoutMs, etatChrome) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
+    if (etatChrome.sortie) throw new Error(`Chrome s'est arrêté avant d'ouvrir le CDP (${etatChrome.sortie}).`);
     try {
       const r = await fetch(`http://localhost:${port}/json/version`);
       const j = await r.json();
@@ -205,6 +206,15 @@ async function waitForWsUrl(port, timeoutMs = 10000) {
     await sleep(250);
   }
   throw new Error(`Chrome (CDP) indisponible sur le port ${port} après ${timeoutMs}ms.`);
+}
+
+/** Octets de stderr de Chrome gardés pour le diagnostic d'un lancement raté (la FIN, où Chrome dit pourquoi). */
+const TAILLE_FIN_STDERR = 4000;
+
+/** Délai d'ouverture du CDP : 10 s en local, 30 s sous `CI` (posé à `true` par GitHub Actions) — un
+ *  runner neuf lance Chrome à froid. Un Chrome qui MEURT n'attend pas ce délai (`etatChrome.sortie`). PURE. */
+export function delaiCdpParDefaut(env = process.env) {
+  return env.CI ? 30000 : 10000;
 }
 
 /**
@@ -268,21 +278,26 @@ export async function pourChaqueVue(session, fn, { reposMs = 500 } = {}) {
  * proportions », #393), et les 900px de haut des recettes suivantes ne tiennent sur AUCUN de ses
  * écrans. Une recette responsive passe sa vue explicitement (`pourChaqueVue`, `setMobileViewport`).
  */
-export async function launchSession({ chromePath, width = VUE_REFERENCE.largeur, height = VUE_REFERENCE.hauteur, port, mobile = false, timeoutMs = 10000 } = {}) {
+export async function launchSession({ chromePath, width = VUE_REFERENCE.largeur, height = VUE_REFERENCE.hauteur, port, mobile = false, timeoutMs = delaiCdpParDefaut() } = {}) {
   const cdpPort = port ?? 9222 + Math.floor(Math.random() * 2000);
   const profile = join(os.tmpdir(), `recette-cdp-profile-${Date.now()}-${Math.floor(Math.random() * 1e6)}`);
   mkdirSync(profile, { recursive: true });
   const chrome = spawn(resolveChromePath(chromePath), [
     '--headless=new', '--mute-audio', `--remote-debugging-port=${cdpPort}`, `--user-data-dir=${profile}`,
     `--window-size=${width},${height}`, '--no-first-run', '--no-default-browser-check', 'about:blank',
-  ], { stdio: 'ignore' });
+  ], { stdio: ['ignore', 'ignore', 'pipe'] });
+  const etatChrome = { stderr: '', sortie: null };
+  chrome.stderr.setEncoding('utf8');
+  chrome.stderr.on('data', (morceau) => { etatChrome.stderr = (etatChrome.stderr + morceau).slice(-TAILLE_FIN_STDERR); });
+  chrome.on('exit', (code, signal) => { etatChrome.sortie ??= `code ${code}, signal ${signal}`; });
+  chrome.on('error', (e) => { etatChrome.sortie ??= `lancement impossible : ${e.message}`; });
   const childEntry = { chrome, profile };
   activeChildren.add(childEntry);
 
   // Tout échec APRÈS le spawn (avant qu'un `session` ne soit rendu à l'appelant, donc avant qu'il
   // puisse appeler `session.close()`) doit tuer ce Chrome et purger son profil ici — sinon fuite.
   try {
-    const wsUrl = await waitForWsUrl(cdpPort, timeoutMs); // même délai réglable que l’amorçage de l’app
+    const wsUrl = await waitForWsUrl(cdpPort, timeoutMs, etatChrome); // même délai réglable que l’amorçage de l’app
     const ws = new WebSocket(wsUrl);
     await new Promise((resolve, reject) => { ws.onopen = resolve; ws.onerror = reject; });
 
@@ -347,7 +362,8 @@ export async function launchSession({ chromePath, width = VUE_REFERENCE.largeur,
     killChromeTree(chrome);
     await removeProfileDir(profile);
     activeChildren.delete(childEntry);
-    throw e;
+    const fin = etatChrome.stderr.trim();
+    throw new Error(`${e.message}\n— fin du stderr de Chrome (${resolveChromePath(chromePath)}) :\n${fin || '(vide)'}`, { cause: e });
   }
 }
 
