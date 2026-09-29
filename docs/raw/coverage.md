@@ -1916,38 +1916,38 @@ Section-granulaire (niveau de heading ADAPTATIF par livre — H2 pour AA/VDM/ADE
 - **EDO 09** (Chapitre 9 - L'heure fatidique) :
   - ⬜ l.7-12 « DÉCLENCHER LE RITUEL » — bruit de scénario, 0 réf
   - ⬜ l.13-28 « Une visite inattendue » — bruit de scénario, 0 réf
-  - ⬜ l.29-59 « LE MESSAGE » — bruit de scénario, 0 réf
-  - ⬜ l.60-73 « UN HORRIBLE MEURTRE » — bruit de scénario, 0 réf
-  - ⬜ l.74-102 « OPTION : LES NERFS QUI LÂCHENT » — bruit de scénario, 0 réf
-  - ⬜ l.103-108 « Pris au piège ! » — bruit de scénario, 0 réf
-  - ⬜ l.109-119 « S'enfuir de la maison » — bruit de scénario, 0 réf
-  - ⬜ l.120-133 « UNE CHOSE APRÈS L'AUTRE » — bruit de scénario, 0 réf
-  - ⬜ l.134-141 « UN INCIDENT FLAMBOYANT » — bruit de scénario, 0 réf
-  - ⬜ l.142-145 « L'OSTENDAMM » — bruit de scénario, 0 réf
-  - ⬜ l.146-156 « OPTION : DES MUTANTS… LUNATIQUES » — bruit de scénario, 0 réf
-  - ⬜ l.157-164 « L'Entrepôt 17 » — bruit de scénario, 0 réf
-  - ⬜ l.165-176 « L'Entrepôt 13 » — bruit de scénario, 0 réf
-  - ⬜ l.177-180 « L'INSTANT CRITIQUE » — bruit de scénario, 0 réf
-  - ⬜ l.181-189 « Derniers préparatifs » — bruit de scénario, 0 réf
-  - ⬜ l.190-201 « La consécration » — bruit de scénario, 0 réf
-  - ⬜ l.202-214 « Le rituel » — bruit de scénario, 0 réf
-  - ⬜ l.215-230 « Faire échouer le rituel » — bruit de scénario, 0 réf
-  - ⬜ l.231-252 « Voler ou détruire des éléments indispensables » — bruit de scénario, 0 réf
-  - ⬜ l.253-271 « Le rituel est interrompu » — bruit de scénario, 0 réf
-  - ⬜ l.272-317 « Le rituel est achevé » — bruit de scénario, 0 réf
-  - ⬜ l.318-325 « OPTION : TRAUMA » — bruit de scénario, 0 réf
-  - ⬜ l.326-327 « CONCLUSION » — bruit de scénario, 0 réf
-  - ⬜ l.328-334 « Récompenses » — bruit de scénario, 0 réf
-  - ⬜ l.335-340 « Répercussions » — bruit de scénario, 0 réf
-  - ⬜ l.341-350 « Convaincre les autorités » — bruit de scénario, 0 réf
-  - ⬜ l.351-357 « OPTION : QUEL DEGRÉ DE CORRUPTION ? » — bruit de scénario, 0 réf
-  - ⬜ l.358-375 « Quitter la ville » — bruit de scénario, 0 réf
-  - ⬜ l.376-379 « Éviter le Guet » — bruit de scénario, 0 réf
-  - ⬜ l.380-383 « Excursions sur le Reik » — bruit de scénario, 0 réf
-  - ⬜ l.384-414 « OPTION : UNE REFONTE DE GIDEON » — bruit de scénario, 0 réf
-  - ⬜ l.415-416 « PNJ » — bruit de scénario, 0 réf
-  - ⬜ l.417-467 « L'Entrepôt 17 » — bruit de scénario, 0 réf
-  - ⬜ l.574-750 « CHRONOLOGIE DE BÖGENHAFEN » — bruit de scénario, 0 réf
+  - ⬜ l.29-63 « LE MESSAGE » — bruit de scénario, 0 réf
+  - ⬜ l.64-77 « UN HORRIBLE MEURTRE » — bruit de scénario, 0 réf
+  - ⬜ l.78-106 « OPTION : LES NERFS QUI LÂCHENT » — bruit de scénario, 0 réf
+  - ⬜ l.107-112 « Pris au piège ! » — bruit de scénario, 0 réf
+  - ⬜ l.113-123 « S'enfuir de la maison » — bruit de scénario, 0 réf
+  - ⬜ l.124-137 « UNE CHOSE APRÈS L'AUTRE » — bruit de scénario, 0 réf
+  - ⬜ l.138-145 « UN INCIDENT FLAMBOYANT » — bruit de scénario, 0 réf
+  - ⬜ l.146-149 « L'OSTENDAMM » — bruit de scénario, 0 réf
+  - ⬜ l.150-160 « OPTION : DES MUTANTS… LUNATIQUES » — bruit de scénario, 0 réf
+  - ⬜ l.161-168 « L'Entrepôt 17 » — bruit de scénario, 0 réf
+  - ⬜ l.169-180 « L'Entrepôt 13 » — bruit de scénario, 0 réf
+  - ⬜ l.181-184 « L'INSTANT CRITIQUE » — bruit de scénario, 0 réf
+  - ⬜ l.185-193 « Derniers préparatifs » — bruit de scénario, 0 réf
+  - ⬜ l.194-205 « La consécration » — bruit de scénario, 0 réf
+  - ⬜ l.206-218 « Le rituel » — bruit de scénario, 0 réf
+  - ⬜ l.219-234 « Faire échouer le rituel » — bruit de scénario, 0 réf
+  - ⬜ l.235-256 « Voler ou détruire des éléments indispensables » — bruit de scénario, 0 réf
+  - ⬜ l.257-275 « Le rituel est interrompu » — bruit de scénario, 0 réf
+  - ⬜ l.276-321 « Le rituel est achevé » — bruit de scénario, 0 réf
+  - ⬜ l.322-329 « OPTION : TRAUMA » — bruit de scénario, 0 réf
+  - ⬜ l.330-331 « CONCLUSION » — bruit de scénario, 0 réf
+  - ⬜ l.332-338 « Récompenses » — bruit de scénario, 0 réf
+  - ⬜ l.339-344 « Répercussions » — bruit de scénario, 0 réf
+  - ⬜ l.345-354 « Convaincre les autorités » — bruit de scénario, 0 réf
+  - ⬜ l.355-361 « OPTION : QUEL DEGRÉ DE CORRUPTION ? » — bruit de scénario, 0 réf
+  - ⬜ l.362-379 « Quitter la ville » — bruit de scénario, 0 réf
+  - ⬜ l.380-383 « Éviter le Guet » — bruit de scénario, 0 réf
+  - ⬜ l.384-387 « Excursions sur le Reik » — bruit de scénario, 0 réf
+  - ⬜ l.388-418 « OPTION : UNE REFONTE DE GIDEON » — bruit de scénario, 0 réf
+  - ⬜ l.419-420 « PNJ » — bruit de scénario, 0 réf
+  - ⬜ l.421-471 « L'Entrepôt 17 » — bruit de scénario, 0 réf
+  - ⬜ l.578-754 « CHRONOLOGIE DE BÖGENHAFEN » — bruit de scénario, 0 réf
 - **EDO 11** (APPENDICE 2 - Nouvelles regles) :
   - 📖 l.7-16 « PNJ » — transcrit en catalogue, jamais traité, 0 réf
   - 📖 l.17-22 « Créez le vôtre » — transcrit en catalogue, jamais traité, 0 réf
@@ -1960,7 +1960,7 @@ Section-granulaire (niveau de heading ADAPTATIF par livre — H2 pour AA/VDM/ADE
 - **EDO 12** (Annexe 3 - Documents et aides de jeux) :
   - ⬜ l.3-10 « ANNEXE 3 : » — bruit de scénario, 0 réf
   - ⬜ l.49-59 « L'HARMONIE DES SPHÈRES » — bruit de scénario, 0 réf
-  - ⬜ l.434-503 « INDEX DES PNJ » — bruit de scénario, 0 réf
+  - ⬜ l.442-511 « INDEX DES PNJ » — bruit de scénario, 0 réf
 
 ## MSR — ✅ 0 · 📖 1 · 🟡 0 · ⬜ 0
 
@@ -2136,4 +2136,4 @@ Section-granulaire (niveau de heading ADAPTATIF par livre — H2 pour AA/VDM/ADE
   - ⬜ l.9-10 « La Compétence » — bruit de scénario, 0 réf
 - **PDT 13** (POINTS D'EXPERIENCE) :
   - ⬜ l.81-82 « ANNEXE V » — bruit de scénario, 0 réf
-<!-- sources-empreinte: 72ec6e35edfb1ba9acfc813033cc72f44ec5cf31 (471 fichiers, 20 dossiers) corps: a45356c9e88d474ec361115bad5ac1051b1c2b6d -->
+<!-- sources-empreinte: 0298fbae53fcb0319343442261b8f5398179e942 (471 fichiers, 20 dossiers) corps: a5f019c360bccb92e5a1e18daf24bbc17f203e48 -->

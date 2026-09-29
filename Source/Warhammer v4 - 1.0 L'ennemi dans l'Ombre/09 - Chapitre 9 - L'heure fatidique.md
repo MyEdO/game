@@ -37,7 +37,11 @@ Le jeune serviteur est en réalité Gideon sous une autre apparence. Le démon a
 <span id="page-100-0" data-folio="101"></span>
 #### DOCUMENT 10 : LA LETTRE D'HERZEN
 
-Les Crêtes Noires Grissenwald Près Nuln
+Les Crêtes Noires
+
+Grissenwald
+
+Près Nuln
 
 Mon cher ami,
 

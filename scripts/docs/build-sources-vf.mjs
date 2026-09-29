@@ -104,7 +104,7 @@ AUTORISÉ (\`CLAUDE.md\` § *Sources VF*). Au moindre doute, **lire le \`.md\` e
 - **${abbr('ennemi-dans-l-ombre')}** (L'Ennemi dans l'Ombre, T1) = \`${dir('ennemi-dans-l-ombre')}\` — périmètre
   RE-VÉRIFIÉ au \`Source/\` (2026-09-13) : le livre ne porte **aucun bloc de Sort** (zéro \`**NI :**\` sur
   l'ensemble de ses chapitres) **ni de Talent** ; ses seuls blocs de créature sont **Horreur rose / Horreur bleue de
-  Tzeentch** (\`EDO 09 l.556-570\`, folio 114) — les **Furies du Chaos**, les 3 Talents de culte et les Sorts du
+  Tzeentch** (\`EDO 09 l.560-574\`, folio 114) — les **Furies du Chaos**, les 3 Talents de culte et les Sorts du
   Chaos que l'on croisait attribués « EDO p.7X-8X » sont en réalité **EDOC ch.9** (voir l'entrée suivante).
   Nouvelles règles propres à EDO = **Appendice 2** (folios 145-149) : PNJ, portes & serrures, fièvre cérébrale
   pourpre + symptômes, 6 Traits de créature et 5 Mutations (folios 147-148), Anneau d'Opsianon.

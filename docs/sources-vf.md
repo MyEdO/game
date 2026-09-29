@@ -52,7 +52,7 @@ AUTORISÉ (`CLAUDE.md` § *Sources VF*). Au moindre doute, **lire le `.md` et ci
 - **EDO** (L'Ennemi dans l'Ombre, T1) = `Source/Warhammer v4 - 1.0 L'ennemi dans l'Ombre/` — périmètre
   RE-VÉRIFIÉ au `Source/` (2026-09-13) : le livre ne porte **aucun bloc de Sort** (zéro `**NI :**` sur
   l'ensemble de ses chapitres) **ni de Talent** ; ses seuls blocs de créature sont **Horreur rose / Horreur bleue de
-  Tzeentch** (`EDO 09 l.556-570`, folio 114) — les **Furies du Chaos**, les 3 Talents de culte et les Sorts du
+  Tzeentch** (`EDO 09 l.560-574`, folio 114) — les **Furies du Chaos**, les 3 Talents de culte et les Sorts du
   Chaos que l'on croisait attribués « EDO p.7X-8X » sont en réalité **EDOC ch.9** (voir l'entrée suivante).
   Nouvelles règles propres à EDO = **Appendice 2** (folios 145-149) : PNJ, portes & serrures, fièvre cérébrale
   pourpre + symptômes, 6 Traits de créature et 5 Mutations (folios 147-148), Anneau d'Opsianon.
@@ -141,4 +141,4 @@ AUTORISÉ (`CLAUDE.md` § *Sources VF*). Au moindre doute, **lire le `.md` et ci
   `Aventures à Ubersreik I` (extrait : `Source/Warhammer v4 - Aventures a Ubersreik/`),
   `Middenheim — La Cité du Loup Blanc`, `Nuits Agitées & Dures Journées`,
   `Boîte d'Initiation` (+ `WH4_FR_BI_Livre_Aventure` / `…_Ubersreik`).
-<!-- sources-empreinte: 1119e32694c07359db4b57e479210de325f39df4 (19 fichiers, 0 dossiers) corps: da8cffdb50ddfde41209add487d250ed45aed89e -->
+<!-- sources-empreinte: e88eaadf69f1e78ffbc2a6d5be28a5dbf2357cf2 (19 fichiers, 0 dossiers) corps: 130c163407153fefb84dc06564d8d69d4aa75408 -->
