@@ -10,7 +10,7 @@
 // exemption. Ce module exporte la MÉCANIQUE, sans foyer ; le consommateur la déclare en y joignant son
 // foyer (`{ ...FORMULE_DE_CHEBYSHEV, foyer: 'src/engine/grid.ts' }`) :
 //  - les constructions génériques `FORMULE_DE_CHEBYSHEV`, `ECHAPPEUR_DE_LITTERAL`,
-//    `ECRITURE_DE_STOCK_JSON` et `CONSTRUCTION_DE_TABLE_TOTALE` ;
+//    `CONSTRUCTION_DE_PROGRAMME`, `ECRITURE_DE_STOCK_JSON` et `CONSTRUCTION_DE_TABLE_TOTALE` ;
 //  - deux fabriques : `recopieDeCanon` (un canon, ses membres, six formes de recopie, paramètres
 //    `complet` et `formes`, la forme `membres de type` lisant un type littéral comme une `interface`)
 //    et `cleEnLigne` (la clé d'un site de stock écrite en ligne) ;
@@ -45,18 +45,25 @@ function keyName(name) {
  * @param {ts.TypeNode} t @returns {string | null} */
 const litType = (t) => (ts.isLiteralTypeNode(t) && ts.isStringLiteralLike(t.literal) ? t.literal.text : null);
 
-/** SCHÉMAS DÉRIVÉS du canon : les seuls récepteurs dont un `.extract(…)`/`.exclude(…)` SÉLECTIONNE
- *  dans le canon (leurs options SONT le tuple, cf. `src/data/schemas/grammaire/valeurs.ts`). Un `.extract` posé
- *  sur n'importe quel autre objet ne prouve rien — il ne blanchit donc rien.
- * @type {string[]} */
-export const SCHEMAS_DU_CANON = ['availabilitySchema', 'stakeFormSchema', 'harvestRaritySchema'];
+/** SCHÉMAS DÉRIVÉS du canon, par module qui les exporte : les seuls récepteurs dont un
+ *  `.extract(…)`/`.exclude(…)` SÉLECTIONNE dans le canon (leurs options SONT le tuple, cf.
+ *  `src/data/schemas/grammaire/valeurs.ts`). Un `.extract` posé sur n'importe quel autre objet ne
+ *  prouve rien — il ne blanchit donc rien.
+ * @type {Readonly<Record<string, readonly string[]>>} */
+export const SCHEMAS_DU_CANON = Object.freeze({
+  'src/data/schemas/grammaire/valeurs.ts': ['availabilitySchema', 'stakeFormSchema', 'harvestRaritySchema'],
+});
 
-/** Le tableau est-il l'argument d'un `.extract(…)`/`.exclude(…)` posé sur un schéma DU CANON ? zod
+/** Le tableau est-il l'argument d'un `.extract(…)`/`.exclude(…)` posé sur un schéma DU canon ? zod
  *  type cet argument par les options du récepteur : sur un schéma du canon, un palier renommé ne
- *  compile plus. Le récepteur est donc vérifié NOMMÉMENT — sinon n'importe quel
- *  `truc.extract(['Commune', 'Rare'])` se blanchirait tout seul.
- * @param {ts.ArrayLiteralExpression} n @returns {boolean} */
-function estSelectionDerivee(n) {
+ *  compile plus. Le récepteur est donc vérifié par sa LIAISON (`origineImportee`, import renommé
+ *  compris) à un export de `SCHEMAS_DU_CANON` — sinon n'importe quel `truc.extract(['Commune',
+ *  'Rare'])`, ou un homonyme local du schéma, se blanchirait tout seul.
+ *  HORS DE PORTÉE (vus comme recopie) : le schéma lu dans son module déclarant, par un espace de noms
+ *  (`v.availabilitySchema`) ou par un alias local ; un nom local qui masque l'import est confondu avec
+ *  lui (la liaison se tient par NOM).
+ * @param {ts.ArrayLiteralExpression} n @param {ts.SourceFile} sf @returns {boolean} */
+function estSelectionDerivee(n, sf) {
   const p = n.parent;
   if (!p || !ts.isCallExpression(p) || p.arguments[0] !== n) return false;
   const cible = p.expression;
@@ -69,7 +76,9 @@ function estSelectionDerivee(n) {
     if (ts.isPropertyAccessExpression(recepteur)) { recepteur = recepteur.expression; continue; }
     break;
   }
-  return ts.isIdentifier(recepteur) && SCHEMAS_DU_CANON.includes(recepteur.text);
+  if (!ts.isIdentifier(recepteur)) return false;
+  const origine = origineImportee(recepteur.text, sf);
+  return !!origine && (SCHEMAS_DU_CANON[origine.module] ?? []).includes(origine.nom);
 }
 
 /** Clés OUVERTES d'un `Record` : celles dont le compilateur n'exige aucune complétude. */
@@ -143,10 +152,10 @@ function litterauxDeChaine(n) {
  *  membres qu'il reproduit, ou `null` si le nœud n'est d'aucune. Deux formes que le compilateur borne
  *  n'en sont pas : la sélection zod `.extract` sur un schéma du canon (`estSelectionDerivee`) et la
  *  table totale déclarée (`estTableTotale`).
- * @param {ts.Node} n @returns {{ forme: string, membres: (string | null)[] } | null} */
-function formeDeRecopie(n) {
+ * @param {ts.Node} n @param {ts.SourceFile} sf @returns {{ forme: string, membres: (string | null)[] } | null} */
+function formeDeRecopie(n, sf) {
   if (ts.isArrayLiteralExpression(n)) {
-    return estSelectionDerivee(n) ? null : { forme: 'tableau', membres: n.elements.filter(ts.isStringLiteralLike).map((e) => e.text) };
+    return estSelectionDerivee(n, sf) ? null : { forme: 'tableau', membres: n.elements.filter(ts.isStringLiteralLike).map((e) => e.text) };
   }
   if (ts.isUnionTypeNode(n)) return { forme: 'union de types', membres: n.types.map(litType) };
   if (ts.isObjectLiteralExpression(n)) {
@@ -183,8 +192,8 @@ export function recopieDeCanon({ nom, membres, complet = false, formes = FORMES_
   return {
     nom,
     indice: (texte) => [...canon].filter((m) => present(texte, m)).length >= 2,
-    reconnait: (noeud) => {
-      const lue = formeDeRecopie(noeud);
+    reconnait: (noeud, sf) => {
+      const lue = formeDeRecopie(noeud, sf);
       if (!lue || !retenues.has(lue.forme)) return null;
       const communs = [...new Set(lue.membres.filter((m) => m != null))].filter((m) => canon.has(m));
       if (communs.length < 2 || (complet && communs.length < canon.size)) return null;
@@ -285,6 +294,33 @@ export const ECHAPPEUR_DE_LITTERAL = Object.freeze({
   },
 });
 
+/** Nom exporté par le compilateur d'une fabrique de `ts.Program` (`createProgram`,
+ *  `createIncrementalProgram`, `createWatchProgram`, `create*BuilderProgram`) ou d'un
+ *  `ts.LanguageService`, qui construit le sien (`getProgram()`). */
+const FABRIQUE_DE_PROGRAMME = /^create(\w*Program|LanguageService)$/;
+
+/**
+ * La CONSTRUCTION d'un `ts.Program` (#1806) : un appel dont l'appelé est une fabrique du paquet
+ * `typescript` (`liaisonDAppele`, l'import par défaut du paquet valant son espace de noms) — les
+ * fabriques partagées sont celles de `tsProgram.mjs`. Un homonyme local, un membre d'un autre objet et
+ * un appel écrit dans un littéral (fixture de morsure) ne sont pas lus.
+ * HORS DE PORTÉE : l'accès calculé (`ts['createProgram']`), la déstructuration (`const { createProgram:
+ * fab } = ts`), l'alias de membre (`const creer = ts.createProgram`), le compilateur reçu par un
+ * paramètre, `require('typescript')`, `import ts = require(…)` et `import('typescript')` ; un nom local
+ * qui masque l'import est confondu avec lui (la liaison se tient par NOM, `liaisonDe`).
+ */
+export const CONSTRUCTION_DE_PROGRAMME = Object.freeze({
+  nom: 'CONSTRUCTION_DE_PROGRAMME',
+  indice: (texte) => /create(\w*Program|LanguageService)/.test(texte),
+  /** @param {ts.Node} n @param {ts.SourceFile} sf @returns {string | null} */
+  reconnait: (n, sf) => {
+    if (!ts.isCallExpression(n)) return null;
+    const l = liaisonDAppele(n.expression, sf, ['*', 'default']);
+    const nom = l?.spec === 'typescript' ? l.nom : null;
+    return nom && FABRIQUE_DE_PROGRAMME.test(nom) ? `\`${nom}\` hors des fabriques (\`tsProgram.mjs\`)` : null;
+  },
+});
+
 /** L'ÉCRITURE du format JSON des stocks de sites recopiée : un appel `JSON.stringify(<objet
  *  littéral>, …)` dont l'objet porte une propriété `entrees`, avec `quoi`, avec une propagation ou seule. */
 export const ECRITURE_DE_STOCK_JSON = Object.freeze({
@@ -364,6 +400,17 @@ function liaisonDe(identifiant, sf) {
   return null;
 }
 
+/** La liaison d'import d'un APPELÉ (`liaisonDe`) : un identifiant, ou `x.f` sur un `x` dont
+ *  l'import est l'un des `espaces` (`'*'`, `'default'`) — `nom` est alors le membre `f`.
+ * @param {ts.Expression} e @param {ts.SourceFile} sf @param {readonly string[]} espaces
+ * @returns {{ spec: string, nom: string } | null} */
+function liaisonDAppele(e, sf, espaces) {
+  if (ts.isIdentifier(e)) return liaisonDe(e.text, sf);
+  if (!ts.isPropertyAccessExpression(e) || !ts.isIdentifier(e.expression)) return null;
+  const l = liaisonDe(e.expression.text, sf);
+  return l && espaces.includes(l.nom) ? { spec: l.spec, nom: e.name.text } : null;
+}
+
 /** Le module, relatif à la racine, qu'un spécificateur de `sf` désigne (`resolveImport`), ou `null`.
  * @param {string} spec @param {ts.SourceFile} sf @returns {string | null} */
 function moduleDe(spec, sf) {
@@ -398,17 +445,9 @@ export function origineImportee(identifiant, sf) {
  * @returns {string | null} le nom exporté que l'appel lie, `null` s'il n'en lie aucun de la table.
  */
 export function estAppelDeclare(appel, sf, fonctions) {
-  const e = appel.expression;
-  let liaison = null;
-  let nom = null;
-  if (ts.isIdentifier(e)) {
-    liaison = liaisonDe(e.text, sf);
-    nom = liaison?.nom ?? null;
-  } else if (ts.isPropertyAccessExpression(e) && ts.isIdentifier(e.expression)) {
-    liaison = liaisonDe(e.expression.text, sf);
-    nom = liaison?.nom === '*' ? e.name.text : null;
-  }
-  if (!liaison || nom === null || !Object.values(fonctions).some((noms) => noms.includes(nom))) return null;
+  const liaison = liaisonDAppele(appel.expression, sf, ['*']);
+  const nom = liaison?.nom;
+  if (!nom || !Object.values(fonctions).some((noms) => noms.includes(nom))) return null;
   const module = moduleDe(liaison.spec, sf);
   return module && (fonctions[module] ?? []).includes(nom) ? nom : null;
 }

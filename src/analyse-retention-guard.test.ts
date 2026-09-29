@@ -518,7 +518,7 @@ it('x', () => lire());
     const exportees = fabriquesDuCorpus(lus);
     // Non-vacuité : les fabriques partagées et un lecteur d'arbres consommateur sont vus.
     expect([...exportees.fabriques]).toEqual(
-      expect.arrayContaining(['repoProgram', 'virtualProgram', 'programmeDuPerimetre', 'arbreDe']),
+      expect.arrayContaining(['repoProgram', 'virtualProgram', 'parsedProgram', 'programmeDuPerimetre', 'arbreDe']),
     );
     const retentions = lus.flatMap(({ rel, text }) => retentionsDAnalyse(rel, text, exportees));
     expect(retentions.map((r) => `${r.rel}:${r.line} ${r.liaison} (${r.forme})`)).toEqual([]);

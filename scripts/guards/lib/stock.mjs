@@ -335,7 +335,7 @@ export function champsAveugles(stock, cle, champs) {
  * PRÉSENTÉ, et un balayage amputé présente moins d'entrées, donc moins d'écarts, donc un vert. Même
  * trou que le REFUS DU VIDE de `sourceCorpus.mjs`, une marche plus bas : le balayage peut être NON
  * vide et pourtant avoir perdu un GISEMENT entier (un des dossiers que le cliquet prétend juger) ou
- * le fichier même d'une entrée de stock — la moitié RATCHET de `LABEL_LITERAL_STOCK` a vécu ainsi,
+ * le fichier même d'une entrée de stock — la moitié RATCHET du stock des dettes de libellé a vécu ainsi,
  * ses entrées `src/ui/**` hors du balayage et le verdict vert (#1723).
  *
  * Non-vacuité par GISEMENT et non sur le total (patron `props-volumiques.test.ts`, `2639287cd`) :

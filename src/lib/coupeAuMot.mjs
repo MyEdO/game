@@ -9,8 +9,8 @@ const ESPACE_SECABLE = /[^\S\u00A0\u2007\u202F]/
 /** `n` borne le RENDU, ellipse comprise. Le texte entier s'il tient en `n` caractères ; sinon le plus
  *  long préfixe de mots d'au plus `n - 1` caractères, coupé à une espace sécable, suivi de « … » : au plus
  *  `n` caractères. Les blancs de tête ne sont pas un mot : la coupe se cherche après eux. Seule sortie
- *  au-delà de `n` : un premier mot plus long que `n - 1` se rend entier (suivi de « … » si du texte le
- *  suit).
+ *  au-delà de `n` : quand les blancs de tête et le premier mot dépassent ensemble `n - 1`, ils se
+ *  rendent entiers (suivis de « … » si du texte les suit).
  *  @type {(s: string, n: number) => string} */
 export function coupeAuMot(s, n) {
   if (s.length <= n) return s

@@ -4,9 +4,10 @@ import { runFlow } from './combatFlow';
 import { testFlow, EMPTY_FLOW } from './flow';
 import { seedBattleRng } from './battleRng';
 import { createHero } from '../engine/character';
+import { adresseDeCreation } from '../engine/adresseDeCreation';
 
 /** Humains (Reiklander), « Affable *ou* Perspicace » (LDB 05 l.490) : Perspicace, la Sociabilité reste nue. */
-const PERSPICACE = { 'espece:talents:0': { id: 'perspicace' } };
+const PERSPICACE = { [adresseDeCreation.especeTalent(0)]: { id: 'perspicace' } };
 
 /**
  * Capricieux (Trait de créature, MSRC 15 l.149-159) : « Lorsqu'un Personnage effectue un Test de
@@ -14,9 +15,8 @@ const PERSPICACE = { 'espece:talents:0': { id: 'perspicace' } };
  * Soustraire 2 au DR ; 2-3 → Soustraire 1 au DR ; 4-7 → Utiliser le DR indiqué ; 8-9 → Ajouter 1 au
  * DR ; 10 → Ajouter 2 au DR ».
  *
- * Le delta porte sur le DR d'un Test RÉSOLU : la valeur testée et la cible du d100 restent celles du
- * personnage, et l'issue reste celle du dé. Le RAW ne dit rien du Test raté ni d'un plancher : le
- * delta s'applique au DR tel quel dans les deux cas.
+ * Le delta porte sur le DR du Test résolu, réussi ou raté : la valeur testée et la cible du d100
+ * restent celles du personnage, et l'issue reste celle du dé.
  */
 describe('Capricieux — delta de DR sur le Test de Sociabilité résolu (MSRC 15 l.149-159)', () => {
   function openCharme(vsCapricieux?: boolean) {

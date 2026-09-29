@@ -849,8 +849,8 @@ export const RAW_CLAIM_FAMILIES = [
 // validation, est la justification fallacieuse qui habille une implémentation (classe « servir coûte
 // l'Action » 2026-07-06, sœur de la classe « bélier »).
 // SEULE trace reconnue (décision utilisateur 2026-07-07 : « je n'accepte aucune justification sans
-// la mention explicite [entériné] ») : le tag [entériné AAAA-MM-JJ] — dont l'écriture est elle-même
-// gardée par enterine-guard.mjs (dialogue de validation utilisateur). Date, citation, ancrage canon
+// la mention explicite [entériné] ») : le tag [entériné AAAA-MM-JJ], réservé à l'utilisateur qui
+// l'écrit lui-même (tout ajout est rendu visible au pre-commit). Date, citation, ancrage canon
 // ne suffisent PAS : ils datent ou attribuent la décision, ils ne prouvent pas sa validation.
 // ---------------------------------------------------------------------------------------------
 

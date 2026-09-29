@@ -18,6 +18,7 @@ import { basename, join } from 'node:path';
 import { useGame } from './store';
 import { draineCascade } from './cascadeTestKit';
 import { createHero } from '../engine/character';
+import { adresseDeCreation } from '../engine/adresseDeCreation';
 import { makeRNG } from '../engine/dice';
 import { toBrass } from '../engine/money';
 import { bourseOf, bourseBrass } from '../engine/bourse';
@@ -38,7 +39,7 @@ import type { Combatant } from '../engine/types';
 import type { WorldMap } from './worldMap';
 
 /** Humains (Reiklander), « Affable *ou* Perspicace » (LDB 05 l.490) : Perspicace, la Sociabilité reste nue. */
-const PERSPICACE = { 'espece:talents:0': { id: 'perspicace' } };
+const PERSPICACE = { [adresseDeCreation.especeTalent(0)]: { id: 'perspicace' } };
 
 const ROOT = join(import.meta.dirname, '..', '..');
 

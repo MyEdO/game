@@ -1,23 +1,21 @@
-// Tests du DRIVER de `solde-ticket-guard` (le bloc `import.meta.main`, non importable : il se teste en
-// lançant le script réel avec un payload de hook sur stdin). Lancé par `npm run test:hooks`.
+// Tests de bout en bout de la garde `solde-ticket-guard` : le point d'entrée réel
+// (`scripts/hooks/solde-ticket-hook.mjs`) lancé avec un payload de hook sur stdin. Lancé par `npm run test:hooks`.
 //
-// Le driver est la couture où le message de commit est REJOINT à son répertoire d'exécution : un
+// La garde est la couture où le message de commit est REJOINT à son répertoire d'exécution : un
 // message packé dans un fichier (`-F`) doit être lu là où le `git commit` s'exécute, sinon une
 // fermeture de ticket devient invisible au contrôle de solde (fail-open mesuré 2026-08-03, #1052).
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { chmodSync, mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs'
-import { spawnSync, execFileSync } from 'node:child_process'
+import { execFileSync } from 'node:child_process'
 import { tmpdir } from 'node:os'
-import { fileURLToPath } from 'node:url'
-import { dirname, join } from 'node:path'
+import { join } from 'node:path'
 import { envDeDepotForge, instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
+import { lancerHook } from '../guards/lib/lancerHook.mjs'
 
-const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
-const GUARD = join(REPO, 'scripts', 'hooks', 'solde-ticket-guard.mjs')
 
-/** Dépôt jetable dont on juge un WORKTREE lié (`.git` fichier) : l'étage 1 du hook n'y pose pas
- *  l'`ask` de l'arbre principal, l'étage 2 (stocks, reclassements) y est donc joué. `depot` se jette. */
+/** Dépôt jetable dont on juge un WORKTREE lié (`.git` fichier), l'arbre où vivent les chantiers.
+ *  `depot` se jette. */
 function depotDeChantier(params) {
   const { racine: depot } = instanceDeDepot(params)
   const racine = join(depot, '.wt-chantier')
@@ -25,16 +23,17 @@ function depotDeChantier(params) {
   return { racine, depot }
 }
 
-/** Décision rendue par le driver pour un payload `ctx_shell` donné (`null` si le hook se tait). */
+/** Décision rendue par le point d'entrée réel de la porte pour un payload `ctx_shell` donné (`null`
+ *  si le hook se tait). */
 function decisionOf(command, cwd, env = process.env) {
   const payload = JSON.stringify({
     session_id: 'test', hook_event_name: 'PreToolUse',
     tool_name: 'mcp__lean-ctx__ctx_shell', tool_input: { command, cwd },
   })
-  const run = spawnSync(process.execPath, [GUARD], { input: payload, encoding: 'utf8', cwd: REPO, env })
-  assert.equal(run.status, 0, `le hook a quitté en ${run.status} : ${run.stderr}`)
-  if (!run.stdout.trim()) return null
-  const { permissionDecision, permissionDecisionReason } = JSON.parse(run.stdout).hookSpecificOutput
+  const run = lancerHook('solde-ticket-hook.mjs', payload, { env })
+  assert.equal(run.code, 0, `le hook a quitté en ${run.code} : ${run.err}`)
+  if (!run.specifique) return null
+  const { permissionDecision, permissionDecisionReason } = run.specifique
   return { decision: permissionDecision, reason: permissionDecisionReason }
 }
 
@@ -46,7 +45,7 @@ test('DRIVER : un message -F est lu dans le répertoire où le commit S\'EXÉCUT
     // refuse (à juste titre) pour ascendance indisponible — ce qui masquerait ce que ce test mesure.
     for (const d of [base, join(base, 'wt')])
       execFileSync('git', ['init', '-q', '-b', 'main'], { cwd: d, env: envDeDepotForge(), encoding: 'utf8' })
-    // Homonyme ANODIN à la racine : c'est lui qu'un driver résolvant contre le cwd de départ
+    // Homonyme ANODIN à la racine : c'est lui qu'une garde résolvant contre le cwd de départ
     // lirait — la fermeture portée par le vrai fichier resterait alors invisible.
     writeFileSync(join(base, 'm2.txt'), 'chore: rien a signaler\n', 'utf8')
     writeFileSync(join(base, 'wt', 'm2.txt'), 'feat: bidule (corrige #999999)\n', 'utf8')
@@ -105,7 +104,7 @@ test('DRIVER : tout refus porte la cible écartée, le `-F illisible` compris', 
   }
 })
 
-// Le contexte de solde du driver n'est pas qu'un branchement : « corrigé par <sha> <fichier>:<ligne> »
+// Le contexte de solde de la garde n'est pas qu'un branchement : « corrigé par <sha> <fichier>:<ligne> »
 // se juge contre l'HISTOIRE GIT du répertoire où le commit s'exécute. On monte un dépôt réel, on y
 // pose un commit qui touche UN fichier, et on fait citer par le solde un fichier qu'il ne touche pas.
 test('DRIVER : « corrigé par <sha> » est confronté à l\'histoire git RÉELLE du dépôt cible', () => {
@@ -137,8 +136,6 @@ test('DRIVER : « corrigé par <sha> » est confronté à l\'histoire git RÉELL
 
     ecrireEtStager(solde('src/touche.ts:1'))
     const juste = decisionOf('git commit -m "corrige #4242"', repo)
-    // Le dépôt de test est un arbre PRINCIPAL (son .git est un dossier) : le `ask` de worktree est
-    // attendu et distinct — ce qui doit disparaître, c'est le refus portant sur le SITE cité.
     assert.doesNotMatch(juste?.reason ?? '', /ne touche PAS|ANCÊTRE|SOLDE conforme/, 'site conforme refusé')
   } finally {
     rmSync(repo, { recursive: true, force: true })
@@ -146,7 +143,7 @@ test('DRIVER : « corrigé par <sha> » est confronté à l\'histoire git RÉELL
 })
 
 // Stock nominatif qui grandit : la règle vit dans `scripts/guards/lib/stocksNominatifs.mjs`, mais
-// c'est le DRIVER qui lui apporte l'index du dépôt cible et le message — ce câblage-là se teste ici.
+// c'est la GARDE qui lui apporte l'index du dépôt cible et le message — ce câblage-là se teste ici.
 test('DRIVER : un stock nominatif qui GRANDIT dans l\'index est refusé, sauf CLIQUET au message', () => {
   const { racine: repo, depot } = depotDeChantier({ fichiers: { 'src/state/exemptions.test.ts': 'export const STOCK = [\n]\n' }, message: 'socle' })
   try {
@@ -173,7 +170,7 @@ test('DRIVER : un stock nominatif qui GRANDIT dans l\'index est refusé, sauf CL
   }
 })
 
-// Le palier compte le commit en cours par ce qu'il EMPORTE : le DRIVER lui passe la liste de la porte
+// Le palier compte le commit en cours par ce qu'il EMPORTE : la GARDE lui passe la liste de la porte
 // du ticket (`revuePalier.mjs`, `DOSSIERS_DE_SUBSTANCE`).
 test('DRIVER : le palier compte le commit en cours par ce qu’il emporte -- `-a` non indexé le franchit, `-- <note>` non', () => {
   const { racine: repo, sha: socle } = instanceDeDepot({ fichiers: { 'scripts/a.txt': 'a\n', 'notes/d.md': 'd\n' }, message: 'socle' })
@@ -277,7 +274,7 @@ test('DRIVER : un porteur SCINDÉ en deux ne grandit pas ; renommé MOINS une en
   }
 })
 
-// #1720 — le lot d'un commit de RENOMMAGE est ses DEUX chemins, pour TOUTES les portes du driver :
+// #1720 — le lot d'un commit de RENOMMAGE est ses DEUX chemins, pour TOUTES les portes de la garde :
 // un solde prouve sa correction au NOUVEAU chemin, et un `.tsx` de `src/ui/**` renommé reste un
 // ÉCRAN. Le chemin replié `src/ui/{Ancien.tsx => Nouveau.tsx}` du `--numstat`, lui, ne nomme aucun
 // fichier : aucune porte ne le cite.
@@ -640,7 +637,7 @@ test('DRIVER : « corrigé par <sha> » dont le commit n\'existe pas dans le dé
   }
 })
 
-// Porte du TICKET (option retenue par l'utilisateur le 2026-09-11) : le driver apporte à la porte le
+// Porte du TICKET (option retenue par l'utilisateur le 2026-09-11) : la garde apporte à la porte le
 // lot que le commit EMPORTE. Sur un dépôt réel, un commit de substance sans ticket est refusé, et le
 // même geste avec `refs #N` ne l'est plus.
 test('DRIVER : un commit de substance sans ticket est refusé ; avec `refs #N`, il passe', () => {
@@ -665,6 +662,26 @@ test('DRIVER : un commit de substance sans ticket est refusé ; avec `refs #N`, 
 
 // Le pendant : un commit qui ne touche NI `src` NI `scripts` (docs dérivés, mémoire) n'a pas de
 // ticket à citer — la porte n'y voit pas de substance.
+test('DRIVER : `evaluateHunksEmportes` refuse pareil dans l’arbre PRINCIPAL et dans un WORKTREE lié', () => {
+  const fichiers = { 'notes/a.md': '# a\n' }
+  const { racine: principal } = instanceDeDepot({ fichiers, message: 'socle' })
+  const { racine: lie, depot } = depotDeChantier({ fichiers, message: 'socle' })
+  try {
+    for (const [arbre, nom] of [[principal, 'principal'], [lie, 'worktree lié']]) {
+      const git = (...args) => execFileSync('git', args, { cwd: arbre, env: envDeDepotForge(), stdio: 'ignore' })
+      writeFileSync(join(arbre, 'notes', 'a.md'), '# a\nstagé\n', 'utf8')
+      git('add', 'notes/a.md')
+      writeFileSync(join(arbre, 'notes', 'a.md'), '# a\nstagé\nnon stagé\n', 'utf8')
+      const refus = decisionOf('git commit -m "docs: a" -- notes/a.md', arbre)
+      assert.equal(refus?.decision, 'deny', nom)
+      assert.match(refus.reason, /À LA FOIS des modifications stagées et non stagées/, nom)
+    }
+  } finally {
+    rmSync(principal, { recursive: true, force: true })
+    rmSync(depot, { recursive: true, force: true })
+  }
+})
+
 test('DRIVER : un commit hors src/ et scripts/ passe sans ticket', () => {
   const { racine: repo } = instanceDeDepot({ fichiers: { 'docs/architecture.md': '# carte\n' }, message: 'socle' })
   try {

@@ -1,8 +1,13 @@
-// Fabriques de `ts.Program` PARTAGÉES par les gardes qui ont besoin d'un vérificateur de TYPES
-// (#841 éditabilité des champs de scène, #847 champs des `GameOp`, #1620 consommateurs par champ).
-// Deux fabriques, une par SOURCE des fichiers :
-//   - `repoProgram` : les fichiers du dépôt, options du `tsconfig.json` racine ;
-//   - `virtualProgram` : des sources EN MÉMOIRE, pour les morsures de garde.
+// Fabriques de `ts.Program` PARTAGÉES par les gardes et générateurs qui ont besoin d'un vérificateur de
+// TYPES (#841 éditabilité des champs de scène, #847 champs des `GameOp`, #1620 consommateurs par champ,
+// #1806 coupe au caractère, `jsdocUnion.mjs`).
+// Trois fabriques, une par SOURCE des fichiers :
+//   - `repoProgram` : les fichiers du dépôt, options du `tsconfig.json` racine, modules recouverts en
+//     mémoire au besoin ;
+//   - `virtualProgram` : des sources EN MÉMOIRE, bibliothèque standard comprise, sans disque (un import
+//     ne se résout qu'entre ces sources) ;
+//   - `parsedProgram` : un arbre DÉJÀ parsé, sans lib ni import.
+// Seules écritures de `create*Program` : garde `src/ts-program-fabrique-guard.test.ts`.
 //
 // AUCUNE RÉTENTION ICI. Ni cache ni mémo au niveau module : un Program du dépôt pèse ~1,3 Go de
 // tables du checker (mesuré #1620, 1 952 fichiers de `src/`), et sous Vitest `isolate: false` un
@@ -27,21 +32,31 @@ const norm = (p) => p.replace(/\\/g, '/');
  * l'appelant — `choisirRootNames(fileNames, root)` reçoit les fichiers du tsconfig et rend les
  * racines (chemins absolus). TypeScript tire la fermeture d'imports de ces racines : les types
  * restent complets sans compiler le dépôt entier.
+ * `recouvrement` : chemins RELATIFS à `root` → contenu servi à la place du disque (aucune écriture).
  */
-export function repoProgram(root, choisirRootNames) {
+export function repoProgram(root, choisirRootNames, recouvrement = {}) {
   const key = norm(path.resolve(root));
   const cfgPath = ts.findConfigFile(key, ts.sys.fileExists, 'tsconfig.json');
   if (!cfgPath) throw new Error(`tsconfig.json introuvable sous ${key}`);
   const cfg = ts.readConfigFile(cfgPath, ts.sys.readFile);
   const parsed = ts.parseJsonConfigFileContent(cfg.config, ts.sys, path.dirname(cfgPath));
-  return ts.createProgram({
-    rootNames: choisirRootNames(parsed.fileNames, key),
-    options: { ...parsed.options, noEmit: true },
-  });
+  const options = { ...parsed.options, noEmit: true };
+  const recouverts = new Map(
+    Object.entries(recouvrement).map(([rel, texte]) => [norm(path.resolve(key, rel)), texte])
+  );
+  const host = ts.createCompilerHost(options);
+  const lireSource = host.getSourceFile.bind(host);
+  host.getSourceFile = (name, langage, ...reste) => {
+    const texte = recouverts.get(norm(path.resolve(name)));
+    return texte === undefined ? lireSource(name, langage, ...reste) : ts.createSourceFile(name, texte, langage, true);
+  };
+  const lire = host.readFile.bind(host);
+  host.readFile = (name) => recouverts.get(norm(path.resolve(name))) ?? lire(name);
+  return ts.createProgram({ rootNames: choisirRootNames(parsed.fileNames, key), options, host });
 }
 
-/** Programme bâti sur des sources EN MÉMOIRE — support des preuves de non-vacance : on y déclare de
- *  faux modules et on mesure le verdict de la garde dessus.
+/** Programme bâti sur des sources EN MÉMOIRE, bibliothèque standard comprise, sans disque (un import ne
+ *  se résout qu'entre ces sources) : morsures de garde, sondes de type, texte déjà lu d'un générateur.
  *  `files` : chemins RELATIFS (ex. `src/state/scene.ts`) → contenu. */
 export function virtualProgram(files) {
   const options = {
@@ -77,4 +92,22 @@ export function virtualProgram(files) {
     readFile: read,
   };
   return ts.createProgram({ rootNames: [...sources.keys()], options, host });
+}
+
+/** Programme bâti sur UN arbre DÉJÀ parsé (`racine`, un `ts.SourceFile`), sans bibliothèque ni import :
+ *  son vérificateur résout un nom du fichier en son symbole. */
+export function parsedProgram(racine) {
+  const options = { noLib: true, noResolve: true, allowJs: true, noEmit: true, types: [] };
+  const host = {
+    getSourceFile: (name) => (name === racine.fileName ? racine : undefined),
+    getDefaultLibFileName: (o) => ts.getDefaultLibFileName(o),
+    writeFile: () => {},
+    getCurrentDirectory: () => path.sep,
+    getCanonicalFileName: (f) => f,
+    useCaseSensitiveFileNames: () => true,
+    getNewLine: () => '\n',
+    fileExists: (name) => name === racine.fileName,
+    readFile: () => undefined,
+  };
+  return ts.createProgram({ rootNames: [racine.fileName], options, host });
 }

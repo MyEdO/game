@@ -1,11 +1,7 @@
-// Hook PreToolUse(Write|Edit) : les TABLES D'EXCEPTIONS/WHITELISTS des gardes ne grossissent
-// JAMAIS sans l'utilisateur (demande du 2026-07-13) — toute écriture qui AJOUTE une entrée à une
-// table d'exceptions de garde, ou qui AUGMENTE une baseline de cliquet, exige sa confirmation
-// explicite. Les re-pointages (clé remplacée, compte constant) et les RETRAITS passent sans
-// friction. Opposable aux sessions ET aux sous-agents.
-import '../node-requis.mjs'
-import { lireStdinBorne } from '../guards/lib/stdinBorne.mjs'
+// Garde PreToolUse(Write|Edit) des tables d'exceptions de garde : doctrine
+// `user-doctrine-gardes-jamais-de-ask` (2026-07-13, 2026-09-28) ; juge de diff : `.claude/agents/juge.md`.
 import { readFileSync } from 'node:fs'
+import { entreeDOutil } from '../guards/lib/contratGarde.mjs'
 import { SUFFIXE_SUITE } from '../guards/lib/fichierVitest.mjs'
 import { cheminDEcriture } from './solde-ticket-guard.mjs'
 
@@ -26,10 +22,6 @@ const SUITE_DE_GARDE = new RegExp('-guard' + SUFFIXE_SUITE + '$')
 /** Ce fichier porte-t-il une table d'exceptions/baseline gardée ? */
 export const estFichierGarde = (file) =>
   GARDES_NOMMEES.has(String(file).split(/[\\/]/).pop()) || DANS_GUARDS.test(file) || SUITE_DE_GARDE.test(file)
-// Motif de CRÉATION de garde : tout fichier dont le nom/chemin annonce une garde (`-guard`, `guards/`).
-// Un fichier de garde NEUF est gardé DÈS sa création — parade au déplacement d'une whitelist vers un
-// nouveau fichier hors de la liste nominative `GARDES_NOMMEES`.
-export const GUARD_FILE = /(-guard(?:\.|\b)|[\\/]guards?[\\/])/i
 
 /** Multiset des « jetons de table » d'un extrait : TOUTE chaîne quotée (simple/double/backtick, peu
  *  importe le packing de ligne) + TOUTE clé d'objet NON quotée (`ident:`). Le multiset compare
@@ -53,15 +45,10 @@ export function baselines(text) {
 /**
  * Décision du hook (PURE, testable) pour une écriture donnée.
  * @param {{ file: string, before: string, after: string, isWrite: boolean, exists: boolean }} p
- * @returns {{ reason: string } | null}  — non-null = `ask`, null = silence.
+ * @returns {{ contexte: string } | null}  — non-null = avertissement, null = silence.
  */
 export function evaluate({ file, before, after, isWrite, exists }) {
-  // CRÉATION d'un fichier de garde (Write sur fichier inexistant du motif) : ask systématique.
-  if (isWrite && !exists && GUARD_FILE.test(file)) {
-    return { reason: `⚠ ${file.split(/[\\/]/).pop()} — création d'un fichier de garde : vérifier qu'il ne DÉPLACE pas une whitelist existante ` +
-      `(les tables d'exceptions ne grossissent qu'avec l'AUTORISATION de l'utilisateur, demande 2026-07-13). Confirmer = valider CE nouveau fichier.` }
-  }
-  if (!estFichierGarde(file)) return null
+  if ((isWrite && !exists) || !estFichierGarde(file)) return null
 
   const beforeBag = entries(before)
   const afterBag = entries(after)
@@ -98,11 +85,11 @@ export function evaluate({ file, before, after, isWrite, exists }) {
   const parts = []
   if (netAdded.length) parts.push(`AJOUT d'exception(s)/entrée(s) de garde : ${netAdded.slice(0, 5).join(' · ')}${netAdded.length > 5 ? ` (+${netAdded.length - 5})` : ''}`)
   if (raised.length) parts.push(`HAUSSE de baseline (cliquet à rebours) : ${raised.slice(0, 5).join(' · ')}`)
-  return { reason:
-    `⚠ ${file.split(/[\\/]/).pop()} — ${parts.join(' ; ')}. Les tables d'exceptions des gardes ne ` +
-    `grossissent qu'avec l'AUTORISATION de l'utilisateur (demande 2026-07-13) : confirmer ce dialogue ` +
-    `VAUT autorisation pour CES entrées précises ; refuser sinon (re-pointages et retraits passent seuls).` }
+  return { contexte:
+    `${AVERTISSEMENT} — ${file.split(/[\\/]/).pop()} : ${parts.join(' ; ')}.` }
 }
+
+export const AVERTISSEMENT = "ajout d'exception : le juge de diff doit le justifier au rendu"
 
 /** Normalise l'entrée d'outil (`Write`/`Edit`) en `{ file, before, after, isWrite, exists }`. Renvoie
  *  `null` quand rien n'est comparable (stdin illisible / forme inconnue). */
@@ -121,22 +108,12 @@ export function readWrite(input) {
   return null
 }
 
-// ── Driver stdin (n'exécute QUE lancé en direct, jamais à l'import du module de test) ─────────────
-if (import.meta.main) {
-  const raw = await lireStdinBorne()
-  let input = null
-  try { input = JSON.parse(raw)?.tool_input ?? null } catch { /* stdin illisible → silence */ }
+function evaluer(entree) {
+  const input = entreeDOutil(entree)
   const chemin = cheminDEcriture(input)
   const w = readWrite(chemin ? { ...input, file_path: chemin.reel } : input)
   const decision = w ? evaluate(w) : null
-  if (decision && !chemin?.horsContenu) {
-    console.log(JSON.stringify({
-      hookSpecificOutput: {
-        hookEventName: 'PreToolUse',
-        permissionDecision: 'ask',
-        permissionDecisionReason: decision.reason,
-      },
-    }))
-  }
-  process.exit(0)
+  return decision && !chemin?.horsContenu ? decision : null
 }
+
+export const garde = { nom: 'exception-add', outils: ['Write', 'Edit'], evaluer }

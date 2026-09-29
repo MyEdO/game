@@ -16,7 +16,7 @@ import {
 import { travelVehicles, travelModeLabels } from '../engine/travel';
 import { consolidateAmputations, traumaById, type TraumaFiche } from '../engine/trauma';
 import type { Combatant } from '../engine/types';
-import { mutationTableIds, mutationTableLabel, mutationTableRows, type MutationTable } from './mutations';
+import { mutationTableIds, mutationTablePlayerLabel, mutationTableRows, type MutationTable } from './mutations';
 import { rollMiscast, miscastRowAt, MISCAST_TABLES, type MiscastTableRow } from '../engine/miscast';
 import { makeRNG } from '../engine/dice';
 import { tableTotale } from '../lib/tableTotale';
@@ -188,20 +188,20 @@ describe('#1692 — une édition au seam est SERVIE aux lecteurs', () => {
     const tables = datasetArray('mutationTables') as MutationTable[];
     const physique = tables.find((t) => t.id === 'physique')!;
     const avant = mutationTableRows('physique')[0];
-    expect(mutationTableLabel('physique')).toBe(physique.label);
+    expect(mutationTablePlayerLabel('physique')).toBe('Physique');
     const idsAvant = mutationTableIds().length;
 
     const neuve: MutationTable = { ...physique, id: 'table-neuve-qc', label: 'Table neuve QC' };
     setDataset('mutationTables', [
       ...tables.map((t) => (t.id === 'physique'
-        ? { ...t, label: 'Physique (révisée QC)', ranges: [{ ...t.ranges[0], max: 99 }, ...t.ranges.slice(1)] }
+        ? { ...t, label: 'physique révisée QC (LDB)', ranges: [{ ...t.ranges[0], max: 99 }, ...t.ranges.slice(1)] }
         : t)),
       neuve,
     ]);
 
     expect(mutationTableRows('physique')[0].max, 'la fourchette éditée n’atteint pas les lignes d’étape').toBe(99);
     expect(mutationTableRows('physique')[0].max).not.toBe(avant.max);
-    expect(mutationTableLabel('physique')).toBe('Physique (révisée QC)');
+    expect(mutationTablePlayerLabel('physique')).toBe('Physique révisée QC');
     expect(mutationTableIds()).toContain('table-neuve-qc');
     expect(mutationTableIds().length).toBe(idsAvant + 1);
     // Et le REGISTRE des tables tirables suit : la table neuve est jouable, pour tout lecteur.

@@ -1,4 +1,4 @@
-// Hook PreToolUse — garde anti-réinvention à la création d'un fichier sous `src/`.
+// Garde PreToolUse anti-réinvention à la création d'un fichier sous `src/`.
 //
 // Deux régimes (#1318 V5, 2026-08-16 ; périmètre étendu #1679 L1a) :
 //   - `src/ui/**/*.tsx` ET `src/gameIso/**/*.tsx` NEUFS (hors `*.test.tsx`) : BLOQUANT. Un composant
@@ -27,9 +27,8 @@
 //
 // Échappement documenté : `SKIP_NEW_SRC_GUARD=1` laisse passer et TRACE la dérogation (stderr +
 // `.claude/logs/new-src-guard-skips.log`, gitignoré).
-import '../node-requis.mjs'
-import { lireStdinBorne } from '../guards/lib/stdinBorne.mjs'
-import { existsSync, readFileSync, appendFileSync, mkdirSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
+import { entreeDOutil } from '../guards/lib/contratGarde.mjs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join, resolve, relative, isAbsolute } from 'node:path'
 
@@ -140,59 +139,36 @@ export const RAPPEL_SRC = (rel) =>
   `Si un module/primitive existant couvre le besoin, RÉUTILISE-le ou ÉTENDS-le (général + paramétrable) au lieu de créer ce fichier. ` +
   `Sinon, énonce explicitement pourquoi aucun existant ne convient avant de poursuivre.`
 
-function trace(rel) {
-  const ligne = `${new Date().toISOString()} SKIP_NEW_SRC_GUARD=1 ${rel}\n`
-  try {
-    mkdirSync(dirname(JOURNAL), { recursive: true })
-    appendFileSync(JOURNAL, ligne)
-  } catch {
-    /* journal indisponible → la trace stderr ci-dessous reste */
-  }
-  process.stderr.write(`[new-src-file-guard] dérogation prise : ${ligne}`)
-}
-
-async function main() {
-  const raw = await lireStdinBorne()
-
+/** Le verdict sur la création d'un fichier. `contexte.env` porte `SKIP_NEW_SRC_GUARD` et
+ *  `WFRP_REGISTRE_ECRANS` ; la dérogation prise demande sa TRACE au journal. */
+function evaluer(entree, { env = process.env } = {}) {
   // `Write` porte le chemin en `tool_input.file_path`, `ctx_patch` (op `create`) en `tool_input.path`.
-  let fp
-  try {
-    const input = JSON.parse(raw)?.tool_input ?? {}
-    fp = String(input.file_path ?? input.path ?? '')
-  } catch {
-    return // stdin illisible → silence
-  }
-  if (!fp || existsSync(fp)) return
+  const input = entreeDOutil(entree) ?? {}
+  const fp = String(input.file_path ?? input.path ?? '')
+  if (!fp || existsSync(fp)) return null
   const rel = relPath(fp)
-  if (!rel || !rel.startsWith('src/')) return // hors du dépôt, ou hors de src/
+  if (!rel || !rel.startsWith('src/')) return null // hors du dépôt, ou hors de src/
+  const verdicts = []
 
   if (estComposantUI(rel)) {
-    // Registre ou manifeste illisible → on REFUSE (fail-closed) : un crash rendrait un statut 1,
-    // que Claude Code traite comme non bloquant — la garde passerait à vide.
+    // Registre ou manifeste illisible → on REFUSE (fail-closed) : une garde qui lève rend un contexte
+    // de panne (`scripts/hooks/repartiteur.mjs`), jamais un refus — la garde passerait à vide.
     let déclaré = false
     let panne = null
     try {
       const manifeste = readFileSync(MANIFESTE_PRIMITIVES, 'utf8')
-      const registre = JSON.parse(readFileSync(cheminRegistre(), 'utf8'))
+      const registre = JSON.parse(readFileSync(cheminRegistre(env), 'utf8'))
       // Le fichier n'existe pas (contrôle ci-dessus) : le stock en chaîne ne le déclare donc pas.
       déclaré = estDeclare(rel, manifeste, registre, false)
     } catch (e) {
       panne = e.message
     }
     if (!déclaré) {
-      if (process.env.SKIP_NEW_SRC_GUARD === '1') trace(rel)
-      else {
-        process.stderr.write((panne ? messageRegistreCasse(rel, panne) : messageRefus(rel)) + '\n')
-        process.exit(2)
-      }
+      if (env.SKIP_NEW_SRC_GUARD !== '1') return { decision: 'deny', raison: panne ? messageRegistreCasse(rel, panne) : messageRefus(rel) }
+      verdicts.push({ trace: { fichier: JOURNAL, ligne: `${new Date().toISOString()} SKIP_NEW_SRC_GUARD=1 ${rel}\n` } })
     }
   }
-
-  console.log(
-    JSON.stringify({
-      hookSpecificOutput: { hookEventName: 'PreToolUse', additionalContext: RAPPEL_SRC(rel) },
-    }),
-  )
+  return [...verdicts, { contexte: RAPPEL_SRC(rel) }]
 }
 
-if (import.meta.main) await main()
+export const garde = { nom: 'new-src-file', outils: ['Write', 'mcp__lean-ctx__ctx_patch'], evaluer }

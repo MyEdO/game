@@ -91,19 +91,21 @@ export const ECRIT_LU = {
   },
   'test:agents': {
     ecrit: [],
-    lit: ['.claude/', '.codex/', 'scripts/agents/', 'AGENTS.md', 'CLAUDE.md'],
+    lit: ['.claude/', '.codex/', 'scripts/agents/', 'scripts/hooks/', 'AGENTS.md', 'CLAUDE.md'],
     raison:
-      'les écritures sont INJECTÉES et comptées, jamais faites (scripts/agents/compat.test.mjs:65) ; ' +
+      'les écritures sont INJECTÉES et comptées, jamais faites (`atomicWrite` injecté, scripts/agents/compat.test.mjs) ; ' +
       'LIT les DEUX côtés de la compat sur l’arbre RÉEL, racine `new URL("../../", import.meta.url)` — ' +
-      '.claude/settings.json et .codex/hooks.json (compat.test.mjs:176,177), CLAUDE.md (l.182, contrat ' +
-      'sur la ligne `@.claude/credo.md` l.183) et AGENTS.md (l.193) — sonde `fs` du 2026-09-16 sur ' +
-      '`node --test scripts/agents/compat.test.mjs`',
+      '.claude/settings.json et .codex/hooks.json, CLAUDE.md (contrat sur la ligne `@.claude/credo.md`) ' +
+      'et AGENTS.md — sonde `fs` du 2026-09-16 sur `node --test scripts/agents/compat.test.mjs` ; LIT ' +
+      'scripts/hooks/ depuis le 2026-09-28 (#2125) : les déclarations de hooks dérivent des registres, que ' +
+      '`chargerRegistres` (scripts/agents/compat-cli.mjs) importe',
   },
   'test:hooks': {
     ecrit: [],
     ecritFerme: {
       '.claude/logs/new-src-guard-skips.log':
-        'journal d’urgences du garde de nouveaux fichiers (`JOURNAL`, scripts/hooks/new-src-file-guard.mjs) : il est ' +
+        'journal d’urgences du garde de nouveaux fichiers (`JOURNAL`, scripts/hooks/new-src-file-guard.mjs, écrit par ' +
+        'scripts/hooks/repartiteur.mjs) : il est ' +
         'GITIGNORÉ (.gitignore:41 `.claude/*`, sans négation pour `logs/`), donc il n’entre dans aucune des ' +
         'deux clés de contenu et ne salit pas l’arbre ; aucune gate ne le lit',
     },

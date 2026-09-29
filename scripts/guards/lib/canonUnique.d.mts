@@ -26,7 +26,7 @@ export interface Trouvaille {
   detail: string;
 }
 
-export const SCHEMAS_DU_CANON: string[];
+export const SCHEMAS_DU_CANON: Readonly<Record<string, readonly string[]>>;
 export function estTableTotale(valeur: ts.Expression): boolean;
 export const FORMES_DE_RECOPIE: readonly string[];
 export function recopieDeCanon(p: {
@@ -37,6 +37,7 @@ export function recopieDeCanon(p: {
 }): Construction & { readonly indice: (texte: string) => boolean };
 export const FORMULE_DE_CHEBYSHEV: Construction;
 export const ECHAPPEUR_DE_LITTERAL: Construction;
+export const CONSTRUCTION_DE_PROGRAMME: Construction;
 export const ECRITURE_DE_STOCK_JSON: Construction;
 export const CONSTRUCTION_DE_TABLE_TOTALE: Construction;
 export function origineImportee(identifiant: string, sf: ts.SourceFile): { module: string; nom: string } | null;

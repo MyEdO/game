@@ -1,4 +1,4 @@
-// Hook PreToolUse(Bash|PowerShell|mcp__lean-ctx__ctx_shell) : REFUSE deux commandes shell qui
+// Garde PreToolUse(Bash|PowerShell|mcp__lean-ctx__ctx_shell) : REFUSE deux commandes shell qui
 // réussissent sans erreur et laissent un PIÈGE derrière elles.
 //
 // - Un LIEN posé sur un `node_modules` (#1679 L1c) : sa suppression ultérieure suit le lien et vide le
@@ -12,8 +12,7 @@
 // tokenizer quote-aware de `solde-ticket-guard` (`segmentsProfonds`/`gitSubcommand`, invariant
 // partagé) — une commande qui CITE le geste (`Write-Output "ln -s ../node_modules"`, un message de
 // commit) n'exécute rien et ne se refuse pas.
-import '../node-requis.mjs'
-import { lireStdinBorne } from '../guards/lib/stdinBorne.mjs'
+import { OUTILS_SHELL, commandeDe, verdictDe } from '../guards/lib/contratGarde.mjs'
 import { argumentChaine, segmentsProfonds, gitSubcommand, valeurParametre } from './solde-ticket-guard.mjs'
 
 /** Nom d'exécutable d'un segment : basename sans extension, en minuscules (call-operator sauté) ;
@@ -114,20 +113,4 @@ export function evaluate(command) {
   return null
 }
 
-// ── Driver stdin (n'exécute QUE lancé en direct, jamais à l'import du module de test) ─────────────
-if (import.meta.main) {
-  const raw = await lireStdinBorne()
-  let command = ''
-  try { command = String(JSON.parse(raw)?.tool_input?.command ?? '') } catch { /* stdin illisible → silence */ }
-  const decision = evaluate(command)
-  if (decision) {
-    console.log(JSON.stringify({
-      hookSpecificOutput: {
-        hookEventName: 'PreToolUse',
-        permissionDecision: decision.decision,
-        permissionDecisionReason: decision.reason,
-      },
-    }))
-  }
-  process.exit(0)
-}
+export const garde = { nom: 'commande-piege', outils: OUTILS_SHELL, evaluer: (entree) => verdictDe(evaluate(commandeDe(entree))) }

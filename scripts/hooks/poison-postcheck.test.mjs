@@ -3,24 +3,20 @@
 // (spawnSync + stdin JSON) ; il n'écrit rien et ne décide rien (PostToolUse = contexte).
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { spawnSync } from 'node:child_process'
 import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
+import { ecriture, lancerHook } from '../guards/lib/lancerHook.mjs'
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
-const HOOK = join(REPO, 'scripts', 'hooks', 'poison-postcheck.mjs')
 
 /** Contexte RENDU par le hook (`''` s'il se tait). */
 function contexteDe(tool_input, env = process.env) {
-  const run = spawnSync(process.execPath, [HOOK], {
-    input: JSON.stringify({ tool_input }), encoding: 'utf8', cwd: REPO, env,
-  })
-  assert.equal(run.status, 0, 'le hook a quitté en ' + run.status + ' : ' + run.stderr)
-  if (!run.stdout.trim()) return ''
-  return JSON.parse(run.stdout).hookSpecificOutput.additionalContext
+  const run = lancerHook('repartiteur.mjs', ecriture(tool_input, tool_input.new_string === undefined ? 'Write' : 'Edit', 'PostToolUse'), { env })
+  assert.equal(run.code, 0, 'le hook a quitté en ' + run.code + ' : ' + run.err)
+  return run.specifique?.additionalContext ?? ''
 }
 
 test('un numéro de ticket NU écrit dans docs/ est signalé, avec la ligne fautive', () => {
@@ -68,6 +64,28 @@ test('un fichier scanné DANS un dépôt est jugé ; le même hors dépôt (scra
   } finally {
     rmSync(racine, { recursive: true, force: true })
     rmSync(scratch, { recursive: true, force: true })
+  }
+})
+
+// Garde « logique par libellé » : la composition de la lib (`scanLabelLogicFichier`) sur son corpus
+// (`estDansLeCorpus`, tout `src/`), sites `nu` seulement — un dossier hors moteur/store est jugé, un
+// fichier de test ne l'est pas.
+test('logique par libellé : un site nu de `src/scenes/` est signalé avec sa règle ; le même en `.test.ts` se tait', () => {
+  const faute = "export const a = (x: { label: string }) => x.label === 'Épée';\n"
+  const { racine } = instanceDeDepot()
+  try {
+    const poser = (rel) => {
+      const cible = join(racine, ...rel.split('/'))
+      mkdirSync(dirname(cible), { recursive: true })
+      writeFileSync(cible, faute)
+      return contexteDe({ file_path: cible, content: faute })
+    }
+    const ctx = poser('src/scenes/sonde.ts')
+    assert.match(ctx, /POISON logique par libellé .*\[label-logic\] — src\/scenes\/sonde\.ts:1/)
+    assert.match(ctx, /\[label-literal\] — src\/scenes\/sonde\.ts:1/)
+    assert.doesNotMatch(poser('src/scenes/sonde.test.ts'), /logique par libellé/)
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
   }
 })
 

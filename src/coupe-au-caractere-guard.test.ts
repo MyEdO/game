@@ -39,7 +39,8 @@ describe('coupe au caractère suivie d’une ellipse', () => {
     expect(vus("const a = s.slice(0, 20) + '\\u2026';")).toEqual(['temoin.tsx:1']);
   });
 
-  it('témoin : JSX sur plusieurs lignes, le texte fait de seuls blancs entre la coupe et l’ellipse est sauté', () => {
+  it('témoin : JSX sur plusieurs lignes, le texte fait de seuls blancs et l’expression vide entre la coupe et l’ellipse sont sautés', () => {
+    expect(vus("const X = () => (\n  <span>\n    {s.slice(0, 20)}\n    {/* c */}\n    {'…'}\n  </span>\n);")).toEqual(['temoin.tsx:3']);
     expect(vus("const X = () => (\n  <span>\n    {s.slice(0, 20)}\n    {'…'}\n  </span>\n);")).toEqual(['temoin.tsx:3']);
     expect(vus('const X = () => (\n  <span>\n    {s.slice(0, 20)}\n    …\n  </span>\n);')).toEqual(['temoin.tsx:3']);
     expect(vus("const X = () => (\n  <span>\n    {s.slice(0, 20)}\n    <b>fin</b>\n    {'…'}\n  </span>\n);")).toEqual([]);

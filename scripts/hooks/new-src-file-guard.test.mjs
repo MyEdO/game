@@ -3,19 +3,19 @@
 // testés sont des fantômes qui n'existent pas (c'est précisément l'état qui déclenche la garde).
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { spawnSync } from 'node:child_process'
 import { readFileSync, writeFileSync, existsSync, mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { SURFACE_CLAUDE, SURFACE_CODEX, aplatirHooks } from '../agents/compat-core.mjs'
+import { ecriture, lancerHook } from '../guards/lib/lancerHook.mjs'
+import { REGISTRE } from './registre.mjs'
 import {
   estComposantUI, estDeclare, relPath, cheminEntree, maquetteEntree, REGISTRE_DEFAUT, cheminRegistre,
-  MANIFESTE_PRIMITIVES,
+  MANIFESTE_PRIMITIVES, garde,
 } from './new-src-file-guard.mjs'
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
-const HOOK = join(REPO, 'scripts', 'hooks', 'new-src-file-guard.mjs')
 // Lecteurs Windows ASSEMBLÉS à l'exécution : ce fichier ne porte aucun chemin absolu littéral, il
 // reste donc soumis à `src/portable-paths-guard.test.ts` comme le reste de `scripts/**`.
 const BS = String.fromCharCode(92)
@@ -24,14 +24,10 @@ const LECTEUR_D = 'D' + ':'
 const FANTOME = 'src/ui/FantomeGardeV5.tsx'
 const FANTOME_ISO = 'src/gameIso/stage/FantomeStageV5.tsx'
 
+/** Le répartiteur réel sur un `Write` (ou un `ctx_patch` s'il porte `op`) : code, sorties, décision. */
 function lanceAvec(tool_input, env = {}) {
-  const r = spawnSync(process.execPath, [HOOK], {
-    input: JSON.stringify({ tool_input }),
-    encoding: 'utf8',
-    cwd: REPO,
-    env: { ...process.env, ...env },
-  })
-  return { code: r.status, out: r.stdout ?? '', err: r.stderr ?? '' }
+  const r = lancerHook('repartiteur.mjs', ecriture(tool_input, tool_input.op ? 'mcp__lean-ctx__ctx_patch' : 'Write'), { env: { ...process.env, ...env } })
+  return { ...r, decision: r.specifique?.permissionDecision, raison: r.specifique?.permissionDecisionReason ?? '', contexte: r.specifique?.additionalContext }
 }
 const lance = (file_path, env = {}) => lanceAvec({ file_path }, env)
 
@@ -59,19 +55,19 @@ test('le fantôme de test n’existe pas (sinon la garde ne serait jamais sollic
 
 test('composant d’UI NEUF non déclaré → sortie non-zéro + geste attendu dans le message', () => {
   const r = lance(join(REPO, FANTOME))
-  assert.notEqual(r.code, 0, 'la garde doit BLOQUER (statut non nul)')
-  assert.match(r.err, /NON DÉCLARÉ/)
-  assert.match(r.err, /src\/data\/primitives\.manifest\.json/)
-  assert.match(r.err, /scripts\/hooks\/ecrans-ui\.json/)
-  assert.match(r.err, /maquette validée EN PRÉSENCE/)
-  assert.match(r.err, /SKIP_NEW_SRC_GUARD=1/)
-  assert.equal(r.out.trim(), '', 'un refus n’injecte pas de contexte')
+  assert.equal(r.decision, 'deny', 'la garde doit BLOQUER (statut non nul)')
+  assert.match(r.raison, /NON DÉCLARÉ/)
+  assert.match(r.raison, /src\/data\/primitives\.manifest\.json/)
+  assert.match(r.raison, /scripts\/hooks\/ecrans-ui\.json/)
+  assert.match(r.raison, /maquette validée EN PRÉSENCE/)
+  assert.match(r.raison, /SKIP_NEW_SRC_GUARD=1/)
+  assert.equal(r.contexte, undefined, 'un refus n’injecte pas de contexte')
 })
 
 test('un .tsx NEUF de src/gameIso est BLOQUÉ au même titre (32 .tsx mesurés, aucune exception)', () => {
   const r = lance(join(REPO, FANTOME_ISO))
-  assert.notEqual(r.code, 0, 'src/gameIso relève du régime bloquant')
-  assert.match(r.err, /NON DÉCLARÉ/)
+  assert.equal(r.decision, 'deny', 'src/gameIso relève du régime bloquant')
+  assert.match(r.raison, /NON DÉCLARÉ/)
   assert.equal(estComposantUI('src/gameIso/stage/X.tsx'), true)
   assert.equal(estComposantUI('src/gameIso/rig/composeRig.tsx'), true)
   assert.equal(estComposantUI('src/gameIso/stage/X.test.tsx'), false)
@@ -105,14 +101,14 @@ test('DISJONCTION (#1806 L3) : aucun `fichier` du manifeste des primitives n’e
 test('une entrée en CHAÎNE ne déclare pas un fichier NEUF (le stock du 2026-08-16 ne croît pas)', () => {
   avecEntree(FANTOME, (env) => {
     const r = lance(join(REPO, FANTOME), env)
-    assert.notEqual(r.code, 0, 'inscrire une chaîne ne remplace pas la maquette validée')
-    assert.match(r.err, /NON DÉCLARÉ/)
+    assert.equal(r.decision, 'deny', 'inscrire une chaîne ne remplace pas la maquette validée')
+    assert.match(r.raison, /NON DÉCLARÉ/)
   })
 })
 
 test('une entrée OBJET SANS maquette est refusée ; AVEC maquette, la création passe', () => {
   avecEntree({ fichier: FANTOME, maquette: '' }, (env) => {
-    assert.notEqual(lance(join(REPO, FANTOME), env).code, 0, 'objet sans maquette = pas de déclaration')
+    assert.equal(lance(join(REPO, FANTOME), env).decision, 'deny', 'objet sans maquette = pas de déclaration')
   })
   avecEntree({ fichier: FANTOME, maquette: 'validée en présence 2026-09-02 (session L1a)' }, (env) => {
     const r = lance(join(REPO, FANTOME), env)
@@ -125,7 +121,7 @@ test('une maquette de RÉSERVATION (« TODO ») ne déclare rien', () => {
   for (const marque of ['TODO', 'todo : à dessiner', 'à faire', 'TBD', '—', '?']) {
     assert.equal(maquetteEntree({ fichier: FANTOME, maquette: marque }), '', marque)
     avecEntree({ fichier: FANTOME, maquette: marque }, (env) => {
-      assert.notEqual(lance(join(REPO, FANTOME), env).code, 0, `réservation acceptée pour maquette : ${marque}`)
+      assert.equal(lance(join(REPO, FANTOME), env).decision, 'deny', `réservation acceptée pour maquette : ${marque}`)
     })
   }
   // Une trace qui NOMME où la validation a eu lieu passe, même si elle parle d'un reste à faire.
@@ -135,7 +131,7 @@ test('une maquette de RÉSERVATION (« TODO ») ne déclare rien', () => {
 test('échappement SKIP_NEW_SRC_GUARD=1 → passe, et LOGGUE la dérogation', () => {
   const r = lance(join(REPO, FANTOME), { SKIP_NEW_SRC_GUARD: '1' })
   assert.equal(r.code, 0)
-  assert.match(r.err, /dérogation prise/)
+  assert.match(r.err, /\[trace\] .*new-src-guard-skips\.log : .* SKIP_NEW_SRC_GUARD=1 /)
   assert.match(r.err, new RegExp(FANTOME))
   assert.match(r.out, /additionalContext/)
 })
@@ -168,18 +164,19 @@ test('un chemin HORS du dépôt (autre projet) n’est jamais bloqué', () => {
 
 test('ctx_patch op=create porte le chemin en `path` : même refus que Write', () => {
   const r = lanceAvec({ op: 'create', path: join(REPO, FANTOME), new_text: 'export {}' })
-  assert.notEqual(r.code, 0)
-  assert.match(r.err, /NON DÉCLARÉ/)
+  assert.equal(r.decision, 'deny')
+  assert.match(r.raison, /NON DÉCLARÉ/)
 })
 
-test('les DEUX surfaces matchent Write ET mcp__lean-ctx__ctx_patch (sinon la garde passe à vide)', () => {
+test('la garde est au registre PreToolUse du répartiteur, et les DEUX surfaces matchent Write ET ctx_patch', () => {
+  assert.ok(REGISTRE.PreToolUse.includes(garde))
   for (const surface of [SURFACE_CLAUDE, SURFACE_CODEX]) {
-    const matchers = aplatirHooks(JSON.parse(readFileSync(join(REPO, surface), 'utf8')), surface)
-      .filter((h) => h.phase === 'PreToolUse' && h.script === 'new-src-file-guard.mjs')
-      .map((h) => h.matcher)
-    assert.ok(matchers.length > 0, `${surface} : hook non câblé`)
-    for (const canal of ['Write', 'mcp__lean-ctx__ctx_patch'])
-      assert.ok(matchers.some((m) => m.split('|').includes(canal)), `${surface} : canal ${canal} non matché`)
+    const matcher = aplatirHooks(JSON.parse(readFileSync(join(REPO, surface), 'utf8')), surface)
+      .find((h) => h.phase === 'PreToolUse' && h.script === 'repartiteur.mjs')?.matcher ?? ''
+    for (const canal of ['Write', 'mcp__lean-ctx__ctx_patch']) {
+      assert.ok(garde.outils.includes(canal), `garde : canal ${canal}`)
+      assert.ok(matcher.split('|').includes(canal), `${surface} : canal ${canal} non matché`)
+    }
   }
 })
 
@@ -189,10 +186,10 @@ test('registre ILLISIBLE → refus fail-closed dont le corps dit de RÉPARER, pa
   writeFileSync(casse, '{ ceci n’est pas du JSON')
   try {
     const r = lance(join(REPO, FANTOME), { WFRP_REGISTRE_ECRANS: casse })
-    assert.notEqual(r.code, 0)
-    assert.match(r.err, /ILLISIBLE/)
-    assert.match(r.err, /réparer d'abord/)
-    assert.doesNotMatch(r.err, /ordre alphabétique/, 'le corps « ajouter une ligne » est inopérant sur un JSON cassé')
+    assert.equal(r.decision, 'deny')
+    assert.match(r.raison, /ILLISIBLE/)
+    assert.match(r.raison, /réparer d'abord/)
+    assert.doesNotMatch(r.raison, /ordre alphabétique/, 'le corps « ajouter une ligne » est inopérant sur un JSON cassé')
   } finally {
     rmSync(dossier, { recursive: true, force: true })
   }

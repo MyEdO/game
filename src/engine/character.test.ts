@@ -9,10 +9,10 @@ import {
   resolveSpeciesTalentsDetail,
   createHero,
   competencesDeCarriere,
-  adresseDeCreation,
   libreDEspece,
   repartitionDeCarriere,
 } from './character';
+import { adresseDeCreation } from './adresseDeCreation';
 import { baseWithTalents } from './talentEffects';
 import { acquerirTalent } from './careerSlots';
 import { traitConsumptionFactor } from './provisions';
@@ -82,7 +82,7 @@ describe('resolveSpeciesTalents — fixes / choix / aléatoires', () => {
   });
 
   it('le choix « A ou B » est surchargeable, par adresse d\'emplacement', () => {
-    const out = resolveSpeciesTalents(sp(), { seed: 7, speciesTalentChoices: { 'espece:talents:0': { id: 'perspicace' } } });
+    const out = resolveSpeciesTalents(sp(), { seed: 7, speciesTalentChoices: { [adresseDeCreation.especeTalent(0)]: { id: 'perspicace' } } });
     expect(out).toContainEqual({ id: 'perspicace' });
     expect(out).not.toContainEqual({ id: 'affable' });
   });
@@ -109,8 +109,8 @@ describe('resolveSpeciesTalents — fixes / choix / aléatoires', () => {
   });
 
   // Graine 5 : Perspicace au tirage 1 — doublon sous « Perspicace », pas sous « Affable ».
-  const affable = { 'espece:talents:0': { id: 'affable' } };
-  const perspicaceChoisi = { 'espece:talents:0': { id: 'perspicace' } };
+  const affable = { [adresseDeCreation.especeTalent(0)]: { id: 'affable' } };
+  const perspicaceChoisi = { [adresseDeCreation.especeTalent(0)]: { id: 'perspicace' } };
   it('le statut doublon d\'un tirage suit les Talents résolus avant lui (choix « A ou B »), à d100 inchangé', () => {
     const perspicace = resolveSpeciesTalentsDetail(sp(), { seed: 5, speciesTalentChoices: perspicaceChoisi });
     const avecAffable = resolveSpeciesTalentsDetail(sp(), { seed: 5, speciesTalentChoices: affable });
@@ -150,7 +150,7 @@ describe('acquerirTalent — Maxi (LDB 05 l.475, LDB 10 l.18)', () => {
 
   it('createHero : un doublon gardé au Maxi n\'ajoute pas d\'acquisition', () => {
     // Graine 5 : Perspicace (Maxi 1) choisi, puis tiré en doublon au tirage 1.
-    const choix = { seed: 5, speciesTalentChoices: { 'espece:talents:0': { id: 'perspicace' } } };
+    const choix = { seed: 5, speciesTalentChoices: { [adresseDeCreation.especeTalent(0)]: { id: 'perspicace' } } };
     expect(resolveSpeciesTalentsDetail(sp(), choix)[3]).toMatchObject({ ref: { id: 'perspicace' }, tirage: { doublon: true } });
     const hero = createHero({ speciesId: REIK, careerId: 'soldat', label: 'x', ...choix });
     expect(hero.talents.find((t) => t.talentId === 'perspicace')?.times).toBe(1);
@@ -189,7 +189,7 @@ describe('createHero — applique compétences et talents raciaux', () => {
       manualChars: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
       charAdvancesAlloc: { 'capacite-de-combat': 5 },
       careerTalent: { id: 'infatigable' }, // PAS Guerrier né (+5 CC), pour isoler les Augmentations
-      speciesTalentChoices: { 'espece:talents:0': { id: 'affable' } },
+      speciesTalentChoices: { [adresseDeCreation.especeTalent(0)]: { id: 'affable' } },
       talentsRolled: false,
     });
     expect(manual.talents.map((t) => t.talentId)).toEqual(['affable', 'destinee', 'infatigable']);
@@ -204,7 +204,7 @@ describe('createHero — applique compétences et talents raciaux', () => {
       label: 'T',
       manualChars: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
       charAdvancesAlloc: { 'capacite-de-combat': 5 },
-      speciesTalentChoices: { 'espece:talents:0': { id: 'affable' } },
+      speciesTalentChoices: { [adresseDeCreation.especeTalent(0)]: { id: 'affable' } },
       talentsRolled: false,
       seed: 3,
     });
@@ -270,7 +270,7 @@ describe('createHero — applique compétences et talents raciaux', () => {
     if (!middenland) return; // espèce ADE absente → rien à tester
     const out = resolveSpeciesTalents(middenland, {
       seed: 11,
-      speciesTalentChoices: { 'espece:talents:1': { random: 1 } }, // « Destinée ou Talent aléatoire » → la branche aléatoire
+      speciesTalentChoices: { [adresseDeCreation.especeTalent(1)]: { random: 1 } }, // « Destinée ou Talent aléatoire » → la branche aléatoire
     });
     expect(out).not.toContainEqual({ id: 'destinee' });
     expect(out.length).toBeGreaterThanOrEqual(2);

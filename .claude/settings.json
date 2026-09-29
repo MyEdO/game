@@ -6,57 +6,16 @@
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "Write|mcp__lean-ctx__ctx_patch",
+        "matcher": "Write|mcp__lean-ctx__ctx_patch|Edit|Bash|PowerShell|mcp__lean-ctx__ctx_shell|Agent",
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/scripts/hooks/new-src-file-guard.mjs",
+            "command": "node",
+            "args": [
+              "${CLAUDE_PROJECT_DIR}/scripts/hooks/repartiteur.mjs"
+            ],
             "timeout": 10,
-            "statusMessage": "Garde anti-réinvention (nouveau fichier src/)"
-          }
-        ]
-      },
-      {
-        "matcher": "Write|Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/scripts/hooks/data-edit-guard.mjs",
-            "timeout": 10,
-            "statusMessage": "Grounding donnée (src/data — check-first #148)"
-          }
-        ]
-      },
-      {
-        "matcher": "Write|Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/scripts/hooks/enterine-guard.mjs",
-            "timeout": 10,
-            "statusMessage": "Tag [entériné] = validation utilisateur"
-          }
-        ]
-      },
-      {
-        "matcher": "Write|Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/scripts/hooks/exception-add-guard.mjs",
-            "timeout": 10,
-            "statusMessage": "Ajout d'exception de garde = autorisation utilisateur"
-          }
-        ]
-      },
-      {
-        "matcher": "Write|Edit|mcp__lean-ctx__ctx_patch",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/scripts/hooks/memoire-tombale-guard.mjs",
-            "timeout": 10,
-            "statusMessage": "Fiche mémoire : réécrire au présent, jamais une pierre tombale"
+            "statusMessage": "Gardes des appels d’outil (répartiteur)"
           }
         ]
       },
@@ -65,99 +24,28 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/scripts/hooks/commande-piege-guard.mjs",
-            "timeout": 10,
-            "statusMessage": "Commande piège refusée (lien node_modules, git show -- <sha>)"
-          }
-        ]
-      },
-      {
-        "matcher": "Bash|PowerShell|mcp__lean-ctx__ctx_shell",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/scripts/hooks/solde-ticket-guard.mjs",
+            "command": "node",
+            "args": [
+              "${CLAUDE_PROJECT_DIR}/scripts/hooks/solde-ticket-hook.mjs"
+            ],
             "timeout": 10,
             "statusMessage": "Fermeture de ticket au commit = solde écrit obligatoire"
-          }
-        ]
-      },
-      {
-        "matcher": "Bash|PowerShell|mcp__lean-ctx__ctx_shell",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/scripts/hooks/issue-label-guard.mjs",
-            "timeout": 10,
-            "statusMessage": "Ticket sans label refusé (index du backlog)"
-          }
-        ]
-      },
-      {
-        "matcher": "Bash|PowerShell|mcp__lean-ctx__ctx_shell",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/scripts/hooks/runner-fast-reminder.mjs",
-            "timeout": 10,
-            "statusMessage": "Rappel typecheck:fast (tsc nu ~42 s)"
-          }
-        ]
-      },
-      {
-        "matcher": "Bash|PowerShell|mcp__lean-ctx__ctx_shell",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/scripts/hooks/codeur-gates-guard.mjs",
-            "timeout": 10,
-            "statusMessage": "Un codeur ne joue pas les gates du train"
-          }
-        ]
-      },
-      {
-        "matcher": "Bash|PowerShell|mcp__lean-ctx__ctx_shell",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/scripts/hooks/runner-capture-guard.mjs",
-            "timeout": 10,
-            "statusMessage": "Runner sans capture : sortie complète en fichier"
-          }
-        ]
-      },
-      {
-        "matcher": "Agent",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/scripts/hooks/agent-dispatch-design-reminder.mjs",
-            "timeout": 10,
-            "statusMessage": "Rappel altitude de design (dispatch d'agent)"
           }
         ]
       }
     ],
     "PostToolUse": [
       {
-        "matcher": "Write|Edit",
+        "matcher": "Write|Edit|Agent",
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/scripts/hooks/poison-postcheck.mjs",
+            "command": "node",
+            "args": [
+              "${CLAUDE_PROJECT_DIR}/scripts/hooks/repartiteur.mjs"
+            ],
             "timeout": 10,
-            "statusMessage": "Garde anti-poison au stylo (tombstone/excuse/label)"
-          }
-        ]
-      },
-      {
-        "matcher": "Agent",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/scripts/hooks/agent-return-judge-reminder.mjs",
-            "timeout": 10,
-            "statusMessage": "Rappel juge adversarial (retour d'agent)"
+            "statusMessage": "Gardes des appels d’outil (répartiteur)"
           }
         ]
       }
@@ -167,7 +55,10 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/scripts/hooks/bootstrap-conteneur.mjs",
+            "command": "node",
+            "args": [
+              "${CLAUDE_PROJECT_DIR}/scripts/hooks/bootstrap-conteneur.mjs"
+            ],
             "timeout": 300,
             "statusMessage": "Conformité du conteneur distant (hooks git, gh)"
           }

@@ -10,8 +10,8 @@
  * Ce que le catalogue ne connaît pas n'est ni inventé, ni supprimé, ni deviné : la migration écrit ce
  * qu'elle résout, LISTE le reste et sort en 1.
  *
- * Marqueur « au choix » : forme canonique EXISTANTE du dépôt (`CHOICE_RE`,
- * `src/engine/careerSlots.ts:70` ; `src/engine/activities.ts:758`) — laissée telle quelle.
+ * Marqueur « au choix » (`CHOICE_RE` ci-dessous) : laissé tel quel, la spécialisation reste un
+ * EMPLACEMENT.
  *
  * Entrées : `src/data/skills.json`, `src/data/weaponGroups.json`, `src/data/domains.json`
  * (catalogues de résolution) + `src/data/*.json` (tous les datasets, `readdirSync`) +
@@ -59,7 +59,7 @@ for (const def of skills) {
   CATALOGUE.set(def.id, { ids: new Set(entries.map((e) => e.id)), byLabel });
 }
 
-/** Marqueur « au choix » — MÊME forme que `CHOICE_RE` (`src/engine/careerSlots.ts:70`). */
+/** Marqueur « au choix » des spécialisations saisies. */
 const CHOICE_RE = /^(au choix|une? au choix)$/i;
 
 const resolus = [];

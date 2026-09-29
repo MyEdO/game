@@ -10,7 +10,7 @@ import { RoseAxes, type RoseAxisValue } from './RoseAxes';
 import { MetalStatus } from './MetalStatus';
 import { WaxSeal } from './WaxSeal';
 import { EntityRef } from './EntityChip';
-import { speciesSingular, findSpeciesById, careerLabelFor, skillInstanceLabel, talentConcrete, allAxes, levelsForCareer, coreAxisIds, type AxisData } from '../data';
+import { speciesSingular, careerLabelFor, skillInstanceLabel, talentConcrete, allAxes, levelsForCareer, coreAxisIds, type AxisData } from '../data';
 import { dominantAxes, axesProfile } from '../engine/axes';
 import { t } from '../i18n';
 import { GatedAction } from './GatedAction';
@@ -21,7 +21,7 @@ import { Row } from './Layout';
  *  niveau 1 à la sélection ; le niveau vit dans la fiche). Source unique (cartes siège + candidat +
  *  HeroPresentation + sélecteur). */
 export function heroSubtitle(hero: Combatant): string {
-  const race = speciesSingular(findSpeciesById(hero.species)?.label ?? hero.species);
+  const race = speciesSingular(hero.species);
   return `${careerLabelFor(hero)} — ${race}`;
 }
 
