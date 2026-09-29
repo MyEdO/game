@@ -5,14 +5,13 @@ import assert from 'node:assert/strict'
 import { execFileSync, spawnSync } from 'node:child_process'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { delimiter, join } from 'node:path'
+import { delimiter, dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { envDeDepotForge, instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
-import { RATCHET_DIRS, STRICT_DIRS } from '../guards/lib/labelLogic.mjs'
 
 const HOOK = fileURLToPath(new URL('./pre-commit.mjs', import.meta.url))
 
-/** Un dépôt forgé où le hook tourne (`agents:check` inerte, les dossiers de `labelLogic`), `nom` stagé
+/** Un dépôt forgé où le hook tourne (`agents:check` inerte), `nom` stagé dans son dossier
  *  avec `texte` ; `jouer(env)` lance le HOOK réel dans ce dépôt. */
 function depotDuHook(nom, texte) {
   const env = envDeDepotForge()
@@ -20,7 +19,7 @@ function depotDuHook(nom, texte) {
     fichiers: { 'package.json': JSON.stringify({ scripts: { 'agents:check': 'node -e 0' } }) },
     message: 'socle',
   })
-  for (const d of [...STRICT_DIRS, ...RATCHET_DIRS]) mkdirSync(join(racine, d), { recursive: true })
+  mkdirSync(dirname(join(racine, nom)), { recursive: true })
   writeFileSync(join(racine, nom), texte)
   assert.equal(spawnSync('git', ['add', '--', nom], { cwd: racine, env }).status, 0)
   const jouer = (envDuHook = env) => spawnSync(process.execPath, [HOOK], { cwd: racine, env: envDuHook, encoding: 'utf8', timeout: 120_000 })
