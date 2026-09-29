@@ -60,7 +60,9 @@ test('le refus NOMME le runner et le geste attendu (fichier puis lecture)', () =
   assert.equal(r.decision, 'deny')
   assert.match(r.reason, /vitest run/)
   assert.match(r.reason, /sortie\.txt/)
-  assert.match(r.reason, /npm test/, 'les portes qui capturent déjà sont nommées, pour ne pas les fuir')
+  assert.match(r.reason, /`npm test -- <chemins>`/, 'le refus d’un vitest nomme la porte qui capture')
+  assert.match(r.reason, /vitest-run-<pid>\.txt/, 'et ce qu’elle apporte : la capture complète')
+  assert.match(r.reason, /workers bornés/, 'et les bornes de charge')
 })
 
 test('estRunnerNonCapturant : les portes qui capturent sont exclues NOMMÉMENT', () => {

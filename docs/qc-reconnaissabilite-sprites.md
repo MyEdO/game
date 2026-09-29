@@ -57,7 +57,7 @@ elfe, orc, gobelin, ogre, troll, skaven, mort-vivant, homme-bête, guerrier du C
 des cas héros équipés. Toute refacto de `composeRig`/registres doit le garder **VERT à 0 snapshot
 modifié** (le rig est partagé avec les héros). Un changement **intentionnel** (Ogre, tell de race) :
 ```powershell
-npx vitest run src/gameIso/rig/golden -u
+npm test -- src/gameIso/rig/golden -u
 git diff -W -- src/gameIso/rig/golden/__snapshots__/biped-golden.test.ts.snap   # vérifier que SEULS les snapshots ciblés bougent
 ```
 Recouper les lignes des hunks (`git diff -U0 ... | Select-String "^@@"`) avec les bornes des blocs

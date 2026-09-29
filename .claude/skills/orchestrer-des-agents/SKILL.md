@@ -129,9 +129,10 @@ lancement.
 - **Outillage qui MENT** : `ctx_search` rend un faux « 0 match » quand il s'arrête au budget de temps
   (le message le dit) ou saute les gros fichiers — une absence se recoupe par `git grep` ;
   `Measure-Object -Line` (PowerShell) ne compte pas les lignes vides — `wc -l` ou `git grep -c ""` ;
-  `npm run typecheck` est incrémental et rend des
-  erreurs FANTÔMES après le commit d'une session voisine (confirmer par `npx tsc --noEmit
-  --incremental false`) ; le hook `read-dedup` rend un faux « unchanged since last read » sur un
+  `npm run typecheck:fast` est incrémental sur un tsbuildinfo PARTAGÉ entre sessions
+  (`scripts/typecheck-fast.mjs:37-38`) — au doute, la porte complète `npm run typecheck`
+  (`package.json:33`, `--incremental false`) ;
+  le hook `read-dedup` rend un faux « unchanged since last read » sur un
   fichier JAMAIS lu (`ctx_read(mode=raw, fresh=true)`) ; un agent d'art à qui `Read` d'une image est
   refusé relance `node C:/Users/gauch/.claude/fix-leanctx-settings.mjs`.
 

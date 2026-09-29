@@ -7,18 +7,14 @@ import { garde as exceptionAjoutee } from './exception-add-guard.mjs'
 import { garde as memoireTombale } from './memoire-tombale-guard.mjs'
 import { garde as commandePiege } from './commande-piege-guard.mjs'
 import { garde as issueLabel } from './issue-label-guard.mjs'
-import { garde as runnerRapide } from './runner-fast-reminder.mjs'
 import { garde as codeurGates } from './codeur-gates-guard.mjs'
 import { garde as runnerCapture } from './runner-capture-guard.mjs'
-import { garde as dispatchAgent } from './agent-dispatch-design-reminder.mjs'
 import { garde as poison } from './poison-postcheck.mjs'
-import { garde as retourAgent } from './agent-return-judge-reminder.mjs'
 
 export const REGISTRE = {
   PreToolUse: [
     nouveauFichierSrc, donneeEditee, exceptionAjoutee, memoireTombale,
-    commandePiege, issueLabel, runnerRapide, codeurGates, runnerCapture,
-    dispatchAgent,
+    commandePiege, issueLabel, codeurGates, runnerCapture,
   ],
-  PostToolUse: [poison, retourAgent],
+  PostToolUse: [poison],
 }

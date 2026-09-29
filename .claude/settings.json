@@ -6,7 +6,7 @@
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "Write|mcp__lean-ctx__ctx_patch|Edit|Bash|PowerShell|mcp__lean-ctx__ctx_shell|Agent",
+        "matcher": "Write|mcp__lean-ctx__ctx_patch|Edit|Bash|PowerShell|mcp__lean-ctx__ctx_shell",
         "hooks": [
           {
             "type": "command",
@@ -36,7 +36,7 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "Write|Edit|Agent",
+        "matcher": "Write|Edit",
         "hooks": [
           {
             "type": "command",

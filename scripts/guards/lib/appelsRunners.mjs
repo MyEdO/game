@@ -1,23 +1,21 @@
-// Reconnaître un APPEL de runner dans une commande shell — segmentation et motifs partagés.
-// POURQUOI cette lib : deux hooks PreToolUse posent la MÊME question sur la même commande
-// (« ce segment lance-t-il un runner, ou ne fait-il que le MENTIONNER ? ») —
-// `scripts/hooks/runner-fast-reminder.mjs` pour rappeler la porte incrémentale du dépôt, et
-// `scripts/hooks/codeur-gates-guard.mjs` pour refuser à un `codeur` les gates du train. Deux copies
-// de ces motifs, c'est un faux positif corrigé d'un seul côté : la réponse vit ICI, une fois.
+// Reconnaître un APPEL de runner dans une commande shell — segmentation et motifs de
+// `scripts/hooks/codeur-gates-guard.mjs` (« ce segment lance-t-il un runner, ou ne fait-il que le
+// MENTIONNER ? »), qui refuse à un `codeur` les gates du train.
 // Le contrat que chaque motif porte : le segment doit COMMENCER par l'exécutable (éventuellement
 // `npx `/`node ` et son chemin), et les lecteurs de texte (grep, cat…) sont écartés d'emblée — une
 // recherche de texte n'est pas un appel.
 
 /** Lecteurs de texte : un segment qui commence par l'un d'eux MENTIONNE, il n'appelle pas. */
 export const LECTEURS = /^(?:grep|rg|cat|echo|type|findstr|Select-String|sed|awk|head|tail)\b/i
-/** Appel de `tsc`, sous ses graphies (`npx`, `node`, chemin, `.cmd`, `.js`). */
-export const APPEL_TSC = /^(?:npx\s+|node\s+)?(?:\S*[\\/])?tsc(?:\.cmd|\.js)?(?=\s|$)/
-/** Appel de `vitest`, sous ses graphies (`npx`, `node`, chemin, `.cmd`, `.mjs`, `.js`). */
-export const APPEL_VITEST = /^(?:npx\s+|node\s+)?(?:\S*[\\/])?vitest(?:\.cmd|\.mjs|\.js)?(?=\s|$)/
+/** Appel d'un exécutable local `outil`, sous ses graphies (`npx`, `node`, chemin, `.cmd`, `.js`, `.mjs`). */
+export const appelDe = (outil) =>
+  new RegExp(`^(?:npx\\s+|node\\s+)?(?:\\S*[\\\\/])?${outil}(?:\\.cmd|\\.js|\\.mjs)?(?=\\s|$)`)
+const APPEL_TSC = appelDe('tsc')
+export const APPEL_VITEST = appelDe('vitest')
 /** Modes où la capture en fichier n'a pas de sens : run interactif, sortie non composée d'un bilan. */
-export const DRAPEAUX_HORS_CAPTURE = /(?:^|\s)(?:--watch|-w|--ui|--version)(?=\s|$)/
+const DRAPEAUX_HORS_CAPTURE = /(?:^|\s)(?:--watch|-w|--ui|--version)(?=\s|$)/
 /** Sous-commandes de vitest qui ne lancent pas la suite. */
-export const SOUS_COMMANDES_HORS_CAPTURE = new Set(['list', 'bench'])
+const SOUS_COMMANDES_HORS_CAPTURE = new Set(['list', 'bench'])
 
 /**
  * Découpe une commande en SEGMENTS indépendants. C'est le segment, jamais la commande entière, qui
@@ -27,7 +25,7 @@ export const SOUS_COMMANDES_HORS_CAPTURE = new Set(['list', 'bench'])
  * @param {string} commande
  * @returns {string[]}
  */
-export const segmenter = (commande) => commande.split(/[|&;\n()]+/).map((segment) => segment.trim())
+const segmenter = (commande) => commande.split(/[|&;\n()]+/).map((segment) => segment.trim())
 
 // Le sous-projet `server/` a son propre tsconfig : le typecheck racine n'y répond pas. Les deux
 // façons d'y entrer n'ont PAS la même portée, et c'est le SEGMENT qui la porte :

@@ -29,7 +29,7 @@ Tu exécutes une spec précise — tu n'inventes ni périmètre ni design.
 - RÉUTILISE les primitives nommées au brief (`docs/primitives.md`). Spec
   contredite par le code réel ou par le `Source/` → STOPPE et rapporte l'écart, jamais improviser ni
   coder la règle fausse.
-- **Auto-contrôle = le test de TON périmètre** (`node --test <fichier>`, `npx vitest run <fichiers>`,
+- **Auto-contrôle = le test de TON périmètre** (`node --test <fichier>`, `npm test -- <chemins>`,
   `npm run typecheck:fast` si du `.ts` bouge) et l'exécution réelle de l'outil livré en lecture seule.
   Les GATES du train (lint, deps:unused, docs:check:tout, suites entières, `npm run gates`, tsc/vitest nus)
   appartiennent au run CI de la branche, qui les joue UNE fois : un brief qui te les impose se

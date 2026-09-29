@@ -76,6 +76,24 @@ test('DRIVER : hors des gestes jugés, silence même hors dépôt ; un commit ho
   }
 })
 
+// #2125, sonde E4 du juge : payload `Bash`, le hook lui-même lancé HORS dépôt (`tmpdir()`).
+test('DRIVER : Bash lancé hors dépôt — `mv` et `git diff --cached` se taisent, un vrai commit nomme « hors dépôt »', () => {
+  const hors = tmpdir()
+  const decisionBash = (command) => {
+    const run = lancerHook('solde-ticket-hook.mjs', {
+      session_id: 'test', hook_event_name: 'PreToolUse', tool_name: 'Bash', tool_input: { command }, cwd: hors,
+    }, { cwd: hors })
+    assert.equal(run.code, 0, `le hook a quitté en ${run.code} : ${run.err}`)
+    return run.specifique ?? null
+  }
+  assert.equal(decisionBash('mv a.txt b.txt'), null, 'un déplacement de fichier n’a rien à faire juger')
+  assert.equal(decisionBash('git diff --cached --stat'), null, 'une lecture git n’a rien à faire juger')
+  const out = decisionBash('git commit -m "fix(x): closes #999999"')
+  assert.ok(out, 'un commit, lui, se juge — et git n’a rien pu lire ici')
+  assert.equal(out.permissionDecision, 'deny')
+  assert.match(out.permissionDecisionReason, /ascendance indisponible : hors dépôt/)
+})
+
 test('DRIVER : un -F introuvable est fail-CLOSED (jamais un silence)', () => {
   const base = mkdtempSync(join(tmpdir(), 'solde-guard-'))
   try {

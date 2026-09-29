@@ -201,9 +201,9 @@ export const tenue: TenueDef = {
 4. **QC rendu** : script temporaire `scripts/_tmp-qc-<nom>.mts` (pattern : `entityRigProfile(name,
    seed)` → `resolveRig` 3 vues → PNG resvg) — **zoom unitaire ~700px OBLIGATOIRE** (la
    planche cache les défauts), comparer à l'illustration, itérer. Supprimer le script après.
-5. `npx vitest run src/gameIso` — mettre à jour les cas de routage de
+5. `npm test -- src/gameIso` — mettre à jour les cas de routage de
    `creatures/creatures.test.ts` ; goldens (`-u`) APRÈS inspection visuelle uniquement.
-6. `npx tsc --noEmit`, `npm run galleries` (la créature apparaît automatiquement dans les
+6. `npm run typecheck`, `npm run galleries` (la créature apparaît automatiquement dans les
    galeries rig/bestiaire/toise — `public/galeries.html`).
 7. Stats : rien à faire si elle est dans `creatures.json` (LDB/ADE) ; créature d'aventure →
    **CustomStatblock dans la scène** (règle 1 : jamais de stats inventées).
