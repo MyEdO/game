@@ -205,13 +205,13 @@ emoji, même « juste pour l'instant ».
 
 ## Gardes
 
-- `npx vitest run src/ui/icons/icons.test.ts` — a des ids uniques ; nomme chaque icône `famille/nom` en kebab-case ; a un label FR non vide pour chaque def ; ne contient AUCUNE couleur en dur (currentColor / none / var(--gold) seulement) ; a un fragment svg non vide (paths dans le viewBox 24×24) ; rend le fragment du registre dans un viewBox 24×24 (défaut md=18px) ; accepte les tailles nommées et numériques ; jette sur un id inconnu en DEV (rien de silencieux).
-- `npx vitest run src/ui/no-emoji-affordance.test.ts` — zéro emoji dans tout `src/`,
+- `npm test -- src/ui/icons/icons.test.ts` — a des ids uniques ; nomme chaque icône `famille/nom` en kebab-case ; a un label FR non vide pour chaque def ; ne contient AUCUNE couleur en dur (currentColor / none / var(--gold) seulement) ; a un fragment svg non vide (paths dans le viewBox 24×24) ; rend le fragment du registre dans un viewBox 24×24 (défaut md=18px) ; accepte les tailles nommées et numériques ; jette sur un id inconnu en DEV (rien de silencieux).
+- `npm test -- src/ui/no-emoji-affordance.test.ts` — zéro emoji dans tout `src/`,
   hors exclusions par nature.
-- `npx vitest run src/data/data-wellformed.test.ts` — 2 cas résolvent une icône
+- `npm test -- src/data/data-wellformed.test.ts` — 2 cas résolvent une icône
   dans `ICON_DEFS`.
 - `npm run gen` — régénère `src/ui/icons/_registry.generated.ts` (n'écrit rien si le contenu est inchangé ;
   vérifier le compteur de fichiers affiché).
 - `npm run typecheck` — un id d'icône authoré en TS hors du registre ne compile pas
   (`IconIdGenerated` est une union fermée).
-<!-- sources-empreinte: e0d9ff2b3d2ec9834314b5e17777d10bb115ec62 (138 fichiers, 2 dossiers) corps: e02688e6eab83bfaa5a891ead92463b25c8a79e0 -->
+<!-- sources-empreinte: 69604f20dc9a49aa7520ce4e2a8af64767cbaf89 (138 fichiers, 2 dossiers) corps: 1298909daa3083b3f352bbad6ea5bdcf5f76b21a -->

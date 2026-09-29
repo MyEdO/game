@@ -120,7 +120,7 @@ C'est le signal qu'un geste manuel a dévié de ce que `npm install` pose seul.
   `scripts/guards/lib/emojiAffordance.mjs`, `scripts/guards/lib/hardcode.mjs`,
   `scripts/guards/lib/labelLogic.mjs`).
 - Les gardes de SESSION : 3 scripts déclarés dans `.claude/settings.json`
-  (versionné), sur 19 fichiers `.mjs` hors test sous `scripts/hooks/` — détail au § 5.
+  (versionné), sur 16 fichiers `.mjs` hors test sous `scripts/hooks/` — détail au § 5.
 - Les schémas de données : `src/data/schemas/` (`src/data/schemas/types.ts`,
   `src/data/schemas/validate.ts`, `src/data/schemas/_registry.generated.ts`,
   `src/data/schemas/_ids.generated.ts`, `src/data/schemas/grammaire/` — le vocabulaire partagé —
@@ -175,9 +175,9 @@ refaire `npm install`.
 | Événement | Déclencheur (matcher) | Script | Rôle |
 |---|---|---|---|
 | `SessionStart` | (tous) | `scripts/hooks/bootstrap-conteneur.mjs` | Conformité du conteneur distant (hooks git, gh) |
-| `PreToolUse` | Write \| mcp__lean-ctx__ctx_patch \| Edit \| Bash \| PowerShell \| mcp__lean-ctx__ctx_shell \| Agent | `scripts/hooks/repartiteur.mjs` | Gardes des appels d’outil (répartiteur) |
+| `PreToolUse` | Write \| mcp__lean-ctx__ctx_patch \| Edit \| Bash \| PowerShell \| mcp__lean-ctx__ctx_shell | `scripts/hooks/repartiteur.mjs` | Gardes des appels d’outil (répartiteur) |
 | `PreToolUse` | Bash \| PowerShell \| mcp__lean-ctx__ctx_shell | `scripts/hooks/solde-ticket-hook.mjs` | Fermeture de ticket au commit = solde écrit obligatoire |
-| `PostToolUse` | Write \| Edit \| Agent | `scripts/hooks/repartiteur.mjs` | Gardes des appels d’outil (répartiteur) |
+| `PostToolUse` | Write \| Edit | `scripts/hooks/repartiteur.mjs` | Gardes des appels d’outil (répartiteur) |
 
 **CI GitHub Actions** :
 
@@ -241,4 +241,4 @@ sans place dans ce plan fait REFUSER le run, avec son nom.
 `scripts/guards/lib/npmLockHoisted.mjs` — npx --yes npm@10.9.3 install --package-lock-only, puis valider avec npx npm@10.9.3 ci --dry-run. npm 11 ampute les entrées hoistées
 `@emnapi/*` que `npm ci` exige en CI ; la garde (pre-commit +
 `src/npm-lock-hoisted-guard.test.ts`) refuse un lock amputé.
-<!-- sources-empreinte: ed994bf6e68397299816eacddbcb87dd818a1c28 (27 fichiers, 8 dossiers) corps: 4c068fcc41346e722db79fb965ac64134f67f3e0 -->
+<!-- sources-empreinte: 70b99efd6fe4f0fe89db232307e10b5f7082e531 (27 fichiers, 8 dossiers) corps: 35247318af37b0e6c3242a1441cc1da1c1d50cac -->
