@@ -26,7 +26,7 @@
  * d'un voisin. Sous `pionsEnDisques` il n'y a plus de tête à surmonter : le chrome se pose au bord du
  * disque (`badgeY = −discR`).
  */
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, type CSSProperties } from 'react';
 import { tileCenter, type Dims } from '../../geometry/iso';
 import type { Dir8 } from '../../state/dir8';
 import { useGame } from '../../state/store';
@@ -38,7 +38,8 @@ import { tokenBodyKind } from '../tokenBodyKind';
 import { discCapPath, discR } from '../builders/dynamicMarks';
 import { NEUTRAL_TINT } from '../teamColors';
 import { subscribeStageFrames } from './stageFrames';
-import { viewBoxUnitPx, type StageCanvas } from './stageCam';
+import { viewBoxUnitPx } from './stageCam';
+import { useCadreDuSvg } from './useCadreDuSvg';
 import { VH, VW } from './useStageCamera';
 import type { GesteMark, TokenChromeMark } from '../builders/tokenChrome';
 import { PastilleEntite } from './PastilleEntite';
@@ -184,28 +185,11 @@ const ancreDeGeste = (g: GesteMark) => ({ id: g.entityId, cell: g.cell, n: g.n }
 
 /** CONTRE-ÉCHELLE du chrome CLIQUABLE : tout ce qui vit dans le groupe caméra est agrandi par
  *  `zoom × viewBoxScale(canvas)` (`stage/stageCam`, la chaîne même de `stageScreenPixel`). Une cible
- *  tactile doit, elle, mesurer ses pixels d'ÉCRAN — elle se contre-échelonne donc de ce facteur, mesuré
- *  sur le SVG porteur (son cadre EST celui du rendu). Le viewBox nominal sert de repli tant que
- *  l'élément n'est pas mesuré (montage, environnement sans mise en page). */
+ *  tactile doit, elle, mesurer ses pixels d'ÉCRAN — elle se contre-échelonne donc de ce facteur, sur le
+ *  cadre mesuré du SVG porteur (`useCadreDuSvg`, repli : le viewBox nominal). */
 export function useEchelleEcran(porteur: { current: SVGGElement | null }): number {
   const zoom = useGame((s) => s.zoom);
-  const [canvas, setCanvas] = useState<StageCanvas>({ w: VW, h: VH });
-  useEffect(() => {
-    const svg = porteur.current?.ownerSVGElement;
-    if (!svg) return;
-    const mesurer = () => {
-      const w = svg.clientWidth;
-      const h = svg.clientHeight;
-      if (!w || !h) return;
-      setCanvas((p) => (p.w === w && p.h === h ? p : { w, h }));
-    };
-    mesurer();
-    if (typeof ResizeObserver === 'undefined') return;
-    const ro = new ResizeObserver(mesurer);
-    ro.observe(svg);
-    return () => ro.disconnect();
-  }, [porteur]);
-  const px = viewBoxUnitPx(zoom, canvas);
+  const px = viewBoxUnitPx(zoom, useCadreDuSvg(porteur, { w: VW, h: VH }));
   return px > 0 ? 1 / px : 1;
 }
 

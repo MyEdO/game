@@ -180,8 +180,10 @@ describe('D4 — les murs de la vue du dessus : au TRAIT, et une seule fois', ()
     monter(scene, 'top');
     expect(dessinésDeGenre(scene, 'wall')).toBe(0);
     expect(Number(traits()!.dataset.mursTrait), 'un trait par élément de mur de l’étage').toBeGreaterThan(0);
-    // Le trait est bien le TRAIT SYMBOLIQUE du peintre de la vue du dessus, pas une face projetée.
-    expect(traits()!.innerHTML).toContain('stroke-width="8"');
+    // Le trait est bien le trait de COUPE du peintre de la vue du dessus, pas une face projetée, sous le
+    // groupe caméra qui porte son échelle écran (`stageCamStyle`).
+    expect(traits()!.innerHTML).toContain('class="mur-coupe mur-coeur"');
+    expect(Number(traits()!.parentElement!.style.getPropertyValue('--k'))).toBeGreaterThan(0);
   });
 
   it('le masque garde TOUS les sols de l’étage actif : le plan est plein, pas amputé', () => {

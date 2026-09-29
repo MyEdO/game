@@ -19,7 +19,8 @@
  * du plan — mesure du lot : la coiffe d'un mur volumique (0,168 m à 2 m/tuile) tombe entre 0,35 px et
  * 0,95 px de large dans un panneau de 180 px, entre 0,57 px et 1,59 px à 300 px, sur les scènes
  * hôtes réelles (barge navale 18×12, bataille de masse 22×16, Opéra 21×17, arène 50×40). Sous le
- * pixel, une cloison ne se lit pas : la structure symbolique reste au trait SVG, invariant d'échelle,
+ * pixel, une cloison ne se lit pas : la structure reste au trait SVG, coupe du volume à son épaisseur
+ * monde sous un plancher en px écran (`authoring/wallsSvg.ts:dessusSvg`),
  * et le canevas porte la matière.
  */
 import * as THREE from 'three';

@@ -9,7 +9,7 @@
  *     `0 0 VW VH` RECOUVRE l'élément, donc son échelle est le MAX des deux rapports (un `meet` en
  *     prendrait le min) et son centre coïncide avec le centre de l'élément (`xMidYMid`).
  *
- * `stageCamTransform` (la CSS que le stage rend) et `stageScreenPixel` (le pixel que les gardes
+ * `stageCamTransform` (la CSS que le stage rend, par `stageCamStyle`) et `stageScreenPixel` (le pixel que les gardes
  * mesurent) DÉRIVENT toutes deux de `stageCamAffine` : une retouche de l'une ne peut pas laisser
  * l'autre en arrière. Le PICKING remonte la même chaîne à l'envers (`viewBoxPointAt` puis
  * `stagePointAt`) — pixel de l'élément → point de projection — sans jamais interroger un CTM de SVG,
@@ -18,6 +18,7 @@
 import type { Dims } from '../../geometry/iso';
 import { poseFromDims, screenToWorldAtLift, worldToScreen } from './projection';
 import { VH, VW } from './useStageCamera';
+import { ECHELLE_ECRAN } from '../echelleEcran';
 
 /** Cadre en pixels CSS de la surface de rendu. */
 export interface StageCanvas {
@@ -47,6 +48,18 @@ export function stageCamAffine(cam: { x: number; y: number }, zoom: number): Sta
 export function stageCamTransform(cam: { x: number; y: number }, zoom: number): string {
   const { k, tx, ty } = stageCamAffine(cam, zoom);
   return `matrix(${k}, 0, 0, ${k}, ${tx}, ${ty})`;
+}
+
+/** STYLE portant l'échelle écran `k` (px par unité de viewBox) d'un groupe SVG — seul compositeur de
+ *  `ECHELLE_ECRAN`, que lisent les planchers des traits de la vue du dessus. */
+export function styleDEchelleEcran(k: number): { [ECHELLE_ECRAN]: string } {
+  return { [ECHELLE_ECRAN]: String(k) };
+}
+
+/** STYLE du groupe caméra du stage — SEUL écrivain de sa `transform` et de son échelle écran
+ *  (`viewBoxUnitPx`). `apres` = transformation d'écran composée APRÈS la caméra (`stageYawCorrection`). */
+export function stageCamStyle(cam: { x: number; y: number }, zoom: number, canvas: StageCanvas, apres = ''): { transform: string; [ECHELLE_ECRAN]: string } {
+  return { transform: `${stageCamTransform(cam, zoom)} ${apres}`.trim(), ...styleDEchelleEcran(viewBoxUnitPx(zoom, canvas)) };
 }
 
 /**

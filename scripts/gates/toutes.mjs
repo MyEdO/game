@@ -212,6 +212,14 @@ export const ECRIT_LU = {
     lit: ['scripts/recette/', 'scripts/port-dev.mjs'],
     raison: 'le profil de navigateur et les captures vivent hors de l’arbre ; LIT le dériveur de port qu’il éprouve',
   },
+  'recette:plancher-trait': {
+    ecrit: [],
+    lit: ['scripts/recette/', 'scripts/port-dev.mjs', 'src/', 'tsconfig.json'],
+    raison:
+      'rastérise en mémoire (SVG en data-URI dans about:blank), profil de navigateur sous os.tmpdir() ; ' +
+      'LIT le kit de recette, le dériveur de port qu’il importe, les modules src/ chargés par tsx et ' +
+      'tsconfig.json (enregistreur de lectures, 2026-09-29 : 646 lectures sous src/, aucune sous docs/)',
+  },
   typecheck: {
     ecrit: [],
     lit: ['src/', 'scripts/', 'server/', 'tsconfig.json', 'package.json', 'vite.config.ts'],
@@ -586,14 +594,15 @@ export const LANES = [
       'docs:check', 'docs:empreinte', 'test:raw', 'raw:check-refs', 'raw:check-code-refs', 'raw:check-ancres',
       'raw:check-folio-continuity', 'raw:check-source-tables', 'raw:check-source-format',
       'raw:check-source-puces', 'raw:check-renvois', 'test:docs',
-      'agents:check', 'build',
+      'agents:check', 'build', 'recette:plancher-trait',
     ],
     raison:
       'tous les LECTEURS de docs/ et docs/raw/ — leurs trois écrivains ont déjà tourné, en série, avant que ' +
       'cette lane ne commence. `build` y tient parce que c’est une des gates les moins chères (22,5 s au ' +
       'dernier run : il ne joue plus que `gen && vite build`) et que cette lane est la plus courte — 70,8 s ' +
       'sans lui, 93,2 s avec (durees.json, 2026-09-08), loin sous le mur de `types` ; il n’écrit d’ailleurs ' +
-      'que les registres déjà régénérés par `gen` en phase préalable',
+      'que les registres déjà régénérés par `gen` en phase préalable. `recette:plancher-trait` (13,3 s mesurées ' +
+      'le 2026-09-29) y tient pour la même raison : la lane reste sous le mur de `types`',
   },
 ]
 

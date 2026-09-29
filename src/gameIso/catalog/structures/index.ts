@@ -30,6 +30,27 @@ export function windowLit(app: StructureAppearanceDef): string {
   return app.window?.lit ?? app.face;
 }
 
+/** Facteurs d'ombrage des replis dérivés de la face : liseré sombre, chapiteau de jambage clair. */
+const OUTLINE = 0.4;
+const JAMBCAP = 1.25;
+
+/** Couleur du CHAPITEAU d'un jambage de porte — celle du bloc `door` de la def, repli dérivé de la face. */
+export function jambCapColor(app: StructureAppearanceDef): string {
+  return app.door?.jambCap ?? shade(app.face, JAMBCAP);
+}
+
+/** LISERÉ d'une partie de mur au peintre SVG (couleur, largeur en px iso), ou `undefined` sans liseré :
+ *  la face porte la bande d'une courtine (`parapet`), sinon un liseré sombre dérivé de la face. */
+export function wallPartOutline(app: StructureAppearanceDef, part: WallPart): { couleur: string; largeur: number } | undefined {
+  switch (part) {
+    case 'face': return app.parapet ? { couleur: wallPartColor(app, 'bande'), largeur: 0.8 } : { couleur: shade(app.face, OUTLINE), largeur: 0.7 };
+    case 'parapet': case 'linteau': return { couleur: wallPartColor(app, 'bande'), largeur: 0.8 };
+    case 'chambranle': return { couleur: shade(app.face, OUTLINE), largeur: 0.5 };
+    case 'gravats-tas': return { couleur: app.band ?? shade(app.face, OUTLINE), largeur: 0.6 };
+    default: return undefined;
+  }
+}
+
 /** Couleur de BASE d'une partie de mur du pivot — SOURCE UNIQUE des deux backends (écran-affine + POV),
  *  qui y appliquent ensuite chacun LEUR lumière (ombre d'orientation iso / tint + brume POV). Tout vient
  *  des CHAMPS de la def (replis `?? face` pour une def incomplète), jamais d'un littéral. */

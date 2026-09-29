@@ -78,7 +78,7 @@ export function battreStageFrames(): void {
  *
  * Elle ne bat AUCUN abonné, et n'en prive aucun : la passe que cède la boucle est un REDESSIN, et le
  * rendu React qui l'accompagne repose déjà les surcouches de la même caméra (l'hôte écrit
- * `stageCamTransform` sur le groupe de la surcouche et `setVisibleTileBounds` DANS son rendu).
+ * `stageCamStyle` sur le groupe de la surcouche et `setVisibleTileBounds` DANS son rendu).
  * Elle ne touche PAS l'horloge des battements : une demande PONCTUELLE porte une peinture neuve, et
  * un commit ne l'a pas servie.
  */

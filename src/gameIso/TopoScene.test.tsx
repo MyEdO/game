@@ -42,7 +42,7 @@ describe('TopoScene — smoke SSR', () => {
  * les seules scènes à station sont mono-niveau, faux dès qu'un plan porte un étage.
  */
 describe('TopoScene — le plan ne montre QU’UN étage', () => {
-  /** Deux planchers, UN SEUL mur, au REZ. En vue du dessus un mur bois se trace en `stroke-width="8"`. */
+  /** Deux planchers, UN SEUL mur, au REZ. En vue du dessus un mur se trace en traits de coupe (`mur-coupe`). */
   function twoStoreys() {
     const s = emptyScene(4, 4);
     s.layers.push({ z: 1, tiles: new Array(16).fill('herbe') });
@@ -53,7 +53,7 @@ describe('TopoScene — le plan ne montre QU’UN étage', () => {
   it('plan du REZ : le mur du rez y est ; plan de l’ÉTAGE : il n’y est pas', () => {
     const rez = renderToStaticMarkup(<TopoScene scene={twoStoreys()} stations={[]} z={0} />);
     const etage = renderToStaticMarkup(<TopoScene scene={twoStoreys()} stations={[]} z={1} />);
-    expect(rez).toContain('stroke-width="8"');
-    expect(etage).not.toContain('stroke-width="8"');
+    expect(rez).toContain('class="mur-coupe mur-coeur"');
+    expect(etage).not.toContain('class="mur-coupe mur-coeur"');
   });
 });

@@ -1,6 +1,6 @@
 /**
  * Couche STATIQUE des MURS AU TRAIT : les éléments du builder (`builders/walls`, camera-free) projetés
- * en trait symbolique par le peintre `authoring/wallsSvg`, puis triés par `stage/objs`.
+ * au trait (coupe horizontale) par le peintre `authoring/wallsSvg`, puis triés par `stage/objs`.
  *
  * UNE SEULE COUCHE POUR LES DEUX VUES DU DESSUS (#1176 P3-5b) : le PLAN DE STATION
  * (`gameIso/TopoScene`) et la vue du dessus de JEU (`SurcoucheIso`, verdict `mursAuTrait` de
@@ -68,7 +68,7 @@ export function wallLayerObjs(wallEls: WallEl[], d: Dims, lod: number, detailOpt
   }));
 }
 
-/** LOD 0 (aplats, aucun motif) — une structure au trait veut la silhouette symbolique, pas le détail. */
+/** LOD 0 (aplats, aucun motif) — une structure au trait veut la coupe, pas le détail. */
 const TRAIT_LOD: DetailOpts = { zoom: 0.4 };
 
 /** Les quatre arêtes cardinales d'une case, avec le pas vers la case qu'elles bordent. */
@@ -129,7 +129,7 @@ function solidTileTraitObjs(scene: Scene, dims: Dims, z: number, visible?: Reado
  *
  * POURQUOI TOUT OU RIEN (`vis !== false`), et non le champ continu de visibilité (#1176, C6) : le champ
  * s'applique à la MATIÈRE — les couleurs de sommet du monde cuit, où un dégradé a un sens. Un TRAIT
- * symbolique est BINAIRE : un mur à demi estompé se lit « est-ce un mur ? », exactement l'ambiguïté
+ * de plan est BINAIRE : un mur à demi estompé se lit « est-ce un mur ? », exactement l'ambiguïté
  * qu'un plan doit interdire. Ce n'est donc pas une incohérence avec C6, c'est sa frontière.
  */
 export function wallTraitObjs(scene: Scene, dims: Dims, z: number, visible?: ReadonlySet<string>): StageObj[] {

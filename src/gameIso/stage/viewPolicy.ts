@@ -65,10 +65,10 @@ export interface StyleVue {
    *  la vue du dessus n'en peint plus un seul. L'ambiante, donc le palier jour/nuit, ne dépend
    *  d'aucun regard : la nuit reste la nuit. */
   ombreSoleil: boolean;
-  /** Les MURS se rendent-ils au TRAIT symbolique SVG (`stage/layers.wallTraitObjs`) au lieu d'être
+  /** Les MURS se rendent-ils au TRAIT SVG (`stage/layers.wallTraitObjs`) au lieu d'être
    *  peints par le monde volumique ? Vu à la verticale, un mur ne montre que sa COIFFE — quelques
    *  dixièmes de pixel de large à l'échelle d'un plateau (mesure au JSDoc de `stage/planSnapshot.ts`),
-   *  là où le trait est invariant d'échelle. Verdict EXCLUSIF : le monde cuit RETIRE ses murs quand il
+   *  là où le trait tient un plancher en px écran (`authoring/wallsSvg.ts:dessusSvg`). Verdict EXCLUSIF : le monde cuit RETIRE ses murs quand il
    *  est vrai (`keepEl`), aucune double peinture — garder une coiffe sous-pixel sous un trait, c'est
    *  payer du triangle pour du bruit. */
   mursAuTrait: boolean;

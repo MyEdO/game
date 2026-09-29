@@ -729,8 +729,10 @@ describe('roofSeamGeometry — le joint de deux nappes prend la matière du mur 
 /**
  * COUPE HORIZONTALE (`coupeDuMur`) — la vue du dessus d'un mur. Oracle GÉOMÉTRIQUE indépendant de
  * l'algorithme : chaque face est replacée dans son plan (t le long de l'arête, d = hauteur au-dessus du
- * plan de coupe), sa classe se lit à l'étendue de d, et le tronçon coupé d'un polygone est la plage des
- * t dont le point (t, 0) est DANS le polygone (pair-impair, échantillonné).
+ * plan de coupe), sa classe se lit à l'étendue de d à `TOLERANCE_ORACLE` près (classe INCLUSIVE : une
+ * borne au plan est coupée), et le tronçon coupé d'un polygone est la plage des t dont le point (t, 0)
+ * est DANS le polygone (pair-impair, échantillonné). La demi-croix d'un montant est l'extension, le
+ * long de l'arête, des quatre bouts de bras d'une croix alignée sur les axes du monde.
  */
 describe('coupeDuMur — coupe horizontale des faces de chaque apparence × forme admise × intacte/abattue', () => {
   const SEG_DE_FORME: Record<FormeArete, Partial<WallSeg>> = {
@@ -740,14 +742,22 @@ describe('coupeDuMur — coupe horizontale des faces de chaque apparence × form
     'porte-ouverte': { structure: 'porte', door: true },
     'fermeture-fixe': { structure: 'porte' },
   };
-  const scene = (appearance: string, forme: FormeArete, down: boolean): Scene => {
+  const scene = (appearance: string, forme: FormeArete, down: boolean, side: WallSeg['side'] = 'N'): Scene => {
     let s = emptyScene(6, 6);
-    s.walls = [{ x: 2, y: 2, side: 'N', structure: 'mur-en-bois', ...SEG_DE_FORME[forme], appearance }];
-    if (down) s = setStructureDown(s, 2, 2, 'N', 0, true);
+    s.walls = [{ x: 2, y: 2, side, structure: 'mur-en-bois', ...SEG_DE_FORME[forme], appearance }];
+    if (down) s = setStructureDown(s, 2, 2, side, 0, true);
     return s;
   };
   const cas = structureAppearances.flatMap((app) => formesAdmises(app).flatMap((forme) =>
     [false, true].map((down): [string, Scene] => [`${app.id} ${forme}${down ? ' abattue' : ''}`, scene(app.id, forme, down)])));
+  /** Tolérance de l'oracle (m), indépendante de celle du module. */
+  const TOLERANCE_ORACLE = 1e-6;
+  /** Élément translaté de `dh` m à la verticale : faces ET surface porteuse, comme une base surélevée. */
+  const surBase = (el: WallEl, dh: number): WallEl => ({
+    ...el,
+    ends: [{ ...el.ends[0], h: el.ends[0].h + dh }, { ...el.ends[1], h: el.ends[1].h + dh }],
+    faces: el.faces.map((f) => ({ ...f, poly: f.poly.map((p) => ({ ...p, h: p.h + dh })) })),
+  });
 
   /** (t, d) de chaque sommet d'une face : t le long de l'arête, d au-dessus du plan de coupe. */
   const plan = (el: WallEl, hc: number) => {
@@ -755,7 +765,8 @@ describe('coupeDuMur — coupe horizontale des faces de chaque apparence × form
     const L2 = (B.x - A.x) ** 2 + (B.y - A.y) ** 2;
     return (poly: WallEl['faces'][number]['poly']) => poly.map((p) => {
       const t = ((p.x - A.x) * (B.x - A.x) + (p.y - A.y) * (B.y - A.y)) / L2;
-      return { t, d: p.h - (A.h + (B.h - A.h) * t) - hc };
+      const d = p.h - (A.h + (B.h - A.h) * t) - hc;
+      return { t, d: Math.abs(d) < TOLERANCE_ORACLE ? 0 : d };
     });
   };
   const dansLePolygone = (pts: { t: number; d: number }[], t: number): boolean => {
@@ -764,6 +775,15 @@ describe('coupeDuMur — coupe horizontale des faces de chaque apparence × form
       if ((pts[i].d > 0) !== (pts[j].d > 0) && t < pts[i].t + ((pts[j].t - pts[i].t) * (0 - pts[i].d)) / (pts[j].d - pts[i].d)) dedans = !dedans;
     return dedans;
   };
+  /** Demi-extension (fraction d'arête) d'une croix de largeur `wM` : ses quatre bouts de bras (±w/2 sur
+   *  x, ±w/2 sur y, en mètres) projetés sur la direction de l'arête. */
+  const demiCroixOracle = (el: WallEl, wM: number, mpt: number) => {
+    const [A, B] = el.ends;
+    const Lm = Math.hypot(B.x - A.x, B.y - A.y) * mpt;
+    const u = [((B.x - A.x) * mpt) / Lm, ((B.y - A.y) * mpt) / Lm];
+    const bouts = [[wM / 2, 0], [-wM / 2, 0], [0, wM / 2], [0, -wM / 2]];
+    return Math.max(...bouts.map(([x, y]) => x * u[0] + y * u[1])) / Lm;
+  };
 
   it('chaque face non saillante donne UNE entrée, dans son ordre : sa part, sa classe, son tronçon, son épaisseur = faceDepthM', () => {
     expect(cas.length).toBeGreaterThan(40);
@@ -771,7 +791,6 @@ describe('coupeDuMur — coupe horizontale des faces de chaque apparence × form
     for (const [quoi, s] of cas) {
       const el = one(s);
       const mpt = sceneMetresPerTile(s);
-      const L = Math.hypot(el.ends[1].x - el.ends[0].x, el.ends[1].y - el.ends[0].y) * mpt;
       const coupe = coupeDuMur(el.faces, el.ends, HAUTEUR_DE_COUPE_M, mpt);
       const retenues = el.faces.filter((f) => wallPartRelief(f.material.part as WallPart).famille !== 'saillie');
       if (coupe.length !== retenues.length) { fautes.push(`${quoi} : ${coupe.length} entrées pour ${retenues.length} faces non saillantes`); continue; }
@@ -787,7 +806,7 @@ describe('coupeDuMur — coupe horizontale des faces de chaque apparence × form
         if (e.classe !== classe) fautes.push(`${ici} : classe ${e.classe} ≠ ${classe}`);
         if (e.epaisseurM !== (faceDepthM(f) ?? 0)) fautes.push(`${ici} : épaisseur ${e.epaisseurM} ≠ ${faceDepthM(f)}`);
         let [t0, t1] = [Math.min(...ts), Math.max(...ts)];
-        if (f.poly.length === 2) { const demi = e.epaisseurM / 2 / L; t0 -= demi; t1 += demi; }
+        if (f.poly.length === 2) { const demi = demiCroixOracle(el, e.epaisseurM, mpt); t0 -= demi; t1 += demi; }
         else if (classe === 'coupe' && (Math.min(...ds) === 0 || Math.max(...ds) === 0)) {
           // Le plan AFFLEURE la face (bord haut ou bas à `hc`) : la coupe est ce bord.
           const aPlat = ts.filter((_, k) => ds[k] === 0);
@@ -803,6 +822,46 @@ describe('coupeDuMur — coupe horizontale des faces de chaque apparence × form
       });
     }
     expect(fautes).toEqual([]);
+  });
+
+  it('classe et tronçon INDÉPENDANTS de la cote de base : tout le catalogue, bases 0 à 4 m au pas de 0,1 et 0,3 / 0,4 / 0,9 / 1,3', () => {
+    const bases = [...Array.from({ length: 41 }, (_, k) => k * 0.1), 0.3, 0.4, 0.9, 1.3];
+    const fautes: string[] = [];
+    for (const [quoi, s] of cas) {
+      const el = one(s);
+      const mpt = sceneMetresPerTile(s);
+      const ref = coupeDuMur(el.faces, el.ends, HAUTEUR_DE_COUPE_M, mpt);
+      for (const dh of bases) {
+        const haut = surBase(el, dh);
+        coupeDuMur(haut.faces, haut.ends, HAUTEUR_DE_COUPE_M, mpt).forEach((e, i) => {
+          if (e.classe !== ref[i].classe || Math.abs(e.t0 - ref[i].t0) > 1e-9 || Math.abs(e.t1 - ref[i].t1) > 1e-9)
+            fautes.push(`${quoi} base ${dh.toFixed(1)} #${i} ${e.part} : ${e.classe} [${e.t0}, ${e.t1}] ≠ ${ref[i].classe} [${ref[i].t0}, ${ref[i].t1}]`);
+        });
+      }
+    }
+    expect(fautes).toEqual([]);
+  });
+
+  it('borne AU plan (garde-corps : poteau [0, 1], couronnement [0,86, 1] et [1, 1,167]) : coupée, sur le chemin réel `layer.height` aux bases 0 / 0,3 / 0,4 / 0,9 / 1,3', () => {
+    for (const base of [0, 0.3, 0.4, 0.9, 1.3]) {
+      const s = emptyScene(6, 6);
+      s.layers[0].height = Array(36).fill(base);
+      s.walls = [{ x: 2, y: 2, side: 'N', structure: 'mur-en-bois', appearance: 'garde-corps' }];
+      const el = one(s);
+      const coupe = coupeDuMur(el.faces, el.ends, HAUTEUR_DE_COUPE_M, sceneMetresPerTile(s));
+      expect(coupe.filter((e) => e.part === 'poteau').map((e) => e.classe), `base ${base}`).toEqual(['coupe', 'coupe']);
+      expect(coupe.filter((e) => e.part === 'couronnement').map((e) => e.classe), `base ${base}`).toEqual(['coupe', 'coupe']);
+    }
+  });
+
+  it('arête DIAGONALE : la demi-croix d’un montant est l’extension de la croix axiale le long de l’arête (w/2 ÷ √2), pas sa demi-largeur', () => {
+    const s = scene('mur-en-bois', 'mur-nu', false, '\\');
+    const el = one(s);
+    const mpt = sceneMetresPerTile(s);
+    const poteaux = coupeDuMur(el.faces, el.ends, HAUTEUR_DE_COUPE_M, mpt).filter((e) => e.part === 'poteau');
+    expect(poteaux).toHaveLength(2);
+    const Lm = Math.hypot(el.ends[1].x - el.ends[0].x, el.ends[1].y - el.ends[0].y) * mpt;
+    for (const e of poteaux) expect((e.t1 - e.t0) / 2).toBeCloseTo(e.epaisseurM / 2 / Math.SQRT2 / Lm, 12);
   });
 
   it('aucune part de famille `saillie` ne passe la coupe', () => {

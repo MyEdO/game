@@ -165,9 +165,10 @@ process.on('exit', () => {
   }
 });
 
+/** Chrome à lancer : l'explicite, sinon `CHROME_BIN` (exporté par l'image `ubuntu-latest` de la CI,
+ *  `actions/runner-images` `install-google-chrome.sh` l.41), sinon le premier candidat Windows présent. */
 function resolveChromePath(explicit) {
-  if (explicit) return explicit;
-  return CHROME_CANDIDATES.find((p) => existsSync(p)) ?? CHROME_CANDIDATES[0];
+  return explicit ?? process.env.CHROME_BIN ?? CHROME_CANDIDATES.find((p) => existsSync(p)) ?? CHROME_CANDIDATES[0];
 }
 
 /**

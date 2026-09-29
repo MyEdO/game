@@ -19,11 +19,6 @@ export function estBaie(forme: FormeArete): boolean {
   return BAIES.includes(forme);
 }
 
-/** La baie est-elle BOUCHÉE (porte fermée ou fermeture fixe) — seule la porte ouverte laisse le vide ? */
-export function estBaieFermee(forme: FormeArete): boolean {
-  return forme === 'porte-fermee' || forme === 'fermeture-fixe';
-}
-
 /** Ce qu'une apparence déclare, et que l'admission lit. */
 export interface BlocsDApparence {
   window?: unknown;

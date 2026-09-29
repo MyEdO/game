@@ -260,6 +260,9 @@ const ATTENDU = {
   ],
   'deps:unused': [],
   'test:recette': ['scripts/recette/lib.mjs'],
+  // +1 le 2026-09-29 (#1883) : la garde navigateur du trait de la vue du dessus, même kit que
+  // `test:recette` — son profil Chrome vit sous os.tmpdir() (`launchSession`), l'arbre n'est jamais écrit.
+  'recette:plancher-trait': ['scripts/recette/lib.mjs'],
   typecheck: [],
   lint: [],
   // +1 le 2026-09-06 (#1679 L3b) : la purge des captures périmées du lanceur est passée en source

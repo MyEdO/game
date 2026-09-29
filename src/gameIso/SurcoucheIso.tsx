@@ -35,6 +35,7 @@ import { CrewTooltip } from './stage/CrewTooltip';
 import { DebugMapLabels, DebugLegend } from './stage/DebugOverlay';
 import { Flies } from './stage/Ambiance';
 import { cameraTargeting, VW, VH } from './stage/useStageCamera';
+import type { stageCamStyle } from './stage/stageCam';
 import { useStagePointer } from './stage/useStagePointer';
 import { useHoverTargeting } from './stage/useHoverTargeting';
 import type { Scene } from '../state/scene';
@@ -79,7 +80,8 @@ export type VueDePlateau = {
   mode: string;
   targeting: ReturnType<typeof cameraTargeting>;
   anyWalking: boolean;
-  camTransform: string;
+  /** Style du groupe caméra (`stage/stageCam.ts:stageCamStyle`). */
+  camStyle: ReturnType<typeof stageCamStyle>;
   camGRef: React.RefObject<SVGGElement>;
   /** Ref-callback du SVG : elle pose l'élément vivant chez l'hôte (picking ET molette). */
   poserSvg: (el: SVGSVGElement | null) => void;
@@ -89,7 +91,7 @@ export type VueDePlateau = {
 
 export function SurcoucheIso({
   scene, dims, turning, activeZ, visible, tintAt, liftAt, liftOf, aretes, politique, chromes, gestes, halos, walkPosAt,
-  activeC, battle, myTurn, mode, targeting, anyWalking, camTransform, camGRef,
+  activeC, battle, myTurn, mode, targeting, anyWalking, camStyle, camGRef,
   poserSvg, pointeur, visée,
 }: VueDePlateau) {
   // Vérités d'OVERLAY (jamais du monde) : ce que cette vue seule affiche.
@@ -147,7 +149,7 @@ export function SurcoucheIso({
   return (
     /* Le fond du SVG est transparent : le canevas peint dessous. */
     <svg ref={poserSvg} className="iso-stage" style={{ background: 'transparent' }} viewBox={`0 0 ${VW} ${VH}`} preserveAspectRatio="xMidYMid slice" {...handlers}>
-      <g ref={camGRef} style={{ transform: camTransform, transition: camTransition, opacity: camOpacity }}>
+      <g ref={camGRef} style={{ ...camStyle, transition: camTransition, opacity: camOpacity }}>
         {/* COMPOSITION DE LA VUE DU DESSUS (#1176, P3-5b/P3-5c) : le canevas volumique dessous ne peint
             que les SOLS de l'étage actif et le DÉCOR ; ce qui suit est la surcouche de PLATEAU, du plus
             bas au plus haut — la grille (fond), puis la structure au trait, puis les affordances

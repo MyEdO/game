@@ -85,7 +85,8 @@ const GATE_SILL_FRAC = 0.12;
  *  fractions, bois 0.3/0.36/0.64/0.5 ≈ pierre, écart ≤ ~1 px) : hauteur du tas + dentelure +
  *  moignons de poteau. */
 const BREACH_H = 0.32, BREACH_M1 = 0.34, BREACH_M2 = 0.62, BREACH_POST_A = 0.7, BREACH_POST_B = 0.55;
-/** Tolérance de comparaison de hauteurs (m) — sauts de toiture réputés coplanaires en-deçà (`roofSeamGeometry`). */
+/** Tolérance de comparaison de hauteurs (m) — sauts de toiture réputés coplanaires en-deçà (`roofSeamGeometry`) ;
+ *  borne de face réputée AU plan de coupe en-deçà (`coupeDuMur`). */
 const EPS = 1e-9;
 
 type GXY = { x: number; y: number };
@@ -319,20 +320,24 @@ export interface TronconDeCoupe {
 
 /** COUPE HORIZONTALE des faces d'un mur à `hc` m au-dessus de la surface porteuse (la droite `ends`,
  *  interpolée le long de l'arête), dans l'ORDRE de `faces`. Une face traversée donne l'intersection de
- *  son polygone avec le plan ; une face sous ou au-dessus du plan, son emprise. Un MONTANT (face à
- *  2 points) est une croix de largeur `epaisseurM` : son tronçon s'étend d'une demi-croix de part et
- *  d'autre, en fraction de l'arête (`mpt` m par case). Les parts de famille `saillie`
- *  (`wallPartRelief`) sont écartées. PURE. */
+ *  son polygone avec le plan ; une face sous ou au-dessus du plan, son emprise. Classe INCLUSIVE : une
+ *  face dont une borne est au plan (à `EPS` près, quelle que soit la cote de la surface porteuse) est
+ *  coupée. Un MONTANT (face à 2 points) est une croix aux bras alignés sur les axes du monde
+ *  (`crossQuadPolys`) de largeur `epaisseurM` : son tronçon s'étend, de part et d'autre, de
+ *  l'extension de la croix le long de l'arête, en fraction de l'arête (`mpt` m par case). Les parts de
+ *  famille `saillie` (`wallPartRelief`) sont écartées. PURE. */
 export function coupeDuMur(faces: readonly Face[], ends: readonly [GP, GP], hc: number, mpt: number): TronconDeCoupe[] {
   const [A, B] = ends;
   const L2 = (B.x - A.x) ** 2 + (B.y - A.y) ** 2;
+  const L = Math.sqrt(L2);
   const tOf = (p: GP) => ((p.x - A.x) * (B.x - A.x) + (p.y - A.y) * (B.y - A.y)) / L2;
+  const auPlan = (d: number) => (Math.abs(d) < EPS ? 0 : d);
   const out: TronconDeCoupe[] = [];
   for (const face of faces) {
     const part = face.material.part as WallPart;
     if (wallPartRelief(part).famille === 'saillie') continue;
     const ts = face.poly.map(tOf);
-    const ds = face.poly.map((p, i) => p.h - (A.h + (B.h - A.h) * ts[i]) - hc);
+    const ds = face.poly.map((p, i) => auPlan(p.h - (A.h + (B.h - A.h) * ts[i]) - hc));
     const classe: ClasseDeCoupe = Math.min(...ds) > 0 ? 'surplomb' : Math.max(...ds) < 0 ? 'sous' : 'coupe';
     let span = ts;
     if (classe === 'coupe') {
@@ -344,7 +349,9 @@ export function coupeDuMur(faces: readonly Face[], ends: readonly [GP, GP], hc: 
       }
     }
     const epaisseurM = faceDepthM(face) ?? 0;
-    const demiCroix = face.poly.length === 2 ? epaisseurM / 2 / (Math.sqrt(L2) * mpt) : 0;
+    const demiCroix = face.poly.length === 2
+      ? ((epaisseurM / 2) * Math.max(Math.abs(B.x - A.x), Math.abs(B.y - A.y))) / L / (L * mpt)
+      : 0;
     out.push({ part, apparence: face.material.id, t0: Math.min(...span) - demiCroix, t1: Math.max(...span) + demiCroix, epaisseurM, classe });
   }
   return out;

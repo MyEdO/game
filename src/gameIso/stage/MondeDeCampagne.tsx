@@ -56,7 +56,8 @@ import { avancerLacet, getStageYaw, lacetActif, subscribeStageYaw, viewRot, view
 import { visibilityField } from '../backends/webgl/visibilityTint';
 import { useExploreCourant } from './exploreCourant';
 import { roomZonesByElKey, type KeepEl, type TintAt } from '../backends/webgl/sceneMeshes';
-import { stageCamTransform, stageYawCorrection } from './stageCam';
+import { stageCamStyle, stageYawCorrection } from './stageCam';
+import { useCadreDuSvg } from './useCadreDuSvg';
 import { roomCutawayAllies, roomFocusAt } from './roomFocus';
 import { NO_CLEARED_SPACE, frontFacadeCutaway, cutawayForSection, cutawayOverhead, spaceCellKey } from './architectureVisibility';
 import { clePercage } from './percage';
@@ -142,6 +143,7 @@ function CorpsDuMonde() {
   // recette les lit À L'APPEL, sur l'offre que l'écran rend à cet instant.
   const aretesEcranRef = useRef<readonly AreteProjetee[]>([]);
   const camGRef = useRef<SVGGElement>(null); // groupe à la transform CAMÉRA — recalé hors React pendant une marche volumique
+  const cadre = useCadreDuSvg(camGRef, { w: VW, h: VH }); // cadre de rendu du SVG d'overlays : son échelle écran
   // Un pas FRANCHI pendant une marche volumique : le seul rendu que la boucle demande (cf. son battement).
   const [, setWalkStep] = useState(0);
   const demandeRef = useRef<string | null>(null);
@@ -394,7 +396,7 @@ function CorpsDuMonde() {
     const g = camGRef.current;
     // Le groupe d'overlays porte sa caméra ET, pendant une rotation, la reprojection d'écran de ce que
     // le lacet a parcouru depuis le commit (`stageYawCorrection`, chaîne vide hors rotation).
-    if (g) g.style.transform = `${stageCamTransform(c, zoomVue)} ${stageYawCorrection(dimsVueRef.current, dimsImage)}`.trim();
+    if (g) for (const [p, v] of Object.entries(stageCamStyle(c, zoomVue, cadre, stageYawCorrection(dimsVueRef.current, dimsImage)))) g.style.setProperty(p, v);
     const k = tilesKey(visualTilesAt(now));
     if (k !== visualAlliesKey && demandeRef.current !== k) {
       demandeRef.current = k;
@@ -503,7 +505,7 @@ function CorpsDuMonde() {
     // au-dessus des têtes (`cutawayOverhead`).
     if (cutawayOverhead(el.cell, cleared)) return false;
     if (el.kind === 'wall') {
-      // MURS AU TRAIT (#1176, P3-5b) : sous un regard qui les rend au trait symbolique SVG
+      // MURS AU TRAIT (#1176, P3-5b) : sous un regard qui les rend au trait SVG
       // (`stage/layers.wallTraitObjs`), le monde volumique n'en peint AUCUN — verdict exclusif, jamais
       // une coiffe gardée sous le trait.
       if (politique.mursAuTrait) return false;
@@ -689,12 +691,11 @@ function CorpsDuMonde() {
   camRef.current = cam;
   setVisibleTileBounds(computeViewBounds(cam, zoom, dimsVue)); // écriture dans un module = pas de re-rendu
 
-  // Transform CAMÉRA (pan/zoom/rotation) — partagée par le groupe principal ET l'overlay d'étiquettes
-  // de zone (Bug lisibilité #782 : ce dernier doit suivre la même projection).
+  // Style CAMÉRA (pan/zoom/rotation et échelle écran, `stageCamStyle`) du groupe caméra de `SurcoucheIso`.
   // AUCUNE transition sur `transform` : ce groupe suit la caméra à l'image près, comme le canevas
   // volumique qui se pose, lui, sans le moindre lissage. Ce qui doit glisser glisse dans `camAt`
   // (`adoucirFocal`), donc pour les DEUX à la fois. Le creux du dim-and-turn reste une OPACITÉ.
-  const camTransform = stageCamTransform(cam, zoomVue);
+  const camStyle = stageCamStyle(cam, zoomVue, cadre);
 
   return (
     <>
@@ -748,7 +749,7 @@ function CorpsDuMonde() {
             mode={mode}
             targeting={targeting}
             anyWalking={anyWalking}
-            camTransform={camTransform}
+            camStyle={camStyle}
             camGRef={camGRef}
             poserSvg={poserSvg}
             pointeur={pointeur}

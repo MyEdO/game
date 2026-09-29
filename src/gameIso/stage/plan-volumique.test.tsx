@@ -123,8 +123,8 @@ describe('Plan de station — marqueurs et structure', () => {
   it('la STRUCTURE reste au trait SVG, la MATIÈRE vit dans le canevas posé dessous', () => {
     const scene = scèneDePlan();
     const plan = monte(<TopoScene scene={scene} stations={[]} />);
-    // Le mur (trait symbolique de la vue du dessus) est dans le SVG…
-    expect(plan.querySelector('.topo-scene')!.innerHTML).toContain('stroke-width="8"');
+    // Le mur (trait de coupe de la vue du dessus) est dans le SVG…
+    expect(plan.querySelector('.topo-scene')!.innerHTML).toContain('class="mur-coupe mur-coeur"');
     // … et les 36 tuiles de sol n'y sont pas : elles sont dans le canevas.
     expect(plan.querySelectorAll('.topo-scene > g > *').length).toBe(1);
     expect(plan.querySelector('canvas.topo-monde')).not.toBeNull();

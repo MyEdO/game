@@ -63,6 +63,9 @@ jobs:
         run: npm run deps:unused
       - if: ${{ steps.classer.outputs.produit != 'false' && !cancelled() && steps.install.outcome == 'success' }}
         run: npm run test:recette
+      # Garde NAVIGATEUR du trait de la vue du dessus (#1883) : Chrome de l'image, `CHROME_BIN`.
+      - if: ${{ steps.classer.outputs.produit != 'false' && !cancelled() && steps.install.outcome == 'success' }}
+        run: npm run recette:plancher-trait
       # src/data/*.json sont la SOURCE app-owned (commitée) — plus de régénération build:data.
       - name: Dérive des registres générés
         # Glob sur TOUS les fichiers générés, pas les seuls `_registry` : `_ids.generated.ts`,

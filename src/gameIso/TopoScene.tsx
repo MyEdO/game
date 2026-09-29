@@ -1,11 +1,12 @@
 /**
- * TopoScene — vue TOP-DOWN symbolique d'une scène (plan de niveau / minimap). N'est PAS un 2ᵉ moteur
+ * TopoScene — vue TOP-DOWN d'une scène (plan de niveau / minimap). N'est PAS un 2ᵉ moteur
  * d'affichage : le monde lui vient du MÊME pipeline que le stage de jeu — la MATIÈRE (les sols de
  * l'étage) en instantané volumique posé SOUS le SVG (`stage/PlanWorldCanvas`), la STRUCTURE (les murs)
- * au trait symbolique SVG (`stage/layers.wallTraitObjs`, la couche de la vue du dessus de JEU) : la coiffe
- * d'un mur volumique tombe sous le pixel à l'échelle d'un plan (mesure au JSDoc de
- * `stage/planSnapshot.ts`), là où le trait est invariant d'échelle.
- * En `view:'top'` le mur se rend en trait symbolique ; LOD 0 = silhouette plate. La minimap sélectionne
+ * au trait SVG (`stage/layers.wallTraitObjs`, la couche de la vue du dessus de JEU) : la coiffe d'un mur
+ * volumique tombe sous le pixel à l'échelle d'un plan (mesure au JSDoc de `stage/planSnapshot.ts`), là
+ * où le trait, COUPE HORIZONTALE du volume à son épaisseur monde, tient un PLANCHER en px écran (lu sur
+ * l'échelle `meet` du plan, `viewBoxMeetScale`, posée sur le groupe des murs).
+ * En `view:'top'` le mur se rend en trait ; LOD 0 = silhouette plate. La minimap sélectionne
  * DÉLIBÉRÉMENT la sous-couche STRUCTURELLE — pas de toits/props/tokens/fx/highlights (game-only).
  * La COUCHE DE TRAIT est celle de la vue du dessus de JEU (`stage/layers.wallTraitObjs`) : une seule
  * loi de composition pour les deux plans du dessus (`stage/viewPolicy`).
@@ -15,10 +16,12 @@
  * laisser flotter des murs sur un fond transparent (#1176 P3-4, commit C5a — la reprise des sols en
  * SVG est morte avec la voie affine).
  */
-import { useState } from 'react';
+import { useRef, useState, type CSSProperties } from 'react';
 import { wallTraitObjs } from './stage/layers';
 import { PlanWorldCanvas } from './stage/PlanWorldCanvas';
 import { SansWebgl } from './stage/SansWebgl';
+import { styleDEchelleEcran, viewBoxMeetScale } from './stage/stageCam';
+import { useCadreDuSvg } from './stage/useCadreDuSvg';
 import { stageSize, tileCenter, type Dims } from '../geometry/iso';
 import { IconG } from '../ui/Icon';
 import { MARKER_R, stationMarker, colocationOffsets } from './topoMarkers';
@@ -52,6 +55,8 @@ export function TopoScene({ scene, stations, combatants, selectedStationId, z = 
   const [matièreVolumique, setMatièreVolumique] = useState(true);
   const dims: Dims = { w: scene.dimensions.w, h: scene.dimensions.h, view: 'top' };
   const { w, h } = stageSize(dims);
+  const murs = useRef<SVGGElement>(null);
+  const cadre = useCadreDuSvg(murs, { w, h });
   return (
     // Le canevas de matière et le SVG partagent EXACTEMENT la même boîte (100 %×100 % de ce conteneur) :
     // c'est la condition du `meet` commun — deux boîtes différentes se letterboxeraient différemment, et
@@ -77,7 +82,7 @@ export function TopoScene({ scene, stations, combatants, selectedStationId, z = 
         ? { display: 'block', position: 'relative' }
         : { width: '100%', height: '100%', display: 'block', position: 'relative' }}
     >
-      <g>{wallTraitObjs(scene, dims, z).map((o) => o.el)}</g>
+      <g ref={murs} style={styleDEchelleEcran(viewBoxMeetScale({ w, h }, cadre)) as CSSProperties}>{wallTraitObjs(scene, dims, z).map((o) => o.el)}</g>
       {(() => {
         // Les marqueurs suivent l'étage PLANIFIÉ comme la structure : pointer une station d'un autre
         // niveau sur ce plan la placerait dans des murs qui n'y sont pas.
