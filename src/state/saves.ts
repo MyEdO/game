@@ -184,7 +184,13 @@ import { stockageWeb } from '../lib/stockageWeb';
 // étapes d'un Test étendu (`combatEffects.ts`, `flowStakeRef('extended-test-roll')`). Une save de 59
 // rouvrirait avec une clé que `resolveStake` ne trouve plus : la fenêtre jetterait à l'ouverture au
 // lieu de dire son enjeu. La save se jette (politique 2 ci-dessus).
-export const SAVE_VERSION = 60;
+// 60 → 61 (2026-09-29, #679) : le document de projet passe au schéma 18 — l'Effect `document` désigne
+// une entrée du registre `narratif.documents` (`{ documentId }`) au lieu de porter son texte en ligne
+// (`{ title, desc }`). `snapshotSave` recopie le `state` ENTIER, dont le `campaignDoc` (scènes, carte,
+// narratif sans `documents`), la scène vivante, `campaignNarratif` et les `Flow` de `scheduledEffects` :
+// une save de 60 rouvrirait sur des Effects en ligne que `apply` ne lit plus — le document ne s'ouvrirait
+// pas — et sur un narratif sans registre. La save se jette (politique 2 ci-dessus).
+export const SAVE_VERSION = 61;
 
 export interface SaveMeta {
   version: number;

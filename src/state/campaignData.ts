@@ -1,50 +1,41 @@
 // Résolveur UNIQUE de la couche de campagne runtime (#767). Frontière RÉFÉRENCE vs NARRATIF
 // (doctrine `game-campagne-json-portable-frontiere-reference-narratif`) : le narratif d'un paquet de
 // campagne (`state.campaignNarratif`, posé par `loadProject`) est lu ICI par id STABLE, jamais copié
-// dans `src/data` global. Les accesseurs d'affaire/indice/preset n'existent QUE dans la couche ; seul
+// dans `src/data` global. Les accesseurs d'affaire/indice/preset/document n'existent QUE dans la couche ; seul
 // `trappingById` chaîne campagne-d'abord puis règle globale (`findTrappingById`).
 import { findCreatureById, findTrappingById, type CreatureData, type TrappingData } from '../data';
 import type { EntityAppearance } from '../engine/authoringAppearance';
-import type { Affaire, Indice, NarratifBlock, PresetPnj } from './campaignNarratif';
+import type { Affaire, DocumentNarratif, Indice, NarratifBlock, PresetPnj } from './campaignNarratif';
+import { REGISTRES_NARRATIFS, type CleDeRegistreNarratif } from '../data/schemas/defs-scenes/registres-narratifs';
 // Import de `useGame` au top-level mais lu UNIQUEMENT dans les fonctions (usage runtime différé) :
 // le cycle store → combatEffects → campaignData → store ne se résout que par la liaison vivante ESM.
 import { useGame } from './store';
 
-interface NarratifMaps {
-  affaires: Map<string, Affaire>;
-  indices: Map<string, Indice>;
-  presets: Map<string, PresetPnj>;
-  objets: Map<string, TrappingData>;
-}
+/** Un index par id pour CHAQUE registre du narratif (`REGISTRES_NARRATIFS`). */
+type NarratifMaps = { [K in CleDeRegistreNarratif]: Map<string, NarratifBlock[K][number]> };
 
-function emptyMaps(): NarratifMaps {
-  return { affaires: new Map(), indices: new Map(), presets: new Map(), objets: new Map() };
-}
+const mapsDe = (n: NarratifBlock | null): NarratifMaps =>
+  Object.fromEntries(
+    REGISTRES_NARRATIFS.map((r) => [r.cle, new Map(((n?.[r.cle] ?? []) as readonly { id: string }[]).map((e) => [e.id, e]))]),
+  ) as unknown as NarratifMaps;
 
 // Mémoïsation par RÉFÉRENCE de `campaignNarratif` : on ne rebâtit les Maps que lorsque la couche
 // change (chargement/déchargement de campagne). `campaignNarratif === null` → Maps vides, tout id
 // d'objet tombe sur la règle globale.
 let cachedRef: NarratifBlock | null = null;
-let cached: NarratifMaps = emptyMaps();
+let cached: NarratifMaps = mapsDe(null);
 
 function maps(): NarratifMaps {
   const n = useGame.getState().campaignNarratif;
   if (n === cachedRef) return cached;
   cachedRef = n;
-  cached = n
-    ? {
-        affaires: new Map(n.affaires.map((a) => [a.id, a])),
-        indices: new Map(n.indices.map((i) => [i.id, i])),
-        presets: new Map(n.presetsPnj.map((p) => [p.id, p])),
-        objets: new Map(n.objets.map((o) => [o.id, o])),
-      }
-    : emptyMaps();
+  cached = mapsDe(n);
   return cached;
 }
 
 /** Preset de PNJ pré-composé de la campagne chargée — couche-SEULEMENT (n'existe pas dans `src/data`). */
 export function presetPnjById(id: string): PresetPnj | undefined {
-  return maps().presets.get(id);
+  return maps().presetsPnj.get(id);
 }
 
 /**
@@ -88,6 +79,11 @@ export function affaireById(id: string): Affaire | undefined {
 /** Indice/rumeur de la campagne chargée — couche-SEULEMENT. */
 export function indiceById(id: string): Indice | undefined {
   return maps().indices.get(id);
+}
+
+/** Document remis au joueur (#679) de la campagne chargée — couche-SEULEMENT. */
+export function documentById(id: string): DocumentNarratif | undefined {
+  return maps().documents.get(id);
 }
 
 /** Possession résolue par id STABLE, campagne-D'ABORD (`campaignNarratif.objets`) puis règle globale

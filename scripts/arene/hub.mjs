@@ -1,5 +1,12 @@
 /** Le Bourg de l'Arène — TOUT-EN-SCÈNE, une seule scène. */
-import { scene, P, NPC, hero, resetIds, flowOf, flagWhen, testNode } from '../campagne/lib.mjs';
+import { scene, P, NPC, hero, resetIds, flowOf, flagWhen, testNode, remetLeDocument } from '../campagne/lib.mjs';
+
+/** Document du paquet (`narratif.documents`, #679) remis au sacre du champion. */
+export const DOC_TITRE_DE_CHAMPION = {
+  id: 'document-titre-de-champion-de-l-arene',
+  titre: 'Titre de Champion de l’Arène',
+  prose: 'Par la présente, le porteur est proclamé CHAMPION DE L’ARÈNE DU BOURG — vainqueur de la Cour, des Ruines, des Égouts, du Charnier, des Lices, du Marais, du Nid, de la Fosse, de la Caverne, du Nid de Vermine, du Cercle Maudit, du Sépulcre… et du Dragon des ténèbres lui-même. Que les tavernes lui servent à boire et que les routes s’écartent.',
+};
 
 // ── Modèle TOUT-EN-SCÈNE ────────────────────────────────────────────────────────────────────
 // Les quatre corps architecturaux portent leurs sections de toit, murs d'arête et zones intérieures.
@@ -70,11 +77,7 @@ const dlgHub = {
             { type: 'setFlag', flag: 'champion_fete' },
             { type: 'giveXp', amount: 300 },
             { type: 'journal', desc: 'Le Maître s’incline, et tout le Bourg avec lui : « CHAMPION DE L’ARÈNE ! »' },
-            {
-              type: 'document',
-              title: 'Titre de Champion de l’Arène',
-              desc: 'Par la présente, le porteur est proclamé CHAMPION DE L’ARÈNE DU BOURG — vainqueur de la Cour, des Ruines, des Égouts, du Charnier, des Lices, du Marais, du Nid, de la Fosse, de la Caverne, du Nid de Vermine, du Cercle Maudit, du Sépulcre… et du Dragon des ténèbres lui-même. Que les tavernes lui servent à boire et que les routes s’écartent.',
-            },
+            remetLeDocument(DOC_TITRE_DE_CHAMPION),
             { type: 'interlude', weeks: 2 },
             { type: 'endDialogue' },
           ]),

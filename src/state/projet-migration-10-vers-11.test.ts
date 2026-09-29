@@ -101,7 +101,7 @@ describe('PROJECT_MIGRATIONS[10] — un projet format 10 se charge à travers la
   it('SANS le migrateur, le décor serait REFUSÉ au parse et le meuble MUET — la garde le prouve', () => {
     // Le même document ANNONCÉ au numéro de forme courant ne migre plus : `interact` est une clé
     // INCONNUE du schéma, qui la NOMME, et l'enveloppe vide n'offre plus rien.
-    const bricole = { ...structuredClone(PROJET_FORMAT_10), schema: CURRENT_PROJECT_SCHEMA };
+    const bricole = { ...structuredClone(PROJET_FORMAT_10), schema: CURRENT_PROJECT_SCHEMA, narratif: { ...PROJET_FORMAT_10.narratif, documents: [] } };
     expect(() => parseProject(bricole)).toThrow(/interact/);
     const sansFouille = structuredClone(bricole) as typeof bricole;
     sansFouille.scenes[0].entities = [sansFouille.scenes[0].entities[2]];

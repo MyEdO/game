@@ -8,7 +8,7 @@
  * sur objet unique (patron `defs/crew-morale.ts`) : l'enveloppe pose `type`, `id`, `label`, `desc`,
  * `icon` et la provenance (`source` ∨ `maison`), la fabrique scelle, et les sémantiques restantes du
  * seam passent par `options.affinerEntree` — FK intra-document `entity.presetId` →
- * `narratif.presetsPnj`. `activeAxes` résout au registre par `refs('axe')`. Les invariants du bloc narratif restent portés par
+ * `narratif.presetsPnj`, et références narratives des Effects (`refsNarrativesPendantes`). `activeAxes` résout au registre par `refs('axe')`. Les invariants du bloc narratif restent portés par
  * `narratifSchema`. Anti-collisions et résolutions de spécialisation restent des `superRefine` :
  * jamais des `ref()` (une référence intra-document n'entre pas au registre global).
  *
@@ -26,9 +26,10 @@ import { listeCle } from '../grammaire/collection-cle';
 import { sceneSchema } from './scene';
 import { worldMapSchema } from './worldmap';
 import { narratifSchema } from './narratif';
+import { refsNarrativesPendantes, type NarratifAReferences } from './refs-narratives';
 
 /** Version de FORME du document de projet — reprise par `CURRENT_PROJECT_SCHEMA` (`worldMap.ts`). */
-export const SCHEMA_PROJET = 17;
+export const SCHEMA_PROJET = 18;
 
 /** Handle du document de projet : `schema` sert `parseProject`, `meta`/`exposition` le registre. */
 export const projetDoc = document(
@@ -79,7 +80,8 @@ export const projetDoc = document(
       entree.superRefine((valeur, ctx) => {
         const doc = valeur as {
           scenes: { entities?: { presetId?: string }[] }[];
-          narratif: { presetsPnj: { id: string }[] };
+          worldMap?: unknown;
+          narratif: { presetsPnj: { id: string }[] } & NarratifAReferences;
         };
         /** FK INTRA-document (#671) : tout `presetId` d'entité de scène résout un preset déclaré. */
         const presets = new Set(doc.narratif.presetsPnj.map((p) => p.id));
@@ -93,6 +95,9 @@ export const projetDoc = document(
             });
           });
         });
+        /** FK INTRA-document (#679) : toute référence narrative d'un Effect (`documentId`, `indiceId`,
+         *  `stade`) résout au narratif du document — scènes et carte du monde, Flows portés compris. */
+        for (const f of refsNarrativesPendantes(doc, doc.narratif)) ctx.addIssue({ code: 'custom', path: [...f.chemin], message: f.message });
       }),
   },
 );

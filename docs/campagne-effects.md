@@ -26,7 +26,7 @@ câblé côté `src/state`, ou n'être jamais posé dans aucun JSON de campagne 
 | `transitionBack` | — | Retour à la scène précédente (sortie d'intérieur), à la case d'entrée. |
 | `startDialogue` | `dialogue`, `speakerId?` | Ouvre le dialogue scripté `dialogue`. |
 | `journal` | `desc` | — |
-| `document` | `title`, `desc` | — |
+| `document` | `documentId` | Remet au joueur un document du narratif (#679) : `documentId` → `narratif.documents`, résolu au parse du projet (`refsNarrativesPendantes`, `./refs-narratives.ts`). |
 | `revealClue` | `indiceId`, `stade?` | Mécanique MAISON du carnet d'enquête (#670, aucune règle RAW) : révèle/avance un `Indice` de `campaignNarratif`. |
 | `discreditClue` | `indiceId` | Écarte un indice comme fausse piste (barré, relisible au carnet) — mécanique MAISON (#670). |
 | `extendedTest` | `skill?`, `characteristic?`, `difficulty?`, `label`, `targetDR`, `flag?`, `stake?` | Test ÉTENDU (`LDB 12 l.172-174`) : un acteur cumule des DR Round par Round jusqu'à `targetDR` (crocheter une serrure, forcer un mécanisme…). |
@@ -73,4 +73,4 @@ câblé côté `src/state`, ou n'être jamais posé dans aucun JSON de campagne 
 | `endDialogue` | — | — |
 
 _58 Effects — dérivés de `src/data/schemas/defs-scenes/effets.ts`._
-<!-- sources-empreinte: ec88f680dd6753b3a28afbab502a0d49987b2c8f (9 fichiers, 0 dossiers) corps: 3d2fdf07b755219f6c98ba17be2b89b63f00b18a -->
+<!-- sources-empreinte: fad7303494e043f08d14b6adbea3c3ab9b34dd3f (9 fichiers, 0 dossiers) corps: c6fe497a88a74be56ab6af1f20057a0234c8db36 -->

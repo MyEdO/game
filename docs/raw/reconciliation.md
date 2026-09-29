@@ -101,7 +101,7 @@
 - … +1 autres
 
 ### EDO 1 — 6/7 ligne(s) code hors couverture (propriétaire : 4e/combat.md)
-- l.5 — `src/data/schemas/defs-scenes/narratif.test.ts:26` — source: { book: 'ennemi-dans-l-ombre', page: 12, note: 'EDO 01 l.5' },
+- l.5 — `src/data/schemas/defs-scenes/narratif.test.ts:27` — source: { book: 'ennemi-dans-l-ombre', page: 12, note: 'EDO 01 l.5' },
 - l.13 — `src/scenes/diligence/edo-ch1-calibration-voyage.test.ts:14` — * Promesse tenue, `EDO 01 l.13` : « Deux jours de diligence, bien sûr. À pied, le trajet devrait durer
 - l.17 — `src/scenes/diligence/edo-ch1-calibration-voyage.test.ts:15` — * environ une semaine. » Emplacement du relais, `EDO 01 l.17` : « Son emplacement exact importe peu, du
 - l.200 — `src/scenes/test-scenarios/96-presets-edo.ts:148` — // CHEMIN JOUEUR de « il leur propose une partie » (`EDO 01 l.200`) : sans lui, le rôle
@@ -209,4 +209,4 @@ _Aucun._
 
 Code : AA, ACE, ADE I, ADE II, EDO, EDOC, LDB, MCLB, MDG, MSRC, NADJ, PDT, VDM, ZI
 Atlas : AA, ACE, ADE I, ADE II, AU1, CRB, EDO, EDOC, LDB, MCLB, MDG, MSR, MSRC, NADJ, PDT, VDM, ZI
-<!-- sources-empreinte: 902578a031ad74dea88672ea5c04b6be4da81a70 (4368 fichiers, 154 dossiers) corps: 6e233e7aa9c4f822a5740370e088a9051eaa6217 -->
+<!-- sources-empreinte: eb766d17232f024ed0d3feee1c2fd8e188b076fb (4374 fichiers, 154 dossiers) corps: fac33385034e8a8cb79e93871154abaf63b42cac -->

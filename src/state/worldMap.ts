@@ -479,7 +479,9 @@ export function declutterPositions(
 import { migrateDoc, type MigrationMap, type RaisonDeRefus } from './migrateDoc';
 import { findPropById, findSpeciesById } from '../data';
 import { ACTION_FOUILLER } from './usable';
-import { type NarratifBlock, emptyNarratif } from './campaignNarratif';
+import type { NarratifBlock } from './campaignNarratif';
+import { souleveLesDocuments } from '../data/documentsAuNarratif';
+import { collisionneAvecLeGlobal } from '../data/schemas/defs-scenes/narratif';
 import { validateDocument, rapportDeFautes, type Faute } from '../data/schemas/validate';
 import { projetSchema, SCHEMA_PROJET } from '../data/schemas/defs-scenes/projet';
 import { sceneSchema, typeNonNomme } from '../data/schemas/defs-scenes/scene';
@@ -819,14 +821,15 @@ function denudeSortsDePreset(narratif: unknown): unknown {
 }
 
 /** Migrations SÉQUENTIELLES de ProjectDoc : la clé N met à niveau un schema N → N+1. `2` injecte le
- *  bloc `narratif` vide (#765 — un projet schema 2 est un paquet SANS narratif). `3` porte les
+ *  bloc `narratif` vide DE SON ÉPOQUE (#765 — un projet schema 2 est un paquet SANS narratif ; les
+ *  registres venus après, `documents` au 17 → 18, sont posés par leur propre migration). `3` porte les
  *  RÔLES DE PROSE du lot #1467 L1b V-P2 : c'est la MÊME transformation que les migrations de dépôt
  *  (`scripts/migrations/2026-08-27-l1b-3{a,b,g,h}-*.mjs`), appliquée au CHARGEMENT — sans elle, un
  *  projet exporté avant ce lot (bibliothèque utilisateur, `.json` portable) mourrait sur le schéma.
  *  Ajouter ici la migration N→N+1 pour tout futur bump (cf. `MIGRATIONS` de `saves.ts`), plutôt que
  *  de refuser en silence des projets antérieurs valides. */
 export const PROJECT_MIGRATIONS = {
-  2: (doc) => ({ ...doc, version: 3, schema: 3, narratif: emptyNarratif() }),
+  2: (doc) => ({ ...doc, version: 3, schema: 3, narratif: { affaires: [], indices: [], presetsPnj: [], objets: [] } }),
   3: (doc) => {
     // Un document SANS `scenes` valide traverse INTACT : c'est `parseProject` qui le refuse, avec son
     // message actionnable — une migration ne doit jamais transformer une donnée absente en exception.
@@ -1080,6 +1083,17 @@ export const PROJECT_MIGRATIONS = {
    * (parité mesurée par `projet-migration-16-vers-17.test.ts`, qui joue la MÊME fixture par les deux).
    */
   16: (doc) => ({ ...(graphieOpsDeTalentDeep(doc) as Record<string, unknown>), version: 17, schema: 17 }),
+  /**
+   * `17` SOULÈVE chaque Effect `document` en ligne (`{ title, desc }`, scènes et carte du monde, à toute
+   * profondeur) en entrée `narratif.documents` du même document, l'Effect devenant `{ documentId }`, et
+   * pose `narratif.documents` (#679) — primitive `souleveLesDocuments` (`src/data/documentsAuNarratif.ts`),
+   * ids libres au sens du narratif et de la règle globale (`collisionneAvecLeGlobal`). Un document SANS
+   * narratif qui porterait un Effect à soulever (une scène seule, `migreSceneDeProjet`) LÈVE : la porte
+   * rend `ProjetRefuse` de cause `mal-forme`, les chemins des Effects nommés dans son message. Pendant applicatif du script de dépôt
+   * `scripts/migrations/2026-09-29-679-documents-au-narratif.mjs` (parité mesurée par
+   * `projet-migration-17-vers-18.test.ts`, qui joue la MÊME fixture par les deux).
+   */
+  17: (doc) => ({ ...souleveLesDocuments(doc, collisionneAvecLeGlobal), version: 18, schema: 18 }),
 } satisfies MigrationMap;
 
 /** Toute réf. VIDE d'un `startPursuit` (`foes[].ref.creatureId`), d'un `givePossession` (`ref.creatureId`,
@@ -1189,8 +1203,10 @@ function migreFormeDeProjet(data: unknown): Record<string, unknown> {
  *  `schema` de projet qu'elle portait à l'écriture : montée au format courant par la MÊME chaîne que
  *  `parseProject`, PROUVÉE par `sceneSchema`, puis `normalizeScene`. Sans `schema` lisible, la chaîne
  *  refuse (`version-absente`) : aucune version n'est supposée. Les FK intra-document de `projetSchema`
- *  (`entity.presetId` → `narratif.presetsPnj`) restent à la porte du projet : une scène seule n'a pas
- *  de narratif. Ce qui suit le schéma est une faute du jeu, et se propage. */
+ *  (`entity.presetId` → `narratif.presetsPnj`, références narratives des Effects) restent à la porte
+ *  du projet : une scène seule n'a pas de narratif. Pour la même raison, une scène dont la montée
+ *  soulèverait un document (`PROJECT_MIGRATIONS[17]`) est REFUSÉE, nommément — jamais tronquée. Ce qui
+ *  suit le schéma est une faute du jeu, et se propage. */
 export function migreSceneDeProjet(scene: unknown, schema: unknown): Scene {
   const monte = (migreFormeDeProjet({ schema, scenes: [scene] }).scenes as unknown[])[0];
   const fautes = validateDocument(sceneSchema, monte);

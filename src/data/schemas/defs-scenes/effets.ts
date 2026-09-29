@@ -198,7 +198,9 @@ export const startDialogueSchema = z.strictObject({
 
 export const journalSchema = z.strictObject({ type: z.literal('journal'), desc: z.string() });
 
-export const documentSchema = z.strictObject({ type: z.literal('document'), title: z.string(), desc: z.string() });
+/** Remet au joueur un document du narratif (#679) : `documentId` → `narratif.documents`, résolu au parse
+ *  du projet (`refsNarrativesPendantes`, `./refs-narratives.ts`). */
+export const documentSchema = z.strictObject({ type: z.literal('document'), documentId: z.string() });
 
 /** Mécanique MAISON du carnet d'enquête (#670, aucune règle RAW) : révèle/avance un `Indice` de
  *  `campaignNarratif`. `stade` omis → premier stade si l'indice est encore caché, sinon no-op. */

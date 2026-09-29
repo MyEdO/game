@@ -22,7 +22,7 @@ Ce que la mesure ci-dessous **ne voit pas** — un compte n’a de sens qu’ave
 - Le partage d’un SITE tranche entre référence cassée et document embarqué, mais les TELLS de document passent avant le ratio (`label` + `source`, ou `label` + ≥ 2 clés de charge utile) et l’égalité tranche pour le DOCUMENT ; un site à UNE seule valeur est un document, sauf si la clé est `…Id`/`…Ids`/`…Ref`.
 - L’ORDRE DES PASSES est un angle mort déclaré : l’index est complété par les documents EMBARQUÉS (passe 3) AVANT que la résolution ne soit mesurée (passe 4) — un site comme `arene-projet.json › members {entityId}` ne résout que grâce à cet ordre.
 - Une clé dont la valeur est un LITTÉRAL D’ENUM du schéma zod du document n’ouvre jamais de référence (discriminants `kind`/`type`/`class`/`op`…). Depuis #1466 L1a les DEUX racines sont au registre (`SCHEMA_DEFS` + `SCHEMA_DEFS_SCENES`, joints par BASENAME) : les discriminants des scènes sont fermés comme les autres. La fermeture reste bornée à ce que l’introspection atteint — un littéral sous une enveloppe qu’`enfantsDe` ne traverse pas y échappe.
-- Une clé de RÉFÉRENCE SCOPÉE (`CLES_REFERENCE_SCOPEE`) n’ouvre jamais de référence vers l’index des ids : sa valeur nomme une identité d’un espace CLOS tenu par un document, que le scan n’indexe pas. Unique entrée : `entry` (lieu de carte, embuscade de route, effet `transition`), dont la cible est une CLÉ de `scenes[].entryPoints` — le scan n’indexant que des VALEURS porteuses d’identité, toute résolution de `entry` contre l’index serait une HOMONYMIE par construction (mesuré 2026-09-06 : `arene-projet.json › entry: "route"` classé référence vers `terrains.json`).
+- Une clé de RÉFÉRENCE SCOPÉE (`CLES_REFERENCE_SCOPEE`) n’ouvre jamais de référence vers l’index des ids : sa valeur nomme une identité d’un espace CLOS tenu par un document, dont la porte de ce document garde la résolution. Deux familles : `entry` (lieu de carte, embuscade de route, effet `transition`), dont la cible est une CLÉ de `scenes[].entryPoints` — le scan n’indexant que des VALEURS porteuses d’identité, toute résolution de `entry` contre l’index serait une HOMONYMIE par construction (mesuré 2026-09-06 : `arene-projet.json › entry: "route"` classé référence vers `terrains.json`) ; les RÉFÉRENCES NARRATIVES (`REFERENCES_NARRATIVES`, `src/data/schemas/defs-scenes/registres-narratifs.ts` : `documentId`, `indiceId`, `presetId`, `affaireId`), dont la cible est une entrée d’un registre du `narratif` du même projet, résolue par `projetSchema` (#679).
 - Les clés de PROSE `label`/`nom`/`desc`/`title` n’ouvrent jamais de référence ; `text` sous un champ de dotation est l’exception unique (résolution NARRATIVE #624). Le porteur ADRESSÉ de la prose (`descRef`, #1389) suit la même règle, `descRef>book` compris : `book` désigne un LIVRE, pas un document indexé — une adresse de prose n’ouvre aucune référence.
 - La strate `Instance` du design v2 (SkillInstance, ItemInstance, saves) est DÉCLARÉE HORS PÉRIMÈTRE, pas absente : elle existe en SNAPSHOTS nommés dans la racine `src/scenes` — `barge-du-sel-projet.json` et `loup-et-saumure-projet.json` sous `scenes[].entities[].postes[].ammo[]` (des `ItemInstance` recopiées par `src/engine/items.ts`). Ces chemins ne sont pas mesurés ; `saves` a en outre sa propre politique de version (`src/state/saves.ts`).
 - Les ABSENCES d’enveloppe ne se comptent que sur les ENTRÉES DE RACINE (`id` et `source` partout, `label` sur les familles `entité`/`table`) : un document EMBARQUÉ n’est jamais sommé de porter un `id`.
@@ -52,7 +52,7 @@ Documents qu’AUCUNE def ne déclare : **0**.
 
 ### 1bis. Index des ids (le cœur du détecteur)
 
-Identités indexées : **5983** (entrées de racine + documents embarqués) ; libellés
+Identités indexées : **5991** (entrées de racine + documents embarqués) ; libellés
 normalisés : **5219**. Un id vu dans PLUSIEURS datasets rend la résolution
 AMBIGUË (jamais fausse) : **398** collisions, et **3447** ids
 sont aussi le libellé d’une entité (faux positif possible sur la résolvabilité d’un `{text}`).
@@ -526,7 +526,7 @@ Termes : source UNIQUE `TERMES_COLLECTION_A_CLE` (`scripts/docs/lib/structures-l
 - **clé de dataset** — le nom d’une collection que le seam de `src/data/overrides.ts` mute EN PLACE : `CLES_DE_DATASET` / `CleDeDataset` (`src/data/schemas/_cles-de-dataset.generated.ts`, phase 2 de `npm run gen`), le domaine de `DATASET_FICHIER_DERIVE` (`src/data/schemas/exposition-derivee.ts`). `collectionDuDataset` l’atteint sur la racine vivante de son fichier : liste de racine (route `dataset`, `none` + `dataset`), collection au bout de la suite de `niche.categories`, ou la racine elle-même (route `object`).
 - **`espaceDe`** — la clé d’espace qui fait autorité sur les ids d’un type d’entité (`TYPES[type].espace`, `src/data/schemas/grammaire/ref.ts`).
 
-Collections à clé relevées dans les documents des deux racines : **671**, dont **309** espaces de noms.
+Collections à clé relevées dans les documents des deux racines : **675**, dont **309** espaces de noms.
 
 ## 2. Enveloppe des documents
 
@@ -745,8 +745,8 @@ dialogue) n’est sommé de rien : on n’y compte que les clés DIVERGENTES.
 | méta libre | `__lecture` | divergente | 0 | — |
 | méta libre | `__livres` | divergente | 0 | — |
 
-Groupes mesurés : **128** jeux d’ENTRÉES DE RACINE et **138** chemins de
-DOCUMENTS EMBARQUÉS (**2191** objets). **42** divergences
+Groupes mesurés : **128** jeux d’ENTRÉES DE RACINE et **140** chemins de
+DOCUMENTS EMBARQUÉS (**2199** objets). **42** divergences
 (rôle × clé × document × chemin) au stock `STRUCTURES_ENVELOPPE` (`scripts/guards/lib/structuresStock.mjs`,
 garde `src/data/structures-contrat.test.ts`) — une ligne se solde en migrant l’enveloppe, la ligne part
 dans le MÊME commit :
@@ -774,6 +774,7 @@ Documents EMBARQUÉS mesurés, par chemin :
 | `arcane-phenomena.json` | `saturationLevels` | 5 | `corrupts`(1) `desc`(5) `effectsMax`(5) `effectsMin`(5) `id`(5) `label`(5) `order`(5) `source`(5) `testMods`(3) |
 | `arcane-phenomena.json` | `tables` | 3 | `desc`(3) `die`(3) `id`(3) `label`(3) `rows`(3) `source`(3) |
 | `arcane-phenomena.json` | `windSaturationEffects` | 8 | `domainId`(8) `effects`(8) `environments`(8) `id`(8) `source`(8) `surnoms`(8) `wind`(8) |
+| `arene-projet.json` | `narratif.documents` | 3 | `id`(3) `prose`(3) `titre`(3) |
 | `arene-projet.json` | `scenes` | 18 | `ambiance`(18) `ambientLight`(18) `architecture`(2) `desc`(18) `dialogues`(18) `dimensions`(18) `effectZones`(2) `encounters`(18) `entities`(18) `entryPoints`(1) `flags`(18) `id`(18) `label`(18) `layers`(18) `metresPerTile`(18) `music`(1) `reliefDefaults`(18) `rest`(14) `roofDefaults`(18) `startMessage`(18) `triggers`(18) `type`(18) `walls`(2) `weather`(3) |
 | `arene-projet.json` | `scenes.architecture` | 2 | `facades`(2) `id`(2) `label`(2) `masses`(2) `storeys`(2) |
 | `arene-projet.json` | `scenes.architecture.facades` | 3 | `appearance`(3) `edges`(3) `features`(3) `id`(3) `roomZoneIds`(3) `z`(3) |
@@ -826,6 +827,7 @@ Documents EMBARQUÉS mesurés, par chemin :
 | `drunkenness.json` | `entries.ops.skill` | 1 | `id`(1) |
 | `incidents-monture.json` | `entries` | 4 | `desc`(4) `id`(4) `label`(4) `max`(4) `min`(4) `mount`(4) |
 | `land-cargo.json` | `cargoes` | 9 | `avail`(7) `echangeable`(2) `hint`(2) `id`(9) `label`(9) `price`(7) `source`(9) `tradeHub`(1) `wine`(1) |
+| `loup-et-saumure-projet.json` | `narratif.documents` | 5 | `id`(5) `prose`(5) `titre`(5) |
 | `loup-et-saumure-projet.json` | `scenes` | 5 | `ambiance`(5) `ambientLight`(5) `desc`(5) `dialogues`(5) `dimensions`(5) `encounters`(5) `entities`(5) `entryPoints`(5) `flags`(5) `id`(5) `label`(5) `layers`(5) `metresPerTile`(5) `reliefDefaults`(5) `rest`(2) `roofDefaults`(5) `triggers`(5) `type`(5) `weather`(4) |
 | `loup-et-saumure-projet.json` | `scenes.dialogues` | 8 | `id`(8) `nodes`(8) `start`(8) |
 | `loup-et-saumure-projet.json` | `scenes.dialogues.nodes` | 17 | `choices`(17) `desc`(17) `id`(17) |
@@ -1161,8 +1163,8 @@ Une CIBLE à `0` est une forme visée que rien n’écrit encore — elle se lit
 | ouverture | `pitch,titre+…` | cible | 2 |
 | cloture | `titre,when` | cible | 0 |
 | cloture | `titre,when+…` | cible | 2 |
-| narratif | `affaires,indices,objets,presetsPnj` | cible | 2 |
-| narratif | `affaires,indices,objets,presetsPnj+…` | cible | 2 |
+| narratif | `affaires,documents,indices,objets,presetsPnj` | cible | 2 |
+| narratif | `affaires,documents,indices,objets,presetsPnj+…` | cible | 2 |
 | condition | `expr,kind` | cible | 38 |
 
 ## 3. Concepts transverses (lexique FERMÉ)
@@ -1171,7 +1173,7 @@ Statuts : **cible** = forme visée, rien à migrer (liste FIGÉE au stock `STRUC
 **historique** = graphie connue à éteindre par un lot L1-L5 · **declaree** = forme volontairement
 conservée · **divergente** = graphie inconnue du lexique.
 
-Lignes concept × dataset × champ × forme : **873** (cible 434 · declaree 6 · historique 128 · divergente 305). Objets JSON parcourus : **49499**, dont **31857** portent une forme
+Lignes concept × dataset × champ × forme : **873** (cible 434 · declaree 6 · historique 128 · divergente 305). Objets JSON parcourus : **49507**, dont **31857** portent une forme
 mesurée. Champs porteurs de référence MESURÉS : **87**.
 
 Entrées de racine sans concept de valeur : **4151** sur **4238** —
@@ -2165,14 +2167,14 @@ Reconnu par : son noyau `titre` `when`
 ### 3.16 bloc narratif d’un projet de campagne — `narratif` (strate Document)
 
 4 ligne(s), 4 occurrence(s).
-Reconnu par : son noyau `affaires` `indices` `objets` `presetsPnj`
+Reconnu par : son noyau `affaires` `documents` `indices` `objets` `presetsPnj`
 
 | Famille | Champ | Forme | Statut | Dataset | Occurrences | Cibles résolues | Note |
 |---|---|---|---|---|---|---|---|
-| config | `narratif` | `affaires,indices,objets,presetsPnj` | cible | `arene-projet.json` | 1 | — |  |
-| config | `narratif` | `affaires,indices,objets,presetsPnj+…` | cible | `barge-du-sel-projet.json` | 1 | — | `ouverture` et `cloture` sont OPTIONNELLES au schéma (#717) : un projet qui pose son cadre de chapitre projette `+…` |
-| config | `narratif` | `affaires,indices,objets,presetsPnj+…` | cible | `diligence-projet.json` | 1 | — | `ouverture` et `cloture` sont OPTIONNELLES au schéma (#717) : un projet qui pose son cadre de chapitre projette `+…` |
-| config | `narratif` | `affaires,indices,objets,presetsPnj` | cible | `loup-et-saumure-projet.json` | 1 | — |  |
+| config | `narratif` | `affaires,documents,indices,objets,presetsPnj` | cible | `arene-projet.json` | 1 | — |  |
+| config | `narratif` | `affaires,documents,indices,objets,presetsPnj+…` | cible | `barge-du-sel-projet.json` | 1 | — | `ouverture` et `cloture` sont OPTIONNELLES au schéma (#717) : un projet qui pose son cadre de chapitre projette `+…` |
+| config | `narratif` | `affaires,documents,indices,objets,presetsPnj+…` | cible | `diligence-projet.json` | 1 | — | `ouverture` et `cloture` sont OPTIONNELLES au schéma (#717) : un projet qui pose son cadre de chapitre projette `+…` |
+| config | `narratif` | `affaires,documents,indices,objets,presetsPnj` | cible | `loup-et-saumure-projet.json` | 1 | — |  |
 
 ### 3.17 Condition à EXPRESSION (`kind` + `expr`) — `condition` (strate Document)
 
@@ -2536,7 +2538,7 @@ un nom de concept est réservé à son type), pas en curant un contenu ni en pos
 | `tavernGames.json` | `test` | `skill` | clé réservée | 1 |
 | `trappings.json` | `test` | `label,noSupport,skill` | clé réservée | 1 |
 
-Au-delà des orphelines, **13703** objets sur **49499** ne sont portés par AUCUNE
+Au-delà des orphelines, **13703** objets sur **49507** ne sont portés par AUCUNE
 strate : ils n’annoncent aucune référence, ne portent aucune valeur du lexique et ne sont pas des
 documents. Les GRAPHIES de référence les ont quittés (une enveloppe `{ref:{…}}` ou une dotation
 `{text}` sous un champ porteur mesuré est une FORME, §3.1). Restent trois familles : les CHARGES UTILES pures
@@ -2815,7 +2817,7 @@ table EST la revue de toute signature neuve ; le CLIQUET qui la garde vit dans
 | `creatures.json` | `char` | `` | 5 |
 | `diligence-projet.json` | `usable` | `assise` | 5 |
 | `loup-et-saumure-projet.json` | `dimensions` | `h,w` | 5 |
-| `loup-et-saumure-projet.json` | `effect` | `desc,title,type` | 5 |
+| `loup-et-saumure-projet.json` | `effect` | `documentId,type` | 5 |
 | `loup-et-saumure-projet.json` | `flags` | `` | 5 |
 | `maneuvers.json` | `flow` | `effect,kind` | 5 |
 | `miscast.json` | `rounds` | `dice` | 5 |
@@ -2902,7 +2904,7 @@ table EST la revue de toute signature neuve ; le CLIQUET qui la garde vit dans
 | `activities.json` | `outcomes` | `battle,minSL,on` | 3 |
 | `ambiance.json` | `precip` | `ceilingM,color,density,fallMs,lengthM,opacity,widthM,windMs` | 3 |
 | `ambiance.json` | `windMs` | `x,z` | 3 |
-| `arene-projet.json` | `effect` | `desc,title,type` | 3 |
+| `arene-projet.json` | `effect` | `documentId,type` | 3 |
 | `arene-projet.json` | `edges` | `side,x,y` | 3 |
 | `arene-projet.json` | `edge` | `side,x,y` | 3 |
 | `arene-projet.json` | `perils` | `chancePct,effects,label` | 3 |
@@ -3787,7 +3789,7 @@ Dont **0** littéral(aux) PARTIEL(s) du noyau — — : une mesure qui exigerait
 | test | `difficulty` | 26 | 17 | `activities.ts` `arcane-phenomena.ts` `criticals.ts` `etats.ts` `land-cargo.ts` `maladies.ts` `miscast.ts` `psychology.ts` `river-navigation.ts` `sea-cargo.ts` `sea-navigation.ts` `sea-perils.ts` `sea-weather.ts` `steam-breakdown.ts` `tavernGames.ts` `water-exposure.ts` `weather.ts` |
 | ouverture | `titre,pitch` | 0 | 0 | — |
 | cloture | `titre,when` | 0 | 0 | — |
-| narratif | `affaires,indices,objets,presetsPnj` | 0 | 0 | — |
+| narratif | `affaires,documents,indices,objets,presetsPnj` | 0 | 0 | — |
 | condition | `expr,kind` | 0 | 0 | — |
 
 Le DoD de #1463 annonçait « 5 `{id,spec}` » : la mesure en trouve **0** littéral(aux) —
@@ -4798,4 +4800,4 @@ Source UNIQUE `ANGLES_MORTS_SLOTS` (`scripts/docs/lib/structures-lexique.mts`).
 - Une occurrence dont AUCUNE case ne porte de chaîne n’est jamais ATTEINTE, quel que soit le schéma : aucune n’est un slot, et son couple reste au stock `SLOTS_SANS_DECLARATION`. Mesuré le 2026-09-23 : 14 `{choice:[…]}` de `careerLevels.json | trappings` (les feuilles comptent sous `careerLevels.json | choice`), 19 `{random:N}` de `species.json | talents`, 2 `{random:N}` de `species.json | of`, et 1 occurrence de `creatures.json | spec` dont la seule case est une clé de `CLES_DE_SPECIALISATION`. Stock nominatif `SLOTS_INATTEIGNABLES`, qui ne fait que décroître.
 - Une référence portée par une CLÉ de record (`z.record(idDe(…), …)`) est un slot `{}` du §6.1, jamais une case du scan, qui n’observe que des valeurs : mesuré le 2026-09-23, 6 slots `ship-criticals.json › tablesDeChute[].bandes[].hauteurs{}` (`shipStation`), sans couple touché.
 
-<!-- sources-empreinte: eb6d76f44e47d9525787e1643e5c6aa97bd1e944 (397 fichiers, 10 dossiers) corps: 496f11d9ede79ab4824f3896877e6b5e80630e09 -->
+<!-- sources-empreinte: f35b26a61952b2e0619843152e30fc93948d693a (399 fichiers, 10 dossiers) corps: bf21e901051d839fb6074ec18197bef09d015049 -->

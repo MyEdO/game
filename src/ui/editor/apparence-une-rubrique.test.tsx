@@ -54,7 +54,7 @@ function monterInspecteur(): HTMLElement {
         enemyCreatures={[{ id: 'humain', label: 'Humain' }]}
         openLogic={() => undefined}
         resizeScene={() => undefined}
-        narratif={{ affaires: [], indices: [], presetsPnj: [], objets: [] }}
+        narratif={emptyNarratif()}
         tool={{ mode: 'select' }}
         armZoneTiles={() => undefined}
         zoneFocusKey={null}

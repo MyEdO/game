@@ -16,6 +16,7 @@ import { PENTE_TOIT_DEG } from './scene';
 import { narratifSchema } from './narratif';
 import { cheminLisible, validateDocument } from '../validate';
 import diligenceProjet from '../../../scenes/diligence/diligence-projet.json';
+import { emptyNarratif } from '../../../state/campaignNarratif';
 
 type Jouet = Record<string, unknown>;
 
@@ -42,7 +43,7 @@ const projet = (over: Jouet = {}): Jouet => ({
   label: 'Projet jouet',
   versionContenu: 1,
   maison: 'fixture de test — aucun livre ne publie ce projet-jouet',
-  narratif: { affaires: [], indices: [], presetsPnj: [], objets: [] },
+  narratif: emptyNarratif(),
   scenes: [sceneMinimale()],
   ...over,
 });
@@ -275,6 +276,7 @@ describe('projetSchema — les quatre sémantiques du seam, chacune NOMMÉE', ()
       indices: [{ id: 'indice-1', affaireId: 'affaire-fantome', kind: 'indice', titre: 'x', stades: [{ id: 's1', prose: '' }] }],
       presetsPnj: [],
       objets: [],
+      documents: [],
     };
     expect(fautes(projet({ narratif }))).toEqual([
       'narratif › indices « indice-1 » › affaireId :: affaire inconnue « affaire-fantome ».',
@@ -287,6 +289,7 @@ describe('projetSchema — les quatre sémantiques du seam, chacune NOMMÉE', ()
       indices: [],
       presetsPnj: [{ id: 'gobelin', base: 'gobelin' }],
       objets: [],
+      documents: [],
     };
     expect(fautes(projet({ narratif }))).toEqual([
       'narratif › presetsPnj « gobelin » › id :: l\'id de preset PNJ « gobelin » collisionne avec un id de la règle globale (créature/possession).',
@@ -294,7 +297,7 @@ describe('projetSchema — les quatre sémantiques du seam, chacune NOMMÉE', ()
   });
 
   it('(b ter) un preset sans base ni profil → rouge nommé (contrat de `presetPnjSchema`)', () => {
-    const narratif = { affaires: [], indices: [], presetsPnj: [{ id: 'le-borgne' }], objets: [] };
+    const narratif = { affaires: [], indices: [], presetsPnj: [{ id: 'le-borgne' }], objets: [], documents: [] };
     expect(fautes(projet({ narratif }))).toEqual([
       'narratif › presetsPnj « le-borgne » :: ni base ni profil (au moins l\'un des deux est requis).',
     ]);
@@ -314,6 +317,7 @@ describe('projetSchema — les quatre sémantiques du seam, chacune NOMMÉE', ()
       indices: [],
       presetsPnj: [{ id: 'le-borgne', profil: { char: { CC: 40 }, traits: [] } }],
       objets: [],
+      documents: [],
     };
     expect(projetSchema.safeParse(projet({ scenes, narratif })).success).toBe(true);
   });
@@ -441,7 +445,7 @@ describe('projetSchema — le document RÉEL, ses FK et son enveloppe (sondes du
 });
 
 describe('narratifSchema — un id VIDE est refusé dans les QUATRE registres, chemin nommé', () => {
-  const narratif = (over: Jouet = {}): Jouet => ({ affaires: [], indices: [], presetsPnj: [], objets: [], ...over });
+  const narratif = (over: Jouet = {}): Jouet => ({ ...emptyNarratif(), ...over });
   const indice = (over: Jouet = {}): Jouet => ({ id: 'indice-1', affaireId: 'affaire-a', kind: 'indice', titre: 'x', stades: [{ id: 'stade-1', prose: '' }], ...over });
 
   it('affaire : `id` vide', () => {

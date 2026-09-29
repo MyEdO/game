@@ -11,6 +11,7 @@ import { CHAR_KEYS, CHAR_LABELS, type CharKey } from '../../engine/types';
 import type { NarratifBlock, PresetPnj, Affaire, Indice, IndiceStade, OuvertureBlock, ClotureBlock, AmbianceCadre } from '../../state/campaignNarratif';
 import { ConditionEditor } from './ConditionEditor';
 import { CONDITION_KINDS_CARTE } from '../../data/schemas/defs-scenes/worldmap';
+import { REGISTRES_NARRATIFS, type CleDeRegistreNarratif } from '../../data/schemas/defs-scenes/registres-narratifs';
 import type { CreatureData } from '../../data';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
 import { ListRow } from '../ListRow';
@@ -64,19 +65,17 @@ function freshStadeId(existing: IndiceStade[]): string {
   return `stade-${n}`;
 }
 
-/** Un id candidat est déjà pris par une AUTRE entrée des trois catégories narratives (affaires/indices/
- *  presetsPnj), hors l'entrée elle-même. Collision inter-catégories gardée ici ; collision avec un id
- *  global reste vérifiée par `narratifSchema` au parse. */
+/** Un id candidat est déjà pris par une AUTRE entrée d'un registre narratif (`REGISTRES_NARRATIFS`),
+ *  hors l'entrée elle-même. Collision inter-registres gardée ici ; collision avec un id global reste
+ *  vérifiée par `narratifSchema` au parse. */
 function idUsedElsewhere(
   narratif: NarratifBlock,
   candidate: string,
-  self: { kind: 'affaire' | 'indice' | 'preset'; id: string },
+  self: { registre: CleDeRegistreNarratif; id: string },
 ): boolean {
-  const isSelf = (kind: typeof self.kind, id: string) => kind === self.kind && id === self.id;
-  if (narratif.affaires.some((a) => a.id === candidate && !isSelf('affaire', a.id))) return true;
-  if (narratif.indices.some((i) => i.id === candidate && !isSelf('indice', i.id))) return true;
-  if (narratif.presetsPnj.some((p) => p.id === candidate && !isSelf('preset', p.id))) return true;
-  return false;
+  return REGISTRES_NARRATIFS.some((r) =>
+    (narratif[r.cle] as readonly { id: string }[]).some((e) => e.id === candidate && !(r.cle === self.registre && e.id === self.id)),
+  );
 }
 
 export function NarratifEditor({ narratif, onChange, onClose }: {
@@ -112,7 +111,7 @@ export function NarratifEditor({ narratif, onChange, onClose }: {
   const renamePreset = (id: string, nextId: string) => {
     const trimmed = nextId.trim();
     // Id STABLE : refuse le vide et toute collision avec un AUTRE preset OU une autre catégorie narrative.
-    if (!trimmed || idUsedElsewhere(narratif, trimmed, { kind: 'preset', id })) return;
+    if (!trimmed || idUsedElsewhere(narratif, trimmed, { registre: 'presetsPnj', id })) return;
     setPresets(narratif.presetsPnj.map((p) => (p.id === id ? { ...p, id: trimmed } : p)));
     if (selId === id) setSelId(trimmed);
   };
@@ -141,7 +140,7 @@ export function NarratifEditor({ narratif, onChange, onClose }: {
 
   const renameAffaire = (id: string, nextId: string) => {
     const trimmed = nextId.trim();
-    if (!trimmed || idUsedElsewhere(narratif, trimmed, { kind: 'affaire', id })) return;
+    if (!trimmed || idUsedElsewhere(narratif, trimmed, { registre: 'affaires', id })) return;
     // Propage aux indices rattachés : sinon `narratifSchema` rejette un `affaireId` orphelin.
     const affaires = narratif.affaires.map((a) => (a.id === id ? { ...a, id: trimmed } : a));
     const indices = narratif.indices.map((i) => (i.affaireId === id ? { ...i, affaireId: trimmed } : i));
@@ -182,7 +181,7 @@ export function NarratifEditor({ narratif, onChange, onClose }: {
 
   const renameIndice = (id: string, nextId: string) => {
     const trimmed = nextId.trim();
-    if (!trimmed || idUsedElsewhere(narratif, trimmed, { kind: 'indice', id })) return;
+    if (!trimmed || idUsedElsewhere(narratif, trimmed, { registre: 'indices', id })) return;
     // Propage aux `refs` des autres indices : sinon `narratifSchema` rejette une réf orpheline.
     const indices = narratif.indices.map((i) => {
       if (i.id === id) return { ...i, id: trimmed };
@@ -534,7 +533,7 @@ function IndiceForm({ indice, affaires, otherIndices, onRename, onPatch, onRemov
             </label>
             <label className="ed-subfield">
               Prose (stade {idx + 1})
-              <textarea value={s.prose} onChange={(e) => updateStade(s.id, { prose: e.target.value })} />
+              <textarea value={s.prose ?? ''} onChange={(e) => updateStade(s.id, { prose: e.target.value })} />
             </label>
             <div className="ed-subfield">
               <span>Source</span>

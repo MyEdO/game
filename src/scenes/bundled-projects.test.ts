@@ -13,7 +13,7 @@ import { MERCHANTS } from '../state/merchants';
 import { rigSpeciesVocab } from '../gameIso/rig/appearance';
 import { TENUE_BY_ID } from '../gameIso/rig/parts/tenues';
 import type { Effect } from '../state/scene';
-import type { Flow } from '../state/flow';
+import { carriedFlows, racinesDeFlow, walkFlow, type Flow } from '../state/flow';
 import { coupeAuMot } from '../lib/coupeAuMot.mjs';
 
 /**
@@ -37,27 +37,17 @@ function erreursDe(doc: Pick<ProjectDoc, 'scenes' | 'worldMap'>): string[] {
     .map((w) => `${w.sceneId} [${w.scope}${w.refId ? ` ${w.refId}` : ''}] ${w.message}`);
 }
 
-/** Marche UN Flow (feuille `do`, `seq`, `if`, `test`) et collecte ses `Effect`. */
-function marcheFlow(flow: Flow | undefined, out: Effect[]): void {
-  if (!flow) return;
-  if (flow.kind === 'do') out.push(flow.effect);
-  else if (flow.kind === 'seq') for (const s of flow.steps) marcheFlow(s, out);
-  else if (flow.kind === 'if') { marcheFlow(flow.then, out); marcheFlow(flow.else, out); }
-  else if (flow.kind === 'test') { marcheFlow(flow.success, out); marcheFlow(flow.fail, out); }
-}
-
-/** TOUS les `Effect` posés par un paquet, chacun avec la scène qui le porte — choix de dialogue,
- *  triggers, `onVictory` de rencontre, interactions de décor. */
+/** TOUS les `Effect` posés par un paquet, chacun avec la scène qui le porte : chaque racine
+ *  (`racinesDeFlow`), l'arbre entier (`walkFlow`) et les Flows portés par une feuille (`carriedFlows`). */
 function effetsDuProjet(doc: Pick<ProjectDoc, 'scenes'>): { sceneId: string; eff: Effect }[] {
   const out: { sceneId: string; eff: Effect }[] = [];
-  for (const sc of doc.scenes) {
-    const effets: Effect[] = [];
-    for (const d of sc.dialogues) for (const n of d.nodes) for (const c of n.choices) marcheFlow(c.flow, effets);
-    for (const t of sc.triggers) marcheFlow(t.flow, effets);
-    for (const enc of sc.encounters) marcheFlow(enc.onVictory, effets);
-    for (const e of sc.entities) for (const a of e.usable?.actions ?? []) marcheFlow(a.flow, effets);
-    out.push(...effets.map((eff) => ({ sceneId: sc.id, eff })));
-  }
+  const marche = (flow: Flow, sceneId: string): void =>
+    walkFlow(flow, (noeud) => {
+      if (noeud.kind !== 'do') return;
+      out.push({ sceneId, eff: noeud.effect });
+      for (const { flow: porte } of carriedFlows(noeud.effect)) marche(porte, sceneId);
+    });
+  for (const sc of doc.scenes) for (const r of racinesDeFlow(sc)) marche(r.flow as Flow, sc.id);
   return out;
 }
 
@@ -259,9 +249,11 @@ describe('paquets de campagne bundlés — se relisent tous dans le modèle COUR
         }
     for (const { sceneId, eff } of effetsDuProjet(doc)) {
       if (eff.type === 'journal' && jargon.test(eff.desc)) fautifs.push(`${sceneId} : journal « ${eff.desc} »`);
-      if (eff.type === 'document' && (jargon.test(eff.title) || jargon.test(eff.desc))) fautifs.push(`${sceneId} : document « ${eff.title} »`);
       if (eff.type === 'setObjective' && jargon.test(eff.desc)) fautifs.push(`${sceneId} : objectif « ${eff.desc} »`);
     }
+    // Les modales document lisent le registre (#679) : tout document du paquet, remis ou non.
+    for (const d of doc.narratif.documents)
+      if (jargon.test(d.titre) || jargon.test(d.prose)) fautifs.push(`narratif.documents « ${d.id} » : document « ${d.titre} »`);
     expect(fautifs).toEqual([]);
   });
 
@@ -374,7 +366,7 @@ describe('paquets de campagne bundlés — se relisent tous dans le modèle COUR
  * paquets livrés, aucune scène ni aucun titre nommé.
  */
 const REPO_ROOT = join(__dirname, '..', '..');
-/** Champs de PROSE VERBATIM du bloc narratif (`state/campaignNarratif.ts`) : `OuvertureBlock.pitch`, `IndiceStade.prose`. */
+/** Champs de PROSE VERBATIM du bloc narratif (`state/campaignNarratif.ts`) : `OuvertureBlock.pitch`, `IndiceStade.prose`, `DocumentNarratif.prose`. */
 const PROSE_KEYS = ['pitch', 'prose'] as const;
 
 interface ProseSourcee {

@@ -9,12 +9,26 @@ import type { TrappingData, CreatureData } from '../data/index';
 import type { EntityAppearance } from '../engine/authoringAppearance';
 import type { SourceRef } from '../data/schemas/grammaire/valeurs';
 import type { Condition } from '../engine/flowCore';
+import { REGISTRES_NARRATIFS } from '../data/schemas/defs-scenes/registres-narratifs';
 
-/** Un stade RÉVÉLABLE d'un indice : la prose (verbatim source) qui se dévoile à ce palier d'enquête. */
+/** Un stade RÉVÉLABLE d'un indice : ce qui se dévoile à ce palier d'enquête — sa prose, le document
+ *  qu'il croise, ou les deux (au moins l'un, `narratifSchema`). */
 export interface IndiceStade {
   /** id STABLE du stade, unique DANS l'indice. */
   id: string;
   /** Prose révélée (verbatim source, règle stricte 5). */
+  prose?: string;
+  /** id d'un `DocumentNarratif` du même narratif (#679). */
+  documentId?: string;
+  source?: SourceRef;
+}
+
+/** Un document remis au joueur (#679) : prose VERBATIM (règle stricte 5, Markdown), servie par l'Effect
+ *  `document { documentId }`. */
+export interface DocumentNarratif {
+  /** id STABLE, unique dans le narratif ET non-colluant avec un id global. */
+  id: string;
+  titre: string;
   prose: string;
   source?: SourceRef;
 }
@@ -87,13 +101,15 @@ export interface NarratifBlock {
   indices: Indice[];
   presetsPnj: PresetPnj[];
   objets: TrappingData[];
+  documents: DocumentNarratif[];
   /** Cadre de campagne (#717) — l'ouverture cérémonielle du chapitre. Absente = démarrage direct. */
   ouverture?: OuvertureBlock;
   /** Cadre de campagne (#717) — la clôture du chapitre. Absente = le chapitre ne se ferme jamais. */
   cloture?: ClotureBlock;
 }
 
-/** Narratif vide — posé par `newProject` et par la migration 2→3 (`worldMap.ts`, `PROJECT_MIGRATIONS`). */
+/** Narratif vide — posé par `newProject` et par la migration 2→3 (`worldMap.ts`, `PROJECT_MIGRATIONS`) :
+ *  une liste vide par registre (`REGISTRES_NARRATIFS`). */
 export function emptyNarratif(): NarratifBlock {
-  return { affaires: [], indices: [], presetsPnj: [], objets: [] };
+  return Object.fromEntries(REGISTRES_NARRATIFS.map((r) => [r.cle, []])) as unknown as NarratifBlock;
 }

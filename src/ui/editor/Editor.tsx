@@ -25,6 +25,7 @@ import { testScenarios, type TestScenario } from '../../scenes/test-scenarios';
 import { allBuiltinCampaigns, copieDuJeu, type BuiltinCampaign } from '../../scenes/campaign';
 import { WorldMap, parseProject, documentDeProjet, MAISON_PROJET_AUTHORE, type ProjectDoc, type ProjectIdentite } from '../../state/worldMap';
 import { type NarratifBlock, emptyNarratif } from '../../state/campaignNarratif';
+import { REGISTRES_NARRATIFS } from '../../data/schemas/defs-scenes/registres-narratifs';
 import { nextEntityId } from '../../state/entityId';
 import { publierEditeur } from '../../state/editeurBridge';
 import {
@@ -950,7 +951,7 @@ export function Editor({
         onDeleteScene={deleteScene}
         worldCount={worldMap ? worldMap.places.length : null}
         onWorld={() => setWorldOpen(true)}
-        narratifCount={narratif.affaires.length + narratif.indices.length + narratif.presetsPnj.length + narratif.objets.length}
+        narratifCount={REGISTRES_NARRATIFS.reduce((n, r) => n + narratif[r.cle].length, 0)}
         onNarratif={() => setNarratifOpen(true)}
         onTest={test}
       />

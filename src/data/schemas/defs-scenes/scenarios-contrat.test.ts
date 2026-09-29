@@ -21,6 +21,8 @@
 import { describe, it, expect } from 'vitest';
 import { SCENARIOS } from '../../../scenes/test-scenarios/_registry.generated';
 import { sceneSchema } from './scene';
+import { refsNarrativesPendantes } from './refs-narratives';
+import { emptyNarratif } from '../../../state/campaignNarratif';
 
 /** Toutes les scènes qu'un scénario apporte au projet : la scène d'entrée + ses destinations. */
 function scenesDe(s: (typeof SCENARIOS)[number]): { chemin: string; scene: unknown }[] {
@@ -45,5 +47,22 @@ describe('sceneSchema — les scènes CONSTRUITES par les scénarios de test', (
       .filter((x) => !x.r.success)
       .map((x) => `${x.chemin} — ${x.r.success ? '' : x.r.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join(' ; ')}`);
     expect(ko, `Scène(s) de scénario que le schéma refuse :\n${ko.join('\n')}`).toEqual([]);
+  });
+});
+
+/**
+ * RÉFÉRENCES NARRATIVES (#679) — la FK que `projetSchema` pose sur un projet (`refsNarrativesPendantes`),
+ * jouée sur chaque scénario : ses scènes, sa carte et SON narratif (vide s'il n'en porte pas), tels que
+ * `poserScenario` les charge. Un Effect dont une clé de `REFERENCES_NARRATIVES` désigne une entrée
+ * absente du narratif du scénario est ROUGE, nommé par le scénario et le chemin.
+ */
+describe('références narratives des scénarios de test — résolues à LEUR narratif', () => {
+  it('aucune référence pendante — le refus NOMME le scénario et le chemin', () => {
+    const ko = SCENARIOS.flatMap((s) => {
+      const c = s.construire();
+      const doc = { scenes: [c.scene, ...(c.extraScenes ?? [])], worldMap: c.worldMap };
+      return refsNarrativesPendantes(doc, c.narratif ?? emptyNarratif()).map((f) => `${s.id} — ${f.chemin.join('.')}: ${f.message}`);
+    });
+    expect(ko, `Référence(s) narrative(s) pendante(s) :\n${ko.join('\n')}`).toEqual([]);
   });
 });

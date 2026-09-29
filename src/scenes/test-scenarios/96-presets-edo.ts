@@ -2,7 +2,7 @@ import { pregenParty, PREGEN } from '../../data/pregens';
 import { buildScene } from '../../state/mapSpec';
 import { flowFromEffects } from '../../state/flow';
 import type { Dialogue, Scene } from '../../state/scene';
-import type { NarratifBlock, PresetPnj } from '../../state/campaignNarratif';
+import { emptyNarratif, type NarratifBlock, type PresetPnj } from '../../state/campaignNarratif';
 import type { TestScenario } from './_shared';
 
 /**
@@ -118,7 +118,7 @@ function construireNarratif(): NarratifBlock {
       },
     },
   ];
-  return { affaires: [], indices: [], objets: [], presetsPnj };
+  return { ...emptyNarratif(), presetsPnj };
 }
 
 

@@ -14,6 +14,7 @@ import { toolLabel } from './StatusBar';
 import { emptyScene, type Scene, type SceneEntity } from '../../state/scene';
 import { creatureLabel, profilsStandard } from '../../data';
 import type { Tool } from './editorState';
+import { emptyNarratif } from '../../state/campaignNarratif';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -85,7 +86,7 @@ function inspecteur(entity: SceneEntity) {
       setScene={(next) => { latest = next; rendre(next); }}
       sel={{ type: 'entity', id: entity.id }} setSel={() => undefined}
       enemyCreatures={BESTIAIRE} openLogic={() => undefined} resizeScene={() => undefined}
-      narratif={{ affaires: [], indices: [], presetsPnj: [{ id: 'preset-tavernier', profil: { label: 'Le Tavernier' } }], objets: [] }}
+      narratif={{ ...emptyNarratif(), presetsPnj: [{ id: 'preset-tavernier', profil: { label: 'Le Tavernier' } }] }}
       tool={{ mode: 'select' }} armZoneTiles={() => undefined} zoneFocusKey={null}
     />,
   );

@@ -118,7 +118,6 @@ export const SITES_PROSE: SiteProse[] = [
 
   // ── Nus par nature ────────────────────────────────────────────────────────────────────────────
   { cle: 'src/ui/StakeNote.tsx#Prose.md#1', origine: 'Y', note: 'les 3 formes de `resolveStake` (`src/data/index.ts`) : synthèse, texte authoré de scène, gabarit substitué — aucune n’est un champ rendu verbatim' },
-  { cle: 'src/ui/DocumentModal.tsx#Prose.md#1', origine: 'R', note: '`store.document.text` — instantané posé par l’effet `document` (`src/state/combatEffects.ts`) ou le rapport de naufrage (`src/state/shipwreck.ts`), sans adresse' },
   { cle: 'src/ui/DialogueHistoryScreen.tsx#Prose.md#1', origine: 'R', note: 'texte de nœud RECOPIÉ au tour joué (journal runtime)' },
   { cle: 'src/ui/MerchantPanel.tsx#Prose.md#1', origine: 'R', note: '`ItemInstance.desc` — snapshot d’instance, surchargeable par un objet custom (`giveTrapping`)' },
   { cle: 'src/ui/PartyScreen.tsx#DetailFrame.prose#1', origine: 'Y', note: 'présentation composée des champs du héros + libellés i18n' },
@@ -127,6 +126,7 @@ export const SITES_PROSE: SiteProse[] = [
   { cle: 'src/ui/CampaignOpeningScreen.tsx#Prose.md#1', origine: 'S', note: 'RESTE T0 : `narratif.ouverture.pitch` est un champ adressé (cf. `CHEMINS_ADRESSES`) mais l’id du projet n’est pas en portée — `campaignDoc` (`src/state/store.ts:2218`) ne porte pas d’id et `pendingCampaign` redevient `null` après `loadProject` (`src/state/devtools.test.ts:444`). Un porteur à l’id faux serait pire que pas de porteur.' },
   { cle: 'src/ui/CarnetScreen.tsx#Prose.md#1', origine: 'S', note: 'RESTE T0 : `narratif.indices[].stades[].prose` — même blocage d’identité de projet' },
   { cle: 'src/ui/CarnetScreen.tsx#Prose.md#2', origine: 'S', note: 'RESTE T0 : idem (lectures précédentes)' },
+  { cle: 'src/ui/DocumentModal.tsx#Prose.md#1', origine: 'S', note: 'RESTE T0 : `store.document.text` — la prose de `narratif.documents[].prose` que pose l’effet `document` (`src/state/combatEffects.ts`), même blocage d’identité de projet ; la même surface rend aussi le rapport de naufrage, texte RUNTIME (`src/state/shipwreck.ts`)' },
   { cle: 'src/ui/MassBattleView.tsx#Prose.md#1', origine: 'S', note: 'RESTE T0 : `massBattle.terrain`, authoré dans l’effet de scène — même blocage d’identité de projet' },
 
   // ── Galerie DEV (montée vivante : des sites réels, pas des fixtures) ──────────────────────────

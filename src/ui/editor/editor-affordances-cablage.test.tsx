@@ -28,6 +28,7 @@ import { DialogueBox } from '../DialogueBox';
 import type { Ctx } from './EffectList';
 import { paintEffectZone, type Sel, type Tool } from './editorState';
 import { evalCondition, conditionCtx } from '../../engine/flowCore';
+import { emptyNarratif } from '../../state/campaignNarratif';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -56,7 +57,7 @@ function mount(scene: Scene, sel: Sel) {
         enemyCreatures={[{ id: 'humain', label: 'Humain' }, { id: 'garde-du-village', label: 'Garde' }]}
         openLogic={() => undefined}
         resizeScene={() => undefined}
-        narratif={{ affaires: [], indices: [], presetsPnj: [], objets: [] }}
+        narratif={emptyNarratif()}
         tool={tool}
         armZoneTiles={(zoneId, paint) => {
           tool = { mode: 'zoneTiles', zoneId, paint };

@@ -8,7 +8,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { CarnetScreen } from './CarnetScreen';
 import { useGame } from '../state/store';
 import { bookAbr } from '../data';
-import type { NarratifBlock } from '../state/campaignNarratif';
+import { emptyNarratif, type NarratifBlock } from '../state/campaignNarratif';
 import type { ClueState } from '../state/clues';
 
 beforeAll(() => {
@@ -16,6 +16,7 @@ beforeAll(() => {
 });
 
 const narratif: NarratifBlock = {
+  ...emptyNarratif(),
   affaires: [
     { id: 'affaire-1', titre: 'La disparition du meunier' },
     { id: 'affaire-2', titre: 'Le sceau maudit' },
@@ -124,6 +125,7 @@ describe('CarnetScreen — rendu (#670)', () => {
     const abbr = bookAbr('livre-de-base');
     expect(abbr).not.toBe('livre-de-base'); // sanity : le livre est connu, l'abréviation diffère de l'id
     const narratifSourcé: NarratifBlock = {
+      ...emptyNarratif(),
       affaires: [{ id: 'affaire-1', titre: 'La lettre codée' }],
       indices: [
         {

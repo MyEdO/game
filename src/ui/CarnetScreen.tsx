@@ -65,7 +65,7 @@ function ClueBand({ indice, clue, onTogglePin }: { indice: Indice; clue: ClueSta
       <div className={clue.statut === 'réfuté' ? 'clue-refuted' : undefined}>
         {stadeCourant && (
           <>
-            <Prose md={stadeCourant.prose} />
+            {stadeCourant.prose !== undefined && <Prose md={stadeCourant.prose} />}
             <StadeSource source={stadeCourant.source} />
           </>
         )}
@@ -77,7 +77,7 @@ function ClueBand({ indice, clue, onTogglePin }: { indice: Indice; clue: ClueSta
               if (!stade) return null;
               return (
                 <div key={h.stade} className="clue-history-entry">
-                  <Prose md={stade.prose} />
+                  {stade.prose !== undefined && <Prose md={stade.prose} />}
                   <StadeSource source={stade.source} />
                 </div>
               );

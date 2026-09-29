@@ -20,6 +20,7 @@ import { dirname, join } from 'node:path';
 import { useGame } from '../../state/store';
 import { useGameKeyboard } from '../useGameKeyboard';
 import { editeur } from '../../state/editeurBridge';
+import { emptyNarratif } from '../../state/campaignNarratif';
 
 const BIBLIOTHEQUE = 'wfrp4-library';
 const AUTOSAVE = 'wfrp4-editor-autosave';
@@ -235,7 +236,7 @@ describe('Editor v2 — authoring architectural', () => {
         enemyCreatures={[]}
         openLogic={() => undefined}
         resizeScene={() => undefined}
-        narratif={{ affaires: [], indices: [], presetsPnj: [], objets: [] }}
+        narratif={emptyNarratif()}
         tool={{ mode: 'select' }}
         armZoneTiles={() => undefined}
         zoneFocusKey={null}

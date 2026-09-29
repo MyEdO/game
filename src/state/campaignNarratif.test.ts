@@ -23,6 +23,7 @@ function doc(narratif: NarratifBlock, meta?: unknown) {
 }
 
 const validNarratif = (): NarratifBlock => ({
+  ...emptyNarratif(),
   affaires: [{ id: 'af-sel', titre: 'L\'affaire du sel' }],
   indices: [
     { id: 'in-quai', affaireId: 'af-sel', kind: 'indice', titre: 'Le quai désert', stades: [{ id: 'st1', prose: 'Un quai vide.' }] },

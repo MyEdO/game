@@ -162,7 +162,7 @@ export function effectSummary(effect: Effect, ctx: Pick<Ctx, 'scenes' | 'cibles'
     case 'setFlag': return `Flag ${e.flag || '?'} = ${e.value === false ? 'faux' : 'vrai'}`;
     case 'setObjective': return `Objectif [${e.id || '?'}] : ${e.desc ? `« ${coupeAuMot(e.desc, 46)} »` : '(vide)'}${hasSchedule(e) ? ` (échéance ${scheduleSummary(e)})` : ''}`;
     case 'clearObjective': return e.id ? `Retirer l'objectif [${e.id}]` : `Retirer tous les objectifs`;
-    case 'document': return `Document : ${e.title || '(sans titre)'}`;
+    case 'document': return `Document : ${e.documentId || '?'}`;
     case 'revealClue': return `Indice : ${e.indiceId || '?'}${e.stade ? ` → stade ${e.stade}` : ''}`;
     case 'discreditClue': return `Fausse piste : ${e.indiceId || '?'}`;
     case 'giveTrapping': return `Objet : ${giveTrappingLabel(e) || '?'}${e.qualities?.length ? ` (+${e.qualities.length} qualité(s))` : ''}`;
@@ -308,12 +308,6 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
         )}
         {effect.type === 'clearObjective' && (
           <input placeholder="id de l'objectif à retirer (vide = tous)" value={e.id ?? ''} onChange={(ev) => upd({ id: ev.target.value || undefined })} />
-        )}
-        {effect.type === 'document' && (
-          <>
-            <input placeholder="Titre" value={e.title ?? ''} onChange={(ev) => upd({ title: ev.target.value })} />
-            <textarea placeholder="Texte du document (sauts de ligne autorisés)" value={e.desc ?? ''} onChange={(ev) => upd({ desc: ev.target.value })} />
-          </>
         )}
         {effect.type === 'giveTrapping' && (
           <>

@@ -271,20 +271,36 @@ projet — jamais per-scène), typé `NarratifBlock` (`src/state/campaignNarrati
 
 ```
 narratif: { affaires: Affaire[]; indices: Indice[]; presetsPnj: PresetPnj[]; objets: TrappingData[];
-            ouverture?: OuvertureBlock; cloture?: ClotureBlock }
+            documents: DocumentNarratif[]; ouverture?: OuvertureBlock; cloture?: ClotureBlock }
 ```
 
 - **`affaires`** (`Affaire`) — fils d'enquête ; **`indices`** (`Indice`, `kind: 'indice' | 'rumeur'`)
-  rattachés à une affaire (`affaireId`), révélés par `stades` (`IndiceStade`, prose verbatim source) et
-  recoupés par `refs` (ids d'autres indices) ; **`presetsPnj`** (`PresetPnj`) — PNJ pré-composés (`base`
-  = id d'une créature globale surchargé par `profil`/`apparence`) ; **`objets`** (`TrappingData`) —
-  possessions propres à la campagne.
+  rattachés à une affaire (`affaireId`), révélés par `stades` et recoupés par `refs` (ids d'autres
+  indices) ; un stade (`IndiceStade`) porte sa `prose` (verbatim source), un `documentId` (id d'un
+  `narratif.documents`, #679), ou les deux — au moins l'un ; **`presetsPnj`** (`PresetPnj`) — PNJ
+  pré-composés (`base` = id d'une créature globale surchargé par `profil`/`apparence`) ; **`objets`**
+  (`TrappingData`) — possessions propres à la campagne ; **`documents`** (`DocumentNarratif`,
+  `{ id, titre, prose, source? }`, #679) — les documents remis au joueur, `prose` en Markdown VERBATIM
+  (règle 5), non vide.
+- **Registres.** Les listes à `id` du narratif sont déclarées UNE fois, dans `REGISTRES_NARRATIFS`
+  (`src/data/schemas/defs-scenes/registres-narratifs.ts`) : schéma (unicité inter-registres,
+  anti-collision globale), résolveur (`campaignData.ts`), narratif vide (`emptyNarratif`) et éditeur la
+  lisent. Un registre de plus = une ligne de cette table.
+- **Remettre un document.** L'Effect `{ type: 'document', documentId }` désigne une entrée de
+  `narratif.documents` ; `apply` la résout (`documentById`) et ouvre la modale `DocumentModal`
+  (`store.document`). Un id inconnu n'ouvre rien (avertissement console).
 - **Frontière RÉFÉRENCE vs NARRATIF.** Le narratif RÉFÉRENCE la règle globale (`src/data`) PAR ID
   (`base` → id de `creatures.json`), il ne la copie PAS et n'entre JAMAIS dans `src/data` global : c'est
   du contenu EMBARQUÉ dans le JSON, révélé seulement en jeu. `narratifSchema`
   (`src/data/schemas/defs-scenes/narratif.ts`, composé par `projetSchema`) garde cet invariant
   fail-fast au parse : aucun id narratif ne peut collisionner avec un id global (créature/possession),
-  `affaireId`/`refs`/`base` doivent résoudre, ids internes uniques.
+  `affaireId`/`refs`/`base`/`stades[].documentId` doivent résoudre, ids internes uniques. `projetSchema`
+  y ajoute les RÉFÉRENCES NARRATIVES des Effects (`refsNarrativesPendantes`,
+  `src/data/schemas/defs-scenes/refs-narratives.ts`) : `document.documentId`, `revealClue.indiceId`
+  (et son `stade`) et `discreditClue.indiceId` résolvent au narratif du document, dans toutes les
+  scènes (déclencheurs, actions d'entité, choix de dialogue, `onVictory`, Flows portés) et dans les
+  périls de route de `worldMap` — la faute nomme son chemin complet. Le même parcours est joué sur
+  les scénarios de test (`scenarios-contrat.test.ts`).
 - **Identité (à plat).** Le paquet porte aussi son identité de campagne (`ProjectIdentite`,
   `src/state/worldMap.ts`) — champs PLATS à la racine du document depuis #1467 L1b, sans poche
   intermédiaire : `id`/`label`/`versionContenu` forment un trio TOUT-OU-RIEN, `icon`/`desc`/`auteur`
@@ -294,8 +310,13 @@ narratif: { affaires: Affaire[]; indices: Indice[]; presetsPnj: PresetPnj[]; obj
 - **Migration.** Un projet schema 2 legacy (localStorage éditeur d'avant #765) monte au format courant
   au chargement (`PROJECT_MIGRATIONS[2]` injecte un narratif vide ; `[4]` aplatit la poche `meta` et
   renomme sa `version` en `versionContenu` ; `[5]` donne au libellé de scène et de carte sa graphie
-  `label` et fait s'annoncer les statblocs embarqués). Les **quatre projets committés sont
-  en schema 6** : « L'Arène » (`src/scenes/arene/arene-projet.json`), « La Barge du Sel »
+  `label` et fait s'annoncer les statblocs embarqués ; `[17]` soulève chaque Effect `document` en
+  ligne `{ title, desc }` en entrée `narratif.documents` — id `document-<slug du titre>`, suffixé
+  `-2`, `-3`… s'il est pris (`src/data/documentsAuNarratif.ts`) — et l'Effect devient
+  `{ documentId }`). Une scène d'AUTOSAVE (`migreSceneDeProjet`) dont la montée soulèverait un
+  document est REFUSÉE nommément (`ProjetRefuse`) : seule, elle n'a pas de narratif où le poser. Les
+  **quatre projets committés sont au schéma courant** (`SCHEMA_PROJET`) : « L'Arène »
+  (`src/scenes/arene/arene-projet.json`), « La Barge du Sel »
   (`src/scenes/barge-du-sel/barge-du-sel-projet.json`), « La Diligence »
   (`src/scenes/diligence/diligence-projet.json`, sans `worldMap`) et « Le Loup et la Saumure »
   (`src/scenes/loup-et-saumure/loup-et-saumure-projet.json`) — produits par `projectDoc`

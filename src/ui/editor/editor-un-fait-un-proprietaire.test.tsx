@@ -6,6 +6,7 @@ import { Inspector } from './Inspector';
 import { LogicDock } from './LogicDock';
 import { Palette } from './Palette';
 import { DEFAULT_LAYERS, hitAt } from './editorState';
+import { emptyNarratif } from '../../state/campaignNarratif';
 
 /**
  * FRONTIÈRE D'ÉDITION — un FAIT du document de scène a UN propriétaire, une seule surface qui
@@ -52,7 +53,7 @@ function inspecteur(scene: Scene, sel: Parameters<typeof Inspector>[0]['sel']) {
       enemyCreatures={[]}
       openLogic={() => undefined}
       resizeScene={() => undefined}
-      narratif={{ affaires: [], indices: [], presetsPnj: [], objets: [] }}
+      narratif={emptyNarratif()}
       tool={{ mode: 'select' }}
       armZoneTiles={() => undefined}
       zoneFocusKey={null}

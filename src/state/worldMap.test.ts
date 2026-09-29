@@ -8,6 +8,7 @@ import { parseProject, declutterPositions, resolvePortRef, placeServices, CURREN
 import { lieuxServices } from '../data';
 import { validateScene } from './validateScene';
 import type { Scene } from './scene';
+import { emptyNarratif } from './campaignNarratif';
 
 const scene = (id: string) => ({ id, label: id, dimensions: { w: 3, h: 3 } } as unknown as Scene);
 
@@ -278,7 +279,7 @@ describe('placeServices — vocabulaire unique des services de lieu (#343)', () 
  * `f20f16e65` (2026-06-13) : ce champ n'est plus produit par l'app.
  */
 describe('parseProject — porte de schéma', () => {
-  const narratifVide = { affaires: [], indices: [], presetsPnj: [], objets: [] };
+  const narratifVide = emptyNarratif();
 
   it('un document schema 2 (localStorage d\'avant #765) est MIGRÉ puis accepté par la porte', () => {
     const res = parseProject({ schema: 2, meta: metaAnterieure, scenes: [scene('s1')] });

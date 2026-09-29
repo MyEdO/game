@@ -125,8 +125,8 @@ describe('#94 — Effets santé éditables (ambitionLost/inflictThirst/inflictPs
 describe('changer le type d’un effet CONVERTIT — un seul vocabulaire, un seul geste', () => {
   it('les champs que le type visé connaît aussi gardent leur valeur (fonction pure)', () => {
     const memoire = { type: 'journal', desc: 'Le plancher gemit' };
-    expect(convertTo(newEffect('document'), memoire, 'type')).toEqual({
-      type: 'document', title: '', desc: 'Le plancher gemit',
+    expect(convertTo(newEffect('setObjective'), memoire, 'type')).toEqual({
+      type: 'setObjective', id: '', desc: 'Le plancher gemit',
     });
   });
 
@@ -162,12 +162,12 @@ describe('changer le type d’un effet CONVERTIT — un seul vocabulaire, un seu
     const choisirType = (libelle: string) => choisirDansMenu(menuDe(rangee, /^Type :/), libelle);
 
     try {
-      await choisirType('Document (handout)');
-      expect(dernier[0]).toEqual({ type: 'document', title: '', desc: 'Le plancher gemit' });
+      await choisirType('Objectif courant (« je fais quoi maintenant ? »)');
+      expect(dernier[0]).toEqual({ type: 'setObjective', id: '', desc: 'Le plancher gemit' });
 
       await choisirType('Définir un flag');
       expect(dernier[0].type).toBe('setFlag');
-      expect(dernier[0]).not.toHaveProperty('desc'); // le document ne porte que les champs de SON type
+      expect(dernier[0]).not.toHaveProperty('desc'); // le flag ne porte que les champs de SON type
 
       await choisirType('Journal');
       expect(dernier[0]).toEqual({ type: 'journal', desc: 'Le plancher gemit' });

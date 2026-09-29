@@ -18,6 +18,7 @@ import { Scene, emptyScene } from './scene';
 import { parseProject, CURRENT_PROJECT_SCHEMA, ProjetRefuse } from './worldMap';
 import { allBuiltinCampaigns } from '../scenes/campaign';
 import { allAxes } from '../data';
+import { emptyNarratif } from './campaignNarratif';
 
 const KEY = 'wfrp4.editor-projects.v1';
 const TOMBSTONE_KEY = 'wfrp4.editor-projects.tombstones.v1';
@@ -442,7 +443,7 @@ describe('projectLibrary — bibliothèque de projets éditeur (localStorage)', 
 });
 
 describe('documentDeLEntree — le document d’une entrée de bibliothèque, lu par UNE fonction (#1343)', () => {
-  const narratif = { affaires: [], indices: [], presetsPnj: [], objets: [] };
+  const narratif = emptyNarratif();
   const scene = { ...emptyScene(4, 4), id: 'scene-a', label: 'Salle A' };
 
   it('entrée d’AVANT #1552 (document sans identité) : la porte accepte, avec l’id et le nom de l’entrée, version 0', () => {
@@ -480,7 +481,7 @@ describe('documentDeLEntree — le document d’une entrée de bibliothèque, lu
 });
 
 describe('campagneDeLEntree — la campagne LANCÉE depuis une entrée, par la porte (#1343)', () => {
-  const narratif = { affaires: [], indices: [], presetsPnj: [], objets: [] };
+  const narratif = emptyNarratif();
   const scene = { ...emptyScene(4, 4), id: 'scene-a', label: 'Salle A' };
 
   it('entrée d’un ANCIEN schéma : ses scènes sont MIGRÉES avant d’être posées', () => {

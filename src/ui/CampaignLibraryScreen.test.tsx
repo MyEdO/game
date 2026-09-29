@@ -20,6 +20,7 @@ import { brancherBasesSimulees, type PanneSimulee } from '../lib/indexedDb.testk
 import { emptyScene, type Scene } from '../state/scene';
 import { useGame } from '../state/store';
 import { datasetArray, setDataset } from '../data/overrides';
+import { emptyNarratif } from '../state/campaignNarratif';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -250,7 +251,7 @@ describe('CampaignLibraryScreen — rendu (#766)', () => {
     const { type: _muette, ...sceneMuette } = { ...emptyScene(4, 4), id: 'scene-ancienne', label: 'Salle ancienne' };
     const ancienne = {
       id: 'proj-ancien', label: 'Campagne d’avant', startSceneId: 'scene-ancienne', savedAt: 1, published: true,
-      project: { schema: 6, scenes: [sceneMuette as Scene], narratif: { affaires: [], indices: [], presetsPnj: [], objets: [] } },
+      project: { schema: 6, scenes: [sceneMuette as Scene], narratif: emptyNarratif() },
     } as SavedProject;
     await projectSave(ancienne);
     useGame.setState({ pendingCampaign: null } as never);
@@ -330,7 +331,7 @@ describe('CampaignLibraryScreen — rendu (#766)', () => {
       project: {
         ...identiteDuPaquet, type: 'projet', schema: CURRENT_PROJECT_SCHEMA, label: 'Nom du paquet',
         scenes: [{ ...emptyScene(4, 4), id: 'scene-copie', label: 'Salle copiée' }],
-        narratif: { affaires: [], indices: [], presetsPnj: [], objets: [] },
+        narratif: emptyNarratif(),
       },
     } as unknown as SavedProject;
     await projectSave(copie);
