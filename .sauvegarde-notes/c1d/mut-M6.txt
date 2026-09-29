@@ -42,3 +42,209 @@ couche (ouverture, doigt) 1366×650 — pont 143px au bas, 7 surface(s), 14/20 c
 couche (tour de héros, souris) 701×780 — pont 170px au bas, 6 surface(s), 24/27 commande(s) atteinte(s), 3 exemptée(s) → 2 défaut(s)
    · texte (tour de héros) 701×780 : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
    · texte (tour de héros) 701×780 : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+couche (tour de héros, souris) 360×740 — pont 280px au bas, 6 surface(s), 21/24 commande(s) atteinte(s), 3 exemptée(s) → OK
+couche (tour de héros, souris) 1366×650 — pont 141.7px au bas, 6 surface(s), 23/27 commande(s) atteinte(s), 4 exemptée(s) → 1 défaut(s)
+   · texte (tour de héros) 1366×650 : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+couche (tour de héros, doigt) 701×780 — pont 183.6px au bas, 6 surface(s), 24/27 commande(s) atteinte(s), 3 exemptée(s) → 2 défaut(s)
+   · texte (tour de héros) 701×780 (doigt) : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+   · texte (tour de héros) 701×780 (doigt) : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+couche (tour de héros, doigt) 360×740 — pont 312px au bas, 6 surface(s), 21/24 commande(s) atteinte(s), 3 exemptée(s) → OK
+couche (tour de héros, doigt) 1366×650 — pont 143px au bas, 6 surface(s), 23/27 commande(s) atteinte(s), 4 exemptée(s) → 1 défaut(s)
+   · texte (tour de héros) 1366×650 (doigt) : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+couche (nom le plus long, souris) 701×780 — pont 170px au bas, 6 surface(s), 24/27 commande(s) atteinte(s), 3 exemptée(s) → 3 défaut(s)
+   · texte (nom le plus long) 701×780 : le mot « Feuille-d’Argent » (nom-mot) est tranché — 2 lignes (R-M2)
+   · texte (nom le plus long) 701×780 : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+   · texte (nom le plus long) 701×780 : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+couche (nom le plus long, souris) 360×740 — pont 280px au bas, 6 surface(s), 21/24 commande(s) atteinte(s), 3 exemptée(s) → OK
+couche (nom le plus long, souris) 1366×650 — pont 141.7px au bas, 6 surface(s), 23/27 commande(s) atteinte(s), 4 exemptée(s) → 2 défaut(s)
+   · texte (nom le plus long) 1366×650 : le mot « Feuille-d’Argent » (nom-mot) est tranché — 2 lignes (R-M2)
+   · texte (nom le plus long) 1366×650 : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+couche (nom le plus long, doigt) 701×780 — pont 183.6px au bas, 6 surface(s), 24/27 commande(s) atteinte(s), 3 exemptée(s) → 3 défaut(s)
+   · texte (nom le plus long) 701×780 (doigt) : le mot « Feuille-d’Argent » (nom-mot) est tranché — 2 lignes (R-M2)
+   · texte (nom le plus long) 701×780 (doigt) : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+   · texte (nom le plus long) 701×780 (doigt) : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+couche (nom le plus long, doigt) 360×740 — pont 312px au bas, 6 surface(s), 21/24 commande(s) atteinte(s), 3 exemptée(s) → OK
+couche (nom le plus long, doigt) 1366×650 — pont 143px au bas, 6 surface(s), 23/27 commande(s) atteinte(s), 4 exemptée(s) → 2 défaut(s)
+   · texte (nom le plus long) 1366×650 (doigt) : le mot « Feuille-d’Argent » (nom-mot) est tranché — 2 lignes (R-M2)
+   · texte (nom le plus long) 1366×650 (doigt) : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+couche (nom composé, souris) 701×780 — pont 170px au bas, 6 surface(s), 24/27 commande(s) atteinte(s), 3 exemptée(s) → 3 défaut(s)
+   · texte (nom composé) 701×780 : le mot « Feuille-d’Argent » (nom-mot) est tranché — 2 lignes (R-M2)
+   · texte (nom composé) 701×780 : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+   · texte (nom composé) 701×780 : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+couche (nom composé, souris) 360×740 — pont 280px au bas, 6 surface(s), 21/24 commande(s) atteinte(s), 3 exemptée(s) → OK
+couche (nom composé, souris) 1366×650 — pont 141.7px au bas, 6 surface(s), 23/27 commande(s) atteinte(s), 4 exemptée(s) → 2 défaut(s)
+   · texte (nom composé) 1366×650 : le mot « Feuille-d’Argent » (nom-mot) est tranché — 2 lignes (R-M2)
+   · texte (nom composé) 1366×650 : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+couche (nom composé, doigt) 701×780 — pont 183.6px au bas, 6 surface(s), 24/27 commande(s) atteinte(s), 3 exemptée(s) → 3 défaut(s)
+   · texte (nom composé) 701×780 (doigt) : le mot « Feuille-d’Argent » (nom-mot) est tranché — 2 lignes (R-M2)
+   · texte (nom composé) 701×780 (doigt) : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+   · texte (nom composé) 701×780 (doigt) : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+couche (nom composé, doigt) 360×740 — pont 312px au bas, 6 surface(s), 21/24 commande(s) atteinte(s), 3 exemptée(s) → OK
+couche (nom composé, doigt) 1366×650 — pont 143px au bas, 6 surface(s), 23/27 commande(s) atteinte(s), 4 exemptée(s) → 2 défaut(s)
+   · texte (nom composé) 1366×650 (doigt) : le mot « Feuille-d’Argent » (nom-mot) est tranché — 2 lignes (R-M2)
+   · texte (nom composé) 1366×650 (doigt) : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+couche (pause de Round, souris) 701×780 — pont 170px au bas, 6 surface(s), 15/20 commande(s) atteinte(s), 5 exemptée(s) → 2 défaut(s)
+   · texte (pause de Round) 701×780 : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+   · texte (pause de Round) 701×780 : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+couche (pause de Round, souris) 360×740 — pont 280px au bas, 6 surface(s), 12/17 commande(s) atteinte(s), 5 exemptée(s) → OK
+couche (pause de Round, souris) 1366×650 — pont 141.7px au bas, 6 surface(s), 14/20 commande(s) atteinte(s), 6 exemptée(s) → 1 défaut(s)
+   · texte (pause de Round) 1366×650 : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+couche (pause de Round, doigt) 701×780 — pont 183.6px au bas, 6 surface(s), 15/20 commande(s) atteinte(s), 5 exemptée(s) → 2 défaut(s)
+   · texte (pause de Round) 701×780 (doigt) : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+   · texte (pause de Round) 701×780 (doigt) : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+couche (pause de Round, doigt) 360×740 — pont 312px au bas, 6 surface(s), 12/17 commande(s) atteinte(s), 5 exemptée(s) → OK
+couche (pause de Round, doigt) 1366×650 — pont 143px au bas, 6 surface(s), 14/20 commande(s) atteinte(s), 6 exemptée(s) → 1 défaut(s)
+   · texte (pause de Round) 1366×650 (doigt) : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+couche (journal ouvert, souris) 701×780 — pont 170px au bas, 7 surface(s), 24/27 commande(s) atteinte(s), 3 exemptée(s) → 3 défaut(s)
+   · texte (journal ouvert) 701×780 : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+   · texte (journal ouvert) 701×780 : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+   · texte (journal ouvert) 701×780 : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+couche (journal ouvert, souris) 360×740 — pont 280px au bas, 7 surface(s), 21/24 commande(s) atteinte(s), 3 exemptée(s) → 1 défaut(s)
+   · texte (journal ouvert) 360×740 : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+couche (journal ouvert, souris) 1366×650 — pont 141.7px au bas, 7 surface(s), 23/27 commande(s) atteinte(s), 4 exemptée(s) → 1 défaut(s)
+   · texte (journal ouvert) 1366×650 : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+couche (journal ouvert, doigt) 701×780 — pont 183.6px au bas, 7 surface(s), 24/27 commande(s) atteinte(s), 3 exemptée(s) → 3 défaut(s)
+   · texte (journal ouvert) 701×780 (doigt) : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+   · texte (journal ouvert) 701×780 (doigt) : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+   · texte (journal ouvert) 701×780 (doigt) : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+couche (journal ouvert, doigt) 360×740 — pont 312px au bas, 7 surface(s), 21/24 commande(s) atteinte(s), 3 exemptée(s) → 1 défaut(s)
+   · texte (journal ouvert) 360×740 (doigt) : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+couche (journal ouvert, doigt) 1366×650 — pont 143px au bas, 7 surface(s), 23/27 commande(s) atteinte(s), 4 exemptée(s) → 1 défaut(s)
+   · texte (journal ouvert) 1366×650 (doigt) : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+combat 1707px — dock 170px de haut / 9 contrôle(s), piste 83/83px dans une bande de 86px, frise colonne à 1612.8px du bord, Round visible, tête couverte, pied entier, chevauchement fil×frise aucun → OK
+combat 1100px — dock 170px de haut / 9 contrôle(s), piste 83/83px dans une bande de 86px, frise colonne à 1005.8px du bord, Round visible, tête couverte, pied entier, chevauchement fil×frise aucun → OK
+combat 900px — dock 170px de haut / 9 contrôle(s), piste 77/77px dans une bande de 80px, frise colonne à 811.8px du bord, Round visible, tête couverte, pied entier, chevauchement fil×frise aucun → OK
+combat 700px — dock 183.6px de haut / 9 contrôle(s), piste 77/77px dans une bande de 80px, frise colonne à 611.8px du bord, Round visible, tête couverte, pied entier, chevauchement fil×frise aucun → 4 défaut(s)
+   · combat ×780 700px (§12 561–700) : la vie de la carte 0 du groupe n'est pas superposée à son portrait
+   · combat ×780 700px (§12 561–700) : la vie de la carte 1 du groupe n'est pas superposée à son portrait
+   · combat ×780 700px (§12 561–700) : la vie de la carte 2 du groupe n'est pas superposée à son portrait
+   · combat ×780 700px (§12 561–700) : la vie de la carte 3 du groupe n'est pas superposée à son portrait
+combat 560px — dock 280px de haut / 9 contrôle(s), piste 549/549px dans une bande de 552px, frise bande à 4px du bord, Round visible, tête non mesurée, pied non mesuré, chevauchement fil×frise aucun → OK
+combat (groupe déplié) 560px — 4 carte(s) sur 1 ligne(s), 4 portrait(s) cliquable(s), volet × fil 317.7×16.8px (rang éprouvé) → OK
+combat 360px — dock 280px de haut / 9 contrôle(s), piste 349/492px dans une bande de 352px, frise bande à 4px du bord, Round visible, tête couverte, pied non mesuré, chevauchement fil×frise aucun → OK
+combat (groupe déplié) 360px — 4 carte(s) sur 1 ligne(s), 4 portrait(s) cliquable(s), volet × fil 317.7×16.8px (rang éprouvé) → OK
+combat 1707px — dock 141.7px de haut / 9 contrôle(s), piste 83/83px dans une bande de 86px, frise colonne à 1612.8px du bord, Round visible, tête couverte, pied entier, chevauchement fil×frise aucun → OK
+combat 1100px — dock 141.7px de haut / 9 contrôle(s), piste 83/83px dans une bande de 86px, frise colonne à 1005.8px du bord, Round visible, tête couverte, pied entier, chevauchement fil×frise aucun → OK
+combat 900px — dock 141.7px de haut / 9 contrôle(s), piste 77/77px dans une bande de 80px, frise colonne à 811.8px du bord, Round visible, tête couverte, pied entier, chevauchement fil×frise aucun → OK
+combat 700px — dock 161.5px de haut / 9 contrôle(s), piste 77/77px dans une bande de 80px, frise colonne à 611.8px du bord, Round visible, tête couverte, pied entier, chevauchement fil×frise aucun → 4 défaut(s)
+   · combat ×650 700px (§12 561–700) : la vie de la carte 0 du groupe n'est pas superposée à son portrait
+   · combat ×650 700px (§12 561–700) : la vie de la carte 1 du groupe n'est pas superposée à son portrait
+   · combat ×650 700px (§12 561–700) : la vie de la carte 2 du groupe n'est pas superposée à son portrait
+   · combat ×650 700px (§12 561–700) : la vie de la carte 3 du groupe n'est pas superposée à son portrait
+combat 560px — dock 280px de haut / 9 contrôle(s), piste 549/549px dans une bande de 552px, frise bande à 4px du bord, Round visible, tête non mesurée, pied non mesuré, chevauchement fil×frise aucun → OK
+combat (groupe déplié) 560px — 4 carte(s) sur 1 ligne(s), 4 portrait(s) cliquable(s), volet × fil 317.7×16.8px (rang éprouvé) → OK
+combat 360px — dock 280px de haut / 9 contrôle(s), piste 349/492px dans une bande de 352px, frise bande à 4px du bord, Round visible, tête couverte, pied non mesuré, chevauchement fil×frise aucun → OK
+combat (groupe déplié) 360px — 4 carte(s) sur 1 ligne(s), 4 portrait(s) cliquable(s), volet × fil 317.7×16.8px (rang éprouvé) → OK
+combat 1707px — dock 161.3px de haut / 9 contrôle(s), piste 83/83px dans une bande de 86px, frise colonne à 1612.8px du bord, Round visible, tête couverte, pied entier, chevauchement fil×frise aucun → OK
+combat 1100px — dock 161.3px de haut / 9 contrôle(s), piste 83/83px dans une bande de 86px, frise colonne à 1005.8px du bord, Round visible, tête couverte, pied entier, chevauchement fil×frise aucun → OK
+combat 900px — dock 161.3px de haut / 9 contrôle(s), piste 77/77px dans une bande de 80px, frise colonne à 811.8px du bord, Round visible, tête couverte, pied entier, chevauchement fil×frise aucun → OK
+combat 700px — dock 176.8px de haut / 9 contrôle(s), piste 77/77px dans une bande de 80px, frise colonne à 611.8px du bord, Round visible, tête couverte, pied entier, chevauchement fil×frise aucun → 4 défaut(s)
+   · combat ×740 700px (§12 561–700) : la vie de la carte 0 du groupe n'est pas superposée à son portrait
+   · combat ×740 700px (§12 561–700) : la vie de la carte 1 du groupe n'est pas superposée à son portrait
+   · combat ×740 700px (§12 561–700) : la vie de la carte 2 du groupe n'est pas superposée à son portrait
+   · combat ×740 700px (§12 561–700) : la vie de la carte 3 du groupe n'est pas superposée à son portrait
+combat 560px — dock 280px de haut / 9 contrôle(s), piste 549/549px dans une bande de 552px, frise bande à 4px du bord, Round visible, tête non mesurée, pied non mesuré, chevauchement fil×frise aucun → OK
+combat (groupe déplié) 560px — 4 carte(s) sur 1 ligne(s), 4 portrait(s) cliquable(s), volet × fil 317.7×16.8px (rang éprouvé) → OK
+combat 360px — dock 280px de haut / 9 contrôle(s), piste 349/492px dans une bande de 352px, frise bande à 4px du bord, Round visible, tête couverte, pied non mesuré, chevauchement fil×frise aucun → OK
+combat (groupe déplié) 360px — 4 carte(s) sur 1 ligne(s), 4 portrait(s) cliquable(s), volet × fil 317.7×16.8px (rang éprouvé) → OK
+   · combat 900px (§12 701–900) : la carte du groupe fait 88px, pas plus compacte que 88px à 1707px
+   · combat 700px (§12 561–700) : la carte du groupe fait 88px, pas plus compacte que 88px à 1707px
+combat (au trait en bas) 1707px — pregen-808 au trait, frise colonne, tête couverte, pied entier, pas 50–50px → OK
+combat (au trait en bas) 1100px — pregen-808 au trait, frise colonne, tête couverte, pied entier, pas 50–50px → OK
+combat (au trait en bas) 900px — pregen-808 au trait, frise colonne, tête couverte, pied entier, pas 50–50px → OK
+combat (au trait en bas) 700px — pregen-808 au trait, frise colonne, tête couverte, pied entier, pas 50–50px → OK
+combat (au trait en bas) 560px — pregen-808 au trait, frise bande, tête non mesurée, pied non mesuré, pas 40–40px → OK
+combat (au trait en bas) 360px — pregen-808 au trait, frise bande, tête couverte, pied non mesuré, pas 40–40px → OK
+combat (pointeur grossier) 560px — Menu 44×44, Dossier du navire — état, cargaison, équ 44×44, Fermer le journal 44×44 → OK
+combat (pointeur grossier) 360px — Menu 44×44, Dossier du navire — état, cargaison, équ 44×44, Fermer le journal 44×44 → OK
+couche (spectateur, souris) 701×780 — pont 170px au bas, 6 surface(s), 14/17 commande(s) atteinte(s), 3 exemptée(s) → 2 défaut(s)
+   · texte (spectateur) 701×780 : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+   · texte (spectateur) 701×780 : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+couche (spectateur, souris) 360×740 — pont 280px au bas, 6 surface(s), 11/14 commande(s) atteinte(s), 3 exemptée(s) → OK
+couche (spectateur, souris) 1366×650 — pont 141.7px au bas, 6 surface(s), 13/17 commande(s) atteinte(s), 4 exemptée(s) → 1 défaut(s)
+   · texte (spectateur) 1366×650 : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+couche (spectateur, doigt) 701×780 — pont 183.6px au bas, 6 surface(s), 14/17 commande(s) atteinte(s), 3 exemptée(s) → 2 défaut(s)
+   · texte (spectateur) 701×780 (doigt) : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+   · texte (spectateur) 701×780 (doigt) : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+couche (spectateur, doigt) 360×740 — pont 312px au bas, 6 surface(s), 11/14 commande(s) atteinte(s), 3 exemptée(s) → OK
+couche (spectateur, doigt) 1366×650 — pont 143px au bas, 6 surface(s), 13/17 commande(s) atteinte(s), 4 exemptée(s) → 1 défaut(s)
+   · texte (spectateur) 1366×650 (doigt) : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+immobilité — 6 vue(s) × 2 pointeur(s) comparées → OK
+
+76 défaut(s) d'atteignabilité du HUD :
+  · exploration 700px (§12 561–700) : la vie de la carte 0 du groupe n'est pas superposée à son portrait
+  · exploration 700px (§12 561–700) : la vie de la carte 1 du groupe n'est pas superposée à son portrait
+  · exploration 700px (§12 561–700) : la vie de la carte 2 du groupe n'est pas superposée à son portrait
+  · exploration 700px (§12 561–700) : la vie de la carte 3 du groupe n'est pas superposée à son portrait
+  · exploration 900px (§12 701–900) : la carte du groupe fait 88px, pas plus compacte que 88px à 1707px
+  · exploration 700px (§12 561–700) : la carte du groupe fait 88px, pas plus compacte que 88px à 1707px
+  · texte (exploration) 701×780 : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+  · texte (exploration) 1366×650 : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+  · texte (exploration) 701×780 (doigt) : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+  · texte (exploration) 1366×650 (doigt) : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+  · texte (ouverture) 701×780 : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+  · texte (ouverture) 1366×650 : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+  · texte (ouverture) 701×780 (doigt) : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+  · texte (ouverture) 1366×650 (doigt) : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+  · texte (tour de héros) 701×780 : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+  · texte (tour de héros) 701×780 : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+  · texte (tour de héros) 1366×650 : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+  · texte (tour de héros) 701×780 (doigt) : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+  · texte (tour de héros) 701×780 (doigt) : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+  · texte (tour de héros) 1366×650 (doigt) : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+  · texte (nom le plus long) 701×780 : le mot « Feuille-d’Argent » (nom-mot) est tranché — 2 lignes (R-M2)
+  · texte (nom le plus long) 701×780 : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+  · texte (nom le plus long) 701×780 : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+  · texte (nom le plus long) 1366×650 : le mot « Feuille-d’Argent » (nom-mot) est tranché — 2 lignes (R-M2)
+  · texte (nom le plus long) 1366×650 : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+  · texte (nom le plus long) 701×780 (doigt) : le mot « Feuille-d’Argent » (nom-mot) est tranché — 2 lignes (R-M2)
+  · texte (nom le plus long) 701×780 (doigt) : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+  · texte (nom le plus long) 701×780 (doigt) : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+  · texte (nom le plus long) 1366×650 (doigt) : le mot « Feuille-d’Argent » (nom-mot) est tranché — 2 lignes (R-M2)
+  · texte (nom le plus long) 1366×650 (doigt) : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+  · texte (nom composé) 701×780 : le mot « Feuille-d’Argent » (nom-mot) est tranché — 2 lignes (R-M2)
+  · texte (nom composé) 701×780 : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+  · texte (nom composé) 701×780 : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+  · texte (nom composé) 1366×650 : le mot « Feuille-d’Argent » (nom-mot) est tranché — 2 lignes (R-M2)
+  · texte (nom composé) 1366×650 : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+  · texte (nom composé) 701×780 (doigt) : le mot « Feuille-d’Argent » (nom-mot) est tranché — 2 lignes (R-M2)
+  · texte (nom composé) 701×780 (doigt) : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+  · texte (nom composé) 701×780 (doigt) : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+  · texte (nom composé) 1366×650 (doigt) : le mot « Feuille-d’Argent » (nom-mot) est tranché — 2 lignes (R-M2)
+  · texte (nom composé) 1366×650 (doigt) : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+  · texte (pause de Round) 701×780 : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+  · texte (pause de Round) 701×780 : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+  · texte (pause de Round) 1366×650 : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+  · texte (pause de Round) 701×780 (doigt) : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+  · texte (pause de Round) 701×780 (doigt) : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+  · texte (pause de Round) 1366×650 (doigt) : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+  · texte (journal ouvert) 701×780 : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+  · texte (journal ouvert) 701×780 : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+  · texte (journal ouvert) 701×780 : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+  · texte (journal ouvert) 360×740 : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+  · texte (journal ouvert) 1366×650 : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+  · texte (journal ouvert) 701×780 (doigt) : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+  · texte (journal ouvert) 701×780 (doigt) : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+  · texte (journal ouvert) 701×780 (doigt) : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+  · texte (journal ouvert) 360×740 (doigt) : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+  · texte (journal ouvert) 1366×650 (doigt) : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+  · combat ×780 700px (§12 561–700) : la vie de la carte 0 du groupe n'est pas superposée à son portrait
+  · combat ×780 700px (§12 561–700) : la vie de la carte 1 du groupe n'est pas superposée à son portrait
+  · combat ×780 700px (§12 561–700) : la vie de la carte 2 du groupe n'est pas superposée à son portrait
+  · combat ×780 700px (§12 561–700) : la vie de la carte 3 du groupe n'est pas superposée à son portrait
+  · combat ×650 700px (§12 561–700) : la vie de la carte 0 du groupe n'est pas superposée à son portrait
+  · combat ×650 700px (§12 561–700) : la vie de la carte 1 du groupe n'est pas superposée à son portrait
+  · combat ×650 700px (§12 561–700) : la vie de la carte 2 du groupe n'est pas superposée à son portrait
+  · combat ×650 700px (§12 561–700) : la vie de la carte 3 du groupe n'est pas superposée à son portrait
+  · combat ×740 700px (§12 561–700) : la vie de la carte 0 du groupe n'est pas superposée à son portrait
+  · combat ×740 700px (§12 561–700) : la vie de la carte 1 du groupe n'est pas superposée à son portrait
+  · combat ×740 700px (§12 561–700) : la vie de la carte 2 du groupe n'est pas superposée à son portrait
+  · combat ×740 700px (§12 561–700) : la vie de la carte 3 du groupe n'est pas superposée à son portrait
+  · combat 900px (§12 701–900) : la carte du groupe fait 88px, pas plus compacte que 88px à 1707px
+  · combat 700px (§12 561–700) : la carte du groupe fait 88px, pas plus compacte que 88px à 1707px
+  · texte (spectateur) 701×780 : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+  · texte (spectateur) 701×780 : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+  · texte (spectateur) 1366×650 : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+  · texte (spectateur) 701×780 (doigt) : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+  · texte (spectateur) 701×780 (doigt) : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)
+  · texte (spectateur) 1366×650 (doigt) : le mot « Pierre-de-Fer » (nom-mot) est tranché — 2 lignes (R-M2)

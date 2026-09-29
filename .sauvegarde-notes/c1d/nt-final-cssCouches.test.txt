@@ -1,0 +1,262 @@
+TAP version 13
+# Subtest: reglesCss : règle de premier niveau — sélecteurs séparés, corps rendu, media nul
+ok 1 - reglesCss : règle de premier niveau — sélecteurs séparés, corps rendu, media nul
+  ---
+  duration_ms: 2.999228
+  type: 'test'
+  ...
+# Subtest: reglesCss : blocs IMBRIQUÉS — le contexte at-rule est empilé, rendu, et n’abrite rien
+ok 2 - reglesCss : blocs IMBRIQUÉS — le contexte at-rule est empilé, rendu, et n’abrite rien
+  ---
+  duration_ms: 0.402962
+  type: 'test'
+  ...
+# Subtest: reglesCss : @keyframes / @font-face sautés en BLOC (leur corps n’est pas fait de sélecteurs)
+ok 3 - reglesCss : @keyframes / @font-face sautés en BLOC (leur corps n’est pas fait de sélecteurs)
+  ---
+  duration_ms: 0.204809
+  type: 'test'
+  ...
+# Subtest: reglesCss : un commentaire ne déclare rien, un prélude at-rule n’est jamais un sélecteur
+ok 4 - reglesCss : un commentaire ne déclare rien, un prélude at-rule n’est jamais un sélecteur
+  ---
+  duration_ms: 0.333233
+  type: 'test'
+  ...
+# Subtest: reglesCss : une at-rule DÉCLARATION se clôt sur son `;` et ne colle pas à la règle suivante
+ok 5 - reglesCss : une at-rule DÉCLARATION se clôt sur son `;` et ne colle pas à la règle suivante
+  ---
+  duration_ms: 0.20773
+  type: 'test'
+  ...
+# Subtest: reglesCss : une accolade CITÉE dans une valeur ne ferme pas le bloc
+ok 6 - reglesCss : une accolade CITÉE dans une valeur ne ferme pas le bloc
+  ---
+  duration_ms: 0.115823
+  type: 'test'
+  ...
+# Subtest: declarations : sépare sur les `;` de premier niveau seulement
+ok 7 - declarations : sépare sur les `;` de premier niveau seulement
+  ---
+  duration_ms: 0.305535
+  type: 'test'
+  ...
+# Subtest: estPlacement : les propriétés nommées et les familles à préfixe placent, tout le reste PEINT
+ok 8 - estPlacement : les propriétés nommées et les familles à préfixe placent, tout le reste PEINT
+  ---
+  duration_ms: 0.457372
+  type: 'test'
+  ...
+# Subtest: estPlacement : un PORTEUR d’image (`list-style`, `list-style-type`) peint dès que sa valeur APPELLE une fonction autre que `symbols()` — `var()` compris ; une chaîne reste le marqueur, qui place
+ok 9 - estPlacement : un PORTEUR d’image (`list-style`, `list-style-type`) peint dès que sa valeur APPELLE une fonction autre que `symbols()` — `var()` compris ; une chaîne reste le marqueur, qui place
+  ---
+  duration_ms: 0.696834
+  type: 'test'
+  ...
+# Subtest: physique : une propriété LOGIQUE se classe comme son équivalent physique
+ok 10 - physique : une propriété LOGIQUE se classe comme son équivalent physique
+  ---
+  duration_ms: 0.537021
+  type: 'test'
+  ...
+# Subtest: valeurHorsEchelle : un littéral de longueur NON NUL, et rien d’autre
+ok 11 - valeurHorsEchelle : un littéral de longueur NON NUL, et rien d’autre
+  ---
+  duration_ms: 0.397308
+  type: 'test'
+  ...
+# Subtest: espacement : un littéral DÉPLACÉ dans une propriété du module reste hors échelle (\#1806)
+ok 12 - espacement : un littéral DÉPLACÉ dans une propriété du module reste hors échelle (\#1806)
+  ---
+  duration_ms: 0.68085
+  type: 'test'
+  ...
+# Subtest: reglesCss : une virgule DANS `:has()`/`:is()` ne coupe pas la liste (\#1806)
+ok 13 - reglesCss : une virgule DANS `:has()`/`:is()` ne coupe pas la liste (\#1806)
+  ---
+  duration_ms: 0.222912
+  type: 'test'
+  ...
+# Subtest: decoupeSelecteurs : niveau 0 seulement, espaces réduits, vides écartés
+ok 14 - decoupeSelecteurs : niveau 0 seulement, espaces réduits, vides écartés
+  ---
+  duration_ms: 0.087469
+  type: 'test'
+  ...
+# Subtest: moduleHorsCouche : `src/ui/styles/`, ou la zone du `fichier` hors de `src/ui` (\#1806 A3)
+ok 15 - moduleHorsCouche : `src/ui/styles/`, ou la zone du `fichier` hors de `src/ui` (\#1806 A3)
+  ---
+  duration_ms: 0.145934
+  type: 'test'
+  ...
+# Subtest: partition : écran et layout au stock (identité ET espacement), primitive réutilisée et partagée exemptées
+ok 16 - partition : écran et layout au stock (identité ET espacement), primitive réutilisée et partagée exemptées
+  ---
+  duration_ms: 0.601778
+  type: 'test'
+  ...
+# Subtest: L1 : réutilisée = ≥ 2 importeurs de `src/` hors suites et galerie, ou le `fichier` d’une autre primitive
+ok 17 - L1 : réutilisée = ≥ 2 importeurs de `src/` hors suites et galerie, ou le `fichier` d’une autre primitive
+  ---
+  duration_ms: 0.340239
+  type: 'test'
+  ...
+# Subtest: D1″/D6″ S1 Q franchit, X +4
+ok 18 - D1″/D6″ S1 Q franchit, X +4
+  ---
+  duration_ms: 1.182555
+  type: 'test'
+  ...
+# Subtest: D1″/D6″ S2 P fraîche + Q franchit
+ok 19 - D1″/D6″ S2 P fraîche + Q franchit
+  ---
+  duration_ms: 0.507162
+  type: 'test'
+  ...
+# Subtest: D1″/D6″ S3 cure Y→E établie + P fraîche
+ok 20 - D1″/D6″ S3 cure Y→E établie + P fraîche
+  ---
+  duration_ms: 0.591211
+  type: 'test'
+  ...
+# Subtest: D1″/D6″ S4 X +4 après un franchissement de Q
+ok 21 - D1″/D6″ S4 X +4 après un franchissement de Q
+  ---
+  duration_ms: 0.373148
+  type: 'test'
+  ...
+# Subtest: D1″/D6″ S5 E rendue exemptée
+ok 22 - D1″/D6″ S5 E rendue exemptée
+  ---
+  duration_ms: 0.25019
+  type: 'test'
+  ...
+# Subtest: D1″/D6″ S6 souche MONO-hôte
+ok 23 - D1″/D6″ S6 souche MONO-hôte
+  ---
+  duration_ms: 0.149235
+  type: 'test'
+  ...
+# Subtest: D1″/D6″ S6 souche RÉUTILISÉE
+ok 24 - D1″/D6″ S6 souche RÉUTILISÉE
+  ---
+  duration_ms: 0.130947
+  type: 'test'
+  ...
+# Subtest: D1″/D6″ S7 échange E↔Q
+ok 25 - D1″/D6″ S7 échange E↔Q
+  ---
+  duration_ms: 0.460412
+  type: 'test'
+  ...
+# Subtest: D1″/D6″ S8 mv Y→P retouché, P réutilisée
+ok 26 - D1″/D6″ S8 mv Y→P retouché, P réutilisée
+  ---
+  duration_ms: 0.24441
+  type: 'test'
+  ...
+# Subtest: D1″/D6″ S9 franchit et cure au même commit
+ok 27 - D1″/D6″ S9 franchit et cure au même commit
+  ---
+  duration_ms: 0.300382
+  type: 'test'
+  ...
+# Subtest: D1″/D6″ S10 mv réindenté, P mono-hôte
+ok 28 - D1″/D6″ S10 mv réindenté, P mono-hôte
+  ---
+  duration_ms: 0.322434
+  type: 'test'
+  ...
+# Subtest: D1″/D6″ S10 mv réindenté, P réutilisée
+ok 29 - D1″/D6″ S10 mv réindenté, P réutilisée
+  ---
+  duration_ms: 0.224347
+  type: 'test'
+  ...
+# Subtest: D1″/D6″ S11 composant gagne son 2e importeur
+ok 30 - D1″/D6″ S11 composant gagne son 2e importeur
+  ---
+  duration_ms: 0.155145
+  type: 'test'
+  ...
+# Subtest: D1″/D6″ S12 composant perd son 2e importeur
+ok 31 - D1″/D6″ S12 composant perd son 2e importeur
+  ---
+  duration_ms: 0.130234
+  type: 'test'
+  ...
+# Subtest: D1″ : un module ABSENT du parent ne franchit pas — il naît exempté, sa matière est APPARUE en zone exempte
+ok 32 - D1″ : un module ABSENT du parent ne franchit pas — il naît exempté, sa matière est APPARUE en zone exempte
+  ---
+  duration_ms: 0.202277
+  type: 'test'
+  ...
+# Subtest: D5″ : un renommage entre deux modules AU STOCK reporte les clés du parent — rien ne sort, rien n’apparaît
+ok 33 - D5″ : un renommage entre deux modules AU STOCK reporte les clés du parent — rien ne sort, rien n’apparaît
+  ---
+  duration_ms: 1.735642
+  type: 'test'
+  ...
+# Subtest: D6″ commit cible 41aa406d5, lu dans l'histoire : aucun franchissement, la ventilation signée
+ok 34 - D6″ commit cible 41aa406d5, lu dans l'histoire : aucun franchissement, la ventilation signée
+  ---
+  duration_ms: 2735.326893
+  type: 'test'
+  ...
+# Subtest: D6″ commit cible d25652e73, lu dans l'histoire : aucun franchissement, la ventilation signée
+ok 35 - D6″ commit cible d25652e73, lu dans l'histoire : aucun franchissement, la ventilation signée
+  ---
+  duration_ms: 2578.663267
+  type: 'test'
+  ...
+# Subtest: D6″ commit cible c251f46af, lu dans l'histoire : aucun franchissement, la ventilation signée
+ok 36 - D6″ commit cible c251f46af, lu dans l'histoire : aucun franchissement, la ventilation signée
+  ---
+  duration_ms: 2122.715172
+  type: 'test'
+  ...
+# Subtest: D (\#1806) : sur un changement de frontière, Σ CLIQUET du stock CSS = APPARU + RETOURNÉ
+ok 37 - D (\#1806) : sur un changement de frontière, Σ CLIQUET du stock CSS = APPARU + RETOURNÉ
+  ---
+  duration_ms: 5.381083
+  type: 'test'
+  ...
+# Subtest: C (\#1806) : l'admission rend au stock les sites que HEAD portait, et refuse un site NEUF du module qui quitte la zone
+ok 38 - C (\#1806) : l'admission rend au stock les sites que HEAD portait, et refuse un site NEUF du module qui quitte la zone
+  ---
+  duration_ms: 0.817565
+  type: 'test'
+  ...
+# Subtest: C (\#1806) : la régénération du stock CSS admet le RETOURNÉ, refuse un site NEUF, et ne lit la ventilation qu’au refus
+ok 39 - C (\#1806) : la régénération du stock CSS admet le RETOURNÉ, refuse un site NEUF, et ne lit la ventilation qu’au refus
+  ---
+  duration_ms: 3.069528
+  type: 'test'
+  ...
+# Subtest: ligneDeVentilation : SORTI décomposé, puis APPARU et RETOURNÉ
+ok 40 - ligneDeVentilation : SORTI décomposé, puis APPARU et RETOURNÉ
+  ---
+  duration_ms: 0.413169
+  type: 'test'
+  ...
+# Subtest: feuillesPartageesDe : lit la liste dans le TEXTE de cssCouches.mjs ; absent → [] ; illisible → refus nommé
+ok 41 - feuillesPartageesDe : lit la liste dans le TEXTE de cssCouches.mjs ; absent → [] ; illisible → refus nommé
+  ---
+  duration_ms: 1.214639
+  type: 'test'
+  ...
+# Subtest: manifesteDe : UN lecteur — absent → [], JSON invalide ou non-tableau → refus nommé, jamais [] silencieux
+ok 42 - manifesteDe : UN lecteur — absent → [], JSON invalide ou non-tableau → refus nommé, jamais [] silencieux
+  ---
+  duration_ms: 0.194006
+  type: 'test'
+  ...
+1..42
+# tests 42
+# suites 0
+# pass 42
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 7670.643759
