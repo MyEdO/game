@@ -420,4 +420,4 @@ canal label (qui n'est PAS la cause) : en-tête de `scripts/docs/build-entity-or
 - `p-tarix-celui-qui-ecrit` — P'tarix, Celui qui écrit
 - `xirat-p-celui-qui-lit` — Xirat'p, Celui qui lit
 
-<!-- sources-empreinte: 2d235d5e276b80379181d7d5cbf09a5ae634f50f (2145 fichiers, 136 dossiers) corps: 099738f7d2ff7b27ff5990eb844f2e477568d222 -->
+<!-- sources-empreinte: f1327dfe4ec1fa46ed7b775b53c1b36408a3cdf2 (2144 fichiers, 136 dossiers) corps: 099738f7d2ff7b27ff5990eb844f2e477568d222 -->

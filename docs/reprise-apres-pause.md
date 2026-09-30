@@ -23,7 +23,7 @@ longue pause. Chaque chemin/symbole cité existe dans le repo — vérifié via 
 
 ```bash
 git clone <url> && cd Game
-npm install     # pose 9 réglages git (script "postinstall" de package.json)
+npm install     # pose 7 réglages git (script "postinstall" de package.json)
 npm test        # suite du moteur — deux processus Vitest (node + jsdom) si ≥ 7 cœurs, sinon un seul
 npm run dev     # http://localhost:5173 (un CLONE garde le port historique)
 ```
@@ -52,7 +52,7 @@ Le port n'est historique QUE pour un arbre principal ou un clone : un **worktree
 autre (5174-5272, `scripts/port-dev.mjs`) pour que deux arbres servis en même temps ne se recouvrent
 jamais. `npm run dev` imprime celui qu'il sert.
 
-`npm install` déclenche le script `postinstall`, qui pose : `core.hooksPath`, `merge.docs-generes.driver`, `merge.docs-generes.name`, `merge.docs-catalogue.driver`, `merge.docs-catalogue.name`, `merge.docs-fiche-raw.driver`, `merge.docs-fiche-raw.name`, `merge.stocks.driver`, `merge.stocks.name`.
+`npm install` déclenche le script `postinstall`, qui pose : `core.hooksPath`, `merge.docs-generes.driver`, `merge.docs-generes.name`, `merge.docs-fiche-raw.driver`, `merge.docs-fiche-raw.name`, `merge.stocks.driver`, `merge.stocks.name`.
 
 **Sans ce postinstall, 3 familles de mécanismes sont MORTES.**
 
@@ -63,7 +63,7 @@ jamais. `npm run dev` imprime celui qu'il sert.
    et la fermeture des issues suit la PUBLICATION : job `fermetures` de `.github/workflows/ci.yml`
    après une course verte de tous les jobs vérifiants sur `main`, qui joue
    `node scripts/ops/fermer-depuis-main.mjs <before>..<sha>`.
-2. Les pilotes de fusion des docs dérivés (`docs-generes`, `docs-catalogue`, `docs-fiche-raw`), déclarés par
+2. Les pilotes de fusion des docs dérivés (`docs-generes`, `docs-fiche-raw`), déclarés par
    `.gitattributes` et servis par `scripts/git-hooks/merge-docs.mjs` : sans eux, chaque rebase rouvre un conflit sur
    des fichiers que `npm run docs:build` régénère seul.
 3. Le pilote de fusion des stocks de sites (`stocks`), déclaré par
@@ -242,4 +242,4 @@ sans entrée ÉCRIT/LU, ou jouée par deux jobs, fait REFUSER le run, avec son n
 `scripts/guards/lib/npmLockHoisted.mjs` — npx --yes npm@10.9.3 install --package-lock-only, puis valider avec npx npm@10.9.3 ci --dry-run. npm 11 ampute les entrées hoistées
 `@emnapi/*` que `npm ci` exige en CI ; la garde (pre-commit +
 `src/npm-lock-hoisted-guard.test.ts`) refuse un lock amputé.
-<!-- sources-empreinte: b70e7770ee3c38d807487da9e6d067f7ad6df6a8 (29 fichiers, 8 dossiers) corps: fbd7213aa3a85a6c64be7a32d4191704d465bf2b -->
+<!-- sources-empreinte: 75facaab0420374df04d00d1bc74729033c50572 (29 fichiers, 8 dossiers) corps: b7d4903b168e0ac60b9a7e9a080f6e37fa387363 -->
