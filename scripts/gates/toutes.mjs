@@ -219,9 +219,9 @@ export const ECRIT_LU = {
       'COMPARENT sans écrire, et leurs lectures passent par la sortie de mesure du test, sous os.tmpdir() ; ' +
       'LIT CLAUDE.md sur l’arbre RÉEL : `routingTableSlice` (manual-docs-ratchet.test.mjs) ancre la table de routage ' +
       '(`## Table de routage`) et `routedFlatDocs` en dérive les docs à plat atteignables ; LIT scripts/raw/, ' +
-      'scripts/gen-registry.mjs et Source/ depuis le 2026-09-23 (#1801) : `plateforme-win32.test.mjs` joue ' +
-      '`build-all.mjs --check` (qui importe gen-registry.mjs et scripts/raw/) sur build-vocabulaire et ' +
-      'reanchor, qui lit l’Atlas et Source/ — en `--check`, rien n’est écrit',
+      'scripts/gen-registry.mjs et Source/ (#2203) : `citations-rendues.test.mjs` rend chaque cible ' +
+      '(`rendreCible` ; build-all.mjs importe gen-registry.mjs et scripts/raw/), et ses générateurs lisent ' +
+      'l’Atlas et Source/ — rien n’est écrit',
   },
   'deps:unused': {
     ecrit: [],

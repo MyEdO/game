@@ -20,7 +20,10 @@
 // rend ce refus à la session au premier outil qu'il garde (son `matcher`) ; un outil que nul hook ne
 // garde ne le déclenche pas.
 import '../node-requis.mjs'
-import { spawnSync } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
+import { closeSync, existsSync, mkdirSync, openSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { SOURCES_LUES } from '../docs/build-all.mjs'
 import { approfondir, depotDe, dossierDesHooks, estSuperficiel, reussi } from '../guards/lib/gitPorte.mjs'
 
 /** Marqueur d'un conteneur distant Claude Code (`CLAUDE_CODE_REMOTE=true`). */
@@ -53,8 +56,35 @@ export function lancer(exe, args, { budget = BUDGET_CONSTAT, ...options } = {}) 
   }
 }
 
-/** Les GESTES au dépôt des prérequis — deux questions et un écrivain —, ceux de l'hôte (`gitPorte.mjs`) : injectables (mesure). */
-export const GESTES_DU_CONTENEUR = Object.freeze({ estSuperficiel, dossierDesHooks, approfondir })
+/** Journal du `docs:build` DÉTACHÉ d'un conteneur neuf, relatif à la racine. */
+export const JOURNAL_DOCS = 'node_modules/.cache/bootstrap-docs-build.log'
+
+/** Lance `docs:build` DÉTACHÉ (il dépasse le budget du hook), sortie dans `JOURNAL_DOCS` ; rend la
+ *  forme de `lancer`, `valeur` = le pid. */
+export function docsBuildDetache(racine) {
+  const journal = join(racine, JOURNAL_DOCS)
+  mkdirSync(dirname(journal), { recursive: true })
+  const fd = openSync(journal, 'w')
+  try {
+    const enfant = spawn(process.execPath, [join(racine, 'scripts', 'docs', 'build-all.mjs'), '--quiet'], {
+      cwd: racine, detached: true, stdio: ['ignore', fd, fd], windowsHide: true,
+    })
+    enfant.unref()
+    return { ok: true, valeur: String(enfant.pid ?? ''), rapport: '' }
+  } catch (e) {
+    return { ok: false, valeur: '', rapport: borner(e.message) }
+  } finally {
+    closeSync(fd)
+  }
+}
+
+/** Les GESTES des prérequis — ceux de l'hôte au dépôt (`gitPorte.mjs`), la mesure des docs dérivés et
+ *  leur `docs:build` détaché : injectables (mesure). */
+export const GESTES_DU_CONTENEUR = Object.freeze({
+  estSuperficiel, dossierDesHooks, approfondir,
+  docsMesures: (racine) => existsSync(join(racine, SOURCES_LUES)),
+  docsBuildDetache,
+})
 
 /** L'union d'un écrivain de l'hôte, rendue dans la forme de `lancer`. */
 export function renduDeGit(vu) {
@@ -79,13 +109,23 @@ export const PREREQUIS = [
   },
   {
     nom: 'hooks git du dépôt',
-    // Le script `postinstall` de `package.json` pose `core.hooksPath` et les trois pilotes de
-    // fusion des docs dérivés ; sans lui, aucune garde de commit ne joue.
+    // Le script `postinstall` de `package.json` pose `core.hooksPath` et les deux pilotes de
+    // fusion (fiches MIXTES, stocks), puis produit les cibles de code ; sans lui, aucune garde de
+    // commit ne joue.
     manque: ({ depot, gestes }) => gestes.dossierDesHooks(depot) !== 'scripts/git-hooks',
     poser: ({ racine, run, budget }) =>
       run('npm', ['install', '--no-audit', '--no-fund'], { cwd: racine, budget }),
     geste: 'npm install',
     budget: 90,
+  },
+  {
+    nom: 'docs dérivés',
+    // Les docs PURS ne sont pas commités (#2203) : un clone neuf ne les porte pas, et `docs:build`
+    // dépasse le budget du hook — il part DÉTACHÉ, son journal nommé.
+    manque: ({ racine, gestes }) => !gestes.docsMesures(racine),
+    poser: ({ racine, gestes }) => gestes.docsBuildDetache(racine),
+    geste: `npm run docs:build, détaché (journal ${JOURNAL_DOCS})`,
+    budget: 5,
   },
   {
     nom: 'exécutable gh',

@@ -326,25 +326,19 @@ test('verdictDesRuns : la PREMIÈRE course de la liste triée gouverne', () => {
 
 // ── estDocDerive ───────────────────────────────────────────────────────────────────────
 
-// La fixture des générateurs vit DANS le corps du `describe(…)` : c'est une donnée LOCALE au sens de
-// `scripts/guards/lib/stocksNominatifs.mjs` (§ PORTÉE DE MODULE), pas un stock nominatif de module.
+// Les générateurs RÉELS (`GENERATORS`) : un motif `injecte` large (`docs/raw/**/*.md`) atteint aussi des
+// cibles PURES, que seule la table réelle porte.
 describe('estDocDerive', () => {
-  const GEN = [
-    { script: 'a.mjs', targets: ['docs/systemes.md'] },
-    { script: 'b.mjs', targets: ['docs/raw/**/catalogue-*.md'] },
-    { script: 'c.mjs', targets: [], injecte: ['CLAUDE.md'] },
-    { script: 'd.mjs', targets: [], injecte: ['docs/raw/*.md'] },
-  ]
+  const GEN = GENERATORS
 
-  test('estDocDerive : les injections (MIXTES), globs compris, sont DÉRIVÉES', () => {
-    assert.equal(estDocDerive('CLAUDE.md', GEN), true)
-    assert.equal(estDocDerive('docs/raw/00-index.md', GEN), true)
+  test('estDocDerive : les fiches MIXTES de l’Atlas sont DÉRIVÉES', () => {
+    assert.equal(estDocDerive('docs/raw/4e/activites.md', GEN), true)
+    assert.equal(estDocDerive('docs/raw/4e/00-index.md', GEN), true)
   })
 
-  test('estDocDerive : une cible PURE ne se commite pas (#2203) — ni littérale, ni glob, ni la mesure', () => {
-    assert.equal(estDocDerive('docs/systemes.md', GEN), false)
-    assert.equal(estDocDerive('docs/raw/4e/catalogue-divers.md', GEN), false)
-    assert.equal(estDocDerive('docs/.sources-lues.json', GEN), false)
+  test('estDocDerive : une cible PURE ne se commite pas (#2203), même sous un motif `injecte`', () => {
+    for (const pure of ['docs/systemes.md', 'docs/raw/coverage.md', 'docs/raw/4e/catalogue-sorts.md', 'docs/.sources-lues.json', 'src/audio/_registry.generated.ts'])
+      assert.equal(estDocDerive(pure, GEN), false, pure)
   })
 
   test('estDocDerive : les sorties d’agents:sync sont DÉRIVÉES', () => {
@@ -362,8 +356,8 @@ describe('estDocDerive', () => {
   // Le cas MESURÉ (2026-09-14) : le hook `post-rewrite` d'un rebase manuel laisse des dérivés sales.
   // La préflight doit les distinguer d'un manuscrit — l'étape `docs` sait committer les premiers.
   test('partitionSales : des DÉRIVÉS seuls — aucun manuscrit à refuser', () => {
-    const vu = partitionSales(['CLAUDE.md', 'docs/raw/00-index.md'], GEN)
-    assert.deepEqual(vu.derives, ['CLAUDE.md', 'docs/raw/00-index.md'])
+    const vu = partitionSales(['docs/raw/4e/activites.md', 'docs/raw/4e/00-index.md'], GEN)
+    assert.deepEqual(vu.derives, ['docs/raw/4e/activites.md', 'docs/raw/4e/00-index.md'])
     assert.deepEqual(vu.manuscrits, [])
   })
 
@@ -374,9 +368,9 @@ describe('estDocDerive', () => {
   })
 
   test('partitionSales : MIXTE — chaque chemin dans son tas, l’ordre conservé', () => {
-    const vu = partitionSales(['docs/raw/00-index.md', 'src/state/cascade.ts', 'CLAUDE.md', 'docs/architecture.md'], GEN)
-    assert.deepEqual(vu.derives, ['docs/raw/00-index.md', 'CLAUDE.md'])
-    assert.deepEqual(vu.manuscrits, ['src/state/cascade.ts', 'docs/architecture.md'])
+    const vu = partitionSales(['docs/raw/4e/00-index.md', 'src/state/cascade.ts', 'AGENTS.md', 'docs/raw/coverage.md', 'docs/architecture.md'], GEN)
+    assert.deepEqual(vu.derives, ['docs/raw/4e/00-index.md', 'AGENTS.md'])
+    assert.deepEqual(vu.manuscrits, ['src/state/cascade.ts', 'docs/raw/coverage.md', 'docs/architecture.md'])
   })
 
   test('partitionSales : rien de sale — deux tas vides (et `undefined` ne jette pas)', () => {
@@ -1150,6 +1144,7 @@ const ctxFile = ({ pr, branche = [courseDeBrancheVerte], file = [], jobs = [], f
     fusionner: ({ message }) => { gestes.push(['fusionner', message]); return fusion },
     abandonnerFusion: () => { gestes.push(['abandonner']); return fusion },
     conclureFusionSansCiblesPures: (p) => { gestes.push(['conclure', p]); return conclusion },
+    docs: (mode) => { gestes.push(['docs', mode]); return { status: 0, stderr: '' } },
     generators: GENERATORS,
     questions: {
       commitsDeLaPlage: () => [{ sha: 'c'.repeat(40), message: 'feat(ops): refs #2178 — x' }],
@@ -1316,7 +1311,8 @@ test('file : une fusion dont TOUS les conflits sont des cibles PURES se CONCLUT 
   const journal = journalPush()
   const vu = etapeFile.jouer(ctx, journal)
   assert.deepEqual([vu.ok, vu.relancer], [true, ['docs', 'push-branche', 'pr', 'file']], vu.raison)
-  assert.deepEqual(gestes.map((g) => g[0]), ['demander', 'tronc', 'fusionner', 'conclure'])
+  assert.deepEqual(gestes.map((g) => g[0]), ['demander', 'tronc', 'fusionner', 'conclure', 'docs'])
+  assert.equal(gestes[4][1], '--code', 'post-merge ne joue pas sur un `git commit` : les cibles de code se produisent ici')
   assert.deepEqual(gestes[3][1], { chemins: conflits, message: gestes[2][1] })
   assert.equal(journal.ejections, 1)
 })

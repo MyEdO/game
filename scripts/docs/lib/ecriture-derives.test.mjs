@@ -9,7 +9,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'no
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
-import { apercuDivergences, CODE_CORPS_PERIME, estUnDocMarkdown } from './ecriture-derives.mjs'
+import { apercuDivergences, estUnDocMarkdown } from './ecriture-derives.mjs'
 
 const ICI = path.dirname(fileURLToPath(import.meta.url))
 
@@ -74,17 +74,16 @@ test('apercuDivergences : une ligne longue est coupée AU MOT sous 240 caractèr
 
 /**
  * `ecrireOuVerifier` joué dans un PROCESSUS À PART : il déclare au code de sortie, que le banc ne
- * doit pas porter. `avant` est le code posé AVANT l'appel (un cliquet). REND `{ status, stderr,
+ * doit pas porter. REND `{ status, stderr,
  * stdout, contenu }` — `contenu` = le fichier cible APRÈS l'appel.
  */
-function jouerPrimitive({ surDisque, out, check, avant = 0 }) {
+function jouerPrimitive({ surDisque, out, check }) {
   const dossier = mkdtempSync(path.join(tmpdir(), 'ecrire-ou-verifier-'))
   try {
     const cible = path.join(dossier, 'cible.md')
     if (surDisque !== null) writeFileSync(cible, surDisque)
     const code = [
       `import { ecrireOuVerifier } from ${JSON.stringify(pathToFileURL(path.join(ICI, 'ecriture-derives.mjs')).href)}`,
-      avant ? `process.exitCode = ${avant}` : '',
       `const aJour = ecrireOuVerifier({ out: ${JSON.stringify(out)}, path: ${JSON.stringify(cible)}, check: ${check}, staleMsg: 'PÉRIMÉ-témoin', rerunMsg: 'RELANCER-témoin', okMsg: 'OK-témoin', writeMsg: 'ÉCRIT-témoin' })`,
       "console.log(`aJour=${aJour}`)",
     ].join('\n')
@@ -102,9 +101,9 @@ test('ecrireOuVerifier --check : corps à jour → vert, rien d’écrit', () =>
   assert.equal(r.contenu, '# doc\n')
 })
 
-test('ecrireOuVerifier --check : corps PÉRIMÉ → bit CODE_CORPS_PERIME, divergence NOMMÉE, rien d’écrit', () => {
+test('ecrireOuVerifier --check : corps PÉRIMÉ → sortie 1, divergence NOMMÉE, rien d’écrit', () => {
   const r = jouerPrimitive({ surDisque: '# vieux\n', out: '# neuf\n', check: true })
-  assert.equal(r.status, CODE_CORPS_PERIME)
+  assert.equal(r.status, 1)
   assert.match(r.stderr, /PÉRIMÉ-témoin\nligne 1 — disque : "# vieux" \/ régénéré : "# neuf"[\s\S]*RELANCER-témoin/)
   assert.match(r.stdout, /aJour=false/, 'la primitive REND la main : le processus peut encore parler')
   assert.equal(r.contenu, '# vieux\n', '`--check` n’écrit jamais')
@@ -112,14 +111,9 @@ test('ecrireOuVerifier --check : corps PÉRIMÉ → bit CODE_CORPS_PERIME, diver
 
 test('ecrireOuVerifier --check : cible ABSENTE → corps périmé, le geste qui la produit est nommé', () => {
   const r = jouerPrimitive({ surDisque: null, out: '# neuf\n', check: true })
-  assert.equal(r.status, CODE_CORPS_PERIME)
+  assert.equal(r.status, 1)
   assert.match(r.stderr, /ABSENT du disque — npm run docs:build le produit/)
   assert.equal(r.contenu, null)
-})
-
-test('ecrireOuVerifier --check : un cliquet posé AVANT garde son bit — les deux rouges se lisent au code', () => {
-  const r = jouerPrimitive({ surDisque: '# vieux\n', out: '# neuf\n', check: true, avant: 1 })
-  assert.equal(r.status, 1 | CODE_CORPS_PERIME)
 })
 
 test('ecrireOuVerifier en écriture : écrit le rendu tel quel, rend l’état d’avant', () => {

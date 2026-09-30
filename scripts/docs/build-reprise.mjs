@@ -538,7 +538,7 @@ Ajouter une gate, c'est ajouter UN step à \`ci.yml\` — rien d'autre ne la ré
 
 **Rejeu LOCAL \`npm run gates\`** (\`${script('gates')}\`), un confort de diagnostic, jamais une porte :
 ${NB_GATES_CLASSEES} gates en ${LANES_CI.length} lanes parallèles de LECTEURS — aucune gate
-n'écrit dans l'arbre, un dérivé s'y VÉRIFIE (\`docs:check:tout\`) :
+n'écrit dans l'arbre hors de sa porte (\`ecritFerme\`) :
 
 | Lane | Gates |
 |---|---|

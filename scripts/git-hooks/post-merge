@@ -1,7 +1,6 @@
 #!/bin/sh
-# scripts/git-hooks/post-merge — régénère les docs dérivés après une fusion.
-# Le pilote merge-docs.mjs (.gitattributes) a retenu la version « ours » des docs générés ; la
-# valeur juste vient de `npm run docs:build`. Logique dans docs-rebuild.mjs (partagée avec
-# post-rewrite). Contrat de post-hook : ne fait jamais échouer l'opération qui vient d'avoir lieu.
+# scripts/git-hooks/post-merge — après une fusion : cibles de CODE, puis docs dérivés dont une source
+# a bougé (docs-rebuild.mjs, partagé avec post-rewrite et post-checkout ; #2203 A2). Contrat de
+# post-hook : ne fait jamais échouer l'opération qui vient d'avoir lieu.
 node "$(dirname "$0")/../node-requis.mjs" </dev/null && node "$(dirname "$0")/docs-rebuild.mjs" || true
 exit 0

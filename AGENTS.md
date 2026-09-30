@@ -20,8 +20,9 @@ en cloud ; se committe comme du code, jamais de git destructif dessus.
 
 ## Table de routage — lire le bon doc AU MOMENT du déclencheur
 
-Un `docs/x.md` GÉNÉRÉ (jamais édité à la main) se régénère par `npm run docs:x` ; quand le nom du
-script diffère du nom du doc, il est entre parenthèses.
+Un `docs/x.md` GÉNÉRÉ (jamais édité à la main) n'est pas commité (#2203) : absent, il se produit par
+`npm run docs:build` (tous) ou `npm run docs:x` ; quand le nom du script diffère du nom du doc, il est
+entre parenthèses.
 
 | Déclencheur | Lire |
 |---|---|
@@ -143,4 +144,6 @@ Détail : `docs/architecture.md`.
 - **Closure synchrone en test Playwright** : jamais lire le DOM dans le même `evaluate` que l'action
   qui change l'état React (`docs/recette-navigateur.md`).
 - `src/data/*.json` est la SOURCE app-owned commitée : rien à régénérer après un clone.
+- `*.generated.ts` et docs générés ne sont pas commités : `npm install` / `npm run gen` / `npm run docs:build`
+  les produisent ; un worktree neuf le dit sur stderr au checkout.
 - Aucun inventaire de GROUPE : tout objet va sur un héros (`Combatant.items`) via `giveTrapping`.

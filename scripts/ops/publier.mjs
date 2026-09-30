@@ -684,8 +684,9 @@ function gh(args, cwd, input) {
  *  attend, adossée au `gh` du train — le seul enrobeur qui borne son spawn en TEMPS. */
 const appelGh = (racine) => (args, { input } = {}) => gh(args, racine, input)
 
-/** Les modes de `scripts/docs/build-all.mjs` que l'étape `docs` joue. */
-const MODES_DES_DOCS = Object.freeze(['--quiet'])
+/** Les modes de `scripts/docs/build-all.mjs` que joue le train : l'étape `docs`, et les cibles de code
+ *  après une fusion conclue par le fossile de la reprise. */
+const MODES_DES_DOCS = Object.freeze(['--quiet', '--code'])
 
 /**
  * `npm run <script>` sous `platform` : l'exécutable, son argv et `shell`. PURE. `npm` est un `.cmd`
@@ -884,7 +885,7 @@ export function contexteDe({ racine, branche, options, journaliser, fdLog }) {
       return fusionner(depot, { de: TRONC.suivi, message })
     },
     abandonnerFusion: () => abandonnerFusion(depot),
-    // FOSSILE #2203.
+    // FOSSILE #2203 — mort quand aucune branche chantier/* n'a de merge-base antérieur à 64100b74a.
     conclureFusionSansCiblesPures({ chemins, message }) {
       if (typeof message !== 'string' || !message.trim()) throw new Error(`ctx.conclureFusionSansCiblesPures : un MESSAGE — refusé : ${JSON.stringify(message)}`)
       const autres = (chemins ?? []).filter((c) => !estCiblePure(c, GENERATORS))

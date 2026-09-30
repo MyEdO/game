@@ -76,8 +76,8 @@
             "args": [
               "${CLAUDE_PROJECT_DIR}/scripts/hooks/bootstrap-conteneur.mjs"
             ],
-            "timeout": 300,
-            "statusMessage": "Conformité du conteneur distant (hooks git, gh)"
+            "timeout": 320,
+            "statusMessage": "Conformité du conteneur distant (hooks git, docs, gh)"
           }
         ]
       },

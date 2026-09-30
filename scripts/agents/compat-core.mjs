@@ -209,7 +209,7 @@ export const ENTREES_OUTIL = [
  */
 export const HOOKS_DE_SESSION = [
   { phase: 'SessionStart', script: 'inject-project-credo.mjs', arguments: ['codex'], surfaces: [SURFACE_CODEX], timeout: 10, statusMessage: 'Injection du credo de travail' },
-  { phase: 'SessionStart', script: 'bootstrap-conteneur.mjs', arguments: [], surfaces: [SURFACE_CLAUDE], timeout: 300, statusMessage: 'Conformité du conteneur distant (hooks git, gh)' },
+  { phase: 'SessionStart', script: 'bootstrap-conteneur.mjs', arguments: [], surfaces: [SURFACE_CLAUDE], timeout: 320, statusMessage: 'Conformité du conteneur distant (hooks git, docs, gh)' },
   { phase: 'SessionStart', script: 'inject-suivi.mjs', arguments: [], surfaces: [SURFACE_CLAUDE, SURFACE_CODEX], timeout: 10, statusMessage: 'Suivi de vague de la session' },
 ];
 

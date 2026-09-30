@@ -19,12 +19,6 @@ export function estUnDocMarkdown(cible: string): boolean;
 
 export function ecrireDoc(chemin: string, contenu: string): void;
 
-export const CODE_CORPS_PERIME: number;
-
-export const ENV_CORPS_RENDUS: string;
-
-export function declarerCorpsPerime(...corps: [string, ...string[]]): void;
-
 export function ecrireOuVerifier(args: {
   out: string;
   path: string;

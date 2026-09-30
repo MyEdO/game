@@ -10,7 +10,8 @@ import { execFileSync } from 'node:child_process'
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { envDeDepotForge, instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import { tmpdir } from 'node:os'
-import { sourcesMesurees, touchedFiles, touchesDocSources } from './docs-rebuild.mjs'
+import { planDuCheckout, sourcesMesurees, touchedFiles, touchesDocSources } from './docs-rebuild.mjs'
+import { readFileSync } from 'node:fs'
 
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 
@@ -80,4 +81,21 @@ test('FAIL-CLOSED : git INDISPONIBLE sur la lecture du lot, le lot est INCONNU (
     rmSync(racine, { recursive: true, force: true })
     rmSync(cale, { recursive: true, force: true })
   }
+})
+
+// post-checkout (#2203) : un changement de branche régénère les docs purs dont une source a bougé ;
+// un worktree NEUF (aucune mesure) ne bloque jamais sur un `docs:build` complet, il dit la commande.
+test('post-checkout : HEAD immobile → rien ; sans mesure → consigne ; sinon la sélection de post-merge', () => {
+  const a = 'a'.repeat(40)
+  const b = 'b'.repeat(40)
+  assert.equal(planDuCheckout({ avant: a, apres: a, mesure: MESURE, lot: ['src/ui/Prose.tsx'] }), 'rien')
+  assert.equal(planDuCheckout({ avant: a, apres: b, mesure: null, lot: null }), 'consigne')
+  assert.equal(planDuCheckout({ avant: a, apres: b, mesure: MESURE, lot: ['src/ui/Prose.tsx'] }), 'regenerer')
+  assert.equal(planDuCheckout({ avant: a, apres: b, mesure: MESURE, lot: ['README.md'] }), 'rien')
+  assert.equal(planDuCheckout({ avant: a, apres: b, mesure: MESURE, lot: null }), 'regenerer', 'lot inconnu : on régénère')
+})
+
+test('CÂBLAGE : post-checkout passe ses deux HEAD à docs-rebuild.mjs --checkout', () => {
+  const hook = readFileSync(join(RACINE, 'scripts', 'git-hooks', 'post-checkout'), 'utf8')
+  assert.match(hook, /docs-rebuild\.mjs" --checkout "\$1" "\$2"/)
 })

@@ -8,12 +8,12 @@ import { estFichierVitest } from '../scripts/guards/lib/fichierVitest.mjs';
 import { lecturesDHote } from '../scripts/guards/lib/graphiesDHote.mjs';
 
 /**
- * Garde de classe #1801 — le rendu sous win32 (`scripts/docs/lib/plateforme-win32.mjs`) ne simule
- * pas les lectures définies par `scripts/guards/lib/graphiesDHote.mjs` : une source qui en porte une
- * rendrait sous win32 la graphie de l'hôte.
+ * Garde de classe #1801 — une lecture définie par `scripts/guards/lib/graphiesDHote.mjs` donne au
+ * code la graphie de chemin de la plateforme qui l'exécute : un dérivé qui la rend diverge entre
+ * Windows et Linux.
  *
  * PÉRIMÈTRE : toute source JS/TS SUIVIE par git (`sourcesSuivies`) hors instruments Vitest
- * (`estFichierVitest`), que le rendu sous win32 ne joue pas.
+ * (`estFichierVitest`).
  * Les cas plantés sont des CHAÎNES, et la garde lit l'AST, où une chaîne n'est pas du code : ce
  * fichier, instrument Vitest hors du balayage, ne porte aucune lecture d'hôte (cas « ce fichier ne
  * porte aucune lecture d’hôte »).
@@ -21,7 +21,7 @@ import { lecturesDHote } from '../scripts/guards/lib/graphiesDHote.mjs';
 
 const detecte = (source: string) => lecturesDHote(source).length > 0;
 
-describe('garde de classe — aucune lecture d’hôte que le rendu sous win32 ne simule', () => {
+describe('garde de classe — aucune lecture d’hôte dans les sources suivies', () => {
   it('cas plantés : chaque forme de lecture d’`import.meta.dirname`/`filename` est détectée', () => {
     const variantes = [
       'const ici = import.meta.dirname',
@@ -212,7 +212,7 @@ describe('garde de classe — aucune lecture d’hôte que le rendu sous win32 n
     }
     expect(
       offenders,
-      `Lecture(s) d'hôte non simulée(s) sous win32 — \`fileURLToPath(new URL(…, import.meta.url))\` et \`import … from\` :\n${offenders.join('\n')}`,
+      `Lecture(s) d'hôte — \`fileURLToPath(new URL(…, import.meta.url))\` et \`import … from\` :\n${offenders.join('\n')}`,
     ).toEqual([]);
   });
 });

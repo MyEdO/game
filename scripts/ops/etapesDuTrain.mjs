@@ -158,14 +158,15 @@ export function issueDeFusion({ code, corps }) {
 /**
  * Ce chemin est-il DÉRIVÉ, donc committable par l'étape `docs` ? Deux familles, toutes deux déclarées
  * ailleurs : les `injecte` des `generators` (`GENERATORS` de `build-all.mjs`, porté par le contexte du
- * train, `ctx.generators`) — les MIXTES, seuls dérivés de docs commités (#2203) —, et les sorties de
- * `npm run agents:sync` (le pre-commit joue `agents:check` à chaque commit). PURE.
+ * train, `ctx.generators`) hors cibles PURES (`estCiblePure`) — les MIXTES, seuls dérivés de docs
+ * commités (#2203) —, et les sorties de `npm run agents:sync` (le pre-commit joue `agents:check` à
+ * chaque commit). PURE.
  */
 export function estDocDerive(chemin, generators, { racinesAgents = MANAGED_ROOTS } = {}) {
   const c = String(chemin ?? '').replace(/\\/g, '/')
   if (!c) return false
   if (racinesAgents.some((r) => c === r || c.startsWith(`${r}/`))) return true
-  return generators.some((g) => (g.injecte ?? []).some((motif) => correspondGlob(c, motif)))
+  return !estCiblePure(c, generators) && generators.some((g) => (g.injecte ?? []).some((motif) => correspondGlob(c, motif)))
 }
 
 /**
@@ -368,7 +369,8 @@ function causeDEjection(ctx, pr, tete) {
  * Reprise BORNÉE d'une PR éjectée (#2178, design v3) : FUSION d'`origin/main` dans la branche — jamais
  * un rebase —, puis `docs`, `push-branche`, `pr` et `file` (nouvelle demande de fusion) se rejouent.
  * Un conflit dont TOUS les chemins sont des cibles PURES (`estCiblePure`) se conclut en les retirant
- * de l'index (FOSSILE #2203) ; tout autre conflit abandonne la fusion.
+ * de l'index, puis les cibles de code se produisent (`post-merge` ne joue pas sur un `git commit`) ;
+ * tout autre conflit abandonne la fusion.
  */
 function reprendreApresEjection(ctx, journal, cause) {
   if ((journal.ejections ?? 0) >= BORNE_EJECTIONS)
@@ -380,6 +382,7 @@ function reprendreApresEjection(ctx, journal, cause) {
   const message = messageDuTrain({ portee: 'chore(merge)', titre: `fusion de ${TRONC.suivi} dans ${ctx.branche}`, numeros, motif: MOTIF_EJECTION })
   const vu = ctx.fusionner({ message })
   if (!reussi(vu)) {
+    // FOSSILE #2203 — mort quand aucune branche chantier/* n'a de merge-base antérieur à 64100b74a.
     const conflits = ctx.questions.cheminsEnConflit()
     const pures = conflits.length > 0 && conflits.every((c) => estCiblePure(c, ctx.generators))
     const conclue = pures ? ctx.conclureFusionSansCiblesPures({ chemins: conflits, message }) : null
@@ -390,6 +393,9 @@ function reprendreApresEjection(ctx, journal, cause) {
         raison: `${cause.raison} — fusion de ${TRONC.suivi} REFUSÉE${conflits.length ? ` (CONFLIT, abandonnée) — fichiers :\n${conflits.map((f) => `    ${f}`).join('\n')}\n  → \`git merge ${TRONC.suivi}\` à la main, puis \`--reprendre\`` : ` : ${refusDeGit(vu)}`}${conclue ? `\n  retrait des cibles pures en échec : ${refusDeGit(conclue)}` : ''}`,
       }
     }
+    const code = ctx.docs('--code')
+    if (code.status !== 0)
+      return { ok: false, raison: `${cause.raison} — fusion conclue, mais les cibles de code ne sont pas produites (\`npm run gen\` a rendu ${code.status ?? code.signal})${code.stderr ? `\n${finDeSortie(code.stderr)}` : ''}` }
   }
   journal.ejections = (journal.ejections ?? 0) + 1
   journal.tete = ctx.tete

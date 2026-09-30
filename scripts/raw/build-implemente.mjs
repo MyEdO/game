@@ -1,7 +1,7 @@
 // Générateur du champ `**Implémente :**` des fiches docs/raw/*.md (#487) : le champ est DÉRIVÉ du
 // code (jamais écrit à la main — cf. game-doc-derivee-jamais-ecrite-a-la-main). Patron de
 // build-systemes.mjs : manifest éditorial (src/data/raw.manifest.json) + calcul. Mode `--check` : fiche
-// périmée = corps périmé (`declarerCorpsPerime`), dette orpheline ou sans objet = sortie 1.
+// périmée, dette orpheline ou sans objet = sortie 1.
 // Re-run : node scripts/raw/build-implemente.mjs (npm run raw:implemente).
 import { readFileSync, writeFileSync } from 'node:fs'
 import { parUnitesDeCode } from '../guards/lib/lister.mjs'
@@ -9,7 +9,6 @@ import { join } from 'node:path'
 import { refRe, span, bookOf, BOOKS, estLivreExtrait, folioRange, allAbbrAlternation, pagesDeLAtlas, readText } from './_lib.mjs'
 import { echapperRegex } from '../../src/lib/regex.ts'
 import { closureOf } from '../guards/lib/importGraph.mjs'
-import { declarerCorpsPerime } from '../docs/lib/ecriture-derives.mjs'
 import { EXTS_IMPLEMENTANTES, fichiersCitants } from './lib/fichiersCitants.mjs'
 import { estFichierVitest } from '../guards/lib/fichierVitest.mjs'
 
@@ -704,7 +703,7 @@ function main() {
       console.error(`raw:implemente — ${touched.length} fiche(s) PÉRIMÉE(s) (champ Implémente divergent du code) :`)
       for (const r of touched) console.error(`  docs/raw/${r.doc}`)
       console.error('  → relancer `npm run raw:implemente` et committer.')
-      declarerCorpsPerime(...touched.map((r) => r.content))
+      process.exitCode = 1
     }
     if (orphans.length) printOrphans(orphans)
     if (sansObjet.length) printSansObjet(sansObjet)

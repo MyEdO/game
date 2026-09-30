@@ -28,6 +28,8 @@ function lanceurFeint(reponses) {
     estSuperficiel: () => { vus.push('git estSuperficiel'); return reponses['git superficiel'] ?? null },
     dossierDesHooks: () => { vus.push('git dossierDesHooks'); return reponses['git hooks'] ?? null },
     approfondir: () => { vus.push('git approfondir'); return { disponible: true, valeur: { status: 0, stdout: '', stderr: '' } } },
+    docsMesures: () => { vus.push('docs mesurés'); return reponses['docs mesurés'] ?? false },
+    docsBuildDetache: () => { vus.push('docs:build détaché'); return reponses['docs:build'] ?? { ok: true, valeur: '4242', rapport: '' } },
   }
   return { run, gestes, vus }
 }
@@ -35,6 +37,7 @@ function lanceurFeint(reponses) {
 const CONFORME = {
   'git superficiel': false,
   'git hooks': 'scripts/git-hooks',
+  'docs mesurés': true,
   'gh --version': { ok: true, valeur: 'gh version 2.45.0', rapport: 'gh version 2.45.0' },
 }
 
@@ -52,7 +55,7 @@ test('conteneur DÉJÀ conforme : silence complet, aucune pose', () => {
   assert.deepEqual(bootstrap({ CLAUDE_CODE_REMOTE: 'true' }, REPO, run, gestes), [])
   assert.deepEqual(
     vus,
-    ['git estSuperficiel', 'git dossierDesHooks', 'gh --version'],
+    ['git estSuperficiel', 'git dossierDesHooks', 'docs mesurés', 'gh --version'],
     'seuls les constats se jouent',
   )
 })
@@ -72,6 +75,15 @@ test('core.hooksPath vide : `npm install` posé, et lui seul', () => {
   assert.match(lignes[0], /hooks git du dépôt : posé par `npm install`\./)
   assert.ok(vus.includes('npm install --no-audit --no-fund'), `npm install absent de ${vus.join(' | ')}`)
   assert.ok(!vus.some((v) => v.startsWith('apt-get') || v === 'git approfondir'), 'rien d’autre à poser')
+})
+
+// #2203 : les docs purs ne sont pas commités ; un conteneur neuf les produit sans bloquer la session.
+test('docs dérivés absents : `docs:build` part DÉTACHÉ, la ligne NOMME son journal, et lui seul', () => {
+  const { run, gestes, vus } = lanceurFeint({ ...CONFORME, 'docs mesurés': false })
+  const lignes = bootstrap({ CLAUDE_CODE_REMOTE: 'true' }, REPO, run, gestes)
+  assert.deepEqual(lignes, ['[conteneur] docs dérivés : posé par `npm run docs:build, détaché (journal node_modules/.cache/bootstrap-docs-build.log)`.'])
+  assert.ok(vus.includes('docs:build détaché'), vus.join(' | '))
+  assert.ok(!vus.some((v) => v.startsWith('npm') || v.startsWith('apt-get')), 'rien d’autre à poser')
 })
 
 test('gh absent : apt-get joué, la ligne NOMME le geste', () => {
@@ -163,9 +175,9 @@ test('CÂBLAGE — le hook est PROPRE à la surface Claude (sa garde est un marq
   )
 })
 
-test('la table couvre les trois manques MESURÉS au conteneur du 2026-09-18', () => {
+test('la table couvre les trois manques MESURÉS au conteneur du 2026-09-18, plus les docs dérivés (#2203)', () => {
   assert.deepEqual(
     PREREQUIS.map((p) => p.geste),
-    ['git fetch --unshallow origin', 'npm install', 'apt-get update puis apt-get install -y gh'],
+    ['git fetch --unshallow origin', 'npm install', 'npm run docs:build, détaché (journal node_modules/.cache/bootstrap-docs-build.log)', 'apt-get update puis apt-get install -y gh'],
   )
 })

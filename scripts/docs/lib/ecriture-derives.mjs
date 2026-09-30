@@ -4,13 +4,10 @@
 // `ecrireOuVerifier` écrit une cible, ou la compare au disque sous `--check` ; `enregistreur-lectures.mjs`
 // MESURE ce que le générateur lit, et `fusionnerLectures` / `serialiserSourcesLues` en font le dérivé
 // local `docs/.sources-lues.json` (jamais commité, #2203 A2).
-import { createHash } from 'node:crypto'
 import { appendFileSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { listerDossier } from '../../guards/lib/lister.mjs'
 import path from 'node:path'
 import { coupeAuMot } from '../../../src/lib/coupeAuMot.mjs'
-
-const sha1 = (donnee) => createHash('sha1').update(donnee).digest('hex')
 
 /** Une cible est un doc MARKDOWN ; toute autre cible de `GENERATORS` est du CODE (`generateursDeCode`,
  *  build-all.mjs). */
@@ -27,38 +24,16 @@ export function ecrireDoc(chemin, contenu) {
   if (actuel !== contenu) writeFileSync(chemin, contenu)
 }
 
-/**
- * Bit du code de sortie qui dit « corps périmé » — une seule convention pour tout dérivé. Le bit 1
- * reste celui de tout autre rouge (cliquet, refus, exception), si bien qu'un générateur dont le
- * cliquet ET le corps sont rouges sort en 3. La convention ne produit que 1, 2 et 3 : `natureDuRouge`
- * (build-all.mjs) ne lit ce bit que sur 2 et 3, tout autre code étant une sortie de Node.
- */
-export const CODE_CORPS_PERIME = 2
-
-/** Variable d'env posée par build-all.mjs : le fichier où `declarerCorpsPerime` APPEND le sha1 de
- *  chaque corps rendu qu'il déclare périmé, une ligne par corps. */
-export const ENV_CORPS_RENDUS = 'WFRP_CORPS_RENDUS'
-
 /** Variable d'env posée par build-all.mjs : le fichier où `ecrireOuVerifier` APPEND chaque cible qu'il
  *  rend (chemin POSIX relatif au répertoire courant), une ligne par cible. */
 export const ENV_CIBLES_RENDUES = 'WFRP_CIBLES_RENDUES'
 
-/** Déclare un corps périmé au code de sortie SANS quitter le processus : un cliquet posé avant garde
- *  son bit, et ce qui suit l'appel peut encore parler. `corps` : le(s) corps RENDU(S) — ce que
- *  `docs:build` écrirait — au moins un, consignés sous `ENV_CORPS_RENDUS` (#1801). */
-export function declarerCorpsPerime(...corps) {
-  if (!corps.length) throw new Error('declarerCorpsPerime : aucun corps rendu déclaré')
-  const fichier = process.env[ENV_CORPS_RENDUS]
-  if (fichier) appendFileSync(fichier, corps.map((c) => `${sha1(c)}\n`).join(''))
-  process.exitCode = (Number(process.exitCode) || 0) | CODE_CORPS_PERIME
-}
-
 /**
  * LA primitive d'un dérivé : écrit `out` dans `path` (par `ecrireDoc`) — ou, sous `check`, le
  * compare au disque SANS RIEN ÉCRIRE. Un corps périmé imprime `staleMsg`, la première
- * divergence NOMMÉE et l'aperçu des suivantes (`apercuDivergences`), puis `rerunMsg`, et se déclare
- * au code de sortie (`declarerCorpsPerime`) : la primitive ne quitte jamais le processus, un
- * générateur à plusieurs cibles les nomme donc TOUTES.
+ * divergence NOMMÉE et l'aperçu des suivantes (`apercuDivergences`), puis `rerunMsg`, et pose le
+ * code de sortie 1 : la primitive ne quitte jamais le processus, un générateur à plusieurs cibles les
+ * nomme donc TOUTES.
  * `okMsg` / `writeMsg` sont facultatifs (un générateur qui résume lui-même ne les passe pas).
  * REND `true` quand le corps était déjà à jour.
  */
@@ -79,7 +54,7 @@ export function ecrireOuVerifier({ out, path: chemin, check, staleMsg, rerunMsg,
   console.error(staleMsg)
   console.error(apercuDivergences(out, actuel))
   console.error(rerunMsg)
-  declarerCorpsPerime(out)
+  process.exitCode = 1
   return false
 }
 
