@@ -18,6 +18,7 @@ import { numerosCites } from '../guards/lib/fermetures.mjs'
 import { refusDeSujet, sujetDuMessage } from '../guards/lib/sujetDeCommit.mjs'
 import { GitIndisponible, depotDe } from '../guards/lib/gitPorte.mjs'
 import { DEPOT } from '../guards/lib/ticketsGh.mjs'
+import { COMPTEURS } from '../guards/lib/compteursDeVersion.mjs'
 import { envDeDepotForge, instanceDeDepot, sousLEnvDeLUtilisatrice } from '../guards/lib/depotGabarit.mjs'
 import { GENERATORS } from '../docs/build-all.mjs'
 import {
@@ -351,7 +352,7 @@ test('le contexte du train ne porte que des QUESTIONS et des gestes NOMMÉS aux 
   const ctx = contexteDe({ racine: '/nulle-part', branche: 'chantier/x', options: {}, journaliser: () => {}, fdLog: 'ignore' })
   const cles = Object.getOwnPropertyNames(ctx).sort()
   assert.deepEqual(cles, ['abandonnerRebase', 'branche', 'commenter', 'commit', 'coursesCi', 'docs', 'fdLog', 'generators', 'journaliser', 'lireTicket', 'npm', 'options', 'pousser', 'questions', 'racine', 'rebaser', 'tete', 'tronc'])
-  assert.deepEqual(Object.keys(ctx.questions).sort(), ['brancheDe', 'ceQuiChange', 'cheminsEnConflit', 'cheminsSales', 'combienDe', 'commitsDeLaPlage', 'estAncetre', 'origineDe', 'rebaseEntame', 'relationAuTronc', 'shaDe'])
+  assert.deepEqual(Object.keys(ctx.questions).sort(), ['baseCommune', 'brancheDe', 'ceQuiChange', 'cheminsEnConflit', 'cheminsSales', 'combienDe', 'commitsDeLaPlage', 'estAncetre', 'fusionsDe', 'lireEnLot', 'origineDe', 'rebaseEntame', 'relationAuTronc', 'shaDe'])
   assert.equal(Object.isFrozen(ctx.questions), true)
   assert.equal(ctx.generators, GENERATORS)
   for (const script of ['x; git add -A', 'x && git commit -m libre', 'a b', '$(git add -A)', '', 7])
@@ -1055,9 +1056,12 @@ test('decisionDeRebase : tronc contenu → aucun rebase ; fusions hors tronc →
   assert.equal(decisionDeRebase({ contenu: false, fusions: false }), 'rebase')
 })
 
+/** Les fichiers de `COMPTEURS` d'un dépôt jetable, chaque compteur à `valeur`. */
+const fichiersDeCompteurs = (valeur) => Object.fromEntries(COMPTEURS.map((c) => [c.fichier, `export const ${c.symbole} = ${valeur};\n`]))
+
 describe('étape `rebase` sur un VRAI dépôt : train de fusion, puis tronc qui avance', () => {
   const etapeRebase = ETAPES.find((e) => e.nom === 'rebase')
-  const { racine } = instanceDeDepot({ fichiers: { 'a.txt': 'a\n' } })
+  const { racine } = instanceDeDepot({ fichiers: { 'a.txt': 'a\n', ...fichiersDeCompteurs(60) } })
   after(() => rmSync(racine, { recursive: true, force: true }))
   const g = (...args) => execFileSync('git', args, { cwd: racine, env: envDeDepotForge(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()
   const commit = (fichier) => { writeFileSync(join(racine, fichier), `${fichier}\n`); g('add', '--', fichier); g('commit', '-q', '-m', fichier) }
@@ -1125,5 +1129,75 @@ describe('étape `rebase` sur un VRAI dépôt : train de fusion, puis tronc qui 
     assert.equal(g('rev-parse', 'HEAD~1'), base)
     assert.equal(g('rev-list', '--merges', `${base}..HEAD`), '')
     assert.equal(etapeRebase.dejaFaite(ctxReel, journal), true)
+  })
+})
+
+describe('étape `rebase` : deux branches montent `SAVE_VERSION` de 60 à 61 (#2222)', () => {
+  const etapeRebase = ETAPES.find((e) => e.nom === 'rebase')
+  const saves = COMPTEURS.find((c) => c.symbole === 'SAVE_VERSION')
+  const { racine } = instanceDeDepot({ fichiers: fichiersDeCompteurs(60) })
+  after(() => rmSync(racine, { recursive: true, force: true }))
+  const g = (...args) => execFileSync('git', args, { cwd: racine, env: envDeDepotForge(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()
+  const monter = (message) => { writeFileSync(join(racine, saves.fichier), 'export const SAVE_VERSION = 61;\n'); g('add', '--', saves.fichier); g('commit', '-q', '-m', message) }
+  g('checkout', '-q', '-b', 'train')
+  monter('la branche monte')
+  g('checkout', '-q', 'main')
+  monter('le tronc monte')
+  g('update-ref', 'refs/remotes/origin/main', 'main')
+  g('checkout', '-q', 'train')
+  const depot = depotDe(racine, { env: envDeDepotForge() })
+  const ctx = {
+    racine,
+    questions: questionsDuTrain(depot),
+    get tete() { return g('rev-parse', 'HEAD') },
+    rebaser: () => { throw new Error('git rebase lancé') },
+    abandonnerRebase: () => { throw new Error('git rebase --abort lancé') },
+  }
+
+  test('l’étape refuse AVANT tout rebase, en nommant le compteur et la cible', () => {
+    const tete = g('rev-parse', 'HEAD')
+    const journal = journalVide('train')
+    assert.deepEqual(etapeRebase.jouer(ctx, journal), {
+      ok: false,
+      raison: '`SAVE_VERSION` : main est passé à 61 depuis ta base, la tienne doit viser 62 et rejouer sa migration/son golden',
+    })
+    assert.equal(g('rev-parse', 'HEAD'), tete)
+    assert.equal(journal.base, null)
+  })
+})
+
+describe('étape `rebase` : la branche FUSIONNE un tronc qui a monté le même `SAVE_VERSION` (#2222)', () => {
+  const etapeRebase = ETAPES.find((e) => e.nom === 'rebase')
+  const saves = COMPTEURS.find((c) => c.symbole === 'SAVE_VERSION')
+  const { racine } = instanceDeDepot({ fichiers: fichiersDeCompteurs(60) })
+  after(() => rmSync(racine, { recursive: true, force: true }))
+  const g = (...args) => execFileSync('git', args, { cwd: racine, env: envDeDepotForge(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()
+  const monter = (message) => { writeFileSync(join(racine, saves.fichier), 'export const SAVE_VERSION = 61;\n'); g('add', '--', saves.fichier); g('commit', '-q', '-m', message) }
+  g('checkout', '-q', '-b', 'train')
+  monter('la branche monte')
+  g('checkout', '-q', 'main')
+  monter('le tronc monte')
+  g('update-ref', 'refs/remotes/origin/main', 'main')
+  g('checkout', '-q', 'train')
+  g('merge', '-q', '--no-ff', '-m', 'fusion du tronc', 'main')
+  const fusion = g('rev-parse', 'HEAD')
+  const depot = depotDe(racine, { env: envDeDepotForge() })
+  const ctx = {
+    racine,
+    questions: questionsDuTrain(depot),
+    get tete() { return g('rev-parse', 'HEAD') },
+    rebaser: () => { throw new Error('git rebase lancé') },
+    abandonnerRebase: () => { throw new Error('git rebase --abort lancé') },
+  }
+
+  test('fusion sans conflit git, tronc contenu : l’étape refuse en nommant la fusion et le compteur', () => {
+    assert.deepEqual(relationAuTronc(depot), { disponible: true, contenu: true, fusions: false })
+    const journal = journalVide('train')
+    assert.deepEqual(etapeRebase.jouer(ctx, journal), {
+      ok: false,
+      raison: `fusion ${fusion.slice(0, 9)} — \`SAVE_VERSION\` : main est passé à 61 depuis ta base, la tienne doit viser 62 et rejouer sa migration/son golden`,
+    })
+    assert.equal(g('rev-parse', 'HEAD'), fusion)
+    assert.equal(journal.base, null)
   })
 })

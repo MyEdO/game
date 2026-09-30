@@ -437,6 +437,21 @@ export function shasDe(depot, revisions, { fusions = false } = {}) {
 }
 
 /**
+ * Les commits de FUSION de la plage `revisions` (`shasDe`) et leurs parents, du plus ancien au plus
+ * récent (`git help rev-list`, `--merges --parents`). `null` quand git ne rend pas la plage (`shasDe`).
+ * @param {Depot} depot @param {readonly string[]} revisions
+ * @returns {{ sha: string, parents: string[] }[] | null}
+ */
+export function fusionsDe(depot, revisions) {
+  const brut = lire(depot, ['rev-list', '--reverse', '--merges', '--parents', ...revisionsDe(revisions), '--'])
+  if (brut === null) return absentSaufCorrompu(depot, revisions)
+  return brut.split('\n').map((l) => l.trim()).filter(Boolean).map((l) => {
+    const [sha, ...parents] = l.split(/\s+/)
+    return { sha, parents }
+  })
+}
+
+/**
  * La BASE COMMUNE de `a` et `b` (`git merge-base`, le meilleur ancêtre commun), `null` s'il n'y en a
  * pas ou si git ne la rend pas.
  * @param {Depot} depot @param {string} a @param {string} b @returns {string | null}
