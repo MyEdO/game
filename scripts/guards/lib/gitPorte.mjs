@@ -424,16 +424,34 @@ const absentSaufCorrompu = (depot, revisions) => {
   return null
 }
 
+/** Les filtres de fusion de `shasDe` (`git help rev-list`). */
+const FILTRES_DE_FUSIONS = Object.freeze({ toutes: [], seules: ['--merges'], aucune: ['--no-merges'] })
+
 /**
  * Les SHAS des commits de la plage `revisions` (`git help revisions` : `<a>..<b>`, `^<ref>`, `<sha>^!`),
- * du plus ancien au plus récent ; `fusions` : les seules fusions. `null` quand git ne rend pas la
- * plage : une plage illisible n'est pas une plage vide.
+ * du plus ancien au plus récent ; `fusions` : `'seules'` (`--merges`), `'aucune'` (`--no-merges`) ;
+ * `chemins` : les seuls commits qui les touchent, sous `--full-history` — sans lui, une fusion
+ * TREESAME à un parent cache les commits de l'autre (`git help rev-list`, « History Simplification »).
+ * `null` quand git ne rend pas la plage : une plage illisible n'est pas une plage vide.
  * @param {Depot} depot @param {readonly string[]} revisions
- * @param {{ fusions?: boolean }} [opts] @returns {string[] | null}
+ * @param {{ fusions?: 'toutes' | 'seules' | 'aucune', chemins?: readonly string[] }} [opts] @returns {string[] | null}
  */
-export function shasDe(depot, revisions, { fusions = false } = {}) {
-  const brut = lire(depot, ['rev-list', '--reverse', ...(fusions ? ['--merges'] : []), ...revisionsDe(revisions), '--'])
+export function shasDe(depot, revisions, { fusions = 'toutes', chemins = [] } = {}) {
+  const filtre = Object.hasOwn(FILTRES_DE_FUSIONS, fusions) ? FILTRES_DE_FUSIONS[fusions] : null
+  if (!filtre) throw new Error(`shasDe : fusions « ${fusions} » inconnu`)
+  const historique = chemins.length ? ['--full-history'] : []
+  const brut = lire(depot, ['rev-list', '--reverse', ...filtre, ...historique, ...revisionsDe(revisions), '--', ...chemins])
   return brut === null ? absentSaufCorrompu(depot, revisions) : brut.split('\n').map((l) => l.trim()).filter(Boolean)
+}
+
+/**
+ * Les PARENTS de `revision` (`git help revisions`, `<rev>^@`), dans leur ordre ; `null` quand git ne
+ * les rend pas.
+ * @param {Depot} depot @param {string} revision @returns {string[] | null}
+ */
+export function parentsDe(depot, revision) {
+  const brut = lire(depot, ['rev-parse', `${revisionsDe([revision])[0]}^@`])
+  return brut === null ? absentSaufCorrompu(depot, [revision]) : brut.split('\n').map((l) => l.trim()).filter(Boolean)
 }
 
 /**
@@ -448,20 +466,6 @@ export function pointDeDepart(depot, tete, tronc) {
   if (brut === null) return absentSaufCorrompu(depot, [tete, tronc])
   const propres = brut.split('\n').map((l) => l.trim()).filter(Boolean)
   return shaDe(depot, propres.length ? `${propres.at(-1)}^1` : tete)
-}
-
-/**
- * Le SHA du commit qui a écrit la ligne `ligne` (à partir de 1) de `chemin` dans `revision` (`git
- * help blame`, `--porcelain`, `-L`) ; `--ignore-revs-file=` vide la liste de `blame.ignoreRevsFile`.
- * `null` quand git ne le rend pas.
- * @param {Depot} depot @param {string} revision @param {string} chemin @param {number} ligne
- * @returns {string | null}
- */
-export function auteurDeLigne(depot, revision, chemin, ligne) {
-  if (!Number.isSafeInteger(ligne) || ligne < 1) throw new Error(`auteurDeLigne : ligne « ${ligne} », un entier à partir de 1 attendu`)
-  const brut = lire(depot, ['blame', '--porcelain', '--ignore-revs-file=', '-L', `${ligne},${ligne}`, revisionsDe([revision])[0], '--', chemin])
-  if (brut === null) return absentSaufCorrompu(depot, [revision])
-  return /^([0-9a-f]{40}|[0-9a-f]{64}) /.exec(brut)?.[1] ?? null
 }
 
 /**

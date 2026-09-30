@@ -421,7 +421,7 @@ export function relationAuTronc(depot) {
   if (vu.absent) return { disponible: false, raison: 'origin/main ou HEAD introuvable' }
   if (vu.valeur) return { disponible: true, contenu: true, fusions: false }
   try {
-    const fusions = shasDe(depot, [`${TRONC.suivi}..HEAD`], { fusions: true })
+    const fusions = shasDe(depot, [`${TRONC.suivi}..HEAD`], { fusions: 'seules' })
     if (fusions === null) return { disponible: false, raison: 'origin/main..HEAD illisible' }
     return { disponible: true, contenu: false, fusions: fusions.length > 0 }
   } catch (e) {

@@ -15,7 +15,7 @@ import {
   BorneAbsente, GitIndisponible, INDEX, OPTIONS_DE_L_HOTE, SUIVI, TRAVAIL, abandonnerRebase, ajouterOrigine, ajouterWorktree, approfondir, arbrePrincipal, arbreVide, attributDe,
   baseCommune, brancheDe, branchesDe, ceQuEmporteLIndex, ceQueFaitLeCommit, ceQuiChange, cheminGit, cheminsEnConflit, classer, combienDe, commitDe,
   depotDe, divergenceDe, dossierDesHooks, elaguerWorktrees, eolsDe, estDansHead, estIgnore, estSuperficiel, etatDeLArbre, enfantsDirects, estAncetre, estRepertoire,
-  auteurDeLigne, fetchOrigin, fichiersDuGrep, fusionDeTextes, fusionnesEnCours, initialiserDepot, journalDe, lireEnLot, listerImage, natureDuChemin, origineDe, pointDeDepart, poserRef, pousser,
+  fetchOrigin, fichiersDuGrep, fusionDeTextes, fusionnesEnCours, initialiserDepot, journalDe, lireEnLot, listerImage, natureDuChemin, origineDe, parentsDe, pointDeDepart, poserRef, pousser,
   racineDe, raisonCourte, rebaseEntame, rebaser, reglerDepot, retirerWorktree, reussi, shaDe, shasDe, supprimerBranche, urlOrigineAcceptee, worktreesDe,
 } from './gitPorte.mjs'
 import { envDeDepotForge, envDeLUtilisatrice, instanceDeDepot } from './depotGabarit.mjs'
@@ -400,26 +400,28 @@ test('lireEnLot : un `cat-file` qui ne rend pas son lot est une PANNE — `GitIn
   assert.deepEqual(pannes, ['`git cat-file --batch` sans lot (status 1)'])
 })
 
-test('pointDeDepart, auteurDeLigne : les VALEURS — chaîne des premiers parents, ligne écrite par la branche ou reçue du tronc par fusion', () => {
-  const { racine, sha: socle } = instanceDeDepot({ fichiers: { 'v.txt': 'a\nx\ny\nV = 60\nz\nw\nb\n' }, message: 'socle' })
+test('pointDeDepart, parentsDe, shasDe (fusions, chemins) : les VALEURS — chaîne des premiers parents, commit de la branche caché par une fusion TREESAME au tronc', () => {
+  const { racine, sha: socle } = instanceDeDepot({ fichiers: { 'v.txt': 'V = 60\n', 'a.txt': 'a\n' }, message: 'socle' })
   try {
     const g = (...a) => execFileSync('git', a, { cwd: racine, env: envDeDepotForge(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()
-    const ecrire = (texte, message) => { writeFileSync(join(racine, 'v.txt'), texte); g('add', 'v.txt'); g('commit', '-q', '-m', message); return g('rev-parse', 'HEAD') }
+    const ecrire = (fichier, texte, message) => { writeFileSync(join(racine, fichier), texte); g('add', fichier); g('commit', '-q', '-m', message); return g('rev-parse', 'HEAD') }
     const d = forge(racine)
     g('checkout', '-q', '-b', 'cote')
-    const cote = ecrire('A\nx\ny\nV = 60\nz\nw\nb\n', 'cote')
+    const cote = ecrire('v.txt', 'V = 61\n', 'cote')
+    const autre = ecrire('a.txt', 'b\n', 'autre')
     g('checkout', '-q', 'main')
-    const tronc = ecrire('a\nx\ny\nV = 61\nz\nw\nB\n', 'tronc')
+    const tronc = ecrire('v.txt', 'V = 62\n', 'tronc')
     g('checkout', '-q', 'cote')
-    g('merge', '-q', '--no-ff', '-m', 'fusion', 'main')
+    try { g('merge', '-q', '--no-ff', 'main') } catch { /* conflit sur v.txt, résolu côté tronc */ }
+    const fusion = ecrire('v.txt', 'V = 62\n', 'fusion résolue côté tronc')
     assert.equal(pointDeDepart(d, 'cote', 'main'), socle, 'la chaîne des premiers parents entre dans le tronc au socle, pas à sa pointe fusionnée')
     assert.equal(pointDeDepart(d, 'main', 'main'), tronc, 'une tête contenue est son propre départ')
-    assert.equal(auteurDeLigne(d, 'cote', 'v.txt', 4), tronc, 'la ligne reçue par la fusion est écrite par le tronc')
-    assert.equal(auteurDeLigne(d, 'cote', 'v.txt', 1), cote, 'la ligne écrite par la branche')
-    writeFileSync(join(racine, 'ignorees'), `${tronc}\n`)
-    g('config', 'blame.ignoreRevsFile', 'ignorees')
-    assert.equal(auteurDeLigne(d, 'cote', 'v.txt', 4), tronc, '`blame.ignoreRevsFile` de l’hôte ne déplace pas l’auteur')
-    assert.throws(() => auteurDeLigne(d, 'cote', 'v.txt', 0), /un entier à partir de 1 attendu/)
+    assert.deepEqual(parentsDe(d, fusion), [autre, tronc])
+    assert.deepEqual(parentsDe(d, socle), [], 'un commit racine n’a pas de parent')
+    assert.deepEqual(shasDe(d, ['main..cote'], { fusions: 'seules' }), [fusion])
+    assert.deepEqual(shasDe(d, ['main..cote'], { fusions: 'aucune' }), [cote, autre])
+    assert.deepEqual(shasDe(d, ['main..cote'], { fusions: 'aucune', chemins: ['v.txt'] }), [cote], 'la fusion TREESAME au tronc ne cache pas le commit de la branche')
+    assert.throws(() => shasDe(d, ['main..cote'], { fusions: 'constructor' }), /fusions « constructor » inconnu/)
   } finally { jeter(racine) }
 })
 
@@ -720,7 +722,7 @@ function toutCeQueLisentLesLecteurs(racine, cwd, env, shas) {
     eols: eolsDe(d, ['f.txt', 'Écran é.txt']),
     vide: arbreVide(d),
     emporte: change(ceQuEmporteLIndex(d)),
-    shas: [shasDe(d, [`${shas.propre}..HEAD`]), shasDe(d, [`${shas.propre}^..HEAD`], { fusions: true })],
+    shas: [shasDe(d, [`${shas.propre}..HEAD`]), shasDe(d, [`${shas.propre}^..HEAD`], { fusions: 'seules' })],
     comptes: [combienDe(d, [`${shas.propre}..HEAD`]), divergenceDe(d, shas.propre, 'HEAD'), baseCommune(d, shas.propre, 'HEAD')],
     refs: [shaDe(d, 'HEAD'), shaDe(d, 'HEAD', { court: true }), brancheDe(d), branchesDe(d)?.map((b) => b.nom)],
     lieux: [racineDe(d), cheminGit(d, 'rebase-merge'), origineDe(d), dossierDesHooks(d), estSuperficiel(d)],
@@ -915,7 +917,7 @@ const gestesALaBorne = (d, b) => ({
   listerImage: () => listerImage(d, b),
   lireEnLot: () => lireEnLot(d, b, ['a.txt']),
   pointDeDepart: () => pointDeDepart(d, b, 'HEAD'),
-  auteurDeLigne: () => auteurDeLigne(d, b, 'a.txt', 1),
+  parentsDe: () => parentsDe(d, b),
   fichiersDuGrep: () => fichiersDuGrep(d, [b], 'a', []),
   initialiserDepot: () => initialiserDepot(d, { branche: b }),
   reglerDepot: () => reglerDepot(d, b, 'x'),
@@ -1064,7 +1066,7 @@ test('une BORNE ABSENTE : `null` (ou `absent`, `false`) pour une question qui le
     const d = depotDe(racine, { env: envDeDepotForge(), enPanne: (r) => pannes.push(r) })
     const F = 'f'.repeat(40)
     const attendus = {
-      shasDe: null, journalDe: null, combienDe: null, divergenceDe: null, baseCommune: null, shaDe: null, pointDeDepart: null, auteurDeLigne: null,
+      shasDe: null, journalDe: null, combienDe: null, divergenceDe: null, baseCommune: null, shaDe: null, pointDeDepart: null, parentsDe: null,
       estAncetre: { disponible: true, absent: true }, estDansHead: false,
     }
     const questions = Object.entries(gestesALaBorne(d, F)).filter(([nom]) => !/^(initialiserDepot|reglerDepot|poserRef|rebaser|ajouterWorktree|supprimerBranche|pousser|fetchOrigin)/.test(nom))

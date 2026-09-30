@@ -28,34 +28,37 @@ export class CompteurIllisible extends Error {
 const echapper = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
 /**
- * La lecture de `compteur` dans `texte` : la valeur et le numéro (à partir de 1) de l'unique ligne
- * `export const <symbole> = <entier>`. PURE.
+ * La valeur de `compteur` dans `texte` : l'unique ligne `export const <symbole> = <entier>`. PURE.
  * @param {string | null | undefined} texte @param {Compteur} compteur @param {string} revision
- * @returns {{ valeur: number, ligne: number }} @throws {CompteurIllisible}
+ * @returns {number} @throws {CompteurIllisible}
  */
-export function lectureDuCompteur(texte, compteur, revision) {
+export function valeurDuCompteur(texte, compteur, revision) {
   if (typeof texte !== 'string') throw new CompteurIllisible(compteur, revision, 'fichier absent')
-  const motif = new RegExp(`^export const ${echapper(compteur.symbole)}\\s*=\\s*(\\d+)\\s*;?\\s*$`)
-  const vus = texte.split('\n').flatMap((l, i) => {
-    const vu = motif.exec(l)
-    return vu ? [{ valeur: Number(vu[1]), ligne: i + 1 }] : []
-  })
+  const motif = new RegExp(`^export const ${echapper(compteur.symbole)}\\s*=\\s*(\\d+)\\s*;?\\s*$`, 'gm')
+  const vus = [...texte.matchAll(motif)]
   if (vus.length !== 1) throw new CompteurIllisible(compteur, revision, `${vus.length} ligne(s) \`export const ${compteur.symbole} = <entier>\`, une seule attendue`)
-  return vus[0]
+  return Number(vus[0][1])
 }
 
 /**
- * La collision de `compteur` (#2222), ou `null` : la valeur `publiee` à la tête est déjà PRISE par le
- * tronc. PURE.
+ * La branche a-t-elle MONTÉ le compteur ? Un de ses commits non-fusion en change la VALEUR, ou une de
+ * ses fusions rend une valeur qu'aucun de ses parents ne porte. PURE.
+ * @param {{ propres: { avant: number, apres: number }[], fusions: { valeur: number, parents: number[] }[] }} valeurs
+ * @returns {boolean}
+ */
+export const monteeParLaBranche = ({ propres, fusions }) =>
+  propres.some(({ avant, apres }) => avant !== apres) || fusions.some(({ valeur, parents }) => !parents.includes(valeur))
+
+/**
+ * La collision de `compteur` (#2222), ou `null` : la branche l'a monté, le tronc aussi depuis le point
+ * de départ, et la valeur `publiee` à la tête n'est pas au-dessus du tronc. PURE.
  * @param {Compteur} compteur
- * @param {{ publiee: number, tronc: number, depart: number, ecriteParLaBranche: boolean }} faits
- *   `depart` = la valeur au premier commit de la chaîne des premiers parents de la tête contenu dans le
- *   tronc ; `ecriteParLaBranche` = l'auteur de la ligne à la tête (`git help blame`) n'est pas un
- *   ancêtre du tronc.
+ * @param {{ publiee: number, tronc: number, depart: number, montee: boolean }} faits `depart` = la valeur
+ *   au point de départ (`pointDeDepart`, `gitPorte.mjs`) ; `montee` = `monteeParLaBranche`.
  * @returns {{ symbole: string, fichier: string, publiee: number, tronc: number, depart: number } | null}
  */
-export function collisionDuCompteur(compteur, { publiee, tronc, depart, ecriteParLaBranche }) {
-  return ecriteParLaBranche && publiee <= tronc && publiee !== depart ? { ...compteur, publiee, tronc, depart } : null
+export function collisionDuCompteur(compteur, { publiee, tronc, depart, montee }) {
+  return montee && tronc !== depart && publiee <= tronc ? { ...compteur, publiee, tronc, depart } : null
 }
 
 /** Le refus d'une collision (#2222). PURE. @param {{ symbole: string, publiee: number, tronc: number }} collision */

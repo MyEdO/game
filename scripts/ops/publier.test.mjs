@@ -1194,8 +1194,34 @@ describe('compteurs de version : la valeur que la tête publie est-elle déjà P
     assert.deepEqual(juger(({ sur, save, autre, fusionner }) => { sur('train'); autre('b1'); sur('main'); save(61); sur('train'); fusionner(); save(62) }), [])
   })
 
-  test('(e) la branche monte à 61 puis redescend à 60, le tronc à 61 : net nul, aucun refus', () => {
-    assert.deepEqual(juger(({ sur, save }) => { sur('train'); save(61); save(60, 'redescend'); sur('main'); save(61) }), [])
+  test('(e) la branche monte à 61 puis redescend à 60, le tronc à 61 : la branche a MONTÉ, 60 n’est pas au-dessus du tronc — refus', () => {
+    assert.deepEqual(juger(({ sur, save }) => { sur('train'); save(61); save(60, 'redescend'); sur('main'); save(61) }), prise(60, 61))
+  })
+
+  test('(S8) la branche à 61, le tronc passé à 62, la fusion résolue CÔTÉ TRONC : refus, 62 est prise', () => {
+    assert.deepEqual(juger(({ g, sur, save, ecrire }) => {
+      sur('train'); save(61); sur('main'); save(61); save(62); sur('train')
+      try { g('merge', '-q', '--no-ff', 'main') } catch { /* conflit sur le compteur */ }
+      ecrire('export const SAVE_VERSION = 62;\n')
+      g('commit', '-q', '-m', 'fusion résolue côté tronc')
+    }), prise(62, 62))
+  })
+
+  test('(S8b) la même valeur écrite autrement par le tronc, la fusion résolue côté tronc : refus', () => {
+    assert.deepEqual(juger(({ g, sur, save, ecrire }) => {
+      sur('train'); save(61); sur('main'); ecrire('export const SAVE_VERSION = 61\n'); g('commit', '-q', '-m', 'le tronc à 61'); sur('train')
+      try { g('merge', '-q', '--no-ff', 'main') } catch { /* conflit sur le compteur */ }
+      ecrire('export const SAVE_VERSION = 61\n')
+      g('commit', '-q', '-m', 'fusion résolue côté tronc')
+    }), prise(61, 61))
+  })
+
+  test('(S13) la branche fusionne le tronc à 61 puis REFORMATE la ligne sans changer la valeur : aucun refus', () => {
+    assert.deepEqual(juger(({ g, sur, save, autre, ecrire, fusionner }) => {
+      sur('train'); autre('b1'); sur('main'); save(61); sur('train'); fusionner()
+      ecrire('export const SAVE_VERSION = 61 ;\n')
+      g('commit', '-q', '-m', 'reformate')
+    }), [])
   })
 
   test('(f) compteur déplacé, symbole renommé, forme typée au tronc : refus NOMMÉ, jamais le silence', () => {
