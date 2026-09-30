@@ -4,7 +4,7 @@ import { GatedAction } from '../GatedAction';
 import { Icon } from '../Icon';
 import { Scene } from '../../state/scene';
 import { testScenarios, TestScenario } from '../../scenes/test-scenarios';
-import { projectsLoad, projectRemove, nomDeProjet, SavedProject } from '../../state/projectLibrary';
+import { projectsLoad, projectRemove, nomDeProjet, SavedProject, IMPORT_FORME_DEPOT } from '../../state/projectLibrary';
 import { allBuiltinCampaigns, BuiltinCampaign } from '../../scenes/campaign';
 import { Row, Stack } from '../Layout';
 import { exigerUnRefus, type ProjetRefuse } from '../../state/worldMap';
@@ -94,6 +94,7 @@ function lieuDAuteur(lieu: readonly SegmentDeLieu[]): string {
 const PHRASE_DE_CAUSE: Record<Exclude<ProjetRefuse['cause'], 'schema'>, string> = {
   version: 'Ce projet vient d’une version du jeu que celle-ci ne sait pas lire.',
   'mal-forme': 'Ce document n’est pas un projet lisible.',
+  'prose-non-materialisee': IMPORT_FORME_DEPOT,
   entree: 'Sa scène de départ n’existe pas dans le projet.',
 };
 

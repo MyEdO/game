@@ -382,6 +382,18 @@ Noiraud, le corbeau apprivoisé de Gustav, reste perché sur une poutre au-dessu
 <span id="page-20-0" data-folio="21"></span>
 I
 
+#### NOIRAUD - CORBEAU
+
+| M | CC | CT | F  | E  | I  | Ag | Dex | Int | FM | Soc | W  |
+|---|----|----|----|----|----|----|-----|-----|----|-----|----|
+| 2 | 15 | -  | 5  | 14 | 29 | 36 | 15  | 21  | 18 | 10  | 1  |
+
+**Compétences :** Langue (Reikspiel) 26
+
+**Talents :** Imitation
+
+**Traits :** Arme +0, Entraîné (Dressé, Revenir à la maison), Nerveux, Taille (Minuscule), Vol 100
+
 #### **Le barman**
 
 Herpin s'exprime avec un fort accent du Middenland, il a les cheveux bruns grisonnants et les yeux bleus. Bien qu'il n'ait pas encore 30 ans, il semble plus âgé. Grand, mince, taciturne, il ne fait aucun effort pour faire sentir à qui que ce soit qu'il est le bienvenu. Il est originaire du hameau voisin de Moersum, et s'il est employé, c'est pour ses compétences en brasserie et son éthique, pas pour ses qualités relationnelles.
@@ -422,7 +434,7 @@ Dame Isolde voyage avec sa servante, Janna, et un garde du corps expérimenté, 
 
 En tant que noble dame typique de la Drakwald, Dame Isolde von Strudledorf est élancée avec des cheveux d'un roux vénit mordoré ien, des yeux verts, et un accent reiklander distingué. Elle est jeune, têtue, et cache son manque d'assurance derrière un air hautain. Elle est toujours vêtue avec élégance, et possède une collection de chapeaux raffinés et inhabituels. D'ailleurs, ses boîtes à chapeaux prennent beaucoup de place sur le toit de la diligence. Durant le voyage, elle reste assise, l'étui de son luth serré contre elle. Elle s'opposera vivement à ce que les Personnages tentent d'entrer de force dans la diligence, les menaçant de toutes sortes de représailles de la part de ses parents importants à Altdorf.
 
-Âgée de seulement 16 ans, Janna est mince avec de cheveux ternes et des yeux grisbleus. Elle s'exprime très peu, bien que Dame Isolde l'oblige parfois à prendre la parole en son nom. Lorsque cela arrive, elle parle avec un léger accent de la Drakwald et semble profondément mal à l'aise. Malgré sa timidité, Janna fait très bien son travail.
+Âgée de seulement 16 ans, Janna est mince avec de cheveux ternes et des yeux gris-bleus. Elle s'exprime très peu, bien que Dame Isolde l'oblige parfois à prendre la parole en son nom. Lorsque cela arrive, elle parle avec un léger accent de la Drakwald et semble profondément mal à l'aise. Malgré sa timidité, Janna fait très bien son travail.
 
 Les biens de valeur de Dame Isolde sont conservés dans un coffre dans sa chambre. Celui-ci dispose d'une serrure **Complexe (-10)** requérant +2 DR pour s'ouvrir, et contient des vêtements somptueux et des bijoux pour une valeur de 7 CO.
 
@@ -435,7 +447,7 @@ Les biens de valeur de Dame Isolde sont conservés dans un coffre dans sa chambr
 
 **Compétences :** Commandement 42, Intimidation 46, Musicien (Luth) 58, Savoir (Héraldique) 40
 
-**Talents :** Chanceux, Destinée (*Les cornes du taureau mettront fin à ton règne*), Lire/Ecrire, Noblesse, Savoirvivre (Nobles)
+**Talents :** Chanceux, Destinée (*Les cornes du taureau mettront fin à ton règne*), Lire/Ecrire, Noblesse, Savoir-vivre (Nobles)
 
 **Traits :** Arme (Poings) +3
 
@@ -453,13 +465,7 @@ Les biens de valeur de Dame Isolde sont conservés dans un coffre dans sa chambr
 
 ## **Le garde du corps**
 
-Marie est aussi grande, athlétique et musclée que les guerrières middenlander des légendes. Ses épais cheveux sont blond foncé, et ses yeux d'un bleu glacé. Elle a un peu plus de trente ans, porte
-
-des vêtements sombres et ne sourit jamais. Marie travaille pour les
-
-von Strudeldorf depuis 15 ans, et est plus que capable de protéger Dame Isolde. Elle parle très peu, en général pour dire aux gens : « Ne dérangez pas la maîtresse ». Si elle vient
-
-à combattre, elle préfère rester sur la défensive, veillant sur sa protégée avant toute chose.
+Marie est aussi grande, athlétique et musclée que les guerrières middenlander des légendes. Ses épais cheveux sont blond foncé, et ses yeux d'un bleu glacé. Elle a un peu plus de trente ans, porte des vêtements sombres et ne sourit jamais. Marie travaille pour les von Strudeldorf depuis 15 ans, et est plus que capable de protéger Dame Isolde. Elle parle très peu, en général pour dire aux gens : « Ne dérangez pas la maîtresse ». Si elle vient à combattre, elle préfère rester sur la défensive, veillant sur sa protégée avant toute chose.
 
 #### MARIE SCHULTZ - GARDE D'HONNEUR HUMAIN (ARGENT 3)
 
@@ -487,7 +493,13 @@ Il prétend être un étudiant en médecine se rendant à Altdorf pour poursuivr
 |---|----|----|----|----|----|----|-----|-----|----|-----|---|
 | 4 | 29 | 31 | 31 | 23 | 32 | 19 | 27  | 37  | 29 | 29  | 9 |
 
-(Base 35, Arme d'hast 33), Esquive 22, Focalisation (Dhar) 37, Intuition 36, Langue (Magick) 47, Perception 36, Savoir (Magie) 42
+**Compétences :** Corps à corps (Base 35, Arme d'hast 33), Esquive 22, Focalisation (Dhar) 37, Intuition 36, Langue (Magick) 47, Perception 36, Savoir (Magie) 42
+
+**Talents :** Destinée (*Viser trop haut te fera chuter au plus bas*), Lire/Ecrire, Magie mineure (Choc, Putréfaction)
+
+**Traits :** Armes (Mains nues) +2
+
+**Possessions :** livre, sac de voyage
 
 **Corruption :** 6
 

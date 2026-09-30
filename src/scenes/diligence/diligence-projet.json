@@ -14,7 +14,2506 @@
  "narratif": {
   "affaires": [],
   "indices": [],
-  "presetsPnj": [],
+  "presetsPnj": [
+   {
+    "id": "edo-fhluger-dagh",
+    "source": {
+     "book": "ennemi-dans-l-ombre",
+     "page": 18
+    },
+    "profil": {
+     "label": "Fhluger'dagh",
+     "title": "Démon mineur",
+     "named": true,
+     "char": {
+      "M": 4,
+      "capacite-de-combat": 35,
+      "capacite-de-tir": 35,
+      "force": 35,
+      "endurance": 45,
+      "initiative": 45,
+      "agilite": 50,
+      "dexterite": 25,
+      "intelligence": 25,
+      "force-mentale": 25,
+      "sociabilite": 15,
+      "B": 13
+     },
+     "traits": [
+      {
+       "id": "arme",
+       "value": 7,
+       "arg": "Griffes",
+       "natural": true
+      },
+      {
+       "id": "armure",
+       "value": 1
+      },
+      {
+       "id": "corruption",
+       "arg": "Modérée"
+      },
+      {
+       "id": "demoniaque",
+       "value": 9
+      },
+      {
+       "id": "peur",
+       "value": 2
+      }
+     ],
+     "optionals": [],
+     "skills": [],
+     "talents": [],
+     "trappings": [],
+     "spells": []
+    }
+   },
+   {
+    "id": "edo-gustav-fondleburger",
+    "base": "humain",
+    "source": {
+     "book": "ennemi-dans-l-ombre",
+     "page": 20
+    },
+    "profil": {
+     "label": "Gustav Fondleburger",
+     "title": "Bourgeois humain (Argent 2)",
+     "named": true,
+     "char": {
+      "M": 4,
+      "capacite-de-combat": 28,
+      "capacite-de-tir": 32,
+      "force": 31,
+      "endurance": 41,
+      "initiative": 38,
+      "agilite": 34,
+      "dexterite": 35,
+      "intelligence": 39,
+      "force-mentale": 29,
+      "sociabilite": 52,
+      "B": 13
+     },
+     "traits": [
+      {
+       "id": "a-distance",
+       "value": 8,
+       "arg": "tromblon",
+       "range": 20
+      },
+      {
+       "id": "arme",
+       "value": 3,
+       "arg": "Poings"
+      }
+     ],
+     "optionals": [],
+     "skills": [
+      {
+       "id": "intuition",
+       "value": 52
+      },
+      {
+       "id": "marchandage",
+       "value": 62
+      },
+      {
+       "id": "projectiles",
+       "spec": "poudre-noire",
+       "value": 42
+      }
+     ],
+     "talents": [
+      {
+       "id": "costaud"
+      },
+      {
+       "id": "destinee",
+       "spec": "L'escroc, le cerf et le loup dans la nuit"
+      },
+      {
+       "id": "lire-ecrire"
+      }
+     ],
+     "trappings": [
+      {
+       "text": "tromblon (habituellement sous le comptoir)"
+      },
+      {
+       "text": "auberge La Diligence"
+      },
+      {
+       "text": "graines (pour nourrir Noiraud)"
+      }
+     ],
+     "descRef": {
+      "book": "ennemi-dans-l-ombre",
+      "ch": "01",
+      "parts": [
+       {
+        "kind": "blocs",
+        "sec": "le-proprietaire",
+        "secOcc": 2,
+        "b0": 0,
+        "b1": 0,
+        "sum": "38e48aee36c04e9f"
+       }
+      ]
+     }
+    }
+   },
+   {
+    "id": "edo-noiraud",
+    "base": "pigeon",
+    "source": {
+     "book": "ennemi-dans-l-ombre",
+     "page": 21
+    },
+    "profil": {
+     "label": "Noiraud",
+     "title": "Corbeau",
+     "named": true,
+     "char": {
+      "M": 2,
+      "capacite-de-combat": 15,
+      "capacite-de-tir": null,
+      "force": 5,
+      "endurance": 14,
+      "initiative": 29,
+      "agilite": 36,
+      "dexterite": 15,
+      "intelligence": 21,
+      "force-mentale": 18,
+      "sociabilite": 10,
+      "B": 1
+     },
+     "traits": [
+      {
+       "id": "arme",
+       "value": 0
+      },
+      {
+       "id": "dresse-dompte"
+      },
+      {
+       "id": "dresse-revenir-a-la-maison"
+      },
+      {
+       "id": "nerveux"
+      },
+      {
+       "id": "taille",
+       "arg": "minuscule"
+      },
+      {
+       "id": "vol",
+       "value": 100
+      }
+     ],
+     "optionals": [],
+     "skills": [
+      {
+       "id": "langue",
+       "spec": "reikspiel",
+       "value": 26
+      }
+     ],
+     "talents": [
+      {
+       "id": "imitation"
+      }
+     ],
+     "descRef": {
+      "book": "ennemi-dans-l-ombre",
+      "ch": "01",
+      "parts": [
+       {
+        "kind": "blocs",
+        "sec": "noiraud-le-corbeau",
+        "secOcc": 1,
+        "b0": 0,
+        "b1": 0,
+        "sum": "974da11462e10f3b"
+       }
+      ]
+     }
+    }
+   },
+   {
+    "id": "edo-herpin-stiggerwurt",
+    "base": "humain",
+    "source": {
+     "book": "ennemi-dans-l-ombre",
+     "page": 21
+    },
+    "profil": {
+     "label": "Herpin Stiggerwurt",
+     "title": "Villageois humain (Bronze 3)",
+     "named": true,
+     "char": {
+      "M": 4,
+      "capacite-de-combat": 35,
+      "capacite-de-tir": 32,
+      "force": 45,
+      "endurance": 45,
+      "initiative": 36,
+      "agilite": 39,
+      "dexterite": 32,
+      "intelligence": 24,
+      "force-mentale": 28,
+      "sociabilite": 25,
+      "B": 14
+     },
+     "traits": [
+      {
+       "id": "arme",
+       "value": 5,
+       "arg": "dague"
+      }
+     ],
+     "optionals": [],
+     "skills": [
+      {
+       "id": "corps-a-corps",
+       "spec": "base",
+       "value": 45
+      },
+      {
+       "id": "metier",
+       "spec": "brasseur",
+       "value": 49
+      }
+     ],
+     "talents": [
+      {
+       "id": "costaud"
+      },
+      {
+       "id": "lire-ecrire"
+      }
+     ],
+     "descRef": {
+      "book": "ennemi-dans-l-ombre",
+      "ch": "01",
+      "parts": [
+       {
+        "kind": "blocs",
+        "sec": "le-barman",
+        "secOcc": 2,
+        "b0": 0,
+        "b1": 0,
+        "sum": "32d9b703acdfaede"
+       }
+      ]
+     }
+    }
+   },
+   {
+    "id": "edo-gunnar-et-hultz",
+    "base": "humain",
+    "source": {
+     "book": "ennemi-dans-l-ombre",
+     "page": 21
+    },
+    "profil": {
+     "label": "Gunnar et Hultz",
+     "title": "Cocher humain (Argent 2)",
+     "named": true,
+     "char": {
+      "M": 4,
+      "capacite-de-combat": 32,
+      "capacite-de-tir": 42,
+      "force": 31,
+      "endurance": 34,
+      "initiative": 36,
+      "agilite": 44,
+      "dexterite": 29,
+      "intelligence": 27,
+      "force-mentale": 30,
+      "sociabilite": 27,
+      "B": 12
+     },
+     "traits": [
+      {
+       "id": "a-distance",
+       "value": 8,
+       "arg": "tromblon",
+       "range": 20
+      },
+      {
+       "id": "arme",
+       "value": 7,
+       "arg": "Épée"
+      },
+      {
+       "id": "armure",
+       "value": 1,
+       "arg": "Cuir"
+      }
+     ],
+     "optionals": [],
+     "skills": [
+      {
+       "id": "conduite-d-attelage",
+       "value": 59
+      },
+      {
+       "id": "emprise-sur-les-animaux",
+       "value": 40
+      },
+      {
+       "id": "projectiles",
+       "spec": "poudre-noire",
+       "value": 52
+      },
+      {
+       "id": "resistance-a-l-alcool",
+       "value": 44
+      },
+      {
+       "id": "soin-aux-animaux",
+       "value": 37
+      }
+     ],
+     "trappings": [
+      {
+       "text": "corne de cocher"
+      },
+      {
+       "id": "gants"
+      },
+      {
+       "text": "manteau (chaud et épais)"
+      }
+     ],
+     "descRef": {
+      "book": "ennemi-dans-l-ombre",
+      "ch": "01",
+      "parts": [
+       {
+        "kind": "blocs",
+        "sec": "gunnar-et-hultz",
+        "secOcc": 1,
+        "b0": 0,
+        "b1": 0,
+        "sum": "ac3d031047ac647b"
+       }
+      ]
+     }
+    }
+   },
+   {
+    "id": "edo-isolde-von-strudeldorf",
+    "base": "humain",
+    "source": {
+     "book": "ennemi-dans-l-ombre",
+     "page": 22
+    },
+    "profil": {
+     "label": "Isolde von Strudeldorf",
+     "title": "Héritier humain (Or 1)",
+     "named": true,
+     "char": {
+      "M": 4,
+      "capacite-de-combat": 36,
+      "capacite-de-tir": 32,
+      "force": 31,
+      "endurance": 32,
+      "initiative": 35,
+      "agilite": 31,
+      "dexterite": 43,
+      "intelligence": 30,
+      "force-mentale": 33,
+      "sociabilite": 28,
+      "B": 12
+     },
+     "traits": [
+      {
+       "id": "arme",
+       "value": 3,
+       "arg": "Poings"
+      }
+     ],
+     "optionals": [],
+     "skills": [
+      {
+       "id": "commandement",
+       "value": 42
+      },
+      {
+       "id": "intimidation",
+       "value": 46
+      },
+      {
+       "id": "musicien",
+       "spec": "luth",
+       "value": 58
+      },
+      {
+       "id": "savoir",
+       "spec": "heraldique",
+       "value": 40
+      }
+     ],
+     "talents": [
+      {
+       "id": "chanceux"
+      },
+      {
+       "id": "destinee",
+       "spec": "Les cornes du taureau mettront fin à ton règne"
+      },
+      {
+       "id": "lire-ecrire"
+      },
+      {
+       "id": "noblesse"
+      },
+      {
+       "id": "savoir-vivre",
+       "spec": "nobles"
+      }
+     ],
+     "descRef": {
+      "book": "ennemi-dans-l-ombre",
+      "ch": "01",
+      "parts": [
+       {
+        "kind": "blocs",
+        "sec": "dame-isolde-et-sa-servante",
+        "secOcc": 1,
+        "b0": 0,
+        "b1": 0,
+        "sum": "65d1abfb29584eb2"
+       }
+      ]
+     }
+    }
+   },
+   {
+    "id": "edo-janna-elleiner",
+    "base": "humain",
+    "source": {
+     "book": "ennemi-dans-l-ombre",
+     "page": 22
+    },
+    "profil": {
+     "label": "Janna Elleiner",
+     "title": "Serviteur humain (Argent 3)",
+     "named": true,
+     "char": {
+      "M": 4,
+      "capacite-de-combat": 25,
+      "capacite-de-tir": 24,
+      "force": 34,
+      "endurance": 39,
+      "initiative": 43,
+      "agilite": 43,
+      "dexterite": 34,
+      "intelligence": 27,
+      "force-mentale": 25,
+      "sociabilite": 26,
+      "B": 11
+     },
+     "traits": [
+      {
+       "id": "arme",
+       "value": 3,
+       "arg": "Poings"
+      }
+     ],
+     "optionals": [],
+     "skills": [
+      {
+       "id": "intuition",
+       "value": 54
+      },
+      {
+       "id": "perception",
+       "value": 58
+      }
+     ],
+     "talents": [
+      {
+       "id": "insignifiant"
+      },
+      {
+       "id": "destinee",
+       "spec": "Prend garde au sabot, à la griffe et à l'ongle"
+      },
+      {
+       "id": "prevoyant"
+      },
+      {
+       "id": "savoir-vivre",
+       "spec": "serviteurs"
+      }
+     ],
+     "descRef": {
+      "book": "ennemi-dans-l-ombre",
+      "ch": "01",
+      "parts": [
+       {
+        "kind": "blocs",
+        "sec": "dame-isolde-et-sa-servante",
+        "secOcc": 1,
+        "b0": 1,
+        "b1": 1,
+        "sum": "a9ebf748dc816947"
+       }
+      ]
+     }
+    }
+   },
+   {
+    "id": "edo-marie-schultz",
+    "base": "humain",
+    "source": {
+     "book": "ennemi-dans-l-ombre",
+     "page": 22
+    },
+    "profil": {
+     "label": "Marie Schultz",
+     "title": "Garde d'honneur humain (Argent 3)",
+     "named": true,
+     "char": {
+      "M": 4,
+      "capacite-de-combat": 55,
+      "capacite-de-tir": 32,
+      "force": 56,
+      "endurance": 48,
+      "initiative": 45,
+      "agilite": 54,
+      "dexterite": 43,
+      "intelligence": 30,
+      "force-mentale": 33,
+      "sociabilite": 26,
+      "B": 16
+     },
+     "traits": [
+      {
+       "id": "arme",
+       "value": 7,
+       "arg": "coup-de-poing"
+      },
+      {
+       "id": "arme",
+       "value": 9,
+       "arg": "Épée"
+      },
+      {
+       "id": "armure",
+       "value": 1,
+       "arg": "Cuir"
+      }
+     ],
+     "optionals": [],
+     "skills": [
+      {
+       "id": "corps-a-corps",
+       "spec": "bagarre",
+       "value": 65
+      },
+      {
+       "id": "corps-a-corps",
+       "spec": "base",
+       "value": 70
+      },
+      {
+       "id": "esquive",
+       "value": 64
+      },
+      {
+       "id": "guerison",
+       "value": 40
+      },
+      {
+       "id": "intimidation",
+       "value": 71
+      },
+      {
+       "id": "intuition",
+       "value": 60
+      },
+      {
+       "id": "resistance",
+       "value": 63
+      }
+     ],
+     "talents": [
+      {
+       "id": "coup-puissant"
+      },
+      {
+       "id": "destinee",
+       "spec": "C'est à la fin que ta vie commence"
+      },
+      {
+       "id": "frappe-assommante"
+      },
+      {
+       "id": "impitoyable"
+      },
+      {
+       "id": "perseverant"
+      },
+      {
+       "id": "saut-carpe"
+      },
+      {
+       "id": "savoir-vivre",
+       "spec": "serviteurs"
+      },
+      {
+       "id": "tres-fort"
+      }
+     ],
+     "descRef": {
+      "book": "ennemi-dans-l-ombre",
+      "ch": "01",
+      "parts": [
+       {
+        "kind": "blocs",
+        "sec": "le-garde-du-corps",
+        "secOcc": 1,
+        "b0": 0,
+        "b1": 0,
+        "sum": "26b9eb78ea5d6a4d"
+       }
+      ]
+     }
+    }
+   },
+   {
+    "id": "edo-ernst-heidlemann",
+    "base": "humain",
+    "source": {
+     "book": "ennemi-dans-l-ombre",
+     "page": 22
+    },
+    "profil": {
+     "label": "Ernst Heidlemann",
+     "title": "Sorcier novice humain (Bronze 3)",
+     "named": true,
+     "char": {
+      "M": 4,
+      "capacite-de-combat": 29,
+      "capacite-de-tir": 31,
+      "force": 31,
+      "endurance": 23,
+      "initiative": 32,
+      "agilite": 19,
+      "dexterite": 27,
+      "intelligence": 37,
+      "force-mentale": 29,
+      "sociabilite": 29,
+      "B": 9
+     },
+     "traits": [
+      {
+       "id": "arme",
+       "value": 2,
+       "arg": "mains-nues"
+      }
+     ],
+     "optionals": [],
+     "skills": [
+      {
+       "id": "corps-a-corps",
+       "spec": "base",
+       "value": 35
+      },
+      {
+       "id": "corps-a-corps",
+       "spec": "armes-d-hast",
+       "value": 33
+      },
+      {
+       "id": "esquive",
+       "value": 22
+      },
+      {
+       "id": "focalisation",
+       "spec": "dhar",
+       "value": 37
+      },
+      {
+       "id": "intuition",
+       "value": 36
+      },
+      {
+       "id": "langue",
+       "spec": "magick",
+       "value": 47
+      },
+      {
+       "id": "perception",
+       "value": 36
+      },
+      {
+       "id": "savoir",
+       "spec": "magie",
+       "value": 42
+      }
+     ],
+     "talents": [
+      {
+       "id": "destinee",
+       "spec": "Viser trop haut te fera chuter au plus bas"
+      },
+      {
+       "id": "lire-ecrire"
+      },
+      {
+       "id": "magie-mineure"
+      }
+     ],
+     "trappings": [
+      {
+       "text": "livre"
+      },
+      {
+       "text": "sac de voyage"
+      }
+     ],
+     "spells": [
+      "choc",
+      "putrefaction"
+     ],
+     "corruption": 6,
+     "descRef": {
+      "book": "ennemi-dans-l-ombre",
+      "ch": "01",
+      "parts": [
+       {
+        "kind": "blocs",
+        "sec": "l-apprenti",
+        "secOcc": 1,
+        "b0": 0,
+        "b1": 1,
+        "sum": "84097a2804c3007f"
+       }
+      ]
+     }
+    }
+   },
+   {
+    "id": "edo-phillipe-descartes",
+    "base": "humain",
+    "source": {
+     "book": "ennemi-dans-l-ombre",
+     "page": 23
+    },
+    "profil": {
+     "label": "Phillipe Descartes",
+     "title": "Prostitué humain (Bronze 1)",
+     "named": true,
+     "char": {
+      "M": 4,
+      "capacite-de-combat": 30,
+      "capacite-de-tir": 32,
+      "force": 30,
+      "endurance": 26,
+      "initiative": 31,
+      "agilite": 34,
+      "dexterite": 44,
+      "intelligence": 33,
+      "force-mentale": 30,
+      "sociabilite": 29,
+      "B": 10
+     },
+     "traits": [
+      {
+       "id": "a-distance",
+       "value": 7,
+       "arg": "pistolet",
+       "range": 30
+      },
+      {
+       "id": "arme",
+       "value": 8,
+       "arg": "Épée"
+      }
+     ],
+     "optionals": [],
+     "skills": [
+      {
+       "id": "athletisme",
+       "value": 60
+      },
+      {
+       "id": "calme",
+       "value": 60
+      },
+      {
+       "id": "charme",
+       "value": 44
+      },
+      {
+       "id": "commandement",
+       "value": 49
+      },
+      {
+       "id": "corps-a-corps",
+       "spec": "bagarre",
+       "value": 47
+      },
+      {
+       "id": "corps-a-corps",
+       "spec": "base",
+       "value": 57
+      },
+      {
+       "id": "escalade",
+       "value": 62
+      },
+      {
+       "id": "escamotage",
+       "value": 64
+      },
+      {
+       "id": "esquive",
+       "value": 60
+      },
+      {
+       "id": "guerison",
+       "value": 39
+      },
+      {
+       "id": "intimidation",
+       "value": 52
+      },
+      {
+       "id": "intuition",
+       "value": 50
+      },
+      {
+       "id": "langue",
+       "spec": "bataille",
+       "value": 49
+      },
+      {
+       "id": "marchandage",
+       "value": 44
+      },
+      {
+       "id": "musicien",
+       "spec": "tambour",
+       "value": 35
+      },
+      {
+       "id": "pari",
+       "value": 50
+      },
+      {
+       "id": "perception",
+       "value": 55
+      },
+      {
+       "id": "projectiles",
+       "spec": "poudre-noire",
+       "value": 60
+      },
+      {
+       "id": "ragot",
+       "value": 44
+      },
+      {
+       "id": "resistance",
+       "value": 53
+      },
+      {
+       "id": "resistance-a-l-alcool",
+       "value": 58
+      },
+      {
+       "id": "survie-en-exterieur",
+       "value": 44
+      }
+     ],
+     "talents": [
+      {
+       "id": "attirant"
+      },
+      {
+       "id": "chat-de-gouttiere"
+      },
+      {
+       "id": "coude-a-coude"
+      },
+      {
+       "id": "maitrise-des-des"
+      },
+      {
+       "id": "rechargement-rapide"
+      },
+      {
+       "id": "savoir-vivre",
+       "spec": "soldats"
+      },
+      {
+       "id": "seigneur-de-guerre"
+      },
+      {
+       "id": "tricheur"
+      },
+      {
+       "id": "vigilance"
+      }
+     ],
+     "trappings": [
+      {
+       "text": "49/67"
+      },
+      {
+       "text": "dés (2 paires dont 1 pipée)"
+      },
+      {
+       "text": "jeu de cartes marquées (avec 5 as en plus)"
+      }
+     ],
+     "descRef": {
+      "book": "ennemi-dans-l-ombre",
+      "ch": "01",
+      "parts": [
+       {
+        "kind": "blocs",
+        "sec": "le-joueur",
+        "secOcc": 2,
+        "b0": 0,
+        "b1": 0,
+        "sum": "39eea4a47687a683"
+       }
+      ]
+     }
+    }
+   },
+   {
+    "id": "edo-fredrick",
+    "base": "humain",
+    "source": {
+     "book": "ennemi-dans-l-ombre",
+     "page": 20
+    },
+    "profil": {
+     "label": "Fredrick",
+     "title": "Portier",
+     "named": true,
+     "skills": [
+      {
+       "id": "athletisme",
+       "value": 40
+      },
+      {
+       "id": "conduite-d-attelage",
+       "value": 40
+      },
+      {
+       "id": "discretion",
+       "spec": "rurale",
+       "value": 40
+      },
+      {
+       "id": "escalade",
+       "value": 40
+      },
+      {
+       "id": "esquive",
+       "value": 40
+      },
+      {
+       "id": "intuition",
+       "value": 40
+      },
+      {
+       "id": "perception",
+       "value": 40
+      },
+      {
+       "id": "resistance",
+       "value": 40
+      }
+     ],
+     "maison": "EDO 01 l.360 ne nomme pas la carrière : Serviteur (LDB 68), Compétences du niveau 1 ; Discrétion (Rurale)."
+    }
+   },
+   {
+    "id": "edo-artur",
+    "base": "humain",
+    "source": {
+     "book": "ennemi-dans-l-ombre",
+     "page": 20
+    },
+    "profil": {
+     "label": "Artur",
+     "title": "Forgeron",
+     "named": true,
+     "skills": [
+      {
+       "id": "athletisme",
+       "value": 40
+      },
+      {
+       "id": "calme",
+       "value": 40
+      },
+      {
+       "id": "discretion",
+       "spec": "urbaine",
+       "value": 40
+      },
+      {
+       "id": "esquive",
+       "value": 40
+      },
+      {
+       "id": "evaluation",
+       "value": 40
+      },
+      {
+       "id": "metier",
+       "spec": "forgeron",
+       "value": 40
+      },
+      {
+       "id": "resistance",
+       "value": 40
+      },
+      {
+       "id": "resistance-a-l-alcool",
+       "value": 40
+      }
+     ],
+     "maison": "EDO 01 l.360 ne nomme pas la carrière : Artisan (LDB 54), Compétences du niveau 1 ; Métier (Forgeron)."
+    }
+   },
+   {
+    "id": "edo-lukas",
+    "base": "humain",
+    "source": {
+     "book": "ennemi-dans-l-ombre",
+     "page": 18
+    },
+    "profil": {
+     "label": "Lukas",
+     "named": true,
+     "maison": "Aucun profil au livre (EDO 01 l.276) : profil Humain (LDB 311)."
+    }
+   },
+   {
+    "id": "edo-rolf-hurtsis",
+    "base": "mutant",
+    "source": {
+     "book": "ennemi-dans-l-ombre",
+     "page": 29
+    },
+    "profil": {
+     "label": "Rolf Hurtsis",
+     "title": "Bandit mutant (Bronze 1)",
+     "named": true,
+     "char": {
+      "M": 4,
+      "capacite-de-combat": 32,
+      "capacite-de-tir": 25,
+      "force": 27,
+      "endurance": 28,
+      "initiative": 40,
+      "agilite": 45,
+      "dexterite": 39,
+      "intelligence": 29,
+      "force-mentale": 25,
+      "sociabilite": null,
+      "B": 8
+     },
+     "traits": [
+      {
+       "id": "affame"
+      },
+      {
+       "id": "arme",
+       "value": 4,
+       "arg": "dague"
+      },
+      {
+       "id": "bestial"
+      },
+      {
+       "id": "mutation",
+       "arg": "chair-necrosee"
+      }
+     ],
+     "optionals": [],
+     "skills": [
+      {
+       "id": "athletisme",
+       "value": 55
+      },
+      {
+       "id": "corps-a-corps",
+       "spec": "base",
+       "value": 37
+      },
+      {
+       "id": "esquive",
+       "value": 55
+      },
+      {
+       "id": "perception",
+       "value": 45
+      },
+      {
+       "id": "survie-en-exterieur",
+       "value": 34
+      }
+     ],
+     "talents": [
+      {
+       "id": "fuite"
+      },
+      {
+       "id": "vigilance"
+      }
+     ],
+     "descRef": {
+      "book": "ennemi-dans-l-ombre",
+      "ch": "02",
+      "parts": [
+       {
+        "kind": "blocs",
+        "sec": "le-mutant-sur-la-route",
+        "secOcc": 1,
+        "b0": 0,
+        "b1": 0,
+        "sum": "20dbe9e27fc50cbf"
+       }
+      ]
+     }
+    }
+   },
+   {
+    "id": "edo-mutant-terenz",
+    "base": "mutant",
+    "source": {
+     "book": "ennemi-dans-l-ombre",
+     "page": 30
+    },
+    "profil": {
+     "label": "Terenz",
+     "title": "Bandit mutant (Bronze 1)",
+     "named": true,
+     "char": {
+      "M": 4,
+      "capacite-de-combat": 45,
+      "capacite-de-tir": 30,
+      "force": 35,
+      "endurance": 35,
+      "initiative": 30,
+      "agilite": 40,
+      "dexterite": 30,
+      "intelligence": 30,
+      "force-mentale": 30,
+      "sociabilite": 30,
+      "B": 12
+     },
+     "traits": [
+      {
+       "id": "arme",
+       "value": 7
+      },
+      {
+       "id": "corruption",
+       "arg": "Mineure"
+      },
+      {
+       "id": "mutation",
+       "arg": "cretin"
+      }
+     ],
+     "optionals": [],
+     "descRef": {
+      "book": "ennemi-dans-l-ombre",
+      "ch": "02",
+      "parts": [
+       {
+        "kind": "blocs",
+        "sec": "les-brigands-mutants",
+        "secOcc": 1,
+        "b0": 0,
+        "b1": 1,
+        "sum": "30177de2fcae727b"
+       }
+      ]
+     }
+    }
+   },
+   {
+    "id": "edo-mutant-mikael",
+    "base": "mutant",
+    "source": {
+     "book": "ennemi-dans-l-ombre",
+     "page": 30
+    },
+    "profil": {
+     "label": "Mikael",
+     "title": "Bandit mutant (Bronze 1)",
+     "named": true,
+     "char": {
+      "M": 4,
+      "capacite-de-combat": 45,
+      "capacite-de-tir": 30,
+      "force": 35,
+      "endurance": 35,
+      "initiative": 30,
+      "agilite": 40,
+      "dexterite": 30,
+      "intelligence": 30,
+      "force-mentale": 30,
+      "sociabilite": 30,
+      "B": 12
+     },
+     "traits": [
+      {
+       "id": "arme",
+       "value": 7
+      },
+      {
+       "id": "corruption",
+       "arg": "Mineure"
+      },
+      {
+       "id": "mutation",
+       "arg": "tete-bestiale-chien"
+      }
+     ],
+     "optionals": [],
+     "descRef": {
+      "book": "ennemi-dans-l-ombre",
+      "ch": "02",
+      "parts": [
+       {
+        "kind": "blocs",
+        "sec": "les-brigands-mutants",
+        "secOcc": 1,
+        "b0": 0,
+        "b1": 1,
+        "sum": "30177de2fcae727b"
+       }
+      ]
+     }
+    }
+   },
+   {
+    "id": "edo-mutant-johann",
+    "base": "mutant",
+    "source": {
+     "book": "ennemi-dans-l-ombre",
+     "page": 30
+    },
+    "profil": {
+     "label": "Johann",
+     "title": "Bandit mutant (Bronze 1)",
+     "named": true,
+     "char": {
+      "M": 4,
+      "capacite-de-combat": 45,
+      "capacite-de-tir": 30,
+      "force": 35,
+      "endurance": 35,
+      "initiative": 30,
+      "agilite": 40,
+      "dexterite": 30,
+      "intelligence": 30,
+      "force-mentale": 30,
+      "sociabilite": 30,
+      "B": 12
+     },
+     "traits": [
+      {
+       "id": "arme",
+       "value": 7
+      },
+      {
+       "id": "corruption",
+       "arg": "Mineure"
+      },
+      {
+       "id": "mutation",
+       "arg": "tete-pointue"
+      }
+     ],
+     "optionals": [],
+     "descRef": {
+      "book": "ennemi-dans-l-ombre",
+      "ch": "02",
+      "parts": [
+       {
+        "kind": "blocs",
+        "sec": "les-brigands-mutants",
+        "secOcc": 1,
+        "b0": 0,
+        "b1": 1,
+        "sum": "30177de2fcae727b"
+       }
+      ]
+     }
+    }
+   },
+   {
+    "id": "edo-mutant-erik",
+    "base": "mutant",
+    "source": {
+     "book": "ennemi-dans-l-ombre",
+     "page": 30
+    },
+    "profil": {
+     "label": "Erik",
+     "title": "Bandit mutant (Bronze 1)",
+     "named": true,
+     "char": {
+      "M": 4,
+      "capacite-de-combat": 45,
+      "capacite-de-tir": 30,
+      "force": 35,
+      "endurance": 35,
+      "initiative": 30,
+      "agilite": 40,
+      "dexterite": 30,
+      "intelligence": 30,
+      "force-mentale": 30,
+      "sociabilite": 30,
+      "B": 12
+     },
+     "traits": [
+      {
+       "id": "arme",
+       "value": 7
+      },
+      {
+       "id": "corruption",
+       "arg": "Mineure"
+      },
+      {
+       "id": "mutation",
+       "arg": "pattes-chevre"
+      }
+     ],
+     "optionals": [],
+     "descRef": {
+      "book": "ennemi-dans-l-ombre",
+      "ch": "02",
+      "parts": [
+       {
+        "kind": "blocs",
+        "sec": "les-brigands-mutants",
+        "secOcc": 1,
+        "b0": 0,
+        "b1": 1,
+        "sum": "30177de2fcae727b"
+       }
+      ]
+     }
+    }
+   },
+   {
+    "id": "edo-knud-cratinx",
+    "base": "mutant",
+    "source": {
+     "book": "ennemi-dans-l-ombre",
+     "page": 30
+    },
+    "profil": {
+     "label": "Knud Cratinx",
+     "title": "Hors-la-loi mutant (Bronze 2)",
+     "named": true,
+     "char": {
+      "M": 4,
+      "capacite-de-combat": 36,
+      "capacite-de-tir": 43,
+      "force": 39,
+      "endurance": 32,
+      "initiative": 35,
+      "agilite": 33,
+      "dexterite": 29,
+      "intelligence": 33,
+      "force-mentale": 35,
+      "sociabilite": 30,
+      "B": 12
+     },
+     "traits": [
+      {
+       "id": "a-distance",
+       "value": 9,
+       "arg": "arbalete",
+       "range": 60
+      },
+      {
+       "id": "arme",
+       "value": 7,
+       "arg": "Épée"
+      },
+      {
+       "id": "corruption",
+       "arg": "Mineure"
+      },
+      {
+       "id": "mutation",
+       "arg": "ecailles-epineuses-edoc"
+      }
+     ],
+     "optionals": [],
+     "skills": [
+      {
+       "id": "commandement",
+       "value": 45
+      },
+      {
+       "id": "corps-a-corps",
+       "spec": "base",
+       "value": 54
+      },
+      {
+       "id": "intimidation",
+       "value": 49
+      },
+      {
+       "id": "perception",
+       "value": 43
+      },
+      {
+       "id": "projectiles",
+       "spec": "arbalete",
+       "value": 52
+      },
+      {
+       "id": "survie-en-exterieur",
+       "value": 38
+      }
+     ],
+     "trappings": [
+      {
+       "text": "2 CO 3/13"
+      },
+      {
+       "id": "arbalete"
+      },
+      {
+       "text": "épée"
+      },
+      {
+       "text": "anneau (valant 3 CO)"
+      },
+      {
+       "text": "médaillon en argent (valant 1 CO)"
+      }
+     ],
+     "descRef": {
+      "book": "ennemi-dans-l-ombre",
+      "ch": "02",
+      "parts": [
+       {
+        "kind": "blocs",
+        "sec": "le-chef-des-mutants",
+        "secOcc": 1,
+        "b0": 0,
+        "b1": 0,
+        "sum": "5451003e173cabb9"
+       }
+      ]
+     }
+    }
+   },
+   {
+    "id": "edo-magnus-pflaster",
+    "base": "humain",
+    "source": {
+     "book": "ennemi-dans-l-ombre",
+     "page": 30
+    },
+    "profil": {
+     "label": "Magnus Pflaster",
+     "title": "Sergent patrouilleur routier humain (Argent 4)",
+     "named": true,
+     "char": {
+      "M": 4,
+      "capacite-de-combat": 45,
+      "capacite-de-tir": 49,
+      "force": 37,
+      "endurance": 44,
+      "initiative": 46,
+      "agilite": 27,
+      "dexterite": 28,
+      "intelligence": 32,
+      "force-mentale": 39,
+      "sociabilite": 41,
+      "B": 14
+     },
+     "traits": [
+      {
+       "id": "a-distance",
+       "value": 8,
+       "arg": "pistolet",
+       "range": 20
+      },
+      {
+       "id": "arme",
+       "value": 7,
+       "arg": "Épée"
+      },
+      {
+       "id": "armure",
+       "value": 2,
+       "arg": "Chemise de mailles"
+      },
+      {
+       "id": "prejuge",
+       "arg": "criminel"
+      }
+     ],
+     "optionals": [],
+     "skills": [
+      {
+       "id": "chevaucher",
+       "spec": "cheval",
+       "value": 42
+      },
+      {
+       "id": "commandement",
+       "value": 56
+      },
+      {
+       "id": "corps-a-corps",
+       "spec": "base",
+       "value": 60
+      },
+      {
+       "id": "intimidation",
+       "value": 52
+      },
+      {
+       "id": "perception",
+       "value": 51
+      },
+      {
+       "id": "projectiles",
+       "spec": "poudre-noire",
+       "value": 64
+      },
+      {
+       "id": "ragot",
+       "value": 51
+      },
+      {
+       "id": "soin-aux-animaux",
+       "value": 42
+      }
+     ],
+     "talents": [
+      {
+       "id": "flairer-les-ennuis"
+      }
+     ],
+     "trappings": [
+      {
+       "id": "chemise-de-mailles"
+      },
+      {
+       "text": "épée"
+      },
+      {
+       "text": "pistolet (avec munitions pour 10 tirs)"
+      },
+      {
+       "text": "cheval avec selle et harnais"
+      }
+     ],
+     "descRef": {
+      "book": "ennemi-dans-l-ombre",
+      "ch": "02",
+      "parts": [
+       {
+        "kind": "blocs",
+        "sec": "sergent-pflaster",
+        "secOcc": 1,
+        "b0": 0,
+        "b1": 0,
+        "sum": "612f6a52550c4eb5"
+       }
+      ]
+     }
+    }
+   },
+   {
+    "id": "edo-patrouilleurs-de-pflaster",
+    "base": "humain",
+    "source": {
+     "book": "ennemi-dans-l-ombre",
+     "page": 31
+    },
+    "profil": {
+     "label": "Baldwin, Leopold, Sunna, Willirun",
+     "title": "Patrouilleur routier humain (Argent 2)",
+     "named": true,
+     "char": {
+      "M": 4,
+      "capacite-de-combat": 45,
+      "capacite-de-tir": 45,
+      "force": 35,
+      "endurance": 44,
+      "initiative": 40,
+      "agilite": 30,
+      "dexterite": 28,
+      "intelligence": 30,
+      "force-mentale": 39,
+      "sociabilite": 35,
+      "B": 14
+     },
+     "traits": [
+      {
+       "id": "a-distance",
+       "value": 9,
+       "arg": "arbalete",
+       "range": 60
+      },
+      {
+       "id": "arme",
+       "value": 7,
+       "arg": "Épées"
+      },
+      {
+       "id": "armure",
+       "value": 1,
+       "arg": "Veste de cuir"
+      },
+      {
+       "id": "prejuge",
+       "arg": "criminel, personnes-qui-ne-leur-offrent-rien"
+      }
+     ],
+     "optionals": [],
+     "skills": [
+      {
+       "id": "chevaucher",
+       "spec": "cheval",
+       "value": 40
+      },
+      {
+       "id": "corps-a-corps",
+       "spec": "base",
+       "value": 50
+      },
+      {
+       "id": "intimidation",
+       "value": 40
+      },
+      {
+       "id": "intuition",
+       "value": 50
+      },
+      {
+       "id": "perception",
+       "value": 45
+      },
+      {
+       "id": "projectiles",
+       "spec": "arbalete",
+       "value": 55
+      },
+      {
+       "id": "soin-aux-animaux",
+       "value": 40
+      },
+      {
+       "id": "subornation",
+       "value": 40
+      }
+     ],
+     "talents": [
+      {
+       "id": "frappe-assommante"
+      }
+     ],
+     "trappings": [
+      {
+       "text": "arbalète (avec 10 carreaux)"
+      },
+      {
+       "text": "épée"
+      },
+      {
+       "id": "veste-de-cuir"
+      },
+      {
+       "text": "cheval avec selle et harnais"
+      }
+     ],
+     "descRef": {
+      "book": "ennemi-dans-l-ombre",
+      "ch": "02",
+      "parts": [
+       {
+        "kind": "blocs",
+        "sec": "la-troupe-de-pflaster",
+        "secOcc": 1,
+        "b0": 0,
+        "b1": 0,
+        "sum": "5c061a72bd307bfd"
+       }
+      ]
+     }
+    }
+   },
+   {
+    "id": "edo-anida-pflaster",
+    "base": "humain",
+    "source": {
+     "book": "ennemi-dans-l-ombre",
+     "page": 31
+    },
+    "profil": {
+     "label": "Anida Pflaster",
+     "title": "Doktor humain (Argent 5)",
+     "named": true,
+     "char": {
+      "M": 4,
+      "capacite-de-combat": 27,
+      "capacite-de-tir": 32,
+      "force": 31,
+      "endurance": 36,
+      "initiative": 55,
+      "agilite": 35,
+      "dexterite": 54,
+      "intelligence": 53,
+      "force-mentale": 47,
+      "sociabilite": 44,
+      "B": 13
+     },
+     "traits": [
+      {
+       "id": "arme",
+       "value": 3,
+       "arg": "Poings"
+      },
+      {
+       "id": "prejuge",
+       "arg": "rustres-et-idiots"
+      }
+     ],
+     "optionals": [],
+     "skills": [
+      {
+       "id": "guerison",
+       "value": 68
+      },
+      {
+       "id": "savoir",
+       "spec": "anatomie",
+       "value": 63
+      },
+      {
+       "id": "savoir",
+       "spec": "medecine",
+       "value": 73
+      }
+     ],
+     "talents": [
+      {
+       "id": "chirurgie"
+      },
+      {
+       "id": "lire-ecrire"
+      },
+      {
+       "id": "pansement-de-fortune"
+      },
+      {
+       "id": "resistance",
+       "spec": "maladie"
+      }
+     ],
+     "trappings": [
+      {
+       "text": "sacoche médicale contenant : des bandages (autant que nécessaire), des potions de guérison (6), des outils professionnels (Médecin), une licence accordée par une guilde, et tous les autres biens que vous jugerez nécessaires à son voyage"
+      }
+     ],
+     "descRef": {
+      "book": "ennemi-dans-l-ombre",
+      "ch": "02",
+      "parts": [
+       {
+        "kind": "blocs",
+        "sec": "le-doktor",
+        "secOcc": 1,
+        "b0": 0,
+        "b1": 1,
+        "sum": "ccef5bba3064c869"
+       }
+      ]
+     }
+    }
+   },
+   {
+    "id": "edo-johann-hindersson",
+    "base": "humain",
+    "source": {
+     "book": "ennemi-dans-l-ombre-compagnon",
+     "page": 40
+    },
+    "profil": {
+     "label": "Johann Hindersson",
+     "title": "Péager humain (Bronze 5)",
+     "named": true,
+     "char": {
+      "M": 4,
+      "capacite-de-combat": 39,
+      "capacite-de-tir": 38,
+      "force": 37,
+      "endurance": 41,
+      "initiative": 36,
+      "agilite": 25,
+      "dexterite": 27,
+      "intelligence": 22,
+      "force-mentale": 32,
+      "sociabilite": 29,
+      "B": 14
+     },
+     "traits": [
+      {
+       "id": "a-distance",
+       "value": 9,
+       "arg": "arbalete",
+       "range": 60
+      },
+      {
+       "id": "arme",
+       "value": 7,
+       "arg": "Gourdin"
+      },
+      {
+       "id": "armure",
+       "value": 1,
+       "arg": "Veste de cuir"
+      }
+     ],
+     "optionals": [],
+     "skills": [
+      {
+       "id": "corps-a-corps",
+       "spec": "base",
+       "value": 44
+      },
+      {
+       "id": "marchandage",
+       "value": 27
+      },
+      {
+       "id": "pari",
+       "value": 27
+      },
+      {
+       "id": "perception",
+       "value": 41
+      },
+      {
+       "id": "projectiles",
+       "spec": "arbalete",
+       "value": 43
+      },
+      {
+       "id": "ragot",
+       "value": 34
+      },
+      {
+       "id": "resistance-a-l-alcool",
+       "value": 46
+      },
+      {
+       "id": "subornation",
+       "value": 34
+      }
+     ],
+     "talents": [
+      {
+       "id": "tireur-de-precision"
+      }
+     ],
+     "trappings": [
+      {
+       "id": "cape"
+      },
+      {
+       "id": "vetements"
+      },
+      {
+       "text": "arbalète avec 10 carreaux"
+      },
+      {
+       "text": "gourdin"
+      },
+      {
+       "id": "veste-de-cuir"
+      },
+      {
+       "text": "44 sc"
+      }
+     ],
+     "descRef": {
+      "book": "ennemi-dans-l-ombre-compagnon",
+      "ch": "10",
+      "parts": [
+       {
+        "kind": "blocs",
+        "sec": "johann-hindersson-peager",
+        "secOcc": 1,
+        "b0": 0,
+        "b1": 0,
+        "sum": "3de0e42e178e3501"
+       }
+      ]
+     }
+    }
+   },
+   {
+    "id": "edo-aleanora-basfond",
+    "base": "halfling",
+    "source": {
+     "book": "ennemi-dans-l-ombre-compagnon",
+     "page": 41
+    },
+    "profil": {
+     "label": "Aleanora 'Al' Basfond",
+     "title": "Péager halfling (Bronze 5)",
+     "named": true,
+     "char": {
+      "M": 3,
+      "capacite-de-combat": 22,
+      "capacite-de-tir": 54,
+      "force": 22,
+      "endurance": 38,
+      "initiative": 36,
+      "agilite": 35,
+      "dexterite": 44,
+      "intelligence": 30,
+      "force-mentale": 38,
+      "sociabilite": 44,
+      "B": 9
+     },
+     "traits": [
+      {
+       "id": "a-distance",
+       "value": 9,
+       "arg": "arbalete",
+       "range": 60
+      },
+      {
+       "id": "armure",
+       "value": 1,
+       "arg": "Veste de cuir"
+      },
+      {
+       "id": "arme",
+       "value": 5,
+       "arg": "dague"
+      }
+     ],
+     "optionals": [],
+     "skills": [
+      {
+       "id": "corps-a-corps",
+       "spec": "base",
+       "value": 27
+      },
+      {
+       "id": "escamotage",
+       "value": 51
+      },
+      {
+       "id": "esquive",
+       "value": 43
+      },
+      {
+       "id": "marchandage",
+       "value": 52
+      },
+      {
+       "id": "pari",
+       "value": 35
+      },
+      {
+       "id": "perception",
+       "value": 41
+      },
+      {
+       "id": "projectiles",
+       "spec": "arbalete",
+       "value": 59
+      },
+      {
+       "id": "ragot",
+       "value": 49
+      },
+      {
+       "id": "resistance-a-l-alcool",
+       "value": 43
+      },
+      {
+       "id": "subornation",
+       "value": 49
+      }
+     ],
+     "talents": [
+      {
+       "id": "escroquer"
+      },
+      {
+       "id": "petit"
+      },
+      {
+       "id": "resistance",
+       "spec": "chaos"
+      },
+      {
+       "id": "sens-aiguise",
+       "spec": "gout"
+      },
+      {
+       "id": "tireur-de-precision"
+      },
+      {
+       "id": "vision-nocturne"
+      },
+      {
+       "id": "voyageur-aguerri"
+      }
+     ],
+     "trappings": [
+      {
+       "text": "arbalète avec 10 carreaux"
+      },
+      {
+       "id": "dague"
+      },
+      {
+       "id": "cape"
+      },
+      {
+       "id": "veste-de-cuir"
+      },
+      {
+       "id": "vetements"
+      },
+      {
+       "text": "44 sous de cuivre (plus 16 pistoles d'argent et 3 couronnes d'or cachées ailleurs)"
+      }
+     ],
+     "descRef": {
+      "book": "ennemi-dans-l-ombre-compagnon",
+      "ch": "10",
+      "parts": [
+       {
+        "kind": "blocs",
+        "sec": "aleanora-al-basfond-peager",
+        "secOcc": 1,
+        "b0": 0,
+        "b1": 0,
+        "sum": "de774fbaae997a3f"
+       }
+      ]
+     }
+    }
+   },
+   {
+    "id": "edo-charlotte-samantha-maiers",
+    "base": "humain",
+    "source": {
+     "book": "ennemi-dans-l-ombre-compagnon",
+     "page": 41
+    },
+    "profil": {
+     "label": "Charlotte-Samantha Maiers",
+     "title": "Sergent patrouilleur humain (Argent 4)",
+     "named": true,
+     "char": {
+      "M": 4,
+      "capacite-de-combat": 55,
+      "capacite-de-tir": 57,
+      "force": 34,
+      "endurance": 42,
+      "initiative": 53,
+      "agilite": 36,
+      "dexterite": 37,
+      "intelligence": 35,
+      "force-mentale": 39,
+      "sociabilite": 41,
+      "B": 14
+     },
+     "traits": [
+      {
+       "id": "a-distance",
+       "value": 8,
+       "arg": "pistolet",
+       "range": 20
+      },
+      {
+       "id": "arme",
+       "value": 7,
+       "arg": "Épée et Bouclier"
+      },
+      {
+       "id": "armure",
+       "value": 2,
+       "arg": "Veste de cuir et cotte de maille"
+      }
+     ],
+     "optionals": [],
+     "skills": [
+      {
+       "id": "chevaucher",
+       "spec": "cheval",
+       "value": 51
+      },
+      {
+       "id": "commandement",
+       "value": 56
+      },
+      {
+       "id": "corps-a-corps",
+       "spec": "base",
+       "value": 70
+      },
+      {
+       "id": "intuition",
+       "value": 68
+      },
+      {
+       "id": "intimidation",
+       "value": 49
+      },
+      {
+       "id": "marchandage",
+       "value": 55
+      },
+      {
+       "id": "resistance-a-l-alcool",
+       "value": 47
+      },
+      {
+       "id": "pari",
+       "value": 40
+      },
+      {
+       "id": "perception",
+       "value": 58
+      },
+      {
+       "id": "projectiles",
+       "spec": "poudre-noire",
+       "value": 72
+      },
+      {
+       "id": "projectiles",
+       "spec": "arbalete",
+       "value": 67
+      },
+      {
+       "id": "ragot",
+       "value": 56
+      },
+      {
+       "id": "soin-aux-animaux",
+       "value": 45
+      },
+      {
+       "id": "subornation",
+       "value": 56
+      },
+      {
+       "id": "survie-en-exterieur",
+       "value": 45
+      }
+     ],
+     "talents": [
+      {
+       "id": "cavalier-emerite"
+      },
+      {
+       "id": "flairer-les-ennuis"
+      },
+      {
+       "id": "noblesse"
+      },
+      {
+       "id": "tireur-de-precision"
+      },
+      {
+       "id": "voyageur-aguerri"
+      }
+     ],
+     "trappings": [
+      {
+       "id": "bouclier"
+      },
+      {
+       "text": "cheval de monte avec selle et harnais"
+      },
+      {
+       "id": "corde"
+      },
+      {
+       "text": "cotte de maille"
+      },
+      {
+       "id": "dague"
+      },
+      {
+       "text": "épée"
+      },
+      {
+       "text": "escadron de 5 patrouilleurs routiers"
+      },
+      {
+       "text": "insigne de son rang"
+      },
+      {
+       "id": "cape"
+      },
+      {
+       "text": "pistolet avec 10 balles"
+      },
+      {
+       "id": "veste-de-cuir"
+      },
+      {
+       "id": "vetements"
+      },
+      {
+       "text": "38 pistoles d'argent"
+      }
+     ],
+     "descRef": {
+      "book": "ennemi-dans-l-ombre-compagnon",
+      "ch": "10",
+      "parts": [
+       {
+        "kind": "blocs",
+        "sec": "charlotte-samantha-maiers-sergent-patrouilleur",
+        "secOcc": 1,
+        "b0": 0,
+        "b1": 0,
+        "sum": "39b9d8d30fc2801a"
+       }
+      ]
+     }
+    }
+   },
+   {
+    "id": "edo-heinrich-steele",
+    "base": "humain",
+    "source": {
+     "book": "ennemi-dans-l-ombre-compagnon",
+     "page": 42
+    },
+    "profil": {
+     "label": "Heinrich Steele",
+     "title": "Capitaine patrouilleur routier humain (Or 1)",
+     "named": true,
+     "char": {
+      "M": 4,
+      "capacite-de-combat": 51,
+      "capacite-de-tir": 61,
+      "force": 38,
+      "endurance": 52,
+      "initiative": 59,
+      "agilite": 27,
+      "dexterite": 29,
+      "intelligence": 44,
+      "force-mentale": 45,
+      "sociabilite": 49,
+      "B": 17
+     },
+     "traits": [
+      {
+       "id": "a-distance",
+       "value": 8,
+       "arg": "pistolet",
+       "range": 20
+      },
+      {
+       "id": "arme",
+       "value": 7,
+       "arg": "Épée et Bouclier"
+      },
+      {
+       "id": "armure",
+       "value": 2,
+       "arg": "Veste de cuir et cotte de mailles"
+      }
+     ],
+     "optionals": [],
+     "skills": [
+      {
+       "id": "chevaucher",
+       "spec": "cheval",
+       "value": 47
+      },
+      {
+       "id": "commandement",
+       "value": 69
+      },
+      {
+       "id": "corps-a-corps",
+       "spec": "base",
+       "value": 71
+      },
+      {
+       "id": "intimidation",
+       "value": 58
+      },
+      {
+       "id": "intuition",
+       "value": 79
+      },
+      {
+       "id": "marchandage",
+       "value": 54
+      },
+      {
+       "id": "orientation",
+       "value": 64
+      },
+      {
+       "id": "pari",
+       "value": 49
+      },
+      {
+       "id": "perception",
+       "value": 64
+      },
+      {
+       "id": "projectiles",
+       "spec": "arbalete",
+       "value": 71
+      },
+      {
+       "id": "projectiles",
+       "spec": "poudre-noire",
+       "value": 81
+      },
+      {
+       "id": "ragot",
+       "value": 64
+      },
+      {
+       "id": "resistance-a-l-alcool",
+       "value": 57
+      },
+      {
+       "id": "savoir",
+       "spec": "empire",
+       "value": 64
+      },
+      {
+       "id": "soin-aux-animaux",
+       "value": 54
+      },
+      {
+       "id": "subornation",
+       "value": 49
+      },
+      {
+       "id": "survie-en-exterieur",
+       "value": 54
+      }
+     ],
+     "talents": [
+      {
+       "id": "claquer-le-fouet"
+      },
+      {
+       "id": "flairer-les-ennuis"
+      },
+      {
+       "id": "haine",
+       "spec": "cultistes"
+      },
+      {
+       "id": "imperturbable"
+      },
+      {
+       "id": "presence-imposante"
+      },
+      {
+       "id": "sans-peur",
+       "spec": "hors-la-loi"
+      },
+      {
+       "id": "tireur-de-precision"
+      },
+      {
+       "id": "vigilance"
+      }
+     ],
+     "trappings": [
+      {
+       "text": "arbalète avec 10 carreaux"
+      },
+      {
+       "id": "bouclier"
+      },
+      {
+       "text": "chapeau et cape de qualité"
+      },
+      {
+       "text": "cheval de guerre léger avec sa selle et son harnais"
+      },
+      {
+       "id": "corde"
+      },
+      {
+       "id": "cotte-de-mailles"
+      },
+      {
+       "id": "dague"
+      },
+      {
+       "text": "épée"
+      },
+      {
+       "text": "insigne de son rang"
+      },
+      {
+       "text": "pistolet avec 10 balles"
+      },
+      {
+       "text": "unité de 8-12 (ou jusqu'à 16-24) patrouilleurs routiers"
+      },
+      {
+       "id": "veste-de-cuir"
+      },
+      {
+       "id": "vetements"
+      },
+      {
+       "text": "1d10 couronnes d'or"
+      }
+     ],
+     "descRef": {
+      "book": "ennemi-dans-l-ombre-compagnon",
+      "ch": "10",
+      "parts": [
+       {
+        "kind": "blocs",
+        "sec": "heinrich-steele-capitaine-patrouilleur",
+        "secOcc": 1,
+        "b0": 0,
+        "b1": 1,
+        "sum": "69fa7ba0b49d3c01"
+       }
+      ]
+     }
+    }
+   }
+  ],
   "objets": [],
   "ouverture": {
    "surtitre": "Une campagne pour Warhammer Fantasy Roleplay",
@@ -37,57 +2536,6 @@
    "titre": "Chapitre 1 — la route d’Altdorf",
    "sousTitre": "Ce que la compagnie emporte vers la capitale"
   }
- },
- "worldMap": {
-  "id": "carte-edo-ch1",
-  "label": "La route d’Altdorf",
-  "places": [
-   {
-    "id": "la-diligence",
-    "label": "Auberge La Diligence",
-    "pos": {
-     "x": 26,
-     "y": 68
-    },
-    "scene": "la-diligence",
-    "icon": "scenario/hamlet"
-   },
-   {
-    "id": "altdorf",
-    "label": "Altdorf",
-    "pos": {
-     "x": 72,
-     "y": 26
-    },
-    "scene": "altdorf-porte-sud",
-    "icon": "scenario/village",
-    "when": {
-     "kind": "flag",
-     "expr": "edo-ch1-altdorf-revelee"
-    }
-   }
-  ],
-  "routes": [
-   {
-    "id": "route-la-diligence-altdorf",
-    "a": "la-diligence",
-    "b": "altdorf",
-    "km": 180,
-    "modes": [
-     "pied",
-     "diligence"
-    ],
-    "speed": {
-     "diligence": 15
-    },
-    "inns": true,
-    "when": {
-     "kind": "flag",
-     "expr": "edo-ch1-altdorf-revelee"
-    },
-    "refus": "Aucun trajet ne part encore de ce relais."
-   }
-  ]
  },
  "scenes": [
   {
@@ -16947,5 +19395,56 @@
    "encounters": [],
    "flags": {}
   }
- ]
+ ],
+ "worldMap": {
+  "id": "carte-edo-ch1",
+  "label": "La route d’Altdorf",
+  "places": [
+   {
+    "id": "la-diligence",
+    "label": "Auberge La Diligence",
+    "pos": {
+     "x": 26,
+     "y": 68
+    },
+    "scene": "la-diligence",
+    "icon": "scenario/hamlet"
+   },
+   {
+    "id": "altdorf",
+    "label": "Altdorf",
+    "pos": {
+     "x": 72,
+     "y": 26
+    },
+    "scene": "altdorf-porte-sud",
+    "icon": "scenario/village",
+    "when": {
+     "kind": "flag",
+     "expr": "edo-ch1-altdorf-revelee"
+    }
+   }
+  ],
+  "routes": [
+   {
+    "id": "route-la-diligence-altdorf",
+    "a": "la-diligence",
+    "b": "altdorf",
+    "km": 180,
+    "modes": [
+     "pied",
+     "diligence"
+    ],
+    "speed": {
+     "diligence": 15
+    },
+    "inns": true,
+    "when": {
+     "kind": "flag",
+     "expr": "edo-ch1-altdorf-revelee"
+    },
+    "refus": "Aucun trajet ne part encore de ce relais."
+   }
+  ]
+ }
 }

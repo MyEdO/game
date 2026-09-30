@@ -2412,6 +2412,16 @@
           "note": "frenchy.bzh 22 l.608"
         },
         "pool": false
+      },
+      {
+        "id": "cultistes",
+        "label": "Cultistes",
+        "source": {
+          "book": "ennemi-dans-l-ombre-compagnon",
+          "page": 42,
+          "note": "EDOC 10 l.130"
+        },
+        "pool": false
       }
     ],
     "rand": null,

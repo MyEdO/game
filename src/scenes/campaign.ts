@@ -28,6 +28,8 @@ export interface BuiltinCampaign extends ProjectIdentite {
   /** L'icône est REQUISE sur une campagne exposée au picker (l'enveloppe la pose optionnelle). */
   icon: string;
   paquet: PaquetDuJeu;
+  /** Nom du fichier du paquet sous `src/scenes/` (`diligence-projet.json`), tel que ce registre le déclare. */
+  fichier: string;
 }
 
 /** Le paquet d'une campagne du jeu passé par la porte `parseProject`, AU GESTE : un refus lève
@@ -142,6 +144,7 @@ function campagneDuPaquet(paquet: PaquetDuJeu & Readonly<Record<string, unknown>
     ...(source !== undefined ? { source } : {}),
     ...(maison !== undefined ? { maison } : {}),
     paquet,
+    fichier,
   };
 }
 

@@ -294,13 +294,13 @@ narratif: { affaires: Affaire[]; indices: Indice[]; presetsPnj: PresetPnj[]; obj
 - **Migration.** Un projet schema 2 legacy (localStorage éditeur d'avant #765) monte au format courant
   au chargement (`PROJECT_MIGRATIONS[2]` injecte un narratif vide ; `[4]` aplatit la poche `meta` et
   renomme sa `version` en `versionContenu` ; `[5]` donne au libellé de scène et de carte sa graphie
-  `label` et fait s'annoncer les statblocs embarqués). Les **quatre projets committés sont
-  en schema 6** : « L'Arène » (`src/scenes/arene/arene-projet.json`), « La Barge du Sel »
-  (`src/scenes/barge-du-sel/barge-du-sel-projet.json`), « La Diligence »
-  (`src/scenes/diligence/diligence-projet.json`, sans `worldMap`) et « Le Loup et la Saumure »
-  (`src/scenes/loup-et-saumure/loup-et-saumure-projet.json`) — produits par `projectDoc`
-  (`scripts/campagne/lib.mjs`, fabrique UNIQUE du document de projet). Chacun a son def de schéma
-  (`src/data/schemas/defs-scenes/`) et parse `projetSchema` en CI.
+  `label` et fait s'annoncer les statblocs embarqués). Les **projets committés** (corpus
+  `listerProjetsLivres`, `scripts/guards/lib/projetsLivres.mjs`) sont au schéma courant
+  `SCHEMA_PROJET` (`src/data/schemas/defs-scenes/projet.ts`) et parsent `projetSchema` en CI
+  (`src/scenes/bundled-projects.test.ts`). Un paquet GÉNÉRÉ sort de `projectDoc`
+  (`scripts/campagne/lib.mjs`, fabrique UNIQUE du document de projet) ; « La Diligence »
+  (`src/scenes/diligence/diligence-projet.json`) est MANUSCRITE (doctrine
+  `user-doctrine-campagne-jamais-generee-par-script`).
 - **Éditeur.** Le bouton « Narratif » (`src/ui/editor/EditorToolbar.tsx`) ouvre le viewer
   `src/ui/editor/NarratifEditor.tsx` (onglets Cadre/Affaires/Indices/PNJ/Objets).
 - **Instancier un PNJ nommé dans une scène (`presetId`, #671).** Une `SceneEntity` (ou un `AuthoredEnemy`
@@ -310,9 +310,21 @@ narratif: { affaires: Affaire[]; indices: Indice[]; presetsPnj: PresetPnj[]; obj
   et `profil` AU NIVEAU CHAMP (`char` par caractéristique ; `skills`/`talents`/`traits`/`spells` remplacés
   en bloc si présents). Au spawn de rencontre (`combatSlice`), la créature mergée et `preset.apparence` sont
   passées à `spawnEnemy` (canal `presetCreature`) ; le portrait de dialogue (`gameIso/tokenBodyKind.tsx`)
-  dérive le rig de `preset.base`/`preset.apparence`. Couche non chargée / preset absent → repli silencieux
-  sur `ref`/`statblock`. `parseProject` valide fail-fast (clause `presetId` de `projetSchema`) que tout `presetId`
-  de scène résout un preset déclaré.
+  dérive le rig de `preset.base`/`preset.apparence`. Couche non chargée / preset irrésoluble → `FicheAbsente`
+  (`src/state/sceneNpc.ts`, #1882), jamais un PNJ générique. `parseProject` valide fail-fast (clause `presetId` de
+  `projetSchema`) que tout `presetId` de scène résout un preset déclaré. Curation (#680) : un profil imprimé
+  partagé par plusieurs PNJ = UN preset ; un statbloc complet porte `optionals: []` ; sa prose est une
+  ADRESSE (`profil.descRef`, dérivée par `judge`, `scripts/source/derive-decoupes.mjs`) dans le livre de
+  `source`, jamais le texte recopié.
+- **Prose adressée : forme dépôt, forme servie.** Sur le disque, un nœud adressé ne porte que `descRef` ;
+  le plugin `wfrp:prose-source` (`scripts/source/prose-source-plugin.mjs`) matérialise son `desc` dans le
+  module servi, pour tout document de `RACINES_PROSE` (catalogues ET projets livrés). `parseProject`
+  refuse la forme dépôt (cause `prose-non-materialisee`, chemins nommés) : un lecteur Node d'un projet
+  livré passe par `lireProjetLivre` (`scripts/source/projetLivre.mjs`), `dev-validate` lit le disque en
+  `?raw`. L'export portable garde `desc` ET `descRef` ; l'éditeur offre en DEV, pour une campagne LIVRÉE
+  ouverte (`origineLivree`), « Exporter forme dépôt » (`projetVersDepot`, `src/state/worldMap.ts` : prose
+  ET ports par référence ramenés à leur forme canonique) : le fichier téléchargé sous son nom
+  (`BuiltinCampaign.fichier`), avec le libellé d'origine tant que le projet n'est pas renommé.
 
 ## 10quater. Cadre du chapitre : ouverture cérémonielle et clôture (`narratif.ouverture` / `.cloture`, #717)
 

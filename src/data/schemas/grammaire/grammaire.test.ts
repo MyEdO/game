@@ -15,7 +15,7 @@ import skillsJson from '../../skills.json';
 import talentsJson from '../../talents.json';
 import tablesJson from '../../tables.json';
 import traitsJson from '../../traits.json';
-import { document, CLES_ENVELOPPE, CLES_EXIGIBLES, META_CHARGE, optionsEnum, type Exposition, type CleExigible } from './document';
+import { document, documentDeLEntreePartielle, CLES_ENVELOPPE, CLES_EXIGIBLES, META_CHARGE, optionsEnum, type Exposition, type CleExigible } from './document';
 import { libelleDeValeur, valeursDe } from './meta';
 import { descRefSchema, enumNomme, sourceRefSchema } from './valeurs';
 import { proseAdressable, versDisque } from './prose';
@@ -242,6 +242,14 @@ describe('document() — enveloppe posée par la fabrique', () => {
     const parse: z.infer<typeof fiche.entree> = fiche.entree.parse(DOC_COMPLET);
     expect((parse as { max: number }).max).toBe(2);
     expect(fiche.entree.safeParse({ ...DOC_COMPLET, max: 'deux' }).success).toBe(false);
+  });
+
+  it('marque l’entrée PARTIELLE de son document — et elle seule', () => {
+    expect(documentDeLEntreePartielle(fiche.entreePartielle)).toBe(fiche.schema);
+    expect(documentDeLEntreePartielle(fiche.entree)).toBeUndefined();
+    expect(documentDeLEntreePartielle(fiche.schema)).toBeUndefined();
+    expect(documentDeLEntreePartielle(z.object({}))).toBeUndefined();
+    expect(documentDeLEntreePartielle(undefined)).toBeUndefined();
   });
 });
 

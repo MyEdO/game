@@ -5,9 +5,9 @@ import { Icon } from './Icon';
 import { ListRow } from './ListRow';
 import { useGame } from '../state/store';
 import { downloadText, fileSlug } from '../lib/fileIo';
-import { parseProject, documentDeProjet, type ProjectDoc } from '../state/worldMap';
+import { parseProject, documentDeProjet, ProjetRefuse, type ProjectDoc } from '../state/worldMap';
 import {
-  projectsLoad, projectSave, projectRemove, nomDeProjet, documentDeLEntree, campagneDeLEntree, playerEntryError, refusJoueur,
+  projectsLoad, projectSave, projectRemove, nomDeProjet, documentDeLEntree, campagneDeLEntree, playerEntryError, refusJoueur, IMPORT_FORME_DEPOT,
   type SavedProject,
 } from '../state/projectLibrary';
 import { allBuiltinCampaigns, campagneDuJeu, documentDuJeu, type BuiltinCampaign } from '../scenes/campaign';
@@ -59,15 +59,18 @@ export function buildImportedProject(text: string): SavedProject {
  *  Le tri est STRUCTUREL : `PlayerFacingImportError` porte un message déjà écrit pour le joueur
  *  (JSON illisible) — jamais une comparaison de TEXTE (une reformulation FR ne doit jamais changer
  *  le comportement). Un refus de la porte (`ProjetRefuse`) est journalisé
- *  (`console.error`, diagnostic) et remplacé par un message générique ; toute autre erreur remonte
+ *  (`console.error`, diagnostic) et remplacé par le message de sa CAUSE — un fichier du dépôt, dont
+ *  la prose n'est qu'adressée, a le sien — ou le générique ; toute autre erreur remonte
  *  (`refusJoueur`). */
 export function playerImportError(err: unknown): string {
   if (err instanceof PlayerFacingImportError) return err.message;
   return refusJoueur(
     err,
     'Import de campagne refusé :',
-    'Ce fichier n’est pas une campagne exploitable. Vérifiez qu’il provient bien d’un export ' +
-      'de campagne du jeu, ou demandez-en une nouvelle version à son auteur.',
+    err instanceof ProjetRefuse && err.cause === 'prose-non-materialisee'
+      ? IMPORT_FORME_DEPOT
+      : 'Ce fichier n’est pas une campagne exploitable. Vérifiez qu’il provient bien d’un export ' +
+          'de campagne du jeu, ou demandez-en une nouvelle version à son auteur.',
   );
 }
 

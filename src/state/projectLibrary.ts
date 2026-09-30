@@ -103,6 +103,11 @@ export function playerEntryError(err: unknown, geste: GesteDuJoueur): string {
   );
 }
 
+/** Ce qu'un refus `prose-non-materialisee` dit à qui importe : le fichier est la forme DÉPÔT d'une
+ *  campagne livrée, pas son export. SOURCE UNIQUE de l'import joueur et de l'import de l'éditeur. */
+export const IMPORT_FORME_DEPOT =
+  'Ce fichier est la version de travail d’une campagne : les textes du livre n’y sont pas. Importez le fichier exporté par le jeu.';
+
 /** Le refus de la porte (`ProjetRefuse`) JOURNALISÉ (`console.error`, diagnostic) puis remplacé par un
  *  message générique : le langage de schéma n'atteint jamais l'écran du joueur. Toute autre erreur
  *  n'est pas un refus de la porte : elle remonte telle quelle (même règle que

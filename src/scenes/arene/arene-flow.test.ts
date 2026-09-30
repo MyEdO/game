@@ -1,6 +1,4 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import { useGame } from '../../state/store';
 import { applyEffects, runFlow } from '../../state/combatFlow';
 import { EFFECT_HANDLERS } from '../../state/combatEffects';
@@ -10,6 +8,7 @@ import { evalCondition, flowEffects, type Condition } from '../../state/flow';
 import { parseProject } from '../../state/worldMap';
 import { makeShowcaseParty } from '../../data/pregens';
 import { creditBourse, bourseOf } from '../../state/bourseFlow';
+import { lireProjetLivre } from '../../../scripts/source/projetLivre.mjs';
 
 /** Évalue la Condition `when` d'un choix contre l'état VIVANT (source unique evalCondition). */
 const condOk = (when: Condition) => evalCondition(when, { flags: useGame.getState().flags, gameTime: 0 });
@@ -21,7 +20,7 @@ const condOk = (when: Condition) => evalCondition(when, { flags: useGame.getStat
  * de la zone suivante s'ouvre (flag). Tout via des primitives déjà testées (checkTriggers,
  * startCombat, applyEffects, transition, condMet).
  */
-const doc = parseProject(JSON.parse(readFileSync(join(__dirname, 'arene-projet.json'), 'utf8')));
+const doc = parseProject(lireProjetLivre('arene/arene-projet.json'));
 const project: Scene[] = doc.scenes;
 const zone1 = project.find((s) => s.id === 'arene-zone1')!;
 

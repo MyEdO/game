@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { CODEX, CODEX_GROUPS, categoriesIn, categoryByKey, clustersIn, codexLookup, codexLookupVersion, invalidateCodexLookup, type CodexItem, type CodexFacet } from './registry';
+import { CODEX, CODEX_GROUPS, categoriesIn, categoryByKey, clustersIn, codexLookup, codexLookupVersion, creatureStatblock, invalidateCodexLookup, type CodexItem, type CodexFacet } from './registry';
+import { woundsForSize } from '../../engine/size';
 import { codexMatch, filterItems, facetValues } from './search';
 import { replier } from '../../lib/ordre.mjs';
 import { isEditableCategory } from './CodexEdit';
@@ -165,6 +166,21 @@ describe('Codex registry — statbloc bestiaire compact', () => {
     }
     const withTraits = items.find((i) => i.statblock!.traits.length > 0)!;
     expect(withTraits.statblock!.traits.every((r) => r.t === 'ref' && r.category === 'traits')).toBe(true);
+  });
+
+  // Taille du profil : Talent Petit (LDB 10 l.943) sans Trait Taille → Blessures de formule en Petite (LDB 85).
+  const blessures = (c: (typeof creatures)[number]): string => creatureStatblock(c).profile.find((f) => f.label === 'B')!.value;
+  const sansB = (talents: (typeof creatures)[number]['talents']): (typeof creatures)[number] => {
+    const base = creatures[0];
+    const { B: _b, ...char } = base.char;
+    return { ...base, char: { ...char, force: 30, endurance: 30, 'force-mentale': 30 }, traits: [], talents };
+  };
+  it('Talent Petit sans Trait Taille : Blessures de formule en Petite', () => {
+    expect(blessures(sansB([{ id: 'petit' }]))).toBe(String(woundsForSize(3, 3, 3, 'petite')));
+  });
+  it('ni Trait ni Talent de Taille : Blessures de formule en Moyenne', () => {
+    expect(blessures(sansB([]))).toBe(String(woundsForSize(3, 3, 3, 'moyenne')));
+    expect(woundsForSize(3, 3, 3, 'moyenne')).not.toBe(woundsForSize(3, 3, 3, 'petite'));
   });
 });
 

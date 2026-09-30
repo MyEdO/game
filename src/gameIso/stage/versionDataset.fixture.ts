@@ -10,16 +10,16 @@
  * sous `gameIso/`, d'où les builders et `state/` sont importables (`src/data` n'importe ni l'un ni
  * l'autre, cf. le mur `murs/purete-imports`, #1709).
  */
-import { readFileSync } from 'node:fs';
 import { parseProject } from '../../state/worldMap';
 import { buildFloors } from '../builders/floors';
 import { buildProps } from '../builders/props';
 import type { Scene } from '../../state/scene';
+import { lireProjetLivre } from '../../../scripts/source/projetLivre.mjs';
 
 /** Les scènes du projet de campagne de la Diligence, lues au document. */
 export const scenesDeLaDiligence = (): Scene[] =>
   parseProject(
-    JSON.parse(readFileSync(new URL('../../scenes/diligence/diligence-projet.json', import.meta.url), 'utf8')),
+    lireProjetLivre('diligence/diligence-projet.json'),
   ).scenes;
 
 /** Le bake complet : sols + décor de chaque scène. Rend le nombre d'éléments ÉMIS. */

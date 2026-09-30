@@ -1,17 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { resolveById, resolveSpecies } from './rig/bodyPlan';
 import { sizeTokenScale } from './sizeScale';
-import { parseSizeLabel, type SizeCategory } from '../engine/size';
-import { creatures } from '../data/index';
-import type { TraitList } from '../engine/statEntry';
+import { creatures, tailleDuProfil } from '../data/index';
 
-/** Taille du statbloc (trait « Taille (X) », plage → borne haute), défaut Moyenne. */
-function sizeOf(traits: TraitList | undefined): SizeCategory {
-  for (const t of traits ?? []) {
-    if (t.id === 'taille' && t.arg) { const s = parseSizeLabel(t.arg); if (s) return s; }
-  }
-  return 'moyenne';
-}
 const artScale = (id: string): number => resolveById(id).scale;
 
 // GARDE-FOU de la toise (décision utilisateur 2026-06-11) : l'art d'un modèle est dessiné à la
@@ -29,7 +20,7 @@ describe('toise — échelles de rendu (art = nuance intra-catégorie, la Taille
 
   it('échelle finale plafonnée par catégorie (art × Taille ≤ Taille × 1.35)', () => {
     for (const c of creatures) {
-      const size = sizeOf(c.traits);
+      const size = tailleDuProfil(c);
       const fin = artScale(c.id) * sizeTokenScale(size);
       expect(fin, `${c.label} (${size}, final ×${fin.toFixed(2)})`).toBeLessThanOrEqual(sizeTokenScale(size) * 1.35);
     }

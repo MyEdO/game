@@ -14,7 +14,7 @@
 | Catalogue | Entités | Orphelines BRUTES (id seul) | Taux |
 |---|---|---|---|
 | `spells` | 526 | 249 | 47 % |
-| `trappings` | 441 | 207 | 47 % |
+| `trappings` | 441 | 206 | 47 % |
 
 Chacun échappe à la détection par id pour une raison PROPRE : un Sort ne se cite pas par id en
 prod (il s'obtient par Domaine / Talent de lanceur / `learnSpell` de scène — l'instrument juste
@@ -420,4 +420,4 @@ mesure du canal label (qui n'est PAS la cause) : en-tête de `scripts/docs/build
 - `p-tarix-celui-qui-ecrit` — P'tarix, Celui qui écrit
 - `xirat-p-celui-qui-lit` — Xirat'p, Celui qui lit
 
-<!-- sources-empreinte: 5592772467621098a0f2c077b4eb62fb853c96be (2139 fichiers, 136 dossiers) corps: b0426b44380bef3f7613baf260ad6b490541b5b3 -->
+<!-- sources-empreinte: 187382f30d115cd4d52815e0cd77d2e5fb78c7cc (2139 fichiers, 136 dossiers) corps: b208263dd009cbeaa994e7bf56de4eb2f799bf58 -->

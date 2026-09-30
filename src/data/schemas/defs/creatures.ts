@@ -80,6 +80,8 @@ const champs = {
     appearance: entityAppearanceSchema.optional(),
     harvest: z.strictObject({ rarity: harvestRaritySchema, danger: harvestDangerSchema, uses: z.string() }).optional(),
     followsCharacterRules: z.boolean().optional(),
+    /** EDO 01 l.504 ; LDB 19. */
+    corruption: z.number().int().min(0).optional(),
     /** Facette ACHAT (montures, LDB 70 / EDOC 07). */
     purchase: z.strictObject({
       price: moneySchema,
@@ -126,6 +128,7 @@ const doc = document(
       label: 'Suit les règles de Personnage',
       hint: 'La créature suit les règles réservées aux Personnages',
     },
+    corruption: { label: 'Points de Corruption', hint: 'Points de Corruption imprimés par le profil (LDB 19)' },
     purchase: { label: 'Facette Achat', hint: 'Prix et Disponibilité à l’achat (montures)' },
   },
   {

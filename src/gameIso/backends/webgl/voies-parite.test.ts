@@ -1,6 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import { actorBillboards, collectBillboards, combatantRenderSignature } from './sceneMeshes';
 import { buildTokens } from '../../builders/tokens';
 import { buildProps } from '../../builders/props';
@@ -12,6 +10,7 @@ import { emptyScene, sceneMetresPerTile, type Scene, type SceneEntity } from '..
 import { creatures } from '../../../data';
 import type { BattleState } from '../../../state/store';
 import type { Combatant } from '../../../engine/types';
+import { lireProjetLivre } from '../../../../scripts/source/projetLivre.mjs';
 
 /**
  * PARITÉ DES DEUX VOIES DE RENDU DU MONDE (#1176) : ce que le monde VOLUMIQUE dessine doit être ce que
@@ -23,7 +22,7 @@ import type { Combatant } from '../../../engine/types';
  *  - ÉCHELLE : elle jetait l'échelle d'ART de l'espèce (`resolveRender().scale`) pour ne garder que la
  *    catégorie de Taille.
  */
-const doc = parseProject(JSON.parse(readFileSync(join(__dirname, '../../../scenes/arene/arene-projet.json'), 'utf8')));
+const doc = parseProject(lireProjetLivre('arene/arene-projet.json'));
 
 /**
  * Scène CONSTRUITE pour ce contrat : deux figurants VISIBLES et deux EMBUSQUÉS

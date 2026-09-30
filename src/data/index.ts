@@ -126,7 +126,7 @@ import type { DiseaseDef } from '../engine/disease'; // type-only (le runtime de
 import type { PowerEstimateRow, MightModifierRow, WarMachineRow, StructureRow as MassBattleStructureRow, HazardRow } from '../engine/massBattle'; // type-only (le runtime de massBattle.ts importe ces tableaux d'ici)
 import { type DiceSpec, formatDice } from '../engine/dice';
 import type { Money } from '../engine/money'; // type-only (`Money` = SOURCE UNIQUE de la bourse, engine/money.ts)
-import { SIZE_LABEL, sizeFromTalents } from '../engine/size'; // runtime : registre feuille (data/sizes.json + engine/qualities/ids), sans cycle vers data/index
+import { SIZE_LABEL, sizeFromProfile, sizeFromTalents } from '../engine/size'; // runtime : registre feuille (data/sizes.json + engine/qualities/ids), sans cycle vers data/index
 import type { PregenDef } from './pregens'; // type-only (pregens.ts importe la donnée d'ici)
 import type { OupsRow } from './oups';
 import type { InterludeEvent } from './interludeEvents';
@@ -1420,6 +1420,8 @@ export interface CreatureData {
    *  génériques) ; propagé au spawn par `creatureToCombatant` (même prédicat unique `followsCharacterRules`,
    *  `engine/relations.ts`, que `CustomStatblock.followsCharacterRules` côté éditeur). Absent = créature. */
   followsCharacterRules?: boolean;
+  /** EDO 01 l.504 ; LDB 19. */
+  corruption?: number;
   /** Facette ACHAT (marché/possession de carrière) — LDB 70, EDOC 07. */
   purchase?: { price: Money; availability?: string };
   /** Arbitrage NON-verbatim documentant un ou plusieurs champs (ex. `char`/`purchase` approximés
@@ -3044,13 +3046,26 @@ export const premierOffert = (catalogue: readonly { id: string }[], quoi: string
 export const creatureSemee = (): string => premierOffert(creatures, 'Créature semée par un effet neuf');
 export const vehiculeSeme = (): string => premierOffert(vehicles, 'Véhicule semé par un effet neuf');
 export const navireSeme = (): string => premierOffert(vehicles.filter((v) => v.ship), 'Navire semé par un effet neuf');
+/** La Taille que porte un Talent du catalogue (`TalentData.size`) : la lecture que les primitives de Taille
+ *  de `engine/size.ts` (`sizeFromTalents`, `sizeFromProfile`) reçoivent injectée. */
+export const tailleDuTalent = (talentId: string): import('../engine/size').SizeCategory | undefined => findTalentById(talentId)?.size;
+
+/** Taille d'un PROFIL (créature, statbloc) : son `size` explicite, sinon ses Traits puis ses Talents du
+ *  catalogue (`sizeFromProfile`), sinon Moyenne — la lecture UNIQUE des sites qui dérivent la Taille d'un profil. */
+export function tailleDuProfil(p: {
+  readonly size?: import('../engine/size').SizeCategory;
+  readonly traits?: Parameters<typeof sizeFromProfile>[0];
+  readonly talents?: Parameters<typeof sizeFromProfile>[1];
+}): import('../engine/size').SizeCategory {
+  return p.size ?? sizeFromProfile(p.traits, p.talents, tailleDuTalent) ?? 'moyenne';
+}
+
 /** Taille CONFÉRÉE par les talents d'espèce FIXES (une référence ARRÊTÉE, jamais un `{pick}`, un
- *  `{random}` ni un `choix` résiduels — chip décoratif du créateur avant résolution complète, #572).
- *  Même vocabulaire que `sizeFromTalents` (engine/character.ts) : la plus grande catégorie parmi
- *  `TalentData.size`. */
+ *  `{random}` ni un `choix` résiduels — chip décoratif du créateur avant résolution complète, #572) :
+ *  `sizeFromTalents` (engine/size.ts), sinon Moyenne. */
 export function speciesSize(sp: SpeciesData): import('../engine/size').SizeCategory {
   const ids = sp.talents.filter((t): t is RefDesignee => 'id' in t && t.choix == null).map((t) => t.id);
-  return sizeFromTalents(ids, (id) => findTalentById(id)?.size);
+  return sizeFromTalents(ids, tailleDuTalent) ?? 'moyenne';
 }
 /** Race de rig par DÉFAUT, déclarée en donnée (`speciesRace.json` `default`). */
 export const DEFAULT_RACE_ID: string = (speciesRaceJson as { default: string }).default;
@@ -3481,6 +3496,11 @@ export function specResolves(def: { specsSource?: SpecsSource; specs?: SpecEntry
   return def.specsSource
     ? SPEC_SOURCES[def.specsSource].resolves(specId)
     : (def.specs ?? []).some((e) => specEntryId(e) === specId);
+}
+/** La def PORTE-t-elle un catalogue de spécs (`specs[]` non vide ou `specsSource`) ? Sans catalogue, la
+ *  spéc d'un Talent est un texte d'instance (#1621). */
+export function porteCatalogueDeSpecs(def: { specsSource?: SpecsSource; specs?: SpecEntry[] } | undefined): boolean {
+  return !!def?.specsSource || (Array.isArray(def?.specs) && def.specs.length > 0);
 }
 /** Libellé d'affichage d'une spéc (`RefDesignee.spec`) : si la def désigne une `specsSource`, résout via le
  *  catalogue `SPEC_SOURCES` (registre partagé d'ids : Groupe d'arme → libellé, Vent, Lore, dieu, chanson) ;

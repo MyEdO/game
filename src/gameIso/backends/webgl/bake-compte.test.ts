@@ -37,17 +37,16 @@
  *    elle ne devient un témoin qu'accompagnée de la raison du déplacement.
  */
 import { describe, expect, it } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import { bakeWorldGeometry } from './sceneMeshes';
 import { parseProject } from '../../../state/worldMap';
 import { emptyScene, sceneMetresPerTile, type Scene, type SceneEntity, type Terrain } from '../../../state/scene';
 import { putLayer } from '../../../state/sceneEdit';
 import { perimeterWallSegs } from '../../../state/sceneEdit.testkit';
 import { scenario as diligence } from '../../../scenes/test-scenarios/diligence';
+import { lireProjetLivre } from '../../../../scripts/source/projetLivre.mjs';
 
 const projet: Scene[] = parseProject(
-  JSON.parse(readFileSync(join(__dirname, '../../../scenes/arene/arene-projet.json'), 'utf8')),
+  lireProjetLivre('arene/arene-projet.json'),
 ).scenes;
 const sceneDuProjet = (id: string): Scene => {
   const s = projet.find((x) => x.id === id);

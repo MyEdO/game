@@ -222,3 +222,13 @@ export function coDescendre(schema: unknown, donnee: unknown, visite: (p: PointD
   };
   parcourir({ noeuds: ouverts([schema], donnee), valeur: donnee, chemin: [], parent: undefined });
 }
+
+/** Plus proche ANCÊTRE de `p` (lui exclu) dont la valeur objet rend `lit(valeur)` défini — la
+ *  PROVENANCE d'un point de donnée (`id`, `source` de l'entrée qui le porte). */
+export function auPlusProcheAncetre<T>(p: PointDeDonnee, lit: (o: Record<string | number, unknown>) => T | undefined): T | undefined {
+  for (let a = p.parent; a; a = a.parent) {
+    const v = estObjet(a.valeur) ? lit(a.valeur) : undefined;
+    if (v !== undefined) return v;
+  }
+  return undefined;
+}

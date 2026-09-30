@@ -51,6 +51,11 @@ describe('harvest — Précieuses Entrailles (ZI)', () => {
     expect(harvestSizeOf({ traits: [{ id: 'taille', arg: 'minuscule' }] })).toBe('InfMoyenne');
   });
 
+  it('sans Trait Taille, le Talent Petit (LDB 10 l.943) porte la Taille de récolte', () => {
+    expect(harvestSizeOf({ talents: [{ id: 'petit' }] })).toBe('InfMoyenne');
+    expect(harvestSizeOf({ traits: [{ id: 'taille', arg: 'grande' }], talents: [{ id: 'petit' }] })).toBe('Grande');
+  });
+
   it('sans Trait Taille : défaut Moyenne (arbitrage `effectiveSize`)', () => {
     expect(harvestSizeOf({ traits: [{ id: 'bestial' }, { id: 'vol', value: 80 }] })).toBe('Moyenne');
     expect(harvestSizeOf({})).toBe('Moyenne');

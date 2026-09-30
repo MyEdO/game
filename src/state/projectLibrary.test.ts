@@ -459,7 +459,7 @@ describe('documentDeLEntree — le document d’une entrée de bibliothèque, lu
   });
 
   it('copie d’AVANT E5 au nom divergent : le nom de l’ENTRÉE prime, l’id et la version restent ceux du document', () => {
-    const { paquet: _pq, label: _lb, ...identiteDuPaquet } = allBuiltinCampaigns[0];
+    const { paquet: _pq, fichier: _fi, label: _lb, ...identiteDuPaquet } = allBuiltinCampaigns[0];
     const entree = {
       id: 'entree-copie', label: 'Mon nom', startSceneId: 'scene-a', savedAt: 1, published: true,
       project: { ...identiteDuPaquet, type: 'projet', schema: CURRENT_PROJECT_SCHEMA, label: 'Nom du paquet', versionContenu: 4, scenes: [scene], narratif },

@@ -157,7 +157,9 @@ const CLES: Record<string, string> = {
   "buildings": '90fe536489e3927b',
   "vehicles": 'dcc320ad1f8760a1',
   "celestialHouses": '0507cb49e07e8336',
-  "groups": '72ed4fd1de352fae',
+  // #680 (2026-09-29) : 2 Groupes NEUFS (`source` + `maison`) et la catégorie adopte
+  // `depuisEnveloppe` — sa projection écrite à la main (`{ id, label }`) taisait les deux. Empreinte MESURÉE.
+  "groups": 'f5f6e5916ca9349b',
   "psychologies": 'a85f35c0a34172ef',
   "seaShanties": '2bf96225710afb8c',
   "crewRoles": '3d3b869cae4ba90e',
@@ -299,7 +301,7 @@ const FORME: Record<string, string> = {
   "buildings": 'id label maison meta',
   "vehicles": 'desc id label meta source',
   "celestialHouses": 'desc id label source sub',
-  "groups": 'id label',
+  "groups": 'id label maison source',
   "psychologies": 'desc id label sections source',
   "seaShanties": 'desc id label meta sections source',
   "crewRoles": 'desc id label maison sections source',
@@ -410,6 +412,7 @@ const T3_DELTAS: Record<string, Record<string, number>> = {
   "crewMoraleFactors": { desc: 28, source: 28 }, // 28 items — T3 : source +28
   "crewMoraleBands": { desc: 4, source: 4 }, // 4 items — T3 : desc +4, source +4
   "steamBreakdowns": { desc: 6, source: 6 }, // 6 items — T3 : source +6
+  "groups": { source: 2 }, // 40 items — #680 (2026-09-29) : source +2, les 2 Groupes neufs
 };
 /** Cliquet POSITIF DÉCROISSANT : catégories dont ≥1 item DÉFAUSSE une `source`/`desc` que la donnée
  *  porte. VIDÉ par #1472 T3 (39 catégories → 0) : sur les 115 tableaux appariés, plus AUCUN item ne
@@ -521,7 +524,7 @@ describe('Codex — défaut d’enveloppe (#1467 L1b)', () => {
     }
     expect(mesure).toEqual(T3_DELTAS);
     // La TAILLE est gelée à part : une catégorie retirée de la table sortirait sinon du filtre en silence.
-    expect(Object.keys(T3_DELTAS)).toHaveLength(42);
+    expect(Object.keys(T3_DELTAS)).toHaveLength(43);
   });
 
   it('la PROVENANCE a UN seul canal : `source`, jamais un fait de méta intitulé « Source »', () => {

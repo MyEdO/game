@@ -580,7 +580,7 @@ Talents concernés (LDB 10) :
 
 **Voir aussi** : [Relance et inversion du dé](#relance-et-inversion-du-dé)
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 10` (l.176, l.634, l.834, l.899, l.950, l.966) → `MedicState`, `MedicModal`, `CombatFeature`, `MODAL_DEFS`, `deplierAjouts`, `surgeryNext`, `surgery-roll`, `caid`, `cavalier-emerite`, `chanceux`, +65 — `src/data/flow-stakes.json`, `src/data/talents.json`, `src/engine/combat.ts`, `src/engine/combatFeatures/types.ts`, `src/engine/talentEffects.ts`, `src/i18n/messages/fr.ts`, +6 fichiers
+- `LDB 10` (l.176, l.634, l.834, l.899, l.950, l.966) → `MedicState`, `MedicModal`, `CombatFeature`, `MODAL_DEFS`, `sizeFromTalents`, `sizeFromProfile`, `deplierAjouts`, `surgeryNext`, `surgery-roll`, `caid`, +67 — `src/data/flow-stakes.json`, `src/data/talents.json`, `src/engine/combat.ts`, `src/engine/combatFeatures/types.ts`, `src/engine/size.ts`, `src/engine/talentEffects.ts`, +7 fichiers
 - `LDB 12` (l.42) → `canReroll`, `test-auto-bands`, `getTestPolicy`, `ChanceButtons`, `test-over-100`, `RollRowCore`, `test-auto-band-width`, `rerollAvailable`, `NightEntry`, `PendingTest`, +12 — `src/data/reglesOptionnelles.json`, `src/engine/fortune.ts`, `src/engine/reverseToken.ts`, `src/engine/testPolicy.ts`, `src/state/pendings.ts`, `src/state/restFlow.ts`, +4 fichiers
 
 ---

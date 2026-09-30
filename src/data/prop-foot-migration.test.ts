@@ -10,6 +10,7 @@ import { entityBlockedAt } from '../state/sceneRules';
 import { parseProject } from '../state/worldMap';
 import { scenarioEntities } from '../scenes/opera/furnished';
 import type { AreneSceneFactory } from '../../scripts/arene/scenes.d.mts';
+import { lireProjetLivre } from '../../scripts/source/projetLivre.mjs';
 
 /**
  * Empreintes de TYPE portées par le catalogue de décor (`props.json` `foot`) : une ligne par
@@ -68,7 +69,7 @@ function entitesAvecFoot(doc: unknown, fichier: string): string[] {
 const entitesAvecFootDansLesJson = (): string[] =>
   sceneJsonFiles().flatMap((f) => entitesAvecFoot(JSON.parse(readFileSync(join(SCENES_DIR, f), 'utf8')), f));
 
-const areneDoc = parseProject(JSON.parse(readFileSync(ARENE_JSON, 'utf8')));
+const areneDoc = parseProject(lireProjetLivre('arene/arene-projet.json'));
 const OPERA = 'opera/furnished';
 const entitiesOf = (scene: string): SceneEntity[] =>
   scene === OPERA ? scenarioEntities() : areneDoc.scenes.find((s) => s.id === scene)!.entities;

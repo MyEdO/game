@@ -11,8 +11,26 @@ import {
   woundsForSize,
   stepSize,
   resizeBySteps,
+  sizeFromProfile,
+  type SizeCategory,
 } from './size';
 import type { Characteristics } from './types';
+
+describe('sizeFromProfile — Taille d’un profil : Trait Taille, sinon Talent (LDB 85 l.279-280 ; LDB 10 l.943)', () => {
+  const tailles: Record<string, SizeCategory> = { petit: 'petite', massif: 'grande' };
+  const sizeOf = (id: string): SizeCategory | undefined => tailles[id];
+  it('Talent seul : sa Taille', () => {
+    expect(sizeFromProfile(undefined, [{ id: 'petit' }], sizeOf)).toBe('petite');
+    expect(sizeFromProfile([{ id: 'arme', arg: '7' }], [{ id: 'massif' }], sizeOf)).toBe('grande');
+  });
+  it('le Trait Taille prime sur le Talent', () => {
+    expect(sizeFromProfile([{ id: 'taille', arg: 'enorme' }], [{ id: 'petit' }], sizeOf)).toBe('enorme');
+  });
+  it('ni Trait Taille ni Talent de Taille : null', () => {
+    expect(sizeFromProfile(undefined, undefined, sizeOf)).toBeNull();
+    expect(sizeFromProfile([{ id: 'bestial' }], [{ id: 'sixieme-sens' }], sizeOf)).toBeNull();
+  });
+});
 
 describe('size — modèle de Taille (LDB 85 l.279-280 ; 14 l.151-170)', () => {
   it('ordonne les 7 catégories 0..6', () => {
