@@ -8,7 +8,7 @@ metadata:
 
 **Règle :** gates et suite complète ne se lancent jamais depuis le harnais — son garde-mémoire tue l'enveloppe et `npm run gates` en LANES sature la RAM (rouges `3221225794`). La CI de la branche les joue.
 
-**How to apply :** `npm run ops:publier -- --detache` imprime `pid=`, `log=`, `veille=` et rend la main. **Monitor** sur la commande `veille=` telle qu'imprimée (#2227) : une ligne par transition, puis `PUBLICATION:` ; codes de sortie dans `scripts/ops/publier.mjs`. Jamais un `tail`/`grep` du log.
+**How to apply :** `npm run ops:publier -- --detache` imprime `pid=`, `log=`, `veille=` et rend la main. **Monitor** sur la commande `veille=` telle qu'imprimée (#2227) : une ligne `#<seq>` par transition, puis `PUBLICATION:` ; codes de sortie dans `scripts/ops/publier.mjs`. Monitor plafonné : ré-armer la même commande avec `--depuis <dernier seq lu>`, rien n'est ré-émis et la borne court depuis le lancement du run. Jamais un `tail`/`grep` du log.
 
 **Arbre GELÉ pendant le run :** aucune édition ni commit dans ce worktree avant `PUBLICATION:` — un manuscrit sale fait refuser `derives` ou `docs`, un commit déplace la tête publiée.
 

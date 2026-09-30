@@ -37,7 +37,9 @@ du harnais, et imprime son `pid`, son `log` et sa `veille` : la commande exacte
 (`node <racine>/scripts/ops/publier.mjs --veiller <run>`) qui SUIT ce run jusqu'au verdict — elle lit le
 journal JSON, émet une ligne par transition d'étape, finit sur la ligne `PUBLICATION:` et sort en 0
 (vert), 1 (rouge) ou sur un code nommé (indéterminée, arrêt moteur, borne dépassée). C'est la seule
-veille d'un train : jamais un filtre du log texte écrit à la main. Le train régénère les docs dérivées, POUSSE la branche
+veille d'un train : jamais un filtre du log texte écrit à la main. Chaque ligne porte le numéro
+`#<seq>` de sa transition ; une veille interrompue se RÉ-ARME par la même commande suivie de
+`--depuis <dernier seq lu>`, sans rien ré-émettre, et sa borne court depuis le LANCEMENT du run. Le train régénère les docs dérivées, POUSSE la branche
 de chantier, ouvre sa PR vers `main` et l'ARME ; la FILE DE FUSION du serveur la juge sur son commit de
 file et la fusionne, et le train attend cette fusion (borné par `--file-timeout-min`). Aucun rebase : une
 PR éjectée de la file pour un conflit ou un dérivé périmé se reprend par une FUSION d'`origin/main`
@@ -248,4 +250,4 @@ sans entrée ÉCRIT/LU, ou jouée par deux jobs, fait REFUSER le run, avec son n
 `scripts/guards/lib/npmLockHoisted.mjs` — npx --yes npm@10.9.3 install --package-lock-only, puis valider avec npx npm@10.9.3 ci --dry-run. npm 11 ampute les entrées hoistées
 `@emnapi/*` que `npm ci` exige en CI ; la garde (pre-commit +
 `src/npm-lock-hoisted-guard.test.ts`) refuse un lock amputé.
-<!-- sources-empreinte: daa6fd4f7ec7b049d1056c15b78af54c3f90a77e (30 fichiers, 8 dossiers) corps: 4a9548c104e49c4c93956182d81ebe28f60ef405 -->
+<!-- sources-empreinte: dbd935eff09325a08b2b0907f657e99fa051ab46 (30 fichiers, 8 dossiers) corps: 807099324fa27662354f9cbb14fd4e584ed21902 -->
