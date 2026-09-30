@@ -125,7 +125,7 @@ function construireScene(): Scene {
       { id: 'cheval', kind: 'prop', pos: { x: 12, y: 6 }, ref: 'cheval-mort', label: 'Attelage éventré' },
       { id: 'corps1', kind: 'prop', pos: { x: 11, y: 7 }, ref: 'cadavre', label: 'Voyageur dépecé' },
       { id: 'corps2', kind: 'prop', pos: { x: 14, y: 8 }, ref: 'cadavre', label: 'Voyageur dépecé' },
-      { id: 'corps3', kind: 'prop', pos: { x: 17, y: 7 }, ref: 'cadavre', label: 'Voyageur dépecé' },
+      { id: 'corps3', kind: 'prop', pos: { x: 17, y: 8 }, ref: 'cadavre', label: 'Voyageur dépecé' },
       { id: 'sang1', kind: 'prop', pos: { x: 13, y: 7 }, ref: 'mare-sang' },
       { id: 'sang2', kind: 'prop', pos: { x: 15, y: 7 }, ref: 'mare-sang' },
       { id: 'sang3', kind: 'prop', pos: { x: 16, y: 8 }, ref: 'mare-sang' },
@@ -155,7 +155,7 @@ function construireScene(): Scene {
           {
             // Chef : reste en retrait, tire à l'arbalète (À distance dans le Trait — le Trait dérive déjà
             // l'arme de RENDU via `weaponFromTrapping`, plus de `weapon:` d'authoring redondant, #145).
-            pos: { x: 17, y: 6 }, ref: 'mutant', appearance: { species: 'humains-reiklander', monster: { tete: 'lezard' } }, anim: 'standing',
+            pos: { x: 18, y: 6 }, ref: 'mutant', appearance: { species: 'humains-reiklander', monster: { tete: 'lezard' } }, anim: 'standing',
             label: 'Knud Cratinx',
             statblock: { type: 'statblock',
               label: 'Knud Cratinx',
@@ -164,7 +164,7 @@ function construireScene(): Scene {
             },
           },
           {
-            pos: { x: 17, y: 7 }, ref: 'mutant', appearance: { species: 'humains-reiklander', monster: { tete: 'chien' } }, anim: 'howl',
+            pos: { x: 18, y: 7 }, ref: 'mutant', appearance: { species: 'humains-reiklander', monster: { tete: 'chien' } }, anim: 'howl',
             label: 'Mikael',
             statblock: { type: 'statblock', label: 'Mikael', char: { M: 4, 'capacite-de-combat': 45, 'capacite-de-tir': 30, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30, B: 1 }, traits: [{ id: 'arme', value: 7, arg: 'massue' }, { id: 'corruption', arg: 'Mineure' }, { id: 'mutation', arg: 'tete-bestiale-chien' }] },
           },

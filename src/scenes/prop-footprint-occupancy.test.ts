@@ -12,7 +12,7 @@ import { sceneMetresPerTile, type Scene, type SceneEntity } from '../state/scene
  * qu'aucune entité NON-prop (héros, PNJ, ennemi de rencontre expansé par `setEncounters`) ne se tient
  * sur une case couverte par l'empreinte effective d'un prop de la MÊME couche.
  *
- * Élargir le catalogue (`PropData.foot`) ou déplacer un prop dans une scène rejoue ce balayage : c'est
+ * Élargir le catalogue (`PropData.foot`, ou le corps d’une recette, #1509) ou déplacer un prop dans une scène rejoue ce balayage : c'est
  * le filet qui manquait quand `epave-carrosse` est passée de 1 à 4 cases sous deux mutants d'embuscade.
  */
 
@@ -30,8 +30,10 @@ const zDe = (e: SceneEntity): number => e.z ?? 0;
 function occupantsDansUnDecor(source: string, scene: Scene): string[] {
   const couverture = new Map<string, string>();
   for (const e of scene.entities ?? []) {
-    if (e.kind !== 'prop' || !propDeclaredFoot(e.ref)) continue;
-    for (const t of propFootTiles(e.ref, e.pos, e.facing, sceneMetresPerTile(scene))) couverture.set(`${t.x},${t.y},${zDe(e)}`, `${e.ref} (${e.id})`);
+    if (e.kind !== 'prop') continue;
+    const cases = propFootTiles(e.ref, e.pos, e.facing, sceneMetresPerTile(scene));
+    if (cases.length < 2 && !propDeclaredFoot(e.ref)) continue;
+    for (const t of cases) couverture.set(`${t.x},${t.y},${zDe(e)}`, `${e.ref} (${e.id})`);
   }
   const fautifs: string[] = [];
   for (const e of scene.entities ?? []) {
@@ -59,9 +61,9 @@ describe('empreinte de TYPE — aucun corps ne naît dans un décor (toutes scè
     const scene = {
       id: 'sonde',
       entities: [
-        { id: 'epave', kind: 'prop', pos: { x: 4, y: 4 }, ref: 'epave-carrosse' }, // 2×2 : (4,4)…(5,5)
+        { id: 'epave', kind: 'prop', pos: { x: 4, y: 4 }, ref: 'epave-carrosse' }, // 3×2 : (4,4)…(6,5)
         { id: 'garde', kind: 'personnage', ref: 'humain', pos: { x: 5, y: 5 } },
-        { id: 'passant', kind: 'personnage', ref: 'humain', pos: { x: 6, y: 5 } },
+        { id: 'passant', kind: 'personnage', ref: 'humain', pos: { x: 7, y: 5 } },
       ],
     } as unknown as Scene;
     expect(occupantsDansUnDecor('sonde', scene)).toEqual(['sonde/sonde/garde sur (5,5,0) — epave-carrosse (epave)']);

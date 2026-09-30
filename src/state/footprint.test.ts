@@ -98,14 +98,14 @@ describe('propDeclaredFoot / propFootTiles — l’empreinte d’un décor vient
    *  `metresPerTile`, donc c'est le défaut du monde (`LDB 15 l.12`) qui s'applique. */
   const MPT = sceneMetresPerTile(emptyScene(4, 4));
 
-  it('empreinte déclarée (abreuvoir 2×1, tente 2×2) ; absente pour un décor sans empreinte', () => {
-    expect(propDeclaredFoot('abreuvoir')).toEqual({ w: 2, h: 1 });
+  it('empreinte déclarée (cheval-mort 2×1, tente 2×2) ; absente pour un décor sans empreinte', () => {
+    expect(propDeclaredFoot('cheval-mort')).toEqual({ w: 2, h: 1 });
     expect(propDeclaredFoot('tente')).toEqual({ w: 2, h: 2 });
     expect(propDeclaredFoot('tonneau')).toBeUndefined();
     expect(propDeclaredFoot(undefined)).toBeUndefined();
   });
   it('cases couvertes : le rectangle déclaré ancré au coin NO, la seule case sinon', () => {
-    expect(propFootTiles('abreuvoir', { x: 3, y: 2 }, 'S', MPT)).toEqual([{ x: 3, y: 2 }, { x: 4, y: 2 }]);
+    expect(propFootTiles('cheval-mort', { x: 3, y: 2 }, 'S', MPT)).toEqual([{ x: 3, y: 2 }, { x: 4, y: 2 }]);
     expect(propFootTiles('tente', { x: 0, y: 0 }, 'S', MPT)).toHaveLength(4);
     expect(propFootTiles('tonneau', { x: 7, y: 1 }, 'S', MPT)).toEqual([{ x: 7, y: 1 }]);
   });
@@ -122,9 +122,9 @@ describe('propDeclaredFoot / propFootTiles — l’empreinte d’un décor vient
     expect(propFootTiles('table-2x1', { x: 3, y: 2 }, 'O', MPT)).toEqual([{ x: 3, y: 2 }, { x: 3, y: 3 }]);
   });
 
-  it('un BILLBOARD multi-case NON carré garde son empreinte déclarée à tous les caps (abreuvoir 2×1)', () => {
+  it('un BILLBOARD multi-case NON carré garde son empreinte déclarée à tous les caps (cheval-mort 2×1)', () => {
     for (const cap of ['N', 'E', 'S', 'O'] as const)
-      expect(propFootTiles('abreuvoir', { x: 3, y: 2 }, cap, MPT), `abreuvoir cap ${cap}`)
+      expect(propFootTiles('cheval-mort', { x: 3, y: 2 }, cap, MPT), `cheval-mort cap ${cap}`)
         .toEqual([{ x: 3, y: 2 }, { x: 4, y: 2 }]);
   });
 

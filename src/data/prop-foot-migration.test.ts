@@ -16,30 +16,15 @@ import type { AreneSceneFactory } from '../../scripts/arene/scenes.d.mts';
  * BILLBOARD qui en déclare une, à sa valeur de migration sauf recalage par un MODÈLE, motivé à sa ligne.
  */
 const LEGACY_PROP_FOOT_TABLE: [string, number, number][] = [
-  ['abreuvoir', 2, 1],
   ['balustrade-bois', 3, 1],
   // `balustrade-loge` se pose désormais à la CASE (une travée par case de rive de puits,
   // `opera/floorplan.ts` `puitsRim`) : son empreinte de type a suivi le modèle, pas la migration.
   ['balustrade-loge', 1, 1],
-  ['barque', 2, 1],
-  ['canon-de-pont', 1, 1],
   ['cheval-mort', 2, 1],
-  ['cuve-brasserie', 1, 1],
-  ['ecoutille', 1, 1],
-  ['enclume', 1, 1],
-  ['epave-carrosse', 2, 2],
-  ['escalier-bois', 1, 1],
-  ['escalier-loge', 1, 1],
-  ['foyer-de-forge', 1, 1],
   ['idole-chaos', 2, 2],
-  ['lit', 2, 1],
-  ['passerelle-d-embarquement', 2, 1],
-  ['rouleau-de-cordage', 1, 1],
-  ['stalle-ecurie', 1, 1],
   // L'empreinte d'une RECETTE dérive de son corps (#1509), tenue par `gameIso/catalog/props-volumiques.test.ts` `EMPREINTES_ATTENDUES`.
   // Cette liste ne peut que DÉCROÎTRE : chaque billboard converti en sort.
   ['tente', 2, 2],
-  ['tribune', 3, 1],
 ];
 
 const propFootTable = (): [string, number, number][] =>
@@ -141,7 +126,8 @@ describe('migration de l’empreinte : du legacy d’instance au catalogue de ty
       ['arene-exp-marais', 'p12', 'barque', 2, 1],
       ['arene-exp-village', 'p1', 'abreuvoir', 2, 1],
       ['arene-exp-village', 'p2', 'charrette', 2, 1],
-      ['arene-route-embuscade', 'p0', 'epave-carrosse', 2, 2],
+      // 2×2 → 3×2 : l'épave a pris la taille réelle d'une diligence (#1343 lot D1, utilisateur 2026-09-30).
+      ['arene-route-embuscade', 'p0', 'epave-carrosse', 3, 2],
       [OPERA, 'rideau-0', 'rideau-scene', 3, 1],
       [OPERA, 'rideau-1', 'rideau-scene', 3, 1],
       [OPERA, 'rideau-2', 'rideau-scene', 3, 1],

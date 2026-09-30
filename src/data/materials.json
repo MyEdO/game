@@ -81,6 +81,51 @@
     "metalness": 0
   },
   {
+    "id": "laque-rouge",
+    "type": "materials",
+    "label": "Laque rouge",
+    "domain": "prop",
+    "color": "#7a2a24",
+    "roughness": 0.4,
+    "metalness": 0
+  },
+  {
+    "id": "prop-eau",
+    "type": "materials",
+    "label": "Eau",
+    "domain": "prop",
+    "color": "#2f5670",
+    "roughness": 0.15,
+    "metalness": 0
+  },
+  {
+    "id": "chanvre",
+    "type": "materials",
+    "label": "Chanvre",
+    "domain": "prop",
+    "color": "#a48a5c",
+    "roughness": 0.95,
+    "metalness": 0
+  },
+  {
+    "id": "brouet",
+    "type": "materials",
+    "label": "Brouet",
+    "domain": "prop",
+    "color": "#46571f",
+    "roughness": 0.6,
+    "metalness": 0
+  },
+  {
+    "id": "cuivre",
+    "type": "materials",
+    "label": "Cuivre",
+    "domain": "prop",
+    "color": "#a0582e",
+    "roughness": 0.45,
+    "metalness": 0.7
+  },
+  {
     "id": "tuile",
     "type": "materials",
     "label": "Tuile",

@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { propRefPatch } from './propDefaults';
 import { EMPTY_FLOW } from '../../state/flow';
-import { propDeclaredFoot } from '../../state/footprint';
+import { propDeclaredFoot, propFootTiles } from '../../state/footprint';
+import { sceneMetresPerTile } from '../../state/scene';
 
 describe('propRefPatch — l’action de FOUILLE pré-armée à la pose d’un décor `searchable`', () => {
   it('décor searchable sans action → pré-arme une action `fouiller` à Flow vide, jouable une fois', () => {
@@ -28,7 +29,7 @@ describe('propRefPatch — l’action de FOUILLE pré-armée à la pose d’un d
 describe('propRefPatch — l’empreinte n’est PAS une propriété d’instance', () => {
   it('gros décor (tribune 3×1) → aucune empreinte posée sur l’entité : elle vient du catalogue', () => {
     expect(propRefPatch('tribune', undefined)).toEqual({ ref: 'tribune' });
-    expect(propDeclaredFoot('tribune')).toEqual({ w: 3, h: 1 });
+    expect(propFootTiles('tribune', { x: 0, y: 0 }, 'S', sceneMetresPerTile(undefined))).toEqual([{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 2, y: 0 }]);
   });
   it('décor 1×1 (tonneau) → seulement la ref, et aucune empreinte au catalogue', () => {
     expect(propRefPatch('tonneau', undefined)).toEqual({ ref: 'tonneau' });

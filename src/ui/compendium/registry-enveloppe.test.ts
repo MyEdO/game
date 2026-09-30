@@ -96,8 +96,9 @@ const CLES: Record<string, string> = {
   // valeur du discriminant `domain`) — elle QUITTE du même geste la liste des orphelins ci-dessous.
   // Le retrait de la matière `plafond` (relief, 0 émetteur — 4c052ca9a) enlève un item à la catégorie :
   // l'empreinte porte la LISTE des ids, elle est recalée à la MESURE (15 items). #1343 lot C : la matière
-  // `feuillage` (décor volumique) y entre, recalée à la MESURE (16 items).
-  "materials": '4c8000fc317602f0',
+  // `feuillage` (décor volumique) y entre, recalée à la MESURE (16 items). #1343 lot D1 : `laque-rouge`,
+  // `prop-eau`, `chanvre`, `brouet` et `cuivre` y entrent, recalée à la MESURE (21 items).
+  "materials": 'ecdf25d753d40e97',
   "mutationTables": '0d6e17a2d2e12dca',
   // #1612 : la table MAISON `mendier-ennuis` entre au dataset, et sa rangée de gardes porte l'AMENDE
   // (op `money` à `Formula`, rendue par `opRows` comme toute autre op de rangée).

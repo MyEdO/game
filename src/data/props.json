@@ -148,9 +148,152 @@
     "type": "props",
     "label": "Tribune",
     "solid": true,
-    "foot": {
-      "w": 3,
-      "h": 1
+    "volume": {
+      "capIdentite": "S",
+      "primitives": [
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0.6,
+            "hM": 0.225
+          },
+          "size": {
+            "xM": 5.6,
+            "yM": 0.6,
+            "hM": 0.45
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.45
+          },
+          "size": {
+            "xM": 5.6,
+            "yM": 0.6,
+            "hM": 0.9
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": -0.6,
+            "hM": 0.675
+          },
+          "size": {
+            "xM": 5.6,
+            "yM": 0.6,
+            "hM": 1.35
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": -2.72,
+            "yM": 0.84,
+            "hM": 1.625
+          },
+          "size": {
+            "xM": 0.12,
+            "yM": 0.12,
+            "hM": 2.35
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": -2.72,
+            "yM": -0.84,
+            "hM": 2.075
+          },
+          "size": {
+            "xM": 0.12,
+            "yM": 0.12,
+            "hM": 1.45
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 2.72,
+            "yM": 0.84,
+            "hM": 1.625
+          },
+          "size": {
+            "xM": 0.12,
+            "yM": 0.12,
+            "hM": 2.35
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 2.72,
+            "yM": -0.84,
+            "hM": 2.075
+          },
+          "size": {
+            "xM": 0.12,
+            "yM": 0.12,
+            "hM": 1.45
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0.84,
+            "hM": 2.73
+          },
+          "size": {
+            "xM": 5.6,
+            "yM": 0.08,
+            "hM": 0.14
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "prism",
+          "center": {
+            "xM": 0,
+            "yM": 0.45,
+            "hM": 2.975
+          },
+          "size": {
+            "xM": 5.8,
+            "yM": 0.95,
+            "hM": 0.35
+          },
+          "slope": "y+",
+          "material": "toile-rouge"
+        },
+        {
+          "kind": "prism",
+          "center": {
+            "xM": 0,
+            "yM": -0.45,
+            "hM": 2.975
+          },
+          "size": {
+            "xM": 5.8,
+            "yM": 0.95,
+            "hM": 0.35
+          },
+          "slope": "y-",
+          "material": "toile-rouge"
+        }
+      ]
     }
   },
   {
@@ -735,6 +878,76 @@
     "label": "Fontaine",
     "solid": true,
     "cover": "moyenne",
+    "volume": {
+      "capIdentite": "S",
+      "primitives": [
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.225
+          },
+          "axis": "h",
+          "radiusM": 0.9,
+          "longueurM": 0.45,
+          "sides": 16,
+          "material": "pierre-atre"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.465
+          },
+          "axis": "h",
+          "radiusM": 0.78,
+          "longueurM": 0.03,
+          "sides": 16,
+          "material": "prop-eau"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.93
+          },
+          "axis": "h",
+          "radiusM": 0.1,
+          "longueurM": 0.9,
+          "sides": 8,
+          "material": "albatre"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 1.43
+          },
+          "axis": "h",
+          "radiusM": 0.3,
+          "longueurM": 0.1,
+          "sides": 16,
+          "material": "albatre"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 1.58
+          },
+          "axis": "h",
+          "radiusM": 0.06,
+          "longueurM": 0.2,
+          "sides": 8,
+          "material": "prop-eau"
+        }
+      ]
+    },
     "maison": "couvert maison : une margelle maçonnée à hauteur de taille protège comme la barrière en bois de l’étalon MOYEN (LDB 14 l.81) — plus dure, mais plus basse"
   },
   {
@@ -743,6 +956,121 @@
     "label": "Puits",
     "solid": true,
     "cover": "moyenne",
+    "volume": {
+      "capIdentite": "S",
+      "primitives": [
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.4
+          },
+          "axis": "h",
+          "radiusM": 0.75,
+          "longueurM": 0.8,
+          "sides": 16,
+          "material": "pierre-atre"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.81
+          },
+          "axis": "h",
+          "radiusM": 0.58,
+          "longueurM": 0.02,
+          "sides": 16,
+          "material": "prop-eau"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": -0.62,
+            "yM": 0,
+            "hM": 1.05
+          },
+          "size": {
+            "xM": 0.12,
+            "yM": 0.12,
+            "hM": 2.1
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0.62,
+            "yM": 0,
+            "hM": 1.05
+          },
+          "size": {
+            "xM": 0.12,
+            "yM": 0.12,
+            "hM": 2.1
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 1.58
+          },
+          "axis": "x",
+          "radiusM": 0.08,
+          "longueurM": 1.12,
+          "sides": 8,
+          "material": "bois-chene"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0.05,
+            "hM": 1.07
+          },
+          "axis": "y",
+          "radiusM": 0.12,
+          "longueurM": 0.2,
+          "sides": 8,
+          "material": "bois-chene"
+        },
+        {
+          "kind": "prism",
+          "center": {
+            "xM": 0,
+            "yM": -0.35,
+            "hM": 2.325
+          },
+          "size": {
+            "xM": 1.6,
+            "yM": 0.7,
+            "hM": 0.45
+          },
+          "slope": "y-",
+          "material": "prop-ardoise"
+        },
+        {
+          "kind": "prism",
+          "center": {
+            "xM": 0,
+            "yM": 0.35,
+            "hM": 2.325
+          },
+          "size": {
+            "xM": 1.6,
+            "yM": 0.7,
+            "hM": 0.45
+          },
+          "slope": "y+",
+          "material": "prop-ardoise"
+        }
+      ]
+    },
     "maison": "couvert maison : margelle de pierre à hauteur de taille — même arbitrage que la fontaine, l’étalon MOYEN de la barrière en bois (LDB 14 l.81)"
   },
   {
@@ -750,9 +1078,122 @@
     "type": "props",
     "label": "Abreuvoir",
     "solid": true,
-    "foot": {
-      "w": 2,
-      "h": 1
+    "volume": {
+      "capIdentite": "S",
+      "primitives": [
+        {
+          "kind": "box",
+          "center": {
+            "xM": -1.05,
+            "yM": 0,
+            "hM": 0.1
+          },
+          "size": {
+            "xM": 0.14,
+            "yM": 0.7,
+            "hM": 0.2
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 1.05,
+            "yM": 0,
+            "hM": 0.1
+          },
+          "size": {
+            "xM": 0.14,
+            "yM": 0.7,
+            "hM": 0.2
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.425
+          },
+          "size": {
+            "xM": 2.6,
+            "yM": 0.8,
+            "hM": 0.45
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0.36,
+            "hM": 0.7
+          },
+          "size": {
+            "xM": 2.6,
+            "yM": 0.08,
+            "hM": 0.1
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": -0.36,
+            "hM": 0.7
+          },
+          "size": {
+            "xM": 2.6,
+            "yM": 0.08,
+            "hM": 0.1
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 1.26,
+            "yM": 0,
+            "hM": 0.7
+          },
+          "size": {
+            "xM": 0.08,
+            "yM": 0.64,
+            "hM": 0.1
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": -1.26,
+            "yM": 0,
+            "hM": 0.7
+          },
+          "size": {
+            "xM": 0.08,
+            "yM": 0.64,
+            "hM": 0.1
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.685
+          },
+          "size": {
+            "xM": 2.44,
+            "yM": 0.64,
+            "hM": 0.07
+          },
+          "material": "prop-eau"
+        }
+      ]
     }
   },
   {
@@ -1447,6 +1888,159 @@
     "light": {
       "radiusM": 8
     },
+    "volume": {
+      "capIdentite": "S",
+      "primitives": [
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.03
+          },
+          "axis": "h",
+          "radiusM": 0.62,
+          "longueurM": 0.06,
+          "sides": 16,
+          "material": "braises",
+          "emet": true
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.11
+          },
+          "size": {
+            "xM": 1.2,
+            "yM": 0.12,
+            "hM": 0.1
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.11
+          },
+          "size": {
+            "xM": 0.12,
+            "yM": 1.2,
+            "hM": 0.1
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.2
+          },
+          "axis": "h",
+          "radiusM": 0.3,
+          "longueurM": 0.08,
+          "sides": 16,
+          "material": "fer-noirci"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.29
+          },
+          "axis": "h",
+          "radiusM": 0.44,
+          "longueurM": 0.1,
+          "sides": 16,
+          "material": "fer-noirci"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.46
+          },
+          "axis": "h",
+          "radiusM": 0.56,
+          "longueurM": 0.24,
+          "sides": 16,
+          "material": "fer-noirci"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.63
+          },
+          "axis": "h",
+          "radiusM": 0.48,
+          "longueurM": 0.1,
+          "sides": 16,
+          "material": "fer-noirci"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.71
+          },
+          "axis": "h",
+          "radiusM": 0.54,
+          "longueurM": 0.06,
+          "sides": 16,
+          "material": "fer-noirci"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.745
+          },
+          "axis": "h",
+          "radiusM": 0.46,
+          "longueurM": 0.01,
+          "sides": 16,
+          "material": "brouet"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0.26,
+            "yM": 0.08,
+            "hM": 1
+          },
+          "size": {
+            "xM": 0.05,
+            "yM": 0.05,
+            "hM": 0.5
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0.26,
+            "yM": 0.08,
+            "hM": 1.275
+          },
+          "size": {
+            "xM": 0.09,
+            "yM": 0.09,
+            "hM": 0.05
+          },
+          "material": "bois-chene"
+        }
+      ]
+    },
     "maison": "rayon maison : braises SOUS la marmite (def d’art), sans flamme dégagée — même cran que le brasero (8 m), le chaudron masquant une part du foyer"
   },
   {
@@ -1650,9 +2244,255 @@
     "label": "Épave de carrosse",
     "solid": true,
     "cover": "moyenne",
-    "foot": {
-      "w": 2,
-      "h": 2
+    "volume": {
+      "capIdentite": "S",
+      "primitives": [
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0.25,
+            "yM": -0.35,
+            "hM": 0.75
+          },
+          "size": {
+            "xM": 3.5,
+            "yM": 1.7,
+            "hM": 1.5
+          },
+          "material": "laque-rouge"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0.25,
+            "yM": -0.35,
+            "hM": 1.51
+          },
+          "size": {
+            "xM": 1.1,
+            "yM": 1,
+            "hM": 0.02
+          },
+          "material": "laiton-dore"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0.25,
+            "yM": -0.35,
+            "hM": 1.535
+          },
+          "size": {
+            "xM": 0.8,
+            "yM": 0.7,
+            "hM": 0.03
+          },
+          "material": "fer-noirci"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0.25,
+            "yM": 0.44,
+            "hM": 1.515
+          },
+          "size": {
+            "xM": 3.5,
+            "yM": 0.06,
+            "hM": 0.03
+          },
+          "material": "laiton-dore"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0.25,
+            "yM": -1.23,
+            "hM": 0.145
+          },
+          "size": {
+            "xM": 3.3,
+            "yM": 0.06,
+            "hM": 0.05
+          },
+          "material": "laiton-dore"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0.25,
+            "yM": -1.23,
+            "hM": 1.355
+          },
+          "size": {
+            "xM": 3.3,
+            "yM": 0.06,
+            "hM": 0.05
+          },
+          "material": "laiton-dore"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": -1.85,
+            "yM": -0.35,
+            "hM": 0.7
+          },
+          "size": {
+            "xM": 0.7,
+            "yM": 1.3,
+            "hM": 1.2
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 2.3,
+            "yM": -0.35,
+            "hM": 0.65
+          },
+          "size": {
+            "xM": 0.6,
+            "yM": 1.2,
+            "hM": 1.1
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0.2,
+            "yM": 0.6,
+            "hM": 0.33
+          },
+          "size": {
+            "xM": 5,
+            "yM": 0.2,
+            "hM": 0.16
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0.2,
+            "yM": 0.6,
+            "hM": 1.28
+          },
+          "size": {
+            "xM": 5,
+            "yM": 0.2,
+            "hM": 0.16
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 1.5,
+            "yM": 0.75,
+            "hM": 0.975
+          },
+          "axis": "h",
+          "radiusM": 0.06,
+          "longueurM": 1.95,
+          "sides": 8,
+          "material": "fer-noirci"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": -1.2,
+            "yM": 0.75,
+            "hM": 0.975
+          },
+          "axis": "h",
+          "radiusM": 0.06,
+          "longueurM": 1.95,
+          "sides": 8,
+          "material": "fer-noirci"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 1.5,
+            "yM": 0.75,
+            "hM": 1.99
+          },
+          "axis": "h",
+          "radiusM": 0.7,
+          "longueurM": 0.08,
+          "sides": 16,
+          "material": "bois-chene"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 1.5,
+            "yM": 0.75,
+            "hM": 2.02
+          },
+          "axis": "h",
+          "radiusM": 0.12,
+          "longueurM": 0.14,
+          "sides": 8,
+          "material": "fer-noirci"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": -1.2,
+            "yM": 0.75,
+            "hM": 1.99
+          },
+          "axis": "h",
+          "radiusM": 0.5,
+          "longueurM": 0.08,
+          "sides": 16,
+          "material": "bois-chene"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": -0.3,
+            "yM": 1.4,
+            "hM": 0.04
+          },
+          "axis": "h",
+          "radiusM": 0.5,
+          "longueurM": 0.08,
+          "sides": 16,
+          "material": "bois-chene"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": -0.3,
+            "yM": 1.4,
+            "hM": 0.11
+          },
+          "axis": "h",
+          "radiusM": 0.1,
+          "longueurM": 0.06,
+          "sides": 8,
+          "material": "fer-noirci"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": -2.2,
+            "yM": 1.2,
+            "hM": 0.06
+          },
+          "size": {
+            "xM": 1.4,
+            "yM": 0.12,
+            "hM": 0.12
+          },
+          "material": "bois-chene"
+        }
+      ]
     },
     "maison": "couvert maison : une caisse de voiture éventrée reste une paroi de bois trouée — l’étalon MOYEN de la barrière en bois (LDB 14 l.81)"
   },
@@ -1661,9 +2501,137 @@
     "type": "props",
     "label": "Barque",
     "solid": true,
-    "foot": {
-      "w": 2,
-      "h": 1
+    "volume": {
+      "capIdentite": "S",
+      "primitives": [
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.07
+          },
+          "size": {
+            "xM": 2.8,
+            "yM": 1,
+            "hM": 0.14
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0.47,
+            "hM": 0.34
+          },
+          "size": {
+            "xM": 2.8,
+            "yM": 0.06,
+            "hM": 0.4
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": -0.47,
+            "hM": 0.34
+          },
+          "size": {
+            "xM": 2.8,
+            "yM": 0.06,
+            "hM": 0.4
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": -1.37,
+            "yM": 0,
+            "hM": 0.34
+          },
+          "size": {
+            "xM": 0.06,
+            "yM": 0.88,
+            "hM": 0.4
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "prism",
+          "center": {
+            "xM": 1.55,
+            "yM": 0,
+            "hM": 0.415
+          },
+          "size": {
+            "xM": 0.3,
+            "yM": 1,
+            "hM": 0.55
+          },
+          "slope": "x-",
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": -0.5,
+            "yM": 0,
+            "hM": 0.385
+          },
+          "size": {
+            "xM": 0.3,
+            "yM": 0.88,
+            "hM": 0.05
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0.5,
+            "yM": 0,
+            "hM": 0.385
+          },
+          "size": {
+            "xM": 0.3,
+            "yM": 0.88,
+            "hM": 0.05
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0.1,
+            "yM": 0.25,
+            "hM": 0.43
+          },
+          "size": {
+            "xM": 2.2,
+            "yM": 0.06,
+            "hM": 0.04
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0.95,
+            "yM": 0.25,
+            "hM": 0.425
+          },
+          "size": {
+            "xM": 0.4,
+            "yM": 0.16,
+            "hM": 0.03
+          },
+          "material": "bois-chene"
+        }
+      ]
     }
   },
   {
@@ -2801,9 +3769,122 @@
     "type": "props",
     "label": "Lit",
     "solid": true,
-    "foot": {
-      "w": 2,
-      "h": 1
+    "volume": {
+      "capIdentite": "S",
+      "primitives": [
+        {
+          "kind": "box",
+          "center": {
+            "xM": -0.95,
+            "yM": 0.45,
+            "hM": 0.125
+          },
+          "size": {
+            "xM": 0.1,
+            "yM": 0.1,
+            "hM": 0.25
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": -0.95,
+            "yM": -0.45,
+            "hM": 0.125
+          },
+          "size": {
+            "xM": 0.1,
+            "yM": 0.1,
+            "hM": 0.25
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.33
+          },
+          "size": {
+            "xM": 2,
+            "yM": 1,
+            "hM": 0.16
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 1.02,
+            "yM": 0,
+            "hM": 0.575
+          },
+          "size": {
+            "xM": 0.1,
+            "yM": 1.06,
+            "hM": 1.15
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": -1.02,
+            "yM": 0,
+            "hM": 0.325
+          },
+          "size": {
+            "xM": 0.1,
+            "yM": 1.06,
+            "hM": 0.65
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.49
+          },
+          "size": {
+            "xM": 1.9,
+            "yM": 0.92,
+            "hM": 0.16
+          },
+          "material": "chanvre"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": -0.25,
+            "yM": 0,
+            "hM": 0.595
+          },
+          "size": {
+            "xM": 1.4,
+            "yM": 0.96,
+            "hM": 0.05
+          },
+          "material": "toile-rouge"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0.72,
+            "yM": 0,
+            "hM": 0.62
+          },
+          "size": {
+            "xM": 0.36,
+            "yM": 0.7,
+            "hM": 0.1
+          },
+          "material": "chanvre"
+        }
+      ]
     }
   },
   {
@@ -3134,7 +4215,244 @@
     "id": "rack-lances",
     "type": "props",
     "label": "Présentoir à lances",
-    "solid": true
+    "solid": true,
+    "volume": {
+      "capIdentite": "S",
+      "primitives": [
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.075
+          },
+          "size": {
+            "xM": 1,
+            "yM": 0.36,
+            "hM": 0.15
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": -0.46,
+            "yM": 0,
+            "hM": 0.6
+          },
+          "size": {
+            "xM": 0.06,
+            "yM": 0.06,
+            "hM": 0.9
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0.46,
+            "yM": 0,
+            "hM": 0.6
+          },
+          "size": {
+            "xM": 0.06,
+            "yM": 0.06,
+            "hM": 0.9
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 1.04
+          },
+          "size": {
+            "xM": 1,
+            "yM": 0.12,
+            "hM": 0.08
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": -0.3,
+            "yM": 0,
+            "hM": 1.175
+          },
+          "size": {
+            "xM": 0.05,
+            "yM": 0.05,
+            "hM": 2.05
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "prism",
+          "center": {
+            "xM": -0.325,
+            "yM": 0,
+            "hM": 2.31
+          },
+          "size": {
+            "xM": 0.05,
+            "yM": 0.05,
+            "hM": 0.22
+          },
+          "slope": "x-",
+          "material": "fer-noirci"
+        },
+        {
+          "kind": "prism",
+          "center": {
+            "xM": -0.275,
+            "yM": 0,
+            "hM": 2.31
+          },
+          "size": {
+            "xM": 0.05,
+            "yM": 0.05,
+            "hM": 0.22
+          },
+          "slope": "x+",
+          "material": "fer-noirci"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": -0.1,
+            "yM": 0,
+            "hM": 1.25
+          },
+          "size": {
+            "xM": 0.05,
+            "yM": 0.05,
+            "hM": 2.2
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "prism",
+          "center": {
+            "xM": -0.125,
+            "yM": 0,
+            "hM": 2.46
+          },
+          "size": {
+            "xM": 0.05,
+            "yM": 0.05,
+            "hM": 0.22
+          },
+          "slope": "x-",
+          "material": "fer-noirci"
+        },
+        {
+          "kind": "prism",
+          "center": {
+            "xM": -0.075,
+            "yM": 0,
+            "hM": 2.46
+          },
+          "size": {
+            "xM": 0.05,
+            "yM": 0.05,
+            "hM": 0.22
+          },
+          "slope": "x+",
+          "material": "fer-noirci"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0.1,
+            "yM": 0,
+            "hM": 1.2
+          },
+          "size": {
+            "xM": 0.05,
+            "yM": 0.05,
+            "hM": 2.1
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "prism",
+          "center": {
+            "xM": 0.075,
+            "yM": 0,
+            "hM": 2.36
+          },
+          "size": {
+            "xM": 0.05,
+            "yM": 0.05,
+            "hM": 0.22
+          },
+          "slope": "x-",
+          "material": "fer-noirci"
+        },
+        {
+          "kind": "prism",
+          "center": {
+            "xM": 0.125,
+            "yM": 0,
+            "hM": 2.36
+          },
+          "size": {
+            "xM": 0.05,
+            "yM": 0.05,
+            "hM": 0.22
+          },
+          "slope": "x+",
+          "material": "fer-noirci"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0.3,
+            "yM": 0,
+            "hM": 1.225
+          },
+          "size": {
+            "xM": 0.05,
+            "yM": 0.05,
+            "hM": 2.15
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "prism",
+          "center": {
+            "xM": 0.275,
+            "yM": 0,
+            "hM": 2.41
+          },
+          "size": {
+            "xM": 0.05,
+            "yM": 0.05,
+            "hM": 0.22
+          },
+          "slope": "x-",
+          "material": "fer-noirci"
+        },
+        {
+          "kind": "prism",
+          "center": {
+            "xM": 0.325,
+            "yM": 0,
+            "hM": 2.41
+          },
+          "size": {
+            "xM": 0.05,
+            "yM": 0.05,
+            "hM": 0.22
+          },
+          "slope": "x+",
+          "material": "fer-noirci"
+        }
+      ]
+    }
   },
   {
     "id": "mannequin",
@@ -3790,66 +5108,1050 @@
     "id": "canon-de-pont",
     "type": "props",
     "label": "Canon de pont",
-    "foot": {
-      "w": 1,
-      "h": 1
+    "solid": true,
+    "volume": {
+      "capIdentite": "S",
+      "primitives": [
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0.1,
+            "hM": 0.24
+          },
+          "size": {
+            "xM": 0.6,
+            "yM": 1,
+            "hM": 0.24
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": -0.2,
+            "hM": 0.46
+          },
+          "size": {
+            "xM": 0.6,
+            "yM": 0.45,
+            "hM": 0.2
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0.34,
+            "yM": 0.45,
+            "hM": 0.16
+          },
+          "axis": "x",
+          "radiusM": 0.16,
+          "longueurM": 0.08,
+          "sides": 16,
+          "material": "bois-chene"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": -0.34,
+            "yM": 0.45,
+            "hM": 0.16
+          },
+          "axis": "x",
+          "radiusM": 0.16,
+          "longueurM": 0.08,
+          "sides": 16,
+          "material": "bois-chene"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0.34,
+            "yM": -0.3,
+            "hM": 0.16
+          },
+          "axis": "x",
+          "radiusM": 0.16,
+          "longueurM": 0.08,
+          "sides": 16,
+          "material": "bois-chene"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": -0.34,
+            "yM": -0.3,
+            "hM": 0.16
+          },
+          "axis": "x",
+          "radiusM": 0.16,
+          "longueurM": 0.08,
+          "sides": 16,
+          "material": "bois-chene"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0.2,
+            "hM": 0.59
+          },
+          "axis": "y",
+          "radiusM": 0.15,
+          "longueurM": 1.3,
+          "sides": 16,
+          "material": "fer-noirci"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": -0.2,
+            "hM": 0.59
+          },
+          "axis": "y",
+          "radiusM": 0.17,
+          "longueurM": 0.08,
+          "sides": 16,
+          "material": "laiton-dore"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0.3,
+            "hM": 0.59
+          },
+          "axis": "y",
+          "radiusM": 0.16,
+          "longueurM": 0.06,
+          "sides": 16,
+          "material": "laiton-dore"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0.84,
+            "hM": 0.59
+          },
+          "axis": "y",
+          "radiusM": 0.17,
+          "longueurM": 0.1,
+          "sides": 16,
+          "material": "fer-noirci"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": -0.5,
+            "hM": 0.59
+          },
+          "axis": "y",
+          "radiusM": 0.06,
+          "longueurM": 0.1,
+          "sides": 8,
+          "material": "fer-noirci"
+        }
+      ]
     }
   },
   {
     "id": "cuve-brasserie",
     "type": "props",
     "label": "Cuve de brasserie",
-    "foot": {
-      "w": 1,
-      "h": 1
+    "solid": true,
+    "volume": {
+      "capIdentite": "S",
+      "primitives": [
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.175
+          },
+          "axis": "h",
+          "radiusM": 0.5,
+          "longueurM": 0.35,
+          "sides": 16,
+          "material": "cuivre"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.525
+          },
+          "axis": "h",
+          "radiusM": 0.58,
+          "longueurM": 0.35,
+          "sides": 16,
+          "material": "cuivre"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.875
+          },
+          "axis": "h",
+          "radiusM": 0.66,
+          "longueurM": 0.35,
+          "sides": 16,
+          "material": "cuivre"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.16
+          },
+          "axis": "h",
+          "radiusM": 0.52,
+          "longueurM": 0.08,
+          "sides": 16,
+          "material": "fer-noirci"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.54
+          },
+          "axis": "h",
+          "radiusM": 0.6,
+          "longueurM": 0.08,
+          "sides": 16,
+          "material": "fer-noirci"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 1.08
+          },
+          "axis": "h",
+          "radiusM": 0.72,
+          "longueurM": 0.06,
+          "sides": 16,
+          "material": "cuivre"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 1.115
+          },
+          "axis": "h",
+          "radiusM": 0.58,
+          "longueurM": 0.01,
+          "sides": 16,
+          "material": "bois-chene"
+        }
+      ]
     }
   },
   {
     "id": "ecoutille",
     "type": "props",
     "label": "Écoutille",
-    "foot": {
-      "w": 1,
-      "h": 1
+    "solid": true,
+    "volume": {
+      "capIdentite": "S",
+      "primitives": [
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.08
+          },
+          "size": {
+            "xM": 1.5,
+            "yM": 1.5,
+            "hM": 0.16
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.185
+          },
+          "size": {
+            "xM": 1.2,
+            "yM": 1.2,
+            "hM": 0.05
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.225
+          },
+          "size": {
+            "xM": 1.2,
+            "yM": 0.08,
+            "hM": 0.03
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.225
+          },
+          "size": {
+            "xM": 0.08,
+            "yM": 1.2,
+            "hM": 0.03
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0.3,
+            "hM": 0.225
+          },
+          "axis": "h",
+          "radiusM": 0.1,
+          "longueurM": 0.03,
+          "sides": 16,
+          "material": "fer-noirci"
+        }
+      ]
     }
   },
   {
     "id": "enclume",
     "type": "props",
     "label": "Enclume",
-    "foot": {
-      "w": 1,
-      "h": 1
+    "solid": true,
+    "volume": {
+      "capIdentite": "S",
+      "primitives": [
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.25
+          },
+          "axis": "h",
+          "radiusM": 0.34,
+          "longueurM": 0.5,
+          "sides": 16,
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.55
+          },
+          "size": {
+            "xM": 0.46,
+            "yM": 0.3,
+            "hM": 0.1
+          },
+          "material": "fer-noirci"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.65
+          },
+          "size": {
+            "xM": 0.24,
+            "yM": 0.18,
+            "hM": 0.1
+          },
+          "material": "fer-noirci"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.76
+          },
+          "size": {
+            "xM": 0.6,
+            "yM": 0.24,
+            "hM": 0.12
+          },
+          "material": "fer-noirci"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.84
+          },
+          "size": {
+            "xM": 0.6,
+            "yM": 0.24,
+            "hM": 0.04
+          },
+          "material": "fer-noirci"
+        },
+        {
+          "kind": "prism",
+          "center": {
+            "xM": 0.45,
+            "yM": 0,
+            "hM": 0.79
+          },
+          "size": {
+            "xM": 0.3,
+            "yM": 0.2,
+            "hM": 0.14
+          },
+          "slope": "x+",
+          "material": "fer-noirci"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": -0.36,
+            "yM": 0,
+            "hM": 0.8
+          },
+          "size": {
+            "xM": 0.12,
+            "yM": 0.18,
+            "hM": 0.12
+          },
+          "material": "fer-noirci"
+        }
+      ]
     }
   },
   {
     "id": "escalier-bois",
     "type": "props",
     "label": "Escalier en bois",
-    "foot": {
-      "w": 1,
-      "h": 1
+    "solid": true,
+    "volume": {
+      "capIdentite": "S",
+      "primitives": [
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0.72,
+            "hM": 0.15
+          },
+          "size": {
+            "xM": 1.2,
+            "yM": 0.36,
+            "hM": 0.3
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0.36,
+            "hM": 0.3
+          },
+          "size": {
+            "xM": 1.2,
+            "yM": 0.36,
+            "hM": 0.6
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.45
+          },
+          "size": {
+            "xM": 1.2,
+            "yM": 0.36,
+            "hM": 0.9
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": -0.36,
+            "hM": 0.6
+          },
+          "size": {
+            "xM": 1.2,
+            "yM": 0.36,
+            "hM": 1.2
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": -0.72,
+            "hM": 0.75
+          },
+          "size": {
+            "xM": 1.2,
+            "yM": 0.36,
+            "hM": 1.5
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": -0.63,
+            "yM": 0.72,
+            "hM": 0.6
+          },
+          "size": {
+            "xM": 0.06,
+            "yM": 0.06,
+            "hM": 1.2
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "prism",
+          "center": {
+            "xM": -0.63,
+            "yM": 0,
+            "hM": 1.05
+          },
+          "size": {
+            "xM": 0.06,
+            "yM": 1.8,
+            "hM": 1.5
+          },
+          "slope": "y+",
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": -0.63,
+            "yM": 0.72,
+            "hM": 1.24
+          },
+          "size": {
+            "xM": 0.08,
+            "yM": 0.08,
+            "hM": 0.08
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": -0.63,
+            "yM": -0.72,
+            "hM": 1.95
+          },
+          "size": {
+            "xM": 0.06,
+            "yM": 0.06,
+            "hM": 0.9
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": -0.63,
+            "yM": -0.72,
+            "hM": 2.44
+          },
+          "size": {
+            "xM": 0.08,
+            "yM": 0.08,
+            "hM": 0.08
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0.63,
+            "yM": 0.72,
+            "hM": 0.6
+          },
+          "size": {
+            "xM": 0.06,
+            "yM": 0.06,
+            "hM": 1.2
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "prism",
+          "center": {
+            "xM": 0.63,
+            "yM": 0,
+            "hM": 1.05
+          },
+          "size": {
+            "xM": 0.06,
+            "yM": 1.8,
+            "hM": 1.5
+          },
+          "slope": "y+",
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0.63,
+            "yM": 0.72,
+            "hM": 1.24
+          },
+          "size": {
+            "xM": 0.08,
+            "yM": 0.08,
+            "hM": 0.08
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0.63,
+            "yM": -0.72,
+            "hM": 1.95
+          },
+          "size": {
+            "xM": 0.06,
+            "yM": 0.06,
+            "hM": 0.9
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0.63,
+            "yM": -0.72,
+            "hM": 2.44
+          },
+          "size": {
+            "xM": 0.08,
+            "yM": 0.08,
+            "hM": 0.08
+          },
+          "material": "bois-chene"
+        }
+      ]
     }
   },
   {
     "id": "escalier-loge",
     "type": "props",
     "label": "Escalier de loge",
-    "foot": {
-      "w": 1,
-      "h": 1
+    "solid": true,
+    "volume": {
+      "capIdentite": "S",
+      "primitives": [
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0.72,
+            "hM": 0.15
+          },
+          "size": {
+            "xM": 1.2,
+            "yM": 0.36,
+            "hM": 0.3
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0.36,
+            "hM": 0.3
+          },
+          "size": {
+            "xM": 1.2,
+            "yM": 0.36,
+            "hM": 0.6
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.45
+          },
+          "size": {
+            "xM": 1.2,
+            "yM": 0.36,
+            "hM": 0.9
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": -0.36,
+            "hM": 0.6
+          },
+          "size": {
+            "xM": 1.2,
+            "yM": 0.36,
+            "hM": 1.2
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": -0.72,
+            "hM": 0.75
+          },
+          "size": {
+            "xM": 1.2,
+            "yM": 0.36,
+            "hM": 1.5
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": -0.63,
+            "yM": 0.72,
+            "hM": 0.6
+          },
+          "size": {
+            "xM": 0.06,
+            "yM": 0.06,
+            "hM": 1.2
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "prism",
+          "center": {
+            "xM": -0.63,
+            "yM": 0,
+            "hM": 1.05
+          },
+          "size": {
+            "xM": 0.06,
+            "yM": 1.8,
+            "hM": 1.5
+          },
+          "slope": "y+",
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": -0.63,
+            "yM": 0.72,
+            "hM": 1.24
+          },
+          "size": {
+            "xM": 0.08,
+            "yM": 0.08,
+            "hM": 0.08
+          },
+          "material": "laiton-dore"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": -0.63,
+            "yM": -0.72,
+            "hM": 1.95
+          },
+          "size": {
+            "xM": 0.06,
+            "yM": 0.06,
+            "hM": 0.9
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": -0.63,
+            "yM": -0.72,
+            "hM": 2.44
+          },
+          "size": {
+            "xM": 0.08,
+            "yM": 0.08,
+            "hM": 0.08
+          },
+          "material": "laiton-dore"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0.63,
+            "yM": 0.72,
+            "hM": 0.6
+          },
+          "size": {
+            "xM": 0.06,
+            "yM": 0.06,
+            "hM": 1.2
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "prism",
+          "center": {
+            "xM": 0.63,
+            "yM": 0,
+            "hM": 1.05
+          },
+          "size": {
+            "xM": 0.06,
+            "yM": 1.8,
+            "hM": 1.5
+          },
+          "slope": "y+",
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0.63,
+            "yM": 0.72,
+            "hM": 1.24
+          },
+          "size": {
+            "xM": 0.08,
+            "yM": 0.08,
+            "hM": 0.08
+          },
+          "material": "laiton-dore"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0.63,
+            "yM": -0.72,
+            "hM": 1.95
+          },
+          "size": {
+            "xM": 0.06,
+            "yM": 0.06,
+            "hM": 0.9
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0.63,
+            "yM": -0.72,
+            "hM": 2.44
+          },
+          "size": {
+            "xM": 0.08,
+            "yM": 0.08,
+            "hM": 0.08
+          },
+          "material": "laiton-dore"
+        }
+      ]
     }
   },
   {
     "id": "foyer-de-forge",
     "type": "props",
     "label": "Foyer de forge",
+    "solid": true,
     "light": {
       "radiusM": 10
     },
-    "foot": {
-      "w": 1,
-      "h": 1
+    "volume": {
+      "capIdentite": "S",
+      "primitives": [
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.4
+          },
+          "size": {
+            "xM": 1.2,
+            "yM": 1.1,
+            "hM": 0.8
+          },
+          "material": "pierre-atre"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0.1,
+            "hM": 0.84
+          },
+          "size": {
+            "xM": 0.9,
+            "yM": 0.7,
+            "hM": 0.08
+          },
+          "material": "fer-noirci"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0.1,
+            "hM": 0.9
+          },
+          "size": {
+            "xM": 0.7,
+            "yM": 0.5,
+            "hM": 0.04
+          },
+          "material": "braises",
+          "emet": true
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": -0.4,
+            "hM": 1.05
+          },
+          "size": {
+            "xM": 1.2,
+            "yM": 0.3,
+            "hM": 0.5
+          },
+          "material": "pierre-atre"
+        },
+        {
+          "kind": "prism",
+          "center": {
+            "xM": 0,
+            "yM": -0.1,
+            "hM": 1.525
+          },
+          "size": {
+            "xM": 1.1,
+            "yM": 0.4,
+            "hM": 0.45
+          },
+          "slope": "y+",
+          "material": "pierre-atre"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": -0.4,
+            "hM": 1.525
+          },
+          "size": {
+            "xM": 1.1,
+            "yM": 0.3,
+            "hM": 0.45
+          },
+          "material": "pierre-atre"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": -0.35,
+            "hM": 2.2
+          },
+          "size": {
+            "xM": 0.34,
+            "yM": 0.34,
+            "hM": 0.9
+          },
+          "material": "pierre-atre"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": -0.35,
+            "hM": 2.69
+          },
+          "size": {
+            "xM": 0.44,
+            "yM": 0.44,
+            "hM": 0.08
+          },
+          "material": "pierre-atre"
+        },
+        {
+          "kind": "prism",
+          "center": {
+            "xM": -0.8,
+            "yM": 0.15,
+            "hM": 0.6
+          },
+          "size": {
+            "xM": 0.4,
+            "yM": 0.4,
+            "hM": 0.3
+          },
+          "slope": "x-",
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": -0.66,
+            "yM": 0.15,
+            "hM": 0.59
+          },
+          "size": {
+            "xM": 0.14,
+            "yM": 0.08,
+            "hM": 0.08
+          },
+          "material": "fer-noirci"
+        }
+      ]
     },
     "maison": "rayon maison : cuve de charbons ardents (def d’art) — même étalon que le feu de camp (bougie, LDB 74 l.43, 10 m), c’est un lit de braises à ciel ouvert"
   },
@@ -3857,27 +6159,282 @@
     "id": "passerelle-d-embarquement",
     "type": "props",
     "label": "Passerelle d'embarquement",
-    "foot": {
-      "w": 2,
-      "h": 1
+    "solid": true,
+    "volume": {
+      "capIdentite": "S",
+      "primitives": [
+        {
+          "kind": "prism",
+          "center": {
+            "xM": -0.1,
+            "yM": 0,
+            "hM": 0.45
+          },
+          "size": {
+            "xM": 3.4,
+            "yM": 0.8,
+            "hM": 0.9
+          },
+          "slope": "x-",
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 1.7,
+            "yM": 0,
+            "hM": 0.45
+          },
+          "size": {
+            "xM": 0.3,
+            "yM": 0.9,
+            "hM": 0.9
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 1.72,
+            "yM": 0.44,
+            "hM": 1.2
+          },
+          "size": {
+            "xM": 0.06,
+            "yM": 0.06,
+            "hM": 0.6
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 1.72,
+            "yM": -0.44,
+            "hM": 1.2
+          },
+          "size": {
+            "xM": 0.06,
+            "yM": 0.06,
+            "hM": 0.6
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 1.72,
+            "yM": 0,
+            "hM": 1.46
+          },
+          "size": {
+            "xM": 0.06,
+            "yM": 0.94,
+            "hM": 0.04
+          },
+          "material": "chanvre"
+        }
+      ]
     }
   },
   {
     "id": "rouleau-de-cordage",
     "type": "props",
     "label": "Rouleau de cordage",
-    "foot": {
-      "w": 1,
-      "h": 1
+    "solid": true,
+    "volume": {
+      "capIdentite": "S",
+      "primitives": [
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.13
+          },
+          "axis": "h",
+          "radiusM": 0.72,
+          "longueurM": 0.26,
+          "sides": 16,
+          "material": "chanvre"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.285
+          },
+          "axis": "h",
+          "radiusM": 0.56,
+          "longueurM": 0.05,
+          "sides": 16,
+          "material": "chanvre"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.33
+          },
+          "axis": "h",
+          "radiusM": 0.36,
+          "longueurM": 0.04,
+          "sides": 16,
+          "material": "chanvre"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.36
+          },
+          "axis": "h",
+          "radiusM": 0.14,
+          "longueurM": 0.02,
+          "sides": 16,
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0.72,
+            "yM": 0.3,
+            "hM": 0.04
+          },
+          "size": {
+            "xM": 0.26,
+            "yM": 0.08,
+            "hM": 0.08
+          },
+          "material": "chanvre"
+        }
+      ]
     }
   },
   {
     "id": "stalle-ecurie",
     "type": "props",
     "label": "Stalle d'écurie",
-    "foot": {
-      "w": 1,
-      "h": 1
+    "solid": true,
+    "volume": {
+      "capIdentite": "S",
+      "primitives": [
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0.1,
+            "yM": -0.7,
+            "hM": 0.8
+          },
+          "size": {
+            "xM": 1.6,
+            "yM": 0.1,
+            "hM": 1.6
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0.1,
+            "yM": -0.7,
+            "hM": 1.64
+          },
+          "size": {
+            "xM": 1.64,
+            "yM": 0.16,
+            "hM": 0.08
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": -0.8,
+            "yM": 0.5,
+            "hM": 0.9
+          },
+          "size": {
+            "xM": 0.2,
+            "yM": 0.2,
+            "hM": 1.8
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "prism",
+          "center": {
+            "xM": -0.8,
+            "yM": 0.5,
+            "hM": 1.85
+          },
+          "size": {
+            "xM": 0.2,
+            "yM": 0.2,
+            "hM": 0.1
+          },
+          "slope": "y+",
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": -0.8,
+            "yM": -0.025,
+            "hM": 0.45
+          },
+          "size": {
+            "xM": 0.1,
+            "yM": 1.25,
+            "hM": 0.9
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": -0.8,
+            "yM": 0.62,
+            "hM": 1.08
+          },
+          "axis": "y",
+          "radiusM": 0.08,
+          "longueurM": 0.02,
+          "sides": 16,
+          "material": "fer-noirci"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0.2,
+            "yM": -0.45,
+            "hM": 0.65
+          },
+          "size": {
+            "xM": 1,
+            "yM": 0.4,
+            "hM": 0.3
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0.2,
+            "yM": -0.45,
+            "hM": 0.83
+          },
+          "size": {
+            "xM": 0.9,
+            "yM": 0.3,
+            "hM": 0.06
+          },
+          "material": "chanvre"
+        }
+      ]
     }
   },
   {
@@ -5114,7 +7671,138 @@
     "id": "ancre-de-navire",
     "type": "props",
     "label": "Ancre de navire",
-    "solid": true
+    "solid": true,
+    "volume": {
+      "capIdentite": "S",
+      "primitives": [
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.09
+          },
+          "axis": "h",
+          "radiusM": 0.55,
+          "longueurM": 0.18,
+          "sides": 16,
+          "material": "chanvre"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.93
+          },
+          "size": {
+            "xM": 0.12,
+            "yM": 0.12,
+            "hM": 1.5
+          },
+          "material": "fer-noirci"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.24
+          },
+          "size": {
+            "xM": 1.1,
+            "yM": 0.12,
+            "hM": 0.12
+          },
+          "material": "fer-noirci"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": -0.5,
+            "yM": 0,
+            "hM": 0.475
+          },
+          "size": {
+            "xM": 0.1,
+            "yM": 0.1,
+            "hM": 0.35
+          },
+          "material": "fer-noirci"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0.5,
+            "yM": 0,
+            "hM": 0.475
+          },
+          "size": {
+            "xM": 0.1,
+            "yM": 0.1,
+            "hM": 0.35
+          },
+          "material": "fer-noirci"
+        },
+        {
+          "kind": "prism",
+          "center": {
+            "xM": -0.58,
+            "yM": 0,
+            "hM": 0.7
+          },
+          "size": {
+            "xM": 0.18,
+            "yM": 0.1,
+            "hM": 0.3
+          },
+          "slope": "x-",
+          "material": "fer-noirci"
+        },
+        {
+          "kind": "prism",
+          "center": {
+            "xM": 0.58,
+            "yM": 0,
+            "hM": 0.7
+          },
+          "size": {
+            "xM": 0.18,
+            "yM": 0.1,
+            "hM": 0.3
+          },
+          "slope": "x+",
+          "material": "fer-noirci"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 1.46
+          },
+          "size": {
+            "xM": 0.18,
+            "yM": 1.2,
+            "hM": 0.16
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 1.82
+          },
+          "axis": "x",
+          "radiusM": 0.14,
+          "longueurM": 0.05,
+          "sides": 16,
+          "material": "fer-noirci"
+        }
+      ]
+    }
   },
   {
     "id": "arche-ruine",
@@ -5135,7 +7823,150 @@
     "id": "barre-de-navire",
     "type": "props",
     "label": "Barre à roue",
-    "solid": true
+    "solid": true,
+    "volume": {
+      "capIdentite": "S",
+      "primitives": [
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.06
+          },
+          "size": {
+            "xM": 0.6,
+            "yM": 0.5,
+            "hM": 0.12
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": -0.05,
+            "hM": 0.52
+          },
+          "size": {
+            "xM": 0.26,
+            "yM": 0.26,
+            "hM": 0.8
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0.14,
+            "hM": 0.94
+          },
+          "axis": "y",
+          "radiusM": 0.06,
+          "longueurM": 0.2,
+          "sides": 8,
+          "material": "laiton-dore"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0.28,
+            "hM": 1.38
+          },
+          "size": {
+            "xM": 0.9,
+            "yM": 0.06,
+            "hM": 0.08
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0.28,
+            "hM": 0.5
+          },
+          "size": {
+            "xM": 0.9,
+            "yM": 0.06,
+            "hM": 0.08
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": -0.41,
+            "yM": 0.28,
+            "hM": 0.94
+          },
+          "size": {
+            "xM": 0.08,
+            "yM": 0.06,
+            "hM": 0.96
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0.41,
+            "yM": 0.28,
+            "hM": 0.94
+          },
+          "size": {
+            "xM": 0.08,
+            "yM": 0.06,
+            "hM": 0.96
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0.28,
+            "hM": 0.94
+          },
+          "size": {
+            "xM": 0.06,
+            "yM": 0.05,
+            "hM": 1.3
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0.28,
+            "hM": 0.94
+          },
+          "size": {
+            "xM": 1.3,
+            "yM": 0.05,
+            "hM": 0.06
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0.28,
+            "hM": 0.94
+          },
+          "axis": "y",
+          "radiusM": 0.1,
+          "longueurM": 0.12,
+          "sides": 8,
+          "material": "laiton-dore"
+        }
+      ]
+    }
   },
   {
     "id": "bastingage",
@@ -5163,6 +7994,104 @@
     "label": "Cabestan",
     "solid": true,
     "cover": "moyenne",
+    "volume": {
+      "capIdentite": "S",
+      "primitives": [
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.06
+          },
+          "axis": "h",
+          "radiusM": 0.5,
+          "longueurM": 0.12,
+          "sides": 16,
+          "material": "bois-chene"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.47
+          },
+          "axis": "h",
+          "radiusM": 0.3,
+          "longueurM": 0.7,
+          "sides": 8,
+          "material": "bois-chene"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.35
+          },
+          "axis": "h",
+          "radiusM": 0.34,
+          "longueurM": 0.3,
+          "sides": 16,
+          "material": "chanvre"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.89
+          },
+          "axis": "h",
+          "radiusM": 0.4,
+          "longueurM": 0.14,
+          "sides": 16,
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.9
+          },
+          "size": {
+            "xM": 1.9,
+            "yM": 0.09,
+            "hM": 0.08
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.9
+          },
+          "size": {
+            "xM": 0.09,
+            "yM": 1.9,
+            "hM": 0.08
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 1.03
+          },
+          "axis": "h",
+          "radiusM": 0.12,
+          "longueurM": 0.14,
+          "sides": 8,
+          "material": "bois-chene"
+        }
+      ]
+    },
     "maison": "couvert maison : un fût de bois cerclé à hauteur de taille — l’étalon MOYEN de la barrière en bois (LDB 14 l.81)"
   },
   {
@@ -5572,6 +8501,126 @@
       "radiusM": 20,
       "tone": "lanterne"
     },
+    "volume": {
+      "capIdentite": "S",
+      "primitives": [
+        {
+          "kind": "box",
+          "center": {
+            "xM": -0.3,
+            "yM": 0,
+            "hM": 0.06
+          },
+          "size": {
+            "xM": 0.4,
+            "yM": 0.4,
+            "hM": 0.12
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": -0.3,
+            "yM": 0,
+            "hM": 1.27
+          },
+          "size": {
+            "xM": 0.16,
+            "yM": 0.16,
+            "hM": 2.3
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": -0.05,
+            "yM": 0,
+            "hM": 2.33
+          },
+          "size": {
+            "xM": 0.5,
+            "yM": 0.06,
+            "hM": 0.06
+          },
+          "material": "fer-noirci"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0.2,
+            "yM": 0,
+            "hM": 2.21
+          },
+          "size": {
+            "xM": 0.04,
+            "yM": 0.04,
+            "hM": 0.18
+          },
+          "material": "fer-noirci"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0.2,
+            "yM": 0,
+            "hM": 1.53
+          },
+          "size": {
+            "xM": 0.32,
+            "yM": 0.32,
+            "hM": 0.06
+          },
+          "material": "fer-noirci"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0.2,
+            "yM": 0,
+            "hM": 1.76
+          },
+          "size": {
+            "xM": 0.28,
+            "yM": 0.28,
+            "hM": 0.4
+          },
+          "material": "laiton-dore",
+          "emet": true
+        },
+        {
+          "kind": "prism",
+          "center": {
+            "xM": 0.2,
+            "yM": -0.09,
+            "hM": 2.03
+          },
+          "size": {
+            "xM": 0.36,
+            "yM": 0.18,
+            "hM": 0.14
+          },
+          "slope": "y-",
+          "material": "fer-noirci"
+        },
+        {
+          "kind": "prism",
+          "center": {
+            "xM": 0.2,
+            "yM": 0.09,
+            "hM": 2.03
+          },
+          "size": {
+            "xM": 0.36,
+            "yM": 0.18,
+            "hM": 0.14
+          },
+          "slope": "y+",
+          "material": "fer-noirci"
+        }
+      ]
+    },
     "maison": "rayon maison : c’est une lanterne, vitrée et à cage de fer (def d’art) — calé sur l’étalon de la lanterne (LDB 74 l.58, 20 m) ; montée en poupe et non portée, d’où l’arbitrage plutôt que le folio"
   },
   {
@@ -5937,7 +8986,92 @@
     "id": "mat-de-navire",
     "type": "props",
     "label": "Mât de navire",
-    "solid": true
+    "solid": true,
+    "volume": {
+      "capIdentite": "S",
+      "primitives": [
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.15
+          },
+          "size": {
+            "xM": 0.7,
+            "yM": 0.7,
+            "hM": 0.3
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 2.5
+          },
+          "axis": "h",
+          "radiusM": 0.14,
+          "longueurM": 4.4,
+          "sides": 16,
+          "material": "bois-chene"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 4.75
+          },
+          "axis": "h",
+          "radiusM": 0.09,
+          "longueurM": 0.1,
+          "sides": 8,
+          "material": "bois-chene"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0.18,
+            "hM": 3.57
+          },
+          "axis": "x",
+          "radiusM": 0.07,
+          "longueurM": 1.9,
+          "sides": 8,
+          "material": "bois-chene"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0.18,
+            "hM": 3.38
+          },
+          "axis": "x",
+          "radiusM": 0.12,
+          "longueurM": 1.7,
+          "sides": 8,
+          "material": "chanvre"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0.3,
+            "yM": 0,
+            "hM": 4.61
+          },
+          "size": {
+            "xM": 0.5,
+            "yM": 0.03,
+            "hM": 0.12
+          },
+          "material": "toile-rouge"
+        }
+      ]
+    }
   },
   {
     "id": "nenuphars",

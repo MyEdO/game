@@ -251,6 +251,15 @@ describe('décor volumique — chaque recette du catalogue, sa vignette et son c
     // #1343 : la charrette à bras, plateau et brancards de 3,30 m — son 2×1 vient de ce corps,
     // là où elle le DÉCLARAIT en billboard.
     'charrette': { ns: [2, 1], eo: [1, 2] },
+    // #1343 lot D1 — les recettes qui reproduisent en corps dérivé le `foot` multi-case de leur billboard.
+    'barque': { ns: [2, 1], eo: [1, 2] },
+    'lit': { ns: [2, 1], eo: [1, 2] },
+    'abreuvoir': { ns: [2, 1], eo: [1, 2] },
+    'passerelle-d-embarquement': { ns: [2, 1], eo: [1, 2] },
+    'tribune': { ns: [3, 1], eo: [1, 3] },
+    // La diligence renversée à sa taille réelle, 5,6 m hors tout — utilisateur, 2026-09-30 : « Oui, 3×2 à
+    // taille réelle (Recommandé) ».
+    'epave-carrosse': { ns: [3, 2], eo: [2, 3] },
     // Toutes les autres tiennent sur UNE case, à tous les caps. La table ronde n'y tient que parce
     // que ses quatre tabourets sont exclus du corps (sans eux elle mesurerait 2×2 — cf. le contrat de
     // cache de `data/props-integrity.test.ts`).
@@ -267,6 +276,10 @@ describe('décor volumique — chaque recette du catalogue, sa vignette et son c
       'bureau', 'etabli',
       // #1343 — les décors organiques en volume sobre, chacun sur sa case à tous ses caps.
       'plante-pot', 'statue', 'colonne-brisee', 'lustre-opera', 'mannequin', 'mannequin-couturier',
+      // #1343 lot D1 — navire, embarcations, bâtiments.
+      'ancre-de-navire', 'barre-de-navire', 'cabestan', 'canon-de-pont', 'ecoutille', 'lanterne-de-poupe',
+      'mat-de-navire', 'rouleau-de-cordage', 'rack-lances', 'cuve-brasserie', 'enclume', 'foyer-de-forge',
+      'stalle-ecurie', 'fontaine', 'puits', 'marmite', 'escalier-bois', 'escalier-loge',
     ], () => ({ ns: [1, 1], eo: [1, 1] })),
   };
 

@@ -60,7 +60,7 @@ describe('embuscade — Scene produite par buildScene', () => {
     expect(prop('cheval')).toMatchObject({ kind: 'prop', ref: 'cheval-mort', pos: { x: 12, y: 6 } });
     expect(prop('corps1')).toMatchObject({ ref: 'cadavre', pos: { x: 11, y: 7 } });
     expect(prop('corps2')?.pos).toEqual({ x: 14, y: 8 });
-    expect(prop('corps3')?.pos).toEqual({ x: 17, y: 7 });
+    expect(prop('corps3')?.pos).toEqual({ x: 17, y: 8 });
     expect(prop('sang1')).toMatchObject({ ref: 'mare-sang', pos: { x: 13, y: 7 } });
     expect(prop('sang2')?.pos).toEqual({ x: 15, y: 7 });
     expect(prop('sang3')?.pos).toEqual({ x: 16, y: 8 });
@@ -97,7 +97,7 @@ describe('embuscade — Scene produite par buildScene', () => {
     expect(enc.onVictory).toBeDefined();
 
     const chef = s.entities.find((e) => e.id === 'enemy-enc-mutants-0');
-    expect(chef).toMatchObject({ ref: 'mutant', anim: 'standing', pos: { x: 17, y: 6 } });
+    expect(chef).toMatchObject({ ref: 'mutant', anim: 'standing', pos: { x: 18, y: 6 } });
     expect(chef?.statblock?.label).toBe('Knud Cratinx');
     expect(chef?.statblock?.char['capacite-de-tir']).toBe(43);
     // Arme de rendu DÉRIVÉE du Trait (À distance (arbalète)) — plus de `weapon:` d'authoring redondant
@@ -111,11 +111,12 @@ describe('embuscade — Scene produite par buildScene', () => {
     const positions = ['enemy-enc-mutants-0', 'enemy-enc-mutants-1', 'enemy-enc-mutants-2', 'enemy-enc-mutants-3', 'enemy-enc-mutants-4'].map(
       (id) => s.entities.find((e) => e.id === id)?.pos,
     );
-    // Les mutants encerclent l'épave SANS naître dedans : elle occupe 2×2 depuis (15,6) au catalogue
-    // (`props.json` `epave-carrosse`) — cf. le balayage `src/scenes/prop-footprint-occupancy.test.ts`.
+    // Les mutants encerclent l'épave SANS naître dedans : elle occupe 3×2 depuis (15,6), le corps d'une
+    // diligence à sa taille réelle (`props.json` `epave-carrosse`, #1343 lot D1) — cf. le balayage
+    // `src/scenes/prop-footprint-occupancy.test.ts`.
     expect(positions).toEqual([
-      { x: 17, y: 6 },
-      { x: 17, y: 7 },
+      { x: 18, y: 6 },
+      { x: 18, y: 7 },
       { x: 14, y: 8 },
       { x: 14, y: 7 },
       { x: 12, y: 7 },

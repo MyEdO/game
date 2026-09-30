@@ -496,7 +496,7 @@ describe('materials.json, domaine `prop` — les matières du décor', () => {
   it('porte les matières du décor, en couleur hexadécimale et sans émission', () => {
     expect(matieresDe('prop').map((m) => m.id)).toEqual([
       'bois-chene', 'pierre-atre', 'fer-noirci', 'braises', 'prop-ardoise', 'toile-rouge', 'laiton-dore',
-      'albatre', 'feuillage',
+      'albatre', 'feuillage', 'laque-rouge', 'prop-eau', 'chanvre', 'brouet', 'cuivre',
     ]);
     for (const m of matieresDe('prop')) {
       expect(m.color, m.id).toMatch(/^#[0-9a-f]{6}$/);
