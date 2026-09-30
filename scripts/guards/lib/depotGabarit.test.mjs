@@ -9,7 +9,7 @@ import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { isAbsolute, join, sep } from 'node:path'
 import { envDeDepotForge, envGitFeint, gabaritDeDepot, instanceDeDepot, sousGitFeint } from './depotGabarit.mjs'
-import { ENV_GIT_FEINT, GitIndisponible, depotDe, fichiersDuGrep, shaDe } from './gitPorte.mjs'
+import { ENV_GIT_FEINT, GitIndisponible, TRAVAIL, depotDe, listerImage, shaDe } from './gitPorte.mjs'
 import { listerDossier } from './lister.mjs'
 import { readCorpus } from './sourceCorpus.mjs'
 import { tableTotale } from '../../../src/lib/tableTotale.ts'
@@ -378,20 +378,51 @@ test('envDeDepotForge : aucune variable `GIT_*` du processus ne passe, hors les 
   }
 })
 
-/** La signature d'un faux `git` calé sur `PATH` : un fichier nommé `git` écrit par le banc, ou le vrai
- *  git cherché par `sh` pour y relayer. `-E` de `git grep`. */
-const CALE_GIT_SUR_PATH = String.raw`join\([^)]*['"]git(\.cmd|\.exe)?['"]\)|command -v git['"]`
+// La SURCHARGE de `PATH` d'un banc : le moyen de caler un binaire, quel que soit le nom du fichier
+// calé. win32 ne lance pas une cale (#2114) ; la panne de git passe par `envGitFeint` (#2225).
+const P = 'PA' + 'TH'
+const Pa = 'Pa' + 'th'
+/** Une clé de PATH d'un objet d'environnement, ou une affectation de PATH (membre ou indice). */
+const SURCHARGE_DE_PATH = new RegExp(String.raw`[{,]\s*['"]?(?:${P}|${Pa})['"]?\s*:|\.(?:${P}|${Pa})\s*=(?!=)|\[\s*['"\x60](?:${P}|${Pa})['"\x60]\s*\]\s*=(?!=)`, 'g')
 
-test('aucun banc ne cale un faux `git` sur `PATH` — win32 ne le lance pas (#2114) : la panne de git passe par `envGitFeint` (#2225)', () => {
-  const motif = new RegExp(CALE_GIT_SUR_PATH)
-  const q = "'"
+/** Les surcharges qui ne calent AUCUN binaire. Nominatif AU SITE : `ancre` est un texte de la ligne,
+ *  `sites` le compte EXACT de surcharges sur les lignes qui la portent — une entrée qui n'atteint plus
+ *  rien, ou qui en atteint une de plus, fait rougir. */
+const SURCHARGES_HORS_CLASSE = [
+  { fichier: 'scripts/docs/lib/plateforme-win32.test.mjs', ancre: '"  lu({ ', sites: 2, raison: 'mesure le PATH que la simulation win32 transmet à un enfant' },
+  { fichier: 'scripts/hooks/poison-postcheck.test.mjs', ancre: 'const sansGit = ', sites: 2, raison: 'retire git du PATH (binaire ABSENT) : rien n’est calé' },
+  { fichier: 'scripts/lancer-local.test.mjs', ancre: 'const env = envIsole(', sites: 1, raison: 'mesure `envIsole`, qui recompose le PATH d’un enfant' },
+  { fichier: 'scripts/lancer-local.test.mjs', ancre: "['sonde', '--', 'sonde', '3', 'suite']", sites: 2, raison: 'mesure que le lanceur local ignore un PATH étranger' },
+  { fichier: 'scripts/test/run.test.mjs', ancre: 'const env = envEnfant(', sites: 1, raison: 'mesure `envEnfant`, qui transmet le PATH' },
+]
+
+/** Les lignes de `texte` qui surchargent PATH, avec leur compte. PUR. */
+const surchargesDe = (texte) => texte.split('\n').flatMap((ligne, i) => {
+  const n = [...ligne.matchAll(SURCHARGE_DE_PATH)].length
+  return n ? [{ ligne: i + 1, texte: ligne.trim(), n }] : []
+})
+
+test('aucun banc ne SURCHARGE `PATH` pour caler un binaire — win32 ne lance pas une cale (#2114) : la panne de git passe par `envGitFeint` (#2225)', () => {
   for (const cale of [
-    `writeFileSync(join(cale, ${q}git${q}), '#!/bin/sh', { mode: 0o755 })`,
-    `writeFileSync(join(cale, ${q}git.cmd${q}), '@exit 128')`,
-    `execFileSync('sh', ['-c', ${q}command -v git${q}])`,
-  ]) assert.match(cale, motif, `témoin : la signature reconnaît ${cale}`)
+    `{ ...process.env, ${P}: \`\${cale}:\${process.env.${P}}\` }`,
+    `{ ...env, '${Pa}': cale }`,
+    `process.env.${P} = \`\${cale}:\${chemin}\``,
+    `process.env['${P}'] = cale`,
+    `Object.assign(env, { ${P}: resolve(cale, 'git') })`,
+  ]) assert.equal(surchargesDe(cale).length, 1, `témoin : la surcharge est reconnue dans ${cale}`)
+  for (const lecture of [`env.${P} === x`, `const p = process.env.${P}`, `assert.equal(env.${P}, undefined)`]) {
+    assert.deepEqual(surchargesDe(lecture), [], `témoin : une LECTURE de PATH n'est pas une surcharge — ${lecture}`)
+  }
   const racine = fileURLToPath(new URL('../../..', import.meta.url))
-  assert.deepEqual(fichiersDuGrep(depotDe(racine), [], CALE_GIT_SUR_PATH, [':(glob)**/*.test.*']), [])
+  const sites = listerImage(depotDe(racine), TRAVAIL, 'scripts')
+    .filter((f) => /\.[cm]?[jt]sx?$/.test(f))
+    .flatMap((f) => surchargesDe(readFileSync(join(racine, f), 'utf8')).map((s) => ({ fichier: f, ...s })))
+  const restants = sites.filter((s) => !SURCHARGES_HORS_CLASSE.some((e) => e.fichier === s.fichier && s.texte.includes(e.ancre)))
+  assert.deepEqual(restants.map((s) => `${s.fichier}:${s.ligne} ${s.texte}`), [])
+  for (const e of SURCHARGES_HORS_CLASSE) {
+    const vus = sites.filter((s) => s.fichier === e.fichier && s.texte.includes(e.ancre)).reduce((t, s) => t + s.n, 0)
+    assert.equal(vus, e.sites, `exemption ${e.fichier} « ${e.ancre} » : ${vus} surcharge(s), ${e.sites} déclarée(s)`)
+  }
 })
 
 test('sousGitFeint : la feinte vaut dans CE processus pendant `fn`, et se retire même sur une levée', () => {
@@ -403,6 +434,8 @@ test('sousGitFeint : la feinte vaut dans CE processus pendant `fn`, et se retire
     assert.equal(process.env[ENV_GIT_FEINT], undefined)
     assert.match(shaDe(depot, 'HEAD'), /^[0-9a-f]{40}$/)
     assert.deepEqual(envGitFeint([{ si: [], status: 1 }]), { [ENV_GIT_FEINT]: '[{"si":[],"status":1}]' })
+    assert.throws(() => sousGitFeint([], async () => shaDe(depot, 'HEAD')), /sousGitFeint : `fn` rend une promesse/)
+    assert.equal(process.env[ENV_GIT_FEINT], undefined, 'la feinte est retirée après le refus')
   } finally {
     jeter(racine)
   }

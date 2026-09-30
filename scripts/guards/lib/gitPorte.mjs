@@ -251,6 +251,10 @@ function lanceurDe(depot) {
  */
 export const ENV_GIT_FEINT = 'WFRP_GIT_FEINT'
 
+/** Ce qu'imprime sur stderr chaque réponse FEINTE, comme `MARQUE_REJEU` chaque rejeu : un vert obtenu
+ *  sous `ENV_GIT_FEINT` se voit. */
+export const MARQUE_FEINTE = '[git] feinte — WFRP_GIT_FEINT répond'
+
 /** Une règle de `ENV_GIT_FEINT` bien formée. PUR. */
 const estRegleFeinte = (r) =>
   Array.isArray(r?.si) && r.si.every((mot) => typeof mot === 'string') && Number.isInteger(r.status) &&
@@ -258,10 +262,11 @@ const estRegleFeinte = (r) =>
 
 /**
  * La réponse FEINTE (`ENV_GIT_FEINT` de `env`) à `git <argv>`, sous la forme d'un résultat de
- * `spawnSync` ; `null` sans règle qui s'y applique. Une valeur mal formée est une panne de spawn NOMMÉE.
- * @param {NodeJS.ProcessEnv} env @param {string[]} argv
+ * `spawnSync`, marquée sur `journal` (`MARQUE_FEINTE`) ; `null` sans règle qui s'y applique. Une valeur
+ * mal formée est une panne de spawn NOMMÉE.
+ * @param {NodeJS.ProcessEnv} env @param {string[]} argv @param {string} site
  */
-function feinteDeGit(env, argv) {
+function feinteDeGit(env, argv, site, journal = process.stderr) {
   const brut = env[ENV_GIT_FEINT]
   if (!brut) return null
   let regles
@@ -270,7 +275,9 @@ function feinteDeGit(env, argv) {
     return { status: null, error: new Error(`${ENV_GIT_FEINT} : une liste de règles { si, status, stdout?, stderr? } est attendue — ${brut}`) }
   }
   const regle = regles.find((r) => r.si.every((mot) => argv.includes(mot)))
-  return regle ? { status: regle.status, stdout: regle.stdout ?? '', stderr: regle.stderr ?? '' } : null
+  if (!regle) return null
+  journal.write(`${MARQUE_FEINTE} : ${site} (${regle.status})\n`)
+  return { status: regle.status, stdout: regle.stdout ?? '', stderr: regle.stderr ?? '' }
 }
 
 /** `git <args>` dans le dépôt, en union à trois issues. `options` : `OPTIONS_DE_L_HOTE` pour une
@@ -278,7 +285,8 @@ function feinteDeGit(env, argv) {
 function interroger(depot, args, { entree, timeout, options = OPTIONS_DE_L_HOTE } = {}) {
   const { cwd, env, spawn, attendre } = lanceurDe(depot)
   const argv = [...options, ...args]
-  const vu = feinteDeGit(env ?? process.env, argv) ?? lancer('git', argv, { cwd, env, spawn, attendre, entree, timeout, site: `git ${args[0]}` })
+  const site = `git ${args[0]}`
+  const vu = feinteDeGit(env ?? process.env, argv, site) ?? lancer('git', argv, { cwd, env, spawn, attendre, entree, timeout, site })
   return classer(vu, { cwd })
 }
 

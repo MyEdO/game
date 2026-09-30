@@ -88,13 +88,16 @@ export const envGitFeint = (regles) => ({ [ENV_GIT_FEINT]: JSON.stringify(regles
 
 /**
  * `fn()` sous une git FEINTE (`envGitFeint(regles)`) posée sur `process.env`, retirée à la sortie :
- * la panne de git d'une lecture faite dans CE processus.
+ * la panne de git d'une lecture faite dans CE processus. `fn` est SYNCHRONE : une promesse rendue
+ * LÈVE, la feinte serait retirée avant ses lectures.
  * @template T @param {Parameters<typeof envGitFeint>[0]} regles @param {() => T} fn @returns {T}
  */
 export function sousGitFeint(regles, fn) {
   Object.assign(process.env, envGitFeint(regles))
   try {
-    return fn()
+    const vu = fn()
+    if (typeof vu?.then === 'function') throw new TypeError('sousGitFeint : `fn` rend une promesse — la feinte serait retirée en vol')
+    return vu
   } finally {
     delete process.env[ENV_GIT_FEINT]
   }

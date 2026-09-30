@@ -160,17 +160,17 @@ export function ciblesSurDisque(cibles, cwd) {
 /**
  * Argv et env d'un générateur. Un seul `--import` en `NODE_OPTIONS` : l'enregistreur (rendu de l'hôte,
  * mesuré) ou la plateforme (rendu vérifié, jamais mesuré), puis `tsx/esm` (argv, joué après
- * `NODE_OPTIONS`). `plateforme` : `null` = l'hôte. `corps` : le fichier de `ENV_CORPS_RENDUS` ;
+ * `NODE_OPTIONS`). `plateforme` : `null` = l'hôte, sinon rendue par son module de `plateformes`. `corps` : le fichier de `ENV_CORPS_RENDUS` ;
  * `rendues` : celui de `ENV_CIBLES_RENDUES` (rendu de l'hôte seul).
  */
-function commandeDe({ runner, script }, { cwd, check, tsxEsm, lectures, ignores, cibles, plateforme, corps, rendues }) {
+function commandeDe({ runner, script }, { cwd, check, tsxEsm, lectures, ignores, cibles, plateforme, plateformes, corps, rendues }) {
   const args = [
     ...(runner === 'tsx' ? ['--import', pathToFileURL(tsxEsm).href] : []),
     script,
     ...(check ? ['--check'] : []),
   ]
   const env = envIsole(process.env, binLocal(cwd))
-  const module = lectures ? ENREGISTREUR : plateforme ? PLATEFORMES[plateforme] : null
+  const module = lectures ? ENREGISTREUR : plateforme ? plateformes[plateforme] : null
   if (module) env.NODE_OPTIONS = `${env.NODE_OPTIONS ?? ''} --import ${module}`.trim()
   if (plateforme) env.WFRP_PLATEFORME_RACINE = cwd
   env[ENV_CORPS_RENDUS] = corps
@@ -643,12 +643,14 @@ function argumentsDe(argv, drapeau) {
  * `CODE_CORPS_PERIME` quand CHAQUE rouge est un corps, un pied ou `.sources-lues.json` périmé, 1 dès
  * qu'un rouge ne se régénère pas (cliquet, vérificateur, refus, corps périmé qu'aucun corps déclaré
  * ne prouve ou que l'hôte et une plateforme ne déclarent pas pareil) — c'est ce que lit `publier.mjs`.
+ * `plateformes` : nom → module `node --import` de chaque plateforme rendable, `PLATEFORMES` par défaut.
  */
 export async function executer({
   cwd,
   argv = process.argv,
   generateurs = GENERATORS,
   verificateurs = NON_GENERATOR_CHECKS,
+  plateformes = PLATEFORMES,
 }) {
   const quiet = argv.includes('--quiet')
   const check = argv.includes('--check')
@@ -657,15 +659,15 @@ export async function executer({
   const seulement = only && new Set(only)
   if (argv.includes('--empreinte')) return verifierEmpreintes(cwd, seulement)
   const hote = process.platform
-  const plateformes = argumentsDe(argv, '--plateforme')
-  if (plateformes && (plateformes.length !== 1 || (plateformes[0] !== hote && !PLATEFORMES[plateformes[0]]))) {
-    process.stderr.write(`docs:build — --plateforme « ${plateformes.join(' ')} » : attend UNE plateforme parmi ${[...new Set([hote, ...Object.keys(PLATEFORMES)])].join(', ')}.\n`)
+  const demandees = argumentsDe(argv, '--plateforme')
+  if (demandees && (demandees.length !== 1 || (demandees[0] !== hote && !plateformes[demandees[0]]))) {
+    process.stderr.write(`docs:build — --plateforme « ${demandees.join(' ')} » : attend UNE plateforme parmi ${[...new Set([hote, ...Object.keys(plateformes)])].join(', ')}.\n`)
     return 1
   }
-  const demandee = plateformes?.[0] ?? null
+  const demandee = demandees?.[0] ?? null
   // Le rendu de l'HÔTE est le seul écrit et le seul mesuré. Les plateformes rendues EN PLUS, en
-  // parallèle, sont vérifiées : `--plateforme <nom>`, ou toutes celles de `PLATEFORMES` sous `--tout`.
-  const enPlus = (demandee !== null ? [demandee] : check && tout ? Object.keys(PLATEFORMES) : []).filter((p) => p !== hote)
+  // parallèle, sont vérifiées : `--plateforme <nom>`, ou toutes celles de `plateformes` sous `--tout`.
+  const enPlus = (demandee !== null ? [demandee] : check && tout ? Object.keys(plateformes) : []).filter((p) => p !== hote)
   if (enPlus.length && !check) {
     process.stderr.write(`docs:build — --plateforme ${demandee} : un rendu sous une autre plateforme se VÉRIFIE (--check), docs/ porte le rendu de l'hôte.\n`)
     return 1
@@ -674,7 +676,7 @@ export async function executer({
     console.log(
       enPlus.length
         ? `docs:check — chaque générateur rendu sur l'hôte (${hote}) et sous ${enPlus.join(', ')}.`
-        : `docs:check — hôte ${hote} : son rendu natif EST le rendu sous ${demandee ?? Object.keys(PLATEFORMES).join(', ')}, aucune autre plateforme à rendre.`,
+        : `docs:check — hôte ${hote} : son rendu natif EST le rendu sous ${demandee ?? Object.keys(plateformes).join(', ')}, aucune autre plateforme à rendre.`,
     )
   }
   // Refus d'un tsx NON LOCAL avant le premier générateur : à mi-chaîne, docs/ serait à moitié écrit.
@@ -750,7 +752,7 @@ export async function executer({
       const corpsDe = (plateforme) => path.join(dossier, `corps-rendus.${plateforme ?? 'hote'}`)
       const autres = enPlus.map((plateforme) => ({
         plateforme,
-        rendu: lancer(g, { cwd, check, tsxEsm, plateforme, corps: corpsDe(plateforme) }),
+        rendu: lancer(g, { cwd, check, tsxEsm, plateforme, plateformes, corps: corpsDe(plateforme) }),
       }))
       let rougePrincipal = false
       // Un générateur relit ce qu'il écrit (sa cible en `--check`, le fichier où il injecte un champ) :

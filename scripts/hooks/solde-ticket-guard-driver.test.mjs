@@ -714,8 +714,9 @@ test('DRIVER : un commit hors src/ et scripts/ passe sans ticket', () => {
   }
 })
 
-// #1806 : une PANNE de lecture du contenu emporté n'est pas « rien n'est emporté » — l'ascendance
-// reste lisible, donc aucun autre refus ne la rattraperait.
+// #1806 : une PANNE de lecture du contenu emporté n'est pas « rien n'est emporté ». La feinte ne vise
+// que cette lecture (`diff-index --numstat -M`, `ceQuiChange`) : l'ascendance reste lisible, et le
+// seul refus est `refusDesPannes`.
 test('DRIVER : une PANNE de lecture du contenu emporté (objet de base CORROMPU, ou `diff-index` en panne) est un `deny` NOMMÉ', () => {
   const { racine: repo } = instanceDeDepot({ fichiers: { 'src/x.ts': 'export const x = 1\n' }, message: 'socle' })
   try {
@@ -725,9 +726,10 @@ test('DRIVER : une PANNE de lecture du contenu emporté (objet de base CORROMPU,
     const commande = 'git commit -m "feat(x): y (refs #1806)"'
     assert.doesNotMatch(decisionOf(commande, repo)?.reason ?? '', /lecture git indisponible/, 'témoin : git répond, aucune panne')
 
-    const parCale = decisionOf(commande, repo, { ...process.env, ...envGitFeint([{ si: ['diff-index'], status: 128, stderr: 'fatal: panne simulée\n' }]) })
+    const parCale = decisionOf(commande, repo, { ...process.env, ...envGitFeint([{ si: ['diff-index', '--numstat', '-M'], status: 128, stderr: 'fatal: panne simulée\n' }]) })
     assert.equal(parCale?.decision, 'deny')
-    assert.match(parCale.reason, /⛔ lecture git indisponible : fatal: panne simulée/)
+    assert.match(parCale.reason, /^⛔ lecture git indisponible : fatal: panne simulée/)
+    assert.doesNotMatch(parCale.reason, /ascendance indisponible/, 'la feinte épargne l’ascendance : un seul refus')
 
     const blob = git('rev-parse', 'HEAD:src/x.ts')
     const objet = join(repo, '.git', 'objects', blob.slice(0, 2), blob.slice(2))

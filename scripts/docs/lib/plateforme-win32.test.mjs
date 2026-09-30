@@ -167,8 +167,7 @@ test('rendu sous win32 : `process.cwd()` est en `C:\\` pour le code du dépôt, 
 
 /** Un dépôt jetable dont `src/entree.mjs` porte `source`, rendu sous win32 : ce qu'il imprime, parsé.
  *  `parLien` : la racine est donnée (cwd, `WFRP_PLATEFORME_RACINE`, entrée) par un lien symbolique
- *  (`junction` : un lien de répertoire que win32 pose sans privilège, ignoré ailleurs) ; `cwdHote` :
- *  le cwd que l'hôte donne à un enfant lancé depuis elle, sans rendu. */
+ *  (`junction` : un lien de répertoire que win32 pose sans privilège, ignoré ailleurs). */
 function vuDuDepot(source, { parLien = false } = {}) {
   const racine = realpathSync(mkdtempSync(path.join(tmpdir(), 'plateforme-win32-')))
   const lien = `${racine}-lien`
@@ -177,8 +176,7 @@ function vuDuDepot(source, { parLien = false } = {}) {
     writeFileSync(path.join(racine, 'src', 'entree.mjs'), source)
     if (parLien) symlinkSync(racine, lien, 'junction')
     const donnee = parLien ? lien : racine
-    const cwdHote = spawnSync(process.execPath, ['-e', 'process.stdout.write(process.cwd())'], { cwd: donnee, encoding: 'utf8' }).stdout
-    return { racine, cwdHote, vu: JSON.parse(sousWin32(donnee, [path.join(donnee, 'src', 'entree.mjs')])) }
+    return { racine, lien, vu: JSON.parse(sousWin32(donnee, [path.join(donnee, 'src', 'entree.mjs')])) }
   } finally {
     rmSync(lien, { force: true })
     rmSync(racine, { recursive: true, force: true })
@@ -186,8 +184,10 @@ function vuDuDepot(source, { parLien = false } = {}) {
 }
 
 test('rendu sous win32 : une racine donnée par un lien symbolique est simulée comme sa cible', () => {
-  const { cwdHote, vu } = vuDuDepot("console.log(JSON.stringify(process.cwd()))\n", { parLien: true })
-  assert.equal(vu, versWindows(cwdHote))
+  const { racine, lien, vu } = vuDuDepot("console.log(JSON.stringify(process.cwd()))\n", { parLien: true })
+  // Le cwd d'un enfant lancé depuis le lien : sa cible sous POSIX (getcwd(3)), le lien lui-même sous
+  // win32 (GetCurrentDirectory).
+  assert.equal(vu, versWindows(HOTE === 'win32' ? lien : racine))
 })
 
 test('rendu sous win32 : chaque fonction de `fs` et de `fs.promises` est enveloppée ou déclarée sans chemin', () => {

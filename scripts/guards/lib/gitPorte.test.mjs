@@ -12,7 +12,7 @@ import { tmpdir } from 'node:os'
 import { join, relative } from 'node:path'
 import { STATUS_DLL_INIT_FAILED } from './spawnResilient.mjs'
 import {
-  BorneAbsente, ENV_GIT_FEINT, GitIndisponible, INDEX, OPTIONS_DE_L_HOTE, SUIVI, TRAVAIL, abandonnerFusion, ajouterOrigine, ajouterWorktree, approfondir, arbrePrincipal, arbreVide, attributDe,
+  BorneAbsente, ENV_GIT_FEINT, GitIndisponible, INDEX, MARQUE_FEINTE, OPTIONS_DE_L_HOTE, SUIVI, TRAVAIL, abandonnerFusion, ajouterOrigine, ajouterWorktree, approfondir, arbrePrincipal, arbreVide, attributDe,
   baseCommune, brancheDe, branchesDe, ceQuEmporteLIndex, ceQueFaitLeCommit, ceQuiChange, cheminGit, cheminsEnConflit, classer, combienDe, commitDe,
   depotDe, divergenceDe, dossierDesHooks, elaguerWorktrees, eolsDe, estDansHead, estIgnore, estSuperficiel, etatDeLArbre, enfantsDirects, estAncetre, estRepertoire,
   fetchOrigin, fichiersDuGrep, fusionDeTextes, fusionnesEnCours, initialiserDepot, journalDe, lireEnLot, listerImage, natureDuChemin, origineDe, parentsDe, pointDeDepart, poserRef, pousser,
@@ -1281,7 +1281,13 @@ test('ENV_GIT_FEINT : la règle qui s’applique répond SANS processus, git ré
   const spawn = (_git, args) => { lances.push(args.slice(OPTIONS_DE_L_HOTE.length)); return { status: 0, stdout: 'vrai\n', stderr: '' } }
   const sous = (valeur) => depotDe(tmpdir(), { spawn, env: { [ENV_GIT_FEINT]: valeur } })
   const regles = JSON.stringify([{ si: ['--git-path', 'rebase-merge'], status: 0, stdout: 'feint\n' }])
-  assert.equal(cheminGit(sous(regles), 'rebase-merge'), 'feint')
+  const journal = []
+  const ecrire = process.stderr.write
+  process.stderr.write = (texte) => journal.push(String(texte))
+  let feint
+  try { feint = cheminGit(sous(regles), 'rebase-merge') } finally { process.stderr.write = ecrire }
+  assert.equal(feint, 'feint')
+  assert.deepEqual(journal, [`${MARQUE_FEINTE} : git rev-parse (0)\n`], 'la réponse feinte se MARQUE sur stderr')
   assert.deepEqual(lances, [])
   assert.equal(cheminGit(sous(regles), 'rebase-apply'), 'vrai')
   assert.deepEqual(lances, [['rev-parse', '--git-path', 'rebase-apply']])
