@@ -186,7 +186,7 @@ refaire `npm install`.
 | Fichier | Nom | Déclencheurs | État |
 |---|---|---|---|
 | `.github/workflows/canari.yml` | Canari | schedule, workflow_dispatch (cron `0 6 * * 1`) | **autosignale** — le step « Résumé du canari » (`if: ${{ !cancelled() }}`) poste son rapport dans l’issue survivante par `scripts/ops/signaler-rouge.mjs`, puis `exit 1` si une mesure est rouge |
-| `.github/workflows/ci.yml` | CI | push, pull_request | **porte** — la porte au push lit ses courses pour le sha poussé — `jugerPush` de scripts/git-hooks/pre-push.mjs appelle `coursesCi` (scripts/guards/lib/coursesCi.mjs), dont le workflow par défaut EST PORTE — et le ruleset `main` en fait ses checks requis |
+| `.github/workflows/ci.yml` | CI | push, pull_request, merge_group | **porte** — la porte au push lit ses courses pour le sha poussé — `jugerPush` de scripts/git-hooks/pre-push.mjs appelle `coursesCi` (scripts/guards/lib/coursesCi.mjs), dont le workflow par défaut EST PORTE — et le ruleset `main` en fait ses checks requis |
 | `.github/workflows/deploy.yml` | Déploiement prod | workflow_dispatch | **manuel** — `on: workflow_dispatch:` seul : lancé et regardé par une main humaine (CLAUDE.md § Pile et commandes, « prod — sur demande explicite SEULEMENT ») |
 | `.github/workflows/deps-report.yml` | Rapport de dépendances | schedule, workflow_dispatch (cron `0 6 1 * *`) | **autosignale** — le step « Se nommer en rougissant » (`if: ${{ !cancelled() }}`) nomme le run et son `job.status` par `scripts/ops/signaler-rouge.mjs` : un rouge AVANT `npm run deps:report` a son canal |
 
@@ -198,7 +198,7 @@ MESURÉ sur le YAML (garde `scripts/gates/workflowsDuDepot.test.mjs`) :
 - **manuel** — le workflow est lancé à la main sur demande explicite et regardé par celui qui le lance : son bloc `on:` ne porte que `workflow_dispatch`
 
 Vérifier qu'elles tournent : onglet Actions du dépôt, ou `gh run list --workflow=canari.yml`. LA
-PORTE est `.github/workflows/ci.yml` (« CI », push, pull_request) : elle joue les
+PORTE est `.github/workflows/ci.yml` (« CI », push, pull_request, merge_group) : elle joue les
 gates sur CHAQUE branche `chantier/**`, et c'est son verdict — jamais un artefact local — qui
 autorise une tête à entrer dans `main`. Elle CLASSE d'abord le push
 (`scripts/gates/classerPush.mjs`) : un push dont tous les fichiers changés tombent sous
@@ -243,4 +243,4 @@ sans entrée ÉCRIT/LU, ou jouée par deux jobs, fait REFUSER le run, avec son n
 `scripts/guards/lib/npmLockHoisted.mjs` — npx --yes npm@10.9.3 install --package-lock-only, puis valider avec npx npm@10.9.3 ci --dry-run. npm 11 ampute les entrées hoistées
 `@emnapi/*` que `npm ci` exige en CI ; la garde (pre-commit +
 `src/npm-lock-hoisted-guard.test.ts`) refuse un lock amputé.
-<!-- sources-empreinte: fe1e2fb5f27cd9e2d855eb9f3a5756f2bc4ddcb7 (29 fichiers, 8 dossiers) corps: 42da690f0a3e2f2405f6785d599f701ea5c8c535 -->
+<!-- sources-empreinte: 1608c6d758627df275f23dc0c8872da7f4c9ea06 (29 fichiers, 8 dossiers) corps: 1c4e36d4120251a1df60d6080d0ab9c4cbea11b9 -->

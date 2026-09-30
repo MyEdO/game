@@ -4,6 +4,9 @@ on:
   push:
     branches: [main, 'chantier/**', 'feat/**']
   pull_request:
+  # #2178 ; docs GitHub, merge-group-event-with-required-checks.md
+  merge_group:
+    types: [checks_requested]
 
 # Un run par ref. Sur une branche de travail, un push qui en suit un autre ANNULE le run en vol :
 # seule la tête compte, et c'est elle que le fast-forward vers `main` exige verte. Sur `main`, rien
