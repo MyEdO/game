@@ -119,8 +119,8 @@ test('hors .claude/memory, et hors .md, le garde se tait', () => {
   assert.equal(estFicheMemoire(join(REPO, 'docs', 'x.md')), false)
 })
 
-test('ctx_patch porte le texte en new_text/old_text', () => {
-  const d = decision({ path: FICHE, old_text: 'Corps.', new_text: 'PÉRIMÉ — voir plus bas.\nCorps.' })
+test('ctx_patch replace_unique porte le texte en new_text/old_text', () => {
+  const d = decision({ op: 'replace_unique', path: FICHE, old_text: 'Corps.', new_text: 'PÉRIMÉ — voir plus bas.\nCorps.' })
   assert.equal(d?.decision, 'deny')
 })
 

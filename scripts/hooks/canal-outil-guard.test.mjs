@@ -139,6 +139,12 @@ test('DRIVER : une entrée `ctx_patch` qui porte une clé hors de son schéma MC
     ['dry_run de tête, ops[] replace_unique à dry_run:false', { path: DOC, dry_run: true, ops: [{ op: 'replace_unique', old_text: 'a', new_text: 'b', dry_run: false }] }, 'ops[0].dry_run'],
     ['validate_syntax:false', { op: 'set_line', path: DOC, line: 1, hash: '00', new_text: 'x', validate_syntax: false }, 'validate_syntax'],
     ['content (Write-équivalent) sur ctx_patch', { op: 'replace_unique', path: DOC, old_text: 'a', new_text: 'b', content: 'x' }, 'content'],
+    ['ops[] set_line + old_text (clé d’une autre op)', { path: DOC, ops: [{ op: 'set_line', line: 1, hash: '00', new_text: 'x', old_text: 'y' }] }, 'ops[0].old_text'],
+    ['delete aux deux formes', { op: 'delete', path: DOC, line: 1, hash: '00', start_line: 2, start_hash: '11', end_line: 3, end_hash: '22' }, 'line'],
+    ['op absente', { path: DOC, new_text: 'x' }, 'op absente'],
+    ['op inconnue', { op: 'rewrite', path: DOC, new_text: 'x' }, 'op "rewrite" inconnue'],
+    ['ops[] create (hors lot)', { path: DOC, ops: [{ op: 'create', new_text: 'x' }] }, 'ops[0].op create hors lot'],
+    ['op de tête à côté de ops[]', { path: DOC, op: 'set_line', ops: [{ op: 'set_line', line: 1, hash: '00', new_text: 'x' }] }, 'op'],
   ]
   for (const surface of ['claude', 'codex']) {
     for (const [nom, entree, cle] of cas) {
@@ -149,12 +155,44 @@ test('DRIVER : une entrée `ctx_patch` qui porte une clé hors de son schéma MC
   }
 })
 
+test('DRIVER : un `old_text` que l’op ne consomme pas (`replace_all`, `set_line`) est REFUSÉ, et le texte remplacé que lisent les gardes d’écriture est celui de l’op — surfaces claude et codex', () => {
+  const POINTEUR = '- reste à traiter #1591 après la vague\n'
+  const cas = [
+    ['replace_all + old_text', { op: 'replace_all', path: DOC, find: 'foo', old_text: POINTEUR, replace: POINTEUR }],
+    ['set_line + old_text', { op: 'set_line', path: DOC, line: 1, hash: '00', new_text: POINTEUR, old_text: POINTEUR }],
+  ]
+  for (const surface of ['claude', 'codex']) {
+    for (const [nom, entree] of cas) {
+      const { decision, raison } = decisionDe(`${P}ctx_patch`, entree, surface)
+      assert.equal(decision, 'deny', `${surface} : ${nom}`)
+      assert.ok(raison.includes(CONSIGNE) && raison.includes('hors du schéma') && raison.includes('old_text'), `${surface} : ${nom} : ${raison}`)
+      const post = lancerHook('repartiteur.mjs', ecriture(entree, `${P}ctx_patch`, 'PostToolUse'), { surface })
+      assert.equal(post.code, 0, post.err)
+      assert.match(post.specifique?.additionalContext ?? '', /POINTEUR/, `${surface} : ${nom}`)
+    }
+  }
+})
+
+test('DRIVER : `dry_run` et `ops` ne se lisent que sur `ctx_patch` — un `Write` qui les porte reste UNE écriture, jugée et refusée ; `ctx_patch` `dry_run` n’écrit rien — surfaces claude et codex', () => {
+  const composant = 'export const A = 1\n'
+  const cas = [
+    ['Write + dry_run:true', { file_path: SRC_NEUF, content: composant, dry_run: true }],
+    ['Write + ops[]', { file_path: SRC_NEUF, content: composant, ops: [{ op: 'set_line', path: DOC, line: 1, hash: '00', new_text: 'x' }] }],
+  ]
+  for (const surface of ['claude', 'codex']) {
+    assert.equal(decisionDe('Write', { file_path: SRC_NEUF, content: composant }, surface).decision, 'deny', `${surface} : témoin Write`)
+    for (const [nom, entree] of cas) assert.equal(decisionDe('Write', entree, surface).decision, 'deny', `${surface} : ${nom}`)
+    assert.equal(decisionDe(`${P}ctx_patch`, { op: 'create', path: SRC_NEUF, new_text: composant, dry_run: true }, surface).decision, null, `${surface} : ctx_patch create dry_run`)
+  }
+})
+
 test('CONTRAT : chaque op du schéma `ctx_patch`, avec ses seules clés déclarées, passe au jugement habituel — surfaces claude et codex', () => {
   const ops = [
     ['set_line', { op: 'set_line', path: DOC, line: 1, hash: '00', new_text: 'x' }],
     ['replace_lines', { op: 'replace_lines', path: DOC, start_line: 1, start_hash: '00', end_line: 2, end_hash: '11', new_text: 'x' }],
     ['insert_after', { op: 'insert_after', path: DOC, line: 1, hash: '00', new_text: 'x' }],
     ['delete', { op: 'delete', path: DOC, line: 1, hash: '00' }],
+    ['delete (plage)', { op: 'delete', path: DOC, start_line: 1, start_hash: '00', end_line: 2, end_hash: '11' }],
     ['replace_unique', { op: 'replace_unique', path: DOC, old_text: 'a', new_text: 'b' }],
     ['create', { op: 'create', path: join(REPO, 'docs', 'zz-sonde.md'), new_text: 'x' }],
     ['replace_all', { op: 'replace_all', path: DOC, find: 'a', replace: 'b' }],

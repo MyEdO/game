@@ -133,43 +133,84 @@ export function outilAppele(entree) {
 /**
  * Les écritures d'une entrée de hook, chacune à la forme d'un `tool_input` à UN fichier : le
  * `tool_input` de `Write`/`Edit`/`ctx_patch`, ou chaque op du lot `ops` de `ctx_patch` (qui porte son
- * propre `path`, le `path` de tête à défaut). Un `dry_run` n'écrit rien : aucune écriture.
+ * propre `path`, le `path` de tête à défaut). Un `dry_run` de `ctx_patch` n'écrit rien : aucune écriture.
+ * `dry_run` et `ops` ne se lisent que sur la famille ÉDITION de lean-ctx ; tout autre outil fait UNE
+ * écriture, son `tool_input` tel quel.
  * @returns {object[]}
  */
 export function ecrituresDe(entree) {
   const input = entreeDOutil(entree)
-  if (input === null || input.dry_run === true) return []
+  if (input === null) return []
+  if (familleLeanCtx(nomLeanCtx(entree.tool_name)) !== EDITION) return [input]
+  if (input.dry_run === true) return []
   if (!Array.isArray(input.ops)) return [input]
   return input.ops.filter((op) => op && typeof op === 'object').map((op) => ({ path: input.path, ...op }))
 }
 
-/** Le lot `ops` de `ctx_patch` est-il ambigu ? Oui s'il n'est pas un tableau, s'il côtoie un `op` de
- *  tête, ou si l'un de ses éléments n'est pas un objet. */
+/** Le lot `ops` de `ctx_patch` est-il ambigu ? Oui s'il n'est pas un tableau, ou si l'un de ses
+ *  éléments n'est pas un objet. */
 export const lotAmbigu = (input) =>
-  input?.ops !== undefined &&
-  (!Array.isArray(input.ops) || input.op !== undefined || input.ops.some((op) => !op || typeof op !== 'object' || Array.isArray(op)))
+  input?.ops !== undefined && (!Array.isArray(input.ops) || input.ops.some((op) => !op || typeof op !== 'object' || Array.isArray(op)))
 
-/** Les clés ADMISES du `tool_input` de `ctx_patch` : schéma MCP `ctx_patch`, lean-ctx 3.10.2, tools/list
- *  (tag d4f9beb3f, `tools/registered/ctx_patch.rs` l.33-48). Toute autre clé est refusée. */
-export const CLES_CTX_PATCH = Object.freeze([
-  'path', 'op', 'line', 'hash', 'start_line', 'start_hash', 'end_line', 'end_hash',
-  'new_text', 'old_text', 'name', 'find', 'replace', 'dry_run', 'ops',
-])
+const opCtxPatch = (formes, { neuf = 'new_text', remplace = null, enLot = true } = {}) =>
+  Object.freeze({ formes: Object.freeze(formes.map((forme) => Object.freeze(forme))), neuf, remplace, enLot })
 
-/** Les clés d'un élément de `ops[]` : celles de `CLES_CTX_PATCH` hors `ops` ; hors `dry_run`
- *  (`registered/ctx_patch.rs` l.276-294 : l'élément délégué garde le sien sur celui de tête) ; hors
- *  `find`/`replace` (l.196-200 : `replace_all` hors lot). */
-export const CLES_OP_CTX_PATCH = Object.freeze(CLES_CTX_PATCH.filter((cle) => !['ops', 'dry_run', 'find', 'replace'].includes(cle)))
+/**
+ * Les ops de `ctx_patch`, lean-ctx 3.10.2 (tag d4f9beb3f) : la seule déclaration de ses clés. `formes` :
+ * les jeux de clés que l'op CONSOMME, hors `path` — une entrée porte les clés d'UNE forme ; `neuf`,
+ * `remplace` : la clé de son texte posé, de son texte remplacé ; `enLot` : admise dans `ops[]`.
+ * - schéma MCP, `registered/ctx_patch.rs` l.58-69 (`if`/`then`) ;
+ * - set_line, replace_lines, insert_after, delete, create : `ctx_patch/anchors.rs` l.94-180 ;
+ * - replace_symbol : `ctx_patch/symbol.rs` l.35-58 ;
+ * - replace_unique : `registered/ctx_patch.rs` l.348-366 ; replace_all : l.599-623 ;
+ * - hors lot : l.196-200.
+ */
+export const OPS_CTX_PATCH = Object.freeze({
+  set_line: opCtxPatch([['line', 'hash', 'new_text']]),
+  replace_lines: opCtxPatch([['start_line', 'start_hash', 'end_line', 'end_hash', 'new_text']]),
+  insert_after: opCtxPatch([['line', 'hash', 'new_text']]),
+  delete: opCtxPatch([['line', 'hash'], ['start_line', 'start_hash', 'end_line', 'end_hash']], { neuf: null }),
+  replace_unique: opCtxPatch([['old_text', 'new_text']], { remplace: 'old_text' }),
+  replace_symbol: opCtxPatch([['name', 'line', 'end_line', 'new_text']]),
+  create: opCtxPatch([['new_text']], { enLot: false }),
+  replace_all: opCtxPatch([['find', 'replace']], { neuf: 'replace', remplace: 'find', enLot: false }),
+})
 
-/** Les clés de l'entrée `ctx_patch` hors de `CLES_CTX_PATCH` (tête) ou de `CLES_OP_CTX_PATCH` (chaque
- *  élément objet de `ops[]`), préfixées `ops[i].` pour un élément. */
+/** Les clés communes à toute op : `path` ; en tête seulement, `dry_run` (`registered/ctx_patch.rs`
+ *  l.276-294 : l'élément délégué garde le sien sur celui de tête). */
+const COMMUNES_OP = ['path']
+const COMMUNES_TETE = ['path', 'dry_run']
+
+const opDe = (objet) => (typeof objet?.op === 'string' && Object.hasOwn(OPS_CTX_PATCH, objet.op) ? OPS_CTX_PATCH[objet.op] : null)
+
+/** Les clés d'une op que sa déclaration ne consomme pas, hors `communes` : celles hors de la forme la plus
+ *  proche ; `op` qualifiée si l'op est absente, inconnue, ou hors lot (`enLot` faux dans `ops[]`). */
+function clesNonConsommees(objet, communes, dansUnLot) {
+  const propres = Object.keys(objet).filter((cle) => cle !== 'op' && !communes.includes(cle))
+  const spec = opDe(objet)
+  if (spec === null) return [objet.op === undefined ? 'op absente' : `op ${JSON.stringify(objet.op)} inconnue`]
+  if (dansUnLot && !spec.enLot) return [`op ${objet.op} hors lot`]
+  const horsDe = (forme) => propres.filter((cle) => !forme.includes(cle))
+  return spec.formes.map(horsDe).reduce((a, b) => (b.length < a.length ? b : a))
+}
+
+/** Les clés de l'entrée `ctx_patch` qu'aucune op ne consomme (`OPS_CTX_PATCH`), préfixées `ops[i].` pour
+ *  un élément objet de `ops[]` ; en tête d'un lot, toute clé hors `COMMUNES_TETE` et `ops`. */
 export function clesNonAdmises(input) {
-  const tete = Object.keys(input ?? {}).filter((cle) => !CLES_CTX_PATCH.includes(cle))
-  const ops = Array.isArray(input?.ops) ? input.ops : []
+  if (input === null || typeof input !== 'object') return []
+  if (input.ops === undefined) return clesNonConsommees(input, COMMUNES_TETE, false)
+  const tete = Object.keys(input).filter((cle) => cle !== 'ops' && !COMMUNES_TETE.includes(cle))
+  const ops = Array.isArray(input.ops) ? input.ops : []
   const elements = ops.flatMap((op, i) =>
-    op && typeof op === 'object' && !Array.isArray(op) ? Object.keys(op).filter((cle) => !CLES_OP_CTX_PATCH.includes(cle)).map((cle) => `ops[${i}].${cle}`) : [],
+    op && typeof op === 'object' && !Array.isArray(op) ? clesNonConsommees(op, COMMUNES_OP, true).map((cle) => `ops[${i}].${cle}`) : [],
   )
   return [...tete, ...elements]
+}
+
+/** La valeur de la clé que l'op de `ecrit` déclare pour `role` (`neuf`, `remplace`), `undefined` sans. */
+const texteDeLOp = (ecrit, role) => {
+  const cle = opDe(ecrit)?.[role]
+  return cle ? ecrit[cle] : undefined
 }
 
 /** Le chemin visé : `file_path` (`Write`, `Edit`), `path` (`ctx_patch`) ; `undefined` sans chemin, ou
@@ -179,12 +220,13 @@ export const cheminVise = (ecrit) => {
   return typeof chemin === 'string' && chemin.trim() !== '' ? chemin : undefined
 }
 
-/** Le texte posé : `new_string` (`Edit`), `content` (`Write`), `new_text` (`ctx_patch`), `replace`
- *  (`ctx_patch` op `replace_all`). */
-export const texteNeuf = (ecrit) => ecrit?.new_string ?? ecrit?.content ?? ecrit?.new_text ?? ecrit?.replace
+/** Le texte posé : `new_string` (`Edit`), `content` (`Write`), la clé `neuf` de son op (`ctx_patch`,
+ *  `OPS_CTX_PATCH`). */
+export const texteNeuf = (ecrit) => ecrit?.new_string ?? ecrit?.content ?? texteDeLOp(ecrit, 'neuf')
 
-/** Le texte remplacé, quand l'écriture le porte : `old_string` (`Edit`), `old_text`, `find` (`ctx_patch`). */
-export const texteRemplace = (ecrit) => ecrit?.old_string ?? ecrit?.old_text ?? ecrit?.find
+/** Le texte remplacé, quand l'écriture le porte : `old_string` (`Edit`), la clé `remplace` de son op
+ *  (`ctx_patch`, `OPS_CTX_PATCH`). */
+export const texteRemplace = (ecrit) => ecrit?.old_string ?? texteDeLOp(ecrit, 'remplace')
 
 /** L'écriture pose-t-elle le fichier ENTIER ? `Write` (`content`), `ctx_patch` op `create`. */
 export const ecritLeFichierEntier = (ecrit) => typeof ecrit?.content === 'string' || ecrit?.op === 'create'
