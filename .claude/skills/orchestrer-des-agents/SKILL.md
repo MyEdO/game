@@ -146,7 +146,9 @@ push de branche, sonder son run** (`gh run list --branch chantier/<N> --json
 headSha,status,conclusion`) AVANT de dépêcher un juge ou d'entrer dans une attente longue ; un rouge de
 branche ne bloque que cette branche, et se rejoue localement gate par gate (`npm run gates -- --gates
 <noms>`). `main` n'avance que par la FILE DE FUSION, où `ops:publier` fait entrer la PR de la branche
-(étapes `pr` puis `file`), et le ruleset serveur refuse tout le reste. Migrations : le job `migrations` de `ci.yml`
+(étapes `pr` puis `file`), et le ruleset serveur refuse tout le reste. Un train `--detache` se suit par la
+commande `veille=` qu'il imprime (`Monitor`, ré-armé par `--depuis <dernier #seq>`), jamais par un
+filtre de son log. Migrations : le job `migrations` de `ci.yml`
 les joue sur la branche, aucun rejeu local. Au retour de chaque agent, vérifier qu'il ne laisse aucun
 processus derrière lui.
 
