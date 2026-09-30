@@ -34,15 +34,20 @@ test('une donnée src/data/ DANS un dépôt reçoit le rappel ; la même hors d�
   }
 })
 
-test('DRIVER : ctx_patch (canal prescrit) reçoit le MÊME rappel qu’Edit, op seule comme lot `ops`', () => {
+test('DRIVER : ctx_patch (canal prescrit) reçoit le MÊME rappel qu’Edit — op seule, `replace_all`, lot `ops` visant deux fois la donnée', () => {
   const { racine } = instanceDeDepot()
   try {
     const donnee = join(racine, 'src', 'data', 'qualities.json')
     const edit = contexteDe({ file_path: donnee, old_string: 'a', new_string: 'b' }, 'Edit')
     assert.match(edit, /CHECK-FIRST/)
     assert.equal(contexteDe({ op: 'replace_unique', path: donnee, old_text: 'a', new_text: 'b' }, 'mcp__lean-ctx__ctx_patch'), edit)
-    const lot = contexteDe({ ops: [{ op: 'replace_unique', path: join(racine, 'README.md'), old_text: 'a', new_text: 'b' }, { op: 'replace_all', path: donnee, find: 'a', replace: 'b' }] }, 'mcp__lean-ctx__ctx_patch')
-    assert.equal(lot, edit)
+    assert.equal(contexteDe({ op: 'replace_all', path: donnee, find: 'a', replace: 'b' }, 'mcp__lean-ctx__ctx_patch'), edit)
+    const lot = contexteDe({ ops: [
+      { op: 'replace_unique', path: join(racine, 'README.md'), old_text: 'a', new_text: 'b' },
+      { op: 'replace_unique', path: donnee, old_text: 'a', new_text: 'b' },
+      { op: 'set_line', path: donnee, line: 1, hash: '00', new_text: 'c' },
+    ] }, 'mcp__lean-ctx__ctx_patch')
+    assert.equal(lot, edit, 'deux ops sur la même donnée : un seul rappel')
   } finally {
     rmSync(racine, { recursive: true, force: true })
   }

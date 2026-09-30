@@ -1,6 +1,7 @@
 // REGISTRE du répartiteur (#2125) : les gardes de chaque événement, dans leur ordre d'évaluation (un
 // `deny` court-circuite les suivantes). Une garde de plus = une ligne. Le matcher déclaré de chaque
 // événement est l'UNION des `outils` de ses gardes (`scripts/agents/compat-core.mjs`).
+import { garde as canalEcriture } from './canal-ecriture-guard.mjs'
 import { garde as nouveauFichierSrc } from './new-src-file-guard.mjs'
 import { garde as donneeEditee } from './data-edit-guard.mjs'
 import { garde as exceptionAjoutee } from './exception-add-guard.mjs'
@@ -13,7 +14,7 @@ import { garde as poison } from './poison-postcheck.mjs'
 
 export const REGISTRE = {
   PreToolUse: [
-    nouveauFichierSrc, donneeEditee, exceptionAjoutee, memoireTombale,
+    canalEcriture, nouveauFichierSrc, donneeEditee, exceptionAjoutee, memoireTombale,
     commandePiege, issueLabel, codeurGates, runnerCapture,
   ],
   PostToolUse: [poison],

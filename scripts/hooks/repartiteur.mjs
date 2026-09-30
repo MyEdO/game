@@ -50,13 +50,25 @@ export async function evaluerGardes(gardes, entree, contexte) {
   return verdicts
 }
 
-/** Le cumul des verdicts : la décision (`decisionCumulee`), les contextes concaténés, les traces
- *  demandées. Un refus porte toujours une raison. */
+/** Les contextes d'une MÊME garde, joints sans répéter une ligne non vide qu'un contexte précédent a
+ *  déjà dite (un lot `ops` qui vise deux fois le même fichier). */
+function contextesDe(verdicts) {
+  const vues = new Map()
+  return verdicts.filter((v) => v.contexte).map((v) => {
+    const dites = vues.get(v.garde) ?? vues.set(v.garde, new Set()).get(v.garde)
+    const lignes = String(v.contexte).split('\n').filter((l) => !l.trim() || !dites.has(l))
+    for (const l of lignes) dites.add(l)
+    return lignes.some((l) => l.trim()) ? lignes.join('\n') : ''
+  }).filter(Boolean)
+}
+
+/** Le cumul des verdicts : la décision (`decisionCumulee`), les contextes concaténés (`contextesDe`),
+ *  les traces demandées. Un refus porte toujours une raison. */
 export function cumuler(verdicts) {
   const decision = decisionCumulee(verdicts.filter((v) => v.decision).map((v) => ({
     reason: String(v.raison ?? '').trim() || `refus de la garde ${v.garde}, sans raison donnée`,
   })))
-  const contextes = verdicts.filter((v) => v.contexte).map((v) => v.contexte)
+  const contextes = contextesDe(verdicts)
   return { decision, contexte: contextes.length ? contextes.join('\n\n') : null, traces: verdicts.filter((v) => v.trace).map((v) => v.trace) }
 }
 

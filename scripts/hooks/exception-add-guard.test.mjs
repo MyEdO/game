@@ -134,3 +134,16 @@ test('DRIVER : ctx_patch (old_text/new_text, find/replace, lot `ops`) avertit co
     rmSync(racine, { recursive: true, force: true })
   }
 })
+
+test('DRIVER : une op ANCRÉE qui ré-écrit une entrée déjà présente → silence ; qui en ajoute une → avertissement', () => {
+  const { racine } = instanceDeDepot()
+  try {
+    const cible = join(racine, 'run-guard.test.mjs')
+    writeFileSync(cible, TABLE)
+    const contexte = (tool_input) => lancerHook('repartiteur.mjs', ecriture(tool_input, 'mcp__lean-ctx__ctx_patch')).specifique?.additionalContext ?? ''
+    assert.equal(contexte({ op: 'set_line', path: cible, line: 1, hash: '00', new_text: TABLE.trimEnd() }), '')
+    assert.ok(contexte({ op: 'set_line', path: cible, line: 1, hash: '00', new_text: AJOUT.trimEnd() }).includes(AVERTISSEMENT))
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
+})

@@ -198,3 +198,11 @@ test('DRIVER : une fiche `.claude/memory/` HORS de tout dépôt (scratchpad) →
 test('la garde est au registre PreToolUse du répartiteur (câblage des surfaces : garde de classe `settings-guard-canaux.test.mjs`)', () => {
   assert.ok(REGISTRE.PreToolUse.includes(garde))
 })
+
+test('op ANCRÉE : se juge contre les lignes qu’elle vise sur disque (une ligne ré-écrite n’est pas ajoutée)', () => {
+  const disque = 'Titre\n\n⚠ SUPERSÉDÉ par la fiche voisine.\n\nCorps.'
+  const reecrit = { path: FICHE, op: 'set_line', line: 3, hash: '00', new_text: '⚠ SUPERSÉDÉ par la fiche voisine.' }
+  assert.equal(decision(reecrit, disque), null)
+  assert.equal(decision({ ...reecrit, op: 'replace_lines', start_line: 3, end_line: 5, line: undefined }, disque), null)
+  assert.notEqual(decision({ path: FICHE, op: 'insert_after', line: 1, hash: '00', new_text: '\nOBSOLÈTE : x' }, disque), null, 'insert_after ne remplace rien')
+})

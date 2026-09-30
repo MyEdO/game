@@ -1,7 +1,7 @@
 // Garde PreToolUse des canaux d'écriture (`OUTILS_ECRITURE`) des tables d'exceptions de garde : doctrine
 // `user-doctrine-gardes-jamais-de-ask` (2026-07-13, 2026-09-28) ; juge de diff : `.claude/agents/juge.md`.
 import { readFileSync } from 'node:fs'
-import { OUTILS_ECRITURE, cheminVise, ecritLeFichierEntier, ecrituresDe, texteNeuf, texteRemplace } from '../guards/lib/contratGarde.mjs'
+import { OUTILS_ECRITURE, cheminVise, ecritLeFichierEntier, ecrituresDe, texteAvant, texteNeuf } from '../guards/lib/contratGarde.mjs'
 import { SUFFIXE_SUITE } from '../guards/lib/fichierVitest.mjs'
 import { cheminDEcriture } from './solde-ticket-guard.mjs'
 
@@ -92,14 +92,14 @@ export function evaluate({ file, before, after, isWrite, exists }) {
 export const AVERTISSEMENT = "ajout d'exception : le juge de diff doit le justifier au rendu"
 
 /** Normalise UNE écriture (`ecrituresDe`) en `{ file, before, after, isWrite, exists }`. Renvoie
- *  `null` quand rien n'est comparable (aucun texte posé). Sans texte remplacé, un remplacement se
- *  compare à `''`. */
+ *  `null` quand rien n'est comparable (aucun texte posé). Un remplacement se compare à `texteAvant`. */
 export function readWrite(input) {
   const after = texteNeuf(input)
   if (typeof after !== 'string') return null
   const file = String(cheminVise(input) ?? '')
   if (!ecritLeFichierEntier(input)) {
-    return { file, before: String(texteRemplace(input) ?? ''), after, isWrite: false, exists: true }
+    const lire = () => { try { return readFileSync(file, 'utf8') } catch { return '' } }
+    return { file, before: String(texteAvant(input, lire)), after, isWrite: false, exists: true }
   }
   let before
   let exists = true

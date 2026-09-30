@@ -22,7 +22,7 @@
 // CONSÉQUENCE DITE : replacer le MÊME en-tête dans `old_string` le rend silencieux — la ligne n'est
 // plus ajoutée. Le garde arbitre l'ÉCRITURE d'un en-tête, il n'inspecte pas la fiche existante.
 import { readFileSync } from 'node:fs'
-import { OUTILS_ECRITURE, cheminVise, ecritLeFichierEntier, ecrituresDe, texteNeuf, texteRemplace, verdictDe } from '../guards/lib/contratGarde.mjs'
+import { OUTILS_ECRITURE, cheminVise, ecrituresDe, texteAvant, texteNeuf, verdictDe } from '../guards/lib/contratGarde.mjs'
 import { cheminDEcriture } from './solde-ticket-guard.mjs'
 
 /** Ligne débarrassée de ses ornements de tête (citation, puce, titre, gras, avertissement). */
@@ -91,14 +91,14 @@ export const estFicheMemoire = (chemin) =>
 /**
  * Décision du hook (PURE, testable). `null` = silence ; `{ decision, reason }` sinon.
  * `lireDisque` rend le contenu actuel du fichier (`''` s'il n'existe pas) — un Write se juge contre
- * lui, un Edit contre son `old_string`.
+ * lui, une op ancrée contre les lignes qu'elle vise (`texteAvant`), un Edit contre son `old_string`.
  */
 export function evaluate(input, lireDisque = () => '') {
   const chemin = String(cheminVise(input) ?? '')
   if (!estFicheMemoire(chemin)) return null
   const neuf = texteNeuf(input)
   if (typeof neuf !== 'string') return null
-  const ancien = texteRemplace(input) ?? (ecritLeFichierEntier(input) ? lireDisque(chemin) : '')
+  const ancien = texteAvant(input, () => lireDisque(chemin))
   const lignes = neuf.split(/\r?\n/)
   for (const { texte, rang } of lignesAjoutees(neuf, ancien)) {
     const entete = enteteSupersession(texte, lignes[rang - 1])

@@ -220,3 +220,9 @@ test('le tri sur la clef normalisée MORD sur un registre mixte désordonné (ca
   const doublons = [{ fichier: 'src/ui/X.tsx', maquette: 'a' }, { fichier: 'src/ui/X.tsx', maquette: 'b' }].map(cheminEntree)
   assert.notEqual(new Set(doublons).size, doublons.length, 'deux entrées du MÊME fichier doivent être VUES')
 })
+
+test('ctx_patch `dry_run` n’écrit rien : aucun refus, même pour un fichier non déclaré', () => {
+  const r = lanceAvec({ op: 'create', path: join(REPO, FANTOME), new_text: 'export {}', dry_run: true })
+  assert.equal(r.code, 0)
+  assert.equal(r.decision, undefined)
+})

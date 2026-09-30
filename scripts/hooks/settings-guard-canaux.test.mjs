@@ -18,7 +18,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
-import { SURFACE_CLAUDE, SURFACE_CODEX, aplatirHooks } from '../agents/compat-core.mjs'
+import { ENTREES_OUTIL, SURFACE_CLAUDE, SURFACE_CODEX, aplatirHooks } from '../agents/compat-core.mjs'
 import { lancerHook } from '../guards/lib/lancerHook.mjs'
 import { REGISTRE } from './registre.mjs'
 import { REGISTRE_SOLDE } from './solde-ticket-hook.mjs'
@@ -26,7 +26,7 @@ import { garde as commandePiege } from './commande-piege-guard.mjs'
 import { garde as solde } from './solde-ticket-guard.mjs'
 import { garde as issueLabel } from './issue-label-guard.mjs'
 import { garde as runnerCapture } from './runner-capture-guard.mjs'
-import { OUTILS_CREATION, OUTILS_ECRITURE } from '../guards/lib/contratGarde.mjs'
+import { OUTILS_CREATION, OUTILS_ECRITURE, OUTILS_ECRITURE_REFUSES, PASSERELLE } from '../guards/lib/contratGarde.mjs'
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 // Les DEUX surfaces d'agents, déclarées par `agents:sync` depuis les registres
@@ -40,8 +40,9 @@ const GARDES_COMMANDE = [
   [commandePiege, 'repartiteur.mjs', REGISTRE], [solde, 'solde-ticket-hook.mjs', REGISTRE_SOLDE],
   [issueLabel, 'repartiteur.mjs', REGISTRE], [runnerCapture, 'repartiteur.mjs', REGISTRE],
 ]
-/** Les registres des points d'entrée, avec leur script. */
-const REGISTRES = [[REGISTRE, 'repartiteur.mjs'], [REGISTRE_SOLDE, 'solde-ticket-hook.mjs']]
+/** Les registres des points d'entrée, avec leur script : la déclaration dont `agents:sync` dérive les
+ *  surfaces (`ENTREES_OUTIL`). */
+const REGISTRES = await Promise.all(ENTREES_OUTIL.map(async ({ script, module, exporte }) => [(await import(`./${module}`))[exporte], script]))
 /** Gardes d'ÉCRITURE, DÉRIVÉES des registres : toute garde dont un outil est un canal d'écriture,
  *  avec son point d'entrée et son événement. */
 const GARDES_ECRITURE = REGISTRES.flatMap(([registre, script]) => Object.entries(registre).flatMap(([phase, gardes]) =>
@@ -108,6 +109,15 @@ test('chaque garde d’écriture du registre couvre une FAMILLE entière de cana
       const matcher = matcherDe(surface, script, phase)?.split('|') ?? []
       for (const canal of canaux) assert.ok(matcher.includes(canal), `matcher ${phase} de ${script} (${surface}) ne couvre pas « ${canal} »`)
     }
+  }
+})
+
+test('les canaux d’écriture REFUSÉS et la passerelle sont au matcher PreToolUse d’une garde, sur les DEUX surfaces (sinon le refus ne part jamais)', () => {
+  for (const canal of [...OUTILS_ECRITURE_REFUSES, PASSERELLE]) {
+    const porteurs = REGISTRES.filter(([registre]) => (registre.PreToolUse ?? []).some((g) => g.outils.includes(canal)))
+    assert.ok(porteurs.length > 0, `aucune garde PreToolUse ne déclare « ${canal} »`)
+    for (const [, script] of porteurs)
+      for (const surface of SURFACES) assert.ok(matcherDe(surface, script)?.split('|').includes(canal), `matcher de ${script} (${surface}) ne couvre pas « ${canal} »`)
   }
 })
 
