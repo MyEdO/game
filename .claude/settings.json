@@ -80,6 +80,19 @@
             "statusMessage": "Conformité du conteneur distant (hooks git, gh)"
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": [
+              "${CLAUDE_PROJECT_DIR}/scripts/hooks/inject-suivi.mjs"
+            ],
+            "timeout": 10,
+            "statusMessage": "Suivi de vague de la session"
+          }
+        ]
       }
     ]
   }

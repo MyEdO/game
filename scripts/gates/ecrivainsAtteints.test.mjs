@@ -134,6 +134,12 @@ const ATTENDU = {
     'scripts/hooks/data-edit-guard.test.mjs',
     'scripts/hooks/exception-add-guard.test.mjs',
     'scripts/hooks/inject-project-credo.test.mjs',
+    // +3 le 2026-09-30 (#2132) : les bancs du suivi de vague forgent un dépôt JETABLE
+    // (`instanceDeDepot`, sous os.tmpdir(), `rmSync` en finally) ; celui du hook de session y écrit
+    // `.git/suivi` (le suivi, le journal `.journal`). `ops/suivi.mjs`, que le lien de session importe,
+    // n'écrit que derrière sa porte `import.meta.main`. Mesuré le 2026-09-30 : `git status --porcelain --ignored`
+    // identique avant et après, sur ce worktree et sur l'arbre principal.
+    'scripts/hooks/inject-suivi.test.mjs',
     'scripts/hooks/memoire-tombale-guard.test.mjs',
     'scripts/hooks/new-src-file-guard.test.mjs',
     'scripts/hooks/poison-postcheck.test.mjs',
@@ -146,6 +152,7 @@ const ATTENDU = {
     'scripts/hooks/segments-profonds.test.mjs',
     'scripts/hooks/solde-ticket-guard-driver.test.mjs',
     'scripts/hooks/solde-ticket-guard.test.mjs',
+    'scripts/hooks/suivi-lien-guard.test.mjs',
     'scripts/hooks/typecheck-fast-wrapper.test.mjs',
     // +2 le 2026-09-14 (#1699) : la migration des chemins de `Source/` en ASCII et son banc. La
     // migration ÉCRIT (git mv, réécritures) UNIQUEMENT sous `--apply`, que le banc ne lui donne que
@@ -172,6 +179,7 @@ const ATTENDU = {
     'scripts/migrations/lib/joue.mjs',
     'scripts/migrations/lib/joue.test.mjs',
     'scripts/migrations/replay-head.mjs',
+    'scripts/ops/suivi.mjs',
     'scripts/raw/build-implemente.mjs',
     'scripts/test/verrou.mjs',
   ],

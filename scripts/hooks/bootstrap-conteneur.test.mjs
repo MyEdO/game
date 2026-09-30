@@ -9,7 +9,7 @@ import {
   BUDGET_CONSTAT, BUDGET_TOTAL, GESTES_DU_CONTENEUR, PREREQUIS, bootstrap, estConteneurDistant, lancer, mettreEnConformite,
 } from './bootstrap-conteneur.mjs'
 import { depotDe } from '../guards/lib/gitPorte.mjs'
-import { HOOKS_MONO_SURFACE, SURFACE_CLAUDE, SURFACE_CODEX, aplatirHooks } from '../agents/compat-core.mjs'
+import { HOOKS_DE_SESSION, SURFACE_CLAUDE, SURFACE_CODEX, aplatirHooks } from '../agents/compat-core.mjs'
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 const SETTINGS_CLAUDE = join(REPO, SURFACE_CLAUDE)
@@ -156,7 +156,7 @@ test('BUDGET — le `timeout` déclaré couvre la table ENTIÈRE, constats compr
 })
 
 test('CÂBLAGE — le hook est PROPRE à la surface Claude (sa garde est un marqueur Claude Code)', () => {
-  assert.equal(HOOKS_MONO_SURFACE.find((h) => h.phase === 'SessionStart' && h.script === 'bootstrap-conteneur.mjs')?.surface, SURFACE_CLAUDE)
+  assert.deepEqual(HOOKS_DE_SESSION.find((h) => h.phase === 'SessionStart' && h.script === 'bootstrap-conteneur.mjs')?.surfaces, [SURFACE_CLAUDE])
   assert.ok(
     !readFileSync(HOOKS_CODEX, 'utf8').includes('bootstrap-conteneur'),
     '.codex/hooks.json porterait un spawn qui ne mesure rien',

@@ -151,7 +151,12 @@ export const ECRIT_LU = {
       '(kill-pid.mjs, knip-exports-baseline.json, vite.config.ts) ; +1 écrivain le 2026-09-27 (#1806) : ' +
       '`git-hooks/docs-rebuild.test.mjs` pose une cale `git` (`mkdtempSync` + `writeFileSync` sous ' +
       'os.tmpdir(), `rmSync` en finally) sur le dépôt jetable de `instanceDeDepot` — sonde ' +
-      '`git status --porcelain` avant/après identique, et aucun résidu dans os.tmpdir()',
+      '`git status --porcelain` avant/après identique, et aucun résidu dans os.tmpdir() ; +3 écrivains le ' +
+      '2026-09-30 (#2132) : `hooks/suivi-lien-guard.test.mjs` et `hooks/inject-suivi.test.mjs` forgent un dépôt ' +
+      'jetable (`instanceDeDepot`, sous os.tmpdir(), `rmSync` en finally), et le second y écrit `.git/suivi` ' +
+      '(suivi et journal `.journal`) ; `ops/suivi.mjs`, que le lien de session importe, n’écrit que derrière sa porte ' +
+      '`import.meta.main` — sonde `git status --porcelain --ignored` avant/après identique, sur le worktree et ' +
+      'sur l’arbre principal',
   },
   'test:ops': {
     ecrit: [],

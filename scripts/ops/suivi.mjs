@@ -32,6 +32,11 @@
 // LE PROFIL. Chaque geste injectable de la mesure (`GESTES_DU_BOARD`, `inv`, `issues`) est
 // chronométré ; le `reste` est le total moins leur somme.
 //
+// LA RELECTURE SANS MÉMOIRE (lot 2). `digestDuSuivi` est ce que le hook de session
+// (`scripts/hooks/inject-suivi.mjs`) met en contexte : titre, Objectif, items et étapes ouvertes, zone
+// mesurée datée, coupé à `PLAFOND_INJECTION` ; il ne mesure rien. `dossierDesSuivis` est le dossier que
+// ce script, le hook de session et le lien de session (`scripts/hooks/suivi-lien-guard.mjs`) partagent.
+//
 // Usage : `npm run ops:suivi -- <N> [--creer] [--sans-fetch]` · sans `<N>` : la liste des suivis.
 import * as FS from 'node:fs'
 import { join } from 'node:path'
@@ -51,6 +56,15 @@ const ITEM = /^\d+\.\s/
 const SUIVI = /^\d+\.md$/
 const ORPHELIN = /^\.\d+\.md\.\d+\.tmp$/
 const TENU = new Set(['EPERM', 'EACCES', 'EBUSY'])
+const OBJECTIF = /^## Objectif\b/
+const ITEM_FAIT = /^\d+\.\s+\[[xX]\]/
+const ETAPE_OUVERTE = /^\s+(?:[-*+]|\d+\.)\s+\[ \]/
+const DATE_DE_ZONE = /^> Zone MESURÉE par .+ le (\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}) :/
+
+/** Âge (h) au-delà duquel la zone mesurée d'un digest est marquée PÉRIMÉE. Valeur maison. */
+export const HEURES_PEREMPTION = 24
+/** Taille maximale (caractères) d'un digest injecté au contexte. Valeur maison. */
+export const PLAFOND_INJECTION = 8000
 
 // ————————————————————————————————— fonctions PURES —————————————————————————————————
 
@@ -179,6 +193,7 @@ const puce = (v) => `- ${String(v).replace(/\r?\n/g, ' ')}`
  */
 function lignesDeLaZone({ mesure, grammaire, epique, maintenant }) {
   const zone = [
+    // `DATE_DE_ZONE` relit cette date.
     `> Zone MESURÉE par \`npm run ops:suivi -- ${epique}\` le ${horodatage(maintenant)} : réécrite à chaque appel, jamais éditée à la main.`,
     `> Épique [#${epique}](${urlDuTicket(epique)}). « Dernier commit » : le plus récent d'une branche du ticket, sinon sa dernière citation par \`${BASE}\` dans les ${JOURS_FUSION_RECENTE} jours ; vide au-delà.`,
     '',
@@ -241,6 +256,73 @@ export const gabaritDuSuivi = (epique) => [
   '',
 ].join('\n')
 
+/** La date (locale) d'une zone mesurée, relue sur sa première ligne ; `null` sans date. PURE. */
+function dateDeLaZone(lignesDeZone) {
+  const m = DATE_DE_ZONE.exec(lignesDeZone.find((l) => l.trim()) ?? '')
+  return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5])) : null
+}
+
+/** `lignes` jointes, coupées à la ligne pour tenir sous `plafond`, fin « tronqué » comprise. PURE. */
+function plafonner(lignes, plafond, chemin) {
+  const entier = lignes.join('\n')
+  if (entier.length <= plafond) return entier
+  const fin = `… tronqué, lire ${chemin}`
+  const gardees = []
+  let taille = fin.length
+  for (const ligne of lignes) {
+    if (taille + ligne.length + 1 > plafond) break
+    gardees.push(ligne)
+    taille += ligne.length + 1
+  }
+  if (!gardees.length) return `${entier.slice(0, Math.max(0, plafond - fin.length - 1))}\n${fin}`
+  return [...gardees, fin].join('\n')
+}
+
+/**
+ * Le DIGEST d'un suivi : son titre, son `## Objectif`, les items de `## En cours` (sauf ceux cochés
+ * `[x]`) et leurs étapes `[ ]`, puis la zone mesurée — PÉRIMÉE au-delà de `HEURES_PEREMPTION`, ou
+ * « jamais rafraîchie ». Commentaires HTML et blocs de code n'y entrent pas. Coupé à `plafond`
+ * caractères, terminé par « tronqué, lire <chemin> ». PURE.
+ * @param {string} texte
+ * @param {{epique: number, chemin: string, mtime: Date, maintenant: Date, plafond?: number}} params
+ * @returns {string}
+ */
+export function digestDuSuivi(texte, { epique, chemin, mtime, maintenant, plafond = PLAFOND_INJECTION }) {
+  const vues = zonesDe(texte)
+  const zones = vues.ok ? vues : { lignes: lignesDe(texte), debut: -1, fin: -1 }
+  const sortie = [`[suivi #${epique}] ${chemin} — écrit le ${horodatage(mtime)}`]
+  if (!vues.ok) sortie.push(`⚠ ${vues.refus}`)
+  let titre = false
+  let section = null
+  for (const ligne of nettoyer(zones).lignes) {
+    if (/^# /.test(ligne) && !titre) {
+      titre = true
+      sortie.push(ligne)
+    } else if (/^## /.test(ligne)) {
+      section = OBJECTIF.test(ligne) ? 'objectif' : SECTION.test(ligne) ? 'en-cours' : null
+      if (section) sortie.push(ligne)
+    } else if (section === 'objectif' && ligne.trim()) {
+      sortie.push(ligne)
+    } else if (section === 'en-cours' && ((ITEM.test(ligne) && !ITEM_FAIT.test(ligne)) || ETAPE_OUVERTE.test(ligne))) {
+      sortie.push(ligne)
+    }
+  }
+  const zone = zones.debut >= 0 ? zones.lignes.slice(zones.debut + 1, zones.fin).map(sansFin) : []
+  const date = dateDeLaZone(zone)
+  const rafraichir = `\`npm run ops:suivi -- ${epique}\``
+  sortie.push('', '## Zone mesurée')
+  if (!date) {
+    sortie.push(`zone mesurée jamais rafraîchie : ${rafraichir}`)
+  } else {
+    const heures = (maintenant.getTime() - date.getTime()) / 3_600_000
+    if (heures > HEURES_PEREMPTION) {
+      sortie.push(`**PÉRIMÉE** : mesurée il y a ${Math.floor(heures)} h (au-delà de ${HEURES_PEREMPTION} h) — ${rafraichir}`)
+    }
+    sortie.push(...zone)
+  }
+  return plafonner(sortie, plafond, chemin)
+}
+
 // ————————————————————————————————— mesure, écriture, CLI —————————————————————————————————
 
 /**
@@ -278,7 +360,7 @@ const ligneDeProfil = ({ durees, total, reste }) => `[suivi] profil (ms) : ${Obj
   .map(([nom, ms]) => `${nom} ${Math.round(ms)}`).join(' · ')} · total ${Math.round(total)} · reste ${reste.toFixed(1)}`
 
 /** Le texte de `cible`, ou `null` si elle n'existe plus (`ENOENT`) ; toute autre erreur est relancée. */
-function relire(cible, fs) {
+export function relire(cible, fs) {
   try {
     return fs.readFileSync(cible, 'utf8')
   } catch (e) {
@@ -400,28 +482,49 @@ export function suivre({ numero, dossier, creer = false, sansFetch = false, fs =
   return { code: vu.ok ? 0 : 1, stdout: `${contenu}\n${ligneDeProfil(profil)}\n`, stderr: '' }
 }
 
-function main() {
-  const argv = process.argv.slice(2)
+/**
+ * Le dossier des suivis, `<arbre principal>/.git/suivi`, depuis n'importe quel arbre du dépôt (un
+ * worktree lié compris) : l'union de `arbrePrincipal`, sa valeur prolongée du dossier.
+ * @param {string} cwd
+ * @returns {{disponible: true, valeur: string} | {disponible: false, raison: string}}
+ */
+export function dossierDesSuivis(cwd) {
+  const vu = arbrePrincipal(depotDe(cwd))
+  return vu.disponible ? { ...vu, valeur: join(vu.valeur, '.git', 'suivi') } : vu
+}
+
+/**
+ * Les arguments de ce script : aucun (la liste des suivis), ou UN numéro `>= 1` et, au choix,
+ * `--creer` et `--sans-fetch`. Toute autre forme est refusée (`null`). PURE.
+ * @param {string[]} argv
+ * @returns {{numero: number|null, creer: boolean, sansFetch: boolean} | null}
+ */
+export function argumentsDuSuivi(argv) {
   const numeros = argv.filter((a) => /^\d+$/.test(a)).map(Number)
   const valides = argv.every((a) => a === '--creer' || a === '--sans-fetch' || /^\d+$/.test(a))
-  if (argv.length && (!valides || numeros.length !== 1 || numeros[0] < 1)) {
+  if (argv.length && (!valides || numeros.length !== 1 || numeros[0] < 1)) return null
+  return { numero: numeros[0] ?? null, creer: argv.includes('--creer'), sansFetch: argv.includes('--sans-fetch') }
+}
+
+function main() {
+  const argv = process.argv.slice(2)
+  const lus = argumentsDuSuivi(argv)
+  if (!lus) {
     process.stderr.write(`[suivi] arguments refusés : ${argv.join(' ')} — usage : \`npm run ops:suivi -- <N> `
       + '[--creer] [--sans-fetch]`, ou sans argument pour la liste des suivis\n')
     process.exit(1)
   }
-  const vuRacine = arbrePrincipal(depotDe(process.cwd()))
-  if (!vuRacine.disponible) {
-    process.stderr.write(`[suivi] ${vuRacine.raison}\n`)
+  const vuDossier = dossierDesSuivis(process.cwd())
+  if (!vuDossier.disponible) {
+    process.stderr.write(`[suivi] ${vuDossier.raison}\n`)
     process.exit(1)
   }
-  const dossier = join(vuRacine.valeur, '.git', 'suivi')
-  if (!numeros.length) {
+  const dossier = vuDossier.valeur
+  if (lus.numero === null) {
     process.stdout.write(texteDeLaListe({ dossier, ...listerSuivis({ dossier }) }))
     return
   }
-  const { code, stdout, stderr } = suivre({
-    numero: numeros[0], dossier, creer: argv.includes('--creer'), sansFetch: argv.includes('--sans-fetch'),
-  })
+  const { code, stdout, stderr } = suivre({ numero: lus.numero, dossier, creer: lus.creer, sansFetch: lus.sansFetch })
   process.stdout.write(stdout)
   process.stderr.write(stderr)
   process.exitCode = code

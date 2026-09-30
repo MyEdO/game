@@ -119,8 +119,8 @@ C'est le signal qu'un geste manuel a dévié de ce que `npm install` pose seul.
   sous `scripts/guards/lib/` (dont `scripts/guards/lib/commentPoison.mjs`,
   `scripts/guards/lib/emojiAffordance.mjs`, `scripts/guards/lib/hardcode.mjs`,
   `scripts/guards/lib/labelLogic.mjs`).
-- Les gardes de SESSION : 3 scripts déclarés dans `.claude/settings.json`
-  (versionné), sur 16 fichiers `.mjs` hors test sous `scripts/hooks/` — détail au § 5.
+- Les gardes de SESSION : 4 scripts déclarés dans `.claude/settings.json`
+  (versionné), sur 18 fichiers `.mjs` hors test sous `scripts/hooks/` — détail au § 5.
 - Les schémas de données : `src/data/schemas/` (`src/data/schemas/types.ts`,
   `src/data/schemas/validate.ts`, `src/data/schemas/_registry.generated.ts`,
   `src/data/schemas/_ids.generated.ts`, `src/data/schemas/grammaire/` — le vocabulaire partagé —
@@ -175,6 +175,7 @@ refaire `npm install`.
 | Événement | Déclencheur (matcher) | Script | Rôle |
 |---|---|---|---|
 | `SessionStart` | (tous) | `scripts/hooks/bootstrap-conteneur.mjs` | Conformité du conteneur distant (hooks git, gh) |
+| `SessionStart` | (tous) | `scripts/hooks/inject-suivi.mjs` | Suivi de vague de la session |
 | `PreToolUse` | Write \| mcp__lean-ctx__ctx_patch \| Edit \| Bash \| PowerShell \| mcp__lean-ctx__ctx_shell | `scripts/hooks/repartiteur.mjs` | Gardes des appels d’outil (répartiteur) |
 | `PreToolUse` | Bash \| PowerShell \| mcp__lean-ctx__ctx_shell | `scripts/hooks/solde-ticket-hook.mjs` | Fermeture de ticket au commit = solde écrit obligatoire |
 | `PostToolUse` | Write \| Edit | `scripts/hooks/repartiteur.mjs` | Gardes des appels d’outil (répartiteur) |
@@ -241,4 +242,4 @@ sans place dans ce plan fait REFUSER le run, avec son nom.
 `scripts/guards/lib/npmLockHoisted.mjs` — npx --yes npm@10.9.3 install --package-lock-only, puis valider avec npx npm@10.9.3 ci --dry-run. npm 11 ampute les entrées hoistées
 `@emnapi/*` que `npm ci` exige en CI ; la garde (pre-commit +
 `src/npm-lock-hoisted-guard.test.ts`) refuse un lock amputé.
-<!-- sources-empreinte: 2792990bfe4d714962aa446b386d7eabd871daf9 (27 fichiers, 8 dossiers) corps: c8c657eb9786abf70dd9233984b2034d663e25b9 -->
+<!-- sources-empreinte: e185b2005eff682ccda4dd0f7568cdf3dc7984c4 (27 fichiers, 8 dossiers) corps: 834339a4911cbd9afddddb5b97d7bc42f91a7198 -->

@@ -12,7 +12,8 @@ import { join } from 'node:path'
 import { envDeDepotForge, instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import { GESTES_DU_BOARD, indexerIssues, mesurer } from './board.mjs'
 import {
-  MARQUE_DEBUT, MARQUE_FIN, ecrireSuivi, gabaritDuSuivi, horodatage, listerSuivis, mesureProfilee, renduDuSuivi,
+  HEURES_PEREMPTION, MARQUE_DEBUT, MARQUE_FIN, PLAFOND_INJECTION, digestDuSuivi, ecrireSuivi,
+  gabaritDuSuivi, horodatage, listerSuivis, mesureProfilee, renduDuSuivi,
   suivre, texteDeLaListe, ticketsPrevus, zonesDe,
 } from './suivi.mjs'
 
@@ -236,10 +237,10 @@ test('suivre : la cible disparaît PENDANT la mesure → refus nommé, rien n’
   } finally { FS.rmSync(dossier, { recursive: true, force: true }) }
 })
 
-test('listage : les suivis avec leur date, les orphelins NOMMÉS à part, un .tmp hors motif ignoré', () => {
+test('listage : les suivis avec leur date, les orphelins NOMMÉS à part, un .tmp hors motif et le journal ignorés', () => {
   const dossier = dossierJetable()
   try {
-    for (const nom of ['2132.md', '1816.md', '.1816.md.4242.tmp', 'notes.md', 'x.tmp', '.a.md.1.tmp', '.1816.md.tmp']) {
+    for (const nom of ['2132.md', '1816.md', '.1816.md.4242.tmp', 'notes.md', 'x.tmp', '.a.md.1.tmp', '.1816.md.tmp', '.journal']) {
       FS.writeFileSync(join(dossier, nom), '')
     }
     const vu = listerSuivis({ dossier })
@@ -388,4 +389,35 @@ test('portée sur dépôt FORGÉ : une ligne par ticket, dans SON ordre ; publi�
   } finally {
     for (const d of [racine, nu]) FS.rmSync(d, { recursive: true, force: true })
   }
+})
+
+const CHEMIN = '.git/suivi/1816.md'
+const digest = (texte, options = {}) => digestDuSuivi(texte, { epique: 1816, chemin: CHEMIN, mtime: MAINTENANT, maintenant: MAINTENANT, ...options })
+
+test('T2 — digestDuSuivi du suivi RÉEL : sous PLAFOND_INJECTION, chaque item et chaque étape `[ ]`, aucun `[x]`', () => {
+  const vu = digest(REEL)
+  assert.ok(vu.length <= PLAFOND_INJECTION, `${vu.length} > ${PLAFOND_INJECTION}`)
+  const lignes = REEL.split('\n')
+  for (const ligne of lignes.filter((l) => /^\d+\.\s/.test(l) || l.includes('[ ]'))) assert.ok(vu.includes(ligne), ligne)
+  assert.ok(lignes.filter((l) => l.includes('[ ]')).length > 5, 'la fixture porte des étapes ouvertes')
+  assert.doesNotMatch(vu, /\[x\]/i)
+  assert.ok(vu.includes('## Objectif') && vu.includes('- Phase 3 = langue (ids, jamais libellés), #1988.'))
+  assert.match(vu, /zone mesurée jamais rafraîchie : `npm run ops:suivi -- 1816`/)
+})
+
+test('T2 — digestDuSuivi : coupé au plafond, terminé par « tronqué, lire <chemin> »', () => {
+  const vu = digest(REEL, { plafond: 1200 })
+  assert.ok(vu.length <= 1200, `${vu.length} > 1200`)
+  assert.ok(vu.endsWith(`… tronqué, lire ${CHEMIN}`), vu.slice(-80))
+  assert.ok(vu.startsWith('[suivi #1816] .git/suivi/1816.md — écrit le 2026-09-29 14:03\n# Suivi de vague — épique #1816'))
+})
+
+test('digestDuSuivi : la zone mesurée DATÉE suit le plan ; PÉRIMÉE au-delà de HEURES_PEREMPTION', () => {
+  const mesure = rendre(REEL)
+  const frais = digest(mesure, { maintenant: new Date(MAINTENANT.getTime() + HEURES_PEREMPTION * 3_600_000) })
+  assert.match(frais, /> Zone MESURÉE par `npm run ops:suivi -- 1816` le 2026-09-29 14:03/)
+  assert.match(frais, /\| #2132 \| Ouvert \|/)
+  assert.doesNotMatch(frais, /PÉRIMÉE|jamais rafraîchie/)
+  const perime = digest(mesure, { maintenant: new Date(MAINTENANT.getTime() + (HEURES_PEREMPTION + 1) * 3_600_000) })
+  assert.match(perime, /\*\*PÉRIMÉE\*\* : mesurée il y a 25 h \(au-delà de 24 h\) — `npm run ops:suivi -- 1816`/)
 })

@@ -9,7 +9,7 @@
 // PÉRIMÈTRE demandé le 2026-09-18 (« Oui, spécifique au cloud ») : rien ne se pose hors d'un
 // conteneur distant, où la machine porte l'environnement de son propriétaire. `CLAUDE_CODE_REMOTE`
 // est le seul marqueur documenté d'un tel conteneur ; sa valeur y est la chaîne `'true'`. Ce hook
-// est donc PROPRE à la surface Claude (`scripts/agents/compat-core.mjs`, `HOOKS_MONO_SURFACE`).
+// est donc PROPRE à la surface Claude (`scripts/agents/compat-core.mjs`, `HOOKS_DE_SESSION`).
 //
 // Chaque prérequis de la table PREREQUIS porte son propre CONSTAT (`manque`) et son BUDGET de temps :
 // le hook est rejouable sans effet, un prérequis de plus s'ajoute en une entrée, et `BUDGET_TOTAL`
