@@ -11,7 +11,7 @@ import { CONSIGNE, garde } from './canal-outil-guard.mjs'
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 const FICHE = join(REPO, '.claude', 'memory', 'game-sonde-canal.md')
-const ECRIT = `node -e "require('fs').writeFileSync('${FICHE.replace(/\\/g, '/')}','x')"`
+const ECRIT = `echo x > '${FICHE.replace(/\\/g, '/')}'`
 
 /** La décision et la raison du répartiteur pour `tool_name` sur `tool_input`. */
 function decisionDe(tool_name, tool_input) {
