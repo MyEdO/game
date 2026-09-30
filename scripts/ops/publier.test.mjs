@@ -17,6 +17,7 @@ import { manquementsDeFeuilles } from '../guards/lib/modulesFeuilles.mjs'
 import { numerosCites } from '../guards/lib/fermetures.mjs'
 import { refusDeSujet, sujetDuMessage } from '../guards/lib/sujetDeCommit.mjs'
 import { GitIndisponible, depotDe } from '../guards/lib/gitPorte.mjs'
+import { DEPOT } from '../guards/lib/ticketsGh.mjs'
 import { envDeDepotForge, instanceDeDepot, sousLEnvDeLUtilisatrice } from '../guards/lib/depotGabarit.mjs'
 import { GENERATORS } from '../docs/build-all.mjs'
 import {
@@ -1025,7 +1026,7 @@ test('ci : un run ROUGE rend le job et l’URL du run — et RIEN n’est entré
   assert.equal(vu.ok, false)
   assert.match(vu.raison, /course CI rouge \(33691303703\)/)
   assert.match(vu.raison, /RIEN n'est entré dans main/)
-  assert.match(vu.raison, /https:\/\/github\.com\/cgauche\/game\/actions\/runs\/33691303703/)
+  assert.ok(vu.raison.includes(`https://github.com/${DEPOT}/actions/runs/33691303703`), vu.raison)
   assert.equal(typeof vu.detail.attenteCiSecondes, 'number')
 })
 
