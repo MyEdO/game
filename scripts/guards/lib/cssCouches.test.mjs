@@ -2,8 +2,9 @@
 // rend, et ce qu'il refuse d'abriter ; puis la FRONTIÈRE (#1806 L1), le FRANCHISSEMENT (D1″), la
 // VENTILATION d'un commit contre son parent (D6″) et l'ADMISSION du RETOURNÉ par la régénération (C). Chaque cas est
 // une fixture de texte, sauf les trois commits cibles, lus dans l'HISTOIRE du dépôt par le vrai chemin
-// (`ventilationDeGit`) : la CI les porte (`fetch-depth: 0`, .github/workflows/ci.yml:26). La MESURE sur
-// le corpus réel se prouve ailleurs (`src/ui/ui-ratchets.test.ts`, cliquets (xxi)/(xxii)).
+// (`ventilationDeGit`) : la CI les porte (`fetch-depth: 0` du checkout de chaque job de
+// .github/workflows/ci.yml). La MESURE sur le corpus réel se prouve ailleurs
+// (`src/ui/ui-ratchets.test.ts`, cliquets (xxi)/(xxii)).
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'

@@ -35,7 +35,8 @@ export const SITES_DECLARES = Object.freeze([
   Object.freeze({
     fichier: 'scripts/ops/fermer-depuis-main.mjs',
     pourquoi:
-      'ferme les tickets SOLDÉS d’une plage poussée sur main, après un `build` vert — job `fermetures` ' +
+      'ferme les tickets SOLDÉS d’une plage poussée sur main, après une course verte de tous les jobs ' +
+      'vérifiants — job `fermetures` ' +
       'de .github/workflows/ci.yml ; c’est la route que la porte de commit impose (`la fermeture passe ' +
       'par un commit corrige #N porteur de son solde`)',
   }),

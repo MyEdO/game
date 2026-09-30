@@ -4,7 +4,7 @@
 // #1685 a été fermé par 8b52f3a55 avant que ce commit n'atteigne `main`, et un commit rebasé au loin
 // ou jamais poussé laisse un ticket fermé sans code (revue de palier n°3, 2026-09-04, écart 10).
 // Aucun hook local ne ferme donc de ticket : c'est le job `fermetures` de `ci.yml` qui appelle ce
-// script sur la plage réellement poussée, après le job `build`.
+// script sur la plage réellement poussée, après TOUS les jobs vérifiants (ses `needs:`).
 //
 // Ce fichier est une FEUILLE, et c'est ce qui tient l'invariant « un seul site ferme » : il porte le
 // GESTE et rien d'autre, le vocabulaire de LECTURE d'une plage fermante vivant dans

@@ -9,10 +9,11 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
-import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { numerosFermes } from '../guards/lib/fermetures.mjs'
+import { blocsDeJobs } from '../gates/gatesDeCi.mjs'
+import { corpsRun } from '../gates/workflowsDuDepot.mjs'
 
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 const DEPUIS = '2026-08-01'
@@ -89,13 +90,18 @@ test('CLIQUET fermetures : le stock DÉCROÎT, jamais l\'inverse', () => {
 // `actions/checkout` clone à `depth 1` par défaut : `git log --since` y est vide et les shas anciens
 // absents. Les deux mesures d'histoire s'arrêtent alors NOMMÉMENT — encore faut-il que la CI ne les
 // mette pas dans cet état à chaque exécution.
-test('CI : les workflows qui jouent `test:hooks` demandent l\'histoire COMPLÈTE', () => {
+// Mesuré PAR JOB : chaque job est un runner, avec SON clone.
+test('CI : chaque job qui joue `test:hooks` demande l\'histoire COMPLÈTE', () => {
+  const joueurs = []
   for (const nom of ['ci.yml', 'canari.yml']) {
-    const contenu = readFileSync(join(RACINE, '.github', 'workflows', nom), 'utf8')
-    if (!contenu.includes('test:hooks')) continue
-    assert.match(
-      contenu, /actions\/checkout@v\d+\s*\n\s*with:\s*\n\s*fetch-depth: 0/,
-      `${nom} joue \`test:hooks\` sans \`fetch-depth: 0\` sur son \`actions/checkout\` — les mesures d'histoire y seraient muettes.`,
-    )
+    for (const { job, texte } of blocsDeJobs({ fichier: join(RACINE, '.github', 'workflows', nom) })) {
+      if (!corpsRun(texte).some((l) => /\btest:hooks\b/.test(l))) continue
+      joueurs.push(`${nom}/${job}`)
+      assert.match(
+        texte, /actions\/checkout@v\d+\s*\n\s*with:\s*\n\s*fetch-depth: 0/,
+        `${nom} / job ${job} joue \`test:hooks\` sans \`fetch-depth: 0\` sur son \`actions/checkout\` — les mesures d'histoire y seraient muettes.`,
+      )
+    }
   }
+  assert.ok(joueurs.some((j) => j.startsWith('ci.yml/')), 'aucun job de ci.yml ne joue `test:hooks` : cette garde ne mesure plus rien')
 })

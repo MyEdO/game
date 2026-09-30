@@ -819,7 +819,7 @@ export function estDansHead(depot, sha) {
  * parce que cette valeur sert de `cwd` et de préfixe de cible. `normaliserRacine` (qui abaisse la
  * casse) ne sert ici qu'aux COMPARAISONS ; l'employer sur la valeur casserait tout chemin
  * case-sensible (mesure du 2026-09-14 : `mkdtempSync` rend 8/8 suffixes porteurs d'une majuscule, et
- * `test:ops` tourne sur `ubuntu-latest`, `runs-on` du job `build` de .github/workflows/ci.yml).
+ * `test:ops` tourne sur `ubuntu-latest`, `runs-on` de son job de .github/workflows/ci.yml).
  * @param {Depot} depot
  * @returns {{disponible:true, valeur:string}|{disponible:false, raison:string}}
  */

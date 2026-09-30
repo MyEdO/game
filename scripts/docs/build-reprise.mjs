@@ -19,7 +19,7 @@ import { readFileSync, existsSync } from 'node:fs'
 import { listerDossier } from '../guards/lib/lister.mjs'
 import { ecrireOuVerifier } from './lib/empreinte-sources.mjs'
 import { repartitionWorkers } from '../test/partition.mjs'
-import { LANES, ECRIT_LU } from '../gates/toutes.mjs'
+import { ECRIT_LU, lanesDeCi } from '../gates/toutes.mjs'
 import { gatesDeCi } from '../gates/gatesDeCi.mjs'
 import { ETATS as ETATS_PORTE, PORTE, WORKFLOWS as REGISTRE_WORKFLOWS, corpsRun, declencheursDe } from '../gates/workflowsDuDepot.mjs'
 import { DOCUMENTAIRE, gatesSautables } from '../gates/classerPush.mjs'
@@ -185,8 +185,8 @@ const listeCode = (xs) => xs.map((x) => `\`${x}\``).join(', ')
 // Le régime de livraison, le plan des gates et la recette du lock vivaient en prose dans CLAUDE.md,
 // donc ils y mentaient dès que le code bougeait. Ici, chaque fait a sa source exécutable :
 // `scripts/gates/toutes.mjs` (plan et options), `scripts/guards/lib/npmLockHoisted.mjs` (recette du
-// lock), `scripts/git-hooks/pre-push.mjs` (le régime). Aucune MESURE de durée n'est reprise : elle
-// vit dans les `raison` de `LANES`, qui se remesurent.
+// lock), `scripts/git-hooks/pre-push.mjs` (le régime), `.github/workflows/ci.yml` (les lanes, un job
+// par lane). Aucune MESURE de durée n'est reprise : chaque run du lanceur la remesure.
 
 const SRC_GATES = readFileSync(chemin('scripts/gates/toutes.mjs'), 'utf8')
 const SRC_PREPUSH = readFileSync(chemin('scripts/git-hooks/pre-push.mjs'), 'utf8')
@@ -227,8 +227,9 @@ const GATES_TOUJOURS = GATES_CI.filter((g) => !SAUTABLES.has(g.nom)).map((g) => 
 const NB_GATES_TOUJOURS = GATES_TOUJOURS.length
 const NB_GATES_SAUTABLES = SAUTABLES.size
 
-const lignesLanes = LANES.map((l) => `| \`${l.nom}\` | ${listeCode(l.gates)} |`).join('\n')
-const NB_GATES_CLASSEES = LANES.reduce((n, l) => n + l.gates.length, 0)
+const LANES_CI = lanesDeCi(GATES_CI)
+const lignesLanes = LANES_CI.map((l) => `| \`${l.nom}\` | ${listeCode(l.gates)} |`).join('\n')
+const NB_GATES_CLASSEES = LANES_CI.reduce((n, l) => n + l.gates.length, 0)
 const NB_GATES_MESUREES = Object.keys(ECRIT_LU).length
 /** Écrivain = gate qui écrit à chaque run (`ecrit`) OU qui PEUT écrire, porte nommée (`ecritFerme`). */
 const NB_ECRIVAINS = Object.values(ECRIT_LU).filter(
@@ -249,7 +250,8 @@ const FAMILLES_POSTINSTALL = [
    \`post-rewrite\` régénèrent les docs dérivés après une fusion ou un rebase. Le PALIER de revue
    adversariale se mesure sur l'histoire au moment du commit (\`scripts/guards/lib/revuePalier.mjs\`),
    et la fermeture des issues suit la PUBLICATION : job \`fermetures\` de \`.github/workflows/ci.yml\`
-   après un \`build\` vert sur \`main\`, qui joue \`${script('ops:fermer')} <before>..<sha>\`.`,
+   après une course verte de tous les jobs vérifiants sur \`main\`, qui joue
+   \`${script('ops:fermer')} <before>..<sha>\`.`,
   },
   {
     module: 'scripts/git-hooks/merge-docs.mjs',
@@ -521,19 +523,19 @@ nomme ${NB_REFUS_PREPUSH} refus, et celui qui exige un run vert ne vaut que pour
 Ajouter une gate, c'est ajouter UN step à \`ci.yml\` — rien d'autre ne la récite.
 
 **Rejeu LOCAL \`npm run gates\`** (\`${script('gates')}\`), un confort de diagnostic, jamais une porte :
-${NB_GATES_CLASSEES} gates classées en ${LANES.length} lanes parallèles de LECTEURS — aucune gate
+${NB_GATES_CLASSEES} gates en ${LANES_CI.length} lanes parallèles de LECTEURS — aucune gate
 n'écrit dans l'arbre, un dérivé s'y VÉRIFIE (\`docs:check:tout\`) :
 
 | Lane | Gates |
 |---|---|
 ${lignesLanes}
 
-Les deux tables vivent dans \`scripts/gates/toutes.mjs\` : \`LANES\` pour la répartition ci-dessus,
-\`ECRIT_LU\` pour ce que CHAQUE gate écrit et lit (${NB_GATES_MESUREES} gates mesurées, dont
+Une lane est un job de \`ci.yml\` (\`lanesDeCi\`) ; \`ECRIT_LU\` (\`scripts/gates/toutes.mjs\`) dit ce
+que CHAQUE gate écrit et lit (${NB_GATES_MESUREES} gates mesurées, dont
 ${NB_ECRIVAINS} écrivain(s) — écriture de chaque run ou écriture POSSIBLE à porte nommée) ; c'est elle
 qui rend le classement vérifiable plutôt que déclaratif. La suite est BORNÉE par \`${BORNE_SUITE}\`
 pendant que les autres lanes tournent. Options : ${listeCode(OPTIONS_GATES)}. Une gate de \`ci.yml\`
-sans place dans ce plan fait REFUSER le run, avec son nom.
+sans entrée ÉCRIT/LU, ou jouée par deux jobs, fait REFUSER le run, avec son nom.
 
 **\`package-lock.json\`** : le régénérer TOUJOURS avec ${NPM_LOCK}, recette exacte de
 \`scripts/guards/lib/npmLockHoisted.mjs\` — ${REGEN_RECIPE}. npm 11 ampute les entrées hoistées

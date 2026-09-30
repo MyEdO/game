@@ -54,7 +54,7 @@ function debutDeLaPlage(env = process.env) {
 }
 
 /** La ref POUSSÉE : en CI `GITHUB_REF` (= `github.ref`, la ref que l'événement a poussée, celle que
- *  classe `.github/workflows/ci.yml:40`) ; hors CI, la branche de HEAD. */
+ *  classe le step `classer` de `.github/actions/prologue/action.yml`) ; hors CI, la branche de HEAD. */
 function refPoussee(env = process.env) {
   if (env.GITHUB_REF) return env.GITHUB_REF
   try { return git('symbolic-ref', '-q', 'HEAD').trim() } catch { return null }

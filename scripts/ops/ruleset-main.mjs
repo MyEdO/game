@@ -7,19 +7,21 @@
 // le 2026-09-04) : les modes offerts sont `active` et `disabled`, et c'est `active`.
 //
 // TROIS RÈGLES :
-//   · `required_status_checks` — les jobs VÉRIFIANTS de `ci.yml` (`JOBS_NON_VERIFIANTS` nomme les
-//     autres). `strict_required_status_checks_policy: false` : la tête verte sur sa branche est
-//     acceptée telle quelle, c'est le FAST-FORWARD qui garantit que le sha jugé est celui qui entre ;
+//   · `required_status_checks` — les jobs VÉRIFIANTS du `ci.yml` du TRONC (`origin/main`, jamais
+//     l'arbre local : un check exigé que `main` ne produit pas encore bloquerait toute entrée ;
+//     `JOBS_NON_VERIFIANTS`, scripts/gates/gatesDeCi.mjs, nomme les autres).
+//     `strict_required_status_checks_policy: false` : la tête verte sur sa branche est acceptée
+//     telle quelle, c'est le FAST-FORWARD qui garantit que le sha jugé est celui qui entre ;
 //   · `non_fast_forward` — `main` n'est jamais réécrite ;
 //   · `deletion` — `main` ne se supprime pas.
 //
 // AUCUN BYPASS — mesure du 2026-09-16 à l'activation : un corps portant l'intégration GitHub Actions
 // en `bypass_actors` est REFUSÉ par le serveur. `gh api -X POST repos/cgauche/game/rulesets --input
 // <corps>` → HTTP 422, verbatim : « Actor GitHub Actions integration must be part of the ruleset
-// source or owner organization ». Sur un dépôt PERSONNEL, cette intégration n'est pas un acteur
-// exonérable. Le ruleset n'exonère donc AUCUN acteur, et rien dans le dépôt n'en a besoin : aucun
-// workflow ne commet sur `main`. (le `git push` de `deploy.yml` pousse sur le dépôt de PROD, pas sur `main` : le
-// ruleset ne le voit jamais.)
+// source or owner organization » — le dépôt était alors PERSONNEL (`cgauche/game`) ; il appartient à
+// l'organisation `MyEdO` depuis le 2026-09-29 (#2178). Le ruleset n'exonère AUCUN acteur, et rien
+// dans le dépôt n'en a besoin : aucun workflow ne commet sur `main`. (le `git push` de `deploy.yml`
+// pousse sur le dépôt de PROD, pas sur `main` : le ruleset ne le voit jamais.)
 //
 // Usage : `npm run ops:ruleset -- --dry-run` (imprime le corps, n'écrit rien) ou `npm run ops:ruleset`
 // (crée ou met à jour le ruleset — geste de l'orchestrateur, jamais d'un agent).
@@ -28,26 +30,22 @@ import { writeFileSync, rmSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { tmpdir } from 'node:os'
-import { jobsCi } from '../gates/gatesDeCi.mjs'
+import { contextesRequis } from '../gates/gatesDeCi.mjs'
 import { DEPOT } from '../guards/lib/ticketsGh.mjs'
-import { TRONC } from '../guards/lib/gitPorte.mjs'
+import { TRONC, depotDe, fetchOrigin, lireEnLot, reussi, shaDe } from '../guards/lib/gitPorte.mjs'
 
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 export const NOM = 'main'
 
-/**
- * Jobs de `ci.yml` qui ne VÉRIFIENT pas le contenu poussé, chacun avec sa raison : ils ne peuvent pas
- * être un check requis. Nominatif — un job neuf devient un check requis tant qu'il n'est pas nommé ici.
- */
-export const JOBS_NON_VERIFIANTS = {
-  fermetures:
-    'joue APRÈS la publication (il ferme les tickets soldés par les commits poussés) — exiger sa ' +
-    'réussite avant de laisser entrer le push serait circulaire',
-}
+/** Chemin de `ci.yml`, relatif à la racine du dépôt. */
+const CI = '.github/workflows/ci.yml'
 
-/** Contextes de check requis = les jobs VÉRIFIANTS de `ci.yml`. */
-export function contextesRequis({ cwd = RACINE, fichier } = {}) {
-  return jobsCi({ cwd, fichier }).filter((j) => !(j in JOBS_NON_VERIFIANTS))
+/** Le texte de `ci.yml` à `origin/main` (`TRONC.suivi`) — ce que `main` produit comme checks. Un
+ *  tronc sans `ci.yml` LÈVE : aucun corps ne se pose sur une lecture vide. */
+export function ciDuTronc(cwd = RACINE) {
+  const texte = lireEnLot(depotDe(cwd), TRONC.suivi, [CI]).get(CI)
+  if (texte === null) throw new Error(`${TRONC.suivi}:${CI} illisible — le ruleset ne peut pas nommer ses checks`)
+  return texte
 }
 
 /** Corps du ruleset. PUR. */
@@ -92,21 +90,24 @@ export function refusGh(erreur) {
 }
 
 /**
- * Le geste, avec son exécutant `gh` INJECTÉ : c'est ainsi que le test vérifie qu'un `--dry-run`
- * n'émet aucun appel, sans réseau ni écriture. `PUT` est la méthode documentée de
- * `PUT /repos/{owner}/{repo}/rulesets/{ruleset_id}` (mise à jour d'un ruleset de dépôt) ; la
- * création passe par `POST /repos/{owner}/{repo}/rulesets`.
+ * Le geste, avec son exécutant `gh` et sa lecture du `ci.yml` du tronc (`lireCi`) INJECTÉS : c'est
+ * ainsi que le test vérifie qu'un `--dry-run` n'émet aucun appel, sans réseau ni écriture. `PUT` est
+ * la méthode documentée de `PUT /repos/{owner}/{repo}/rulesets/{ruleset_id}` (mise à jour d'un
+ * ruleset de dépôt) ; la création passe par `POST /repos/{owner}/{repo}/rulesets`.
  * REND le code de sortie du processus : 0, ou 1 quand `gh` refuse — le refus part au `journal`.
  */
 export function executer({
   argv = [],
   runner = gh,
+  lireCi = ciDuTronc,
   sortie = (s) => process.stdout.write(s),
   journal = (s) => process.stderr.write(s),
 } = {}) {
   const dryRun = argv.includes('--dry-run')
-  const corps = corpsDuRuleset(contextesRequis({ cwd: RACINE }))
+  const contextes = contextesRequis({ texte: lireCi() })
+  const corps = corpsDuRuleset(contextes)
   sortie(`${JSON.stringify(corps, null, 2)}\n`)
+  sortie(`[ruleset] checks requis posés : ${contextes.join(', ')}\n`)
   if (dryRun) {
     sortie('[ruleset] --dry-run : rien n’a été écrit sur GitHub\n')
     return 0
@@ -129,5 +130,16 @@ export function executer({
   }
 }
 
-if (import.meta.main)
+/** La ref LOCALE `origin/main` que `ciDuTronc` lit est d'abord remise au tronc distant (`fetchOrigin`),
+ *  et son sha est affiché : le corps posé nomme la révision qu'il a lue. */
+if (import.meta.main) {
+  const depot = depotDe(RACINE)
+  const vu = fetchOrigin(depot)
+  if (!reussi(vu)) {
+    const raison = vu.disponible ? (vu.absent ? 'objet absent' : String(vu.valeur.stderr).trim()) : vu.raison
+    process.stderr.write(`[ruleset] git fetch ${TRONC.suivi} en échec : ${raison}\n`)
+    process.exit(1)
+  }
+  process.stdout.write(`[ruleset] ${TRONC.suivi} lu à ${shaDe(depot, TRONC.suivi)}\n`)
   process.exit(executer({ argv: process.argv.slice(2) }))
+}

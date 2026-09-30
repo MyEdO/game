@@ -1,8 +1,9 @@
 // CLASSEMENT D'UN PUSH — documentaire ou produit (#1738).
 //
-// La CI l'exécute AVANT `npm ci` : la fermeture de ses imports n'atteint que `node:*` et des fichiers
-// du dépôt, jamais un paquet (garde : `classerPush.test.mjs`). Elle compte l'hôte git (`gitPorte.mjs`,
-// `TRONC`) ; `gatesSautables` reçoit `ECRIT_LU`/`gatesDeCi()` en PARAMÈTRE au lieu de les importer.
+// La CI l'exécute AVANT `npm ci`, dans le prologue de chaque job (`ACTION_PROLOGUE`) : la fermeture
+// de ses imports n'atteint que `node:*` et des fichiers du dépôt, jamais un paquet (garde :
+// `classerPush.test.mjs`). Elle compte l'hôte git (`gitPorte.mjs`, `TRONC`) ; `gatesSautables`
+// reçoit `ECRIT_LU`/`gatesDeCi()` en PARAMÈTRE au lieu de les importer.
 //
 // Ce qu'un push déclenche se décide par ce que les gates LISENT (`ECRIT_LU[gate].lit`,
 // `scripts/gates/toutes.mjs`, mesuré), jamais par un dossier deviné. La décision est FAIL-CLOSED
@@ -37,19 +38,27 @@ export const DOCUMENTAIRE = {
 
 /**
  * Steps `CI_SEULEMENT` de `ci.yml` (scripts/gates/gatesDeCi.mjs) qui ne jouent QUE sur un push
- * produit, chacun avec sa raison. `npm ci` et le classement lui-même n'y sont pas : ils jouent
- * toujours, puisque tout ce qui suit en dépend.
+ * produit, chacun avec sa raison. Le prologue (`ACTION_PROLOGUE` : classement et `npm ci`) n'y est
+ * pas : il joue toujours, puisque tout ce qui suit en dépend.
  */
 export const CI_SEULEMENT_PRODUIT = {
   'npm --prefix server ci':
     'install du worker, prérequis du seul `server:typecheck` — inutile quand rien de server/ ne bouge',
 }
 
-/** Commande EXACTE du step de classement dans `ci.yml` — une seule écriture, lue par la garde. */
+/** Action composite du PROLOGUE de chaque job vérifiant de `ci.yml` (Node, classement, `npm ci`),
+ *  relative à la racine du dépôt. */
+export const ACTION_PROLOGUE = '.github/actions/prologue/action.yml'
+
+/** `id` du step qui appelle le prologue dans chaque job : c'est par lui que les steps lisent le
+ *  classement (`outputs.produit`) et l'issue du prologue ENTIER — Node, classement, `npm ci` (`outcome`). */
+export const ID_PROLOGUE = 'prologue'
+
+/** Commande EXACTE du step de classement dans `ACTION_PROLOGUE` — une seule écriture, lue par la garde. */
 export const COMMANDE_CLASSER = 'node scripts/gates/classerPush.mjs >> "$GITHUB_OUTPUT"'
 
 /** Fragment de la condition `if` que porte tout step conditionné par le classement. */
-export const CONDITION_PRODUIT = "steps.classer.outputs.produit != 'false'"
+export const CONDITION_PRODUIT = `steps.${ID_PROLOGUE}.outputs.produit != 'false'`
 
 /** Deux chemins CHEVAUCHENT quand l'un est préfixe de l'autre : `.claude/` et `.claude/memory/`. */
 const chevauche = (a, b) => a.startsWith(b) || b.startsWith(a)

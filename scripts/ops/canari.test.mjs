@@ -12,7 +12,7 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { SIGNALEUR, stepsDu } from '../gates/workflowsDuDepot.mjs'
-import { COMMANDE_ARBRE_INCHANGE, nomDeGate } from '../gates/gatesDeCi.mjs'
+import { COMMANDE_ARBRE_INCHANGE, JOBS_HORS_REJEU_LOCAL, blocsDeJobs, nomDeGate } from '../gates/gatesDeCi.mjs'
 import { ECRIT_LU } from '../gates/toutes.mjs'
 
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
@@ -97,16 +97,45 @@ test('les deux mesures d’ÉTAT sont jouées par le canari', () => {
 /** Commande `run:` d'un step, sur une ligne. PUR. */
 const commandeDu = (step) => /^\s*-?\s*run:\s*(.+)$/m.exec(step.bloc)?.[1]?.trim() ?? null
 
+/** Gates d'`ECRIT_LU` qui PEUVENT réécrire un registre `*.generated.ts` (`genAll()`). */
+const ECRIVAINS_DE_REGISTRE = Object.entries(ECRIT_LU)
+  .filter(([, g]) => Object.keys(g.ecritFerme ?? {}).some((c) => c.endsWith('.generated.ts')))
+  .map(([gate]) => gate)
+
+/** Écrivains de registre joués AVANT `docs:check:tout` dans ces steps ; `null` s'il n'y est pas. */
+function ecrivainsAvantVerification(steps) {
+  const commandes = steps.map(commandeDu)
+  const verification = commandes.indexOf('npm run docs:check:tout')
+  if (verification < 0) return null
+  return commandes.slice(0, verification).map((c) => c && nomDeGate(c)).filter((g) => ECRIVAINS_DE_REGISTRE.includes(g))
+}
+
+test('au moins une gate d’`ECRIT_LU` déclare réécrire un registre — sans elle, ces gardes ne mesurent rien', () => {
+  assert.ok(ECRIVAINS_DE_REGISTRE.length > 0, 'aucune gate d’`ECRIT_LU` ne déclare réécrire un registre')
+})
+
+// Dans CHAQUE job de ci.yml : un job est un runner, et c'est l'arbre de CE runner que `genAll()`
+// réécrit. Un job sans `docs:check:tout` n'a rien à protéger.
+for (const { job, texte } of blocsDeJobs({ cwd: RACINE })) {
+  test(`ci.yml / job ${job} : \`docs:check:tout\` joue AVANT toute gate de ce job qui réécrit un registre`, () => {
+    const avant = ecrivainsAvantVerification(stepsDu(texte))
+    assert.deepEqual(avant ?? [], [], 'vérifiée après eux, la gate juge un registre déjà réécrit par `genAll()`')
+  })
+
+  if (!(job in JOBS_HORS_REJEU_LOCAL))
+    test(`ci.yml / job ${job} : le filet « Arbre inchangé » est son DERNIER step`, () => {
+      const dernier = stepsDu(texte).at(-1)
+      assert.equal(dernier?.nom, 'Arbre inchangé', `${job} : une gate jouée après le filet échapperait à sa photo`)
+      assert.equal(commandeDu(dernier), COMMANDE_ARBRE_INCHANGE)
+    })
+}
+
 for (const [nom, texte] of [['ci.yml', readFileSync(join(RACINE, '.github', 'workflows', 'ci.yml'), 'utf8')], ['canari.yml', TEXTE]]) {
+  // À PLAT, sur le fichier entier : c'est l'ordre du rejeu local en série (`--serie`,
+  // scripts/gates/toutes.mjs), et celui des steps du canari.
   test(`${nom} : \`docs:check:tout\` joue AVANT toute gate qui réécrit un registre \`*.generated.ts\``, () => {
-    const steps = stepsDu(texte).map(commandeDu)
-    const verification = steps.indexOf('npm run docs:check:tout')
-    assert.ok(verification >= 0, `${nom} ne joue pas \`npm run docs:check:tout\``)
-    const ecrivains = Object.entries(ECRIT_LU)
-      .filter(([, g]) => Object.keys(g.ecritFerme ?? {}).some((c) => c.endsWith('.generated.ts')))
-      .map(([gate]) => gate)
-    assert.ok(ecrivains.length > 0, 'aucune gate d’`ECRIT_LU` ne déclare réécrire un registre')
-    const avant = steps.slice(0, verification).map((c) => c && nomDeGate(c)).filter((g) => ecrivains.includes(g))
+    const avant = ecrivainsAvantVerification(stepsDu(texte))
+    assert.ok(avant, `${nom} ne joue pas \`npm run docs:check:tout\``)
     assert.deepEqual(avant, [], 'vérifiée après eux, la gate juge un registre déjà réécrit par `genAll()`')
   })
 
