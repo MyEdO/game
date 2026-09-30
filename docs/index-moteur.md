@@ -8,7 +8,7 @@
 ## Pourquoi ce fichier
 
 Un agent de grounding arrive avec une question en français et doit trouver le bon symbole dans un moteur écrit en
-anglais. `rollCareer` (`creation.ts:73`) porte depuis 2026-06-18 un JSDoc qui explique que plusieurs Carrières
+anglais. `rollCareer` (`creation.ts`) porte depuis 2026-06-18 un JSDoc qui explique que plusieurs Carrières
 peuvent partager une borne de tirage — deux agents ont conclu à tort que ce mécanisme n'existait pas, faute de
 surface de recherche. Cet index est cette surface : chercher « carrière aléatoire » doit faire remonter `rollCareer`
 sous le concept « Création de personnage : Carrière aléatoire (tirage), espèce aléatoire, achat de points ».
@@ -26,7 +26,7 @@ sous le concept « Création de personnage : Carrière aléatoire (tirage), esp�
 - Le lexique `CROSS_CONCEPTS` (recherche transversale) est un filet de sens, pas une taxonomie exhaustive du domaine :
   une notion absente du lexique reste findable via le concept de fichier, jamais introuvable.
 
-_2185 exports publics mesurés (162 fichiers de `src/engine`, hors tests) — 1889 documentés (JSDoc exploitable), 296 sans JSDoc._
+_2186 exports publics mesurés (162 fichiers de `src/engine`, hors tests) — 1890 documentés (JSDoc exploitable), 296 sans JSDoc._
 
 ## Index par concept (français)
 
@@ -117,7 +117,7 @@ _2185 exports publics mesurés (162 fichiers de `src/engine`, hors tests) — 18
 | Horloge, temps de jeu | `ancreDePhase` (clock.ts:131), `campaignStart` (clock.ts:109), `dawnMinute` (clock.ts:169), `DAY_PHASES` (clock.ts:120), `dayIndex` (clock.ts:184), `DayPhase` (clock.ts:116), `dayPhase` (clock.ts:155), `DayPhaseId` (clock.ts:115), `daysPerYear` (clock.ts:53), `duskMinute` (clock.ts:174), `EPOCH_YEAR` (clock.ts:23), `formatImperial` (clock.ts:101), `fromDate` (clock.ts:90), `IMPERIAL_MONTHS` (clock.ts:18), `ImperialDate` (clock.ts:55), `ImperialMonth` (clock.ts:15), `INTERCALARY` (clock.ts:19), `isNight` (clock.ts:149), `isTravelDaylight` (clock.ts:178), `MINUTES_PER_DAY` (clock.ts:22), `minutesUntilNext` (clock.ts:164), `NIGHT_WINDOW` (clock.ts:144), `scheduleAt` (clock.ts:199), `ScheduleSpec` (clock.ts:188), `toDate` (clock.ts:71), `WEEKDAYS` (clock.ts:20) |
 | Identifiants de qualités (union GÉNÉRÉE) | `QualityId` (qualities/qualityId.generated.ts:5) |
 | Incantation en surtension (Overcast) | `effectiveRangeMetres` (overcast.ts:122), `extraTargetCapacity` (overcast.ts:99), `missileOvercastDamageBonus` (overcast.ts:131), `overcastAxes` (overcast.ts:40), `OvercastAxis` (overcast.ts:22), `overcastBudget` (overcast.ts:83), `overcastDurationParts` (overcast.ts:115), `OvercastSource` (overcast.ts:21), `overcastSourceOf` (overcast.ts:29), `overcastStepCost` (overcast.ts:92), `spellHasOvercastTableRoll` (overcast.ts:138), `VDM_OVERCAST` (overcast.ts:64), `zoneDiameterMultiplier` (overcast.ts:106) |
-| Incantation ratée (Fiasco) | `componentDowngrade` (miscast.ts:425), `MISCAST_TABLES` (miscast.ts:319), `MiscastResult` (miscast.ts:38), `miscastRowAt` (miscast.ts:357), `miscastRowSource` (miscast.ts:344), `MiscastSeverity` (miscast.ts:36), `MiscastTableDef` (miscast.ts:292), `miscastTableId` (miscast.ts:336), `MiscastTableRow` (miscast.ts:308), `rollMiscast` (miscast.ts:468) |
+| Incantation ratée (Fiasco) | `componentDowngrade` (miscast.ts:425), `JsonFormula` (miscast.ts:98), `MISCAST_TABLES` (miscast.ts:319), `MiscastResult` (miscast.ts:38), `miscastRowAt` (miscast.ts:357), `miscastRowSource` (miscast.ts:344), `MiscastSeverity` (miscast.ts:36), `MiscastTableDef` (miscast.ts:292), `miscastTableId` (miscast.ts:336), `MiscastTableRow` (miscast.ts:308), `rollMiscast` (miscast.ts:468) |
 | Interaction sociale, Standing | `actorStatus` (social.ts:44), `capriciousDR` (social.ts:63), `statusCharmLabel` (social.ts:115), `statusCharmMod` (social.ts:78), `statusMeets` (social.ts:51), `statusOf` (social.ts:37) |
 | Issue de test (Degrés de Réussite) | `TestOutcome` (testOutcome.ts:29) |
 | Ivresse, alcool | `alcoholFailures` (drunkenness.ts:57), `applyAlcoholTest` (drunkenness.ts:85), `applyDrunkResult` (drunkenness.ts:105), `DRUNK_CARACS` (drunkenness.ts:39), `drunkCharPenalties` (drunkenness.ts:74), `DrunkEntry` (drunkenness.ts:53), `drunkPenalty` (drunkenness.ts:67), `drunkStaggers` (drunkenness.ts:118), `DrunkState` (drunkenness.ts:42), `isDrunk` (drunkenness.ts:62), `soberUp` (drunkenness.ts:155), `soberUpDissipate` (drunkenness.ts:133), `soberUpHangover` (drunkenness.ts:144) |
@@ -1689,6 +1689,7 @@ _2185 exports publics mesurés (162 fichiers de `src/engine`, hors tests) — 18
 |---|---|---|---|---|
 | `MiscastSeverity` | 36 | type | — | Incantation ratée (Fiasco) |
 | `MiscastResult` | 38 | interface | — | Incantation ratée (Fiasco) |
+| `JsonFormula` | 98 | type | `Formula` telle qu'elle apparaît dans le JSON : la `Formula` du moteur, où le terme `{sinPoints}` peut prendre la place d'un terme quelconque (« 1d10 + (PP) » = `{sum:[{dice}, {sinPoints}]}`, « 1 + (PP) » = `{sum:[1, {sinPoints}]}`). | Incantation ratée (Fiasco) |
 | `MiscastTableDef` | 292 | interface | UN DOCUMENT de `miscast.json` : une table tirable, son identité STABLE, son libellé JOUEUR, sa provenance, ses rangées, et — quand ses LIGNES sont exposées au Codex — la catégorie qui les porte. | Incantation ratée (Fiasco), Tests : Degrés de Réussite, Caractéristiques, tables |
 | `MiscastTableRow` | 308 | interface | Une ligne de table d'Imparfaite/Colère telle que la DONNÉE la porte : fourchette + id STABLE + libellé. | Incantation ratée (Fiasco), Tests : Degrés de Réussite, Caractéristiques, tables |
 | `MISCAST_TABLES` | 319 | const | Les tables tirables TELLES QUE LA DONNÉE les déclare (les documents de `miscast.json`) : id d'étape, rangées portées, libellé JOUEUR — sans marque de livre (`docs/charte-ui.md`) : le jeu de tables en vigueur est une RÈGLE, pas une information d'écran — et catégorie Codex de ses lignes. | Incantation ratée (Fiasco), Tests : Degrés de Réussite, Caractéristiques, tables |
@@ -3200,4 +3201,4 @@ _2185 exports publics mesurés (162 fichiers de `src/engine`, hors tests) — 18
 |---|---|---|---|---|
 | `woundsFromHit` | 30 | function | Blessures infligées par un coup : `totalDamage` (Dégâts d'arme + DR + qualités) moins le Bonus d'Endurance et les PA EFFECTIFS à la `location` (armure portée/naturelle + `extraAP`, matériau ignoré PUIS retrait plat, LDB 62 l.270). | Calcul des Blessures, Blessures, dégâts, soin, guérison, Tests : Degrés de Réussite, Caractéristiques, tables, Qualités d'arme et d'armure |
 
-<!-- sources-empreinte: 6386c8c1539201e49eb5548688044aa0155945a9 (171 fichiers, 6 dossiers) corps: 1e527ca6077ecce4aaff8418a31c04e0df1574e2 -->
+<!-- sources-empreinte: ce490c3e73f913736aa4461104ff05b28909c77d (171 fichiers, 6 dossiers) corps: b4030918f347622f54aa24884f752b2b63dbab1a -->

@@ -5,6 +5,9 @@
  * RÉFÉRENCE la règle globale (`src/data`) PAR ID — jamais copiée, jamais réinjectée. L'invariant
  * est gardé ICI : aucun id narratif ne collisionne avec un id de la règle globale
  * (créature/possession), et les quatre registres n'ont aucun id en commun.
+ *
+ * Prose d'un stade d'indice et `pitch` d'ouverture : verbatim quand `source` est posé (règle stricte 5) ;
+ * sans `source`, texte maison (fiche `user-doctrine-regle-5-campagne-repliques-et-narration-maison`).
  */
 import { z } from 'zod';
 import { sourceRefSchema, entityAppearanceSchema } from '../grammaire/valeurs';
@@ -16,7 +19,7 @@ import { entreePartielle as creatureEntreePartielle, type CreatureProfilPartiel 
 import { findCreatureById, findTrappingById, byId, findTalentById, specResolves, porteCatalogueDeSpecs } from '../../index';
 import type { TrappingData } from '../../index';
 
-/** Un stade RÉVÉLABLE d'un indice : la prose (verbatim source, règle 5) dévoilée à ce palier. */
+/** Un stade RÉVÉLABLE d'un indice : la prose dévoilée à ce palier. */
 export const indiceStadeSchema = z.strictObject({
   /** id STABLE du stade, unique DANS l'indice. */
   id: z.string().min(1, 'id vide.'),
@@ -56,8 +59,8 @@ export const presetPnjSchema = z.strictObject({
   source: sourceRefSchema.optional(),
 });
 
-/** Ouverture CÉRÉMONIELLE du chapitre (#717, `OuvertureBlock`) — le `pitch` est du VERBATIM de
- *  source (règle stricte 5), rendu par `<Prose>` : titre et pitch non vides sont la seule exigence. */
+/** Ouverture CÉRÉMONIELLE du chapitre (#717, `OuvertureBlock`). Rendu par `<Prose>` : titre et
+ *  pitch non vides sont la seule exigence. */
 export const ouvertureSchema = z.strictObject({
   surtitre: z.string().optional(),
   titre: z.string().min(1, 'titre vide.'),

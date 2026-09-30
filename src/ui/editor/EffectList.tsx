@@ -24,6 +24,7 @@ import { GameOpEditor, opSummary } from './GameOpEditor';
 import { ScheduleSpecFields } from './ScheduleSpecFields';
 import { RefField } from '../compendium/RefField';
 import { NumberField } from '../NumberField';
+import { useClesDeRangees } from '../useClesDeRangees';
 import { CHAR_KEYS, CHAR_LABELS, CharKey, DIFFICULTY_LABELS, Difficulty } from '../../engine/types';
 import { ChaosAlign } from '../../engine/corruption';
 import { chaosAlignSchema } from '../../data/schemas/grammaire/valeurs';
@@ -1079,10 +1080,11 @@ export function EffectList({ effects, onChange, ctx }: { effects: Effect[]; onCh
     [next[i], next[j]] = [next[j], next[i]];
     onChange(next);
   };
+  const cles = useClesDeRangees(effects);
   return (
     <div className="eff-list">
       {effects.map((eff, i) => (
-        <details className="eff-row" key={i}>
+        <details className="eff-row" key={cles[i]}>
           <summary>
             <span className="eff-summary"><Icon id={EFFECT_ICON[eff.type]} size="sm" /> {effectSummary(eff, ctx)}</span>
             <span className="eff-actions" onClick={(e) => e.preventDefault()}>

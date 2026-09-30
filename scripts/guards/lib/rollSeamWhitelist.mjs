@@ -87,9 +87,13 @@ export const WORLD_DIE_SUBTRACTED_STOCK = new Map([
 /** @type {Set<string>} */
 export const ROLL_SEAM_FILE_WHITELIST = new Set([...ROLL_SEAM_CORE, ...ROLL_SEAM_PHASE2_STOCK.keys()]);
 
+/** Racine du JEU que balaient les gardes du seam (#274) et du rng vivant (#370), Vitest et pre-commit :
+ *  l'outillage hors d'elle (`scripts/**`) ne joue aucun jet de partie, il n'a pas de policy de surfaçage. */
+export const RACINE_DU_SEAM = 'src';
+
 /** @param {string} rel @returns {boolean} */
 export function rollSeamExcluded(rel) {
-  return rel.startsWith('src/engine/') || ROLL_SEAM_FILE_WHITELIST.has(rel);
+  return !rel.startsWith(`${RACINE_DU_SEAM}/`) || rel.startsWith('src/engine/') || ROLL_SEAM_FILE_WHITELIST.has(rel);
 }
 
 // ===========================================================================================

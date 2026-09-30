@@ -8,8 +8,12 @@
  * `FormulaField` — JAMAIS de coercition en nombre (la régression historique : un `wounds {dice}` lu
  * « 0 » puis écrasé). Un nouveau type d'op = 1 entrée dans `OP_GROUPS` + 1 défaut dans `newOp`.
  */
+import { createContext, useContext, useMemo } from 'react';
 import { tableTotale } from '../../lib/tableTotale';
 import { Formula, GameOp, type ResolveWindow } from '../../engine/ops';
+import type { JsonFormula } from '../../engine/miscast';
+import { defDe, enfantsDe } from '../../data/schemas/grammaire/descente';
+import { noeudObjet } from '../../data/schemas/validate';
 import { ChaosAlign, ExposureLevel } from '../../engine/corruption';
 import { libelleDeValeur, valeursDe } from '../../data/schemas/grammaire/meta';
 import { chaosAlignSchema, deDeTableSchema, exposureLevelSchema } from '../../data/schemas/grammaire/valeurs';
@@ -31,8 +35,9 @@ import { AddMenu, TypeMenu, pickable, type TypeMenuGroup } from './AddMenu';
 import { JsonField } from './JsonField';
 import { Icon } from '../Icon';
 import { NumberField } from '../NumberField';
+import { useClesDeRangees } from '../useClesDeRangees';
 import type { IconIdInput } from '../icons';
-import { TESTS_DE_CORRUPTION, type TestDeCorruption } from '../../data/schemas/grammaire/valeurs';
+import { TESTS_DE_CORRUPTION, type TestDeCorruption, admetLePeche } from '../../data/schemas/grammaire/valeurs';
 import { OPTIONAL_RULES, ruleDef } from '../../engine/policy';
 import { coupeAuMot } from '../../lib/coupeAuMot.mjs';
 
@@ -242,38 +247,115 @@ const OP_MENU_GROUPS: TypeMenuGroup[] = OP_GROUPS.map(([g, keys]) => ({
  *  (une règle-interrupteur ou un mode n'a pas de valeur à résoudre). Dérivée du registre, jamais listée. */
 const paramsDeRegle = memoParVersion('reglesOptionnelles', () => OPTIONAL_RULES.filter((r) => r.kind === 'param'));
 
-export type FormulaShape = 'lit' | 'bonus' | 'char' | 'dice' | 'rolled' | 'times' | 'regle' | 'dr' | 'minimum' | 'somme';
-export const shapeOf = (f: Formula | undefined): FormulaShape =>
-  typeof f === 'number' || f == null ? 'lit' : 'minimum' in f ? 'minimum' : 'sum' in f ? 'somme' : 'bonusOf' in f ? 'bonus' : 'charOf' in f ? 'char' : 'rolled' in f ? 'rolled' : 'times' in f ? 'times' : 'rule' in f ? 'regle' : 'sl' in f ? 'dr' : 'dice';
+/** Forme de CHAQUE option de la grammaire (`formulaSchema`, `formulaSinSchema` —
+ *  `grammaire/valeurs.ts`). La totalité se vérifie par énumération du schéma
+ *  (`GameOpEditor.formule-totale.test.tsx`). */
+export type FormulaShape =
+  | 'lit' | 'bonus' | 'char' | 'dice' | 'times' | 'rolled' | 'indice' | 'pions' | 'ecartAvantage'
+  | 'blessuresInfligees' | 'dr' | 'regle' | 'minimum' | 'somme' | 'peche';
+
+/** Libellé de chaque forme au sélecteur, dans l'ordre du sélecteur. Termes de contexte : `engine/ops.ts`
+ *  (`Formula`) ; Péché : `LDB 40 l.58`. */
+export const LIBELLE_DE_FORME: Record<FormulaShape, string> = {
+  lit: 'Nombre',
+  bonus: 'Bonus de carac.',
+  char: 'Valeur de carac.',
+  dice: 'Dés',
+  times: 'Dés × facteur',
+  rolled: 'Dé du jet (paliers)',
+  indice: 'Indice de l’attaque naturelle',
+  pions: 'Pions de l’État déclencheur',
+  ecartAvantage: 'Écart d’Avantage (adversaires engagés)',
+  blessuresInfligees: 'Blessures infligées (attaque courante)',
+  dr: 'DR du Test',
+  regle: 'Règle optionnelle',
+  minimum: 'Minimum',
+  somme: 'Somme de termes',
+  peche: 'Points de Péché',
+};
+
+/** Forme d'une `Formula` objet, par la clé qui la porte. */
+const FORME_DE_CLE: Readonly<Record<string, FormulaShape>> = {
+  bonusOf: 'bonus', charOf: 'char', dice: 'dice', times: 'times', rolled: 'rolled', indiceOf: 'indice',
+  stacks: 'pions', engagedAdvantageGap: 'ecartAvantage', woundsDealt: 'blessuresInfligees', sl: 'dr',
+  rule: 'regle', minimum: 'minimum', sum: 'somme', sinPoints: 'peche',
+};
+
+/** Termes CONSTANTS : leur forme est leur valeur, sans champ à saisir. */
+const TERME_CONSTANT: Partial<Record<FormulaShape, JsonFormula>> = {
+  rolled: { rolled: true }, indice: { indiceOf: true }, pions: { stacks: 'self' }, ecartAvantage: { engagedAdvantageGap: true },
+  blessuresInfligees: { woundsDealt: true }, dr: { sl: true }, peche: { sinPoints: true },
+};
+
+/** DIALECTE d'une position de `Formula` : `general` = `formulaSchema` ; `peche` = `formulaSinSchema` ;
+ *  `termeDePeche` = terme de la somme de `formulaSinSchema` (formule générale ou Péché). */
+export type DialecteDeFormule = 'general' | 'peche' | 'termeDePeche';
+
+const admetLeTermeDePeche = (d: DialecteDeFormule): boolean => d !== 'general';
+
+/** Dialecte que porte le schéma d'un champ (`admetLePeche`). */
+const dialecteDuNoeud = (noeud: unknown): DialecteDeFormule => (admetLePeche(noeud) ? 'peche' : 'general');
+
+/** NŒUD de l'op éditée : la VARIANTE de la liste d'ops (`GameOpEditor.noeud`) dont le champ `op`
+ *  accepte cette op. Chaque `FormulaField` d'op y lit le nœud de SON champ (`champ`). */
+const NoeudDOpContext = createContext<unknown>(undefined);
+
+const accepteLOp = (noeud: unknown, op: string): boolean => {
+  const def = defDe(noeud);
+  if (def?.type === 'literal') return Array.isArray(def.values) && def.values.includes(op);
+  return def?.type === 'string';
+};
+
+const varianteDOp = (noeudListe: unknown, op: string): unknown =>
+  noeudListe === undefined ? undefined : noeudObjet(noeudListe, (n) => accepteLOp(enfantsDe(n).find((e) => e.cle === 'op')?.noeud, op));
+
+/** Une `Formula` sans terme de Péché est une `Formula` du moteur. */
+const estFormuleGenerale = (f: JsonFormula): f is Formula => !contientLePeche(f);
+
+export const shapeOf = (f: JsonFormula | undefined): FormulaShape => {
+  if (typeof f === 'number' || f == null) return 'lit';
+  const forme = Object.keys(f).map((k) => FORME_DE_CLE[k]).find((s) => s !== undefined);
+  if (forme === undefined) throw new Error(`shapeOf : terme de Formula hors grammaire (${JSON.stringify(f)})`);
+  return forme;
+};
+
+const contientLePeche = (f: JsonFormula): boolean =>
+  typeof f === 'object' && ('sinPoints' in f || ('sum' in f && f.sum.some(contientLePeche)));
 
 /** Formule par défaut d'une forme — utilisée au CHANGEMENT de forme. Préserve le littéral courant
  *  quand on bascule vers « Nombre » ; ne touche JAMAIS une formule dont la forme est déjà la bonne. */
-export function formulaForShape(s: FormulaShape, current: Formula | undefined): Formula {
-  if (s === shapeOf(current)) return current as Formula; // déjà la bonne forme → inchangée (pas de clobber)
+export function formulaForShape(s: FormulaShape, current: JsonFormula | undefined): JsonFormula {
+  if (current != null && s === shapeOf(current)) return current; // déjà la bonne forme → inchangée (pas de clobber)
   // QUITTER la borne basse rend la formule qu'elle enveloppait — symétrique de l'enveloppement
   // ci-dessous : l'aller-retour Minimum → autre forme ne jette pas la quantité éditée.
   if (current != null && typeof current === 'object' && 'minimum' in current) return formulaForShape(s, current.of);
-  if (s === 'lit') return typeof current === 'number' ? current : 1;
-  if (s === 'bonus') return { bonusOf: 'force' };
-  if (s === 'char') return { charOf: 'force' };
-  if (s === 'rolled') return { rolled: true };
-  if (s === 'times') return { times: { of: { dice: { n: 1, sides: 10 } }, factor: 10 } }; // « 1d10 × 10 » (LDB 71)
-  if (s === 'regle') return { rule: paramsDeRegle()[0]?.id ?? '' };
-  if (s === 'dr') return { sl: true };
-  // Le minimum ENVELOPPE la formule courante (« 1d10 – (Bonus d'Endurance) Rounds (minimum de 1) »,
-  // AA 07 l.113) : la quantité éditée n'est pas perdue au changement de forme.
-  if (s === 'minimum') return { minimum: 1, of: current ?? { dice: { n: 1, sides: 10 } } };
-  // Une SOMME neuve part du terme courant + un second terme à éditer (« 1d10 + … », LDB 16 l.84).
-  if (s === 'somme') return { sum: [current ?? { dice: { n: 1, sides: 10 } }, 0] };
-  return { dice: { n: 1, sides: 10 } };
+  const constant = TERME_CONSTANT[s];
+  if (constant !== undefined) return constant;
+  // Le terme de Péché n'entre dans aucune composition de `formulaSinSchema` hors de sa somme de tête :
+  // une composition neuve part alors d'un dé.
+  const enveloppe: Formula = current == null || contientLePeche(current) ? { dice: { n: 1, sides: 10 } } : current as Formula;
+  switch (s) {
+    case 'lit': return typeof current === 'number' ? current : 1;
+    case 'bonus': return { bonusOf: 'force' };
+    case 'char': return { charOf: 'force' };
+    case 'dice': return { dice: { n: 1, sides: 10 } };
+    case 'times': return { times: { of: { dice: { n: 1, sides: 10 } }, factor: 10 } }; // « 1d10 × 10 » (LDB 71)
+    case 'regle': return { rule: paramsDeRegle()[0]?.id ?? '' };
+    // Le minimum ENVELOPPE la formule courante (« 1d10 – (Bonus d'Endurance) Rounds (minimum de 1) »,
+    // AA 07 l.113) : la quantité éditée n'est pas perdue au changement de forme.
+    case 'minimum': return { minimum: 1, of: enveloppe };
+    // Une SOMME neuve part du terme courant + un second terme à éditer (« 1d10 + … », LDB 16 l.84).
+    case 'somme': return { sum: [enveloppe, 0] };
+    default: throw new Error(`formulaForShape : forme sans terme (${s})`);
+  }
 }
 
 /** CharKey portée par une Formula de carac. (Bonus/Valeur) — défaut F pour le sélecteur. */
-const charOfFormula = (f: Formula | undefined): CharKey =>
+const charOfFormula = (f: JsonFormula | undefined): CharKey =>
   f && typeof f === 'object' ? ('bonusOf' in f ? f.bonusOf : 'charOf' in f ? f.charOf : 'force') : 'force';
 
 /** Résumé court d'une Formula (lecture sans perte dans les résumés d'op). */
-export function formulaSummary(f: Formula | undefined): string {
+export function formulaSummary(f: JsonFormula | undefined): string {
   if (f == null) return '0';
   if (typeof f === 'number') return String(f);
   if ('bonusOf' in f) return `B${charAbr(f.bonusOf)}`;
@@ -284,39 +366,48 @@ export function formulaSummary(f: Formula | undefined): string {
   if ('engagedAdvantageGap' in f) return 'écart d’Avantage';
   if ('woundsDealt' in f) return 'PB infligés';
   if ('sl' in f) return 'DR';
+  if ('sinPoints' in f) return 'Points de Péché';
   if ('rule' in f) return ruleDef(f.rule)?.label ?? f.rule;
   if ('minimum' in f) return `${formulaSummary(f.of)} (min ${f.minimum})`;
   if ('sum' in f) return f.sum.map(formulaSummary).join(' + ');
   if ('times' in f) return `${formulaSummary(f.times.of)} × ${formulaSummary(f.times.factor)}`;
-  return `${f.dice.n}d${f.dice.sides}${f.dice.plus ? `+${f.dice.plus}` : ''}`;
+  if ('dice' in f) return `${f.dice.n}d${f.dice.sides}${f.dice.plus ? `+${f.dice.plus}` : ''}`;
+  throw new Error(`formulaSummary : terme de Formula hors grammaire (${JSON.stringify(f)})`);
 }
 
 /** Éditeur RÉUTILISABLE d'une `Formula` : sélecteur de FORME + champs adaptés. AUCUNE forme
  *  existante n'est dégradée — un littéral reste littéral, un `{dice}`/`{charOf}` est édité tel quel.
- *  EXPORTÉ : réutilisé par les éditeurs de champs Formula hors-op (durée d'un consommable, CodexEdit). */
-export function FormulaField({ label, value, onChange, min }: {
-  label: string;
-  value: Formula | undefined;
-  onChange: (f: Formula) => void;
-  min?: number;
-}) {
+ *  EXPORTÉ : réutilisé par les éditeurs de champs Formula hors-op (durée d'un consommable, CodexEdit).
+ *  Le terme de Péché n'est offert que dans le dialecte qui l'admet : celui du nœud de SON `champ` dans
+ *  la variante d'op (`NoeudDOpContext`), ou le `dialecte` d'une position de formule composée. Sans
+ *  l'un ni l'autre, le champ est une `Formula` du moteur, et son `onChange` n'en reçoit jamais d'autre. */
+type FormulaFieldProps = { label: string; value: JsonFormula | undefined; min?: number } & (
+  | { champ?: undefined; dialecte?: undefined; onChange: (f: Formula) => void }
+  | { champ: string; dialecte?: undefined; onChange: (f: JsonFormula) => void }
+  | { champ?: undefined; dialecte: DialecteDeFormule; onChange: (f: JsonFormula) => void }
+);
+
+export function FormulaField(props: FormulaFieldProps) {
+  const { label, value, min } = props;
+  const noeudDOp = useContext(NoeudDOpContext);
+  const dialecte: DialecteDeFormule = props.dialecte
+    ?? (props.champ !== undefined ? dialecteDuNoeud(enfantsDe(noeudDOp).find((e) => e.cle === props.champ)?.noeud) : 'general');
+  const onChange = (f: Formula) => props.onChange(f);
+  const emet = (f: JsonFormula): void => {
+    if (estFormuleGenerale(f)) props.onChange(f);
+    else if (props.champ !== undefined) props.onChange(f);
+    else if (props.dialecte !== undefined) props.onChange(f);
+    else throw new Error(`FormulaField : terme de Péché émis hors de son dialecte (${JSON.stringify(f)})`);
+  };
   const shape = shapeOf(value);
-  const setShape = (s: FormulaShape) => { if (s !== shape) onChange(formulaForShape(s, value)); };
+  const setShape = (s: FormulaShape) => { if (s !== shape) emet(formulaForShape(s, value)); };
+  const formes = (Object.keys(LIBELLE_DE_FORME) as FormulaShape[]).filter((s) => s !== 'peche' || admetLeTermeDePeche(dialecte));
   return (
     <label className="dr fml-field">
       {label}
       <span className="fml-row">
         <select className="fml-shape" value={shape} onChange={(e) => setShape(e.target.value as FormulaShape)}>
-          <option value="lit">Nombre</option>
-          <option value="bonus">Bonus de carac.</option>
-          <option value="char">Valeur de carac.</option>
-          <option value="dice">Dés</option>
-          <option value="times">Dés × facteur</option>
-          <option value="rolled">Dé du jet (paliers)</option>
-          <option value="regle">Règle optionnelle</option>
-          <option value="dr">DR du Test</option>
-          <option value="minimum">Minimum</option>
-          <option value="somme">Somme de termes</option>
+          {formes.map((s) => <option key={s} value={s}>{LIBELLE_DE_FORME[s]}</option>)}
         </select>
         {shape === 'regle' && (
           <select aria-label="Règle optionnelle" value={typeof value === 'object' && value != null && 'rule' in value ? value.rule : ''}
@@ -350,9 +441,9 @@ export function FormulaField({ label, value, onChange, min }: {
             facteurs sont édités par le MÊME `FormulaField` (récursif) — aucun des deux n'est un littéral forcé. */}
         {shape === 'times' && typeof value === 'object' && value != null && 'times' in value && (
           <span className="fml-dice">
-            <FormulaField label="" value={value.times.of} onChange={(of) => onChange({ times: { of, factor: value.times.factor } })} />
+            <FormulaField label="" value={value.times.of} onChange={(of) => emet({ times: { of, factor: value.times.factor } })} />
             ×
-            <FormulaField label="" value={value.times.factor} onChange={(factor) => onChange({ times: { of: value.times.of, factor } })} />
+            <FormulaField label="" value={value.times.factor} onChange={(factor) => emet({ times: { of: value.times.of, factor } })} />
           </span>
         )}
         {/* `minimum` = BORNE BASSE de la formule enveloppée (AA 07 l.113) : `of` s'édite par le MÊME
@@ -374,14 +465,14 @@ export function FormulaField({ label, value, onChange, min }: {
             {value.sum.map((terme, i) => (
               <span key={i} className="fml-dice">
                 {i > 0 && '+'}
-                <FormulaField label="" value={terme}
-                  onChange={(t) => onChange({ sum: value.sum.map((x, j) => (j === i ? t : x)) })} />
+                <FormulaField label="" dialecte={dialecte === 'peche' ? 'termeDePeche' : 'general'} value={terme}
+                  onChange={(t: JsonFormula) => emet({ sum: value.sum.map((x, j) => (j === i ? t : x)) })} />
                 <button type="button" className="btn small danger" title="retirer ce terme" aria-label="retirer ce terme"
-                  onClick={() => onChange({ sum: value.sum.filter((_, j) => j !== i) })}>−</button>
+                  onClick={() => emet({ sum: value.sum.filter((_, j) => j !== i) })}>−</button>
               </span>
             ))}
             <button type="button" className="btn small" title="ajouter un terme" aria-label="ajouter un terme"
-              onClick={() => onChange({ sum: [...value.sum, 0] })}>+</button>
+              onClick={() => emet({ sum: [...value.sum, 0] })}>+</button>
           </span>
         )}
       </span>
@@ -754,12 +845,12 @@ const DEDICATED: ReadonlySet<GameOp['op']> = new Set([
  *  donc la borne basse d'une entrée (`{minimum, of}` — AA 07 l.113) s'y édite comme toute autre forme.
  *  ABSENTE = la durée du CONTEXTE (`durationFromCtx`). SOURCE UNIQUE des ops à durée de Rounds SEULE
  *  (`charMod`, `moveScale`, `maxWeaponHands`) ; `condition` a son propre bloc à TROIS échelles exclusives. */
-function DureeRoundsField({ value, onChange }: { value: Formula | undefined; onChange: (f: Formula | undefined) => void }) {
+function DureeRoundsField({ value, onChange }: { value: JsonFormula | undefined; onChange: (f: JsonFormula | undefined) => void }) {
   return (
     <>
       <label className="dr"><input type="checkbox" checked={value != null}
         onChange={(e) => onChange(e.target.checked ? 1 : undefined)} /> dure N Rounds</label>
-      {value != null && <FormulaField label="Durée (Rounds)" value={value} min={0} onChange={onChange} />}
+      {value != null && <FormulaField label="Durée (Rounds)" champ="durationRounds" value={value} min={0} onChange={onChange} />}
     </>
   );
 }
@@ -775,11 +866,12 @@ function RollTableRowsField({ rows, onChange }: { rows: { min: number; max: numb
     [next[i], next[j]] = [next[j], next[i]];
     onChange(next);
   };
+  const cles = useClesDeRangees(rows);
   return (
     <div className="ed-field">
       <span>rangées de la table (fourchette du jet → ops)</span>
       {rows.map((r, i) => (
-        <div className="ed-subfield" key={i}>
+        <div className="ed-subfield" key={cles[i]}>
           <div className="tf-row">
             <label className="dr">de<NumberField variant="nu" label="Fourchette — borne basse" width={64} value={r.min} onChange={(min) => set(i, { min })} /></label>
             <label className="dr">à<NumberField variant="nu" label="Fourchette — borne haute" width={64} value={r.max} onChange={(max) => set(i, { max })} /></label>
@@ -801,7 +893,8 @@ function sansClesVides<T extends object>(o: T): T {
   return Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined)) as T;
 }
 
-function OpFields({ op, onChange }: { op: GameOp; onChange: (o: GameOp) => void }) {
+function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: GameOp) => void; noeudListe: unknown }) {
+  const noeudDOp = useMemo(() => varianteDOp(noeudListe, op.op), [noeudListe, op.op]);
   const o = op as any;
   // Le payload d'une op est STRICT : un champ VIDÉ ôte sa clé, jamais une clé à `undefined` (une option
   // absente n'est pas une option indéfinie — `'clé' in op` reste le test d'existence, ici comme au moteur).
@@ -809,6 +902,7 @@ function OpFields({ op, onChange }: { op: GameOp; onChange: (o: GameOp) => void 
   // passe par `sansClesVides`, qui y applique la même loi.
   const upd = (patch: any) => onChange(sansClesVides({ ...o, ...patch }) as GameOp);
   return (
+    <NoeudDOpContext.Provider value={noeudDOp}>
     <div className="eff-body">
       <TypeMenu
         value={op}
@@ -820,12 +914,12 @@ function OpFields({ op, onChange }: { op: GameOp; onChange: (o: GameOp) => void 
       />
       <div className="tf-row">
         {(op.op === 'wounds' || op.op === 'heal' || op.op === 'healCaster') && (
-          <FormulaField label="Quantité" value={o.amount} min={0} onChange={(amount) => upd({ amount })} />
+          <FormulaField label="Quantité" champ="amount" value={o.amount} min={0} onChange={(amount) => upd({ amount })} />
         )}
         {/* `ap` : quantité SIGNÉE — un montant négatif RETIRE des PA (VDM 05). Aucun `min` : le borner à 0
             rendrait le retrait insaisissable à l'atelier alors que le moteur le sait appliquer. */}
         {op.op === 'ap' && (
-          <FormulaField label="PA (±)" value={o.amount} onChange={(amount) => upd({ amount })} />
+          <FormulaField label="PA (±)" champ="amount" value={o.amount} onChange={(amount) => upd({ amount })} />
         )}
         {op.op === 'sinMod' && (
           <label className="dr">Péché ±<NumberField variant="nu" label="Points de Péché (±)" value={o.amount ?? 1} onChange={(amount) => upd({ amount })} /></label>
@@ -895,7 +989,7 @@ function OpFields({ op, onChange }: { op: GameOp; onChange: (o: GameOp) => void 
             <input placeholder="Cible (Groupe — Animosité, Phobie…)" value={o.cible ?? ''}
               onChange={(e) => upd({ cible: e.target.value || undefined })} />
             <label className="dr"><input type="checkbox" checked={o.indice != null} onChange={(e) => upd({ indice: e.target.checked ? 1 : undefined })} /> Indice</label>
-            {o.indice != null && <FormulaField label="Valeur" value={o.indice} min={0} onChange={(indice) => upd({ indice })} />}
+            {o.indice != null && <FormulaField label="Valeur" champ="indice" value={o.indice} min={0} onChange={(indice) => upd({ indice })} />}
           </>
         )}
         {op.op === 'testMod' && (
@@ -916,7 +1010,7 @@ function OpFields({ op, onChange }: { op: GameOp; onChange: (o: GameOp) => void 
               {op.op === 'condition' && !o.id && <option value="">— (choisir un État) —</option>}
               {etats.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
             </select>
-            <FormulaField label="Intensité" value={o.value ?? 1} min={0} onChange={(value) => upd({ value })} />
+            <FormulaField label="Intensité" champ="value" value={o.value ?? 1} min={0} onChange={(value) => upd({ value })} />
             {op.op === 'condition' && (
               <>
                 <label className="dr"><input type="checkbox" checked={!!o.perRound} onChange={(e) => upd({ perRound: e.target.checked || undefined })} /> chaque Round</label>
@@ -931,12 +1025,12 @@ function OpFields({ op, onChange }: { op: GameOp; onChange: (o: GameOp) => void 
                 {/* Se libérer (LDB 16 l.66 / Filets, Zoo Impérial p.29) — escapeStrength (Test opposé) et
                     escapeThreshold (Test à seuil) sont MUTUELLEMENT EXCLUSIFS (cf. resolveRecoverTest). */}
                 <label className="dr"><input type="checkbox" checked={o.escapeStrength != null} onChange={(e) => upd({ escapeStrength: e.target.checked ? { charOf: 'force' } : undefined, escapeThreshold: e.target.checked ? undefined : o.escapeThreshold })} /> Force d'évasion (opposée)</label>
-                {o.escapeStrength != null && <FormulaField label="Force" value={o.escapeStrength} min={0} onChange={(escapeStrength) => upd({ escapeStrength, escapeThreshold: undefined })} />}
+                {o.escapeStrength != null && <FormulaField label="Force" champ="escapeStrength" value={o.escapeStrength} min={0} onChange={(escapeStrength) => upd({ escapeStrength, escapeThreshold: undefined })} />}
                 <label className="dr"><input type="checkbox" checked={o.escapeThreshold != null} onChange={(e) => upd({ escapeThreshold: e.target.checked ? 3 : undefined, escapeStrength: e.target.checked ? undefined : o.escapeStrength })} /> Seuil de DR (Test non opposé)</label>
-                {o.escapeThreshold != null && <FormulaField label="Seuil (DR)" value={o.escapeThreshold} min={0} onChange={(escapeThreshold) => upd({ escapeThreshold, escapeStrength: undefined })} />}
+                {o.escapeThreshold != null && <FormulaField label="Seuil (DR)" champ="escapeThreshold" value={o.escapeThreshold} min={0} onChange={(escapeThreshold) => upd({ escapeThreshold, escapeStrength: undefined })} />}
                 <label className="dr"><input type="checkbox" checked={!!o.entangleOnFail} onChange={(e) => upd({ entangleOnFail: e.target.checked || undefined })} /> échec → +1 État (Filets, ZI 02 l.176)</label>
                 <label className="dr"><input type="checkbox" checked={o.struggleDamage != null} onChange={(e) => upd({ struggleDamage: e.target.checked ? 1 : undefined })} /> Dégâts par tentative (ignore armure)</label>
-                {o.struggleDamage != null && <FormulaField label="Dégâts" value={o.struggleDamage} min={0} onChange={(struggleDamage) => upd({ struggleDamage })} />}
+                {o.struggleDamage != null && <FormulaField label="Dégâts" champ="struggleDamage" value={o.struggleDamage} min={0} onChange={(struggleDamage) => upd({ struggleDamage })} />}
                 {/* Ce que la Détermination fait à l'État quand cette op le porte en PASSIF (LDB 17 l.61) :
                     DIT en donnée, jamais déduit du porteur. Inerte hors canal passif. */}
                 <ResolveWindowField value={o.resolveWindow} onChange={(resolveWindow) => upd({ resolveWindow })} />
@@ -954,11 +1048,11 @@ function OpFields({ op, onChange }: { op: GameOp; onChange: (o: GameOp) => void 
                     <>
                       {/* Les trois échelles de durée PROPRE sont exclusives entre elles (JSDoc de l'op). */}
                       <label className="dr"><input type="checkbox" checked={o.durationRounds != null} onChange={(e) => upd({ durationRounds: e.target.checked ? 1 : undefined, durationMinutes: undefined, durationHours: undefined })} /> dure N Rounds</label>
-                      {o.durationRounds != null && <FormulaField label="Durée (Rounds)" value={o.durationRounds} min={1} onChange={(durationRounds) => upd({ durationRounds })} />}
+                      {o.durationRounds != null && <FormulaField label="Durée (Rounds)" champ="durationRounds" value={o.durationRounds} min={1} onChange={(durationRounds) => upd({ durationRounds })} />}
                       <label className="dr"><input type="checkbox" checked={o.durationMinutes != null} onChange={(e) => upd({ durationMinutes: e.target.checked ? 1 : undefined, durationRounds: undefined, durationHours: undefined })} /> dure N minutes</label>
-                      {o.durationMinutes != null && <FormulaField label="Durée (minutes)" value={o.durationMinutes} min={1} onChange={(durationMinutes) => upd({ durationMinutes })} />}
+                      {o.durationMinutes != null && <FormulaField label="Durée (minutes)" champ="durationMinutes" value={o.durationMinutes} min={1} onChange={(durationMinutes) => upd({ durationMinutes })} />}
                       <label className="dr"><input type="checkbox" checked={o.durationHours != null} onChange={(e) => upd({ durationHours: e.target.checked ? 1 : undefined, durationRounds: undefined, durationMinutes: undefined })} /> dure N heures</label>
-                      {o.durationHours != null && <FormulaField label="Durée (heures)" value={o.durationHours} min={1} onChange={(durationHours) => upd({ durationHours })} />}
+                      {o.durationHours != null && <FormulaField label="Durée (heures)" champ="durationHours" value={o.durationHours} min={1} onChange={(durationHours) => upd({ durationHours })} />}
                       {/* VERROUS de Critique (LDB 18) : prédicat d'état (`lockedUntil`) et acte de soin (`unlockBy`). */}
                       <label className="dr"><input type="checkbox" checked={o.lockedUntil != null} onChange={(e) => upd({ lockedUntil: e.target.checked ? { kind: 'always' } : undefined })} /> verrouillé tant que (LDB 18)</label>
                       {o.lockedUntil != null && (
@@ -1046,14 +1140,14 @@ function OpFields({ op, onChange }: { op: GameOp; onChange: (o: GameOp) => void 
             {/* `arg` = l'argument IMPRIMÉ du Trait (Haine (Skavens)) — prose d'authoring, hors registre. */}
             <input placeholder="argument (ex. Skavens)" value={o.arg ?? ''} onChange={(e) => upd({ arg: e.target.value || undefined })} />
             <label className="dr"><input type="checkbox" checked={o.indice != null} onChange={(e) => upd({ indice: e.target.checked ? 1 : undefined })} /> Indice</label>
-            {o.indice != null && <FormulaField label="Valeur" value={o.indice} min={0} onChange={(indice) => upd({ indice })} />}
+            {o.indice != null && <FormulaField label="Valeur" champ="indice" value={o.indice} min={0} onChange={(indice) => upd({ indice })} />}
           </>
         )}
         {op.op === 'domeWard' && (
           <>
             {/* AUCUN champ de zone : la ZdE du Dôme se règle dans la CIBLE du sort (un seul endroit). */}
             <RefField cfg={{ ds: 'traits', single: true }} fieldKey="Trait" value={o.traitId ?? ''} onChange={(v) => upd({ traitId: (v as string) ?? '' })} />
-            <FormulaField label="Indice" value={o.indice ?? 1} min={1} onChange={(indice) => upd({ indice })} />
+            <FormulaField label="Indice" champ="indice" value={o.indice ?? 1} min={1} onChange={(indice) => upd({ indice })} />
           </>
         )}
         {op.op === 'grantTalent' && (
@@ -1064,7 +1158,7 @@ function OpFields({ op, onChange }: { op: GameOp; onChange: (o: GameOp) => void 
         {op.op === 'grantNaturalWeapon' && (
           <>
             <input placeholder="Arme (ex. Morsure, Griffes)" value={o.label ?? ''} onChange={(e) => upd({ label: e.target.value })} />
-            <FormulaField label="Dégâts" value={o.damage} min={0} onChange={(damage) => upd({ damage })} />
+            <FormulaField label="Dégâts" champ="damage" value={o.damage} min={0} onChange={(damage) => upd({ damage })} />
             <label className="dr"><input type="checkbox" checked={o.plusBF !== false} onChange={(e) => upd({ plusBF: e.target.checked })} /> BF+</label>
             <input placeholder="Qualités (Magique…)" value={(o.qualities ?? []).join(', ')}
               onChange={(e) => { const a = e.target.value.split(',').map((s: string) => s.trim()).filter(Boolean); upd({ qualities: a.length ? a : undefined }); }} />
@@ -1073,7 +1167,7 @@ function OpFields({ op, onChange }: { op: GameOp; onChange: (o: GameOp) => void 
         {op.op === 'summon' && (
           <>
             <RefField cfg={{ ds: 'creatures', single: true }} fieldKey="Créature" value={o.ref ?? ''} onChange={(v) => upd({ ref: (v as string) ?? '' })} />
-            <FormulaField label="Nombre" value={o.count ?? 1} min={1} onChange={(count) => upd({ count })} />
+            <FormulaField label="Nombre" champ="count" value={o.count ?? 1} min={1} onChange={(count) => upd({ count })} />
             <label className="dr">Taille
               <select value={o.size ?? ''} onChange={(e) => upd({ size: e.target.value || undefined })}>
                 <option value="">— d’origine —</option>
@@ -1119,17 +1213,17 @@ function OpFields({ op, onChange }: { op: GameOp; onChange: (o: GameOp) => void 
           </>
         )}
         {op.op === 'push' && (
-          <FormulaField label="Distance (m)" value={o.meters} min={0} onChange={(meters) => upd({ meters })} />
+          <FormulaField label="Distance (m)" champ="meters" value={o.meters} min={0} onChange={(meters) => upd({ meters })} />
         )}
         {op.op === 'chain' && (
           <>
-            <FormulaField label="Rebonds max" value={o.maxBounces} min={0} onChange={(maxBounces) => upd({ maxBounces })} />
-            <FormulaField label="Saut (m)" value={o.hopMeters} min={0} onChange={(hopMeters) => upd({ hopMeters })} />
+            <FormulaField label="Rebonds max" champ="maxBounces" value={o.maxBounces} min={0} onChange={(maxBounces) => upd({ maxBounces })} />
+            <FormulaField label="Saut (m)" champ="hopMeters" value={o.hopMeters} min={0} onChange={(hopMeters) => upd({ hopMeters })} />
           </>
         )}
         {op.op === 'teleport' && (
           <>
-            <FormulaField label="Distance (m)" value={o.meters} min={0} onChange={(meters) => upd({ meters })} />
+            <FormulaField label="Distance (m)" champ="meters" value={o.meters} min={0} onChange={(meters) => upd({ meters })} />
             <label className="dr"><input type="checkbox" checked={o.perSL != null} onChange={(e) => upd({ perSL: e.target.checked ? { every: 2, metersFormula: { bonusOf: 'force-mentale' } } : undefined })} /> bonus par DR</label>
             {o.perSL != null && (
               <>
@@ -1216,20 +1310,24 @@ function OpFields({ op, onChange }: { op: GameOp; onChange: (o: GameOp) => void 
         )}
       </div>
     </div>
+    </NoeudDOpContext.Provider>
   );
 }
 
-export function GameOpEditor({ ops, onChange }: { ops: GameOp[]; onChange: (ops: GameOp[]) => void }) {
+/** `noeud` : schéma zod de la liste d'ops éditée ; chaque `Formula` d'op y lit le dialecte du nœud de
+ *  SON champ, dans la variante de son op (`varianteDOp`). Absent = `formulaSchema` partout. */
+export function GameOpEditor({ ops, onChange, noeud }: { ops: GameOp[]; onChange: (ops: GameOp[]) => void; noeud?: unknown }) {
   const swap = (i: number, j: number) => {
     if (j < 0 || j >= ops.length) return;
     const next = [...ops];
     [next[i], next[j]] = [next[j], next[i]];
     onChange(next);
   };
+  const cles = useClesDeRangees(ops);
   return (
     <div className="eff-list">
       {ops.map((o, i) => (
-        <details className="eff-row" key={i}>
+        <details className="eff-row" key={cles[i]}>
           <summary>
             <span className="eff-summary"><Icon id={OP_ICON[o.op] ?? 'journal/detail'} size="sm" /> {opSummary(o)}</span>
             {opsMissingRefs(o).length > 0 && <span className="de-warn">{opsMissingRefs(o).join(' · ')}</span>}
@@ -1239,7 +1337,7 @@ export function GameOpEditor({ ops, onChange }: { ops: GameOp[]; onChange: (ops:
               <button className="btn small danger" title="Supprimer l'op" onClick={() => onChange(ops.filter((_, j) => j !== i))}>✕</button>
             </span>
           </summary>
-          <OpFields op={o} onChange={(no) => onChange(ops.map((x, j) => (j === i ? no : x)))} />
+          <OpFields noeudListe={noeud} op={o} onChange={(no) => onChange(ops.map((x, j) => (j === i ? no : x)))} />
         </details>
       ))}
       <AddMenu

@@ -2422,6 +2422,8 @@ export const fr = {
   'ref.armeAuChoix': 'Arme (au choix)',
   'ref.jokerAuChoix': '{base} (au choix)',
   'ref.qualiteAuChoix': '{base} (qualité au choix)',
+  // Réf de source d'une entrée (`data/index.ts#sourceRefLabel`) : titre du livre, puis la page.
+  'ref.sourcePage': '{livre} p. {page}',
   'slot.notCovered': "ce choix n'est pas couvert par cet emplacement",
   'slot.alreadyDesignated': 'emplacement déjà désigné',
   'slot.takenByOther': 'déjà pris par un autre emplacement de ce Niveau de Carrière',

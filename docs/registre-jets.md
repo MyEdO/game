@@ -24,7 +24,7 @@ une entrée devenue vide ou une entrée sans justification échouent la garde.
   confondent, et un homonyme local d'un rouleur peut faire entrer un export au titre de la transitivité.
 - **(D)** ne scanne que `src/state` et `src/ui` (les consommateurs de flux) ; **(F)** scanne tout `src`.
 - **Un tirage qui n'appelle ni `rollTest` ni `d100` n'est vu par AUCUN des trois scanners** — ex. le `d10` de
-  `massBattleFlow.ts:834` (`massBattleSetHazard`, facteur environnemental du Round, `ADE II 8 l.309`) : un jet du
+  `massBattleFlow.ts` (`massBattleSetHazard`, facteur environnemental du Round, `ADE II 8 l.309`) : un jet du
   RAW résolu en silence, hors de tout registre. Le surfaçage vit sur #1067, qui le nomme déjà.
 - Les formes **(S)** « position de spec » et **(M)** « dé de monde » restent des exclusions par FORME du garde
   d'exclusivité (critères et angles morts : en-tête de `scripts/guards/lib/rollSeamExclusivity.mjs`).
@@ -249,4 +249,4 @@ reste `ROLL_SEAM_PHASE2_STOCK`. 29 sites dans 14 fichiers.
 | `src/state/travelPostes.ts` | 1 |
 | `src/state/triggeredEffects.ts` | 1 |
 
-<!-- sources-empreinte: cff1b1270b59ffcf5aee99e4dc273598c6b73247 (2144 fichiers, 136 dossiers) corps: ae57ab24d4d236c5e6ae8a493bac77419a1cfd9e -->
+<!-- sources-empreinte: f0b988b2d7970b1404f94ae85aca4121c4f3c85e (2147 fichiers, 136 dossiers) corps: 58afeee8afb3991ca501506288cd2911b9e90f56 -->

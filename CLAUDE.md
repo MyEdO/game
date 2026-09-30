@@ -74,7 +74,7 @@ script diffère du nom du doc, il est entre parenthèses.
    `scripts/recette/hauteur-reelle.mjs`.
 5. **Aucune retranscription des textes sources dans les `.json`** : toute prose est un copié/collé
    VERBATIM, en Markdown, jamais en HTML ni reformulée ; rendue par l'unique primitive `Prose`. Garde :
-   `src/data/no-html-in-prose.test.ts`.
+   `src/data/no-html-in-prose.test.ts`. Campagne : fiche `user-doctrine-regle-5-campagne-repliques-et-narration-maison`.
 6. **Un commentaire porte une réf nue** — jamais une paraphrase de règle, une excuse ni une pierre
    tombale (voir le credo). Garde : `src/comment-poison-guard.test.ts`.
 7. **Pas de MJ — tout se modélise.** Ce que le RAW laisse « au MJ » reçoit un arbitrage EXPLICITE
@@ -93,9 +93,10 @@ script diffère du nom du doc, il est entre parenthèses.
 ## Sources VF
 
 Tout est en **français** sous `Source/`, dossiers préfixés `Warhammer v4 - ` / `WH - V4 - ` ; ceux
-SANS ce préfixe sont la VO du dépôt parent — jamais lus, jamais cités ici. **Exception unique** :
+SANS ce préfixe sont la VO du dépôt parent — jamais lus, jamais cités ici. **Exceptions** :
 `Source/Warhammer Fantasy Roleplay 5e Core Rulebook/` (**CRB**), livre VO AUTORISÉ, cœur de la 5e — fiche
-`user-doctrine-edition-5e-coeur-remplace-ldb-raw-sauf-errata`. Livres : **LDB** ·
+`user-doctrine-edition-5e-coeur-remplace-ldb-raw-sauf-errata`. La VO de L'Ennemi Intérieur se lit pour
+comprendre : fiche `user-doctrine-lecture-vo-campagne-pour-comprendre`. Livres : **LDB** ·
 **ADE I/II** · **EDO/EDOC** · **Middenheim** · **AA** · **ZI** · **MDG** · **ACE** · **MSRC** ·
 **NADJ** · **VDM**, chacun pour son périmètre (tout livre FR peut fournir une règle, par PASSAGE) —
 chemins et chapitres : `docs/sources-vf.md`. `src/data/*.json` est la source APP-OWNED, éditable au

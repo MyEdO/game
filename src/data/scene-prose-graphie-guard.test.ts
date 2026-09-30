@@ -14,7 +14,8 @@
  *
  * PÉRIMÈTRE : `src/**` et `scripts/**`, tests COMPRIS (une fixture de test est un producteur comme
  * un autre — trois d'entre elles ont été trouvées à l'ancienne graphie par ce même lot). Les blocs
- * de FRONTMATTER y sont MASQUÉS (`masquerFrontmatter`) : `description` y est une clé de fiche.
+ * de FRONTMATTER y sont MASQUÉS (`masquerFrontmatter`) : `description` y est une clé de fiche ; le
+ * `meta` d'un script de workflow aussi (`masquerMetaDeWorkflow`) : `description` y est une clé exigée.
  *
  * ANGLE MORT DÉCLARÉ : la détection est TEXTUELLE et ancrée sur des formes d'AUTHORING littérales
  * (`type: 'journal', text:`, `description:` d'une scène, `choices: [{ text:`). Un document construit
@@ -37,9 +38,6 @@ const EXTS = ['.ts', '.tsx', '.mjs', '.mts', '.js'];
 
 /**
  * EXEMPTIONS au SITE, nominatives et MESURÉES :
- *  - `scripts/**\/*.workflow.js` — des scénarios d'agents/navigateur : leur `meta.description` décrit
- *    le WORKFLOW (`scripts/raw/atlas-domain.workflow.js:3`) et leur `text:` est une option de
- *    sélecteur DOM. Aucun de ces fichiers ne produit de document de scène ;
  *  - CE fichier — il PORTE les formes surveillées (motifs et texte forgé du contrôle de morsure) :
  *    s'auto-mesurer le rendrait rouge par construction ;
  *  - `src/state/projet-migration-3-vers-4.test.ts` — sa fixture est GELÉE au format antérieur À
@@ -55,10 +53,7 @@ const NOMS_EXEMPTS = new Set([
   'scripts/ops/board.mjs',
   'scripts/ops/board.test.mjs',
 ]);
-/** La seule exemption qui n'est pas un NOM mais une FAMILLE : les scénarios d'agents/navigateur,
- *  reconnus à leur suffixe. */
-const FAMILLES_EXEMPTES = [/\.workflow\.js$/];
-const estExempt = (rel: string): boolean => NOMS_EXEMPTS.has(rel) || FAMILLES_EXEMPTES.some((f) => f.test(rel));
+const estExempt = (rel: string): boolean => NOMS_EXEMPTS.has(rel);
 
 /** Les formes d'authoring RETIRÉES par #1467 L1b V-P2, chacune avec sa cible. */
 const FORMES: readonly { motif: RegExp; quoi: string; cible: string }[] = [
@@ -103,6 +98,40 @@ function masquerFrontmatter(texte: string): string {
     })
     .join('\n');
 }
+
+/**
+ * `meta` de WORKFLOW masqué AVANT toute mesure — exclusion STRUCTURELLE, sur le modèle du frontmatter.
+ *
+ * Le littéral `export const meta = {` ouvre le `meta` d'un script de workflow, dont `description` est
+ * une clé EXIGÉE (porte de forme des workflows, règle `meta` : `scripts/ops/workflows.test.mjs`) :
+ * rien de ce qui vit là n'authore un document de scène. Le bloc court jusqu'à sa ligne fermante `}`
+ * en COLONNE 0, y compris quand une fixture porte la source d'un workflow dans un gabarit dont le
+ * texte s'ouvre sur ce littéral ; ce qui PRÉCÈDE le littéral sur sa ligne reste mesuré.
+ *
+ * Les lignes masquées sont VIDÉES, jamais retirées : les `fichier:ligne` rendus restent ceux du
+ * fichier réel.
+ */
+const OUVERTURE_META = /export const meta = \{\s*$/;
+const FERMETURE_META = /^\}/;
+
+function masquerMetaDeWorkflow(texte: string): string {
+  let dedans = false;
+  return texte
+    .split('\n')
+    .map((ligne) => {
+      if (dedans) {
+        if (FERMETURE_META.test(ligne)) dedans = false;
+        return '';
+      }
+      const ouverture = OUVERTURE_META.exec(ligne);
+      if (!ouverture) return ligne;
+      dedans = true;
+      return ligne.slice(0, ouverture.index);
+    })
+    .join('\n');
+}
+
+const masquer = (texte: string): string => masquerMetaDeWorkflow(masquerFrontmatter(texte));
 
 describe('graphie de la prose de scène — aucun producteur ne réécrit la forme retirée (#1467 L1b)', () => {
   const corpus = detenteur(() => readCorpus(RACINES, { exts: EXTS, tests: true }).filter((f) => !estExempt(f.rel)));
@@ -149,10 +178,26 @@ describe('graphie de la prose de scène — aucun producteur ne réécrit la for
     expect(masquerFrontmatter(fixtureDeFiche).split('\n')).toHaveLength(fixtureDeFiche.split('\n').length);
   });
 
+  it('meta de workflow : la clé `description` d’un `meta` passe, celle d’une scène hors meta reste attrapée', () => {
+    // Forme RÉELLE d'une fixture de workflow : la source du script portée par un gabarit.
+    const fixtureDeWorkflow = [
+      'const SOURCE = `export const meta = {',
+      "  name: 'temoin',",
+      "  description: 'Script témoin.',",
+      "  phases: [{ title: 'Scout' }],",
+      '}',
+      '',
+      "const scene = { id: 'a', description: 'une scène' }`;",
+    ].join('\n');
+    const trouve = (src: string) => [...masquer(src).matchAll(new RegExp(FORMES[2].motif.source, 'g'))].map((m) => masquer(src).slice(0, m.index).split('\n').length);
+    expect(trouve(fixtureDeWorkflow), 'seul le `description:` de scène HORS meta est attrapé, à sa ligne').toEqual([7]);
+    expect(masquer(fixtureDeWorkflow).split('\n')).toHaveLength(fixtureDeWorkflow.split('\n').length);
+  });
+
   it('aucun site à l’ancienne graphie dans `src/**` ni `scripts/**`', () => {
     const trouves: string[] = [];
     for (const f of corpus()) {
-      const texte = masquerFrontmatter(f.text);
+      const texte = masquer(f.text);
       for (const forme of FORMES) {
         const re = new RegExp(forme.motif.source, 'g');
         let m: RegExpExecArray | null;

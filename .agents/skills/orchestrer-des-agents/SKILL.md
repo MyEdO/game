@@ -51,7 +51,7 @@ borne, la borne est un `Monitor` sur l'horloge + `TaskStop`.
 - **Socle → trois sections, le codeur REFUSE sinon** (`.claude/agents/codeur.md`) : `## Invariant`
   (verbatim + source + la QUESTION à laquelle il répondait), le CAS CANONIQUE déjà couvert
   (`fichier:ligne`) + la preuve que le nouveau cas en est une INSTANCE, pas une variante à branche,
-  `## Design jugé :` (rendu par le workflow `juge-design-socle`, run cité).
+  `## Design jugé :` (un agent `juge` dépêché juge le design, son rendu est cité au brief).
 - **Un brief POSE les questions, il ne les pré-répond pas** : toute classification que l'agent peut
   établir (provenance d'une règle, existence d'un consommateur, état d'un fichier) se demande en
   SORTIE, citation exigée. Le banni est l'affirmation NON citée ; citation verbatim, réf RAW nue, ligne
@@ -198,9 +198,11 @@ ancré, ou de NOMMER le blocage réel (quota, validation utilisateur, charge mac
 | Lecture / comparaison de masse | `lecteur` | sonnet | medium |
 | Vérification mécanique (existence, famille) | `verif-mecanique` | haiku | low |
 | Code sous spec précise | `codeur` | opus | medium |
-| Jugement dur (réfutation, synthèse, archi) | `juge` | opus | medium |
+| Jugement dur (réfutation, synthèse de verdicts, archi) | `juge` | opus | medium |
+| Rédaction fidèle au Source (fiches, synthèses de règles) | `lecteur` | opus | medium |
 | Art vectoriel sur le rig SVG | `artiste` | opus | medium |
 | Recette navigateur en joueur | `recetteur` | sonnet | medium |
+| Joueur cloisonné de table simulée | `joueur` | sonnet | low |
 
 **Workflows multi-agents (sur opt-in « ultracode »)** : bons pour la **donnée/extraction/vérification**,
 pas l'art à l'aveugle. Déjà utilisés — audit de fidélité des règles (a trouvé 3 vrais bugs), extraction

@@ -1,7 +1,7 @@
 /**
  * Schéma zod d'un PROJET DE SCÈNE (`ProjectDoc`, `src/state/worldMap.ts`) — le paquet de campagne
- * auto-suffisant `{ type: 'projet', schema, id, label, versionContenu, narratif, scenes,
- * worldMap?, activeAxes? }`, `schema` étant la version de forme courante (`SCHEMA_PROJET`).
+ * auto-suffisant `{ type: 'projet', schema: SCHEMA_PROJET, id, label, versionContenu, narratif, scenes,
+ * worldMap?, activeAxes? }`, `schema` étant la version de forme courante.
  *
  * C'est la porte UNIQUE du seam `parseProject`. Le document ADOPTE la fabrique `document()`
  * (`../grammaire/document.ts`, #1552) en famille `config` — même code que les defs de configuration

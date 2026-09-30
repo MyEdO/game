@@ -15,10 +15,18 @@ import { useMemo, useState } from 'react';
 import { datasetArray, type DatasetKey } from '../../data/overrides';
 import { NumberField } from '../NumberField';
 
-/** Config d'un champ-réf, par (catégorie, champ). Dataset réel (liste/single) OU vocabulaire d'un champ. */
-export type RefFieldCfg =
-  | { ds: DatasetKey; value?: boolean; single?: boolean; freeText?: boolean; spec?: boolean; filter?: (entry: Record<string, unknown>) => boolean }
+type RefDatasetCfg = { ds: DatasetKey; filter?: (entry: Record<string, unknown>) => boolean };
+/** Mode `liste` : une rangée par réf, aucun contrôle unique. */
+type ListeRefCfg = RefDatasetCfg & { value?: boolean; single?: false; freeText?: false };
+/** Mode `single` avec `spec` : le `<select>` ET l'`<input>` de spécialisation, aucun contrôle unique. */
+type SpecRefCfg = RefDatasetCfg & { single: true; freeText?: false; spec: true };
+/** Config dont le rendu est UN contrôle : il porte le nom accessible, l'invalidité et la description. */
+export type RefFieldCfgUnique =
+  | (RefDatasetCfg & { single: true; freeText?: false; spec?: false })
+  | (RefDatasetCfg & { freeText: true; single?: boolean })
   | { vocabFrom: string };
+/** Config d'un champ-réf, par (catégorie, champ). Dataset réel (liste/single) OU vocabulaire d'un champ. */
+export type RefFieldCfg = ListeRefCfg | SpecRefCfg | RefFieldCfgUnique;
 
 /**
  * REF_FIELD — clés par `'<catégorie>.<champ>'` (priorité) ou par `'<champ>'` (repli global).
@@ -80,16 +88,25 @@ const entryLabel = (e: Record<string, unknown>): string =>
 interface RefEntry { id: string; value?: number }
 interface SpecRef { id: string; spec?: string }
 
+type RefFieldCommun = { categoryKey?: string; fieldKey?: string; label?: string; value: unknown; onChange: (v: unknown) => void; nullable?: boolean };
+/** Nom accessible, invalidité et description du contrôle rendu. */
+type Accessibilite = { ariaLabel?: string; invalide?: boolean; describedBy?: string };
+
+/** Un contrôle UNIQUE (`single` sans `spec`, `freeText`, `vocab`) porte `Accessibilite` ; la `liste` et le
+ *  `single` à `spec` n'en rendent aucun à qui la poser, et l'appel qui la passerait ne compile pas. */
+export function RefField(props: RefFieldCommun & Accessibilite & { cfg: RefFieldCfgUnique }): JSX.Element;
+export function RefField(props: RefFieldCommun & { cfg: RefFieldCfg; ariaLabel?: never; invalide?: never; describedBy?: never }): JSX.Element;
 export function RefField(
-  { cfg, fieldKey, label, value, onChange, nullable }:
-  { cfg: RefFieldCfg; categoryKey?: string; fieldKey?: string; label?: string; value: unknown; onChange: (v: unknown) => void; nullable?: boolean },
+  { cfg, fieldKey, label, ariaLabel, value, onChange, nullable, invalide, describedBy }:
+  RefFieldCommun & Accessibilite & { cfg: RefFieldCfg },
 ) {
   // `label` = AFFICHAGE (libellé FR du champ, #1466) ; `fieldKey`/`cfg` restent l'IDENTITé. Un appelant
   // qui ne connaît que la clé affiche la clé.
   const affiche = label ?? fieldKey;
-  if (isVocab(cfg)) return <VocabField label={affiche} vocabFrom={cfg.vocabFrom} value={value} onChange={onChange} nullable={nullable} />;
-  if (cfg.freeText) return <FreeRefField label={affiche} cfg={cfg} value={value} onChange={onChange} />;
-  if (cfg.single) return <SingleRefField label={affiche} cfg={cfg} value={value} onChange={onChange} nullable={nullable} />;
+  const a11y = { ariaLabel, invalide, describedBy };
+  if (isVocab(cfg)) return <VocabField label={affiche} vocabFrom={cfg.vocabFrom} value={value} onChange={onChange} nullable={nullable} {...a11y} />;
+  if (cfg.freeText) return <FreeRefField label={affiche} cfg={cfg} value={value} onChange={onChange} {...a11y} />;
+  if (cfg.single) return <SingleRefField label={affiche} cfg={cfg} value={value} onChange={onChange} nullable={nullable} {...a11y} />;
   return <ListRefField label={affiche} cfg={cfg} value={value} onChange={onChange} />;
 }
 
@@ -107,8 +124,8 @@ function useOptions(cfg: { ds: DatasetKey; filter?: (entry: Record<string, unkno
 /** Mode `single` : UN `<select>` (+ option « — (aucun) — » si nullable, option « (inconnu) » si hors liste).
  *  `spec` → un `<input>` texte à côté, on stocke `{ id, spec? }` (spec omis si vide) ; sinon la chaîne brute. */
 function SingleRefField(
-  { label, cfg, value, onChange, nullable }:
-  { label?: string; cfg: { ds: DatasetKey; spec?: boolean; filter?: (entry: Record<string, unknown>) => boolean }; value: unknown; onChange: (v: unknown) => void; nullable?: boolean },
+  { label, ariaLabel, cfg, value, onChange, nullable, invalide, describedBy }:
+  Accessibilite & { label?: string; cfg: { ds: DatasetKey; spec?: boolean; filter?: (entry: Record<string, unknown>) => boolean }; value: unknown; onChange: (v: unknown) => void; nullable?: boolean },
 ) {
   const options = useOptions(cfg);
   const cur: SpecRef = cfg.spec
@@ -125,7 +142,7 @@ function SingleRefField(
     <div className="ed-field">
       <span>{label}<em className="de-hint"> (réf {cfg.ds})</em></span>
       <div className="de-reflrow">
-        <select value={id} onChange={(e) => emit(e.target.value, cur.spec)}>
+        <select aria-label={ariaLabel} aria-invalid={invalide || undefined} aria-describedby={describedBy} value={id} onChange={(e) => emit(e.target.value, cur.spec)}>
           {nullable && <option value="">— (aucun) —</option>}
           {!nullable && id === '' && <option value="">— (choisir dans {cfg.ds}) —</option>}
           {id !== '' && !known && <option value={id}>{id} (inconnu)</option>}
@@ -146,8 +163,8 @@ function SingleRefField(
  *  Le texte saisi vit ICI : il ne se recale sur `value` que lorsqu'elle diffère de la dernière valeur
  *  que le champ a émise, jamais à chaque frappe. */
 function FreeRefField(
-  { label, cfg, value, onChange }:
-  { label?: string; cfg: { ds: DatasetKey }; value: unknown; onChange: (v: unknown) => void },
+  { label, ariaLabel, invalide, describedBy, cfg, value, onChange }:
+  Accessibilite & { label?: string; cfg: { ds: DatasetKey }; value: unknown; onChange: (v: unknown) => void },
 ) {
   const options = useOptions(cfg);
   const cur = typeof value === 'string' ? value : '';
@@ -164,6 +181,7 @@ function FreeRefField(
       <span>{label}<em className="de-hint"> (réf {cfg.ds}, ou saisie libre)</em></span>
       <input
         list={dlId} value={texte}
+        aria-label={ariaLabel} aria-invalid={invalide || undefined} aria-describedby={describedBy}
         onChange={(e) => {
           const brut = e.target.value;
           const v = brut.trim();
@@ -181,8 +199,8 @@ function FreeRefField(
 
 /** Mode `vocab` : `<input list>` + `<datalist>` des valeurs distinctes d'un champ `'<ds>.<champ>'`. */
 function VocabField(
-  { label, vocabFrom, value, onChange, nullable }:
-  { label?: string; vocabFrom: string; value: unknown; onChange: (v: unknown) => void; nullable?: boolean },
+  { label, ariaLabel, invalide, describedBy, vocabFrom, value, onChange, nullable }:
+  Accessibilite & { label?: string; vocabFrom: string; value: unknown; onChange: (v: unknown) => void; nullable?: boolean },
 ) {
   const [ds, field] = vocabFrom.split('.') as [DatasetKey, string];
   const dlId = `dl-vocab-${ds}-${field}`;
@@ -194,6 +212,7 @@ function VocabField(
     <div className="ed-field">
       <span>{label}<em className="de-hint"> (vocabulaire {ds}.{field})</em></span>
       <input list={dlId} value={(value as string) ?? ''}
+        aria-label={ariaLabel} aria-invalid={invalide || undefined} aria-describedby={describedBy}
         onChange={(e) => onChange(e.target.value === '' && nullable ? null : e.target.value)} />
       <datalist id={dlId}>{values.map((v) => <option key={v} value={v} />)}</datalist>
     </div>

@@ -93,7 +93,6 @@ export const GRAMMAIRE_STOCK = {
   'src/data/schemas/defs-scenes/worldmap.ts:mapPlaceSchema.pos|redeclaration|cell2Schema {x,y}': e('Position d’un lieu de la carte du monde : point en % du CANEVAS, forme propre au worldMap — PAS une cell2. MÊME requalification que `placePoiSchema.pos` au lot L4 valeurs.', L4),
 
   // ── Formes POSSÉDÉES par la grammaire, re-tapées ou étendues ─────────────────────────────────
-  'src/data/schemas/defs/miscast.ts:engineFormulaSchema.times|redeclaration|formulaSchema|formulaSinSchema {factor,of}': e('Produit `{of, factor}` d’une Formula re-tapé (`STRUCTURES_REDECLARATIONS` miscast.ts champ `times`, commun `formulaSchema`).', L1a),
   'src/data/schemas/defs/raceAppearance.ts:doc.parts|redeclaration|entityAppearanceSchema {cheveux,visage}': e('`parts` d’apparence re-tapé (`STRUCTURES_REDECLARATIONS` raceAppearance.ts, commun `entityAppearanceSchema`).', L1a),
   'src/data/schemas/defs/raceAppearance.ts:doc.eyes|redeclaration|entityAppearanceSchema {D,G}': e('`eyes` d’apparence re-tapé (`STRUCTURES_REDECLARATIONS` raceAppearance.ts, commun `entityAppearanceSchema`).', L1a),
   'src/data/schemas/grammaire/reference.ts:trappingRefSchema|extend|refSchema.extend(…)': e('Branche `{id, spec, count, qualities, qualityChoice}` de `TrappingRef` construite en ÉTENDANT `refSchema` — meurt avec l’adoption de `ref(\'trapping\')` par les dotations.', L3),

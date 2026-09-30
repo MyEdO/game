@@ -35,7 +35,7 @@
 /* Barre d'outils optionnelle (`tabs` prop), une `Row` — pose la primitive `<Tabs>` et/ou du contenu
  * libre (badges, bourse…), sous l'en-tête. */
 .screen-toolbar {
-  width: min(900px, 96vw);
+  width: min(900px, 100%);
   margin: 0 auto;
 }
 /* COLONNE BORNÉE/CENTRÉE (prop `body='centered'`) : un écran de PANNEAUX borne et centre son corps

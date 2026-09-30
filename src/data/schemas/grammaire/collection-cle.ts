@@ -85,11 +85,21 @@ export function marqueDeRecord(options: { readonly sous?: string; readonly espac
   return { forme: 'record', ...options };
 }
 
+/** Les CARTES d'un record marqué parmi `noeuds` : les nœuds eux-mêmes, ou ceux de leur champ `sous`. */
+const cartesDuRecord = (noeuds: readonly unknown[], marque: Extract<MarqueDeCollection, { forme: 'record' }>): unknown[] =>
+  marque.sous === undefined ? ouverts(noeuds) : ouverts(pasDeDonnee(ouverts(noeuds), marque.sous));
+
+/** Les nœuds de schéma d'un ÉLÉMENT de la collection marquée `marque` portée par `noeuds` : l'élément
+ *  d'une liste, la valeur d'un record — à ouvrir par la valeur de l'élément (`ouverts`). */
+export function noeudsDeLElement(noeuds: readonly unknown[], marque: MarqueDeCollection): unknown[] {
+  if (marque.forme === 'liste') return pasDeDonnee(ouverts(noeuds), 0);
+  return cartesDuRecord(noeuds, marque).flatMap((n) => enfantsDe(n).filter((e) => e.segment === '{}').map((e) => e.noeud));
+}
+
 /** Les nœuds de schéma qui portent la CLÉ d'un élément de la collection marquée. */
 function noeudsDeCle(noeud: unknown, marque: MarqueDeCollection): unknown[] {
-  if (marque.forme === 'liste') return ouverts(pasDeDonnee(ouverts(pasDeDonnee(ouverts([noeud]), 0)), marque.nom));
-  const cartes = marque.sous === undefined ? ouverts([noeud]) : ouverts(pasDeDonnee(ouverts([noeud]), marque.sous));
-  return cartes.flatMap((n) => enfantsDe(n).filter((e) => e.segment === '{clé}').map((e) => e.noeud));
+  if (marque.forme === 'liste') return ouverts(pasDeDonnee(ouverts(noeudsDeLElement([noeud], marque)), marque.nom));
+  return cartesDuRecord([noeud], marque).flatMap((n) => enfantsDe(n).filter((e) => e.segment === '{clé}').map((e) => e.noeud));
 }
 
 /** Une feuille `idDe` est-elle atteinte depuis `noeud`, à travers ses seules enveloppes ? */
@@ -280,10 +290,12 @@ export function collectionsDesDocuments(
     .flatMap((d) => duDocument(d).map((c) => ({ ...c, dataset: d.file, cle: cleNichee(d.file, c.suite) })));
 }
 
-/** Une collection à clé atteinte par sa suite : sa marque et sa valeur (`undefined` : absente de la donnée). */
+/** Une collection à clé atteinte par sa suite : sa marque, sa valeur (`undefined` : absente de la donnée)
+ *  et ses nœuds de schéma (`ouverts` par sa valeur quand la donnée l'atteint). */
 export interface CollectionALaCle {
   readonly marque: MarqueDeCollection;
   readonly valeur: unknown;
+  readonly noeuds: readonly unknown[];
 }
 
 /** La graphie d'une suite dans un message. */
@@ -310,7 +322,10 @@ function parcourirLaSuite(schema: unknown, racine: unknown, suite: string): { re
   });
   if (!atteint) return { atteinte: undefined, points: exacts };
   if (atteint.collection.suite === suite)
-    return { atteinte: atteint.collection.marque && { marque: atteint.collection.marque, valeur: atteint.point.valeur ?? undefined }, points: exacts };
+    return {
+      atteinte: atteint.collection.marque && { marque: atteint.collection.marque, valeur: atteint.point.valeur ?? undefined, noeuds: atteint.point.noeuds },
+      points: exacts,
+    };
   let noeuds: readonly unknown[] = atteint.point.noeuds;
   for (const pas of pasDeLaSuite(suite.slice(atteint.collection.suite.length))) {
     const marque = noeuds.map(collectionDe).find((m) => m !== undefined);
@@ -318,7 +333,7 @@ function parcourirLaSuite(schema: unknown, racine: unknown, suite: string): { re
     noeuds = ouverts(pasDeDonnee(noeuds, 'champ' in pas ? pas.champ : 0));
   }
   const marque = noeuds.map(collectionDe).find((m) => m !== undefined);
-  return { atteinte: marque && { marque, valeur: undefined }, points: exacts };
+  return { atteinte: marque && { marque, valeur: undefined, noeuds }, points: exacts };
 }
 
 /**

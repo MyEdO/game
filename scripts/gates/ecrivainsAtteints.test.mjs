@@ -232,15 +232,20 @@ const ATTENDU = {
     //   les tests n'appellent jamais : ils ne jouent que `corpsDuRuleset`, `contextesRequis` et
     //   `refusGh`, tous PURS.
     // · `ruleset-main.test.mjs` écrit ses fixtures `ci.yml` sous `os.tmpdir()` (`mkdtempSync`) ; sa
-    //   seule lecture de l'arbre réel est `jobsCi({ cwd: RACINE })` (ruleset-main.test.mjs:27), qui
+    //   seule lecture de l'arbre réel est `jobsCi({ cwd: RACINE })` (test « les contextes se LISENT dans
+    //   le ci.yml réel »), qui
     //   ne fait que LIRE `.github/workflows/ci.yml`.
-    // Même mesure que la raison `test:ops` d'`ECRIT_LU` (`ECRIT_LU`, scripts/gates/toutes.mjs).
+    // Même mesure que la raison `test:ops` d'`ECRIT_LU` (scripts/gates/toutes.mjs, `ECRIT_LU['test:ops']`).
     'scripts/ops/ruleset-main.mjs',
     'scripts/ops/ruleset-main.test.mjs',
     // +1 le 2026-09-16 (#1779) : le banc du signaleur pose le CORPS du rapport (`--body-file` de `gh`)
     // sous os.tmpdir() (`mkdtempSync` + `writeFileSync`, `rmSync` en finally) ; `signaler-rouge.mjs`
     // ne fait que LIRE ce fichier, et son `gh` est INJECTÉ — l'arbre n'est jamais écrit.
     'scripts/ops/signaler-rouge.test.mjs',
+    // +1 le 2026-09-28 (#1993) : le banc des workflows joués pose une copie PERMUTÉE de
+    // `dossier-de-chapitre.js` sous os.tmpdir() (`mkdtempSync` + `writeFileSync`, `rmSync` en finally)
+    // pour la rejouer par `jouerWorkflow` ; l'arbre n'est jamais écrit.
+    'scripts/ops/workflows-joues.test.mjs',
   ],
   'test:runner': [
     'scripts/lancer-local.test.mjs',
@@ -271,7 +276,7 @@ const ATTENDU = {
     // +2 le 2026-09-14 (#1759) : le test de contrat importe `installer` pour
     // monter l'enveloppe de `fs` à nu (la casse d'un chemin lu se juge sans sous-processus).
     // L'écriture de ce module est la sienne propre — `<WFRP_LECTURES_SORTIE>.<pid>.json`, derrière la
-    // porte d'environnement (enregistreur-lectures.mjs:160) —, et `build-all.mjs` pointe cette sortie
+    // porte d'environnement `SORTIE` (`WFRP_LECTURES_SORTIE`) —, et `build-all.mjs` pointe cette sortie
     // sous os.tmpdir().
     'scripts/docs/lib/enregistreur-lectures.mjs',
     'scripts/docs/lib/enregistreur-lectures.test.mjs',

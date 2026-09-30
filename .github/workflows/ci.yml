@@ -77,9 +77,10 @@ jobs:
       - if: ${{ steps.classer.outputs.produit != 'false' && !cancelled() && steps.install.outcome == 'success' }}
         run: npm test
       # Pas de step `test:map` : `scripts/map/**/*.test.ts` est dans le `test.include` de
-      # `vite.config.ts` (l.69), donc `npm test` joue déjà `scripts/map/check.test.ts` (18 tests), et
-      # `src/vi-mock-isolate-guard.test.ts:75-79` verrouille ce miroir DANS LES DEUX SENS. Le script
-      # `test:map` reste dans package.json : il sert à jouer CE dossier seul.
+      # `vite.config.ts`, donc `npm test` joue déjà `scripts/map/check.test.ts`. Les gardes qui
+      # scannent les suites jouées lisent les racines à la source de ce `test.include`
+      # (`scripts/guards/lib/racinesDeLaSuite.mjs`, `fichiersDeLaSuite` de `suiteVitest.mjs`). Le
+      # script `test:map` reste dans package.json : il sert à jouer CE dossier seul.
       - if: ${{ steps.classer.outputs.produit != 'false' && !cancelled() && steps.install.outcome == 'success' }}
         run: npm run build
       # Pied « sources-empreinte » de chaque doc dérivé confronté aux blobs de l'INDEX (#1679 L1b).

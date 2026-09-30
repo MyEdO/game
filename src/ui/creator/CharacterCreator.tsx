@@ -45,7 +45,7 @@ import {
   spells as allSpells,
   rigSpeciesId,
   specLabel,
-  findBookById,
+  sourceRefLabel,
   skillInstanceLabel,
   speciesSize,
   SpeciesData,
@@ -1255,7 +1255,7 @@ const STAR_POSITIONS = (() => {
  *  n'accepte rien d'autre qu'une réf de source, et trois étapes la composaient à l'identique. */
 function sourceSub(source: SourceRef | undefined): string | undefined {
   if (!source) return undefined;
-  return `${findBookById(source.book)?.label ?? source.book} p. ${source.page}`;
+  return sourceRefLabel(source);
 }
 
 // ════ 3bis) Signe astral (ADE II 3, optionnel) — ossature `CreatorStepFrame`, étalon planche

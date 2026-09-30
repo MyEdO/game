@@ -20,6 +20,7 @@ import { act, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { inferFields } from './editFields';
 import { DescRefField, PHRASE_LIGNE_AMBIGUE_TABLE, PHRASE_REFUS, type ChargeursSource } from './DescRefField';
+import { defautsDeNoms, nomAccessible } from '../nomsAccessibles.testkit';
 import { empreinteDe, parseChapitre, prefixesDeChapitres, resoudreAdresse, estErreur, tablesOf, type DescRef, type Fragment, type FragmentBlocs, type FragmentCellule } from '../../data/source/decoupe';
 
 /** Ce que le chargeur injecté sert, et ce qu'on lui a demandé — réglable par cas. */
@@ -357,6 +358,30 @@ describe('`DescRefField` — l’empreinte est RECALCULÉE, jamais saisie', () =
     expect(container?.querySelector('.panel')?.textContent).toContain('[fragment 1 : non résolu]');
     // L'erreur vit DANS la rangée du fragment fautif, pas en pied de champ.
     expect(container?.querySelector('.de-reflrow .de-warn'), 'le message doit désigner SA rangée').toBeTruthy();
+  });
+});
+
+describe('NOMS POSITIONNÉS — deux adresses en rangée, chaque contrôle a SON nom', () => {
+  it('boutons de fragment compris : aucun nom porté par deux contrôles', async () => {
+    const boite = document.createElement('div');
+    document.body.appendChild(boite);
+    container = boite;
+    const racine = createRoot(boite);
+    root = racine;
+    const valeur = adresse(frag('terreur', 0, 0), frag('terreur', 1, 1));
+    await act(async () => {
+      racine.render(<>
+        {[1, 2].map((n) => <DescRefField key={n} label="Adresse" sujet={`de la rangée ${n}`} value={valeur} onChange={() => {}} chargeurs={CHARGEURS} />)}
+      </>);
+    });
+    await laisserPoser();
+    const noms = [...boite.querySelectorAll<HTMLElement>('button')].map(nomAccessible);
+    for (const n of [1, 2]) {
+      for (const nom of [`Retirer le fragment 1 de la rangée ${n}`, `Retirer le fragment 2 de la rangée ${n}`, `Ajouter un fragment de la rangée ${n}`]) {
+        expect(noms.filter((x) => x === nom), `« ${nom} »`).toHaveLength(1);
+      }
+    }
+    expect(defautsDeNoms(boite).doublons).toEqual([]);
   });
 });
 

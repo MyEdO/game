@@ -887,7 +887,9 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       // l'une comme l'autre dans les `champs` d'un def à rangées : `driving-mishap`,
       // `drunkenness`, `montures`, `naval-progression`, `obsessions`, `surincantation`,
       // `vents-tourbillonnants`.
-      'L1a #1466': 16,
+      // … puis 16 → 5 (#1993) : les 11 lignes de `defs/miscast.ts` s'éteignent, `escapeStrength`
+      // compose `formulaSchema`.
+      'L1a #1466': 5,
       'L1b #1467': 0,
       // L1c #1468 : 403 → 400 (commit 3c) — cf. le cliquet `STRUCTURES_OPS` ci-dessus.
       // … puis 400 → 402 (#862) : cf. le cliquet `STRUCTURES_OPS` ci-dessus.

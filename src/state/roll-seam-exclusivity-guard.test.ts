@@ -7,7 +7,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { scanRollSeamExclusivity, ROLL_SEAM_RX, scanPendingJetFabrication, engineRollerExports, engineHomonyms, scanEngineDelegatedRoll, scanDesHorsPorte, engineDiceRollers, AMORCE_DES } from '../../scripts/guards/lib/rollSeamExclusivity.mjs';
-import { rollSeamExcluded, ROLL_SEAM_PHASE2_STOCK, WORLD_DIE_SUBTRACTED_STOCK, PENDING_JET_FABRICATION_STOCK, ENGINE_DELEGATED_ROLL_STOCK, DES_HORS_PORTE_STOCK, SEAM_CALLERS } from '../../scripts/guards/lib/rollSeamWhitelist.mjs';
+import { RACINE_DU_SEAM, rollSeamExcluded, ROLL_SEAM_PHASE2_STOCK, WORLD_DIE_SUBTRACTED_STOCK, PENDING_JET_FABRICATION_STOCK, ENGINE_DELEGATED_ROLL_STOCK, DES_HORS_PORTE_STOCK, SEAM_CALLERS } from '../../scripts/guards/lib/rollSeamWhitelist.mjs';
 import { contexteDeScanRng, scanBattleRngEngineLeak } from '../../scripts/guards/lib/battleRngEngineLeak.mjs';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { tableDesExports } from '../../scripts/guards/lib/canonUnique.mjs';
@@ -36,7 +36,7 @@ import { detenteur } from '../detenteur.testkit';
  */
 
 const ROOT = fileURLToPath(new URL('../..', import.meta.url)); // src/state/ → ../../ = racine du projet
-const SCAN_DIRS = ['src'];
+const SCAN_DIRS = [RACINE_DU_SEAM];
 
 const EXCLUDED = (rel: string) => estFichierVitest(rel) || rollSeamExcluded(rel);
 
@@ -89,6 +89,13 @@ describe('garde-fou « seam de jet » — exclusivité de rollTest/d100/TestOutc
   it('fail-closed : le scanner détecte un TestOutcome.seal( hors seam SYNTHÉTIQUE', () => {
     const regressed = "return TestOutcome.seal({ roll: 1, target: 40, success: true, sl: 1, isDouble: false });";
     expect(scanRollSeamExclusivity('src/state/x.ts', regressed).length).toBe(1);
+  });
+
+  it('périmètre : le pre-commit juge ce que ce test balaie — un flux de `src/` y entre, un outil de `scripts/` non', () => {
+    expect(rollSeamExcluded('src/state/x.ts')).toBe(false);
+    expect(battleRngEngineLeakExcluded('src/state/x.ts')).toBe(false);
+    expect(rollSeamExcluded('scripts/ops/table-des.mts')).toBe(true);
+    expect(battleRngEngineLeakExcluded('scripts/ops/table-des.mts')).toBe(true);
   });
 
   it('le noyau du seam (rollSeam.ts, hors scan) porte bien TestOutcome.seal( — sinon le foyer a bougé', () => {

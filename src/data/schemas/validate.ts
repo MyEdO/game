@@ -15,9 +15,11 @@ import type { z } from 'zod';
 import { SCHEMA_DEFS } from './_registry.generated';
 import { SCHEMA_DEFS_SCENES } from './_registry-scenes.generated';
 import type { SchemaDef } from './types';
-import { coDescendre, descendre, enfantsDe } from './grammaire/descente';
-import { collectionDe } from './grammaire/collection-cle';
+import { coDescendre, defDe, descendre, enfantsDe, ouverts } from './grammaire/descente';
+import { atteindre, collectionDe, noeudsDeLElement } from './grammaire/collection-cle';
+import { DATASET_FICHIER_DERIVE, DATASET_SUITE_DERIVE, OBJECT_CATEGORY_DERIVE } from './exposition-derivee';
 import { valeursDe, type MetaChamp } from './grammaire/meta';
+import { versDisque } from './grammaire/prose';
 
 /** Le registre des DEUX racines de documents (`src/data` + `src/scenes`). */
 export const DEFS_DE_DOCUMENT: readonly SchemaDef[] = [...SCHEMA_DEFS, ...SCHEMA_DEFS_SCENES];
@@ -118,21 +120,68 @@ export function metaPourFichier(file: string): Readonly<Record<string, MetaChamp
 }
 
 /**
- * NŒUD OBJET sous un nœud quelconque — le premier nœud à `shape` atteint par la descente
- * (`descendre`, `grammaire/descente.ts`, largeur d'abord, visite unique par identité : le plus PROCHE) à travers
- * l'emballage de famille, le sceau et les enveloppes (`z.array`, `.pipe`, refines, `optional`, `lazy`).
- * C'est le seul chemin schéma→atelier vers les NŒUDS d'un document scellé, à TOUTE profondeur : la
- * méta publiée ne porte que le libellé du CHAMP, celui de ses VALEURS vit sur le nœud (`enumNomme`,
- * #1694).
+ * NŒUD OBJET sous un nœud quelconque — le premier nœud objet que `accepte` retient (tous par défaut),
+ * atteint par la descente (`descendre`, `grammaire/descente.ts`, largeur d'abord, visite unique par
+ * identité : le plus PROCHE) à travers l'emballage de famille, le sceau et les enveloppes (`z.array`,
+ * `.pipe`, refines, `optional`, `lazy`). C'est le seul chemin schéma→atelier vers les NŒUDS d'un
+ * document scellé, à TOUTE profondeur : la méta publiée ne porte que le libellé du CHAMP, celui de ses
+ * VALEURS vit sur le nœud (`enumNomme`, #1694). `accepte` reçoit le NŒUD objet visité, dont il lit les
+ * enfants par `enfantsDe` ; un nœud refusé est traversé.
  */
-export function noeudObjet(schema: unknown): unknown {
+export function noeudObjet(schema: unknown, accepte: (noeud: unknown) => boolean = () => true): unknown {
   let trouve: unknown;
   descendre([schema], ({ noeud, def }) => {
     if (def.type !== 'object') return;
+    if (!accepte(noeud)) return;
     trouve = noeud;
     return 'arreter';
   });
   return trouve;
+}
+
+/**
+ * NŒUD OBJET de la RANGÉE `entree` du dataset `dataset`, lu sur sa route DÉCLARÉE (`exposition.edit`,
+ * `exposition-derivee.ts`) : l'élément de la collection au bout de sa suite (`DATASET_SUITE_DERIVE`,
+ * `''` : la collection de racine), la valeur de la collection de racine d'un dataset-OBJET `record`, la
+ * racine elle-même d'un dataset-OBJET `single`. Une union DISCRIMINÉE s'y ouvre par la valeur de son
+ * discriminant dans `entree` (`ouverts`). LÈVE, en nommant fichier, dataset et suite, sur un dataset
+ * sans route, une suite qui ne mène à aucune collection à clé, ou une rangée qui n'a pas UN nœud objet
+ * (en nommant en plus la valeur des discriminants) — `RangeeSansNoeud` quand sa forme disque est
+ * refusée par chacun des nœuds de son élément, qui en portent les FAUTES.
+ */
+export function noeudDeLEntree(dataset: string, entree: object): unknown {
+  const fichier = DATASET_FICHIER_DERIVE[dataset];
+  const objet = OBJECT_CATEGORY_DERIVE[dataset];
+  const suite = objet ? '' : DATASET_SUITE_DERIVE[dataset];
+  const schema = fichier === undefined ? undefined : schemaForFile(fichier);
+  const lieu = `noeudDeLEntree : dataset « ${dataset} » (${fichier ?? 'aucun fichier'}, suite « ${suite ?? '(aucune)'} »)`;
+  if (!schema || suite === undefined) throw new Error(`${lieu} — aucune route d'édition déclarée (\`exposition.edit\`).`);
+  let noeuds: readonly unknown[];
+  if (objet?.mode === 'single') noeuds = [schema];
+  else {
+    const collection = atteindre(schema, undefined, suite);
+    if (!collection) throw new Error(`${lieu} — la suite ne mène à aucune collection à clé du schéma.`);
+    noeuds = noeudsDeLElement(collection.noeuds, collection.marque);
+  }
+  const objets = ouverts(noeuds, entree).filter((n) => defDe(n)?.type === 'object');
+  if (objets.length !== 1) {
+    const discriminants = [...new Set(ouverts(noeuds).map((n) => defDe(n)?.discriminator).filter((d): d is string => d !== undefined))];
+    const valeurs = discriminants.map((d) => `« ${d} » = ${String(JSON.stringify((entree as Record<string, unknown>)[d]))}`).join(', ');
+    const message = `${lieu} — la rangée porte ${objets.length} nœuds objets, pas un${valeurs ? ` (discriminant ${valeurs})` : ''}.`;
+    const refus = noeuds.map((n) => validateDocument(n as z.ZodType, versDisque(entree)));
+    if (refus.length > 0 && refus.every((f): f is readonly Faute[] => f !== null)) throw new RangeeSansNoeud(message, refus.flat());
+    throw new Error(message);
+  }
+  return objets[0];
+}
+
+/** Refus de `noeudDeLEntree` porté par la VALEUR de la rangée, et non par sa route : ses `fautes`, au
+ *  LIEU relatif à la rangée, sont ce que l'atelier en dit à sa surface (`CodexEdit`, `rapportDeFautes`). */
+export class RangeeSansNoeud extends Error {
+  constructor(message: string, readonly fautes: readonly Faute[]) {
+    super(message);
+    this.name = 'RangeeSansNoeud';
+  }
 }
 
 /** NŒUD zod d'un champ de PREMIER NIVEAU d'un document (`undefined` hors registre, ou si le document

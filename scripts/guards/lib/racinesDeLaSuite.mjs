@@ -13,4 +13,5 @@ export const RACINES_DE_LA_SUITE = Object.freeze([
   racine('src', ['.ts', '.tsx']),
   racine('server/src', ['.ts']),
   racine('scripts/map', ['.ts']),
+  racine('scripts/qc', ['.ts']),
 ])

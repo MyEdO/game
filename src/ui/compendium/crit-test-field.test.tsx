@@ -63,7 +63,7 @@ describe('atelier du Codex — le nœud `test` d’une rangée de Critique reste
     document.body.appendChild(container);
     root = createRoot(container);
     act(() => {
-      root.render(<CodexEdit categoryKey="aaCriticalsJambe" label={cible.label} id={cible.id} onClose={() => {}} />);
+      root.render(<CodexEdit categoryKey="aaCriticalsJambe" id={cible.id} onClose={() => {}} />);
     });
 
     // Le select de Difficulté du nœud : celui dont la valeur courante EST la difficulté de la rangée

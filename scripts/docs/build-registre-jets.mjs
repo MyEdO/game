@@ -75,7 +75,7 @@ for (const { rel, text } of prodFiles('src')) {
 
 // --- population AUTHORÉE (donnée, pas code) ---------------------------------------------------
 // Nœuds `test` des Flows authorés des DEUX racines de donnée (`src/data`, `src/scenes`) : le nœud
-// `{ kind: 'test', test, success, fail }` de `Flow` (engine/flowCore.ts:496), la forme UNIQUE du jet
+// `{ kind: 'test', test, success, fail }` de `Flow` (engine/flowCore.ts), la forme UNIQUE du jet
 // en donnée. Ils ne sont PAS un stock : c'est de la donnée, dont les chemins de résolution sont
 // dénombrés ci-dessous.
 //
@@ -234,7 +234,7 @@ out += `- **(D)** indexe les fonctions de \`src/engine\` par nom **à plat** : d
 out += `  confondent, et un homonyme local d'un rouleur peut faire entrer un export au titre de la transitivité.\n`
 out += `- **(D)** ne scanne que \`src/state\` et \`src/ui\` (les consommateurs de flux) ; **(F)** scanne tout \`src\`.\n`
 out += `- **Un tirage qui n'appelle ni \`rollTest\` ni \`d100\` n'est vu par AUCUN des trois scanners** — ex. le \`d10\` de\n`
-out += `  \`massBattleFlow.ts:834\` (\`massBattleSetHazard\`, facteur environnemental du Round, \`ADE II 8 l.309\`) : un jet du\n`
+out += `  \`massBattleFlow.ts\` (\`massBattleSetHazard\`, facteur environnemental du Round, \`ADE II 8 l.309\`) : un jet du\n`
 out += `  RAW résolu en silence, hors de tout registre. Le surfaçage vit sur #1067, qui le nomme déjà.\n`
 out += `- Les formes **(S)** « position de spec » et **(M)** « dé de monde » restent des exclusions par FORME du garde\n`
 out += `  d'exclusivité (critères et angles morts : en-tête de \`scripts/guards/lib/rollSeamExclusivity.mjs\`).\n`

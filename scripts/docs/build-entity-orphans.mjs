@@ -22,7 +22,7 @@
 //   Domaine / Talent de lanceur / `learnSpell` de scène. L'instrument juste est donc
 //   `src/data/obtainability-guard.test.ts` (OBTENABILITÉ, baseline `spells: 0`), pas la citation.
 //   `trappings` — le stock marchand est bâti par PRÉDICAT sur des catégories déclarées EN DONNÉE
-//   (`state/merchantFlow.ts:194-201` filtre `trappings` par `arch.category` de `merchants.json`),
+//   (`computeFreshStockLines` de `state/merchantFlow.ts` filtre `trappings` par `arch.category` de `merchants.json`),
 //   chaîne hors grammaire MODE 2 (son `.map` rend un objet, pas `t.id`) — #1631.
 //   Le canal LABEL (`findSpell`, src/data/index.ts) n'est PAS cette raison : un détecteur
 //   id-OU-label ne réconcilierait pas ces catalogues.
@@ -31,7 +31,7 @@
 // `creatures` EST AU PÉRIMÈTRE depuis #1553 L3 (2026-09), et le passage a tranché ce qui la retenait :
 // son chemin d'accès EST une citation par id (scène, `montures.json`, `groups.json`, `careerLevels.json`
 // …) ou une sélection MODE 2 réelle (`creatures.filter((c) => c.purchase).map((c) => c.id)`,
-// `state/merchantFlow.ts:132`, bétail du Maquignon). Ce qui n'en est PAS un : la palette d'ATELIER de
+// `unitIdsOfKind` de `state/merchantFlow.ts`, bétail du Maquignon). Ce qui n'en est PAS un : la palette d'ATELIER de
 // l'éditeur de scène — cf. la SÉMANTIQUE DE « ORPHELINE » en en-tête de `entityConsumers.mjs`, qui
 // écrit cette exclusion pour qu'une extension future de MODE 2 ne la « corrige » pas en consommateur.
 // Le stock cliqueté (`entityOrphanStock.mjs#ENTITY_ORPHAN_RATCHET`) est NOMINATIF entrée par entrée
@@ -79,8 +79,8 @@
 // `.map((param) => param.id)` (jamais `.label` — un filtre qui SÉLECTIONNE sans MENER à l'entité par id
 // n'est pas un consommateur, cf. `entityConsumers.mjs` pour le cas mesuré `falseQualities()` REJETÉ).
 // Tout filtre hors grammaire est IGNORÉ (l'entrée reste orpheline). Trouvaille mesurée (2026-07) :
-// `qualities:laid` est sélectionnée par ses champs `type`/`subType` ET exploitée par id
-// (`ui/InterludeScreen.tsx:52-53`) sans jamais être citée littéralement — la définition MODE 1 seule
+// `qualities:laid` est sélectionnée par ses champs `polarite`/`subType` ET exploitée par id
+// (`defautsDObjet` de `ui/InterludeScreen.tsx`) sans jamais être citée littéralement — la définition MODE 1 seule
 // la classait à tort en dette.
 //
 // ENTITÉS MÉTA (`META_CATALOG_ENTRIES`) — une ligne de TABLE RAW transcrite en entrée de catalogue
@@ -146,8 +146,8 @@ out += `Chacun échappe à la détection par id pour une raison PROPRE : un Sort
 out += `prod (il s'obtient par Domaine / Talent de lanceur / \`learnSpell\` de scène — l'instrument juste\n`
 out += `est \`src/data/obtainability-guard.test.ts\`) ; le stock marchand des \`trappings\` est bâti par\n`
 out += `PRÉDICAT sur des catégories déclarées en donnée (\`state/merchantFlow.ts\`, hors grammaire MODE 2\n`
-out += `— #1631). \`creatures\` a quitté cette table pour les catalogues MESURÉS (#1553 L3). Détail et\n`
-out += `mesure du canal label (qui n'est PAS la cause) : en-tête de \`scripts/docs/build-entity-orphans.mjs\`.\n\n`
+out += `— #1631). \`creatures\` a quitté cette table pour les catalogues MESURÉS (#1553 L3). Détail du\n`
+out += `canal label (qui n'est PAS la cause) : en-tête de \`scripts/docs/build-entity-orphans.mjs\`.\n\n`
 out += `## Catalogues MESURÉS\n\n`
 out += `> Le stock cliqueté (\`ENTITY_ORPHAN_RATCHET\`) porte les MÊMES entrées, sous la forme\n`
 out += `> \`{ fichier, ref, occurrence }\` ; ce rapport en est la LECTURE, jamais la garde — un \`.md\`\n`

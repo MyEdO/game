@@ -10,7 +10,7 @@
 //
 // L'empreinte de génération se calcule sur le DISQUE (hash de blob git du contenu réellement lu) et
 // celle de vérification sur l'index : mêmes lignes, même sha1, donc toute divergence de contenu ou de
-// listing de dossier se voit. `* text=auto eol=lf` (.gitattributes:5) garde arbre et index à la même
+// listing de dossier se voit. `* text=auto eol=lf` (`.gitattributes`) garde arbre et index à la même
 // graphie de fin de ligne — mesuré 2026-09-02 : 6 526 fichiers `i/lf w/lf`, 34 binaires, 0 mixte.
 import { createHash } from 'node:crypto'
 import { execFileSync } from 'node:child_process'

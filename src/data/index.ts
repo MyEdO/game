@@ -2901,6 +2901,11 @@ const livreParId = indexParId('books', books);
 export function findBookById(id: string | null | undefined): BookData | undefined {
   return livreParId(id);
 }
+/** Libellé d'AFFICHAGE d'une réf de source (« Archives de l'Empire II p. 41 ») : titre du livre résolu
+ *  par son `id` (l'id si inconnu), puis la page. */
+export function sourceRefLabel(ref: Pick<SourceRef, 'book' | 'page'>): PlayerText {
+  return t('ref.sourcePage', { livre: dataLabel(livreParId(ref.book)?.label, ref.book), page: ref.page });
+}
 /** Acronyme d'un livre depuis l'`id` porté par `source.book` (fallback = l'id si inconnu). */
 export function bookAbr(id: string | null | undefined): PlayerText {
   return dataLabel(id ? livreParId(id)?.abbr : '', id ?? '');

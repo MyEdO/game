@@ -429,7 +429,7 @@ test('une machine qui ne porte pas les lanes joue en SÉRIE, et le dit', async (
 })
 
 test('--serie rend les MÊMES verdicts que les lanes : deux rouges, deux lignes, exit 1', async () => {
-  // La morsure de `lanesAJouer` (l.104) ne mesure que l'ensemble et l'ORDRE des gates ; elle ne dit
+  // La morsure de `lanesAJouer` ne mesure que l'ensemble et l'ORDRE des gates ; elle ne dit
   // rien des VERDICTS. Ici c'est `principal` entier qui est rejoué en `--serie` sur le même cas que
   // le test des deux lanes distinctes : `--serie` ne change que la COMPOSITION des lanes.
   const { racine } = depotDeGates([
@@ -652,7 +652,8 @@ test('un PRÉREQUIS absent ne fait sauter AUCUNE gate — ni sa lane, ni les aut
     })
     const sortie = lignes.join('')
     assert.equal(code, 1)
-    // Le refus NOMME encore le chemin et la commande : le sujet du test l.529 est intact.
+    // Le refus NOMME encore le chemin et la commande : le sujet du test « un PRÉREQUIS absent rend un
+    // ROUGE qui NOMME le chemin et la commande qui le pose » est intact.
     assert.match(sortie, /prérequis absent : `deps\/absent` \(le pose : `cmd qui pose`\)/)
     assert.match(sortie, /\[gates\] serveur — ROUGE \(exit 1\) — /)
     assert.match(sortie, /\[gates\] suivante — vert \(exit 0\) — /, 'la MÊME lane continue après un refus de prérequis')

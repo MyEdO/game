@@ -145,8 +145,11 @@ export interface ChargeursSource {
   manifeste: () => Promise<Manifeste>;
 }
 
-export function DescRefField({ label, value, onChange, chargeurs }: {
+export function DescRefField({ label, sujet, value, onChange, chargeurs }: {
   label: string;
+  /** POSITION du champ dans son conteneur (« de la rangée 2 de windModifiers ») : complète chacun de
+   *  ses noms accessibles, pour que deux adresses, dans deux rangées, ne se confondent pas. */
+  sujet?: string;
   value: DescRef | undefined;
   onChange: (v: DescRef | undefined) => void;
   /** Défaut = les chargeurs réels (`data/source/chapitres.ts`). */
@@ -154,6 +157,7 @@ export function DescRefField({ label, value, onChange, chargeurs }: {
 }) {
   const { chapitre: lireChapitre, manifeste: lireManifeste } = chargeurs ?? CHARGEURS_REELS;
   const uid = useId();
+  const nomme = (base: string) => (sujet ? `${base} ${sujet}` : base);
   const livres = useMemo(() => books.filter((b) => estExtrait(b.id)), []);
   const [manifeste, setManifeste] = useState<Manifeste | null>(null);
   // Le chapitre chargé PORTE l'adresse pour laquelle il l'a été : sans cet appariement, un rendu qui
@@ -358,7 +362,7 @@ export function DescRefField({ label, value, onChange, chargeurs }: {
 
       <div className="de-reflrow">
         <select
-          aria-label="Livre du passage"
+          aria-label={nomme('Livre du passage')}
           value={book}
           onChange={(e) => onChange(e.target.value ? { book: e.target.value, ch: '', parts: [] } : undefined)}
         >
@@ -367,7 +371,7 @@ export function DescRefField({ label, value, onChange, chargeurs }: {
         </select>
         {chapitresDuLivre ? (
           <select
-            aria-label="Chapitre du passage"
+            aria-label={nomme('Chapitre du passage')}
             value={ch}
             disabled={!book}
             onChange={(e) => onChange({ book, ch: e.target.value, parts: [] })}
@@ -385,6 +389,7 @@ export function DescRefField({ label, value, onChange, chargeurs }: {
           <NumberField
             variant="champ"
             label="chapitre"
+            ariaLabel={sujet ? nomme('chapitre') : undefined}
             placeholder="NN"
             width={84}
             min={1}
@@ -404,7 +409,7 @@ export function DescRefField({ label, value, onChange, chargeurs }: {
           MÊME champ de filtre que celle des sections. */}
       {chapitresFiltrables && (
         <div className="de-reflrow">
-          <SearchFilterField value={filtreCh} onChange={setFiltreCh} placeholder="filtrer les chapitres…" ariaLabel="Filtrer les chapitres du livre" />
+          <SearchFilterField value={filtreCh} onChange={setFiltreCh} placeholder="filtrer les chapitres…" ariaLabel={nomme('Filtrer les chapitres du livre')} />
           <em className="de-hint">
             {chapitresVus.length === 0
               ? 'aucun chapitre ne correspond'
@@ -431,7 +436,7 @@ export function DescRefField({ label, value, onChange, chargeurs }: {
 
       {etat === 'pret' && filtrable && (
         <div className="de-reflrow">
-          <SearchFilterField value={filtre} onChange={setFiltre} placeholder="filtrer les sections…" ariaLabel="Filtrer les sections du chapitre" />
+          <SearchFilterField value={filtre} onChange={setFiltre} placeholder="filtrer les sections…" ariaLabel={nomme('Filtrer les sections du chapitre')} />
           <em className="de-hint">
             {sectionsFiltrees.length === 0
               ? 'aucune section ne correspond'
@@ -463,7 +468,7 @@ export function DescRefField({ label, value, onChange, chargeurs }: {
         return (
           <div className="de-reflrow" key={i} data-fragment={i}>
             <select
-              aria-label={`Section du fragment ${i + 1}`}
+              aria-label={nomme(`Section du fragment ${i + 1}`)}
               value={cleSection(f.sec, f.secOcc)}
               onChange={(e) => {
                 const s = sections.find((x) => cleSection(x.slug, x.occ) === e.target.value);
@@ -485,11 +490,12 @@ export function DescRefField({ label, value, onChange, chargeurs }: {
             <OptionChooser
               layout="seg"
               idPrefix={`${uid}-${i}`}
-              groupLabel={`Fragment ${i + 1}`}
+              groupLabel={nomme(`Fragment ${i + 1}`)}
               options={[
                 {
                   key: 'blocs',
                   label: 'blocs',
+                  ariaLabel: nomme(`Fragment ${i + 1} en blocs`),
                   selected: f.kind === 'blocs',
                   title: 'Une suite contiguë de blocs de la section',
                   onSelect: () => majeur(i, (x) => ({ kind: 'blocs', sec: x.sec, secOcc: x.secOcc, b0: 0, b1: 0, sum: '' })),
@@ -497,6 +503,7 @@ export function DescRefField({ label, value, onChange, chargeurs }: {
                 {
                   key: 'cellule',
                   label: 'cellule',
+                  ariaLabel: nomme(`Fragment ${i + 1} en cellule`),
                   selected: f.kind === 'cellule',
                   refus: tables.length === 0
                     ? 'Cette section ne contient aucune table : il n’y a pas de cellule à adresser.'
@@ -517,10 +524,10 @@ export function DescRefField({ label, value, onChange, chargeurs }: {
             />
             {f.kind === 'blocs' ? (
               <>
-                <NumberField variant="champ" label="premier bloc" width={84}
+                <NumberField variant="champ" label="premier bloc" ariaLabel={nomme(`premier bloc du fragment ${i + 1}`)} width={84}
                   min={0} max={dernierBloc} value={f.b0}
                   onChange={(n) => majeur(i, (x) => (x.kind === 'blocs' ? { ...x, b0: n, b1: Math.max(n, x.b1) } : x))} />
-                <NumberField variant="champ" label="dernier bloc" width={84}
+                <NumberField variant="champ" label="dernier bloc" ariaLabel={nomme(`dernier bloc du fragment ${i + 1}`)} width={84}
                   min={f.b0} max={dernierBloc} value={f.b1}
                   onChange={(n) => majeur(i, (x) => (x.kind === 'blocs' ? { ...x, b1: n } : x))} />
                 <em className="de-hint">0 à {dernierBloc}</em>
@@ -531,14 +538,14 @@ export function DescRefField({ label, value, onChange, chargeurs }: {
             ) : (
               <>
                 <label className="de-cell"><span>ligne</span>
-                  <select aria-label={`Fragment ${i + 1} — ligne de la table`} value={f.row}
+                  <select aria-label={nomme(`Fragment ${i + 1} — ligne de la table`)} value={f.row}
                     onChange={(e) => majeur(i, (x) => (x.kind === 'cellule' ? { ...sansTable(x), row: e.target.value } : x))}>
                     {avecCourante(lignes, f.row).map((v) => <option key="courante" value={v}>{v} — ligne absente de la section</option>)}
                     {lignes.map((v, k) => <option key={k} value={v}>{v}</option>)}
                   </select>
                 </label>
                 <label className="de-cell"><span>colonne</span>
-                  <select aria-label={`Fragment ${i + 1} — colonne de la table`} value={f.col}
+                  <select aria-label={nomme(`Fragment ${i + 1} — colonne de la table`)} value={f.col}
                     onChange={(e) => majeur(i, (x) => (x.kind === 'cellule' ? { ...x, col: e.target.value } : x))}>
                     {avecCourante(colonnes, f.col).map((v) => <option key="courante" value={v}>{v} — colonne absente de la section</option>)}
                     {colonnes.map((v, k) => <option key={k} value={v}>{v}</option>)}
@@ -546,7 +553,7 @@ export function DescRefField({ label, value, onChange, chargeurs }: {
                 </label>
                 {choixDeTable && (
                   <label className="de-cell"><span>table</span>
-                    <select aria-label={`Fragment ${i + 1} — table de la ligne`} value={f.table ?? ''}
+                    <select aria-label={nomme(`Fragment ${i + 1} — table de la ligne`)} value={f.table ?? ''}
                       onChange={(e) => majeur(i, (x) => (x.kind !== 'cellule' ? x : e.target.value ? { ...x, table: e.target.value } : sansTable(x)))}>
                       <option value="">—</option>
                       {f.table != null && avecCourante(tablesTitreesDeLaLigne.map((t) => t.cle ?? ''), f.table).map((v) => <option key="courante" value={v}>{tableAbsente(v)}</option>)}
@@ -561,13 +568,13 @@ export function DescRefField({ label, value, onChange, chargeurs }: {
                 16 hex sur une rangée « section absente du chapitre »). */}
             <label className="de-cell" title="Recalculée à chaque geste, jamais saisie">
               <span>empreinte</span>
-              <output aria-label={`Fragment ${i + 1} — empreinte`} className="de-hint">
+              <output aria-label={nomme(`Fragment ${i + 1} — empreinte`)} className="de-hint">
                 {parFragment[i] && !estErreur(parFragment[i]) && f.sum
                   ? f.sum
                   : 'pas d’empreinte : l’adresse ne résout pas'}
               </output>
             </label>
-            <button className="btn small danger" title="Retirer le fragment"
+            <button className="btn small danger" aria-label={nomme(`Retirer le fragment ${i + 1}`)} title={nomme(`Retirer le fragment ${i + 1}`)}
               onClick={() => poser(parts.filter((_, j) => j !== i))}>✕</button>
             {/* L'erreur vit DANS la rangée qu'elle DÉSIGNE — la sienne, ou celle que l'erreur de
                 montage nomme (`ErreurResolution.fragment`) : avec trois fragments, un message en pied
@@ -602,6 +609,7 @@ export function DescRefField({ label, value, onChange, chargeurs }: {
             <GatedAction
               id={`${uid}-fragment`}
               label="+ Fragment"
+              ariaLabel={nomme('Ajouter un fragment')}
               enabled={!plafond && !!neuf?.frag}
               reason={raison}
               primary={false}
@@ -641,7 +649,7 @@ export function DescRefField({ label, value, onChange, chargeurs }: {
           ait relu ferait dire à l'adresse un texte qu'il n'a pas vu — la corruption silencieuse que
           l'adressage existe pour empêcher. */}
       {rescellable && (
-        <button className="btn small" title="Repose l’empreinte de chaque fragment sur le texte du livre TEL QU’IL EST AUJOURD’HUI — à ne faire qu’après avoir relu le passage."
+        <button className="btn small" aria-label={nomme('Resceller après relecture')} title="Repose l’empreinte de chaque fragment sur le texte du livre TEL QU’IL EST AUJOURD’HUI — à ne faire qu’après avoir relu le passage."
           onClick={() => poser(parts.map(sceller))}>
           Resceller après relecture
         </button>

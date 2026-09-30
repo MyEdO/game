@@ -35,12 +35,20 @@ type NoeudEnum = { meta?: () => unknown };
  * ci-dessous aussi.
  */
 export function noyauEnum(noeud: unknown): NoeudEnum | undefined {
+  return derouleEnum(noeud)?.noyau;
+}
+
+/** Le déroulé lui-même : le noyau d'enum, et `liste` quand un élément de liste (segment `[]`) a été
+ *  traversé — le champ porte alors PLUSIEURS valeurs de l'enum, jamais une seule. */
+export function derouleEnum(noeud: unknown): { noyau: NoeudEnum; liste: boolean } | undefined {
   const traverses = new Set<unknown>();
+  let liste = false;
   for (let n = noeud; n && !traverses.has(n); ) {
-    if (defDe(n)?.type === 'enum') return n as NoeudEnum;
+    if (defDe(n)?.type === 'enum') return { noyau: n as NoeudEnum, liste };
     traverses.add(n);
     const enfants = enfantsDe(n);
     if (enfants.length !== 1 || (enfants[0].segment !== '' && enfants[0].segment !== '[]')) return undefined;
+    if (enfants[0].segment === '[]') liste = true;
     n = enfants[0].noeud;
   }
   return undefined;

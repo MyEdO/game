@@ -1,7 +1,24 @@
 {
   "claudeMdExcludes": ["**/Foundry/CLAUDE.md"],
   "permissions": {
-    "allow": ["Bash(npm run:*)"]
+    "allow": [
+      "Bash(npm run:*)",
+      "Bash(git grep *)",
+      "mcp__lean-ctx__ctx_read",
+      "mcp__lean-ctx__ctx_search",
+      "mcp__lean-ctx__ctx_shell",
+      "mcp__plugin_playwright_playwright__browser_snapshot",
+      "mcp__Claude_Browser__find",
+      "mcp__lean-ctx__ctx_glob",
+      "mcp__plugin_playwright_playwright__browser_console_messages",
+      "mcp__Claude_Browser__read_console_messages",
+      "mcp__Claude_Browser__get_page_text",
+      "mcp__Claude_Browser__read_page",
+      "mcp__lean-ctx__ctx_tree",
+      "mcp__Claude_Browser__read_network_requests",
+      "mcp__Claude_Browser__preview_logs",
+      "mcp__ccd_session_mgmt__list_events"
+    ]
   },
   "hooks": {
     "PreToolUse": [

@@ -190,7 +190,6 @@ const ZEROS = [
   'CastingNumberMod.maison',
   'CastingNumberMod.source',
   'PropData.type',
-  'SourceRef.note',
 ];
 
 describe('contrat POSITIF des champs recouvrés + cliquet des « 0 lecteur »', () => {

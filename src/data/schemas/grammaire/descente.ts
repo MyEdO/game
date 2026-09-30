@@ -151,9 +151,10 @@ function brancheAdmet(option: unknown, discriminant: string, v: unknown): boolea
 /**
  * Fermeture de `noeuds` par leurs enfants TRANSPARENTS pour un même pas de donnée : `''` (optionnel,
  * nullable, défaut, lecture seule, `lazy`, côtés d'un `pipe`), `&0`/`&1`, `|N` ; départs compris. Une
- * union DISCRIMINÉE ne garde que les branches dont le discriminant admet celui de `valeur`, TOUTES sans
- * valeur lisible : la co-descente ne valide pas (`schemas.js:1171-1187`, zod ne se replie pas). Une
- * union simple garde toutes ses branches. Sans `valeur`, la fermeture est celle du schéma seul.
+ * union DISCRIMINÉE ne garde que les branches dont le discriminant admet celui de `valeur` — un
+ * discriminant ABSENT d'un objet y vaut `undefined` quand une branche l'admet (`schemas.js:1171`) —,
+ * TOUTES sans valeur lisible : la co-descente ne valide pas (`schemas.js:1171-1187`, zod ne se replie
+ * pas). Une union simple garde toutes ses branches. Sans `valeur`, la fermeture est celle du schéma seul.
  */
 export function ouverts(noeuds: readonly unknown[], valeur?: unknown): unknown[] {
   const vus = new Set<unknown>();
@@ -163,10 +164,13 @@ export function ouverts(noeuds: readonly unknown[], valeur?: unknown): unknown[]
     if (!estObjet(n) || vus.has(n)) continue;
     vus.add(n);
     const discriminant = defDe(n)?.discriminator;
+    const enfants = enfantsDe(n);
     const lu = discriminant !== undefined && estObjet(valeur) ? valeur[discriminant] : undefined;
-    for (const e of enfantsDe(n)) {
+    const absentAdmis =
+      lu === undefined && discriminant !== undefined && estObjet(valeur) && enfants.some((e) => e.segment.startsWith('|') && brancheAdmet(e.noeud, discriminant, undefined));
+    for (const e of enfants) {
       if (e.segment === '' || e.segment.startsWith('&')) file.push(e.noeud);
-      else if (e.segment.startsWith('|') && (lu === undefined || brancheAdmet(e.noeud, discriminant!, lu))) file.push(e.noeud);
+      else if (e.segment.startsWith('|') && ((lu === undefined && !absentAdmis) || brancheAdmet(e.noeud, discriminant!, lu))) file.push(e.noeud);
     }
   }
   return [...vus];

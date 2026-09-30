@@ -14,6 +14,7 @@ import { FlowEditor } from './FlowEditor';
 import { WhenEditor, condSummary } from './ConditionEditor';
 import { ListRow } from '../ListRow';
 import { NumberField } from '../NumberField';
+import { useClesDeRangees } from '../useClesDeRangees';
 import { Row, Stack } from '../Layout';
 import { coupeAuMot } from '../../lib/coupeAuMot.mjs';
 
@@ -39,6 +40,9 @@ export function DialogueDetail({ dialogue, onChange, ctx }: { dialogue: Dialogue
     onChange({ ...dialogue, nodes: [...dialogue.nodes, { id, desc: '', choices: [] }] });
     setNodeId(id);
   };
+  const clesDesChoix = useClesDeRangees(node?.choices);
+  // Le panneau du nœud est keyed sur son identité STABLE : un renommage le garde, un autre nœud le remonte.
+  const clesDesNoeuds = useClesDeRangees(dialogue.nodes);
 
   return (
     <div className="dlg-detail">
@@ -81,7 +85,7 @@ export function DialogueDetail({ dialogue, onChange, ctx }: { dialogue: Dialogue
         </div>
 
         {node && (
-          <div className="dlg-node-edit panel sunken">
+          <div className="dlg-node-edit panel sunken" key={clesDesNoeuds[dialogue.nodes.indexOf(node)]}>
             <Row>
               <input className="node-id" value={node.id} placeholder="id nœud" onChange={(e) => {
                 const id = e.target.value;
@@ -126,7 +130,7 @@ export function DialogueDetail({ dialogue, onChange, ctx }: { dialogue: Dialogue
             <div className="mini-title">Choix ({node.choices.length})</div>
             <Stack>
               {node.choices.map((c, ci) => (
-                <details className="eff-row dlg-choice" key={ci}>
+                <details className="eff-row dlg-choice" key={clesDesChoix[ci]}>
                   <summary>
                     <span className="eff-summary">
                       {c.label ? `« ${coupeAuMot(c.label, 38)} »` : '(choix sans texte)'}

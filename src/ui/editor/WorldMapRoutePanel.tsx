@@ -8,6 +8,7 @@ import { useState } from 'react';
 import { Tabs } from '../Tabs';
 import { Icon } from '../Icon';
 import { NumberField } from '../NumberField';
+import { useClesDeRangees } from '../useClesDeRangees';
 import { Scene } from '../../state/scene';
 import { type WorldMap, type MapRoute, placeById } from '../../state/worldMap';
 import { type TravelMode, TRAVEL_DEFAULTS, travelVehicles, travelModeLabels, travelModeIcon } from '../../engine/travel';
@@ -27,6 +28,7 @@ export function WorldMapRoutePanel({ route, map, scenes, updRoute, effCtx, toggl
 }) {
   const [routeTab, setRouteTab] = useState<'trajet' | 'peripeties'>('trajet');
   const ambushScene = route.ambush?.scene ? scenes.find((s) => s.id === route.ambush!.scene) : undefined;
+  const clesDesPeripeties = useClesDeRangees(route.perils);
 
   return (
     <>
@@ -186,7 +188,7 @@ export function WorldMapRoutePanel({ route, map, scenes, updRoute, effCtx, toggl
 
           <div className="mini-title">Péripéties d'auteur (tirées chaque jour de voyage)</div>
           {(route.perils ?? []).map((peril, i) => (
-            <div key={i} className="wme-peril">
+            <div key={clesDesPeripeties[i]} className="wme-peril">
               <label className="ed-field">Libellé
                 <input
                   value={peril.label}

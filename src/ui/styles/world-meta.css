@@ -187,14 +187,14 @@
 /* Onglets propres de PortView (rendus hors slot ScreenShell, entre `PortHeader` et le corps) — même
  * largeur bornée/centrage que `.screen-toolbar` (primitive `<Tabs>`, tabs.css, en compose le style). */
 .port-tabnav {
-  width: min(900px, 96vw);
+  width: min(900px, 100%);
   margin: 0 auto;
 }
 /* `.port-purse` = bourse de la méta d'en-tête (primitive `ScreenMeta`) ; `.market-carrier` = chip de
    PORTEUR de la barre d'outils du marché terrestre — même graisse discrète, sémantique distincte. */
 .port-purse, .market-carrier { margin-left: auto; font-size: 13px; color: var(--muted); }
 /* En-tête d'escale-hub (#228) : région + 5 indices de l'Index des ports + desc du catalogue. */
-.port-head { width: min(900px, 96vw); margin: 0 auto 6px; }
+.port-head { width: min(900px, 100%); margin: 0 auto 6px; }
 .port-region { margin: 0 0 6px; }
 .port-indices { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12.5px; color: var(--muted); margin: 4px 0; }
 .port-indices span b { color: var(--gold2); font-weight: 500; margin-right: 4px; }

@@ -42,19 +42,19 @@ function champsPresentes(): string[] {
     .filter(Boolean);
 }
 
-function monte(categoryKey: string, label: string, id: string) {
+function monte(categoryKey: string, id: string) {
   container = document.createElement('div');
   document.body.appendChild(container);
   root = createRoot(container);
-  act(() => { root.render(<CodexEdit categoryKey={categoryKey} label={label} id={id} onClose={() => {}} />); });
+  act(() => { root.render(<CodexEdit categoryKey={categoryKey} id={id} onClose={() => {}} />); });
 }
 
 /** L'atelier ouvert sur une entrée NEUVE (bouton « Nouveau ») — le brouillon ne vient d'aucune entrée. */
-function monteNeuf(categoryKey: string, label: string) {
+function monteNeuf(categoryKey: string) {
   container = document.createElement('div');
   document.body.appendChild(container);
   root = createRoot(container);
-  act(() => { root.render(<CodexEdit categoryKey={categoryKey} label={label} isNew onClose={() => {}} />); });
+  act(() => { root.render(<CodexEdit categoryKey={categoryKey} isNew onClose={() => {}} />); });
 }
 
 /** Le champ nommé `label`, tel que l'écran le porte. */
@@ -74,7 +74,7 @@ function libellesEtrangers(domaine: string): string[] {
 describe('atelier du Codex — charge du CAS d’un document discriminé (#1686)', () => {
   it('une matière de DÉCOR n’édite aucun champ de toiture ni de relief', () => {
     const m = UNE_MATIERE('prop');
-    monte('materials', m.label, m.id);
+    monte('materials', m.id);
     const presentes = champsPresentes();
     expect(presentes, 'la charge du domaine n’est pas montée — le formulaire ne mesure rien').toContain('Couleur');
     const etrangers = libellesEtrangers('prop');
@@ -88,7 +88,7 @@ describe('atelier du Codex — charge du CAS d’un document discriminé (#1686)
 
   it('le DOMAINE se choisit dans un `select` dont les options portent les libellés du def', () => {
     const m = UNE_MATIERE('roof');
-    monte('materials', m.label, m.id);
+    monte('materials', m.id);
     const select = champ('Domaine')?.querySelector('select');
     expect(select, 'le champ discriminant n’est pas un choix borné').toBeTruthy();
     expect([...select!.options].map((o) => o.textContent)).toEqual(['Décor', 'Toiture', 'Relief']);
@@ -97,7 +97,7 @@ describe('atelier du Codex — charge du CAS d’un document discriminé (#1686)
 
   it('changer le DOMAINE au formulaire change les champs présentés (la charge suit le cas)', () => {
     const m = UNE_MATIERE('relief');
-    monte('materials', m.label, m.id);
+    monte('materials', m.id);
     expect(champsPresentes()).toContain('Couleur de face');
     const select = champ('Domaine')!.querySelector('select')!;
     const setter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')!.set!;
@@ -111,7 +111,7 @@ describe('atelier du Codex — charge du CAS d’un document discriminé (#1686)
   });
 
   it('CRÉATION — le brouillon porte ce que le def détermine : `type` posé et FIGÉ, domaine à la 1re valeur, charge du seul cas', () => {
-    monteNeuf('materials', 'Nouvelle matière');
+    monteNeuf('materials');
     // Le `type` d'enveloppe est un `z.literal` du def : pré-rempli et non saisissable (un champ vide
     // qu'il faut deviner, ou ouvert à la frappe, est une affordance qui ment).
     const type = champ(libelleDuChamp('type', { meta: META }))?.querySelector('input');
@@ -132,7 +132,7 @@ describe('atelier du Codex — charge du CAS d’un document discriminé (#1686)
     // schéma REFUSE au save. C'est ce que le mécanisme retire aux documents qui déclarent, et ce témoin
     // le tient à l'écran : le jour où `oups` déclare, il rougit ici et le stock ci-dessous décroît.
     const misfire = oups.find((o) => o.kind === 'misfire')!;
-    monte('oups', misfire.label, misfire.id);
+    monte('oups', misfire.id);
     const presentes = champsPresentes();
     expect(presentes, 'le formulaire de l’Incident de Tir n’est pas monté — le témoin ne mesure rien').toContain('Effet mécanique');
     expect(presentes).toContain(libelleDuChamp('min', { meta: metaPourFichier('oups.json') }));
