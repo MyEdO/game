@@ -183,7 +183,7 @@ Soin aux animaux, Voile**
 **Sources RAW :** LDB 09 l.65-574 (descriptions individuelles).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 9` (l.65-574) → `mendier-ennuis`, `GearAssignList`, `SOURCES_DE_SPECS`, `rollDrivingMishap` ⚠sans-appelant, `altCharKey`, `drivingAccidentDamage` ⚠sans-appelant, `DRUNK_CARACS`, `accidents-conduite-attelage`, `actBlockReason`, `skillAdvantageCap`, +103 — `src/data/activities.json`, `src/data/combat-stakes.json`, `src/data/driving-mishap.json`, `src/data/drunkenness.json`, `src/data/flow-stakes.json`, `src/data/index.ts`, +40 fichiers
+- `LDB 9` (l.65-574) → `mendier-ennuis`, `GearAssignList`, `porteADecouvrir`, `SOURCES_DE_SPECS`, `rollDrivingMishap` ⚠sans-appelant, `altCharKey`, `drivingAccidentDamage` ⚠sans-appelant, `DRUNK_CARACS`, `accidents-conduite-attelage`, `actBlockReason`, +106 — `src/data/activities.json`, `src/data/combat-stakes.json`, `src/data/driving-mishap.json`, `src/data/drunkenness.json`, `src/data/flow-stakes.json`, `src/data/index.ts`, +42 fichiers
 
 ---
 
@@ -694,7 +694,14 @@ Discrétion).
 
 **En combat :** remarquer des détails importants (déterminés par le MJ).
 
-**Sources RAW :** LDB 09 l.398-401
+**Porte secrète :**
+
+> « Une porte secrète verrouillée (D -30, DR 4 ; BE 5, B 15) est dissimulée derrière le lambris dans
+> le bureau de Franz. […] Cette porte ne peut être découverte qu'après la réussite d'un Test de
+> **Perception Complexe (-10)**. »
+> — EDO 08 l.402
+
+**Sources RAW :** LDB 09 l.398-401 · EDO 08 l.402
 
 ---
 

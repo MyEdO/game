@@ -15,9 +15,9 @@
 
 - **Cœur 4e** : ✅ 40 traités par une fiche · 📖 33 transcrits par un catalogue seul (jamais traités) · 🟡 0 effleurés · ⬜ 1 trous, sur 74 chapitres-règles (hors artefacts OCR).
 - **Cœur 5e** : ✅ 33 traités par une fiche · 📖 0 transcrits par un catalogue seul (jamais traités) · 🟡 17 effleurés · ⬜ 67 trous, sur 117 chapitres-règles (hors artefacts OCR).
-- **Livres sans cœur déclaré** : ✅ 49 traités par une fiche · 📖 45 transcrits par un catalogue seul (jamais traités) · 🟡 2 effleurés · ⬜ 0 trous, sur 96 chapitres-règles (hors artefacts OCR).
+- **Livres sans cœur déclaré** : ✅ 50 traités par une fiche · 📖 45 transcrits par un catalogue seul (jamais traités) · 🟡 2 effleurés · ⬜ 0 trous, sur 97 chapitres-règles (hors artefacts OCR).
 
-Section-granulaire (niveau de heading ADAPTATIF par livre — H2 pour AA/VDM/ADE I/ADE II/EDO, H3 pour LDB/CRB/MCLB/ACE/ZI/MDG/EDOC/MSRC/NADJ/MSR/PDT, H4 pour AU1, #604), ventilation DÉRIVÉE (jamais un compte recopié) sur 3844 section(s) non couvertes par une fiche : **639 transcrite(s) en catalogue** (recopiées, pas traitées) · **2463 hors-règle** (chapitre explicitement exclu) · **61 bruit de scénario** (livres de teneur `scenario` AU1/EDO/MSR/PDT : prose de campagne, aucune règle) · **681 candidat(s) trou de règle** (reste : LDB/CRB/AA/VDM/ADE I/ADE II/MCLB/ACE/ZI/MDG/EDOC/MSRC/NADJ — livres de règles et compagnons mixtes, où une section vide peut cacher une vraie règle non couverte) — et 12 titre(s) de chapitre enfoui(s) détecté(s) (titre orné rétrogradé par l'extraction). Ce chiffre reste un PLANCHER : les sections couvertes par une fiche (✅ au niveau section) ne sont pas dénombrées ici (volume, cf. #604 « la sortie ne liste pas l'exhaustif »). Réfs folio (`ABBR NN p.X`, #606) : 2 ignorée(s) proprement (ancre absente/ambiguë/hors-chapitre). Par livre : LDB ✅40·📖33·🟡0·⬜1 · CRB ✅33·📖0·🟡17·⬜67 · AA ✅9·📖4·🟡0·⬜0 · VDM ✅4·📖10·🟡0·⬜0 · ADE I ✅0·📖2·🟡0·⬜0 · ADE II ✅3·📖3·🟡0·⬜0 · MCLB ✅0·📖5·🟡0·⬜0 · ACE ✅1·📖2·🟡0·⬜0 · ZI ✅4·📖10·🟡0·⬜0 · MDG ✅8·📖2·🟡0·⬜0 · EDOC ✅4·📖0·🟡1·⬜0 · MSRC ✅3·📖4·🟡1·⬜0 · AU1 ✅1·📖0·🟡0·⬜0 · NADJ ✅6·📖0·🟡0·⬜0 · EDO ✅4·📖0·🟡0·⬜0 · MSR ✅0·📖1·🟡0·⬜0 · PDT ✅2·📖2·🟡0·⬜0.
+Section-granulaire (niveau de heading ADAPTATIF par livre — H2 pour AA/VDM/ADE I/ADE II/EDO, H3 pour LDB/CRB/MCLB/ACE/ZI/MDG/EDOC/MSRC/NADJ/MSR/PDT, H4 pour AU1, #604), ventilation DÉRIVÉE (jamais un compte recopié) sur 3842 section(s) non couvertes par une fiche : **639 transcrite(s) en catalogue** (recopiées, pas traitées) · **2433 hors-règle** (chapitre explicitement exclu) · **89 bruit de scénario** (livres de teneur `scenario` AU1/EDO/MSR/PDT : prose de campagne, aucune règle) · **681 candidat(s) trou de règle** (reste : LDB/CRB/AA/VDM/ADE I/ADE II/MCLB/ACE/ZI/MDG/EDOC/MSRC/NADJ — livres de règles et compagnons mixtes, où une section vide peut cacher une vraie règle non couverte) — et 12 titre(s) de chapitre enfoui(s) détecté(s) (titre orné rétrogradé par l'extraction). Ce chiffre reste un PLANCHER : les sections couvertes par une fiche (✅ au niveau section) ne sont pas dénombrées ici (volume, cf. #604 « la sortie ne liste pas l'exhaustif »). Réfs folio (`ABBR NN p.X`, #606) : 2 ignorée(s) proprement (ancre absente/ambiguë/hors-chapitre). Par livre : LDB ✅40·📖33·🟡0·⬜1 · CRB ✅33·📖0·🟡17·⬜67 · AA ✅9·📖4·🟡0·⬜0 · VDM ✅4·📖10·🟡0·⬜0 · ADE I ✅0·📖2·🟡0·⬜0 · ADE II ✅3·📖3·🟡0·⬜0 · MCLB ✅0·📖5·🟡0·⬜0 · ACE ✅1·📖2·🟡0·⬜0 · ZI ✅4·📖10·🟡0·⬜0 · MDG ✅8·📖2·🟡0·⬜0 · EDOC ✅4·📖0·🟡1·⬜0 · MSRC ✅3·📖4·🟡1·⬜0 · AU1 ✅1·📖0·🟡0·⬜0 · NADJ ✅6·📖0·🟡0·⬜0 · EDO ✅5·📖0·🟡0·⬜0 · MSR ✅0·📖1·🟡0·⬜0 · PDT ✅2·📖2·🟡0·⬜0.
 
 ## LDB — ✅ 40 · 📖 33 · 🟡 0 · ⬜ 1
 
@@ -37,7 +37,7 @@ Section-granulaire (niveau de heading ADAPTATIF par livre — H2 pour AA/VDM/ADE
 | 12 | Tests | ✅ | 50 (4e/tests.md ×45) |
 | 13 | Combat | ✅ | 132 (4e/combat.md ×122) |
 | 14 | OPTION : FRAPPE MORTELLE | ✅ | 141 (4e/combat.md ×136) |
-| 15 | Deplacement | ✅ | 70 (4e/combat.md ×62) |
+| 15 | Deplacement | ✅ | 74 (4e/combat.md ×66) |
 | 16 | Etats | ✅ | 56 (4e/etats.md ×31) |
 | 17 | Destin et Resistance | ✅ | 55 (4e/destin.md ×31) |
 | 18 | Traumatisme | ✅ | 107 (4e/traumatisme.md ×68) |
@@ -1871,11 +1871,11 @@ Section-granulaire (niveau de heading ADAPTATIF par livre — H2 pour AA/VDM/ADE
   - ⬜ l.133-140 « L'IMPÉRATRICE ÉCARLATE » — candidat trou de règle, 0 réf
   - ⬜ l.141-146 « LES PIERRES » — candidat trou de règle, 0 réf
 
-## EDO — ✅ 4 · 📖 0 · 🟡 0 · ⬜ 0
+## EDO — ✅ 5 · 📖 0 · 🟡 0 · ⬜ 0
 
 | Ch. | Titre | État | refs (propriétaire) |
 |---|---|---|---|
-| 01 | Chapitre 1 - On recherche - aventuriers courageux | ➖ hors-règle | |
+| 01 | Chapitre 1 - On recherche - aventuriers courageux | ✅ | 5 (4e/combat.md ×5) |
 | 02 | Chapitre 2 - Erreur sur la personne | ➖ hors-règle | |
 | 03 | Chapitre 3 - Le coeur de l'Empire | ➖ hors-règle | |
 | 04 | Chapitre 4 - Sur la route de Bogenhafen... | ➖ hors-règle | |
@@ -1890,6 +1890,35 @@ Section-granulaire (niveau de heading ADAPTATIF par livre — H2 pour AA/VDM/ADE
 
 **Sections trouées/cataloguées/enfouies** (niveau de heading H2) :
 
+- **EDO 01** (Chapitre 1 - On recherche - aventuriers courageux) :
+  - ⬜ l.9-14 « DÉBUT DE L'AVENTURE » — bruit de scénario, 0 réf
+  - ⬜ l.15-41 « L'AUBERGE LA DILIGENCE » — bruit de scénario, 0 réf
+  - ⬜ l.42-53 « 5. Écuries et remise » — bruit de scénario, 0 réf
+  - ⬜ l.54-57 « 8. Brasserie » — bruit de scénario, 0 réf
+  - ⬜ l.58-65 « 9. Salle commune » — bruit de scénario, 0 réf
+  - ⬜ l.66-74 « 11. Quartiers des serviteurs » — bruit de scénario, 0 réf
+  - ⬜ l.75-82 « L'APPROCHE DE L'AUBERGE » — bruit de scénario, 0 réf
+  - ⬜ l.83-90 « La diligence » — bruit de scénario, 0 réf
+  - ⬜ l.91-109 « Dans l'auberge » — bruit de scénario, 0 réf
+  - ⬜ l.110-115 « Les PNJ » — bruit de scénario, 0 réf
+  - ⬜ l.116-191 « Le propriétaire » — bruit de scénario, 0 réf
+  - ⬜ l.192-197 « Gérer l'inattendu » — bruit de scénario, 0 réf
+  - ⬜ l.198-223 « Une partie de cartes ? » — bruit de scénario, 0 réf
+  - ⬜ l.245-248 « LE VOYAGE » — bruit de scénario, 0 réf
+  - ⬜ l.249-259 « Debout là-dedans ! » — bruit de scénario, 0 réf
+  - ⬜ l.301-306 « Un léger contretemps » — bruit de scénario, 0 réf
+  - ⬜ l.307-316 « Le voyage commence » — bruit de scénario, 0 réf
+  - ⬜ l.317-324 « Chantons sous la pluie ! » — bruit de scénario, 0 réf
+  - ⬜ l.325-337 « OPTIONS : COMPAGNONS DE VOYAGE » — bruit de scénario, 0 réf
+  - ⬜ l.338-343 « À la croisée des chemins » — bruit de scénario, 0 réf
+  - ⬜ l.344-345 « CONCLUSION » — bruit de scénario, 0 réf
+  - ⬜ l.346-355 « Récompenses » — bruit de scénario, 0 réf
+  - ⬜ l.356-357 « PNJ » — bruit de scénario, 0 réf
+  - ⬜ l.358-398 « Le personnel de l'auberge » — bruit de scénario, 0 réf
+  - ⬜ l.399-416 « Les cochers » — bruit de scénario, 0 réf
+  - ⬜ l.417-453 « Dame Isolde et sa suite » — bruit de scénario, 0 réf
+  - ⬜ l.454-475 « Le garde du corps » — bruit de scénario, 0 réf
+  - ⬜ l.476-528 « Les autres voyageurs » — bruit de scénario, 0 réf
 - **EDO 07** (Chapitre 7 - Dans les tenebres) :
   - ⬜ l.9-14 « ENTRER DANS LES ÉGOUTS » — bruit de scénario, 0 réf
   - ⬜ l.15-20 « PENDANT CE TEMPS-LÀ, AILLEURS… » — bruit de scénario, 0 réf
@@ -2136,4 +2165,4 @@ Section-granulaire (niveau de heading ADAPTATIF par livre — H2 pour AA/VDM/ADE
   - ⬜ l.9-10 « La Compétence » — bruit de scénario, 0 réf
 - **PDT 13** (POINTS D'EXPERIENCE) :
   - ⬜ l.81-82 « ANNEXE V » — bruit de scénario, 0 réf
-<!-- sources-empreinte: 72ec6e35edfb1ba9acfc813033cc72f44ec5cf31 (471 fichiers, 20 dossiers) corps: a45356c9e88d474ec361115bad5ac1051b1c2b6d -->
+<!-- sources-empreinte: e481e370538616774d99013373e4bdb8a9ac8c30 (471 fichiers, 20 dossiers) corps: d0e75ec32f1f1b598c4d6e3d18dd2414640df414 -->

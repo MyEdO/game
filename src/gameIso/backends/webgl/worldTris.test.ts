@@ -67,7 +67,7 @@ import { detenteur } from '../../../detenteur.testkit';
 function batirTemoins() {
   /** Toutes les faces MONDE d'une scène, dans l'ordre de peinture des builders. */
   const facesOf = memoByRef((scene: Scene): Face[] =>
-    [...buildFloors(scene), ...buildWalls(scene), ...buildRoofs(scene)].flatMap((el) => el.faces));
+    [...buildFloors(scene), ...buildWalls(scene, 'jeu'), ...buildRoofs(scene)].flatMap((el) => el.faces));
   /** Quads MONDE d'une scène à la profondeur que les catalogues d'apparence résolvent (`faceRelief`) —
    *  la liste EXACTE que `bakeWorldGeometry` fusionne, jamais une géométrie de laboratoire. */
   const quadsOf = memoByRef((scene: Scene): WorldPoly[] => {
@@ -540,7 +540,7 @@ describe('ÉPAISSEUR de mur — un plan d’épaisseur nulle n’a AUCUNE surfac
     it(`${name} : les murs offrent une surface NON NULLE vue du dessus (coiffes)`, () => {
       const scene = faire();
       const mpt = sceneMetresPerTile(scene);
-      const faces = buildWalls(scene).flatMap((el) => el.faces);
+      const faces = buildWalls(scene, 'jeu').flatMap((el) => el.faces);
       const tris = facesGeometry(faces, mpt, faceDepthOf()).flatMap((g) => g.tris);
       const vueDuDessus = tris.reduce((s, t) => s + aireVueDuDessus(t), 0);
       const coiffes = tris.filter((t) => Math.abs(polyNormal(t)?.y ?? 0) > 0.99).length;
@@ -556,7 +556,7 @@ describe('CONVERSION des murs — la géométrie rendue est celle que `buildWall
   it('opéra : chaque face de mur émise produit des triangles, tous DANS l’emprise de la scène', () => {
     const scene = opera();
     const mpt = sceneMetresPerTile(scene);
-    const faces = buildWalls(scene).flatMap((el) => el.faces);
+    const faces = buildWalls(scene, 'jeu').flatMap((el) => el.faces);
     expect(faces.length).toBeGreaterThan(1000);
     const geoms = facesGeometry(faces, mpt, faceDepthOf());
     expect(geoms.filter((g) => g.tris.length === 0)).toEqual([]);
@@ -715,7 +715,7 @@ describe('RELIEF MINCE — le prix mesuré du volume (#1176 P1-E)', () => {
    *  niveaux n'y émet pas les mêmes planchers, et le compte de triangles s'en ressent. */
   const facesRendues = memoByRef((scene: Scene): Face[] => {
     const maxZ = Math.max(...scene.layers.map((l) => l.z));
-    return [...buildFloors(scene, undefined, { activeZ: maxZ }), ...buildWalls(scene), ...buildRoofs(scene)]
+    return [...buildFloors(scene, undefined, { activeZ: maxZ }), ...buildWalls(scene, 'jeu'), ...buildRoofs(scene)]
       .flatMap((el) => el.faces);
   });
 

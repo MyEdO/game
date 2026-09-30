@@ -3,15 +3,15 @@
 > ⚠️ Fichier GÉNÉRÉ par `node scripts/docs/build-map-authoring.mjs` (`npm run docs:map-authoring`) — NE PAS ÉDITER À LA MAIN.
 
 **Périmètre mesuré / angles morts** — sont LUS par AST à `src/state/mapSpec.ts` : les 38
-champs de `MapSpec` (nom, type, 1re phrase de JSDoc), ceux de `WallSpec` (9, héritage
+champs de `MapSpec` (nom, type, 1re phrase de JSDoc), ceux de `WallSpec` (18, héritage
 `extends` SUIVI : un parent hors du fichier est résolu à `src/state/scene.ts`, et un parent `Pick<Cible, clés>`
 tire ses clés du tableau `as const` cité et leurs type/JSDoc du schéma zod de `src/data/schemas/defs-scenes/scene.ts`),
 `CellRecipe` (5) et `EncounterSpec` (11), les
 5 formes de `BindSpec` et les 3 de `ReliefSpec`, et les 10
 étapes de l'ordre de compilation citées au JSDoc de tête. Le harnais QC liste les fonctions
-exportées de `src/state/mapQC.ts`. Les exemples vivants sont MESURÉS par AST sur les 36
+exportées de `src/state/mapQC.ts`. Les exemples vivants sont MESURÉS par AST sur les 37
 documents de `src/scenes/` qui exposent un littéral `MapSpec` (argument de `buildScene(...)` ou objet
-annoté `MapSpec`), sur 37 qui emploient `buildScene`/`MapSpec` (hors `*.test.ts`).
+annoté `MapSpec`), sur 38 qui emploient `buildScene`/`MapSpec` (hors `*.test.ts`).
 **Angles morts** : un champ n'est compté « employé » que posé au PREMIER niveau du littéral — un spec
 construit ailleurs (variable non annotée, fabrique) n'est pas mesuré, et une clé posée par épandage
 (`...preset` — 1 document concerné) échappe à la mesure ; le JSDoc rapporté est la
@@ -121,8 +121,17 @@ Spec de relief EN COORDONNÉES (repli bas niveau ; préférer `elevate` piloté 
 | `side` | `CellSide \| '\\' \| '/'` | — |
 | `z?` | `number` | — |
 | `door?` | `boolean` | — |
-| `window?` | `boolean` | DÉCORATIF : l'arête porte une fenêtre au rendu (mur plein serti d'une vitre — ne change pas le combat). |
+| `window?` | `boolean` | L'arête porte une CROISÉE (`WallSeg.window`, arbitrage #1712 du 2026-09-08) : la vue passe, le passage reste bloqué. |
+| `shuttered?` | `boolean` | Croisée aux VOLETS CLOS (`WallSeg.shuttered`, #1712) : la vue ne passe plus. |
+| `crossable?` | `boolean` | Croisée FRANCHISSABLE (`WallSeg.crossable`, #700) : on l'enjambe ou on saute par elle, par un geste explicite — le pathfinding ne la traverse jamais. |
+| `suspendu?` | `number` | Hauteur de chute (m) de qui SE SUSPEND d'abord à la croisée (`WallSeg.suspendu`, `EDO 01 l.231`) : valeur de CETTE fenêtre, offerte au saut seulement sous sa hauteur réelle. |
+| `secret?` | `WallSecret` | Porte SECRÈTE (`WallSeg.secret`, `EDO 08 l.402`) : masquée en jeu tant qu'elle n'est pas révélée. |
+| `secret.difficulty` | `'tresFacile' \| 'facile' \| 'accessible' \| 'intermediaire' \| 'complexe' \| 'difficile' \| 'tresDifficile' \| 'presqueImpossible' \| 'impossible'` | Difficulté du Test de Perception qui la découvre — `LDB 12 l.137`, fixée par l'auteur (règle 7). |
+| `secret.face` | `'porteuse' \| 'voisine' \| 'les-deux'` | Face(s) depuis laquelle la porte peut être découverte — `EDO 07 l.263`. |
 | `climb?` | `WallClimb` | ESCALADABLE (LDB 15 l.53-57, cf. `WallSeg.climb`) : l'arête sépare deux surfaces de hauteurs différentes, franchissable en grimpant plutôt qu'à pied. |
+| `climb.kind` | `'ladder' \| 'surface'` | `ladder` = échelle ou surface facile (pas de Test, `LDB 15 l.55`) ; `surface` = paroi à prises (Test d'Escalade, `l.57`). |
+| `climb.difficulty?` | `'tresFacile' \| 'facile' \| 'accessible' \| 'intermediaire' \| 'complexe' \| 'difficile' \| 'tresDifficile' \| 'presqueImpossible' \| 'impossible'` | Surface uniquement — difficulté du Test d'Escalade. |
+| `climb.requiresGrimpeur?` | `boolean` | Surface uniquement — paroi « bien trop compliquée » sans le Talent Grimpeur (`LDB 15 l.57`). |
 | `structure?` | `string` | Hérité de `WallOverlay` — Structure destructible posée SUR l'arête (id de `structures.json`, ex. `porte-de-ville`). |
 | `appearance?` | `string` | Hérité de `WallOverlay` — Apparence de rendu (`structureAppearance.json`) indépendante de `structure`. |
 
@@ -268,7 +277,6 @@ Fonctions de `src/state/mapQC.ts` (démontrées par `src/state/mapQC.test.ts`) :
 | `zoneWalkableCells` | `src/state/mapQC.ts:24` | Cases MARCHABLES d'une zone descriptive (`zoneAreaTiles` 2D, filtrées par `isWalkable` à l'étage `zone.z ?? 0` de la zone). |
 | `unreachableDescriptiveZones` | `src/state/mapQC.ts:34` | Zones descriptives (pièces nommées, `isDescriptiveZone`) dont AUCUNE case marchable n'est atteignable depuis `start` — vide = toutes les pièces nommées sont accessibles. |
 | `reachedFloors` | `src/state/mapQC.ts:44` | Étages (`z`) présents dans les cases atteignables depuis `start` — preuve de connexité verticale (une carte à étages habités z0..zN doit tous les faire apparaître ici). |
-| `startOf` | `src/state/mapQC.ts:51` | Position du `heroStart` de la scène (départ par défaut du groupe), ou `null` si absent. |
 
 **Jugement visuel** : capture de jeu (patron `scripts/qc/capture-jeu.mjs`) → planche par étage,
 4 rotations, plan source en regard ; juges VISION en RÉFUTATION (pièces manquantes ou déformées,
@@ -292,44 +300,44 @@ Le CONCEPT est éditorial, le chemin est ANCRÉ (un scénario renommé fait éch
 
 ## Où voir quoi — par CHAMP (mesuré)
 
-Sur les 36 documents de `src/scenes/` qui exposent un littéral `MapSpec` :
+Sur les 37 documents de `src/scenes/` qui exposent un littéral `MapSpec` :
 
 | Champ | Documents | Exemples |
 |---|---|---|
-| `size` | 35 | `src/scenes/opera/floorplan.ts`, `src/scenes/test-scenarios/13-bataille-de-masse.ts`, `src/scenes/test-scenarios/14-voyage-maritime.ts`, `src/scenes/test-scenarios/15-commerce-fluvial.ts` … |
-| `id` | 36 | `src/scenes/opera/floorplan.ts`, `src/scenes/test-scenarios/13-bataille-de-masse.ts`, `src/scenes/test-scenarios/14-voyage-maritime.ts`, `src/scenes/test-scenarios/15-commerce-fluvial.ts` … |
-| `label` | 36 | `src/scenes/opera/floorplan.ts`, `src/scenes/test-scenarios/13-bataille-de-masse.ts`, `src/scenes/test-scenarios/14-voyage-maritime.ts`, `src/scenes/test-scenarios/15-commerce-fluvial.ts` … |
-| `desc?` | 32 | `src/scenes/opera/floorplan.ts`, `src/scenes/test-scenarios/13-bataille-de-masse.ts`, `src/scenes/test-scenarios/14-voyage-maritime.ts`, `src/scenes/test-scenarios/15-commerce-fluvial.ts` … |
-| `ambiance?` | 12 | `src/scenes/opera/floorplan.ts`, `src/scenes/test-scenarios/42-belier-porte.ts`, `src/scenes/test-scenarios/43-pastilles-entite.ts`, `src/scenes/test-scenarios/96-presets-edo.ts` … |
+| `size` | 36 | `src/scenes/opera/floorplan.ts`, `src/scenes/test-scenarios/13-bataille-de-masse.ts`, `src/scenes/test-scenarios/14-voyage-maritime.ts`, `src/scenes/test-scenarios/15-commerce-fluvial.ts` … |
+| `id` | 37 | `src/scenes/opera/floorplan.ts`, `src/scenes/test-scenarios/13-bataille-de-masse.ts`, `src/scenes/test-scenarios/14-voyage-maritime.ts`, `src/scenes/test-scenarios/15-commerce-fluvial.ts` … |
+| `label` | 37 | `src/scenes/opera/floorplan.ts`, `src/scenes/test-scenarios/13-bataille-de-masse.ts`, `src/scenes/test-scenarios/14-voyage-maritime.ts`, `src/scenes/test-scenarios/15-commerce-fluvial.ts` … |
+| `desc?` | 33 | `src/scenes/opera/floorplan.ts`, `src/scenes/test-scenarios/13-bataille-de-masse.ts`, `src/scenes/test-scenarios/14-voyage-maritime.ts`, `src/scenes/test-scenarios/15-commerce-fluvial.ts` … |
+| `ambiance?` | 13 | `src/scenes/opera/floorplan.ts`, `src/scenes/test-scenarios/23-fenetre-ecuries.ts`, `src/scenes/test-scenarios/42-belier-porte.ts`, `src/scenes/test-scenarios/43-pastilles-entite.ts` … |
 | `weather?` | 2 | `src/scenes/test-scenarios/14-voyage-maritime.ts`, `src/scenes/test-scenarios/voyage.ts` |
 | `ambientLight?` | 6 | `src/scenes/test-scenarios/17-metamorphose-ulric.ts`, `src/scenes/test-scenarios/42-belier-porte.ts`, `src/scenes/test-scenarios/43-pastilles-entite.ts`, `src/scenes/test-scenarios/entrainement.ts` … |
 | `metresPerTile?` | 4 | `src/scenes/test-scenarios/21-chute-du-greement.ts`, `src/scenes/test-scenarios/42-belier-porte.ts`, `src/scenes/test-scenarios/duel-naval.ts`, `src/scenes/test-scenarios/siege-enceinte.ts` |
-| `startMessage?` | 32 | `src/scenes/test-scenarios/13-bataille-de-masse.ts`, `src/scenes/test-scenarios/14-voyage-maritime.ts`, `src/scenes/test-scenarios/15-commerce-fluvial.ts`, `src/scenes/test-scenarios/16-embuscade-fluviale.ts` … |
+| `startMessage?` | 33 | `src/scenes/test-scenarios/13-bataille-de-masse.ts`, `src/scenes/test-scenarios/14-voyage-maritime.ts`, `src/scenes/test-scenarios/15-commerce-fluvial.ts`, `src/scenes/test-scenarios/16-embuscade-fluviale.ts` … |
 | `rest?` | 2 | `src/scenes/test-scenarios/echeance.ts`, `src/scenes/test-scenarios/voyage.ts` |
 | `flags?` | 2 | `src/scenes/test-scenarios/opera.ts`, `src/scenes/vitrine-batiments.ts` |
-| `terrain?` | 29 | `src/scenes/opera/floorplan.ts`, `src/scenes/test-scenarios/14-voyage-maritime.ts`, `src/scenes/test-scenarios/15-commerce-fluvial.ts`, `src/scenes/test-scenarios/16-embuscade-fluviale.ts` … |
-| `legend?` | 7 | `src/scenes/opera/floorplan.ts`, `src/scenes/test-scenarios/96-presets-edo.ts`, `src/scenes/test-scenarios/embuscade.ts`, `src/scenes/test-scenarios/opera.ts` … |
+| `terrain?` | 30 | `src/scenes/opera/floorplan.ts`, `src/scenes/test-scenarios/14-voyage-maritime.ts`, `src/scenes/test-scenarios/15-commerce-fluvial.ts`, `src/scenes/test-scenarios/16-embuscade-fluviale.ts` … |
+| `legend?` | 8 | `src/scenes/opera/floorplan.ts`, `src/scenes/test-scenarios/23-fenetre-ecuries.ts`, `src/scenes/test-scenarios/96-presets-edo.ts`, `src/scenes/test-scenarios/embuscade.ts` … |
 | `markerFill?` | 1 | `src/scenes/test-scenarios/siege-enceinte.ts` |
-| `levels?` | 7 | `src/scenes/test-scenarios/96-presets-edo.ts`, `src/scenes/test-scenarios/embuscade.ts`, `src/scenes/test-scenarios/entrainement.ts`, `src/scenes/test-scenarios/opera.ts` … |
+| `levels?` | 8 | `src/scenes/test-scenarios/23-fenetre-ecuries.ts`, `src/scenes/test-scenarios/96-presets-edo.ts`, `src/scenes/test-scenarios/embuscade.ts`, `src/scenes/test-scenarios/entrainement.ts` … |
 | `walled?` | 1 | `src/scenes/opera/floorplan.ts` |
 | `wallLegend?` | 1 | `src/scenes/opera/floorplan.ts` |
-| `elevate?` | 1 | `src/scenes/test-scenarios/siege-enceinte.ts` |
-| `cells?` | 1 | `src/scenes/test-scenarios/siege-enceinte.ts` |
-| `walls?` | 5 | `src/scenes/test-scenarios/19-grimpant.ts`, `src/scenes/test-scenarios/42-belier-porte.ts`, `src/scenes/test-scenarios/99-revisit.ts`, `src/scenes/test-scenarios/zones-pieces.ts` … |
+| `elevate?` | 2 | `src/scenes/test-scenarios/23-fenetre-ecuries.ts`, `src/scenes/test-scenarios/siege-enceinte.ts` |
+| `cells?` | 2 | `src/scenes/test-scenarios/23-fenetre-ecuries.ts`, `src/scenes/test-scenarios/siege-enceinte.ts` |
+| `walls?` | 6 | `src/scenes/test-scenarios/19-grimpant.ts`, `src/scenes/test-scenarios/23-fenetre-ecuries.ts`, `src/scenes/test-scenarios/42-belier-porte.ts`, `src/scenes/test-scenarios/99-revisit.ts` … |
 | `relief?` | 4 | `src/scenes/opera/floorplan.ts`, `src/scenes/test-scenarios/19-grimpant.ts`, `src/scenes/test-scenarios/opera.ts`, `src/scenes/test-scenarios/pont-vitrine.ts` |
 | `terrainRects?` | 2 | `src/scenes/test-scenarios/zones-pieces.ts`, `src/scenes/vitrine-batiments.ts` |
 | `architecture?` | 3 | `src/scenes/opera/floorplan.ts`, `src/scenes/test-scenarios/zones-pieces.ts`, `src/scenes/vitrine-batiments.ts` |
 | `bind?` | 1 | `src/scenes/test-scenarios/siege-enceinte.ts` |
-| `entities?` | 20 | `src/scenes/test-scenarios/18-effets-scriptes.ts`, `src/scenes/test-scenarios/21-chute-du-greement.ts`, `src/scenes/test-scenarios/43-pastilles-entite.ts`, `src/scenes/test-scenarios/96-presets-edo.ts` … |
-| `heroStart?` | 33 | `src/scenes/test-scenarios/13-bataille-de-masse.ts`, `src/scenes/test-scenarios/14-voyage-maritime.ts`, `src/scenes/test-scenarios/15-commerce-fluvial.ts`, `src/scenes/test-scenarios/16-embuscade-fluviale.ts` … |
+| `entities?` | 21 | `src/scenes/test-scenarios/18-effets-scriptes.ts`, `src/scenes/test-scenarios/21-chute-du-greement.ts`, `src/scenes/test-scenarios/23-fenetre-ecuries.ts`, `src/scenes/test-scenarios/43-pastilles-entite.ts` … |
+| `heroStart?` | 34 | `src/scenes/test-scenarios/13-bataille-de-masse.ts`, `src/scenes/test-scenarios/14-voyage-maritime.ts`, `src/scenes/test-scenarios/15-commerce-fluvial.ts`, `src/scenes/test-scenarios/16-embuscade-fluviale.ts` … |
 | `entryPoints?` | 1 | `src/scenes/opera/floorplan.ts` |
 | `effectZones?` | 1 | `src/scenes/vitrine-batiments.ts` |
-| `zoneMap?` | 2 | `src/scenes/opera/floorplan.ts`, `src/scenes/test-scenarios/zones-pieces.ts` |
-| `zoneLegend?` | 2 | `src/scenes/opera/floorplan.ts`, `src/scenes/test-scenarios/zones-pieces.ts` |
+| `zoneMap?` | 3 | `src/scenes/opera/floorplan.ts`, `src/scenes/test-scenarios/23-fenetre-ecuries.ts`, `src/scenes/test-scenarios/zones-pieces.ts` |
+| `zoneLegend?` | 3 | `src/scenes/opera/floorplan.ts`, `src/scenes/test-scenarios/23-fenetre-ecuries.ts`, `src/scenes/test-scenarios/zones-pieces.ts` |
 | `triggers?` | 13 | `src/scenes/test-scenarios/17-metamorphose-ulric.ts`, `src/scenes/test-scenarios/18-effets-scriptes.ts`, `src/scenes/test-scenarios/95-poursuite-terrestre.ts`, `src/scenes/test-scenarios/97-enquete-carnet.ts` … |
-| `dialogues?` | 11 | `src/scenes/test-scenarios/18-effets-scriptes.ts`, `src/scenes/test-scenarios/96-presets-edo.ts`, `src/scenes/test-scenarios/97-enquete-carnet.ts`, `src/scenes/test-scenarios/98-conditions-etendues.ts` … |
-| `encounters?` | 15 | `src/scenes/test-scenarios/13-bataille-de-masse.ts`, `src/scenes/test-scenarios/16-embuscade-fluviale.ts`, `src/scenes/test-scenarios/17-metamorphose-ulric.ts`, `src/scenes/test-scenarios/21-chute-du-greement.ts` … |
+| `dialogues?` | 12 | `src/scenes/test-scenarios/18-effets-scriptes.ts`, `src/scenes/test-scenarios/23-fenetre-ecuries.ts`, `src/scenes/test-scenarios/96-presets-edo.ts`, `src/scenes/test-scenarios/97-enquete-carnet.ts` … |
+| `encounters?` | 16 | `src/scenes/test-scenarios/13-bataille-de-masse.ts`, `src/scenes/test-scenarios/16-embuscade-fluviale.ts`, `src/scenes/test-scenarios/17-metamorphose-ulric.ts`, `src/scenes/test-scenarios/21-chute-du-greement.ts` … |
 | `stations?` | 1 | `src/scenes/test-scenarios/13-bataille-de-masse.ts` |
 
 Champs sans aucun exemple mesuré dans `src/scenes/` : `music?`, `knownUnsupportedFloor?`, `seatAssignments?`, `restZones?` — leur seule démonstration vit dans `src/state/mapSpec.test.ts`.
-<!-- sources-empreinte: 88140d7e8e7d708bae13190fdbc91d045033dd6f (67 fichiers, 7 dossiers) corps: fb6af6de7e520dbfb16adbcdd419b8ab2b8ab986 -->
+<!-- sources-empreinte: 94f093090bb2342a88a76d3db6481c9710115692 (69 fichiers, 7 dossiers) corps: 10a2d1a3a31d185c8d8771dabe4b880eb760e48d -->

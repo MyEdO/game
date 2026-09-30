@@ -757,6 +757,7 @@ export function EditorCanvas({
             à la fenêtre est une piste tickée, pas une promesse de ce lot. */}
         <GameStage3D
           scene={sceneMonde}
+          lecture="auteur"
           mpt={mpt}
           frame={{ mode: 'viewbox', dims, viewBox: { x: vb.x, y: vb.y, w: stage.w / vb.zoom, h: stage.h / vb.zoom } }}
           tintAt={tintAt}

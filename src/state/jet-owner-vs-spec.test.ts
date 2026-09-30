@@ -52,7 +52,8 @@ const stateWith = (pendingKey: string, pending: unknown, ids: string[]): GameSta
 
 describe('#1015 — le porteur déclaré (`FLOW_VERBS.jetOwner`) EST l’acteur que le flux débite', () => {
   it('tout flux mono déclare son porteur (le variant l’exige à la compilation — mesuré ici aussi)', () => {
-    expect(MONO.length).toBeGreaterThanOrEqual(29);
+    // 29 → 28 (#700, 2026-09-30) : `fall` passe MULTI (une rangée par tombant, EDO 01 l.231).
+    expect(MONO.length).toBeGreaterThanOrEqual(28);
     expect(MONO.filter(([, w]) => !w.jetOwner).map(([k]) => k)).toEqual([]);
   });
 

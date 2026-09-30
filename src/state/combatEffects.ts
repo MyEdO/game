@@ -51,7 +51,9 @@ import { isWeatherWarded, exposureTarget, exposureCoatMods, type ExposureKind } 
 import { findSpellById } from '../data/index';
 import { toBrass, fromBrass, toMoney } from '../engine/money';
 import { distributeCredit, drainGroup, condCtx } from './bourseFlow';
-import { Effect, setDoorOpen, type Trigger } from './scene';
+import { Effect, setDoorOpen, setDoorRevealed, setDoorTentee, type Trigger } from './scene';
+import { triggersEnJeu } from './decouvertePorteSecrete';
+import { computeStateVisible } from './visionState';
 import { placeCombatant } from './spawn';
 import { type Flow, type FlowTest, type EffectOp, type Condition, flowFromEffects, flowHasOpADe, flowEffects, testFlow, evalCondition, leafOpsCtx, EMPTY_FLOW, spellOps } from './flow';
 import { inRect, combatantsWithinRadius } from './combatGeometry';
@@ -186,10 +188,13 @@ export function flowRestant(entId: string, action: { id: string; flow: Flow }, f
   return action.flow.kind === 'do' && pris(0) ? EMPTY_FLOW : action.flow;
 }
 
+/** Joue les déclencheurs de zone (`triggersEnJeu` : authorés + dérivés des portes secrètes) où le groupe
+ *  vient d'ENTRER. Seul appelant : le pas d'exploration (`moveParty`) — ni le combat, ni l'entrée de scène
+ *  (`transitionTo`/`startScene`) sans premier pas ne jouent un déclencheur. */
 export function checkTriggers(get: Get, set: SetFn) {
   const { scene, partyPos, flags } = get();
   if (!scene) return;
-  const dansLaZone = scene.triggers.filter((trig) => !flags[`__trigger_${trig.id}`]
+  const dansLaZone = triggersEnJeu(scene, () => computeStateVisible(get())).filter((trig) => !flags[`__trigger_${trig.id}`]
     && inRect(partyPos, trig.rect) && (trig.rect.z ?? 0) === (partyPos.z ?? 0));
   for (let i = 0; i < dansLaZone.length; i++) {
     const trig = dansLaZone[i];
@@ -830,7 +835,7 @@ registerCloture('effetsProgrammes', (get, set, c) => jouerEffetsProgrammes(get, 
 /** Cibles d'un EffectOp de scène (`ops` on=party/hero) : les héros vivants concernés,
  *  dans le bon ensemble (file de combat si en combat, sinon le groupe). `hero` = celui désigné par
  *  `heroId` (défaut : 1er vivant) ; `party` = tous les héros vivants. SOURCE UNIQUE (pas de dup). */
-function effectTargets(get: Get, target: 'party' | 'hero', heroId?: string): Combatant[] {
+export function effectTargets(get: Get, target: 'party' | 'hero', heroId?: string): Combatant[] {
   const pool = get().battle?.combatants ?? get().party;
   if (target === 'hero') {
     const id = heroId || pool.find((c) => c.kind === 'hero' && !c.dead)?.id;
@@ -959,9 +964,11 @@ export function openSkillTest(
   };
   // `opts.actorId` RESTREINT le Test à UN acteur précis (ex. le Personnage qui prend l'Action « Diriger
   //  l'équipe » — le porteur du Talent, pas le meilleur du groupe) ; sinon le meilleur PJ (partyBest).
+  // L'acteur imposé est un COMBATTANT (`actorIn`) : en combat, un ennemi mené par le siège MJ en est un.
   const restrictId = opts?.actorId;
+  const imposed = restrictId ? actorIn(get(), restrictId) : undefined;
   const best = restrictId
-    ? (() => { const a = get().party.find((c) => c.id === restrictId && !c.dead); return a ? { actor: a } : null; })()
+    ? (imposed && !imposed.dead ? { actor: imposed } : null)
     : partyBest(get().party, spec.skill?.id, spec.characteristic, socialMod, spec.skill?.spec);
   if (!best) return false;
   const baseDifficulty = spec.difficulty ?? 'intermediaire';
@@ -993,12 +1000,13 @@ export function openSkillTest(
   const pool = battle?.combatants ?? get().party;
   // Deux populations DISTINCTES (elles l'étaient sous un seul filtre, ce qui annulait le Soutien dès
   // qu'un acteur était imposé) : `living` = qui peut SOUTENIR (LDB 12 l.187-200 — le meneur imposé ou
-  // non, les autres membres capables l'assistent) ; `runners` = qui peut LANCER (restreint par
+  // non, les autres membres capables de SON camp l'assistent) ; `runners` = qui peut LANCER (restreint par
   // `opts.actorId`). Un Test qu'on ne peut pas soutenir se déclare `noSupport` (l.197), il ne se
   // dérive pas de la restriction du lanceur.
-  const living = pool.filter((c) => c.kind === 'hero' && !c.dead);
-  const runners = restrictId ? living.filter((c) => c.id === restrictId) : living;
+  const allies = (a: Combatant): Combatant[] => pool.filter((c) => c.kind === a.kind && !c.dead);
+  const runners = imposed ? [best.actor] : pool.filter((c) => c.kind === 'hero' && !c.dead);
   const candidates = runners.map((actor) => {
+    const living = allies(actor);
     // Soutien (LDB 12 l.187-200) : si CET acteur mène, les AUTRES membres capables l'assistent (+10, plafond
     // Bonus de Carac). Calculé par candidat car le sélecteur laisse le joueur choisir qui lance. `noSupport`
     // (l.197 : maladie/poison/peur/danger) coupe le Soutien à la source ; adjacence (l.196), gate GÉOMÉTRIQUE
@@ -1409,9 +1417,17 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     apply: (e, env) => { env.set({ lightLevel: Math.max(0, Math.min(1, e.level)) }); }, // mise en scène (Lot L) : niveau borné [0,1]
   },
   setDoor: {
-    group: 'Narration', label: 'Porte (ouvrir / fermer — bloque vue et passage)', icon: 'map-tool/door',
+    group: 'Narration', label: 'Porte (ouvrir / fermer / révéler une porte secrète)', icon: 'map-tool/door',
     make: () => ({ type: 'setDoor', x: 0, y: 0, side: 'N', open: true }),
-    apply: (e, env) => { env.set((s: GameState) => (s.scene ? { scene: setDoorOpen(s.scene, e.x, e.y, e.side, e.z ?? 0, e.open) } : {})); },
+    apply: (e, env) => {
+      env.set((s: GameState) => {
+        if (!s.scene) return {};
+        const z = e.z ?? 0;
+        const tentee = e.attempted === undefined ? s.scene : setDoorTentee(s.scene, e.x, e.y, e.side, z, e.attempted);
+        const revelee = e.revealed === undefined ? tentee : setDoorRevealed(tentee, e.x, e.y, e.side, z, e.revealed);
+        return { scene: e.open === undefined ? revelee : setDoorOpen(revelee, e.x, e.y, e.side, z, e.open) };
+      });
+    },
   },
   moveEntity: {
     group: 'Narration', label: 'Déplacer / retirer une entité (mise en scène : fuite, entrée, disparition)', icon: 'travel/foot',
@@ -1679,13 +1695,15 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       const m = Math.max(0, e.metres);
       // `to` ramène le faller au PIED (chute → il retombe en bas, LDB 15) : le GROUPE hors combat, ou
       // les combattants nommés en combat (escalade ratée → hisse annulée par `placeCombatant`).
+      // Hors combat, l'atterrissage du groupe est un PAS : `moveParty` (déclencheurs, cap du groupe).
       const sc = env.get().scene;
       if (e.to && env.get().battle && sc) for (const c of targets) placeCombatant(c, sc, e.to);
+      if (e.to && !env.get().battle) env.get().moveParty(e.to);
       if (targets.length) {
-        env.set({ ...touchActors(env.get()), ...(e.to && !env.get().battle ? { partyPos: e.to } : {}) });
+        env.set(touchActors(env.get()));
         env.log(t('eff.fallOuverte', { m, noms: targets.map((c) => c.label).join(', ') }));
         for (const c of targets) ouvrirChute(env.set, c, m);
-      } else if (e.to && !env.get().battle) env.set({ partyPos: e.to });
+      }
     },
   },
   inflictDisease: {

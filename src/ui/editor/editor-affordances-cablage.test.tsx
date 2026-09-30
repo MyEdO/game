@@ -484,7 +484,7 @@ function sceneFacade(): Scene {
 
 /** Portée horizontale et abscisse du CENTRE de la face du pignon, telles que `buildWalls` les produit. */
 function gableSpan(scene: Scene): { width: number; center: number } {
-  const face = buildWalls(scene).flatMap((w) => w.faces)
+  const face = buildWalls(scene, 'auteur').flatMap((w) => w.faces)
     .find((f) => f.architectureFeatureKind === 'gable')!;
   const xs = face.poly.map((p) => p.x);
   return { width: Math.max(...xs) - Math.min(...xs), center: (Math.max(...xs) + Math.min(...xs)) / 2 };

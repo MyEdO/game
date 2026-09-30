@@ -43,4 +43,10 @@ describe('planJump', () => {
     const plan = planJump(scene, { x: 1, y: 1, z: 1 }, { x: 3, y: 1, z: 1 }, 4, 2); // élan 2 ≥ ceil(4/2)=2
     expect(plan.kind === 'test' && (plan.flow as Extract<Flow, { kind: 'test' }>).test.difficulty).toBe('accessible');
   });
+
+  it('gouffre SANS surface sous lui (même étage, aucune couche) : refus NOMMÉ, jamais une chute sur rien', () => {
+    const s = emptyScene(5, 3);
+    s.layers[0].tiles[1 * 5 + 2] = 'vide'; // le gouffre (2,1) au rez, rien dessous
+    expect(planJump(s, { x: 1, y: 1 }, { x: 3, y: 1 }, 4, 0)).toEqual({ kind: 'none', raison: 'aucune-surface' });
+  });
 });

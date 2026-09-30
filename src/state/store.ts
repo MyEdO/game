@@ -25,21 +25,26 @@ import type { BattleClickOpts, TileClickOpts } from './targetingModes';
 import { applyShipCollision } from './shipCollision';
 import type { ConjureForm } from '../engine/conjuredWeapons';
 import type { OvercastAxis } from '../engine/overcast';
-import { findFreeTile, removeEntity, checkTriggers, fireScheduledEffects, applyEffects, applyEffectsLoot, runFlow, reprendreTestSubi, assignGearAt, harvestVictoryCreature, pushReveal, releaseSeatsOfDowned, activeCombatant as activeCombatantOf } from './combatFlow';
+import { findFreeTile, removeEntity, checkTriggers, fireScheduledEffects, applyEffects, applyEffectsLoot, runFlow, reprendreTestSubi, assignGearAt, harvestVictoryCreature, pushReveal, releaseSeatsOfDowned } from './combatFlow';
 import { t } from '../i18n';
 import type { Get, Set } from './flowTypes';
 import { planClimb } from './climbMove';
-import { planFall } from './fallMove';
+import { planFranchissement, metresRetenus, phaseDeChute, mouvementDeLaChute, mouvementDeLAllege } from './fallMove';
+import { gesteDepuis, porteurDExploration, refusDuTestDeChute, refusDeLaSuspension, REFUS_FRANCHISSEMENT } from './gesteDArete';
+import { refuserGeste } from './refusVisible';
+import { roomFocusAt } from './rooms';
+import { fouilleDeLaPiece } from './decouvertePorteSecrete';
 import { climbMovementCost } from '../engine/movement';
 import { hasAutoClimb, hasClimbFullSpeed } from '../engine/traits/dispatch';
-import { controlsCombatant, quorumAtteint, decidingSeat } from './netOwnership';
+import { quorumAtteint, decidingSeat } from './netOwnership';
 import { viewYawDeg } from './stageYaw';
 import { resetStagePan } from './stagePan';
 import { resetStageGestes } from './stageGestes';
 export { activeCombatant, entityPickables, trampleTarget } from './combatFlow';
 import { markActed } from './combatFlow';
 import { EMPTY_FLOW, type Flow } from './flow';
-import type { MoveSnapshot } from './combatGeometry';
+import { moveEnv, type MoveSnapshot } from './combatGeometry';
+import { movementRemaining } from './mount';
 export { movementRemaining, canMove } from './mount';
 
 import { type BattleZone } from './zones';
@@ -118,7 +123,7 @@ import { TIME_COST } from '../engine/timeCost';
 import { outOfCombatUpkeep } from './outOfCombatUpkeep';
 import { checkPartyWiped } from './partyWipe';
 import { touchActors } from './combatOrParty';
-import { capDuGroupe, inBattleId, meneurDeboutDuMonde, meneurDuMonde, poserCapDuGroupe } from './combatants';
+import { capDuGroupe, estDebout, inBattleId, meneurDuMonde, poserCapDuGroupe } from './combatants';
 import { fireOwnTestFailed } from './triggeredEffects';
 import { FLOWS, meetsRequiredSL, buildRollFlowActions, type RollFlowActionsMap } from './rollFlowSpecs';
 import { gainCorruption, resolveCorruptionPending, releaseCorruptionSlot } from './corruptionFlow';
@@ -150,11 +155,11 @@ export type { PendingRest, RestPlaces } from './restFlow';
 import { councilPay as councilPayFlow, councilClose as councilCloseFlow } from './shipCrew';
 import type { PendingCouncil } from './shipCrew';
 export type { PendingCouncil } from './shipCrew';
-import { Scene, isWalkable, sceneMetresPerTile, heightAt, speakerLabel, type SceneEntity, type VictoryCondition } from './scene';
+import { Scene, isWalkable, sceneMetresPerTile, heightAt, speakerLabel, startOf, type SceneEntity, type VictoryCondition, type Effect } from './scene';
 import { recordTurn, type DialogueTurn } from './dialogueHistory';
 import { ouvrirDialogue, conversationRepond, reponsesDuNoeud } from './dialogue';
 import { placeCombatant } from './spawn';
-import { chebyshev, Pt } from './path';
+import { chebyshev, Pt, tileKey } from './path';
 import { aPorteeDe, exploreStepDest, povStepDest, spawnFacing } from './exploreNav';
 import { bus, EVT } from './bus';
 import { emptyWorldMap } from './worldMap';
@@ -174,7 +179,7 @@ import * as seaActivities from './seaActivities';
 import * as seaVoyageFlow from './seaVoyageFlow';
 import { applyLandCargoRaid } from './carriers';
 import { suspendActiveCascade, resumeSuspendedCascade, dropSceneEntrySteps, extendedTestOutcomeAppliers, curseurPose } from './cascade';
-import { differerLaSuite, jouerFlowEntier, nePeutPasDifferer, cloturer, registerCloture, flowRestant } from './combatEffects';
+import { differerLaSuite, jouerFlowEntier, nePeutPasDifferer, cloturer, registerCloture, flowRestant, effectTargets, openSkillTest } from './combatEffects';
 import { flowFromEffects } from './flow';
 import { nightBands } from './nightBands';
 import { resultLine, openSequence, hostStep, idDansLaSequence, pousseSi, type BuiltCascadeStep } from './rollSeam';
@@ -934,7 +939,9 @@ export interface GameState extends RollFlowActionsMap {
   transitionTo: (sceneId: string, entry?: string, pos?: Pt) => void;
   moveParty: (pt: Pt) => void;
   /** ESCALADE d'une arête `WallSeg.climb` (LDB 15 l.53-57) : `from` (case basse, adjacente) → `to` (case
-   *  haute). Exploration = le groupe ; combat = le héros actif. `ladder` monte d'office (pas de Test) au
+   *  haute). Porteur = le mobile de `gesteDArete` (exploration : le meneur, le groupe suit ; combat : l'actif
+   *  que ce siège mène, héros ou ennemi mené par le siège MJ) ; tout refus est NOMMÉ (`refuserGeste`),
+   *  en combat le Test d'Escalade est celui du mobile. `ladder` monte d'office (pas de Test) au
    *  coût du Mouvement à ½ vitesse ; `surface` déclenche un Test d'Escalade influençable (cascade RollShell)
    *  dont l'échec fait chuter, et consomme l'Action en combat (LDB 13 l.86-88). Geste EXPLICITE (overlay). */
   climbAcross: (from: Pt, to: Pt) => void;
@@ -952,6 +959,11 @@ export interface GameState extends RollFlowActionsMap {
   /** JOUE une offre NOMMÉE d'une entité (`ActionOfferte.id`) — l'exécuteur UNIQUE des gestes
    *  d'exploration ; `interactEntity` n'en est que le raccourci « joue l'unique offre ». */
   jouerAction: (entityId: string, actionId: string) => void;
+  /** FOUILLER LA PIÈCE où se tient le groupe (`rooms.roomFocusAt`) — geste d'exploration du GROUPE :
+   *  second déclencheur de la découverte des portes secrètes (`decouvertePorteSecrete.fouilleDeLaPiece`),
+   *  coûte `TIME_COST.search` une fois par geste. Refus DIT hors exploration, en dialogue, sans meneur
+   *  debout, hors de toute pièce. */
+  fouillerLaPiece: () => void;
   setPendingInteract: (pending: PendingInteract | null) => void;
   chooseDialogue: (choiceIndex: number) => void;
   closeDialogue: () => void;
@@ -1356,12 +1368,18 @@ export interface GameState extends RollFlowActionsMap {
   runConfirm: () => void;
   runCancel: () => void;
   /** Chute volontaire (LDB 15 l.82) : depuis `from` (case du sauteur) vers `to` (case cardinale plus
-   *  basse), ouvre le choix pré-jet (Sauter / Tenter le Test d'Athlétisme). Refus silencieux si
-   *  `planFall` ne reconnaît pas le geste (arête non-falaise/murée/grimpable). */
+   *  basse, croisée franchissable comprise), ouvre le choix pré-jet (Sauter / Tenter le Test
+   *  d'Athlétisme). Porteur = le mobile de `gesteDArete` ; tout refus est NOMMÉ (`refuserGeste`). */
   fallAcross: (from: Pt, to: Pt) => void;
-  /** Choix RAW pré-jet : `true` ouvre le Test (modale) ; `false` résout IMMÉDIATEMENT le saut direct
-   *  (chute PLEINE, sans Test — LDB 15 l.82 « vous pouvez tenter »). */
-  fallChoose: (attempt: boolean) => void;
+  /** ENJAMBER une croisée franchissable de plain-pied (#700 ; LDB 15 l.55, maison
+   *  `fenetre-hauteur-allege`) : exploration = le pas du groupe (`moveParty`) ; combat = le mobile de
+   *  `gesteDArete`, Mouvement seul (1 case + l'allège à ½ vitesse), aucun Test, aucune Action. Tout refus
+   *  est NOMMÉ (`refuserGeste`). */
+  windowAcross: (from: Pt, to: Pt) => void;
+  /** DÉCLARATION pré-jet de la rangée `tombantId` (LDB 15 l.82 « vous pouvez tenter ») : `true` = Test,
+   *  `false` = chute PLEINE sans Test. Quand toutes les rangées sautent sans Test, l'étape se résout. */
+  /** `suspendre` : l'axe hauteur (EDO 01 l.231), exigé quand `pendingFall.suspendu` est offert. */
+  fallChoose: (tombantId: string, attempt: boolean, suspendre?: boolean) => void;
   // fall{Roll,Reroll,ForceSuccess,DarkPact} : générés (RollFlowActionsMap).
   fallConfirm: () => void;
   fallCancel: () => void;
@@ -1684,41 +1702,67 @@ function applyDialogueTransition(get: () => GameState, set: (s: Partial<GameStat
 }
 
 /**
- * Atterrissage d'une chute VOLONTAIRE (LDB 15 l.82) : place le sauteur au pied (`p.to`), applique
- * `applyFall` SAUF si `effectiveMetres <= 0` (« Si vous parvenez à réduire votre distance de chute à 0
- * ou moins, vous ne subissez aucun Dégât de chute » — bypass EXPLICITE, `applyFall(c,0,rng)` ne
- * garantit PAS 0 dégât seul, cf. son d10), journalise, ferme `pendingFall`. `actionSpent` = le Test a
- * été TENTÉ (consomme l'Action, LDB 13 l.86-88, patron `climbAcross` « surface ») ; le saut direct sans
- * Test ne coûte que le Mouvement (comme un pas normal). */
-function settleFall(get: Get, set: Set, p: PendingFall, effectiveMetres: number, actionSpent: boolean): void {
+ * Atterrissage d'une chute VOLONTAIRE (LDB 15 l.82 ; EDO 01 l.231) : chaque TOMBANT subit SA hauteur —
+ * chute pleine (`metresRetenus`) sans Test, `effectiveMetres` du Test sinon ; à 0 m ou moins, AUCUN Dégât
+ * (bypass EXPLICITE : `applyFall(c,0,rng)` ne garantit PAS 0 dégât seul, cf. son d10). Le Test TENTÉ
+ * consomme l'Action (LDB 13 l.86-88, patron `climbAcross` « surface »). Exploration : le PAS du groupe
+ * (`moveParty`, ses déclencheurs) d'abord, puis une chute par tombant ; combat : le seul tombant.
+ */
+function settleFall(get: Get, set: Set, p: PendingFall): void {
   const { scene, mode, battle } = get();
   set({ pendingFall: null });
   if (!scene) return;
-  const mover = mode === 'battle' ? (battle ? inBattleId(battle, p.combatantId) : undefined) : get().party.find((h) => h.id === p.combatantId);
-  if (!mover) return;
-  const m = Math.max(0, effectiveMetres);
+  const pool = mode === 'battle' ? (battle?.combatants ?? []) : get().party;
+  const chutes = p.participants.flatMap((part) => {
+    const c = pool.find((x) => x.id === part.id);
+    const m = part.attempt ? part.result?.effectiveMetres : metresRetenus(p, part);
+    return c && m !== undefined ? [{ c, m: Math.max(0, m) }] : [];
+  });
   // Le tour se solde À LA TENTATIVE (LDB 13 l.86-88 : c'est le Test tenté qui consomme l'Action), donc
-  // AVANT l'atterrissage : ce coût ne dépend pas de ce que dira le 1d10 de chute, et rien ne suit alors
-  // l'application (#1508). L'ordre compte : déplacer ce solde après la chute le rendrait tributaire d'un
-  // dé en vol, pour une valeur que le dé ne change pas.
-  soldeDeLAction(get, set, actionSpent);
-  if (m > 0) {
-    jouerFlowEntier(applyEffects(get, set, [{ type: 'fall', target: 'hero', heroId: p.combatantId, metres: m, to: p.to }]));
-  } else {
-    // LDB 15 l.82 : réduit à 0 m ou moins ⇒ AUCUN Dégât — bypass EXPLICITE de l'Effet `fall`
-    // (`applyFall(c,0,…)` ne garantit PAS 0 seul, cf. son d10) : simple repositionnement + journal.
-    placeCombatant(mover, scene, p.to);
-    if (mode !== 'battle') set({ partyPos: { ...p.to } });
-    get().log(t('fall.jumpSafe', { name: mover.label }));
+  // AVANT l'atterrissage : ce coût ne dépend pas de ce que dira le 1d10 de chute (#1508). Combat : le
+  // seul tombant est l'initiateur, son Mouvement est `mouvementDeLaChute`.
+  const initiateur = p.participants.find((x) => x.id === p.initiateurId);
+  soldeDeLAction(get, set, p.participants.some((x) => x.attempt === true), mouvementDeLaChute(p, initiateur?.suspendre === true, sceneMetresPerTile(scene)));
+  if (mode === 'battle') {
+    for (const { c, m } of chutes) {
+      if (m > 0) jouerFlowEntier(applyEffects(get, set, [{ type: 'fall', target: 'hero', heroId: c.id, metres: m, to: p.to }]));
+      else { placeCombatant(c, scene, p.to); get().log(t('fall.jumpSafe', { name: c.label })); }
+    }
+    return;
   }
+  get().moveParty({ ...p.to });
+  const effets: Effect[] = [];
+  for (const { c, m } of chutes) {
+    if (m > 0) effets.push({ type: 'fall', target: 'hero', heroId: c.id, metres: m });
+    else get().log(t('fall.jumpSafe', { name: c.label }));
+  }
+  if (effets.length) jouerFlowEntier(applyEffects(get, set, effets));
+}
+
+/** Les TOMBANTS d'une chute volontaire : combat = l'actif seul ; exploration = le groupe
+ *  (`effectTargets('party')`), l'initiateur en tête. */
+function tombantsDe(get: Get, battle: BattleState | null, initiateur: Combatant): Combatant[] {
+  if (battle) return [initiateur];
+  const groupe = effectTargets(get, 'party');
+  return [initiateur, ...groupe.filter((c) => c.id !== initiateur.id)];
+}
+
+/** La case d'arrivée d'un franchissement (`planFranchissement`) est-elle interdite au mobile en combat ?
+ *  Transit bloqué OU arrêt interdit — les deux ensembles du `MoveEnv` (on ne finit jamais sur une autre
+ *  créature, `combatGeometry.ts:cannotStopOn`). */
+function arriveeOccupee(battle: BattleState, mover: Combatant, to: Pt): boolean {
+  const env = moveEnv(battle, mover);
+  const k = tileKey(to.x, to.y, to.z ?? 0);
+  return env.blocked.has(k) || !!env.noStop?.has(k);
 }
 
 /** SOLDE de l'Action/du Mouvement d'un tour à la tentative de saut (`settleFall`) — nommé pour être
- *  joué AVANT l'atterrissage, là où il ne dépend d'aucun dé (LDB 13 l.86-88). */
-function soldeDeLAction(get: () => GameState, set: (s: Partial<GameState>) => void, actionSpent: boolean): void {
+ *  joué AVANT l'atterrissage, là où il ne dépend d'aucun dé (LDB 13 l.86-88). `mouvement` = cases
+ *  dépensées (`mouvementDeLaChute`). */
+function soldeDeLAction(get: () => GameState, set: (s: Partial<GameState>) => void, actionSpent: boolean, mouvement: number): void {
   const bB = get().battle;
   if (get().mode === 'battle' && bB) {
-    set({ battle: { ...bB, acted: actionSpent ? true : bB.acted, action: null, movementUsed: (bB.movementUsed ?? 0) + 1, movedPreAction: bB.movedPreAction || !bB.acted, reachable: new Map(), preview: null } });
+    set({ battle: { ...bB, acted: actionSpent ? true : bB.acted, action: null, movementUsed: (bB.movementUsed ?? 0) + mouvement, movedPreAction: bB.movedPreAction || !bB.acted, reachable: new Map(), preview: null } });
   }
   bus.emit(EVT.SCENE_DIRTY);
 }
@@ -2177,7 +2221,7 @@ export const useGame = create<GameState>((set, get) => ({
   startScene: (scene, narratif) => {
     registerScene(scene);
     const start = scene.entities.find((e) => e.kind === 'heroStart');
-    const pos = start ? { ...start.pos } : findFreeTile(scene);
+    const pos = startOf(scene) ?? findFreeTile(scene);
     // Démarrage d'une partie / d'un scénario : on repart d'un état NEUF. SOURCE UNIQUE et
     // ZÉRO-MAINTENANCE : on réinitialise à l'état de CRÉATION du store (capturé par Zustand) —
     // donc tout nouveau champ d'état ajouté à l'init (système futur) se réinitialise ici sans
@@ -2247,7 +2291,7 @@ export const useGame = create<GameState>((set, get) => ({
       return;
     }
     const heroStart = target.entities.find((e) => e.kind === 'heroStart');
-    const start = pos || (entry && target.entryPoints?.[entry]) || heroStart?.pos || findFreeTile(target);
+    const start = pos || (entry && target.entryPoints?.[entry]) || startOf(target) || findFreeTile(target);
     // Orientation d'ENTRÉE : authorée SEULEMENT si on spawne réellement au heroStart (ni `pos` forcé
     // ni point d'entrée nommé) ; sinon vers le CONTENU de la NOUVELLE carte (le cap hérité de
     // l'ancienne scène n'a aucun sens ici — en POV il peut regarder le vide hors-carte).
@@ -2347,77 +2391,123 @@ export const useGame = create<GameState>((set, get) => ({
   },
 
   climbAcross: (from, to) => {
-    const { scene, mode, battle } = get();
-    if (!scene) return;
-    // Grimpeur (LDB 15 l.57) : porté par le meneur (exploration) ou le héros actif (combat). Grimpant
+    const verdict = gesteDepuis(get(), from);
+    if ('refus' in verdict) return void refuserGeste(get, set, t(verdict.refus, verdict.vars));
+    const { mobile: mover, scene, battle } = verdict;
+    // Grimpeur (LDB 15 l.57) : porté par le mobile du geste (`gesteDArete`). Grimpant
     // (LDB 85 l.160-162, créature, combat seulement) : `autoClimb` dispense de tout Test — et de la garde
     // `requiresGrimpeur`, réservée au Talent joueur (`planClimb` arbitre `autoSucceed`, réf ci-dessous).
-    // Sans Point de Blessure, un héros ne peut que ramper (LDB 16 l.35) ; Inconscient : LDB 16 l.113.
-    // Aucun grimpeur, refus NOMMÉ.
-    const mover = mode === 'battle' ? (battle ? activeCombatantOf(battle) : undefined) : meneurDeboutDuMonde(get());
-    if (!mover) { get().log(t('climb.personne')); return; }
-    const hasGrimpeur = !!mover?.talents?.some((tl) => tl.talentId === 'grimpeur' && tl.times > 0);
-    const autoClimb = mode === 'battle' && hasAutoClimb(mover?.traits);
-    const plan = planClimb(scene, from, to, hasGrimpeur, mode === 'battle' ? mover?.id : undefined, autoClimb);
-    if (!plan) return; // arête non grimpable → refus silencieux (aucun marqueur ne s'y affiche)
-    if (plan.kind === 'impossible') {
-      get().log(t('climb.tooHard', { name: mover.label }));
-      return;
-    }
-    if (mode === 'exploration') {
-      if (!isWalkable(scene, to.x, to.y, to.z ?? 0)) return;
+    const hasGrimpeur = !!mover.talents?.some((tl) => tl.talentId === 'grimpeur' && tl.times > 0);
+    const autoClimb = !!battle && hasAutoClimb(mover.traits);
+    const plan = planClimb(scene, from, to, hasGrimpeur, battle ? mover.id : undefined, autoClimb);
+    if (!plan) return void refuserGeste(get, set, t('climb.pasGrimpable'));
+    if (plan.kind === 'impossible') return void refuserGeste(get, set, t('climb.tooHard', { name: mover.label }));
+    if (!isWalkable(scene, to.x, to.y, to.z ?? 0)) return void refuserGeste(get, set, t('climb.sommetInaccessible', { name: mover.label }));
+    if (!battle) {
       get().moveParty(to); // monte (optimiste) ; l'échec du Test fera chuter au pied via l'Effet `fall`
       if (plan.kind === 'test') jouerFlowEntier(runFlow(get, set, plan.flow));
       return;
     }
-    if (mode === 'battle') {
-      if (!battle || battle.over || !mover || !controlsCombatant(get(), mover)) return;
-      const metres = Math.abs(heightAt(scene, to.x, to.y, to.z ?? 0) - heightAt(scene, from.x, from.y, from.z ?? 0));
-      // Grimpant `climbFullSpeed` (LDB 85 l.162) : coût NORMAL (1 case), pas la ½ vitesse du Talent
-      // Grimpeur joueur (LDB 15 l.53, `climbMovementCost`) — chemin joueur strictement inchangé.
-      const cost = hasClimbFullSpeed(mover.traits) ? 1 : climbMovementCost(metres, sceneMetresPerTile(scene));
-      placeCombatant(mover, scene, to); // hisse (optimiste) ; échec du Test → `fall` au pied
-      // `surface` = Test requis → consomme l'Action (LDB 13 l.86-88) ; `ladder`/`auto` = sans Test → Mouvement seul.
-      const acted = plan.kind === 'test' ? true : battle.acted;
-      // Résolution directe (Grimpant) : PAS un jet silencieux — il n'y a PAS de jet du tout, journalisé.
-      const log = plan.kind === 'free' && plan.auto
-        ? [...battle.log, ev('move', t('climb.auto', { name: mover.label }), mover.id)]
-        : battle.log;
-      set({ battle: { ...battle, log, acted, action: null, movementUsed: (battle.movementUsed ?? 0) + cost, movedPreAction: battle.movedPreAction || !battle.acted, reachable: new Map(), preview: null } });
-      bus.emit(EVT.SCENE_DIRTY);
-      if (plan.kind === 'test') jouerFlowEntier(runFlow(get, set, plan.flow));
-    }
+    const metres = Math.abs(heightAt(scene, to.x, to.y, to.z ?? 0) - heightAt(scene, from.x, from.y, from.z ?? 0));
+    // Grimpant `climbFullSpeed` (LDB 85 l.162) : coût NORMAL (1 case), pas la ½ vitesse du Talent
+    // Grimpeur joueur (LDB 15 l.55, `climbMovementCost`) — chemin joueur strictement inchangé.
+    const cost = hasClimbFullSpeed(mover.traits) ? 1 : climbMovementCost(metres, sceneMetresPerTile(scene));
+    if (movementRemaining(battle, mover) < cost) return void refuserGeste(get, set, t('climb.mouvementInsuffisant', { name: mover.label, cout: cost }));
+    // `surface` = Test requis → consomme l'Action (LDB 13 l.86-88) ; `ladder`/`auto` = sans Test → Mouvement seul.
+    if (plan.kind === 'test' && battle.acted) return void refuserGeste(get, set, t('climb.actionDejaPrise', { name: mover.label }));
+    if (arriveeOccupee(battle, mover, to)) return void refuserGeste(get, set, t('franchir.caseOccupee', { name: mover.label }));
+    placeCombatant(mover, scene, to); // hisse (optimiste) ; échec du Test → `fall` au pied
+    const acted = plan.kind === 'test' ? true : battle.acted;
+    // Résolution directe (Grimpant) : PAS un jet silencieux — il n'y a PAS de jet du tout, journalisé.
+    const log = plan.kind === 'free' && plan.auto
+      ? [...battle.log, ev('move', t('climb.auto', { name: mover.label }), mover.id)]
+      : battle.log;
+    set({ battle: { ...battle, log, acted, action: null, movementUsed: (battle.movementUsed ?? 0) + cost, movedPreAction: battle.movedPreAction || !battle.acted, reachable: new Map(), preview: null } });
+    bus.emit(EVT.SCENE_DIRTY);
+    // Lanceur = le mobile (`actorId`), LDB 15 l.57.
+    if (plan.kind === 'test') openSkillTest(get, set, plan.flow.test, plan.flow.success, plan.flow.fail, EMPTY_FLOW, { actorId: mover.id });
   },
 
   /** Chute VOLONTAIRE (LDB 15 l.82) : depuis `from` (case du sauteur) vers `to` (case cardinale plus
-   *  basse, `planFall`) — geste JOUEUR seulement (IA hors périmètre : elle ne saute jamais). Ouvre le
-   *  choix pré-jet `pendingFall` (Sauter / Tenter), résolu par `fallChoose`. */
+   *  basse, `planFranchissement`) — geste JOUEUR seulement (IA hors périmètre : elle ne saute jamais). Ouvre le
+   *  choix pré-jet `pendingFall` (Sauter / Tenter, et se suspendre d'abord quand la croisée l'offre),
+   *  résolu par `fallChoose`. Le Mouvement que `soldeDeLAction` imputera (`mouvementDeLaChute`) est
+   *  vérifié ici (le pas, l'allège) et à la déclaration (la suspension, `refusDeLaSuspension`). */
   fallAcross: (from, to) => {
-    const { scene, mode, battle } = get();
-    if (!scene) return;
-    const mover = mode === 'battle' ? (battle ? activeCombatantOf(battle) : undefined) : meneurDeboutDuMonde(get());
-    if (!mover) return;
-    if (mode === 'battle' && (!battle || battle.over || !controlsCombatant(get(), mover))) return;
-    const plan = planFall(scene, from, to);
-    if (plan.kind !== 'fall') return; // pas une falaise DESCENDANTE → refus silencieux (aucun marqueur ne s'y affiche)
+    const verdict = gesteDepuis(get(), from);
+    if ('refus' in verdict) return void refuserGeste(get, set, t(verdict.refus, verdict.vars));
+    const { mobile: mover, scene, battle } = verdict;
+    const plan = planFranchissement(scene, from, to);
+    if (plan.kind !== 'fall') return void refuserGeste(get, set, t(plan.kind === 'none' ? REFUS_FRANCHISSEMENT[plan.raison] : 'franchir.refus.pasUneChute'));
+    if (battle && arriveeOccupee(battle, mover, plan.to)) return void refuserGeste(get, set, t('franchir.caseOccupee', { name: mover.label }));
+    // Le pas, et l'allège d'une croisée (`mouvementDeLaChute`, patron `windowAcross`).
+    const cout = mouvementDeLaChute(plan, false, sceneMetresPerTile(scene));
+    if (battle && movementRemaining(battle, mover) < cout) return void refuserGeste(get, set, t('fall.mouvementInsuffisant', { name: mover.label, cout }));
+    const tombants = tombantsDe(get, battle, mover);
+    // Membre VIVANT non debout : maison `chute-tombant-non-debout` (EDO 01 l.231, LDB 15 l.82).
+    const nonDebout = tombants.find((c) => !estDebout(c));
+    if (nonDebout && rule('chute-tombant-non-debout') !== 'chute-pleine') return void refuserGeste(get, set, t('fall.refus.nonDebout', { name: nonDebout.label }));
     set({
-      pendingFall: { combatantId: mover.id, to, metres: plan.metres, attempt: null, phase: 'choice', result: null },
-      ...(mode === 'battle' && battle ? { battle: { ...battle, action: null, preview: null } } : {}),
+      pendingFall: {
+        to: plan.to, metres: plan.metres, initiateurId: mover.id,
+        ...(plan.suspendu !== undefined ? { suspendu: plan.suspendu } : {}),
+        ...(plan.croisee ? { croisee: true as const } : {}),
+        participants: tombants.map((c) => (estDebout(c)
+          ? { id: c.id, interactive: true, attempt: null, ...(plan.suspendu !== undefined ? { suspendre: null } : {}), result: null }
+          : { id: c.id, interactive: false, attempt: false, ...(plan.suspendu !== undefined ? { suspendre: false } : {}), result: null })),
+      },
+      ...(battle ? { battle: { ...battle, action: null, preview: null } } : {}),
     });
   },
-  fallChoose: (attempt) => {
+  fallChoose: (tombantId, attempt, suspendre) => {
+    // Un intent coop PÉRIMÉ (double clic d'un invité, saut déjà résolu) arrive jusqu'ici : refus nommé.
     const p = get().pendingFall;
-    if (!p || p.result) return;
-    if (attempt) { set({ pendingFall: { ...p, attempt: true, phase: 'roll' } }); return; }
-    // Saut direct SANS Test (RAW « vous pouvez tenter » — le Test est un CHOIX) : chute PLEINE.
-    settleFall(get, set, p, p.metres, false);
+    if (!p) return void refuserGeste(get, set, t('fall.refus.aucunSaut'));
+    const part = p.participants.find((x) => x.id === tombantId);
+    if (!part) return void refuserGeste(get, set, t('fall.refus.horsDuSaut'));
+    if (part.attempt !== null) return void refuserGeste(get, set, t('fall.refus.dejaDeclare'));
+    // Axe HAUTEUR (EDO 01 l.231) : déclaré avec le saut quand la suspension est offerte, jamais sinon.
+    const offerte = p.suspendu !== undefined;
+    if (offerte !== (suspendre !== undefined)) return void refuserGeste(get, set, t('fall.refus.axeHauteur'));
+    if (attempt) {
+      const refus = refusDuTestDeChute(get(), tombantId);
+      if (refus) return void refuserGeste(get, set, t(refus.refus, refus.vars));
+    }
+    if (suspendre) {
+      const refus = refusDeLaSuspension(get(), tombantId);
+      if (refus) return void refuserGeste(get, set, t(refus.refus, refus.vars));
+    }
+    const suite: PendingFall = { ...p, participants: p.participants.map((x) => (x.id === tombantId ? { ...x, attempt, ...(offerte ? { suspendre } : {}) } : x)) };
+    // Toutes les rangées sautent SANS Test (RAW « vous pouvez tenter ») : rien à lancer, l'étape se résout.
+    if (suite.participants.every((x) => x.attempt === false)) { settleFall(get, set, suite); return; }
+    set({ pendingFall: suite });
   },
   fallConfirm: () => {
     const p = get().pendingFall;
-    if (!p || !p.result) return;
-    settleFall(get, set, p, p.result.effectiveMetres, true); // Test tenté → consomme l'Action (LDB 13 l.86-88)
+    if (!p || phaseDeChute(p) !== 'roll' || p.participants.some((x) => x.attempt && !x.result)) return;
+    settleFall(get, set, p);
   },
   fallCancel: () => set({ pendingFall: null }),
+
+  windowAcross: (from, to) => {
+    const verdict = gesteDepuis(get(), from);
+    if ('refus' in verdict) return void refuserGeste(get, set, t(verdict.refus, verdict.vars));
+    const { mobile: mover, scene, battle } = verdict;
+    const plan = planFranchissement(scene, from, to);
+    if (plan.kind !== 'enjamber') return void refuserGeste(get, set, t(plan.kind === 'none' ? REFUS_FRANCHISSEMENT[plan.raison] : 'franchir.refus.pasDePlainPied'));
+    if (!battle) {
+      bus.emit(EVT.ANIM_MOVE, { id: mover.id, path: [verdict.case, plan.to] });
+      get().moveParty(plan.to);
+      return;
+    }
+    const cout = 1 + mouvementDeLAllege(sceneMetresPerTile(scene));
+    if (movementRemaining(battle, mover) < cout) return void refuserGeste(get, set, t('fenetre.mouvementInsuffisant', { name: mover.label, cout }));
+    if (arriveeOccupee(battle, mover, plan.to)) return void refuserGeste(get, set, t('franchir.caseOccupee', { name: mover.label }));
+    placeCombatant(mover, scene, plan.to);
+    const log = [...battle.log, ev('move', t('fenetre.enjambe', { name: mover.label }), mover.id)];
+    set({ battle: { ...battle, log, action: null, movementUsed: (battle.movementUsed ?? 0) + cout, movedPreAction: battle.movedPreAction || !battle.acted, reachable: new Map(), preview: null } });
+    bus.emit(EVT.SCENE_DIRTY);
+  },
 
   stepPartyDir: (dir) => {
     const { scene, mode, partyPos, dialogue, camRot, viewMode, camEdge } = get();
@@ -2537,6 +2627,21 @@ export const useGame = create<GameState>((set, get) => ({
       { verbe: 'avancerHorloge', minutes: action.minutes ?? TIME_COST.search },
       ...(action.consume ? [{ verbe: 'retirerEntite' as const, entityId }] : []),
       ...(action.unique ? [{ verbe: 'marquerActionJouee' as const, entityId, actionId }] : []),
+    ]);
+  },
+
+  fouillerLaPiece: () => {
+    const s = get();
+    if (!s.scene) return void refuserGeste(get, set, t('geste.refus.aucuneScene'));
+    if (s.mode !== 'exploration') return void refuserGeste(get, set, t('fouille.refus.horsExploration'));
+    const porteur = porteurDExploration(s);
+    if ('refus' in porteur) return void refuserGeste(get, set, t(porteur.refus, porteur.vars));
+    const piece = roomFocusAt(s.scene, s.partyPos);
+    if (!piece) return void refuserGeste(get, set, t('fouille.refus.horsPiece'));
+    // La MÊME ligne qu'il y ait des portes ou non, qu'un Test échoue ou non : seule une réussite parle.
+    get().log(t('fouille.journal'));
+    cloturer(get, set, runFlow(get, set, fouilleDeLaPiece(s.scene, piece), t('eff.flowTitleDiscovery')), [
+      { verbe: 'avancerHorloge', minutes: TIME_COST.search },
     ]);
   },
 

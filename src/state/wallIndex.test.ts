@@ -21,11 +21,12 @@
 import { describe, it, expect } from 'vitest';
 import { aretesA, wallIndexOf } from './wallIndex';
 import {
-  areteOcculteEntre, areteOcculte, edgeOf, structureAt, doorAt, climbAt,
+  areteOcculteEntre, areteOcculte, edgeOf, structureAt, doorAt, climbAt, porteEnJeu, setDoorRevealed,
   type Scene, type WallSeg, type WallSide,
 } from './scene';
 import { allBuiltinCampaigns, diligenceCampaign, paquetDuJeu } from '../scenes/campaign';
 import { testScenarios } from '../scenes/test-scenarios';
+import { scenario as fenetreEcuries } from '../scenes/test-scenarios/23-fenetre-ecuries';
 
 const carte: Scene = paquetDuJeu(diligenceCampaign).scenes[0];
 const murs = (): readonly WallSeg[] => carte.walls ?? [];
@@ -119,13 +120,21 @@ describe('wallIndex — TOUTES les scènes livrées', () => {
         const n = naif(scene, w.x, w.y, w.side, z);
         if (JSON.stringify(a) !== JSON.stringify(n)) ecarts.push(`${nom} ${w.x},${w.y},${w.side},${z}`);
         if (structureAt(scene, w.x, w.y, w.side, z) !== n.find((s) => !!s.structure)) ecarts.push(`${nom} structureAt ${w.x},${w.y},${w.side},${z}`);
-        if (doorAt(scene, w.x, w.y, w.side, z) !== n.find((s) => !!s.door)) ecarts.push(`${nom} doorAt ${w.x},${w.y},${w.side},${z}`);
+        if (doorAt(scene, w.x, w.y, w.side, z) !== n.find((s) => porteEnJeu(scene, s))) ecarts.push(`${nom} doorAt ${w.x},${w.y},${w.side},${z}`);
         if (climbAt(scene, w.x, w.y, w.side, z) !== n.find((s) => !!s.climb)) ecarts.push(`${nom} climbAt ${w.x},${w.y},${w.side},${z}`);
       }
     }
     expect(ecarts).toEqual([]);
     expect(scannees).toBe(plancherScenes());
     expect(portees).toBeGreaterThan(murs().length);
+  });
+
+  it('`doorAt` suit `porteEnJeu` : la porte secrète du bureau (EDO 08 l.402) masquée n\'est pas une porte, révélée l\'est', () => {
+    const scene = fenetreEcuries.construire().scene;
+    const porte = scene.walls!.find((w) => w.x === 3 && w.y === 2 && w.side === 'E' && w.z === 1)!;
+    expect(porte.door).toBeTruthy();
+    expect(doorAt(scene, 3, 2, 'E', 1)).toBeUndefined();
+    expect(doorAt(setDoorRevealed(scene, 3, 2, 'E', 1, true), 3, 2, 'E', 1)).toBe(porte);
   });
 });
 

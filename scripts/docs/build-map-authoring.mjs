@@ -111,6 +111,78 @@ function typeZod(init, cle, schema) {
   return m[1]
 }
 
+/** Schéma zod dont l'alias `nom` de `src/state/scene.ts` est inféré (`z.infer<typeof xSchema>`), ou undefined. */
+function schemaInfere(sfScene, nom) {
+  const alias = aliasDe(sfScene, nom)
+  return alias && (alias.type.getText(sfScene).match(/^z\.infer<\s*typeof\s+([A-Za-z0-9_$]+)\s*>$/) ?? [])[1]
+}
+
+/** Constantes des schémas lus : les schémas de scène et la grammaire de valeurs qu'ils importent. */
+const SCHEMAS = indexerConstantes([SCENE_SCHEMA, 'src/data/schemas/grammaire/valeurs.ts'])
+
+/** Propriétés d'un schéma objet zod lu (`SCHEMAS`) : clé → initialiseur et 1re phrase de JSDoc. */
+function proprietesZod(nomSchema) {
+  const entree = SCHEMAS.get(nomSchema)
+  if (!entree) abandon(`schéma \`${nomSchema}\` introuvable dans ${SCENE_SCHEMA} (déplacé ?)`)
+  const objet = objetZod(entree.decl.initializer)
+  if (!objet || !ts.isObjectLiteralExpression(objet.arguments[0])) abandon(`\`${nomSchema}\` : forme d'objet zod illisible`)
+  const props = new Map()
+  let prevEnd = objet.arguments[0].properties.pos
+  for (const p of objet.arguments[0].properties) {
+    if (ts.isPropertyAssignment(p) && p.name) {
+      props.set(p.name.getText(entree.sf).replace(/^['"]|['"]$/g, ''), {
+        init: p.initializer,
+        role: jsdocRole(entree.text.slice(prevEnd, p.getStart(entree.sf))),
+      })
+    }
+    prevEnd = p.getEnd()
+  }
+  return props
+}
+
+/** Type TS d'un membre zod de SOUS-CHAMP : primitif (`typeZod`), `z.enum([...])` littéral, ou
+ *  schéma d'énumération nommé (`difficultySchema`) — au-delà, on casse bruyamment. */
+/** Options d'un `enumNomme({ valeur: 'Libellé', … })` (`grammaire/valeurs.ts`) : les CLÉS de son
+ *  littéral, dans leur ordre ; `undefined` si le nœud n'a pas cette forme. */
+function clesDEnumNomme(init) {
+  if (!init || !ts.isCallExpression(init) || !ts.isIdentifier(init.expression) || init.expression.text !== 'enumNomme') return undefined
+  const valeurs = init.arguments[0]
+  if (!valeurs || !ts.isObjectLiteralExpression(valeurs)) return undefined
+  return valeurs.properties.map((p) => p.name.text)
+}
+
+function typeSousChamp(init, cle, schema) {
+  const texte = init.getText().replace(/\.optional\(\)$/, '')
+  const litteraux = (src) => [...src.matchAll(/'([^']+)'/g)].map((m) => `'${m[1]}'`).join(String.raw` \| `)
+  if (/^z\.enum\(\[/.test(texte)) return litteraux(texte)
+  if (/^[A-Za-z0-9_$]+Schema$/.test(texte)) {
+    const nomme = SCHEMAS.get(texte)
+    const src = nomme?.decl.initializer?.getText(nomme.sf) ?? ''
+    if (/^z\.enum\(\[/.test(src)) return litteraux(src)
+    const cles = clesDEnumNomme(nomme?.decl.initializer)
+    if (cles) return cles.map((c) => `'${c}'`).join(String.raw` \| `)
+    abandon(`sous-champ « ${cle} » de \`${schema}\` : \`${texte}\` n'est pas une énumération lisible — étendre \`typeSousChamp\` dans ${OUTIL}`)
+  }
+  return typeZod(init, cle, schema)
+}
+
+/** Insère, sous chaque champ dont le type est un OBJET zod (`WallSecret`, `WallClimb`…), ses
+ *  sous-champs `champ.clé` — type et 1re phrase de JSDoc du schéma. */
+function avecSousChamps(rows) {
+  return rows.flatMap((r) => {
+    const nomSchema = /^[A-Z][A-Za-z0-9_$]*$/.test(r.type) ? schemaInfere(SF_SCENE, r.type) : undefined
+    const init = nomSchema && SCHEMAS.get(nomSchema)?.decl.initializer
+    if (!init || !objetZod(init)) return [r]
+    const parent = r.nom.replace(/\?$/, '')
+    const sous = [...proprietesZod(nomSchema)].map(([cle, p]) => ({
+      nom: `${parent}.${cle}${/\.optional\(\)/.test(p.init.getText()) ? '?' : ''}`,
+      type: typeSousChamp(p.init, cle, nomSchema),
+      role: p.role,
+    }))
+    return [r, ...sous]
+  })
+}
+
 /** Champs d'un `Pick<Cible, clés>` : les clés viennent du tableau `as const` cité (ex.
  *  `WALL_OVERLAY_KEYS`), leurs type et JSDoc du schéma zod dont `Cible` est inférée
  *  (`export type Cible = z.infer<typeof cibleSchema>`) — jamais d'énumération recopiée ici. */
@@ -125,25 +197,9 @@ function champsPick(sfScene, alias) {
   if (!cles?.length) abandon(`constante \`${nomCles}\` (clés de « ${alias.name.text} ») illisible dans ${SCENE}`)
 
   const cible = t.typeArguments[0].getText(sfScene)
-  const aliasCible = aliasDe(sfScene, cible)
-  const nomSchema = aliasCible && (aliasCible.type.getText(sfScene).match(/z\.infer<\s*typeof\s+([A-Za-z0-9_$]+)\s*>/) ?? [])[1]
+  const nomSchema = schemaInfere(sfScene, cible)
   if (!nomSchema) abandon(`« ${cible} » (cible du \`Pick\` de « ${alias.name.text} ») n'est plus un \`z.infer<typeof …Schema>\` dans ${SCENE}`)
-  const entree = indexerConstantes([SCENE_SCHEMA]).get(nomSchema)
-  if (!entree) abandon(`schéma \`${nomSchema}\` introuvable dans ${SCENE_SCHEMA} (déplacé ?)`)
-  const objet = objetZod(entree.decl.initializer)
-  if (!objet || !ts.isObjectLiteralExpression(objet.arguments[0])) abandon(`\`${nomSchema}\` : forme d'objet zod illisible`)
-
-  const props = new Map()
-  let prevEnd = objet.arguments[0].properties.pos
-  for (const p of objet.arguments[0].properties) {
-    if (ts.isPropertyAssignment(p) && p.name) {
-      props.set(p.name.getText(entree.sf).replace(/^['"]|['"]$/g, ''), {
-        init: p.initializer,
-        role: jsdocRole(entree.text.slice(prevEnd, p.getStart(entree.sf))),
-      })
-    }
-    prevEnd = p.getEnd()
-  }
+  const props = proprietesZod(nomSchema)
   return cles.map((cle) => {
     const p = props.get(cle)
     if (!p) abandon(`clé « ${cle} » de \`${nomCles}\` absente de \`${nomSchema}\` (${SCENE_SCHEMA})`)
@@ -193,7 +249,7 @@ function formesUnion(nom) {
 }
 
 const MAP_FIELDS = champsInterface('MapSpec')
-const WALL_FIELDS = champsInterface('WallSpec')
+const WALL_FIELDS = avecSousChamps(champsInterface('WallSpec'))
 const CELL_FIELDS = champsInterface('CellRecipe')
 const ENC_FIELDS = champsInterface('EncounterSpec')
 const BIND = formesUnion('BindSpec')

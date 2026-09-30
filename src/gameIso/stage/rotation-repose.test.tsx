@@ -93,7 +93,7 @@ function écran(
   keepEl: KeepEl = KEEP,
 ): JSX.Element {
   return (
-    <GameStage3D
+    <GameStage3D lecture="jeu"
       scene={SCENE}
       mpt={MPT}
       frame={frame}
@@ -968,7 +968,7 @@ describe('Stock borné — ce qui est POSÉ est épinglé', () => {
       // `mpt` minuscule ⇒ pixels par mètre énormes ⇒ palier plafonné (`atlasPxHeight`), cellule > 2048.
       await act(async () => {
         root!.render(
-          <GameStage3D
+          <GameStage3D lecture="jeu"
             scene={SCENE} mpt={0.05} frame={cadre(0)} tintAt={TINT} keepEl={KEEP}
             els={ELS} actors={ACTEURS} gameTime={720} lightLevel={1} lights={[]} anim={anim}
           />,

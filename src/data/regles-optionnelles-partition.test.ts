@@ -40,7 +40,15 @@ const REGLES = reglesOptionnelles as Regle[];
  *  MAISON — `LDB 09 l.97/l.99` décrit la mendicité mais ne chiffre ni la durée du créneau, ni le
  *  discours, ni l'apparence, ni la chance d'être surpris, ni la sanction des gardes. Le folio se lit
  *  dans leur `ref` : il localise le passage arbitré, il n'ancre aucune de ces valeurs. */
-const PARTITION = { total: 87, source: 54, maison: 33 };
+/** Puis 88 = 54 + 34 (#700, 2026-09-29) : `fenetre-hauteur-allege` — LDB 15 l.55 ne chiffre ni la
+ *  hauteur d'une allège ni le franchissement d'une croisée : MAISON. */
+/** Puis 89 = 54 + 35 (#700, 2026-09-30) : `porte-secrete-rayon-m` — LDB 09 l.399 ne chiffre pas la
+ *  distance à laquelle une porte secrète se remarque : MAISON. */
+/** Puis 90 = 54 + 36 (#700, 2026-09-30) : `chute-tombant-non-debout` — EDO 01 l.231 et LDB 15 l.82 ne
+ *  disent rien d'un compagnon qui n'est pas debout quand le groupe saute : MAISON. */
+/** Puis 91 = 54 + 37 (#700, 2026-09-30) : `fenetre-suspension` — EDO 01 l.231 ne nomme que l'avance
+ *  du fuyard, aucun coût tactique de la suspension : MAISON. */
+const PARTITION = { total: 91, source: 54, maison: 37 };
 
 /**
  * COEXISTENCE `source` + `maison` (chaîne non vide) sur les entrées de PREMIER niveau de `src/data`,

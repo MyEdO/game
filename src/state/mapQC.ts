@@ -46,10 +46,3 @@ export function reachedFloors(scene: Scene, start: { x: number; y: number; z?: n
   for (const k of reachableCells(scene, start)) out.add(Number(k.split(',')[2]));
   return out;
 }
-
-/** Position du `heroStart` de la scène (départ par défaut du groupe), ou `null` si absent. */
-export function startOf(scene: Scene): { x: number; y: number; z: number } | null {
-  const e = scene.entities.find((e) => e.kind === 'heroStart');
-  if (!e) return null;
-  return { x: e.pos.x, y: e.pos.y, z: e.z ?? 0 };
-}

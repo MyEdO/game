@@ -1,12 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { emptyScene, type Scene } from './scene';
-import { planFall } from './fallMove';
+import { emptyScene, type Scene, type Terrain } from './scene';
+import { planFranchissement } from './fallMove';
+import { pathTo } from './path';
 
 /**
- * `planFall` traduit une chute VOLONTAIRE (LDB 15 l.82) en plan jouable : depuis une case en bordure
- * d'un dénivelé `cliff` (`state/relief.ts`) SANS arête `WallSeg.climb` (déjà couverte par `climbAcross`/
- * Escalade), la case cardinale plus basse devient un saut disponible ; sa hauteur RÉELLE (mètres, relief)
- * alimente la modale `pendingFall` (résolution NUMÉRIQUE par DR, hors périmètre de ce module pur).
+ * `planFranchissement` (LDB 15 l.82 ; #700) : le geste qui QUITTE une surface par une arête. Falaise
+ * descendante, ou croisée franchissable d'étage → `fall` (hauteur RÉELLE, case d'arrivée AVEC sa
+ * couche) ; croisée franchissable de plain-pied → `enjamber` ; tout le reste → `none` nommé.
  */
 
 // Scène 4×4 : falaise de 4 m entre le sommet (2,0) à 4 m et le pied (2,1) à 0 m — AUCUNE arête `climb`.
@@ -22,52 +22,89 @@ function cliffScene(): Scene {
 const top = { x: 2, y: 0 }; // sommet (4 m)
 const foot = { x: 2, y: 1 }; // pied (0 m)
 
-describe('planFall', () => {
-  it('falaise descendante, sans arête climb → saut disponible, hauteur RÉELLE (4 m)', () => {
-    expect(planFall(cliffScene(), top, foot)).toEqual({ kind: 'fall', metres: 4 });
+/** Étage : la case (1,1) existe à la couche 1, à 4 m ; partout ailleurs la couche 1 est `vide`. Une
+ *  croisée sur l'arête E de (1,1), couche 1, donne sur la rue (2,1) au rez. */
+function etageScene(crossable: boolean): Scene {
+  const s = emptyScene(4, 3);
+  const n = 4 * 3;
+  const tiles = new Array(n).fill('vide') as Terrain[];
+  tiles[1 * 4 + 1] = s.layers[0].tiles[0];
+  const height = new Array(n).fill(0) as number[];
+  height[1 * 4 + 1] = 4;
+  s.layers.push({ z: 1, tiles, height });
+  s.walls = [{ x: 1, y: 1, side: 'E', z: 1, window: true, ...(crossable ? { crossable: true } : {}) }];
+  return s;
+}
+
+/** Plain-pied : un couloir 3×1, une croisée sur l'arête E de (1,0) — aucun détour possible. */
+function plainPiedScene(crossable: boolean): Scene {
+  const s = emptyScene(3, 1);
+  s.walls = [{ x: 1, y: 0, side: 'E', window: true, ...(crossable ? { crossable: true } : {}) }];
+  return s;
+}
+
+describe('planFranchissement — falaise', () => {
+  it('falaise descendante, sans arête climb → saut, hauteur RÉELLE (4 m), arrivée au pied (couche 0)', () => {
+    expect(planFranchissement(cliffScene(), top, foot)).toEqual({ kind: 'fall', metres: 4, to: { x: 2, y: 1, z: 0 } });
   });
 
-  it('sens ASCENDANT (pied → sommet) → aucun saut (le geste ne descend jamais)', () => {
-    expect(planFall(cliffScene(), foot, top)).toEqual({ kind: 'none' });
+  it('sens ASCENDANT (pied → sommet) → aucune surface à atteindre', () => {
+    expect(planFranchissement(cliffScene(), foot, top)).toEqual({ kind: 'none', raison: 'aucune-surface' });
   });
 
-  it('arête grimpable (`climb`) → aucun plan (flux dédié `climbAcross`/Escalade)', () => {
+  it('arête grimpable (`climb`) → flux dédié', () => {
     const s = cliffScene();
     s.walls = [{ x: 2, y: 1, side: 'N', climb: { kind: 'surface' } }];
-    expect(planFall(s, top, foot)).toEqual({ kind: 'none' });
+    expect(planFranchissement(s, top, foot)).toEqual({ kind: 'none', raison: 'escalade' });
   });
 
-  it('mur plein sur l’arête → aucun saut (bloqué comme un mur normal)', () => {
+  it('mur plein sur l’arête → murée', () => {
     const s = cliffScene();
-    s.walls = [{ x: 2, y: 1, side: 'N' }]; // mur nu, sans porte ni structure → toujours fermé
-    expect(planFall(s, top, foot)).toEqual({ kind: 'none' });
+    s.walls = [{ x: 2, y: 1, side: 'N' }];
+    expect(planFranchissement(s, top, foot)).toEqual({ kind: 'none', raison: 'muree' });
   });
 
-  it('dénivelé ≤ seuil (rampe, marchable à pied) → aucun saut (pas une falaise)', () => {
+  it('dénivelé ≤ seuil sans croisée → la marche, pas un geste', () => {
     const s = emptyScene(4, 4);
-    const w = 4;
-    const h = new Array(w * 4).fill(0) as number[];
-    h[0 * w + 2] = 1; // 1 m : ≤ STEP_MAX_M → `ramp`, pas `cliff`
+    const h = new Array(16).fill(0) as number[];
+    h[2] = 1; // 1 m : ≤ STEP_MAX_M → `ramp`
     s.layers[0].height = h;
-    expect(planFall(s, { x: 2, y: 0 }, { x: 2, y: 1 })).toEqual({ kind: 'none' });
+    expect(planFranchissement(s, { x: 2, y: 0 }, { x: 2, y: 1 })).toEqual({ kind: 'none', raison: 'marche' });
   });
 
-  it('cases non adjacentes (cardinal) → aucun saut', () => {
-    expect(planFall(cliffScene(), top, { x: 3, y: 3 })).toEqual({ kind: 'none' });
+  it('cases non adjacentes ou diagonales → non-adjacente', () => {
+    expect(planFranchissement(cliffScene(), top, { x: 3, y: 3 })).toEqual({ kind: 'none', raison: 'non-adjacente' });
+    expect(planFranchissement(cliffScene(), top, { x: 3, y: 1 })).toEqual({ kind: 'none', raison: 'non-adjacente' });
   });
 
-  it('case d’arrivée diagonale → aucun saut (cardinal seulement)', () => {
-    const s = emptyScene(4, 4);
-    const w = 4;
-    const h = new Array(w * 4).fill(0) as number[];
-    h[1 * w + 3] = 4; // (3,1) surélevé, diagonal de (2,0)
-    s.layers[0].height = h;
-    expect(planFall(s, { x: 2, y: 0 }, { x: 3, y: 1 })).toEqual({ kind: 'none' });
-  });
-
-  it('case d’arrivée non marchable (mur) → aucun saut', () => {
+  it('case d’arrivée non marchable (mur) → aucune surface', () => {
     const s = cliffScene();
-    s.layers[0].tiles[1 * 4 + 2] = 'mur'; // (2,1) devient impraticable
-    expect(planFall(s, top, foot)).toEqual({ kind: 'none' });
+    s.layers[0].tiles[1 * 4 + 2] = 'mur';
+    expect(planFranchissement(s, top, foot)).toEqual({ kind: 'none', raison: 'aucune-surface' });
+  });
+});
+
+describe('planFranchissement — croisée (#700)', () => {
+  const chambre = { x: 1, y: 1, z: 1 };
+  const rue = { x: 2, y: 1 };
+
+  it('croisée franchissable d’étage → chute PAR une croisée : dénivelé réel (4 m), arrivée à la couche BASSE', () => {
+    expect(planFranchissement(etageScene(true), chambre, rue)).toEqual({ kind: 'fall', metres: 4, to: { x: 2, y: 1, z: 0 }, croisee: true });
+  });
+
+  it('croisée NON franchissable d’étage → murée, aucun saut', () => {
+    expect(planFranchissement(etageScene(false), chambre, rue)).toEqual({ kind: 'none', raison: 'muree' });
+  });
+
+  it('croisée franchissable de plain-pied → enjamber', () => {
+    expect(planFranchissement(plainPiedScene(true), { x: 1, y: 0 }, { x: 2, y: 0 })).toEqual({ kind: 'enjamber', to: { x: 2, y: 0, z: 0 } });
+  });
+
+  it('croisée NON franchissable de plain-pied → murée', () => {
+    expect(planFranchissement(plainPiedScene(false), { x: 1, y: 0 }, { x: 2, y: 0 })).toEqual({ kind: 'none', raison: 'muree' });
+  });
+
+  it('le pathfinding ne traverse JAMAIS la croisée franchissable (arbitrage #1712)', () => {
+    expect(pathTo(plainPiedScene(true), { x: 1, y: 0 }, { x: 2, y: 0 }, { blocked: new Set() })).toBeNull();
   });
 });

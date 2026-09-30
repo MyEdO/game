@@ -8,7 +8,7 @@
 > Tolérance ligne = ±20.
 
 **Sens A — code → Atlas (tous livres)** : 12 chapitre(s)-livre cités par le code & absents de l'Atlas · 11 chapitre(s)-livre couverts avec des lignes non pinées · 0 réf(s) sans chapitre (non réconciliables par cette mesure). Réfs folio (`ABBR NN p.X`, #606) côté Atlas : 2 ignorée(s) proprement (ancre absente/ambiguë/hors-chapitre).
-**Sens B — Atlas → code** : 19 marqueur(s) « (non implémenté) » (tous docs), dont 17 sous dette déclarée, 0 sans entrée et 2 hors champ Implémente · LDB (cœur 4e) : 1 chapitre(s) cité(s) par l'Atlas jamais référencé(s) dans le code (avant crédits : 12 · 11 crédité(s) par une source folio de `src/data` · 0 sous dette de fiche déclarée) · CRB (cœur 5e) : 0 chapitre(s) cité(s) par l'Atlas jamais référencé(s) dans le code (avant crédits : 47 · 0 crédité(s) par une source folio de `src/data` · 47 sous dette de fiche déclarée).
+**Sens B — Atlas → code** : 19 marqueur(s) « (non implémenté) » (tous docs), dont 17 sous dette déclarée, 0 sans entrée et 2 hors champ Implémente · LDB (cœur 4e) : 1 chapitre(s) cité(s) par l'Atlas jamais référencé(s) dans le code (avant crédits : 12 · 11 crédité(s) par une source folio de `src/data` · 0 sous dette de fiche déclarée) · CRB (cœur 5e) : 0 chapitre(s) cité(s) par l'Atlas jamais référencé(s) dans le code (avant crédits : 46 · 0 crédité(s) par une source folio de `src/data` · 46 sous dette de fiche déclarée).
 
 ## A0 — Résumé Sens A par livre
 
@@ -61,8 +61,8 @@
 
 ### MSRC 10 — 5 réf(s) code, 0 dans l'Atlas
 - `src/data/naval-traits.json:12` (l.90) — "maison": "MSRC 07 l.94 gate le Critique de Superstructure sur « si le bateau dispose d'une cale » sans imprimer de Trait naval ; la cale rejoint le catalogue d
-- `src/data/regles-optionnelles-partition.test.ts:58` (l.90) — // 1 → 2 (#1657 B3-2b-a) : le Trait `cale` porte MSRC 10 l.90 (le livre DIT la cale du navire
-- `src/data/schemas/grammaire/formes-partagees.test.ts:412` (l.90) — // de Superstructure sur « si le bateau dispose d'une cale », MSRC 10 l.90 la dit du navire marchand).
+- `src/data/regles-optionnelles-partition.test.ts:66` (l.90) — // 1 → 2 (#1657 B3-2b-a) : le Trait `cale` porte MSRC 10 l.90 (le livre DIT la cale du navire
+- `src/data/schemas/grammaire/formes-partagees.test.ts:414` (l.90) — // de Superstructure sur « si le bateau dispose d'une cale », MSRC 10 l.90 la dit du navire marchand).
 - `src/ui/compendium/registry-enveloppe.test.ts:166` (l.90) — // gate le Critique de Superstructure dessus ; MSRC 10 l.90 le dit du navire marchand).
 
 ### NADJ 4 — 9 réf(s) code, 0 dans l'Atlas
@@ -73,7 +73,7 @@
 
 ### NADJ 14 — 5 réf(s) code, 0 dans l'Atlas
 - `src/data/index.ts:849` (l.5) — *  Portée sur `gnomes` (`NADJ 14 l.5`, règle `creation-gnome-jouable`). */
-- `src/data/reglesOptionnelles.json:542` (l.5) — "ref": "NADJ 14 l.5",
+- `src/data/reglesOptionnelles.json:556` (l.5) — "ref": "NADJ 14 l.5",
 - `src/data/schemas/defs/species.ts:60` (l.5) — *  Portée sur `gnomes` (`NADJ 14 l.5`, règle `creation-gnome-jouable`). */
 - `src/engine/creation.test.ts:136` (l.5) — describe('Gnome jouable — règle optionnelle (NADJ 14 l.5)', () => {
 
@@ -100,7 +100,7 @@
 - l.55 — `src/data/reseau-routier.json:67` — "note": "EDOC 06 l.55 — section « Les Lignes Rochet » ; la surcote de 10 % est l.57."
 - … +1 autres
 
-### EDO 1 — 6/7 ligne(s) code hors couverture (propriétaire : 4e/combat.md)
+### EDO 1 — 6/9 ligne(s) code hors couverture (propriétaire : 4e/combat.md)
 - l.5 — `src/data/schemas/defs-scenes/narratif.test.ts:26` — source: { book: 'ennemi-dans-l-ombre', page: 12, note: 'EDO 01 l.5' },
 - l.13 — `src/scenes/diligence/edo-ch1-calibration-voyage.test.ts:14` — * Promesse tenue, `EDO 01 l.13` : « Deux jours de diligence, bien sûr. À pied, le trajet devrait durer
 - l.17 — `src/scenes/diligence/edo-ch1-calibration-voyage.test.ts:15` — * environ une semaine. » Emplacement du relais, `EDO 01 l.17` : « Son emplacement exact importe peu, du
@@ -138,15 +138,16 @@
 - l.437 — `src/engine/castingNumber.test.ts:28` — it('Caverne de l’Attache : moitié ARRONDIE À L’INFÉRIEUR, Sorts de la Bête (VDM 14 l.437)', () => {
 - l.489 — `src/data/index.ts:2135` — *  deux natures (`VDM 12 l.646-647`, `VDM 14 l.489`). */
 
+### EDO 7 — 2/2 ligne(s) code hors couverture (propriétaire : 4e/combat.md)
+- l.184 — `src/ui/mono-stake-ratchet.test.ts:74` — // EDO 7 l.184 / PDT 9 l.285 posent un statbloc de porte, PDT 8 l.370 est de la prose de MJ,
+- l.263 — `src/data/schemas/defs-scenes/scene.ts:697` — /** Face(s) depuis laquelle la porte peut être découverte — `EDO 07 l.263`. */
+
 ### NADJ 16 — 2/20 ligne(s) code hors couverture (propriétaire : 4e/tests.md)
 - l.119 — `src/engine/combat.ts:903` — *  (Middenball NADJ 16 l.119 : « en utilisant les règles habituelles relatives à l'Avantage »).
 - l.133 — `src/scenes/test-scenarios/96-presets-edo.ts:197` — // Jeu posé : `dominos` ; le jeu du RAW, l'Impératrice écarlate (`NADJ 16 l.133-139`), manque à
 
 ### ADE I 6 — 1/1 ligne(s) code hors couverture (propriétaire : —)
 - l.185 — `src/data/index.ts:1099` — *  permission du MJ », EDOC 13 l.137 ; lignage Éonir Harioth hors espèces jouables, ADE I 6 l.185).
-
-### EDO 7 — 1/1 ligne(s) code hors couverture (propriétaire : 4e/combat.md)
-- l.184 — `src/ui/mono-stake-ratchet.test.ts:74` — // EDO 7 l.184 / PDT 9 l.285 posent un statbloc de porte, PDT 8 l.370 est de la prose de MJ,
 
 ### MSRC 5 — 1/1 ligne(s) code hors couverture (propriétaire : —)
 - l.113 — `src/state/riverVoyageFlow.ts:876` — // Réparateur de SUBSTITUTION (`MSRC 5 l.113-117`) : le −10 est DÉJÀ fondu dans la valeur jetée,
@@ -196,17 +197,17 @@ LDB 38
 
 ## B2 CRB (cœur 5e) — Chapitres cités par l'Atlas, jamais référencés dans le code
 
-_Avant crédits (47)_ : CRB 4 · CRB 6 · CRB 7 · CRB 8 · CRB 9 · CRB 10 · CRB 11 · CRB 12 · CRB 16 · CRB 17 · CRB 20 · CRB 21 · CRB 22 · CRB 23 · CRB 24 · CRB 25 · CRB 26 · CRB 27 · CRB 28 · CRB 29 · CRB 30 · CRB 31 · CRB 32 · CRB 33 · CRB 34 · CRB 37 · CRB 38 · CRB 39 · CRB 41 · CRB 42 · CRB 47 · CRB 48 · CRB 65 · CRB 66 · CRB 67 · CRB 71 · CRB 72 · CRB 74 · CRB 75 · CRB 76 · CRB 86 · CRB 90 · CRB 97 · CRB 100 · CRB 114 · CRB 115 · CRB 116
+_Avant crédits (46)_ : CRB 4 · CRB 6 · CRB 7 · CRB 8 · CRB 9 · CRB 10 · CRB 11 · CRB 12 · CRB 16 · CRB 17 · CRB 20 · CRB 21 · CRB 22 · CRB 23 · CRB 24 · CRB 25 · CRB 26 · CRB 27 · CRB 28 · CRB 29 · CRB 30 · CRB 31 · CRB 33 · CRB 34 · CRB 37 · CRB 38 · CRB 39 · CRB 41 · CRB 42 · CRB 47 · CRB 48 · CRB 65 · CRB 66 · CRB 67 · CRB 71 · CRB 72 · CRB 74 · CRB 75 · CRB 76 · CRB 86 · CRB 90 · CRB 97 · CRB 100 · CRB 114 · CRB 115 · CRB 116
 
 _Crédités par une source folio de `src/data/*.json` (0, donnée référencée sans réf de ligne)_ : —
 
-_Sous dette de fiche déclarée (47, toutes les fiches qui décrivent le chapitre sont ticketées)_ : CRB 4 (#1873 — 5e/tests) · CRB 6 (#1873 — 5e/tests) · CRB 7 (#1873 — 5e/tests) · CRB 8 (#1873 — 5e/tests) · CRB 9 (#1873 — 5e/tests) · CRB 10 (#1873 — 5e/tests) · CRB 11 (#1873 — 5e/tests) · CRB 12 (#1873 — 5e/tests) · CRB 16 (#1873 — 5e/tests) · CRB 17 (#1873 — 5e/tests) · CRB 20 (#1873 — 5e/tests) · CRB 21 (#1873 — 5e/tests) · CRB 22 (#1873 — 5e/tests) · CRB 23 (#1873 — 5e/tests) · CRB 24 (#1873 — 5e/tests) · CRB 25 (#1873 — 5e/tests) · CRB 26 (#1873 — 5e/tests) · CRB 27 (#1873 — 5e/tests) · CRB 28 (#1873 — 5e/tests) · CRB 29 (#1873 — 5e/tests) · CRB 30 (#1873 — 5e/tests) · CRB 31 (#1873 — 5e/tests) · CRB 32 (#1873 — 5e/tests) · CRB 33 (#1873 — 5e/tests) · CRB 34 (#1873 — 5e/tests) · CRB 37 (#1873 — 5e/tests) · CRB 38 (#1873 — 5e/tests) · CRB 39 (#1873 — 5e/tests) · CRB 41 (#1873 — 5e/tests) · CRB 42 (#1873 — 5e/tests) · CRB 47 (#1873 — 5e/tests) · CRB 48 (#1873 — 5e/tests) · CRB 65 (#1873 — 5e/tests) · CRB 66 (#1873 — 5e/tests) · CRB 67 (#1873 — 5e/tests) · CRB 71 (#1873 — 5e/tests) · CRB 72 (#1873 — 5e/tests) · CRB 74 (#1873 — 5e/tests) · CRB 75 (#1873 — 5e/tests) · CRB 76 (#1873 — 5e/tests) · CRB 86 (#1873 — 5e/tests) · CRB 90 (#1873 — 5e/tests) · CRB 97 (#1873 — 5e/tests) · CRB 100 (#1873 — 5e/tests) · CRB 114 (#1873 — 5e/tests) · CRB 115 (#1873 — 5e/tests) · CRB 116 (#1873 — 5e/tests)
+_Sous dette de fiche déclarée (46, toutes les fiches qui décrivent le chapitre sont ticketées)_ : CRB 4 (#1873 — 5e/tests) · CRB 6 (#1873 — 5e/tests) · CRB 7 (#1873 — 5e/tests) · CRB 8 (#1873 — 5e/tests) · CRB 9 (#1873 — 5e/tests) · CRB 10 (#1873 — 5e/tests) · CRB 11 (#1873 — 5e/tests) · CRB 12 (#1873 — 5e/tests) · CRB 16 (#1873 — 5e/tests) · CRB 17 (#1873 — 5e/tests) · CRB 20 (#1873 — 5e/tests) · CRB 21 (#1873 — 5e/tests) · CRB 22 (#1873 — 5e/tests) · CRB 23 (#1873 — 5e/tests) · CRB 24 (#1873 — 5e/tests) · CRB 25 (#1873 — 5e/tests) · CRB 26 (#1873 — 5e/tests) · CRB 27 (#1873 — 5e/tests) · CRB 28 (#1873 — 5e/tests) · CRB 29 (#1873 — 5e/tests) · CRB 30 (#1873 — 5e/tests) · CRB 31 (#1873 — 5e/tests) · CRB 33 (#1873 — 5e/tests) · CRB 34 (#1873 — 5e/tests) · CRB 37 (#1873 — 5e/tests) · CRB 38 (#1873 — 5e/tests) · CRB 39 (#1873 — 5e/tests) · CRB 41 (#1873 — 5e/tests) · CRB 42 (#1873 — 5e/tests) · CRB 47 (#1873 — 5e/tests) · CRB 48 (#1873 — 5e/tests) · CRB 65 (#1873 — 5e/tests) · CRB 66 (#1873 — 5e/tests) · CRB 67 (#1873 — 5e/tests) · CRB 71 (#1873 — 5e/tests) · CRB 72 (#1873 — 5e/tests) · CRB 74 (#1873 — 5e/tests) · CRB 75 (#1873 — 5e/tests) · CRB 76 (#1873 — 5e/tests) · CRB 86 (#1873 — 5e/tests) · CRB 90 (#1873 — 5e/tests) · CRB 97 (#1873 — 5e/tests) · CRB 100 (#1873 — 5e/tests) · CRB 114 (#1873 — 5e/tests) · CRB 115 (#1873 — 5e/tests) · CRB 116 (#1873 — 5e/tests)
 
 **VRAIS hors-code (après crédits) :**
 _Aucun._
 
 ## Livres vus par la mesure
 
-Code : AA, ACE, ADE I, ADE II, EDO, EDOC, LDB, MCLB, MDG, MSRC, NADJ, PDT, VDM, ZI
+Code : AA, ACE, ADE I, ADE II, CRB, EDO, EDOC, LDB, MCLB, MDG, MSRC, NADJ, PDT, VDM, ZI
 Atlas : AA, ACE, ADE I, ADE II, AU1, CRB, EDO, EDOC, LDB, MCLB, MDG, MSR, MSRC, NADJ, PDT, VDM, ZI
-<!-- sources-empreinte: 5f3bcfe377bfd3f18866c5b15bcbd1646c55c7af (4368 fichiers, 154 dossiers) corps: 6e233e7aa9c4f822a5740370e088a9051eaa6217 -->
+<!-- sources-empreinte: 311ad236edb66cb28d0dceb3f327c06e2b2f6fa9 (4384 fichiers, 154 dossiers) corps: 34ca092fccb47e8eb0584450032fde658586a4e8 -->

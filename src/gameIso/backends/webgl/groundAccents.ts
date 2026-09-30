@@ -25,7 +25,7 @@ import { expandRecipe, TUFT_FAN } from '../../detail/expand';
 import { hash32, seedStream } from '../../../data/hash';
 import type { DetailRecipe } from '../../detail/types';
 import { terrainDetail } from '../../../state/terrain';
-import type { Scene } from '../../../state/scene';
+import type { LectureDArete, Scene } from '../../../state/scene';
 import type { Vec3 } from './worldTris';
 import type { SceneEl } from '../../builders/types';
 import { worldFaces, type KeepEl, type TintAt } from './sceneMeshes';
@@ -101,9 +101,9 @@ export interface SceneGroundAccent extends GroundAccent {
  *  (`bakeWorldGeometry`) : le semis coûte 12,1 ms sur l'arène (mesuré #1176) et ne se rejoue qu'à la
  *  scène ou à l'échelle — c'est la REPOSE (`reposeGroundAccents`) qui en retire ce que le dégagement
  *  emporte, sans jamais toucher au semis. */
-export function sceneGroundAccents(scene: Scene, mpt: number): SceneGroundAccent[] {
+export function sceneGroundAccents(scene: Scene, mpt: number, lecture: LectureDArete): SceneGroundAccent[] {
   const out: SceneGroundAccent[] = [];
-  for (const wf of worldFaces(scene)) {
+  for (const wf of worldFaces(scene, lecture)) {
     const m = wf.face.material;
     if (m.domain !== 'terrain' || m.part) continue;
     const recipe = terrainDetail(m.id);

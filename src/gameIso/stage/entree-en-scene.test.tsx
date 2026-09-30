@@ -105,7 +105,7 @@ function écran(
   acteurs: readonly ActorPose[] = SANS_ACTEUR,
 ): JSX.Element {
   return (
-    <GameStage3D
+    <GameStage3D lecture="jeu"
       scene={SCENE}
       mpt={MPT}
       frame={frame}

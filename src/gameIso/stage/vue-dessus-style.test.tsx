@@ -116,7 +116,7 @@ function sommetsDessinés(mesh: THREE.Mesh): Set<number> {
 /** Les sommets que la cuisson attribue aux TOITURES de cette scène. Cuisson à part (contrat de
  *  propriété de `BakedWorld`) : on n'y lit que l'index des spans, jamais la géométrie rendue. */
 function sommetsDeToiture(scene: Scene): Set<number> {
-  const baked = bakeWorldGeometry(scene, sceneMetresPerTile(scene));
+  const baked = bakeWorldGeometry(scene, sceneMetresPerTile(scene), 'jeu');
   const out = new Set<number>();
   for (const span of baked.spans) {
     if (span.el.kind !== 'roof') continue;

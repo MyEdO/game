@@ -9,8 +9,10 @@ import { useEffect, useRef, useState, type ComponentProps, type ReactNode, type 
 import {
   Scene, SceneEntity, Trigger, SceneEffectZone, WallSeg, type ActionAuthoree,
   type ArchitecturePart, type ArchitectureStorey, type FacadeSection, type BuildingMass, type RoofDefaults,
-  type ArchitectureRect, type SceneStationAnchor, type ReliefDefaults, isDescriptiveZone, sceneMetresPerTile,
+  type ArchitectureRect, type SceneStationAnchor, type ReliefDefaults, type FaceDArete, isDescriptiveZone, porteAuteur, sceneMetresPerTile,
+  secretAuteur,
 } from '../../state/scene';
+import { isRoomZone } from '../../state/rooms';
 import { PARTS_RELIEF } from '../../data/materials.types';
 import { NumberField } from '../NumberField';
 import { TIME_COST } from '../../engine/timeCost';
@@ -30,7 +32,7 @@ import { findCreatureById, creatureLabel, lightLevels, lightTones, findVehicleBy
 import { poseToitureDeCorps, rederiveRoofMasses, renameActionAuthoree, toitureEffective, TypeNonNomme } from '../../state/sceneEdit';
 import { activitiesFor } from '../../engine/activities';
 import { hintDeValeur, libelleDeValeur, valeursDe } from '../../data/schemas/grammaire/meta';
-import { entityKindSchema, facadeFeatureKindSchema, roofProfileSchema, sceneWeatherSchema } from '../../data/schemas/defs-scenes/scene';
+import { entityKindSchema, facadeFeatureKindSchema, faceDAreteSchema, roofProfileSchema, sceneWeatherSchema } from '../../data/schemas/defs-scenes/scene';
 
 /** Cibles d'une ANCRE de bataille (`Scene.stations[].sceneId`) : les Scènes de Round du catalogue
  *  d'Activités (contexte `bataille-round`) — le SEUL espace d'ids que le consommateur sait résoudre
@@ -51,7 +53,7 @@ import { SeatAssignmentsField } from './SeatAssignmentsField';
 import { Sel, type Tool, changePropRef, deleteSel, renameEntry, renameEffectZone, addMember, removeMember, patchMember, effectZoneRect, effectZoneArea, setEffectZoneArea, clearEffectZoneCarve, flowEffectCount, setPosteCrew, setPosteSide, setPosteEngine, editEntity, editEntityCombat, patchWall, setMetresPerTile, setAmbientLight, setNorthDeg, setEnvironment, setSceneFlags } from './editorState';
 import { scrollElementIntoPort } from './useEditorView';
 import type { FireArc, StructureData, NavalTraitRef } from '../../engine/types';
-import { DIFFICULTY_LABELS } from '../../engine/types';
+import { DIFFICULTY_LABELS, type Difficulty } from '../../engine/types';
 import { isWallEdgeStructure, isDoorEdgeStructure } from '../../engine/structures';
 import { RefField } from '../compendium/RefField';
 import { SearchFilterField, filterByLabel } from '../SearchFilterField';
@@ -222,8 +224,7 @@ export function Inspector({
     : null;
   const selectedArchitectureZ = architectureStorey?.z ?? facadeSection?.z ?? roofSection?.z;
   const roomZones = (scene.effectZones ?? []).filter((zone) =>
-    zone.presentation === 'interior'
-    && isDescriptiveZone(zone)
+    isRoomZone(zone)
     && selectedArchitectureZ !== undefined
     && (zone.z ?? 0) === selectedArchitectureZ);
   const patchSelW = (patch: Partial<WallSeg>) => {
@@ -336,7 +337,7 @@ export function Inspector({
           : efz
             ? <><Icon id="ui/warning" size="sm" /> {efz.label || 'Piège'}</>
             : selW
-              ? (selW.door ? <><Icon id="map-tool/door" size="sm" /> Porte</> : <><Icon id="map-tool/wall" size="sm" /> Cloison</>)
+              ? (porteAuteur(selW) ? <><Icon id="map-tool/door" size="sm" /> Porte</> : <><Icon id="map-tool/wall" size="sm" /> Cloison</>)
               : entry
                 ? <><Icon id="nav/entry-point" size="sm" /> {sel?.type === 'entry' ? sel.id : ''}</>
                 : sel?.type === 'architectureBody' && architectureBody
@@ -954,7 +955,7 @@ export function Inspector({
             const r = effectZoneRect(efz.area);
             return (
               <>
-                <Fold title={efz.presentation === 'interior' ? 'Pièce' : 'Zone'} open>
+                <Fold title={isRoomZone(efz) ? 'Pièce' : 'Zone'} open>
                   <p className="hint">
                     Zone nommée : elle situe et se dit. Ce sont les MURS qui font le bâtiment — plancher, toiture,
                     enveloppe et accès se dérivent de la boucle de murs qui enclot la case. La zone, elle, NOMME la
@@ -1078,36 +1079,86 @@ export function Inspector({
 
           {selW && sel?.type === 'wall' && (
             <>
-              <Fold title={selW.door ? <><Icon id="map-tool/door" size="sm" /> Porte</> : <><Icon id="map-tool/wall" size="sm" /> Cloison</>} open>
+              <Fold title={porteAuteur(selW) ? <><Icon id="map-tool/door" size="sm" /> Porte</> : <><Icon id="map-tool/wall" size="sm" /> Cloison</>} open>
                 <p className="hint">Arête @ ({sel.x},{sel.y}) {sel.side}{sel.z ? ` · étage ${sel.z}` : ''}.</p>
                 <div className="ed-field">
                   <span>Type</span>
                   <Row>
-                    <button className="btn small" aria-pressed={!selW.door} title="Cloison pleine (bloque vue et passage)" onClick={() => patchSelW({ door: undefined, closed: undefined })}>
+                    <button className="btn small" aria-pressed={!porteAuteur(selW)} title="Cloison pleine (bloque vue et passage)" onClick={() => patchSelW({ door: undefined, closed: undefined })}>
                       ▮ Cloison
                     </button>
-                    <button className="btn small" aria-pressed={!!selW.door} title="Arête franchissable (porte)" onClick={() => patchSelW({ door: true })}>
+                    <button className="btn small" aria-pressed={porteAuteur(selW)} title="Arête franchissable (porte)" onClick={() => patchSelW({ door: true, window: undefined, shuttered: undefined, crossable: undefined, suspendu: undefined })}>
                       <Icon id="map-tool/door" size="sm" /> Porte
                     </button>
                   </Row>
                 </div>
-                {selW.door && (
-                  <label className="ed-check">
-                    <input type="checkbox" checked={!!selW.closed} onChange={(e) => patchSelW({ closed: e.target.checked || undefined })} />
+                {porteAuteur(selW) && (
+                  <label className="ed-check" title={secretAuteur(selW) ? 'Une porte secrète est fermée au départ : décoche d’abord « Porte secrète »' : undefined}>
+                    <input type="checkbox" checked={!!selW.closed} disabled={!!secretAuteur(selW)} onChange={(e) => patchSelW({ closed: e.target.checked || undefined })} />
                     <Icon id="ui/lock" size="sm" /> Fermée au départ
                   </label>
                 )}
-                {!selW.door && (
+                {porteAuteur(selW) && (
+                  <label className="ed-check" title="Masquée en jeu tant qu'elle n'est pas découverte (EDO 08 l.402)">
+                    <input type="checkbox" checked={!!secretAuteur(selW)} onChange={(e) => patchSelW(e.target.checked ? { secret: { difficulty: 'intermediaire', face: 'les-deux' }, closed: true } : { secret: undefined })} />
+                    Porte secrète
+                  </label>
+                )}
+                {(() => {
+                  const secret = secretAuteur(selW);
+                  if (!porteAuteur(selW) || !secret) return null;
+                  return (
+                    <>
+                      <div className="ed-field">
+                        <span>Difficulté de Perception</span>
+                        <select value={secret.difficulty} onChange={(e) => patchSelW({ secret: { ...secret, difficulty: e.target.value as Difficulty } })}>
+                          {Object.entries(DIFFICULTY_LABELS).map(([k, lbl]) => (<option key={k} value={k}>{lbl}</option>))}
+                        </select>
+                      </div>
+                      <div className="ed-field" title="EDO 07 l.263 : une porte secrète peut n'être découvrable que d'un côté">
+                        <span>Découvrable depuis</span>
+                        <select value={secret.face} onChange={(e) => patchSelW({ secret: { ...secret, face: e.target.value as FaceDArete } })}>
+                          {Object.entries(valeursDe(faceDAreteSchema) ?? {}).map(([k, lbl]) => (<option key={k} value={k}>{lbl}</option>))}
+                        </select>
+                      </div>
+                    </>
+                  );
+                })()}
+                {!porteAuteur(selW) && (
                   <label className="ed-check">
                     <input type="checkbox" checked={!!selW.window} onChange={(e) => patchSelW({ window: e.target.checked || undefined })} />
-                    Fenêtre décorative
+                    Fenêtre
                   </label>
+                )}
+                {!porteAuteur(selW) && selW.window && (
+                  <label className="ed-check" title="Une croisée laisse passer la vue, pas le pas ; volets clos, elle coupe la vue">
+                    <input type="checkbox" checked={!!selW.shuttered} onChange={(e) => patchSelW({ shuttered: e.target.checked || undefined })} />
+                    Volets clos (coupe la vue)
+                  </label>
+                )}
+                {!porteAuteur(selW) && selW.window && (
+                  <label className="ed-check" title="Geste explicite (LDB 15 l.82 pour sauter, LDB 15 l.55 maison pour enjamber) ; le déplacement reste bloqué">
+                    <input type="checkbox" checked={!!selW.crossable} onChange={(e) => patchSelW({ crossable: e.target.checked || undefined })} />
+                    Franchissable (enjamber / sauter)
+                  </label>
+                )}
+                {!porteAuteur(selW) && selW.window && selW.crossable && (
+                  <NumberField
+                    variant="champ"
+                    label="Chute si l’on se suspend d’abord (m)"
+                    title="EDO 01 l.231 — vide : pas de suspension offerte ; offerte au saut seulement sous la hauteur réelle"
+                    min={0.5}
+                    step={0.5}
+                    vide
+                    value={selW.suspendu ?? null}
+                    onChange={(suspendu) => patchSelW({ suspendu: suspendu ?? undefined })}
+                  />
                 )}
                 <RefField
                   cfg={{
                     ds: 'structures',
                     single: true,
-                    filter: (e) => (selW.door ? isDoorEdgeStructure(e as unknown as StructureData) : isWallEdgeStructure(e as unknown as StructureData)),
+                    filter: (e) => (porteAuteur(selW) ? isDoorEdgeStructure(e as unknown as StructureData) : isWallEdgeStructure(e as unknown as StructureData)),
                   }}
                   fieldKey="Matériau du mur"
                   value={selW.structure}
@@ -1128,7 +1179,7 @@ export function Inspector({
                   <span>Escaladable</span>
                   <Row>
                     <button className="btn small" aria-pressed={!selW.climb} title="Arête non grimpable" onClick={() => patchSelW({ climb: undefined })}>Non</button>
-                    <button className="btn small" aria-pressed={selW.climb?.kind === 'ladder'} title="Échelle / surface facile : pas de Test (LDB 15 l.53)" onClick={() => patchSelW({ climb: { kind: 'ladder' } })}>Échelle</button>
+                    <button className="btn small" aria-pressed={selW.climb?.kind === 'ladder'} title="Échelle / surface facile : pas de Test (LDB 15 l.55)" onClick={() => patchSelW({ climb: { kind: 'ladder' } })}>Échelle</button>
                     <button className="btn small" aria-pressed={selW.climb?.kind === 'surface'} title="Paroi à prises : Test d'Escalade (LDB 15 l.57)" onClick={() => patchSelW({ climb: { kind: 'surface', ...(selW.climb?.kind === 'surface' ? selW.climb : {}) } })}>Paroi</button>
                   </Row>
                 </div>
@@ -1136,7 +1187,7 @@ export function Inspector({
                   <>
                     <div className="ed-field">
                       <span>Difficulté du Test</span>
-                      <select value={selW.climb.difficulty ?? 'intermediaire'} onChange={(e) => patchSelW({ climb: { ...selW.climb!, difficulty: e.target.value as import('../../engine/types').Difficulty } })}>
+                      <select value={selW.climb.difficulty ?? 'intermediaire'} onChange={(e) => patchSelW({ climb: { ...selW.climb!, difficulty: e.target.value as Difficulty } })}>
                         {Object.entries(DIFFICULTY_LABELS).map(([k, lbl]) => (<option key={k} value={k}>{lbl}</option>))}
                       </select>
                     </div>

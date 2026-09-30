@@ -51,7 +51,7 @@ câblé côté `src/state`, ou n'être jamais posé dans aucun JSON de campagne 
 | `zoneBlast` | `center`, `radius`, `ops` | Souffle de ZONE (Lot 3) centré sur une case : tous les combattants à `radius` cases (Chebyshev) — en combat par position, hors combat le groupe (à partyPos) — subissent les `ops` (vocabulaire unique `GameOp`, appliquées par `applyOps` cible par cible). |
 | `fall` | `target`, `heroId?`, `metres`, `to?` | Chute (`LDB 15 l.80-84`) : la cible tombe de `metres` mètres → 3 Dégâts/mètre + 1d10, réduits par le Bonus d'Endurance mais PAS par les PA ; si les Blessures subies dépassent le BE → État À Terre. |
 | `setLight` | `level` | Mise en scène (Lot L) : règle le niveau de LUMIÈRE de la scène (0 = noir, 1 = plein jour) — « les lumières baissent, le rideau se lève ». |
-| `setDoor` | `x`, `y`, `side`, `z?`, `open` | Porte dynamique (brouillard de guerre) : ouvre/ferme la porte de l'arête (x,y,side) — une porte fermée bloque vue ET passage. |
+| `setDoor` | `x`, `y`, `side`, `z?`, `open?`, `revealed?`, `attempted?` | Porte dynamique (brouillard de guerre) : ouvre/ferme la porte de l'arête (x,y,side), et/ou RÉVÈLE une porte secrète (`setDoorRevealed`, `EDO 08 l.402`) — `revealed` s'applique AVANT `open` —, et/ou pose la marque de TENTATIVE de sa découverte (`attempted`, `setDoorTentee` ; arbitrage #700, 2026-09-29). |
 | `moveEntity` | `id`, `to?`, `remove?` | Repositionne (ANIMÉ) ou RETIRE une entité de scène posée — mise en scène scriptée (#701 : fuite, entrée, disparition d'un figurant). |
 | `playSfx` | `id` | Son PONCTUEL (cloche de minuit, cri hors-champ…) — id du registre audio (#701). |
 | `giveSin` | `amount?`, `heroId?` | Points de Péché (`LDB 40 l.30-36`) : l'auteur/MJ sanctionne une infraction aux commandements du dieu d'un Bienheureux — 1 à 3 selon la gravité (l.36). |
@@ -73,4 +73,4 @@ câblé côté `src/state`, ou n'être jamais posé dans aucun JSON de campagne 
 | `endDialogue` | — | — |
 
 _58 Effects — dérivés de `src/data/schemas/defs-scenes/effets.ts`._
-<!-- sources-empreinte: ec88f680dd6753b3a28afbab502a0d49987b2c8f (9 fichiers, 0 dossiers) corps: 3d2fdf07b755219f6c98ba17be2b89b63f00b18a -->
+<!-- sources-empreinte: cf329febccad8dfb8e14ed349174ed11b3e04212 (9 fichiers, 0 dossiers) corps: e8a84d11577abcfa2f481b951272801638bca9e3 -->

@@ -1,5 +1,6 @@
-import { heightAt, isMerScene, isWalkable, type Scene, type Effect } from './scene';
-import { startOf, unreachableDescriptiveZones } from './mapQC';
+import { heightAt, isMerScene, isWalkable, startOf, type Scene, type Effect } from './scene';
+import { unreachableDescriptiveZones } from './mapQC';
+import { isRoomZone } from './rooms';
 import { footprintTiles, sizeFootprint } from './footprint';
 import { entitySize } from './spawn';
 import { METRES_PER_LEVEL } from './relief';
@@ -244,18 +245,18 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null): War
     const startEntity = s.entities.find((e) => e.kind === 'heroStart');
     if (start && startEntity && echelleDuPas) {
       if (!isWalkable(s, start.x, start.y, start.z)) {
-        add('warn', 'entity', startEntity.id, `Départ du groupe en (${start.x},${start.y}) à l'étage ${start.z} : la case n'est pas marchable — pose-le sur un sol praticable, sinon le groupe apparaît dans le décor.`);
+        add('warn', 'entity', startEntity.id, `Départ du groupe en (${start.x},${start.y}) à l'étage ${start.z ?? 0} : la case n'est pas marchable — pose-le sur un sol praticable, sinon le groupe apparaît dans le décor.`);
       } else {
         // Zones évaluées SEULEMENT depuis un départ praticable : depuis une case murée, la marche ne
         // rejoint rien et TOUTES les pièces se signaleraient — un seul défaut, pas N faux.
         for (const zone of unreachableDescriptiveZones(s, start))
-          add('warn', 'scene', zone.id, `Pièce « ${zone.label ?? zone.id} » inatteignable à pied depuis le départ du groupe (${start.x},${start.y}, étage ${start.z}) — perce une porte, ou relie-la par un escalier ou une rampe.`);
+          add('warn', 'scene', zone.id, `Pièce « ${zone.label ?? zone.id} » inatteignable à pied depuis le départ du groupe (${start.x},${start.y}, étage ${start.z ?? 0}) — perce une porte, ou relie-la par un escalier ou une rampe.`);
       }
     }
     const validRect = (rect: { x: number; y: number; w: number; h: number }) =>
       Number.isInteger(rect.x) && Number.isInteger(rect.y) && Number.isInteger(rect.w) && Number.isInteger(rect.h)
       && rect.w > 0 && rect.h > 0 && within(rect.x, rect.y) && within(rect.x + rect.w - 1, rect.y + rect.h - 1);
-    const zoneInterior = (id: string) => s.effectZones?.find((zone) => zone.id === id && zone.presentation === 'interior');
+    const zoneInterior = (id: string) => s.effectZones?.find((zone) => zone.id === id && isRoomZone(zone));
     /** `revealBelow` : une TOITURE révèle par cutaway les pièces qu'elle COUVRE, potentiellement à
      *  un étage inférieur au sien (`architectureVisibility.ts` ne compare aucun z — seule
      *  l'appartenance de la zone à l'ensemble `roomZoneIds` compte) — jamais au-dessus (une toiture

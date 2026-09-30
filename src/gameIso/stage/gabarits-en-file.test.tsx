@@ -95,7 +95,7 @@ const plafondNominal = AMBIANCE.entreeEnScene.plafondMs;
 
 function écran(strict: boolean, pos = GROUPE, els: SceneBillboardEls = SANS_BILLBOARD): JSX.Element {
   const stage = (
-    <GameStage3D
+    <GameStage3D lecture="jeu"
       scene={SCENE}
       mpt={MPT}
       frame={cadre(pos)}
@@ -162,7 +162,7 @@ afterEach(() => {
 
 describe('#1399 — les gabarits du monde cuit passent par la file', () => {
   it('cache FROID : aucune `map` au retour, une clé par gabarit — puis la file les pose EN PLACE', async () => {
-    const { geometry } = bakeWorldGeometry(SCENE, MPT);
+    const { geometry } = bakeWorldGeometry(SCENE, MPT, 'jeu');
     const froids = geometry.userData.surfaceGroups.filter((g) => (g.bake && g.recipe) || (g.kind && g.recipe && g.periodM));
     // PRÉMISSE — la scène porte VRAIMENT des gabarits, sinon tout ce qui suit mesurerait le vide.
     expect(froids.length, 'aucun gabarit dans la vitrine : le banc ne dirait rien').toBeGreaterThan(10);
@@ -183,7 +183,7 @@ describe('#1399 — les gabarits du monde cuit passent par la file', () => {
   });
 
   it('SYNCHRONE (défaut) : tout est cuit au retour, et rien n’est annoncé — le chemin de la planche QC', () => {
-    const { geometry } = bakeWorldGeometry(SCENE, MPT);
+    const { geometry } = bakeWorldGeometry(SCENE, MPT, 'jeu');
     const { materials, attendues, relèves } = worldSurfaceMaterials(geometry, 1, { lit: false });
     expect(attendues, 'le mode synchrone n’a rien à faire attendre').toEqual([]);
     expect(relèves, 'le mode synchrone ne relève rien').toEqual([]);
@@ -200,7 +200,7 @@ describe('#1399 — les gabarits du monde cuit passent par la file', () => {
  * gabarits froids, lui, est mesuré par le contrat d'unité ci-dessus.
  */
 function froidsSauf(n: number): { images: number } {
-  const { geometry } = bakeWorldGeometry(SCENE, MPT);
+  const { geometry } = bakeWorldGeometry(SCENE, MPT, 'jeu');
   const groupes = geometry.userData.surfaceGroups;
   // Passe SYNCHRONE complète : elle dit combien de groupes portent VRAIMENT une image (un masque
   // neutre n'en donne aucune) et lesquels — le test ne devine rien.
@@ -327,7 +327,7 @@ describe('#1399 — la RELÈVE repeint au point de vue COURANT', () => {
 /** Une demande de cuisson pour un gabarit de face de la VITRINE qui cuit vraiment (masque non neutre)
  *  — le test ne fabrique aucune recette : il prend celle d'une façade de la scène. */
 function gabaritDeFace(): () => ReturnType<typeof getFaceBakeEnFile> {
-  const { geometry } = bakeWorldGeometry(SCENE, MPT);
+  const { geometry } = bakeWorldGeometry(SCENE, MPT, 'jeu');
   const g = geometry.userData.surfaceGroups.find(
     (x) => x.bake && x.recipe
       && getFaceBake(x.key, { color: x.color ?? '', recipe: x.recipe, part: x.part }, x.bake.wM, x.bake.hM, x.variant ?? 0, 1) != null,

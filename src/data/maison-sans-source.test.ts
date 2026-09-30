@@ -60,12 +60,24 @@ const BASELINES: Record<string, number> = {
   // par un arbitrage — `LDB 09 l.97/l.99` décrit la mendicité sans chiffrer la durée du créneau, le
   // discours, l'apparence, la chance d'être surpris ni la sanction des gardes. Leur `ref` porte la
   // ligne du passage arbitré ; `maison` est leur régime définitif, comme les 28 précédentes.
-  'reglesOptionnelles.json': 33,
+  // 33 → 34 (#700, 2026-09-29) : `fenetre-hauteur-allege` — LDB 15 l.55 ne chiffre ni l'allège ni le
+  // franchissement d'une croisée ; aucun folio n'est remplacé.
+  // 34 → 35 (#700, 2026-09-30) : `porte-secrete-rayon-m` — LDB 09 l.399 ne chiffre pas la distance à
+  // laquelle une porte secrète se remarque ; aucun folio n'est remplacé.
+  // 35 → 36 (#700, 2026-09-30) : `chute-tombant-non-debout` — EDO 01 l.231 et LDB 15 l.82 ne disent rien
+  // d'un compagnon qui n'est pas debout quand le groupe saute ; aucun folio n'est remplacé.
+  // 36 → 37 (#700, 2026-09-30) : `fenetre-suspension` — EDO 01 l.231 ne nomme que l'avance du fuyard,
+  // aucun coût tactique de la suspension ; aucun folio n'est remplacé.
+  'reglesOptionnelles.json': 37,
 };
 
 // 45 → 50 (#1612, 2026-09-06) : les 5 réglages MAISON de l'Activité Mendier, cf. la baseline
 // `reglesOptionnelles.json` ci-dessus.
-const TOTAL_GELE = 50;
+// 50 → 51 (#700, 2026-09-29) : `fenetre-hauteur-allege`, cf. la baseline ci-dessus.
+// 51 → 52 (#700, 2026-09-30) : `porte-secrete-rayon-m`, cf. la baseline ci-dessus.
+// 52 → 53 (#700, 2026-09-30) : `chute-tombant-non-debout`, cf. la baseline ci-dessus.
+// 53 → 54 (#700, 2026-09-30) : `fenetre-suspension`, cf. la baseline ci-dessus.
+const TOTAL_GELE = 54;
 
 /**
  * Entrées `maison` sans `source` des datasets EXEMPTÉS — gelé au 2026-08-27 (migration 4b), ÉTENDU le

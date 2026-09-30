@@ -393,15 +393,23 @@ export const fallSchema = z.strictObject({
  *  tout intérieur (donjon, salle, théâtre). null implicite = auto (horloge/ambiance) tant qu'aucun setLight. */
 export const setLightSchema = z.strictObject({ type: z.literal('setLight'), level: z.number() });
 
-/** Porte dynamique (brouillard de guerre) : ouvre/ferme la porte de l'arête (x,y,side) — une porte
- *  fermée bloque vue ET passage. Pour un levier/piège/scripted authored. */
+/** Porte dynamique (brouillard de guerre) : ouvre/ferme la porte de l'arête (x,y,side), et/ou RÉVÈLE
+ *  une porte secrète (`setDoorRevealed`, `EDO 08 l.402`) — `revealed` s'applique AVANT `open` —, et/ou
+ *  pose la marque de TENTATIVE de sa découverte (`attempted`, `setDoorTentee` ; arbitrage #700,
+ *  2026-09-29). Une porte fermée bloque vue ET passage. Pour un levier/piège/scripted authored. */
 export const setDoorSchema = z.strictObject({
   type: z.literal('setDoor'),
   x: z.number(),
   y: z.number(),
   side: wallSideSchema,
   z: z.number().optional(),
-  open: z.boolean(),
+  open: z.boolean().optional(),
+  revealed: z.boolean().optional(),
+  attempted: z.boolean().optional(),
+}).superRefine((v, ctx) => {
+  if (v.open === undefined && v.revealed === undefined && v.attempted === undefined) {
+    ctx.addIssue({ code: 'custom', path: ['open'], message: "setDoor : au moins l'un de `open`, `revealed` ou `attempted`" });
+  }
 });
 
 /** Repositionne (ANIMÉ) ou RETIRE une entité de scène posée — mise en scène scriptée (#701 : fuite,

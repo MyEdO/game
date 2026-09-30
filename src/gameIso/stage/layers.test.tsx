@@ -23,7 +23,7 @@ describe('couche des murs — la projection porte les vérités du builder', () 
   it('murs : PLUS d’op bakée (aucune estompe d’occlusion ici) ; vis = vérité du builder ; x,y,z portés', () => {
     const s = emptyScene(3, 3);
     s.walls = [{ x: 1, y: 1, side: 'N' }];
-    const objs = wallLayerObjs(buildWalls(s), DIMS(s), 0, OPTS);
+    const objs = wallLayerObjs(buildWalls(s, 'jeu'), DIMS(s), 0, OPTS);
     expect(objs).toHaveLength(1);
     expect(objs[0].x).toBe(1);
     expect(objs[0].y).toBe(1);
@@ -41,7 +41,7 @@ describe('couche des murs — la projection porte les vérités du builder', () 
       masses: [{ id: 'toit', z: 0, footprint: [{ x: 2, y: 2, w: 1, h: 1 }], levels: 1, profile: 'flat', pitchDeg: 30, material: 'tuile' }],
     }];
 
-    expect(wallLayerObjs(buildWalls(s), DIMS(s), 0, OPTS)[0].roomZoneIds).toEqual(['salle']);
+    expect(wallLayerObjs(buildWalls(s, 'jeu'), DIMS(s), 0, OPTS)[0].roomZoneIds).toEqual(['salle']);
     // La nappe porte la MÊME relation, lue directement au builder : c'est de là que la voie volumique
     // la prend (`MondeDeCampagne.keepEl` → `cutawayForSection`), aucune projection SVG entre les deux.
     expect(buildRoofs(s)[0].roomZoneIds).toEqual(['salle']);
@@ -69,14 +69,14 @@ describe('trait d’obstacle — éléments de mur ET tuiles à bloc plein', () 
   it('SCÈNE À GRILLE RÉELLE (terrain d’entraînement) : des tuiles mur ⇒ des traits', () => {
     const s = entrainementConstruit.scene;
     expect(tuilesPleines(s), 'témoin : le muret de couvert est bien authoré en tuiles').toBe(4);
-    expect(buildWalls(s, undefined, { activeZ: 0, viewZ: 0 }), 'témoin : et en AUCUN segment de mur').toHaveLength(0);
+    expect(buildWalls(s, 'jeu', undefined, { activeZ: 0, viewZ: 0 }), 'témoin : et en AUCUN segment de mur').toHaveLength(0);
     // Muret contigu de 4 cases en colonne : le CONTOUR fait 10 arêtes (4 + 4 + 1 + 1), jamais 16.
     expect(wallTraitObjs(s, TOP(s), 0)).toHaveLength(10);
   });
 
   it('SCÈNE BÂTIE RÉELLE (La Diligence) : les segments continuent de porter le trait, sans doublon', () => {
     const s = paquetDuJeu(diligenceCampaign).scenes[0];
-    const segments = buildWalls(s, undefined, { activeZ: 0, viewZ: 0 }).length;
+    const segments = buildWalls(s, 'jeu', undefined, { activeZ: 0, viewZ: 0 }).length;
     expect(segments).toBeGreaterThan(0);
     // Aucune tuile pleine sur cette scène : le compte de traits est EXACTEMENT celui des segments.
     expect(tuilesPleines(s)).toBe(0);

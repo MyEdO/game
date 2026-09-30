@@ -140,17 +140,17 @@ Le détecteur SYNTAXIQUE qui a précédé (annotation littérale du type) rendai
 |---|---|---|
 | `stake` | 10 | `src/engine/flowCore.ts:847` |
 | `skill` | 31 | `src/engine/disease.ts:371` |
-| `sense` | 2 | `src/state/combatEffects.ts:1012` |
+| `sense` | 2 | `src/state/combatEffects.ts:1020` |
 | `characteristic` | 25 | `src/engine/disease.ts:371` |
 | `difficulty` | 8 | `src/engine/disease.ts:358` |
-| `requireSL` | 2 | `src/state/combatEffects.ts:1051` |
+| `requireSL` | 2 | `src/state/combatEffects.ts:1059` |
 | `label` | 11 | `src/state/combat/triggeredTest.ts:235` |
-| `tool` | 2 | `src/state/combatEffects.ts:1014` |
-| `vsGroups` | 5 | `src/state/combatEffects.ts:919` |
-| `vsStatus` | 1 | `src/state/combatEffects.ts:918` |
-| `begging` | 3 | `src/state/combatEffects.ts:923` |
-| `vsCapricieux` | 1 | `src/state/combatEffects.ts:927` |
-| `easierIf` | 11 | `src/state/combatEffects.ts:968` |
+| `tool` | 2 | `src/state/combatEffects.ts:1022` |
+| `vsGroups` | 5 | `src/state/combatEffects.ts:924` |
+| `vsStatus` | 1 | `src/state/combatEffects.ts:923` |
+| `begging` | 3 | `src/state/combatEffects.ts:928` |
+| `vsCapricieux` | 1 | `src/state/combatEffects.ts:932` |
+| `easierIf` | 11 | `src/state/combatEffects.ts:975` |
 | `argDifficulty` | 1 | `src/state/triggeredEffects.ts:75` |
 | `unlessImmune` | 1 | `src/state/combat/flowEval.ts:137` |
 | `onlyGroups` | 1 | `src/state/combat/flowEval.ts:138` |
@@ -301,4 +301,4 @@ Le détecteur SYNTAXIQUE qui a précédé (annotation littérale du type) rendai
 Le champ `spec` d'une référence de dotation a 2 lecteur(s) mesuré(s) — `src/engine/items.ts:309`, `src/engine/trappingChoices.ts:36`.
 
 `trappingRefLabel` (`src/data/index.ts`, SOURCE UNIQUE du libellé affiché d'une `TrappingRef`) ne lit PAS `ref.spec` — le rendu « base (spec) » passe par `refConcrete`, partagée par toute `RefDesignee`.
-<!-- sources-empreinte: 797af5fee62829bca44fba35204c02c081a5a309 (2138 fichiers, 174 dossiers) corps: ca3630fcc7bbd493daad0cf86ec475c6bc29c7a6 -->
+<!-- sources-empreinte: e5cf710809be96fc1408c6650f07b89c798f46a1 (2142 fichiers, 174 dossiers) corps: 3b6c70416474959076dc63145e7718c9274a924d -->

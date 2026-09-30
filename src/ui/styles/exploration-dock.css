@@ -57,6 +57,13 @@
   align-items: center;
   gap: 6px;
 }
+/* GESTES du groupe : à l'extrémité GAUCHE du pont (la barre d'action hors combat), jamais mêlés aux
+   ouvreurs d'écrans. Rangée à plat, sans rétrécir : à 360 ce sont les ouvreurs qui défilent. */
+.xd-gestes {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+}
 /* LE TIROIR-JOURNAL SUR LE PONT (§1c-ter : une plaque unique, jamais des éléments épars) — le PONT
    porte l'ancrage, comme le rail en combat. Hors toute tranche : sans cette remise à zéro, le
    calage de coin du tiroir (log-drawer.css, ancré au bas de la rangée du monde) le renverrait

@@ -1,27 +1,31 @@
 import { useGame } from '../state/store';
 import { flowStakeRef, type FlowStakeId } from '../data';
-import type { PendingFall } from '../state/pendings';
+import type { TombantParticipant } from '../state/pendings';
+import { metresRetenus, phaseDeChute } from '../state/fallMove';
 import { testValue } from '../engine/skills';
 import { RollShell, type RollAction } from './RollShell';
 import { buildRollRow, type BuiltRollRow } from './rollRowBuild';
-import { OptionChooser } from './OptionChooser';
 import { testBreakdown, testPending } from './breakdown';
+import { useOwns } from './ownership';
 import { Icon } from './Icon';
-import { resultLines, freeCons } from '../state/rollSeam';
+import { resultLine, freeCons } from '../state/rollSeam';
+import { refusDuTestDeChute, refusDeLaSuspension } from '../state/gesteDArete';
+import { t } from '../i18n';
 
-/** Enjeu servi par chaque fenêtre de la chute. */
-const FALL_STAKE: Record<PendingFall['phase'], FlowStakeId> = { choice: 'fall-choice', roll: 'fall-roll' };
+/** Enjeu servi par chaque phase de la chute. */
+const FALL_STAKE: Record<'choice' | 'roll', FlowStakeId> = { choice: 'fall-choice', roll: 'fall-roll' };
 
 /**
- * Modale de Chute VOLONTAIRE (LDB 15 l.82) : le pré-jet est le CHOIX RAW « vous pouvez tenter un Test
- * d'Athlétisme » — `OptionChooser` en grille (Sauter directement / Tenter le Test), patron `ShantyModal` (menu
- * pré-jet). Choisir « Sauter » résout IMMÉDIATEMENT (`fallChoose(false)`, hors modale) ; choisir
- * « Tenter » ouvre le jet (Lancer → Chance/Pacte/Résilience → Appliquer, patron `RunModal`).
+ * Modale de Chute VOLONTAIRE (LDB 15 l.82 ; EDO 01 l.231) : une rangée par TOMBANT, patron de la rangée
+ * de Contre-sort (`CastModal`). Chaque rangée DÉCLARE depuis le siège de son héros (Sauter / Tenter le
+ * Test d'Athlétisme) ; une rangée qui saute ne lance rien. Les jets s'ouvrent quand toutes ont déclaré
+ * (`phaseDeChute`), puis « Appliquer » résout l'étape entière.
  */
 export function FallModal() {
   const p = useGame((s) => s.pendingFall);
   const battle = useGame((s) => s.battle);
   const party = useGame((s) => s.party);
+  const owns = useOwns();
   const roll = useGame((s) => s.fallRoll);
   const reroll = useGame((s) => s.fallReroll);
   const bonusSL = useGame((s) => s.fallBonusSL);
@@ -31,51 +35,73 @@ export function FallModal() {
   const cancel = useGame((s) => s.fallCancel);
   const choose = useGame((s) => s.fallChoose);
   if (!p) return null;
-  const c = (battle?.combatants ?? party).find((x) => x.id === p.combatantId);
-  if (!c) return null;
+  const pool = battle?.combatants ?? party;
+  const phase = phaseDeChute(p);
 
-  // La PHASE est un champ d'ÉTAT du pending (#1117) — la fenêtre la LIT, elle ne la déduit pas.
-  if (p.phase === 'choice') {
-    return (
-      <RollShell
-        etape={p.phase}
-        flowKey="fall"
-        stake={flowStakeRef(FALL_STAKE[p.phase], { values: { metres: p.metres } })}
-        title={<><Icon id="melee/flee" size="sm" /> Chute volontaire</>}
-        subtitle={<><strong>{c.label}</strong> se tient au bord d'un dénivelé de {p.metres} m</>}
-        rows={[]}
-        rolled={false}
-        setup={
-          <OptionChooser
-            layout="grid"
-            options={[
-              { key: 'jump', label: `Sauter (chute pleine, ${p.metres} m)`, onSelect: () => choose(false) },
-              { key: 'attempt', label: "Tenter un Test d'Athlétisme", primary: true, onSelect: () => choose(true) },
-            ]}
-          />
+  const rangee = (part: TombantParticipant): BuiltRollRow[] => {
+    const c = pool.find((x) => x.id === part.id);
+    if (!c) return [];
+    const m = metresRetenus(p, part);
+    const owned = owns(part.id) && !!part.interactive;
+    const r = part.result;
+    const val = testValue(c, 'athletisme');
+    // La rangée DIT sa situation : attente d'un autre siège, chute pleine, ou l'issue du Test.
+    const situation = part.attempt === null
+      ? (owned ? null : `en attente de la déclaration de ${c.label}`)
+      : part.attempt === false
+        ? (!part.interactive ? `n’est pas debout — chute pleine de ${m} m, sans Test` : part.suspendre ? `se suspend puis se lâche, sans Test — chute de ${m} m` : `saute sans Test — chute pleine de ${m} m`)
+        : r
+          ? (r.effectiveMetres <= 0 ? 'La chute est amortie : aucun Dégât.' : `${r.effectiveMetres} m de chute (réduite de ${Math.max(0, m - r.effectiveMetres)} m).`)
+          : null;
+    const note = situation ? <div className="hint">{resultLine(freeCons([situation]))}</div> : null;
+    const declarer = owned && part.attempt === null;
+    const refusTest = declarer ? refusDuTestDeChute(useGame.getState(), part.id) : null;
+    const refusSusp = declarer && p.suspendu !== undefined ? refusDeLaSuspension(useGame.getState(), part.id) : null;
+    const refusDe = (v: typeof refusTest) => (v ? { refus: t(v.refus, v.vars) } : {});
+    // Axe HAUTEUR (EDO 01 l.231) : offert par la croisée, déclaré avec le Test, dans la même rangée.
+    const suspensions = p.suspendu !== undefined
+      ? [
+        { key: 'suspendre-jump', label: `Se suspendre, puis se lâcher (chute de ${p.suspendu} m)`, ...refusDe(refusSusp) },
+        { key: 'suspendre-attempt', label: `Se suspendre, puis tenter un Test d'Athlétisme (${p.suspendu} m)`, ...refusDe(refusSusp ?? refusTest) },
+      ]
+      : [];
+    return [buildRollRow({
+      actor: c,
+      row: {
+        combatant: c,
+        ...(r
+          ? { d: testBreakdown('Athlétisme', val, { roll: r.roll, target: r.target, sl: r.dr, success: r.success }, 'accessible') }
+          : { pending: testPending('Athlétisme', val, undefined, 'accessible') }),
+        note,
+      },
+      ...(part.attempt === true ? { onRoll: () => roll(part.id) } : {}),
+      rerolled: !!part.rerolled,
+      onReroll: () => reroll(part.id),
+      onBonusSL: () => bonusSL(part.id),
+      onDarkPact: () => darkPact(part.id),
+      onForce: () => force(part.id),
+    }, {
+      key: part.id,
+      interactive: owned && part.attempt !== false,
+      ...(part.attempt === true && phase === 'choice' ? { rollBlocked: 'En attente des déclarations de la fenêtre' } : {}),
+      ...(owned && part.attempt === null
+        ? {
+          declare: {
+            onChoose: (k: string) => choose(part.id, k.endsWith('attempt'), p.suspendu !== undefined ? k.startsWith('suspendre') : undefined),
+            options: [
+              { key: 'jump', label: `Sauter (chute pleine, ${m} m)` },
+              { key: 'attempt', label: "Tenter un Test d'Athlétisme", ...refusDe(refusTest) },
+              ...suspensions,
+            ],
+          },
         }
-        actions={[{ key: 'cancel', label: 'Annuler', onClick: cancel, when: 'pre' }]}
-        onCancel={cancel}
-      />
-    );
-  }
-
-  const r = p.result;
-  const rolled = !!r;
-  const actorRow: BuiltRollRow = buildRollRow({
-    actor: c,
-    row: {
-      combatant: c,
-      d: r ? testBreakdown('Athlétisme', testValue(c, 'athletisme'), { roll: r.roll, target: r.target, sl: r.dr, success: r.success }, 'accessible') : undefined,
-      pending: testPending('Athlétisme', testValue(c, 'athletisme'), undefined, 'accessible'),
-    },
-    onRoll: roll,
-    rerolled: !!p.rerolled,
-    onReroll: reroll,
-    onBonusSL: bonusSL,
-    onDarkPact: darkPact,
-    onForce: force,
-  });
+        : {}),
+    })];
+  };
+  const rows = p.participants.flatMap(rangee);
+  const aLancer = p.participants.filter((x) => x.attempt === true);
+  const rolled = phase === 'roll' && aLancer.every((x) => !!x.result);
+  const unJet = aLancer.some((x) => !!x.result);
 
   const actions: RollAction[] = [
     { key: 'cancel', label: 'Annuler', onClick: cancel, when: 'pre' },
@@ -84,22 +110,17 @@ export function FallModal() {
 
   return (
     <RollShell
-      etape={p.phase}
+      etape={phase}
       flowKey="fall"
-      stake={flowStakeRef(FALL_STAKE[p.phase], { values: { metres: p.metres } })}
+      stake={flowStakeRef(FALL_STAKE[phase], { values: { metres: p.metres } })}
       title={<><Icon id="melee/flee" size="sm" /> Chute volontaire</>}
-      /* Z1 : acteur + la SITUATION que rien d'autre ne porte (la hauteur). La Compétence est le label
-         de la ligne et le « +20 » sa Difficulté (`accessible`, `.rm-roll-diff` #1072) — pas ici. */
-      subtitle={<><strong>{c.label}</strong> — dénivelé de {p.metres} m</>}
-      rows={[actorRow]}
+      /* Z1 : la SITUATION que rien d'autre ne porte (la hauteur). La Compétence est le label de la ligne
+         et le « +20 » sa Difficulté (`accessible`, `.rm-roll-diff` #1072) — pas ici. */
+      subtitle={<>Dénivelé de {p.metres} m{p.suspendu !== undefined ? ` · ${p.suspendu} m en se suspendant d’abord` : ''}</>}
+      rows={rows}
       rolled={rolled}
-      outcome={r
-        ? resultLines(freeCons([r.effectiveMetres <= 0
-            ? 'La chute est amortie : aucun Dégât.'
-            : `${r.effectiveMetres} m de chute (réduite de ${Math.max(0, p.metres - r.effectiveMetres)} m).`]))
-        : undefined}
       actions={actions}
-      onCancel={rolled ? undefined : cancel}
+      onCancel={unJet ? undefined : cancel}
     />
   );
 }

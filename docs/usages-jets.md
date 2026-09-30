@@ -13,7 +13,7 @@ d'affichage chaque consommateur remplit, et quelles particularités MÉCANIQUES 
 Le contrat lui-même (ce que chaque zone doit porter, et où) est DÉFINI par `docs/charte-ui.md` : ce
 document ne le redéfinit pas, il MESURE qui en consomme quoi.
 
-**Population mesurée : 38 consommateurs** — 48 sites JSX `<RollShell …>` (J) et 8 producteurs de
+**Population mesurée : 38 consommateurs** — 47 sites JSX `<RollShell …>` (J) et 8 producteurs de
 props `ComponentProps<typeof RollShell>` (H, les hooks qui paramètrent la coquille sans la rendre).
 
 ## Zones de COQUILLE (légende des colonnes)
@@ -62,7 +62,7 @@ sa définition vit à la charte. Une prop non encore taguée affiche « — » e
 | `src/ui/DispelModal.tsx` | `DispelModal` (J) | 1 | ✓ | ✓ | · | · | · | ✓ | · | · | ✓ | ✓ | · | · | ✓ | · | · | · | ✓ | ✓ | ✓ | · |
 | `src/ui/DistraireModal.tsx` | `DistraireModal` (J) | 2 | ✓ | · | · | · | · | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | · | ✓ | · | · | · | ✓ | ✓ | ✓ | · |
 | `src/ui/EtalLotModal.tsx` | `EtalLotModal` (J) | variable | ✓ | · | ✓ | · | · | ✓ | · | · | ✓ | ✓ | · | · | · | · | · | · | ✓ | ✓ | ✓ | · |
-| `src/ui/FallModal.tsx` | `FallModal` (J) ×2 | 0 / 1 | ✓ | ✓ | · | · | · | ✓ | · | ✓ | ✓ | ✓ | · | · | ✓ | · | · | · | ✓ | ✓ | ✓ | ✓ |
+| `src/ui/FallModal.tsx` | `FallModal` (J) | variable | ✓ | ✓ | · | · | · | ✓ | · | · | ✓ | ✓ | · | · | · | · | · | · | ✓ | ✓ | ✓ | ✓ |
 | `src/ui/FocusModal.tsx` | `FocusModal` (J) | 1 | ✓ | ✓ | · | · | · | · | · | · | ✓ | ✓ | · | · | ✓ | · | · | · | ✓ | ✓ | ✓ | · |
 | `src/ui/ForceDoorModal.tsx` | `ForceDoorModal` (J) | variable | ✓ | ✓ | ✓ | · | · | · | · | · | ✓ | ✓ | · | · | · | ✓ | · | · | ✓ | ✓ | ✓ | · |
 | `src/ui/FrenzyModal.tsx` | `FrenzyModal` (J) | 1 | ✓ | ✓ | · | · | · | ✓ | · | · | ✓ | ✓ | · | · | ✓ | · | · | · | ✓ | ✓ | ✓ | · |
@@ -127,7 +127,7 @@ seraient une colonne vide de bout en bout.
 | `src/ui/DispelModal.tsx` | ✓ | · | · | ✓ | · | ✓ | · | · | · | ✓ | ✓ | ✓ | ✓ | ✓ | · | · | · | · | · | · | · | · | · | · | · | ✓ |
 | `src/ui/DistraireModal.tsx` | ✓ | · | · | ✓ | · | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | · | · | · | · | · | · | · | · | · | · | · |
 | `src/ui/EtalLotModal.tsx` | · | · | · | ✓ | · | · | · | · | · | · | · | · | · | · | · | · | · | · | · | · | · | · | · | · | · | · |
-| `src/ui/FallModal.tsx` | ✓ | · | · | ✓ | · | ✓ | · | · | · | ✓ | ✓ | ✓ | ✓ | ✓ | · | · | · | · | · | · | · | · | · | · | · | · |
+| `src/ui/FallModal.tsx` | ✓ | · | · | ✓ | · | ✓ | · | ✓ | · | ✓ | ✓ | ✓ | ✓ | ✓ | · | · | · | · | · | · | · | · | ✓ | ✓ | · | · |
 | `src/ui/FocusModal.tsx` | ✓ | · | · | ✓ | · | ✓ | · | · | · | ✓ | ✓ | ✓ | ✓ | ✓ | · | · | · | · | · | · | · | · | · | · | · | ✓ |
 | `src/ui/ForceDoorModal.tsx` | · | · | · | ✓ | · | · | · | · | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | · | · | · | · | · | · | · | · | · | · | · | · |
 | `src/ui/FrenzyModal.tsx` | ✓ | ✓ | ✓ | ✓ | · | ✓ | · | · | · | ✓ | ✓ | · | ✓ | ✓ | · | · | · | · | · | · | · | · | · | · | · | · |
@@ -175,7 +175,7 @@ Aucune n'est déclarée par un nom de fichier : chacune est la conjonction de zo
 | `src/ui/DispelModal.tsx` | · | · | · | ✓ | · | · | · | `Icon` |
 | `src/ui/DistraireModal.tsx` | ✓ | · | · | · | · | · | · | `OptionChooser`, `VsHeader` |
 | `src/ui/EtalLotModal.tsx` | · | · | · | · | · | · | · | `Icon` |
-| `src/ui/FallModal.tsx` | · | · | · | · | · | · | · | `Icon`, `OptionChooser` |
+| `src/ui/FallModal.tsx` | · | · | · | · | ✓ | · | ✓ | `Icon` |
 | `src/ui/FocusModal.tsx` | · | · | · | ✓ | · | · | · | `Icon` |
 | `src/ui/ForceDoorModal.tsx` | · | ✓ | · | · | · | · | · | `Icon` |
 | `src/ui/FrenzyModal.tsx` | · | · | · | · | · | · | · | `Icon` |
@@ -209,7 +209,7 @@ Aucune n'est déclarée par un nom de fichier : chacune est la conjonction de zo
 - **dé fixé / forcé** — `forcedRoll` \| `fixedMark` sur une rangée, ou `forcedExtra` sur la coquille ;
 - **refus gaté** — `rollBlocked` sur une rangée, ou `GatedAction` dans un slot.
 
-**Comptes** : opposé 8 · multi (N contributeurs) 4 · table d100 2 · Test étendu 6 · déclaration 1 · dé fixé / forcé 3 · refus gaté 1.
+**Comptes** : opposé 8 · multi (N contributeurs) 4 · table d100 2 · Test étendu 6 · déclaration 2 · dé fixé / forcé 3 · refus gaté 2.
 
 ## Périmètre mesuré et angles morts (à dire pour ne pas se lire comme exhaustif)
 
@@ -247,4 +247,4 @@ est un angle mort, et les voici :
 - Les **ids de zone** (`Zn`) affichés sont ceux que le JSDoc des props DÉCLARE. Une zone du contrat non
   encore taguée à la primitive n'a pas d'id ici — ce document RELÈVE les ids, il ne les attribue pas.
 
-<!-- sources-empreinte: 99ca445147519bc3668a87da4e8e4f2305e9f5b5 (2009 fichiers, 136 dossiers) corps: 24ea5f99dcf1d7226121260694ac71341399c65f -->
+<!-- sources-empreinte: 8385cff1f63dbaa4ce9dc67153337939bb48b377 (2013 fichiers, 136 dossiers) corps: 8c8bc2bbc27b311e2f7574aeef649c7e9b5d9bd5 -->

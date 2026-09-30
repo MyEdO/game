@@ -3,7 +3,7 @@
 > ⚠️ Fichier GÉNÉRÉ par `node scripts/docs/build-regles-optionnelles.mjs`
 > (`npm run docs:regles-optionnelles`) — NE PAS ÉDITER À LA MAIN.
 
-**Périmètre mesuré / angles morts** — sont LUES aux fichiers réels : les 87 entrées de
+**Périmètre mesuré / angles morts** — sont LUES aux fichiers réels : les 91 entrées de
 `src/data/reglesOptionnelles.json` (id, libellé, groupe, forme, défaut, options/bornes, référence RAW, folio, présence de
 `maison` et d'`action`, `hint` verbatim), les clés déclarées par `src/data/schemas/defs/reglesOptionnelles.ts`, le seuil d'onglet
 `OWN_TAB_MIN` et le libellé du fourre-tout de `src/ui/houseRuleTabs.ts`, la clé de persistance de `src/state/houseRules.ts`.
@@ -49,8 +49,8 @@ structurelle — et une règle nouvellement gatante n'est signalée par aucune g
 | `kind` | Entrées | Contrôle rendu | Forme de la valeur |
 |---|---|---|---|
 | `flag` | 46 | interrupteur | booléen |
-| `param` | 29 | champ chiffré | nombre borné (`min`/`max`, `step` optionnel) |
-| `mode` | 12 | choix segmenté | chaîne prise dans `options` |
+| `param` | 31 | champ chiffré | nombre borné (`min`/`max`, `step` optionnel) |
+| `mode` | 14 | choix segmenté | chaîne prise dans `options` |
 
 ## Groupes et onglets
 
@@ -60,9 +60,9 @@ intertitre (`src/ui/houseRuleTabs.ts`).
 
 | Groupe | Règles | Onglet du panneau |
 |---|---|---|
-| Tests | 8 | propre |
+| Tests | 9 | propre |
 | Destin & Résistance | 1 | Divers |
-| Combat | 19 | propre |
+| Combat | 22 | propre |
 | Social | 8 | propre |
 | Création | 2 | Divers |
 | Marché | 4 | propre |
@@ -78,14 +78,14 @@ intertitre (`src/ui/houseRuleTabs.ts`).
 
 ## Provenance
 
-33 règles sur 87 portent un champ `maison` : le RAW ne chiffre pas la
+37 règles sur 91 portent un champ `maison` : le RAW ne chiffre pas la
 valeur, l'arbitrage est explicite (CLAUDE.md règle 7). 54 portent une ancre
 `source: {book, page}` au folio imprimé. 1 portent une `action` rendue sous la
 rangée quand la règle atteint sa valeur de déclenchement.
 
 ## Le registre
 
-### Tests — 8 règles
+### Tests — 9 règles
 
 Panneau : onglet propre « Tests ».
 
@@ -99,6 +99,7 @@ Panneau : onglet propre « Tests ».
 | `test-extended-min-sl` | Tests étendus : DR 0 = ±1 minimum | `flag` | `false` | `false` · `true` | LDB 12 l.185 (livre-de-base f.155) | Dans un Test étendu, un Round réussi ajoute au moins +1 au total cumulé (même à DR 0) et un Round raté en retire au moins 1. |
 | `test-metier-int` | Métier (Savoir) : Int au lieu de Dex | `flag` | `false` | `false` · `true` | LDB 09 l.358 (livre-de-base f.126) | Quand un Test de Métier sert de Savoir (déterminer une information), il utilise l’Intelligence au lieu de la Dextérité. |
 | `test-intimidation-char` | Intimidation : caractéristique | `mode` | `F` | **`F`** · `max` · `FM` · `Int` | LDB 09 l.294 · **maison** | Caractéristique de base d’Intimidation. F = Force (RAW) ; max = la meilleure de F/FM/Int ; FM = Force Mentale ; Int = Intelligence. |
+| `porte-secrete-rayon-m` | Rayon de découverte d’une porte secrète | `param` | `4` | 1 → 20, pas 1 | LDB 09 l.399 · **maison** | « Votre MJ peut vous demander d’effectuer un Test de Perception pour détecter quelque chose […] modifié par la facilité à le remarquer. » (LDB 09 l.399). Distance en MÈTRES, depuis la porte, sur sa face découvrable, à laquelle le groupe qui la VOIT tente le Test de Perception ; convertie en cases par l’échelle de la scène. |
 
 ### Destin & Résistance — 1 règle
 
@@ -108,7 +109,7 @@ Panneau : onglet « Divers », intertitre « Destin & Résistance ».
 |---|---|---|---|---|---|---|
 | `fortune-mid-session` | Chance regagnée en cours de session | `mode` | `off` | **`off`** · `manual` · `auto` | LDB 17 l.47 (livre-de-base f.171) | Longues Séances de Jeu : regagner des Points de Chance en cours de session (≈ 1×/h). off = seulement en début de session (RAW, via l’Effet de scène) ; manual = un bouton « Regagner la Chance maintenant » ici, à la demande ; auto = informationnel (le temps réel n’est pas traçable par le moteur — déclenchez-le à la main). **Action liée** sous la rangée quand la valeur vaut `manual` : « Regagner la Chance maintenant ». |
 
-### Combat — 19 règles
+### Combat — 22 règles
 
 Panneau : onglet propre « Combat ».
 
@@ -133,6 +134,9 @@ Panneau : onglet propre « Combat ».
 | `combat-round-seconds` | Durée d’un Round (secondes) | `param` | `10` | 1 → 60 | LDB 13 l.13 · **maison** | « Un Round correspond en général à quelques secondes, mais c’est le MJ qui décide, si nécessaire, du temps qu’il représente » (LDB 13 l.13) : sert à décompter la rétention de souffle (BE×10 s, LDB 18 l.346) en Rounds. |
 | `combat-voice-range-m` | Portée de voix (commandement) | `param` | `50` | 2 → 200, pas 2 | AA 13 l.35 / LDB 09 l.128 · **maison** | Distance en MÈTRES à laquelle un ordre crié porte : « aider une équipe qui utilise une arme possédant le Défaut Arme d’équipe à portée de voix » (AA 13 l.35) — le canon ne chiffre jamais cette portée. Défaut 50 m (≈ 25 cases à 2 m/case). |
 | `siege-engine-push-speed` | Vitesse de poussée d’un engin de siège | `param` | `2` | 1 → 6 | ADE II 8 l.258 · **maison** | « [le bélier/la baliste sont] dotés de roues pour se déplacer sur le champ de bataille » (ADE II 8 l.256/258) sans chiffrer de vitesse : plafond MAISON (en cases) d’une poussée d’équipage — mouvement SIMPLE, aucun Test. |
+| `fenetre-hauteur-allege` | Hauteur d’allège d’une croisée franchissable | `param` | `1` | 0 → 3 | LDB 15 l.55 · **maison** | « Le fait de grimper à une échelle, ou sur une autre surface tout aussi facile, ne nécessite pas de Test mais va simplement vous ralentir. Sur de telles surfaces, vous vous déplacez à la moitié de votre vitesse. » (LDB 15 l.55). Valeur MAISON : hauteur (en mètres) de l’allège escaladée pour enjamber une croisée franchissable ; son coût s’ajoute au pas d’une case. |
+| `fenetre-suspension` | Coût de la suspension à une croisée avant de sauter | `mode` | `descente-facile` | **`descente-facile`** · `libre` | EDO 01 l.231 · **maison** | « à moins qu’il ne souhaite se suspendre d’abord, ce qui réduira la hauteur de chute à 2 mètres » (EDO 01 l.231). Valeur MAISON, en combat : descente-facile = la hauteur épargnée se paie en Mouvement à demi-vitesse (LDB 15 l.55, LDB 15 l.57) ; libre = la suspension ne coûte rien de plus que le pas. |
+| `chute-tombant-non-debout` | Chute volontaire du groupe avec un compagnon qui n’est pas debout | `mode` | `refus` | **`refus`** · `chute-pleine` | EDO 01 l.231 · **maison** | Hors combat, le groupe entier suit la chute volontaire (EDO 01 l.231) et chacun choisit de tenter ou non son Test d’Athlétisme (LDB 15 l.82). Valeur MAISON pour un membre vivant qui n’est pas debout : refus = le geste est refusé tant qu’il y en a un ; chute-pleine = il tombe avec le groupe, de toute la hauteur, sans Test. |
 
 ### Social — 8 règles
 
@@ -276,4 +280,4 @@ Panneau : onglet « Divers », intertitre « Possessions ».
 | id | Libellé | Forme | Défaut | Valeurs | Référence | Ce que la règle change (`hint` verbatim) |
 |---|---|---|---|---|---|---|
 | `possession-random-chars-on-acquire` | Caractéristiques aléatoires à l’acquisition (bêtes/serviteurs) | `flag` | `true` | `false` · `true` | LDB 77 l.108 · **maison** | À l’acquisition d’une bête ou d’un serviteur (achat, dotation, don), tire une fois ses caractéristiques (−10 + 2d10, ou 1d10 si la Caractéristique vaut 5) — le tirage se FIGE dans `Possession.charsRolled`, seedé sur son uid : jamais relancé (« Elles seront relancées à chaque combat ? Pas fou. »). Désactivé : la possession garde le profil imprimé du catalogue. |
-<!-- sources-empreinte: d4b886ffb5c447bbe325b19ceca06082f75a6543 (11 fichiers, 0 dossiers) corps: a13d2de9542912e9c7a58b053028c0d047e6e679 -->
+<!-- sources-empreinte: 09468417b04eabe62968c8fd1790bda3e7b9a0a6 (11 fichiers, 0 dossiers) corps: 507b594aab8963da800f4096b681e9dcfe529027 -->

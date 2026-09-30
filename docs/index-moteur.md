@@ -2803,7 +2803,7 @@ _2174 exports publics mesurés (161 fichiers de `src/engine`, hors tests) — 18
 | `isSwarm` | 366 | function | Trait Nuée (LDB 85 l.251-253) : SOURCE UNIQUE de la détection d'amas — pilote le gabarit « swarm » et le build ×5 PB — lue par le rendu, la classification et le spawn. | Aiguillage des traits, Encombrement, taille, gabarit |
 | `hasStride` | 371 | function | Foulée (LDB 85 l.146) : Course ×1,5. | Aiguillage des traits |
 | `hasAutoClimb` | 376 | function | Grimpant (LDB 85 l.160-162) : réussite automatique de tout Test d'Escalade — aucun jet. | Aiguillage des traits |
-| `hasClimbFullSpeed` | 382 | function | Grimpant (LDB 85 l.160-162) : vitesse de Mouvement MAXIMALE (coût normal) sur les surfaces d'escalade, au lieu de la ½ vitesse du Talent Grimpeur (LDB 15 l.53, joueur). | Aiguillage des traits, Compétences, Talents, Carrières |
+| `hasClimbFullSpeed` | 382 | function | Grimpant (LDB 85 l.160-162) : vitesse de Mouvement MAXIMALE (coût normal) sur les surfaces d'escalade, au lieu de la ½ vitesse du Talent Grimpeur (LDB 15 l.55, joueur). | Aiguillage des traits, Compétences, Talents, Carrières |
 | `hasNoRun` | 388 | function | Rampant (MSRC 15 l.171) : « Elle ne peut pas réaliser d'Action de Course. | Aiguillage des traits |
 | `runMultiplier` | 394 | function | Multiplicateur de Mouvement de COURSE/CHARGE dû aux traits : Rampant ×0 (aucune Course — le budget de Course tombe à 0, la Marche reste intacte), Bond ×2 (prioritaire), Foulée ×1,5. | Aiguillage des traits |
 | `traitSeesInDark` | 402 | function | Vision nocturne / Infravision : voit dans l'obscurité (annule la pénalité d'obscurité). | Aiguillage des traits |
@@ -3183,4 +3183,4 @@ _2174 exports publics mesurés (161 fichiers de `src/engine`, hors tests) — 18
 |---|---|---|---|---|
 | `woundsFromHit` | 30 | function | Blessures infligées par un coup : `totalDamage` (Dégâts d'arme + DR + qualités) moins le Bonus d'Endurance et les PA EFFECTIFS à la `location` (armure portée/naturelle + `extraAP`, matériau ignoré PUIS retrait plat, LDB 62 l.270). | Calcul des Blessures, Blessures, dégâts, soin, guérison, Tests : Degrés de Réussite, Caractéristiques, tables, Qualités d'arme et d'armure |
 
-<!-- sources-empreinte: 1f328f6542ece67d5d503f0a6d775ec3a7620776 (170 fichiers, 6 dossiers) corps: 50fdd252141a349eb42ffc956c4a4b3667ef99cc -->
+<!-- sources-empreinte: a77fab20df5221dfe5de18724fbfedabc3c508c9 (170 fichiers, 6 dossiers) corps: d0665a33b1ac07aac12169385f8018beadd9de3f -->

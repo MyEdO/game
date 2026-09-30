@@ -255,7 +255,7 @@ describe('POV volumique — la météo module la brume du milieu (#1247)', () =>
     const s = useGame.getState().scene!;
     const mpt = sceneMetresPerTile(s);
     monter(
-      <GameStage3D
+      <GameStage3D lecture="jeu"
         scene={s}
         mpt={mpt}
         frame={{ mode: 'pov', partyPos: { x: 4, y: 4 }, facing: 'N', indoor, cid: null }}
@@ -317,7 +317,7 @@ describe('POV volumique — la météo module la brume du milieu (#1247)', () =>
       return n;
     };
     const monterVue = (view: Dims['view']) => monter(
-      <GameStage3D
+      <GameStage3D lecture="jeu"
         scene={s}
         mpt={sceneMetresPerTile(s)}
         frame={{ mode: 'plateau', dims: { w: s.dimensions.w, h: s.dimensions.h, rot: 0, view }, cam: { x: 0, y: 0 }, zoom: 1 }}
@@ -346,7 +346,7 @@ describe('Vue de PLATEAU — pas d’horizon, donc pas de brume (#1176 P3-1c)', 
     const scene = poser('exterieur');
     const dims: Dims = { w: scene.dimensions.w, h: scene.dimensions.h, rot: 0, view: 'iso' };
     monter(
-      <GameStage3D
+      <GameStage3D lecture="jeu"
         scene={scene}
         mpt={sceneMetresPerTile(scene)}
         frame={{ mode: 'plateau', dims, cam: { x: 0, y: 0 }, zoom: 1 }}

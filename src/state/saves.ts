@@ -184,7 +184,13 @@ import { stockageWeb } from '../lib/stockageWeb';
 // étapes d'un Test étendu (`combatEffects.ts`, `flowStakeRef('extended-test-roll')`). Une save de 59
 // rouvrirait avec une clé que `resolveStake` ne trouve plus : la fenêtre jetterait à l'ouverture au
 // lieu de dire son enjeu. La save se jette (politique 2 ci-dessus).
-export const SAVE_VERSION = 60;
+// 61 → 62 (2026-09-30, #700) : la chute volontaire en cours (`pendingFall`) devient un flux MULTI —
+// une rangée par tombant (`participants`, `TombantParticipant`), un `initiateurId`, les axes `suspendu`
+// et `croisee` — là où elle portait UN tombant (`combatantId`, `attempt`, `phase`, `result`). `saveGame`
+// ne refuse que le combat : une save d'exploration prise pendant le choix de chute (`fallAcross` hors
+// combat) porte l'ancienne forme, et `FallModal` lèverait à l'ouverture (`phaseDeChute` lit
+// `participants`). La save se jette (politique 2 ci-dessus).
+export const SAVE_VERSION = 62;
 
 export interface SaveMeta {
   version: number;

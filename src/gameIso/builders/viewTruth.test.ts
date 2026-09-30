@@ -47,14 +47,14 @@ describe('buildWalls — vérité de vue résolue au pas, géométrie dérivée 
   const scene = sceneWith([{ x: 2, y: 2, side: 'N' }, { x: 4, y: 4, side: 'N' }]);
 
   it('deux pas de MÊME visibilité rendent le MÊME TABLEAU — la vue est lue par CONTENU, pas par référence d’ensemble', () => {
-    const a = buildWalls(scene, new Set(['2,2,0']), VIEW);
-    const b = buildWalls(scene, new Set(['2,2,0']), VIEW); // ensemble NEUF, contenu identique
+    const a = buildWalls(scene, 'jeu', new Set(['2,2,0']), VIEW);
+    const b = buildWalls(scene, 'jeu', new Set(['2,2,0']), VIEW); // ensemble NEUF, contenu identique
     expect(b).toBe(a);
   });
 
   it('un mur qui entre en vue ne réalloue QUE lui — les autres gardent leur identité', () => {
-    const avant = buildWalls(scene, new Set(['2,2,0']), VIEW);
-    const apres = buildWalls(scene, new Set(['2,2,0', '4,4,0']), VIEW);
+    const avant = buildWalls(scene, 'jeu', new Set(['2,2,0']), VIEW);
+    const apres = buildWalls(scene, 'jeu', new Set(['2,2,0', '4,4,0']), VIEW);
     const i = wallAt(avant, 2, 2, 'N'), j = wallAt(avant, 4, 4, 'N');
     expect(apres).not.toBe(avant); // une vérité a bougé : tableau neuf
     expect(apres[i]).toBe(avant[i]); // le mur inchangé est le MÊME objet
@@ -63,21 +63,21 @@ describe('buildWalls — vérité de vue résolue au pas, géométrie dérivée 
   });
 
   it('un mur est PERÇU dès que l’UNE des deux cases qu’il borde est en vue (l’arête N borde y et y−1)', () => {
-    const seulementDerriere = buildWalls(scene, new Set(['2,1,0']), VIEW);
+    const seulementDerriere = buildWalls(scene, 'jeu', new Set(['2,1,0']), VIEW);
     expect(seulementDerriere[wallAt(seulementDerriere, 2, 2, 'N')].states.visible).toBe(true);
-    const horsVue = buildWalls(scene, new Set(['0,0,0']), VIEW);
+    const horsVue = buildWalls(scene, 'jeu', new Set(['0,0,0']), VIEW);
     expect(horsVue[wallAt(horsVue, 2, 2, 'N')].states.visible).toBe(false);
   });
 
   it('`visible` ABSENT ⇒ tout est en vue (éditeur/QC/POV) — sémantique conservée', () => {
-    for (const el of buildWalls(scene, undefined, VIEW)) expect(el.states.visible).toBe(true);
+    for (const el of buildWalls(scene, 'jeu', undefined, VIEW)) expect(el.states.visible).toBe(true);
   });
 
   it('une scène MUTÉE PAR SPREAD re-dérive sa géométrie (aucun cache périmé)', () => {
     const ouverte = { ...scene, walls: [{ x: 2, y: 2, side: 'N' as const, door: true }] };
     const fermee = { ...scene, walls: [{ x: 2, y: 2, side: 'N' as const, door: true, closed: true }] };
-    expect(buildWalls(ouverte, undefined, VIEW)[0].states.open).toBe(true);
-    expect(buildWalls(fermee, undefined, VIEW)[0].states.open).toBe(false);
+    expect(buildWalls(ouverte, 'jeu', undefined, VIEW)[0].states.open).toBe(true);
+    expect(buildWalls(fermee, 'jeu', undefined, VIEW)[0].states.open).toBe(false);
   });
 });
 

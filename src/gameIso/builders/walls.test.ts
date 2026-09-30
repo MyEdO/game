@@ -4,7 +4,7 @@ import type { WallEl } from './types';
 import { WALL_H_M, isoPxToM } from '../iso';
 import { METRES_PER_LEVEL } from '../../state/relief';
 import { structureAppearance } from '../catalog/structures';
-import { emptyScene, setStructureDown, type BuildingMass, type Scene, type SceneEffectZone, type WallSeg } from '../../state/scene';
+import { emptyScene, setDoorRevealed, setStructureDown, type BuildingMass, type Scene, type SceneEffectZone, type WallSeg } from '../../state/scene';
 import { buildScene } from '../../state/mapSpec';
 
 /**
@@ -18,7 +18,7 @@ function sceneWith(walls: WallSeg[]): Scene {
   s.walls = walls;
   return s;
 }
-const one = (s: Scene): WallEl => buildWalls(s)[0];
+const one = (s: Scene): WallEl => buildWalls(s, 'jeu')[0];
 const parts = (el: WallEl) => el.faces.map((f) => f.material.part);
 const facesOf = (el: WallEl, part: string) => el.faces.filter((f) => f.material.part === part);
 
@@ -84,7 +84,7 @@ describe('buildWalls — hauteur visuelle portée par l’apparence', () => {
       { x: 1, y: 1, side: 'N', structure: 'cloture-en-clayonnage' },
       { x: 2, y: 1, side: 'N', door: true, structure: 'solide-porte-en-bois' },
       { x: 3, y: 1, side: 'N', window: true, structure: 'mur-a-ossature-en-bois' },
-    ]));
+    ]), 'jeu');
     const topOf = (el: WallEl, selected: readonly string[]) => Math.max(
       ...el.faces.filter((face) => face.material.part != null && selected.includes(face.material.part))
         .flatMap((face) => face.poly.map((point) => point.h)),
@@ -172,7 +172,7 @@ describe('buildWalls — façades architecturales authorées', () => {
 
   it('enrichit seulement les murs physiques indexés par arête canonique', () => {
     const scene = facadeScene();
-    const walls = buildWalls(scene);
+    const walls = buildWalls(scene, 'jeu');
     expect(walls).toHaveLength(3);
     expect(walls.slice(0, 2).map((wall) => ({
       appearance: wall.appearance,
@@ -205,7 +205,7 @@ describe('buildWalls — façades architecturales authorées', () => {
   it('respecte un override visuel explicite sur une arête de façade', () => {
     const scene = facadeScene();
     scene.walls![0].appearance = 'cloison-basse-a-ossature-en-bois';
-    const [wall] = buildWalls(scene);
+    const [wall] = buildWalls(scene, 'jeu');
     const top = Math.max(...facesOf(wall, 'face').flatMap((face) => face.poly.map((point) => point.h)));
 
     expect(wall.appearance).toBe('cloison-basse-a-ossature-en-bois');
@@ -213,7 +213,7 @@ describe('buildWalls — façades architecturales authorées', () => {
   });
 
   it('préserve la géométrie des portes et fenêtres existantes', () => {
-    const [door, window] = buildWalls(facadeScene());
+    const [door, window] = buildWalls(facadeScene(), 'jeu');
     expect(door.door).toBe(true);
     expect(door.states.open).toBe(false);
     expect(parts(door)).toContain('vantail');
@@ -223,7 +223,7 @@ describe('buildWalls — façades architecturales authorées', () => {
   it('une arête de façade sans WallSeg ne crée aucune collision ni aucun WallEl', () => {
     const scene = facadeScene();
     scene.architecture![0].facades[0].edges.push({ x: 5, y: 3, side: 'N' });
-    expect(buildWalls(scene)).toHaveLength(scene.walls!.length);
+    expect(buildWalls(scene, 'jeu')).toHaveLength(scene.walls!.length);
   });
 
   it('attache fenêtres, entrée maçonnée et pignon au plan du mur avec ids qualifiés', () => {
@@ -233,7 +233,7 @@ describe('buildWalls — façades architecturales authorées', () => {
       { id: 'entree', kind: 'stone-entry', edge: { x: 2, y: 3, side: 'N' }, width: 0.8 },
       { id: 'pignon', kind: 'gable', edge: { x: 3, y: 3, side: 'N' }, width: 0.9 },
     ];
-    const featureFaces = buildWalls(scene).flatMap((wall) =>
+    const featureFaces = buildWalls(scene, 'jeu').flatMap((wall) =>
       wall.faces.filter((face) => face.architectureFeatureId));
     expect([...new Set(featureFaces.map((face) => face.architectureFeatureId))]).toEqual([
       'corps-auberge:facade-sud:entree',
@@ -243,7 +243,7 @@ describe('buildWalls — façades architecturales authorées', () => {
     expect(featureFaces.some((face) => face.architectureFeatureKind === 'window-band' && face.material.part === 'vitre')).toBe(true);
     expect(featureFaces.some((face) => face.architectureFeatureKind === 'stone-entry' && face.material.id === 'mur-en-pierre')).toBe(true);
     expect(featureFaces.some((face) => face.architectureFeatureKind === 'gable' && face.poly.length === 3)).toBe(true);
-    expect(buildWalls(scene)[1].faces.filter((face) => face.material.part === 'vitre')).toHaveLength(1);
+    expect(buildWalls(scene, 'jeu')[1].faces.filter((face) => face.material.part === 'vitre')).toHaveLength(1);
   });
 
   /**
@@ -258,7 +258,7 @@ describe('buildWalls — façades architecturales authorées', () => {
         { id: `orn-${kind}`, kind, edge: { x: 2, y: 3, side: 'N' }, width: 0.4, ...(appearance ? { appearance } : {}) },
       ];
       expect(
-        buildWalls(scene).flatMap((wall) => wall.faces).filter((face) => face.architectureFeatureId),
+        buildWalls(scene, 'jeu').flatMap((wall) => wall.faces).filter((face) => face.architectureFeatureId),
         `${kind} / appearance=${appearance ?? '—'}`,
       ).toEqual([]);
     }
@@ -270,7 +270,7 @@ describe('buildWalls — façades architecturales authorées', () => {
     const gableAt = (width: number) => {
       const scene = facadeScene();
       scene.architecture![0].facades[0].features = [{ id: 'pignon', kind: 'gable' as const, edge: { x: 3, y: 3, side: 'N' as const }, width }];
-      return buildWalls(scene)[1].faces.find((face) => face.architectureFeatureKind === 'gable')!;
+      return buildWalls(scene, 'jeu')[1].faces.find((face) => face.architectureFeatureKind === 'gable')!;
     };
     const narrow = gableAt(0.4);
     const wide = gableAt(1.2);
@@ -314,6 +314,41 @@ describe('buildWalls — porte BOIS (routée par le seg.door)', () => {
   it('porte sans `closed` = OUVERTE (state open) ; `closed: true` = fermée', () => {
     expect(el.states.open).toBe(true);
     expect(one(sceneWith([{ x: 2, y: 2, side: 'N', door: true, closed: true }])).states.open).toBe(false);
+  });
+});
+
+/** PORTE SECRÈTE (`EDO 08 l.402`) : la LECTURE est explicite — l'éditeur (`auteur`) dessine la porte
+ *  authorée, le jeu (`jeu`) dessine le MUR NU de sa façade tant qu'elle est masquée. */
+describe('buildWalls — porte SECRÈTE : lecture auteur / jeu', () => {
+  const SECRETE: WallSeg = { x: 2, y: 2, side: 'N', door: true, closed: true, secret: { difficulty: 'complexe', face: 'les-deux' }, structure: 'solide-porte-en-bois' };
+  const NU: WallSeg = { x: 2, y: 2, side: 'N' };
+
+  it('auteur : une porte (vantail), même masquée', () => {
+    const [el] = buildWalls(sceneWith([SECRETE]), 'auteur');
+    expect(el.door).toBe(true);
+    expect(parts(el)).toContain('vantail');
+  });
+
+  it('jeu, masquée, dans une pièce de murs `mur-en-bois` : même apparence ⇒ MÊMES faces que sa voisine', () => {
+    const VOISINE: WallSeg = { x: 1, y: 2, side: 'N', structure: 'mur-en-bois', appearance: 'mur-en-pierre' };
+    const DEGUISEE: WallSeg = { x: 2, y: 2, side: 'N', door: true, closed: true, secret: { difficulty: 'complexe', face: 'les-deux' }, structure: 'mur-en-bois', appearance: 'mur-en-pierre' };
+    const [voisine, el] = buildWalls(sceneWith([VOISINE, DEGUISEE]), 'jeu');
+    const rendu = (w: WallEl) => ({ door: w.door, appearance: w.appearance, faces: w.faces.map((f) => f.material) });
+    expect(rendu(el)).toEqual(rendu(voisine));
+    expect(el.door).toBe(false);
+  });
+
+  it('jeu, masquée : une structure de PORTE est écartée, l’apparence authorée conservée', () => {
+    const [el] = buildWalls(sceneWith([{ ...SECRETE, appearance: 'mur-en-bois' }]), 'jeu');
+    const [mur] = buildWalls(sceneWith([{ ...NU, appearance: 'mur-en-bois' }]), 'jeu');
+    expect(parts(el)).not.toContain('vantail');
+    expect(el.faces).toEqual(mur.faces);
+  });
+
+  it('jeu, révélée : la porte réapparaît', () => {
+    const [el] = buildWalls(setDoorRevealed(sceneWith([SECRETE]), 2, 2, 'N', 0, true), 'jeu');
+    expect(el.door).toBe(true);
+    expect(parts(el)).toContain('vantail');
   });
 });
 
@@ -451,13 +486,13 @@ describe('buildWalls — vérité VISIBLE (une des deux cases bordant l’arête
     ['case voisine (N → y−1)', '2,1,0', true],
     ['autre case', '3,3,0', false],
   ])('%s', (_lbl, key, vis) => {
-    expect(buildWalls(sceneWith([seg]), new Set([key]))[0].states.visible).toBe(vis);
+    expect(buildWalls(sceneWith([seg]), 'jeu', new Set([key]))[0].states.visible).toBe(vis);
   });
   it('diagonale : seule SA case compte ; set absent ⇒ visible (éditeur/QC)', () => {
     const s = sceneWith([{ x: 2, y: 2, side: '\\' }]);
-    expect(buildWalls(s, new Set(['2,2,0']))[0].states.visible).toBe(true);
-    expect(buildWalls(s, new Set(['2,1,0']))[0].states.visible).toBe(false);
-    expect(buildWalls(s)[0].states.visible).toBe(true);
+    expect(buildWalls(s, 'jeu', new Set(['2,2,0']))[0].states.visible).toBe(true);
+    expect(buildWalls(s, 'jeu', new Set(['2,1,0']))[0].states.visible).toBe(false);
+    expect(buildWalls(s, 'jeu')[0].states.visible).toBe(true);
   });
 });
 
@@ -470,14 +505,14 @@ describe('buildWalls — ENVELOPPE extérieure (#818, la façade sort du brouill
     const s = sceneWith([
       { x: 2, y: 2, side: 'N' }, { x: 2, y: 2, side: 'E' }, { x: 2, y: 3, side: 'N' }, { x: 1, y: 2, side: 'E' },
     ]); // (2,2) scellée sur ses 4 côtés — le reste de la grille communique avec le hors-grille
-    expect(buildWalls(s, new Set(['9,9,0']))[0].states.visible).toBe(true);
+    expect(buildWalls(s, 'jeu', new Set(['9,9,0']))[0].states.visible).toBe(true);
   });
 
   it('PIÈGE DONJON — cloison entre DEUX pièces intérieures (jamais « zones différentes ») → gate de fog INCHANGÉ', () => {
     const s = sceneWith([{ x: 2, y: 2, side: 'N' }]);
     s.effectZones = [zone('salle', [{ x: 2, y: 2 }]), zone('couloir', [{ x: 2, y: 1 }])];
-    expect(buildWalls(s, new Set(['9,9,0']))[0].states.visible).toBe(false); // aucune case en vue → pas d'enveloppe
-    expect(buildWalls(s, new Set(['2,2,0']))[0].states.visible).toBe(true); // le gate normal marche toujours
+    expect(buildWalls(s, 'jeu', new Set(['9,9,0']))[0].states.visible).toBe(false); // aucune case en vue → pas d'enveloppe
+    expect(buildWalls(s, 'jeu', new Set(['2,2,0']))[0].states.visible).toBe(true); // le gate normal marche toujours
   });
 
   it('PIÈGE DONJON — scène SANS AUCUN dehors (toute la carte en zone intérieure) → AUCUN mur n’en sort, brouillard inchangé', () => {
@@ -485,7 +520,7 @@ describe('buildWalls — ENVELOPPE extérieure (#818, la façade sort du brouill
     const allTiles: { x: number; y: number }[] = [];
     for (let y = 0; y < 6; y++) for (let x = 0; x < 6; x++) allTiles.push({ x, y });
     s.effectZones = [zone('donjon', allTiles)];
-    for (const el of buildWalls(s, new Set(['9,9,0']))) expect(el.states.visible).toBe(false);
+    for (const el of buildWalls(s, 'jeu', new Set(['9,9,0']))) expect(el.states.visible).toBe(false);
   });
 
   it('case couverte par un TOIT (auvent/cour couverte, sans zone intérieure) → jamais DEHORS, pas d’enveloppe', () => {
@@ -494,29 +529,29 @@ describe('buildWalls — ENVELOPPE extérieure (#818, la façade sort du brouill
       id: 'corps', style: 'maison', storeys: [], facades: [],
       masses: [{ id: 'toit', z: 0, footprint: [{ x: 1, y: 0, w: 3, h: 3 }], levels: 1, profile: 'flat', pitchDeg: 30, material: 'tuile' }],
     }];
-    expect(buildWalls(s, new Set(['9,9,0']))[0].states.visible).toBe(false);
+    expect(buildWalls(s, 'jeu', new Set(['9,9,0']))[0].states.visible).toBe(false);
   });
 });
 
 describe('buildWalls — sélection des couches', () => {
   const s = sceneWith([{ x: 1, y: 1, side: 'N' }, { x: 2, y: 2, side: 'N', z: 1 }]);
   it('view absent ⇒ toutes les couches (éditeur/QC/POV)', () => {
-    expect(buildWalls(s).map((e) => e.cell.z)).toEqual([0, 1]);
+    expect(buildWalls(s, 'jeu').map((e) => e.cell.z)).toEqual([0, 1]);
   });
   it('activeZ borne : rien AU-DESSUS de la zone active', () => {
-    expect(buildWalls(s, undefined, { activeZ: 0 }).map((e) => e.key)).toEqual(['wall:1,1,N,0']);
-    expect(buildWalls(s, undefined, { activeZ: 1 })).toHaveLength(2);
+    expect(buildWalls(s, 'jeu', undefined, { activeZ: 0 }).map((e) => e.key)).toEqual(['wall:1,1,N,0']);
+    expect(buildWalls(s, 'jeu', undefined, { activeZ: 1 })).toHaveLength(2);
   });
   it('viewZ isole un étage (debug viewLevel)', () => {
-    expect(buildWalls(s, undefined, { activeZ: 1, viewZ: 1 }).map((e) => e.key)).toEqual(['wall:2,2,N,1']);
+    expect(buildWalls(s, 'jeu', undefined, { activeZ: 1, viewZ: 1 }).map((e) => e.key)).toEqual(['wall:2,2,N,1']);
   });
 });
 
 describe('buildWalls — stabilité', () => {
   it('deux appels identiques → mêmes clés, mêmes faces', () => {
     const s = sceneWith([{ x: 1, y: 1, side: 'N' }, { x: 3, y: 3, side: '/', door: true }]);
-    const a = buildWalls(s);
-    const b = buildWalls(s);
+    const a = buildWalls(s, 'jeu');
+    const b = buildWalls(s, 'jeu');
     expect(a.map((e) => e.key)).toEqual(b.map((e) => e.key));
     expect(a.map(parts)).toEqual(b.map(parts));
     expect(new Set(a.map((e) => e.key)).size).toBe(a.length);
@@ -532,7 +567,7 @@ describe('crestEls — crénelure de PÉRIMÈTRE (RENDU PUR, générale, jamais 
     elevate: { W: { height: 4, parapet: 'mur-en-pierre' } },
     levels: { z0: Array(6).fill(empty).join('\n'), z1: ['......', '......', '..WW..', '..WW..', '......', '......'].join('\n') },
   };
-  const crestElsOf = (s: Scene) => buildWalls(s).filter((e) => e.key.startsWith('crest:'));
+  const crestElsOf = (s: Scene) => buildWalls(s, 'jeu').filter((e) => e.key.startsWith('crest:'));
 
   it('rect 2×2 crénelé → crête sur les 8 arêtes de CONTOUR, RIEN sur les 4 arêtes internes', () => {
     const els = crestElsOf(buildScene(spec2x2));
@@ -646,7 +681,7 @@ describe('roofSeamGeometry — le joint de deux nappes prend la matière du mur 
     s.architecture = [{ id: 'corps', style: 'maison', storeys: [], facades: [], masses: [mass('ouest', 3), mass('est', 6)] }];
     return s;
   };
-  const seams = (s: Scene) => buildWalls(s).filter((el) => el.key.startsWith('seam:'));
+  const seams = (s: Scene) => buildWalls(s, 'jeu').filter((el) => el.key.startsWith('seam:'));
 
   it('avec des murs sous le bâti, le joint se ferme à LEUR matière', () => {
     const murs: WallSeg[] = [3, 4, 5, 6, 7, 8].map((x) => ({ x, y: 3, side: 'N' as const, structure: 'mur-a-ossature-en-bois' }));

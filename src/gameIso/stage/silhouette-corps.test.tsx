@@ -90,7 +90,7 @@ async function monter(frame: StageFrame): Promise<void> {
   root = createRoot(hôte);
   await act(async () => {
     root!.render(
-      <GameStage3D
+      <GameStage3D lecture="jeu"
         scene={SCENE}
         mpt={sceneMetresPerTile(SCENE)}
         frame={frame}

@@ -71,7 +71,7 @@ import { hoverTargeting } from './targeting';
 import { maneuverShip } from './shipManeuver';
 import { etageActif, getViewZ, setViewZ } from './viewLevel';
 import { setRevealAll, computeStateVisible } from './visionState';
-import { doorIsOpen, emptyScene } from './scene';
+import { doorIsOpen, emptyScene, porteEnJeu } from './scene';
 import { rule, setRule, ruleDef, OPTIONAL_RULES, type RuleValue } from '../engine/policy';
 import { houseRulesMutability, resetHouseRule } from './houseRules';
 import { cadence } from '../engine/cadence';
@@ -830,8 +830,8 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       }
       return all.filter((w) => w.structure === structure).map((w) => ({
         x: w.x, y: w.y, z: w.z ?? 0, side: w.side, structure: w.structure,
-        window: !!w.window, door: !!w.door,
-        ...(w.door ? { closed: !doorIsOpen(sc, w) } : {}),
+        window: !!w.window, door: porteEnJeu(sc, w),
+        ...(porteEnJeu(sc, w) ? { closed: !doorIsOpen(sc, w) } : {}),
       }));
     },
 

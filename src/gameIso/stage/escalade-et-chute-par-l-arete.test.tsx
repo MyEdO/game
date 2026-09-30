@@ -264,7 +264,7 @@ describe('Escalade et chute passent par l’étage `arete`', () => {
       // que la projection unique corrige : ils suivent désormais le sol qu'on voit.
       const scene = scèneGrimpable();
       const hauteurs = new Array(5 * 4).fill(6) as number[];
-      scene.layers.push({ z: 1, tiles: new Array(5 * 4).fill('bois'), height: hauteurs });
+      scene.layers.push({ z: 1, tiles: new Array(5 * 4).fill(scene.layers[0].tiles[0]), height: hauteurs }); // plancher MARCHABLE
       scene.walls = [{ x: 1, y: 1, side: 'E', z: 1, climb: { kind: 'surface' } }];
       const controleur: Pt = { x: 1, y: 1, z: 1 };
       const vues = ['1,1,1', '2,1,1'];

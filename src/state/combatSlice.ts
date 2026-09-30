@@ -14,7 +14,7 @@ import type { GameState, BattleState, ShootingStanceKey } from './store';
 import type { BattleActionMode } from './actionRegistry';
 import type { CounterParticipant, CounterDeclaration, SuiteDeCoup } from './pendings';
 import { fleeBackstab, fleeCalme, fleeNeedCalme } from './pendings';
-import { SceneEntity, structureIsDown } from './scene';
+import { SceneEntity, porteMasquee, structureIsDown } from './scene';
 import * as travelFlow from './travelFlow';
 import { continueRestNights } from './restFlow';
 import { continueRiverDayAfterCascade, continueRiverDayAfterExposure } from './riverVoyageFlow';
@@ -2844,9 +2844,10 @@ export function createCombatSlice(get: Get, set: Set) {
       // Structures destructibles de siège (AA 10 l.94-127) : chaque arête portant une `structure` INTACTE devient
       // un Combattant inerte à PV (kind 'npc' → ne fausse pas la fin de combat, cf. checkBattleOver qui ne
       // compte que les 'enemy'). Son `structureEdge` mémorise l'arête à ABATTRE (BRÈCHE) à sa destruction ;
-      // une structure déjà abattue n'est pas ré-instanciée. Source = WallSeg (≠ SceneEntity) → enrôlée ICI.
+      // une structure déjà abattue n'est pas ré-instanciée, une porte secrète masquée (`porteMasquee`) non plus.
+      // Source = WallSeg (≠ SceneEntity) → enrôlée ICI.
       const structures = (scene.walls ?? [])
-        .filter((w) => !!w.structure && !structureIsDown(scene, w))
+        .filter((w) => !!w.structure && !structureIsDown(scene, w) && !porteMasquee(scene, w))
         .map((w) => {
           const data = findStructureById(w.structure!);
           if (!data) return null;

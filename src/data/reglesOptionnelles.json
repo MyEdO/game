@@ -424,6 +424,20 @@
     "hint": "Distance en MÈTRES à laquelle un ordre crié porte : « aider une équipe qui utilise une arme possédant le Défaut Arme d’équipe à portée de voix » (AA 13 l.35) — le canon ne chiffre jamais cette portée. Défaut 50 m (≈ 25 cases à 2 m/case)."
   },
   {
+    "id": "porte-secrete-rayon-m",
+    "type": "reglesOptionnelles",
+    "label": "Rayon de découverte d’une porte secrète",
+    "ref": "LDB 09 l.399",
+    "maison": "Le livre ne dit pas à quelle distance une porte secrète se remarque : distance maison, défaut 4 m (2 cases à 2 m), au minimum la case qui borde la porte.",
+    "group": "Tests",
+    "kind": "param",
+    "default": 4,
+    "min": 1,
+    "max": 20,
+    "step": 1,
+    "hint": "« Votre MJ peut vous demander d’effectuer un Test de Perception pour détecter quelque chose […] modifié par la facilité à le remarquer. » (LDB 09 l.399). Distance en MÈTRES, depuis la porte, sur sa face découvrable, à laquelle le groupe qui la VOIT tente le Test de Perception ; convertie en cases par l’échelle de la scène."
+  },
+  {
     "id": "social-status-reaction-roll",
     "type": "reglesOptionnelles",
     "label": "Réaction au Statut (1d10)",
@@ -1153,6 +1167,49 @@
     "min": 1,
     "max": 6,
     "hint": "« [le bélier/la baliste sont] dotés de roues pour se déplacer sur le champ de bataille » (ADE II 8 l.256/258) sans chiffrer de vitesse : plafond MAISON (en cases) d’une poussée d’équipage — mouvement SIMPLE, aucun Test."
+  },
+  {
+    "id": "fenetre-hauteur-allege",
+    "type": "reglesOptionnelles",
+    "label": "Hauteur d’allège d’une croisée franchissable",
+    "ref": "LDB 15 l.55",
+    "maison": "Le livre ne chiffre ni la hauteur d’une allège ni le franchissement d’une croisée : enjamber une fenêtre de plain-pied est assimilé à une escalade facile de cette hauteur (LDB 15 l.55), sans Test, à demi-vitesse.",
+    "group": "Combat",
+    "kind": "param",
+    "default": 1,
+    "min": 0,
+    "max": 3,
+    "hint": "« Le fait de grimper à une échelle, ou sur une autre surface tout aussi facile, ne nécessite pas de Test mais va simplement vous ralentir. Sur de telles surfaces, vous vous déplacez à la moitié de votre vitesse. » (LDB 15 l.55). Valeur MAISON : hauteur (en mètres) de l’allège escaladée pour enjamber une croisée franchissable ; son coût s’ajoute au pas d’une case."
+  },
+  {
+    "id": "fenetre-suspension",
+    "type": "reglesOptionnelles",
+    "label": "Coût de la suspension à une croisée avant de sauter",
+    "ref": "EDO 01 l.231",
+    "maison": "EDO 01 l.231 ne nomme que l’avance prise par le fuyard : se suspendre avant de sauter est assimilé à une descente facile de la hauteur épargnée (LDB 15 l.55, LDB 15 l.57).",
+    "group": "Combat",
+    "kind": "mode",
+    "default": "descente-facile",
+    "options": [
+      "descente-facile",
+      "libre"
+    ],
+    "hint": "« à moins qu’il ne souhaite se suspendre d’abord, ce qui réduira la hauteur de chute à 2 mètres » (EDO 01 l.231). Valeur MAISON, en combat : descente-facile = la hauteur épargnée se paie en Mouvement à demi-vitesse (LDB 15 l.55, LDB 15 l.57) ; libre = la suspension ne coûte rien de plus que le pas."
+  },
+  {
+    "id": "chute-tombant-non-debout",
+    "type": "reglesOptionnelles",
+    "label": "Chute volontaire du groupe avec un compagnon qui n’est pas debout",
+    "ref": "EDO 01 l.231",
+    "maison": "EDO 01 l.231 fait suivre le sauteur par « tout Personnage souhaitant le suivre » et LDB 15 l.82 laisse à chacun le choix de tenter son Test, sans rien dire d’un compagnon inconscient qu’on ne peut faire sauter : refus du geste par défaut, ou chute pleine sans Test pour ce compagnon.",
+    "group": "Combat",
+    "kind": "mode",
+    "default": "refus",
+    "options": [
+      "refus",
+      "chute-pleine"
+    ],
+    "hint": "Hors combat, le groupe entier suit la chute volontaire (EDO 01 l.231) et chacun choisit de tenter ou non son Test d’Athlétisme (LDB 15 l.82). Valeur MAISON pour un membre vivant qui n’est pas debout : refus = le geste est refusé tant qu’il y en a un ; chute-pleine = il tombe avec le groupe, de toute la hauteur, sans Test."
   },
   {
     "id": "sea-shipwreck-swim",

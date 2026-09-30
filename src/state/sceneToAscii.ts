@@ -13,14 +13,14 @@
  * `seatAssignments` (qui est attablé à quel meuble),
  * `triggers`, `dialogues`, `encounters`, `architecture`, `stations`, `restZones`, zones d'effet
  * MÉCANIQUES (pièges/auras — seules les zones DESCRIPTIVES le sont), `heroStart`, `entryPoints`,
- * crénelure de rendu (`Layer.crenellated`), arêtes ESCALADABLES (`WallSeg.climb`), portes FERMÉES par
- * défaut (`WallSeg.closed`). Réimporter ce texte SANS reporter le reste du `MapSpec` source ÉCRASERAIT
+ * crénelure de rendu (`Layer.crenellated`), et les clés d'arête de `CLES_HORS_ASCII` (`climb`, `closed`,
+ * `secret`, `shuttered`, `crossable`, `suspendu`). Réimporter ce texte SANS reporter le reste du `MapSpec` source ÉCRASERAIT
  * ce contenu — d'où l'avertissement explicite en tête de `text` et l'exigence de ne coller QUE les
  * grilles/legend/wallLegend/zoneLegend/relief dans le fichier `*.ascii.ts` + `*.ts` d'origine.
  */
 import { tableTotale } from '../lib/tableTotale';
 import type { Scene, SceneEffectZone, Terrain, WallOverlay, WallSeg } from './scene';
-import { DEFAULT_TERRAIN, heightAt, isDescriptiveZone, tileAt, wallOverlayOf, WALL_OVERLAY_KEYS } from './scene';
+import { DEFAULT_TERRAIN, heightAt, isDescriptiveZone, porteAuteur, tileAt, wallOverlayOf, WALL_OVERLAY_KEYS } from './scene';
 import { sceneZoneTiles } from './zones';
 import { glypheDe, terrainAbsent, terrainsAvecGlyphe } from './terrain';
 import { FOND_ECRIT, GLYPHES_RESERVES, GRAMMAIRE_ASCII } from '../data/schemas/grammaire/carte-ascii';
@@ -78,6 +78,19 @@ const SEP_CLE = '\u001f';
  *  (`WALL_OVERLAY_KEYS` — jamais une liste énumérée ici : N+1 propriété entre dans la clé toute seule). */
 const wallCatKey = (door: boolean, window: boolean, overlay: WallOverlay) =>
   [door ? 1 : 0, window ? 1 : 0, ...WALL_OVERLAY_KEYS.map((k) => overlay[k] ?? '')].join(SEP_CLE);
+/** Clés d'un `WallSeg` que le format walled ne REPRÉSENTE pas → libellé de l'avertissement d'export.
+ *  N+1 clé = UNE ligne ici (patron `WALL_OVERLAY_KEYS`, `state/scene.ts`). */
+const CLES_HORS_ASCII = {
+  climb: 'arête(s) escaladable(s)',
+  closed: 'porte(s) FERMÉE(S) par défaut',
+  secret: 'porte(s) secrète(s)',
+  shuttered: 'croisée(s) aux volets clos',
+  crossable: 'croisée(s) franchissable(s)',
+  suspendu: 'hauteur(s) de suspension de croisée',
+} as const satisfies Partial<Record<keyof WallSeg, string>>;
+type CleHorsAscii = keyof typeof CLES_HORS_ASCII;
+const CLES_HORS_ASCII_LISTE = Object.keys(CLES_HORS_ASCII) as CleHorsAscii[];
+
 /** L'overlay porte-t-il quoi que ce soit ? (un mur nu `-`/`|` n'en porte aucun). */
 const hasOverlay = (overlay: WallOverlay) => WALL_OVERLAY_KEYS.some((k) => overlay[k] !== undefined);
 /** Overlay lisible dans un avertissement d'outil d'édition (`structure=herse, appearance=mur-en-bois`). */
@@ -148,26 +161,23 @@ export function sceneToAscii(scene: Scene): SceneAsciiExport {
   // ── Arêtes (murs orthogonaux N/E + diagonales) indexées par case ─────────────────────────────────
   const edgeAt = new Map<string, WallSeg>();
   const diagAt = new Map<string, WallSeg>();
-  let lostClimb = 0;
-  let lostClosed = 0;
+  const perdues = new Map<CleHorsAscii, number>();
   for (const seg of scene.walls ?? []) {
     const z = seg.z ?? 0;
     if (seg.side === '\\' || seg.side === '/') diagAt.set(diagKey(seg.x, seg.y, z), seg);
     else edgeAt.set(edgeKey(seg.x, seg.y, seg.side, z), seg);
-    if (seg.climb) lostClimb++;
-    if (seg.closed) lostClosed++;
+    for (const k of CLES_HORS_ASCII_LISTE) if (seg[k]) perdues.set(k, (perdues.get(k) ?? 0) + 1);
   }
-  if (lostClimb) warn(`${lostClimb} arête(s) escaladable(s) (\`WallSeg.climb\`) — non représentable en ASCII, à reporter à la main.`);
-  if (lostClosed) warn(`${lostClosed} porte(s) FERMÉE(S) par défaut (\`WallSeg.closed\`) — le format walled pose toujours une porte ouverte, à reporter à la main.`);
+  for (const [k, n] of perdues) warn(`${n} ${CLES_HORS_ASCII[k]} (\`WallSeg.${k}\`) — non représentable en ASCII, à reporter à la main.`);
 
   // ── Glyphe par arête : catégorie (door, window, overlay) → char (cf. commentaire d'en-tête) ──────
   const catCount = new Map<string, { door: boolean; window: boolean; overlay: WallOverlay; count: number }>();
   for (const seg of edgeAt.values()) {
     const overlay = wallOverlayOf(seg);
-    const k = wallCatKey(!!seg.door, !!seg.window, overlay);
+    const k = wallCatKey(porteAuteur(seg), !!seg.window, overlay);
     const cur = catCount.get(k);
     if (cur) cur.count++;
-    else catCount.set(k, { door: !!seg.door, window: !!seg.window, overlay, count: 1 });
+    else catCount.set(k, { door: porteAuteur(seg), window: !!seg.window, overlay, count: 1 });
   }
   const wallLegend: Record<string, WallOverlay> = {};
   const catToGlyph = new Map<string, string>();
@@ -214,7 +224,7 @@ export function sceneToAscii(scene: Scene): SceneAsciiExport {
     wallLegend[ch] = c.overlay;
   }
   const wallGlyph = (seg: WallSeg, orientation: 'N' | 'E'): string => {
-    const k = wallCatKey(!!seg.door, !!seg.window, wallOverlayOf(seg));
+    const k = wallCatKey(porteAuteur(seg), !!seg.window, wallOverlayOf(seg));
     const g = catToGlyph.get(k);
     if (g === GRAMMAIRE_ASCII.murHorizontal || g === undefined)
       return orientation === 'N' ? GRAMMAIRE_ASCII.murHorizontal : GRAMMAIRE_ASCII.murVertical;

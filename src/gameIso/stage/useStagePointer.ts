@@ -223,6 +223,11 @@ export function useStagePointer({
           else break;
         }
         const jumpPlan = planJump(currentScene, prev, cur, mouvementDuGroupe(st.party), runUp);
+        if (jumpPlan.kind === 'none') {
+          st.log(message('saut.aucuneSurface'));
+          movingRef.current = false;
+          return;
+        }
         if (partyLeader) bus.emit(EVT.ANIM_MOVE, { id: partyLeader.id, path: [prev, cur] });
         st.moveParty(cur);
         if (jumpPlan.kind === 'test') {
@@ -286,6 +291,7 @@ export function useStagePointer({
     franchir: activatePortal,
     grimper: (de, vers) => { useGame.getState().climbAcross(de, vers); bus.emit(EVT.SCENE_DIRTY); },
     sauter: (de, vers) => { useGame.getState().fallAcross(de, vers); bus.emit(EVT.SCENE_DIRTY); },
+    enjamber: (de, vers) => { useGame.getState().windowAcross(de, vers); bus.emit(EVT.SCENE_DIRTY); },
     // FRAPPER une structure : le MUR est un Combattant (`state/combatSlice.ts`, `cid`), son geste est
     // donc EXACTEMENT celui d'un jeton ennemi sous le rayon (`performClick` ci-dessous) — MÊME porte
     // partagée (`state/combatOrParty.ts:combatantClickActs`, source unique des 3 surfaces) et même
