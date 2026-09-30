@@ -1628,8 +1628,8 @@ test('commandeDeVeille / idDeRun / pidDeRun : la commande que `--detache` imprim
   assert.equal(pidDeRun(run), 4242)
   assert.equal(pidDeRun('0-1'), null)
   assert.equal(pidDeRun('abc'), null)
-  const commande = commandeDeVeille({ script: 'C:\\Mes Projets\\Game\\scripts\\ops\\publier.mjs', run })
-  assert.equal(commande, 'node "C:/Mes Projets/Game/scripts/ops/publier.mjs" --veiller 4242-1790000000000')
+  const commande = commandeDeVeille({ script: 'Mes Projets\\Game\\scripts\\ops\\publier.mjs', run })
+  assert.equal(commande, 'node "Mes Projets/Game/scripts/ops/publier.mjs" --veiller 4242-1790000000000')
   // Son argument, relu par `optionsDe`, désigne le même run.
   assert.equal(optionsDe(['--veiller', commande.split(' --veiller ')[1]]).veiller, run)
 })
