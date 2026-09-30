@@ -21,7 +21,7 @@
 // `PreToolUse` des DEUX surfaces (`.claude/settings.json`, `.codex/hooks.json`) : les canaux qui
 // créent un fichier, `OUTILS_CREATION` (`scripts/guards/lib/contratGarde.mjs`), lus par `ecrituresDe` ;
 // seule une écriture qui pose le fichier entier (`ecritLeFichierEntier` : `Write`, `ctx_patch` op
-// `create`) le crée (lean-ctx 3.10.2, tag d4f9beb3f, module `tools::ctx_patch` : « `create` short-circuits the
+// `create`) le crée (lean-ctx `LEAN_CTX_VERSION`, module `tools::ctx_patch` : « `create` short-circuits the
 // anchored pipeline », toute autre op lit la préimage).
 // LIMITE RÉSIDUELLE assumée : tout chemin d'écriture qui ne passe pas par un outil matché échappe à
 // la garde — redirection shell (`... > src/ui/X.tsx`, `tee`, `cp`), script Node lancé par un runner,

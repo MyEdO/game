@@ -43,7 +43,6 @@ test('DRIVER : ctx_patch (canal prescrit) reçoit le MÊME rappel qu’Edit — 
     assert.equal(contexteDe({ op: 'replace_unique', path: donnee, old_text: 'a', new_text: 'b' }, 'mcp__lean-ctx__ctx_patch'), edit)
     assert.equal(contexteDe({ op: 'replace_all', path: donnee, find: 'a', replace: 'b' }, 'mcp__lean-ctx__ctx_patch'), edit)
     const lot = contexteDe({ ops: [
-      { op: 'set_line', path: join(racine, 'README.md'), line: 1, hash: '00', new_text: 'b' },
       { op: 'set_line', path: donnee, line: 1, hash: '00', new_text: 'b' },
       { op: 'set_line', path: donnee, line: 2, hash: '00', new_text: 'c' },
     ] }, 'mcp__lean-ctx__ctx_patch')

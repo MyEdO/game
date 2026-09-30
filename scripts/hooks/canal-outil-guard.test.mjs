@@ -1,11 +1,12 @@
 // Garde des CANAUX d'outil (#2180) : le répartiteur réel (spawnSync + stdin JSON), sur les formes
-// d'entrée de lean-ctx 3.10.2. Aucun fichier n'est écrit.
+// d'entrée de lean-ctx `LEAN_CTX_VERSION` (`scripts/guards/lib/contratGarde.mjs`). Aucun fichier n'est écrit.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
+import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { ecriture, lancerHook } from '../guards/lib/lancerHook.mjs'
-import { LECTURE, familleLeanCtx } from '../guards/lib/contratGarde.mjs'
+import { LEAN_CTX_VERSION, LECTURE, familleLeanCtx } from '../guards/lib/contratGarde.mjs'
 import { REGISTRE } from './registre.mjs'
 import { CONSIGNE, garde } from './canal-outil-guard.mjs'
 
@@ -133,10 +134,12 @@ const SRC_NEUF = join(REPO, 'src', 'ui', 'ZzSondeNeuf.tsx')
 test('DRIVER : une entrée `ctx_patch` qui porte une clé hors de son schéma MCP, en tête ou dans un élément de `ops[]`, est REFUSÉE avec le canal prescrit — surfaces claude et codex', () => {
   const cas = [
     ['replace_unique + create:true (fichier entier par ctx_edit)', { op: 'replace_unique', path: SRC_NEUF, old_text: 'x', new_text: 'export const A = 1', create: true }, 'create'],
-    ['ops[] replace_unique + create:true', { path: SRC_NEUF, ops: [{ op: 'replace_unique', old_text: 'x', new_text: 'export const A = 1', create: true }] }, 'ops[0].create'],
+    ['ops[] set_line + create:true', { path: SRC_NEUF, ops: [{ op: 'set_line', line: 1, hash: '00', new_text: 'export const A = 1', create: true }] }, 'ops[0].create'],
     ['set_line + backup + backup_path (préimage écrite ailleurs)', { op: 'set_line', path: DOC, line: 1, hash: '00', new_text: 'x', backup: true, backup_path: join(REPO, 'src', 'data', 'zz-sonde.json') }, 'backup_path'],
-    ['ops[] replace_unique en old_string/new_string', { path: DOC, ops: [{ op: 'replace_unique', old_string: 'a', new_string: 'b' }] }, 'ops[0].old_string'],
-    ['dry_run de tête, ops[] replace_unique à dry_run:false', { path: DOC, dry_run: true, ops: [{ op: 'replace_unique', old_text: 'a', new_text: 'b', dry_run: false }] }, 'ops[0].dry_run'],
+    ['ops[] set_line en old_string', { path: DOC, ops: [{ op: 'set_line', line: 1, hash: '00', new_text: 'b', old_string: 'a' }] }, 'ops[0].old_string'],
+    ['dry_run de tête, ops[] set_line à dry_run:false', { path: DOC, dry_run: true, ops: [{ op: 'set_line', line: 1, hash: '00', new_text: 'b', dry_run: false }] }, 'ops[0].dry_run'],
+    ['ops[] replace_unique (délégué)', { path: DOC, ops: [{ op: 'replace_unique', old_text: 'a', new_text: 'b' }] }, 'ops[0].op replace_unique hors lot'],
+    ['ops[] replace_symbol (délégué)', { path: DOC, ops: [{ op: 'replace_symbol', name: 'f', new_text: 'b' }] }, 'ops[0].op replace_symbol hors lot'],
     ['validate_syntax:false', { op: 'set_line', path: DOC, line: 1, hash: '00', new_text: 'x', validate_syntax: false }, 'validate_syntax'],
     ['content (Write-équivalent) sur ctx_patch', { op: 'replace_unique', path: DOC, old_text: 'a', new_text: 'b', content: 'x' }, 'content'],
     ['ops[] set_line + old_text (clé d’une autre op)', { path: DOC, ops: [{ op: 'set_line', line: 1, hash: '00', new_text: 'x', old_text: 'y' }] }, 'ops[0].old_text'],
@@ -196,7 +199,7 @@ test('CONTRAT : chaque op du schéma `ctx_patch`, avec ses seules clés déclar�
     ['replace_unique', { op: 'replace_unique', path: DOC, old_text: 'a', new_text: 'b' }],
     ['create', { op: 'create', path: join(REPO, 'docs', 'zz-sonde.md'), new_text: 'x' }],
     ['replace_all', { op: 'replace_all', path: DOC, find: 'a', replace: 'b' }],
-    ['lot ancré + replace_unique', { path: DOC, ops: [{ op: 'set_line', line: 1, hash: '00', new_text: 'x' }, { op: 'replace_unique', path: DOC, old_text: 'a', new_text: 'b' }] }],
+    ['lot ancré à un path', { path: DOC, ops: [{ op: 'set_line', line: 1, hash: '00', new_text: 'x' }, { op: 'replace_lines', path: DOC, start_line: 3, end_line: 4, new_text: 'y' }] }],
   ]
   for (const surface of ['claude', 'codex'])
     for (const [nom, entree] of ops) assert.equal(decisionDe(`${P}ctx_patch`, entree, surface).decision, null, `${surface} : ${nom}`)
@@ -207,4 +210,13 @@ test('CONTRAT : chaque op du schéma `ctx_patch`, avec ses seules clés déclar�
 test('les outils que les sessions utilisent pour LIRE sont classés LECTURE (sinon toute session se bloque)', () => {
   for (const nu of ['ctx_read', 'ctx_search', 'ctx_glob', 'ctx_tree', 'ctx_compose', 'ctx_callgraph', 'ctx_knowledge', 'ctx_session', 'ctx_overview', 'ctx_expand', 'ctx_delta', 'ctx_graph', 'ctx_url_read'])
     assert.equal(familleLeanCtx(nu), LECTURE, nu)
+})
+
+test('le lean-ctx de l’hôte est `LEAN_CTX_VERSION`, celle aux sources de laquelle le classement est audité', (t) => {
+  const r = spawnSync('lean-ctx', ['--version'], { encoding: 'utf8', timeout: 20000 })
+  if (r.error?.code === 'ENOENT') return t.skip('lean-ctx absent de l’hôte (CI) : version non confrontée')
+  assert.equal(r.status, 0, r.error?.message ?? r.stderr)
+  const version = /lean-ctx (\S+)/.exec(r.stdout)?.[1]
+  assert.equal(version, LEAN_CTX_VERSION.version,
+    `lean-ctx ${version} ≠ LEAN_CTX_VERSION ${LEAN_CTX_VERSION.version} (tag ${LEAN_CTX_VERSION.tag}) : re-auditer FAMILLES_LEAN_CTX et OPS_CTX_PATCH (scripts/guards/lib/contratGarde.mjs) aux sources du tag de ${version}, puis porter sa version et son tag dans LEAN_CTX_VERSION`)
 })

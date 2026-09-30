@@ -31,11 +31,18 @@ export const MOTIF_LEAN_CTX = `${PREFIXE_LEAN_CTX}.*`
 const classe = (famille, ...actionsRefusees) => Object.freeze({ famille, actionsRefusees: Object.freeze(actionsRefusees) })
 const L = classe(LECTURE)
 
+/** La version de lean-ctx, et son tag, aux sources de laquelle `FAMILLES_LEAN_CTX` et `OPS_CTX_PATCH` sont
+ *  audités ; le binaire de l'hôte y est confronté (`scripts/hooks/canal-outil-guard.test.mjs`). */
+export const LEAN_CTX_VERSION = Object.freeze({ version: '3.10.2', tag: 'd4f9beb3f' })
+
 /**
- * CLASSEMENT des outils de lean-ctx 3.10.2 (`C:\Users\gauch\.local\bin\lean-ctx.exe`), par nom nu :
+ * CLASSEMENT des outils de lean-ctx `LEAN_CTX_VERSION`, par nom nu :
  * la seule table. Un outil ABSENT n'est dans aucune famille gardée — la garde `canal-outil` le refuse.
  * LECTURE admet les outils qui n'écrivent que l'état interne de lean-ctx ; une action qui écrit hors de
- * lui, lit un fichier désigné ou lance un programme est REFUSÉE. Chaînes du binaire :
+ * lui, IMPORTE un fichier désigné dans cet état ou lance un programme est REFUSÉE. Sources au tag de
+ * `LEAN_CTX_VERSION` : ctx_fill (`tools/ctx_fill.rs` l.31) et ctx_benchmark (`tools/ctx_benchmark.rs` l.12)
+ * lisent un `path` comme ctx_read ; ctx_compress n'écrit que sa session (`tools/ctx_compress.rs`
+ * l.205) ; ctx_plan, ctx_response, ctx_discover n'écrivent rien. Chaînes du binaire :
  * - ctx_knowledge : « export/import: bundle directory (OKF) or file path », « ERROR: import requires
  *   `path` (a file or an OKF directory) » ;
  * - ctx_session : « ctx_session.export », « Export write failed: », « ERROR: path is required for
@@ -147,31 +154,39 @@ export function ecrituresDe(entree) {
   return input.ops.filter((op) => op && typeof op === 'object').map((op) => ({ path: input.path, ...op }))
 }
 
-/** Le lot `ops` de `ctx_patch` est-il ambigu ? Oui s'il n'est pas un tableau, ou si l'un de ses
- *  éléments n'est pas un objet. */
+/** Le lot `ops` de `ctx_patch` est-il ambigu ? Oui s'il n'est pas un tableau, si l'un de ses éléments
+ *  n'est pas un objet, ou s'il nomme plus d'un `path` (le sien, celui de tête à défaut) : lean-ctx groupe
+ *  un lot par `path` BRUT (`registered/ctx_patch.rs` l.428, `group_ops_by_path`) et applique chaque
+ *  groupe à l'état laissé par le précédent (l.148-166, `ctx_patch/mod.rs` l.112) : deux `path` d'un même
+ *  fichier y font deux préimages. */
 export const lotAmbigu = (input) =>
-  input?.ops !== undefined && (!Array.isArray(input.ops) || input.ops.some((op) => !op || typeof op !== 'object' || Array.isArray(op)))
+  input?.ops !== undefined &&
+  (!Array.isArray(input.ops) ||
+    input.ops.some((op) => !op || typeof op !== 'object' || Array.isArray(op)) ||
+    new Set(input.ops.map((op) => op.path ?? input.path)).size > 1)
 
 const opCtxPatch = (formes, { neuf = 'new_text', remplace = null, enLot = true } = {}) =>
   Object.freeze({ formes: Object.freeze(formes.map((forme) => Object.freeze(forme))), neuf, remplace, enLot })
 
 /**
- * Les ops de `ctx_patch`, lean-ctx 3.10.2 (tag d4f9beb3f) : la seule déclaration de ses clés. `formes` :
+ * Les ops de `ctx_patch`, lean-ctx `LEAN_CTX_VERSION` : la seule déclaration de ses clés. `formes` :
  * les jeux de clés que l'op CONSOMME, hors `path` — une entrée porte les clés d'UNE forme ; `neuf`,
- * `remplace` : la clé de son texte posé, de son texte remplacé ; `enLot` : admise dans `ops[]`.
+ * `remplace` : la clé de son texte posé, de son texte remplacé ; `enLot` : admise dans `ops[]`, où
+ * seule une op ANCRÉE se juge contre la préimage que lean-ctx lui présente (`ctx_patch/apply.rs` l.127).
  * - schéma MCP, `registered/ctx_patch.rs` l.58-69 (`if`/`then`) ;
  * - set_line, replace_lines, insert_after, delete, create : `ctx_patch/anchors.rs` l.94-180 ;
  * - replace_symbol : `ctx_patch/symbol.rs` l.35-58 ;
  * - replace_unique : `registered/ctx_patch.rs` l.348-366 ; replace_all : l.599-623 ;
- * - hors lot : l.196-200.
+ * - hors lot : l.196-200 ; déléguées, appliquées à l'état laissé par les ops qui les précèdent :
+ *   l.183-187, l.228-255.
  */
 export const OPS_CTX_PATCH = Object.freeze({
   set_line: opCtxPatch([['line', 'hash', 'new_text']]),
   replace_lines: opCtxPatch([['start_line', 'start_hash', 'end_line', 'end_hash', 'new_text']]),
   insert_after: opCtxPatch([['line', 'hash', 'new_text']]),
   delete: opCtxPatch([['line', 'hash'], ['start_line', 'start_hash', 'end_line', 'end_hash']], { neuf: null }),
-  replace_unique: opCtxPatch([['old_text', 'new_text']], { remplace: 'old_text' }),
-  replace_symbol: opCtxPatch([['name', 'line', 'end_line', 'new_text']]),
+  replace_unique: opCtxPatch([['old_text', 'new_text']], { remplace: 'old_text', enLot: false }),
+  replace_symbol: opCtxPatch([['name', 'line', 'end_line', 'new_text']], { enLot: false }),
   create: opCtxPatch([['new_text']], { enLot: false }),
   replace_all: opCtxPatch([['find', 'replace']], { neuf: 'replace', remplace: 'find', enLot: false }),
 })
