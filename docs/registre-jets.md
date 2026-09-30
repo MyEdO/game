@@ -249,4 +249,4 @@ reste `ROLL_SEAM_PHASE2_STOCK`. 29 sites dans 14 fichiers.
 | `src/state/travelPostes.ts` | 1 |
 | `src/state/triggeredEffects.ts` | 1 |
 
-<!-- sources-empreinte: 027d01d869fbe5347fcf2169bde131e37f0fddb0 (2144 fichiers, 136 dossiers) corps: ae57ab24d4d236c5e6ae8a493bac77419a1cfd9e -->
+<!-- sources-empreinte: cff1b1270b59ffcf5aee99e4dc273598c6b73247 (2144 fichiers, 136 dossiers) corps: ae57ab24d4d236c5e6ae8a493bac77419a1cfd9e -->

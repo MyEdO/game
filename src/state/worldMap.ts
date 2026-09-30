@@ -233,11 +233,10 @@ function egalJson(a: unknown, b: unknown): boolean {
 export function portVersDepot(port: MapPlace['port']): MapPlace['port'] {
   if (!port?.ref) return port;
   const { ref: _ref, lighthouse: _phare, ...defauts } = resolvePortRef({ ref: port.ref })!;
-  const surcharges = Object.fromEntries(
-    (Object.keys(defauts) as (keyof typeof defauts)[])
-      .filter((k) => port[k] !== undefined && !egalJson(port[k], defauts[k]))
-      .map((k) => [k, port[k]]),
+  const clesSurchargees = (Object.keys(defauts) as (keyof typeof defauts)[]).filter(
+    (k) => port[k] !== undefined && !egalJson(port[k], defauts[k]),
   );
+  const surcharges = tableTotale(clesSurchargees, (k) => port[k]);
   return { ref: port.ref, ...surcharges, ...(port.lighthouse !== undefined ? { lighthouse: port.lighthouse } : {}) } as MapPlace['port'];
 }
 
@@ -513,6 +512,7 @@ import { projetSchema, SCHEMA_PROJET } from '../data/schemas/defs-scenes/projet'
 import { sceneSchema, typeNonNomme } from '../data/schemas/defs-scenes/scene';
 import type { SourceRef } from '../data/schemas/grammaire/valeurs';
 import { proseNonMaterialisee, versDisque } from '../data/schemas/grammaire/prose';
+import { tableTotale } from '../lib/tableTotale';
 
 /** Identité de campagne pour la bibliothèque (#766) — PLATE à la racine du document depuis #1467
  *  L1b, posée par l'enveloppe de `document()` depuis #1552. Le trio `id`/`label`/`versionContenu`
