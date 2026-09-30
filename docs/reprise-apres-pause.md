@@ -120,8 +120,8 @@ C'est le signal qu'un geste manuel a dévié de ce que `npm install` pose seul.
   sous `scripts/guards/lib/` (dont `scripts/guards/lib/commentPoison.mjs`,
   `scripts/guards/lib/emojiAffordance.mjs`, `scripts/guards/lib/hardcode.mjs`,
   `scripts/guards/lib/labelLogic.mjs`).
-- Les gardes de SESSION : 3 scripts déclarés dans `.claude/settings.json`
-  (versionné), sur 17 fichiers `.mjs` hors test sous `scripts/hooks/` — détail au § 5.
+- Les gardes de SESSION : 4 scripts déclarés dans `.claude/settings.json`
+  (versionné), sur 19 fichiers `.mjs` hors test sous `scripts/hooks/` — détail au § 5.
 - Les schémas de données : `src/data/schemas/` (`src/data/schemas/types.ts`,
   `src/data/schemas/validate.ts`, `src/data/schemas/_registry.generated.ts`,
   `src/data/schemas/_ids.generated.ts`, `src/data/schemas/grammaire/` — le vocabulaire partagé —
@@ -176,6 +176,7 @@ refaire `npm install`.
 | Événement | Déclencheur (matcher) | Script | Rôle |
 |---|---|---|---|
 | `SessionStart` | (tous) | `scripts/hooks/bootstrap-conteneur.mjs` | Conformité du conteneur distant (hooks git, gh) |
+| `SessionStart` | (tous) | `scripts/hooks/inject-suivi.mjs` | Suivi de vague de la session |
 | `PreToolUse` | ^(?:Write \| Edit \| Bash \| PowerShell \| mcp__lean-ctx__(?!(?:ctx_read \| ctx_smart_read \| ctx_multi_read \| ctx_search \| ctx_semantic_search \| ctx_symbol \| ctx_glob \| ctx_tree \| ctx_compose \| ctx_overview \| ctx_repomap \| ctx_outline \| ctx_explore \| ctx_callgraph \| ctx_graph \| ctx_impact \| ctx_architecture \| ctx_routes \| ctx_smells \| ctx_quality \| ctx_review \| ctx_expand \| ctx_delta \| ctx_retrieve \| ctx_url_read \| ctx_summary \| ctx_memory \| ctx_cache \| ctx_index \| ctx_context \| ctx_metrics \| ctx_gain \| ctx_heatmap \| ctx_cost \| ctx_perf \| ctx_compare \| ctx_analyze \| ctx_benchmark \| ctx_discover \| ctx_discover_tools \| ctx_load_tools \| ctx_plan \| ctx_fill \| ctx_compress \| ctx_response)$).+)$ | `scripts/hooks/repartiteur.mjs` | Gardes des appels d’outil (répartiteur) |
 | `PreToolUse` | Bash \| PowerShell \| mcp__lean-ctx__ctx_shell \| mcp__lean-ctx__shell | `scripts/hooks/solde-ticket-hook.mjs` | Fermeture de ticket au commit = solde écrit obligatoire |
 | `PostToolUse` | Write \| Edit \| mcp__lean-ctx__ctx_patch | `scripts/hooks/repartiteur.mjs` | Gardes des appels d’outil (répartiteur) |
@@ -243,4 +244,4 @@ sans entrée ÉCRIT/LU, ou jouée par deux jobs, fait REFUSER le run, avec son n
 `scripts/guards/lib/npmLockHoisted.mjs` — npx --yes npm@10.9.3 install --package-lock-only, puis valider avec npx npm@10.9.3 ci --dry-run. npm 11 ampute les entrées hoistées
 `@emnapi/*` que `npm ci` exige en CI ; la garde (pre-commit +
 `src/npm-lock-hoisted-guard.test.ts`) refuse un lock amputé.
-<!-- sources-empreinte: 22741d878391118f0b15327fc30ea342ed763ea3 (30 fichiers, 8 dossiers) corps: 885adfac4e496bc2eb652c8eeb3e2976a38432ab -->
+<!-- sources-empreinte: c422fe510f8d114e9e1d872e42be45ad6fe70736 (30 fichiers, 8 dossiers) corps: c2efaf7dd420f6b04818c920064aba9303cf1f5e -->
