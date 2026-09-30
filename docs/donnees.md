@@ -51,7 +51,7 @@ un def qui change d'exposition change cette colonne au prochain `npm run docs:do
 | `classes.json` | Classes (regroupements de carrières) (9 entrée(s)) | `classes` — dataset `classes` |
 | `species.json` | Espèces jouables + variantes régionales (27 entrée(s)) | `races` — dataset `species` |
 | `speciesRace.json` | Mapping espèce → race de rig (`default` + `rules`) (objet à sous-catalogues) | exempt (vocabulaire-app-interne) — aucune (aucune catégorie Codex ne l’expose, donc aucun formulaire d’atelier ne l’édite) |
-| `groups.json` | Groupes de races/familles (clé des `specs` de compétence/talent) (38 entrée(s)) | `groups` — dataset `groups` |
+| `groups.json` | Groupes de races/familles (clé des `specs` de compétence/talent) (40 entrée(s)) | `groups` — dataset `groups` |
 | `advancementCosts.json` | Coût d'XP par palier (caractéristique/compétence) (15 entrée(s)) | `advancementCosts` — dataset `advancementCosts` |
 | `pregens.json` | Personnages prétirés (8 entrée(s)) | `pregens` — dataset `pregens` |
 | `names.json` | Générateur de noms par espèce (7 entrée(s)) | `names` — dataset `names` |
@@ -177,7 +177,7 @@ Le **bloc `narratif`** d'un paquet de campagne schema 3 (`NarratifBlock`, `src/s
 | Fichier | Contient | Exposition (Codex — édition) |
 |---|---|---|
 | `books.json` | **Registre des livres sources** — le champ `abr` est l'abréviation CANONIQUE (voir §B) (30 entrée(s)) | `books` — dataset `books` |
-| `primitives.manifest.json` · `systemes.manifest.json` | Manifestes TOOLING (#298, vocabulaire app-interne, pas RAW) — sources de `docs/systemes.md` (`npm run docs:systemes`, `scripts/docs/build-systemes.mjs`) (154 entrée(s) · 16 entrée(s)) | exempt (vocabulaire-app-interne) — aucune (aucune catégorie Codex ne l’expose, donc aucun formulaire d’atelier ne l’édite) ; exempt (vocabulaire-app-interne) — aucune (aucune catégorie Codex ne l’expose, donc aucun formulaire d’atelier ne l’édite) |
+| `primitives.manifest.json` · `systemes.manifest.json` | Manifestes TOOLING (#298, vocabulaire app-interne, pas RAW) — sources de `docs/systemes.md` (`npm run docs:systemes`, `scripts/docs/build-systemes.mjs`) (156 entrée(s) · 16 entrée(s)) | exempt (vocabulaire-app-interne) — aucune (aucune catégorie Codex ne l’expose, donc aucun formulaire d’atelier ne l’édite) ; exempt (vocabulaire-app-interne) — aucune (aucune catégorie Codex ne l’expose, donc aucun formulaire d’atelier ne l’édite) |
 | `raw.manifest.json` | Manifeste éditorial du champ Implémente de l'Atlas RAW (généré par `scripts/raw/build-implemente.mjs`, #487) : par topic, ticket de dette ou raison de blocage — la SEULE surface écrite à la main du champ (12 entrée(s)) | exempt (vocabulaire-app-interne) — aucune (aucune catégorie Codex ne l’expose, donc aucun formulaire d’atelier ne l’édite) |
 | `donnees.manifest.json` | Manifeste éditorial de cet atlas (#903, rangement par rubrique, description, règle d'or, pièges d'homonymes) — source de `docs/donnees.md` (`npm run docs:donnees`, `scripts/docs/build-donnees.mjs`) (objet à sous-catalogues) | exempt (vocabulaire-app-interne) — aucune (aucune catégorie Codex ne l’expose, donc aucun formulaire d’atelier ne l’édite) |
 
@@ -252,7 +252,7 @@ Le **bloc `narratif`** d'un paquet de campagne schema 3 (`NarratifBlock`, `src/s
   ```
   (Lot 2, #563 : 15 entrées migrées — republications identiques et scissions prose/ligne-de-stats.)
 - **`variants?: Variant[]`** (#563/#564) — variante RÉGLÉE d'une entrée sous une **règle optionnelle**
-  du registre `OPTIONAL_RULES` (`src/engine/policy.ts:88`, lue par `rule(id)`) : `when.rule` DOIT être
+  du registre `OPTIONAL_RULES` (`src/engine/policy.ts`, lue par `rule(id)`) : `when.rule` DOIT être
   un id du registre (jamais un label, gate fantôme sinon — **enforced** par
   `src/data/variants-integrity.test.ts`), `when.equals` défaut `true` ; `desc`/`source` PROPRES
   portent la règle 5 **par variante** (le walk `citedEntriesOf` de `folioIntegrity.mjs` la découvre
@@ -265,7 +265,7 @@ Le **bloc `narratif`** d'un paquet de campagne schema 3 (`NarratifBlock`, `src/s
   `src/data/variants-integrity.test.ts`) — `talents.json` résout quatre champs, UNE CITATION PAR LIGNE,
   chacune à côté du SYMBOLE qu'elle porte (lignes MESURÉES à la génération, `citeLigne`) :
 
-  - `desc`/`source` — Codex, `effectiveEntry`, `src/ui/compendium/registry.ts:1476`
+  - `desc`/`source` — Codex, `effectiveEntry`, `src/ui/compendium/registry.ts:1475`
   - `test` — `talentTestSLBonus`, `src/engine/magic.ts:358`
   - `max` — `talentMaxById`, `src/engine/careerSlots.ts:313`
   - `combat` — `featuresOf`, `src/engine/combatFeatures/dispatch.ts:52`
@@ -273,7 +273,7 @@ Le **bloc `narratif`** d'un paquet de campagne schema 3 (`NarratifBlock`, `src/s
 
   `traits.json` ne résout, lui, que deux champs :
 
-  - `desc`/`source` — Codex, `effectiveEntry`, `src/ui/compendium/registry.ts:613`
+  - `desc`/`source` — Codex, `effectiveEntry`, `src/ui/compendium/registry.ts:612`
 
   `passive` et `effects` en sont EXCLUS — le moteur les lit sur
   l'entrée brute (`src/engine/talentEffects.ts`, `src/engine/traits/dispatch.ts`) ; un champ n'entre
@@ -502,4 +502,4 @@ se met à ressembler à une clé de l'autre sans être le couple ponté sanction
 >    scope ».
 > 5. **Vérifie** : canonicaliser via `serializeDataset`, puis `npm test` + `npm run typecheck` verts ;
 >    recette navigateur si l'élément est visible au Codex/éditeur.
-<!-- sources-empreinte: fb93d909adb983355818f3c24c7ddb65020781a0 (388 fichiers, 2 dossiers) corps: d10f20e2e6a768ac8fc6ee9a7622f78c07c86303 -->
+<!-- sources-empreinte: bb1e71342ec2bcb8d526e7dc8f5d10bd09bd562b (388 fichiers, 2 dossiers) corps: 18539ed73b9adbd46eda493a785b8e221c700c06 -->

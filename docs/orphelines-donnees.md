@@ -14,14 +14,14 @@
 | Catalogue | Entités | Orphelines BRUTES (id seul) | Taux |
 |---|---|---|---|
 | `spells` | 526 | 249 | 47 % |
-| `trappings` | 441 | 207 | 47 % |
+| `trappings` | 441 | 206 | 47 % |
 
 Chacun échappe à la détection par id pour une raison PROPRE : un Sort ne se cite pas par id en
 prod (il s'obtient par Domaine / Talent de lanceur / `learnSpell` de scène — l'instrument juste
 est `src/data/obtainability-guard.test.ts`) ; le stock marchand des `trappings` est bâti par
 PRÉDICAT sur des catégories déclarées en donnée (`state/merchantFlow.ts`, hors grammaire MODE 2
-— #1631). `creatures` a quitté cette table pour les catalogues MESURÉS (#1553 L3). Détail et
-mesure du canal label (qui n'est PAS la cause) : en-tête de `scripts/docs/build-entity-orphans.mjs`.
+— #1631). `creatures` a quitté cette table pour les catalogues MESURÉS (#1553 L3). Détail du
+canal label (qui n'est PAS la cause) : en-tête de `scripts/docs/build-entity-orphans.mjs`.
 
 ## Catalogues MESURÉS
 
@@ -420,4 +420,4 @@ mesure du canal label (qui n'est PAS la cause) : en-tête de `scripts/docs/build
 - `p-tarix-celui-qui-ecrit` — P'tarix, Celui qui écrit
 - `xirat-p-celui-qui-lit` — Xirat'p, Celui qui lit
 
-<!-- sources-empreinte: e8e5016582a05ff402d758e293f79da5120b9c43 (2141 fichiers, 136 dossiers) corps: b0426b44380bef3f7613baf260ad6b490541b5b3 -->
+<!-- sources-empreinte: 885e9bc19d1afcdd92d9b9bd75ef6242ccf95889 (2144 fichiers, 136 dossiers) corps: 099738f7d2ff7b27ff5990eb844f2e477568d222 -->

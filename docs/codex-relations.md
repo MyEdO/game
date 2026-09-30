@@ -269,7 +269,7 @@ Le JSDoc est rapporté en ENTIER : le contrat d'une couture relationnelle tient 
 | `tokenizeLinks` | function | `src/ui/compendium/relations.ts:502` | Tokenise une prose en alternant texte brut et mentions d'entité à LIER (auto-liage du Codex, façon `dev.html`). PUR & locale-scoped (matcher dérivé des libellés de la locale active, jamais une chaîne FR en dur → multilingue de principe). Écarte les liens vers SOI et les libellés inconnus/courts — la comparaison est 100 % id-based (`selfId` si l'appelant le connaît, sinon résolu depuis `selfLabel` via `idByLabelCached`, repli des appelants non encore migrés). `selfCategory` (catégorie de la fiche affichante) tranche les homonymes en priorité — cf. `resolveLink`/`PRIORITY_CAT_ORDER`. Seul le vocabulaire de RÈGLES est lié. |
 
 `bookContents` est projeté DANS le `build` (paresseux) de la catégorie Livres
-(`src/ui/compendium/registry.ts:1780`) : il ne lit que l'identité STATIQUE des catégories, jamais leurs
+(`src/ui/compendium/registry.ts:1779`) : il ne lit que l'identité STATIQUE des catégories, jamais leurs
 items — aucun cycle de projection.
 
 ## Barre de catégories — sous-groupes repliables (`cluster`)
@@ -315,9 +315,9 @@ Regrouper une catégorie = poser `cluster: '…'` sur son littéral dans `CODEX_
 
 ## Gardes
 
-- `npx vitest run src/ui/compendium/relations.test.ts`
-- `npx vitest run src/ui/compendium/registry.test.ts`
-- `npx vitest run src/ui/compendium/humanize.test.ts`
-- `npx vitest run src/data/schemas/exposition-contrats.test.ts`
-- `npx vitest run src/data/serialize.test.ts`
-<!-- sources-empreinte: a76b09154008114e40bf97f0ca050dec19e208a8 (681 fichiers, 0 dossiers) corps: 6c94f82300c814c6a31b86798f94064c016977f4 -->
+- `npm test -- src/ui/compendium/relations.test.ts`
+- `npm test -- src/ui/compendium/registry.test.ts`
+- `npm test -- src/ui/compendium/humanize.test.ts`
+- `npm test -- src/data/schemas/exposition-contrats.test.ts`
+- `npm test -- src/data/serialize.test.ts`
+<!-- sources-empreinte: 8a3296bc077a66e8938e0475078204947061e4ba (681 fichiers, 0 dossiers) corps: 1de0743c72435ebb7200ad428d22cb9305e17701 -->

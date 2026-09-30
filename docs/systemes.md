@@ -102,6 +102,7 @@ n'exclut pas un usage indirect hors des modules racines déclarés).
 | `rovingKeyDown` |  |  |  |  | U |  | U | U |  | U | U |  |  |  | U | U |
 | `useRamenerEnVue / ramenerEnVue` |  |  |  |  | U |  | U |  |  | U |  |  |  |  | U | U |
 | `useLongPress` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| `useClesDeRangees` |  |  |  |  |  |  |  |  |  |  |  |  |  |  | U | U |
 | `CoopInvite / CoopCodeInput / SeatList / CoopAssignRow / CoopBanner` |  |  |  |  |  |  |  |  |  |  |  |  |  | U |  |  |
 | `ReadyRow` |  |  |  |  | U |  | U |  | U | U |  |  | U |  |  |  |
 | `PanneauParametre` |  |  |  |  | U |  |  | U | U |  |  | U |  |  |  |  |
@@ -111,6 +112,7 @@ n'exclut pas un usage indirect hors des modules racines déclarés).
 | `ActivityPane` |  |  |  |  |  |  |  |  |  | U |  |  |  |  |  |  |
 | `QtyStepper` |  | U | U |  | U |  | U | U | U | U | U | U | U |  | U | U |
 | `NumberField` |  | U | U |  | U |  | U | U | U | U | U | U | U |  | U | U |
+| `SourceRefField` |  |  |  |  |  |  |  |  |  |  |  |  |  |  | U | U |
 | `FREE_ATTACK_LABEL` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 | `GameOpChips` |  | U | U |  | U |  | U | U | U | U | U | U | U |  | U | U |
 | `opRows` |  | U | U |  | U |  | U | U | U | U | U | U | U | U | U | U |
@@ -287,4 +289,4 @@ unique ne « possède » légitimement ; à trier au fil de l'eau, pas un échec
 - `src/state/sceneEdit.testkit.ts`
 - `src/state/turnEconomy.ts`
 - `src/state/viewLevel.ts`
-<!-- sources-empreinte: 3936ca45b73594ca45e5cc497747d2a4340c5f3c (1857 fichiers, 2 dossiers) corps: c8d23c31547abacc48ecb6b560e1521cc90fd0ad -->
+<!-- sources-empreinte: ab52d6c86c6d364b6eb77dabee2baa40cc1bd343 (1859 fichiers, 2 dossiers) corps: cbbd985324841ed1161885b872f3aa9b23389701 -->

@@ -20,7 +20,9 @@ vraiment chaque primitive) n'est pas dérivable — elle est verrouillée par
 `src/state/mapSpec.test.ts` ; la procédure image → grille et les pièges sont de l'ÉDITORIAL fixé
 dans le script.
 
-> **Pour l'IA (et l'humain) : c'est LE seul chemin pour construire une carte.**
+> **Pour l'IA (et l'humain) : c'est le chemin des scénarios de test et des générateurs** (dette #1601).
+> Dans un paquet de campagne MANUSCRIT, la carte se pose à l'éditeur (fiche
+> `user-doctrine-campagne-jamais-generee-par-script`, skill `creer-une-campagne`).
 > Tu décris une map en objet déclaratif `MapSpec` ; `buildScene(spec)` la compile en `Scene`.
 
 - Type + compilateur : `src/state/mapSpec.ts`
@@ -332,4 +334,4 @@ Sur les 36 documents de `src/scenes/` qui exposent un littéral `MapSpec` :
 | `stations?` | 1 | `src/scenes/test-scenarios/13-bataille-de-masse.ts` |
 
 Champs sans aucun exemple mesuré dans `src/scenes/` : `music?`, `knownUnsupportedFloor?`, `seatAssignments?`, `restZones?` — leur seule démonstration vit dans `src/state/mapSpec.test.ts`.
-<!-- sources-empreinte: 641ea6a592eb732300c6a301094a2cbb35f3edd6 (67 fichiers, 7 dossiers) corps: fb6af6de7e520dbfb16adbcdd419b8ab2b8ab986 -->
+<!-- sources-empreinte: f4dac6788f8203c595bba619b2e68a9b22d7a6ac (67 fichiers, 7 dossiers) corps: 7ebbec0becac470aadcb4b4eb1ba26261d1b5d8d -->
