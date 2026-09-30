@@ -10,7 +10,7 @@
 import { cpSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
-import { ajouterOrigine, commitDe, depotDe, initialiserDepot, poserRef, reglerDepot, reussi, shaDe } from './gitPorte.mjs'
+import { ENV_GIT_FEINT, ajouterOrigine, commitDe, depotDe, initialiserDepot, poserRef, reglerDepot, reussi, shaDe } from './gitPorte.mjs'
 
 /** @typedef {{ fichiers?: Record<string, string>, branche?: string, origin?: string | null, message?: string, refs?: Record<string, string>, commit?: boolean }} ParamsDepot */
 /** @typedef {{ racine: string, sha: string | null }} DepotForge */
@@ -75,6 +75,31 @@ export function sousLEnvDeLUtilisatrice(globale, fn) {
   } finally {
     for (const nom of Object.keys(process.env)) if (!(nom in avant)) delete process.env[nom]
     Object.assign(process.env, avant)
+  }
+}
+
+/**
+ * L'environnement d'une git FEINTE (`ENV_GIT_FEINT`, gitPorte.mjs) : `regles` y répondent, git
+ * répond au reste. À joindre à l'`env` d'un processus enfant.
+ * @param {{ si: string[], status: number, stdout?: string, stderr?: string }[]} regles
+ * @returns {Record<string, string>}
+ */
+export const envGitFeint = (regles) => ({ [ENV_GIT_FEINT]: JSON.stringify(regles) })
+
+/**
+ * `fn()` sous une git FEINTE (`envGitFeint(regles)`) posée sur `process.env`, retirée à la sortie :
+ * la panne de git d'une lecture faite dans CE processus. `fn` est SYNCHRONE : une promesse rendue
+ * LÈVE, la feinte serait retirée avant ses lectures.
+ * @template T @param {Parameters<typeof envGitFeint>[0]} regles @param {() => T} fn @returns {T}
+ */
+export function sousGitFeint(regles, fn) {
+  Object.assign(process.env, envGitFeint(regles))
+  try {
+    const vu = fn()
+    if (typeof vu?.then === 'function') throw new TypeError('sousGitFeint : `fn` rend une promesse — la feinte serait retirée en vol')
+    return vu
+  } finally {
+    delete process.env[ENV_GIT_FEINT]
   }
 }
 

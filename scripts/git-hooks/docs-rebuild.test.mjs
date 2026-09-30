@@ -7,11 +7,9 @@ import assert from 'node:assert/strict'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
-import { envDeDepotForge, instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
-import { tmpdir } from 'node:os'
+import { readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { envDeDepotForge, instanceDeDepot, sousGitFeint } from '../guards/lib/depotGabarit.mjs'
 import { planDuCheckout, sourcesMesurees, touchedFiles, touchesDocSources } from './docs-rebuild.mjs'
-import { readFileSync } from 'node:fs'
 
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 
@@ -68,18 +66,11 @@ test('FAIL-CLOSED : git INDISPONIBLE sur la lecture du lot, le lot est INCONNU (
   const g = (...a) => execFileSync('git', a, { cwd: racine, env: envDeDepotForge(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
   writeFileSync(join(racine, 'b.txt'), 'b\n'); g('add', 'b.txt'); g('commit', '-q', '-m', 'b')
   g('update-ref', 'ORIG_HEAD', 'HEAD~1')
-  const cale = mkdtempSync(join(tmpdir(), 'git-diff-tree-en-panne-'))
-  const vrai = execFileSync('sh', ['-c', 'command -v git'], { encoding: 'utf8' }).trim()
-  writeFileSync(join(cale, 'git'), `#!/bin/sh\nfor a in "$@"; do [ "$a" = diff-tree ] && { echo 'fatal: panne simulée' >&2; exit 128; }; done\nexec '${vrai}' "$@"\n`, { mode: 0o755 })
-  const chemin = process.env.PATH
   try {
     assert.deepEqual(touchedFiles(racine), ['b.txt'], 'témoin : git répond, le lot se lit')
-    process.env.PATH = `${cale}:${chemin}`
-    assert.equal(touchedFiles(racine), null)
+    assert.equal(sousGitFeint([{ si: ['diff-tree'], status: 128, stderr: 'fatal: panne simulée\n' }], () => touchedFiles(racine)), null)
   } finally {
-    process.env.PATH = chemin
     rmSync(racine, { recursive: true, force: true })
-    rmSync(cale, { recursive: true, force: true })
   }
 })
 

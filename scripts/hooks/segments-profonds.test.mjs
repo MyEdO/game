@@ -334,7 +334,7 @@ test('refus de PALIER : le message NOMME la MESURE (compte, tête, archive) — 
     palier: () => ({ compte: 11, tete: '2c11fdd9a', chemin: '.claude/soldes/revue-palier-82e95be10.md' }),
   })
   assert.ok(d, 'palier atteint sans revue : le refus manque')
-  assert.equal(d.decision, 'deny')
+  assert.deepEqual(Object.keys(d), ['reason'])
   assert.match(d.reason, /11 commits de substance depuis 2c11fdd9a/)
   assert.match(d.reason, /revue-palier-82e95be10\.md/)
   assert.match(d.reason, /2c11fdd9a\.\.<tête>/, 'le refus doit dire la fenêtre attendue de la revue à écrire')

@@ -142,7 +142,7 @@ import {
 import { hunksDe } from '../guards/lib/hunks.mjs'
 import { ancetreExistant, canoniser } from '../docs/lib/chemin-mesure.mjs'
 import { estFichierVitest } from '../guards/lib/fichierVitest.mjs'
-import { motifRattachement, numerosCites, numerosDeLaChaine, numerosFermes } from '../guards/lib/fermetures.mjs'
+import { motifRattachement, numerosCites, numerosDeLaChaine, numerosFermes, numerosNusEnumeres } from '../guards/lib/fermetures.mjs'
 import {
   DOSSIERS_DE_SUBSTANCE, estCheminDeSubstance, fenetreDeRevue, memeSha, mesureDuPalier,
   nomDArchiveDeRevue, problemesDeRevue, revuesNeuves,
@@ -1113,6 +1113,13 @@ export function extractClosedIssues(command) {
   return numerosFermes(texteProfond(command)).map(Number).sort((a, b) => a - b)
 }
 
+/** Numéros qu'une clause de fermeture de la commande ÉNUMÈRE sans leur verbe (`numerosNusEnumeres`),
+ *  dédupliqués/triés. `[]` hors `git commit`. */
+export function extractFermeturesNues(command) {
+  if (!command || !isGitCommitCommand(command)) return []
+  return numerosNusEnumeres(texteProfond(command)).map(Number).sort((a, b) => a - b)
+}
+
 const VERIFIE_RE = /VERIFIE\s*:\s*(.+)/i
 const MIN_VERIFIE_LEN = 40
 // Une section d'un solde court de son titre de niveau 2 jusqu'au PROCHAIN titre de niveau 2, ou la
@@ -1567,7 +1574,7 @@ export function problemesDeRevueNeuve({ nom, contenu }, { today, palier, dansHea
  * stagées que la forme du commit laisse en rade : le refus les NOMME. `contexteSolde` = le contexte injecté de
  * `validateSolde` (diff stagé, hunks, écran touché, contrôle de capture) — `issuesFermees` y est posé
  * ICI, c'est cette décision qui connaît les tickets fermés.
- * @returns {{ decision: 'deny', reason: string } | null} — non-null = refus, null = silence.
+ * @returns {{ reason: string } | null} — non-null = refus, null = silence.
  */
 export function evaluate({
   command, today, readSolde, soldeOnDisk = () => null,
@@ -1582,7 +1589,6 @@ export function evaluate({
     const problemes = problemesDeRevueNeuve(revue, { today, palier: palier(), dansHead })
     if (problemes.length) {
       return {
-        decision: 'deny',
         reason:
           `⚠ Revue de palier NON CONFORME : ${revue.chemin} — ${problemes.join(' ; ')}. Une revue entre `
           + "dans l'histoire sous le nom de ce qu'elle juge (`revue-palier-<date>-<base>.md`), avec sa "
@@ -1592,13 +1598,24 @@ export function evaluate({
     }
   }
 
+  const nus = extractFermeturesNues(command)
+  if (nus.length > 0) {
+    const cites = nus.map((n) => `#${n}`).join(', ')
+    return {
+      reason:
+        `⛔ ${cites} suit une clause de fermeture sans son propre mot-clef : seul le premier \`#N\` d'une `
+        + 'clause se ferme (`numerosFermes`, scripts/guards/lib/fermetures.mjs). '
+        + `Geste : écrire \`corrige ${nus.map((n) => `#${n}`).join('`, `corrige ')}\` `
+        + `pour chacun, ou \`refs ${nus.map((n) => `#${n}`).join(' ')}\` s'il n'est pas fermé.`,
+    }
+  }
+
   const issues = extractClosedIssues(command)
   if (issues.length === 0) return null
 
   const { compte, tete, chemin, erreur } = palier()
   if (erreur) {
     return {
-      decision: 'deny',
       reason:
         `⚠ Palier INMESURABLE, donc aucune fermeture : ${erreur}. Le palier se mesure sur `
         + "l'HISTOIRE : les commits de `<tête de la dernière revue de HEAD>..HEAD` dont ce qu'ils font touche "
@@ -1609,7 +1626,6 @@ export function evaluate({
   if (compte >= PALIER && revues.length === 0) {
     const enRade = omises()
     return {
-      decision: 'deny',
       reason:
         `⚠ Palier atteint : au moins ${compte} commits de substance depuis ${tete} `
         + `(${chemin}) — revue adversariale de PALIER exigée avant toute nouvelle fermeture. `
@@ -1646,7 +1662,6 @@ export function evaluate({
 
   const detail = failures.map(({ n, problems }) => `#${n} (.claude/soldes/${n}.md) — ${problems.join(' ; ')}`).join(' | ')
   return {
-    decision: 'deny',
     reason:
       `⚠ Fermeture de ticket au commit sans SOLDE conforme : ${detail}. Écrire (ou compléter) le fichier ` +
       `avec une ligne "VERIFIE: <ce que l'orchestrateur a concrètement vérifié, ≥${MIN_VERIFIE_LEN} caractères>", ` +
@@ -2252,7 +2267,7 @@ const depotDuHook = (dir, pannes) => depotDe(dir, { enPanne: (raison) => pannes.
 
 /** Le refus des `pannes` de lecture vues depuis le début de l'appel, `null` s'il n'y en a aucune. */
 const refusDesPannes = (pannes) => (pannes.length
-  ? { decision: 'deny', reason: `⛔ lecture git indisponible : ${pannes[0]} — la porte ne juge pas ce que git n'a pas lu. Geste : rejouer le commit depuis un arbre où git répond.` }
+  ? { reason: `⛔ lecture git indisponible : ${pannes[0]} — la porte ne juge pas ce que git n'a pas lu. Geste : rejouer le commit depuis un arbre où git répond.` }
   : null)
 
 /**
@@ -2363,7 +2378,7 @@ export function fichiersCitantTickets(numeros, dir = process.cwd(), { pannes = [
  * La CAUSE se nomme telle qu'elle est — un répertoire qui existe mais n'est gouverné par aucun
  * dépôt (`horsDepot`) n'est ni un git absent ni un cwd manquant, et le renvoyer vers « un arbre où
  * git répond » désignait la mauvaise correction (#1729).
- * @param {() => ({ decision: string, reason: string } | null)} juger
+ * @param {() => ({ reason: string } | null)} juger
  * @param {{ cwd?: string|null, horsDepot?: boolean }} [ou] répertoire où la lecture a été tentée
  */
 export function jugerOuNommerLIndisponible(juger, { cwd = null, horsDepot = false } = {}) {
@@ -2376,7 +2391,6 @@ export function jugerOuNommerLIndisponible(juger, { cwd = null, horsDepot = fals
       ? 'Geste : rejouer depuis un arbre git (ce répertoire n’est gouverné par aucun dépôt).'
       : 'Geste : rejouer le commit depuis un arbre où git répond.'
     return {
-      decision: 'deny',
       reason: `⛔ ascendance indisponible : ${cause} — la porte ne peut rien juger de ce que git n'a pas lu. ${geste}`,
     }
   }
@@ -2484,7 +2498,7 @@ function corpsInputGh(segment, lire) {
  * annoncé mais ILLISIBLE est refusé, jamais silencé (fail-closed sur sa propre annonce, comme le
  * `-F` d'un message de commit). Lire aussi la sortie de
  * `scripts/ops/sondes/audit-2026-09-01/sonde-guard-fermetures.mjs`, qui joue ces cas.
- * @returns {{ decision: 'deny', reason: string } | null}
+ * @returns {{ reason: string } | null}
  */
 export function evaluateFermetureHorsCommit(command, { lire = (p) => readFileSync(p, 'utf8') } = {}) {
   if (!command) return null
@@ -2495,13 +2509,12 @@ export function evaluateFermetureHorsCommit(command, { lire = (p) => readFileSyn
   for (const segment of segmentsLus(command)) {
     const forme = fermetureGh(segment)
     if (forme) {
-      return { decision: 'deny', reason: `⛔ Fermeture de ticket HORS commit (${forme}) : ${parCommit}` }
+      return { reason: `⛔ Fermeture de ticket HORS commit (${forme}) : ${parCommit}` }
     }
     const corps = corpsInputGh(segment, lire)
     if (!corps) continue
     if (corps.illisible) {
       return {
-        decision: 'deny',
         reason:
           `⛔ Corps de requête \`gh api --input ${corps.chemin}\` illisible ou non-JSON pour le contrôle de ` +
           `fermeture — écrire un corps JSON lisible à ce chemin (fail-closed : pas de \`state: closed\` ` +
@@ -2510,7 +2523,6 @@ export function evaluateFermetureHorsCommit(command, { lire = (p) => readFileSyn
     }
     if (corps.etat === 'closed') {
       return {
-        decision: 'deny',
         reason: `⛔ Fermeture de ticket HORS commit (gh api --input ${corps.chemin}, "state": "closed") : ${parCommit}`,
       }
     }
@@ -2643,7 +2655,7 @@ function aFlagTout(command) {
  * Décision « le commit prendra l'ARBRE, pas l'index ». `fichiersModifies` = `git diff --name-only`
  * (non stagé), `fichiersStages` = `git diff --cached --name-only`. C'est le SEUL évaluateur dont le
  * sujet EST l'index : il compare ce que l'index porte à ce que la commande va prendre.
- * @returns {{ decision: 'deny', reason: string } | { contexte: string } | null}
+ * @returns {{ reason: string } | { contexte: string } | null}
  */
 export function evaluateHunksEmportes({ command, fichiersModifies = [], fichiersStages = [] }) {
   if (!command || !isGitCommitCommand(command)) return null
@@ -2668,7 +2680,6 @@ export function evaluateHunksEmportes({ command, fichiersModifies = [], fichiers
   const geste = inclut ? '`git commit -i <paths>`' : '`git commit -- <paths>`'
   if (aussiStages.length > 0) {
     return {
-      decision: 'deny',
       reason:
         `⛔ ${geste} ` +
         (inclut
@@ -2698,12 +2709,12 @@ export function evaluateHunksEmportes({ command, fichiersModifies = [], fichiers
  * message (comme les autres évaluateurs), `diff` = diff unifié de ce que le commit emporte
  * (les fichiers porteurs suffisent), `images` = les lecteurs de pré/post-image qui décident la
  * PORTÉE DE MODULE d'une entrée. Ne se prononce que sur un `git commit`.
- * @returns {{ decision: 'deny', reason: string } | null}
+ * @returns {{ reason: string } | null}
  */
 export function evaluateStocksQuiGrandissent({ command, diff, images }) {
   if (!command || !isGitCommitCommand(command) || !diff) return null
   const restantes = croissancesNonCouvertes({ diff: diff, message: command ?? '' }, images)
-  return restantes.length ? { decision: 'deny', reason: raisonDeRefus(restantes) } : null
+  return restantes.length ? { reason: raisonDeRefus(restantes) } : null
 }
 
 /**
@@ -2713,7 +2724,7 @@ export function evaluateStocksQuiGrandissent({ command, diff, images }) {
  * peut déplacer la frontière (`deplace()`, `deplaceLaFrontiere`). Une lecture qui lève est un refus
  * NOMMÉ, jamais un passage muet.
  * @param {{ command: string, deplace: () => boolean, cotes: () => { base: object, commit: object } }} p
- * @returns {{ decision: 'deny', reason: string } | null}
+ * @returns {{ reason: string } | null}
  */
 export function evaluateReclassementsCss({ command, deplace, cotes }) {
   if (!command || !isGitCommitCommand(command)) return null
@@ -2722,16 +2733,16 @@ export function evaluateReclassementsCss({ command, deplace, cotes }) {
     if (!lignesDeReclassement(command).length && !deplace()) return null
     ecarts = reclassementsNonDeclares({ message: command }, cotes())
   } catch (e) {
-    return { decision: 'deny', reason: `⛔ RECLASSEMENT CSS injugeable : ${e.message}` }
+    return { reason: `⛔ RECLASSEMENT CSS injugeable : ${e.message}` }
   }
-  return ecarts.length ? { decision: 'deny', reason: raisonDeRefusDeReclassement([{ ecarts }]) } : null
+  return ecarts.length ? { reason: raisonDeRefusDeReclassement([{ ecarts }]) } : null
 }
 
 /**
  * Le refus d'un commit qui fait GRANDIR le contexte permanent au-delà du plafond de sa pré-image sans
  * le DIRE (`CLIQUET:`). La mesure vient de ce que le commit EMPORTE, la référence et le plafond de sa
  * pré-image : c'est la même discipline de lecture que `evaluateStocksQuiGrandissent`.
- * @returns {{ decision: 'deny', reason: string } | null}
+ * @returns {{ reason: string } | null}
  */
 export function evaluateBudgetContexte({ command, mesure, reference, plafond }) {
   if (!command || !isGitCommitCommand(command)) return null
@@ -2773,7 +2784,6 @@ async function evaluerSolde(entree, { dir: targetDir, cibleIgnoree, today, panne
   const prefixe = (motif) => (presume ? `${presume} || ${motif}` : motif)
   if (fileError) {
     return dire({
-      decision: 'deny',
       reason: prefixe(
         `⚠ Message de commit en fichier illisible pour le contrôle de solde (-F/--file "${fileError}") ` +
         `— utiliser -m ou un chemin lisible (fail-closed : pas de fermeture ni de réfutation invisibles).`),
@@ -2879,7 +2889,7 @@ async function evaluerSolde(entree, { dir: targetDir, cibleIgnoree, today, panne
   }
   const premier = cumuler([
     decision, porteDuTicket, antiEsquive, juge, amendInvisible, registresPorteurs,
-    horsCommit, tombale, hunks?.decision ? hunks : null, budget, refusDesPannes(pannes),
+    horsCommit, tombale, hunks?.reason ? hunks : null, budget, refusDesPannes(pannes),
   ])
   if (premier) return premier
   // UN `git diff -U0` de ce que le commit emporte (`croissanceDesStocks` n'en lit que les porteurs), et
