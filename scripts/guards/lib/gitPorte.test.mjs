@@ -12,7 +12,7 @@ import { tmpdir } from 'node:os'
 import { join, relative } from 'node:path'
 import { STATUS_DLL_INIT_FAILED } from './spawnResilient.mjs'
 import {
-  BorneAbsente, GitIndisponible, INDEX, OPTIONS_DE_L_HOTE, SUIVI, TRAVAIL, abandonnerFusion, ajouterOrigine, ajouterWorktree, approfondir, arbrePrincipal, arbreVide, attributDe,
+  BorneAbsente, ENV_GIT_FEINT, GitIndisponible, INDEX, OPTIONS_DE_L_HOTE, SUIVI, TRAVAIL, abandonnerFusion, ajouterOrigine, ajouterWorktree, approfondir, arbrePrincipal, arbreVide, attributDe,
   baseCommune, brancheDe, branchesDe, ceQuEmporteLIndex, ceQueFaitLeCommit, ceQuiChange, cheminGit, cheminsEnConflit, classer, combienDe, commitDe,
   depotDe, divergenceDe, dossierDesHooks, elaguerWorktrees, eolsDe, estDansHead, estIgnore, estSuperficiel, etatDeLArbre, enfantsDirects, estAncetre, estRepertoire,
   fetchOrigin, fichiersDuGrep, fusionDeTextes, fusionnesEnCours, initialiserDepot, journalDe, lireEnLot, listerImage, natureDuChemin, origineDe, parentsDe, pointDeDepart, poserRef, pousser,
@@ -286,12 +286,13 @@ test('arbrePrincipal : deux refus NOMMÉS, jamais un repli sur le cwd', () => {
 
 test('arbrePrincipal : sous un cwd de plus de 200 caractères, le refus garde son MOTIF (git réel)', () => {
   const base = mkdtempSync(join(tmpdir(), 'profond-'))
-  const profond = join(base, 'a'.repeat(120), 'b'.repeat(120))
+  // 210 : au-delà de RAISON_MAX (gitPorte.mjs), en deçà de MAX_PATH (win32) avec les fichiers d'un `git init --bare`.
+  const profond = join(base, 'a'.repeat(209 - join(base, 'depot.git').length))
   const nu = join(profond, 'depot.git')
   try {
     mkdirSync(profond, { recursive: true })
     execFileSync('git', ['init', '-q', '--bare', nu], { env: envDeDepotForge(), encoding: 'utf8' })
-    assert.ok(nu.length > 200, `cwd de ${nu.length} caractères`)
+    assert.equal(nu.length, 210, `cwd de ${nu.length} caractères`)
     const vuNu = arbrePrincipal(forge(nu))
     assert.equal(vuNu.disponible, false)
     assert.match(vuNu.raison, /^arbre principal non résolu : répertoire git hors d'un arbre — dépôt nu/)
@@ -645,10 +646,15 @@ test('ceQuiChange.numstat : un chemin à TABULATION entier, un binaire en `null`
   const { racine } = instanceDeDepot({ fichiers: { 'a.txt': 'a\n' }, message: 'socle' })
   try {
     const g = (...a) => execFileSync('git', a, { cwd: racine, env: envDeDepotForge(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
-    mkdirSync(join(racine, 'src'), { recursive: true })
-    writeFileSync(join(racine, T), 'un\ndeux\n')
+    // Le nom à tabulation vit dans l'INDEX seul, sous `core.protectNTFS=false` (git help config) : NTFS le refuse sur le disque.
+    g('config', '--local', 'core.protectNTFS', 'false')
+    const indexer = (chemin, contenu) => {
+      const blob = execFileSync('git', ['hash-object', '-w', '--stdin'], { cwd: racine, env: envDeDepotForge(), encoding: 'utf8', input: contenu }).trim()
+      g('update-index', '--add', '--cacheinfo', `100644,${blob},${chemin}`)
+    }
+    indexer(T, 'un\ndeux\n')
     writeFileSync(join(racine, 'image.bin'), Buffer.from([0, 1, 2, 0, 255]))
-    g('add', '-A')
+    g('add', 'image.bin')
     const d = forge(racine)
     const vu = ceQuiChange(d, 'HEAD', INDEX).numstat().sort((x, y) => parUnitesDeCode(x.chemins[0], y.chemins[0]))
     assert.deepEqual(vu, [
@@ -656,7 +662,8 @@ test('ceQuiChange.numstat : un chemin à TABULATION entier, un binaire en `null`
       { plus: 2, moins: 0, chemins: [T] },
     ])
     g('commit', '-q', '-m', 'deux')
-    g('mv', T, 'src/h\ti.test.ts')
+    g('update-index', '--remove', T)
+    indexer('src/h\ti.test.ts', 'un\ndeux\n')
     assert.deepEqual(ceQuiChange(d, 'HEAD', INDEX).numstat(), [{ plus: 0, moins: 0, chemins: [T, 'src/h\ti.test.ts'] }])
   } finally {
     jeter(racine)
@@ -1269,10 +1276,29 @@ test('rebaseEntame : `null` hors rebase, puis le NOM du chemin d’état présen
   } finally { jeter(racine) }
 })
 
+test('ENV_GIT_FEINT : la règle qui s’applique répond SANS processus, git répond au reste ; une valeur mal formée est une panne NOMMÉE, sans processus', () => {
+  const lances = []
+  const spawn = (_git, args) => { lances.push(args.slice(OPTIONS_DE_L_HOTE.length)); return { status: 0, stdout: 'vrai\n', stderr: '' } }
+  const sous = (valeur) => depotDe(tmpdir(), { spawn, env: { [ENV_GIT_FEINT]: valeur } })
+  const regles = JSON.stringify([{ si: ['--git-path', 'rebase-merge'], status: 0, stdout: 'feint\n' }])
+  assert.equal(cheminGit(sous(regles), 'rebase-merge'), 'feint')
+  assert.deepEqual(lances, [])
+  assert.equal(cheminGit(sous(regles), 'rebase-apply'), 'vrai')
+  assert.deepEqual(lances, [['rev-parse', '--git-path', 'rebase-apply']])
+  for (const [valeur, raison] of [
+    ['{', /^WFRP_GIT_FEINT illisible : /],
+    ['[{"si":"--git-path","status":0}]', /^WFRP_GIT_FEINT : une liste de règles/],
+    ['[{"si":[],"status":"0"}]', /^WFRP_GIT_FEINT : une liste de règles/],
+  ]) {
+    assert.throws(() => cheminGit(sous(valeur), 'x'), (e) => e instanceof GitIndisponible && raison.test(e.raison), valeur)
+  }
+  assert.equal(lances.length, 1, 'une valeur mal formée ne lance pas git')
+})
+
 test('rebaseEntame : git en panne ou chemin d’état ILLISIBLE — INDISPONIBLE, une panne, jamais « hors rebase »', () => {
   const panne = () => ({ status: 128, stdout: '', stderr: 'fatal: boum\n' })
-  const illisible = (args) => ({ status: 0, stdout: `${'x'.repeat(8192)}/${args[2]}\n`, stderr: '' })
-  for (const [repondre, raison] of [[panne, /^fatal: boum$/], [illisible, /^rebase-merge illisible : ENAMETOOLONG/]]) {
+  const illisible = (args) => ({ status: 0, stdout: `x\0/${args[2]}\n`, stderr: '' })
+  for (const [repondre, raison] of [[panne, /^fatal: boum$/], [illisible, /^rebase-merge illisible : .*without null bytes/]]) {
     assert.throws(() => rebaseEntame(depotFeint(tmpdir(), repondre)), (e) => e instanceof GitIndisponible && raison.test(e.raison), String(raison))
     const pannes = []
     assert.equal(rebaseEntame(depotFeint(tmpdir(), repondre, (r) => pannes.push(r))), null)

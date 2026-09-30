@@ -20,7 +20,7 @@ import { GitIndisponible, depotDe } from '../guards/lib/gitPorte.mjs'
 import { DEPOT } from '../guards/lib/ticketsGh.mjs'
 import { COMPTEURS, messageDeCollision } from '../guards/lib/compteursDeVersion.mjs'
 import { refusDesCompteurs } from '../guards/lib/compteursDuDepot.mjs'
-import { envDeDepotForge, instanceDeDepot, sousLEnvDeLUtilisatrice } from '../guards/lib/depotGabarit.mjs'
+import { envDeDepotForge, envGitFeint, instanceDeDepot, sousLEnvDeLUtilisatrice } from '../guards/lib/depotGabarit.mjs'
 import { GENERATORS } from '../docs/build-all.mjs'
 import {
   FILE_TIMEOUT_MIN,
@@ -407,17 +407,11 @@ test('git INDISPONIBLE : le train LÈVE `GitIndisponible` — ni tête `null`, n
 })
 
 test('git INDISPONIBLE avant le train (racine, branche, tête) : une ligne finale `PUBLICATION: rouge` NOMMÉE, jamais une pile brute', () => {
-  const cale = mkdtempSync(join(tmpdir(), 'git-en-panne-'))
-  try {
-    writeFileSync(join(cale, 'git'), "#!/bin/sh\necho 'fatal: panne simulée' >&2\nexit 128\n", { mode: 0o755 })
-    const vu = spawnSync(process.execPath, [fileURLToPath(new URL('./publier.mjs', import.meta.url)), '--etapes'], {
-      encoding: 'utf8', env: { ...process.env, PATH: `${cale}:${process.env.PATH}`, WFRP_PUBLIER_ENFANT: '' },
-    })
-    assert.equal(vu.status, 1, vu.stderr)
-    assert.equal(vu.stderr, 'PUBLICATION: rouge lecture — git indisponible : fatal: panne simulée\n')
-  } finally {
-    rmSync(cale, { recursive: true, force: true })
-  }
+  const vu = spawnSync(process.execPath, [fileURLToPath(new URL('./publier.mjs', import.meta.url)), '--etapes'], {
+    encoding: 'utf8', env: { ...process.env, ...envGitFeint([{ si: [], status: 128, stderr: 'fatal: panne simulée\n' }]), WFRP_PUBLIER_ENFANT: '' },
+  })
+  assert.equal(vu.status, 1, vu.stderr)
+  assert.equal(vu.stderr, 'PUBLICATION: rouge lecture — git indisponible : fatal: panne simulée\n')
 })
 
 test('`ctx.commit` sans chemins, ou à chemins vides, LÈVE avant tout spawn : ni `git add -A`, ni commit de tout l’index', () => {

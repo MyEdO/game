@@ -605,6 +605,11 @@ export function natureDuRouge({ status = null, signal = null, code = null }) {
   return 'sans code de sortie'
 }
 
+/** Le rouge NOMMÉ d'un générateur au bilan de `--check` : son script, la plateforme sous laquelle il
+ *  est rendu (`null` : l'hôte), la nature de son issue (`natureDuRouge`). PUR. */
+export const rougeDuGenerateur = ({ script, plateforme = null, issue }) =>
+  `docs:check — ${script}${plateforme ? ` — rendu sous ${plateforme}` : ''} — ${natureDuRouge(issue)}`
+
 /** En-tête du bilan des rouges de `--check`, suivi d'un rouge par ligne indentée. */
 export const ENTETE_ROUGES = 'docs:check — ROUGE'
 
@@ -882,7 +887,7 @@ export async function executer({
     for (const { script, issue, plateforme } of rouges) {
       const raison = guerissable(issue) ? nonGueri.get(script) : null
       refus.push({
-        message: `docs:check — ${script}${plateforme ? ` — rendu sous ${plateforme}` : ''} — ${natureDuRouge(issue)}${raison ? ` : ${raison}, \`docs:build\` ne le guérit pas` : ''}`,
+        message: `${rougeDuGenerateur({ script, plateforme, issue })}${raison ? ` : ${raison}, \`docs:build\` ne le guérit pas` : ''}`,
         guerit: guerissable(issue) && !raison,
       })
     }

@@ -6,8 +6,10 @@ import { DEPOT } from './ticketsGh.mjs'
 import { execFileSync, spawnSync } from 'node:child_process'
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
+import { fileURLToPath } from 'node:url'
 import { isAbsolute, join, sep } from 'node:path'
-import { envDeDepotForge, gabaritDeDepot, instanceDeDepot } from './depotGabarit.mjs'
+import { envDeDepotForge, envGitFeint, gabaritDeDepot, instanceDeDepot, sousGitFeint } from './depotGabarit.mjs'
+import { ENV_GIT_FEINT, GitIndisponible, depotDe, fichiersDuGrep, shaDe } from './gitPorte.mjs'
 import { listerDossier } from './lister.mjs'
 import { readCorpus } from './sourceCorpus.mjs'
 import { tableTotale } from '../../../src/lib/tableTotale.ts'
@@ -373,5 +375,35 @@ test('envDeDepotForge : aucune variable `GIT_*` du processus ne passe, hors les 
   } finally {
     if (avant === undefined) delete process.env.GIT_AUTHOR_NAME
     else process.env.GIT_AUTHOR_NAME = avant
+  }
+})
+
+/** La signature d'un faux `git` calé sur `PATH` : un fichier nommé `git` écrit par le banc, ou le vrai
+ *  git cherché par `sh` pour y relayer. `-E` de `git grep`. */
+const CALE_GIT_SUR_PATH = String.raw`join\([^)]*['"]git(\.cmd|\.exe)?['"]\)|command -v git['"]`
+
+test('aucun banc ne cale un faux `git` sur `PATH` — win32 ne le lance pas (#2114) : la panne de git passe par `envGitFeint` (#2225)', () => {
+  const motif = new RegExp(CALE_GIT_SUR_PATH)
+  const q = "'"
+  for (const cale of [
+    `writeFileSync(join(cale, ${q}git${q}), '#!/bin/sh', { mode: 0o755 })`,
+    `writeFileSync(join(cale, ${q}git.cmd${q}), '@exit 128')`,
+    `execFileSync('sh', ['-c', ${q}command -v git${q}])`,
+  ]) assert.match(cale, motif, `témoin : la signature reconnaît ${cale}`)
+  const racine = fileURLToPath(new URL('../../..', import.meta.url))
+  assert.deepEqual(fichiersDuGrep(depotDe(racine), [], CALE_GIT_SUR_PATH, [':(glob)**/*.test.*']), [])
+})
+
+test('sousGitFeint : la feinte vaut dans CE processus pendant `fn`, et se retire même sur une levée', () => {
+  const { racine } = instanceDeDepot({ fichiers: { 'a.txt': 'a\n' } })
+  try {
+    const depot = depotDe(racine)
+    assert.throws(() => sousGitFeint([{ si: ['rev-parse'], status: 128, stderr: 'fatal: panne simulée\n' }], () => shaDe(depot, 'HEAD')),
+      (e) => e instanceof GitIndisponible && e.raison === 'fatal: panne simulée')
+    assert.equal(process.env[ENV_GIT_FEINT], undefined)
+    assert.match(shaDe(depot, 'HEAD'), /^[0-9a-f]{40}$/)
+    assert.deepEqual(envGitFeint([{ si: [], status: 1 }]), { [ENV_GIT_FEINT]: '[{"si":[],"status":1}]' })
+  } finally {
+    jeter(racine)
   }
 })

@@ -142,4 +142,4 @@ livre VO AUTORISÉ ; la VO de L'Ennemi Intérieur se lit pour comprendre, fiche
   `Aventures à Ubersreik I` (extrait : `Source/Warhammer v4 - Aventures a Ubersreik/`),
   `Middenheim — La Cité du Loup Blanc`, `Nuits Agitées & Dures Journées`,
   `Boîte d'Initiation` (+ `WH4_FR_BI_Livre_Aventure` / `…_Ubersreik`).
-<!-- sources-empreinte: 87710702c6f9bd3e6c8ccfd7b37d3d67c0224eb4 (20 fichiers, 0 dossiers) corps: 262a96528228038145fc0aff68ed6808672c4cc8 -->
+<!-- sources-empreinte: c9047b5eaefef5a14dcff73e4a88031c748d737d (20 fichiers, 0 dossiers) corps: 262a96528228038145fc0aff68ed6808672c4cc8 -->

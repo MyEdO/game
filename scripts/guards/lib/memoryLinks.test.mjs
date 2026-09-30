@@ -38,6 +38,7 @@ import {
   MEMORY_DIR,
 } from './memoryLinks.mjs'
 import { GitIndisponible } from './gitPorte.mjs'
+import { sousGitFeint } from './depotGabarit.mjs'
 
 const ROOT = fileURLToPath(new URL('../../../', import.meta.url))
 
@@ -174,17 +175,12 @@ test('PORTÉE 2 — le VOCABULAIRE réel joint l’arbre et HEAD, sans quoi la m
 
 test('PORTÉE 2 — HORS dépôt, le vocabulaire est l’arbre seul ; une PANNE de git LÈVE, jamais un vocabulaire amputé', () => {
   const root = forgeMemory({ 'fiche-a.md': 'a\n' })
-  const cale = mkdtempSync(join(tmpdir(), 'git-en-panne-'))
-  const chemin = process.env.PATH
   try {
     assert.deepEqual([...nomsDeFichesConnues(root)], ['fiche-a'], 'hors dépôt : l’arbre, sans lever')
-    writeFileSync(join(cale, 'git'), "#!/bin/sh\necho 'fatal: panne simulée' >&2\nexit 128\n", { mode: 0o755 })
-    process.env.PATH = `${cale}:${chemin}`
-    assert.throws(() => nomsDeFichesConnues(ROOT), (e) => e instanceof GitIndisponible && /panne simulée/.test(e.raison))
+    sousGitFeint([{ si: [], status: 128, stderr: 'fatal: panne simulée\n' }], () =>
+      assert.throws(() => nomsDeFichesConnues(ROOT), (e) => e instanceof GitIndisponible && /panne simulée/.test(e.raison)))
   } finally {
-    process.env.PATH = chemin
     rmSync(root, { recursive: true, force: true })
-    rmSync(cale, { recursive: true, force: true })
   }
 })
 

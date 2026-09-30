@@ -308,8 +308,8 @@ test('le point fixe voit les lanceurs de la clôture : questions et écrivains d
 
 test('le point fixe suit le RANGEMENT, le ré-export, l’espace de noms et le défaut, d’un module à l’autre ; une liaison intégrée hors de `INERTES` lance, un global lu hors de `AMBIANTS_INERTES` aussi', () => {
   const sources = new Map()
-  const ecrire = (nom, texte) => { sources.set(resolve('/banc', nom), texte); return resolve('/banc', nom) }
-  const disque = { lire: (chemin) => sources.get(chemin), existe: (chemin) => sources.has(chemin) }
+  const ecrire = (nom, texte) => { sources.set(posix(resolve('/banc', nom)), texte); return resolve('/banc', nom) }
+  const disque = { lire: (chemin) => sources.get(posix(chemin)), existe: (chemin) => sources.has(posix(chemin)) }
   const a = ecrire('a.mjs', [
     "import { spawnSync } from 'node:child_process'",
     'const REGISTRE = []',

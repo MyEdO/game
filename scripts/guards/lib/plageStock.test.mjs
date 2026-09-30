@@ -11,7 +11,7 @@ import { dirname, join } from 'node:path'
 import { refusDeLaPlage, raisonDeRefusDePlage, croissancesDeLaPlage, reclassementsDeLaPlage, SHA_NUL } from './plageStock.mjs'
 import { TRONC } from './gitPorte.mjs'
 import { bilanDesStocks } from './stocksNominatifs.mjs'
-import { instanceDeDepot } from './depotGabarit.mjs'
+import { instanceDeDepot, sousGitFeint } from './depotGabarit.mjs'
 
 const PORTEUR = 'scripts/x.test.mjs'
 
@@ -723,19 +723,12 @@ test('PLAGE : une fusion qui RÉÉCRIT une entrée amenée par la branche ne gra
 
 test('PLAGE : une FUSION lue par un git plus ancien que 2.40 rend la plage INDISPONIBLE, nommée, sans rien juger', () => {
   const { repo, socle, fusion } = depotAFusion(null)
-  const cale = mkdtempSync(join(tmpdir(), 'git-2-39-'))
-  const vrai = execFileSync('sh', ['-c', 'command -v git'], { encoding: 'utf8' }).trim()
-  writeFileSync(join(cale, 'git'), `#!/bin/sh\nfor a in "$@"; do [ "$a" = version ] && { echo 'git version 2.39.2'; exit 0; }; done\nexec '${vrai}' "$@"\n`, { mode: 0o755 })
-  const chemin = process.env.PATH
-  process.env.PATH = `${cale}:${chemin}`
   try {
-    const vu = croissancesDeLaPlage({ cwd: repo, debut: socle, fin: fusion })
+    const vu = sousGitFeint([{ si: ['version'], status: 0, stdout: 'git version 2.39.2\n' }], () => croissancesDeLaPlage({ cwd: repo, debut: socle, fin: fusion }))
     assert.match(vu.indisponible, /git 2\.39 ne sait pas git merge-tree --write-tree --stdin/)
     assert.deepEqual([vu.refus, vu.reclassements], [[], []])
   } finally {
-    process.env.PATH = chemin
     rmSync(repo, { recursive: true, force: true })
-    rmSync(cale, { recursive: true, force: true })
   }
 })
 

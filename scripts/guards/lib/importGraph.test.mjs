@@ -18,7 +18,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { aliasDe, clotureDImports, closureOf, directImportsOf, resolveImport } from './importGraph.mjs'
 
@@ -224,8 +224,10 @@ test('directImportsOf : l’alias se résout sous `racine` (son `tsconfig.json`)
     assert.deepEqual(directImportsOf('src/ui/X.tsx', texte, { racine: externe }), ['src/ui/Cible.tsx'])
     assert.deepEqual(directImportsOf('src/ui/X.tsx', texte, { racine: imbrique }), ['src/ui/Cible.tsx'])
     assert.deepEqual(aliasDe(null, externe), [], 'un arbre sans `tsconfig.json` n’a aucun alias')
-    assert.deepEqual(aliasDe(JSON.stringify({ compilerOptions: { baseUrl: 'src', paths: { '~/*': ['ui/*'] } } }), '/r'),
-      [{ prefixe: '~/', vers: '/r/src/ui/' }], 'la cible se pose sous `racine` via `baseUrl`')
+    const [alias, ...autres] = aliasDe(JSON.stringify({ compilerOptions: { baseUrl: 'src', paths: { '~/*': ['ui/*'] } } }), externe)
+    assert.deepEqual([alias.prefixe, autres], ['~/', []])
+    assert.equal(resolve(alias.vers), join(externe, 'src', 'ui'), 'la cible se pose sous `racine` via `baseUrl`')
+    assert.match(alias.vers, /^[^\\]*\/$/, 'graphie POSIX, barre finale')
   } finally {
     rmSync(externe, { recursive: true, force: true })
   }

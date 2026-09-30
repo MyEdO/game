@@ -12,11 +12,15 @@ import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync
 import { tmpdir } from 'node:os'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import path from 'node:path'
+import { CODE_CORPS_PERIME } from './empreinte-sources.mjs'
+import { PLATEFORMES, rougeDuGenerateur } from '../build-all.mjs'
+import { versPosix, versWindows } from './plateforme-win32-hooks.mjs'
 
 const RACINE = fileURLToPath(new URL('../../../', import.meta.url))
 const BUILD_ALL = path.join(RACINE, 'scripts', 'docs', 'build-all.mjs')
-const PLATEFORME_WIN32 = fileURLToPath(new URL('plateforme-win32.mjs', import.meta.url))
 const HOTE = process.platform
+/** Le module qui rend sous win32, tel que `build-all.mjs` le compose : l'hôte win32 se rend sans lui. */
+const IMPORT_WIN32 = HOTE === 'win32' ? [] : ['--import', PLATEFORMES.win32]
 
 const donnee = (source) => `data:text/javascript,${encodeURIComponent(source)}`
 
@@ -78,10 +82,13 @@ const CAS = [
   },
 ]
 
-const ROUGE_WIN32 = (script) => `docs:check — ${script} — rendu sous win32 — corps périmé`
-const ROUGE_NATIF = (script) => `docs:check — ${script} — corps périmé`
-/** Le rouge qu'une mutation dépendante de la plateforme doit rendre sous win32, sur CET hôte. */
+const PERIME = { status: CODE_CORPS_PERIME }
+const ROUGE_WIN32 = (script) => rougeDuGenerateur({ script, plateforme: 'win32', issue: PERIME })
+const ROUGE_NATIF = (script) => rougeDuGenerateur({ script, issue: PERIME })
+/** Le rouge qu'une mutation dépendante de la plateforme doit rendre sous win32, sur CET hôte, et son
+ *  code : sur l'hôte win32, le corps périmé du rendu natif, que `docs:build` guérit. */
 const ROUGE_ATTENDU = (script) => (HOTE === 'win32' ? ROUGE_NATIF(script) : ROUGE_WIN32(script))
+const CODE_ATTENDU = HOTE === 'win32' ? CODE_CORPS_PERIME : 1
 
 for (const cas of CAS) {
   test(`rendu sous win32 — ${cas.nom} : sans mutation, vert sous win32`, (t) => {
@@ -100,16 +107,16 @@ for (const cas of CAS) {
     )
     const natif = verifier(['--tout', '--plateforme', HOTE, '--only', cas.script], cas.mutation)
     const win32 = verifier(['--tout', '--plateforme', 'win32', '--only', cas.script], cas.mutation)
-    assert.equal(win32.status, 1, win32.sortie)
+    assert.equal(win32.status, CODE_ATTENDU, win32.sortie)
     assert.ok(win32.sortie.includes(ROUGE_ATTENDU(cas.script)), win32.sortie)
     // Sans `--tout`, la fraîcheur (sources et corps inchangés sur disque) ne saute rien : la
     // plateforme demandée est rendue.
     const sansTout = verifier(['--plateforme', 'win32', '--only', cas.script], cas.mutation)
-    assert.equal(sansTout.status, 1, sansTout.sortie)
+    assert.equal(sansTout.status, CODE_ATTENDU, sansTout.sortie)
     assert.ok(sansTout.sortie.includes(ROUGE_ATTENDU(cas.script)), sansTout.sortie)
     if (HOTE === 'win32') {
       t.diagnostic('hôte win32 : le rendu natif EST le rendu sous win32, la mutation rougit aussi en natif')
-      assert.equal(natif.status, 1, natif.sortie)
+      assert.equal(natif.status, CODE_CORPS_PERIME, natif.sortie)
     } else {
       t.diagnostic(`hôte ${HOTE} : la mutation ne se voit que rendue sous win32`)
       assert.equal(natif.status, 0, natif.sortie)
@@ -120,15 +127,15 @@ for (const cas of CAS) {
 test('`--check --tout` rend chaque générateur sur l\'hôte ET sous win32 : le rouge nomme sa plateforme', (t) => {
   const [cas] = CAS
   const r = verifier(['--tout', '--only', cas.script], cas.mutation)
-  assert.equal(r.status, 1, r.sortie)
+  assert.equal(r.status, CODE_ATTENDU, r.sortie)
   assert.ok(r.sortie.includes(ROUGE_ATTENDU(cas.script)), r.sortie)
   if (HOTE === 'win32') t.diagnostic('hôte win32 : une seule passe, le rendu natif')
   else assert.ok(!r.sortie.includes(ROUGE_NATIF(cas.script)), r.sortie)
 })
 
-/** `node --import plateforme-win32.mjs <args>` depuis `racine`, dépôt rendu : ce que voit un module selon son LIEU. */
+/** `node <args>` depuis `racine` rendu sous win32 (`IMPORT_WIN32`), dépôt rendu : ce que voit un module selon son LIEU. */
 function sousWin32(racine, args) {
-  const r = spawnSync(process.execPath, ['--import', PLATEFORME_WIN32, ...args], {
+  const r = spawnSync(process.execPath, [...IMPORT_WIN32, ...args], {
     cwd: racine,
     encoding: 'utf8',
     env: { ...process.env, WFRP_PLATEFORME_RACINE: racine },
@@ -151,8 +158,7 @@ test('rendu sous win32 : `process.cwd()` est en `C:\\` pour le code du dépôt, 
         'console.log(JSON.stringify({ depot: depot(), tiers: tiers() }))\n',
     )
     const vu = JSON.parse(sousWin32(racine, [path.join(racine, 'src', 'entree.mjs')]))
-    const windows = (chemin) => `C:${chemin.replaceAll('/', '\\')}`
-    assert.deepEqual(vu.depot, [windows(racine), windows(path.join(racine, 'x'))])
+    assert.deepEqual(vu.depot, [versWindows(racine), versWindows(path.join(racine, 'x'))])
     assert.deepEqual(vu.tiers, [racine, path.join(racine, 'x')])
   } finally {
     rmSync(racine, { recursive: true, force: true })
@@ -160,16 +166,19 @@ test('rendu sous win32 : `process.cwd()` est en `C:\\` pour le code du dépôt, 
 })
 
 /** Un dépôt jetable dont `src/entree.mjs` porte `source`, rendu sous win32 : ce qu'il imprime, parsé.
- *  `parLien` : la racine est donnée (cwd, `WFRP_PLATEFORME_RACINE`, entrée) par un lien symbolique. */
+ *  `parLien` : la racine est donnée (cwd, `WFRP_PLATEFORME_RACINE`, entrée) par un lien symbolique
+ *  (`junction` : un lien de répertoire que win32 pose sans privilège, ignoré ailleurs) ; `cwdHote` :
+ *  le cwd que l'hôte donne à un enfant lancé depuis elle, sans rendu. */
 function vuDuDepot(source, { parLien = false } = {}) {
   const racine = realpathSync(mkdtempSync(path.join(tmpdir(), 'plateforme-win32-')))
   const lien = `${racine}-lien`
   try {
     mkdirSync(path.join(racine, 'src'))
     writeFileSync(path.join(racine, 'src', 'entree.mjs'), source)
-    if (parLien) symlinkSync(racine, lien, 'dir')
+    if (parLien) symlinkSync(racine, lien, 'junction')
     const donnee = parLien ? lien : racine
-    return { racine, vu: JSON.parse(sousWin32(donnee, [path.join(donnee, 'src', 'entree.mjs')])) }
+    const cwdHote = spawnSync(process.execPath, ['-e', 'process.stdout.write(process.cwd())'], { cwd: donnee, encoding: 'utf8' }).stdout
+    return { racine, cwdHote, vu: JSON.parse(sousWin32(donnee, [path.join(donnee, 'src', 'entree.mjs')])) }
   } finally {
     rmSync(lien, { force: true })
     rmSync(racine, { recursive: true, force: true })
@@ -177,15 +186,15 @@ function vuDuDepot(source, { parLien = false } = {}) {
 }
 
 test('rendu sous win32 : une racine donnée par un lien symbolique est simulée comme sa cible', () => {
-  const { racine, vu } = vuDuDepot("console.log(JSON.stringify(process.cwd()))\n", { parLien: true })
-  assert.equal(vu, `C:${racine.replaceAll('/', '\\')}`)
+  const { cwdHote, vu } = vuDuDepot("console.log(JSON.stringify(process.cwd()))\n", { parLien: true })
+  assert.equal(vu, versWindows(cwdHote))
 })
 
 test('rendu sous win32 : chaque fonction de `fs` et de `fs.promises` est enveloppée ou déclarée sans chemin', () => {
   const { vu } = vuDuDepot(
     [
       "import fs from 'node:fs'",
-      `import { SANS_CHEMIN_FS } from ${JSON.stringify(pathToFileURL(PLATEFORME_WIN32).href)}`,
+      `import { SANS_CHEMIN_FS } from ${JSON.stringify(PLATEFORMES.win32)}`,
       'const oubliees = []',
       "for (const [nom, hote] of [['fs', fs], ['fs.promises', fs.promises]]) {",
       '  for (const cle of Object.keys(hote)) {',
@@ -213,8 +222,8 @@ test('rendu sous win32 : `path.posix` appelé du dépôt résout sur le cwd POSI
       '',
     ].join('\n'),
   )
-  const posixA = path.posix.join(racine, 'a')
-  const windowsA = `C:${posixA.replaceAll('/', '\\')}`
+  const posixA = versPosix(path.join(racine, 'a'))
+  const windowsA = versWindows(path.join(racine, 'a'))
   assert.deepEqual(vu, [posixA, posixA, posixA, posixA, posixA.slice(1), windowsA, windowsA])
 })
 
@@ -250,7 +259,8 @@ test('rendu sous win32 : le PATH transmis à un enfant est ramené à la graphie
       '',
     ].join('\n'),
   )
-  assert.deepEqual(vu, [`${racine}/node_modules/.bin:/outils`, '/usr/bin:/bin', racine])
+  const graphieDeLHote = [path.join(racine, 'node_modules', '.bin'), path.join(path.parse(racine).root, 'outils')].join(path.delimiter)
+  assert.deepEqual(vu, [graphieDeLHote, '/usr/bin:/bin', racine])
 })
 
 // Sur l'arbre réel, les deux modules de la simulation sont SOUS la racine : leurs enveloppes de `fs`

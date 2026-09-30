@@ -10,7 +10,7 @@ import { chmodSync, mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:f
 import { execFileSync } from 'node:child_process'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { envDeDepotForge, instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
+import { envDeDepotForge, envGitFeint, instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import { lancerHook } from '../guards/lib/lancerHook.mjs'
 
 
@@ -718,7 +718,6 @@ test('DRIVER : un commit hors src/ et scripts/ passe sans ticket', () => {
 // reste lisible, donc aucun autre refus ne la rattraperait.
 test('DRIVER : une PANNE de lecture du contenu emporté (objet de base CORROMPU, ou `diff-index` en panne) est un `deny` NOMMÉ', () => {
   const { racine: repo } = instanceDeDepot({ fichiers: { 'src/x.ts': 'export const x = 1\n' }, message: 'socle' })
-  const cale = mkdtempSync(join(tmpdir(), 'git-diff-index-en-panne-'))
   try {
     const git = (...args) => execFileSync('git', args, { cwd: repo, env: envDeDepotForge(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()
     writeFileSync(join(repo, 'src', 'x.ts'), 'export const x = 2\nexport const y = 3\n', 'utf8')
@@ -726,9 +725,7 @@ test('DRIVER : une PANNE de lecture du contenu emporté (objet de base CORROMPU,
     const commande = 'git commit -m "feat(x): y (refs #1806)"'
     assert.doesNotMatch(decisionOf(commande, repo)?.reason ?? '', /lecture git indisponible/, 'témoin : git répond, aucune panne')
 
-    const vrai = execFileSync('sh', ['-c', 'command -v git'], { encoding: 'utf8' }).trim()
-    writeFileSync(join(cale, 'git'), `#!/bin/sh\nfor a in "$@"; do [ "$a" = diff-index ] && { echo 'fatal: panne simulée' >&2; exit 128; }; done\nexec '${vrai}' "$@"\n`, { mode: 0o755 })
-    const parCale = decisionOf(commande, repo, { ...process.env, PATH: `${cale}:${process.env.PATH}` })
+    const parCale = decisionOf(commande, repo, { ...process.env, ...envGitFeint([{ si: ['diff-index'], status: 128, stderr: 'fatal: panne simulée\n' }]) })
     assert.equal(parCale?.decision, 'deny')
     assert.match(parCale.reason, /⛔ lecture git indisponible : fatal: panne simulée/)
 
@@ -741,7 +738,6 @@ test('DRIVER : une PANNE de lecture du contenu emporté (objet de base CORROMPU,
     assert.match(corrompu.reason, /⛔ lecture git indisponible : .*too long/)
   } finally {
     rmSync(repo, { recursive: true, force: true })
-    rmSync(cale, { recursive: true, force: true })
   }
 })
 

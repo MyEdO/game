@@ -6529,4 +6529,4 @@ Les mortels portant l'anneau gagnent à la place tous les effets du sort Aura or
 Malheureusement, comme l'anneau est maintenant, et depuis de nombreuses années, imprégné des énergies démoniaques de Gideon, il est dangereux. Pour chaque mois pendant lequel il est porté par un mortel, un Test de **Résistance** à une exposition mineure à la Corruption doit être effectué. Cette souillure ne peut être supprimée que par de rares rituels et sorts de du Domaine de la Lumière.
 
 <span id="page-148-0" data-folio="149"></span>
-<!-- sources-empreinte: c28f7948db479e42c5643137a38755f0ab18ed10 (143 fichiers, 17 dossiers) corps: be39633c8bd9a72d85b7a73e69580530afa22fe9 -->
+<!-- sources-empreinte: eb897e3c2f6acf55527da36b142e60b7fdae40c0 (143 fichiers, 17 dossiers) corps: be39633c8bd9a72d85b7a73e69580530afa22fe9 -->
