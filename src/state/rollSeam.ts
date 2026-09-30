@@ -102,6 +102,12 @@ export interface RollRequest {
    *  l'étape qu'elle construit (mono comme batch). C'est ici que le flux appelant dit ce qu'il met en
    *  jeu — `buildMonoStep` est générique et n'a aucun moyen de le deviner. */
   stake?: StakeRef;
+  /** PORTEUR DÉCLARÉ (#700) — l'id qui TIENT le dé quand ce n'est pas le côté qui teste : le MJ
+   *  (`MJ_STEP_OWNER`) pour le dé que le RAW lui fait lancer. Posé sur l'étape (`porteurId`) ; la
+   *  surface et la possession en dérivent (`porteursDeLaRequete`, `pendings.porteurResolu`). */
+  porteur?: string;
+  /** AUDIENCE des traces (#700) : `'porteur'` = le seul siège qui tient le porteur. */
+  audience?: 'porteur';
 }
 
 /** Trois surfaces (Décision 3) : Modale influençable / Visible-lançable MJ / Inline-PV. */
@@ -322,10 +328,12 @@ function resolveMonoSide(get: Get, req: RollRequest, meta?: CascadeStepMeta): { 
 /**
  * LES PORTEURS d'une requête — les ids dont la TENUE décide de la surface (#1479) : les contributeurs
  * d'un côté à participants, ou l'unique porteur du mono (l'acteur nommé/élu, ou la SENTINELLE du monde
- * `WORLD_STEP_OWNER` pour un côté `worldSide` — un id de porteur comme un autre).
+ * `WORLD_STEP_OWNER` pour un côté `worldSide` — un id de porteur comme un autre), sauf porteur DÉCLARÉ
+ * (`req.porteur`, #700), qui prime comme sur l'étape.
  */
 function porteursDeLaRequete(get: Get, req: RollRequest): (string | undefined)[] {
   if ('participants' in req.side) return req.side.participants.map((p) => p.id);
+  if (req.porteur) return [req.porteur];
   if ('worldSide' in req.side) return [WORLD_STEP_OWNER];
   return [resolveMonoSide(get, req).actor?.id];
 }
@@ -927,6 +935,8 @@ function buildMonoStep(get: Get, req: RollRequest, kind: string, meta?: CascadeS
     // (`modalArbiter.ts`) route son owner au siège MJ via le sentinel `WORLD_STEP_OWNER`
     // (`netOwnership.seatOwns`), à l'hôte sinon (écart 1 documenté en tête de fichier, fermé Ronde 1).
     ...(!actorId && 'worldSide' in req.side ? { worldOwner: true } : {}),
+    ...(req.porteur ? { porteurId: req.porteur } : {}),
+    ...(req.audience ? { audience: req.audience } : {}),
     label: composeRollLabel(actor, req.actionLabel, req.test),
     // Difficulté en donnée de LIGNE (#1072) : la modale la rend en texte + valeur sur la rangée ; sa
     // valeur est déjà comprise dans `target` (`rollLine`).
@@ -1477,6 +1487,10 @@ export interface TableSpec {
    *  (siège MJ s'il existe, hôte sinon), exactement comme un `worldStep`. EXCLUSIF avec `actorId` :
    *  une table a un sujet, ou elle est au monde — jamais les deux, jamais aucun des deux. */
   worldOwner?: boolean;
+  /** PORTEUR DÉCLARÉ du tirage (#700, `RollRequest.porteur`) : le MJ pour la table qu'il lance. */
+  porteur?: string;
+  /** AUDIENCE des traces du tirage (#700, `RollRequest.audience`). */
+  audience?: 'porteur';
   table: CascadeTableDecl;
   /** ENJEU du tirage — REQUIS au TYPE (#1117/#1262 V2 L6) : la famille des étapes à table est le seul
    *  mint dont TOUS les sites de production sont dotés (mesure du lot : 0 site muet hors tests), donc
@@ -1553,6 +1567,8 @@ export function tableStep(spec: TableSpec): BuiltCascadeStep | undefined {
     label: spec.label,
     ...(spec.icon ? { icon: spec.icon } : {}),
     ...(spec.worldOwner ? { worldOwner: true } : { actorId: spec.actorId }),
+    ...(spec.porteur ? { porteurId: spec.porteur } : {}),
+    ...(spec.audience ? { audience: spec.audience } : {}),
     table: spec.table,
     stake: spec.stake,
     ...(spec.options ? { options: spec.options.map((o) => ({ ...o })) } : {}),

@@ -1,6 +1,6 @@
 /**
  * #491 — Option « Vents Tourbillonnants » (LDB 46 l.179-190), câblage STATE : tirage à l'ouverture du
- * combat (`windsOfMagicAtCombatStart`), re-tirage au Round (grain `round`, `combat/roundHooks.ts`),
+ * combat (`windsOfMagicAtCombatStart`), re-tirage au Round (grain `round`, `openRoundEndCascade`),
  * mod injecté aux Tests d'Incantation/Focalisation (`castRoll`/`focusRoll`), détection Seconde vue.
  * Le moteur PUR (table, tirage seedé, `hasSecondeVue`) est couvert par `engine/windsOfMagic.test.ts`.
  */
@@ -22,6 +22,13 @@ function wizardWithSecondeVue(): Combatant {
   w.characteristics = { ...w.characteristics, intelligence: 80, 'force-mentale': 80 };
   w.talents = [...w.talents, { talentId: 'seconde-vue', times: 1 }];
   return w;
+}
+
+/** La Perception de Seconde vue d'un héros tenu est SA fenêtre (#700) : on la joue d'office ici. */
+function soldeLaCascade(): void {
+  if (!useGame.getState().pendingCascade) return;
+  useGame.getState().cascadeResolveAll();
+  useGame.getState().cascadeFinish();
 }
 
 function setupCombat(): void {
@@ -82,6 +89,7 @@ describe('#491 — Vents Tourbillonnants, câblage state', () => {
       setupCombat();
       seedBattleRng(seed);
       useGame.getState().startCombat('enc-mutants');
+      soldeLaCascade();
       revealed = !!useGame.getState().battle!.windsOfMagic?.revealed;
     }
     expect(revealed).toBe(true);
@@ -149,6 +157,7 @@ describe('#491 — Vents Tourbillonnants, câblage state', () => {
     setupCombat();
     seedBattleRng(777);
     useGame.getState().startCombat('enc-mutants');
+    soldeLaCascade();
     useGame.getState().confirmRoundStart();
     vi.clearAllTimers();
     // Sentinelle hors-table (1-10) : si le hook de Round tourne, elle disparaît forcément.
@@ -164,6 +173,7 @@ describe('#491 — Vents Tourbillonnants, câblage state', () => {
     setupCombat();
     seedBattleRng(777);
     useGame.getState().startCombat('enc-mutants');
+    soldeLaCascade();
     useGame.getState().confirmRoundStart();
     vi.clearAllTimers();
     useGame.setState({ battle: { ...useGame.getState().battle!, windsOfMagic: { roll: 999, mod: 0, revealed: false } } });

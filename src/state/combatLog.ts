@@ -22,6 +22,9 @@ export interface CombatEvent {
   text: string;
   actorId?: string;
   targetId?: string;
+  /** AUDIENCE (#700) : l'id du porteur dont SEUL le siège qui le tient voit la ligne
+   *  (`netOwnership.traceVisible`). Absente = tous les sièges. */
+  audience?: string;
 }
 
 /** Télégraphe d'intention d'un combattant IA (réticule + ligne sur la carte) : qui vise qui, et de
@@ -48,12 +51,14 @@ export function evLines(
   mainKind: CombatEventKind,
   actorId?: string,
   targetId?: string,
+  audience?: string,
 ): CombatEvent[] {
   return lines.map((t) => ({
     kind: /^\s*↳/.test(t) ? 'detail' : mainKind,
     text: t,
     actorId,
     targetId,
+    ...(audience != null ? { audience } : {}),
   }));
 }
 
@@ -78,17 +83,24 @@ export function journaliser(
   set: SetFn,
   lines: string[],
   kind: CombatEventKind = 'info',
-  opts?: { actorId?: string; extra?: CombatEvent[] },
+  opts?: { actorId?: string; extra?: CombatEvent[]; audience?: string },
 ): void {
   const extra = opts?.extra ?? [];
   if (!lines.length && !extra.length) return;
   const b = get().battle;
   if (!b) {
+    // `journal: string[]` ne porte pas d'audience (#700) : une ligne réservée n'y entre pas en clair.
+    if (opts?.audience != null && lines.length) {
+      const m = `[journaliser] ${lines.length} ligne(s) d'audience « ${opts.audience} » hors combat : le journal d'exploration ne porte pas d'audience (#700).`;
+      console.error(m);
+      if (import.meta.env?.DEV) throw new Error(m);
+      return;
+    }
     get().log(lines);
     return;
   }
   const dites = fixedJetOpen(get()) ? lines.map(markFixedDie) : lines;
-  set({ battle: { ...b, log: [...b.log, ...evLines(dites, kind, opts?.actorId), ...extra] } });
+  set({ battle: { ...b, log: [...b.log, ...evLines(dites, kind, opts?.actorId, undefined, opts?.audience), ...extra] } });
 }
 
 /**

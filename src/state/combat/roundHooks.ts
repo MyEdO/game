@@ -10,7 +10,6 @@ import { registerCombatHook } from '../combatHooks';
 import { registerCascadeApplier } from '../cascade';
 import { freeCons, rollSansPilote, surfaceOf, monoStep, choiceStep, pushMono, pousseSi, type BuiltCascadeStep } from '../rollSeam';
 import { battleRng } from '../battleRng';
-import { rollTest } from '../../engine/tests';
 import { testValue } from '../../engine/skills';
 import { bonus, effectiveChar, refreshWounds } from '../../engine/characteristics';
 import { addCondition, isOutOfAction, COND, tickDeath, bleedDeathRoll, stacks, endOfRound, hasCondition, pendingPlusExtensions, resolvePlusExtension } from '../../engine/conditions';
@@ -28,7 +27,6 @@ import { outnumberCountBonus } from '../../engine/combatFeatures/dispatch';
 import { combatDistance } from '../footprint';
 import { sceneMetresPerTile } from '../scene';
 import { rule } from '../../engine/policy';
-import { rollWindsOfMagic, hasSecondeVue } from '../../engine/windsOfMagic';
 import { groupAdvantage } from '../../engine/advantagePool';
 import { combatStakeRef } from '../../data';
 import { t } from '../../i18n';
@@ -89,26 +87,6 @@ registerCombatHook({
   phase: 'onRoundEnd',
   order: 20,
   run: ({ battle }) => { for (const c of battle.combatants) refreshWounds(c); },
-});
-registerCombatHook({
-  // Vents Tourbillonnants (LDB 46 l.179-190, #491) : « à chaque Round dans des zones de turbulences
-  // magiques » — re-tirage 1d10 + re-détection Seconde vue, grain `round` UNIQUEMENT (grain `scene`,
-  // défaut, ne retire qu'à l'ouverture du combat, `windsOfMagicAtCombatStart`). Inerte sinon (aucun
-  // RNG consommé → golden préservé).
-  id: 'winds-of-magic-round',
-  phase: 'onRoundEnd',
-  order: 21,
-  run: ({ battle, sink }) => {
-    if (rule('vents-tourbillonnants') !== 'round') return;
-    const { roll, mod } = rollWindsOfMagic(battleRng());
-    let revealed = false;
-    for (const c of battle.combatants) {
-      if (c.kind !== 'hero' || isOutOfAction(c) || !hasSecondeVue(c)) continue;
-      const res = rollTest(testValue(c, 'perception'), 'facile', battleRng());
-      if (res.success) { revealed = true; sink(t('cs.windsOfMagicSeen', { name: c.label }), c); }
-    }
-    battle.windsOfMagic = { roll, mod, revealed };
-  },
 });
 registerCombatHook({
   id: 'fire-round-start-triggers', // effets « début de Round » authorés (Régénération…) — dispatcher générique (RNG)

@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useGame } from '../state/store';
+import { journalDeCombatVisible } from '../state/netOwnership';
 import { combatFeed, narrateIntent, narrateRefus } from '../gameIso/combatNarration';
 import { eteindreRefus, REFUS_MS } from '../state/refusVisible';
 import { scheduleFlowTimer, clearTrackedTimer } from '../state/combatTimers';
@@ -24,6 +25,7 @@ export function CombatBanner() {
   const battle = useGame((s) => s.battle);
   const aim = useGame((s) => s.actorAim);
   const refus = useGame((s) => s.refus);
+  useGame((s) => s.net); // la visibilité des traces suit les sièges (`journalDeCombatVisible`, #700)
   const nonce = refus?.nonce ?? null;
   useEffect(() => {
     if (nonce == null) return;
@@ -33,7 +35,7 @@ export function CombatBanner() {
   if (!battle || battle.over) return null;
   const line = refus ? narrateRefus(refus, battle.combatants)
     : aim ? narrateIntent(aim, battle.combatants)
-    : combatFeed(battle.log, battle.combatants, 1)[0];
+    : combatFeed(journalDeCombatVisible(useGame.getState(), battle.log), battle.combatants, 1)[0];
   const key = !line ? null
     : refus ? `refus-${refus.nonce}`
     : aim ? `aim-${aim.fromId}-${aim.toId}-${aim.kind}`

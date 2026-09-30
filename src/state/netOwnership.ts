@@ -5,6 +5,7 @@
  */
 import type { GameState } from './store';
 import type { Combatant } from '../engine/types';
+import type { CombatEvent } from './combatLog';
 import { modalOwnerOf, horsModalOwnedIntents, horsModalByPending, type HorsModalDef } from './modalArbiter';
 import { inBattleId } from './combatants';
 import { targetingHolder } from './targetingHolder';
@@ -14,8 +15,8 @@ import { FLOW_VERBS, jetOwnedIntents, participantOwnedIntents, type JetOwnerRef 
 import type { PendingKey } from './stateFields';
 
 export { modalOwnerOf } from './modalArbiter';
-import { WORLD_STEP_OWNER } from './pendings';
-export { WORLD_STEP_OWNER } from './pendings';
+import { WORLD_STEP_OWNER, MJ_STEP_OWNER } from './pendings';
+export { WORLD_STEP_OWNER, MJ_STEP_OWNER } from './pendings';
 
 /** Intents de JET dont le 1ᵉʳ argument est l'id du combattant qui tient le slot — DÉRIVÉS de
  *  `FLOW_VERBS` (`kind:'multi'` + `pidIsActor`), jamais énumérés à la main. */
@@ -100,9 +101,21 @@ export function worldSeat(s: GameState): number {
  */
 export function conduitParLeSiegeDuMonde(s: GameState, combatantId: string | undefined): boolean {
   if (combatantId === WORLD_STEP_OWNER) return true;
-  if (!combatantId) return false;
-  const c = inBattleId(s.battle, combatantId);
-  return !!c && c.kind === 'enemy' && s.net.gmSeat != null;
+  return conduitParLeMJ(s, combatantId);
+}
+
+/**
+ * LA ROUTE MJ (#700) — un porteur que le siège MJ conduit, ssi ce siège existe : un ennemi (bac-à-sable)
+ * ou le porteur MJ (`MJ_STEP_OWNER`, le dé que le RAW fait lancer par le MJ), qui est cette MÊME route
+ * sans combattant. Consommée par `conduitParLeSiegeDuMonde` (possession), `jetSurfaced`/`tenuParUnHumain`
+ * (tenue) et `seatInfluences` (influence) : une seule table de vérité. Sans siège MJ, `seatOwns` replie
+ * l'ACTION à l'hôte (siège 0) pour les deux, sans que personne ne TIENNE le dé.
+ * `porteur` : le combattant déjà résolu par l'appelant qui le tient (sinon lu dans la file de combat,
+ * seul univers où vit un ennemi).
+ */
+export function conduitParLeMJ(s: GameState, porteurId: string | undefined, porteur: Combatant | undefined = porteurId ? inBattleId(s.battle, porteurId) : undefined): boolean {
+  if (s.net.gmSeat == null || !porteurId) return false;
+  return porteurId === MJ_STEP_OWNER || porteur?.kind === 'enemy';
 }
 
 /** Le siège possède-t-il ce combattant ? (héros non attribué → hôte, siège 0). */
@@ -229,8 +242,7 @@ export function groupDecisionSeat(s: GameState): number {
  */
 export function jetSurfaced(s: GameState, c: Combatant): boolean {
   if (c.kind === 'hero') return !c.aiControlled;
-  if (c.kind === 'enemy') return s.net.gmSeat != null;
-  return false;
+  return conduitParLeMJ(s, c.id, c);
 }
 
 /**
@@ -267,7 +279,29 @@ export function tenuParUnHumain(s: GameState, porteurId: string | undefined): bo
   if (!porteurId) return false;
   if (porteurId === WORLD_STEP_OWNER) return seatOwns(s, worldSeat(s), porteurId);
   const c = porteurParId(s, porteurId);
-  return !!c && jetSurfaced(s, c);
+  return c ? jetSurfaced(s, c) : conduitParLeMJ(s, porteurId);
+}
+
+/**
+ * UNE TRACE EST-ELLE VISIBLE À CE SIÈGE ? (#700) — une ligne sans `audience` l'est partout ; une ligne
+ * d'audience (l'id du porteur qui tient le dé) ne l'est qu'au siège qui TIENT ce porteur, et à aucun
+ * siège quand aucun humain ne le tient. Arbitrage utilisateur 2026-09-29 (#700, option « Invisible
+ * sans siège MJ ») : la ligne reste dans l'état. Prédicat UNIQUE de tous les lecteurs d'AFFICHAGE du
+ * journal.
+ */
+export function traceVisible(s: GameState, seat: number, ligne: { audience?: string }): boolean {
+  if (ligne.audience == null) return true;
+  return tenuParUnHumain(s, ligne.audience) && seatOwns(s, seat, ligne.audience);
+}
+
+/** Vue au siège LOCAL de `traceVisible` — celui qui regarde l'écran (`net.mySeat`). */
+export function traceVisibleIci(s: GameState, ligne: { audience?: string }): boolean {
+  return traceVisible(s, s.net.mySeat, ligne);
+}
+
+/** Le journal de combat que CE siège voit — lecture UNIQUE des surfaces d'affichage (tiroir, bandeau). */
+export function journalDeCombatVisible(s: GameState, log: readonly CombatEvent[]): CombatEvent[] {
+  return log.filter((l) => traceVisibleIci(s, l));
 }
 
 /** Surfaçage de la DÉFENSE (#989) — nom de domaine des sites d'attaque (`maybeOpenDefense`,
@@ -361,10 +395,9 @@ export function humanControlled(s: GameState, c: Combatant): boolean {
 export function seatInfluences(s: GameState, seat: number, ownerId: string | undefined): boolean {
   if (ownerId == null || ownerId === WORLD_STEP_OWNER) return seatOwns(s, seat, WORLD_STEP_OWNER);
   const c = porteurParId(s, ownerId);
-  if (!c) return false;
   const solo = s.net.mode === 'local';
-  if (c.kind === 'hero') return !c.aiControlled && (solo || seatOwns(s, seat, c.id));
-  if (c.kind === 'enemy') return s.net.gmSeat != null && (solo || s.net.gmSeat === seat);
+  if (c?.kind === 'hero') return !c.aiControlled && (solo || seatOwns(s, seat, c.id));
+  if (conduitParLeMJ(s, ownerId, c)) return solo || s.net.gmSeat === seat;
   return false;
 }
 

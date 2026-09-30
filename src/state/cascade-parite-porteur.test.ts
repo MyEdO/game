@@ -4,7 +4,7 @@ import { startCascade, pushStep, registerTableStep, registerCascadeApplier, susp
 import { tableStep, displayStep, resolveSurface, surfaceOf, type RollRequest } from './rollSeam';
 import { stepForcedDie } from '../ui/forcedDieRow';
 import { actorIn } from './combatants';
-import { WORLD_STEP_OWNER, canFixDie, seatInfluences } from './netOwnership';
+import { WORLD_STEP_OWNER, MJ_STEP_OWNER, canFixDie, seatInfluences } from './netOwnership';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fixtureText } from '../i18n/fixtureText';
@@ -46,7 +46,12 @@ registerTableStep(TABLE, {
 registerCascadeApplier('parite-table', () => undefined);
 registerCascadeApplier('parite-suspend', (g, s) => { suspendActiveCascade(g, s); });
 
-type Porteur = 'heros' | 'monde';
+/** `'mj'` (#2164) : le porteur DÉCLARÉ du dé que le RAW fait lancer par le MJ — se mesure SOUS un
+ *  siège MJ (`siegeMJ`), où sa conduite doit être celle du monde. */
+type Porteur = 'heros' | 'monde' | 'mj';
+
+/** Siège MJ posé par le montage — `undefined` : aucun (mode solo sans rôle MJ). */
+let siegeMJ: number | undefined;
 
 /** LA MÊME déclaration d'étape, montée pour l'un ou l'autre porteur — seule la possession change. */
 function etapeTable(porteur: Porteur, heroId: string, id = 'parite-1'): CascadeStep {
@@ -55,7 +60,8 @@ function etapeTable(porteur: Porteur, heroId: string, id = 'parite-1'): CascadeS
     table: { tableId: TABLE, spec: { n: 1, sides: 100 } },
     stake: { key: { dataset: 'combat' as const, kind: 'mutation' } },
   };
-  return (porteur === 'heros' ? tableStep({ ...commun, actorId: heroId }) : tableStep({ ...commun, worldOwner: true }))!;
+  if (porteur === 'heros') return tableStep({ ...commun, actorId: heroId })!;
+  return tableStep({ ...commun, worldOwner: true, ...(porteur === 'mj' ? { porteur: MJ_STEP_OWNER } : {}) })!;
 }
 
 const etapeMuette = (porteur: Porteur, heroId: string, id: string, kind = 'parite-affichage'): CascadeStep =>
@@ -89,7 +95,7 @@ interface Observation {
 function montage(): string {
   const h = makePregens()[0];
   set({ party: [h], battle: null, pendingCascade: null, suspendedCascades: [], journal: [] });
-  set({ net: { ...get().net, mode: 'local', mySeat: 0, gmSeat: undefined } });
+  set({ net: { ...get().net, mode: 'local', mySeat: 0, gmSeat: siegeMJ } });
   return h.id;
 }
 
@@ -165,7 +171,20 @@ const POLITIQUES: { nom: string; pose: boolean; cadence: Cadence }[] = [
 
 describe('#1426 — parité de PORTEUR : le pilote de cascade ne connaît pas « le monde »', () => {
   beforeEach(() => { resetDesFixes(); resetCadence(); });
-  afterEach(() => { resetDesFixes(); resetCadence(); set({ pendingCascade: null, suspendedCascades: [] }); });
+  afterEach(() => { siegeMJ = undefined; resetDesFixes(); resetCadence(); set({ pendingCascade: null, suspendedCascades: [] }); });
+
+  for (const pol of POLITIQUES) {
+    for (const [nomPorte, porte] of Object.entries(PORTES)) {
+      it(`${pol.nom} — porte « ${nomPorte} » : sous siège MJ, le porteur MJ a LA conduite du monde (#2164)`, () => {
+        setDesFixes(pol.pose);
+        setCadence(pol.cadence);
+        siegeMJ = 0;
+        const monde = porte('monde');
+        const mj = porte('mj');
+        expect(mj, `porte « ${nomPorte} » : une conduite qui diverge pour le porteur MJ est une branche « spéciale MJ »`).toEqual(monde);
+      });
+    }
+  }
 
   for (const pol of POLITIQUES) {
     for (const [nomPorte, porte] of Object.entries(PORTES)) {
@@ -186,28 +205,28 @@ describe('#1426 — parité de PORTEUR : le pilote de cascade ne connaît pas «
    * au premier ajout (un porteur, une cadence, un siège). Ce qui se verrouille ici est donc la FORME :
    * `tirageSansSiege` délègue au prédicat commun pour TOUT porteur, sans tester l'identité de l'étape.
    */
-  it('FORME — `cascade.tirageSansSiege` délègue à `surfaceOf(porteurDe(st))`, sans brancher sur le porteur', () => {
+  it('FORME — `cascade.tirageSansSiege` délègue à `surfaceOf(porteurResolu(st))`, sans brancher sur le porteur', () => {
     const corps = corpsDe(join('src', 'state', 'cascade.ts'), 'function tirageSansSiege');
-    expect(corps, 'le porteur se dérive (`porteurDe`), il ne se teste pas').toContain('surfaceOf(get, porteurDe(st))');
+    expect(corps, 'le porteur se dérive (`pendings.porteurResolu`), il ne se teste pas').toContain('surfaceOf(get, porteurResolu(st))');
     expect(corps, 'une branche par TYPE de porteur rouvre les deux tables de vérité de #1426').not.toMatch(/actorId|worldOwner/);
   });
 
   /**
-   * MÊME FORME sur les DEUX fonctions que `tirageSansSiege` compose : `porteurDe` (l'id du porteur) et
+   * MÊME FORME sur les DEUX fonctions que `tirageSansSiege` compose : `porteurResolu` (l'id du porteur) et
    * `surfaceOf` (la surface de cet id). Elles ont le droit de RÉSOUDRE un id (`st.actorId ??
    * WORLD_STEP_OWNER`) — c'est leur métier ; elles n'ont pas le droit de le COMPARER : un
    * `porteurId === WORLD_STEP_OWNER` dans `surfaceOf` remet la résolution du siège du monde hors du
    * module de possession (`netOwnership`), et rouvre deux tables de vérité.
    */
-  it('FORME — `porteurDe` et `rollSeam.surfaceOf` RÉSOLVENT un id, ils ne le COMPARENT pas', () => {
+  it('FORME — `porteurResolu` et `rollSeam.surfaceOf` RÉSOLVENT un id, ils ne le COMPARENT pas', () => {
     const cas = [
-      { corps: corpsDe(join('src', 'state', 'cascade.ts'), 'function porteurDe'), nom: 'cascade.porteurDe' },
+      { corps: corpsDe(join('src', 'state', 'pendings.ts'), 'function porteurResolu'), nom: 'pendings.porteurResolu' },
       { corps: corpsDe(join('src', 'state', 'rollSeam.ts'), 'export function surfaceOf'), nom: 'rollSeam.surfaceOf' },
     ];
     for (const { corps, nom } of cas) {
       expect(corps, `${nom} : un marqueur de TYPE de porteur y est une branche par type`).not.toMatch(/worldOwner/);
       expect(corps, `${nom} : comparer le porteur, c'est le brancher par type`)
-        .not.toMatch(/(WORLD_STEP_OWNER|actorId)\s*[=!]==?|[=!]==?\s*(WORLD_STEP_OWNER|actorId)/);
+        .not.toMatch(/(WORLD_STEP_OWNER|MJ_STEP_OWNER|actorId|porteurId)\s*[=!]==?|[=!]==?\s*(WORLD_STEP_OWNER|MJ_STEP_OWNER|actorId|porteurId)/);
     }
   });
 
@@ -238,6 +257,7 @@ describe('#1426 — parité de PORTEUR : le pilote de cascade ne connaît pas «
     const requetes: Record<Porteur, () => RollRequest> = {
       heros: () => ({ side: { actorId: heroId }, actionLabel: 'Jet', test: {}, difficulty: 'intermediaire' }),
       monde: () => ({ side: { worldSide: 'world' }, actionLabel: 'Jet', test: {}, difficulty: 'intermediaire' }),
+      mj: () => ({ side: { worldSide: 'world' }, actionLabel: 'Jet', test: {}, difficulty: 'intermediaire', porteur: MJ_STEP_OWNER }),
     };
     const serie = (porteur: Porteur) => POLITIQUES.map((pol) => {
       setDesFixes(pol.pose);
@@ -249,6 +269,24 @@ describe('#1426 — parité de PORTEUR : le pilote de cascade ne connaît pas «
     expect(monde, 'une surface qui diverge par le PORTEUR est une branche « spéciale monde »').toEqual(heros);
     expect(monde.map((x) => x.surface), 'et la série discrimine la cadence').toEqual(['M', 'M', 'I']);
     expect(monde.map((x) => x.pose), 'comme elle discrimine l’option de pose').toEqual([false, true, false]);
+  });
+
+  it('MONO — sous siège MJ, `resolveSurface`/`canFixDie` rendent la MÊME série pour le porteur MJ et le MONDE (#2164)', () => {
+    siegeMJ = 0;
+    montage();
+    const requetes = {
+      monde: (): RollRequest => ({ side: { worldSide: 'world' }, actionLabel: 'Jet', test: {}, difficulty: 'intermediaire' }),
+      mj: (): RollRequest => ({ side: { worldSide: 'world' }, actionLabel: 'Jet', test: {}, difficulty: 'intermediaire', porteur: MJ_STEP_OWNER }),
+    };
+    const serie = (porteur: 'monde' | 'mj') => POLITIQUES.map((pol) => {
+      setDesFixes(pol.pose);
+      setCadence(pol.cadence);
+      return { surface: resolveSurface(get, requetes[porteur](), 'parite'), pose: canFixDie(get(), porteur === 'mj' ? MJ_STEP_OWNER : WORLD_STEP_OWNER) };
+    });
+    const monde = serie('monde');
+    expect(serie('mj'), 'une surface qui diverge pour le porteur MJ est une branche « spéciale MJ »').toEqual(monde);
+    expect(monde.map((x) => x.surface), 'la série discrimine la cadence (V : le siège MJ voit et lance)').toEqual(['V', 'V', 'I']);
+    expect(monde.map((x) => x.pose), 'et l’option de pose').toEqual([false, true, false]);
   });
 
   /**
@@ -265,6 +303,7 @@ describe('#1426 — parité de PORTEUR : le pilote de cascade ne connaît pas «
     const requetes: Record<Porteur, () => RollRequest> = {
       heros: () => ({ side: { actorId: heroId }, actionLabel: 'Jet', test: {}, difficulty: 'intermediaire' }),
       monde: () => ({ side: { worldSide: 'world' }, actionLabel: 'Jet', test: {}, difficulty: 'intermediaire' }),
+      mj: () => ({ side: { worldSide: 'world' }, actionLabel: 'Jet', test: {}, difficulty: 'intermediaire', porteur: MJ_STEP_OWNER }),
     };
     // `progression` ∈ SEA_KINDS_SOUS_ORDRES ; `tourbillon` n'y est pas (une CRISE interrompt toujours).
     const serie = (porteur: Porteur) => ['progression', 'tourbillon'].map((kind) => resolveSurface(get, requetes[porteur](), kind));

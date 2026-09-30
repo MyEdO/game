@@ -27,7 +27,7 @@ import type { StakeRef } from '../data';
 import type { Consequence } from './rollSeam';
 import type { BuiltCascadeStep } from './stepBrand';
 import { resultLines, surfaceOf } from './rollSeam';
-import { WORLD_STEP_OWNER } from './netOwnership';
+import { porteurResolu } from './pendings';
 import { hoteOrphelin, PENDING_BY_JET } from './stateFields';
 import { toRecapLines, type RecapLine } from './recapLine';
 import { actorIn } from './combatants';
@@ -731,7 +731,7 @@ function rollBatchParticipants(step: CascadeStep, autoResolved = false) {
  * (`traceLineOf`) : porteur — libellé : dé/cible → issue (DR). Deux formes, un seul dériveur :
  *  - BANDE : les rangées étampées `meta.autoResolved` (posée par `rollBatchParticipants(step, true)`) ;
  *  - MONO : l'étape à jet résolue par un pilote SANS fenêtre — le pilote le DÉCLARE (`unwitnessed`,
- *    `runCascadeImmediate` ; `advanceCascade` le RE-DÉRIVE de `surfaceOf(porteurDe)` pour le dé que le
+ *    `runCascadeImmediate` ; `advanceCascade` le RE-DÉRIVE de `surfaceOf(porteurResolu)` pour le dé que le
  *    curseur a posé lui-même), il n'est pas déduit d'un champ d'étape (rien n'entre dans la sauvegarde).
  *
  * PARTITION : « Tout lancer » (`resolveRemainingCascade`) n'étampe rien et ne déclare rien — sa modale
@@ -743,6 +743,11 @@ function rollBatchParticipants(step: CascadeStep, autoResolved = false) {
  * Là où il l'est, le journal est la SEULE surface de ces jets — le cas nominatif que la doctrine #295
  * réserve (cf. `cascade-consequence-guard.test.ts`). Règle de CADENCE : une cadence qui réduit les
  * interruptions ne réduit jamais les TRACES.
+ *
+ * Portée (#1281) : les jets NON secrets (LDB 25 l.24, EDO 01 l.220, LDB 46 l.181). Une étape qui
+ * déclare son `audience` écrit les MÊMES traces, étampées de l'id de son porteur (`audienceDe`) : la
+ * ligne existe dans l'état, son affichage suit `netOwnership.traceVisible`. Seules les TRACES du dé la
+ * portent — la conséquence reste publique (#2164).
  */
 function unwitnessedTraceLines(get: Get, step: CascadeStep, unwitnessed: boolean, rowSurface?: RowSurface): string[] {
   const out: string[] = [];
@@ -1318,7 +1323,7 @@ function commitStep(get: Get, set: Set, steps: CascadeStep[], i: number, pilote:
   // TRACE des jets qu'aucune SURFACE n'a montrés — AVANT la conséquence : le dé se lit d'abord, l'effet
   // ensuite, comme dans la fenêtre qui ne s'est pas ouverte.
   const traces = unwitnessedTraceLines(get, step, unwitnessed, rowSurface);
-  journaliser(get, set, traces, 'info', { actorId: step.actorId });
+  journaliser(get, set, traces, 'info', { actorId: step.actorId, audience: audienceDe(step) });
   // FENÊTRE D'INSERTION (#1508) ouverte le temps que l'applier — et la continuation qui le suit —
   // tournent : une étape poussée pendant ce temps est la SUITE IMMÉDIATE de celle-ci, pas la fin de la
   // séquence. Rendue à sa valeur précédente ensuite (un applier peut en déclencher un autre).
@@ -1488,13 +1493,10 @@ export function dropSceneEntrySteps(get: Get, set: Set): void {
   set({ suspendedCascades: next });
 }
 
-/**
- * LE PORTEUR d'une étape — l'id qui route sa possession, sa surface et son affordance d'influence.
- * Une étape sans acteur nommé est portée par le MONDE (`WORLD_STEP_OWNER`, `worldOwner` posé au mint) :
- * c'est la MÊME convention que `netOwnership.seatInfluences`/`canFixDie`, jamais un cas à part.
- */
-function porteurDe(st: CascadeStep): string {
-  return st.actorId ?? WORLD_STEP_OWNER;
+/** L'AUDIENCE des TRACES du dé d'une étape (#2164) : l'id de son porteur (`pendings.porteurResolu`)
+ *  quand elle la déclare, rien (tous les sièges) sinon. Posée par `commitStep` sur ses traces SEULES. */
+function audienceDe(st: CascadeStep): string | undefined {
+  return st.audience === 'porteur' ? porteurResolu(st) : undefined;
 }
 
 /**
@@ -1503,13 +1505,13 @@ function porteurDe(st: CascadeStep): string {
  * (`rollSeam.surfaceDesEtapes`) : la surface d'une séquence se dérive des MÊMES ids que sa possession.
  */
 export function porteursDeLEtape(st: CascadeStep): string[] {
-  return st.participants ? st.participants.map((p) => p.id) : [porteurDe(st)];
+  return st.participants ? st.participants.map((p) => p.id) : [porteurResolu(st)];
 }
 
 /**
  * L'étape est-elle un TIRAGE (table ou jet) qu'AUCUN siège ne joue ? Le seul cas où le socle tire à la
  * place d'une fenêtre (cf. `poserLeCurseur` ci-dessous) — et il se juge au MÊME appel pour TOUT
- * porteur : `rollSeam.surfaceOf(porteurDe(st))`. Un héros conduit par l'IA, un ennemi sans siège MJ,
+ * porteur : `rollSeam.surfaceOf(porteurResolu(st))`. Un héros conduit par l'IA, un ennemi sans siège MJ,
  * un acteur inconnu ne tiennent aucune fenêtre ; le monde, lui, est toujours tenu par un siège humain
  * (`netOwnership.worldSeat`) — seule la cadence déférée à un automate l'en dessaisit.
  *
@@ -1523,7 +1525,7 @@ function tirageSansSiege(get: Get, st: CascadeStep | undefined): boolean {
   const interaction = stepInteraction(st);
   if (interaction !== 'table' && interaction !== 'de' && interaction !== 'jet') return false;
   if (interaction === 'jet' && (st.result || st.target == null)) return false;
-  return !surfaceOf(get, porteurDe(st));
+  return !surfaceOf(get, porteurResolu(st));
 }
 
 /**
@@ -1651,10 +1653,10 @@ function avanceUnPas(get: Get, set: Set): PendingCascade | null | typeof ENCORE 
   // PARITÉ DE TRACE (#1479) : un dé POSÉ D'OFFICE par le curseur (`poserLeCurseur`, aucun siège ne
   // tient l'étape) n'a été montré par AUCUNE fenêtre — il reçoit donc sa ligne de journal, comme celui
   // du pilote immédiat (`runCascadeImmediate`). Le fait se RE-DÉRIVE du prédicat qui a fait poser le dé
-  // (`surfaceOf(porteurDe)`), jamais d'un champ d'étape : rien n'entre dans la sauvegarde.
+  // (`surfaceOf(porteurResolu)`), jamais d'un champ d'étape : rien n'entre dans la sauvegarde.
   // Un DÉ NU (#1508) posé d'office se lit à la MÊME condition, mais pas à la même interaction : une
   // fois tiré il n'est plus `'de'` (son `result` est là), donc c'est le PORTEUR DE DÉ qui le dit.
-  const dOffice = !!cur && (stepInteraction(cur) === 'jet' || !!cur.de?.result) && !surfaceOf(get, porteurDe(cur));
+  const dOffice = !!cur && (stepInteraction(cur) === 'jet' || !!cur.de?.result) && !surfaceOf(get, porteurResolu(cur));
   if (cur) {
     const r = commitStep(get, set, steps, p.cursor, { seq, purpose: p.purpose, liveMerge: true, unwitnessed: dOffice }); // liveMerge : préserve les appends d'une conséquence foldée
     steps = r.steps; suspended = r.suspended; seq = r.seq;

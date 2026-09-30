@@ -5,6 +5,7 @@ import { preemptShooterIds } from '../state/targeting';
 import { findActionById } from '../data/index';
 import { actionGate, runAction } from '../state/actionRegistry';
 import { inBattleId } from '../state/combatants';
+import { journalDeCombatVisible } from '../state/netOwnership';
 import type { IconIdInput } from './icons';
 import { ciblageEntiteArme } from '../state/targetingModes';
 import { MondeDeCampagne } from '../gameIso/stage/MondeDeCampagne';
@@ -108,6 +109,7 @@ export function CampaignView() {
   const journal = useGame((s) => s.journal);
   const dialogue = useGame((s) => s.dialogue);
   const battle = useGame((s) => s.battle);
+  useGame((s) => s.net); // la visibilité des traces suit les sièges (`journalDeCombatVisible`, #700)
   const merchant = useGame((s) => s.merchant);
   const sessionEndOpen = useGame((s) => s.sessionEndOpen); // Effet `sessionEnd` (#83) : ouvre la même modale
   const closeSessionEnd = useGame((s) => s.closeSessionEnd);
@@ -373,7 +375,7 @@ export function CampaignView() {
                   <Icon id="travel/sail-ship" size="lg" />
                 </button>
               )}
-              <LogDrawer battle={battle ? { log: battle.log, combatants: battle.combatants } : null} journal={journal} />
+              <LogDrawer battle={battle ? { log: journalDeCombatVisible(useGame.getState(), battle.log), combatants: battle.combatants } : null} journal={journal} />
             </Stack>
           )}
           {mode === 'exploration' && povActive && <PovControls />}

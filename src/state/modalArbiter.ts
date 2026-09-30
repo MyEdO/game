@@ -15,7 +15,7 @@
  * `pickActiveModalKey` et `modalOwnerOf` sont DÉRIVÉS du registre — rien d'autre à toucher.
  */
 import type { GameState } from './store';
-import { WORLD_STEP_OWNER } from './pendings';
+import { WORLD_STEP_OWNER, porteurResolu } from './pendings';
 import type { PendingKey } from './stateFields';
 
 /** État partiel accepté par l'arbitre (les tests passent des objets minces). */
@@ -148,13 +148,11 @@ export const MODAL_DEFS = [
     if (cur?.jet !== 'cast') return true;
     return !s.pendingCast?.pickingTargets && !s.pendingCast?.zone?.placing;
   }, tientLaMain: (s) => !!s.pendingCascade, owner: (s) => {
-    // Étape de GROUPE (enfoncer une porte) → '*' (chacun pilote ses héros) ; étape MONDE sans acteur
-    // (`worldOwner`, seam #275 Décision 3 — désertion/Moral) → sentinel routé au siège MJ par
-    // `netOwnership.seatOwns` ; sinon le héros de l'étape.
+    // Étape de GROUPE (enfoncer une porte) → '*' (chacun pilote ses héros) ; sinon SON porteur, résolu
+    // au site unique `pendings.porteurResolu` (porteur déclaré, héros, sentinel du monde — #700).
     const cur = s.pendingCascade?.participants[s.pendingCascade.cursor];
     if (cur?.groupOwner) return '*';
-    if (!cur?.actorId && cur?.worldOwner) return WORLD_STEP_OWNER;
-    return cur?.actorId;
+    return cur ? porteurResolu(cur) : undefined;
   }, auto: { mode: 'partial' },
   covers: [
     'pendingCascade',

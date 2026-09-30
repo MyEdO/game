@@ -545,5 +545,32 @@
       "page": 136,
       "note": "MDG 15 l.366-372"
     }
+  },
+  {
+    "id": "combat-vents-tourbillonnants",
+    "type": "combat-stakes",
+    "label": "Force des Vents Tourbillonnants",
+    "kind": "windsOfMagic",
+    "template": "La ligne tirée donne le modificateur des Tests d’Incantation et de Focalisation.",
+    "form": "descripteur",
+    "entryCategory": "ventsTourbillonnants",
+    "source": {
+      "book": "livre-de-base",
+      "page": 238,
+      "note": "LDB 46 l.181-190"
+    }
+  },
+  {
+    "id": "combat-vents-seconde-vue",
+    "type": "combat-stakes",
+    "label": "Seconde vue — repérer les Vents",
+    "kind": "windsOfMagicSight",
+    "rule": "seconde-vue",
+    "ruleCategory": "talents",
+    "source": {
+      "book": "livre-de-base",
+      "page": 238,
+      "note": "LDB 46 l.181"
+    }
   }
 ]

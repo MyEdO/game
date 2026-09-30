@@ -1241,6 +1241,8 @@ export const fr = {
   'step.sauvegarde': 'Sauvegarde',
   'step.sauvegardeSolide': 'Sauvegarde Solide — {weapon}',
   'step.salveMisfire': 'Incident de Tir par Salve — {weapon}',
+  'step.windsOfMagic': 'Vents Tourbillonnants',
+  'step.windsOfMagicSight': 'Seconde vue — Vents Tourbillonnants',
   'step.miscastMajeure': 'Incantation Imparfaite Majeure',
   'step.miscastMineure': 'Incantation Imparfaite Mineure',
   'step.colereDesDieux': 'Colère des dieux',

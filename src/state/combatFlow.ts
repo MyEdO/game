@@ -18,7 +18,7 @@ import { TEMPO } from './tempo';
 import { beatHold, approachMs, afterApproach } from './combatDirector';
 import { scheduleCombatTimer } from './combatTimers';
 import { facingToward, DIR8_ORDER, type Dir8 } from './dir8';
-import { rollWindsOfMagic, hasSecondeVue, windsModLine } from '../engine/windsOfMagic';
+import { windsModFromRoll, hasSecondeVue, windsModLine } from '../engine/windsOfMagic';
 import { setVesselHull } from './seaVoyageFlow';
 import {
   resolveMelee,
@@ -138,7 +138,7 @@ import {
 import { opposedTest, rollTest, evaluateTest, resolveOpposed, isDoubleRoll, extendedTestStep, easeDifficulty, hydrateTR } from '../engine/tests';
 import { effectiveChar, bonus } from '../engine/characteristics';
 import { testValue, type SupportDetail } from '../engine/skills';
-import { findManeuverById, findDomainById, diseaseLabel, refLabel, findPsychologyById, findVehicleById, combatStakeRef, GRAPPLE, type SpellData, type ManeuverDef, libelleOuAbsence } from '../data';
+import { findManeuverById, findDomainById, diseaseLabel, refLabel, findPsychologyById, findVehicleById, combatStakeRef, windsOfMagicTable, GRAPPLE, type SpellData, type ManeuverDef, libelleOuAbsence } from '../data';
 import { applyHullCritical, exposedCrew } from '../engine/shipCritical';
 import { endShanty, resolveShipUnits } from './shipCrew';
 import { beginShipwreck } from './shipwreck';
@@ -254,7 +254,7 @@ export * from './combatManeuvers';
 export * from './combatHooks';
 export * from './combatSetup';
 import { collectHeroRoundEndUpkeep } from './combat/roundHooks';
-import { controlsCombatant, defenseSurfaced, jetSurfaced, tenuParUnHumain } from './netOwnership';
+import { controlsCombatant, defenseSurfaced, jetSurfaced, tenuParUnHumain, MJ_STEP_OWNER } from './netOwnership';
 import { resolveRecoverTest } from './combat/recover';
 import { fireTurnStartTriggers, fireTurnEndTriggers, resolveActGates } from './combat/turnHooks'; // effets de bord de tour (onTurnStart/onTurnEnd, dont la sortie de Frénésie en données) + gate d'action (Mandragore)
 export { collectHeroRoundEndUpkeep } from './combat/roundHooks'; // baril : enregistre les hooks de franchissement de Round (effet de bord) + ré-export pour la cascade d'upkeep
@@ -277,7 +277,7 @@ import { combatEndBands, combatEndRowMeta } from './combatEndBands';
 import type { CascadeStepMeta, ChaineDeBalayage, EnchainementDuCoup, RebondDeChaine, SeuilDeSauvegarde, SauvegardeSuite, SuiteDeCoup, ToucheDeProjectile, PendingCasseDArme, QueueDuCoup } from './pendings';
 import { APRES_COUP } from './pendings';
 import {
-  freeCons, resultLines, rollLine, rollStep, rollSansPilote, surfaceOf, monoStep, pousseSi,
+  freeCons, resultLines, rollLine, rollStep, rollSansPilote, surfaceOf, surfaceDesEtapes, monoStep, pousseSi,
   hostStep, idDansLaSequence, openSequence, openBand, pushHost, pushTableDone, pushTable, pushChoice, pushDisplay, pushDie, tableStep, makeBandFactory,
   type Consequence, type TableSpec,
 } from './rollSeam';
@@ -613,38 +613,69 @@ export function startleOnStormAtCombatStart(get: Get, set: SetFn): void {
   }
 }
 
+/** Table des Vents Tourbillonnants au registre des étapes (LDB 46 l.183-190) — la donnée éditable
+ *  (`windsOfMagicTable`), lue par la fenêtre et par l'application (`windsModFromRoll`). */
+const TABLE_VENTS = 'vents-tourbillonnants';
+const VENTS_KIND = 'windsOfMagic';
+const VENTS_VUE_KIND = 'windsOfMagicSight';
+registerTableStep(TABLE_VENTS, {
+  label: tr('step.windsOfMagic'),
+  die: 10,
+  rows: windsOfMagicTable,
+  lines: (roll) => [findTableEntry(windsOfMagicTable, roll).label],
+  entryCategory: 'ventsTourbillonnants',
+});
+registerCascadeApplier(VENTS_KIND, (get, set, step) => {
+  const tiree = step.table?.result;
+  const battle = get().battle;
+  if (!tiree || !battle) return {};
+  set({ battle: { ...battle, windsOfMagic: { roll: tiree.roll, mod: windsModFromRoll(tiree.roll), revealed: false } } });
+  return { consequences: freeCons(tiree.lines) };
+});
+registerCascadeApplier(VENTS_VUE_KIND, (get, set, step, hero) => {
+  const battle = get().battle;
+  if (!step.result?.success || !hero || !battle?.windsOfMagic) return {};
+  set({ battle: { ...battle, windsOfMagic: { ...battle.windsOfMagic, revealed: true } } });
+  return { consequences: freeCons([tr('cs.windsOfMagicSeen', { name: hero.label })]) };
+});
+
 /**
- * Option « Vents Tourbillonnants » (LDB 46 l.179-190) : tirage 1d10 de la force des Vents — à
- * l'OUVERTURE du combat (grain `scene`, défaut), et re-tirable au Round (`state/combat/roundHooks.ts`,
- * grain `round`, « zones de turbulences magiques »). Un héros porteur du Talent Seconde vue tente un
- * Test de Perception Facile (+40, l.181) : succès → force RÉVÉLÉE (HUD) ; sans détection, le
- * modificateur reste appliqué (Vents subis sans être repérés) mais invisible tant qu'il n'a pas été
- * révélé — la modale de jet le montre au moment du jet (breakdown post-jet). Inerte hors combat (le
- * moteur ne modélise le grain « scène » qu'au niveau du combat, cf. grounding #491) et si l'option est
- * 'off' (aucun tirage RNG → golden préservé).
+ * Option « Vents Tourbillonnants » (LDB 46 l.179-190) — SITE UNIQUE du tirage, à l'ouverture du combat
+ * (grain `scene`) comme au Round (grain `round`, `openRoundEndCascade`). Le 1d10 est le dé du MJ (l.181) :
+ * porteur `MJ_STEP_OWNER`, audience porteur (#700). Le Test de Perception Facile de Seconde vue (l.181)
+ * est celui du HÉROS, audience ordinaire. Les Tests SUIVENT la table : dans SA séquence quand elle
+ * s'ouvre, après sa résolution sur place sinon — jamais une séquence mêlée où la fenêtre d'un héros
+ * montrerait le dé qu'aucun siège ne tient. Inerte si l'option est 'off'.
  */
-export function rerollWindsOfMagic(get: Get, set: SetFn): void {
+export function rerollWindsOfMagic(get: Get, set: SetFn, bornes: { roundBoundary?: true } = {}): void {
   const battle = get().battle;
   if (!battle || rule('vents-tourbillonnants') === 'off') return;
-  const { roll, mod } = rollWindsOfMagic(battleRng());
-  let revealed = false;
-  const lines: { line: string; id: string }[] = [];
-  for (const c of battle.combatants) {
-    if (c.kind !== 'hero' || isOutOfAction(c) || !hasSecondeVue(c)) continue;
-    const res = rollTest(testValue(c, 'perception'), 'facile', battleRng());
-    if (res.success) {
-      revealed = true;
-      lines.push({ line: tr('cs.windsOfMagicSeen', { name: c.label }), id: c.id });
-    }
+  const round = battle.round;
+  const table = tableStep({
+    id: `vents-${round}`, kind: VENTS_KIND, label: tr('step.windsOfMagic'), icon: 'magic/power',
+    worldOwner: true, porteur: MJ_STEP_OWNER, audience: 'porteur',
+    table: { tableId: TABLE_VENTS, spec: { n: 1, sides: 10 } },
+    stake: combatStakeRef(VENTS_KIND),
+  });
+  if (!table) return;
+  const vues = battle.combatants
+    .filter((c) => c.kind === 'hero' && !isOutOfAction(c) && hasSecondeVue(c))
+    .map((c) => monoStep({
+      id: `vents-vue-${round}-${c.id}`, kind: VENTS_VUE_KIND, label: tr('step.windsOfMagicSight'), actor: c,
+      ligne: { test: { skill: 'perception' } }, difficulty: 'facile', stake: combatStakeRef(VENTS_VUE_KIND),
+    }))
+    .filter((st): st is BuiltCascadeStep => !!st);
+  const seq = { title: tr('step.windsOfMagic'), icon: 'magic/power', purpose: 'combat' as const, ...bornes };
+  if (surfaceDesEtapes(get, [table]) !== 'I') {
+    openSequence(get, set, { ...seq, steps: [table, ...vues] });
+    return;
   }
-  battle.windsOfMagic = { roll, mod, revealed };
-  for (const { line, id } of lines) battle.log.push(ev('info', line, id));
-  set({ battle: { ...battle } });
+  openSequence(get, set, { ...seq, steps: [table] });
+  if (vues.length) openSequence(get, set, { ...seq, steps: vues });
 }
 
 /** Tirage d'OUVERTURE de combat des Vents Tourbillonnants (grain `scene`, défaut RAW). */
 export function windsOfMagicAtCombatStart(get: Get, set: SetFn): void {
-  if (!get().battle) return;
   rerollWindsOfMagic(get, set);
 }
 
@@ -7742,8 +7773,10 @@ export function openRoundEndCascade(get: Get, set: SetFn): void {
     const b = get().battle!;
     set({ battle: { ...b, log: [...b.log, ...upkeepLines.map((u) => ev('condition', u.line, u.id))] } });
   }
-  if (!steps.length) return;
-  openSequence(get, set, { title: 'Fin de Round', icon: 'time/clock', purpose: 'combat', steps, roundBoundary: true });
+  if (steps.length) openSequence(get, set, { title: 'Fin de Round', icon: 'time/clock', purpose: 'combat', steps, roundBoundary: true });
+  // Vents Tourbillonnants au grain `round` (LDB 46 l.181 « à chaque Round dans des zones de turbulences
+  // magiques ») — APRÈS les étapes du Round, dans la même borne.
+  if (rule('vents-tourbillonnants') === 'round') rerollWindsOfMagic(get, set, { roundBoundary: true });
 }
 
 /**

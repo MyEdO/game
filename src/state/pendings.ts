@@ -1671,6 +1671,18 @@ export interface CascadeRoll {
  *  s'importent déjà l'un l'autre) n'aient pas à se réimporter en cycle. */
 export const WORLD_STEP_OWNER = '__world-step__';
 
+/** Sentinel du PORTEUR MJ (#700) — le dé que le RAW fait lancer par le MJ (LDB 25 l.24, LDB 46 l.181).
+ *  Même module neutre que `WORLD_STEP_OWNER` ; sa route est celle d'un ennemi SANS combattant
+ *  (`netOwnership.conduitParLeMJ`) : tenu ssi un siège MJ existe. */
+export const MJ_STEP_OWNER = '__mj-step__';
+
+/** LE PORTEUR d'une étape, résolu (#700) : le porteur DÉCLARÉ, sinon l'acteur, sinon le monde. Vit
+ *  ICI (neutre) pour `modalArbiter.ts`, qui ne peut importer `cascade.ts` sans cycle d'initialisation
+ *  (`netOwnership.ts` évalue le registre de l'arbitre au chargement) — SITE UNIQUE, `cascade.ts` compris. */
+export function porteurResolu(st: Pick<CascadeStepBase, 'porteurId' | 'actorId'>): string {
+  return st.porteurId ?? st.actorId ?? WORLD_STEP_OWNER;
+}
+
 /** Agrégation d'une étape À PARTICIPANTS (batch multi — Test d'équipage, seam de jet #275 Décision 4
  *  cran 1). Canonique ICI (neutre, comme `WORLD_STEP_OWNER` ci-dessus) : `rollSeam.ts` importe déjà
  *  `CascadeStep` depuis ce module — la définir là-bas et l'importer ICI créerait un cycle.
@@ -1928,6 +1940,12 @@ export interface CascadeStepBase extends Omit<RollParticipant, 'interactive'> {
    *  Moral, périls sans acteur unique) : aucun `actorId`, l'arbitre route l'owner au siège MJ (`gmSeat`)
    *  quand il existe, à l'hôte sinon (`netOwnership.seatOwns` via le sentinel `WORLD_STEP_OWNER`). */
   worldOwner?: boolean;
+  /** PORTEUR DÉCLARÉ (#700) — l'id qui TIENT le dé quand ce n'est pas l'acteur de l'étape (le MJ,
+   *  `MJ_STEP_OWNER`). Résolu en UN site : `porteurResolu`. */
+  porteurId?: string;
+  /** AUDIENCE des traces de l'étape (#700) : `'porteur'` = le seul siège qui tient son porteur.
+   *  Absente = tous les sièges. Les lignes écrites portent l'id résolu (`CombatEvent.audience`). */
+  audience?: 'porteur';
   /** Libellé du Test affiché (« Résistance », « Calme », « Survie en extérieur »…) — la COMPÉTENCE
    *  lancée, pas la situation. LIÉ À `target` par le TYPE (cf. `CascadeStep` en fin d'interface) : une
    *  étape qui lance en porte un, une étape sans jet n'en porte pas. */
