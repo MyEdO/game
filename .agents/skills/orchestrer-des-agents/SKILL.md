@@ -20,6 +20,9 @@ l'intégration triviale et les gates. Violer la lettre de cette règle EST viole
 - **Un ticket prévu = un item `1. #N …` en colonne 0 sous `## En cours`** ; ses étapes (`[x]`/`[ ]`,
   indentées) s'écrivent AU FIL DE L'EAU — dispatch, verdict, commit, publication. Aucun état de
   branche, d'issue ou de publication n'y est saisi à la main : la zone mesurée le porte.
+- **À la FERMETURE d'un ticket** (issue fermée, liste « À condenser » de la zone mesurée), ses
+  arbitrages utilisateur partent au TICKET, verbatim et datés, PUIS sa section se réduit à une ligne :
+  le ticket, ce qui a été publié (sha) et les pointeurs utiles. Le suivi reste un PLAN.
 - **Le task-tracker n'est qu'un miroir de session**, jamais une source : ce qu'il porte et que le suivi
   n'a pas est perdu à la reprise.
 - **L'épique porte le design validé** en commentaire daté VERBATIM ; un ticket par lot (gabarit #101+,

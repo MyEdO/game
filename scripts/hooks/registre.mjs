@@ -11,11 +11,12 @@ import { garde as issueLabel } from './issue-label-guard.mjs'
 import { garde as codeurGates } from './codeur-gates-guard.mjs'
 import { garde as runnerCapture } from './runner-capture-guard.mjs'
 import { garde as poison } from './poison-postcheck.mjs'
+import { garde as suiviLien } from './suivi-lien-guard.mjs'
 
 export const REGISTRE = {
   PreToolUse: [
     canalOutil, nouveauFichierSrc, donneeEditee, exceptionAjoutee, memoireTombale,
-    commandePiege, issueLabel, codeurGates, runnerCapture,
+    commandePiege, issueLabel, codeurGates, runnerCapture, suiviLien,
   ],
   PostToolUse: [poison],
 }

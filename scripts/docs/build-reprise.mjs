@@ -91,9 +91,9 @@ function rendu() {
   }
 
   /** Événements de session que la surface Claude DOIT déclarer. Son `SessionStart` porte la mise en
-   *  conformité du conteneur distant (#1803), pas le credo : celui-ci entre dans le contexte de Claude
-   *  par l'IMPORT `@.claude/credo.md` en tête de CLAUDE.md, et seule la surface Codex — qui n'a pas
-   *  d'import — l'INJECTE (`scripts/agents/compat-core.mjs`, `HOOKS_MONO_SURFACE`). */
+   *  conformité du conteneur distant (#1803) et le suivi de vague (#2132), pas le credo : celui-ci entre
+   *  dans le contexte de Claude par l'IMPORT `@.claude/credo.md` en tête de CLAUDE.md, et seule la
+   *  surface Codex — qui n'a pas d'import — l'INJECTE (`scripts/agents/compat-core.mjs`, `HOOKS_DE_SESSION`). */
   const EVENEMENTS = ['SessionStart', 'PreToolUse', 'PostToolUse']
 
   // Workflows GitHub Actions : nom, déclencheurs (`declencheursDe`), portes npm exécutées.
@@ -169,7 +169,7 @@ function rendu() {
   const NB_HOOKS_SESSION = listerDossier(chemin('scripts/hooks')).filter((f) => f.endsWith('.mjs') && !f.endsWith('.test.mjs')).length
   /** Scripts de `scripts/hooks/` que la surface Claude DÉCLARE. Le dossier en porte davantage : une
    *  lib importée par un hook n'est pas un hook, et un hook propre à Codex n'est déclaré que là-bas
-   *  (`scripts/agents/compat-core.mjs`, `HOOKS_MONO_SURFACE`). Compter les FICHIERS en disant
+   *  (`scripts/agents/compat-core.mjs`, `HOOKS_DE_SESSION`). Compter les FICHIERS en disant
    *  « déclarés » faisait mentir cet inventaire. */
   const NB_HOOKS_DECLARES = new Set(EVENEMENTS.flatMap((e) => hooksDeSession(e).map((h) => h.script))).size
   const NB_DEFS = listerDossier(chemin('src/data/schemas/defs')).filter((f) => f.endsWith('.ts')).length

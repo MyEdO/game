@@ -47,6 +47,16 @@
             "statusMessage": "Injection du credo de travail"
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node scripts/hooks/inject-suivi.mjs",
+            "timeout": 10,
+            "statusMessage": "Suivi de vague de la session"
+          }
+        ]
       }
     ]
   }

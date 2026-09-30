@@ -5,7 +5,7 @@ import { readFile } from 'node:fs/promises';
 import {
   normalizeText, readFrontmatter, readTomlStringField, transformGuide,
   transformSkillTree, validateRolePairs, buildExpectedOutputs as sortiesAttendues, collectDiffs,
-  HOOKS_MONO_SURFACE, PLACE_PROJET, SURFACE_CLAUDE, SURFACE_CODEX, aplatirHooks, hooksAttendus, remplacerCleJson,
+  HOOKS_DE_SESSION, PLACE_PROJET, SURFACE_CLAUDE, SURFACE_CODEX, aplatirHooks, hooksAttendus, remplacerCleJson,
 } from './compat-core.mjs';
 import { atomicWrite, chargerRegistres, runCompat } from './compat-cli.mjs';
 
@@ -166,11 +166,21 @@ test('CONTRAT — toute déclaration Claude est en forme EXEC : `command` = `nod
   }
 });
 
-test('CONTRAT — un hook mono-surface n’est porté QUE par son propriétaire', () => {
-  for (const { phase, script, surface } of HOOKS_MONO_SURFACE) {
+test('CONTRAT — un hook de session n’est porté QUE par ses surfaces', () => {
+  for (const { phase, script, surfaces } of HOOKS_DE_SESSION) {
     for (const cible of [SURFACE_CLAUDE, SURFACE_CODEX]) {
       const porte = aplatirHooks({ hooks: hooksAttendus(REGISTRES, cible) }, cible).some((h) => h.phase === phase && h.script === script);
-      assert.equal(porte, cible === surface, `${script} sur ${cible}`);
+      assert.equal(porte, surfaces.includes(cible), `${script} sur ${cible}`);
+    }
+  }
+});
+
+test('CÂBLAGE — le suivi de vague est injecté au SessionStart des DEUX surfaces, générées et commitées (#2132)', async () => {
+  for (const surface of [SURFACE_CLAUDE, SURFACE_CODEX]) {
+    const commitees = JSON.parse(await readFile(new URL(`../../${surface}`, import.meta.url), 'utf8'));
+    for (const [origine, valeur] of [['générées', { hooks: hooksAttendus(REGISTRES, surface) }], ['commitées', commitees]]) {
+      const portes = aplatirHooks(valeur, surface).filter((h) => h.phase === 'SessionStart' && h.script === 'inject-suivi.mjs');
+      assert.equal(portes.length, 1, `${origine} ${surface}`);
     }
   }
 });

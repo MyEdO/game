@@ -21,7 +21,15 @@
 // section : première ligne `^## En cours\b`, jusqu'au `^## ` suivant. Un ITEM est une ligne
 // `^\d+\.\s` en COLONNE 0 ; son ticket est le PREMIER `#N` de la ligne ; une étape qui n'est pas un
 // ticket prévu s'indente. Anomalies : item sans ticket, numéro invalide (`#0`), ligne de colonne 0
-// de la section qui porte un `#N` sans être un item.
+// de la section qui porte un `#N` sans être un item. La SECTION d'un ticket compte les lignes non
+// vides de ses items : la ligne d'item et ses lignes indentées, jusqu'à l'item suivant, sommées sur
+// les items qui le citent.
+//
+// « À CONDENSER ». La zone mesurée liste chaque ticket dont l'issue est FERMÉE (`etatIssue`, lu par
+// `gh` quel que soit qui l'a fermée) et dont la section dépasse `LIGNES_D_UN_TICKET_FERME` ; la
+// condensation reste un geste d'orchestrateur, la zone écrite n'est jamais réécrite ici. « Par contre
+// le fichier comme tu le dis va grossir, il n'y a pas un moment quand tu ferme un ticket une mise a
+// jour du fichier de suivi en ne gardant du ticket que l'essentiel ? » (utilisateur, 2026-09-30, #2132).
 //
 // L'ÉCRITURE. Portée lue, mesure, portée RELUE (refus si elle a changé), rendu dans
 // `.<N>.md.<pid>.tmp`, texte relu juste avant le `rename` (refus s'il a changé), `rename`. Un
@@ -31,6 +39,11 @@
 //
 // LE PROFIL. Chaque geste injectable de la mesure (`GESTES_DU_BOARD`, `inv`, `issues`) est
 // chronométré ; le `reste` est le total moins leur somme.
+//
+// LA RELECTURE SANS MÉMOIRE (lot 2). `digestDuSuivi` est ce que le hook de session
+// (`scripts/hooks/inject-suivi.mjs`) met en contexte : titre, Objectif, items et étapes ouvertes, zone
+// mesurée datée, coupé à `PLAFOND_INJECTION` ; il ne mesure rien. `dossierDesSuivis` est le dossier que
+// ce script, le hook de session et le lien de session (`scripts/hooks/suivi-lien-guard.mjs`) partagent.
 //
 // Usage : `npm run ops:suivi -- <N> [--creer] [--sans-fetch]` · sans `<N>` : la liste des suivis.
 import * as FS from 'node:fs'
@@ -51,6 +64,17 @@ const ITEM = /^\d+\.\s/
 const SUIVI = /^\d+\.md$/
 const ORPHELIN = /^\.\d+\.md\.\d+\.tmp$/
 const TENU = new Set(['EPERM', 'EACCES', 'EBUSY'])
+const OBJECTIF = /^## Objectif\b/
+const ITEM_FAIT = /^\d+\.\s+\[[xX]\]/
+const ETAPE_OUVERTE = /^\s+(?:[-*+]|\d+\.)\s+\[ \]/
+const DATE_DE_ZONE = /^> Zone MESURÉE par .+ le (\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}) :/
+
+/** Âge (h) au-delà duquel la zone mesurée d'un digest est marquée PÉRIMÉE. Valeur maison. */
+export const HEURES_PEREMPTION = 24
+/** Taille maximale (caractères) d'un digest injecté au contexte. Valeur maison. */
+export const PLAFOND_INJECTION = 8000
+/** Lignes de section au-delà desquelles un ticket FERMÉ est « À condenser » : l'item et deux étapes. Valeur maison. */
+export const LIGNES_D_UN_TICKET_FERME = 3
 
 // ————————————————————————————————— fonctions PURES —————————————————————————————————
 
@@ -123,21 +147,24 @@ function nettoyer({ lignes: brutes, debut, fin }) {
 
 /**
  * Les tickets PRÉVUS d'un suivi — le premier `#N` de chaque item de `## En cours`, dédoublonnés dans
- * l'ordre — et les anomalies de sa grammaire (en-tête de ce fichier). `refus` est non nul quand le
- * texte est illisible (marqueurs, section absente). PURE.
+ * l'ordre —, la longueur de leur SECTION (en-tête de ce fichier) et les anomalies de sa grammaire.
+ * `refus` est non nul quand le texte est illisible (marqueurs, section absente). PURE.
  * @param {string} texte
- * @returns {{tickets: number[], anomalies: string[], refus: string|null}}
+ * @returns {{tickets: number[], sections: Map<number, number>, anomalies: string[], refus: string|null}}
  */
 export function ticketsPrevus(texte) {
   const zones = zonesDe(texte)
-  if (!zones.ok) return { tickets: [], anomalies: [], refus: zones.refus }
+  if (!zones.ok) return { tickets: [], sections: new Map(), anomalies: [], refus: zones.refus }
   const { lignes, anomalies } = nettoyer(zones)
   const debut = lignes.findIndex((l) => SECTION.test(l))
   if (debut < 0) {
-    return { tickets: [], anomalies, refus: 'section `## En cours` absente : un item `1. #N …` en colonne 0 par ticket prévu, sous ce titre' }
+    return { tickets: [], sections: new Map(), anomalies, refus: 'section `## En cours` absente : un item `1. #N …` en colonne 0 par ticket prévu, sous ce titre' }
   }
   const suite = lignes.findIndex((l, i) => i > debut && /^## /.test(l))
   const tickets = []
+  const sections = new Map()
+  const compter = (numero) => sections.set(numero, (sections.get(numero) ?? 0) + 1)
+  let courant = null
   let rang = 0
   for (let i = debut + 1; i < (suite < 0 ? lignes.length : suite); i += 1) {
     const ligne = lignes[i]
@@ -145,9 +172,11 @@ export function ticketsPrevus(texte) {
       if (/^\S/.test(ligne) && /#\d+/.test(ligne)) {
         anomalies.push(`ligne hors grammaire qui porte un #N (l.${i + 1}) : ${extrait(ligne)} — un item s'écrit \`1. #N …\` en colonne 0`)
       }
+      if (courant !== null && /^\s+\S/.test(ligne)) compter(courant)
       continue
     }
     rang += 1
+    courant = null
     const [premier] = numerosDeLaChaine(ligne)
     if (premier === undefined) {
       anomalies.push(`item ${rang} sans ticket (l.${i + 1}) : ${extrait(ligne)}`)
@@ -159,8 +188,10 @@ export function ticketsPrevus(texte) {
       continue
     }
     if (!tickets.includes(numero)) tickets.push(numero)
+    courant = numero
+    compter(numero)
   }
-  return { tickets, anomalies, refus: null }
+  return { tickets, sections, anomalies, refus: null }
 }
 
 const deux = (n) => String(n).padStart(2, '0')
@@ -174,11 +205,12 @@ const puce = (v) => `- ${String(v).replace(/\r?\n/g, ' ')}`
 /**
  * Les lignes de la zone MESURÉE, sans ses marqueurs. PURE.
  * @param {{mesure: {ok: boolean, lignes?: object[], anomalies?: string[], refus?: string},
- *   grammaire: string[], epique: number, maintenant: Date}} params
+ *   grammaire: string[], sections: Map<number, number>, epique: number, maintenant: Date}} params
  * @returns {string[]}
  */
-function lignesDeLaZone({ mesure, grammaire, epique, maintenant }) {
+function lignesDeLaZone({ mesure, grammaire, sections, epique, maintenant }) {
   const zone = [
+    // `DATE_DE_ZONE` relit cette date.
     `> Zone MESURÉE par \`npm run ops:suivi -- ${epique}\` le ${horodatage(maintenant)} : réécrite à chaque appel, jamais éditée à la main.`,
     `> Épique [#${epique}](${urlDuTicket(epique)}). « Dernier commit » : le plus récent d'une branche du ticket, sinon sa dernière citation par \`${BASE}\` dans les ${JOURS_FUSION_RECENTE} jours ; vide au-delà.`,
     '',
@@ -193,6 +225,11 @@ function lignesDeLaZone({ mesure, grammaire, epique, maintenant }) {
     for (const l of mesure.lignes) {
       zone.push(`| #${l.ticket} | ${cellule(l.statut)} | ${cellule(l.etatIssue)} | ${cellule(l.branches.join(' · '))} | `
         + `${cellule(l.avance)} | ${cellule(l.dernierCommit)} | ${cellule(l.worktrees.join(' · '))} |`)
+    }
+    const aCondenser = mesure.lignes.filter((l) => l.etatIssue === 'fermé' && (sections.get(l.ticket) ?? 0) > LIGNES_D_UN_TICKET_FERME)
+    if (aCondenser.length) {
+      zone.push('', '**À condenser**', '', ...aCondenser.map((l) => puce(`#${l.ticket} fermé : sa section fait ${sections.get(l.ticket)} lignes`
+        + ' → la condenser à l\'essentiel (arbitrages verbatim au ticket d\'abord)')))
     }
   }
   if (grammaire.length) zone.push('', '**Grammaire du suivi**', '', ...grammaire.map(puce))
@@ -214,8 +251,8 @@ export function renduDuSuivi({ texte, mesure, epique, maintenant }) {
   const zones = zonesDe(texte)
   if (!zones.ok) throw new Error(zones.refus)
   const fin = /\r\n/.test(texte) ? '\r\n' : '\n'
-  const { anomalies } = ticketsPrevus(texte)
-  const zone = [MARQUE_DEBUT, ...lignesDeLaZone({ mesure, grammaire: anomalies, epique, maintenant })]
+  const { anomalies, sections } = ticketsPrevus(texte)
+  const zone = [MARQUE_DEBUT, ...lignesDeLaZone({ mesure, grammaire: anomalies, sections, epique, maintenant })]
     .map((l) => `${l}${fin}`).join('')
   if (zones.debut < 0) {
     const jointure = texte === '' ? '' : `${texte.endsWith('\n') ? '' : fin}${fin}`
@@ -240,6 +277,73 @@ export const gabaritDuSuivi = (epique) => [
   MARQUE_FIN,
   '',
 ].join('\n')
+
+/** La date (locale) d'une zone mesurée, relue sur sa première ligne ; `null` sans date. PURE. */
+function dateDeLaZone(lignesDeZone) {
+  const m = DATE_DE_ZONE.exec(lignesDeZone.find((l) => l.trim()) ?? '')
+  return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5])) : null
+}
+
+/** `lignes` jointes, coupées à la ligne pour tenir sous `plafond`, fin « tronqué » comprise. PURE. */
+function plafonner(lignes, plafond, chemin) {
+  const entier = lignes.join('\n')
+  if (entier.length <= plafond) return entier
+  const fin = `… tronqué, lire ${chemin}`
+  const gardees = []
+  let taille = fin.length
+  for (const ligne of lignes) {
+    if (taille + ligne.length + 1 > plafond) break
+    gardees.push(ligne)
+    taille += ligne.length + 1
+  }
+  if (!gardees.length) return `${entier.slice(0, Math.max(0, plafond - fin.length - 1))}\n${fin}`
+  return [...gardees, fin].join('\n')
+}
+
+/**
+ * Le DIGEST d'un suivi : son titre, son `## Objectif`, les items de `## En cours` (sauf ceux cochés
+ * `[x]`) et leurs étapes `[ ]`, puis la zone mesurée — PÉRIMÉE au-delà de `HEURES_PEREMPTION`, ou
+ * « jamais rafraîchie ». Commentaires HTML et blocs de code n'y entrent pas. Coupé à `plafond`
+ * caractères, terminé par « tronqué, lire <chemin> ». PURE.
+ * @param {string} texte
+ * @param {{epique: number, chemin: string, mtime: Date, maintenant: Date, plafond?: number}} params
+ * @returns {string}
+ */
+export function digestDuSuivi(texte, { epique, chemin, mtime, maintenant, plafond = PLAFOND_INJECTION }) {
+  const vues = zonesDe(texte)
+  const zones = vues.ok ? vues : { lignes: lignesDe(texte), debut: -1, fin: -1 }
+  const sortie = [`[suivi #${epique}] ${chemin} — écrit le ${horodatage(mtime)}`]
+  if (!vues.ok) sortie.push(`⚠ ${vues.refus}`)
+  let titre = false
+  let section = null
+  for (const ligne of nettoyer(zones).lignes) {
+    if (/^# /.test(ligne) && !titre) {
+      titre = true
+      sortie.push(ligne)
+    } else if (/^## /.test(ligne)) {
+      section = OBJECTIF.test(ligne) ? 'objectif' : SECTION.test(ligne) ? 'en-cours' : null
+      if (section) sortie.push(ligne)
+    } else if (section === 'objectif' && ligne.trim()) {
+      sortie.push(ligne)
+    } else if (section === 'en-cours' && ((ITEM.test(ligne) && !ITEM_FAIT.test(ligne)) || ETAPE_OUVERTE.test(ligne))) {
+      sortie.push(ligne)
+    }
+  }
+  const zone = zones.debut >= 0 ? zones.lignes.slice(zones.debut + 1, zones.fin).map(sansFin) : []
+  const date = dateDeLaZone(zone)
+  const rafraichir = `\`npm run ops:suivi -- ${epique}\``
+  sortie.push('', '## Zone mesurée')
+  if (!date) {
+    sortie.push(`zone mesurée jamais rafraîchie : ${rafraichir}`)
+  } else {
+    const heures = (maintenant.getTime() - date.getTime()) / 3_600_000
+    if (heures > HEURES_PEREMPTION) {
+      sortie.push(`**PÉRIMÉE** : mesurée il y a ${Math.floor(heures)} h (au-delà de ${HEURES_PEREMPTION} h) — ${rafraichir}`)
+    }
+    sortie.push(...zone)
+  }
+  return plafonner(sortie, plafond, chemin)
+}
 
 // ————————————————————————————————— mesure, écriture, CLI —————————————————————————————————
 
@@ -278,7 +382,7 @@ const ligneDeProfil = ({ durees, total, reste }) => `[suivi] profil (ms) : ${Obj
   .map(([nom, ms]) => `${nom} ${Math.round(ms)}`).join(' · ')} · total ${Math.round(total)} · reste ${reste.toFixed(1)}`
 
 /** Le texte de `cible`, ou `null` si elle n'existe plus (`ENOENT`) ; toute autre erreur est relancée. */
-function relire(cible, fs) {
+export function relire(cible, fs) {
   try {
     return fs.readFileSync(cible, 'utf8')
   } catch (e) {
@@ -400,28 +504,49 @@ export function suivre({ numero, dossier, creer = false, sansFetch = false, fs =
   return { code: vu.ok ? 0 : 1, stdout: `${contenu}\n${ligneDeProfil(profil)}\n`, stderr: '' }
 }
 
-function main() {
-  const argv = process.argv.slice(2)
+/**
+ * Le dossier des suivis, `<arbre principal>/.git/suivi`, depuis n'importe quel arbre du dépôt (un
+ * worktree lié compris) : l'union de `arbrePrincipal`, sa valeur prolongée du dossier.
+ * @param {string} cwd
+ * @returns {{disponible: true, valeur: string} | {disponible: false, raison: string}}
+ */
+export function dossierDesSuivis(cwd) {
+  const vu = arbrePrincipal(depotDe(cwd))
+  return vu.disponible ? { ...vu, valeur: join(vu.valeur, '.git', 'suivi') } : vu
+}
+
+/**
+ * Les arguments de ce script : aucun (la liste des suivis), ou UN numéro `>= 1` et, au choix,
+ * `--creer` et `--sans-fetch`. Toute autre forme est refusée (`null`). PURE.
+ * @param {string[]} argv
+ * @returns {{numero: number|null, creer: boolean, sansFetch: boolean} | null}
+ */
+export function argumentsDuSuivi(argv) {
   const numeros = argv.filter((a) => /^\d+$/.test(a)).map(Number)
   const valides = argv.every((a) => a === '--creer' || a === '--sans-fetch' || /^\d+$/.test(a))
-  if (argv.length && (!valides || numeros.length !== 1 || numeros[0] < 1)) {
+  if (argv.length && (!valides || numeros.length !== 1 || numeros[0] < 1)) return null
+  return { numero: numeros[0] ?? null, creer: argv.includes('--creer'), sansFetch: argv.includes('--sans-fetch') }
+}
+
+function main() {
+  const argv = process.argv.slice(2)
+  const lus = argumentsDuSuivi(argv)
+  if (!lus) {
     process.stderr.write(`[suivi] arguments refusés : ${argv.join(' ')} — usage : \`npm run ops:suivi -- <N> `
       + '[--creer] [--sans-fetch]`, ou sans argument pour la liste des suivis\n')
     process.exit(1)
   }
-  const vuRacine = arbrePrincipal(depotDe(process.cwd()))
-  if (!vuRacine.disponible) {
-    process.stderr.write(`[suivi] ${vuRacine.raison}\n`)
+  const vuDossier = dossierDesSuivis(process.cwd())
+  if (!vuDossier.disponible) {
+    process.stderr.write(`[suivi] ${vuDossier.raison}\n`)
     process.exit(1)
   }
-  const dossier = join(vuRacine.valeur, '.git', 'suivi')
-  if (!numeros.length) {
+  const dossier = vuDossier.valeur
+  if (lus.numero === null) {
     process.stdout.write(texteDeLaListe({ dossier, ...listerSuivis({ dossier }) }))
     return
   }
-  const { code, stdout, stderr } = suivre({
-    numero: numeros[0], dossier, creer: argv.includes('--creer'), sansFetch: argv.includes('--sans-fetch'),
-  })
+  const { code, stdout, stderr } = suivre({ numero: lus.numero, dossier, creer: lus.creer, sansFetch: lus.sansFetch })
   process.stdout.write(stdout)
   process.stderr.write(stderr)
   process.exitCode = code
