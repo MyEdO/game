@@ -4,7 +4,7 @@ import type { FlowStakeId } from '../index';
 
 /**
  * L'union LITTÉRALE des ids par espace (`IdsParEspace`, émise par `scripts/gen-espaces.mts`) ferme
- * l'id AU COMPILATEUR, comme `QualityId` (`scripts/gen-quality-ids.mjs`). La preuve est de TYPE : les
+ * l'id AU COMPILATEUR — `FlowStakeId`, `QualityId` en sont des espaces. La preuve est de TYPE : les
  * `@ts-expect-error` ci-dessous rougissent `npm run typecheck` (TS2578) le jour où l'union s'élargit
  * en `string`. Les `expect` ne font que tenir les valeurs vivantes.
  */

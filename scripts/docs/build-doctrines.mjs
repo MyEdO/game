@@ -319,13 +319,25 @@ export function dateAjoutGit(fichier, cwd) {
   } catch { return '' }
 }
 
-function main() {
-  const check = process.argv.includes('--check')
-  const cwd = execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim()
+/** Le doc rendu depuis la racine git `cwd`, et le nombre de doctrines qu'il porte. */
+function rendu(cwd) {
   const chemins = fichesSuivies(cwd)
   if (chemins.length === 0) abandon('aucune fiche `.claude/memory/user-*.md` suivie par git — source vide, doc refusé')
   const fiches = chemins.map((fichier) => ({ fichier, texte: readFileSync(resolve(cwd, fichier), 'utf8') }))
-  const out = construireDoc(fiches, { dateAjout: (f) => dateAjoutGit(f, cwd) })
+  return { out: construireDoc(fiches, { dateAjout: (f) => dateAjoutGit(f, cwd) }), n: chemins.length }
+}
+
+const racineGit = () => execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim()
+
+/** Contrat `rendre()` de `GENERATORS` (scripts/docs/build-all.mjs) : cible → texte, sans écrire. */
+export function rendre(cwd = racineGit()) {
+  return new Map([[CIBLE, rendu(cwd).out]])
+}
+
+function main() {
+  const check = process.argv.includes('--check')
+  const cwd = racineGit()
+  const { out, n } = rendu(cwd)
   const poids = Buffer.byteLength(out, 'utf8')
   ecrireOuVerifier({
     out,
@@ -333,8 +345,8 @@ function main() {
     check,
     staleMsg: `${OUTIL} — ${CIBLE} PÉRIMÉ (fiche ajoutée/éditée, ou doc édité à la main).`,
     rerunMsg: `${OUTIL} — relancer \`npm run docs:doctrines\` et committer ${CIBLE}.`,
-    okMsg: `${OUTIL} — OK (${chemins.length} doctrines, ${poids} octets)`,
-    writeMsg: `${OUTIL} — ${CIBLE} écrit (${chemins.length} doctrines, ${poids} octets)`,
+    okMsg: `${OUTIL} — OK (${n} doctrines, ${poids} octets)`,
+    writeMsg: `${OUTIL} — ${CIBLE} écrit (${n} doctrines, ${poids} octets)`,
   })
 }
 

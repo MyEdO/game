@@ -661,6 +661,18 @@ function printFolioStats(fs) {
   for (const [book, s] of rows) console.log(`  ${book} : ${s.resolved} résolus · ${s.notFound} introuvables · ${s.ambiguous} ambigus`)
 }
 
+/** Chemin d'une fiche de `ctx`, séparateurs normalisés. */
+const cheminDeFiche = (ctx, doc) => `${ctx.rawDir}/${doc}`.replace(/\\/g, '/')
+
+/**
+ * Contrat `rendre()` de `GENERATORS` (scripts/docs/build-all.mjs) : chaque fiche → son texte, champ
+ * Implémente réinjecté, sans écrire. Le texte EXISTANT des fiches vient de `ctx` (`buildContext`,
+ * le disque par défaut) : seul ce champ est dérivé, le reste de la fiche est manuscrit.
+ */
+export function rendre(ctx = buildContext()) {
+  return new Map(ctx.fiches.map((fi) => [cheminDeFiche(ctx, fi.doc), regenerateFiche(fi.doc, fi.content, ctx)]))
+}
+
 function main() {
   const args = process.argv.slice(2)
   const CHECK = args.includes('--check')
@@ -671,7 +683,8 @@ function main() {
   const orphans = orphelinsDeDette(ctx, all)
   const sansObjet = dettesDeFicheSansObjet(ctx, all)
 
-  const regenerated = ctx.fiches.map((fi) => ({ doc: fi.doc, content: regenerateFiche(fi.doc, fi.content, ctx), orig: fi.content }))
+  const rendu = rendre(ctx)
+  const regenerated = ctx.fiches.map((fi) => ({ doc: fi.doc, content: rendu.get(cheminDeFiche(ctx, fi.doc)), orig: fi.content }))
   const touched = regenerated.filter((r) => r.content !== r.orig)
 
   if (DRY) {

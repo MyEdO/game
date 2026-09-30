@@ -24,8 +24,6 @@
 # Pilotes déclarés par `npm run postinstall` (git config merge.docs-*.driver),
 # implémentés par scripts/git-hooks/merge-docs.mjs.
 #   docs-generes   : garde la version courante, `npm run docs:build` reconstruit la valeur juste.
-#   docs-catalogue : catalogue dérivé SAUF ses blocs `<!-- X-INTEGRATION -->` (correctifs manuels) —
-#                    garde la version courante, refuse la fusion si un bloc entrant serait perdu.
 #   docs-fiche-raw : fiche MIXTE (prose manuscrite + champs `**Implémente :**` dérivés) — fusion
 #                    3-voies de la PROSE seule ; conflit résiduel = vrai conflit humain.
 docs/primitives.md            merge=docs-generes linguist-generated=true
@@ -58,7 +56,7 @@ docs/regles-optionnelles.md   merge=docs-generes linguist-generated=true
 # Fiches de l'Atlas RAW : mixtes. Règle de FAMILLE d'abord, exceptions générées ensuite
 # (dernière règle appliquée gagne).
 docs/raw/**/*.md              merge=docs-fiche-raw
-docs/raw/**/catalogue-*.md    merge=docs-catalogue linguist-generated=true
+docs/raw/**/catalogue-*.md    merge=docs-generes linguist-generated=true
 docs/raw/coverage.md          merge=docs-generes linguist-generated=true
 docs/raw/reconciliation.md    merge=docs-generes linguist-generated=true
 docs/raw/reanchor.md          merge=docs-generes linguist-generated=true

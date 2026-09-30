@@ -21,12 +21,11 @@ toute profondeur — doit désigner un fichier existant (exclusions structurelle
 sa garde dédiée, et les épreuves DATÉES, qui disent l'arbre de leur jour). Une référence vivante qui
 ment ne se tague pas, elle se corrige.
 
-**Fusion des docs DÉRIVÉS** (`.gitattributes`, trois familles, pilote
+**Fusion des docs DÉRIVÉS** (`.gitattributes`, deux familles, pilote
 `scripts/git-hooks/merge-docs.mjs` déclaré par `npm run postinstall`) :
 
-- `merge=docs-generes` — docs 100 % générés : la version courante est retenue, `docs:build` régénère.
-- `merge=docs-catalogue` — `docs/raw/**/catalogue-*.md` : dérivés SAUF leurs blocs `<!-- X-INTEGRATION -->`,
-  correctifs manuels dont la perte est refusée.
+- `merge=docs-generes` — docs 100 % générés, catalogues `docs/raw/**/catalogue-*.md` compris : la
+  version courante est retenue, `docs:build` régénère.
 - `merge=docs-fiche-raw` — fiches `docs/raw/**/*.md` mixtes (prose manuscrite + champ `**Implémente :**`
   dérivé) : fusion 3-voies de la PROSE seule, chaque champ réinjecté PAR IDENTITÉ (heading porteur),
   donc une section ajoutée par l'entrant garde SON champ ; un conflit restant est un vrai conflit humain.

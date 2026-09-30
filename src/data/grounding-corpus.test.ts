@@ -11,20 +11,19 @@
  * mots-clefs dans une fenêtre de lignes, pas un agent qui comprend.
  */
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { GROUNDING_CASES, type ResolvedGroundingCase, type PendingGroundingCase } from '../../scripts/guards/lib/groundingCorpus.mjs';
-
-const ROOT = fileURLToPath(new URL('../../', import.meta.url));
+import { rendreCible } from '../../scripts/docs/build-all.mjs';
 
 const resolved = GROUNDING_CASES.filter((c): c is ResolvedGroundingCase => c.status === 'resolu');
+/** Le texte de chaque surface, tel que son générateur le rend (`rendreCible`), jamais le fichier du disque. */
+const TEXTES = new Map<string, string>();
+for (const c of resolved) if (!TEXTES.has(c.surface)) TEXTES.set(c.surface, await rendreCible(c.surface));
 const pending = GROUNDING_CASES.filter((c): c is PendingGroundingCase => c.status === 'attente');
 
 describe('corpus de grounding — cas RÉSOLUS (#903)', () => {
   for (const c of resolved) {
     it(`« ${c.question} » (mots-clefs : ${c.keywords.join(', ')}) reste trouvable dans ${c.surface}`, () => {
-      const text = readFileSync(join(ROOT, c.surface), 'utf8');
+      const text = TEXTES.get(c.surface)!;
       expect(
         c.resolves(text),
         `cas "${c.id}" — motif introuvable dans ${c.surface}\nincident fondateur : ${c.incident}`,
@@ -44,7 +43,7 @@ describe('corpus de grounding — cas RÉSOLUS (#903)', () => {
 describe('corpus de grounding — chaque cas RÉSOLU vire au ROUGE quand sa propriété disparaît', () => {
   for (const c of resolved) {
     it(`« ${c.question} » — sabotage(text) fait basculer resolves() à false`, () => {
-      const text = readFileSync(join(ROOT, c.surface), 'utf8');
+      const text = TEXTES.get(c.surface)!;
       const sabotaged = c.sabotage(text);
       expect(sabotaged, `cas "${c.id}" — sabotage(text) n'a rien changé : la preuve ne prouve rien`).not.toBe(text);
       expect(

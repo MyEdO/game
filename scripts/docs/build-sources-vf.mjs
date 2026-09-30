@@ -13,44 +13,46 @@
 import { ecrireOuVerifier } from './lib/empreinte-sources.mjs'
 import { REGISTRE_LIVRES as BOOKS, estLivreExtrait, livreExtraitDe } from '../raw/_lib.mjs'
 
-// TOUT livre du registre, EXTRAIT ou non (`label`, `extractionDir` du livre fan) : `livreExtraitDe`
-// ne rend que les extraits — `dir` ci-dessous passe par lui.
-const byId = new Map(BOOKS.map((b) => [b.id, b]))
+/** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire. */
+function rendu() {
+  // TOUT livre du registre, EXTRAIT ou non (`label`, `extractionDir` du livre fan) : `livreExtraitDe`
+  // ne rend que les extraits — `dir` ci-dessous passe par lui.
+  const byId = new Map(BOOKS.map((b) => [b.id, b]))
 
-function book(id) {
-  const b = byId.get(id)
-  if (!b) {
-    console.error(`build-sources-vf — livre "${id}" introuvable dans src/data/books.json (renommé/supprimé ?)`)
-    process.exit(1)
+  function book(id) {
+    const b = byId.get(id)
+    if (!b) {
+      console.error(`build-sources-vf — livre "${id}" introuvable dans src/data/books.json (renommé/supprimé ?)`)
+      process.exit(1)
+    }
+    return b
   }
-  return b
-}
 
-/** Chemin `Source/…/` d'un livre EXTRAIT (fail-fast si `dir` absent — ce script ne devine jamais). */
-function dir(id) {
-  const b = book(id)
-  if (!livreExtraitDe(id)) {
-    console.error(`build-sources-vf — livre "${id}" (${b.label}) n'est pas EXTRAIT dans books.json (\`abbr\` et \`dir\`)`)
-    process.exit(1)
+  /** Chemin `Source/…/` d'un livre EXTRAIT (fail-fast si `dir` absent — ce script ne devine jamais). */
+  function dir(id) {
+    const b = book(id)
+    if (!livreExtraitDe(id)) {
+      console.error(`build-sources-vf — livre "${id}" (${b.label}) n'est pas EXTRAIT dans books.json (\`abbr\` et \`dir\`)`)
+      process.exit(1)
+    }
+    return `${b.dir}/`
   }
-  return `${b.dir}/`
-}
 
-/** Chemin `Source/…/` d'un livre dont `books.json` porte le dossier sous `extractionDir` (forme du
- *  livre fan `frenchy-bzh`) — même fail-fast que `dir`, jamais de chemin deviné. */
-function dirExtraction(id) {
-  const b = book(id)
-  if (!b.extractionDir) {
-    console.error(`build-sources-vf — livre "${id}" (${b.label}) n'a pas de champ "extractionDir" dans books.json`)
-    process.exit(1)
+  /** Chemin `Source/…/` d'un livre dont `books.json` porte le dossier sous `extractionDir` (forme du
+   *  livre fan `frenchy-bzh`) — même fail-fast que `dir`, jamais de chemin deviné. */
+  function dirExtraction(id) {
+    const b = book(id)
+    if (!b.extractionDir) {
+      console.error(`build-sources-vf — livre "${id}" (${b.label}) n'a pas de champ "extractionDir" dans books.json`)
+      process.exit(1)
+    }
+    return `${b.extractionDir}/`
   }
-  return `${b.extractionDir}/`
-}
 
-const abbr = (id) => book(id).abbr
-const extractedCount = BOOKS.filter(estLivreExtrait).length
+  const abbr = (id) => book(id).abbr
+  const extractedCount = BOOKS.filter(estLivreExtrait).length
 
-const out = `# Sources VF — détail des livres autorisés
+  const out = `# Sources VF — détail des livres autorisés
 
 > ⚠️ Fichier GÉNÉRÉ par \`node scripts/docs/build-sources-vf.mjs\` (\`npm run docs:sources-vf\`) — NE PAS ÉDITER À LA MAIN.
 > Source factuelle (id, abréviation, dossier \`Source/…\`) : \`src/data/books.json\`. Part éditoriale (périmètres
@@ -196,23 +198,30 @@ livre VO AUTORISÉ ; la VO de L'Ennemi Intérieur se lit pour comprendre, fiche
   \`${book('boite-d-initiation').label}\` (+ \`WH4_FR_BI_Livre_Aventure\` / \`…_Ubersreik\`).
 `
 
-// COMPLÉTUDE — tout livre du registre porteur d'un `dir` FIGURE dans la page : un livre extrait sous
-// `Source/` mais absent de cette page est un périmètre que personne ne peut lire. Le gabarit est
-// ÉDITORIAL (il cite livre par livre) : rien ne l'oblige à suivre le registre, sauf cette garde. Elle
-// LÈVE à la GÉNÉRATION comme `book`/`dir`, donc aussi sous `--check` (`npm run docs:check`).
-const absents = BOOKS.filter((b) => estLivreExtrait(b) && !out.includes(b.dir))
-if (absents.length) {
-  console.error('build-sources-vf — livre(s) EXTRAIT(s) absent(s) de la page (ajouter leur entrée dans ce script) :')
-  for (const b of absents) console.error(`  ${b.id} (${b.abbr}) — ${b.dir}`)
-  process.exit(1)
+  // COMPLÉTUDE — tout livre du registre porteur d'un `dir` FIGURE dans la page : un livre extrait sous
+  // `Source/` mais absent de cette page est un périmètre que personne ne peut lire. Le gabarit est
+  // ÉDITORIAL (il cite livre par livre) : rien ne l'oblige à suivre le registre, sauf cette garde. Elle
+  // LÈVE à la GÉNÉRATION comme `book`/`dir`, donc aussi sous `--check` (`npm run docs:check`).
+  const absents = BOOKS.filter((b) => estLivreExtrait(b) && !out.includes(b.dir))
+  if (absents.length) {
+    console.error('build-sources-vf — livre(s) EXTRAIT(s) absent(s) de la page (ajouter leur entrée dans ce script) :')
+    for (const b of absents) console.error(`  ${b.id} (${b.abbr}) — ${b.dir}`)
+    process.exit(1)
+  }
+  return {
+    out,
+    path: 'docs/sources-vf.md',
+    staleMsg: 'docs:sources-vf — docs/sources-vf.md est PÉRIMÉ (diverge de src/data/books.json ou du script).',
+    rerunMsg: '  → relancer `npm run docs:sources-vf` et committer le résultat.',
+    okMsg: 'docs:sources-vf — OK (docs/sources-vf.md à jour)',
+    writeMsg: `docs/sources-vf.md — ${extractedCount} livres extraits référencés.`,
+  }
 }
 
-ecrireOuVerifier({
-  out,
-  path: 'docs/sources-vf.md',
-  check: process.argv.includes('--check'),
-  staleMsg: 'docs:sources-vf — docs/sources-vf.md est PÉRIMÉ (diverge de src/data/books.json ou du script).',
-  rerunMsg: '  → relancer `npm run docs:sources-vf` et committer le résultat.',
-  okMsg: 'docs:sources-vf — OK (docs/sources-vf.md à jour)',
-  writeMsg: `docs/sources-vf.md — ${extractedCount} livres extraits référencés.`,
-})
+/** Contrat `rendre()` de `GENERATORS` (scripts/docs/build-all.mjs) : cible → texte, sans écrire. */
+export function rendre() {
+  const { path, out } = rendu()
+  return new Map([[path, out]])
+}
+
+if (import.meta.main) ecrireOuVerifier({ ...rendu(), check: process.argv.includes('--check') })

@@ -36,7 +36,7 @@ import { parUnitesDeCode } from '../guards/lib/lister.mjs'
 import { ecartsDeStock } from '../guards/lib/stock.mjs'
 import {
   refReDe, refFolioReDe, bookOfDe, booksDe, coeursDe, coeurDe, livresDeCoeur, looseReDe,
-  REGISTRE_LIVRES, folioSpan, span, pagesDeLAtlas, readText,
+  REGISTRE_LIVRES, folioSpan, span,
 } from './_lib.mjs'
 import { alternationDe } from '../../src/lib/regex.ts'
 import { lireStockJson } from '../guards/lib/stockDeSites.mjs'
@@ -46,6 +46,7 @@ import {
   stemDeFiche, couvertureDe, stemDe, MANIFEST_PATH,
 } from './build-implemente.mjs'
 import { ecrireOuVerifier } from '../docs/lib/empreinte-sources.mjs'
+import { pagesDeLAtlasRendues } from './build-catalogs.mjs'
 
 export const TOL = 20 // tolérance en lignes : la synthèse Atlas pine un ancrage proche, pas la ligne exacte
 export const RAWDIR = 'docs/raw'
@@ -107,14 +108,14 @@ const setDe = (table, book) => table.get(book) || new Set()
 
 /** Calcule la réconciliation CODE↔ATLAS. Pur vis-à-vis de l'écriture de fichier (aucun writeFileSync ici).
  *  `registre` = le registre des livres (`books.json` par défaut), `manifestPath` = la dette éditoriale :
- *  les tests en injectent des fixtures. */
-export function computeReconciliation({ srcDir = 'src', rawDir = RAWDIR, registre = REGISTRE_LIVRES, manifestPath = MANIFEST_PATH } = {}) {
+ *  les tests en injectent des fixtures, comme la source de catalogues (`catalogues`, `pagesDeLAtlasRendues`). */
+export function computeReconciliation({ srcDir = 'src', rawDir = RAWDIR, registre = REGISTRE_LIVRES, manifestPath = MANIFEST_PATH, catalogues } = {}) {
   const books = booksDe(registre)
   const coeurs = coeursDe(registre)
   const ALT = alternationDe(books.map(([a]) => a))
   const bookOf = bookOfDe(books)
   const SRC = fichiersCitants(srcDir)
-  const DOCS = pagesDeLAtlas(rawDir, { classes: CLASSES, registre })
+  const DOCS = pagesDeLAtlasRendues(rawDir, { classes: CLASSES, registre }, catalogues)
 
   // --- regex de réfs (source unique : _lib.mjs ; instances stateful /g locales) ---
   const REF_RE = refReDe(ALT)
@@ -186,8 +187,7 @@ export function computeReconciliation({ srcDir = 'src', rawDir = RAWDIR, registr
   // règles propre.  relatif de fiche -> cœur étranger -> sigles cités
   const etrangersParFiche = new Map()
   const fiches = []            // { doc, content, parsed } — le parse des fiches, source des registres d'`id`
-  for (const { relatif: nom, chemin: d, classe, coeur: coeurDeLaFiche } of DOCS) {
-    const text = readText(d)
+  for (const { relatif: nom, texte: text, classe, coeur: coeurDeLaFiche } of DOCS) {
     const estFiche = classe === 'fiche'
     if (estFiche) fiches.push({ doc: nom, content: text, parsed: parseFiche(nom, text) })
     for (const mm of text.matchAll(looseReDe(ALT))) {
@@ -285,9 +285,9 @@ export function computeReconciliation({ srcDir = 'src', rawDir = RAWDIR, registr
   // Chaque marqueur dit s'il est COUVERT par une dette déclarée (entrée de topic ou de fiche) ou SANS
   // entrée : sans cette ventilation, un chiffre de tête qui grossit ne distingue plus l'instruit du reste.
   const nonImpl = []
-  for (const { relatif: nom, chemin } of DOCS) {
+  for (const { relatif: nom, texte } of DOCS) {
     const rows = topicParLigne.get(nom)
-    readText(chemin).split('\n').forEach((ln, i) => {
+    texte.split('\n').forEach((ln, i) => {
       if (!/non impl[ée]ment[ée]/i.test(ln)) return
       const topic = rows?.get(i + 1)
       const entree = topic ? dette.detteDe(topic) : undefined
@@ -522,6 +522,13 @@ export function ecartsTrousDurs(entrees, stock, registre = REGISTRE_LIVRES) {
   return { neuves, perimees, coeur }
 }
 
+const RAPPORT = `${RAWDIR}/reconciliation.md`
+
+/** Contrat `rendre()` de `GENERATORS` (scripts/docs/build-all.mjs) : cible → texte, sans écrire. */
+export function rendre(data = computeReconciliation()) {
+  return new Map([[RAPPORT, renderReport(data)]])
+}
+
 function main() {
   const data = computeReconciliation()
   const noChapterCount = [...data.codeNoCh.values()].reduce((n, a) => n + a.length, 0)
@@ -565,12 +572,11 @@ function main() {
   }
   if (neuves.length || perimees.length || coeur.length || data.etrangers.length || data.fichesJugees === 0) process.exitCode = 1
   else console.log(`Cliquet des trous durs : ${entrees.length} trou(s) dur(s), tous au stock (${Object.keys(stock).length} entrée(s)) — aucun neuf, aucun périmé, aucun livre de cœur.`)
-  const rapport = join(RAWDIR, 'reconciliation.md')
   ecrireOuVerifier({
-    out: renderReport(data),
-    path: rapport,
+    out: rendre(data).get(RAPPORT),
+    path: RAPPORT,
     check: process.argv.includes('--check'),
-    staleMsg: `raw:reconcile — ${rapport} est PÉRIMÉ (code ou Atlas changé).`,
+    staleMsg: `raw:reconcile — ${RAPPORT} est PÉRIMÉ (code ou Atlas changé).`,
     rerunMsg: '  → relancer `npm run raw:reconcile` et committer le résultat.',
   })
 }

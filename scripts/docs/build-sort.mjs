@@ -23,218 +23,220 @@ import ts from 'typescript'
 import { loadSource, renderFields, jsdocRole } from './lib/jsdocUnion.mjs'
 import { ecrireOuVerifier } from './lib/empreinte-sources.mjs'
 
-const OUTIL = 'build-sort'
-const DEF = 'src/data/schemas/defs/spells.ts'
-const JSON_SORTS = 'src/data/spells.json'
-const SPEC = 'src/engine/spellspec.ts'
-const RANGE = 'src/engine/spellRange.ts'
-const DURATION = 'src/engine/spellDuration.ts'
+/** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire. */
+function rendu() {
+  const OUTIL = 'build-sort'
+  const DEF = 'src/data/schemas/defs/spells.ts'
+  const JSON_SORTS = 'src/data/spells.json'
+  const SPEC = 'src/engine/spellspec.ts'
+  const RANGE = 'src/engine/spellRange.ts'
+  const DURATION = 'src/engine/spellDuration.ts'
 
-function abandon(msg) {
-  console.error(`${OUTIL} — ${msg}`)
-  process.exit(1)
-}
-const ancre = (p, quoi) => {
-  if (!existsSync(p)) abandon(`${quoi} : \`${p}\` introuvable (renommé/supprimé ?)`)
-  return p
-}
-const plat = (s) => s.replace(/\s+/g, ' ').trim().replaceAll('|', '\\|')
-
-for (const p of [DEF, JSON_SORTS, SPEC, RANGE, DURATION]) ancre(p, 'source du générateur')
-
-// ── La FORME d'une entrée : champs propres + méta d'édition, lus au def ───────────────────────────
-
-const { text: DEF_SRC, sf: DEF_SF } = loadSource(DEF)
-
-/** Objet littéral d'un `const NOM = { … }` de premier niveau. */
-function objetConst(nom) {
-  let out
-  DEF_SF.forEachChild((n) => {
-    if (!ts.isVariableStatement(n)) return
-    for (const d of n.declarationList.declarations) {
-      if (ts.isIdentifier(d.name) && d.name.text === nom && d.initializer && ts.isObjectLiteralExpression(d.initializer)) out = d.initializer
-    }
-  })
-  if (!out) abandon(`\`${nom}\` illisible dans ${DEF} (renommé, ou n'est plus un objet littéral)`)
-  return out
-}
-
-/** `champs` du def : nom (+ `?` si `.optional()`/`.nullable()` est dans la chaîne) + JSDoc. */
-const CHAMPS = objetConst('champs').properties.filter(ts.isPropertyAssignment).map((p) => {
-  const src = p.initializer.getText(DEF_SF)
-  return {
-    nom: p.name.getText(DEF_SF).replace(/^['"]|['"]$/g, ''),
-    optionnel: /\.optional\(\)/.test(src),
-    nullable: /\.nullable\(\)/.test(src),
-    role: jsdocRole(DEF_SRC.slice(p.getFullStart(), p.getStart(DEF_SF))),
+  function abandon(msg) {
+    console.error(`${OUTIL} — ${msg}`)
+    process.exit(1)
   }
-})
-if (CHAMPS.length < 5) abandon(`moins de 5 champs propres lus dans \`champs\` de ${DEF} — la forme a dérivé`)
-
-/** Méta d'édition (3ᵉ argument de `document(...)`) : `{ label, hint? }` par champ. */
-const META = (() => {
-  let appel
-  const visite = (n) => {
-    if (ts.isCallExpression(n) && n.expression.getText(DEF_SF) === 'document') appel = n
-    n.forEachChild(visite)
+  const ancre = (p, quoi) => {
+    if (!existsSync(p)) abandon(`${quoi} : \`${p}\` introuvable (renommé/supprimé ?)`)
+    return p
   }
-  DEF_SF.forEachChild(visite)
-  if (!appel || !ts.isObjectLiteralExpression(appel.arguments[3])) abandon(`appel \`document(...)\` sans objet de méta d'édition dans ${DEF}`)
-  const m = new Map()
-  for (const p of appel.arguments[3].properties) {
-    if (!ts.isPropertyAssignment(p) || !ts.isObjectLiteralExpression(p.initializer)) continue
-    const cle = p.name.getText(DEF_SF).replace(/^['"]|['"]$/g, '')
-    const val = {}
-    for (const q of p.initializer.properties) {
-      if (ts.isPropertyAssignment(q) && ts.isStringLiteral(q.initializer)) val[q.name.getText(DEF_SF)] = q.initializer.text
-    }
-    m.set(cle, val)
-  }
-  return m
-})()
-const sansMeta = CHAMPS.filter((c) => !META.has(c.nom)).map((c) => c.nom)
-if (sansMeta.length) abandon(`champs sans méta d'édition dans ${DEF} : ${sansMeta.join(', ')}`)
+  const plat = (s) => s.replace(/\s+/g, ' ').trim().replaceAll('|', '\\|')
 
-// ── Les trois unions structurées (portée / cible / durée) + les rubriques de Rituel ───────────────
+  for (const p of [DEF, JSON_SORTS, SPEC, RANGE, DURATION]) ancre(p, 'source du générateur')
 
-/** Membres d'un `z.discriminatedUnion('kind', [ … ])` dont chaque membre est un `z.strictObject`
- *  INLINE (le socle `readZodUnionMembers` ne lit que les membres NOMMÉS par un identifiant).
- *  Rend la même forme `{ rows: [{ name, fieldGroups }] }` — `renderFields` s'y applique tel quel. */
-function formesZod(nom) {
-  let appel
-  DEF_SF.forEachChild((n) => {
-    if (!ts.isVariableStatement(n)) return
-    for (const d of n.declarationList.declarations) {
-      if (ts.isIdentifier(d.name) && d.name.text === nom && d.initializer && ts.isCallExpression(d.initializer)) appel = d.initializer
-    }
-  })
-  if (!appel || !/discriminatedUnion$/.test(appel.expression.getText(DEF_SF)) || !ts.isArrayLiteralExpression(appel.arguments[1])) {
-    abandon(`\`${nom}\` n'est plus un \`z.discriminatedUnion('kind', [ … ])\` dans ${DEF}`)
-  }
-  const rows = appel.arguments[1].elements.map((m) => {
-    if (!ts.isCallExpression(m) || !ts.isObjectLiteralExpression(m.arguments[0])) {
-      abandon(`membre de \`${nom}\` illisible (attendu \`z.strictObject({ … })\` inline)`)
-    }
-    let name = null
-    const fields = []
-    for (const p of m.arguments[0].properties) {
-      if (!ts.isPropertyAssignment(p)) continue
-      const cle = p.name.getText(DEF_SF).replace(/^['"]|['"]$/g, '')
-      const src = p.initializer.getText(DEF_SF)
-      const litt = src.match(/^z\.literal\(\s*'([^']*)'\s*\)$/)
-      if (cle === 'kind' && litt) {
-        name = litt[1]
-        continue
+  // ── La FORME d'une entrée : champs propres + méta d'édition, lus au def ───────────────────────────
+
+  const { text: DEF_SRC, sf: DEF_SF } = loadSource(DEF)
+
+  /** Objet littéral d'un `const NOM = { … }` de premier niveau. */
+  function objetConst(nom) {
+    let out
+    DEF_SF.forEachChild((n) => {
+      if (!ts.isVariableStatement(n)) return
+      for (const d of n.declarationList.declarations) {
+        if (ts.isIdentifier(d.name) && d.name.text === nom && d.initializer && ts.isObjectLiteralExpression(d.initializer)) out = d.initializer
       }
-      fields.push(cle + (/\.optional\(\)/.test(src) ? '?' : ''))
-    }
-    if (!name) abandon(`membre de \`${nom}\` sans \`kind: z.literal('…')\``)
-    return { name, fieldGroups: [fields] }
-  })
-  if (!rows.length) abandon(`\`${nom}\` ne déclare plus aucune forme`)
-  return { rows }
-}
-
-const PORTEE = formesZod('spellRangeSchema')
-const CIBLE = formesZod('spellTargetSchema')
-const DUREE = formesZod('spellDurationSchema')
-
-const RUBRIQUES = (() => {
-  let appel
-  DEF_SF.forEachChild((n) => {
-    if (!ts.isVariableStatement(n)) return
-    for (const d of n.declarationList.declarations) {
-      if (ts.isIdentifier(d.name) && d.name.text === 'ritualSchema' && ts.isCallExpression(d.initializer)) appel = d.initializer
-    }
-  })
-  if (!appel || !ts.isObjectLiteralExpression(appel.arguments[0])) abandon(`\`ritualSchema\` n'est plus un \`z.strictObject({ … })\` dans ${DEF}`)
-  return appel.arguments[0].properties.filter(ts.isPropertyAssignment).map((p) => ({
-    nom: p.name.getText(DEF_SF).replace(/^['"]|['"]$/g, '') + (/\.optional\(\)/.test(p.initializer.getText(DEF_SF)) ? '?' : ''),
-    role: jsdocRole(DEF_SRC.slice(p.getFullStart(), p.getStart(DEF_SF))),
-  }))
-})()
-
-// ── L'INVENTAIRE : mesuré sur la donnée, jamais figé ──────────────────────────────────────────────
-
-const SORTS = JSON.parse(readFileSync(JSON_SORTS, 'utf8'))
-if (!Array.isArray(SORTS) || !SORTS.length) abandon(`${JSON_SORTS} n'est plus une liste non vide`)
-
-const compte = (f) => {
-  const m = new Map()
-  for (const s of SORTS) {
-    const k = f(s)
-    if (k == null) continue
-    m.set(k, (m.get(k) ?? 0) + 1)
+    })
+    if (!out) abandon(`\`${nom}\` illisible dans ${DEF} (renommé, ou n'est plus un objet littéral)`)
+    return out
   }
-  return [...m.entries()].sort((a, b) => b[1] - a[1])
-}
-const CURES = SORTS.filter((s) => s.curated === true).length
-const RITUELS = SORTS.filter((s) => s.isRitual === true).length
-const FAMILLES = compte((s) => s.family)
-const PAR_PORTEE = new Map(compte((s) => s.range?.kind))
-const PAR_CIBLE = new Map(compte((s) => s.target?.kind))
-const PAR_DUREE = new Map(compte((s) => s.duration?.kind))
-const SANS_PORTEE = SORTS.filter((s) => s.range == null).length
-const MISSILES = SORTS.filter((s) => s.missile === true).length
-const SOUFFLES = SORTS.filter((s) => s.breathAttack != null).length
-const OPPOSES = compte((s) => s.opposed?.kind)
-const AVEC_EFFETS = SORTS.filter((s) => s.effects != null).length
 
-/** Chaque forme déclarée au schéma doit être RETROUVABLE dans la donnée, ou nommée « aucune » —
- *  une forme jamais exercée est un fait, pas un silence. */
-const population = (rows, index) => rows.map((r) => ({ ...r, n: index.get(r.name) ?? 0 }))
-
-// ── La classification : ses issues lues au TYPE DE RETOUR de spellSupport ─────────────────────────
-
-const { sf: SPEC_SF } = loadSource(SPEC)
-const CLASSES = (() => {
-  let fn
-  SPEC_SF.forEachChild((n) => {
-    if (ts.isFunctionDeclaration(n) && n.name?.text === 'spellSupport') fn = n
+  /** `champs` du def : nom (+ `?` si `.optional()`/`.nullable()` est dans la chaîne) + JSDoc. */
+  const CHAMPS = objetConst('champs').properties.filter(ts.isPropertyAssignment).map((p) => {
+    const src = p.initializer.getText(DEF_SF)
+    return {
+      nom: p.name.getText(DEF_SF).replace(/^['"]|['"]$/g, ''),
+      optionnel: /\.optional\(\)/.test(src),
+      nullable: /\.nullable\(\)/.test(src),
+      role: jsdocRole(DEF_SRC.slice(p.getFullStart(), p.getStart(DEF_SF))),
+    }
   })
-  if (!fn?.type || !ts.isUnionTypeNode(fn.type)) abandon(`\`spellSupport\` n'expose plus un type de retour en union dans ${SPEC}`)
-  return fn.type.types.filter((t) => ts.isLiteralTypeNode(t) && ts.isStringLiteral(t.literal)).map((t) => t.literal.text)
-})()
-/** Ligne de la déclaration de fonction `nom` dans `spellspec.ts`. */
-const ligneDe = (nom) => {
-  let fn
-  SPEC_SF.forEachChild((n) => {
-    if (ts.isFunctionDeclaration(n) && n.name?.text === nom) fn = n
-  })
-  if (!fn) abandon(`\`${nom}\` n'est plus déclarée dans ${SPEC}`)
-  return SPEC_SF.getLineAndCharacterOfPosition(fn.name.getStart(SPEC_SF)).line + 1
-}
-const LIGNE_SPEC = ligneDe('spellSupport')
-const LIGNE_SPEC_OF = ligneDe('spellSupportOf')
+  if (CHAMPS.length < 5) abandon(`moins de 5 champs propres lus dans \`champs\` de ${DEF} — la forme a dérivé`)
 
-// ── Gardes : chemin ancré + intitulé RÉEL de leur `describe(...)` ─────────────────────────────────
+  /** Méta d'édition (3ᵉ argument de `document(...)`) : `{ label, hint? }` par champ. */
+  const META = (() => {
+    let appel
+    const visite = (n) => {
+      if (ts.isCallExpression(n) && n.expression.getText(DEF_SF) === 'document') appel = n
+      n.forEachChild(visite)
+    }
+    DEF_SF.forEachChild(visite)
+    if (!appel || !ts.isObjectLiteralExpression(appel.arguments[3])) abandon(`appel \`document(...)\` sans objet de méta d'édition dans ${DEF}`)
+    const m = new Map()
+    for (const p of appel.arguments[3].properties) {
+      if (!ts.isPropertyAssignment(p) || !ts.isObjectLiteralExpression(p.initializer)) continue
+      const cle = p.name.getText(DEF_SF).replace(/^['"]|['"]$/g, '')
+      const val = {}
+      for (const q of p.initializer.properties) {
+        if (ts.isPropertyAssignment(q) && ts.isStringLiteral(q.initializer)) val[q.name.getText(DEF_SF)] = q.initializer.text
+      }
+      m.set(cle, val)
+    }
+    return m
+  })()
+  const sansMeta = CHAMPS.filter((c) => !META.has(c.nom)).map((c) => c.nom)
+  if (sansMeta.length) abandon(`champs sans méta d'édition dans ${DEF} : ${sansMeta.join(', ')}`)
 
-function intituleGarde(p) {
-  const m = readFileSync(p, 'utf8').match(/describe\(\s*(['"`])([\s\S]*?)\1/)
-  if (!m) abandon(`\`${p}\` n'expose plus de \`describe('…')\` — l'intitulé de la garde est illisible`)
-  return plat(m[2])
-}
-const GARDES = [
-  'src/state/spell-flow-completeness.test.ts',
-  'src/engine/spellspec.test.ts',
-  'src/engine/spellRange.test.ts',
-  'src/engine/spellDuration.test.ts',
-  'src/data/fixed-damage-spells.test.ts',
-  'src/state/spell-impure-ops.test.ts',
-  'src/data/vdm-spells-variantes.test.ts',
-  'src/ui/compendium/no-json-fields.test.ts',
-  'src/data/id-collisions.test.ts',
-].map((p) => ancre(p, 'garde citée par le doc — corriger la liste plutôt que la laisser mentir'))
-const GARDES_MESUREES = GARDES.map((p) => ({ p, quoi: intituleGarde(p) }))
+  // ── Les trois unions structurées (portée / cible / durée) + les rubriques de Rituel ───────────────
 
-// ── Rendu ────────────────────────────────────────────────────────────────────────────────────────
+  /** Membres d'un `z.discriminatedUnion('kind', [ … ])` dont chaque membre est un `z.strictObject`
+   *  INLINE (le socle `readZodUnionMembers` ne lit que les membres NOMMÉS par un identifiant).
+   *  Rend la même forme `{ rows: [{ name, fieldGroups }] }` — `renderFields` s'y applique tel quel. */
+  function formesZod(nom) {
+    let appel
+    DEF_SF.forEachChild((n) => {
+      if (!ts.isVariableStatement(n)) return
+      for (const d of n.declarationList.declarations) {
+        if (ts.isIdentifier(d.name) && d.name.text === nom && d.initializer && ts.isCallExpression(d.initializer)) appel = d.initializer
+      }
+    })
+    if (!appel || !/discriminatedUnion$/.test(appel.expression.getText(DEF_SF)) || !ts.isArrayLiteralExpression(appel.arguments[1])) {
+      abandon(`\`${nom}\` n'est plus un \`z.discriminatedUnion('kind', [ … ])\` dans ${DEF}`)
+    }
+    const rows = appel.arguments[1].elements.map((m) => {
+      if (!ts.isCallExpression(m) || !ts.isObjectLiteralExpression(m.arguments[0])) {
+        abandon(`membre de \`${nom}\` illisible (attendu \`z.strictObject({ … })\` inline)`)
+      }
+      let name = null
+      const fields = []
+      for (const p of m.arguments[0].properties) {
+        if (!ts.isPropertyAssignment(p)) continue
+        const cle = p.name.getText(DEF_SF).replace(/^['"]|['"]$/g, '')
+        const src = p.initializer.getText(DEF_SF)
+        const litt = src.match(/^z\.literal\(\s*'([^']*)'\s*\)$/)
+        if (cle === 'kind' && litt) {
+          name = litt[1]
+          continue
+        }
+        fields.push(cle + (/\.optional\(\)/.test(src) ? '?' : ''))
+      }
+      if (!name) abandon(`membre de \`${nom}\` sans \`kind: z.literal('…')\``)
+      return { name, fieldGroups: [fields] }
+    })
+    if (!rows.length) abandon(`\`${nom}\` ne déclare plus aucune forme`)
+    return { rows }
+  }
 
-const table = (rows, entete, ligne) => `| ${entete.join(' | ')} |\n|${entete.map(() => '---').join('|')}|\n${rows.map(ligne).join('\n')}`
+  const PORTEE = formesZod('spellRangeSchema')
+  const CIBLE = formesZod('spellTargetSchema')
+  const DUREE = formesZod('spellDurationSchema')
 
-const tableFormes = (u, index) =>
-  table(population(u.rows, index), ['Forme (`kind`)', 'Champs', 'Entrées de `spells.json`'], (r) => `| \`${r.name}\` | ${renderFields(r.fieldGroups)} | ${r.n} |`)
+  const RUBRIQUES = (() => {
+    let appel
+    DEF_SF.forEachChild((n) => {
+      if (!ts.isVariableStatement(n)) return
+      for (const d of n.declarationList.declarations) {
+        if (ts.isIdentifier(d.name) && d.name.text === 'ritualSchema' && ts.isCallExpression(d.initializer)) appel = d.initializer
+      }
+    })
+    if (!appel || !ts.isObjectLiteralExpression(appel.arguments[0])) abandon(`\`ritualSchema\` n'est plus un \`z.strictObject({ … })\` dans ${DEF}`)
+    return appel.arguments[0].properties.filter(ts.isPropertyAssignment).map((p) => ({
+      nom: p.name.getText(DEF_SF).replace(/^['"]|['"]$/g, '') + (/\.optional\(\)/.test(p.initializer.getText(DEF_SF)) ? '?' : ''),
+      role: jsdocRole(DEF_SRC.slice(p.getFullStart(), p.getStart(DEF_SF))),
+    }))
+  })()
 
-const out = `# Ajouter / curer un sort
+  // ── L'INVENTAIRE : mesuré sur la donnée, jamais figé ──────────────────────────────────────────────
+
+  const SORTS = JSON.parse(readFileSync(JSON_SORTS, 'utf8'))
+  if (!Array.isArray(SORTS) || !SORTS.length) abandon(`${JSON_SORTS} n'est plus une liste non vide`)
+
+  const compte = (f) => {
+    const m = new Map()
+    for (const s of SORTS) {
+      const k = f(s)
+      if (k == null) continue
+      m.set(k, (m.get(k) ?? 0) + 1)
+    }
+    return [...m.entries()].sort((a, b) => b[1] - a[1])
+  }
+  const CURES = SORTS.filter((s) => s.curated === true).length
+  const RITUELS = SORTS.filter((s) => s.isRitual === true).length
+  const FAMILLES = compte((s) => s.family)
+  const PAR_PORTEE = new Map(compte((s) => s.range?.kind))
+  const PAR_CIBLE = new Map(compte((s) => s.target?.kind))
+  const PAR_DUREE = new Map(compte((s) => s.duration?.kind))
+  const SANS_PORTEE = SORTS.filter((s) => s.range == null).length
+  const MISSILES = SORTS.filter((s) => s.missile === true).length
+  const SOUFFLES = SORTS.filter((s) => s.breathAttack != null).length
+  const OPPOSES = compte((s) => s.opposed?.kind)
+  const AVEC_EFFETS = SORTS.filter((s) => s.effects != null).length
+
+  /** Chaque forme déclarée au schéma doit être RETROUVABLE dans la donnée, ou nommée « aucune » —
+   *  une forme jamais exercée est un fait, pas un silence. */
+  const population = (rows, index) => rows.map((r) => ({ ...r, n: index.get(r.name) ?? 0 }))
+
+  // ── La classification : ses issues lues au TYPE DE RETOUR de spellSupport ─────────────────────────
+
+  const { sf: SPEC_SF } = loadSource(SPEC)
+  const CLASSES = (() => {
+    let fn
+    SPEC_SF.forEachChild((n) => {
+      if (ts.isFunctionDeclaration(n) && n.name?.text === 'spellSupport') fn = n
+    })
+    if (!fn?.type || !ts.isUnionTypeNode(fn.type)) abandon(`\`spellSupport\` n'expose plus un type de retour en union dans ${SPEC}`)
+    return fn.type.types.filter((t) => ts.isLiteralTypeNode(t) && ts.isStringLiteral(t.literal)).map((t) => t.literal.text)
+  })()
+  /** Ligne de la déclaration de fonction `nom` dans `spellspec.ts`. */
+  const ligneDe = (nom) => {
+    let fn
+    SPEC_SF.forEachChild((n) => {
+      if (ts.isFunctionDeclaration(n) && n.name?.text === nom) fn = n
+    })
+    if (!fn) abandon(`\`${nom}\` n'est plus déclarée dans ${SPEC}`)
+    return SPEC_SF.getLineAndCharacterOfPosition(fn.name.getStart(SPEC_SF)).line + 1
+  }
+  const LIGNE_SPEC = ligneDe('spellSupport')
+  const LIGNE_SPEC_OF = ligneDe('spellSupportOf')
+
+  // ── Gardes : chemin ancré + intitulé RÉEL de leur `describe(...)` ─────────────────────────────────
+
+  function intituleGarde(p) {
+    const m = readFileSync(p, 'utf8').match(/describe\(\s*(['"`])([\s\S]*?)\1/)
+    if (!m) abandon(`\`${p}\` n'expose plus de \`describe('…')\` — l'intitulé de la garde est illisible`)
+    return plat(m[2])
+  }
+  const GARDES = [
+    'src/state/spell-flow-completeness.test.ts',
+    'src/engine/spellspec.test.ts',
+    'src/engine/spellRange.test.ts',
+    'src/engine/spellDuration.test.ts',
+    'src/data/fixed-damage-spells.test.ts',
+    'src/state/spell-impure-ops.test.ts',
+    'src/data/vdm-spells-variantes.test.ts',
+    'src/ui/compendium/no-json-fields.test.ts',
+    'src/data/id-collisions.test.ts',
+  ].map((p) => ancre(p, 'garde citée par le doc — corriger la liste plutôt que la laisser mentir'))
+  const GARDES_MESUREES = GARDES.map((p) => ({ p, quoi: intituleGarde(p) }))
+
+  // ── Rendu ────────────────────────────────────────────────────────────────────────────────────────
+
+  const table = (rows, entete, ligne) => `| ${entete.join(' | ')} |\n|${entete.map(() => '---').join('|')}|\n${rows.map(ligne).join('\n')}`
+
+  const tableFormes = (u, index) =>
+    table(population(u.rows, index), ['Forme (`kind`)', 'Champs', 'Entrées de `spells.json`'], (r) => `| \`${r.name}\` | ${renderFields(r.fieldGroups)} | ${r.n} |`)
+
+  const out = `# Ajouter / curer un sort
 
 > ⚠️ Fichier GÉNÉRÉ par \`node scripts/docs/build-sort.mjs\` (\`npm run docs:sort\`) — NE PAS ÉDITER À LA MAIN.
 
@@ -273,11 +275,11 @@ document — cf. \`docs/ajouter-une-donnee.md\`. Les champs PROPRES d'un sort, a
 lequel le Codex les édite :
 
 ${table(
-  CHAMPS,
-  ['Champ', 'Libellé au Codex', 'Rôle'],
-  (c) =>
-    `| \`${c.nom}${c.optionnel ? '?' : ''}${c.nullable ? ' \\| null' : ''}\` | ${plat(META.get(c.nom).label)} | ${plat(c.role ?? META.get(c.nom).hint ?? '—')} |`,
-)}
+    CHAMPS,
+    ['Champ', 'Libellé au Codex', 'Rôle'],
+    (c) =>
+      `| \`${c.nom}${c.optionnel ? '?' : ''}${c.nullable ? ' \\| null' : ''}\` | ${plat(META.get(c.nom).label)} | ${plat(c.role ?? META.get(c.nom).hint ?? '—')} |`,
+  )}
 
 **\`desc\`** est un **copié/collé VERBATIM** de la source (Markdown conservé, jamais reformulé ni
 résumé — règle 5 de \`CLAUDE.md\`) : le texte affiché doit pouvoir être recollé tel quel dans
@@ -365,14 +367,21 @@ ${table(GARDES_MESUREES, ['Garde', 'Ce qu’elle verrouille (son propre `describ
 \`npm run typecheck\` en plus : les unions de portée/cible/durée et \`Formula\` sont strictement
 typées — une valeur mal formée casse la compilation avant le runtime.
 `
+  return {
+    out,
+    path: 'docs/ajouter-un-sort.md',
+    staleMsg:
+      'docs:sort — docs/ajouter-un-sort.md est PÉRIMÉ (diverge de src/data/schemas/defs/spells.ts, de src/data/spells.json, de src/engine/spellspec.ts, des gardes, ou du script).',
+    rerunMsg: '  → relancer `npm run docs:sort` et committer le résultat.',
+    okMsg: 'docs:sort — OK (docs/ajouter-un-sort.md à jour)',
+    writeMsg: `docs/ajouter-un-sort.md — ${SORTS.length} sorts (${CURES} curés, ${RITUELS} rituels), ${CHAMPS.length} champs, ${GARDES_MESUREES.length} gardes.`,
+  }
+}
 
-ecrireOuVerifier({
-  out,
-  path: 'docs/ajouter-un-sort.md',
-  check: process.argv.includes('--check'),
-  staleMsg:
-    'docs:sort — docs/ajouter-un-sort.md est PÉRIMÉ (diverge de src/data/schemas/defs/spells.ts, de src/data/spells.json, de src/engine/spellspec.ts, des gardes, ou du script).',
-  rerunMsg: '  → relancer `npm run docs:sort` et committer le résultat.',
-  okMsg: 'docs:sort — OK (docs/ajouter-un-sort.md à jour)',
-  writeMsg: `docs/ajouter-un-sort.md — ${SORTS.length} sorts (${CURES} curés, ${RITUELS} rituels), ${CHAMPS.length} champs, ${GARDES_MESUREES.length} gardes.`,
-})
+/** Contrat `rendre()` de `GENERATORS` (scripts/docs/build-all.mjs) : cible → texte, sans écrire. */
+export function rendre() {
+  const { path, out } = rendu()
+  return new Map([[path, out]])
+}
+
+if (import.meta.main) ecrireOuVerifier({ ...rendu(), check: process.argv.includes('--check') })

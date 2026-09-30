@@ -24,260 +24,262 @@ import { ecrireOuVerifier } from './lib/empreinte-sources.mjs'
 import { fileExports } from './lib/engineExports.mjs'
 import { parUnitesDeCode } from '../guards/lib/lister.mjs'
 
-const OUTIL = 'build-codex-relations'
-const RELATIONS = 'src/ui/compendium/relations.ts'
-const REGISTRY = 'src/ui/compendium/registry.ts'
-const DESCRIBE = 'src/ui/compendium/describe.ts'
-const HUMANIZE = 'src/ui/compendium/humanize.ts'
-const CONTRATS = 'src/data/schemas/exposition-contrats.test.ts'
+/** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire. */
+function rendu() {
+  const OUTIL = 'build-codex-relations'
+  const RELATIONS = 'src/ui/compendium/relations.ts'
+  const REGISTRY = 'src/ui/compendium/registry.ts'
+  const DESCRIBE = 'src/ui/compendium/describe.ts'
+  const HUMANIZE = 'src/ui/compendium/humanize.ts'
+  const CONTRATS = 'src/data/schemas/exposition-contrats.test.ts'
 
-function abandon(msg) {
-  console.error(`${OUTIL} — ${msg}`)
-  process.exit(1)
-}
-
-function lire(p) {
-  if (!existsSync(p)) abandon(`fichier « ${p} » introuvable (déplacé/supprimé ?)`)
-  return readFileSync(p, 'utf8')
-}
-
-// ── Exposition DÉCLARÉE aux defs (#1472) ─────────────────────────────────────────────────────────
-
-const EXPOSITION = JSON.parse(
-  sortieOutilLocal(process.cwd(), 'tsx', 'tsx', ['scripts/docs/lib/dump-exposition.mts']),
-)
-
-/** Route d'édition d'un def, dans le vocabulaire de `document()` — jamais un libellé inventé. */
-function routeEdition(edit) {
-  if (!edit) return '—'
-  if ('none' in edit) return 'aucune'
-  if (edit.dataset) return `dataset \`${edit.dataset}\``
-  if (edit.object) return `objet \`${edit.object}\``
-  if (edit.niche) return `niché (${Object.keys(edit.niche.categories).length} catégorie(s))`
-  abandon(`route d'édition inconnue : ${JSON.stringify(edit)}`)
-}
-
-const PAR_CATEGORIE = new Map()
-const EXEMPTIONS = new Map()
-for (const [fichier, expo] of Object.entries(EXPOSITION)) {
-  if (expo.codex?.exempt) {
-    const kind = expo.codex.exempt.kind
-    if (!EXEMPTIONS.has(kind)) EXEMPTIONS.set(kind, [])
-    EXEMPTIONS.get(kind).push(fichier)
-    continue
+  function abandon(msg) {
+    console.error(`${OUTIL} — ${msg}`)
+    process.exit(1)
   }
-  for (const cle of expo.codex?.keys ?? []) {
-    if (PAR_CATEGORIE.has(cle)) {
-      PAR_CATEGORIE.get(cle).fichiers.push(fichier)
-    } else {
-      PAR_CATEGORIE.set(cle, { fichiers: [fichier], route: routeEdition(expo.edit) })
-    }
+
+  function lire(p) {
+    if (!existsSync(p)) abandon(`fichier « ${p} » introuvable (déplacé/supprimé ?)`)
+    return readFileSync(p, 'utf8')
   }
-}
-if (!PAR_CATEGORIE.size) abandon("aucune clé de catégorie Codex déclarée par les defs — l'exposition est illisible")
 
-const NB_DEFS = Object.keys(EXPOSITION).length
-const NB_EXEMPTS = [...EXEMPTIONS.values()].reduce((n, l) => n + l.length, 0)
+  // ── Exposition DÉCLARÉE aux defs (#1472) ─────────────────────────────────────────────────────────
 
-// ── Catégories, groupes et sous-groupes : le littéral CODEX_SPECS ────────────────────────────────
-
-const REGISTRY_SRC = lire(REGISTRY)
-const DEBUT_SPECS = REGISTRY_SRC.indexOf('const CODEX_SPECS')
-const FIN_SPECS = REGISTRY_SRC.indexOf('export const CODEX:')
-if (DEBUT_SPECS === -1 || FIN_SPECS === -1 || FIN_SPECS < DEBUT_SPECS) {
-  abandon(`le littéral \`CODEX_SPECS\` et sa projection \`CODEX\` sont introuvables dans ${REGISTRY}`)
-}
-const SPECS_SRC = REGISTRY_SRC.slice(DEBUT_SPECS, FIN_SPECS)
-
-const SPECS = [...SPECS_SRC.matchAll(/\bkey: '([A-Za-z0-9_]+)'/g)].map((m, i, tous) => {
-  const fin = i + 1 < tous.length ? tous[i + 1].index : SPECS_SRC.length
-  const fenetre = SPECS_SRC.slice(m.index, fin)
-  return {
-    key: m[1],
-    label: (fenetre.match(/label: '([^']*)'/) ?? [])[1] ?? m[1],
-    group: (fenetre.match(/group: '([^']*)'/) ?? [])[1] ?? null,
-    cluster: (fenetre.match(/cluster: '([^']*)'/) ?? [])[1] ?? null,
-  }
-})
-if (!SPECS.length) abandon(`aucune catégorie lue dans \`CODEX_SPECS\` (${REGISTRY}) — le motif a dérivé`)
-
-const GROUPES = (() => {
-  const m = REGISTRY_SRC.match(/export const CODEX_GROUPS: CodexGroup\[\] = \[([^\]]+)\]/)
-  if (!m) abandon(`\`CODEX_GROUPS\` introuvable dans ${REGISTRY}`)
-  return m[1].split(',').map((s) => s.trim().replace(/^'|'$/g, ''))
-})()
-
-const CLUSTERS = GROUPES.map((g) => {
-  const dedans = SPECS.filter((s) => s.group === g)
-  const parCluster = new Map()
-  for (const s of dedans.filter((x) => x.cluster)) {
-    if (!parCluster.has(s.cluster)) parCluster.set(s.cluster, [])
-    parCluster.get(s.cluster).push(s)
-  }
-  return { groupe: g, total: dedans.length, plat: dedans.filter((x) => !x.cluster).length, parCluster }
-})
-
-// ── Arêtes inverses : les appels `addReverse` du module ──────────────────────────────────────────
-
-const RELATIONS_SRC = lire(RELATIONS)
-const LIGNES = RELATIONS_SRC.split('\n')
-
-/** Catégorie du référant en portée à la ligne `i` : le dernier `const by: Referrer = { category: … }`. */
-function referantAvant(i) {
-  for (let j = i; j >= 0; j -= 1) {
-    const m = LIGNES[j].match(/const by(?:: Referrer)? = \{ category: '([^']+)'/)
-    if (m) return m[1]
-  }
-  return null
-}
-
-const ARETES = []
-for (let i = 0; i < LIGNES.length; i += 1) {
-  const appel = LIGNES[i].match(/addReverse\('([^']+)',\s*([^,]+),\s*([\s\S]*)$/)
-  if (!appel) continue
-  const cible = appel[1]
-  const reste = appel[3]
-  const inline = reste.match(/\{\s*(?:\.\.\.by,\s*)?category: '([^']+)'/)
-  const source = inline ? inline[1] : referantAvant(i)
-  if (!source) abandon(`appel addReverse ligne ${i + 1} de ${RELATIONS} : catégorie du référant indéterminable`)
-  const litteraux = [...reste.matchAll(/'([^']*)'/g)].map((m) => m[1])
-  const titre = litteraux.length && !inline ? litteraux[litteraux.length - 1] : litteraux.slice(1).pop() ?? null
-  const declencheur = appel[2].trim()
-  ARETES.push({ source, cible, titre: titre && titre !== source ? titre : null, ligne: i + 1, declencheur })
-}
-if (!ARETES.length) abandon(`aucun appel \`addReverse\` lu dans ${RELATIONS} — le motif a dérivé`)
-
-const PAR_SOURCE = new Map()
-for (const a of ARETES) {
-  const cle = `${a.source}→${a.cible}`
-  if (!PAR_SOURCE.has(cle)) PAR_SOURCE.set(cle, { ...a, lignes: [] })
-  PAR_SOURCE.get(cle).lignes.push(a.ligne)
-  if (!PAR_SOURCE.get(cle).titre && a.titre) PAR_SOURCE.get(cle).titre = a.titre
-}
-const ARETES_FUSIONNEES = [...PAR_SOURCE.values()].sort(
-  (a, b) => parUnitesDeCode(a.source, b.source) || parUnitesDeCode(a.cible, b.cible),
-)
-
-const LABEL_CAT = new Map(SPECS.map((s) => [s.key, s.label]))
-const nomCat = (k) => (LABEL_CAT.has(k) ? `${LABEL_CAT.get(k)} (\`${k}\`)` : `\`${k}\``)
-
-// ── API publique du module ───────────────────────────────────────────────────────────────────────
-
-const API = fileExports(RELATIONS).filter((e) => e.kind === 'function' || e.kind === 'interface' || e.kind === 'type')
-if (!API.length) abandon(`aucun export public lu dans ${RELATIONS}`)
-
-/** JSDoc COMPLET (pas la 1re phrase) des exports d'un module, par nom. Le contrat d'une couture
- *  relationnelle tient dans ses RESTRICTIONS (« hors liens vers soi », « hors noms propres »,
- *  « texte brut seulement », « match par id de livre ») : les couper à la 1re phrase perdait
- *  précisément ce qui décide d'un usage. */
-function docsComplets(chemin) {
-  const { text, sf } = loadSource(chemin)
-  const par = new Map()
-  const poser = (nom, node) => {
-    const corps = jsdocBody(text.slice(node.getFullStart(), node.getStart(sf)))
-    if (corps) par.set(nom, corps.replace(/\s+/g, ' ').trim())
-  }
-  for (const n of sf.statements) {
-    if (n.name && ts.isIdentifier(n.name)) poser(n.name.text, n)
-    else if (ts.isVariableStatement(n)) {
-      for (const d of n.declarationList.declarations) if (ts.isIdentifier(d.name)) poser(d.name.text, n)
-    }
-  }
-  return par
-}
-const DOCS_API = docsComplets(RELATIONS)
-
-/** Site du SEUL câblage de `bookContents` dans le registre — le fait « projeté DANS le build » ne
- *  s'écrit pas de mémoire : il se cite. */
-const LIGNE_BOOKCONTENTS = REGISTRY_SRC.split('\n').findIndex((l) => /\bbookContents\(/.test(l)) + 1
-if (!LIGNE_BOOKCONTENTS) abandon(`aucun appel \`bookContents(...)\` dans ${REGISTRY} — le câblage de la fiche Livre a bougé`)
-
-/** Helpers de section / de phrase JOUEUR : les NOMS viennent des exports, jamais d'une liste tenue
- *  à la main qui se périme au premier renommage. */
-const helpersDe = (chemin) => {
-  const noms = fileExports(chemin).filter((e) => e.kind === 'function').map((e) => e.name)
-  if (!noms.length) abandon(`aucune fonction exportée dans ${chemin} (déplacé/renommé ?)`)
-  return noms
-}
-const HELPERS_DESCRIBE = helpersDe(DESCRIBE)
-const HELPERS_HUMANIZE = helpersDe(HUMANIZE)
-
-/** Contrats VÉRIFIÉS par la garde d'exposition : ses cas, tels qu'elle les NOMME. */
-const CONTRATS_CAS = (() => {
-  const src = lire(CONTRATS)
-  const blocs = [...src.matchAll(/describe\('([^']+)'/g)]
-  if (!blocs.length) abandon(`aucun \`describe\` lu dans ${CONTRATS} — le motif a dérivé`)
-  return blocs.map((b, i) => {
-    const fin = i + 1 < blocs.length ? blocs[i + 1].index : src.length
-    const cas = [...src.slice(b.index, fin).matchAll(/\bit\('([^']+)'/g)].map((m) => m[1])
-    if (!cas.length) abandon(`\`describe('${b[1]}')\` de ${CONTRATS} ne porte aucun cas`)
-    return { titre: b[1], cas }
-  })
-})()
-
-/** Exergues de Carrière : compte et périmètre de SOURCE, dumpés par le code lui-même (le plugin
- *  `exergues` de `<Prose>` monté sur les `careers` réelles) — jamais une re-implémentation ici. */
-const EPIGRAPHES = JSON.parse(
-  sortieOutilLocal(process.cwd(), 'tsx', 'tsx', ['scripts/docs/lib/dump-epigraphes.mts']),
-)
-if (!EPIGRAPHES.total) abandon('dump-epigraphes : aucune carrière lue — la façade `src/data` a bougé')
-
-// ── Tests du dossier ─────────────────────────────────────────────────────────────────────────────
-
-// Gardes NOMMÉES (fail-fast si l'une disparaît) — pas un balayage du dossier : un fichier de test
-// en cours d'écriture dans un arbre partagé ferait diverger le .md sans qu'aucune règle ne bouge.
-const TESTS = [
-  'src/ui/compendium/relations.test.ts',
-  'src/ui/compendium/registry.test.ts',
-  'src/ui/compendium/humanize.test.ts',
-  'src/data/schemas/exposition-contrats.test.ts',
-  'src/data/serialize.test.ts',
-].map((t) => {
-  if (!existsSync(t)) abandon(`garde « ${t} » introuvable (renommée/supprimée ?)`)
-  return t
-})
-
-// ── Rendu ────────────────────────────────────────────────────────────────────────────────────────
-
-const lignesAretes = ARETES_FUSIONNEES.map(
-  (a) =>
-    `| ${nomCat(a.source)} | ${nomCat(a.cible)} | ${a.titre ? `« ${a.titre} »` : '— (titre de repli)'} | ${a.lignes
-      .map((l) => `\`${RELATIONS}:${l}\``)
-      .join(' ')} |`,
-).join('\n')
-
-const lignesApi = API.map(
-  (e) =>
-    `| \`${e.name}\` | ${e.kind} | \`${RELATIONS}:${e.line}\` | ${(DOCS_API.get(e.name) ?? e.role ?? '—').replaceAll('|', '\\|')} |`,
-).join('\n')
-
-const lignesContrats = CONTRATS_CAS.map(
-  (b) => `- **${b.titre}**\n${b.cas.map((c) => `  - ${c.replaceAll('*', '\\*')}`).join('\n')}`,
-).join('\n')
-
-const lignesCategories = [...PAR_CATEGORIE.entries()]
-  .sort((a, b) => parUnitesDeCode(a[0], b[0]))
-  .map(
-    ([cle, v]) =>
-      `| \`${cle}\` | ${LABEL_CAT.get(cle) ?? '⚠️ absente de CODEX_SPECS'} | ${v.fichiers
-        .map((f) => `\`src/data/${f}\``)
-        .join(', ')} | ${v.route} |`,
+  const EXPOSITION = JSON.parse(
+    sortieOutilLocal(process.cwd(), 'tsx', 'tsx', ['scripts/docs/lib/dump-exposition.mts']),
   )
-  .join('\n')
 
-const lignesClusters = CLUSTERS.map((c) => {
-  const sousGroupes = [...c.parCluster.entries()]
-    .map(([nom, cats]) => `*${nom}* (${cats.length})`)
-    .join(', ')
-  return `| ${c.groupe} | ${c.total} | ${c.plat} | ${sousGroupes || '—'} |`
-}).join('\n')
+  /** Route d'édition d'un def, dans le vocabulaire de `document()` — jamais un libellé inventé. */
+  function routeEdition(edit) {
+    if (!edit) return '—'
+    if ('none' in edit) return 'aucune'
+    if (edit.dataset) return `dataset \`${edit.dataset}\``
+    if (edit.object) return `objet \`${edit.object}\``
+    if (edit.niche) return `niché (${Object.keys(edit.niche.categories).length} catégorie(s))`
+    abandon(`route d'édition inconnue : ${JSON.stringify(edit)}`)
+  }
 
-const lignesExemptions = [...EXEMPTIONS.entries()]
-  .sort((a, b) => parUnitesDeCode(a[0], b[0]))
-  .map(([kind, fichiers]) => `- \`${kind}\` — ${fichiers.length} fichier(s)`)
-  .join('\n')
+  const PAR_CATEGORIE = new Map()
+  const EXEMPTIONS = new Map()
+  for (const [fichier, expo] of Object.entries(EXPOSITION)) {
+    if (expo.codex?.exempt) {
+      const kind = expo.codex.exempt.kind
+      if (!EXEMPTIONS.has(kind)) EXEMPTIONS.set(kind, [])
+      EXEMPTIONS.get(kind).push(fichier)
+      continue
+    }
+    for (const cle of expo.codex?.keys ?? []) {
+      if (PAR_CATEGORIE.has(cle)) {
+        PAR_CATEGORIE.get(cle).fichiers.push(fichier)
+      } else {
+        PAR_CATEGORIE.set(cle, { fichiers: [fichier], route: routeEdition(expo.edit) })
+      }
+    }
+  }
+  if (!PAR_CATEGORIE.size) abandon("aucune clé de catégorie Codex déclarée par les defs — l'exposition est illisible")
 
-const out = `# Codex — couche relationnelle (références inverses, index, auto-liage)
+  const NB_DEFS = Object.keys(EXPOSITION).length
+  const NB_EXEMPTS = [...EXEMPTIONS.values()].reduce((n, l) => n + l.length, 0)
+
+  // ── Catégories, groupes et sous-groupes : le littéral CODEX_SPECS ────────────────────────────────
+
+  const REGISTRY_SRC = lire(REGISTRY)
+  const DEBUT_SPECS = REGISTRY_SRC.indexOf('const CODEX_SPECS')
+  const FIN_SPECS = REGISTRY_SRC.indexOf('export const CODEX:')
+  if (DEBUT_SPECS === -1 || FIN_SPECS === -1 || FIN_SPECS < DEBUT_SPECS) {
+    abandon(`le littéral \`CODEX_SPECS\` et sa projection \`CODEX\` sont introuvables dans ${REGISTRY}`)
+  }
+  const SPECS_SRC = REGISTRY_SRC.slice(DEBUT_SPECS, FIN_SPECS)
+
+  const SPECS = [...SPECS_SRC.matchAll(/\bkey: '([A-Za-z0-9_]+)'/g)].map((m, i, tous) => {
+    const fin = i + 1 < tous.length ? tous[i + 1].index : SPECS_SRC.length
+    const fenetre = SPECS_SRC.slice(m.index, fin)
+    return {
+      key: m[1],
+      label: (fenetre.match(/label: '([^']*)'/) ?? [])[1] ?? m[1],
+      group: (fenetre.match(/group: '([^']*)'/) ?? [])[1] ?? null,
+      cluster: (fenetre.match(/cluster: '([^']*)'/) ?? [])[1] ?? null,
+    }
+  })
+  if (!SPECS.length) abandon(`aucune catégorie lue dans \`CODEX_SPECS\` (${REGISTRY}) — le motif a dérivé`)
+
+  const GROUPES = (() => {
+    const m = REGISTRY_SRC.match(/export const CODEX_GROUPS: CodexGroup\[\] = \[([^\]]+)\]/)
+    if (!m) abandon(`\`CODEX_GROUPS\` introuvable dans ${REGISTRY}`)
+    return m[1].split(',').map((s) => s.trim().replace(/^'|'$/g, ''))
+  })()
+
+  const CLUSTERS = GROUPES.map((g) => {
+    const dedans = SPECS.filter((s) => s.group === g)
+    const parCluster = new Map()
+    for (const s of dedans.filter((x) => x.cluster)) {
+      if (!parCluster.has(s.cluster)) parCluster.set(s.cluster, [])
+      parCluster.get(s.cluster).push(s)
+    }
+    return { groupe: g, total: dedans.length, plat: dedans.filter((x) => !x.cluster).length, parCluster }
+  })
+
+  // ── Arêtes inverses : les appels `addReverse` du module ──────────────────────────────────────────
+
+  const RELATIONS_SRC = lire(RELATIONS)
+  const LIGNES = RELATIONS_SRC.split('\n')
+
+  /** Catégorie du référant en portée à la ligne `i` : le dernier `const by: Referrer = { category: … }`. */
+  function referantAvant(i) {
+    for (let j = i; j >= 0; j -= 1) {
+      const m = LIGNES[j].match(/const by(?:: Referrer)? = \{ category: '([^']+)'/)
+      if (m) return m[1]
+    }
+    return null
+  }
+
+  const ARETES = []
+  for (let i = 0; i < LIGNES.length; i += 1) {
+    const appel = LIGNES[i].match(/addReverse\('([^']+)',\s*([^,]+),\s*([\s\S]*)$/)
+    if (!appel) continue
+    const cible = appel[1]
+    const reste = appel[3]
+    const inline = reste.match(/\{\s*(?:\.\.\.by,\s*)?category: '([^']+)'/)
+    const source = inline ? inline[1] : referantAvant(i)
+    if (!source) abandon(`appel addReverse ligne ${i + 1} de ${RELATIONS} : catégorie du référant indéterminable`)
+    const litteraux = [...reste.matchAll(/'([^']*)'/g)].map((m) => m[1])
+    const titre = litteraux.length && !inline ? litteraux[litteraux.length - 1] : litteraux.slice(1).pop() ?? null
+    const declencheur = appel[2].trim()
+    ARETES.push({ source, cible, titre: titre && titre !== source ? titre : null, ligne: i + 1, declencheur })
+  }
+  if (!ARETES.length) abandon(`aucun appel \`addReverse\` lu dans ${RELATIONS} — le motif a dérivé`)
+
+  const PAR_SOURCE = new Map()
+  for (const a of ARETES) {
+    const cle = `${a.source}→${a.cible}`
+    if (!PAR_SOURCE.has(cle)) PAR_SOURCE.set(cle, { ...a, lignes: [] })
+    PAR_SOURCE.get(cle).lignes.push(a.ligne)
+    if (!PAR_SOURCE.get(cle).titre && a.titre) PAR_SOURCE.get(cle).titre = a.titre
+  }
+  const ARETES_FUSIONNEES = [...PAR_SOURCE.values()].sort(
+    (a, b) => parUnitesDeCode(a.source, b.source) || parUnitesDeCode(a.cible, b.cible),
+  )
+
+  const LABEL_CAT = new Map(SPECS.map((s) => [s.key, s.label]))
+  const nomCat = (k) => (LABEL_CAT.has(k) ? `${LABEL_CAT.get(k)} (\`${k}\`)` : `\`${k}\``)
+
+  // ── API publique du module ───────────────────────────────────────────────────────────────────────
+
+  const API = fileExports(RELATIONS).filter((e) => e.kind === 'function' || e.kind === 'interface' || e.kind === 'type')
+  if (!API.length) abandon(`aucun export public lu dans ${RELATIONS}`)
+
+  /** JSDoc COMPLET (pas la 1re phrase) des exports d'un module, par nom. Le contrat d'une couture
+   *  relationnelle tient dans ses RESTRICTIONS (« hors liens vers soi », « hors noms propres »,
+   *  « texte brut seulement », « match par id de livre ») : les couper à la 1re phrase perdait
+   *  précisément ce qui décide d'un usage. */
+  function docsComplets(chemin) {
+    const { text, sf } = loadSource(chemin)
+    const par = new Map()
+    const poser = (nom, node) => {
+      const corps = jsdocBody(text.slice(node.getFullStart(), node.getStart(sf)))
+      if (corps) par.set(nom, corps.replace(/\s+/g, ' ').trim())
+    }
+    for (const n of sf.statements) {
+      if (n.name && ts.isIdentifier(n.name)) poser(n.name.text, n)
+      else if (ts.isVariableStatement(n)) {
+        for (const d of n.declarationList.declarations) if (ts.isIdentifier(d.name)) poser(d.name.text, n)
+      }
+    }
+    return par
+  }
+  const DOCS_API = docsComplets(RELATIONS)
+
+  /** Site du SEUL câblage de `bookContents` dans le registre — le fait « projeté DANS le build » ne
+   *  s'écrit pas de mémoire : il se cite. */
+  const LIGNE_BOOKCONTENTS = REGISTRY_SRC.split('\n').findIndex((l) => /\bbookContents\(/.test(l)) + 1
+  if (!LIGNE_BOOKCONTENTS) abandon(`aucun appel \`bookContents(...)\` dans ${REGISTRY} — le câblage de la fiche Livre a bougé`)
+
+  /** Helpers de section / de phrase JOUEUR : les NOMS viennent des exports, jamais d'une liste tenue
+   *  à la main qui se périme au premier renommage. */
+  const helpersDe = (chemin) => {
+    const noms = fileExports(chemin).filter((e) => e.kind === 'function').map((e) => e.name)
+    if (!noms.length) abandon(`aucune fonction exportée dans ${chemin} (déplacé/renommé ?)`)
+    return noms
+  }
+  const HELPERS_DESCRIBE = helpersDe(DESCRIBE)
+  const HELPERS_HUMANIZE = helpersDe(HUMANIZE)
+
+  /** Contrats VÉRIFIÉS par la garde d'exposition : ses cas, tels qu'elle les NOMME. */
+  const CONTRATS_CAS = (() => {
+    const src = lire(CONTRATS)
+    const blocs = [...src.matchAll(/describe\('([^']+)'/g)]
+    if (!blocs.length) abandon(`aucun \`describe\` lu dans ${CONTRATS} — le motif a dérivé`)
+    return blocs.map((b, i) => {
+      const fin = i + 1 < blocs.length ? blocs[i + 1].index : src.length
+      const cas = [...src.slice(b.index, fin).matchAll(/\bit\('([^']+)'/g)].map((m) => m[1])
+      if (!cas.length) abandon(`\`describe('${b[1]}')\` de ${CONTRATS} ne porte aucun cas`)
+      return { titre: b[1], cas }
+    })
+  })()
+
+  /** Exergues de Carrière : compte et périmètre de SOURCE, dumpés par le code lui-même (le plugin
+   *  `exergues` de `<Prose>` monté sur les `careers` réelles) — jamais une re-implémentation ici. */
+  const EPIGRAPHES = JSON.parse(
+    sortieOutilLocal(process.cwd(), 'tsx', 'tsx', ['scripts/docs/lib/dump-epigraphes.mts']),
+  )
+  if (!EPIGRAPHES.total) abandon('dump-epigraphes : aucune carrière lue — la façade `src/data` a bougé')
+
+  // ── Tests du dossier ─────────────────────────────────────────────────────────────────────────────
+
+  // Gardes NOMMÉES (fail-fast si l'une disparaît) — pas un balayage du dossier : un fichier de test
+  // en cours d'écriture dans un arbre partagé ferait diverger le .md sans qu'aucune règle ne bouge.
+  const TESTS = [
+    'src/ui/compendium/relations.test.ts',
+    'src/ui/compendium/registry.test.ts',
+    'src/ui/compendium/humanize.test.ts',
+    'src/data/schemas/exposition-contrats.test.ts',
+    'src/data/serialize.test.ts',
+  ].map((t) => {
+    if (!existsSync(t)) abandon(`garde « ${t} » introuvable (renommée/supprimée ?)`)
+    return t
+  })
+
+  // ── Rendu ────────────────────────────────────────────────────────────────────────────────────────
+
+  const lignesAretes = ARETES_FUSIONNEES.map(
+    (a) =>
+      `| ${nomCat(a.source)} | ${nomCat(a.cible)} | ${a.titre ? `« ${a.titre} »` : '— (titre de repli)'} | ${a.lignes
+        .map((l) => `\`${RELATIONS}:${l}\``)
+        .join(' ')} |`,
+  ).join('\n')
+
+  const lignesApi = API.map(
+    (e) =>
+      `| \`${e.name}\` | ${e.kind} | \`${RELATIONS}:${e.line}\` | ${(DOCS_API.get(e.name) ?? e.role ?? '—').replaceAll('|', '\\|')} |`,
+  ).join('\n')
+
+  const lignesContrats = CONTRATS_CAS.map(
+    (b) => `- **${b.titre}**\n${b.cas.map((c) => `  - ${c.replaceAll('*', '\\*')}`).join('\n')}`,
+  ).join('\n')
+
+  const lignesCategories = [...PAR_CATEGORIE.entries()]
+    .sort((a, b) => parUnitesDeCode(a[0], b[0]))
+    .map(
+      ([cle, v]) =>
+        `| \`${cle}\` | ${LABEL_CAT.get(cle) ?? '⚠️ absente de CODEX_SPECS'} | ${v.fichiers
+          .map((f) => `\`src/data/${f}\``)
+          .join(', ')} | ${v.route} |`,
+    )
+    .join('\n')
+
+  const lignesClusters = CLUSTERS.map((c) => {
+    const sousGroupes = [...c.parCluster.entries()]
+      .map(([nom, cats]) => `*${nom}* (${cats.length})`)
+      .join(', ')
+    return `| ${c.groupe} | ${c.total} | ${c.plat} | ${sousGroupes || '—'} |`
+  }).join('\n')
+
+  const lignesExemptions = [...EXEMPTIONS.entries()]
+    .sort((a, b) => parUnitesDeCode(a[0], b[0]))
+    .map(([kind, fichiers]) => `- \`${kind}\` — ${fichiers.length} fichier(s)`)
+    .join('\n')
+
+  const out = `# Codex — couche relationnelle (références inverses, index, auto-liage)
 
 > ⚠️ Fichier GÉNÉRÉ par \`node scripts/docs/build-codex-relations.mjs\` (\`npm run docs:codex-relations\`) — NE PAS ÉDITER À LA MAIN.
 
@@ -410,14 +412,21 @@ Regrouper une catégorie = poser \`cluster: '…'\` sur son littéral dans \`COD
 
 ${TESTS.map((t) => `- \`npm test -- ${t}\``).join('\n')}
 `
+  return {
+    out,
+    path: 'docs/codex-relations.md',
+    staleMsg:
+      'docs:codex-relations — docs/codex-relations.md est PÉRIMÉ (diverge de relations.ts, registry.ts, de l’exposition déclarée aux defs, ou du script).',
+    rerunMsg: '  → relancer `npm run docs:codex-relations` et committer le résultat.',
+    okMsg: 'docs:codex-relations — OK (docs/codex-relations.md à jour)',
+    writeMsg: `docs/codex-relations.md — ${ARETES_FUSIONNEES.length} arêtes inverses, ${SPECS.length} catégories, ${PAR_CATEGORIE.size} clés déclarées.`,
+  }
+}
 
-ecrireOuVerifier({
-  out,
-  path: 'docs/codex-relations.md',
-  check: process.argv.includes('--check'),
-  staleMsg:
-    'docs:codex-relations — docs/codex-relations.md est PÉRIMÉ (diverge de relations.ts, registry.ts, de l’exposition déclarée aux defs, ou du script).',
-  rerunMsg: '  → relancer `npm run docs:codex-relations` et committer le résultat.',
-  okMsg: 'docs:codex-relations — OK (docs/codex-relations.md à jour)',
-  writeMsg: `docs/codex-relations.md — ${ARETES_FUSIONNEES.length} arêtes inverses, ${SPECS.length} catégories, ${PAR_CATEGORIE.size} clés déclarées.`,
-})
+/** Contrat `rendre()` de `GENERATORS` (scripts/docs/build-all.mjs) : cible → texte, sans écrire. */
+export function rendre() {
+  const { path, out } = rendu()
+  return new Map([[path, out]])
+}
+
+if (import.meta.main) ecrireOuVerifier({ ...rendu(), check: process.argv.includes('--check') })

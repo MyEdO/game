@@ -161,7 +161,7 @@ export const REGLES_ORDRE_TOTAL = { ...REGLES_MARCHE, ...REGLES_LOCALE };
 const GLOBS_GENERATEURS = [
   'scripts/docs/**', 'scripts/raw/**', 'scripts/guards/lib/**',
   // Les racines du registre qui ne vivent dans aucun de ces trois dossiers.
-  'scripts/gen-registry.mjs', 'scripts/gen-quality-ids.mjs', 'scripts/gen-sorts-doc.mts',
+  'scripts/gen-registry.mjs', 'scripts/gen-sorts-doc.mts',
   'scripts/data/check-progression-schemas.mjs',
   // Un module de la clôture qui porte une exemption AU SITE : sous le mur, le lint la lit (hors du
   // mur, elle serait une directive inutilisée).

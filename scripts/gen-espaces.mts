@@ -128,23 +128,8 @@ function specificateur(sortie: string, chemin: string): string {
   return rel.startsWith('.') ? rel : `./${rel}`;
 }
 
-/** Écrit l'INDEX DES IDS, les CLÉS DE DATASET et les RACINES VIVANTES — seulement si leur contenu change.
- *  Un index illisible est d'abord remplacé par la table vide ; en `check`, il est un rouge et rien ne se calcule. */
-async function genEspaces(check: boolean): Promise<{ changed: boolean; espaces: number; ids: number; clesDeDataset: number; racines: number } | null> {
-  let prev = '';
-  try {
-    prev = readFileSync(SORTIE, 'utf8');
-  } catch {
-    /* nouveau */
-  }
-  if (!indexChargeable(prev)) {
-    if (check) {
-      console.error(`gen-espaces — ${SORTIE} est illisible (conflit ou sans IDS_PAR_ESPACE) : relancer \`npm run gen\`.`);
-      process.exitCode = (Number(process.exitCode) || 0) | 1;
-      return null;
-    }
-    writeFileSync(SORTIE, TABLE_VIDE);
-  }
+/** Les trois modules de la phase 2, rendus sans écrire, et ce dont leurs statistiques sont faites. */
+async function rendu(): Promise<{ textes: Map<string, string>; table: Map<string, readonly string[]>; clesDeDataset: string[]; racines: DocumentDeDataset[] }> {
   const { table, clesDeDataset, racines } = await indexDesIds();
   const body =
     `// GÉNÉRÉ par scripts/gen-espaces.mts (phase 2 de \`npm run gen\`) — NE PAS ÉDITER À LA MAIN.\n` +
@@ -186,11 +171,41 @@ async function genEspaces(check: boolean): Promise<{ changed: boolean; espaces: 
     `export const RACINES_VIVANTES: Readonly<Record<string, unknown>> = {\n` +
     racines.map((r, i) => `  ${litteralJs(r.fichier)}: r${i},\n`).join('') +
     `};\n`;
-  const changed = ecrire(SORTIE, body, check);
-  const clesChangees = ecrire(SORTIE_CLES, cles, check);
-  const racinesChangees = ecrire(SORTIE_RACINES, modRacines, check);
+  return { textes: new Map([[SORTIE, body], [SORTIE_CLES, cles], [SORTIE_RACINES, modRacines]]), table, clesDeDataset, racines };
+}
+
+/** Le texte de l'index des ids sur disque, `''` s'il n'existe pas encore. */
+function indexSurDisque(): string {
+  try {
+    return readFileSync(SORTIE, 'utf8');
+  } catch {
+    return '';
+  }
+}
+
+/** Contrat `rendre()` de `GENERATORS` (scripts/docs/build-all.mjs), phase 2 : module → texte, sans
+ *  écrire. LÈVE sur un index illisible : seul `genEspaces` le remplace par la table vide. */
+export async function rendre(): Promise<Map<string, string>> {
+  if (!indexChargeable(indexSurDisque())) throw new Error(`gen-espaces — ${SORTIE} est illisible (conflit ou sans IDS_PAR_ESPACE) : relancer \`npm run gen\`.`);
+  return (await rendu()).textes;
+}
+
+/** Écrit l'INDEX DES IDS, les CLÉS DE DATASET et les RACINES VIVANTES — seulement si leur contenu change.
+ *  Un index illisible est d'abord remplacé par la table vide ; en `check`, il est un rouge et rien ne se calcule. */
+async function genEspaces(check: boolean): Promise<{ changed: boolean; espaces: number; ids: number; clesDeDataset: number; racines: number } | null> {
+  if (!indexChargeable(indexSurDisque())) {
+    if (check) {
+      console.error(`gen-espaces — ${SORTIE} est illisible (conflit ou sans IDS_PAR_ESPACE) : relancer \`npm run gen\`.`);
+      process.exitCode = (Number(process.exitCode) || 0) | 1;
+      return null;
+    }
+    writeFileSync(SORTIE, TABLE_VIDE);
+  }
+  const { textes, table, clesDeDataset, racines } = await rendu();
+  let changed = false;
+  for (const [chemin, texte] of textes) changed = ecrire(chemin, texte, check) || changed;
   return {
-    changed: changed || clesChangees || racinesChangees,
+    changed,
     espaces: table.size,
     ids: [...table.values()].reduce((n, l) => n + l.length, 0),
     clesDeDataset: clesDeDataset.length,

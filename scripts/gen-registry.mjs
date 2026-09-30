@@ -446,12 +446,13 @@ export const MESSAGES_DE = (out) => ({
   rerunMsg: '  → relancer `npm run gen` et committer le résultat.',
 });
 
-function genOne(r, check) {
+/** Le module rendu d'un registre, ou `null` quand son dossier n'existe pas. */
+function renduDuRegistre(r) {
   const importDir = r.importDir ?? './defs';
   try {
     listerDossier(r.dir);
   } catch {
-    return { arrayName: r.arrayName, dir: r.dir, files: 0, changed: false, missing: true };
+    return null;
   }
   // Registre à champ `file` : un module du dossier qui ne DÉCLARE pas de document (modules de
   // FORME partagés entre defs) n'est pas une entrée — critère STRUCTUREL, jamais une liste de noms.
@@ -496,9 +497,15 @@ function genOne(r, check) {
     imports.join('\n') + '\n\n' +
     `export const ${r.arrayName}: ${r.type}[] = [${arr.join(', ')}];\n` +
     unionDecl;
+  return { body, files: files.length };
+}
+
+function genOne(r, check) {
+  const c = renduDuRegistre(r);
+  if (!c) return { arrayName: r.arrayName, dir: r.dir, files: 0, changed: false, missing: true };
   // `ecrireDoc` n'écrit que si le contenu change (évite de toucher le mtime → boucles de watch).
-  const changed = !ecrireOuVerifier({ out: body, path: r.out, check, ...MESSAGES_DE(r.out) });
-  return { arrayName: r.arrayName, dir: r.dir, files: files.length, changed, missing: false };
+  const changed = !ecrireOuVerifier({ out: c.body, path: r.out, check, ...MESSAGES_DE(r.out) });
+  return { arrayName: r.arrayName, dir: r.dir, files: c.files, changed, missing: false };
 }
 
 /**
@@ -552,8 +559,8 @@ export function projeterDefs(dir, projection) {
   return lignes.sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
 }
 
-/** Module des projections (`projection` des `REGISTRIES`), écrit seulement s'il change. */
-function genArt(check, registres = REGISTRIES, out = SORTIE_ART) {
+/** Le module des projections (`projection` des `REGISTRIES`) rendu, et le compte de chaque bloc. */
+function renduDesProjections(registres = REGISTRIES) {
   const blocs = registres.filter((r) => r.projection).map((r) => {
     const lignes = projeterDefs(r.dir, r.projection);
     const tete = `/** Projection GÉNÉRÉE de \`${r.dir}\`${r.projection.champ ? ` : id → \`${r.projection.champ}\`` : ' : ids'} (${lignes.length}). */\n`;
@@ -566,20 +573,49 @@ function genArt(check, registres = REGISTRIES, out = SORTIE_ART) {
     `// GÉNÉRÉ par scripts/gen-registry.mjs — NE PAS ÉDITER À LA MAIN.\n` +
     `// Régénérer : \`npm run gen\` (option \`projection\` des REGISTRIES).\n\n` +
     blocs.map((b) => b.texte).join('\n');
+  return { body, blocs: blocs.map((b) => `${b.nom}=${b.n}`) };
+}
+
+/** Module des projections, écrit seulement s'il change. */
+function genArt(check, out = SORTIE_ART) {
+  const { body, blocs } = renduDesProjections();
   const changed = !ecrireOuVerifier({ out: body, path: out, check, ...MESSAGES_DE(out) });
-  return { out, blocs: blocs.map((b) => `${b.nom}=${b.n}`), changed };
+  return { out, blocs, changed };
+}
+
+/** Un processus enfant `node --import tsx <args>` à la racine du dépôt : la PHASE 2 (`scripts/gen-espaces.mts`)
+ *  parse les documents par leurs schémas TypeScript. */
+const sousTsx = (args, options) =>
+  spawnSync(process.execPath, ['--import', 'tsx', ...args], { cwd: fileURLToPath(new URL('..', import.meta.url)), ...options });
+
+/** Les modules de la PHASE 2 rendus par `rendre()` de `scripts/gen-espaces.mts` (`sousTsx`), sans rien écrire. */
+function espacesRendus() {
+  const code = "const { rendre } = await import('./scripts/gen-espaces.mts'); process.stdout.write(JSON.stringify([...(await rendre())]));";
+  const r = sousTsx(['--input-type=module', '-e', code], { encoding: 'utf8', maxBuffer: 1 << 28 });
+  if (r.status !== 0) throw new Error(`gen-registry: rendu de la phase 2 (scripts/gen-espaces.mts) en échec (exit ${r.status ?? r.signal}) :\n${r.stderr}`);
+  return JSON.parse(r.stdout);
+}
+
+/** Contrat `rendre()` de `GENERATORS` (scripts/docs/build-all.mjs) : chaque cible de `SORTIES` → son
+ *  texte, sans écrire. */
+export function rendre() {
+  const rendu = new Map();
+  for (const r of REGISTRIES) {
+    const c = renduDuRegistre(r);
+    if (c) rendu.set(r.out, c.body);
+  }
+  rendu.set(SORTIE_ART, renduDesProjections().body);
+  for (const [chemin, texte] of espacesRendus()) rendu.set(chemin, texte);
+  return rendu;
 }
 
 /**
- * PHASE 2 : l'INDEX DES IDS, par `scripts/gen-espaces.mts` sous `tsx` (il parse les documents par
- * leurs schémas TypeScript), dans un processus enfant. Hors `--check`, lève si l'enfant échoue ; en
- * `--check`, son code de sortie (bit « corps périmé » compris) rejoint celui de ce processus.
+ * PHASE 2 : l'INDEX DES IDS, par `scripts/gen-espaces.mts` (`sousTsx`). Hors `--check`, lève si
+ * l'enfant échoue ; en `--check`, son code de sortie (bit « corps périmé » compris) rejoint celui de
+ * ce processus.
  */
 function genEspaces(verbose, check) {
-  const r = spawnSync(process.execPath, ['--import', 'tsx', 'scripts/gen-espaces.mts', ...(verbose ? [] : ['--silencieux']), ...(check ? ['--check'] : [])], {
-    stdio: 'inherit',
-    cwd: fileURLToPath(new URL('..', import.meta.url)),
-  });
+  const r = sousTsx(['scripts/gen-espaces.mts', ...(verbose ? [] : ['--silencieux']), ...(check ? ['--check'] : [])], { stdio: 'inherit' });
   if (r.status === 0) return;
   if (check && r.status !== null) {
     process.exitCode = (Number(process.exitCode) || 0) | r.status;
@@ -590,8 +626,8 @@ function genEspaces(verbose, check) {
 
 /**
  * Régénère TOUS les registres (phase 1), les projections d'art (`genArt`), puis l'INDEX DES IDS
- * (phase 2). `verbose` (défaut `false`) : en mode silencieux (appel `buildStart` du plugin Vite, donc
- * CHAQUE run Vitest via `globalSetup`), n'imprime QUE les registres réellement RÉGÉNÉRÉS ou en erreur
+ * (phase 2). `verbose` (défaut `false`) : en mode silencieux (appel `buildStart` du plugin Vite de
+ * `vite.config.ts`, que chaque run Vitest déclenche), n'imprime QUE les registres réellement RÉGÉNÉRÉS ou en erreur
  * (dossier absent), + UNE ligne agrégée pour le reste — évite les ~15 lignes « [inchangé] » qui
  * polluent chaque sortie de test et cassent le parseur pass/fail de l'outil `rtk`. En mode verbose
  * (exécution directe `npm run gen`), détail complet (usage : audit manuel de ce que le générateur a vu).

@@ -8,9 +8,8 @@
     "node": ">=22.18.0"
   },
   "scripts": {
-    "postinstall": "git config core.hooksPath scripts/git-hooks && git config merge.docs-generes.driver \"node scripts/git-hooks/merge-docs.mjs generes %O %A %B %P\" && git config merge.docs-generes.name \"docs generes: garde la version courante, docs:build regenere\" && git config merge.docs-catalogue.driver \"node scripts/git-hooks/merge-docs.mjs catalogue %O %A %B %P\" && git config merge.docs-catalogue.name \"docs catalogue: garde la version courante, refuse la perte d un bloc X-INTEGRATION\" && git config merge.docs-fiche-raw.driver \"node scripts/git-hooks/merge-docs.mjs fiche-raw %O %A %B %P\" && git config merge.docs-fiche-raw.name \"docs fiche raw: fusion de la prose, champ Implemente reinjecte par identite\" && git config merge.stocks.driver \"node scripts/git-hooks/merge-stocks.mjs %O %A %B %P\" && git config merge.stocks.name \"stocks de sites: fusion par groupe de site\"",
+    "postinstall": "git config core.hooksPath scripts/git-hooks && git config merge.docs-generes.driver \"node scripts/git-hooks/merge-docs.mjs generes %O %A %B %P\" && git config merge.docs-generes.name \"docs generes: garde la version courante, docs:build regenere\" && git config merge.docs-fiche-raw.driver \"node scripts/git-hooks/merge-docs.mjs fiche-raw %O %A %B %P\" && git config merge.docs-fiche-raw.name \"docs fiche raw: fusion de la prose, champ Implemente reinjecte par identite\" && git config merge.stocks.driver \"node scripts/git-hooks/merge-stocks.mjs %O %A %B %P\" && git config merge.stocks.name \"stocks de sites: fusion par groupe de site\"",
     "gen": "node scripts/gen-registry.mjs",
-    "gen:quality-ids": "node scripts/gen-quality-ids.mjs",
     "migrations:replay": "node scripts/migrations/replay.mjs",
     "migrations:replay:head": "node scripts/migrations/replay-head.mjs",
     "migrations:replay:croissance": "node scripts/migrations/replay-croissance.mjs",

@@ -15,13 +15,11 @@
  * casse, l'index ne répond plus à la question qui a motivé sa création, quelle que soit sa taille.
  */
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { allEngineExports, ENGINE_ROOT } from '../../scripts/docs/lib/engineExports.mjs';
+import { rendreCible } from '../../scripts/docs/build-all.mjs';
 
-const ROOT = fileURLToPath(new URL('../../', import.meta.url));
-const INDEX_PATH = join(ROOT, 'docs', 'index-moteur.md');
+/** `docs/index-moteur.md` tel que son générateur le rend (`rendreCible`), jamais le fichier du disque. */
+const INDEX_MOTEUR = await rendreCible('docs/index-moteur.md');
 
 /**
  * Plafond du cliquet. Mesuré au moment de ce lot : 301 exports publics de `src/engine` sans JSDoc
@@ -47,7 +45,7 @@ describe('cliquet de la dette de JSDoc de src/engine (#903bis)', () => {
 
 describe('index par concept — contrat positif rollCareer (#903bis, incident fondateur)', () => {
   it('chercher « carrière aléatoire » dans docs/index-moteur.md fait remonter rollCareer (creation.ts)', () => {
-    const text = readFileSync(INDEX_PATH, 'utf8');
+    const text = INDEX_MOTEUR;
     const lines = text.split('\n');
     const conceptLine = lines.find((l) => l.startsWith('| ') && /carri[eè]re al[eé]atoire/i.test(l) && l.includes('`rollCareer`'));
     expect(conceptLine, 'aucune ligne de concept ne contient « carrière aléatoire » ET `rollCareer`').toBeDefined();

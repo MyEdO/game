@@ -14,7 +14,7 @@
 // baseline (à la différence de `check-entity-in-chapter`, dont le stock historique justifiait un
 // cliquet) : toute régression future doit échouer immédiatement, jamais se glisser sous un seuil.
 // Re-run : node scripts/raw/check-catalogue-complete.mjs (npm run raw:check-catalogue-complete).
-import { sectionsOf, catalogChaptersOf, cleanTitle, pagesLues, RAWDIR } from './coverage.mjs'
+import { sectionsOf, catalogChaptersOf, cleanTitle, pagesLues } from './coverage.mjs'
 import { chapterFile, niveauDeSectionDe, readText } from './_lib.mjs'
 import { normalizeLoose } from './check-entity-in-chapter.mjs'
 // `## [ABBR NN] Titre` — patron STRUCTUREL des blocs catalogue (vérifié #604 : coïncide exactement,
@@ -83,8 +83,8 @@ export function scanIncompleteChapters(catalogCh, blocks) {
   return violations
 }
 
-function main(rawDir = RAWDIR) {
-  const docs = pagesLues(rawDir)
+function main() {
+  const docs = pagesLues()
   const catalogCh = catalogChaptersOf(docs)
   const blocks = catalogueBlocksOf(docs)
   const violations = scanIncompleteChapters(catalogCh, blocks)

@@ -7,15 +7,14 @@
 //
 // Périmètre — `docs/*.md` À PLAT (hors sous-dossiers, `docs/plans/` et `docs/raw/` compris), même
 // frontière que `scripts/docs/check-doc-refs.mjs` (`listerDossier(DOCS_DIR)` non récursif).
-// Détection GÉNÉRÉ — marqueur `GÉNÉRÉ par` en tête de ligne dans les 10 premières lignes du doc ;
-// les deux formes mesurées dans le dépôt sont couvertes : « ⚠️ Fichier GÉNÉRÉ par … » et
-// « GÉNÉRÉ par `npx tsx …` ».
+// Détection GÉNÉRÉ — l'appartenance à `GENERATORS` (`generateurDe`, scripts/docs/build-all.mjs), jamais
+// le disque : une cible de `GENERATORS` est générée par définition, et son texte se lit par
+// `rendreCible`, jamais sur disque (#2203).
 //
-// Second volet (#903 suite) — le marqueur ne suffit pas à qualifier un doc de « généré » : rien ne
-// vérifiait que le script cité existe ni qu'il est une ligne de `GENERATORS`. C'est exactement le
+// Second volet (#903 suite) — un doc MANUSCRIT qui porte le marqueur `GÉNÉRÉ par` ment : c'est le
 // trou par lequel `docs/sorts-implementation.md` a pourri (en-tête GÉNÉRÉ, aucun script `npm`,
-// aucun `--check`, absent de la CI — 160 sorts d'écart mesurés avant correction). Ce fichier
-// verrouille que le marqueur ENGAGE réellement son générateur.
+// aucun `--check`, absent de la CI — 160 sorts d'écart mesurés avant correction). Le marqueur
+// n'est porté que par une cible de `GENERATORS`.
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync, existsSync } from 'node:fs'
@@ -24,12 +23,14 @@ import { fileURLToPath } from 'node:url'
 import { listerDossier } from '../guards/lib/lister.mjs'
 import { MANUAL_DOCS_STOCK } from '../guards/lib/manualDocsStock.mjs'
 import { ecartsDeStock } from '../guards/lib/stock.mjs'
-import { GENERATORS } from './build-all.mjs'
+import { GENERATORS, generateurDe, rendreCible } from './build-all.mjs'
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url))
 const DOCS_DIR = join(ROOT, 'docs')
-/** Les `.md` À PLAT de `docs/`, en ordre total — UN listage pour les quatre volets qui le lisent. */
+/** Les `.md` À PLAT présents dans `docs/`, en ordre total. */
 const DOCS_MD = listerDossier(DOCS_DIR).filter((f) => f.endsWith('.md'))
+/** Les cibles de `GENERATORS` qui sont des `.md` À PLAT de `docs/`. */
+const GENERES_A_PLAT = GENERATORS.flatMap((g) => g.targets).filter((t) => /^docs\/[^/]+\.md$/.test(t))
 
 const GENERATED_MARKER = /^>\s*(?:⚠️\s*)?(?:Fichier\s+)?GÉNÉRÉ par\b/m
 
@@ -38,8 +39,18 @@ function isGenerated(text) {
   return GENERATED_MARKER.test(head)
 }
 
+/** Un `.md` à plat de `docs/` est GÉNÉRÉ quand un générateur de `GENERATORS` l'écrit. */
+const estGenere = (f) => generateurDe(`docs/${f}`) !== undefined
+
 function manualDocs() {
-  return DOCS_MD.filter((f) => !isGenerated(readFileSync(join(DOCS_DIR, f), 'utf8'))).map((f) => `docs/${f}`)
+  return DOCS_MD.filter((f) => !estGenere(f)).map((f) => `docs/${f}`)
+}
+
+/** Texte d'un `docs/<fichier>.md` : son RENDU s'il est généré, le disque s'il est manuscrit, `null` absent. */
+async function texteDuDoc(doc) {
+  if (generateurDe(doc) !== undefined) return rendreCible(doc)
+  const chemin = join(ROOT, doc)
+  return existsSync(chemin) ? readFileSync(chemin, 'utf8') : null
 }
 
 /**
@@ -76,6 +87,14 @@ test('le stock cliqueté ne GROSSIT pas — sa taille est plafonnée par le test
   )
 })
 
+test('aucun doc MANUSCRIT ne se déclare `GÉNÉRÉ par` — le marqueur n’est porté que par une cible de GENERATORS', () => {
+  const violations = DOCS_MD.filter((f) => !estGenere(f) && isGenerated(readFileSync(join(DOCS_DIR, f), 'utf8'))).map(
+    (f) =>
+      `docs/${f} se déclare GÉNÉRÉ sans être une cible de GENERATORS dans scripts/docs/build-all.mjs, la source unique que docs:check vérifie : le marqueur pourrit en silence, non gardé par la CI`,
+  )
+  assert.deepEqual(violations, [])
+})
+
 /**
  * Motif d'extraction du générateur cité en en-tête. Les formes mesurées dans le dépôt divergent
  * (« GÉNÉRÉ par `node scripts/docs/build-systemes.mjs` » vs « GÉNÉRÉ par `npx tsx
@@ -88,41 +107,24 @@ const GENERATOR_QUOTE = /GÉNÉRÉ par\s+`([^`]+)`/
 function extractGeneratorScript(head) {
   const m = head.match(GENERATOR_QUOTE)
   if (!m) return null
-  const token = m[1].split(/\s+/).find((t) => /\.(?:mjs|mts|cjs|ts|js)$/.test(t))
-  return token ?? null
+  return m[1].split(/\s+/).find((t) => /\.(?:mjs|mts|cjs|ts|js)$/.test(t)) ?? null
 }
 
-function generatedDocs() {
-  return DOCS_MD.map((f) => ({ file: f, text: readFileSync(join(DOCS_DIR, f), 'utf8') }))
-    .filter(({ text }) => isGenerated(text))
-    .map(({ file, text }) => ({ file, head: text.split('\n').slice(0, 10).join('\n') }))
-}
-
-// Source UNIQUE des dérivés vérifiés : `GENERATORS`, que `build-all.mjs --check` rejoue un à un.
-const CHECKED = new Set(GENERATORS.map((g) => g.script))
-
-test('tout doc `GÉNÉRÉ par` cite un script qui existe et qui est une ligne de GENERATORS', () => {
-  const violations = generatedDocs().flatMap(({ file, head }) => {
-    const script = extractGeneratorScript(head)
-    if (!script) {
-      return [
-        `docs/${file} se déclare GÉNÉRÉ sans citer de script exécutable en en-tête — un marqueur sans générateur pourrit en silence (précédent : docs/sorts-implementation.md, 160 sorts d'écart avant correction)`,
-      ]
-    }
-    const violationsForDoc = []
-    if (!existsSync(join(ROOT, script))) {
-      violationsForDoc.push(
-        `docs/${file} se déclare GÉNÉRÉ par "${script}" — ce script n'existe pas sur disque : le marqueur pourrit en silence`,
-      )
-    }
-    if (!CHECKED.has(script)) {
-      violationsForDoc.push(
-        `docs/${file} se déclare GÉNÉRÉ par "${script}" — absent de GENERATORS dans scripts/docs/build-all.mjs, la source unique que docs:check vérifie : le marqueur pourrit en silence, non gardé par la CI`,
-      )
-    }
-    return violationsForDoc
-  })
+test('tout doc GÉNÉRÉ qui porte le marqueur `GÉNÉRÉ par` y cite SON générateur de GENERATORS', async () => {
+  const violations = []
+  for (const doc of GENERES_A_PLAT) {
+    const head = (await texteDuDoc(doc)).split('\n').slice(0, 10).join('\n')
+    if (!isGenerated(head)) continue
+    const cite = extractGeneratorScript(head)
+    const script = generateurDe(doc).script
+    if (cite !== script)
+      violations.push(`${doc} se déclare GÉNÉRÉ par "${cite ?? '(aucun script)'}" — son générateur dans GENERATORS est "${script}" : le marqueur ment sur qui le régénère`)
+  }
   assert.deepEqual(violations, [])
+})
+
+test('tout générateur de GENERATORS existe sur disque', () => {
+  assert.deepEqual(GENERATORS.map((g) => g.script).filter((script) => !existsSync(join(ROOT, script))), [])
 })
 
 /**
@@ -142,20 +144,17 @@ function hasPerimeterSection(text) {
   return /P[ée]rim[èe]tre\s+mesur[ée]s?/i.test(normalized) && /angles?\s+morts?/i.test(normalized)
 }
 
-function fullGeneratedDocs() {
-  return DOCS_MD.map((f) => ({ file: f, text: readFileSync(join(DOCS_DIR, f), 'utf8') })).filter(({ text }) =>
-    isGenerated(text),
+test('section « Périmètre mesuré / angles morts » présente dans chaque doc GÉNÉRÉ (#908)', async () => {
+  assert.ok(GENERES_A_PLAT.length > 0, 'GENERATORS ne porte aucun doc à plat — la garde serait verte à vide')
+  const violations = []
+  for (const doc of GENERES_A_PLAT) if (!hasPerimeterSection(await texteDuDoc(doc))) violations.push(doc)
+  assert.deepEqual(
+    violations.map(
+      (doc) =>
+        `${doc} se déclare GÉNÉRÉ sans section « Périmètre mesuré / angles morts » — un généré qui ne dit pas ce qu'il ne couvre PAS se lit comme exhaustif ; la section s'émet depuis le générateur (patron : le bloc « Périmètre mesuré / angles morts » de docs/vocabulaire-mecanique.md)`,
+    ),
+    [],
   )
-}
-
-test('section « Périmètre mesuré / angles morts » présente dans chaque doc GÉNÉRÉ (#908)', () => {
-  const violations = fullGeneratedDocs()
-    .filter(({ text }) => !hasPerimeterSection(text))
-    .map(
-      ({ file }) =>
-        `docs/${file} se déclare GÉNÉRÉ sans section « Périmètre mesuré / angles morts » — un généré qui ne dit pas ce qu'il ne couvre PAS se lit comme exhaustif ; la section s'émet depuis le générateur (patron : le bloc « Périmètre mesuré / angles morts » de docs/vocabulaire-mecanique.md)`,
-    )
-  assert.deepEqual(violations, [])
 })
 
 /**
@@ -189,7 +188,7 @@ function routingTableSlice(claudeMd) {
   return claudeMd.slice(start, end)
 }
 
-function routedFlatDocs() {
+async function routedFlatDocs() {
   const claudeMd = readFileSync(CLAUDE_MD_PATH, 'utf8')
   const routed = new Set()
   const queue = []
@@ -200,10 +199,8 @@ function routedFlatDocs() {
     }
   }
   while (queue.length > 0) {
-    const doc = queue.shift()
-    const docPath = join(ROOT, doc)
-    if (!existsSync(docPath)) continue
-    const text = readFileSync(docPath, 'utf8')
+    const text = await texteDuDoc(queue.shift())
+    if (text === null) continue
     for (const m of text.matchAll(DOC_CITATION)) {
       if (!routed.has(m[0])) {
         routed.add(m[0])
@@ -214,10 +211,10 @@ function routedFlatDocs() {
   return routed
 }
 
-const flatDocPaths = () => DOCS_MD.map((f) => `docs/${f}`)
+const flatDocPaths = () => [...new Set([...manualDocs(), ...GENERES_A_PLAT])].sort()
 
-test('aucun doc à plat non atteignable depuis la table de routage de CLAUDE.md (directement ou via un doc routé)', () => {
-  const routed = routedFlatDocs()
+test('aucun doc à plat non atteignable depuis la table de routage de CLAUDE.md (directement ou via un doc routé)', async () => {
+  const routed = await routedFlatDocs()
   const unrouted = flatDocPaths().filter((d) => !routed.has(d))
   assert.deepEqual(
     unrouted.map(

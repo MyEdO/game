@@ -260,6 +260,11 @@ export function buildFieldConsumersMd(files: string[] = listProdFiles(SRC_DIR)):
   return { md: out, byType, totalFields, totalUnread, zeros }
 }
 
+/** Contrat `rendre()` de `GENERATORS` (scripts/docs/build-all.mjs) : cible → texte, sans écrire. */
+export function rendre(files?: string[]): Map<string, string> {
+  return new Map([[OUT, buildFieldConsumersMd(files).md]]);
+}
+
 /** CLI : écriture du `.md`, ou `--check` : `ecrireOuVerifier`, rejoué par `build-all.mjs`. */
 if (import.meta.main) {
   const { md, totalFields, totalUnread } = buildFieldConsumersMd()
