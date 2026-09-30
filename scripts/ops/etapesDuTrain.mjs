@@ -307,7 +307,7 @@ function commettreDerives(ctx, { chemins, numeros, motif, journal }) {
 
 
 /** Attente BLOQUANTE sans busy-loop (le train est synchrone de bout en bout). */
-function attendre(ms) {
+export function attendre(ms) {
   Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms)
 }
 
@@ -715,7 +715,6 @@ export const ETAPES = [
       return journal.etapes.fin?.etat === 'vert' && journal.etapes.fin.tete === ctx.tete
     },
     jouer(ctx, journal) {
-      journal.etat = 'vert'
       return { ok: true, dit: `publication complète de ${journal.tete?.slice(0, 9)} en ${String(journal.etapes.file?.detail?.fusion ?? '?').slice(0, 9)}` }
     },
   },

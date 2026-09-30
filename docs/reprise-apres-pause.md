@@ -33,7 +33,13 @@ chantier du ticket `<N>` depuis n'importe quel worktree du dépôt (le chantier 
 l'arbre principal) : il pose le worktree lié `.wt-<N>` sur `origin/main`, crée la branche
 `chantier/<N>`, y joue `npm ci` et imprime le port dev dérivé. `npm run ops:publier -- --detache`
 (`node scripts/ops/publier.mjs`) joue ensuite le train de publication ENTIER depuis ce worktree, détaché
-du harnais, et imprime son `pid` et son `log`. Le train régénère les docs dérivées, POUSSE la branche
+du harnais, et imprime son `pid`, son `log` et sa `veille` : la commande exacte
+(`node <racine>/scripts/ops/publier.mjs --veiller <run>`) qui SUIT ce run jusqu'au verdict — elle lit le
+journal JSON, émet une ligne par transition d'étape, finit sur la ligne `PUBLICATION:` et sort en 0
+(vert), 1 (rouge) ou sur un code nommé (indéterminée, arrêt moteur, borne dépassée). C'est la seule
+veille d'un train : jamais un filtre du log texte écrit à la main. Chaque ligne porte le numéro
+`#<seq>` de sa transition ; une veille interrompue se RÉ-ARME par la même commande suivie de
+`--depuis <dernier seq lu>`, sans rien ré-émettre, et sa borne court depuis le LANCEMENT du run. Le train régénère les docs dérivées, POUSSE la branche
 de chantier, ouvre sa PR vers `main` et l'ARME ; la FILE DE FUSION du serveur la juge sur son commit de
 file et la fusionne, et le train attend cette fusion (borné par `--file-timeout-min`). Aucun rebase : une
 PR éjectée de la file pour un conflit ou un dérivé périmé se reprend par une FUSION d'`origin/main`
@@ -244,4 +250,4 @@ sans entrée ÉCRIT/LU, ou jouée par deux jobs, fait REFUSER le run, avec son n
 `scripts/guards/lib/npmLockHoisted.mjs` — npx --yes npm@10.9.3 install --package-lock-only, puis valider avec npx npm@10.9.3 ci --dry-run. npm 11 ampute les entrées hoistées
 `@emnapi/*` que `npm ci` exige en CI ; la garde (pre-commit +
 `src/npm-lock-hoisted-guard.test.ts`) refuse un lock amputé.
-<!-- sources-empreinte: 187b33742f41b64060cbefc1cc88e16597a6a664 (30 fichiers, 8 dossiers) corps: c2efaf7dd420f6b04818c920064aba9303cf1f5e -->
+<!-- sources-empreinte: dbd935eff09325a08b2b0907f657e99fa051ab46 (30 fichiers, 8 dossiers) corps: 807099324fa27662354f9cbb14fd4e584ed21902 -->

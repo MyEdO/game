@@ -23,8 +23,24 @@ import { refusDesCompteurs } from '../guards/lib/compteursDuDepot.mjs'
 import { envDeDepotForge, instanceDeDepot, sousLEnvDeLUtilisatrice } from '../guards/lib/depotGabarit.mjs'
 import { GENERATORS } from '../docs/build-all.mjs'
 import {
+  CODE_ARRET_MOTEUR,
+  CODE_BORNE_DEPASSEE,
+  CODE_INDETERMINEE,
+  ENV_LANCEMENT,
   FILE_TIMEOUT_MIN,
   RACINE,
+  borneDeVeilleMin,
+  codeDeVerdict,
+  commandeDeVeille,
+  entameDuRun,
+  envDeLancement,
+  idDeRun,
+  lancementDe,
+  ligneDePublication,
+  pidDeRun,
+  runDe,
+  transitionsDuRun,
+  veillerLeTrain,
   citerArgv,
   contexteDe,
   corpsDeFusion,
@@ -85,6 +101,8 @@ test('optionsDe : les drapeaux et l’option à valeur, sans grammaire emprunté
     reprendre: false,
     etapes: false,
     fileTimeoutMin: FILE_TIMEOUT_MIN,
+    veiller: null,
+    depuis: 0,
     inconnus: [],
   })
   assert.equal(optionsDe(['--detache']).detache, true)
@@ -97,6 +115,11 @@ test('optionsDe : les drapeaux et l’option à valeur, sans grammaire emprunté
   assert.equal(optionsDe(['--file-timeout-min', 'zero']).fileTimeoutMin, FILE_TIMEOUT_MIN)
   assert.deepEqual(optionsDe(['--ci-timeout-min', '12']).inconnus, ['--ci-timeout-min', '12'])
   assert.deepEqual(optionsDe(['--force']).inconnus, ['--force'])
+  assert.equal(optionsDe(['--veiller', '4242-1790000000000']).veiller, '4242-1790000000000')
+  assert.deepEqual(optionsDe(['--veiller', '4242-1790000000000']).inconnus, [])
+  // Un run illisible n'est jamais veillé : il se rend inconnu, et la commande refuse.
+  assert.deepEqual(optionsDe(['--veiller', 'dernier']).inconnus, ['--veiller dernier'])
+  assert.deepEqual(optionsDe(['--veiller']).inconnus, ['--veiller'])
 })
 
 // ── nomDeJournal ───────────────────────────────────────────────────────────────────────
@@ -217,8 +240,9 @@ test('jouerLeTrain : une étape DÉJÀ FAITE s’ENREGISTRE, estampillée à la 
   assert.equal(vue.detail.dejaFaite, true)
   assert.equal(vue.tete, 'vivante')
   assert.ok(vue.debut && vue.fin, 'une étape enregistrée porte ses bornes de temps')
-  // Elle est SAUVÉE comme une étape jouée — le journal du disque la porte.
-  assert.deepEqual(sauves, ['un', 'un+deux'])
+  // Elle est SAUVÉE comme une étape jouée — le journal du disque la porte ; `deux`, jouée, l'est à
+  // son entrée (`en-vol`) puis à son verdict.
+  assert.deepEqual(sauves, ['un', 'un+deux', 'un+deux'])
   // Une étape JOUÉE s’estampille à la même tête vivante, jamais à la tête publiée du journal.
   assert.equal(journal.etapes.deux.tete, 'vivante')
   // Le détail PRÉCÉDENT survit : `file.dejaFaite` relit `detail.fusion`, l’écraser referait attendre la file.
@@ -227,13 +251,16 @@ test('jouerLeTrain : une étape DÉJÀ FAITE s’ENREGISTRE, estampillée à la 
   assert.deepEqual(repris.etapes.file.detail, { fusion: 'f', dejaFaite: true })
 })
 
-test('jouerLeTrain : le journal est écrit APRÈS CHAQUE étape', () => {
+test('jouerLeTrain : le journal est écrit à l’ENTRÉE (`en-vol`) et au VERDICT de chaque étape jouée', () => {
   const sauves = []
-  const journal = journalVide('b')
-  jouerLeTrain({}, [factice('un', { ok: true }), factice('deux', { ok: false, raison: 'x' })], journal, {
-    sauver: (j) => sauves.push(Object.keys(j.etapes).join('+')),
+  const journal = entameDuRun(journalVide('b'), { run: '7-1', pid: 7, fileTimeoutMin: 1 })
+  jouerLeTrain({}, [factice('un', { ok: true, dit: 'fait' }), factice('deux', { ok: false, raison: 'x' })], journal, {
+    sauver: (j) => sauves.push(`${Object.entries(j.etapes).map(([n, e]) => `${n}:${e.etat}`).join('+')}`),
   })
-  assert.deepEqual(sauves, ['un', 'un+deux'])
+  assert.deepEqual(sauves, ['un:en-vol', 'un:vert', 'un:vert+deux:en-vol', 'un:vert+deux:rouge'])
+  // Chaque étape porte le run qui l'a écrite et son `dit` : le `dit` d'un vert, la `raison` d'un rouge.
+  assert.deepEqual([journal.etapes.un.run, journal.etapes.un.dit], ['7-1', 'fait'])
+  assert.deepEqual([journal.etapes.deux.run, journal.etapes.deux.dit], ['7-1', 'x'])
 })
 
 test('jouerLeTrain : une étape INDÉTERMINÉE arrête le train sans le rougir', () => {
@@ -413,8 +440,8 @@ test('git INDISPONIBLE avant le train (racine, branche, tête) : une ligne final
     const vu = spawnSync(process.execPath, [fileURLToPath(new URL('./publier.mjs', import.meta.url)), '--etapes'], {
       encoding: 'utf8', env: { ...process.env, PATH: `${cale}:${process.env.PATH}`, WFRP_PUBLIER_ENFANT: '' },
     })
-    assert.equal(vu.status, 1, vu.stderr)
-    assert.equal(vu.stderr, 'PUBLICATION: rouge lecture — git indisponible : fatal: panne simulée\n')
+    assert.equal(vu.status, CODE_ARRET_MOTEUR, vu.stderr)
+    assert.equal(vu.stderr, 'PUBLICATION: rouge moteur — git indisponible : fatal: panne simulée\n')
   } finally {
     rmSync(cale, { recursive: true, force: true })
   }
@@ -840,7 +867,7 @@ test('filetDuTrainEnfant : la chute d’un train détaché va DANS son journal, 
   assert.match(ecrits[0].texte, /at main \(publier\.mjs:1\)/)
   // La veille d'un train détaché attend `PUBLICATION:` : une chute la relâche, en ROUGE.
   assert.match(ecrits[0].texte, /\nPUBLICATION: rouge moteur — Error: ENOENT: dossier de journal introuvable\n$/)
-  assert.deepEqual(processus.sorties, [1])
+  assert.deepEqual(processus.sorties, [CODE_ARRET_MOTEUR])
 })
 
 test('filetDuTrainEnfant : une promesse rompue tombe par le MÊME filet', () => {
@@ -850,7 +877,7 @@ test('filetDuTrainEnfant : une promesse rompue tombe par le MÊME filet', () => 
   processus.branches.unhandledRejection('rupture nue')
   assert.equal(ecrits[0].chemin, 'x.log')
   assert.match(ecrits[0].texte, /ARRÊT INATTENDU hors train : rupture nue\nPUBLICATION: rouge moteur — rupture nue\n/)
-  assert.deepEqual(processus.sorties, [1])
+  assert.deepEqual(processus.sorties, [CODE_ARRET_MOTEUR])
 })
 
 // ── corpsDePilotage ────────────────────────────────────────────────────────────────────
@@ -1450,4 +1477,237 @@ describe('compteurs de version : la valeur que la tête publie est-elle déjà P
     ])
     assert.deepEqual(refusDuCommitDeFile(depotDe(racine, { env: envDeDepotForge() }), 'f'.repeat(40)), [`compteurs de version : parents de ${'f'.repeat(40)} illisibles`])
   })
+})
+
+// ── veillerLeTrain : la veille d'un run (#2227) ──────────────────────────────────────────
+
+const LANCEMENT_DU_RUN = 1790000000000
+const RUN = `4242-${LANCEMENT_DU_RUN}`
+const AVANT = '4100-1780000000000'
+
+/** Les journaux que le disque porte, sauvegarde après sauvegarde, pendant qu'un run joue `etapes` —
+ *  écrits par le MOTEUR réel (`jouerLeTrain`), puis le verdict tel que `main` le pose. */
+function journauxDuRun(etapes, { run = RUN, journal = journalVide('b') } = {}) {
+  const vus = []
+  entameDuRun(journal, { run, pid: pidDeRun(run), fileTimeoutMin: 10 })
+  vus.push(structuredClone(journal))
+  let verdict
+  try {
+    verdict = jouerLeTrain({ tete: 't' }, etapes, journal, { sauver: (j) => vus.push(structuredClone(j)) })
+  } catch (e) {
+    verdict = { etat: 'rouge', etape: 'moteur', raison: `ARRÊT INATTENDU : ${e.message}` }
+  }
+  journal.verdict = verdict
+  vus.push(structuredClone(journal))
+  return vus
+}
+
+/** La veille sur une suite de lectures (la dernière se répète), horloge et sommeil injectés ; l'horloge
+ *  part du LANCEMENT_DU_RUN du run, sauf `depart`. */
+function veille(lectures, { depart = LANCEMENT_DU_RUN, ...o } = {}) {
+  const lignes = []
+  let i = 0
+  let horloge = depart
+  const code = veillerLeTrain({
+    run: RUN,
+    fileTimeoutMin: 10,
+    lire: () => lectures[Math.min(i++, lectures.length - 1)],
+    ecrire: (l) => lignes.push(l),
+    vivant: () => true,
+    maintenant: () => horloge,
+    dormir: (ms) => {
+      horloge += ms
+    },
+    ...o,
+  })
+  return { code, lignes, lectures: i, horloge }
+}
+
+test('veillerLeTrain : un run VERT — une ligne par transition, numérotée, la ligne PUBLICATION:, code 0', () => {
+  const vus = journauxDuRun([factice('un', { ok: true, dit: 'arbre propre' }), factice('deux', { ok: true, dit: 'poussé' })])
+  const { code, lignes } = veille(vus)
+  assert.equal(code, 0)
+  assert.deepEqual(lignes, ['#1 un — en-vol', '#2 un — vert — arbre propre', '#3 deux — en-vol', '#4 deux — vert — poussé', 'PUBLICATION: vert null'])
+})
+
+test('veillerLeTrain : un run ROUGE — la raison en UNE ligne, code 1', () => {
+  const vus = journauxDuRun([factice('un', { ok: true }), factice('deux', { ok: false, raison: 'arbre NON COMMITÉ (2) :\n    a.ts\n    b.ts' })])
+  const { code, lignes } = veille(vus)
+  assert.equal(code, 1)
+  assert.deepEqual(lignes.slice(-2), ['#4 deux — rouge — arbre NON COMMITÉ (2) : · a.ts · b.ts', 'PUBLICATION: rouge deux — arbre NON COMMITÉ (2) :'])
+})
+
+test('veillerLeTrain : un run INDÉTERMINÉ sort sur le code du train', () => {
+  const vus = journauxDuRun([factice('un', { indetermine: true, raison: 'aucune fusion en 10 min' })])
+  const { code, lignes } = veille(vus)
+  assert.equal(code, CODE_INDETERMINEE)
+  assert.equal(lignes.at(-1), 'PUBLICATION: indéterminée file null')
+})
+
+test('veillerLeTrain : ARRÊT MOTEUR — verdict `rouge moteur`, ou train mort sans verdict', () => {
+  const vus = journauxDuRun([
+    factice('un', () => {
+      throw new Error('boum')
+    }),
+  ])
+  const vu = veille(vus)
+  assert.equal(vu.code, CODE_ARRET_MOTEUR)
+  assert.deepEqual(vu.lignes, ['#1 un — en-vol', 'PUBLICATION: rouge moteur — ARRÊT INATTENDU : boum'])
+
+  // Mort en vol : le journal reste `en-vol`, sans verdict. La mort constatée, le journal est RELU une
+  // fois (le verdict a pu tomber entre la lecture et la sonde), puis la veille sort.
+  const enVol = journauxDuRun([factice('un', { ok: true })]).slice(0, 2)
+  const mort = veille(enVol, { vivant: () => false, log: 'x.log' })
+  assert.equal(mort.code, CODE_ARRET_MOTEUR)
+  assert.equal(mort.lectures, 2)
+  assert.deepEqual(mort.lignes, ['#1 un — en-vol', 'PUBLICATION: rouge moteur — train 4242 mort sans verdict au journal — x.log'])
+  // Le verdict écrit juste avant la mort gagne : il est lu à la relecture.
+  const tardif = veille([enVol[1], journauxDuRun([factice('un', { ok: true })]).at(-1)], { vivant: () => false })
+  assert.equal(tardif.code, 0)
+})
+
+test('veillerLeTrain : la borne DÉRIVÉE de la borne de file du run, comptée depuis le LANCEMENT', () => {
+  const enVol = journauxDuRun([factice('un', { ok: true })]).slice(0, 2)
+  const vu = veille(enVol, { periodeMs: 60_000, fileTimeoutMin: 999 })
+  assert.equal(vu.code, CODE_BORNE_DEPASSEE)
+  // Le `fileTimeoutMin` du RUN (10, posé par `entameDuRun`) fait la borne, pas celui de la veille.
+  assert.equal(vu.horloge - LANCEMENT_DU_RUN, borneDeVeilleMin(10) * 60_000)
+  assert.equal(borneDeVeilleMin(10), (BORNE_EJECTIONS + 2) * 10)
+  assert.match(vu.lignes.at(-1), /^\[veille\] borne de 30 min dépassée sans verdict du run 4242-1790000000000/)
+  assert.deepEqual(vu.lignes.slice(0, -1), ['#1 un — en-vol'])
+  // Une veille démarrée (ou ré-armée) TARD sort à la borne RESTANTE, jamais une borne pleine de plus.
+  const tard = veille(enVol, { periodeMs: 60_000, depart: LANCEMENT_DU_RUN + (borneDeVeilleMin(10) - 2) * 60_000 })
+  assert.equal(tard.code, CODE_BORNE_DEPASSEE)
+  assert.equal(tard.horloge - LANCEMENT_DU_RUN, borneDeVeilleMin(10) * 60_000)
+  assert.equal(tard.lectures, 3)
+})
+
+test('veillerLeTrain : aucune ligne RÉPÉTÉE tant qu’une étape reste en vol', () => {
+  const [entame, enVol, ...fin] = journauxDuRun([factice('un', { ok: true, dit: 'fusionnée' })])
+  const { code, lignes } = veille([entame, ...Array(12).fill(enVol), ...fin])
+  assert.equal(code, 0)
+  assert.deepEqual(lignes, ['#1 un — en-vol', '#2 un — vert — fusionnée', 'PUBLICATION: vert null'])
+})
+
+test('veillerLeTrain : RÉ-ARMÉE avec `depuis` = le dernier `#seq` lu, elle ne ré-émet aucune ligne périmée', () => {
+  const vus = journauxDuRun([factice('un', { ok: true, dit: 'a' }), factice('deux', { ok: true, dit: 'b' })])
+  // La première veille s'arrête sans verdict (le Monitor qui la portait plafonne) après `#3`.
+  const premiere = veille(vus.slice(0, 4))
+  assert.equal(premiere.code, CODE_BORNE_DEPASSEE)
+  const dernier = Number(/^#(\d+) /.exec(premiere.lignes.filter((l) => l.startsWith('#')).at(-1))[1])
+  assert.equal(dernier, 3)
+  // Le ré-armement relit le journal depuis le DÉBUT du run : rien d'avant `#dernier` ne ressort.
+  const rearmee = veille(vus, { depuis: dernier })
+  assert.equal(rearmee.code, 0)
+  assert.deepEqual([...premiere.lignes.slice(0, 3), ...rearmee.lignes], [
+    '#1 un — en-vol', '#2 un — vert — a', '#3 deux — en-vol', '#4 deux — vert — b', 'PUBLICATION: vert null',
+  ])
+})
+
+test('veillerLeTrain : le journal du run PRÉCÉDENT au démarrage ne dit rien, verdict compris', () => {
+  const precedent = journauxDuRun([factice('un', { ok: false, raison: 'vieux rouge' })], { run: AVANT }).at(-1)
+  const courant = journauxDuRun([factice('un', { ok: true, dit: 'neuf' })])
+  const { code, lignes } = veille([precedent, precedent, precedent, ...courant])
+  assert.equal(code, 0)
+  assert.deepEqual(lignes, ['#1 un — en-vol', '#2 un — vert — neuf', 'PUBLICATION: vert null'])
+})
+
+test('veillerLeTrain : un run REPRIS (`--reprendre`) ne rejoue aucune transition déjà émise', () => {
+  const premier = journauxDuRun(
+    [factice('un', { ok: true, dit: 'a' }), factice('deux', { ok: true, dit: 'b' }), factice('trois', { ok: false, raison: 'file' })],
+    { run: AVANT },
+  ).at(-1)
+  const { journal } = journalInitial({ reprendre: true, lu: structuredClone(premier), branche: 'b' })
+  const repris = journauxDuRun(
+    [factice('un', { ok: true }, { deja: true }), factice('deux', { ok: true }, { deja: true }), factice('trois', { ok: true, dit: 'fusionnée' })],
+    { journal },
+  )
+  // Le verdict rouge du run d'avant s'efface à l'entame : la veille ne sort pas dessus.
+  assert.equal(repris[0].verdict, null)
+  const { code, lignes } = veille([premier, ...repris])
+  assert.equal(code, 0)
+  assert.deepEqual(lignes, ['#1 trois — en-vol', '#2 trois — vert — fusionnée', 'PUBLICATION: vert null'])
+})
+
+test('veillerLeTrain : une RELANCE du moteur réel ne ré-émet pas l’étape verte « déjà faite », rejoue le reste', () => {
+  let bouge = true
+  const vus = journauxDuRun([
+    factice('un', { ok: true, dit: 'garde' }),
+    { nom: 'deux', dejaFaite: (_ctx, j) => j.etapes.deux?.etat === 'vert', jouer: () => ({ ok: true, dit: 'commis' }) },
+    {
+      nom: 'trois',
+      dejaFaite: () => false,
+      jouer: () => {
+        if (!bouge) return { ok: true, dit: 'fusionnée' }
+        bouge = false
+        return { ok: true, dit: 'éjectée', relancer: ['trois'] }
+      },
+    },
+  ])
+  const { code, lignes } = veille(vus)
+  assert.equal(code, 0)
+  assert.deepEqual(lignes, [
+    '#1 un — en-vol', '#2 un — vert — garde',
+    '#3 deux — en-vol', '#4 deux — vert — commis',
+    '#5 trois — en-vol', '#6 trois — vert — éjectée',
+    '#7 trois — à faire — relance depuis trois',
+    '#8 un — en-vol', '#9 un — vert — garde',
+    '#10 trois — en-vol', '#11 trois — vert — fusionnée',
+    'PUBLICATION: vert null',
+  ])
+  // Aucune ligne n'est émise deux fois sous le même numéro.
+  assert.equal(new Set(lignes).size, lignes.length)
+})
+
+test('transitionsDuRun : l’ordre des `seq`, au-delà de `depuis`, du seul run courant', () => {
+  const j = { run: RUN, verdict: null, etapes: { b: { etat: 'vert', run: RUN, seq: 3 }, a: { etat: 'rouge', run: RUN, seq: 2 }, c: { etat: 'vert', run: AVANT, seq: 9 } } }
+  assert.deepEqual(transitionsDuRun(j, RUN, 0), { courant: true, lignes: ['#2 a — rouge', '#3 b — vert'], seq: 3, verdict: null })
+  assert.deepEqual(transitionsDuRun(j, RUN, 2).lignes, ['#3 b — vert'])
+  assert.deepEqual(transitionsDuRun(j, RUN, 3).seq, 3)
+  assert.equal(transitionsDuRun(null, RUN, 0).courant, false)
+})
+
+test('ligneDePublication / codeDeVerdict : une seule forme pour le train et sa veille', () => {
+  assert.equal(ligneDePublication({ etat: 'vert' }, 'abc'), 'PUBLICATION: vert abc')
+  assert.equal(ligneDePublication({ etat: 'rouge', etape: 'docs', raison: 'x\ny' }, 'abc'), 'PUBLICATION: rouge docs — x')
+  assert.equal(codeDeVerdict({ etat: 'vert' }), 0)
+  assert.equal(codeDeVerdict({ etat: 'rouge', etape: 'docs' }), 1)
+  assert.equal(codeDeVerdict({ etat: 'rouge', etape: 'moteur' }), CODE_ARRET_MOTEUR)
+  assert.equal(codeDeVerdict({ etat: 'indeterminee' }), CODE_INDETERMINEE)
+  assert.equal(new Set([0, 1, CODE_INDETERMINEE, CODE_ARRET_MOTEUR, CODE_BORNE_DEPASSEE]).size, 5)
+})
+
+test('commandeDeVeille / idDeRun / runDe : la commande que `--detache` imprime', () => {
+  const run = idDeRun({ pid: 4242, lancement: LANCEMENT_DU_RUN })
+  assert.equal(run, RUN)
+  assert.deepEqual(runDe(run), { pid: 4242, lancement: LANCEMENT_DU_RUN })
+  assert.equal(pidDeRun(run), 4242)
+  assert.equal(pidDeRun('0-1'), null)
+  assert.equal(pidDeRun('abc'), null)
+  const commande = commandeDeVeille({ script: 'Mes Projets\\Game\\scripts\\ops\\publier.mjs', run })
+  assert.equal(commande, 'node "Mes Projets/Game/scripts/ops/publier.mjs" --veiller 4242-1790000000000')
+  // Son argument, relu par `optionsDe`, désigne le même run.
+  assert.equal(optionsDe(['--veiller', commande.split(' --veiller ')[1]]).veiller, run)
+  assert.equal(optionsDe(['--veiller', run, '--depuis', '7']).depuis, 7)
+  assert.deepEqual(optionsDe(['--depuis', '-1']).inconnus, ['--depuis -1'])
+})
+
+test('lancement : le parent de `--detache` et l’enfant nomment le MÊME run', () => {
+  const env = { ...process.env, ...envDeLancement(LANCEMENT_DU_RUN) }
+  assert.deepEqual(Object.keys(envDeLancement(LANCEMENT_DU_RUN)), [ENV_LANCEMENT])
+  // L'enfant (pid 4242, celui que le parent reçoit de `lancerDetache`) relit le lancement du parent.
+  assert.equal(idDeRun({ pid: 4242, lancement: lancementDe(env, () => 0) }), idDeRun({ pid: 4242, lancement: LANCEMENT_DU_RUN }))
+  // Un run direct, sans parent, prend l'instant présent.
+  assert.equal(lancementDe({}, () => 99), 99)
+  assert.equal(lancementDe({ [ENV_LANCEMENT]: 'x' }, () => 99), 99)
+  // `lancerDetache` passe cet environnement à l'enfant.
+  let vuEnv = null
+  lancerDetache({
+    script: 's.mjs', args: [], cwd: '.', fdLog: 'ignore', plateforme: 'linux', envSupplementaire: envDeLancement(LANCEMENT_DU_RUN),
+    detacher: (_n, _a, o) => {
+      vuEnv = o.env
+      return { pid: 4242, unref: () => {} }
+    },
+  })
+  assert.equal(lancementDe(vuEnv), LANCEMENT_DU_RUN)
 })

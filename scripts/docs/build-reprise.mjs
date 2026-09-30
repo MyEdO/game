@@ -374,7 +374,13 @@ chantier du ticket \`<N>\` depuis n'importe quel worktree du dépôt (le chantie
 l'arbre principal) : il pose le worktree lié \`.wt-<N>\` sur \`origin/main\`, crée la branche
 \`chantier/<N>\`, y joue \`npm ci\` et imprime le port dev dérivé. \`npm run ops:publier -- --detache\`
 (\`${script('ops:publier')}\`) joue ensuite le train de publication ENTIER depuis ce worktree, détaché
-du harnais, et imprime son \`pid\` et son \`log\`. Le train régénère les docs dérivées, POUSSE la branche
+du harnais, et imprime son \`pid\`, son \`log\` et sa \`veille\` : la commande exacte
+(\`node <racine>/scripts/ops/publier.mjs --veiller <run>\`) qui SUIT ce run jusqu'au verdict — elle lit le
+journal JSON, émet une ligne par transition d'étape, finit sur la ligne \`PUBLICATION:\` et sort en 0
+(vert), 1 (rouge) ou sur un code nommé (indéterminée, arrêt moteur, borne dépassée). C'est la seule
+veille d'un train : jamais un filtre du log texte écrit à la main. Chaque ligne porte le numéro
+\`#<seq>\` de sa transition ; une veille interrompue se RÉ-ARME par la même commande suivie de
+\`--depuis <dernier seq lu>\`, sans rien ré-émettre, et sa borne court depuis le LANCEMENT du run. Le train régénère les docs dérivées, POUSSE la branche
 de chantier, ouvre sa PR vers \`main\` et l'ARME ; la FILE DE FUSION du serveur la juge sur son commit de
 file et la fusionne, et le train attend cette fusion (borné par \`--file-timeout-min\`). Aucun rebase : une
 PR éjectée de la file pour un conflit ou un dérivé périmé se reprend par une FUSION d'\`origin/main\`
