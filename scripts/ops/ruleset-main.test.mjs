@@ -60,6 +60,17 @@ test('un job NEUF devient un check requis sans qu’on touche au script', () => 
   assert.deepEqual(contextesRequis({ fichier }), ['verif', 'securite'])
 })
 
+test('un job à `if:` ou `needs:` de niveau JOB n’est PAS un contexte requis : sauté, il rapporte « Success »', () => {
+  const texte =
+    'on:\n  push:\n  merge_group:\njobs:\n' +
+    '  docs:\n    runs-on: x\n    steps:\n      - if: ${{ always() }}\n        run: y\n' +
+    '  types:\n    runs-on: x\n  suite:\n    runs-on: x\n  migrations:\n    runs-on: x\n' +
+    "  fermetures:\n    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}\n    needs: [docs, types, suite, migrations]\n    runs-on: x\n" +
+    '  seul-si:\n    if: always()\n    runs-on: x\n  seul-needs:\n    needs: docs\n    runs-on: x\n'
+  assert.deepEqual(contextesRequis({ texte }), ['docs', 'types', 'suite', 'migrations'])
+  assert.deepEqual(contextesRequis({ fichier: ciDeFixture(texte) }), ['docs', 'types', 'suite', 'migrations'])
+})
+
 test('un ci.yml sans bloc `jobs:` LÈVE au lieu de rendre une règle vide', () => {
   assert.throws(() => jobsCi({ fichier: ciDeFixture('name: CI\non:\n  push:\n') }), /sans bloc `jobs:`/)
 })
@@ -72,9 +83,8 @@ test('un ci.yml sans bloc `jobs:` LÈVE au lieu de rendre une règle vide', () =
 
 const JOBS = blocsDeJobs({ cwd: RACINE })
 
-test('aucun check REQUIS n’est sautable : ni `if:` ni `needs:` de niveau job', () => {
-  const requis = new Set(contextesRequis({ cwd: RACINE }))
-  const sautables = JOBS.filter((b) => requis.has(b.job))
+test('aucun job de `ci.yml` n’est sautable : ni `if:` ni `needs:` de niveau job', () => {
+  const sautables = JOBS
     .flatMap((b) => ['if', 'needs'].filter((c) => c in b.cles).map((c) => `${b.job} porte \`${c}: ${b.cles[c]}\``))
   assert.deepEqual(sautables, [], 'un check requis SAUTÉ rend « Success » et laisse entrer un rouge')
 })
