@@ -26,7 +26,7 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "Write|Edit",
+        "matcher": "Write|Edit|mcp__lean-ctx__ctx_patch",
         "hooks": [
           {
             "type": "command",

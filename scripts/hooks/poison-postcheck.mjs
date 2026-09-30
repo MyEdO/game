@@ -1,4 +1,4 @@
-// Garde PostToolUse(Write|Edit) : la porte AU STYLO — rejoue les gardes anti-poison sur le fichier
+// Garde PostToolUse des canaux d'écriture (`OUTILS_ECRITURE`) : la porte AU STYLO — rejoue les gardes anti-poison sur le fichier
 // que la session vient d'écrire et renvoie les trouvailles dans SON contexte, pendant qu'elle a
 // encore tout le fil. Non bloquant (le blocage vit au pre-commit et en CI — mêmes libs, mêmes
 // verdicts). Mécanique partagée : scripts/guards/lib/ (source unique avec les tests Vitest).
@@ -10,7 +10,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { contexteDeLaGarde, corpusDeLaGarde, estDansLeCorpus, scanLabelLogicFichier } from '../guards/lib/labelLogic.mjs';
-import { entreeDOutil } from '../guards/lib/contratGarde.mjs';
+import { OUTILS_ECRITURE, ecrituresDe, texteNeuf, texteRemplace } from '../guards/lib/contratGarde.mjs';
 import { cheminDEcriture } from './solde-ticket-guard.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -74,10 +74,10 @@ async function voletPoison(rel, reel) {
 }
 
 /** Les pointeurs nus que l'écriture AJOUTE à une note suivie (volet 2). */
-function voletPointeurs(rel, entree) {
+function voletPointeurs(rel, ecrit) {
   if (!NOTE_SUIVIE.test(rel)) return [];
-  const neuf = entree.new_string ?? entree.new_text ?? entree.content;
-  const ancien = new Set(String(entree.old_string ?? entree.old_text ?? '').split(/\r?\n/).map((l) => l.trim()));
+  const neuf = texteNeuf(ecrit);
+  const ancien = new Set(String(texteRemplace(ecrit) ?? '').split(/\r?\n/).map((l) => l.trim()));
   const nues = typeof neuf === 'string'
     ? neuf.split(/\r?\n/).filter((l) => !ancien.has(l.trim()) && POINTEUR_NU.test(l) && !PORTE_UN_TITRE.test(l))
     : [];
@@ -90,17 +90,19 @@ function voletPointeurs(rel, entree) {
   ];
 }
 
-async function evaluer(entree) {
-  const outil = entreeDOutil(entree) ?? {};
+/** Les trouvailles pour UNE écriture (`ecrituresDe`), `null` sans trouvaille. */
+async function trouvailles(ecrit) {
   // Chemin RÉEL RELATIF à la racine de l'arbre git qui CONTIENT le fichier (`cheminDEcriture`, un
   // relatif se résout contre la racine de ce hook) : périmètre, lecture et message se jugent sur lui,
   // jamais sur le chemin brut — un worktree lié vit lui-même sous `.claude/worktrees/`, et tout fichier
   // y passerait pour une note suivie. Hors du contenu versionné (`horsContenu`), la garde se tait — jugé
   // à la sortie, pour que le spawn git ne se paie que si un volet a trouvé quelque chose.
-  const chemin = cheminDEcriture(outil, { base: root });
+  const chemin = cheminDEcriture(ecrit, { base: root });
   if (chemin === null) return null;
-  const sortie = [...await voletPoison(chemin.relatif, chemin.reel), ...voletPointeurs(chemin.relatif, outil)];
+  const sortie = [...await voletPoison(chemin.relatif, chemin.reel), ...voletPointeurs(chemin.relatif, ecrit)];
   return sortie.length && !chemin.horsContenu ? { contexte: sortie.join('\n') } : null;
 }
 
-export const garde = { nom: 'poison-postcheck', outils: ['Write', 'Edit'], evaluer };
+const evaluer = (entree) => Promise.all(ecrituresDe(entree).map(trouvailles));
+
+export const garde = { nom: 'poison-postcheck', outils: OUTILS_ECRITURE, evaluer };

@@ -148,7 +148,7 @@ import {
   nomDArchiveDeRevue, problemesDeRevue, revuesNeuves,
 } from '../guards/lib/revuePalier.mjs'
 import { coupeAuMot } from '../../src/lib/coupeAuMot.mjs'
-import { OUTILS_SHELL, commandeDe, decisionCumulee, verdictDe } from '../guards/lib/contratGarde.mjs'
+import { OUTILS_SHELL, cheminVise, commandeDe, decisionCumulee, verdictDe } from '../guards/lib/contratGarde.mjs'
 import { racineNpmCourante } from '../guards/lib/racineNpm.mjs'
 
 // Message passé par FICHIER (`git commit -F <path>` / `--file <path>` / `--file=<path>`) : le
@@ -2589,7 +2589,7 @@ function racineDeLArbre(dir = process.cwd()) {
  * @returns {{ reel: string, racine: string|null, relatif: string, readonly horsContenu: boolean } | null}
  */
 export function cheminDEcriture(toolInput, { base = process.cwd(), platform = process.platform } = {}) {
-  const brut = toolInput?.file_path ?? toolInput?.path
+  const brut = cheminVise(toolInput)
   if (typeof brut !== 'string' || brut === '') return null
   const absolu = resolve(base, versCheminNatif(brut, platform))
   const ancetre = ancetreExistant(absolu)

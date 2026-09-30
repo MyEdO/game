@@ -26,7 +26,7 @@ import { garde as commandePiege } from './commande-piege-guard.mjs'
 import { garde as solde } from './solde-ticket-guard.mjs'
 import { garde as issueLabel } from './issue-label-guard.mjs'
 import { garde as runnerCapture } from './runner-capture-guard.mjs'
-import { garde as memoireTombale } from './memoire-tombale-guard.mjs'
+import { OUTILS_CREATION, OUTILS_ECRITURE } from '../guards/lib/contratGarde.mjs'
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 // Les DEUX surfaces d'agents, déclarées par `agents:sync` depuis les registres
@@ -40,8 +40,12 @@ const GARDES_COMMANDE = [
   [commandePiege, 'repartiteur.mjs', REGISTRE], [solde, 'solde-ticket-hook.mjs', REGISTRE_SOLDE],
   [issueLabel, 'repartiteur.mjs', REGISTRE], [runnerCapture, 'repartiteur.mjs', REGISTRE],
 ]
-/** Gardes d'ÉCRITURE : mêmes exigences de parité, sur les canaux qui portent un contenu. */
-const GARDES_ECRITURE = [[memoireTombale, 'repartiteur.mjs', REGISTRE]]
+/** Les registres des points d'entrée, avec leur script. */
+const REGISTRES = [[REGISTRE, 'repartiteur.mjs'], [REGISTRE_SOLDE, 'solde-ticket-hook.mjs']]
+/** Gardes d'ÉCRITURE, DÉRIVÉES des registres : toute garde dont un outil est un canal d'écriture,
+ *  avec son point d'entrée et son événement. */
+const GARDES_ECRITURE = REGISTRES.flatMap(([registre, script]) => Object.entries(registre).flatMap(([phase, gardes]) =>
+  gardes.filter((g) => g.outils.some((o) => OUTILS_ECRITURE.includes(o))).map((g) => [g, script, phase])))
 
 /** Canaux dont le `tool_input` porte un champ `command` — donc gardables par les scripts actuels.
  *  Liste NOMINATIVE : tout canal ajouté aux `outils` d'une garde de commande hors de cette liste est
@@ -49,9 +53,9 @@ const GARDES_ECRITURE = [[memoireTombale, 'repartiteur.mjs', REGISTRE]]
 const CANAUX_GARDABLES = ['Bash', 'PowerShell', 'mcp__lean-ctx__ctx_shell']
 const CANAUX_REQUIS = CANAUX_GARDABLES
 
-/** Le matcher PreToolUse que `surface` déclare pour le point d'entrée `script`. */
-const matcherDe = (surface, script) =>
-  hooksDe(surface).find((h) => h.phase === 'PreToolUse' && h.script === script)?.matcher ?? null
+/** Le matcher de l'événement `phase` que `surface` déclare pour le point d'entrée `script`. */
+const matcherDe = (surface, script, phase = 'PreToolUse') =>
+  hooksDe(surface).find((h) => h.phase === phase && h.script === script)?.matcher ?? null
 
 test('les gardes de commande sont au registre PreToolUse de leur point d’entrée, câblé sur les DEUX surfaces', () => {
   for (const [garde, script, registre] of GARDES_COMMANDE) {
@@ -86,9 +90,31 @@ test('tout canal d’une garde de commande est GARDABLE (son tool_input fournit 
   }
 })
 
+test('le canal d’édition PRESCRIT (`ctx_patch`, ~/.claude/CLAUDE.md) est un canal d’écriture ET de création', () => {
+  for (const famille of [OUTILS_ECRITURE, OUTILS_CREATION]) assert.ok(famille.includes('mcp__lean-ctx__ctx_patch'), famille.join('|'))
+})
+
+test('chaque garde d’écriture du registre couvre une FAMILLE entière de canaux d’écriture, sur les DEUX surfaces', () => {
+  assert.ok(GARDES_ECRITURE.length > 0, 'aucune garde d’écriture dérivée des registres')
+  const memeFamille = (canaux, famille) => canaux.length === famille.length && famille.every((o) => canaux.includes(o))
+  for (const [garde, script, phase] of GARDES_ECRITURE) {
+    const canaux = garde.outils.filter((o) => OUTILS_ECRITURE.includes(o))
+    assert.ok(
+      memeFamille(canaux, OUTILS_ECRITURE) || memeFamille(canaux, OUTILS_CREATION),
+      `${garde.nom} (${phase}) garde les canaux « ${canaux.join('|')} » : ni OUTILS_ECRITURE ni OUTILS_CREATION — ` +
+      'une écriture partie par le canal manquant échapperait à la garde',
+    )
+    for (const surface of SURFACES) {
+      const matcher = matcherDe(surface, script, phase)?.split('|') ?? []
+      for (const canal of canaux) assert.ok(matcher.includes(canal), `matcher ${phase} de ${script} (${surface}) ne couvre pas « ${canal} »`)
+    }
+  }
+})
+
 test('les matchers des points d’entrée sont IDENTIQUES entre .claude et .codex', () => {
-  for (const [, script] of [...GARDES_COMMANDE, ...GARDES_ECRITURE]) {
-    const [claude, codex] = SURFACES.map((s) => matcherDe(s, script))
+  const points = [...GARDES_COMMANDE.map(([, script]) => [script, 'PreToolUse']), ...GARDES_ECRITURE.map(([, script, phase]) => [script, phase])]
+  for (const [script, phase] of points) {
+    const [claude, codex] = SURFACES.map((s) => matcherDe(s, script, phase))
     assert.equal(codex, claude, `matchers divergents pour ${script} entre .claude/settings.json et .codex/hooks.json`)
   }
 })

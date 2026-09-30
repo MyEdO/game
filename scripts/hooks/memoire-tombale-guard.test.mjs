@@ -4,11 +4,10 @@
 // qu'un motif trop large crierait sur du récit daté légitime.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
-import { SURFACE_CLAUDE, SURFACE_CODEX, aplatirHooks } from '../agents/compat-core.mjs'
 import { evaluate, enteteSupersession, estLigneEntete, lignesAjoutees, estFicheMemoire } from './memoire-tombale-guard.mjs'
 import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import { lancerHook } from '../guards/lib/lancerHook.mjs'
@@ -196,14 +195,6 @@ test('DRIVER : une fiche `.claude/memory/` HORS de tout dépôt (scratchpad) →
   }
 })
 
-test('la garde est au registre PreToolUse du répartiteur, et les DEUX surfaces le câblent sur Write, Edit et ctx_patch', () => {
+test('la garde est au registre PreToolUse du répartiteur (câblage des surfaces : garde de classe `settings-guard-canaux.test.mjs`)', () => {
   assert.ok(REGISTRE.PreToolUse.includes(garde))
-  for (const surface of [SURFACE_CLAUDE, SURFACE_CODEX]) {
-    const matcher = aplatirHooks(JSON.parse(readFileSync(join(REPO, surface), 'utf8')), surface)
-      .find((h) => h.phase === 'PreToolUse' && h.script === 'repartiteur.mjs')?.matcher ?? ''
-    for (const canal of ['Write', 'Edit', 'mcp__lean-ctx__ctx_patch']) {
-      assert.ok(garde.outils.includes(canal), 'garde : canal ' + canal)
-      assert.ok(matcher.split('|').includes(canal), surface + ' : canal ' + canal + ' non matché')
-    }
-  }
 })

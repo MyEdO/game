@@ -7,7 +7,6 @@ import { readFileSync, writeFileSync, existsSync, mkdtempSync, rmSync } from 'no
 import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
-import { SURFACE_CLAUDE, SURFACE_CODEX, aplatirHooks } from '../agents/compat-core.mjs'
 import { ecriture, lancerHook } from '../guards/lib/lancerHook.mjs'
 import { REGISTRE } from './registre.mjs'
 import {
@@ -168,16 +167,8 @@ test('ctx_patch op=create porte le chemin en `path` : même refus que Write', ()
   assert.match(r.raison, /NON DÉCLARÉ/)
 })
 
-test('la garde est au registre PreToolUse du répartiteur, et les DEUX surfaces matchent Write ET ctx_patch', () => {
+test('la garde est au registre PreToolUse du répartiteur (câblage des surfaces : garde de classe `settings-guard-canaux.test.mjs`)', () => {
   assert.ok(REGISTRE.PreToolUse.includes(garde))
-  for (const surface of [SURFACE_CLAUDE, SURFACE_CODEX]) {
-    const matcher = aplatirHooks(JSON.parse(readFileSync(join(REPO, surface), 'utf8')), surface)
-      .find((h) => h.phase === 'PreToolUse' && h.script === 'repartiteur.mjs')?.matcher ?? ''
-    for (const canal of ['Write', 'mcp__lean-ctx__ctx_patch']) {
-      assert.ok(garde.outils.includes(canal), `garde : canal ${canal}`)
-      assert.ok(matcher.split('|').includes(canal), `${surface} : canal ${canal} non matché`)
-    }
-  }
 })
 
 test('registre ILLISIBLE → refus fail-closed dont le corps dit de RÉPARER, pas d’inscrire', () => {

@@ -117,3 +117,20 @@ test('DRIVER : un fichier de garde EXISTANT décide pareil en natif et en MSYS (
     rmSync(racine, { recursive: true, force: true })
   }
 })
+
+test('DRIVER : ctx_patch (old_text/new_text, find/replace, lot `ops`) avertit comme Edit', () => {
+  const { racine } = instanceDeDepot()
+  try {
+    const cible = join(racine, 'run-guard.test.mjs')
+    writeFileSync(cible, TABLE)
+    const contexte = (tool_input, tool_name = 'mcp__lean-ctx__ctx_patch') => lancerHook('repartiteur.mjs', ecriture(tool_input, tool_name)).specifique?.additionalContext ?? ''
+    const edit = contexte({ file_path: cible, old_string: TABLE, new_string: AJOUT }, 'Edit')
+    assert.ok(edit.includes(AVERTISSEMENT), edit)
+    assert.equal(contexte({ op: 'replace_unique', path: cible, old_text: TABLE, new_text: AJOUT }), edit)
+    assert.equal(contexte({ op: 'replace_all', path: cible, find: TABLE, replace: AJOUT }), edit)
+    assert.equal(contexte({ ops: [{ op: 'replace_unique', path: cible, old_text: TABLE, new_text: AJOUT }] }), edit)
+    assert.equal(contexte({ op: 'create', path: join(racine, 'neuf-guard.mjs'), new_text: AJOUT }), '', 'création : silence')
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
+})

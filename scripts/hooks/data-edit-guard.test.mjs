@@ -10,11 +10,16 @@ import { join } from 'node:path'
 import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import { ecriture, lancerHook } from '../guards/lib/lancerHook.mjs'
 
-/** Contexte RENDU par le hook pour une édition de `<dossier>/src/data/qualities.json` (`''` s'il se tait). */
-function rappelPour(dossier) {
-  const run = lancerHook('repartiteur.mjs', ecriture({ file_path: join(dossier, 'src', 'data', 'qualities.json'), old_string: 'a', new_string: 'b' }, 'Edit'))
+/** Contexte RENDU par le hook pour une écriture (`''` s'il se tait). */
+function contexteDe(tool_input, tool_name) {
+  const run = lancerHook('repartiteur.mjs', ecriture(tool_input, tool_name))
   assert.equal(run.code, 0, run.err)
   return run.specifique?.additionalContext ?? ''
+}
+
+/** Contexte RENDU par le hook pour une édition de `<dossier>/src/data/qualities.json` (`''` s'il se tait). */
+function rappelPour(dossier) {
+  return contexteDe({ file_path: join(dossier, 'src', 'data', 'qualities.json'), old_string: 'a', new_string: 'b' }, 'Edit')
 }
 
 test('une donnée src/data/ DANS un dépôt reçoit le rappel ; la même hors dépôt (scratchpad) → silence', () => {
@@ -26,5 +31,19 @@ test('une donnée src/data/ DANS un dépôt reçoit le rappel ; la même hors d�
   } finally {
     rmSync(racine, { recursive: true, force: true })
     rmSync(scratch, { recursive: true, force: true })
+  }
+})
+
+test('DRIVER : ctx_patch (canal prescrit) reçoit le MÊME rappel qu’Edit, op seule comme lot `ops`', () => {
+  const { racine } = instanceDeDepot()
+  try {
+    const donnee = join(racine, 'src', 'data', 'qualities.json')
+    const edit = contexteDe({ file_path: donnee, old_string: 'a', new_string: 'b' }, 'Edit')
+    assert.match(edit, /CHECK-FIRST/)
+    assert.equal(contexteDe({ op: 'replace_unique', path: donnee, old_text: 'a', new_text: 'b' }, 'mcp__lean-ctx__ctx_patch'), edit)
+    const lot = contexteDe({ ops: [{ op: 'replace_unique', path: join(racine, 'README.md'), old_text: 'a', new_text: 'b' }, { op: 'replace_all', path: donnee, find: 'a', replace: 'b' }] }, 'mcp__lean-ctx__ctx_patch')
+    assert.equal(lot, edit)
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
   }
 })

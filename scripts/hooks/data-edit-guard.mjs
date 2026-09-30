@@ -1,11 +1,12 @@
-// Garde PreToolUse(Write|Edit) : rappel de GROUNDING quand une donnée app-owned (src/data/*.json) est
+// Garde PreToolUse des canaux d'écriture (`OUTILS_ECRITURE`) : rappel de GROUNDING quand une donnée app-owned (src/data/*.json) est
 // éditée. Non bloquant — injecte du contexte (le hard-gate reste `npm test`). Atteint aussi les
 // SOUS-AGENTS, où les skills ne se déclenchent jamais. Motivé par l'incident #148 (doublon « Bélier »).
-import { entreeDOutil } from '../guards/lib/contratGarde.mjs'
+import { OUTILS_ECRITURE, ecrituresDe } from '../guards/lib/contratGarde.mjs'
 import { cheminDEcriture } from './solde-ticket-guard.mjs'
 
-function evaluer(entree) {
-  const chemin = cheminDEcriture(entreeDOutil(entree))
+/** Le rappel pour UNE écriture, `null` hors donnée app-owned. */
+function rappel(ecrit) {
+  const chemin = cheminDEcriture(ecrit)
   if (chemin === null || !/(^|\/)src\/data\/[^/]+\.json$/.test(chemin.relatif) || chemin.horsContenu) return null
   const rel = chemin.relatif.slice(chemin.relatif.lastIndexOf('src/data/'))
   return {
@@ -21,4 +22,6 @@ function evaluer(entree) {
   }
 }
 
-export const garde = { nom: 'data-edit', outils: ['Write', 'Edit'], evaluer }
+const evaluer = (entree) => ecrituresDe(entree).map(rappel)
+
+export const garde = { nom: 'data-edit', outils: OUTILS_ECRITURE, evaluer }

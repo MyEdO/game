@@ -179,3 +179,17 @@ test('le périmètre se juge sur le chemin RELATIF à la racine du dépôt, jama
     file_path: join(REPO, '.claude', 'memory', 'exemple.md'), old_string: '', new_string: 'voir #1591\n',
   }), /POINTEUR DÉRÉFÉRENCÉ/, 'la mémoire à la racine reste suivie')
 })
+
+test('DRIVER : ctx_patch (canal prescrit) est jugé comme Edit, op seule comme lot `ops`', () => {
+  const note = join(REPO, 'docs', 'plans', 'exemple.md')
+  const ligne = '- reste à traiter #1591 après la vague\n'
+  const edit = contexteDe({ file_path: note, old_string: '', new_string: ligne })
+  assert.match(edit, /POINTEUR DÉRÉFÉRENCÉ/)
+  const patch = (tool_input) => {
+    const run = lancerHook('repartiteur.mjs', ecriture(tool_input, 'mcp__lean-ctx__ctx_patch', 'PostToolUse'))
+    assert.equal(run.code, 0, run.err)
+    return run.specifique?.additionalContext ?? ''
+  }
+  assert.equal(patch({ op: 'insert_after', path: note, line: 1, new_text: ligne }), edit)
+  assert.equal(patch({ ops: [{ op: 'insert_after', path: note, line: 1, new_text: ligne }] }), edit)
+})
