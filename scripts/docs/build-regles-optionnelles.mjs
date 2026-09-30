@@ -16,12 +16,12 @@
  *  - la clé de persistance `localStorage`, lue dans `src/state/houseRules.ts`.
  * La part ÉDITORIALE (comment activer, quoi faire avant de rapporter une absence) vit ICI, en dur.
  *
- * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/empreinte-sources.mjs), rejoué par `build-all.mjs`.
+ * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`.
  *
  *   node scripts/docs/build-regles-optionnelles.mjs
  */
 import { readFileSync, existsSync } from 'node:fs'
-import { ecrireOuVerifier } from './lib/empreinte-sources.mjs'
+import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
 
 /** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire. */
 function rendu() {
@@ -247,7 +247,7 @@ ${sectionsGroupes}
     out,
     path: 'docs/regles-optionnelles.md',
     staleMsg: `docs:regles-optionnelles — docs/regles-optionnelles.md est PÉRIMÉ (diverge de ${DATA}, ${DEF}, ${TABS}, ${STORE}, ou du script).`,
-    rerunMsg: '  → relancer `npm run docs:regles-optionnelles` et committer le résultat.',
+    rerunMsg: '  → relancer `npm run docs:regles-optionnelles` (dérivé jamais commité, #2203).',
     okMsg: 'docs:regles-optionnelles — OK (docs/regles-optionnelles.md à jour)',
     writeMsg: `docs/regles-optionnelles.md — ${REGLES.length} règles, ${GROUPES.length} groupes, ${KINDS_DECLARES.length} formes de contrôle, ${MAISON.length} maison.`,
   }

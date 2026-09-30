@@ -67,7 +67,6 @@ import {
   BORNE_EJECTIONS,
   ETAPES,
   MOTIF_EJECTION,
-  MOTIF_POST_REWRITE,
   MOTIF_REGENERATION,
   PLAGE_DE_CITATIONS,
   corpsDePilotage,
@@ -142,7 +141,7 @@ test('planDeReprise : journal vide → la première étape', () => {
 test('planDeReprise : la première étape NON verte', () => {
   const journal = {
     tete: 'aaa',
-    etapes: { preflight: { etat: 'vert', tete: 'aaa' }, derives: { etat: 'vert', tete: 'aaa' }, docs: { etat: 'rouge', tete: 'aaa' } },
+    etapes: { preflight: { etat: 'vert', tete: 'aaa' }, docs: { etat: 'rouge', tete: 'aaa' } },
   }
   assert.equal(planDeReprise(journal, NOMS, 'aaa'), 'docs')
 })
@@ -337,15 +336,18 @@ describe('estDocDerive', () => {
     { script: 'd.mjs', targets: [], injecte: ['docs/raw/*.md'] },
   ]
 
-  test('estDocDerive : les cibles, les injections et les globs sont DÉRIVÉS', () => {
-    assert.equal(estDocDerive('docs/systemes.md', GEN), true)
-    assert.equal(estDocDerive('docs/raw/4e/catalogue-divers.md', GEN), true)
+  test('estDocDerive : les injections (MIXTES), globs compris, sont DÉRIVÉES', () => {
     assert.equal(estDocDerive('CLAUDE.md', GEN), true)
     assert.equal(estDocDerive('docs/raw/00-index.md', GEN), true)
   })
 
-  test('estDocDerive : la mesure `.sources-lues.json` et les sorties d’agents:sync sont DÉRIVÉES', () => {
-    assert.equal(estDocDerive('docs/.sources-lues.json', GEN), true)
+  test('estDocDerive : une cible PURE ne se commite pas (#2203) — ni littérale, ni glob, ni la mesure', () => {
+    assert.equal(estDocDerive('docs/systemes.md', GEN), false)
+    assert.equal(estDocDerive('docs/raw/4e/catalogue-divers.md', GEN), false)
+    assert.equal(estDocDerive('docs/.sources-lues.json', GEN), false)
+  })
+
+  test('estDocDerive : les sorties d’agents:sync sont DÉRIVÉES', () => {
     assert.equal(estDocDerive('AGENTS.md', GEN), true)
     assert.equal(estDocDerive('.agents/skills/ajouter-une-donnee/SKILL.md', GEN), true)
     assert.equal(estDocDerive('.codex/credo.md', GEN), true)
@@ -360,8 +362,8 @@ describe('estDocDerive', () => {
   // Le cas MESURÉ (2026-09-14) : le hook `post-rewrite` d'un rebase manuel laisse des dérivés sales.
   // La préflight doit les distinguer d'un manuscrit — l'étape `docs` sait committer les premiers.
   test('partitionSales : des DÉRIVÉS seuls — aucun manuscrit à refuser', () => {
-    const vu = partitionSales(['docs/systemes.md', 'docs/raw/00-index.md'], GEN)
-    assert.deepEqual(vu.derives, ['docs/systemes.md', 'docs/raw/00-index.md'])
+    const vu = partitionSales(['CLAUDE.md', 'docs/raw/00-index.md'], GEN)
+    assert.deepEqual(vu.derives, ['CLAUDE.md', 'docs/raw/00-index.md'])
     assert.deepEqual(vu.manuscrits, [])
   })
 
@@ -372,8 +374,8 @@ describe('estDocDerive', () => {
   })
 
   test('partitionSales : MIXTE — chaque chemin dans son tas, l’ordre conservé', () => {
-    const vu = partitionSales(['docs/systemes.md', 'src/state/cascade.ts', 'CLAUDE.md', 'docs/architecture.md'], GEN)
-    assert.deepEqual(vu.derives, ['docs/systemes.md', 'CLAUDE.md'])
+    const vu = partitionSales(['docs/raw/00-index.md', 'src/state/cascade.ts', 'CLAUDE.md', 'docs/architecture.md'], GEN)
+    assert.deepEqual(vu.derives, ['docs/raw/00-index.md', 'CLAUDE.md'])
     assert.deepEqual(vu.manuscrits, ['src/state/cascade.ts', 'docs/architecture.md'])
   })
 
@@ -388,13 +390,13 @@ describe('estDocDerive', () => {
 test('le contexte du train ne porte que des QUESTIONS et des gestes NOMMÉS aux arguments validés : ni poignée du dépôt, ni commande libre', () => {
   const ctx = contexteDe({ racine: '/nulle-part', branche: 'chantier/x', options: {}, journaliser: () => {}, fdLog: 'ignore' })
   const cles = Object.getOwnPropertyNames(ctx).sort()
-  assert.deepEqual(cles, ['abandonnerFusion', 'branche', 'commenter', 'commit', 'coursesCi', 'coursesDeFile', 'demanderFusion', 'docs', 'fdLog', 'filtresDePush', 'fusionner', 'generators', 'jobsDesDerives', 'jobsRouges', 'journaliser', 'lireFusion', 'lirePr', 'lireTicket', 'npm', 'options', 'ouvrirPr', 'parentsDe', 'pousser', 'questions', 'racine', 'tete', 'tronc'])
+  assert.deepEqual(cles, ['abandonnerFusion', 'branche', 'commenter', 'commit', 'conclureFusionSansCiblesPures', 'coursesCi', 'coursesDeFile', 'demanderFusion', 'docs', 'fdLog', 'filtresDePush', 'fusionner', 'generators', 'jobsDesDerives', 'jobsRouges', 'journaliser', 'lireFusion', 'lirePr', 'lireTicket', 'npm', 'options', 'ouvrirPr', 'parentsDe', 'pousser', 'questions', 'racine', 'tete', 'tronc'])
   assert.deepEqual(Object.keys(ctx.questions).sort(), ['baseAuTronc', 'brancheDe', 'ceQuiChange', 'cheminsEnConflit', 'cheminsSales', 'combienDe', 'commitsDeLaPlage', 'estAncetre', 'origineDe', 'rebaseEntame', 'refusDesCompteurs', 'shaDe'])
   assert.equal(Object.isFrozen(ctx.questions), true)
   assert.equal(ctx.generators, GENERATORS)
   for (const script of ['x; git add -A', 'x && git commit -m libre', 'a b', '$(git add -A)', '', 7])
     assert.throws(() => ctx.npm(script), /ctx\.npm : un NOM de script/, JSON.stringify(script))
-  for (const mode of ['--check; git add -A', '--write', undefined])
+  for (const mode of ['--check; git add -A', '--check', '--write', undefined])
     assert.throws(() => ctx.docs(mode), /ctx\.docs : mode de build-all inconnu/, JSON.stringify(mode))
   for (const sha of ['HEAD', 'a'.repeat(39), `${'a'.repeat(40)}\n`, ['a'.repeat(40)], undefined])
   {
@@ -531,18 +533,17 @@ test('le train n’IMPORTE pas le module qui FERME — l’invariant tient sur l
   assert.match(etapes, /from '\.\.\/guards\/lib\/plageFermante\.mjs'/)
 })
 
-test('la table des ÉTAPES nomme les huit étapes, dans l’ordre du régime — ni rebase, ni attente de CI, ni fast-forward', () => {
+test('la table des ÉTAPES nomme les sept étapes, dans l’ordre du régime — ni rebase, ni attente de CI, ni fast-forward', () => {
   // `push-branche` → `pr` → `file` : le push de la branche DÉCLENCHE la CI de la tête, la PR armée
   // entre dans la file, et le SERVEUR sérialise et fusionne (#2178).
-  assert.deepEqual(NOMS, ['preflight', 'derives', 'docs', 'push-branche', 'pr', 'file', 'pilotage', 'fin'])
+  assert.deepEqual(NOMS, ['preflight', 'docs', 'push-branche', 'pr', 'file', 'pilotage', 'fin'])
 })
 
 // ── messageDuTrain / PLAGE_DE_CITATIONS ──────────────────────────────────────────
 
-test('messageDuTrain : un SUJET que la règle du dépôt accepte, le motif au CORPS, pour les trois commits du train', () => {
+test('messageDuTrain : un SUJET que la règle du dépôt accepte, le motif au CORPS, pour les deux commits du train', () => {
   const douze = Array.from({ length: 12 }, (_, i) => String(1700 + i))
   const formes = [
-    { portee: 'chore(docs)', titre: 'docs dérivés', motif: MOTIF_POST_REWRITE },
     { portee: 'chore(docs)', titre: 'docs dérivés', motif: MOTIF_REGENERATION },
     { portee: 'chore(merge)', titre: 'fusion de origin/main dans chantier/2178', motif: MOTIF_EJECTION },
   ]
@@ -584,7 +585,7 @@ test('journalInitial : sans --reprendre, un lot NEUF ignore le journal du disque
 })
 
 test('journalInitial : avec --reprendre, le journal LU est repris et ses vertes comptées', () => {
-  const lu = { branche: 'c', base: 'b', tete: 't', ejections: 1, etapes: { derives: { etat: 'vert' }, docs: { etat: 'vert' }, file: { etat: 'rouge' } } }
+  const lu = { branche: 'c', base: 'b', tete: 't', ejections: 1, etapes: { preflight: { etat: 'vert' }, docs: { etat: 'vert' }, file: { etat: 'rouge' } } }
   const vu = journalInitial({ reprendre: true, lu, branche: 'c' })
   assert.equal(vu.journal, lu)
   assert.equal(vu.repris, true)
@@ -672,13 +673,44 @@ test('motifDeRotation : il ne prend QUE les logs tournés — ni le log courant,
 
 test('étape `docs` : déjà faite sur la tête ENREGISTRÉE, pas sur `journal.tete`', () => {
   const docs = ETAPES.find((e) => e.nom === 'docs')
-  const ctx = { tete: 'a'.repeat(40) }
+  const ctx = { tete: 'a'.repeat(40), generators: GENERATORS, questions: { cheminsSales: () => [] } }
   assert.equal(docs.dejaFaite(ctx, { tete: ctx.tete, etapes: { docs: { etat: 'vert', tete: ctx.tete } } }), true)
   // `journal.tete` avance à la fusion d'une reprise : un `docs` vert d'AVANT ne doit pas passer pour
   // fait sur la tête courante.
   assert.equal(docs.dejaFaite(ctx, { tete: ctx.tete, etapes: { docs: { etat: 'vert', tete: 'b'.repeat(40) } } }), false)
   assert.equal(docs.dejaFaite(ctx, { tete: ctx.tete, etapes: { docs: { etat: 'rouge', tete: ctx.tete } } }), false)
   assert.equal(docs.dejaFaite(ctx, journalVide('c')), false)
+})
+
+test('étape `docs` : un dérivé MIXTE sali depuis la rejoue, même verte sur la tête', () => {
+  const docs = ETAPES.find((e) => e.nom === 'docs')
+  const vert = (sales) => docs.dejaFaite(
+    { tete: 'a'.repeat(40), generators: GENERATORS, questions: { cheminsSales: () => sales } },
+    { tete: 'a'.repeat(40), etapes: { docs: { etat: 'vert', tete: 'a'.repeat(40) } } },
+  )
+  assert.equal(vert(['docs/raw/00-index.md']), false)
+  assert.equal(vert(['src/state/cascade.ts']), true, 'un manuscrit sale n’est pas l’affaire de l’étape')
+})
+
+test('étape `docs` : `docs:build` ROUGE est un refus nommé par la fin de sa sortie — rien de commité', () => {
+  const docs = ETAPES.find((e) => e.nom === 'docs')
+  const gestes = []
+  const ctx = {
+    racine: RACINE,
+    generators: GENERATORS,
+    journaliser: () => {},
+    docs: (mode) => { gestes.push(['docs', mode]); return { status: 1, stderr: 'docs:build — ARRÊT sur g/a.mjs (sortie 1)' } },
+    npm: (script) => { gestes.push(['npm', script]); return { status: 0 } },
+    commit: () => assert.fail('aucun commit sur un docs:build rouge'),
+    questions: {
+      ceQuiChange: () => ({ chemins: () => ['src/data/careers.json'] }),
+      cheminsSales: () => [],
+    },
+  }
+  const vu = docs.jouer(ctx, { base: 'b'.repeat(40), tete: 'a'.repeat(40) })
+  assert.equal(vu.ok, false)
+  assert.equal(vu.raison, "`docs:build` a rendu 1 : dérivés possiblement incohérents (rien n'a été staged ni commité)\ndocs:build — ARRÊT sur g/a.mjs (sortie 1)")
+  assert.deepEqual(gestes, [['docs', '--quiet']])
 })
 
 // ── synchroniserAgents ─────────────────────────────────────────────────────────────────
@@ -1097,7 +1129,7 @@ const courseDeBrancheVerte = { headSha: 'ttttttttt', status: 'completed', conclu
 
 /** Le contexte de l'étape `file` : la PR lue, les courses de branche et de file, les jobs rouges, et
  *  les réponses de la demande de fusion (`demande` au PUT, `suivis` aux GET successifs). */
-const ctxFile = ({ pr, branche = [courseDeBrancheVerte], file = [], jobs = [], fusion = { disponible: true, valeur: { status: 0, stdout: '', stderr: '' } }, conflits = [], demande = { ok: true, statut: 'enqueued' }, suivis = [], parents = ['m'.repeat(40), 'ttttttttt'], ancetres = [], fileTimeoutMin = 30 } = {}) => {
+const ctxFile = ({ pr, branche = [courseDeBrancheVerte], file = [], jobs = [], fusion = { disponible: true, valeur: { status: 0, stdout: '', stderr: '' } }, conflits = [], conclusion = { disponible: true, valeur: { status: 0, stdout: '', stderr: '' } }, demande = { ok: true, statut: 'enqueued' }, suivis = [], parents = ['m'.repeat(40), 'ttttttttt'], ancetres = [], fileTimeoutMin = 30 } = {}) => {
   const gestes = []
   let suivi = 0
   const ctx = {
@@ -1117,6 +1149,8 @@ const ctxFile = ({ pr, branche = [courseDeBrancheVerte], file = [], jobs = [], f
     tronc: () => { gestes.push(['tronc']); return { disponible: true, sha: 'm'.repeat(40) } },
     fusionner: ({ message }) => { gestes.push(['fusionner', message]); return fusion },
     abandonnerFusion: () => { gestes.push(['abandonner']); return fusion },
+    conclureFusionSansCiblesPures: (p) => { gestes.push(['conclure', p]); return conclusion },
+    generators: GENERATORS,
     questions: {
       commitsDeLaPlage: () => [{ sha: 'c'.repeat(40), message: 'feat(ops): refs #2178 — x' }],
       cheminsEnConflit: () => conflits,
@@ -1272,6 +1306,28 @@ test('file : une fusion en CONFLIT est ABANDONNÉE et nomme ses fichiers — la 
   assert.match(vu.raison, /fusion de origin\/main REFUSÉE \(CONFLIT, abandonnée\) — fichiers :\n {4}src\/a\.ts/)
   assert.deepEqual(gestes.map((g) => g[0]), ['demander', 'tronc', 'fusionner', 'abandonner'])
   assert.equal(journal.ejections, 0)
+})
+
+// FOSSILE #2203.
+test('file : une fusion dont TOUS les conflits sont des cibles PURES se CONCLUT en les retirant de l’index, puis reprend à `docs`', () => {
+  const refus = { disponible: true, valeur: { status: 1, stdout: 'CONFLICT (content)', stderr: '' } }
+  const conflits = ['docs/systemes.md', 'src/audio/_registry.generated.ts']
+  const { ctx, gestes } = ctxFile({ pr: REST({ mergeable_state: 'dirty' }), fusion: refus, conflits })
+  const journal = journalPush()
+  const vu = etapeFile.jouer(ctx, journal)
+  assert.deepEqual([vu.ok, vu.relancer], [true, ['docs', 'push-branche', 'pr', 'file']], vu.raison)
+  assert.deepEqual(gestes.map((g) => g[0]), ['demander', 'tronc', 'fusionner', 'conclure'])
+  assert.deepEqual(gestes[3][1], { chemins: conflits, message: gestes[2][1] })
+  assert.equal(journal.ejections, 1)
+})
+
+// FOSSILE #2203.
+test('file : un conflit MIXTE (une cible pure ET un manuscrit) n’est jamais conclu — la fusion est abandonnée', () => {
+  const refus = { disponible: true, valeur: { status: 1, stdout: 'CONFLICT (content)', stderr: '' } }
+  const { ctx, gestes } = ctxFile({ pr: REST({ mergeable_state: 'dirty' }), fusion: refus, conflits: ['docs/systemes.md', 'src/a.ts'] })
+  const vu = etapeFile.jouer(ctx, journalPush())
+  assert.equal(vu.ok, false)
+  assert.deepEqual(gestes.map((g) => g[0]), ['demander', 'tronc', 'fusionner', 'abandonner'])
 })
 
 test('file : la tête de la PR a CHANGÉ hors du train — rouge nommé', () => {

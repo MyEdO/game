@@ -32,7 +32,7 @@ concurrency:
 #
 # `fetch-depth: 0` sur chaque checkout vérifiant : `test:hooks` interroge l’HISTOIRE (soldes de
 # fermeture depuis le 2026-08-01, commit fondateur d’un solde « corrigé par <sha> ») ;
-# `docs:check:tout` la lit (scripts/docs/build-doctrines.mjs, scripts/docs/check-plans-anchors.mjs) ;
+# `docs:build` la lit (scripts/docs/build-doctrines.mjs, scripts/docs/check-plans-anchors.mjs) ;
 # `npm test` aussi (src/data/regles-migration-fidelite.test.ts) ; le classement du push (#1738) lit
 # `merge-base origin/main`, ou `merge_group.base_sha` sur un commit de file ; les compteurs de version
 # de la file lisent `G^1` et `G^2`. Dans le clone superficiel par défaut (depth 1), `git log --since`
@@ -61,21 +61,16 @@ jobs:
           fetch-depth: 0
       - id: prologue
         uses: ./.github/actions/prologue
-      # Chaque dérivé committé (`GENERATORS`, scripts/docs/build-all.mjs) REJOUÉ EN ENTIER en `--check` :
-      # la fraîcheur par le pied est aveugle à la plateforme qui a rendu un corps (#1801). PREMIÈRE
-      # gate du job : `npm run build` passe par `vite.config.ts`, dont `buildStart` appelle `genAll()`
-      # et réécrit les `*.generated.ts` ; jouée après lui, elle vérifierait un registre déjà réécrit.
+      # Chaque dérivé de `GENERATORS` (scripts/docs/build-all.mjs) PRODUIT : les cibles pures ne sont pas
+      # commitées (#2203 A2), un MIXTE périmé laisse un diff que `Arbre inchangé`, dans ce job, refuse.
       - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
-        run: npm run docs:check:tout
+        run: npm run docs:build
       - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run agents:check
       - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run test:docs
       - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run build
-      # Pied « sources-empreinte » de chaque doc dérivé confronté aux blobs de l'INDEX (#1679 L1b).
-      - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
-        run: npm run docs:empreinte
       - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run test:raw
       - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
@@ -94,8 +89,8 @@ jobs:
         run: npm run raw:check-source-puces
       - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run raw:check-renvois
-      # Filet des écrivains par nature (`genAll()` de `build`) : aucun step ne laisse l'arbre du runner
-      # différent du commit. Classé `CI_SEULEMENT` (scripts/gates/gatesDeCi.mjs).
+      # Filet des écrivains par nature (`docs:build`, `genererCode` de `build`) : aucun step ne laisse
+      # l'arbre du runner différent du commit — un MIXTE périmé y est rouge. Classé `CI_SEULEMENT` (scripts/gates/gatesDeCi.mjs).
       - name: Arbre inchangé
         if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: git status --porcelain && test -z "$(git status --porcelain)"
@@ -160,7 +155,7 @@ jobs:
       # scannent les suites jouées lisent les racines à la source de ce `test.include`
       # (`scripts/guards/lib/racinesDeLaSuite.mjs`, `fichiersDeLaSuite` de `suiteVitest.mjs`). Le
       # script `test:map` reste dans package.json : il sert à jouer CE dossier seul.
-      # Filet des écrivains par nature (`genAll()` de la suite).
+      # Filet des écrivains par nature (`genererCode` du `buildStart` de vite.config.ts).
       - name: Arbre inchangé
         if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: git status --porcelain && test -z "$(git status --porcelain)"

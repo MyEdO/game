@@ -14,7 +14,7 @@
  *    d'entrées qui l'exercent RÉELLEMENT dans le `.json`.
  * La part ÉDITORIALE (frontières, doctrine « un seul format », recettes) vit ICI, en dur.
  *
- * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/empreinte-sources.mjs), rejoué par `build-all.mjs`.
+ * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`.
  *
  *   node scripts/docs/build-passifs.mjs
  */
@@ -22,7 +22,7 @@ import { readFileSync, existsSync } from 'node:fs'
 import { parUnitesDeCode, listerDossier } from '../guards/lib/lister.mjs'
 import ts from 'typescript'
 import { loadSource, firstSentence } from './lib/jsdocUnion.mjs'
-import { ecrireOuVerifier } from './lib/empreinte-sources.mjs'
+import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
 
 /** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire. */
 function rendu() {
@@ -161,9 +161,9 @@ function rendu() {
       const producteurs = [...new Set([...src.matchAll(/\.\.\.([A-Za-z_$][\w$]*)\(/g)].map((m) => m[1]))]
       const implicite = /kind,/.test(src) // `kind` calculé (branche séquelle)
       // La ligne citée est celle qui PORTE le jeton nommé en table (`kind: '…'` ou l'appel du
-      // producteur), pas le début de l'instruction : une garde de fraîcheur (`check-docs-vs-head`)
-      // exige de retrouver, autour du site cité, l'un des identifiants backtiqués de la même ligne du
-      // doc — une instruction multi-lignes citée à son ouverture ne le porte pas.
+      // producteur), pas le début de l'instruction : le site cité porte l'un des identifiants
+      // backtiqués de la même ligne du doc — une instruction multi-lignes citée à son ouverture ne le
+      // porte pas.
       const ancreDansStatement = kinds.length ? src.indexOf(`kind: '${kinds[0]}'`) : producteurs.length ? src.indexOf(`...${producteurs[0]}(`) : 0
       out.push({
         l: ligne(TR_SF, st.getStart(TR_SF) + Math.max(0, ancreDansStatement)),
@@ -425,7 +425,7 @@ Tout passe par le Compendium in-app (écran Codex) :
     path: 'docs/systeme-passifs.md',
     staleMsg:
       'docs:passifs — docs/systeme-passifs.md est PÉRIMÉ (diverge de src/engine/ops.ts, src/engine/trauma.ts, des defs de src/data/schemas/defs/, des datasets, ou du script).',
-    rerunMsg: '  → relancer `npm run docs:passifs` et committer le résultat.',
+    rerunMsg: '  → relancer `npm run docs:passifs` (dérivé jamais commité, #2203).',
     okMsg: 'docs:passifs — OK (docs/systeme-passifs.md à jour)',
     writeMsg: `docs/systeme-passifs.md — ${KINDS.length} kinds, ${BRANCHES.length} branches de collecteur, ${PRODUCTEURS.length} producteurs, ${PORTEURS_MESURES.length} documents porteurs.`,
   }

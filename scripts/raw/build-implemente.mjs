@@ -9,7 +9,7 @@ import { join } from 'node:path'
 import { refRe, span, bookOf, BOOKS, estLivreExtrait, folioRange, allAbbrAlternation, pagesDeLAtlas, readText } from './_lib.mjs'
 import { echapperRegex } from '../../src/lib/regex.ts'
 import { closureOf } from '../guards/lib/importGraph.mjs'
-import { declarerCorpsPerime } from '../docs/lib/empreinte-sources.mjs'
+import { declarerCorpsPerime } from '../docs/lib/ecriture-derives.mjs'
 import { EXTS_IMPLEMENTANTES, fichiersCitants } from './lib/fichiersCitants.mjs'
 import { estFichierVitest } from '../guards/lib/fichierVitest.mjs'
 

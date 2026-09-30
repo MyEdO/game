@@ -8,7 +8,7 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 /** Commande EXACTE du step final « Arbre inchangé » de `ci.yml` et `canari.yml` — le filet des
- *  écrivains par nature (`genAll()` de `build` et de la suite) : l'arbre du runner reste le commit. */
+ *  écrivains par nature (`genererCode` de `build` et de la suite) : l'arbre du runner reste le commit. */
 export const COMMANDE_ARBRE_INCHANGE = 'git status --porcelain && test -z "$(git status --porcelain)"'
 
 /**

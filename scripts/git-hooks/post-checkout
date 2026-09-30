@@ -1,0 +1,7 @@
+#!/bin/sh
+# scripts/git-hooks/post-checkout — produit les cibles de CODE après un changement de branche ($3 = 1),
+# worktree neuf compris (`genererCode`, scripts/docs/build-all.mjs ; #2203 A2). Contrat de post-hook :
+# ne fait jamais échouer l'opération qui vient d'avoir lieu.
+[ "${3:-}" = "1" ] || exit 0
+node "$(dirname "$0")/../node-requis.mjs" </dev/null && node "$(dirname "$0")/../docs/build-all.mjs" --code --quiet || true
+exit 0

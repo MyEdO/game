@@ -1,7 +1,7 @@
 /**
  * Génère `docs/test-scenarios.md` — catalogue des scénarios de test navigateur.
  * Re-run : `node scripts/docs/build-test-scenarios.mjs` (`npm run docs:test-scenarios`).
- * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/empreinte-sources.mjs), rejoué par `build-all.mjs`.
+ * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`.
  *
  * Objet (#903 suite) — la table « Catalogue actuel » recopiait à la main un sous-ensemble du
  * registre réel (`_registry.generated.ts`, 34 scénarios) : mesuré 9 scénarios ABSENTS du .md
@@ -27,7 +27,7 @@ import { readFileSync } from 'node:fs'
 import { listerDossier } from '../guards/lib/lister.mjs'
 import { estFichierVitest } from '../guards/lib/fichierVitest.mjs'
 import { join } from 'node:path'
-import { ecrireOuVerifier } from './lib/empreinte-sources.mjs'
+import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
 
 /** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire. */
 function rendu() {
@@ -251,7 +251,7 @@ function rendu() {
     out,
     path,
     staleMsg: `docs:test-scenarios — ${path} est PÉRIMÉ (diverge de src/scenes/test-scenarios/*.ts).`,
-    rerunMsg: '  → relancer `npm run docs:test-scenarios` et committer le résultat.',
+    rerunMsg: '  → relancer `npm run docs:test-scenarios` (dérivé jamais commité, #2203).',
     okMsg: `docs:test-scenarios — OK (${path} à jour, ${scenarios.length} scénarios)`,
     writeMsg: `${path} : ${scenarios.length} scénarios`,
   }

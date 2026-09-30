@@ -17,7 +17,7 @@
  *  - le site de `registerCombatHook`, la primitive d'enregistrement de la machinerie.
  * La part ÉDITORIALE (critère de décision, frontière donnée/machinerie, recettes) vit ICI.
  *
- * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/empreinte-sources.mjs), rejoué par `build-all.mjs`.
+ * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`.
  *
  *   node scripts/docs/build-mecanique.mjs
  */
@@ -25,7 +25,7 @@ import { readFileSync, existsSync } from 'node:fs'
 import { listerDossier } from '../guards/lib/lister.mjs'
 import ts from 'typescript'
 import { loadSource, firstSentence, jsdocBody } from './lib/jsdocUnion.mjs'
-import { ecrireOuVerifier } from './lib/empreinte-sources.mjs'
+import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
 
 /** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire. */
 function rendu() {
@@ -431,7 +431,7 @@ ${table(GARDES_MESUREES, ['Garde', 'Ce qu’elle verrouille (son propre `describ
     path: 'docs/ajouter-une-mecanique.md',
     staleMsg:
       'docs:mecanique — docs/ajouter-une-mecanique.md est PÉRIMÉ (diverge de src/engine/flowCore.ts, src/state/triggeredEffects.ts, src/engine/trauma.ts, src/engine/capabilities.ts, des defs, ou du script).',
-    rerunMsg: '  → relancer `npm run docs:mecanique` et committer le résultat.',
+    rerunMsg: '  → relancer `npm run docs:mecanique` (dérivé jamais commité, #2203).',
     okMsg: 'docs:mecanique — OK (docs/ajouter-une-mecanique.md à jour)',
     writeMsg: `docs/ajouter-une-mecanique.md — ${TRIGGERS_LIST.length} déclencheurs, ${SOURCES.kinds.length} kinds de source, ${CAPACITES.length} interfaces de capacités, ${GARDES_MESUREES.length} gardes.`,
   }

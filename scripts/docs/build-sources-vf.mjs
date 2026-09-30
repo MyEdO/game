@@ -6,11 +6,11 @@
  * dérivable de la donnée — elle vit ICI, en dur, comme les préambules de
  * `scripts/docs/build-systemes.mjs` / `scripts/gen-sorts-doc.mts`.
  *
- * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/empreinte-sources.mjs), rejoué par `build-all.mjs`.
+ * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`.
  *
  *   node scripts/docs/build-sources-vf.mjs
  */
-import { ecrireOuVerifier } from './lib/empreinte-sources.mjs'
+import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
 import { REGISTRE_LIVRES as BOOKS, estLivreExtrait, livreExtraitDe } from '../raw/_lib.mjs'
 
 /** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire. */
@@ -212,7 +212,7 @@ livre VO AUTORISÉ ; la VO de L'Ennemi Intérieur se lit pour comprendre, fiche
     out,
     path: 'docs/sources-vf.md',
     staleMsg: 'docs:sources-vf — docs/sources-vf.md est PÉRIMÉ (diverge de src/data/books.json ou du script).',
-    rerunMsg: '  → relancer `npm run docs:sources-vf` et committer le résultat.',
+    rerunMsg: '  → relancer `npm run docs:sources-vf` (dérivé jamais commité, #2203).',
     okMsg: 'docs:sources-vf — OK (docs/sources-vf.md à jour)',
     writeMsg: `docs/sources-vf.md — ${extractedCount} livres extraits référencés.`,
   }

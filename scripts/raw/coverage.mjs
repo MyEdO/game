@@ -21,7 +21,7 @@ import { listerDossier, parUnitesDeCode } from '../guards/lib/lister.mjs'
 import { BOOKS, coeurDe, chapterFile, estHorsRegle, folioSpan, motifHorsRegle, niveauDeSectionDe, readText, teneurDe } from './_lib.mjs'
 import { echapperRegex } from '../../src/lib/regex.ts'
 import { graphieDuFichier, numeroDuFichier, plageDeLigne1, titreDuFichier } from '../../src/data/source/decoupe.ts'
-import { ecrireOuVerifier } from '../docs/lib/empreinte-sources.mjs'
+import { ecrireOuVerifier } from '../docs/lib/ecriture-derives.mjs'
 import { pagesDeLAtlasRendues } from './build-catalogs.mjs'
 export const RAWDIR = 'docs/raw'
 // Acceptation DÉCLARÉE à la couture (`pagesDeLAtlasRendues`) : tout sauf les rapports générés — l'épreuve
@@ -441,7 +441,7 @@ function main() {
     path,
     check: process.argv.includes('--check'),
     staleMsg: `raw:coverage — ${path} est PÉRIMÉ (fiche de l'Atlas ou Source changée).`,
-    rerunMsg: '  → relancer `npm run raw:coverage` et committer le résultat.',
+    rerunMsg: '  → relancer `npm run raw:coverage` (dérivé jamais commité, #2203).',
   })
   for (const l of journal) console.log(l)
 }

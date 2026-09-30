@@ -2,7 +2,8 @@
 //
 // CLÔTURE, gardée contre une retouche de bonne foi (#1806) : une étape ne tient que son contexte
 // (`contexteDe`, `publier.mjs`), qui porte des QUESTIONS (`questionsDuTrain`) et des gestes NOMMÉS aux
-// arguments validés (`commit` → `commitDe`, `fusionner`, `abandonnerFusion`, `pousser`, `tronc`, `npm`,
+// arguments validés (`commit` → `commitDe`, `fusionner`, `abandonnerFusion`, `conclureFusionSansCiblesPures`,
+// `pousser`, `tronc`, `npm`,
 // `docs`, `coursesCi`, `coursesDeFile`, `parentsDe`, `jobsRouges`, `lirePr`, `ouvrirPr`, `demanderFusion`,
 // `lireFusion`, `lireTicket`, `commenter`). Le test de clôture (`etapesDuTrain.test.mjs`) refuse
 // à ce module toute liaison, importée de n'importe quel module de sa clôture, qui atteint un lancement
@@ -18,8 +19,7 @@ import { numerosCites, numerosFermes } from '../guards/lib/fermetures.mjs'
 import { DEPOT } from '../guards/lib/ticketsGh.mjs'
 import { refusDeSujet } from '../guards/lib/sujetDeCommit.mjs'
 import { marqueDe } from '../guards/lib/plageFermante.mjs'
-import { natureDuRouge, rougesNommes, SOURCES_LUES } from '../docs/build-all.mjs'
-import { CODE_CORPS_PERIME } from '../docs/lib/empreinte-sources.mjs'
+import { estCiblePure } from '../docs/build-all.mjs'
 import { MANAGED_ROOTS } from '../agents/compat-core.mjs'
 import { sourcesMesurees, touchesDocSources } from '../git-hooks/docs-rebuild.mjs'
 import { resoudreOutilLocal } from '../lancer-local.mjs'
@@ -156,20 +156,16 @@ export function issueDeFusion({ code, corps }) {
 }
 
 /**
- * Ce chemin est-il DÉRIVÉ, donc committable par l'étape `docs` ? Trois familles, toutes déclarées
- * ailleurs : les `targets`/`injecte` des `generators` (`GENERATORS` de `build-all.mjs`, porté par le
- * contexte du train, `ctx.generators`), la mesure `docs/.sources-lues.json`
- * (`build-all.mjs` REFUSE si elle n'est pas dans l'index), et les sorties de `npm run agents:sync`
- * (le pre-commit joue `agents:check` à chaque commit). PURE.
+ * Ce chemin est-il DÉRIVÉ, donc committable par l'étape `docs` ? Deux familles, toutes deux déclarées
+ * ailleurs : les `injecte` des `generators` (`GENERATORS` de `build-all.mjs`, porté par le contexte du
+ * train, `ctx.generators`) — les MIXTES, seuls dérivés de docs commités (#2203) —, et les sorties de
+ * `npm run agents:sync` (le pre-commit joue `agents:check` à chaque commit). PURE.
  */
-export function estDocDerive(chemin, generators, { sourcesLues = SOURCES_LUES, racinesAgents = MANAGED_ROOTS } = {}) {
+export function estDocDerive(chemin, generators, { racinesAgents = MANAGED_ROOTS } = {}) {
   const c = String(chemin ?? '').replace(/\\/g, '/')
   if (!c) return false
-  if (c === sourcesLues) return true
   if (racinesAgents.some((r) => c === r || c.startsWith(`${r}/`))) return true
-  return generators.some((g) =>
-    [...(g.targets ?? []), ...(g.injecte ?? [])].some((motif) => correspondGlob(c, motif)),
-  )
+  return generators.some((g) => (g.injecte ?? []).some((motif) => correspondGlob(c, motif)))
 }
 
 /**
@@ -186,9 +182,6 @@ export function partitionSales(chemins, generators, ...reste) {
   for (const c of chemins ?? []) (estDocDerive(c, generators, ...reste) ? derives : manuscrits).push(c)
   return { derives, manuscrits }
 }
-
-/** Motif du commit de dérivés de l'étape `derives` — ceux qu'un hook `post-rewrite` a laissés. */
-export const MOTIF_POST_REWRITE = 'docs dérivés laissés non commités par le hook post-rewrite d’un rebase manuel'
 
 /** Motif du commit de dérivés de l'étape `docs` — ceux que la régénération du train vient d'écrire. */
 export const MOTIF_REGENERATION = 'docs dérivés régénérés par le train de publication'
@@ -292,14 +285,13 @@ function numerosDeLaPlage(questions) {
 }
 
 /**
- * COMMIT de docs DÉRIVÉS : stage des chemins EXPLICITES, message qui cite les tickets de la plage,
- * `journal.tete` avancé. UNE implémentation, deux appelants (`derives` et `docs`) — le geste est le
- * même, seul le MOTIF change.
- * @param {object} ctx @param {{chemins:string[], numeros:string[], motif:string, journal:object}} p
+ * COMMIT des DÉRIVÉS de l'étape `docs` : stage des chemins EXPLICITES, message qui cite les tickets de
+ * la plage, `journal.tete` avancé.
+ * @param {object} ctx @param {{chemins:string[], numeros:string[], journal:object}} p
  * @returns {{ok:boolean, raison?:string, detail?:object, dit?:string}}
  */
-function commettreDerives(ctx, { chemins, numeros, motif, journal }) {
-  const commit = ctx.commit({ message: messageDuTrain({ portee: 'chore(docs)', titre: 'docs dérivés', numeros, motif }), chemins })
+function commettreDerives(ctx, { chemins, numeros, journal }) {
+  const commit = ctx.commit({ message: messageDuTrain({ portee: 'chore(docs)', titre: 'docs dérivés', numeros, motif: MOTIF_REGENERATION }), chemins })
   if (!reussi(commit)) return { ok: false, raison: `\`git add\` puis \`git commit\` des docs ont échoué : ${refusDeGit(commit)}` }
   journal.tete = ctx.tete
   return { ok: true, detail: { chemins, numeros }, dit: `${chemins.length} doc(s) dérivé(s) commis — tête ${journal.tete.slice(0, 9)}` }
@@ -375,6 +367,8 @@ function causeDEjection(ctx, pr, tete) {
 /**
  * Reprise BORNÉE d'une PR éjectée (#2178, design v3) : FUSION d'`origin/main` dans la branche — jamais
  * un rebase —, puis `docs`, `push-branche`, `pr` et `file` (nouvelle demande de fusion) se rejouent.
+ * Un conflit dont TOUS les chemins sont des cibles PURES (`estCiblePure`) se conclut en les retirant
+ * de l'index (FOSSILE #2203) ; tout autre conflit abandonne la fusion.
  */
 function reprendreApresEjection(ctx, journal, cause) {
   if ((journal.ejections ?? 0) >= BORNE_EJECTIONS)
@@ -387,10 +381,14 @@ function reprendreApresEjection(ctx, journal, cause) {
   const vu = ctx.fusionner({ message })
   if (!reussi(vu)) {
     const conflits = ctx.questions.cheminsEnConflit()
-    if (conflits.length) ctx.abandonnerFusion()
-    return {
-      ok: false,
-      raison: `${cause.raison} — fusion de ${TRONC.suivi} REFUSÉE${conflits.length ? ` (CONFLIT, abandonnée) — fichiers :\n${conflits.map((f) => `    ${f}`).join('\n')}\n  → \`git merge ${TRONC.suivi}\` à la main, puis \`--reprendre\`` : ` : ${refusDeGit(vu)}`}`,
+    const pures = conflits.length > 0 && conflits.every((c) => estCiblePure(c, ctx.generators))
+    const conclue = pures ? ctx.conclureFusionSansCiblesPures({ chemins: conflits, message }) : null
+    if (!conclue || !reussi(conclue)) {
+      if (conflits.length) ctx.abandonnerFusion()
+      return {
+        ok: false,
+        raison: `${cause.raison} — fusion de ${TRONC.suivi} REFUSÉE${conflits.length ? ` (CONFLIT, abandonnée) — fichiers :\n${conflits.map((f) => `    ${f}`).join('\n')}\n  → \`git merge ${TRONC.suivi}\` à la main, puis \`--reprendre\`` : ` : ${refusDeGit(vu)}`}${conclue ? `\n  retrait des cibles pures en échec : ${refusDeGit(conclue)}` : ''}`,
+      }
     }
   }
   journal.ejections = (journal.ejections ?? 0) + 1
@@ -432,7 +430,7 @@ export const ETAPES = [
           raison:
             `arbre NON COMMITÉ (${manuscrits.length}) — on ne publie que du committé :\n` +
             `${manuscrits.map((s) => `    ${s}`).join('\n')}` +
-            (derives.length ? `\n  (et ${derives.length} doc(s) dérivé(s) régénéré(s) que l’étape derives aurait commis)` : ''),
+            (derives.length ? `\n  (et ${derives.length} dérivé(s) sale(s) que l’étape docs aurait commis)` : ''),
         }
       const origine = questions.origineDe()
       if (!urlOrigineAcceptee(origine)) return { ok: false, raison: `origin étranger au dépôt : ${origine ?? 'illisible'}` }
@@ -451,7 +449,7 @@ export const ETAPES = [
       // « Compteurs de version de la file ») ; contre `origin/main`, elle n'est qu'un AVERTISSEMENT.
       for (const refus of questions.refusDesCompteurs()) ctx.journaliser(`[publier] preflight — AVERTISSEMENT : ${refus}\n`)
       const reste = derives.length
-        ? `${derives.length} doc(s) dérivé(s) régénéré(s) non commités (post-rewrite) : l’étape derives les commet`
+        ? `${derives.length} dérivé(s) sale(s) non commité(s) : l’étape docs les commet`
         : 'arbre propre'
       return {
         ok: true,
@@ -461,76 +459,41 @@ export const ETAPES = [
     },
   },
   {
-    // Les docs DÉRIVÉS sales sont commis AVANT toute régénération : un commit de la plage ne mêle
-    // jamais un dérivé laissé par un hook et une régénération du train.
-    nom: 'derives',
-    dejaFaite(ctx) {
-      return partitionSales(ctx.questions.cheminsSales(), ctx.generators).derives.length === 0
-    },
-    jouer(ctx, journal) {
-      const { questions } = ctx
-      const { derives, manuscrits } = partitionSales(questions.cheminsSales(), ctx.generators)
-      if (manuscrits.length)
-        return {
-          ok: false,
-          raison:
-            `MANUSCRIT(S) sale(s) que la préflight venait de refuser — l’arbre a bougé depuis :\n` +
-            manuscrits.map((c) => `    ${c}`).join('\n'),
-        }
-      if (!derives.length) return { ok: true, dit: 'aucun doc dérivé sale' }
-      const numeros = numerosDeLaPlage(ctx.questions)
-      if (!numeros.length) return { ok: false, raison: REFUS_SANS_TICKET }
-      return commettreDerives(ctx, { chemins: derives, numeros, motif: MOTIF_POST_REWRITE, journal })
-    },
-  },
-  {
+    // Les MIXTES (`injecte` des `generators`) et les miroirs d'agents : régénérés, puis commis. Une
+    // saleté de dérivés laissée par un hook (post-merge, post-rewrite) est commise ici aussi.
     nom: 'docs',
     // La tête ENREGISTRÉE sur l'étape, jamais `journal.tete` — celui-ci avance à la fusion d'une
-    // reprise, et un `docs` vert d'avant serait alors sauté à tort.
+    // reprise, et un `docs` vert d'avant serait alors sauté à tort ; un dérivé sali depuis la rejoue.
     dejaFaite(ctx, journal) {
-      return journal.etapes.docs?.etat === 'vert' && journal.etapes.docs.tete === ctx.tete
+      return journal.etapes.docs?.etat === 'vert' && journal.etapes.docs.tete === ctx.tete &&
+        partitionSales(ctx.questions.cheminsSales(), ctx.generators).derives.length === 0
     },
     jouer(ctx, journal) {
       const { racine } = ctx
       const touches = ctx.questions.ceQuiChange(journal.base, journal.tete).chemins()
-      // La saleté est lue AVANT toute décision de saut : un hook `post-rewrite` a pu régénérer des
-      // dérivés sans les committer, alors que la plage ne touche aucune source de doc.
-      // `touchesDocSources` ne court-circuite donc que la RÉGÉNÉRATION, jamais le COMMIT — sauter
-      // celui-ci laisserait l'arbre sale jusqu'aux gates, qui le refusent.
+      // La saleté est lue AVANT toute décision de saut : `touchesDocSources` ne court-circuite que la
+      // RÉGÉNÉRATION, jamais le COMMIT.
       const salesAvant = ctx.questions.cheminsSales()
       const regenerer = touchesDocSources(touches, sourcesMesurees(racine))
       if (!regenerer && !salesAvant.length) return { ok: true, dit: 'aucune source de doc dans la plage, arbre propre : docs inchangés' }
       if (regenerer) {
-        const check = ctx.docs('--check')
-        // Seul un rouge que la régénération GUÉRIT la déclenche (`executer`, build-all.mjs) : un
-        // cliquet, un vérificateur ou un refus rendrait un `docs:build` vain, ou le masquerait.
-        if (check.status !== 0 && check.status !== CODE_CORPS_PERIME) {
-          const nommes = rougesNommes(check.stderr)
+        const passe = ctx.docs('--quiet')
+        if (passe.status !== 0)
           return {
             ok: false,
-            raison: `\`build-all --check\` rouge, que \`docs:build\` ne guérit pas (${natureDuRouge({ status: check.status, signal: check.signal, code: check.error?.code ?? null })})${nommes.length ? ` :\n${nommes.map((r) => `    ${r}`).join('\n')}` : ''}`,
+            raison: `\`docs:build\` a rendu ${passe.status ?? passe.signal} : dérivés possiblement incohérents (rien n'a été staged ni commité)${passe.stderr ? `\n${finDeSortie(passe.stderr)}` : ''}`,
           }
-        }
-        if (check.status === CODE_CORPS_PERIME) {
-          ctx.journaliser('[publier] docs — `--check` : dérivés périmés, passe COMPLÈTE de build-all\n')
-          const passe = ctx.docs('--quiet')
-          if (passe.status !== 0)
-            return {
-              ok: false,
-              raison: `build-all a rendu ${passe.status} : docs/ possiblement incohérent — \`git checkout -- docs/\` puis corriger la cause (rien n'a été staged ni commité)`,
-            }
-        }
       }
       const agents = synchroniserAgents(ctx)
       if (!agents.ok) return agents
       const chemins = ctx.questions.cheminsSales()
       const { manuscrits } = partitionSales(chemins, ctx.generators)
       if (manuscrits.length)
-        return { ok: false, raison: `doc MANUSCRIT modifié par la régénération :\n${manuscrits.map((c) => `    ${c}`).join('\n')}` }
-      if (!chemins.length) return { ok: true, dit: 'docs dérivés déjà à jour : rien à committer' }
+        return { ok: false, raison: `fichier MANUSCRIT sale après la régénération :\n${manuscrits.map((c) => `    ${c}`).join('\n')}` }
+      if (!chemins.length) return { ok: true, dit: 'dérivés déjà à jour : rien à committer' }
       const numeros = numerosDeLaPlage(ctx.questions)
       if (!numeros.length) return { ok: false, raison: REFUS_SANS_TICKET }
-      return commettreDerives(ctx, { chemins, numeros, motif: MOTIF_REGENERATION, journal })
+      return commettreDerives(ctx, { chemins, numeros, journal })
     },
   },
   {

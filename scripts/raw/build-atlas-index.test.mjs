@@ -13,7 +13,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { avecAtlasFixture, coeurDeBanc } from './atlasFixture.mjs'
-import { CODE_CORPS_PERIME } from '../docs/lib/empreinte-sources.mjs'
+import { CODE_CORPS_PERIME } from '../docs/lib/ecriture-derives.mjs'
 import {
   DEBUT, DEBUT_DOMAINES, FIN, FIN_DOMAINES, INDEX_PATH, NOM_INDEX, blocsDeLAtlas, injecter,
   lignesDesCoeurs, lignesDesDomaines,

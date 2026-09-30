@@ -102,8 +102,7 @@ for (const cas of CAS) {
     const win32 = verifier(['--tout', '--plateforme', 'win32', '--only', cas.script], cas.mutation)
     assert.equal(win32.status, 1, win32.sortie)
     assert.ok(win32.sortie.includes(ROUGE_ATTENDU(cas.script)), win32.sortie)
-    // Sans `--tout`, la fraîcheur (sources et corps inchangés sur disque) ne saute rien : la
-    // plateforme demandée est rendue.
+    // Sans `--tout`, la plateforme demandée est rendue.
     const sansTout = verifier(['--plateforme', 'win32', '--only', cas.script], cas.mutation)
     assert.equal(sansTout.status, 1, sansTout.sortie)
     assert.ok(sansTout.sortie.includes(ROUGE_ATTENDU(cas.script)), sansTout.sortie)

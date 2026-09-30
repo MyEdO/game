@@ -53,7 +53,7 @@ test('les classes que la liste de préfixes d’avant #1773 RATAIT sont vues sur
   assert.equal(touchesDocSources(['.claude/memory/user-x.md'], mesure), true)
   assert.equal(touchesDocSources(['.github/workflows/ci.yml'], mesure), true)
   assert.equal(touchesDocSources(['tsconfig.json'], mesure), true)
-  // Ce qu'aucun générateur ne lit ne périme aucun pied, quel que soit son dossier.
+  // Ce qu'aucun générateur ne lit ne périme aucun dérivé, quel que soit son dossier.
   assert.equal(touchesDocSources(['README.md'], mesure), false)
   assert.equal(touchesDocSources(['public/galeries.html'], mesure), false)
   // Et les classes que la liste voyait déjà restent vues.

@@ -11,7 +11,7 @@
 // Re-run : node scripts/raw/build-atlas-index.mjs (`--check` : `declarerCorpsPerime`).
 import { readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { declarerCorpsPerime } from '../docs/lib/empreinte-sources.mjs'
+import { declarerCorpsPerime } from '../docs/lib/ecriture-derives.mjs'
 import { booksDe, coeursDe, coeursDuRegistre, domainesDe, livresDeCoeur, pagesDeLAtlas, REGISTRE_LIVRES } from './_lib.mjs'
 
 export const RAWDIR = 'docs/raw'

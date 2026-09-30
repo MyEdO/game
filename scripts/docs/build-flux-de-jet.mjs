@@ -12,14 +12,14 @@
  *  - les GARDES : chemin ancré + intitulé de leur `describe(...)`.
  * La part ÉDITORIALE (étapes de la recette, interdits) vit ICI, en dur.
  *
- * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/empreinte-sources.mjs), rejoué par `build-all.mjs`.
+ * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`.
  *
  *   node scripts/docs/build-flux-de-jet.mjs
  */
 import { readFileSync, existsSync } from 'node:fs'
 import ts from 'typescript'
 import { loadSource, firstSentence, jsdocBody } from './lib/jsdocUnion.mjs'
-import { ecrireOuVerifier } from './lib/empreinte-sources.mjs'
+import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
 
 /** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire. */
 function rendu() {
@@ -326,7 +326,7 @@ registre et les handlers divergent.
     path: 'docs/ajouter-un-flux-de-jet.md',
     staleMsg:
       'docs:flux-de-jet — docs/ajouter-un-flux-de-jet.md est PÉRIMÉ (diverge de src/state/flowVerbs.ts, rollFlowSpecs.ts, rollFlowFactory.ts, modalArbiter.ts, de la garde anti-dérive, ou du script).',
-    rerunMsg: '  → relancer `npm run docs:flux-de-jet` et committer le résultat.',
+    rerunMsg: '  → relancer `npm run docs:flux-de-jet` (dérivé jamais commité, #2203).',
     okMsg: 'docs:flux-de-jet — OK (docs/ajouter-un-flux-de-jet.md à jour)',
     writeMsg: `docs/ajouter-un-flux-de-jet.md — ${FLUX.length} flux (${MONO.length} mono, ${MULTI.length} multi), ${PARTAGES.length} primitives partagées, ${ATOMES.length} atomes, ${GARDES_MESUREES.length} gardes.`,
   }

@@ -7,14 +7,14 @@
  * dans SpellData (spells.json) — plus de src/data/spellspecs/. La colonne « Curé »
  * lit s.curated directement depuis la donnée JSON.
  *
- * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/empreinte-sources.mjs), rejoué par `build-all.mjs`.
+ * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`.
  *
  *   npx tsx scripts/gen-sorts-doc.mts
  */
 import { spells } from '../src/data';
 import { spellSupportOf } from '../src/engine/spellspec';
 import { spellEffectOps } from '../src/engine/flowCore';
-import { ecrireOuVerifier } from './docs/lib/empreinte-sources.mjs';
+import { ecrireOuVerifier } from './docs/lib/ecriture-derives.mjs';
 import { parLibelle } from './guards/lib/lister.mjs';
 
 /** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire. */
@@ -86,7 +86,7 @@ function rendu() {
     out,
     path,
     staleMsg: `docs:sorts — ${path} est PÉRIMÉ (diverge de src/data spells / src/engine/spellspec / src/state/flow).`,
-    rerunMsg: '  → relancer `npm run docs:sorts` et committer le résultat.',
+    rerunMsg: '  → relancer `npm run docs:sorts` (dérivé jamais commité, #2203).',
     okMsg: `docs:sorts — OK (${path} à jour, ${summary})`,
     writeMsg: `${path} : ${summary}`,
   };

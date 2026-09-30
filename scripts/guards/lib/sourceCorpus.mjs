@@ -20,7 +20,7 @@
 // de `src/**` est `genAll()` du plugin `registryGen` (`vite.config.ts`, hook `buildStart`) : il
 // écrit `src/**/_registry.generated.ts`, `src/data/schemas/_art.generated.ts` et les sorties de sa
 // phase 2 (`scripts/gen-espaces.mts`) dans le processus vite-node PRINCIPAL, avant le démarrage des
-// workers, et seulement quand le contenu diffère (`ecrireDoc`, scripts/docs/lib/empreinte-sources.mjs).
+// workers, et seulement quand le contenu diffère (`ecrireDoc`, scripts/docs/lib/ecriture-derives.mjs).
 // Aucune gate n'écrit dans l'arbre (`photoArbre`, `scripts/gates/toutes.mjs`). Une clé NEUVE ne relit
 // pas un chemin déjà lu : après une écriture, elle rendrait l'ancien texte des chemins connus et le
 // texte frais des chemins nouveaux. Un appelant qui écrirait dans un dossier scanné entre deux

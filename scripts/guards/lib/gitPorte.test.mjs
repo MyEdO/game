@@ -13,7 +13,7 @@ import { join, relative } from 'node:path'
 import { STATUS_DLL_INIT_FAILED } from './spawnResilient.mjs'
 import {
   BorneAbsente, GitIndisponible, INDEX, OPTIONS_DE_L_HOTE, SUIVI, TRAVAIL, abandonnerFusion, ajouterOrigine, ajouterWorktree, approfondir, arbrePrincipal, arbreVide, attributDe,
-  baseCommune, brancheDe, branchesDe, ceQuEmporteLIndex, ceQueFaitLeCommit, ceQuiChange, cheminGit, cheminsEnConflit, classer, combienDe, commitDe,
+  baseCommune, brancheDe, branchesDe, ceQuEmporteLIndex, ceQueFaitLeCommit, ceQuiChange, cheminGit, cheminsEnConflit, classer, combienDe, commitDe, conclureFusionSansChemins,
   depotDe, divergenceDe, dossierDesHooks, elaguerWorktrees, eolsDe, estDansHead, estIgnore, estSuperficiel, etatDeLArbre, enfantsDirects, estAncetre, estRepertoire,
   fetchOrigin, fichiersDuGrep, fusionDeTextes, fusionnesEnCours, initialiserDepot, journalDe, lireEnLot, listerImage, natureDuChemin, origineDe, parentsDe, pointDeDepart, poserRef, pousser,
   fusionner, racineDe, raisonCourte, rebaseEntame, reglerDepot, retirerWorktree, reussi, shaDe, shasDe, supprimerBranche, urlOrigineAcceptee, worktreesDe,
@@ -791,6 +791,7 @@ test('ÉCRIVAINS : l’argv EXACT que git reçoit de chacun — aucune option de
     ['commitDe vide', () => commitDe(d, { message: 'm', chemins: [], vide: true }), [['commit', '-q', '--allow-empty', '--only', '-F', '-']]],
     ['fusionner', () => fusionner(d, { de: 'origin/main', message: 'm #1' }), [['merge', '--no-ff', '-m', 'm #1', 'origin/main']]],
     ['abandonnerFusion', () => abandonnerFusion(d), [['merge', '--abort']]],
+    ['conclureFusionSansChemins', () => conclureFusionSansChemins(d, { chemins: ['a.txt'], message: 'm' }), [['--literal-pathspecs', 'rm', '-q', '--cached', '--', 'a.txt'], ['commit', '-q', '-F', '-']]],
     ['pousser', () => pousser(d, { vers: 'refs/heads/x', bail: true }), [['push', '--force-with-lease', 'origin', 'HEAD:refs/heads/x']]],
     ['ajouterWorktree', () => ajouterWorktree(d, { chemin: '/w', branche: 'b', depuis: 'origin/main' }), [['worktree', 'add', '-b', 'b', '--', '/w', 'origin/main']]],
     ['retirerWorktree', () => retirerWorktree(d, '/w'), [['worktree', 'remove', '--', '/w']]],
@@ -872,6 +873,32 @@ test('ÉCRIVAINS sous config HOSTILE : l’identité de l’UTILISATEUR signe le
   } finally {
     jeter(racine)
     jeter(mesure)
+  }
+})
+
+// FOSSILE #2203.
+test('conclureFusionSansChemins : une fusion en CONFLIT sur des chemins nommés se conclut en les retirant de l’index — le disque les garde', () => {
+  const { racine } = instanceDeDepot({ fichiers: { 'gen.md': 'base\n', 'a.txt': 'a\n' }, message: 'socle' })
+  try {
+    const g = (...a) => execFileSync('git', a, { cwd: racine, env: envDeDepotForge(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()
+    const d = depotDe(racine, { env: envDeDepotForge() })
+    g('branch', 'b')
+    writeFileSync(join(racine, 'gen.md'), 'main\n')
+    g('commit', '-qam', 'main')
+    g('checkout', '-q', 'b')
+    writeFileSync(join(racine, 'gen.md'), 'b\n')
+    g('commit', '-qam', 'b')
+    assert.equal(reussi(fusionner(d, { de: 'main', message: 'fusion #1' })), false, 'la fixture n’a pas mis gen.md en conflit')
+    assert.deepEqual(cheminsEnConflit(d), ['gen.md'])
+    assert.throws(() => conclureFusionSansChemins(d, { chemins: [], message: 'fusion #1' }), /des `chemins` explicites/)
+    assert.equal(reussi(conclureFusionSansChemins(d, { chemins: ['gen.md'], message: 'fusion #1\n' })), true)
+    assert.equal(g('log', '-1', '--format=%s'), 'fusion #1')
+    assert.equal(g('rev-parse', 'HEAD^2'), g('rev-parse', 'main'), 'un commit de FUSION, second parent = main')
+    assert.equal(g('ls-files', '--', 'gen.md'), '', 'gen.md est sorti de l’index')
+    assert.equal(g('ls-files', '--', 'a.txt'), 'a.txt')
+    assert.equal(existsSync(join(racine, 'gen.md')), true, 'le disque garde le fichier')
+  } finally {
+    jeter(racine)
   }
 })
 

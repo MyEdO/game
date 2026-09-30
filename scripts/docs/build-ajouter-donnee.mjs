@@ -14,7 +14,7 @@
  * La part ÉDITORIALE (check-first, zéro invention, ordre des étapes) vit ICI, en dur — patron
  * « éditorial EN DUR dans le générateur » de `scripts/docs/build-sources-vf.mjs`.
  *
- * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/empreinte-sources.mjs), rejoué par `build-all.mjs`.
+ * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`.
  *
  *   node scripts/docs/build-ajouter-donnee.mjs
  */
@@ -22,7 +22,7 @@ import { readFileSync, existsSync } from 'node:fs'
 import { listerDossier } from '../guards/lib/lister.mjs'
 import ts from 'typescript'
 import { loadSource } from './lib/jsdocUnion.mjs'
-import { ecrireOuVerifier } from './lib/empreinte-sources.mjs'
+import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
 
 /** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire. */
 function rendu() {
@@ -294,7 +294,7 @@ ${table(GARDES_MESUREES, ['Garde', 'Ce qu’elle verrouille (son propre `describ
     path: 'docs/ajouter-une-donnee.md',
     staleMsg:
       'docs:ajouter-donnee — docs/ajouter-une-donnee.md est PÉRIMÉ (diverge de src/data/, de la fabrique de document, des skills, des gardes, ou du script).',
-    rerunMsg: '  → relancer `npm run docs:ajouter-donnee` et committer le résultat.',
+    rerunMsg: '  → relancer `npm run docs:ajouter-donnee` (dérivé jamais commité, #2203).',
     okMsg: 'docs:ajouter-donnee — OK (docs/ajouter-une-donnee.md à jour)',
     writeMsg: `docs/ajouter-une-donnee.md — ${DATASETS.length} datasets, ${BOOKS.length} livres (clé « ${CLE_ABBR} »), ${CLES_ENVELOPPE.length} clés d'enveloppe, ${GARDES_MESUREES.length} gardes.`,
   }

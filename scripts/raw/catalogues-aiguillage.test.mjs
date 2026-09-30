@@ -1,63 +1,31 @@
 // GARDE DE L'AIGUILLAGE DES CATALOGUES DE L'ATLAS (#1825) — `npm run test:raw`.
 //
-// Un catalogue est un dérivé : il est la cible de son générateur (`GENERATORS`,
-// scripts/docs/build-all.mjs, qui le vérifie en `--check`), et sa fusion passe par son pilote
-// (`.gitattributes`, famille `docs-generes`). Les deux passent par un MOTIF de chemin — et un motif
-// qui n'atteint plus rien ne rougit pas : une cible de générateur vide n'est vérifiée par rien, et un
-// fichier sans famille de fusion se fusionne textuellement, en silence. C'est exactement ce que la
-// partition de l'Atlas par cœur a produit : `docs/raw/catalogue-*.md` n'atteint plus un seul des six
-// catalogues, qui vivent tous sous un dossier de cœur.
+// Un catalogue est un dérivé PUR : il est la cible de son générateur (`GENERATORS`,
+// scripts/docs/build-all.mjs) par un MOTIF de chemin, et n'est pas commité (#2203). Un motif qui
+// n'atteint plus rien ne rougit pas : une cible de générateur vide n'est produite par rien. C'est
+// exactement ce que la partition de l'Atlas par cœur a produit : `docs/raw/catalogue-*.md` n'atteint
+// plus un seul des six catalogues, qui vivent tous sous un dossier de cœur.
 //
-// CONTRAT POSITIF, jamais un littéral recopié : la population vient de la couture
-// (`pagesDeLAtlas`, classe `catalogue`), le motif de la constante UNIQUE
-// (`scripts/raw/motif-catalogues.mjs`), et le verdict de git lui-même — `git ls-files` pour l'arbre
-// suivi, `git check-attr` pour l'aiguillage.
+// CONTRAT POSITIF, jamais un littéral recopié : la population vient du RENDU du générateur (`rendre`
+// de scripts/raw/build-catalogs.mjs), le motif de la constante UNIQUE (`scripts/raw/motif-catalogues.mjs`),
+// et l'arbre suivi du verdict de git lui-même (`git ls-files`).
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
-import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { pagesDeLAtlas } from './_lib.mjs'
+import { rendre } from './build-catalogs.mjs'
 import { correspondGlob } from '../guards/lib/lister.mjs'
 import { MOTIF_CATALOGUES } from './motif-catalogues.mjs'
 
 const ROOT = fileURLToPath(new URL('../..', import.meta.url))
 
-/** Les catalogues que la couture énumère, en chemins de dépôt. */
-const catalogues = () =>
-  pagesDeLAtlas(join(ROOT, 'docs', 'raw'), { classes: ['catalogue'] }).map((p) => `docs/raw/${p.relatif}`)
-
-/** Les fichiers SUIVIS de l'Atlas que le motif atteint, lu par la grammaire unique du dépôt. */
-const atteintsParLeMotif = () =>
-  execFileSync('git', ['ls-files', '--', 'docs/raw'], { cwd: ROOT, encoding: 'utf8' })
-    .split('\n')
-    .filter((f) => f && correspondGlob(f, MOTIF_CATALOGUES))
-
-/** `git check-attr merge` pour un lot de chemins → Map(chemin → famille). */
-function famillesDe(paths) {
-  const out = execFileSync('git', ['check-attr', 'merge', '--stdin'], { cwd: ROOT, input: paths.join('\n'), encoding: 'utf8' })
-  const map = new Map()
-  for (const ln of out.split('\n').filter(Boolean)) {
-    const m = /^(.*): merge: (.*)$/.exec(ln)
-    if (m) map.set(m[1], m[2])
-  }
-  return map
-}
-
-test('tout catalogue de la couture est ATTEINT par le motif, cible du générateur', () => {
-  const vus = catalogues()
-  assert.ok(vus.length > 0, 'la couture n’énumère aucun catalogue — la garde serait verte à vide')
-  const atteints = new Set(atteintsParLeMotif())
-  assert.deepEqual(vus.filter((c) => !atteints.has(c)), [], `motif « ${MOTIF_CATALOGUES} »`)
+test('tout catalogue RENDU est ATTEINT par le motif, cible du générateur', () => {
+  const vus = [...rendre().keys()]
+  assert.ok(vus.length > 0, 'le générateur ne rend aucun catalogue — la garde serait verte à vide')
+  assert.deepEqual(vus.filter((c) => !correspondGlob(c, MOTIF_CATALOGUES)), [], `motif « ${MOTIF_CATALOGUES} »`)
 })
 
-test('le motif n’atteint RIEN d’autre que les catalogues de la couture', () => {
-  const vus = new Set(catalogues())
-  assert.deepEqual(atteintsParLeMotif().filter((p) => !vus.has(p)), [])
-})
-
-test('tout catalogue de la couture est aiguillé en famille de fusion `docs-generes`', () => {
-  const vus = catalogues()
-  const fam = famillesDe(vus)
-  assert.deepEqual(vus.filter((c) => fam.get(c) !== 'docs-generes'), [])
+test('le motif n’atteint aucun fichier SUIVI : un manuscrit qu’il toucherait serait réécrit par le générateur', () => {
+  const suivis = execFileSync('git', ['ls-files', '--', 'docs/raw'], { cwd: ROOT, encoding: 'utf8' }).split('\n').filter(Boolean)
+  assert.deepEqual(suivis.filter((f) => correspondGlob(f, MOTIF_CATALOGUES)), [])
 })

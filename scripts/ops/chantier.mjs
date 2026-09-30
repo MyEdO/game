@@ -11,8 +11,8 @@
 // refuse ensuite au commit — est hors de portée : la cible et tous les gestes git partent de l'arbre
 // PRINCIPAL résolu par git (`arbrePrincipal`), d'où que l'outil soit lancé.
 //
-// Rien n'est jamais détruit : ni `--force`, ni suppression. Un `npm ci` rouge LAISSE le worktree et
-// le dit — c'est un équipement qui manque, pas un chantier à défaire.
+// Rien n'est jamais détruit : ni `--force`, ni suppression. Un équipement rouge (`npm ci`, `docs:build`)
+// LAISSE le worktree et le dit — c'est un équipement qui manque, pas un chantier à défaire.
 //
 // Usage : `npm run ops:chantier -- <nom> [--sans-ci]`, `nom` = numéro de ticket + slug optionnel.
 import { spawnSync } from 'node:child_process'
@@ -76,6 +76,10 @@ const FLAGS_CI = ['--no-audit', '--no-fund']
  *  (c'est `resoudreOutilLocal` qui le mesure), et il précède tout sous-projet. */
 const EQUIPEMENT_RACINE = { args: ['ci', ...FLAGS_CI], ou: '', relance: 'npm ci' }
 
+/** Les docs DÉRIVÉS, produits là où on les lit (#2203) : en DERNIER, sur un arbre équipé — les cibles de
+ *  code sont déjà posées par le `postinstall` du `npm ci` racine. */
+const EQUIPEMENT_DOCS = { args: ['run', 'docs:build'], ou: ' (docs dérivés)', relance: 'npm run docs:build' }
+
 /**
  * Les ÉQUIPEMENTS d'un prérequis déclaré. PURE.
  * Un `pose` est une commande `npm …` : ses mots après `npm` deviennent l'`args` (plus `FLAGS_CI`),
@@ -110,7 +114,7 @@ export function equipementsDesPrerequis(ecritLu) {
 }
 
 /**
- * ÉQUIPEMENT d'un chantier neuf, dans l'ordre : la racine, PUIS ce que les gates exigent.
+ * ÉQUIPEMENT d'un chantier neuf, dans l'ordre : la racine, PUIS ce que les gates exigent, PUIS les docs dérivés.
  * Trois termes, une frontière — dite ICI et nulle part ailleurs : un PRÉREQUIS est ce qu'une gate
  * déclare devoir trouver sous la racine (`prerequis` de `ECRIT_LU`, scripts/gates/toutes.mjs) ; un
  * ÉQUIPEMENT est le geste qui le pose ; l'OUTILLAGE LOCAL est ce que `resoudreOutilLocal`
@@ -120,7 +124,7 @@ export function equipementsDesPrerequis(ecritLu) {
  * `ops:chantier` ne sait pas équiper (mesuré le 2026-09-14 : `server:typecheck` rouge sur un
  * `server/node_modules` absent, après 881 s de gates en série).
  */
-export const EQUIPEMENTS = [EQUIPEMENT_RACINE, ...equipementsDesPrerequis(ECRIT_LU)]
+export const EQUIPEMENTS = [EQUIPEMENT_RACINE, ...equipementsDesPrerequis(ECRIT_LU), EQUIPEMENT_DOCS]
 
 /** Nom de branche d'un chantier. PURE. */
 export const brancheDe = (nom) => `chantier/${nom}`
@@ -206,7 +210,7 @@ export function creerChantier({ racine = RACINE, nom, sansCi = false, gestes = G
         ok: false,
         cible,
         branche,
-        refus: `worktree posé, npm ci rouge${ou} — relancer \`${relance}\` dans ${cible}` +
+        refus: `worktree posé, ${/\bci$/.test(relance) ? 'npm ci' : relance} rouge${ou} — relancer \`${relance}\` dans ${cible}` +
           (vuNpm?.error ? ` (${vuNpm.error.message})` : ` (code ${vuNpm?.status})`),
       }
     }

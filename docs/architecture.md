@@ -21,17 +21,22 @@ toute profondeur — doit désigner un fichier existant (exclusions structurelle
 sa garde dédiée, et les épreuves DATÉES, qui disent l'arbre de leur jour). Une référence vivante qui
 ment ne se tague pas, elle se corrige.
 
-**Fusion des docs DÉRIVÉS** (`.gitattributes`, deux familles, pilote
-`scripts/git-hooks/merge-docs.mjs` déclaré par `npm run postinstall`) :
+**Dérivés PURS, jamais commités** (#2203) : une cible que son générateur écrit EN ENTIER (`targets`
+de `GENERATORS`, `scripts/docs/build-all.mjs` — docs générés, catalogues de l'Atlas, `*.generated.ts`,
+`docs/.sources-lues.json`) est ignorée par git (bloc de `.gitignore`, garde
+`scripts/docs/cibles-pures.test.mjs`) et se PRODUIT là où on la lit : les cibles de code par `npm run gen`
+(aussi `postinstall`, hooks `post-checkout`/`post-merge`/`post-rewrite`, `buildStart` de Vite), les docs
+par `npm run docs:build`. Aucune ne se fusionne.
 
-- `merge=docs-generes` — docs 100 % générés, catalogues `docs/raw/**/catalogue-*.md` compris : la
-  version courante est retenue, `docs:build` régénère.
-- `merge=docs-fiche-raw` — fiches `docs/raw/**/*.md` mixtes (prose manuscrite + champ `**Implémente :**`
-  dérivé) : fusion 3-voies de la PROSE seule, chaque champ réinjecté PAR IDENTITÉ (heading porteur),
-  donc une section ajoutée par l'entrant garde SON champ ; un conflit restant est un vrai conflit humain.
+**Fusion des docs MIXTES** (`.gitattributes`, pilote `scripts/git-hooks/merge-docs.mjs` déclaré par
+`npm run postinstall`) : `merge=docs-fiche-raw` — fiches `docs/raw/**/*.md` (prose manuscrite + champ
+`**Implémente :**` dérivé) : fusion 3-voies de la PROSE seule, chaque champ réinjecté PAR IDENTITÉ
+(heading porteur), donc une section ajoutée par l'entrant garde SON champ ; un conflit restant est un
+vrai conflit humain.
 
-Après toute fusion ou tout rebase : `npm run docs:build` (`scripts/docs/build-all.mjs`) régénère et
-nomme ce qui a bougé — les hooks `post-merge`/`post-rewrite` le lancent, le commit reste à toi.
+Après toute fusion ou tout rebase : les hooks `post-merge`/`post-rewrite` régénèrent les cibles de
+code et les docs dont une source a bougé (`scripts/git-hooks/docs-rebuild.mjs`) ; un MIXTE réécrit
+reste à committer.
 
 **Fusion des stocks de sites** (`.gitattributes`, section « Stocks : fusion par groupe de site »,
 pilote `scripts/git-hooks/merge-stocks.mjs` déclaré par `npm run postinstall`, `merge=stocks`) :

@@ -3,7 +3,7 @@
 //   `Condition` / `Flow` / `EffectTrigger` / `EffectTargeting` → src/engine/flowCore.ts
 // Sortie : docs/vocabulaire-mecanique.md. Re-run : node scripts/docs/build-vocabulaire.mjs
 // (npm run docs:vocabulaire).
-// Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/empreinte-sources.mjs), rejoué par `build-all.mjs`.
+// Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`.
 // Même socle AST/JSDoc que build-effects.mjs : scripts/docs/lib/jsdocUnion.mjs.
 //
 // Trois colonnes MESURÉES (jamais recopiées à la main) :
@@ -23,7 +23,7 @@ import { parLibelle, listerArbre } from '../guards/lib/lister.mjs'
 import { estFichierVitest } from '../guards/lib/fichierVitest.mjs'
 import { basename } from 'node:path'
 import { loadSource, findAlias, aliasDoc, readUnionMembers, renderFields } from './lib/jsdocUnion.mjs'
-import { ecrireOuVerifier } from './lib/empreinte-sources.mjs'
+import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
 import { mesurerCanaux } from './lib/canauxMecaniques.mjs'
 
 /** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire. */
@@ -403,7 +403,7 @@ function rendu() {
     out,
     path: OUT,
     staleMsg: `docs:vocabulaire — ${OUT} est PÉRIMÉ (diverge de ${OPS_SRC} / ${FLOW_SRC}).`,
-    rerunMsg: '  → relancer `npm run docs:vocabulaire` et committer le résultat.',
+    rerunMsg: '  → relancer `npm run docs:vocabulaire` (dérivé jamais commité, #2203).',
     okMsg: `docs:vocabulaire — OK (${OUT} à jour, ${opRows.length} GameOp)`,
     writeMsg: `${OUT} — ${opRows.length} GameOp (${tally['exécutée']} exécutées / ${tally['inerte au switch']} inertes au switch / ${tally['hors switch']} hors switch, ${zero.length} sans usage en donnée).`,
   }

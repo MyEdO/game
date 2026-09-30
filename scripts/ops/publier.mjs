@@ -9,12 +9,11 @@
 // RÉGIME (#2178) : commit FINAL → push de la BRANCHE → PR → course verte de la branche → demande de
 // fusion REST (`merge-async`) → la FILE DE FUSION du serveur sérialise, juge le commit de file et fusionne. Aucune gate ne se joue ici :
 // `.github/workflows/ci.yml` les joue toutes, et le ruleset `main` (`scripts/ops/ruleset-main.mjs`)
-// n'admet rien hors de la file. HUIT étapes — preflight, derives, docs, push-branche, pr, file,
-// pilotage, fin :
-// preflight (une saleté faite UNIQUEMENT de docs DÉRIVÉS ne refuse pas : l'étape `derives` la
-// commet ; les compteurs de version contre `origin/main` n'y sont qu'un AVERTISSEMENT), derives (les
-// docs dérivés laissés non commités par un hook `post-rewrite`), docs dérivés régénérés — la plage
-// sans source de doc saute la RÉGÉNÉRATION, jamais le COMMIT —, push de la branche, PR créée, attente
+// n'admet rien hors de la file. SEPT étapes — preflight, docs, push-branche, pr, file, pilotage, fin :
+// preflight (une saleté faite UNIQUEMENT de DÉRIVÉS ne refuse pas : l'étape `docs` la commet ; les
+// compteurs de version contre `origin/main` n'y sont qu'un AVERTISSEMENT), docs (`docs:build`, puis
+// commit des MIXTES et des miroirs d'agents sales — la plage sans source de doc saute la
+// RÉGÉNÉRATION, jamais le COMMIT), push de la branche, PR créée, attente
 // bornée de la course verte de la tête, de sa demande de fusion (`sha` = la tête jugée) puis de la
 // fusion par la file, pilotage des tickets
 // cités, fin. Aucun client ne rebase sur un tronc mouvant : une PR ÉJECTÉE de la file pour un conflit
@@ -51,7 +50,8 @@ import { appendFileSync, closeSync, existsSync, mkdirSync, openSync, readFileSyn
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
-  GitIndisponible, TRONC, abandonnerFusion, baseCommune, brancheDe, ceQuiChange, cheminsEnConflit, combienDe, commitDe, depotDe,
+  GitIndisponible, TRONC, abandonnerFusion, baseCommune, brancheDe, ceQuiChange, cheminsEnConflit, combienDe, commitDe,
+  conclureFusionSansChemins, depotDe,
   estAncetre, etatDeLArbre, fetchOrigin, fusionner, origineDe, pousser, racineDe, rebaseEntame, shaDe,
 } from '../guards/lib/gitPorte.mjs'
 import { BORNE_RAISON, DEPOT, lireTicket, poserCommentaire } from '../guards/lib/ticketsGh.mjs'
@@ -61,7 +61,7 @@ import { DOSSIER, PORTE, branchesDePush } from '../gates/workflowsDuDepot.mjs'
 import { DELAI_DE_REPONSE_MINUTES } from './ruleset-main.mjs'
 import { refusDesCompteurs } from '../guards/lib/compteursDuDepot.mjs'
 import { commitsDeLaPlage } from '../guards/lib/plageFermante.mjs'
-import { GENERATORS } from '../docs/build-all.mjs'
+import { GENERATORS, estCiblePure } from '../docs/build-all.mjs'
 import { PEREMPTION_MS, purgerPerimes } from '../guards/lib/purgerPerimes.mjs'
 import { BORNE_EJECTIONS, ETAPES, attendre, issueDeFusion, prDeRest } from './etapesDuTrain.mjs'
 
@@ -74,7 +74,7 @@ export const FILE_TIMEOUT_MIN = 2 * DELAI_DE_REPONSE_MINUTES
 
 /** Les gates qui jugent les DÉRIVÉS commités : une course de file rouge sur leurs seuls jobs se
  *  reprend (`causeDEjection`, etapesDuTrain.mjs), la régénération les guérit. */
-export const GATES_DES_DERIVES = Object.freeze(['docs:check:tout', 'docs:empreinte', 'agents:check'])
+export const GATES_DES_DERIVES = Object.freeze(['docs:build', 'agents:check'])
 
 // ── Purs : options, journal, plan ──────────────────────────────────────────────────────
 
@@ -368,9 +368,9 @@ function ouvrirLog(chemin, mode) {
  * s'annoncerait vert. PURE.
  *
  * RÈGLE DE TÊTE, une seule : la comparaison porte sur la TÊTE VIVANTE (`git rev-parse HEAD` au
- * moment où l'on juge), jamais sur `journal.tete` (la tête PUBLIÉE, posée par `preflight`/`derives`), et
- * une étape SANS estampille est « à faire ». Sans cela, une étape estampillée `null` (`preflight` et
- * `derives` d'un journal d'avant cette règle) restait verte pour TOUTE tête, à jamais.
+ * moment où l'on juge), jamais sur `journal.tete` (la tête PUBLIÉE, posée par `preflight`/`docs`), et
+ * une étape SANS estampille est « à faire ». Sans cela, une étape estampillée `null` restait verte
+ * pour TOUTE tête, à jamais.
  * @param {{etapes?:object}} journal @param {string[]} noms ordre de `ETAPES`
  * @param {string|null} teteVivante `HEAD` mesuré maintenant
  * @returns {string|null} `null` = tout est vert pour cette tête
@@ -685,7 +685,7 @@ function gh(args, cwd, input) {
 const appelGh = (racine) => (args, { input } = {}) => gh(args, racine, input)
 
 /** Les modes de `scripts/docs/build-all.mjs` que l'étape `docs` joue. */
-const MODES_DES_DOCS = Object.freeze(['--check', '--quiet'])
+const MODES_DES_DOCS = Object.freeze(['--quiet'])
 
 /**
  * `npm run <script>` sous `platform` : l'exécutable, son argv et `shell`. PURE. `npm` est un `.cmd`
@@ -780,7 +780,8 @@ function numeroDeTicket(geste, numero) {
  * (`etapesDuTrain.test.mjs`) refuse au module des étapes toute liaison qui atteint un lancement de
  * processus, contre une retouche de bonne foi (résidu : #2073) : chaque processus d'une étape passe
  * par un geste d'ici. Écrivains nommés de l'hôte :
- * `commit`, `fusionner` (un message), `abandonnerFusion`, `pousser`, `tronc`. Hors git : `npm` (un NOM
+ * `commit`, `fusionner` (un message), `abandonnerFusion`, `conclureFusionSansCiblesPures` (des cibles pures
+ * et un message), `pousser`, `tronc`. Hors git : `npm` (un NOM
  * de script), `docs` (un mode de `build-all.mjs`), `coursesCi` (un sha), `coursesDeFile`, `parentsDe`
  * (un sha), `jobsRouges` (un id de course), `lirePr`, `ouvrirPr` (un titre et un corps), `demanderFusion` (un numéro de PR et
  * un sha), `lireFusion` (un numéro de PR et un uuid), `lireTicket` (un numéro), `commenter` (un numéro et un corps) ; chacun valide ses arguments avant tout spawn.
@@ -883,6 +884,13 @@ export function contexteDe({ racine, branche, options, journaliser, fdLog }) {
       return fusionner(depot, { de: TRONC.suivi, message })
     },
     abandonnerFusion: () => abandonnerFusion(depot),
+    // FOSSILE #2203.
+    conclureFusionSansCiblesPures({ chemins, message }) {
+      if (typeof message !== 'string' || !message.trim()) throw new Error(`ctx.conclureFusionSansCiblesPures : un MESSAGE — refusé : ${JSON.stringify(message)}`)
+      const autres = (chemins ?? []).filter((c) => !estCiblePure(c, GENERATORS))
+      if (!chemins?.length || autres.length) throw new Error(`ctx.conclureFusionSansCiblesPures : des cibles PURES seulement — refusé : ${JSON.stringify(autres)}`)
+      return conclureFusionSansChemins(depot, { chemins, message })
+    },
     pousser: ({ vers, bail }) => pousser(depot, { vers, bail }),
   }
 }

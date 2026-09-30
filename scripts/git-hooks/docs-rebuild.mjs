@@ -1,12 +1,12 @@
 // scripts/git-hooks/docs-rebuild.mjs — corps PARTAGÉ des hooks post-merge / post-rewrite.
-// Après une fusion ou un rebase, les docs dérivés portent la version « ours » retenue par le pilote
-// merge-docs.mjs : seule la régénération fait foi. Ce hook la relance et NOMME ce qui a bougé.
+// Après une fusion ou un rebase, il produit les cibles de CODE (`genererCode`, #2203 A2), puis
+// régénère les docs dérivés quand le lot touche une de leurs sources, et NOMME les MIXTES qui ont bougé.
 // Il ne touche JAMAIS l'index (aucun `git add`/`commit`) : la décision de committer reste humaine.
 // Silencieux quand rien de pertinent n'a bougé (aucune source de doc dans le lot fusionné/rebasé).
 import { execFileSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { SOURCES_LUES } from '../docs/build-all.mjs'
+import { genererCode, SOURCES_LUES } from '../docs/build-all.mjs'
 import { ceQuiChange, depotDe, etatDeLArbre, racineDe, shaDe } from '../guards/lib/gitPorte.mjs'
 
 /** Fichiers du lot que le hook vient de recevoir (ORIG_HEAD..HEAD). Sans ORIG_HEAD, ou git
@@ -31,13 +31,12 @@ const parentDe = (chemin) => (chemin.includes('/') ? chemin.slice(0, chemin.last
  * vivaient hors des quatre préfixes codés d'avant (src, scripts, docs, Source, plus package.json) —
  * les fiches `.claude/memory/user-…md` → `docs/doctrines.md`, les `SKILL.md` de `.claude/skills`,
  * `tsconfig.json`, et le dossier LISTÉ
- * `.github/workflows`. Un train qui ne touchait qu'elles sautait `--check` pour mourir à la gate
- * `docs:empreinte` (#1773). Quatre façons, pour un lot, de périmer un pied :
- *   1. le chemin EST une source lue, ou une cible signée ;
- *   2. son dossier parent est un dossier LISTÉ (le listing hashé change) ;
+ * `.github/workflows` (#1773). Quatre façons, pour un lot, de périmer un doc dérivé :
+ *   1. le chemin EST une source lue, ou une cible ;
+ *   2. son dossier parent est un dossier LISTÉ ;
  *   3. son dossier parent contient déjà une source lue — c'est le frère AJOUTÉ ou RETIRÉ d'une
  *      source, que la mesure d'un générateur qui énumère sans lister ne peut pas dire autrement ;
- *   4. il vit sous `docs/` : les dérivés eux-mêmes, pied compris.
+ *   4. il vit sous `docs/` : les dérivés eux-mêmes.
  * FAIL-CLOSED : lot inconnu (pas d'ORIG_HEAD) ou mesure illisible → on régénère.
  */
 export function touchesDocSources(chemins, mesure) {
@@ -61,6 +60,7 @@ export function touchesDocSources(chemins, mesure) {
 function main() {
   const cwd = racineDe(depotDe(process.cwd()))
   if (!cwd) return
+  genererCode({ cwd, quiet: true })
   if (!touchesDocSources(touchedFiles(cwd), sourcesMesurees(cwd))) return
   try {
     execFileSync(process.execPath, ['scripts/docs/build-all.mjs', '--quiet'], { cwd, stdio: ['ignore', 'ignore', 'inherit'] })
