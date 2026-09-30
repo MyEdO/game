@@ -102,40 +102,36 @@ export function gatesSautables({ gates, ecritLu }) {
   return sautables
 }
 
-/** Un sha nul ou fait de zéros : `github.event.before` d'un premier push (même lecture que ci.yml). */
+/** Un sha vide ou fait de zéros : `github.event.merge_group.base_sha` hors `merge_group`. */
 const shaNul = (sha) => !sha || !/[^0]/.test(sha)
 
 /**
- * La BASE du diff : ce contre quoi on classe. Sur `main`, l'incrément poussé (`BEFORE`, replié sur
- * `SHA^`). Ailleurs, ce qui ENTRERA dans `main` (`merge-base origin/main SHA`) — jamais l'incrément
- * du push, qu'un run annulé puis un push documentaire rendraient faux. `ref` est `github.ref` : une
- * REF git (`refs/pull/N/merge` compris), jamais un nom de branche. Une lecture que git ne rend pas
- * replie en classement CONSERVATEUR ; une panne de git (`enPanne`, `depotDe`) y est NOMMÉE.
- * `refs/remotes/origin/main` manque à un clone `--single-branch` d'une branche de travail : il se
- * fetche avant le merge-base.
+ * La BASE du diff : ce contre quoi on classe. Sur un commit de file (`merge_group`), `base` est
+ * `github.event.merge_group.base_sha` — ce sur quoi l'entrée se pose, `main` ou l'entrée précédente.
+ * Sur une branche de travail, ce qui ENTRERA dans `main` (`merge-base origin/main SHA`) — jamais
+ * l'incrément du push, qu'un run annulé puis un push documentaire rendraient faux. Une lecture que
+ * git ne rend pas replie en classement CONSERVATEUR ; une panne de git (`enPanne`, `depotDe`) y est
+ * NOMMÉE. `refs/remotes/origin/main` manque à un clone `--single-branch` d'une branche de travail : il
+ * se fetche avant le merge-base.
  * @returns {{ base: string } | { base: null, motif: string }}
  */
-export function baseDuDiff({ ref, before, sha, cwd = process.cwd() } = {}) {
+export function baseDuDiff({ base, sha, cwd = process.cwd() } = {}) {
+  if (!shaNul(base)) return { base }
   const pannes = []
   const depot = depotDe(cwd, { enPanne: (raison) => pannes.push(raison) })
   const conservateur = (motif) => ({
     base: null,
     motif: `${motif}${pannes.length ? ` — git indisponible : ${pannes.join(' ; ')}` : ''} : conservateur`,
   })
-  if (ref === TRONC.branche) {
-    if (!shaNul(before)) return { base: before }
-    const parent = shaDe(depot, `${sha}^`)
-    return parent ? { base: parent } : conservateur(`main sans parent lisible pour ${sha}`)
-  }
   if (shaDe(depot, `refs/remotes/${TRONC.suivi}`) === null && !reussi(fetchOrigin(depot))) return conservateur('origin/main absent après fetch')
-  const base = baseCommune(depot, TRONC.suivi, sha)
-  return base ? { base } : conservateur('merge-base origin/main en échec')
+  const commune = baseCommune(depot, TRONC.suivi, sha)
+  return commune ? { base: commune } : conservateur('merge-base origin/main en échec')
 }
 
 /** Le classement complet, du contexte de push aux motifs. Une borne du diff inconnue LÈVE
  *  (`BorneAbsente`, `ceQuiChange`). */
-export function classerPush({ ref, before, sha, cwd = process.cwd() } = {}) {
-  const socle = baseDuDiff({ ref, before, sha, cwd })
+export function classerPush({ base, sha, cwd = process.cwd() } = {}) {
+  const socle = baseDuDiff({ base, sha, cwd })
   if (socle.base === null) return { produit: true, base: null, fichiers: [], motifs: [socle.motif] }
   const fichiers = ceQuiChange(depotDe(cwd), socle.base, sha).chemins()
   return { ...classer(fichiers), base: socle.base, fichiers }
@@ -144,10 +140,10 @@ export function classerPush({ ref, before, sha, cwd = process.cwd() } = {}) {
 if (import.meta.main) {
   try {
     const sha = env.SHA || 'HEAD'
-    const verdict = classerPush({ ref: env.REF, before: env.BEFORE, sha })
+    const verdict = classerPush({ base: env.BASE, sha })
     stdout.write(`produit=${verdict.produit}\n`)
     stderr.write(
-      `[classerPush] ref=${env.REF ?? '(absent)'} base=${verdict.base ?? '(aucune)'} ` +
+      `[classerPush] sha=${sha} base=${verdict.base ?? '(aucune)'} ` +
         `fichiers=${verdict.fichiers.length} produit=${verdict.produit}\n` +
         verdict.motifs.map((m) => `  - ${m}\n`).join(''),
     )

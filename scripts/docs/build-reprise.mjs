@@ -251,8 +251,8 @@ function rendu() {
    \`pre-commit\` porte les gardes anti-poison/anti-dérive de chaque commit ; \`post-merge\` et
    \`post-rewrite\` régénèrent les docs dérivés après une fusion ou un rebase. Le PALIER de revue
    adversariale se mesure sur l'histoire au moment du commit (\`scripts/guards/lib/revuePalier.mjs\`),
-   et la fermeture des issues suit la PUBLICATION : job \`fermetures\` de \`.github/workflows/ci.yml\`
-   après une course verte de tous les jobs vérifiants sur \`main\`, qui joue
+   et la fermeture des issues suit la PUBLICATION : job \`fermetures\` de
+   \`.github/workflows/fermetures.yml\`, sur chaque push de \`main\` dont les checks requis sont verts, qui joue
    \`${script('ops:fermer')} <before>..<sha>\`.`,
     },
     {
@@ -374,11 +374,11 @@ chantier du ticket \`<N>\` depuis n'importe quel worktree du dépôt (le chantie
 l'arbre principal) : il pose le worktree lié \`.wt-<N>\` sur \`origin/main\`, crée la branche
 \`chantier/<N>\`, y joue \`npm ci\` et imprime le port dev dérivé. \`npm run ops:publier -- --detache\`
 (\`${script('ops:publier')}\`) joue ensuite le train de publication ENTIER depuis ce worktree, détaché
-du harnais, et imprime son \`pid\` et son \`log\`. Le train rebase sur \`origin/main\` — sans rebase quand
-\`origin/main\` est déjà ancêtre de la tête, refus quand la branche porte des fusions hors tronc :
-fusionner \`origin/main\` dans la branche, puis \`--reprendre\` (#1998) —, régénère les docs
-dérivées, POUSSE la branche de chantier, attend le run CI de cette branche (borné par
-\`--ci-timeout-min\`) et, sur vert, fait entrer \`main\` en FAST-FORWARD ; un run neuf rotationne le log
+du harnais, et imprime son \`pid\` et son \`log\`. Le train régénère les docs dérivées, POUSSE la branche
+de chantier, ouvre sa PR vers \`main\` et l'ARME ; la FILE DE FUSION du serveur la juge sur son commit de
+file et la fusionne, et le train attend cette fusion (borné par \`--file-timeout-min\`). Aucun rebase : une
+PR éjectée de la file pour un conflit ou un dérivé périmé se reprend par une FUSION d'\`origin/main\`
+dans la branche, une fois ; un run neuf rotationne le log
 précédent en \`<branche>.<AAAAMMJJ-HHMMSS>.log\` (péremption 7 jours) — ce n'est pas une archive, le
 \`npm ci\` d'\`ops:chantier\` efface \`node_modules/.cache/\`.
 
@@ -501,27 +501,27 @@ ${lignesEtatsPorte}
 
 Vérifier qu'elles tournent : onglet Actions du dépôt, ou \`gh run list --workflow=canari.yml\`. LA
 PORTE est \`.github/workflows/ci.yml\` (« ${CI.nom} », ${CI.declencheurs.join(', ')}) : elle joue les
-gates sur CHAQUE branche \`chantier/**\`, et c'est son verdict — jamais un artefact local — qui
-autorise une tête à entrer dans \`main\`. Elle CLASSE d'abord le push
+gates sur CHAQUE branche \`chantier/**\` et sur chaque commit de la file de fusion, et c'est son verdict —
+jamais un artefact local — qui autorise une PR à entrer dans \`main\`. Elle CLASSE d'abord le push
 (\`scripts/gates/classerPush.mjs\`) : un push dont tous les fichiers changés tombent sous
 ${listeCode(Object.keys(DOCUMENTAIRE))} ne joue que les ${NB_GATES_TOUJOURS} gates qui LISENT un de
 ces chemins (${listeCode(GATES_TOUJOURS)}) ; les ${NB_GATES_SAUTABLES} autres sont sautées.
 
-\`npm run ops:publier\` joue le train : rebase, docs dérivés, push de la BRANCHE, attente du run CI de
-cette branche, fast-forward de \`main\`, pilotage. Il refuse à la première étape rouge en la nommant,
+\`npm run ops:publier\` joue le train : docs dérivés, push de la BRANCHE, PR armée, attente de la fusion
+par la file, pilotage. Il refuse à la première étape rouge en la nommant,
 et son journal sépare le temps machine LOCAL du temps d'ATTENTE de GitHub.
 
 ## 6. Gates et livraison
 
 **Régime** (arbitrage utilisateur ${REGIME[1]} : « ${REGIME[2]} ») : une branche \`chantier/**\` se
 pousse **LIBREMENT**, aussi souvent qu'on veut — c'est le push qui déclenche la CI, et la CI joue les
-mêmes gates que sur \`main\`. \`main\` ne reçoit qu'un **fast-forward** d'une tête dont le run CI est
-VERT, et c'est le SERVEUR qui le tient : le ruleset \`main\` (\`${script('ops:ruleset')}\`, mode
-\`active\`) exige les checks requis, refuse le non-fast-forward et la suppression. Un push de
-PLUSIEURS commits est jugé par sa **TÊTE** — c'est la seule unité que la CI joue.
+mêmes gates que la file. \`main\` n'avance que par la **FILE DE FUSION**, et c'est le SERVEUR qui la
+tient et la SÉRIALISE : le ruleset \`main\` (\`${script('ops:ruleset')}\`, mode \`active\`) exige une PR,
+la file (méthode MERGE) et les checks requis sur chaque commit de file, refuse le non-fast-forward et la
+suppression. Un push de PLUSIEURS commits est jugé par sa **TÊTE** — c'est la seule unité que la CI joue.
 
 Le hook \`scripts/git-hooks/pre-push.mjs\` est le MIROIR LISIBLE de ce ruleset, jamais la porte : il
-nomme ${NB_REFUS_PREPUSH} refus, et celui qui exige un run vert ne vaut que pour la ref \`main\`.
+nomme ${NB_REFUS_PREPUSH} refus, dont celui de TOUT push vers la ref \`main\`.
 Ajouter une gate, c'est ajouter UN step à \`ci.yml\` — rien d'autre ne la récite.
 
 **Rejeu LOCAL \`npm run gates\`** (\`${script('gates')}\`), un confort de diagnostic, jamais une porte :

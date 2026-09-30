@@ -146,8 +146,8 @@ tail sort 0 quel que soit le rouge). La branche `chantier/**` se pousse LIBREMEN
 push de branche, sonder son run** (`gh run list --branch chantier/<N> --json
 headSha,status,conclusion`) AVANT de dépêcher un juge ou d'entrer dans une attente longue ; un rouge de
 branche ne bloque que cette branche, et se rejoue localement gate par gate (`npm run gates -- --gates
-<noms>`). `main` n'entre que par le fast-forward d'`ops:publier` (étape `ff-main`) sur une tête dont le
-run est vert, et le ruleset serveur refuse tout le reste. Migrations : le job `migrations` de `ci.yml`
+<noms>`). `main` n'avance que par la FILE DE FUSION, où `ops:publier` fait entrer la PR de la branche
+(étapes `pr` puis `file`), et le ruleset serveur refuse tout le reste. Migrations : le job `migrations` de `ci.yml`
 les joue sur la branche, aucun rejeu local. Au retour de chaque agent, vérifier qu'il ne laisse aucun
 processus derrière lui.
 

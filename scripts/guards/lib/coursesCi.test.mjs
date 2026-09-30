@@ -4,7 +4,7 @@ import assert from 'node:assert/strict'
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { CHAMPS, coursesCi, reinitialiserStub, triees } from './coursesCi.mjs'
+import { CHAMPS, coursesCi, jobsRougesDe, reinitialiserStub, triees } from './coursesCi.mjs'
 
 const dossier = () => mkdtempSync(join(tmpdir(), 'courses-ci-'))
 const jeter = (d) => rmSync(d, { recursive: true, force: true })
@@ -109,4 +109,21 @@ test('`branche: null` sans `commit` n’impose aucun filtre de ref', () => {
   coursesCi({ env: {}, branche: null, spawn: (cmd, args) => { vus = args; return { status: 0, stdout: '[]', stderr: '' } } })
   assert.ok(!vus.includes('--branch'))
   assert.ok(!vus.includes('--commit'))
+})
+
+test('`evenement` filtre les courses par événement (`--event`) — les commits de file (`merge_group`) portent `headBranch`', () => {
+  let vus = null
+  coursesCi({ env: {}, branche: null, evenement: 'merge_group', spawn: (cmd, args) => { vus = args; return { status: 0, stdout: '[]', stderr: '' } } })
+  assert.deepEqual(vus, ['run', 'list', '--event', 'merge_group', '--workflow', 'ci.yml', '--limit', '30', '--json', CHAMPS])
+  assert.ok(CHAMPS.split(',').includes('headBranch'), 'la ref d’entrée de file nomme la PR : sans `headBranch`, la course de file ne se rattache à rien')
+})
+
+test('`jobsRougesDe` rend les noms des jobs ROUGES d’une course, en union — jamais un rouge avalé', () => {
+  let vus = null
+  const jobs = [{ name: 'docs', conclusion: 'failure' }, { name: 'types', conclusion: 'success' }, { name: 'suite', conclusion: 'timed_out' }, { name: 'migrations', conclusion: 'cancelled' }]
+  const lu = jobsRougesDe({ id: 99, spawn: (cmd, args) => { vus = [cmd, ...args]; return { status: 0, stdout: JSON.stringify({ jobs }), stderr: '' } } })
+  assert.deepEqual(vus, ['gh', 'run', 'view', '99', '--json', 'jobs'])
+  assert.deepEqual(lu, { disponible: true, valeur: ['docs', 'suite'] })
+  assert.equal(jobsRougesDe({ id: 1, spawn: () => ({ status: 4, stdout: '', stderr: 'x' }) }).disponible, false)
+  assert.equal(jobsRougesDe({ id: 1, spawn: () => ({ status: 0, stdout: '{}', stderr: '' }) }).disponible, false)
 })

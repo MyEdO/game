@@ -23,8 +23,7 @@ const exiger = (vu, question) => {
  * `G^2` (tête de la PR), `tronc` = `G^1` (base du groupe), jamais `origin/main` — contre lui, deux PR
  * en vol qui montent la même valeur passent chacune.
  * Angle mort : un rebase manuel qui absorbe une montée IDENTIQUE du tronc (`git help rebase`) ne laisse
- * aucun commit qui change la valeur ; le train juge AVANT son propre rebase (étape `rebase`,
- * `scripts/ops/etapesDuTrain.mjs`).
+ * aucun commit qui change la valeur ; le train ne rebase jamais (`scripts/ops/etapesDuTrain.mjs`).
  * Faux positifs assumés :
  * - `git merge --squash` du tronc, ou le cherry-pick de sa montée : un commit non-fusion de la branche
  *   qui change la valeur, indiscernable d'une montée propre ; fusionner le tronc.

@@ -1,8 +1,8 @@
-# PALIER 1d50eeebc..392f432e6 (2026-09-30)
+# PALIER 1d50eeebc..b1443fd45 (2026-09-30)
 
 verdict: PARTIEL
 
-Fenêtre jugée : `1d50eeebc..392f432e6`, plus l'index non committé (fermeture de #2180 : `.claude/soldes/2180.md`).
+Fenêtre jugée : `1d50eeebc..b1443fd45`. Le corps ci-dessous a jugé `1d50eeebc..392f432e6` plus l'index non committé (fermeture de #2180 : `.claude/soldes/2180.md`) ; le rebase du train a réécrit 392f432e6 et intercalé trois commits de #2132, jugés en « Complément ».
 
 ## Synthèse du cumul
 
@@ -50,3 +50,17 @@ Ni la trouvaille d'origine (« ne rend RIEN au-delà du 2026-09-27T19:48Z ») ni
 - F5 : routée sur #2178 (issuecomment-5914137574), S9 se ferme à la pose de `merge_queue`.
 - F6 : `src/i18n/index.ts:2` dans le lot 3 de #2178. `CLAUDE.md:14` et `AGENTS.md:15` sont signalés à l'utilisateur (édition de CLAUDE.md réservée).
 - F7 : consignée en mémoire (`feedback-outil-tiers-forme-fermee-d-emblee`).
+
+## Complément (2026-09-30) — ré-ancrage sur la tête publiée, commits de #2132 intercalés
+
+verdict: CONFIRMÉ
+
+`git merge-base --is-ancestor b1443fd45 HEAD` → 0, idem contre `origin/main`. La fenêtre `1d50eeebc..b1443fd45` compte 24 commits étiquetés #2180, #2222, #2178, #2203 ou #2132 ; les seuls commits #2132 sont `31ec98c60`, `b9654f6c3`, `760107191`.
+
+- `b9654f6c3`, `760107191` (fusions) : `git show --remerge-diff --stat` ne rend que des dérivés et la résolution de `scripts/hooks/registre.mjs` (union exacte des deux côtés) et de `scripts/docs/build-reprise.mjs` (forme de 5f0be6941, commentaire à jour). Aucune substance.
+- `31ec98c60` passe par les contrats canoniques (`trace` de `contratGarde.mjs`, `segmentsProfonds`, `HOOKS_DE_SESSION`, ancien nom purgé). Quatre mineurs, aucun bloquant, portés au ticket #2132 :
+  - C1 — `plafonner` (`scripts/ops/suivi.mjs`) : quand la part d'un digest est plus courte que la ligne de fin, le résultat dépasse sa part et perd l'en-tête ; sonde : 150 épiques → total 12041 pour un plafond de 8000, 0/150 en-têtes.
+  - C2 — `suivi-lien-guard.mjs:59-69` trace le lien en PreToolUse : une commande refusée ou en échec lie quand même la session.
+  - C3 — « lot 2 » dans `inject-suivi.mjs:1`, `suivi-lien-guard.mjs:1`, `suivi.mjs:35` : généalogie de chantier en commentaire.
+  - C4 — `DATE_DE_ZONE` re-parse la phrase de `lignesDeLaZone` : deux sources du format de date.
+- CI : `760107191` course success sur main (14:13:36Z) ; `31ec98c60` et `b1443fd45` couverts par la course de la tête de leur push.

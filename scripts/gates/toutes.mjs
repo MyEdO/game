@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 // `npm run gates` (#1776) — REJEU LOCAL des gates de `ci.yml`, en LANES PARALLÈLES, avec le verdict
 // de chacune DANS L'ORDRE DE `ci.yml`. C'est un confort de diagnostic, jamais une porte : la porte
-// est le run CI de la branche, et `main` ne reçoit qu'un fast-forward d'une tête verte (ruleset
-// `main`, `scripts/ops/ruleset-main.mjs`).
+// est le run CI, sur la branche puis sur le commit de la file de fusion par laquelle seule `main`
+// avance (ruleset `main`, `scripts/ops/ruleset-main.mjs`).
 //
 // `--serie` change le MUR, jamais le VERDICT : il joue exactement les mêmes gates en une lane
 // unique, dans l'ordre de ci.yml (morsure d'équivalence, `scripts/gates/toutes.test.mjs`). Une

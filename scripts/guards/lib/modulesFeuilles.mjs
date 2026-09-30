@@ -42,7 +42,7 @@ export const FEUILLES = Object.freeze([
     bancs: Object.freeze(['scripts/ops/fermer-depuis-main.test.mjs']),
     pourquoi:
       'porte le geste qui ferme les tickets SOLDÉS d’une plage poussée sur main (job `fermetures` de ' +
-      'ci.yml) — le dépôt compte un SECOND site de fermeture, `scripts/ops/signaler-rouge.mjs` pour le ' +
+      'fermetures.yml) — le dépôt compte un SECOND site de fermeture, `scripts/ops/signaler-rouge.mjs` pour le ' +
       'canari, et les deux sont recensés par `sitesDeFermeture.mjs` (#1813)',
   }),
 ])

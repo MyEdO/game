@@ -2490,8 +2490,8 @@ export function evaluateFermetureHorsCommit(command, { lire = (p) => readFileSyn
   if (!command) return null
   const parCommit =
     `la fermeture passe par un commit \`corrige #N\` porteur de son solde (.claude/soldes/<N>.md) — ` +
-    `le job \`fermetures\` de ci.yml (\`scripts/ops/fermer-depuis-main.mjs\`) ferme l'issue ET y poste ` +
-    `le solde, après un \`build\` vert sur main. Fermer à la main court-circuite le contrôle entier.`
+    `le job \`fermetures\` de fermetures.yml (\`scripts/ops/fermer-depuis-main.mjs\`) ferme l'issue ET y poste ` +
+    `le solde, checks requis du sha publié sur main verts. Fermer à la main court-circuite le contrôle entier.`
   for (const segment of segmentsLus(command)) {
     const forme = fermetureGh(segment)
     if (forme) {

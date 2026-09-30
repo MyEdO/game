@@ -296,7 +296,7 @@ test('le point fixe voit les lanceurs de la clôture : questions et écrivains d
   const hote = exportsLanceurs.get(posix(HOTE))
   assert.ok(hote, 'la clôture lit bien l’hôte git : sinon ce test ne mesure rien')
   for (const nom of ['lancer', 'interroger', 'lire', 'ecrire']) assert.ok(locaux.get(posix(HOTE)).has(nom), `${nom} atteint un lancement`)
-  for (const nom of ['commitDe', 'pousser', 'rebaser', 'shaDe', 'ceQuiChange', 'listerImage', 'journalDe'])
+  for (const nom of ['commitDe', 'pousser', 'fusionner', 'shaDe', 'ceQuiChange', 'listerImage', 'journalDe'])
     assert.ok(hote.has(nom), `${nom} manque aux lanceurs de l’hôte : ${[...hote].join(', ')}`)
   for (const nom of ['TRONC', 'reussi', 'raisonCourte', 'urlOrigineAcceptee']) assert.ok(!hote.has(nom), `${nom} est un pur`)
   const de = (rel) => exportsLanceurs.get(posix(resolve(rel))) ?? new Set()

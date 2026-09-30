@@ -4,7 +4,7 @@
 // qu'il ferme et pour quel job ; une source qui se met à porter la graphie sans être déclarée est un
 // manquement. Le dépôt en compte DEUX, pour deux régimes distincts — ils ne se confondent pas :
 // `fermer-depuis-main.mjs` ferme les tickets SOLDÉS d'une plage poussée sur `main` (job `fermetures`
-// de ci.yml), `signaler-rouge.mjs` ferme la survivante d'un signalement de course rouge quand la
+// de fermetures.yml), `signaler-rouge.mjs` ferme la survivante d'un signalement de course rouge quand la
 // course repasse au vert (canari.yml, deps-report.yml).
 //
 // CE QUI EST RÉUTILISÉ, et pourquoi rien n'est réécrit ici :
@@ -35,9 +35,9 @@ export const SITES_DECLARES = Object.freeze([
   Object.freeze({
     fichier: 'scripts/ops/fermer-depuis-main.mjs',
     pourquoi:
-      'ferme les tickets SOLDÉS d’une plage poussée sur main, après une course verte de tous les jobs ' +
-      'vérifiants — job `fermetures` ' +
-      'de .github/workflows/ci.yml ; c’est la route que la porte de commit impose (`la fermeture passe ' +
+      'ferme les tickets SOLDÉS d’une plage poussée sur main, checks requis du sha poussé verts ' +
+      '(scripts/ops/checks-requis.mjs) — job `fermetures` ' +
+      'de .github/workflows/fermetures.yml ; c’est la route que la porte de commit impose (`la fermeture passe ' +
       'par un commit corrige #N porteur de son solde`)',
   }),
   Object.freeze({
