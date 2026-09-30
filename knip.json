@@ -15,5 +15,6 @@
     "dist/**",
     "public/**"
   ],
+  "ignoreBinaries": ["lean-ctx"],
   "ignoreExportsUsedInFile": true
 }
