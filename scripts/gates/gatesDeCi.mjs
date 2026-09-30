@@ -191,8 +191,8 @@ export function blocsDeJobs({ cwd = process.cwd(), fichier, texte } = {}) {
  *  change le nom de son check, et le ruleset doit suivre le fichier. */
 export const jobsCi = (source = {}) => blocsDeJobs(source).map((b) => b.job)
 
-/** Contextes de check requis = les jobs de `ci.yml` SANS `if:` ni `needs:` de niveau job (docs GitHub,
- *  control-jobs-with-conditions.md:42 ; troubleshooting-required-status-checks.md:78) — celui de
+/** Contextes de check requis = les jobs de `ci.yml` SANS `if:` ni `needs:` de niveau job (les citations
+ *  GitHub vivent en tête de `jobs:` dans `ci.yml`) — celui de
  *  l'arbre (`cwd`/`fichier`) ou un `texte` lu ailleurs (`ciDuTronc`, scripts/ops/ruleset-main.mjs). */
 export const contextesRequis = (source = {}) =>
   blocsDeJobs(source).filter((b) => !('if' in b.cles) && !('needs' in b.cles)).map((b) => b.job)
