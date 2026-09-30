@@ -1,4 +1,4 @@
-// Hook PreToolUse(Bash|PowerShell|mcp__lean-ctx__ctx_shell) : demande utilisateur 2026-07-14
+// Hook PreToolUse(`OUTILS_SHELL`, `scripts/guards/lib/contratGarde.mjs`) : demande utilisateur 2026-07-14
 // (verbatim) — « J'en ai marre
 // que tu donne un ticket a un agent, commit et consigne les résultats dans le ticket tout en le
 // fermant, et oubliant que potentiellement il n'a pas bien fait son boulot ou qu'il a detecter un

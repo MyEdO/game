@@ -26,7 +26,7 @@ import { garde as commandePiege } from './commande-piege-guard.mjs'
 import { garde as solde } from './solde-ticket-guard.mjs'
 import { garde as issueLabel } from './issue-label-guard.mjs'
 import { garde as runnerCapture } from './runner-capture-guard.mjs'
-import { FAMILLES_LEAN_CTX, LECTURE, OUTILS_CREATION, OUTILS_ECRITURE, OUTILS_SHELL, matcherDOutils } from '../guards/lib/contratGarde.mjs'
+import { LECTURES_LIBRES, OUTILS_CREATION, OUTILS_ECRITURE, OUTILS_SHELL, matcherDOutils } from '../guards/lib/contratGarde.mjs'
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 // Les DEUX surfaces d'agents, déclarées par `agents:sync` depuis les registres
@@ -116,15 +116,15 @@ test('chaque garde d’écriture du registre couvre une FAMILLE entière de cana
   }
 })
 
-const LECTURES = Object.keys(FAMILLES_LEAN_CTX).filter((nu) => FAMILLES_LEAN_CTX[nu] === LECTURE).map((nu) => `mcp__lean-ctx__${nu}`)
-const HORS_LECTURE = ['ctx_execute', 'ctx_edit', 'ctx_patch', 'shell', 'ctx_shell', 'ctx_call', 'outil_inconnu', 'ctx_outil_inconnu'].map((nu) => `mcp__lean-ctx__${nu}`)
+const LECTURES = LECTURES_LIBRES.map((nu) => `mcp__lean-ctx__${nu}`)
+const HORS_LECTURE = ['ctx_execute', 'ctx_edit', 'ctx_patch', 'shell', 'ctx_shell', 'ctx_call', 'ctx_knowledge', 'ctx_session', 'ctx_verify', 'outil_inconnu', 'ctx_outil_inconnu'].map((nu) => `mcp__lean-ctx__${nu}`)
 
-test('le matcher PreToolUse du répartiteur couvre TOUT outil lean-ctx HORS LECTURE, classé ou non, sur les DEUX surfaces (sinon un refus ne part jamais)', () => {
+test('le matcher PreToolUse du répartiteur couvre TOUT outil lean-ctx hors `LECTURES_LIBRES`, classé ou non, sur les DEUX surfaces (sinon un refus ne part jamais)', () => {
   for (const surface of SURFACES)
     for (const outil of HORS_LECTURE) assert.ok(couvre(surface, 'repartiteur.mjs', outil), `matcher PreToolUse du répartiteur (${surface}) ne couvre pas « ${outil} »`)
 })
 
-test('un outil LECTURE ne lance PAS le répartiteur là où le moteur de la surface sait l’exclure (lookaround)', () => {
+test('un outil de `LECTURES_LIBRES` ne lance PAS le répartiteur là où le moteur de la surface sait l’exclure (lookaround)', () => {
   const surfaces = SURFACES.filter((s) => MOTEUR_DE_SURFACE[s].lookaround)
   assert.ok(surfaces.length > 0, 'aucune surface ne sait exclure la LECTURE')
   for (const surface of surfaces)

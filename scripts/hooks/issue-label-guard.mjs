@@ -1,4 +1,4 @@
-// Garde PreToolUse(Bash|PowerShell|mcp__lean-ctx__ctx_shell) : ÉMISSION de tickets GitHub.
+// Garde PreToolUse(`OUTILS_SHELL`, `scripts/guards/lib/contratGarde.mjs`) : ÉMISSION de tickets GitHub.
 // Constat utilisateur (2026-07-22) : « les labels sont sous-exploités par les agents/orchestrateur ».
 // La doctrine (credo : « les LABELS sont l'index du backlog ») ne suffit pas — on la rend MÉCANIQUE.
 //

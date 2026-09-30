@@ -1,11 +1,11 @@
 // Garde PreToolUse des CANAUX d'outil (#2180) : tout outil lean-ctx est CLASSÉ dans une famille gardée
 // (`FAMILLES_LEAN_CTX`, `scripts/guards/lib/contratGarde.mjs`) ou REFUSÉ, direct comme appelé par la
-// passerelle ; une écriture que les gardes d'écriture ne sauraient juger (sans chemin, texte remplacé
-// non résoluble) est REFUSÉE. Canal prescrit : `~/.claude/CLAUDE.md` (« Project edits:
+// passerelle, avec ses actions refusées ; une écriture que les gardes d'écriture ne sauraient juger
+// (sans chemin, texte remplacé non résoluble, lot `ops` ambigu) est REFUSÉE. Canal prescrit : `~/.claude/CLAUDE.md` (« Project edits:
 // `ctx_read(mode="anchored")` → `ctx_patch` »).
 import {
-  EDITION, LECTURE, MOTIF_LEAN_CTX, OUTILS_ECRITURE, PASSERELLE, cheminVise, ecrituresDe, familleLeanCtx, nomLeanCtx,
-  outilAppele, remplaceResoluble,
+  EDITION, LECTURE, MOTIF_LEAN_CTX, OUTILS_ECRITURE, PASSERELLE, actionRefusee, cheminVise, ecrituresDe, entreeDOutil,
+  familleLeanCtx, lotAmbigu, nomLeanCtx, outilAppele, remplaceResoluble,
 } from '../guards/lib/contratGarde.mjs'
 
 export const CONSIGNE = 'canal prescrit : ctx_patch (avec `path`, op ancrée ou texte remplacé) pour écrire, ctx_shell pour une commande, un outil de lecture classé pour lire'
@@ -19,12 +19,16 @@ function evaluer(entree) {
     const famille = familleLeanCtx(nu)
     if (famille === PASSERELLE) {
       const appele = outilAppele(entree)
-      return familleLeanCtx(appele) === LECTURE ? null : refus(`la passerelle n'appelle qu'un outil de LECTURE (${outil} → ${appele || 'aucun `tool`'})`)
+      if (appele === null) return refus(`la passerelle n'appelle qu'un outil nommé sans ambiguïté (${outil} : \`name\`/\`tool\` absents, non-chaînes ou divergents)`)
+      if (familleLeanCtx(appele) !== LECTURE) return refus(`la passerelle n'appelle qu'un outil de LECTURE (${outil} → ${appele})`)
+      return actionRefusee(appele, entreeDOutil(entree)?.arguments) ? refus(`action refusée par la passerelle (${outil} → ${appele})`) : null
     }
     if (famille === null) return refus(`outil lean-ctx non classé (${outil}) : aucune garde ne le juge`)
+    if (famille === LECTURE) return actionRefusee(nu, entreeDOutil(entree) ?? {}) ? refus(`action refusée (${outil})`) : null
     if (famille !== EDITION) return null
   }
   if (!OUTILS_ECRITURE.includes(outil)) return null
+  if (lotAmbigu(entreeDOutil(entree))) return refus(`écriture non jugeable (${outil}) : lot \`ops\` ambigu (non-tableau, \`op\` de tête ou élément non-objet)`)
   const nonJugeables = ecrituresDe(entree).filter((ecrit) => cheminVise(ecrit) === undefined || !remplaceResoluble(ecrit))
   if (nonJugeables.length === 0) return null
   const ops = [...new Set(nonJugeables.map((ecrit) => ecrit.op).filter(Boolean))]
