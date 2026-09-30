@@ -48,11 +48,12 @@ import { appendFileSync, closeSync, existsSync, mkdirSync, openSync, readFileSyn
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
-  GitIndisponible, TRONC, abandonnerRebase, baseCommune, brancheDe, ceQuiChange, cheminsEnConflit, combienDe, commitDe, depotDe, estAncetre,
-  etatDeLArbre, fetchOrigin, fusionsDe, lireEnLot, origineDe, pousser, racineDe, rebaseEntame, rebaser, shaDe, shasDe,
+  GitIndisponible, TRONC, abandonnerRebase, brancheDe, ceQuiChange, cheminsEnConflit, combienDe, commitDe, depotDe, estAncetre,
+  etatDeLArbre, fetchOrigin, origineDe, pousser, racineDe, rebaseEntame, rebaser, shaDe, shasDe,
 } from '../guards/lib/gitPorte.mjs'
 import { BORNE_RAISON, DEPOT, lireTicket, poserCommentaire } from '../guards/lib/ticketsGh.mjs'
 import { coursesCi } from '../guards/lib/coursesCi.mjs'
+import { refusDesCompteurs } from '../guards/lib/compteursDuDepot.mjs'
 import { commitsDeLaPlage } from '../guards/lib/plageFermante.mjs'
 import { GENERATORS } from '../docs/build-all.mjs'
 import { PEREMPTION_MS, purgerPerimes } from '../guards/lib/purgerPerimes.mjs'
@@ -476,9 +477,7 @@ export const questionsDuTrain = (depot) => Object.freeze({
   rebaseEntame: () => rebaseEntame(depot),
   cheminsEnConflit: () => cheminsEnConflit(depot),
   combienDe: (revisions) => combienDe(depot, revisions),
-  baseCommune: (a, b) => baseCommune(depot, a, b),
-  lireEnLot: (arbre, rels) => lireEnLot(depot, arbre, rels),
-  fusionsDe: (revisions) => fusionsDe(depot, revisions),
+  refusDesCompteurs: () => refusDesCompteurs(depot, { tete: 'HEAD', tronc: TRONC.suivi }),
   estAncetre: (ancetre, descendant) => estAncetre(depot, ancetre, descendant),
   ceQuiChange: (avant, apres) => ceQuiChange(depot, avant, apres),
   relationAuTronc: () => relationAuTronc(depot),

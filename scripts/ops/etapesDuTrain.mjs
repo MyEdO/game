@@ -16,7 +16,6 @@ import { ANNULEE, ROUGES } from '../guards/lib/coursesCi.mjs'
 import { numerosCites, numerosFermes } from '../guards/lib/fermetures.mjs'
 import { DEPOT } from '../guards/lib/ticketsGh.mjs'
 import { refusDeSujet } from '../guards/lib/sujetDeCommit.mjs'
-import { CompteurIllisible, FICHIERS_DES_COMPTEURS, collisionsDeCompteurs, messageDeCollision } from '../guards/lib/compteursDeVersion.mjs'
 import { marqueDe } from '../guards/lib/plageFermante.mjs'
 import { natureDuRouge, rougesNommes, SOURCES_LUES } from '../docs/build-all.mjs'
 import { CODE_CORPS_PERIME } from '../docs/lib/empreinte-sources.mjs'
@@ -180,46 +179,6 @@ export const REFUS_TRAIN_DE_FUSION =
 export function decisionDeRebase({ contenu, fusions }) {
   if (contenu) return 'contenu'
   return fusions ? 'fusions' : 'rebase'
-}
-
-
-/**
- * Les refus des compteurs de version que deux lignées ont TOUTES DEUX changés depuis leur base de
- * fusion (#2222), au point où elles se rejoignent : `branche` et `tronc`, ou `[]`.
- * @param {{ baseCommune: Function, lireEnLot: Function }} questions @param {string} branche @param {string} tronc
- * @returns {string[]}
- */
-function collisionsEntre(questions, branche, tronc) {
-  const base = questions.baseCommune(branche, tronc)
-  if (!base) return [`compteurs de version : aucune base de fusion entre ${branche} et ${tronc}`]
-  try {
-    const lire = (revision) => questions.lireEnLot(revision, FICHIERS_DES_COMPTEURS)
-    return collisionsDeCompteurs({ base: lire(base), branche: lire(branche), tronc: lire(tronc) }).map(messageDeCollision)
-  } catch (e) {
-    if (e instanceof CompteurIllisible) return [e.message]
-    throw e
-  }
-}
-
-/**
- * Le refus des compteurs de version du train (#2222), ou `null` : à chaque commit de fusion de
- * `origin/main..HEAD` (ses deux parents), puis entre HEAD et `origin/main`, lu AVANT le rebase — après
- * lui, la base est le tronc.
- * @param {{ baseCommune: Function, lireEnLot: Function, fusionsDe: Function }} questions @returns {string | null}
- */
-function collisionsDuTrain(questions) {
-  const fusions = questions.fusionsDe([`${TRONC.suivi}..HEAD`])
-  if (fusions === null) return 'compteurs de version : origin/main..HEAD illisible'
-  const refus = []
-  for (const { sha, parents } of fusions) {
-    if (parents.length !== 2) {
-      refus.push(`fusion ${sha.slice(0, 9)} à ${parents.length} parents : compteurs de version non jugés`)
-      continue
-    }
-    refus.push(...collisionsEntre(questions, parents[0], parents[1]).map((m) => `fusion ${sha.slice(0, 9)} — ${m}`))
-  }
-  refus.push(...collisionsEntre(questions, 'HEAD', TRONC.suivi))
-  return refus.length ? refus.join('\n') : null
 }
 
 /** Première ligne d'un message de commit, coupée au mot vers `max` (`coupeAuMot`). PURE. */
@@ -400,8 +359,8 @@ export const ETAPES = [
       const teteAvant = ctx.tete
       const relation = questions.relationAuTronc()
       if (!relation.disponible) return { ok: false, raison: `relation d’origin/main à HEAD illisible : ${relation.raison}` }
-      const refusDeCompteurs = collisionsDuTrain(questions)
-      if (refusDeCompteurs) return { ok: false, raison: refusDeCompteurs }
+      const refusDeCompteurs = questions.refusDesCompteurs()
+      if (refusDeCompteurs.length) return { ok: false, raison: refusDeCompteurs.join('\n') }
       const decision = decisionDeRebase(relation)
       if (decision === 'fusions') return { ok: false, raison: REFUS_TRAIN_DE_FUSION }
       const vu = decision === 'rebase' ? ctx.rebaser() : null

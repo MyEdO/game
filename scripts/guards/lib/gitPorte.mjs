@@ -437,18 +437,31 @@ export function shasDe(depot, revisions, { fusions = false } = {}) {
 }
 
 /**
- * Les commits de FUSION de la plage `revisions` (`shasDe`) et leurs parents, du plus ancien au plus
- * récent (`git help rev-list`, `--merges --parents`). `null` quand git ne rend pas la plage (`shasDe`).
- * @param {Depot} depot @param {readonly string[]} revisions
- * @returns {{ sha: string, parents: string[] }[] | null}
+ * Le POINT DE DÉPART de `tete` dans `tronc` : le premier commit de la chaîne des premiers parents de
+ * `tete` (`git help rev-list`, `--first-parent`) contenu dans `tronc` — `tete` elle-même quand le
+ * tronc la contient. `null` quand git ne le rend pas, ou quand la chaîne n'entre jamais dans le tronc.
+ * @param {Depot} depot @param {string} tete @param {string} tronc @returns {string | null}
  */
-export function fusionsDe(depot, revisions) {
-  const brut = lire(depot, ['rev-list', '--reverse', '--merges', '--parents', ...revisionsDe(revisions), '--'])
-  if (brut === null) return absentSaufCorrompu(depot, revisions)
-  return brut.split('\n').map((l) => l.trim()).filter(Boolean).map((l) => {
-    const [sha, ...parents] = l.split(/\s+/)
-    return { sha, parents }
-  })
+export function pointDeDepart(depot, tete, tronc) {
+  const [t, tr] = revisionsDe([tete, tronc])
+  const brut = lire(depot, ['rev-list', '--first-parent', t, `^${tr}`, '--'])
+  if (brut === null) return absentSaufCorrompu(depot, [tete, tronc])
+  const propres = brut.split('\n').map((l) => l.trim()).filter(Boolean)
+  return shaDe(depot, propres.length ? `${propres.at(-1)}^1` : tete)
+}
+
+/**
+ * Le SHA du commit qui a écrit la ligne `ligne` (à partir de 1) de `chemin` dans `revision` (`git
+ * help blame`, `--porcelain`, `-L`) ; `--ignore-revs-file=` vide la liste de `blame.ignoreRevsFile`.
+ * `null` quand git ne le rend pas.
+ * @param {Depot} depot @param {string} revision @param {string} chemin @param {number} ligne
+ * @returns {string | null}
+ */
+export function auteurDeLigne(depot, revision, chemin, ligne) {
+  if (!Number.isSafeInteger(ligne) || ligne < 1) throw new Error(`auteurDeLigne : ligne « ${ligne} », un entier à partir de 1 attendu`)
+  const brut = lire(depot, ['blame', '--porcelain', '--ignore-revs-file=', '-L', `${ligne},${ligne}`, revisionsDe([revision])[0], '--', chemin])
+  if (brut === null) return absentSaufCorrompu(depot, [revision])
+  return /^([0-9a-f]{40}|[0-9a-f]{64}) /.exec(brut)?.[1] ?? null
 }
 
 /**
@@ -746,7 +759,8 @@ export function fichiersDuGrep(depot, portee, motif, pathspecs) {
 
 /**
  * Le texte de chaque chemin de `rels` dans l'image `arbre` (une ref ou `INDEX`), `null` s'il y est
- * absent ou si `git` ne rend rien — l'unique lecture PAR LOT des portes : un seul `git cat-file --batch`.
+ * absent — l'unique lecture PAR LOT des portes : un seul `git cat-file --batch`. Un `cat-file` qui ne
+ * rend pas son lot est une PANNE, confiée (`confier` : `enPanne` et tout `null`, sinon `GitIndisponible`).
  * @param {Depot} depot @param {string} arbre
  * @param {readonly string[]} rels @returns {Map<string, string | null>}
  * @throws {Error} un chemin à caractère de contrôle (`porteUnControle`), avant le spawn ; sortie de
@@ -760,9 +774,12 @@ export function lireEnLot(depot, arbre, rels) {
   const prefixe = arbre === INDEX ? ':' : `${revisionsDe([arbre])[0]}:`
   const fautifs = rels.filter((rel) => typeof rel !== 'string' || porteUnControle(rel))
   if (fautifs.length) throw new Error(`lireEnLot : un chemin tient sur une ligne du lot, sans caractère de contrôle — refusés : ${JSON.stringify(fautifs)}`)
-  const brut = lire(depot, ['cat-file', '--batch'], { entree: rels.map((rel) => `${prefixe}${rel}\n`).join('') })
-  if (brut === null) return new Map(rels.map((rel) => [rel, null]))
-  const sortie = Buffer.from(brut, 'utf8')
+  const vu = interroger(depot, ['cat-file', '--batch'], { entree: rels.map((rel) => `${prefixe}${rel}\n`).join('') })
+  if (!vu.disponible || vu.absent || vu.valeur.status !== 0) {
+    confier(depot, vu.disponible ? `\`git cat-file --batch\` sans lot (${vu.absent ? 'objet absent' : `status ${vu.valeur.status}`})` : vu.raison)
+    return new Map(rels.map((rel) => [rel, null]))
+  }
+  const sortie = Buffer.from(vu.valeur.stdout, 'utf8')
   let p = 0
   for (const rel of rels) {
     const fin = sortie.indexOf(10, p)

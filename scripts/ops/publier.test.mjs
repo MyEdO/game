@@ -18,7 +18,7 @@ import { numerosCites } from '../guards/lib/fermetures.mjs'
 import { refusDeSujet, sujetDuMessage } from '../guards/lib/sujetDeCommit.mjs'
 import { GitIndisponible, depotDe } from '../guards/lib/gitPorte.mjs'
 import { DEPOT } from '../guards/lib/ticketsGh.mjs'
-import { COMPTEURS } from '../guards/lib/compteursDeVersion.mjs'
+import { COMPTEURS, messageDeCollision } from '../guards/lib/compteursDeVersion.mjs'
 import { envDeDepotForge, instanceDeDepot, sousLEnvDeLUtilisatrice } from '../guards/lib/depotGabarit.mjs'
 import { GENERATORS } from '../docs/build-all.mjs'
 import {
@@ -352,7 +352,7 @@ test('le contexte du train ne porte que des QUESTIONS et des gestes NOMMÉS aux 
   const ctx = contexteDe({ racine: '/nulle-part', branche: 'chantier/x', options: {}, journaliser: () => {}, fdLog: 'ignore' })
   const cles = Object.getOwnPropertyNames(ctx).sort()
   assert.deepEqual(cles, ['abandonnerRebase', 'branche', 'commenter', 'commit', 'coursesCi', 'docs', 'fdLog', 'generators', 'journaliser', 'lireTicket', 'npm', 'options', 'pousser', 'questions', 'racine', 'rebaser', 'tete', 'tronc'])
-  assert.deepEqual(Object.keys(ctx.questions).sort(), ['baseCommune', 'brancheDe', 'ceQuiChange', 'cheminsEnConflit', 'cheminsSales', 'combienDe', 'commitsDeLaPlage', 'estAncetre', 'fusionsDe', 'lireEnLot', 'origineDe', 'rebaseEntame', 'relationAuTronc', 'shaDe'])
+  assert.deepEqual(Object.keys(ctx.questions).sort(), ['brancheDe', 'ceQuiChange', 'cheminsEnConflit', 'cheminsSales', 'combienDe', 'commitsDeLaPlage', 'estAncetre', 'origineDe', 'rebaseEntame', 'refusDesCompteurs', 'relationAuTronc', 'shaDe'])
   assert.equal(Object.isFrozen(ctx.questions), true)
   assert.equal(ctx.generators, GENERATORS)
   for (const script of ['x; git add -A', 'x && git commit -m libre', 'a b', '$(git add -A)', '', 7])
@@ -1132,72 +1132,114 @@ describe('étape `rebase` sur un VRAI dépôt : train de fusion, puis tronc qui 
   })
 })
 
-describe('étape `rebase` : deux branches montent `SAVE_VERSION` de 60 à 61 (#2222)', () => {
-  const etapeRebase = ETAPES.find((e) => e.nom === 'rebase')
+describe('compteurs de version : la valeur que la tête publie est-elle déjà PRISE par le tronc ? (#2222)', () => {
   const saves = COMPTEURS.find((c) => c.symbole === 'SAVE_VERSION')
-  const { racine } = instanceDeDepot({ fichiers: fichiersDeCompteurs(60) })
-  after(() => rmSync(racine, { recursive: true, force: true }))
-  const g = (...args) => execFileSync('git', args, { cwd: racine, env: envDeDepotForge(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()
-  const monter = (message) => { writeFileSync(join(racine, saves.fichier), 'export const SAVE_VERSION = 61;\n'); g('add', '--', saves.fichier); g('commit', '-q', '-m', message) }
-  g('checkout', '-q', '-b', 'train')
-  monter('la branche monte')
-  g('checkout', '-q', 'main')
-  monter('le tronc monte')
-  g('update-ref', 'refs/remotes/origin/main', 'main')
-  g('checkout', '-q', 'train')
-  const depot = depotDe(racine, { env: envDeDepotForge() })
-  const ctx = {
-    racine,
-    questions: questionsDuTrain(depot),
-    get tete() { return g('rev-parse', 'HEAD') },
-    rebaser: () => { throw new Error('git rebase lancé') },
-    abandonnerRebase: () => { throw new Error('git rebase --abort lancé') },
-  }
+  const racines = []
+  after(() => { for (const racine of racines) rmSync(racine, { recursive: true, force: true }) })
 
-  test('l’étape refuse AVANT tout rebase, en nommant le compteur et la cible', () => {
+  /** Un dépôt jetable où tout compteur vaut `base`, `train` et `main` écrits par `script`, `origin/main`
+   *  posé sur `main`, HEAD sur `train` ; rend le dépôt et `g`. */
+  const forger = (script, base = 60) => {
+    const { racine } = instanceDeDepot({ fichiers: { 'a.txt': 'a\n', ...fichiersDeCompteurs(base) } })
+    racines.push(racine)
+    const g = (...args) => execFileSync('git', args, { cwd: racine, env: envDeDepotForge(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()
+    const ecrire = (texte) => { writeFileSync(join(racine, saves.fichier), texte); g('add', '--', saves.fichier) }
+    const outils = {
+      g,
+      ecrire,
+      save: (v, message = `save ${v} sur ${g('rev-parse', '--abbrev-ref', 'HEAD')}`) => { ecrire(`export const SAVE_VERSION = ${v};\n`); g('commit', '-q', '-m', message) },
+      autre: (nom) => { writeFileSync(join(racine, nom), `${nom}\n`); g('add', '--', nom); g('commit', '-q', '-m', nom) },
+      sur: (branche) => g('checkout', '-q', branche),
+      fusionner: () => g('merge', '-q', '--no-ff', '-m', 'fusion du tronc', 'main'),
+    }
+    g('branch', 'train')
+    script(outils)
+    g('update-ref', 'refs/remotes/origin/main', 'main')
+    outils.sur('train')
+    return { racine, g }
+  }
+  const juger = (script, base) => questionsDuTrain(depotDe(forger(script, base).racine, { env: envDeDepotForge() })).refusDesCompteurs()
+  const prise = (publiee, tronc) => [messageDeCollision({ symbole: 'SAVE_VERSION', publiee, tronc })]
+
+  test('(a) la branche et le tronc montent à 61 : refus qui nomme la valeur publiée, celle de main et la prochaine libre', () => {
+    assert.deepEqual(juger(({ sur, save }) => { sur('train'); save(61); sur('main'); save(61) }), [
+      '`SAVE_VERSION` : la branche publie 61, déjà prise par main (à 61) — prochaine libre : 62, à renuméroter avec sa migration/son golden',
+    ])
+  })
+
+  test('(b) la branche vise 62, le tronc 61 : 62 est libre, aucun refus', () => {
+    assert.deepEqual(juger(({ sur, save }) => { sur('train'); save(62); sur('main'); save(61) }), [])
+  })
+
+  test('(c) la branche à 61 fusionne le tronc à 61 sans renuméroter : refus', () => {
+    assert.deepEqual(juger(({ sur, save, fusionner }) => { sur('train'); save(61); sur('main'); save(61); sur('train'); fusionner() }), prise(61, 61))
+  })
+
+  test('(c2) la même fusion, puis un commit renumérote à 62 : aucun refus', () => {
+    assert.deepEqual(juger(({ sur, save, fusionner }) => { sur('train'); save(61); sur('main'); save(61); sur('train'); fusionner(); save(62, 'renumérote') }), [])
+  })
+
+  test('(c3) la fusion elle-même résout à 62 : aucun refus', () => {
+    assert.deepEqual(juger(({ g, sur, save, ecrire }) => {
+      sur('train'); save(61); sur('main'); save(61); sur('train')
+      g('merge', '-q', '--no-ff', '--no-commit', 'main')
+      ecrire('export const SAVE_VERSION = 62;\n')
+      g('commit', '-q', '-m', 'fusion résolue à 62')
+    }), [])
+  })
+
+  test('(d) seul le tronc monte : aucun refus — (d2) la branche le fusionne : aucun — (d3) puis monte à 62 : aucun', () => {
+    assert.deepEqual(juger(({ sur, save, autre }) => { sur('train'); autre('b1'); sur('main'); save(61) }), [])
+    assert.deepEqual(juger(({ sur, save, autre, fusionner }) => { sur('train'); autre('b1'); sur('main'); save(61); sur('train'); fusionner() }), [])
+    assert.deepEqual(juger(({ sur, save, autre, fusionner }) => { sur('train'); autre('b1'); sur('main'); save(61); sur('train'); fusionner(); save(62) }), [])
+  })
+
+  test('(e) la branche monte à 61 puis redescend à 60, le tronc à 61 : net nul, aucun refus', () => {
+    assert.deepEqual(juger(({ sur, save }) => { sur('train'); save(61); save(60, 'redescend'); sur('main'); save(61) }), [])
+  })
+
+  test('(f) compteur déplacé, symbole renommé, forme typée au tronc : refus NOMMÉ, jamais le silence', () => {
+    const illisible = (raison) => [`\`SAVE_VERSION\` illisible à la révision origin/main (${saves.fichier}) : ${raison}`]
+    assert.deepEqual(juger(({ g, sur, autre }) => { sur('train'); autre('b1'); sur('main'); g('mv', saves.fichier, 'src/state/versions.ts'); g('commit', '-q', '-m', 'déplacé') }), illisible('fichier absent'))
+    const uneLigne = illisible('0 ligne(s) `export const SAVE_VERSION = <entier>`, une seule attendue')
+    assert.deepEqual(juger(({ g, sur, autre, ecrire }) => { sur('train'); autre('b1'); sur('main'); ecrire('export const VERSION_SAUVEGARDE = 61;\n'); g('commit', '-q', '-m', 'renommé') }), uneLigne)
+    assert.deepEqual(juger(({ g, sur, autre, ecrire }) => { sur('train'); autre('b1'); sur('main'); ecrire('export const SAVE_VERSION = 61 as const;\n'); g('commit', '-q', '-m', 'typé') }), uneLigne)
+  })
+
+  test('(g) la branche monte à 61, fusionne un tronc inchangé, puis le tronc monte à 61 : refus', () => {
+    assert.deepEqual(juger(({ sur, save, autre, fusionner }) => { sur('train'); save(61); sur('main'); autre('m1'); sur('train'); fusionner(); sur('main'); save(61) }), prise(61, 61))
+  })
+
+  test('(h) une ligne en CRLF se lit', () => {
+    assert.deepEqual(juger(({ g, sur, save, ecrire }) => { sur('train'); ecrire('export const SAVE_VERSION = 61;\r\n'); g('commit', '-q', '-m', 'crlf'); sur('main'); save(61) }), prise(61, 61))
+  })
+
+  test('(i) base 58, la branche publie 59, le tronc est passé à 61 par 59 : refus, 59 est prise', () => {
+    assert.deepEqual(juger(({ sur, save }) => { sur('train'); save(59); sur('main'); save(59); save(60); save(61) }, 58), prise(59, 61))
+  })
+
+  test('git en panne à la lecture des compteurs : refus qui NOMME la panne, jamais « fichier absent »', () => {
+    const { racine } = forger(({ sur, save }) => { sur('train'); save(61); sur('main'); save(61) })
+    const enPanne = depotDe(racine, {
+      env: envDeDepotForge(),
+      spawn: (git, args, opts) => (args.includes('cat-file') && args.includes('--batch') ? { status: 1, stdout: '', stderr: '' } : spawnSync(git, args, opts)),
+    })
+    assert.deepEqual(questionsDuTrain(enPanne).refusDesCompteurs(), ['compteurs de version non jugés, git en panne : `git cat-file --batch` sans lot (status 1)'])
+  })
+
+  test('l’étape `rebase` refuse AVANT tout rebase, sur le refus des compteurs', () => {
+    const { racine, g } = forger(({ sur, save }) => { sur('train'); save(61); sur('main'); save(61) })
+    const ctx = {
+      racine,
+      questions: questionsDuTrain(depotDe(racine, { env: envDeDepotForge() })),
+      get tete() { return g('rev-parse', 'HEAD') },
+      rebaser: () => { throw new Error('git rebase lancé') },
+      abandonnerRebase: () => { throw new Error('git rebase --abort lancé') },
+    }
     const tete = g('rev-parse', 'HEAD')
     const journal = journalVide('train')
-    assert.deepEqual(etapeRebase.jouer(ctx, journal), {
-      ok: false,
-      raison: '`SAVE_VERSION` : main est passé à 61 depuis ta base, la tienne doit viser 62 et rejouer sa migration/son golden',
-    })
+    assert.deepEqual(ETAPES.find((e) => e.nom === 'rebase').jouer(ctx, journal), { ok: false, raison: prise(61, 61)[0] })
     assert.equal(g('rev-parse', 'HEAD'), tete)
-    assert.equal(journal.base, null)
-  })
-})
-
-describe('étape `rebase` : la branche FUSIONNE un tronc qui a monté le même `SAVE_VERSION` (#2222)', () => {
-  const etapeRebase = ETAPES.find((e) => e.nom === 'rebase')
-  const saves = COMPTEURS.find((c) => c.symbole === 'SAVE_VERSION')
-  const { racine } = instanceDeDepot({ fichiers: fichiersDeCompteurs(60) })
-  after(() => rmSync(racine, { recursive: true, force: true }))
-  const g = (...args) => execFileSync('git', args, { cwd: racine, env: envDeDepotForge(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()
-  const monter = (message) => { writeFileSync(join(racine, saves.fichier), 'export const SAVE_VERSION = 61;\n'); g('add', '--', saves.fichier); g('commit', '-q', '-m', message) }
-  g('checkout', '-q', '-b', 'train')
-  monter('la branche monte')
-  g('checkout', '-q', 'main')
-  monter('le tronc monte')
-  g('update-ref', 'refs/remotes/origin/main', 'main')
-  g('checkout', '-q', 'train')
-  g('merge', '-q', '--no-ff', '-m', 'fusion du tronc', 'main')
-  const fusion = g('rev-parse', 'HEAD')
-  const depot = depotDe(racine, { env: envDeDepotForge() })
-  const ctx = {
-    racine,
-    questions: questionsDuTrain(depot),
-    get tete() { return g('rev-parse', 'HEAD') },
-    rebaser: () => { throw new Error('git rebase lancé') },
-    abandonnerRebase: () => { throw new Error('git rebase --abort lancé') },
-  }
-
-  test('fusion sans conflit git, tronc contenu : l’étape refuse en nommant la fusion et le compteur', () => {
-    assert.deepEqual(relationAuTronc(depot), { disponible: true, contenu: true, fusions: false })
-    const journal = journalVide('train')
-    assert.deepEqual(etapeRebase.jouer(ctx, journal), {
-      ok: false,
-      raison: `fusion ${fusion.slice(0, 9)} — \`SAVE_VERSION\` : main est passé à 61 depuis ta base, la tienne doit viser 62 et rejouer sa migration/son golden`,
-    })
-    assert.equal(g('rev-parse', 'HEAD'), fusion)
     assert.equal(journal.base, null)
   })
 })

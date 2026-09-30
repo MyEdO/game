@@ -15,7 +15,7 @@ import {
   BorneAbsente, GitIndisponible, INDEX, OPTIONS_DE_L_HOTE, SUIVI, TRAVAIL, abandonnerRebase, ajouterOrigine, ajouterWorktree, approfondir, arbrePrincipal, arbreVide, attributDe,
   baseCommune, brancheDe, branchesDe, ceQuEmporteLIndex, ceQueFaitLeCommit, ceQuiChange, cheminGit, cheminsEnConflit, classer, combienDe, commitDe,
   depotDe, divergenceDe, dossierDesHooks, elaguerWorktrees, eolsDe, estDansHead, estIgnore, estSuperficiel, etatDeLArbre, enfantsDirects, estAncetre, estRepertoire,
-  fetchOrigin, fichiersDuGrep, fusionDeTextes, fusionnesEnCours, initialiserDepot, journalDe, lireEnLot, listerImage, natureDuChemin, origineDe, poserRef, pousser,
+  auteurDeLigne, fetchOrigin, fichiersDuGrep, fusionDeTextes, fusionnesEnCours, initialiserDepot, journalDe, lireEnLot, listerImage, natureDuChemin, origineDe, pointDeDepart, poserRef, pousser,
   racineDe, raisonCourte, rebaseEntame, rebaser, reglerDepot, retirerWorktree, reussi, shaDe, shasDe, supprimerBranche, urlOrigineAcceptee, worktreesDe,
 } from './gitPorte.mjs'
 import { envDeDepotForge, envDeLUtilisatrice, instanceDeDepot } from './depotGabarit.mjs'
@@ -390,6 +390,37 @@ test('lireEnLot : une sortie de `cat-file` dont le bloc ne finit pas à sa taill
   const rendant = (stdout) => depotFeint(tmpdir(), () => ({ status: 0, stdout, stderr: '' }))
   assert.throws(() => lireEnLot(rendant('abc blob 3\nabcX'), 'HEAD', ['src/a.ts']), /illisible à HEAD:src\/a\.ts : « abc blob 3 »/)
   assert.deepEqual([...lireEnLot(rendant('abc blob 3\nabc\n'), 'HEAD', ['src/a.ts'])], [['src/a.ts', 'abc']], 'témoin : le bloc bien formé')
+})
+
+test('lireEnLot : un `cat-file` qui ne rend pas son lot est une PANNE — `GitIndisponible`, ou `enPanne` et tout `null` — jamais un fichier absent', () => {
+  assert.throws(() => lireEnLot(muet(), 'HEAD', ['src/a.ts']), (e) => e instanceof GitIndisponible && e.raison === '`git cat-file --batch` sans lot (status 1)')
+  const pannes = []
+  const enPanne = depotFeint(tmpdir(), () => ({ status: 1, stdout: '', stderr: '' }), (r) => pannes.push(r))
+  assert.deepEqual([...lireEnLot(enPanne, 'HEAD', ['src/a.ts'])], [['src/a.ts', null]])
+  assert.deepEqual(pannes, ['`git cat-file --batch` sans lot (status 1)'])
+})
+
+test('pointDeDepart, auteurDeLigne : les VALEURS — chaîne des premiers parents, ligne écrite par la branche ou reçue du tronc par fusion', () => {
+  const { racine, sha: socle } = instanceDeDepot({ fichiers: { 'v.txt': 'a\nx\ny\nV = 60\nz\nw\nb\n' }, message: 'socle' })
+  try {
+    const g = (...a) => execFileSync('git', a, { cwd: racine, env: envDeDepotForge(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()
+    const ecrire = (texte, message) => { writeFileSync(join(racine, 'v.txt'), texte); g('add', 'v.txt'); g('commit', '-q', '-m', message); return g('rev-parse', 'HEAD') }
+    const d = forge(racine)
+    g('checkout', '-q', '-b', 'cote')
+    const cote = ecrire('A\nx\ny\nV = 60\nz\nw\nb\n', 'cote')
+    g('checkout', '-q', 'main')
+    const tronc = ecrire('a\nx\ny\nV = 61\nz\nw\nB\n', 'tronc')
+    g('checkout', '-q', 'cote')
+    g('merge', '-q', '--no-ff', '-m', 'fusion', 'main')
+    assert.equal(pointDeDepart(d, 'cote', 'main'), socle, 'la chaîne des premiers parents entre dans le tronc au socle, pas à sa pointe fusionnée')
+    assert.equal(pointDeDepart(d, 'main', 'main'), tronc, 'une tête contenue est son propre départ')
+    assert.equal(auteurDeLigne(d, 'cote', 'v.txt', 4), tronc, 'la ligne reçue par la fusion est écrite par le tronc')
+    assert.equal(auteurDeLigne(d, 'cote', 'v.txt', 1), cote, 'la ligne écrite par la branche')
+    writeFileSync(join(racine, 'ignorees'), `${tronc}\n`)
+    g('config', 'blame.ignoreRevsFile', 'ignorees')
+    assert.equal(auteurDeLigne(d, 'cote', 'v.txt', 4), tronc, '`blame.ignoreRevsFile` de l’hôte ne déplace pas l’auteur')
+    assert.throws(() => auteurDeLigne(d, 'cote', 'v.txt', 0), /un entier à partir de 1 attendu/)
+  } finally { jeter(racine) }
 })
 
 test('listerImage, ceQuiChange, eolsDe, fichiersDuGrep : un chemin non-ASCII ou à espace est rendu EN CLAIR — ls-files, ls-tree, diff-index, numstat, grep -l, --eol', () => {
@@ -883,6 +914,8 @@ const gestesALaBorne = (d, b) => ({
   ceQueFaitLeCommit: () => ceQueFaitLeCommit(d, b),
   listerImage: () => listerImage(d, b),
   lireEnLot: () => lireEnLot(d, b, ['a.txt']),
+  pointDeDepart: () => pointDeDepart(d, b, 'HEAD'),
+  auteurDeLigne: () => auteurDeLigne(d, b, 'a.txt', 1),
   fichiersDuGrep: () => fichiersDuGrep(d, [b], 'a', []),
   initialiserDepot: () => initialiserDepot(d, { branche: b }),
   reglerDepot: () => reglerDepot(d, b, 'x'),
@@ -1031,11 +1064,11 @@ test('une BORNE ABSENTE : `null` (ou `absent`, `false`) pour une question qui le
     const d = depotDe(racine, { env: envDeDepotForge(), enPanne: (r) => pannes.push(r) })
     const F = 'f'.repeat(40)
     const attendus = {
-      shasDe: null, journalDe: null, combienDe: null, divergenceDe: null, baseCommune: null, shaDe: null,
+      shasDe: null, journalDe: null, combienDe: null, divergenceDe: null, baseCommune: null, shaDe: null, pointDeDepart: null, auteurDeLigne: null,
       estAncetre: { disponible: true, absent: true }, estDansHead: false,
     }
     const questions = Object.entries(gestesALaBorne(d, F)).filter(([nom]) => !/^(initialiserDepot|reglerDepot|poserRef|rebaser|ajouterWorktree|supprimerBranche|pousser|fetchOrigin)/.test(nom))
-    assert.equal(questions.length, 16)
+    assert.equal(questions.length, 18)
     for (const [nom, question] of questions) {
       if (nom in attendus) assert.deepEqual(question(), attendus[nom], nom)
       else assert.throws(question, (e) => e instanceof BorneAbsente && e.bornes.includes(F), nom)

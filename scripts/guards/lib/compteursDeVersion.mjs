@@ -1,6 +1,6 @@
-// Les COMPTEURS DE VERSION d'une forme persistée et leur collision entre une branche et le tronc (#2222).
-// Déclaration UNIQUE (fichier, symbole) : l'étape `rebase` de `scripts/ops/publier.mjs` la lit, la file
-// de fusion (#2178) la relira. Module PUR : les textes lus aux révisions arrivent en paramètre.
+// Les COMPTEURS DE VERSION d'une forme persistée et la collision de la valeur qu'une tête publie (#2222).
+// Déclaration UNIQUE (fichier, symbole) ; l'assemblage git vit dans `compteursDuDepot.mjs`. Module PUR :
+// les textes lus aux révisions et les faits git arrivent en paramètre.
 
 /** @typedef {{ fichier: string, symbole: string }} Compteur */
 
@@ -8,6 +8,7 @@
 export const COMPTEURS = Object.freeze([
   Object.freeze({ fichier: 'src/state/saves.ts', symbole: 'SAVE_VERSION' }),
   Object.freeze({ fichier: 'src/data/schemas/defs-scenes/projet.ts', symbole: 'SCHEMA_PROJET' }),
+  Object.freeze({ fichier: 'src/state/roster.ts', symbole: 'EXPORT_VERSION' }),
 ])
 
 /** Les fichiers à lire pour juger `COMPTEURS`, sans doublon. */
@@ -27,39 +28,36 @@ export class CompteurIllisible extends Error {
 const echapper = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
 /**
- * La valeur de `compteur` dans `texte` : l'unique ligne `export const <symbole> = <entier>`. PURE.
+ * La lecture de `compteur` dans `texte` : la valeur et le numéro (à partir de 1) de l'unique ligne
+ * `export const <symbole> = <entier>`. PURE.
  * @param {string | null | undefined} texte @param {Compteur} compteur @param {string} revision
- * @returns {number} @throws {CompteurIllisible}
+ * @returns {{ valeur: number, ligne: number }} @throws {CompteurIllisible}
  */
-export function valeurDuCompteur(texte, compteur, revision) {
+export function lectureDuCompteur(texte, compteur, revision) {
   if (typeof texte !== 'string') throw new CompteurIllisible(compteur, revision, 'fichier absent')
-  const motif = new RegExp(`^export const ${echapper(compteur.symbole)}\\s*=\\s*(\\d+)\\s*;?\\s*$`, 'gm')
-  const vus = [...texte.matchAll(motif)]
+  const motif = new RegExp(`^export const ${echapper(compteur.symbole)}\\s*=\\s*(\\d+)\\s*;?\\s*$`)
+  const vus = texte.split('\n').flatMap((l, i) => {
+    const vu = motif.exec(l)
+    return vu ? [{ valeur: Number(vu[1]), ligne: i + 1 }] : []
+  })
   if (vus.length !== 1) throw new CompteurIllisible(compteur, revision, `${vus.length} ligne(s) \`export const ${compteur.symbole} = <entier>\`, une seule attendue`)
-  return Number(vus[0][1])
+  return vus[0]
 }
 
 /**
- * Les compteurs que la branche ET le tronc ont changés depuis leur base de fusion. PURE.
- * @param {{ base: Map<string, string|null>, branche: Map<string, string|null>, tronc: Map<string, string|null> }} textes
- *   le texte de chaque fichier de `FICHIERS_DES_COMPTEURS` à chaque révision.
- * @param {readonly Compteur[]} [compteurs]
- * @returns {{ symbole: string, fichier: string, base: number, branche: number, tronc: number }[]}
- * @throws {CompteurIllisible}
+ * La collision de `compteur` (#2222), ou `null` : la valeur `publiee` à la tête est déjà PRISE par le
+ * tronc. PURE.
+ * @param {Compteur} compteur
+ * @param {{ publiee: number, tronc: number, depart: number, ecriteParLaBranche: boolean }} faits
+ *   `depart` = la valeur au premier commit de la chaîne des premiers parents de la tête contenu dans le
+ *   tronc ; `ecriteParLaBranche` = l'auteur de la ligne à la tête (`git help blame`) n'est pas un
+ *   ancêtre du tronc.
+ * @returns {{ symbole: string, fichier: string, publiee: number, tronc: number, depart: number } | null}
  */
-export function collisionsDeCompteurs({ base, branche, tronc }, compteurs = COMPTEURS) {
-  const collisions = []
-  for (const compteur of compteurs) {
-    const valeurs = {
-      base: valeurDuCompteur(base.get(compteur.fichier), compteur, 'base'),
-      branche: valeurDuCompteur(branche.get(compteur.fichier), compteur, 'branche'),
-      tronc: valeurDuCompteur(tronc.get(compteur.fichier), compteur, 'tronc'),
-    }
-    if (valeurs.branche !== valeurs.base && valeurs.tronc !== valeurs.base) collisions.push({ ...compteur, ...valeurs })
-  }
-  return collisions
+export function collisionDuCompteur(compteur, { publiee, tronc, depart, ecriteParLaBranche }) {
+  return ecriteParLaBranche && publiee <= tronc && publiee !== depart ? { ...compteur, publiee, tronc, depart } : null
 }
 
-/** Le refus d'une collision (#2222). PURE. @param {{ symbole: string, tronc: number }} collision */
-export const messageDeCollision = ({ symbole, tronc }) =>
-  `\`${symbole}\` : main est passé à ${tronc} depuis ta base, la tienne doit viser ${tronc + 1} et rejouer sa migration/son golden`
+/** Le refus d'une collision (#2222). PURE. @param {{ symbole: string, publiee: number, tronc: number }} collision */
+export const messageDeCollision = ({ symbole, publiee, tronc }) =>
+  `\`${symbole}\` : la branche publie ${publiee}, déjà prise par main (à ${tronc}) — prochaine libre : ${tronc + 1}, à renuméroter avec sa migration/son golden`

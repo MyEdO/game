@@ -2841,4 +2841,4 @@ pas notre affaire de savoir pourquoi mes employeurs sont si désireux de parler 
 **Mort sur le Reik** reprend l'aventure là où **L'Ennemi dans l'Ombre** s'est achevé, entraînant vos héros improbables dans de grandes aventures sur le Reik, le plus grand fl euve du Vieux Monde, route commerciale menant jusqu'au cœur même de l'Empire.
 
 **Mort sur le Reik** est la deuxième d'une série de cinq aventures dans le monde sombre et périlleux de **Warhammer Fantasy le Jeu de Rôle**, une campagne qui a inspiré toute une génération de joueurs. Cette version intégrale comprend des commentaires pertinents teintés d'humour noir, des suggestions astucieuses sur de nouvelles façons de jouer cette campagne.
-<!-- sources-empreinte: fd62a65cb6d34a13ab099138cee4dd7f95b9f520 (143 fichiers, 20 dossiers) corps: 4816bdfe77af871301f2b27cc5a2ba60fd292c5c -->
+<!-- sources-empreinte: 8e9b8dba5e0b15b2e08e838fda5640b0ddd5bb52 (143 fichiers, 20 dossiers) corps: 4816bdfe77af871301f2b27cc5a2ba60fd292c5c -->
