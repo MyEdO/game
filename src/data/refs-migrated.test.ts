@@ -11,7 +11,7 @@ import {
   findCareerById, findClassById, findSpeciesById, findConditionById, findDiseaseById, findWeaponGroupById, findSymptomById,
   findCreatureById, findVehicleById, refEntiteResolue, findGroupById, findPsychologyById, findTraitById, findCrewTestTypeById, findLightToneById,
   mutationTables,
-  specLabel, refLabel, specEntryId, specEntryLabel, specResolves, SPEC_SOURCES, type SpecsSource, type SpecEntry, books,
+  specLabel, refLabel, specEntryId, specEntryLabel, specResolves, porteCatalogueDeSpecs, SPEC_SOURCES, type SpecsSource, type SpecEntry, books,
 } from './index';
 import { avancement } from './schemas/grammaire/avancement';
 import { fauteDEspece } from './schemas/grammaire/art';
@@ -54,6 +54,9 @@ import { norm } from '../lib/normalize';
 const isObj = (x: unknown): x is Record<string, unknown> => typeof x === 'object' && x != null;
 
 const REPO_ROOT = fileURLToPath(new URL('../..', import.meta.url));
+
+/** Le corpus des DEUX racines (`scanDuCorpus`), lu UNE fois pour tout le fichier. */
+const CORPUS_SCANNE = scanDuCorpus(REPO_ROOT);
 
 describe('refs migrées — refs structurées par id, zéro libellé résiduel', () => {
   it('trappings.qualities = QualityRef[] {id} qui résout (id stable)', () => {
@@ -595,31 +598,47 @@ type SpecDef = { specsSource?: SpecsSource; specs?: SpecEntry[] };
  *  `catalogue` = la def PORTE un catalogue de spécs (`specs[]` non vide ou `specsSource`). */
 type SpecHors = { where: string; key: string; book: string; refId: string; spec: string; catalogue: boolean };
 
+type EntreeDeSpecs = { id?: string; label?: string; source?: { book?: string } };
+
+/** Les ENTRÉES PARTIELLES de `creatures.json` embarquées ailleurs (`entreesPartiellesEmbarquees`,
+ *  `scripts/docs/lib/structures-scan.mts`), groupées par document hôte : porteur et provenance = ceux
+ *  de leur fiche (plus proche ancêtre portant `id`, resp. `source`). */
+const partiellesDeCreatures = (): [string, EntreeDeSpecs[]][] => {
+  const parHote = new Map<string, EntreeDeSpecs[]>();
+  for (const [objet, fiche] of CORPUS_SCANNE.scan.entreesPartielles) {
+    if (fiche.document !== 'creatures.json') continue;
+    const entree = { ...(objet as object), id: fiche.id ?? '?', source: fiche.source as EntreeDeSpecs['source'] };
+    parHote.set(fiche.hote, [...(parHote.get(fiche.hote) ?? []), entree]);
+  }
+  return [...parHote];
+};
+
 /**
  * MARCHE PARTAGÉE des deux contrats positifs — Compétences (#1342 L2-a) et Talents (#1457 B1) : même
- * périmètre (`creatures`/`careerLevels`/`species`), MÊME walker (`walkSkillRefs`, paramétré par son
+ * périmètre (`creatures`/`careerLevels`/`species`, et les entrées partielles de `creatures` embarquées
+ * ailleurs), MÊME walker (`walkSkillRefs`, paramétré par son
  * tableau porteur) et MÊME porte de validité (`specResolves`, pool ou hors pool, #1342 L3). Deux
  * marches séparées mesureraient deux choses. `corpus` n'est fourni que par les contre-épreuves.
  */
 function collecteSpecs(
   arrName: 'skills' | 'talents',
   defOf: (id: string) => SpecDef | undefined,
-  corpus?: [string, { id?: string; label?: string; source?: { book?: string } }[]][],
+  corpus?: [string, EntreeDeSpecs[]][],
 ): { hors: SpecHors[]; nues: { where: string; book: string; refId: string }[]; seen: number; sentinelles: string[] } {
   const hors: SpecHors[] = [];
   const nues: { where: string; book: string; refId: string }[] = [];
   const sentinelles: string[] = [];
   let seen = 0;
   const listes = corpus ?? ([
-    ['creatures', creatures], ['careerLevels', careerLevels], ['species', species],
-  ] as [string, { id?: string; label?: string; source?: { book?: string } }[]][]);
+    ['creatures', creatures], ['careerLevels', careerLevels], ['species', species], ...partiellesDeCreatures(),
+  ] as [string, EntreeDeSpecs[]][]);
   for (const [file, list] of listes) {
     for (const entry of list) {
       const book = entry.source?.book ?? '(sans source)';
       const owner = entry.id ?? entry.label ?? '?';
       walkSkillRefs(entry, (node) => {
         const def = defOf(node.id);
-        const catalogue = !!def?.specsSource || (Array.isArray(def?.specs) && def.specs.length > 0);
+        const catalogue = porteCatalogueDeSpecs(def);
         // Un nœud à `choix` PORTE un régime de spécialisation (borne ou libre) : ce n'est pas une réf NUE.
         if (node.choix != null) return;
         if (node.spec == null) { if (catalogue) nues.push({ where: `${file}(${owner})`, book, refId: node.id }); return; }
@@ -762,12 +781,19 @@ describe('spec de Talent d’un livre EXTRAIT — résout au catalogue, stock no
   });
 
   it('un Talent SANS catalogue de spécs (destinee, frenesie) porte un TEXTE d’instance : compté à part, jamais au stock de dette (#1621)', () => {
-    const PLAFOND = 24;
+    // #680 (2026-09-29) : 24 → 29 — prophéties imprimées des presets de la vague 1, graphie `spec` de
+    // creatures.json (#1621).
+    const PLAFOND = 29;
     const parTalent = [...textesDInstance.reduce((m, h) => m.set(h.refId, (m.get(h.refId) ?? 0) + 1), new Map<string, number>())]
       .sort((a, b) => b[1] - a[1]).map(([id, n]) => `${id}:${n}`).join(', ');
-    // Cliquet UNIDIRECTIONNEL : PLAFOND, pas stock nominatif. Une 25e instance rougit (#1621) ; une
-    // chute de 24 vers 1 reste verte — le régime du champ texte d'instance se tranche à #1621.
+    // Cliquet UNIDIRECTIONNEL : PLAFOND, pas stock nominatif. Une 30e instance rougit (#1621) ; une
+    // chute de 29 vers 1 reste verte — le régime du champ texte d'instance se tranche à #1621.
     expect(textesDInstance.length).toBeGreaterThan(0);
+    const RACINES_DE_CORPUS = new Set(['creatures', 'careerLevels', 'species']);
+    expect(
+      textesDInstance.some((h) => !RACINES_DE_CORPUS.has(h.key.split('|')[0])),
+      'aucun texte d’instance vu sur une entrée partielle embarquée (`entreesPartiellesEmbarquees`) : le bras du corpus est débranché',
+    ).toBe(true);
     expect(textesDInstance.length, `${parTalent} — un texte d'instance de PLUS : le régime du champ se tranche à #1621`).toBeLessThanOrEqual(PLAFOND);
     const melanges = textesDInstance.filter((h) => SPECS_DE_TALENT_A_CREER.has(h.key)).map((h) => h.key);
     expect(melanges, `texte d'instance stocké comme dette de spec :\n${melanges.join('\n')}`).toEqual([]);
@@ -1188,7 +1214,7 @@ describe('GameOp — toute référence de la donnée committée résout dans son
 
   /** Le corpus des DEUX racines, celui que parse le registre des slots (`scanDuCorpus`) : une seule
    *  lecture, pour que les nœuds d’op du scan se joignent à ceux du parse par IDENTITÉ d’objet. */
-  const { defs: DEFS, scan: CORPUS } = scanDuCorpus(REPO_ROOT);
+  const { defs: DEFS, scan: CORPUS } = CORPUS_SCANNE;
   const sources = [...CORPUS.brutParNom].map(([file, data]) => ({ file, data }));
   const CHAMPS_A_SLOT = champsDOpASlot();
   const softIds = { etats: Object.keys(NARRATIVE_MARKERS) };

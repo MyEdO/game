@@ -4,8 +4,6 @@
  * pas en cours et rien de plus, et une porte qui s'ouvre arrête la marche sur la case atteinte.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import { useGame } from './store';
 import { parseProject } from './worldMap';
 import { bus, EVT } from './bus';
@@ -16,6 +14,7 @@ import { STEP_MS } from '../geometry/walk';
 import { demarrerMarche, arreterMarche, resetStageWalk, marcheEnVol } from './stageWalk';
 import { chebyshev } from '../engine/grid';
 import { pushLayer, resetDismissStack } from './dismissStack';
+import { lireProjetLivre } from '../../scripts/source/projetLivre.mjs';
 
 const get = useGame.getState;
 
@@ -173,7 +172,7 @@ describe('UN PAS À LA FOIS — la cadence est la durée du glissement', () => {
  * ici sur la scène RÉELLE pour que la lecture de cette trace ne se refasse jamais.
  */
 describe('MUR de la scène réelle (arene-hub) — la marche bute, elle ne meurt pas', () => {
-  const doc = parseProject(JSON.parse(readFileSync(join(__dirname, '../scenes/arene/arene-projet.json'), 'utf8')));
+  const doc = parseProject(lireProjetLivre('arene/arene-projet.json'));
 
   function entrerAuHub(): void {
     useGame.getState().loadProject(doc.scenes, 'arene-hub', doc.worldMap, doc.narratif);

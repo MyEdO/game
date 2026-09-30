@@ -372,7 +372,9 @@ vraiment chaque primitive) n'est pas dérivable — elle est verrouillée par
 \`src/state/mapSpec.test.ts\` ; la procédure image → grille et les pièges sont de l'ÉDITORIAL fixé
 dans le script.
 
-> **Pour l'IA (et l'humain) : c'est LE seul chemin pour construire une carte.**
+> **Pour l'IA (et l'humain) : c'est le chemin des scénarios de test et des générateurs** (dette #1601).
+> Dans un paquet de campagne MANUSCRIT, la carte se pose à l'éditeur (fiche
+> \`user-doctrine-campagne-jamais-generee-par-script\`, skill \`creer-une-campagne\`).
 > Tu décris une map en objet déclaratif \`MapSpec\` ; \`buildScene(spec)\` la compile en \`Scene\`.
 
 - Type + compilateur : \`${MAPSPEC}\`

@@ -247,7 +247,7 @@ src/state/
                             une liste `ResolvedPlaceService[]` — payloads RÉFÉRENCÉS, jamais recopiés (zéro
                             duplication de vérité). Consommée par le hub de lieu (#343) et l'auberge ; les
                             consommateurs actuels (portFlow/landMarketFlow/restPlacesHere) restent inchangés.
-  campaignNarratif.ts       SCHÉMA du bloc NARRATIF d'un paquet de campagne (schema 3, #765) : `NarratifBlock`
+  campaignNarratif.ts       SCHÉMA du bloc NARRATIF d'un paquet de campagne (#765) : `NarratifBlock`
                             = `{affaires, indices, presetsPnj, objets}`, EMBARQUÉ dans le JSON du projet, jamais
                             copié dans `src/data` global (`narratifSchema` refuse toute collision d'id).
   campaignData.ts           COUTURE UNIQUE de résolution de la couche de campagne runtime (#767) : lit le slot
@@ -429,12 +429,15 @@ src/ui/                     React : menus, CampaignView (HUD), CharacterSheet, m
                               master-détail, édition live), EffectList (rangées repliées + picker),
                               useSceneHistory (undo/redo), useEditorView (caméra)
 src/scenes/                 Documents de scène + campaign.ts (campagne = l'Arène, `arene/arene-projet.json`,
-                            projet v2 {scenes, worldMap} — 20 scènes : Bourg+intérieurs, 13 zones, 3 expéditions,
-                            embuscade ; AUTHORING par `scripts/arene/generate.mjs`, cartes ASCII → JSON canonique
-                            qui RESTE la source éditable dans l'éditeur)
+                            projet {scenes, worldMap}, scènes listées par `build()` de `scripts/arene/generate.mjs`).
+                            Ce GÉNÉRATEUR (cartes ASCII → JSON) est le propriétaire EXCLUSIF du paquet : le JSON
+                            committé est l'octet de son `build()` (`src/scenes/generateurs-byte-stables.test.ts`),
+                            une édition à l'éditeur est écrasée au prochain `generate`, ou refusée par cette garde.
+                            L'Arène déroge ainsi à `user-doctrine-campagne-jamais-generee-par-script` : #1601.
                             + test-fixture.ts (fabrique de scène neutre `testScene()` + rencontre `enc-mutants` des tests de combat)
-src/state/asciiMap.ts       AUTHORING de map en ASCII — la MÉTHODE À PRIVILÉGIER pour tout contenu de
-                            map (scène/scénario) plutôt que poser les tuiles une à une. `parseAsciiRows(rows,
+src/state/asciiMap.ts       AUTHORING de map en ASCII pour les scénarios de TEST et les GÉNÉRATEURS (un
+                            paquet de campagne MANUSCRIT pose sa carte à l'éditeur, skill `creer-une-map`)
+                            plutôt que poser les tuiles une à une. `parseAsciiRows(rows,
                             base, legend)` → {w,h,tiles} (1 char = 1 tuile) ; `parseWalledAscii` (box-drawing
                             (2W+1)×(2H+1) : tuiles + MURS d'arête, `:` = porte). Légende de base : `#`mur
                             `~`eau `D`porte `_`fosse `=`planches (surchargeable). Garde-fou : lignes de

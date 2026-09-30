@@ -17,6 +17,7 @@ export function EditorToolbar({
   onImport,
   onExport,
   onExportAscii,
+  onExportDepot,
   onAdvanced,
   undo,
   redo,
@@ -43,6 +44,9 @@ export function EditorToolbar({
   onExport: () => void;
   /** Ouvre la modale d'export ASCII (grilles `walled`/`zoneMap` de la scène active, cf. `sceneToAscii`). */
   onExportAscii: () => void;
+  /** Export en FORME DÉPÔT (`projetVersDepot` : prose et ports), offert pour une campagne LIVRÉE ouverte,
+   *  réservé au DEV : absent, l'entrée de menu n'existe pas. */
+  onExportDepot?: () => void;
   onAdvanced: () => void;
   undo: () => void;
   redo: () => void;
@@ -126,6 +130,7 @@ export function EditorToolbar({
             </label>
             {item(<><Icon id="file/export" size="sm" /> Exporter JSON</>, onExport)}
             {item(<><Icon id="file/export" size="sm" /> Exporter ASCII (grilles carte)</>, onExportAscii)}
+            {onExportDepot && item(<><Icon id="file/export" size="sm" /> Exporter forme dépôt (dev)</>, onExportDepot)}
             <hr />
             {item(<><Icon id="ui/settings" size="sm" /> Avancé — JSON (dialogues, triggers, rencontres)</>, onAdvanced)}
           </div>

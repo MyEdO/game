@@ -149,3 +149,24 @@ export function versDisque<T>(racine: T): T {
   };
   return copie(racine) as T;
 }
+
+/**
+ * Chemins des nœuds ADRESSÉS dont la prose n'est PAS matérialisée (`descRef` sans `desc` chaîne), à
+ * toute profondeur, tableaux compris : la FORME DISQUE d'un document, que seule la lecture servie
+ * (`materialiser`, `scripts/source/resoudre.mjs`) complète. Réciproque de `versDisque`. Fonction PURE.
+ */
+export function proseNonMaterialisee(racine: unknown): (string | number)[][] {
+  const out: (string | number)[][] = [];
+  const marche = (v: unknown, chemin: (string | number)[]): void => {
+    if (Array.isArray(v)) {
+      v.forEach((x, i) => marche(x, [...chemin, i]));
+      return;
+    }
+    if (!v || typeof v !== 'object') return;
+    const noeud = v as Record<string, unknown>;
+    if (noeud.descRef !== undefined && typeof noeud.desc !== 'string') out.push(chemin);
+    for (const [k, x] of Object.entries(noeud)) marche(x, [...chemin, k]);
+  };
+  marche(racine, []);
+  return out;
+}

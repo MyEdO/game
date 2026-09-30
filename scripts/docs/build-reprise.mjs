@@ -21,7 +21,7 @@ import { ecrireOuVerifier } from './lib/empreinte-sources.mjs'
 import { repartitionWorkers } from '../test/partition.mjs'
 import { LANES, ECRIT_LU } from '../gates/toutes.mjs'
 import { gatesDeCi } from '../gates/gatesDeCi.mjs'
-import { ETATS as ETATS_PORTE, PORTE, WORKFLOWS as REGISTRE_WORKFLOWS, corpsRun } from '../gates/workflowsDuDepot.mjs'
+import { ETATS as ETATS_PORTE, PORTE, WORKFLOWS as REGISTRE_WORKFLOWS, corpsRun, declencheursDe } from '../gates/workflowsDuDepot.mjs'
 import { DOCUMENTAIRE, gatesSautables } from '../gates/classerPush.mjs'
 import { REGEN_RECIPE } from '../guards/lib/npmLockHoisted.mjs'
 import { SURFACE_CLAUDE, aplatirHooks } from '../agents/compat-core.mjs'
@@ -94,19 +94,7 @@ function hooksDeSession(evenement) {
  *  d'import — l'INJECTE (`scripts/agents/compat-core.mjs`, `HOOKS_MONO_SURFACE`). */
 const EVENEMENTS = ['SessionStart', 'PreToolUse', 'PostToolUse']
 
-// Workflows GitHub Actions : nom, déclencheurs, portes npm exécutées.
-function bloc(texte, cle) {
-  const lignes = texte.split('\n')
-  const debut = lignes.findIndex((l) => l.startsWith(`${cle}:`))
-  if (debut === -1) return []
-  const suite = []
-  for (const l of lignes.slice(debut + 1)) {
-    if (l.trim() === '') continue
-    if (!/^\s/.test(l)) break
-    suite.push(l)
-  }
-  return suite
-}
+// Workflows GitHub Actions : nom, déclencheurs (`declencheursDe`), portes npm exécutées.
 
 /** Une invocation `npm` COMPLÈTE : sous-projet (`--prefix <dir>`) optionnel, verbe
  *  (`ci`/`install`/`test`/`audit`/`run <script>`), options longues comprises. */
@@ -133,9 +121,7 @@ const WORKFLOWS = listerDossier(chemin('.github/workflows')).filter((f) => f.end
   const texte = readFileSync(`.github/workflows/${f}`, 'utf8')
   const nom = (texte.match(/^name:\s*(.+)$/m) ?? [])[1]
   if (!nom) abandon(`.github/workflows/${f} n'a pas de champ « name: »`)
-  const declencheurs = bloc(texte, 'on')
-    .filter((l) => /^ {2}\S/.test(l))
-    .map((l) => l.trim().replace(/:$/, ''))
+  const declencheurs = declencheursDe(texte, `.github/workflows/${f}`)
   const crons = [...texte.matchAll(/cron:\s*'([^']+)'/g)].map((m) => m[1])
   const portes = portesNpm(f, texte)
   // Comment un rouge de CE workflow est-il vu ? Le registre le DÉCLARE, et sa garde le MESURE sur le
@@ -391,6 +377,13 @@ dérivées, POUSSE la branche de chantier, attend le run CI de cette branche (bo
 \`--ci-timeout-min\`) et, sur vert, fait entrer \`main\` en FAST-FORWARD ; un run neuf rotationne le log
 précédent en \`<branche>.<AAAAMMJJ-HHMMSS>.log\` (péremption 7 jours) — ce n'est pas une archive, le
 \`npm ci\` d'\`ops:chantier\` efface \`node_modules/.cache/\`.
+
+**Suivi de vague.** Toute reprise (compaction, lendemain, pause) commence par RELIRE
+\`.git/suivi/<N>.md\`, le suivi de l'épique \`<N>\` : seule source du plan et du prochain geste, il vit
+dans le répertoire git COMMUN, hors versionnement — un clone frais ne l'a pas.
+\`npm run ops:suivi -- <N>\` (\`${script('ops:suivi')}\`) en rafraîchit la zone mesurée (branche,
+avance, état d'issue de chaque ticket prévu) et l'imprime ; \`-- <N> --creer\` pose le suivi d'une
+vague neuve, et sans \`<N>\` il liste les suivis présents.
 
 Le port n'est historique QUE pour un arbre principal ou un clone : un **worktree lié** en dérive un
 autre (5174-5272, \`scripts/port-dev.mjs\`) pour que deux arbres servis en même temps ne se recouvrent

@@ -74,17 +74,17 @@ describe('refine de couverture des catalogues de cargaisons — il MORD et il NO
     }
   });
 
-  it('une cellule réécrite en TUPLE est refusée par le SCHÉMA (union), avant même la couverture', () => {
+  it('une cellule réécrite en TUPLE est refusée par le SCHÉMA de sa variante, avant même la couverture', () => {
     for (const c of CATALOGUES) {
       const messages = refus(c, (doc) => {
         const e = premiere(doc);
         const f = e.avail!.printemps as { min: number; max: number };
         e.avail!.printemps = [f.min, f.max];
       });
-      // L'entrée ne satisfait NI le schéma marchand (`avail` est un objet à deux bornes) NI le
-      // marqueur (qui n'a pas de `avail`) : l'union tombe, à l'index de l'entrée fautive.
+      // Sans `echangeable: false`, l'entrée est MARCHANDE (`catalogueSaisonnier`, union discriminée) :
+      // le refus tombe sur la cellule, dans le schéma marchand.
       expect(
-        messages.some((m) => m.startsWith('invalid_union @cargoes.0')),
+        messages.some((m) => m.startsWith('invalid_type @cargoes.0.avail.printemps')),
         `${c.nom} : un tuple sous \`avail\` n’est pas refusé par le schéma — la forme positionnelle repasserait.`,
       ).toBe(true);
     }

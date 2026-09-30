@@ -581,8 +581,8 @@ La chaîne, dans l'ordre — **périmètre → workflow → assemble → apply �
    français, les **citations, termes et abréviations de jeu** restent verbatim dans la langue du livre
    cité (champ `language`), jamais traduits. Il ne nomme **aucun domaine** non plus : la carte et le
    lot lui arrivent par le même `args`.
-   Tous ses agents sont en **LECTURE SEULE** (type d'agent sans outil d'écriture, posé au point
-   unique `lire()`, et clause dans chaque prompt) : un passage de source tronqué ou fusionné se
+   Tous ses agents sont en **LECTURE SEULE** (type d'agent sans outil d'écriture, écrit à chaque
+   site d'appel, et clause dans chaque prompt) : un passage de source tronqué ou fusionné se
    SIGNALE (`sourceAbimee: [{ phase, ref, constat }]`, remonté au rendu du domaine) et ne se répare
    jamais — un agent qui corrige la source qu'il cite ensuite fabrique sa propre preuve. APRÈS un
    run, `git status --porcelain` du worktree doit donc être IDENTIQUE à ce qu'il était AVANT : toute
@@ -729,7 +729,7 @@ stock et rougit la garde — c'est ainsi qu'un geste non canonique se voit.
    un titre supprimé, scindé ou d'appariement incertain, ou une entrée sans section porteuse, est
    RAPPORTÉE et BLOQUE l'écriture (sortie en échec) jusqu'à son tri à la main. Un titre rapporté
    qu'aucune entrée ne keye est listé « aucun stock keyé » et ne bloque pas.
-3. `npx vitest run src/data/prose-resolution.test.ts` — la garde de re-résolution liste **exactement**
+3. `npm test -- src/data/prose-resolution.test.ts` — la garde de re-résolution liste **exactement**
    les entrées dont l'adresse ne rend plus son texte, avec le code de la rupture
    (`bornes-hors-limites`, `empreinte-divergente`, `ligne-introuvable`…). C'est l'inventaire des
    consommateurs impactés : ni plus, ni moins.
@@ -816,7 +816,7 @@ sert d'arbitre — jamais comme source de la donnée affichée, qui reste recoll
   toute extension de `src/engine`/`src/data` qui cite le nouveau livre.
 - `node scripts/raw/reanchor.mjs` (+ `--apply`, one-shot `--remap` avant commit de la Source) —
   citations verbatim de l'Atlas alignées sur la Source courante.
-- `npx vitest run src/data/no-html-in-prose.test.ts` — aucune description collée en HTML. Son prédicat
+- `npm test -- src/data/no-html-in-prose.test.ts` — aucune description collée en HTML. Son prédicat
   `HTML_TAG` vit dans `src/data/source/normalize.ts` et sert AUSSI au volet E de
   `src/data/prose-resolution.test.ts` : la prose **adressée** ne rend pas plus de HTML que la prose
   copiée — un `<br>` resté dans une cellule du `Source/` ne peut donc pas atteindre le joueur.

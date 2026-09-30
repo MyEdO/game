@@ -15,8 +15,9 @@
  * morts qui restent sont en tête de `scripts/guards/lib/fieldConsumers.mjs`. Les catalogues
  * `src/data/schemas/defs/*.ts` dont le `schema` d'entrée est ANONYME (`z.array(z.strictObject({…}))`)
  * ONT pour la plupart un alias TS : `src/data/index.ts` porte 41 interfaces au patron `XData`
- * (mesure 2026-09-01), dont `export interface TrappingData` (`index.ts:1113`), annotée par de vrais
- * consommateurs (`src/engine/items.ts:20`, `src/engine/activities.ts:28`/`799`/`805`/`907`) ; et la
+ * (mesure 2026-09-01), dont `export interface TrappingData`, annotée par de vrais consommateurs
+ * (`TrappingResolver` de `src/engine/items.ts` ; `craftSpecOf`, `orderBlockOf` de
+ * `src/engine/activities.ts`) ; et la
  * liste des champs d'une entrée anonyme est dérivable sans nommage manuel
  * (`scripts/docs/lib/zod-introspect.mts#introspecterDefs`, qui descend le sceau `document()`). Les
  * y faire entrer est le geste (iii) de #1620 — dérivation de `TARGETS` par jointure `type`↔`XData`,
@@ -52,17 +53,17 @@
  *   - 12 ont un lecteur mesuré : `DetailRecipe.tintVar`, `EntityAppearance.armurePortee`,
  *     `CritEscalation.onRepeat`, `Amputation.timing`, `FlowTest.opposed`, `CountSpec.fixed`,
  *     `CountSpec.roll`, `TrappingRef.label`, `FlowTest.argDifficulty`
- *     (`src/state/triggeredEffects.ts:73`, `f.test.argDifficulty`), `TravelTableEntry.stageOutcome`
- *     (`src/state/travelPostes.ts:363`, `enc.stageOutcome` sur un retour INFÉRÉ), `QualityRef.spec`
+ *     (`withArg` de `src/state/triggeredEffects.ts`, `f.test.argDifficulty`), `TravelTableEntry.stageOutcome`
+ *     (`buildWeatherResistanceSteps` de `src/state/travelPostes.ts`, `enc.stageOutcome` sur un retour
+ *     INFÉRÉ), `QualityRef.spec`
  *     (champ PROPRE : `qualityRefSchema` porte son propre shape) et `TraitInstance.hidden`, dont
- *     `hiddenGroupsOf` annote le porteur `TraitInstance[]` (`src/engine/groups.ts:57`). Les deux
+ *     `hiddenGroupsOf` annote le porteur `TraitInstance[]` (`src/engine/groups.ts`). Les deux
  *     sites INFÉRÉS (`argDifficulty`, `stageOutcome`) échappent aussi à une vérification à la main,
  *     qui a le même angle mort que le scan syntaxique ;
- *   - 4 sont de VRAIS zéros : `SourceRef.note`, `CastingNumberMod.maison`/`.source`/`.desc`.
- * Sur tout le rapport (158 champs) : 6 cellules « 0 — JAMAIS LU », toutes de VRAIS zéros — les deux
- * qui ne sont pas de cet échantillon étant `PropData.type` et `PropData.label` (un décor lit sa
- * géométrie, jamais son libellé) —, 0 hérité, 7 absents du type TS. Les cardinaux du rapport sont
- * ÉMIS depuis les compteurs, jamais recopiés.
+ *   - 4 étaient de VRAIS zéros ce jour-là : `SourceRef.note`, `CastingNumberMod.maison`/`.source`/`.desc`.
+ * La liste COURANTE des « 0 — JAMAIS LU », tous de VRAIS zéros, est le cliquet nominatif de
+ * `src/data/field-consumers.test.ts` ; les cardinaux du rapport sont ÉMIS depuis les compteurs,
+ * jamais recopiés.
  * COÛT MESURÉ du rapport complet (23 types, 1 952 fichiers de `src/`, Program bâti UNE fois pour
  * les 23 et libéré au retour) : ~17 s et ~1,33 Go de pic, contre 1,8 s au scan syntaxique. La liste
  * des « 0 lecteur » sort NOMMÉE de cette fonction (`zeros`) et son CLIQUET vit dans
@@ -121,8 +122,8 @@ export function buildFieldConsumersMd(files: string[] = listProdFiles(SRC_DIR)):
   out += `**${TARGETS.length} retenus** (voir en-tête du générateur pour les raisons d'exclusion). Les catalogues `
   out += `\`src/data/schemas/defs/*.ts\` à schéma d'entrée ANONYME restent HORS PÉRIMÈTRE — non par absence de `
   out += `nom TS : l'alias existe pour la plupart (41 interfaces \`XData\` dans `
-  out += `\`src/data/index.ts\`, mesure 2026-09-01 — ex. \`TrappingData\` \`index.ts:1113\`, annotée par `
-  out += `\`src/engine/items.ts:20\` et \`src/engine/activities.ts:28\`) et les champs d'une entrée anonyme sont `
+  out += `\`src/data/index.ts\`, mesure 2026-09-01 — ex. \`TrappingData\`, annotée par \`TrappingResolver\` de `
+  out += `\`src/engine/items.ts\` et \`craftSpecOf\` de \`src/engine/activities.ts\`) et les champs d'une entrée anonyme sont `
   out += `dérivables (\`scripts/docs/lib/zod-introspect.mts#introspecterDefs\`) —, mais parce que la DÉRIVATION `
   out += `de \`TARGETS\` (jointure \`type\`↔\`XData\`) est un geste distinct, encore à faire (#1620) ; à l'unité, `
   out += `le geste d'auteur reste ouvert (nommer `

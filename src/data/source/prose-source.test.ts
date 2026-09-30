@@ -154,6 +154,66 @@ describe('plugin `wfrp:prose-source` — transform', () => {
   });
 });
 
+describe('plugin `wfrp:prose-source` — projets de campagne LIVRÉS (#680)', () => {
+  /** Un projet dont un preset ADRESSE sa prose — `desc` en plus si donné (la paire interdite). */
+  const projetAdresse = (chapitre: string, desc?: string): string =>
+    JSON.stringify({
+      narratif: { presetsPnj: [{ id: 'p', profil: { ...(desc === undefined ? {} : { desc }), descRef: adresseDe(chapitre, 'Terreur') } }] },
+    });
+
+  it('un `<x>-projet.json` de `src/scenes`, à toute profondeur, est matérialisé', () => {
+    const { chapitre } = fixture();
+    const plugin = proseSource({ corpus: corpusDe(chapitre) });
+    const out = plugin.transform.call(contexte().hook, projetAdresse(chapitre), '/depot/src/scenes/a/b/x-projet.json');
+    expect(JSON.parse(out.code).narratif.presetsPnj[0].profil.desc).toContain('La Terreur est une réaction');
+  });
+
+  it('`desc` ET `descRef` sur un nœud de projet : le module échoue en NOMMANT le chemin JSON du nœud', () => {
+    const { chapitre } = fixture();
+    const plugin = proseSource({ corpus: corpusDe(chapitre) });
+    const ctx = contexte();
+    expect(() => plugin.transform.call(ctx.hook, projetAdresse(chapitre, 'copie'), '/depot/src/scenes/x/x-projet.json')).toThrow();
+    expect(ctx.erreurs.join('\n')).toContain('desc-et-descRef : narratif.presetsPnj[0].profil');
+  });
+
+  it('hors des documents de prose (`?raw`, JSON de scène qui n’est pas un projet, sous-dossier de `src/data`) : rien n’est transformé', () => {
+    const { chapitre } = fixture();
+    const plugin = proseSource({ corpus: corpusDe(chapitre) });
+    const code = projetAdresse(chapitre);
+    for (const id of ['/depot/src/scenes/x/x-projet.json?raw', '/depot/src/scenes/x/foo.json', '/depot/src/data/sous/x.json']) {
+      expect(plugin.transform.call(contexte().hook, code, id), id).toBeNull();
+    }
+  });
+
+  it('serveur Vite RÉEL sur le dépôt : le preset de Gustav sort de la Diligence avec la prose de son adresse, à l’octet du `Source/`', async () => {
+    const rel = 'src/scenes/diligence/diligence-projet.json';
+    const disque = JSON.parse(readFileSync(join(RACINE_DEPOT, rel), 'utf8'));
+    type Preset = { id: string; profil: { desc?: string; descRef?: { book: string; ch: string } } };
+    const gustavDe = (doc: { narratif: { presetsPnj: Preset[] } }): Preset | undefined =>
+      doc.narratif.presetsPnj.find((p) => p.id === 'edo-gustav-fondleburger');
+    const surDisque = gustavDe(disque)!;
+    expect(surDisque.profil.desc, 'le DISQUE ne porte que l’adresse').toBeUndefined();
+    const ref = surDisque.profil.descRef!;
+    const attendu = (resoudreProse({ descRef: ref }) as { md: string }).md;
+    expect(readFileSync(join(RACINE_DEPOT, cheminChapitre(ref.book, ref.ch)), 'utf8'), 'le texte est celui du livre').toContain(attendu);
+
+    const server = await createServer({
+      configFile: false,
+      root: RACINE_DEPOT,
+      logLevel: 'silent',
+      server: { middlewareMode: true, watch: null },
+      optimizeDeps: { noDiscovery: true },
+      plugins: [proseSource()],
+    });
+    try {
+      const module = await server.ssrLoadModule(`/${rel}`);
+      expect(gustavDe(module.default)?.profil.desc).toBe(attendu);
+    } finally {
+      await server.close();
+    }
+  });
+});
+
 describe('plugin `wfrp:prose-source` — chapitres SERVIS EN DEV', () => {
   it('sert un chapitre par adresse à nom STABLE, plus le manifeste à chapitres ORDONNÉS', () => {
     const { chapitre } = fixture();

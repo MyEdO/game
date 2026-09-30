@@ -95,7 +95,7 @@ interface SinPoints {
  * peut prendre la place d'un terme quelconque (« 1d10 + (PP) » = `{sum:[{dice}, {sinPoints}]}`,
  * « 1 + (PP) » = `{sum:[1, {sinPoints}]}`).
  */
-type JsonFormula =
+export type JsonFormula =
   | Formula
   | SinPoints
   | { sum: JsonFormula[] }

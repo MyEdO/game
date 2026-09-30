@@ -8,7 +8,7 @@
 //
 // Le YAML est lu par regex ligne à ligne, comme `gatesDeCi.mjs` lit `ci.yml` : le contrat porte sur
 // des lignes. Le dossier se liste par `listerDossier` — le lecteur à ORDRE TOTAL du dépôt
-// (scripts/guards/lib/lister.mjs), dont la clôture est gardée par `lister.test.mjs:150`.
+// (scripts/guards/lib/lister.mjs), dont la clôture est gardée par le test « CLÔTURE » de `lister.test.mjs`.
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { listerDossier } from '../guards/lib/lister.mjs'
@@ -24,8 +24,8 @@ export const SIGNALEUR = 'scripts/ops/signaler-rouge.mjs'
 /** Ce que chaque état MESURE sur le YAML. Un état sans mesure n'existe pas. */
 export const ETATS = Object.freeze({
   porte:
-    'le workflow EST la porte : la porte au push consulte ses courses (scripts/git-hooks/pre-push.mjs ' +
-    '→ `coursesCi`, dont le défaut est PORTE) et le ruleset `main` exige ses jobs',
+    'le workflow EST la porte : la porte au push consulte ses courses (`jugerPush` de ' +
+    'scripts/git-hooks/pre-push.mjs → `coursesCi`, dont le défaut est PORTE) et le ruleset `main` exige ses jobs',
   autosignale:
     `le workflow se nomme lui-même en rougissant : un step qui joue MÊME sur rouge (\`if\` portant ` +
     `\`always()\`, \`!cancelled()\` ou \`failure()\` non nié, jamais sous \`success()\`) EXÉCUTE ` +
@@ -43,7 +43,7 @@ export const WORKFLOWS = Object.freeze({
   'ci.yml': {
     etat: 'porte',
     raison:
-      'la porte au push lit ses courses pour le sha poussé — scripts/git-hooks/pre-push.mjs appelle ' +
+      'la porte au push lit ses courses pour le sha poussé — `jugerPush` de scripts/git-hooks/pre-push.mjs appelle ' +
       '`coursesCi` (scripts/guards/lib/coursesCi.mjs), dont le workflow par défaut EST PORTE — et le ruleset ' +
       '`main` en fait ses checks requis',
   },
@@ -103,20 +103,29 @@ export function stepsDu(texte) {
 }
 
 /**
- * Clés de premier niveau du bloc `on:` d'un workflow. PUR — même lecture ligne à ligne que
- * `scripts/docs/build-reprise.mjs`.
- * @param {string} texte @returns {string[]}
+ * Déclencheurs d'un workflow : les clés de premier niveau de son bloc `on:`. PUR. SEUL lecteur du bloc
+ * `on:` du dépôt (`mesurerEtat` ici, `scripts/docs/build-reprise.mjs`). Forme lue : `on:` en tête de
+ * ligne, sans valeur, puis une clé `  <nom>:` par ligne à 2 espaces (sous-clés plus indentées).
+ * LÈVE sur toute autre forme (valeur en ligne, clé citée, élément de liste, indentation inconnue, bloc
+ * absent ou vide) : un `[]` muet ferait lire « aucun déclencheur ».
+ * @param {string} texte @param {string} [fichier] nommé dans l'erreur @returns {string[]}
  */
-export function declencheursDe(texte) {
+export function declencheursDe(texte, fichier = 'workflow') {
   const lignes = texte.split(/\r?\n/)
-  const debut = lignes.findIndex((l) => /^on:/.test(l))
-  if (debut === -1) return []
+  const refus = (quoi) => new Error(`${fichier} : bloc \`on:\` illisible — ${quoi}`)
+  const cles = lignes.filter((l) => /^["']?on["']?\s*:/.test(l))
+  if (cles.length !== 1) throw refus(`${cles.length} clé(s) \`on\` de premier niveau`)
+  if (!/^on:\s*(#.*)?$/.test(cles[0])) throw refus(`forme « ${cles[0].trim()} » (seul \`on:\` suivi d'un bloc se lit)`)
   const suite = []
-  for (const l of lignes.slice(debut + 1)) {
-    if (l.trim() === '') continue
+  for (const l of lignes.slice(lignes.indexOf(cles[0]) + 1)) {
+    if (l.trim() === '' || /^\s*#/.test(l)) continue
     if (!/^\s/.test(l)) break
-    if (/^ {2}\S/.test(l)) suite.push(l.trim().replace(/:$/, ''))
+    if (/^ {4}/.test(l)) continue
+    const cle = /^ {2}([A-Za-z_][\w-]*):\s*(#.*)?$/.exec(l)
+    if (!cle) throw refus(`ligne « ${l} » (attendu : \`  <déclencheur>:\`)`)
+    suite.push(cle[1])
   }
+  if (!suite.length) throw refus('bloc vide')
   return suite
 }
 
@@ -173,9 +182,9 @@ export function mesurerEtat(fichier, texte) {
   const porte = fichier === PORTE
   if (porte) motifs.push(`porte : ce fichier EST PORTE (${PORTE})`)
 
-  const declencheurs = declencheursDe(texte)
+  const declencheurs = declencheursDe(texte, fichier)
   const manuel = declencheurs.length === 1 && declencheurs[0] === 'workflow_dispatch'
-  motifs.push(`déclencheurs : ${declencheurs.length ? declencheurs.join(', ') : '(aucun lu)'}`)
+  motifs.push(`déclencheurs : ${declencheurs.join(', ')}`)
 
   // Le signaleur doit être EXÉCUTÉ (corps d'un `run:`, commentaires ôtés) sous un `if` qui joue sur
   // rouge : un chemin cité dans de la prose ne signale rien.

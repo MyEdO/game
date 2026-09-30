@@ -29,7 +29,7 @@ import {
   firstLevel,
   levelsForCareer,
   byId,
-  findTalentById,
+  tailleDuTalent,
   specPoolOf,
   talents as talentTable,
   rigSpeciesId,
@@ -39,7 +39,7 @@ import type { RefDesignee, RefASpecialisation } from '../data/schemas/grammaire/
 import { refKey, skillSlots, talentSlots, designateSlot, freeSlotFor, statutOuRefus, designationsFor, talentMaxReached, wildcardSpecs, prisParLesAutres, acquerirTalent, type PorteurDeTalents } from './careerSlots';
 import { resolveTrappingChoices, type ChoixDeDotation } from './trappingChoices';
 import { adresseDeCreation, type AdresseDeCreation } from './adresseDeCreation';
-import { applyTalentAcquisition, heroMaxWounds, fortuneMax, resolveMax, careerSkillAdditions } from './talentEffects';
+import { appliquerAcquisitions, heroMaxWounds, fortuneMax, resolveMax, careerSkillAdditions } from './talentEffects';
 import { applyStarOps, pettySpellQuotaFor } from './creation';
 import { sizeFromTalents } from './size';
 
@@ -411,10 +411,9 @@ export function createHero(opts: CreateHeroOptions): Combatant {
   // le spawn de créature bestiaire, #513).
   const speciesTraits: import('./statEntry').TraitList = sp.traits ?? [];
 
-  // Taille (LDB 85 l.344-354) — portée par `TalentData.size` (DATA-DRIVEN, jamais un id de talent
-  // nommé dans le moteur, #572) : la plus grande catégorie parmi les talents résolus (espèce +
-  // carrière + signe astral) ci-dessus, sinon Moyenne.
-  const size = sizeFromTalents(talents.map((tt) => tt.talentId), (id) => findTalentById(id)?.size);
+  // Taille (LDB 85 l.344-354) — portée par `TalentData.size` (#572) : `sizeFromTalents` sur les talents
+  // résolus (espèce + carrière + signe astral) ci-dessus, sinon Moyenne.
+  const size = sizeFromTalents(talents.map((tt) => tt.talentId), tailleDuTalent) ?? 'moyenne';
 
   // Destin / Résilience
   const fateBase = sp.fate;
@@ -456,9 +455,9 @@ export function createHero(opts: CreateHeroOptions): Combatant {
     ...(opts.apparence ? { appearance: { ...opts.apparence, species: rigSpeciesId(opts.speciesId) } } : {}),
   };
 
-  // Effets d'acquisition des Talents (+5 Caractéristique de départ, Véloce) — une fois par
-  // acquisition —, puis attributs dérivés (Blessures + Dur à cuire, Chance, Détermination).
-  for (const t of hero.talents) for (let i = 0; i < t.times; i++) applyTalentAcquisition(hero, t.talentId, t.spec);
+  // Effets d'acquisition des Talents (`appliquerAcquisitions`), puis attributs dérivés (Blessures + Dur
+  // à cuire, Chance, Détermination).
+  appliquerAcquisitions(hero);
   const wmax = heroMaxWounds(hero);
   hero.wounds = { current: wmax, max: wmax, base: wmax };
   hero.fortune = fortuneMax(hero);

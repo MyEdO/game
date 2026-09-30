@@ -12,6 +12,7 @@ import { refOuSpec, idDe, refs } from './ref';
 import { listeCle, marquerCollection, marqueDeListe } from './collection-cle';
 import { estEspeceDessinee, messageDEspeceInconnue, sexeDeCoiffure } from './art';
 import { libelleDeValeur } from './meta';
+import { descendre } from './descente';
 import { estGraphieDeChapitre } from '../../source/decoupe';
 
 /**
@@ -790,6 +791,27 @@ export const formulaSinSchema: z.ZodType<unknown> = z.union([
   z.strictObject({ sum: z.array(z.union([formulaSchema, sinPointsSchema])) }),
 ]);
 
+const PORTE_LE_PECHE = new WeakMap<object, boolean>();
+
+/** Le nœud porte-t-il, à une profondeur quelconque, le terme de Péché (`sinPointsSchema`) ? C'est le
+ *  DIALECTE d'un champ de `Formula` lu sur son schéma — un site d'édition le dérive du nœud de son
+ *  champ, jamais d'une déclaration à la main. Descente unique `descendre` (`grammaire/descente.ts`) ;
+ *  `formulaSchema` n'est pas redescendu, il ne porte pas le terme. */
+export function admetLePeche(noeud: unknown): boolean {
+  if (!noeud || typeof noeud !== 'object') return false;
+  const connu = PORTE_LE_PECHE.get(noeud);
+  if (connu !== undefined) return connu;
+  let porte = false;
+  descendre([noeud], ({ noeud: n }) => {
+    if (n === formulaSchema) return 'elaguer';
+    if (n !== sinPointsSchema) return;
+    porte = true;
+    return 'arreter';
+  });
+  PORTE_LE_PECHE.set(noeud, porte);
+  return porte;
+}
+
 /** Compétences du Test d'Exposition à une Influence corruptrice — alphabet FERMÉ (`LDB 19 l.23-75`).
  *  SOURCE UNIQUE : les deux portes `corruptionExposure.skill` (op `GameOp`, effet de scène), le
  *  sélecteur de l'atelier (`ui/editor/GameOpEditor.tsx`) et la couture du slot
@@ -942,8 +964,9 @@ export const dispoSaisonniereSchema = parSaison(plageSchema);
 const SAISONS_DE_DISPO = Object.keys(dispoSaisonniereSchema.shape) as (keyof z.infer<typeof dispoSaisonniereSchema>)[];
 
 /** Ce qu'une entrée MARCHANDE doit porter pour que la couverture se mesure : un libellé (le refus est
- *  NOMINATIF) et les quatre colonnes — et son `id`, clé du catalogue. */
-type EntreeMarchande = { id: string; label: string; avail: z.infer<typeof dispoSaisonniereSchema> };
+ *  NOMINATIF) et les quatre colonnes — et son `id`, clé du catalogue ; `echangeable` : `CargoDef`
+ *  (`src/engine/cargo.ts`). */
+type EntreeMarchande = { id: string; label: string; echangeable?: true; avail: z.infer<typeof dispoSaisonniereSchema> };
 /** Un MARQUEUR de colonne Production/Produits : reconnu à son CHAMP d'exclusion, comme le moteur le
  *  reconnaît (`isEchangeable`, `src/engine/cargo.ts`) ; son `id` est une clé du catalogue. */
 type EntreeMarqueur = { id: string; echangeable: false };
@@ -959,18 +982,19 @@ type EntreeMarqueur = { id: string; echangeable: false };
  * DIFFÈRE : les schémas d'entrée (le Vin terrestre porte `wine`) et le `site` cité par le refus.
  *
  * Le filtre des marqueurs est celui du moteur (`isEchangeable`) : le CHAMP d'exclusion, jamais un id.
+ * Ce champ DISCRIMINE l'élément : une rangée est l'une ou l'autre variante, jamais les deux.
  * Le catalogue est une collection à clé `id` (`grammaire/collection-cle.ts`).
  *
- * @param marchand schéma d'une cargaison échangeable (doit porter `label` et `avail`)
+ * @param marchand schéma d'une cargaison échangeable (doit porter `label`, `avail` et `echangeable?: true`)
  * @param marqueur schéma d'un marqueur de colonne Production/Produits (`echangeable: false`)
  * @param options `site` = le porteur cité en tête du refus (`'sea-cargo.json › cargoes'`)
  */
 export function catalogueSaisonnier<A extends EntreeMarchande, B extends EntreeMarqueur>(
-  marchand: z.ZodType<A>,
-  marqueur: z.ZodType<B>,
+  marchand: z.ZodType<A> & z.core.$ZodTypeDiscriminable<'echangeable'>,
+  marqueur: z.ZodType<B> & z.core.$ZodTypeDiscriminable<'echangeable'>,
   options: { site: string },
 ): z.ZodType<(A | B)[]> {
-  const catalogue = z.array(z.union([marchand, marqueur])).superRefine((entrees: (A | B)[], ctx) => {
+  const catalogue = z.array(z.discriminatedUnion('echangeable', [marchand, marqueur])).superRefine((entrees: (A | B)[], ctx) => {
     const marchandes = entrees.filter((e): e is A => !('echangeable' in e) || e.echangeable !== false);
     for (const saison of SAISONS_DE_DISPO) {
       const ecarts = ecartsDeCouverture(

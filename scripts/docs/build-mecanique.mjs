@@ -4,8 +4,8 @@
  *
  * Part FACTUELLE, DÉRIVÉE à chaque génération :
  *  - les trois canaux avec le SITE RÉEL de leur lecteur (`passiveMods`, `fireTriggers`,
- *    `hasCapability`) — le manuscrit figeait `trauma.ts:504` / `triggeredEffects.ts:379` /
- *    `dispatch.ts:178`, tous faux depuis longtemps ;
+ *    `hasCapability`) — le manuscrit figeait des numéros de ligne dans `trauma.ts`,
+ *    `triggeredEffects.ts` et `dispatch.ts`, tous faux depuis longtemps ;
  *  - l'union `EffectTrigger` et les formes d'`EffectTargeting` (`src/engine/flowCore.ts`), plus les
  *    champs de `TriggeredEffect` ;
  *  - les KINDS de source réunis par `effectSourcesOf` — lus dans son corps, dans l'ordre du code ;
@@ -173,7 +173,7 @@ if (CAPACITES.length < 3) abandon(`moins de 3 interfaces de capacités dans ${IN
 
 const CANAUX = [
   // « contient passive », pas « finit par » : le canal peut être INDEXÉ (`passiveBySeverity`, une liste
-  // par palier de sévérité — LDB 20 l.157/l.170).
+  // par palier de sévérité — LDB 20 l.157/170).
   { cle: 'passive', libelle: '`passive`', test: (k) => /passive/i.test(k) },
   { cle: 'effects', libelle: '`effects`', test: (k) => k === 'effects' || k === 'onHitEffects' },
   { cle: 'capabilities', libelle: '`capabilities`', test: (k) => k === 'capabilities' },

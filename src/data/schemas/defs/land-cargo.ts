@@ -46,6 +46,8 @@ const offerByRichesseSchema = z
 const cargoMarchand = z.strictObject({
   id: z.string(),
   label: z.string(),
+  /** Discriminant du catalogue (`catalogueSaisonnier`) : `CargoDef.echangeable` (`src/engine/cargo.ts`). */
+  echangeable: z.literal(true).optional(),
   /** Vin/Eau-de-vie : prix par `wineQuality`, pas par la colonne saisonnière (l.93-104). */
   wine: z.boolean().optional(),
   avail: dispoSaisonniereSchema,
@@ -57,7 +59,7 @@ const cargoMarchand = z.strictObject({
  *  l.119) : il occupe la même colonne que les cargaisons sans être une marchandise — donc ni
  *  disponibilité ni prix. `echangeable: false` est le champ d'EXCLUSION lu par le résolveur
  *  (`engine/landCargo.ts`), qui filtre le catalogue échangeable à la source ; une entrée marchande ne
- *  porte pas le champ. */
+ *  le porte pas `false`. */
 const cargoMarqueur = z.strictObject({
   id: z.string(),
   label: z.string(),

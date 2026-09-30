@@ -27,6 +27,7 @@
 // appel d'écriture, aucun Project requis ; `--sans-fetch` y tolère un `origin` injoignable) ·
 // `-- --creer` (créer le Project « Chantiers », ses champs et son lien au dépôt, puis synchroniser).
 import { TRONC, arbrePrincipal, branchesDe, depotDe, divergenceDe, fetchOrigin, journalDe } from '../guards/lib/gitPorte.mjs'
+import { numerosDeLaChaine } from '../guards/lib/fermetures.mjs'
 import { inventaire } from './worktrees.mjs'
 import { DEPOT, appelGhRunner, pagesRest } from '../guards/lib/ticketsGh.mjs'
 
@@ -81,9 +82,6 @@ const EXCLUES = [/^main$/, /^backup\//, /^sauvegarde\//]
  */
 const CITATION = /\b(refs?|corrige|fixes|closes|ferme)((?:[ \t]*,?[ \t]*#\d+)+)/gi
 
-/** Les numéros d'une chaîne de citation (`#1392 #1388` → `[1392, 1388]`). PURE. */
-const numerosDeLaChaine = (chaine) => [...String(chaine ?? '').matchAll(/#(\d+)/g)].map(([, n]) => Number(n))
-
 // ————————————————————————————————— fonctions PURES —————————————————————————————————
 
 /**
@@ -110,7 +108,7 @@ export const avanceDite = ({ avance = 0, retard = 0 }) => `+${avance} / −${ret
 export function ticketsCites(texte) {
   const comptes = new Map()
   for (const [, , chaine] of String(texte ?? '').matchAll(CITATION)) {
-    for (const n of numerosDeLaChaine(chaine)) comptes.set(n, (comptes.get(n) ?? 0) + 1)
+    for (const n of numerosDeLaChaine(chaine).map(Number)) comptes.set(n, (comptes.get(n) ?? 0) + 1)
   }
   return comptes
 }
@@ -184,16 +182,24 @@ export const jourDe = (iso) => (/^\d{4}-\d{2}-\d{2}/.test(String(iso ?? '')) ? S
  *
  * `fusionnes` porte TOUS les tickets cités par la base dans la fenêtre, branche vivante comprise :
  * c'est la PREUVE de publication qui distingue `Fusionné` d'`Ouvert` à 0 commit d'avance.
+ *
+ * AVEC UNE `portee` (les tickets prévus d'un suivi de vague, `scripts/ops/suivi.mjs`), les lignes
+ * sont EXACTEMENT celles de la portée, dans SON ordre : un ticket clos garde sa ligne, un ticket sans
+ * branche ni publication reçoit `branches: []` et le statut de son issue, un ticket absent de
+ * `issues` prend le statut `Introuvable`. Sans portée, `Introuvable` n'apparaît jamais.
+ * `etatIssue` est posé sur TOUTE ligne, lu dans `issues`.
  * @param {{branches?: {nom: string, avance: number, retard: number, dernierCommitISO: string,
  *   tickets: number[], worktrees?: string[]}[],
  *   fusionnes?: {ticket: number, dateISO: string}[],
- *   issues?: Map<number, {state?: string, closedAt?: string|null}>}} mesure
+ *   issues?: Map<number, {state?: string, closedAt?: string|null}>,
+ *   portee?: number[]|null}} mesure
  * @param {{maintenant?: Date, joursDormant?: number}} [cadre]
- * @returns {{ticket: number, statut: string, branches: string[], worktrees: string[],
- *   avance: string, dernierCommit: string}[]}
+ * @returns {{ticket: number, statut: string, etatIssue: 'ouvert'|'fermé'|'introuvable',
+ *   branches: string[], worktrees: string[], avance: string, dernierCommit: string}[]}
  */
-export function construireLignes({ branches = [], fusionnes = [], issues = new Map() },
+export function construireLignes({ branches = [], fusionnes = [], issues = new Map(), portee = null },
   { maintenant = new Date(), joursDormant = JOURS_DORMANT } = {}) {
+  const prevus = portee === null ? null : new Set(portee.map(Number))
   const parTicket = new Map()
   const citees = new Set(fusionnes.map((f) => Number(f.ticket)))
   const poser = (ticket) => {
@@ -229,7 +235,7 @@ export function construireLignes({ branches = [], fusionnes = [], issues = new M
   for (const { ticket, dateISO } of fusionnes) {
     if (parTicket.has(ticket)) continue
     const issue = issues.get(ticket) ?? null
-    if (String(issue?.state ?? '').toUpperCase() === 'CLOSED') continue
+    if (String(issue?.state ?? '').toUpperCase() === 'CLOSED' && !prevus?.has(Number(ticket))) continue
     const ligne = poser(ticket)
     ligne.dernierCommitISO = dateISO
     ligne.statut = statutDe(
@@ -238,13 +244,29 @@ export function construireLignes({ branches = [], fusionnes = [], issues = new M
     )
   }
 
-  return [...parTicket.values()]
+  for (const ticket of prevus ?? []) {
+    if (parTicket.has(ticket)) continue
+    poser(ticket).statut = statutDe({ avance: 0, issue: issues.get(ticket) ?? null }, { maintenant, joursDormant })
+  }
+
+  const lignes = [...parTicket.values()]
     .map(({ avances, dernierCommitISO, ...reste }) => ({
       ...reste,
+      statut: prevus && !issues.has(reste.ticket) ? 'Introuvable' : reste.statut,
+      etatIssue: etatIssueDe(issues.get(reste.ticket)),
       avance: avances.join(' · '),
       dernierCommit: jourDe(dernierCommitISO),
     }))
     .sort((a, b) => (STATUTS.indexOf(a.statut) - STATUTS.indexOf(b.statut)) || (a.ticket - b.ticket))
+  if (!prevus) return lignes
+  const parNumero = new Map(lignes.map((l) => [Number(l.ticket), l]))
+  return [...prevus].map((ticket) => parNumero.get(ticket))
+}
+
+/** L'état d'une issue lue par `indexerIssues`, ou `introuvable` si elle n'y est pas. PUR. */
+const etatIssueDe = (issue) => {
+  if (!issue) return 'introuvable'
+  return String(issue.state ?? '').toUpperCase() === 'CLOSED' ? 'fermé' : 'ouvert'
 }
 
 /** Les valeurs de champ attendues pour une ligne, keyées par NOM de champ. PURE. */
@@ -511,15 +533,25 @@ export const GESTES_DU_BOARD = Object.freeze({ arbrePrincipal, fetchOrigin, bran
  * PRINCIPAL, et `base` est un PARAMÈTRE (le CLI la fixe à `origin/main` après `fetch`).
  * Les gestes au dépôt (`GESTES_DU_BOARD`), l'inventaire des worktrees et la lecture des issues
  * sont injectables (mesure).
+ *
+ * UN SEUL `fetchOrigin` PAR MESURE, aucun sous `sansFetch` : l'inventaire est TOUJOURS appelé sous
+ * `sansFetch: true` : son verdict de fusion se lit sur les refs PRÉSENTES — celles que ce fetch vient
+ * de poser, ou, sous `sansFetch`, celles qui étaient déjà là.
+ *
+ * `portee` (liste de tickets, `scripts/ops/suivi.mjs`) ne change RIEN côté git ; côté issues, la
+ * lecture porte sur `portee` SEULE, et une portée vide ne lit rien. Son coût suit l'âge du plus
+ * vieux ticket de la portée (`issuesDeGh`). Les lignes sont celles de `construireLignes` sous
+ * `portee`. `commandeSansFetch` est la commande que cite le refus « origin non consultable ».
  * @param {{cwd?: string, base?: string, gestes?: typeof GESTES_DU_BOARD, inv?: Function,
- *   issues?: Function, sansFetch?: boolean, maintenant?: Date, joursDormant?: number,
- *   joursFusionRecente?: number}} [params]
+ *   issues?: Function, sansFetch?: boolean, portee?: number[]|null, commandeSansFetch?: string,
+ *   maintenant?: Date, joursDormant?: number, joursFusionRecente?: number}} [params]
  * @returns {{ok: true, lignes: object[], anomalies: string[]} | {ok: false, refus: string}}
  */
 export function mesurer({
   cwd = process.cwd(), base = BASE, gestes = GESTES_DU_BOARD, inv = inventaire,
-  issues = issuesDeGh, sansFetch = false, maintenant = new Date(), joursDormant = JOURS_DORMANT,
-  joursFusionRecente = JOURS_FUSION_RECENTE,
+  issues = issuesDeGh, sansFetch = false, portee = null,
+  commandeSansFetch = 'npm run ops:board -- --liste --sans-fetch', maintenant = new Date(),
+  joursDormant = JOURS_DORMANT, joursFusionRecente = JOURS_FUSION_RECENTE,
 } = {}) {
   const vuRacine = gestes.arbrePrincipal(depotDe(cwd))
   if (!vuRacine.disponible) return { ok: false, refus: vuRacine.raison }
@@ -539,7 +571,7 @@ export function mesurer({
       return {
         ok: false,
         refus: `origin non consultable (${vuFetch.raison ?? 'objet absent'}) — la mesure contre ${base} `
-          + 'serait fausse ; `npm run ops:board -- --liste --sans-fetch` mesure sur les refs déjà là',
+          + `serait fausse ; \`${commandeSansFetch}\` mesure sur les refs déjà là`,
       }
     }
   } else {
@@ -550,7 +582,7 @@ export function mesurer({
   if (refs === null) return { ok: false, refus: `git for-each-ref illisible : ${raison()}` }
 
   const parBranche = new Map()
-  const vuInv = inv({ racine: principal, cwd })
+  const vuInv = inv({ racine: principal, cwd, sansFetch: true })
   if (!vuInv.ok) return { ok: false, refus: vuInv.refus }
   for (const w of vuInv.worktrees) {
     if (w.principal) continue
@@ -609,13 +641,14 @@ export function mesurer({
     }
   }
 
-  const vivants = new Set(branches.flatMap((b) => b.tickets))
-  const numeros = [...new Set([...vivants, ...fusionnes.map((f) => f.ticket)])]
+  const numeros = portee === null
+    ? [...new Set([...branches.flatMap((b) => b.tickets), ...fusionnes.map((f) => f.ticket)])]
+    : [...new Set(portee.map(Number))]
   const vuIssues = numeros.length ? issues(numeros) : { issues: new Map(), anomalies: [] }
   anomalies.push(...vuIssues.anomalies)
 
   const lignes = construireLignes(
-    { branches, fusionnes, issues: vuIssues.issues },
+    { branches, fusionnes, issues: vuIssues.issues, portee },
     { maintenant, joursDormant },
   )
   return { ok: true, lignes, anomalies }

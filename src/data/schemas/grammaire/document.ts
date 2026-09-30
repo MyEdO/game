@@ -7,10 +7,8 @@
  * est une erreur de TYPE (mapped type → `never`) ET une erreur d'exécution nommant la clé ; chaque
  * clé de `champs` exige sa `MetaChamp` ; chaque document déclare son EXPOSITION (Codex, éditeur).
  *
- * L'adoption par les defs est #1467 : 122 defs l'appellent (121 sous `defs/`, 1 sous
- * `defs-scenes/`). Les defs `entite` ont TOUS adopté. Le compte fait foi à la MESURE, pas à cette
- * phrase : c'est le mesureur de `grammaire.test.ts` (« contrats d'enveloppe REQUIS dans les defs
- * `entite` ») qui l'établit.
+ * L'adoption par les defs est #1467 ; son compte se MESURE : c'est le mesureur de `grammaire.test.ts`
+ * (« contrats d'enveloppe REQUIS dans les defs `entite` ») qui l'établit.
  */
 import { tableTotale } from '../../../lib/tableTotale';
 import { z } from 'zod';
@@ -250,6 +248,7 @@ export interface DocumentHandle<T extends string> {
    * Consommateur mesuré : `narratif.ts` (`presetPnjSchema.profil`, profil de PNJ embarqué) — il
    * CONSOMME `entreePartielle`. Sur le nœud SCELLÉ, `.partial` n'existe pas et l'appel
    * JETTE : c'est bien cette propriété-ci qui lui tient lieu de `.partial()`.
+   * Le nœud est MARQUÉ de son document : `documentDeLEntreePartielle(entreePartielle) === schema`.
    */
   readonly entreePartielle: z.ZodType<unknown>;
   /**
@@ -360,6 +359,18 @@ function verifieExposition(type: string, exposition: Exposition): void {
     throw new Error(`document('${type}') : \`edit\` exige \`dataset\`, \`object\`, \`niche\` ou \`none\` (raison).`);
   }
 }
+
+/** L'entrée PARTIELLE d'un document → le nœud FINAL `schema` de ce document (marque posée par `document()`). */
+const DOCUMENT_DE_L_ENTREE_PARTIELLE = new WeakMap<object, z.ZodType<unknown>>();
+
+/**
+ * Le `schema` du document dont `noeud` est l'entrée PARTIELLE (`DocumentHandle.entreePartielle`),
+ * `undefined` sinon. Lu à la co-descente (`coDescendre`, `grammaire/descente.ts`) : une entrée
+ * partielle EMBARQUÉE dans un autre document y retrouve son document par l'identité de `schema`
+ * (`clesPortees`, `scripts/docs/lib/structures-scan.mts`).
+ */
+export const documentDeLEntreePartielle = (noeud: unknown): z.ZodType<unknown> | undefined =>
+  noeud !== null && typeof noeud === 'object' ? DOCUMENT_DE_L_ENTREE_PARTIELLE.get(noeud) : undefined;
 
 /**
  * Déclare un document. `champs` = la charge utile propre au type, `meta` = son libellé FR par clé,
@@ -519,6 +530,7 @@ export function document<T extends string, C extends Record<string, z.ZodType>>(
         ? marquerCollection(affineDataset, marqueDeRecord({ sous: 'entries', espace }))
         : affineDataset;
   const metaPubliee = { ...(meta as Record<string, MetaChamp>), ...tableTotale(clesPosees, (k) => META_CHARGE[k]) };
+  DOCUMENT_DE_L_ENTREE_PARTIELLE.set(entreePartielle, schema);
   return {
     schema,
     entree: entreeScellee,

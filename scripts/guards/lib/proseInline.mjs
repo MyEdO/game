@@ -38,6 +38,24 @@ export const RACINES_PROSE = Object.freeze([
   PROJETS_LIVRES,
 ]);
 
+/**
+ * Le fichier `chemin` est-il un DOCUMENT de l'une des `RACINES_PROSE` ? Jugé sur le chemin à partir du
+ * DOSSIER de la racine, où que soit le dépôt (Vite rend des ids absolus, les tests des racines de
+ * fixture) : sous `<dossier>/`, au bon suffixe, et à plat quand la racine n'est pas récursive.
+ * @param {string} chemin @param {readonly { dossier: string, suffixe: string, recursif: boolean }[]} [racines]
+ * @returns {boolean}
+ */
+export function estDocumentDeProse(chemin, racines = RACINES_PROSE) {
+  const posix = `/${String(chemin).split('\\').join('/').replace(/^\/+/, '')}`;
+  return racines.some((r) => {
+    const marque = `/${r.dossier}/`;
+    const i = posix.lastIndexOf(marque);
+    if (i === -1) return false;
+    const reste = posix.slice(i + marque.length);
+    return reste.endsWith(r.suffixe) && (r.recursif || !reste.includes('/'));
+  });
+}
+
 /** Ids des livres EXTRAITS (`estLivreExtrait`) du registre (`REGISTRE_LIVRES`) — les seuls adressables. */
 export function livresExtraits() {
   return new Set(REGISTRE_LIVRES.filter(estLivreExtrait).map((b) => b.id));

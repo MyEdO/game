@@ -74,6 +74,7 @@
     "ops:worktrees": "node scripts/ops/worktrees.mjs",
     "ops:publier": "node scripts/ops/publier.mjs",
     "ops:board": "node scripts/ops/board.mjs",
+    "ops:suivi": "node scripts/ops/suivi.mjs",
     "deps:report": "node scripts/ops/deps-report.mjs",
     "raw:coverage": "node scripts/raw/coverage.mjs",
     "raw:reconcile": "node scripts/raw/reconcile.mjs",
@@ -97,7 +98,6 @@
     "relay:deploy": "npm --prefix server run deploy",
     "galleries": "node scripts/gen-galleries.mjs",
     "recette:shot": "node scripts/recette/shot-screen.mjs",
-    "qc:sheets": "node scripts/lancer-local.mjs tsx -- tsx scripts/_qc-sheets.mts",
     "map:check": "node scripts/lancer-local.mjs tsx -- tsx scripts/map/check.mts",
     "test:map": "node scripts/lancer-local.mjs vitest -- vitest run scripts/map"
   },

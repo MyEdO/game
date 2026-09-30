@@ -10,6 +10,8 @@ import { NoteDeRangee } from './StakeNote';
 export interface RollOption {
   key: string;
   label: ReactNode;
+  /** Nom accessible POSITIONNÉ, quand le libellé se répète d'un groupe à l'autre (un segment par rangée). */
+  ariaLabel?: string;
   /** Valeur effective affichée à côté du libellé (base + mods combinés, cf. `optionValue`). */
   value?: number;
   title?: string;
@@ -102,6 +104,7 @@ function OptionBouton({
         enabled={false}
         {...(o.refusId ? { reasonId: o.refusId } : { reason: o.refus! })}
         onClick={() => {}}
+        ariaLabel={o.ariaLabel}
         primary={primary}
         bare={bare}
         btnClassName={btnClassName}
@@ -110,9 +113,9 @@ function OptionBouton({
     );
   }
   const classe = bare ? (btnClassName ?? '') : classeBouton({ primary, btnClassName });
-  if (o.disabled) return <button className={classe} aria-pressed={ariaPressed} disabled>{children}</button>;
+  if (o.disabled) return <button className={classe} aria-label={o.ariaLabel} aria-pressed={ariaPressed} disabled>{children}</button>;
   return (
-    <button className={classe} aria-pressed={ariaPressed} onClick={o.onSelect} title={o.title}>
+    <button className={classe} aria-label={o.ariaLabel} aria-pressed={ariaPressed} onClick={o.onSelect} title={o.title}>
       {children}
     </button>
   );

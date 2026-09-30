@@ -60,7 +60,7 @@ const RACINE = fileURLToPath(new URL('../..', import.meta.url))
  * Repassée le 2026-09-08 (#1709 E) à l'ENREGISTREUR DE LECTURES (`scripts/docs/lib/enregistreur-lectures.mjs`
  * posé en `--import` sur la commande de chaque gate) : `lit` déclare aussi le CODE que la
  * gate exécute — le changer change son verdict, donc c'est une lecture. Angles morts de la sonde,
- * nommés : ce qu'un sous-processus NON-node lit (`git ls-files` de src/source-hygiene-guard.test.ts:76,
+ * nommés : ce qu'un sous-processus NON-node lit (`git ls-files` de src/source-hygiene-guard.test.ts,
  * `tsc`/`eslint` binaires) lui échappe, et un chemin RELATIF écrit par un enfant dont le `cwd` est un
  * dépôt jetable lui apparaît sous la racine (vérifié fichier par fichier avant d'être écrit ici).
  * C'est cette table, et rien d'autre, qui autorise deux gates à tourner EN MÊME TEMPS : un écrivain
@@ -106,7 +106,7 @@ export const ECRIT_LU = {
       '.claude/logs/new-src-guard-skips.log':
         'journal d’urgences du garde de nouveaux fichiers (`JOURNAL`, scripts/hooks/new-src-file-guard.mjs, écrit par ' +
         'scripts/hooks/repartiteur.mjs) : il est ' +
-        'GITIGNORÉ (.gitignore:41 `.claude/*`, sans négation pour `logs/`), donc il n’entre dans aucune des ' +
+        'GITIGNORÉ (motif `.claude/*` de .gitignore, sans négation pour `logs/`), donc il n’entre dans aucune des ' +
         'deux clés de contenu et ne salit pas l’arbre ; aucune gate ne le lit',
     },
     lit: [
@@ -116,11 +116,11 @@ export const ECRIT_LU = {
     ],
     raison:
       'le registre d’écrans que `new-src-file-guard.test.mjs` éprouve est INJECTABLE (`WFRP_REGISTRE_ECRANS`, ' +
-      '`REGISTRE_DEFAUT`, scripts/hooks/new-src-file-guard.mjs) et le test en écrit une COPIE sous os.tmpdir() ; ' +
+      '`cheminRegistre` de scripts/hooks/new-src-file-guard.mjs) et le test en écrit une COPIE sous os.tmpdir() ; ' +
       'le reste des fixtures vit sous os.tmpdir() ; LIT src/ massivement (3 888 chemins) — les gardes de la ' +
       'gate balaient l’arbre réel (stocks nominatifs, garde des nouveaux fichiers, budget de contexte) ; ' +
       'LIT docs/ sur deux sites : le listing de docs/raw, et docs/.sources-lues.json (banc de ' +
-      'scripts/git-hooks/, `pre-commit.mjs` l.272 — mesuré le 2026-09-16 par une sonde `fs` sur `test:hooks`) ; ' +
+      'scripts/git-hooks/, `sourcesLues` de `pre-commit.mjs` — mesuré le 2026-09-16 par une sonde `fs` sur `test:hooks`) ; ' +
       'LIT Source/ parce que `idempotence-ordre-des-cles.test.mjs` copie le corpus (Source/ moins les ' +
       '`.pdf`, écartés par extension : sans les extractions quatre migrations sortent 1 faute de livres) sous ' +
       'os.tmpdir() avant de rejouer les 89 migrations — cette copie passe par `cpSync`, que l’enveloppe de la ' +
@@ -129,7 +129,7 @@ export const ECRIT_LU = {
       '(parité des canaux), .github/workflows/ci.yml, CLAUDE.md, eslint.config.js et package.json — ' +
       'sonde 2026-09-14 (#1759, après le départ d’`enregistreur-lectures.test.mjs` vers test:docs), ' +
       '4 425 chemins lus ; +4 chemins la même sonde (public/, server/, knip.json, package-lock.json) : ' +
-      '`stocks-nominatifs.test.mjs:113-129` dérive les stocks OUBLIÉS par la FORME — il prend TOUT `.json` ' +
+      '`stocks-nominatifs.test.mjs` (test « périmètre — tout JSON suivi dont la FORME est un stock … ») dérive les stocks OUBLIÉS par la FORME — il prend TOUT `.json` ' +
       'suivi par git (`git ls-files --cached -- *.json`), saute les porteurs connus et PARSE le reste, ' +
       'donc public/qc/*.json, server/package.json, server/package-lock.json, server/tsconfig.json, ' +
       'knip.json et package-lock.json ; il n’en écrit aucun, et aucune gate n’écrit sous public/ ni server/ ; ' +
@@ -155,22 +155,28 @@ export const ECRIT_LU = {
   },
   'test:ops': {
     ecrit: [],
-    lit: ['src/', 'scripts/ops/', 'scripts/guards/lib/', 'scripts/raw/', 'scripts/port-dev.mjs', 'scripts/hooks/', '.claude/workflows/', '.github/workflows/', 'knip.json', 'knip-exports-baseline.json'],
+    lit: ['src/', 'scripts/', 'eslint.config.js', 'kill-pid.mjs', '.claude/workflows/', '.claude/agents/', '.github/workflows/', 'knip.json', 'knip-exports-baseline.json'],
     raison:
-      'six modules atteints portent un appel d’écriture, tous hors de l’arbre ou gardés : ' +
-      '`knip-exports-ratchet.mjs` (`main()` gardé par `import.meta.main`, l.121 ; seul `--sync` ' +
-      'écrirait la baseline, l.94-96), `ruleset-main.mjs` (le corps du ruleset part par un fichier de ' +
-      'os.tmpdir(), `executer` de ruleset-main.mjs, et son `executer` n’est jamais appelé par les tests), ' +
-      '`fermer-depuis-main.test.mjs` (dépôts jetables de os.tmpdir()), `faits-de-palier.mjs` (le JSON des ' +
-      'faits va à `--sortie`, sous os.tmpdir() par défaut — `sortieParDefaut`, faits-de-palier.mjs) ' +
-      'et `depotGabarit.mjs`, qui fabrique les dépôts jetables de `fermer-depuis-main.test.mjs` et ' +
-      '`faits-de-palier.test.mjs` : ses seules écritures (`mkdtempSync`, `cpSync`, `rmSync` — ' +
-      'depotGabarit.mjs:62,82,99-100) visent `os.tmpdir()` ; LIT .github/workflows/ parce que ' +
-      '`canari.test.mjs` et `ruleset-main.test.mjs` lisent les workflows RÉELS, et ' +
-      'scripts/guards/lib/ par le stock de `fermetures-non-citees.mjs` ; LIT .claude/workflows/ ' +
-      '(`workflows.test.mjs` les parse, `workflows-joues.test.mjs` les joue) et scripts/hooks/ ' +
-      '(`validateRevuePalier` de solde-ticket-guard.mjs), sans rien y écrire ; LIT knip.json (le cliquet ' +
-      'd’exports le relit) ; les 3 fichiers de .claude/workflows/ sont lus EN PLACE, sur l’arbre réel. ' +
+      'aucun module atteint n’écrit DANS l’arbre (la liste des écrivains atteints vit au cliquet ' +
+      '`ecrivainsAtteints.test.mjs`, pas ici) : les bancs écrivent sous os.tmpdir() — leurs dossiers de ' +
+      '`mkdtempSync`, ou les dépôts jetables de `depotGabarit.mjs`, dont toutes les écritures visent ' +
+      'os.tmpdir() —, et un module dont l’écriture réelle vise un autre lieu la tient derrière sa porte ' +
+      '`import.meta.main`. Les cas qui demandent une explication : `knip-exports-ratchet.mjs` (seul ' +
+      '`--sync`, sous la porte de `main()`, écrirait la baseline), `ruleset-main.mjs` (le corps du ruleset ' +
+      'part par un fichier de os.tmpdir(), depuis `executer`, que les tests n’appellent jamais), ' +
+      '`faits-de-palier.mjs` (le JSON des faits va à `--sortie`, sous os.tmpdir() par défaut — ' +
+      '`sortieParDefaut`) et `suivi.mjs` (il écrit `.git/suivi/<N>.md`, dans le répertoire git COMMUN et ' +
+      'non dans l’arbre, sous sa porte ; ses tests lui passent un dossier de `mkdtempSync`) ; ' +
+      'LIT .github/workflows/ parce que `CHEMIN` de `canari.test.mjs` et le test « les contextes se LISENT ' +
+      'dans le ci.yml réel » de `ruleset-main.test.mjs` lisent les workflows RÉELS, et ' +
+      'scripts/guards/lib/ par le stock de `fermetures-non-citees.mjs` ; LIT tout fichier JavaScript suivi ' +
+      'ou à suivre (`git ls-files -co --exclude-standard` : scripts/, .claude/workflows/, eslint.config.js, ' +
+      'kill-pid.mjs), que la porte `workflows.test.mjs` parse pour y RECONNAÎTRE les scripts de workflow et ' +
+      'les bancs qui importent `jouer-workflow.mjs` (`reconnaissanceDuDepot`, `bancsDeWorkflowDuDepot`), sans ' +
+      'processus fils ; LIT .claude/agents/ (le cliquet d’EXCEPTIONS_MECANIQUES exige `.claude/agents/<type>.md`) ; ' +
+      '`workflows-joues.test.mjs` joue les scripts de .claude/workflows/ EN PLACE, sur l’arbre réel ; ' +
+      'scripts/hooks/ est lu par `validateRevuePalier` (solde-ticket-guard.mjs), sans rien y écrire ; LIT ' +
+      'knip.json (le cliquet d’exports le relit). ' +
       'Ce que `soldesSuivis()` lirait de .claude/soldes/ n’est atteint que par le `main()` du script, ' +
       'gardé par `import.meta.main` (fermetures-non-citees.mjs) : les tests passent leurs ' +
       'PROPRES dépôts jetables, et la sonde n’a mesuré aucune lecture sous .claude/soldes/ ; ' +
@@ -253,8 +259,8 @@ export const ECRIT_LU = {
     },
     lit: ['src/', 'server/src/', 'scripts/', 'docs/', 'Source/', '.gitattributes', 'vite.config.ts'],
     raison:
-      'LIT scripts/ EN ENTIER, pas le seul `scripts/map/` de son `include` : les tests de `src/` ' +
-      'IMPORTENT les porteurs de garde (`git grep "from \'../../scripts/"` : guards/lib, source, ' +
+      'LIT scripts/ EN ENTIER, pas les seules racines `scripts/` de son `include` (racinesDeLaSuite.mjs) : ' +
+      'les tests de `src/` IMPORTENT les porteurs de garde (`git grep "from \'../../scripts/"` : guards/lib, source, ' +
       'docs/lib, data/lib, qc/lib, raw, migrations, campagne, arene, gen-registry.mjs) ; ' +
       'LIT docs/ ET docs/raw/ (sonde `fs` du 2026-09-16, #1738) : la famille des ' +
       'CLIQUETS ET CONTRATS qui confrontent le code à un doc DÉRIVÉ (data-atlas-complete, ' +
@@ -264,10 +270,11 @@ export const ECRIT_LU = {
       '(même sonde) : les deux gardes documentaires qui les balayaient vivent ' +
       'en node:test (scripts/guards/lib/memoryLinks.test.mjs dans test:hooks, ' +
       'scripts/docs/manual-docs-ratchet.test.mjs dans test:docs) ; LIT Source/ (verbatims ' +
-      'et résolution de prose : src/data/psychology-verbatim.test.ts:24, tavern-desc-verbatim.test.ts:20, ' +
-      'variants-integrity.test.ts:234, vdm-objets-maudits.test.ts:154, prose-resolution.test.ts:142, ' +
-      'src/oversize-search-blindspot.test.ts:121) ; LIT .gitattributes parce que le verdict de ' +
-      'src/source-hygiene-guard.test.ts:58 tient à la colonne `-text` que `git ls-files --eol` en tire',
+      'et résolution de prose : `CHAPITRE` de src/data/tavern-desc-verbatim.test.ts et de ' +
+      'vdm-objets-maudits.test.ts, `AA_ANNEXE_III` de variants-integrity.test.ts, le cas « A — chaque ' +
+      'adresse RÉSOUT » de prose-resolution.test.ts, `oversizeIn(\'Source\', …)` de ' +
+      'src/oversize-search-blindspot.test.ts) ; LIT .gitattributes parce que le verdict de `nonLf` ' +
+      '(src/source-hygiene-guard.test.ts) tient à la colonne `-text` que `git ls-files --eol` en tire',
   },
   build: {
     ecrit: [],
@@ -287,7 +294,7 @@ export const ECRIT_LU = {
       '`build` juge que le bundle se construit, et `dist/` n’est lu par aucune gate ; LIT tsconfig.json ' +
       'parce que l’esbuild de Vite y relit `target`/`jsx`/`useDefineForClassFields` pour transformer ' +
       'chaque module TS (les `meaningfulFields` que Vite 5.4 recopie dans `tsconfigRaw`) — `paths`, lui, ' +
-      'n’en vient pas : l’alias `@` est déclaré dans vite.config.ts:47 ; LIT Source/ parce que le plugin ' +
+      'n’en vient pas : l’alias `@` est déclaré dans `resolve.alias` de vite.config.ts ; LIT Source/ parce que le plugin ' +
       '`wfrp:prose-source` (scripts/source/prose-source-plugin.mjs) y résout la prose que les entrées ADRESSENT ' +
       '— la sonde du 2026-09-08 n’a compté AUCUNE lecture sous Source/ sur un build complet (2 056 lectures) : ' +
       'la déclaration reste, une sur-déclaration ne peut que RESSERRER les lanes ; LIT aussi index.html ' +
@@ -367,7 +374,7 @@ export const ECRIT_LU = {
       '`build-atlas-index.mjs`, ACQUIS par l’import de son banc — son `writeFileSync` vit dans ' +
       '`main()`, sous sa porte `import.meta.main` ; +1 lecture le 2026-09-22 (#1873) : ' +
       '`atlas-domain.workflow.test.mjs` lit les fiches d’agent de .claude/agents/ (frontmatter `tools:`) ' +
-      'pour tenir la liste des types SANS outil d’écriture (scripts/raw/atlas-domain.workflow.test.mjs:312) — ' +
+      'pour tenir la liste des types SANS outil d’écriture (`typesEnLectureSeule` de scripts/raw/atlas-domain.workflow.test.mjs) — ' +
       'la gate n’est plus sautable : un push qui donne `Edit` à `lecteur` doit la jouer ; +1 écrivain le ' +
       '2026-09-23 (#1739) : `pdf-de.test.mjs`, même régime os.tmpdir() (`avecSource`) — son PDF et ses dossiers de sortie Marker ' +
       'factices ne naissent que sous la racine `source` INJECTÉE dans la couture (scripts/raw/_lib.mjs)',

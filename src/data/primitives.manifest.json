@@ -460,6 +460,15 @@
     "verrou": "réflexe avant tout minuteur de pression recodé"
   },
   {
+    "id": "useClesDeRangees",
+    "type": "primitives.manifest",
+    "label": "useClesDeRangees",
+    "fichier": "src/ui/useClesDeRangees.ts",
+    "concept": "clé STABLE de chaque rangée d'une liste éditable contrôlée : elle suit la rangée à travers retrait, déplacement et édition (reconnaissance par référence), une rangée neuve en reçoit une jamais servie ; sert de `key` React ET de segment d'`identite`/`chemin`, jamais l'index",
+    "perimetre": "toute rangée qui compose un champ à état : variantes, tableaux génériques, effets déclenchés, modificateurs d'exposition, bandes d'issues et clés de record (RecordTextField) du Codex ; GameOpEditor et ses rangées de table (RollTableRowsField), FlowEditor, EffectList ; zones d'effet et actions de décor de l'inspecteur, triggers et dialogues du panneau Logique, nœuds et choix de dialogue (DialogueDetail), péripéties de route ; porteurs narratifs (indice, stade, PNJ) à travers leur renommage",
+    "verrou": "src/ui/useClesDeRangees.test.tsx"
+  },
+  {
     "id": "coopPanels",
     "type": "primitives.manifest",
     "label": "CoopInvite / CoopCodeInput / SeatList / CoopAssignRow / CoopBanner",
@@ -543,6 +552,15 @@
     "concept": "champ nombre : variantes complet/champ/nu, bornes optionnelles, commit à la frappe ou au geste",
     "perimetre": "cascade, réglages de table, atelier du Codex, quantité de marché, dé forcé",
     "verrou": "réflexe avant toute saisie de nombre brute ; cliquet (xvii) de src/ui/ui-ratchets.test.ts"
+  },
+  {
+    "id": "sourceRefField",
+    "type": "primitives.manifest",
+    "label": "SourceRefField",
+    "fichier": "src/ui/SourceRefField.tsx",
+    "concept": "édition d'une réf de source {book, page, note?} : livre choisi au registre (RefField), page, note ; seule une réf complète (livre et page ≥ 1) est émise, le brouillon incomplet reste à l'écran et se dit incomplet (aria-invalid sur le seul champ manquant, décrit par le message) ; exigée, ou facultative : « aucun » au livre retire alors la source en un geste ; `identite` REQUISE (entité + chemin du champ) : la changer repart de la valeur, jamais du brouillon d'un autre porteur ; une saisie non enregistrée remonte au porteur du geste d'enregistrement (SuiviDesSaisies / useSuiviDesSaisies côté porteur, useSaisieEnCours côté champ), qui s'en bloque",
+    "perimetre": "atelier du Codex (champ source, emplacements secondaires, variantes), éditeur narratif (ouverture, stade, PNJ)",
+    "verrou": "src/ui/SourceRefField.test.tsx"
   },
   {
     "id": "freeAttackLabel",

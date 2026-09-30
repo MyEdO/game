@@ -158,7 +158,7 @@ export function MonsterPartsFields({
           ))}
           {CASES_MONSTRE.map(([k, lbl]) => (
             <label key={k} className="reglage-apparence">
-              <input type="checkbox" checked={!!monster?.[k]} onChange={(e) => poser({ monster: { [k]: e.target.checked || undefined } })} />
+              <input type="checkbox" aria-label={`${lbl} — mutation du rig`} checked={!!monster?.[k]} onChange={(e) => poser({ monster: { [k]: e.target.checked || undefined } })} />
               {lbl}
             </label>
           ))}

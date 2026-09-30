@@ -13,7 +13,7 @@
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { diceSpecSchema, formulaSinSchema, plageSchema, sourceRefSchema } from '../grammaire/valeurs';
+import { formulaSchema, formulaSinSchema, plageSchema, sourceRefSchema } from '../grammaire/valeurs';
 import { idDe, refOuSpec } from '../grammaire/ref';
 
 export const file = 'miscast.json';
@@ -24,30 +24,11 @@ const difficultySchemaLocal = z.enum([
   'difficile', 'tresDifficile', 'presqueImpossible', 'impossible',
 ]);
 
-/** `Formula` GÉNÉRAL du moteur (`engine/ops.ts`) — porte d'`escapeStrength` UNIQUEMENT : la donnée
- *  réelle y écrit `{times:{of,factor}}` (entrées `mineure-tenue-indisciplinee` et
- *  `mineure-vdm-tenue-indisciplinee` de `miscast.json`). Ce champ n'est jamais sin-paramétré :
- *  `expandOp` le recopie tel quel (`engine/miscast.ts`). */
-const engineFormulaSchema: z.ZodType<unknown> = z.lazy(() =>
-  z.union([
-    z.number(),
-    z.strictObject({ bonusOf: z.string() }),
-    z.strictObject({ charOf: z.string() }),
-    z.strictObject({ dice: diceSpecSchema }),
-    z.strictObject({ rolled: z.literal(true) }),
-    z.strictObject({ indiceOf: z.literal(true) }),
-    z.strictObject({ stacks: z.literal('self') }),
-    z.strictObject({ engagedAdvantageGap: z.literal(true) }),
-    z.strictObject({ woundsDealt: z.literal(true) }),
-    z.strictObject({ sum: z.array(engineFormulaSchema) }),
-    z.strictObject({ times: z.strictObject({ of: engineFormulaSchema, factor: z.number() }) }),
-  ]),
-);
-
 /**
  * `JsonOp` (`engine/miscast.ts`) — miroir aplati du `GameOp` runtime (`op:'condition'|'wounds'|
  * 'corruption'|'reduceToZero'|'castPenalty'`, seuls op observés dans la donnée), en `JsonFormula`.
- * `escapeStrength` porte le `Formula` plein : cf. `engineFormulaSchema` ci-dessus.
+ * `escapeStrength` porte la `Formula` générale (`formulaSchema`) : `expandOp` la recopie telle quelle
+ * dans le `GameOp`, que `applyOps` résout par `resolveFormula` (`engine/ops.ts`).
  */
 const jsonOpSchema = z.strictObject({
   op: z.string(),
@@ -75,7 +56,7 @@ const jsonOpSchema = z.strictObject({
   hours: formulaSinSchema.optional(),
   minutes: formulaSinSchema.optional(),
   days: formulaSinSchema.optional(),
-  escapeStrength: engineFormulaSchema.optional(),
+  escapeStrength: formulaSchema.optional(),
 });
 
 /** `JsonNestedTest` (`engine/miscast.ts`). */

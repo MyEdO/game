@@ -81,7 +81,7 @@ function monterNarratif(): HTMLElement {
 
 function monterCodex(): HTMLElement {
   const creature = datasetArray('creatures').find((c) => (c as { appearance?: EntityAppearance }).appearance?.species) as { id: string; label: string };
-  return monterRacine(<CodexEdit categoryKey="creatures" label={creature.label} id={creature.id} onClose={() => {}} />).container;
+  return monterRacine(<CodexEdit categoryKey="creatures" id={creature.id} onClose={() => {}} />).container;
 }
 
 const SP = allSpecies.find((s) => s.source.book === 'livre-de-base')!;

@@ -9,6 +9,8 @@ import { detenteur } from '../detenteur.testkit';
 import { tableTotale } from '../lib/tableTotale';
 import {
   classerValeur,
+  clesPortees,
+  entreesPartiellesEmbarquees,
   listerDocuments,
   mesurerEnveloppe,
   scanDuCorpus,
@@ -44,8 +46,7 @@ import type { SchemaDef } from './schemas/types';
  * (`options.variantes`, `document.ts` — « un document sans `variantes` n'admet aucun `variants` »).
  * Elle reste donc une DÉCLARATION du def, comme n'importe quel champ de `champs` : un def qui
  * l'active sans qu'aucune entrée ne la porte est bien « un schéma plus large que sa donnée », et sa
- * dette se compte. Mesuré au 2026-08-28 : 3 defs l'activent — `spells` (18 entrées porteuses),
- * `talents` (12), `traits` (0/131, dette réelle).
+ * dette se compte.
  */
 const CLES_POSEES_INCONDITIONNELLEMENT: readonly string[] = (CLES_ENVELOPPE as readonly string[]).filter((k) => k !== 'variants');
 import {
@@ -352,7 +353,7 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
     for (const d of scan.documents) {
       const dec = parFichier.get(d.nom);
       if (!dec) continue;
-      const vues = new Set(d.clesNiveau1.map((k) => k.cle));
+      const vues = scan.clesPortees.get(d.nom)!;
       // Les clés posées INCONDITIONNELLEMENT par la fabrique (`document.ts`) sortent de la question
       // posée ici (un SCHÉMA plus large que sa donnée) : un `labelF` ou un `icon` qu'un dataset
       // n'emploie pas ne se « solde » pas — il n'y a rien à retirer d'un def qui ne l'a pas écrit.
@@ -384,7 +385,7 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       for (const d of scan.documents) {
         const dec = parFichier.get(d.nom);
         if (!dec) continue;
-        const vues = new Set(d.clesNiveau1.map((k) => k.cle));
+        const vues = scan.clesPortees.get(d.nom)!;
         for (const c of Object.keys(dec.cles).filter((k) => !vues.has(k) && !exclues.includes(k))) out.push(`${d.nom} | ${c}`);
       }
       return out.sort();
@@ -886,7 +887,9 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       // l'une comme l'autre dans les `champs` d'un def à rangées : `driving-mishap`,
       // `drunkenness`, `montures`, `naval-progression`, `obsessions`, `surincantation`,
       // `vents-tourbillonnants`.
-      'L1a #1466': 16,
+      // … puis 16 → 5 (#1993) : les 11 lignes de `defs/miscast.ts` s'éteignent, `escapeStrength`
+      // compose `formulaSchema`.
+      'L1a #1466': 5,
       'L1b #1467': 0,
       // L1c #1468 : 403 → 400 (commit 3c) — cf. le cliquet `STRUCTURES_OPS` ci-dessus.
       // … puis 400 → 402 (#862) : cf. le cliquet `STRUCTURES_OPS` ci-dessus.
@@ -933,7 +936,7 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       // … puis 55 → 53 (#1686) : les TROIS lignes « `source` absente » des catalogues de matières
       // (`propMaterials`/`roofMaterials`/`reliefMaterials`) en font seulement UNE — les trois documents
       // fusionnent en `materials.json`, mêmes 16 entrées, un seul porteur de la divergence.
-      'L1d #1469': 43 /* 53→43 (#1897) : les 10 lignes `source | alsoIn` sortent, l'emplacement secondaire et sa preuve `quote` étant CIBLES au site `alsoIn` (`SITE_EMPLACEMENT_SECONDAIRE`) — le +2 ci-dessous (creatures/species) est soldé avec elles. 56→55 : la ligne d'enveloppe « `source` absente » de `props.json` meurt (#1680 ligne 5). PORTÉE EXACTE, à ne pas surestimer : elle s'éteint par `satisfaitAutrement = parCle.has(def.alternative)` (`scripts/docs/lib/structures-scan.mts:1081`) — la divergence est relevée PAR DOCUMENT, et la présence de la clé alternative `maison` sur AU MOINS UNE entrée suffit à l'éteindre pour tout le document. Ce ne sont donc PAS les 123 entrées qui deviennent sourcées : 41 portent `maison` (celles qui portent une RÈGLE — `light`/`cover`/`opaque` — que `affinerEntree` exige), 82 restent muettes et le demeurent légitimement (leur contenu est de l'art). */,
+      'L1d #1469': 42 /* 43→42 (#680, 2026-09-29) : la ligne « `source` | clé absente » de `groups.json` meurt — ses 2 Groupes neufs de #680 portent `source`. 53→43 (#1897) : les 10 lignes `source | alsoIn` sortent, l'emplacement secondaire et sa preuve `quote` étant CIBLES au site `alsoIn` (`SITE_EMPLACEMENT_SECONDAIRE`) — le +2 ci-dessous (creatures/species) est soldé avec elles. 56→55 : la ligne d'enveloppe « `source` absente » de `props.json` meurt (#1680 ligne 5). PORTÉE EXACTE, à ne pas surestimer : elle s'éteint par `satisfaitAutrement = parCle.has(def.alternative)` (`scripts/docs/lib/structures-scan.mts:1081`) — la divergence est relevée PAR DOCUMENT, et la présence de la clé alternative `maison` sur AU MOINS UNE entrée suffit à l'éteindre pour tout le document. Ce ne sont donc PAS les 123 entrées qui deviennent sourcées : 41 portent `maison` (celles qui portent une RÈGLE — `light`/`cover`/`opaque` — que `affinerEntree` exige), 82 restent muettes et le demeurent légitimement (leur contenu est de l'art). */,
       // L2 #1463 : 57 → 48 (commit 3b) — les 9 lignes de référence de Compétence à graphie `skillId`
       // (donnée + defs) meurent ; ce qui reste du lot est la référence PLATE `skill: "<id>"` des ops.
       // … puis 48 → 18 (commit 3c) : cette référence PLATE MEURT à SON TOUR — 30 lignes s'éteignent avec
@@ -1056,7 +1059,10 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
       // (objet des ops / chaîne nue de 79 sites) entre, +1.
       // #1920 B14 (2026-09-24) : 372 → 370 — `flow-stakes.json › flow` et `› phase` s'éteignent : l'enjeu
       // de modale se keye par son `id` (`FlowStakeId`, généré).
-      'L3 #1463': 370,
+      // #680 (2026-09-29) : 370 → 371 — UNE ligne de référence NEUVE, `diligence-projet.json › base` (id nu
+      // scalaire imposé par `presetPnjSchema.base`, #671) ; MÊME graphie que ses sœurs `a`/`b`/`scene` du
+      // même projet : même lot, même extinction.
+      'L3 #1463': 371,
       // L4 #1463 : 220 → 219 (commit 3b) — les deux formes de `activities.json › skills` fusionnent en
       // une seule dès que la référence sort de leur signature.
       // … puis 219 → 221 (#674) : le Test quotidien de la Pneumonie compte DEUX fois — sa forme en
@@ -1890,6 +1896,110 @@ describe('collection à clé déclarée : la carte d’un record MARQUÉ n’est
   it('une carte marquée dont une clé `…Id` ne résout pas n’est pas orpheline', () => {
     expect(fixture.orphelines.filter((o) => o.dataset === 'x.json').map((o) => `${o.champ} | ${o.signature}`)).toEqual([]);
     expect(invisible('u')).toEqual([]);
+  });
+});
+
+/**
+ * CLÉS PORTÉES (`clesPortees`) : une clé déclarée d'un document A que seule porte une ENTRÉE PARTIELLE
+ * de A embarquée dans un document B est PORTÉE par la donnée — c'est le schéma de A qui la valide
+ * (volet « formes DÉCLARÉES jamais observées » ci-dessus).
+ */
+describe('clés portées : l’entrée PARTIELLE embarquée d’un document porte ses clés', () => {
+  const expositionDeSonde: Exposition = { codex: { keys: ['sondes'] }, edit: { dataset: 'sonde.json' } };
+  const a = document(
+    'a',
+    'entite',
+    { cible: z.number().optional(), autre: z.string().optional(), sous: z.strictObject({ cible: z.number() }).optional() },
+    { cible: { label: 'Cible' }, autre: { label: 'Autre' }, sous: { label: 'Sous' } },
+    expositionDeSonde,
+  );
+  const b = z.strictObject({
+    pnjs: z.array(z.strictObject({ id: z.string(), profil: a.entreePartielle.optional() })).optional(),
+    leurre: z.strictObject({ cible: z.number() }).optional(),
+    union: z.union([a.entreePartielle, z.strictObject({ cible: z.number(), etranger: z.string() })]).optional(),
+  });
+  const defs = [
+    { file: 'a.json', schema: a.schema },
+    { file: 'b.json', schema: b },
+  ];
+  const documents = [
+    { nom: 'a.json', clesNiveau1: [{ cle: 'id' }] },
+    { nom: 'b.json', clesNiveau1: [{ cle: 'pnjs' }] },
+  ];
+  const portees = (brutB: unknown) =>
+    clesPortees(documents, entreesPartiellesEmbarquees(new Map<string, unknown>([['a.json', [{ id: 'x' }]], ['b.json', brutB]]), defs));
+
+  it('une clé de A portée SEULEMENT par l’entrée partielle de A embarquée dans B est portée pour A', () => {
+    const p = portees({ pnjs: [{ id: 'p', profil: { cible: 3 } }] });
+    expect([...p.get('a.json')!].sort()).toEqual(['cible', 'id']);
+    expect([...p.get('b.json')!]).toEqual(['pnjs']);
+  });
+
+  it('opposé : la même clé ABSENTE de l’entrée partielle n’est pas portée', () => {
+    expect([...portees({ pnjs: [{ id: 'p', profil: { autre: 'z' } }] }).get('a.json')!].sort()).toEqual(['autre', 'id']);
+  });
+
+  it('opposé : une clé de même nom portée par un objet de B qui n’est PAS l’entrée partielle de A n’est pas portée pour A', () => {
+    expect([...portees({ leurre: { cible: 1 }, pnjs: [{ id: 'p' }] }).get('a.json')!]).toEqual(['id']);
+  });
+
+  it('opposé : une clé portée par un DESCENDANT de l’entrée partielle n’est pas une clé de niveau 1 de A', () => {
+    expect([...portees({ pnjs: [{ id: 'p', profil: { sous: { cible: 1 } } }] }).get('a.json')!].sort()).toEqual(['id', 'sous']);
+  });
+
+  it('union simple : la valeur qui prend l’AUTRE branche ne porte rien pour A ; celle qui est une entrée partielle de A, si', () => {
+    expect([...portees({ union: { cible: 1, etranger: 'x' } }).get('a.json')!]).toEqual(['id']);
+    expect([...portees({ union: { cible: 1 } }).get('a.json')!].sort()).toEqual(['cible', 'id']);
+  });
+});
+
+/**
+ * FORMES d'une entrée PARTIELLE embarquée (`entreesPartiellesEmbarquees`) : l'objet repéré est une
+ * ENTRÉE du document D qu'il complète — ses enfants sont mesurés sur les sites de D, jamais sur ceux de
+ * l'hôte, et il n'entre pas dans la mesure d'enveloppe de D (un patch n'est sommé de rien).
+ */
+describe('formes : l’entrée PARTIELLE embarquée est mesurée comme une entrée de son document', () => {
+  const expositionDeSonde: Exposition = { codex: { keys: ['sondes'] }, edit: { dataset: 'sonde.json' } };
+  const lien = z.strictObject({ cibleId: z.string() });
+  const alpha = document('alpha', 'entite', {}, {}, expositionDeSonde);
+  const a = document('a', 'entite', { liens: z.array(lien).optional() }, { liens: { label: 'Liens' } }, expositionDeSonde);
+  const b = z.strictObject({
+    pnjs: z.array(z.strictObject({ id: z.string(), profil: a.entreePartielle.optional() })),
+    leurre: z.strictObject({ liens: z.array(lien) }),
+  });
+  const DEFS_FIXTURE: SchemaDef[] = [
+    { file: 'alpha.json', root: 'src/data', famille: 'entite', schema: alpha.schema },
+    { file: 'a.json', root: 'src/data', famille: 'entite', schema: a.schema },
+    { file: 'b.json', root: 'src/data', famille: 'config', schema: b },
+  ];
+  const dossier = mkdtempSync(join(tmpdir(), 'structures-partielle-'));
+  afterAll(() => rmSync(dossier, { recursive: true, force: true }));
+  mkdirSync(join(dossier, 'src/data'), { recursive: true });
+  mkdirSync(join(dossier, 'src/scenes'), { recursive: true });
+  cpSync(join(ROOT, 'src/data/schemas/grammaire'), join(dossier, 'src/data/schemas/grammaire'), { recursive: true });
+  writeFileSync(join(dossier, 'src/data/alpha.json'), JSON.stringify([{ id: 'renvoi-un', maison: 'sonde' }]));
+  writeFileSync(join(dossier, 'src/data/a.json'), JSON.stringify([{ id: 'a1', type: 'a', label: 'A1', maison: 'sonde' }]));
+  writeFileSync(
+    join(dossier, 'src/data/b.json'),
+    JSON.stringify({ pnjs: [{ id: 'p', profil: { liens: [{ cibleId: 'renvoi-un' }] } }], leurre: { liens: [{ cibleId: 'renvoi-un' }] } }),
+  );
+  const fixture = scannerDonnees(dossier, DEFS_FIXTURE);
+  const formesDesLiens = () =>
+    fixture.formes.filter((f) => f.champ === 'liens').map((f) => `${f.concept} | ${f.dataset} | ${f.signature} | ${f.occurrences}`);
+
+  it('l’enfant de l’entrée partielle est compté sous son document ; le même enfant hors entrée partielle reste à l’hôte', () => {
+    expect(formesDesLiens()).toEqual(['reference | a.json | cibleId | 1', 'reference | b.json | cibleId | 1']);
+  });
+
+  it('l’entrée partielle n’est ni orpheline, ni invisible, ni document embarqué de l’hôte', () => {
+    expect(fixture.orphelines.filter((o) => o.champ === 'profil')).toEqual([]);
+    expect(fixture.invisibles.filter((i) => i.champ === 'profil')).toEqual([]);
+    expect(fixture.groupesEnveloppe.filter((g) => g.chemin.includes('profil'))).toEqual([]);
+  });
+
+  it('l’entrée partielle n’entre pas dans la mesure d’enveloppe de son document (un patch n’est sommé de rien)', () => {
+    expect(fixture.enveloppe.filter((e) => e.document === 'a.json')).toEqual([]);
+    expect(fixture.groupesEnveloppe.find((g) => g.document === 'a.json' && g.portee === 'racine')?.nbEntrees).toBe(1);
   });
 });
 

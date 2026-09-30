@@ -1,10 +1,9 @@
 import { pregenParty, PREGEN } from '../../data/pregens';
-import { creatures, careers, trappings } from '../../data/index';
+import { creatures, careers, tailleDuProfil, trappings } from '../../data/index';
 import { arena } from './_shared';
 import type { TestScenario } from './_shared';
 import type { Scene, SceneEntity } from '../../state/scene';
 import type { MonsterPartsSel } from '../../engine/authoringAppearance';
-import { sizeFromTraits } from '../../state/spawn';
 import { sizeFootprint } from '../../state/footprint';
 
 /**
@@ -66,7 +65,7 @@ function construireScene(): Scene {
 
   // 1) Bestiaire complet — chaque créature à l'échelle de son empreinte (Trait Taille).
   for (const c of creatures) {
-    place({ id: `cr-${n++}`, kind: 'personnage', ref: c.id, label: c.label }, sizeFootprint(sizeFromTraits(c.traits) ?? undefined));
+    place({ id: `cr-${n++}`, kind: 'personnage', ref: c.id, label: c.label }, sizeFootprint(tailleDuProfil(c)));
   }
   // Démo Monstrueuse (4×4) : aucune créature LDB/ADE n'est Monstrueuse par DÉFAUT (c'est une option
   // facultative de plusieurs créatures) — on force la Taille via le statbloc ; le modèle reste le Géant.

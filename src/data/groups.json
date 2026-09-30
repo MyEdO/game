@@ -194,5 +194,27 @@
     "id": "etranger",
     "type": "groups",
     "label": "Étrangers"
+  },
+  {
+    "id": "personnes-qui-ne-leur-offrent-rien",
+    "type": "groups",
+    "label": "Personnes qui ne leur offrent rien",
+    "source": {
+      "book": "ennemi-dans-l-ombre",
+      "page": 31,
+      "note": "EDO 02 l.289"
+    },
+    "maison": "Groupe de comportement : ni l'espèce, ni la carrière, ni un Trait ou Talent ne le confère (`groupsFor`, LDB 21) ; seule une donnée d'auteur y range un combattant — `grantGroups` d'une créature ou d'un profil de preset, `groups` d'un statbloc de scène (`src/state/spawn.ts`) — et un Personnage joueur n'y entre jamais."
+  },
+  {
+    "id": "rustres-et-idiots",
+    "type": "groups",
+    "label": "Rustres et Idiots",
+    "source": {
+      "book": "ennemi-dans-l-ombre",
+      "page": 31,
+      "note": "EDO 02 l.315"
+    },
+    "maison": "Groupe de comportement : ni l'espèce, ni la carrière, ni un Trait ou Talent ne le confère (`groupsFor`, LDB 21) ; seule une donnée d'auteur y range un combattant — `grantGroups` d'une créature ou d'un profil de preset, `groups` d'un statbloc de scène (`src/state/spawn.ts`) — et un Personnage joueur n'y entre jamais."
   }
 ]

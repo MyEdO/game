@@ -163,7 +163,7 @@ describe('DispoSaisonniereField — les quatre colonnes, nommées en FRANÇAIS',
 
 describe('les DEUX sites de l’atelier — une fourchette REQUISE s’édite sur une entrée NEUVE', () => {
   const monterNeuve = (categoryKey: string) => {
-    mount(<CodexEdit categoryKey={categoryKey} label="" isNew onClose={() => {}} />);
+    mount(<CodexEdit categoryKey={categoryKey} isNew onClose={() => {}} />);
   };
   /** Les champs de la fourchette `label`, par leur nom accessible. */
   const bornesDe = (label: string) => champs().filter((c) => (c.getAttribute('aria-label') ?? '').startsWith(`${label} — borne`));

@@ -20,7 +20,7 @@ import {
   SYMPTOM_SEVERITIES,
   vehicles, celestialHouses, groups, psychologies, seaShanties, crewRoles, crewTestTypes, shipStations, NAVAL_TRAITS, findVehicleById, structures, regles,
   charAbr, rigSpeciesId, navalPorts, shipConstruction, effectTables, disponibilite,
-  conditionLabel, traitProjectingManeuver, materials, terrains, props, buildings, libelleOuAbsence,
+  conditionLabel, traitProjectingManeuver, materials, terrains, props, buildings, libelleOuAbsence, tailleDuProfil,
 } from '../../data';
 // #157 (audit d'exposition Codex) : catalogues app-owned chargés par un module dédié plutôt que la
 // façade `index.ts` — réutilisés TELS QUELS (même patron que `POWER_ESTIMATE` etc. ci-dessous, déjà
@@ -81,7 +81,6 @@ import { CHAR_KEYS, CHAR_LABELS, HIT_LOCATION_LABELS, DIFFICULTY_LABELS, type Co
 import { SIZE_LABEL, SIZE_ORDER, effectiveSize, woundsForSize, type SizeCategory } from '../../engine/size';
 import { bonus, effectiveChar } from '../../engine/characteristics';
 import { skillBaseValue } from '../../engine/skills';
-import { sizeFromTraits } from '../../state/spawn';
 import { formatDice, type DiceSpec } from '../../engine/dice';
 import { formatDiseaseTime } from '../../engine/disease';
 import { costPerEnc } from '../../engine/harvest';
@@ -586,9 +585,9 @@ export function raceFicheTabs(s: (typeof species)[number]): CodexTab[] {
 /** Statbloc compact d'une créature : profil IMPRIMÉ (M + les 10 caracs, « – » si inexistante —
  *  LDB 76, Schéma des Profils) + Blessures (valeur livre `char.B` si imprimée, sinon formule
  *  BF+2×BE+BFM × Taille, LDB 85) + traits en chips cross-réf. Zéro logique par-créature. */
-function creatureStatblock(c: (typeof creatures)[number]): NonNullable<CodexItem['statblock']> {
+export function creatureStatblock(c: (typeof creatures)[number]): NonNullable<CodexItem['statblock']> {
   const cell = (label: string, v: number | null | undefined, kref?: CodexFact['kref']): CodexFact => ({ label, value: v != null ? String(v) : '–', kref });
-  const size = sizeFromTraits(c.traits) ?? 'moyenne';
+  const size = tailleDuProfil(c);
   const wounds = typeof c.char.B === 'number'
     ? c.char.B
     : woundsForSize(bonus(c.char.force ?? 0), bonus(c.char.endurance ?? 0), bonus(c.char['force-mentale'] ?? 0), size);
@@ -2123,7 +2122,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
   },
   {
     key: 'groups', label: 'Groupes (Cible)', group: 'Monde',
-    build: () => groups.map((g) => ({ id: g.id, label: g.label })),
+    build: () => groups.map((g) => depuisEnveloppe(g)),
   },
   {
     key: 'psychologies', label: 'États psychologiques', group: 'Effets',

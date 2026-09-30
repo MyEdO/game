@@ -38,6 +38,11 @@ import { testScenarios } from '../scenes/test-scenarios';
 import { parseProject } from '../state/worldMap';
 import areneProjetJson from '../scenes/arene/arene-projet.json';
 import type { Scene } from '../state/scene';
+import { fileURLToPath } from 'node:url';
+import { scanDuCorpus } from '../../scripts/docs/lib/structures-scan.mjs';
+
+/** Entrées partielles embarquées du corpus des DEUX racines (`scanDuCorpus`), mesurées UNE fois. */
+const ENTREES_PARTIELLES = scanDuCorpus(fileURLToPath(new URL('../..', import.meta.url))).scan.entreesPartielles;
 
 /** Forme BRUTE d'une instance. Typage local : un `TraitInstance` porte `id` ; un OPTIONNEL COMPOSÉ
  *  (`OptionalEntry`, #174) porte `note` (et jamais `id`/`value` de premier niveau) → accès via ce shape. */
@@ -87,6 +92,21 @@ function* eachSceneInstance(): Generator<Row> {
   }
 }
 
+/** ENTRÉES PARTIELLES de `creatures.json` embarquées ailleurs (`entreesPartiellesEmbarquees`,
+ *  `scripts/docs/lib/structures-scan.mts`) — profils de presets de PNJ : mêmes `traits`/`optionals`
+ *  que le bestiaire dont elles sont le patch, mêmes invariants. */
+function* eachEntreePartielle(): Generator<Row> {
+  for (const [objet, fiche] of ENTREES_PARTIELLES) {
+    if (fiche.document !== 'creatures.json') continue;
+    for (const list of ['traits', 'optionals'] as const) {
+      for (const inst of ((objet as Record<string, unknown>)[list] ?? []) as RawTraitInstance[]) {
+        const def = typeof inst.id === 'string' ? byId.get(inst.id) : undefined;
+        yield { inst, def, where: `${fiche.hote}:${fiche.id ?? '?'}.${list}[${String(inst.id ?? inst.note)}]`, hasId: typeof inst.id === 'string' };
+      }
+    }
+  }
+}
+
 /** Toutes les instances de trait (`creatures.json` `traits[]`/`optionals[]` + statblocs de scène), def
  *  résolue par `id` (byId). Les OPTIONNELS COMPOSÉS (`note`, #174) n'ont pas d'`id` → def undefined,
  *  `hasId` faux : hors des invariants #1/#2/#3. `hasId` = l'instance porte un vrai `id` (⇒ soumise à #2/#3). */
@@ -100,6 +120,7 @@ function* eachInstance(): Generator<Row> {
     }
   }
   yield* eachSceneInstance();
+  yield* eachEntreePartielle();
 }
 
 /** Parts d'un `arg` : liste séparée par virgules si `specsMulti`, sinon l'arg entier. */

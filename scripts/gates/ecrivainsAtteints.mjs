@@ -38,7 +38,7 @@ function fichiersDe(commande, racine, gate) {
   return out
 }
 
-/** Extensions essayées, dans l'ordre de Vite 5 (`DEFAULT_EXTENSIONS`, node_modules/vite/dist/node/constants.js:24). */
+/** Extensions essayées, dans l'ordre de Vite 5 (`DEFAULT_EXTENSIONS`, node_modules/vite/dist/node/constants.js). */
 const EXTENSIONS = ['.mjs', '.js', '.mts', '.ts', '.jsx', '.tsx', '.json']
 
 /** `true` si le chemin est un FICHIER existant (un dossier n'en est pas un). */

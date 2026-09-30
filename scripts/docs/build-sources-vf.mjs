@@ -71,8 +71,9 @@ décision de périmètre qui change se corrige ICI, à la main, comme tout arbit
 Tout est en **français** sous \`Source/\`, dossiers préfixés **\`Warhammer v4 - …\`**. Les dossiers
 SANS ce préfixe (Enemy Within…, Altdorf…, Archives of the Empire…) sont la **VO** (base de
 connaissance MJ du dépôt parent) — **ne jamais les lire/citer** ici (la donnée du jeu est FR :
-CC/CT/F/E…). **Exception unique** : \`Source/Warhammer Fantasy Roleplay 5e Core Rulebook/\`, livre VO
-AUTORISÉ (\`CLAUDE.md\` § *Sources VF*). Au moindre doute, **lire le \`.md\` et citer**
+CC/CT/F/E…). **Exceptions** (\`CLAUDE.md\` § *Sources VF*) : \`Source/Warhammer Fantasy Roleplay 5e Core Rulebook/\`,
+livre VO AUTORISÉ ; la VO de L'Ennemi Intérieur se lit pour comprendre, fiche
+\`user-doctrine-lecture-vo-campagne-pour-comprendre\`. Au moindre doute, **lire le \`.md\` et citer**
 \`LDB <chap> l.<ligne>\` / \`ADE…\`.
 
 > **Couche de lecture consolidée = l'Atlas [\`docs/raw/\`](raw/00-index.md)** : il agrège
@@ -87,8 +88,8 @@ AUTORISÉ (\`CLAUDE.md\` § *Sources VF*). Au moindre doute, **lire le \`.md\` e
 > 90 % scénario, mais souvent il y a quelques règles. » — la dichotomie livre-de-règles / livre-de-contenu
 > ne se juge PAS au niveau du livre : le périmètre s'établit **par passage**, documenté ici, au même
 > standard partout (verbatim citable \`l.<ligne>\`, extraction FR dans \`Source/\` obligatoire — un livre sans
-> extraction ne peut pas fournir de mécanique vérifiable). La VO reste interdite hors l'exception
-> unique du \`CLAUDE.md\` § *Sources VF* (Core Rulebook 5e).
+> extraction ne peut pas fournir de mécanique vérifiable). La VO ne fournit aucune règle hors le Core
+> Rulebook 5e (\`CLAUDE.md\` § *Sources VF*).
 
 - **${abbr('livre-de-base')}** = \`${dir('livre-de-base')}\` — chapitres \`NN - Titre.md\` ;
   les commentaires de code \`LDB <n> l.<ligne>\` pointent ces fichiers. Chapitres clés :

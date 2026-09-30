@@ -4,16 +4,16 @@
 // puis LIT le fichier ; jamais un filtre inline (`| grep`, `| tail`) comme SEULE lecture ».
 //
 // CIBLE = le runner SANS capture, mesuré (2026-09-02) :
-//   - `npm test` et `node scripts/test/run.mjs` CAPTURENT déjà tout (`run.mjs:55`, fichier
-//     `vitest-run-<pid>.txt`, relais l.189), et `npm run typecheck:fast` écrit
+//   - `npm test` et `node scripts/test/run.mjs` CAPTURENT déjà tout (`CAPTURE` de `run.mjs`,
+//     fichier `vitest-run-<pid>.txt`, écrit par `relayer`), et `npm run typecheck:fast` écrit
 //     `node_modules/.cache/typecheck-last.txt` : un `| tail` y est une LECTURE de plus, pas une
 //     perte — ces portes restent SILENCIEUSES, et recommandées.
 //   - `npx vitest`, `vitest`, `tsc`, `eslint`, `npm run typecheck|lint|build`,
 //     `node scripts/lancer-local.mjs …` n'écrivent rien : tronquer leur flux, c'est perdre la
 //     sortie, et c'est là que le REFUS tombe.
 //
-// Le rappel `runner-fast-reminder.mjs` reste ce qu'il est (contexte doux, aucune décision) : la
-// porte vit ICI, dans un garde séparé, pour qu'un blocage ne se cache pas dans un rappel.
+// Le refus prescrit la capture en fichier et nomme, pour vitest, la porte qui capture :
+// `npm test -- <chemins>` (#2125).
 //
 // VU / HORS PORTÉE, dit :
 //   - `cut` ne tronque pas (il coupe des COLONNES, toutes les lignes sortent), `grep <motif>` sans
@@ -145,8 +145,11 @@ export function evaluate(command) {
           'n\'écrit sa sortie nulle part, ce qui passe le filtre est donc perdu — et le code de sortie ' +
           'lu à travers un tube est celui du DERNIER maillon. Écrire la sortie COMPLÈTE dans un fichier ' +
           'du scratchpad puis LIRE ce fichier : `' + runner + ' > sortie.txt 2>&1` (le code de sortie se ' +
-          'relève juste après), puis `tail -40 sortie.txt`. Portes qui capturent déjà et restent libres : ' +
-          '`npm test`, `node scripts/test/run.mjs`, `npm run typecheck:fast`.',
+          'relève juste après), puis `tail -40 sortie.txt`. Pour vitest, la porte est `npm test -- <chemins>` ' +
+          '(`scripts/test/run.mjs`) : sortie COMPLÈTE écrite au fil de l’eau dans ' +
+          '`node_modules/.cache/vitest-run-<pid>.txt`, ligne `status:` comprise, et workers bornés par les ' +
+          'cœurs et la mémoire disponible — un `| tail` y reste libre. `npm run typecheck:fast` capture aussi ' +
+          '(`node_modules/.cache/typecheck-last.txt`).',
       }
     }
   }

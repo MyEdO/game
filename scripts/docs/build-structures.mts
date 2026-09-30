@@ -256,8 +256,10 @@ out += 'dialogue) n’est sommé de rien : on n’y compte que les clés DIVERGE
 }
 
 out += '### 2.4 Formes DÉCLARÉES jamais observées\n\n';
-out += 'Clé déclarée par le schéma zod d’un document mais portée par AUCUNE entrée du JSON — schéma plus\n';
-out += 'large que la donnée (un champ à retirer, ou une donnée à écrire).\n';
+out += 'Clé déclarée par le schéma zod d’un document mais portée par AUCUNE entrée du JSON — ni entrée de\n';
+out += 'racine, ni ENTRÉE PARTIELLE du document embarquée dans un autre document du corpus (`clesPortees`,\n';
+out += '`scripts/docs/lib/structures-scan.mts`) : schéma plus large que la donnée (un champ à retirer, ou\n';
+out += 'une donnée à écrire).\n';
 out += 'Deux régimes, et ils ne se confondent pas : **par DÉFAUT** (table A) la forme n’a AUCUN lot de\n';
 out += 'peuplement — c’est du dénominateur, elle va au stock `STRUCTURES_DEFAUT` et ne fait que décroître ;\n';
 out += '**`cible-declaree`** (table B) est un déclaré-avant-posé ASSUMÉ, avec son lot de peuplement — il ne\n';
@@ -269,7 +271,7 @@ out += 'se STOCKE pas (un stock décroît, une cible se solde en PEUPLANT la don
   for (const d of scan.documents) {
     const dec = parFichierDeclare.get(d.nom);
     if (!dec) continue;
-    const vues = new Set(d.clesNiveau1.map((k) => k.cle));
+    const vues = scan.clesPortees.get(d.nom)!;
     const jamais = Object.keys(dec.cles).filter((k) => !vues.has(k)).sort();
     if (jamais.length) {
       nCles += jamais.length;

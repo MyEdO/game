@@ -27,6 +27,7 @@ import { CodexRef } from '../compendium/CodexRef';
 import { BoiteAncree, usePlacementAncre } from '../BoiteAncree';
 import { NumberField } from '../NumberField';
 import { DescRefField } from '../compendium/DescRefField';
+import { SourceRefField } from '../SourceRefField';
 import type { DescRef } from '../../data/source/decoupe';
 import { GatedAction } from '../GatedAction';
 import { ReadyRow } from '../ReadyRow';
@@ -369,6 +370,32 @@ function NumberFieldDemo() {
         page
         <NumberField variant="nu" label="page de la source" placeholder="page" width={72} vide value={page} onChange={setPage} />
       </label>
+    </>
+  );
+}
+
+/** Réf de source RÉELLE d'un sort du registre, montrée par le spécimen de `SourceRefField`. */
+const sourceDeSort = memoParVersion('spells', () => spells.find((s) => s.source?.note)?.source ?? spells[0].source);
+
+function SourceRefFieldDemo() {
+  // Facultative puis exigée, chacune vide / incomplète / complète : un brouillon incomplet reste à
+  // l'écran et se dit incomplet, seule une réf complète remonte.
+  type Saisie = { book?: string; page?: number; note?: string } | undefined;
+  const reelle = sourceDeSort();
+  const [vide, setVide] = useState<Saisie>(undefined);
+  const [livreSeul, setLivreSeul] = useState<Saisie>({ book: reelle.book });
+  const [complete, setComplete] = useState<Saisie>(reelle);
+  const [exigeeVide, setExigeeVide] = useState<Saisie>(undefined);
+  const [exigeeIncomplete, setExigeeIncomplete] = useState<Saisie>({ book: reelle.book, note: reelle.note });
+  const [exigee, setExigee] = useState<Saisie>(reelle);
+  return (
+    <>
+      <SourceRefField identite="facultative-vide" label="Facultative — vide" facultative value={vide} onChange={setVide} />
+      <SourceRefField identite="facultative-livre-seul" label="Facultative — livre seul (incomplète)" facultative value={livreSeul} onChange={setLivreSeul} />
+      <SourceRefField identite="facultative-complete" label="Facultative — complète" facultative value={complete} onChange={setComplete} />
+      <SourceRefField identite="exigee-vide" label="Exigée — vide" value={exigeeVide} onChange={setExigeeVide} />
+      <SourceRefField identite="exigee-incomplete" label="Exigée — page manquante (incomplète)" value={exigeeIncomplete} onChange={setExigeeIncomplete} />
+      <SourceRefField identite="exigee-complete" label="Exigée — complète" value={exigee} onChange={setExigee} />
     </>
   );
 }
@@ -1696,6 +1723,7 @@ export const GALLERY_SPECIMENS: GallerySpecimen[] = [
   { id: 'gameopeditor', label: 'GameOpEditor', file: 'src/ui/editor/GameOpEditor.tsx', category: 'Éditeur', render: GameOpEditorDemo },
   { id: 'reglagesapparence', label: 'ReglagesApparence / MonsterPartsFields', file: 'src/ui/editor/MonsterPartsFields.tsx', category: 'Éditeur', render: ReglagesApparenceDemo },
   { id: 'descreffield', label: 'DescRefField', file: 'src/ui/compendium/DescRefField.tsx', category: 'Éditeur', render: DescRefFieldDemo },
+  { id: 'sourcereffield', label: 'SourceRefField', file: 'src/ui/SourceRefField.tsx', category: 'Éditeur', render: SourceRefFieldDemo },
   { id: 'gameopchips', label: 'GameOpChips', file: 'src/ui/GameOpChips.tsx', category: 'Texte', render: GameOpChipsDemo },
   { id: 'metalstatus', label: 'MetalStatus', file: 'src/ui/MetalStatus.tsx', category: 'Atelier du scribe', render: MetalStatusDemo },
   { id: 'waxseal-sealedplaque', label: 'WaxSeal / SealedPlaque', file: 'src/ui/WaxSeal.tsx', category: 'Atelier du scribe', render: WaxSealDemo },

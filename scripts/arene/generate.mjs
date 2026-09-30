@@ -1,8 +1,8 @@
 #!/usr/bin/env -S npx tsx
 /**
  * Génère `src/scenes/arene/arene-projet.json` (`projectDoc()` : paquet de projet au schema courant, forme décidée par `documentDeProjet`).
- * OUTIL D'AUTEUR (itération de layout) — le JSON commité reste la source canonique, 100 %
- * éditable dans l'éditeur. Usage : `tsx scripts/arene/generate.mjs` (tsx car `scripts/campagne/lib.mjs` importe
+ * Propriétaire EXCLUSIF de l'artefact : le JSON commité est l'octet de `build()`
+ * (`src/scenes/generateurs-byte-stables.test.ts`) ; #1601. Usage : `tsx scripts/arene/generate.mjs` (tsx car `scripts/campagne/lib.mjs` importe
  * `buildScene` du moteur — l'ASCII, l'architecture, les murs, les couches et les rencontres sont compilés par le compilateur
  * headless-editor `src/state/mapSpec.ts`, zéro fabrique de scène dupliquée).
  */

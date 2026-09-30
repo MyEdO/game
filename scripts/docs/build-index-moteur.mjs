@@ -3,7 +3,7 @@
 // (npm run docs:index-moteur).
 // Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/empreinte-sources.mjs), rejoué par `build-all.mjs`.
 //
-// Incident fondateur (#903bis) : `rollCareer` (src/engine/creation.ts:73) porte depuis 2026-06-18 un
+// Incident fondateur (#903bis) : `rollCareer` (src/engine/creation.ts) porte depuis 2026-06-18 un
 // JSDoc en français qui explique que plusieurs Carrières peuvent partager une borne de tirage — deux
 // agents de grounding successifs ont conclu à tort que ce mécanisme n'existait pas, faute de surface
 // de recherche par SENS entre une question en français et un symbole en anglais. Cet index EST cette
@@ -81,7 +81,7 @@ out += `> concepts (index par SENS, en français — les symboles du code sont e
 
 out += `## Pourquoi ce fichier\n\n`
 out += `Un agent de grounding arrive avec une question en français et doit trouver le bon symbole dans un moteur écrit en\n`
-out += `anglais. \`rollCareer\` (\`creation.ts:73\`) porte depuis 2026-06-18 un JSDoc qui explique que plusieurs Carrières\n`
+out += `anglais. \`rollCareer\` (\`creation.ts\`) porte depuis 2026-06-18 un JSDoc qui explique que plusieurs Carrières\n`
 out += `peuvent partager une borne de tirage — deux agents ont conclu à tort que ce mécanisme n'existait pas, faute de\n`
 out += `surface de recherche. Cet index est cette surface : chercher « carrière aléatoire » doit faire remonter \`rollCareer\`\n`
 out += `sous le concept « ${esc(FILE_CONCEPTS.get('src/engine/creation.ts'))} ».\n\n`

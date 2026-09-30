@@ -8,18 +8,20 @@
  */
 import { DEFS_DE_DOCUMENT, validateDataset } from './schemas/validate';
 
-/** Catalogues lus en FORME DISQUE (`?raw` : le texte du fichier, hors `transform`). Le plugin
- *  `wfrp:prose-source` MATÉRIALISE la prose adressée dans le module JSON servi à l'application —
- *  or `desc` et `descRef` sont EXCLUSIFS au schéma : c'est le disque que le schéma décrit. */
-const DISQUE = import.meta.glob('./*.json', { eager: true, query: '?raw', import: 'default' }) as Record<string, string>;
-
-/** Tous les documents des DEUX racines, chargés EAGER par Vite (clé = chemin relatif au module). */
-const RAW = {
-  'src/data': Object.fromEntries(
-    Object.entries(DISQUE).map(([k, texte]) => [k, JSON.parse(texte) as unknown]),
-  ) as Record<string, unknown>,
-  'src/scenes': import.meta.glob('../scenes/**/*-projet.json', { eager: true, import: 'default' }) as Record<string, unknown>,
+/** Documents des DEUX racines lus en FORME DISQUE (`?raw` : le texte du fichier, hors `transform`).
+ *  Le plugin `wfrp:prose-source` MATÉRIALISE la prose adressée dans le module JSON servi à
+ *  l'application — catalogues comme projets livrés —, or `desc` et `descRef` sont EXCLUSIFS au
+ *  schéma : c'est le disque que le schéma décrit. */
+const DISQUE = {
+  'src/data': import.meta.glob('./*.json', { eager: true, query: '?raw', import: 'default' }) as Record<string, string>,
+  'src/scenes': import.meta.glob('../scenes/**/*-projet.json', { eager: true, query: '?raw', import: 'default' }) as Record<string, string>,
 };
+
+const parses = (textes: Record<string, string>): Record<string, unknown> =>
+  Object.fromEntries(Object.entries(textes).map(([k, texte]) => [k, JSON.parse(texte) as unknown]));
+
+/** Tous les documents des DEUX racines, parsés (clé = chemin relatif au module). */
+const RAW = { 'src/data': parses(DISQUE['src/data']), 'src/scenes': parses(DISQUE['src/scenes']) };
 /** Préfixe de clé `import.meta.glob` par racine — `SchemaDef.file` est relatif à SA racine. */
 const PREFIXE = { 'src/data': './', 'src/scenes': '../scenes/' } as const;
 

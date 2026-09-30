@@ -9,6 +9,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, it, expect } from 'vitest';
 import { listerProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs';
+import { lireProjetLivre } from '../../scripts/source/projetLivre.mjs';
 import { parseProject, ProjetRefuse, CURRENT_PROJECT_SCHEMA } from './worldMap';
 import { emptyScene } from './scene';
 
@@ -58,11 +59,11 @@ describe('parseProject — la porte n’altère JAMAIS son entrée', () => {
     expect(ports.length).toBeGreaterThan(0);
   });
 
-  it.each(PAQUETS.map((f) => [f.split(/[\\/]/).pop()!, f] as const))('%s GELÉ en profondeur passe la porte, intact', (_nom, f) => {
-    const texte = readFileSync(f, 'utf8');
-    const doc = gele(JSON.parse(texte));
+  it.each(listerProjetsLivres().map((rel) => [rel] as const))('%s GELÉ en profondeur passe la porte, intact', (rel) => {
+    const avant = JSON.stringify(lireProjetLivre(rel));
+    const doc = gele(lireProjetLivre(rel));
     expect(() => parseProject(doc)).not.toThrow();
-    expect(JSON.stringify(doc)).toBe(JSON.stringify(JSON.parse(texte)));
+    expect(JSON.stringify(doc)).toBe(avant);
   });
 
   it('un document ANCIEN (schema 2, port par référence) GELÉ traverse toute la migration, intact', () => {
@@ -141,6 +142,19 @@ describe('parseProject — le refus est une DONNÉE (`ProjetRefuse`)', () => {
   };
   it.each(Object.entries(INTRAVERSABLES))('%s : refus `ProjetRefuse`, jamais une exception brute', (_nom, doc) => {
     expect(refusDe(doc)).toBeInstanceOf(ProjetRefuse);
+  });
+
+  it('la FORME DISQUE d’un projet livré (prose adressée sans son texte) : `prose-non-materialisee`, chaque nœud à son chemin ; servie, elle passe', () => {
+    const rel = 'diligence/diligence-projet.json';
+    const disque = JSON.parse(readFileSync(join(SCENES_DIR, rel), 'utf8')) as { narratif: { presetsPnj: { profil?: { descRef?: unknown } }[] } };
+    const adresses = disque.narratif.presetsPnj.flatMap((p, i) => (p.profil?.descRef ? [['narratif', 'presetsPnj', i, 'profil']] : []));
+    expect(adresses.length, 'aucun preset adressé sur le disque — le refus ne mesurerait rien').toBeGreaterThan(0);
+    const refus = refusDe(disque);
+    expect(refus.cause).toBe('prose-non-materialisee');
+    expect(refus.fautes.map((f) => f.chemin)).toEqual(adresses);
+    const [, , premier] = adresses[0];
+    expect(refus.message).toContain(`narratif.presetsPnj[${premier}].profil`);
+    expect(() => parseProject(lireProjetLivre(rel)), 'la forme SERVIE (`materialiser`) passe la porte').not.toThrow();
   });
 
   it('une exception de migration devient `mal-forme`, son message d’origine gardé en faute', () => {

@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { weaponFromTrait, creatureToCombatant, statblockToCombatant, skillsFromBook, spawnEnemy } from './spawn';
+import { weaponFromTrait, creatureToCombatant, statblockToCombatant, skillsFromBook, spawnEnemy, entitySize } from './spawn';
 import { enemyRigProfile } from '../gameIso/rig/enemyProfile';
 import { teintesTirees } from '../gameIso/rig/parts/tirageIndividuel';
 import { raceById } from '../gameIso/rig/races';
 import { weaponFamily } from '../gameIso/rig/parts/equipment';
-import { findCreatureById, talentConcrete } from '../data';
+import { blessingsOf, findCreatureById, talentConcrete } from '../data';
 import { CHAR_KEYS } from '../engine/types';
 import { knowsCastingSkill, castingValue } from '../engine/magic';
 
@@ -178,6 +178,64 @@ describe('creatureToCombatant — #152 : CreatureData.followsCharacterRules prop
   it('créature GÉNÉRIQUE du bestiaire non flaguée (Orc) → pas de followsCharacterRules', () => {
     const c = creatureToCombatant(findCreatureById('orc')!, 'e1', at);
     expect(c.followsCharacterRules).toBeUndefined();
+  });
+});
+
+// EDO 01 l.504 ; LDB 19.
+describe('creatureToCombatant — CreatureData.corruption projeté au Combatant', () => {
+  const at = { x: 0, y: 0 };
+  it('entrée portant `corruption: 6` → Combatant.corruption === 6', () => {
+    const c = creatureToCombatant({ ...findCreatureById('cultiste')!, corruption: 6 }, 'e1', at);
+    expect(c.corruption).toBe(6);
+  });
+  it('entrée sans `corruption` → aucune clé `corruption` sur le Combatant', () => {
+    const creature = findCreatureById('cultiste')!;
+    expect('corruption' in creature).toBe(false);
+    const c = creatureToCombatant(creature, 'e1', at);
+    expect('corruption' in c).toBe(false);
+  });
+});
+
+// LDB 10 l.943 ; LDB 85 l.344.
+describe('spawn — Taille d’un profil : Trait Taille, sinon Talent de Taille, sinon Moyenne', () => {
+  const at = { x: 0, y: 0 };
+  const base = findCreatureById('cultiste')!;
+  const petit = [{ id: 'petit' }];
+  const grande = [{ id: 'taille', arg: 'Grande' }];
+  it('créature : Talent Petit sans Trait Taille → petite', () => {
+    expect(creatureToCombatant({ ...base, traits: [], talents: petit }, 'e1', at).size).toBe('petite');
+  });
+  it('créature : un Trait Taille explicite prime sur le Talent', () => {
+    expect(creatureToCombatant({ ...base, traits: grande, talents: petit }, 'e1', at).size).toBe('grande');
+  });
+  it('créature : ni Trait ni Talent de Taille → moyenne', () => {
+    expect(creatureToCombatant({ ...base, traits: [], talents: [] }, 'e1', at).size).toBe('moyenne');
+  });
+  it('statbloc : Talent Petit sans Trait Taille → petite ; Trait Taille prime ; ni l’un ni l’autre → moyenne', () => {
+    const sb = { type: 'statblock' as const, label: 'X', char: {} };
+    expect(statblockToCombatant({ ...sb, talents: petit }, 'e1', at).size).toBe('petite');
+    expect(statblockToCombatant({ ...sb, talents: petit, traits: grande }, 'e1', at).size).toBe('grande');
+    expect(statblockToCombatant(sb, 'e1', at).size).toBe('moyenne');
+  });
+  it('entité posée : la même Taille que le combattant (`entitySize`)', () => {
+    expect(entitySize({ statblock: { type: 'statblock', label: 'X', char: {}, talents: petit } })).toBe('petite');
+    expect(entitySize({ statblock: { type: 'statblock', label: 'X', char: {}, talents: petit, traits: grande } })).toBe('grande');
+  });
+});
+
+// LDB 10 l.109.
+describe('spawn — Béni : les Bénédictions du culte au spawn, comme à la création d’un héros', () => {
+  const at = { x: 0, y: 0 };
+  const base = findCreatureById('cultiste')!;
+  it('créature et statbloc portant Béni (Ulric) → les Bénédictions d’Ulric', () => {
+    const attendues = blessingsOf('ulric');
+    expect(attendues.length).toBeGreaterThan(0);
+    expect(creatureToCombatant({ ...base, talents: [{ id: 'beni', spec: 'ulric' }], spells: [] }, 'e1', at).spells).toEqual(expect.arrayContaining(attendues));
+    expect(statblockToCombatant({ type: 'statblock', label: 'X', char: {}, talents: [{ id: 'beni', spec: 'ulric' }] }, 'e1', at).spells).toEqual(expect.arrayContaining(attendues));
+  });
+  it('opposé : sans Béni, aucune Bénédiction octroyée', () => {
+    expect(creatureToCombatant({ ...base, talents: [], spells: [] }, 'e1', at).spells).toBeUndefined();
+    expect(statblockToCombatant({ type: 'statblock', label: 'X', char: {} }, 'e1', at).spells).toBeUndefined();
   });
 });
 
