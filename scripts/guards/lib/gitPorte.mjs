@@ -44,6 +44,7 @@ import { join, resolve } from 'node:path'
 import { normaliserRacine } from '../../port-dev.mjs'
 import { BACKOFFS_MS, MARQUE_REJEU, attendreSync, estEchecDeChargement, rejeux } from './spawnResilient.mjs'
 import { coupeAuMot } from '../../../src/lib/coupeAuMot.mjs'
+import { DEPOT } from './ticketsGh.mjs'
 
 /** Une `raison` est coupée au mot vers `RAISON_MAX` (`coupeAuMot`) : elle est DITE dans un refus de hook, une fois. */
 const RAISON_MAX = 200
@@ -840,9 +841,11 @@ export function arbrePrincipal(depot) {
   return fait(chemin.slice(0, -'/.git'.length))
 }
 
-/** Le dépôt de ce projet, en https comme en ssh. Notion d'ORIGINE, donc hôte des lectures git : la
- *  porte au push et la préflight de publication refusent l'une comme l'autre un `origin` étranger. */
-export const urlOrigineAcceptee = (url) => /github\.com[:/]cgauche\/game(?:\.git)?$/.test(String(url ?? '').trim())
+/** Le dépôt de ce projet (`DEPOT`), en https comme en ssh, avec ou sans `.git`, casse ignorée comme
+ *  GitHub l'ignore. Notion d'ORIGINE, donc hôte des lectures git : la porte au push et la préflight
+ *  de publication refusent l'une comme l'autre un `origin` étranger. */
+const URL_ORIGINE = new RegExp(`github\\.com[:/]${DEPOT.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&')}(?:\\.git)?$`, 'i')
+export const urlOrigineAcceptee = (url) => URL_ORIGINE.test(String(url ?? '').trim())
 
 /** Le TRONC de l'origine : son nom de branche, sa ref côté distant, et sa ref de suivi locale. */
 export const TRONC = Object.freeze({ nom: 'main', branche: 'refs/heads/main', suivi: 'origin/main' })

@@ -3,6 +3,7 @@
 // (familles de labels absentes, titre trop long) qui MESURE sans jamais bloquer.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
+import { DEPOT } from '../guards/lib/ticketsGh.mjs'
 import {
   evaluate, contexteEmission, isGhIssueCreateSegment, isGhApiIssueCreate, isGhGraphqlIssueCreate, isLabelFlag,
 } from './issue-label-guard.mjs'
@@ -65,15 +66,15 @@ test('isLabelFlag / isGhIssueCreateSegment (unités)', () => {
 
 // ── Portes REST / GraphQL (sonde `sonde-bypass.mjs` : 5 DENY / 5 PASSE → 7 DENY / 3 PASSE) ────────
 test('DENY : création de ticket par l’API REST sans champ labels', () => {
-  assert.ok(denies('gh api -X POST /repos/cgauche/game/issues -f title=x'))
-  assert.ok(denies('gh api --method POST repos/cgauche/game/issues -f title=x -f body=y'))
+  assert.ok(denies(`gh api -X POST /repos/${DEPOT}/issues -f title=x`))
+  assert.ok(denies(`gh api --method POST repos/${DEPOT}/issues -f title=x -f body=y`))
 })
 
 test('ALLOW : REST avec labels, corps en --input, ou simple LECTURE de la route', () => {
-  assert.ok(allows('gh api -X POST /repos/cgauche/game/issues -f title=x -f labels[]=sev:mineur'))
-  assert.ok(allows('gh api -X POST /repos/cgauche/game/issues --input corps.json'))
-  assert.ok(allows('gh api /repos/cgauche/game/issues'))
-  assert.ok(allows('gh api -X GET /repos/cgauche/game/issues'))
+  assert.ok(allows(`gh api -X POST /repos/${DEPOT}/issues -f title=x -f labels[]=sev:mineur`))
+  assert.ok(allows(`gh api -X POST /repos/${DEPOT}/issues --input corps.json`))
+  assert.ok(allows(`gh api /repos/${DEPOT}/issues`))
+  assert.ok(allows(`gh api -X GET /repos/${DEPOT}/issues`))
 })
 
 test('DENY : mutation GraphQL createIssue sans labelIds ; ALLOW avec', () => {

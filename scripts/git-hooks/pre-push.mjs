@@ -2,7 +2,7 @@
 // `.github/workflows/ci.yml` est la porte, et elle joue sur toute branche `chantier/**`.
 //
 // QUATRE refus, tous nommés. Les trois premiers portent sur CHAQUE ref poussée :
-//   1. `origin` ne pointe pas `github.com/cgauche/game` ;
+//   1. `origin` ne pointe pas `github.com/<DEPOT>` (`scripts/guards/lib/ticketsGh.mjs`) ;
 //   2. un STOCK NOMINATIF qui grandit quelque part dans la PLAGE poussée, sans que le message de SON
 //      commit le dise (`scripts/guards/lib/plageStock.mjs`) : les portes de stock du commit et du
 //      DERNIER commit ne voient qu'une tête, et un commit intermédiaire leur échappe (revue de
@@ -34,6 +34,7 @@ import { readFileSync } from 'node:fs'
 import { enteteArbre } from '../guards/lib/enteteArbre.mjs'
 import { TRONC, depotDe, estAncetre, origineDe, urlOrigineAcceptee } from '../guards/lib/gitPorte.mjs'
 import { ROUGES, coursesCi } from '../guards/lib/coursesCi.mjs'
+import { DEPOT } from '../guards/lib/ticketsGh.mjs'
 import { croissancesDeLaPlage, raisonDeRefusDePlage } from '../guards/lib/plageStock.mjs'
 import { raisonDeRefusDeReclassement } from '../guards/lib/reclassementCss.mjs'
 
@@ -118,7 +119,7 @@ export function jugerPush({ cwd, stdin, env = process.env }) {
   const origine = origineDe(depot) ?? ''
   if (pannes.length) refus.push(`origin illisible, git indisponible : ${pannes[0]}`)
   else if (!urlOrigineAcceptee(origine))
-    refus.push(`origin = « ${origine || '(absent)'} » : ce hook ne connaît que github.com/cgauche/game`)
+    refus.push(`origin = « ${origine || '(absent)'} » : ce hook ne connaît que github.com/${DEPOT}`)
 
   for (const { refLocale, shaLocal, refDistante, shaDistant } of refsAPousser(stdin)) {
     // Stocks nominatifs de la PLAGE poussée : par commit, filtrés par la croissance cumulée.

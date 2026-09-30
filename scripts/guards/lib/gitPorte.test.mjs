@@ -5,6 +5,7 @@
 import { test } from 'node:test'
 import { Buffer } from 'node:buffer'
 import assert from 'node:assert/strict'
+import { DEPOT } from './ticketsGh.mjs'
 import { execFileSync, spawnSync } from 'node:child_process'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -15,7 +16,7 @@ import {
   baseCommune, brancheDe, branchesDe, ceQuEmporteLIndex, ceQueFaitLeCommit, ceQuiChange, cheminGit, cheminsEnConflit, classer, combienDe, commitDe,
   depotDe, divergenceDe, dossierDesHooks, elaguerWorktrees, eolsDe, estDansHead, estIgnore, estSuperficiel, etatDeLArbre, enfantsDirects, estAncetre, estRepertoire,
   fetchOrigin, fichiersDuGrep, fusionDeTextes, fusionnesEnCours, initialiserDepot, journalDe, lireEnLot, listerImage, natureDuChemin, origineDe, poserRef, pousser,
-  racineDe, raisonCourte, rebaseEntame, rebaser, reglerDepot, retirerWorktree, reussi, shaDe, shasDe, supprimerBranche, worktreesDe,
+  racineDe, raisonCourte, rebaseEntame, rebaser, reglerDepot, retirerWorktree, reussi, shaDe, shasDe, supprimerBranche, urlOrigineAcceptee, worktreesDe,
 } from './gitPorte.mjs'
 import { envDeDepotForge, envDeLUtilisatrice, instanceDeDepot } from './depotGabarit.mjs'
 import { sourceGit } from './cssImages.mjs'
@@ -1100,8 +1101,15 @@ test('branchesDe, divergenceDe, combienDe : une sortie en fin de ligne CRLF rend
   assert.equal(combienDe(d, ['main..cote']), 3)
 })
 
+test('urlOrigineAcceptee : le dépôt MyEdO/game (#2178), en https comme en ssh, avec ou sans `.git`, casse ignorée', () => {
+  for (const url of ['https://github.com/MyEdO/game.git', 'git@github.com:MyEdO/game.git', 'https://github.com/myedo/game', ' https://github.com/MyEdO/game\n'])
+    assert.equal(urlOrigineAcceptee(url), true, url)
+  for (const url of ['https://github.com/cgauche/game.git', 'https://github.com/MyEdO/game2.git', 'https://github.com/xMyEdO/game', 'https://github.com/MyEdO/game.git/x', '', undefined])
+    assert.equal(urlOrigineAcceptee(url), false, String(url))
+})
+
 test('estSuperficiel, dossierDesHooks, estIgnore, attributDe, cheminGit, brancheDe, racineDe, origineDe : les VALEURS sur dépôt forgé', () => {
-  const origine = 'https://github.com/cgauche/game.git'
+  const origine = `https://github.com/${DEPOT}.git`
   const { racine } = instanceDeDepot({ fichiers: { 'a.txt': 'a\n', '.gitignore': '*.log\n', '.gitattributes': '*.txt merge=stocks\n' }, origin: origine })
   const clone = mkdtempSync(join(tmpdir(), 'superficiel-'))
   try {

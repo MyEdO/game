@@ -7,6 +7,7 @@
 // push est libre et dont la CI est le juge.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
+import { DEPOT } from '../guards/lib/ticketsGh.mjs'
 import { execFileSync } from 'node:child_process'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -23,7 +24,7 @@ const git = (cwd) => (args) => execFileSync('git', args, { cwd, encoding: 'utf8'
 const depot = () =>
   instanceDeDepot({
     fichiers: { 'src/a.ts': 'export const a = 1\n' },
-    origin: 'https://github.com/cgauche/game.git',
+    origin: `https://github.com/${DEPOT}.git`,
     refs: { 'refs/remotes/origin/main': 'HEAD' },
   }).racine
 
@@ -238,7 +239,7 @@ test('un origin ÉTRANGER est refusé, et le refus le cite', () => {
   try {
     const { refus } = jugerPush({ cwd: racine, stdin: pousse(racine), env: stubCi(racine, [course(tete(racine))]) })
     assert.match(refus.join('\n'), /origin = « https:\/\/github\.com\/quelquun\/autre\.git »/)
-    assert.match(refus.join('\n'), /github\.com\/cgauche\/game/)
+    assert.ok(refus.join('\n').includes(`github.com/${DEPOT}`))
   } finally {
     jeter(racine)
   }

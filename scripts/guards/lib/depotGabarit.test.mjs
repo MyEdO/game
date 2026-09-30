@@ -2,6 +2,7 @@
 // près celui du gabarit — c'est ce qui autorise à ne fabriquer l'état de départ qu'une fois.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
+import { DEPOT } from './ticketsGh.mjs'
 import { execFileSync, spawnSync } from 'node:child_process'
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -16,7 +17,7 @@ const git = (cwd) => (args) => execFileSync('git', args, { cwd, env: envDeDepotF
 const PARAMS = {
   fichiers: { 'src/a.ts': 'export const a = 1\n', 'lu/b.txt': 'b\n' },
   branche: 'principale',
-  origin: 'https://github.com/cgauche/game.git',
+  origin: `https://github.com/${DEPOT}.git`,
   message: 'fondation',
   refs: { 'refs/remotes/origin/main': 'HEAD' },
 }

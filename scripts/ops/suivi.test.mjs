@@ -5,6 +5,7 @@
 // Lancé par `npm run test:ops`.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
+import { DEPOT } from '../guards/lib/ticketsGh.mjs'
 import { execFileSync } from 'node:child_process'
 import * as FS from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -382,7 +383,7 @@ test('portée sur dépôt FORGÉ : une ligne par ticket, dans SON ordre ; publi�
       [1, 'Introuvable', 'introuvable', []],
     ])
     assert.match(vu.lignes[2].dernierCommit, /^\d{4}-\d{2}-\d{2}$/, 'la publication de #1759 date sa ligne')
-    assert.deepEqual(vu.anomalies, ['ticket #1 introuvable dans cgauche/game'])
+    assert.deepEqual(vu.anomalies, [`ticket #1 introuvable dans ${DEPOT}`])
     assert.deepEqual(mesurer({ cwd: racine, base: 'origin/main', portee: [], issues }).lignes, [])
     assert.equal(lectures.length, 1, 'une portée VIDE ne lit aucune issue')
   } finally {

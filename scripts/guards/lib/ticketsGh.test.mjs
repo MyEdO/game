@@ -7,7 +7,7 @@ import { readFileSync } from 'node:fs'
 import { codeSeul } from './commentPoison.mjs'
 import { formesDeFermeture } from './sitesDeFermeture.mjs'
 import {
-  BORNE_RAISON, PAR_PAGE, PLAFOND_PAGES, appelGhRunner, cheminTicket, corpsDeLaPage, lireTicket,
+  BORNE_RAISON, DEPOT, PAR_PAGE, PLAFOND_PAGES, appelGhRunner, cheminTicket, corpsDeLaPage, lireTicket,
   pagesRest, poserCommentaire,
 } from './ticketsGh.mjs'
 
@@ -24,11 +24,11 @@ function ghFeint(reponses) {
 }
 
 const page = (n) => JSON.stringify(Array.from({ length: n }, (_, i) => ({ body: `c${i}` })))
-const TICKET = 'repos/cgauche/game/issues/1813'
+const TICKET = `repos/${DEPOT}/issues/1813`
 
 test('cheminTicket : la route REST d’un ticket, dépôt en paramètre', () => {
-  assert.equal(cheminTicket('cgauche/game', 1813), TICKET)
-  assert.equal(cheminTicket('cgauche/game', '1813'), TICKET)
+  assert.equal(cheminTicket(`${DEPOT}`, 1813), TICKET)
+  assert.equal(cheminTicket(`${DEPOT}`, '1813'), TICKET)
 })
 
 test('corpsDeLaPage : une PAGE est un TABLEAU ; une réponse d’erreur est un OBJET, et elle JETTE', () => {
@@ -164,7 +164,7 @@ test('pagesRest : jamais `--paginate`, jamais une sous-commande CLI — `gh api`
 
 // ── lireTicket ────────────────────────────────────────────────────────────────
 
-const REP = 'cgauche/game'
+const REP = `${DEPOT}`
 const lire = (appel) => lireTicket({ depot: REP, numero: '1813', appel })
 
 test('lireTicket : l’état et les corps de commentaires, par REST — aucune sous-commande `gh issue`', () => {
@@ -241,7 +241,7 @@ test('appelGhRunner : le motif d’un refus vient de STDERR — `err.message` n�
   // Mesuré : `err.message` d'`execFileSync` commence par « Command failed: gh api repos/… -X POST -F
   // body=@- », ~120 caractères avant le moindre motif. C'est stderr qui porte « gh: Not Found ».
   const echec = () => {
-    const err = new Error('Command failed: gh api repos/cgauche/game/issues/999999999 -X POST -F body=@-\n')
+    const err = new Error(`Command failed: gh api repos/${DEPOT}/issues/999999999 -X POST -F body=@-\n`)
     err.stderr = 'gh: Not Found (HTTP 404)\n'
     throw err
   }

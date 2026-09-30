@@ -4,6 +4,7 @@
 // l'arbre, là où la forme se change. Lancé par `npm run test:ops`.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
+import { DEPOT } from '../guards/lib/ticketsGh.mjs'
 import { mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
@@ -139,14 +140,14 @@ test('hors `--dry-run`, la mise à jour d’un ruleset EXISTANT passe par PUT su
     lireCi,
     sortie: () => {},
   })
-  assert.deepEqual(appels[0], ['api', 'repos/cgauche/game/rulesets'])
-  assert.deepEqual(appels[1].slice(0, 4), ['api', '-X', 'PUT', 'repos/cgauche/game/rulesets/77'])
+  assert.deepEqual(appels[0], ['api', `repos/${DEPOT}/rulesets`])
+  assert.deepEqual(appels[1].slice(0, 4), ['api', '-X', 'PUT', `repos/${DEPOT}/rulesets/77`])
 })
 
 test('hors `--dry-run`, un ruleset ABSENT est CRÉÉ par POST sur la collection', () => {
   const appels = []
   executer({ argv: [], runner: (args) => { appels.push(args); return '[]' }, lireCi, sortie: () => {} })
-  assert.deepEqual(appels[1].slice(0, 4), ['api', '-X', 'POST', 'repos/cgauche/game/rulesets'])
+  assert.deepEqual(appels[1].slice(0, 4), ['api', '-X', 'POST', `repos/${DEPOT}/rulesets`])
 })
 
 test('un échec `gh` rend exit 1 en portant son corps — jamais avalé, jamais une stack Node', () => {
