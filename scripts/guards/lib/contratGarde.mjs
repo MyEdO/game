@@ -15,7 +15,7 @@ export const entreeDOutil = (entree) => (entree?.tool_input && typeof entree.too
 
 /** Les familles d'outil : LECTURE passe sans garde, hors ses actions refusées ; ÉDITION est jugée par
  *  les gardes d'écriture, SHELL (un `tool_input` à champ `command`) par les gardes de commande ; la
- *  PASSERELLE appelle l'outil que nomment ses clés `CLES_PASSERELLE`. */
+ *  PASSERELLE n'appelle que les outils de `LECTURES_LIBRES` que nomment ses clés `CLES_PASSERELLE`. */
 export const LECTURE = 'lecture'
 export const EDITION = 'edition'
 export const SHELL = 'shell'
@@ -72,14 +72,12 @@ export const familleLeanCtx = (nu) => classement(nu)?.famille ?? null
 /** Les valeurs d'`action` refusées d'un outil lean-ctx par son nom nu. */
 export const actionsRefuseesDe = (nu) => classement(nu)?.actionsRefusees ?? []
 
-/** Les `arguments` d'un appel à l'outil `nu` portent-ils une action refusée ? Des arguments qui ne
- *  sont pas un objet, ou une `action` qui n'est pas une chaîne, ne se jugent pas : refusés. */
-export function actionRefusee(nu, args) {
-  const refusees = actionsRefuseesDe(nu)
-  if (refusees.length === 0 || args === undefined) return false
-  if (args === null || typeof args !== 'object' || Array.isArray(args)) return true
-  if (args.action === undefined) return false
-  return typeof args.action !== 'string' || refusees.includes(args.action.trim().toLowerCase())
+/** L'appel DIRECT à l'outil `nu` porte-t-il une action refusée ? Une `action` qui n'est pas une chaîne
+ *  ne se juge pas : refusée. */
+export function actionRefusee(nu, entree) {
+  const action = entreeDOutil(entree)?.action
+  if (actionsRefuseesDe(nu).length === 0 || action === undefined) return false
+  return typeof action !== 'string' || actionsRefuseesDe(nu).includes(action.trim().toLowerCase())
 }
 
 /** Les outils LECTURE sans action refusée, par nom nu : ceux que le matcher peut exclure du répartiteur. */

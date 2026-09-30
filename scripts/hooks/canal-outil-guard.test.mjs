@@ -13,9 +13,9 @@ const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 const FICHE = join(REPO, '.claude', 'memory', 'game-sonde-canal.md')
 const ECRIT = `echo x > '${FICHE.replace(/\\/g, '/')}'`
 
-/** La décision et la raison du répartiteur pour `tool_name` sur `tool_input`. */
-function decisionDe(tool_name, tool_input) {
-  const r = lancerHook('repartiteur.mjs', ecriture(tool_input, tool_name))
+/** La décision et la raison du répartiteur pour `tool_name` sur `tool_input`, sur la `surface`. */
+function decisionDe(tool_name, tool_input, surface = 'claude') {
+  const r = lancerHook('repartiteur.mjs', ecriture(tool_input, tool_name), { surface })
   assert.equal(r.code, 0, r.err)
   return { decision: r.specifique?.permissionDecision ?? null, raison: r.specifique?.permissionDecisionReason ?? '' }
 }
@@ -40,8 +40,6 @@ test('DRIVER : tout outil lean-ctx NON classé, direct ou par la passerelle, et 
     ['ctx_call tool ctx_read + name ctx_execute (ambigu)', 'mcp__lean-ctx__ctx_call', { tool: 'ctx_read', name: 'ctx_execute', arguments: { action: 'code', code: 'x' } }],
     ['ctx_call sans name ni tool', 'mcp__lean-ctx__ctx_call', { arguments: { path: FICHE } }],
     ['ctx_call name non-chaîne', 'mcp__lean-ctx__ctx_call', { name: ['ctx_read'], arguments: { path: FICHE } }],
-    ['ctx_call → ctx_knowledge export', 'mcp__lean-ctx__ctx_call', { name: 'ctx_knowledge', arguments: { action: 'export', path: FICHE } }],
-    ['ctx_call → ctx_knowledge arguments non-objet', 'mcp__lean-ctx__ctx_call', { name: 'ctx_knowledge', arguments: '{"action":"export"}' }],
     ['ctx_knowledge export', 'mcp__lean-ctx__ctx_knowledge', { action: 'export', path: FICHE }],
     ['ctx_knowledge import', 'mcp__lean-ctx__ctx_knowledge', { action: 'import', path: FICHE }],
     ['ctx_knowledge EXPORT (casse)', 'mcp__lean-ctx__ctx_knowledge', { action: ' EXPORT ', path: FICHE }],
@@ -80,7 +78,6 @@ test('DRIVER : un outil de LECTURE classé, direct ou par la passerelle, un shel
     ['ctx_call → mcp__lean-ctx__ctx_callgraph', 'mcp__lean-ctx__ctx_call', { tool: 'mcp__lean-ctx__ctx_callgraph', arguments: { symbol: 'f' } }],
     ['ctx_call name → ctx_read (clé du schéma)', 'mcp__lean-ctx__ctx_call', { name: 'ctx_read', arguments: { path: FICHE } }],
     ['ctx_call name et tool concordants', 'mcp__lean-ctx__ctx_call', { name: 'ctx_read', tool: 'mcp__lean-ctx__ctx_read', arguments: { path: FICHE } }],
-    ['ctx_call → ctx_knowledge recall', 'mcp__lean-ctx__ctx_call', { name: 'ctx_knowledge', arguments: { action: 'recall', query: 'x' } }],
     ['ctx_knowledge recall', 'mcp__lean-ctx__ctx_knowledge', { action: 'recall', query: 'x' }],
     ['ctx_session status', 'mcp__lean-ctx__ctx_session', { action: 'status' }],
     ['ctx_verify stats', 'mcp__lean-ctx__ctx_verify', { action: 'stats' }],
@@ -93,6 +90,41 @@ test('DRIVER : un outil de LECTURE classé, direct ou par la passerelle, un shel
     ['ctx_patch dry_run', 'mcp__lean-ctx__ctx_patch', { op: 'replace_symbol', name: 'f', new_text: 'x', dry_run: true }],
   ]
   for (const [nom, outil, entree] of passent) assert.equal(decisionDe(outil, entree).decision, null, nom)
+})
+
+const P = 'mcp__lean-ctx__'
+
+test('DRIVER : la passerelle vers un outil hors `LECTURES_LIBRES` est REFUSÉE quelle que soit la forme de l’appel (imbriqué, aplati, `arguments` null/objet), canal prescrit : l’outil appelé DIRECTEMENT — surfaces claude et codex', () => {
+  const cas = [
+    ['aplati ctx_knowledge export', { name: 'ctx_knowledge', action: 'export', format: 'okf', path: FICHE }],
+    ['aplati ctx_knowledge import', { name: 'ctx_knowledge', action: 'import', path: FICHE, merge: 'replace' }],
+    ['aplati ctx_session export', { name: 'ctx_session', action: 'export', value: FICHE }],
+    ['aplati ctx_verify proof', { name: 'ctx_verify', action: 'proof' }],
+    ['arguments null + action à plat', { name: 'ctx_knowledge', arguments: null, action: 'export', path: FICHE }],
+    ['arguments {} + action à plat', { name: 'ctx_knowledge', arguments: {}, action: 'export' }],
+    ['imbriqué ctx_knowledge export', { name: 'ctx_knowledge', arguments: { action: 'export', path: FICHE } }],
+    ['imbriqué ctx_knowledge arguments non-objet', { name: 'ctx_knowledge', arguments: '{"action":"export"}' }],
+    ['imbriqué ctx_knowledge recall (action inoffensive)', { name: 'ctx_knowledge', arguments: { action: 'recall', query: 'x' } }],
+    ['aplati ctx_session status (action inoffensive)', { name: 'ctx_session', action: 'status' }],
+    ['name avec espace', { name: ' ctx_read', path: FICHE }],
+  ]
+  for (const surface of ['claude', 'codex']) {
+    for (const [nom, entree] of cas) {
+      const { decision, raison } = decisionDe(`${P}ctx_call`, entree, surface)
+      assert.equal(decision, 'deny', `${surface} : ${nom}`)
+      assert.ok(raison.includes(CONSIGNE) && raison.includes(`appeler ${entree.name} DIRECTEMENT`), `${surface} : ${nom} : ${raison}`)
+    }
+  }
+})
+
+test('DRIVER : la passerelle vers un outil de `LECTURES_LIBRES` passe, aplatie comme imbriquée — surfaces claude et codex', () => {
+  const passent = [
+    ['aplati ctx_read', { name: 'ctx_read', path: FICHE, mode: 'full' }],
+    ['imbriqué ctx_read', { name: 'ctx_read', arguments: { path: FICHE } }],
+    ['arguments null ctx_read', { name: 'ctx_read', arguments: null, path: FICHE }],
+  ]
+  for (const surface of ['claude', 'codex'])
+    for (const [nom, entree] of passent) assert.equal(decisionDe(`${P}ctx_call`, entree, surface).decision, null, `${surface} : ${nom}`)
 })
 
 test('les outils que les sessions utilisent pour LIRE sont classés LECTURE (sinon toute session se bloque)', () => {

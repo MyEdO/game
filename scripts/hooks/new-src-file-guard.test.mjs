@@ -167,6 +167,18 @@ test('ctx_patch op=create porte le chemin en `path` : même refus que Write', ()
   assert.match(r.raison, /NON DÉCLARÉ/)
 })
 
+test('seule l’op `create` de ctx_patch CRÉE : une op qui lit la préimage (`replace_unique`) sur un fichier absent ne reçoit ni refus ni rappel de création', () => {
+  const absent = join(REPO, 'src/state/fantome-garde-v5.ts')
+  const cree = lanceAvec({ op: 'create', path: absent, new_text: 'export {}' })
+  assert.match(cree.contexte ?? '', /CRÉE un nouveau fichier/)
+  for (const chemin of [absent, join(REPO, FANTOME)]) {
+    const r = lanceAvec({ op: 'replace_unique', path: chemin, old_text: 'a', new_text: 'b' })
+    assert.equal(r.code, 0, r.err)
+    assert.equal(r.decision, undefined, chemin)
+    assert.doesNotMatch(r.contexte ?? '', /CRÉE un nouveau fichier/, chemin)
+  }
+})
+
 test('la garde est au registre PreToolUse du répartiteur (câblage des surfaces : garde de classe `settings-guard-canaux.test.mjs`)', () => {
   assert.ok(REGISTRE.PreToolUse.includes(garde))
 })

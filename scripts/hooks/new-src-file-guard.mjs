@@ -19,7 +19,10 @@
 //
 // COUVERTURE RÉELLE (à énoncer, pas à supposer) — la garde ne voit que les outils listés au matcher
 // `PreToolUse` des DEUX surfaces (`.claude/settings.json`, `.codex/hooks.json`) : les canaux qui
-// créent un fichier, `OUTILS_CREATION` (`scripts/guards/lib/contratGarde.mjs`), lus par `ecrituresDe`.
+// créent un fichier, `OUTILS_CREATION` (`scripts/guards/lib/contratGarde.mjs`), lus par `ecrituresDe` ;
+// seule une écriture qui pose le fichier entier (`ecritLeFichierEntier` : `Write`, `ctx_patch` op
+// `create`) le crée (lean-ctx 3.10.2, tag d4f9beb3f, module `tools::ctx_patch` : « `create` short-circuits the
+// anchored pipeline », toute autre op lit la préimage).
 // LIMITE RÉSIDUELLE assumée : tout chemin d'écriture qui ne passe pas par un outil matché échappe à
 // la garde — redirection shell (`... > src/ui/X.tsx`, `tee`, `cp`), script Node lancé par un runner,
 // éditeur externe. Le cliquet (xvii)/(x) de `src/ui/ui-ratchets.test.ts` et la revue restent la
@@ -28,7 +31,7 @@
 // Échappement documenté : `SKIP_NEW_SRC_GUARD=1` laisse passer et TRACE la dérogation (stderr +
 // `.claude/logs/new-src-guard-skips.log`, gitignoré).
 import { existsSync, readFileSync } from 'node:fs'
-import { OUTILS_CREATION, cheminVise, ecrituresDe } from '../guards/lib/contratGarde.mjs'
+import { OUTILS_CREATION, cheminVise, ecritLeFichierEntier, ecrituresDe } from '../guards/lib/contratGarde.mjs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join, resolve, relative, isAbsolute } from 'node:path'
 
@@ -169,6 +172,7 @@ function verdictsDe(ecrit, env) {
   return [...verdicts, { contexte: RAPPEL_SRC(rel) }]
 }
 
-const evaluer = (entree, { env = process.env } = {}) => ecrituresDe(entree).flatMap((ecrit) => verdictsDe(ecrit, env) ?? [])
+const evaluer = (entree, { env = process.env } = {}) =>
+  ecrituresDe(entree).filter(ecritLeFichierEntier).flatMap((ecrit) => verdictsDe(ecrit, env) ?? [])
 
 export const garde = { nom: 'new-src-file', outils: OUTILS_CREATION, evaluer }
