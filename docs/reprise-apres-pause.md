@@ -61,7 +61,8 @@ jamais. `npm run dev` imprime celui qu'il sert.
    `post-rewrite` régénèrent les docs dérivés après une fusion ou un rebase. Le PALIER de revue
    adversariale se mesure sur l'histoire au moment du commit (`scripts/guards/lib/revuePalier.mjs`),
    et la fermeture des issues suit la PUBLICATION : job `fermetures` de `.github/workflows/ci.yml`
-   après un `build` vert sur `main`, qui joue `node scripts/ops/fermer-depuis-main.mjs <before>..<sha>`.
+   après une course verte de tous les jobs vérifiants sur `main`, qui joue
+   `node scripts/ops/fermer-depuis-main.mjs <before>..<sha>`.
 2. Les pilotes de fusion des docs dérivés (`docs-generes`, `docs-catalogue`, `docs-fiche-raw`), déclarés par
    `.gitattributes` et servis par `scripts/git-hooks/merge-docs.mjs` : sans eux, chaque rebase rouvre un conflit sur
    des fichiers que `npm run docs:build` régénère seul.
@@ -201,7 +202,7 @@ gates sur CHAQUE branche `chantier/**`, et c'est son verdict — jamais un artef
 autorise une tête à entrer dans `main`. Elle CLASSE d'abord le push
 (`scripts/gates/classerPush.mjs`) : un push dont tous les fichiers changés tombent sous
 `.claude/`, `.agents/`, `.codex/`, `AGENTS.md`, `CLAUDE.md` ne joue que les 10 gates qui LISENT un de
-ces chemins (`docs:check:tout`, `agents:check`, `test:agents`, `test:hooks`, `test:ops`, `test:runner`, `test:docs`, `deps:unused`, `docs:empreinte`, `test:raw`) ; les 14 autres sont sautées.
+ces chemins (`docs:check:tout`, `agents:check`, `test:docs`, `docs:empreinte`, `test:raw`, `test:agents`, `test:hooks`, `test:ops`, `test:runner`, `deps:unused`) ; les 14 autres sont sautées.
 
 `npm run ops:publier` joue le train : rebase, docs dérivés, push de la BRANCHE, attente du run CI de
 cette branche, fast-forward de `main`, pilotage. Il refuse à la première étape rouge en la nommant,
@@ -221,24 +222,24 @@ nomme 4 refus, et celui qui exige un run vert ne vaut que pour la ref `main`.
 Ajouter une gate, c'est ajouter UN step à `ci.yml` — rien d'autre ne la récite.
 
 **Rejeu LOCAL `npm run gates`** (`node scripts/gates/toutes.mjs`), un confort de diagnostic, jamais une porte :
-24 gates classées en 3 lanes parallèles de LECTEURS — aucune gate
+24 gates en 3 lanes parallèles de LECTEURS — aucune gate
 n'écrit dans l'arbre, un dérivé s'y VÉRIFIE (`docs:check:tout`) :
 
 | Lane | Gates |
 |---|---|
+| `docs` | `docs:check:tout`, `agents:check`, `test:docs`, `build`, `docs:empreinte`, `test:raw`, `raw:check-refs`, `raw:check-code-refs`, `raw:check-ancres`, `raw:check-folio-continuity`, `raw:check-source-tables`, `raw:check-source-format`, `raw:check-source-puces`, `raw:check-renvois` |
+| `types` | `test:agents`, `test:hooks`, `test:ops`, `test:runner`, `deps:unused`, `test:recette`, `typecheck`, `lint`, `server:typecheck` |
 | `suite` | `test` |
-| `types` | `typecheck`, `lint`, `deps:unused`, `server:typecheck`, `test:agents`, `test:ops`, `test:runner`, `test:recette`, `test:hooks` |
-| `docs` | `docs:check:tout`, `docs:empreinte`, `test:raw`, `raw:check-refs`, `raw:check-code-refs`, `raw:check-ancres`, `raw:check-folio-continuity`, `raw:check-source-tables`, `raw:check-source-format`, `raw:check-source-puces`, `raw:check-renvois`, `test:docs`, `agents:check`, `build` |
 
-Les deux tables vivent dans `scripts/gates/toutes.mjs` : `LANES` pour la répartition ci-dessus,
-`ECRIT_LU` pour ce que CHAQUE gate écrit et lit (24 gates mesurées, dont
+Une lane est un job de `ci.yml` (`lanesDeCi`) ; `ECRIT_LU` (`scripts/gates/toutes.mjs`) dit ce
+que CHAQUE gate écrit et lit (24 gates mesurées, dont
 4 écrivain(s) — écriture de chaque run ou écriture POSSIBLE à porte nommée) ; c'est elle
 qui rend le classement vérifiable plutôt que déclaratif. La suite est BORNÉE par `WFRP_TEST_COEURS`
 pendant que les autres lanes tournent. Options : `--gates`, `--liste`, `--serie`. Une gate de `ci.yml`
-sans place dans ce plan fait REFUSER le run, avec son nom.
+sans entrée ÉCRIT/LU, ou jouée par deux jobs, fait REFUSER le run, avec son nom.
 
 **`package-lock.json`** : le régénérer TOUJOURS avec npm@10.9.3, recette exacte de
 `scripts/guards/lib/npmLockHoisted.mjs` — npx --yes npm@10.9.3 install --package-lock-only, puis valider avec npx npm@10.9.3 ci --dry-run. npm 11 ampute les entrées hoistées
 `@emnapi/*` que `npm ci` exige en CI ; la garde (pre-commit +
 `src/npm-lock-hoisted-guard.test.ts`) refuse un lock amputé.
-<!-- sources-empreinte: 2792990bfe4d714962aa446b386d7eabd871daf9 (27 fichiers, 8 dossiers) corps: c8c657eb9786abf70dd9233984b2034d663e25b9 -->
+<!-- sources-empreinte: 865f31c05610fbe949a97d364912afc0665286d7 (27 fichiers, 8 dossiers) corps: cac65ebebf10d5628317b34afcc80edd2819af4d -->
