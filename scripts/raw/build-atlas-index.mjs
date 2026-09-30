@@ -66,19 +66,19 @@ export function lignesDesDomaines(domaines) {
 /**
  * Tous les blocs à tenir à jour, DÉRIVÉS : le routeur racine, puis l'index de chaque cœur qui a
  * un dossier sur disque. Aucun chemin de cœur n'est écrit ici.
- * @returns {Array<{ chemin: string, lignes: string[], debut: string, fin: string, quoi: string }>}
+ * @returns {Array<{ chemin: string, lignes: string[], debut: string, fin: string }>}
  */
 export function blocsDeLAtlas(rawDir = RAWDIR, registre = REGISTRE_LIVRES, registreDomaines) {
   const pages = pagesDeLAtlas(rawDir, { classes: CLASSES, registre, absent: 'vide' })
   const blocs = [{
     chemin: join(rawDir, NOM_INDEX), lignes: lignesDesCoeurs(rawDir, registre),
-    debut: DEBUT, fin: FIN, quoi: 'cœurs',
+    debut: DEBUT, fin: FIN,
   }]
   for (const p of pages) {
     if (p.coeur === null || p.nom !== NOM_INDEX) continue
     blocs.push({
       chemin: p.chemin, lignes: lignesDesDomaines(domainesDe(p.coeur, registreDomaines)),
-      debut: DEBUT_DOMAINES, fin: FIN_DOMAINES, quoi: `domaines du cœur « ${p.coeur} »`,
+      debut: DEBUT_DOMAINES, fin: FIN_DOMAINES,
     })
   }
   return blocs
@@ -104,23 +104,30 @@ function main() {
   }
 }
 
+/**
+ * Contrat `rendre()` de `GENERATORS` (scripts/docs/build-all.mjs) : chaque page d'index → son texte,
+ * blocs réécrits, sans écrire. `lire` rend le texte EXISTANT d'une page (le disque par défaut) :
+ * seuls les blocs sont dérivés, le reste de la page est manuscrit.
+ */
+export function rendre(lire = (chemin) => readFileSync(chemin, 'utf8')) {
+  return new Map(blocsDeLAtlas().map((b) => [b.chemin.replace(/\\/g, '/'), injecter(lire(b.chemin), b.lignes, b.debut, b.fin, b.chemin)]))
+}
+
 function regenerer() {
   const check = process.argv.includes('--check')
   const perimes = []
-  for (const bloc of blocsDeLAtlas()) {
-    const contenu = readFileSync(bloc.chemin, 'utf8')
-    const attendu = injecter(contenu, bloc.lignes, bloc.debut, bloc.fin, bloc.chemin)
-    if (contenu === attendu) {
-      console.log(`build-atlas-index — OK (bloc des ${bloc.quoi} à jour dans ${bloc.chemin})`)
+  for (const [chemin, attendu] of rendre()) {
+    if (readFileSync(chemin, 'utf8') === attendu) {
+      console.log(`build-atlas-index — OK (blocs à jour dans ${chemin})`)
       continue
     }
     perimes.push(attendu)
     if (check) {
-      console.error(`build-atlas-index — ${bloc.chemin} PÉRIMÉ (bloc des ${bloc.quoi})`)
+      console.error(`build-atlas-index — ${chemin} PÉRIMÉ`)
       continue
     }
-    writeFileSync(bloc.chemin, attendu, 'utf8')
-    console.log(`build-atlas-index — bloc des ${bloc.quoi} réécrit dans ${bloc.chemin}`)
+    writeFileSync(chemin, attendu, 'utf8')
+    console.log(`build-atlas-index — blocs réécrits dans ${chemin}`)
   }
   if (check && perimes.length) {
     console.error('build-atlas-index — relancer `node scripts/raw/build-atlas-index.mjs` et committer.')

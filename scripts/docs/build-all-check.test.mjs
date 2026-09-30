@@ -284,12 +284,12 @@ const GENERATEURS_REELS = [
 /** Joue `executer` dans un processus À PART (il imprime sur stderr, que le banc lit), par un HARNAIS
  *  posé sous le `node_modules/` ignoré du dépôt jetable : un module qui en importe un autre par
  *  `file://` absolu, lancé comme tout script. */
-function executer(racine, argv, env = {}, verificateurs = []) {
+function executer(racine, argv, env = {}, verificateurs = [], generateurs = GENERATEURS_REELS) {
   const harnais = path.join(racine, 'node_modules', 'harnais-executer.mjs')
   mkdirSync(path.dirname(harnais), { recursive: true })
   writeFileSync(harnais, [
     `import { executer } from ${JSON.stringify(BUILD_ALL)}`,
-    `process.exitCode = await executer({ cwd: ${JSON.stringify(racine)}, argv: ${JSON.stringify(['--quiet', ...argv])}, generateurs: ${JSON.stringify(GENERATEURS_REELS)}, verificateurs: ${JSON.stringify(verificateurs)} })`,
+    `process.exitCode = await executer({ cwd: ${JSON.stringify(racine)}, argv: ${JSON.stringify(['--quiet', ...argv])}, generateurs: ${JSON.stringify(generateurs)}, verificateurs: ${JSON.stringify(verificateurs)} })`,
   ].join('\n'))
   const r = spawnSync(process.execPath, [harnais], { cwd: racine, encoding: 'utf8', env: { ...process.env, ...env } })
   return { status: r.status, sortie: `${r.stdout}${r.stderr}` }
@@ -510,6 +510,23 @@ test('`--check` de bout en bout : un PIED périmé sous un corps identique est r
     git('add', '-A')
     const vert = executer(racine, ['--check'])
     assert.equal(vert.status, 0, vert.sortie)
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+test('une cible LITTÉRALE déclarée que le rendu ne produit pas est REFUSÉE, nommément, en écriture comme en `--check`', () => {
+  const { racine } = depotReel()
+  const fantome = doc('fantome')
+  const generateurs = [{ ...GENERATEURS_REELS[0], targets: [DOC_A, fantome] }, GENERATEURS_REELS[1]]
+  const refus = `ARRÊT sur g/a.mjs : cible(s) LITTÉRALE(S) déclarée(s) que son rendu ne produit pas : ${fantome}.`
+  try {
+    const build = executer(racine, [], {}, [], generateurs)
+    assert.equal(build.status, 1, build.sortie)
+    assert.ok(build.sortie.includes(refus), build.sortie)
+    const check = executer(racine, ['--check', '--tout'], {}, [], generateurs)
+    assert.equal(check.status, 1, check.sortie)
+    assert.ok(check.sortie.includes(refus), check.sortie)
   } finally {
     rmSync(racine, { recursive: true, force: true })
   }

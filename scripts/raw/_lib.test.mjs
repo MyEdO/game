@@ -21,7 +21,6 @@ import { CLASSES as CLASSES_REANCHOR } from './reanchor.mjs'
 import { CLASSES as CLASSES_COUNTS } from './check-atlas-counts.mjs'
 import { CLASSES as CLASSES_IMPLEMENTE } from './build-implemente.mjs'
 import { CLASSES as CLASSES_ENTITE } from './check-entity-in-chapter.mjs'
-import { CLASSES as CLASSES_CATALOGS } from './build-catalogs.mjs'
 import { CLASSES as CLASSES_INDEX } from './build-atlas-index.mjs'
 import { CLASSES as CLASSES_CROISSANCE } from '../migrations/lib/croissance.mjs'
 import { refRe, refFolioRe, allAbbrAlternation, span, refNums, isRangeSuffix, bookOf, chapterFile, BOOKS, booksDe, cataloguesDe, classeDePage, CLASSES_DE_PAGE, coeursDe, coeurDe, coeursDuRegistre, estHorsRegle, horsRegleDe, livreDuDossier, livreDuSigle, livreExtraitDe, livresDeCatalogue, livresDeCoeur, motifHorsRegle, niveauDeSectionDe, niveauxDeSectionDe, pagesDeLAtlas, RAWDOC_AUTHOR_META, RAWDOC_META_GENERATED, sigleDe, siglesDeCoeur, teneurDe, teneursDe } from './_lib.mjs'
@@ -537,9 +536,6 @@ const ACCEPTATIONS = [
   { classes: ['fiche'],
     declarants: { 'build-implemente.mjs': CLASSES_IMPLEMENTE, 'croissance.mjs': CLASSES_CROISSANCE, 'check-entity-in-chapter.mjs': CLASSES_ENTITE },
     attendu: ['alpha/domaine.md', 'beta/domaine.md'] },
-  { classes: ['catalogue'],
-    declarants: { 'build-catalogs.mjs': CLASSES_CATALOGS },
-    attendu: ['alpha/catalogue-z.md'] },
 ]
 
 for (const { classes, declarants, attendu } of ACCEPTATIONS) {

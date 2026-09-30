@@ -21,336 +21,338 @@ import { loadSource, jsdocRole, findAlias, aliasDoc, indexerConstantes } from '.
 import { ecrireOuVerifier } from './lib/empreinte-sources.mjs'
 import { fileExports } from './lib/engineExports.mjs'
 
-const OUTIL = 'build-map-authoring'
-const MAPSPEC = 'src/state/mapSpec.ts'
-const MAPQC = 'src/state/mapQC.ts'
-const SCENES = 'src/scenes'
-/** Où vivent les parents d'interface hérités par `mapSpec.ts` (`WallSpec extends WallOverlay`) et le
- *  schéma zod d'où ces parents tirent leurs champs. */
-const SCENE = 'src/state/scene.ts'
-const SCENE_SCHEMA = 'src/data/schemas/defs-scenes/scene.ts'
+/** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire. */
+function rendu() {
+  const OUTIL = 'build-map-authoring'
+  const MAPSPEC = 'src/state/mapSpec.ts'
+  const MAPQC = 'src/state/mapQC.ts'
+  const SCENES = 'src/scenes'
+  /** Où vivent les parents d'interface hérités par `mapSpec.ts` (`WallSpec extends WallOverlay`) et le
+   *  schéma zod d'où ces parents tirent leurs champs. */
+  const SCENE = 'src/state/scene.ts'
+  const SCENE_SCHEMA = 'src/data/schemas/defs-scenes/scene.ts'
 
-function abandon(msg) {
-  console.error(`${OUTIL} — ${msg}`)
-  process.exit(1)
-}
+  function abandon(msg) {
+    console.error(`${OUTIL} — ${msg}`)
+    process.exit(1)
+  }
 
-if (!existsSync(MAPSPEC)) abandon(`${MAPSPEC} introuvable (déplacé/supprimé ?)`)
-const { text: SRC, sf: SF } = loadSource(MAPSPEC)
-for (const f of [SCENE, SCENE_SCHEMA]) if (!existsSync(f)) abandon(`${f} introuvable (déplacé/supprimé ?) — les champs HÉRITÉS y sont lus`)
-const { sf: SF_SCENE } = loadSource(SCENE)
+  if (!existsSync(MAPSPEC)) abandon(`${MAPSPEC} introuvable (déplacé/supprimé ?)`)
+  const { text: SRC, sf: SF } = loadSource(MAPSPEC)
+  for (const f of [SCENE, SCENE_SCHEMA]) if (!existsSync(f)) abandon(`${f} introuvable (déplacé/supprimé ?) — les champs HÉRITÉS y sont lus`)
+  const { sf: SF_SCENE } = loadSource(SCENE)
 
-/** Aplati un fragment de type pour une cellule de table Markdown. */
-const plat = (s) => s.replace(/\s+/g, ' ').trim().replaceAll('|', '\\|')
+  /** Aplati un fragment de type pour une cellule de table Markdown. */
+  const plat = (s) => s.replace(/\s+/g, ' ').trim().replaceAll('|', '\\|')
 
-/** Déclaration d'interface nommée d'un fichier parsé, ou undefined. */
-function interfaceDe(sf, nom) {
-  let decl
-  sf.forEachChild((n) => {
-    if (ts.isInterfaceDeclaration(n) && n.name.text === nom) decl = n
-  })
-  return decl
-}
-
-/** Membres PROPRES d'une interface (héritage exclu) : nom (+ `?`), type aplati, 1re phrase de JSDoc. */
-function membresPropres(sf, src, decl) {
-  const rows = []
-  let prevEnd = decl.members.pos
-  for (const m of decl.members) {
-    if (!ts.isPropertySignature(m)) continue
-    rows.push({
-      nom: m.name.getText(sf) + (m.questionToken ? '?' : ''),
-      type: m.type ? plat(m.type.getText(sf)) : '—',
-      role: jsdocRole(src.slice(prevEnd, m.getStart(sf))),
+  /** Déclaration d'interface nommée d'un fichier parsé, ou undefined. */
+  function interfaceDe(sf, nom) {
+    let decl
+    sf.forEachChild((n) => {
+      if (ts.isInterfaceDeclaration(n) && n.name.text === nom) decl = n
     })
-    prevEnd = m.getEnd()
+    return decl
   }
-  return rows
-}
 
-/** Alias de type nommé d'un fichier parsé, ou undefined. */
-function aliasDe(sf, nom) {
-  let decl
-  sf.forEachChild((n) => {
-    if (ts.isTypeAliasDeclaration(n) && n.name.text === nom) decl = n
-  })
-  return decl
-}
-
-/** Littéraux d'un `const NOM = [...] as const` d'un fichier parsé. */
-function clesConst(sf, nom) {
-  let cles
-  sf.forEachChild((n) => {
-    if (!ts.isVariableStatement(n)) return
-    for (const d of n.declarationList.declarations) {
-      if (!ts.isIdentifier(d.name) || d.name.text !== nom || !d.initializer) continue
-      const e = ts.isAsExpression(d.initializer) ? d.initializer.expression : d.initializer
-      if (ts.isArrayLiteralExpression(e)) cles = e.elements.filter(ts.isStringLiteral).map((l) => l.text)
-    }
-  })
-  return cles
-}
-
-/** Déballe `X.optional()`, `X.superRefine(…)`… jusqu'à l'appel `z.strictObject`/`z.object`. */
-function objetZod(node) {
-  if (ts.isCallExpression(node)) {
-    const cible = node.expression
-    if (ts.isPropertyAccessExpression(cible)) {
-      if (/^(strictObject|object|looseObject)$/.test(cible.name.text)) return node
-      return objetZod(cible.expression)
-    }
-  }
-  return undefined
-}
-
-/** Type TS d'un membre zod PRIMITIF (`z.string()` → `string`) — au-delà, on casse bruyamment
- *  plutôt que d'écrire un type faux dans la doc. */
-function typeZod(init, cle, schema) {
-  const m = init.getText().match(/^z\.(string|number|boolean)\(\)/)
-  if (!m) abandon(`clé héritée « ${cle} » de \`${schema}\` : type zod non primitif — étendre \`typeZod\` dans ${OUTIL}`)
-  return m[1]
-}
-
-/** Champs d'un `Pick<Cible, clés>` : les clés viennent du tableau `as const` cité (ex.
- *  `WALL_OVERLAY_KEYS`), leurs type et JSDoc du schéma zod dont `Cible` est inférée
- *  (`export type Cible = z.infer<typeof cibleSchema>`) — jamais d'énumération recopiée ici. */
-function champsPick(sfScene, alias) {
-  const t = alias.type
-  if (!ts.isTypeReferenceNode(t) || t.typeName.getText(sfScene) !== 'Pick' || t.typeArguments?.length !== 2) {
-    abandon(`parent « ${alias.name.text} » de ${SCENE} : seul \`Pick<Cible, clés>\` est résolu (forme changée ?)`)
-  }
-  const nomCles = (t.typeArguments[1].getText(sfScene).match(/typeof\s+([A-Za-z0-9_$]+)/) ?? [])[1]
-  if (!nomCles) abandon(`parent « ${alias.name.text} » : clés du \`Pick\` non dérivées d'un \`typeof <const>\``)
-  const cles = clesConst(sfScene, nomCles)
-  if (!cles?.length) abandon(`constante \`${nomCles}\` (clés de « ${alias.name.text} ») illisible dans ${SCENE}`)
-
-  const cible = t.typeArguments[0].getText(sfScene)
-  const aliasCible = aliasDe(sfScene, cible)
-  const nomSchema = aliasCible && (aliasCible.type.getText(sfScene).match(/z\.infer<\s*typeof\s+([A-Za-z0-9_$]+)\s*>/) ?? [])[1]
-  if (!nomSchema) abandon(`« ${cible} » (cible du \`Pick\` de « ${alias.name.text} ») n'est plus un \`z.infer<typeof …Schema>\` dans ${SCENE}`)
-  const entree = indexerConstantes([SCENE_SCHEMA]).get(nomSchema)
-  if (!entree) abandon(`schéma \`${nomSchema}\` introuvable dans ${SCENE_SCHEMA} (déplacé ?)`)
-  const objet = objetZod(entree.decl.initializer)
-  if (!objet || !ts.isObjectLiteralExpression(objet.arguments[0])) abandon(`\`${nomSchema}\` : forme d'objet zod illisible`)
-
-  const props = new Map()
-  let prevEnd = objet.arguments[0].properties.pos
-  for (const p of objet.arguments[0].properties) {
-    if (ts.isPropertyAssignment(p) && p.name) {
-      props.set(p.name.getText(entree.sf).replace(/^['"]|['"]$/g, ''), {
-        init: p.initializer,
-        role: jsdocRole(entree.text.slice(prevEnd, p.getStart(entree.sf))),
+  /** Membres PROPRES d'une interface (héritage exclu) : nom (+ `?`), type aplati, 1re phrase de JSDoc. */
+  function membresPropres(sf, src, decl) {
+    const rows = []
+    let prevEnd = decl.members.pos
+    for (const m of decl.members) {
+      if (!ts.isPropertySignature(m)) continue
+      rows.push({
+        nom: m.name.getText(sf) + (m.questionToken ? '?' : ''),
+        type: m.type ? plat(m.type.getText(sf)) : '—',
+        role: jsdocRole(src.slice(prevEnd, m.getStart(sf))),
       })
+      prevEnd = m.getEnd()
     }
-    prevEnd = p.getEnd()
+    return rows
   }
-  return cles.map((cle) => {
-    const p = props.get(cle)
-    if (!p) abandon(`clé « ${cle} » de \`${nomCles}\` absente de \`${nomSchema}\` (${SCENE_SCHEMA})`)
-    const optionnel = /\.optional\(\)/.test(p.init.getText())
-    return { nom: cle + (optionnel ? '?' : ''), type: typeZod(p.init, cle, nomSchema), role: p.role }
-  })
-}
 
-/** Champs HÉRITÉS par `extends` : parent déclaré dans le fichier lu (interface → récursion) ou dans
- *  `src/state/scene.ts` (alias `Pick<…>` → `champsPick`). Chaque ligne dit de QUI elle est héritée. */
-function champsHerites(decl) {
-  const rows = []
-  for (const clause of decl.heritageClauses ?? []) {
-    if (clause.token !== ts.SyntaxKind.ExtendsKeyword) continue
-    for (const t of clause.types) {
-      const parent = t.expression.getText(SF)
-      const locale = interfaceDe(SF, parent)
-      const herites = locale
-        ? champsInterface(parent)
-        : champsPick(SF_SCENE, aliasDe(SF_SCENE, parent) ?? abandon(`parent « ${parent} » introuvable dans ${MAPSPEC} ni ${SCENE}`))
-      for (const c of herites) rows.push({ ...c, role: `Hérité de \`${parent}\` — ${c.role ?? '—'}` })
+  /** Alias de type nommé d'un fichier parsé, ou undefined. */
+  function aliasDe(sf, nom) {
+    let decl
+    sf.forEachChild((n) => {
+      if (ts.isTypeAliasDeclaration(n) && n.name.text === nom) decl = n
+    })
+    return decl
+  }
+
+  /** Littéraux d'un `const NOM = [...] as const` d'un fichier parsé. */
+  function clesConst(sf, nom) {
+    let cles
+    sf.forEachChild((n) => {
+      if (!ts.isVariableStatement(n)) return
+      for (const d of n.declarationList.declarations) {
+        if (!ts.isIdentifier(d.name) || d.name.text !== nom || !d.initializer) continue
+        const e = ts.isAsExpression(d.initializer) ? d.initializer.expression : d.initializer
+        if (ts.isArrayLiteralExpression(e)) cles = e.elements.filter(ts.isStringLiteral).map((l) => l.text)
+      }
+    })
+    return cles
+  }
+
+  /** Déballe `X.optional()`, `X.superRefine(…)`… jusqu'à l'appel `z.strictObject`/`z.object`. */
+  function objetZod(node) {
+    if (ts.isCallExpression(node)) {
+      const cible = node.expression
+      if (ts.isPropertyAccessExpression(cible)) {
+        if (/^(strictObject|object|looseObject)$/.test(cible.name.text)) return node
+        return objetZod(cible.expression)
+      }
+    }
+    return undefined
+  }
+
+  /** Type TS d'un membre zod PRIMITIF (`z.string()` → `string`) — au-delà, on casse bruyamment
+   *  plutôt que d'écrire un type faux dans la doc. */
+  function typeZod(init, cle, schema) {
+    const m = init.getText().match(/^z\.(string|number|boolean)\(\)/)
+    if (!m) abandon(`clé héritée « ${cle} » de \`${schema}\` : type zod non primitif — étendre \`typeZod\` dans ${OUTIL}`)
+    return m[1]
+  }
+
+  /** Champs d'un `Pick<Cible, clés>` : les clés viennent du tableau `as const` cité (ex.
+   *  `WALL_OVERLAY_KEYS`), leurs type et JSDoc du schéma zod dont `Cible` est inférée
+   *  (`export type Cible = z.infer<typeof cibleSchema>`) — jamais d'énumération recopiée ici. */
+  function champsPick(sfScene, alias) {
+    const t = alias.type
+    if (!ts.isTypeReferenceNode(t) || t.typeName.getText(sfScene) !== 'Pick' || t.typeArguments?.length !== 2) {
+      abandon(`parent « ${alias.name.text} » de ${SCENE} : seul \`Pick<Cible, clés>\` est résolu (forme changée ?)`)
+    }
+    const nomCles = (t.typeArguments[1].getText(sfScene).match(/typeof\s+([A-Za-z0-9_$]+)/) ?? [])[1]
+    if (!nomCles) abandon(`parent « ${alias.name.text} » : clés du \`Pick\` non dérivées d'un \`typeof <const>\``)
+    const cles = clesConst(sfScene, nomCles)
+    if (!cles?.length) abandon(`constante \`${nomCles}\` (clés de « ${alias.name.text} ») illisible dans ${SCENE}`)
+
+    const cible = t.typeArguments[0].getText(sfScene)
+    const aliasCible = aliasDe(sfScene, cible)
+    const nomSchema = aliasCible && (aliasCible.type.getText(sfScene).match(/z\.infer<\s*typeof\s+([A-Za-z0-9_$]+)\s*>/) ?? [])[1]
+    if (!nomSchema) abandon(`« ${cible} » (cible du \`Pick\` de « ${alias.name.text} ») n'est plus un \`z.infer<typeof …Schema>\` dans ${SCENE}`)
+    const entree = indexerConstantes([SCENE_SCHEMA]).get(nomSchema)
+    if (!entree) abandon(`schéma \`${nomSchema}\` introuvable dans ${SCENE_SCHEMA} (déplacé ?)`)
+    const objet = objetZod(entree.decl.initializer)
+    if (!objet || !ts.isObjectLiteralExpression(objet.arguments[0])) abandon(`\`${nomSchema}\` : forme d'objet zod illisible`)
+
+    const props = new Map()
+    let prevEnd = objet.arguments[0].properties.pos
+    for (const p of objet.arguments[0].properties) {
+      if (ts.isPropertyAssignment(p) && p.name) {
+        props.set(p.name.getText(entree.sf).replace(/^['"]|['"]$/g, ''), {
+          init: p.initializer,
+          role: jsdocRole(entree.text.slice(prevEnd, p.getStart(entree.sf))),
+        })
+      }
+      prevEnd = p.getEnd()
+    }
+    return cles.map((cle) => {
+      const p = props.get(cle)
+      if (!p) abandon(`clé « ${cle} » de \`${nomCles}\` absente de \`${nomSchema}\` (${SCENE_SCHEMA})`)
+      const optionnel = /\.optional\(\)/.test(p.init.getText())
+      return { nom: cle + (optionnel ? '?' : ''), type: typeZod(p.init, cle, nomSchema), role: p.role }
+    })
+  }
+
+  /** Champs HÉRITÉS par `extends` : parent déclaré dans le fichier lu (interface → récursion) ou dans
+   *  `src/state/scene.ts` (alias `Pick<…>` → `champsPick`). Chaque ligne dit de QUI elle est héritée. */
+  function champsHerites(decl) {
+    const rows = []
+    for (const clause of decl.heritageClauses ?? []) {
+      if (clause.token !== ts.SyntaxKind.ExtendsKeyword) continue
+      for (const t of clause.types) {
+        const parent = t.expression.getText(SF)
+        const locale = interfaceDe(SF, parent)
+        const herites = locale
+          ? champsInterface(parent)
+          : champsPick(SF_SCENE, aliasDe(SF_SCENE, parent) ?? abandon(`parent « ${parent} » introuvable dans ${MAPSPEC} ni ${SCENE}`))
+        for (const c of herites) rows.push({ ...c, role: `Hérité de \`${parent}\` — ${c.role ?? '—'}` })
+      }
+    }
+    return rows
+  }
+
+  /** Champs d'une interface, HÉRITAGE COMPRIS : nom (+ `?`), type aplati, 1re phrase du JSDoc. */
+  function champsInterface(nom) {
+    const decl = interfaceDe(SF, nom)
+    if (!decl) abandon(`interface « ${nom} » introuvable dans ${MAPSPEC} (renommée ?)`)
+    const rows = [...membresPropres(SF, SRC, decl), ...champsHerites(decl)]
+    if (!rows.length) abandon(`interface « ${nom} » sans propriété lisible`)
+    return rows
+  }
+
+  /** Formes d'une union de type : source aplatie + 1re phrase du JSDoc qui la précède. */
+  function formesUnion(nom) {
+    const alias = findAlias(SF, nom, OUTIL, MAPSPEC)
+    if (!ts.isUnionTypeNode(alias.type)) abandon(`« ${nom} » n'est plus une union dans ${MAPSPEC}`)
+    const rows = []
+    let prevEnd = alias.type.pos
+    for (const m of alias.type.types) {
+      rows.push({ forme: plat(m.getText(SF)), role: jsdocRole(SRC.slice(prevEnd, m.getStart(SF))) })
+      prevEnd = m.getEnd()
+    }
+    return { rows, doc: aliasDoc(SRC, alias, SF) }
+  }
+
+  const MAP_FIELDS = champsInterface('MapSpec')
+  const WALL_FIELDS = champsInterface('WallSpec')
+  const CELL_FIELDS = champsInterface('CellRecipe')
+  const ENC_FIELDS = champsInterface('EncounterSpec')
+  const BIND = formesUnion('BindSpec')
+  const RELIEF = formesUnion('ReliefSpec')
+
+  // ── Ordre de compilation : le JSDoc de tête du module, cité tel quel ─────────────────────────────
+
+  const ORDRE = (() => {
+    const m = SRC.match(/ORDRE DE COMPILATION[^\n]*\n([\s\S]*?)\n \*\//)
+    if (!m) abandon(`le bloc « ORDRE DE COMPILATION » a disparu du JSDoc de tête de ${MAPSPEC}`)
+    return m[1]
+      .split('\n')
+      .map((l) => l.replace(/^\s*\*\s?/, '').trimEnd())
+      .filter((l) => l.trim() !== '')
+      .join('\n')
+  })()
+
+  const ETAPES = ORDRE.split('\n').filter((l) => /^\s*\d+(bis)?\./.test(l)).length
+  if (!ETAPES) abandon(`aucune étape numérotée lue dans l'ordre de compilation de ${MAPSPEC}`)
+
+  // ── Harnais QC : les exports de mapQC.ts ─────────────────────────────────────────────────────────
+
+  if (!existsSync(MAPQC)) abandon(`${MAPQC} introuvable — le harnais QC de carte a bougé`)
+  const QC = fileExports(MAPQC).filter((e) => e.kind === 'function')
+  if (!QC.length) abandon(`aucune fonction exportée dans ${MAPQC}`)
+
+  // ── Exemples VIVANTS : quel scénario emploie quel champ ──────────────────────────────────────────
+
+  const SCENES_SRC = listerArbre(SCENES, { filtre: (rel) => rel.endsWith('.ts') && !rel.includes('.test.') })
+    .map((rel) => `${SCENES}/${rel}`)
+    .map((f) => ({ f, t: readFileSync(f, 'utf8') }))
+    .filter(({ t }) => /\bbuildScene\s*\(|\bMapSpec\b/.test(t))
+  if (!SCENES_SRC.length) abandon(`aucun document de ${SCENES}/ n'emploie plus \`buildScene\`/\`MapSpec\``)
+
+  /** Littéraux `MapSpec` d'un document : l'argument objet de `buildScene(...)`, ou un objet ANNOTÉ
+   *  `MapSpec` (déclaration typée, `as`/`satisfies`). Mesurer la clé « en tête de ligne » sur le texte
+   *  brut sur-comptait les HOMONYMES des littéraux IMBRIQUÉS (`id`/`label` d'une entité, d'une
+   *  rencontre, d'un dialogue…) : une clé ne compte que posée au PREMIER niveau du spec. */
+  function litterauxMapSpec(fichier) {
+    const { sf } = loadSource(fichier)
+    const objets = []
+    const annote = (n) => n.type && /\bMapSpec\b/.test(n.type.getText(sf))
+    const visite = (n) => {
+      if (ts.isCallExpression(n) && /(^|\.)buildScene$/.test(n.expression.getText(sf))) {
+        const a = n.arguments[0]
+        if (a && ts.isObjectLiteralExpression(a)) objets.push(a)
+      }
+      if ((ts.isAsExpression(n) || ts.isSatisfiesExpression?.(n)) && annote(n) && ts.isObjectLiteralExpression(n.expression)) {
+        objets.push(n.expression)
+      }
+      if (ts.isVariableDeclaration(n) && annote(n) && n.initializer && ts.isObjectLiteralExpression(n.initializer)) {
+        objets.push(n.initializer)
+      }
+      n.forEachChild(visite)
+    }
+    sf.forEachChild(visite)
+    return objets.map((o) => ({
+      cles: o.properties
+        .filter((p) => ts.isPropertyAssignment(p) || ts.isShorthandPropertyAssignment(p))
+        .map((p) => p.name.getText(sf).replace(/^['"]|['"]$/g, '')),
+      epandage: o.properties.some((p) => ts.isSpreadAssignment(p)),
+    }))
+  }
+
+  const DOCS_MESURES = SCENES_SRC.map(({ f }) => ({ f, specs: litterauxMapSpec(f) })).filter((d) => d.specs.length)
+  if (!DOCS_MESURES.length) abandon(`aucun littéral \`MapSpec\` lisible par AST dans ${SCENES}/ — le motif a dérivé`)
+  const DOCS_AVEC_EPANDAGE = DOCS_MESURES.filter((d) => d.specs.some((s) => s.epandage)).map((d) => d.f)
+
+  /** Documents qui posent ce champ au PREMIER niveau d'un littéral `MapSpec`. */
+  function usagesDe(champ) {
+    const cle = champ.replace(/\?$/, '')
+    return DOCS_MESURES.filter((d) => d.specs.some((s) => s.cles.includes(cle))).map((d) => d.f)
+  }
+
+  const USAGES = MAP_FIELDS.map((c) => ({ champ: c.nom, docs: usagesDe(c.nom) }))
+  const JAMAIS_VU = USAGES.filter((u) => !u.docs.length).map((u) => u.champ)
+
+  // ── Repères d'authoring : concept → scénario étalon (ÉDITORIAL, ancré par existsSync) ─────────────
+
+  /** « Pour faire X, regarde Y » : le CONCEPT est éditorial, le chemin est ANCRÉ — un scénario renommé
+   *  casse ici plutôt que de laisser la table pointer dans le vide. */
+  const REPERES = [
+    { quoi: 'Cas trivial + `encounters`', ou: ['src/scenes/test-scenarios/bestiaire.ts', 'src/scenes/test-scenarios/magie.ts'] },
+    { quoi: 'Relief pur (2 couches, rampes, falaise)', ou: ['src/scenes/test-scenarios/pont-vitrine.ts'] },
+    { quoi: 'Multi-niveaux + logique (`triggers`/`dialogues` gatés)', ou: ['src/scenes/test-scenarios/opera.ts'] },
+    { quoi: 'Box-drawing multi-étages (`walled`) + relief, grande carte', ou: ['src/scenes/opera/floorplan.ts'] },
+    { quoi: 'Siège complet : relief + enceinte/porte brèchable + parapet + `bind`', ou: ['src/scenes/test-scenarios/siege-enceinte.ts'] },
+    { quoi: 'Naval (coque/postes/équipage via `AuthoredEnemy`)', ou: ['src/scenes/test-scenarios/combat-naval.ts'] },
+    { quoi: 'Murs-en-tuiles + `Condition` (herse)', ou: ['src/scenes/test-scenarios/piege-caveau.ts'] },
+    { quoi: 'Multi-scènes + `worldMap`', ou: ['src/scenes/test-scenarios/voyage.ts'] },
+    { quoi: 'Zones nommées (`zoneMap`) + harnais d’atteignabilité', ou: ['src/scenes/test-scenarios/zones-pieces.ts', MAPQC] },
+  ]
+  for (const r of REPERES) {
+    for (const p of r.ou) {
+      if (!existsSync(p)) abandon(`repère d'authoring « ${r.quoi} » : \`${p}\` introuvable (renommé/supprimé ?) — corriger la table plutôt que la laisser mentir`)
     }
   }
-  return rows
-}
 
-/** Champs d'une interface, HÉRITAGE COMPRIS : nom (+ `?`), type aplati, 1re phrase du JSDoc. */
-function champsInterface(nom) {
-  const decl = interfaceDe(SF, nom)
-  if (!decl) abandon(`interface « ${nom} » introuvable dans ${MAPSPEC} (renommée ?)`)
-  const rows = [...membresPropres(SF, SRC, decl), ...champsHerites(decl)]
-  if (!rows.length) abandon(`interface « ${nom} » sans propriété lisible`)
-  return rows
-}
+  // ── Vocabulaire d'authoring cité en clair : ANCRÉ aux catalogues app-owned ────────────────────────
 
-/** Formes d'une union de type : source aplatie + 1re phrase du JSDoc qui la précède. */
-function formesUnion(nom) {
-  const alias = findAlias(SF, nom, OUTIL, MAPSPEC)
-  if (!ts.isUnionTypeNode(alias.type)) abandon(`« ${nom} » n'est plus une union dans ${MAPSPEC}`)
-  const rows = []
-  let prevEnd = alias.type.pos
-  for (const m of alias.type.types) {
-    rows.push({ forme: plat(m.getText(SF)), role: jsdocRole(SRC.slice(prevEnd, m.getStart(SF))) })
-    prevEnd = m.getEnd()
+  /** Ids cités par la procédure (étape mobilier). Chacun doit exister dans son catalogue — un id
+   *  renommé casse ici, jamais dans le `.md`. */
+  function idsAncres(fichierData, ids) {
+    const brut = readFileSync(fichierData, 'utf8')
+    for (const id of ids) {
+      if (!new RegExp(`"id"\\s*:\\s*"${id}"`).test(brut)) {
+        abandon(`\`${id}\` cité par la procédure d'authoring est absent de ${fichierData} (renommé/supprimé ?)`)
+      }
+    }
+    return ids
   }
-  return { rows, doc: aliasDoc(SRC, alias, SF) }
-}
+  const PROPS_AUBERGE = idsAncres('src/data/props.json', [
+    'escalier-bois', 'balustrade-bois', 'enclume', 'foyer-de-forge', 'cuve-brasserie', 'stalle-ecurie',
+  ])
+  const APPARENCES_AUBERGE = idsAncres('src/data/structureAppearance.json', ['mur-a-ossature-en-bois'])
 
-const MAP_FIELDS = champsInterface('MapSpec')
-const WALL_FIELDS = champsInterface('WallSpec')
-const CELL_FIELDS = champsInterface('CellRecipe')
-const ENC_FIELDS = champsInterface('EncounterSpec')
-const BIND = formesUnion('BindSpec')
-const RELIEF = formesUnion('ReliefSpec')
+  // ── Constantes de verticalité : DÉRIVÉES de leur module, jamais recopiées ─────────────────────────
 
-// ── Ordre de compilation : le JSDoc de tête du module, cité tel quel ─────────────────────────────
+  function constante(fichier, nom) {
+    const m = readFileSync(fichier, 'utf8').match(new RegExp(`\\b${nom}\\s*(?::[^=]+)?=\\s*([\\d.]+)`))
+    if (!m) abandon(`constante \`${nom}\` illisible dans ${fichier} (renommée/supprimée ?)`)
+    return Number(m[1])
+  }
+  const STEP_MAX_M = constante('src/state/relief.ts', 'STEP_MAX_M')
+  const CELL_WALL_HEIGHT_M = constante(MAPSPEC, 'CELL_WALL_HEIGHT_M')
 
-const ORDRE = (() => {
-  const m = SRC.match(/ORDRE DE COMPILATION[^\n]*\n([\s\S]*?)\n \*\//)
-  if (!m) abandon(`le bloc « ORDRE DE COMPILATION » a disparu du JSDoc de tête de ${MAPSPEC}`)
-  return m[1]
-    .split('\n')
-    .map((l) => l.replace(/^\s*\*\s?/, '').trimEnd())
-    .filter((l) => l.trim() !== '')
+  // ── Rendu ────────────────────────────────────────────────────────────────────────────────────────
+
+  const table = (rows, entete, ligne) => `| ${entete.join(' | ')} |\n|${entete.map(() => '---').join('|')}|\n${rows.map(ligne).join('\n')}`
+
+  const tableChamps = (rows) =>
+    table(rows, ['Champ', 'Type', 'Rôle (JSDoc)'], (c) => `| \`${c.nom}\` | \`${c.type}\` | ${c.role ?? '—'} |`)
+
+  const tableFormes = ({ rows, doc }) =>
+    `${doc ? `${doc}\n\n` : ''}${table(rows, ['Forme', 'Rôle (JSDoc)'], (r) => `| \`${r.forme}\` | ${r.role ?? '—'} |`)}`
+
+  const lignesUsages = USAGES.filter((u) => u.docs.length)
+    .map(
+      (u) =>
+        `| \`${u.champ}\` | ${u.docs.length} | ${u.docs
+          .slice(0, 4)
+          .map((f) => `\`${f}\``)
+          .join(', ')}${u.docs.length > 4 ? ' …' : ''} |`,
+    )
     .join('\n')
-})()
 
-const ETAPES = ORDRE.split('\n').filter((l) => /^\s*\d+(bis)?\./.test(l)).length
-if (!ETAPES) abandon(`aucune étape numérotée lue dans l'ordre de compilation de ${MAPSPEC}`)
+  const REQUIS = MAP_FIELDS.filter((c) => !c.nom.endsWith('?')).map((c) => c.nom)
 
-// ── Harnais QC : les exports de mapQC.ts ─────────────────────────────────────────────────────────
-
-if (!existsSync(MAPQC)) abandon(`${MAPQC} introuvable — le harnais QC de carte a bougé`)
-const QC = fileExports(MAPQC).filter((e) => e.kind === 'function')
-if (!QC.length) abandon(`aucune fonction exportée dans ${MAPQC}`)
-
-// ── Exemples VIVANTS : quel scénario emploie quel champ ──────────────────────────────────────────
-
-const SCENES_SRC = listerArbre(SCENES, { filtre: (rel) => rel.endsWith('.ts') && !rel.includes('.test.') })
-  .map((rel) => `${SCENES}/${rel}`)
-  .map((f) => ({ f, t: readFileSync(f, 'utf8') }))
-  .filter(({ t }) => /\bbuildScene\s*\(|\bMapSpec\b/.test(t))
-if (!SCENES_SRC.length) abandon(`aucun document de ${SCENES}/ n'emploie plus \`buildScene\`/\`MapSpec\``)
-
-/** Littéraux `MapSpec` d'un document : l'argument objet de `buildScene(...)`, ou un objet ANNOTÉ
- *  `MapSpec` (déclaration typée, `as`/`satisfies`). Mesurer la clé « en tête de ligne » sur le texte
- *  brut sur-comptait les HOMONYMES des littéraux IMBRIQUÉS (`id`/`label` d'une entité, d'une
- *  rencontre, d'un dialogue…) : une clé ne compte que posée au PREMIER niveau du spec. */
-function litterauxMapSpec(fichier) {
-  const { sf } = loadSource(fichier)
-  const objets = []
-  const annote = (n) => n.type && /\bMapSpec\b/.test(n.type.getText(sf))
-  const visite = (n) => {
-    if (ts.isCallExpression(n) && /(^|\.)buildScene$/.test(n.expression.getText(sf))) {
-      const a = n.arguments[0]
-      if (a && ts.isObjectLiteralExpression(a)) objets.push(a)
-    }
-    if ((ts.isAsExpression(n) || ts.isSatisfiesExpression?.(n)) && annote(n) && ts.isObjectLiteralExpression(n.expression)) {
-      objets.push(n.expression)
-    }
-    if (ts.isVariableDeclaration(n) && annote(n) && n.initializer && ts.isObjectLiteralExpression(n.initializer)) {
-      objets.push(n.initializer)
-    }
-    n.forEachChild(visite)
+  /** Valeurs d'EXEMPLE des champs requis (ÉDITORIAL) — un champ requis neuf casse ici plutôt que de
+   *  laisser le bloc de démarrage devenir incompilable en silence. */
+  const EXEMPLE = { size: '[16, 10]', id: "'test-x'", label: "'Bac à sable'" }
+  for (const c of REQUIS) {
+    if (!(c in EXEMPLE)) abandon(`champ REQUIS « ${c} » de MapSpec sans valeur d'exemple dans ce script — l'ajouter à EXEMPLE`)
   }
-  sf.forEachChild(visite)
-  return objets.map((o) => ({
-    cles: o.properties
-      .filter((p) => ts.isPropertyAssignment(p) || ts.isShorthandPropertyAssignment(p))
-      .map((p) => p.name.getText(sf).replace(/^['"]|['"]$/g, '')),
-    epandage: o.properties.some((p) => ts.isSpreadAssignment(p)),
-  }))
-}
+  const DEMARRAGE = REQUIS.map((c) => `${c}: ${EXEMPLE[c]}`).join(', ')
 
-const DOCS_MESURES = SCENES_SRC.map(({ f }) => ({ f, specs: litterauxMapSpec(f) })).filter((d) => d.specs.length)
-if (!DOCS_MESURES.length) abandon(`aucun littéral \`MapSpec\` lisible par AST dans ${SCENES}/ — le motif a dérivé`)
-const DOCS_AVEC_EPANDAGE = DOCS_MESURES.filter((d) => d.specs.some((s) => s.epandage)).map((d) => d.f)
-
-/** Documents qui posent ce champ au PREMIER niveau d'un littéral `MapSpec`. */
-function usagesDe(champ) {
-  const cle = champ.replace(/\?$/, '')
-  return DOCS_MESURES.filter((d) => d.specs.some((s) => s.cles.includes(cle))).map((d) => d.f)
-}
-
-const USAGES = MAP_FIELDS.map((c) => ({ champ: c.nom, docs: usagesDe(c.nom) }))
-const JAMAIS_VU = USAGES.filter((u) => !u.docs.length).map((u) => u.champ)
-
-// ── Repères d'authoring : concept → scénario étalon (ÉDITORIAL, ancré par existsSync) ─────────────
-
-/** « Pour faire X, regarde Y » : le CONCEPT est éditorial, le chemin est ANCRÉ — un scénario renommé
- *  casse ici plutôt que de laisser la table pointer dans le vide. */
-const REPERES = [
-  { quoi: 'Cas trivial + `encounters`', ou: ['src/scenes/test-scenarios/bestiaire.ts', 'src/scenes/test-scenarios/magie.ts'] },
-  { quoi: 'Relief pur (2 couches, rampes, falaise)', ou: ['src/scenes/test-scenarios/pont-vitrine.ts'] },
-  { quoi: 'Multi-niveaux + logique (`triggers`/`dialogues` gatés)', ou: ['src/scenes/test-scenarios/opera.ts'] },
-  { quoi: 'Box-drawing multi-étages (`walled`) + relief, grande carte', ou: ['src/scenes/opera/floorplan.ts'] },
-  { quoi: 'Siège complet : relief + enceinte/porte brèchable + parapet + `bind`', ou: ['src/scenes/test-scenarios/siege-enceinte.ts'] },
-  { quoi: 'Naval (coque/postes/équipage via `AuthoredEnemy`)', ou: ['src/scenes/test-scenarios/combat-naval.ts'] },
-  { quoi: 'Murs-en-tuiles + `Condition` (herse)', ou: ['src/scenes/test-scenarios/piege-caveau.ts'] },
-  { quoi: 'Multi-scènes + `worldMap`', ou: ['src/scenes/test-scenarios/voyage.ts'] },
-  { quoi: 'Zones nommées (`zoneMap`) + harnais d’atteignabilité', ou: ['src/scenes/test-scenarios/zones-pieces.ts', MAPQC] },
-]
-for (const r of REPERES) {
-  for (const p of r.ou) {
-    if (!existsSync(p)) abandon(`repère d'authoring « ${r.quoi} » : \`${p}\` introuvable (renommé/supprimé ?) — corriger la table plutôt que la laisser mentir`)
-  }
-}
-
-// ── Vocabulaire d'authoring cité en clair : ANCRÉ aux catalogues app-owned ────────────────────────
-
-/** Ids cités par la procédure (étape mobilier). Chacun doit exister dans son catalogue — un id
- *  renommé casse ici, jamais dans le `.md`. */
-function idsAncres(fichierData, ids) {
-  const brut = readFileSync(fichierData, 'utf8')
-  for (const id of ids) {
-    if (!new RegExp(`"id"\\s*:\\s*"${id}"`).test(brut)) {
-      abandon(`\`${id}\` cité par la procédure d'authoring est absent de ${fichierData} (renommé/supprimé ?)`)
-    }
-  }
-  return ids
-}
-const PROPS_AUBERGE = idsAncres('src/data/props.json', [
-  'escalier-bois', 'balustrade-bois', 'enclume', 'foyer-de-forge', 'cuve-brasserie', 'stalle-ecurie',
-])
-const APPARENCES_AUBERGE = idsAncres('src/data/structureAppearance.json', ['mur-a-ossature-en-bois'])
-
-// ── Constantes de verticalité : DÉRIVÉES de leur module, jamais recopiées ─────────────────────────
-
-function constante(fichier, nom) {
-  const m = readFileSync(fichier, 'utf8').match(new RegExp(`\\b${nom}\\s*(?::[^=]+)?=\\s*([\\d.]+)`))
-  if (!m) abandon(`constante \`${nom}\` illisible dans ${fichier} (renommée/supprimée ?)`)
-  return Number(m[1])
-}
-const STEP_MAX_M = constante('src/state/relief.ts', 'STEP_MAX_M')
-const CELL_WALL_HEIGHT_M = constante(MAPSPEC, 'CELL_WALL_HEIGHT_M')
-
-// ── Rendu ────────────────────────────────────────────────────────────────────────────────────────
-
-const table = (rows, entete, ligne) => `| ${entete.join(' | ')} |\n|${entete.map(() => '---').join('|')}|\n${rows.map(ligne).join('\n')}`
-
-const tableChamps = (rows) =>
-  table(rows, ['Champ', 'Type', 'Rôle (JSDoc)'], (c) => `| \`${c.nom}\` | \`${c.type}\` | ${c.role ?? '—'} |`)
-
-const tableFormes = ({ rows, doc }) =>
-  `${doc ? `${doc}\n\n` : ''}${table(rows, ['Forme', 'Rôle (JSDoc)'], (r) => `| \`${r.forme}\` | ${r.role ?? '—'} |`)}`
-
-const lignesUsages = USAGES.filter((u) => u.docs.length)
-  .map(
-    (u) =>
-      `| \`${u.champ}\` | ${u.docs.length} | ${u.docs
-        .slice(0, 4)
-        .map((f) => `\`${f}\``)
-        .join(', ')}${u.docs.length > 4 ? ' …' : ''} |`,
-  )
-  .join('\n')
-
-const REQUIS = MAP_FIELDS.filter((c) => !c.nom.endsWith('?')).map((c) => c.nom)
-
-/** Valeurs d'EXEMPLE des champs requis (ÉDITORIAL) — un champ requis neuf casse ici plutôt que de
- *  laisser le bloc de démarrage devenir incompilable en silence. */
-const EXEMPLE = { size: '[16, 10]', id: "'test-x'", label: "'Bac à sable'" }
-for (const c of REQUIS) {
-  if (!(c in EXEMPLE)) abandon(`champ REQUIS « ${c} » de MapSpec sans valeur d'exemple dans ce script — l'ajouter à EXEMPLE`)
-}
-const DEMARRAGE = REQUIS.map((c) => `${c}: ${EXEMPLE[c]}`).join(', ')
-
-const out = `# Authoring d'une map : le format \`MapSpec\`
+  const out = `# Authoring d'une map : le format \`MapSpec\`
 
 > ⚠️ Fichier GÉNÉRÉ par \`node scripts/docs/build-map-authoring.mjs\` (\`npm run docs:map-authoring\`) — NE PAS ÉDITER À LA MAIN.
 
@@ -539,19 +541,26 @@ Sur les ${DOCS_MESURES.length} documents de \`${SCENES}/\` qui exposent un litt�
 ${lignesUsages}
 
 ${
-  JAMAIS_VU.length
-    ? `Champs sans aucun exemple mesuré dans \`${SCENES}/\` : ${JAMAIS_VU.map((c) => `\`${c}\``).join(', ')} — leur seule démonstration vit dans \`src/state/mapSpec.test.ts\`.`
-    : `Tous les champs de \`MapSpec\` ont au moins un exemple vivant dans \`${SCENES}/\`.`
-}
+    JAMAIS_VU.length
+      ? `Champs sans aucun exemple mesuré dans \`${SCENES}/\` : ${JAMAIS_VU.map((c) => `\`${c}\``).join(', ')} — leur seule démonstration vit dans \`src/state/mapSpec.test.ts\`.`
+      : `Tous les champs de \`MapSpec\` ont au moins un exemple vivant dans \`${SCENES}/\`.`
+  }
 `
+  return {
+    out,
+    path: 'docs/map-authoring.md',
+    staleMsg:
+      'docs:map-authoring — docs/map-authoring.md est PÉRIMÉ (diverge de src/state/mapSpec.ts, src/state/mapQC.ts, des scénarios de src/scenes/, ou du script).',
+    rerunMsg: '  → relancer `npm run docs:map-authoring` et committer le résultat.',
+    okMsg: 'docs:map-authoring — OK (docs/map-authoring.md à jour)',
+    writeMsg: `docs/map-authoring.md — ${MAP_FIELDS.length} champs de MapSpec, ${ETAPES} étapes de compilation, ${DOCS_MESURES.length} documents mesurés.`,
+  }
+}
 
-ecrireOuVerifier({
-  out,
-  path: 'docs/map-authoring.md',
-  check: process.argv.includes('--check'),
-  staleMsg:
-    'docs:map-authoring — docs/map-authoring.md est PÉRIMÉ (diverge de src/state/mapSpec.ts, src/state/mapQC.ts, des scénarios de src/scenes/, ou du script).',
-  rerunMsg: '  → relancer `npm run docs:map-authoring` et committer le résultat.',
-  okMsg: 'docs:map-authoring — OK (docs/map-authoring.md à jour)',
-  writeMsg: `docs/map-authoring.md — ${MAP_FIELDS.length} champs de MapSpec, ${ETAPES} étapes de compilation, ${DOCS_MESURES.length} documents mesurés.`,
-})
+/** Contrat `rendre()` de `GENERATORS` (scripts/docs/build-all.mjs) : cible → texte, sans écrire. */
+export function rendre() {
+  const { path, out } = rendu()
+  return new Map([[path, out]])
+}
+
+if (import.meta.main) ecrireOuVerifier({ ...rendu(), check: process.argv.includes('--check') })

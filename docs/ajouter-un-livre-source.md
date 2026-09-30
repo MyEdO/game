@@ -619,8 +619,8 @@ La chaîne, dans l'ordre — **périmètre → workflow → assemble → apply �
 4. **Apply déterministe** (enrichir des fiches DÉJÀ écrites, au lieu d'en assembler une) —
    `node scripts/raw/apply-livre.mjs <ABRÉV> <workflow-output.json>` insère topics + sommaire dans
    les fiches de domaine, **idempotent** via un sentinel `<!-- <ABRÉV>-INTEGRATION -->` (sigle en
-   argument, libellé lu au registre ; le motif du marqueur est dérivé du registre dans `_lib.mjs`,
-   donc un sigle à espace ou à point reste préservé par `build-catalogs.mjs`).
+   argument, libellé lu au registre). Un catalogue ne s'enrichit jamais ainsi : il n'entre que par
+   `enCatalogue` (ci-dessous).
 5. **Gardes** — `npm run docs:check`, qui rejoue `raw:coverage`, `raw:reconcile` (dont le refus d'une
    fiche qui cite le livre de cœur d'un AUTRE cœur que celui de son dossier), `raw:implemente` et
    `scripts/raw/check-atlas-counts.mjs` ; puis `raw:check-refs`.
@@ -629,7 +629,7 @@ La chaîne, dans l'ordre — **périmètre → workflow → assemble → apply �
   `node scripts/raw/build-catalogs.mjs`, qui concatène **verbatim** les chapitres de données des
   livres. Rien à éditer dans le script : ajouter une entrée `{ book, ch, catalogue }` à la liste
   **`enCatalogue`** de `scripts/raw/chapitres.json` (§ 3), le `catalogue` étant `creatures`, `sorts`,
-  `divin`, `equipement`, `carrieres` ou `divers`. Seuls le fichier, le titre et la fiche de règles
+  `divin`, `equipement`, `carrieres` ou `divers`. Seuls le fichier, le cœur, le titre et la fiche de règles
   d'un catalogue vivent dans le script — jamais une liste de livres. Un chapitre cité par un catalogue est crédité
   **au niveau chapitre** par `coverage.mjs`/`reconcile.mjs` (pas besoin de citation `l.X`).
 

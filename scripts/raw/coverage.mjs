@@ -18,13 +18,13 @@
 // Sortie : docs/raw/coverage.md  ·  `--check` : `ecrireOuVerifier`.
 import { existsSync } from 'node:fs'
 import { listerDossier, parUnitesDeCode } from '../guards/lib/lister.mjs'
-import { join } from 'node:path'
-import { BOOKS, coeurDe, chapterFile, estHorsRegle, folioSpan, motifHorsRegle, niveauDeSectionDe, pagesDeLAtlas, readText, teneurDe } from './_lib.mjs'
+import { BOOKS, coeurDe, chapterFile, estHorsRegle, folioSpan, motifHorsRegle, niveauDeSectionDe, readText, teneurDe } from './_lib.mjs'
 import { echapperRegex } from '../../src/lib/regex.ts'
 import { graphieDuFichier, numeroDuFichier, plageDeLigne1, titreDuFichier } from '../../src/data/source/decoupe.ts'
 import { ecrireOuVerifier } from '../docs/lib/empreinte-sources.mjs'
+import { pagesDeLAtlasRendues } from './build-catalogs.mjs'
 export const RAWDIR = 'docs/raw'
-// Acceptation DÉCLARÉE à la couture (`pagesDeLAtlas`) : tout sauf les rapports générés — l'épreuve
+// Acceptation DÉCLARÉE à la couture (`pagesDeLAtlasRendues`) : tout sauf les rapports générés — l'épreuve
 // datée et les pages d'auteur CITENT des chapitres, et ce qu'elles citent est couvert.
 export const CLASSES = ['fiche', 'catalogue', 'auteur', 'epreuve']
 // Le front-matter (index/intro/préface) de TOUT livre est hors-règle par son TITRE — une propriété du
@@ -265,13 +265,14 @@ function classify(ab, nn, horsRegle, isPur, docs, catalogCh) {
 const HOLE_MARK = { catalogue: '📖', scenario: '⬜', trou: '⬜', 'hors-regle': '➖' }
 const HOLE_LABEL = { catalogue: 'transcrit en catalogue, jamais traité', scenario: 'bruit de scénario', trou: 'candidat trou de règle', 'hors-regle': 'hors-règle (narratif/cadre), chapitre par ailleurs couvert' }
 
-/** Les pages LUES par cette acceptation, texte compris — source UNIQUE de `check-catalogue-complete`
- *  et de leurs bancs. Une page est identifiée par son chemin RELATIF à l'Atlas : deux cœurs portent
- *  le même nom de fiche. */
-export const pagesLues = (rawDir = RAWDIR) => pagesDeLAtlas(rawDir, { classes: CLASSES })
-  .map((p) => ({ file: p.relatif, classe: p.classe, text: readText(p.chemin) }))
+/** Les pages LUES par cette acceptation, texte compris (`pagesDeLAtlasRendues` : un catalogue est son
+ *  rendu) — source UNIQUE de `check-catalogue-complete` et de leurs bancs. Une page est identifiée par
+ *  son chemin RELATIF à l'Atlas : deux cœurs portent le même nom de fiche. */
+export const pagesLues = (rawDir = RAWDIR) => pagesDeLAtlasRendues(rawDir, { classes: CLASSES })
+  .map((p) => ({ file: p.relatif, classe: p.classe, text: p.texte }))
 
-function main(rawDir = RAWDIR) {
+/** Le registre rendu (`path`, `out`) et son journal, sans rien écrire. */
+function rendu(rawDir = RAWDIR) {
   // Profondeur-conscient : on garde chaque fiche séparée pour compter les refs et trouver la fiche PROPRIÉTAIRE.
   const docs = pagesLues(rawDir)
   // Chapitres crédités par un catalogue : source unique `catalogChaptersOf` (#604 —
@@ -417,15 +418,32 @@ function main(rawDir = RAWDIR) {
   const summaryLine = ['**Couverture (profondeur), par groupe de livres** :', '', ...lignesGroupe, '', `Section-granulaire (niveau de heading ADAPTATIF par livre — ${niveauxTxt}, #604), ventilation DÉRIVÉE (jamais un compte recopié) sur ${gSecCatalogue + gSecHorsRegle + gSecHoles} section(s) non couvertes par une fiche : **${gSecCatalogue} transcrite(s) en catalogue** (recopiées, pas traitées) · **${gSecHorsRegle} hors-règle** (chapitre explicitement exclu) · **${gSecHolesScenario} bruit de scénario** (livres de teneur \`scenario\` ${campagnesPures} : prose de campagne, aucune règle) · **${gSecHolesRegle} candidat(s) trou de règle** (reste : ${resteDesLivres} — livres de règles et compagnons mixtes, où une section vide peut cacher une vraie règle non couverte) — et ${gSecEnfoui} titre(s) de chapitre enfoui(s) détecté(s) (titre orné rétrogradé par l'extraction). Ce chiffre reste un PLANCHER : les sections couvertes par une fiche (✅ au niveau section) ne sont pas dénombrées ici (volume, cf. #604 « la sortie ne liste pas l'exhaustif »). Réfs folio (\`ABBR NN p.X\`, #606) : ${gIgnoredFolios} ignorée(s) proprement (ancre absente/ambiguë/hors-chapitre). Par livre : ${perBook.join(' · ')}.`].join('\n')
   const summaryIdx = out.indexOf(SUMMARY_PLACEHOLDER)
   out[summaryIdx] = summaryLine
-  ecrireOuVerifier({
+  return {
+    path: `${rawDir}/coverage.md`,
     out: out.join('\n'),
-    path: join(rawDir, 'coverage.md'),
+    journal: [
+      `coverage profondeur : ✅ ${gOk} · 📖 ${gCat} · 🟡 ${gMid} · ⬜ ${gHole} (sur ${denom} chapitres) · sections non-fiche : catalogue ${gSecCatalogue} · hors-règle ${gSecHorsRegle} · scénario ${gSecHolesScenario} · règle ${gSecHolesRegle} · 🔻enfoui ${gSecEnfoui} · folios ignorés ${gIgnoredFolios}`,
+      'par livre : ' + perBook.join(' · '),
+    ],
+  }
+}
+
+/** Contrat `rendre()` de `GENERATORS` (scripts/docs/build-all.mjs) : cible → texte, sans écrire. */
+export function rendre(rawDir = RAWDIR) {
+  const { path, out } = rendu(rawDir)
+  return new Map([[path, out]])
+}
+
+function main() {
+  const { path, out, journal } = rendu()
+  ecrireOuVerifier({
+    out,
+    path,
     check: process.argv.includes('--check'),
-    staleMsg: `raw:coverage — ${join(rawDir, 'coverage.md')} est PÉRIMÉ (fiche de l'Atlas ou Source changée).`,
+    staleMsg: `raw:coverage — ${path} est PÉRIMÉ (fiche de l'Atlas ou Source changée).`,
     rerunMsg: '  → relancer `npm run raw:coverage` et committer le résultat.',
   })
-  console.log(`coverage profondeur : ✅ ${gOk} · 📖 ${gCat} · 🟡 ${gMid} · ⬜ ${gHole} (sur ${denom} chapitres) · sections non-fiche : catalogue ${gSecCatalogue} · hors-règle ${gSecHorsRegle} · scénario ${gSecHolesScenario} · règle ${gSecHolesRegle} · 🔻enfoui ${gSecEnfoui} · folios ignorés ${gIgnoredFolios}`)
-  console.log('par livre : ' + perBook.join(' · '))
+  for (const l of journal) console.log(l)
 }
 
 if (import.meta.main) main()

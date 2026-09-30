@@ -112,7 +112,6 @@ export const FILE_CONCEPTS = new Map([
   ['src/engine/qualities/describe.ts', 'Description des qualités'],
   ['src/engine/qualities/dispatch.ts', "Aiguillage des qualités d'arme/armure"],
   ['src/engine/qualities/ids.ts', 'Identifiants de qualités'],
-  ['src/engine/qualities/qualityId.generated.ts', 'Identifiants de qualités (union GÉNÉRÉE)'],
   ['src/engine/qualities/normalize.ts', 'Normalisation des qualités'],
   ['src/engine/qualities/types.ts', 'Types de qualités'],
   ['src/engine/relations.ts', 'Relations entre entités'],

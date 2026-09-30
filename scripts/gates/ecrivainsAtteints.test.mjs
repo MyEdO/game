@@ -61,8 +61,9 @@ const ATTENDU = {
     // (`mkdtempSync` + `writeFileSync` sous os.tmpdir(), `rmSync` en finally) — la lecture du lot doit
     // tomber pour prouver le FAIL-CLOSED ; l'arbre versionné n'est jamais écrit.
     'scripts/git-hooks/docs-rebuild.test.mjs',
+    // −1 le 2026-09-30 (#2203) : `merge-docs.test.mjs` n'écrit plus — ses fixtures de catalogue
+    // partent avec la famille `docs-catalogue`.
     'scripts/git-hooks/merge-docs.mjs',
-    'scripts/git-hooks/merge-docs.test.mjs',
     // +4 le 2026-09-27 (#1903) : le pilote de fusion des stocks de sites et son banc écrivent %A, des
     // copies et des fichiers temporaires sous `os.tmpdir()` supprimés en `finally` (`three-way.mjs`,
     // la fusion 3-voies qu'ils partagent avec `merge-docs.mjs`) ; le banc des formats pose ses
@@ -348,8 +349,8 @@ const ATTENDU = {
     // sur un livre FORGÉ en mémoire ; ses `writeFileSync`/`rmSync` vivent dans `main()`, sous sa porte
     // `import.meta.main` (`main` de recouper-source.mjs) — déclarés en `ecritFerme` de `test:raw` (ECRIT_LU).
     'scripts/raw/recouper-source.mjs',
-    // +3 le 2026-09-20 (#1825) : les deux bancs neufs posent leurs fixtures (catalogue à bloc
-    // préservé, fiche d'un autre cœur) sous `mkdtempSync` de os.tmpdir(), `rmSync` en finally ;
+    // +3 le 2026-09-20 (#1825) : les deux bancs neufs posent leurs fixtures (fiche à intégrer,
+    // fiche d'un autre cœur) sous `mkdtempSync` de os.tmpdir(), `rmSync` en finally ;
     // l'assembleur est ACQUIS parce que son banc l'importe. Mesure du 2026-09-21 (#1825 F1-0-C) :
     // `assemble()` ÉCRIT, et le banc l'APPELLE — il lui passe son `rawDir` (même couture que
     // `cheminDeFiche`), pointé sur un `mkdtempSync` de os.tmpdir() : l'arbre n'est jamais écrit, et

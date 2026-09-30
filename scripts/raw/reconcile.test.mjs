@@ -103,9 +103,13 @@ function withFixtures(srcFiles, docFiles, fn, dette = [], coeur = COEUR_REEL) {
     writeFileSync(p, content, 'utf8')
   }
   // Les pages de l'Atlas vivent SOUS un cœur : la partition est le contrat, et la couture refuse
-  // une page de règles posée à la racine.
-  for (const [name, content] of Object.entries(docFiles)) writeFileSync(join(rawDir, coeur, name), content, 'utf8')
-  try { fn({ srcDir, rawDir, manifestPath }) } finally { rmSync(root, { recursive: true, force: true }) }
+  // une page de règles posée à la racine. Un catalogue n'est jamais lu au disque : il passe par la
+  // source de catalogues injectée (`pagesDeLAtlasRendues`).
+  const estCatalogue = (name) => name.startsWith('catalogue-')
+  for (const [name, content] of Object.entries(docFiles))
+    if (!estCatalogue(name)) writeFileSync(join(rawDir, coeur, name), content, 'utf8')
+  const catalogues = () => new Map(Object.entries(docFiles).filter(([name]) => estCatalogue(name)).map(([name, content]) => [`${coeur}/${name}`, content]))
+  try { fn({ srcDir, rawDir, manifestPath, catalogues }) } finally { rmSync(root, { recursive: true, force: true }) }
 }
 
 /** Les mêmes fixtures, posées sous un cœur du registre de FIXTURE — pour tout cas qui injecte

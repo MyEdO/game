@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { rendreCible } from '../../scripts/docs/build-all.mjs';
 import ts from 'typescript';
 import { useGame } from './store';
 import { CLOTURE_VERBES, jouerLesClotures } from './combatEffects';
@@ -35,6 +36,8 @@ import { detenteur } from '../detenteur.testkit';
  *    vérifié plus bas (cf. `scripts/guards/lib/rollSeamWhitelist.mjs`).
  */
 
+/** `docs/registre-jets.md` tel que son générateur le rend (`rendreCible`), jamais le fichier du disque. */
+const DOC_REGISTRE = await rendreCible('docs/registre-jets.md');
 const ROOT = fileURLToPath(new URL('../..', import.meta.url)); // src/state/ → ../../ = racine du projet
 const SCAN_DIRS = [RACINE_DU_SEAM];
 
@@ -525,7 +528,7 @@ describe('REGISTRE des chemins de jet (#1070) — le tri de population est SOLD�
  * dans les DEUX états : la mesure décide, jamais une main.
  */
 describe('REGISTRE des chemins de jet (#1657) — la section « NON routés » suit la MESURE', () => {
-  const doc = () => readFileSync(join(ROOT, 'docs/registre-jets.md'), 'utf8');
+  const doc = () => DOC_REGISTRE;
   /** Cardinal MESURÉ des nœuds hors porte, lu sur le doc généré (jamais un littéral recopié). */
   const horsPorte = (): number => {
     const m = /\*\*(\d+) nœuds? authoré[s]? hors porte\*\*|\*\*(\d+) NON ROUTÉS\*\*/.exec(doc());

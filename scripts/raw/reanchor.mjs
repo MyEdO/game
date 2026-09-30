@@ -30,7 +30,8 @@ import { writeFileSync } from 'node:fs'
 import { listerDossier } from '../guards/lib/lister.mjs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { allAbbrAlternation, chapterFile, livreDuSigle, normalize, ELLIPSIS_SENTINEL as SENT, pagesDeLAtlas, readText } from './_lib.mjs'
+import { allAbbrAlternation, chapterFile, livreDuSigle, normalize, ELLIPSIS_SENTINEL as SENT, readText } from './_lib.mjs'
+import { pagesDeLAtlasRendues } from './build-catalogs.mjs'
 import { graphieDuFichier } from '../../src/data/source/decoupe.ts'
 import { ecartDuVolet } from '../guards/lib/stock.mjs'
 import { SOUS_LOT, lireEntreesDeSite } from '../guards/lib/stockDeSites.mjs'
@@ -212,17 +213,17 @@ export function classifyQuote(li, citedStart, rawQuote, findCross) {
 // les réécritures --apply/--remap sur DISQUE (seul effet de bord — pas d'écriture de rapport ici,
 // à charge de l'appelant), et renvoie tally + lignes de rapport + les réfs LOW (pour le cliquet) +
 // les réfs que --remap n'a pas pu porter (`nonRemappees`). `carteDe(abbr, ch)` fournit la carte de
-// lignes d'un chapitre (injectable en banc).
-export function scan(rawDir = RAWDIR, { apply = false, remap = false, classes = CLASSES, carteDe = carteDuChapitre } = {}) {
-  const DOCS = pagesDeLAtlas(rawDir, { classes })
+// lignes d'un chapitre (injectable en banc), `catalogues` la source des catalogues (`pagesDeLAtlasRendues`).
+export function scan(rawDir = RAWDIR, { apply = false, remap = false, classes = CLASSES, carteDe = carteDuChapitre, catalogues } = {}) {
+  const DOCS = pagesDeLAtlasRendues(rawDir, { classes }, catalogues)
   const tally = { OK: 0, DRIFT: 0, MEDIUM: 0, LOW: 0, RANGE: 0, 'PAST-EOF': 0, 'NO-SOURCE': 0 }
   let totalRefs = 0, totalQuotes = 0, appliedTotal = 0, remappedTotal = 0
   const lowRows = []   // [{ doc: chemin de la FICHE, full, detail }] — un SITE = une unité du cliquet
   const nonRemappees = []   // [{ doc, ligne, full, detail }] — réf sur une ligne supprimée ou ambiguë
   const sections = []  // [{ file, rows }] pour le rapport
 
-  for (const { relatif: file, chemin: path } of DOCS) {
-    const lines = readText(path).split('\n')
+  for (const { relatif: file, chemin: path, texte } of DOCS) {
+    const lines = texte.split('\n')
     const rows = []
     const edits = new Map()   // lineIdx -> [{start,end,replacement}]
     const consumed = new Set()  // lignes (index i) dont la citation a déjà été prise (cf. clé ci-dessous)
@@ -360,6 +361,13 @@ function buildReport(result) {
   return out.join('\n')
 }
 
+const RAPPORT = `${RAWDIR}/reanchor.md`
+
+/** Contrat `rendre()` de `GENERATORS` (scripts/docs/build-all.mjs) : cible → texte, sans écrire. */
+export function rendre(result = scan(RAWDIR)) {
+  return new Map([[RAPPORT, buildReport(result)]])
+}
+
 function main() {
   if (CHECK && (APPLY || REMAP)) {
     console.error('raw:reanchor — REFUS : `--check` compare sans écrire, `--apply`/`--remap` réécrivent les fiches de l’Atlas — jamais les deux ensemble.')
@@ -404,12 +412,11 @@ function main() {
   }
   if (fail) process.exitCode = 1
 
-  const rapport = join(RAWDIR, 'reanchor.md')
   ecrireOuVerifier({
-    out: buildReport(APPLY || REMAP ? scan(RAWDIR) : result),
-    path: rapport,
+    out: rendre(APPLY || REMAP ? scan(RAWDIR) : result).get(RAPPORT),
+    path: RAPPORT,
     check: CHECK,
-    staleMsg: `raw:reanchor — ${rapport} est PÉRIMÉ (fiche de l'Atlas ou Source changée).`,
+    staleMsg: `raw:reanchor — ${RAPPORT} est PÉRIMÉ (fiche de l'Atlas ou Source changée).`,
     rerunMsg: '  → relancer `npm run raw:reanchor` et committer le résultat.',
   })
 }

@@ -111,6 +111,10 @@ export const CODE_CORPS_PERIME = 2
  *  chaque corps rendu qu'il déclare périmé, une ligne par corps. */
 export const ENV_CORPS_RENDUS = 'WFRP_CORPS_RENDUS'
 
+/** Variable d'env posée par build-all.mjs : le fichier où `ecrireOuVerifier` APPEND chaque cible qu'il
+ *  rend (chemin POSIX relatif au répertoire courant), une ligne par cible. */
+export const ENV_CIBLES_RENDUES = 'WFRP_CIBLES_RENDUES'
+
 /** Déclare un corps périmé au code de sortie SANS quitter le processus : un cliquet posé avant garde
  *  son bit, et ce qui suit l'appel peut encore parler. `corps` : le(s) corps RENDU(S) — ce que
  *  `docs:build` écrirait — au moins un, consignés sous `ENV_CORPS_RENDUS` (#1801). */
@@ -132,6 +136,8 @@ export function declarerCorpsPerime(...corps) {
  * REND `true` quand le corps était déjà à jour.
  */
 export function ecrireOuVerifier({ out, path: chemin, check, staleMsg, rerunMsg, okMsg, writeMsg }) {
+  const consigne = process.env[ENV_CIBLES_RENDUES]
+  if (consigne) appendFileSync(consigne, `${path.relative(process.cwd(), path.resolve(chemin)).split(path.sep).join('/')}\n`)
   const actuel = existeFichier(chemin) ? retirerPied(readFileSync(chemin, 'utf8')) : null
   const aJour = actuel === out
   if (!check) {

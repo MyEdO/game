@@ -1,4 +1,5 @@
 import { afterAll, describe, expect, it } from 'vitest';
+import { rendreCible } from '../../scripts/docs/build-all.mjs';
 import { execFileSync } from 'node:child_process';
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { z } from 'zod';
@@ -88,6 +89,8 @@ const GARDE = {
   ticket: '#1465',
 } as const;
 
+/** `docs/structures-donnees.md` tel que son générateur le rend (`rendreCible`), jamais le fichier du disque. */
+const DOC_STRUCTURES = await rendreCible('docs/structures-donnees.md');
 const ROOT = execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim();
 /** Le DÉCLARÉ couvre les DEUX racines (#1466 L1a) — jointure par BASENAME, comme le scan key.
  *  UN seul scan pour tout le fichier : le test consomme la mesure, il ne relit jamais les JSON. La
@@ -1179,7 +1182,7 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
 
   it('les ANGLES MORTS ont UNE source : le lexique, recopié nulle part (test, stock, doc)', () => {
     const stock = readFileSync(join(ROOT, 'scripts/guards/lib/structuresStock.mjs'), 'utf8');
-    const doc = readFileSync(join(ROOT, 'docs/structures-donnees.md'), 'utf8');
+    const doc = DOC_STRUCTURES;
     // Les deux copies se LISENT, elles ne se cherchent pas : l'inclusion seule est unidirectionnelle
     // (lexique ⊆ copie) et laisserait passer une ligne SURNUMÉRAIRE — un angle mort que le lexique ne
     // porte pas est un angle mort que personne n'a décidé.

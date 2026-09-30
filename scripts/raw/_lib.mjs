@@ -351,15 +351,8 @@ export const allAbbrAlternation = () => ABBR_ALT
 const ABBR_ALT_REGISTRE = alternationDe(booksData.filter((b) => b.abbr).map((b) => b.abbr))
 export const alternationDuRegistre = () => ABBR_ALT_REGISTRE
 
-// MARQUEUR de BLOC PRÉSERVÉ d'un livre — `<!-- <ABRÉV>-INTEGRATION -->` : un correctif MANUEL posé
-// dans une fiche ou un catalogue de l'Atlas, que `build-catalogs.mjs` re-préserve à chaque
-// régénération et que `merge-docs.mjs` re-fusionne. L'ÉCRIVAIN (`apply-livre.mjs`) et les LECTEURS
-// passent par ICI, et la regex se DÉRIVE de `allAbbrAlternation` : un marqueur écrit que le
-// lecteur ne relit pas, c'est un correctif manuel effacé sans un mot à la régénération suivante.
+// Sentinel d'intégration d'un livre dans une fiche de l'Atlas : `apply-livre.mjs`.
 export const marqueurIntegration = (abbr) => `<!-- ${abbr}-INTEGRATION -->`
-export const marqueurIntegrationFin = (abbr) => `<!-- /${abbr}-INTEGRATION -->`
-export const blockStartReDe = (alt) => new RegExp(`^<!-- ((?:${alt})-INTEGRATION) -->`)
-export const blockStartRe = () => blockStartReDe(ABBR_ALT)
 
 // Mention LÂCHE d'un chapitre (« <ABRÉV> 12 », « <ABRÉV> ch.7 », sans réf de ligne) sur l'alternation
 // que l'appelant injecte : c'est elle qui dit « ce document parle de ce chapitre » (`reconcile.mjs`,

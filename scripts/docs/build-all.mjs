@@ -8,9 +8,10 @@
 // `*.generated.ts` sont des cibles de CODE, écrites en entier mais sans pied (`estUnDocMarkdown`).
 // Ordre motivé : les registres générés passent EN TÊTE (les générateurs de docs lisent `src/`) ; les
 // rapports d'Atlas LISENT les fiches docs/raw (`pagesLues` de coverage.mjs, `computeReconciliation`
-// de reconcile.mjs, `scan` de reanchor.mjs), ils passent donc APRÈS build-catalogs/build-implemente
-// qui les écrivent. C'est cet ordre qui autorise une source elle-même GÉNÉRÉE : une source écrite par
-// un générateur PLUS TARD dans la liste serait lue périmée, et se fait refuser par nom.
+// de reconcile.mjs, `scan` de reanchor.mjs), ils passent donc APRÈS build-implemente qui y injecte ;
+// leurs catalogues sont le rendu de build-catalogs (`pagesDeLAtlasRendues`). C'est cet ordre qui
+// autorise une source elle-même GÉNÉRÉE : une source écrite par un générateur PLUS TARD dans la liste
+// serait lue périmée, et se fait refuser par nom.
 //
 // EMPREINTE DE SOURCES (#1679) — chaîne complète, aucun maillon écrit à la main :
 //   1. chaque générateur est lancé avec `scripts/docs/lib/enregistreur-lectures.mjs` en préchargeur
@@ -44,7 +45,7 @@ import { MOTIF_CATALOGUES } from '../raw/motif-catalogues.mjs'
 import { SORTIES as SORTIES_DU_REGISTRE } from '../gen-registry.mjs'
 import { execFileResilient, reessayerAuChargement } from '../guards/lib/spawnResilient.mjs'
 import {
-  avecPied, CODE_CORPS_PERIME, deltaSourcesLues, empreinteDeLIndex, empreinteDuDisque, ENV_CORPS_RENDUS, existeFichier,
+  avecPied, CODE_CORPS_PERIME, deltaSourcesLues, empreinteDeLIndex, empreinteDuDisque, ENV_CIBLES_RENDUES, ENV_CORPS_RENDUS, existeFichier,
   fusionnerLectures, hashBlobDisque, indexGit, lirePied, motifDeRejeu, estUnDocMarkdown,
   serialiserSourcesLues, sha1Corps,
 } from './lib/empreinte-sources.mjs'
@@ -55,10 +56,11 @@ import { ignoresGit } from './lib/chemin-mesure.mjs'
  *  garde de taxonomie de scripts/git-hooks/merge-docs.test.mjs) ; `injecte` = fichiers
  *  dont le générateur ne réécrit QU'UN BLOC (il les relit, ils ne sont donc pas ses sources).
  *  Tout générateur sait `--check` : un de plus coûte une ligne ici, et rien d'autre.
+ *  Tout générateur exporte `rendre()` : cible (chemin relatif POSIX) → texte, sans écrire ; il n'écrit
+ *  que sous sa porte `import.meta.main`. Un lecteur du texte d'une cible passe par `rendreCible`.
  *  Ordre = ordre d'exécution. */
 export const GENERATORS = [
   { runner: 'node', script: 'scripts/gen-registry.mjs', targets: SORTIES_DU_REGISTRE },
-  { runner: 'node', script: 'scripts/gen-quality-ids.mjs', targets: ['src/engine/qualities/qualityId.generated.ts'] },
   { runner: 'node', script: 'scripts/raw/build-atlas-index.mjs', targets: [], injecte: ['docs/raw/**/00-index.md'] },
   { runner: 'node', script: 'scripts/raw/build-catalogs.mjs', targets: [MOTIF_CATALOGUES] },
   { runner: 'node', script: 'scripts/raw/build-implemente.mjs', targets: [], injecte: ['docs/raw/**/*.md'] },
@@ -158,9 +160,10 @@ export function ciblesSurDisque(cibles, cwd) {
 /**
  * Argv et env d'un générateur. Un seul `--import` en `NODE_OPTIONS` : l'enregistreur (rendu de l'hôte,
  * mesuré) ou la plateforme (rendu vérifié, jamais mesuré), puis `tsx/esm` (argv, joué après
- * `NODE_OPTIONS`). `plateforme` : `null` = l'hôte. `corps` : le fichier de `ENV_CORPS_RENDUS`.
+ * `NODE_OPTIONS`). `plateforme` : `null` = l'hôte. `corps` : le fichier de `ENV_CORPS_RENDUS` ;
+ * `rendues` : celui de `ENV_CIBLES_RENDUES` (rendu de l'hôte seul).
  */
-function commandeDe({ runner, script }, { cwd, check, tsxEsm, lectures, ignores, cibles, plateforme, corps }) {
+function commandeDe({ runner, script }, { cwd, check, tsxEsm, lectures, ignores, cibles, plateforme, corps, rendues }) {
   const args = [
     ...(runner === 'tsx' ? ['--import', pathToFileURL(tsxEsm).href] : []),
     script,
@@ -171,6 +174,7 @@ function commandeDe({ runner, script }, { cwd, check, tsxEsm, lectures, ignores,
   if (module) env.NODE_OPTIONS = `${env.NODE_OPTIONS ?? ''} --import ${module}`.trim()
   if (plateforme) env.WFRP_PLATEFORME_RACINE = cwd
   env[ENV_CORPS_RENDUS] = corps
+  if (rendues) env[ENV_CIBLES_RENDUES] = rendues
   if (lectures) {
     env.WFRP_LECTURES_RACINE = cwd
     env.WFRP_LECTURES_SORTIE = path.join(lectures, 'l')
@@ -313,6 +317,56 @@ function diagnosticSourcesLues(actuel, rendu, mesure) {
 
 /** Les cibles SIGNÉES d'un générateur : celles de ses `targets` qui sont des docs Markdown. */
 export const ciblesSignees = (g, cwd) => ciblesSurDisque(g.targets.filter(estUnDocMarkdown), cwd)
+
+/** Les cibles LITTÉRALES (sans joker) de `g` que son rendu n'a pas produites : absentes du fichier
+ *  `ENV_CIBLES_RENDUES` où `ecrireOuVerifier` consigne chaque cible rendue. Une cible littérale existe
+ *  par sa déclaration (`check-doc-refs.mjs`) : ce refus la tient. */
+function ciblesLitteralesNonRendues(g, fichier) {
+  let texte
+  try { texte = readFileSync(fichier, 'utf8') } catch { texte = '' }
+  const rendues = new Set(texte.split('\n').filter(Boolean))
+  return g.targets.filter((t) => !t.includes('*') && !rendues.has(t))
+}
+
+/** Le générateur de `GENERATORS` qui écrit `cible` EN ENTIER (chemin relatif, contre ses `targets`),
+ *  ou `undefined`. */
+export const generateurDe = (cible, generateurs = GENERATORS) =>
+  generateurs.find((g) => g.targets.some((motif) => correspondGlob(cible, motif)))
+
+/** Le module d'un générateur, chargé comme son `runner` le lance : `tsx` par `tsImport` (`tsx/esm/api`). */
+export async function chargerGenerateur(g) {
+  const url = pathToFileURL(fileURLToPath(new URL(`../../${g.script}`, import.meta.url))).href
+  if (g.runner !== 'tsx') return import(url)
+  const { tsImport } = await import('tsx/esm/api')
+  return tsImport(url, import.meta.url)
+}
+
+const RENDUS = new Map()
+
+/** Le rendu d'un générateur de `GENERATORS` (`rendre()`, cible → texte), calculé une fois par processus. */
+export function renduDe(g) {
+  if (!RENDUS.has(g.script)) RENDUS.set(g.script, chargerGenerateur(g).then(({ rendre }) => rendre()))
+  return RENDUS.get(g.script)
+}
+
+/**
+ * Le TEXTE d'une cible de `GENERATORS`, par `rendre()` de son générateur : ni lu sur disque, ni écrit.
+ * `cible` = chemin relatif POSIX. LÈVE sur une cible qu'aucun générateur n'écrit, ou qu'il ne rend pas.
+ */
+export async function rendreCible(cible, generateurs = GENERATORS) {
+  const g = generateurDe(cible, generateurs)
+  if (!g) throw new Error(`rendreCible : ${cible} n'est la cible d'aucun générateur de GENERATORS`)
+  const texte = (await renduDe(g)).get(cible)
+  if (texte === undefined) throw new Error(`rendreCible : ${g.script} ne rend pas ${cible}`)
+  return texte
+}
+
+/** `cible` est-elle PRODUITE par son générateur : une clé de son rendu, jamais un chemin que son
+ *  motif atteint. `false` hors de `GENERATORS`. */
+export async function cibleProduite(cible, generateurs = GENERATORS) {
+  const g = generateurDe(cible, generateurs)
+  return g !== undefined && (await renduDe(g)).has(cible)
+}
 
 /**
  * Cible → générateur qui l'ÉCRIT. Un fichier écrit en entier n'a qu'un auteur : deux pieds sur le même
@@ -701,7 +755,7 @@ export async function executer({
       try {
         run(g, {
           cwd, quiet, check, tsxEsm, lectures: dossier, ignores: ignoresLectures,
-          cibles: [...new Set([...ecrites, ...injectees])].sort(), corps: corpsDe(null),
+          cibles: [...new Set([...ecrites, ...injectees])].sort(), corps: corpsDe(null), rendues: path.join(dossier, 'cibles-rendues'),
         })
       } catch (e) {
         transmettreDiagnostic(e, quiet)
@@ -728,6 +782,16 @@ export async function executer({
           : perimesHote === '' ? 'aucun corps déclaré périmé (`declarerCorpsPerime`)' : null,
       )
       if (rougePrincipal) continue
+      const nonRendues = ciblesLitteralesNonRendues(g, path.join(dossier, 'cibles-rendues'))
+      if (nonRendues.length) {
+        const message = `docs:build — ARRÊT sur ${g.script} : cible(s) LITTÉRALE(S) déclarée(s) que son rendu ne produit pas : ${nonRendues.join(', ')}.`
+        if (!check) {
+          process.stderr.write(`${message}\n`)
+          return 1
+        }
+        refuser(message)
+        continue
+      }
       const lues = fusionnerLectures(dossier)
       // Un chemin lu hors racine sort de la mesure : dit ici, il cesse d'être indiscernable d'une
       // absence de lecture (un générateur dont les sources vivent derrière une jonction, par exemple).
@@ -771,8 +835,7 @@ export async function executer({
         continue
       }
       // Le pied se pose AVANT le générateur suivant : un doc signé plus tard serait lu SANS son pied par
-      // les suivants, et leur empreinte suivrait la génération PRÉCÉDENTE — mesuré sur `coverage.mjs`,
-      // qui lit les `catalogue-*.md` que `build-catalogs.mjs` signe.
+      // les suivants, et leur empreinte suivrait la génération PRÉCÉDENTE.
       const pied = { empreinte, fichiers: lues.fichiers.length, dossiers: lues.dossiers.size }
       for (const cible of signees) {
         const chemin = path.join(cwd, cible)

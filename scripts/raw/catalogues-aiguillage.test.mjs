@@ -1,8 +1,8 @@
 // GARDE DE L'AIGUILLAGE DES CATALOGUES DE L'ATLAS (#1825) — `npm run test:raw`.
 //
 // Un catalogue est un dérivé : il est la cible de son générateur (`GENERATORS`,
-// scripts/docs/build-all.mjs, qui le vérifie en `--check`), et sa fusion passe par un pilote dédié
-// (`.gitattributes`, famille `docs-catalogue`). Les deux passent par un MOTIF de chemin — et un motif
+// scripts/docs/build-all.mjs, qui le vérifie en `--check`), et sa fusion passe par son pilote
+// (`.gitattributes`, famille `docs-generes`). Les deux passent par un MOTIF de chemin — et un motif
 // qui n'atteint plus rien ne rougit pas : une cible de générateur vide n'est vérifiée par rien, et un
 // fichier sans famille de fusion se fusionne textuellement, en silence. C'est exactement ce que la
 // partition de l'Atlas par cœur a produit : `docs/raw/catalogue-*.md` n'atteint plus un seul des six
@@ -56,8 +56,8 @@ test('le motif n’atteint RIEN d’autre que les catalogues de la couture', () 
   assert.deepEqual(atteintsParLeMotif().filter((p) => !vus.has(p)), [])
 })
 
-test('tout catalogue de la couture est aiguillé en famille de fusion `docs-catalogue`', () => {
+test('tout catalogue de la couture est aiguillé en famille de fusion `docs-generes`', () => {
   const vus = catalogues()
   const fam = famillesDe(vus)
-  assert.deepEqual(vus.filter((c) => fam.get(c) !== 'docs-catalogue'), [])
+  assert.deepEqual(vus.filter((c) => fam.get(c) !== 'docs-generes'), [])
 })
