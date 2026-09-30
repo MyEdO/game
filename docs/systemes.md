@@ -210,6 +210,10 @@ n'exclut pas un usage indirect hors des modules racines déclarés).
 | `stockageWeb` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 | `PlayerText` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 | `dataLabel` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
+| `EquipCtx/equipDe/equipPorte/armeDeDessin/pieceDeDessin/bouclierDeDessin/armePrincipale` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
+| `succession/occupantsDe` |  |  |  |  |  |  |  |  |  |  |  |  |  |  | U |  |
+| `useCompositionRig` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
+| `useVersionDesDatasets` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 
 ## Primitives jamais adoptées par un système déclaré
 
@@ -289,4 +293,4 @@ unique ne « possède » légitimement ; à trier au fil de l'eau, pas un échec
 - `src/state/sceneEdit.testkit.ts`
 - `src/state/turnEconomy.ts`
 - `src/state/viewLevel.ts`
-<!-- sources-empreinte: d1b8bfa6cbd78d74390df63ddd31d929ae1b7cdd (1859 fichiers, 2 dossiers) corps: cbbd985324841ed1161885b872f3aa9b23389701 -->
+<!-- sources-empreinte: 2bdb1ac7ae835b15e2f8880621ed2d61ed1e7695 (1860 fichiers, 2 dossiers) corps: a8e73045267fac6530663f581d1805147503dd40 -->

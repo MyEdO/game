@@ -154,7 +154,7 @@ _2186 exports publics mesurés (162 fichiers de `src/engine`, hors tests) — 18
 | Personnage : dérivés, résolution de fiche | `CAREER_SKILL_ADVANCES` (character.ts:54), `CAREER_SKILLS_ADVANCED` (character.ts:59), `ChoixDeCreation` (character.ts:86), `cleDeCompetence` (character.ts:117), `cleDOption` (character.ts:76), `CompetenceDeCarriere` (character.ts:139), `competencesDeCarriere` (character.ts:154), `createHero` (character.ts:316), `CreateHeroOptions` (character.ts:272), `designer` (character.ts:128), `EtapeDeFlux` (character.ts:67), `fluxDeCreation` (character.ts:70), `FORMAT_DES_CHOIX` (character.ts:64), `libreDEspece` (character.ts:181), `MAX_ADV_PER_SKILL` (character.ts:56), `poolDuJoker` (character.ts:122), `repartitionDeCarriere` (character.ts:190), `resolveSpeciesTalents` (character.ts:234), `resolveSpeciesTalentsDetail` (character.ts:251), `rollCharacteristics` (character.ts:299), `skillCharacteristicById` (character.ts:48), `speciesSkillDefaults` (character.ts:203), `TalentDEspece` (character.ts:245) |
 | Points de Chance et de Destin | `canReroll` (fortune.ts:9), `FateSaveOption` (fortune.ts:36), `fateSaveOptions` (fortune.ts:40), `fateSaveOrDie` (fortune.ts:47), `FateSaveSource` (fortune.ts:33), `restoreFortune` (fortune.ts:26) |
 | Politique de test | `BandsMode` (testPolicy.ts:15), `getTestPolicy` (testPolicy.ts:32), `SLMode` (testPolicy.ts:16), `TestPolicy` (testPolicy.ts:18) |
-| Politique, règles optionnelles | `loadRuleOverrides` (policy.ts:121), `OPTIONAL_RULES` (policy.ts:89), `OptionalRule` (policy.ts:27), `resetRule` (policy.ts:111), `rule` (policy.ts:100), `RuleAction` (policy.ts:66), `ruleDef` (policy.ts:95), `RuleKind` (policy.ts:23), `ruleOverrides` (policy.ts:116), `RuleValue` (policy.ts:25), `setRule` (policy.ts:106) |
+| Politique, règles optionnelles | `loadRuleOverrides` (policy.ts:123), `OPTIONAL_RULES` (policy.ts:89), `OptionalRule` (policy.ts:27), `resetRule` (policy.ts:113), `rule` (policy.ts:100), `RuleAction` (policy.ts:66), `ruleDef` (policy.ts:95), `RuleKind` (policy.ts:23), `ruleOverrides` (policy.ts:118), `RuleValue` (policy.ts:25), `setRule` (policy.ts:106) |
 | Porte d'entretien : harnais de test (collecte des Tests différés + issue injectée) | `applique` (upkeepPorte.testkit.ts:30), `porteEntretien` (upkeepPorte.testkit.ts:24), `SpecEntretien` (upkeepPorte.testkit.ts:21) |
 | Portée de sort | `SpellRange` (spellRange.ts:9), `SpellTarget` (spellRange.ts:24) |
 | Possession (objet en main) | `canEmbark` (possession.ts:200), `canEmbarkNow` (possession.ts:217), `embarkedEnc` (possession.ts:208), `LivingRef` (possession.ts:27), `NavalPossessionState` (possession.ts:45), `Possession` (possession.ts:60), `possessionCapacity` (possession.ts:113), `possessionCombatRideable` (possession.ts:146), `PossessionInput` (possession.ts:108), `possessionLabel` (possession.ts:154), `possessionLoadEnc` (possession.ts:231), `PossessionLocation` (possession.ts:21), `possessionRideable` (possession.ts:132), `possessionTotalEnc` (possession.ts:245) |
@@ -1927,9 +1927,9 @@ _2186 exports publics mesurés (162 fichiers de `src/engine`, hors tests) — 18
 | `ruleDef` | 95 | function | Définition d'une règle (métadonnée pour l'auto-rendu du panneau). | Politique, règles optionnelles |
 | `rule` | 100 | function | Valeur EFFECTIVE d'une règle : surcharge runtime si présente, sinon défaut. | Politique, règles optionnelles |
 | `setRule` | 106 | function | Surcharge runtime (depuis le panneau in-game). | Politique, règles optionnelles |
-| `resetRule` | 111 | function | Retire la surcharge → retour au défaut. | Politique, règles optionnelles |
-| `ruleOverrides` | 116 | function | Snapshot des surcharges (pour persistance). | Politique, règles optionnelles |
-| `loadRuleOverrides` | 121 | function | Remplace les surcharges (depuis la persistance). | Politique, règles optionnelles |
+| `resetRule` | 113 | function | Retire la surcharge → retour au défaut. | Politique, règles optionnelles |
+| `ruleOverrides` | 118 | function | Snapshot des surcharges (pour persistance). | Politique, règles optionnelles |
+| `loadRuleOverrides` | 123 | function | Remplace les surcharges (depuis la persistance). | Politique, règles optionnelles |
 
 ### `polymorph.ts` — Métamorphose, forme alternative
 
@@ -3201,4 +3201,4 @@ _2186 exports publics mesurés (162 fichiers de `src/engine`, hors tests) — 18
 |---|---|---|---|---|
 | `woundsFromHit` | 30 | function | Blessures infligées par un coup : `totalDamage` (Dégâts d'arme + DR + qualités) moins le Bonus d'Endurance et les PA EFFECTIFS à la `location` (armure portée/naturelle + `extraAP`, matériau ignoré PUIS retrait plat, LDB 62 l.270). | Calcul des Blessures, Blessures, dégâts, soin, guérison, Tests : Degrés de Réussite, Caractéristiques, tables, Qualités d'arme et d'armure |
 
-<!-- sources-empreinte: ce490c3e73f913736aa4461104ff05b28909c77d (171 fichiers, 6 dossiers) corps: b4030918f347622f54aa24884f752b2b63dbab1a -->
+<!-- sources-empreinte: 2536d0497823d45613cdba04ab324cac7ab23a2d (171 fichiers, 6 dossiers) corps: b523a2bb996061f9de9ca393685f11ee6839e783 -->
