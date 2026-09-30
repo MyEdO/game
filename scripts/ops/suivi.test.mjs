@@ -13,7 +13,7 @@ import { join } from 'node:path'
 import { envDeDepotForge, instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import { GESTES_DU_BOARD, indexerIssues, mesurer } from './board.mjs'
 import {
-  HEURES_PEREMPTION, MARQUE_DEBUT, MARQUE_FIN, PLAFOND_INJECTION, digestDuSuivi, ecrireSuivi,
+  HEURES_PEREMPTION, LIGNES_D_UN_TICKET_FERME, MARQUE_DEBUT, MARQUE_FIN, PLAFOND_INJECTION, digestDuSuivi, ecrireSuivi,
   gabaritDuSuivi, horodatage, listerSuivis, mesureProfilee, renduDuSuivi,
   suivre, texteDeLaListe, ticketsPrevus, zonesDe,
 } from './suivi.mjs'
@@ -29,8 +29,9 @@ const MESURE = {
 const rendre = (texte, mesure = MESURE) => renduDuSuivi({ texte, mesure, epique: 1816, maintenant: MAINTENANT })
 
 test('le suivi RÉEL #1816 prévoit [2132, 1988, 1887], sans anomalie, en LF comme en CRLF', () => {
-  assert.deepEqual(ticketsPrevus(REEL), { tickets: [2132, 1988, 1887], anomalies: [], refus: null })
-  assert.deepEqual(ticketsPrevus(REEL_CRLF), { tickets: [2132, 1988, 1887], anomalies: [], refus: null })
+  const sections = new Map([[2132, 30], [1988, 51], [1887, 28]])
+  assert.deepEqual(ticketsPrevus(REEL), { tickets: [2132, 1988, 1887], sections, anomalies: [], refus: null })
+  assert.deepEqual(ticketsPrevus(REEL_CRLF), { tickets: [2132, 1988, 1887], sections, anomalies: [], refus: null })
 })
 
 test('la zone ÉCRITE ressort intacte À L’OCTET, marqueurs absents puis présents, LF et CRLF', () => {
@@ -84,9 +85,10 @@ test('grammaire : item sans #N, #N en gras, sous-item indenté ou en colonne 0, 
 
 test('clôtures CommonMark nettoyées AVANT la découpe : un `## ` dans un bloc ne coupe pas la section, ``` ne ferme pas ````', () => {
   const b = ['## En cours', '1. #2132', '```', '## exemple collé', '```', '2. #1988', '## Autre', ''].join('\n')
-  assert.deepEqual(ticketsPrevus(b), { tickets: [2132, 1988], anomalies: [], refus: null })
+  const unParTicket = new Map([[2132, 1], [1988, 1]])
+  assert.deepEqual(ticketsPrevus(b), { tickets: [2132, 1988], sections: unParTicket, anomalies: [], refus: null })
   const c = ['## En cours', '1. #2132', '````', '```', '3. #999', '```', '````', '2. #1988', ''].join('\n')
-  assert.deepEqual(ticketsPrevus(c), { tickets: [2132, 1988], anomalies: [], refus: null })
+  assert.deepEqual(ticketsPrevus(c), { tickets: [2132, 1988], sections: unParTicket, anomalies: [], refus: null })
   const tilde = ['## En cours', '1. #1', '  ~~~ js', '2. #999', '```', '~~~~', '3. #3', ''].join('\n')
   assert.deepEqual(ticketsPrevus(tilde).tickets, [1, 3], 'une clôture ~ se ferme par ~, indentée de 0 à 3 espaces')
   const ouvert = ticketsPrevus(['## En cours', '1. #1', '```', '2. #999', '## Autre', '3. #3'].join('\n'))
@@ -421,4 +423,54 @@ test('digestDuSuivi : la zone mesurée DATÉE suit le plan ; PÉRIMÉE au-delà 
   assert.doesNotMatch(frais, /PÉRIMÉE|jamais rafraîchie/)
   const perime = digest(mesure, { maintenant: new Date(MAINTENANT.getTime() + (HEURES_PEREMPTION + 1) * 3_600_000) })
   assert.match(perime, /\*\*PÉRIMÉE\*\* : mesurée il y a 25 h \(au-delà de 24 h\) — `npm run ops:suivi -- 1816`/)
+})
+
+const A_CONDENSER = [
+  '# Suivi de vague — épique #1816', '', '## En cours', '',
+  '1. #10 premier lot', '   - [x] brief', '   - [x] verdict', '', '   - [x] commit', '   <!-- note -->', '   - [x] publié',
+  '2. #11 fini court', '   - [x] publié',
+  '3. #10 second lot', '   - [ ] reste',
+  '4. #12 ouvert', ...Array.from({ length: 29 }, (_, i) => `   - [ ] étape ${i + 1}`),
+  '5. #13 faute de frappe', '   - [x] a', '   - [x] b', '   - [x] c',
+  '6. #14 sans étape',
+  '## Suite', '   - #10 hors section', '',
+].join('\n')
+const ligneMesuree = (ticket, etatIssue) => ({ ticket, statut: etatIssue, etatIssue, branches: [], worktrees: [], avance: '', dernierCommit: '' })
+const MESURE_FERMES = {
+  ok: true,
+  lignes: [ligneMesuree(10, 'fermé'), ligneMesuree(11, 'fermé'), ligneMesuree(12, 'ouvert'), ligneMesuree(13, 'introuvable'), ligneMesuree(14, 'fermé')],
+  anomalies: ['ticket #13 introuvable'],
+}
+const PUCE_10 = '- #10 fermé : sa section fait 7 lignes → la condenser à l\'essentiel (arbitrages verbatim au ticket d\'abord)'
+
+test('T1 — section d’un ticket : lignes non vides de ses items (item + indentées), SOMMÉES sur les items qui le citent', () => {
+  assert.equal(LIGNES_D_UN_TICKET_FERME, 3)
+  assert.deepEqual(ticketsPrevus(A_CONDENSER).sections, new Map([[10, 7], [11, 2], [12, 30], [13, 4], [14, 1]]))
+})
+
+test('T2 — « À condenser » : un ticket FERMÉ au-delà du seuil, seul ; ni ouvert, ni introuvable, ni fermé court', () => {
+  const zone = rendre(A_CONDENSER, MESURE_FERMES).split('\n')
+  const titre = zone.indexOf('**À condenser**')
+  assert.ok(titre > zone.findIndex((l) => l.startsWith('| #14 ')), 'après le tableau')
+  assert.ok(titre < zone.indexOf('**Anomalies de la mesure (hors vague comprises)**'), 'avant les anomalies')
+  assert.deepEqual(zone.filter((l) => /^- #\d+ fermé : sa section/.test(l) || /^- #\d+ (ouvert|introuvable)/.test(l)), [PUCE_10])
+  assert.equal(zone[titre + 2], PUCE_10)
+  assert.doesNotMatch(rendre(A_CONDENSER, { ...MESURE_FERMES, lignes: MESURE_FERMES.lignes.filter((l) => l.ticket !== 10) }), /À condenser/,
+    'rien quand la liste est vide')
+})
+
+test('T3 — zone ÉCRITE intacte à l’octet quand la zone porte « À condenser », LF et CRLF', () => {
+  for (const texte of [A_CONDENSER, A_CONDENSER.replace(/\n/g, '\r\n')]) {
+    const premier = rendre(texte, MESURE_FERMES)
+    assert.ok(premier.startsWith(texte))
+    assert.match(premier, /\*\*À condenser\*\*/)
+    const second = rendre(premier, MESURE_FERMES)
+    assert.equal(second, premier, 'la même mesure rend le même texte')
+    assert.deepEqual(ticketsPrevus(second), ticketsPrevus(texte), 'la zone rendue ne change pas les sections')
+  }
+})
+
+test('T4 — digestDuSuivi porte la puce « À condenser » de la zone mesurée', () => {
+  const vu = digest(rendre(A_CONDENSER, MESURE_FERMES))
+  assert.ok(vu.includes(`**À condenser**\n\n${PUCE_10}`), vu)
 })

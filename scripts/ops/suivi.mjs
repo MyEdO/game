@@ -21,7 +21,15 @@
 // section : première ligne `^## En cours\b`, jusqu'au `^## ` suivant. Un ITEM est une ligne
 // `^\d+\.\s` en COLONNE 0 ; son ticket est le PREMIER `#N` de la ligne ; une étape qui n'est pas un
 // ticket prévu s'indente. Anomalies : item sans ticket, numéro invalide (`#0`), ligne de colonne 0
-// de la section qui porte un `#N` sans être un item.
+// de la section qui porte un `#N` sans être un item. La SECTION d'un ticket compte les lignes non
+// vides de ses items : la ligne d'item et ses lignes indentées, jusqu'à l'item suivant, sommées sur
+// les items qui le citent.
+//
+// « À CONDENSER ». La zone mesurée liste chaque ticket dont l'issue est FERMÉE (`etatIssue`, lu par
+// `gh` quel que soit qui l'a fermée) et dont la section dépasse `LIGNES_D_UN_TICKET_FERME` ; la
+// condensation reste un geste d'orchestrateur, la zone écrite n'est jamais réécrite ici. « Par contre
+// le fichier comme tu le dis va grossir, il n'y a pas un moment quand tu ferme un ticket une mise a
+// jour du fichier de suivi en ne gardant du ticket que l'essentiel ? » (utilisateur, 2026-09-30, #2132).
 //
 // L'ÉCRITURE. Portée lue, mesure, portée RELUE (refus si elle a changé), rendu dans
 // `.<N>.md.<pid>.tmp`, texte relu juste avant le `rename` (refus s'il a changé), `rename`. Un
@@ -65,6 +73,8 @@ const DATE_DE_ZONE = /^> Zone MESURÉE par .+ le (\d{4})-(\d{2})-(\d{2}) (\d{2})
 export const HEURES_PEREMPTION = 24
 /** Taille maximale (caractères) d'un digest injecté au contexte. Valeur maison. */
 export const PLAFOND_INJECTION = 8000
+/** Lignes de section au-delà desquelles un ticket FERMÉ est « À condenser » : l'item et deux étapes. Valeur maison. */
+export const LIGNES_D_UN_TICKET_FERME = 3
 
 // ————————————————————————————————— fonctions PURES —————————————————————————————————
 
@@ -137,21 +147,24 @@ function nettoyer({ lignes: brutes, debut, fin }) {
 
 /**
  * Les tickets PRÉVUS d'un suivi — le premier `#N` de chaque item de `## En cours`, dédoublonnés dans
- * l'ordre — et les anomalies de sa grammaire (en-tête de ce fichier). `refus` est non nul quand le
- * texte est illisible (marqueurs, section absente). PURE.
+ * l'ordre —, la longueur de leur SECTION (en-tête de ce fichier) et les anomalies de sa grammaire.
+ * `refus` est non nul quand le texte est illisible (marqueurs, section absente). PURE.
  * @param {string} texte
- * @returns {{tickets: number[], anomalies: string[], refus: string|null}}
+ * @returns {{tickets: number[], sections: Map<number, number>, anomalies: string[], refus: string|null}}
  */
 export function ticketsPrevus(texte) {
   const zones = zonesDe(texte)
-  if (!zones.ok) return { tickets: [], anomalies: [], refus: zones.refus }
+  if (!zones.ok) return { tickets: [], sections: new Map(), anomalies: [], refus: zones.refus }
   const { lignes, anomalies } = nettoyer(zones)
   const debut = lignes.findIndex((l) => SECTION.test(l))
   if (debut < 0) {
-    return { tickets: [], anomalies, refus: 'section `## En cours` absente : un item `1. #N …` en colonne 0 par ticket prévu, sous ce titre' }
+    return { tickets: [], sections: new Map(), anomalies, refus: 'section `## En cours` absente : un item `1. #N …` en colonne 0 par ticket prévu, sous ce titre' }
   }
   const suite = lignes.findIndex((l, i) => i > debut && /^## /.test(l))
   const tickets = []
+  const sections = new Map()
+  const compter = (numero) => sections.set(numero, (sections.get(numero) ?? 0) + 1)
+  let courant = null
   let rang = 0
   for (let i = debut + 1; i < (suite < 0 ? lignes.length : suite); i += 1) {
     const ligne = lignes[i]
@@ -159,9 +172,11 @@ export function ticketsPrevus(texte) {
       if (/^\S/.test(ligne) && /#\d+/.test(ligne)) {
         anomalies.push(`ligne hors grammaire qui porte un #N (l.${i + 1}) : ${extrait(ligne)} — un item s'écrit \`1. #N …\` en colonne 0`)
       }
+      if (courant !== null && /^\s+\S/.test(ligne)) compter(courant)
       continue
     }
     rang += 1
+    courant = null
     const [premier] = numerosDeLaChaine(ligne)
     if (premier === undefined) {
       anomalies.push(`item ${rang} sans ticket (l.${i + 1}) : ${extrait(ligne)}`)
@@ -173,8 +188,10 @@ export function ticketsPrevus(texte) {
       continue
     }
     if (!tickets.includes(numero)) tickets.push(numero)
+    courant = numero
+    compter(numero)
   }
-  return { tickets, anomalies, refus: null }
+  return { tickets, sections, anomalies, refus: null }
 }
 
 const deux = (n) => String(n).padStart(2, '0')
@@ -188,10 +205,10 @@ const puce = (v) => `- ${String(v).replace(/\r?\n/g, ' ')}`
 /**
  * Les lignes de la zone MESURÉE, sans ses marqueurs. PURE.
  * @param {{mesure: {ok: boolean, lignes?: object[], anomalies?: string[], refus?: string},
- *   grammaire: string[], epique: number, maintenant: Date}} params
+ *   grammaire: string[], sections: Map<number, number>, epique: number, maintenant: Date}} params
  * @returns {string[]}
  */
-function lignesDeLaZone({ mesure, grammaire, epique, maintenant }) {
+function lignesDeLaZone({ mesure, grammaire, sections, epique, maintenant }) {
   const zone = [
     // `DATE_DE_ZONE` relit cette date.
     `> Zone MESURÉE par \`npm run ops:suivi -- ${epique}\` le ${horodatage(maintenant)} : réécrite à chaque appel, jamais éditée à la main.`,
@@ -208,6 +225,11 @@ function lignesDeLaZone({ mesure, grammaire, epique, maintenant }) {
     for (const l of mesure.lignes) {
       zone.push(`| #${l.ticket} | ${cellule(l.statut)} | ${cellule(l.etatIssue)} | ${cellule(l.branches.join(' · '))} | `
         + `${cellule(l.avance)} | ${cellule(l.dernierCommit)} | ${cellule(l.worktrees.join(' · '))} |`)
+    }
+    const aCondenser = mesure.lignes.filter((l) => l.etatIssue === 'fermé' && (sections.get(l.ticket) ?? 0) > LIGNES_D_UN_TICKET_FERME)
+    if (aCondenser.length) {
+      zone.push('', '**À condenser**', '', ...aCondenser.map((l) => puce(`#${l.ticket} fermé : sa section fait ${sections.get(l.ticket)} lignes`
+        + ' → la condenser à l\'essentiel (arbitrages verbatim au ticket d\'abord)')))
     }
   }
   if (grammaire.length) zone.push('', '**Grammaire du suivi**', '', ...grammaire.map(puce))
@@ -229,8 +251,8 @@ export function renduDuSuivi({ texte, mesure, epique, maintenant }) {
   const zones = zonesDe(texte)
   if (!zones.ok) throw new Error(zones.refus)
   const fin = /\r\n/.test(texte) ? '\r\n' : '\n'
-  const { anomalies } = ticketsPrevus(texte)
-  const zone = [MARQUE_DEBUT, ...lignesDeLaZone({ mesure, grammaire: anomalies, epique, maintenant })]
+  const { anomalies, sections } = ticketsPrevus(texte)
+  const zone = [MARQUE_DEBUT, ...lignesDeLaZone({ mesure, grammaire: anomalies, sections, epique, maintenant })]
     .map((l) => `${l}${fin}`).join('')
   if (zones.debut < 0) {
     const jointure = texte === '' ? '' : `${texte.endsWith('\n') ? '' : fin}${fin}`
