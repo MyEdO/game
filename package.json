@@ -74,6 +74,7 @@
     "ops:worktrees": "node scripts/ops/worktrees.mjs",
     "ops:publier": "node scripts/ops/publier.mjs",
     "ops:board": "node scripts/ops/board.mjs",
+    "ops:suivi": "node scripts/ops/suivi.mjs",
     "deps:report": "node scripts/ops/deps-report.mjs",
     "raw:coverage": "node scripts/raw/coverage.mjs",
     "raw:reconcile": "node scripts/raw/reconcile.mjs",

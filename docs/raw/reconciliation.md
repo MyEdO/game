@@ -63,7 +63,7 @@
 ### MSRC 10 — 5 réf(s) code, 0 dans l'Atlas
 - `src/data/naval-traits.json:12` (l.90) — "maison": "MSRC 07 l.94 gate le Critique de Superstructure sur « si le bateau dispose d'une cale » sans imprimer de Trait naval ; la cale rejoint le catalogue d
 - `src/data/regles-optionnelles-partition.test.ts:60` (l.90) — // 1 → 2 (#1657 B3-2b-a) : le Trait `cale` porte MSRC 10 l.90 (le livre DIT la cale du navire
-- `src/data/schemas/grammaire/formes-partagees.test.ts:412` (l.90) — // de Superstructure sur « si le bateau dispose d'une cale », MSRC 10 l.90 la dit du navire marchand).
+- `src/data/schemas/grammaire/formes-partagees.test.ts:413` (l.90) — // de Superstructure sur « si le bateau dispose d'une cale », MSRC 10 l.90 la dit du navire marchand).
 - `src/ui/compendium/registry-enveloppe.test.ts:168` (l.90) — // gate le Critique de Superstructure dessus ; MSRC 10 l.90 le dit du navire marchand).
 
 ### NADJ 4 — 9 réf(s) code, 0 dans l'Atlas
@@ -109,12 +109,12 @@
 - l.202 — `src/scenes/test-scenarios/96-presets-edo.ts:130` — // comme une perte de temps de jouer pour moins de 2/- » (`EDO 01 l.202`), soit 24 sous.
 - l.340 — `src/scenes/diligence/edo-ch1-calibration-voyage.test.ts:20` — * D'où vient le `km` : `EDO 01 l.340` — « Une borne sur le bas-côté indique : « Altdorf, 180 km ». »
 - l.360 — `src/scenes/diligence/diligence-projet.json:1038` — "maison": "EDO 01 l.360 ne nomme pas la carrière : Serviteur (LDB 68), Compétences du niveau 1 ; Discrétion (Rurale)."
-- l.504 — `src/data/index.ts:1423` — /** EDO 01 l.504 ; LDB 19. */
+- l.504 — `src/data/index.ts:1422` — /** EDO 01 l.504 ; LDB 19. */
 
 ### MSRC 12 — 6/12 ligne(s) code hors couverture (propriétaire : 4e/combat.md)
-- l.85 — `src/data/index.ts:2594` — *  = `totale` (MDG 12 l.364 / MSRC 12 l.85), Plat-bord = `moyenne` (MSRC 12 l.111). Géométrie de Pont,
+- l.85 — `src/data/index.ts:2593` — *  = `totale` (MDG 12 l.364 / MSRC 12 l.85), Plat-bord = `moyenne` (MSRC 12 l.111). Géométrie de Pont,
 - l.107 — `src/engine/naval-traits.test.ts:301` — it('Plat-bord : palier de LONGUEUR (grande barge ~30 m, bande ouverte au-delà de 20 m) → 45 CO / 60 Enc (MSRC 12 l.107/109)', () => {
-- l.111 — `src/data/index.ts:2594` — *  = `totale` (MDG 12 l.364 / MSRC 12 l.85), Plat-bord = `moyenne` (MSRC 12 l.111). Géométrie de Pont,
+- l.111 — `src/data/index.ts:2593` — *  = `totale` (MDG 12 l.364 / MSRC 12 l.85), Plat-bord = `moyenne` (MSRC 12 l.111). Géométrie de Pont,
 - l.117 — `src/engine/naval-traits.test.ts:304` — it('Allégement : ALLÈGE la coque — weightEnc NÉGATIF (grande barge → −80 Enc, MSRC 12 l.117)', () => {
 - l.137 — `src/data/schemas/defs/sea-weather.ts:104` — /** Gréement de course (MSRC 12 l.137) : DELTA de % voiles ajouté au tableau standard par aspect de vent. */
 - l.140 — `src/engine/naval-traits.test.ts:191` — it('Gréement de course → −10 au Test de Navigation (MSRC 12 l.140) ; converti −1 DR d’équipage', () => {
@@ -128,7 +128,7 @@
 ### EDOC 13 — 4/10 ligne(s) code hors couverture (propriétaire : 4e/talents.md)
 - l.125 — `src/data/mutations.json:1640` — "note": "EDOC 12 l.84 ; table p. 66 : EDOC 13 l.125"
 - l.137 — `src/data/index.ts:1099` — *  permission du MJ », EDOC 13 l.137 ; lignage Éonir Harioth hors espèces jouables, ADE I 6 l.185).
-- l.522 — `src/data/index.ts:1709` — /** Tirage PLURIEL et ALTERNÉ de Mutations au spawn (Marque de Tzeentch, EDOC 13 l.522-524 : « gagne
+- l.522 — `src/data/index.ts:1708` — /** Tirage PLURIEL et ALTERNÉ de Mutations au spawn (Marque de Tzeentch, EDOC 13 l.522-524 : « gagne
 - l.524 — `src/data/talents.json:4926` — "note": "EDOC 13 l.524"
 
 ### MDG 15 — 3/51 ligne(s) code hors couverture (propriétaire : 4e/deplacement.md)
@@ -139,7 +139,7 @@
 ### VDM 14 — 3/7 ligne(s) code hors couverture (propriétaire : 4e/magie.md)
 - l.353 — `src/data/arcanePhenomena.ts:77` — /** Modificateurs de NIVEAU D'INCANTATION apportés par le lieu (`VDM 14 l.353`, l.437, l.489) —
 - l.437 — `src/engine/castingNumber.test.ts:28` — it('Caverne de l’Attache : moitié ARRONDIE À L’INFÉRIEUR, Sorts de la Bête (VDM 14 l.437)', () => {
-- l.489 — `src/data/index.ts:2137` — *  deux natures (`VDM 12 l.646-647`, `VDM 14 l.489`). */
+- l.489 — `src/data/index.ts:2136` — *  deux natures (`VDM 12 l.646-647`, `VDM 14 l.489`). */
 
 ### NADJ 16 — 2/20 ligne(s) code hors couverture (propriétaire : 4e/tests.md)
 - l.119 — `src/engine/combat.ts:903` — *  (Middenball NADJ 16 l.119 : « en utilisant les règles habituelles relatives à l'Avantage »).
@@ -212,4 +212,4 @@ _Aucun._
 
 Code : AA, ACE, ADE I, ADE II, EDO, EDOC, LDB, MCLB, MDG, MSRC, NADJ, PDT, VDM, ZI
 Atlas : AA, ACE, ADE I, ADE II, AU1, CRB, EDO, EDOC, LDB, MCLB, MDG, MSR, MSRC, NADJ, PDT, VDM, ZI
-<!-- sources-empreinte: f7ec1cc4982bd3d9003c235af052019b14a9c6b0 (4369 fichiers, 154 dossiers) corps: 8912a88750d16faf733f3a2781c0783c70a30f88 -->
+<!-- sources-empreinte: 9ffb31ad722bd9caa47c2cff59679083603bd37a (4376 fichiers, 154 dossiers) corps: 536f31d35bcf11624ee6bc43fc1acc4d67452d34 -->

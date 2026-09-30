@@ -166,9 +166,8 @@ export function skillsFromBook(list: SkillRef[] | undefined, printedChars: Chara
   return out;
 }
 
-/** Talents d'une créature/statbloc → `TalentInstance[]` (libellés concrets : « Magie des Arcanes (Ghur) »,
- *  « Menaçant »). Refs STRUCTURÉES `TalentRef` (id stable + niveau/spec). Le nom RECONSTRUIT garde sa spec
- *  entre parenthèses : c'est la clé du registre combatFeatures (`featureKey`) et du grimoire. */
+/** Talents d'une créature/statbloc → `TalentInstance[]` (`talentId` + `spec` + `times`), depuis les refs
+ *  STRUCTURÉES `TalentRef` ; un id hors catalogue est écarté. */
 export function talentsFromBook(list: TalentRef[] | undefined): TalentInstance[] {
   const out: TalentInstance[] = [];
   for (const ref of list ?? []) {

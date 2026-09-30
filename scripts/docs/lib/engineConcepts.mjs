@@ -35,6 +35,7 @@ export const FILE_CONCEPTS = new Map([
   ['src/engine/cargo.ts', 'Cargaison, fret'],
   ['src/engine/castingNumber.ts', "Magie : Nombre d'Incantation"],
   ['src/engine/character.ts', 'Personnage : dérivés, résolution de fiche'],
+  ['src/engine/adresseDeCreation.ts', 'Personnage : adresses des emplacements de création'],
   ['src/engine/characteristics.ts', 'Caractéristiques et bonus'],
   ['src/engine/clock.ts', 'Horloge, temps de jeu'],
   ['src/engine/actorView.ts', "Vue d'acteur et contexte d'évaluation d'une Condition"],

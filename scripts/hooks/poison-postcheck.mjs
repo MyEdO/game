@@ -9,8 +9,7 @@
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { scanLabelLogic } from '../guards/lib/labelLogic.mjs';
-import { estFichierVitest } from '../guards/lib/fichierVitest.mjs';
+import { contexteDeLaGarde, corpusDeLaGarde, estDansLeCorpus, scanLabelLogicFichier } from '../guards/lib/labelLogic.mjs';
 import { entreeDOutil } from '../guards/lib/contratGarde.mjs';
 import { cheminDEcriture } from './solde-ticket-guard.mjs';
 
@@ -63,11 +62,12 @@ async function voletPoison(rel, reel) {
   // le rappel des sites tenus pour intentionnels sort à part, sans consigne de correction.
   lines.push(...formatBaselineReport({ ...verdict, connus: [] }));
   const rappelBaseline = formatBaselineReport({ nouveaux: [], connus: verdict.connus, perimees: [] });
-  // Même exclusion que label-logic-guard.test.ts (EXCLUDED) et le pre-commit : un fichier de test
-  // plante les FIXTURES littérales de ce garde, il ne doit pas y rougir.
-  if (/^src\/(engine|state)\//.test(rel) && !estFichierVitest(rel))
-    for (const f of scanLabelLogic(rel, text))
-      lines.push(`POISON logique par label (#142, id STABLE seulement) — ${rel}:${f.line} ${f.detail}`);
+  // Garde « logique par libellé » : la composition de la lib (`scanLabelLogicFichier`, corpus
+  // `estDansLeCorpus`), celle du test et du pre-commit ; seuls les sites `nu` (ni couture, ni dette
+  // au stock) sont signalés. Le contexte inter-fichiers ne se lit que pour un fichier du corpus.
+  if (estDansLeCorpus(rel))
+    for (const f of scanLabelLogicFichier(rel, text, contexteDeLaGarde(corpusDeLaGarde())).filter((s) => s.statut === 'nu'))
+      lines.push(`POISON logique par libellé (#142, id STABLE seulement) [${f.rule}] — ${rel}:${f.line} ${f.detail}`);
   if (lines.length)
     lines.push('→ Corrige AVANT de poursuivre : le pre-commit et la CI portent les MÊMES gardes et refuseront.');
   return [...lines, ...rappelBaseline];

@@ -11,15 +11,19 @@ l'intégration triviale et les gates. Violer la lettre de cette règle EST viole
 
 ## Suivi
 
-- **La vague tient sa TODO dans le task-tracker** (`TaskCreate`/`TaskUpdate`/`TaskList`) : un dispatch
-  crée sa tâche, un retour la solde, une suite découverte devient une tâche avec ses `blockedBy` — **la
-  prochaine action se LIT dans la liste**, jamais dans ma mémoire ; une annonce en prose n'est pas une
-  ligne de suivi. Sans task tools, la liste vit au commentaire de PILOTAGE du ticket de vague, re-posté
-  à chaque transition — un ticket GitHub, jamais un fichier au scratchpad.
-- **Planification et pilotage vivent sur GitHub** : l'épique porte le design validé en commentaire daté
-  VERBATIM et un commentaire de PILOTAGE re-posté (jamais édité en silence) à chaque transition de lot
-  — fait / arbitrages / séquence des restes avec propriétaires ; un ticket par lot (gabarit #101+,
-  labels, Bloqué par / Débloque, DoD mesurable).
+- **Le suivi de vague `.git/suivi/<N>.md` est la SEULE source du plan et du prochain geste** — un
+  fichier par épique `<N>`, dans le répertoire git commun (utilisateur, 2026-09-28 : « Il faut
+  absoluelement faire un truc pour ce fichier de suivis, c'est vital si on veux éviter la dérive »).
+  Il se relit EN PREMIER à toute reprise (compaction, lendemain) et se rafraîchit par
+  `npm run ops:suivi -- <N>` ; `-- <N> --creer` ouvre une vague neuve.
+- **Un ticket prévu = un item `1. #N …` en colonne 0 sous `## En cours`** ; ses étapes (`[x]`/`[ ]`,
+  indentées) s'écrivent AU FIL DE L'EAU — dispatch, verdict, commit, publication. Aucun état de
+  branche, d'issue ou de publication n'y est saisi à la main : la zone mesurée le porte.
+- **Le task-tracker n'est qu'un miroir de session**, jamais une source : ce qu'il porte et que le suivi
+  n'a pas est perdu à la reprise.
+- **L'épique porte le design validé** en commentaire daté VERBATIM ; un ticket par lot (gabarit #101+,
+  labels, Bloqué par / Débloque, DoD mesurable). Le commentaire de pilotage d'épique n'est qu'une
+  PROJECTION du suivi, postée à la publication — jamais relue comme état.
 - **Jamais `superpowers:writing-plans` / `executing-plans` / `subagent-driven-development`** ici ;
   `brainstorming` sert l'altitude, sa sortie va au TICKET. Un brief de codeur est un commentaire DATÉ
   du ticket du chantier, jamais un fichier sous `docs/`.
@@ -125,9 +129,10 @@ lancement.
 - **Outillage qui MENT** : `ctx_search` rend un faux « 0 match » quand il s'arrête au budget de temps
   (le message le dit) ou saute les gros fichiers — une absence se recoupe par `git grep` ;
   `Measure-Object -Line` (PowerShell) ne compte pas les lignes vides — `wc -l` ou `git grep -c ""` ;
-  `npm run typecheck` est incrémental et rend des
-  erreurs FANTÔMES après le commit d'une session voisine (confirmer par `npx tsc --noEmit
-  --incremental false`) ; le hook `read-dedup` rend un faux « unchanged since last read » sur un
+  `npm run typecheck:fast` est incrémental sur un tsbuildinfo PARTAGÉ entre sessions
+  (`scripts/typecheck-fast.mjs:37-38`) — au doute, la porte complète `npm run typecheck`
+  (`package.json:33`, `--incremental false`) ;
+  le hook `read-dedup` rend un faux « unchanged since last read » sur un
   fichier JAMAIS lu (`ctx_read(mode=raw, fresh=true)`) ; un agent d'art à qui `Read` d'une image est
   refusé relance `node C:/Users/gauch/.claude/fix-leanctx-settings.mjs`.
 
@@ -171,16 +176,17 @@ ancré, ou de NOMMER le blocage réel (quota, validation utilisateur, charge mac
 - **Validation utilisateur = ASYNCHRONE** : le lot en attente de goût se PARQUE (worktree conservé,
   capture prête, question consignée), la vague CONTINUE — jamais gelée entière. En ABSENCE, dispatcher
   ce qui n'appelle aucun goût (données, gardes, ré-instruction) ; écrans et arbitrages en PRÉSENCE.
-- **Checkpoint avant épuisement de quota** : carnet committé, todo à jour, tickets commentés.
+- **Checkpoint avant épuisement de quota** : suivi de vague à jour (`npm run ops:suivi -- <N>`),
+  tickets commentés.
 - **Revue de palier et réfutation de fermeture = UN juge**, nourri de `npm run ops:faits-de-palier --
   --base <sha> --tete <sha>` : le script mesure, le juge juge. Le texte s'écrit sous le nom d'archive
   qu'il donne (`nomDArchiveDeRevue`) et passe la porte de solde (`validateRevuePalier`).
 - **Épique : pas de salve d'ouverture** — premier lot + index des phases EN PROSE, les enfants naissent
-  à leur vague. Pas de checklist dans le corps (elle meurt toujours) : l'ÉTAT vit dans le commentaire
-  de pilotage, la STRUCTURE dans les liens. Une vague d'épique fait DÉCROÎTRE le compteur qu'elle vise.
+  à leur vague. Pas de checklist dans le corps (elle meurt toujours) : le plan et l'ÉTAT vivent dans le
+  suivi de vague, la STRUCTURE dans les liens. Une vague d'épique fait DÉCROÎTRE le compteur qu'elle vise.
   Épique muette depuis 14 jours sans label `gelée` = anomalie à SIGNALER.
-- **Métriques**, à l'ouverture de session et au moins une fois par SEMAINE, posées au commentaire de
-  pilotage : delta net de tickets (cible ≤ 0), part des fermetures dépilant du stock de plus de 28
+- **Métriques**, à l'ouverture de session et au moins une fois par SEMAINE, écrites dans le suivi de
+  vague : delta net de tickets (cible ≤ 0), part des fermetures dépilant du stock de plus de 28
   jours (≥ 50 %), résorption des restes (≥ 60 % sous deux semaines). Deux semaines sans mesure =
   anomalie à signaler.
 

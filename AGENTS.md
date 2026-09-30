@@ -116,7 +116,7 @@ npm run typecheck      # tsc --noEmit
 npm run typecheck:fast # typecheck incrémental (~7-10 s)
 npm run gates          # rejeu local de gates de ci.yml (--gates a,b, --serie)
 npm run galleries      # galeries QC -> public/galeries.html
-npm run ops:chantier -- <N> · ops:publier -- --detache · ops:worktrees · ops:board [-- --liste|--creer]   # ouvrir un chantier (.wt-<N>), publier le train détaché, inventorier, projeter l'état des chantiers sur le Project GitHub
+npm run ops:chantier -- <N> · ops:publier -- --detache · ops:worktrees · ops:board [-- --liste|--creer] · ops:suivi -- <N> [--creer]   # .wt-<N>, train détaché, inventaire, Project GitHub, .git/suivi/<N>.md
 npm run relay:dev      # relay coop local ; relay:deploy pour publier
 gh workflow run deploy.yml --ref main   # prod — sur demande explicite SEULEMENT
 ```

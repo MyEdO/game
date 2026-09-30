@@ -41,6 +41,13 @@ dérivées, POUSSE la branche de chantier, attend le run CI de cette branche (bo
 précédent en `<branche>.<AAAAMMJJ-HHMMSS>.log` (péremption 7 jours) — ce n'est pas une archive, le
 `npm ci` d'`ops:chantier` efface `node_modules/.cache/`.
 
+**Suivi de vague.** Toute reprise (compaction, lendemain, pause) commence par RELIRE
+`.git/suivi/<N>.md`, le suivi de l'épique `<N>` : seule source du plan et du prochain geste, il vit
+dans le répertoire git COMMUN, hors versionnement — un clone frais ne l'a pas.
+`npm run ops:suivi -- <N>` (`node scripts/ops/suivi.mjs`) en rafraîchit la zone mesurée (branche,
+avance, état d'issue de chaque ticket prévu) et l'imprime ; `-- <N> --creer` pose le suivi d'une
+vague neuve, et sans `<N>` il liste les suivis présents.
+
 Le port n'est historique QUE pour un arbre principal ou un clone : un **worktree lié** en dérive un
 autre (5174-5272, `scripts/port-dev.mjs`) pour que deux arbres servis en même temps ne se recouvrent
 jamais. `npm run dev` imprime celui qu'il sert.
@@ -108,12 +115,12 @@ C'est le signal qu'un geste manuel a dévié de ce que `npm install` pose seul.
 
 - `Source/` — texte des livres en `.md`, **citable** (réfs `LDB <chap> l.<ligne>`).
 - `src/data/` — données app-owned (124 fichiers JSON commités, éditables au Compendium).
-- Les gardes de données : `scripts/guards/validate-data.mts` + 175 modules
+- Les gardes de données : `scripts/guards/validate-data.mts` + 174 modules
   sous `scripts/guards/lib/` (dont `scripts/guards/lib/commentPoison.mjs`,
   `scripts/guards/lib/emojiAffordance.mjs`, `scripts/guards/lib/hardcode.mjs`,
   `scripts/guards/lib/labelLogic.mjs`).
 - Les gardes de SESSION : 3 scripts déclarés dans `.claude/settings.json`
-  (versionné), sur 19 fichiers `.mjs` hors test sous `scripts/hooks/` — détail au § 5.
+  (versionné), sur 16 fichiers `.mjs` hors test sous `scripts/hooks/` — détail au § 5.
 - Les schémas de données : `src/data/schemas/` (`src/data/schemas/types.ts`,
   `src/data/schemas/validate.ts`, `src/data/schemas/_registry.generated.ts`,
   `src/data/schemas/_ids.generated.ts`, `src/data/schemas/grammaire/` — le vocabulaire partagé —
@@ -168,9 +175,9 @@ refaire `npm install`.
 | Événement | Déclencheur (matcher) | Script | Rôle |
 |---|---|---|---|
 | `SessionStart` | (tous) | `scripts/hooks/bootstrap-conteneur.mjs` | Conformité du conteneur distant (hooks git, gh) |
-| `PreToolUse` | Write \| mcp__lean-ctx__ctx_patch \| Edit \| Bash \| PowerShell \| mcp__lean-ctx__ctx_shell \| Agent | `scripts/hooks/repartiteur.mjs` | Gardes des appels d’outil (répartiteur) |
+| `PreToolUse` | Write \| mcp__lean-ctx__ctx_patch \| Edit \| Bash \| PowerShell \| mcp__lean-ctx__ctx_shell | `scripts/hooks/repartiteur.mjs` | Gardes des appels d’outil (répartiteur) |
 | `PreToolUse` | Bash \| PowerShell \| mcp__lean-ctx__ctx_shell | `scripts/hooks/solde-ticket-hook.mjs` | Fermeture de ticket au commit = solde écrit obligatoire |
-| `PostToolUse` | Write \| Edit \| Agent | `scripts/hooks/repartiteur.mjs` | Gardes des appels d’outil (répartiteur) |
+| `PostToolUse` | Write \| Edit | `scripts/hooks/repartiteur.mjs` | Gardes des appels d’outil (répartiteur) |
 
 **CI GitHub Actions** :
 
@@ -234,4 +241,4 @@ sans place dans ce plan fait REFUSER le run, avec son nom.
 `scripts/guards/lib/npmLockHoisted.mjs` — npx --yes npm@10.9.3 install --package-lock-only, puis valider avec npx npm@10.9.3 ci --dry-run. npm 11 ampute les entrées hoistées
 `@emnapi/*` que `npm ci` exige en CI ; la garde (pre-commit +
 `src/npm-lock-hoisted-guard.test.ts`) refuse un lock amputé.
-<!-- sources-empreinte: ba79ae9340add99320f137bc091fe6687772e6e8 (27 fichiers, 8 dossiers) corps: ca06677fcafdd487b53ddf0539661ced7e05cd59 -->
+<!-- sources-empreinte: 70b99efd6fe4f0fe89db232307e10b5f7082e531 (27 fichiers, 8 dossiers) corps: 35247318af37b0e6c3242a1441cc1da1c1d50cac -->

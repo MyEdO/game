@@ -23,8 +23,8 @@ import { extractComments, estFichierScanne } from '../guards/lib/commentPoison.m
  *  DOMAINE avant d'être des mots de dette — `store.ts:487` « Ouverture cérémonielle EN ATTENTE »
  *  nomme un champ du jeu, `travelFlow.ts:277` « BLOQUÉ par la porte d'heure » énonce une règle. */
 export const MOTIF_DETTE_RE = /\b(?:dette|todo|non\s+impl[ée]ment[ée])/i
-/** Une dette DÉCLARÉE ÉTEINTE sur la même ligne n'en est plus une (`registry.ts:104` « #563 dette
- *  soldée », `labelLogic.mjs:59` « dette #598, résorbée par le renommage »). */
+/** Une dette DÉCLARÉE ÉTEINTE sur la même ligne n'en est plus une (`registry.ts` `CodexSource` « #563 dette
+ *  soldée », `labelLogic.mjs` `DISPLAY_FIELD` « dette #598, résorbée par le renommage »). */
 const DETTE_ETEINTE_RE = /(?:soldé|résorbé|résolu|levé)/i
 /** Citation d'un ticket dans un commentaire. */
 const TICKET_RE = /#(\d+)/g

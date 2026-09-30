@@ -67,6 +67,28 @@ test('un fichier scanné DANS un dépôt est jugé ; le même hors dépôt (scra
   }
 })
 
+// Garde « logique par libellé » : la composition de la lib (`scanLabelLogicFichier`) sur son corpus
+// (`estDansLeCorpus`, tout `src/`), sites `nu` seulement — un dossier hors moteur/store est jugé, un
+// fichier de test ne l'est pas.
+test('logique par libellé : un site nu de `src/scenes/` est signalé avec sa règle ; le même en `.test.ts` se tait', () => {
+  const faute = "export const a = (x: { label: string }) => x.label === 'Épée';\n"
+  const { racine } = instanceDeDepot()
+  try {
+    const poser = (rel) => {
+      const cible = join(racine, ...rel.split('/'))
+      mkdirSync(dirname(cible), { recursive: true })
+      writeFileSync(cible, faute)
+      return contexteDe({ file_path: cible, content: faute })
+    }
+    const ctx = poser('src/scenes/sonde.ts')
+    assert.match(ctx, /POISON logique par libellé .*\[label-logic\] — src\/scenes\/sonde\.ts:1/)
+    assert.match(ctx, /\[label-literal\] — src\/scenes\/sonde\.ts:1/)
+    assert.doesNotMatch(poser('src/scenes/sonde.test.ts'), /logique par libellé/)
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
 // La mémoire de session s'écrit par une JONCTION vers `<dépôt>/.claude/memory` (#1973) : la note se
 // juge sous son chemin RÉEL, relatif à l'arbre qui la contient.
 test('une note écrite PAR UNE JONCTION vers la mémoire d’un dépôt forgé est suivie', () => {

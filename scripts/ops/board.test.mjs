@@ -11,6 +11,7 @@ import {
   lireItems, mesurer, mutationOptions, optionsAReecrire, optionsDuChamp, planDeSync, poserChamp,
   statutDe, statutLePlusVivant, synchroniser, ticketsCites, ticketsDe, valeursDeLigne,
 } from './board.mjs'
+import { GESTES_DE_L_INVENTAIRE, inventaire } from './worktrees.mjs'
 
 const MS_JOUR = 24 * 60 * 60 * 1000
 const MAINTENANT = new Date('2026-09-15T12:00:00Z')
@@ -460,6 +461,39 @@ test('la mesure REFUSE nommément quand origin n’est pas consultable', () => {
   })
   assert.equal(vu.ok, false)
   assert.match(vu.refus, /origin non consultable \(réseau coupé\)/)
+  assert.match(vu.refus, /`npm run ops:board -- --liste --sans-fetch` mesure sur les refs déjà là/)
+})
+
+test('UNE mesure = UN fetch, ZÉRO sous sansFetch : l’inventaire est toujours appelé sous `sansFetch: true`', () => {
+  for (const [sansFetch, attendus] of [[false, 1], [true, 0]]) {
+    let fetchs = 0
+    const fetchOrigin = () => { fetchs += 1; return fait('') }
+    const demandes = []
+    const inv = (params) => {
+      demandes.push(params.sansFetch)
+      return inventaire({
+        ...params,
+        gestes: { ...GESTES_DE_L_INVENTAIRE, fetchOrigin, worktreesDe: () => [{ chemin: '/dep', principal: true, branche: 'main' }] },
+      })
+    }
+    const vu = mesurer({ cwd: '/dep', sansFetch, gestes: gestesFactices({ fetchOrigin }), inv, issues: () => ({ issues: new Map(), anomalies: [] }) })
+    assert.equal(vu.ok, true, vu.refus)
+    assert.equal(fetchs, attendus, `sansFetch=${sansFetch}`)
+    assert.deepEqual(demandes, [true])
+  }
+})
+
+test('etatIssue est posé sur TOUTE ligne ; sans portée, jamais de statut `Introuvable`', () => {
+  const lignes = construireLignes({
+    branches: [
+      { nom: 'chantier/1800', avance: 1, retard: 0, dernierCommitISO: ilYA(0), tickets: [1800], worktrees: [] },
+      { nom: 'chantier/1500', avance: 1, retard: 0, dernierCommitISO: ilYA(0), tickets: [1500], worktrees: [] },
+      { nom: 'chantier/1300', avance: 1, retard: 0, dernierCommitISO: ilYA(0), tickets: [1300], worktrees: [] },
+    ],
+    issues: new Map([[1800, { state: 'OPEN' }], [1500, { state: 'CLOSED' }]]),
+  }, { maintenant: MAINTENANT, joursDormant: JOURS_DORMANT })
+  assert.deepEqual(lignes.map((l) => [l.ticket, l.statut, l.etatIssue]),
+    [[1300, 'En cours', 'introuvable'], [1800, 'En cours', 'ouvert'], [1500, 'Fermé', 'fermé']])
 })
 
 test('une branche sans avance ET sans worktree est IGNORÉE ; avec worktree, `Fusionné` si la base la cite, sinon `Ouvert`', () => {

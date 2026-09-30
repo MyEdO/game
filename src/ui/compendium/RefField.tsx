@@ -8,24 +8,23 @@
  *                 conservée, résolue côté runtime par un repli `name`) ;
  *  - `vocab`    : `<input list>` + `<datalist>` des valeurs DISTINCTES d'un champ (refChar/refCareer/subType…)
  *                 → pioche OU saisie libre (mais la LISTE elle-même vient d'un champ, pas d'ids de dataset).
- * On stocke partout l'`id` (ou la valeur de `valueKey`) — multilangue-safe (cf.
+ * On stocke partout l'`id` — multilangue-safe (cf.
  * `CLAUDE.md` § Pour TOUT agent). Le composant est « bête » : il reçoit sa `cfg`.
  */
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { datasetArray, type DatasetKey } from '../../data/overrides';
 import { NumberField } from '../NumberField';
 
 /** Config d'un champ-réf, par (catégorie, champ). Dataset réel (liste/single) OU vocabulaire d'un champ. */
 export type RefFieldCfg =
-  | { ds: DatasetKey; value?: boolean; single?: boolean; freeText?: boolean; valueKey?: 'id' | 'label' | 'abr'; labelOf?: 'label' | 'name'; spec?: boolean; filter?: (entry: Record<string, unknown>) => boolean }
+  | { ds: DatasetKey; value?: boolean; single?: boolean; freeText?: boolean; spec?: boolean; filter?: (entry: Record<string, unknown>) => boolean }
   | { vocabFrom: string };
 
 /**
  * REF_FIELD — clés par `'<catégorie>.<champ>'` (priorité) ou par `'<champ>'` (repli global).
- *  - listes (comportement existant conservé) : sorts/bénédictions/miracles, qualités (Indice), manœuvres ;
- *  - single (dataset réel) : sous-type d'arme, classe, carrière (niveau/pré-tiré), parent de lieu (par
- *    label), espèce d'un pré-tiré, compétence/talent ajouté par un talent (+ spec libre) ;
- *  - vocab : caracs/carrières de référence d'une espèce, sous-type d'une qualité.
+ *  Trois formes, lues sur l'entrée elle-même : une LISTE d'ids d'un dataset (`ds`), un id SEUL
+ *  (`single`), ou un vocabulaire tiré d'un champ (`vocabFrom`). `spec` et `freeText` sont posés par
+ *  les appelants directs du composant, jamais ici.
  */
 export const REF_FIELD: Record<string, RefFieldCfg> = {
   // ── listes (Ref[]) — existant ───────────────────────────────────────────────
@@ -39,7 +38,7 @@ export const REF_FIELD: Record<string, RefFieldCfg> = {
   'trappings.subType': { ds: 'weaponGroups', single: true },
   'careers.class': { ds: 'classes', single: true },
   'careerLevels.career': { ds: 'careers', single: true },
-  'locations.parent': { ds: 'locations', single: true, valueKey: 'label' },
+  'locations.parent': { ds: 'locations', single: true },
   'pregens.species': { ds: 'species', single: true },
   'pregens.career': { ds: 'careers', single: true },
   // Caractéristique d'une compétence : SÉLECTEUR (pas d'input libre) — `skills.json` stocke l'`id` du
@@ -74,12 +73,9 @@ export function refFieldCfg(categoryKey: string, fieldKey: string): RefFieldCfg 
 
 const isVocab = (cfg: RefFieldCfg): cfg is { vocabFrom: string } => 'vocabFrom' in cfg;
 
-/** Libellé d'affichage d'une entrée (maladies → `name`, sinon `label`). */
-const entryLabel = (e: Record<string, unknown>, labelOf: 'label' | 'name' = 'label'): string =>
-  String(e[labelOf] ?? e.label ?? e.id ?? '');
-/** Valeur stockée d'une entrée (lieux keyés par `label` → `label`, sinon `id`). */
-const valueOf = (e: Record<string, unknown>, valueKey: 'id' | 'label' | 'abr' = 'id'): string =>
-  String(e[valueKey] ?? '');
+/** Libellé d'affichage d'une entrée. */
+const entryLabel = (e: Record<string, unknown>): string =>
+  String(e.label ?? e.id ?? '');
 
 interface RefEntry { id: string; value?: number }
 interface SpecRef { id: string; spec?: string }
@@ -98,13 +94,13 @@ export function RefField(
 }
 
 /** Options triées d'un dataset (valeur stockée + libellé), pour single/liste. */
-function useOptions(cfg: { ds: DatasetKey; valueKey?: 'id' | 'label' | 'abr'; labelOf?: 'label' | 'name'; filter?: (entry: Record<string, unknown>) => boolean }) {
+function useOptions(cfg: { ds: DatasetKey; filter?: (entry: Record<string, unknown>) => boolean }) {
   return useMemo(
     () => (datasetArray(cfg.ds) as Record<string, unknown>[])
       .filter((e) => (cfg.filter ? cfg.filter(e) : true))
-      .map((e) => ({ v: valueOf(e, cfg.valueKey), label: entryLabel(e, cfg.labelOf) }))
+      .map((e) => ({ v: String(e.id ?? ''), label: entryLabel(e) }))
       .sort((a, b) => a.label.localeCompare(b.label)),
-    [cfg.ds, cfg.valueKey, cfg.labelOf, cfg.filter],
+    [cfg.ds, cfg.filter],
   );
 }
 
@@ -112,7 +108,7 @@ function useOptions(cfg: { ds: DatasetKey; valueKey?: 'id' | 'label' | 'abr'; la
  *  `spec` → un `<input>` texte à côté, on stocke `{ id, spec? }` (spec omis si vide) ; sinon la chaîne brute. */
 function SingleRefField(
   { label, cfg, value, onChange, nullable }:
-  { label?: string; cfg: { ds: DatasetKey; valueKey?: 'id' | 'label' | 'abr'; labelOf?: 'label' | 'name'; spec?: boolean; filter?: (entry: Record<string, unknown>) => boolean }; value: unknown; onChange: (v: unknown) => void; nullable?: boolean },
+  { label?: string; cfg: { ds: DatasetKey; spec?: boolean; filter?: (entry: Record<string, unknown>) => boolean }; value: unknown; onChange: (v: unknown) => void; nullable?: boolean },
 ) {
   const options = useOptions(cfg);
   const cur: SpecRef = cfg.spec
@@ -146,24 +142,36 @@ function SingleRefField(
 
 /** Mode `single` + `freeText` : `<input list>` + `<datalist>` du dataset — pioche par LIBELLÉ (id
  *  stocké) OU saisie libre hors catalogue (objet/outil CUSTOM, valeur brute conservée telle quelle,
- *  résolue côté runtime par un repli `name`). Calque le patron `hasItem`/`test.tool` existant. */
+ *  résolue côté runtime par un repli `name`). Calque le patron `hasItem`/`test.tool` existant.
+ *  Le texte saisi vit ICI : il ne se recale sur `value` que lorsqu'elle diffère de la dernière valeur
+ *  que le champ a émise, jamais à chaque frappe. */
 function FreeRefField(
   { label, cfg, value, onChange }:
-  { label?: string; cfg: { ds: DatasetKey; valueKey?: 'id' | 'label' | 'abr'; labelOf?: 'label' | 'name' }; value: unknown; onChange: (v: unknown) => void },
+  { label?: string; cfg: { ds: DatasetKey }; value: unknown; onChange: (v: unknown) => void },
 ) {
   const options = useOptions(cfg);
   const cur = typeof value === 'string' ? value : '';
   const dlId = `dl-free-${cfg.ds}`;
   const shown = options.find((o) => o.v === cur)?.label ?? cur;
+  const [texte, setTexte] = useState(shown);
+  const [connue, setConnue] = useState(cur);
+  if (cur !== connue) {
+    setConnue(cur);
+    setTexte(shown);
+  }
   return (
     <div className="ed-field">
       <span>{label}<em className="de-hint"> (réf {cfg.ds}, ou saisie libre)</em></span>
       <input
-        list={dlId} defaultValue={shown} key={cur}
+        list={dlId} value={texte}
         onChange={(e) => {
-          const v = e.target.value.trim();
+          const brut = e.target.value;
+          const v = brut.trim();
           const match = options.find((o) => o.label.toLowerCase() === v.toLowerCase());
-          onChange(match ? match.v : v || undefined);
+          const emise = match ? match.v : v || undefined;
+          setTexte(brut);
+          setConnue(emise ?? '');
+          onChange(emise);
         }}
       />
       <datalist id={dlId}>{options.map((o) => <option key={o.v} value={o.label} />)}</datalist>
@@ -195,7 +203,7 @@ function VocabField(
 /** Mode `liste` (défaut) : `Ref[]` = {id, value?} — choix dans le dataset, +Ajouter / ✕, `value` (Indice) si `cfg.value`. */
 function ListRefField(
   { label, cfg, value, onChange }:
-  { label?: string; cfg: { ds: DatasetKey; value?: boolean; valueKey?: 'id' | 'label' | 'abr'; labelOf?: 'label' | 'name' }; value: unknown; onChange: (v: unknown) => void },
+  { label?: string; cfg: { ds: DatasetKey; value?: boolean }; value: unknown; onChange: (v: unknown) => void },
 ) {
   const options = useOptions(cfg);
   const list = (value as RefEntry[]) ?? [];

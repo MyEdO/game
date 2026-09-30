@@ -793,7 +793,7 @@ export function resolveStake(ref: StakeRef): ResolvedStake {
 
 export interface SpeciesData {
   /** id STABLE (slug du libellé) — cible de `Combatant.species`, pregens, draft. Le `label` ne sert
-   *  qu'à l'affichage (`speciesSingular`). */
+   *  qu'à l'affichage. */
   id: string;
   label: string;
   /** Race (famille d'espèces) pour le groupage d'affichage : « Humains (Middenheim) » → « Humains ».
@@ -916,8 +916,8 @@ export function specEntryId(e: SpecEntry): string {
   return e.id;
 }
 /** Libellé d'affichage d'une entrée `specs[]`. */
-export function specEntryLabel(e: SpecEntry): string {
-  return e.label;
+export function specEntryLabel(e: SpecEntry): PlayerText {
+  return dataLabel(e.label);
 }
 /** Registre partagé qui DÉRIVE le pool d'ids d'une `specs[]` (résolu en libellé par `specLabel`, énuméré
  *  par `wildcardSpecs`) — chaque valeur pointe UNE entrée du catalogue `SPEC_SOURCES` (SSOT, fin des
@@ -1393,9 +1393,8 @@ export interface CreatureData {
   /** Compétences STRUCTURÉES (`SkillRef` par id stable + valeur de Test imprimée) — fin du parsing
    *  de chaînes « Calme 58 ». Le bestiaire stocke des refs ; `skillRefLabel` reformate à l'affichage. */
   skills: SkillRef[];
-  /** Talents STRUCTURÉS (`TalentRef` par id stable + niveau/spécialisation) — fin du parsing de chaînes
-   *  « Maîtrise du combat 2 », « Magie des Arcanes (Ghur) ». `talentRefLabel` reformate à l'affichage ;
-   *  au spawn, `talentsFromBook` reconstruit le libellé canonique AVEC sa spec (clé du registre). */
+  /** Talents STRUCTURÉS (`TalentRef` par id stable + niveau/spécialisation). `talentRefLabel` les rend
+   *  à l'affichage ; au spawn, `talentsFromBook` en fait des `TalentInstance` (`talentId` + `spec`). */
   talents: TalentRef[];
   /** Possessions (`TrappingRef` : id catalogue + quantité, ou `{text}` narratif — « collection d'alcool »). */
   trappings: TrappingRef[];
@@ -2337,7 +2336,7 @@ export const characteristics = characteristicsJson as CharacteristicsData;
 /** Abréviation FR AFFICHÉE d'une caractéristique à jet (« CC », « Ag »…), dérivée de `characteristics.json`
  *  par `id` (jamais recopiée en dur dans l'UI — `CharKey` reste un id opaque, cf. engine/types.ts). */
 const charARoulerParId = indexParChamp('characteristics', characteristics, (c) => (c.nature === 'roll' ? c.id : undefined));
-export const charAbr = (k: CharKey): string => charARoulerParId(k)?.abr ?? k;
+export const charAbr = (k: CharKey): PlayerText => dataLabel(charARoulerParId(k)?.abr, k);
 export const species = speciesJson as SpeciesData[];
 export const classes = classesJson as ClassData[];
 export const careers = careersJson as CareerData[];
@@ -2379,8 +2378,8 @@ export function findDiseaseById(id: string): DiseaseDef | undefined {
   return maladieParId(id);
 }
 /** Libellé d'affichage d'une Maladie par son id (repli sur l'id). */
-export function diseaseLabel(id: string): string {
-  return maladieParId(id)?.label ?? id;
+export function diseaseLabel(id: string): PlayerText {
+  return dataLabel(maladieParId(id)?.label, id);
 }
 // Traits app-owned (officiels + homebrew frenchy.bzh Aura de Dhar/Mort, Charnier + suppléments
 // Redoutable/Fouissement ZI) — TOUT dans `traits.json` ; chaque entrée garde sa vraie `source` : ZI, frenchy.bzh…).
@@ -2416,7 +2415,7 @@ export const symptoms = symptomsJson as SymptomData[];
 const symptomeParId = indexParId('symptoms', symptoms);
 export const findSymptomById: (id: string) => SymptomData | undefined = symptomeParId;
 /** Libellé FR d'un symptôme par son id (repli sur l'id si inconnu). */
-export const symptomLabel = (id: string): string => symptomeParId(id)?.label ?? id;
+export const symptomLabel = (id: string): PlayerText => dataLabel(symptomeParId(id)?.label, id);
 /** Les paliers de SÉVÉRITÉ d'une instance de symptôme, dans l'ordre CROISSANT (LDB 20 l.157 « (Modéré) »,
  *  l.170 « (Grave) ») — SOURCE UNIQUE de l'énumération (canaux `passiveBySeverity`/`difficultyBySeverity`,
  *  atelier du Codex). La LOGIQUE reste keyée par ces ids ; leur AFFICHAGE vit sur le nœud
@@ -2427,9 +2426,9 @@ export const SYMPTOM_SEVERITIES = ['moderee', 'grave'] as const;
  *  (`EDO App.2 l.143`, « Gonflement (Visage et tête) »). SOURCE UNIQUE de cette composition : une
  *  instance ne se nomme jamais par son seul `symptomLabel`, sinon deux fièvres de sévérités
  *  différentes s'affichent à l'identique. */
-export const symptomInstanceLabel = (inst: { symptomId: string; severity?: 'moderee' | 'grave'; spec?: string }): string => {
+export const symptomInstanceLabel = (inst: { symptomId: string; severity?: 'moderee' | 'grave'; spec?: string }): PlayerText => {
   const qualifs = [inst.severity ? libelleDeValeur(symptomSeveritySchema, inst.severity) : null, inst.spec ?? null].filter(Boolean);
-  return qualifs.length ? `${symptomLabel(inst.symptomId)} (${qualifs.join(', ')})` : symptomLabel(inst.symptomId);
+  return qualifs.length ? dataLabel(`${symptomLabel(inst.symptomId)} (${qualifs.join(', ')})`) : symptomLabel(inst.symptomId);
 };
 /** Mutations (entités) + Tables de Corruption (plages d100 → réf), DÉCOUPLÉES (cf. data/mutations.ts) —
  *  app-owned éditables au Codex. Le runtime du tirage (`rollMutation`) vit dans `mutations.ts`. */
@@ -2445,8 +2444,8 @@ export function findMutationById(id: string | null | undefined): MutationData | 
   return mutationParId(id);
 }
 /** Libellé d'affichage d'une Mutation par son id (repli sur l'id). SOURCE UNIQUE du nom. */
-export function mutationLabel(id: string | null | undefined): string {
-  return id ? (mutationParId(id)?.label ?? id) : '';
+export function mutationLabel(id: string | null | undefined): PlayerText {
+  return dataLabel(id ? (mutationParId(id)?.label ?? id) : '');
 }
 export const trappings = trappingsJson as TrappingData[];
 /** Engins de siège POSABLES = trappings portant un art d'affût (`siegeRig`). FOYER UNIQUE du filtre :
@@ -2859,7 +2858,7 @@ export const weather = weatherData.seasons;
  * table d'écran. Même patron que `specLabel`/`refLabel` ci-dessous. Une saison sans fiche météo n'a
  * pas de nom à afficher : elle est NOMMÉE par sa clé plutôt que passée sous silence.
  */
-export function seasonLabel(id: string): string {
+export function seasonLabel(id: string): PlayerText {
   return libelleOuAbsence(weatherData.seasons.find((s) => s.id === id), 'saison', id);
 }
 
@@ -2868,8 +2867,8 @@ export function seasonLabel(id: string): string {
 export type NatureAbsente = 'heros' | 'combattant' | 'lieu' | 'navire' | 'saison' | 'mois' | 'race' | 'carriere';
 /** Le libellé d'une entité résolue, ou son ABSENCE nommée en français de joueur par sa nature (#1906) —
  *  jamais un littéral qui la masque. Une absence IMPOSSIBLE ne passe pas ici : elle lève. */
-export function libelleOuAbsence(e: { label: string } | undefined, nature: NatureAbsente, id: string): string {
-  return e ? e.label : t(`absent.${nature}`, { id });
+export function libelleOuAbsence(e: { label: string } | undefined, nature: NatureAbsente, id: string): PlayerText {
+  return e ? dataLabel(e.label) : t(`absent.${nature}`, { id });
 }
 /** Effets par météo (visibilité, mods de tir, poudre, Tests physiques, plafond de mouvement…). */
 export const weatherConditions = weatherData.conditions;
@@ -2903,9 +2902,8 @@ export function findBookById(id: string | null | undefined): BookData | undefine
   return livreParId(id);
 }
 /** Acronyme d'un livre depuis l'`id` porté par `source.book` (fallback = l'id si inconnu). */
-export function bookAbr(id: string | null | undefined): string {
-  if (!id) return '';
-  return livreParId(id)?.abbr ?? id;
+export function bookAbr(id: string | null | undefined): PlayerText {
+  return dataLabel(id ? livreParId(id)?.abbr : '', id ?? '');
 }
 /** Culte/Dieu (LDB 41) : `id` = slug STABLE (« sigmar »), `label` = nom affiché (« Sigmar »), Bénédictions/
  *  Miracles en ids de sort, desc = lore en Markdown (Codex). Dataset éditable (Compendium). */
@@ -3002,12 +3000,12 @@ export function findPsychologyById(id: string): PsychologyData | undefined {
   return psychologieParId(id);
 }
 /** Libellé d'affichage d'un État par son id (repli sur l'id). SOURCE UNIQUE du nom d'État affiché. */
-export function conditionLabel(id: string): string {
-  return etatParId(id)?.label ?? id;
+export function conditionLabel(id: string): PlayerText {
+  return dataLabel(etatParId(id)?.label, id);
 }
 /** Libellé d'affichage d'un état psychologique par son `id` (`PsychType`), repli sur l'id — délègue au
  *  résolveur de libellé GÉNÉRIQUE (`refLabel`), jamais une copie locale du motif `MAP.get(id)?.label ?? id`. */
-export function psychologyLabel(id: string): string {
+export function psychologyLabel(id: string): PlayerText {
   return refLabel('psychologies', { id });
 }
 /** ids d'États du catalogue, dans l'ordre du dataset — vue VIVANTE (`memoParVersion`), reconstruite
@@ -3016,7 +3014,7 @@ export function psychologyLabel(id: string): string {
 export const conditionIds = memoParVersion('etats', () => etats.map((e) => e.id));
 const especeParId = indexParId('species', species);
 /** Résout une Espèce par son `id` STABLE (slug du libellé) — réf runtime/données (Combatant.species,
- *  pregens, draft). Le libellé ne sert qu'à l'affichage (`speciesSingular`). */
+ *  pregens, draft). Le libellé ne sert qu'à l'affichage. */
 export function findSpeciesById(id: string | undefined): SpeciesData | undefined {
   return especeParId(id);
 }
@@ -3082,24 +3080,15 @@ export function mutationBodyMaxForSpecies(id: string | undefined): number {
   return findSpeciesById(id)?.mutationBodyMax ?? 50;
 }
 
-/** Affichage SINGULIER de l'espèce d'un INDIVIDU : les `label` du catalogue sont des libellés de
- *  CATÉGORIE au pluriel (« Nains », « Humains (Reiklander) ») ; un personnage est un individu (B1).
- *  Mappe le groupe pluriel → singulier en conservant la sous-espèce entre parenthèses. Repli = tel quel. */
-const SPECIES_SINGULAR: Record<string, string> = {
-  Humains: 'Humain',
-  Halflings: 'Halfling',
-  Nains: 'Nain',
-  Gnomes: 'Gnome',
-  Ogres: 'Ogre',
-  'Hauts elfes': 'Haut elfe',
-  'Elfes sylvains': 'Elfe sylvain',
-};
-export function speciesSingular(label: string | undefined): string {
-  if (!label) return '';
-  const i = label.indexOf('(');
-  const group = (i >= 0 ? label.slice(0, i) : label).trim();
-  const suffix = i >= 0 ? ' ' + label.slice(i).trim() : '';
-  return (SPECIES_SINGULAR[group] ?? group) + suffix;
+/** Affichage SINGULIER de l'espèce d'un INDIVIDU (« Humain (Reiklander) ») : les `label` du catalogue
+ *  nomment une CATÉGORIE au pluriel, un personnage est un individu (B1). Lu sur la STRUCTURE de l'espèce :
+ *  le nom singulier de sa race (`refChar`) au catalogue `espece.individu.*`, et sa `variant` en donnée. */
+export function speciesSingular(speciesId: string | undefined): PlayerText {
+  if (!speciesId) return dataLabel('');
+  const sp = findSpeciesById(speciesId);
+  if (!sp) return libelleOuAbsence(undefined, 'race', speciesId);
+  const race = t(`espece.individu.${sp.refChar}`);
+  return sp.variant ? dataLabel(`${race} (${sp.variant})`) : race;
 }
 /**
  * Carrières accessibles à une espèce (Tableau des Classes et Carrières aléatoires, LDB 05
@@ -3117,14 +3106,14 @@ export function findCareerById(id: string | undefined): CareerData | undefined {
 }
 /** Choix d'AFFICHAGE masculin/féminin (source unique) : `labelF` si sexe F et disponible, sinon
  *  `label`. Le sexe vit dans l'apparence cosmétique (`Combatant.appearance.sex`), jamais dans le moteur. */
-export function displayLabelForSex(sex: Sexe | undefined, label: string, labelF?: string): string {
-  return sex === 'F' && labelF ? labelF : label;
+export function displayLabelForSex(sex: Sexe | undefined, label: string, labelF?: string): PlayerText {
+  return dataLabel(sex === 'F' && labelF ? labelF : label);
 }
 /** Libellé de Carrière à AFFICHER pour un personnage (forme féminine si sexe F). Bord UI — le
  *  retour est du texte d'affichage, JAMAIS une clé. */
-export function careerLabelFor(c: { career?: string; appearance?: { sex?: Sexe } }): string {
+export function careerLabelFor(c: { career?: string; appearance?: { sex?: Sexe } }): PlayerText {
   const career = findCareerById(c.career);
-  if (!career) return c.career ?? '';
+  if (!career) return dataLabel(c.career);
   return displayLabelForSex(c.appearance?.sex, career.label, career.labelF);
 }
 const classeParId = indexParId('classes', classes);
@@ -3170,9 +3159,8 @@ export function byId<T extends TypeResolu>(type: T, id: string): EntiteDe<T> | u
 export type SkillRef = RefASpecialisation & { value: number };
 /** Libellé d'affichage d'une `SkillRef` : « Langue (Magick) 63 », « Savoir (Au choix) 65 »,
  *  « Métier (Armurier ou Forgeron) 50 ». */
-export function skillRefLabel(ref: SkillRef): string {
-  const base = ref.choix != null ? choixLabel('skills', ref.id, ref.choix) : refLabel('skills', ref);
-  return `${base} ${ref.value}`;
+export function skillRefLabel(ref: SkillRef): PlayerText {
+  return dataLabel(`${refLabel('skills', ref)} ${ref.value}`);
 }
 export function findTalent(label: string): TalentData | undefined {
   return talents.find((t) => t.label === label);
@@ -3187,9 +3175,9 @@ export interface TalentRef extends RefDesignee {
   times?: number;
 }
 /** Libellé d'affichage d'une `TalentRef` : « Magie des Arcanes (Ghur) », « Maîtrise du combat 2 »
- *  (base+spec via `refLabel`, + niveau si ≥2). La spec RESTE dans le libellé (clé du registre combatFeatures). */
-export function talentRefLabel(ref: TalentRef): string {
-  return refConcrete('talents', ref) + (ref.times && ref.times > 1 ? ` ${ref.times}` : '');
+ *  (base+spec via `refLabel`, + niveau si ≥2). */
+export function talentRefLabel(ref: TalentRef): PlayerText {
+  return dataLabel(refLabel('talents', ref) + (ref.times && ref.times > 1 ? ` ${ref.times}` : ''));
 }
 /** Sous-type d'une QUALITÉ (classification RAW : qualités d'Arme LDB 62, d'Armure LDB 63, d'Objet). */
 export interface QualitySubtypeData { id: string; type: 'qualitySubtypes'; label: string; }
@@ -3200,8 +3188,8 @@ export function findQualitySubtypeById(id: string | null | undefined): QualitySu
   return sousTypeQualiteParId(id);
 }
 /** Libellé d'affichage d'un sous-type de Qualité par son id (repli sur l'id). SOURCE UNIQUE du nom. */
-export function qualitySubtypeLabel(id: string | null | undefined): string {
-  return id ? (sousTypeQualiteParId(id)?.label ?? id) : '';
+export function qualitySubtypeLabel(id: string | null | undefined): PlayerText {
+  return dataLabel(id ? sousTypeQualiteParId(id)?.label : '', id ?? '');
 }
 /** Type d'une QUALITÉ : Atout (bénéfique) / Défaut (handicap) — classification RAW (LDB 62/63). */
 export interface QualityTypeData { id: string; type: 'qualityTypes'; label: string; }
@@ -3212,8 +3200,8 @@ export function findQualityTypeById(id: string | null | undefined): QualityTypeD
   return typeQualiteParId(id);
 }
 /** Libellé d'affichage d'un type de Qualité par son id (repli sur l'id). SOURCE UNIQUE du nom. */
-export function qualityTypeLabel(id: string | null | undefined): string {
-  return id ? (typeQualiteParId(id)?.label ?? id) : '';
+export function qualityTypeLabel(id: string | null | undefined): PlayerText {
+  return dataLabel(id ? typeQualiteParId(id)?.label : '', id ?? '');
 }
 const groupeObjetParId = indexParId('weaponGroups', weaponGroups);
 /** Résout un Groupe d'objet par son `id` STABLE (= `subType` d'un trapping/Weapon/ItemInstance). */
@@ -3221,8 +3209,8 @@ export function findWeaponGroupById(id: string | null | undefined): WeaponGroupD
   return groupeObjetParId(id);
 }
 /** Libellé d'affichage d'un Groupe d'objet par son id (repli sur l'id). SOURCE UNIQUE du nom de Groupe. */
-export function weaponGroupLabel(id: string | null | undefined): string {
-  return id ? (groupeObjetParId(id)?.label ?? id) : '';
+export function weaponGroupLabel(id: string | null | undefined): PlayerText {
+  return dataLabel(id ? groupeObjetParId(id)?.label : '', id ?? '');
 }
 /** VOCABULAIRE FERMÉ des catégories de possession (`TrappingData.categorie`), miroir de l'enum du
  *  schéma `src/data/schemas/defs/trappings.ts` — une union, pas un registre de données. */
@@ -3233,8 +3221,8 @@ export function findGroupById(id: string | null | undefined): GroupData | undefi
   return groupeParId(id);
 }
 /** Libellé d'affichage d'un Groupe d'appartenance par son id (repli sur l'id). SOURCE UNIQUE du nom de Groupe. */
-export function groupLabel(id: string | null | undefined): string {
-  return id ? (groupeParId(id)?.label ?? id) : '';
+export function groupLabel(id: string | null | undefined): PlayerText {
+  return dataLabel(id ? groupeParId(id)?.label : '', id ?? '');
 }
 /** Type de Souffle d'une créature (Feu/Froid/Corrosif/Électrique/Poison/Fumée) — argument du Trait Souffle,
  *  aligné sur les manœuvres `souffle-*`. Registre SSOT (`breath-types.json`). */
@@ -3246,8 +3234,8 @@ export function findBreathTypeById(id: string | null | undefined): BreathTypeDat
   return typeSouffleParId(id);
 }
 /** Libellé d'affichage d'un Type de Souffle par son id (repli sur l'id). SOURCE UNIQUE du nom. */
-export function breathTypeLabel(id: string | null | undefined): string {
-  return id ? (typeSouffleParId(id)?.label ?? id) : '';
+export function breathTypeLabel(id: string | null | undefined): PlayerText {
+  return dataLabel(id ? typeSouffleParId(id)?.label : '', id ?? '');
 }
 /** Type de Dégâts ignoré par le Trait Immunité (LDB 85 : « poison, magiques ou électriques ») — argument du
  *  Trait Immunité (multi-valeurs) ET référent des `unlessImmune` des Flows (Venin (Poison)…). Registre SSOT
@@ -3260,8 +3248,8 @@ export function findDamageTypeById(id: string | null | undefined): DamageTypeDat
   return typeDegatsParId(id);
 }
 /** Libellé d'affichage d'un Type de Dégâts par son id (repli sur l'id). SOURCE UNIQUE du nom. */
-export function damageTypeLabel(id: string | null | undefined): string {
-  return id ? (typeDegatsParId(id)?.label ?? id) : '';
+export function damageTypeLabel(id: string | null | undefined): PlayerText {
+  return dataLabel(id ? typeDegatsParId(id)?.label : '', id ?? '');
 }
 const creatureParId = indexParId('creatures', creatures);
 /** Résout une créature par son `id` STABLE — référence runtime/données (scènes, encounters, rig). */
@@ -3269,8 +3257,8 @@ export function findCreatureById(id: string | undefined): CreatureData | undefin
   return creatureParId(id);
 }
 /** Libellé d'affichage d'une créature par son id (repli sur l'id si introuvable). */
-export function creatureLabel(id: string): string {
-  return creatureParId(id)?.label ?? id;
+export function creatureLabel(id: string): PlayerText {
+  return dataLabel(creatureParId(id)?.label, id);
 }
 /** Seul lecteur autorisé de la nommé-ité (jamais via `title`) : `true` si la créature est un individu nommé. */
 export function isNamed(c: CreatureData): boolean {
@@ -3351,8 +3339,8 @@ export function findGodById(id: string): GodData | undefined {
   return dieuParId(id);
 }
 /** Libellé affiché d'un Culte/Dieu (id → « Sigmar ») ; id inconnu → l'id lui-même. */
-export function godLabel(id: string): string {
-  return findGodById(id)?.label ?? id;
+export function godLabel(id: string): PlayerText {
+  return dataLabel(findGodById(id)?.label, id);
 }
 /** Ids des cultes À BÉNÉDICTIONS, triés — DÉRIVÉ de la donnée (choix de culte du joker
  *  « Béni (Au choix) » à la création/avancement). Les fiches de SAVEUR (dieux nains/elfes/halflings,
@@ -3385,8 +3373,9 @@ export type CountSpec = { fixed: number } | { roll: DiceSpec };
  *  DIRECTEMENT par `findVehicleById`, jamais par le foyer trappings — OU dotation BÊTE (`creatures.json`,
  *  SOCLE POSSESSIONS #615/#617 §9), résolue DIRECTEMENT par `findCreatureById` — OU choix « A ou B »
  *  (`choice`, RÉCURSIF, EN MIROIR d'`AdvancementRef`) — OU joker « n'importe quel <catégorie> »
- *  (`wildcard`, ex. `{wildcard:'arme'}`). `choice`/`wildcard` sont des EMPLACEMENTS non résolus,
- *  résolus par `resolveTrappingChoices` (`src/engine/trappingChoices.ts`) avant matérialisation.
+ *  (`wildcard`, ex. `{wildcard:'arme'}`). `choice`/`wildcard` sont des EMPLACEMENTS, résolus par
+ *  `resolveTrappingChoices` (`src/engine/trappingChoices.ts`) avant matérialisation ; non tranchés, ils
+ *  restent tels quels et ne produisent aucun objet.
  *  Une ref `{id}` peut aussi porter des Atouts d'objet ATTACHÉS (`qualities`, ex. Fabrication LDB
  *  ch.60 « Solide »/« Raffiné »/« Léger »/« Pratique ») ou un EMPLACEMENT « Atout au choix »
  *  (`qualityChoice: true`, « X de qualité ») — résolu par `resolveTrappingChoices` en `qualities`
@@ -3506,11 +3495,11 @@ export function porteCatalogueDeSpecs(def: { specsSource?: SpecsSource; specs?: 
  *  catalogue `SPEC_SOURCES` (registre partagé d'ids : Groupe d'arme → libellé, Vent, Lore, dieu, chanson) ;
  *  sinon cherche l'id dans `def.specs` (`SpecEntry[]`, résolu en label FR) ; sinon verbatim (texte
  *  libre / id inconnu — jamais d'erreur d'affichage). SOURCE UNIQUE de résolution de spéc. */
-export function specLabel(category: string, refId: string, specId: string): string {
+export function specLabel(category: string, refId: string, specId: string): PlayerText {
   const def = category === 'skills' ? byId('skill', refId) : category === 'talents' ? findTalentById(refId) : undefined;
-  if (def?.specsSource) return SPEC_SOURCES[def.specsSource].label(specId);
+  if (def?.specsSource) return dataLabel(SPEC_SOURCES[def.specsSource].label(specId));
   const entry = def?.specs?.find((s) => specEntryId(s) === specId);
-  return entry ? specEntryLabel(entry) : specId;
+  return entry ? specEntryLabel(entry) : dataLabel(specId);
 }
 /**
  * MINTEUR (b) de `PlayerText` (#1318 V8a₁) — le PASSAGE des textes AUTHORÉS (le `label` d'une entité
@@ -3531,26 +3520,13 @@ export function dataLabel(texte: string | undefined | null, repli?: string): Pla
   return (texte ?? repli ?? '') as PlayerText;
 }
 
-/**
- * CLÉ RUNTIME concrète d'une `RefDesignee` : « Magie des Arcanes (Ghur) » — base (repli sur l'id) + spec.
- * SOURCE UNIQUE de l'index utilisé par les registres (`opts.skillAdvances` dans `engine/character.ts`,
- * `combatFeatures`, grimoire).
- *
- * NON-MINTEUR, et c'est tout le point (#1318 V8a₁, grief T3) : un texte qui sert de CLÉ n'est pas du
- * texte joueur. Tant que les deux usages partageaient une seule fonction, traduire la donnée aurait
- * cassé des lookups silencieusement. `refLabel` ci-dessous en est la face AFFICHAGE, et la seule à
- * minter.
- */
-export function refConcrete(category: string, ref: RefDesignee): string {
-  const base = findById(category, ref.id)?.label ?? ref.id;
-  return ref.spec ? `${base} (${specLabel(category, ref.id, ref.spec)})` : base;
-}
-
-/** Libellé CONCRET d'une `RefDesignee` pour l'AFFICHAGE : « Magie des Arcanes (Ghur) », ou d'un emplacement
- *  `choix` par `choixLabel`. Face minteuse de `refConcrete` (cf. son JSDoc pour la scission). Un site qui
- *  INDEXE avec ce texte appelle `refConcrete`. */
+/** Libellé d'affichage d'une `RefDesignee` : « Magie des Arcanes (Ghur) » — base (repli sur l'id) + spec —,
+ *  ou d'un emplacement `choix` par `choixLabel`. Aucun site ne s'en sert de clé : une identité de
+ *  référence est `refKey(id, spec)`. */
 export function refLabel(category: string, ref: RefASpecialisation): PlayerText {
-  return dataLabel(ref.choix == null ? refConcrete(category, ref) : choixLabel(category, ref.id, ref.choix));
+  if (ref.choix != null) return choixLabel(category, ref.id, ref.choix);
+  const base = dataLabel(findById(category, ref.id)?.label, ref.id);
+  return ref.spec ? dataLabel(`${base} (${specLabel(category, ref.id, ref.spec)})`) : base;
 }
 /** Copie une `QualityRef` de catalogue en `QualityInstance` RUNTIME FRAÎCHE (`{id, value?}`) — objet neuf
  *  (le runtime mute `qualities` : enchantements, munitions). Plus d'aplatissement en chaîne « id value ». */
@@ -3564,46 +3540,46 @@ export function qualityInstance(q: QualityRef): import('../engine/types').Qualit
  *  « Taillade (1A) ». La FORME de l'Indice est pilotée par la DONNÉE (`QualityData.indice.unite`) : sans
  *  unité, le livre accole la valeur nue (`LDB 62 l.33` « Protectrice 2 », l.66 « Recharge 1 ») ; avec unité,
  *  il la parenthèse (`AA 08 l.136` « Taillade (1A) », l.304 « Taillade (2A) »). Zéro branche par id. */
-export function qualityRefLabel(q: QualityRef): string {
+export function qualityRefLabel(q: QualityRef): PlayerText {
   const base = refLabel('qualities', q);
   if (q.value == null) return base;
   const unite = qualiteParId(q.id)?.indice?.unite;
-  return unite ? `${base} (${q.value}${unite})` : `${base} ${q.value}`;
+  return dataLabel(unite ? `${base} (${q.value}${unite})` : `${base} ${q.value}`);
 }
-/** Libellé d'affichage / CLÉ d'une `SkillInstance` (id+spec → « Langue (Magick) »). Repli sur l'id.
- *  Passe par `refConcrete` : ce texte indexe aussi (avancements, fiche). */
-export function skillInstanceLabel(s: { id: string; spec?: string }): string {
-  return refConcrete('skills', { id: s.id, spec: s.spec });
+/** Libellé d'affichage d'une `SkillInstance` (id+spec → « Langue (Magick) »). Repli sur l'id. */
+export function skillInstanceLabel(s: { id: string; spec?: string }): PlayerText {
+  return refLabel('skills', { id: s.id, spec: s.spec });
 }
-/** Libellé CONCRET d'une `TalentInstance` (id+spec → « Magie des Arcanes (Bête) ») — clé du registre
- *  combatFeatures + affichage. Repli sur l'id. CLÉ d'abord, donc `refConcrete`. */
-export function talentConcrete(t: { talentId: string; spec?: string }): string {
-  return refConcrete('talents', { id: t.talentId, spec: t.spec });
+/** Libellé d'affichage d'une `TalentInstance` (id+spec → « Magie des Arcanes (Bête) »). Repli sur l'id. */
+export function talentConcrete(t: { talentId: string; spec?: string }): PlayerText {
+  return refLabel('talents', { id: t.talentId, spec: t.spec });
 }
 /**
  * Libellé d'un EMPLACEMENT de spécialisation NON DÉSIGNÉ : « Savoir (Au choix) » pour un choix
  * LIBRE, « Métier (Armurier ou Forgeron) » pour un choix BORNÉ (options résolues en LIBELLÉS par
  * `specLabel`, jamais des ids bruts). SOURCE UNIQUE du rendu d'un `choix` — la réf de statbloc
  * (`skillRefLabel`) comme l'emplacement d'avancement (`advancementLabel`) passent ici.
- * Repasse par `refConcrete` : ce texte INDEXE aussi (`opts.skillAdvances`, `specChoices`).
  * `LDB 09 l.40` ; choix imprimé sur une ligne de table : `frenchy.bzh 83 l.25`.
  */
-export function choixLabel(category: string, id: string, choix: true | string[]): string {
-  const base = refConcrete(category, { id });
+export function choixLabel(category: string, id: string, choix: true | string[]): PlayerText {
+  const base = refLabel(category, { id });
   return Array.isArray(choix) && choix.length
-    ? `${base} (${choix.map((o) => specLabel(category, id, o)).join(' ou ')})`
-    : t('ref.auChoix', { base });
+    ? dataLabel(`${base} (${ouListe(choix.map((o) => specLabel(category, id, o)))})`)
+    : t('ref.auChoix', { base, mot: t('ref.motAuChoix') });
 }
-/** Libellé d'affichage/clé concrète d'un `AdvancementRef` : « Savoir (Au choix) », « A ou B »,
- *  « 3 Talents aléatoires », « Magie des Arcanes (Bête) ». SOURCE UNIQUE (Codex + résolution création).
- *  Passe par `refConcrete` : ce texte INDEXE `opts.skillAdvances` (`engine/character.ts`). */
-export function advancementLabel(category: string, a: AdvancementRef): string {
-  if ('id' in a) return a.choix == null ? refConcrete(category, a) : choixLabel(category, a.id, a.choix);
+/** Alternative « A ou B ou C » : le liant vit au catalogue (`ref.ou`). */
+function ouListe(options: readonly string[]): PlayerText {
+  return dataLabel(options.join(` ${t('ref.ou')} `));
+}
+/** Libellé d'affichage d'un `AdvancementRef` : « Savoir (Au choix) », « A ou B », « 3 Talents
+ *  aléatoires », « Magie des Arcanes (Bête) ». SOURCE UNIQUE (Codex + résolution création). */
+export function advancementLabel(category: string, a: AdvancementRef): PlayerText {
+  if ('id' in a) return refLabel(category, a);
   if ('pick' in a) {
     const options = a.of.map((x) => advancementLabel(category, x));
-    return a.pick > 1 ? `${a.pick} parmi : ${options.join(', ')}` : options.join(' ou ');
+    return a.pick > 1 ? dataLabel(`${t('ref.parmi', { n: a.pick })} ${options.join(', ')}`) : ouListe(options);
   }
-  return a.random === 1 ? 'Talent aléatoire' : `${a.random} Talents aléatoires`;
+  return a.random === 1 ? t('ref.talentAleatoire') : t('ref.talentsAleatoires', { n: a.random });
 }
 /** id de base d'un `AdvancementRef` SIMPLE (référence, avec ou sans régime de spécialisation) — pour
  *  matcher par id une compétence/un talent POSSÉDÉ (ex. compétence de revenus). undefined pour un
@@ -3612,24 +3588,21 @@ export function advancementBaseId(a: AdvancementRef): string | undefined {
   return 'id' in a ? a.id : undefined;
 }
 /** Libellé d'affichage d'une `TrappingRef` : « Marteau », « Pamphlétaire (3) », « Chiffon (1d10) »,
- *  « Outils professionnels (Maréchal-ferrant) » (`spec`, rendue par `refConcrete` comme toute autre
+ *  « Outils professionnels (Maréchal-ferrant) » (`spec`, rendue par `refLabel` comme toute autre
  *  `RefDesignee` — `LDB 08 l.1130`), texte narratif hors catalogue, choix « A ou B » (récursif), ou joker
  *  « Arme (au choix) ». SOURCE UNIQUE (Codex, créateur, marchand, inventaire). */
-export function trappingRefLabel(ref: TrappingRef): string {
-  if ('choice' in ref) return ref.choice.map(trappingRefLabel).join(' ou ');
-  if ('wildcard' in ref) return ref.wildcard === 'arme' ? 'Arme (au choix)' : `${ref.wildcard} (au choix)`;
+export function trappingRefLabel(ref: TrappingRef): PlayerText {
+  if ('choice' in ref) return ouListe(ref.choice.map(trappingRefLabel));
+  if ('wildcard' in ref) return ref.wildcard === 'arme' ? t('ref.armeAuChoix') : t('ref.jokerAuChoix', { base: ref.wildcard });
   const base = 'text' in ref
     ? ref.text
     : 'vehicleId' in ref
-      ? (findVehicleById(ref.vehicleId)?.label ?? ref.vehicleId)
+      ? dataLabel(findVehicleById(ref.vehicleId)?.label, ref.vehicleId)
       : 'creatureId' in ref
-        ? (findCreatureById(ref.creatureId)?.label ?? ref.creatureId)
-        : refConcrete('trappings', ref);
+        ? dataLabel(findCreatureById(ref.creatureId)?.label, ref.creatureId)
+        : refLabel('trappings', ref);
   const count = ref.count ? ('fixed' in ref.count ? ` (${ref.count.fixed})` : ` (${formatDice(ref.count.roll)})`) : '';
-  const quality = 'id' in ref && ref.qualityChoice
-    ? ' (qualité au choix)'
-    : 'id' in ref && ref.qualities?.length
-      ? ` (${ref.qualities.map(qualityRefLabel).join(', ')})`
-      : '';
-  return base + count + quality;
+  if ('id' in ref && ref.qualityChoice) return t('ref.qualiteAuChoix', { base: base + count });
+  const quality = 'id' in ref && ref.qualities?.length ? ` (${ref.qualities.map(qualityRefLabel).join(', ')})` : '';
+  return dataLabel(base + count + quality);
 }

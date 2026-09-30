@@ -408,7 +408,7 @@ Regrouper une catégorie = poser \`cluster: '…'\` sur son littéral dans \`COD
 
 ## Gardes
 
-${TESTS.map((t) => `- \`npx vitest run ${t}\``).join('\n')}
+${TESTS.map((t) => `- \`npm test -- ${t}\``).join('\n')}
 `
 
 ecrireOuVerifier({

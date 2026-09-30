@@ -404,10 +404,10 @@ emoji, même « juste pour l'instant ».
 
 ## Gardes
 
-- \`npx vitest run src/ui/icons/icons.test.ts\` — ${TITRES_ICONS_TEST.map((t) => `${t}`).join(' ; ')}.
-- \`npx vitest run src/ui/no-emoji-affordance.test.ts\` — zéro emoji dans tout \`${RACINE_SCAN}/\`,
+- \`npm test -- src/ui/icons/icons.test.ts\` — ${TITRES_ICONS_TEST.map((t) => `${t}`).join(' ; ')}.
+- \`npm test -- src/ui/no-emoji-affordance.test.ts\` — zéro emoji dans tout \`${RACINE_SCAN}/\`,
   hors exclusions par nature.
-- \`npx vitest run src/data/data-wellformed.test.ts\` — ${CAS_ICONE.length} cas résolvent une icône
+- \`npm test -- src/data/data-wellformed.test.ts\` — ${CAS_ICONE.length} cas résolvent une icône
   dans \`ICON_DEFS\`.
 - \`npm run gen\` — régénère \`${CHAMPS_ENTREE.out}\` (n'écrit rien si le contenu est inchangé ;
   vérifier le compteur de fichiers affiché).

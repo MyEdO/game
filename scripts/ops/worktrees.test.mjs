@@ -275,6 +275,28 @@ test('origin non lu : l’inventaire s’imprime SANS verdict de fusion, et rien
   } finally { jeter() }
 })
 
+test('inventaire : UN fetch par défaut (ops:worktrees), AUCUN sous sansFetch — le verdict se lit sur les refs PRÉSENTES', () => {
+  const { racine, git, jeter } = depotAvecOrigin()
+  try {
+    git('worktree', 'add', '-q', '-b', 'chantier/propre', join(racine, '.wt-propre'), 'origin/main')
+    let fetchs = 0
+    const gestes = {
+      ...GESTES_DE_L_INVENTAIRE,
+      fetchOrigin: (...args) => { fetchs += 1; return GESTES_DE_L_INVENTAIRE.fetchOrigin(...args) },
+    }
+    const defaut = inventaire({ racine, gestes })
+    assert.deepEqual([fetchs, defaut.fusionLue, parNom(defaut.worktrees, '.wt-propre').classe], [1, true, 'propre+fusionné'])
+    const sans = inventaire({ racine, gestes, sansFetch: true })
+    assert.deepEqual([fetchs, sans.fusionLue, parNom(sans.worktrees, '.wt-propre').classe], [1, true, 'propre+fusionné'])
+
+    git('update-ref', '-d', 'refs/remotes/origin/main')
+    const sansOrigin = inventaire({ racine, gestes, sansFetch: true })
+    const propre = parNom(sansOrigin.worktrees, '.wt-propre')
+    assert.deepEqual([fetchs, sansOrigin.fusionLue, propre.fusionne, propre.classe], [1, true, null, 'propre+hors-main'])
+    assert.match(ligneDInventaire(propre), /verdict de fusion indisponible — origin\/main non lu/)
+  } finally { jeter() }
+})
+
 // Le `remove` qui ÉCHOUE laisse un dossier sur le disque (EPERM d'un arbre tenu par un autre
 // processus, mesuré sur `.wt-1736`). Sans re-mesure, la sortie annonçait le retrait et personne ne
 // savait qu'il restait un dossier à retirer à la main. Les écrivains et la sonde de disque sont INJECTÉS.

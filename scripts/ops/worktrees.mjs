@@ -118,11 +118,19 @@ export const GESTES_DE_LA_PURGE = Object.freeze({ retirerWorktree, supprimerBran
  * QUEL worktree : `racine` ne sert qu'à INTERROGER git, et tous les gestes suivants prennent pour
  * `cwd` l'ARBRE PRINCIPAL — le premier worktree que rend `worktreesDe`, déjà absolu, donc aucun
  * second `rev-parse` ici. Les gestes au dépôt et la sonde de disque sont injectables (mesure).
- * @param {{racine?: string, cwd?: string, gestes?: typeof GESTES_DE_L_INVENTAIRE, nature?: Function}} [params]
+ *
+ * `sansFetch` : l'appelant a déjà fetché (ou refuse de fetcher) — aucun `fetchOrigin` ici, et
+ * `fusionLue` vaut `true` même si `origin/main` manque : le verdict est lu sur les refs PRÉSENTES,
+ * et un worktree sans verdict porte sa raison « origin/main non lu ». Seul `ops:worktrees` lit
+ * `fusionLue` (garde de `--purger`), et il ne passe jamais `sansFetch`.
+ * @param {{racine?: string, cwd?: string, gestes?: typeof GESTES_DE_L_INVENTAIRE, nature?: Function,
+ *   sansFetch?: boolean}} [params]
  * @returns {{ok: true, worktrees: object[], fusionLue: boolean, principal: string, tenus: Set<string>}
  *   | {ok: false, refus: string}}
  */
-export function inventaire({ racine = RACINE, cwd = process.cwd(), gestes = GESTES_DE_L_INVENTAIRE, nature = natureDuChemin } = {}) {
+export function inventaire({
+  racine = RACINE, cwd = process.cwd(), gestes = GESTES_DE_L_INVENTAIRE, nature = natureDuChemin, sansFetch = false,
+} = {}) {
   let bruts
   try {
     bruts = gestes.worktreesDe(depotDe(racine))
@@ -134,7 +142,7 @@ export function inventaire({ racine = RACINE, cwd = process.cwd(), gestes = GEST
   const tenus = arbresTenus({ worktrees: bruts, racine, cwd })
 
   const depot = depotDe(principal)
-  const fusionLue = gestes.fetchOrigin(depot).disponible === true
+  const fusionLue = sansFetch || gestes.fetchOrigin(depot).disponible === true
 
   const worktrees = bruts.map((w) => {
     if (w.principal) return { ...w, absent: false, sale: false, fusionne: null, classe: 'principal' }

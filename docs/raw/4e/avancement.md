@@ -120,7 +120,7 @@ Les Caractéristiques des niveaux inférieurs restent disponibles aux niveaux su
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 7` (l.75-84) → `adv-0-5`, `feu`, `inCareerChar`, `adv-6-10`, `AdvanceCostBand`, `adv-11-15`, `advanceCost`, `adv-16-20`, `adv-21-25`, `doc`, +29 — `src/data/advancementCosts.json`, `src/data/domains.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/advancementCosts.ts`, `src/data/schemas/grammaire/valeurs.ts`, `src/engine/activities.ts`, +7 fichiers
-- `LDB 9` (l.44) → `specIdOf`, `art`, `buySkillAdvance`, `doc`, `athletisme`, `buildAdvancementView`, `designateSpec`, `entreeOuverte`, `estSpecialisable`, `combatBaseValue`, +17 — `src/data/index.ts`, `src/data/schemas/defs/skills.ts`, `src/data/schemas/grammaire/ref.ts`, `src/data/schemas/grammaire/valeurs.ts`, `src/data/skills.json`, `src/engine/activities.ts`, +15 fichiers
+- `LDB 9` (l.44) → `specIdOf`, `art`, `buySkillAdvance`, `doc`, `athletisme`, `buildAdvancementView`, `designateSpec`, `slotCovers`, `entreeOuverte`, `estSpecialisable`, +17 — `src/data/index.ts`, `src/data/schemas/defs/skills.ts`, `src/data/schemas/grammaire/ref.ts`, `src/data/schemas/grammaire/valeurs.ts`, `src/data/skills.json`, `src/engine/activities.ts`, +15 fichiers
 
 ---
 
@@ -176,7 +176,7 @@ Formule : **coût de la N+1ᵉ acquisition = 100 × (N + 1)** où N = nombre d'a
 **Voir aussi** : [`talents.md`](talents.md) pour la liste des Talents et les restrictions de multi-achat.
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 7` (l.100-109) → `feu`, `inCareerChar`, `advanceCost`, `talentCost`, `buyTalent`, `careerCompletionAdvances`, `lumiere`, `careerChangeCost`, `buildAdvancementView`, `talentSlots`, +11 — `src/data/domains.json`, `src/data/reglesOptionnelles.json`, `src/engine/activities.ts`, `src/engine/advancement.ts`, `src/engine/careerSlots.ts`, `src/engine/talentEffects.ts`, +3 fichiers
+- `LDB 7` (l.100-109) → `feu`, `inCareerChar`, `advanceCost`, `talentCost`, `buyTalent`, `careerCompletionAdvances`, `lumiere`, `talentSlots`, `careerChangeCost`, `buildAdvancementView`, +11 — `src/data/domains.json`, `src/data/reglesOptionnelles.json`, `src/engine/activities.ts`, `src/engine/advancement.ts`, `src/engine/careerSlots.ts`, `src/engine/talentEffects.ts`, +3 fichiers
 
 ---
 

@@ -1,21 +1,22 @@
 import { describe, it, expect } from 'vitest';
-import { CODEX, CODEX_GROUPS, categoriesIn, categoryByKey, clustersIn, codexLookup, codexLookupVersion, creatureStatblock, invalidateCodexLookup, type CodexItem, type CodexFacet } from './registry';
+import { CODEX, CODEX_GROUPS, categoriesIn, categoryByKey, clustersIn, codexLookup, codexLookupVersion, creatureStatblock, invalidateCodexLookup, raceTalentSection, type CodexItem, type CodexFacet } from './registry';
 import { woundsForSize } from '../../engine/size';
 import { codexMatch, filterItems, facetValues } from './search';
 import { replier } from '../../lib/ordre.mjs';
 import { isEditableCategory } from './CodexEdit';
-import { creatures, etats, trappings, gods, spells, findTraitById, findDomainById, WATER_EXPOSURE } from '../../data';
+import { creatures, etats, trappings, gods, spells, species, findTraitById, findDomainById, WATER_EXPOSURE } from '../../data';
 import { windSaturationEffects } from '../../data/arcanePhenomena';
 import { setDataset } from '../../data/overrides';
 import { CHAR_KEYS } from '../../engine/types';
 import { charAbr } from '../../data';
 import { MORALE_BANDS } from '../../engine/crewMorale';
 
-/** Toutes les lignes 'ref' (cross-réf) d'une fiche, sections + onglets confondus. */
-const refLabelsOf = (item: CodexItem): string[] =>
+/** Les ids ciblés par les cross-réf d'une fiche (lignes 'ref' et options référence d'un choix),
+ *  sections + onglets confondus. */
+const refIdsOf = (item: CodexItem): string[] =>
   [...(item.sections ?? []), ...(item.tabs ?? []).flatMap((t) => t.sections)]
     .flatMap((s) => s.rows)
-    .flatMap((r) => (r.t === 'ref' ? [r.label] : r.t === 'choice' ? r.options.map((o) => o.label) : []));
+    .flatMap((r) => (r.t === 'ref' ? [r.id] : r.t === 'choice' ? r.advancement.of.flatMap((o) => ('id' in o ? [o.id] : [])) : []));
 
 describe('Codex registry', () => {
   it('a des catégories, toutes peuplées, à clés uniques', () => {
@@ -94,7 +95,16 @@ describe('Codex registry — références INVERSES (relations.ts → fiches)', (
   it('la fiche d’une compétence porte des sections inverses (cross-réf cliquables)', () => {
     // Une compétence très référencée (carac la cite toujours) → au moins une cross-réf inverse.
     const skills = categoryByKey('skills')!.items;
-    expect(skills.some((s) => refLabelsOf(s).length > 0)).toBe(true);
+    expect(skills.some((s) => refIdsOf(s).length > 0)).toBe(true);
+  });
+
+  it('un emplacement « A ou B » de race devient une rangée de choix qui porte SA structure, jamais un texte re-parsé (#1988)', () => {
+    const picks = species.flatMap((s) => s.talents.filter((a) => 'pick' in a).map((a) => ({ s, a })));
+    expect(picks.length, 'la donnée ne porte plus aucun `{pick}` de race : choisir un autre gisement').toBeGreaterThan(0);
+    for (const { s, a } of picks) {
+      const choix = raceTalentSection(s)!.rows.filter((r) => r.t === 'choice');
+      expect(choix.map((r) => r.t === 'choice' && r.advancement), s.id).toContainEqual(a);
+    }
   });
 
   it('la fiche d’une Table de Corruption rend le tirage d100 → Mutation (cross-réf + badge de plage)', () => {

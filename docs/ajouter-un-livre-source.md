@@ -729,7 +729,7 @@ stock et rougit la garde — c'est ainsi qu'un geste non canonique se voit.
    un titre supprimé, scindé ou d'appariement incertain, ou une entrée sans section porteuse, est
    RAPPORTÉE et BLOQUE l'écriture (sortie en échec) jusqu'à son tri à la main. Un titre rapporté
    qu'aucune entrée ne keye est listé « aucun stock keyé » et ne bloque pas.
-3. `npx vitest run src/data/prose-resolution.test.ts` — la garde de re-résolution liste **exactement**
+3. `npm test -- src/data/prose-resolution.test.ts` — la garde de re-résolution liste **exactement**
    les entrées dont l'adresse ne rend plus son texte, avec le code de la rupture
    (`bornes-hors-limites`, `empreinte-divergente`, `ligne-introuvable`…). C'est l'inventaire des
    consommateurs impactés : ni plus, ni moins.
@@ -816,7 +816,7 @@ sert d'arbitre — jamais comme source de la donnée affichée, qui reste recoll
   toute extension de `src/engine`/`src/data` qui cite le nouveau livre.
 - `node scripts/raw/reanchor.mjs` (+ `--apply`, one-shot `--remap` avant commit de la Source) —
   citations verbatim de l'Atlas alignées sur la Source courante.
-- `npx vitest run src/data/no-html-in-prose.test.ts` — aucune description collée en HTML. Son prédicat
+- `npm test -- src/data/no-html-in-prose.test.ts` — aucune description collée en HTML. Son prédicat
   `HTML_TAG` vit dans `src/data/source/normalize.ts` et sert AUSSI au volet E de
   `src/data/prose-resolution.test.ts` : la prose **adressée** ne rend pas plus de HTML que la prose
   copiée — un `<br>` resté dans une cellule du `Source/` ne peut donc pas atteindre le joueur.
