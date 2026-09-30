@@ -11,9 +11,10 @@
 // foyer (`{ ...FORMULE_DE_CHEBYSHEV, foyer: 'src/engine/grid.ts' }`) :
 //  - les constructions génériques `FORMULE_DE_CHEBYSHEV`, `ECHAPPEUR_DE_LITTERAL`,
 //    `CONSTRUCTION_DE_PROGRAMME`, `ECRITURE_DE_STOCK_JSON` et `CONSTRUCTION_DE_TABLE_TOTALE` ;
-//  - deux fabriques : `recopieDeCanon` (un canon, ses membres, six formes de recopie, paramètres
-//    `complet` et `formes`, la forme `membres de type` lisant un type littéral comme une `interface`)
-//    et `cleEnLigne` (la clé d'un site de stock écrite en ligne) ;
+//  - trois fabriques : `recopieDeCanon` (un canon, ses membres, six formes de recopie, paramètres
+//    `complet` et `formes`, la forme `membres de type` lisant un type littéral comme une `interface`),
+//    `cleEnLigne` (la clé d'un site de stock écrite en ligne) et `comparaisonDAppel` (le rendu d'une
+//    fonction déclarée comparé en ligne) ;
 //  - `estAppelDeclare`, la reconnaissance d'un appel à une fonction déclarée par son module, sur la
 //    liaison `origineImportee` et la table `tableDesExports` ;
 //  - `estTableTotale`, la reconnaissance d'une table totale déclarée, que lit aussi
@@ -557,6 +558,44 @@ export function cleEnLigne({ nom, champsDeGroupe, occurrence, separateur, separa
       if (texte == null) return null;
       const lues = regles.filter(([, rx]) => rx.test(texte)).map(([regle]) => regle);
       return lues.length ? `${nom} : ${lues.join(', ')} ${JSON.stringify(texte)}` : null;
+    },
+  };
+}
+
+/** Méthodes de chaîne qui COMPARENT leur récepteur à leur premier argument. */
+const METHODES_DE_COMPARAISON = new Set(['includes', 'startsWith', 'endsWith', 'indexOf']);
+
+/**
+ * Mécanique de la COMPARAISON EN LIGNE du rendu d'une fonction déclarée, construction réservée : une
+ * égalité (`===`, `!==`, `==`, `!=`) dont un opérande, ou un appel `.includes`/`.startsWith`/
+ * `.endsWith`/`.indexOf` dont le récepteur ou le premier argument, est un appel à l'une des `fonctions`
+ * (`estAppelDeclare` : liaison importée de son module déclaré, parenthèses et casts traversés). La
+ * déclaration y joint le foyer où la comparaison est définie.
+ * Angle mort : le rendu lié à un nom avant la comparaison (`const a = f(x); a === b`), et tout rendu
+ * reçu par une liaison locale ou un paramètre — la reconnaissance ne suit aucun flot.
+ * @param {{ nom: string, fonctions: Readonly<Record<string, readonly string[]>> }} p
+ * @returns {{ nom: string, indice: (texte: string) => boolean, reconnait: (noeud: ts.Node, sf: ts.SourceFile) => string | null }}
+ */
+export function comparaisonDAppel({ nom, fonctions }) {
+  const noms = Object.values(fonctions).flat();
+  /** @param {ts.Expression | undefined} e @param {ts.SourceFile} sf @returns {string | null} */
+  const appele = (e, sf) => {
+    const x = e && sansEnveloppe(e);
+    return x && ts.isCallExpression(x) ? estAppelDeclare(x, sf, fonctions) : null;
+  };
+  return {
+    nom,
+    indice: (texte) => noms.some((f) => texte.includes(f)),
+    reconnait: (n, sf) => {
+      if (ts.isBinaryExpression(n) && EGALITES.has(n.operatorToken.kind)) {
+        const f = appele(n.left, sf) ?? appele(n.right, sf);
+        return f ? `${nom} : \`${f}(…)\` comparé par \`${n.operatorToken.getText(sf)}\`` : null;
+      }
+      if (!ts.isCallExpression(n) || !ts.isPropertyAccessExpression(n.expression)) return null;
+      const methode = n.expression.name.text;
+      if (!METHODES_DE_COMPARAISON.has(methode)) return null;
+      const f = appele(n.expression.expression, sf) ?? appele(n.arguments[0], sf);
+      return f ? `${nom} : \`${f}(…)\` comparé par \`.${methode}\`` : null;
     },
   };
 }
