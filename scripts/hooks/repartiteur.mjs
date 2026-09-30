@@ -7,7 +7,7 @@ import '../node-requis.mjs'
 import { appendFileSync, mkdirSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { lireStdinBorne } from '../guards/lib/stdinBorne.mjs'
-import { decisionCumulee } from '../guards/lib/contratGarde.mjs'
+import { decisionCumulee, outilCouvert } from '../guards/lib/contratGarde.mjs'
 import { sousRacineNpm } from '../guards/lib/racineNpm.mjs'
 import { cibleDeLaCommande } from './solde-ticket-guard.mjs'
 
@@ -50,16 +50,14 @@ export async function evaluerGardes(gardes, entree, contexte) {
   return verdicts
 }
 
-/** Les contextes d'une MÊME garde, joints sans répéter une ligne non vide qu'un contexte précédent a
- *  déjà dite (un lot `ops` qui vise deux fois le même fichier). */
+/** Les contextes des verdicts, sans répéter un contexte ENTIER qu'une même garde a déjà rendu (un lot
+ *  `ops` qui vise deux fois le même fichier). */
 function contextesDe(verdicts) {
-  const vues = new Map()
-  return verdicts.filter((v) => v.contexte).map((v) => {
-    const dites = vues.get(v.garde) ?? vues.set(v.garde, new Set()).get(v.garde)
-    const lignes = String(v.contexte).split('\n').filter((l) => !l.trim() || !dites.has(l))
-    for (const l of lignes) dites.add(l)
-    return lignes.some((l) => l.trim()) ? lignes.join('\n') : ''
-  }).filter(Boolean)
+  const vus = new Set()
+  return verdicts.filter((v) => v.contexte).filter((v) => {
+    const cle = `${v.garde}\u0000${v.contexte}`
+    return !vus.has(cle) && vus.add(cle)
+  }).map((v) => v.contexte)
 }
 
 /** Le cumul des verdicts : la décision (`decisionCumulee`), les contextes concaténés (`contextesDe`),
@@ -95,7 +93,7 @@ export async function repartir(registre, brut, { env = process.env, cwd = proces
     return { sortie: null, traces: [] }
   }
   const evenement = entree?.hook_event_name
-  const gardes = (registre[evenement] ?? []).filter((g) => g.outils.includes(entree?.tool_name))
+  const gardes = (registre[evenement] ?? []).filter((g) => outilCouvert(g.outils, entree?.tool_name))
   if (gardes.length === 0) return { sortie: null, traces: [] }
   let cumul
   try {

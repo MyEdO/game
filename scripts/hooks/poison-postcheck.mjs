@@ -10,7 +10,8 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { contexteDeLaGarde, corpusDeLaGarde, estDansLeCorpus, scanLabelLogicFichier } from '../guards/lib/labelLogic.mjs';
-import { OUTILS_ECRITURE, ecrituresDe, texteNeuf, texteRemplace } from '../guards/lib/contratGarde.mjs';
+import { OUTILS_ECRITURE, ecrituresDe, texteAvant, texteNeuf } from '../guards/lib/contratGarde.mjs';
+import { INDEX, depotDe, lireEnLot } from '../guards/lib/gitPorte.mjs';
 import { cheminDEcriture } from './solde-ticket-guard.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -73,11 +74,24 @@ async function voletPoison(rel, reel) {
   return [...lines, ...rappelBaseline];
 }
 
-/** Les pointeurs nus que l'écriture AJOUTE à une note suivie (volet 2). */
-function voletPointeurs(rel, ecrit) {
+/** Le fichier tel que l'INDEX le porte (`''` hors dépôt, absent, ou git indisponible) : en PostToolUse
+ *  le disque porte déjà l'écriture, l'index porte l'avant. */
+function texteDeLIndex(chemin) {
+  if (chemin.racine === null) return '';
+  try {
+    return lireEnLot(depotDe(chemin.racine, { enPanne: () => {} }), INDEX, [chemin.relatif]).get(chemin.relatif) ?? '';
+  } catch {
+    return '';
+  }
+}
+
+/** Les pointeurs nus que l'écriture AJOUTE à une note suivie (volet 2), jugée contre son texte AVANT
+ *  (`texteAvant`, sur l'index). */
+function voletPointeurs(chemin, ecrit) {
+  const rel = chemin.relatif;
   if (!NOTE_SUIVIE.test(rel)) return [];
   const neuf = texteNeuf(ecrit);
-  const ancien = new Set(String(texteRemplace(ecrit) ?? '').split(/\r?\n/).map((l) => l.trim()));
+  const ancien = new Set(String(texteAvant(ecrit, () => texteDeLIndex(chemin))).split(/\r?\n/).map((l) => l.trim()));
   const nues = typeof neuf === 'string'
     ? neuf.split(/\r?\n/).filter((l) => !ancien.has(l.trim()) && POINTEUR_NU.test(l) && !PORTE_UN_TITRE.test(l))
     : [];
@@ -99,7 +113,7 @@ async function trouvailles(ecrit) {
   // à la sortie, pour que le spawn git ne se paie que si un volet a trouvé quelque chose.
   const chemin = cheminDEcriture(ecrit, { base: root });
   if (chemin === null) return null;
-  const sortie = [...await voletPoison(chemin.relatif, chemin.reel), ...voletPointeurs(chemin.relatif, ecrit)];
+  const sortie = [...await voletPoison(chemin.relatif, chemin.reel), ...voletPointeurs(chemin, ecrit)];
   return sortie.length && !chemin.horsContenu ? { contexte: sortie.join('\n') } : null;
 }
 

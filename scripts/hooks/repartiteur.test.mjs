@@ -16,7 +16,7 @@ import { garde as commandePiege } from './commande-piege-guard.mjs'
 import { garde as runnerCapture } from './runner-capture-guard.mjs'
 import { garde as codeurGates } from './codeur-gates-guard.mjs'
 import { garde as issueLabel } from './issue-label-guard.mjs'
-import { ENTREES_OUTIL, SURFACE_CLAUDE, SURFACE_CODEX, aplatirHooks } from '../agents/compat-core.mjs'
+import { ENTREES_OUTIL, SURFACE_CLAUDE, SURFACE_CODEX, aplatirHooks, compilerMatcher } from '../agents/compat-core.mjs'
 import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 
 const HOOKS = fileURLToPath(new URL('.', import.meta.url))
@@ -167,9 +167,23 @@ test('câblage : le matcher déclaré de chaque point d’entrée couvre les `ou
     const declares = aplatirHooks(JSON.parse(readFileSync(join(REPO, surface), 'utf8')), surface)
     for (const { script } of ENTREES_OUTIL) {
       for (const [phase, gardes] of Object.entries(registres.get(script))) {
-        const matcher = declares.find((h) => h.script === script && h.phase === phase)?.matcher.split('|') ?? []
-        for (const g of gardes) for (const outil of g.outils) assert.ok(matcher.includes(outil), `${surface} ${phase} ${script} : ${g.nom} / ${outil}`)
+        const declare = declares.find((h) => h.script === script && h.phase === phase)
+        assert.ok(declare, `${surface} ${phase} ${script} : aucun hook`)
+        const couvre = compilerMatcher(declare.matcher, surface)
+        for (const g of gardes) for (const outil of g.outils) {
+          const exemple = outil.endsWith('.*') ? `${outil.slice(0, -2)}ctx_outil_inconnu` : outil
+          assert.ok(couvre(exemple), `${surface} ${phase} ${script} : ${g.nom} / ${outil}`)
+        }
       }
     }
   }
+})
+
+test('cumuler : un contexte ENTIER déjà rendu par la même garde ne se répète pas ; une ligne commune à deux contextes distincts survit', async () => {
+  const { cumuler } = await import('./repartiteur.mjs')
+  const a = 'POINTEUR DÉRÉFÉRENCÉ (1 ligne(s) écrite(s) dans .claude/memory/a.md) : recoller le TITRE.\n  voir #1234'
+  const b = 'POINTEUR DÉRÉFÉRENCÉ (1 ligne(s) écrite(s) dans .claude/memory/b.md) : recoller le TITRE.\n  voir #1234'
+  assert.equal(cumuler([{ garde: 'poison-postcheck', contexte: a }, { garde: 'poison-postcheck', contexte: b }]).contexte, `${a}\n\n${b}`)
+  assert.equal(cumuler([{ garde: 'data-edit', contexte: a }, { garde: 'data-edit', contexte: a }]).contexte, a)
+  assert.equal(cumuler([{ garde: 'data-edit', contexte: a }, { garde: 'poison-postcheck', contexte: a }]).contexte, `${a}\n\n${a}`, 'deux gardes, deux contextes')
 })

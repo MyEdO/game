@@ -18,7 +18,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
-import { ENTREES_OUTIL, SURFACE_CLAUDE, SURFACE_CODEX, aplatirHooks } from '../agents/compat-core.mjs'
+import { ENTREES_OUTIL, MOTEUR_DE_SURFACE, SURFACE_CLAUDE, SURFACE_CODEX, aplatirHooks, compilerMatcher } from '../agents/compat-core.mjs'
 import { lancerHook } from '../guards/lib/lancerHook.mjs'
 import { REGISTRE } from './registre.mjs'
 import { REGISTRE_SOLDE } from './solde-ticket-hook.mjs'
@@ -26,7 +26,7 @@ import { garde as commandePiege } from './commande-piege-guard.mjs'
 import { garde as solde } from './solde-ticket-guard.mjs'
 import { garde as issueLabel } from './issue-label-guard.mjs'
 import { garde as runnerCapture } from './runner-capture-guard.mjs'
-import { OUTILS_CREATION, OUTILS_ECRITURE, OUTILS_ECRITURE_REFUSES, PASSERELLE } from '../guards/lib/contratGarde.mjs'
+import { FAMILLES_LEAN_CTX, LECTURE, OUTILS_CREATION, OUTILS_ECRITURE, OUTILS_SHELL, matcherDOutils } from '../guards/lib/contratGarde.mjs'
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 // Les DEUX surfaces d'agents, déclarées par `agents:sync` depuis les registres
@@ -48,15 +48,20 @@ const REGISTRES = await Promise.all(ENTREES_OUTIL.map(async ({ script, module, e
 const GARDES_ECRITURE = REGISTRES.flatMap(([registre, script]) => Object.entries(registre).flatMap(([phase, gardes]) =>
   gardes.filter((g) => g.outils.some((o) => OUTILS_ECRITURE.includes(o))).map((g) => [g, script, phase])))
 
-/** Canaux dont le `tool_input` porte un champ `command` — donc gardables par les scripts actuels.
- *  Liste NOMINATIVE : tout canal ajouté aux `outils` d'une garde de commande hors de cette liste est
- *  un silence, pas une garde (cf. en-tête sur `ctx_execute`). */
-const CANAUX_GARDABLES = ['Bash', 'PowerShell', 'mcp__lean-ctx__ctx_shell']
+/** Canaux dont le `tool_input` porte un champ `command` — donc gardables par les scripts actuels : la
+ *  famille SHELL de la déclaration (`OUTILS_SHELL`). Tout canal ajouté aux `outils` d'une garde de
+ *  commande hors de cette famille est un silence, pas une garde. */
+const CANAUX_GARDABLES = OUTILS_SHELL
 const CANAUX_REQUIS = CANAUX_GARDABLES
 
 /** Le matcher de l'événement `phase` que `surface` déclare pour le point d'entrée `script`. */
 const matcherDe = (surface, script, phase = 'PreToolUse') =>
   hooksDe(surface).find((h) => h.phase === phase && h.script === script)?.matcher ?? null
+/** Ce matcher couvre-t-il `outil`, lu par le moteur de `surface` (`compilerMatcher`) ? */
+const couvre = (surface, script, outil, phase = 'PreToolUse') => {
+  const matcher = matcherDe(surface, script, phase)
+  return matcher !== null && compilerMatcher(matcher, surface)(outil)
+}
 
 test('les gardes de commande sont au registre PreToolUse de leur point d’entrée, câblé sur les DEUX surfaces', () => {
   for (const [garde, script, registre] of GARDES_COMMANDE) {
@@ -71,7 +76,7 @@ test('chaque garde de commande couvre TOUS les canaux shell, ctx_shell compris, 
       assert.ok(garde.outils.includes(canal), `${garde.nom} ne garde pas le canal « ${canal} »`)
       for (const surface of SURFACES) {
         assert.ok(
-          matcherDe(surface, script).split('|').includes(canal),
+          couvre(surface, script, canal),
           `matcher de ${script} (${surface}) ne couvre pas le canal « ${canal} » — une commande git partie par ce canal échapperait à la garde`,
         )
       }
@@ -106,27 +111,39 @@ test('chaque garde d’écriture du registre couvre une FAMILLE entière de cana
       'une écriture partie par le canal manquant échapperait à la garde',
     )
     for (const surface of SURFACES) {
-      const matcher = matcherDe(surface, script, phase)?.split('|') ?? []
-      for (const canal of canaux) assert.ok(matcher.includes(canal), `matcher ${phase} de ${script} (${surface}) ne couvre pas « ${canal} »`)
+      for (const canal of canaux) assert.ok(couvre(surface, script, canal, phase), `matcher ${phase} de ${script} (${surface}) ne couvre pas « ${canal} »`)
     }
   }
 })
 
-test('les canaux d’écriture REFUSÉS et la passerelle sont au matcher PreToolUse d’une garde, sur les DEUX surfaces (sinon le refus ne part jamais)', () => {
-  for (const canal of [...OUTILS_ECRITURE_REFUSES, PASSERELLE]) {
-    const porteurs = REGISTRES.filter(([registre]) => (registre.PreToolUse ?? []).some((g) => g.outils.includes(canal)))
-    assert.ok(porteurs.length > 0, `aucune garde PreToolUse ne déclare « ${canal} »`)
-    for (const [, script] of porteurs)
-      for (const surface of SURFACES) assert.ok(matcherDe(surface, script)?.split('|').includes(canal), `matcher de ${script} (${surface}) ne couvre pas « ${canal} »`)
+const LECTURES = Object.keys(FAMILLES_LEAN_CTX).filter((nu) => FAMILLES_LEAN_CTX[nu] === LECTURE).map((nu) => `mcp__lean-ctx__${nu}`)
+const HORS_LECTURE = ['ctx_execute', 'ctx_edit', 'ctx_patch', 'shell', 'ctx_shell', 'ctx_call', 'outil_inconnu', 'ctx_outil_inconnu'].map((nu) => `mcp__lean-ctx__${nu}`)
+
+test('le matcher PreToolUse du répartiteur couvre TOUT outil lean-ctx HORS LECTURE, classé ou non, sur les DEUX surfaces (sinon un refus ne part jamais)', () => {
+  for (const surface of SURFACES)
+    for (const outil of HORS_LECTURE) assert.ok(couvre(surface, 'repartiteur.mjs', outil), `matcher PreToolUse du répartiteur (${surface}) ne couvre pas « ${outil} »`)
+})
+
+test('un outil LECTURE ne lance PAS le répartiteur là où le moteur de la surface sait l’exclure (lookaround)', () => {
+  const surfaces = SURFACES.filter((s) => MOTEUR_DE_SURFACE[s].lookaround)
+  assert.ok(surfaces.length > 0, 'aucune surface ne sait exclure la LECTURE')
+  for (const surface of surfaces)
+    for (const outil of LECTURES) assert.equal(couvre(surface, 'repartiteur.mjs', outil), false, `${surface} : « ${outil} » (LECTURE) lance le répartiteur`)
+})
+
+test('le matcher ANCRÉ du répartiteur ne prend pas `NotebookEdit` pour `Edit`, sur les DEUX surfaces', () => {
+  for (const surface of SURFACES) {
+    assert.ok(couvre(surface, 'repartiteur.mjs', 'Edit'), surface)
+    assert.equal(couvre(surface, 'repartiteur.mjs', 'NotebookEdit'), false, surface)
   }
 })
 
-test('les matchers des points d’entrée sont IDENTIQUES entre .claude et .codex', () => {
+test('les matchers des points d’entrée couvrent les MÊMES outils sur .claude et .codex, hors la LECTURE que seul Claude sait exclure', () => {
+  const echantillon = ['Write', 'Edit', 'Bash', 'PowerShell', 'NotebookEdit', 'Read', ...HORS_LECTURE]
   const points = [...GARDES_COMMANDE.map(([, script]) => [script, 'PreToolUse']), ...GARDES_ECRITURE.map(([, script, phase]) => [script, phase])]
-  for (const [script, phase] of points) {
-    const [claude, codex] = SURFACES.map((s) => matcherDe(s, script, phase))
-    assert.equal(codex, claude, `matchers divergents pour ${script} entre .claude/settings.json et .codex/hooks.json`)
-  }
+  for (const [script, phase] of points)
+    for (const outil of echantillon)
+      assert.equal(couvre(SURFACE_CODEX, script, outil, phase), couvre(SURFACE_CLAUDE, script, outil, phase), `${script} ${phase} : « ${outil} » diverge entre les surfaces`)
 })
 
 // Un matcher est une REGEX à alternance : un segment inconnu inséré devant les autres (préfixe
@@ -146,9 +163,19 @@ function tousLesMatchers(surface) {
   return hooksDe(surface).filter((h) => h.matcher !== '').map((h) => ({ phase: h.phase, matcher: h.matcher, scripts: h.command }))
 }
 
-test('tout segment de matcher est un NOM D’OUTIL réel — pas de désactivation par préfixe magique (#1053)', () => {
+/** Les matchers REGEX que les registres dérivent pour `surface` (`matcherDOutils`) : les seuls admis. */
+const regexDerivees = (surface) => new Set(REGISTRES.flatMap(([registre]) => Object.values(registre)
+  .map((gardes) => matcherDOutils([...new Set(gardes.flatMap((g) => g.outils))], MOTEUR_DE_SURFACE[surface]))
+  .filter((m) => m.startsWith('^'))))
+
+test('tout segment de matcher est un NOM D’OUTIL réel, et toute regex est DÉRIVÉE de la table — pas de désactivation par préfixe magique (#1053)', () => {
   for (const surface of SURFACES) {
+    const derivees = regexDerivees(surface)
     for (const { phase, matcher, scripts } of tousLesMatchers(surface)) {
+      if (matcher.startsWith('^')) {
+        assert.ok(derivees.has(matcher), `${surface} (${phase}) : regex "${matcher}" non dérivée des registres (${scripts})`)
+        continue
+      }
       for (const segment of matcher.split('|')) {
         assert.ok(
           OUTILS_CONNUS.includes(segment) || MCP_TOOL.test(segment),
@@ -162,12 +189,16 @@ test('tout segment de matcher est un NOM D’OUTIL réel — pas de désactivati
 })
 
 test('cas plantés : le préfixe magique et le texte libre sont refusés, mcp__* et outils passent', () => {
-  const valide = (m) => m.split('|').every((s) => OUTILS_CONNUS.includes(s) || MCP_TOOL.test(s))
+  const derivees = regexDerivees(SURFACE_CLAUDE)
+  const valide = (m) => (m.startsWith('^') ? derivees.has(m) : m.split('|').every((s) => OUTILS_CONNUS.includes(s) || MCP_TOOL.test(s)))
   assert.equal(valide('DESACTIVE-TEMPORAIREMENT-2026-07-14-absence-user__Write|Edit'), false)
   assert.equal(valide('OFF_Write|Edit'), false)
   assert.equal(valide('Write|Edit|Coucou'), false)
   assert.equal(valide('Write|Edit'), true)
   assert.equal(valide('Bash|PowerShell|mcp__lean-ctx__ctx_shell'), true)
+  assert.equal(valide(matcherDe(SURFACE_CLAUDE, 'repartiteur.mjs')), true, 'la regex dérivée')
+  assert.equal(valide('^(?:DESACTIVE|Write)$'), false, 'une regex posée à la main')
+  assert.equal(valide('Write|mcp__autre__.*'), false, 'un motif non déclaré')
 })
 
 /** Lance le point d'entrée RÉEL avec le payload que `mcp__lean-ctx__ctx_shell` produit, et rend sa

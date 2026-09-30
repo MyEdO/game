@@ -146,7 +146,7 @@ test('les hooks ATTENDUS dérivent des registres : un par point d’entrée et p
     { phase: 'PreToolUse', matcher: 'Bash', script: 'solde-ticket-hook.mjs', timeout: 10 },
     { phase: 'PostToolUse', matcher: 'Write', script: 'repartiteur.mjs', timeout: 10 },
   ]);
-  assert.deepEqual(outil(codex), outil(claude), 'les deux surfaces dérivent de la même source');
+  assert.deepEqual(outil(codex), outil(claude).map((h) => ({ ...h, matcher: `^(?:${h.matcher})$` })), 'la même source, ANCRÉE pour le moteur regex de Codex (`MOTEUR_DE_SURFACE`)');
   assert.ok(codex.every((h) => h.command.startsWith('node scripts/hooks/') && h.args === undefined));
 });
 

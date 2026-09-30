@@ -193,3 +193,21 @@ test('DRIVER : ctx_patch (canal prescrit) est jugé comme Edit, op seule comme l
   assert.equal(patch({ op: 'insert_after', path: note, line: 1, new_text: ligne }), edit)
   assert.equal(patch({ ops: [{ op: 'insert_after', path: note, line: 1, new_text: ligne }] }), edit)
 })
+
+test('DRIVER : une op ANCRÉE se juge contre l’INDEX — une ligne à pointeur réécrite telle quelle se tait, une ligne neuve est signalée', () => {
+  const ligne = '- reste à traiter #1591 après la vague'
+  const rel = ['docs', 'plans', 'note.md']
+  const { racine } = instanceDeDepot({ fichiers: { [rel.join('/')]: `titre\n${ligne}\n` } })
+  try {
+    const note = join(racine, ...rel)
+    const patch = (tool_input) => {
+      const run = lancerHook('repartiteur.mjs', ecriture(tool_input, 'mcp__lean-ctx__ctx_patch', 'PostToolUse'))
+      assert.equal(run.code, 0, run.err)
+      return run.specifique?.additionalContext ?? ''
+    }
+    assert.equal(patch({ op: 'set_line', path: note, line: 2, hash: '00', new_text: ligne }), '')
+    assert.match(patch({ op: 'set_line', path: note, line: 1, hash: '00', new_text: 'voir #1777' }), /POINTEUR DÉRÉFÉRENCÉ/)
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
+})

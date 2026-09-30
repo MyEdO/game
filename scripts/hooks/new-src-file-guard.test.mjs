@@ -28,7 +28,7 @@ function lanceAvec(tool_input, env = {}) {
   const r = lancerHook('repartiteur.mjs', ecriture(tool_input, tool_input.op ? 'mcp__lean-ctx__ctx_patch' : 'Write'), { env: { ...process.env, ...env } })
   return { ...r, decision: r.specifique?.permissionDecision, raison: r.specifique?.permissionDecisionReason ?? '', contexte: r.specifique?.additionalContext }
 }
-const lance = (file_path, env = {}) => lanceAvec({ file_path }, env)
+const lance = (file_path, env = {}) => lanceAvec({ file_path, content: 'export {}\n' }, env)
 
 /** Joue `fn` sur une COPIE du registre, posée sous `os.tmpdir()` et portant une entrée de plus.
  *  Le fichier committé `scripts/hooks/ecrans-ui.json` n'est jamais touché : le muter puis le remettre

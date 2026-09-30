@@ -128,7 +128,7 @@ test('DRIVER : ctx_patch (old_text/new_text, find/replace, lot `ops`) avertit co
     assert.ok(edit.includes(AVERTISSEMENT), edit)
     assert.equal(contexte({ op: 'replace_unique', path: cible, old_text: TABLE, new_text: AJOUT }), edit)
     assert.equal(contexte({ op: 'replace_all', path: cible, find: TABLE, replace: AJOUT }), edit)
-    assert.equal(contexte({ ops: [{ op: 'replace_unique', path: cible, old_text: TABLE, new_text: AJOUT }] }), edit)
+    assert.equal(contexte({ ops: [{ op: 'set_line', path: cible, line: 1, hash: '00', new_text: AJOUT.trimEnd() }, { op: 'set_line', path: cible, line: 1, hash: '00', new_text: AJOUT.trimEnd() }] }), edit)
     assert.equal(contexte({ op: 'create', path: join(racine, 'neuf-guard.mjs'), new_text: AJOUT }), '', 'création : silence')
   } finally {
     rmSync(racine, { recursive: true, force: true })

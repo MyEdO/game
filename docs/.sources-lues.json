@@ -10048,6 +10048,7 @@
       "scripts/gates/toutes.mjs",
       "scripts/gates/workflowsDuDepot.mjs",
       "scripts/git-hooks/pre-push.mjs",
+      "scripts/guards/lib/contratGarde.mjs",
       "scripts/guards/lib/enteteArbre.mjs",
       "scripts/guards/lib/gitPorte.mjs",
       "scripts/guards/lib/lister.mjs",
