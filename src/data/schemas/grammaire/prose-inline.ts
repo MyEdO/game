@@ -81,7 +81,7 @@ export const PROSE_INLINE_TOLEREE: Readonly<Record<string, LigneProseInline>> = 
   characteristics: { entrees: 21, lot: LOT, date: DATE, motif: 'prose du livre recopiée en `desc` d’entrée (19) et de rangée (2 : `[].options[]`), à adresser au Lot C' },
   etats: { entrees: 21, lot: LOT, date: DATE, motif: 'prose du livre recopiée en `desc` d’entrée, à adresser au Lot C' },
   'land-cargo': { entrees: 20, lot: LOT, date: DATE, motif: 'prose du livre recopiée en `desc` de rangée (`rumours[]`) — refus au parse à la migration de la famille, Lot C' },
-  structures: { entrees: 19, lot: LOT, date: DATE, motif: 'prose du livre recopiée en `desc` d’entrée, à adresser au Lot C' },
+  structures: { entrees: 11, lot: LOT, date: DATE, motif: 'prose du livre recopiée en `desc` d’entrée, à adresser au Lot C' },
   maladies: { entrees: 18, lot: LOT, date: DATE, motif: 'prose du livre recopiée en `desc` d’entrée, à adresser au Lot C' },
   symptoms: { entrees: 18, lot: LOT, date: DATE, motif: 'prose du livre recopiée en `desc` d’entrée, à adresser au Lot C' },
   'sea-navigation': { entrees: 15, lot: LOT, date: DATE, motif: 'prose du livre recopiée en `desc` de rangée (`orientation.changementDeCap[]`, `orientation.reperes[]`) — refus au parse à la migration de la famille, Lot C' },

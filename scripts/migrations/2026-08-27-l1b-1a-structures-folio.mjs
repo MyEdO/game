@@ -78,8 +78,11 @@ const data = JSON.parse(brut);
 
 // ── Confrontation de la TABLE au contenu réel du fichier ─────────────────────────────────────────
 const idsFichier = data.map((e) => e.id);
+// Une ligne de table dont l'entrée a QUITTÉ le dataset (les Véhicules d'AA 10 l.30-39, #1883) n'a rien à
+// migrer : la table n'exige ses ids que tant qu'une entrée est encore au chapitre.
+const auChapitre = data.some((e) => typeof e.source?.page !== 'number');
 for (const id of Object.keys(FOLIOS)) {
-  if (!idsFichier.includes(id)) echecs.push(`${id} : id de la table ABSENT de structures.json`);
+  if (auChapitre && !idsFichier.includes(id)) echecs.push(`${id} : id de la table ABSENT de structures.json`);
 }
 // Une entrée NÉE au folio (`{book, page}`, postérieure à la migration) n'a rien à migrer : seule une
 // entrée encore au chapitre exige sa ligne de table.

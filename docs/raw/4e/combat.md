@@ -444,7 +444,7 @@ Enfoncer une porte (ou fenêtre…) se résout par un **Test de Corps à corps (
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 13` (l.4, l.113-118, l.122-129, l.132-147, l.150-153, l.156-163, l.166-167, l.170-171, l.174-175) → `localisation`, `useDefenseJetProps`, `AuContactModal`, `GrappleModal`, `engage`, `secondsPerRound`, `useHoverTargeting`, `hitLocation`, `markAttacked`, `FLOW_VERBS`, +44 — `src/data/actions.json`, `src/data/localisation.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/actions.ts`, `src/data/schemas/defs/localisation.ts`, +27 fichiers
-- `LDB 14` (l.37-53, l.65-115, l.118-131, l.134-135) → `vous-vous-blessez-en-attaquant-perdez-1-blessure-ignore-be-pa`, `COVER_MOD`, `SceneCombatMods`, `OupsMisfireEntry`, `arme-abimee-1-degat-vous-agirez-en-dernier-au-prochain-round`, `decorCover`, `woundsFromHit`, `fr`, `SANS_LIVRE`, `scatter`, +97 — `src/data/actions.json`, `src/data/grapple.json`, `src/data/oups.json`, `src/data/oups.ts`, `src/data/props.json`, `src/data/regles.json`, +40 fichiers
+- `LDB 14` (l.37-53, l.65-115, l.118-131, l.134-135) → `vous-vous-blessez-en-attaquant-perdez-1-blessure-ignore-be-pa`, `COVER_MOD`, `SceneCombatMods`, `OupsMisfireEntry`, `arme-abimee-1-degat-vous-agirez-en-dernier-au-prochain-round`, `decorCover`, `woundsFromHit`, `fr`, `SANS_LIVRE`, `doc`, +97 — `src/data/actions.json`, `src/data/grapple.json`, `src/data/oups.json`, `src/data/oups.ts`, `src/data/props.json`, `src/data/regles.json`, +40 fichiers
 - `LDB 16` (l.15-17) → `effectiveChar`, `addCondition`, `addClockCondition`, `defenseValueMods`, `etatTestMods`, `PoolCandidate`, `dropWorst`, `poolWinner`, `GameOp`, `FREE_ATTACK_LABEL`, +10 — `src/data/index.ts`, `src/engine/characteristics.ts`, `src/engine/combat.ts`, `src/engine/conditions.ts`, `src/engine/ops.ts`, `src/engine/trauma.ts`, +2 fichiers
 - `EDO 11` (l.86-101) → `delire`, `fievre-cerebrale-pourpre` — `src/data/maladies.json`, `src/data/symptoms.json`
 
@@ -1089,7 +1089,7 @@ Règle optionnelle pour le tir sur une cible déjà _Engagée_ avec un (ou des) 
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 13` (l.117-118) → `localisation`, `useDefenseJetProps`, `AuContactModal`, `GrappleModal`, `useHoverTargeting`, `entityBlockedAt`, `toucheSauvee`, `useAttackJetProps`, `DisengageModal`, `cleFeuilleRamassee`, +22 — `src/data/actions.json`, `src/data/localisation.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/engine/combat.ts`, `src/gameIso/stage/useHoverTargeting.ts`, +15 fichiers
-- `LDB 14` (l.57-115, l.118-131, l.133-138, l.139-140) → `COVER_MOD`, `SceneCombatMods`, `decorCover`, `woundsFromHit`, `fr`, `SANS_LIVRE`, `scatter`, `sceneCombatModifiers`, `doc`, `combat-deux-armes`, +79 — `src/data/actions.json`, `src/data/grapple.json`, `src/data/props.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/scene.ts`, +37 fichiers
+- `LDB 14` (l.57-115, l.118-131, l.133-138, l.139-140) → `COVER_MOD`, `SceneCombatMods`, `decorCover`, `woundsFromHit`, `fr`, `SANS_LIVRE`, `doc`, `scatter`, `sceneCombatModifiers`, `combat-deux-armes`, +79 — `src/data/actions.json`, `src/data/grapple.json`, `src/data/props.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/scene.ts`, +37 fichiers
 - `EDO 11` (l.157-166) → `gonflement`, `chair-necrosee`, `cretin`, `pattes-chevre`, `tete-bestiale-chien`, `digere`, `tete-pointue`, `absorption`, `amorphe`, `contagieux` — `src/data/etats.json`, `src/data/mutations.json`, `src/data/symptoms.json`, `src/data/traits.json`
 - sans code : `NADJ 6` (l.148)
 
@@ -3024,7 +3024,7 @@ Profils du Tome 1 qui montrent le gabarit §1 en pratique (caractéristiques abs
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 76` (l.9-13, l.16-28, l.31-37, l.38-45) → `traitsStandard`, `SPECIES_BODY_SHAPE`, `bodyShapeForSpecies`, `bodyShapeOf`, `fr`, `BODY_SHAPE_LOC_LABELS`, `locationLabel`, `doc`, `critTableKeyFor`, `SceneEntity`, +9 — `src/data/criticals.ts`, `src/data/index.ts`, `src/data/schemas/defs-scenes/scene.ts`, `src/data/schemas/defs/criticals.ts`, `src/data/schemas/defs/localisation.ts`, `src/engine/bodyForm.ts`, +7 fichiers
 - `LDB 77` (l.7-68) → `ESPECE`, `PorteurDeFiche`, `ChoixDeProfil`, `doc`, `humain`, `pnjAuProfil`, `TavernGameModal`, `TavernOpponent`, `nain`, `Palette`, +7 — `src/data/creatures.json`, `src/data/index.ts`, `src/data/schemas/defs/species.ts`, `src/engine/statblock.ts`, `src/scenes/test-scenarios/taverne-profil-standard.ts`, `src/state/sceneNpc.ts`, +4 fichiers
-- `LDB 85` (l.9-447) → `TraitDef`, `scene`, `a-distance`, `arme`, `planClimb`, `a-sang-froid`, `morsure`, `doc`, `affame`, `scenario`, +230 — `src/data/index.ts`, `src/data/maneuvers.json`, `src/data/qualities.json`, `src/data/regles.json`, `src/data/schemas/defs/structures.ts`, `src/data/schemas/defs/traits.ts`, +43 fichiers
+- `LDB 85` (l.9-447) → `TraitDef`, `scene`, `a-distance`, `arme`, `planClimb`, `a-sang-froid`, `doc`, `morsure`, `affame`, `scenario`, +230 — `src/data/index.ts`, `src/data/maneuvers.json`, `src/data/qualities.json`, `src/data/regles.json`, `src/data/schemas/defs/structures.ts`, `src/data/schemas/defs/traits.ts`, +43 fichiers
 - `ZI 14` (l.1013-1035, l.1037-1087) → `ethere`, `fouissement` — `src/data/traits.json`
 - `MSRC 15` (l.119-128, l.133-135, l.138-163) → `placeCombatant`, `useTestJetProps`, `capriciousDR`, `effectiveMovement`, `OP_DEFS`, `PendingTest`, `PerSL`, `offTerrainOps`, `offTerrainMoveCap`, `hasNoRun`, +12 — `src/data/creatures.json`, `src/data/schemas/grammaire/mecanique.ts`, `src/data/traits.json`, `src/engine/encumbrance.ts`, `src/engine/ops.ts`, `src/engine/social.ts`, +6 fichiers
 - `EDO 11` (l.172-243) → `Formula`, `Condition`, `engagedAdvantageLead`, `gonflement`, `EffectTargeting`, `chair-necrosee`, `cretin`, `pattes-chevre`, `tete-bestiale-chien`, `digere`, +10 — `src/data/etats.json`, `src/data/mutations.json`, `src/data/symptoms.json`, `src/data/traits.json`, `src/data/trappings.json`, `src/engine/flowCore.ts`, +3 fichiers
@@ -3253,7 +3253,7 @@ La créature vomit un flot de corruption corrosive. **Pendant son tour, au prix 
 **Voir aussi** : Traits de créature (vue d'ensemble) · États (Sonné, Enflammé, Empoisonné, Brisé, Assourdi, Empêtré) · Tentacules et attaques naturelles · Zones d'effet et Lignes de vue · Avantage en combat · Le sort « Souffle » (Magie des Arcanes)
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 85` (l.137-138, l.168-169, l.289-290, l.317-331, l.442-447) → `TraitDef`, `scene`, `planClimb`, `morsure`, `doc`, `scenario`, `useTrampleJetProps`, `TraverseCapability`, `maxWounds`, `spawnMutations`, +111 — `src/data/index.ts`, `src/data/maneuvers.json`, `src/data/qualities.json`, `src/data/regles.json`, `src/data/schemas/defs/structures.ts`, `src/data/structures.json`, +25 fichiers
+- `LDB 85` (l.137-138, l.168-169, l.289-290, l.317-331, l.442-447) → `TraitDef`, `scene`, `planClimb`, `doc`, `morsure`, `scenario`, `useTrampleJetProps`, `TraverseCapability`, `maxWounds`, `spawnMutations`, +111 — `src/data/index.ts`, `src/data/maneuvers.json`, `src/data/qualities.json`, `src/data/regles.json`, `src/data/schemas/defs/structures.ts`, `src/data/structures.json`, +25 fichiers
 
 ---
 
@@ -3556,7 +3556,7 @@ La créature est **porteuse de la maladie _Type_**. **Les autres doivent faire u
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 19` (l.34-58) → `CorruptionModal`, `combat-end-corruption`, `sombre-pacte`, `EXPOSURE_LADDER`, `NATURE_INFLUENCE`, `testDeCorruption`, `MANUAL_COMBAT_INTENTS`, `physique`, `exposureLevelSchema`, `corruption-mineure`, +21 — `src/data/characteristics.json`, `src/data/combat-stakes.json`, `src/data/flow-stakes.json`, `src/data/mutationTables.json`, `src/data/regles.json`, `src/data/schemas/defs-scenes/effets.ts`, +14 fichiers
 - `LDB 21` (l.9, l.19-21, l.23-25, l.27, l.29-35, l.37-39, l.41, l.43-50, l.54-56) → `ApproachModal`, `FrenzyModal`, `hasMeaningfulOption`, `nightmare`, `PsychAffliction`, `openEncounterPsych`, `opRow`, `fearSourceFor`, `psychImmuneToFrom`, `terreur`, +59 — `src/data/combat-stakes.json`, `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/night-stakes.json`, `src/data/psychology.json`, `src/data/regles.json`, +26 fichiers
-- `LDB 85` (l.5, l.13, l.17, l.25, l.51, l.59, l.71, l.87, l.92, l.110, l.142, l.150, l.166, l.179, l.185, l.221, l.225, l.249, l.253, l.262, l.264, l.274, l.282, l.335, l.383, l.411) → `TraitDef`, `scene`, `a-distance`, `arme`, `planClimb`, `a-sang-froid`, `morsure`, `doc`, `affame`, `scenario`, +203 — `src/data/index.ts`, `src/data/maneuvers.json`, `src/data/qualities.json`, `src/data/regles.json`, `src/data/schemas/defs/structures.ts`, `src/data/schemas/defs/traits.ts`, +39 fichiers
+- `LDB 85` (l.5, l.13, l.17, l.25, l.51, l.59, l.71, l.87, l.92, l.110, l.142, l.150, l.166, l.179, l.185, l.221, l.225, l.249, l.253, l.262, l.264, l.274, l.282, l.335, l.383, l.411) → `TraitDef`, `scene`, `a-distance`, `arme`, `planClimb`, `a-sang-froid`, `doc`, `morsure`, `affame`, `scenario`, +203 — `src/data/index.ts`, `src/data/maneuvers.json`, `src/data/qualities.json`, `src/data/regles.json`, `src/data/schemas/defs/structures.ts`, `src/data/schemas/defs/traits.ts`, +39 fichiers
 
 ---
 
@@ -4657,17 +4657,17 @@ Règles d'*Aux Armes* pour attaquer/défendre des **Structures** (véhicules, em
 Une « Structure » est tout élément **trop grand et trop résistant** pour être détruit par les Tests étendus de Force du Livre de Règles (les Tests de Force conviennent pour enfoncer une porte ou réduire une chaise en miettes, pas pour une herse en fer renforcée ou une muraille de château). `AA 10 l.9-11`
 
 Profil d'une Structure (colonnes du tableau) :
-- **ENC** — points d'Encombrement qui s'appliquent quand la Structure est transportée. `AA 10 l.16`
-- **Limite d'Encombrement** — combien de points d'Encombrement la Structure peut elle-même *supporter* avant de manquer d'espace ou de plier sous le poids ; restreint la quantité d'artillerie qu'on peut y placer (le MJ juge le raisonnable : une barge transporte beaucoup d'artillerie en théorie, mais surtout stockée en cale et donc inutilisable en combat). `AA 10 l.16-19`
+- **ENC** — points d'Encombrement qui s'appliquent quand la Structure est transportée. `AA 10 l.17-19`
+- **Limite d'Encombrement** — combien de points d'Encombrement la Structure peut elle-même *supporter* avant de manquer d'espace ou de plier sous le poids ; restreint la quantité d'artillerie qu'on peut y placer (le MJ juge le raisonnable : une barge transporte beaucoup d'artillerie en théorie, mais surtout stockée en cale et donc inutilisable en combat). `AA 10 l.17-19`
 - **Endurance** — modifie les Dégâts subis (comme l'Endurance d'un Personnage). `AA 10 l.101-102`
 - **Blessures** — quantité de Dégâts encaissable. Pour les murs, le profil ne représente qu'une **bande de 5 mètres** de la Structure : sa destruction laisse la majorité du reste intact. `AA 10 l.53` `AA 10 l.102`
 - **Pénalité de Couvert** — Difficulté par défaut du tir d'un assaillant contre un Personnage à couvert dans/derrière la Structure (on présume qu'il s'en sert *activement* comme couvert : accroupi derrière les plats-bords, plongé derrière les créneaux). Ne s'applique pas si la cible subit l'État *Surpris* ou se comporte d'une manière ne lui fournissant pas de couvert ; d'autres modificateurs (portée, taille de cible) peuvent s'ajouter au gré du MJ. `AA 10 l.22-23`
 
-> Note RAW : les règles de Dégâts aux Structures pourraient servir pour les véhicules, mais le supplément recommande d'employer plutôt celles de *L'Ennemi dans l'Ombre – Compagnon* (véhicules) et de *Mort sur le Reik – Compagnon* (navires) pour leurs Dégâts dédiés. `AA 10 l.25`
+> Note RAW : les règles de Dégâts aux Structures pourraient servir pour les véhicules, mais le supplément recommande d'employer plutôt celles de *L'Ennemi dans l'Ombre – Compagnon* (véhicules) et de *Mort sur le Reik – Compagnon* (navires) pour leurs Dégâts dédiés. `AA 10 l.13-15`
 
 #### Tableau des Structures Courantes
 
-| Structure | ENC | Endurance | Blessures | Limite d'Encombrement | Pénalité de Couvert |
+| Structure | ENC | Limite d'Encombrement | Endurance | Blessures | Pénalité de Couvert |
 |---|---|---|---|---|---|
 | **VÉHICULES** | | | | | |
 | Charrette | 10 | 30 | 25 | 10 | Intermédiaire (+0) |
@@ -4693,6 +4693,13 @@ Profil d'une Structure (colonnes du tableau) :
 | Terrassement* | N/A | 60 | 50 | 30 | Complexe (−10) |
 
 \* Le profil indiqué représente une **bande de 5 mètres** de la Structure concernée. `AA 10 l.28-53`
+
+**Les lignes VÉHICULES et NAVIRES FLUVIAUX sont des Véhicules.** Leur foyer est `src/data/vehicles.json` ; leur publication AA y est un emplacement secondaire (`alsoIn`, folio recopié de la ligne, citation = la note narrative de la ligne), sur l'entrée dont le profil à la Source égale la ligne. `AA 10 l.30-39`
+- Hôtes : Charrette, Chariot léger, Chariot moyen, Chariot lourd, Diligence, Bateau de patrouille, Chaloupe → l'entrée de même id ; Barge moyenne → `barge-fluviale`, dont le livre imprime le nom « Barge Moyenne » et le même profil. `MSRC 07 l.176`
+- Non repris sur le Véhicule : **Endurance / Blessures** au sens Structure (BE dérivé de l'Endurance, Taille de Structure) — le supplément renvoie les Dégâts des véhicules aux Compagnons. `AA 10 l.13-15`
+- Non repris : **ENC** et **Limite d'Encombrement** divergents du livre qui définit l'entrée (Charrette 30 contre 25, Chariot lourd 80 contre 100, Bateau de patrouille 50 contre 80) — l'entrée garde le profil de son livre ; le rattachement des éditions est #2174. `EDOC 07 l.235` `EDOC 07 l.243` `MDG 12 l.91`
+- Non repris : le **milieu** (AA range la Chaloupe et le Bateau de patrouille sous NAVIRES FLUVIAUX, leurs hôtes sont maritimes) et la **longueur** de la Barge moyenne (environ 20 m contre 15 m) — écarts de milieu portés par #2174. `AA 10 l.36` `AA 10 l.55` `MSRC 07 l.176`
+- **Pénalité de Couvert** d'un véhicule : dette — aucun véhicule n'est posé en scène comme couvert ; le chemin de couvert de l'entité posée est #2170. Le renvoi au MJ d'un meilleur Couvert pour un chariot de guerre attend son arbitrage au même ticket. `AA 10 l.21-23` `AA 10 l.61`
 
 Notes narratives de quelques Structures : la **barge moyenne** mesure ~20 m (voile + rames, grosse cargaison) ; le **bateau de patrouille** ~25 m (rames pour les poursuites, voiles pour la patrouille, conçu pour encaisser) ; la **chaloupe** ≤10 m (bateau de pêche du Reikland, chaland de Marienburg) ; certains **chariots** de guerre peuvent, au gré du MJ, accorder une meilleure pénalité de Couvert ; la **clôture en clayonnage** est tressée de branches de saule (mieux pour les enclos que pour fortifier) ; la **diligence** est un véhicule fermé à 4 roues tiré par 2 à 6 chevaux ; la **herse** est une grille de fer abaissable ; le **mantelet** est une défense mobile sur supports/chariot ; le **mur de forteresse naine** est en pierre massive (plus résistant que le mur de château humain). `AA 10 l.55-92`
 
@@ -4875,7 +4882,12 @@ Si l'arme subit un **Incident de tir** à n'importe quel moment, en résoudre le
 **Voir aussi** : AA : Qualités et Défauts d'armes (Imprécise, Dangereuse, Recharge, Salve, Tir de zone, Explosion, Empaleuse, Perforante, Percutante, Dévastatrice, Pointue, Pointe d'arme) ; LDB 13 : Combat (Tir ciblé, DR, doubles/Critiques) ; LDB 18 : Traumatisme (Localisations, Blessures Critiques au bras) ; LDB 16 : États (*Surpris*, *À Terre*, *En flammes*) ; LDB 14 : Taille (catégories, modificateurs de Taille de cible) ; ADE II : Combat de masse (grandes batailles).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `AA 10` (l.3-25, l.28-53, l.55-92, l.94-98, l.101-111, l.113-128, l.131-134, l.136-150, l.152-173, l.175-196, l.198-224, l.227-249, l.254-276) → `ArtilleryMisfireEntry`, `StructureCritEntry`, `artillery-misfire`, `structure-criticals`, `warMachineCrewPenalty`, `woundsFromHit`, `rollArtillerySalveMisfire`, `couvertDepuisDifficulte`, `CrewTooltip`, `hoverTargeting`, +95 — `src/data/artillery-misfire.json`, `src/data/artilleryMisfire.ts`, `src/data/combat-stakes.json`, `src/data/index.ts`, `src/data/props.json`, `src/data/qualities.json`, +43 fichiers
+- `AA 10` (l.3-25, l.28-53, l.55-92, l.94-98, l.101-111, l.113-128, l.131-134, l.136-150, l.152-173, l.175-196, l.198-224, l.227-249, l.254-276) → `ArtilleryMisfireEntry`, `StructureCritEntry`, `artillery-misfire`, `structure-criticals`, `diligence`, `warMachineCrewPenalty`, `doc`, `woundsFromHit`, `rollArtillerySalveMisfire`, `couvertDepuisDifficulte`, +96 — `src/data/artillery-misfire.json`, `src/data/artilleryMisfire.ts`, `src/data/combat-stakes.json`, `src/data/index.ts`, `src/data/props.json`, `src/data/qualities.json`, +45 fichiers
+- `MDG 12` (l.91) → `shipboardSouls`, `sea-cargo` — `src/data/schemas/defs/vehicles.ts`, `src/data/sea-cargo.json`, `src/gameIso/rig/ship/defs/bateau-de-patrouille.ts`, `src/state/shipCrew.ts`
+- `EDOC 7` (l.235, l.243) → `problemes-vehicule`, `montureSchema`, `doc`, `chaise`, `petite-litiere`, `WorldMapView`, `FORCED_PACE_PENALTY_PER_KM`, `ForcedPaceAnimal`, `grande-litiere`, `travelSpeed`, +20 — `src/data/problemes-vehicule.json`, `src/data/schemas/defs/montures.ts`, `src/data/schemas/defs/vehicles.ts`, `src/data/vehicles.json`, `src/data/voyage-stakes.json`, `src/engine/travel.ts`, +4 fichiers
+- `MSRC 7` (l.176) → `barrage`, `rochers`, `eaux-peu-profondes`, `MapRoute`, `barge-fluviale`, `mapRouteSchema`, `barque-fluviale` — `src/data/river-perils.json`, `src/data/schemas/defs-scenes/worldmap.ts`, `src/data/schemas/defs/river-perils.ts`, `src/data/schemas/defs/vehicles.ts`, `src/data/vehicles.json`, `src/state/worldMap.ts`
+- dette : #2170
+- bloqué : Pénalité de Couvert d'un Véhicule (AA 10 l.21-23, tableau l.28-39) : aucun véhicule n'est posé en scène comme couvert, l'entité posée reçoit son chemin de couvert à #2170 ; le renvoi au MJ d'un meilleur Couvert pour un chariot de guerre (AA 10 l.61) y attend son arbitrage
 
 ---
 
@@ -5690,7 +5702,7 @@ Note spéciale : le **Canon à flammes nain** inflige **2 + DR États *En flamme
 **Voir aussi** : aa-structures-sieges (armes de siège *maniables* d'AA, stats distinctes — Baliste +12 / Recharge 3 vs ici +14 / Recharge 2) ; les entrées Combat (Tests spectaculaires, DR, États En flammes/Empoisonné/Empêtré/Surpris/À Terre/Sans défense) ; Corruption (Facteurs Environnementaux, influence corruptrice) ; Psychologie (Peur/Terreur/Animosité/Haine, Horreurs de la Guerre).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `ADE II 8` (l.13-19, l.24-33, l.34-47, l.48, l.55-56, l.65-110, l.112-135, l.138-178, l.207-225, l.227-270, l.281-304, l.307-321) → `scene`, `insignifiante`, `porte`, `warMachineCrewPenalty`, `RAM_POS`, `MassBattleView`, `desavantagee`, `RAM_CREW`, `egale`, `isMeleeWarMachine`, +120 — `src/data/activities.json`, `src/data/index.ts`, `src/data/mass-battle.json`, `src/data/qualities.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, +39 fichiers
+- `ADE II 8` (l.13-19, l.24-33, l.34-47, l.48, l.55-56, l.65-110, l.112-135, l.138-178, l.207-225, l.227-270, l.281-304, l.307-321) → `scene`, `insignifiante`, `porte`, `warMachineCrewPenalty`, `RAM_POS`, `MassBattleView`, `desavantagee`, `RAM_CREW`, `egale`, `isMeleeWarMachine`, +120 — `src/data/activities.json`, `src/data/index.ts`, `src/data/mass-battle.json`, `src/data/qualities.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, +40 fichiers
 - sans code : `ADE II 8` (l.174-175, l.181-186)
 
 ---

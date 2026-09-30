@@ -40,9 +40,9 @@ export function isEngin(c: Pick<Combatant, 'bodyShape'>): boolean {
 
 /** Nature d'AUTHORING d'une structure (posable sur une arête, comme cloison ou fermeture) : `edgeKind`
  *  s'il diverge du `kind` mécanique (Herse — Bélier n'y applique pas, cf. `structures-aa.test.ts`, mais
- *  se pose comme une fermeture), sinon `kind` ; `undefined` si `vehicle` (jamais posable, #830). */
-export function structureEdgeKind(s: Pick<StructureData, 'kind' | 'edgeKind' | 'vehicle'>): 'porte' | 'mur' | undefined {
-  return s.vehicle ? undefined : s.edgeKind ?? s.kind;
+ *  se pose comme une fermeture), sinon `kind`. */
+export function structureEdgeKind(s: Pick<StructureData, 'kind' | 'edgeKind'>): 'porte' | 'mur' {
+  return s.edgeKind ?? s.kind;
 }
 
 /** La structure est-elle un MATÉRIAU DE MUR posable sur une arête (sélecteur de l'outil Cloison) ? */

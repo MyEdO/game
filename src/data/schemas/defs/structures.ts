@@ -1,11 +1,6 @@
 /**
- * Schéma de `structures.json` — structures DESTRUCTIBLES de siège (ADE II 8 « Le théâtre de la
- * guerre », table « Barricades et protections typiques » ; AA « Tableau des Structures Courantes »,
- * AA 10 l.26-92). Dérivé de l'interface `StructureData` (`src/engine/types.ts`) et du contenu
- * RÉEL (24 entrées : 5 ADE II à 2 colonnes BE/B, 19 AA à profil 5 colonnes ENC/Limite d'Encombrement/
- * Endurance-BE/Blessures/Pénalité de Couvert — `enc`/`encLimit`/`couvertPenalty` optionnels, N/A côté
- * ADE II ou pour les entrées AA sans cette colonne, ex. Herse/Solide porte en bois sans Couvert).
- * Folios : ADE II 89 ; AA 119-120 (`src/data/structures-folio.test.ts` les confronte à `auditFolio`).
+ * Schéma de `structures.json` — structures DESTRUCTIBLES de siège, dérivé de l'interface `StructureData`
+ * (`src/engine/types.ts`). ADE II 8 l.280-288 ; AA 10 l.40-53 ; LDB 14 l.81.
  */
 import { z } from 'zod';
 import { couvertDifficultySchema, sizeCategorySchema } from '../grammaire/valeurs';
@@ -22,8 +17,6 @@ const doc = document(
     kind: z.enum(['porte', 'mur']),
     /** Nature d'AUTHORING (posable sur une arête) — redéfinit `kind` quand il diverge (Herse, #830). */
     edgeKind: z.enum(['porte', 'mur']).optional(),
-    /** Véhicule (AA 10) : partage la mécanique de PV mais n'est jamais posable sur une arête (#830). */
-    vehicle: z.boolean().optional(),
     /** RENDU (pas règle) : fortification de siège (rempart de pierre) vs cloison ordinaire. */
     fortified: z.boolean().optional(),
     char: z.strictObject({ BE: z.number(), B: z.number() }),
@@ -51,18 +44,13 @@ const doc = document(
     /**
      * Soutient-elle l'ÉTAGE qui surmonte son arête (`AA 10 l.127` : « Les Personnages qui se trouvent sur
      * ou dans la Structure ») ? Lu par le seul `etageSoutenu` (`state/scene.ts`). Aucun folio ne le dit —
-     * valeur MAISON, dont `maison` porte la raison. OBLIGATOIRE pour une Structure d'ARÊTE (aucun défaut
-     * implicite), INTERDITE pour un véhicule, que `structureEdgeKind` ne pose jamais sur une arête.
+     * valeur MAISON, dont `maison` porte la raison.
      */
-    soutientEtage: z.boolean().optional(),
+    soutientEtage: z.boolean(),
   },
   {
     kind: { label: 'Nature de la Structure', hint: 'Porte ou Mur, pour la résolution mécanique' },
     edgeKind: { label: 'Nature d’authoring', hint: 'Redéfinit kind quand elle diverge à la pose sur une arête' },
-    vehicle: {
-      label: 'Véhicule (partage la mécanique)',
-      hint: 'Partage la mécanique de Points de Vie d’une Structure mais jamais posable sur une arête',
-    },
     fortified: { label: 'Fortification (rendu)', hint: 'Rendu visuel seulement — jamais une règle' },
     char: { label: 'Blessures et Bonus d’Endurance' },
     traits: { label: 'Traits de Structure' },
@@ -98,7 +86,7 @@ const doc = document(
      */
     affinerEntree: (entree) =>
       entree.superRefine((v, ctx) => {
-        const e = v as { id: string; vehicle?: unknown; occulte?: unknown; maison?: unknown; taille?: unknown; soutientEtage?: unknown };
+        const e = v as { id: string; occulte?: unknown; maison?: unknown; taille?: unknown; soutientEtage?: unknown };
         const sansRaison = typeof e.maison !== 'string' || !e.maison;
         if (e.occulte === false && sansRaison)
           ctx.addIssue({
@@ -111,18 +99,6 @@ const doc = document(
             code: 'custom',
             path: ['maison'],
             message: `${e.id} : \`taille\` sans \`maison\` — aucune table de source n’imprime la Taille d’une Structure (AA 10 l.98 la laisse à déterminer), l’arbitrage se nomme.`,
-          });
-        if (e.vehicle === true && e.soutientEtage != null)
-          ctx.addIssue({
-            code: 'custom',
-            path: ['soutientEtage'],
-            message: `${e.id} : \`soutientEtage\` sur un véhicule — un véhicule ne se pose jamais sur une arête (#830), il ne surmonte aucun étage.`,
-          });
-        if (e.vehicle !== true && e.soutientEtage == null)
-          ctx.addIssue({
-            code: 'custom',
-            path: ['soutientEtage'],
-            message: `${e.id} : \`soutientEtage\` absent d’une Structure d’arête — aucun défaut implicite, l’arbitrage se nomme.`,
           });
         if (e.soutientEtage != null && sansRaison)
           ctx.addIssue({

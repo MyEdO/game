@@ -207,9 +207,8 @@ describe('etageSoutenu — l’étage qui surmonte l’arête (#1883)', () => {
   });
 });
 
-/** #1883 — `soutientEtage` : OBLIGATOIRE sur chaque Structure d'ARÊTE (aucun défaut implicite), INTERDIT
- *  sur un véhicule (jamais posé sur une arête, `structureEdgeKind`), et valeur maison nommée par son
- *  `maison` (aucun folio ne dit quelle Structure porte un étage, AA 10 l.127). */
+/** #1883 — `soutientEtage` : REQUIS sur chaque Structure (aucun défaut implicite), valeur maison nommée
+ *  par son `maison`. AA 10 l.127. */
 describe('structures.json — `soutientEtage` se déclare, et se justifie', () => {
   const base = {
     id: 'x-banc', type: 'structures', label: 'X', kind: 'mur',
@@ -223,15 +222,9 @@ describe('structures.json — `soutientEtage` se déclare, et se justifie', () =
     expect(parse(base).success).toBe(true);
   });
 
-  it('absent d’une Structure d’arête : REFUSÉ, nominativement — aucune entrée ne soutient d’étage par défaut', () => {
+  it('absent : REFUSÉ par le champ REQUIS — aucune entrée ne soutient d’étage par défaut', () => {
     const { soutientEtage: _s, ...sans } = base;
-    expect(refus(sans)).toContain('soutientEtage: x-banc : `soutientEtage` absent d’une Structure d’arête');
-  });
-
-  it('posé sur un véhicule : REFUSÉ, nominativement ; absent d’un véhicule : accepté', () => {
-    expect(refus({ ...base, vehicle: true, soutientEtage: false })).toContain('soutientEtage: x-banc : `soutientEtage` sur un véhicule');
-    const { soutientEtage: _s, ...vehicule } = { ...base, vehicle: true };
-    expect(parse(vehicule).success).toBe(true);
+    expect(refus(sans)).toContain('soutientEtage: Entrée invalide : booléen attendu, indéfini reçu');
   });
 
   it('sans `maison` : REFUSÉ, nominativement', () => {

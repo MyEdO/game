@@ -89,7 +89,7 @@ un def qui change d'exposition change cette colonne au prochain `npm run docs:do
 | `sizes.json` · `encumbranceTiers.json` | Barèmes par Taille (modif. au tir · Enc à bord · côté d'empreinte) · paliers d'Encombrement (objet à sous-catalogues · 4 entrée(s)) | `sizes` — objet single ; `encumbranceTiers` — dataset `encumbranceTiers` |
 | `etats.json` | États / Conditions (À terre, Aveuglé…) (21 entrée(s)) | `etats` — dataset `etats` |
 | `psychology.json` | États psychologiques (Peur, Terreur, Frénésie…) (9 entrée(s)) | `psychologies` — dataset `psychologies` |
-| `structures.json` · `structure-criticals.json` | Structures/portes (cibles de siège) · leurs critiques (25 entrée(s) · objet à sous-catalogues) | `structures` — dataset `structures` ; `structureCriticals` — niché (`structureCriticals`) |
+| `structures.json` · `structure-criticals.json` | Structures/portes (cibles de siège) · leurs critiques (17 entrée(s) · objet à sous-catalogues) | `structures` — dataset `structures` ; `structureCriticals` — niché (`structureCriticals`) |
 | `artillery-misfire.json` | Incidents de Tir d'Artillerie par Salve (AA 10 l.270-277) — arme d'équipe à Atout Salve qui subit un Incident de tir (objet à sous-catalogues) | `artilleryMisfire` — niché (`artilleryMisfire`) |
 | `mass-battle.json` | **ATTENTION — Objet à sous-catalogues** (`powerEstimate`, `mightModifiers`, **`warMachines`** ← le Bélier de siège ICI, `structures`, `hazards`) : bataille de masse (objet à sous-catalogues) | `massBattlePowerEstimate` · `massBattleMightModifiers` · `massBattleWarMachines` · `massBattleStructures` · `massBattleHazards` — niché (`massBattlePowerEstimate` · `massBattleMightModifiers` · `massBattleWarMachines` · `massBattleStructures` · `massBattleHazards`) |
 
@@ -178,7 +178,7 @@ Le **bloc `narratif`** d'un paquet de campagne schema 3 (`NarratifBlock`, `src/s
 |---|---|---|
 | `books.json` | **Registre des livres sources** — le champ `abr` est l'abréviation CANONIQUE (voir §B) (30 entrée(s)) | `books` — dataset `books` |
 | `primitives.manifest.json` · `systemes.manifest.json` | Manifestes TOOLING (#298, vocabulaire app-interne, pas RAW) — sources de `docs/systemes.md` (`npm run docs:systemes`, `scripts/docs/build-systemes.mjs`) (98 entrée(s) · 16 entrée(s)) | exempt (vocabulaire-app-interne) — aucune (aucune catégorie Codex ne l’expose, donc aucun formulaire d’atelier ne l’édite) ; exempt (vocabulaire-app-interne) — aucune (aucune catégorie Codex ne l’expose, donc aucun formulaire d’atelier ne l’édite) |
-| `raw.manifest.json` | Manifeste éditorial du champ Implémente de l'Atlas RAW (généré par `scripts/raw/build-implemente.mjs`, #487) : par topic, ticket de dette ou raison de blocage — la SEULE surface écrite à la main du champ (12 entrée(s)) | exempt (vocabulaire-app-interne) — aucune (aucune catégorie Codex ne l’expose, donc aucun formulaire d’atelier ne l’édite) |
+| `raw.manifest.json` | Manifeste éditorial du champ Implémente de l'Atlas RAW (généré par `scripts/raw/build-implemente.mjs`, #487) : par topic, ticket de dette ou raison de blocage — la SEULE surface écrite à la main du champ (13 entrée(s)) | exempt (vocabulaire-app-interne) — aucune (aucune catégorie Codex ne l’expose, donc aucun formulaire d’atelier ne l’édite) |
 | `donnees.manifest.json` | Manifeste éditorial de cet atlas (#903, rangement par rubrique, description, règle d'or, pièges d'homonymes) — source de `docs/donnees.md` (`npm run docs:donnees`, `scripts/docs/build-donnees.mjs`) (objet à sous-catalogues) | exempt (vocabulaire-app-interne) — aucune (aucune catégorie Codex ne l’expose, donc aucun formulaire d’atelier ne l’édite) |
 
 ## §B — Conventions de champs (à respecter à l'ajout)
@@ -495,4 +495,4 @@ se met à ressembler à une clé de l'autre sans être le couple ponté sanction
 >    scope ».
 > 5. **Vérifie** : canonicaliser via `serializeDataset`, puis `npm test` + `npm run typecheck` verts ;
 >    recette navigateur si l'élément est visible au Codex/éditeur.
-<!-- sources-empreinte: afaf14fb546e4201a85ec5b50adee93163ae3ac4 (381 fichiers, 2 dossiers) corps: 53fb98607b7c9d4c2bd2f0dd07156cfe99a2a41c -->
+<!-- sources-empreinte: 87e5807551ada08bb618ef8bf0ac3f6b167055e1 (381 fichiers, 2 dossiers) corps: fc44f3016a2fe7e649dd1d06b15369ca73ecaefb -->

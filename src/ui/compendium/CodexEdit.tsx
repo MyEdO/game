@@ -84,6 +84,13 @@ const OBJECT_CATEGORY = OBJECT_CATEGORY_DERIVE as Record<string, { ds: ObjectDat
 export const editableObjectDataset = (categoryKey: string): { ds: ObjectDatasetKey; mode: 'single' | 'record' } | undefined => OBJECT_CATEGORY[categoryKey];
 /** Une catégorie est éditable au Codex ssi elle a un dataset tableau OU un dataset-objet. */
 export const editableDataset = (categoryKey: string): DatasetKey | undefined => CATEGORY_DATASET[categoryKey];
+
+/** Le document de la catégorie porte-t-il `alsoIn` ? Lu au SCHÉMA : clé d'enveloppe (`CLES_ENVELOPPE`,
+ *  `grammaire/document.ts`) de toute famille `entite` — jamais une liste de catégories. */
+const porteAlsoIn = (categoryKey: string): boolean => {
+  const ds = editableDataset(categoryKey);
+  return ds != null && noeudDuChamp(datasetFile(ds), 'alsoIn') !== undefined;
+};
 export const isEditableCategory = (categoryKey: string): boolean => !!CATEGORY_DATASET[categoryKey] || !!OBJECT_CATEGORY[categoryKey];
 
 /** Champ-réf → son dataset. Double usage : autocomplétion `<datalist>` des champs-listes ET
@@ -333,7 +340,7 @@ export function dedicatedFieldKeys(categoryKey: string): Set<string> {
   if (categoryKey === 'maladies') add('symptoms', 'dailyTest'); // `dailyTest` porte un nœud `test` du Flow → DiseaseDailyTestField (#1657 B2b)
   if (categoryKey === 'talents') add('combat', 'test');
   if (VARIANT_FIELDS_BY_CATEGORY[categoryKey]) add('variants'); // variants → VariantsField (#563 Lot 5)
-  if (['trappings', 'qualities', 'spells', 'traits', 'navalTraits', 'talents', 'domains', 'creatures', 'races'].includes(categoryKey)) add('alsoIn'); // alsoIn → AlsoInField (#563 Lot 5)
+  if (porteAlsoIn(categoryKey)) add('alsoIn'); // alsoIn → AlsoInField (#563 Lot 5)
   if (categoryKey === 'skills' || categoryKey === 'talents') add('specs');
   if (categoryKey === 'traits') add('specsSource', 'indice', 'range', 'specsOpen', 'specsMulti'); // schéma d'argument → éditeur dédié
   // V9 #1318 : la VALEUR d'une règle optionnelle est typée par son `kind` (`RuleValueField`/
@@ -513,7 +520,7 @@ export function CodexEdit({ categoryKey, label, id, onClose, isNew }: CodexEditP
   // éditeurs DÉRIVENT de la liste blanche du dataset (`VARIANT_FIELDS_BY_CATEGORY`).
   const variantFields = VARIANT_FIELDS_BY_CATEGORY[categoryKey];
   // Emplacement(s) secondaire(s) d'une entrée réimprimée ailleurs (`alsoIn`, #563 Lot 5) — AlsoInField.
-  const hasAlsoIn = ['trappings', 'qualities', 'spells', 'traits', 'navalTraits', 'talents', 'domains', 'creatures'].includes(categoryKey);
+  const hasAlsoIn = porteAlsoIn(categoryKey);
   // Compétence/Talent : `specs` = SpecEntry[] ({id,label}).
   const hasSpecs = categoryKey === 'skills' || categoryKey === 'talents';
   // Avancement (espèce / niveau de carrière) : `skills`/`talents` = AdvancementRef[] (réf/joker/choix/aléatoire).

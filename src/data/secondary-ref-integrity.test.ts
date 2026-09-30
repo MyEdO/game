@@ -90,16 +90,16 @@ describe('auditSecondaryRef — attestation POSITIVE (#563 Lot 1 item 2, morsure
   });
 });
 
-describe('auditSecondaries — 71 entrées `alsoIn` réelles sur src/data/*.json (Lot 2, #563 ; +1 VDM #734 ; +7 Hysh #729 ; +6 Chamon #729 ; +5 attributs de Domaine republiés #729 ; +6 Ghyran #729 ; +7 Azyr #729 ; +5 Ulgu #729 ; +6 Shyish #729 ; +2 Aqshy #729 ; +5 Ghur #729 et son attribut de Domaine ; +2 VDM #731 : Bête des marais et Prédateur sanglant ; +1 VDM couronne-de-flammes ; +1 ZI #1225 : Halagrundsor, récit en folio 34 et statblock en folio 35 ; +1 ADE I #1342 : la spéc `signes-secrets/rodeur`, dont ADE I 07 l.197 imprime la variante « Ranger » ; +1 L2 #1548 : la spéc `signes-secrets/guilde`, dont LDB 09 l.504 imprime la graphie de catalogue « Guildes (au choix) » là où LDB 08 l.250 imprime « Signes secrets (guilde) » ; +3 #1457 : `triton` et `wulfrik`, dont MDG 16 imprime le récit en folio 148/154 et la ligne de stats en folio 149/155, et `ogres`, dont ADE II 02 imprime la prose en folio 15 et le TABLEAU DES ATTRIBUTS DES OGRES en folio 20)', () => {
+describe('auditSecondaries — 71 entrées `alsoIn` réelles sur src/data/*.json (Lot 2, #563 ; +1 VDM #734 ; +7 Hysh #729 ; +6 Chamon #729 ; +5 attributs de Domaine republiés #729 ; +6 Ghyran #729 ; +7 Azyr #729 ; +5 Ulgu #729 ; +6 Shyish #729 ; +2 Aqshy #729 ; +5 Ghur #729 et son attribut de Domaine ; +2 VDM #731 : Bête des marais et Prédateur sanglant ; +1 VDM couronne-de-flammes ; +1 ZI #1225 : Halagrundsor, récit en folio 34 et statblock en folio 35 ; +1 ADE I #1342 : la spéc `signes-secrets/rodeur`, dont ADE I 07 l.197 imprime la variante « Ranger » ; +1 L2 #1548 : la spéc `signes-secrets/guilde`, dont LDB 09 l.504 imprime la graphie de catalogue « Guildes (au choix) » là où LDB 08 l.250 imprime « Signes secrets (guilde) » ; +3 #1457 : `triton` et `wulfrik`, dont MDG 16 imprime le récit en folio 148/154 et la ligne de stats en folio 149/155, et `ogres`, dont ADE II 02 imprime la prose en folio 15 et le TABLEAU DES ATTRIBUTS DES OGRES en folio 20 ; +8 #1883 : les lignes VÉHICULES et NAVIRES FLUVIAUX (AA 10 l.30-39), publiées en `alsoIn` de leur Véhicule, attestées par leur note narrative en `quote`)', () => {
   it('toutes les entrées `alsoIn` réelles sont ATTESTÉES (aucune violation)', () => {
     const { violations, total } = auditSecondaries(DIR);
-    expect(total).toBe(76);
+    expect(total).toBe(84);
     expect(violations).toEqual([]);
   });
 
-  it('EXHAUSTIF : les fichiers portant `alsoIn` sont exactement les datasets migrés (Lot 2 + talents #734 + creatures #731 + species #1457)', () => {
+  it('EXHAUSTIF : les fichiers portant `alsoIn` sont exactement les datasets migrés (Lot 2 + talents #734 + creatures #731 + species #1457 + vehicles #1883)', () => {
     const offenders = DATASETS.filter((f) => readFileSync(join(DIR, f), 'utf8').includes('"alsoIn"'));
-    expect(offenders).toEqual(['creatures.json', 'domains.json', 'naval-traits.json', 'qualities.json', 'skills.json', 'species.json', 'spells.json', 'talents.json', 'traits.json', 'trappings.json']);
+    expect(offenders).toEqual(['creatures.json', 'domains.json', 'naval-traits.json', 'qualities.json', 'skills.json', 'species.json', 'spells.json', 'talents.json', 'traits.json', 'trappings.json', 'vehicles.json']);
   });
 });
 

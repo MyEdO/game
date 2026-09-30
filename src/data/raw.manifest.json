@@ -72,5 +72,12 @@
     "type": "raw.manifest",
     "label": "Atlas RAW — Tests & Success Levels (SL)",
     "ticket": "#1873"
+  },
+  {
+    "id": "4e/combat#tableau-des-incidents-de-tir-d-artillerie-par-salve",
+    "type": "raw.manifest",
+    "label": "Tableau des Incidents de Tir d'Artillerie par Salve",
+    "ticket": "#2170",
+    "bloque": "Pénalité de Couvert d'un Véhicule (AA 10 l.21-23, tableau l.28-39) : aucun véhicule n'est posé en scène comme couvert, l'entité posée reçoit son chemin de couvert à #2170 ; le renvoi au MJ d'un meilleur Couvert pour un chariot de guerre (AA 10 l.61) y attend son arbitrage"
   }
 ]

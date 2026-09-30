@@ -420,4 +420,4 @@ mesure du canal label (qui n'est PAS la cause) : en-tête de `scripts/docs/build
 - `p-tarix-celui-qui-ecrit` — P'tarix, Celui qui écrit
 - `xirat-p-celui-qui-lit` — Xirat'p, Celui qui lit
 
-<!-- sources-empreinte: 6d5a93e0f2ca7d72b755c835cfeb272c95d77efe (2109 fichiers, 133 dossiers) corps: 11fea96cc2c880474e95115c151bc64b9da15106 -->
+<!-- sources-empreinte: e62d228f4b57a2109b4b487cc69e9a25ef494d34 (2109 fichiers, 133 dossiers) corps: 11fea96cc2c880474e95115c151bc64b9da15106 -->

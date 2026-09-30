@@ -8,12 +8,13 @@
  * (2) Collisions INTER-catégorie : un même id peut exister dans deux catalogues distincts. Les
  *     lookups étant SCOPÉS par catégorie (`findTraitById`/`findTalentById`/`findManeuverById`/…),
  *     ces collisions sont inoffensives à l'exécution, MAIS sources de confusion. On VERROUILLE
- *     l'ensemble connu/voulu : toute NOUVELLE collision accidentelle (un id réutilisé sans le
- *     vouloir) casse ce test → décision consciente (renommer, ou ajouter à la liste ci-dessous).
+ *     l'ensemble connu/voulu PAR PAIRE (id → catalogues) : toute NOUVELLE collision accidentelle, ou
+ *     un id connu qui gagne un catalogue, casse ce test → décision consciente (renommer, ou déclarer).
  *     Familles documentées :
  *       • trait↔manœuvre : un trait de créature confère une manœuvre de même id (`grantsManeuvers`)
- *         — arme, cornes, morsure, tentacules, etreinte-glaciale, hurlement-fantomatique,
- *           langue-prehensile, regard-petrifiant, vomissement.
+ *         — arme, cornes, morsure, tentacules, etreinte-glaciale, frisson-paralysant,
+ *           hurlement-de-la-bete-indomptable, hurlement-fantomatique, langue-prehensile,
+ *           regard-petrifiant, vomissement.
  *       • trait↔talent : homonymes distincts (créature vs joueur) — beni, frenesie, haine,
  *           resistance-a-la-magie, vision-nocturne.
  *       • trait↔qualité : homonymes (créature vs qualité d'arme/armure) — infecte, magique, rapide, taille.
@@ -31,15 +32,11 @@
  *           poudre-impregnee-d-aqshy (trapping ↔ qualité, AA 08 l.544 — la munition PORTE la qualité
  *           qui pose son seuil de Maladresse élargi {8,9}, même patron que `filet`).
  *       • créature↔trapping : une créature existe aussi comme trapping ORDINAIRE (objet de sac, hors
- *           bestiaire possédable) — poulet, singe, vers. Les trappings-bêtes MONTABLES homonymes
- *           (cheval-de-guerre-leger, cheval-de-trait, chien, mule, poney) sont RETIRÉS depuis le SOCLE
- *           POSSESSIONS T1-c1 (#617/#618 Lot 2, bascule au registre de possessions) — l'overlap s'est
- *           évanoui, ces ids ne collisionnent plus.
+ *           bestiaire possédable) — poulet, singe, vers.
  *       • créature↔trait : une créature confère à ses combattants un trait de même id — ogre (PERMANENT).
- *       • décor↔véhicule : un DÉCOR (meuble, `props.json`) homonyme d'un VÉHICULE à coque (`vehicles.json`)
- *           — le rendu route par la NATURE de l'ENTITÉ (`SceneEntity.kind`, cf. `gameIso/tokenBodyKind.tsx`
- *           « Décor : routé par la NATURE… ») donc SANS DANGER, mais actée : chaise (chaise de meuble vs
- *           chaise à porteurs EDOC 07 l.192), charrette, barque.
+ *       • décor↔véhicule : un DÉCOR (`props.json`) homonyme d'un VÉHICULE (`vehicles.json`) — chaise (meuble
+ *           vs chaise à porteurs EDOC 07 l.192) ; charrette et barque, doublons d'hôte soldés par #2170
+ *           (le véhicule posé remplace le décor), `barque` étant aussi du groupe Barque de #2174.
  *       • décor↔trapping : un DÉCOR homonyme d'une POSSESSION ordinaire (le sac PORTE l'objet, la scène
  *           POSE le décor — deux entités, même mot) — rocher, tonneau, marmite, tente, bourse (la
  *           Bourse de sac, LDB folio 301, vs la bourse POSÉE au sol — #1680 ligne 14).
@@ -50,21 +47,67 @@
  *           vs la TOILE d'araignée posée en décor (#1680 ligne 14) : le trait la TISSE, le décor la montre.
  */
 import { describe, it, expect } from 'vitest';
-import { traits, talents, qualities, maneuvers, spells, trappings, skills, creatures, props, vehicles } from './index';
+import { traits, talents, qualities, maneuvers, spells, trappings, skills, creatures, props, vehicles, structures } from './index';
 
-const CATEGORIES: Record<string, { id: string }[]> = { traits, talents, qualities, maneuvers, spells, trappings, skills, creatures, props, vehicles };
+const CATEGORIES: Record<string, { id: string }[]> = { traits, talents, qualities, maneuvers, spells, trappings, skills, creatures, props, vehicles, structures };
 
-/** Ensemble VOULU des ids partagés entre ≥ 2 catalogues (cf. familles documentées ci-dessus). */
-const KNOWN_CROSS = [
-  'arme', 'barque', 'belier', 'beni', 'bouclier', 'bourse', 'broyeur-d-os', 'carreau', 'chaise', 'charrette',
-  'cornes', 'effrayant', 'etreinte-glaciale',
-  'filet', 'flechette', 'frenesie', 'frisson-paralysant', 'haine', 'hurlement-de-la-bete-indomptable',
-  'hurlement-fantomatique', 'infecte', 'langue-prehensile', 'magique', 'marmite', 'maudit', 'mauvais-oeil',
-  'morsure', 'nuee', 'ogre', 'perturbant', 'pistolet', 'poudre-impregnee-d-aqshy',
-  'poulet', 'protection', 'rapide', 'regard-petrifiant', 'regeneration', 'resistance', 'resistance-a-la-magie',
-  'rocher', 'sang-corrosif', 'siege', 'silence', 'singe', 'souffle', 'taille', 'tente', 'tentacules', 'toile', 'tonneau', 'vers',
-  'vision-nocturne', 'vol', 'vomissement',
-].sort();
+/** PAIRES VOULUES : id partagé → ses catalogues, triés (cf. familles documentées ci-dessus). */
+const KNOWN_CROSS: Record<string, readonly string[]> = {
+  arme: ['maneuvers', 'traits'],
+  barque: ['props', 'vehicles'],
+  belier: ['qualities', 'spells'],
+  beni: ['talents', 'traits'],
+  bouclier: ['spells', 'trappings'],
+  bourse: ['props', 'trappings'],
+  'broyeur-d-os': ['spells', 'trappings'],
+  carreau: ['spells', 'trappings'],
+  chaise: ['props', 'vehicles'],
+  charrette: ['props', 'vehicles'],
+  cornes: ['maneuvers', 'traits'],
+  effrayant: ['spells', 'talents'],
+  'etreinte-glaciale': ['maneuvers', 'traits'],
+  filet: ['qualities', 'trappings'],
+  flechette: ['spells', 'trappings'],
+  frenesie: ['talents', 'traits'],
+  'frisson-paralysant': ['maneuvers', 'traits'],
+  haine: ['talents', 'traits'],
+  'hurlement-de-la-bete-indomptable': ['maneuvers', 'traits'],
+  'hurlement-fantomatique': ['maneuvers', 'traits'],
+  infecte: ['qualities', 'traits'],
+  'langue-prehensile': ['maneuvers', 'traits'],
+  magique: ['qualities', 'traits'],
+  marmite: ['props', 'trappings'],
+  maudit: ['qualities', 'spells'],
+  'mauvais-oeil': ['spells', 'traits'],
+  morsure: ['maneuvers', 'traits'],
+  nuee: ['spells', 'traits'],
+  ogre: ['creatures', 'traits'],
+  perturbant: ['spells', 'traits'],
+  pistolet: ['qualities', 'trappings'],
+  'poudre-impregnee-d-aqshy': ['qualities', 'trappings'],
+  poulet: ['creatures', 'trappings'],
+  protection: ['spells', 'traits'],
+  rapide: ['qualities', 'traits'],
+  'regard-petrifiant': ['maneuvers', 'traits'],
+  regeneration: ['spells', 'traits'],
+  resistance: ['skills', 'talents'],
+  'resistance-a-la-magie': ['talents', 'traits'],
+  rocher: ['props', 'trappings'],
+  'sang-corrosif': ['spells', 'traits'],
+  siege: ['props', 'qualities'],
+  silence: ['spells', 'trappings'],
+  singe: ['creatures', 'trappings'],
+  souffle: ['spells', 'traits'],
+  taille: ['qualities', 'traits'],
+  tente: ['props', 'trappings'],
+  tentacules: ['maneuvers', 'traits'],
+  toile: ['props', 'traits'],
+  tonneau: ['props', 'trappings'],
+  vers: ['creatures', 'trappings'],
+  'vision-nocturne': ['talents', 'traits'],
+  vol: ['spells', 'traits'],
+  vomissement: ['maneuvers', 'traits'],
+};
 
 describe('intégrité des ids de données', () => {
   for (const [name, arr] of Object.entries(CATEGORIES)) {
@@ -75,14 +118,14 @@ describe('intégrité des ids de données', () => {
     });
   }
 
-  it("collisions inter-catégorie = exactement l'ensemble documenté (toute nouvelle collision échoue)", () => {
+  it("collisions inter-catégorie = exactement les paires documentées (toute nouvelle collision échoue)", () => {
     const where = new Map<string, Set<string>>();
     for (const [name, arr] of Object.entries(CATEGORIES)) {
       for (const id of new Set(arr.map((x) => x.id))) {
         (where.get(id) ?? where.set(id, new Set()).get(id)!).add(name);
       }
     }
-    const cross = [...where].filter(([, cats]) => cats.size > 1).map(([id]) => id).sort();
+    const cross = Object.fromEntries([...where].filter(([, cats]) => cats.size > 1).map(([id, cats]) => [id, [...cats].sort()]));
     expect(cross).toEqual(KNOWN_CROSS);
   });
 });

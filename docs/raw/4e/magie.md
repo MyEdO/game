@@ -401,7 +401,7 @@ Porter les couleurs appropriées au Vent manipulé aide à l'attirer. C'est pour
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 46` (l.150-152) → `DispelModal`, `STEP_WINDOW_AUTO`, `HoverTargeting`, `FocusInterruptHook`, `focalisation-etendue`, `jetSurfaced`, `dispel-roll`, `armourCastDRPenalty`, `RollRowProps`, `dispel`, +54 — `src/data/actions.json`, `src/data/combat-stakes.json`, `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/regles.json`, `src/data/schemas/defs/weaponGroups.ts`, +20 fichiers
-- `VDM 2` (l.5, l.169) → `surincantation`, `doc`, `armourCastDRPenalty`, `armure-du-chaos`, `malevolentInfluenceSeverity`, `magic-vdm-incantation`, `malepierreDR`, `ItemInstance`, `malepierreCharge`, `malepierreReserveOf`, +5 — `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/trappings.ts`, `src/data/surincantation.json`, `src/data/trappings.json`, `src/data/weaponGroups.json`, +4 fichiers
+- `VDM 2` (l.5, l.169) → `surincantation`, `doc`, `armourCastDRPenalty`, `armure-du-chaos`, `malevolentInfluenceSeverity`, `magic-vdm-incantation`, `ItemInstance`, `malepierreDR`, `malepierreCharge`, `malepierreReserveOf`, +5 — `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/trappings.ts`, `src/data/surincantation.json`, `src/data/trappings.json`, `src/data/weaponGroups.json`, +4 fichiers
 
 ---
 
@@ -743,7 +743,7 @@ La **malepierre** est un éclat de magie pure dans le plan matériel — manifes
 - `LDB 19` (l.40, l.51-53) → `CorruptionModal`, `combat-end-corruption`, `sombre-pacte`, `EXPOSURE_LADDER`, `testDeCorruption`, `physique`, `exposureLevelSchema`, `corruption-mineure`, `corruption-moderee`, `doc`, +17 — `src/data/characteristics.json`, `src/data/combat-stakes.json`, `src/data/flow-stakes.json`, `src/data/mutationTables.json`, `src/data/regles.json`, `src/data/schemas/defs-scenes/effets.ts`, +10 fichiers
 - `LDB 44` (l.113-119) → `doc` — `src/data/schemas/defs/trappings.ts`
 - `LDB 46` (l.164-173) → `DispelModal`, `windsModFromRoll`, `FocusModal`, `force-des-vents`, `rollWindsOfMagic`, `STEP_WINDOW_AUTO`, `doc`, `windsMagicModOf`, `HoverTargeting`, `focalisation-etendue`, +67 — `src/data/actions.json`, `src/data/combat-stakes.json`, `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, +31 fichiers
-- `VDM 2` (l.165) → `surincantation`, `doc`, `armourCastDRPenalty`, `armure-du-chaos`, `malevolentInfluenceSeverity`, `malepierreDR`, `ItemInstance`, `malepierreCharge`, `malepierreReserveOf`, `consumeMalepierre`, +4 — `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/trappings.ts`, `src/data/surincantation.json`, `src/data/trappings.json`, `src/data/weaponGroups.json`, +4 fichiers
+- `VDM 2` (l.165) → `surincantation`, `doc`, `armourCastDRPenalty`, `armure-du-chaos`, `malevolentInfluenceSeverity`, `ItemInstance`, `malepierreDR`, `malepierreCharge`, `malepierreReserveOf`, `consumeMalepierre`, +4 — `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/trappings.ts`, `src/data/surincantation.json`, `src/data/trappings.json`, `src/data/weaponGroups.json`, +4 fichiers
 - dette : #884
 
 ---

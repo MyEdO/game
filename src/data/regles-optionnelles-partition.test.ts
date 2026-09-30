@@ -61,7 +61,9 @@ const COEXISTENCE: Record<string, number> = {
   // 2 → 24 (#1688) : les 24 Structures citent leur folio (ADE II 89, AA 119-120) ET portent désormais
   // chacune la raison de sa `taille`, valeur qu'aucune table n'imprime (AA 10 l.98).
   // 24 → 25 (#1883) : le `garde-corps` cite LDB 14 l.81 (folio 161) ET porte son `maison`.
-  'structures.json': 25,
+  // 25 → 17 (#1883 c13e) : les 8 lignes VÉHICULES et NAVIRES FLUVIAUX (AA 10 l.30-39) sont des Véhicules,
+  // publiés en `alsoIn` de `vehicles.json` — leur `maison` de Taille de Structure part avec elles.
+  'structures.json': 17,
   // +1 (#1599) : le symptôme `convulsions` cite son folio (LDB 188) ET porte en clair l'arbitrage de
   // son palier Grave — LDB 20 l.157 chiffre −10 (base) et −20 (Modéré) sans jamais rechiffrer Grave.
   'symptoms.json': 1,

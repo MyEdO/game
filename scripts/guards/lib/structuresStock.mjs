@@ -668,6 +668,7 @@ export const STRUCTURES_FORMES = [
   { concept: "source", dataset: "talents.json", champ: "alsoIn", signature: "book,page+…", statut: "divergente", strate: "Valeur", occurrences: 1, lot: "L1d #1469", date: "2026-08-23" },
   { concept: "source", dataset: "traits.json", champ: "alsoIn", signature: "book,page+…", statut: "divergente", strate: "Valeur", occurrences: 1, lot: "L1d #1469", date: "2026-08-23" },
   { concept: "source", dataset: "trappings.json", champ: "alsoIn", signature: "book,page+…", statut: "divergente", strate: "Valeur", occurrences: 8, lot: "L1d #1469", date: "2026-08-23" },
+  { concept: "source", dataset: "vehicles.json", champ: "alsoIn", signature: "book,page+…", statut: "divergente", strate: "Valeur", occurrences: 8, lot: "L1d #1469", date: "2026-08-23" }, // +8 (#1883 c13e) : la publication AA 10 l.30-39 des 8 Véhicules, emplacement secondaire de leur hôte
   { concept: "test", dataset: "arcane-phenomena.json", champ: "controlFlux", signature: "difficulty+…", statut: "divergente", strate: "Valeur", occurrences: 1, lot: "L4 #1463", date: "2026-08-23" },
   { concept: "test", dataset: "arene-projet.json", champ: "test", signature: "difficulty,skill+…", statut: "divergente", strate: "Valeur", occurrences: 9, lot: "L4 #1463", date: "2026-08-23" },
   { concept: "test", dataset: "criticals.json", champ: "amputation", signature: "difficulty+…", statut: "divergente", strate: "Valeur", occurrences: 26, lot: "L4 #1463", date: "2026-08-23" },
@@ -795,7 +796,7 @@ export const STRUCTURES_DEFAUT = [
  *  `land-cargo.json wineQuality[].price`), qui n'est pas un prix mais un FACTEUR — son solde est déjà
  *  prescrit hors de cette vague. La ligne se RÉÉCRIT donc au fil des lots, elle ne se retire pas. */
 export const STRUCTURES_HOMONYMES = [
-  { cle: "char", classes: ["object","string"], occurrences: 864, lot: "L4 #1463", date: "2026-08-23" }, // +1 (#1883) : le `char` de la Structure `garde-corps` ; +3 : profils vides Mouton + Cochon (object) + Trait Entêté (string), EDOC 07 folios 22 et 24 (#673) ; +1 : Chien de trait, EDOC 07 folio 22, #673 ; −2 (#1657 B2c) : les 2 `crewTest.char` de `river-criticals.json` adoptent `characteristic`, la clé de `flowTestSchema` (le fichier en sort avec ZERO `char` — pas d'état mixte, #1658)
+  { cle: "char", classes: ["object","string"], occurrences: 856, lot: "L4 #1463", date: "2026-08-23" }, // −8 (#1883 c13e) : les `char` des 8 Véhicules d’AA 10 l.30-39 sortis de `structures.json` ; +1 (#1883) : le `char` de la Structure `garde-corps` ; +3 : profils vides Mouton + Cochon (object) + Trait Entêté (string), EDOC 07 folios 22 et 24 (#673) ; +1 : Chien de trait, EDOC 07 folio 22, #673 ; −2 (#1657 B2c) : les 2 `crewTest.char` de `river-criticals.json` adoptent `characteristic`, la clé de `flowTestSchema` (le fichier en sort avec ZERO `char` — pas d'état mixte, #1658)
   { cle: "price", classes: ["null","number","object","string"], occurrences: 520, lot: "L4 #1463", date: "2026-08-23" }, // +1 : Anneau d'Opsianon, EDO 11 folio 148 (#672) ; +3 : achat Chien + Mouton + Cochon, EDOC 07 folio 24 (#673) ; +1 : Chien de trait, EDOC 07 folio 22, #673
   { cle: "count", classes: ["number","object"], occurrences: 92, lot: "L4 #1463", date: "2026-08-23" },
 ];

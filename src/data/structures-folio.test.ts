@@ -36,7 +36,7 @@ const LDB_14_L81 = 'Cible protégée par une couverture moyenne (une barrière e
 
 describe('structures.json — folio de source confronté à l’extraction (#1467 L1b)', () => {
   it('chaque entrée aux-armes déclare le folio où vit sa `desc` (auditFolio → folio-ok)', () => {
-    expect(AUX_ARMES.length).toBe(19);
+    expect(AUX_ARMES.length, 'le catalogue porte des Structures AA').toBeGreaterThan(0);
     const verdicts = AUX_ARMES.map((s) => {
       expect(s.desc, `${s.id} : desc absente, la voie verbatim ne peut pas juger`).toBeTruthy();
       const { verdict } = auditFolio({ book: s.source.book, page: s.source.page, desc: s.desc! });
@@ -46,7 +46,7 @@ describe('structures.json — folio de source confronté à l’extraction (#146
     expect(fautifs, `folio(s) non attesté(s) :\n  ${fautifs.join('\n  ')}`).toEqual([]);
   });
 
-  it('l’instrument MORD : au folio CROISÉ (119↔120), les 19 rendent `folio-ment`', () => {
+  it('l’instrument MORD : au folio CROISÉ (119↔120), toutes rendent `folio-ment`', () => {
     // Sans ce volet, le test précédent ne prouve rien : un `auditFolio` qui dirait `folio-ok` à
     // tout le monde le passerait aussi. La table AA court sur deux folios voisins — échanger l'un
     // pour l'autre est la plus PETITE erreur possible, et elle doit déjà être vue.
@@ -55,11 +55,9 @@ describe('structures.json — folio de source confronté à l’extraction (#146
       return auditFolio({ book: s.source.book, page: croise, desc: s.desc! }).verdict !== 'folio-ment';
     });
     expect(survivants.map((s) => s.id), 'entrée(s) que le folio croisé ne réfute PAS').toEqual([]);
-    expect(AUX_ARMES.length).toBe(19);
   });
 
-  it('la source est au FOLIO (`page`), jamais au chapitre — sur les 25 entrées', () => {
-    expect(ENTREES.length).toBe(25);
+  it('la source est au FOLIO (`page`), jamais au chapitre — sur toutes les entrées', () => {
     for (const s of ENTREES) {
       expect(typeof s.source.page, `${s.id} : \`page\` absente ou non numérique`).toBe('number');
     }

@@ -6,6 +6,7 @@ import type { Money } from './money';
 import type { ReachId } from './items';
 import type { CodexTarget, ModProvenance } from './ruleRefs';
 import type { WallSide as WallSideCanon } from '../data/schemas/defs-scenes/communs';
+import type { SecondaryRef } from '../data/schemas/grammaire/valeurs';
 
 /** Libellés d'AFFICHAGE de l'axe d'Allonge, PAR id d'axe (`ReachId`, `engine/items.ts` — LDB 62
  *  l.156-164). Toute LOGIQUE d'Allonge passe par `reachIdOf`/`reachRankOf`, jamais par ce libellé. */
@@ -150,7 +151,7 @@ export interface VehicleTravelClass { id: string; label: string; brassPerKm: num
 
 /**
  * Véhicule / embarcation à coque — FOYER UNIQUE de la donnée (`src/data/vehicles.json`), data-driven.
- * Le même enregistrement porte TROIS facettes indépendantes (fin des doublons transports/trappings) :
+ * Le même enregistrement porte TROIS facettes indépendantes :
  *  - `purchase` : achat (prix + disponibilité), lu par le marché ;
  *  - `travel` : passage payant (Déplacement km/h + classes), lu par `engine/travel` ;
  *  - `hull` : profil type-créature (Endurance + Blessures + forme + propulsion), permettant au véhicule
@@ -179,6 +180,9 @@ export interface VehicleData {
    *  (garde-fou : `src/ui/no-emoji-affordance.test.ts` + `Icon` throw sur id inconnu). */
   icon?: string;
   source?: { book: string; page: number };
+  /** Emplacements SECONDAIRES du même Véhicule (ex. sa ligne AA 10 l.30-39). Accessors
+   *  `allLocations`/`sourceBooks` (`src/data/sourceRefs.ts`). */
+  alsoIn?: SecondaryRef[];
   /** Encombrement de l'objet véhicule (LDB 61) — généralement `null` (on ne porte pas une diligence) ;
    *  un coracle se porte (`enc` chiffré). */
   enc?: number | null;
@@ -251,9 +255,6 @@ export interface StructureData {
    *  Redéfinit le choix quand il DIVERGE du `kind` mécanique verrouillé par le RAW — ex. Herse
    *  (`kind:'mur'` mais se pose comme une FERMETURE de passage, #830). */
   edgeKind?: 'porte' | 'mur';
-  /** `true` = véhicule (charrette, chariot, barge…) : partage la mécanique de PV « objet destructible »
-   *  (AA 10) mais N'EST PAS posable sur une arête — exclu de tout sélecteur de matériau de mur/porte (#830). */
-  vehicle?: boolean;
   /** RENDU (pas règle) : `true` = fortification de siège (rempart de PIERRE crénelé + ferré, brèche =
    *  gravats). `false`/absent = cloison ORDINAIRE (mur de maison texturé, sans créneaux). Découplé de
    *  `kind` : une `porte` fortifiée = corps de garde à herse ; un `mur` fortifié = courtine. Route le
@@ -261,18 +262,15 @@ export interface StructureData {
   fortified?: boolean;
   /** Profil à PV (calqué sur `VehicleData.hull.char`) — `BE` = Bonus d'Endurance (l'Endurance dérivée vaut
    *  `BE × 10`, posée par `structureCombatant`) ; `B` = Blessures (PV de la structure). ADE II donne le BE
-   *  verbatim ; AA (« Tableau des Structures Courantes », AA 10 l.26-92) donne l'Endurance BRUTE — `BE`
-   *  se dérive alors par troncature à la dizaine (convention Bonus = dizaines de la Caractéristique). */
+   *  verbatim ; AA donne l'Endurance BRUTE, dont `BE` est la dizaine. ADE II 8 l.282-288 ; AA 10 l.40-51. */
   char: { BE: number; B: number };
   /** Atouts de structure (Résistant / Impénétrable) — réfs de Trait par id STABLE (JAMAIS le libellé). */
   traits: { id: string; value?: number }[];
-  /** ENC de la Structure transportée (AA 10 l.28-52) — `undefined` = N/A (Structure fixe, ne se transporte pas). */
+  /** ENC — `undefined` = N/A. AA 10 l.17-19, l.28. */
   enc?: number;
-  /** Limite d'Encombrement supportée par la Structure elle-même (AA 10 l.28-52) — `undefined` = N/A. */
+  /** Limite d'Encombrement — `undefined` = N/A. AA 10 l.17-19, l.28. */
   encLimit?: number;
-  /** Pénalité de Couvert par défaut pour un assaillant qui tire sur une cible réfugiée sur/derrière la
-   *  Structure (AA 10 l.23, colonne l.28-51) — `undefined` = N/A (aucun couvert : Herse l.42 et Solide
-   *  porte en bois l.50 ; les 5 entrées ADE II, dont la table n'a pas cette colonne, ADE II 8 l.282-288). */
+  /** Pénalité de Couvert — `undefined` = N/A. AA 10 l.21-23, l.28, l.42, l.50 ; ADE II 8 l.282-288. */
   couvertPenalty?: CouvertDifficulty;
   /** Laisse-t-elle VOIR à travers ? `undefined` = occultante ; seul `false` est écrivable, et il porte
    *  son `maison` (LDB 14 l.86, LDB 85 l.329). Lu par le seul `areteOcculte` (`state/scene.ts`). */
@@ -282,12 +280,11 @@ export interface StructureData {
    *  raison vit dans `maison`. */
   taille: import('./size').SizeCategory;
   /** Soutient-elle l'ÉTAGE qui surmonte son arête (`AA 10 l.127`) ? Valeur MAISON, dont la raison vit dans
-   *  `maison` ; obligatoire pour une Structure d'arête, interdite pour un `vehicle` (schéma
-   *  `defs/structures.ts`). Lu par le seul `etageSoutenu` (`state/scene.ts`). */
-  soutientEtage?: boolean;
-  /** Provenance RAW au FOLIO imprimé (ADE II 89 ; AA 119-120) — même forme que `SourceRef`. */
+   *  `maison`. Lu par le seul `etageSoutenu` (`state/scene.ts`). */
+  soutientEtage: boolean;
+  /** Provenance RAW au FOLIO imprimé — même forme que `SourceRef`. */
   source: { book: string; page: number };
-  /** Raison MAISON — exigée par le schéma pour `taille` (toujours), `soutientEtage` (s'il est posé) et `occulte: false`. */
+  /** Raison MAISON — exigée par le schéma pour `taille`, `soutientEtage` et `occulte: false`. */
   maison?: string;
   desc?: string;
 }

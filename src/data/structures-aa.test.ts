@@ -1,14 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { findStructureById, structures } from './index';
+import { findStructureById, findVehicleById, structures } from './index';
 import { SIZE_ORDER } from '../engine/size';
 
 /**
- * Catalogue AA « Tableau des Structures Courantes » (AA 10 l.26-92, VERBATIM) — 19 entrées ajoutées
- * au catalogue `structures.json` (5 colonnes ENC / Limite d'Encombrement / Endurance / Blessures /
- * Pénalité de Couvert, DISTINCT du profil ADE II 8 à 2 colonnes BE/B). `BE` se dérive de
- * l'Endurance BRUTE de la table par troncature à la dizaine (convention Bonus = dizaines).
- * « Mur de pierre » (AA 10 l.47) coexiste avec « mur-en-pierre » (ADE II, BE 12/B 40, Impénétrable) :
- * collision de livres à valeurs DIVERGENTES, résolue par coexistence sourcée (#450), pas par tranchage.
+ * Catalogue AA « Tableau des Structures Courantes » : AA 10 l.26-53. Les lignes VÉHICULES et NAVIRES
+ * FLUVIAUX (l.30-39) sont des Véhicules (`src/engine/types.ts`, `VehicleData`) : leur publication AA est
+ * un `alsoIn` de l'entrée `vehicles.json` qui les héberge (#1883). « Mur de pierre » (AA 10 l.47)
+ * coexiste avec « mur-en-pierre » (ADE II 8 l.282-288, #450).
  */
 describe('Structures AA (AA 10 l.26-92)', () => {
   it('Mur de château : ENC N/A, Limite 150, Endurance 65 → BE 6, Blessures 100, Couvert Très Difficile', () => {
@@ -28,20 +26,19 @@ describe('Structures AA (AA 10 l.26-92)', () => {
     expect(s.couvertPenalty).toBe('tresDifficile');
   });
 
-  it('Charrette : ENC 10, Limite 30, Endurance 25 → BE 2, Blessures 10, Couvert Intermédiaire', () => {
-    const s = findStructureById('charrette')!;
-    expect(s.enc).toBe(10);
-    expect(s.encLimit).toBe(30);
-    expect(s.char).toEqual({ BE: 2, B: 10 });
-    expect(s.couvertPenalty).toBe('intermediaire');
-  });
-
-  it("Bateau de patrouille : ENC 130, Limite 50, Endurance 60 → BE 6, Blessures 120, Couvert Difficile", () => {
-    const s = findStructureById('bateau-de-patrouille')!;
-    expect(s.enc).toBe(130);
-    expect(s.encLimit).toBe(50);
-    expect(s.char).toEqual({ BE: 6, B: 120 });
-    expect(s.couvertPenalty).toBe('difficile');
+  /** Ligne AA → entrée véhicule hôte, au folio de la ligne. AA 10 l.31-39 ; `barge-fluviale` : MSRC 07 l.176. */
+  it.each([
+    ['Charrette', 'charrette', 119],
+    ['Chariot léger', 'chariot-leger', 119],
+    ['Chariot moyen', 'chariot-moyen', 119],
+    ['Chariot lourd', 'chariot-lourd', 119],
+    ['Diligence', 'diligence', 120],
+    ['Barge moyenne', 'barge-fluviale', 119],
+    ['Bateau de patrouille', 'bateau-de-patrouille', 119],
+    ['Chaloupe', 'chaloupe', 119],
+  ] as const)('%s : Véhicule `%s`, publié AA folio %i, jamais une Structure', (_ligne, id, folio) => {
+    expect(findVehicleById(id)?.alsoIn).toContainEqual(expect.objectContaining({ book: 'aux-armes', page: folio }));
+    expect(findStructureById(id)).toBeUndefined();
   });
 
   it('Herse et Solide porte en bois : aucune Pénalité de Couvert (N/A dans la table)', () => {
@@ -62,21 +59,10 @@ describe('Structures AA (AA 10 l.26-92)', () => {
     expect(adeII.source).toEqual({ book: 'archives-de-l-empire-2', page: 89 });
   });
 
-  it("Solide porte en bois : SEULE nouvelle entrée AA de kind 'porte' (Bélier applicable)", () => {
-    const ids = ['charrette', 'chariot-leger', 'chariot-moyen', 'chariot-lourd', 'diligence',
-      'barge-moyenne', 'bateau-de-patrouille', 'chaloupe', 'cloture-en-clayonnage', 'herse',
-      'mantelet-de-bois', 'mur-a-ossature-en-bois', 'mur-de-chateau', 'mur-de-forteresse-naine',
-      'mur-de-pierre-aa', 'mur-en-pierres-seches', 'palissade-de-pieux', 'solide-porte-en-bois',
-      'terrassement'];
-    expect(ids).toHaveLength(19);
-    for (const id of ids) {
-      const s = findStructureById(id);
-      expect(s, `${id} manquant`).toBeTruthy();
-      expect(s!.kind).toBe(id === 'solide-porte-en-bois' ? 'porte' : 'mur');
-      expect(s!.source.book).toBe('aux-armes');
-      // La table court sur DEUX folios (`src/data/structures-folio.test.ts` atteste lequel par entrée).
-      expect([119, 120]).toContain(s!.source.page);
-    }
+  it("Solide porte en bois : SEULE entrée AA de kind 'porte' (Bélier applicable)", () => {
+    const aa = structures.filter((s) => s.source.book === 'aux-armes');
+    expect(aa.length, 'le catalogue porte des Structures AA').toBeGreaterThan(0);
+    expect(aa.filter((s) => s.kind === 'porte').map((s) => s.id)).toEqual(['solide-porte-en-bois']);
   });
 
   /**

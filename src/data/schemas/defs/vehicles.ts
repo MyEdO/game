@@ -1,9 +1,7 @@
 /**
- * Schéma de `vehicles.json` — véhicules/embarcations à coque (chariots, barges, navires), 3 facettes
- * indépendantes (achat/voyage/coque+navire+pont). Dérivé de l'interface `VehicleData` EXISTANTE
- * (`src/engine/types.ts`, + `NavalTraitRef`/`ShipDeck`/`DeckPosteSlot`/`Propulsion`/
- * `VehicleTravelClass` co-localisées) et du contenu RÉEL (25 entrées, script d'inventaire : `hull`
- * 22/25, `ship` 20/25, `travel` 3/25, `deck` 1/25). `icon` est une clé d'ENVELOPPE, posée par la fabrique.
+ * Schéma de `vehicles.json` — FOYER UNIQUE du Véhicule (`src/engine/types.ts`, `VehicleData`), 3 facettes
+ * indépendantes (achat/voyage/coque+navire+pont). `icon` et `alsoIn` sont des clés d'ENVELOPPE, posées
+ * par la fabrique. LDB 70 l.7-25 ; EDOC 07 l.233-243 ; MSRC 07 l.170-178 ; MDG 12 l.83-102 ; AA 10 l.28-39.
  */
 import { z } from 'zod';
 import { availabilitySchema, cell2Schema, enumNomme, moneySchema } from '../grammaire/valeurs';

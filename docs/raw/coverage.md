@@ -17,7 +17,7 @@
 - **Cœur 5e** : ✅ 33 traités par une fiche · 📖 0 transcrits par un catalogue seul (jamais traités) · 🟡 17 effleurés · ⬜ 67 trous, sur 117 chapitres-règles (hors artefacts OCR).
 - **Livres sans cœur déclaré** : ✅ 48 traités par une fiche · 📖 45 transcrits par un catalogue seul (jamais traités) · 🟡 2 effleurés · ⬜ 0 trous, sur 95 chapitres-règles (hors artefacts OCR).
 
-Section-granulaire (niveau de heading ADAPTATIF par livre — H2 pour AA/VDM/ADE I/ADE II/EDO, H3 pour LDB/CRB/MCLB/ACE/ZI/MDG/EDOC/MSRC/NADJ/MSR/PDT, H4 pour AU1, #604), ventilation DÉRIVÉE (jamais un compte recopié) sur 3848 section(s) non couvertes par une fiche : **639 transcrite(s) en catalogue** (recopiées, pas traitées) · **2470 hors-règle** (chapitre explicitement exclu) · **58 bruit de scénario** (livres de teneur `scenario` AU1/EDO/MSR/PDT : prose de campagne, aucune règle) · **681 candidat(s) trou de règle** (reste : LDB/CRB/AA/VDM/ADE I/ADE II/MCLB/ACE/ZI/MDG/EDOC/MSRC/NADJ — livres de règles et compagnons mixtes, où une section vide peut cacher une vraie règle non couverte) — et 12 titre(s) de chapitre enfoui(s) détecté(s) (titre orné rétrogradé par l'extraction). Ce chiffre reste un PLANCHER : les sections couvertes par une fiche (✅ au niveau section) ne sont pas dénombrées ici (volume, cf. #604 DoD « la sortie ne liste pas l'exhaustif »). Réfs folio (`ABBR NN p.X`, #606) : 2 ignorée(s) proprement (ancre absente/ambiguë/hors-chapitre). Par livre : LDB ✅40·📖33·🟡0·⬜1 · CRB ✅33·📖0·🟡17·⬜67 · AA ✅9·📖4·🟡0·⬜0 · VDM ✅4·📖10·🟡0·⬜0 · ADE I ✅0·📖2·🟡0·⬜0 · ADE II ✅3·📖3·🟡0·⬜0 · MCLB ✅0·📖5·🟡0·⬜0 · ACE ✅1·📖2·🟡0·⬜0 · ZI ✅4·📖10·🟡0·⬜0 · MDG ✅8·📖2·🟡0·⬜0 · EDOC ✅4·📖0·🟡1·⬜0 · MSRC ✅3·📖4·🟡1·⬜0 · AU1 ✅1·📖0·🟡0·⬜0 · NADJ ✅6·📖0·🟡0·⬜0 · EDO ✅3·📖0·🟡0·⬜0 · MSR ✅0·📖1·🟡0·⬜0 · PDT ✅2·📖2·🟡0·⬜0.
+Section-granulaire (niveau de heading ADAPTATIF par livre — H2 pour AA/VDM/ADE I/ADE II/EDO, H3 pour LDB/CRB/MCLB/ACE/ZI/MDG/EDOC/MSRC/NADJ/MSR/PDT, H4 pour AU1, #604), ventilation DÉRIVÉE (jamais un compte recopié) sur 3847 section(s) non couvertes par une fiche : **638 transcrite(s) en catalogue** (recopiées, pas traitées) · **2470 hors-règle** (chapitre explicitement exclu) · **58 bruit de scénario** (livres de teneur `scenario` AU1/EDO/MSR/PDT : prose de campagne, aucune règle) · **681 candidat(s) trou de règle** (reste : LDB/CRB/AA/VDM/ADE I/ADE II/MCLB/ACE/ZI/MDG/EDOC/MSRC/NADJ — livres de règles et compagnons mixtes, où une section vide peut cacher une vraie règle non couverte) — et 12 titre(s) de chapitre enfoui(s) détecté(s) (titre orné rétrogradé par l'extraction). Ce chiffre reste un PLANCHER : les sections couvertes par une fiche (✅ au niveau section) ne sont pas dénombrées ici (volume, cf. #604 DoD « la sortie ne liste pas l'exhaustif »). Réfs folio (`ABBR NN p.X`, #606) : 2 ignorée(s) proprement (ancre absente/ambiguë/hors-chapitre). Par livre : LDB ✅40·📖33·🟡0·⬜1 · CRB ✅33·📖0·🟡17·⬜67 · AA ✅9·📖4·🟡0·⬜0 · VDM ✅4·📖10·🟡0·⬜0 · ADE I ✅0·📖2·🟡0·⬜0 · ADE II ✅3·📖3·🟡0·⬜0 · MCLB ✅0·📖5·🟡0·⬜0 · ACE ✅1·📖2·🟡0·⬜0 · ZI ✅4·📖10·🟡0·⬜0 · MDG ✅8·📖2·🟡0·⬜0 · EDOC ✅4·📖0·🟡1·⬜0 · MSRC ✅3·📖4·🟡1·⬜0 · AU1 ✅1·📖0·🟡0·⬜0 · NADJ ✅6·📖0·🟡0·⬜0 · EDO ✅3·📖0·🟡0·⬜0 · MSR ✅0·📖1·🟡0·⬜0 · PDT ✅2·📖2·🟡0·⬜0.
 
 ## LDB — ✅ 40 · 📖 33 · 🟡 0 · ⬜ 1
 
@@ -840,7 +840,7 @@ Section-granulaire (niveau de heading ADAPTATIF par livre — H2 pour AA/VDM/ADE
 | 07 | MISES A JOUR DE L'ETAT HEMORRAGIQUE | ✅ | 46 (4e/combat.md ×41) |
 | 08 | LA RESERVE DE L'INTENDANT | ✅ | 101 (4e/combat.md ×100) |
 | 09 | LE COMBAT MONTE | ✅ | 24 (4e/combat.md ×23) |
-| 10 | L'ARTILLERIE ET LES DEGATS INFLIGES AUX STRUCTURES | ✅ | 97 (4e/combat.md ×92) |
+| 10 | L'ARTILLERIE ET LES DEGATS INFLIGES AUX STRUCTURES | ✅ | 105 (4e/combat.md ×100) |
 | 11 | ANNEXE I AVANTAGES DE GROUPE | ✅ | 12 (4e/combat.md ×12) |
 | 12 | ANNEXE II ACTIVITES DE GUERRIER | ✅ | 21 (4e/combat.md ×20) |
 | 13 | ANNEXE III NOUVEAUX TALENTS ET TALENTS MIS A JOUR | ✅ | 17 (4e/combat.md ×17) |
@@ -1365,7 +1365,7 @@ Section-granulaire (niveau de heading ADAPTATIF par livre — H2 pour AA/VDM/ADE
 | 09 | La classe Cotier | ✅ | 32 (4e/carrieres.md ×32) |
 | 10 | Le culte de Manann | 📖 | 2 (4e/religion.md ×2) |
 | 11 | Le culte de Stromfels | 📖 | 1 (4e/religion.md ×1) |
-| 12 | Navires et construction navale | ✅ | 130 (4e/equipement.md ×60) |
+| 12 | Navires et construction navale | ✅ | 131 (4e/combat.md ×60) |
 | 13 | Navigation maritime | ✅ | 143 (4e/combat.md ×83) |
 | 14 | Navigation a bord de grands vaisseaux | ✅ | 52 (4e/maladies.md ×19) |
 | 15 | Longs voyages | ✅ | 45 (4e/deplacement.md ×23) |
@@ -1413,7 +1413,7 @@ Section-granulaire (niveau de heading ADAPTATIF par livre — H2 pour AA/VDM/ADE
 | 04 | ORGANISATIONS ET LIEUX | ➖ hors-règle | « ORGANISATIONS ET LIEUX » / « L'INTRIGUE » — prose de campagne |
 | 05 | CHAPITRE 2 - L'Empire | ➖ hors-règle | Chapitres-scénario explicites des compagnons MIXTES (le reste de ces livres = règles, couvertes). |
 | 06 | Chapitre 3 - Les routes et grandes routes | 🟡 | 1 (4e/deplacement.md ×1) |
-| 07 | Chapitre 4 - Montures et vehicules | ✅ | 19 (4e/deplacement.md ×19) |
+| 07 | Chapitre 4 - Montures et vehicules | ✅ | 21 (4e/deplacement.md ×19) |
 | 08 | CHAPITRE 5 - Voyager | ✅ | 16 (4e/deplacement.md ×7) |
 | 09 | OÙ EST MON TABLEAU DE RENCONTRES ALÉATOIRES ? | ➖ hors-règle | encarts de conseil au MJ (« OÙ EST MON TABLEAU DE RENCONTRES ALÉATOIRES ? ») |
 | 10 | CHAPITRE 6 - Patrouilleurs routiers | ➖ hors-règle | Chapitres-scénario explicites des compagnons MIXTES (le reste de ces livres = règles, couvertes). |
@@ -1514,7 +1514,7 @@ Section-granulaire (niveau de heading ADAPTATIF par livre — H2 pour AA/VDM/ADE
 | 04 | CHAPITRE 2 - Les herbes et leurs usages | ✅ | 4 (4e/maladies.md ×4) |
 | 05 | CHAPITRE 3 - Scenes coupees | ➖ hors-règle | Chapitres-scénario explicites des compagnons MIXTES (le reste de ces livres = règles, couvertes). |
 | 06 | CHAPITRE 4 - Les fleuves de l'Empire | ➖ hors-règle | Chapitres-scénario explicites des compagnons MIXTES (le reste de ces livres = règles, couvertes). |
-| 07 | CHAPITRE 5 - Navigation fluviale | 📖 | catalogue (catalogue-*.md) |
+| 07 | CHAPITRE 5 - Navigation fluviale | 📖 | 2 (4e/combat.md ×2) |
 | 08 | CHAPITRE 6 - La Patrouille fluviale imperiale | ➖ hors-règle | Chapitres-scénario explicites des compagnons MIXTES (le reste de ces livres = règles, couvertes). |
 | 09 | CHAPITRE 7 - Compagnons de voyage | 📖 | catalogue (catalogue-*.md) |
 | 10 | CHAPITRE 8 - LES RIVERAINS | ➖ hors-règle | Chapitres-scénario explicites des compagnons MIXTES (le reste de ces livres = règles, couvertes). |
@@ -1560,7 +1560,6 @@ Section-granulaire (niveau de heading ADAPTATIF par livre — H2 pour AA/VDM/ADE
   - 📖 l.119-129 « DANGERS » — transcrit en catalogue, jamais traité, 0 réf
   - 📖 l.130-151 « Rochers et eaux peu profondes » — transcrit en catalogue, jamais traité, 0 réf
   - 📖 l.152-159 « ACCIDENTS » — transcrit en catalogue, jamais traité, 0 réf
-  - 📖 l.160-185 « Gréement brisé » — transcrit en catalogue, jamais traité, 0 réf
 - **MSRC 09** (CHAPITRE 7 - Compagnons de voyage) :
   - 📖 l.3-12 « CHAPITRE 7 » — transcrit en catalogue, jamais traité, 0 réf
   - 📖 l.13-16 « CHARLATANS » — transcrit en catalogue, jamais traité, 0 réf
@@ -2132,4 +2131,4 @@ Section-granulaire (niveau de heading ADAPTATIF par livre — H2 pour AA/VDM/ADE
   - ⬜ l.9-10 « La Compétence » — bruit de scénario, 0 réf
 - **PDT 13** (POINTS D'EXPERIENCE) :
   - ⬜ l.81-82 « ANNEXE V » — bruit de scénario, 0 réf
-<!-- sources-empreinte: 10769dbff28a4598a4d4c9fc24b35f183c0c3fa8 (468 fichiers, 20 dossiers) corps: 68da134e8850e56817c6d43437db4250ebb073f4 -->
+<!-- sources-empreinte: 61b3a5c0f9a5ee92f85c61ac769db267c9ec35b5 (468 fichiers, 20 dossiers) corps: 53354bff620b243150a8aec5f393beab777c56be -->

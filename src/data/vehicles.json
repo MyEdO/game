@@ -8,6 +8,13 @@
       "book": "livre-de-base",
       "page": 306
     },
+    "alsoIn": [
+      {
+        "book": "aux-armes",
+        "page": 120,
+        "quote": "Une diligence est un véhicule fermé à quatre roues, tiré par 2 à 6 chevaux. Les riches ont tendance à les utiliser pour les voyages sur de longues distances, et l'Empire abrite plusieurs compagnies de diligences qui exploitent des lignes régulières."
+      }
+    ],
     "enc": 100,
     "chargement": 80,
     "desc": "Une diligence est un véhicule fermé, à quatre roues, tiré par deux à six chevaux. Elles constituent le moyen de locomotion favori des riches pour les voyages de longue distance. L'Empire compte plusieurs compagnies de diligences qui assurent des services réguliers entre les grandes villes. Un véhicule noble, souvent appelé carrosse ou calèche, peut transporter jusqu'à six passagers et possède normalement un plateau à l’arrière pour transporter les bagages. Il est impensable de les attacher sur le toit, car cela gâcherait l’apparence du véhicule. De nombreux véhicules de nobles portent des ornements décoratifs et héraldiques sur le toit, ce qui rend impossible le stockage des bagages. Un carrosse n’a qu’un seul conducteur, avec deux valets de pied qui se tiennent sur des marches à l’arrière, de part et d’autre des bagages, suffisamment haut pour voir par-dessus le toit. D’autres serviteurs suivent généralement dans des charrettes ou des carrosses de moindre importance, et des éclaireurs (ou courriers en ville) vont au devant pour dégager le chemin et derrière pour assurer la sécurité. \n\nLes diligences commerciales peuvent transporter six passagers à l’intérieur, et leurs bagages sont arrimés au toit. Quatre autres passagers peuvent voyager avec les bagages s’ils sont prêts à braver les éléments. L’équipage se compose d’un cocher et d’un assistant. Ce dernier est généralement armé d’une arbalète ou d’un tromblon et pare aux éventuels problèmes. \n\nAvec la peinture, les dorures, les belles sculptures et autres frivolités, il n’y a pas de limite à ce que vous pouvez dépenser pour une diligence. En effet, en la matière, le moindre sou dépensé ne l’est que pour souligner le statut de son propriétaire ou même le rehausser. L’ostentation et l’auto-promotion sont des fins en soi, et seul un pingre se contenterait d’une diligence ordinaire.",
@@ -201,6 +208,13 @@
       "book": "mort-sur-le-reik-compagnon",
       "page": 33
     },
+    "alsoIn": [
+      {
+        "book": "aux-armes",
+        "page": 119,
+        "quote": "Les barges sur le Reik mesurent généralement environ 20 mètres de long. Elles sont conçues pour transporter de grosses cargaisons pour leur taille et sont propulsées à la fois à voile et à rames."
+      }
+    ],
     "travel": {
       "movement": 8,
       "classes": [
@@ -306,6 +320,13 @@
       "book": "livre-de-base",
       "page": 306
     },
+    "alsoIn": [
+      {
+        "book": "aux-armes",
+        "page": 119,
+        "quote": "Les petits véhicules à deux roues, par exemple les carrioles à âne et les chars à deux roues de transport ou de combat. Les charrettes à passagers incluent un siège avec de la place pour jusqu'à deux personnes et celles transportant des marchandises ont un seul siège et un plateau pour la cargaison."
+      }
+    ],
     "enc": 10,
     "chargement": 25,
     "desc": "Les charrettes sont de petits véhicules à deux roues de toutes sortes, y compris les charrettes à âne, les chars et les cabriolets. Les charrettes de passagers comprennent une banquette pouvant accueillir jusqu'à deux personnes, tandis que celles qui transportent des marchandises ont un siège plus petit avec un côté ouvert pour le chargement. Les charrettes sont tirées par un seul animal. Des bras dépassent de chaque côté du châssis, auxquels est attaché un harnais, ou un collier.",
@@ -364,6 +385,13 @@
       "book": "livre-de-base",
       "page": 306
     },
+    "alsoIn": [
+      {
+        "book": "aux-armes",
+        "page": 119,
+        "quote": "Les chariots sont de grands véhicules ouverts faits pour transporter n'importe quel type de cargaison. Selon leur taille, ils sont tirés par au moins deux chevaux ou deux bœufs. L'avant comporte un banc assez grand pour trois personnes, même si un seul conducteur est nécessaire. Certains chariots sont même spécialement conçus pour porter des armes ou fournir une plateforme depuis laquelle des troupes peuvent se battre et si le MJ l'autorise, ces véhicules de guerre peuvent accorder une meilleure pénalité de Couvert."
+      }
+    ],
     "enc": 30,
     "chargement": 30,
     "desc": "Les chariots sont de grands véhicules ouverts destinés à transporter tout type de marchandises, y compris, dans certains cas, des personnes. Selon leur taille, ils sont tirés par plusieurs chevaux ou bœufs. À l'avant se trouve une banquette assez large pour trois personnes, bien qu’ils ne nécessitent qu’un seul conducteur. Certains chariots sont équipés de toiles amovibles en forme de tente pour protéger la cargaison des intempéries et des regards indiscrets. Certains voyageurs, notamment les Strigany, utilisent de grands wagons appelés « roulottes » avec des toits en bois permanents. L’intérieur de ces caravanes est souvent somptueux, renfermant tout ce dont une famille nombreuse pourrait avoir besoin.",
@@ -393,6 +421,13 @@
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 27
     },
+    "alsoIn": [
+      {
+        "book": "aux-armes",
+        "page": 119,
+        "quote": "Les chariots sont de grands véhicules ouverts faits pour transporter n'importe quel type de cargaison. Selon leur taille, ils sont tirés par au moins deux chevaux ou deux bœufs. L'avant comporte un banc assez grand pour trois personnes, même si un seul conducteur est nécessaire. Certains chariots sont même spécialement conçus pour porter des armes ou fournir une plateforme depuis laquelle des troupes peuvent se battre et si le MJ l'autorise, ces véhicules de guerre peuvent accorder une meilleure pénalité de Couvert."
+      }
+    ],
     "enc": 50,
     "chargement": 60,
     "desc": "Les chariots sont de grands véhicules ouverts destinés à transporter tout type de marchandises, y compris, dans certains cas, des personnes. Selon leur taille, ils sont tirés par plusieurs chevaux ou bœufs. À l'avant se trouve une banquette assez large pour trois personnes, bien qu’ils ne nécessitent qu’un seul conducteur. Certains chariots sont équipés de toiles amovibles en forme de tente pour protéger la cargaison des intempéries et des regards indiscrets. Certains voyageurs, notamment les Strigany, utilisent de grands wagons appelés « roulottes » avec des toits en bois permanents. L’intérieur de ces caravanes est souvent somptueux, renfermant tout ce dont une famille nombreuse pourrait avoir besoin.",
@@ -422,6 +457,13 @@
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 27
     },
+    "alsoIn": [
+      {
+        "book": "aux-armes",
+        "page": 119,
+        "quote": "Les chariots sont de grands véhicules ouverts faits pour transporter n'importe quel type de cargaison. Selon leur taille, ils sont tirés par au moins deux chevaux ou deux bœufs. L'avant comporte un banc assez grand pour trois personnes, même si un seul conducteur est nécessaire. Certains chariots sont même spécialement conçus pour porter des armes ou fournir une plateforme depuis laquelle des troupes peuvent se battre et si le MJ l'autorise, ces véhicules de guerre peuvent accorder une meilleure pénalité de Couvert."
+      }
+    ],
     "enc": 75,
     "chargement": 100,
     "desc": "Les chariots sont de grands véhicules ouverts destinés à transporter tout type de marchandises, y compris, dans certains cas, des personnes. Selon leur taille, ils sont tirés par plusieurs chevaux ou bœufs. À l'avant se trouve une banquette assez large pour trois personnes, bien qu’ils ne nécessitent qu’un seul conducteur. Certains chariots sont équipés de toiles amovibles en forme de tente pour protéger la cargaison des intempéries et des regards indiscrets. Certains voyageurs, notamment les Strigany, utilisent de grands wagons appelés « roulottes » avec des toits en bois permanents. L’intérieur de ces caravanes est souvent somptueux, renfermant tout ce dont une famille nombreuse pourrait avoir besoin.",
@@ -534,6 +576,13 @@
       "book": "mer-des-griffes",
       "page": 113
     },
+    "alsoIn": [
+      {
+        "book": "aux-armes",
+        "page": 119,
+        "quote": "Les chaloupes sont de petits vaisseaux mesurant 10 mètres de longueur maximum, par exemple les petits bateaux de pêche du Reikland ou les chalands de Marienburg."
+      }
+    ],
     "purchase": {
       "price": {
         "gold": 6,
@@ -656,6 +705,13 @@
       "book": "mer-des-griffes",
       "page": 113
     },
+    "alsoIn": [
+      {
+        "book": "aux-armes",
+        "page": 119,
+        "quote": "Les équipages de patrouilleurs fluviaux utilisent des navires rapides propulsés par des rangées de rames pour les poursuites à grande vitesse ou par des voiles pour les patrouilles menées à un rythme plus posé. Ces bateaux font environ 25 mètres de long et sont construits pour pouvoir résister à beaucoup de dommages."
+      }
+    ],
     "purchase": {
       "price": {
         "gold": 655,
