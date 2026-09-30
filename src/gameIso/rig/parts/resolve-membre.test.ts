@@ -5,7 +5,7 @@ import { TENUE_BY_ID, type TenueSet } from './tenues';
 import { dominantCloth, avantBrasBase, splitBrasSvg, deriveProfileBras, deriveBackBras } from './derive';
 import { ARMOUR, ARMOUR_PALETTES } from './armour';
 import { buildTokenMap, applyTokenMap, applyTokenMapArt } from '../palette';
-import type { EquipCtx } from './equipment';
+import { equipDe, type EquipCtx } from './equipment';
 import { declaredView } from '../viewArt';
 
 /** Enregistre une tenue FIXTURE sous un id à elle, la sert au test, puis la retire du registre.
@@ -22,13 +22,10 @@ const NO_EQUIP: EquipCtx = { weapons: [], armour: [] };
 const resolve = (tenueKey: string | undefined) =>
   resolveParts('humain', 'M', tenueKey, NO_EQUIP, {}, 0, 'front');
 
-const PLAQUE: EquipCtx = {
-  weapons: [],
-  armour: [
-    { id: 'harnois-qc', kind: 'armor', equipped: true, label: 'Harnois de plaque', pa: 5,
-      locs: ['corps', 'brasG', 'brasD', 'jambeG', 'jambeD'] } as unknown as EquipCtx['armour'][number],
-  ],
-};
+const PLAQUE: EquipCtx = equipDe([], [
+  { uid: 'harnois-qc', kind: 'armor', equipped: true, label: 'Harnois de plaque', pa: 5, qualities: [], enc: 3,
+    locs: ['corps', 'brasG', 'brasD', 'jambeG', 'jambeD'] },
+]);
 
 // Contrat POSITIF (#633 D1) : le membre supérieur se résout en UNITÉ — l'avant-bras est le BAS
 // de l'art `bras` pleine longueur découpé au coude, jamais un rect de peau nu plaqué par-dessus.

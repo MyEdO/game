@@ -17,6 +17,9 @@ import { manquementsDeFeuilles } from '../guards/lib/modulesFeuilles.mjs'
 import { numerosCites } from '../guards/lib/fermetures.mjs'
 import { refusDeSujet, sujetDuMessage } from '../guards/lib/sujetDeCommit.mjs'
 import { GitIndisponible, depotDe } from '../guards/lib/gitPorte.mjs'
+import { DEPOT } from '../guards/lib/ticketsGh.mjs'
+import { COMPTEURS, messageDeCollision } from '../guards/lib/compteursDeVersion.mjs'
+import { refusDesCompteurs } from '../guards/lib/compteursDuDepot.mjs'
 import { envDeDepotForge, instanceDeDepot, sousLEnvDeLUtilisatrice } from '../guards/lib/depotGabarit.mjs'
 import { GENERATORS } from '../docs/build-all.mjs'
 import {
@@ -350,7 +353,7 @@ test('le contexte du train ne porte que des QUESTIONS et des gestes NOMMÉS aux 
   const ctx = contexteDe({ racine: '/nulle-part', branche: 'chantier/x', options: {}, journaliser: () => {}, fdLog: 'ignore' })
   const cles = Object.getOwnPropertyNames(ctx).sort()
   assert.deepEqual(cles, ['abandonnerRebase', 'branche', 'commenter', 'commit', 'coursesCi', 'docs', 'fdLog', 'generators', 'journaliser', 'lireTicket', 'npm', 'options', 'pousser', 'questions', 'racine', 'rebaser', 'tete', 'tronc'])
-  assert.deepEqual(Object.keys(ctx.questions).sort(), ['brancheDe', 'ceQuiChange', 'cheminsEnConflit', 'cheminsSales', 'combienDe', 'commitsDeLaPlage', 'estAncetre', 'origineDe', 'rebaseEntame', 'relationAuTronc', 'shaDe'])
+  assert.deepEqual(Object.keys(ctx.questions).sort(), ['brancheDe', 'ceQuiChange', 'cheminsEnConflit', 'cheminsSales', 'combienDe', 'commitsDeLaPlage', 'estAncetre', 'origineDe', 'rebaseEntame', 'refusDesCompteurs', 'relationAuTronc', 'shaDe'])
   assert.equal(Object.isFrozen(ctx.questions), true)
   assert.equal(ctx.generators, GENERATORS)
   for (const script of ['x; git add -A', 'x && git commit -m libre', 'a b', '$(git add -A)', '', 7])
@@ -1025,7 +1028,7 @@ test('ci : un run ROUGE rend le job et l’URL du run — et RIEN n’est entré
   assert.equal(vu.ok, false)
   assert.match(vu.raison, /course CI rouge \(33691303703\)/)
   assert.match(vu.raison, /RIEN n'est entré dans main/)
-  assert.match(vu.raison, /https:\/\/github\.com\/cgauche\/game\/actions\/runs\/33691303703/)
+  assert.ok(vu.raison.includes(`https://github.com/${DEPOT}/actions/runs/33691303703`), vu.raison)
   assert.equal(typeof vu.detail.attenteCiSecondes, 'number')
 })
 
@@ -1054,9 +1057,12 @@ test('decisionDeRebase : tronc contenu → aucun rebase ; fusions hors tronc →
   assert.equal(decisionDeRebase({ contenu: false, fusions: false }), 'rebase')
 })
 
+/** Les fichiers de `COMPTEURS` d'un dépôt jetable, chaque compteur à `valeur`. */
+const fichiersDeCompteurs = (valeur) => Object.fromEntries(COMPTEURS.map((c) => [c.fichier, `export const ${c.symbole} = ${valeur};\n`]))
+
 describe('étape `rebase` sur un VRAI dépôt : train de fusion, puis tronc qui avance', () => {
   const etapeRebase = ETAPES.find((e) => e.nom === 'rebase')
-  const { racine } = instanceDeDepot({ fichiers: { 'a.txt': 'a\n' } })
+  const { racine } = instanceDeDepot({ fichiers: { 'a.txt': 'a\n', ...fichiersDeCompteurs(60) } })
   after(() => rmSync(racine, { recursive: true, force: true }))
   const g = (...args) => execFileSync('git', args, { cwd: racine, env: envDeDepotForge(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()
   const commit = (fichier) => { writeFileSync(join(racine, fichier), `${fichier}\n`); g('add', '--', fichier); g('commit', '-q', '-m', fichier) }
@@ -1124,5 +1130,159 @@ describe('étape `rebase` sur un VRAI dépôt : train de fusion, puis tronc qui 
     assert.equal(g('rev-parse', 'HEAD~1'), base)
     assert.equal(g('rev-list', '--merges', `${base}..HEAD`), '')
     assert.equal(etapeRebase.dejaFaite(ctxReel, journal), true)
+  })
+})
+
+describe('compteurs de version : la valeur que la tête publie est-elle déjà PRISE par le tronc ? (#2222)', () => {
+  const saves = COMPTEURS.find((c) => c.symbole === 'SAVE_VERSION')
+  const racines = []
+  after(() => { for (const racine of racines) rmSync(racine, { recursive: true, force: true }) })
+
+  /** Un dépôt jetable où tout compteur vaut `base`, `train` et `main` écrits par `script`, `origin/main`
+   *  posé sur `main`, HEAD sur `train` ; rend le dépôt et `g`. */
+  const forger = (script, base = 60) => {
+    const { racine } = instanceDeDepot({ fichiers: { 'a.txt': 'a\n', ...fichiersDeCompteurs(base) } })
+    racines.push(racine)
+    const g = (...args) => execFileSync('git', args, { cwd: racine, env: envDeDepotForge(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()
+    const ecrire = (texte) => { writeFileSync(join(racine, saves.fichier), texte); g('add', '--', saves.fichier) }
+    const outils = {
+      g,
+      ecrire,
+      save: (v, message = `save ${v} sur ${g('rev-parse', '--abbrev-ref', 'HEAD')}`) => { ecrire(`export const SAVE_VERSION = ${v};\n`); g('commit', '-q', '-m', message) },
+      autre: (nom) => { writeFileSync(join(racine, nom), `${nom}\n`); g('add', '--', nom); g('commit', '-q', '-m', nom) },
+      sur: (branche) => g('checkout', '-q', branche),
+      fusionner: () => g('merge', '-q', '--no-ff', '-m', 'fusion du tronc', 'main'),
+    }
+    g('branch', 'train')
+    script(outils)
+    g('update-ref', 'refs/remotes/origin/main', 'main')
+    outils.sur('train')
+    return { racine, g }
+  }
+  const juger = (script, base) => questionsDuTrain(depotDe(forger(script, base).racine, { env: envDeDepotForge() })).refusDesCompteurs()
+  const prise = (publiee, tronc) => [messageDeCollision({ symbole: 'SAVE_VERSION', publiee, tronc })]
+
+  test('(a) la branche et le tronc montent à 61 : refus qui nomme la valeur publiée, celle de main et la prochaine libre', () => {
+    assert.deepEqual(juger(({ sur, save }) => { sur('train'); save(61); sur('main'); save(61) }), [
+      '`SAVE_VERSION` : la branche publie 61, déjà prise par main (à 61) — prochaine libre : 62, à renuméroter avec sa migration/son golden',
+    ])
+  })
+
+  test('(b) la branche vise 62, le tronc 61 : 62 est libre, aucun refus', () => {
+    assert.deepEqual(juger(({ sur, save }) => { sur('train'); save(62); sur('main'); save(61) }), [])
+  })
+
+  test('(c) la branche à 61 fusionne le tronc à 61 sans renuméroter : refus', () => {
+    assert.deepEqual(juger(({ sur, save, fusionner }) => { sur('train'); save(61); sur('main'); save(61); sur('train'); fusionner() }), prise(61, 61))
+  })
+
+  test('(c2) la même fusion, puis un commit renumérote à 62 : aucun refus', () => {
+    assert.deepEqual(juger(({ sur, save, fusionner }) => { sur('train'); save(61); sur('main'); save(61); sur('train'); fusionner(); save(62, 'renumérote') }), [])
+  })
+
+  test('(c3) la fusion elle-même résout à 62 : aucun refus', () => {
+    assert.deepEqual(juger(({ g, sur, save, ecrire }) => {
+      sur('train'); save(61); sur('main'); save(61); sur('train')
+      g('merge', '-q', '--no-ff', '--no-commit', 'main')
+      ecrire('export const SAVE_VERSION = 62;\n')
+      g('commit', '-q', '-m', 'fusion résolue à 62')
+    }), [])
+  })
+
+  test('(d) seul le tronc monte : aucun refus — (d2) la branche le fusionne : aucun — (d3) puis monte à 62 : aucun', () => {
+    assert.deepEqual(juger(({ sur, save, autre }) => { sur('train'); autre('b1'); sur('main'); save(61) }), [])
+    assert.deepEqual(juger(({ sur, save, autre, fusionner }) => { sur('train'); autre('b1'); sur('main'); save(61); sur('train'); fusionner() }), [])
+    assert.deepEqual(juger(({ sur, save, autre, fusionner }) => { sur('train'); autre('b1'); sur('main'); save(61); sur('train'); fusionner(); save(62) }), [])
+  })
+
+  test('(e) la branche monte à 61 puis redescend à 60, le tronc à 61 : refus, FAUX POSITIF ASSUMÉ (JSDoc de `refusDesCompteurs`)', () => {
+    assert.deepEqual(juger(({ sur, save }) => { sur('train'); save(61); save(60, 'redescend'); sur('main'); save(61) }), prise(60, 61))
+  })
+
+  test('(S8) la branche à 61, le tronc passé à 62, la fusion résolue CÔTÉ TRONC : refus, 62 est prise', () => {
+    assert.deepEqual(juger(({ g, sur, save, ecrire }) => {
+      sur('train'); save(61); sur('main'); save(61); save(62); sur('train')
+      try { g('merge', '-q', '--no-ff', 'main') } catch { /* conflit sur le compteur */ }
+      ecrire('export const SAVE_VERSION = 62;\n')
+      g('commit', '-q', '-m', 'fusion résolue côté tronc')
+    }), prise(62, 62))
+  })
+
+  test('(S8b) la même valeur écrite autrement par le tronc, la fusion résolue côté tronc : refus', () => {
+    assert.deepEqual(juger(({ g, sur, save, ecrire }) => {
+      sur('train'); save(61); sur('main'); ecrire('export const SAVE_VERSION = 61\n'); g('commit', '-q', '-m', 'le tronc à 61'); sur('train')
+      try { g('merge', '-q', '--no-ff', 'main') } catch { /* conflit sur le compteur */ }
+      ecrire('export const SAVE_VERSION = 61\n')
+      g('commit', '-q', '-m', 'fusion résolue côté tronc')
+    }), prise(61, 61))
+  })
+
+  test('(S13) la branche fusionne le tronc à 61 puis REFORMATE la ligne sans changer la valeur : aucun refus', () => {
+    assert.deepEqual(juger(({ g, sur, save, autre, ecrire, fusionner }) => {
+      sur('train'); autre('b1'); sur('main'); save(61); sur('train'); fusionner()
+      ecrire('export const SAVE_VERSION = 61 ;\n')
+      g('commit', '-q', '-m', 'reformate')
+    }), [])
+  })
+
+  test('(f) compteur déplacé, symbole renommé, forme typée au tronc : refus NOMMÉ, jamais le silence', () => {
+    const illisible = (raison) => [`\`SAVE_VERSION\` illisible à la révision origin/main (${saves.fichier}) : ${raison}`]
+    assert.deepEqual(juger(({ g, sur, autre }) => { sur('train'); autre('b1'); sur('main'); g('mv', saves.fichier, 'src/state/versions.ts'); g('commit', '-q', '-m', 'déplacé') }), illisible('fichier absent'))
+    const uneLigne = illisible('0 ligne(s) `export const SAVE_VERSION = <entier>`, une seule attendue')
+    assert.deepEqual(juger(({ g, sur, autre, ecrire }) => { sur('train'); autre('b1'); sur('main'); ecrire('export const VERSION_SAUVEGARDE = 61;\n'); g('commit', '-q', '-m', 'renommé') }), uneLigne)
+    assert.deepEqual(juger(({ g, sur, autre, ecrire }) => { sur('train'); autre('b1'); sur('main'); ecrire('export const SAVE_VERSION = 61 as const;\n'); g('commit', '-q', '-m', 'typé') }), uneLigne)
+  })
+
+  test('(g) la branche monte à 61, fusionne un tronc inchangé, puis le tronc monte à 61 : refus', () => {
+    assert.deepEqual(juger(({ sur, save, autre, fusionner }) => { sur('train'); save(61); sur('main'); autre('m1'); sur('train'); fusionner(); sur('main'); save(61) }), prise(61, 61))
+  })
+
+  test('(h) une ligne en CRLF se lit', () => {
+    assert.deepEqual(juger(({ g, sur, save, ecrire }) => { sur('train'); ecrire('export const SAVE_VERSION = 61;\r\n'); g('commit', '-q', '-m', 'crlf'); sur('main'); save(61) }), prise(61, 61))
+  })
+
+  test('(i) base 58, la branche publie 59, le tronc est passé à 61 par 59 : refus, 59 est prise', () => {
+    assert.deepEqual(juger(({ sur, save }) => { sur('train'); save(59); sur('main'); save(59); save(60); save(61) }, 58), prise(59, 61))
+  })
+
+  test('git en panne à la lecture des compteurs : refus qui NOMME la panne, jamais « fichier absent »', () => {
+    const { racine } = forger(({ sur, save }) => { sur('train'); save(61); sur('main'); save(61) })
+    const enPanne = depotDe(racine, {
+      env: envDeDepotForge(),
+      spawn: (git, args, opts) => (args.includes('cat-file') && args.includes('--batch') ? { status: 1, stdout: '', stderr: '' } : spawnSync(git, args, opts)),
+    })
+    assert.deepEqual(questionsDuTrain(enPanne).refusDesCompteurs(), ['compteurs de version non jugés, git en panne : `git cat-file --batch` sans lot (status 1)'])
+  })
+
+  test('file de fusion : la PR se juge `G^2` contre `G^1` (refus) ; contre `origin/main`, deux PR en vol à 61 passent (silence)', () => {
+    let groupe
+    const { racine } = forger(({ g, sur, save }) => {
+      g('branch', 'A')
+      sur('A'); save(61); sur('train'); save(61)
+      g('checkout', '-q', '--detach', 'main')
+      g('merge', '-q', '--no-ff', '-m', 'groupe A', 'A')
+      g('merge', '-q', '--no-ff', '-m', 'groupe train', 'train')
+      groupe = g('rev-parse', 'HEAD')
+    })
+    const depot = depotDe(racine, { env: envDeDepotForge() })
+    assert.deepEqual(refusDesCompteurs(depot, { tete: 'train', tronc: 'origin/main' }), [], 'mauvais appel : A pas encore sur main, la PR passe')
+    assert.deepEqual(refusDesCompteurs(depot, { tete: 'A', tronc: 'origin/main' }), [], 'mauvais appel : l’autre PR passe aussi')
+    assert.deepEqual(refusDesCompteurs(depot, { tete: `${groupe}^2`, tronc: `${groupe}^1` }), prise(61, 61))
+  })
+
+  test('l’étape `rebase` refuse AVANT tout rebase, sur le refus des compteurs', () => {
+    const { racine, g } = forger(({ sur, save }) => { sur('train'); save(61); sur('main'); save(61) })
+    const ctx = {
+      racine,
+      questions: questionsDuTrain(depotDe(racine, { env: envDeDepotForge() })),
+      get tete() { return g('rev-parse', 'HEAD') },
+      rebaser: () => { throw new Error('git rebase lancé') },
+      abandonnerRebase: () => { throw new Error('git rebase --abort lancé') },
+    }
+    const tete = g('rev-parse', 'HEAD')
+    const journal = journalVide('train')
+    assert.deepEqual(ETAPES.find((e) => e.nom === 'rebase').jouer(ctx, journal), { ok: false, raison: prise(61, 61)[0] })
+    assert.equal(g('rev-parse', 'HEAD'), tete)
+    assert.equal(journal.base, null)
   })
 })

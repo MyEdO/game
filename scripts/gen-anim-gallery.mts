@@ -16,6 +16,7 @@ import { animatedRig, sampleTimes } from './_lib-anim-rig';
 import type { Appearance } from '../src/gameIso/rig/appearance';
 import { asRigSpeciesId } from '../src/gameIso/rig/appearance';
 import type { Weapon } from '../src/engine/types';
+import { equipDe } from '../src/gameIso/rig/parts/equipment';
 import type { EquipCtx } from '../src/gameIso/rig/parts/equipment';
 import { assertWardrobeId } from './_lib-wardrobe';
 
@@ -63,7 +64,7 @@ const WEAPONS: [string, 'melee' | 'ranged'][] = [
 const rows: string[] = [];
 for (const [name, type] of WEAPONS) {
   const w = wep(name, type);
-  const equip: EquipCtx = { weapons: [w], armour: [] };
+  const equip: EquipCtx = equipDe([w], []);
   const hold = weaponRest(w);
   const cells = [
     still(w, equip, hold, 'porté'),

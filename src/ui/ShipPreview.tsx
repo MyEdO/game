@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { planById } from '../gameIso/rig/bodyPlan';
 import { bonesToSvg } from '../gameIso/rig/renderBones';
+import { useVersionDesDatasets } from './useVersionDesDatasets';
 
 /**
  * Silhouette RENDUE d'une coque depuis son id de véhicule — MÊME chemin que le jeu (gabarit `navire`
@@ -13,12 +14,13 @@ import { bonesToSvg } from '../gameIso/rig/renderBones';
 const SHIP_FALLBACK_BOX = '0 30 124 132';
 
 export function ShipPreview({ vehicleId, sunk = false, label, className }: { vehicleId: string; sunk?: boolean; label?: string; className?: string }) {
+  const version = useVersionDesDatasets();
   const svg = useMemo(() => {
     const plan = planById('navire');
     if (!plan) return '';
     const pose = sunk ? plan.deathPose() : plan.restPose();
     return bonesToSvg(plan.resolve(vehicleId, 'profile', pose, {}));
-  }, [vehicleId, sunk]);
+  }, [vehicleId, sunk, version]);
 
   const gRef = useRef<SVGGElement>(null);
   const [box, setBox] = useState(SHIP_FALLBACK_BOX);

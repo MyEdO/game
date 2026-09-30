@@ -461,54 +461,37 @@ export const ECRIT_LU = {
 }
 
 /**
- * Les LANES, nominatives. Une lane est une SÉRIE ; les lanes tournent ensemble, sur une machine qui
- * les porte (`lanesPortees`). Elles ne portent que des LECTEURS, et la morsure `conflitsEntreLanes` le
- * verrouille. Une gate de `ci.yml` qui n'est dans
- * aucune lane fait REFUSER le run, avec son nom : le classement est une décision, pas un silence
- * (patron `CI_SEULEMENT`).
- *
- * TROIS lanes, et non quatre : la première exécution réelle (2026-09-04) a fait rendre au loader
- * Windows `STATUS_DLL_INIT_FAILED` sur quatre spawns concurrents. Une lane de moins, c'est −25 % de
- * processus simultanés au pire moment, pour un mur inchangé.
- *
- * QUI EST LE MUR : chaque run le mesure et l'imprime au résumé (`lanes : suite … · types … · docs …`),
- * et pose la durée de chaque gate dans `node_modules/.cache/gates/durees.json`. La composition tient
- * tant qu'aucune lane ne dépasse la somme des deux autres : c'est cette ligne qu'on relit avant
- * d'ajouter une gate à une lane.
+ * PLAFOND de lanes du rejeu LOCAL. TROIS, et non quatre : la première exécution réelle (2026-09-04) a
+ * fait rendre au loader Windows `STATUS_DLL_INIT_FAILED` sur quatre spawns concurrents. Une lane de
+ * moins, c'est −25 % de processus simultanés au pire moment, pour un mur inchangé.
  */
-export const LANES = [
-  {
-    nom: 'suite',
-    gates: ['test'],
-    raison:
-      'la seule à saturer la machine — seule dans sa lane, et BORNÉE par `WFRP_TEST_COEURS` pendant que ' +
-      'les deux autres tournent',
-  },
-  {
-    nom: 'types',
-    gates: [
-      'typecheck', 'lint', 'deps:unused', 'server:typecheck', 'test:agents', 'test:ops',
-      'test:runner', 'test:recette', 'test:hooks',
-    ],
-    raison:
-      'lectures du même graphe TypeScript et gates courtes, aucune écriture d’arbre. `test:hooks` y est ' +
-      'admis parce qu’il ne fait aucune écriture d’arbre SUIVIE (registre d’écrans injectable ; sa seule ' +
-      'écriture réelle, le journal gitignoré, est en `ecritFerme`)',
-  },
-  {
-    nom: 'docs',
-    gates: [
-      'docs:check:tout', 'docs:empreinte', 'test:raw', 'raw:check-refs', 'raw:check-code-refs', 'raw:check-ancres',
-      'raw:check-folio-continuity', 'raw:check-source-tables', 'raw:check-source-format',
-      'raw:check-source-puces', 'raw:check-renvois', 'test:docs',
-      'agents:check', 'build',
-    ],
-    raison:
-      'tous les LECTEURS de docs/ et docs/raw/ — aucun n’y écrit : `docs:check:tout` vérifie chaque dérivé ' +
-      'sans l’écrire, rendu sur l’hôte ET sous win32. `build` y tient parce qu’il ne joue que ' +
-      '`gen && vite build` et n’écrit ni docs/ ni docs/raw/ : ses écritures sont celles de son entrée `build`',
-  },
-]
+export const PLAFOND_LANES = 3
+
+/**
+ * Les LANES du rejeu local, DÉRIVÉES de `ci.yml` : une lane par job de gates, ses gates dans l'ordre
+ * du fichier (`job` de `gatesDeCi`, qui écarte déjà `JOBS_HORS_REJEU_LOCAL`). Une lane est une
+ * SÉRIE ; les lanes tournent ensemble, sur une machine qui les porte (`lanesPortees`). Elles ne
+ * portent que des LECTEURS, et la morsure `conflitsEntreLanes` le verrouille.
+ * Au-delà de `PLAFOND_LANES` jobs, REFUS nommé : aucun regroupement silencieux.
+ *
+ * QUI EST LE MUR : chaque run le mesure et l'imprime au résumé (`lanes : docs … · types … · suite …`),
+ * et pose la durée de chaque gate dans `node_modules/.cache/gates/durees.json`.
+ * PURE. REND `[{ nom, gates }]`.
+ */
+export function lanesDeCi(gates) {
+  const parJob = new Map()
+  for (const { nom, job } of gates) {
+    if (!parJob.has(job)) parJob.set(job, [])
+    parJob.get(job).push(nom)
+  }
+  if (parJob.size > PLAFOND_LANES)
+    throw new Error(
+      `ci.yml porte ${parJob.size} jobs de gates (${[...parJob.keys()].join(', ')}) : le rejeu local en tient ` +
+        `${PLAFOND_LANES} au plus (PLAFOND_LANES, scripts/gates/toutes.mjs) — déclare sa règle de repli ` +
+        'avant d’ajouter un job',
+    )
+  return [...parJob].map(([nom, noms]) => ({ nom, gates: noms }))
+}
 
 /**
  * Plafond de durée par gate, en SECONDES : ×3 de la pire durée observée, jamais moins. Sans plafond,
@@ -586,7 +569,7 @@ const chevauche = (a, b) => a.startsWith(b) || b.startsWith(a)
 
 /** Couples « une lane ÉCRIT ce qu'une AUTRE lit » — la liste doit être VIDE. Seul `ecrit` compte :
  *  un chemin passé en `ecritFerme` porte, AU CHEMIN, la porte qui ferme son cas. */
-export function conflitsEntreLanes(lanes = LANES, ecritLu = ECRIT_LU) {
+export function conflitsEntreLanes(lanes, ecritLu = ECRIT_LU) {
   const conflits = []
   for (const a of lanes)
     for (const b of lanes) {
@@ -602,23 +585,13 @@ export function conflitsEntreLanes(lanes = LANES, ecritLu = ECRIT_LU) {
 }
 
 /**
- * Refus de COUVERTURE : gate de ci.yml placée dans aucune lane, gate nommée par une lane et
- * absente de ci.yml, gate sans entrée ÉCRIT/LU, gate placée deux fois. La liste doit être VIDE — une
- * gate ajoutée à la CI ARRÊTE `npm run gates` tant qu'on n'a pas dit ce qu'elle écrit, ce qu'elle lit
- * et où elle court.
+ * Refus de COUVERTURE : gate de ci.yml sans entrée ÉCRIT/LU, ou dont `lit` est vide. La liste doit
+ * être VIDE — une gate ajoutée à la CI ARRÊTE `npm run gates` tant qu'on n'a pas dit ce qu'elle écrit
+ * et ce qu'elle lit. Où elle court, c'est son job de `ci.yml` qui le dit (`lanesDeCi`).
  */
-export function refusDeCouverture(noms, lanes = LANES, ecritLu = ECRIT_LU) {
+export function refusDeCouverture(noms, ecritLu = ECRIT_LU) {
   const refus = []
-  const placees = new Map()
-  const poser = (gate, ou) => {
-    if (placees.has(gate)) refus.push(`${gate} : placée deux fois (${placees.get(gate)} ET ${ou})`)
-    else placees.set(gate, ou)
-    if (!noms.includes(gate)) refus.push(`${gate} : nommée par ${ou}, absente de ci.yml — la retirer`)
-  }
-  for (const lane of lanes) for (const gate of lane.gates) poser(gate, `la lane ${lane.nom}`)
   for (const nom of noms) {
-    if (!placees.has(nom))
-      refus.push(`${nom} : gate de ci.yml sans place — la mettre dans LANES, avec ce qu'elle ÉCRIT et LIT`)
     if (!ecritLu[nom]) refus.push(`${nom} : aucune entrée ÉCRIT/LU — la mesurer avant de la placer`)
     // `lit` NON VIDE, pas seulement l'entrée : c'est `lit` qui décide si la gate est sautable sur un
     // push documentaire (`gatesSautables`, scripts/gates/classerPush.mjs) — une gate sans lecture
@@ -721,7 +694,7 @@ export const limiteDe = (gate) => (TIMEOUTS[gate] ?? TIMEOUTS.defaut) * 1000
  * c'est ici, et nulle part ailleurs, que les deux modes se séparent — le reste du lanceur (commande,
  * commande, plafond, verdict) est commun, donc le verdict l'est aussi.
  */
-export function lanesAJouer(aJouer, { serie = false, lanes = LANES } = {}) {
+export function lanesAJouer(aJouer, { serie = false, lanes }) {
   const noms = new Set(aJouer.map((g) => g.nom))
   if (serie) return [{ nom: 'serie', gates: aJouer.map((g) => g.nom) }]
   return lanes.map((l) => ({ ...l, gates: l.gates.filter((n) => noms.has(n)) })).filter((l) => l.gates.length)
@@ -815,7 +788,6 @@ export async function principal({
   racine = RACINE,
   argv = process.argv,
   journal = (t) => process.stderr.write(t),
-  lanes: lanesDeclarees = LANES,
   ecritLu = ECRIT_LU,
   machine = availableParallelism(),
 } = {}) {
@@ -843,16 +815,24 @@ export async function principal({
   const gates = demandees ? toutesLesGates.filter((g) => demandees.includes(g.nom)) : toutesLesGates
   journal(`[gates] ${gates.length} gate(s) lues dans ci.yml${demandees ? ` (sur ${toutesLesGates.length})` : ''}\n`)
 
-  // La couverture se juge sur ci.yml ENTIER, jamais sur le sous-ensemble de `--gates` : la table des
-  // lanes doit couvrir le fichier, et une gate écartée d'un run ne la rend pas fautive.
-  const manques = refusDeCouverture(toutesLesGates.map((g) => g.nom), lanesDeclarees, ecritLu)
+  // La couverture et les lanes se jugent sur ci.yml ENTIER, jamais sur le sous-ensemble de `--gates` :
+  // une gate écartée d'un run ne rend pas la table fautive.
+  const manques = refusDeCouverture(toutesLesGates.map((g) => g.nom), ecritLu)
   if (manques.length) {
     journal(
-      `[gates] REFUS — la table des lanes ne couvre pas ci.yml :\n${manques.map((m) => `  ${m}`).join('\n')}\n` +
-        '[gates] scripts/gates/toutes.mjs : LANES et ECRIT_LU.\n',
+      `[gates] REFUS — ECRIT_LU ne couvre pas ci.yml :\n${manques.map((m) => `  ${m}`).join('\n')}\n` +
+        '[gates] scripts/gates/toutes.mjs : ECRIT_LU.\n',
     )
     return 1
   }
+  let lanesDeclarees
+  try {
+    lanesDeclarees = lanesDeCi(toutesLesGates)
+  } catch (e) {
+    journal(`[gates] REFUS — ${e.message}\n`)
+    return 1
+  }
+  for (const lane of lanesDeclarees) journal(`[gates] lane ${lane.nom} (job de ci.yml) : ${lane.gates.join(', ')}\n`)
   const conflits = conflitsEntreLanes(lanesDeclarees, ecritLu)
   if (conflits.length) {
     journal(`[gates] REFUS — une lane écrit ce qu'une autre lit :\n${conflits.map((c) => `  ${c}`).join('\n')}\n`)

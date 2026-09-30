@@ -1,4 +1,4 @@
-// Garde PreToolUse(Bash|PowerShell|mcp__lean-ctx__ctx_shell) : un runner qui n'ÉCRIT PAS sa sortie
+// Garde PreToolUse(`OUTILS_SHELL`, `scripts/guards/lib/contratGarde.mjs`) : un runner qui n'ÉCRIT PAS sa sortie
 // ne se lit pas par un filtre tronquant. Clause RUNNER du skill `orchestrer-des-agents` (audit
 // 2026-08-30) : « toute commande de runner écrit sa sortie COMPLÈTE dans un fichier du scratchpad,
 // puis LIT le fichier ; jamais un filtre inline (`| grep`, `| tail`) comme SEULE lecture ».

@@ -28,6 +28,7 @@ import { lireRendu, perimetreDeCoeur } from './workflow-args.mjs'
 import { coeursDeDomaines, coeursDuRegistre, domainesDe } from './_lib.mjs'
 import { scanForbiddenCounts } from './check-atlas-counts.mjs'
 import { jouerWorkflow } from '../guards/lib/jouer-workflow.mjs'
+import { OUTILS_ECRITURE } from '../guards/lib/contratGarde.mjs'
 import { listerDossier } from '../guards/lib/lister.mjs'
 
 const SCRIPT = fileURLToPath(new URL('./atlas-domain.workflow.js', import.meta.url))
@@ -306,7 +307,8 @@ test('workflow Atlas : la grammaire dite au juge de FIDÉLITÉ désigne un FICHI
 
 /** Les types d'agent du dépôt qui n'ont AUCUN outil d'écriture — lus à `.claude/agents/`, jamais
  *  écrits en dur : un agent dont on ajouterait `Edit` sortirait de cette liste sans que rien ne mente. */
-const OUTILS_ECRIVANTS = ['Edit', 'Write', 'MultiEdit', 'NotebookEdit']
+/** Une liste d'outils d'agent n'écrit rien : aucun canal d'écriture (`OUTILS_ECRITURE`). */
+const enLectureSeule = (outils) => !outils.some((o) => OUTILS_ECRITURE.includes(o))
 const typesEnLectureSeule = () => {
   const dossier = fileURLToPath(new URL('../../.claude/agents/', import.meta.url))
   const types = []
@@ -317,10 +319,15 @@ const typesEnLectureSeule = () => {
     // Pas de `tools:` = l'agent hérite de TOUS les outils, écriture comprise : jamais lecture seule.
     if (!nom || !outils) continue
     const liste = outils[1].split(',').map((s) => s.trim())
-    if (!liste.some((o) => OUTILS_ECRIVANTS.includes(o))) types.push(nom[1])
+    if (enLectureSeule(liste)) types.push(nom[1])
   }
   return types
 }
+
+test('workflow Atlas : un agent muni du SEUL `ctx_patch` (canal d’édition prescrit) n’est pas en lecture seule', () => {
+  assert.equal(enLectureSeule(['mcp__lean-ctx__ctx_read', 'mcp__lean-ctx__ctx_patch']), false)
+  assert.equal(enLectureSeule(['mcp__lean-ctx__ctx_read', 'Bash']), true)
+})
 
 test('workflow Atlas : les types d’agent en lecture seule se lisent au dépôt (sinon le contrat est vide)', () => {
   const types = typesEnLectureSeule()

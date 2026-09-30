@@ -12,7 +12,7 @@ import { sexeSchema } from '../../../../data/schemas/grammaire/valeurs';
 import { resolveRig } from '../../composeRig';
 import { bonesToSvg } from '../../renderBones';
 import { asRigSpeciesId } from '../../appearance';
-import { weaponPart, armourPart, objetSansPorteur } from '../equipment';
+import { armourPart, equipDe, objetSansPorteur, pieceDeDessin, weaponPart } from '../equipment';
 import { TENUE_DEFS } from './_registry.generated';
 import { WEAPON_DEFS } from '../weapons/_registry.generated';
 import { ARMOUR_DEFS } from '../armour/_registry.generated';
@@ -58,7 +58,7 @@ describe('déclarations de palette mortes (#1903)', () => {
     const fautes: string[] = [];
     for (const d of TENUE_DEFS) if (d.palette)
       fautes.push(...mortes(`tenue:${d.id}`, d.palette, texte(d.set), () => ESPECES.flatMap((species) => sexeSchema.options.flatMap((sex) =>
-        VIEWS.map((v) => bonesToSvg(resolveRig({ species, sex, build: 0.5, seed: 1 }, { weapons: [], armour: [] }, {}, d.id, v))))).join('\n')));
+        VIEWS.map((v) => bonesToSvg(resolveRig({ species, sex, build: 0.5, seed: 1 }, equipDe([], []), {}, d.id, v))))).join('\n')));
     for (const d of WEAPON_DEFS) if (d.palette) {
       const w = { label: d.slug, type: 'melee', damage: { plusBF: false, flat: 0 }, qualities: [], shape: d.slug, skin: {} } as unknown as Weapon;
       fautes.push(...mortes(`arme:${d.slug}`, d.palette, texte(d.art), () => vues(objetSansPorteur(weaponPart(w))).join('\n')));
@@ -66,7 +66,7 @@ describe('déclarations de palette mortes (#1903)', () => {
     for (const d of ARMOUR_DEFS) if (d.palette) {
       const item = { uid: 'a', kind: 'armor', label: LIBELLE_DE_MATIERE[d.id] ?? d.id, locs: LOCS, equipped: true, qualities: [], enc: 0, pa: 0 } as unknown as ItemInstance;
       const slots = ['tete', 'torse', 'bras', 'jambes', 'pied', 'main', 'cou'] as const;
-      fautes.push(...mortes(`armure:${d.id}`, d.palette, texte(d.set), () => slots.flatMap((s) => vues(armourPart(item, s))).join('\n')));
+      fautes.push(...mortes(`armure:${d.id}`, d.palette, texte(d.set), () => slots.flatMap((s) => vues(armourPart(pieceDeDessin(item), s))).join('\n')));
     }
     expect(fautes).toEqual([]);
   });

@@ -480,7 +480,7 @@ const GLISSEMENTS: ({ dx: number; dy: number; dz: number } | null)[] = [];
  *  La TEINTE DE VISIBILITÉ du quad (#1396) se prend ici aussi, à la case du sujet (`sub.cell`) : c'est
  *  une valeur de FRAME, au même titre que l'exposition. Cuite dans le sujet, elle entrait dans
  *  l'identité des sujets, et un pas du groupe — qui change le champ de vision — remontait tous les
- *  quads du monde (mesuré #1371 : ~126 disposes et 0/63 quads survivants par pas). */
+ *  quads du monde (mesuré #1371 : ~126 disposes et 0/63 quads gardés par pas). */
 export function poseBoards(boards: readonly Board[], camera: FrameCamera, glide: GlideAt, lights: FrameLights, chromeAt: ChromeAt, tintAt: TintAt): boolean {
   const perspective = camera.isPerspectiveCamera === true;
   const unitsOrtho = perspective ? 0 : billboardDepthOffsetUnits(camera.near, camera.far);
@@ -604,17 +604,6 @@ export function boardProjectedPx(b: Board, camera: FrameCamera, viewportH: numbe
   return (Math.abs(HAUT.y - BAS.y) / 2) * viewportH * dprEffectif(dpr);
 }
 
-/**
- * IDENTITÉ DE PISTE d'un sujet — ce sous quoi l'écran tient son état de flipbook, et le seul critère
- * qui décide qu'un board JOUE (#1176, L4). DEUX populations la portent, et une seule des deux est
- * cliquable : les COMBATTANTS (`cid`, hit-test de sprite) et les FIGURANTS à clip d'ambiance authoré
- * (`eid`, `SceneEntity.anim`).
- * `undefined` = décor, ou figurant sans ambiance : il ne joue rien et ne coûte rien de plus.
- */
-export function boardTrackId(sub: BillboardSubject): string | undefined {
-  return sub.cid ?? sub.eid;
-}
-
 /** Ce qu'une image veut voir sur un board : la planche de flipbook, et la cellule à y montrer. */
 export interface FramePick {
   /** Clé de planche (`atlasKey`, `backends/webgl/atlasBake.ts`). */
@@ -624,13 +613,13 @@ export interface FramePick {
 }
 
 /** Le choix de l'image pour un board — `null` = ce sujet ne joue rien (décor, corps sans flipbook). */
-export type FramePickAt = (b: Board) => FramePick | null;
+export type FramePickAt<B extends Board = Board> = (b: B) => FramePick | null;
 
 /** Planche DÉJÀ CUITE d'une clé. Jamais une cuisson : aucune rasterisation n'entre dans une image. */
 export type AtlasAt = (key: string) => { texture: THREE.Texture; layout: AtlasLayout } | undefined;
 
 /** Demande de cuisson d'une planche absente du cache — l'hôte la DIFFÈRE hors de l'image. */
-export type BakeAsk = (pick: FramePick, b: Board) => void;
+export type BakeAsk<B extends Board = Board> = (pick: FramePick, b: B) => void;
 
 /** Planche montée sur un board, telle que l'écrivain l'y a laissée. */
 function layoutOf(b: Board): AtlasLayout | undefined {
@@ -674,9 +663,9 @@ export function poserTextureStatique(b: Board, texture: THREE.Texture): void {
  * pointerait hors cellule, et le quad montrerait du vide. La cuisson, elle, est DEMANDÉE à l'hôte, qui
  * la sort de l'image.
  */
-export function writeBoardFrames(boards: readonly Board[], pickAt: FramePickAt, atlasAt: AtlasAt, ask?: BakeAsk): void {
+export function writeBoardFrames<B extends Board>(boards: readonly B[], pickAt: FramePickAt<B>, atlasAt: AtlasAt, ask?: BakeAsk<B>): void {
   for (const b of boards) {
-    const pick = boardTrackId(b.sub) ? pickAt(b) : null;
+    const pick = pickAt(b);
     if (!pick) {
       poserFrame(b, undefined, layoutOf(b), 0);
       continue;

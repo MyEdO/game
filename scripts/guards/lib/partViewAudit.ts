@@ -19,9 +19,11 @@ import { ELEMENT_DEFS } from '../../../src/gameIso/rig/parts/elements/_registry.
 import type { ElementOverlay } from '../../../src/gameIso/rig/parts/elements/types';
 import { appendageArt } from '../../../src/gameIso/rig/parts/appendages';
 import type { View } from '../../../src/gameIso/rig/facing';
+import { equipDe } from '../../../src/gameIso/rig/parts/equipment';
 import type { EquipCtx } from '../../../src/gameIso/rig/parts/equipment';
 import type { Site } from './stock.mjs';
 import { fileURLToPath } from 'node:url';
+import { sep } from 'node:path';
 import { DECROISSANT, type RegenerationDeStock } from './stockDeSites.mjs';
 import type { ItemInstance, HitLocation } from '../../../src/engine/types';
 import { slugId } from '../../../src/data/slug';
@@ -32,7 +34,7 @@ export type BodySlot = (typeof SLOTS)[number];
 /** Porteur d'art de corps : une tenue ou une armure (même `set`, même passage par `resolveParts`). */
 export interface Bearer { set: Partial<Record<BodySlot, PartArt>> }
 
-const NO_EQUIP: EquipCtx = { weapons: [], armour: [] };
+const NO_EQUIP: EquipCtx = equipDe([], []);
 
 /** Vue DÉCLARÉE (`declaredView`, `viewArt.ts`) dont l'art n'est pas vide : ce que mesure le format. */
 export const isDrawnView = (art: PartArt | null | undefined, view: View): boolean => !!declaredView(art, view);
@@ -123,7 +125,7 @@ export function auditPartViews(): Audit {
   }
   for (const def of ARMOUR_DEFS) {
     const key = `armure:${def.id}`;
-    const equip: EquipCtx = { weapons: [], armour: [armourItem(def.id)] };
+    const equip: EquipCtx = equipDe([], [armourItem(def.id)]);
     // Sans tenue : l'armure couvre les 4 slots et PRIME de toute façon (`armed ?? tenuePart`).
     auditBearer(fichierDeDef(REGISTRE_ARMURES, def), key, def,
       (view) => resolveParts('Humain', 'M', undefined, equip, {}, 1, view), acc);
@@ -270,7 +272,7 @@ const MOTIF_RIG_VIEW = 'Dessine ces vues ; une vue neuve non dessinée ne s’en
  *  `npx tsx scripts/guards/lib/regenStock.mts scripts/guards/lib/partViewAudit.ts [--check]`. */
 export const regenerations = (parts: Audit = auditPartViews(), rig: RigViewAudit = auditRigPartViews()): RegenerationDeStock[] => [
   {
-    chemin: fileURLToPath(new URL('./rigPartViewStock.mjs', import.meta.url)),
+    chemin: fileURLToPath(new URL('./rigPartViewStock.mjs', import.meta.url)).split(sep).join('/'),
     politique: DECROISSANT,
     collections: [
       { nom: 'PART_VIEW_RATCHET', sites: parts.format, motif: 'Dessine les 3 vues de ces slots (cf. src/gameIso/rig/PART-CONTRACT.md) ; un slot neuf ne s’entérine pas ici.' },
@@ -278,7 +280,7 @@ export const regenerations = (parts: Audit = auditPartViews(), rig: RigViewAudit
     ],
   },
   {
-    chemin: fileURLToPath(new URL('./rigViewStock.mjs', import.meta.url)),
+    chemin: fileURLToPath(new URL('./rigViewStock.mjs', import.meta.url)).split(sep).join('/'),
     politique: DECROISSANT,
     collections: [
       { nom: 'RIG_VIEW_FORMAT_RATCHET', sites: rig.format, motif: MOTIF_RIG_VIEW },

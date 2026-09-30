@@ -53,6 +53,7 @@ import {
 } from '../guards/lib/gitPorte.mjs'
 import { BORNE_RAISON, DEPOT, lireTicket, poserCommentaire } from '../guards/lib/ticketsGh.mjs'
 import { coursesCi } from '../guards/lib/coursesCi.mjs'
+import { refusDesCompteurs } from '../guards/lib/compteursDuDepot.mjs'
 import { commitsDeLaPlage } from '../guards/lib/plageFermante.mjs'
 import { GENERATORS } from '../docs/build-all.mjs'
 import { PEREMPTION_MS, purgerPerimes } from '../guards/lib/purgerPerimes.mjs'
@@ -420,7 +421,7 @@ export function relationAuTronc(depot) {
   if (vu.absent) return { disponible: false, raison: 'origin/main ou HEAD introuvable' }
   if (vu.valeur) return { disponible: true, contenu: true, fusions: false }
   try {
-    const fusions = shasDe(depot, [`${TRONC.suivi}..HEAD`], { fusions: true })
+    const fusions = shasDe(depot, [`${TRONC.suivi}..HEAD`], { fusions: 'seules' })
     if (fusions === null) return { disponible: false, raison: 'origin/main..HEAD illisible' }
     return { disponible: true, contenu: false, fusions: fusions.length > 0 }
   } catch (e) {
@@ -476,6 +477,7 @@ export const questionsDuTrain = (depot) => Object.freeze({
   rebaseEntame: () => rebaseEntame(depot),
   cheminsEnConflit: () => cheminsEnConflit(depot),
   combienDe: (revisions) => combienDe(depot, revisions),
+  refusDesCompteurs: () => refusDesCompteurs(depot, { tete: 'HEAD', tronc: TRONC.suivi }),
   estAncetre: (ancetre, descendant) => estAncetre(depot, ancetre, descendant),
   ceQuiChange: (avant, apres) => ceQuiChange(depot, avant, apres),
   relationAuTronc: () => relationAuTronc(depot),

@@ -3,7 +3,7 @@
 // `ci.yml` EST la porte — une gate neuve y est un step, et rien d'autre ne la récite. Ce module rend
 // ce que le fichier DIT, à trois lecteurs : `scripts/gates/toutes.mjs` (le rejeu local),
 // `scripts/gates/ecrivainsAtteints.mjs` (la table écrit/lu) et `scripts/ops/ruleset-main.mjs` (les
-// checks requis du ruleset, par `jobsCi`).
+// checks requis du ruleset, par `contextesRequis`).
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
@@ -17,13 +17,9 @@ export const COMMANDE_ARBRE_INCHANGE = 'git status --porcelain && test -z "$(git
  * forme fait LEVER `gatesDeCi`, au lieu d'être ignoré en silence.
  */
 export const CI_SEULEMENT = {
-  'npm ci': 'installation des dépendances du runner — rien à rejouer sur l’arbre local',
   'npm --prefix server ci': 'install serveur — posée une fois localement par `npm install`',
   [COMMANDE_ARBRE_INCHANGE]:
     'le lanceur local juge le même invariant par `photoArbre` (scripts/gates/toutes.mjs)',
-  'node scripts/gates/classerPush.mjs >> "$GITHUB_OUTPUT"':
-    'classe le push (documentaire / produit, #1738) et ne mesure rien du contenu : il décide QUELS ' +
-    'steps jouent, il n’est pas lui-même une gate — localement `npm run gates` rejoue TOUT, sans classement',
 }
 
 /**
@@ -32,7 +28,8 @@ export const CI_SEULEMENT = {
  */
 export const JOBS_HORS_REJEU_LOCAL = {
   fermetures:
-    'ferme sur GitHub les tickets soldés par la plage poussée, après un `build` vert : il agit APRÈS ' +
+    'ferme sur GitHub les tickets soldés par la plage poussée, après une course verte de TOUS les jobs ' +
+    'vérifiants (ses `needs:`) : il agit APRÈS ' +
     'la publication et ne mesure rien du contenu (scripts/ops/fermer-depuis-main.mjs)',
   migrations:
     'rejeu EN PLACE des migrations : le jouer sur un arbre de travail réécrit src/data et src/scenes ' +
@@ -53,6 +50,18 @@ export const CLES_DE_STEP_INERTES = ['name', 'if', 'id']
 const cheminCi = ({ cwd = process.cwd(), fichier } = {}) =>
   fichier ?? join(cwd, '.github', 'workflows', 'ci.yml')
 
+/** Lignes de `ci.yml` : le `texte` fourni (une autre révision que l'arbre, lue par l'appelant), sinon
+ *  le fichier sur disque. */
+const lignesCi = ({ cwd, fichier, texte } = {}) =>
+  (texte ?? readFileSync(cheminCi({ cwd, fichier }), 'utf8')).split(/\r?\n/)
+
+/**
+ * Plafond de durée de CHAQUE job de `ci.yml`, en minutes — la clé `timeout-minutes` de niveau JOB,
+ * jamais de step. Course la plus longue mesurée : 18,5 min sur 40 runs (audit CI du 2026-09-29, #2178).
+ * Sans plafond, un job bloqué tient son runner jusqu'au défaut de GitHub (360 min).
+ */
+export const TIMEOUT_JOB_MINUTES = 30
+
 /**
  * Steps de `ci.yml`, dans l'ordre du fichier. Un scalaire de bloc (`run: |`) est réduit à ses lignes
  * jointes par ` ; ` — une forme, donc, qui doit être classée comme les autres au lieu de disparaître.
@@ -64,7 +73,7 @@ const cheminCi = ({ cwd = process.cwd(), fichier } = {}) =>
  * REND `[{ job, commande, cles, si }]`.
  */
 export function stepsCi({ cwd = process.cwd(), fichier } = {}) {
-  const lignes = readFileSync(cheminCi({ cwd, fichier }), 'utf8').split(/\r?\n/)
+  const lignes = lignesCi({ cwd, fichier })
   const steps = []
   let job = null
   let courant = null
@@ -114,11 +123,13 @@ export function stepsCi({ cwd = process.cwd(), fichier } = {}) {
  * lanceur. Un step qui n'est ni `npm test`/`npm run <x>` ni une entrée de `CI_SEULEMENT`, ou qui
  * porte une clé non inerte, LÈVE : le classement est une décision, pas un silence.
  * `si` est la condition `if` écrite sur le step, telle quelle — la porte du classement du push la lit.
+ * Une gate présente dans DEUX jobs LÈVE : `job` est son groupe (`lanesDeCi`, scripts/gates/toutes.mjs),
+ * et une gate n'en a qu'un.
  * REND `[{ nom, commande, job, si }]`.
  */
 export function gatesDeCi({ cwd = process.cwd(), fichier } = {}) {
   const gates = []
-  const vus = new Set()
+  const vus = new Map()
   for (const { job, commande, cles, si } of stepsCi({ cwd, fichier })) {
     if (job in JOBS_HORS_REJEU_LOCAL) continue
     const nom = nomDeGate(commande)
@@ -135,21 +146,60 @@ export function gatesDeCi({ cwd = process.cwd(), fichier } = {}) {
           'CI_SEULEMENT (scripts/gates/gatesDeCi.mjs) avec sa raison',
       )
     }
-    if (vus.has(nom)) continue
-    vus.add(nom)
+    if (vus.has(nom))
+      throw new Error(
+        `gate ${nom} jouée par deux jobs de ci.yml (${vus.get(nom)} ET ${job}) — une gate appartient à UN groupe : ` +
+          'retire-la de l’un des deux',
+      )
+    vus.set(nom, job)
     gates.push({ nom, commande, job, si })
   }
   return gates
 }
 
-/** Noms des jobs de `ci.yml`, dans l'ordre du fichier — jamais recopiés à la main : un job renommé
- *  change le nom de son check, et le ruleset doit suivre le fichier. */
-export function jobsCi({ cwd = process.cwd(), fichier } = {}) {
-  const lignes = readFileSync(cheminCi({ cwd, fichier }), 'utf8').split(/\r?\n/)
+/**
+ * Jobs de `ci.yml`, dans l'ordre du fichier, avec leurs clés de NIVEAU JOB (`if`, `needs`,
+ * `timeout-minutes`…) et leur valeur sur la ligne telle quelle (`''` pour un bloc). `texte` lit une
+ * autre révision que l'arbre (le ruleset lit celle du tronc, scripts/ops/ruleset-main.mjs). `texte`
+ * du bloc : les lignes du job sous son en-tête, que `stepsDu` (scripts/gates/workflowsDuDepot.mjs)
+ * découpe en steps.
+ * REND `[{ job, cles: { [cle]: valeur }, texte }]`.
+ */
+export function blocsDeJobs({ cwd = process.cwd(), fichier, texte } = {}) {
+  const lignes = lignesCi({ cwd, fichier, texte })
   const iJobs = lignes.findIndex((l) => /^jobs:\s*$/.test(l))
   if (iJobs === -1) throw new Error('ci.yml sans bloc `jobs:` — le ruleset ne peut pas nommer ses checks')
-  return lignes
-    .slice(iJobs + 1)
-    .map((l) => /^ {2}([A-Za-z0-9_-]+):\s*$/.exec(l)?.[1])
-    .filter(Boolean)
+  const blocs = []
+  for (const ligne of lignes.slice(iJobs + 1)) {
+    if (/^[^\s#]/.test(ligne)) break
+    const entete = /^ {2}([A-Za-z0-9_-]+):\s*$/.exec(ligne)
+    if (entete) {
+      blocs.push({ job: entete[1], cles: {}, lignes: [] })
+      continue
+    }
+    const bloc = blocs.at(-1)
+    if (!bloc) continue
+    bloc.lignes.push(ligne)
+    const cle = /^ {4}([A-Za-z][A-Za-z0-9_-]*):\s*(.*?)\s*$/.exec(ligne)
+    if (cle) bloc.cles[cle[1]] = cle[2]
+  }
+  return blocs.map(({ job, cles, lignes: l }) => ({ job, cles, texte: l.join('\n') }))
 }
+
+/** Noms des jobs de `ci.yml`, dans l'ordre du fichier — jamais recopiés à la main : un job renommé
+ *  change le nom de son check, et le ruleset doit suivre le fichier. */
+export const jobsCi = (source = {}) => blocsDeJobs(source).map((b) => b.job)
+
+/**
+ * Jobs de `ci.yml` qui ne VÉRIFIENT pas le contenu poussé, chacun avec sa raison : ils ne peuvent pas
+ * être un check requis. Nominatif — un job neuf devient un check requis tant qu'il n'est pas nommé ici.
+ */
+export const JOBS_NON_VERIFIANTS = {
+  fermetures:
+    'joue APRÈS la publication (il ferme les tickets soldés par les commits poussés) — exiger sa ' +
+    'réussite avant de laisser entrer le push serait circulaire',
+}
+
+/** Contextes de check requis = les jobs VÉRIFIANTS de `ci.yml` — celui de l'arbre (`cwd`/`fichier`) ou
+ *  un `texte` lu ailleurs (`ciDuTronc`, scripts/ops/ruleset-main.mjs). */
+export const contextesRequis = (source = {}) => jobsCi(source).filter((j) => !(j in JOBS_NON_VERIFIANTS))

@@ -7,7 +7,7 @@
  * **Ajouter une catégorie = UNE entrée dans `CODEX`** ; enrichir = ajouter des sections (data),
  * pas un composant.
  */
-import { useSyncExternalStore } from 'react';
+import { CLES_VERSIONNEES, memoParVersion } from '../../data/versionDataset';
 import {
   species, careers, characteristics, classes, skills, talents,
   qualities, trappings, siegeEngines, weaponGroups, etats, maladies, creatures, traits, spells, maneuvers, domains, mutations, mutationTables, gods,
@@ -235,9 +235,9 @@ export interface CodexCategory {
   /** Réf de source de la TABLE entière (« LDB 18 », « MDG 13 ») — affichée discrètement, JAMAIS
    *  dans le libellé joueur (une réf de livre nue n'est pas un nom de catégorie). */
   sourceRef?: string;
-  /** Projection PARESSEUSE (getter, cache par version) : les datasets étant mutés EN PLACE
-   *  (`overrides.ts::setDataset`), la re-projection après `invalidateCodexLookup()` lit la donnée
-   *  FRAÎCHE. Ne se re-matérialise qu'à l'invalidation (persist DEV, rare), jamais par rendu. */
+  /** Projection PARESSEUSE (getter, `memoParVersion`) : les datasets étant mutés EN PLACE
+   *  (`overrides.ts::setDataset`), la re-projection après une écriture au seam lit la donnée FRAÎCHE.
+   *  Ne se re-matérialise qu'après une écriture (persist DEV, rare), jamais par rendu. */
   items: CodexItem[];
   /** Facettes de filtre — DÉRIVÉES des items dans la même re-projection (livre partout, groupe là où porté). */
   facets?: CodexFacet[];
@@ -628,38 +628,15 @@ export const traitItem = (t0: (typeof traits)[number], categoryKey: string): Cod
   });
 };
 
-// ── Fraîcheur du Codex : invalidation, version, projections paresseuses ─────────────────────────
-// `setDataset` (persist d'une édition Codex) splice les tableaux de `src/data` EN PLACE : les
-// projections ci-dessous redonnent la donnée FRAÎCHE à condition d'être RE-EXÉCUTÉES. Chaque
-// catégorie matérialise donc ses `items` (et ses facettes dérivées) PARESSEUSEMENT, cachés tant que
-// la version ne bouge pas ; `invalidateCodexLookup()` (appelé par `CodexEdit` au persist) bump la
-// version → le prochain accès re-projette, et les composants abonnés (`useCodexVersion`) re-rendent.
-let LOOKUP: Map<string, { byId: Map<string, CodexItem>; exact: Map<string, CodexItem>; folded: Map<string, CodexItem> }> | null = null;
-let LOOKUP_VERSION = 0;
-const VERSION_LISTENERS = new Set<() => void>();
+// ── Fraîcheur du Codex : projections paresseuses sur le témoin des datasets ─────────────────────
+// `setDataset`/`setObjectDataset` (persist d'une édition Codex) mutent `src/data` EN PLACE, et
+// `setRule`/`resetRule` basculent une règle optionnelle : tous bumpent `versionDesDatasets`
+// (`data/versionDataset.ts`) : les projections et index ci-dessous se
+// re-matérialisent à la lecture qui suit (`memoParVersion`), et les composants abonnés
+// (`useVersionDesDatasets`) re-rendent.
+type IndexDeCategorie = { byId: Map<string, CodexItem>; exact: Map<string, CodexItem>; folded: Map<string, CodexItem> };
+const LOOKUP = memoParVersion(CLES_VERSIONNEES, () => new Map<string, IndexDeCategorie>());
 
-/** Version courante de la donnée Codex — bumpée à chaque invalidation. */
-export const codexLookupVersion = (): number => LOOKUP_VERSION;
-
-/** Invalide index ET projections (donnée modifiée — persist de `CodexEdit`) : le prochain accès
- *  (`codexLookup`, `c.items`, `c.facets`) reconstruit depuis les datasets live, et les composants
- *  abonnés via `useCodexVersion()` re-rendent. */
-export function invalidateCodexLookup(): void {
-  LOOKUP = null;
-  LOOKUP_VERSION++;
-  for (const l of VERSION_LISTENERS) l();
-}
-
-const subscribeCodex = (l: () => void): (() => void) => {
-  VERSION_LISTENERS.add(l);
-  return () => VERSION_LISTENERS.delete(l);
-};
-
-/** Abonne un composant à la fraîcheur du Codex : re-rend après chaque `invalidateCodexLookup()`.
- *  La valeur sert aussi de dépendance de `useMemo` sur `c.items` (cf. `CompendiumScreen`). */
-export function useCodexVersion(): number {
-  return useSyncExternalStore(subscribeCodex, codexLookupVersion);
-}
 
 /** Libellé de la facette hiérarchique (`group`) par catégorie. */
 const GROUP_FACET_LABEL: Record<string, string> = {
@@ -692,19 +669,12 @@ interface CodexCategorySpec {
   build: () => CodexItem[];
 }
 
-/** Catégorie à projections PARESSEUSES (cache keyé sur la version d'invalidation). */
+/** Catégorie à projections PARESSEUSES (`memoParVersion` sur `CLES_VERSIONNEES` : datasets et règles). */
 function makeCategory(spec: CodexCategorySpec): CodexCategory {
-  let items: CodexItem[] | null = null;
-  let facets: CodexFacet[] | undefined;
-  let builtAt = -1;
-  const fresh = (): CodexItem[] => {
-    if (!items || builtAt !== LOOKUP_VERSION) {
-      items = spec.build();
-      facets = deriveFacets(spec.key, items);
-      builtAt = LOOKUP_VERSION;
-    }
-    return items;
-  };
+  const projection = memoParVersion(CLES_VERSIONNEES, () => {
+    const items = spec.build();
+    return { items, facets: deriveFacets(spec.key, items) };
+  });
   return {
     key: spec.key,
     label: spec.label,
@@ -712,8 +682,8 @@ function makeCategory(spec: CodexCategorySpec): CodexCategory {
     cluster: spec.cluster,
     sourceRef: spec.sourceRef,
     exergues: spec.exergues,
-    get items() { return fresh(); },
-    get facets() { fresh(); return facets; },
+    get items() { return projection().items; },
+    get facets() { return projection().facets; },
   };
 }
 
@@ -2682,16 +2652,16 @@ export const codexItemKey = (category: string, id: string): string => `${categor
 // pas (des centaines de refs × des centaines d'items). L'index (label exact → item, + repli casse
 // pliée) se construit à la 1re résolution d'une catégorie — sur les `items` COURANTS du getter
 // re-projetable — et se ré-utilise ensuite. La 1re occurrence gagne (même précédence que l'ancien
-// `find`). Invalidé par `invalidateCodexLookup` (persist d'une édition Codex) : index ET projections
-// (`c.items`/`c.facets`) repartent alors de la donnée persistée, et `useCodexVersion` fait re-rendre
-// les lecteurs (CompendiumScreen). L'état (`LOOKUP`/`LOOKUP_VERSION`) vit en tête de fichier, avec
-// la machinerie de fraîcheur.
+// `find`). Reconstruit après une écriture au seam des datasets (`memoParVersion`) : index ET
+// projections (`c.items`/`c.facets`) repartent alors de la donnée persistée, et `useVersionDesDatasets` fait
+// re-rendre les lecteurs (CompendiumScreen). L'état (`LOOKUP`) vit en tête de fichier, avec la
+// machinerie de fraîcheur.
 
 /** Index (byId + label exact/casse pliée) d'une catégorie, construit à la 1re résolution — `undefined`
  *  si la catégorie est inconnue (jamais mis en cache, répond `undefined` à chaque appel). */
-function categoryIndex(category: string): { byId: Map<string, CodexItem>; exact: Map<string, CodexItem>; folded: Map<string, CodexItem> } | undefined {
-  if (!LOOKUP) LOOKUP = new Map();
-  let idx = LOOKUP.get(category);
+function categoryIndex(category: string): IndexDeCategorie | undefined {
+  const lookup = LOOKUP();
+  let idx = lookup.get(category);
   if (!idx) {
     const items = categoryByKey(category)?.items;
     if (!items) return undefined;
@@ -2706,7 +2676,7 @@ function categoryIndex(category: string): { byId: Map<string, CodexItem>; exact:
       idx.exact.set(it.label, it);
       idx.folded.set(it.label.toLowerCase(), it);
     }
-    LOOKUP.set(category, idx);
+    lookup.set(category, idx);
   }
   return idx;
 }

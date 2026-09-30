@@ -181,7 +181,6 @@ export function decisionDeRebase({ contenu, fusions }) {
   return fusions ? 'fusions' : 'rebase'
 }
 
-
 /** Première ligne d'un message de commit, coupée au mot vers `max` (`coupeAuMot`). PURE. */
 export const titreDeCommit = (message, max = 120) => {
   const ligne = String(message ?? '').split('\n')[0].trim()
@@ -360,6 +359,8 @@ export const ETAPES = [
       const teteAvant = ctx.tete
       const relation = questions.relationAuTronc()
       if (!relation.disponible) return { ok: false, raison: `relation d’origin/main à HEAD illisible : ${relation.raison}` }
+      const refusDeCompteurs = questions.refusDesCompteurs()
+      if (refusDeCompteurs.length) return { ok: false, raison: refusDeCompteurs.join('\n') }
       const decision = decisionDeRebase(relation)
       if (decision === 'fusions') return { ok: false, raison: REFUS_TRAIN_DE_FUSION }
       const vu = decision === 'rebase' ? ctx.rebaser() : null

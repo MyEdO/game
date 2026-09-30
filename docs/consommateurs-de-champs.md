@@ -120,19 +120,19 @@ Le détecteur SYNTAXIQUE qui a précédé (annotation littérale du type) rendai
 
 | Champ | Lecteurs | Exemple |
 |---|---|---|
-| `seed` | 3 | `src/gameIso/rig/enemyProfile.ts:119` |
-| `monster` | 3 | `src/gameIso/rig/enemyProfile.ts:175` |
+| `seed` | 3 | `src/gameIso/rig/enemyProfile.ts:118` |
+| `monster` | 3 | `src/gameIso/rig/enemyProfile.ts:174` |
 | `colors` | 5 | `src/gameIso/rig/bodyPlan.ts:122` |
-| `parts` | 2 | `src/gameIso/rig/enemyProfile.ts:65` |
-| `sex` | 1 | `src/gameIso/rig/enemyProfile.ts:64` |
-| `build` | 2 | `src/gameIso/rig/enemyProfile.ts:64` |
+| `parts` | 2 | `src/gameIso/rig/enemyProfile.ts:64` |
+| `sex` | 1 | `src/gameIso/rig/enemyProfile.ts:63` |
+| `build` | 2 | `src/gameIso/rig/enemyProfile.ts:63` |
 | `species` | 11 | `src/gameIso/rig/bodyPlan.ts:172` |
-| `tenue` | 4 | `src/gameIso/rig/enemyProfile.ts:102` |
+| `tenue` | 4 | `src/gameIso/rig/enemyProfile.ts:101` |
 | `harnais` | 2 | `src/gameIso/rig/bodyPlan.ts:124` |
-| `armurePortee` | 3 | `src/gameIso/rig/enemyProfile.ts:224` |
-| `hairstyle` | 1 | `src/gameIso/rig/enemyProfile.ts:65` |
+| `armurePortee` | 3 | `src/gameIso/rig/enemyProfile.ts:222` |
+| `hairstyle` | 1 | `src/gameIso/rig/enemyProfile.ts:64` |
 | `eyes` | 5 | `src/gameIso/rig/bodyPlan.ts:123` |
-| `features` | 4 | `src/gameIso/rig/enemyProfile.ts:65` |
+| `features` | 4 | `src/gameIso/rig/enemyProfile.ts:64` |
 
 ### `FlowTest` (src/engine/flowCore.ts)
 
@@ -166,7 +166,7 @@ Le détecteur SYNTAXIQUE qui a précédé (annotation littérale du type) rendai
 | Champ | Lecteurs | Exemple |
 |---|---|---|
 | `min` | 2 | `src/state/travelFlow.ts:1154` |
-| `max` | 1 | `src/ui/compendium/registry.ts:801` |
+| `max` | 1 | `src/ui/compendium/registry.ts:771` |
 | `id` | 8 | `src/engine/mountTravel.ts:217` |
 | `label` | 8 | `src/engine/mountTravel.ts:201` |
 | `desc` | 1 | `src/state/travelPostes.ts:362` |
@@ -187,8 +187,8 @@ Le détecteur SYNTAXIQUE qui a précédé (annotation littérale du type) rendai
 
 | Champ | Lecteurs | Exemple |
 |---|---|---|
-| `min` | 1 | `src/ui/compendium/registry.ts:824` |
-| `max` | 1 | `src/ui/compendium/registry.ts:824` |
+| `min` | 1 | `src/ui/compendium/registry.ts:794` |
+| `max` | 1 | `src/ui/compendium/registry.ts:794` |
 | `id` | 3 | `src/data/index.ts:501` |
 | `label` | 2 | `src/engine/shipCritical.ts:107` |
 | `ops` | 3 | `src/engine/riverNavigation.ts:207` |
@@ -301,4 +301,4 @@ Le détecteur SYNTAXIQUE qui a précédé (annotation littérale du type) rendai
 Le champ `spec` d'une référence de dotation a 2 lecteur(s) mesuré(s) — `src/engine/items.ts:309`, `src/engine/trappingChoices.ts:107`.
 
 `trappingRefLabel` (`src/data/index.ts`, SOURCE UNIQUE du libellé affiché d'une `TrappingRef`) ne lit PAS `ref.spec` — le rendu « base (spec) » passe par `refLabel`, partagée par toute `RefDesignee`.
-<!-- sources-empreinte: 54ee0cb8efb0a23ebb0eed991bed3fd85aa427ce (2144 fichiers, 175 dossiers) corps: 02a694ec2be3d35596942a527561fdf7c195f5a8 -->
+<!-- sources-empreinte: 0bec0665c64ffb4a26c33685fc1f03ba97ed93f2 (2145 fichiers, 175 dossiers) corps: a2fc6daaea26769bb03de05348139b56e4131032 -->

@@ -221,37 +221,37 @@ ligne = une arête `addReverse(cible, id, référant, titre?)` réellement prés
 
 | Référant (source de la ref AVANT) | Cible (fiche qui reçoit la section inverse) | Titre de section | Site |
 |---|---|---|---|
-| Carrières (`careers`) | Caractéristiques (`characteristics`) | « Carrières (avancée) » | `src/ui/compendium/relations.ts:138` |
-| Carrières (`careers`) | Classes (`classes`) | « Carrières de la classe » | `src/ui/compendium/relations.ts:129` |
-| Carrières (`careers`) | Compétences (`skills`) | « Carrières (par rang) » | `src/ui/compendium/relations.ts:136` |
-| Carrières (`careers`) | Talents (`talents`) | « Carrières (par rang) » | `src/ui/compendium/relations.ts:137` |
-| Carrières (`careers`) | Possessions (`trappings`) | « Carrières (par rang) » | `src/ui/compendium/relations.ts:139` |
-| Classes (`classes`) | Possessions (`trappings`) | « Possession de classe » | `src/ui/compendium/relations.ts:178` |
-| Créatures (`creatures`) | Compétences (`skills`) | — (titre de repli) | `src/ui/compendium/relations.ts:162` |
-| Créatures (`creatures`) | Sorts (`spells`) | « Créatures la lançant » | `src/ui/compendium/relations.ts:164` |
-| Créatures (`creatures`) | Talents (`talents`) | — (titre de repli) | `src/ui/compendium/relations.ts:163` |
-| Créatures (`creatures`) | Traits (`traits`) | « Créatures ayant ce trait » | `src/ui/compendium/relations.ts:158` `src/ui/compendium/relations.ts:161` |
-| Créatures (`creatures`) | Possessions (`trappings`) | « Créatures la possédant » | `src/ui/compendium/relations.ts:165` |
-| Domaines (`domains`) | États (`etats`) | « Domaines l’infligeant » | `src/ui/compendium/relations.ts:209` |
-| Dieux (`gods`) | Sorts (`spells`) | « Cultes (Bénédictions / Miracles) » | `src/ui/compendium/relations.ts:199` `src/ui/compendium/relations.ts:200` `src/ui/compendium/relations.ts:201` |
-| Lieux (`locations`) | Lieux (`locations`) | « Sous-lieux » | `src/ui/compendium/relations.ts:214` |
-| Tables de Corruption (`mutationTables`) | Mutations (`mutations`) | « Tables de Corruption la tirant » | `src/ui/compendium/relations.ts:212` |
-| Mutations (`mutations`) | Traits (`traits`) | « Mutations conférant ce trait » | `src/ui/compendium/relations.ts:190` |
-| Qualités (`qualities`) | États (`etats`) | « Qualités d’arme l’infligeant » | `src/ui/compendium/relations.ts:207` |
-| Races (`races`) | Carrières (`careers`) | « Races y accédant » | `src/ui/compendium/relations.ts:125` |
-| Races (`races`) | Compétences (`skills`) | — (titre de repli) | `src/ui/compendium/relations.ts:122` |
-| Races (`races`) | Talents (`talents`) | — (titre de repli) | `src/ui/compendium/relations.ts:123` |
-| Compétences (`skills`) | Caractéristiques (`characteristics`) | « Compétences liées » | `src/ui/compendium/relations.ts:143` |
-| Sorts (`spells`) | Domaines (`domains`) | « Sorts du domaine » | `src/ui/compendium/relations.ts:194` |
-| Sorts (`spells`) | États (`etats`) | « Sorts l’infligeant » | `src/ui/compendium/relations.ts:205` |
-| Talents (`talents`) | Caractéristiques (`characteristics`) | « Talents (bonus de départ) » | `src/ui/compendium/relations.ts:151` |
-| Talents (`talents`) | États (`etats`) | « Talents l’infligeant » | `src/ui/compendium/relations.ts:208` |
-| Talents (`talents`) | Compétences (`skills`) | « Talents le conférant » | `src/ui/compendium/relations.ts:149` |
-| Talents (`talents`) | Talents (`talents`) | « Talents le conférant » | `src/ui/compendium/relations.ts:150` |
-| Traits (`traits`) | États (`etats`) | « Traits l’infligeant » | `src/ui/compendium/relations.ts:206` |
-| Traits (`traits`) | Manœuvres (`maneuvers`) | « Traits l’accordant » | `src/ui/compendium/relations.ts:184` |
-| Possessions (`trappings`) | Qualités (`qualities`) | « Équipements ayant cette qualité » | `src/ui/compendium/relations.ts:171` |
-| Possessions (`trappings`) | Groupes d’objet (`weaponGroups`) | « Objets du groupe » | `src/ui/compendium/relations.ts:172` |
+| Carrières (`careers`) | Caractéristiques (`characteristics`) | « Carrières (avancée) » | `src/ui/compendium/relations.ts:125` |
+| Carrières (`careers`) | Classes (`classes`) | « Carrières de la classe » | `src/ui/compendium/relations.ts:116` |
+| Carrières (`careers`) | Compétences (`skills`) | « Carrières (par rang) » | `src/ui/compendium/relations.ts:123` |
+| Carrières (`careers`) | Talents (`talents`) | « Carrières (par rang) » | `src/ui/compendium/relations.ts:124` |
+| Carrières (`careers`) | Possessions (`trappings`) | « Carrières (par rang) » | `src/ui/compendium/relations.ts:126` |
+| Classes (`classes`) | Possessions (`trappings`) | « Possession de classe » | `src/ui/compendium/relations.ts:165` |
+| Créatures (`creatures`) | Compétences (`skills`) | — (titre de repli) | `src/ui/compendium/relations.ts:149` |
+| Créatures (`creatures`) | Sorts (`spells`) | « Créatures la lançant » | `src/ui/compendium/relations.ts:151` |
+| Créatures (`creatures`) | Talents (`talents`) | — (titre de repli) | `src/ui/compendium/relations.ts:150` |
+| Créatures (`creatures`) | Traits (`traits`) | « Créatures ayant ce trait » | `src/ui/compendium/relations.ts:145` `src/ui/compendium/relations.ts:148` |
+| Créatures (`creatures`) | Possessions (`trappings`) | « Créatures la possédant » | `src/ui/compendium/relations.ts:152` |
+| Domaines (`domains`) | États (`etats`) | « Domaines l’infligeant » | `src/ui/compendium/relations.ts:196` |
+| Dieux (`gods`) | Sorts (`spells`) | « Cultes (Bénédictions / Miracles) » | `src/ui/compendium/relations.ts:186` `src/ui/compendium/relations.ts:187` `src/ui/compendium/relations.ts:188` |
+| Lieux (`locations`) | Lieux (`locations`) | « Sous-lieux » | `src/ui/compendium/relations.ts:201` |
+| Tables de Corruption (`mutationTables`) | Mutations (`mutations`) | « Tables de Corruption la tirant » | `src/ui/compendium/relations.ts:199` |
+| Mutations (`mutations`) | Traits (`traits`) | « Mutations conférant ce trait » | `src/ui/compendium/relations.ts:177` |
+| Qualités (`qualities`) | États (`etats`) | « Qualités d’arme l’infligeant » | `src/ui/compendium/relations.ts:194` |
+| Races (`races`) | Carrières (`careers`) | « Races y accédant » | `src/ui/compendium/relations.ts:112` |
+| Races (`races`) | Compétences (`skills`) | — (titre de repli) | `src/ui/compendium/relations.ts:109` |
+| Races (`races`) | Talents (`talents`) | — (titre de repli) | `src/ui/compendium/relations.ts:110` |
+| Compétences (`skills`) | Caractéristiques (`characteristics`) | « Compétences liées » | `src/ui/compendium/relations.ts:130` |
+| Sorts (`spells`) | Domaines (`domains`) | « Sorts du domaine » | `src/ui/compendium/relations.ts:181` |
+| Sorts (`spells`) | États (`etats`) | « Sorts l’infligeant » | `src/ui/compendium/relations.ts:192` |
+| Talents (`talents`) | Caractéristiques (`characteristics`) | « Talents (bonus de départ) » | `src/ui/compendium/relations.ts:138` |
+| Talents (`talents`) | États (`etats`) | « Talents l’infligeant » | `src/ui/compendium/relations.ts:195` |
+| Talents (`talents`) | Compétences (`skills`) | « Talents le conférant » | `src/ui/compendium/relations.ts:136` |
+| Talents (`talents`) | Talents (`talents`) | « Talents le conférant » | `src/ui/compendium/relations.ts:137` |
+| Traits (`traits`) | États (`etats`) | « Traits l’infligeant » | `src/ui/compendium/relations.ts:193` |
+| Traits (`traits`) | Manœuvres (`maneuvers`) | « Traits l’accordant » | `src/ui/compendium/relations.ts:171` |
+| Possessions (`trappings`) | Qualités (`qualities`) | « Équipements ayant cette qualité » | `src/ui/compendium/relations.ts:158` |
+| Possessions (`trappings`) | Groupes d’objet (`weaponGroups`) | « Objets du groupe » | `src/ui/compendium/relations.ts:159` |
 
 ## `relations.ts` — API publique
 
@@ -262,14 +262,14 @@ Le JSDoc est rapporté en ENTIER : le contrat d'une couture relationnelle tient 
 |---|---|---|---|
 | `Referrer` | interface | `src/ui/compendium/relations.ts:37` | Un référant (entité QUI pointe vers la cible) — ouvrable au Codex via (category, id). |
 | `ReverseGroup` | interface | `src/ui/compendium/relations.ts:48` | Un groupe de référants de MÊME catégorie (rendu en UNE section inverse). |
-| `reverseGroups` | function | `src/ui/compendium/relations.ts:240` | Références INVERSES d'une entité (category, id) — GROUPÉES par catégorie de référant, dédupliquées (un même référant à plusieurs rangs fusionne ses détails), triées (ordre stable puis alpha). Vide si l'entité n'est référencée nulle part. Source unique des sections « inverses » du Codex. |
-| `bookContents` | function | `src/ui/compendium/relations.ts:297` | Contenu d'un livre, GROUPÉ par catégorie (« par type ») — pour la fiche Livre. Les entités portent leur livre dans `source.book` = l'`id` STABLE du livre (jamais un libellé) ; on matche par cet id (relation id-pure, i18n-safe). Trié par catégorie (`orderOf`) puis alpha. |
-| `labelIndex` | function | `src/ui/compendium/relations.ts:327` | — |
-| `LinkToken` | type | `src/ui/compendium/relations.ts:472` | Un fragment de prose tokenisé : texte brut, OU une mention d'entité à lier (category+id+label) — `spec` porte la spécialisation LIBRE absorbée entre parenthèses (« Art (Écriture)» → spec `Écriture`), non validée contre les données (précédent GAS permissif assumé) ; `text` reste le VERBATIM affiché (libellé + parenthèse comprise). |
-| `tokenizeLinks` | function | `src/ui/compendium/relations.ts:502` | Tokenise une prose en alternant texte brut et mentions d'entité à LIER (auto-liage du Codex, façon `dev.html`). PUR & locale-scoped (matcher dérivé des libellés de la locale active, jamais une chaîne FR en dur → multilingue de principe). Écarte les liens vers SOI et les libellés inconnus/courts — la comparaison est 100 % id-based (`selfId` si l'appelant le connaît, sinon résolu depuis `selfLabel` via `idByLabelCached`, repli des appelants non encore migrés). `selfCategory` (catégorie de la fiche affichante) tranche les homonymes en priorité — cf. `resolveLink`/`PRIORITY_CAT_ORDER`. Seul le vocabulaire de RÈGLES est lié. |
+| `reverseGroups` | function | `src/ui/compendium/relations.ts:227` | Références INVERSES d'une entité (category, id) — GROUPÉES par catégorie de référant, dédupliquées (un même référant à plusieurs rangs fusionne ses détails), triées (ordre stable puis alpha). Vide si l'entité n'est référencée nulle part. Source unique des sections « inverses » du Codex. |
+| `bookContents` | function | `src/ui/compendium/relations.ts:284` | Contenu d'un livre, GROUPÉ par catégorie (« par type ») — pour la fiche Livre. Les entités portent leur livre dans `source.book` = l'`id` STABLE du livre (jamais un libellé) ; on matche par cet id (relation id-pure, i18n-safe). Trié par catégorie (`orderOf`) puis alpha. |
+| `labelIndex` | function | `src/ui/compendium/relations.ts:314` | — |
+| `LinkToken` | type | `src/ui/compendium/relations.ts:459` | Un fragment de prose tokenisé : texte brut, OU une mention d'entité à lier (category+id+label) — `spec` porte la spécialisation LIBRE absorbée entre parenthèses (« Art (Écriture)» → spec `Écriture`), non validée contre les données (précédent GAS permissif assumé) ; `text` reste le VERBATIM affiché (libellé + parenthèse comprise). |
+| `tokenizeLinks` | function | `src/ui/compendium/relations.ts:489` | Tokenise une prose en alternant texte brut et mentions d'entité à LIER (auto-liage du Codex, façon `dev.html`). PUR & locale-scoped (matcher dérivé des libellés de la locale active, jamais une chaîne FR en dur → multilingue de principe). Écarte les liens vers SOI et les libellés inconnus/courts — la comparaison est 100 % id-based (`selfId` si l'appelant le connaît, sinon résolu depuis `selfLabel` via `idByLabelCached`, repli des appelants non encore migrés). `selfCategory` (catégorie de la fiche affichante) tranche les homonymes en priorité — cf. `resolveLink`/`PRIORITY_CAT_ORDER`. Seul le vocabulaire de RÈGLES est lié. |
 
 `bookContents` est projeté DANS le `build` (paresseux) de la catégorie Livres
-(`src/ui/compendium/registry.ts:1779`) : il ne lit que l'identité STATIQUE des catégories, jamais leurs
+(`src/ui/compendium/registry.ts:1749`) : il ne lit que l'identité STATIQUE des catégories, jamais leurs
 items — aucun cycle de projection.
 
 ## Barre de catégories — sous-groupes repliables (`cluster`)
@@ -320,4 +320,4 @@ Regrouper une catégorie = poser `cluster: '…'` sur son littéral dans `CODEX_
 - `npm test -- src/ui/compendium/humanize.test.ts`
 - `npm test -- src/data/schemas/exposition-contrats.test.ts`
 - `npm test -- src/data/serialize.test.ts`
-<!-- sources-empreinte: 5769575994a871868912cab4f2cc332275d4388c (681 fichiers, 0 dossiers) corps: 1de0743c72435ebb7200ad428d22cb9305e17701 -->
+<!-- sources-empreinte: d4cbc9c40f69997d807d2f5b2d09350332c39d3a (681 fichiers, 0 dossiers) corps: f4a876212cd54dc58cc88b99bf1c79da000b8b2b -->

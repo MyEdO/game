@@ -17,7 +17,7 @@ import { ambientClip } from './ambientClips';
 import { handlingClass } from './handling';
 import { mountedAttackClip, mountedParryClip, seatedClip, weaponAttackClip, weaponParryClip } from './weaponClips';
 import { isSupportiveCast, spellCastClip, spellCastStyle } from './spellClips';
-import { isShield } from '../parts/equipment';
+import { isShield, type FormeDArme } from '../parts/equipment';
 import type { BodyPlan, WingState } from '../bodyPlan';
 import { planGroundPose, rigGroundPose, type GroundState, type Pose } from '../../groundPose';
 import { lerpPose, scalePose } from '../poses';
@@ -119,7 +119,7 @@ const seat = (seated?: boolean) => (seated ? 'selle' : 'pied');
  * SUR-ensemble volontaire : deux armes de gestes identiques peuvent porter deux clés (une entrée
  * d'atlas de plus), jamais l'inverse (une collision rendrait le mauvais geste).
  */
-const weaponKey = (w?: Weapon) => (w ? `${handlingClass(w)}:${w.hand ?? 'main'}:${w.attackKind ?? '-'}` : 'nu');
+const weaponKey = (w?: FormeDArme) => (w ? `${handlingClass(w)}:${w.hand ?? 'main'}:${w.attackKind ?? '-'}` : 'nu');
 
 // ————————————————————————————————————————————————————————————————
 // 3. SÉLECTION — voie BIPÈDE
@@ -130,7 +130,7 @@ const weaponKey = (w?: Weapon) => (w ? `${handlingClass(w)}:${w.hand ?? 'main'}:
 export interface RigSelectCtx {
   seated?: boolean;
   /** Arme principale équipée — repli quand l'événement ne porte pas l'arme employée. */
-  mainWeapon?: Weapon;
+  mainWeapon?: FormeDArme;
   /** Bouclier présent dans l'équipement (`hasShieldEquipped`). */
   shield?: boolean;
 }
@@ -145,7 +145,7 @@ export interface CastRelation {
 /** Attaque émise par l'acteur : `kind` de l'événement, arme EMPLOYÉE, relation d'incantation. */
 export interface AttackSelect extends CastRelation {
   kind?: string;
-  weapon?: Weapon;
+  weapon?: FormeDArme;
 }
 
 /** Réaction de l'acteur VISÉ par une attaque qui n'a pas touché. */

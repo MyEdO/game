@@ -1,4 +1,4 @@
-// Garde PreToolUse(Bash|PowerShell|mcp__lean-ctx__ctx_shell) : REFUSE deux commandes shell qui
+// Garde PreToolUse(`OUTILS_SHELL`, `scripts/guards/lib/contratGarde.mjs`) : REFUSE deux commandes shell qui
 // réussissent sans erreur et laissent un PIÈGE derrière elles.
 //
 // - Un LIEN posé sur un `node_modules` (#1679 L1c) : sa suppression ultérieure suit le lien et vide le

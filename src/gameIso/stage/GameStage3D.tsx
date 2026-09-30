@@ -110,6 +110,7 @@ import {
   type BillboardSubject,
 } from '../backends/webgl/sceneMeshes';
 import { memoByRefDeps } from '../../state/sceneMemo';
+import { useVersionDesDatasets } from '../../ui/useVersionDesDatasets';
 import { signalerEntreeEnScene, entreeEnScene } from '../../state/entreeEnScene';
 import {
   AUCUN_CHROME,
@@ -120,7 +121,6 @@ import {
   billboardDepthMaterial,
   billboardMaterial,
   boardProjectedPx,
-  boardTrackId,
   frameIndexAt,
   palierAtlas,
   poseBoards,
@@ -133,6 +133,7 @@ import {
   type FramePick,
   type GlideAt,
 } from './boardPose';
+import { occupantCombattant, occupantsDe, succession } from './successionDesCorps';
 import { bbCameraDe, cleRegard, povArtRot, regardsVoisins, type Regard } from './regard';
 import { cleStatique, epinglerStatiques, rendreAuRechauffage, textureAuCran, viderTexturesStatiques } from './texturesStatiques';
 import {
@@ -484,7 +485,7 @@ function libererObjet(groupe: THREE.Group, objet: THREE.Object3D): void {
 }
 
 /** Libère UN quad et tout ce qu'il porte : son jumeau de silhouette (enfant du quad) et son disque
- *  d'ombre de contact (frère dans le groupe). C'est le geste du SORTANT dans la différence de montage
+ *  d'ombre de contact (frère dans le groupe). C'est le geste du SORTANT libéré par la succession des corps
  *  (#1396) — le groupe entier, lui, ne se vide qu'au départ de l'écran (`viderGroupe`). */
 function libererBoard(groupe: THREE.Group, b: Board): void {
   libererObjet(groupe, b.mesh);
@@ -492,7 +493,7 @@ function libererBoard(groupe: THREE.Group, b: Board): void {
 }
 
 /** Vide un groupe et libère ce qu'il portait — au DÉPART DE L'ÉCRAN seulement : la passe de montage,
- *  elle, travaille par DIFFÉRENCE (#1396). */
+ *  elle, ne libère que les sortants que la succession lui rend (`succession`, #1396). */
 function viderGroupe(groupe: THREE.Group): void {
   for (const enfant of [...groupe.children]) libererObjet(groupe, enfant);
 }
@@ -518,7 +519,7 @@ export function artRot(dims: Dims): Rot {
 //
 // DEUX populations jouent : les COMBATTANTS (`cid` — marche, gestes de combat, effondrement) et les
 // FIGURANTS à ambiance authorée (`eid`, `SceneEntity.anim` — une boucle, sur l'horloge du registre).
-// Le DÉCOR n'entre pas : son sujet n'a ni identité de piste ni couture de frame.
+// Le DÉCOR n'entre pas : son sujet n'a ni occupant (`cid`, `eid`) ni couture de frame.
 
 /** Un sujet à flipbook : de quoi CUIRE ses planches et CHOISIR sa cellule. */
 interface FlipbookSujet {
@@ -538,9 +539,33 @@ interface FlipbookSujet {
   /** L'acteur est-il connu du résolveur du registre (donc ENRÔLÉ dans un combat) ? */
   enrolé: boolean;
   /** ORIGINE DE L'EFFONDREMENT sur l'horloge du registre : l'instant où l'état au sol est APPARU pour
-   *  cet acteur (`chutesRef`, par id, survit aux rebuilds). Le board se reconstruit à chaque pas
+   *  cet occupant (`ÉtatOccupant.chute`, survit aux rebuilds). Le board se reconstruit à chaque pas
    *  commité : pris au montage du board, un pas de plus rejouerait la chute. */
   chute: number;
+}
+
+/** Un board MONTÉ par cet écran, avec l'état qu'il porte : le libérer l'emporte (#2097, design n°11). */
+interface BoardDeScène extends Board {
+  /** Occupants couverts (`occupantsDe`), posés au montage : l'identité du sujet les fixe. */
+  occupants: readonly string[];
+  /** Flipbook du corps, quand il en joue un (`frameSvg`) — écrit au montage du quad. */
+  flipbook?: FlipbookSujet;
+  /** Palier de cuisson COURANT : il monte quand le quad grossit, redescend sous hystérésis. */
+  palier?: number;
+  /** Glissement de l'image PRÉCÉDENTE : sa dérivée est la direction du segment de marche en cours. */
+  glissePrec?: { dx: number; dy: number; dz: number };
+  /** Planches ÉPINGLÉES de son flipbook — jamais évincées tant qu'il est monté. */
+  épingles?: string[];
+}
+
+/** État d'un OCCUPANT (id espacé, `successionDesCorps.occupantsDe`) : il survit au rebuild de ses
+ *  boards, et se purge quand l'occupant quitte les sujets. */
+interface ÉtatOccupant {
+  /** ENTRÉE AU SOL : l'instant où son état au sol est apparu. */
+  chute?: number;
+  /** Mémoire de perçage : DERNIÈRE POSITION MONDE connue, et le nombre de dessins consécutifs où son
+   *  quad a manqué à l'appel (`PERCAGE_GRACE_DESSINS`). */
+  percée?: { monde: THREE.Vector3; absences: number };
 }
 
 /** Une planche à cuire : sa clé et la recette de ses frames. */
@@ -631,23 +656,13 @@ function dir8DuSegment(dx: number, dz: number): Dir8 | null {
 export function GameStage3D({ scene, mpt, frame, tintAt, keepEl, nappeVue, els, actors, gameTime, lightLevel, lights, highlights, dynMarks, halos, chromeAt, anim, decalque, calage = false, spritePicking = true, percage, pionsEnDisques = false, onEntreeEnScene }: GameStage3DProps): JSX.Element {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const rendererRef = useRef<StageRenderer | null>(null);
-  const boardsRef = useRef<Board[]>([]);
-  // FLIPBOOK (#1176, L3) — l'état que la boucle d'image lit et écrit, hors de tout rendu React.
-  /** Les acteurs à flipbook montés, par `cid` — écrit au montage des quads. */
-  const flipRef = useRef(new Map<string, FlipbookSujet>());
-  /** Palier de cuisson COURANT par `cid` : il monte quand le quad grossit, redescend sous hystérésis. */
-  const paliersRef = useRef(new Map<string, number>());
-  /** ENTRÉE AU SOL par acteur : l'instant où son état au sol est apparu. Cette réf SURVIT au rebuild des
-   *  boards (c'est tout son office) et se purge des acteurs qui se relèvent ou quittent la scène. */
-  const chutesRef = useRef(new Map<string, number>());
-  /** Glissement de l'image PRÉCÉDENTE : sa dérivée est la direction du segment de marche en cours. */
-  const glissePrecRef = useRef(new Map<string, { dx: number; dy: number; dz: number }>());
+  const boardsRef = useRef<BoardDeScène[]>([]);
+  /** État des OCCUPANTS, par id espacé — l'hôte UNIQUE de ce qui survit au rebuild de leurs boards. */
+  const étatsOccupantsRef = useRef(new Map<string, ÉtatOccupant>());
   /** Recettes des planches réclamées par une image — ce que la demande différée retrouve. */
   const recettesRef = useRef(new Map<string, Recette>());
   /** Demandes de cuisson déjà postées : une image n'en repose jamais une seconde. */
   const demandéesRef = useRef(new Set<string>());
-  /** Clés à ÉPINGLER (planches des boards montés) — jamais évincées tant qu'elles sont à l'écran. */
-  const épinglesRef = useRef(new Map<string, string[]>());
   /** Clés statiques ÉPINGLÉES par SUJET monté (#1374) : celle qu'il PORTE, et celle qu'il ATTEND tant
    *  que sa cuisson court. Le montage y écrit avant même de demander sa texture, chaque repose de
    *  regard y réécrit, et le démontage la vide. */
@@ -665,9 +680,6 @@ export function GameStage3D({ scene, mpt, frame, tintAt, keepEl, nappeVue, els, 
   useEffect(() => () => percageRef.current?.arreter(), []);
   /** Acteurs du verdict, RÉUTILISÉS d'une frame à l'autre : la passe n'alloue ni tableau ni vecteur. */
   const acteursPercésRef = useRef<ActeurPerce[]>([]);
-  /** DERNIÈRE POSITION MONDE connue d'un héros perçable, et le nombre de dessins consécutifs où son
-   *  quad a manqué à l'appel. Cf. `PERCAGE_GRACE_DESSINS`. */
-  const memoirePercéeRef = useRef(new Map<string, { monde: THREE.Vector3; absences: number }>());
   const pov = frame.mode === 'pov';
   // STYLE DE CE REGARD (#1176, `viewPolicy`) : ce que la vue choisit de MONTRER — les nappes de
   // brume et le soleil ci-dessous en descendent. La GÉOMÉTRIE de la frame (cadrage, cran d'art,
@@ -690,7 +702,7 @@ export function GameStage3D({ scene, mpt, frame, tintAt, keepEl, nappeVue, els, 
   // c'est lui qui distingue « ce regard vient d'être monté » de « le regard a changé ».
   const regardDesBoards = useRef(cleRegard(regard));
   /** BASE de montage des quads (échelle du monde, présence d'ombre de contact) : elle décide si la
-   *  passe de montage peut faire une DIFFÉRENCE ou doit tout refaire (#1396). */
+   *  passe de montage fait une succession ou doit tout refaire (#1396). */
   const baseDesBoards = useRef('');
   // MILIEU de la première personne (`null` = vue de plateau) : la SEULE entrée de la brume et du fond.
   // La portée de rendu s'en dérive déjà (`povDepth`) — même donnée, même verdict d'intérieur.
@@ -926,7 +938,7 @@ export function GameStage3D({ scene, mpt, frame, tintAt, keepEl, nappeVue, els, 
   // — ni combattant, ni meneur de groupe, ni figurant ; ils sont peints en disques par la surcouche SVG
   // (`stage/TokenChromeOverlay`). Le décor (`kind:'prop'`) reste billboard. C'est le SEUL geste : toute
   // la cascade tombe avec la population, par construction — plus de jumeau de silhouette ni d'ombre de
-  // contact (montés PAR sujet, plus bas), plus de quad à percer (`percage` cherche un board par `cid`),
+  // contact (montés PAR sujet, plus bas), plus de quad à percer (`percage` cherche un board par occupant),
   // et plus aucune cible portant un `cid` sous le rayon, donc le clic retombe sur la CASE, où le disque
   // est centré (`useStagePointer.pickVerdict`).
   const hauteurDeps = sceneHeightDeps(scene);
@@ -943,9 +955,12 @@ export function GameStage3D({ scene, mpt, frame, tintAt, keepEl, nappeVue, els, 
   // IDENTITÉ des acteurs — qui ils sont et quel art ils portent, JAMAIS où ils sont (`actorIdentityKey`) :
   // la case logique appartient à la pose, que la repose ci-dessous porte aux sujets déjà montés.
   const acteursCle = actors.map(actorIdentityKey).join('|');
+  // VERSION DES CATALOGUES (`useVersionDesDatasets`) : les sujets la hachent (`DrawSnapshot`), et une
+  // édition au Codex (`CodexEdit`, modale au-dessus du jeu monté) doit relancer ce rendu pour la voir.
+  const versionCatalogues = useVersionDesDatasets();
   // La TEINTE de visibilité n'entre PAS dans ces rétentions (#1396) : elle se prend à la case du sujet,
   // par la passe de POSE, à la cadence de la frame (`stage/boardPose.poseBoards`).
-  const decor = decorRetenu(jeton, [...hauteurDeps, mpt, elsStables], () => collectBillboards(scene, mpt, elsStables));
+  const decor = decorRetenu(jeton, [...hauteurDeps, mpt, elsStables, versionCatalogues], () => collectBillboards(scene, mpt, elsStables));
   const acteurs = acteursRetenus(jeton, [...hauteurDeps, acteursCle, mpt, pionsEnDisques], () => (pionsEnDisques ? AUCUN_SUJET : actorBillboards(actors, scene, mpt)));
   const subjects = useMemo(() => [...decor, ...acteurs], [decor, acteurs]);
   // REPOSE DE POSITION : un acteur qui change de case suit sa case, en place. C'est la passe sœur de
@@ -1124,15 +1139,14 @@ export function GameStage3D({ scene, mpt, frame, tintAt, keepEl, nappeVue, els, 
    * NON-DÉTERMINISME : à cache froid, le marcheur garde la vue de son montage jusqu'à ce que la
    * cuisson rattrape — le rendu d'une image dépend donc de ce que le cuiseur a eu le temps de servir.
    */
-  const choisirFrame = (b: Board, camera: FrameCamera, hCanevas: number): FramePick | null => {
-    const id = boardTrackId(b.sub);
-    const s = id ? flipRef.current.get(id) : undefined;
-    if (!id || !s) return null;
+  const choisirFrame = (b: BoardDeScène, camera: FrameCamera, hCanevas: number): FramePick | null => {
+    const s = b.flipbook;
+    if (!s) return null;
     // PALIER : la hauteur PROJETÉE décide, sous hystérésis — un quad qui grossit réclame la planche du
     // dessus, et ne redescend qu'une fois nettement plus petit (sinon il oscille sur la frontière).
-    const courant = paliersRef.current.get(id) ?? s.pxHeight;
+    const courant = b.palier ?? s.pxHeight;
     const px = palierAtlas(courant, boardProjectedPx(b, camera, hCanevas, window.devicePixelRatio || 1));
-    if (px !== courant) paliersRef.current.set(id, px);
+    if (px !== courant) b.palier = px;
     // LECTURE et ÉCRITURE séparées : `servie` répond « cette planche est-elle au cache ? » sans rien
     // inscrire — la vue candidate d'un segment de marche est examinée à CHAQUE image, et une seule des
     // deux est retenue. `poser` n'entre en jeu que pour la planche réellement choisie.
@@ -1165,15 +1179,17 @@ export function GameStage3D({ scene, mpt, frame, tintAt, keepEl, nappeVue, els, 
       return { key: r.key, frame: frameIndexAt(animNow(), dureeDeRecette(r), r.frames, true) };
     }
 
-    const g = anim ? anim.glide(id) : null;
-    const précédent = glissePrecRef.current.get(id);
-    if (g) glissePrecRef.current.set(id, g);
-    else glissePrecRef.current.delete(id);
+    const cid = b.sub.cid;
+    if (!cid) return null;
+    const g = anim ? anim.glide(cid) : null;
+    const précédent = b.glissePrec;
+    if (g) b.glissePrec = g;
+    else delete b.glissePrec;
 
     let def: ClipDef | null;
     let elapsed: number;
     let loop = true;
-    // EFFONDREMENT : il se compte depuis l'ENTRÉE AU SOL de l'acteur (`chutesRef`), pas depuis le
+    // EFFONDREMENT : il se compte depuis l'ENTRÉE AU SOL de l'occupant (`ÉtatOccupant.chute`), pas depuis le
     // montage de son board — celui-ci se reconstruit à chaque pas commité. Geste joué une fois : la
     // dernière cellule est la pose au sol, et elle y reste.
     const ground = s.sub.anim?.ground;
@@ -1187,7 +1203,7 @@ export function GameStage3D({ scene, mpt, frame, tintAt, keepEl, nappeVue, els, 
       const phase = ((-cycles % 1) + 1) % 1;
       elapsed = def ? phase * clipTotalMs(def) : 0;
     } else {
-      const piste = tracksRef().get(id);
+      const piste = tracksRef().get(cid);
       if (piste) {
         def = piste.def;
         elapsed = animNow() - piste.start;
@@ -1213,7 +1229,7 @@ export function GameStage3D({ scene, mpt, frame, tintAt, keepEl, nappeVue, els, 
 
   /** Cuisson d'une planche qu'une image a réclamée sans la trouver — DIFFÉRÉE hors de l'image (la
    *  file du cuiseur est déjà cadencée, mais poster depuis la boucle y allouerait par board). */
-  const demanderCuisson: BakeAsk = (pick) => {
+  const demanderCuisson: BakeAsk<BoardDeScène> = (pick) => {
     if (demandéesRef.current.has(pick.key)) return;
     const r = recettesRef.current.get(pick.key);
     if (!r) return;
@@ -1350,7 +1366,7 @@ export function GameStage3D({ scene, mpt, frame, tintAt, keepEl, nappeVue, els, 
     // de lui-même tant qu'elle ne bouge pas), puis le RAYON et le CENTRE à la frame, tenus par le
     // pilote. Le centre n'est pas un luxe : sous lacet LIBRE (#1176), un demi-tour de caméra ne
     // franchit aucun cran, donc ne change aucune clé.
-    const pilote = percageRef.current!;
+    const découpe = percageRef.current!;
     const acteursPercés = acteursPercésRef.current;
     acteursPercés.length = 0;
     // Les héros RÉELLEMENT perçables de cette frame entrent dans la clé : leurs quads naissent APRÈS
@@ -1358,22 +1374,29 @@ export function GameStage3D({ scene, mpt, frame, tintAt, keepEl, nappeVue, els, 
     // verdict du premier instant — celui où aucun quad n'existait — valoir jusqu'au pas suivant.
     // Un quad DÉJÀ VU qui manque momentanément ne les en sort PAS (`PERCAGE_GRACE_DESSINS`).
     let cidsPercés = '';
-    const memoirePercée = memoirePercéeRef.current;
+    const états = étatsOccupantsRef.current;
     if (percage && f) {
       for (const hp of percage.heros) {
         if (acteursPercés.length >= PERCAGE_MAX_HEROS) break;
-        // Le centre du trou se prend sur le QUAD POSÉ de cette frame : un héros sans billboard monté
-        // (rasterisation en cours, jeton écarté par le builder) n'a aucun point où percer.
-        const board = boardsRef.current.find((b) => b.sub.cid === hp.cid);
-        let mémoire = memoirePercée.get(hp.cid) ?? null;
+        // Le centre du trou se prend sur le QUAD VISIBLE qui couvre le héros, cavalier compris : un héros
+        // sans billboard monté (rasterisation en cours, jeton écarté par le builder) n'a aucun point où
+        // percer.
+        const occupant = occupantCombattant(hp.cid);
+        const board = boardsRef.current.find((b) => b.mesh.visible && b.occupants.includes(occupant));
+        const état = états.get(occupant);
+        let mémoire = état?.percée ?? null;
         if (board) {
-          if (!mémoire) { mémoire = { monde: new THREE.Vector3(), absences: 0 }; memoirePercée.set(hp.cid, mémoire); }
+          if (!mémoire) {
+            mémoire = { monde: new THREE.Vector3(), absences: 0 };
+            if (état) état.percée = mémoire;
+            else états.set(occupant, { percée: mémoire });
+          }
           mémoire.monde.copy(board.mesh.position);
           mémoire.absences = 0;
         } else if (mémoire && mémoire.absences < PERCAGE_GRACE_DESSINS) {
           mémoire.absences++;
         } else {
-          if (mémoire) memoirePercée.delete(hp.cid);
+          if (état) delete état.percée;
           continue;
         }
         acteursPercés.push({ capsule: hp.capsule, z: hp.z, monde: mémoire.monde });
@@ -1382,13 +1405,11 @@ export function GameStage3D({ scene, mpt, frame, tintAt, keepEl, nappeVue, els, 
     }
     // Un héros que l'hôte ne dit plus perçable (sorti du groupe, écran quitté) n'a plus de mémoire à
     // garder : la fenêtre de grâce ne couvre QUE l'absence de quad, jamais l'absence d'entrée.
-    if (memoirePercée.size > 0) {
-      const dits = percage && f ? new Set(percage.heros.map((hp) => hp.cid)) : null;
-      for (const cid of memoirePercée.keys()) if (!dits || !dits.has(cid)) memoirePercée.delete(cid);
-    }
+    const dits = percage && f ? new Set(percage.heros.map((hp) => occupantCombattant(hp.cid))) : null;
+    for (const [occupant, état] of états) if (état.percée && (!dits || !dits.has(occupant))) delete état.percée;
     // Hors vue de plateau (première personne, éditeur), la clé est CONSTANTE et la liste vide : les
     // trous ouverts se REFERMENT au même fondu, ils ne s'éteignent pas d'un coup.
-    pilote.majVerdict({
+    découpe.majVerdict({
       cle: percage && f ? `${percage.cle}@${cidsPercés}` : PERCAGE_HORS_PLATEAU,
       lids: percage && f ? percage.lids : AUCUNE_NAPPE,
       acteurs: acteursPercés,
@@ -1396,7 +1417,7 @@ export function GameStage3D({ scene, mpt, frame, tintAt, keepEl, nappeVue, els, 
     // Le rayon comme le CENTRE appartiennent au pilote : il tient les positions monde par référence et
     // les reprojette avec la caméra de CETTE frame (`Percage.avancer`). Le PAS DE TEMPS aussi lui
     // appartient : il reçoit l'horodatage de l'image, jamais un écart calculé ici.
-    pilote.avancer(maintenant, camera, w, h);
+    découpe.avancer(maintenant, camera, w, h);
     // GAMMA de la courbe de brume : `THREE.Fog` s'arrête au smoothstep, la courbe du POV est
     // smoothstep^gamma (`fogAt`, `pov/camera.ts`). Le `#define` se pose ici, et pas à un montage : les
     // quads de billboard naissent APRÈS coup (rasterisation asynchrone) et un matériau neuf arriverait
@@ -1516,7 +1537,8 @@ export function GameStage3D({ scene, mpt, frame, tintAt, keepEl, nappeVue, els, 
       if (!canvas || !camera) return null;
       const rect = canvas.getBoundingClientRect();
       if (!rect.width || !rect.height) return null;
-      const cibles: PickTarget[] = boardsRef.current.map((b) => ({ cid: b.sub.cid ?? null, object: b.mesh }));
+      // Seul ce qui est VU se pointe : la visibilité est celle de la succession des corps (`succession`).
+      const cibles: PickTarget[] = boardsRef.current.filter((b) => b.mesh.visible).map((b) => ({ cid: b.sub.cid ?? null, object: b.mesh }));
       return pickNearestTarget(
         camera,
         cibles,
@@ -1899,6 +1921,31 @@ export function GameStage3D({ scene, mpt, frame, tintAt, keepEl, nappeVue, els, 
     epinglerStatiques([...clésStatiquesRef.current.values()].flat());
   };
 
+  /** ÉPINGLE les planches de flipbook des boards montés : le cache ne les évince pas tant qu'ils le sont. */
+  const épinglerPlanches = (): void => {
+    setAtlasPins(boardsRef.current.flatMap((b) => b.épingles ?? []));
+  };
+
+  /** ENTRÉE AU SOL des occupants d'un sujet : l'heure retenue est celle du PREMIER montage où ils sont au
+   *  sol, idempotente quand deux boards les couvrent ; `undefined` s'il est debout. Un occupant debout
+   *  n'en a pas — et la relève d'un À Terre efface la sienne, sinon sa chute suivante partirait déjà
+   *  finie. */
+  const chuteDe = (sub: BillboardSubject): number | undefined => {
+    const états = étatsOccupantsRef.current;
+    const occupants = occupantsDe(sub);
+    if (!sub.anim?.ground) {
+      for (const o of occupants) delete états.get(o)?.chute;
+      return undefined;
+    }
+    const chute = occupants.map((o) => états.get(o)?.chute).find((c) => c !== undefined) ?? animNow();
+    for (const o of occupants) {
+      const état = états.get(o);
+      if (!état) états.set(o, { chute });
+      else if (état.chute === undefined) état.chute = chute;
+    }
+    return chute;
+  };
+
   /** La clé de la texture qu'un sujet PORTE (la première de ses épingles). */
   const cléPortée = (sub: BillboardSubject): string | undefined => clésStatiquesRef.current.get(sub)?.[0];
 
@@ -1918,14 +1965,13 @@ export function GameStage3D({ scene, mpt, frame, tintAt, keepEl, nappeVue, els, 
    * que la caméra attend passe DEVANT — `PRIORITE_VUE_COURANTE`, poignée RELEVÉE même sur une clé
    * déjà en file (une clé pré-chauffée redemandée sans cela restait servie en dernier).
    */
-  const reposerRegard = (bs: readonly Board[], vers: Regard): void => {
+  const reposerRegard = (bs: readonly BoardDeScène[], vers: Regard): void => {
     const pxm = pxPerM(mpt);
     const dpr = window.devicePixelRatio || 1;
     const cam = bbCameraDe(vers);
     const clé = cleRegard(vers);
     for (const b of bs) {
-      const piste = boardTrackId(b.sub);
-      if (piste && flipRef.current.has(piste)) continue;
+      if (b.flipbook) continue;
       const { view, mirror } = billboardView(cam, b.sub.facing);
       const pxHeight = atlasPxHeight(b.quad.heightM, pxm, dpr);
       const cléCible = cleStatique(b.sub, view, mirror, vers.rot, pxHeight);
@@ -1999,54 +2045,76 @@ export function GameStage3D({ scene, mpt, frame, tintAt, keepEl, nappeVue, els, 
     // BASE DE MONTAGE : ce dont dépend la GÉOMÉTRIE d'un quad (échelle du monde) et sa composition
     // (ombre de contact sous un soleil qui n'éclaire pas). Elle change ? il n'y a rien à garder.
     // La SCÈNE en fait partie : son changement DISPOSE les textures statiques
-    // (`viderTexturesStatiques`), et un survivant garderait une texture morte.
+    // (`viderTexturesStatiques`), et un entrant gardé porterait une texture morte.
     const base = `${scene.id}|${mpt}|${lit ? 1 : 0}`;
     const memeBase = baseDesBoards.current === base;
     baseDesBoards.current = base;
-    // ── DIFFÉRENCE (#1396) : le groupe ne se reconstruit PLUS quand la POPULATION change. Un sujet qui
-    // ENTRE dans le champ de vision — ou qui en sort — changeait l'identité de la liste, et les 63
-    // quads de l'arène se libéraient pour un seul entrant (mesuré en recette : 0/63 survivants,
-    // ~250 buffers, 2 `linkProgram`). Ce qui persiste garde son quad, sa texture et son uuid.
+    // ── SUCCESSION (#1396) : un sujet qui entre dans le champ de vision, ou qui en sort, ne coûte que
+    // son propre board. Libérer le groupe pour un seul entrant coûtait, mesuré en recette sur l'arène,
+    // 0/63 quads gardés, ~250 buffers et 2 `linkProgram`. Un entrant déjà monté garde son quad, sa
+    // texture et son uuid.
     const voulus = new Map<string, BillboardSubject>();
     for (const sub of subjects) voulus.set(sub.identity, sub);
-    const boards: Board[] = [];
-    for (const b of boardsRef.current) {
-      const neuf = memeBase ? voulus.get(b.sub.identity) : undefined;
-      if (!neuf) {
+    // ATTENTE : les sujets voulus qui n'ont pas de board — leur cuisson court, jusqu'à leur montage ou
+    // leur rejet (`successionDesCorps`).
+    const montésAvant = new Set(memeBase ? boardsRef.current.map((b) => b.sub.identity) : []);
+    const attente = new Set(subjects.filter((sub) => !montésAvant.has(sub.identity)));
+    const boards: BoardDeScène[] = [...boardsRef.current];
+    boardsRef.current = boards;
+    /** Applique la SUCCESSION DES CORPS à l'état courant (passe, montage, rejet) : libère — le board
+     *  emporte son état —, relève les sujets entrants, pose la visibilité. Rend les boards en sursis,
+     *  et si quelque chose a changé à l'écran. */
+    const appliquerSuccession = (memeBaseCourante: boolean): { sursis: ReadonlySet<BoardDeScène>; changé: boolean } => {
+      const r = succession({
+        boards,
+        voulus,
+        attente: [...attente],
+        memeBase: memeBaseCourante,
+        configurationPrécédente: new Set(boards.filter((b) => b.mesh.visible)),
+      });
+      const libérés = new Set(r.libérés);
+      for (const b of r.libérés) {
         libererBoard(groupe, b);
-        const piste = boardTrackId(b.sub);
-        if (piste) { flipRef.current.delete(piste); épinglesRef.current.delete(piste); }
         clésStatiquesRef.current.delete(b.sub);
-        continue;
       }
-      // Le SUJET est reforgé à chaque calcul de liste (closures de dessin, ancre, case) : le board
-      // reprend la référence COURANTE, sinon il poserait la case et l'art d'un tour précédent.
-      clésStatiquesRef.current.set(neuf, clésStatiquesRef.current.get(b.sub) ?? []);
-      clésStatiquesRef.current.delete(b.sub);
-      b.sub = neuf;
-      boards.push(b);
-    }
+      boards.splice(0, boards.length, ...boards.filter((b) => !libérés.has(b)));
+      for (const b of boards) {
+        const neuf = voulus.get(b.sub.identity);
+        if (!neuf || b.sub === neuf) continue;
+        // Le SUJET est reforgé à chaque calcul de liste (closures de dessin, ancre, case) : le board
+        // reprend la référence COURANTE, sinon il poserait la case et l'art d'un tour précédent.
+        clésStatiquesRef.current.set(neuf, clésStatiquesRef.current.get(b.sub) ?? []);
+        clésStatiquesRef.current.delete(b.sub);
+        b.sub = neuf;
+      }
+      let changé = r.libérés.length > 0;
+      for (const b of boards) {
+        const visible = r.visibles.has(b);
+        if (b.mesh.visible === visible) continue;
+        b.mesh.visible = visible;
+        if (b.shadow) b.shadow.visible = visible;
+        changé = true;
+      }
+      if (changé) ombresARefaire.current = true;
+      épinglerPlanches();
+      epinglerStatiques([...clésStatiquesRef.current.values()].flat());
+      return { sursis: r.sursis, changé };
+    };
+    const { sursis } = appliquerSuccession(memeBase);
     const déjàMontés = new Set(boards.map((b) => b.sub.identity));
     // ÉPINGLES DE TEXTURE : elles se purgent sur la POPULATION, pas sur les boards. Un sujet épinglé
     // AVANT l'arrivée de sa texture (plus bas) puis supersédé n'a jamais eu de quad — sans cette purge
     // il restait épinglé à vie, avec les closures de dessin qu'il capture (mesuré : 20 épingles pour
-    // 5 quads après six passes).
+    // 5 quads après six passes). Un board EN SURSIS garde les siennes.
+    const sujetsEnSursis = new Set([...sursis].map((b) => b.sub));
     for (const sujet of [...clésStatiquesRef.current.keys()]) {
-      if (voulus.get(sujet.identity) !== sujet) clésStatiquesRef.current.delete(sujet);
+      if (voulus.get(sujet.identity) !== sujet && !sujetsEnSursis.has(sujet)) clésStatiquesRef.current.delete(sujet);
     }
-    setAtlasPins([...épinglesRef.current.values()].flat());
     epinglerStatiques([...clésStatiquesRef.current.values()].flat());
-    // PURGE des états PAR ACTEUR : un acteur absent des sujets de ce montage (sorti de la scène, hors
-    // du cadre) laisse son palier et son heure de chute derrière lui.
-    const joués = new Set<string>();
-    for (const sub of subjects) {
-      const id = boardTrackId(sub);
-      if (id) joués.add(id);
-    }
-    for (const id of [...paliersRef.current.keys()]) if (!joués.has(id)) paliersRef.current.delete(id);
-    for (const id of [...chutesRef.current.keys()]) if (!joués.has(id)) chutesRef.current.delete(id);
-    for (const id of [...glissePrecRef.current.keys()]) if (!joués.has(id)) glissePrecRef.current.delete(id);
-    boardsRef.current = boards;
+    // PURGE de l'état des OCCUPANTS : un occupant absent des sujets de ce montage (sorti de la scène,
+    // hors du cadre) laisse son heure de chute et sa mémoire de perçage derrière lui.
+    const joués = new Set(subjects.flatMap(occupantsDe));
+    for (const occupant of [...étatsOccupantsRef.current.keys()]) if (!joués.has(occupant)) étatsOccupantsRef.current.delete(occupant);
 
     /**
      * PRÉ-CUISSON d'un sujet (#1176, L3/L4). Politique du design, chiffrée par la sonde (~10 ms de
@@ -2061,7 +2129,7 @@ export function GameStage3D({ scene, mpt, frame, tintAt, keepEl, nappeVue, els, 
      * Les planches ainsi posées sont ÉPINGLÉES : le cache LRU ne les évince pas tant que le quad est
      * à l'écran.
      */
-    const précuire = (s: FlipbookSujet, id: string): void => {
+    const précuire = (b: BoardDeScène, s: FlipbookSujet): void => {
       const clés: string[] = [];
       const poser = (def: ClipDef, view: View, mirror: boolean, prio: number, ground?: 'corpse' | 'prone') => {
         const r = recette(s, def, view, mirror, s.pxHeight, ground);
@@ -2095,26 +2163,22 @@ export function GameStage3D({ scene, mpt, frame, tintAt, keepEl, nappeVue, els, 
         }
         for (const ground of ['corpse', 'prone'] as const) poser(REPOS, s.view, s.mirror, PRIORITE_RECHAUFFAGE, ground);
       }
-      épinglesRef.current.set(id, clés);
-      setAtlasPins([...épinglesRef.current.values()].flat());
+      b.épingles = clés;
+      épinglerPlanches();
     };
 
-    // ── PISTES DE FLIPBOOK DES SURVIVANTS : le contexte d'animation d'un acteur VIT (un héros entre
-    // en combat, un corps tombe). Un sujet gelé au montage garderait `enrolé: false` et un `rig` vide —
-    // ses gestes de combat ne seraient jamais cuits, et sa marche perdrait sa monture. Ce qui reste du
-    // montage est ce qui décrit l'ART POSÉ (vue, miroir, palier) : la relève de celui-là est l'affaire
-    // du regard (`reposerRegard`) et de l'image (`choisirFrame`).
+    // ── FLIPBOOK DES BOARDS MONTÉS (entrants et sursis) : le contexte d'animation d'un acteur VIT (un
+    // héros entre en combat, un corps tombe). Un sujet gelé au montage garderait `enrolé: false` et un
+    // `rig` vide — ses gestes de combat ne seraient jamais cuits, et sa marche perdrait sa monture. Ce qui
+    // reste du montage est ce qui décrit l'ART POSÉ (vue, miroir, palier) : la relève de celui-là est
+    // l'affaire du regard (`reposerRegard`) et de l'image (`choisirFrame`).
     for (const b of boards) {
-      const piste = boardTrackId(b.sub);
-      const flip = piste ? flipRef.current.get(piste) : undefined;
-      if (!piste || !flip) continue;
+      const flip = b.flipbook;
+      if (!flip) continue;
       const ctx = b.sub.cid ? animCtxOf(b.sub.cid) : undefined;
       const voie = b.sub.anim?.voie ?? ctx?.voie ?? 'rig';
       const enrolé = !!ctx;
-      const auSol = b.sub.anim?.ground;
-      const chute = auSol ? (chutesRef.current.get(piste) ?? animNow()) : flip.chute;
-      if (auSol) chutesRef.current.set(piste, chute);
-      else chutesRef.current.delete(piste);
+      const chute = chuteDe(b.sub) ?? flip.chute;
       const gestesNeufs = flip.enrolé !== enrolé || flip.voie !== voie;
       flip.sub = b.sub;
       flip.voie = voie;
@@ -2123,7 +2187,7 @@ export function GameStage3D({ scene, mpt, frame, tintAt, keepEl, nappeVue, els, 
       flip.chute = chute;
       if (b.sub.anim?.leap) flip.leap = true; else delete flip.leap;
       // Le SET DE GESTES a changé (entrée en combat, changement de voie) : il se cuit, comme au montage.
-      if (gestesNeufs) précuire(flip, piste);
+      if (gestesNeufs) précuire(b, flip);
     }
 
     /** Le quad d'un sujet, monté DÈS QUE SA texture est là — jamais au dernier des sujets. */
@@ -2134,12 +2198,12 @@ export function GameStage3D({ scene, mpt, frame, tintAt, keepEl, nappeVue, els, 
       // passe de montage, avant toute peinture — une seconde loi ici en ferait deux à tenir d'accord.
       const mat = billboardMaterial(texture, 1);
       const mesh = new THREE.Mesh(geo, mat);
-      // IDENTITÉ DU SUJET PORTÉE PAR LE QUAD (#1401) : la rétention des boards se fait sur
-      // `sub.identity` (un quad survit exactement tant que son identité est voulue) ; le `name` la
-      // porte CÔTÉ SCÈNE, dans la même veine que le jumeau de silhouette
+      // IDENTITÉ DU SUJET PORTÉE PAR LE QUAD (#1401) : la succession des boards se fait sur
+      // `sub.identity` (un quad reste monté tant que son identité est voulue, ou qu'il est en sursis) ;
+      // le `name` la porte CÔTÉ SCÈNE, dans la même veine que le jumeau de silhouette
       // (`boardPose.attachBodySilhouette`), pour qu'un objet monté soit appariable à ce qu'il
       // représente (garde `stage/murage-identite.test.tsx`). Elle est INVARIANTE pour un quad donné :
-      // la relève du sujet plus haut (`b.sub = neuf`) ne change que la référence, jamais l'identité —
+      // la relève d'un entrant plus haut (`b.sub = neuf`) ne change que la référence, jamais l'identité —
       // le nom se pose donc UNE fois, au montage.
       mesh.name = q.sub.identity;
       // Un quad PROJETTE son ombre même en Basic (le casteur ne connaît que sa géométrie et son alpha) ;
@@ -2149,7 +2213,7 @@ export function GameStage3D({ scene, mpt, frame, tintAt, keepEl, nappeVue, els, 
       mesh.castShadow = true;
       mesh.customDepthMaterial = billboardDepthMaterial(mat);
       groupe.add(withRenderRank(mesh, 'pions'));
-      const board: Board = { sub: q.sub, quad: q.quad, mesh, material: mat };
+      const board: BoardDeScène = { sub: q.sub, quad: q.quad, mesh, material: mat, occupants: occupantsDe(q.sub) };
       boards.push(board);
       épinglerSujet(q.sub, [cleStatique(q.sub, q.view, q.mirror, rot, q.pxHeight)]);
       // SILHOUETTE À TRAVERS LES MURS (#1297) : le corps d'un jeton occulté par la matière
@@ -2170,11 +2234,10 @@ export function GameStage3D({ scene, mpt, frame, tintAt, keepEl, nappeVue, els, 
         board.shadow = disque;
         groupe.add(withRenderRank(disque, 'pions'));
       }
-      // FLIPBOOK : les sujets à UN corps en portent la couture (`frameSvg`) et leur identité de piste
-      // (`boardTrackId`) — combattant ou figurant à ambiance authorée (cf. l'en-tête de section).
-      const piste = boardTrackId(q.sub);
+      // FLIPBOOK : les sujets à UN corps en portent la couture (`frameSvg`) — combattant ou figurant à
+      // ambiance authorée (cf. l'en-tête de section).
       const ctx = q.sub.cid ? animCtxOf(q.sub.cid) : undefined;
-      if (piste && q.sub.frameSvg) {
+      if (q.sub.frameSvg) {
         const rig = ctx?.rig ?? {};
         const voie = q.sub.anim?.voie ?? ctx?.voie ?? 'rig';
         const authoré = q.sub.anim?.ambient;
@@ -2182,13 +2245,7 @@ export function GameStage3D({ scene, mpt, frame, tintAt, keepEl, nappeVue, els, 
         // un bipède, l'idle du gabarit pour une bête. Une clé sans clip rig laisse le corps statique.
         const ambient = authoré ? (voie === 'plan' ? planAmbientDef(authoré) : rigAmbientDef(authoré)) : null;
         if (!authoré || ambient) {
-          // ENTRÉE AU SOL : l'heure retenue est celle du PREMIER montage où cet acteur est au sol. Un
-          // acteur debout n'en a pas — et la relève d'un À Terre efface la sienne, sinon sa chute
-          // suivante partirait déjà finie.
-          const auSol = q.sub.anim?.ground;
-          const chute = auSol ? (chutesRef.current.get(piste) ?? animNow()) : animNow();
-          if (auSol) chutesRef.current.set(piste, chute);
-          else chutesRef.current.delete(piste);
+          const chute = chuteDe(q.sub) ?? animNow();
           const s: FlipbookSujet = {
             sub: q.sub,
             view: q.view,
@@ -2201,8 +2258,8 @@ export function GameStage3D({ scene, mpt, frame, tintAt, keepEl, nappeVue, els, 
             enrolé: !!ctx,
             chute,
           };
-          flipRef.current.set(piste, s);
-          précuire(s, piste);
+          board.flipbook = s;
+          précuire(board, s);
         }
       }
       // Une texture arrivée APRÈS un changement de regard monte son quad à l'art du regard précédent :
@@ -2210,6 +2267,11 @@ export function GameStage3D({ scene, mpt, frame, tintAt, keepEl, nappeVue, els, 
       if (cleRegard(regardRef.current) !== cleRegard(monté)) {
         reposerRegard([board], regardRef.current);
       }
+      // Le board entre par la succession des corps, AVANT la peinture : jamais deux silhouettes à l'image.
+      board.mesh.visible = false;
+      if (board.shadow) board.shadow.visible = false;
+      attente.delete(q.sub);
+      appliquerSuccession(true);
       ombresARefaire.current = true;
       dessiner();
     };
@@ -2252,7 +2314,11 @@ export function GameStage3D({ scene, mpt, frame, tintAt, keepEl, nappeVue, els, 
           servirEntrée('billboard', q.clé);
         },
         (raison: unknown) => {
-          if (!annule) console.warn(`GameStage3D: billboard « ${q.sub.identity} » sauté — texture non rasterisée :`, raison);
+          if (!annule) {
+            console.warn(`GameStage3D: billboard « ${q.sub.identity} » sauté — texture non rasterisée :`, raison);
+            attente.delete(q.sub);
+            if (appliquerSuccession(true).changé) dessiner();
+          }
           servirEntrée('billboard', q.clé);
         },
       );
@@ -2265,8 +2331,8 @@ export function GameStage3D({ scene, mpt, frame, tintAt, keepEl, nappeVue, els, 
     // (`viderTexturesStatiques`).
     réchaufferVoisins(monté, subjects.map((sub) => ({ sub, heightM: subjectQuad(CONVENTION, sub).heightM })));
     // Ce teardown court à CHAQUE changement de sujets, PAS seulement au démontage : il n'y a donc
-    // rien à libérer ici (la passe suivante fait la différence). Il ne fait qu'annuler les textures en
-    // vol — une texture servie après coup monterait un quad que la différence n'a pas voulu.
+    // rien à libérer ici (la passe suivante fait la succession). Il ne fait qu'annuler les textures en
+    // vol — une texture servie après coup monterait un quad qu'aucune attente ne réclame.
     return () => { annule = true; };
   }, [subjects, mpt, lit]);
 
@@ -2275,8 +2341,7 @@ export function GameStage3D({ scene, mpt, frame, tintAt, keepEl, nappeVue, els, 
   useEffect(() => () => {
     const groupe = panneaux.current;
     boardsRef.current = [];
-    flipRef.current.clear();
-    épinglesRef.current.clear();
+    étatsOccupantsRef.current.clear();
     clésStatiquesRef.current.clear();
     setAtlasPins([]);
     epinglerStatiques([]);

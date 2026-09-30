@@ -1,4 +1,4 @@
-// Garde PreToolUse(Write|Edit|mcp__lean-ctx__ctx_patch) : la règle 6(c) du CLAUDE.md (pierre tombale,
+// Garde PreToolUse des canaux d'écriture (`OUTILS_ECRITURE`) : la règle 6(c) du CLAUDE.md (pierre tombale,
 // tolérance zéro) appliquée à `.claude/memory/**`. Une fiche devenue fausse se RÉÉCRIT au présent ou
 // se SUPPRIME — git porte l'historique ; poser un EN-TÊTE DE SUPERSESSION (les trois mots que `MOTIF`
 // reconnaît plus bas) au-dessus du faux le laisse en place, et la fiche se relit comme une vérité
@@ -22,7 +22,7 @@
 // CONSÉQUENCE DITE : replacer le MÊME en-tête dans `old_string` le rend silencieux — la ligne n'est
 // plus ajoutée. Le garde arbitre l'ÉCRITURE d'un en-tête, il n'inspecte pas la fiche existante.
 import { readFileSync } from 'node:fs'
-import { entreeDOutil, verdictDe } from '../guards/lib/contratGarde.mjs'
+import { OUTILS_ECRITURE, cheminVise, ecrituresDe, texteAvant, texteNeuf, verdictDe } from '../guards/lib/contratGarde.mjs'
 import { cheminDEcriture } from './solde-ticket-guard.mjs'
 
 /** Ligne débarrassée de ses ornements de tête (citation, puce, titre, gras, avertissement). */
@@ -91,14 +91,14 @@ export const estFicheMemoire = (chemin) =>
 /**
  * Décision du hook (PURE, testable). `null` = silence ; `{ decision, reason }` sinon.
  * `lireDisque` rend le contenu actuel du fichier (`''` s'il n'existe pas) — un Write se juge contre
- * lui, un Edit contre son `old_string`.
+ * lui, une op ancrée contre les lignes qu'elle vise (`texteAvant`), un Edit contre son `old_string`.
  */
 export function evaluate(input, lireDisque = () => '') {
-  const chemin = String(input?.file_path ?? input?.path ?? '')
+  const chemin = String(cheminVise(input) ?? '')
   if (!estFicheMemoire(chemin)) return null
-  const neuf = input?.new_string ?? input?.new_text ?? input?.content
+  const neuf = texteNeuf(input)
   if (typeof neuf !== 'string') return null
-  const ancien = input?.old_string ?? input?.old_text ?? (input?.content !== undefined ? lireDisque(chemin) : '')
+  const ancien = texteAvant(input, () => lireDisque(chemin))
   const lignes = neuf.split(/\r?\n/)
   for (const { texte, rang } of lignesAjoutees(neuf, ancien)) {
     const entete = enteteSupersession(texte, lignes[rang - 1])
@@ -117,12 +117,14 @@ export function evaluate(input, lireDisque = () => '') {
 
 const lire = (chemin) => { try { return readFileSync(chemin, 'utf8') } catch { return '' } }
 
-function evaluer(entree) {
-  const input = entreeDOutil(entree)
+/** Le refus pour UNE écriture (`ecrituresDe`), `null` sans en-tête de supersession. */
+function refus(input) {
   // La fiche se juge sous son chemin RÉEL : la mémoire de session s'écrit par une jonction (#1973).
   const chemin = cheminDEcriture(input)
   const decision = chemin ? evaluate({ ...input, file_path: chemin.reel }, lire) : null
   return decision && !chemin.horsContenu ? verdictDe(decision) : null
 }
 
-export const garde = { nom: 'memoire-tombale', outils: ['Write', 'Edit', 'mcp__lean-ctx__ctx_patch'], evaluer }
+const evaluer = (entree) => ecrituresDe(entree).map(refus)
+
+export const garde = { nom: 'memoire-tombale', outils: OUTILS_ECRITURE, evaluer }

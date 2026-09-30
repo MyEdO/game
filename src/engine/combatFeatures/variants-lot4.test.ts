@@ -12,7 +12,7 @@ import { setRule, resetRule } from '../policy';
 import { activeVariant, effectiveEntry } from '../variants';
 import { findTalentById, talents } from '../../data';
 import { slugId } from '../../data/slug';
-import { CODEX, invalidateCodexLookup } from '../../ui/compendium/registry';
+import { CODEX } from '../../ui/compendium/registry';
 import {
   hasStealAdvantage, stealsOneAdvantage, shieldReactionCost, shieldAdvantageLevel,
   retreatAdvantageCost, keptAdvantageOnDisengage, canDisengageWithLessAdvantage,
@@ -126,7 +126,6 @@ const ruleOf = (id: string): string =>
 
 /** Fiche Codex RÉELLE d'un talent, re-projetée après un changement de règle optionnelle. */
 function codexTalent(id: string) {
-  invalidateCodexLookup();
   return CODEX.find((c) => c.key === 'talents')!.items.find((i) => i.id === id)!;
 }
 const metaOf = (id: string, label: string) => codexTalent(id).meta?.find((f) => f.label === label)?.value;

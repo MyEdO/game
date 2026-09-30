@@ -7,7 +7,7 @@ import '../node-requis.mjs'
 import { appendFileSync, mkdirSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { lireStdinBorne } from '../guards/lib/stdinBorne.mjs'
-import { decisionCumulee } from '../guards/lib/contratGarde.mjs'
+import { decisionCumulee, outilCouvert } from '../guards/lib/contratGarde.mjs'
 import { sousRacineNpm } from '../guards/lib/racineNpm.mjs'
 import { cibleDeLaCommande } from './solde-ticket-guard.mjs'
 
@@ -50,13 +50,23 @@ export async function evaluerGardes(gardes, entree, contexte) {
   return verdicts
 }
 
-/** Le cumul des verdicts : la décision (`decisionCumulee`), les contextes concaténés, les traces
- *  demandées. Un refus porte toujours une raison. */
+/** Les contextes des verdicts, sans répéter un contexte ENTIER qu'une même garde a déjà rendu (un lot
+ *  `ops` qui vise deux fois le même fichier). */
+function contextesDe(verdicts) {
+  const vus = new Set()
+  return verdicts.filter((v) => v.contexte).filter((v) => {
+    const cle = `${v.garde}\u0000${v.contexte}`
+    return !vus.has(cle) && vus.add(cle)
+  }).map((v) => v.contexte)
+}
+
+/** Le cumul des verdicts : la décision (`decisionCumulee`), les contextes concaténés (`contextesDe`),
+ *  les traces demandées. Un refus porte toujours une raison. */
 export function cumuler(verdicts) {
   const decision = decisionCumulee(verdicts.filter((v) => v.decision).map((v) => ({
     reason: String(v.raison ?? '').trim() || `refus de la garde ${v.garde}, sans raison donnée`,
   })))
-  const contextes = verdicts.filter((v) => v.contexte).map((v) => v.contexte)
+  const contextes = contextesDe(verdicts)
   return { decision, contexte: contextes.length ? contextes.join('\n\n') : null, traces: verdicts.filter((v) => v.trace).map((v) => v.trace) }
 }
 
@@ -83,7 +93,7 @@ export async function repartir(registre, brut, { env = process.env, cwd = proces
     return { sortie: null, traces: [] }
   }
   const evenement = entree?.hook_event_name
-  const gardes = (registre[evenement] ?? []).filter((g) => g.outils.includes(entree?.tool_name))
+  const gardes = (registre[evenement] ?? []).filter((g) => outilCouvert(g.outils, entree?.tool_name))
   if (gardes.length === 0) return { sortie: null, traces: [] }
   let cumul
   try {

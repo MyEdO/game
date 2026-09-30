@@ -1,6 +1,6 @@
 /**
  * Plan corporel BIPÈDE — enveloppe le rig héros existant (resolveRig) sans le réécrire.
- * Le rendu des héros/PNJ humanoïdes continue via AnimatedRigToken ; ce plan expose le
+ * Le rendu des héros/PNJ humanoïdes continue via `resolveRig`/`rigComposition` ; ce plan expose le
  * bipède au registre de gabarits (parité d'interface avec quadruped/winged).
  */
 import type { BonePose } from './poses';

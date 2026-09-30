@@ -1,4 +1,5 @@
 import { Buffer } from 'node:buffer';
+import { matcherDOutils } from '../guards/lib/contratGarde.mjs';
 
 export const GENERATED_PREFIX = '<!-- GENERATED: agents:sync; source=';
 const utf8 = new TextDecoder('utf-8', { fatal: true });
@@ -158,6 +159,29 @@ export const SURFACE_CLAUDE = '.claude/settings.json';
 export const SURFACE_CODEX = '.codex/hooks.json';
 
 /**
+ * Le moteur de matcher de chaque surface. Claude Code : noms exacts si le matcher ne porte que
+ * lettres, chiffres, `_`, `-`, espaces, `,` et `|`, sinon « JavaScript regex (unanchored) »
+ * (https://code.claude.com/docs/en/hooks, « Matcher patterns »). Codex 0.156.1 : crate Rust `regex`,
+ * sans lookaround (`codex.exe` : « look-around, including look-ahead and look-behind, is not
+ * supported » ; « invalid matcher ·· in ·· »).
+ */
+export const MOTEUR_DE_SURFACE = Object.freeze({
+  [SURFACE_CLAUDE]: { lookaround: true, listeExacte: /^[A-Za-z0-9_ ,|-]*$/ },
+  [SURFACE_CODEX]: { lookaround: false, listeExacte: null },
+});
+
+/** Le matcher `matcher` de `surface`, compilé comme la surface le lit : `(nomDOutil) => boolean`. */
+export function compilerMatcher(matcher, surface) {
+  const { listeExacte } = MOTEUR_DE_SURFACE[surface];
+  if (listeExacte?.test(matcher)) {
+    const noms = new Set(matcher.split(/[|,]/).map((n) => n.trim()));
+    return (nom) => noms.has(nom);
+  }
+  const regex = new RegExp(matcher);
+  return (nom) => regex.test(nom);
+}
+
+/**
  * Les points d'entrée des hooks d'APPEL D'OUTIL (#2125) : `script` de `scripts/hooks/`, le `module` qui
  * exporte son registre (`exporte` : événement → gardes), son `timeout` (s) et son message. Le
  * répartiteur porte toutes les gardes ; la porte de fermeture a le sien, parce qu'un commit de
@@ -216,7 +240,7 @@ export function hooksAttendus(registres, surface) {
     const registre = registres.get(script);
     if (!registre) throw new Error(`registre absent pour ${script}`);
     for (const [phase, gardes] of Object.entries(registre)) {
-      const matcher = [...new Set(gardes.flatMap((g) => g.outils))].join('|');
+      const matcher = matcherDOutils([...new Set(gardes.flatMap((g) => g.outils))], MOTEUR_DE_SURFACE[surface]);
       ajouter(phase, { matcher, hooks: [{ type: 'command', ...lancementDeHook(surface, script), timeout, statusMessage }] });
     }
   }

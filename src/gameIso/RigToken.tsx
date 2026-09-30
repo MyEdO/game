@@ -1,4 +1,4 @@
-import { RigSprite } from './rig/composeRig';
+import { RigSprite, useCompositionRig } from './rig/composeRig';
 import { ambientClip } from './rig/anim/ambientClips';
 import { addPose } from './rig/poses';
 import { useRigAnim } from './useRigAnim';
@@ -44,9 +44,12 @@ export function RigToken({
   const { pose, holdPose, view, mirror } = useRigAnim({ id, equip, restClip, facing, pos });
   const down: GroundState = outOfAction || ground === 'corpse' ? 'corpse' : ground;
   const couché = rigGroundPose(down);
+  // COMPOSITION retenue (`useCompositionRig`) : l'animation (rAF de `useRigAnim`) ne paie que la pose
+  // (`poseRig`).
+  const comp = useCompositionRig(appearance, equip, career, view, overlays, mirror);
   const body = (
     <g transform={mirror ? 'translate(120,0) scale(-1,1)' : undefined}>
-      <RigSprite appearance={appearance} equip={equip} career={career} overlays={overlays} pose={couché ?? addPose(holdPose, pose)} view={view} mirror={mirror} />
+      <RigSprite comp={comp} pose={couché ?? addPose(holdPose, pose)} />
     </g>
   );
   // AU SOL : bascule de tout le rig autour de ses pieds (`rigGroundTiltDeg`, `RIG_GROUND_PIVOT` —

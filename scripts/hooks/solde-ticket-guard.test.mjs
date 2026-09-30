@@ -3,6 +3,7 @@
 // adversariale (demande 2026-07-14). Lancé par `npm run test:hooks`.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
+import { DEPOT } from '../guards/lib/ticketsGh.mjs'
 import { Buffer } from 'node:buffer'
 import { resolve, join } from 'node:path'
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync, existsSync } from 'node:fs'
@@ -2355,7 +2356,7 @@ test('extractMessageSources : « -F » en PROSE d un message -m n est pas un fla
 // Le drapeau `-F` ne vaut QUE dans le segment qui exécute `git commit` (mesuré 2026-09-04 : deux
 // refus « message de commit en fichier illisible » sur des commandes qui ne committent rien).
 test('extractMessageSources : le -F de « gh api -X PATCH … -F corps=@fichier » n est PAS un message de commit', () => {
-  const cmd = 'gh api -X PATCH repos/cgauche/game/issues/comments/42 -F body=@rapport.md'
+  const cmd = `gh api -X PATCH repos/${DEPOT}/issues/comments/42 -F body=@rapport.md`
   const r = extractMessageSources(cmd, { readFile: () => { throw new Error('ne doit jamais être appelé') } })
   assert.equal(r.fileError, null)
   assert.equal(r.text, cmd)
@@ -2368,7 +2369,7 @@ test('extractMessageSources : une ligne de todo qui CITE le drapeau ne cherche a
 })
 
 test('extractMessageSources : « gh issue comment --body-file » n est pas un flag fichier de commit', () => {
-  const cmd = 'gh issue comment 1614 --repo cgauche/game --body-file rapport.md'
+  const cmd = `gh issue comment 1614 --repo ${DEPOT} --body-file rapport.md`
   const r = extractMessageSources(cmd, { readFile: () => { throw new Error('ne doit jamais être appelé') } })
   assert.equal(r.fileError, null)
 })
@@ -2762,8 +2763,8 @@ test('evaluateFermetureHorsCommit : `gh issue close` refusé, y compris derrièr
     'gh issue close 1636 --comment "fait"',
     'bash -lc "gh issue close 1636"',
     'gh issue edit 1636 --state closed',
-    'gh api repos/cgauche/game/issues/1636 -X PATCH -f state=closed',
-    'gh api repos/cgauche/game/issues/1636 --method PATCH --field state=closed',
+    `gh api repos/${DEPOT}/issues/1636 -X PATCH -f state=closed`,
+    `gh api repos/${DEPOT}/issues/1636 --method PATCH --field state=closed`,
   ]) {
     const d = evaluateFermetureHorsCommit(cmd)
     assert.ok(d, `passé en silence : ${cmd}`)
@@ -2787,7 +2788,7 @@ test('evaluateFermetureHorsCommit : silence sur ce qui ne ferme pas', () => {
 test('evaluateFermetureHorsCommit : un corps `--input` porteur de "state": "closed" est refusé', () => {
   const lire = () => JSON.stringify({ state: 'closed', state_reason: 'completed' })
   for (const cmd of [
-    'gh api -X PATCH /repos/cgauche/game/issues/1679 --input corps.json',
+    `gh api -X PATCH /repos/${DEPOT}/issues/1679 --input corps.json`,
     'gh api --method PATCH /repos/o/r/issues/1 --input=corps.json',
     'bash -lc "gh api -X PATCH /repos/o/r/issues/1 --input corps.json"',
   ]) {
@@ -2804,7 +2805,7 @@ test('evaluateFermetureHorsCommit : les gestes `--input` qui ne peuvent pas FERM
   // d'UN ticket et une méthode qui ÉCRIT.
   const absent = () => { throw new Error('ENOENT') }
   for (const cmd of [
-    'gh api repos/cgauche/game/issues --input body.json',
+    `gh api repos/${DEPOT}/issues --input body.json`,
     'gh api graphql --input query.json',
     'gh api repos/o/r/issues --input filtre.json -X GET',
     'echo \'{"title":"x"}\' > body.json && gh api repos/o/r/issues --input body.json',

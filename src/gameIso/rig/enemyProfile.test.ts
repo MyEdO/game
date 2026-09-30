@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { classifyEnemy, enemyRigProfile, entityRigProfile } from './enemyProfile';
 import { combatantOverlays } from './parts/combatantVisuals';
-import { creatures, DEFAULT_RACE_ID } from '../../data';
+import { creatures, DEFAULT_RACE_ID, findTrappingById, SPEC_SOURCES } from '../../data';
 import { setDataset } from '../../data/overrides';
 import { mutationById } from '../../data/mutations';
 import { raceById } from './races';
@@ -10,7 +10,7 @@ import { baseSpeciesOf } from './skeletons';
 import { resolveParts } from './parts/resolve';
 import { viewOrFront } from './parts/types';
 import { CLAWFOOT, MAIN_GRIFFUE } from './parts/bodies/extremites';
-import { armourPart } from './parts/equipment';
+import { armeDeDessin, armourPart, pieceDeDessin, weaponFamily } from './parts/equipment';
 import { spawnEnemy } from '../../state/spawn';
 import { hairstylesForSex } from './parts/hairstyles';
 import { COIFFURE_HORS_POOL } from './parts/cosmetic';
@@ -76,7 +76,7 @@ describe('enemyRigProfile', () => {
     const c = mkEnemy('Bandit');
     const p = enemyRigProfile(c)!;
     expect(p).not.toBeNull();
-    expect(p.equip.weapons).toBe(c.weapons);
+    expect(p.equip.weapons).toEqual(c.weapons.map(armeDeDessin));
   });
 
   it('déterministe : même id ⇒ même apparence', () => {
@@ -205,7 +205,7 @@ describe('enemyRigProfile', () => {
     };
     const c = mkEnemy('Bandit', { items: [item], armour: { ...noArmour, corps: 9 } });
     const p = enemyRigProfile(c)!;
-    expect(p.equip.armour).toContain(item); // l'inventaire prime sur la synthèse
+    expect(p.equip.armour).toEqual([pieceDeDessin(item)]); // l'inventaire prime sur la synthèse
   });
 
   it('mutation visuelle = DONNÉE (c.mutations), plus jamais le nom (POC isMutant retiré)', () => {
@@ -251,8 +251,11 @@ describe('entityRigProfile (entité de scène, ambiance hors combat)', () => {
   it('équipement de combat AFFICHÉ en explo (parité avec le combat) : armes + armure dérivées du profil (opt-in armurePortee, #774)', () => {
     // Entité SANS record de bestiaire (statbloc d'éditeur) : l'armure de statblock ne rend son art
     // QUE si l'authoring la déclare portée (`opts.armurePortee`, override, ex. `ent.appearance.armurePortee`).
-    const p = entityRigProfile('Soldat', 1, { traits: [{ id: 'arme', value: 7, arg: 'Hache' }] as never, armour: 2, armurePortee: true })!;
-    expect(p.equip.weapons.some((w) => /hache/i.test(w.label))).toBe(true); // arme EXPLICITE tenue en main
+    // L'arme du trait par un id de catalogue qui SE RÉSOUT (un libellé ne se résout pas, #1957).
+    const armeId = SPEC_SOURCES.weaponsMelee.pool().find((id) => findTrappingById(id)?.shape && !/bouclier/i.test(findTrappingById(id)!.label))!;
+    expect(SPEC_SOURCES.weaponsMelee.resolves(armeId)).toBe(true);
+    const p = entityRigProfile('Soldat', 1, { traits: [{ id: 'arme', value: 7, arg: armeId }] as never, armour: 2, armurePortee: true })!;
+    expect(p.equip.weapons.map(weaponFamily)).toContain(findTrappingById(armeId)!.shape); // arme EXPLICITE tenue en main
     expect(p.equip.armour.length).toBeGreaterThan(0);                       // armure dessinée (PA → pièces)
   });
 
@@ -342,5 +345,29 @@ describe('spawnEnemy — une coiffure seule traverse jusqu’au rendu du combatt
     expect(apres.appearance.hairstyle).toBe(coiffure);
     const rendu = (p: typeof apres) => bonesToSvg(resolveRig(p.appearance, p.equip, {}, p.tenue, 'front', []));
     expect(rendu(apres)).not.toBe(rendu(avant));
+  });
+});
+
+describe('#2097 C4 — équipement PORTÉ : une production (`equipPorte`), parité combat ↔ explo', () => {
+  it('cape d’ennemi portée : dessinée, comme celle d’un héros', () => {
+    const cape = { uid: 'c', label: 'Cape', trappingId: 'cape', kind: 'misc', qualities: [], enc: 0, equipped: true } as ItemInstance;
+    expect(enemyRigProfile(mkEnemy('Bandit', { items: [cape] }))!.equip.cape).toBe(true);
+    expect(enemyRigProfile(mkEnemy('Bandit'))!.equip.cape).toBeUndefined();
+  });
+
+  it('bouclier d’une entité d’exploration : tenu, donc dessiné à la main secondaire', () => {
+    const p = entityRigProfile('Soldat', 1, { weapon: 'bouclier' })!;
+    expect(p.equip.shield, 'le bouclier de l’entité est tenu').toBeDefined();
+    expect(resolveParts('humain', 'M', 'soldat', p.equip, {}, 1).bouclier?.svg).toContain('<');
+  });
+
+  it('armure synthétisée : pièces triées par matériau, chaque zone couverte par UNE pièce (ordre sans effet de dessin)', () => {
+    const p = enemyRigProfile(mkEnemy('Soldat', { armour: { ...noArmour, corps: 1, tete: 5 }, appearanceOverride: { armurePortee: true } as never }))!;
+    const rang = { plaque: 3, maille: 2, cuir: 1, rembourre: 0 } as const;
+    const rangs = p.equip.armour.map((a) => rang[a.materiau]);
+    expect(rangs).toEqual([...rangs].sort((a, b) => b - a));
+    const zones = p.equip.armour.flatMap((a) => a.locs ?? []);
+    expect(zones.length, 'PRÉMISSE : des pièces sont synthétisées').toBeGreaterThan(0);
+    expect(new Set(zones).size).toBe(zones.length);
   });
 });

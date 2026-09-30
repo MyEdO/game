@@ -13,16 +13,19 @@ import { join, dirname, relative, resolve } from 'node:path'
 import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import {
+  ACTION_PROLOGUE,
   DOCUMENTAIRE,
   CI_SEULEMENT_PRODUIT,
   COMMANDE_CLASSER,
   CONDITION_PRODUIT,
+  ID_PROLOGUE,
   classer,
   classerPush,
   gatesSautables,
 } from './classerPush.mjs'
 import { envDeDepotForge } from '../guards/lib/depotGabarit.mjs'
-import { gatesDeCi, stepsCi, CI_SEULEMENT } from './gatesDeCi.mjs'
+import { blocsDeJobs, contextesRequis, gatesDeCi, stepsCi, CI_SEULEMENT } from './gatesDeCi.mjs'
+import { stepsDu } from './workflowsDuDepot.mjs'
 import { corpusParGate, inerte } from './ecrivainsAtteints.mjs'
 import { ECRIT_LU } from './toutes.mjs'
 
@@ -89,7 +92,6 @@ test('chaque step CI_SEULEMENT porte la condition SSI il est dans CI_SEULEMENT_P
   const ecarts = []
   for (const { job, commande, si } of stepsCi({ cwd: RACINE })) {
     if (!(commande in CI_SEULEMENT)) continue
-    if (commande === COMMANDE_CLASSER) continue
     const conditionnee = (si ?? '').includes(CONDITION_PRODUIT)
     const produitSeulement = commande in CI_SEULEMENT_PRODUIT
     if (produitSeulement !== conditionnee)
@@ -101,15 +103,20 @@ test('chaque step CI_SEULEMENT porte la condition SSI il est dans CI_SEULEMENT_P
   assert.deepEqual(ecarts, [])
 })
 
-test('les deux jobs à checks requis portent le step de classement, et le rejeu des migrations sa condition', () => {
-  const steps = stepsCi({ cwd: RACINE })
-  for (const job of ['build', 'migrations']) {
-    assert.ok(
-      steps.some((s) => s.job === job && s.commande === COMMANDE_CLASSER),
-      `le job « ${job} » est un check REQUIS du ruleset : il doit classer le push lui-même`,
+test('chaque job à check requis ouvre sur le PROLOGUE, et le rejeu des migrations porte sa condition', () => {
+  const requis = contextesRequis({ cwd: RACINE })
+  assert.ok(requis.length >= 2, `jobs requis lus : ${requis.join(', ')}`)
+  for (const { job, texte } of blocsDeJobs({ cwd: RACINE }).filter((b) => requis.includes(b.job))) {
+    const [checkout, prologue] = stepsDu(texte)
+    assert.match(checkout?.bloc ?? '', /uses: actions\/checkout@/, `${job} : le premier step n’est pas le checkout`)
+    assert.equal(prologue?.id, ID_PROLOGUE, `${job} : le second step n’est pas le prologue (id « ${ID_PROLOGUE} »)`)
+    assert.match(
+      prologue.bloc,
+      new RegExp(`uses: \\./${dirname(ACTION_PROLOGUE).replace(/[./]/g, '\\$&')}\\s*$`, 'm'),
+      `${job} est un check REQUIS du ruleset : il doit classer le push lui-même, par ${ACTION_PROLOGUE}`,
     )
   }
-  const rejeu = steps.find((s) => s.job === 'migrations' && s.commande === 'npm run migrations:replay')
+  const rejeu = stepsCi({ cwd: RACINE }).find((s) => s.job === 'migrations' && s.commande === 'npm run migrations:replay')
   assert.ok(rejeu, 'le job migrations ne rejoue plus les migrations')
   assert.ok(
     (rejeu.si ?? '').includes(CONDITION_PRODUIT),
@@ -117,19 +124,19 @@ test('les deux jobs à checks requis portent le step de classement, et le rejeu 
   )
 })
 
-test('le step de classement précède `npm ci` dans chaque job qui le porte', () => {
-  const steps = stepsCi({ cwd: RACINE })
-  for (const job of ['build', 'migrations']) {
-    const duJob = steps.filter((s) => s.job === job)
-    const iClasser = duJob.findIndex((s) => s.commande === COMMANDE_CLASSER)
-    const iInstall = duJob.findIndex((s) => s.commande === 'npm ci')
-    assert.ok(iClasser >= 0 && iInstall >= 0, `${job} : classement ou installation absents`)
-    assert.ok(
-      iClasser < iInstall,
-      `${job} : le classement doit précéder \`npm ci\` — ses imports n’atteignent aucun paquet, et c’est lui qui décide ` +
-        'de ce que le reste du job paie',
-    )
-  }
+test('le prologue classe le push AVANT `npm ci`, et expose ce classement en `produit`', () => {
+  const texte = readFileSync(join(RACINE, ACTION_PROLOGUE), 'utf8')
+  const commandes = stepsCi({ fichier: join(RACINE, ACTION_PROLOGUE) }).map((s) => s.commande)
+  const iClasser = commandes.indexOf(COMMANDE_CLASSER)
+  const iInstall = commandes.indexOf('npm ci')
+  assert.ok(iClasser >= 0 && iInstall >= 0, `${ACTION_PROLOGUE} : classement ou installation absents (${commandes.join(' · ')})`)
+  assert.ok(
+    iClasser < iInstall,
+    'le classement doit précéder `npm ci` — ses imports n’atteignent aucun paquet, et c’est lui qui décide ' +
+      'de ce que le reste du job paie',
+  )
+  assert.match(texte, /^ {2}produit:\n(?: {4}.*\n)*? {4}value: \$\{\{ steps\.classer\.outputs\.produit \}\}$/m,
+    `${ACTION_PROLOGUE} n’expose plus le classement : « ${CONDITION_PRODUIT} » lirait un output vide et TOUT jouerait`)
 })
 
 // (c1) — chaque gate SAUTABLE confrontée à son CORPUS : la classe « `lit` sous-déclaré ».

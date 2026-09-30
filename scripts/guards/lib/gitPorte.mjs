@@ -44,6 +44,7 @@ import { join, resolve } from 'node:path'
 import { normaliserRacine } from '../../port-dev.mjs'
 import { BACKOFFS_MS, MARQUE_REJEU, attendreSync, estEchecDeChargement, rejeux } from './spawnResilient.mjs'
 import { coupeAuMot } from '../../../src/lib/coupeAuMot.mjs'
+import { DEPOT } from './ticketsGh.mjs'
 
 /** Une `raison` est coupée au mot vers `RAISON_MAX` (`coupeAuMot`) : elle est DITE dans un refus de hook, une fois. */
 const RAISON_MAX = 200
@@ -423,16 +424,48 @@ const absentSaufCorrompu = (depot, revisions) => {
   return null
 }
 
+/** Les filtres de fusion de `shasDe` (`git help rev-list`). */
+const FILTRES_DE_FUSIONS = Object.freeze({ toutes: [], seules: ['--merges'], aucune: ['--no-merges'] })
+
 /**
  * Les SHAS des commits de la plage `revisions` (`git help revisions` : `<a>..<b>`, `^<ref>`, `<sha>^!`),
- * du plus ancien au plus récent ; `fusions` : les seules fusions. `null` quand git ne rend pas la
- * plage : une plage illisible n'est pas une plage vide.
+ * du plus ancien au plus récent ; `fusions` : `'seules'` (`--merges`), `'aucune'` (`--no-merges`) ;
+ * `chemins` : les seuls commits qui les touchent, sous `--full-history` — sans lui, une fusion
+ * TREESAME à un parent cache les commits de l'autre (`git help rev-list`, « History Simplification »).
+ * `null` quand git ne rend pas la plage : une plage illisible n'est pas une plage vide.
  * @param {Depot} depot @param {readonly string[]} revisions
- * @param {{ fusions?: boolean }} [opts] @returns {string[] | null}
+ * @param {{ fusions?: 'toutes' | 'seules' | 'aucune', chemins?: readonly string[] }} [opts] @returns {string[] | null}
  */
-export function shasDe(depot, revisions, { fusions = false } = {}) {
-  const brut = lire(depot, ['rev-list', '--reverse', ...(fusions ? ['--merges'] : []), ...revisionsDe(revisions), '--'])
+export function shasDe(depot, revisions, { fusions = 'toutes', chemins = [] } = {}) {
+  const filtre = Object.hasOwn(FILTRES_DE_FUSIONS, fusions) ? FILTRES_DE_FUSIONS[fusions] : null
+  if (!filtre) throw new Error(`shasDe : fusions « ${fusions} » inconnu`)
+  const historique = chemins.length ? ['--full-history'] : []
+  const brut = lire(depot, ['rev-list', '--reverse', ...filtre, ...historique, ...revisionsDe(revisions), '--', ...chemins])
   return brut === null ? absentSaufCorrompu(depot, revisions) : brut.split('\n').map((l) => l.trim()).filter(Boolean)
+}
+
+/**
+ * Les PARENTS de `revision` (`git help revisions`, `<rev>^@`), dans leur ordre ; `null` quand git ne
+ * les rend pas.
+ * @param {Depot} depot @param {string} revision @returns {string[] | null}
+ */
+export function parentsDe(depot, revision) {
+  const brut = lire(depot, ['rev-parse', `${revisionsDe([revision])[0]}^@`])
+  return brut === null ? absentSaufCorrompu(depot, [revision]) : brut.split('\n').map((l) => l.trim()).filter(Boolean)
+}
+
+/**
+ * Le POINT DE DÉPART de `tete` dans `tronc` : le premier commit de la chaîne des premiers parents de
+ * `tete` (`git help rev-list`, `--first-parent`) contenu dans `tronc` — `tete` elle-même quand le
+ * tronc la contient. `null` quand git ne le rend pas, ou quand la chaîne n'entre jamais dans le tronc.
+ * @param {Depot} depot @param {string} tete @param {string} tronc @returns {string | null}
+ */
+export function pointDeDepart(depot, tete, tronc) {
+  const [t, tr] = revisionsDe([tete, tronc])
+  const brut = lire(depot, ['rev-list', '--first-parent', t, `^${tr}`, '--'])
+  if (brut === null) return absentSaufCorrompu(depot, [tete, tronc])
+  const propres = brut.split('\n').map((l) => l.trim()).filter(Boolean)
+  return shaDe(depot, propres.length ? `${propres.at(-1)}^1` : tete)
 }
 
 /**
@@ -730,7 +763,8 @@ export function fichiersDuGrep(depot, portee, motif, pathspecs) {
 
 /**
  * Le texte de chaque chemin de `rels` dans l'image `arbre` (une ref ou `INDEX`), `null` s'il y est
- * absent ou si `git` ne rend rien — l'unique lecture PAR LOT des portes : un seul `git cat-file --batch`.
+ * absent — l'unique lecture PAR LOT des portes : un seul `git cat-file --batch`. Un `cat-file` qui ne
+ * rend pas son lot est une PANNE, confiée (`confier` : `enPanne` et tout `null`, sinon `GitIndisponible`).
  * @param {Depot} depot @param {string} arbre
  * @param {readonly string[]} rels @returns {Map<string, string | null>}
  * @throws {Error} un chemin à caractère de contrôle (`porteUnControle`), avant le spawn ; sortie de
@@ -744,9 +778,12 @@ export function lireEnLot(depot, arbre, rels) {
   const prefixe = arbre === INDEX ? ':' : `${revisionsDe([arbre])[0]}:`
   const fautifs = rels.filter((rel) => typeof rel !== 'string' || porteUnControle(rel))
   if (fautifs.length) throw new Error(`lireEnLot : un chemin tient sur une ligne du lot, sans caractère de contrôle — refusés : ${JSON.stringify(fautifs)}`)
-  const brut = lire(depot, ['cat-file', '--batch'], { entree: rels.map((rel) => `${prefixe}${rel}\n`).join('') })
-  if (brut === null) return new Map(rels.map((rel) => [rel, null]))
-  const sortie = Buffer.from(brut, 'utf8')
+  const vu = interroger(depot, ['cat-file', '--batch'], { entree: rels.map((rel) => `${prefixe}${rel}\n`).join('') })
+  if (!vu.disponible || vu.absent || vu.valeur.status !== 0) {
+    confier(depot, vu.disponible ? `\`git cat-file --batch\` sans lot (${vu.absent ? 'objet absent' : `status ${vu.valeur.status}`})` : vu.raison)
+    return new Map(rels.map((rel) => [rel, null]))
+  }
+  const sortie = Buffer.from(vu.valeur.stdout, 'utf8')
   let p = 0
   for (const rel of rels) {
     const fin = sortie.indexOf(10, p)
@@ -819,7 +856,7 @@ export function estDansHead(depot, sha) {
  * parce que cette valeur sert de `cwd` et de préfixe de cible. `normaliserRacine` (qui abaisse la
  * casse) ne sert ici qu'aux COMPARAISONS ; l'employer sur la valeur casserait tout chemin
  * case-sensible (mesure du 2026-09-14 : `mkdtempSync` rend 8/8 suffixes porteurs d'une majuscule, et
- * `test:ops` tourne sur `ubuntu-latest`, `runs-on` du job `build` de .github/workflows/ci.yml).
+ * `test:ops` tourne sur `ubuntu-latest`, `runs-on` de son job de .github/workflows/ci.yml).
  * @param {Depot} depot
  * @returns {{disponible:true, valeur:string}|{disponible:false, raison:string}}
  */
@@ -840,9 +877,11 @@ export function arbrePrincipal(depot) {
   return fait(chemin.slice(0, -'/.git'.length))
 }
 
-/** Le dépôt de ce projet, en https comme en ssh. Notion d'ORIGINE, donc hôte des lectures git : la
- *  porte au push et la préflight de publication refusent l'une comme l'autre un `origin` étranger. */
-export const urlOrigineAcceptee = (url) => /github\.com[:/]cgauche\/game(?:\.git)?$/.test(String(url ?? '').trim())
+/** Le dépôt de ce projet (`DEPOT`), en https comme en ssh, avec ou sans `.git`, casse ignorée comme
+ *  GitHub l'ignore. Notion d'ORIGINE, donc hôte des lectures git : la porte au push et la préflight
+ *  de publication refusent l'une comme l'autre un `origin` étranger. */
+const URL_ORIGINE = new RegExp(`github\\.com[:/]${DEPOT.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&')}(?:\\.git)?$`, 'i')
+export const urlOrigineAcceptee = (url) => URL_ORIGINE.test(String(url ?? '').trim())
 
 /** Le TRONC de l'origine : son nom de branche, sa ref côté distant, et sa ref de suivi locale. */
 export const TRONC = Object.freeze({ nom: 'main', branche: 'refs/heads/main', suivi: 'origin/main' })

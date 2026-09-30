@@ -15,7 +15,7 @@
  * quand le passage en porte une) ; les formes réelles sont mesurées au schéma de la donnée.
  */
 import reglesOptionnellesJson from '../data/reglesOptionnelles.json';
-import { indexParId } from '../data/versionDataset';
+import { bumperDataset, indexParId } from '../data/versionDataset';
 import type { SourceRef } from '../data/schemas/grammaire/valeurs';
 
 /** Forme du contrôle qu'une règle optionnelle fait auto-rendre au panneau in-game : `flag` =
@@ -104,12 +104,14 @@ export function rule(id: string): RuleValue {
 
 /** Surcharge runtime (depuis le panneau in-game). Ignore un id inconnu. */
 export function setRule(id: string, value: RuleValue): void {
-  if (regleParId(id)) overrides.set(id, value);
+  if (!regleParId(id)) return;
+  overrides.set(id, value);
+  bumperDataset('regles');
 }
 
 /** Retire la surcharge → retour au défaut. */
 export function resetRule(id: string): void {
-  overrides.delete(id);
+  if (overrides.delete(id)) bumperDataset('regles');
 }
 
 /** Snapshot des surcharges (pour persistance). */

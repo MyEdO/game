@@ -236,13 +236,11 @@ const ATTENDU = {
     'scripts/ops/knip-exports-ratchet.mjs',
     // +2 le 2026-09-16 (#1776) : le ruleset `main` (`scripts/ops/ruleset-main.mjs`).
     // · `ruleset-main.mjs` n'écrit QUE le corps du ruleset dans un fichier d'`os.tmpdir()`, pour le
-    //   passer à `gh api --input` (`executer` de ruleset-main.mjs) — et seulement depuis `executer`, que
-    //   les tests n'appellent jamais : ils ne jouent que `corpsDuRuleset`, `contextesRequis` et
-    //   `refusGh`, tous PURS.
+    //   passer à `gh api --input` (`executer` de ruleset-main.mjs) ; les tests appellent `executer` avec
+    //   un `runner` et un `lireCi` injectés, et ce fichier naît et meurt sous `os.tmpdir()`.
     // · `ruleset-main.test.mjs` écrit ses fixtures `ci.yml` sous `os.tmpdir()` (`mkdtempSync`) ; sa
-    //   seule lecture de l'arbre réel est `jobsCi({ cwd: RACINE })` (test « les contextes se LISENT dans
-    //   le ci.yml réel »), qui
-    //   ne fait que LIRE `.github/workflows/ci.yml`.
+    //   seule lecture de l'arbre réel est `blocsDeJobs`/`jobsCi` (scripts/gates/gatesDeCi.mjs), qui
+    //   ne font que LIRE `.github/workflows/ci.yml`.
     // Même mesure que la raison `test:ops` d'`ECRIT_LU` (scripts/gates/toutes.mjs, `ECRIT_LU['test:ops']`).
     'scripts/ops/ruleset-main.mjs',
     'scripts/ops/ruleset-main.test.mjs',
