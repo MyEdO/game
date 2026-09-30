@@ -1,14 +1,22 @@
-// LIEN DE SESSION du suivi de vague (#2132, lot 2) : `npm run ops:suivi -- <N>` lie la session qui le
+// LIEN DE SESSION du suivi de vague (#2132) : `npm run ops:suivi -- <N>` lie la session qui le
 // lance à l'épique `<N>`. Le lien est une ligne du JOURNAL `<dossierDesSuivis>/.journal`
 // (`scripts/ops/suivi.mjs`), que seul le `trace` du répartiteur écrit (`scripts/guards/lib/contratGarde.mjs`) ;
 // le hook de session `scripts/hooks/inject-suivi.mjs` le relit pour choisir les suivis à mettre en
 // contexte. Une ligne TSV par lien : iso, session_id, épique.
 //
 // La garde ne rend jamais de contexte. Sans `session_id`, ou avec `agent_id` (sous-agent : il partage
-// le `session_id` de son parent), elle ne trace rien.
+// le `session_id` de son parent), elle ne trace rien. Un lien déjà au journal pour ce `session_id` et
+// cette épique n'est pas retracé : le journal ne croît pas d'une ligne par appel.
+//
+// Le lien se trace en PreToolUse, AVANT la commande, jamais en PostToolUse : un PostToolUse sur les
+// outils shell coûte un démarrage de node à CHAQUE appel shell, mesuré 5,2 à 8,5 s (répartiteur sur
+// une charge PostToolUse Bash, 5 lancers, 2026-09-30). Limite : une permission refusée, ou un
+// `--creer` en échec, lie quand même la session. Sans effet nuisible : le hook de session lit le suivi
+// s'il existe, et dit « lié à cette session, mais absent » sinon.
+import * as FS from 'node:fs'
 import { join } from 'node:path'
 import { OUTILS_SHELL, commandeDe } from '../guards/lib/contratGarde.mjs'
-import { argumentsDuSuivi, dossierDesSuivis } from '../ops/suivi.mjs'
+import { argumentsDuSuivi, dossierDesSuivis, relire } from '../ops/suivi.mjs'
 import { segmentsProfonds } from './solde-ticket-guard.mjs'
 
 /** Nom du journal, dans le dossier des suivis (le listage des suivis, `^\d+\.md$`, l'ignore). */
@@ -64,7 +72,9 @@ export const garde = {
     if (epique === null) return null
     const vu = dossierDesSuivis(contexte.dir)
     if (!vu.disponible) return null
+    const fichier = join(vu.valeur, JOURNAL)
+    if (epiquesLiees(lignesDuJournal(relire(fichier, FS) ?? ''), entree.session_id).includes(epique)) return null
     const ligne = ligneDeJournal({ iso: new Date().toISOString(), session: entree.session_id, epique })
-    return { trace: { fichier: join(vu.valeur, JOURNAL), ligne } }
+    return { trace: { fichier, ligne } }
   },
 }

@@ -1,6 +1,7 @@
-// Lien de session du suivi de vague (#2132, lot 2) : la commande qui lie, puis la garde RÉELLE par le
+// Lien de session du suivi de vague (#2132) : la commande qui lie, puis la garde RÉELLE par le
 // répartiteur (`repartir`), sur le `.git/suivi` d'un dépôt forgé. `repartir` rend les traces sans les
-// écrire : rien n'est écrit, ni ici ni dans l'arbre.
+// écrire : rien n'est écrit dans l'arbre ; seul le test du lien déjà tracé les ajoute au journal du
+// dépôt forgé.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import * as FS from 'node:fs'
@@ -41,6 +42,32 @@ test('T3 — le lien est TRACÉ au journal du dépôt pour la session principale
       assert.deepEqual((await shell('npm run ops:suivi -- 1816', entree)).traces, [], JSON.stringify(entree))
     }
     assert.deepEqual((await shell('git commit -m x', { session_id: 's' })).traces, [])
+  } finally {
+    FS.rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+test('un lien DÉJÀ au journal pour cette session et cette épique n’est pas retracé ; une autre épique ou une autre session, si', async () => {
+  const { racine } = instanceDeDepot({ commit: false, fichiers: { 'package.json': JSON.stringify({ scripts: SCRIPTS }) } })
+  // Le répartiteur rend les traces ; `executer` les AJOUTE au fichier (`scripts/hooks/repartiteur.mjs`).
+  const appel = async (command, session_id = 's') => {
+    const { traces } = await repartir({ PreToolUse: [garde] }, JSON.stringify({
+      hook_event_name: 'PreToolUse', tool_name: 'Bash', tool_input: { command }, session_id,
+    }), { env: {}, cwd: racine })
+    for (const { fichier, ligne } of traces) {
+      FS.mkdirSync(dirname(fichier), { recursive: true })
+      FS.appendFileSync(fichier, ligne)
+    }
+    return traces.length
+  }
+  const journal = () => lignesDuJournal(FS.readFileSync(join(racine, '.git', 'suivi', JOURNAL), 'utf8')).map((l) => [l.session, l.epique])
+  try {
+    assert.equal(await appel('npm run ops:suivi -- 1816'), 1)
+    assert.equal(await appel('npm run ops:suivi -- 1816'), 0, 'deux appels identiques : une seule ligne')
+    assert.deepEqual(journal(), [['s', 1816]])
+    assert.equal(await appel('npm run ops:suivi -- 2132'), 1, 'une autre épique : une ligne de plus')
+    assert.equal(await appel('npm run ops:suivi -- 1816', 'autre'), 1, 'une autre session : une ligne de plus')
+    assert.deepEqual(journal(), [['s', 1816], ['s', 2132], ['autre', 1816]])
   } finally {
     FS.rmSync(racine, { recursive: true, force: true })
   }

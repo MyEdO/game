@@ -40,7 +40,7 @@
 // LE PROFIL. Chaque geste injectable de la mesure (`GESTES_DU_BOARD`, `inv`, `issues`) est
 // chronométré ; le `reste` est le total moins leur somme.
 //
-// LA RELECTURE SANS MÉMOIRE (lot 2). `digestDuSuivi` est ce que le hook de session
+// LA RELECTURE SANS MÉMOIRE (#2132). `digestDuSuivi` est ce que le hook de session
 // (`scripts/hooks/inject-suivi.mjs`) met en contexte : titre, Objectif, items et étapes ouvertes, zone
 // mesurée datée, coupé à `PLAFOND_INJECTION` ; il ne mesure rien. `dossierDesSuivis` est le dossier que
 // ce script, le hook de session et le lien de session (`scripts/hooks/suivi-lien-guard.mjs`) partagent.
@@ -67,7 +67,7 @@ const TENU = new Set(['EPERM', 'EACCES', 'EBUSY'])
 const OBJECTIF = /^## Objectif\b/
 const ITEM_FAIT = /^\d+\.\s+\[[xX]\]/
 const ETAPE_OUVERTE = /^\s+(?:[-*+]|\d+\.)\s+\[ \]/
-const DATE_DE_ZONE = /^> Zone MESURÉE par .+ le (\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}) :/
+const TETE_DE_ZONE = '> Zone MESURÉE par'
 
 /** Âge (h) au-delà duquel la zone mesurée d'un digest est marquée PÉRIMÉE. Valeur maison. */
 export const HEURES_PEREMPTION = 24
@@ -194,9 +194,31 @@ export function ticketsPrevus(texte) {
   return { tickets, sections, anomalies, refus: null }
 }
 
-const deux = (n) => String(n).padStart(2, '0')
+/**
+ * Le gabarit UNIQUE de l'horodatage `AAAA-MM-JJ HH:MM`, heure LOCALE : `horodatage` l'écrit,
+ * `lireHorodatage` le relit. Un champ porte son nombre de chiffres et sa valeur dans une `Date`.
+ */
+const GABARIT_HORODATAGE = [
+  { nom: 'an', chiffres: 4, de: (d) => d.getFullYear() }, '-',
+  { nom: 'mois', chiffres: 2, de: (d) => d.getMonth() + 1 }, '-',
+  { nom: 'jour', chiffres: 2, de: (d) => d.getDate() }, ' ',
+  { nom: 'heure', chiffres: 2, de: (d) => d.getHours() }, ':',
+  { nom: 'minute', chiffres: 2, de: (d) => d.getMinutes() },
+]
+const CHAMPS_HORODATAGE = GABARIT_HORODATAGE.filter((p) => typeof p !== 'string')
+/** L'horodatage en expression régulière, un groupe par champ. */
+const MOTIF_HORODATAGE = GABARIT_HORODATAGE
+  .map((p) => (typeof p === 'string' ? p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') : `(\\d{${p.chiffres}})`)).join('')
 /** `AAAA-MM-JJ HH:MM`, heure LOCALE. PURE. */
-export const horodatage = (d) => `${d.getFullYear()}-${deux(d.getMonth() + 1)}-${deux(d.getDate())} ${deux(d.getHours())}:${deux(d.getMinutes())}`
+export const horodatage = (d) => GABARIT_HORODATAGE
+  .map((p) => (typeof p === 'string' ? p : String(p.de(d)).padStart(p.chiffres, '0'))).join('')
+/** La `Date` (locale, à la minute) d'un `horodatage`, `null` si `texte` n'en est pas un. PURE. */
+export function lireHorodatage(texte) {
+  const m = new RegExp(`^${MOTIF_HORODATAGE}$`).exec(String(texte))
+  if (!m) return null
+  const { an, mois, jour, heure, minute } = Object.fromEntries(CHAMPS_HORODATAGE.map((p, i) => [p.nom, Number(m[i + 1])]))
+  return new Date(an, mois - 1, jour, heure, minute)
+}
 /** Une cellule de table Markdown sur une ligne. PURE. */
 const cellule = (v) => String(v ?? '').replace(/\r?\n/g, ' ').replace(/\|/g, '\\|')
 /** Une puce sur une ligne. PURE. */
@@ -210,8 +232,8 @@ const puce = (v) => `- ${String(v).replace(/\r?\n/g, ' ')}`
  */
 function lignesDeLaZone({ mesure, grammaire, sections, epique, maintenant }) {
   const zone = [
-    // `DATE_DE_ZONE` relit cette date.
-    `> Zone MESURÉE par \`npm run ops:suivi -- ${epique}\` le ${horodatage(maintenant)} : réécrite à chaque appel, jamais éditée à la main.`,
+    // `dateDeLaZone` relit cette date.
+    `${TETE_DE_ZONE} \`npm run ops:suivi -- ${epique}\` le ${horodatage(maintenant)} : réécrite à chaque appel, jamais éditée à la main.`,
     `> Épique [#${epique}](${urlDuTicket(epique)}). « Dernier commit » : le plus récent d'une branche du ticket, sinon sa dernière citation par \`${BASE}\` dans les ${JOURS_FUSION_RECENTE} jours ; vide au-delà.`,
     '',
   ]
@@ -278,13 +300,20 @@ export const gabaritDuSuivi = (epique) => [
   '',
 ].join('\n')
 
+/** La première ligne d'une zone mesurée (`lignesDeLaZone`), sa date en groupe 1. */
+const DATE_DE_ZONE = new RegExp(`^${TETE_DE_ZONE} .+ le (${MOTIF_HORODATAGE}) :`)
+
 /** La date (locale) d'une zone mesurée, relue sur sa première ligne ; `null` sans date. PURE. */
 function dateDeLaZone(lignesDeZone) {
   const m = DATE_DE_ZONE.exec(lignesDeZone.find((l) => l.trim()) ?? '')
-  return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5])) : null
+  return m ? lireHorodatage(m[1]) : null
 }
 
-/** `lignes` jointes, coupées à la ligne pour tenir sous `plafond`, fin « tronqué » comprise. PURE. */
+/**
+ * `lignes` jointes, coupées à la ligne pour tenir sous `plafond`, fin « tronqué » comprise : jamais
+ * plus de `plafond` caractères. L'en-tête (première ligne) passe avant la fin : s'il ne tient pas
+ * entier avec elle, il est coupé ; si la fin seule dépasse, seul l'en-tête coupé reste. PURE.
+ */
 function plafonner(lignes, plafond, chemin) {
   const entier = lignes.join('\n')
   if (entier.length <= plafond) return entier
@@ -296,8 +325,10 @@ function plafonner(lignes, plafond, chemin) {
     gardees.push(ligne)
     taille += ligne.length + 1
   }
-  if (!gardees.length) return `${entier.slice(0, Math.max(0, plafond - fin.length - 1))}\n${fin}`
-  return [...gardees, fin].join('\n')
+  if (gardees.length) return [...gardees, fin].join('\n')
+  const tete = lignes[0] ?? ''
+  if (plafond <= fin.length) return tete.slice(0, Math.max(0, plafond))
+  return `${tete.slice(0, plafond - fin.length - 1)}\n${fin}`
 }
 
 /**
