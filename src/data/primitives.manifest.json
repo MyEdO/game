@@ -1521,5 +1521,41 @@
     "concept": "minteur (b) : passage d'un texte AUTHORÉ de la donnée à l'affichage, rendu en `PlayerText`",
     "perimetre": "tout libellé de donnée montré au joueur (clé : l'id, `docs/doctrines.md`, user-doctrine-ids-stables-labels-affichage)",
     "verrou": "src/state/built-brand-lint.test.ts, src/state/player-text-ratchet.test.ts"
+  },
+  {
+    "id": "equipementDeDessin",
+    "type": "primitives.manifest",
+    "label": "EquipCtx/equipDe/equipPorte/armeDeDessin/pieceDeDessin/bouclierDeDessin/armePrincipale",
+    "fichier": "src/gameIso/rig/parts/equipment.ts",
+    "concept": "équipement DESSINÉ d'un porteur : PROJECTION de son état sur les clés que le rig lit (`CLES_ARME`, `CLES_PIECE`, `CLES_BOUCLIER`) et les valeurs dérivées (`bouclier`, `materiau`) — l'identité de dessin hache cette projection et elle seule",
+    "perimetre": "tout producteur d'équipement de rig (`equipPorte`, `enemyRigProfile`, `entityRigProfile`, galeries), tout lecteur du rig (forme, maniement, clips, pièces)",
+    "verrou": "src/gameIso/backends/webgl/identite-dessin.test.ts, src/gameIso/rig/parts/equipment.test.ts"
+  },
+  {
+    "id": "successionDesCorps",
+    "type": "primitives.manifest",
+    "label": "succession/occupantsDe",
+    "fichier": "src/gameIso/stage/successionDesCorps.ts",
+    "concept": "succession des corps des boards de billboard, par composante d'occupants, rejouée après chaque passe, montage ou rejet : la configuration précédente reste visible tant que sa composante attend (sortants en sursis), puis la composante succède — I1 à I5 ; `occupantsDe` (ids espacés)",
+    "perimetre": "passe de montage de `GameStage3D`, tout état par occupant d'un board",
+    "verrou": "src/gameIso/stage/successionDesCorps.test.ts, src/gameIso/stage/retention-de-montage.test.tsx"
+  },
+  {
+    "id": "useCompositionRig",
+    "type": "primitives.manifest",
+    "label": "useCompositionRig",
+    "fichier": "src/gameIso/rig/composeRig.tsx",
+    "concept": "composition de rig d'une surface React, retenue sur ses entrées et la version des catalogues (`useVersionDesDatasets`)",
+    "perimetre": "toute surface `.tsx` qui compose un rig (jeton, portrait, aperçus, créateur, Codex)",
+    "verrou": "src/gameIso/rig/composition-rig-garde.test.ts, src/gameIso/rig/composition-rig-version.test.tsx"
+  },
+  {
+    "id": "useVersionDesDatasets",
+    "type": "primitives.manifest",
+    "label": "useVersionDesDatasets",
+    "fichier": "src/ui/useVersionDesDatasets.ts",
+    "concept": "version des catalogues pour un composant React : re-rend à chaque écriture au seam des datasets, dépendance des mémos qui dessinent depuis un catalogue",
+    "perimetre": "tout composant `.tsx` qui dessine depuis un catalogue, et tout écran qui projette un catalogue (Codex)",
+    "verrou": "src/gameIso/rig/composition-rig-version.test.tsx"
   }
 ]

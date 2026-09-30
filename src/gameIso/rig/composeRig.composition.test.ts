@@ -9,6 +9,7 @@ import { resolveRig, rigComposition, poseRig } from './composeRig';
 import { bonesToSvg } from './renderBones';
 import type { Appearance } from './appearance';
 import { asRigSpeciesId } from './appearance';
+import { equipDe } from './parts/equipment';
 import type { EquipCtx } from './parts/equipment';
 import type { RigOverlay } from './bones';
 import type { View } from './facing';
@@ -16,8 +17,8 @@ import type { Pose } from './poses';
 import type { Sexe } from '../../data/schemas/grammaire/valeurs';
 
 const sword = { label: 'Épée', type: 'melee' as const, damage: { plusBF: true, flat: 4 }, qualities: [] };
-const equipNu: EquipCtx = { weapons: [], armour: [] };
-const equipArme: EquipCtx = { weapons: [sword], armour: [] };
+const equipNu: EquipCtx = equipDe([], []);
+const equipArme: EquipCtx = equipDe([sword], []);
 
 const app = (species: string, sex: Sexe, seed: number, extra: Partial<Appearance> = {}): Appearance =>
   ({ species: asRigSpeciesId(species), sex, build: 0.5, seed, ...extra });

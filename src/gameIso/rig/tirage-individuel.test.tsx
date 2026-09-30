@@ -27,7 +27,7 @@ const entity = (extra: Partial<SceneEntity> = {}): SceneEntity =>
   ({ kind: 'personnage', id: ID, label: 'Passant', pos: { x: 0, y: 0 }, appearance: { species: 'humains-reiklander' }, ...extra }) as SceneEntity;
 const combatant = ficheDEntite;
 const palette = (p: EnemyRigProfile | null) => ({ colors: p?.appearance.colors, parts: p?.appearance.parts });
-const armure = (p: EnemyRigProfile | null) => (p?.equip.armour ?? []).map((i) => `${i.label}:${i.pa}`).sort();
+const armure = (p: EnemyRigProfile | null) => (p?.equip.armour ?? []).map((i) => JSON.stringify(i)).sort();
 
 describe('#1882 T1 — tirage individuel : même règle en exploration, en combat et au portrait', () => {
   it('poser la ref du profil standard (`humain`) garde le tirage individuel du PNJ', () => {

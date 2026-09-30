@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { RigSprite, rigComposition } from '../gameIso/rig/composeRig';
+import { RigSprite, useCompositionRig } from '../gameIso/rig/composeRig';
 import type { Appearance, RigSpeciesId } from '../gameIso/rig/appearance';
 import type { EquipCtx } from '../gameIso/rig/parts/equipment';
 import { apparenceSuivante } from '../gameIso/rig/parts/cosmetic';
@@ -24,7 +24,8 @@ export function AppearancePanel({
   career?: string;
   onChange: (next: Omit<Appearance, 'species'>) => void;
 }) {
-  const comp = useMemo(() => rigComposition({ ...value, species }, equip, career), [value, species, equip, career]);
+  const appearance = useMemo(() => ({ ...value, species }), [value, species]);
+  const comp = useCompositionRig(appearance, equip, career);
   return (
     <div className="appear-panel">
       <svg viewBox="0 0 120 150" className="appear-figure">

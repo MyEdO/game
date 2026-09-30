@@ -10,6 +10,7 @@ import { defsGlobaux } from '../src/gameIso/sprites';
 import type { Appearance } from '../src/gameIso/rig/appearance';
 import { asRigSpeciesId } from '../src/gameIso/rig/appearance';
 import { VIEWS, type View } from '../src/gameIso/rig/facing';
+import { bouclierDeDessin, equipDe } from '../src/gameIso/rig/parts/equipment';
 import type { EquipCtx } from '../src/gameIso/rig/parts/equipment';
 import type { Weapon, ItemInstance } from '../src/engine/types';
 import { raceAppearance } from '../src/data';
@@ -45,25 +46,25 @@ function cell(label: string, app: Appearance, equip: EquipCtx, career: string, v
 const cells: string[] = [];
 for (const sp of SPECIES) {
   for (const sex of sexeSchema.options) {
-    cells.push(cell(`${sp.label} ${sex}`, { species: sp.id, sex, build: 0.5, seed: 7 }, { weapons: [], armour: [] }, 'soldat'));
+    cells.push(cell(`${sp.label} ${sex}`, { species: sp.id, sex, build: 0.5, seed: 7 }, equipDe([], []), 'soldat'));
   }
 }
 // variantes d'équipement (Humain M)
-cells.push(cell('Humain M + épée', { species: asRigSpeciesId('humain'), sex: 'M', build: 0.5, seed: 3 }, { weapons: [wep('Épée', 'melee')], armour: [] }, 'soldat'));
-cells.push(cell('Humain M + hache+bouclier', { species: asRigSpeciesId('humain'), sex: 'M', build: 0.6, seed: 3 }, { weapons: [wep('Hache', 'melee')], armour: [], shield: { name: 'Bouclier', qualities: ['Bouclier'] } as unknown as Weapon }, 'soldat'));
-cells.push(cell('Humain M + plaque+heaume', { species: asRigSpeciesId('humain'), sex: 'M', build: 0.6, seed: 3 }, { weapons: [wep('Épée', 'melee')], armour: [plate, helm] }, 'soldat'));
-cells.push(cell('Humain F Sorcier + bâton', { species: asRigSpeciesId('humain'), sex: 'F', build: 0.4, seed: 5 }, { weapons: [wep('Bâton', 'melee')], armour: [] }, 'sorcier'));
-cells.push(cell('Nain M + hache', { species: asRigSpeciesId('nain'), sex: 'M', build: 0.7, seed: 9 }, { weapons: [wep('Hache', 'melee')], armour: [] }, 'soldat'));
+cells.push(cell('Humain M + épée', { species: asRigSpeciesId('humain'), sex: 'M', build: 0.5, seed: 3 }, equipDe([wep('Épée', 'melee')], []), 'soldat'));
+cells.push(cell('Humain M + hache+bouclier', { species: asRigSpeciesId('humain'), sex: 'M', build: 0.6, seed: 3 }, { ...equipDe([wep('Hache', 'melee')], []), shield: bouclierDeDessin({ name: 'Bouclier', qualities: ['Bouclier'] } as unknown as Weapon) }, 'soldat'));
+cells.push(cell('Humain M + plaque+heaume', { species: asRigSpeciesId('humain'), sex: 'M', build: 0.6, seed: 3 }, equipDe([wep('Épée', 'melee')], [plate, helm]), 'soldat'));
+cells.push(cell('Humain F Sorcier + bâton', { species: asRigSpeciesId('humain'), sex: 'F', build: 0.4, seed: 5 }, equipDe([wep('Bâton', 'melee')], []), 'sorcier'));
+cells.push(cell('Nain M + hache', { species: asRigSpeciesId('nain'), sex: 'M', build: 0.7, seed: 9 }, equipDe([wep('Hache', 'melee')], []), 'soldat'));
 
 // Facing : Soldat humain en 3 vues (ordre de `VIEWS`) — tranche verticale.
 for (const view of VIEWS) {
-  cells.push(cell(`Soldat ${view}`, { species: asRigSpeciesId('humain'), sex: 'M', build: 0.55, seed: 4 }, { weapons: [wep('Épée', 'melee')], armour: [] }, 'soldat', view));
+  cells.push(cell(`Soldat ${view}`, { species: asRigSpeciesId('humain'), sex: 'M', build: 0.55, seed: 4 }, equipDe([wep('Épée', 'melee')], []), 'soldat', view));
 }
 
 // Tenues par carrière (sans équipement → la tenue de la carrière s'affiche). Ids de garde-robe ;
 // le libellé ne sert que de légende (`tenueLabel`).
 for (const car of TENUES_QC) {
-  cells.push(cell(tenueLabel(car), { species: asRigSpeciesId('humain'), sex: 'M', build: 0.55, seed: 4 }, { weapons: [], armour: [] }, car));
+  cells.push(cell(tenueLabel(car), { species: asRigSpeciesId('humain'), sex: 'M', build: 0.55, seed: 4 }, equipDe([], []), car));
 }
 
 // Ennemis humanoïdes riggés (classifieur + dérivation). Arme + tenue + mutations.
@@ -80,7 +81,7 @@ function enemyCell(name: string, view: View = 'front') {
     skills: [], talents: [], movement: 4,
   } as Combatant;
   const p = enemyRigProfile(c);
-  if (!p) return cell(`${name} (sprite)`, { species: asRigSpeciesId('humain'), sex: 'M', build: 0.5 }, { weapons: [], armour: [] }, 'soldat', view);
+  if (!p) return cell(`${name} (sprite)`, { species: asRigSpeciesId('humain'), sex: 'M', build: 0.5 }, equipDe([], []), 'soldat', view);
   const svg = renderToStaticMarkup(
     React.createElement('svg', { viewBox: '0 0 120 150', width: 110, height: 138 },
       React.createElement('defs', { dangerouslySetInnerHTML: { __html: defsGlobaux() } }),
@@ -134,6 +135,6 @@ function standalone(app: Appearance, equip: EquipCtx, career: string) {
     ),
   );
 }
-writeFileSync('public/rig-sample-humain.svg', standalone({ species: asRigSpeciesId('humain'), sex: 'M', build: 0.55, seed: 3 }, { weapons: [wep('Épée', 'melee')], armour: [], shield: { name: 'Bouclier', qualities: ['Bouclier'] } as unknown as Weapon }, 'soldat'));
-writeFileSync('public/rig-sample-nain.svg', standalone({ species: asRigSpeciesId('nain'), sex: 'M', build: 0.7, seed: 9 }, { weapons: [wep('Hache', 'melee')], armour: [] }, 'soldat'));
+writeFileSync('public/rig-sample-humain.svg', standalone({ species: asRigSpeciesId('humain'), sex: 'M', build: 0.55, seed: 3 }, { ...equipDe([wep('Épée', 'melee')], []), shield: bouclierDeDessin({ name: 'Bouclier', qualities: ['Bouclier'] } as unknown as Weapon) }, 'soldat'));
+writeFileSync('public/rig-sample-nain.svg', standalone({ species: asRigSpeciesId('nain'), sex: 'M', build: 0.7, seed: 9 }, equipDe([wep('Hache', 'melee')], []), 'soldat'));
 console.log(`OK: public/rig-gallery.html (${cells.length} cellules) + 2 svg autonomes`);

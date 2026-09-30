@@ -7,8 +7,7 @@
  * **Ajouter une catégorie = UNE entrée dans `CODEX`** ; enrichir = ajouter des sections (data),
  * pas un composant.
  */
-import { useSyncExternalStore } from 'react';
-import { abonnerAuxDatasets, CLES_VERSIONNEES, memoParVersion, versionDesDatasets } from '../../data/versionDataset';
+import { CLES_VERSIONNEES, memoParVersion } from '../../data/versionDataset';
 import {
   species, careers, characteristics, classes, skills, talents,
   qualities, trappings, siegeEngines, weaponGroups, etats, maladies, creatures, traits, spells, maneuvers, domains, mutations, mutationTables, gods,
@@ -634,15 +633,10 @@ export const traitItem = (t0: (typeof traits)[number], categoryKey: string): Cod
 // `setRule`/`resetRule` basculent une règle optionnelle : tous bumpent `versionDesDatasets`
 // (`data/versionDataset.ts`) : les projections et index ci-dessous se
 // re-matérialisent à la lecture qui suit (`memoParVersion`), et les composants abonnés
-// (`useCodexVersion`) re-rendent.
+// (`useVersionDesDatasets`) re-rendent.
 type IndexDeCategorie = { byId: Map<string, CodexItem>; exact: Map<string, CodexItem>; folded: Map<string, CodexItem> };
 const LOOKUP = memoParVersion(CLES_VERSIONNEES, () => new Map<string, IndexDeCategorie>());
 
-/** Abonne un composant au témoin des datasets (`abonnerAuxDatasets`) : re-rend après chaque écriture
- *  au seam. La valeur sert aussi de dépendance de `useMemo` sur `c.items` (cf. `CompendiumScreen`). */
-export function useCodexVersion(): number {
-  return useSyncExternalStore(abonnerAuxDatasets, versionDesDatasets);
-}
 
 /** Libellé de la facette hiérarchique (`group`) par catégorie. */
 const GROUP_FACET_LABEL: Record<string, string> = {
@@ -2659,7 +2653,7 @@ export const codexItemKey = (category: string, id: string): string => `${categor
 // pliée) se construit à la 1re résolution d'une catégorie — sur les `items` COURANTS du getter
 // re-projetable — et se ré-utilise ensuite. La 1re occurrence gagne (même précédence que l'ancien
 // `find`). Reconstruit après une écriture au seam des datasets (`memoParVersion`) : index ET
-// projections (`c.items`/`c.facets`) repartent alors de la donnée persistée, et `useCodexVersion` fait
+// projections (`c.items`/`c.facets`) repartent alors de la donnée persistée, et `useVersionDesDatasets` fait
 // re-rendre les lecteurs (CompendiumScreen). L'état (`LOOKUP`) vit en tête de fichier, avec la
 // machinerie de fraîcheur.
 

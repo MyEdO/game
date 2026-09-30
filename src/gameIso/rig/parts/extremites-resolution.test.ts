@@ -5,10 +5,11 @@ import { viewOrFront } from './types';
 import { ARMOUR } from './armour';
 import { CLAWFOOT, PLAINFOOT, HAND, NECK } from './bodies/extremites';
 import { BOTTE_CUIR } from './tenues/botte-gabarit';
+import { equipDe } from './equipment';
 import type { EquipCtx } from './equipment';
 import type { ItemInstance } from '../../../engine/types';
 
-const empty: EquipCtx = { weapons: [], armour: [] };
+const empty: EquipCtx = equipDe([], []);
 
 // #633/#736 — pied/main/cou résolus par la MÊME table de priorité que tete/torse/jambes.
 
@@ -58,7 +59,7 @@ describe('extrémités — pilotables par une armure (chair ≠ repli)', () => {
       uid: 'a', label: 'Harnois de plaque', kind: 'armor', qualities: [], pa: 5,
       locs: ['corps', 'brasG', 'brasD', 'jambeG', 'jambeD'], enc: 3, equipped: true,
     };
-    const r = resolveParts('Humain', 'M', 'soldat', { weapons: [], armour: [item] }, {}, 1);
+    const r = resolveParts('Humain', 'M', 'soldat', equipDe([], [item]), {}, 1);
 
     expect(r.pied?.svg).toContain('test-soleret');
     expect(r.pied?.svg).not.toBe(viewOrFront(BOTTE_CUIR, 'front'));

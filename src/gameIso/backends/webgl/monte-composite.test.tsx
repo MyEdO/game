@@ -21,7 +21,7 @@ import { planById, planOptsForRecord, resolveRender } from '../../rig/bodyPlan';
 import { harnaisDeMonture, mountedRest, seatRiderOnMount } from '../../rig/mountedRig';
 import { resolveRig } from '../../rig/composeRig';
 import { bonesToSvg } from '../../rig/renderBones';
-import { isShield } from '../../rig/parts/equipment';
+import { armePrincipale } from '../../rig/parts/equipment';
 import { VIEWS, type View } from '../../rig/facing';
 import { emptyScene, sceneMetresPerTile, type Scene } from '../../../state/scene';
 import type { BattleState } from '../../../state/store';
@@ -73,7 +73,7 @@ function coupleAttendu(mount: Combatant, rider: Combatant, view: View): string {
   const plan = planById(mr.plan);
   const { appearance, equip, tenue, overlays } = actorDrawInputs(rider).rig!;
   const osMonture = plan.resolve(mr.species, view, plan.restPose(), harnaisDeMonture(planOptsForRecord(mount.creatureId, mount.appearanceOverride)));
-  const arme = equip.weapons?.find((w) => !isShield(w)) ?? equip.weapons?.[0];
+  const arme = armePrincipale(equip);
   const osCavalier = resolveRig(appearance, equip, mountedRest(view, arme), tenue, view, overlays, false);
   // k : échelle du cavalier DANS la boîte de la monture — chaîne d'échelles monde (art × Taille ou
   // empreinte, `combatantTokenScale`), celle du quad de la monture.

@@ -9,7 +9,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import React from 'react';
 import { RigSprite, rigComposition } from '../src/gameIso/rig/composeRig';
 import { defsGlobaux } from '../src/gameIso/sprites';
-import { weaponFamily } from '../src/gameIso/rig/parts/equipment';
+import { bouclierDeDessin, equipDe, weaponFamily } from '../src/gameIso/rig/parts/equipment';
 import trappings from '../src/data/trappings.json';
 import { weaponGroups } from '../src/data';
 import { assertWardrobeId } from './_lib-wardrobe';
@@ -34,8 +34,8 @@ assertWardrobeId(MANNEQUIN, 'weapon-gallery');
 
 function fig(w: Weapon, shield = false) {
   const equip = shield
-    ? { weapons: [], armour: [], shield: { name: w.label, qualities: ['Bouclier'] } as unknown as Weapon }
-    : { weapons: [w], armour: [] };
+    ? { ...equipDe([], []), shield: bouclierDeDessin({ name: w.label, qualities: ['Bouclier'] } as unknown as Weapon) }
+    : equipDe([w], []);
   const svg = renderToStaticMarkup(
     React.createElement('svg', { viewBox: '0 0 120 150', width: 92, height: 115 },
       React.createElement('defs', { dangerouslySetInnerHTML: { __html: defsGlobaux() } }),

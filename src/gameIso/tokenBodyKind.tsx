@@ -14,9 +14,9 @@ import { findCreatureById, findTrappingById, findVehicleById } from '../data';
 import { combatantRender, entityRender, sceneEntityForRender } from './sizeScale';
 import { useGame } from '../state/store';
 import { entitySprite } from './sprites';
-import { poseRig, rigComposition, RigSprite } from './rig/composeRig';
+import { poseRig, RigSprite, useCompositionRig } from './rig/composeRig';
 import { defaultAppearance, type Appearance } from './rig/appearance';
-import { equipFromCombatant, type EquipCtx } from './rig/parts/equipment';
+import { equipPorte, type EquipCtx } from './rig/parts/equipment';
 import { combatantAppearance, combatantOverlays } from './rig/parts/combatantVisuals';
 import { groundStateOf } from './groundPose';
 import type { RigOverlay } from './rig/bones';
@@ -69,25 +69,32 @@ const STRUCT_BODY = (
   </g>
 );
 
+/** Cadre PORTRAIT d'un visage de rig : `VisageDeRig` y ramène le carré de son visage. */
+const VISAGE_BOX = '0 0 100 100';
+
 /**
- * Vue de face cadrée sur le VISAGE (top-mode). Résout le rig en vue `front` et cadre le viewBox sur
- * l'os `tete` RÉSOLU (centré sur LE visage de chaque race — Nain/Ogre/… quelle que soit sa taille).
- * Math PURE, partagée par le pion-disque de la carte (`stage/TokenChromeOverlay`) ET la vignette HUD
- * (`RigPortrait`).
+ * Vue de face cadrée sur le VISAGE (top-mode). Compose le rig en vue `front` (`useCompositionRig`) et
+ * ramène au carré `VISAGE_BOX` le carré centré sur l'os `tete` RÉSOLU (LE visage de chaque race —
+ * Nain/Ogre/… quelle que soit sa taille). Partagée par le pion-disque de la carte
+ * (`stage/TokenChromeOverlay`) ET la vignette HUD (`RigPortrait`).
  */
-function faceFrame(appearance: Appearance, equip: EquipCtx, tenue: string | undefined, overlays: RigOverlay[]): { body: ReactNode; box: string } {
-  const comp = rigComposition(appearance, equip, tenue, 'front', overlays);
-  const bones = poseRig(comp, {});
-  const tete = bones.find((b) => b.id === 'tete');
+function VisageDeRig({ appearance, equip, tenue, overlays }: { appearance: Appearance; equip: EquipCtx; tenue: string | undefined; overlays: RigOverlay[] }): JSX.Element {
+  const comp = useCompositionRig(appearance, equip, tenue, 'front', overlays);
+  const tete = poseRig(comp, {}).find((b) => b.id === 'tete');
   const m = tete?.matrix ?? [1, 0, 0, 1, 60, 54];
   const sy = tete?.scale[1] ?? 1;
   const cx = m[4];
   const cy = m[5] + 10 * sy; // le visage est dessiné SOUS l'origine de l'os tete (crâne) → on descend le cadre
   const S = 46 * Math.max(0.9, sy); // cadre proportionnel à la taille de la tête (Ogre > Nain)
-  return {
-    body: <RigSprite comp={comp} />,
-    box: `${(cx - S / 2).toFixed(1)} ${(cy - S / 2).toFixed(1)} ${S.toFixed(1)} ${S.toFixed(1)}`,
-  };
+  return (
+    <g transform={`scale(${(100 / S).toFixed(4)}) translate(${(S / 2 - cx).toFixed(1)} ${(S / 2 - cy).toFixed(1)})`}>
+      <RigSprite comp={comp} />
+    </g>
+  );
+}
+
+function faceFrame(appearance: Appearance, equip: EquipCtx, tenue: string | undefined, overlays: RigOverlay[]): { body: ReactNode; box: string } {
+  return { body: <VisageDeRig appearance={appearance} equip={equip} tenue={tenue} overlays={overlays} />, box: VISAGE_BOX };
 }
 
 /**
@@ -123,7 +130,7 @@ export function tokenBodyKind(subject: TokenSubject, view: ViewMode = 'iso'): To
     if (r.kind === 'rig') {
       const prof = rendersFromOwnInventory(c) ? null : enemyRigProfile(c);
       const appearance = combatantAppearance(prof?.appearance ?? c.appearance ?? defaultAppearance(c), c);
-      const equip = prof?.equip ?? equipFromCombatant(c);
+      const equip = prof?.equip ?? equipPorte(c);
       const tenue = prof?.tenue ?? c.career; // garde-robe = tenue du profil, sinon id de carrière (Combatant.career)
       const f = faceFrame(appearance, equip, tenue, combatantOverlays(c));
       return { bodyKind: 'rig', speciesScale: r.scale, portraitBox: f.box, flat: true, body: f.body };
@@ -138,7 +145,7 @@ export function tokenBodyKind(subject: TokenSubject, view: ViewMode = 'iso'): To
   // lit à la clé publiée par `partyTokenOf` (`PartyToken.capKey`).
   if (subject.kind === 'partyLeader') {
     const leader = subject.leader;
-    const f = faceFrame(combatantAppearance(leader.appearance ?? defaultAppearance(leader), leader), equipFromCombatant(leader), leader.career, combatantOverlays(leader));
+    const f = faceFrame(combatantAppearance(leader.appearance ?? defaultAppearance(leader), leader), equipPorte(leader), leader.career, combatantOverlays(leader));
     return { bodyKind: 'rig', speciesScale: 1, portraitBox: f.box, flat: true, body: f.body };
   }
 

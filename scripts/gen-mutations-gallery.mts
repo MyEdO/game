@@ -18,6 +18,7 @@ import type { Mutation } from '../src/engine/corruption';
 import type { Combatant, Trauma } from '../src/engine/types';
 import type { Appearance } from '../src/gameIso/rig/appearance';
 import { asRigSpeciesId } from '../src/gameIso/rig/appearance';
+import { equipDe } from '../src/gameIso/rig/parts/equipment';
 import type { EquipCtx } from '../src/gameIso/rig/parts/equipment';
 import type { RigOverlay } from '../src/gameIso/rig/bones';
 import { VIEWS, type View } from '../src/gameIso/rig/facing';
@@ -32,7 +33,7 @@ for (const id of [TENUE_DEFAUT, TENUE_SOLDAT])
   assertWardrobeId(id, 'mutations-gallery');
 
 const APP: Appearance = { species: asRigSpeciesId('humain'), sex: 'M', build: 0.5, seed: 4 };
-const NU: EquipCtx = { weapons: [], armour: [] };
+const NU: EquipCtx = equipDe([], []);
 const mut = (id: string): Mutation => mutationById(id)!;
 
 function cell(label: string, app: Appearance, overlays: RigOverlay[], opts: { view?: View; equip?: EquipCtx; career?: string; bg?: string; tint?: string } = {}): string {
@@ -70,7 +71,7 @@ const piece = (uid: string, pa: number, locs: ItemInstance['locs']): ItemInstanc
   ({ uid, label: `Protection (${locs![0]})`, kind: 'armor', qualities: [], pa, locs, enc: 0, equipped: true });
 const ARMOUR: ItemInstance[] = [piece('a1', 3, ['corps']), piece('a2', 2, ['tete']), piece('a3', 1, ['brasG', 'brasD']), piece('a4', 1, ['jambeG', 'jambeD'])];
 const EPEE: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: false, flat: 4 }, qualities: [] };
-const SOLDAT: Parameters<typeof cell>[3] = { equip: { weapons: [EPEE], armour: ARMOUR }, career: TENUE_SOLDAT, bg: '#222a24', tint: '#be9' };
+const SOLDAT: Parameters<typeof cell>[3] = { equip: equipDe([EPEE], ARMOUR), career: TENUE_SOLDAT, bg: '#222a24', tint: '#be9' };
 section('Sur armure équipée (épée en main)', [
   'suintement-de-pus', 'bouche-supplementaire', 'ecailles-epineuses', 'plumes-eparses', 'peau-d-acier',
   'tentacule-epais', 'doigts-distendus', 'pattes-d-animaux', 'cornes-asymetriques',

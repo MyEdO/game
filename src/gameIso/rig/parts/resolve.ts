@@ -6,7 +6,7 @@ import { toViewSet, splitBrasSvg, avantBrasBase, dominantCloth } from './derive'
 import { cosmeticPart } from './cosmetic';
 import { genericPart } from './generic';
 import { tenueFor } from './career';
-import { armourPart, armourMaterial, weaponPart, shieldPart, isShield, type EquipCtx } from './equipment';
+import { armePrincipale, armourPart, weaponPart, shieldPart, type EquipCtx } from './equipment';
 import { ARMOUR, ARMOUR_PALETTES } from './armour';
 import { CLAWFOOT, PLAINFOOT, HAND, MAIN_GRIFFUE, NECK } from './bodies/extremites';
 import { tableDObjet, applyTokenMap } from '../palette';
@@ -65,9 +65,9 @@ function resolveUpperLimb(
   let matterResolve: ((svg: string) => string) | null = null;   // recoloriage palette de l'armure gagnante
   let brasEstPleineLongueur: boolean;
   if (armItem) {
-    const mat = armourMaterial(armItem);
+    const mat = armItem.materiau;
     matterArt = ARMOUR[mat]?.bras ?? '';                         // jetons @metal/@cuir… intacts
-    const map = tableDObjet([ARMOUR_PALETTES[mat] ?? {}], armItem.skin as Record<string, string> | undefined);
+    const map = tableDObjet([ARMOUR_PALETTES[mat] ?? {}], armItem.skin);
     matterResolve = (svg) => applyTokenMap(svg, map);
     brasEstPleineLongueur = true;
   } else {
@@ -185,8 +185,8 @@ export function resolveParts(
   // Mains : arme principale (1re non-bouclier) à l'os `arme` ; main secondaire (os `bouclier`) =
   // bouclier si présent, sinon la 2e arme tenue (dual-wield non-bouclier : dague, main-gauche…) —
   // détectée par `hand:'off'`. Ainsi épée+bouclier ET épée+dague s'affichent (plus seulement la principale).
-  const mainWeapon = equip.weapons.find((w) => !isShield(w));
-  const offWeapon = equip.weapons.find((w) => w.hand === 'off' && !isShield(w) && w !== mainWeapon);
+  const mainWeapon = armePrincipale(equip);
+  const offWeapon = equip.weapons.find((w) => w.hand === 'off' && !w.bouclier && w !== mainWeapon);
   out.arme = P(mainWeapon ? weaponPart(mainWeapon) : '');
   out.bouclier = P(equip.shield ? shieldPart(equip.shield) : offWeapon ? weaponPart(offWeapon) : '');
 

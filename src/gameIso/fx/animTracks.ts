@@ -18,7 +18,7 @@ import { useGame } from '../../state/store';
 import { inBattleId } from '../../state/combatants';
 import { combatantRender } from '../sizeScale';
 import { enemyRigProfile, rendersFromOwnInventory } from '../rig/enemyProfile';
-import { equipFromCombatant, isShield } from '../rig/parts/equipment';
+import { armePrincipale, equipPorte, type EquipCtx, type FormeDArme } from '../rig/parts/equipment';
 import { hasShieldEquipped } from '../rig/anim/weaponClips';
 import {
   clipTotalMs,
@@ -80,7 +80,7 @@ interface AttackEvent {
   to?: string;
   kind?: string;
   defense?: string;
-  weapon?: Weapon;
+  weapon?: FormeDArme;
   parryWeapon?: Weapon;
   creatureAttack?: string;
   result?: { hit?: boolean };
@@ -115,9 +115,14 @@ export function combatantAnimCtx(id: string): AnimActorCtx | undefined {
   const c = inBattleId(useGame.getState().battle, id);
   if (!c) return undefined;
   if (combatantRender(c).kind !== 'rig') return { voie: 'plan', kind: c.kind };
-  const equip = (rendersFromOwnInventory(c) ? null : enemyRigProfile(c))?.equip ?? equipFromCombatant(c);
-  const mainWeapon = equip.weapons?.find((w) => !isShield(w)) ?? equip.weapons?.[0];
-  return { voie: 'rig', kind: c.kind, rig: { mainWeapon, shield: hasShieldEquipped(equip.weapons, equip.shield) } };
+  const equip = (rendersFromOwnInventory(c) ? null : enemyRigProfile(c))?.equip ?? equipPorte(c);
+  return { voie: 'rig', kind: c.kind, rig: contexteDeGeste(equip) };
+}
+
+/** Contexte de GESTE d'un bipède, lu de son équipement dessiné : l'arme que l'os `arme` porte, et la
+ *  présence d'un bouclier. */
+export function contexteDeGeste(equip: EquipCtx): RigSelectCtx {
+  return { mainWeapon: armePrincipale(equip), shield: hasShieldEquipped(equip.weapons, equip.shield) };
 }
 
 /** Acteur inconnu du résolveur : bipède à mains nues — une attaque garde ainsi son impact. */

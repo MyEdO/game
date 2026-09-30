@@ -49,7 +49,7 @@ import type { RigOverlay } from '../../rig/bones';
 import { entityRigProfileFor, enemyRigProfile, refOf, rendersFromOwnInventory } from '../../rig/enemyProfile';
 import { planById, planOptsForRecord, type RenderResolution, type ResolveOpts, type WingState } from '../../rig/bodyPlan';
 import { defaultAppearance, type Appearance } from '../../rig/appearance';
-import { equipFromCombatant, isShield, type EquipCtx } from '../../rig/parts/equipment';
+import { armePrincipale, equipPorte, type EquipCtx } from '../../rig/parts/equipment';
 import { combatantAppearance, combatantOverlays } from '../../rig/parts/combatantVisuals';
 import { harnaisDeMonture, mountedRest, seatPlacement, seatRiderOnMount, seatedRest } from '../../rig/mountedRig';
 import { seatSitHeight, type SeatPose } from '../../../state/seating';
@@ -59,7 +59,7 @@ import { seatedPose, weaponRest } from '../../rig/anim/weaponClips';
 import { boxUnitsPerM } from './billboardMath';
 import { COLLAPSE_MS, clipTotalMs, easeOutCubic, frameSampleMs, planPoseAt, rigPoseAtFrame, type ClipDef } from '../../rig/anim/actorAnimSelect';
 import { isStructure } from '../../../engine/structures';
-import type { Combatant, Weapon } from '../../../engine/types';
+import type { Combatant } from '../../../engine/types';
 import { hasLeap } from '../../../engine/traits/dispatch';
 import { combatantRender, combatantTokenScale, entityRender, entityTokenScale, sceneEntityForRender } from '../../sizeScale';
 import { RIG_GROUND_PIVOT, groundStateOf, planGroundPose, rigGroundPose, rigGroundTiltDeg, type GroundState, type Pose } from '../../groundPose';
@@ -687,8 +687,11 @@ export interface BillboardSubject {
    *  sprite rend au pointeur (`stage/spritePicker.ts`). Absent pour un figurant ou un décor : ni l'un
    *  ni l'autre n'est cliquable. */
   cid?: string;
+  /** Id du CAVALIER d'un couple MONTÉ, dont `cid` est la monture — un occupant que le couple COUVRE
+   *  avec elle (`stage/successionDesCorps.occupantsDe`). */
+  cavalier?: string;
   /** Id de l'ENTITÉ DE SCÈNE dessinée, quand ce figurant JOUE une ambiance authorée
-   *  (`SceneEntity.anim`) — l'identité de sa piste de flipbook (`stage/boardPose.boardTrackId`), et
+   *  (`SceneEntity.anim`) — ce qui le fait jouer au flipbook (avec sa couture `frameSvg`), et
    *  rien d'autre : il ne devient ni cliquable ni glissable pour autant. */
   eid?: string;
   /** COULEUR D'ÉQUIPE du jeton (#1297) — celle de son anneau aux pieds (`teamRingDecor`), portée ici
@@ -747,11 +750,6 @@ export interface SubjectAnim {
   leap?: boolean;
 }
 
-/** Arme PRINCIPALE d'un équipement — la MÊME lecture que le stage affine (`useRigAnim`), d'où se
- *  dérive la PRISE D'ARME du corps (`weaponRest`). */
-function mainWeaponOf(equip: EquipCtx): Weapon | undefined {
-  return equip.weapons?.find((w) => !isShield(w)) ?? equip.weapons?.[0];
-}
 
 /** DESSIN d'un personnage de scène depuis ses entrées FIGÉES (`figurantDrawInputs`, copiées dans
  *  l'instantané du sujet) : rig humanoïde ou gabarit de créature, avec les MÊMES opts d'apparence que
@@ -769,7 +767,7 @@ function personnageDraw(inputs: ActorDrawInputs, assis: number | null): {
     const composer = composeur(inputs.rig);
     // PRISE D'ARME du figurant, composée à chaque frame comme sur un corps de rig (`RigToken`) : sans
     // elle, un garde animé lâche sa hallebarde dès la première cellule de sa planche.
-    const arme = mainWeaponOf(inputs.rig.equip);
+    const arme = armePrincipale(inputs.rig.equip);
     const hold = weaponRest(arme);
     const at = (view: View, mirror: boolean, pose: Pose) => bonesToSvg(poseRig(composer(view, mirror), pose));
     // ASSIS (`Scene.seatAssignments`) : le corps est POSÉ sur sa place à la hauteur d'assise reçue
@@ -1058,7 +1056,7 @@ export function actorDrawInputs(c: Combatant): ActorDrawInputs {
     scaleK,
     rig: {
       appearance: combatantAppearance(prof?.appearance ?? c.appearance ?? defaultAppearance(c), c),
-      equip: prof?.equip ?? equipFromCombatant(c),
+      equip: prof?.equip ?? equipPorte(c),
       tenue: prof?.tenue ?? c.career,
       overlays: combatantOverlays(c),
     },
@@ -1253,7 +1251,7 @@ function mountedSvg(
     ...harnaisDeMonture(mount.plan ?? {}),
     ...(ground ? { wings: 'spread' as const } : {}),
   };
-  const arme = mainWeaponOf(rider.rig.equip);
+  const arme = armePrincipale(rider.rig.equip);
   // k : échelle du cavalier DANS la boîte de la monture — chaîne d'échelles monde (art × Taille ou
   // empreinte, `combatantTokenScale`),
   // jamais une constante (un cheval recalibré ou une autre monture garde un couple proportionné).
@@ -1418,7 +1416,7 @@ export function actorBillboards(actors: readonly ActorPose[], scene: Scene, mpt:
     if (!draw && inputs.rig) {
       const composer = composeur(inputs.rig);
       const couché = rigGroundPose(ground);
-      const arme = mainWeaponOf(inputs.rig.equip);
+      const arme = armePrincipale(inputs.rig.equip);
       const hold = weaponRest(arme);
       // BASCULE (#1334) : un corps au sol se couche pour de bon. Elle appartient au SUJET (sa boîte
       // en dépend), et chaque fragment la porte — y compris à fraction nulle, où elle n'est que le
@@ -1483,6 +1481,7 @@ export function actorBillboards(actors: readonly ActorPose[], scene: Scene, mpt:
       // la signature de l'INSTANTANÉ (`actorRenderSignature`) — la MÊME valeur que `actorIdentityKey`.
       identity: `acteur:${cléActeur(p, signatureDe(instantané))}`,
       cid: c.id,
+      ...(rider ? { cavalier: rider.id } : {}),
       // TEINTE D'ÉQUIPE (#1297) : la MÊME dérivation que l'anneau aux pieds du jeton et que le jeton
       // affine — une seule loi de couleur d'équipe, quelle que soit la voie qui la peint. Un couple
       // MONTÉ se lit au CAVALIER (avec l'ordinal qu'il a réservé) : le record de la monture porte

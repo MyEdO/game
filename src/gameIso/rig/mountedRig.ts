@@ -15,7 +15,7 @@ import { apply, worldTransforms, type Matrix } from './kinematics';
 import type { BoneId } from './bones';
 import { handlingClass, type Handling } from './anim/handling';
 import { seatedPose, weaponRest } from './anim/weaponClips';
-import type { Weapon } from '../../engine/types';
+import type { FormeDArme } from './parts/equipment';
 import type { ResolveOpts } from './bodyPlan';
 import { DEFAUT_HARNAIS_MONTE } from './quadruped/harnais';
 import { QUAD_RIDER_Z } from './quadruped/quadZ';
@@ -175,7 +175,7 @@ function mountedWeaponHold(h: Handling, view: View): Pose {
 }
 
 /** Pose complète du cavalier au repos monté = corps en selle + tenue d'arme, par vue. */
-export function mountedRest(view: View, weapon?: Weapon): Pose {
+export function mountedRest(view: View, weapon?: FormeDArme): Pose {
   const h = weapon ? handlingClass(weapon) : 'lame1m';
   return addPose(riderBodyPose(view), mountedWeaponHold(h, view));
 }
@@ -185,7 +185,7 @@ export function mountedRest(view: View, weapon?: Weapon): Pose {
  * AU REPOS du fantassin (`weaponRest`) — jamais une tenue montée, jamais un geste. La prise passe par
  * `seatedPose` : les jambes restent celles de l'assise, l'arme ne peut pas redéplier le corps.
  */
-export function seatedRest(view: View, body: SeatedBody, drop: number, weapon?: Weapon): Pose {
+export function seatedRest(view: View, body: SeatedBody, drop: number, weapon?: FormeDArme): Pose {
   return addPose(seatedBodyPose(view, body, drop), seatedPose(weaponRest(weapon)));
 }
 

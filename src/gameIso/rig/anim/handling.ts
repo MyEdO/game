@@ -8,7 +8,7 @@
  * arc / arme à feu…) — donc on dérive le maniement de la FORME (silhouette dessinée), qui
  * encode la prise, et on ne retombe sur le Groupe que pour les armes NON dessinées.
  */
-import type { Weapon } from '../../../engine/types';
+import type { FormeDArme } from '../parts/equipment';
 import { weaponGroupKey } from '../../../engine/weaponGroup';
 
 export type Handling =
@@ -68,7 +68,7 @@ const NATURAL_HANDLING: Record<string, Handling> = {
 
 /** Classe de maniement d'une arme — routage PAR ID STABLE (plus aucun lookup de libellé au runtime) :
  *  kind naturel (`attackKind`) d'abord, puis FORME (`shape`, encode la prise), repli Groupe/type. */
-export function handlingClass(w?: Weapon): Handling {
+export function handlingClass(w?: FormeDArme): Handling {
   if (!w) return 'lame1m';
   if (w.attackKind) {
     const nat = NATURAL_HANDLING[w.attackKind];
@@ -85,8 +85,8 @@ export function handlingClass(w?: Weapon): Handling {
 
 /** Classes maniées à DEUX mains (la main gauche vient tenir l'arme/la hampe/l'arc/le fût). */
 const TWO_HANDED = new Set<Handling>(['lourde2m', 'hampe', 'arc', 'arbalete', 'arme_feu']);
-export const isTwoHanded = (w?: Weapon): boolean => !!w && TWO_HANDED.has(handlingClass(w));
+export const isTwoHanded = (w?: FormeDArme): boolean => !!w && TWO_HANDED.has(handlingClass(w));
 
 /** Classes à DISTANCE (geste de tir/jet, esquive au lieu de parer en mêlée). */
 const RANGED = new Set<Handling>(['arc', 'arbalete', 'arme_feu', 'fronde', 'jet', 'entraves', 'explosif']);
-export const isRangedHandling = (w?: Weapon): boolean => !!w && RANGED.has(handlingClass(w));
+export const isRangedHandling = (w?: FormeDArme): boolean => !!w && RANGED.has(handlingClass(w));

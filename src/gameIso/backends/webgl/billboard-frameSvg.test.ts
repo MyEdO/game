@@ -250,7 +250,7 @@ const figurantSujet = (ent: SceneEntity) =>
   collectBillboards(scene, mpt, { tokens: [tokenEl(ent)], props: [] })[0];
 
 describe('Figurant à ambiance authorée — la donnée éditable JOUE en volumique', () => {
-  it('avec `anim` : identité de piste, couture de frame, et ambiance déclarée', () => {
+  it('avec `anim` : un occupant `eid`, une couture de frame, et l’ambiance déclarée', () => {
     const s = figurantSujet(figurant('feed'));
     expect(s.eid).toBe('f1');
     expect(s.frameSvg).toBeTypeOf('function');

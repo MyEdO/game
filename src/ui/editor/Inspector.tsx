@@ -12,6 +12,7 @@ import {
   type ArchitectureRect, type SceneStationAnchor, type ReliefDefaults, isDescriptiveZone, sceneMetresPerTile,
 } from '../../state/scene';
 import { PARTS_RELIEF } from '../../data/materials.types';
+import { useVersionDesDatasets } from '../useVersionDesDatasets';
 import { NumberField } from '../NumberField';
 import { useClesDeRangees } from '../useClesDeRangees';
 import { TIME_COST } from '../../engine/timeCost';
@@ -1351,6 +1352,7 @@ function EntityPanel({
   updateSel: (patch: Partial<SceneEntity>) => void;
   removeSel: () => void;
 }) {
+  useVersionDesDatasets();
   return (
     <>
       <div className="ent-preview">

@@ -5,8 +5,8 @@
  * Deux faces, indissociables :
  *  - un sujet déjà construit est une VALEUR : muter l'état vivant (arme déchargée ou retirée en place,
  *    catalogue édité) ne change pas un octet de ce qu'il dessine ;
- *  - le sujet RECONSTRUIT après la mutation change d'identité dès que son dessin change — l'acteur
- *    (identité de texture, `actorPoseKey`, `actorIdentityKey`) comme le figurant de scène.
+ *  - le sujet RECONSTRUIT après la mutation change d'identité SI ET SEULEMENT SI son dessin change —
+ *    l'acteur (identité de texture, `actorPoseKey`, `actorIdentityKey`) comme le figurant de scène.
  */
 import { afterEach, describe, expect, it } from 'vitest';
 import { actorBillboards, actorIdentityKey, actorPoseKey, collectBillboards, type ActorPose, type BillboardSubject } from './sceneMeshes';
@@ -57,10 +57,42 @@ function porteurDeCatalogue(): Combatant {
   return h;
 }
 
-/** `dessinChange` : ce que la mutation fait au dessin du sujet RECONSTRUIT. Décharger une arme ne change
- *  pas le corps ; la retirer, ou changer sa forme au catalogue, si. */
+/** Pièce d'armure équipée du porteur — l'exiger fait mordre la mutation qui la vise. */
+function armureEquipee(c: Combatant): ItemInstance {
+  const a = (c.items ?? []).find((i) => i.kind === 'armor' && i.equipped && (i.locs?.length ?? 0) > 0);
+  if (!a) throw new Error('le porteur n’a aucune pièce d’armure équipée');
+  return a;
+}
+
+function soldatEnArmure(): Combatant {
+  const h = arbalétrier();
+  h.items = [...(h.items ?? []), { uid: 'arm-1', label: 'Cotte de mailles', kind: 'armor', qualities: [], pa: 2, locs: ['corps', 'brasG', 'brasD'], enc: 2, equipped: true } as ItemInstance];
+  return h;
+}
+
+/** `dessinChange` : ce que la mutation fait au dessin du sujet RECONSTRUIT. L'état de jeu d'une arme ou
+ *  d'une pièce (chargement, dégâts subis, qualité) ne se dessine pas ; retirer l'arme, changer sa forme
+ *  (en place ou au catalogue), si. */
 const MUTATIONS: { nom: string; porteur: () => Combatant; muter: (c: Combatant) => void; dessinChange: boolean }[] = [
   { nom: 'unloadWeapon', porteur: arbalétrier, muter: (c) => unloadWeapon(c, c.weapons[0]), dessinChange: false },
+  {
+    nom: 'unloadWeapon puis rechargement',
+    porteur: arbalétrier,
+    dessinChange: false,
+    muter: (c) => {
+      unloadWeapon(c, c.weapons[0]);
+      loadRegister(c, c.weapons[0]).loaded = true;
+    },
+  },
+  { nom: 'damageTaken de l’arme', porteur: arbalétrier, muter: (c) => void (c.weapons[0].damageTaken = 1), dessinChange: false },
+  { nom: 'damageTaken de l’armure', porteur: soldatEnArmure, muter: (c) => void (armureEquipee(c).damageTaken = 1), dessinChange: false },
+  {
+    nom: 'qualité ajoutée à l’arme',
+    porteur: arbalétrier,
+    dessinChange: false,
+    muter: (c) => void (c.weapons[0].qualities = [...c.weapons[0].qualities, { id: 'de-plaies-atroces' }]),
+  },
+  { nom: 'forme de l’arme changée en place', porteur: arbalétrier, muter: (c) => void (c.weapons[0].shape = 'hache_lancer'), dessinChange: true },
   { nom: 'arme retirée en place', porteur: arbalétrier, muter: (c) => void c.weapons.splice(0, 1), dessinChange: true },
   {
     nom: 'setDataset (forme d’arme au catalogue)',
@@ -70,9 +102,9 @@ const MUTATIONS: { nom: string; porteur: () => Combatant; muter: (c: Combatant) 
   },
 ];
 
-describe('un sujet est une VALEUR : l’état vivant muté ne change rien à ce qu’il dessine', () => {
+describe('un sujet est une VALEUR, et son identité change SI ET SEULEMENT SI son dessin change', () => {
   for (const { nom, porteur, muter, dessinChange } of MUTATIONS)
-    it(`${nom} : chaque couple (vue, sens) déjà composé rend le MÊME octet, et le sujet reconstruit change d’identité`, () => {
+    it(`${nom} : le sujet déjà composé rend le MÊME octet ; le reconstruit change d’identité ⇔ son dessin change`, () => {
       const c = porteur();
       const s = sujet(pose(c));
       const avant = dessins(s);
@@ -80,8 +112,29 @@ describe('un sujet est une VALEUR : l’état vivant muté ne change rien à ce 
       expect(dessins(s)).toEqual(avant);
       const neuf = sujet(pose(c));
       expect(dessins(neuf).some((d, i) => d !== avant[i]), 'le dessin du sujet reconstruit').toBe(dessinChange);
-      expect(neuf.identity).not.toBe(s.identity);
+      expect(neuf.identity !== s.identity, 'l’identité du sujet reconstruit').toBe(dessinChange);
     });
+});
+
+describe('#2097 — les trois états du tir (chargée, déchargée, rechargée) : UNE identité, UN dessin', () => {
+  it('identité de texture, actorPoseKey et actorIdentityKey égales, SVG identique à l’octet', () => {
+    const c = arbalétrier();
+    const états: { identity: string; clés: string[]; dessins: string[] }[] = [];
+    const relever = () => {
+      const s = sujet(pose(c));
+      états.push({ identity: s.identity, clés: [actorPoseKey(pose(c)), actorIdentityKey(pose(c))], dessins: dessins(s) });
+    };
+    relever();
+    unloadWeapon(c, c.weapons[0]);
+    expect(loadRegister(c, c.weapons[0]).loaded, 'la sonde mord : l’arme est déchargée').toBe(false);
+    relever();
+    loadRegister(c, c.weapons[0]).loaded = true;
+    relever();
+    expect(new Set(états.map((e) => e.identity)).size).toBe(1);
+    expect(new Set(états.map((e) => e.clés.join('|'))).size).toBe(1);
+    expect(états[1].dessins).toEqual(états[0].dessins);
+    expect(états[2].dessins).toEqual(états[0].dessins);
+  });
 });
 
 describe('#2113 B1 — forme d’arme changée au catalogue : le dessin change, donc les TROIS clés de l’acteur', () => {

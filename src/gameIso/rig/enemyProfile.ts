@@ -7,8 +7,7 @@
  */
 import type { Combatant, ItemInstance, ArmourPoints, HitLocation } from '../../engine/types';
 import type { Appearance } from './appearance';
-import type { EquipCtx } from './parts/equipment';
-import { equipFromCombatant } from './parts/equipment';
+import { equipDe, equipPorte, type EquipCtx } from './parts/equipment';
 import { emptyArmour } from '../../engine/items';
 import { renderWeaponsFromTraits, armourFromTraits, weaponFromId } from '../../engine/creatureEquip';
 import type { TraitList } from '../../engine/statEntry';
@@ -220,9 +219,7 @@ export function enemyRigProfile(c: Combatant): EnemyRigProfile | null {
   // si l'apparence la déclare portée — override d'authoring (`c.appearanceOverride.armurePortee`) PRIME
   // sur le record (`cd?.armurePortee`), symétrique de `entityRigProfile` (`opts.armurePortee ?? cd?.armurePortee`,
   // parité #181/#182 : une entité à statbloc SANS record honore SON armurePortee en combat comme en explo).
-  const base = equipFromCombatant(c);
-  const armour = base.armour.length ? base.armour : synthArmour(c.armour, ov?.armurePortee ?? cd?.armurePortee);
-  const equip: EquipCtx = { weapons: base.weapons, armour, shield: base.shield };
+  const equip = equipPorte(c, () => synthArmour(c.armour, ov?.armurePortee ?? cd?.armurePortee));
 
   // Calques de mutation = donnée (`combatantOverlays(c.mutations)`, appliqués par `sceneMeshes.actorDrawInputs`),
   // jamais le nom : un mutant déclare son tell via un trait « Mutation (X) » → c.mutations au spawn.
@@ -276,7 +273,7 @@ export function entityRigProfile(
   return {
     appearance: rigAppearance(graineDeTirage(opts?.seed, seed, rec), base, cd, override),
     tenue: bipedTenue(opts?.tenue, cd, base.perso, base.race),
-    equip: { weapons: [...idWeapon, ...traitWeapons], armour: synthArmour(armourPA, opts?.armurePortee ?? cd?.armurePortee) },
+    equip: equipDe([...idWeapon, ...traitWeapons], synthArmour(armourPA, opts?.armurePortee ?? cd?.armurePortee)),
   };
 }
 

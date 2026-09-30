@@ -18,6 +18,8 @@ import { HEADS, ARMS, LEGS } from './parts/monster';
 import { buildTokenMap, applyTokenMap } from './palette';
 import { tenueOverlaysFor, couchesDuRig, coucheDEspece } from './parts/career';
 import type { EquipCtx } from './parts/equipment';
+import { useMemo } from 'react';
+import { useVersionDesDatasets } from '../../ui/useVersionDesDatasets';
 import { dorsalOverlays } from './parts/dorsal';
 import { CAPES } from './parts/capes';
 import type { View } from './facing';
@@ -405,6 +407,27 @@ export function resolveRig(
   mirror = false,
 ): ResolvedBone[] {
   return poseRig(rigComposition(appearance, equip, tenue, view, overlays, mirror), pose);
+}
+
+const AUCUN_CALQUE: RigOverlay[] = [];
+
+/** COMPOSITION d'une surface React : retenue tant que le personnage, la vue, le sens et la version des
+ *  catalogues (`useVersionDesDatasets`) ne changent pas — une édition au
+ *  Codex re-rend la surface et recompose son rig. Seul chemin d'une surface `.tsx` vers
+ *  `rigComposition` (garde `composition-rig-garde.test.ts`). */
+export function useCompositionRig(
+  appearance: Appearance,
+  equip: EquipCtx,
+  tenue?: string,
+  view: View = 'front',
+  overlays: RigOverlay[] = AUCUN_CALQUE,
+  mirror = false,
+): RigComposition {
+  const version = useVersionDesDatasets();
+  return useMemo(
+    () => rigComposition(appearance, equip, tenue, view, overlays, mirror),
+    [appearance, equip, tenue, view, overlays, mirror, version],
+  );
 }
 
 /** Composant : un <g data-bone> par os, transformable individuellement (anim C / postures D). Reçoit
