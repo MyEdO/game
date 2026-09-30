@@ -1,17 +1,19 @@
-// RULESET `main` — LA protection serveur de `main` (#1776). C'est elle, et rien de local, qui tient
-// l'invariant « `main` n'est jamais rouge » : la preuve est le run CI GitHub du sha lui-même.
+// RULESET `main` — LA protection serveur de `main` (#1776, #2178). C'est elle, et
+// rien de local, qui tient l'invariant « `main` n'est jamais rouge » : le serveur SÉRIALISE les entrées.
 //
-// Décision utilisateur du 2026-09-16, verbatim : « Oui, ruleset actif ». Elle RE-DÉCIDE « Aucune
-// protection serveur pour l'instant » [entériné 2026-09-01]. Le mode `evaluate` n'existe pas sur le
-// plan de ce dépôt (HTTP 422 « Enforcement evaluate option is not supported on this plan », mesuré
-// le 2026-09-04) : les modes offerts sont `active` et `disabled`, et c'est `active`.
+// Décision utilisateur du 2026-09-29, verbatim : « une fois qu'on veut publié, ca se bouscule beaucoup,
+// en plus des gates, du rebase + CI qui potentiellement réponds que main a bougé entre le début et la
+// fin et j'en passe » (#2178). Arbitrage utilisateur du 2026-09-16 : « Oui, ruleset actif ». Le mode
+// `evaluate` n'existe pas sur le plan de ce dépôt (HTTP 422 « Enforcement evaluate option is not
+// supported on this plan », mesuré le 2026-09-04) : les modes offerts sont `active` et `disabled`.
 //
-// TROIS RÈGLES :
+// CINQ RÈGLES (schémas `repository-rule-*` de github/rest-api-description) :
 //   · `required_status_checks` — les jobs VÉRIFIANTS du `ci.yml` du TRONC (`origin/main`, jamais
-//     l'arbre local : un check exigé que `main` ne produit pas encore bloquerait toute entrée ;
-//     `JOBS_NON_VERIFIANTS`, scripts/gates/gatesDeCi.mjs, nomme les autres).
-//     `strict_required_status_checks_policy: false` : la tête verte sur sa branche est acceptée
-//     telle quelle, c'est le FAST-FORWARD qui garantit que le sha jugé est celui qui entre ;
+//     l'arbre local : un check exigé qu'aucun job de `main` ne produit bloquerait toute entrée).
+//     `strict_required_status_checks_policy: false` : le commit de file jugé EST celui qui entre ;
+//   · `merge_queue` — la file de fusion, paramètres TOUS explicites (`PARAMETRES_DE_FILE`), posée
+//     seulement quand le `ci.yml` du tronc déclenche sur `merge_group` (`refusDeFile`) ;
+//   · `pull_request` — aucun push direct sur `main`, zéro approbation (`PARAMETRES_DE_PR`) ;
 //   · `non_fast_forward` — `main` n'est jamais réécrite ;
 //   · `deletion` — `main` ne se supprime pas.
 //
@@ -19,18 +21,19 @@
 // en `bypass_actors` est REFUSÉ par le serveur. `gh api -X POST repos/cgauche/game/rulesets --input
 // <corps>` → HTTP 422, verbatim : « Actor GitHub Actions integration must be part of the ruleset
 // source or owner organization » — le dépôt était alors PERSONNEL (`cgauche/game`) ; il appartient à
-// l'organisation `MyEdO` depuis le 2026-09-29 (#2178). Le ruleset n'exonère AUCUN acteur, et rien
-// dans le dépôt n'en a besoin : aucun workflow ne commet sur `main`. (le `git push` de `deploy.yml`
-// pousse sur le dépôt de PROD, pas sur `main` : le ruleset ne le voit jamais.)
+// l'organisation `MyEdO` depuis le 2026-09-29 (#2178). Le ruleset n'exonère AUCUN acteur : `main`
+// n'avance que par la file. (le `git push` de `deploy.yml` pousse sur le dépôt de PROD, pas sur
+// `main` : le ruleset ne le voit jamais.)
 //
-// Usage : `npm run ops:ruleset -- --dry-run` (imprime le corps, n'écrit rien) ou `npm run ops:ruleset`
+// Usage : `npm run ops:ruleset -- --dry-run` (imprime les corps, n'écrit rien) ou `npm run ops:ruleset`
 // (crée ou met à jour le ruleset — geste de l'orchestrateur, jamais d'un agent).
 import { execFileSync } from 'node:child_process'
 import { writeFileSync, rmSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { tmpdir } from 'node:os'
-import { contextesRequis } from '../gates/gatesDeCi.mjs'
+import { TIMEOUT_JOB_MINUTES, contextesRequis } from '../gates/gatesDeCi.mjs'
+import { declencheursDe } from '../gates/workflowsDuDepot.mjs'
 import { DEPOT } from '../guards/lib/ticketsGh.mjs'
 import { TRONC, depotDe, fetchOrigin, lireEnLot, reussi, shaDe } from '../guards/lib/gitPorte.mjs'
 
@@ -40,12 +43,57 @@ export const NOM = 'main'
 /** Chemin de `ci.yml`, relatif à la racine du dépôt. */
 const CI = '.github/workflows/ci.yml'
 
+/** Déclencheur que la file exige du workflow qui porte ses checks requis (managing-a-merge-queue.md :
+ *  « You **must** use the `merge_group` event »). */
+export const DECLENCHEUR_DE_FILE = 'merge_group'
+
+/**
+ * Délai de réponse des checks d'une entrée de file, en minutes : le plafond d'un job
+ * (`TIMEOUT_JOB_MINUTES`) plus autant d'attente de runner. Au-delà, la file tient le check pour échoué
+ * (`check_response_timeout_minutes`).
+ */
+export const DELAI_DE_REPONSE_MINUTES = 2 * TIMEOUT_JOB_MINUTES
+
+/**
+ * Paramètres de la règle `merge_queue` — les sept que le schéma `repository-rule-merge-queue` exige.
+ * `MERGE` : les commits de la branche entrent avec LEURS shas (#2178, design v2). `ALLGREEN` : chaque
+ * commit de file passe les checks requis. `min_entries_to_merge: 1` : aucune attente de groupe.
+ */
+export const PARAMETRES_DE_FILE = Object.freeze({
+  check_response_timeout_minutes: DELAI_DE_REPONSE_MINUTES,
+  grouping_strategy: 'ALLGREEN',
+  max_entries_to_build: 5,
+  max_entries_to_merge: 5,
+  merge_method: 'MERGE',
+  min_entries_to_merge: 1,
+  min_entries_to_merge_wait_minutes: 0,
+})
+
+/** Paramètres de la règle `pull_request` — les cinq que le schéma `repository-rule-pull-request` exige,
+ *  plus `allowed_merge_methods`, aligné sur `PARAMETRES_DE_FILE.merge_method`. */
+export const PARAMETRES_DE_PR = Object.freeze({
+  allowed_merge_methods: Object.freeze(['merge']),
+  dismiss_stale_reviews_on_push: false,
+  require_code_owner_review: false,
+  require_last_push_approval: false,
+  required_approving_review_count: 0,
+  required_review_thread_resolution: false,
+})
+
 /** Le texte de `ci.yml` à `origin/main` (`TRONC.suivi`) — ce que `main` produit comme checks. Un
  *  tronc sans `ci.yml` LÈVE : aucun corps ne se pose sur une lecture vide. */
 export function ciDuTronc(cwd = RACINE) {
   const texte = lireEnLot(depotDe(cwd), TRONC.suivi, [CI]).get(CI)
   if (texte === null) throw new Error(`${TRONC.suivi}:${CI} illisible — le ruleset ne peut pas nommer ses checks`)
   return texte
+}
+
+/** Le refus de poser la file, ou `null`. PUR. Sans `merge_group` au `ci.yml` du tronc, aucun check
+ *  requis ne se joue sur un commit de file, et la file n'entre rien
+ *  (data/reusables/actions/merge-group-event-with-required-checks.md). */
+export function refusDeFile(texteCi) {
+  if (declencheursDe(texteCi, `${TRONC.suivi}:${CI}`).includes(DECLENCHEUR_DE_FILE)) return null
+  return `[ruleset] REFUS : ${TRONC.suivi}:${CI} ne déclenche pas sur \`${DECLENCHEUR_DE_FILE}\` — publier d’abord le ci.yml qui le porte, puis relancer \`npm run ops:ruleset\``
 }
 
 /** Corps du ruleset. PUR. */
@@ -63,6 +111,8 @@ export function corpsDuRuleset(contextes) {
           required_status_checks: contextes.map((context) => ({ context })),
         },
       },
+      { type: 'merge_queue', parameters: { ...PARAMETRES_DE_FILE } },
+      { type: 'pull_request', parameters: { ...PARAMETRES_DE_PR, allowed_merge_methods: [...PARAMETRES_DE_PR.allowed_merge_methods] } },
       { type: 'non_fast_forward' },
       { type: 'deletion' },
     ],
@@ -94,7 +144,8 @@ export function refusGh(erreur) {
  * ainsi que le test vérifie qu'un `--dry-run` n'émet aucun appel, sans réseau ni écriture. `PUT` est
  * la méthode documentée de `PUT /repos/{owner}/{repo}/rulesets/{ruleset_id}` (mise à jour d'un
  * ruleset de dépôt) ; la création passe par `POST /repos/{owner}/{repo}/rulesets`.
- * REND le code de sortie du processus : 0, ou 1 quand `gh` refuse — le refus part au `journal`.
+ * REND le code de sortie du processus : 0, ou 1 quand la file est refusée (`refusDeFile`, AVANT tout
+ * appel, `--dry-run` compris) ou quand `gh` refuse — le refus part au `journal`.
  */
 export function executer({
   argv = [],
@@ -104,10 +155,16 @@ export function executer({
   journal = (s) => process.stderr.write(s),
 } = {}) {
   const dryRun = argv.includes('--dry-run')
-  const contextes = contextesRequis({ texte: lireCi() })
+  const texteCi = lireCi()
+  const contextes = contextesRequis({ texte: texteCi })
   const corps = corpsDuRuleset(contextes)
   sortie(`${JSON.stringify(corps, null, 2)}\n`)
   sortie(`[ruleset] checks requis posés : ${contextes.join(', ')}\n`)
+  const refus = refusDeFile(texteCi)
+  if (refus) {
+    journal(`${refus}\n`)
+    return 1
+  }
   if (dryRun) {
     sortie('[ruleset] --dry-run : rien n’a été écrit sur GitHub\n')
     return 0

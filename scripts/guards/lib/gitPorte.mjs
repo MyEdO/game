@@ -1112,20 +1112,26 @@ export function commitDe(depot, { message, chemins, vide = false }) {
   return ecrire(depot, ['--literal-pathspecs', 'commit', '-q', ...(vide ? ['--allow-empty'] : []), '-F', '-', '--', ...chemins], commit)
 }
 
-/** Rebase de la branche courante sur `sur` (`rebase <sur>`). @param {Depot} depot @param {string} sur */
-export const rebaser = (depot, sur) => ecrire(depot, ['rebase', ...revisionsDe([sur])], { timeout: 600_000 })
+/**
+ * FUSION de `de` dans la branche courante, toujours par un commit de fusion (`merge --no-ff`), sous
+ * le `message` donné (`-m`) : la porte de commit exige un `#N` que le message par défaut ne porte pas.
+ * @param {Depot} depot @param {{ de: string, message: string }} p
+ */
+export const fusionner = (depot, { de, message }) =>
+  ecrire(depot, ['merge', '--no-ff', '-m', String(message), ...revisionsDe([de])], { timeout: 600_000 })
 
-/** Le rebase entamé, abandonné (`rebase --abort`). @param {Depot} depot */
-export const abandonnerRebase = (depot) => ecrire(depot, ['rebase', '--abort'])
+/** La fusion entamée, abandonnée (`merge --abort`). @param {Depot} depot */
+export const abandonnerFusion = (depot) => ecrire(depot, ['merge', '--abort'])
 
 /**
  * HEAD poussé vers la branche `vers` de l'origine. `bail` = `--force-with-lease`, qui n'écrase que ce
- * que le dépôt vient de lire, et jamais vers le tronc : le tronc n'entre qu'en fast-forward.
+ * que le dépôt vient de lire. Jamais vers le tronc : `main` n'avance que par la file de fusion
+ * (scripts/ops/ruleset-main.mjs).
  * @param {Depot} depot @param {{ vers: string, bail?: boolean }} p
- * @throws {Error} `bail` vers `TRONC`.
+ * @throws {Error} `vers` = `TRONC`.
  */
 export function pousser(depot, { vers, bail = false }) {
-  if (bail && [TRONC.nom, TRONC.branche].includes(vers)) throw new Error('`git push --force-with-lease` vers `main` : main n’entre qu’en fast-forward')
+  if ([TRONC.nom, TRONC.branche].includes(vers)) throw new Error('`git push` vers `main` : main n’avance que par la file de fusion (`npm run ops:publier`)')
   return ecrire(depot, ['push', ...(bail ? ['--force-with-lease'] : []), 'origin', `HEAD:${revisionsDe([vers])[0]}`], { timeout: 600_000 })
 }
 

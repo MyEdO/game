@@ -12,11 +12,11 @@ import { tmpdir } from 'node:os'
 import { join, relative } from 'node:path'
 import { STATUS_DLL_INIT_FAILED } from './spawnResilient.mjs'
 import {
-  BorneAbsente, GitIndisponible, INDEX, OPTIONS_DE_L_HOTE, SUIVI, TRAVAIL, abandonnerRebase, ajouterOrigine, ajouterWorktree, approfondir, arbrePrincipal, arbreVide, attributDe,
+  BorneAbsente, GitIndisponible, INDEX, OPTIONS_DE_L_HOTE, SUIVI, TRAVAIL, abandonnerFusion, ajouterOrigine, ajouterWorktree, approfondir, arbrePrincipal, arbreVide, attributDe,
   baseCommune, brancheDe, branchesDe, ceQuEmporteLIndex, ceQueFaitLeCommit, ceQuiChange, cheminGit, cheminsEnConflit, classer, combienDe, commitDe,
   depotDe, divergenceDe, dossierDesHooks, elaguerWorktrees, eolsDe, estDansHead, estIgnore, estSuperficiel, etatDeLArbre, enfantsDirects, estAncetre, estRepertoire,
   fetchOrigin, fichiersDuGrep, fusionDeTextes, fusionnesEnCours, initialiserDepot, journalDe, lireEnLot, listerImage, natureDuChemin, origineDe, parentsDe, pointDeDepart, poserRef, pousser,
-  racineDe, raisonCourte, rebaseEntame, rebaser, reglerDepot, retirerWorktree, reussi, shaDe, shasDe, supprimerBranche, urlOrigineAcceptee, worktreesDe,
+  fusionner, racineDe, raisonCourte, rebaseEntame, reglerDepot, retirerWorktree, reussi, shaDe, shasDe, supprimerBranche, urlOrigineAcceptee, worktreesDe,
 } from './gitPorte.mjs'
 import { envDeDepotForge, envDeLUtilisatrice, instanceDeDepot } from './depotGabarit.mjs'
 import { sourceGit } from './cssImages.mjs'
@@ -789,10 +789,9 @@ test('ÉCRIVAINS : l’argv EXACT que git reçoit de chacun — aucune option de
     // `a.txt` est absent du disque de l'espion : `commitDe` demande d'abord à l'INDEX s'il y nomme un répertoire.
     ['commitDe', () => commitDe(d, { message: 'm', chemins: ['a.txt'] }), [[...OPTIONS_DE_L_HOTE, 'ls-files', '-z', '--cached', '--', 'a.txt'], ['--literal-pathspecs', 'add', '--', 'a.txt'], ['--literal-pathspecs', 'commit', '-q', '-F', '-', '--', 'a.txt']]],
     ['commitDe vide', () => commitDe(d, { message: 'm', chemins: [], vide: true }), [['commit', '-q', '--allow-empty', '--only', '-F', '-']]],
-    ['rebaser', () => rebaser(d, 'origin/main'), [['rebase', 'origin/main']]],
-    ['abandonnerRebase', () => abandonnerRebase(d), [['rebase', '--abort']]],
+    ['fusionner', () => fusionner(d, { de: 'origin/main', message: 'm #1' }), [['merge', '--no-ff', '-m', 'm #1', 'origin/main']]],
+    ['abandonnerFusion', () => abandonnerFusion(d), [['merge', '--abort']]],
     ['pousser', () => pousser(d, { vers: 'refs/heads/x', bail: true }), [['push', '--force-with-lease', 'origin', 'HEAD:refs/heads/x']]],
-    ['pousser ff', () => pousser(d, { vers: 'main' }), [['push', 'origin', 'HEAD:main']]],
     ['ajouterWorktree', () => ajouterWorktree(d, { chemin: '/w', branche: 'b', depuis: 'origin/main' }), [['worktree', 'add', '-b', 'b', '--', '/w', 'origin/main']]],
     ['retirerWorktree', () => retirerWorktree(d, '/w'), [['worktree', 'remove', '--', '/w']]],
     ['supprimerBranche', () => supprimerBranche(d, 'b'), [['branch', '-d', '--', 'b']]],
@@ -850,7 +849,7 @@ test('commitDe : un chemin qui n’est pas un FICHIER — `.`, `:/`, `*`, un ré
   }
 })
 
-test('ÉCRIVAINS sous config HOSTILE : l’identité de l’UTILISATEUR signe le commit et le rebase', () => {
+test('ÉCRIVAINS sous config HOSTILE : l’identité de l’UTILISATEUR signe le commit et la fusion', () => {
   const { racine } = instanceDeDepot({ fichiers: { 'a.txt': 'a\n' }, message: 'socle' })
   const mesure = mkdtempSync(join(tmpdir(), 'ecrivain-hostile-'))
   try {
@@ -867,18 +866,18 @@ test('ÉCRIVAINS sous config HOSTILE : l’identité de l’UTILISATEUR signe le
     g('checkout', '-q', 'b')
     writeFileSync(join(racine, 'b.txt'), 'b\n')
     assert.equal(reussi(commitDe(d, { message: 'b\n', chemins: ['b.txt'] })), true)
-    assert.equal(reussi(rebaser(d, 'main')), true)
-    assert.equal(g('log', '-1', '--format=%cn|%s'), 'Utilisatrice Hostile|b', 'le rebase réécrit sous l’identité de l’utilisatrice')
-    assert.equal(g('rev-parse', 'HEAD~1'), g('rev-parse', 'main'))
+    assert.equal(reussi(fusionner(d, { de: 'main', message: 'fusion #1' })), true)
+    assert.equal(g('log', '-1', '--format=%an|%cn|%s'), 'Utilisatrice Hostile|Utilisatrice Hostile|fusion #1', 'la fusion signe sous l’identité de l’utilisatrice')
+    assert.equal(g('rev-parse', 'HEAD^2'), g('rev-parse', 'main'))
   } finally {
     jeter(racine)
     jeter(mesure)
   }
 })
 
-test('pousser : `--force-with-lease` vers le tronc est REFUSÉ avant tout spawn, sous ses deux noms', () => {
+test('pousser : tout push vers le tronc est REFUSÉ avant tout spawn, sous ses deux noms, bail ou non', () => {
   const d = depotDe(tmpdir(), { spawn: () => assert.fail('aucun git ne doit partir') })
-  for (const vers of ['main', 'refs/heads/main']) assert.throws(() => pousser(d, { vers, bail: true }), /main n’entre qu’en fast-forward/)
+  for (const vers of ['main', 'refs/heads/main']) for (const bail of [true, false]) assert.throws(() => pousser(d, { vers, bail }), /main n’avance que par la file de fusion/)
 })
 
 test('fusionDeTextes : la fusion à trois de `merge-file`, conflit dit par le code de sortie, style `merge`', () => {
@@ -923,7 +922,7 @@ const gestesALaBorne = (d, b) => ({
   reglerDepot: () => reglerDepot(d, b, 'x'),
   poserRef: () => poserRef(d, b, 'HEAD'),
   'poserRef sha': () => poserRef(d, 'refs/x', b),
-  rebaser: () => rebaser(d, b),
+  fusionner: () => fusionner(d, { de: b, message: 'm' }),
   'ajouterWorktree branche': () => ajouterWorktree(d, { chemin: '/w', branche: b, depuis: 'HEAD' }),
   'ajouterWorktree depuis': () => ajouterWorktree(d, { chemin: '/w', branche: 'x', depuis: b }),
   supprimerBranche: () => supprimerBranche(d, b),
@@ -1069,7 +1068,7 @@ test('une BORNE ABSENTE : `null` (ou `absent`, `false`) pour une question qui le
       shasDe: null, journalDe: null, combienDe: null, divergenceDe: null, baseCommune: null, shaDe: null, pointDeDepart: null, parentsDe: null,
       estAncetre: { disponible: true, absent: true }, estDansHead: false,
     }
-    const questions = Object.entries(gestesALaBorne(d, F)).filter(([nom]) => !/^(initialiserDepot|reglerDepot|poserRef|rebaser|ajouterWorktree|supprimerBranche|pousser|fetchOrigin)/.test(nom))
+    const questions = Object.entries(gestesALaBorne(d, F)).filter(([nom]) => !/^(initialiserDepot|reglerDepot|poserRef|fusionner|ajouterWorktree|supprimerBranche|pousser|fetchOrigin)/.test(nom))
     assert.equal(questions.length, 18)
     for (const [nom, question] of questions) {
       if (nom in attendus) assert.deepEqual(question(), attendus[nom], nom)

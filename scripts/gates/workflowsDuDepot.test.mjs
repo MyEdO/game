@@ -15,7 +15,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { coursesCi } from '../guards/lib/coursesCi.mjs'
 import { stepsCi } from './gatesDeCi.mjs'
-import { DOSSIER, ETATS, PORTE, SIGNALEUR, WORKFLOWS, corpsRun, declencheursDe, lireWorkflows, mesurerEtat, verdict } from './workflowsDuDepot.mjs'
+import { DOSSIER, ETATS, PORTE, SIGNALEUR, WORKFLOWS, branchesDePush, corpsRun, declencheursDe, lireWorkflows, mesurerEtat, verdict } from './workflowsDuDepot.mjs'
 
 /** Un workflow d'une seule ligne de `run`, sous la condition `si`. PUR — aucun disque. */
 const workflowAvec = (si, ligneRun) =>
@@ -74,6 +74,24 @@ test('`declencheursDe` LÈVE sur toute forme de `on:` qu’il ne sait pas lire, 
     assert.throws(() => declencheursDe(texte, 'banc.yml'), /^Error: banc\.yml : bloc `on:` illisible/, forme)
     assert.throws(() => mesurerEtat('banc.yml', texte), /^Error: banc\.yml : bloc `on:` illisible/, forme)
   }
+})
+
+test('`branchesDePush` lit les filtres `push.branches` du bloc `on:` : liste en ligne ou en bloc, `null` sans filtre, `[]` sans `push`', () => {
+  assert.deepEqual(branchesDePush("on:\n  push:\n    branches: ['chantier/**', \"feat/**\", main]  # x\n  merge_group:\n    types: [checks_requested]\njobs:\n"), ['chantier/**', 'feat/**', 'main'])
+  assert.deepEqual(branchesDePush('on:\n  push:\n    branches:\n      - chantier/**\n      - feat/**\n    paths:\n      - src/**\njobs:\n'), ['chantier/**', 'feat/**'])
+  assert.equal(branchesDePush('on:\n  push:\n    paths: [src/**]\njobs:\n'), null)
+  assert.deepEqual(branchesDePush('on:\n  merge_group:\njobs:\n'), [])
+  assert.ok(branchesDePush(readFileSync(join(RACINE, DOSSIER, PORTE), 'utf8'), PORTE).length > 0, 'le `ci.yml` du dépôt se lit')
+})
+
+test('`branchesDePush` LÈVE sur `branches-ignore`, une valeur scalaire ou une liste vide', () => {
+  for (const texte of [
+    'on:\n  push:\n    branches-ignore: [x]\njobs:\n',
+    'on:\n  push:\n    branches: main\njobs:\n',
+    'on:\n  push:\n    branches: []\njobs:\n',
+    'on:\n  push:\n    branches:\n    paths: [x]\njobs:\n',
+  ])
+    assert.throws(() => branchesDePush(texte, 'banc.yml'), /^Error: banc\.yml : filtre `push\.branches` illisible/, texte)
 })
 
 test('un `if` qui N’EXIGE PAS le rouge ne vaut pas autosignale (!failure(), success() && !cancelled())', () => {

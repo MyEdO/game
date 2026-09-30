@@ -284,14 +284,14 @@ test('CLI — une branche dont le seul commit touche une fiche sort `produit=fal
     ecrire(racine, '.claude/memory/x.md', 'fiche\n')
     git(['add', '.claude/memory/x.md'])
     git(['commit', '-q', '-m', 'fiche'])
-    const r = jouerCli(racine, { REF: 'refs/heads/chantier/x', SHA: 'HEAD' })
+    const r = jouerCli(racine, { SHA: 'HEAD' })
     assert.equal(r.code, 0)
     assert.equal(r.stdout.trim(), 'produit=false')
 
     ecrire(racine, 'src/a.ts', 'export const a = 1\n')
     git(['add', 'src/a.ts'])
     git(['commit', '-q', '-m', 'code'])
-    const apres = jouerCli(racine, { REF: 'refs/heads/chantier/x', SHA: 'HEAD' })
+    const apres = jouerCli(racine, { SHA: 'HEAD' })
     assert.equal(apres.code, 0)
     assert.equal(apres.stdout.trim(), 'produit=true')
   } finally {
@@ -299,22 +299,22 @@ test('CLI — une branche dont le seul commit touche une fiche sort `produit=fal
   }
 })
 
-test('CLI — sur `main`, un BEFORE fait de zéros se replie sur `SHA^`', () => {
+test('CLI — sur un commit de file, `BASE` (`merge_group.base_sha`) borne le diff, jamais le merge-base', () => {
   const { racine, git } = depotJetable()
   try {
-    git(['checkout', '-q', 'main'])
+    ecrire(racine, 'src/a.ts', 'export const a = 1\n')
+    git(['add', 'src/a.ts'])
+    git(['commit', '-q', '-m', 'code'])
+    const base = git(['rev-parse', 'HEAD'])
     ecrire(racine, '.claude/memory/x.md', 'fiche\n')
     git(['add', '.claude/memory/x.md'])
     git(['commit', '-q', '-m', 'fiche'])
-    const r = jouerCli(racine, {
-      REF: 'refs/heads/main',
-      BEFORE: '0000000000000000000000000000000000000000',
-      SHA: 'HEAD',
-    })
+    // Sans `BASE`, le merge-base avec origin/main voit `src/a.ts` : produit.
+    assert.equal(jouerCli(racine, { SHA: 'HEAD' }).stdout.trim(), 'produit=true')
+    const r = jouerCli(racine, { BASE: base, SHA: 'HEAD' })
     assert.equal(r.code, 0)
-    // Le repli sur `SHA^` ne voit QUE le dernier commit : la fiche, donc documentaire. Sans lui, le
-    // diff n'aurait pas de base et le classement serait conservateur.
     assert.equal(r.stdout.trim(), 'produit=false')
+    assert.equal(jouerCli(racine, { BASE: '', SHA: 'HEAD' }).stdout.trim(), 'produit=true', 'un `BASE` vide (hors merge_group) replie sur le merge-base')
   } finally {
     rmSync(racine, { recursive: true, force: true })
   }
@@ -335,7 +335,7 @@ test('CLI — un clone `--single-branch` VA CHERCHER `origin/main`, puis classe'
       () => execFileSync('git', ['rev-parse', '--verify', '--quiet', 'refs/remotes/origin/main'], { cwd: clone, env: envDeDepotForge() }),
       'le clone doit bien être SANS origin/main — sinon le cas ne mesure rien',
     )
-    const r = jouerCli(clone, { REF: 'refs/heads/chantier/x', SHA: 'HEAD' })
+    const r = jouerCli(clone, { SHA: 'HEAD' })
     assert.equal(r.code, 0)
     assert.equal(r.stdout.trim(), 'produit=false')
     assert.equal(
@@ -359,7 +359,7 @@ test('CLI — sans `origin`, le classement est CONSERVATEUR', () => {
     ecrire(racine, '.claude/memory/x.md', 'fiche\n')
     git(['add', '.claude/memory/x.md'])
     git(['commit', '-q', '-m', 'fiche'])
-    const r = jouerCli(racine, { REF: 'refs/heads/chantier/x', SHA: 'HEAD' })
+    const r = jouerCli(racine, { SHA: 'HEAD' })
     assert.equal(r.code, 0)
     assert.equal(r.stdout.trim(), 'produit=true')
   } finally {
@@ -409,7 +409,7 @@ test('ÉCHEC — `merge-base` sans ancêtre commun, le tronc présent : classeme
     ecrire(racine, '.claude/memory/x.md', 'fiche\n')
     git(['add', '.claude/memory/x.md'])
     git(['commit', '-q', '-m', 'fiche orpheline'])
-    const v = classerPush({ ref: 'refs/heads/orpheline', sha: 'HEAD', cwd: racine })
+    const v = classerPush({ sha: 'HEAD', cwd: racine })
     assert.deepEqual([v.produit, v.base, v.motifs], [true, null, ['merge-base origin/main en échec : conservateur']])
   } finally {
     rmSync(racine, { recursive: true, force: true })
@@ -424,7 +424,7 @@ test('ÉCHEC — une PANNE de git au merge-base : classement CONSERVATEUR, et la
     const vrai = execFileSync('sh', ['-c', 'command -v git'], { encoding: 'utf8' }).trim()
     writeFileSync(join(cale, 'git'), `#!/bin/sh\ncase " $* " in *" merge-base "*) echo 'fatal: panne simulée' >&2; exit 128;; esac\nexec '${vrai}' "$@"\n`, { mode: 0o755 })
     process.env.PATH = `${cale}:${chemin}`
-    const v = classerPush({ ref: 'refs/heads/chantier/x', sha: 'HEAD', cwd: racine })
+    const v = classerPush({ sha: 'HEAD', cwd: racine })
     assert.deepEqual([v.produit, v.base, v.motifs], [true, null, ['merge-base origin/main en échec — git indisponible : fatal: panne simulée : conservateur']])
   } finally {
     process.env.PATH = chemin
@@ -433,23 +433,12 @@ test('ÉCHEC — une PANNE de git au merge-base : classement CONSERVATEUR, et la
   }
 })
 
-test('ÉCHEC — sur `main`, un commit RACINE sans `BEFORE` n’a pas de `SHA^` : classement CONSERVATEUR', () => {
-  const { racine, git } = depotJetable()
-  try {
-    const sha = git(['rev-parse', 'main'])
-    const v = classerPush({ ref: 'refs/heads/main', before: '0'.repeat(40), sha, cwd: racine })
-    assert.deepEqual([v.produit, v.base, v.motifs], [true, null, [`main sans parent lisible pour ${sha} : conservateur`]])
-  } finally {
-    rmSync(racine, { recursive: true, force: true })
-  }
-})
-
 test('ÉCHEC — une borne du diff INCONNUE LÈVE `BorneAbsente`, et le CLI sort 1 sans rien écrire sur stdout (le step est rouge)', () => {
   const { racine } = depotJetable()
   try {
     const faux = 'f'.repeat(40)
-    assert.throws(() => classerPush({ ref: 'refs/heads/main', before: faux, sha: 'HEAD', cwd: racine }), (e) => e.name === 'BorneAbsente' && e.bornes.includes(faux))
-    const r = jouerCli(racine, { REF: 'refs/heads/main', BEFORE: faux, SHA: 'HEAD' })
+    assert.throws(() => classerPush({ base: faux, sha: 'HEAD', cwd: racine }), (e) => e.name === 'BorneAbsente' && e.bornes.includes(faux))
+    const r = jouerCli(racine, { BASE: faux, SHA: 'HEAD' })
     assert.deepEqual([r.code, r.stdout], [1, ''])
   } finally {
     rmSync(racine, { recursive: true, force: true })

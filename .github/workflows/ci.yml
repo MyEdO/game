@@ -2,16 +2,20 @@ name: CI
 
 on:
   push:
-    branches: [main, 'chantier/**', 'feat/**']
-  pull_request:
+    branches: ['chantier/**', 'feat/**']
+  merge_group:
+    types: [checks_requested]
 
+# `main` n'avance que par la FILE DE FUSION (#2178, scripts/ops/ruleset-main.mjs) : ses checks requis
+# se jouent sur le commit de file (`merge_group`), qui est le sha poussé sur `main` — aucun run sur
+# `push` de `main`. Le `push` d'une branche de travail attache ses checks à la tête de sa PR
+# (troubleshooting-required-status-checks.md:55-58), sans déclencheur `pull_request`.
+#
 # Un run par ref. Sur une branche de travail, un push qui en suit un autre ANNULE le run en vol :
-# seule la tête compte, et c'est elle que le fast-forward vers `main` exige verte. Sur `main`, rien
-# n'est annulé — le job `fermetures` de la plage précédente ferme des tickets et ne se rejoue pas
-# (#1776).
+# seule la tête compte. Une entrée de file a sa propre ref (`gh-readonly-queue/main/pr-<N>-<sha>`).
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+  cancel-in-progress: true
 
 # UN JOB VÉRIFIANT = UN GROUPE de gates qui tourne en PARALLÈLE des autres (#2178) ; le rejeu local
 # `npm run gates` en DÉRIVE ses lanes (`lanesDeCi`, scripts/gates/toutes.mjs), et la table
@@ -29,9 +33,10 @@ concurrency:
 # `fetch-depth: 0` sur chaque checkout vérifiant : `test:hooks` interroge l’HISTOIRE (soldes de
 # fermeture depuis le 2026-08-01, commit fondateur d’un solde « corrigé par <sha> ») ;
 # `docs:check:tout` la lit (scripts/docs/build-doctrines.mjs, scripts/docs/check-plans-anchors.mjs) ;
-# `npm test` aussi (src/data/regles-migration-fidelite.test.ts) ; et le classement du push (#1738)
-# lit `merge-base origin/main`. Dans le clone superficiel par défaut (depth 1), `git log --since` est
-# vide et les shas anciens sont absents.
+# `npm test` aussi (src/data/regles-migration-fidelite.test.ts) ; le classement du push (#1738) lit
+# `merge-base origin/main`, ou `merge_group.base_sha` sur un commit de file ; les compteurs de version
+# de la file lisent `G^1` et `G^2`. Dans le clone superficiel par défaut (depth 1), `git log --since`
+# est vide et les shas anciens sont absents.
 #
 # Le PROLOGUE de chaque job vérifiant est l'action composite `.github/actions/prologue` : Node, le
 # CLASSEMENT du push (#1738, scripts/gates/classerPush.mjs) puis `npm ci`. POLARITÉ FAIL-CLOSED :
@@ -106,6 +111,14 @@ jobs:
           fetch-depth: 0
       - id: prologue
         uses: ./.github/actions/prologue
+      # Collision des compteurs de version (#2222) jugée sur le commit de file : `G^2` contre `G^1`
+      # (scripts/ops/compteurs-de-file.mjs). `if:` de STEP, jamais de job : un check requis sauté rend
+      # « Success ».
+      - name: Compteurs de version de la file
+        if: ${{ github.event_name == 'merge_group' && !cancelled() && steps.prologue.outcome == 'success' }}
+        env:
+          SHA: ${{ github.event.merge_group.head_sha }}
+        run: node scripts/ops/compteurs-de-file.mjs
       - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run test:agents
       - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
@@ -172,35 +185,3 @@ jobs:
       - name: Rejeu en CROISSANCE (+1 entrée ne coûte rien)
         if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run migrations:replay:croissance
-
-  # Un ticket se ferme quand son correctif est PUBLIÉ, jamais au commit local : AUCUN hook local ne
-  # ferme de ticket, c'est ce job qui le fait (#1685 avait été fermé par 8b52f3a55 avant que ce commit
-  # n'atteigne `main` — revue de palier n°3, 2026-09-04, écart 10). Ses `needs:` sont TOUS les jobs
-  # vérifiants (`contextesRequis`, scripts/gates/gatesDeCi.mjs ; garde
-  # `scripts/ops/ruleset-main.test.mjs`) : un job dont un `needs:` a échoué est SAUTÉ (docs GitHub,
-  # troubleshooting-required-status-checks.md:78), donc aucun ticket ne se ferme sur une course rouge.
-  fermetures:
-    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-    needs: [docs, types, suite, migrations]
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    permissions:
-      contents: read
-      issues: write
-    steps:
-      # L'histoire complète : le script lit les MESSAGES de la plage poussée et le solde que chaque
-      # commit EMPORTE (`git show <sha>:.claude/soldes/<N>.md`).
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-      - name: Fermer les tickets soldés par la plage poussée
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          BEFORE: ${{ github.event.before }}
-          SHA: ${{ github.sha }}
-        run: |
-          case "$BEFORE" in *[!0]*) ;; *) BEFORE="$(git rev-parse "$SHA^")" ;; esac
-          node scripts/ops/fermer-depuis-main.mjs "$BEFORE..$SHA"

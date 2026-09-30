@@ -10034,6 +10034,7 @@
       ".github/workflows/ci.yml",
       ".github/workflows/deploy.yml",
       ".github/workflows/deps-report.yml",
+      ".github/workflows/fermetures.yml",
       ".gitignore",
       "package.json",
       "scripts/agents/compat-core.mjs",

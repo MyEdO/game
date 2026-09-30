@@ -22,8 +22,7 @@ runs:
     - id: classer
       shell: bash
       env:
-        REF: ${{ github.ref }}
-        BEFORE: ${{ github.event.before }}
+        BASE: ${{ github.event.merge_group.base_sha }}
         SHA: ${{ github.sha }}
       run: node scripts/gates/classerPush.mjs >> "$GITHUB_OUTPUT"
     - id: install

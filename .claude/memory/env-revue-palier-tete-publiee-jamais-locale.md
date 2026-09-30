@@ -1,13 +1,14 @@
 ---
 name: env-revue-palier-tete-publiee-jamais-locale
-description: "Revue de palier : sa tête de fenêtre est le dernier commit PUBLIÉ (origin/main après fetch), jamais un commit local du chantier — le rebase de publication le réécrit et la revue devient orpheline ; une session parallèle peut archiver la même fenêtre pendant le jugement"
+description: "Revue de palier : sa tête de fenêtre est le dernier commit PUBLIÉ (origin/main après fetch), jamais un commit local du chantier — il n’est pas publié, la publication entre sur main par un commit de FUSION, et la revue devient orpheline ; une session parallèle peut archiver la même fenêtre pendant le jugement"
 metadata:
   node_type: memory
   type: feedback
 ---
 
 La tête de fenêtre d'une revue de palier est `origin/main` après `git fetch`, jamais un sha local du
-chantier : le rebase de `ops:publier` réécrit ce sha, le fichier nomme alors une histoire absente
+chantier : ce sha n’est pas sur `main` — `ops:publier` y entre par un commit de FUSION (`fusion^2` = la
+tête de la branche, scripts/ops/etapesDuTrain.mjs), seul sha de `main` —, le fichier nomme alors une histoire absente
 (`revuePalier.mjs` : « une revue dont la tête de fenêtre est ORPHELINE (rebase) se ré-écrit sur sa
 fenêtre réelle ») et le train doit être arrêté puis relancé sans le doublon.
 

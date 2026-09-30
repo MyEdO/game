@@ -20,6 +20,9 @@ export const CI_SEULEMENT = {
   'npm --prefix server ci': 'install serveur — posée une fois localement par `npm install`',
   [COMMANDE_ARBRE_INCHANGE]:
     'le lanceur local juge le même invariant par `photoArbre` (scripts/gates/toutes.mjs)',
+  'node scripts/ops/compteurs-de-file.mjs':
+    'juge le commit de FILE (`merge_group`, `G^2` contre `G^1`) : localement, le train juge la tête contre ' +
+    '`origin/main` à sa préflight (scripts/ops/etapesDuTrain.mjs)',
 }
 
 /**
@@ -27,10 +30,6 @@ export const CI_SEULEMENT = {
  * job neuf est rejoué tant qu'il n'est pas nommé ici.
  */
 export const JOBS_HORS_REJEU_LOCAL = {
-  fermetures:
-    'ferme sur GitHub les tickets soldés par la plage poussée, après une course verte de TOUS les jobs ' +
-    'vérifiants (ses `needs:`) : il agit APRÈS ' +
-    'la publication et ne mesure rien du contenu (scripts/ops/fermer-depuis-main.mjs)',
   migrations:
     'rejeu EN PLACE des migrations : le jouer sur un arbre de travail réécrit src/data et src/scenes ' +
     'et rend un verdict faux (#1613) — localement, il se joue sur un EXPORT de la tête, ' +
@@ -52,8 +51,10 @@ const cheminCi = ({ cwd = process.cwd(), fichier } = {}) =>
 
 /** Lignes de `ci.yml` : le `texte` fourni (une autre révision que l'arbre, lue par l'appelant), sinon
  *  le fichier sur disque. */
-const lignesCi = ({ cwd, fichier, texte } = {}) =>
-  (texte ?? readFileSync(cheminCi({ cwd, fichier }), 'utf8')).split(/\r?\n/)
+const lignesCi = ({ cwd, fichier, texte } = {}) => (texte ?? texteDeCi({ cwd, fichier })).split(/\r?\n/)
+
+/** Texte de `ci.yml` sur disque. */
+export const texteDeCi = ({ cwd, fichier } = {}) => readFileSync(cheminCi({ cwd, fichier }), 'utf8')
 
 /**
  * Plafond de durée de CHAQUE job de `ci.yml`, en minutes — la clé `timeout-minutes` de niveau JOB,
@@ -190,16 +191,7 @@ export function blocsDeJobs({ cwd = process.cwd(), fichier, texte } = {}) {
  *  change le nom de son check, et le ruleset doit suivre le fichier. */
 export const jobsCi = (source = {}) => blocsDeJobs(source).map((b) => b.job)
 
-/**
- * Jobs de `ci.yml` qui ne VÉRIFIENT pas le contenu poussé, chacun avec sa raison : ils ne peuvent pas
- * être un check requis. Nominatif — un job neuf devient un check requis tant qu'il n'est pas nommé ici.
- */
-export const JOBS_NON_VERIFIANTS = {
-  fermetures:
-    'joue APRÈS la publication (il ferme les tickets soldés par les commits poussés) — exiger sa ' +
-    'réussite avant de laisser entrer le push serait circulaire',
-}
-
-/** Contextes de check requis = les jobs VÉRIFIANTS de `ci.yml` — celui de l'arbre (`cwd`/`fichier`) ou
- *  un `texte` lu ailleurs (`ciDuTronc`, scripts/ops/ruleset-main.mjs). */
-export const contextesRequis = (source = {}) => jobsCi(source).filter((j) => !(j in JOBS_NON_VERIFIANTS))
+/** Contextes de check requis = TOUS les jobs de `ci.yml` — celui de l'arbre (`cwd`/`fichier`) ou un
+ *  `texte` lu ailleurs (`ciDuTronc`, scripts/ops/ruleset-main.mjs). Un job qui ne vérifie pas le
+ *  contenu n'a pas sa place dans `ci.yml` : les fermetures vivent dans `.github/workflows/fermetures.yml`. */
+export const contextesRequis = (source = {}) => jobsCi(source)
