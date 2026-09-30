@@ -149,6 +149,29 @@ export const lotAmbigu = (input) =>
   input?.ops !== undefined &&
   (!Array.isArray(input.ops) || input.op !== undefined || input.ops.some((op) => !op || typeof op !== 'object' || Array.isArray(op)))
 
+/** Les clés ADMISES du `tool_input` de `ctx_patch` : schéma MCP `ctx_patch`, lean-ctx 3.10.2, tools/list
+ *  (tag d4f9beb3f, `tools/registered/ctx_patch.rs` l.33-48). Toute autre clé est refusée. */
+export const CLES_CTX_PATCH = Object.freeze([
+  'path', 'op', 'line', 'hash', 'start_line', 'start_hash', 'end_line', 'end_hash',
+  'new_text', 'old_text', 'name', 'find', 'replace', 'dry_run', 'ops',
+])
+
+/** Les clés d'un élément de `ops[]` : celles de `CLES_CTX_PATCH` hors `ops` ; hors `dry_run`
+ *  (`registered/ctx_patch.rs` l.276-294 : l'élément délégué garde le sien sur celui de tête) ; hors
+ *  `find`/`replace` (l.196-200 : `replace_all` hors lot). */
+export const CLES_OP_CTX_PATCH = Object.freeze(CLES_CTX_PATCH.filter((cle) => !['ops', 'dry_run', 'find', 'replace'].includes(cle)))
+
+/** Les clés de l'entrée `ctx_patch` hors de `CLES_CTX_PATCH` (tête) ou de `CLES_OP_CTX_PATCH` (chaque
+ *  élément objet de `ops[]`), préfixées `ops[i].` pour un élément. */
+export function clesNonAdmises(input) {
+  const tete = Object.keys(input ?? {}).filter((cle) => !CLES_CTX_PATCH.includes(cle))
+  const ops = Array.isArray(input?.ops) ? input.ops : []
+  const elements = ops.flatMap((op, i) =>
+    op && typeof op === 'object' && !Array.isArray(op) ? Object.keys(op).filter((cle) => !CLES_OP_CTX_PATCH.includes(cle)).map((cle) => `ops[${i}].${cle}`) : [],
+  )
+  return [...tete, ...elements]
+}
+
 /** Le chemin visé : `file_path` (`Write`, `Edit`), `path` (`ctx_patch`) ; `undefined` sans chemin, ou
  *  fait de blancs. */
 export const cheminVise = (ecrit) => {

@@ -3,10 +3,11 @@
 // refusées ; la passerelle n'appelle qu'un outil de `LECTURES_LIBRES`, quelle que soit la forme de ses
 // arguments (lean-ctx 3.10.2, tag d4f9beb3f, module `server::dispatch` : « agents also *flatten* the call »),
 // tout autre outil s'appelle DIRECTEMENT ; une écriture que les gardes d'écriture ne sauraient juger
-// (sans chemin, texte remplacé non résoluble, lot `ops` ambigu) est REFUSÉE. Canal prescrit : `~/.claude/CLAUDE.md` (« Project edits:
+// (sans chemin, texte remplacé non résoluble, lot `ops` ambigu) est REFUSÉE, comme une entrée `ctx_patch` qui
+// porte une clé hors de son schéma MCP (`CLES_CTX_PATCH`, `CLES_OP_CTX_PATCH`). Canal prescrit : `~/.claude/CLAUDE.md` (« Project edits:
 // `ctx_read(mode="anchored")` → `ctx_patch` »).
 import {
-  EDITION, LECTURE, LECTURES_LIBRES, MOTIF_LEAN_CTX, OUTILS_ECRITURE, PASSERELLE, actionRefusee, cheminVise, ecrituresDe,
+  EDITION, LECTURE, LECTURES_LIBRES, MOTIF_LEAN_CTX, OUTILS_ECRITURE, PASSERELLE, actionRefusee, cheminVise, clesNonAdmises, ecrituresDe,
   entreeDOutil, familleLeanCtx, lotAmbigu, nomLeanCtx, outilAppele, remplaceResoluble,
 } from '../guards/lib/contratGarde.mjs'
 
@@ -27,6 +28,8 @@ function evaluer(entree) {
     if (famille === null) return refus(`outil lean-ctx non classé (${outil}) : aucune garde ne le juge`)
     if (famille === LECTURE) return actionRefusee(nu, entree) ? refus(`action refusée (${outil})`) : null
     if (famille !== EDITION) return null
+    const horsSchema = clesNonAdmises(entreeDOutil(entree))
+    if (horsSchema.length) return refus(`clé hors du schéma MCP (${outil} : ${horsSchema.join(', ')})`)
   }
   if (!OUTILS_ECRITURE.includes(outil)) return null
   if (lotAmbigu(entreeDOutil(entree))) return refus(`écriture non jugeable (${outil}) : lot \`ops\` ambigu (non-tableau, \`op\` de tête ou élément non-objet)`)

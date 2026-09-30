@@ -127,6 +127,45 @@ test('DRIVER : la passerelle vers un outil de `LECTURES_LIBRES` passe, aplatie c
     for (const [nom, entree] of passent) assert.equal(decisionDe(`${P}ctx_call`, entree, surface).decision, null, `${surface} : ${nom}`)
 })
 
+const DOC = join(REPO, 'docs', 'x.md')
+const SRC_NEUF = join(REPO, 'src', 'ui', 'ZzSondeNeuf.tsx')
+
+test('DRIVER : une entrée `ctx_patch` qui porte une clé hors de son schéma MCP, en tête ou dans un élément de `ops[]`, est REFUSÉE avec le canal prescrit — surfaces claude et codex', () => {
+  const cas = [
+    ['replace_unique + create:true (fichier entier par ctx_edit)', { op: 'replace_unique', path: SRC_NEUF, old_text: 'x', new_text: 'export const A = 1', create: true }, 'create'],
+    ['ops[] replace_unique + create:true', { path: SRC_NEUF, ops: [{ op: 'replace_unique', old_text: 'x', new_text: 'export const A = 1', create: true }] }, 'ops[0].create'],
+    ['set_line + backup + backup_path (préimage écrite ailleurs)', { op: 'set_line', path: DOC, line: 1, hash: '00', new_text: 'x', backup: true, backup_path: join(REPO, 'src', 'data', 'zz-sonde.json') }, 'backup_path'],
+    ['ops[] replace_unique en old_string/new_string', { path: DOC, ops: [{ op: 'replace_unique', old_string: 'a', new_string: 'b' }] }, 'ops[0].old_string'],
+    ['dry_run de tête, ops[] replace_unique à dry_run:false', { path: DOC, dry_run: true, ops: [{ op: 'replace_unique', old_text: 'a', new_text: 'b', dry_run: false }] }, 'ops[0].dry_run'],
+    ['validate_syntax:false', { op: 'set_line', path: DOC, line: 1, hash: '00', new_text: 'x', validate_syntax: false }, 'validate_syntax'],
+    ['content (Write-équivalent) sur ctx_patch', { op: 'replace_unique', path: DOC, old_text: 'a', new_text: 'b', content: 'x' }, 'content'],
+  ]
+  for (const surface of ['claude', 'codex']) {
+    for (const [nom, entree, cle] of cas) {
+      const { decision, raison } = decisionDe(`${P}ctx_patch`, entree, surface)
+      assert.equal(decision, 'deny', `${surface} : ${nom}`)
+      assert.ok(raison.includes(CONSIGNE) && raison.includes('hors du schéma') && raison.includes(cle), `${surface} : ${nom} : ${raison}`)
+    }
+  }
+})
+
+test('CONTRAT : chaque op du schéma `ctx_patch`, avec ses seules clés déclarées, passe au jugement habituel — surfaces claude et codex', () => {
+  const ops = [
+    ['set_line', { op: 'set_line', path: DOC, line: 1, hash: '00', new_text: 'x' }],
+    ['replace_lines', { op: 'replace_lines', path: DOC, start_line: 1, start_hash: '00', end_line: 2, end_hash: '11', new_text: 'x' }],
+    ['insert_after', { op: 'insert_after', path: DOC, line: 1, hash: '00', new_text: 'x' }],
+    ['delete', { op: 'delete', path: DOC, line: 1, hash: '00' }],
+    ['replace_unique', { op: 'replace_unique', path: DOC, old_text: 'a', new_text: 'b' }],
+    ['create', { op: 'create', path: join(REPO, 'docs', 'zz-sonde.md'), new_text: 'x' }],
+    ['replace_all', { op: 'replace_all', path: DOC, find: 'a', replace: 'b' }],
+    ['lot ancré + replace_unique', { path: DOC, ops: [{ op: 'set_line', line: 1, hash: '00', new_text: 'x' }, { op: 'replace_unique', path: DOC, old_text: 'a', new_text: 'b' }] }],
+  ]
+  for (const surface of ['claude', 'codex'])
+    for (const [nom, entree] of ops) assert.equal(decisionDe(`${P}ctx_patch`, entree, surface).decision, null, `${surface} : ${nom}`)
+  const { raison } = decisionDe(`${P}ctx_patch`, { op: 'replace_symbol', path: DOC, name: 'f', new_text: 'x' })
+  assert.ok(!raison.includes('hors du schéma') && raison.includes('non jugeable'), raison)
+})
+
 test('les outils que les sessions utilisent pour LIRE sont classés LECTURE (sinon toute session se bloque)', () => {
   for (const nu of ['ctx_read', 'ctx_search', 'ctx_glob', 'ctx_tree', 'ctx_compose', 'ctx_callgraph', 'ctx_knowledge', 'ctx_session', 'ctx_overview', 'ctx_expand', 'ctx_delta', 'ctx_graph', 'ctx_url_read'])
     assert.equal(familleLeanCtx(nu), LECTURE, nu)
