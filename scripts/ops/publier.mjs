@@ -43,7 +43,8 @@
 // `worktree remove --force`, `checkout` ou `restore`.
 // Un rebase INTERROMPU trouvé sur disque à la préflight est NOMMÉ, jamais avorté d'office.
 //
-// Usage : node scripts/ops/publier.mjs [--detache] [--reprendre] [--etapes] [--file-timeout-min <n>]
+// Usage : node scripts/ops/publier.mjs [--detache] [--reprendre] [--etapes] [--file-timeout-min <n>] [--veiller <run>]
+// `--veiller <run>` suit le run nommé par `--detache` (`veillerLeTrain`), sans rien jouer.
 import { spawnSync, spawn } from 'node:child_process'
 import { appendFileSync, closeSync, existsSync, mkdirSync, openSync, readFileSync, renameSync, statSync, writeFileSync, writeSync } from 'node:fs'
 import { join, resolve } from 'node:path'
@@ -61,7 +62,7 @@ import { refusDesCompteurs } from '../guards/lib/compteursDuDepot.mjs'
 import { commitsDeLaPlage } from '../guards/lib/plageFermante.mjs'
 import { GENERATORS } from '../docs/build-all.mjs'
 import { PEREMPTION_MS, purgerPerimes } from '../guards/lib/purgerPerimes.mjs'
-import { ETAPES, issueDeFusion, prDeRest } from './etapesDuTrain.mjs'
+import { BORNE_EJECTIONS, ETAPES, attendre, issueDeFusion, prDeRest } from './etapesDuTrain.mjs'
 
 /** L'arbre où VIT ce script — jamais `process.cwd()` : le train publie SON worktree. */
 export const RACINE = fileURLToPath(new URL('../..', import.meta.url))
@@ -81,15 +82,24 @@ export const GATES_DES_DERIVES = Object.freeze(['docs:check:tout', 'docs:emprein
  * valeur) : `separerInvocation` lit `<positionnel> [--opt val]* -- reste`, une grammaire qui n'est
  * pas la nôtre.
  * @param {string[]} argv arguments APRÈS `node publier.mjs`
- * @returns {{detache:boolean, reprendre:boolean, etapes:boolean, fileTimeoutMin:number, inconnus:string[]}}
+ * `--veiller <run>` prend un identifiant de run (`idDeRun`) ; toute autre valeur est rendue inconnue.
+ * @returns {{detache:boolean, reprendre:boolean, etapes:boolean, fileTimeoutMin:number, veiller:string|null, inconnus:string[]}}
  */
 export function optionsDe(argv) {
   const args = (argv ?? []).map(String)
   const connus = new Set(['--detache', '--reprendre', '--etapes', '--file-timeout-min'])
   const valeurs = { '--file-timeout-min': FILE_TIMEOUT_MIN }
   const inconnus = []
+  let veiller = null
   for (let i = 0; i < args.length; i += 1) {
     const a = args[i]
+    if (a === '--veiller') {
+      const run = args[i + 1]
+      if (pidDeRun(run) === null) inconnus.push(`--veiller ${run ?? ''}`.trim())
+      else veiller = run
+      i += 1
+      continue
+    }
     if (Object.hasOwn(valeurs, a)) {
       const n = Number(args[i + 1])
       if (Number.isFinite(n) && n > 0) valeurs[a] = n
@@ -103,8 +113,19 @@ export function optionsDe(argv) {
     reprendre: args.includes('--reprendre'),
     etapes: args.includes('--etapes'),
     fileTimeoutMin: valeurs['--file-timeout-min'],
+    veiller,
     inconnus,
   }
+}
+
+/** Identifiant d'un RUN du train : le pid de son processus et l'instant (ms) de son lancement, que le
+ *  parent de `--detache` choisit AVANT de détacher. PURE. */
+export const idDeRun = ({ pid, lancement }) => `${pid}-${lancement}`
+
+/** Le pid d'un identifiant de run, `null` s'il n'en est pas un. PURE. */
+export function pidDeRun(run) {
+  const vu = /^([1-9]\d*)-(\d+)$/.exec(String(run ?? ''))
+  return vu ? Number(vu[1]) : null
 }
 
 /** Nom de fichier de journal d'une branche : tout ce qui n'est ni mot, ni point, ni tiret fond en
@@ -239,8 +260,8 @@ export function lancerDetache({
 /**
  * Le filet de l'enfant détaché (#1784). Détaché, le train n'a plus de stdio redirigé : sa console est
  * CACHÉE, donc tout ce qu'il écrit hors du journal est perdu, et un train né puis MORT avant
- * `ouvrirLog` serait invisible (pid annoncé, journal vide). Ce filet écrit la chute DANS le journal,
- * avec la ligne `PUBLICATION:` que les veilles attendent, puis sort en 1. Le script détaché étant
+ * `ouvrirLog` serait invisible (pid annoncé, journal vide). Ce filet écrit la chute DANS le log, avec
+ * sa ligne `PUBLICATION:`, puis sort en 1 ; la veille (`veillerLeTrain`) constate la mort du pid. Le script détaché étant
  * `fileURLToPath(import.meta.url)`, un « module introuvable » n'est atteignable que par un défaut de
  * citation du lancement (`citerArgv`).
  * @param {{chemin:string, processus?:NodeJS.Process, ecrire?:Function}} p
@@ -276,8 +297,7 @@ export function motifDeRotation(chemin) {
 
 /**
  * ROTATION du log : un log NON VIDE est renommé (`nomDeRotation`) avant qu'un run neuf ne reparte —
- * la trace du run précédent survit, et le log courant repart vide, donc la veille `^PUBLICATION:`
- * reste valide sans offset. Le bornage est par PÉREMPTION d'ÂGE, par la source unique
+ * la trace du run précédent survit, et le log courant repart vide. Le bornage est par PÉREMPTION d'ÂGE, par la source unique
  * `purgerPerimes` — aucune constante de compte ici. Ce n'est PAS une archive :
  * `node_modules/.cache/` est effacé par le `npm ci` d'`ops:chantier` — le log est une trace de
  * travail, la PREUVE d'une publication est sa sortie collée au ticket.
@@ -346,9 +366,81 @@ export const etatDeLEtape = (journal, nom, teteVivante) => {
   return vue.etat
 }
 
+// ── Purs : le run courant et sa veille (#2227) ────────────────────────────────────────────────
+
+/** Code de sortie d'un verdict indéterminé (la file n'a pas fusionné dans sa borne). */
+export const CODE_INDETERMINEE = 3
+
+/** Code de sortie d'un ARRÊT MOTEUR : verdict `rouge moteur`, ou train mort sans verdict au journal. */
+export const CODE_ARRET_MOTEUR = 4
+
+/** Code de sortie de la veille quand sa borne (`borneDeVeilleMin`) passe sans verdict. */
+export const CODE_BORNE_DEPASSEE = 5
+
+/**
+ * L'en-tête du run qui PART sur `journal` : son identifiant, son pid, sa borne de file ; le verdict d'un
+ * run précédent (journal repris) s'efface. Le journal ainsi estampillé est sauvé AVANT la première
+ * étape : c'est lui qui dit à la veille que le run courant a démarré. MUTE `journal`, le rend.
+ * @param {object} journal @param {{run:string, pid:number, fileTimeoutMin:number}} p
+ */
+export function entameDuRun(journal, { run, pid, fileTimeoutMin }) {
+  return Object.assign(journal, { run, pid, fileTimeoutMin, verdict: null })
+}
+
+/** La ligne `PUBLICATION:` d'un verdict — la dernière du log du train, et celle de sa veille. PURE. */
+export function ligneDePublication(verdict, tete) {
+  if (verdict.etat === 'vert') return `PUBLICATION: vert ${tete}`
+  if (verdict.etat === 'indeterminee') return `PUBLICATION: indéterminée file ${tete}`
+  return `PUBLICATION: rouge ${verdict.etape} — ${String(verdict.raison).split('\n')[0]}`
+}
+
+/** Code de sortie d'un verdict, pour le train comme pour sa veille. PURE. */
+export function codeDeVerdict(verdict) {
+  if (verdict.etat === 'vert') return 0
+  if (verdict.etat === 'indeterminee') return CODE_INDETERMINEE
+  return verdict.etape === 'moteur' ? CODE_ARRET_MOTEUR : 1
+}
+
+/**
+ * Borne de la veille, en minutes, DÉRIVÉE de celle du train : l'étape `file` se joue au plus
+ * `BORNE_EJECTIONS + 1` fois, chacune bornée par `fileTimeoutMin`, et les étapes locales reçoivent une
+ * borne de file de plus. PURE.
+ */
+export const borneDeVeilleMin = (fileTimeoutMin) => (BORNE_EJECTIONS + 2) * fileTimeoutMin
+
+/** La commande de veille d'un run, que `--detache` imprime : `node` direct (aucun en-tête `npm` dans la
+ *  sortie suivie), chemin en `/`, lisible de Git Bash comme de PowerShell. PURE. */
+export const commandeDeVeille = ({ script, run }) => `node "${String(script).replace(/\\/g, '/')}" --veiller ${run}`
+
+/** Un `dit` en UNE ligne : la veille émet une ligne par transition. PURE. */
+const enUneLigne = (texte) => String(texte).split('\n').map((l) => l.trim()).filter(Boolean).join(' · ')
+
+/**
+ * Les TRANSITIONS du run `run` absentes de `emis`, dans l'ordre de `noms`, et son verdict.
+ * Une étape ne compte que si le run courant l'a écrite (`run`) ; sa clé est son état et son début, donc
+ * une étape en vol relue à chaque sondage ne se répète pas, et une étape rejouée après une relance
+ * s'émet à nouveau. PURE hors de `emis` (Map nom → clé émise), qu'elle complète.
+ * @param {object|null} journal @param {string} run @param {Map<string,string>} emis @param {string[]} noms
+ * @returns {{courant:boolean, lignes:string[], verdict:object|null}}
+ */
+export function transitionsDuRun(journal, run, emis, noms) {
+  if (!journal || journal.run !== run) return { courant: false, lignes: [], verdict: null }
+  const lignes = []
+  for (const nom of noms) {
+    const vue = journal.etapes?.[nom]
+    if (!vue || vue.run !== run) continue
+    const cle = `${vue.etat}@${vue.debut ?? ''}`
+    if (emis.get(nom) === cle) continue
+    emis.set(nom, cle)
+    lignes.push(`${nom} — ${vue.etat}${vue.dit ? ` — ${enUneLigne(vue.dit)}` : ''}`)
+  }
+  return { courant: true, lignes, verdict: journal.verdict ?? null }
+}
+
 /**
  * Le MOTEUR du train : joue les étapes dans l'ordre, saute celles que `dejaFaite` déclare, arrête à
- * la première rouge, écrit le journal après CHAQUE étape. PUR hors des `jouer` qu'on lui donne —
+ * la première rouge, écrit le journal à l'ENTRÉE de chaque étape jouée (`en-vol`) et après son verdict ;
+ * chaque étape y porte le `run` qui l'a écrite et son `dit` (le `dit` d'un vert, la `raison` sinon). PUR hors des `jouer` qu'on lui donne —
  * testable avec des étapes factices.
  *
  * Une étape peut demander une RELANCE (`{ relancer: [<noms>] }`, cas « PR éjectée de la file ») : les
@@ -364,8 +456,10 @@ export function jouerLeTrain(ctx, etapes, journal, { sauver = () => {}, journali
       if (etape.dejaFaite(ctx, journal)) {
         // Une étape déjà faite s'ENREGISTRE, estampillée comme une étape jouée : sans cela, le journal
         // d'un run repris ne portait AUCUNE trace machine des étapes constatées, et `--etapes` les
-        // rendait « à faire » après coup. Le détail précédent est CONSERVÉ : `ci.dejaFaite` (:800) le
-        // relit (`detail.etat === 'verte'`), l'écraser ferait resonder la course à chaque reprise.
+        // rendait « à faire » après coup. Le détail précédent est CONSERVÉ : `file.dejaFaite` le
+        // relit (`detail.fusion`), l'écraser referait attendre la file à chaque reprise.
+        // Une étape DÉJÀ verte garde le `run` qui l'a rendue verte : aucune transition, la veille
+        // (`transitionsDuRun`) se tait ; toute autre devient un fait du run courant.
         const vu = journal.etapes[etape.nom]
         const instant = new Date().toISOString()
         journal.etapes[etape.nom] = {
@@ -374,6 +468,8 @@ export function jouerLeTrain(ctx, etapes, journal, { sauver = () => {}, journali
           fin: instant,
           detail: { ...(vu?.detail ?? {}), dejaFaite: true },
           tete: ctx.tete ?? null,
+          run: vu?.etat === 'vert' ? (vu.run ?? null) : (journal.run ?? null),
+          dit: 'déjà faite',
         }
         sauver(journal)
         journaliser(`[publier] ${etape.nom} — déjà faite\n`)
@@ -381,6 +477,14 @@ export function jouerLeTrain(ctx, etapes, journal, { sauver = () => {}, journali
       }
       journaliser(`[publier] ${etape.nom} — début\n`)
       const debut = Date.now()
+      journal.etapes[etape.nom] = {
+        etat: 'en-vol',
+        debut: new Date(debut).toISOString(),
+        detail: journal.etapes[etape.nom]?.detail ?? null,
+        tete: ctx.tete ?? null,
+        run: journal.run ?? null,
+      }
+      sauver(journal)
       const vu = etape.jouer(ctx, journal) ?? { ok: false, raison: 'aucun verdict rendu' }
       const secondes = (Date.now() - debut) / 1000
       journal.etapes[etape.nom] = {
@@ -389,6 +493,8 @@ export function jouerLeTrain(ctx, etapes, journal, { sauver = () => {}, journali
         fin: new Date().toISOString(),
         detail: vu.detail ?? null,
         tete: ctx.tete ?? null,
+        run: journal.run ?? null,
+        dit: (vu.ok ? vu.dit : vu.raison) ?? null,
       }
       sauver(journal)
       if (vu.ok) {
@@ -407,7 +513,7 @@ export function jouerLeTrain(ctx, etapes, journal, { sauver = () => {}, journali
       return { etat: 'rouge', etape: etape.nom, raison: vu.raison }
     }
     if (!relance) return { etat: 'vert' }
-    for (const nom of relance) if (noms.includes(nom)) journal.etapes[nom] = { etat: 'à faire', tete: null }
+    for (const nom of relance) if (noms.includes(nom)) journal.etapes[nom] = { etat: 'à faire', tete: null, run: journal.run ?? null, dit: `relance depuis ${relance[0]}` }
     sauver(journal)
     journaliser(`[publier] relance du train depuis ${relance[0]}\n`)
   }
@@ -438,6 +544,74 @@ export function lireJournal(chemin, branche) {
     return { ...journalVide(branche), ...lu, etapes: lu.etapes ?? {} }
   } catch {
     return journalVide(branche)
+  }
+}
+
+/** Période de relecture du journal par la veille, en millisecondes (un fichier local). */
+export const PERIODE_DE_VEILLE_MS = 5_000
+
+/** Le processus `pid` vit-il ? `kill(pid, 0)` ne signale rien : il sonde (EPERM = vivant, hors de nos droits). */
+function vivant(pid) {
+  try {
+    process.kill(pid, 0)
+    return true
+  } catch (e) {
+    return e?.code === 'EPERM'
+  }
+}
+
+/**
+ * La VEILLE d'un run (`--veiller <run>`) : relit le JOURNAL toutes les `periodeMs`, émet une ligne par
+ * transition du run courant (`transitionsDuRun`), puis sa ligne `PUBLICATION:` et sort sur son code
+ * (`codeDeVerdict`). Tant que le journal porte un autre run (course d'ouverture : le run d'avant), elle
+ * se tait. Le train `pidDeRun(run)` mort sans verdict au journal — relu une fois après le constat —
+ * sort en `CODE_ARRET_MOTEUR` ; la borne (`borneDeVeilleMin` de la borne de file du run, ou de
+ * `fileTimeoutMin` tant qu'il n'a rien écrit) passée sans verdict sort en `CODE_BORNE_DEPASSEE`.
+ * @param {{run:string, fileTimeoutMin:number, lire:() => object|null, ecrire:(ligne:string) => void,
+ *          noms?:string[], log?:string, vivant?:(pid:number) => boolean, maintenant?:() => number,
+ *          dormir?:(ms:number) => void, periodeMs?:number}} p
+ * @returns {number} code de sortie
+ */
+export function veillerLeTrain({
+  run,
+  fileTimeoutMin,
+  lire,
+  ecrire,
+  noms = ETAPES.map((e) => e.nom),
+  log = '',
+  vivant: estVivant = vivant,
+  maintenant = Date.now,
+  dormir = attendre,
+  periodeMs = PERIODE_DE_VEILLE_MS,
+}) {
+  const pid = pidDeRun(run)
+  const debut = maintenant()
+  const emis = new Map()
+  let borneMin = fileTimeoutMin
+  let mortConstatee = false
+  for (;;) {
+    const journal = lire()
+    const vu = transitionsDuRun(journal, run, emis, noms)
+    for (const ligne of vu.lignes) ecrire(ligne)
+    if (vu.courant && Number.isFinite(journal.fileTimeoutMin)) borneMin = journal.fileTimeoutMin
+    if (vu.verdict) {
+      ecrire(ligneDePublication(vu.verdict, journal.tete))
+      return codeDeVerdict(vu.verdict)
+    }
+    if (!estVivant(pid)) {
+      if (mortConstatee) {
+        ecrire(ligneDePublication({ etat: 'rouge', etape: 'moteur', raison: `train ${pid} mort sans verdict au journal${log ? ` — ${log}` : ''}` }))
+        return CODE_ARRET_MOTEUR
+      }
+      mortConstatee = true
+      continue
+    }
+    const borneMs = borneDeVeilleMin(borneMin) * 60_000
+    if (maintenant() - debut >= borneMs) {
+      ecrire(`[veille] borne de ${borneDeVeilleMin(borneMin)} min dépassée sans verdict du run ${run} — \`npm run ops:publier -- --etapes\``)
+      return CODE_BORNE_DEPASSEE
+    }
+    dormir(periodeMs)
   }
 }
 
@@ -697,7 +871,7 @@ function main() {
   }
   const options = optionsDe(process.argv.slice(2))
   if (options.inconnus.length) {
-    process.stderr.write(`[publier] option inconnue : ${options.inconnus.join(' ')}\n  usage : node scripts/ops/publier.mjs [--detache] [--reprendre] [--etapes] [--file-timeout-min <n>]\n`)
+    process.stderr.write(`[publier] option inconnue : ${options.inconnus.join(' ')}\n  usage : node scripts/ops/publier.mjs [--detache] [--reprendre] [--etapes] [--file-timeout-min <n>] [--veiller <run>]\n`)
     process.exit(1)
   }
   const depot = depotDuTrain(RACINE)
@@ -711,6 +885,16 @@ function main() {
   mkdirSync(chemins.dossier, { recursive: true })
   const surDisque = existsSync(chemins.json) ? lireJournal(chemins.json, branche) : null
 
+  if (options.veiller) {
+    return veillerLeTrain({
+      run: options.veiller,
+      fileTimeoutMin: options.fileTimeoutMin,
+      lire: () => lireJournal(chemins.json, branche),
+      ecrire: (ligne) => process.stdout.write(`${ligne}\n`),
+      log: chemins.log,
+    })
+  }
+
   // La TÊTE VIVANTE : la seule contre laquelle une étape verte se juge (`planDeReprise`).
   const teteVivante = shaDe(depot, 'HEAD')
 
@@ -719,7 +903,7 @@ function main() {
     const reprise = planDeReprise(journal, ETAPES.map((e) => e.nom), teteVivante)
     process.stdout.write(
       `publication ${branche} — journal ${chemins.json}\n` +
-        `base=${journal.base ?? '—'} tete=${journal.tete ?? '—'} (publiée) · HEAD=${teteVivante ?? '—'} (vivante) ejections=${journal.ejections ?? 0}\n` +
+        `base=${journal.base ?? '—'} tete=${journal.tete ?? '—'} (publiée) · HEAD=${teteVivante ?? '—'} (vivante) ejections=${journal.ejections ?? 0} run=${journal.run ?? '—'}\n` +
         ETAPES.map((e) => `  ${e.nom.padEnd(10)} ${etatDeLEtape(journal, e.nom, teteVivante)}`).join('\n') +
         `\nreprise : ${reprise ?? 'rien à jouer (tout est vert pour cette tête)'}\n`,
     )
@@ -731,18 +915,20 @@ function main() {
     // TOUJOURS le sien en append.
     const fdLog = ouvrirLog(chemins.log, modeDuLog({ reprendre: options.reprendre }))
     const argsEnfant = process.argv.slice(2).filter((a) => a !== '--detache')
+    const lancement = Date.now()
+    const script = fileURLToPath(import.meta.url)
     const pid = lancerDetache({
-      script: fileURLToPath(import.meta.url),
+      script,
       args: argsEnfant,
       cwd: RACINE,
       fdLog,
-      envSupplementaire: { WFRP_PUBLIER_ENFANT: '1', WFRP_PUBLIER_LOG: chemins.log },
+      envSupplementaire: { WFRP_PUBLIER_ENFANT: '1', WFRP_PUBLIER_LOG: chemins.log, WFRP_PUBLIER_LANCEMENT: String(lancement) },
     })
     // Le détachement est écrit DANS le log, par le parent : c'est la seule trace machine qu'un train
     // a été lancé détaché, et sur quels arguments.
     writeSync(fdLog, ligneDeDetachement({ pid, log: chemins.log, args: argsEnfant }))
     closeSync(fdLog)
-    process.stdout.write(`pid=${pid}\nlog=${chemins.log}\n`)
+    process.stdout.write(`pid=${pid}\nlog=${chemins.log}\nveille=${commandeDeVeille({ script, run: idDeRun({ pid, lancement }) })}\n`)
     return 0
   }
 
@@ -754,6 +940,9 @@ function main() {
   }
   const ctx = contexteDe({ racine: RACINE, branche, options, journaliser, fdLog })
   const { journal, repris, vertes } = journalInitial({ reprendre: options.reprendre, lu: surDisque, branche })
+  const lancement = Number(process.env.WFRP_PUBLIER_LANCEMENT) || Date.now()
+  entameDuRun(journal, { run: idDeRun({ pid: process.pid, lancement }), pid: process.pid, fileTimeoutMin: options.fileTimeoutMin })
+  sauverJournal(chemins.json, journal)
   journaliser(`[publier] ${new Date().toISOString()} — branche ${branche}${options.reprendre ? ' (--reprendre)' : ''}\n`)
   journaliser(`[publier] ${repris ? `journal repris (${vertes} étape(s) verte(s))` : 'journal neuf'}\n`)
   let verdict
@@ -766,17 +955,11 @@ function main() {
   } catch (e) {
     verdict = { etat: 'rouge', etape: 'moteur', raison: `ARRÊT INATTENDU : ${e?.stack ?? e}` }
   }
-  journal.etat = verdict.etat
+  journal.verdict = verdict
   sauverJournal(chemins.json, journal)
-  const derniere =
-    verdict.etat === 'vert'
-      ? `PUBLICATION: vert ${journal.tete}`
-      : verdict.etat === 'indeterminee'
-        ? `PUBLICATION: indéterminée file ${journal.tete}`
-        : `PUBLICATION: rouge ${verdict.etape} — ${String(verdict.raison).split('\n')[0]}`
-  journaliser(`${derniere}\n`)
+  journaliser(`${ligneDePublication(verdict, journal.tete)}\n`)
   closeSync(fdLog)
-  return verdict.etat === 'vert' ? 0 : verdict.etat === 'indeterminee' ? 3 : 1
+  return codeDeVerdict(verdict)
 }
 
 /**
