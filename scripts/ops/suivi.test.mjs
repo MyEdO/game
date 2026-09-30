@@ -14,7 +14,7 @@ import { envDeDepotForge, instanceDeDepot } from '../guards/lib/depotGabarit.mjs
 import { GESTES_DU_BOARD, indexerIssues, mesurer } from './board.mjs'
 import {
   HEURES_PEREMPTION, LIGNES_D_UN_TICKET_FERME, MARQUE_DEBUT, MARQUE_FIN, PLAFOND_INJECTION, digestDuSuivi, ecrireSuivi,
-  gabaritDuSuivi, horodatage, listerSuivis, mesureProfilee, renduDuSuivi,
+  gabaritDuSuivi, horodatage, lireHorodatage, listerSuivis, mesureProfilee, renduDuSuivi,
   suivre, texteDeLaListe, ticketsPrevus, zonesDe,
 } from './suivi.mjs'
 
@@ -413,6 +413,25 @@ test('T2 — digestDuSuivi : coupé au plafond, terminé par « tronqué, lire <
   assert.ok(vu.length <= 1200, `${vu.length} > 1200`)
   assert.ok(vu.endsWith(`… tronqué, lire ${CHEMIN}`), vu.slice(-80))
   assert.ok(vu.startsWith('[suivi #1816] .git/suivi/1816.md — écrit le 2026-09-29 14:03\n# Suivi de vague — épique #1816'))
+})
+
+test('digestDuSuivi : jamais plus que son plafond, même plus court que la fin « tronqué » ; l’en-tête d’abord', () => {
+  for (const plafond of [0, 10, 40, 80, 120]) {
+    const vu = digest(REEL, { plafond })
+    assert.ok(vu.length <= plafond, `plafond ${plafond} : ${vu.length}`)
+    assert.ok('[suivi #1816] .git/suivi/1816.md'.startsWith(vu.split('\n')[0].slice(0, 31)), `plafond ${plafond} : l’en-tête d’abord — ${vu}`)
+  }
+  assert.equal(digest(REEL, { plafond: 10 }), '[suivi #18')
+  const fin = `… tronqué, lire ${CHEMIN}`
+  assert.equal(digest(REEL, { plafond: 80 }), `${'[suivi #1816] .git/suivi/1816.md — écrit le 2026-09-29 14:03'.slice(0, 80 - fin.length - 1)}\n${fin}`)
+})
+
+test('lireHorodatage relit horodatage à la minute : un seul gabarit pour l’écriture et la lecture', () => {
+  for (const d of [MAINTENANT, new Date(2026, 0, 1, 0, 0), new Date(1999, 11, 31, 23, 59, 42, 7), new Date(2026, 8, 5, 9, 7)]) {
+    const minute = new Date(d.getFullYear(), d.getMonth(), d.getDate(), d.getHours(), d.getMinutes())
+    assert.equal(lireHorodatage(horodatage(d))?.getTime(), minute.getTime(), horodatage(d))
+  }
+  for (const faux of ['2026-9-5 09:07', '2026-09-05T09:07', '2026-09-05 09:07 ', '']) assert.equal(lireHorodatage(faux), null, faux)
 })
 
 test('digestDuSuivi : la zone mesurée DATÉE suit le plan ; PÉRIMÉE au-delà de HEURES_PEREMPTION', () => {
