@@ -1295,10 +1295,18 @@ test('ENV_GIT_FEINT : la règle qui s’applique répond SANS processus, git ré
     ['{', /^WFRP_GIT_FEINT illisible : /],
     ['[{"si":"--git-path","status":0}]', /^WFRP_GIT_FEINT : une liste de règles/],
     ['[{"si":[],"status":"0"}]', /^WFRP_GIT_FEINT : une liste de règles/],
+    ['[{"si":[],"absent":true,"status":0}]', /^WFRP_GIT_FEINT : une liste de règles/],
   ]) {
     assert.throws(() => cheminGit(sous(valeur), 'x'), (e) => e instanceof GitIndisponible && raison.test(e.raison), valeur)
   }
   assert.equal(lances.length, 1, 'une valeur mal formée ne lance pas git')
+  const introuvable = classer({ error: Object.assign(new Error('spawnSync git ENOENT'), { code: 'ENOENT' }), status: null }, { cwd: tmpdir() })
+  process.stderr.write = () => true
+  try {
+    assert.throws(() => cheminGit(sous(JSON.stringify([{ si: [], absent: true }])), 'x'),
+      (e) => e instanceof GitIndisponible && e.raison === introuvable.raison && /^git introuvable/.test(e.raison), 'absent : la raison d’un git introuvable')
+  } finally { process.stderr.write = ecrire }
+  assert.equal(lances.length, 1, 'un binaire absent ne lance rien')
 })
 
 test('rebaseEntame : git en panne ou chemin d’état ILLISIBLE — INDISPONIBLE, une panne, jamais « hors rebase »', () => {

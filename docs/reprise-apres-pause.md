@@ -244,4 +244,4 @@ sans entrée ÉCRIT/LU, ou jouée par deux jobs, fait REFUSER le run, avec son n
 `scripts/guards/lib/npmLockHoisted.mjs` — npx --yes npm@10.9.3 install --package-lock-only, puis valider avec npx npm@10.9.3 ci --dry-run. npm 11 ampute les entrées hoistées
 `@emnapi/*` que `npm ci` exige en CI ; la garde (pre-commit +
 `src/npm-lock-hoisted-guard.test.ts`) refuse un lock amputé.
-<!-- sources-empreinte: f6192b7f1e2ee4255ee609e3341faa601a1fd5a5 (30 fichiers, 8 dossiers) corps: c2efaf7dd420f6b04818c920064aba9303cf1f5e -->
+<!-- sources-empreinte: 558b684ec0eeb0eb63b698201a1ddaee89bc89c3 (30 fichiers, 8 dossiers) corps: c2efaf7dd420f6b04818c920064aba9303cf1f5e -->

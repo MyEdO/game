@@ -7,7 +7,7 @@ import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node
 import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
-import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
+import { envGitFeint, instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import { ecriture, lancerHook } from '../guards/lib/lancerHook.mjs'
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
@@ -157,7 +157,7 @@ test('git INDISPONIBLE : une note que git ignorerait est jugée, le pointeur est
   const { racine } = instanceDeDepot({ fichiers: { '.gitignore': '.claude/*\n' } })
   try {
     const note = { file_path: join(racine, '.claude', 'worktrees', 'agent-x', 'n.md'), old_string: '', new_string: 'voir #1591\n' }
-    const sansGit = { ...process.env, PATH: dirname(process.execPath), Path: dirname(process.execPath) }
+    const sansGit = { ...process.env, ...envGitFeint([{ si: [], absent: true }]) }
     assert.match(contexteDe(note, sansGit), /POINTEUR DÉRÉFÉRENCÉ/)
     assert.equal(contexteDe(note), '', 'git présent : ignorée, silence')
   } finally {

@@ -11,6 +11,7 @@ import { isAbsolute, join, sep } from 'node:path'
 import { envDeDepotForge, envGitFeint, gabaritDeDepot, instanceDeDepot, sousGitFeint } from './depotGabarit.mjs'
 import { ENV_GIT_FEINT, GitIndisponible, TRAVAIL, depotDe, listerImage, shaDe } from './gitPorte.mjs'
 import { listerDossier } from './lister.mjs'
+import { ast, typescript } from './dialecte.mjs'
 import { readCorpus } from './sourceCorpus.mjs'
 import { tableTotale } from '../../../src/lib/tableTotale.ts'
 
@@ -380,47 +381,86 @@ test('envDeDepotForge : aucune variable `GIT_*` du processus ne passe, hors les 
 
 // La SURCHARGE de `PATH` d'un banc : le moyen de caler un binaire, quel que soit le nom du fichier
 // calé. win32 ne lance pas une cale (#2114) ; la panne de git passe par `envGitFeint` (#2225).
-const P = 'PA' + 'TH'
-const Pa = 'Pa' + 'th'
-/** Une clé de PATH d'un objet d'environnement, ou une affectation de PATH (membre ou indice). */
-const SURCHARGE_DE_PATH = new RegExp(String.raw`[{,]\s*['"]?(?:${P}|${Pa})['"]?\s*:|\.(?:${P}|${Pa})\s*=(?!=)|\[\s*['"\x60](?:${P}|${Pa})['"\x60]\s*\]\s*=(?!=)`, 'g')
+/** Les noms de la variable, dans la casse de chaque plateforme. */
+const NOMS_PATH = new Set(['PATH', 'Path'])
+/** Les appels qui posent une propriété par son nom en second argument. */
+const POSEURS = new Set(['Reflect.set', 'Reflect.defineProperty', 'Object.defineProperty'])
+
+/**
+ * Les surcharges de PATH d'une source, lues sur son AST (`ast`, `scripts/guards/lib/dialecte.mjs`) :
+ * clé d'un littéral objet (nommée, en chaîne, calculée, abrégée `{ PATH }`), affectation d'un membre
+ * (`x.PATH =`, `x['PATH'] =`, `x[cle] =`), pose par `Reflect.set` / `defineProperty`. Une clé calculée
+ * se résout par une `const` du fichier liée au littéral. PUR.
+ * @param {string} rel @param {string} texte @returns {{ ligne: number, texte: string }[]}
+ */
+function surchargesDe(rel, texte) {
+  if (![...NOMS_PATH].some((nom) => texte.includes(nom))) return []
+  const racine = ast({ rel, text: texte })
+  if (!racine) return []
+  const ts = typescript()
+  const litteral = (n) => !!n && (ts.isStringLiteral(n) || ts.isNoSubstitutionTemplateLiteral(n)) && NOMS_PATH.has(n.text)
+  const alias = new Set()
+  const lierAlias = (n) => {
+    if (ts.isVariableDeclaration(n) && ts.isIdentifier(n.name) && litteral(n.initializer)) alias.add(n.name.text)
+    ts.forEachChild(n, lierAlias)
+  }
+  lierAlias(racine)
+  const designe = (n) => litteral(n) || (!!n && ts.isIdentifier(n) && alias.has(n.text))
+  const cle = (nom) => (ts.isIdentifier(nom) && NOMS_PATH.has(nom.text)) || litteral(nom) || (ts.isComputedPropertyName(nom) && designe(nom.expression))
+  const cible = (n) =>
+    (ts.isPropertyAccessExpression(n) && NOMS_PATH.has(n.name.text)) || (ts.isElementAccessExpression(n) && designe(n.argumentExpression))
+  const lignes = texte.split('\n')
+  const sites = []
+  const visiter = (n) => {
+    const surcharge =
+      (ts.isPropertyAssignment(n) && ts.isObjectLiteralExpression(n.parent) && cle(n.name))
+      || (ts.isShorthandPropertyAssignment(n) && NOMS_PATH.has(n.name.text))
+      || (ts.isBinaryExpression(n) && n.operatorToken.kind === ts.SyntaxKind.EqualsToken && cible(n.left))
+      || (ts.isCallExpression(n) && POSEURS.has(n.expression.getText(racine)) && designe(n.arguments[1]))
+    if (surcharge) {
+      const ligne = racine.getLineAndCharacterOfPosition(n.getStart(racine)).line + 1
+      sites.push({ ligne, texte: lignes[ligne - 1].trim() })
+    }
+    ts.forEachChild(n, visiter)
+  }
+  visiter(racine)
+  return sites
+}
 
 /** Les surcharges qui ne calent AUCUN binaire. Nominatif AU SITE : `ancre` est un texte de la ligne,
  *  `sites` le compte EXACT de surcharges sur les lignes qui la portent — une entrée qui n'atteint plus
  *  rien, ou qui en atteint une de plus, fait rougir. */
 const SURCHARGES_HORS_CLASSE = [
-  { fichier: 'scripts/docs/lib/plateforme-win32.test.mjs', ancre: '"  lu({ ', sites: 2, raison: 'mesure le PATH que la simulation win32 transmet à un enfant' },
-  { fichier: 'scripts/hooks/poison-postcheck.test.mjs', ancre: 'const sansGit = ', sites: 2, raison: 'retire git du PATH (binaire ABSENT) : rien n’est calé' },
   { fichier: 'scripts/lancer-local.test.mjs', ancre: 'const env = envIsole(', sites: 1, raison: 'mesure `envIsole`, qui recompose le PATH d’un enfant' },
   { fichier: 'scripts/lancer-local.test.mjs', ancre: "['sonde', '--', 'sonde', '3', 'suite']", sites: 2, raison: 'mesure que le lanceur local ignore un PATH étranger' },
   { fichier: 'scripts/test/run.test.mjs', ancre: 'const env = envEnfant(', sites: 1, raison: 'mesure `envEnfant`, qui transmet le PATH' },
 ]
 
-/** Les lignes de `texte` qui surchargent PATH, avec leur compte. PUR. */
-const surchargesDe = (texte) => texte.split('\n').flatMap((ligne, i) => {
-  const n = [...ligne.matchAll(SURCHARGE_DE_PATH)].length
-  return n ? [{ ligne: i + 1, texte: ligne.trim(), n }] : []
-})
-
 test('aucun banc ne SURCHARGE `PATH` pour caler un binaire — win32 ne lance pas une cale (#2114) : la panne de git passe par `envGitFeint` (#2225)', () => {
-  for (const cale of [
-    `{ ...process.env, ${P}: \`\${cale}:\${process.env.${P}}\` }`,
-    `{ ...env, '${Pa}': cale }`,
-    `process.env.${P} = \`\${cale}:\${chemin}\``,
-    `process.env['${P}'] = cale`,
-    `Object.assign(env, { ${P}: resolve(cale, 'git') })`,
-  ]) assert.equal(surchargesDe(cale).length, 1, `témoin : la surcharge est reconnue dans ${cale}`)
-  for (const lecture of [`env.${P} === x`, `const p = process.env.${P}`, `assert.equal(env.${P}, undefined)`]) {
-    assert.deepEqual(surchargesDe(lecture), [], `témoin : une LECTURE de PATH n'est pas une surcharge — ${lecture}`)
+  for (const [forme, cale] of [
+    ['clé', "spawnSync('x', [], { env: { ...process.env, PATH: `${cale}:${process.env.PATH}` } })"],
+    ['clé seule sur sa ligne', "spawnSync('x', [], {\n  env: {\n    ...process.env,\n    PATH: cale,\n  },\n})"],
+    ['clé en chaîne', "const env = { ...process.env, 'Path': cale }"],
+    ['clé abrégée', "const PATH = `${cale}:${process.env.PATH}`\nspawnSync('x', [], { env: { ...process.env, PATH } })"],
+    ['clé calculée', "const cle = 'PATH'\nspawnSync('x', [], { env: { ...process.env, [cle]: cale } })"],
+    ['membre', 'process.env.PATH = `${cale}:${chemin}`'],
+    ['indice', "process.env['PATH'] = cale"],
+    ['indice calculé', "const cle = 'Path'\nenv[cle] = cale"],
+    ['Reflect.set', "Reflect.set(process.env, 'PATH', cale)"],
+    ['defineProperty', "Object.defineProperty(process.env, 'PATH', { value: cale })"],
+    ['Object.assign', "Object.assign(env, { PATH: resolve(cale, 'git') })"],
+  ]) assert.equal(surchargesDe('banc.test.mjs', cale).length, 1, `témoin (${forme}) : la surcharge est reconnue dans ${cale}`)
+  for (const lecture of ['if (env.PATH === x) f()', 'const p = process.env.PATH', 'assert.equal(env.PATH, undefined)', "const { PATH } = process.env", "const t = 'PATH: x'"]) {
+    assert.deepEqual(surchargesDe('banc.test.mjs', lecture), [], `témoin : une LECTURE de PATH n'est pas une surcharge — ${lecture}`)
   }
   const racine = fileURLToPath(new URL('../../..', import.meta.url))
   const sites = listerImage(depotDe(racine), TRAVAIL, 'scripts')
     .filter((f) => /\.[cm]?[jt]sx?$/.test(f))
-    .flatMap((f) => surchargesDe(readFileSync(join(racine, f), 'utf8')).map((s) => ({ fichier: f, ...s })))
+    .flatMap((f) => surchargesDe(f, readFileSync(join(racine, f), 'utf8')).map((s) => ({ fichier: f, ...s })))
   const restants = sites.filter((s) => !SURCHARGES_HORS_CLASSE.some((e) => e.fichier === s.fichier && s.texte.includes(e.ancre)))
   assert.deepEqual(restants.map((s) => `${s.fichier}:${s.ligne} ${s.texte}`), [])
   for (const e of SURCHARGES_HORS_CLASSE) {
-    const vus = sites.filter((s) => s.fichier === e.fichier && s.texte.includes(e.ancre)).reduce((t, s) => t + s.n, 0)
+    const vus = sites.filter((s) => s.fichier === e.fichier && s.texte.includes(e.ancre)).length
     assert.equal(vus, e.sites, `exemption ${e.fichier} « ${e.ancre} » : ${vus} surcharge(s), ${e.sites} déclarée(s)`)
   }
 })

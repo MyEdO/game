@@ -14,7 +14,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import path from 'node:path'
 import { CODE_CORPS_PERIME } from './empreinte-sources.mjs'
 import { PLATEFORMES, rougeDuGenerateur } from '../build-all.mjs'
-import { versPosix, versWindows } from './plateforme-win32-hooks.mjs'
+import { cwdDonne, versPosix, versWindows } from './plateforme-win32-hooks.mjs'
 
 const RACINE = fileURLToPath(new URL('../../../', import.meta.url))
 const BUILD_ALL = path.join(RACINE, 'scripts', 'docs', 'build-all.mjs')
@@ -133,8 +133,11 @@ test('`--check --tout` rend chaque générateur sur l\'hôte ET sous win32 : le 
   else assert.ok(!r.sortie.includes(ROUGE_NATIF(cas.script)), r.sortie)
 })
 
-/** `node <args>` depuis `racine` rendu sous win32 (`IMPORT_WIN32`), dépôt rendu : ce que voit un module selon son LIEU. */
-function sousWin32(racine, args) {
+/** `node <args>` depuis `racine` rendu sous win32 (`IMPORT_WIN32`), dépôt rendu : ce que voit un module selon son LIEU.
+ *  Sur un hôte win32, la simulation n'est pas chargée : l'attendu s'éprouve contre le win32 RÉEL, la
+ *  simulation se vérifie sur l'hôte POSIX de la CI — le diagnostic le NOMME. */
+function sousWin32(t, racine, args) {
+  if (HOTE === 'win32') t.diagnostic('hôte win32 : simulation NON chargée — attendu éprouvé contre le win32 réel ; la simulation se vérifie en CI Linux')
   const r = spawnSync(process.execPath, [...IMPORT_WIN32, ...args], {
     cwd: racine,
     encoding: 'utf8',
@@ -144,7 +147,7 @@ function sousWin32(racine, args) {
   return r.stdout.trim()
 }
 
-test('rendu sous win32 : `process.cwd()` est en `C:\\` pour le code du dépôt, celui de l’hôte pour node_modules', () => {
+test('rendu sous win32 : `process.cwd()` est en `C:\\` pour le code du dépôt, celui de l’hôte pour node_modules', (t) => {
   const racine = realpathSync(mkdtempSync(path.join(tmpdir(), 'plateforme-win32-')))
   try {
     const vuDe = "import path from 'node:path'\nexport const vu = () => [process.cwd(), path.resolve('x')]\n"
@@ -157,7 +160,7 @@ test('rendu sous win32 : `process.cwd()` est en `C:\\` pour le code du dépôt, 
       "import { vu as depot } from './depot.mjs'\nimport { vu as tiers } from '../node_modules/tiers/tiers.mjs'\n" +
         'console.log(JSON.stringify({ depot: depot(), tiers: tiers() }))\n',
     )
-    const vu = JSON.parse(sousWin32(racine, [path.join(racine, 'src', 'entree.mjs')]))
+    const vu = JSON.parse(sousWin32(t, racine, [path.join(racine, 'src', 'entree.mjs')]))
     assert.deepEqual(vu.depot, [versWindows(racine), versWindows(path.join(racine, 'x'))])
     assert.deepEqual(vu.tiers, [racine, path.join(racine, 'x')])
   } finally {
@@ -168,7 +171,7 @@ test('rendu sous win32 : `process.cwd()` est en `C:\\` pour le code du dépôt, 
 /** Un dépôt jetable dont `src/entree.mjs` porte `source`, rendu sous win32 : ce qu'il imprime, parsé.
  *  `parLien` : la racine est donnée (cwd, `WFRP_PLATEFORME_RACINE`, entrée) par un lien symbolique
  *  (`junction` : un lien de répertoire que win32 pose sans privilège, ignoré ailleurs). */
-function vuDuDepot(source, { parLien = false } = {}) {
+function vuDuDepot(t, source, { parLien = false } = {}) {
   const racine = realpathSync(mkdtempSync(path.join(tmpdir(), 'plateforme-win32-')))
   const lien = `${racine}-lien`
   try {
@@ -176,22 +179,29 @@ function vuDuDepot(source, { parLien = false } = {}) {
     writeFileSync(path.join(racine, 'src', 'entree.mjs'), source)
     if (parLien) symlinkSync(racine, lien, 'junction')
     const donnee = parLien ? lien : racine
-    return { racine, lien, vu: JSON.parse(sousWin32(donnee, [path.join(donnee, 'src', 'entree.mjs')])) }
+    return { racine, lien, vu: JSON.parse(sousWin32(t, donnee, [path.join(donnee, 'src', 'entree.mjs')])) }
   } finally {
     rmSync(lien, { force: true })
     rmSync(racine, { recursive: true, force: true })
   }
 }
 
-test('rendu sous win32 : une racine donnée par un lien symbolique est simulée comme sa cible', () => {
-  const { racine, lien, vu } = vuDuDepot("console.log(JSON.stringify(process.cwd()))\n", { parLien: true })
-  // Le cwd d'un enfant lancé depuis le lien : sa cible sous POSIX (getcwd(3)), le lien lui-même sous
-  // win32 (GetCurrentDirectory).
-  assert.equal(vu, versWindows(HOTE === 'win32' ? lien : racine))
+test('rendu sous win32 : une racine donnée par un lien symbolique est vue par le code du dépôt comme le LIEN, pas sa cible', (t) => {
+  const { lien, vu } = vuDuDepot(t, "console.log(JSON.stringify(process.cwd()))\n", { parLien: true })
+  // GetCurrentDirectory (win32)
+  assert.equal(vu, versWindows(lien))
 })
 
-test('rendu sous win32 : chaque fonction de `fs` et de `fs.promises` est enveloppée ou déclarée sans chemin', () => {
-  const { vu } = vuDuDepot(
+test('cwdDonne : le cwd sous la racine RÉELLE est rendu sous la racine DONNÉE ; hors d’elle, tel quel', () => {
+  assert.equal(cwdDonne('/reel', '/lien', '/reel'), '/lien')
+  assert.equal(cwdDonne('/reel/src/a', '/lien', '/reel'), '/lien/src/a')
+  assert.equal(cwdDonne('/reel/src', '/lien/', '/reel'), '/lien/src', 'une racine donnée à barre finale')
+  assert.equal(cwdDonne('/reel-voisin', '/lien', '/reel'), '/reel-voisin', 'un préfixe de NOM n’est pas un dossier parent')
+  assert.equal(cwdDonne('/ailleurs', '/lien', '/reel'), '/ailleurs')
+})
+
+test('rendu sous win32 : chaque fonction de `fs` et de `fs.promises` est enveloppée ou déclarée sans chemin', (t) => {
+  const { vu } = vuDuDepot(t,
     [
       "import fs from 'node:fs'",
       `import { SANS_CHEMIN_FS } from ${JSON.stringify(PLATEFORMES.win32)}`,
@@ -209,8 +219,8 @@ test('rendu sous win32 : chaque fonction de `fs` et de `fs.promises` est envelop
   assert.deepEqual(vu, [])
 })
 
-test('rendu sous win32 : `path.posix` appelé du dépôt résout sur le cwd POSIX, comme `posixCwd` de node', () => {
-  const { racine, vu } = vuDuDepot(
+test('rendu sous win32 : `path.posix` appelé du dépôt résout sur le cwd POSIX, comme `posixCwd` de node', (t) => {
+  const { racine, vu } = vuDuDepot(t,
     [
       "import path, { posix } from 'node:path'",
       "import posixSeul from 'node:path/posix'",
@@ -227,8 +237,8 @@ test('rendu sous win32 : `path.posix` appelé du dépôt résout sur le cwd POSI
   assert.deepEqual(vu, [posixA, posixA, posixA, posixA, posixA.slice(1), windowsA, windowsA])
 })
 
-test('rendu sous win32 : le `cwd` d’un glob et le chemin d’`openAsBlob` en `C:\\` sont ramenés au disque', () => {
-  const { vu } = vuDuDepot(
+test('rendu sous win32 : le `cwd` d’un glob et le chemin d’`openAsBlob` en `C:\\` sont ramenés au disque', (t) => {
+  const { vu } = vuDuDepot(t,
     [
       "import fs from 'node:fs'",
       "import path from 'node:path'",
@@ -244,8 +254,8 @@ test('rendu sous win32 : le `cwd` d’un glob et le chemin d’`openAsBlob` en `
   assert.deepEqual(vu, [['entree.mjs'], ['entree.mjs'], ['entree.mjs'], true])
 })
 
-test('rendu sous win32 : le PATH transmis à un enfant est ramené à la graphie de l’hôte, clé en toute casse, argv absent compris', () => {
-  const { racine, vu } = vuDuDepot(
+test('rendu sous win32 : le PATH transmis à un enfant est ramené à la graphie de l’hôte, clé en toute casse, argv absent compris', (t) => {
+  const { racine, vu } = vuDuDepot(t,
     [
       "import { spawnSync } from 'node:child_process'",
       "import path from 'node:path'",
@@ -265,13 +275,13 @@ test('rendu sous win32 : le PATH transmis à un enfant est ramené à la graphie
 
 // Sur l'arbre réel, les deux modules de la simulation sont SOUS la racine : leurs enveloppes de `fs`
 // passent des chemins POSIX à l'hôte, qui résout le relatif par le cwd de l'hôte.
-test('rendu sous win32 : sur l’arbre réel, tsx (node_modules) trouve son `jsx` et `fs` résout le relatif sur le disque', () => {
+test('rendu sous win32 : sur l’arbre réel, tsx (node_modules) trouve son `jsx` et `fs` résout le relatif sur le disque', (t) => {
   const source = [
     "import { getTsconfig } from 'get-tsconfig'",
     "import { realpathSync } from 'node:fs'",
     "console.log(JSON.stringify([getTsconfig()?.config.compilerOptions.jsx, realpathSync('.')]))",
   ].join('\n')
-  const vu = JSON.parse(sousWin32(RACINE, ['--input-type=module', '--eval', source]))
+  const vu = JSON.parse(sousWin32(t, RACINE, ['--input-type=module', '--eval', source]))
   assert.deepEqual(vu, ['react-jsx', realpathSync(RACINE)])
 })
 

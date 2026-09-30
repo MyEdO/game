@@ -29,6 +29,14 @@ export const versPosix = (chemin) => {
   return /^[A-Za-z]:\//.test(s) ? s.slice(LECTEUR.length) : s
 }
 
+/** Le cwd rendu au code sous win32 quand la racine est DONNÉE par un lien (`racineDonnee`, cible
+ *  `racineReelle`) : le chemin donné, préfixe du cwd de l'hôte qu'il désigne ; tout autre cwd passe
+ *  tel quel. GetCurrentDirectory (win32) ; getcwd(3) (POSIX). PUR. */
+export const cwdDonne = (cwdHote, racineDonnee, racineReelle) =>
+  cwdHote === racineReelle || cwdHote.startsWith(`${racineReelle}/`)
+    ? `${racineDonnee.replace(/\/+$/, '')}${cwdHote.slice(racineReelle.length)}`
+    : cwdHote
+
 /** URL `file:` du dossier racine du dépôt rendu, barre finale comprise. Canonique, comme les URL de
  *  modules et le cwd du noyau : une racine par lien symbolique ne reconnaîtrait aucun module. */
 export const urlDuDepot = (racine) => url.pathToFileURL(path.join(realpathSync(racine), '/')).href

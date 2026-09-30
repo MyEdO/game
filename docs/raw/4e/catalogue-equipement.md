@@ -7485,4 +7485,4 @@ Les armes possédant l'Atout *Tir de zone* tirent un nuage de projectiles qui se
 - 0 **Portée Extrême :** comme pour Portée Courte à Longue, mais réduit les Dégâts de l'arme de (Indice).
 
 <span id="page-106-0" data-folio="103"></span>
-<!-- sources-empreinte: 52b5fc7c686f2f0bf4e8d51c07293b88a2eb1ed1 (143 fichiers, 17 dossiers) corps: 677c32d6d0f7ade886adaa711b20c44e6942e0fe -->
+<!-- sources-empreinte: ce5be057dfebdd2df25bfbe7d909f6fa315d475b (143 fichiers, 17 dossiers) corps: 677c32d6d0f7ade886adaa711b20c44e6942e0fe -->

@@ -245,9 +245,10 @@ function lanceurDe(depot) {
 
 /**
  * La variable d'environnement d'une git FEINTE (#2225, #2114) : une liste JSON de règles
- * `{ si: string[], status: number, stdout?: string, stderr?: string }`. La première règle dont chaque
- * mot de `si` est un argument de la commande y RÉPOND, sans processus ; aucune règle : git répond.
- * Elle passe aux processus enfants comme `PATH`, sur toute plateforme.
+ * `{ si: string[], status: number, stdout?: string, stderr?: string }`, ou `{ si: string[], absent: true }`
+ * (le binaire INTROUVABLE : le spawn échoue en `ENOENT`, comme sans git au `PATH`). La première règle
+ * dont chaque mot de `si` est un argument de la commande y RÉPOND, sans processus ; aucune règle : git
+ * répond. Elle passe aux processus enfants comme `PATH`, sur toute plateforme.
  */
 export const ENV_GIT_FEINT = 'WFRP_GIT_FEINT'
 
@@ -257,8 +258,15 @@ export const MARQUE_FEINTE = '[git] feinte — WFRP_GIT_FEINT répond'
 
 /** Une règle de `ENV_GIT_FEINT` bien formée. PUR. */
 const estRegleFeinte = (r) =>
-  Array.isArray(r?.si) && r.si.every((mot) => typeof mot === 'string') && Number.isInteger(r.status) &&
-  ['stdout', 'stderr'].every((flux) => r[flux] === undefined || typeof r[flux] === 'string')
+  Array.isArray(r?.si) && r.si.every((mot) => typeof mot === 'string') && (r.absent === true
+    ? ['status', 'stdout', 'stderr'].every((champ) => r[champ] === undefined)
+    : r.absent === undefined && Number.isInteger(r.status) && ['stdout', 'stderr'].every((flux) => r[flux] === undefined || typeof r[flux] === 'string'))
+
+/** Le résultat de `spawnSync` d'un exécutable introuvable (`ENOENT`, nodejs.org/api/child_process.html). */
+const spawnIntrouvable = (commande) => ({
+  status: null,
+  error: Object.assign(new Error(`spawnSync ${commande} ENOENT`), { code: 'ENOENT', syscall: `spawnSync ${commande}`, path: commande }),
+})
 
 /**
  * La réponse FEINTE (`ENV_GIT_FEINT` de `env`) à `git <argv>`, sous la forme d'un résultat de
@@ -272,12 +280,12 @@ function feinteDeGit(env, argv, site, journal = process.stderr) {
   let regles
   try { regles = JSON.parse(brut) } catch (e) { return { status: null, error: new Error(`${ENV_GIT_FEINT} illisible : ${e.message}`) } }
   if (!Array.isArray(regles) || !regles.every(estRegleFeinte)) {
-    return { status: null, error: new Error(`${ENV_GIT_FEINT} : une liste de règles { si, status, stdout?, stderr? } est attendue — ${brut}`) }
+    return { status: null, error: new Error(`${ENV_GIT_FEINT} : une liste de règles { si, status, stdout?, stderr? } ou { si, absent: true } est attendue — ${brut}`) }
   }
   const regle = regles.find((r) => r.si.every((mot) => argv.includes(mot)))
   if (!regle) return null
-  journal.write(`${MARQUE_FEINTE} : ${site} (${regle.status})\n`)
-  return { status: regle.status, stdout: regle.stdout ?? '', stderr: regle.stderr ?? '' }
+  journal.write(`${MARQUE_FEINTE} : ${site} (${regle.absent ? 'absent' : regle.status})\n`)
+  return regle.absent ? spawnIntrouvable('git') : { status: regle.status, stdout: regle.stdout ?? '', stderr: regle.stderr ?? '' }
 }
 
 /** `git <args>` dans le dépôt, en union à trois issues. `options` : `OPTIONS_DE_L_HOTE` pour une

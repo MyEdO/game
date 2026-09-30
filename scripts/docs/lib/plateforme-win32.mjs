@@ -59,7 +59,7 @@ import cp from 'node:child_process'
 import fs from 'node:fs'
 import { register, syncBuiltinESMExports } from 'node:module'
 import { pathToFileURL } from 'node:url'
-import { estAbsoluWindows, estModuleDuDepot, urlDuDepot, versPosix, versWindows } from './plateforme-win32-hooks.mjs'
+import { cwdDonne, estAbsoluWindows, estModuleDuDepot, urlDuDepot, versPosix, versWindows } from './plateforme-win32-hooks.mjs'
 
 /** Nom → nombre d'arguments-CHEMINS en tête, pour la forme synchrone, à rappel et `fs.promises`. */
 const ENTREES_FS = {
@@ -142,6 +142,7 @@ syncBuiltinESMExports()
 const racine = process.env.WFRP_PLATEFORME_RACINE
 if (!racine) throw new Error('plateforme-win32 : WFRP_PLATEFORME_RACINE absent — ce module se compose par lancer() (via commandeDe) de scripts/docs/build-all.mjs')
 const depot = urlDuDepot(racine)
+const racineReelle = fs.realpathSync(racine)
 
 /** Adresse `file:` du module qui a appelé `fonction` : premier cadre de pile hors de node. */
 function moduleAppelant(fonction) {
@@ -166,7 +167,7 @@ function moduleAppelant(fonction) {
 const cwdHote = process.cwd.bind(process)
 const chdirHote = process.chdir.bind(process)
 function cwdSimule() {
-  return estModuleDuDepot(moduleAppelant(cwdSimule), depot) ? versWindows(cwdHote()) : cwdHote()
+  return estModuleDuDepot(moduleAppelant(cwdSimule), depot) ? versWindows(cwdDonne(cwdHote(), racine, racineReelle)) : cwdHote()
 }
 process.cwd = cwdSimule
 process.chdir = (dossier) => chdirHote(versPosix(dossier))
