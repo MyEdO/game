@@ -22,8 +22,10 @@ import { act, useState } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { WorldMapEditor } from './WorldMapEditor';
 import { choisirDansMenu, menuDe } from './AddMenu.testkit';
+import { EFFECT_LABEL } from './EffectList';
 import { emptyWorldMap, type WorldMap, type MapPlace, type MapRoute } from '../../state/worldMap';
 import { emptyScene, type Scene } from '../../state/scene';
+import { emptyNarratif, type NarratifBlock } from '../../state/campaignNarratif';
 import { lieuxServices, navalPorts } from '../../data';
 import { TRAVEL_DEFAULTS } from '../../engine/travel';
 
@@ -49,18 +51,18 @@ function baseMap(): WorldMap {
   return { ...m, places: [place, place2], routes: [route] };
 }
 
-function Harness() {
+function Harness({ narratif }: { narratif: NarratifBlock }) {
   const [m, setM] = useState<WorldMap | null>(baseMap());
   const [axes, setAxes] = useState<string[] | undefined>(undefined);
   lastMap = m;
-  return <WorldMapEditor map={m} setMap={setM} scenes={scenes()} onClose={() => {}} activeAxes={axes} setActiveAxes={setAxes} />;
+  return <WorldMapEditor map={m} setMap={setM} scenes={scenes()} narratif={narratif} onClose={() => {}} activeAxes={axes} setActiveAxes={setAxes} />;
 }
 
-function mount() {
+function mount(narratif: NarratifBlock = emptyNarratif()) {
   container = document.createElement('div');
   document.body.appendChild(container);
   root = createRoot(container);
-  act(() => { root.render(<Harness />); });
+  act(() => { root.render(<Harness narratif={narratif} />); });
 }
 
 afterEach(() => {
@@ -307,6 +309,21 @@ describe('WorldMapEditor — panneau Route / Péripéties (#419)', () => {
     await choisirDansMenu(menuDe(container, '+ Effet'), 'Journal');
     expect(lastMap!.routes[0].perils![0].effects).toHaveLength(1);
   });
+
+  it('une péripétie remet un document du narratif DESCENDU : « + Effet » l’offre, le sélecteur liste les titres (#679)', async () => {
+    mount({ ...emptyNarratif(), documents: [{ id: 'doc-affiche', titre: 'L’affiche de la diligence', prose: 'VOYAGEURS' }] });
+    click(routeG());
+    click(tab('Péripéties'));
+    click([...container.querySelectorAll('button')].find((b) => b.textContent?.includes('Péripétie d’auteur') || b.textContent?.includes("Péripétie d'auteur"))!);
+    await choisirDansMenu(menuDe(container, '+ Effet'), EFFECT_LABEL.document);
+    const select = [...container.querySelectorAll('select')].find((s) => s.closest('label')?.textContent?.includes('Document remis'))!;
+    expect([...select.options].filter((o) => o.value !== '').map((o) => o.textContent)).toEqual(['L’affiche de la diligence']);
+    act(() => {
+      Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')!.set!.call(select, 'doc-affiche');
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    expect(lastMap!.routes[0].perils![0].effects).toEqual([{ type: 'document', documentId: 'doc-affiche' }]);
+  });
 });
 
 describe('WorldMapEditor — paramètres de carte (aucune sélection, #419)', () => {
@@ -352,7 +369,7 @@ describe('WorldMapEditor — titre de carte ne décide JAMAIS par comparaison de
     function FreshHarness() {
       const [m, setM] = useState<WorldMap | null>(null);
       lastMap = m;
-      return <WorldMapEditor map={m} setMap={setM} scenes={scenes()} onClose={() => {}} />;
+      return <WorldMapEditor map={m} setMap={setM} scenes={scenes()} narratif={emptyNarratif()} onClose={() => {}} />;
     }
     container = document.createElement('div');
     document.body.appendChild(container);

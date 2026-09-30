@@ -16,6 +16,7 @@ import { entreePartielle as creatureEntreePartielle, type CreatureProfilPartiel 
 import { findCreatureById, findTrappingById, byId, findTalentById, specResolves } from '../../index';
 import type { TrappingData } from '../../index';
 import { REGISTRES_NARRATIFS } from './registres-narratifs';
+import { fautesDeSites, sitesDuNarratif } from './refs-narratives';
 
 /** Un stade RÉVÉLABLE d'un indice : la prose (verbatim source, règle 5) dévoilée à ce palier, le
  *  document qu'il croise (`narratif.documents`, #679), ou les deux — au moins l'un (`raffineNarratif`). */
@@ -119,15 +120,14 @@ function raffineNarratif(nb: z.infer<typeof formeNarratif>, ctx: z.RefinementCtx
     });
   }
 
-  const affaireIds = new Set(nb.affaires.map((a) => a.id));
+  /** `affaireId` d'indice, `documentId` de stade : visiteur unique des références (`./refs-narratives.ts`). */
+  for (const f of fautesDeSites(sitesDuNarratif(nb), nb)) faute([...f.chemin], f.message);
+
   const indiceIds = new Set(nb.indices.map((ind) => ind.id));
-  const documentIds = new Set(nb.documents.map((d) => d.id));
   nb.indices.forEach((ind, i) => {
-    if (!affaireIds.has(ind.affaireId)) faute(['indices', i, 'affaireId'], `affaire inconnue « ${ind.affaireId} ».`);
     if (!ind.stades.length) faute(['indices', i, 'stades'], 'aucun stade : un indice en porte au moins un.');
     ind.stades.forEach((st, j) => {
       if (st.prose === undefined && st.documentId === undefined) faute(['indices', i, 'stades', j], 'ni prose ni document : un stade en porte au moins un.');
-      if (st.documentId !== undefined && !documentIds.has(st.documentId)) faute(['indices', i, 'stades', j, 'documentId'], `document inconnu « ${st.documentId} » (narratif.documents).`);
     });
     (ind.refs ?? []).forEach((r, j) => {
       if (!indiceIds.has(r)) faute(['indices', i, 'refs', j], `indice inconnu « ${r} ».`);

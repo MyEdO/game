@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { Scene } from '../../state/scene';
-import { CIBLES_PAR_RACINE } from '../../state/combatEffects';
+import type { NarratifBlock } from '../../state/campaignNarratif';
+import { effectCtxOf } from './EffectList';
 import { WorldMap, MapPlace, MapRoute, emptyWorldMap, placeById } from '../../state/worldMap';
 import { TravelMode, TRAVEL_DEFAULTS } from '../../engine/travel';
 import { allAxes, coreAxisIds } from '../../data';
@@ -21,11 +22,13 @@ import { WorldMapRoutePanel } from './WorldMapRoutePanel';
  * découpés en `WorldMapPlacePanel`/`WorldMapRoutePanel` (#419 — règle 4 : onglets, jamais 5 sections
  * empilées).
  */
-export function WorldMapEditor({ map, setMap, scenes, onClose, activeAxes, setActiveAxes }: {
+export function WorldMapEditor({ map, setMap, scenes, narratif, onClose, activeAxes, setActiveAxes }: {
   map: WorldMap | null;
   setMap: (m: WorldMap | null) => void;
   /** Toutes les scènes du projet (active + réserve) — pour lier lieux/embuscades. */
   scenes: Scene[];
+  /** Narratif du projet — ce que désignent les références narratives des péripéties (`Ctx.narratif`). */
+  narratif: NarratifBlock;
   onClose: () => void;
   /** Axes de forces/faiblesses ACTIFS du PROJET (#409, `ProjectDoc.activeAxes`) — `undefined` =
    *  socle de base (`coreAxisIds`). Propriété PROJET réglée ici, dans l'éditeur de carte du monde
@@ -103,15 +106,9 @@ export function WorldMapEditor({ map, setMap, scenes, onClose, activeAxes, setAc
 
   const selPlace = sel?.kind === 'place' ? m.places.find((p) => p.id === sel.id) : undefined;
   const selRoute = sel?.kind === 'route' ? m.routes.find((r) => r.id === sel.id) : undefined;
-  // Contexte des effets de péripétie : rencontres/dialogues de TOUTES les scènes du projet.
-  const effCtx = {
-    encounters: scenes.flatMap((s) => s.encounters),
-    dialogues: scenes.flatMap((s) => s.dialogues),
-    // Selects guidés (M9) : transitions de péripétie vers les scènes du projet (le marchand,
-    // lié à la scène COURANTE au moment du voyage, reste un id libre ici).
-    scenes: scenes.map((sc) => ({ id: sc.id, nom: sc.label, entries: Object.keys(sc.entryPoints ?? {}) })),
-    cibles: CIBLES_PAR_RACINE.scene,
-  };
+  // Contexte des effets de péripétie : racine de projet SANS scène éditée (le marchand, lié à la scène
+  // COURANTE au moment du voyage, reste un id libre).
+  const effCtx = effectCtxOf({ scenes, worldMap: m, narratif });
 
   const toggleMode = (r: MapRoute, mode: TravelMode) => {
     const modes = r.modes.includes(mode) ? r.modes.filter((x) => x !== mode) : [...r.modes, mode];

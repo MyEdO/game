@@ -122,14 +122,6 @@
   overflow-y: auto;
   min-height: 0;
 }
-.codex-src {
-  font-size: 11px;
-  color: var(--muted);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 1px 7px;
-  white-space: nowrap;
-}
 .codex-meta {
   gap: 6px;
   margin: 8px 0 0;

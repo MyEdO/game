@@ -3,9 +3,12 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { act, useState } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { EffectList, EffectFields, effectSummary, newEffect, EFFECT_MENU_GROUPS, ctxDeCatalogue } from './EffectList';
+import { EffectList, EffectFields, effectSummary, newEffect, EFFECT_MENU_GROUPS, EFFECT_LABEL, ctxDeCatalogue, effectCtxOf } from './EffectList';
+import { FlowEditor } from './FlowEditor';
+import { EMPTY_FLOW } from '../../state/flow';
+import { emptyNarratif, type NarratifBlock } from '../../state/campaignNarratif';
 import { convertTo } from './AddMenu';
-import { choisirDansMenu, menuDe } from './AddMenu.testkit';
+import { choisirDansMenu, entreeDe, menuDe, ouvrirMenu } from './AddMenu.testkit';
 import type { Effect } from '../../state/scene';
 import { CIBLES_D_EFFET_DE_SCENE } from '../../state/combatEffects';
 import { talents } from '../../data';
@@ -344,5 +347,116 @@ describe('#1874 C0 — cibles d’un Effet `ops` : la table vient de la racine',
     expect(effectSummary({ type: 'ops', on: 'caster', ops: [] }, ctxDeCatalogue('maladie'))).toMatch(/^« on: caster » hors du vocabulaire/);
     // `on` absent : le défaut est celui de la RACINE — la cible au catalogue, le groupe en scène.
     expect(effectSummary({ type: 'ops', ops: [] }, ctxDeCatalogue('sort'))).toMatch(/^La cible : /);
+  });
+});
+
+describe('#679 — les références narratives s’éditent par le sélecteur unique, jamais au catalogue', () => {
+  const narratif: NarratifBlock = {
+    ...emptyNarratif(),
+    affaires: [{ id: 'aff', titre: 'La disparition' }],
+    indices: [
+      { id: 'ind-lettre', affaireId: 'aff', kind: 'indice', titre: 'La lettre chiffrée', stades: [{ id: 'lue', prose: 'a' }, { id: 'dechiffree', prose: 'b' }] },
+      { id: 'ind-bruit', affaireId: 'aff', kind: 'rumeur', titre: 'Le bruit du port', stades: [{ id: 'entendu', prose: 'c' }] },
+    ],
+    documents: [
+      { id: 'doc-affiche', titre: 'L’affiche de la diligence', prose: 'd' },
+      { id: 'doc-kastor', titre: 'La lettre de Kastor', prose: 'e' },
+    ],
+  };
+  const ctxProjet = effectCtxOf({ scenes: [], narratif });
+
+  /** `EffectFields` contrôlé : l'état vit dans le harnais, chaque choix repart de l'Effect à jour. */
+  async function monte(initial: Effect) {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root: Root = createRoot(container);
+    let dernier = initial;
+    function Controle() {
+      const [eff, setEff] = useState<Effect>(initial);
+      return <EffectFields effect={eff} ctx={ctxProjet} onChange={(n) => { dernier = n; setEff(n); }} />;
+    }
+    await act(async () => { root.render(<Controle />); });
+    const select = (libelle: string) => [...container.querySelectorAll('select')]
+      .find((s) => s.closest('label')?.textContent?.includes(libelle)) as HTMLSelectElement;
+    return {
+      dernier: () => dernier,
+      /** Libellés des options qui portent une valeur (le « à choisir » et le « aucun » exclus). */
+      options: (libelle: string) => [...select(libelle).options].filter((o) => o.value !== '').map((o) => o.textContent),
+      choisir: async (libelle: string, valeur: string) => {
+        const s = select(libelle);
+        await act(async () => {
+          Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')!.set!.call(s, valeur);
+          s.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+      },
+      demonte: async () => { await act(async () => { root.unmount(); }); container.remove(); },
+    };
+  }
+
+  it('document : propose les documents du narratif par leur titre et écrit l’id choisi', async () => {
+    const h = await monte(newEffect('document'));
+    try {
+      expect(h.options('Document remis')).toEqual(['L’affiche de la diligence', 'La lettre de Kastor']);
+      await h.choisir('Document remis', 'doc-kastor');
+      expect(h.dernier()).toEqual({ type: 'document', documentId: 'doc-kastor' });
+      expect(effectSummary(h.dernier(), ctxProjet)).toBe('Document : La lettre de Kastor');
+    } finally { await h.demonte(); }
+  });
+
+  it('revealClue : propose les indices, puis les stades de l’indice choisi', async () => {
+    const h = await monte(newEffect('revealClue'));
+    try {
+      expect(h.options('Indice révélé')).toEqual(['La lettre chiffrée', 'Le bruit du port']);
+      await h.choisir('Indice révélé', 'ind-lettre');
+      expect(h.options('Stade')).toEqual(['stade 1', 'stade 2']);
+      await h.choisir('Stade', 'dechiffree');
+      expect(h.dernier()).toMatchObject({ type: 'revealClue', indiceId: 'ind-lettre', stade: 'dechiffree' });
+      // Changer d'indice retire le stade de l'ancien : il ne désigne rien dans le nouveau.
+      await h.choisir('Indice révélé', 'ind-bruit');
+      expect(h.dernier()).toMatchObject({ indiceId: 'ind-bruit', stade: undefined });
+      expect(h.options('Stade')).toEqual(['stade 1']);
+    } finally { await h.demonte(); }
+  });
+
+  it('discreditClue : propose les indices et écrit l’id choisi', async () => {
+    const h = await monte(newEffect('discreditClue'));
+    try {
+      await h.choisir('Indice écarté', 'ind-bruit');
+      expect(h.dernier()).toEqual({ type: 'discreditClue', indiceId: 'ind-bruit' });
+    } finally { await h.demonte(); }
+  });
+
+  it('racine de catalogue : « + Effet », « + Bloc » et le changement de type taisent les trois Effects à réf narrative ; la racine de projet les offre', async () => {
+    const narratifs = [EFFECT_LABEL.document, EFFECT_LABEL.revealClue, EFFECT_LABEL.discreditClue];
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root: Root = createRoot(container);
+    const entreesDe = async (menu: HTMLDetailsElement) => {
+      const boite = await ouvrirMenu(menu);
+      const vus = narratifs.filter((l) => entreeDe(boite, l));
+      const journal = !!entreeDe(boite, EFFECT_LABEL.journal);
+      await act(async () => { menu.querySelector('summary')!.click(); });
+      return { vus, journal };
+    };
+    try {
+      for (const [c, attendu] of [[ctxDeCatalogue('consommable'), []], [ctxProjet, narratifs]] as const) {
+        await act(async () => {
+          root.render(
+            <>
+              <EffectList effects={[{ type: 'journal', desc: 'x' }]} onChange={() => {}} ctx={c} />
+              <FlowEditor flow={EMPTY_FLOW} onChange={() => {}} ctx={c} />
+            </>,
+          );
+        });
+        for (const menu of [menuDe(container, '+ Effet'), menuDe(container, '+ Bloc'), menuDe(container, /^Type :/)]) {
+          const { vus, journal } = await entreesDe(menu);
+          expect(journal).toBe(true);
+          expect(vus).toEqual(attendu);
+        }
+      }
+    } finally {
+      await act(async () => { root.unmount(); });
+      container.remove();
+    }
   });
 });

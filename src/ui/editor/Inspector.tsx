@@ -13,6 +13,7 @@ import {
 } from '../../state/scene';
 import { PARTS_RELIEF } from '../../data/materials.types';
 import { NumberField } from '../NumberField';
+import { ProseField } from '../ProseField';
 import { TIME_COST } from '../../engine/timeCost';
 import { sceneZoneTiles, zoneAreaTiles } from '../../state/zones';
 import type { WorldMap } from '../../state/worldMap';
@@ -41,6 +42,7 @@ const battleAnchorTargets = (): { id: string; label: string }[] =>
 import { MonsterPartsFields, ReglagesApparence } from './MonsterPartsFields';
 import { isSwarm } from '../../engine/traits/dispatch';
 import { effectCtxOf } from './EffectList';
+import { RefNarrativeField } from '../compendium/RefField';
 import { GameOpEditor } from './GameOpEditor';
 import { FlowEditor, TestFields } from './FlowEditor';
 import { actionsDe, ACTION_FOUILLER } from '../../state/usable';
@@ -363,7 +365,7 @@ export function Inspector({
           </div>
 
           {ent && refusPatch?.id === ent.id && <p className="chip tone-danger" role="alert">{refusPatch.message}</p>}
-          {ent && <EntityPanel ent={ent} scene={scene} otherScenes={otherScenes} worldMap={worldMap} setScene={setScene} updateSel={updateSel} removeSel={removeSel} />}
+          {ent && <EntityPanel ent={ent} scene={scene} otherScenes={otherScenes} worldMap={worldMap} narratif={narratif} setScene={setScene} updateSel={updateSel} removeSel={removeSel} />}
 
           {sel?.type === 'architectureBody' && architectureBody && toiture && (
             <>
@@ -757,19 +759,16 @@ export function Inspector({
                 />{' '}
                 <Icon id="flag/hidden" size="sm" /> Embusqué (invisible hors combat)
               </label>
-              <label className="ed-field">
-                Preset PNJ (bloc Narratif du projet)
-                <select
-                  value={ent.presetId ?? ''}
-                  onChange={(e) => updateSel({ presetId: e.target.value || undefined })}
-                >
-                  {/* #1882 : le preset SEUL porteur de fiche ne se retire pas (`PORTEURS_DU_TYPE`). */}
-                  <option value="" disabled={ent.ref === undefined && !ent.statblock}>— aucun (réf./profil ci-dessous) —</option>
-                  {narratif.presetsPnj.map((p) => (
-                    <option key={p.id} value={p.id}>{p.profil?.label ?? p.id}</option>
-                  ))}
-                </select>
-              </label>
+              {/* #1882 : le preset SEUL porteur de fiche ne se retire pas (`PORTEURS_DU_TYPE`). */}
+              <RefNarrativeField
+                cle="presetId"
+                narratif={narratif}
+                label="Preset PNJ (bloc Narratif du projet)"
+                value={ent.presetId}
+                onChange={(presetId) => updateSel({ presetId })}
+                nullable
+                aucunIneligible={ent.ref === undefined && !ent.statblock}
+              />
               {ent.presetId && ent.statblock && (
                 <p className="hint" style={{ color: 'var(--danger)' }}>
                   Preset PNJ ET profil personnalisé présents — le preset prime (`sceneNpc.ts`,
@@ -1335,6 +1334,7 @@ function EntityPanel({
   scene,
   otherScenes,
   worldMap,
+  narratif,
   setScene,
   updateSel,
   removeSel,
@@ -1343,6 +1343,7 @@ function EntityPanel({
   scene: Scene;
   otherScenes: Scene[];
   worldMap: WorldMap | null;
+  narratif: NarratifBlock;
   setScene: (s: Scene) => void;
   updateSel: (patch: Partial<SceneEntity>) => void;
   removeSel: () => void;
@@ -1587,7 +1588,7 @@ function EntityPanel({
             ent={ent}
             scene={scene}
             updateSel={updateSel}
-            flowCtx={{ encounters: scene.encounters, dialogues: scene.dialogues, ...effectCtxOf(scene, otherScenes, worldMap ?? undefined) }}
+            flowCtx={effectCtxOf({ scenes: [scene, ...otherScenes], worldMap, narratif }, scene)}
           />
         </Fold>
       )}
@@ -1753,7 +1754,7 @@ function EmplacementFold({ ent, scene, setScene }: { ent: SceneEntity; scene: Sc
             scene={scene}
             ids={poste.crewIds ?? []}
             onChange={(next) => setScene(setPosteCrew(scene, ent.id, next))}
-            caption={<>Servants du poste <em className="de-hint">(le 1ᵉʳ = chef de pièce ★)</em></>}
+            caption={<>Servants du poste <em className="ed-hint">(le 1ᵉʳ = chef de pièce ★)</em></>}
             head="Chef de pièce"
             addLabel="+ Affecter un servant"
             emptyHint="Posez des personnages (servants) sur la carte, puis affectez-les ici."
@@ -1776,7 +1777,7 @@ function EmplacementFold({ ent, scene, setScene }: { ent: SceneEntity; scene: Sc
         scene={scene}
         ids={ent.crewIds ?? []}
         onChange={(next) => setScene(editEntity(scene, ent.id, { crewIds: next.length ? next : undefined }))}
-        caption={<>Équipage exposé à bord <em className="de-hint">(MDG 14 — encaisse les critiques de coque)</em></>}
+        caption={<>Équipage exposé à bord <em className="ed-hint">(MDG 14 — encaisse les critiques de coque)</em></>}
         addLabel="+ Embarquer un membre d'équipage"
         emptyHint="Posez des personnages sur la carte, puis embarquez-les ici."
       />
@@ -1824,7 +1825,7 @@ function ZoneTilesBrush({
   return (
     <div className="ed-field" ref={blockRef}>
       <span>
-        Emprise <em className="de-hint">({retenues} cases{retenues === cadre ? '' : ` sur ${cadre} du cadre`})</em>
+        Emprise <em className="ed-hint">({retenues} cases{retenues === cadre ? '' : ` sur ${cadre} du cadre`})</em>
       </span>
       <OptionChooser
         layout="seg"
@@ -2120,10 +2121,7 @@ function SceneProps({
             setScene({ ...scene, music: m.ambient === undefined && m.combat === undefined ? undefined : m });
           }}
         />
-        <label className="ed-field">
-          Message d'introduction
-          <textarea value={scene.startMessage ?? ''} onChange={(e) => setScene({ ...scene, startMessage: e.target.value || undefined })} />
-        </label>
+        <ProseField label="Message d'introduction" value={scene.startMessage ?? ''} onChange={(t) => setScene({ ...scene, startMessage: t || undefined })} />
       </Fold>
       <Fold title="Matières de relief">
         <p className="hint">

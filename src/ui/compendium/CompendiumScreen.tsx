@@ -16,6 +16,7 @@ import { CodexEdit, isEditableCategory } from './CodexEdit';
 import { useAtelierMode, setAtelierMode } from './atelierMode';
 import { Icon } from '../Icon';
 import { MasterDetail } from '../MasterDetail';
+import { SourceBadge } from '../SourceBadge';
 import { ListRow } from '../ListRow';
 import { Tabs } from '../Tabs';
 import { Row } from '../Layout';
@@ -213,7 +214,7 @@ export function CompendiumScreen({ focus: focusProp }: {
             {cat?.sourceRef && (
               <div className="codex-facets">
                 <span className="codex-facet-label section-label">Source</span>
-                <span className="codex-src">{cat.sourceRef}</span>
+                <SourceBadge source={cat.sourceRef} />
               </div>
             )}
             {facetRows.map(({ facet, values }) => (

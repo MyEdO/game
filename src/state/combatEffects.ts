@@ -1320,7 +1320,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     apply: (e, env) => {
       const doc = documentById(e.documentId);
       if (!doc) { console.warn(`document : document inconnu « ${e.documentId} ».`); return; }
-      env.set({ document: { title: doc.titre, text: doc.prose } });
+      env.set({ document: { title: doc.titre, text: doc.prose, ...(doc.source ? { source: doc.source } : {}) } });
     },
   },
   revealClue: {

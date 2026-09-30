@@ -32,6 +32,15 @@ describe('Effect `document` — le registre narratif atteint la modale', () => {
     expect(useGame.getState().document).toEqual({ title: 'Affiche du Bœuf rouge', text: 'Recherché : **Kastor Lieberung**.' });
   });
 
+  it('document SOURCÉ : `store.document` porte aussi sa source (le badge de la modale la lit)', () => {
+    useGame.getState().loadProject([fixtureScene()], 'scene-doc', undefined, {
+      ...narratif,
+      documents: [{ ...narratif.documents[0], source: { book: 'livre-de-base', page: 90 } }],
+    });
+    applyEffects(useGame.getState, useGame.setState, [{ type: 'document', documentId: 'doc-affiche' }]);
+    expect(useGame.getState().document?.source).toEqual({ book: 'livre-de-base', page: 90 });
+  });
+
   it('id INCONNU : aucune modale, un avertissement nommé', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     try {

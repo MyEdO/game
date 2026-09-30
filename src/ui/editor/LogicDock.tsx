@@ -8,6 +8,7 @@ import { useRef } from 'react';
 import { Scene, Trigger, EncounterDef, Dialogue, WallSide } from '../../state/scene';
 import { wallSideSchema } from '../../data/schemas/defs-scenes/communs';
 import type { WorldMap } from '../../state/worldMap';
+import type { NarratifBlock } from '../../state/campaignNarratif';
 import type { ThreatTier } from '../../engine/advantagePool';
 import { EMPTY_FLOW } from '../../state/flow';
 import type { Warning } from '../../state/validateScene';
@@ -31,6 +32,7 @@ export function LogicDock({
   scene,
   otherScenes,
   worldMap,
+  narratif,
   setScene,
   warnings,
   onSelectWarning,
@@ -51,6 +53,8 @@ export function LogicDock({
   otherScenes: Scene[];
   /** Carte du monde du projet (id + label des lieux) pour `openPort` — absente ⇒ fallback texte. */
   worldMap: WorldMap | null;
+  /** Narratif du projet — ce que désignent les références narratives des Effects (`Ctx.narratif`). */
+  narratif: NarratifBlock;
   setScene: (s: Scene) => void;
   warnings: Warning[];
   onSelectWarning: (w: Warning) => void;
@@ -71,7 +75,7 @@ export function LogicDock({
   /** Couche (z) en cours d'édition — toute logique créée depuis le dock s'y pose. */
   currentLayer: number;
 }) {
-  const ctx: Ctx = { encounters: scene.encounters, dialogues: scene.dialogues, ...effectCtxOf(scene, otherScenes, worldMap ?? undefined) };
+  const ctx = effectCtxOf({ scenes: [scene, ...otherScenes], worldMap, narratif }, scene);
   const dragRef = useRef<{ sy: number; sh: number } | null>(null);
 
   const errors = warnings.filter((w) => w.level === 'error').length;

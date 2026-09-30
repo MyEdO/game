@@ -86,7 +86,7 @@ function inspecteur(entity: SceneEntity) {
       setScene={(next) => { latest = next; rendre(next); }}
       sel={{ type: 'entity', id: entity.id }} setSel={() => undefined}
       enemyCreatures={BESTIAIRE} openLogic={() => undefined} resizeScene={() => undefined}
-      narratif={{ ...emptyNarratif(), presetsPnj: [{ id: 'preset-tavernier', profil: { label: 'Le Tavernier' } }] }}
+      narratif={{ ...emptyNarratif(), presetsPnj: [{ id: 'preset-tavernier', profil: { label: 'Le Tavernier' } }, { id: 'preset-garde', base: 'humain' }] }}
       tool={{ mode: 'select' }} armZoneTiles={() => undefined} zoneFocusKey={null}
     />,
   );
@@ -130,6 +130,14 @@ describe('Inspecteur — aucun geste ne retire le dernier porteur de fiche (#188
     const h = inspecteur({ id: 'pnj', kind: 'personnage', ref: 'humain', pos: { x: 0, y: 0 } });
     act(() => h.bouton('Profil personnalisé')!.click());
     expect(h.entOf().statblock?.label).toBe(creatureLabel('humain'));
+  });
+});
+
+describe('Inspecteur — le preset PNJ se choisit au sélecteur unique de référence narrative (#679)', () => {
+  it('les presets s’affichent au libellé du registre narratif : le profil nommé, sinon la créature de base', () => {
+    const h = inspecteur({ id: 'pnj', kind: 'personnage', ref: 'humain', pos: { x: 0, y: 0 } });
+    const presets = [...h.select('Preset PNJ')!.options].filter((o) => o.value !== '');
+    expect(presets.map((o) => [o.value, o.textContent])).toEqual([['preset-tavernier', 'Le Tavernier'], ['preset-garde', creatureLabel('humain')]]);
   });
 });
 

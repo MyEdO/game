@@ -20,32 +20,34 @@ type ClesDeListe<T> = { [K in keyof T]-?: NonNullable<T[K]> extends readonly unk
 export type CleDeRegistreNarratif = ClesDeListe<NarratifBlock>;
 
 /** Une ligne de registre : sa clé dans `NarratifBlock`, le complément de nom de ses messages de faute
- *  (« l'id d'affaire »), le sujet d'une référence qui ne résout pas (« affaire inconnue »), et
+ *  (« l'id d'affaire »), le sujet d'une référence qui ne résout pas (« affaire inconnue »), celui
+ *  d'une référence encore vide (« aucune affaire choisie »), et
  *  `idAuSchema` — l'`id` vide est-il déjà refusé par le schéma de l'élément (`false` : l'élément est
  *  un `z.custom`, le raffinage dit l'absence). */
 export interface RegistreNarratif {
   readonly cle: CleDeRegistreNarratif;
   readonly de: string;
   readonly inconnu: string;
+  readonly aucun: string;
   readonly idAuSchema: boolean;
 }
 
 /** La table, keyée par registre : son type EXIGE chaque liste de `NarratifBlock` (une liste sans ligne
  *  ne compile pas), et l'ordre de ses clés est celui des registres partout où ils s'énumèrent. */
 const TABLE: { readonly [K in CleDeRegistreNarratif]: Omit<RegistreNarratif, 'cle'> } = {
-  affaires: { de: 'd\'affaire', inconnu: 'affaire inconnue', idAuSchema: true },
-  indices: { de: 'd\'indice', inconnu: 'indice inconnu', idAuSchema: true },
-  presetsPnj: { de: 'de preset PNJ', inconnu: 'preset de PNJ inconnu', idAuSchema: true },
-  objets: { de: 'd\'objet', inconnu: 'objet inconnu', idAuSchema: false },
-  documents: { de: 'de document', inconnu: 'document inconnu', idAuSchema: true },
+  affaires: { de: 'd\'affaire', inconnu: 'affaire inconnue', aucun: 'aucune affaire choisie', idAuSchema: true },
+  indices: { de: 'd\'indice', inconnu: 'indice inconnu', aucun: 'aucun indice choisi', idAuSchema: true },
+  presetsPnj: { de: 'de preset PNJ', inconnu: 'preset de PNJ inconnu', aucun: 'aucun preset de PNJ choisi', idAuSchema: true },
+  objets: { de: 'd\'objet', inconnu: 'objet inconnu', aucun: 'aucun objet choisi', idAuSchema: false },
+  documents: { de: 'de document', inconnu: 'document inconnu', aucun: 'aucun document choisi', idAuSchema: true },
 };
 
 export const REGISTRES_NARRATIFS: readonly RegistreNarratif[] = (Object.keys(TABLE) as CleDeRegistreNarratif[]).map((cle) => ({ cle, ...TABLE[cle] }));
 
 /**
  * RÉFÉRENCES NARRATIVES : clé → registre dont elle désigne une entrée par son `id`, dans le narratif du
- * MÊME document (espace CLOS). La porte du projet en garde la résolution (`refsNarrativesPendantes`,
- * `raffineNarratif`, FK `presetId` de `./projet.ts`).
+ * MÊME document (espace CLOS). Le visiteur unique `./refs-narratives.ts` les énumère ; la porte du
+ * projet et `raffineNarratif` en gardent la résolution, l'éditeur les propage.
  */
 export const REFERENCES_NARRATIVES = {
   affaireId: 'affaires',
@@ -59,3 +61,6 @@ export type RegistreReference = (typeof REFERENCES_NARRATIVES)[keyof typeof REFE
 
 /** Le sujet d'une faute de référence qui ne résout pas dans `registre` (« document inconnu »). */
 export const inconnuDe = (registre: CleDeRegistreNarratif): string => TABLE[registre].inconnu;
+
+/** Le sujet d'une référence encore VIDE vers `registre` (« aucun document choisi »). */
+export const aucunDe = (registre: CleDeRegistreNarratif): string => TABLE[registre].aucun;

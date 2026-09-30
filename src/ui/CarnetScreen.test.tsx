@@ -149,3 +149,46 @@ describe('CarnetScreen — rendu (#670)', () => {
     expect(txt).not.toContain('livre-de-base'); // jamais l'id interne au joueur
   });
 });
+
+describe('CarnetScreen — le document qu’un stade croise (#679)', () => {
+  const narratifDocumenté = (stades: NarratifBlock['indices'][number]['stades']): NarratifBlock => ({
+    ...emptyNarratif(),
+    affaires: [{ id: 'affaire-1', titre: 'La route d’Altdorf' }],
+    indices: [{ id: 'ind-doc', affaireId: 'affaire-1', kind: 'indice', titre: 'L’affiche', stades }],
+    documents: [
+      { id: 'doc-affiche', titre: 'Affiche de la diligence', prose: '**VOYAGEURS** pour Altdorf', source: { book: 'livre-de-base', page: 7 } },
+      { id: 'doc-lettre', titre: 'Lettre de Kastor', prose: 'Mon cher cousin' },
+    ],
+  });
+  const révélé = (stadeCourant: string, historique: string[]): Record<string, ClueState> => ({
+    'ind-doc': { stadeCourant, statut: 'révélé', historique: historique.map((stade) => ({ stade, at: 0 })) },
+  });
+  /** Les cartes-parchemin rendues : titre et texte de chacune. */
+  const parchemins = () => [...container.querySelectorAll('.parchment-card')].map((c) => ({
+    titre: c.querySelector('.parchment-card-title')?.textContent,
+    texte: c.textContent ?? '',
+  }));
+
+  it('un stade à prose ET document rend la prose, puis le document sur parchemin, titré, en Markdown et sourcé', async () => {
+    useGame.setState({ campaignNarratif: narratifDocumenté([{ id: 's1', prose: 'Une affiche est clouée au relais.', documentId: 'doc-affiche' }]), clues: révélé('s1', ['s1']) });
+    await mount();
+    expect(container.textContent).toContain('Une affiche est clouée au relais.');
+    const [carte, ...autres] = parchemins();
+    expect(autres).toEqual([]);
+    expect(carte.titre).toBe('Affiche de la diligence');
+    expect(carte.texte).toContain('VOYAGEURS pour Altdorf');
+    expect(carte.texte).toContain(bookAbr('livre-de-base'));
+    expect(container.querySelector('.parchment-card strong')?.textContent).toBe('VOYAGEURS');
+  });
+
+  it('un stade SANS prose rend son seul document ; une lecture précédente garde le sien', async () => {
+    useGame.setState({
+      campaignNarratif: narratifDocumenté([{ id: 's1', documentId: 'doc-lettre' }, { id: 's2', documentId: 'doc-affiche' }]),
+      clues: révélé('s2', ['s1', 's2']),
+    });
+    await mount();
+    expect(parchemins().map((p) => p.titre)).toEqual(['Affiche de la diligence', 'Lettre de Kastor']);
+    const précédente = container.querySelector('.clue-history .parchment-card');
+    expect(précédente?.textContent).toContain('Mon cher cousin');
+  });
+});

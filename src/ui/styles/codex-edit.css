@@ -21,7 +21,6 @@
 .de-ok { color: var(--ok); font-size: 0.85rem; }
 .de-warn { color: var(--danger-soft); font-size: 0.85rem; }
 .de-msg { color: var(--muted); font-size: 0.85rem; }
-.de-hint { font-style: italic; color: var(--muted); font-size: 0.75rem; }
 .de-invalid { outline: 1px solid var(--danger); }
 /* erreurs BLOQUANTES de validateEntry (identité / refs) — Enregistrer reste grisé tant que non vide */
 .codex-edit-errors {
@@ -32,9 +31,6 @@
   font-size: 0.85rem;
 }
 
-.de-source { display: flex; gap: 0.5rem; }
-.de-source input:first-child { flex: 1; }
-.de-source input:last-child { width: 80px; }
 
 .de-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 0.4rem; }
 .de-cell { display: flex; flex-direction: column; gap: 1px; }

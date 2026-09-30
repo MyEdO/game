@@ -29,8 +29,8 @@ Le détecteur SYNTAXIQUE qui a précédé (annotation littérale du type) rendai
 
 | Champ | Lecteurs | Exemple |
 |---|---|---|
-| `book` | 11 | `src/data/sourceRefs.ts:29` |
-| `page` | 10 | `src/ui/CarnetScreen.tsx:26` |
+| `book` | 7 | `src/data/sourceRefs.ts:29` |
+| `page` | 3 | `src/ui/SourceBadge.tsx:12` |
 | `note` | **0 — JAMAIS LU** | — |
 
 ### `DetailRecipe` (src/gameIso/detail/types.ts)
@@ -301,4 +301,4 @@ Le détecteur SYNTAXIQUE qui a précédé (annotation littérale du type) rendai
 Le champ `spec` d'une référence de dotation a 2 lecteur(s) mesuré(s) — `src/engine/items.ts:309`, `src/engine/trappingChoices.ts:36`.
 
 `trappingRefLabel` (`src/data/index.ts`, SOURCE UNIQUE du libellé affiché d'une `TrappingRef`) ne lit PAS `ref.spec` — le rendu « base (spec) » passe par `refConcrete`, partagée par toute `RefDesignee`.
-<!-- sources-empreinte: 04ca6a71785839adc3019aee7eba64cb30e7c119 (2141 fichiers, 174 dossiers) corps: ca3630fcc7bbd493daad0cf86ec475c6bc29c7a6 -->
+<!-- sources-empreinte: 33161eda413efb61ab4f11f206ab3f02a38ae8e4 (2145 fichiers, 174 dossiers) corps: fc093166f86aead61f63fe1f821a385ce62a3e81 -->

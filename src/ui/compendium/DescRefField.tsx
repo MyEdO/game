@@ -129,7 +129,7 @@ function DetailTechnique({ texte }: { texte: string }) {
   return (
     <details className="fold">
       <summary><span className="fold-title">détail technique</span></summary>
-      <div className="fold-body"><span className="de-hint">{texte}</span></div>
+      <div className="fold-body"><span className="ed-hint">{texte}</span></div>
     </details>
   );
 }
@@ -405,7 +405,7 @@ export function DescRefField({ label, value, onChange, chargeurs }: {
       {chapitresFiltrables && (
         <div className="de-reflrow">
           <SearchFilterField value={filtreCh} onChange={setFiltreCh} placeholder="filtrer les chapitres…" ariaLabel="Filtrer les chapitres du livre" />
-          <em className="de-hint">
+          <em className="ed-hint">
             {chapitresVus.length === 0
               ? 'aucun chapitre ne correspond'
               : `${chapitresVus.length} / ${chapitresDuLivre?.length ?? 0} chapitres`}
@@ -413,7 +413,7 @@ export function DescRefField({ label, value, onChange, chargeurs }: {
         </div>
       )}
 
-      {etat === 'chargement' && <em className="de-hint">Chargement du chapitre…</em>}
+      {etat === 'chargement' && <em className="ed-hint">Chargement du chapitre…</em>}
       {/* DEUX causes d'échec, deux phrases. Le `Source/` n'est émis en assets QU'EN DEV (le corpus
           des 16 livres VF ne part pas sur le web public, `scripts/source/prose-source-plugin.mjs`) :
           hors dev, il n'y a NI manifeste NI chapitre, et le champ le dit au lieu d'accuser une
@@ -432,7 +432,7 @@ export function DescRefField({ label, value, onChange, chargeurs }: {
       {etat === 'pret' && filtrable && (
         <div className="de-reflrow">
           <SearchFilterField value={filtre} onChange={setFiltre} placeholder="filtrer les sections…" ariaLabel="Filtrer les sections du chapitre" />
-          <em className="de-hint">
+          <em className="ed-hint">
             {sectionsFiltrees.length === 0
               ? 'aucune section ne correspond'
               : `${sectionsFiltrees.length} / ${sections.length} sections`}
@@ -523,7 +523,7 @@ export function DescRefField({ label, value, onChange, chargeurs }: {
                 <NumberField variant="champ" label="dernier bloc" width={84}
                   min={f.b0} max={dernierBloc} value={f.b1}
                   onChange={(n) => majeur(i, (x) => (x.kind === 'blocs' ? { ...x, b1: n } : x))} />
-                <em className="de-hint">0 à {dernierBloc}</em>
+                <em className="ed-hint">0 à {dernierBloc}</em>
               </>
             ) : tables.length === 0 ? (
               // Adresse chargée en `cellule` sur une section sans table : la PHRASE, jamais deux combos vides.
@@ -561,7 +561,7 @@ export function DescRefField({ label, value, onChange, chargeurs }: {
                 16 hex sur une rangée « section absente du chapitre »). */}
             <label className="de-cell" title="Recalculée à chaque geste, jamais saisie">
               <span>empreinte</span>
-              <output aria-label={`Fragment ${i + 1} — empreinte`} className="de-hint">
+              <output aria-label={`Fragment ${i + 1} — empreinte`} className="ed-hint">
                 {parFragment[i] && !estErreur(parFragment[i]) && f.sum
                   ? f.sum
                   : 'pas d’empreinte : l’adresse ne résout pas'}

@@ -86,7 +86,10 @@ n'exclut pas un usage indirect hors des modules racines déclarés).
 | `cascade/registerCascadeApplier` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 | `rule/policy` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 | `ownsLocally/pilotedByHuman/aiDriven/siegesRequis` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
-| `RefField` |  |  |  |  |  |  |  |  |  |  |  |  |  |  | U | U |
+| `RefField / RefNarrativeField` |  |  |  |  |  |  |  |  |  |  |  |  |  |  | U | U |
+| `SourceRefField` |  |  |  |  |  |  |  |  |  |  |  |  |  |  | U | U |
+| `SourceBadge` |  | U | U |  | U |  | U | U | U | U | U | U | U | U | U | U |
+| `ProseField` |  |  |  |  |  |  |  |  |  |  |  |  |  |  | U | U |
 | `Prose` |  | U | U |  | U |  | U | U | U | U | U | U | U | U | U | U |
 | `resolveRender/tokenBodyKind` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 | `MasterDetail` |  |  |  |  | U |  | U |  |  | U |  |  |  |  | U | U |
@@ -287,4 +290,4 @@ unique ne « possède » légitimement ; à trier au fil de l'eau, pas un échec
 - `src/state/sceneEdit.testkit.ts`
 - `src/state/turnEconomy.ts`
 - `src/state/viewLevel.ts`
-<!-- sources-empreinte: ffe84146eef19f6d345f28d261d54f4292baade1 (1859 fichiers, 2 dossiers) corps: c8d23c31547abacc48ecb6b560e1521cc90fd0ad -->
+<!-- sources-empreinte: 99443fcf56aebc693de9f1ce995ee93899f89c52 (1863 fichiers, 2 dossiers) corps: 8f43a0720691df46bb9a9ed453a2e04f87c241d2 -->

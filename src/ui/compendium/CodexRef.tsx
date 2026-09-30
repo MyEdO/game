@@ -13,6 +13,7 @@ import { codexLookup, codexLookupById } from './registry';
 import { mdToText } from '../Prose';
 import { useInfobulle } from '../Infobulle';
 import { coupeAuMot } from '../../lib/coupeAuMot.mjs';
+import { SourceBadge } from '../SourceBadge';
 
 /** Borne du corps de l'infobulle, en caractères (`coupeAuMot`). */
 export const BORNE_DU_CORPS = 400;
@@ -166,7 +167,7 @@ export function CodexRef({
   // déclencheur n'a pas d'état déplié ; à l'activation, le texte de la bulle est écrit dans une région
   // `role="status"` montée avec lui, et vidée à la fermeture.
   const annonce = bascule
-    ? [refus, inst ?? title, inst ? title : undefined, popSub, metaLine, provenances?.join(' · '), body].filter(Boolean).join('. ')
+    ? [refus, ...(item || fallback ? [inst ?? title, inst ? title : undefined] : []), popSub, metaLine, provenances?.join(' · '), body].filter(Boolean).join('. ')
     : null;
 
   return (
@@ -192,7 +193,8 @@ export function CodexRef({
           {/* Le REFUS ouvre l'infobulle : c'est la réponse à « pourquoi je ne peux pas ? », avant
               toute règle. Il ne s'écrit nulle part ailleurs à l'écran (arbitrage 2026-08-24). */}
           {refus && <span className="codex-pop-refus" data-refus="">{refus}</span>}
-          <CodexTitre title={inst ?? title} sub={inst ? title : undefined} />
+          {/* Une bulle de REFUS seul (aucune fiche) n'a pas de titre : il redirait le libellé du contrôle. */}
+          {(item || fallback) && <CodexTitre title={inst ?? title} sub={inst ? title : undefined} />}
           {popSub && <span className="codex-pop-sub">{popSub}</span>}
           {metaLine && <span className="codex-pop-meta">{metaLine}</span>}
           {/* PROVENANCES de la chip (qui soutient, qui octroie) — arbitrage user 2026-08-05 :
@@ -201,7 +203,7 @@ export function CodexRef({
           {body && <span className="codex-pop-body">{body}</span>}
           {(src || porte) && (
             <span className="codex-pop-foot">
-              {src && <span className="codex-src">{src.book} p.{src.page}</span>}
+              {src && <SourceBadge source={src} />}
               {/* La PORTE vers la fiche. Sous `wrap` c'est un vrai bouton (clic ET clavier) : le
                   déclencheur, lui, garde son action propre. Sinon, mention : c'est le déclencheur
                   qui est cliquable. */}

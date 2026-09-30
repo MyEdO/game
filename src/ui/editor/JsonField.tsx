@@ -16,7 +16,7 @@ export function JsonField({ label, value, onChange, rows = 4 }: {
   const [err, setErr] = useState(false);
   return (
     <label className="ed-field">
-      <span>{label} <em className="de-hint">(JSON)</em></span>
+      <span>{label} <em className="ed-hint">(JSON)</em></span>
       <textarea
         rows={rows}
         className={err ? 'de-invalid' : ''}

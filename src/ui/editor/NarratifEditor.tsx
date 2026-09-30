@@ -6,64 +6,48 @@ import { MasterDetail } from '../MasterDetail';
 import { MonsterPartsFields, ReglagesApparence } from './MonsterPartsFields';
 import { isSwarm } from '../../engine/traits/dispatch';
 import { mergeCreatureProfile } from '../../state/campaignData';
-import { creatures, creatureLabel, findCreatureById, memoParVersion } from '../../data';
+import { creatures, findCreatureById, memoParVersion } from '../../data';
 import { CHAR_KEYS, CHAR_LABELS, type CharKey } from '../../engine/types';
-import type { NarratifBlock, PresetPnj, Affaire, Indice, IndiceStade, OuvertureBlock, ClotureBlock, AmbianceCadre } from '../../state/campaignNarratif';
+import type { NarratifBlock, PresetPnj, Affaire, Indice, IndiceStade, DocumentNarratif, OuvertureBlock, ClotureBlock, AmbianceCadre } from '../../state/campaignNarratif';
+import { SourceRefField } from '../SourceRefField';
+import { ProseField } from '../ProseField';
+import { LIBELLE_NARRATIF, RefNarrativeField } from '../compendium/RefField';
 import { ConditionEditor } from './ConditionEditor';
 import { CONDITION_KINDS_CARTE } from '../../data/schemas/defs-scenes/worldmap';
-import { REGISTRES_NARRATIFS, type CleDeRegistreNarratif } from '../../data/schemas/defs-scenes/registres-narratifs';
+import { REGISTRES_NARRATIFS, type CleDeRegistreNarratif, type RegistreReference } from '../../data/schemas/defs-scenes/registres-narratifs';
+import { lieuxDesSites, referencesA, renommeRef, type CibleNarrative, type Renommage } from '../../data/schemas/defs-scenes/refs-narratives';
+import type { Scene } from '../../state/scene';
+import type { WorldMap } from '../../state/worldMap';
 import type { CreatureData } from '../../data';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
 import { ListRow } from '../ListRow';
+import { GatedAction, raisonSi } from '../GatedAction';
 import { NumberField } from '../NumberField';
 
 /**
  * Éditeur du bloc NARRATIF d'un paquet de campagne (#765) — overlay plein-champ (`ScreenShell`, même
- * coquille que la Carte du monde). Les onglets Affaires/Indices (#670) et PNJ (#671 lot B) sont
- * ÉDITABLES ; l'onglet Objets reste en lecture. Frontière RÉFÉRENCE vs NARRATIF : ces entrées
+ * coquille que la Carte du monde). Les onglets Affaires/Indices (#670), Documents (#679) et PNJ (#671
+ * lot B) sont ÉDITABLES ; l'onglet Objets reste en lecture. Frontière RÉFÉRENCE vs NARRATIF : ces entrées
  * référencent la règle globale PAR ID.
  */
-type NarratifTab = 'cadre' | 'affaires' | 'indices' | 'presetsPnj' | 'objets';
+type NarratifTab = 'cadre' | 'affaires' | 'indices' | 'documents' | 'presetsPnj' | 'objets';
 
 /** Liste des créatures globales (base d'un preset), triée par libellé — patron `Inspector.tsx`. */
 const optionsDeCreature = memoParVersion('creatures', () => [...creatures].map((c) => ({ id: c.id, label: c.label })).sort((a, b) => a.label.localeCompare(b.label)));
 
-/** Nom affiché d'un preset dans la liste maître : profil.label, sinon la base, sinon l'id. */
-function presetName(p: PresetPnj): string {
-  return p.profil?.label ?? (p.base ? creatureLabel(p.base) : undefined) ?? p.id;
+/** Id frais `<prefixe>-<n>` — `n` part de la taille de la liste `depuis` + 1 — qu'aucune entrée de `pris`
+ *  ne porte. */
+function idFrais(prefixe: string, depuis: readonly { id?: string }[], pris: readonly { id?: string }[] = depuis): string {
+  let n = depuis.length + 1;
+  while (pris.some((e) => e.id === `${prefixe}-${n}`)) n++;
+  return `${prefixe}-${n}`;
 }
 
-/** Id de preset frais, non-colluant avec les ids déjà présents. */
-function freshPresetId(existing: PresetPnj[]): string {
-  let n = existing.length + 1;
-  const has = (x: string) => existing.some((p) => p.id === x);
-  while (has(`pnj-${n}`)) n++;
-  return `pnj-${n}`;
-}
-
-/** Id d'affaire frais, non-colluant avec les ids déjà présents. */
-function freshAffaireId(existing: Affaire[]): string {
-  let n = existing.length + 1;
-  const has = (x: string) => existing.some((a) => a.id === x);
-  while (has(`affaire-${n}`)) n++;
-  return `affaire-${n}`;
-}
-
-/** Id d'indice frais, non-colluant avec les ids déjà présents. */
-function freshIndiceId(existing: Indice[]): string {
-  let n = existing.length + 1;
-  const has = (x: string) => existing.some((i) => i.id === x);
-  while (has(`indice-${n}`)) n++;
-  return `indice-${n}`;
-}
-
-/** Id de stade frais, non-colluant DANS l'indice porteur (`narratifSchema` exige l'unicité locale). */
-function freshStadeId(existing: IndiceStade[]): string {
-  let n = existing.length + 1;
-  const has = (x: string) => existing.some((s) => s.id === x);
-  while (has(`stade-${n}`)) n++;
-  return `stade-${n}`;
-}
+/** Les entrées de TOUS les registres du narratif (`REGISTRES_NARRATIFS`) : l'id frais d'un registre n'en
+ *  recoupe aucune (unicité inter-registres de `narratifSchema`). Un stade, lui, n'est unique que DANS son
+ *  indice. */
+const entreesDuNarratif = (narratif: NarratifBlock): readonly { id?: string }[] =>
+  REGISTRES_NARRATIFS.flatMap((r) => narratif[r.cle] as readonly { id?: string }[]);
 
 /** Un id candidat est déjà pris par une AUTRE entrée d'un registre narratif (`REGISTRES_NARRATIFS`),
  *  hors l'entrée elle-même. Collision inter-registres gardée ici ; collision avec un id global reste
@@ -78,21 +62,56 @@ function idUsedElsewhere(
   );
 }
 
-export function NarratifEditor({ narratif, onChange, onClose }: {
+/** Le projet ÉDITÉ, tel que l'éditeur le détient : ses scènes (l'active en tête), sa carte du monde,
+ *  son narratif. Un renommage d'entrée du narratif réécrit ses références PARTOUT (`renommeRef`). */
+export interface ProjetEdite {
+  scenes: Scene[];
+  worldMap: WorldMap | null;
   narratif: NarratifBlock;
-  /** Chemin d'écriture (#671 lot B) — toute mutation de preset produit un `NarratifBlock` neuf (immutable). */
-  onChange?: (n: NarratifBlock) => void;
+}
+
+/** La raison qui refuse de retirer une entrée encore désignée : les lieux qui la désignent. */
+function raisonDeRefus(projet: ProjetEdite, cible: CibleNarrative): string | undefined {
+  const sites = referencesA(projet, cible);
+  return sites.length ? `Encore désigné par : ${lieuxDesSites(projet, sites)} — changez ou retirez ces références d'abord.` : undefined;
+}
+
+export function NarratifEditor({ projet, onChange, onClose }: {
+  projet: ProjetEdite;
+  /** Chemin d'écriture (#671 lot B) — toute mutation produit un projet neuf (immutable) ; seules les
+   *  racines touchées changent d'identité. Un renommage porte son `Renommage`, pour que le détenteur
+   *  d'un historique le propage aussi aux instantanés. */
+  onChange?: (p: ProjetEdite, renommage?: Renommage) => void;
   onClose: () => void;
 }) {
+  const narratif = projet.narratif;
   const [tab, setTab] = useState<NarratifTab>('affaires');
   const [selId, setSelId] = useState<string | null>(narratif.presetsPnj[0]?.id ?? null);
   const [selAffaireId, setSelAffaireId] = useState<string | null>(narratif.affaires[0]?.id ?? null);
   const [selIndiceId, setSelIndiceId] = useState<string | null>(narratif.indices[0]?.id ?? null);
+  const [selDocumentId, setSelDocumentId] = useState<string | null>(narratif.documents[0]?.id ?? null);
 
-  const setPresets = (presetsPnj: PresetPnj[]) => onChange?.({ ...narratif, presetsPnj });
+  const poserNarratif = (n: NarratifBlock) => onChange?.({ ...projet, narratif: n });
+
+  /** Renomme l'entrée `id` du `registre` et PROPAGE le renommage à toute référence du projet
+   *  (`renommeRef`) ; `suite` achève le narratif renommé (les `refs` d'indice). Rend le nouvel id, ou
+   *  `null` si refusé (vide, ou déjà porté par une entrée d'un registre). */
+  const renommeEntree = (registre: RegistreReference, id: string, nextId: string, suite = (n: NarratifBlock) => n): string | null => {
+    const trimmed = nextId.trim();
+    if (!trimmed || idUsedElsewhere(narratif, trimmed, { registre, id })) return null;
+    const p = renommeRef(projet, { registre, id }, trimmed);
+    const liste = (p.narratif[registre] as readonly { id: string }[]).map((e) => (e.id === id ? { ...e, id: trimmed } : e));
+    onChange?.({ ...p, narratif: suite({ ...p.narratif, [registre]: liste }) }, { cible: { registre, id }, nouveau: trimmed });
+    return trimmed;
+  };
+  /** Retire l'entrée `id` du `registre`. La seule porte du retrait est `BoutonRetirer` (`raisonDeRefus`). */
+  const retireEntree = (registre: RegistreReference, id: string, suite = (n: NarratifBlock) => n) =>
+    poserNarratif(suite({ ...narratif, [registre]: (narratif[registre] as readonly { id: string }[]).filter((e) => e.id !== id) }));
+
+  const setPresets = (presetsPnj: PresetPnj[]) => poserNarratif({ ...narratif, presetsPnj });
 
   const addPreset = () => {
-    const id = freshPresetId(narratif.presetsPnj);
+    const id = idFrais('pnj', narratif.presetsPnj, entreesDuNarratif(narratif));
     // Base par défaut = première créature globale : garantit un preset VALIDE au round-trip
     // (`narratifSchema` refuse un preset sans base ni profil) ; l'auteur la change ensuite.
     setPresets([...narratif.presetsPnj, { id, base: optionsDeCreature()[0]?.id }]);
@@ -100,7 +119,7 @@ export function NarratifEditor({ narratif, onChange, onClose }: {
   };
 
   const removePreset = (id: string) => {
-    setPresets(narratif.presetsPnj.filter((p) => p.id !== id));
+    retireEntree('presetsPnj', id);
     if (selId === id) setSelId(null);
   };
 
@@ -109,28 +128,22 @@ export function NarratifEditor({ narratif, onChange, onClose }: {
   };
 
   const renamePreset = (id: string, nextId: string) => {
-    const trimmed = nextId.trim();
-    // Id STABLE : refuse le vide et toute collision avec un AUTRE preset OU une autre catégorie narrative.
-    if (!trimmed || idUsedElsewhere(narratif, trimmed, { registre: 'presetsPnj', id })) return;
-    setPresets(narratif.presetsPnj.map((p) => (p.id === id ? { ...p, id: trimmed } : p)));
-    if (selId === id) setSelId(trimmed);
+    const nouveau = renommeEntree('presetsPnj', id, nextId);
+    if (nouveau && selId === id) setSelId(nouveau);
   };
 
   const selected = narratif.presetsPnj.find((p) => p.id === selId) ?? null;
 
-  const setAffaires = (affaires: Affaire[]) => onChange?.({ ...narratif, affaires });
+  const setAffaires = (affaires: Affaire[]) => poserNarratif({ ...narratif, affaires });
 
   const addAffaire = () => {
-    const id = freshAffaireId(narratif.affaires);
+    const id = idFrais('affaire', narratif.affaires, entreesDuNarratif(narratif));
     setAffaires([...narratif.affaires, { id, titre: 'Nouvelle affaire' }]);
     setSelAffaireId(id);
   };
 
-  const affaireReferenced = (id: string) => narratif.indices.some((i) => i.affaireId === id);
-
   const removeAffaire = (id: string) => {
-    if (affaireReferenced(id)) return;
-    setAffaires(narratif.affaires.filter((a) => a.id !== id));
+    retireEntree('affaires', id);
     if (selAffaireId === id) setSelAffaireId(null);
   };
 
@@ -139,39 +152,41 @@ export function NarratifEditor({ narratif, onChange, onClose }: {
   };
 
   const renameAffaire = (id: string, nextId: string) => {
-    const trimmed = nextId.trim();
-    if (!trimmed || idUsedElsewhere(narratif, trimmed, { registre: 'affaires', id })) return;
-    // Propage aux indices rattachés : sinon `narratifSchema` rejette un `affaireId` orphelin.
-    const affaires = narratif.affaires.map((a) => (a.id === id ? { ...a, id: trimmed } : a));
-    const indices = narratif.indices.map((i) => (i.affaireId === id ? { ...i, affaireId: trimmed } : i));
-    onChange?.({ ...narratif, affaires, indices });
-    if (selAffaireId === id) setSelAffaireId(trimmed);
+    const nouveau = renommeEntree('affaires', id, nextId);
+    if (nouveau && selAffaireId === id) setSelAffaireId(nouveau);
   };
 
   const selectedAffaire = narratif.affaires.find((a) => a.id === selAffaireId) ?? null;
 
-  const setIndices = (indices: Indice[]) => onChange?.({ ...narratif, indices });
+  const setIndices = (indices: Indice[]) => poserNarratif({ ...narratif, indices });
 
   const addIndice = () => {
     // Aucune affaire à rattacher : `narratifSchema` rejette un `affaireId` orphelin — no-op, le bouton
     // appelant est désactivé dans ce cas (garantit un indice VALIDE au round-trip, même esprit qu'`addPreset`).
     const firstAffaireId = narratif.affaires[0]?.id;
     if (!firstAffaireId) return;
-    const id = freshIndiceId(narratif.indices);
+    const id = idFrais('indice', narratif.indices, entreesDuNarratif(narratif));
     setIndices([...narratif.indices, { id, affaireId: firstAffaireId, kind: 'indice', titre: 'Nouvel indice', stades: [{ id: 'stade-1', prose: '' }] }]);
     setSelIndiceId(id);
   };
 
+  /** Les `refs` d'indice (recoupements) ne sont pas une clé de `REFERENCES_NARRATIVES` : un recoupement
+   *  vers l'indice retiré tombe avec lui, un recoupement vers l'indice renommé le suit. */
+  const refsSans = (id: string) => (n: NarratifBlock): NarratifBlock => ({
+    ...n,
+    indices: n.indices.map((i) => {
+      if (!i.refs?.includes(id)) return i;
+      const refs = i.refs.filter((r) => r !== id);
+      return { ...i, refs: refs.length ? refs : undefined };
+    }),
+  });
+  const refsVers = (id: string, nouveau: string) => (n: NarratifBlock): NarratifBlock => ({
+    ...n,
+    indices: n.indices.map((i) => (i.refs?.includes(id) ? { ...i, refs: i.refs.map((r) => (r === id ? nouveau : r)) } : i)),
+  });
+
   const removeIndice = (id: string) => {
-    // Retire aussi toute référence pendante (`refs`) d'un AUTRE indice vers celui-ci.
-    const next = narratif.indices
-      .filter((i) => i.id !== id)
-      .map((i) => {
-        if (!i.refs?.includes(id)) return i;
-        const refs = i.refs.filter((r) => r !== id);
-        return { ...i, refs: refs.length ? refs : undefined };
-      });
-    setIndices(next);
+    retireEntree('indices', id, refsSans(id));
     if (selIndiceId === id) setSelIndiceId(null);
   };
 
@@ -180,27 +195,55 @@ export function NarratifEditor({ narratif, onChange, onClose }: {
   };
 
   const renameIndice = (id: string, nextId: string) => {
+    const nouveau = renommeEntree('indices', id, nextId, refsVers(id, nextId.trim()));
+    if (nouveau && selIndiceId === id) setSelIndiceId(nouveau);
+  };
+
+  /** Renomme le stade `from` de l'indice `indiceId` et le propage aux Effects qui le désignent. */
+  const renameStade = (indiceId: string, from: string, nextId: string) => {
     const trimmed = nextId.trim();
-    if (!trimmed || idUsedElsewhere(narratif, trimmed, { registre: 'indices', id })) return;
-    // Propage aux `refs` des autres indices : sinon `narratifSchema` rejette une réf orpheline.
-    const indices = narratif.indices.map((i) => {
-      if (i.id === id) return { ...i, id: trimmed };
-      if (i.refs?.includes(id)) return { ...i, refs: i.refs.map((r) => (r === id ? trimmed : r)) };
-      return i;
-    });
-    setIndices(indices);
-    if (selIndiceId === id) setSelIndiceId(trimmed);
+    const ind = narratif.indices.find((i) => i.id === indiceId);
+    if (!ind || !trimmed || ind.stades.some((s) => s.id !== from && s.id === trimmed)) return;
+    const cible: CibleNarrative = { registre: 'indices', id: indiceId, stade: from };
+    const p = renommeRef(projet, cible, trimmed);
+    const indices = p.narratif.indices.map((i) => (i.id === indiceId ? { ...i, stades: i.stades.map((s) => (s.id === from ? { ...s, id: trimmed } : s)) } : i));
+    onChange?.({ ...p, narratif: { ...p.narratif, indices } }, { cible, nouveau: trimmed });
   };
 
   const selectedIndice = narratif.indices.find((i) => i.id === selIndiceId) ?? null;
 
-  const setOuverture = (ouverture: OuvertureBlock | undefined) => onChange?.({ ...narratif, ouverture });
-  const setCloture = (cloture: ClotureBlock | undefined) => onChange?.({ ...narratif, cloture });
+  const setDocuments = (documents: DocumentNarratif[]) => poserNarratif({ ...narratif, documents });
+
+  const addDocument = () => {
+    const id = idFrais('document', narratif.documents, entreesDuNarratif(narratif));
+    setDocuments([...narratif.documents, { id, titre: 'Nouveau document', prose: '' }]);
+    setSelDocumentId(id);
+  };
+
+  const removeDocument = (id: string) => {
+    retireEntree('documents', id);
+    if (selDocumentId === id) setSelDocumentId(null);
+  };
+
+  const updateDocument = (id: string, patch: Partial<DocumentNarratif>) => {
+    setDocuments(narratif.documents.map((d) => (d.id === id ? { ...d, ...patch } : d)));
+  };
+
+  const renameDocument = (id: string, nextId: string) => {
+    const nouveau = renommeEntree('documents', id, nextId);
+    if (nouveau && selDocumentId === id) setSelDocumentId(nouveau);
+  };
+
+  const selectedDocument = narratif.documents.find((d) => d.id === selDocumentId) ?? null;
+
+  const setOuverture = (ouverture: OuvertureBlock | undefined) => poserNarratif({ ...narratif, ouverture });
+  const setCloture = (cloture: ClotureBlock | undefined) => poserNarratif({ ...narratif, cloture });
 
   const tabs: TabItem<NarratifTab>[] = [
     { key: 'cadre', label: 'Cadre', count: (narratif.ouverture ? 1 : 0) + (narratif.cloture ? 1 : 0) },
     { key: 'affaires', label: 'Affaires', count: narratif.affaires.length },
     { key: 'indices', label: 'Indices', count: narratif.indices.length },
+    { key: 'documents', label: 'Documents', count: narratif.documents.length },
     { key: 'presetsPnj', label: 'PNJ', count: narratif.presetsPnj.length },
     { key: 'objets', label: 'Objets', count: narratif.objets.length },
   ];
@@ -232,16 +275,18 @@ export function NarratifEditor({ narratif, onChange, onClose }: {
                       <span className="chip">{a.id}</span>
                     </ListRow>
                   ))}
-              <button type="button" className="btn small" onClick={addAffaire}>
-                <Icon id="ui/add" size="sm" /> Ajouter une affaire
-              </button>
             </>
+          }
+          action={
+            <button type="button" className="btn small" onClick={addAffaire}>
+              <Icon id="ui/add" size="sm" /> Ajouter une affaire
+            </button>
           }
           detail={
             selectedAffaire
               ? <AffaireForm
                   affaire={selectedAffaire}
-                  referenced={affaireReferenced(selectedAffaire.id)}
+                  refus={raisonDeRefus(projet, { registre: 'affaires', id: selectedAffaire.id })}
                   onRename={(nextId) => renameAffaire(selectedAffaire.id, nextId)}
                   onPatch={(patch) => updateAffaire(selectedAffaire.id, patch)}
                   onRemove={() => removeAffaire(selectedAffaire.id)}
@@ -263,28 +308,66 @@ export function NarratifEditor({ narratif, onChange, onClose }: {
                       <span className="chip">{i.id}</span>
                     </ListRow>
                   ))}
-              <button
-                type="button"
-                className="btn small"
-                disabled={narratif.affaires.length === 0}
-                title={narratif.affaires.length === 0 ? 'Créez d\'abord une affaire.' : undefined}
-                onClick={addIndice}
-              >
-                <Icon id="ui/add" size="sm" /> Ajouter un indice
-              </button>
             </>
+          }
+          action={
+            <GatedAction
+              id="ajouter-indice"
+              label={<><Icon id="ui/add" size="sm" /> Ajouter un indice</>}
+              enabled={narratif.affaires.length > 0}
+              {...raisonSi(narratif.affaires.length === 0 ? 'Créez d’abord une affaire.' : undefined)}
+              onClick={addIndice}
+              primary={false}
+              btnClassName="small"
+            />
           }
           detail={
             selectedIndice
               ? <IndiceForm
                   indice={selectedIndice}
+                  narratif={narratif}
                   affaires={narratif.affaires}
                   otherIndices={narratif.indices.filter((i) => i.id !== selectedIndice.id)}
                   onRename={(nextId) => renameIndice(selectedIndice.id, nextId)}
                   onPatch={(patch) => updateIndice(selectedIndice.id, patch)}
+                  onRenameStade={(from, nextId) => renameStade(selectedIndice.id, from, nextId)}
+                  refusDeStade={(stade) => raisonDeRefus(projet, { registre: 'indices', id: selectedIndice.id, stade })}
+                  refus={raisonDeRefus(projet, { registre: 'indices', id: selectedIndice.id })}
                   onRemove={() => removeIndice(selectedIndice.id)}
                 />
               : <p className="empty">Sélectionnez un indice à éditer, ou ajoutez-en un.</p>
+          }
+        />
+      )}
+      {tab === 'documents' && (
+        <MasterDetail
+          listLabel="Documents"
+          list={
+            <>
+              {narratif.documents.length === 0
+                ? <p className="empty">Aucun document dans cette campagne.</p>
+                : narratif.documents.map((d) => (
+                    <ListRow key={d.id} selected={d.id === selDocumentId} onClick={() => setSelDocumentId(d.id)} label={d.titre}>
+                      <span className="chip">{d.id}</span>
+                    </ListRow>
+                  ))}
+            </>
+          }
+          action={
+            <button type="button" className="btn small" onClick={addDocument}>
+              <Icon id="ui/add" size="sm" /> Ajouter un document
+            </button>
+          }
+          detail={
+            selectedDocument
+              ? <DocumentForm
+                  doc={selectedDocument}
+                  refus={raisonDeRefus(projet, { registre: 'documents', id: selectedDocument.id })}
+                  onRename={(nextId) => renameDocument(selectedDocument.id, nextId)}
+                  onPatch={(patch) => updateDocument(selectedDocument.id, patch)}
+                  onRemove={() => removeDocument(selectedDocument.id)}
+                />
+              : <p className="empty">Sélectionnez un document à éditer, ou ajoutez-en un.</p>
           }
         />
       )}
@@ -296,14 +379,16 @@ export function NarratifEditor({ narratif, onChange, onClose }: {
               {narratif.presetsPnj.length === 0
                 ? <p className="empty">Aucun PNJ pré-composé dans cette campagne.</p>
                 : narratif.presetsPnj.map((p) => (
-                    <ListRow key={p.id} selected={p.id === selId} onClick={() => setSelId(p.id)} label={presetName(p)}>
+                    <ListRow key={p.id} selected={p.id === selId} onClick={() => setSelId(p.id)} label={LIBELLE_NARRATIF.presetsPnj(p)}>
                       <span className="chip">{p.id}</span>
                     </ListRow>
                   ))}
-              <button type="button" className="btn small" onClick={addPreset}>
-                <Icon id="ui/add" size="sm" /> Ajouter un PNJ
-              </button>
             </>
+          }
+          action={
+            <button type="button" className="btn small" onClick={addPreset}>
+              <Icon id="ui/add" size="sm" /> Ajouter un PNJ
+            </button>
           }
           detail={
             selected
@@ -311,6 +396,7 @@ export function NarratifEditor({ narratif, onChange, onClose }: {
                   preset={selected}
                   onRename={(nextId) => renamePreset(selected.id, nextId)}
                   onPatch={(patch) => updatePreset(selected.id, patch)}
+                  refus={raisonDeRefus(projet, { registre: 'presetsPnj', id: selected.id })}
                   onRemove={() => removePreset(selected.id)}
                 />
               : <p className="empty">Sélectionnez un PNJ à éditer, ou ajoutez-en un.</p>
@@ -371,10 +457,7 @@ function CadreForm({ ouverture, cloture, onOuverture, onCloture }: {
             Chapitre
             <input value={ouverture.chapitre ?? ''} onChange={(e) => patchOuv({ chapitre: e.target.value || undefined })} />
           </label>
-          <label className="ed-field">
-            Pitch (verbatim de la source, Markdown)
-            <textarea value={ouverture.pitch} onChange={(e) => patchOuv({ pitch: e.target.value })} />
-          </label>
+          <ProseField label="Pitch (verbatim de la source, Markdown)" value={ouverture.pitch} onChange={(pitch) => patchOuv({ pitch })} />
           <label className="ed-field">
             Ambiance
             <select value={ouverture.ambiance ?? 'veillee'} onChange={(e) => patchOuv({ ambiance: e.target.value as AmbianceCadre })}>
@@ -416,9 +499,9 @@ function CadreForm({ ouverture, cloture, onOuverture, onCloture }: {
 }
 
 /** Formulaire d'une affaire : identité + titre + description, suppression bloquée si des indices y sont rattachés. */
-function AffaireForm({ affaire, referenced, onRename, onPatch, onRemove }: {
+function AffaireForm({ affaire, refus, onRename, onPatch, onRemove }: {
   affaire: Affaire;
-  referenced: boolean;
+  refus: string | undefined;
   onRename: (nextId: string) => void;
   onPatch: (patch: Partial<Affaire>) => void;
   onRemove: () => void;
@@ -433,33 +516,67 @@ function AffaireForm({ affaire, referenced, onRename, onPatch, onRemove }: {
         Titre
         <input value={affaire.titre} onChange={(e) => onPatch({ titre: e.target.value })} />
       </label>
-      <label className="ed-field">
-        Description
-        <textarea
-          value={affaire.desc ?? ''}
-          onChange={(e) => onPatch({ desc: e.target.value || undefined })}
-        />
-      </label>
-      <button
-        type="button"
-        className="btn small danger"
-        disabled={referenced}
-        title={referenced ? 'Des indices référencent encore cette affaire — les retirer ou les réaffecter d\'abord.' : undefined}
-        onClick={onRemove}
-      >
-        <Icon id="ui/delete" size="sm" /> Supprimer cette affaire
-      </button>
+      <ProseField label="Description" value={affaire.desc ?? ''} onChange={(desc) => onPatch({ desc: desc || undefined })} />
+      <BoutonRetirer id={`supprimer-affaire-${affaire.id}`} libelle="Supprimer cette affaire" refus={refus} onRemove={onRemove} />
     </div>
   );
 }
 
+/** Formulaire d'un document remis au joueur (#679) : identité + titre + prose Markdown VERBATIM + source,
+ *  suppression bloquée tant qu'un stade d'indice le croise. */
+function DocumentForm({ doc, refus, onRename, onPatch, onRemove }: {
+  doc: DocumentNarratif;
+  refus: string | undefined;
+  onRename: (nextId: string) => void;
+  onPatch: (patch: Partial<DocumentNarratif>) => void;
+  onRemove: () => void;
+}) {
+  return (
+    <div className="preset-form">
+      <label className="ed-field">
+        Identifiant (id stable)
+        <input value={doc.id} onChange={(e) => onRename(e.target.value)} />
+      </label>
+      <label className="ed-field">
+        Titre
+        <input value={doc.titre} onChange={(e) => onPatch({ titre: e.target.value })} />
+      </label>
+      <ProseField label="Texte (verbatim de la source, Markdown)" value={doc.prose} onChange={(prose) => onPatch({ prose })} />
+      <SourceRefField label="Source du document" value={doc.source} onChange={(source) => onPatch({ source })} />
+      <BoutonRetirer id={`supprimer-document-${doc.id}`} libelle="Supprimer ce document" refus={refus} onRemove={onRemove} />
+    </div>
+  );
+}
+
+/** Retrait d'une entrée du narratif, REFUSÉ tant qu'une référence la désigne : la raison nomme les
+ *  lieux qui la désignent (`raisonDeRefus`). */
+function BoutonRetirer({ id, libelle, refus, onRemove }: { id: string; libelle: string; refus: string | undefined; onRemove: () => void }) {
+  return (
+    <GatedAction
+      id={id}
+      label={<><Icon id="ui/delete" size="sm" /> {libelle}</>}
+      enabled={!refus}
+      {...raisonSi(refus)}
+      onClick={onRemove}
+      primary={false}
+      btnClassName="small danger"
+    />
+  );
+}
+
 /** Formulaire d'un indice/rumeur : identité + affaire + nature + titre + recoupements + stades révélables. */
-function IndiceForm({ indice, affaires, otherIndices, onRename, onPatch, onRemove }: {
+function IndiceForm({ indice, narratif, affaires, otherIndices, onRename, onPatch, onRenameStade, refusDeStade, refus, onRemove }: {
   indice: Indice;
+  narratif: NarratifBlock;
   affaires: Affaire[];
   otherIndices: Indice[];
   onRename: (nextId: string) => void;
   onPatch: (patch: Partial<Indice>) => void;
+  /** Renomme un stade ET propage le renommage aux Effects qui le désignent. */
+  onRenameStade: (from: string, nextId: string) => void;
+  /** Raison qui refuse de retirer ce stade (des Effects le désignent), ou `undefined`. */
+  refusDeStade: (stade: string) => string | undefined;
+  refus: string | undefined;
   onRemove: () => void;
 }) {
   const toggleRef = (id: string) => {
@@ -469,18 +586,13 @@ function IndiceForm({ indice, affaires, otherIndices, onRename, onPatch, onRemov
   };
 
   const setStades = (stades: IndiceStade[]) => onPatch({ stades });
-  const addStade = () => setStades([...indice.stades, { id: freshStadeId(indice.stades), prose: '' }]);
-  const removeStade = (id: string) => {
-    if (indice.stades.length <= 1) return;
-    setStades(indice.stades.filter((s) => s.id !== id));
-  };
+  const addStade = () => setStades([...indice.stades, { id: idFrais('stade', indice.stades), prose: '' }]);
+  /** Un indice garde au moins un stade ; un stade qu'un Effect désigne ne se retire pas. */
+  const refusDuRetrait = (id: string): string | undefined =>
+    (indice.stades.length <= 1 ? 'Un indice garde au moins un stade.' : refusDeStade(id));
+  const removeStade = (id: string) => setStades(indice.stades.filter((s) => s.id !== id));
   const updateStade = (id: string, patch: Partial<IndiceStade>) => {
     setStades(indice.stades.map((s) => (s.id === id ? { ...s, ...patch } : s)));
-  };
-  const renameStade = (id: string, nextId: string) => {
-    const trimmed = nextId.trim();
-    if (!trimmed || indice.stades.some((s) => s.id !== id && s.id === trimmed)) return;
-    updateStade(id, { id: trimmed });
   };
 
   return (
@@ -527,62 +639,43 @@ function IndiceForm({ indice, affaires, otherIndices, onRename, onPatch, onRemov
         <span>Stades révélables</span>
         {indice.stades.map((s, idx) => (
           <div key={s.id} className="preset-form">
-            <label className="ed-subfield">
+            <label className="ed-field">
               Id du stade
-              <input value={s.id} onChange={(e) => renameStade(s.id, e.target.value)} />
+              <input value={s.id} onChange={(e) => onRenameStade(s.id, e.target.value)} />
             </label>
-            <label className="ed-subfield">
-              Prose (stade {idx + 1})
-              <textarea value={s.prose ?? ''} onChange={(e) => updateStade(s.id, { prose: e.target.value })} />
-            </label>
-            <div className="ed-subfield">
-              <span>Source</span>
-              <input
-                placeholder="Livre"
-                value={s.source?.book ?? ''}
-                onChange={(e) => {
-                  const book = e.target.value;
-                  updateStade(s.id, { source: book || s.source?.page ? { book, page: s.source?.page ?? 0 } : undefined });
-                }}
-              />
-              <NumberField
-                variant="nu"
-                label="Page de la source du stade"
-                placeholder="Page"
-                vide
-                value={s.source?.page}
-                onChange={(page) => {
-                  updateStade(s.id, { source: s.source?.book || page != null ? { book: s.source?.book ?? '', page: page ?? 0 } : undefined });
-                }}
-              />
-            </div>
-            <button
-              type="button"
-              className="btn small danger"
-              disabled={indice.stades.length <= 1}
-              title={indice.stades.length <= 1 ? 'Un indice garde au moins un stade.' : undefined}
-              onClick={() => removeStade(s.id)}
-            >
-              <Icon id="ui/delete" size="sm" /> Supprimer ce stade
-            </button>
+            {/* Au moins la prose ou le document (`raffineNarratif`). */}
+            <ProseField
+              label={`Prose (stade ${idx + 1}${s.documentId ? ', facultative : le stade croise un document' : ''})`}
+              value={s.prose ?? ''}
+              onChange={(prose) => updateStade(s.id, { prose: prose || !s.documentId ? prose : undefined })}
+            />
+            <RefNarrativeField
+              cle="documentId"
+              narratif={narratif}
+              label="Document croisé"
+              value={s.documentId}
+              onChange={(documentId) => updateStade(s.id, { documentId, prose: documentId ? s.prose : (s.prose ?? '') })}
+              nullable
+            />
+            <SourceRefField label="Source du stade" value={s.source} onChange={(source) => updateStade(s.id, { source })} />
+            <BoutonRetirer id={`supprimer-stade-${indice.id}-${s.id}`} libelle="Supprimer ce stade" refus={refusDuRetrait(s.id)} onRemove={() => removeStade(s.id)} />
           </div>
         ))}
         <button type="button" className="btn small" onClick={addStade}>
           <Icon id="ui/add" size="sm" /> Ajouter un stade
         </button>
       </div>
-      <button type="button" className="btn small danger" onClick={onRemove}>
-        <Icon id="ui/delete" size="sm" /> Supprimer cet indice
-      </button>
+      <BoutonRetirer id={`supprimer-indice-${indice.id}`} libelle="Supprimer cet indice" refus={refus} onRemove={onRemove} />
     </div>
   );
 }
 
 /** Formulaire d'un preset de PNJ : identité + base + surcharges de caracs + apparence + portrait + source. */
-function PresetForm({ preset, onRename, onPatch, onRemove }: {
+function PresetForm({ preset, onRename, onPatch, refus, onRemove }: {
   preset: PresetPnj;
   onRename: (nextId: string) => void;
   onPatch: (patch: Partial<PresetPnj>) => void;
+  refus: string | undefined;
   onRemove: () => void;
 }) {
   const profil = preset.profil ?? {};
@@ -659,34 +752,8 @@ function PresetForm({ preset, onRename, onPatch, onRemove }: {
           onChange={(e) => onPatch({ portrait: e.target.value || undefined })}
         />
       </label>
-      <div className="ed-field">
-        <span>Source</span>
-        <label className="ed-subfield">
-          Livre
-          <input
-            value={preset.source?.book ?? ''}
-            onChange={(e) => {
-              const book = e.target.value;
-              onPatch({ source: book || preset.source?.page ? { book, page: preset.source?.page ?? 0 } : undefined });
-            }}
-          />
-        </label>
-        <label className="ed-subfield">
-          Page
-          <NumberField
-            variant="nu"
-            label="Page de la source du PNJ"
-            vide
-            value={preset.source?.page}
-            onChange={(page) => {
-              onPatch({ source: preset.source?.book || page != null ? { book: preset.source?.book ?? '', page: page ?? 0 } : undefined });
-            }}
-          />
-        </label>
-      </div>
-      <button type="button" className="btn small danger" onClick={onRemove}>
-        <Icon id="ui/delete" size="sm" /> Supprimer ce PNJ
-      </button>
+      <SourceRefField label="Source du PNJ" value={preset.source} onChange={(source) => onPatch({ source })} />
+      <BoutonRetirer id={`supprimer-preset-${preset.id}`} libelle="Supprimer ce PNJ" refus={refus} onRemove={onRemove} />
     </div>
   );
 }

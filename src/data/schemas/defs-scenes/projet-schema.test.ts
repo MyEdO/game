@@ -279,7 +279,7 @@ describe('projetSchema — les quatre sémantiques du seam, chacune NOMMÉE', ()
       documents: [],
     };
     expect(fautes(projet({ narratif }))).toEqual([
-      'narratif › indices « indice-1 » › affaireId :: affaire inconnue « affaire-fantome ».',
+      'narratif › indices « indice-1 » › affaireId :: affaire inconnue « affaire-fantome » (narratif.affaires).',
     ]);
   });
 

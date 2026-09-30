@@ -26,6 +26,10 @@ import { useInfobulle } from '../Infobulle';
 import { CodexRef } from '../compendium/CodexRef';
 import { BoiteAncree, usePlacementAncre } from '../BoiteAncree';
 import { NumberField } from '../NumberField';
+import { SourceRefField } from '../SourceRefField';
+import { SourceBadge } from '../SourceBadge';
+import { ProseField } from '../ProseField';
+import type { SourceRef } from '../../data/schemas/grammaire/valeurs';
 import { DescRefField } from '../compendium/DescRefField';
 import type { DescRef } from '../../data/source/decoupe';
 import { GatedAction } from '../GatedAction';
@@ -371,6 +375,28 @@ function NumberFieldDemo() {
       </label>
     </>
   );
+}
+
+function SourceBadgeDemo() {
+  return (
+    <Stack>
+      <SourceBadge source={{ book: 'LDB', page: 181 }} />
+      <ParchmentCard title="Lettre scellée">
+        Badge posé sur le parchemin : encre et filet lus aux jetons de la carte.{' '}
+        <SourceBadge source={{ book: 'EDO', page: 42 }} />
+      </ParchmentCard>
+    </Stack>
+  );
+}
+
+function ProseFieldDemo() {
+  const [texte, setTexte] = useState('Premier paragraphe de la prose verbatim.\n\nSecond paragraphe.');
+  return <ProseField label="Texte du document" value={texte} onChange={setTexte} />;
+}
+
+function SourceRefFieldDemo() {
+  const [source, setSource] = useState<SourceRef | undefined>(undefined);
+  return <SourceRefField label="Source" avecNote value={source} onChange={setSource} />;
 }
 
 function DescRefFieldDemo() {
@@ -1696,6 +1722,9 @@ export const GALLERY_SPECIMENS: GallerySpecimen[] = [
   { id: 'gameopeditor', label: 'GameOpEditor', file: 'src/ui/editor/GameOpEditor.tsx', category: 'Éditeur', render: GameOpEditorDemo },
   { id: 'reglagesapparence', label: 'ReglagesApparence / MonsterPartsFields', file: 'src/ui/editor/MonsterPartsFields.tsx', category: 'Éditeur', render: ReglagesApparenceDemo },
   { id: 'descreffield', label: 'DescRefField', file: 'src/ui/compendium/DescRefField.tsx', category: 'Éditeur', render: DescRefFieldDemo },
+  { id: 'sourcereffield', label: 'SourceRefField', file: 'src/ui/SourceRefField.tsx', category: 'Éditeur', render: SourceRefFieldDemo },
+  { id: 'prosefield', label: 'ProseField', file: 'src/ui/ProseField.tsx', category: 'Éditeur', render: ProseFieldDemo },
+  { id: 'sourcebadge', label: 'SourceBadge', file: 'src/ui/SourceBadge.tsx', category: 'Texte', render: SourceBadgeDemo },
   { id: 'gameopchips', label: 'GameOpChips', file: 'src/ui/GameOpChips.tsx', category: 'Texte', render: GameOpChipsDemo },
   { id: 'metalstatus', label: 'MetalStatus', file: 'src/ui/MetalStatus.tsx', category: 'Atelier du scribe', render: MetalStatusDemo },
   { id: 'waxseal-sealedplaque', label: 'WaxSeal / SealedPlaque', file: 'src/ui/WaxSeal.tsx', category: 'Atelier du scribe', render: WaxSealDemo },

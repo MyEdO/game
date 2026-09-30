@@ -22,7 +22,9 @@ import { FlowEditor } from './FlowEditor';
 import { AddMenu, TypeMenu, pickable, type TypeMenuGroup } from './AddMenu';
 import { GameOpEditor, opSummary } from './GameOpEditor';
 import { ScheduleSpecFields } from './ScheduleSpecFields';
-import { RefField } from '../compendium/RefField';
+import { RefField, RefNarrativeField, entreesDeStades, libelleDeStade, libelleNarratif, type CleDeReferenceNarrative } from '../compendium/RefField';
+import { REFERENCES_NARRATIVES } from '../../data/schemas/defs-scenes/registres-narratifs';
+import type { NarratifBlock } from '../../state/campaignNarratif';
 import { NumberField } from '../NumberField';
 import { CHAR_KEYS, CHAR_LABELS, CharKey, DIFFICULTY_LABELS, Difficulty } from '../../engine/types';
 import { ChaosAlign } from '../../engine/corruption';
@@ -80,22 +82,25 @@ const groupesDeSorts = memoParVersion('spells', (): [string, { id: string; label
   return [...m.entries()].sort(([a], [b]) => a.localeCompare(b));
 });
 
-/** Contexte « projet » des selects guidés (M9), depuis la scène active + les autres scènes.
- *  `worldMap` est PROJET (pas scène) : passé par le fournisseur quand il y a structurellement
- *  accès à la carte du monde (Editor) — absent ⇒ fallback texte pour `openPort`. */
+/** Contexte d'une racine de PROJET (M9) : ses scènes, sa carte du monde (absente ⇒ fallback texte pour
+ *  `openPort`) et son narratif. `scene` = la scène éditée, qui fournit rencontres, dialogues, marchands
+ *  et personnages ; sans elle (péripéties de route de la carte du monde), rencontres et dialogues sont
+ *  ceux de TOUTES les scènes, marchands et personnages restent des ids libres. */
 export function effectCtxOf(
-  scene: Scene,
-  otherScenes: Scene[] = [],
-  worldMap?: { places: { id: string; label: string }[] },
-): Pick<Ctx, 'merchants' | 'scenes' | 'places' | 'personas' | 'cibles'> {
+  projet: { scenes: readonly Scene[]; worldMap?: { places: { id: string; label: string }[] } | null; narratif: NarratifBlock },
+  scene?: Scene,
+): Ctx {
   return {
     cibles: CIBLES_PAR_RACINE.scene,
-    merchants: scene.entities.filter((e) => e.merchant).map((e) => ({ id: e.id, label: e.label })),
-    scenes: [scene, ...otherScenes].map((sc) => ({ id: sc.id, nom: sc.label, entries: Object.keys(sc.entryPoints ?? {}) })),
-    places: worldMap?.places.map((p) => ({ id: p.id, label: p.label })),
+    encounters: scene ? scene.encounters : projet.scenes.flatMap((s) => s.encounters),
+    dialogues: scene ? scene.dialogues : projet.scenes.flatMap((s) => s.dialogues),
+    merchants: scene?.entities.filter((e) => e.merchant).map((e) => ({ id: e.id, label: e.label })),
+    scenes: projet.scenes.map((sc) => ({ id: sc.id, nom: sc.label, entries: Object.keys(sc.entryPoints ?? {}) })),
+    places: projet.worldMap?.places.map((p) => ({ id: p.id, label: p.label })),
     // Effet `castSpell` (#98) : lanceur/cible = un « personnage » de la scène (Combatant.id ==
     // SceneEntity.id EN COMBAT — cf. combatSlice) ou un héros du groupe (id libre hors combat).
-    personas: scene.entities.filter((e) => e.kind === 'personnage').map((e) => ({ id: e.id, label: e.label })),
+    personas: scene?.entities.filter((e) => e.kind === 'personnage').map((e) => ({ id: e.id, label: e.label })),
+    narratif: projet.narratif,
   };
 }
 
@@ -113,6 +118,9 @@ export interface Ctx {
   /** Les cibles qu'offre la RACINE à ses Effets `ops` (`CIBLES_PAR_RACINE`, `state/combatEffects.ts`) :
    *  sélecteur ET résumé la lisent. Sans défaut — chaque racine dit la sienne. */
   cibles: TableDeCibles;
+  /** Narratif du projet, que désignent les références narratives (`REFERENCES_NARRATIVES`). Absent =
+   *  racine de CATALOGUE : les Effects à référence narrative n'y sont pas proposés (`menuDEffets`). */
+  narratif?: NarratifBlock;
 }
 
 /** Contexte d'une racine de CATALOGUE (`src/data`, monté au Compendium) : ni rencontre ni dialogue de
@@ -138,6 +146,20 @@ export const EFFECT_MENU_GROUPS: TypeMenuGroup[] = EFFECT_GROUPS.map(([g, types]
   items: types.map((t) => ({ key: t, label: <><Icon id={EFFECT_ICON[t]} size="sm" /> {EFFECT_LABEL[t]}</> })),
 }));
 
+/** Types d'Effet dont la fabrique pose une référence narrative (clé de `REFERENCES_NARRATIVES`). */
+const TYPES_A_REF_NARRATIVE: ReadonlySet<Effect['type']> = new Set(
+  EFFECT_TYPES.filter((t) => Object.keys(EFFECT_HANDLERS[t].make()).some((k) => k in REFERENCES_NARRATIVES)),
+);
+
+/** Le vocabulaire d'une racine SANS narratif (catalogue, #679 R4) : un Effect qui désignerait un document
+ *  de campagne romprait la portabilité du paquet de catalogue. */
+const MENU_SANS_NARRATIF: TypeMenuGroup[] = EFFECT_MENU_GROUPS
+  .map((g) => ({ ...g, items: g.items.filter((it) => !TYPES_A_REF_NARRATIVE.has(it.key as Effect['type'])) }))
+  .filter((g) => g.items.length > 0);
+
+/** Les types d'Effet que propose une racine — lu par « + Effet », « + Bloc » et le changement de type. */
+export const menuDEffets = (ctx: Pick<Ctx, 'narratif'>): TypeMenuGroup[] => (ctx.narratif ? EFFECT_MENU_GROUPS : MENU_SANS_NARRATIF);
+
 /** Une `ScheduleSpec` est-elle posée sur cet effet ? Même garde que `combatEffects.ts` (`setObjective.apply`). */
 const hasSchedule = (e: Partial<ScheduleSpec>): boolean =>
   e.afterMinutes != null || e.afterDays != null || e.atDate != null || e.atHour != null || e.atMinute != null;
@@ -155,16 +177,19 @@ function scheduleSummary(spec: ScheduleSpec): string {
 
 /** Résumé HUMAIN d'un effet (rangée repliée) — texte SEUL, PUR, testé. L'icône (`EFFECT_ICON`) est
  *  rendue séparément par l'appelant via `<Icon>` (même patron que `opSummary`/`OP_ICON`). */
-export function effectSummary(effect: Effect, ctx: Pick<Ctx, 'scenes' | 'cibles'>): string {
+export function effectSummary(effect: Effect, ctx: Pick<Ctx, 'scenes' | 'cibles' | 'narratif'>): string {
   const e = effect as any;
+  /** Libellé résolu d'une référence narrative, sinon son id, sinon « ? ». */
+  const ref = (cle: CleDeReferenceNarrative, id: string | undefined): string =>
+    (id && ctx.narratif ? libelleNarratif(ctx.narratif, cle, id) : undefined) ?? (id || '?');
   switch (effect.type) {
     case 'journal': return `Journal : ${e.desc ? `« ${coupeAuMot(e.desc, 46)} »` : '(vide)'}`;
     case 'setFlag': return `Flag ${e.flag || '?'} = ${e.value === false ? 'faux' : 'vrai'}`;
     case 'setObjective': return `Objectif [${e.id || '?'}] : ${e.desc ? `« ${coupeAuMot(e.desc, 46)} »` : '(vide)'}${hasSchedule(e) ? ` (échéance ${scheduleSummary(e)})` : ''}`;
     case 'clearObjective': return e.id ? `Retirer l'objectif [${e.id}]` : `Retirer tous les objectifs`;
-    case 'document': return `Document : ${e.documentId || '?'}`;
-    case 'revealClue': return `Indice : ${e.indiceId || '?'}${e.stade ? ` → stade ${e.stade}` : ''}`;
-    case 'discreditClue': return `Fausse piste : ${e.indiceId || '?'}`;
+    case 'document': return `Document : ${ref('documentId', e.documentId)}`;
+    case 'revealClue': return `Indice : ${ref('indiceId', e.indiceId)}${e.stade ? ` → ${(ctx.narratif && libelleDeStade(ctx.narratif, e.indiceId, e.stade)) ?? e.stade}` : ''}`;
+    case 'discreditClue': return `Fausse piste : ${ref('indiceId', e.indiceId)}`;
     case 'giveTrapping': return `Objet : ${giveTrappingLabel(e) || '?'}${e.qualities?.length ? ` (+${e.qualities.length} qualité(s))` : ''}`;
     case 'givePossession': {
       const natureLabel = e.nature === 'bete' ? 'Bête' : e.nature === 'serviteur' ? 'Serviteur' : 'Véhicule';
@@ -274,7 +299,7 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
         value={effect}
         discriminant="type"
         currentLabel={EFFECT_LABEL[effect.type]}
-        groups={EFFECT_MENU_GROUPS}
+        groups={menuDEffets(ctx)}
         make={(key) => newEffect(key as Effect['type'])}
         onChange={onChange}
       />
@@ -308,6 +333,30 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
         )}
         {effect.type === 'clearObjective' && (
           <input placeholder="id de l'objectif à retirer (vide = tous)" value={e.id ?? ''} onChange={(ev) => upd({ id: ev.target.value || undefined })} />
+        )}
+        {TYPES_A_REF_NARRATIVE.has(effect.type) && !ctx.narratif && (
+          <p className="hint">Ce catalogue ne connaît aucune campagne : cet Effet ne s’y pose pas.</p>
+        )}
+        {effect.type === 'document' && ctx.narratif && (
+          <RefNarrativeField cle="documentId" narratif={ctx.narratif} label="Document remis" value={e.documentId} onChange={(documentId) => upd({ documentId: documentId ?? '' })} />
+        )}
+        {(effect.type === 'revealClue' || effect.type === 'discreditClue') && ctx.narratif && (
+          <RefNarrativeField
+            cle="indiceId"
+            narratif={ctx.narratif}
+            label={effect.type === 'revealClue' ? 'Indice révélé' : 'Indice écarté'}
+            value={e.indiceId}
+            onChange={(indiceId) => upd(effect.type === 'revealClue' ? { indiceId: indiceId ?? '', stade: undefined } : { indiceId: indiceId ?? '' })}
+          />
+        )}
+        {effect.type === 'revealClue' && ctx.narratif && (
+          <RefField
+            cfg={{ entrees: entreesDeStades(ctx.narratif, e.indiceId), nom: 'stades de l’indice' }}
+            label="Stade (aucun = premier stade si l’indice est encore caché)"
+            value={e.stade ?? ''}
+            onChange={(v) => upd({ stade: typeof v === 'string' && v !== '' ? v : undefined })}
+            nullable
+          />
         )}
         {effect.type === 'giveTrapping' && (
           <>
@@ -1094,7 +1143,7 @@ export function EffectList({ effects, onChange, ctx }: { effects: Effect[]; onCh
       ))}
       <AddMenu
         label="+ Effet"
-        groups={pickable(EFFECT_MENU_GROUPS, (key) => onChange([...effects, newEffect(key as Effect['type'])]))}
+        groups={pickable(menuDEffets(ctx), (key) => onChange([...effects, newEffect(key as Effect['type'])]))}
       />
     </div>
   );

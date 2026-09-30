@@ -108,7 +108,7 @@ function survol(dataCell: string) {
     body: pop.querySelector('.codex-pop-body')?.textContent ?? null,
     /** La PORTE vers la fiche complète (l’infobulle borne son corps : `coupeAuMot`, `BORNE_DU_CORPS`). */
     porte: pop.querySelector('.codex-pop-open')?.textContent ?? null,
-    source: pop.querySelector('.codex-src')?.textContent ?? null,
+    source: pop.querySelector('.source-badge')?.textContent ?? null,
     /** La RAISON DU REFUS, quand la case est fermée : elle vit ICI et nulle part ailleurs à l'écran. */
     refus: pop.querySelector("[data-refus]")?.textContent ?? null,
   };
