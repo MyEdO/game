@@ -19,6 +19,7 @@ import { refusDeSujet, sujetDuMessage } from '../guards/lib/sujetDeCommit.mjs'
 import { GitIndisponible, depotDe } from '../guards/lib/gitPorte.mjs'
 import { DEPOT } from '../guards/lib/ticketsGh.mjs'
 import { COMPTEURS, messageDeCollision } from '../guards/lib/compteursDeVersion.mjs'
+import { refusDesCompteurs } from '../guards/lib/compteursDuDepot.mjs'
 import { envDeDepotForge, instanceDeDepot, sousLEnvDeLUtilisatrice } from '../guards/lib/depotGabarit.mjs'
 import { GENERATORS } from '../docs/build-all.mjs'
 import {
@@ -1194,7 +1195,7 @@ describe('compteurs de version : la valeur que la tête publie est-elle déjà P
     assert.deepEqual(juger(({ sur, save, autre, fusionner }) => { sur('train'); autre('b1'); sur('main'); save(61); sur('train'); fusionner(); save(62) }), [])
   })
 
-  test('(e) la branche monte à 61 puis redescend à 60, le tronc à 61 : la branche a MONTÉ, 60 n’est pas au-dessus du tronc — refus', () => {
+  test('(e) la branche monte à 61 puis redescend à 60, le tronc à 61 : refus, FAUX POSITIF ASSUMÉ (JSDoc de `refusDesCompteurs`)', () => {
     assert.deepEqual(juger(({ sur, save }) => { sur('train'); save(61); save(60, 'redescend'); sur('main'); save(61) }), prise(60, 61))
   })
 
@@ -1251,6 +1252,22 @@ describe('compteurs de version : la valeur que la tête publie est-elle déjà P
       spawn: (git, args, opts) => (args.includes('cat-file') && args.includes('--batch') ? { status: 1, stdout: '', stderr: '' } : spawnSync(git, args, opts)),
     })
     assert.deepEqual(questionsDuTrain(enPanne).refusDesCompteurs(), ['compteurs de version non jugés, git en panne : `git cat-file --batch` sans lot (status 1)'])
+  })
+
+  test('file de fusion : la PR se juge `G^2` contre `G^1` (refus) ; contre `origin/main`, deux PR en vol à 61 passent (silence)', () => {
+    let groupe
+    const { racine } = forger(({ g, sur, save }) => {
+      g('branch', 'A')
+      sur('A'); save(61); sur('train'); save(61)
+      g('checkout', '-q', '--detach', 'main')
+      g('merge', '-q', '--no-ff', '-m', 'groupe A', 'A')
+      g('merge', '-q', '--no-ff', '-m', 'groupe train', 'train')
+      groupe = g('rev-parse', 'HEAD')
+    })
+    const depot = depotDe(racine, { env: envDeDepotForge() })
+    assert.deepEqual(refusDesCompteurs(depot, { tete: 'train', tronc: 'origin/main' }), [], 'mauvais appel : A pas encore sur main, la PR passe')
+    assert.deepEqual(refusDesCompteurs(depot, { tete: 'A', tronc: 'origin/main' }), [], 'mauvais appel : l’autre PR passe aussi')
+    assert.deepEqual(refusDesCompteurs(depot, { tete: `${groupe}^2`, tronc: `${groupe}^1` }), prise(61, 61))
   })
 
   test('l’étape `rebase` refuse AVANT tout rebase, sur le refus des compteurs', () => {

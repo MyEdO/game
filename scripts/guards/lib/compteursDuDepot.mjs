@@ -19,12 +19,17 @@ const exiger = (vu, question) => {
  *
  * Préconditions : `tronc` fetché ; `tete` = la tête de la BRANCHE, dont la chaîne `--first-parent` est
  * la branche (`pointDeDepart`) — jamais un commit de file de fusion, où le tronc est premier parent : le
- * départ y est le tronc, sa montée invisible.
+ * départ y est le tronc, sa montée invisible. File de fusion (#2178), commit de groupe `G` : `tete` =
+ * `G^2` (tête de la PR), `tronc` = `G^1` (base du groupe), jamais `origin/main` — contre lui, deux PR
+ * en vol qui montent la même valeur passent chacune.
  * Angle mort : un rebase manuel qui absorbe une montée IDENTIQUE du tronc (`git help rebase`) ne laisse
  * aucun commit qui change la valeur ; le train juge AVANT son propre rebase (étape `rebase`,
  * `scripts/ops/etapesDuTrain.mjs`).
- * Faux positif assumé : `git merge --squash` du tronc, ou le cherry-pick de sa montée, est un commit
- * non-fusion de la branche qui change la valeur, indiscernable d'une montée propre ; fusionner le tronc.
+ * Faux positifs assumés :
+ * - `git merge --squash` du tronc, ou le cherry-pick de sa montée : un commit non-fusion de la branche
+ *   qui change la valeur, indiscernable d'une montée propre ; fusionner le tronc.
+ * - une branche qui monte puis redescend à la valeur de départ : sa montée reste dans ses commits ;
+ *   réécrire son historique.
  * @param {import('./gitPorte.mjs').Depot} depot @param {{ tete: string, tronc: string }} revisions
  * @returns {string[]}
  */
