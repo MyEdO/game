@@ -142,7 +142,7 @@ import {
 import { hunksDe } from '../guards/lib/hunks.mjs'
 import { ancetreExistant, canoniser } from '../docs/lib/chemin-mesure.mjs'
 import { estFichierVitest } from '../guards/lib/fichierVitest.mjs'
-import { motifRattachement, numerosCites, numerosDeLaChaine, numerosFermes } from '../guards/lib/fermetures.mjs'
+import { motifRattachement, numerosCites, numerosDeLaChaine, numerosFermes, numerosNusEnumeres } from '../guards/lib/fermetures.mjs'
 import {
   DOSSIERS_DE_SUBSTANCE, estCheminDeSubstance, fenetreDeRevue, memeSha, mesureDuPalier,
   nomDArchiveDeRevue, problemesDeRevue, revuesNeuves,
@@ -1113,6 +1113,13 @@ export function extractClosedIssues(command) {
   return numerosFermes(texteProfond(command)).map(Number).sort((a, b) => a - b)
 }
 
+/** Numéros qu'une clause de fermeture de la commande ÉNUMÈRE sans leur verbe (`numerosNusEnumeres`),
+ *  dédupliqués/triés. `[]` hors `git commit`. */
+export function extractFermeturesNues(command) {
+  if (!command || !isGitCommitCommand(command)) return []
+  return numerosNusEnumeres(texteProfond(command)).map(Number).sort((a, b) => a - b)
+}
+
 const VERIFIE_RE = /VERIFIE\s*:\s*(.+)/i
 const MIN_VERIFIE_LEN = 40
 // Une section d'un solde court de son titre de niveau 2 jusqu'au PROCHAIN titre de niveau 2, ou la
@@ -1588,6 +1595,18 @@ export function evaluate({
           + `ligne "verdict: CONFIRMÉ|PARTIEL|RÉFUTÉ", ≥${MIN_REVUE_PALIER_LEN} caractères de synthèse sur `
           + 'le CUMUL, sa date du jour en 1re ligne et sa fenêtre `<base>..<tête>`.',
       }
+    }
+  }
+
+  const nus = extractFermeturesNues(command)
+  if (nus.length > 0) {
+    const cites = nus.map((n) => `#${n}`).join(', ')
+    return {
+      reason:
+        `⛔ ${cites} suit une clause de fermeture sans son propre mot-clef : seul le premier \`#N\` d'une `
+        + 'clause se ferme (`numerosFermes`, scripts/guards/lib/fermetures.mjs). '
+        + `Geste : écrire \`corrige ${nus.map((n) => `#${n}`).join('`, `corrige ')}\` `
+        + `pour chacun, ou \`refs ${nus.map((n) => `#${n}`).join(' ')}\` s'il n'est pas fermé.`,
     }
   }
 

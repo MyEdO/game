@@ -377,6 +377,19 @@ test('evaluate : solde absent → deny actionnable', () => {
   assert.match(d.reason, /fichier absent/)
 })
 
+test('evaluate : `#N` nus énumérés après une clause de fermeture → refus qui les NOMME (92f57ea33)', () => {
+  const d = evaluate({
+    command: 'git commit -m "fix(tests): corrige #2225 #2114 + #2151/#2191 — lot"',
+    today: TODAY,
+    readSolde: () => solde(),
+  })
+  assert.ok(d && typeof d.reason === 'string')
+  assert.match(d.reason, /#2114, #2151, #2191 suit une clause de fermeture/)
+  assert.match(d.reason, /`corrige #2114`, `corrige #2151`, `corrige #2191`/)
+  assert.match(d.reason, /`refs #2114 #2151 #2191`/)
+  assert.equal(evaluate({ command: 'git commit -m "corrige #99, refs #1 #2"', today: TODAY, readSolde: () => solde() }), null)
+})
+
 test('evaluate : multi-fermeture — un seul solde manquant listé nommément', () => {
   const d = evaluate({
     command: 'git commit -m "corrige #1, ferme #2"',
