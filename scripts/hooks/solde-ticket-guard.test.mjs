@@ -1589,7 +1589,7 @@ test('pathspecsDuCommit : un sous-shell parenthésé rend ses chemins ; une subs
 test('evaluateHunksEmportes : sous `-i`/`--include`, le texte dit que l\'index ENTIER part', () => {
   for (const command of ['git commit -F m -i src/a.ts', 'git commit -F m --incl src/a.ts']) {
     const refus = evaluateHunksEmportes({ command, fichiersModifies: ['src/a.ts'], fichiersStages: ['src/a.ts'] })
-    assert.equal(refus.decision, 'deny', command)
+    assert.deepEqual(Object.keys(refus), ['reason'], command)
     assert.match(refus.reason, /git commit -i <paths>.*index ENTIER/, command)
     assert.doesNotMatch(refus.reason, /ignore l'index/, command)
     const note = evaluateHunksEmportes({ command, fichiersModifies: ['src/a.ts'], fichiersStages: [] })
@@ -2768,7 +2768,7 @@ test('evaluateFermetureHorsCommit : `gh issue close` refusé, y compris derrièr
   ]) {
     const d = evaluateFermetureHorsCommit(cmd)
     assert.ok(d, `passé en silence : ${cmd}`)
-    assert.equal(d.decision, 'deny')
+    assert.deepEqual(Object.keys(d), ['reason'])
     assert.match(d.reason, /la fermeture passe par un commit/)
   }
 })
@@ -2794,7 +2794,7 @@ test('evaluateFermetureHorsCommit : un corps `--input` porteur de "state": "clos
   ]) {
     const d = evaluateFermetureHorsCommit(cmd, { lire })
     assert.ok(d, `passé en silence : ${cmd}`)
-    assert.equal(d.decision, 'deny')
+    assert.deepEqual(Object.keys(d), ['reason'])
     assert.match(d.reason, /la fermeture passe par un commit/)
   }
 })
@@ -2828,7 +2828,7 @@ test('evaluateFermetureHorsCommit : sur l\'endpoint d\'UN ticket, un corps ILLIS
   const d = evaluateFermetureHorsCommit('gh api -X PATCH /repos/o/r/issues/1 --input absent.json', {
     lire: () => { throw new Error('ENOENT') },
   })
-  assert.equal(d?.decision, 'deny')
+  assert.deepEqual(Object.keys(d ?? {}), ['reason'])
   assert.match(d.reason, /illisible ou non-JSON/)
   assert.match(d.reason, /absent\.json/)
 })
@@ -2923,7 +2923,7 @@ test('evaluateHunksEmportes : chemin nommé stagé ET modifié → deny', () => 
     fichiersStages: ['src/a.ts'],
   })
   assert.ok(d)
-  assert.equal(d.decision, 'deny')
+  assert.deepEqual(Object.keys(d), ['reason'])
   assert.match(d.reason, /prend le contenu de l'ARBRE et ignore l'index/)
 })
 
@@ -2934,7 +2934,7 @@ test('evaluateHunksEmportes : chemin nommé modifié SEULEMENT → contexte, jam
     fichiersStages: ['src/b.ts'],
   })
   assert.ok(d)
-  assert.equal(d.decision, undefined)
+  assert.equal(d.reason, undefined)
   assert.match(d.contexte, /src\/a\.ts/)
 })
 
@@ -3251,7 +3251,7 @@ test('evaluateHunksEmportes : `git commit -a` emporte TOUT le modifié suivi →
     fichiersStages: ['src/a.ts'],
   })
   assert.ok(d, '`-a` passé en silence')
-  assert.equal(d.decision, undefined, 'jamais un refus : `-a` est un geste légitime')
+  assert.equal(d.reason, undefined, 'jamais un refus : `-a` est un geste légitime')
   assert.match(d.contexte, /src\/b\.ts/)
   assert.doesNotMatch(d.contexte, /src\/a\.ts/, 'ce que l\'index porte déjà n\'est pas une surprise')
   assert.equal(evaluateHunksEmportes({ command: 'git commit -a -m "x"', fichiersModifies: [], fichiersStages: [] }), null)
@@ -3276,7 +3276,7 @@ test('estDansHead HORS dépôt : JETTE une indisponibilité nommée, ne rend pas
 
 test('jugerOuNommerLIndisponible : le refus NOMME ce que git n’a pas lu ; toute autre erreur remonte', () => {
   const vu = jugerOuNommerLIndisponible(() => { throw new GitIndisponible('not a git repository') })
-  assert.equal(vu.decision, 'deny')
+  assert.deepEqual(Object.keys(vu), ['reason'])
   assert.match(vu.reason, /ascendance indisponible : not a git repository/)
   assert.equal(jugerOuNommerLIndisponible(() => null), null)
   assert.throws(() => jugerOuNommerLIndisponible(() => { throw new TypeError('un vrai bug') }), TypeError)
@@ -3373,9 +3373,9 @@ test('extractTargetDir : `Set-Location`/`sl`/`chdir`/`pushd` déplacent le commi
 })
 
 test('avecCibleIgnoree : le refus DIT le répertoire écarté ; sans écart, il n’est pas touché', () => {
-  const refus = { decision: 'deny', reason: '⛔ solde absent' }
+  const refus = { reason: '⛔ solde absent' }
   const dit = avecCibleIgnoree(refus, { chemin: '/base/.wt-x', raison: 'répertoire inexistant au moment du contrôle' })
-  assert.equal(dit.decision, 'deny')
+  assert.deepEqual(Object.keys(dit), ['reason'])
   assert.match(dit.reason, /\.wt-x/)
   assert.match(dit.reason, /inexistant/)
   assert.equal(avecCibleIgnoree(refus, null), refus)
@@ -3473,7 +3473,7 @@ test('reclassement CSS (#1806 D2″) : jugé sur un commit qui touche la fronti�
   })
   const franchit = () => ({ base: cote(false), commit: cote(true) })
   const sans = evaluateReclassementsCss({ command: 'git commit -m "feat: second écran"', deplace: () => true, cotes: franchit })
-  assert.equal(sans.decision, 'deny')
+  assert.deepEqual(Object.keys(sans), ['reason'])
   assert.ok(sans.reason.includes(`${module} : franchi au prix 2, aucune ligne`), sans.reason)
   const ligne = `RECLASSEMENT: ${module} +2 — la console devient une primitive, refs #1806`
   assert.equal(evaluateReclassementsCss({ command: `git commit -m "feat\n\n${ligne}"`, deplace: () => true, cotes: franchit }), null)
@@ -3491,7 +3491,7 @@ test('reclassement CSS (#1806 D2″) : jugé sur un commit qui touche la fronti�
     deplace: () => true,
     cotes: () => { throw new Error('src/data/primitives.manifest.json illisible : x') },
   })
-  assert.equal(injugeable?.decision, 'deny', 'manifeste illisible : refus nommé, jamais un passage muet')
+  assert.deepEqual(Object.keys(injugeable ?? {}), ['reason'], 'manifeste illisible : refus nommé, jamais un passage muet')
   assert.match(injugeable.reason, /injugeable : src\/data\/primitives\.manifest\.json illisible/)
 })
 

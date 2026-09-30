@@ -16,7 +16,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { execFileSync, spawnSync } from 'node:child_process'
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
 import { listerDossier } from '../guards/lib/lister.mjs'
 import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import path from 'node:path'
@@ -284,12 +284,12 @@ const GENERATEURS_REELS = [
 /** Joue `executer` dans un processus À PART (il imprime sur stderr, que le banc lit), par un HARNAIS
  *  posé sous le `node_modules/` ignoré du dépôt jetable : un module qui en importe un autre par
  *  `file://` absolu, lancé comme tout script. */
-function executer(racine, argv, env = {}, verificateurs = [], generateurs = GENERATEURS_REELS) {
+function executer(racine, argv, env = {}, verificateurs = [], generateurs = GENERATEURS_REELS, plateformes = undefined) {
   const harnais = path.join(racine, 'node_modules', 'harnais-executer.mjs')
   mkdirSync(path.dirname(harnais), { recursive: true })
   writeFileSync(harnais, [
     `import { executer } from ${JSON.stringify(BUILD_ALL)}`,
-    `process.exitCode = await executer({ cwd: ${JSON.stringify(racine)}, argv: ${JSON.stringify(['--quiet', ...argv])}, generateurs: ${JSON.stringify(generateurs)}, verificateurs: ${JSON.stringify(verificateurs)} })`,
+    `process.exitCode = await executer({ cwd: ${JSON.stringify(racine)}, argv: ${JSON.stringify(['--quiet', ...argv])}, generateurs: ${JSON.stringify(generateurs)}, verificateurs: ${JSON.stringify(verificateurs)}, plateformes: ${JSON.stringify(plateformes)} })`,
   ].join('\n'))
   const r = spawnSync(process.execPath, [harnais], { cwd: racine, encoding: 'utf8', env: { ...process.env, ...env } })
   return { status: r.status, sortie: `${r.stdout}${r.stderr}` }
@@ -351,48 +351,73 @@ test('ANGLE MORT de la fraîcheur : un corps « rendu sous une autre plateforme 
   }
 })
 
-const AUTRES_PLATEFORMES = Object.keys(PLATEFORMES).filter((p) => p !== process.platform)
 /** Raison d'un corps périmé que `docs:build` ne guérit pas : l'hôte et `p` en déclarent d'autres. */
 const DIVERGENT = (p) => ` : l'hôte et ${p} ne déclarent pas les mêmes corps périmés, \`docs:build\` ne le guérit pas\n`
 
-test('`--check --tout` : corps committé périmé ET rendu propre à la plateforme — `docs:build` ne guérit pas l’écart de la plateforme, sortie 1', { skip: !AUTRES_PLATEFORMES.length && 'hôte sans autre plateforme à rendre' }, () => {
+/** Un module ESM en URL `data:`. */
+const donnee = (source) => `data:text/javascript,${encodeURIComponent(source)}`
+/** La graphie de `path` de L'AUTRE famille que l'hôte : ce que rend la plateforme `SYNTHETIQUE`. */
+const AUTRE_PATH = path.sep === '/' ? path.win32 : path.posix
+/** Une plateforme SYNTHÉTIQUE, autre que l'hôte sur TOUT hôte : les générateurs du dépôt jetable y
+ *  reçoivent `AUTRE_PATH` pour `node:path`, par le mécanisme de `PLATEFORMES` (un module `--import`). */
+const SYNTHETIQUE = 'synthetique'
+function plateformeSynthetique(racine) {
+  const depot = pathToFileURL(path.join(realpathSync(racine), 'g', '/')).href
+  const autre = donnee([
+    "import p from 'node:path'",
+    `const a = p.${path.sep === '/' ? 'win32' : 'posix'}`,
+    'export default a',
+    `export const { ${Object.keys(AUTRE_PATH).filter((k) => /^[a-z]\w*$/i.test(k)).join(', ')} } = a`,
+  ].join('\n'))
+  const hooks = donnee([
+    `export async function resolve(s, c, suivant) {`,
+    `  if ((s === 'node:path' || s === 'path') && c.parentURL?.startsWith(${JSON.stringify(depot)})) return { url: ${JSON.stringify(autre)}, shortCircuit: true }`,
+    '  return suivant(s, c)',
+    '}',
+  ].join('\n'))
+  return { [SYNTHETIQUE]: donnee(`import { register } from 'node:module'\nregister(${JSON.stringify(hooks)})\n`) }
+}
+/** Le chemin cité par un générateur à `separateur`, rendu sur l'hôte, puis sous `SYNTHETIQUE`. */
+const CITE_HOTE = `\`${path.join('src', 'a.ts')}\``
+const CITE_AUTRE = `\`${AUTRE_PATH.join('src', 'a.ts')}\``
+
+test('`--check --tout` : corps committé périmé ET rendu propre à la plateforme — `docs:build` ne guérit pas l’écart de la plateforme, sortie 1', () => {
   const { racine, git } = depotReel({ separateur: true })
   try {
+    const plateformes = plateformeSynthetique(racine)
     const cible = path.join(racine, DOC_A)
     writeFileSync(cible, readFileSync(cible, 'utf8').replace('# a\n', '# a édité à la main\n'))
     git('add', DOC_A)
-    const rouge = executer(racine, ['--check', '--tout'])
+    const rouge = executer(racine, ['--check', '--tout'], {}, [], GENERATEURS_REELS, plateformes)
     assert.equal(rouge.status, 1, `le corps rendu sous une autre plateforme n'est pas celui que \`docs:build\` écrit : ${rouge.sortie}`)
-    const [premiere] = AUTRES_PLATEFORMES
-    assert.ok(rouge.sortie.includes(`docs:check — g/a.mjs — corps périmé${DIVERGENT(premiere)}`), rouge.sortie)
-    for (const p of AUTRES_PLATEFORMES) {
-      assert.ok(rouge.sortie.includes(`docs:check — g/a.mjs — rendu sous ${p} — corps périmé${DIVERGENT(premiere)}`), rouge.sortie)
-    }
+    assert.ok(rouge.sortie.includes(`docs:check — g/a.mjs — corps périmé${DIVERGENT(SYNTHETIQUE)}`), rouge.sortie)
+    assert.ok(rouge.sortie.includes(`docs:check — g/a.mjs — rendu sous ${SYNTHETIQUE} — corps périmé${DIVERGENT(SYNTHETIQUE)}`), rouge.sortie)
 
     // `docs:build` régénère : le rouge de l'hôte guérit, celui de la plateforme SUBSISTE.
-    assert.equal(executer(racine, []).status, 0)
+    assert.equal(executer(racine, [], {}, [], GENERATEURS_REELS, plateformes).status, 0)
     git('add', '-A')
-    const apres = executer(racine, ['--check', '--tout'])
+    const apres = executer(racine, ['--check', '--tout'], {}, [], GENERATEURS_REELS, plateformes)
     assert.equal(apres.status, 1, apres.sortie)
     assert.doesNotMatch(apres.sortie, /docs:check — g\/a\.mjs — corps périmé/)
-    for (const p of AUTRES_PLATEFORMES) {
-      assert.ok(apres.sortie.includes(`docs:check — g/a.mjs — rendu sous ${p} — corps périmé${DIVERGENT(premiere)}`), apres.sortie)
-    }
+    assert.ok(apres.sortie.includes(`docs:check — g/a.mjs — rendu sous ${SYNTHETIQUE} — corps périmé${DIVERGENT(SYNTHETIQUE)}`), apres.sortie)
   } finally {
     rmSync(racine, { recursive: true, force: true })
   }
 })
 
-test('`--check --tout` : corps committé = rendu d’une AUTRE plateforme — le rouge de l’hôte ne guérit pas, sortie 1', { skip: !AUTRES_PLATEFORMES.length && 'hôte sans autre plateforme à rendre' }, () => {
+test('`--check --tout` : corps committé = rendu d’une AUTRE plateforme — le rouge de l’hôte ne guérit pas, sortie 1', () => {
   const { racine, git } = depotReel({ separateur: true })
   try {
+    const plateformes = plateformeSynthetique(racine)
     const cible = path.join(racine, DOC_A)
-    writeFileSync(cible, readFileSync(cible, 'utf8').replace('`src/a.ts`', '`src\\a.ts`'))
+    const rendu = readFileSync(cible, 'utf8')
+    assert.ok(rendu.includes(CITE_HOTE) && CITE_HOTE !== CITE_AUTRE, `le rendu de l'hôte cite ${CITE_HOTE}, distinct de ${CITE_AUTRE}`)
+    writeFileSync(cible, rendu.replace(CITE_HOTE, CITE_AUTRE))
     git('add', DOC_A)
-    const rouge = executer(racine, ['--check', '--tout'])
+    const rouge = executer(racine, ['--check', '--tout'], {}, [], GENERATEURS_REELS, plateformes)
     assert.equal(rouge.status, 1, `\`docs:build\` écrirait le rendu de l'hôte et ferait naître le rouge de l'autre plateforme : ${rouge.sortie}`)
-    assert.ok(rouge.sortie.includes(`docs:check — g/a.mjs — corps périmé${DIVERGENT(AUTRES_PLATEFORMES[0])}`), rouge.sortie)
-    for (const p of AUTRES_PLATEFORMES) assert.ok(!rouge.sortie.includes(`rendu sous ${p} — corps périmé`), rouge.sortie)
+    assert.ok(rouge.sortie.includes(`docs:check — g/a.mjs — corps périmé${DIVERGENT(SYNTHETIQUE)}`), rouge.sortie)
+    assert.ok(!rouge.sortie.includes(`rendu sous ${SYNTHETIQUE} — corps périmé`), rouge.sortie)
   } finally {
     rmSync(racine, { recursive: true, force: true })
   }

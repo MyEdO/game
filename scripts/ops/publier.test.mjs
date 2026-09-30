@@ -16,11 +16,11 @@ import { codeSeul } from '../guards/lib/commentPoison.mjs'
 import { manquementsDeFeuilles } from '../guards/lib/modulesFeuilles.mjs'
 import { numerosCites } from '../guards/lib/fermetures.mjs'
 import { refusDeSujet, sujetDuMessage } from '../guards/lib/sujetDeCommit.mjs'
-import { GitIndisponible, depotDe } from '../guards/lib/gitPorte.mjs'
+import { GitIndisponible, MARQUE_FEINTE, depotDe } from '../guards/lib/gitPorte.mjs'
 import { DEPOT } from '../guards/lib/ticketsGh.mjs'
 import { COMPTEURS, messageDeCollision } from '../guards/lib/compteursDeVersion.mjs'
 import { refusDesCompteurs } from '../guards/lib/compteursDuDepot.mjs'
-import { envDeDepotForge, instanceDeDepot, sousLEnvDeLUtilisatrice } from '../guards/lib/depotGabarit.mjs'
+import { envDeDepotForge, envGitFeint, instanceDeDepot, sousLEnvDeLUtilisatrice } from '../guards/lib/depotGabarit.mjs'
 import { GENERATORS } from '../docs/build-all.mjs'
 import {
   CODE_ARRET_MOTEUR,
@@ -434,17 +434,14 @@ test('git INDISPONIBLE : le train LÈVE `GitIndisponible` — ni tête `null`, n
 })
 
 test('git INDISPONIBLE avant le train (racine, branche, tête) : une ligne finale `PUBLICATION: rouge` NOMMÉE, jamais une pile brute', () => {
-  const cale = mkdtempSync(join(tmpdir(), 'git-en-panne-'))
-  try {
-    writeFileSync(join(cale, 'git'), "#!/bin/sh\necho 'fatal: panne simulée' >&2\nexit 128\n", { mode: 0o755 })
-    const vu = spawnSync(process.execPath, [fileURLToPath(new URL('./publier.mjs', import.meta.url)), '--etapes'], {
-      encoding: 'utf8', env: { ...process.env, PATH: `${cale}:${process.env.PATH}`, WFRP_PUBLIER_ENFANT: '' },
-    })
-    assert.equal(vu.status, CODE_ARRET_MOTEUR, vu.stderr)
-    assert.equal(vu.stderr, 'PUBLICATION: rouge moteur — git indisponible : fatal: panne simulée\n')
-  } finally {
-    rmSync(cale, { recursive: true, force: true })
-  }
+  const vu = spawnSync(process.execPath, [fileURLToPath(new URL('./publier.mjs', import.meta.url)), '--etapes'], {
+    encoding: 'utf8', env: { ...process.env, ...envGitFeint([{ si: [], status: 128, stderr: 'fatal: panne simulée\n' }]), WFRP_PUBLIER_ENFANT: '' },
+  })
+  assert.equal(vu.status, CODE_ARRET_MOTEUR, vu.stderr)
+  const lignes = vu.stderr.split('\n')
+  assert.equal(lignes.at(-2), 'PUBLICATION: rouge moteur — git indisponible : fatal: panne simulée', vu.stderr)
+  assert.deepEqual(lignes.slice(0, -2).filter((l) => !l.startsWith(MARQUE_FEINTE)), [], `hors marques de feinte, la ligne finale seule : ${vu.stderr}`)
+  assert.ok(lignes.length > 2, `la panne est FEINTE, et se marque : ${vu.stderr}`)
 })
 
 test('`ctx.commit` sans chemins, ou à chemins vides, LÈVE avant tout spawn : ni `git add -A`, ni commit de tout l’index', () => {

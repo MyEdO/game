@@ -23,7 +23,7 @@ import {
   classerPush,
   gatesSautables,
 } from './classerPush.mjs'
-import { envDeDepotForge } from '../guards/lib/depotGabarit.mjs'
+import { envDeDepotForge, sousGitFeint } from '../guards/lib/depotGabarit.mjs'
 import { blocsDeJobs, contextesRequis, gatesDeCi, stepsCi, CI_SEULEMENT } from './gatesDeCi.mjs'
 import { stepsDu } from './workflowsDuDepot.mjs'
 import { corpusParGate, inerte } from './ecrivainsAtteints.mjs'
@@ -372,7 +372,7 @@ test('CLI — sans `origin`, le classement est CONSERVATEUR', () => {
 /** Imports statiques, réexports, imports nus et `import()` dynamiques d'un source. */
 const IMPORTS = /(?:^|\n)\s*(?:import|export)\s[^'"]*?from\s*['"]([^'"]+)['"]|(?:^|\n)\s*import\s*['"]([^'"]+)['"]|import\(\s*['"]([^'"]+)['"]\s*\)/g
 
-/** La fermeture transitive des imports de `depart` : `{ fichiers, paquets }` (chemins relatifs au dépôt). */
+/** La fermeture transitive des imports de `depart` : `{ fichiers, paquets }` (chemins relatifs au dépôt, graphie de l'hôte). */
 function fermetureDesImports(depart) {
   const fichiers = new Set()
   const paquets = []
@@ -395,7 +395,7 @@ function fermetureDesImports(depart) {
 
 test('le classement tourne AVANT `npm ci` : la fermeture de ses imports n’atteint aucun paquet', () => {
   const { fichiers, paquets } = fermetureDesImports(CLASSEUR)
-  assert.ok(fichiers.includes('scripts/guards/lib/gitPorte.mjs'), 'la fermeture lit bien l’hôte git : sinon ce test ne mesure rien')
+  assert.ok(fichiers.includes(join('scripts', 'guards', 'lib', 'gitPorte.mjs')), 'la fermeture lit bien l’hôte git : sinon ce test ne mesure rien')
   assert.deepEqual(paquets, [], `imports hors node:* et hors dépôt dans la fermeture de ${fichiers.join(', ')}`)
 })
 
@@ -418,18 +418,11 @@ test('ÉCHEC — `merge-base` sans ancêtre commun, le tronc présent : classeme
 
 test('ÉCHEC — une PANNE de git au merge-base : classement CONSERVATEUR, et la panne est NOMMÉE', () => {
   const { racine } = depotJetable()
-  const cale = mkdtempSync(join(tmpdir(), 'git-en-panne-'))
-  const chemin = process.env.PATH
   try {
-    const vrai = execFileSync('sh', ['-c', 'command -v git'], { encoding: 'utf8' }).trim()
-    writeFileSync(join(cale, 'git'), `#!/bin/sh\ncase " $* " in *" merge-base "*) echo 'fatal: panne simulée' >&2; exit 128;; esac\nexec '${vrai}' "$@"\n`, { mode: 0o755 })
-    process.env.PATH = `${cale}:${chemin}`
-    const v = classerPush({ sha: 'HEAD', cwd: racine })
+    const v = sousGitFeint([{ si: ['merge-base'], status: 128, stderr: 'fatal: panne simulée\n' }], () => classerPush({ sha: 'HEAD', cwd: racine }))
     assert.deepEqual([v.produit, v.base, v.motifs], [true, null, ['merge-base origin/main en échec — git indisponible : fatal: panne simulée : conservateur']])
   } finally {
-    process.env.PATH = chemin
     rmSync(racine, { recursive: true, force: true })
-    rmSync(cale, { recursive: true, force: true })
   }
 })
 
