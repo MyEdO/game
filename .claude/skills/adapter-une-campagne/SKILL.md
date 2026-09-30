@@ -7,7 +7,7 @@ description: À utiliser pour adapter une campagne publiée en jeu (dossier de c
 
 La méthode fait foi dans le commentaire de pilotage de l'épique #665 (« ÉPIQUE campagne:EDO — « L'Ennemi
 dans l'Ombre » jouable bout-en-bout (Tome 1 + Compagnon) ») :
-https://github.com/cgauche/game/issues/665#issuecomment-5849927764. Cette skill la ROUTE vers ses outils.
+https://github.com/MyEdO/game/issues/665#issuecomment-5849927764. Cette skill la ROUTE vers ses outils.
 
 ## But et répartition
 
