@@ -22,7 +22,6 @@
 import '../node-requis.mjs'
 import { spawn, spawnSync } from 'node:child_process'
 import { closeSync, existsSync, linkSync, mkdirSync, openSync, readFileSync, renameSync, rmSync, statSync, writeSync } from 'node:fs'
-import { uptime } from 'node:os'
 import { dirname, join } from 'node:path'
 import { SOURCES_LUES } from '../docs/build-all.mjs'
 import { approfondir, depotDe, dossierDesHooks, estSuperficiel, reussi } from '../guards/lib/gitPorte.mjs'
@@ -61,6 +60,13 @@ export const VERROU_DOCS = 'node_modules/.cache/bootstrap-docs-build.pid'
 /** Délai au-delà duquel un verrou sans pid lisible est ABANDONNÉ (hook tué entre création et écriture). */
 const ABANDON_VERROU_MS = 10_000
 
+/**
+ * Âge au-delà duquel un verrou est PÉRIMÉ quel que soit son pid : le verrou n'est pas retiré à la fin
+ * du build, et son pid a pu être repris par un processus étranger. Un `docs:build` CI dure ~80 s (job
+ * docs du run 36803856342).
+ */
+const AGE_MAX_VERROU_MS = 30 * 60 * 1000
+
 /** `pid` désigne-t-il un processus vivant ? Un refus de signal (`EPERM`) prouve qu'il existe. */
 const pidVivant = (pid) => {
   try {
@@ -75,11 +81,10 @@ const pidVivant = (pid) => {
 const ESSAIS_VERROU = 3
 
 /**
- * Le pid du build qui TIENT le verrou, ou `null` s'il est périmé : absent, posé avant `demarrageMachine`
- * (epoch ms — son pid est celui d'une vie antérieure de la machine, qu'un autre processus a pu
- * reprendre), pid mort, ou illisible et abandonné.
+ * Le pid du build qui TIENT le verrou, ou `null` s'il est périmé : absent, plus vieux que
+ * `AGE_MAX_VERROU_MS`, pid mort, ou illisible et abandonné.
  */
-function tenantDuVerrou(verrou, demarrageMachine) {
+function tenantDuVerrou(verrou) {
   let mtimeMs
   let texte
   try {
@@ -89,7 +94,7 @@ function tenantDuVerrou(verrou, demarrageMachine) {
     if (e.code === 'ENOENT') return null
     throw e
   }
-  if (mtimeMs < demarrageMachine) return null
+  if (Date.now() - mtimeMs > AGE_MAX_VERROU_MS) return null
   const pid = Number(texte.trim())
   if (Number.isInteger(pid) && pid > 0) return pidVivant(pid) ? pid : null
   return Date.now() - mtimeMs < ABANDON_VERROU_MS ? 0 : null
@@ -101,7 +106,7 @@ function tenantDuVerrou(verrou, demarrageMachine) {
  * entre le constat et le renommage, une autre session a pu reprendre le verrou, et ce verrou VIVANT se
  * repose (`linkSync`, qui refuse d'écraser).
  */
-function ecarterVerrouPerime(verrou, demarrageMachine) {
+function ecarterVerrouPerime(verrou) {
   const ecarte = `${verrou}.${process.pid}.${Date.now()}.perime`
   try {
     renameSync(verrou, ecarte)
@@ -110,7 +115,7 @@ function ecarterVerrouPerime(verrou, demarrageMachine) {
     throw e
   }
   try {
-    if (tenantDuVerrou(ecarte, demarrageMachine) !== null) linkSync(ecarte, verrou)
+    if (tenantDuVerrou(ecarte) !== null) linkSync(ecarte, verrou)
   } catch (e) {
     if (e.code !== 'EEXIST') throw e
   } finally {
@@ -123,10 +128,9 @@ function ecarterVerrouPerime(verrou, demarrageMachine) {
  * forme de `lancer`, `valeur` = le pid. Deux sessions ouvertes avant la fin du build : le verrou
  * `VERROU_DOCS` tenu par un build VIVANT, il n'est ni relancé ni son journal tronqué — `valeur` est le
  * pid du build en cours. Un verrou périmé s'écarte (`ecarterVerrouPerime`), puis se reprend.
- * `demarrageMachine` (epoch ms) et `entreConstatEtEcart` (appelé entre le constat d'un verrou périmé et
- * son écart) s'injectent (mesure).
+ * `entreConstatEtEcart` (appelé entre le constat d'un verrou périmé et son écart) s'injecte (mesure).
  */
-export function docsBuildDetache(racine, { demarrageMachine = Date.now() - uptime() * 1000, entreConstatEtEcart = () => {} } = {}) {
+export function docsBuildDetache(racine, { entreConstatEtEcart = () => {} } = {}) {
   const journal = join(racine, JOURNAL_DOCS)
   const verrou = join(racine, VERROU_DOCS)
   mkdirSync(dirname(journal), { recursive: true })
@@ -136,11 +140,11 @@ export function docsBuildDetache(racine, { demarrageMachine = Date.now() - uptim
       tenu = openSync(verrou, 'wx')
     } catch (e) {
       if (e.code !== 'EEXIST' || essai >= ESSAIS_VERROU) return { ok: false, valeur: '', rapport: borner(e.message) }
-      const tenant = tenantDuVerrou(verrou, demarrageMachine)
+      const tenant = tenantDuVerrou(verrou)
       if (tenant !== null) return { ok: true, valeur: tenant ? String(tenant) : '', rapport: '' }
       entreConstatEtEcart()
       try {
-        ecarterVerrouPerime(verrou, demarrageMachine)
+        ecarterVerrouPerime(verrou)
       } catch (ecart) {
         return { ok: false, valeur: '', rapport: borner(ecart.message) }
       }

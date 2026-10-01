@@ -18,25 +18,12 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { ecrireDoc, existeFichier, fusionnerLectures, serialiserSourcesLues } from './ecriture-derives.mjs'
 import { ignoresGit } from './chemin-mesure.mjs'
-import { GENERATORS, mesurerGenerateur, preparerLectures, refusSourcesInsuffisantes } from '../build-all.mjs'
+import { mesurerEnRendu, refusSourcesInsuffisantes } from '../build-all.mjs'
 
 const ICI = path.dirname(fileURLToPath(import.meta.url))
 const RACINE = path.resolve(ICI, '..', '..', '..')
-const TSX_ESM = fileURLToPath(import.meta.resolve('tsx/esm'))
-
-/** Les lectures de `script` (un générateur de `GENERATORS`) par LA mesure de `docs:build`
- *  (`mesurerGenerateur`), en mode `rendre` : aucune cible écrite ni comparée. */
-function mesurer(script) {
-  const g = GENERATORS.find((x) => x.script === script)
-  const racineLectures = mkdtempSync(path.join(tmpdir(), 'lectures-'))
-  try {
-    const ignores = preparerLectures(RACINE, racineLectures)
-    const tsxEsm = g.runner === 'tsx' ? TSX_ESM : null
-    return mesurerGenerateur(g, { cwd: RACINE, mode: 'rendre', quiet: true, tsxEsm, ignores, lectures: path.join(racineLectures, 'l') }).lues
-  } finally {
-    rmSync(racineLectures, { recursive: true, force: true })
-  }
-}
+/** Les lectures de `script` (un générateur de `GENERATORS`) par LA mesure rendue (`mesurerEnRendu`). */
+const mesurer = (script) => mesurerEnRendu([script], { cwd: RACINE }).get(script).lues
 
 test('témoin : build-index-moteur mesure plus de 100 sources (liaisons ESM synchronisées)', () => {
   const lues = mesurer('scripts/docs/build-index-moteur.mjs')

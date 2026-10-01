@@ -3,7 +3,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, utimesSync, writeFileSync } from 'node:fs'
-import { spawnSync } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
 import { rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
@@ -259,20 +259,22 @@ function poserVerrou(racine, pid, mtime) {
   return verrou
 }
 
-test('docs:build détaché : un verrou posé AVANT le démarrage de la machine est périmé, même si son pid vit', async () => {
+test('docs:build détaché : un verrou plus vieux que AGE_MAX_VERROU_MS est périmé, même tenu par un processus étranger VIVANT', async () => {
   const racine = racineDeBuild()
+  // Le build rouge a laissé son pid, repris dans la même vie de la machine par un processus étranger.
+  const etranger = spawn(process.execPath, ['-e', 'setTimeout(() => {}, 30000)'], { stdio: 'ignore' })
   let repris
   try {
-    // Le pid du banc VIT : sans le démarrage de la machine, ce verrou d'une vie antérieure tiendrait.
-    const verrou = poserVerrou(racine, process.pid, Date.UTC(2001, 0, 1) / 1000)
+    const ilYa3Jours = (Date.now() - 3 * 86_400_000) / 1000
+    const verrou = poserVerrou(racine, etranger.pid, ilYa3Jours)
     repris = docsBuildDetache(racine)
     assert.equal(repris.ok, true, repris.rapport)
-    assert.notEqual(repris.valeur, String(process.pid), 'un pid réutilisé ne tient pas un verrou d’avant le démarrage')
+    assert.notEqual(repris.valeur, String(etranger.pid), 'le build est LANCÉ, l’étranger ne passe pas pour lui')
     assert.equal(readFileSync(verrou, 'utf8'), repris.valeur)
   } finally {
-    const lance = repris?.valeur && repris.valeur !== String(process.pid) ? repris.valeur : null
-    if (lance) tuer(lance)
-    await attendre(() => !lance || !vivant(lance), 'le build du banc meurt')
+    const lances = [String(etranger.pid), repris?.valeur].filter(Boolean)
+    for (const pid of lances) tuer(pid)
+    await attendre(() => lances.every((pid) => !vivant(pid)), 'les processus du banc meurent')
     await rm(racine, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 })
   }
 })

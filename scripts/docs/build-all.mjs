@@ -23,7 +23,8 @@
 // Un générateur `runner: 'tsx'` se lance par `node --import tsx/esm` (`tsx/dist/cli.mjs` re-spawne un
 // processus) ; un dumper passe par `resoudreOutilLocal` + `envIsole`, qui transmettent l'env.
 import { execFileSync } from 'node:child_process'
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { binLocal, envIsole, resoudreOutilLocal } from '../lancer-local.mjs'
@@ -105,7 +106,7 @@ export const generateursDeCode = (generateurs = GENERATORS) =>
  */
 export function genererCode({ cwd, quiet = false, generateurs = GENERATORS }) {
   const deCode = generateursDeCode(generateurs)
-  const tsxEsm = deCode.some((g) => g.runner === 'tsx') ? tsxEsmDe(cwd) : null
+  const tsxEsm = tsxEsmPour(deCode, cwd)
   for (const g of deCode) {
     try {
       run(g, { cwd, quiet, mode: 'ecrire', tsxEsm })
@@ -150,6 +151,9 @@ function tsxEsmDe(cwd) {
   }
   return fileURLToPath(import.meta.resolve('tsx/esm'))
 }
+
+/** Le `tsxEsm` de `generateurs` : l'entrée de cet arbre (`tsxEsmDe`) si l'un est `runner: 'tsx'`, sinon `null`. */
+const tsxEsmPour = (generateurs, cwd) => (generateurs.some((g) => g.runner === 'tsx') ? tsxEsmDe(cwd) : null)
 
 /** Chemins visés par une liste de `targets`/`injecte` — un glob se déplie sur le disque dans la
  *  grammaire UNIQUE du dépôt (`motifDeGlob` / `correspondGlob`, `scripts/guards/lib/lister.mjs`), et
@@ -312,6 +316,30 @@ export function mesurerGenerateur(g, { cwd, mode, quiet, tsxEsm, lectures, ignor
   return { lues, entree: { cibles: ecrites.filter(estUnDocMarkdown), fichiers: lues.fichiers, dossiers: [...lues.dossiers.keys()] } }
 }
 
+/**
+ * LA mesure de `scripts` (générateurs de `generateurs`) en mode `rendre` — aucune cible écrite ni
+ * comparée —, sous une racine de lectures JETABLE de os.tmpdir(), effacée au retour. REND la `Map`
+ * `script → mesurerGenerateur`.
+ */
+export function mesurerEnRendu(scripts, { cwd, generateurs = GENERATORS }) {
+  const mesures = scripts.map((script) => {
+    const g = generateurs.find((x) => x.script === script)
+    if (!g) throw new Error(`mesurerEnRendu : ${script} n'est pas un générateur`)
+    return g
+  })
+  const tsxEsm = tsxEsmPour(mesures, cwd)
+  const racineLectures = mkdtempSync(path.join(tmpdir(), 'mesure-rendue-'))
+  try {
+    const ignores = preparerLectures(cwd, racineLectures)
+    return new Map(mesures.map((g, i) => [
+      g.script,
+      mesurerGenerateur(g, { cwd, mode: 'rendre', quiet: true, tsxEsm, ignores, lectures: path.join(racineLectures, String(i)) }),
+    ]))
+  } finally {
+    rmSync(racineLectures, { recursive: true, force: true })
+  }
+}
+
 /** `cible` est-elle PRODUITE par son générateur : une clé de son rendu, jamais un chemin que son
  *  motif atteint. `false` hors de `GENERATORS`. */
 export async function cibleProduite(cible, generateurs = GENERATORS) {
@@ -384,7 +412,7 @@ export async function executer({
   const only = argumentsDe(argv, '--only')
   const seulement = only && new Set(only)
   // Refus d'un tsx NON LOCAL avant le premier générateur : à mi-chaîne, docs/ serait à moitié écrit.
-  const tsxEsm = generateurs.some((g) => g.runner === 'tsx') ? tsxEsmDe(cwd) : null
+  const tsxEsm = tsxEsmPour(generateurs, cwd)
   const { doublons } = proprietairesDeCibles(cwd, generateurs)
   if (doublons.length) {
     process.stderr.write(`docs:build — ARRÊT : cible(s) déclarée(s) par DEUX générateurs :\n${doublons.map((d) => `  ${d}`).join('\n')}\n`)
