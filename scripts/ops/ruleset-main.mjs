@@ -62,9 +62,11 @@ export const DELAI_DE_REPONSE_MINUTES = 2 * TIMEOUT_JOB_MINUTES
  * Paramètres de la règle `merge_queue` — les sept que le schéma `repository-rule-merge-queue` exige.
  * `MERGE` : les commits de la branche entrent avec LEURS shas (#2178, design v2). `ALLGREEN` : chaque
  * commit de file passe les checks requis. `min_entries_to_merge: 1` : aucune attente de groupe.
- * `max_entries_to_build: 2` : une course de `ci.yml` = 8 jobs, et le plan `free` en sert 20 à la fois
- * (limits.md, tableau « Total concurrent jobs ») — deux courses simultanées (16 jobs) tiennent, au-delà
- * des jobs attendent ; l’attente se mesure `createdAt` → `startedAt` (#2178, design du lot 1b §5).
+ * `max_entries_to_build: 2` : une course de `ci.yml` = 8 jobs (run 36831681566), et le plan `free` de
+ * l'organisation `MyEdO` (`gh api orgs/MyEdO --jq .plan.name`) en sert 20 à la fois (limits.md, tableau
+ * « Total concurrent jobs »). Deux entrées de file = 2 × 8 = 16 jobs ; il reste 20 − 16 = 4 jobs pour
+ * TOUTE course de branche : N courses de branche simultanées (N × 8) attendent dès que 16 + N × 8 > 20,
+ * soit dès N = 1. L'attente se mesure `createdAt` → `startedAt` (#2178, design du lot 1b §5).
  */
 export const PARAMETRES_DE_FILE = Object.freeze({
   check_response_timeout_minutes: DELAI_DE_REPONSE_MINUTES,
@@ -111,6 +113,33 @@ export function refDe(argv) {
   const ref = argv[i + 1]
   if (!ref || ref.startsWith('-')) return { refus: '[ruleset] REFUS : `--depuis` sans ref — `--depuis <ref>`' }
   return { ref }
+}
+
+/** Le refus de lire `--depuis <ref>` LOCALE quand `origin/<ref>` existe et pointe ailleurs, ou `null`.
+ *  PUR. `locale` = sha de `refs/heads/<ref>` (`null` : la ref n'est pas une branche locale) ;
+ *  `distante` = sha de `refs/remotes/origin/<ref>` (`null` : aucune ref distante). */
+export function refusDeRefLocale(ref, { locale, distante }) {
+  if (locale === null || distante === null || locale === distante) return null
+  return `[ruleset] REFUS : \`--depuis ${ref}\` lit la branche LOCALE (${locale}), qui diffère de origin/${ref} (${distante}) — pousser ou remettre la branche à origin/${ref}, puis relancer`
+}
+
+/** La requête GraphQL du compte d'entrées de la file de `main` (`MergeQueue.entries`). */
+export const REQUETE_DE_FILE =
+  `query($owner:String!,$name:String!){repository(owner:$owner,name:$name){mergeQueue(branch:"${NOM}"){entries(first:1){totalCount}}}}`
+
+/** Le nombre d'entrées de la file de `main`, lu par `runner` (le canal `gh` du script). */
+export function entreesDeFile(runner = gh) {
+  const [owner, name] = DEPOT.split('/')
+  const rendu = JSON.parse(runner(['api', 'graphql', '-f', `query=${REQUETE_DE_FILE}`, '-F', `owner=${owner}`, '-F', `name=${name}`]))
+  return rendu.data.repository.mergeQueue?.entries.totalCount ?? 0
+}
+
+/** Le refus de poser les checks de `--depuis` sur une file NON VIDE, ou `null`. PUR. Une entrée déjà en
+ *  file a été construite par l'ancien `ci.yml` : elle ne produit jamais les checks neufs et attend
+ *  `check_response_timeout_minutes` avant d'être éjectée. */
+export function refusDeFileOccupee(total) {
+  if (total === 0) return null
+  return `[ruleset] REFUS : la file de \`${NOM}\` porte ${total} entrée(s), construite(s) par l’ancien ci.yml — elles attendraient ${PARAMETRES_DE_FILE.check_response_timeout_minutes} min les checks de \`--depuis\` avant éjection ; vider la file, puis relancer`
 }
 
 /** Corps du ruleset. PUR. */
@@ -162,12 +191,16 @@ export function refusGh(erreur) {
  * la méthode documentée de `PUT /repos/{owner}/{repo}/rulesets/{ruleset_id}` (mise à jour d'un
  * ruleset de dépôt) ; la création passe par `POST /repos/{owner}/{repo}/rulesets`.
  * REND le code de sortie du processus : 0, ou 1 quand la file est refusée (`refusDeFile`, AVANT tout
- * appel, `--dry-run` compris) ou quand `gh` refuse — le refus part au `journal`.
+ * appel, `--dry-run` compris), quand `--depuis` lit une branche locale divergente de son origine
+ * (`refusDeRefLocale`, `--dry-run` compris), quand `--depuis` trouve la file de `main` occupée
+ * (`refusDeFileOccupee`, hors `--dry-run`) ou quand `gh` refuse — le refus part au `journal`.
+ * `shaDeRef` rend le sha d'une ref, `null` si elle n'existe pas.
  */
 export function executer({
   argv = [],
   runner = gh,
   lireCi = ciALaRef,
+  shaDeRef = (r) => shaDe(depotDe(RACINE), r),
   sortie = (s) => process.stdout.write(s),
   journal = (s) => process.stderr.write(s),
 } = {}) {
@@ -176,6 +209,14 @@ export function executer({
   if (refusDeRef) {
     journal(`${refusDeRef}\n`)
     return 1
+  }
+  const depuis = argv.includes('--depuis')
+  if (depuis) {
+    const refusLocal = refusDeRefLocale(ref, { locale: shaDeRef(`refs/heads/${ref}`), distante: shaDeRef(`refs/remotes/origin/${ref}`) })
+    if (refusLocal) {
+      journal(`${refusLocal}\n`)
+      return 1
+    }
   }
   const texteCi = lireCi(ref)
   const contextes = contextesRequis({ texte: texteCi })
@@ -188,6 +229,7 @@ export function executer({
     return 1
   }
   if (dryRun) {
+    if (depuis) sortie(`[ruleset] --dry-run : file de \`${NOM}\` non sondée — l’exécution réelle refuse tant qu’elle n’est pas vide\n`)
     sortie('[ruleset] --dry-run : rien n’a été écrit sur GitHub\n')
     return 0
   }
@@ -195,6 +237,13 @@ export function executer({
   // par stdin (que `stdio[0] = 'ignore'` ferme) ni par une ligne de commande à échapper.
   const fichier = join(tmpdir(), `wfrp-ruleset-${process.pid}.json`)
   try {
+    if (depuis) {
+      const refusOccupee = refusDeFileOccupee(entreesDeFile(runner))
+      if (refusOccupee) {
+        journal(`${refusOccupee}\n`)
+        return 1
+      }
+    }
     const id = idExistant(runner)
     writeFileSync(fichier, JSON.stringify(corps))
     const cible = id === null ? `repos/${DEPOT}/rulesets` : `repos/${DEPOT}/rulesets/${id}`

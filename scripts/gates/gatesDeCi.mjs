@@ -45,7 +45,7 @@ export const LANE_LOCALE_DE_JOB = {
   'types-hooks': {
     lane: 'types',
     raison:
-      '`test:hooks` (159-161 s dans `types`, issuecomment-5924305772 de #2178) a son job pour raccourcir le ' +
+      '`test:hooks` (issuecomment-5924305772 de #2178) a son job pour raccourcir le ' +
       'chemin critique de la CI ; le rejeu local tient `PLAFOND_LANES` lanes, et `types` le porte',
   },
   'docs-tests': {
@@ -244,8 +244,9 @@ export function matriceDe({ job, texte }) {
  * workflow porte le nom du job (« The name format is `<job name>` », troubleshooting-rules.md,
  * section « Troubleshooting required status checks »), et `jobs.<job_id>.name` lit les contextes
  * `matrix` et `strategy` (contexts.md, section « Context availability »). Seules expressions évaluées :
- * `${{ matrix.<clé> }}` et `${{ strategy.job-total }}` ; un job matrice dont le `name:` ne porte pas
- * `${{ matrix.<clé> }}` LÈVE — le nom que GitHub lui donnerait alors n'est pas documenté.
+ * `${{ matrix.<clé> }}` et `${{ strategy.job-total }}` (1 hors matrice) ; un job matrice dont le
+ * `name:` ne porte pas `${{ matrix.<clé> }}` LÈVE — le nom que GitHub lui donnerait alors n'est pas
+ * documenté.
  */
 export function contextesDuJob(bloc) {
   const nom = bloc.cles.name === undefined ? bloc.job : scalaire(bloc.cles.name)
@@ -253,7 +254,7 @@ export function contextesDuJob(bloc) {
   const evaluer = (valeur) => {
     const rendu = nom
       .replaceAll(`\${{ matrix.${matrice?.cle} }}`, valeur)
-      .replaceAll('${{ strategy.job-total }}', String(matrice?.valeurs.length))
+      .replaceAll('${{ strategy.job-total }}', String(matrice?.valeurs.length ?? 1))
     if (rendu.includes('${{'))
       throw new Error(`ci.yml / job ${bloc.job} : expression non évaluée dans \`name: ${nom}\` — son check ne se nomme pas`)
     return rendu

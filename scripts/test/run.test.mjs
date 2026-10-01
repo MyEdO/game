@@ -527,6 +527,11 @@ test('partie : la tranche est triée par unité de code, son empreinte ne dépen
   assert.deepEqual(t.fichiers, [...t.fichiers].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)))
   assert.match(t.empreinte, /^[0-9a-f]{12}$/)
   assert.equal(trancher([...liste].reverse(), { i: 2, k: 3 }).empreinte, t.empreinte, 'l’ordre d’énumération change l’empreinte')
+  assert.match(t.empreinteListe, /^[0-9a-f]{12}$/)
+  assert.notEqual(t.empreinteListe, t.empreinte, 'l’empreinte de la liste est celle de la liste ENTIÈRE')
+  for (const i of [1, 3]) assert.equal(trancher(liste, { i, k: 3 }).empreinteListe, t.empreinteListe, 'les K parties portent la même empreinte de liste')
+  assert.equal(trancher([...liste].reverse(), { i: 2, k: 3 }).empreinteListe, t.empreinteListe, 'l’ordre d’énumération change l’empreinte de liste')
+  assert.notEqual(trancher(liste.slice(1), { i: 2, k: 3 }).empreinteListe, t.empreinteListe, 'une liste amputée garde son empreinte')
 })
 
 test('registre DOM absent : toléré sans fichier jsdom joué, REFUS nommé dès un fichier jsdom', () => {

@@ -11,7 +11,7 @@ import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import {
   DECLENCHEUR_DE_FILE, DELAI_DE_REPONSE_MINUTES, NOM, PARAMETRES_DE_FILE, PARAMETRES_DE_PR,
-  corpsDuRuleset, ciALaRef, executer, refDe, refusDeFile, refusGh,
+  REQUETE_DE_FILE, corpsDuRuleset, ciALaRef, entreesDeFile, executer, refDe, refusDeFile, refusDeFileOccupee, refusDeRefLocale, refusGh,
 } from './ruleset-main.mjs'
 import {
   TIMEOUT_JOB_MINUTES, blocsDeJobs, contextesDuJob, contextesRequis, jobsCi, jobsRequis, matriceDe,
@@ -62,6 +62,7 @@ test('une MATRICE se déplie : un contexte par valeur, `name:` évalué sur `mat
   assert.deepEqual(contextesRequis({ texte: ciAJob(`    name: s \${{ matrix.partie }}/\${{ strategy.job-total }}\n${MATRICE}`) }), ['s 1/3', 's 2/3', 's 3/3'])
   assert.deepEqual(contextesRequis({ texte: ciAJob(`    name: "p-\${{ matrix.partie }}"\n${MATRICE}`) }), ['p-1', 'p-2', 'p-3'])
   assert.deepEqual(contextesRequis({ texte: ciAJob('    name: Mon job\n') }), ['Mon job'], 'un `name:` sans matrice est le check')
+  assert.deepEqual(contextesRequis({ texte: ciAJob('    name: lot ${{ strategy.job-total }}\n') }), ['lot 1'], '`strategy.job-total` vaut 1 hors matrice')
   assert.deepEqual(contextesRequis({ texte: ciAJob('') }), ['lot'])
 })
 
@@ -104,14 +105,81 @@ test('`--depuis <ref>` : le corps lit le `ci.yml` de CETTE ref ; sans valeur, RE
     argv: ['--dry-run', '--depuis', 'chantier/lot'],
     runner: () => { throw new Error('aucun appel gh en --dry-run') },
     lireCi: (ref) => { lues.push(ref); return CI_DU_TRONC },
+    shaDeRef: () => null,
     sortie: (s) => dit.push(s),
   })
   assert.equal(code, 0)
   assert.deepEqual(lues, ['chantier/lot'])
   assert.match(dit.join(''), /checks requis posés, lus à chantier\/lot:\.github\/workflows\/ci\.yml : verif, migrations/)
+  assert.match(dit.join(''), /--dry-run : file de `main` non sondée/)
   const journal = []
   assert.equal(executer({ argv: ['--depuis'], lireCi: () => assert.fail('lu malgré le refus'), sortie: () => {}, journal: (s) => journal.push(s) }), 1)
   assert.match(journal.join(''), /`--depuis` sans ref/)
+})
+
+/** Les shas de `refs/heads/<ref>` et `refs/remotes/origin/<ref>`, INJECTÉS ; `null` = ref absente. */
+const shas = (locale, distante) => (r) => (r.startsWith('refs/heads/') ? locale : r.startsWith('refs/remotes/origin/') ? distante : assert.fail(`ref lue : ${r}`))
+
+test('`--depuis <branche>` LOCALE divergente de `origin/<branche>` : REFUS avant toute lecture, `--dry-run` compris', () => {
+  assert.equal(refusDeRefLocale('x', { locale: 'a', distante: 'a' }), null)
+  assert.equal(refusDeRefLocale('x', { locale: 'a', distante: null }), null, 'sans ref distante, la locale est la seule')
+  assert.equal(refusDeRefLocale('HEAD', { locale: null, distante: 'b' }), null, 'une ref qui n’est pas une branche locale ne se compare pas')
+  assert.match(refusDeRefLocale('x', { locale: 'a', distante: 'b' }), /REFUS : `--depuis x` lit la branche LOCALE \(a\), qui diffère de origin\/x \(b\)/)
+  for (const argv of [['--depuis', 'chantier/lot'], ['--dry-run', '--depuis', 'chantier/lot']]) {
+    const lues = []
+    const journal = []
+    const code = executer({
+      argv,
+      runner: () => assert.fail('appel gh malgré le refus'),
+      lireCi: (ref) => { lues.push(ref); return CI_DU_TRONC },
+      shaDeRef: shas('a', 'b'),
+      sortie: () => {},
+      journal: (s) => journal.push(s),
+    })
+    assert.equal(code, 1, `argv ${JSON.stringify(argv)}`)
+    assert.deepEqual(lues, [])
+    assert.match(journal.join(''), /lit la branche LOCALE \(a\), qui diffère de origin\/chantier\/lot \(b\)/)
+  }
+  const lues = []
+  assert.equal(executer({ argv: ['--dry-run', '--depuis', 'chantier/lot'], lireCi: (ref) => { lues.push(ref); return CI_DU_TRONC }, shaDeRef: shas('a', 'a'), sortie: () => {} }), 0)
+  assert.deepEqual(lues, ['chantier/lot'])
+})
+
+/** Le rendu GraphQL d'une file de `n` entrées. */
+const fileDe = (n) => JSON.stringify({ data: { repository: { mergeQueue: { entries: { totalCount: n } } } } })
+
+test('hors `--dry-run`, `--depuis` sur une file de `main` NON VIDE : REFUS avant toute écriture', () => {
+  assert.equal(refusDeFileOccupee(0), null)
+  assert.match(refusDeFileOccupee(2), new RegExp(`file de \`main\` porte 2 entrée\\(s\\).*${DELAI_DE_REPONSE_MINUTES} min`))
+  const appels = []
+  const journal = []
+  const code = executer({
+    argv: ['--depuis', 'chantier/lot'],
+    runner: (args) => { appels.push(args); return fileDe(1) },
+    lireCi,
+    shaDeRef: shas('a', 'a'),
+    sortie: () => {},
+    journal: (s) => journal.push(s),
+  })
+  assert.equal(code, 1)
+  assert.deepEqual(appels, [['api', 'graphql', '-f', `query=${REQUETE_DE_FILE}`, '-F', `owner=${DEPOT.split('/')[0]}`, '-F', `name=${DEPOT.split('/')[1]}`]],
+    'la file se lit par le canal `gh`, et rien ne s’écrit après le refus')
+  assert.match(REQUETE_DE_FILE, /mergeQueue\(branch:"main"\)\{entries\(first:1\)\{totalCount\}\}/)
+  assert.match(journal.join(''), /REFUS : la file de `main` porte 1 entrée\(s\)/)
+})
+
+test('hors `--dry-run`, `--depuis` sur une file VIDE (ou sans file) écrit le ruleset', () => {
+  assert.equal(entreesDeFile(() => JSON.stringify({ data: { repository: { mergeQueue: null } } })), 0)
+  const appels = []
+  const code = executer({
+    argv: ['--depuis', 'chantier/lot'],
+    runner: (args) => { appels.push(args); return args[1] === 'graphql' ? fileDe(0) : '[]' },
+    lireCi,
+    shaDeRef: shas('a', null),
+    sortie: () => {},
+  })
+  assert.equal(code, 0)
+  assert.deepEqual(appels.map((a) => a[1]), ['graphql', `repos/${DEPOT}/rulesets`, '-X'])
 })
 
 test('un job NEUF devient un check requis sans qu’on touche au script', () => {

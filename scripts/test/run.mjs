@@ -296,7 +296,7 @@ async function principal() {
     const tranche = trancher(tous.map((f) => posix(path.relative(RACINE, f))), PARTIE)
     const ligne =
       `[partie] ${PARTIE.i}/${PARTIE.k} : ${tranche.fichiers.length} fichier(s) sur ${tous.length}` +
-      ` · empreinte ${tranche.empreinte}\n`
+      ` · empreinte ${tranche.empreinte} · liste ${tranche.empreinteListe}\n`
     process.stdout.write(ligne)
     ecrireCapture(ligne)
     const suspects = cheminsGlobSuspects(tranche.fichiers)

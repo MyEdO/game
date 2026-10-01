@@ -436,11 +436,17 @@ export function partieDuFichier(chemin, k) {
   return (createHash('sha1').update(chemin).digest().readUInt32BE(0) % k) + 1
 }
 
+const parUniteDeCode = (a, b) => (a < b ? -1 : a > b ? 1 : 0)
+
+/** Empreinte d'une liste de chemins TRIÉE : 12 hex de son SHA-1. */
+const empreinteDe = (chemins) => createHash('sha1').update(chemins.join('\n')).digest('hex').slice(0, 12)
+
 /** Tranche de la partie `{ i, k }` : les chemins relatifs POSIX dont `partieDuFichier` vaut `i`, triés
- *  par unité de code, et l'empreinte de cette liste (12 hex de son SHA-1). */
+ *  par unité de code, l'empreinte de cette tranche, et celle de la liste ENTIÈRE (`empreinteListe`),
+ *  commune aux K parties d'une même énumération. */
 export function trancher(chemins, { i, k }) {
-  const fichiers = chemins.filter((c) => partieDuFichier(c, k) === i).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))
-  return { fichiers, empreinte: createHash('sha1').update(fichiers.join('\n')).digest('hex').slice(0, 12) }
+  const fichiers = chemins.filter((c) => partieDuFichier(c, k) === i).sort(parUniteDeCode)
+  return { fichiers, empreinte: empreinteDe(fichiers), empreinteListe: empreinteDe([...chemins].sort(parUniteDeCode)) }
 }
 
 /** Refus d'un registre de passage DOM ABSENT au terme d'une suite complète verte, ou `null`. Seul un

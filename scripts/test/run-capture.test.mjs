@@ -368,6 +368,7 @@ test('partie i/K : la tranche part en `include`, compte et empreinte imprimés ;
   const noms = Array.from({ length: 9 }, (_, n) => `src/t${n}.test.ts`)
   const K = 3
   const vus = []
+  const listes = new Set()
   for (let i = 1; i <= K; i += 1) {
     const base = fauxDepot(VITEST_PARTIE)
     try {
@@ -381,13 +382,16 @@ test('partie i/K : la tranche part en `include`, compte et empreinte imprimés ;
       })
       assert.equal(run.status, 0, `partie ${i} : ${run.stdout}${run.stderr}`)
       const inclus = JSON.parse(readFileSync(trace, 'utf8'))
-      assert.match(run.stdout, new RegExp(`^\\[partie\\] ${i}/${K} : ${inclus.length} fichier\\(s\\) sur ${noms.length} · empreinte [0-9a-f]{12}$`, 'm'))
+      const ligne = new RegExp(`^\\[partie\\] ${i}/${K} : ${inclus.length} fichier\\(s\\) sur ${noms.length} · empreinte [0-9a-f]{12} · liste ([0-9a-f]{12})$`, 'm').exec(run.stdout)
+      assert.ok(ligne, `ligne [partie] absente : ${run.stdout}`)
+      listes.add(ligne[1])
       vus.push(...inclus)
     } finally {
       rmSync(base, { recursive: true, force: true })
     }
   }
   assert.deepEqual([...vus].sort(), [...noms].sort(), 'les tranches jouées ne sont pas une partition de la liste')
+  assert.equal(listes.size, 1, 'les K parties d’une même liste impriment la même empreinte de liste')
 })
 
 test('partie mal formée, ou combinée à un filtre de fichier : REFUS nommé, aucun Vitest lancé', () => {
