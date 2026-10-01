@@ -1,7 +1,8 @@
-import { parseProject, exigerUnRefus, refusDeForme, type PROJECT_MIGRATIONS, type ProjectDoc } from './worldMap';
+import { parseProject, exigerUnRefus, refusDeForme, type ProjectDoc } from './worldMap';
+import type { PROJECT_MIGRATIONS } from '../data/migrationsDeProjet';
 import type { NarratifBlock } from './campaignNarratif';
 import type { GameState } from './store';
-import { accesBase, idbDisponible, type BaseIdb } from '../lib/indexedDb';
+import { accesBase, idbDisponible, type MonteesIdb } from '../lib/indexedDb';
 import { stockageWeb } from '../lib/stockageWeb';
 
 /** Un projet éditeur SÉRIALISÉ en localStorage. Même forme que `ProjectDoc` (SOURCE UNIQUE du schéma
@@ -130,17 +131,19 @@ const LOCAL_MIRROR_ENTRY_LIMIT = 500_000;
 
 const STORE = 'projects';
 
-/** Montée de `wfrp4-library`. */
-export const upgradeBibliotheque: BaseIdb['upgrade'] = (db) => {
-  db.createObjectStore(STORE, { keyPath: 'id' });
-};
+/** Montées de `wfrp4-library`. */
+export const MONTEES_BIBLIOTHEQUE = {
+  0: (db) => {
+    db.createObjectStore(STORE, { keyPath: 'id' });
+  },
+} satisfies MonteesIdb;
 
 /** Bibliothèque persistée : source de vérité IndexedDB (base `wfrp4-library`) + un MIROIR localStorage
  *  tenu à jour à chaque écriture (borné PAR PROJET par `LOCAL_MIRROR_ENTRY_LIMIT`). `initLibrary`
  *  réconcilie les deux par id à chaque démarrage — c'est CE mécanisme, rejoué à chaque boot (jamais un
  *  flag one-shot), qui absorbe aussi bien la migration initiale que la reprise d'une écriture IndexedDB
  *  précédemment en échec (#776). */
-const bibliotheque = accesBase({ nom: 'wfrp4-library', version: 1, upgrade: upgradeBibliotheque });
+const bibliotheque = accesBase({ nom: 'wfrp4-library', montees: MONTEES_BIBLIOTHEQUE });
 const projets = bibliotheque.magasin<SavedProject, string>(STORE);
 
 /** Cache mémoire = source SYNC servie au picker/éditeur/tests. `null` tant qu'`initLibrary` n'a rien chargé. */

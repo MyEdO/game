@@ -36,9 +36,8 @@ concurrency:
 # fermeture depuis le 2026-08-01, commit fondateur d’un solde « corrigé par <sha> ») ;
 # `docs:build` la lit (scripts/docs/build-doctrines.mjs, scripts/docs/check-plans-anchors.mjs) ;
 # `npm test` aussi (src/data/regles-migration-fidelite.test.ts) ; le classement du push (#1738) lit
-# `merge-base origin/main`, ou `merge_group.base_sha` sur un commit de file ; les compteurs de version
-# de la file lisent `G^1` et `G^2`. Dans le clone superficiel par défaut (depth 1), `git log --since`
-# est vide et les shas anciens sont absents.
+# `merge-base origin/main`, ou `merge_group.base_sha` sur un commit de file. Dans le clone superficiel
+# par défaut (depth 1), `git log --since` est vide et les shas anciens sont absents.
 #
 # Le PROLOGUE de chaque job vérifiant est l'action composite `.github/actions/prologue` : Node, le
 # CLASSEMENT du push (#1738, scripts/gates/classerPush.mjs) puis `npm ci`. POLARITÉ FAIL-CLOSED :
@@ -122,14 +121,6 @@ jobs:
           fetch-depth: 0
       - id: prologue
         uses: ./.github/actions/prologue
-      # Collision des compteurs de version (#2222) jugée sur le commit de file : `G^2` contre `G^1`
-      # (scripts/ops/compteurs-de-file.mjs). `if:` de STEP, jamais de job : un check requis sauté rend
-      # « Success ».
-      - name: Compteurs de version de la file
-        if: ${{ github.event_name == 'merge_group' && !cancelled() && steps.prologue.outcome == 'success' }}
-        env:
-          SHA: ${{ github.event.merge_group.head_sha }}
-        run: node scripts/ops/compteurs-de-file.mjs
       - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run test:agents
       - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}

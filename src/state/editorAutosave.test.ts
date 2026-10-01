@@ -6,9 +6,9 @@ import {
   __resetAutosaveForTest,
   type EditorAutosaveRecord,
   type RepriseLocale,
-  upgradeAutosave,
+  MONTEES_AUTOSAVE,
 } from './editorAutosave';
-import { __setOuvertureIdbForTest } from '../lib/indexedDb';
+import { __setOuvertureIdbForTest, monterBase } from '../lib/indexedDb';
 import { baseSimulee, brancherBasesSimulees, type BasesSimulees } from '../lib/indexedDb.testkit';
 import { cheminLisible } from '../data/schemas/validate';
 import { emptyScene, type Scene } from './scene';
@@ -100,10 +100,10 @@ describe('editorAutosave — filet local de crash de l’éditeur', () => {
   });
 });
 
-describe('upgradeAutosave — montée de `wfrp4-editor-autosave`', () => {
+describe('MONTEES_AUTOSAVE — montée de `wfrp4-editor-autosave`', () => {
   it('base neuve : crée `autosave` keyé sceneId', () => {
     const base = baseSimulee();
-    upgradeAutosave(base.db, 0);
+    monterBase(MONTEES_AUTOSAVE, base.db, 0);
     expect([...base.magasins.keys()]).toEqual(['autosave']);
     expect(base.magasins.get('autosave')?.keyPath).toBe('sceneId');
   });

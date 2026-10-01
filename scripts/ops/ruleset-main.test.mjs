@@ -229,15 +229,6 @@ test('`ci.yml` de l’ARBRE déclenche sur `merge_group`, jamais sur `push` de `
   assert.doesNotMatch(texte, /^ {4}branches: .*\bmain\b/m, 'le sha poussé sur `main` est un commit de file déjà jugé')
 })
 
-test('un job REQUIS juge les compteurs de version sur le commit de file, par un `if:` de STEP sur `merge_group`', () => {
-  const steps = jobsRequis({ cwd: RACINE })
-    .flatMap((b) => stepsDu(b.texte).map((s) => ({ job: b.job, ...s })))
-    .filter((s) => /^\s*-?\s*run: node scripts\/ops\/compteurs-de-file\.mjs\s*$/m.test(s.bloc))
-  assert.equal(steps.length, 1, 'aucun (ou plusieurs) step « compteurs-de-file » dans un job requis')
-  assert.match(steps[0].si ?? '', /github\.event_name == 'merge_group'/)
-  assert.match(steps[0].bloc, /SHA: \$\{\{ github\.event\.merge_group\.head_sha \}\}/)
-})
-
 test('les fermetures vivent HORS de `ci.yml` : `fermetures.yml` lit les checks requis AVANT de fermer', () => {
   assert.ok(!jobsCi({ cwd: RACINE }).includes('fermetures'), 'un job de fermeture dans ci.yml deviendrait un check requis')
   const texte = readFileSync(join(RACINE, '.github/workflows/fermetures.yml'), 'utf8')

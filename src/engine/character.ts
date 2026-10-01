@@ -42,6 +42,7 @@ import { adresseDeCreation, type AdresseDeCreation } from './adresseDeCreation';
 import { appliquerAcquisitions, heroMaxWounds, fortuneMax, resolveMax, careerSkillAdditions } from './talentEffects';
 import { applyStarOps, pettySpellQuotaFor } from './creation';
 import { sizeFromTalents } from './size';
+import { versionCourante } from '../lib/versionCourante';
 
 /** Caractéristique d'une Compétence (skills.json) par `id` STABLE — LDB 09 : valeur de Test =
  *  Caractéristique + avances. (≠ re-lookup par libellé — multilangue-safe.) */
@@ -58,10 +59,16 @@ export const MAX_ADV_PER_SKILL = 10;
  *  Niveau à dix Compétences (AA 02 l.134 ; VDM 03 l.37). */
 export const CAREER_SKILLS_ADVANCED = 8;
 
-/** Format PERSISTÉ des choix de création (brouillon du roster) : 4 = flux des tirages de Talents sous
- *  l'étape `talents`, option « A ou B » par `cleDOption` (#1897) ; 5 = choix de dotation par adresse
- *  (#1988). */
-export const FORMAT_DES_CHOIX = 5;
+/** Montées du format PERSISTÉ des choix de création (brouillon du roster), keyées par format de DÉPART
+ *  (#2226). */
+const MONTEES_DES_CHOIX = {
+  2: '#1897 tirages de Talents par adresse',
+  3: '#1897 flux des tirages de Talents sous l’étape `talents`, option « A ou B » par `cleDOption`',
+  4: '#1988 choix de dotation par adresse',
+} as const;
+
+/** Format PERSISTÉ des choix de création (brouillon du roster). */
+export const FORMAT_DES_CHOIX = versionCourante(MONTEES_DES_CHOIX);
 
 /** Étapes aléatoires de la création, chacune son flux (`fluxDeCreation`). */
 export type EtapeDeFlux = 'espece' | 'carriere' | 'carriere:deux-de-plus' | 'carriere:relance' | 'caracteristiques' | 'signe' | 'astrologie' | 'talents' | 'bourse' | 'details';

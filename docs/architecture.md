@@ -86,6 +86,10 @@ src/data/                   NOTRE base APP-OWNED (JSON commité, éditable dans 
                             (#1692) ; deux gardes structurelles le tiennent : `index-vivant-guard.test.ts`
                             (aucun index figé à l'import sur un dataset du seam) et
                             `seam-ecriture-guard.test.ts` (aucun `push`/`splice` hors `overrides.ts`)
+  migrationsDeProjet.ts       `PROJECT_MIGRATIONS` : les migrations de forme du document de projet,
+                              keyées par `schema` de départ, et leurs aides ; `SCHEMA_PROJET`
+                              (`schemas/defs-scenes/projet.ts`) en dérive (#2226). Une valeur que
+                              la migration tenait de `src/state` y est figée à son commit
   schemas/                    CONTRAT de la donnée. Chaque dataset a UN def (`defs/<nom>.ts`,
                               `defs-scenes/<nom>.ts`) qui DÉCLARE son document par la fabrique
                               `document()` (`grammaire/document.ts`) : enveloppe commune posée par la
@@ -154,13 +158,16 @@ src/lib/                     Couche NEUTRE, en amont de `engine`, `data`, `state
                             `espacesExtensibles`. Module PUR, sans import : Node nu le charge aussi, par
                             son chemin relatif, extension comprise.
                             `indexedDb.ts` : bases IndexedDB (disponibilité, ouverture bornée #776 par
-                            `{ nom, version, upgrade }`, une connexion par opération) et leur poignée
+                            `{ nom, montees }`, une connexion par opération) et leur poignée
                             `accesBase` (magasins typés, `vider`) ; doublure `indexedDb.testkit.ts`
                             (`brancherBasesSimulees`).
                             `stockageWeb.ts` : accès protégé au `localStorage` et au `sessionStorage`
                             (`stockageWeb`).
                             `fileIo.ts` : téléchargement d'un texte (`downloadText`), nom de fichier
                             sûr (`fileSlug`).
+                            `versionCourante.ts` : la version courante d'une forme persistée, dérivée
+                            de sa table de montées keyée par version de DÉPART, en valeur et en type
+                            littéral (#2226).
 src/geometry/                Géométrie/simulation PURE partagée `state` ⇄ `gameIso` (#161 : `state` en a
                             besoin pour SA PROPRE logique — curseur de combat, IA, cadence des beats —
                             pas seulement le rendu ; zéro dépendance framework). `iso.ts` : projection
@@ -311,7 +318,7 @@ src/state/
                               lastEventTone (#161 : cadence des beats, `gameIso/combatNarration` les
                               réutilise pour l'icône/la coloration par camp, hors du périmètre `state`)
   migrateDoc.ts                PRIMITIVE GÉNÉRIQUE de migration séquentielle de document versionné
-                              (`{version, ...}` → `MigrationMap` chaînée jusqu'à `targetVersion` ;
+                              (`{version, ...}` → `MigrationMap` chaînée jusqu'à sa `versionCourante` ;
                               refuse net — jamais ne corrompt — objet malformé/version future/trou
                               dans la chaîne). Consommée par `roster.ts` (`ROSTER_MIGRATIONS`) et
                               `worldMap.ts` (`PROJECT_MIGRATIONS`) ; PAS par les saves de partie

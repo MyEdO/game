@@ -15,7 +15,7 @@ import {
   BorneAbsente, ENV_GIT_FEINT, GitIndisponible, INDEX, MARQUE_FEINTE, OPTIONS_DE_L_HOTE, SUIVI, TRAVAIL, abandonnerFusion, ajouterOrigine, ajouterWorktree, approfondir, arbrePrincipal, arbreVide, attributDe,
   baseCommune, brancheDe, branchesDe, ceQuEmporteLIndex, ceQueFaitLeCommit, ceQuiChange, cheminGit, cheminsEnConflit, classer, combienDe, commitDe, conclureFusionSansChemins,
   depotDe, divergenceDe, dossierDesHooks, elaguerWorktrees, eolsDe, estDansHead, estIgnore, estSuperficiel, etatDeLArbre, enfantsDirects, estAncetre, estRepertoire,
-  fetchOrigin, fichiersDuGrep, fusionDeTextes, fusionnesEnCours, initialiserDepot, journalDe, lireEnLot, listerImage, natureDuChemin, origineDe, parentsDe, pointDeDepart, poserRef, pousser,
+  fetchOrigin, fichiersDuGrep, fusionDeTextes, fusionnesEnCours, initialiserDepot, journalDe, lireEnLot, listerImage, natureDuChemin, origineDe, poserRef, pousser,
   fusionner, racineDe, raisonCourte, rebaseEntame, reglerDepot, retirerWorktree, reussi, shaDe, shasDe, supprimerBranche, urlOrigineAcceptee, worktreesDe,
 } from './gitPorte.mjs'
 import { envDeDepotForge, envDeLUtilisatrice, instanceDeDepot } from './depotGabarit.mjs'
@@ -401,31 +401,6 @@ test('lireEnLot : un `cat-file` qui ne rend pas son lot est une PANNE — `GitIn
   assert.deepEqual(pannes, ['`git cat-file --batch` sans lot (status 1)'])
 })
 
-test('pointDeDepart, parentsDe, shasDe (fusions, chemins) : les VALEURS — chaîne des premiers parents, commit de la branche caché par une fusion TREESAME au tronc', () => {
-  const { racine, sha: socle } = instanceDeDepot({ fichiers: { 'v.txt': 'V = 60\n', 'a.txt': 'a\n' }, message: 'socle' })
-  try {
-    const g = (...a) => execFileSync('git', a, { cwd: racine, env: envDeDepotForge(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()
-    const ecrire = (fichier, texte, message) => { writeFileSync(join(racine, fichier), texte); g('add', fichier); g('commit', '-q', '-m', message); return g('rev-parse', 'HEAD') }
-    const d = forge(racine)
-    g('checkout', '-q', '-b', 'cote')
-    const cote = ecrire('v.txt', 'V = 61\n', 'cote')
-    const autre = ecrire('a.txt', 'b\n', 'autre')
-    g('checkout', '-q', 'main')
-    const tronc = ecrire('v.txt', 'V = 62\n', 'tronc')
-    g('checkout', '-q', 'cote')
-    try { g('merge', '-q', '--no-ff', 'main') } catch { /* conflit sur v.txt, résolu côté tronc */ }
-    const fusion = ecrire('v.txt', 'V = 62\n', 'fusion résolue côté tronc')
-    assert.equal(pointDeDepart(d, 'cote', 'main'), socle, 'la chaîne des premiers parents entre dans le tronc au socle, pas à sa pointe fusionnée')
-    assert.equal(pointDeDepart(d, 'main', 'main'), tronc, 'une tête contenue est son propre départ')
-    assert.deepEqual(parentsDe(d, fusion), [autre, tronc])
-    assert.deepEqual(parentsDe(d, socle), [], 'un commit racine n’a pas de parent')
-    assert.deepEqual(shasDe(d, ['main..cote'], { fusions: 'seules' }), [fusion])
-    assert.deepEqual(shasDe(d, ['main..cote'], { fusions: 'aucune' }), [cote, autre])
-    assert.deepEqual(shasDe(d, ['main..cote'], { fusions: 'aucune', chemins: ['v.txt'] }), [cote], 'la fusion TREESAME au tronc ne cache pas le commit de la branche')
-    assert.throws(() => shasDe(d, ['main..cote'], { fusions: 'constructor' }), /fusions « constructor » inconnu/)
-  } finally { jeter(racine) }
-})
-
 test('listerImage, ceQuiChange, eolsDe, fichiersDuGrep : un chemin non-ASCII ou à espace est rendu EN CLAIR — ls-files, ls-tree, diff-index, numstat, grep -l, --eol', () => {
   const E = 'src/ui/Écran.tsx'
   const B = 'src/mon module.ts'
@@ -729,7 +704,7 @@ function toutCeQueLisentLesLecteurs(racine, cwd, env, shas) {
     eols: eolsDe(d, ['f.txt', 'Écran é.txt']),
     vide: arbreVide(d),
     emporte: change(ceQuEmporteLIndex(d)),
-    shas: [shasDe(d, [`${shas.propre}..HEAD`]), shasDe(d, [`${shas.propre}^..HEAD`], { fusions: 'seules' })],
+    shas: [shasDe(d, [`${shas.propre}..HEAD`])],
     comptes: [combienDe(d, [`${shas.propre}..HEAD`]), divergenceDe(d, shas.propre, 'HEAD'), baseCommune(d, shas.propre, 'HEAD')],
     refs: [shaDe(d, 'HEAD'), shaDe(d, 'HEAD', { court: true }), brancheDe(d), branchesDe(d)?.map((b) => b.nom)],
     lieux: [racineDe(d), cheminGit(d, 'rebase-merge'), origineDe(d), dossierDesHooks(d), estSuperficiel(d)],
@@ -949,8 +924,6 @@ const gestesALaBorne = (d, b) => ({
   ceQueFaitLeCommit: () => ceQueFaitLeCommit(d, b),
   listerImage: () => listerImage(d, b),
   lireEnLot: () => lireEnLot(d, b, ['a.txt']),
-  pointDeDepart: () => pointDeDepart(d, b, 'HEAD'),
-  parentsDe: () => parentsDe(d, b),
   fichiersDuGrep: () => fichiersDuGrep(d, [b], 'a', []),
   initialiserDepot: () => initialiserDepot(d, { branche: b }),
   reglerDepot: () => reglerDepot(d, b, 'x'),
@@ -1099,11 +1072,11 @@ test('une BORNE ABSENTE : `null` (ou `absent`, `false`) pour une question qui le
     const d = depotDe(racine, { env: envDeDepotForge(), enPanne: (r) => pannes.push(r) })
     const F = 'f'.repeat(40)
     const attendus = {
-      shasDe: null, journalDe: null, combienDe: null, divergenceDe: null, baseCommune: null, shaDe: null, pointDeDepart: null, parentsDe: null,
+      shasDe: null, journalDe: null, combienDe: null, divergenceDe: null, baseCommune: null, shaDe: null,
       estAncetre: { disponible: true, absent: true }, estDansHead: false,
     }
     const questions = Object.entries(gestesALaBorne(d, F)).filter(([nom]) => !/^(initialiserDepot|reglerDepot|poserRef|fusionner|ajouterWorktree|supprimerBranche|pousser|fetchOrigin)/.test(nom))
-    assert.equal(questions.length, 18)
+    assert.equal(questions.length, 16)
     for (const [nom, question] of questions) {
       if (nom in attendus) assert.deepEqual(question(), attendus[nom], nom)
       else assert.throws(question, (e) => e instanceof BorneAbsente && e.bornes.includes(F), nom)

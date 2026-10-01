@@ -1,5 +1,5 @@
 import type { Scene } from './scene';
-import { accesBase, type BaseIdb } from '../lib/indexedDb';
+import { accesBase, type MonteesIdb } from '../lib/indexedDb';
 import { CURRENT_PROJECT_SCHEMA, migreSceneDeProjet, exigerUnRefus, type ProjetRefuse, type ProjectDoc } from './worldMap';
 
 /**
@@ -28,12 +28,14 @@ export type RepriseLocale =
 
 const STORE = 'autosave';
 
-/** Montée de `wfrp4-editor-autosave`. */
-export const upgradeAutosave: BaseIdb['upgrade'] = (db) => {
-  db.createObjectStore(STORE, { keyPath: 'sceneId' });
-};
+/** Montées de `wfrp4-editor-autosave`. */
+export const MONTEES_AUTOSAVE = {
+  0: (db) => {
+    db.createObjectStore(STORE, { keyPath: 'sceneId' });
+  },
+} satisfies MonteesIdb;
 
-const base = accesBase({ nom: 'wfrp4-editor-autosave', version: 1, upgrade: upgradeAutosave });
+const base = accesBase({ nom: 'wfrp4-editor-autosave', montees: MONTEES_AUTOSAVE });
 const sauvegardes = base.magasin<EditorAutosaveRecord, string>(STORE);
 
 /** Lecture — `null` si aucune sauvegarde automatique pour cette scène, ou si IndexedDB est

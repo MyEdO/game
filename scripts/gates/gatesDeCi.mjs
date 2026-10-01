@@ -20,9 +20,6 @@ export const CI_SEULEMENT = {
   'npm --prefix server ci': 'install serveur — posée une fois localement par `npm install`',
   [COMMANDE_ARBRE_INCHANGE]:
     'le lanceur local juge le même invariant par `photoArbre` (scripts/gates/toutes.mjs)',
-  'node scripts/ops/compteurs-de-file.mjs':
-    'juge le commit de FILE (`merge_group`, `G^2` contre `G^1`) : localement, le train juge la tête contre ' +
-    '`origin/main` à sa préflight (scripts/ops/etapesDuTrain.mjs)',
 }
 
 /**
