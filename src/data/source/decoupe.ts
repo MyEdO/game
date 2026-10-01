@@ -526,10 +526,10 @@ function checkSum(frag: Fragment, md: string, ou: string): ErreurResolution | nu
 export const cellulesDe = (l: string): string[] =>
   l.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map((c) => c.trim());
 
-/** Une ligne de SÉPARATEUR de table Markdown (`| --- | --- |`, `|--|--|--|`). */
+/** Ligne DÉLIMITEUSE de table GFM : `|` initial, chaque cellule faite d'au moins un tiret, bordé ou
+ *  non de `:` (`| --- | :-: |`, `|-|-|`). Une cellule vide la refuse (`|--||`). */
 export function estSeparateur(ligne: string): boolean {
-  const t = ligne.trim().replace(/\s+/g, '');
-  return t.startsWith('|') && /^[|:-]+$/.test(t) && t.includes('--');
+  return /^\s*\|/.test(ligne) && cellulesDe(ligne).every((c) => /^:?-+:?$/.test(c));
 }
 
 /** Texte d'une rangée-BANNIÈRE — ≥ 2 cellules dont exactement UNE est non vide —, ou `null`. */
@@ -575,28 +575,26 @@ export interface TableParse {
  * Sans la garde, un folio capté (`| | | 159 | |`), un séparateur d'index (`| A | |`) et l'en-tête
  * RÉEL d'une table à une seule colonne (`| Effet | |`) seraient sautés à tort.
  * Le bandeau porte son PROPRE séparateur (`| | TABLEAU DES MOUVEMENTS | |` puis `|--|--|--|` puis
- * `| Mouvement | … |`, `15 - Déplacement.md:18-20`) : le saut passe donc la bannière ET les
+ * `| Mouvement | … |`, `15 - Deplacement.md:18-20`) : le saut passe donc la bannière ET les
  * séparateurs qui la suivent, sans quoi les en-têtes seraient la ligne de tirets.
  * TROISIÈME volet de la garde : une bannière suivie DIRECTEMENT de données, sans rangée d'en-têtes
- * (`46 - Les règles magiques.md:34-36`, « TABLEAU DES INCANTATIONS IMPARFAITES MINEURES » puis
+ * (`46 - Les regles magiques.md:34-36`, « TABLEAU DES INCANTATIONS IMPARFAITES MINEURES » puis
  * `| 01-05 | Signe de Sorcière… |`) n'est pas absorbable : la sauter promeut une FOURCHETTE en
  * en-tête et fait perdre à la table sa première rangée. `estCleDePlage` le reconnaît.
- * LATENCE CONNUE du seuil « ≥ 2 lettres » : un `II`, un `AI`, un `X-Y` de cellule serait pris pour
- * un titre. Aucun cas dans le corpus (le plus court titre absorbé mesuré est `URZO`) — à trancher
- * sur le premier cas réel, jamais en durcissant à l'aveugle un seuil que rien ne dément.
+ * Seuil « ≥ 2 lettres » : le plancher mesuré du corpus est épinglé par le test
+ * « tout titre absorbé du corpus a au moins 4 lettres » (`decoupe.test.ts`).
  */
 export function parseTable(md: string): TableParse | null {
   const lignes = md.split('\n').filter((l) => TABLE_LINE.test(l));
   if (lignes.length < 2) return null;
-  const isSeparator = (l: string) => cellulesDe(l).every((c) => /^:?-{2,}:?$/.test(c));
   const corps = (from: number) => ({
     headers: cellulesDe(lignes[from]),
-    rows: lignes.slice(from + 1).filter((l) => !isSeparator(l)).map(cellulesDe),
+    rows: lignes.slice(from + 1).filter((l) => !estSeparateur(l)).map(cellulesDe),
   });
   const banniere = texteDeBanniere(cellulesDe(lignes[0]));
   if (banniere == null) return corps(0);
   let apresBandeau = 1;
-  while (apresBandeau < lignes.length && isSeparator(lignes[apresBandeau])) apresBandeau++;
+  while (apresBandeau < lignes.length && estSeparateur(lignes[apresBandeau])) apresBandeau++;
   const apres = apresBandeau < lignes.length ? corps(apresBandeau) : null;
   if (apres && estMajuscule(banniere) && apres.rows.length >= 1 && !estCleDePlage(apres.headers[0] ?? '')) {
     return { ...apres, titre: banniere };
