@@ -7,7 +7,7 @@ import { CHAR_LABELS, CATEGORY_BY_SOURCE_KIND, type ConditionInstance, type Acti
 import type { IconId } from '../ui/icons';
 import {
   conditionLabel, findConditionById, findPsychologyById, findSpellById, refLabel,
-  creatures, maladies, maneuvers, mutations, qualities, regles, symptoms, talents, trappings, traits,
+  creatures, maladies, maneuvers, mutations, qualities, regles, symptoms, talents, findTrappingById, traits,
 } from '../data';
 import { ACTIVITIES } from '../engine/activities';
 import { MISCAST_TABLES } from '../engine/miscast';
@@ -200,7 +200,7 @@ const CATALOGUE_HAS: Record<string, (id: string) => boolean> = {
   regles: byId(regles),
   talents: byId(talents),
   traits: byId(traits),
-  trappings: byId(trappings),
+  trappings: (id) => findTrappingById(id) !== undefined,
   qualities: byId(qualities),
   maladies: byId(maladies),
   symptoms: byId(symptoms),

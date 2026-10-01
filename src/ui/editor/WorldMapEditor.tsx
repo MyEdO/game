@@ -3,7 +3,7 @@ import { Scene } from '../../state/scene';
 import { CIBLES_PAR_RACINE } from '../../state/combatEffects';
 import { WorldMap, MapPlace, MapRoute, emptyWorldMap, placeById } from '../../state/worldMap';
 import { TravelMode, TRAVEL_DEFAULTS } from '../../engine/travel';
-import { allAxes, coreAxisIds } from '../../data';
+import { allAxes, coreAxisIds, type TrappingData } from '../../data';
 import { Icon, IconG } from '../Icon';
 import { ICON_DEFS } from '../icons';
 import { ScreenShell } from '../ScreenShell';
@@ -21,11 +21,13 @@ import { WorldMapRoutePanel } from './WorldMapRoutePanel';
  * découpés en `WorldMapPlacePanel`/`WorldMapRoutePanel` (#419 — règle 4 : onglets, jamais 5 sections
  * empilées).
  */
-export function WorldMapEditor({ map, setMap, scenes, onClose, activeAxes, setActiveAxes }: {
+export function WorldMapEditor({ map, setMap, scenes, objets, onClose, activeAxes, setActiveAxes }: {
   map: WorldMap | null;
   setMap: (m: WorldMap | null) => void;
   /** Toutes les scènes du projet (active + réserve) — pour lier lieux/embuscades. */
   scenes: Scene[];
+  /** Objets du projet (`narratif.objets`) — résolus avant le catalogue par l'Effet `giveTrapping`. */
+  objets: readonly TrappingData[];
   onClose: () => void;
   /** Axes de forces/faiblesses ACTIFS du PROJET (#409, `ProjectDoc.activeAxes`) — `undefined` =
    *  socle de base (`coreAxisIds`). Propriété PROJET réglée ici, dans l'éditeur de carte du monde
@@ -111,6 +113,7 @@ export function WorldMapEditor({ map, setMap, scenes, onClose, activeAxes, setAc
     // lié à la scène COURANTE au moment du voyage, reste un id libre ici).
     scenes: scenes.map((sc) => ({ id: sc.id, nom: sc.label, entries: Object.keys(sc.entryPoints ?? {}) })),
     cibles: CIBLES_PAR_RACINE.scene,
+    objets,
   };
 
   const toggleMode = (r: MapRoute, mode: TravelMode) => {

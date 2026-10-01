@@ -64,7 +64,7 @@ seam (`ROLL_SEAM_CORE`) sont hors périmètre — leur pending EST le foyer.
 | `src/state/interludeFlow.ts` | 1 | dette | 750 | `pendingActivity` du catalogue d'Activités (`openCatalogActivity`) — fabrique UNIQUE de toutes les Activités à jet d'interlude -> #1064. |
 | `src/state/massBattleFlow.ts` | 1 | dette | 354 | `openBattleActivity` — fabrique PARTAGÉE, atteinte par 6 call-sites (prep ×3/round ×2/resistance) -> #1067 (surfaçage massBattle). |
 | `src/state/medicFlow.ts` | 2 | dette | 182, 208 | `pendingHeal` et `pendingSurgery` du soigneur PNJ hors combat -> #1064. |
-| `src/state/merchantFlow.ts` | 1 | dette | 881 | `pendingAppraise` (Évaluation / Intuition de détection) -> #1064. |
+| `src/state/merchantFlow.ts` | 1 | dette | 880 | `pendingAppraise` (Évaluation / Intuition de détection) -> #1064. |
 | `src/state/seaVoyageFlow.ts` | 1 | dette | 2104 | `pendingSteamSave` (`openSteamSave`, Test d'Initiative de l'ingénieur) : le flux a bien sa spec canonique (`rollFlowSpecs.ts` `steamSave`, `makeRollFlow`), c'est la FABRIQUE du pending qui reste montée à la main -> #1474. |
 | `src/state/store.ts` | 1 | canonique | 2872 | canonique : re-ciblage d'un `pendingTest` EXISTANT (`{ ...pt, … }`) sur un autre candidat — `target` recopié du candidat DÉJÀ calculé par la fabrique, aucun jet neuf décrit. |
 
@@ -249,4 +249,4 @@ reste `ROLL_SEAM_PHASE2_STOCK`. 29 sites dans 14 fichiers.
 | `src/state/travelPostes.ts` | 1 |
 | `src/state/triggeredEffects.ts` | 1 |
 
-<!-- sources-empreinte: 8790950e1da3715fca804001e3a2949764034590 (2147 fichiers, 136 dossiers) corps: 58afeee8afb3991ca501506288cd2911b9e90f56 -->
+<!-- sources-empreinte: 1e5fce44b7d079c536d171d7f9ac0d9371c8f8f0 (2148 fichiers, 136 dossiers) corps: d112a18797f43df75418ec1b901156c543c0244b -->

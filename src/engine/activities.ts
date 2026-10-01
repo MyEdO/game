@@ -28,7 +28,7 @@ import { resolveSkillBest, bestSkilledOption, testValue, type TestSpec } from '.
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { DIFFICULTY_MODIFIERS } from './types';
 import { easeDifficulty } from './tests';
-import { trappings, talents, levelsForCareer, skills, specPoolOf, specCatalogOf, refLabel, findCareerById, type TrappingData } from '../data';
+import { trappingsInstanciables, talents, levelsForCareer, skills, specPoolOf, specCatalogOf, refLabel, findCareerById, type TrappingData } from '../data';
 import { talentSlotsUpTo, designationsFor, talentMaxReached, talentAcquisitions, skillSlots, availableChars } from './careerSlots';
 import { talentCost, advanceCost, inCareerChar } from './advancement';
 import { competenceEnCarriere, talentEnCarriere } from './talentEffects';
@@ -905,9 +905,9 @@ export interface CraftOption {
  *  équipement de la base à prix chiffré ET dans le commerce ordinaire (`craftSpecOf` → null sinon).
  *  La source exige seulement « les Compétences Métier appropriées » (ch.23 l.66), sans table
  *  d'adéquation Métier→objet — jeu sans MJ : catalogue non restreint (le Métier reste requis), point
- *  ouvert tranché en donnée. Trié par famille puis prix croissant. */
+ *  ouvert tranché en donnée. Trié par famille puis prix croissant. Lit `trappingsInstanciables`. */
 export function craftCatalog(): CraftOption[] {
-  return trappings
+  return trappingsInstanciables()
     .filter((t) => listedBrass(t.price) > 0)
     .flatMap((t) => {
       const spec = craftSpecOf(t);
@@ -978,9 +978,9 @@ export function orderBlockOf(t: Pick<TrappingData, 'price' | 'availability'>): '
 }
 
 /** Catalogue de « Passer commande » (ch.23 l.167-172), payé à la commande — porte d'entrée
- *  `orderBlockOf` (partagée avec `orderItem`). */
+ *  `orderBlockOf` (partagée avec `orderItem`), sur `trappingsInstanciables`. */
 export function orderCatalog(): { id: string; label: string; categorie: string; priceBrass: number }[] {
-  return trappings
+  return trappingsInstanciables()
     .filter((t) => orderBlockOf(t) === null)
     .map((t) => ({ id: t.id, label: t.label, categorie: t.categorie, priceBrass: listedBrass(t.price) }))
     .sort((a, b) => a.priceBrass - b.priceBrass);

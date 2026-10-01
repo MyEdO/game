@@ -59,7 +59,7 @@ import { refKey, splitLabel } from '../../engine/careerSlots';
 import { cleDOption, fluxDeCreation, libreDEspece, poolDuJoker, speciesSkillDefaults } from '../../engine/character';
 import { adresseDeCreation, type AdresseDeCreation } from '../../engine/adresseDeCreation';
 import { brancheChoisie, emplacementsDeDotation, estEmplacementDeDotation, estEmplacementRacine, idChoisi, sousEmplacement, type ChoixDeDotation, type EmplacementDeDotation } from '../../engine/trappingChoices';
-import type { RefDesignee } from '../../data/schemas/grammaire/ref';
+import { idsDeLaSousListe, type RefDesignee } from '../../data/schemas/grammaire/ref';
 import { sexeSchema, type SourceRef, type Sexe } from '../../data/schemas/grammaire/valeurs';
 import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
 import { CHAR_KEYS, CharKey, CHAR_LABELS, Characteristics, Combatant } from '../../engine/types';
@@ -1908,7 +1908,8 @@ function talentsZones(d: CreatorDraft, setD: (d: CreatorDraft) => void): StepZon
 export function PettySpellsSection({ d, setD }: StepProps) {
   const quota = pettySpellQuota(d);
   if (!quota) return null;
-  const minors = allSpells.filter((s) => s.family === 'mineure').map((s) => effectiveEntry(s));
+  const admis = new Set(idsDeLaSousListe('spell', 'mineure'));
+  const minors = allSpells.filter((s) => admis.has(s.id)).map((s) => effectiveEntry(s));
   const toggle = (id: string) => {
     if (d.pettySpells.includes(id)) setD({ ...d, pettySpells: d.pettySpells.filter((x) => x !== id) });
     else if (d.pettySpells.length < quota) setD({ ...d, pettySpells: [...d.pettySpells, id] });

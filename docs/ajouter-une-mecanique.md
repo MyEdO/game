@@ -138,7 +138,7 @@ un chiffre qui s'additionne.
 |---|---|---|
 | `TraitCapabilities` | `src/data/index.ts:1704` | 43 |
 | `QualityCapabilities` | `src/data/index.ts:1902` | 26 |
-| `ItemCapabilities` | `src/data/index.ts:1112` | 12 |
+| `ItemCapabilities` | `src/data/index.ts:1113` | 12 |
 | `SymptomCapabilities` | `src/data/index.ts:1969` | 6 |
 
 Lecture — un seul point d'entrée par portée, chaque canal restant disjoint par nom de capacité :
@@ -220,4 +220,4 @@ primitives, `CLAUDE.md`). Ne pas dupliquer une op qui existe déjà sous un autr
 | `src/engine/trauma.test.ts` | traumaFromKind (LDB 18-Traumatisme) |
 | `src/state/triggered-effects.test.ts` | fireTriggers — Traits et Atouts sur le même système flow+déclencheur |
 | `src/state/combat-hardcode-guard.test.ts` | garde-fou « tout migrer » — réactions de combat hardcodées (cliquet généralisé, Lot 8) |
-<!-- sources-empreinte: 5509ba6f0ec23d93cb9c5b8e1aaf34fd12450b98 (161 fichiers, 1 dossiers) corps: b816fe0a6ed851286ca1c606865156629f121ee2 -->
+<!-- sources-empreinte: 30364e24614fe2bbd45099a2f532a6d6e097fd18 (161 fichiers, 1 dossiers) corps: b1ae9f189c2e8bf60d7d18545cdc84464a38b312 -->

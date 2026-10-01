@@ -66,6 +66,7 @@ function dock(scene: Scene, overrides: Partial<Parameters<typeof LogicDock>[0]> 
       scene={scene}
       otherScenes={[]}
       worldMap={null}
+      objets={[]}
       setScene={vi.fn()}
       warnings={[]}
       onSelectWarning={vi.fn()}

@@ -317,11 +317,11 @@
   {
     "id": "refField",
     "type": "primitives.manifest",
-    "label": "RefField",
+    "label": "RefField/refusDuNoeud",
     "fichier": "src/ui/compendium/RefField.tsx",
-    "concept": "picker de référence multilangue-safe (par id)",
-    "perimetre": "toute ref id statique du Compendium",
-    "verrou": "CodexRef.test.ts"
+    "concept": "picker de référence multilangue-safe (par id) ; ses options se restreignent à la sous-liste que déclare la feuille `idDe` du nœud de son champ (`noeud`, `refusDuNoeud`), `filter` ne portant qu'un prédicat moteur ; un `freeText` résout la saisie par id puis libellé dans `entreesEnTete` puis le dataset, et affiche le refus de la sous-liste",
+    "perimetre": "toute ref id statique du Compendium, champ objet de l'Effet `giveTrapping`",
+    "verrou": "CodexRef.test.ts, ref-field-sous-liste.test.tsx, objet-donne.test.tsx"
   },
   {
     "id": "prose",
@@ -404,6 +404,33 @@
     "concept": "co-descente d'une donnée et de son schéma zod : à chaque point de la donnée, ses nœuds de schéma ouverts (enveloppes, intersections, branches d'union filtrées par le discriminant de la donnée), sa valeur et son chemin, sans valider",
     "perimetre": "toute lecture qui retrouve le schéma d'un point de donnée : collections à clé d'un document, lieu d'une faute",
     "verrou": "src/data/schemas/grammaire/co-descente.test.ts"
+  },
+  {
+    "id": "sousListesNommees",
+    "type": "primitives.manifest",
+    "label": "INSTANCIABLE_PAR_ID",
+    "fichier": "src/data/schemas/grammaire/sousListes.ts",
+    "concept": "sous-liste marquée déclarée UNE fois (module feuille sans import) : les trappings que le moteur instancie par leur seul id",
+    "perimetre": "feuilles `idDe`/`refs` des trappings instanciés (op et Effet `giveTrapping`, `grantWeapon.form`, `merchants.curated`), `itemFromTrappingById`, `trappingsInstanciables`",
+    "verrou": "src/data/trappings-instanciables.test.ts"
+  },
+  {
+    "id": "jugementDeSousListe",
+    "type": "primitives.manifest",
+    "label": "dansLaSousListe/idsDeLaSousListe/declarationDeFeuilleDId/refusDeLEntree",
+    "fichier": "src/data/schemas/grammaire/ref.ts",
+    "concept": "une sous-liste de feuille `idDe` jugée partout par la même définition : sur l'ENTRÉE résolue (`dansLaSousListe`, `refusDeLEntree`, via `porteLeChampMarqueur`), en ids admis du registre (`idsDeLaSousListe`), en déclaration d'une feuille (`declarationDeFeuilleDId`)",
+    "perimetre": "producteurs d'ids qui énumèrent une sous-liste (Sorts mineurs de la création), instanciation d'un trapping, sélecteurs du Codex et de l'éditeur",
+    "verrou": "src/data/trappings-instanciables.test.ts, src/engine/petty-spells-sous-liste.test.ts, src/ui/compendium/ref-field-sous-liste.test.tsx"
+  },
+  {
+    "id": "trappingsInstanciables",
+    "type": "primitives.manifest",
+    "label": "trappingsInstanciables/trappingDesObjetsPuisDuCatalogue",
+    "fichier": "src/data/index.ts",
+    "concept": "vue des trappings instanciables par id (`INSTANCIABLE_PAR_ID`) que lit tout producteur d'ids d'objet ; chaîne de résolution « objets d'abord, puis catalogue », paramétrée par la liste d'objets (campagne jouée, projet édité)",
+    "perimetre": "fabrication, commande, stock marchand, conjuration, armes choisissables, galeries, `trappingById` (jeu), Effet `giveTrapping` (éditeur)",
+    "verrou": "src/data/trappings-vue-guard.test.ts (construction `lectureBruteDeCollection`)"
   },
   {
     "id": "menuCard",
@@ -1426,11 +1453,11 @@
   {
     "id": "constructionsReservees",
     "type": "primitives.manifest",
-    "label": "scanConstructionsReservees/FORMULE_DE_CHEBYSHEV/ECHAPPEUR_DE_LITTERAL/CONSTRUCTION_DE_PROGRAMME/ECRITURE_DE_STOCK_JSON/CONSTRUCTION_DE_TABLE_TOTALE/recopieDeCanon/cleEnLigne/estAppelDeclare/origineImportee",
+    "label": "scanConstructionsReservees/FORMULE_DE_CHEBYSHEV/ECHAPPEUR_DE_LITTERAL/CONSTRUCTION_DE_PROGRAMME/ECRITURE_DE_STOCK_JSON/CONSTRUCTION_DE_TABLE_TOTALE/recopieDeCanon/cleEnLigne/lectureBruteDeCollection/estAppelDeclare/origineImportee",
     "fichier": "scripts/guards/lib/canonUnique.mjs",
-    "concept": "construction réservée à son foyer : le scan unique, ses constructions déclarées, les fabriques de recopie d'un canon et de clé en ligne, l'appel à une fonction déclarée et la liaison d'import",
+    "concept": "construction réservée à son foyer : le scan unique, ses constructions déclarées, les fabriques de recopie d'un canon, de clé en ligne et de lecture brute d'une collection (admise à des sites nommés par leur déclaration englobante), l'appel à une fonction déclarée et la liaison d'import",
     "perimetre": "toute garde de canon unique",
-    "verrou": "unions-canon.test.ts, grid.test.ts, cle-de-site-guard.test.ts, ts-program-fabrique-guard.test.ts"
+    "verrou": "unions-canon.test.ts, grid.test.ts, cle-de-site-guard.test.ts, ts-program-fabrique-guard.test.ts, trappings-vue-guard.test.ts"
   },
   {
     "id": "tsProgram",

@@ -884,7 +884,7 @@ export function CodexEdit({ categoryKey, id, onClose, isNew }: CodexEditProps) {
         {fields.map((f) => {
           const cfg = refFieldCfg(categoryKey, f.key);
           return cfg
-            ? <RefField key={f.key} cfg={cfg} categoryKey={categoryKey} fieldKey={f.key} label={f.label} nullable={f.nullable} value={entry[f.key]} onChange={(v) => edit(f.key, v)} />
+            ? <RefField key={f.key} cfg={cfg} categoryKey={categoryKey} fieldKey={f.key} label={f.label} nullable={f.nullable} noeud={f.noeud} value={entry[f.key]} onChange={(v) => edit(f.key, v)} />
             : <Field key={f.key} chemin={chemin(f.key)} field={f} value={entry[f.key]} onChange={(v) => edit(f.key, v)} />;
         })}
       </div>
