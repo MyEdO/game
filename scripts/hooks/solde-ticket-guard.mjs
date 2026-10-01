@@ -95,7 +95,7 @@
 //   - découpage : quotes, here-strings, heredocs (leur corps n'est pas une commande), enchaînements
 //     `;` `&&` `||` `|`, sous-shells `( … )` ;
 //   - tête d'un segment, épluchée jusqu'à stabilité : jetons nus et mots réservés (`TOKENS_TETE_NUS`),
-//     affectations `VAR=val` (sautées, jamais relues), enrobeurs de tête (`ENROBEURS_TETE`) ;
+//     affectations `VAR=val` (relevées par nom, `affectationsDEnvironnement`), enrobeurs de tête (`ENROBEURS_TETE`) ;
 //   - porteurs de chaîne (`ENROBEURS_ARGUMENT`), relus comme une commande : l'argument de `sh`/`bash`/
 //     `dash`/`zsh -c`/`-lc`, `npx -c`/`--call`, `Invoke-Expression`, `powershell`/`pwsh
 //     -EncodedCommand` ; tout le reste de la ligne, joint par des espaces, après `cmd /c`/`/k`,
@@ -619,23 +619,28 @@ const AFFECTATION_RE = /^[A-Za-z_][A-Za-z0-9_]*=/
 
 /** Enrobeurs de TÊTE d'un segment, épluchés jusqu'à stabilité (`nohup env FOO=1 git …`) :
  *  `debut` = index du premier jeton exécuté (`segment.length` si le segment n'est fait que
- *  d'enrobeurs), `enrobeurs` = les noms des enrobeurs épluchés devant lui, dans l'ordre. */
+ *  d'enrobeurs), `enrobeurs` = les noms des enrobeurs épluchés devant lui, dans l'ordre,
+ *  `affectations` = les noms des `VAR=val` épluchés, ceux d'un `env` compris. */
 function epluchageTete(segment) {
   const enrobeurs = []
+  const affectations = []
+  const affecte = (t) => affectations.push(t.slice(0, t.indexOf('=')))
   let i = 0
   for (;;) {
     const t = segment[i]
-    if (t === undefined) return { debut: segment.length, enrobeurs }
+    if (t === undefined) return { debut: segment.length, enrobeurs, affectations }
+    if (AFFECTATION_RE.test(t)) affecte(t)
     if (TOKENS_TETE_NUS.has(t) || AFFECTATION_RE.test(t)) { i += 1; continue }
     // Un enrobeur qui porte ICI un argument-chaîne rend la main : la récursion le déploiera.
-    if (argumentChaine(segment.slice(i)) !== null) return { debut: i, enrobeurs }
+    if (argumentChaine(segment.slice(i)) !== null) return { debut: i, enrobeurs, affectations }
     const nom = basenameExecutable(t)
     const enrobeur = ENROBEURS_TETE.get(nom)
-    if (!enrobeur || enrobeur.citeSous?.includes(segment[i + 1])) return { debut: i, enrobeurs }
+    if (!enrobeur || enrobeur.citeSous?.includes(segment[i + 1])) return { debut: i, enrobeurs, affectations }
     enrobeurs.push(nom)
     i += 1
     if (enrobeur.flags) {
       while (i < segment.length && (segment[i].startsWith('-') || (enrobeur.affectations && AFFECTATION_RE.test(segment[i])))) {
+        if (enrobeur.affectations && AFFECTATION_RE.test(segment[i])) affecte(segment[i])
         i += enrobeur.flags.includes(segment[i]) ? 2 : 1
       }
     }
@@ -655,7 +660,7 @@ const SOUS_COMMANDES_RUN = ['run', 'run-script']
 const RACCOURCIS_NPM = ['test', 'start', 'stop', 'restart']
 
 // Dépôt où `npm run <x>` se résout quand l'appelant ne le dit pas : celui de la portée de la garde
-// (`racineNpmCourante`, le répertoire cible du contexte du répartiteur) — sans lui, un
+// (`racineNpmCourante`, la racine npm du contexte du répartiteur, `racineNpmDe`) — sans lui, un
 // `cd <autre dépôt> && npm run x` serait lu dans le dépôt du HOOK. À défaut, le dépôt du hook.
 
 /** Table `scripts` du `package.json` de `dir` (`{}` s'il est absent ou illisible — un hook ne lève
@@ -714,16 +719,18 @@ export function pipelinesProfonds(command, profondeur = 0, options) {
  *  `PROFONDEUR_MAX_ENROBEURS`, l'analyse s'arrête et `budget.sature` (`nouveauBudget`, partagé par
  *  toute la récursion) le dit ; tous les segments en deçà sont rendus. `suite` = jetons ajoutés au
  *  DERNIER segment de `command` : les arguments qui suivent la chaîne d'`env -S` (`lecturePorteur`),
- *  avec leur provenance d'origine. */
-function pipelinesDeJetons(command, profondeur = 0, { scripts = scriptsNpm(), budget = nouveauBudget(), suite = [] } = {}) {
+ *  avec leur provenance d'origine. `affectations` reçoit les noms de variables d'environnement que
+ *  chaque segment lu pose (`affectationsDuSegment`). */
+function pipelinesDeJetons(command, profondeur = 0, { scripts = scriptsNpm(), budget = nouveauBudget(), suite = [], affectations = [] } = {}) {
   const pipelines = []
   if (!command) return pipelines
   if (profondeur > PROFONDEUR_MAX_ENROBEURS) { budget.sature = true; return pipelines }
   let courant = []
   for (const { jetons: lus, op } of segmentsAvecOperateur(command)) {
     const jetons = op === null ? [...lus, ...suite] : lus
-    const { debut, enrobeurs } = epluchageTete(jetons.map((j) => j.text))
+    const { debut, enrobeurs, affectations: deTete } = epluchageTete(jetons.map((j) => j.text))
     const segment = jetons.slice(debut)
+    affectations.push(...deTete, ...affectationsDuSegment(segment.map((j) => j.text)))
     if (segment.length > 0) {
       const textes = segment.map((j) => j.text)
       const porteur = lecturePorteur(textes)
@@ -731,7 +738,7 @@ function pipelinesDeJetons(command, profondeur = 0, { scripts = scriptsNpm(), bu
       if (inner !== null) {
         const debutSuite = porteur?.suite ?? null
         const suiteInterne = debutSuite === null ? [] : segment.slice(debutSuite)
-        for (const p of pipelinesDeJetons(inner, profondeur + 1, { scripts, budget, suite: suiteInterne })) pipelines.push(p)
+        for (const p of pipelinesDeJetons(inner, profondeur + 1, { scripts, budget, suite: suiteInterne, affectations })) pipelines.push(p)
       }
       courant.push({ jetons: segment, enrobeurs, deploye: inner !== null })
     }
@@ -742,6 +749,43 @@ function pipelinesDeJetons(command, profondeur = 0, { scripts = scriptsNpm(), bu
   }
   if (courant.length > 0) pipelines.push(courant)
   return pipelines
+}
+
+/** Têtes POSIX qui exportent leurs arguments `NOM[=val]` : `export` (sauf `-n`), et `declare`/`typeset`/
+ *  `local` sous un drapeau qui porte `x` (`help declare`). */
+const EXPORTEURS = new Map([['export', () => true], ...['declare', 'typeset', 'local'].map((t) => [t, (args) => args.some((a) => /^-[a-z]*x/.test(a))])])
+const NOM_EXPORTE_RE = /^([A-Za-z_][A-Za-z0-9_]*)(?:=|$)/
+/** PowerShell : `$env:NOM = …`, `$env:NOM=…`, `${env:NOM} = …` ; `Set-Item`/`New-Item` (alias `si`,
+ *  `ni`) sur le lecteur `env:` (`about_Environment_Variables`). */
+const ENV_POWERSHELL_RE = /^\$\{?env:([A-Za-z_][A-Za-z0-9_]*)\}?(=.*)?$/i
+const ECRIVAINS_ENV_POWERSHELL = new Set(['set-item', 'si', 'new-item', 'ni'])
+const LECTEUR_ENV_RE = /^env:[\\/]?([A-Za-z_][A-Za-z0-9_]*)$/i
+
+/** Les noms de variables d'environnement qu'un segment épluché POSE pour les segments suivants :
+ *  `export`/`declare -x`, `$env:NOM = …`, `Set-Item env:NOM`. */
+function affectationsDuSegment(textes) {
+  if (textes.length === 0) return []
+  const tete = basenameExecutable(textes[0])
+  const args = textes.slice(1)
+  const exporte = EXPORTEURS.get(tete)
+  if (exporte) {
+    if (!exporte(args) || args.includes('-n')) return []
+    return args.filter((a) => !a.startsWith('-')).map((a) => NOM_EXPORTE_RE.exec(a)?.[1]).filter(Boolean)
+  }
+  const ps = ENV_POWERSHELL_RE.exec(textes[0])
+  if (ps && (ps[2] !== undefined || args[0] === '=')) return [ps[1]]
+  if (ECRIVAINS_ENV_POWERSHELL.has(tete)) return args.map((a) => LECTEUR_ENV_RE.exec(a)?.[1]).filter(Boolean)
+  return []
+}
+
+/** Les noms de variables d'environnement que la commande pose, dans l'ordre, porteurs de chaîne et
+ *  scripts npm dépliés (`pipelinesDeJetons`) : affectation de TÊTE (`VAR=val cmd`, `env VAR=val`),
+ *  affectation seule (`VAR=val;`, qu'un `set -a` ou un export antérieur rend visible aux suivants), et
+ *  export (`affectationsDuSegment`). */
+export function affectationsDEnvironnement(command, options) {
+  const affectations = []
+  pipelinesDeJetons(command, 0, { ...options, affectations })
+  return affectations
 }
 
 /** Liste PLATE des segments RÉELLEMENT exécutés par la commande — l'aplati de `pipelinesProfonds`,
@@ -2771,15 +2815,16 @@ export function listeurDuBudget(arbre, dir, { pannes = [] } = {}) {
 // ── Garde (#2125) : la porte de fermeture et de commit, sur la commande d'un canal shell ─────────
 /**
  * Le verdict de la porte sur la commande de `entree`. `contexte` (répartiteur, `construireContexte`) :
- * `dir` = le répertoire où la commande s'exécute RÉELLEMENT — tout ce que la porte lit sur disque ou
+ * `dir` = le répertoire où la commande s'exécute RÉELLEMENT, `null` s'il n'est pas jugeable — tout ce que la porte lit sur disque ou
  * dans git s'y lit (index, message `-F`, palier, revue, histoire) ; `cibleIgnoree` = ce que la
  * commande nommait sans que ce soit un répertoire réel, DIT dans tout refus ; `today` = date locale ;
  * `pannes` = les pannes de lecture git de l'appel, refusées au rendu (`refusDesPannes`).
  */
 async function evaluerSolde(entree, { dir: targetDir, cibleIgnoree, today, pannes }) {
   const command = commandeDe(entree)
-  // HORS des deux gestes jugés (commit, fermeture `gh`), la garde ne lit RIEN (#1729 sonde 3).
-  if (!gesteJuge(command)) return null
+  // HORS des deux gestes jugés (commit, fermeture `gh`), la garde ne lit RIEN (#1729 sonde 3) ; un
+  // lieu d'exécution non jugeable (`dir` nul) est refusé par la garde `canal-outil` du répartiteur.
+  if (!gesteJuge(command) || targetDir === null) return null
   // HOTE UNIQUE de sortie : tout refus porte la cible écartée.
   const dire = (decision) => verdictDe(avecCibleIgnoree(decision, cibleIgnoree))
   // Le contenu jugé est celui que le commit va EMPORTER, pas l'index (`diffDuCommit`).

@@ -17,6 +17,7 @@ import { mkdtempSync, writeFileSync, rmSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import { tmpdir } from 'node:os'
 import { join, posix, resolve, win32 } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import {
   segmentsProfonds,
@@ -38,6 +39,7 @@ import { evaluate as evaluateGates } from './codeur-gates-guard.mjs'
 // Lecteurs Windows et racines de profil ASSEMBLÉS à l'exécution : ce fichier ne porte aucun chemin
 // absolu littéral, il reste donc soumis à `src/portable-paths-guard.test.ts` comme `scripts/**`.
 const BS = String.fromCharCode(92)
+const REPO = fileURLToPath(new URL('../..', import.meta.url))
 const LECTEUR_C = 'C' + ':'
 const LECTEUR_D = 'D' + ':'
 const PROFIL_WIN = ['/c/Users', 'x'].join('/')
@@ -290,9 +292,9 @@ function depotAvecWorktree() {
 
 // ── Driver : le JSON rendu au hook ────────────────────────────────────────────────────────────────
 /** Sortie BRUTE d'un point d'entrée réel pour un payload de hook. */
-function sortieDriver(script, command, cwd) {
+function sortieDriver(script, command, cwd = REPO) {
   const run = lancerHook(script, {
-    session_id: 'test', hook_event_name: 'PreToolUse',
+    session_id: 'test', hook_event_name: 'PreToolUse', cwd,
     tool_name: 'mcp__lean-ctx__ctx_shell', tool_input: { command, cwd },
   })
   assert.equal(run.code, 0, `le hook a quitté en ${run.code} : ${run.err}`)
