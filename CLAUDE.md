@@ -19,8 +19,8 @@ en cloud ; se committe comme du code, jamais de git destructif dessus.
 
 ## Table de routage — lire le bon doc AU MOMENT du déclencheur
 
-Un `docs/x.md` GÉNÉRÉ (jamais édité à la main) se régénère par `npm run docs:x` ; quand le nom du
-script diffère du nom du doc, il est entre parenthèses.
+Un `docs/x.md` GÉNÉRÉ (jamais édité, ni commité) se produit par `npm run docs:x` ou `docs:build` ; un
+script au nom différent du doc est entre parenthèses.
 
 | Déclencheur | Lire |
 |---|---|

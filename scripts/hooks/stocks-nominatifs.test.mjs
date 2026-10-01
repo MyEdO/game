@@ -127,7 +127,7 @@ test('périmètre — tout JSON suivi dont la FORME est un stock tombe sous un m
     if (estPorteurDeStock(rel)) continue
     // `docs/.sources-lues.json` a la FORME d'un stock (clés = les générateurs, valeurs = ce qu'ils
     // lisent) et n'en est pas un : c'est un registre DÉRIVÉ, réécrit en entier à chaque
-    // `docs:build` (`scripts/docs/lib/empreinte-sources.mjs`). Le rendre porteur ferait de chaque
+    // `docs:build` (`scripts/docs/lib/ecriture-derives.mjs`). Le rendre porteur ferait de chaque
     // régénération une croissance à déclarer — une dette ne se mesure pas sur un artefact généré.
     if (rel === 'docs/.sources-lues.json') continue
     let json

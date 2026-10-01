@@ -3,11 +3,11 @@
 // `scripts/docs/build-systemes.mjs` : une primitive se déclare à UN endroit, les deux docs en
 // dérivent.
 // Re-run : node scripts/docs/build-primitives.mjs (npm run docs:primitives).
-// Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/empreinte-sources.mjs), rejoué par `build-all.mjs`.
+// Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`.
 import { readFileSync, existsSync } from 'node:fs'
 import { FEUILLES_PARTAGEES, RACINE_DES_MODULES, moduleHorsCouche } from '../guards/lib/cssCouches.mjs'
 import { parUnitesDeCode } from '../guards/lib/lister.mjs'
-import { ecrireOuVerifier } from './lib/empreinte-sources.mjs'
+import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
 
 /** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire. */
 function rendu() {
@@ -87,7 +87,7 @@ function rendu() {
     out,
     path: CIBLE,
     staleMsg: `docs:primitives — ${CIBLE} est PÉRIMÉ (diverge de ${SOURCE}).`,
-    rerunMsg: '  → relancer `npm run docs:primitives` et committer le résultat.',
+    rerunMsg: '  → relancer `npm run docs:primitives` (dérivé jamais commité, #2203).',
     okMsg: `docs:primitives — OK (${CIBLE} à jour)`,
     writeMsg: `${CIBLE} — ${lignes.length} primitives.`,
   }

@@ -1,5 +1,5 @@
 // FINS DE LIGNE DE L'INDEX — `.gitattributes` déclare `* text=auto eol=lf` : un blob STAGÉ porteur de
-// `\r` viole cette déclaration et ne se voit qu'après coup, très loin du geste (`docs:empreinte` et
+// `\r` viole cette déclaration et ne se voit qu'après coup, très loin du geste (`Arbre inchangé` et
 // `agents:check` comparent des contenus normalisés et rendent des écarts illisibles).
 //
 // D'OÙ VIENNENT CES BLOBS : un worktree ouvert sous `core.autocrlf=true` (système) sort en CRLF, et

@@ -1,5 +1,6 @@
 import { Buffer } from 'node:buffer';
 import { matcherDOutils } from '../guards/lib/contratGarde.mjs';
+import { TIMEOUT_DU_HOOK } from '../hooks/bootstrap-prerequis.mjs';
 
 export const GENERATED_PREFIX = '<!-- GENERATED: agents:sync; source=';
 const utf8 = new TextDecoder('utf-8', { fatal: true });
@@ -209,7 +210,7 @@ export const ENTREES_OUTIL = [
  */
 export const HOOKS_DE_SESSION = [
   { phase: 'SessionStart', script: 'inject-project-credo.mjs', arguments: ['codex'], surfaces: [SURFACE_CODEX], timeout: 10, statusMessage: 'Injection du credo de travail' },
-  { phase: 'SessionStart', script: 'bootstrap-conteneur.mjs', arguments: [], surfaces: [SURFACE_CLAUDE], timeout: 300, statusMessage: 'Conformité du conteneur distant (hooks git, gh)' },
+  { phase: 'SessionStart', script: 'bootstrap-conteneur.mjs', arguments: [], surfaces: [SURFACE_CLAUDE], timeout: TIMEOUT_DU_HOOK, statusMessage: 'Conformité du conteneur distant (hooks git, docs, gh)' },
   { phase: 'SessionStart', script: 'inject-suivi.mjs', arguments: [], surfaces: [SURFACE_CLAUDE, SURFACE_CODEX], timeout: 10, statusMessage: 'Suivi de vague de la session' },
 ];
 

@@ -10,7 +10,7 @@
  * Patron retenu : « éditorial EN DUR dans le générateur » (scripts/docs/build-sources-vf.mjs),
  * avec la lecture AST + JSDoc du socle `scripts/docs/lib/jsdocUnion.mjs` (patron build-effects.mjs).
  *
- * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/empreinte-sources.mjs), rejoué par `build-all.mjs`.
+ * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`.
  *
  *   node scripts/docs/build-map-authoring.mjs
  */
@@ -18,7 +18,7 @@ import { readFileSync, existsSync } from 'node:fs'
 import { listerArbre } from '../guards/lib/lister.mjs'
 import ts from 'typescript'
 import { loadSource, jsdocRole, findAlias, aliasDoc, indexerConstantes } from './lib/jsdocUnion.mjs'
-import { ecrireOuVerifier } from './lib/empreinte-sources.mjs'
+import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
 import { fileExports } from './lib/engineExports.mjs'
 
 /** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire. */
@@ -551,7 +551,7 @@ ${
     path: 'docs/map-authoring.md',
     staleMsg:
       'docs:map-authoring — docs/map-authoring.md est PÉRIMÉ (diverge de src/state/mapSpec.ts, src/state/mapQC.ts, des scénarios de src/scenes/, ou du script).',
-    rerunMsg: '  → relancer `npm run docs:map-authoring` et committer le résultat.',
+    rerunMsg: '  → relancer `npm run docs:map-authoring` (dérivé jamais commité, #2203).',
     okMsg: 'docs:map-authoring — OK (docs/map-authoring.md à jour)',
     writeMsg: `docs/map-authoring.md — ${MAP_FIELDS.length} champs de MapSpec, ${ETAPES} étapes de compilation, ${DOCS_MESURES.length} documents mesurés.`,
   }

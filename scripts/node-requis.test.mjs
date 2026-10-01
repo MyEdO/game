@@ -39,6 +39,9 @@ const MODULES_LANCES = [/^node (\S+)/.exec(SCRIPTS.gates)[1], ...PILOTES, ...MOD
 const CODE_BLOQUANT_PRETOOLUSE = 2
 /** githooks(5) : un hook `post-*` ne peut pas faire échouer l'opération qui vient d'avoir lieu. */
 const estPostHook = (hook) => hook.startsWith('post-')
+/** githooks(5) : les arguments que git passe au hook dans le geste qui le fait AGIR — `post-checkout`
+ *  un changement de BRANCHE (`$3` = 1), `post-rewrite` un `rebase`. Les autres refusent avant de les lire. */
+const ARGUMENTS_D_UN_GESTE = { 'post-checkout': ['0'.repeat(40), 'f'.repeat(40), '1'], 'post-rewrite': ['rebase'] }
 /** Les `.mjs` qu'un hook shell lance à côté de lui, `"$(dirname "$0")/<nom>.mjs"`. */
 const modulesDuHook = (texte) => [...texte.matchAll(/"\$\(dirname "\$0"\)\/([\w-]+\.mjs)"/g)].map((m) => m[1])
 const EXIGENCE_INTENABLE = '>=999.0.0'
@@ -122,8 +125,7 @@ test('câblage des hooks shell de `scripts/git-hooks/` : chacun refuse AVANT son
   const racine = fauxArbre()
   try {
     for (const hook of HOOKS_SHELL) {
-      // `rebase` : le seul `$1` qui fasse agir post-rewrite ; les autres hooks refusent avant de le lire.
-      const r = spawnSync('sh', [join('scripts', 'git-hooks', hook), 'rebase'], { cwd: racine, env: envNu(), encoding: 'utf8' })
+      const r = spawnSync('sh', [join('scripts', 'git-hooks', hook), ...(ARGUMENTS_D_UN_GESTE[hook] ?? [])], { cwd: racine, env: envNu(), encoding: 'utf8' })
       assert.equal(r.status, estPostHook(hook) ? 0 : CODE_DE_REFUS, `${hook} : ${r.stdout}${r.stderr}`)
       assert.match(r.stderr, REFUS, hook)
     }

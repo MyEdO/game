@@ -12,10 +12,10 @@
  * du corps), jamais un résumé : coupé à 240 caractères sur une FIN DE PHRASE quand la fiche en offre
  * une, sinon sur un mot — jamais sur un mot-outil, qui laisserait la phrase en suspens.
  *
- * La cible est un doc GÉNÉRÉ écrit EN ENTIER (`targets` dans `GENERATORS`, famille
- * `merge=docs-generes`) : `CLAUDE.md` ne porte que la LIGNE DE ROUTAGE qui y mène.
+ * La cible est un doc GÉNÉRÉ écrit EN ENTIER (`targets` dans `GENERATORS`, jamais commité, #2203) :
+ * `CLAUDE.md` ne porte que la LIGNE DE ROUTAGE qui y mène.
  *
- * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/empreinte-sources.mjs), rejoué par `build-all.mjs`
+ * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`
  * et au pre-commit dès qu'une fiche `user-*` ou `docs/doctrines.md` est stagé.
  *
  *   node scripts/docs/build-doctrines.mjs [--check]
@@ -23,7 +23,7 @@
 import { readFileSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import { resolve } from 'node:path'
-import { ecrireOuVerifier } from './lib/empreinte-sources.mjs'
+import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
 import { parUnitesDeCode } from '../guards/lib/lister.mjs'
 
 const OUTIL = 'build-doctrines'
@@ -344,7 +344,7 @@ function main() {
     path: resolve(cwd, CIBLE),
     check,
     staleMsg: `${OUTIL} — ${CIBLE} PÉRIMÉ (fiche ajoutée/éditée, ou doc édité à la main).`,
-    rerunMsg: `${OUTIL} — relancer \`npm run docs:doctrines\` et committer ${CIBLE}.`,
+    rerunMsg: `${OUTIL} — relancer \`npm run docs:doctrines\` (${CIBLE} jamais commité, #2203).`,
     okMsg: `${OUTIL} — OK (${n} doctrines, ${poids} octets)`,
     writeMsg: `${OUTIL} — ${CIBLE} écrit (${n} doctrines, ${poids} octets)`,
   })

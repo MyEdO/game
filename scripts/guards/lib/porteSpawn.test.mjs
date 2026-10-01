@@ -75,9 +75,9 @@ test('un VERDICT (`status`) et une PANNE (`code`) ne se confondent pas', () => {
   assert.equal(codeDePanne(undefined), null)
 })
 
-test('CÂBLAGE : le pre-commit passe la sélection au garde des docs, jamais le diff entier', () => {
+test('CÂBLAGE : le pre-commit arme la porte des docs sur SA sélection, et ne déroule jamais le diff entier en argv', () => {
   const texte = readFileSync(HOOK, 'utf8')
-  assert.match(texte, /check-docs-vs-head\.mjs'\), \.\.\.docsPourLaPorte\]/)
+  assert.match(texte, /const docsPourLaPorte = docsDePorte\(staged\)/)
   assert.equal(texte.includes('...staged]'), false, 'aucune porte ne déroule la liste stagée entière en argv')
   // Chaque `catch` de sous-processus qui NOMME un coupable lit d'abord la CAUSE : autant de lectures de
   // `codeDePanne` que de portes lancées en sous-processus dont l'échec pousse un offender.

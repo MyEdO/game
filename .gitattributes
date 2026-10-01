@@ -20,46 +20,12 @@
 *.ogg  binary
 *.wav  binary
 
-# --- Docs DÉRIVÉS : la fusion textuelle n'a aucun sens, seule la régénération fait foi. ---
-# Pilotes déclarés par `npm run postinstall` (git config merge.docs-*.driver),
-# implémentés par scripts/git-hooks/merge-docs.mjs.
-#   docs-generes   : garde la version courante, `npm run docs:build` reconstruit la valeur juste.
+# --- Docs MIXTES : un fichier 100 % dérivé n'est pas commité (#2203, bloc de .gitignore). ---
+# Pilote déclaré par `npm run postinstall` (git config merge.docs-fiche-raw.driver), implémenté par
+# scripts/git-hooks/merge-docs.mjs.
 #   docs-fiche-raw : fiche MIXTE (prose manuscrite + champs `**Implémente :**` dérivés) — fusion
 #                    3-voies de la PROSE seule ; conflit résiduel = vrai conflit humain.
-docs/primitives.md            merge=docs-generes linguist-generated=true
-docs/doctrines.md             merge=docs-generes linguist-generated=true
-docs/systemes.md              merge=docs-generes linguist-generated=true
-docs/campagne-effects.md      merge=docs-generes linguist-generated=true
-docs/orphelines-donnees.md    merge=docs-generes linguist-generated=true
-docs/consommateurs-de-champs.md merge=docs-generes linguist-generated=true
-docs/index-moteur.md          merge=docs-generes linguist-generated=true
-docs/registre-jets.md         merge=docs-generes linguist-generated=true
-docs/usages-jets.md           merge=docs-generes linguist-generated=true
-docs/vocabulaire-mecanique.md merge=docs-generes linguist-generated=true
-docs/donnees.md               merge=docs-generes linguist-generated=true
-docs/sources-vf.md            merge=docs-generes linguist-generated=true
-docs/sorts-implementation.md  merge=docs-generes linguist-generated=true
-docs/test-scenarios.md        merge=docs-generes linguist-generated=true
-docs/structures-donnees.md    merge=docs-generes linguist-generated=true
-docs/reprise-apres-pause.md   merge=docs-generes linguist-generated=true
-docs/ajouter-une-icone.md     merge=docs-generes linguist-generated=true
-docs/codex-relations.md       merge=docs-generes linguist-generated=true
-docs/map-authoring.md         merge=docs-generes linguist-generated=true
-docs/systeme-passifs.md       merge=docs-generes linguist-generated=true
-docs/rendu-pipeline.md        merge=docs-generes linguist-generated=true
-docs/ajouter-un-flux-de-jet.md merge=docs-generes linguist-generated=true
-docs/ajouter-une-mecanique.md merge=docs-generes linguist-generated=true
-docs/ajouter-un-sort.md       merge=docs-generes linguist-generated=true
-docs/ajouter-une-donnee.md    merge=docs-generes linguist-generated=true
-docs/regles-optionnelles.md   merge=docs-generes linguist-generated=true
-
-# Fiches de l'Atlas RAW : mixtes. Règle de FAMILLE d'abord, exceptions générées ensuite
-# (dernière règle appliquée gagne).
 docs/raw/**/*.md              merge=docs-fiche-raw
-docs/raw/**/catalogue-*.md    merge=docs-generes linguist-generated=true
-docs/raw/coverage.md          merge=docs-generes linguist-generated=true
-docs/raw/reconciliation.md    merge=docs-generes linguist-generated=true
-docs/raw/reanchor.md          merge=docs-generes linguist-generated=true
 
 # --- Stocks : fusion par groupe de site. ---
 # Pilote `stocks`, déclaré par `npm run postinstall` (git config merge.stocks.driver), implémenté par

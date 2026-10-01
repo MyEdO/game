@@ -1172,6 +1172,18 @@ export const fusionner = (depot, { de, message }) =>
 export const abandonnerFusion = (depot) => ecrire(depot, ['merge', '--abort'])
 
 /**
+ * La fusion entamée, CONCLUE en retirant `chemins` de l'index (`rm --cached`, le fichier reste sur le
+ * disque), puis commit de fusion sous `message`. FOSSILE #2203.
+ * @param {Depot} depot @param {{ chemins: string[], message: string }} p
+ */
+export function conclureFusionSansChemins(depot, { chemins, message }) {
+  if (!Array.isArray(chemins) || !chemins.length) throw new Error('conclureFusionSansChemins : des `chemins` explicites')
+  const retrait = ecrire(depot, ['--literal-pathspecs', 'rm', '-q', '--cached', '--', ...chemins])
+  if (!reussi(retrait)) return retrait
+  return ecrire(depot, ['commit', '-q', '-F', '-'], { entree: String(message), timeout: 600_000 })
+}
+
+/**
  * HEAD poussé vers la branche `vers` de l'origine. `bail` = `--force-with-lease`, qui n'écrase que ce
  * que le dépôt vient de lire. Jamais vers le tronc : `main` n'avance que par la file de fusion
  * (scripts/ops/ruleset-main.mjs).

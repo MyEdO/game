@@ -14,14 +14,14 @@
  *  - la classification `spellSupport` : ses issues lues au type de retour de `src/engine/spellspec.ts`.
  * La part ÉDITORIALE (ordre de la curation, pièges de vocabulaire, doctrine verbatim) vit ICI.
  *
- * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/empreinte-sources.mjs), rejoué par `build-all.mjs`.
+ * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`.
  *
  *   node scripts/docs/build-sort.mjs
  */
 import { readFileSync, existsSync } from 'node:fs'
 import ts from 'typescript'
 import { loadSource, renderFields, jsdocRole } from './lib/jsdocUnion.mjs'
-import { ecrireOuVerifier } from './lib/empreinte-sources.mjs'
+import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
 
 /** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire. */
 function rendu() {
@@ -372,7 +372,7 @@ typées — une valeur mal formée casse la compilation avant le runtime.
     path: 'docs/ajouter-un-sort.md',
     staleMsg:
       'docs:sort — docs/ajouter-un-sort.md est PÉRIMÉ (diverge de src/data/schemas/defs/spells.ts, de src/data/spells.json, de src/engine/spellspec.ts, des gardes, ou du script).',
-    rerunMsg: '  → relancer `npm run docs:sort` et committer le résultat.',
+    rerunMsg: '  → relancer `npm run docs:sort` (dérivé jamais commité, #2203).',
     okMsg: 'docs:sort — OK (docs/ajouter-un-sort.md à jour)',
     writeMsg: `docs/ajouter-un-sort.md — ${SORTS.length} sorts (${CURES} curés, ${RITUELS} rituels), ${CHAMPS.length} champs, ${GARDES_MESUREES.length} gardes.`,
   }

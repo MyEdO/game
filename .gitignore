@@ -82,3 +82,39 @@ __pycache__/
 # Captures d'écran personnelles de l'utilisateur, hors contenu du dépôt
 /rogue trader/
 /tmp/
+
+# Cibles PURES de `GENERATORS` (scripts/docs/build-all.mjs, `ciblesPures`) : jamais commitées (#2203 A2).
+# Garde : scripts/docs/cibles-pures.test.mjs. Un doc absent se produit par `npm run docs:build`.
+/docs/.sources-lues.json
+/docs/ajouter-un-flux-de-jet.md
+/docs/ajouter-un-sort.md
+/docs/ajouter-une-donnee.md
+/docs/ajouter-une-icone.md
+/docs/ajouter-une-mecanique.md
+/docs/campagne-effects.md
+/docs/codex-relations.md
+/docs/consommateurs-de-champs.md
+/docs/doctrines.md
+/docs/donnees.md
+/docs/index-moteur.md
+/docs/map-authoring.md
+/docs/orphelines-donnees.md
+/docs/primitives.md
+/docs/raw/coverage.md
+/docs/raw/reanchor.md
+/docs/raw/reconciliation.md
+/docs/registre-jets.md
+/docs/regles-optionnelles.md
+/docs/rendu-pipeline.md
+/docs/reprise-apres-pause.md
+/docs/sorts-implementation.md
+/docs/sources-vf.md
+/docs/structures-donnees.md
+/docs/systeme-passifs.md
+/docs/systemes.md
+/docs/test-scenarios.md
+/docs/usages-jets.md
+/docs/vocabulaire-mecanique.md
+/docs/raw/**/catalogue-*.md
+/src/**/*.generated.ts
+# fin des cibles pures

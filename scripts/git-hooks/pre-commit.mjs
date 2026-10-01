@@ -1,7 +1,7 @@
 // Hook pre-commit : la porte AU COMMIT — gardes anti-poison diff-scopées sur les fichiers stagés.
 // Mécanique partagée : scripts/guards/lib/ (source unique avec les tests Vitest et le hook au stylo).
 // CE QUI EST JOUÉ ICI : les scanners de commentaires/code sur le contenu de l'INDEX, `validate-data`,
-// `docs:check` + `check-docs-vs-head` + `check-plans-anchors`, `raw:implemente`, `build-doctrines`,
+// `check-doc-refs` + `check-plans-anchors`, `raw:implemente`, `build-doctrines`,
 // `compile-dessin-quad`,
 // `test:raw`, `test:recette`, `agents:check`, et le LINT des fichiers stagés (≈ 4 s / 20 fichiers).
 // CE QUI N'EST PAS JOUÉ ICI : ni typecheck, ni suite Vitest, ni les scanners de corpus entier — ils
@@ -10,9 +10,8 @@
 // les excuses sans tag bloquent quand EXCUSE_GUARD_ACTIVE est vrai, sinon elles rejoignent le canal
 // non bloquant. Ce canal (affirmations RAW, revendications d'autorité, hardcode réactif) est trié par
 // la baseline nominative `scripts/guards/lib/decisions-baseline.json` : NOUVEAU en tête, sites déjà
-// tranchés en une ligne compacte. `docs:check` tourne si un docs/*.md à plat est stagé (racine ou
-// docs/raw/, les fiches régénérables — #487) ; sur le même déclencheur, `check-docs-vs-head.mjs`
-// confronte les docs GÉNÉRÉS stagés à l'INDEX (porte de COMMIT, jamais dans `docs:check`).
+// tranchés en une ligne compacte. `check-doc-refs` tourne si un docs/*.md à plat est stagé (racine ou
+// docs/raw/, les fiches régénérables — #487).
 // Testabilité : des chemins passés en arguments remplacent la liste stagée (aucun toucher à l'index).
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
@@ -32,7 +31,6 @@ import { battleRngEngineLeakExcluded } from '../guards/lib/battleRngEngineLeakWh
 import { scanNpmLockHoisted } from '../guards/lib/npmLockHoisted.mjs';
 import { scanArbresImbriques } from '../guards/lib/arbreImbrique.mjs';
 import { fichiersALinter, lancerLint } from '../guards/lib/lintStage.mjs';
-import { ciblesDesArmes, generateursArmes } from '../guards/lib/empreinteStage.mjs';
 import { codeDePanne, docsDePorte, paquetsDArgv } from '../guards/lib/porteSpawn.mjs';
 import { cheminsMalNormalises, raisonDeRefusEol } from '../guards/lib/eolStage.mjs';
 import { defautsDeForme, familleDe, raisonDeRefusDeForme } from '../guards/memoire-forme.mjs';
@@ -220,10 +218,8 @@ if (staged.some((f) => f.replace(/\\/g, '/') === 'package-lock.json')) {
   }
 }
 
-// Les chemins passés au garde sont SA sélection (`docsDePorte`), jamais le diff entier : 32 k caractères
-// d'argv sous Windows, un gros renommage dépasse — `execFileSync` part alors en `ENAMETOOLONG` et le
-// `catch` rendrait un verdict de doc pour une porte qui n'a jamais tourné (classe nommée et mesurée dans
-// `scripts/guards/lib/porteSpawn.mjs`).
+// La porte des docs s'arme sur SA sélection (`docsDePorte`) ; une panne de lancement n'est pas un
+// verdict de doc (`codeDePanne`, scripts/guards/lib/porteSpawn.mjs).
 const docsPourLaPorte = docsDePorte(staged);
 if (docsPourLaPorte.length) {
   try {
@@ -233,50 +229,6 @@ if (docsPourLaPorte.length) {
     offenders.push(panne
       ? `docs:check — porte en PANNE : ${panne} (le garde n'a pas tourné : c'est le LANCEMENT qui a échoué, pas le doc)`
       : 'docs:check en échec (référence vivante qui ment — corriger le doc ou le code, jamais commiter le mensonge)');
-  }
-  // Un doc GÉNÉRÉ stagé doit décrire l'arbre QUI PART au commit, pas le WIP d'une session voisine :
-  // ses `fichier:ligne` et ses comptes d'inventaire sont confrontés à l'INDEX. Cette garde reste HORS
-  // `docs:check` (qui tourne légitimement sur un arbre en vol) — c'est une porte de COMMIT.
-  try {
-    execFileSync(process.execPath, [join(ROOT, 'scripts', 'docs', 'check-docs-vs-head.mjs'), ...docsPourLaPorte], { cwd: ROOT, stdio: 'inherit' });
-  } catch (e) {
-    const panne = codeDePanne(e);
-    offenders.push(panne
-      ? `docs-vs-commit — porte en PANNE : ${panne} (le garde n'a pas tourné : c'est le LANCEMENT qui a échoué, pas le doc)`
-      : 'docs-vs-commit en échec (doc généré qui décrit un arbre absent du commit — régénérer sur l’arbre stagé, ou stager le code décrit)');
-  }
-}
-
-// #1679 L1b — EMPREINTE DE SOURCES des docs dérivés. UN déclencheur : un doc GÉNÉRÉ est stagé. Pour
-// ce doc-là, les blobs figés dans son pied doivent être ceux de l'INDEX — sinon il décrit un arbre
-// que ce commit n'embarque pas. Une SOURCE stagée sans régénération n'arme rien ici : le pied qu'elle
-// périme porte un doc qui ne part pas dans ce commit, et armer sur les sources coûterait un
-// `docs:build` à 59,3 % des commits (mesuré 2026-09-02) pour un pied re-signé UNE fois par train, à
-// l'étape docs de `ops:publier`. La gate `docs:empreinte` reste la porte. Ce qui est joué ici ne
-// régénère RIEN (recalcul sur l'index, `git ls-files -s`), contre 49,8 s pour la régénération des 13
-// générateurs qu'un `src/data/*.json` arme (mesuré 2026-09-02).
-// CHAÎNE DE CONFIANCE : `docs/.sources-lues.json` est lu ici dans l'ARBRE (il ne sert qu'à CHOISIR
-// les générateurs), SANS être revérifié ; le VERDICT, lui, ne sort que de l'INDEX. Sa fraîcheur est
-// gatée en CI par `docs:check:tout`, qui rejoue chaque générateur et compare la mesure au committé. DÉFAUT CONNU : s'il
-// est illisible, la sélection rend une liste vide et la porte se tait ici — la CI reste le filet.
-const sourcesLues = (() => {
-  try { return JSON.parse(readFileSync(join(ROOT, 'docs', '.sources-lues.json'), 'utf8')); } catch { return {}; }
-})();
-const armes = (() => {
-  try { return generateursArmes(sourcesLues, staged); } catch { return []; }
-})();
-if (armes.length) {
-  try {
-    // `armes` est une liste de NOMS de générateurs (bornée par `docs/.sources-lues.json`), pas le diff :
-    // elle ne peut pas faire dépasser les 32 k caractères d'argv — le `catch` distingue quand même la
-    // PANNE de spawn du verdict, pour ne jamais accuser un doc à la place d'un lancement raté.
-    execFileSync(process.execPath, [join(ROOT, 'scripts', 'docs', 'build-all.mjs'), '--empreinte', '--only', ...armes], { cwd: ROOT, stdio: 'inherit' });
-  } catch (e) {
-    const panne = codeDePanne(e);
-    const cibles = ciblesDesArmes(sourcesLues, armes);
-    offenders.push(panne
-      ? `empreinte de sources — porte en PANNE : ${panne} (le garde n'a pas tourné : c'est le LANCEMENT qui a échoué)`
-      : `empreinte de sources en échec — ${cibles.join(', ')} décrit un arbre ≠ index : \`npm run docs:build\`, puis stage le(s) doc(s) avec les sources nommées ci-dessus`);
   }
 }
 
@@ -328,20 +280,18 @@ if (rawFicheStaged) {
   }
 }
 
-// #1679 L1b — `docs/doctrines.md` est DÉRIVÉ des fiches `.claude/memory/user-*.md` : le --check
-// tourne dès qu'une fiche user-* ou le doc lui-même est stagé (même patron borné que #487 ci-dessus).
-const doctrineStaged = staged.some((f) => {
-  const r = f.replace(/\\/g, '/');
-  return r === 'docs/doctrines.md' || /^\.claude\/memory\/user-[^/]+\.md$/.test(r);
-});
+// #1679 L1b — `docs/doctrines.md` est DÉRIVÉ des fiches `.claude/memory/user-*.md`, jamais commité
+// (#2203) : dès qu'une fiche user-* est stagée, il se RÉGÉNÈRE, et un rouge de son générateur est un
+// rouge de la fiche (même patron borné que #487 ci-dessus).
+const doctrineStaged = staged.some((f) => /^\.claude\/memory\/user-[^/]+\.md$/.test(f.replace(/\\/g, '/')));
 if (doctrineStaged) {
   try {
-    execFileSync(process.execPath, [join(ROOT, 'scripts', 'docs', 'build-doctrines.mjs'), '--check'], { cwd: ROOT, stdio: 'inherit' });
+    execFileSync(process.execPath, [join(ROOT, 'scripts', 'docs', 'build-doctrines.mjs')], { cwd: ROOT, stdio: 'inherit' });
   } catch (e) {
     const panne = codeDePanne(e);
     offenders.push(panne
       ? `build-doctrines — porte en PANNE : ${panne} (le garde n'a pas tourné : c'est le LANCEMENT qui a échoué)`
-      : 'build-doctrines --check en échec (docs/doctrines.md périmé ou édité à la main — relancer `npm run docs:doctrines` et committer le résultat)');
+      : 'build-doctrines en échec (fiche user-* que le générateur de docs/doctrines.md refuse — corriger la fiche)');
   }
 }
 

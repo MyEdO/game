@@ -116,9 +116,9 @@ test('chaque gate porte une RAISON, et chaque écriture fermée porte SA porte',
 test('--serie joue EXACTEMENT les mêmes gates que les lanes, dans l’ordre de ci.yml', () => {
   const aJouer = NOMS.map(gate)
   assert.deepEqual(lanesAJouer(aJouer, { serie: true, lanes: LANES })[0].gates, NOMS)
-  const sous = ['test', 'lint', 'docs:check:tout'].map(gate)
-  assert.deepEqual(lanesAJouer(sous, { serie: true, lanes: LANES })[0].gates, ['test', 'lint', 'docs:check:tout'])
-  assert.deepEqual(new Set(lanesAJouer(sous, { lanes: LANES }).flatMap((l) => l.gates)), new Set(['test', 'lint', 'docs:check:tout']))
+  const sous = ['test', 'lint', 'docs:build'].map(gate)
+  assert.deepEqual(lanesAJouer(sous, { serie: true, lanes: LANES })[0].gates, ['test', 'lint', 'docs:build'])
+  assert.deepEqual(new Set(lanesAJouer(sous, { lanes: LANES }).flatMap((l) => l.gates)), new Set(['test', 'lint', 'docs:build']))
   assert.deepEqual(lanesAJouer(sous, { lanes: LANES }).map((l) => l.nom), ['docs', 'types', 'suite'], 'une lane vide ne se lance pas')
 })
 
@@ -126,7 +126,7 @@ test('un plafond par gate, jamais un défaut muet', () => {
   assert.equal(limiteDe('gate-inconnue'), TIMEOUTS.defaut * 1000)
   assert.equal(limiteDe('test'), TIMEOUTS.test * 1000)
   assert.ok(TIMEOUTS.test > TIMEOUTS.defaut)
-  assert.ok(limiteDe('docs:check:tout') >= 423 * 1000, 'docs:check:tout vaut 141 s au pire observé — ×3 = 423 s au moins')
+  assert.ok(limiteDe('docs:build') >= 759 * 1000, 'docs:build vaut 252,7 s au pire observé — ×3 = 759 s au moins')
 })
 
 test('un enfant qui dépasse son plafond est EXPIRÉ, et son ARBRE tombe avec lui', async () => {
@@ -544,16 +544,15 @@ test('une gate qui réécrit l’arbre fait REFUSER le run à la photo de fin', 
   }
 })
 
-test('pré-vol : un registre périmé est un REFUS nommé, avant toute gate, et rien n’est écrit (#1801)', async () => {
+test('pré-vol : un `npm run gen` rouge est un REFUS nommé, avant toute gate (#1801, #2203)', async () => {
   const { racine, git } = depotDeGates([{ nom: 'lente', corps: LENTE }])
   try {
     writeFileSync(
       join(racine, 'gen.mjs'),
       "import { writeFileSync } from 'node:fs'\n" +
-        "if (process.argv.includes('--check')) { console.error('registre.generated.ts est PÉRIMÉ'); process.exit(2) }\n" +
-        "writeFileSync('registre.generated.ts', 'régénéré\\n')\n",
+        "console.error('registre.generated.ts : ÉCHEC du rendu'); process.exit(2)\n",
     )
-    git('commit', '-qam', 'registre périmé')
+    git('commit', '-qam', 'gen rouge')
     const lignes = []
     const code = await principal({
       racine,
@@ -564,7 +563,7 @@ test('pré-vol : un registre périmé est un REFUS nommé, avant toute gate, et 
     })
     const sortie = lignes.join('')
     assert.equal(code, 1, sortie)
-    assert.match(sortie, /REFUS — « npm run gen -- --check » rouge \(exit 2\)[\s\S]*registre\.generated\.ts est PÉRIMÉ/)
+    assert.match(sortie, /REFUS — « npm run gen » rouge \(exit 2\)[\s\S]*registre\.generated\.ts : ÉCHEC du rendu/)
     assert.doesNotMatch(sortie, /\[gates\] lente — (?:vert|ROUGE)/, 'le refus du pré-vol précède toute gate')
     assert.equal(git('status', '--porcelain'), '', 'le pré-vol n’écrit rien dans l’arbre')
   } finally {

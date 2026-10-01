@@ -1,8 +1,9 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import { spawnSync } from 'node:child_process';
 import { fileURLToPath, URL } from 'node:url';
 // @ts-expect-error - generateur ESM JS (pas de types)
-import { genAll, REGISTRIES } from './scripts/gen-registry.mjs';
+import { REGISTRIES } from './scripts/gen-registry.mjs';
 // @ts-expect-error - module ESM JS (pas de types)
 import { ENTETE_RACINE, portDev, portPreview, valeurEnteteRacine } from './scripts/port-dev.mjs';
 // @ts-expect-error - plugin ESM JS (pas de types)
@@ -10,17 +11,25 @@ import { proseSource } from './scripts/source/prose-source-plugin.mjs';
 import { TAS_WORKER_MO } from './scripts/test/partition.mjs';
 import { RACINES_DE_LA_SUITE } from './scripts/guards/lib/racinesDeLaSuite.mjs';
 
-/** Auto-génération des registres « dépose un fichier → intégré » et de l'INDEX DES IDS (`genAll`,
- *  phases 1 et 2) au démarrage et à chaque ajout/suppression dans un dossier `defs/` (HMR récupère
- *  ensuite). */
+/** Les cibles de CODE (`genererCode`, scripts/docs/build-all.mjs : registres « dépose un fichier →
+ *  intégré » et INDEX DES IDS) produites au démarrage et à chaque ajout/suppression dans un dossier
+ *  `defs/` (HMR récupère ensuite). Un rouge ARRÊTE le démarrage : le code ne compile pas sans elles. */
 function registryGen() {
   const dirs = (REGISTRIES as { dir: string }[]).map((r) => r.dir.replace(/\\/g, '/'));
   const touched = (f: string) => dirs.some((d) => f.replace(/\\/g, '/').includes(d));
+  // Par son CLI (`--code`) : Vite empaquette sa config par esbuild, qui n'avale pas le shebang de
+  // scripts/lancer-local.mjs qu'importe build-all.mjs.
+  const produire = () => {
+    const r = spawnSync(process.execPath, ['scripts/docs/build-all.mjs', '--code', '--quiet'], {
+      cwd: fileURLToPath(new URL('.', import.meta.url)), stdio: 'inherit',
+    });
+    if (r.status !== 0) throw new Error(`registry-gen : cibles de code en échec (exit ${r.status ?? r.signal}) — npm run gen`);
+  };
   return {
     name: 'registry-gen',
-    buildStart() { genAll(); },
+    buildStart() { produire(); },
     configureServer(server: { watcher: { on(e: string, cb: (f: string) => void): void } }) {
-      const on = (f: string) => { if (touched(f)) genAll(); };
+      const on = (f: string) => { if (touched(f)) produire(); };
       server.watcher.on('add', on);
       server.watcher.on('unlink', on);
     },

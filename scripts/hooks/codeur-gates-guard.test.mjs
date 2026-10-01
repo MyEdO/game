@@ -30,7 +30,7 @@ const payload = (command, agentType) =>
     tool_input: { command },
   })
 
-const GATES = ['lint', 'deps:unused', 'docs:check:tout', 'test:ops', 'typecheck']
+const GATES = ['lint', 'deps:unused', 'docs:build', 'test:ops', 'typecheck']
 
 /** La décision du hook pour un `codeur` (la liste de gates est injectée, jamais lue du dépôt). */
 const pourCodeur = (commande) => evaluate({ agentType: 'codeur', commande, gates: GATES })
@@ -41,8 +41,8 @@ const REFUSEES = [
   'npm test',
   'npm run deps:unused',
   // Gate dont la RÉSOLUTION n'est refusée par aucune autre règle
-  // (`node scripts/docs/build-all.mjs --check --tout`) : seul son NOM, clé d'`ECRIT_LU`, la refuse.
-  'npm run docs:check:tout',
+  // (`node scripts/docs/build-all.mjs`) : seul son NOM, clé d'`ECRIT_LU`, la refuse.
+  'npm run docs:build',
   'npx vitest run',
   'npx tsc --noEmit',
   'npx eslint .',
@@ -50,7 +50,7 @@ const REFUSEES = [
   'node scripts/test/node-tests.mjs test:ops',
   'node scripts/gates/toutes.mjs',
   // Décision par SEGMENT : la gate cachée derrière un enchaînement est la même gate.
-  'echo ok && npm run docs:check:tout',
+  'echo ok && npm run docs:build',
   // Le REJEU LOCAL ENTIER : `gates` n'est pas une clé d'ECRIT_LU, c'est sa RÉSOLUTION
   // (`node scripts/gates/toutes.mjs`) qui le refuse — la promesse de `codeur.md` tient.
   'npm run gates',
@@ -137,12 +137,12 @@ test('DRIVER : silence (aucune sortie) hors du cas visé, et jamais une sortie n
 
 test('la liste est LUE dans ECRIT_LU (une gate ajoutée là est couverte sans toucher au hook)', () => {
   const lues = gatesDeLaCi()
-  for (const gate of ['lint', 'docs:check:tout', 'test:ops']) {
+  for (const gate of ['lint', 'docs:build', 'test:ops']) {
     assert.ok(lues.includes(gate), `« ${gate} » est une clé d’ECRIT_LU mais le hook ne la voit pas`)
     assert.ok(gate in ECRIT_LU, `« ${gate} » a quitté ECRIT_LU : le verrou perd sa source`)
   }
   assert.equal(
-    evaluate({ agentType: 'codeur', commande: 'npm run docs:check:tout' })?.decision,
+    evaluate({ agentType: 'codeur', commande: 'npm run docs:build' })?.decision,
     'deny',
     'sans liste injectée, le hook doit refuser en lisant la table réelle',
   )

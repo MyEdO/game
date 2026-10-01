@@ -5,12 +5,12 @@
 //   lexique  → scripts/docs/lib/structures-lexique.mts (concepts FERMÉS, une entrée = un concept)
 // Sortie : docs/structures-donnees.md. Re-run : npx tsx scripts/docs/build-structures.mts
 // (npm run docs:structures).
-// Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/empreinte-sources.mjs), rejoué par `build-all.mjs`.
+// Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`.
 //
 // Le doc est la carte de PILOTAGE du chantier #1463 : le stock nominatif décroissant qu'il
 // alimente vit dans scripts/guards/lib/structuresStock.mjs (garde src/data/structures-contrat.test.ts).
 import { execFileSync } from 'node:child_process';
-import { ecrireOuVerifier } from './lib/empreinte-sources.mjs';
+import { ecrireOuVerifier } from './lib/ecriture-derives.mjs';
 import {
   scanDuCorpus,
   scannerRedeclarations,
@@ -627,7 +627,7 @@ function rendu() {
     out,
     path: OUT,
     staleMsg: `docs:structures — ${OUT} est PÉRIMÉ (diverge de la donnée / des defs mesurées).`,
-    rerunMsg: '  → relancer `npm run docs:structures` et committer le résultat.',
+    rerunMsg: '  → relancer `npm run docs:structures` (dérivé jamais commité, #2203).',
     okMsg: `docs:structures — OK (${OUT} à jour, ${scan.documents.length} documents, ${scan.formes.length} formes)`,
     writeMsg: `${OUT} — ${scan.documents.length} documents (2 racines), ${scan.index.ids} ids indexés, ${scan.formes.length} lignes de forme, ${scan.orphelines.length} signatures orphelines, ${scan.homonymes.length} homonymes, ${redeclarations.length} redéclarations locales, ${scan.ops.length} lignes d’op / ${scan.totalOps} ops.`,
   };

@@ -3,12 +3,12 @@
 // src/data/donnees.manifest.json ; tout ce que l'arbre permet de DÉRIVER (liste des fichiers réels,
 // nombre d'entrées, présence d'un schéma zod, complétude du manifeste) est CALCULÉ ici. Sortie :
 // docs/donnees.md. Re-run : node scripts/docs/build-donnees.mjs (npm run docs:donnees).
-// Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/empreinte-sources.mjs), rejoué par `build-all.mjs`.
+// Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`.
 // Patron : `scripts/docs/build-systemes.mjs`.
 import { readFileSync, existsSync } from 'node:fs'
 import { listerDossier } from '../guards/lib/lister.mjs'
 import { sortieOutilLocal } from '../lancer-local.mjs'
-import { ecrireOuVerifier } from './lib/empreinte-sources.mjs'
+import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
 import { FOLIO_RATCHET } from '../guards/lib/folioRatchetStock.mjs'
 
 /** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire. */
@@ -23,7 +23,7 @@ function rendu() {
    * d'un MODULE (gratuit, stable, déjà dans le graphe des sources lues).
    *
    * Les deux autres cardinaux (entrées scannées, irrésolues) ne s'écrivent PAS ici : les MESURER
-   * ferait entrer les ~300 chapitres du `Source/` dans l'empreinte de ce doc dérivé (mesuré :
+   * ferait entrer les ~300 chapitres du `Source/` dans les sources mesurées de ce doc dérivé (mesuré :
    * `docs/.sources-lues.json` 358 → 651 fichiers, +4 s par génération), si bien que toute réparation
    * de chapitre périmerait `donnees.md` — un doc dérivé ne porte pas un cardinal vivant qui dépend
    * d'un autre corpus. Le doc renvoie à la commande qui les rend, `node scripts/data/audit-folios.mjs`.
@@ -34,7 +34,7 @@ function rendu() {
 
   /**
    * `fichier:ligne` d'une ANCRE de texte, MESURE a la generation : une citation ecrite a la main
-   * dans un generateur perime au premier commit voisin, et la garde `docs-vs-commit` la lit.
+   * dans un generateur perime au premier commit voisin.
    * L'ancre doit matcher EXACTEMENT une ligne — zero ou plusieurs, c'est une erreur nommee.
    */
   function citeLigne(chemin, ancre) {
@@ -198,7 +198,7 @@ function rendu() {
   out += `  entrées citées échappe à TOUT verdict, de la desc comme du titre (prose reformulée donc introuvable, prose trop\n`
   out += `  courte pour localiser, chapitre sans marqueur, livre sans extraction FR) — les deux cardinaux se LISENT au run\n`
   out += `  (\`node scripts/data/audit-folios.mjs\`, lignes « Entrées citées scannées » et « irrésolues ») et ne sont pas écrits\n`
-  out += `  ici : ils dépendent du \`Source/\`, qu'un doc dérivé de la DONNÉE n'a pas à prendre dans son empreinte. Une entrée\n`
+  out += `  ici : ils dépendent du \`Source/\`, qu'un doc dérivé de la DONNÉE n'a pas à prendre dans ses sources. Une entrée\n`
   out += `  neuve à desc NON verbatim et à folio faux mais PLAUSIBLE passe encore : seule la règle 5 la rattrape. Le\n`
   out += `  stock n'est donc pas « les défauts du dépôt », c'est « les défauts que ces deux voies prouvent ».\n`
   out += `  Si une desc se retrouve sur PLUSIEURS folios (définition ET récapitulatif d'annexe), cite la **DÉFINITION** ;\n`
@@ -499,7 +499,7 @@ function rendu() {
     out,
     path: 'docs/donnees.md',
     staleMsg: "docs:donnees — docs/donnees.md est PÉRIMÉ (diverge de src/data/donnees.manifest.json ou de l'arbre src/data/*.json).",
-    rerunMsg: '  → relancer `npm run docs:donnees` et committer le résultat.',
+    rerunMsg: '  → relancer `npm run docs:donnees` (dérivé jamais commité, #2203).',
     okMsg: 'docs:donnees — OK (docs/donnees.md à jour)',
     writeMsg: `docs/donnees.md — ${filesOnDisk.length} fichiers cartographiés, ${schemaCoverage}/${filesOnDisk.length} sous contrat de schéma.`,
   }
