@@ -96,6 +96,7 @@ n'exclut pas un usage indirect hors des modules racines déclarés).
 | `import.meta.main` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | `descendre/enfantsDe` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 | `coDescendre/ouverts/pasDeDonnee` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
+| `aligner/unitesDe/unitesDeLAdresse/unitesDuBloc/unitesDuTexte/memeTexte` | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U | U |
 | `MenuCard/MenuSection/MenuButton/MenuToggle` |  |  |  |  |  |  |  |  | U |  |  |  |  | U |  |  |
 | `ScreenMeta` |  |  |  |  | U |  | U | U |  |  | U |  |  |  | U |  |
 | `Tabs` |  |  |  |  | U |  | U | U |  | U | U |  |  |  | U | U |
@@ -199,7 +200,7 @@ n'exclut pas un usage indirect hors des modules racines déclarés).
 | `litteralJs` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | `ast` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | `sAppliqueA/estRetenu` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| `scanConstructionsReservees/FORMULE_DE_CHEBYSHEV/ECHAPPEUR_DE_LITTERAL/CONSTRUCTION_DE_PROGRAMME/ECRITURE_DE_STOCK_JSON/CONSTRUCTION_DE_TABLE_TOTALE/recopieDeCanon/cleEnLigne/estAppelDeclare/origineImportee` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| `scanConstructionsReservees/FORMULE_DE_CHEBYSHEV/ECHAPPEUR_DE_LITTERAL/CONSTRUCTION_DE_PROGRAMME/ECRITURE_DE_STOCK_JSON/CONSTRUCTION_DE_TABLE_TOTALE/recopieDeCanon/cleEnLigne/comparaisonDAppel/estAppelDeclare/origineImportee` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | `repoProgram/virtualProgram/parsedProgram/VIRTUAL_ROOT` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | `LECTURES_DE_L_ART` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | `garde de la clé de site` |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
@@ -260,7 +261,7 @@ n'exclut pas un usage indirect hors des modules racines déclarés).
 - `litteralJs` (scripts/guards/lib/litteralJs.mjs) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
 - `ast` (scripts/guards/lib/dialecte.mjs) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
 - `sAppliqueA/estRetenu` (scripts/guards/lib/sourceCorpus.mjs) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
-- `scanConstructionsReservees/FORMULE_DE_CHEBYSHEV/ECHAPPEUR_DE_LITTERAL/CONSTRUCTION_DE_PROGRAMME/ECRITURE_DE_STOCK_JSON/CONSTRUCTION_DE_TABLE_TOTALE/recopieDeCanon/cleEnLigne/estAppelDeclare/origineImportee` (scripts/guards/lib/canonUnique.mjs) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
+- `scanConstructionsReservees/FORMULE_DE_CHEBYSHEV/ECHAPPEUR_DE_LITTERAL/CONSTRUCTION_DE_PROGRAMME/ECRITURE_DE_STOCK_JSON/CONSTRUCTION_DE_TABLE_TOTALE/recopieDeCanon/cleEnLigne/comparaisonDAppel/estAppelDeclare/origineImportee` (scripts/guards/lib/canonUnique.mjs) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
 - `repoProgram/virtualProgram/parsedProgram/VIRTUAL_ROOT` (scripts/guards/lib/tsProgram.mjs) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
 - `LECTURES_DE_L_ART` (scripts/guards/lib/lecturesDeLArt.ts) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
 - `garde de la clé de site` (src/cle-de-site-guard.test.ts) — signalé, pas forcément un défaut (ex. mécanisme/éditeur transverse).
@@ -293,4 +294,4 @@ unique ne « possède » légitimement ; à trier au fil de l'eau, pas un échec
 - `src/state/sceneEdit.testkit.ts`
 - `src/state/turnEconomy.ts`
 - `src/state/viewLevel.ts`
-<!-- sources-empreinte: 925cc98b8f84f4fcb3f4c267e2c7d48bb4d43e70 (1859 fichiers, 2 dossiers) corps: a8e73045267fac6530663f581d1805147503dd40 -->
+<!-- sources-empreinte: db9de7bdb971a0c3f084deca4518925fa22a5202 (1859 fichiers, 2 dossiers) corps: ad59833f39df0f4092980902141e541f73fd260a -->

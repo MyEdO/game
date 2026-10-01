@@ -239,7 +239,7 @@ export interface ErreurResolution {
 
 export interface Resolu { md: string; folios: number[] }
 
-export const estErreur = (r: Resolu | ErreurResolution): r is ErreurResolution => 'error' in r;
+export const estErreur = <T extends object>(r: T | ErreurResolution): r is ErreurResolution => 'error' in r;
 
 /** Longueur normalisée minimale d'un fragment de BLOCS en montage (en deçà, l'adresse n'est pas
  *  discriminante). Une `cellule` n'y est pas soumise — voir la règle D, `resoudreAdresse`. */
@@ -312,6 +312,94 @@ export function normText(s: string): string {
  */
 export const joinNorm = (parts: string[]): string =>
   parts.filter(Boolean).join(' ').replace(/\s*\|\s*/g, '|');
+
+/**
+ * Deux textes BRUTS sont-ils le même texte au sens de `normText` ? La comparaison « clé contre rendu »
+ * et « rendu contre rendu » ; le texte libre contre un rendu passe par `aligner`.
+ */
+export const memeTexte = (a: string, b: string): boolean => normText(a) === normText(b);
+
+/** Position d'une unité : section et rang du bloc (unité d'adresse) ou rang du paragraphe (unité de
+ *  texte), rang de ligne dans un bloc-table. */
+export interface PositionDUnite { sec?: string; secOcc?: number; rang: number; ligne?: number }
+
+/**
+ * Unité de texte : ce que produisent le rendu d'un fragment (`unitesDe`) et la préparation d'un texte
+ * libre (`unitesDuTexte`), et ce que compare `aligner`. Un rendu est la concaténation des `sep + md`.
+ */
+export interface Unite {
+  md: string;
+  /** Ce qui précède l'unité : rien pour la première, une ligne vide entre deux blocs ou deux
+   *  paragraphes, un saut de ligne entre deux lignes d'un bloc-table. */
+  sep: '' | '\n' | '\n\n';
+  norm: string;
+  pos: PositionDUnite;
+  /** Descriptif : aucune décision ne le lit. */
+  kind: 'bloc' | 'ligne' | 'cellule' | 'paragraphe';
+}
+
+/** Une unité, sa norme calculée. */
+const unite = (md: string, sep: Unite['sep'], pos: PositionDUnite, kind: Unite['kind']): Unite =>
+  ({ md, sep, norm: normText(md), pos, kind });
+
+/**
+ * Unités d'un TEXTE LIBRE, sa seule préparation : ses paragraphes (séparés par une ligne vide), ceux
+ * de norme vide écartés.
+ */
+export function unitesDuTexte(md: string): Unite[] {
+  const out: Unite[] = [];
+  md.split(/\n\s*\n/).forEach((p, rang) => {
+    const u = unite(p, out.length ? '\n\n' : '', { rang }, 'paragraphe');
+    if (u.norm) out.push(u);
+  });
+  return out;
+}
+
+/** Une coupe d'`aligner` : l'indice d'une unité d'adresse et la position de la coupe dans son `norm`. */
+export interface Coupe { unite: number; coupe: number }
+
+/** Ce qu'une adresse ajoute au texte : une unité non couverte (`entiere`), ou le reste d'une unité
+ *  coupée, du côté où elle déborde. Nommé, jamais une chaîne. */
+export interface Ajout { unite: number; pos: PositionDUnite; kind: Unite['kind']; cote: 'entiere' | 'gauche' | 'droite' }
+
+/** Témoin d'`aligner` : la première et la dernière unité d'adresse touchées, avec leurs coupes (début
+ *  du texte dans la première, fin du texte dans la dernière), et ce que l'adresse ajoute. */
+export interface Alignement { couvertes: { premiere: Coupe; derniere: Coupe }; ajoute: Ajout[] }
+
+/**
+ * LA décision « texte libre contre rendu » : la chaîne du texte (`joinNorm` de ses unités) est-elle une
+ * sous-chaîne de celle de l'adresse (`joinNorm` de ses unités) ? `null` sinon. L'ÉGALITÉ est un
+ * alignement dont `ajoute` est vide, la PARTIE STRICTE un alignement dont `ajoute` ne l'est pas. Une
+ * unité d'adresse de norme vide n'est jamais un ajout. Un texte sans unité de contenu est refusé.
+ */
+export function aligner(texte: readonly Unite[], adresse: readonly Unite[]): Alignement | null {
+  const t = joinNorm(texte.map((u) => u.norm));
+  if (!t) throw new RangeError('aligner : texte sans unité de contenu');
+  const a = joinNorm(adresse.map((u) => u.norm));
+  const idx = a.indexOf(t);
+  if (idx < 0) return null;
+  const fin = idx + t.length;
+  const ajoute: Ajout[] = [];
+  let premiere: Coupe | null = null;
+  let derniere: Coupe | null = null;
+  let curseur = 0;
+  for (let k = 0; k < adresse.length; k++) {
+    const u = adresse[k];
+    if (!u.norm) continue;
+    const d = a.startsWith(u.norm, curseur) ? curseur : curseur + 1;
+    if (!a.startsWith(u.norm, d)) throw new Error(`aligner : l'unité ${k} n'est pas à sa place dans la chaîne de l'adresse`);
+    const f = d + u.norm.length;
+    curseur = f;
+    const nomme = (cote: Ajout['cote']): Ajout => ({ unite: k, pos: u.pos, kind: u.kind, cote });
+    if (f <= idx || d >= fin) { ajoute.push(nomme('entiere')); continue; }
+    premiere ??= { unite: k, coupe: Math.max(0, idx - d) };
+    derniere = { unite: k, coupe: Math.min(f, fin) - d };
+    if (d < idx) ajoute.push(nomme('gauche'));
+    if (f > fin) ajoute.push(nomme('droite'));
+  }
+  if (!premiere || !derniere) throw new Error('aligner : un texte trouvé ne touche aucune unité');
+  return { couvertes: { premiere, derniere }, ajoute };
+}
 
 /** Un entier 32 bits en 8 hex. */
 const hex8 = (n: number): string => n.toString(16).padStart(8, '0');
@@ -545,16 +633,21 @@ export function tablesOf(section: Section): TableDeSection[] {
 /** Ligne de table dont une cellule vaut la clé cherchée. */
 interface LigneTrouvee { block: Bloc; table?: string; headers: string[]; row: string[]; cols: number[] }
 
+/** Recherche d'une CLÉ DÉJÀ NORMALISÉE : la case (ou l'en-tête) brute vaut-elle `cle` ? La clé ne se
+ *  renormalise pas à chaque case. Préfiltre par égalité de chaîne, #1887 6a-2a′. */
+const caseVautCle = (brute: string, cle: string): boolean => normText(brute) === cle;
+
 /**
- * Lignes d'une section dont une cellule vaut `target` (déjà normalisé), dans la table de clé `table`
- * si elle est donnée. Une ligne qui répond dans plusieurs de ses colonnes ne compte qu'une fois.
+ * Lignes d'une section dont une cellule vaut `target` (déjà normalisé, `caseVautCle`), dans la table
+ * de clé `table` si elle est donnée. Une ligne qui répond dans plusieurs de ses colonnes ne compte
+ * qu'une fois. Préfiltre des chercheurs, #1887 6a-2a′.
  */
 function rowsMatching(section: Section, target: string, table?: string): LigneTrouvee[] {
   const out: LigneTrouvee[] = [];
   for (const t of tablesOf(section)) {
     if (table != null && t.cle !== table) continue;
     for (const row of t.table.rows) {
-      const cols = row.map((c, i) => (normText(c) === target ? i : -1)).filter((i) => i >= 0);
+      const cols = row.map((c, i) => (caseVautCle(c, target) ? i : -1)).filter((i) => i >= 0);
       if (cols.length) out.push({ block: t.block, ...(t.cle == null ? {} : { table: t.cle }), headers: t.table.headers, row, cols });
     }
   }
@@ -590,8 +683,32 @@ const ouDe = (frag: Fragment): string =>
 const mdAffichable = (md: string): string =>
   md.split('\n').map((l) => (TABLE_LINE.test(l) ? sansBr(l) : l)).join('\n');
 
-/** Résout un fragment de BLOCS (suite contiguë de blocs d'une section), empreinte NON vérifiée. */
-function blocsBruts(chapitre: ChapitreParse, frag: FragmentBlocs): Resolu | ErreurResolution {
+/** Unités d'un fragment : celles que son rendu assemble, et ses folios. */
+export interface UnitesResolues { unites: Unite[]; folios: number[] }
+
+/** Mémo par IDENTITÉ du bloc : ses unités ne dépendent que de lui et de sa place. Partagé par tous
+ *  les appelants, il est GELÉ (tableau, unités, positions). */
+const _unitesDuBloc = new WeakMap<Bloc, readonly Unite[]>();
+
+/** Une unité gelée, position comprise. */
+const gelee = (u: Unite): Unite => Object.freeze({ ...u, pos: Object.freeze(u.pos) });
+
+/** Unités du bloc `rang` d'une section : une par ligne d'un bloc-table (`parseTable`), une pour tout
+ *  autre bloc ; `md` affichable (`mdAffichable`), la première sans séparateur. Gelées (`_unitesDuBloc`). */
+export function unitesDuBloc(section: Section, rang: number): readonly Unite[] {
+  const b = section.blocks[rang];
+  const memo = _unitesDuBloc.get(b);
+  if (memo) return memo;
+  const pos = { sec: section.slug, secOcc: section.occ, rang };
+  const unites = Object.freeze((parseTable(b.md)
+    ? b.md.split('\n').map((l, ligne) => unite(mdAffichable(l), ligne ? '\n' : '', { ...pos, ligne }, 'ligne'))
+    : [unite(mdAffichable(b.md), '', pos, 'bloc')]).map(gelee));
+  _unitesDuBloc.set(b, unites);
+  return unites;
+}
+
+/** Unités d'un fragment de BLOCS (suite contiguë de blocs d'une section), empreinte NON vérifiée. */
+function blocsBruts(chapitre: ChapitreParse, frag: FragmentBlocs): UnitesResolues | ErreurResolution {
   const section = sectionDe(chapitre, frag);
   if (!section) return { error: 'section-inconnue', detail: `§${frag.sec}#${frag.secOcc}` };
   const { b0, b1 } = frag;
@@ -601,15 +718,19 @@ function blocsBruts(chapitre: ChapitreParse, frag: FragmentBlocs): Resolu | Erre
       detail: `${ouDe(frag)} (section : ${section.blocks.length} blocs)`,
     };
   }
-  const blocks = section.blocks.slice(b0, b1 + 1);
-  return { md: mdAffichable(blocks.map((b) => b.md).join('\n\n')), folios: foliosOf(blocks) };
+  const unites: Unite[] = [];
+  for (let rang = b0; rang <= b1; rang++) {
+    const [tete, ...reste] = unitesDuBloc(section, rang);
+    unites.push(rang === b0 ? tete : { ...tete, sep: '\n\n' }, ...reste);
+  }
+  return { unites, folios: foliosOf(section.blocks.slice(b0, b1 + 1)) };
 }
 
 /**
- * Résout un fragment de CELLULE (empreinte NON vérifiée) : la ligne dont une cellule vaut `row`
- * (recherche dans TOUTES les colonnes de la section), croisée avec l'en-tête `col`.
+ * Unité d'un fragment de CELLULE (empreinte NON vérifiée) : la case de la ligne dont une cellule vaut
+ * `row` (recherche dans TOUTES les colonnes de la section), croisée avec l'en-tête `col`.
  */
-function celluleBrute(chapitre: ChapitreParse, frag: FragmentCellule): Resolu | ErreurResolution {
+function celluleBrute(chapitre: ChapitreParse, frag: FragmentCellule): UnitesResolues | ErreurResolution {
   const section = sectionDe(chapitre, frag);
   if (!section) return { error: 'section-inconnue', detail: `§${frag.sec}#${frag.secOcc}` };
   const ou = ouDe(frag);
@@ -618,23 +739,42 @@ function celluleBrute(chapitre: ChapitreParse, frag: FragmentCellule): Resolu | 
   if (hits.length > 1) return { error: 'ligne-ambigue', detail: `${ou} : ${hits.length} lignes` };
   const hit = hits[0];
   if (!hit.headers.some((h) => normText(h))) return { error: 'table-sans-en-tetes', detail: ou };
-  const want = normText(String(frag.col ?? ''));
-  const c = hit.headers.findIndex((h) => normText(h) === want);
+  const col = normText(String(frag.col ?? ''));
+  const c = hit.headers.findIndex((h) => caseVautCle(h, col));
   if (c < 0) return { error: 'colonne-inconnue', detail: `${ou} : en-têtes = ${hit.headers.join(' / ')}` };
   // Le `<br>` de la cellule REDEVIENT le saut de ligne qu'il imprime (`brEnSaut`) : la chaîne
   // rendue garde la coupure du livre sans porter de HTML (règle 5).
-  return { md: brEnSaut(hit.row[c] ?? ''), folios: foliosOf([hit.block]) };
+  const pos = { sec: section.slug, secOcc: section.occ, rang: section.blocks.indexOf(hit.block) };
+  return { unites: [unite(brEnSaut(hit.row[c] ?? ''), '', pos, 'cellule')], folios: foliosOf([hit.block]) };
 }
 
-/** Texte d'un fragment, empreinte NON vérifiée. */
-const resoudreBrut = (chapitre: ChapitreParse, frag: Fragment): Resolu | ErreurResolution =>
+/** Unités d'un fragment, empreinte NON vérifiée : ce que son rendu assemble (`resoudreBrut`). */
+export const unitesDe = (chapitre: ChapitreParse, frag: Fragment): UnitesResolues | ErreurResolution =>
   frag.kind === 'cellule' ? celluleBrute(chapitre, frag) : blocsBruts(chapitre, frag);
+
+/** Le rendu d'unités : la concaténation de leurs `sep + md`, seul assemblage. */
+const assembler = (unites: readonly Unite[]): string => unites.map((x) => x.sep + x.md).join('');
+
+/** Le texte résolu que des unités assemblent. */
+const resolu = (u: UnitesResolues): Resolu => ({ md: assembler(u.unites), folios: u.folios });
+
+/** Texte d'un fragment, empreinte NON vérifiée : l'assemblage de ses unités (`unitesDe`), seul chemin. */
+function resoudreBrut(chapitre: ChapitreParse, frag: Fragment): Resolu | ErreurResolution {
+  const u = unitesDe(chapitre, frag);
+  return estErreur(u) ? u : resolu(u);
+}
+
+/** Unités d'UN fragment, empreinte comprise. */
+function unitesVerifiees(chapitre: ChapitreParse, frag: Fragment): UnitesResolues | ErreurResolution {
+  const u = unitesDe(chapitre, frag);
+  if (estErreur(u)) return u;
+  return checkSum(frag, assembler(u.unites), ouDe(frag)) ?? u;
+}
 
 /** Résout UN fragment d'un chapitre déjà parsé, empreinte comprise. */
 export function resoudreFragment(chapitre: ChapitreParse, frag: Fragment): Resolu | ErreurResolution {
-  const res = resoudreBrut(chapitre, frag);
-  if (estErreur(res)) return res;
-  return checkSum(frag, res.md, ouDe(frag)) ?? res;
+  const u = unitesVerifiees(chapitre, frag);
+  return estErreur(u) ? u : resolu(u);
 }
 
 /** Empreinte à POSER sur un fragment que l'on vient de bâtir (l'adresse n'en porte pas encore). */
@@ -664,8 +804,13 @@ export function blocsPlats(chapitre: ChapitreParse): BlocPlat[] {
   return out;
 }
 
-/** Toutes les positions du chapitre où un run contigu de blocs vaut exactement `target`. */
-function runsBruts(blocks: BlocPlat[], target: string): { i: number; j: number }[] {
+/**
+ * PRÉFILTRE des chercheurs de blocs : toutes les positions du chapitre où un run contigu de blocs a
+ * une chaîne jointe (`joinNorm`) ÉGALE à `target`. Les `startsWith` sont ses coupes, l'égalité sa
+ * décision de candidat ; pour `judge`, la décision d'adresse reste `aligner`. Son COMPTE décide
+ * l'unicité d'un fragment de blocs (`occurrences`, règle D). #1887 6a-2a′.
+ */
+function runsPrefiltre(blocks: BlocPlat[], target: string): { i: number; j: number }[] {
   const probe = target.slice(0, PROBE);
   const out: { i: number; j: number }[] = [];
   for (let i = 0; i < blocks.length; i++) {
@@ -707,9 +852,10 @@ function runEnFragments(
 }
 
 /**
- * TOUS les runs contigus de blocs du chapitre dont la concaténation normalisée vaut `targetNorm`,
+ * TOUS les runs contigus de blocs du chapitre dont la chaîne jointe vaut `targetNorm` (`runsPrefiltre`),
  * chacun rendu en fragments prêts à adresser (un fragment par section traversée). `[]` si rien ne
- * correspond.
+ * correspond. Des CANDIDATS : `judge` en décide par `aligner` (`verifier`), le relocaliseur par le
+ * rendu à l'octet de l'adresse proposée.
  *
  * L'ambiguïté d'un texte dans son chapitre devient ainsi OBSERVABLE : c'est ce que le relocaliseur
  * (`scripts/source/reparer-adresses.mjs`) doit voir pour refuser de poser au jugé — `findCells` rend
@@ -717,12 +863,12 @@ function runEnFragments(
  */
 export function findAllRuns(chapitre: ChapitreParse, targetNorm: string): FragmentBlocs[][] {
   const blocks = blocsPlats(chapitre);
-  return runsBruts(blocks, targetNorm).map((run) => runEnFragments(chapitre, blocks, run));
+  return runsPrefiltre(blocks, targetNorm).map((run) => runEnFragments(chapitre, blocks, run));
 }
 
 /**
- * Cherche dans UN chapitre le PREMIER run contigu de blocs dont la concaténation normalisée vaut
- * `targetNorm`, et le rend en fragments prêts à adresser. `null` si rien ne correspond.
+ * Cherche dans UN chapitre le PREMIER run contigu de blocs dont la chaîne jointe vaut `targetNorm`
+ * (`findAllRuns`), et le rend en fragments prêts à adresser. `null` si rien ne correspond.
  */
 export function findRuns(chapitre: ChapitreParse, targetNorm: string): FragmentBlocs[] | null {
   const runs = findAllRuns(chapitre, targetNorm);
@@ -748,15 +894,15 @@ export function findCells(chapitre: ChapitreParse, targetNorm: string): CelluleT
 /**
  * Bâtit le fragment de cellule d'un `findCells` : clé de ligne = première cellule de la ligne qui la
  * désigne SANS AMBIGUÏTÉ dans sa section, les clés positionnelles (fourchette d100) passant en
- * dernier recours ; à défaut, dans SA table (`table`, #1739). Rend `null` si la ligne n'a pas de clé
- * sûre ou la table pas d'en-têtes.
+ * dernier recours ; à défaut, dans SA table (`table`, #1739). Le fragment retenu rend la même case
+ * (`memeTexte`). Rend `null` si la ligne n'a pas de clé sûre ou la table pas d'en-têtes.
  */
 export function cellRefFor(chapitre: ChapitreParse, hit: CelluleTrouvee): FragmentCellule | null {
   const col = hit.headers[hit.col];
   if (!col || !normText(col)) return null;
   const section = chapitre.sections.find((s) => s.slug === hit.sec && s.occ === hit.secOcc);
   if (!section) return null;
-  const vise = normText(hit.row[hit.col] ?? '');
+  const vise = hit.row[hit.col] ?? '';
   const candidates = hit.row
     .map((c, i) => ({ c: c.trim(), i }))
     .filter(({ c, i }) => c && i !== hit.col)
@@ -768,7 +914,7 @@ export function cellRefFor(chapitre: ChapitreParse, hit: CelluleTrouvee): Fragme
       const sum = empreinteDe(chapitre, frag);
       if (typeof sum !== 'string') continue;
       const res = resoudreFragment(chapitre, { ...frag, sum });
-      if (estErreur(res) || normText(res.md) !== vise) continue;
+      if (estErreur(res) || !memeTexte(res.md, vise)) continue;
       return { ...frag, sum };
     }
   }
@@ -778,7 +924,7 @@ export function cellRefFor(chapitre: ChapitreParse, hit: CelluleTrouvee): Fragme
 /** Nombre de places du chapitre où le texte normalisé d'un fragment se retrouve à l'identique. */
 function occurrences(chapitre: ChapitreParse, frag: Fragment, texteNorm: string): number {
   if (frag.kind === 'cellule') return findCells(chapitre, texteNorm).length;
-  return runsBruts(blocsPlats(chapitre), texteNorm).length;
+  return runsPrefiltre(blocsPlats(chapitre), texteNorm).length;
 }
 
 /**
@@ -860,6 +1006,16 @@ function chevauchementDe(chapitre: ChapitreParse, ref: DescRef): ErreurResolutio
  * fragment).
  */
 export function resoudreAdresse(chapitre: ChapitreParse, ref: DescRef): Resolu | ErreurResolution {
+  const u = unitesDeLAdresse(chapitre, ref);
+  return estErreur(u) ? u : resolu(u);
+}
+
+/**
+ * Unités d'une adresse complète : celles que `resoudreAdresse` assemble, sous les mêmes refus (plafond,
+ * chevauchement, empreintes, règle D) ; la première unité d'un fragment qui en suit un autre est
+ * précédée d'une ligne vide.
+ */
+export function unitesDeLAdresse(chapitre: ChapitreParse, ref: DescRef): UnitesResolues | ErreurResolution {
   if (ref.parts.length > MAX_FRAGMENTS) {
     return {
       error: 'montage-hors-plafond',
@@ -868,14 +1024,14 @@ export function resoudreAdresse(chapitre: ChapitreParse, ref: DescRef): Resolu |
   }
   const chevauchement = chevauchementDe(chapitre, ref);
   if (chevauchement) return chevauchement;
-  const morceaux: string[] = [];
+  const unites: Unite[] = [];
   const folios: number[] = [];
   for (let i = 0; i < ref.parts.length; i++) {
     const frag = ref.parts[i];
-    const res = resoudreFragment(chapitre, frag);
+    const res = unitesVerifiees(chapitre, frag);
     if (estErreur(res)) return { ...res, fragment: i };
     if (ref.parts.length > 1 && frag.kind === 'blocs') {
-      const n = normText(res.md);
+      const n = normText(assembler(res.unites));
       const ou = `${ref.book} ch.${ref.ch} §${frag.sec}#${frag.secOcc}`;
       if (n.length < MIN_FRAGMENT) {
         return {
@@ -889,8 +1045,9 @@ export function resoudreAdresse(chapitre: ChapitreParse, ref: DescRef): Resolu |
         return { error: 'fragment-ambigu', fragment: i, detail: `${ou} : ce texte apparaît ${vus} fois dans le chapitre` };
       }
     }
-    morceaux.push(res.md);
+    const [tete, ...reste] = res.unites;
+    unites.push(i ? { ...tete, sep: '\n\n' } : tete, ...reste);
     for (const f of res.folios) if (!folios.includes(f)) folios.push(f);
   }
-  return { md: morceaux.join('\n\n'), folios };
+  return { unites, folios };
 }

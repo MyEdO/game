@@ -24,7 +24,7 @@ import {
   estErreur,
   graphieDeChapitre,
   largeurDeChapitre,
-  normText,
+  memeTexte,
   resoudreAdresse,
   resoudreFragment,
   tablesDeLaLigne,
@@ -106,7 +106,7 @@ function sansTable(x: FragmentCellule): FragmentCellule {
 }
 /** Libellé d'une table TITRÉE : son titre, et son rang quand la section en porte plusieurs de ce titre. */
 function libelleTable(t: TableDeSection, toutes: TableDeSection[]): string {
-  const memes = toutes.filter((u) => u.cle != null && normText(u.table.titre ?? '') === normText(t.table.titre ?? ''));
+  const memes = toutes.filter((u) => u.cle != null && memeTexte(u.table.titre ?? '', t.table.titre ?? ''));
   return memes.length > 1 ? `${t.table.titre} (${memes.findIndex((u) => u.cle === t.cle) + 1})` : t.table.titre ?? '';
 }
 
