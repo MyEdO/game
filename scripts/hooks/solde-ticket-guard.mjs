@@ -974,6 +974,14 @@ function optionLongueDuCommit(graphie) {
  *  cité par le solde (mesuré 2026-09-04 sur un vrai commit de fermeture depuis un worktree). */
 const OPERATEUR_SHELL_RE = /^(?:\d*(?:>>?|>&)|&(?![&>])|&>>?|<<?|\|\|?|&&|;)/
 
+/** Index du premier jeton de `segment` (textes), à partir de `depart`, qui est une redirection ou un
+ *  opérateur de shell (`OPERATEUR_SHELL_RE`) ; `segment.length` sinon. `segment.slice(0, fin)` est ce
+ *  que la commande du segment reçoit en arguments. */
+export function finAvantOperateur(segment, depart = 0) {
+  const k = segment.findIndex((t, i) => i >= depart && OPERATEUR_SHELL_RE.test(t))
+  return k === -1 ? segment.length : k
+}
+
 /** Jeton de pathspec NON RÉSOLU, par PROVENANCE quotée (`tokenizeCommand`) : sa valeur n'est connue
  *  qu'après le shell ou git, et la garde ne réimplémente ni l'un ni l'autre.
  *  - GIT, quelle que soit la quote : joker de pathspec (`*`, `?`, `[`) et magie en tête (`:(glob)`,
@@ -1024,9 +1032,9 @@ function lireCommit({ jetons, enrobeurs, sub, embarque }) {
     if (OPTIONS_PATHSPEC_HORS_TEXTE.has(option.nom)) nonResolus = true
   }
   let separe = false
-  for (let k = sub + 1; k < segment.length; k++) {
+  const fin = finAvantOperateur(segment, sub + 1)
+  for (let k = sub + 1; k < fin; k++) {
     const t = segment[k]
-    if (OPERATEUR_SHELL_RE.test(t)) break
     if (separe) {
       chemins.push(t)
       if (jetonNonResolu(jetons[k])) nonResolus = true
