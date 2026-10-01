@@ -7,7 +7,7 @@ import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
-import { ciblesPures, GENERATORS } from './build-all.mjs'
+import { ciblesPures, estCiblePure, GENERATORS, renduDe } from './build-all.mjs'
 
 const ROOT = execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim()
 
@@ -44,10 +44,13 @@ function motifsQuiIgnorent(chemins) {
   return par
 }
 
-test('chaque cible pure est ignorée par une ligne du bloc, et chaque ligne du bloc en ignore une', () => {
+test('chaque cible pure est ignorée par une ligne du bloc, et chaque ligne du bloc en ignore une', async () => {
   const bloc = lignesDuBloc()
-  // Un MOTIF de `targets` compte pour lui-même : ses cibles n'existent qu'après `docs:build`.
-  const cibles = [...ciblesPures(ROOT), ...GENERATORS.flatMap((g) => g.targets.filter((t) => t.includes('*')))]
+  // Un MOTIF de `targets` se déplie par le RENDU de son générateur (`renduDe`) : sur le disque, ses
+  // cibles n'existent qu'après `docs:build`, que le job `docs-tests` de ci.yml ne joue pas.
+  const aMotif = GENERATORS.filter((g) => g.targets.some((t) => t.includes('*')))
+  const rendues = (await Promise.all(aMotif.map(async (g) => [...(await renduDe(g)).keys()]))).flat()
+  const cibles = [...new Set([...ciblesPures(ROOT), ...rendues.filter((c) => estCiblePure(c, GENERATORS))])]
   const par = motifsQuiIgnorent(cibles)
   assert.deepEqual(cibles.filter((c) => !bloc.has(par.get(c))), [], 'cible(s) pure(s) hors du bloc de .gitignore')
   const utilisees = new Set(cibles.map((c) => par.get(c)))

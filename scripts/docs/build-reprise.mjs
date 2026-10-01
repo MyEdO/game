@@ -384,7 +384,7 @@ journal JSON, émet une ligne par transition d'étape, finit sur la ligne \`PUBL
 (vert), 1 (rouge) ou sur un code nommé (indéterminée, arrêt moteur, borne dépassée). C'est la seule
 veille d'un train : jamais un filtre du log texte écrit à la main. Chaque ligne porte le numéro
 \`#<seq>\` de sa transition ; une veille interrompue se RÉ-ARME par la même commande suivie de
-\`--depuis <dernier seq lu>\`, sans rien ré-émettre, et sa borne court depuis le LANCEMENT du run. Le train régénère les docs dérivées, POUSSE la branche
+\`--depuis <dernier seq lu>\`, sans rien ré-émettre, et sa borne court depuis le LANCEMENT du run. Le train régénère et commet les docs MIXTES (\`node scripts/docs/build-all.mjs --mixtes\`), POUSSE la branche
 de chantier, ouvre sa PR vers \`main\` et l'ARME ; la FILE DE FUSION du serveur la juge sur son commit de
 file et la fusionne, et le train attend cette fusion (borné par \`--file-timeout-min\`). Aucun rebase : une
 PR éjectée de la file pour un conflit ou un dérivé périmé se reprend par une FUSION d'\`origin/main\`
@@ -544,7 +544,9 @@ n'écrit dans l'arbre hors de sa porte (\`ecritFerme\`) :
 |---|---|
 ${lignesLanes}
 
-Une lane est un job de \`ci.yml\` (\`lanesDeCi\`) ; \`ECRIT_LU\` (\`scripts/gates/toutes.mjs\`) dit ce
+Une lane est un job de \`ci.yml\` (\`lanesDeCi\`), ou plusieurs quand \`LANE_LOCALE_DE_JOB\`
+(\`scripts/gates/gatesDeCi.mjs\`) rattache un job à la lane d'un autre ; le job matrice \`suite\` joue la
+gate \`test\` en parties disjointes (\`WFRP_TEST_PARTIE\`), la lane locale la joue entière. \`ECRIT_LU\` (\`scripts/gates/toutes.mjs\`) dit ce
 que CHAQUE gate écrit et lit (${NB_GATES_MESUREES} gates mesurées, dont
 ${NB_ECRIVAINS} écrivain(s) — écriture de chaque run ou écriture POSSIBLE à porte nommée) ; c'est elle
 qui rend le classement vérifiable plutôt que déclaratif. La suite est BORNÉE par \`${BORNE_SUITE}\`

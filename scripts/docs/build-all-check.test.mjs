@@ -1,6 +1,7 @@
 // Contrat de `docs:check` (#1679 L2 T1d, #1801, #1775, #2203) :
 //   · `--check` rejoue chaque générateur et compare son rendu au DISQUE, sans rien écrire ;
-//   · en `--check`, `executer` va au bout : chaque rouge est nommé avec sa nature, sortie 1.
+//   · en `--check`, `executer` va au bout : chaque rouge est nommé avec sa nature, sortie 1 ;
+//   · `--mixtes` (#2193) ne réécrit que `perimetreDesMixtes`, dérivé de la table, jamais `SOURCES_LUES`.
 //   node --test scripts/docs/build-all-check.test.mjs  (chaîné dans `npm run test:docs`)
 //
 // Les cas de bout en bout jouent `executer` pour de vrai, `generateurs` injectés, sur un DÉPÔT
@@ -13,7 +14,7 @@ import { listerDossier } from '../guards/lib/lister.mjs'
 import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
-import { issueDe, natureDuRouge } from './build-all.mjs'
+import { issueDe, natureDuRouge, perimetreDesMixtes } from './build-all.mjs'
 
 const ICI = path.dirname(fileURLToPath(import.meta.url))
 
@@ -181,6 +182,36 @@ test('une cible LITTÉRALE déclarée que le rendu ne produit pas est REFUSÉE, 
     const check = executer(racine, ['--check'], {}, [], generateurs)
     assert.equal(check.status, 1, check.sortie)
     assert.ok(check.sortie.includes(refus), check.sortie)
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+// ── `--mixtes` (#2193) : l'étape `docs` du train ne régénère que ce qu'elle commet ─────────────────
+
+test('perimetreDesMixtes se DÉRIVE de la table : un générateur qui gagne un `injecte` y entre, sans liste de noms', () => {
+  const code = { runner: 'node', script: 'g/code.mjs', targets: ['src/x.gen.ts'] }
+  const pur = { runner: 'node', script: 'g/pur.mjs', targets: [DOC_A] }
+  const mixte = { runner: 'node', script: 'g/mixte.mjs', targets: [], injecte: [DOC_B] }
+  assert.deepEqual(perimetreDesMixtes([pur, mixte, code]), [mixte, code], 'l’ordre est celui de la table')
+  const devenuMixte = { ...pur, injecte: [doc('c')] }
+  assert.deepEqual(perimetreDesMixtes([code, devenuMixte, mixte]), [code, devenuMixte, mixte])
+})
+
+test('`--mixtes` réécrit les seuls générateurs du périmètre, et JAMAIS `SOURCES_LUES`', () => {
+  const { racine } = depotReel()
+  try {
+    const sourcesLues = path.join(racine, 'docs', '.sources-lues.json')
+    writeFileSync(sourcesLues, 'SENTINELLE\n')
+    const docB = readFileSync(path.join(racine, DOC_B), 'utf8')
+    writeFileSync(path.join(racine, 'src/a.ts'), 'export const a = 22222\n')
+    writeFileSync(path.join(racine, 'src/b.ts'), 'export const b = 22222\n')
+    const generateurs = [{ ...GENERATEURS_REELS[0], targets: [], injecte: [DOC_A] }, GENERATEURS_REELS[1]]
+    const vu = executer(racine, ['--mixtes'], {}, [], generateurs)
+    assert.equal(vu.status, 0, vu.sortie)
+    assert.match(readFileSync(path.join(racine, DOC_A), 'utf8'), /\(47 octets\)/, 'le mixte est régénéré')
+    assert.equal(readFileSync(path.join(racine, DOC_B), 'utf8'), docB, 'un générateur hors périmètre ne joue pas')
+    assert.equal(readFileSync(sourcesLues, 'utf8'), 'SENTINELLE\n', '`--mixtes` ne réécrit pas la mesure')
   } finally {
     rmSync(racine, { recursive: true, force: true })
   }
