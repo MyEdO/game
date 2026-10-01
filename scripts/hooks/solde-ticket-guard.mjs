@@ -316,6 +316,8 @@ function tokenizeCommand(command) {
     if (command.startsWith('||', i)) { tokens.push({ text: '||', op: '||' }); i += 2; continue }
     if (command[i] === ';') { tokens.push({ text: ';', op: ';' }); i += 1; continue }
     if (command[i] === '|') { tokens.push({ text: '|', op: '|' }); i += 1; continue }
+    const redirection = /^(?:\d*|&)>>?(?:&\d+)?/.exec(command.slice(i))
+    if (redirection) { tokens.push({ text: redirection[0], raw: redirection[0], op: null }); i += redirection[0].length; continue }
     // MOT (bareword ± span(s) quoté(s) EMBARQUÉS) : le comportement shell réel colle une quote
     // rencontrée en PLEIN MILIEU d'un token à ce MÊME token (`-m"a b c"` → un seul token `-ma b c`,
     // `--message="a b c"` → `--message=a b c`) — jamais une coupure qui laisserait les mots du
@@ -324,6 +326,7 @@ function tokenizeCommand(command) {
     let buf = ''
     const quotes = new Set()
     let nu = false
+    let substitution = false
     let j = i
     while (j < n) {
       const c = command[j]
@@ -332,7 +335,7 @@ function tokenizeCommand(command) {
       // Sans cela, `git commit --amend \` + saut + `-F msg.txt` perdait son `-F` (message jamais lu,
       // refus FAUX « SUBSTANCE sans ticket ») et le backtick devenait un pathspec.
       if ((c === '\\' || c === '`') && command[j + 1] === '\n') { j += 2; continue }
-      if (/\s/.test(c) || c === ';' || c === '|' || (c === '&' && command[j + 1] === '&')) break
+      if (/\s/.test(c) || c === ';' || c === '|' || c === '>' || (c === '&' && (command[j + 1] === '&' || command[j + 1] === '>'))) break
       // ANSI-C quoting `$'…'` (bash) : span QUOTÉ au même titre que `'…'`. Sans lui le `$` restait
       // collé au mot suivant (`bash -c $'gh issue create …'` rendait un token `$gh`) et l'exécutable
       // de tête devenait méconnaissable. Un `\x` y rend son caractère littéral : la reconnaissance
@@ -352,6 +355,7 @@ function tokenizeCommand(command) {
         quotes.add(quote === "'" ? 'simple' : 'double')
         j++
         while (j < n && command[j] !== quote) {
+          if (quote === '"' && (command.startsWith('$(', j) || command[j] === '`')) substitution = true
           // Échappement réel `\"`/`\\` seulement — un backslash de chemin Windows (`C:\Program…`)
           // n'est PAS un échappement shell et reste LITTÉRAL (sinon les chemins perdent leurs
           // séparateurs, cassant la reconnaissance de `git.exe` au bout d'un chemin absolu, #591 suite).
@@ -366,6 +370,7 @@ function tokenizeCommand(command) {
       if (c === ')' && substitutions === 0 && sousShells > 0) break
       if (c === '(' && command[j - 1] === '$') substitutions += 1
       else if (c === ')' && substitutions > 0) substitutions -= 1
+      if (command.startsWith('$(', j) || c === '`') substitution = true
       buf += c
       nu = true
       j++
@@ -373,7 +378,7 @@ function tokenizeCommand(command) {
     // Un mot fait UNIQUEMENT de continuations n'est pas un token vide : il n'existe pas. Un vrai
     // argument vide (`''`) en reste un — c'est la quote qui le prouve.
     if (buf !== '' || quotes.size > 0) {
-      tokens.push({ text: buf, op: null, quote: !nu && quotes.size === 1 ? [...quotes][0] : undefined })
+      tokens.push({ text: buf, raw: command.slice(i, j), substitution, op: null, quote: !nu && quotes.size === 1 ? [...quotes][0] : undefined })
     }
     i = j
   }
@@ -806,35 +811,98 @@ export function affectationsDEnvironnement(command, options) {
 
 const IDENTIFIANT_RE = /[A-Za-z_][A-Za-z0-9_]*/g
 
-/** Drapeaux de MESSAGE dont la valeur est de la prose : `git commit -m`/`--message`, `gh … --title`/
- *  `-t`/`--body`/`-b`. */
-const DRAPEAUX_DE_MESSAGE = { commit: ['-m', '--message'], gh: ['--title', '-t', '--body', '-b'] }
+/** Sous-commande git d'un segment, `notes` suivie de la sienne (`notes add`). */
+const sousCommandeGitDe = (segment) => {
+  const git = gitSubcommand(segment)
+  return git?.sub === 'notes' ? `notes ${git.args[0] ?? ''}` : git?.sub
+}
+const estGh = (segment) => basenameExecutable(segment[0] ?? '') === 'gh'
+const estGhApi = (segment) => estGh(segment) && segment[1] === 'api'
+const REDIRECTION_RE = /^(?:\d*|&)>/
+const redirige = (segment) => segment.slice(1).some((t) => REDIRECTION_RE.test(t))
 
-/** Les jetons du segment qui ne sont pas la valeur d'un drapeau de message (`DRAPEAUX_DE_MESSAGE`),
- *  sous ses formes `-m x`, `-mx`, `--message=x`. */
-function jetonsHorsMessages(segment) {
-  const drapeaux = gitSubcommand(segment)?.sub === 'commit' ? DRAPEAUX_DE_MESSAGE.commit
-    : basenameExecutable(segment[0] ?? '') === 'gh' ? DRAPEAUX_DE_MESSAGE.gh : []
-  const garde = []
+/** Porteurs dont des jetons sont du TEXTE, pas une commande : `drapeaux` (forme `-m x`, `-mx`,
+ *  `--message=x`), `motif` (celui d'une recherche, `motifDe`) ou `tout` (chaque argument hors
+ *  redirection), et le `canal` qui porte ce texte dans un fichier (`git help commit`/`tag`/`notes`,
+ *  -F ; `gh … --help`, --body-file ; `gh api --help`, -F « @<path> » ; `grep --help`, -f). */
+const MESSAGES = Object.freeze([
+  { porteur: (s) => sousCommandeGitDe(s) === 'commit', drapeaux: ['-m', '--message'], canal: 'le message dans un fichier : `git commit -F <fichier>`' },
+  { porteur: (s) => sousCommandeGitDe(s) === 'tag', drapeaux: ['-m', '--message'], canal: 'le message dans un fichier : `git tag -F <fichier>`' },
+  { porteur: (s) => /^notes (add|append)$/.test(sousCommandeGitDe(s) ?? ''), drapeaux: ['-m', '--message'], canal: 'le message dans un fichier : `git notes add -F <fichier>`' },
+  { porteur: (s) => estGh(s) && !estGhApi(s), drapeaux: ['--body', '-b'], canal: 'le corps dans un fichier : `gh … --body-file <fichier>`' },
+  { porteur: (s) => estGh(s) && !estGhApi(s), drapeaux: ['--title', '-t'], canal: 'le titre dans un fichier : `gh api … -F title=@<fichier>` (`--title` n’a pas de forme fichier)' },
+  { porteur: (s) => estGh(s) && !estGhApi(s), drapeaux: ['--search', '-S'], canal: 'la recherche dans un fichier : `gh api -X GET search/issues -F q=@<fichier>`' },
+  { porteur: estGhApi, drapeaux: ['-f', '--raw-field', '-F', '--field'], canal: 'le champ dans un fichier : `gh api … -F <champ>=@<fichier>`' },
+  { porteur: (s) => /^(?:grep|egrep|fgrep|rg)$/.test(basenameExecutable(s[0] ?? '')), motif: true, canal: 'le motif dans un fichier : `grep -f <fichier>` (`rg -f <fichier>`)' },
+  { porteur: (s) => /^(?:echo|printf)$/.test(basenameExecutable(s[0] ?? '')) && redirige(s), tout: true, canal: 'le fichier écrit par l’outil d’écriture de fichier (Write)' },
+])
+
+/** Options de `grep`/`rg` qui prennent la valeur suivante (`grep --help`, `rg --help`). */
+const OPTIONS_A_VALEUR_DE_RECHERCHE = new Set(['-A', '-B', '-C', '-m', '-d', '-D', '-g', '-t', '-T', '-j', '-M', '--glob', '--type', '--max-count', '--context', '--after-context', '--before-context'])
+
+/** Le MOTIF d'un `grep`/`rg`, `{ k, valeur }` : la valeur de `-e`/`--regexp`, sinon son premier
+ *  opérande ; `null` sans motif. */
+function motifDe(segment) {
+  for (let k = 1; k < segment.length; k++) {
+    const t = segment[k]
+    if ((t === '-e' || t === '--regexp') && k + 1 < segment.length) return { k: k + 1, valeur: segment[k + 1] }
+    const accole = /^(?:-e|--regexp=)(.+)$/.exec(t)
+    if (accole) return { k, valeur: accole[1] }
+    if (OPTIONS_A_VALEUR_DE_RECHERCHE.has(t)) { k += 1; continue }
+    if (!t.startsWith('-')) return { k, valeur: t }
+  }
+  return null
+}
+
+/** Le segment partagé en jetons de COMMANDE (`hors`) et valeurs de TEXTE (`messages`, chacune avec le
+ *  canal de son porteur, `MESSAGES`), drapeau accolé retiré (`-mx` → `x`). Un texte qui porte une
+ *  substitution (`$(…)`, `` `…` ``) l'exécute : il reste dans `hors`. */
+function partageDuSegment(jetons) {
+  const segment = jetons.map((j) => j.text)
+  const porteurs = MESSAGES.filter((m) => m.porteur(segment))
+  const tout = porteurs.find((m) => m.tout)
+  const recherche = porteurs.find((m) => m.motif)
+  const motif = recherche ? motifDe(segment) : null
+  const hors = []
+  const messages = []
+  const range = (t, canal, k) => ((jetons[k].substitution ?? (jetons[k].quote !== 'simple' && /\$\(|`/.test(t))) ? hors.push(t) : messages.push({ jeton: t, canal }))
   for (let k = 0; k < segment.length; k++) {
     const t = segment[k]
-    if (drapeaux.includes(t)) { k += 1; continue }
-    if (drapeaux.some((d) => t !== d && t.startsWith(d.startsWith('--') ? `${d}=` : d))) continue
-    garde.push(t)
+    if (tout && k > 0 && !REDIRECTION_RE.test(t) && !REDIRECTION_RE.test(segment[k - 1])) { range(t, tout.canal, k); continue }
+    if (k === motif?.k) { range(motif.valeur, recherche.canal, k); continue }
+    const separe = porteurs.find((m) => m.drapeaux?.includes(t))
+    if (separe && k + 1 < segment.length) { hors.push(t); range(segment[k + 1], separe.canal, k + 1); k += 1; continue }
+    const accole = porteurs.flatMap((m) => (m.drapeaux ?? []).map((d) => ({ m, prefixe: d.startsWith('--') ? `${d}=` : d })))
+      .find(({ prefixe }) => t !== prefixe && t.startsWith(prefixe))
+    if (accole) { range(t.slice(accole.prefixe.length), accole.m.canal, k); continue }
+    hors.push(t)
   }
-  return garde
+  return { hors, messages }
 }
 
 /** Les identifiants que portent les jetons de la commande, quelle que soit la syntaxe qui les écrit :
  *  ceux des segments réellement exécutés et de leurs porteurs de chaîne (`segmentsProfonds`), et les
  *  noms affectés en tête (`affectationsDEnvironnement`), que l'épluchage retire des segments.
- *  `horsMessages` : sans la valeur des drapeaux de message (`jetonsHorsMessages`). */
+ *  `horsMessages` : sans les valeurs de texte (`partageDuSegment`). */
 export function nomsDeLaCommande(command, { horsMessages = false } = {}) {
   const noms = new Set(affectationsDEnvironnement(command))
-  for (const segment of segmentsProfonds(command)) {
-    for (const jeton of horsMessages ? jetonsHorsMessages(segment) : segment) for (const nom of jeton.match(IDENTIFIANT_RE) ?? []) noms.add(nom)
+  for (const { jetons } of pipelinesDeJetons(command).flat()) {
+    const { hors, messages } = partageDuSegment(jetons)
+    for (const jeton of horsMessages ? hors : [...hors, ...messages.map((m) => m.jeton)]) for (const nom of jeton.match(IDENTIFIANT_RE) ?? []) noms.add(nom)
   }
   return [...noms]
+}
+
+/** Pour chaque identifiant écrit dans une valeur de TEXTE de la commande (`partageDuSegment`), les
+ *  canaux qui portent ce texte dans un fichier. */
+export function canauxDesMessages(command) {
+  const canaux = new Map()
+  for (const { jetons } of pipelinesDeJetons(command).flat()) {
+    for (const { jeton, canal } of partageDuSegment(jetons).messages) {
+      for (const nom of jeton.match(IDENTIFIANT_RE) ?? []) canaux.set(nom, new Set([...(canaux.get(nom) ?? []), canal]))
+    }
+  }
+  return canaux
 }
 
 /** Liste PLATE des segments RÉELLEMENT exécutés par la commande — l'aplati de `pipelinesProfonds`,
@@ -881,12 +949,14 @@ export function optionsGitGlobales(command) {
   })
 }
 
-/** Les clés (en minuscules) que posent les flags globaux `-c <clé>=<val>` et `--config-env <clé>=<var>`
+/** Les `{ cle, valeur }` (clé en minuscules) que posent les flags globaux `-c <clé>=<val>` et `--config-env <clé>=<var>`
  *  (ou `--config-env=<clé>=<var>`) des segments git réellement exécutés (`git help git`, `-c`,
  *  `--config-env`) ; les formes collées `-c<clé>` et `--config-env<clé>` sont refusées par git
  *  (« unknown option », mesuré git 2.51, #2224). */
 export function configsGitDeLaCommande(command) {
-  return segmentsProfonds(command).flatMap((segment) => {
+  return pipelinesDeJetons(command).flat().flatMap(({ jetons }) => {
+    const segment = jetons.map((j) => j.text)
+    const appel = { segment, jetons }
     const start = segment[0] === '&' ? 1 : 0
     if (segment.length <= start || !estGit(segment[start])) return []
     const fin = gitSubcommandIndex(segment)
@@ -894,8 +964,12 @@ export function configsGitDeLaCommande(command) {
     const cles = []
     for (let k = 0; k < globaux.length; k++) {
       const t = globaux[k]
+      const debut = start + 1 + k
       const valeur = t === '-c' || t === '--config-env' ? globaux[++k] : t.startsWith('--config-env=') ? t.slice('--config-env='.length) : undefined
-      if (valeur) cles.push(valeur.split('=')[0].toLowerCase())
+      if (valeur) {
+        const [cle, ...reste] = valeur.split('=')
+        cles.push({ cle: cle.toLowerCase(), valeur: reste.join('='), variable: t !== '-c', appel, debut, fin: start + 2 + k })
+      }
     }
     return cles
   })
@@ -947,16 +1021,42 @@ function estCiteur(segment) {
 
 const SOUS_COMMANDES_GIT_DE_LECTURE = new Set(['grep', 'log', 'show', 'diff', 'blame'])
 
-/** Un segment qui ÉCRIT malgré une tête de lecture : redirection `>`/`>>`, sortie `-o`/`--output[=]`,
- *  `tail -f`/`-F`/`--follow` (qui ne rend pas la main), `sed -i`/`--in-place`. */
-const ecritMalgreLaTete = (segment) => segment.slice(1).some((t) => /^>/.test(t) || t === '-o' || /^--output(=|$)/.test(t))
-  || (basenameExecutable(segment[0]) === 'tail' && segment.some((t) => t === '-f' || t === '-F' || t === '--follow'))
-  || (basenameExecutable(segment[0]) === 'sed' && segment.some((t) => /^-[a-zA-Z]*i/.test(t) || t.startsWith('--in-place')))
+/** Options de `uniq` qui prennent la valeur suivante (`uniq --help`). */
+const OPTIONS_A_VALEUR_D_UNIQ = new Set(['-f', '-s', '-w', '--skip-fields', '--skip-chars', '--check-chars'])
+
+const SUBSTITUTION_SED_RE = /(?:^|[;\n{}\d$/])\s*s([^\n\\])(?:\\.|(?!\1)[^\\])*\1(?:\\.|(?!\1)[^\\])*\1([gpiIme0-9]*w\s+\S)/
+
+/** Un segment qui ÉCRIT malgré une tête de lecture, hors redirection (`redirigeVersUnFichier`) : sortie
+ *  `-o`/`--output[=]` (`sort -of` compris), `uniq <entrée> <sortie>`, `tail -f`/`-F`/`--follow` (qui
+ *  ne rend pas la main), `sed -i`/`--in-place` et commande `w` de sed (`info sed`, « w filename »),
+ *  `print >` d'awk (`info gawk`, « Redirecting Output of print and printf »). */
+function ecritMalgreLaTete(segment) {
+  const tete = basenameExecutable(segment[0])
+  const args = segment.slice(1)
+  if (args.some((t) => t === '-o' || /^--output(=|$)/.test(t))) return true
+  if (tete === 'sort') return args.some((t) => /^-[a-zA-Z]*o/.test(t))
+  if (tete === 'uniq') return args.filter((t, k) => !t.startsWith('-') && !OPTIONS_A_VALEUR_D_UNIQ.has(args[k - 1])).length >= 2
+  if (tete === 'tail') return args.some((t) => t === '-f' || t === '-F' || t === '--follow')
+  if (tete === 'sed') return args.some((t) => /^-[a-zA-Z]*i/.test(t) || t.startsWith('--in-place') || (!t.startsWith('-') && (SUBSTITUTION_SED_RE.test(t) || /(?:^|[;\n{}/\d$])\s*[wW]\s+\S/.test(t))))
+  if (tete === 'awk' || tete === 'gawk') return args.some((t) => /\bprintf?\b[^;}]*>/.test(t))
+  return false
+}
+
+/** Puits qui n'écrivent rien : `/dev/null`, `$null` (PowerShell), `nul` (cmd). */
+const PUITS_RE = /^(?:\/dev\/null|\$null|nul)$/i
+
+/** `true` si la commande redirige vers un fichier hors guillemets — `>`, `>>`, `1>`, `2>`, `&>`,
+ *  collée (`x>f`) ou non ; `N>&M` (duplication) et les puits (`PUITS_RE`) exceptés. */
+function redirigeVersUnFichier(command) {
+  const nu = command.replace(/'[^']*'|"(?:\\.|[^"\\])*"/g, (m) => ' '.repeat(m.length))
+  return [...nu.matchAll(/>>?(?!&)\s*([^\s;&|)]*)/g)].some((m) => !PUITS_RE.test(m[1]))
+}
 
 /** `true` si chaque segment exécuté de la commande ne fait que LIRE : tête de `LECTEURS`
  *  (`appelsRunners.mjs`) ou sous-commande de `SOUS_COMMANDES_GIT_DE_LECTURE`, sans écriture
- *  (`ecritMalgreLaTete`). */
+ *  (`ecritMalgreLaTete`, `redirigeVersUnFichier`). */
 export function commandeDeLecture(command) {
+  if (redirigeVersUnFichier(command)) return false
   const segments = segmentsLus(command)
   return segments.length > 0 && segments.every((segment) => {
     const git = gitSubcommand(segment)

@@ -385,27 +385,36 @@ test('#2224 un nom distinctif se ferme par NOM, quelle que soit la syntaxe qui l
   })
 })
 
-test('#2224 `git -c` et `--config-env` : non jugeables, jumeaux de GIT_CONFIG_PARAMETERS ; le canal d’un `-c` d’éditeur dépend de l’OUTIL', async () => {
+test('#2224 `git -c` et `--config-env` : non jugeables, jumeaux de GIT_CONFIG_PARAMETERS ; un `-c` d’éditeur reçoit SA valeur dans la variable jumelle, forme admise de l’outil', async () => {
   await dansUnDepot(async (racine) => {
-    const SANS_C = /canal prescrit : la même commande sans `-c` [(]`GIT_EDITOR` est déjà posé[)]/
-    const PAR_BASH = /canal prescrit : passer par Bash ou PowerShell, où `GIT_EDITOR` est déjà posé/
-    const NO_EDIT = /canal prescrit : `--no-edit` à la place de `-c`/
-    const CONFIG = /canal prescrit : la même commande sans `-c` ; une configuration durable passe par `git config`/
+    const NO_EDIT = '`--no-edit` à la place de `-c`'
+    const CONFIG = 'la même commande sans `-c` ; une configuration durable passe par `git config`'
+    const editeur = (bash, powerShell) => ({ Bash: `\`${bash}\``, PowerShell: `\`${powerShell}\``, lean: `l’outil Bash : \`${bash}\`, ou PowerShell : \`${powerShell}\`` })
+    const partout = (canal) => ({ Bash: canal, PowerShell: canal, lean: canal })
     const cas = [
-      ['git -c core.editor=true rebase --continue', SANS_C, PAR_BASH],
-      ['git -c sequence.editor=x rebase -i HEAD~2', SANS_C, PAR_BASH],
-      ['git -c core.editor=true commit --amend', NO_EDIT, NO_EDIT],
-      ['sh -c "git -c core.editor=true commit --amend"', NO_EDIT, NO_EDIT],
-      ['git -c core.hooksPath=/dev/null commit -m y', CONFIG, CONFIG],
-      ['git --config-env=core.hooksPath=X commit -m y', CONFIG, CONFIG],
-      ['git --config-env core.hooksPath=X commit -m y', CONFIG, CONFIG],
+      ['git -c core.editor=true rebase --continue', editeur('GIT_EDITOR=true git rebase --continue', "& { $avant = @($env:GIT_EDITOR); try { $env:GIT_EDITOR='true'; git rebase --continue } finally { $env:GIT_EDITOR=$avant[0] } }")],
+      ['git -c sequence.editor="node seq.mjs" -c core.editor="node rw.mjs" rebase -i HEAD~2', editeur(
+        "GIT_SEQUENCE_EDITOR='node seq.mjs' GIT_EDITOR='node rw.mjs' git rebase -i HEAD~2",
+        "& { $avant = @($env:GIT_SEQUENCE_EDITOR, $env:GIT_EDITOR); try { $env:GIT_SEQUENCE_EDITOR='node seq.mjs'; $env:GIT_EDITOR='node rw.mjs'; git rebase -i HEAD~2 } finally { $env:GIT_SEQUENCE_EDITOR=$avant[0]; $env:GIT_EDITOR=$avant[1] } }",
+      )],
+      ['git -c core.editor=vim commit --amend', editeur('GIT_EDITOR=vim git commit --amend', "& { $avant = @($env:GIT_EDITOR); try { $env:GIT_EDITOR='vim'; git commit --amend } finally { $env:GIT_EDITOR=$avant[0] } }")],
+      ['git --config-env=core.editor=MY_EDITOR rebase --continue', editeur('GIT_EDITOR="${MY_EDITOR}" git rebase --continue', '& { $avant = @($env:GIT_EDITOR); try { $env:GIT_EDITOR=${env:MY_EDITOR}; git rebase --continue } finally { $env:GIT_EDITOR=$avant[0] } }')],
+      ['git --config-env sequence.editor=MY_SEQUENCE rebase -i HEAD~2', editeur('GIT_SEQUENCE_EDITOR="${MY_SEQUENCE}" git rebase -i HEAD~2', '& { $avant = @($env:GIT_SEQUENCE_EDITOR); try { $env:GIT_SEQUENCE_EDITOR=${env:MY_SEQUENCE}; git rebase -i HEAD~2 } finally { $env:GIT_SEQUENCE_EDITOR=$avant[0] } }')],
+      ['git -c core.editor=true commit --amend', partout(NO_EDIT)],
+      ['sh -c "git -c core.editor=true commit --amend"', partout(NO_EDIT)],
+      ['git -c core.hooksPath=/dev/null commit -m y', partout(CONFIG)],
+      ['git --config-env=core.hooksPath=X commit -m y', partout(CONFIG)],
+      ['git --config-env core.hooksPath=X commit -m y', partout(CONFIG)],
     ]
-    for (const [command, bash, leanCtx] of cas) {
-      for (const [outil, entree, canal] of [['Bash', { command }, bash], ['PowerShell', { command }, bash], [`${LC}ctx_shell`, { command, cwd: racine }, leanCtx]]) {
+    for (const [command, canaux] of cas) {
+      for (const [outil, entree, canal] of [['Bash', { command }, canaux.Bash], ['PowerShell', { command }, canaux.PowerShell], [`${LC}ctx_shell`, { command, cwd: racine }, canaux.lean]]) {
         const r = await raison(racine, outil, entree)
         assert.match(r, /git -c (core|sequence)[.](editor|hookspath) : git lit une configuration/, `${outil} « ${command} » : ${r}`)
-        assert.match(r, canal, `${outil} « ${command} » : ${r}`)
-        assert.doesNotMatch(r, /GIT_EDITOR=true/, `${outil} « ${command} » : aucun canal en ligne que lean-ctx bloque`)
+        assert.ok(r.endsWith(`canal prescrit : ${canal}.`), `${outil} « ${command} » : ${r}`)
+      }
+      for (const outil of ['Bash', 'PowerShell']) {
+        const prescrite = /^`(.*)`$/.exec(canaux[outil])?.[1]
+        if (prescrite) assert.equal(await decision(racine, outil, { command: prescrite }), null, `${outil} : la forme prescrite « ${prescrite} » est admise`)
       }
     }
     for (const command of ['GIT_EDITOR=true git status', 'GIT_SEQUENCE_EDITOR=true git status', 'git -ccore.editor=true status']) {
@@ -423,12 +432,32 @@ test('#2224 `declare`/`typeset`/`local` de `PATH` ou `ENV`, avec ou sans `-x` : 
   })
 })
 
-// Sondes 4 et 5 du juge de diff #2224 : famille au critère du ticket, `+=`, nom non littéral, prose, lecture.
+test('#2224 chaque éditeur reste rattaché à son appel git', async () => {
+  await dansUnDepot(async (racine) => {
+    const deux = await raison(racine, 'Bash', { command: 'git -c core.editor=vim rebase --continue && git -c core.editor=nano commit --amend' })
+    assert.match(deux, /GIT_EDITOR=vim git rebase --continue/)
+    assert.match(deux, /GIT_EDITOR=nano git commit --amend/)
+    assert.doesNotMatch(deux, /GIT_EDITOR=nano git rebase/)
+    const sequence = await raison(racine, 'Bash', { command: 'git -c sequence.editor=true rebase -i HEAD~2 && git commit --amend' })
+    assert.match(sequence, /GIT_SEQUENCE_EDITOR=true git rebase -i HEAD~2/)
+    assert.doesNotMatch(sequence, /--no-edit/)
+    const enrobe = await raison(racine, 'Bash', { command: 'sh -c "git -c core.editor=vim rebase --continue"' })
+    assert.match(enrobe, /pour l’appel `git -c core.editor=vim rebase --continue` : `GIT_EDITOR=vim git rebase --continue`/)
+  })
+})
+
+// #2224 issuecomment-5932326988
 test('#2224 sondes du juge : chaque commande rend sa décision et son canal', async () => {
   await dansUnDepot(async (racine) => {
     const LIEU = /canal prescrit : la même commande sans elle [(]`cd` ou `git -C` vers le dépôt visé[)][.]$/
     const SANS = /canal prescrit : la même commande sans elle[.]$/
-    const PROSE = /canal prescrit : le message dans un fichier : `git commit -F <fichier>`, `gh … --body-file <fichier>`[.]$/
+    const COMMIT = /canal prescrit : le message dans un fichier : `git commit -F <fichier>`[.]$/
+    const CORPS = /canal prescrit : le corps dans un fichier : `gh … --body-file <fichier>`[.]$/
+    const TITRE = /canal prescrit : le titre dans un fichier : `gh api … -F title=@<fichier>` [(]`--title` n’a pas de forme fichier[)][.]$/
+    const CHAMP = /canal prescrit : le champ dans un fichier : `gh api … -F <champ>=@<fichier>`[.]$/
+    const MOTIF = /canal prescrit : le motif dans un fichier : `grep -f <fichier>` [(]`rg -f <fichier>`[)][.]$/
+    const ECRIT = /canal prescrit : le fichier écrit par l’outil d’écriture de fichier [(]Write[)][.]$/
+    const ENV_DU_PROGRAMME = /canal prescrit : la variable posée DANS le programme lancé [(]option `env` de `spawn`\/`execFile`[)], jamais dans la commande[.]$/
     const NOM = /canal prescrit : un nom de variable littéral[.]$/
     const RECHERCHE = /canal prescrit : `ctx_search`/
     const cas = [
@@ -437,9 +466,9 @@ test('#2224 sondes du juge : chaque commande rend sa décision et son canal', as
       ['Bash', 'GIT_NAMESPACE=x git commit -m y', LIEU],
       ['Bash', 'GIT_EXEC_PATH=/tmp git commit -m y', SANS],
       ['Bash', 'git --exec-path=/tmp commit -m y', SANS],
-      ['Bash', 'HOME=/tmp/h git commit -m y', SANS],
-      ['Bash', 'XDG_CONFIG_HOME=/tmp/x git commit -m y', SANS],
-      ['PowerShell', "$env:HOME='./h'; git commit -m y", SANS],
+      ['Bash', 'HOME=/tmp/h git commit -m y', ENV_DU_PROGRAMME],
+      ['Bash', 'XDG_CONFIG_HOME=/tmp/x git commit -m y', ENV_DU_PROGRAMME],
+      ['PowerShell', "$env:HOME='./h'; git commit -m y", ENV_DU_PROGRAMME],
       ['Bash', 'PATH+=:/tmp git commit -m y', SANS],
       ['Bash', 'export PATH+=:/tmp; git commit -m y', SANS],
       ['PowerShell', "$env:PATH += ';./faux'; git commit -m y", SANS],
@@ -450,10 +479,43 @@ test('#2224 sondes du juge : chaque commande rend sa décision et son canal', as
       ['PowerShell', '[Environment]::SetEnvironmentVariable($n, "x"); git commit -m y', NOM],
       ['PowerShell', "Set-Item -Path ('env:GIT'+'_DIR') -Value x; git commit -m y", NOM],
       ['PowerShell', "Set-Content -Path ('env:'+$n) -Value x; git commit -m y", NOM],
-      ['Bash', 'git commit -m "fix: GIT_DIR herite"', PROSE],
-      ['Bash', 'git commit --message="fix: NODE_OPTIONS" -q', PROSE],
-      ['Bash', 'gh issue comment 1 --body "GIT_CONFIG_PARAMETERS est pose par git -c"', PROSE],
-      ['Bash', 'gh issue create --title "NODE_OPTIONS" --body-file x.md', PROSE],
+      ['Bash', 'git commit -m "fix: GIT_DIR herite"', COMMIT],
+      ['Bash', 'git commit --message="fix: NODE_OPTIONS" -q', COMMIT],
+      ['Bash', "git commit -m'GIT_DIR'", COMMIT],
+      ['Bash', 'gh issue comment 1 --body "GIT_CONFIG_PARAMETERS est pose par git -c"', CORPS],
+      ['Bash', 'gh issue create --title "NODE_OPTIONS" --body-file x.md', TITRE],
+      ['Bash', 'git tag -a v1 -m "GIT_DIR"', /canal prescrit : le message dans un fichier : `git tag -F <fichier>`[.]$/],
+      ['Bash', 'git notes add -m "GIT_DIR"', /canal prescrit : le message dans un fichier : `git notes add -F <fichier>`[.]$/],
+      ['Bash', 'gh api repos/x/y/issues -f body="GIT_DIR"', CHAMP],
+      ['Bash', 'gh issue list --search "GIT_DIR"', /canal prescrit : la recherche dans un fichier : `gh api -X GET search\/issues -F q=@<fichier>`[.]$/],
+      ['Bash', 'gh issue list | grep NODE_OPTIONS', MOTIF],
+      ['Bash', "printf 'NODE_OPTIONS doc' > notes.md", ECRIT],
+      ['Bash', "printf 'NODE_OPTIONS doc'>notes.md", ECRIT],
+      ['Bash', "git commit -m '$(GIT_DIR=/x git log -1)'", COMMIT],
+      ['Bash', "git commit -m'$(GIT_DIR=/x git log -1)'", COMMIT],
+      ['Bash', 'echo GIT_DIR >> notes.md', ECRIT],
+      ['Bash', 'git commit -m "$(GIT_DIR=/x git log -1 --format=%s)"', LIEU],
+      ['Bash', 'gh pr create --title "$(GIT_DIR=/x git log -1)" --body-file f', LIEU],
+      ['Bash', 'git init --template=/tmp/t', SANS],
+      ['Bash', 'git init --template /tmp/t', SANS],
+      ['Bash', 'git init --t=/tmp/t', SANS],
+      ['Bash', 'git clone --template=/tmp/t url d', SANS],
+      ['Bash', 'grep GIT_DIR x 1>f.txt', MOTIF],
+      ['Bash', 'grep GIT_DIR x 2>f.txt', MOTIF],
+      ['Bash', 'grep GIT_DIR x &>f.txt', MOTIF],
+      ['Bash', 'grep GIT_DIR x>f.txt', MOTIF],
+      ['Bash', 'sort -of x GIT_DIR.txt', LIEU],
+      ['Bash', 'uniq GIT_DIR.txt out.txt', LIEU],
+      ['Bash', "sed -n 's/a/b/w out' GIT_DIR.txt", LIEU],
+      ['Bash', "sed -n 's#a#b#w out' GIT_DIR.txt", LIEU],
+      ['Bash', "sed -n 's|a|b|w out' GIT_DIR.txt", LIEU],
+      ['Bash', "sed -n 's#a#w out#' GIT_DIR.txt", RECHERCHE],
+      ['Bash', "sed -n 's#a#b#w' GIT_DIR.txt", RECHERCHE],
+      ['Bash', "awk '{print > \"f\"}' GIT_DIR.txt", LIEU],
+      ['Bash', 'sort-package-json GIT_DIR.json', LIEU],
+      ['Bash', 'grep -rn GIT_DIR scripts 2>/dev/null', RECHERCHE],
+      ['Bash', 'grep -rn GIT_DIR scripts 2>&1', RECHERCHE],
+      ['Bash', 'grep "a>b" GIT_DIR.txt', RECHERCHE],
       ['Bash', 'GIT_DIR=x git commit -m "GIT_DIR"', LIEU],
       ['Bash', 'NODE_OPTIONS=--require=x node a.mjs', SANS],
       ['Bash', 'grep -rn GIT_DIR scripts', RECHERCHE],
@@ -461,8 +523,8 @@ test('#2224 sondes du juge : chaque commande rend sa décision et son canal', as
       ['Bash', 'sort -o out.txt GIT_DIR.txt', LIEU],
       ['Bash', 'tail -f GIT_DIR.log', LIEU],
       ['Bash', 'ls GIT_DIR > f.txt', LIEU],
-      ['Bash', 'grep GIT_DIR scripts/x.mjs >> f.txt', LIEU],
-      ['Bash', 'grep GIT_DIR x | tee f.txt', LIEU],
+      ['Bash', 'grep GIT_DIR scripts/x.mjs >> f.txt', MOTIF],
+      ['Bash', 'grep GIT_DIR x | tee f.txt', MOTIF],
       ['Bash', 'git log --output=f.txt -S GIT_DIR', LIEU],
       ['Bash', 'sed -i s/a/b/ GIT_DIR.txt', LIEU],
       ['Bash', 'readonly PATH=/x git commit -m y', SANS],
