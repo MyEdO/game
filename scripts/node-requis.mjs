@@ -4,10 +4,10 @@
 // Chargée sans condition, par effet d'évaluation — un point d'entrée `import.meta.main` (Node >= 22.18)
 // ne se déclare pas « principal » sous un Node plus ancien et sort 0 sans rien faire. Les points
 // d'entrée qui rendent un verdict refusent donc avant lui :
-//   - les hooks shell du `core.hooksPath` de `postinstall`, avant leur `.mjs` (un `post-*` sort 0 sans
-//     le lancer) ;
-//   - `npm run gates` (`scripts/gates/toutes.mjs`), les pilotes `merge.<nom>.driver` de `postinstall`,
-//     les hooks d'agent de `.claude/settings.json` et `.codex/hooks.json` : la porte est leur premier
+//   - `npm run gates` (`scripts/gates/toutes.mjs`), les `.mjs` que lancent les hooks shell du
+//     `core.hooksPath` de `postinstall` (un `post-*` sort 0 malgré le refus), les pilotes
+//     `merge.<nom>.driver` de `postinstall`, les hooks d'agent de `.claude/settings.json` et
+//     `.codex/hooks.json` : la porte est leur premier
 //     import, donc la première ÉVALUATION ; leur clôture d'imports STATIQUE, chargée et liée avant
 //     toute évaluation, ne porte ni module TypeScript ni attribut d'import — ce qui en a besoin se
 //     charge après la porte, par `import()` ;
