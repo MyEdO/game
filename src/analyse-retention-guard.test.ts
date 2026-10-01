@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
 import { clotureDImports } from '../scripts/guards/lib/importGraph.mjs';
@@ -500,7 +501,7 @@ it('x', () => lire());
   });
 
   it('aucun module chargé par la suite ne retient une structure d’analyse', () => {
-    const charges = clotureDImports(fichiersDeLaSuite().map((f) => f.abs));
+    const charges = clotureDImports(fichiersDeLaSuite().map((f) => f.abs), { racine: ROOT });
     const duCorpus = readCorpus(['src', 'scripts', 'server/src'], {
       exts: ['.ts', '.tsx', '.mts', '.mjs', '.cjs', '.js'],
       tests: true,
@@ -512,7 +513,7 @@ it('x', () => lire());
       ...duCorpus,
       ...[...charges]
         .filter((rel) => /\.[cm]?[jt]sx?$/.test(rel) && !dansLeCorpus.has(rel))
-        .map((rel) => ({ rel, text: readFileSync(`${ROOT}${rel}`, 'utf8') })),
+        .map((rel) => ({ rel, text: readFileSync(join(ROOT, rel), 'utf8') })),
     ];
     expect(lus.length, 'la clôture de la suite porte des milliers de modules').toBeGreaterThan(3000);
     const exportees = fabriquesDuCorpus(lus);

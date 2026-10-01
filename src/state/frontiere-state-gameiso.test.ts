@@ -11,9 +11,10 @@
  * FAÇADE qui a déménagé (`state/buildings.ts`, patron `state/terrain/index.ts` #1690), le store n'a pas
  * traversé la frontière pour aller la chercher.
  *
- * MÉCANIQUE réutilisée, jamais un 2ᵉ parseur d'imports : `IMPORT_RE` + `resolveImport`
- * (`scripts/guards/lib/importGraph.mjs`, partagés avec `genericDomainImport` et le graphe des
- * systèmes). Sont vus les imports statiques, dynamiques (`import('…')`) et à effet de bord.
+ * MÉCANIQUE réutilisée, jamais un 2ᵉ parseur d'imports : `arcsDe`
+ * (`scripts/guards/lib/importGraph.mjs`, partagé avec `genericDomainImport` et le graphe des
+ * systèmes). Sont vus les imports statiques, de type, dynamiques (`import('…')`), à effet de bord et
+ * `require`.
  *
  * PÉRIMÈTRE : les sources de PRODUCTION de `src/state/**`. Les `*.test.ts(x)` sont hors scan — un test
  * de state compose légitimement un builder ou un écran pour mesurer un bout-en-bout (26 imports de
@@ -23,7 +24,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { fileURLToPath } from 'node:url';
-import { IMPORT_RE, resolveImport } from '../../scripts/guards/lib/importGraph.mjs';
+import { arcsDe, type Arc } from '../../scripts/guards/lib/importGraph.mjs';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { estFichierVitest } from '../../scripts/guards/lib/fichierVitest.mjs';
 import { detenteur } from '../detenteur.testkit';
@@ -39,16 +40,10 @@ function sourcesDeState(): { chemin: string; texte: string }[] {
   return readCorpus(['src/state']).map(({ abs, text }) => ({ chemin: abs.split('\\').join('/'), texte: text }));
 }
 
-/** Les imports d'un module qui atteignent `src/gameIso`, en `spécificateur → cible relative à src/`.
+/** Les arcs d'un module (`arcsDe`) qui atteignent `src/gameIso`.
  *  PUR : le texte est un paramètre, si bien que le cas planté ci-dessous n'a besoin d'aucun fichier. */
-export function importsDuRendu(fichierAbs: string, texte: string): { spec: string; cible: string }[] {
-  const out: { spec: string; cible: string }[] = [];
-  for (const m of texte.matchAll(IMPORT_RE)) {
-    const spec = m[1] ?? m[2] ?? m[3];
-    const cible = resolveImport(fichierAbs, spec);
-    if (cible && cible.startsWith(RENDU)) out.push({ spec, cible: cible.slice(SRC.length) });
-  }
-  return out;
+export function importsDuRendu(fichierAbs: string, texte: string): Arc[] {
+  return arcsDe(fichierAbs, texte).filter(({ cible }) => cible.startsWith(RENDU));
 }
 
 describe('frontière state → gameIso (CLAUDE.md règle 3)', () => {
@@ -63,7 +58,7 @@ describe('frontière state → gameIso (CLAUDE.md règle 3)', () => {
   it('cas planté : un import du rendu est VU, un import de state ne l’est pas (preuve TDD)', () => {
     const faux = `${STATE}/sonde-plantee.ts`;
     expect(importsDuRendu(faux, "import { buildRoofs } from '../gameIso/builders/roofs';")).toEqual([
-      { spec: '../gameIso/builders/roofs', cible: 'gameIso/builders/roofs.ts' },
+      { spec: '../gameIso/builders/roofs', nature: 'statique', cible: `${RENDU}builders/roofs.ts` },
     ]);
     expect(importsDuRendu(faux, "const m = await import('../gameIso/builders/roofs');")).toHaveLength(1);
     expect(importsDuRendu(faux, "import { roofHidden } from './buildings';")).toEqual([]);
@@ -74,7 +69,7 @@ describe('frontière state → gameIso (CLAUDE.md règle 3)', () => {
     const fautes: string[] = [];
     for (const f of fichiers())
       for (const { spec, cible } of importsDuRendu(f.chemin, f.texte))
-        fautes.push(`${f.chemin.slice(SRC.length)} → ${cible}  (« ${spec} »)`);
+        fautes.push(`${f.chemin.slice(SRC.length)} → ${cible.slice(SRC.length)}  (« ${spec} »)`);
     expect(
       fautes,
       'Le store importe le RENDU : le rendu dépend du store, jamais l’inverse (CLAUDE.md règle 3). ' +

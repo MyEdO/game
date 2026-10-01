@@ -9,9 +9,9 @@
 // graphies qu'il a imaginées. Mesuré sur une regex `^\s*import…from '…'` — qui exige `import` et le
 // chemin sur la MÊME ligne — : mono-ligne vu, multi-ligne RATÉ (la graphie que ce dépôt emploie
 // partout), dynamique raté, ré-export raté, spécificateur sans extension raté. L'extraction vient
-// donc de la primitive canonique du dépôt, `importGraph.mjs` (`IMPORT_RE` couvre statique
-// multi-ligne, dynamique et effet de bord ; `resolveImport` ramène toute graphie d'un spécificateur
-// relatif au MÊME fichier), complétée ici par la seule graphie qu'elle ne porte pas : `require`.
+// donc de la primitive canonique du dépôt, `importGraph.mjs` (`specificateursDe` lit l'arbre
+// syntaxique : statique multi-ligne, dynamique, effet de bord, `require` et `createRequire` ;
+// `resolveImport` ramène toute graphie d'un spécificateur relatif au MÊME fichier).
 //
 // CE QUE LA GARDE MESURE : pour chaque feuille déclarée, les sources SUIVIES par git qui la
 // résolvent — hors elle-même et hors ses bancs déclarés. Zéro importeur, ou la liste nominative.
@@ -22,7 +22,7 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { INDEX, depotDe, listerImage } from './gitPorte.mjs'
-import { IMPORT_RE, resolveImport } from './importGraph.mjs'
+import { arcsDe } from './importGraph.mjs'
 
 /** L'arbre lu par défaut : celui où VIT ce module. */
 export const RACINE = fileURLToPath(new URL('../../..', import.meta.url))
@@ -56,41 +56,22 @@ export function sourcesSuivies(racine = RACINE) {
 }
 
 /**
- * COMPLÉMENT d'`IMPORT_RE`, pas un second parseur d'imports ES : la seule graphie d'acquisition que
- * la primitive ne porte pas est `require`. Elle est VIVANTE ici — `createRequire(import.meta.url)`
- * charge le compilateur TypeScript dans `dialecte.mjs` et `stocksNominatifs.mjs` — et atteindrait
- * une feuille aussi sûrement qu'un `import`. Deux formes, et elles suffisent : l'appel chaîné
- * (`createRequire(…)('./x')`) et l'appel d'un `require` déjà lié, que ce soit celui de CJS ou celui
- * qu'un `const require = createRequire(…)` vient de poser.
+ * Les ARCS qu'un texte source acquiert (`arcsDe`, `importGraph.mjs`) : toutes les natures du lecteur
+ * canonique, jamais une regex de plus. `require` y est
+ * VIVANT — `createRequire(import.meta.url)` charge le compilateur TypeScript dans `dialecte.mjs` — et
+ * atteindrait une feuille aussi sûrement qu'un `import`.
  * HORS DE PORTÉE, et d'aucune lecture statique : un spécificateur passé par VARIABLE
  * (`require(chemin)`, `import(chemin)`) — il n'y a pas de littéral à lire —, et un `require` lié
- * sous un AUTRE nom (`const req = createRequire(…)` puis `req('./x')`), dont le callee n'est plus
- * un jeton connu. C'est pourquoi l'invariant
- * des feuilles se mesure sur l'ensemble des sources SUIVIES et non sur une liste de suspects.
- */
-const REQUIRE_RE =
-  /\bcreateRequire\s*\([^()]*\)\s*\(\s*['"]([^'"]+)['"]\s*\)|\brequire\s*\(\s*['"]([^'"]+)['"]\s*\)/g
-
-/**
- * Les spécificateurs relatifs qu'un texte source acquiert, RÉSOLUS vers des fichiers réels.
- * Statiques (`from '…'`, y compris multi-ligne et ré-export), dynamiques (`import('…')`) et à effet
- * de bord — c'est `IMPORT_RE` qui le dit, jamais une regex de plus ; `require` et `createRequire`
- * par le complément `REQUIRE_RE` ci-dessus. `resolveImport` ramène toute graphie d'un spécificateur
- * relatif au MÊME fichier, donc une source qui acquiert deux fois la même cible ne rend qu'une
- * entrée par graphie écrite, jamais une par extension possible.
+ * sous un AUTRE nom (`const req = createRequire(…)` puis `req('./x')`), dont l'appelé n'est plus
+ * un jeton connu. C'est pourquoi l'invariant des feuilles se mesure sur l'ensemble des sources
+ * SUIVIES et non sur une liste de suspects.
+ * La résolution ramène toute graphie d'un spécificateur relatif au MÊME fichier, donc une source
+ * qui acquiert deux fois la même cible ne rend qu'un arc par graphie écrite, jamais un par
+ * extension possible.
  * @param {string} fichierAbsolu @param {string} texte
- * @returns {{specificateur:string, resolu:string}[]}
+ * @returns {import('./importGraph.mjs').Arc[]}
  */
-export function importsResolus(fichierAbsolu, texte) {
-  const vus = []
-  for (const motif of [IMPORT_RE, REQUIRE_RE])
-    for (const m of texte.matchAll(motif)) {
-      const specificateur = m[1] ?? m[2] ?? m[3]
-      const resolu = resolveImport(fichierAbsolu, specificateur)
-      if (resolu) vus.push({ specificateur, resolu })
-    }
-  return vus
-}
+export const importsResolus = (fichierAbsolu, texte) => arcsDe(fichierAbsolu, texte)
 
 /**
  * Qui importe une feuille — la mesure, nominative. Une feuille dont le MODULE est introuvable rend
@@ -117,8 +98,8 @@ export function manquementsDeFeuilles({ racine = RACINE, sources, feuilles = FEU
     } catch {
       continue
     }
-    for (const { specificateur, resolu } of importsResolus(absolu(source), texte)) {
-      const feuille = parCible.get(resolu)
+    for (const { spec: specificateur, cible } of importsResolus(absolu(source), texte)) {
+      const feuille = parCible.get(cible)
       if (feuille)
         manquements.push(
           `${source} importe la FEUILLE ${feuille.module} (« ${specificateur} ») — elle ${feuille.pourquoi} : ` +

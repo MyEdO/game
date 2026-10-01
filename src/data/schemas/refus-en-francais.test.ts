@@ -17,7 +17,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { clotureDImports, sourceALExecution } from '../../../scripts/guards/lib/importGraph.mjs';
+import { clotureDImports, sourceALExecution, type Arc } from '../../../scripts/guards/lib/importGraph.mjs';
 import { estFichierVitest } from '../../../scripts/guards/lib/fichierVitest.mjs';
 import { listerArbre } from '../../../scripts/guards/lib/lister.mjs';
 import { validateDataset, validateDocument, rapportDeFautes } from './validate';
@@ -86,7 +86,7 @@ describe('les refus de schéma parlent français (#1588)', () => {
 
     // Cache PARTAGÉ : toutes les marches sont du MÊME régime (`typesEffaces`), et se recouvrent presque
     // toutes — sans partage, chaque module de la grammaire est relu et re-résolu à chaque porteur.
-    const cache = new Map<string, string[] | null>();
+    const cache = new Map<string, Arc[] | null>();
     const orphelins = porteurs.filter((f) => !clotureDImports([resolve(f)], { typesEffaces: true, cache }).has(LOCALE));
     expect(orphelins).toEqual([]);
   });

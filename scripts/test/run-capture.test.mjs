@@ -19,13 +19,7 @@ const RACINE = fileURLToPath(new URL('../..', import.meta.url)).replace(/[\\/]$/
  *  mourait en `ERR_MODULE_NOT_FOUND` AVANT d'écrire sa capture, et les sept cas rougissaient sur un
  *  `scandir ENOENT` qui ne nommait pas la cause. */
 function modulesDuLanceur() {
-  const precedent = process.cwd()
-  process.chdir(RACINE)
-  try {
-    return [...clotureDImports(['scripts/test/run.mjs'])].sort()
-  } finally {
-    process.chdir(precedent)
-  }
+  return [...clotureDImports(['scripts/test/run.mjs'], { racine: RACINE })].sort()
 }
 
 /** Le faux dépôt n'est pas une SUITE : il ne prend pas le verrou machine du lanceur (#1679 L1c-M7),

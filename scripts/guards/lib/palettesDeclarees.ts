@@ -16,7 +16,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { listerArbre } from './lister.mjs';
 import { estFichierVitest } from './fichierVitest.mjs';
-import { clotureDImports } from './importGraph.mjs';
+import { clotureDImports, type Arc } from './importGraph.mjs';
 import type { PaletteDeclaree } from '../../../src/gameIso/rig/palette';
 import { RACES } from '../../../src/gameIso/rig/races';
 import { coucheDEspece, TETES_A_PEAU } from '../../../src/gameIso/rig/parts/career';
@@ -82,16 +82,14 @@ export async function palettesDeclarees(): Promise<PaletteInventoriee[]> {
       else marcher(v, `${fichier}:${exp}`, fichier, 0, exp, vus);
     }
   }
-  const cache = new Map<string, string[] | null>();
-  const cloture = (fichier: string): Set<string> => new Set(
-    [...clotureDImports([resolve(RACINE, fichier)], { retenir: (abs: string) => abs.includes('/src/'), cache, typesEffaces: true })]
-      .map((r) => resolve(r)),
-  );
+  const cache = new Map<string, Arc[] | null>();
+  const cloture = (fichier: string): Set<string> =>
+    clotureDImports([fichier], { racine: RACINE, retenir: (abs: string) => abs.includes('/src/'), cache, typesEffaces: true });
   for (const [palette, parFichier] of candidats) {
     const fichiers = [...parFichier.keys()];
     const declarants = fichiers.filter((f) => {
       const c = cloture(f);
-      return fichiers.every((g) => g === f || !c.has(resolve(RACINE, g)));
+      return fichiers.every((g) => g === f || !c.has(g));
     });
     if (declarants.length !== 1) {
       throw new Error(`palettesDeclarees : ${declarants.length} déclarant(s) parmi les candidats ${[...parFichier.values()].join(', ')}`);

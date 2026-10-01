@@ -168,14 +168,7 @@ test('MUR — toute racine du registre des générateurs est sous les globs de c
 // --- (c) CLÔTURE : les modules atteints hors des globs, lintés par les règles du mur -------------
 
 test('CLÔTURE — aucun module atteint par une racine du registre, hors des globs du mur, n’enfreint ses règles', async () => {
-  const precedent = process.cwd()
-  process.chdir(RACINE_DEPOT)
-  let cloture
-  try {
-    cloture = [...clotureDImports(racinesDuRegistre())].sort()
-  } finally {
-    process.chdir(precedent)
-  }
+  const cloture = [...clotureDImports(racinesDuRegistre(), { racine: RACINE_DEPOT })].sort()
   // Contrôle de MESURE par DEUX témoins NOMMÉS, un de chaque côté de la frontière que ce volet existe
   // pour franchir : une lib de `scripts/` (ce que `closureOf`, bornée à `src/`, ne rend JAMAIS — et
   // c'est par là que l'incident #1620 est entré) et un module de `src/`, hors des globs du mur. Jamais
