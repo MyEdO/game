@@ -752,9 +752,12 @@ function pipelinesDeJetons(command, profondeur = 0, { scripts = scriptsNpm(), bu
   return pipelines
 }
 
-/** Têtes POSIX qui affectent leurs arguments `NOM[=val]` : `export` (sauf `-n`), et `declare`/`typeset`/
- *  `local` avec ou sans `-x` — une variable déjà exportée le reste (`man bash`, ENVIRONMENT). */
-const AFFECTEURS = new Map([['export', (args) => !args.includes('-n')], ...['declare', 'typeset', 'local'].map((t) => [t, () => true])])
+/** Têtes POSIX qui affectent leurs arguments `NOM[=val]` : `export` (sauf `-n`), `readonly` (sauf `-f`), et
+ *  `declare`/`typeset`/`local` avec ou sans `-x` — une variable déjà exportée le reste (`man bash`, ENVIRONMENT). */
+const AFFECTEURS = new Map([
+  ['export', (args) => !args.includes('-n')], ['readonly', (args) => !args.includes('-f')],
+  ...['declare', 'typeset', 'local'].map((t) => [t, () => true]),
+])
 const NOM_EXPORTE_RE = /^([A-Za-z_][A-Za-z0-9_]*)(?:[+]?=|$)/
 /** PowerShell : `$env:NOM = …`, `$env:NOM += …`, `${env:NOM} = …` ; `Set-Item`/`New-Item` (alias `si`,
  *  `ni`), `Set-Content`/`Add-Content` sur le lecteur `env:` ; `[Environment]::SetEnvironmentVariable`
@@ -842,7 +845,7 @@ export function segmentsProfonds(command, profondeur = 0, options) {
   return pipelinesProfonds(command, profondeur, options).flat()
 }
 
-const GLOBAL_VALUE_FLAGS = new Set(['-C', '-c', '--config-env', '--git-dir', '--work-tree', '--namespace'])
+const GLOBAL_VALUE_FLAGS = new Set(['-C', '-c', '--config-env', '--git-dir', '--work-tree', '--namespace', '--attr-source'])
 
 /** Index de la SOUS-COMMANDE git dans un segment (`[&] git [flags globales] <sub>`), `-1` si le
  *  segment n'exécute pas `git`. Un token `&` de tête (call-operator PowerShell :

@@ -12,6 +12,7 @@ import {
 } from './repartiteur.mjs'
 import { REGISTRE } from './registre.mjs'
 import { REGISTRE_SOLDE } from './solde-ticket-hook.mjs'
+import { gitSubcommand } from './solde-ticket-guard.mjs'
 import { garde as commandePiege } from './commande-piege-guard.mjs'
 import { garde as runnerCapture } from './runner-capture-guard.mjs'
 import { garde as codeurGates } from './codeur-gates-guard.mjs'
@@ -464,6 +465,13 @@ test('#2224 sondes du juge : chaque commande rend sa décision et son canal', as
       ['Bash', 'grep GIT_DIR x | tee f.txt', LIEU],
       ['Bash', 'git log --output=f.txt -S GIT_DIR', LIEU],
       ['Bash', 'sed -i s/a/b/ GIT_DIR.txt', LIEU],
+      ['Bash', 'readonly PATH=/x git commit -m y', SANS],
+      ['Bash', 'readonly PATH=/x; git commit -m y', SANS],
+      ['Bash', 'git --bare commit -m y', LIEU],
+      ['Bash', 'GIT_TEMPLATE_DIR=/tmp/t git init', SANS],
+      ['Bash', 'GIT_ATTR_SOURCE=HEAD~1 git commit -m y', SANS],
+      ['Bash', 'git --attr-source=HEAD~1 commit -m y', SANS],
+      ['Bash', 'git --attr-source HEAD~1 commit -m y', SANS],
     ]
     for (const [outil, command, canal] of cas) {
       const r = await raison(racine, outil, { command })
@@ -472,9 +480,11 @@ test('#2224 sondes du juge : chaque commande rend sa décision et son canal', as
     for (const [outil, command] of [
       ['Bash', 'gh issue comment 1 --body-file x.md'], ['Bash', 'echo PATH'], ['Bash', 'git --exec-path'], ['Bash', 'GIT_EDITOR=true git commit --amend'],
       ['PowerShell', "$env:GIT_EDITOR='true'; git rebase --continue"], ['Bash', 'cd .. && git -C .wt-2224 status'],
+      ['Bash', 'readonly -f f; git status'], ['Bash', 'GIT_SSH_COMMAND="ssh -i k" git push'],
     ]) {
       assert.equal(await decision(racine, outil, { command }), null, `${outil} « ${command} »`)
     }
+    assert.equal(gitSubcommand(['git', '--attr-source', 'HEAD~1', 'commit', '-m', 'y'])?.sub, 'commit', '`--attr-source <tree-ish>` porte sa valeur')
   })
 })
 

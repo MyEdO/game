@@ -48,6 +48,8 @@ export const AFFECTATIONS_NON_JUGEABLES = Object.freeze([
     effet: 'git lit dans l’environnement une configuration absente du texte jugé, `core.hooksPath` compris (`git help config`, « ENVIRONMENT »)',
   },
   { motif: /^GIT_EXEC_PATH$/i, parNom: true, effet: 'git lance ses programmes depuis ce répertoire (`git help git`, `--exec-path`, GIT_EXEC_PATH) : le programme exécuté n’est plus celui que le texte nomme' },
+  { motif: /^GIT_TEMPLATE_DIR$/i, parNom: true, effet: 'git copie ce répertoire dans le `$GIT_DIR` qu’il crée ou réinitialise, crochets et `config` compris (`git help init`, TEMPLATE DIRECTORY) : les programmes lancés et la configuration lue ne sont plus ceux du texte jugé' },
+  { motif: /^GIT_ATTR_SOURCE$/i, parNom: true, effet: 'git lit les gitattributes dans ce tree-ish (`git help git`, GIT_ATTR_SOURCE, --attr-source) ; ils règlent ce que `git add`/`git commit` stockent et les pilotes lancés (`gitattributes`, « Checking-out and checking-in »)' },
   { motif: /^NODE_OPTIONS$/i, parNom: true, effet: 'node précharge des modules absents du texte jugé (nodejs.org/api/cli.html, NODE_OPTIONS)' },
   { motif: /^npm_config_/i, parNom: true, effet: 'npm lit sa configuration dans l’environnement (docs.npmjs.com, `config`, « Environment Variables ») : le script lancé n’est plus celui que les gardes lisent' },
   { motif: /^BASH_ENV$/i, parNom: true, effet: 'bash exécute ce fichier avant sa commande (`man bash`, INVOCATION) : un texte absent de la commande jugée' },
@@ -65,6 +67,8 @@ export const OPTIONS_GIT_NON_JUGEABLES = Object.freeze([
   { option: '--git-dir', lieu: true, effet: 'git opère ce dépôt, pas celui du répertoire jugé (`git help git`, --git-dir, GIT_DIR)' },
   { option: '--work-tree', lieu: true, effet: 'git prend cet arbre, pas celui du répertoire jugé (`git help git`, --work-tree, GIT_WORK_TREE)' },
   { option: '--namespace', lieu: true, effet: 'git opère cet espace de références (`git help git`, --namespace, GIT_NAMESPACE)' },
+  { option: '--bare', lieu: true, effet: 'git opère le répertoire courant comme dépôt nu (`git help git`, --bare : « If GIT_DIR environment is not set, it is set to the current working directory »)' },
+  { option: '--attr-source', effet: 'git lit les gitattributes dans ce tree-ish (`git help git`, --attr-source, GIT_ATTR_SOURCE)' },
   { option: '--exec-path', valeurAccolee: true, effet: 'git lance ses programmes depuis ce répertoire (`git help git`, --exec-path, GIT_EXEC_PATH)' },
 ])
 
