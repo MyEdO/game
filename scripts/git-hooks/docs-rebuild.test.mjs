@@ -10,6 +10,7 @@ import { execFileSync } from 'node:child_process'
 import { readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { envDeDepotForge, instanceDeDepot, sousGitFeint } from '../guards/lib/depotGabarit.mjs'
 import { GENERATORS, mesurerRendu } from '../docs/build-all.mjs'
+import { tableTotale } from '../../src/lib/tableTotale.ts'
 import { planDuCheckout, touchedFiles, touchesDocSources } from './docs-rebuild.mjs'
 
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
@@ -53,7 +54,7 @@ const MESURES = [
 ]
 
 test('les classes que la liste de préfixes d’avant #1773 RATAIT sont vues sur la mesure RENDUE par les générateurs', () => {
-  const mesure = Object.fromEntries(MESURES.map((script) => [script, mesurerRendu(GENERATORS.find((g) => g.script === script), RACINE)]))
+  const mesure = tableTotale(MESURES, (script) => mesurerRendu(GENERATORS.find((g) => g.script === script), RACINE))
   for (const [script, { fichiers }] of Object.entries(mesure)) assert.ok(fichiers.length > 1, `${script} : mesure aveugle`)
   // `.claude/memory/user-*.md` alimente `docs/doctrines.md` : une fiche NEUVE compte (frère d'une
   // source lue), et `.github/workflows` est un dossier mesuré — deux classes hors des préfixes.
