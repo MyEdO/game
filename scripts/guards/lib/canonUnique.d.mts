@@ -40,6 +40,13 @@ export const ECHAPPEUR_DE_LITTERAL: Construction;
 export const CONSTRUCTION_DE_PROGRAMME: Construction;
 export const ECRITURE_DE_STOCK_JSON: Construction;
 export const CONSTRUCTION_DE_TABLE_TOTALE: Construction;
+export function constructionDeFragment(p: {
+  nom: string;
+  natures: readonly string[];
+  designation: readonly string[];
+  designationLiee?: readonly string[];
+  constructeurs: Readonly<Record<string, readonly string[]>>;
+}): Construction & { readonly indice: (texte: string) => boolean };
 export function origineImportee(identifiant: string, sf: ts.SourceFile): { module: string; nom: string } | null;
 export function estAppelDeclare(
   appel: ts.CallExpression,

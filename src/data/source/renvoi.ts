@@ -26,14 +26,14 @@
 // trouvé DANS l'étendue d'un autre titre trouvé n'est pas nommé (« Fate » dans « Fate and Fortune »).
 // Design : #1393, lot 1 (2026-09-25).
 import {
-  empreinteDe,
+  adresseDe,
+  estErreur,
   graphieDuFichier,
   normText,
   tablesOf,
   type Bloc,
   type ChapitreParse,
   type DescRef,
-  type FragmentBlocs,
   type TableDeSection,
 } from './decoupe.ts';
 import type { SourceRef } from '../schemas/grammaire/valeurs.ts';
@@ -272,16 +272,13 @@ function lue(livre: LivreIndexe, s: SectionAuFolio) {
   return { chapitre, section, ch };
 }
 
-/** Adresse d'une cible — section entière, ou légende et bloc d'une table —, empreinte calculée au texte
- *  résolu. */
-function adresseDe(livre: LivreIndexe, { s, t }: Cible): DescRef {
+/** Adresse d'une cible (`adresseDe`). Une section au folio porte au moins un bloc (`indexerLivre`) :
+ *  une adresse qui ne résout pas lève. */
+function adresseDeLaCible(livre: LivreIndexe, { s, t }: Cible): DescRef {
   const { chapitre, section, ch } = lue(livre, s);
-  const b1 = t ? section.blocks.indexOf(t.block) : section.blocks.length - 1;
-  const b0 = t ? section.blocks.indexOf(t.legende ?? t.block) : 0;
-  const frag: FragmentBlocs = { kind: 'blocs', sec: s.slug, secOcc: s.occ, b0, b1, sum: '' };
-  const sum = empreinteDe(chapitre, frag);
-  if (typeof sum !== 'string') throw new Error(`renvoi : ${sum.error} — ${sum.detail}`);
-  return { book: livre.book, ch, parts: [{ ...frag, sum }] };
+  const ref = adresseDe({ book: livre.book, ch }, chapitre, { section, table: t });
+  if (estErreur(ref)) throw new Error(`renvoi : ${ref.error} — ${ref.detail}`);
+  return ref;
 }
 
 /** Résout un renvoi dans un livre indexé. */
@@ -296,7 +293,7 @@ export function resoudreRenvoi(livre: LivreIndexe, renvoi: Renvoi): Resolution {
     rendreCibles(niveau, sections.map((s) => ({ s })), table);
   const rendreCibles = (niveau: Niveau, elues: Cible[], table: string | null): Resolution =>
     elues.length === 1
-      ? { ...base, table, niveau, cible: adresseDe(livre, elues[0]), candidats: [nommer(elues[0])] }
+      ? { ...base, table, niveau, cible: adresseDeLaCible(livre, elues[0]), candidats: [nommer(elues[0])] }
       : { ...base, table, niveau: 'ambigu', cible: null, candidats: elues.map(nommer) };
 
   const clause = ` ${cle(renvoi.clause)} `;

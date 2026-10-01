@@ -11,10 +11,11 @@
 // foyer (`{ ...FORMULE_DE_CHEBYSHEV, foyer: 'src/engine/grid.ts' }`) :
 //  - les constructions génériques `FORMULE_DE_CHEBYSHEV`, `ECHAPPEUR_DE_LITTERAL`,
 //    `CONSTRUCTION_DE_PROGRAMME`, `ECRITURE_DE_STOCK_JSON` et `CONSTRUCTION_DE_TABLE_TOTALE` ;
-//  - trois fabriques : `recopieDeCanon` (un canon, ses membres, six formes de recopie, paramètres
+//  - quatre fabriques : `recopieDeCanon` (un canon, ses membres, six formes de recopie, paramètres
 //    `complet` et `formes`, la forme `membres de type` lisant un type littéral comme une `interface`),
-//    `cleEnLigne` (la clé d'un site de stock écrite en ligne) et `comparaisonDAppel` (le rendu d'une
-//    fonction déclarée comparé en ligne) ;
+//    `cleEnLigne` (la clé d'un site de stock écrite en ligne), `comparaisonDAppel` (le rendu d'une
+//    fonction déclarée comparé en ligne) et `constructionDeFragment` (un fragment d'adresse bâti hors
+//    de ses constructeurs) ;
 //  - `estAppelDeclare`, la reconnaissance d'un appel à une fonction déclarée par son module, sur la
 //    liaison `origineImportee` et la table `tableDesExports` ;
 //  - `estTableTotale`, la reconnaissance d'une table totale déclarée, que lit aussi
@@ -382,6 +383,65 @@ export const CONSTRUCTION_DE_TABLE_TOTALE = Object.freeze({
     return keyee ? 'table totale construite en ligne (`tableTotale`)' : null;
   },
 });
+
+/** La propriété `nom` d'un objet littéral, écrite `nom: …` ou `nom` seul.
+ * @param {ts.ObjectLiteralExpression} o @param {string} nom @returns {ts.ObjectLiteralElementLike | undefined} */
+const proprieteDe = (o, nom) =>
+  o.properties.find((p) => (ts.isPropertyAssignment(p) || ts.isShorthandPropertyAssignment(p)) && keyName(p.name) === nom);
+
+/**
+ * Mécanique de la CONSTRUCTION d'un fragment d'adresse de prose (#1887), construction réservée à ses
+ * constructeurs. Trois formes d'objet littéral :
+ *  - un `kind` qui vaut l'une des `natures` ;
+ *  - une propagation qui pose `sum` en ligne ;
+ *  - une propagation qui pose un champ de `designation` (ou de `designationLiee`, dans un fichier qui
+ *    importe un module des `constructeurs`), hors argument direct d'un des `constructeurs`
+ *    (`estAppelDeclare`) : la recopie qui change ce qu'un fragment désigne garde un `sum` périmé.
+ * La déclaration y joint son foyer.
+ * @param {{ nom: string, natures: readonly string[], designation: readonly string[],
+ *   designationLiee?: readonly string[], constructeurs: Readonly<Record<string, readonly string[]>> }} p
+ * @returns {{ nom: string, indice: (texte: string) => boolean, reconnait: (noeud: ts.Node, sf: ts.SourceFile) => string | null }}
+ */
+export function constructionDeFragment({ nom, natures, designation, designationLiee = [], constructeurs }) {
+  const lesNatures = new Set(natures);
+  const motif = (mots) => mots.map(echapperRegex).join('|');
+  const indice = new RegExp(`\\bsum\\b|['"](?:${motif(natures)})['"]|\\b(?:${motif([...designation, ...designationLiee])})\\b`);
+  const modules = new Set(Object.keys(constructeurs));
+  /** @type {WeakMap<ts.SourceFile, boolean>} */
+  const lies = new WeakMap();
+  /** Le fichier importe-t-il l'un des modules des `constructeurs` ? @param {ts.SourceFile} sf */
+  const lie = (sf) => {
+    if (!lies.has(sf)) {
+      lies.set(sf, sf.statements.some((st) => ts.isImportDeclaration(st) && ts.isStringLiteral(st.moduleSpecifier)
+        && modules.has(moduleDe(st.moduleSpecifier.text, sf) ?? '')));
+    }
+    return lies.get(sf);
+  };
+  /** L'objet est-il l'argument direct d'un appel à l'un des `constructeurs` ?
+   * @param {ts.Node} o @param {ts.SourceFile} sf */
+  const argumentDeConstructeur = (o, sf) => {
+    let p = o.parent;
+    while (p && (ts.isParenthesizedExpression(p) || ts.isAsExpression(p) || ts.isSatisfiesExpression(p))) p = p.parent;
+    return !!p && ts.isCallExpression(p) && estAppelDeclare(p, sf, constructeurs) != null;
+  };
+  return {
+    nom,
+    indice: (texte) => indice.test(texte),
+    reconnait: (n, sf) => {
+      if (!ts.isObjectLiteralExpression(n)) return null;
+      const kind = proprieteDe(n, 'kind');
+      const nature = kind && ts.isPropertyAssignment(kind) ? sansEnveloppe(kind.initializer) : null;
+      if (nature && ts.isStringLiteralLike(nature) && lesNatures.has(nature.text)) {
+        return `${nom} : fragment « ${nature.text} » littéral`;
+      }
+      if (!n.properties.some(ts.isSpreadAssignment)) return null;
+      if (proprieteDe(n, 'sum')) return `${nom} : empreinte \`sum\` posée en ligne sur une recopie`;
+      const lus = designationLiee.length && lie(sf) ? [...designation, ...designationLiee] : designation;
+      const poses = lus.filter((c) => proprieteDe(n, c));
+      return poses.length && !argumentDeConstructeur(n, sf) ? `${nom} : recopie qui pose ${poses.join(', ')} hors constructeur` : null;
+    },
+  };
+}
 
 /** L'import de tête de `sf` qui lie le nom LOCAL `identifiant` : son spécificateur, non résolu, et le
  *  nom qu'il importe (`'default'`, `'*'`, ou le nom exporté).

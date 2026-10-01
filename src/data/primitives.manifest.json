@@ -415,6 +415,15 @@
     "verrou": "src/texte-normalise-guard.test.ts ; src/data/source/texte-d-adresse.test.ts"
   },
   {
+    "id": "constructeursDAdresse",
+    "type": "primitives.manifest",
+    "label": "fragmentBlocs/fragmentCellule/scelle/adresseDe/ouDe/ouDeLAdresse/MIN_FRAGMENT/MAX_FRAGMENTS",
+    "fichier": "src/data/source/decoupe.ts",
+    "concept": "constructeurs d'une adresse de prose : fragmentBlocs et fragmentCellule bâtissent un fragment depuis un choix (section, bornes ; section, clé de ligne, colonne, table), scelle pose son empreinte au texte résolu (vide s'il ne résout pas), adresseDe adresse une section entière ou la légende et le bloc d'une table (erreur de résolution nommée sur une section sans bloc) ; ouDe et ouDeLAdresse désignent un fragment et une adresse ; MIN_FRAGMENT et MAX_FRAGMENTS sont les bornes uniques d'un fragment discriminant et d'un montage",
+    "perimetre": "toute construction d'un fragment ou d'une adresse : éditeur d'adresse, renvois, chercheurs de judge, CLI de découpe, relocaliseur, migrations",
+    "verrou": "src/construction-de-fragment-guard.test.ts ; src/data/source/decoupe.test.ts"
+  },
+  {
     "id": "menuCard",
     "type": "primitives.manifest",
     "label": "MenuCard/MenuSection/MenuButton/MenuToggle",
@@ -1435,11 +1444,11 @@
   {
     "id": "constructionsReservees",
     "type": "primitives.manifest",
-    "label": "scanConstructionsReservees/FORMULE_DE_CHEBYSHEV/ECHAPPEUR_DE_LITTERAL/CONSTRUCTION_DE_PROGRAMME/ECRITURE_DE_STOCK_JSON/CONSTRUCTION_DE_TABLE_TOTALE/recopieDeCanon/cleEnLigne/comparaisonDAppel/estAppelDeclare/origineImportee",
+    "label": "scanConstructionsReservees/FORMULE_DE_CHEBYSHEV/ECHAPPEUR_DE_LITTERAL/CONSTRUCTION_DE_PROGRAMME/ECRITURE_DE_STOCK_JSON/CONSTRUCTION_DE_TABLE_TOTALE/recopieDeCanon/cleEnLigne/comparaisonDAppel/constructionDeFragment/estAppelDeclare/origineImportee",
     "fichier": "scripts/guards/lib/canonUnique.mjs",
-    "concept": "construction réservée à son foyer : le scan unique, ses constructions déclarées, les fabriques de recopie d'un canon, de clé en ligne et de comparaison en ligne du rendu d'une fonction déclarée, l'appel à une fonction déclarée et la liaison d'import",
+    "concept": "construction réservée à son foyer : le scan unique, ses constructions déclarées, les fabriques de recopie d'un canon, de clé en ligne, de comparaison en ligne du rendu d'une fonction déclarée et de construction d'un fragment d'adresse hors de ses constructeurs, l'appel à une fonction déclarée et la liaison d'import",
     "perimetre": "toute garde de canon unique",
-    "verrou": "unions-canon.test.ts, grid.test.ts, cle-de-site-guard.test.ts, texte-normalise-guard.test.ts, ts-program-fabrique-guard.test.ts"
+    "verrou": "unions-canon.test.ts, grid.test.ts, cle-de-site-guard.test.ts, texte-normalise-guard.test.ts, ts-program-fabrique-guard.test.ts, construction-de-fragment-guard.test.ts"
   },
   {
     "id": "tsProgram",
