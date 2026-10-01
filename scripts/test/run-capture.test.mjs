@@ -49,8 +49,19 @@ function fauxDepot(sourceDuFauxVitest) {
   return base
 }
 
-const TRACE = (suite) =>
+/** Énumération du faux Vitest (`list --filesOnly --json=<f>`) : les fichiers de `TRACE_FICHIERS`,
+ *  aucun par défaut. Le lanceur énumère toute suite COMPLÈTE, même en mono : le verdict d'un registre
+ *  DOM absent dépend des fichiers jsdom joués (`refusRegistreDomAbsent`). */
+const LISTE =
   "import fs from 'node:fs'\n" +
+  "if (process.argv[2] === 'list') {\n" +
+  "  const json = process.argv.find((a) => a.startsWith('--json=')).slice('--json='.length)\n" +
+  "  fs.writeFileSync(json, JSON.stringify(JSON.parse(process.env.TRACE_FICHIERS ?? '[]').map((file) => ({ file }))), 'utf8')\n" +
+  '  process.exit(0)\n' +
+  '}\n'
+
+const TRACE = (suite) =>
+  LISTE +
   "fs.writeFileSync(process.env.TRACE_ARGV, JSON.stringify(process.argv.slice(2)), 'utf8')\n" +
   "process.stdout.write('couleur FORCE_COLOR=' + (process.env.FORCE_COLOR ?? '(absent)') + " +
   "' NO_COLOR=' + (process.env.NO_COLOR ?? '(absent)') + '\\n')\n" +
@@ -225,14 +236,11 @@ test('bornes de charge : paire injectée par défaut, JAMAIS doublée si l’app
 // par `npm test` (le partage node/jsdom) n'était couvert par aucun d'eux. `WFRP_TEST_COEURS` et
 // `WFRP_TEST_MEMOIRE_MO` forcent le seuil de partage, sinon le verdict dépendrait du runner.
 const VITEST_SPLIT =
-  "import fs from 'node:fs'\n" +
+  LISTE +
   'const argv = process.argv.slice(2)\n' +
-  "if (argv[0] === 'list') {\n" +
-  "  const json = argv.find((a) => a.startsWith('--json=')).slice('--json='.length)\n" +
-  "  fs.writeFileSync(json, JSON.stringify(JSON.parse(process.env.TRACE_FICHIERS).map((file) => ({ file }))), 'utf8')\n" +
-  '  process.exit(0)\n' +
-  '}\n' +
   "const cote = /vitest\\.([a-z]+)\\.config/.exec(argv[argv.indexOf('--config') + 1])[1]\n" +
+  // Le côté jsdom note son passage au registre de la barrière DOM, comme `src/test-setup.ts`.
+  "if (cote === 'jsdom') fs.appendFileSync(process.env.WFRP_DOM_RESIDU_REGISTRE, 'ecran.test.tsx\\tpropre\\n')\n" +
   "process.stdout.write(' Test Files  1 passed (1)\\n')\n" +
   "process.stdout.write('marque-stdout ' + cote + '\\n')\n" +
   "process.stderr.write('marque-stderr ' + cote + '\\n')\n" +
@@ -311,5 +319,96 @@ test('échec SANS bilan : la cause brute et l’exit sont imprimés, jamais un r
     assert.equal(capture.trimEnd().split('\n').pop(), 'status: 1')
   } finally {
     rmSync(base, { recursive: true, force: true })
+  }
+})
+
+// ── Registre DOM et PARTIE de la suite (chemin mono, celui de la CI à 4 cœurs) ─────────────────────
+
+/** Lancement sur la machine de la CI (4 cœurs, donc mono), sans `--coverage`. */
+function lanceMono(base, env = {}, args = []) {
+  return spawnSync(process.execPath, [join(base, 'scripts', 'test', 'run.mjs'), ...args], {
+    cwd: base,
+    encoding: 'utf8',
+    env: { ...process.env, TRACE_ARGV: join(base, 'argv.json'), WFRP_TEST_COEURS: '4', WFRP_TEST_MEMOIRE_MO: '65536', ...SANS_VERROU, ...env },
+  })
+}
+
+const posixDe = (p) => p.split('\\').join('/')
+
+test('registre DOM ABSENT après un fichier jsdom joué : ÉCHEC nommé — toléré sans aucun fichier jsdom', () => {
+  for (const [nom, contenu, statut] of [
+    ['ecran.test.tsx', '// @vitest-environment jsdom\n', 1],
+    ['moteur.test.ts', "import { test } from 'vitest'\n", 0],
+  ]) {
+    const base = fauxDepot(VITEST_VERT)
+    try {
+      const fichier = join(base, nom)
+      writeFileSync(fichier, contenu, 'utf8')
+      const run = lanceMono(base, { TRACE_FICHIERS: JSON.stringify([posixDe(fichier)]) })
+      assert.equal(run.status, statut, `${nom} : ${run.stdout}${run.stderr}`)
+      const message = /registre de passage de la barrière DOM ABSENT après 1 fichier\(s\) jsdom joué\(s\)/
+      if (statut) assert.match(run.stderr, message)
+      else assert.doesNotMatch(run.stderr, message)
+    } finally {
+      rmSync(base, { recursive: true, force: true })
+    }
+  }
+})
+
+/** Faux Vitest d'une PARTIE : il rend l'`include` de la config reçue (`--config`) dans `TRACE_INCLUDE`. */
+const VITEST_PARTIE =
+  LISTE +
+  'const argv = process.argv.slice(2)\n' +
+  "const config = fs.readFileSync(argv[argv.indexOf('--config') + 1], 'utf8')\n" +
+  "fs.writeFileSync(process.env.TRACE_INCLUDE, /include: (\\[.*?\\]) \\} \\};/.exec(config)[1], 'utf8')\n" +
+  "process.stdout.write(' Test Files  1 passed (1)\\n')\n" +
+  'process.exit(0)\n'
+
+test('partie i/K : la tranche part en `include`, compte et empreinte imprimés ; les K tranches partitionnent la liste', () => {
+  const noms = Array.from({ length: 9 }, (_, n) => `src/t${n}.test.ts`)
+  const K = 3
+  const vus = []
+  const listes = new Set()
+  for (let i = 1; i <= K; i += 1) {
+    const base = fauxDepot(VITEST_PARTIE)
+    try {
+      mkdirSync(join(base, 'src'), { recursive: true })
+      for (const n of noms) writeFileSync(join(base, n), "import { test } from 'vitest'\n", 'utf8')
+      const trace = join(base, 'include.json')
+      const run = lanceMono(base, {
+        WFRP_TEST_PARTIE: `${i}/${K}`,
+        TRACE_INCLUDE: trace,
+        TRACE_FICHIERS: JSON.stringify(noms.map((n) => posixDe(join(base, n)))),
+      })
+      assert.equal(run.status, 0, `partie ${i} : ${run.stdout}${run.stderr}`)
+      const inclus = JSON.parse(readFileSync(trace, 'utf8'))
+      const ligne = new RegExp(`^\\[partie\\] ${i}/${K} : ${inclus.length} fichier\\(s\\) sur ${noms.length} · empreinte [0-9a-f]{12} · liste ([0-9a-f]{12})$`, 'm').exec(run.stdout)
+      assert.ok(ligne, `ligne [partie] absente : ${run.stdout}`)
+      listes.add(ligne[1])
+      vus.push(...inclus)
+    } finally {
+      rmSync(base, { recursive: true, force: true })
+    }
+  }
+  assert.deepEqual([...vus].sort(), [...noms].sort(), 'les tranches jouées ne sont pas une partition de la liste')
+  assert.equal(listes.size, 1, 'les K parties d’une même liste impriment la même empreinte de liste')
+})
+
+test('partie mal formée, ou combinée à un filtre de fichier : REFUS nommé, aucun Vitest lancé', () => {
+  for (const [valeur, args, motif] of [
+    ['4/3', [], /REFUS — WFRP_TEST_PARTIE mal formée : « 4\/3 »/],
+    ['', [], /REFUS — WFRP_TEST_PARTIE mal formée : « {2}»/],
+    ['1/3', ['un-filtre.ts'], /REFUS — WFRP_TEST_PARTIE combinée à un filtre de fichier \(un-filtre\.ts\)/],
+  ]) {
+    const base = fauxDepot(VITEST_VERT)
+    try {
+      writeFileSync(join(base, 'un-filtre.ts'), "import { test } from 'vitest'\n", 'utf8')
+      const run = lanceMono(base, { WFRP_TEST_PARTIE: valeur }, args)
+      assert.equal(run.status, 2, `${valeur} ${args} : ${run.stdout}${run.stderr}`)
+      assert.match(run.stderr, motif)
+      assert.throws(() => readFileSync(join(base, 'argv.json')), /ENOENT/, 'Vitest a été lancé malgré le refus')
+    } finally {
+      rmSync(base, { recursive: true, force: true })
+    }
   }
 })
