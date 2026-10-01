@@ -435,12 +435,10 @@ test('entrée MULTILIGNE — un champ NON nommant modifié (la date) ne rend RIE
   )
 })
 
-// LIMITE dite ici et non ailleurs : l'ÉCHANGE EN PLACE — réécrire le `fichier` d'une entrée pour
-// couvrir un AUTRE site — touche la ligne NOMMANTE, qui n'OUVRE aucune entrée (l'entrée vit à son
-// accolade) : la porte ne compte ni ajout ni retrait, et le stock ne peut pas CROÎTRE ainsi. Ce qui
-// voit l'échange est la garde du volet (`ecartDuVolet`), dont la clé change des deux côtés : une
-// périmée ET une neuve.
-test('entrée MULTILIGNE — la ligne `fichier` REMPLACÉE ne rend RIEN (échange en place)', () => {
+// L'ÉCHANGE EN PLACE — réécrire le `fichier` d'une entrée pour couvrir un AUTRE site — fait naître
+// une entrée sous une clé neuve (#2223) : l'entrée se compte sur les deux IMAGES, jamais sur la
+// ligne touchée du diff.
+test('entrée MULTILIGNE — la ligne `fichier` REMPLACÉE fait naître une entrée sous sa clé neuve (échange en place)', () => {
   const a = entreeFolio(CHAPITRE, 'LDB 8 65→67')
   const b = entreeFolio(CHAPITRE_ACE, 'ACE 12 3→5')
   const avant = stockFolio(a, b)
@@ -454,8 +452,9 @@ test('entrée MULTILIGNE — la ligne `fichier` REMPLACÉE ne rend RIEN (échang
     ajoutees: [`      "fichier": ${JSON.stringify(CHAPITRE_ACE)},`],
   }])
   assert.deepEqual(
-    croissanceDesStocks(diff, { lirePostImage: () => apres, lirePreImage: () => avant }), [],
-    'la ligne NOMMANTE n’ouvre aucune entrée (0/0) : la porte de plage se tait, la garde du volet parle',
+    croissanceDesStocks(diff, { lirePostImage: () => apres, lirePreImage: () => avant }).map((c) => [c.fichier, c.ajoutees, c.retirees, c.net]),
+    [[FOLIO, 1, 1, 1]],
+    'l’entrée née sous `CHAPITRE_ACE` ne se paie pas de celle morte sous `CHAPITRE` (#1806 D5″)',
   )
 })
 
@@ -928,7 +927,7 @@ test('naissance — un `*-stock.json` qui naît compte ses entrées sur l’imag
 test('image — une extension hors de `DIALECTE` n’a pas d’image : `entreesNominatives` rend `null`', () => {
   const stock = "export const STOCK = [{ fichier: 'src/a.ts', ref: 'r', occurrence: 1 }]\n"
   assert.equal(entreesNominatives(stock, 'scripts/x.yaml'), null)
-  assert.deepEqual(entreesNominatives(stock, 'scripts/x.mjs'), [{ ligne: 1, nomme: 1 }])
+  assert.deepEqual(entreesNominatives(stock, 'scripts/x.mjs'), [{ ligne: 1, nomme: 1, cle: 'src/a.ts' }])
 })
 
 test('porteurs réels — l’image lit des entrées, et jamais moins que le repli de ligne', (t) => {
@@ -1111,10 +1110,19 @@ test('fenêtre — les deux plus gros stocks du dépôt sont comptés à l’ent
   const croissances = croissanceDesStocks(cumule, imagesDe(FENETRE_STOCKS.avant, FENETRE_STOCKS.apres))
   const parFichier = new Map(croissances.map((c) => [c.fichier, c]))
   assert.deepEqual(
-    [parFichier.get(slots)?.ajoutees, parFichier.get(slots)?.retirees, parFichier.get(slots)?.net], [2, 1, 1],
+    [parFichier.get(slots)?.ajoutees, parFichier.get(slots)?.retirees, parFichier.get(slots)?.net], [1, 0, 1],
     'la croissance NETTE de `slotsStock` sur la fenêtre est rendue',
   )
   assert.equal(parFichier.has(structures), false, '`structuresStock` DÉCROÎT sur la fenêtre : rien à rendre')
+})
+
+// `b5a083158` RÉORDONNE deux stocks de sites JSON (clés identiques avant et après : 997/997 et 23/23) ;
+// compté en LIGNES du diff, le réordonnancement rendait `+20` et `+1` (#2223).
+test('fenêtre — un stock JSON RÉORDONNÉ ne grandit pas : l’entrée se compte sur les images, jamais sur la ligne', () => {
+  const stocks = ['scripts/raw/source-format-stock.json', 'scripts/raw/empty-folios-perdues-stock.json']
+  const diff = git('diff', '-U0', '--no-renames', 'b5a083158^', 'b5a083158', '--', ...stocks)
+  assert.ok(diff.length > 0, 'témoin : le commit touche bien les deux stocks')
+  assert.deepEqual(croissanceDesStocks(diff, imagesDe('b5a083158^', 'b5a083158')), [])
 })
 
 test('fenêtre — les croissances non couvertes de la plage, par commit', (t) => {

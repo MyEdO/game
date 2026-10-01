@@ -58,8 +58,8 @@
 // Une ENTRÉE NOMINATIVE est une entrée de stock au sens LARGE, celle que cette porte compte :
 // `estEntreeNominative` en juge une ligne, `entreesNominatives` les lit dans une image. Une entrée de
 // site (`{ fichier, ref, occurrence }`, `stock.mjs`) en est une espèce.
-// En JSON, tout est de portée module. Aucun seuil de taille : la porte compte des lignes ajoutées et
-// retirées, jamais des stocks.
+// En JSON, tout est de portée module. Aucun seuil de taille : la porte compte des entrées nées et
+// mortes, jamais des stocks.
 //
 // PORTÉE DE MODULE : une entrée ne compte que si elle vit au niveau du MODULE. Un littéral écrit
 // dans un corps de fonction (`test(…)`, `it(…)`, une fabrique) est une DONNÉE LOCALE, pas un stock :
@@ -71,8 +71,9 @@
 // UNE SEULE SOURCE D'IMAGE : le lecteur `lirePostImage` que l'appelant fournit (contrat
 // `lirePostImage` de `gitPorte.mjs`). `croissanceDesStocks` REFUSE nommément l'appel qui n'en porte
 // pas — un compte sans image ment —, et ne reconstruit aucune image depuis le diff. VOIE NOMINALE :
-// le lecteur rend l'image, `entreesNominatives` y pose les entrées, et une ligne du diff ne compte que
-// si elle en porte une. REPLI : quand le lecteur rend `null` (fichier supprimé, binaire, dialecte
+// les deux lecteurs rendent leur image, `entreesNominatives` y pose les entrées, et le compte est
+// l'écart des deux images, entrée par entrée (`ecartDEntrees`) ; le diff ne dit que les porteurs
+// touchés, nés ou supprimés. REPLI : quand le lecteur rend `null` (fichier supprimé, binaire, dialecte
 // hors `DIALECTE`), `estEntreeNominative` juge la LIGNE seule et l'entrée COMPTE — la porte perd sa
 // précision, jamais sa vue. Ce que le repli ne sait pas lire, il le rate : entrée MULTILIGNE,
 // entrée-objet JSON, propriété dont la CLÉ ne nomme pas de fichier alors que sa valeur en nomme
@@ -342,8 +343,15 @@ function cleDe(ts, prop) {
  * ouvrante d'une entrée-objet JSON), et `nomme`, celle du littéral qui NOMME le fichier. Les deux
  * coïncident sur une entrée d'une seule ligne ; sur une entrée multiligne, c'est `nomme` qui porte
  * l'information, et c'est elle que la porte cite en exemple.
+ *
+ * Chaque entrée porte aussi sa `cle`, l'IDENTITÉ sous laquelle la porte la compte (#2223) :
+ *   · une entrée de DICTIONNAIRE — propriété d'objet, paire `[clé, valeur]` d'un `new Map([ … ])` —
+ *     s'identifie par la clé que le dictionnaire déclare : réécrire sa valeur ne fait naître aucune
+ *     entrée ;
+ *   · toute autre entrée, par le fichier qu'elle nomme (`fichierNommePar`, #1806 D5″).
+ * Une clé qui nomme un fichier se lit comme lui, sans son suffixe `:ligne`/`:symbole`.
  * @param {string} source @param {string} chemin
- * @returns {{ ligne: number, nomme: number }[] | null}
+ * @returns {{ ligne: number, nomme: number, cle: string }[] | null}
  */
 export function entreesNominatives(source, chemin) {
   const img = imageParsee(source, chemin);
@@ -351,11 +359,11 @@ export function entreesNominatives(source, chemin) {
   const { ts, sf } = img;
   const locales = lignesLocales(img);
   const ligneDe = (node) => sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1;
-  /** @type {Map<number, number>} ligne de l'entrée → ligne où elle nomme son fichier. */
+  /** @type {Map<number, { nomme: number, cle: string }>} ligne de l'entrée → ligne nommante, identité. */
   const lignes = new Map();
-  const poser = (porteur, nommant) => {
+  const poser = (porteur, nommant, cle) => {
     const ligne = ligneDe(porteur);
-    if (!lignes.has(ligne)) lignes.set(ligne, nommant ? ligneDe(nommant) : ligne);
+    if (!lignes.has(ligne)) lignes.set(ligne, { nomme: ligneDe(nommant), cle: cleDuTexte(cle) });
   };
   const litteral = (n) => n && (ts.isArrayLiteralExpression(n) || ts.isObjectLiteralExpression(n));
   const parcourir = (node) => {
@@ -364,37 +372,93 @@ export function entreesNominatives(source, chemin) {
       return;
     }
     if (ts.isArrayLiteralExpression(node)) {
+      const paires = estArgumentDeMap(ts, node);
       for (const element of node.elements) {
         const nommant = noeudQuiNomme(ts, element);
-        if (nommant) poser(element, nommant);
+        if (!nommant) continue;
+        const cleDeLaPaire = paires ? cleDePaire(ts, element) : null;
+        poser(element, nommant, cleDeLaPaire ?? texteDuLitteral(ts, nommant));
       }
       return;
     }
     for (const prop of node.properties) {
       const cle = cleDe(ts, prop);
       if (cle === 'foyer') continue;
-      if (cle !== null && NOMME.test(cle)) { poser(prop, prop.name ?? prop); continue; }
+      if (cle !== null && NOMME.test(cle)) { poser(prop, prop.name ?? prop, cle); continue; }
       if (litteral(prop.initializer)) { parcourir(prop.initializer); continue; }
       const nommant = noeudQuiNomme(ts, prop);
-      if (nommant) poser(prop, nommant);
+      if (nommant) poser(prop, nommant, cle ?? texteDuLitteral(ts, nommant));
     }
   };
   ts.forEachChild(sf, parcourir);
-  return [...lignes].sort((a, b) => a[0] - b[0]).map(([ligne, nomme]) => ({ ligne, nomme }));
+  return [...lignes].sort((a, b) => a[0] - b[0]).map(([ligne, { nomme, cle }]) => ({ ligne, nomme, cle }));
 }
 
-/** Entrées d'une image de fichier, `ligne` → `nomme`, ou `null` quand l'image ne se lit pas (lecteur
- *  absent, fichier supprimé, binaire, dialecte inconnu) : le REPLI de ligne juge alors, et l'entrée
- *  COMPTE. */
-function lignesDEntrees(lire, fichier) {
+/** Le texte d'un littéral nommant (`noeudQuiNomme`) : sa valeur, ou un gabarit sans ses substitutions. */
+function texteDuLitteral(ts, n) {
+  return ts.isTemplateExpression(n) ? texteDeGabarit(ts, n) : n.text;
+}
+
+/** Le tableau est-il l'argument d'un `new Map(…)` — une liste de paires `[clé, valeur]` ? */
+function estArgumentDeMap(ts, tableau) {
+  const appel = tableau.parent;
+  return Boolean(appel && ts.isNewExpression(appel) && ts.isIdentifier(appel.expression)
+    && appel.expression.text === 'Map' && appel.arguments?.[0] === tableau);
+}
+
+/** La clé littérale d'une paire `[clé, valeur]`, ou `null` si l'élément n'en est pas une. */
+function cleDePaire(ts, element) {
+  if (!ts.isArrayLiteralExpression(element) || element.elements.length !== 2) return null;
+  const cle = element.elements[0];
+  return ts.isStringLiteral(cle) || ts.isNoSubstitutionTemplateLiteral(cle) || ts.isNumericLiteral(cle) ? cle.text : null;
+}
+
+/** L'identité d'une entrée lue sur son texte NU : le fichier qu'il nomme (`fichierNommePar`), sinon lui. */
+function cleDuTexte(texte) {
+  const m = FICHIER_NOMME.exec(`"${texte}"`);
+  return m ? m[1].replace(/:[\w.|:-]+$/, '') : texte;
+}
+
+/** Entrées d'une image de fichier (`entreesNominatives`), chacune avec le `texte` de sa ligne
+ *  nommante, ou `null` quand l'image ne se lit pas (lecteur absent, fichier supprimé, binaire,
+ *  dialecte inconnu) : le REPLI de ligne juge alors, et l'entrée COMPTE.
+ *  @returns {{ ligne: number, nomme: number, cle: string, texte: string }[] | null} */
+function entreesDeLImage(lire, fichier) {
   if (typeof lire !== 'function') return null;
   let source;
   try { source = lire(fichier); } catch { return null; }
   if (typeof source !== 'string') return null;
   try {
-    const entrees = entreesNominatives(source, fichier);
-    return entrees && new Map(entrees.map((e) => [e.ligne, e.nomme]));
+    const lignes = source.split('\n');
+    return entreesNominatives(source, fichier)?.map((e) => ({ ...e, texte: (lignes[e.nomme - 1] ?? '').replace(/\r$/, '').trim() })) ?? null;
   } catch { return null; }
+}
+
+/** `ligne` → `nomme` d'une image lue (`entreesDeLImage`), ou `null`. */
+const lignesDEntrees = (entrees) => entrees && new Map(entrees.map((e) => [e.ligne, e.nomme]));
+
+/**
+ * Ce qui NAÎT et ce qui MEURT entre deux images, en ENTRÉES identifiées par leur `cle` (#2223) :
+ * une entrée du post-image ne naît que si le pré-image n'en porte plus aucune de même clé à apparier
+ * — à texte égal d'abord, puis à clé seule. Réordonner, réindenter ou réécrire la valeur d'une
+ * entrée ne fait rien naître.
+ * @param {{ cle: string, texte: string }[]} pre @param {{ cle: string, texte: string }[]} post
+ * @returns {{ nees: { cle: string, texte: string }[], mortes: { cle: string, texte: string }[] }}
+ */
+function ecartDEntrees(pre, post) {
+  /** @type {Map<string, { cle: string, texte: string }[]>} */
+  const restantes = new Map();
+  for (const e of pre) (restantes.get(e.cle) ?? restantes.set(e.cle, []).get(e.cle)).push(e);
+  const aTexteInegal = post.filter((e) => {
+    const memes = restantes.get(e.cle) ?? [];
+    const i = memes.findIndex((m) => m.texte === e.texte);
+    if (i < 0) return true;
+    memes.splice(i, 1);
+    return false;
+  });
+  const nees = aTexteInegal.filter((e) => !(restantes.get(e.cle) ?? []).splice(0, 1).length);
+  const vue = ({ cle, texte }) => ({ cle, texte });
+  return { nees: nees.map(vue), mortes: [...restantes.values()].flat().map(vue) };
 }
 
 /** En-têtes de diff qui ne portent ni contenu ni numérotation. Ceux qui en portent sont lus AVANT :
@@ -428,12 +492,12 @@ function apparierLesDeplacements(parFichier) {
   const partantes = new Map();
   for (const f of parFichier) {
     if (!f.disparu) continue;
-    for (const texte of f.perdues) partantes.set(texte, (partantes.get(texte) ?? 0) + 1);
+    for (const { texte } of f.perdues) partantes.set(texte, (partantes.get(texte) ?? 0) + 1);
   }
   if (partantes.size === 0) return;
   for (const f of parFichier) {
     if (f.disparu) continue;
-    f.retenues = f.retenues.filter((texte) => {
+    f.retenues = f.retenues.filter(({ texte }) => {
       const reste = partantes.get(texte) ?? 0;
       if (reste === 0) return true;
       partantes.set(texte, reste - 1);
@@ -466,11 +530,12 @@ function texteDEntree(touchees, entrees) {
  * Une entrée DÉPLACÉE d'un porteur DISPARU vers un autre porteur ne compte nulle part
  * (`apparierLesDeplacements`, qui porte la borne et sa raison).
  *
- * Les lignes AJOUTÉES se lisent sur le POST-IMAGE (`lirePostImage(chemin)`), les RETIRÉES sur le
- * PRÉ-IMAGE (`lirePreImage(chemin)`) — sans quoi le retrait d'une fixture locale compenserait
- * l'ajout d'une vraie entrée. Une ligne compte quand `entreesNominatives` de l'image correspondante y
- * pose une entrée ; quand le lecteur rend `null`, `estEntreeNominative` juge la ligne seule. Les deux
- * lecteurs sont fournis par l'appelant : la lib reste PURE.
+ * Les entrées se lisent sur le POST-IMAGE (`lirePostImage(chemin)`) et le PRÉ-IMAGE
+ * (`lirePreImage(chemin)`) de chaque porteur touché, et le compte est leur écart (`ecartDEntrees`) :
+ * réordonner ou réécrire la valeur d'une entrée ne fait rien naître (#2223). Quand un lecteur rend
+ * `null`, les lignes du diff jugent : une ligne compte quand `entreesNominatives` de l'image lisible
+ * y pose une entrée, sinon `estEntreeNominative` la juge seule. Les deux lecteurs sont fournis par
+ * l'appelant : la lib reste PURE.
  * @param {string} diffU0
  * @param {{ lirePostImage: (chemin: string) => string | null,
  *           lirePreImage?: (chemin: string) => string | null,
@@ -498,7 +563,7 @@ export function croissanceDesStocks(diffU0, images) {
  * SOUSTRAIENT clé par clé (`bilanSoustrait`, `plageStock.mjs`, #1806). Mêmes paramètres et mêmes
  * levées que `croissanceDesStocks`, qui les lui délègue.
  * @param {string} diffU0 @param {Parameters<typeof croissanceDesStocks>[1]} images
- * @returns {{ fichier: string, retenues: string[], perdues: string[], parCle: Map<string, number> }[]}
+ * @returns {{ fichier: string, retenues: { cle: string, texte: string }[], perdues: { cle: string, texte: string }[], parCle: Map<string, number> }[]}
  */
 export function bilanDesStocks(diffU0, images) {
   if (typeof diffU0 !== 'string') {
@@ -516,10 +581,10 @@ export function bilanDesStocks(diffU0, images) {
   }
   const { lirePostImage, lirePreImage = null, renommages = new Map() } = images;
   /** @type {Map<string, { ajoutees: { texte: string, ligne: number }[],
-   *    retirees: { texte: string, ligne: number }[], disparu: boolean }>} */
+   *    retirees: { texte: string, ligne: number }[], disparu: boolean, ne: boolean }>} */
   const parFichier = new Map();
   const suivi = (chemin) => {
-    if (!parFichier.has(chemin)) parFichier.set(chemin, { ajoutees: [], retirees: [], disparu: false });
+    if (!parFichier.has(chemin)) parFichier.set(chemin, { ajoutees: [], retirees: [], disparu: false, ne: false });
     return parFichier.get(chemin);
   };
   const porteurOuNull = (brut) => {
@@ -531,6 +596,7 @@ export function bilanDesStocks(diffU0, images) {
   // qui rend visibles les entrées que perd un porteur supprimé, et fait d'un renommage un
   // DÉPLACEMENT plutôt qu'un porteur neuf de N entrées (#1720).
   let ancien = null;
+  let preAbsent = false;
   let nouveau = null;
   let numAncien = 0;
   let numNouveau = 0;
@@ -548,12 +614,14 @@ export function bilanDesStocks(diffU0, images) {
     const entetePre = dansHunk ? null : /^--- (?:a\/)?(.+)$/.exec(ligne);
     if (entetePre) {
       ancien = porteurOuNull(entetePre[1]);
+      preAbsent = entetePre[1].trim() === '/dev/null';
       continue;
     }
     const entete = dansHunk ? null : /^\+\+\+ (?:b\/)?(.+)$/.exec(ligne);
     if (entete) {
       nouveau = porteurOuNull(entete[1]);
       if (ancien && entete[1].trim() === '/dev/null') suivi(ancien).disparu = true;
+      if (nouveau && preAbsent) suivi(nouveau).ne = true;
       numAncien = 0;
       numNouveau = 0;
       continue;
@@ -583,15 +651,22 @@ export function bilanDesStocks(diffU0, images) {
     else compte.retirees.push(touchee);
   }
   const lus = [...parFichier]
-    .map(([fichier, { ajoutees, retirees, disparu }]) => {
-      const surPost = lignesDEntrees(lirePostImage, fichier);
-      const surPre = lignesDEntrees(lirePreImage, fichier);
+    .map(([fichier, { ajoutees, retirees, disparu, ne }]) => {
+      const post = disparu ? [] : entreesDeLImage(lirePostImage, fichier);
+      const pre = ne ? [] : entreesDeLImage(lirePreImage, fichier);
+      if (post && pre) {
+        const { nees, mortes } = ecartDEntrees(pre, post);
+        return { fichier, disparu, retenues: nees, perdues: mortes };
+      }
+      const surPost = lignesDEntrees(post);
+      const surPre = lignesDEntrees(pre);
       const estEntree = (entrees) => (t) => (entrees ? entrees.has(t.ligne) : estEntreeNominative(t.texte));
+      const identifiee = (texte) => ({ cle: fichierNommePar(texte), texte });
       return {
         fichier,
         disparu,
-        retenues: ajoutees.filter(estEntree(surPost)).map(texteDEntree(ajoutees, surPost)),
-        perdues: retirees.filter(estEntree(surPre)).map(texteDEntree(retirees, surPre)),
+        retenues: ajoutees.filter(estEntree(surPost)).map(texteDEntree(ajoutees, surPost)).map(identifiee),
+        perdues: retirees.filter(estEntree(surPre)).map(texteDEntree(retirees, surPre)).map(identifiee),
       };
     })
     .sort((a, b) => parUnitesDeCode(a.fichier, b.fichier));
@@ -599,12 +674,8 @@ export function bilanDesStocks(diffU0, images) {
   return lus.map(({ fichier, retenues, perdues }) => {
     /** @type {Map<string, number>} clé → croissance nette */
     const parCle = new Map();
-    for (const t of retenues) {
-      const k = fichierNommePar(t);
-      parCle.set(k, (parCle.get(k) ?? 0) + 1);
-    }
-    for (const t of perdues) {
-      const k = fichierNommePar(t);
+    for (const { cle: k } of retenues) parCle.set(k, (parCle.get(k) ?? 0) + 1);
+    for (const { cle: k } of perdues) {
       const reportee = renommages.get(k) ?? k;
       parCle.set(reportee, (parCle.get(reportee) ?? 0) - 1);
     }
@@ -619,13 +690,13 @@ export const croissanceDesCles = (parCle) => [...parCle.values()].reduce((s, n) 
 function croissancesDuBilan(bilan) {
   return bilan
     .map(({ fichier, retenues, perdues, parCle }) => {
-      const croit = (t) => (parCle.get(fichierNommePar(t)) ?? 0) > 0;
+      const croit = (t) => (parCle.get(t.cle) ?? 0) > 0;
       return {
         fichier,
         ajoutees: retenues.length,
         retirees: perdues.length,
         net: croissanceDesCles(parCle),
-        exemples: retenues.filter(croit).slice(0, 3),
+        exemples: retenues.filter(croit).slice(0, 3).map((t) => t.texte),
       };
     })
     .filter((c) => c.net > 0);
