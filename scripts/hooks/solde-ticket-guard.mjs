@@ -142,10 +142,10 @@ import {
 import { hunksDe } from '../guards/lib/hunks.mjs'
 import { ancetreExistant, canoniser } from '../docs/lib/chemin-mesure.mjs'
 import { estFichierVitest } from '../guards/lib/fichierVitest.mjs'
-import { motifRattachement, numerosCites, numerosDeLaChaine, numerosFermes } from '../guards/lib/fermetures.mjs'
+import { motifRattachement, numerosCites, numerosDeLaChaine, numerosFermes, numerosNusEnumeres } from '../guards/lib/fermetures.mjs'
 import {
   DOSSIERS_DE_SUBSTANCE, estCheminDeSubstance, fenetreDeRevue, memeSha, mesureDuPalier,
-  nomDArchiveDeRevue, problemesDeRevue, revuesNeuves,
+  nomDArchiveDeRevue, nomDeRevue, problemesDeRevue, revuesNeuves,
 } from '../guards/lib/revuePalier.mjs'
 import { coupeAuMot } from '../../src/lib/coupeAuMot.mjs'
 import { OUTILS_SHELL, cheminVise, commandeDe, decisionCumulee, verdictDe } from '../guards/lib/contratGarde.mjs'
@@ -974,6 +974,14 @@ function optionLongueDuCommit(graphie) {
  *  cité par le solde (mesuré 2026-09-04 sur un vrai commit de fermeture depuis un worktree). */
 const OPERATEUR_SHELL_RE = /^(?:\d*(?:>>?|>&)|&(?![&>])|&>>?|<<?|\|\|?|&&|;)/
 
+/** Index du premier jeton de `segment` (textes), à partir de `depart`, qui est une redirection ou un
+ *  opérateur de shell (`OPERATEUR_SHELL_RE`) ; `segment.length` sinon. `segment.slice(0, fin)` est ce
+ *  que la commande du segment reçoit en arguments. */
+export function finAvantOperateur(segment, depart = 0) {
+  const k = segment.findIndex((t, i) => i >= depart && OPERATEUR_SHELL_RE.test(t))
+  return k === -1 ? segment.length : k
+}
+
 /** Jeton de pathspec NON RÉSOLU, par PROVENANCE quotée (`tokenizeCommand`) : sa valeur n'est connue
  *  qu'après le shell ou git, et la garde ne réimplémente ni l'un ni l'autre.
  *  - GIT, quelle que soit la quote : joker de pathspec (`*`, `?`, `[`) et magie en tête (`:(glob)`,
@@ -1024,9 +1032,9 @@ function lireCommit({ jetons, enrobeurs, sub, embarque }) {
     if (OPTIONS_PATHSPEC_HORS_TEXTE.has(option.nom)) nonResolus = true
   }
   let separe = false
-  for (let k = sub + 1; k < segment.length; k++) {
+  const fin = finAvantOperateur(segment, sub + 1)
+  for (let k = sub + 1; k < fin; k++) {
     const t = segment[k]
-    if (OPERATEUR_SHELL_RE.test(t)) break
     if (separe) {
       chemins.push(t)
       if (jetonNonResolu(jetons[k])) nonResolus = true
@@ -1111,6 +1119,13 @@ const texteProfond = memoParCommande((command) => [command, ...segmentsLus(comma
 export function extractClosedIssues(command) {
   if (!command || !isGitCommitCommand(command)) return []
   return numerosFermes(texteProfond(command)).map(Number).sort((a, b) => a - b)
+}
+
+/** Numéros qu'une clause de fermeture de la commande ÉNUMÈRE sans leur verbe (`numerosNusEnumeres`),
+ *  dédupliqués/triés. `[]` hors `git commit`. */
+export function extractFermeturesNues(command) {
+  if (!command || !isGitCommitCommand(command)) return []
+  return numerosNusEnumeres(texteProfond(command)).map(Number).sort((a, b) => a - b)
 }
 
 const VERIFIE_RE = /VERIFIE\s*:\s*(.+)/i
@@ -1487,9 +1502,9 @@ export function validateSolde(content, today, {
 }
 
 /**
- * Valide le CONTENU d'une revue adversariale de PALIER (cumul de fermetures). La revue doit être
- * NOMMABLE : sa date et la base de sa fenêtre forment le nom du fichier
- * (`.claude/soldes/revue-palier-<date>-<base>.md`), et `verdictDeNom` vérifie qu'ils se répondent.
+ * Valide le CONTENU d'une revue adversariale de PALIER (cumul de fermetures) : nommable
+ * (`problemesDeRevue`, scripts/guards/lib/revuePalier.mjs), ligne `verdict:`, synthèse
+ * ≥ `MIN_REVUE_PALIER_LEN`, date du jour. Le NOM du fichier se juge dans `problemesDeRevueNeuve`.
  */
 export function validateRevuePalier(content, today) {
   if (!content) return { ok: false, problems: ['fichier absent'] }
@@ -1584,10 +1599,22 @@ export function evaluate({
       return {
         reason:
           `⚠ Revue de palier NON CONFORME : ${revue.chemin} — ${problemes.join(' ; ')}. Une revue entre `
-          + "dans l'histoire sous le nom de ce qu'elle juge (`revue-palier-<date>-<base>.md`), avec sa "
+          + `dans l'histoire sous le nom de ce qu'elle juge (\`${nomDeRevue('<date>', '<base>', '<tête>')}\`), avec sa `
           + `ligne "verdict: CONFIRMÉ|PARTIEL|RÉFUTÉ", ≥${MIN_REVUE_PALIER_LEN} caractères de synthèse sur `
           + 'le CUMUL, sa date du jour en 1re ligne et sa fenêtre `<base>..<tête>`.',
       }
+    }
+  }
+
+  const nus = extractFermeturesNues(command)
+  if (nus.length > 0) {
+    const cites = nus.map((n) => `#${n}`).join(', ')
+    return {
+      reason:
+        `⛔ ${cites} suit une clause de fermeture sans son propre mot-clef : seul le premier \`#N\` d'une `
+        + 'clause se ferme (`numerosFermes`, scripts/guards/lib/fermetures.mjs). '
+        + `Geste : écrire \`corrige ${nus.map((n) => `#${n}`).join('`, `corrige ')}\` `
+        + `pour chacun, ou \`refs ${nus.map((n) => `#${n}`).join(' ')}\` s'il n'est pas fermé.`,
     }
   }
 
@@ -1614,9 +1641,9 @@ export function evaluate({
           ? `${enRade.join(', ')} est écrite et stagée mais NON EMPORTÉE par ce commit : une commande `
             + `par pathspec n'emporte QUE les chemins nommés — y AJOUTER ${enRade.join(', ')}. `
           : '')
-        + `Sinon, l'écrire et la STAGER sous .claude/soldes/revue-palier-${today}-${tete}.md `
+        + `Sinon, l'écrire et la STAGER sous .claude/soldes/${nomDeRevue(today, tete, '<tête>')} `
         + `(ligne "verdict: CONFIRMÉ|PARTIEL|RÉFUTÉ", ≥${MIN_REVUE_PALIER_LEN} caractères de synthèse sur `
-        + `le CUMUL, date du jour en 1re ligne, fenêtre \`${tete}..<tête>\` — la date et la base `
+        + `le CUMUL, date du jour en 1re ligne, fenêtre \`${tete}..<tête>\` — la date et les DEUX bornes `
         + 'NOMMENT le fichier).',
     }
   }

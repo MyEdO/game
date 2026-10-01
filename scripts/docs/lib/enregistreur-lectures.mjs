@@ -12,15 +12,15 @@
 // Périmètre : chemins sous `WFRP_LECTURES_RACINE` qui entrent dans la mesure (`dansLaMesure`, sur
 // l'ensemble `ignoresGit` calculé une fois par l'appelant et passé en JSON par `WFRP_LECTURES_IGNORES`,
 // #1769), hors les cibles écrites par le générateur (`WFRP_LECTURES_CIBLE`, séparées par des virgules — un
-// générateur relit son propre .md en mode `--check`). `statSync` reste HORS empreinte : la sonde
+// générateur relit son propre .md en mode `--check`). `statSync` reste HORS mesure : la sonde
 // `V2-analyse.mjs` en a compté 255 sur 260 pointant des `*.test.*` et des snapshots, jamais lus.
 // Un `readdirSync` enregistre le DOSSIER et son listing trié, restreint à la mesure : un fichier ajouté au dossier
 // change ce que le générateur AURAIT lu, sans qu'aucun contenu ne bouge.
 //
 // Les ÉCRITURES sont mesurées elles aussi : un fichier écrit par le générateur n'est pas une de ses
-// sources (le pied du doc ne peut pas dépendre de lui-même).
+// sources (un doc ne peut pas dépendre de lui-même).
 // Sortie : UN fichier par PID (`<WFRP_LECTURES_SORTIE>.<pid>.json`), écrit à la sortie du processus ;
-// l'appelant fusionne le dossier (`fusionnerLectures`, `empreinte-sources.mjs`).
+// l'appelant fusionne le dossier (`fusionnerLectures`, `ecriture-derives.mjs`).
 import fs from 'node:fs'
 import path from 'node:path'
 import { register, syncBuiltinESMExports } from 'node:module'

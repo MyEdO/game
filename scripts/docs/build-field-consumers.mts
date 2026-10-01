@@ -1,7 +1,7 @@
 /**
  * Rapport des CONSOMMATEURS PAR CHAMP — GÉNÉRÉ. Sortie : docs/consommateurs-de-champs.md.
  * Re-run : `npx tsx scripts/docs/build-field-consumers.mts` (`npm run docs:field-consumers`).
- * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/empreinte-sources.mjs), rejoué par `build-all.mjs`.
+ * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`.
  *
  * Objet (#903) — la mesure INVERSE de `build-entity-orphans.mjs` : celui-ci répond « qui cite cet
  * ID d'ENTITÉ de catalogue ? », celui-ci répond « qui LIT ce CHAMP d'un TYPE de donnée structuré ? ».
@@ -83,7 +83,7 @@
  */
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { ecrireOuVerifier } from './lib/empreinte-sources.mjs'
+import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
 import { listProdFiles, scanFieldReads, fieldOwnership, groupByField } from '../guards/lib/fieldConsumers.mjs'
 import { TARGETS, fieldsOf } from '../guards/lib/fieldConsumerTargets.mjs'
 
@@ -98,7 +98,7 @@ type Hit = { file: string; line: number; symbole: string }
 
 /**
  * Le rapport, EN MÉMOIRE : le `.md` à écrire + les sites mesurés par type et par champ. UN SEUL
- * balayage du corpus nourrit les deux consommateurs — la fraîcheur du `.md` et le cas fondateur de
+ * balayage du corpus nourrit les deux consommateurs — le rendu du `.md` et le cas fondateur de
  * `src/data/field-consumers.test.ts`, qui appelle cette fonction EN PROCESSUS (le CLI ci-dessous
  * n'est qu'un autre appelant). `files` est INJECTABLE — le corpus par défaut est `listProdFiles`, et
  * la garde le rejoue en ordre INVERSÉ pour prouver que le `.md` ne dépend pas de l'ordre du système
@@ -241,8 +241,7 @@ export function buildFieldConsumersMd(files: string[] = listProdFiles(SRC_DIR)):
   // le nombre ou le nom des lecteurs change. La clause de RENDU suit la mesure elle-même : un lecteur
   // dans `src/data/index.ts` signalerait une SECONDE définition du libellé affiché (cf. `src/data/field-consumers.test.ts`).
   const specDansLeRendu = trappingRefSpecSites.some((s) => s.startsWith('src/data/index.ts'))
-  // DEUX paragraphes, et la coupure est STRUCTURELLE : la porte de commit `check-docs-vs-head.mjs`
-  // exige que chaque `fichier:ligne` cité porte, à ±2 lignes du site AU COMMIT, l'un des identifiants
+  // DEUX paragraphes : un `fichier:ligne` cité porte, à ±2 lignes du site, l'un des identifiants
   // backtiqués de la MÊME ligne du doc. La ligne des SITES ne backtique donc que `spec` (présent aux
   // deux sites) ; les identifiants du RENDU (`trappingRefLabel`, `refLabel`), qui vivent dans
   // `src/data/index.ts`, restent sur une ligne SANS `fichier:ligne`.
@@ -273,7 +272,7 @@ if (import.meta.main) {
     path: OUT,
     check: process.argv.includes('--check'),
     staleMsg: `docs:field-consumers — ${OUT} est PÉRIMÉ (les schémas/le code source ont changé).`,
-    rerunMsg: '  → relancer `npm run docs:field-consumers` et committer le résultat.',
+    rerunMsg: '  → relancer `npm run docs:field-consumers` (dérivé jamais commité, #2203).',
     okMsg: `docs:field-consumers — OK (${OUT} à jour, ${totalUnread}/${totalFields} champs « 0 lecteur » PROPRES)`,
     writeMsg: `${OUT} — ${totalUnread}/${totalFields} champs « 0 lecteur » PROPRES sur ${TARGETS.length} types.`,
   })

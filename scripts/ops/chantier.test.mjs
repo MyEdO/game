@@ -142,10 +142,11 @@ describe('equipementsDesPrerequis', () => {
     'd:gate': { ecrit: [], lit: ['src/'] },
   }
 
-  test('sur la table RÉELLE : la racine, puis le seul prérequis déclaré (server/)', () => {
+  test('sur la table RÉELLE : la racine, puis le seul prérequis déclaré (server/), puis les docs dérivés', () => {
     assert.deepEqual(EQUIPEMENTS, [
       { args: ['ci', '--no-audit', '--no-fund'], ou: '', relance: 'npm ci' },
       { args: ['--prefix', 'server', 'ci', '--no-audit', '--no-fund'], ou: ' dans server/', relance: 'npm --prefix server ci' },
+      { args: ['run', 'docs:build'], ou: ' (docs dérivés)', relance: 'npm run docs:build' },
     ])
   })
 
@@ -172,7 +173,7 @@ describe('equipementsDesPrerequis', () => {
 // (`prerequis` d'`ECRIT_LU`, scripts/gates/toutes.mjs) : un chantier équipé de la seule racine rend
 // cette gate ROUGE après la série entière (mesuré le 2026-09-14, 3ᵉ train réel). L'ordre est le
 // sujet : `npm --prefix server ci` ne peut pas précéder le `npm ci` de la racine.
-test('équipement : npm ci à la RACINE puis dans server/, dans cet ordre, tous deux DANS le worktree', () => {
+test('équipement : npm ci à la RACINE puis dans server/, puis docs:build, dans cet ordre, tous DANS le worktree', () => {
   const { racine, jeter } = depotAvecOrigin()
   try {
     const appels = []
@@ -182,9 +183,20 @@ test('équipement : npm ci à la RACINE puis dans server/, dans cet ordre, tous 
     assert.deepEqual(appels.map((a) => a.args), [
       ['ci', '--no-audit', '--no-fund'],
       ['--prefix', 'server', 'ci', '--no-audit', '--no-fund'],
+      ['run', 'docs:build'],
     ])
     assert.deepEqual([...new Set(appels.map((a) => a.cwd))], [cibleDe(racine, '47')],
-      'les deux se jouent DANS le worktree neuf (le sous-projet par --prefix, jamais par un cwd)')
+      'tous se jouent DANS le worktree neuf (le sous-projet par --prefix, jamais par un cwd)')
+  } finally { jeter() }
+})
+
+test('docs:build rouge : les npm ci restent faits, et le refus NOMME le geste qui le rejoue', () => {
+  const { racine, jeter } = depotAvecOrigin()
+  try {
+    const vu = creerChantier({ racine, nom: '49', npm: (cmd, args) => ({ status: args.includes('docs:build') ? 1 : 0 }) })
+    assert.equal(vu.ok, false)
+    assert.match(vu.refus, /worktree posé, npm run docs:build rouge \(docs dérivés\) — relancer `npm run docs:build`/)
+    assert.equal(existsSync(cibleDe(racine, '49')), true, 'un docs:build rouge ne défait pas le worktree')
   } finally { jeter() }
 })
 

@@ -20,6 +20,7 @@ import { join, posix, resolve, win32 } from 'node:path'
 import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import {
   segmentsProfonds,
+  finAvantOperateur,
   pipelinesProfonds,
   isGitCommitCommand,
   extractClosedIssues,
@@ -338,7 +339,7 @@ test('refus de PALIER : le message NOMME la MESURE (compte, tête, archive) — 
   assert.match(d.reason, /11 commits de substance depuis 2c11fdd9a/)
   assert.match(d.reason, /revue-palier-82e95be10\.md/)
   assert.match(d.reason, /2c11fdd9a\.\.<tête>/, 'le refus doit dire la fenêtre attendue de la revue à écrire')
-  assert.match(d.reason, /revue-palier-2026-09-02-2c11fdd9a\.md/, 'et le NOM du fichier à écrire')
+  assert.match(d.reason, /revue-palier-2026-09-02-2c11fdd9a-<tête>\.md/, 'et le NOM du fichier à écrire, aux DEUX bornes')
 })
 
 test('refus de PALIER : un palier INMESURABLE refuse aussi — jamais un silence', () => {
@@ -401,4 +402,13 @@ test('segmentsProfonds EST l’aplati de pipelinesProfonds (une seule traversée
   ]) {
     assert.deepEqual(segmentsProfonds(cmd), pipelinesProfonds(cmd).flat(), cmd)
   }
+})
+
+test('finAvantOperateur : les arguments d\'un segment s\'arrêtent à sa première redirection (#2233)', () => {
+  assert.equal(finAvantOperateur(['node', 's.mjs', '2189', '2>&1']), 3)
+  assert.equal(finAvantOperateur(['node', 's.mjs', '2189', '>', 'f.txt']), 3)
+  assert.equal(finAvantOperateur(['node', 's.mjs', '2189', '2>/dev/null']), 3)
+  assert.equal(finAvantOperateur(['node', 's.mjs', '&>', 'f.txt']), 2)
+  assert.equal(finAvantOperateur(['node', 's.mjs', '2189']), 3)
+  assert.equal(finAvantOperateur(['>', 'git', 'commit', '>', 'f'], 1), 3, 'à partir de `depart`')
 })

@@ -14,7 +14,7 @@
  *  - la population des CATALOGUES de matériaux.
  * La part ÉDITORIALE (contrat de perf, doctrine, « où ajouter… ») vit ICI, en dur.
  *
- * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/empreinte-sources.mjs), rejoué par `build-all.mjs`.
+ * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`.
  *
  *   node scripts/docs/build-rendu-pipeline.mjs
  */
@@ -22,7 +22,7 @@ import { readFileSync, existsSync, statSync } from 'node:fs'
 import { listerDossier, listerArbre } from '../guards/lib/lister.mjs'
 import ts from 'typescript'
 import { loadSource, firstSentence, jsdocBody } from './lib/jsdocUnion.mjs'
-import { ecrireOuVerifier } from './lib/empreinte-sources.mjs'
+import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
 import { fileExports } from './lib/engineExports.mjs'
 
 /** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire. */
@@ -414,7 +414,7 @@ ${table(CATALOGUES, ['Catalogue', 'Entrées'], (c) => `| \`${c.p}\` | ${c.entree
     path: 'docs/rendu-pipeline.md',
     staleMsg:
       'docs:rendu-pipeline — docs/rendu-pipeline.md est PÉRIMÉ (diverge de src/gameIso/, de src/data/ambiance.json, de la garde anti-couleur, ou du script).',
-    rerunMsg: '  → relancer `npm run docs:rendu-pipeline` et committer le résultat.',
+    rerunMsg: '  → relancer `npm run docs:rendu-pipeline` (dérivé jamais commité, #2203).',
     okMsg: 'docs:rendu-pipeline — OK (docs/rendu-pipeline.md à jour)',
     writeMsg: `docs/rendu-pipeline.md — ${SCENE_EL.membres.length} membres de SceneEl, ${BUILDERS_MESURES.length} builders, ${SOUS_DOSSIERS.length} sous-dossiers, ${CATALOGUES.length} catalogues.`,
   }

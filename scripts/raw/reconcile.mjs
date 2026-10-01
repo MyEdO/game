@@ -45,7 +45,7 @@ import {
   loadAbbrMap, folioCitationsFromJson, chargerDette, registresDeFiches, parseFiche,
   stemDeFiche, couvertureDe, stemDe, MANIFEST_PATH,
 } from './build-implemente.mjs'
-import { ecrireOuVerifier } from '../docs/lib/empreinte-sources.mjs'
+import { ecrireOuVerifier } from '../docs/lib/ecriture-derives.mjs'
 import { pagesDeLAtlasRendues } from './build-catalogs.mjs'
 
 export const TOL = 20 // tolérance en lignes : la synthèse Atlas pine un ancrage proche, pas la ligne exacte
@@ -577,7 +577,7 @@ function main() {
     path: RAPPORT,
     check: process.argv.includes('--check'),
     staleMsg: `raw:reconcile — ${RAPPORT} est PÉRIMÉ (code ou Atlas changé).`,
-    rerunMsg: '  → relancer `npm run raw:reconcile` et committer le résultat.',
+    rerunMsg: '  → relancer `npm run raw:reconcile` (dérivé jamais commité, #2203).',
   })
 }
 

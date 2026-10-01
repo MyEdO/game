@@ -11,13 +11,13 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { execFileSync, spawn } from 'node:child_process'
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { basename, dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { blobsDe, comparer, empreinteDe, fichiersDe, rapportDEcart } from './empreinteRejeu.mjs'
 import { PERIMETRE, mesurerParGit } from '../replay.mjs'
-import { RACINE_DES_EXPORTS, effacerExport, exportsDuProcessus, rejeuSurExport } from '../replay-head.mjs'
+import { RACINE_DES_EXPORTS, effacerExport, exportsDuProcessus, lierDependances, rejeuSurExport } from '../replay-head.mjs'
 import { instanceDeDepot } from '../../guards/lib/depotGabarit.mjs'
 import { efface } from './joue.mjs'
 
@@ -360,4 +360,21 @@ test('l’effacement d’un export REFUSE tout voisin de `…/wr` — préfixe d
   mkdirSync(vrai, { recursive: true })
   effacerExport(vrai)
   assert.equal(existsSync(vrai), false)
+})
+
+test('effacerExport efface le LIEN des dépendances de l’export, jamais leur cible', () => {
+  const dependances = mkdtempSync(join(tmpdir(), 'dependances-'))
+  writeFileSync(join(dependances, 'temoin.txt'), 'dependance')
+  const dossier = join(RACINE_DES_EXPORTS, `lien-${process.pid}`)
+  mkdirSync(dossier, { recursive: true })
+  try {
+    lierDependances(dossier, dependances)
+    assert.equal(readFileSync(join(dossier, 'node_modules', 'temoin.txt'), 'utf8'), 'dependance', 'témoin : le lien mène aux dépendances')
+    effacerExport(dossier)
+    assert.equal(existsSync(dossier), false, 'l’export est effacé')
+    assert.equal(readFileSync(join(dependances, 'temoin.txt'), 'utf8'), 'dependance', 'les dépendances liées survivent')
+  } finally {
+    effacerExport(dossier)
+    rmSync(dependances, { recursive: true, force: true })
+  }
 })

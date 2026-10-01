@@ -13,7 +13,7 @@ import { join } from 'node:path'
 import { listerDossier } from '../guards/lib/lister.mjs'
 import { BOOKS, chapterFile as chapterFileLib, coeursDuRegistre, livresDeCatalogue, pagesDeLAtlas, readText } from './_lib.mjs'
 import { titreDuFichier } from '../../src/data/source/decoupe.ts'
-import { ecrireOuVerifier } from '../docs/lib/empreinte-sources.mjs'
+import { ecrireOuVerifier } from '../docs/lib/ecriture-derives.mjs'
 
 export const RAWDIR = 'docs/raw'
 
@@ -124,7 +124,7 @@ function main() {
       path,
       check,
       staleMsg: `build-catalogs — ${path} est PÉRIMÉ (chapitre source ou registre des catalogues changé).`,
-      rerunMsg: '  → relancer `npm run raw:catalogs` et committer le résultat.',
+      rerunMsg: '  → relancer `npm run raw:catalogs` (dérivé jamais commité, #2203).',
     })
   console.log(catalogues.map((c) => c.log).join('\n'))
 }

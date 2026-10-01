@@ -1,6 +1,6 @@
 // Rapport des ENTITÉS DE DONNÉES sans consommateur — GÉNÉRÉ. Sortie : docs/orphelines-donnees.md.
 // Re-run : node scripts/docs/build-entity-orphans.mjs (npm run docs:orphelines).
-// Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/empreinte-sources.mjs), rejoué par `build-all.mjs`.
+// Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`.
 // Corpus/détection PARTAGÉS avec la garde cliquet
 // `src/data/entity-orphans.test.ts` : scripts/guards/lib/entityConsumers.mjs.
 //
@@ -95,7 +95,7 @@
 // peut pas remplacer une recherche `ctx_search`/AST ciblée sur un champ précis.
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { ecrireOuVerifier } from './lib/empreinte-sources.mjs'
+import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
 import {
   CATEGORY_FILES, EXCLUDED_CATEGORY_FILES, loadCategoryIds, buildConsumerCorpus, isConsumed,
   predicatDeConsommation,
@@ -182,7 +182,7 @@ function rendu() {
     out,
     path: OUT,
     staleMsg: `docs:orphelines — ${OUT} est PÉRIMÉ (les catalogues source ont changé).`,
-    rerunMsg: '  → relancer `npm run docs:orphelines` et committer le résultat.',
+    rerunMsg: '  → relancer `npm run docs:orphelines` (dérivé jamais commité, #2203).',
     okMsg: `docs:orphelines — OK (${OUT} à jour, ${totalOrphans}/${totalEntities} orphelines mesurées)`,
     writeMsg: `${OUT} — ${totalOrphans}/${totalEntities} orphelines mesurées sur ${Object.keys(ids).length} catalogues.`,
   }

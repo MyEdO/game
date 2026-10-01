@@ -12,7 +12,7 @@ Un **jeu de rôle vidéoludique 100 % web, en français**, type *Neverwinter Nig
 (tactique tour par tour, vue isométrique), basé sur **Warhammer Fantasy Roleplay 4e** : 4 aventuriers
 à travers la campagne **L'Ennemi Intérieur**.
 
-Ce dossier EST un vrai projet logiciel (`cgauche/game`) : commits + push attendus, tronc `main`
+Ce dossier EST un vrai projet logiciel (`MyEdO/game`) : commits + push attendus, tronc `main`
 (trunk-based). Le `Foundry/AGENTS.md` parent ne s'applique PAS ici.
 
 Mémoire committée `.claude/memory/` (index `MEMORY.md` + fiches) : injectée en session locale, à LIRE
@@ -20,8 +20,8 @@ en cloud ; se committe comme du code, jamais de git destructif dessus.
 
 ## Table de routage — lire le bon doc AU MOMENT du déclencheur
 
-Un `docs/x.md` GÉNÉRÉ (jamais édité à la main) se régénère par `npm run docs:x` ; quand le nom du
-script diffère du nom du doc, il est entre parenthèses.
+Un `docs/x.md` GÉNÉRÉ (jamais édité, ni commité) se produit par `npm run docs:x` ou `docs:build` ; un
+script au nom différent du doc est entre parenthèses.
 
 | Déclencheur | Lire |
 |---|---|

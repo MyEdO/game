@@ -3,12 +3,12 @@
 // d'adoption primitive×système est GÉNÉRÉE du graphe d'imports réel (closure transitive des
 // modules porteurs déclarés par système). Sortie : docs/systemes.md.
 // Re-run : node scripts/docs/build-systemes.mjs (npm run docs:systemes).
-// Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/empreinte-sources.mjs), rejoué par `build-all.mjs`.
+// Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`.
 import { readFileSync, existsSync, statSync } from 'node:fs'
 import { listerDossier } from '../guards/lib/lister.mjs'
 import { resolve } from 'node:path'
 import { closureOf } from '../guards/lib/importGraph.mjs'
-import { ecrireOuVerifier } from './lib/empreinte-sources.mjs'
+import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
 
 /** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire. */
 function rendu() {
@@ -110,7 +110,7 @@ function rendu() {
     out,
     path: 'docs/systemes.md',
     staleMsg: "docs:systemes — docs/systemes.md est PÉRIMÉ (diverge du graphe d'imports réel).",
-    rerunMsg: '  → relancer `npm run docs:systemes` et committer le résultat.',
+    rerunMsg: '  → relancer `npm run docs:systemes` (dérivé jamais commité, #2203).',
     okMsg: 'docs:systemes — OK (docs/systemes.md à jour)',
     writeMsg: `docs/systemes.md — ${SYSTEMES.length} systèmes, ${PRIMITIVES.length} primitives, ${orphanPrimitives.length} primitive(s) orpheline(s), ${uncovered.length} module(s) non rattaché(s).`,
   }

@@ -35,7 +35,7 @@ import { pagesDeLAtlasRendues } from './build-catalogs.mjs'
 import { graphieDuFichier } from '../../src/data/source/decoupe.ts'
 import { ecartDuVolet } from '../guards/lib/stock.mjs'
 import { SOUS_LOT, lireEntreesDeSite } from '../guards/lib/stockDeSites.mjs'
-import { ecrireOuVerifier } from '../docs/lib/empreinte-sources.mjs'
+import { ecrireOuVerifier } from '../docs/lib/ecriture-derives.mjs'
 import { carteDuFichier, destinEnTexte } from './lib/carte-lignes.mjs'
 import { coupeAuMot } from '../../src/lib/coupeAuMot.mjs'
 
@@ -417,7 +417,7 @@ function main() {
     path: RAPPORT,
     check: CHECK,
     staleMsg: `raw:reanchor — ${RAPPORT} est PÉRIMÉ (fiche de l'Atlas ou Source changée).`,
-    rerunMsg: '  → relancer `npm run raw:reanchor` et committer le résultat.',
+    rerunMsg: '  → relancer `npm run raw:reanchor` (dérivé jamais commité, #2203).',
   })
 }
 

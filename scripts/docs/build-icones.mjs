@@ -10,13 +10,13 @@
  * aucun manifeste d'iconographie n'existe, et la charte de dessin est DÉJÀ écrite en tête de
  * `src/ui/icons/defs/action.ts` : elle se cite depuis là, elle ne se recopie pas.
  *
- * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/empreinte-sources.mjs), rejoué par `build-all.mjs`.
+ * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`.
  *
  *   node scripts/docs/build-icones.mjs
  */
 import { readFileSync, existsSync } from 'node:fs'
 import { listerDossier } from '../guards/lib/lister.mjs'
-import { ecrireOuVerifier } from './lib/empreinte-sources.mjs'
+import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
 import { ALLOWED_CHARS } from '../guards/lib/emojiAffordance.mjs'
 
 /** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire. */
@@ -333,7 +333,7 @@ Réécrit \`${CHAMPS_ENTREE.out}\` (import explicite de chaque fichier de \`${CH
 union de littéraux \`${UNION}\`, dérivée des champs \`id: '…'\` — script générique
 \`scripts/gen-registry.mjs\`, entrée \`${CHAMPS_ENTREE.arrayName}\`). Auto en dev (plugin Vite) et
 câblé dans \`npm run build\` — mais lancer la commande à la main après un ajout pour vérifier le
-compteur de fichiers (\`${CHAMPS_ENTREE.arrayName} ← N fichiers\`) et committer le fichier généré à jour.
+compteur de fichiers (\`${CHAMPS_ENTREE.arrayName} ← N fichiers\`) ; le fichier généré ne se committe pas (#2203).
 
 Le nouvel id devient un littéral du type fermé \`${ALIAS_ID}\` (\`src/ui/icons/types.ts\`) — un id
 inventé côté TS ne compile pas.
@@ -421,7 +421,7 @@ emoji, même « juste pour l'instant ».
     path: 'docs/ajouter-une-icone.md',
     staleMsg:
       'docs:icones — docs/ajouter-une-icone.md est PÉRIMÉ (diverge du registre d’icônes, de Icon.tsx, des gardes ou du script).',
-    rerunMsg: '  → relancer `npm run docs:icones` et committer le résultat.',
+    rerunMsg: '  → relancer `npm run docs:icones` (dérivé jamais commité, #2203).',
     okMsg: 'docs:icones — OK (docs/ajouter-une-icone.md à jour)',
     writeMsg: `docs/ajouter-une-icone.md — ${FAMILLES.length} familles, ${IDS.length} icônes, ${DATA_ICONES.length} fichiers de données porteurs.`,
   }

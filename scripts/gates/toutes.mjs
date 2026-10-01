@@ -11,9 +11,10 @@
 // repayer les vingt autres.
 //
 // TROIS PHASES, et l'ordre est la garantie :
-//   1. `npm run gen -- --check` — `build` et la suite appellent `genAll()` depuis deux lanes : un
-//      registre périmé se dit ici, sans rien écrire, et un registre à jour ne se réécrit jamais.
-//   2. les LANES, qui ne contiennent que des LECTEURS (aucune gate de ci.yml n'écrit dans l'arbre).
+//   1. `npm run gen` — `build`, la suite et `docs:build` produisent les cibles de CODE depuis plusieurs
+//      lanes : produites ici, elles ne se réécrivent plus.
+//   2. les LANES, qui ne contiennent que des LECTEURS (ce qu'une gate écrit encore est FERMÉ par sa
+//      porte, `ecritFerme`).
 //   3. le RÉSUMÉ, puis la photo de l'arbre. Dans cet ordre : un résumé est ce qu'on vient de payer,
 //      il s'imprime AVANT tout ce qui pourrait encore échouer.
 //
@@ -120,7 +121,7 @@ export const ECRIT_LU = {
       'le reste des fixtures vit sous os.tmpdir() ; LIT src/ massivement (3 888 chemins) — les gardes de la ' +
       'gate balaient l’arbre réel (stocks nominatifs, garde des nouveaux fichiers, budget de contexte) ; ' +
       'LIT docs/ sur deux sites : le listing de docs/raw, et docs/.sources-lues.json (banc de ' +
-      'scripts/git-hooks/, `sourcesLues` de `pre-commit.mjs` — mesuré le 2026-09-16 par une sonde `fs` sur `test:hooks`) ; ' +
+      'scripts/git-hooks/, sélection de `docs-rebuild.mjs`) ; ' +
       'LIT Source/ parce que `idempotence-ordre-des-cles.test.mjs` copie le corpus (Source/ moins les ' +
       '`.pdf`, écartés par extension : sans les extractions quatre migrations sortent 1 faute de livres) sous ' +
       'os.tmpdir() avant de rejouer les 89 migrations — cette copie passe par `cpSync`, que l’enveloppe de la ' +
@@ -218,9 +219,9 @@ export const ECRIT_LU = {
       'COMPARENT sans écrire, et leurs lectures passent par la sortie de mesure du test, sous os.tmpdir() ; ' +
       'LIT CLAUDE.md sur l’arbre RÉEL : `routingTableSlice` (manual-docs-ratchet.test.mjs) ancre la table de routage ' +
       '(`## Table de routage`) et `routedFlatDocs` en dérive les docs à plat atteignables ; LIT scripts/raw/, ' +
-      'scripts/gen-registry.mjs et Source/ depuis le 2026-09-23 (#1801) : `plateforme-win32.test.mjs` joue ' +
-      '`build-all.mjs --check` (qui importe gen-registry.mjs et scripts/raw/) sur build-vocabulaire et ' +
-      'reanchor, qui lit l’Atlas et Source/ — en `--check`, rien n’est écrit',
+      'scripts/gen-registry.mjs et Source/ (#2203) : `citations-rendues.test.mjs` rend chaque cible ' +
+      '(`rendreCible` ; build-all.mjs importe gen-registry.mjs et scripts/raw/), et ses générateurs lisent ' +
+      'l’Atlas et Source/ — rien n’est écrit',
   },
   'deps:unused': {
     ecrit: [],
@@ -257,10 +258,10 @@ export const ECRIT_LU = {
   test: {
     ecrit: [],
     ecritFerme: {
-      'src/_registry.generated.ts':
-        'le `buildStart` du plugin `registryGen` (vite.config.ts) appelle `genAll()`, qui n’écrit que si ' +
-        'le rendu diffère (`ecrireDoc`, scripts/docs/lib/empreinte-sources.mjs) — `toutes.mjs` joue ' +
-        '`npm run gen -- --check` avant toute gate et REFUSE un registre périmé, donc il ne reste rien à écrire',
+      'src/':
+        'le `buildStart` du plugin `registryGen` (vite.config.ts) lance `build-all.mjs --code`, qui n’écrit que si ' +
+        'le rendu diffère (`ecrireDoc`, scripts/docs/lib/ecriture-derives.mjs) — `toutes.mjs` joue ' +
+        '`npm run gen` avant toute gate, donc il ne reste rien à écrire',
     },
     lit: ['src/', 'server/src/', 'scripts/', 'docs/', 'Source/', '.gitattributes', 'vite.config.ts'],
     raison:
@@ -284,7 +285,9 @@ export const ECRIT_LU = {
   build: {
     ecrit: [],
     ecritFerme: {
-      'src/_registry.generated.ts': 'même `genAll()` que la suite, même porte : `npm run gen -- --check` avant toute gate',
+      'src/':
+        'les cibles de CODE (`genererCode`, scripts/docs/build-all.mjs) sont produites AVANT toute gate ' +
+        '(`npm run gen`, ci-dessous) : `ecrireOuVerifier` ne réécrit pas un rendu identique',
       'vite.config.ts.timestamp-':
         'Vite recompile sa config dans un module horodaté posé à côté d’elle, puis l’efface — mesuré ' +
         '(`vite.config.ts.timestamp-1788894628882-….mjs`, sonde 2026-09-08). LA PORTE : AUCUNE gate ne lit ' +
@@ -305,28 +308,22 @@ export const ECRIT_LU = {
       'la déclaration reste, une sur-déclaration ne peut que RESSERRER les lanes ; LIT aussi index.html ' +
       '(l’entrée) et package.json',
   },
-  'docs:check:tout': {
+  'docs:build': {
     ecrit: [],
+    ecritFerme: {
+      'docs/':
+        'les cibles PURES de `GENERATORS` ne sont pas commitées (#2203 A2) : leurs lecteurs les RENDENT ' +
+        '(`rendreCible`, scripts/docs/build-all.mjs), jamais du disque ; un MIXTE (`injecte`) n’est réécrit que ' +
+        'si son rendu diffère (`ecrireOuVerifier`), ce que `Arbre inchangé` refuse dans le même job',
+      'src/':
+        'les cibles de CODE sont produites AVANT toute gate (`npm run gen`, ci-dessous) : `ecrireOuVerifier` ' +
+        'ne réécrit pas un rendu identique',
+    },
     lit: ['docs/', 'src/', 'scripts/', 'Source/', '.claude/memory/'],
     raison:
-      'chaque générateur de `GENERATORS` rejoué en `--check` (`ecrireOuVerifier` COMPARE sans écrire), ' +
-      'puis les vérificateurs purs ; LIT Source/ (catalogues et rapports d’Atlas) et .claude/memory/ ' +
-      'parce que `build-doctrines.mjs` dérive `docs/doctrines.md` des fiches `.claude/memory/user-*.md` ' +
-      'SUIVIES par git (`fichesSuivies`)',
-  },
-  'docs:empreinte': {
-    ecrit: [],
-    lit: [
-      'docs/', '.claude/memory/', 'scripts/docs/', 'scripts/guards/lib/', 'scripts/test/partition.mjs',
-      'scripts/lancer-local.mjs', 'scripts/outillage-local.mjs', 'scripts/gen-registry.mjs',
-      'scripts/raw/motif-catalogues.mjs',
-    ],
-    raison:
-      '`--empreinte` sort avant toute génération (build-all.mjs, branche `--empreinte` de `executer`) : les ' +
-      '12 lectures mesurées le 2026-09-23 sont `docs/.sources-lues.json` et son propre code — les BLOBS qu’il compare sortent ' +
-      'de l’INDEX (`indexGit` d’empreinte-sources.mjs, `git ls-files -s`), jamais du disque : angle mort ' +
-      'de la sonde (sous-processus git), d’où `.claude/memory/` déclaré par LECTURE — les fiches `user-*.md` ' +
-      'sont des sources de `docs/doctrines.md` (docs/.sources-lues.json) et leur blob entre dans le verdict (#1738)',
+      'chaque générateur de `GENERATORS` joué en écriture, puis les vérificateurs purs ; LIT Source/ ' +
+      '(catalogues et rapports d’Atlas) et .claude/memory/ parce que `build-doctrines.mjs` dérive ' +
+      '`docs/doctrines.md` des fiches `.claude/memory/user-*.md` SUIVIES par git (`fichesSuivies`)',
   },
   'test:raw': {
     ecrit: [],
@@ -498,13 +495,12 @@ export function lanesDeCi(gates) {
  * une gate bloquée tient sa lane pour toujours — vécu : `server:typecheck` a rendu 0xC0000142 après
  * 33 434 s (9 h 17). Une gate EXPIRÉE est un ROUGE nommé, pas un silence.
  * Mesures de référence : pire gate hors `test` = `typecheck` 77,8 s (série du 2026-09-07 ; ×3 = 233,
- * largement sous les 600) ; `docs:check:tout`, chaque générateur rendu sur l'hôte ET sous win32 :
- * 141 s au pire de trois runs SEULS (133,7 et 134,5 s le 2026-09-23, 141 s le 2026-09-24 sur un
- * conteneur Linux de 4 cœurs, #1801) ; ×3 = 423, sous les 600 ;
+ * largement sous les 600) ; `docs:build` 252,7 s sur un clone froid le 2026-09-30 (poste Windows de
+ * 16 cœurs chargé, #2203) ; ×3 = 759 ;
  * `test` 339,2 s le 2026-09-26 (conteneur Linux de 4 cœurs, 3 workers, borne de tas 3 072 Mo, run
  * `mconf`) ; ×3 = 1 018.
  */
-export const TIMEOUTS = { defaut: 600, test: 1020 }
+export const TIMEOUTS = { defaut: 600, test: 1020, 'docs:build': 760 }
 
 /**
  * Cœurs servis à la SUITE pendant les lanes. Valeur mesurée le 2026-09-04 sur un poste de 16 cœurs
@@ -852,22 +848,21 @@ export async function principal({
     return 0
   }
 
-  // `npm run gen -- --check` AVANT tout : `build` ET la suite appellent `genAll()` (plugin
-  // `registryGen` de vite.config.ts) depuis deux lanes, et réécriraient `src/**/*.generated.ts` en
-  // même temps si un registre était périmé. Le verdict est celui de `ecrireOuVerifier`, rien n'est
-  // écrit, et un registre périmé se dit MAINTENANT, avant sept minutes de lanes.
+  // `npm run gen` AVANT tout (`genererCode`, scripts/docs/build-all.mjs ; #2203 A2) : `build`, la
+  // suite et `docs:build` produisent les cibles de CODE depuis plusieurs lanes ; produites ici, elles
+  // ne sont plus réécrites (`ecrireOuVerifier` n'écrit qu'un rendu qui diffère).
   const avantGen = Date.now()
-  const gen = spawnSync('npm', ['run', 'gen', '--', '--check'], {
+  const gen = spawnSync('npm', ['run', 'gen'], {
     cwd: racine,
     stdio: ['ignore', 'ignore', 'pipe'],
     shell: process.platform === 'win32',
     encoding: 'utf8',
   })
   if (gen.status !== 0) {
-    journal(`[gates] REFUS — « npm run gen -- --check » rouge (exit ${gen.status}) :\n${gen.stderr ?? ''}\n`)
+    journal(`[gates] REFUS — « npm run gen » rouge (exit ${gen.status}) :\n${gen.stderr ?? ''}\n`)
     return 1
   }
-  journal(`[gates] gen — registres à jour en ${secondesDepuis(avantGen).toFixed(1)} s\n`)
+  journal(`[gates] gen — cibles de code produites en ${secondesDepuis(avantGen).toFixed(1)} s\n`)
 
   mkdirSync(dossierSorties(racine), { recursive: true })
   purgerPerimes({ dossier: dossierSorties(racine), motif: MOTIF_SORTIE, ageMs: PEREMPTION_MS })

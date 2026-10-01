@@ -12,7 +12,7 @@
  * Patron retenu : « éditorial EN DUR dans le générateur » (scripts/docs/build-sources-vf.mjs),
  * avec la passerelle TS de `scripts/docs/build-donnees.mjs` pour l'exposition.
  *
- * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/empreinte-sources.mjs), rejoué par `build-all.mjs`.
+ * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`.
  *
  *   node scripts/docs/build-codex-relations.mjs
  */
@@ -20,7 +20,7 @@ import { readFileSync, existsSync } from 'node:fs'
 import { sortieOutilLocal } from '../lancer-local.mjs'
 import ts from 'typescript'
 import { loadSource, jsdocBody } from './lib/jsdocUnion.mjs'
-import { ecrireOuVerifier } from './lib/empreinte-sources.mjs'
+import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
 import { fileExports } from './lib/engineExports.mjs'
 import { parUnitesDeCode } from '../guards/lib/lister.mjs'
 
@@ -417,7 +417,7 @@ ${TESTS.map((t) => `- \`npm test -- ${t}\``).join('\n')}
     path: 'docs/codex-relations.md',
     staleMsg:
       'docs:codex-relations — docs/codex-relations.md est PÉRIMÉ (diverge de relations.ts, registry.ts, de l’exposition déclarée aux defs, ou du script).',
-    rerunMsg: '  → relancer `npm run docs:codex-relations` et committer le résultat.',
+    rerunMsg: '  → relancer `npm run docs:codex-relations` (dérivé jamais commité, #2203).',
     okMsg: 'docs:codex-relations — OK (docs/codex-relations.md à jour)',
     writeMsg: `docs/codex-relations.md — ${ARETES_FUSIONNEES.length} arêtes inverses, ${SPECS.length} catégories, ${PAR_CATEGORIE.size} clés déclarées.`,
   }

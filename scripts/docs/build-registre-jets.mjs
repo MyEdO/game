@@ -1,7 +1,7 @@
 // REGISTRE des chemins de jet — GÉNÉRÉ depuis le module de gardes `scripts/guards/lib/rollSeam*.mjs`
 // (jamais une recopie à la main). Sortie : docs/registre-jets.md. Re-run :
 // node scripts/docs/build-registre-jets.mjs (npm run docs:registre-jets).
-// Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/empreinte-sources.mjs), rejoué par `build-all.mjs`.
+// Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`.
 //
 // SOURCE UNIQUE : les listes (familles canoniques, stocks + justifications) vivent dans
 // `rollSeamWhitelist.mjs` et sont VÉRIFIÉES par `src/state/roll-seam-exclusivity-guard.test.ts` ;
@@ -16,7 +16,7 @@ import { readFileSync } from 'node:fs'
 import { listerArbre } from '../guards/lib/lister.mjs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { ecrireOuVerifier } from './lib/empreinte-sources.mjs'
+import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
 import {
   scanPendingJetFabrication, engineRollerExports, scanEngineDelegatedRoll,
   engineDiceRollers, scanDesHorsPorte, AMORCE_DES,
@@ -123,9 +123,8 @@ function rendu() {
   const NON_ROUTES = []
   // Le stock du garde indexe le SITE DU DÉ ; il porte AUSSI le nom du résolveur et sa ligne de
   // DÉCLARATION. Les deux servent, et pas au même endroit : le cliquet mord sur le site du dé (ce que
-  // le garde mesure), tandis que le doc CITE la déclaration — la garde de commit `docs-vs-commit`
-  // (`scripts/docs/check-docs-vs-head.mjs`) exige que le symbole backtiqué d'une phrase se lise à ±2
-  // lignes du `fichier:ligne` qu'elle cite, et le nom d'une fonction ne se lit qu'à sa déclaration.
+  // le garde mesure), tandis que le doc CITE la déclaration — le symbole backtiqué d'une phrase se lit
+  // à ±2 lignes du `fichier:ligne` qu'elle cite, et le nom d'une fonction ne se lit qu'à sa déclaration.
   const stockGarde = new Map(
     scanFlowTestEngineRoll(prodFiles('src/engine')).map((x) => [`${x.file}:${x.line}`, x]))
   const nonRoutes = []

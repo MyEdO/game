@@ -377,6 +377,19 @@ test('evaluate : solde absent → deny actionnable', () => {
   assert.match(d.reason, /fichier absent/)
 })
 
+test('evaluate : `#N` nus énumérés après une clause de fermeture → refus qui les NOMME (92f57ea33)', () => {
+  const d = evaluate({
+    command: 'git commit -m "fix(tests): corrige #2225 #2114 + #2151/#2191 — lot"',
+    today: TODAY,
+    readSolde: () => solde(),
+  })
+  assert.ok(d && typeof d.reason === 'string')
+  assert.match(d.reason, /#2114, #2151, #2191 suit une clause de fermeture/)
+  assert.match(d.reason, /`corrige #2114`, `corrige #2151`, `corrige #2191`/)
+  assert.match(d.reason, /`refs #2114 #2151 #2191`/)
+  assert.equal(evaluate({ command: 'git commit -m "corrige #99, refs #1 #2"', today: TODAY, readSolde: () => solde() }), null)
+})
+
 test('evaluate : multi-fermeture — un seul solde manquant listé nommément', () => {
   const d = evaluate({
     command: 'git commit -m "corrige #1, ferme #2"',
@@ -437,8 +450,23 @@ test('evaluate : palier >=10 sans revue neuve -> deny palier, quel que soit le s
   // fichier a ecrire, nom compris : c'est le nom qui porte la fenetre.
   assert.match(d.reason, /10 commits de substance depuis 2c11fdd9a/)
   assert.match(d.reason, /revue-palier-82e95be10\.md/)
-  assert.match(d.reason, new RegExp(`revue-palier-${TODAY}-2c11fdd9a\\.md`))
+  assert.match(d.reason, new RegExp(`revue-palier-${TODAY}-2c11fdd9a-<tête>\\.md`))
   assert.ok(!/[^-]revue-palier\.md/.test(d.reason), 'aucun fichier « vivant » : la revue nait archivee')
+})
+
+test('evaluate : le nom que PRESCRIT le refus de palier est celui que la porte ACCEPTE (#2236)', () => {
+  const tete = 'aaaaaaaaa'
+  const d = evaluate({
+    command: 'git commit -m "corrige #9"',
+    today: TODAY,
+    readSolde: () => solde(),
+    palier: () => ({ ...PALIER_MESURE, compte: 10 }),
+  })
+  const prescrit = /STAGER sous \.claude\/soldes\/(revue-palier-\S+\.md)/.exec(d.reason)?.[1]
+  assert.ok(prescrit, d.reason)
+  const nom = prescrit.replace('<tête>', tete)
+  const [revue] = neuve(revueEnchainee({ fenetre: `${PALIER_MESURE.tete}..${tete}` }), nom)
+  assert.deepEqual(problemesDeRevueNeuve(revue, { today: TODAY, palier: PALIER_MESURE, dansHead: () => true }), [])
 })
 
 test('evaluate : palier >=10 + revue neuve ENCHAINEE et conforme -> pass (solde encore requis)', () => {
@@ -464,6 +492,7 @@ test('evaluate : revue neuve dont le CONTENU est trop maigre -> deny nomme', () 
   assert.ok(d)
   assert.match(d.reason, /Revue de palier NON CONFORME/)
   assert.match(d.reason, /trop maigre/)
+  assert.match(d.reason, /`revue-palier-<date>-<base>-<tête>\.md`/, 'le gabarit du nom porte les DEUX bornes')
 })
 
 test('evaluate : revue neuve dont le NOM ne repond pas au CONTENU -> deny qui dit les deux', () => {

@@ -69,6 +69,10 @@ export function lectureBruteDeCollection(p: {
   dataset: string;
   sitesAdmis?: readonly SiteAdmis[];
 }): Construction & { readonly indice: (texte: string) => boolean };
+export function comparaisonDAppel(p: {
+  nom: string;
+  fonctions: Readonly<Record<string, readonly string[]>>;
+}): Construction & { readonly indice: (texte: string) => boolean };
 export function scanConstructionsReservees(fichier: FichierLu, constructions: readonly ConstructionGardee[]): Trouvaille[];
 export function constructionsReserveesDuCorpus(
   corpus: readonly FichierLu[],

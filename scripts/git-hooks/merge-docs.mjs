@@ -5,10 +5,7 @@
 // %O = ancêtre commun, %A = version COURANTE (« ours », c'est le fichier que le pilote doit écrire),
 // %B = version entrante, %P = chemin réel dans l'arbre.
 //
-// Deux familles, deux contrats :
-//   - `generes`   : fichier 100 % dérivé. La fusion textuelle n'a aucun sens (seule la
-//                   régénération fait foi) : on garde %A tel quel, exit 0. `npm run docs:build`
-//                   (hooks post-merge / post-rewrite) reconstruit la valeur juste.
+// Une famille — un fichier 100 % dérivé n'est pas commité (#2203), aucun pilote ne le fusionne :
 //   - `fiche-raw` : fiche docs/raw/*.md MIXTE (prose manuscrite + champs `**Implémente :**`
 //                   dérivés). Les champs dérivés sont neutralisés (sentinelle) dans les TROIS
 //                   versions, la fusion 3-voies ne porte donc que sur la PROSE ; chaque champ est
@@ -23,7 +20,7 @@ import { threeWay } from './three-way.mjs'
 // Frontière du champ dérivé : SOURCE UNIQUE partagée avec le générateur (scripts/raw/build-implemente.mjs).
 const { NOT_IMPL, parseFiche } = await import('../raw/build-implemente.mjs')
 
-export const FAMILIES = ['generes', 'fiche-raw']
+export const FAMILIES = ['fiche-raw']
 
 /** Stem neutre passé à `parseFiche` : seule la part APRÈS `#` du topic sert de clé, et elle doit
  *  être identique dans les trois versions — le nom réel du fichier n'entre donc pas dans l'identité. */
@@ -84,7 +81,6 @@ function main(argv) {
     process.stderr.write(`merge-docs: usage — merge-docs.mjs <${FAMILIES.join('|')}> %O %A %B %P\n`)
     return 2
   }
-  if (family === 'generes') return 0
   const res = mergeFicheRaw(
     readFileSync(A, 'utf8'), readFileSync(O, 'utf8'), readFileSync(B, 'utf8'),
     { ours: `${P ?? A} (courant)`, base: `${P ?? O} (ancêtre)`, theirs: `${P ?? B} (entrant)` },

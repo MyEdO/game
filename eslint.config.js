@@ -114,8 +114,7 @@ const cles = (champ, noms) => [
 /** Volet SYNTAXE du LISTAGE : un nom de la marche brute, sur TOUT receveur sauf `import.meta` (un
  *  `MetaProperty`, pas un module : `import.meta.glob` de Vite), en accès par membre (optionnel
  *  compris), en clé de déstructuration, en alias d'import TypeScript (`import r = fs.readdirSync`) et
- *  en membre JSX (`<fs.glob />`). Ce qui reste hors du mur est au NON SIMULÉ de
- *  `scripts/docs/lib/plateforme-win32.mjs`. */
+ *  en membre JSX (`<fs.glob />`). */
 const NOMS_MARCHE = `/^(${MARCHE_BRUTE.join('|')})$/`;
 const VERROU_LISTAGE = [
   ...cles('property', NOMS_MARCHE).map((c) => `MemberExpression[object.type!='MetaProperty']${c}`),

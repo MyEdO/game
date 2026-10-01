@@ -6,7 +6,7 @@
 // commit ; sans lui, un `refs #N` vu par l'une restait invisible à l'autre.
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { motifRattachement, numerosCites, numerosFermes } from './fermetures.mjs'
+import { motifRattachement, numerosCites, numerosFermes, numerosNusEnumeres } from './fermetures.mjs'
 
 test('motifRattachement rend une instance NEUVE (aucun lastIndex partagé)', () => {
   const a = motifRattachement()
@@ -69,4 +69,37 @@ test('numerosCites CONTIENT toujours ce que numerosFermes rend', () => {
     const cites = new Set(numerosCites(texte))
     for (const n of numerosFermes(texte)) assert.equal(cites.has(n), true, `${texte} : #${n} fermé doit être cité`)
   }
+})
+
+test('numerosNusEnumeres : les formes relevées à l’historique (92f57ea33, ea3d42569, `fixes #A/#B`)', () => {
+  assert.deepEqual(numerosNusEnumeres('fix(tests): corrige #2225 #2114 #2151 #2191 — …'), ['2114', '2151', '2191'])
+  assert.deepEqual(numerosNusEnumeres('feat(mer): corrige #132 + #116 — prêtre'), ['116'])
+  assert.deepEqual(numerosNusEnumeres('fixes #127/#115 dormants'), ['115'])
+  assert.deepEqual(numerosNusEnumeres('corrige #12, #13'), ['13'])
+  assert.deepEqual(numerosNusEnumeres('ferme #1 et #2'), ['2'])
+  assert.deepEqual(numerosNusEnumeres('Corrige #0001 #0002'), ['2'])
+})
+
+test('numerosNusEnumeres : ni rattachement, ni prose, ni ticket fermé ailleurs', () => {
+  assert.deepEqual(numerosNusEnumeres('refs #1 #2'), [])
+  assert.deepEqual(numerosNusEnumeres('corrige #1, refs #2 #3'), [])
+  assert.deepEqual(numerosNusEnumeres('corrige #1 (voir #2)'), [])
+  assert.deepEqual(numerosNusEnumeres('ferme #1 et ouvre #2'), [])
+  assert.deepEqual(numerosNusEnumeres('corrige #1 — lot B de #2'), [])
+  assert.deepEqual(numerosNusEnumeres('corrige #1, corrige #2'), [])
+  assert.deepEqual(numerosNusEnumeres('corrige #1 #2, corrige #2'), [])
+  assert.deepEqual(numerosNusEnumeres(undefined), [])
+})
+
+test('numerosFermes : le verbe est BORNÉ à gauche, y compris par une lettre accentuée', () => {
+  assert.deepEqual(numerosFermes('prefix #12'), [])
+  assert.deepEqual(numerosFermes('referme #12'), [])
+  assert.deepEqual(numerosFermes('encloses #3'), [])
+  assert.deepEqual(numerosFermes('éferme #4'), [])
+  assert.deepEqual(numerosFermes('_corrige #6'), [])
+  assert.deepEqual(numerosFermes('x(corrige #5)'), ['5'])
+  assert.deepEqual(numerosFermes('titre\ncorrige #7'), ['7'])
+  assert.deepEqual(numerosFermes('lot —corrige #8 — ferme #9'), ['8', '9'])
+  assert.deepEqual(numerosNusEnumeres('prefix #12 #13'), [])
+  assert.deepEqual(numerosNusEnumeres('(corrige #5 #6)'), ['6'])
 })

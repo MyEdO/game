@@ -433,6 +433,15 @@
     "verrou": "src/data/trappings-vue-guard.test.ts (construction `lectureBruteDeCollection`)"
   },
   {
+    "id": "texteDUneAdresse",
+    "type": "primitives.manifest",
+    "label": "aligner/unitesDe/unitesDeLAdresse/unitesDuBloc/unitesDuTexte/memeTexte",
+    "fichier": "src/data/source/decoupe.ts",
+    "concept": "décideur de texte d'une adresse de prose : unitesDe, unitesDeLAdresse et unitesDuBloc produisent les unités que le rendu d'un fragment, d'une adresse ou d'un bloc assemble (celles d'un bloc mémoïsées et gelées), unitesDuTexte prépare un texte libre, aligner décide texte libre contre rendu (égalité = ajoute vide, partie stricte sinon, témoin nommé), memeTexte compare une clé ou un rendu à un rendu",
+    "perimetre": "toute comparaison de deux textes au sens de normText : judge et verifier (scripts/source/derive-decoupes.mjs), résolution de cellule, éditeur d'adresse",
+    "verrou": "src/texte-normalise-guard.test.ts ; src/data/source/texte-d-adresse.test.ts"
+  },
+  {
     "id": "menuCard",
     "type": "primitives.manifest",
     "label": "MenuCard/MenuSection/MenuButton/MenuToggle",
@@ -1453,11 +1462,11 @@
   {
     "id": "constructionsReservees",
     "type": "primitives.manifest",
-    "label": "scanConstructionsReservees/FORMULE_DE_CHEBYSHEV/ECHAPPEUR_DE_LITTERAL/CONSTRUCTION_DE_PROGRAMME/ECRITURE_DE_STOCK_JSON/CONSTRUCTION_DE_TABLE_TOTALE/recopieDeCanon/cleEnLigne/lectureBruteDeCollection/estAppelDeclare/origineImportee",
+    "label": "scanConstructionsReservees/FORMULE_DE_CHEBYSHEV/ECHAPPEUR_DE_LITTERAL/CONSTRUCTION_DE_PROGRAMME/ECRITURE_DE_STOCK_JSON/CONSTRUCTION_DE_TABLE_TOTALE/recopieDeCanon/cleEnLigne/lectureBruteDeCollection/comparaisonDAppel/estAppelDeclare/origineImportee",
     "fichier": "scripts/guards/lib/canonUnique.mjs",
-    "concept": "construction réservée à son foyer : le scan unique, ses constructions déclarées, les fabriques de recopie d'un canon, de clé en ligne et de lecture brute d'une collection (admise à des sites nommés par leur déclaration englobante), l'appel à une fonction déclarée et la liaison d'import",
+    "concept": "construction réservée à son foyer : le scan unique, ses constructions déclarées, les fabriques de recopie d'un canon, de clé en ligne, de lecture brute d'une collection (admise à des sites nommés par leur déclaration englobante) et de comparaison en ligne du rendu d'une fonction déclarée, l'appel à une fonction déclarée et la liaison d'import",
     "perimetre": "toute garde de canon unique",
-    "verrou": "unions-canon.test.ts, grid.test.ts, cle-de-site-guard.test.ts, ts-program-fabrique-guard.test.ts, trappings-vue-guard.test.ts"
+    "verrou": "unions-canon.test.ts, grid.test.ts, cle-de-site-guard.test.ts, texte-normalise-guard.test.ts, ts-program-fabrique-guard.test.ts, trappings-vue-guard.test.ts"
   },
   {
     "id": "tsProgram",

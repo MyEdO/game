@@ -4,11 +4,11 @@
 // les noms par `z.infer`. La feuille `type:'ops'` est le schéma de la grammaire, indexé lui aussi.
 // Sortie : docs/campagne-effects.md.
 // Re-run : node scripts/docs/build-effects.mjs (npm run docs:effects).
-// Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/empreinte-sources.mjs), rejoué par `build-all.mjs`.
+// Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`.
 // Lecture d'union / extraction JSDoc / écriture-vérification : scripts/docs/lib/jsdocUnion.mjs
 // (socle PARTAGÉ avec build-vocabulaire.mjs).
 import { indexerConstantes, readZodUnionMembers, renderFields } from './lib/jsdocUnion.mjs'
-import { ecrireOuVerifier } from './lib/empreinte-sources.mjs'
+import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
 
 /** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire. */
 function rendu() {
@@ -42,7 +42,7 @@ function rendu() {
     out,
     path: OUT,
     staleMsg: `docs:effects — ${OUT} est PÉRIMÉ (diverge de l'union effectSchema de ${SRC}).`,
-    rerunMsg: '  → relancer `npm run docs:effects` et committer le résultat.',
+    rerunMsg: '  → relancer `npm run docs:effects` (dérivé jamais commité, #2203).',
     okMsg: `docs:effects — OK (${OUT} à jour, ${merged.length} Effects)`,
     writeMsg: `${OUT} — ${merged.length} Effects (${rawCount} membres d'union avant fusion).`,
   }

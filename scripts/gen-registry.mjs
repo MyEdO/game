@@ -18,7 +18,7 @@ import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { estFichierVitest } from './guards/lib/fichierVitest.mjs';
 import { litteralJs } from './guards/lib/litteralJs.mjs';
-import { ecrireOuVerifier } from './docs/lib/empreinte-sources.mjs';
+import { ecrireOuVerifier } from './docs/lib/ecriture-derives.mjs';
 
 /**
  * `importDir` : chemin (relatif au fichier `out`) d'où importer chaque entrée. Défaut `./defs`
@@ -443,7 +443,7 @@ export const SORTIES = [...REGISTRIES.map((r) => r.out), SORTIE_ART, ...Object.v
 /** Le rouge d'un registre périmé en `--check` : `genAll` résume lui-même le reste. */
 export const MESSAGES_DE = (out) => ({
   staleMsg: `gen-registry — ${out} est PÉRIMÉ (un fichier de defs ou une donnée a changé).`,
-  rerunMsg: '  → relancer `npm run gen` et committer le résultat.',
+  rerunMsg: '  → relancer `npm run gen` (cible de code jamais commitée, #2203 A2).',
 });
 
 /** Le module rendu d'un registre, ou `null` quand son dossier n'existe pas. */

@@ -18,7 +18,7 @@ Tu exécutes une spec précise fournie par l'orchestrateur — tu n'inventes ni 
   tombale.
 - **Auto-contrôle = le test de TON périmètre** (`node --test <fichier>`, `npm test -- <chemins>`,
   `npm run typecheck:fast` si du `.ts` bouge) et l'exécution réelle de l'outil livré en lecture seule.
-  Les GATES du train (lint, deps:unused, docs:check:tout, suites entières, `npm run gates`, tsc/vitest nus)
+  Les GATES du train (lint, deps:unused, docs:build, suites entières, `npm run gates`, tsc/vitest nus)
   appartiennent au run CI de la branche, qui les joue UNE fois : un brief qui te les impose se
   REFUSE (« BRIEF REFUSÉ : gates hors périmètre »).
 - **Tout test NEUF se livre avec sa preuve par MUTATION** : dans ton rendu, le test ROUGE câblage

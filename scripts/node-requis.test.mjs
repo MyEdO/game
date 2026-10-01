@@ -1,10 +1,11 @@
 // Porte de version de Node (#1801) : la règle PURE, puis son CÂBLAGE dans chaque point d'entrée qui
 // rend un verdict, tel que `package.json` le déclare, joué sur un FAUX ARBRE en dossier temporaire
 // dont `engines.node` exige un Node inexistant :
-//   - `.npmrc` et les hooks shell du `core.hooksPath` : VRAIS `.npmrc`, porte et hooks shell copiés ;
-//   - les modules Node lancés sans hook shell (`npm run gates`, pilotes `merge.<nom>.driver`, hooks
-//     d'agent de `.claude/settings.json` et `.codex/hooks.json`) : chacun EXÉCUTÉ avec sa clôture
-//     d'imports copiée, sous `--no-experimental-strip-types` — le chargement d'un Node 22 < 22.18 ;
+//   - `.npmrc` : VRAIS `.npmrc` et porte copiés ;
+//   - les modules Node (`npm run gates`, `.mjs` des hooks shell du `core.hooksPath`, pilotes
+//     `merge.<nom>.driver`, hooks d'agent de `.claude/settings.json` et `.codex/hooks.json`) : chacun
+//     EXÉCUTÉ avec sa clôture d'imports copiée — les hooks shell par leur VRAI script —, sous
+//     `--no-experimental-strip-types` — le chargement d'un Node 22 < 22.18 ;
 //     sa clôture STATIQUE lue ne porte ni module TypeScript ni attribut d'import (Node < 22.18, < 20.10) ;
 //     son AST pose la porte en PREMIÈRE requête de module, donc avant toute autre évaluation.
 import { test } from 'node:test'
@@ -34,13 +35,22 @@ const HOOKS_AGENT = [SURFACE_CLAUDE, SURFACE_CODEX].flatMap((surface) =>
   aplatirHooks(JSON.parse(readFileSync(join(RACINE, surface), 'utf8')), surface),
 )
 const MODULES_HOOKS_AGENT = [...new Set(HOOKS_AGENT.filter((h) => h.script).map((h) => `scripts/hooks/${h.script}`))]
-const MODULES_LANCES = [/^node (\S+)/.exec(SCRIPTS.gates)[1], ...PILOTES, ...MODULES_HOOKS_AGENT]
+/** Les `.mjs` qu'un hook shell lance à côté de lui, `"$(dirname "$0")/<nom>.mjs"`. */
+const modulesDuHook = (texte) => [...texte.matchAll(/"\$\(dirname "\$0"\)\/([\w-]+\.mjs)"/g)].map((m) => m[1])
+/** Hook shell → les `.mjs` qu'il lance, relatifs à `RACINE`. */
+const MODULES_PAR_HOOK = new Map(HOOKS_SHELL.map((hook) => [
+  hook,
+  modulesDuHook(readFileSync(join(DOSSIER_HOOKS, hook), 'utf8')).map((m) => relative(RACINE, join(DOSSIER_HOOKS, m)).replaceAll('\\', '/')),
+]))
+const MODULES_DES_HOOKS_SHELL = [...new Set([...MODULES_PAR_HOOK.values()].flat())]
+const MODULES_LANCES = [/^node (\S+)/.exec(SCRIPTS.gates)[1], ...MODULES_DES_HOOKS_SHELL, ...PILOTES, ...MODULES_HOOKS_AGENT]
 /** Claude Code : seul le code de sortie 2 d'un hook `PreToolUse` bloque l'outil. */
 const CODE_BLOQUANT_PRETOOLUSE = 2
 /** githooks(5) : un hook `post-*` ne peut pas faire échouer l'opération qui vient d'avoir lieu. */
 const estPostHook = (hook) => hook.startsWith('post-')
-/** Les `.mjs` qu'un hook shell lance à côté de lui, `"$(dirname "$0")/<nom>.mjs"`. */
-const modulesDuHook = (texte) => [...texte.matchAll(/"\$\(dirname "\$0"\)\/([\w-]+\.mjs)"/g)].map((m) => m[1])
+/** githooks(5) : les arguments que git passe au hook dans le geste qui le fait AGIR — `post-checkout`
+ *  un changement de BRANCHE (`$3` = 1), `post-rewrite` un `rebase`. Les autres refusent avant de les lire. */
+const ARGUMENTS_D_UN_GESTE = { 'post-checkout': ['0'.repeat(40), 'f'.repeat(40), '1'], 'post-rewrite': ['rebase'] }
 const EXIGENCE_INTENABLE = '>=999.0.0'
 
 test('refus : version inférieure sur le majeur, le mineur ou le correctif', () => {
@@ -74,26 +84,22 @@ function arbreIntenable() {
   return racine
 }
 
-/** Faux arbre des hooks shell : l'arbre intenable, plus les hooks shell réels. Chaque `.mjs` qu'un
- *  hook shell lance est un TÉMOIN qui dépose `TEMOIN-<nom>` à la racine s'il tourne. */
-function fauxArbre() {
+/** Chemin POSIX relatif à `RACINE` d'un membre de clôture (rendu relatif au cwd s'il y vit). */
+const depuisRacine = (membre) => relative(RACINE, resolve(membre)).replaceAll('\\', '/')
+
+/** L'arbre intenable, plus la clôture d'imports de chaque module lancé, les hooks shell réels et le
+ *  `node_modules` réel. */
+function arbreDesModules() {
   const racine = arbreIntenable()
-  for (const hook of HOOKS_SHELL) {
-    const texte = readFileSync(join(DOSSIER_HOOKS, hook), 'utf8')
-    writeFileSync(join(racine, 'scripts', 'git-hooks', hook), texte)
-    const modules = modulesDuHook(texte)
-    assert.ok(modules.length, `${hook} ne lance aucun \`.mjs\` lisible : le témoin ne prouverait rien`)
-    for (const module of modules) {
-      writeFileSync(
-        join(racine, 'scripts', 'git-hooks', module),
-        `import { writeFileSync } from 'node:fs'\nwriteFileSync(new URL('../../TEMOIN-${module}', import.meta.url), '')\n`,
-      )
-    }
+  for (const membre of clotureDImports(MODULES_LANCES.map((m) => join(RACINE, m)))) {
+    const rel = depuisRacine(membre)
+    mkdirSync(dirname(join(racine, rel)), { recursive: true })
+    copyFileSync(join(RACINE, rel), join(racine, rel))
   }
+  for (const hook of HOOKS_SHELL) copyFileSync(join(DOSSIER_HOOKS, hook), join(racine, 'scripts', 'git-hooks', hook))
+  symlinkSync(join(RACINE, 'node_modules'), join(racine, 'node_modules'), 'junction')
   return racine
 }
-
-const temoins = (racine) => listerDossier(racine).filter((f) => f.startsWith('TEMOIN-'))
 
 /** Environnement sans ce que `npm run` pose à l'appelant (`npm_config_*` serait lu comme configuration). */
 function envNu() {
@@ -103,7 +109,7 @@ function envNu() {
 const REFUS = new RegExp(`Node ${process.versions.node.replace(/\./g, '\\.')} ne satisfait pas package\\.json engines\\.node « ${EXIGENCE_INTENABLE} »`)
 
 test('câblage `.npmrc` : `npm install` refuse le Node courant, exit 1, EBADENGINE', () => {
-  const racine = fauxArbre()
+  const racine = arbreIntenable()
   try {
     const r = spawnSync('npm', ['install', '--dry-run', '--ignore-scripts', '--no-audit', '--no-fund'], {
       cwd: racine,
@@ -118,23 +124,27 @@ test('câblage `.npmrc` : `npm install` refuse le Node courant, exit 1, EBADENGI
   }
 })
 
-test('câblage des hooks shell de `scripts/git-hooks/` : chacun refuse AVANT son `.mjs` — `CODE_DE_REFUS`, ou 0 pour un `post-*`', () => {
-  const racine = fauxArbre()
+test('câblage des hooks shell de `scripts/git-hooks/` : chacun lance un `.mjs` dont la porte refuse — `CODE_DE_REFUS`, ou 0 pour un `post-*` ; stdout vide', () => {
+  for (const [hook, modules] of MODULES_PAR_HOOK) assert.ok(modules.length, `${hook} ne lance aucun \`.mjs\` lisible`)
+  const racine = arbreDesModules()
   try {
     for (const hook of HOOKS_SHELL) {
-      // `rebase` : le seul `$1` qui fasse agir post-rewrite ; les autres hooks refusent avant de le lire.
-      const r = spawnSync('sh', [join('scripts', 'git-hooks', hook), 'rebase'], { cwd: racine, env: envNu(), encoding: 'utf8' })
+      const r = spawnSync('sh', [join('scripts', 'git-hooks', hook), ...(ARGUMENTS_D_UN_GESTE[hook] ?? [])], {
+        cwd: racine,
+        env: { ...envNu(), NODE_OPTIONS: '--no-experimental-strip-types' },
+        encoding: 'utf8',
+      })
       assert.equal(r.status, estPostHook(hook) ? 0 : CODE_DE_REFUS, `${hook} : ${r.stdout}${r.stderr}`)
       assert.match(r.stderr, REFUS, hook)
+      assert.equal(r.stdout, '', hook)
     }
-    assert.deepEqual(temoins(racine), [], 'un module de hook a tourné sous un Node refusé')
   } finally {
     rmSync(racine, { recursive: true, force: true })
   }
 })
 
 test('la porte refuse sous le code qui BLOQUE un hook d’agent `PreToolUse`', () => {
-  const racine = fauxArbre()
+  const racine = arbreIntenable()
   try {
     const r = spawnSync(process.execPath, [join('scripts', 'node-requis.mjs')], { cwd: racine, env: envNu(), encoding: 'utf8' })
     assert.equal(r.status, CODE_BLOQUANT_PRETOOLUSE, r.stdout + r.stderr)
@@ -150,18 +160,9 @@ test('hooks d’agent : lus sur `.claude/settings.json` et `.codex/hooks.json`, 
     assert.ok(MODULES_HOOKS_AGENT.includes(entree), MODULES_HOOKS_AGENT.join('\n'))
 })
 
-/** Chemin POSIX relatif à `RACINE` d'un membre de clôture (rendu relatif au cwd s'il y vit). */
-const depuisRacine = (membre) => relative(RACINE, resolve(membre)).replaceAll('\\', '/')
-
-test('chargement de `npm run gates`, des pilotes de fusion et des hooks d’agent sous un Node sans retrait de types : la porte refuse — `CODE_DE_REFUS`, son message, stdout vide', () => {
-  const racine = arbreIntenable()
+test('chargement de `npm run gates`, des `.mjs` des hooks shell, des pilotes de fusion et des hooks d’agent sous un Node sans retrait de types : la porte refuse — `CODE_DE_REFUS`, son message, stdout vide', () => {
+  const racine = arbreDesModules()
   try {
-    for (const membre of clotureDImports(MODULES_LANCES.map((m) => join(RACINE, m)))) {
-      const rel = depuisRacine(membre)
-      mkdirSync(dirname(join(racine, rel)), { recursive: true })
-      copyFileSync(join(RACINE, rel), join(racine, rel))
-    }
-    symlinkSync(join(RACINE, 'node_modules'), join(racine, 'node_modules'), 'junction')
     for (const module of MODULES_LANCES) {
       const r = spawnSync(process.execPath, ['--no-experimental-strip-types', module], { cwd: racine, env: envNu(), encoding: 'utf8' })
       assert.equal(r.status, CODE_DE_REFUS, `${module} : ${r.stdout}${r.stderr}`)
@@ -173,7 +174,7 @@ test('chargement de `npm run gates`, des pilotes de fusion et des hooks d’agen
   }
 })
 
-test('clôture STATIQUE de `npm run gates`, des pilotes de fusion et des hooks d’agent : aucun module TypeScript, aucun attribut d’import', () => {
+test('clôture STATIQUE de `npm run gates`, des `.mjs` des hooks shell, des pilotes de fusion et des hooks d’agent : aucun module TypeScript, aucun attribut d’import', () => {
   const ts = typescript()
   const cache = new Map()
   const fautes = []
@@ -197,7 +198,7 @@ test('clôture STATIQUE de `npm run gates`, des pilotes de fusion et des hooks d
   assert.deepEqual(fautes, [])
 })
 
-test('câblage de `npm run gates`, des pilotes de fusion et des hooks d’agent : la PREMIÈRE requête de module de chacun est la porte', () => {
+test('câblage de `npm run gates`, des `.mjs` des hooks shell, des pilotes de fusion et des hooks d’agent : la PREMIÈRE requête de module de chacun est la porte', () => {
   assert.ok(PILOTES.length, `aucun pilote de fusion lu dans postinstall : ${SCRIPTS.postinstall}`)
   const ts = typescript()
   for (const module of MODULES_LANCES) {

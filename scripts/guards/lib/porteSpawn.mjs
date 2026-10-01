@@ -11,14 +11,13 @@
 // rien à voir : le processus a tourné et a rendu un code (`e.status`) — c'est le VERDICT du garde —, ou
 // il n'a même pas démarré (`e.code` = `ENAMETOOLONG`, `ENOENT`, `E2BIG`…) — c'est une porte EN PANNE.
 // Les confondre fait mentir la porte : elle accuse le doc alors que le garde ne s'est jamais exécuté.
-// Même discipline que `absentDeLIndex` (scripts/docs/check-docs-vs-head.mjs).
 
 const ANTISLASH = String.fromCharCode(92)
 
-/** Un doc que `check-docs-vs-head.mjs` juge : `docs/*.md|html`, y compris `raw/` et `plans/`. */
+/** Un doc dont le stage arme la porte des docs du pre-commit : `docs/*.md|html`, y compris `raw/` et `plans/`. */
 export const estUnDocDePorte = (f) => /^docs\/(?:raw\/|plans\/)?[^/]+\.(?:md|html)$/.test(String(f).split(ANTISLASH).join('/'))
 
-/** Le sous-ensemble des chemins stagés qui intéresse la porte des docs (argv borné par construction). */
+/** Le sous-ensemble des chemins stagés qui arme la porte des docs. */
 export function docsDePorte(stages) {
   return [...stages].filter(estUnDocDePorte)
 }

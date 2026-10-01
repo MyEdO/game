@@ -3,7 +3,7 @@
 // sur le cwd POSIX) et `node:url` en un `fileURLToPath` qui rend la graphie Windows : c'est ce que ce
 // code reçoit d'un hôte win32.
 // Les modules de `node_modules` et node lui-même gardent leur `path` : ils ne sont pas jugés ici.
-// La RACINE du dépôt rendu est celle que `lancer()` (via `commandeDe`) donne au générateur
+// La RACINE du dépôt rendu est celle que la garde (`renduSousWin32`) donne au générateur
 // (`initialize`).
 //
 // Ce module est aussi importé depuis le thread principal (le `node:url` de remplacement y prend

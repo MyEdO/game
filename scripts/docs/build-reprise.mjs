@@ -11,13 +11,13 @@
  * « éditorial en donnée » (build-donnees.mjs) — il n'existe aucun manifeste de reprise à froid, et
  * en fabriquer un pour six phrases de motivation créerait une source de vérité de plus.
  *
- * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/empreinte-sources.mjs), rejoué par `build-all.mjs`.
+ * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`.
  *
  *   node scripts/docs/build-reprise.mjs
  */
 import { readFileSync, existsSync } from 'node:fs'
 import { listerDossier } from '../guards/lib/lister.mjs'
-import { ecrireOuVerifier } from './lib/empreinte-sources.mjs'
+import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
 import { repartitionWorkers } from '../test/partition.mjs'
 import { ECRIT_LU, lanesDeCi } from '../gates/toutes.mjs'
 import { gatesDeCi } from '../gates/gatesDeCi.mjs'
@@ -57,6 +57,9 @@ function rendu() {
   const CONFIGS = [...new Set([...POSTINSTALL.matchAll(/git config ([\w.-]+)/g)].map((m) => m[1]))]
   if (!CONFIGS.includes('core.hooksPath')) {
     abandon('`postinstall` ne pose plus `core.hooksPath` — le runbook de reprise repose dessus')
+  }
+  if (!/node scripts\/docs\/build-all\.mjs --code\b/.test(POSTINSTALL)) {
+    abandon('`postinstall` ne produit plus les cibles de code (`build-all.mjs --code`) — le runbook de reprise repose dessus')
   }
   /** Pilotes de fusion posés par `postinstall` : nom → MODULE qui les sert. */
   const PILOTES_DE_FUSION = new Map(
@@ -216,7 +219,7 @@ function rendu() {
   if (!NB_REFUS_PREPUSH) abandon('scripts/git-hooks/pre-push.mjs ne numérote plus ses refus')
 
   /** Version de npm exigée pour régénérer le lock — lue DANS la recette, jamais écrite deux fois.
-   *  Le module est aussi LU sur disque, pour que l'empreinte des sources du doc le couvre. */
+   *  Le module est aussi LU sur disque, pour que les sources mesurées du doc le couvrent. */
   readFileSync(chemin('scripts/guards/lib/npmLockHoisted.mjs'), 'utf8')
   const NPM_LOCK = (REGEN_RECIPE.match(/npm@[\d.]+/) ?? [])[0]
   if (!NPM_LOCK) abandon('REGEN_RECIPE (npmLockHoisted.mjs) ne nomme plus de version de npm')
@@ -248,8 +251,9 @@ function rendu() {
       porte: (c) => c === 'core.hooksPath',
       texte: () =>
         `\`core.hooksPath\` → \`scripts/git-hooks\` : les hooks ${listeCode(HOOKS_GIT)} ne tournent plus. Le
-   \`pre-commit\` porte les gardes anti-poison/anti-dérive de chaque commit ; \`post-merge\` et
-   \`post-rewrite\` régénèrent les docs dérivés après une fusion ou un rebase. Le PALIER de revue
+   \`pre-commit\` porte les gardes anti-poison/anti-dérive de chaque commit ; \`post-checkout\`,
+   \`post-merge\` et \`post-rewrite\` produisent les cibles de code, et les deux derniers régénèrent les
+   docs dont une source a bougé après une fusion ou un rebase. Le PALIER de revue
    adversariale se mesure sur l'histoire au moment du commit (\`scripts/guards/lib/revuePalier.mjs\`),
    et la fermeture des issues suit la PUBLICATION : job \`fermetures\` de
    \`.github/workflows/fermetures.yml\`, sur chaque push de \`main\` dont les checks requis sont verts, qui joue
@@ -258,9 +262,9 @@ function rendu() {
     {
       module: 'scripts/git-hooks/merge-docs.mjs',
       texte: (module) =>
-        `Les pilotes de fusion des docs dérivés (${listeCode(pilotesDe(module))}), déclarés par
-   \`.gitattributes\` et servis par \`${module}\` : sans eux, chaque rebase rouvre un conflit sur
-   des fichiers que \`npm run docs:build\` régénère seul.`,
+        `Le pilote de fusion des fiches MIXTES de l'Atlas (${listeCode(pilotesDe(module))}), déclaré par
+   \`.gitattributes\` et servi par \`${module}\` : fusion de la prose, champ \`Implémente\` réinjecté ;
+   sans lui, chaque rebase rouvre un conflit sur un champ que \`npm run raw:implemente\` régénère seul.`,
     },
     {
       module: 'scripts/git-hooks/merge-stocks.mjs',
@@ -364,7 +368,7 @@ longue pause. Chaque chemin/symbole cité existe dans le repo — vérifié via 
 
 \`\`\`bash
 git clone <url> && cd Game
-npm install     # pose ${CONFIGS.length} réglages git (script "postinstall" de package.json)
+npm install     # pose ${CONFIGS.length} réglages git et produit les cibles de code (script "postinstall" de package.json)
 npm test        # suite du moteur — deux processus Vitest (node + jsdom) si ≥ ${SEUIL} cœurs, sinon un seul
 npm run dev     # http://localhost:5173 (un CLONE garde le port historique)
 \`\`\`
@@ -399,7 +403,9 @@ Le port n'est historique QUE pour un arbre principal ou un clone : un **worktree
 autre (5174-5272, \`scripts/port-dev.mjs\`) pour que deux arbres servis en même temps ne se recouvrent
 jamais. \`npm run dev\` imprime celui qu'il sert.
 
-\`npm install\` déclenche le script \`postinstall\`, qui pose : ${listeCode(CONFIGS)}.
+\`npm install\` déclenche le script \`postinstall\`, qui pose : ${listeCode(CONFIGS)} ; puis il produit les
+cibles de CODE, jamais commitées (\`npm run gen\`, #2203) — les docs dérivés, eux, se produisent par
+\`npm run docs:build\`.
 
 **Sans ce postinstall, ${FAMILLES.length} familles de mécanismes sont MORTES.**
 
@@ -532,7 +538,7 @@ Ajouter une gate, c'est ajouter UN step à \`ci.yml\` — rien d'autre ne la ré
 
 **Rejeu LOCAL \`npm run gates\`** (\`${script('gates')}\`), un confort de diagnostic, jamais une porte :
 ${NB_GATES_CLASSEES} gates en ${LANES_CI.length} lanes parallèles de LECTEURS — aucune gate
-n'écrit dans l'arbre, un dérivé s'y VÉRIFIE (\`docs:check:tout\`) :
+n'écrit dans l'arbre hors de sa porte (\`ecritFerme\`) :
 
 | Lane | Gates |
 |---|---|
@@ -555,7 +561,7 @@ sans entrée ÉCRIT/LU, ou jouée par deux jobs, fait REFUSER le run, avec son n
     path: 'docs/reprise-apres-pause.md',
     staleMsg:
       'docs:reprise — docs/reprise-apres-pause.md est PÉRIMÉ (diverge de package.json, .gitignore, .claude/settings.json, .github/workflows/, scripts/git-hooks/ ou du script).',
-    rerunMsg: '  → relancer `npm run docs:reprise` et committer le résultat.',
+    rerunMsg: '  → relancer `npm run docs:reprise` (dérivé jamais commité, #2203).',
     okMsg: 'docs:reprise — OK (docs/reprise-apres-pause.md à jour)',
     writeMsg: `docs/reprise-apres-pause.md — ${WORKFLOWS.length} workflows, ${HOOKS_GIT.length} hooks Git, ${NB_HOOKS_SESSION} gardes de session référencés.`,
   }

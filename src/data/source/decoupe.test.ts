@@ -13,7 +13,7 @@ import { listerDossier } from '../../../scripts/guards/lib/lister.mjs';
 import {
   type ChapitreParse, type Fragment, type FragmentBlocs, type FragmentCellule, type Resolu,
   type Section, type TableParse,
-  blocsCouverts, blocsPlats, cellRefFor, empreinteDe, estErreur, estGraphieDeChapitre,
+  blocsCouverts, blocsPlats, cellRefFor, empreinteDe, estErreur, estGraphieDeChapitre, estSeparateur,
   estNomDExtraction, estNumeroDeChapitre, fichierDuChapitre, findCells, graphieDeChapitre,
   graphieDuFichier, largeurDeChapitre, normText, numeroDuFichier, parseChapitre, parseTable,
   prefixesDeChapitres, resoudreAdresse, resoudreFragment, stripSpans, sumOf, tablesOf, titreDuFichier,
@@ -525,7 +525,7 @@ function pctAdressable(chapitre: ChapitreParse): number {
 }
 
 describe('parseTable — la bannière de table, absorbée SOUS GARDE', () => {
-  it('`15 - Déplacement.md:18` : le bandeau `TABLEAU DES MOUVEMENTS` est absorbé, les en-têtes RÉELS remontent', () => {
+  it('`15 - Deplacement.md:18` : le bandeau `TABLEAU DES MOUVEMENTS` est absorbé, les en-têtes RÉELS remontent', () => {
     const t = tableAvec(LDB, '15', 'TABLEAU DES MOUVEMENTS');
     expect(t.titre).toBe('TABLEAU DES MOUVEMENTS');
     expect(t.headers).toEqual(['Mouvement', 'Marche (mètres)', 'Course (mètres)']);
@@ -555,7 +555,7 @@ describe('parseTable — la bannière de table, absorbée SOUS GARDE', () => {
     expect(t.rows[0][0]).toContain('pique un sprint');
   });
 
-  it('`46 - Les règles magiques.md:34` : un bandeau devant une table SANS en-têtes n’est pas absorbé', () => {
+  it('`46 - Les regles magiques.md:34` : un bandeau devant une table SANS en-têtes n’est pas absorbé', () => {
     // La bannière est en MAJUSCULES et la table a des rangées : les deux premiers volets de la garde
     // l'absorberaient. Le troisième la refuse, parce que la ligne suivante est une DONNÉE (fourchette
     // d100) et non des en-têtes — l'absorber promouvrait `01-05` en en-tête et volerait une rangée.
@@ -566,11 +566,25 @@ describe('parseTable — la bannière de table, absorbée SOUS GARDE', () => {
     expect(t.headers[0]).toBe('');
   });
 
+  it('tout titre absorbé du corpus a au moins 4 lettres', () => {
+    const lettres = (s: string) => [...s].filter((c) => /\p{L}/u.test(c)).length;
+    const titres = new Set<string>();
+    for (const { bookId, graphie } of chapitresDuCorpus()) {
+      for (const b of blocsPlats(chapitreDe(bookId, graphie))) {
+        const titre = parseTable(b.md)?.titre;
+        if (titre != null) titres.add(titre);
+      }
+    }
+    expect(titres.size, 'aucun titre absorbé lu : le corpus n’est pas parcouru').toBeGreaterThan(0);
+    const tropCourts = [...titres].filter((t) => lettres(t) < 4).sort();
+    expect(tropCourts, 'titres absorbés de moins de 4 lettres').toEqual([]);
+  });
+
   it('CONTRAT POSITIF : l’absorption rend adressables des cellules qui ne l’étaient pas', () => {
     // Chiffres MESURÉS sur l'arbre (#1384 B1 ; chapitre 61 : #1887 lot 6a), jamais un « ≥ 90 % »
     // complaisant : les deux lectures du même chapitre sont imprimées, et toutes deux épinglées.
     for (const m of [
-      { ch: '15', fichier: '15 - Déplacement.md', avant: 28, apres: 64 },
+      { ch: '15', fichier: '15 - Deplacement.md', avant: 28, apres: 64 },
       { ch: '61', fichier: '61 - Encombrement.md', avant: 72, apres: 100 },
     ]) {
       const chapitre = chapitreDe(LDB, m.ch);
@@ -580,6 +594,26 @@ describe('parseTable — la bannière de table, absorbée SOUS GARDE', () => {
       expect(avant, `${m.fichier} : lecture d’AVANT l’absorption`).toBe(m.avant);
       expect(apres, `${m.fichier} : lecture COURANTE`).toBe(m.apres);
     }
+  });
+});
+
+describe('estSeparateur — la ligne délimiteuse de table, prédicat UNIQUE (#1887 6a-2a′)', () => {
+  it.each([
+    ['|-|-|', true],
+    ['|:---:|--|', true],
+    ['| --- | :-: |', true],
+    ['|--||', false],
+    ['| a | - |', false],
+    ['--|--', false],
+  ])('%s → %s', (ligne, attendu) => {
+    expect(estSeparateur(ligne)).toBe(attendu);
+  });
+
+  it('parseTable lit une séparatrice à UN tiret par cellule comme une à trois tirets', () => {
+    const table = (sep: string) => parseTable(['| Clé | Valeur |', sep, '| a | 1 |', '| b | 2 |'].join('\n'));
+    const courte = table('|-|-|');
+    expect(courte).toEqual(table('|---|---|'));
+    expect(courte?.rows).toEqual([['a', '1'], ['b', '2']]);
   });
 });
 

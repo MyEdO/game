@@ -5,10 +5,10 @@ import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { mergeFicheRaw, restoreImplemente, sentinelFor, stripImplemente } from './merge-docs.mjs'
+import { FAMILIES, mergeFicheRaw, restoreImplemente, sentinelFor, stripImplemente } from './merge-docs.mjs'
 import { threeWay } from './three-way.mjs'
-import { GENERATORS, ciblesSignees } from '../docs/build-all.mjs'
-import { pagesDeLAtlas, RAWDOC_META_GENERATED } from '../raw/_lib.mjs'
+import { ciblesPures } from '../docs/build-all.mjs'
+import { pagesDeLAtlas } from '../raw/_lib.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 
@@ -139,18 +139,10 @@ function famillesDe(paths) {
   return map
 }
 
-test('taxonomie — tout DOC ecrit en entier par un generateur est genere', () => {
-  const paths = GENERATORS.flatMap((g) => ciblesSignees(g, ROOT))
-  assert.ok(paths.length >= 18, `cibles depliees : ${paths.length}`)
-  const fam = famillesDe(paths)
-  const hors = paths.filter((p) => fam.get(p) !== 'docs-generes')
-  assert.deepEqual(hors, [])
-})
-
-test('taxonomie — les rapports RAWDOC_META_GENERATED sont en famille generee', () => {
-  const paths = [...RAWDOC_META_GENERATED].map((f) => 'docs/raw/' + f)
-  const fam = famillesDe(paths)
-  assert.deepEqual(paths.filter((p) => fam.get(p) !== 'docs-generes'), [])
+test('taxonomie — une seule famille, `fiche-raw` : une cible PURE n’est pas commitée, aucun pilote ne la fusionne (#2203)', () => {
+  assert.deepEqual(FAMILIES, ['fiche-raw'])
+  const fam = famillesDe(ciblesPures(ROOT))
+  assert.deepEqual([...fam].filter(([, f]) => f === 'docs-generes'), [])
 })
 
 test('taxonomie — toute FICHE énumérée par la couture de l’Atlas est en famille fiche-raw', () => {

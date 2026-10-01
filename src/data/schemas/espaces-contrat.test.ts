@@ -7,10 +7,14 @@
  * document `entite`/`record` a son espace de racine, chaque source de spécialisations ses espaces.
  */
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
+import { createRequire } from 'node:module';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { listerDossier } from '../../../scripts/guards/lib/lister.mjs';
-import { indexChargeable, TABLE_VIDE } from '../../../scripts/gen-espaces.mjs';
+import { AMORCAGE_EN_DEUX_TEMPS, indexChargeable, TABLE_VIDE } from '../../../scripts/gen-espaces.mjs';
 import { z } from 'zod';
 import { IDS_PAR_ESPACE } from './_ids.generated';
 import { SCHEMA_DEFS } from './_registry.generated';
@@ -130,6 +134,20 @@ describe('AMORÇAGE — `npm run gen` répare un index illisible', () => {
     const { vue, index } = JSON.parse(r.stdout.trim().split('\n').pop()!) as { vue: number; index: Record<string, string[]> };
     expect(vue, 'la table vue par l’enfant n’est pas la table vide').toBe(0);
     expect(index).toEqual(IDS_PAR_ESPACE);
+  }, 60_000);
+
+  it('`rendre()` sans index sur disque LÈVE en nommant `AMORCAGE_EN_DEUX_TEMPS`, l’exception au contrat pur (#2203 A2)', () => {
+    const vide = mkdtempSync(join(tmpdir(), 'a2-amorcage-'));
+    try {
+      const tsx = pathToFileURL(createRequire(import.meta.url).resolve('tsx')).href;
+      const module = pathToFileURL(fileURLToPath(new URL('../../../scripts/gen-espaces.mts', import.meta.url))).href;
+      const code = `const { rendre } = await import(${JSON.stringify(module)}); try { await rendre(); console.log('RENDU'); } catch (e) { console.log(e.message); }`;
+      const r = spawnSync(process.execPath, ['--import', tsx, '--input-type=module', '-e', code], { cwd: vide, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+      expect(r.status, r.stderr).toBe(0);
+      expect(r.stdout).toContain(AMORCAGE_EN_DEUX_TEMPS);
+    } finally {
+      rmSync(vide, { recursive: true, force: true });
+    }
   }, 60_000);
 });
 

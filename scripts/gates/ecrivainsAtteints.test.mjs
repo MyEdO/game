@@ -29,13 +29,21 @@ const ATTENDU = {
   'test:agents': ['scripts/agents/compat-cli.mjs'],
   'test:hooks': [
     'scripts/docs/build-all.mjs',
-    'scripts/docs/lib/empreinte-sources.mjs',
+    'scripts/docs/lib/ecriture-derives.mjs',
     // +2 le 2026-09-16 (#1738) : la garde du classement de push fabrique des dépôts JETABLES
     // (`mkdtempSync` + `git init` + `writeFileSync` sous os.tmpdir(), `rmSync` en finally) pour
     // éprouver `merge-base` et le CLI ; la garde des liens de mémoire, venue de `src/` en node:test,
     // forge ses fiches sous un `mkdtempSync` de os.tmpdir() — l'arbre du dépôt n'est jamais écrit.
     'scripts/gates/classerPush.test.mjs',
     'scripts/guards/lib/memoryLinks.test.mjs',
+    // +1 le 2026-10-01 (#2203) : `bootstrap-conteneur.mjs` lance `docs:build` détaché et ouvre son
+    // journal et son verrou sous `node_modules/.cache` ; son banc INJECTE ce geste (`GESTES_DU_CONTENEUR`)
+    // — l'arbre n'est jamais écrit.
+    'scripts/hooks/bootstrap-conteneur.mjs',
+    // +1 le 2026-10-01 (#2203) : le banc du VERROU de `docsBuildDetache` forge une racine JETABLE
+    // (`mkdtempSync` + `writeFileSync` d'un faux build sous `os.tmpdir()`, `rmSync` en finally) — un
+    // build détaché se lance sur un vrai fichier ; l'arbre n'est jamais écrit.
+    'scripts/hooks/bootstrap-conteneur.test.mjs',
     // +1 le 2026-09-20 (#1825) : le banc de l'ENVELOPPE de jeu d'un workflow écrit ses
     // scripts JOUETS sous un `mkdtempSync` de os.tmpdir() (`rmSync` en finally) — l'enveloppe
     // charge un FICHIER, un script jouet ne se fabrique pas autrement ; l'arbre n'est jamais écrit.
@@ -61,6 +69,12 @@ const ATTENDU = {
     // (`mkdtempSync` + `writeFileSync` sous os.tmpdir(), `rmSync` en finally) — la lecture du lot doit
     // tomber pour prouver le FAIL-CLOSED ; l'arbre versionné n'est jamais écrit.
     'scripts/git-hooks/docs-rebuild.test.mjs',
+    // +1 le 2026-10-01 (#2194) : le journal des hooks git écrit sous `node_modules/.cache/hooks-git` du
+    // cwd du hook ; les bancs qui JOUENT un hook (pre-commit, commit-msg, node-requis) le lancent avec
+    // `cwd` = un dépôt ou un dossier JETABLE sous os.tmpdir(), et son banc INJECTE l'écriture. Mesure
+    // du 2026-10-01 : `git status --short --ignored` identique avant et après, sur ce worktree et sur
+    // l'arbre principal, et aucun `node_modules/.cache/hooks-git` créé.
+    'scripts/git-hooks/journal.mjs',
     // −1 le 2026-09-30 (#2203) : `merge-docs.test.mjs` n'écrit plus — ses fixtures de catalogue
     // partent avec la famille `docs-catalogue`.
     'scripts/git-hooks/merge-docs.mjs',
@@ -198,15 +212,19 @@ const ATTENDU = {
     //   Les écritures réelles de `publier.mjs` sont son journal `node_modules/.cache/publication/` et
     //   le commit des docs DÉRIVÉS — toutes deux derrière sa porte `import.meta.main` (scripts/ops/publier.mjs,
     //   dernière ligne), jamais depuis la gate.
-    // · `build-all.mjs`, `empreinte-sources.mjs` et `purgerPerimes.mjs` sont atteints PAR
+    // · `build-all.mjs`, `ecriture-derives.mjs` et `purgerPerimes.mjs` sont atteints PAR
     //   `publier.mjs`, qui n'en importe que des CONSTANTES et des fonctions pures (`GENERATORS`,
     //   `SOURCES_LUES`) ; leurs écritures vivent derrière leurs propres portes `import.meta.main`, ou sous
     //   `node_modules/.cache`.
     'scripts/docs/build-all.mjs',
-    'scripts/docs/lib/empreinte-sources.mjs',
+    'scripts/docs/lib/ecriture-derives.mjs',
     'scripts/gates/toutes.mjs',
     'scripts/guards/lib/depotGabarit.mjs',
     'scripts/guards/lib/purgerPerimes.mjs',
+    // +1 le 2026-10-01 (#2194) : `etapesDuTrain.mjs` importe de `docs-rebuild.mjs` deux fonctions PURES
+    // (`sourcesMesurees`, `touchesDocSources`) ; le journal des hooks git n'y est armé que par `main`,
+    // derrière sa porte `import.meta.main` — jamais depuis la gate.
+    'scripts/git-hooks/journal.mjs',
     'scripts/ops/chantier.test.mjs',
     // +1 le 2026-09-27 (#1806) : le banc du point fixe de la CLÔTURE des étapes porte `writeFileSync(`
     // dans le TEXTE d'un module fictif, lu par un `disque` injecté EN MÉMOIRE (`sources`, une `Map`) ;
@@ -276,10 +294,10 @@ const ATTENDU = {
     // `mkdirSync`) et une jonction (`symlinkSync`) sous `os.tmpdir()`, `rmSync` en finally ; l'arbre
     // n'est jamais écrit.
     'scripts/docs/lib/chemin-mesure.test.mjs',
-    'scripts/docs/lib/empreinte-sources.mjs',
+    'scripts/docs/lib/ecriture-derives.mjs',
     // +1 le 2026-09-23 (#1801) : le banc de `ecrireOuVerifier` joue la primitive sur un doc JETABLE
     // (`mkdtempSync` + `writeFileSync` sous `os.tmpdir()`) ; l'arbre n'est jamais écrit.
-    'scripts/docs/lib/empreinte-sources.test.mjs',
+    'scripts/docs/lib/ecriture-derives.test.mjs',
     // +2 le 2026-09-14 (#1759) : le test de contrat importe `installer` pour
     // monter l'enveloppe de `fs` à nu (la casse d'un chemin lu se juge sans sous-processus).
     // L'écriture de ce module est la sienne propre — `<WFRP_LECTURES_SORTIE>.<pid>.json`, derrière la
@@ -306,11 +324,12 @@ const ATTENDU = {
     'scripts/test/run.mjs',
     'scripts/test/verrou.mjs',
   ],
-  build: [],
-  'docs:check:tout': ['scripts/docs/build-all.mjs', 'scripts/docs/lib/empreinte-sources.mjs'],
-  'docs:empreinte': ['scripts/docs/build-all.mjs', 'scripts/docs/lib/empreinte-sources.mjs'],
+  // +2 le 2026-09-30 (#2203) : `gen` est `build-all.mjs --code` (`genererCode`), qui écrit les cibles
+  // de CODE par `ecrireOuVerifier`.
+  build: ['scripts/docs/build-all.mjs', 'scripts/docs/lib/ecriture-derives.mjs'],
+  'docs:build': ['scripts/docs/build-all.mjs', 'scripts/docs/lib/ecriture-derives.mjs'],
   'test:raw': [
-    'scripts/docs/lib/empreinte-sources.mjs',
+    'scripts/docs/lib/ecriture-derives.mjs',
     // +1 le 2026-09-20 (#1825) : le banc du contrat d'acceptation de l'Atlas IMPORTE
     // l'acceptation déclarée par chaque lecteur, `croissance.mjs` compris — une ligne de contrat
     // qui nommerait ses lecteurs dans une CHAÎNE ne dirait rien de ce qu'ils déclarent. Le module
@@ -419,9 +438,9 @@ const ATTENDU = {
   // `build-implemente.mjs` (frontière du bloc de champ généré, source unique, #925) ; la réécriture
   // des fiches de ce module vit derrière sa porte `import.meta.main` (`main` de build-implemente.mjs).
   // Mesurée par `scripts/docs/lib/enregistreur-lectures.mjs` en `--import` sur le CLI : ZÉRO écriture.
-  // `build-implemente.mjs` importe `declarerCorpsPerime` du socle d'empreinte (#1801), dont
-  // l'écrivain (`ecrireDoc`) n'est appelé que par un générateur — la gate n'en appelle aucun.
-  'raw:check-code-refs': ['scripts/docs/lib/empreinte-sources.mjs', 'scripts/raw/build-implemente.mjs'],
+  // −1 le 2026-10-01 (#2203) : `ecriture-derives.mjs` n'est plus atteint depuis `a1cfad5e6`, où le `--check`
+  // de `build-implemente.mjs` rend une fiche périmée par son code de sortie, sans `declarerCorpsPerime`.
+  'raw:check-code-refs': ['scripts/raw/build-implemente.mjs'],
   // La garde des renvois d'ancre de l'Atlas (#1824) n'atteint AUCUN module écrivain : elle lit les
   // pages, calcule leurs ancres et rend son verdict — l'outil qui répare vit à côté
   // (scripts/raw/reparer-ancres.mjs), et c'est LUI qui importe la garde, jamais l'inverse.
@@ -465,7 +484,7 @@ test('la sonde n’est pas AVEUGLE : elle voit les écrivains connus, et ignore 
   const mesure = ecrivainsParGate(RACINE)
   // Trois vérités indépendantes, chacune vérifiable à la main.
   assert.ok(
-    mesure['docs:check:tout'].includes('scripts/docs/lib/empreinte-sources.mjs'),
+    mesure['docs:build'].includes('scripts/docs/lib/ecriture-derives.mjs'),
     '`ecrireOuVerifier` est le seam par lequel tout générateur écrit sa cible',
   )
   assert.ok(

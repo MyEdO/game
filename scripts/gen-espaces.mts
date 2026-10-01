@@ -15,10 +15,10 @@
  * est remplacé par une table vide AVANT que les modules qui l'importent (`_registry.generated` → defs →
  * `grammaire/ref.ts`) ne se chargent.
  *
- * Jouée par `genAll` (`scripts/gen-registry.mjs`), après la phase 1 : `npm run gen` et `buildStart`
- * (`vite.config.ts`) ; `--check` compare sans écrire (`npm run gen -- --check`).
+ * Jouée par `genAll` (`scripts/gen-registry.mjs`), après la phase 1 : `genererCode`
+ * (scripts/docs/build-all.mjs) ; `--check` compare sans écrire (`npm run docs:check`).
  */
-import { readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import type { SchemaDef } from '../src/data/schemas/types';
 import type { AccesAuxDocuments, CollectionDeFichier } from '../src/data/schemas/grammaire/collection-cle';
@@ -26,7 +26,7 @@ import { cleDesSpecs, cleFiltree, HORS_DE_LA_GRAPHIE } from '../src/data/schemas
 import { SOURCES_DE_SPECS, type SourceDeSpecs } from '../src/data/schemas/grammaire/sourcesDeSpecs';
 import { parUnitesDeCode } from './guards/lib/lister.mjs';
 import { litteralJs } from './guards/lib/litteralJs.mjs';
-import { ecrireOuVerifier } from './docs/lib/empreinte-sources.mjs';
+import { ecrireOuVerifier } from './docs/lib/ecriture-derives.mjs';
 import { MESSAGES_DE, SORTIES_DES_ESPACES } from './gen-registry.mjs';
 
 const { ids: SORTIE, cles: SORTIE_CLES, racines: SORTIE_RACINES } = SORTIES_DES_ESPACES;
@@ -184,10 +184,27 @@ function indexSurDisque(): string {
   }
 }
 
+/**
+ * EXCEPTION NOMMÉE au contrat `rendre()` PUR de `GENERATORS` (#2203 A2) : la phase 2 IMPORTE les defs
+ * (`_registry.generated`, sortie de la phase 1) et `grammaire/ref.ts`, qui importe l'index qu'elle rend.
+ * `rendre()` exige donc l'index sur disque ; seul `genEspaces` l'amorce par `TABLE_VIDE`. Mesure du
+ * 2026-09-30 : 90 importeurs de `grammaire/ref`, 55 de `schemas/_registry.generated` — l'injection
+ * de la table ne rendrait pas la phase 2 pure (la phase 1 reste importée).
+ */
+export const AMORCAGE_EN_DEUX_TEMPS = 'amorçage en deux temps de la phase 2 (TABLE_VIDE, puis rendu)';
+
+/** Les deux autres modules de la phase 2, importés par `src/data/overrides.ts` et
+ *  `src/data/versionDataset.ts` que la phase 2 charge : posés VIDES quand ils manquent (clone neuf,
+ *  #2203 A2), puis rendus. */
+const AMORCES_DES_MODULES: ReadonlyMap<string, string> = new Map([
+  [SORTIE_CLES, 'export const CLES_DE_DATASET = [] as const;\nexport type CleDeDataset = (typeof CLES_DE_DATASET)[number];\n'],
+  [SORTIE_RACINES, 'export const RACINES_VIVANTES: Readonly<Record<string, unknown>> = {};\n'],
+]);
+
 /** Contrat `rendre()` de `GENERATORS` (scripts/docs/build-all.mjs), phase 2 : module → texte, sans
- *  écrire. LÈVE sur un index illisible : seul `genEspaces` le remplace par la table vide. */
+ *  écrire. LÈVE sur un index illisible (`AMORCAGE_EN_DEUX_TEMPS`). */
 export async function rendre(): Promise<Map<string, string>> {
-  if (!indexChargeable(indexSurDisque())) throw new Error(`gen-espaces — ${SORTIE} est illisible (conflit ou sans IDS_PAR_ESPACE) : relancer \`npm run gen\`.`);
+  if (!indexChargeable(indexSurDisque())) throw new Error(`gen-espaces — ${SORTIE} est illisible ou absent, ${AMORCAGE_EN_DEUX_TEMPS} : relancer \`npm run gen\`.`);
   return (await rendu()).textes;
 }
 
@@ -202,6 +219,7 @@ async function genEspaces(check: boolean): Promise<{ changed: boolean; espaces: 
     }
     writeFileSync(SORTIE, TABLE_VIDE);
   }
+  for (const [chemin, amorce] of AMORCES_DES_MODULES) if (!existsSync(chemin)) writeFileSync(chemin, amorce);
   const { textes, table, clesDeDataset, racines } = await rendu();
   let changed = false;
   for (const [chemin, texte] of textes) changed = ecrire(chemin, texte, check) || changed;
