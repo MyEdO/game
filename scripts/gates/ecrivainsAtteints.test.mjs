@@ -428,7 +428,8 @@ const ATTENDU = {
   // `build-implemente.mjs` (frontière du bloc de champ généré, source unique, #925) ; la réécriture
   // des fiches de ce module vit derrière sa porte `import.meta.main` (`main` de build-implemente.mjs).
   // Mesurée par `scripts/docs/lib/enregistreur-lectures.mjs` en `--import` sur le CLI : ZÉRO écriture.
-  // −1 le 2026-10-01 (#2203).
+  // −1 le 2026-10-01 (#2203) : `ecriture-derives.mjs` n'est plus atteint depuis `a1cfad5e6`, où le `--check`
+  // de `build-implemente.mjs` rend une fiche périmée par son code de sortie, sans `declarerCorpsPerime`.
   'raw:check-code-refs': ['scripts/raw/build-implemente.mjs'],
   // La garde des renvois d'ancre de l'Atlas (#1824) n'atteint AUCUN module écrivain : elle lit les
   // pages, calcule leurs ancres et rend son verdict — l'outil qui répare vit à côté

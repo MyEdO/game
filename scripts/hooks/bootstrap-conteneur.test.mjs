@@ -9,7 +9,7 @@ import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import {
-  GESTES_DU_CONTENEUR, VERROU_DOCS, bootstrap, docsBuildDetache, estConteneurDistant, lancer, mettreEnConformite,
+  AGE_MAX_VERROU_MS, GESTES_DU_CONTENEUR, VERROU_DOCS, bootstrap, docsBuildDetache, estConteneurDistant, lancer, mettreEnConformite,
 } from './bootstrap-conteneur.mjs'
 import { BUDGET_TOTAL, JOURNAL_DOCS, MARGE_DE_DEMARRAGE, PREREQUIS } from './bootstrap-prerequis.mjs'
 import { depotDe } from '../guards/lib/gitPorte.mjs'
@@ -259,25 +259,35 @@ function poserVerrou(racine, pid, mtime) {
   return verrou
 }
 
-test('docs:build détaché : un verrou plus vieux que AGE_MAX_VERROU_MS est périmé, même tenu par un processus étranger VIVANT', async () => {
+/** Joue `docsBuildDetache` sur un verrou tenu par un processus étranger VIVANT — le pid du build rouge,
+ *  repris dans la même vie de la machine — daté de `ageMs`, puis `juger(vu, etranger, verrou)`. */
+async function verrouEtrangerDate(ageMs, juger) {
   const racine = racineDeBuild()
-  // Le build rouge a laissé son pid, repris dans la même vie de la machine par un processus étranger.
   const etranger = spawn(process.execPath, ['-e', 'setTimeout(() => {}, 30000)'], { stdio: 'ignore' })
-  let repris
+  let vu
   try {
-    const ilYa3Jours = (Date.now() - 3 * 86_400_000) / 1000
-    const verrou = poserVerrou(racine, etranger.pid, ilYa3Jours)
-    repris = docsBuildDetache(racine)
-    assert.equal(repris.ok, true, repris.rapport)
-    assert.notEqual(repris.valeur, String(etranger.pid), 'le build est LANCÉ, l’étranger ne passe pas pour lui')
-    assert.equal(readFileSync(verrou, 'utf8'), repris.valeur)
+    const verrou = poserVerrou(racine, etranger.pid, (Date.now() - ageMs) / 1000)
+    vu = docsBuildDetache(racine)
+    juger(vu, String(etranger.pid), verrou)
   } finally {
-    const lances = [String(etranger.pid), repris?.valeur].filter(Boolean)
+    const lances = [String(etranger.pid), vu?.valeur].filter(Boolean)
     for (const pid of lances) tuer(pid)
     await attendre(() => lances.every((pid) => !vivant(pid)), 'les processus du banc meurent')
     await rm(racine, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 })
   }
-})
+}
+
+test('docs:build détaché : un verrou d’un processus étranger VIVANT, plus jeune que AGE_MAX_VERROU_MS d’une minute, est TENU', () =>
+  verrouEtrangerDate(AGE_MAX_VERROU_MS - 60_000, (vu, etranger) => {
+    assert.deepEqual(vu, { ok: true, valeur: etranger, rapport: '' }, 'le build est sauté, l’étranger passe pour lui')
+  }))
+
+test('docs:build détaché : un verrou d’un processus étranger VIVANT, plus vieux que AGE_MAX_VERROU_MS d’une minute, est périmé', () =>
+  verrouEtrangerDate(AGE_MAX_VERROU_MS + 60_000, (vu, etranger, verrou) => {
+    assert.equal(vu.ok, true, vu.rapport)
+    assert.notEqual(vu.valeur, etranger, 'le build est LANCÉ, l’étranger ne passe pas pour lui')
+    assert.equal(readFileSync(verrou, 'utf8'), vu.valeur)
+  }))
 
 test('docs:build détaché : un verrou repris par une AUTRE session entre le constat et l’écart n’est jamais retiré', async () => {
   const racine = racineDeBuild()
