@@ -490,7 +490,7 @@ test('partie : `i/K` avec 1 ≤ i ≤ K, variable absente = null, toute autre fo
 test('partie : un filtre de fichier, un drapeau restrictif ou global à un processus la REFUSENT', () => {
   assert.equal(refusDePartie({ filtres: [], argv: [] }), null)
   assert.equal(refusDePartie({ filtres: [], argv: ['--bail'] }), null, '`--bail` ne restreint pas un run vert')
-  assert.match(refusDePartie({ filtres: ['src/a.test.ts'], argv: ['src/a.test.ts'] }), /combinée à un filtre de fichier \(src\/a\.test\.ts\)/)
+  assert.match(refusDePartie({ filtres: ['src/a.ts'], argv: ['src/a.ts'] }), /combinée à un filtre de fichier \(src\/a\.ts\)/)
   assert.match(refusDePartie({ filtres: [], argv: ['-t', 'x'] }), /drapeau restrictif -t/)
   assert.match(refusDePartie({ filtres: [], argv: ['--shard=1/2'] }), /drapeau restrictif --shard=1\/2/)
   assert.match(refusDePartie({ filtres: [], argv: ['--config', 'x.ts'] }), /drapeau --config, global à un seul processus/)

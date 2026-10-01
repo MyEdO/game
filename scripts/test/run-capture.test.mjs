@@ -394,11 +394,11 @@ test('partie mal formée, ou combinée à un filtre de fichier : REFUS nommé, a
   for (const [valeur, args, motif] of [
     ['4/3', [], /REFUS — WFRP_TEST_PARTIE mal formée : « 4\/3 »/],
     ['', [], /REFUS — WFRP_TEST_PARTIE mal formée : « {2}»/],
-    ['1/3', ['un.test.ts'], /REFUS — WFRP_TEST_PARTIE combinée à un filtre de fichier \(un\.test\.ts\)/],
+    ['1/3', ['un-filtre.ts'], /REFUS — WFRP_TEST_PARTIE combinée à un filtre de fichier \(un-filtre\.ts\)/],
   ]) {
     const base = fauxDepot(VITEST_VERT)
     try {
-      writeFileSync(join(base, 'un.test.ts'), "import { test } from 'vitest'\n", 'utf8')
+      writeFileSync(join(base, 'un-filtre.ts'), "import { test } from 'vitest'\n", 'utf8')
       const run = lanceMono(base, { WFRP_TEST_PARTIE: valeur }, args)
       assert.equal(run.status, 2, `${valeur} ${args} : ${run.stdout}${run.stderr}`)
       assert.match(run.stderr, motif)

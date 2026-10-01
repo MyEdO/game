@@ -241,10 +241,11 @@ export function matriceDe({ job, texte }) {
 
 /**
  * Contextes de check d'UN job : son `name:` (à défaut son id), déplié sur sa matrice. Un check-run de
- * workflow porte le nom du job (« The name format is `<job name>` », troubleshooting-rules.md:36), et
- * `jobs.<job_id>.name` lit les contextes `matrix` et `strategy` (contexts.md:101). Seules expressions
- * évaluées : `${{ matrix.<clé> }}` et `${{ strategy.job-total }}` ; un job matrice dont le `name:` ne
- * porte pas `${{ matrix.<clé> }}` LÈVE — le nom que GitHub lui donnerait alors n'est pas documenté.
+ * workflow porte le nom du job (« The name format is `<job name>` », troubleshooting-rules.md,
+ * section « Troubleshooting required status checks »), et `jobs.<job_id>.name` lit les contextes
+ * `matrix` et `strategy` (contexts.md, section « Context availability »). Seules expressions évaluées :
+ * `${{ matrix.<clé> }}` et `${{ strategy.job-total }}` ; un job matrice dont le `name:` ne porte pas
+ * `${{ matrix.<clé> }}` LÈVE — le nom que GitHub lui donnerait alors n'est pas documenté.
  */
 export function contextesDuJob(bloc) {
   const nom = bloc.cles.name === undefined ? bloc.job : scalaire(bloc.cles.name)

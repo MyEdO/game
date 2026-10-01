@@ -63,8 +63,8 @@ export const DELAI_DE_REPONSE_MINUTES = 2 * TIMEOUT_JOB_MINUTES
  * `MERGE` : les commits de la branche entrent avec LEURS shas (#2178, design v2). `ALLGREEN` : chaque
  * commit de file passe les checks requis. `min_entries_to_merge: 1` : aucune attente de groupe.
  * `max_entries_to_build: 2` : une course de `ci.yml` = 8 jobs, et le plan `free` en sert 20 à la fois
- * (limits.md:66) — deux courses simultanées (16 jobs) tiennent, au-delà des jobs attendent ; l’attente
- * se mesure `createdAt` → `startedAt` (#2178, design du lot 1b §5).
+ * (limits.md, tableau « Total concurrent jobs ») — deux courses simultanées (16 jobs) tiennent, au-delà
+ * des jobs attendent ; l’attente se mesure `createdAt` → `startedAt` (#2178, design du lot 1b §5).
  */
 export const PARAMETRES_DE_FILE = Object.freeze({
   check_response_timeout_minutes: DELAI_DE_REPONSE_MINUTES,
