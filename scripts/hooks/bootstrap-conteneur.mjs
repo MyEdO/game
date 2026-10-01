@@ -61,11 +61,11 @@ export const VERROU_DOCS = 'node_modules/.cache/bootstrap-docs-build.pid'
 const ABANDON_VERROU_MS = 10_000
 
 /**
- * Âge au-delà duquel un verrou est PÉRIMÉ quel que soit son pid : le verrou n'est pas retiré à la fin
- * du build, et son pid a pu être repris par un processus étranger. Un `docs:build` CI dure ~80 s (job
- * docs du run 36803856342).
+ * Âge au-delà duquel un verrou est PÉRIMÉ quel que soit son pid. Le verrou n'est jamais retiré à la fin
+ * du build : un pid recyclé par un processus étranger dans cette fenêtre fait sauter le build JUSQU'À
+ * cette borne — borné, pas fermé. Un `docs:build` CI dure ~80 s (job docs du run 36803856342).
  */
-const AGE_MAX_VERROU_MS = 30 * 60 * 1000
+export const AGE_MAX_VERROU_MS = 30 * 60 * 1000
 
 /** `pid` désigne-t-il un processus vivant ? Un refus de signal (`EPERM`) prouve qu'il existe. */
 const pidVivant = (pid) => {
