@@ -20,6 +20,7 @@ import { join, posix, resolve, win32 } from 'node:path'
 import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import {
   segmentsProfonds,
+  finAvantOperateur,
   pipelinesProfonds,
   isGitCommitCommand,
   extractClosedIssues,
@@ -401,4 +402,13 @@ test('segmentsProfonds EST l’aplati de pipelinesProfonds (une seule traversée
   ]) {
     assert.deepEqual(segmentsProfonds(cmd), pipelinesProfonds(cmd).flat(), cmd)
   }
+})
+
+test('finAvantOperateur : les arguments d\'un segment s\'arrêtent à sa première redirection (#2233)', () => {
+  assert.equal(finAvantOperateur(['node', 's.mjs', '2189', '2>&1']), 3)
+  assert.equal(finAvantOperateur(['node', 's.mjs', '2189', '>', 'f.txt']), 3)
+  assert.equal(finAvantOperateur(['node', 's.mjs', '2189', '2>/dev/null']), 3)
+  assert.equal(finAvantOperateur(['node', 's.mjs', '&>', 'f.txt']), 2)
+  assert.equal(finAvantOperateur(['node', 's.mjs', '2189']), 3)
+  assert.equal(finAvantOperateur(['>', 'git', 'commit', '>', 'f'], 1), 3, 'à partir de `depart`')
 })

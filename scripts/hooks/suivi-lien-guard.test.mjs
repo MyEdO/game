@@ -8,7 +8,7 @@ import * as FS from 'node:fs'
 import { basename, dirname, join } from 'node:path'
 import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import { repartir } from './repartiteur.mjs'
-import { JOURNAL, epiqueLiee, epiquesLiees, garde, lignesDuJournal } from './suivi-lien-guard.mjs'
+import { JOURNAL, avertissementIllisible, epiqueLiee, epiquesLiees, garde, lignesDuJournal } from './suivi-lien-guard.mjs'
 
 const SCRIPTS = JSON.parse(FS.readFileSync(new URL('../../package.json', import.meta.url), 'utf8')).scripts
 
@@ -19,6 +19,32 @@ test('epiqueLiee : `ops:suivi -- N` par npm comme en direct ; rien sinon', () =>
   assert.equal(epiqueLiee('npm run ops:suivi -- 1816 --creer'), 1816)
   for (const rien of ['npm run ops:suivi', 'npm run ops:suivi -- 0', 'npm run ops:suivi -- 1816 --bogue', 'npm run ops:suivi -- 1 2', 'npm run ops:publier -- --detache', 'git commit -m x', 'echo npm run ops:suivi -- 3', '']) {
     assert.equal(epiqueLiee(rien), null, rien)
+  }
+})
+
+test('epiqueLiee : #2233 — un segment précédé d’un `cd`, ou suivi d’une redirection et d’un tube, lie quand même', () => {
+  assert.equal(epiqueLiee('npm run ops:suivi -- 2189 2>&1 | tail -4'), 2189)
+  assert.equal(epiqueLiee('cd x && npm run ops:suivi -- 2189'), 2189)
+  assert.equal(epiqueLiee('cd /depot/Game && npm run ops:suivi -- 2189 2>&1 | tail -4; tail -2 .git/suivi/.journal'), 2189)
+  assert.equal(epiqueLiee('node scripts/ops/suivi.mjs 2189 --sans-fetch > sortie.txt 2>/dev/null'), 2189)
+})
+
+test('#2233 — un `ops:suivi` aux arguments illisibles ne se tait pas : avertissement, aucune trace ; la liste sans argument, rien', async () => {
+  const { racine } = instanceDeDepot({ commit: false, fichiers: { 'package.json': JSON.stringify({ scripts: SCRIPTS }) } })
+  const shell = (command, entree = { session_id: 's' }) => repartir({ PreToolUse: [garde] }, JSON.stringify({
+    hook_event_name: 'PreToolUse', tool_name: 'Bash', tool_input: { command }, ...entree,
+  }), { env: {}, cwd: racine })
+  try {
+    const illisible = await shell('npm run ops:suivi -- $N 2>&1 | tail -4')
+    assert.deepEqual(illisible.traces, [])
+    assert.equal(illisible.sortie?.hookSpecificOutput?.additionalContext, avertissementIllisible(['$N']))
+    assert.equal(illisible.sortie?.hookSpecificOutput?.permissionDecision, undefined, 'jamais un refus')
+    for (const rien of ['npm run ops:suivi', 'npm run ops:suivi > liste.txt', 'git commit -m x']) {
+      assert.deepEqual(await shell(rien), { sortie: null, traces: [] }, rien)
+    }
+    assert.deepEqual(await shell('npm run ops:suivi -- $N', { session_id: 's', agent_id: 'a1' }), { sortie: null, traces: [] }, 'sous-agent : rien')
+  } finally {
+    FS.rmSync(racine, { recursive: true, force: true })
   }
 })
 
