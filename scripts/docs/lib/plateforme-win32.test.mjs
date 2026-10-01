@@ -42,18 +42,33 @@ function renduSousWin32(g) {
   })
 }
 
+/** Les ÉCARTS entre le rendu de `script` sur l'hôte et sous win32 (cible → texte, chacun) : une cible
+ *  d'un seul côté, ou un corps différent. PUR. */
+function ecartsDeRendu(script, hote, win32) {
+  const ecarts = []
+  for (const cible of new Set([...hote.keys(), ...win32.keys()])) {
+    if (!hote.has(cible)) ecarts.push(`${script} : « ${cible} » rendue sous win32 seulement`)
+    else if (!win32.has(cible)) ecarts.push(`${script} : « ${cible} » rendue sur l’hôte seulement`)
+    else if (hote.get(cible) !== win32.get(cible)) ecarts.push(`${script} : « ${cible} » — le corps dépend de la plateforme`)
+  }
+  return ecarts
+}
+
+test('ecartsDeRendu : corps différent, cible d’un seul côté, rendu identique', () => {
+  const rendu = (paires) => new Map(paires)
+  assert.deepEqual(ecartsDeRendu('g.mjs', rendu([['docs/a.md', 'a/b']]), rendu([['docs/a.md', 'a\\b']])), ['g.mjs : « docs/a.md » — le corps dépend de la plateforme'])
+  assert.deepEqual(ecartsDeRendu('g.mjs', rendu([['docs/a.md', 'x']]), rendu([])), ['g.mjs : « docs/a.md » rendue sur l’hôte seulement'])
+  assert.deepEqual(ecartsDeRendu('g.mjs', rendu([]), rendu([['docs/a.md', 'x']])), ['g.mjs : « docs/a.md » rendue sous win32 seulement'])
+  assert.deepEqual(ecartsDeRendu('g.mjs', rendu([['docs/a.md', 'x']]), rendu([['docs/a.md', 'x']])), [])
+})
+
 test('chaque générateur de `GENERATORS` rend le MÊME corps sur l’hôte et sous win32', { timeout: 900_000 }, async (t) => {
   if (HOTE === 'win32') t.diagnostic('hôte win32 : le rendu natif EST le rendu sous win32 — la garde mord en CI Linux')
   const ecarts = []
   for (const g of GENERATORS) {
     const sousWin32 = renduSousWin32(g)
     const hote = await renduDe(g)
-    const win32 = await sousWin32
-    for (const cible of new Set([...hote.keys(), ...win32.keys()])) {
-      if (!hote.has(cible)) ecarts.push(`${g.script} : « ${cible} » rendue sous win32 seulement`)
-      else if (!win32.has(cible)) ecarts.push(`${g.script} : « ${cible} » rendue sur l’hôte seulement`)
-      else if (hote.get(cible) !== win32.get(cible)) ecarts.push(`${g.script} : « ${cible} » — le corps dépend de la plateforme`)
-    }
+    ecarts.push(...ecartsDeRendu(g.script, hote, await sousWin32))
   }
   assert.deepEqual(ecarts, [])
 })

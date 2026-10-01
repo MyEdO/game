@@ -23,8 +23,7 @@
 // Un générateur `runner: 'tsx'` se lance par `node --import tsx/esm` (`tsx/dist/cli.mjs` re-spawne un
 // processus) ; un dumper passe par `resoudreOutilLocal` + `envIsole`, qui transmettent l'env.
 import { execFileSync } from 'node:child_process'
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { binLocal, envIsole, resoudreOutilLocal } from '../lancer-local.mjs'
@@ -109,7 +108,7 @@ export function genererCode({ cwd, quiet = false, generateurs = GENERATORS }) {
   const tsxEsm = deCode.some((g) => g.runner === 'tsx') ? tsxEsmDe(cwd) : null
   for (const g of deCode) {
     try {
-      run(g, { cwd, quiet, check: false, tsxEsm })
+      run(g, { cwd, quiet, mode: 'ecrire', tsxEsm })
     } catch (e) {
       transmettreDiagnostic(e, quiet)
       process.stderr.write(`gen — ARRÊT sur ${g.script} (${natureDuRouge(issueDe(e))}) : les cibles de code ne sont PAS à jour.\n`)
@@ -174,15 +173,21 @@ export function ciblesSurDisque(cibles, cwd) {
   })
 }
 
+/** Point d'entrée du mode `rendre` : il joue `rendre()` du générateur, sans écrire. */
+const RENDRE_SEUL = fileURLToPath(new URL('lib/rendre-seul.mjs', import.meta.url))
+
 /**
- * Argv et env d'un générateur. L'enregistreur en `NODE_OPTIONS` quand le rendu se mesure, puis
- * `tsx/esm` (argv, joué après `NODE_OPTIONS`). `rendues` : le fichier de `ENV_CIBLES_RENDUES`.
+ * Argv et env d'un générateur. `mode` : `ecrire` (sa porte `import.meta.main`), `verifier`
+ * (`--check`), `rendre` (`RENDRE_SEUL`, rien d'écrit ni de comparé). L'enregistreur en `NODE_OPTIONS`
+ * quand le rendu se mesure, puis `tsx/esm` (argv, joué après `NODE_OPTIONS`). `rendues` : le fichier
+ * de `ENV_CIBLES_RENDUES`.
  */
-function commandeDe({ runner, script }, { cwd, check, tsxEsm, lectures, ignores, cibles, rendues }) {
+function commandeDe({ runner, script }, { cwd, mode, tsxEsm, lectures, ignores, cibles, rendues }) {
   const args = [
     ...(runner === 'tsx' ? ['--import', pathToFileURL(tsxEsm).href] : []),
+    ...(mode === 'rendre' ? [RENDRE_SEUL] : []),
     script,
-    ...(check ? ['--check'] : []),
+    ...(mode === 'verifier' ? ['--check'] : []),
   ]
   const env = envIsole(process.env, binLocal(cwd))
   if (lectures) env.NODE_OPTIONS = `${env.NODE_OPTIONS ?? ''} --import ${ENREGISTREUR}`.trim()
@@ -280,31 +285,31 @@ export async function rendreCible(cible, generateurs = GENERATORS) {
   return texte
 }
 
-/** Point d'entrée de `mesurerRendu` : il joue `rendre()`, sans écrire. */
-const RENDRE_SEUL = fileURLToPath(new URL('lib/rendre-seul.mjs', import.meta.url))
+/**
+ * Racine (vidée puis recréée) des lectures d'un run mesuré, et l'ensemble `ignoresGit` de `cwd`,
+ * calculé UNE fois, que chaque processus mesuré relit (#1769). REND le chemin de ce fichier.
+ */
+export function preparerLectures(cwd, racineLectures) {
+  rmSync(racineLectures, { recursive: true, force: true })
+  mkdirSync(racineLectures, { recursive: true })
+  const ignores = path.join(racineLectures, 'ignores.json')
+  writeFileSync(ignores, JSON.stringify([...ignoresGit(cwd)]))
+  return ignores
+}
 
 /**
- * Les lectures MESURÉES du rendu de `g` dans `cwd` — son `rendre()` sous l'enregistreur, aucune cible
- * écrite : l'entrée `{ cibles, fichiers, dossiers }` que `docs:build` consigne pour `g` dans
- * `SOURCES_LUES`, sans rien produire.
+ * LA mesure d'un générateur : `g` joué en `mode` (`commandeDe`) sous l'enregistreur, ses lectures
+ * consignées dans `lectures`. Un générateur relit ce qu'il écrit (sa cible en `verifier`, le fichier
+ * où il injecte un champ) : ses `targets` et `injecte` dépliés sortent de ses sources. LÈVE comme `run`.
+ * REND `lues` (`fusionnerLectures`) et `entree`, ce que `SOURCES_LUES` consigne pour `g`.
  */
-export function mesurerRendu(g, cwd) {
-  const racineLectures = mkdtempSync(path.join(tmpdir(), 'mesure-rendu-'))
-  try {
-    const ignores = path.join(racineLectures, 'ignores.json')
-    writeFileSync(ignores, JSON.stringify([...ignoresGit(cwd)]))
-    const lectures = path.join(racineLectures, 'lectures')
-    mkdirSync(lectures)
-    const ecrites = ciblesSurDisque(g.targets, cwd)
-    const cibles = [...new Set([...ecrites, ...ciblesSurDisque(g.injecte ?? [], cwd)])].sort()
-    const tsxEsm = g.runner === 'tsx' ? tsxEsmDe(cwd) : null
-    const { args, env } = commandeDe({ runner: g.runner, script: RENDRE_SEUL }, { cwd, check: false, tsxEsm, lectures, ignores, cibles })
-    execFileSync(process.execPath, [...args, g.script], { cwd, env, stdio: ['ignore', 'ignore', 'inherit'] })
-    const lues = fusionnerLectures(lectures)
-    return { cibles: ecrites.filter(estUnDocMarkdown), fichiers: lues.fichiers, dossiers: [...lues.dossiers.keys()] }
-  } finally {
-    rmSync(racineLectures, { recursive: true, force: true })
-  }
+export function mesurerGenerateur(g, { cwd, mode, quiet, tsxEsm, lectures, ignores, rendues }) {
+  mkdirSync(lectures, { recursive: true })
+  const ecrites = ciblesSurDisque(g.targets, cwd)
+  const injectees = ciblesSurDisque(g.injecte ?? [], cwd)
+  run(g, { cwd, quiet, mode, tsxEsm, lectures, ignores, cibles: [...new Set([...ecrites, ...injectees])].sort(), rendues })
+  const lues = fusionnerLectures(lectures)
+  return { lues, entree: { cibles: ecrites.filter(estUnDocMarkdown), fichiers: lues.fichiers, dossiers: [...lues.dossiers.keys()] } }
 }
 
 /** `cible` est-elle PRODUITE par son générateur : une clé de son rendu, jamais un chemin que son
@@ -380,25 +385,17 @@ export async function executer({
   const seulement = only && new Set(only)
   // Refus d'un tsx NON LOCAL avant le premier générateur : à mi-chaîne, docs/ serait à moitié écrit.
   const tsxEsm = generateurs.some((g) => g.runner === 'tsx') ? tsxEsmDe(cwd) : null
-  const ignores = ignoresGit(cwd)
   const { doublons } = proprietairesDeCibles(cwd, generateurs)
   if (doublons.length) {
     process.stderr.write(`docs:build — ARRÊT : cible(s) déclarée(s) par DEUX générateurs :\n${doublons.map((d) => `  ${d}`).join('\n')}\n`)
     return 1
   }
-  // Cibles DÉPLIÉES une fois : écrites en entier, injectées.
-  const cibles = new Map(generateurs.map((g) => [g.script, {
-    ecrites: ciblesSurDisque(g.targets, cwd),
-    injectees: ciblesSurDisque(g.injecte ?? [], cwd),
-  }]))
+  // Cibles écrites en entier, DÉPLIÉES une fois : la lecture tardive se juge contre elles.
+  const ecritesPar = new Map(generateurs.map((g) => [g.script, ciblesSurDisque(g.targets, cwd)]))
   const racineLectures = path.join(cwd, 'node_modules', '.cache', 'lectures-docs', String(process.pid))
-  rmSync(racineLectures, { recursive: true, force: true })
   // Le cache de lectures de ce run se purge à chaque sortie d'`executer`.
   try {
-    // L'ensemble `ignoresGit`, calculé UNE fois, que chaque processus mesuré relit (#1769).
-    const ignoresLectures = path.join(racineLectures, 'ignores.json')
-    mkdirSync(racineLectures, { recursive: true })
-    writeFileSync(ignoresLectures, JSON.stringify([...ignores]))
+    const ignoresLectures = preparerLectures(cwd, racineLectures)
     const parGenerateur = {}
     // Verdicts de `--check`, TOUS collectés : un générateur rouge ne masque pas les suivants.
     const refus = []
@@ -410,15 +407,12 @@ export async function executer({
       // `--only` ne restreint QUE la vérification : un `docs:build` partiel réécrirait
       // `.sources-lues.json` avec les seuls générateurs joués, et effacerait la mesure des autres.
       if (check && seulement && !seulement.has(g.script)) continue
-      const { ecrites, injectees } = cibles.get(g.script)
       const dossier = path.join(racineLectures, String(rang))
-      mkdirSync(dossier, { recursive: true })
-      // Un générateur relit ce qu'il écrit (sa cible en `--check`, le fichier où il injecte un champ) :
-      // rien de tout cela n'est une de ses sources.
+      let mesure
       try {
-        run(g, {
-          cwd, quiet, check, tsxEsm, lectures: dossier, ignores: ignoresLectures,
-          cibles: [...new Set([...ecrites, ...injectees])].sort(), rendues: path.join(dossier, 'cibles-rendues'),
+        mesure = mesurerGenerateur(g, {
+          cwd, quiet, mode: check ? 'verifier' : 'ecrire', tsxEsm, lectures: dossier, ignores: ignoresLectures,
+          rendues: path.join(dossier, 'cibles-rendues'),
         })
       } catch (e) {
         transmettreDiagnostic(e, quiet)
@@ -440,7 +434,7 @@ export async function executer({
         refuser(message)
         continue
       }
-      const lues = fusionnerLectures(dossier)
+      const { lues, entree } = mesure
       // Un chemin lu hors racine sort de la mesure : dit ici, il cesse d'être indiscernable d'une
       // absence de lecture (un générateur dont les sources vivent derrière une jonction, par exemple).
       if (lues.cheminsRejetes > 0) {
@@ -456,7 +450,7 @@ export async function executer({
         continue
       }
       const ecritesAuMemeRangOuPlusTard = new Map(
-        generateurs.flatMap((autre, r) => (r >= rang ? cibles.get(autre.script).ecrites.map((c) => [c, autre.script]) : [])),
+        generateurs.flatMap((autre, r) => (r >= rang ? ecritesPar.get(autre.script).map((c) => [c, autre.script]) : [])),
       )
       const lectureTardive = lues.fichiers.find((source) => ecritesAuMemeRangOuPlusTard.has(source))
       if (lectureTardive) {
@@ -468,7 +462,7 @@ export async function executer({
         refuser(message)
         continue
       }
-      parGenerateur[g.script] = { cibles: ecrites.filter(estUnDocMarkdown), fichiers: lues.fichiers, dossiers: [...lues.dossiers.keys()] }
+      parGenerateur[g.script] = entree
     }
     if (!check) {
       ecrireSiDifferent(path.join(cwd, SOURCES_LUES), serialiserSourcesLues(parGenerateur))

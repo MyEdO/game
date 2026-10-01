@@ -11,9 +11,9 @@
 // est le seul marqueur documenté d'un tel conteneur ; sa valeur y est la chaîne `'true'`. Ce hook
 // est donc PROPRE à la surface Claude (`scripts/agents/compat-core.mjs`, `HOOKS_DE_SESSION`).
 //
-// Chaque prérequis de la table PREREQUIS porte son propre CONSTAT (`manque`) et son BUDGET de temps :
-// le hook est rejouable sans effet, un prérequis de plus s'ajoute en une entrée, et `BUDGET_TOTAL`
-// (`bootstrap-budget.mjs`, que `PREREQUIS` lit) est la SOURCE UNIQUE du `timeout` déclaré aux surfaces. Le hook n'échoue JAMAIS la session : ce
+// Chaque prérequis de la table PREREQUIS (`bootstrap-prerequis.mjs`) porte son propre CONSTAT
+// (`manque`) et son BUDGET de temps : le hook est rejouable sans effet, un prérequis de plus s'ajoute en
+// une entrée, et la table est la SOURCE UNIQUE du `timeout` déclaré aux surfaces. Le hook n'échoue JAMAIS la session : ce
 // qu'il n'a pas pu poser, il le NOMME sur sa sortie, qui entre au contexte de la session. Sous un Node
 // que refuse la porte (`scripts/node-requis.mjs`), il sort par elle avant tout constat : un
 // `SessionStart` en sortie 2 ne montre son stderr qu'à l'utilisateur, et chaque hook `PreToolUse`
@@ -21,13 +21,12 @@
 // garde ne le déclenche pas.
 import '../node-requis.mjs'
 import { spawn, spawnSync } from 'node:child_process'
-import { closeSync, existsSync, mkdirSync, openSync, readFileSync, rmSync, statSync, writeSync } from 'node:fs'
+import { closeSync, existsSync, linkSync, mkdirSync, openSync, readFileSync, renameSync, rmSync, statSync, writeSync } from 'node:fs'
+import { uptime } from 'node:os'
 import { dirname, join } from 'node:path'
 import { SOURCES_LUES } from '../docs/build-all.mjs'
 import { approfondir, depotDe, dossierDesHooks, estSuperficiel, reussi } from '../guards/lib/gitPorte.mjs'
-import { BUDGETS_DE_POSE, BUDGET_CONSTAT, BUDGET_TOTAL } from './bootstrap-budget.mjs'
-
-export { BUDGET_CONSTAT, BUDGET_TOTAL }
+import { BUDGET_CONSTAT, JOURNAL_DOCS, PREREQUIS } from './bootstrap-prerequis.mjs'
 
 /** Marqueur d'un conteneur distant Claude Code (`CLAUDE_CODE_REMOTE=true`). */
 export const estConteneurDistant = (env) => env.CLAUDE_CODE_REMOTE === 'true'
@@ -56,9 +55,6 @@ export function lancer(exe, args, { budget = BUDGET_CONSTAT, ...options } = {}) 
   }
 }
 
-/** Journal du `docs:build` DÉTACHÉ d'un conteneur neuf, relatif à la racine. */
-export const JOURNAL_DOCS = 'node_modules/.cache/bootstrap-docs-build.log'
-
 /** VERROU du `docs:build` détaché, relatif à la racine : créé exclusif (`wx`), il porte le pid du build. */
 export const VERROU_DOCS = 'node_modules/.cache/bootstrap-docs-build.pid'
 
@@ -75,20 +71,62 @@ const pidVivant = (pid) => {
   }
 }
 
-/** Le pid du build qui TIENT le verrou, ou `null` s'il est périmé : pid mort, ou illisible et abandonné. */
-function tenantDuVerrou(verrou) {
-  const pid = Number(readFileSync(verrou, 'utf8').trim())
+/** Essais de prise du verrou : une prise perdue contre une autre session se rejoue, bornée. */
+const ESSAIS_VERROU = 3
+
+/**
+ * Le pid du build qui TIENT le verrou, ou `null` s'il est périmé : absent, posé avant `demarrageMachine`
+ * (epoch ms — son pid est celui d'une vie antérieure de la machine, qu'un autre processus a pu
+ * reprendre), pid mort, ou illisible et abandonné.
+ */
+function tenantDuVerrou(verrou, demarrageMachine) {
+  let mtimeMs
+  let texte
+  try {
+    ;({ mtimeMs } = statSync(verrou))
+    texte = readFileSync(verrou, 'utf8')
+  } catch (e) {
+    if (e.code === 'ENOENT') return null
+    throw e
+  }
+  if (mtimeMs < demarrageMachine) return null
+  const pid = Number(texte.trim())
   if (Number.isInteger(pid) && pid > 0) return pidVivant(pid) ? pid : null
-  return Date.now() - statSync(verrou).mtimeMs < ABANDON_VERROU_MS ? 0 : null
+  return Date.now() - mtimeMs < ABANDON_VERROU_MS ? 0 : null
+}
+
+/**
+ * Écarte le verrou jugé périmé par un RENOMMAGE vers un nom propre à ce processus : de deux sessions
+ * qui l'ont jugé périmé, une seule le renomme, l'autre reçoit `ENOENT`. Le fichier écarté se rejuge :
+ * entre le constat et le renommage, une autre session a pu reprendre le verrou, et ce verrou VIVANT se
+ * repose (`linkSync`, qui refuse d'écraser).
+ */
+function ecarterVerrouPerime(verrou, demarrageMachine) {
+  const ecarte = `${verrou}.${process.pid}.${Date.now()}.perime`
+  try {
+    renameSync(verrou, ecarte)
+  } catch (e) {
+    if (e.code === 'ENOENT') return
+    throw e
+  }
+  try {
+    if (tenantDuVerrou(ecarte, demarrageMachine) !== null) linkSync(ecarte, verrou)
+  } catch (e) {
+    if (e.code !== 'EEXIST') throw e
+  } finally {
+    rmSync(ecarte, { force: true })
+  }
 }
 
 /**
  * Lance `docs:build` DÉTACHÉ (il dépasse le budget du hook), sortie dans `JOURNAL_DOCS` ; rend la
  * forme de `lancer`, `valeur` = le pid. Deux sessions ouvertes avant la fin du build : le verrou
  * `VERROU_DOCS` tenu par un build VIVANT, il n'est ni relancé ni son journal tronqué — `valeur` est le
- * pid du build en cours. Un verrou périmé se retire, puis se reprend.
+ * pid du build en cours. Un verrou périmé s'écarte (`ecarterVerrouPerime`), puis se reprend.
+ * `demarrageMachine` (epoch ms) et `entreConstatEtEcart` (appelé entre le constat d'un verrou périmé et
+ * son écart) s'injectent (mesure).
  */
-export function docsBuildDetache(racine) {
+export function docsBuildDetache(racine, { demarrageMachine = Date.now() - uptime() * 1000, entreConstatEtEcart = () => {} } = {}) {
   const journal = join(racine, JOURNAL_DOCS)
   const verrou = join(racine, VERROU_DOCS)
   mkdirSync(dirname(journal), { recursive: true })
@@ -97,10 +135,15 @@ export function docsBuildDetache(racine) {
     try {
       tenu = openSync(verrou, 'wx')
     } catch (e) {
-      if (e.code !== 'EEXIST' || essai > 0) return { ok: false, valeur: '', rapport: borner(e.message) }
-      const tenant = tenantDuVerrou(verrou)
+      if (e.code !== 'EEXIST' || essai >= ESSAIS_VERROU) return { ok: false, valeur: '', rapport: borner(e.message) }
+      const tenant = tenantDuVerrou(verrou, demarrageMachine)
       if (tenant !== null) return { ok: true, valeur: tenant ? String(tenant) : '', rapport: '' }
-      rmSync(verrou, { force: true })
+      entreConstatEtEcart()
+      try {
+        ecarterVerrouPerime(verrou, demarrageMachine)
+      } catch (ecart) {
+        return { ok: false, valeur: '', rapport: borner(ecart.message) }
+      }
     }
   }
   let pid
@@ -126,9 +169,10 @@ export function docsBuildDetache(racine) {
 }
 
 /** Les GESTES des prérequis — ceux de l'hôte au dépôt (`gitPorte.mjs`), la mesure des docs dérivés et
- *  leur `docs:build` détaché : injectables (mesure). */
+ *  leur `docs:build` détaché : injectables (mesure). Une pose rend la forme de `lancer`. */
 export const GESTES_DU_CONTENEUR = Object.freeze({
-  estSuperficiel, dossierDesHooks, approfondir,
+  estSuperficiel, dossierDesHooks,
+  approfondir: (depot, options) => renduDeGit(approfondir(depot, options)),
   docsMesures: (racine) => existsSync(join(racine, SOURCES_LUES)),
   docsBuildDetache,
 })
@@ -140,57 +184,6 @@ export function renduDeGit(vu) {
   const { stdout, stderr } = vu.valeur
   return { ok: reussi(vu), valeur: stdout.trim(), rapport: borner(`${stdout}${stderr}`.trim()) }
 }
-
-/** Ce que le canon exige d'un arbre de travail, et comment le poser. `manque` MESURE, `poser` agit :
- *  un prérequis déjà satisfait ne fait rien. `budget` borne le temps total de `poser`, en secondes. */
-export const PREREQUIS = [
-  {
-    nom: 'histoire git complète',
-    // Le conteneur clone à une profondeur bornée (50 commits mesurés). Dix gardes de `test:hooks`
-    // LISENT l'histoire — `fermetures-sans-solde`, `soldes-stock`, `stocks-nominatifs`,
-    // `segments-profonds` — et refusent NOMMÉMENT un dépôt superficiel.
-    manque: ({ depot, gestes }) => gestes.estSuperficiel(depot) === true,
-    poser: ({ depot, gestes, budget }) => renduDeGit(gestes.approfondir(depot, { timeout: budget * 1000 })),
-    geste: 'git fetch --unshallow origin',
-    budget: BUDGETS_DE_POSE.histoire,
-  },
-  {
-    nom: 'hooks git du dépôt',
-    // Le script `postinstall` de `package.json` pose `core.hooksPath` et les deux pilotes de
-    // fusion (fiches MIXTES, stocks), puis produit les cibles de code ; sans lui, aucune garde de
-    // commit ne joue.
-    manque: ({ depot, gestes }) => gestes.dossierDesHooks(depot) !== 'scripts/git-hooks',
-    poser: ({ racine, run, budget }) =>
-      run('npm', ['install', '--no-audit', '--no-fund'], { cwd: racine, budget }),
-    geste: 'npm install',
-    budget: BUDGETS_DE_POSE.hooks,
-  },
-  {
-    nom: 'docs dérivés',
-    // Les docs PURS ne sont pas commités (#2203) : un clone neuf ne les porte pas, et `docs:build`
-    // dépasse le budget du hook — il part DÉTACHÉ, son journal nommé.
-    manque: ({ racine, gestes }) => !gestes.docsMesures(racine),
-    poser: ({ racine, gestes }) => gestes.docsBuildDetache(racine),
-    geste: `npm run docs:build, détaché (journal ${JOURNAL_DOCS})`,
-    budget: BUDGETS_DE_POSE.docs,
-  },
-  {
-    nom: 'exécutable gh',
-    // Le dépôt officiel `cli.github.com` est refusé par la politique de sortie du conteneur (403 au
-    // proxy) : le paquet de la distribution est la seule source atteignable.
-    manque: ({ run }) => !run('gh', ['--version']).ok,
-    poser: ({ run, budget }) => {
-      const env = { ...process.env, DEBIAN_FRONTEND: 'noninteractive' }
-      const maj = run('apt-get', ['update', '-qq'], { env, budget: Math.round(budget / 3) })
-      const pose = run('apt-get', ['install', '-y', '-qq', 'gh'], { env, budget: budget - Math.round(budget / 3) })
-      if (pose.ok) return pose
-      return { ...pose, rapport: [maj.ok ? '' : `apt-get update : ${maj.rapport}`, pose.rapport].filter(Boolean).join(' — ') }
-    },
-    geste: 'apt-get update puis apt-get install -y gh',
-    budget: BUDGETS_DE_POSE.gh,
-  },
-]
-
 
 /**
  * Joue la table sur `contexte` et rend les lignes à écrire. Silence complet quand tout était déjà

@@ -2,15 +2,16 @@
 // qui est posé, ce qui est rapporté quand la pose échoue — et son CÂBLAGE sur la surface Claude.
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, utimesSync, writeFileSync } from 'node:fs'
+import { spawnSync } from 'node:child_process'
 import { rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import {
-  BUDGET_CONSTAT, BUDGET_TOTAL, GESTES_DU_CONTENEUR, JOURNAL_DOCS, PREREQUIS, VERROU_DOCS, bootstrap, docsBuildDetache,
-  estConteneurDistant, lancer, mettreEnConformite,
+  GESTES_DU_CONTENEUR, VERROU_DOCS, bootstrap, docsBuildDetache, estConteneurDistant, lancer, mettreEnConformite,
 } from './bootstrap-conteneur.mjs'
+import { BUDGET_TOTAL, JOURNAL_DOCS, MARGE_DE_DEMARRAGE, PREREQUIS } from './bootstrap-prerequis.mjs'
 import { depotDe } from '../guards/lib/gitPorte.mjs'
 import { HOOKS_DE_SESSION, SURFACE_CLAUDE, SURFACE_CODEX, aplatirHooks } from '../agents/compat-core.mjs'
 
@@ -30,7 +31,7 @@ function lanceurFeint(reponses) {
   const gestes = {
     estSuperficiel: () => { vus.push('git estSuperficiel'); return reponses['git superficiel'] ?? null },
     dossierDesHooks: () => { vus.push('git dossierDesHooks'); return reponses['git hooks'] ?? null },
-    approfondir: () => { vus.push('git approfondir'); return { disponible: true, valeur: { status: 0, stdout: '', stderr: '' } } },
+    approfondir: () => { vus.push('git approfondir'); return { ok: true, valeur: '', rapport: '' } },
     docsMesures: () => { vus.push('docs mesurés'); return reponses['docs mesurés'] ?? false },
     docsBuildDetache: () => { vus.push('docs:build détaché'); return reponses['docs:build'] ?? { ok: true, valeur: '4242', rapport: '' } },
   }
@@ -167,14 +168,13 @@ test('un rapport d’échec est BORNÉ avant d’entrer au contexte de la sessio
 
 // #1803, réfutation du juge : un budget par commande recopié à la main ne disait rien du budget de
 // bout en bout, et le `timeout` déclaré à la surface était plus court que la somme des poses.
-test('BUDGET — le `timeout` déclaré couvre la table ENTIÈRE, constats compris', () => {
-  assert.equal(BUDGET_TOTAL, PREREQUIS.reduce((s, p) => s + p.budget + BUDGET_CONSTAT, 0))
+test('BUDGET — le `timeout` déclaré couvre la table ENTIÈRE, constats et démarrage du hook compris', () => {
   const porte = aplatirHooks(JSON.parse(readFileSync(SETTINGS_CLAUDE, 'utf8')), SURFACE_CLAUDE)
     .filter((h) => h.phase === 'SessionStart' && h.script === 'bootstrap-conteneur.mjs')
   assert.equal(porte.length, 1, 'le hook de conformité du conteneur n’est pas câblé côté Claude')
   assert.ok(
-    porte[0].timeout >= BUDGET_TOTAL,
-    `timeout ${porte[0].timeout} s < budget de la table ${BUDGET_TOTAL} s — une pose serait tuée en vol`,
+    porte[0].timeout >= BUDGET_TOTAL + MARGE_DE_DEMARRAGE,
+    `timeout ${porte[0].timeout} s < budget de la table ${BUDGET_TOTAL} s + démarrage ${MARGE_DE_DEMARRAGE} s — une pose serait tuée en vol`,
   )
 })
 
@@ -243,6 +243,57 @@ test('docs:build détaché : un build VIVANT n’est ni relancé ni son journal 
     await attendre(() => lances.every((pid) => !vivant(pid)), 'les builds du banc meurent')
     // Sous win32, la racine reste tenue tant que la boucle n'a pas recueilli la fin des enfants tués :
     // l'effacement ASYNCHRONE réessaie (borné) en la laissant tourner.
+    await rm(racine, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 })
+  }
+})
+
+/** Un pid MORT : celui d'un processus node sorti. */
+const pidMort = () => spawnSync(process.execPath, ['-e', '']).pid
+
+/** Pose le verrou de `racine` avec `pid`, son mtime à `mtime` (s) s'il est donné. */
+function poserVerrou(racine, pid, mtime) {
+  const verrou = join(racine, VERROU_DOCS)
+  mkdirSync(dirname(verrou), { recursive: true })
+  writeFileSync(verrou, String(pid))
+  if (mtime !== undefined) utimesSync(verrou, mtime, mtime)
+  return verrou
+}
+
+test('docs:build détaché : un verrou posé AVANT le démarrage de la machine est périmé, même si son pid vit', async () => {
+  const racine = racineDeBuild()
+  let repris
+  try {
+    // Le pid du banc VIT : sans le démarrage de la machine, ce verrou d'une vie antérieure tiendrait.
+    const verrou = poserVerrou(racine, process.pid, Date.UTC(2001, 0, 1) / 1000)
+    repris = docsBuildDetache(racine)
+    assert.equal(repris.ok, true, repris.rapport)
+    assert.notEqual(repris.valeur, String(process.pid), 'un pid réutilisé ne tient pas un verrou d’avant le démarrage')
+    assert.equal(readFileSync(verrou, 'utf8'), repris.valeur)
+  } finally {
+    const lance = repris?.valeur && repris.valeur !== String(process.pid) ? repris.valeur : null
+    if (lance) tuer(lance)
+    await attendre(() => !lance || !vivant(lance), 'le build du banc meurt')
+    await rm(racine, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 })
+  }
+})
+
+test('docs:build détaché : un verrou repris par une AUTRE session entre le constat et l’écart n’est jamais retiré', async () => {
+  const racine = racineDeBuild()
+  let vu
+  try {
+    const verrou = poserVerrou(racine, pidMort())
+    // L'autre session écarte le verrou mort et prend le sien (pid vivant : le banc) pendant que
+    // celle-ci, qui l'a déjà jugé périmé, s'apprête à l'écarter.
+    const autreSession = () => {
+      rmSync(verrou)
+      writeFileSync(verrou, String(process.pid))
+    }
+    vu = docsBuildDetache(racine, { entreConstatEtEcart: autreSession })
+    assert.deepEqual(vu, { ok: true, valeur: String(process.pid), rapport: '' }, 'le build de l’autre session est rendu, aucun second build')
+    assert.equal(readFileSync(verrou, 'utf8'), String(process.pid), 'le verrou VIVANT de l’autre session tient toujours')
+    assert.deepEqual(readdirSync(dirname(verrou)).filter((n) => n.endsWith('.perime')), [], 'aucun verrou écarté ne traîne')
+  } finally {
+    if (vu?.valeur && vu.valeur !== String(process.pid)) tuer(vu.valeur)
     await rm(racine, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 })
   }
 })

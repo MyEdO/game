@@ -15,56 +15,45 @@ import { listerDossier } from '../../guards/lib/lister.mjs'
 import { instanceDeDepot } from '../../guards/lib/depotGabarit.mjs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
-import { fileURLToPath, pathToFileURL } from 'node:url'
+import { fileURLToPath } from 'node:url'
 import { ecrireDoc, existeFichier, fusionnerLectures, serialiserSourcesLues } from './ecriture-derives.mjs'
 import { ignoresGit } from './chemin-mesure.mjs'
-import { refusSourcesInsuffisantes } from '../build-all.mjs'
+import { GENERATORS, mesurerGenerateur, preparerLectures, refusSourcesInsuffisantes } from '../build-all.mjs'
 
 const ICI = path.dirname(fileURLToPath(import.meta.url))
 const RACINE = path.resolve(ICI, '..', '..', '..')
-const ENREGISTREUR = pathToFileURL(path.join(ICI, 'enregistreur-lectures.mjs')).href
-const TSX_ESM = path.join(RACINE, 'node_modules', 'tsx', 'dist', 'esm', 'index.mjs')
+const TSX_ESM = fileURLToPath(import.meta.resolve('tsx/esm'))
 
-/** Joue un générateur en `--check` sous l'enregistreur et rend son set de lectures fusionné. */
-function mesurer(script, cible, { tsx = false } = {}) {
-  const sortie = mkdtempSync(path.join(tmpdir(), 'lectures-'))
+/** Les lectures de `script` (un générateur de `GENERATORS`) par LA mesure de `docs:build`
+ *  (`mesurerGenerateur`), en mode `rendre` : aucune cible écrite ni comparée. */
+function mesurer(script) {
+  const g = GENERATORS.find((x) => x.script === script)
+  const racineLectures = mkdtempSync(path.join(tmpdir(), 'lectures-'))
   try {
-    const ignores = path.join(sortie, 'ignores')
-    writeFileSync(ignores, JSON.stringify([...ignoresGit(RACINE)]))
-    execFileSync(process.execPath, [...(tsx ? ['--import', pathToFileURL(TSX_ESM).href] : []), script, '--check'], {
-      cwd: RACINE,
-      stdio: 'ignore',
-      env: {
-        ...process.env,
-        NODE_OPTIONS: `${process.env.NODE_OPTIONS ?? ''} --import ${ENREGISTREUR}`.trim(),
-        WFRP_LECTURES_RACINE: RACINE,
-        WFRP_LECTURES_SORTIE: path.join(sortie, 'l'),
-        WFRP_LECTURES_IGNORES: ignores,
-        WFRP_LECTURES_CIBLE: cible,
-      },
-    })
-    return fusionnerLectures(sortie)
+    const ignores = preparerLectures(RACINE, racineLectures)
+    const tsxEsm = g.runner === 'tsx' ? TSX_ESM : null
+    return mesurerGenerateur(g, { cwd: RACINE, mode: 'rendre', quiet: true, tsxEsm, ignores, lectures: path.join(racineLectures, 'l') }).lues
   } finally {
-    rmSync(sortie, { recursive: true, force: true })
+    rmSync(racineLectures, { recursive: true, force: true })
   }
 }
 
 test('témoin : build-index-moteur mesure plus de 100 sources (liaisons ESM synchronisées)', () => {
-  const lues = mesurer('scripts/docs/build-index-moteur.mjs', 'docs/index-moteur.md')
+  const lues = mesurer('scripts/docs/build-index-moteur.mjs')
   assert.ok(lues.fichiers.length > 100, `sources mesurées : ${lues.fichiers.length}`)
   assert.ok(lues.fichiers.includes('src/engine/combat.ts'), 'src/engine/combat.ts absent du set')
   assert.ok(!lues.fichiers.includes('docs/index-moteur.md'), 'le doc CIBLE ne peut pas être sa propre source')
 })
 
 test('sous-processus : build-donnees mesure les schémas lus par son dumper tsx (NODE_OPTIONS)', () => {
-  const lues = mesurer('scripts/docs/build-donnees.mjs', 'docs/donnees.md')
+  const lues = mesurer('scripts/docs/build-donnees.mjs')
   const schemas = lues.fichiers.filter((f) => f.startsWith('src/data/schemas/'))
   assert.ok(schemas.length > 100, `schémas mesurés : ${schemas.length} (le dumper est un sous-processus)`)
   assert.ok(lues.fichiers.includes('tsconfig.json'), 'tsconfig.json absent : le thread des hooks du dumper n\'est pas mesuré')
 })
 
 test('runner tsx : build-structures mesure src/data ET src/scenes (entrée tsx/esm)', () => {
-  const lues = mesurer('scripts/docs/build-structures.mts', 'docs/structures-donnees.md', { tsx: true })
+  const lues = mesurer('scripts/docs/build-structures.mts')
   assert.ok(lues.fichiers.some((f) => f.startsWith('src/data/')), 'aucune source src/data')
   assert.ok(lues.fichiers.some((f) => f.startsWith('src/scenes/')), 'aucune source src/scenes')
 })
@@ -73,7 +62,7 @@ test('runner tsx : build-structures mesure src/data ET src/scenes (entrée tsx/e
 // OS. Sans l'enveloppe de `fs` de `enregistreur-hooks.mjs`, ce chemin ne rentre que sous Linux (la
 // CI ubuntu 33791873905 le rendait en +1 par générateur tsx) et le dérivé cesse d'être cross-OS.
 test('thread des hooks : un générateur chargé par tsx mesure tsconfig.json (dérivé cross-OS)', () => {
-  const lues = mesurer('scripts/docs/build-structures.mts', 'docs/structures-donnees.md', { tsx: true })
+  const lues = mesurer('scripts/docs/build-structures.mts')
   assert.ok(
     lues.fichiers.includes('tsconfig.json'),
     `tsconfig.json absent du set (${lues.fichiers.length} sources) : les lectures du thread des hooks ne sont pas enregistrées`,

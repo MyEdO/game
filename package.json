@@ -59,7 +59,7 @@
     "docs:sorts": "node scripts/lancer-local.mjs tsx -- tsx scripts/gen-sorts-doc.mts",
     "docs:field-consumers": "node scripts/lancer-local.mjs tsx -- tsx scripts/docs/build-field-consumers.mts",
     "docs:structures": "node scripts/lancer-local.mjs tsx -- tsx scripts/docs/build-structures.mts",
-    "deps:unused": "knip --dependencies --no-gitignore && npm run deps:exports",
+    "deps:unused": "knip --dependencies && npm run deps:exports",
     "deps:exports": "node scripts/ops/knip-exports-ratchet.mjs",
     "test:ops": "node scripts/test/node-tests.mjs test:ops",
     "ops:audit": "node scripts/ops/audit-stock.mjs",

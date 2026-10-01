@@ -75,16 +75,20 @@ export const CHEMINS_EXPORTES = {
 /** Les dépendances de l'outillage qui rejoue : le `node_modules` de CE dépôt. */
 const DEPENDANCES = fileURLToPath(new URL('../../node_modules', import.meta.url))
 
+/** LIE `dependances` (jonction, jamais copie) en `node_modules` de l'export `dossier` : `effacerExport`
+ *  efface le lien, jamais sa cible. @param {string} dossier @param {string} [dependances] */
+export const lierDependances = (dossier, dependances = DEPENDANCES) =>
+  symlinkSync(dependances, join(dossier, 'node_modules'), 'junction')
+
 /**
- * Rend l'export `dossier` JOUABLE : `DEPENDANCES` y est LIÉ (jonction, jamais copie), puis ses cibles
+ * Rend l'export `dossier` JOUABLE : `DEPENDANCES` y est LIÉ (`lierDependances`), puis ses cibles
  * de CODE sont produites (`genererCode`, scripts/docs/build-all.mjs) — elles ne sont pas commitées
  * (#2203 A2), des migrations les LISENT, et leur phase TypeScript se lance par `tsx`. Seuls jouent les
- * générateurs que l'export PORTE : un sha antérieur à l'un d'eux n'en a pas les cibles. `effacerExport`
- * ne suit pas le lien (`rmSync` récursif efface la jonction, jamais sa cible : mesuré sous win32).
+ * générateurs que l'export PORTE : un sha antérieur à l'un d'eux n'en a pas les cibles.
  * @param {string} dossier
  */
 export function preparerExport(dossier) {
-  symlinkSync(DEPENDANCES, join(dossier, 'node_modules'), 'junction')
+  lierDependances(dossier)
   const generateurs = GENERATORS.filter((g) => existsSync(join(dossier, g.script)))
   if (genererCode({ cwd: dossier, quiet: true, generateurs }) !== 0)
     throw new Error(`export ${dossier} : cibles de code NON produites (genererCode)`)
