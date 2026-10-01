@@ -148,6 +148,7 @@ import {
   nomDArchiveDeRevue, nomDeRevue, problemesDeRevue, revuesNeuves,
 } from '../guards/lib/revuePalier.mjs'
 import { coupeAuMot } from '../../src/lib/coupeAuMot.mjs'
+import { LECTEURS } from '../guards/lib/appelsRunners.mjs'
 import { OUTILS_SHELL, cheminVise, commandeDe, decisionCumulee, verdictDe } from '../guards/lib/contratGarde.mjs'
 import { racineNpmCourante } from '../guards/lib/racineNpm.mjs'
 
@@ -615,7 +616,7 @@ const ENROBEURS_TETE = new Map([
 const TOKENS_TETE_NUS = new Set(['&', '{', '}', '(', '!', 'if', 'then', 'elif', 'else', 'while', 'until', 'do'])
 /** Jetons après lesquels `(` ouvre un sous-shell : ceux de `TOKENS_TETE_NUS` et le mot réservé `time`. */
 const AVANT_SOUS_SHELL = new Set([...TOKENS_TETE_NUS, 'time'])
-const AFFECTATION_RE = /^[A-Za-z_][A-Za-z0-9_]*=/
+const AFFECTATION_RE = /^[A-Za-z_][A-Za-z0-9_]*[+]?=/
 
 /** Enrobeurs de TÊTE d'un segment, épluchés jusqu'à stabilité (`nohup env FOO=1 git …`) :
  *  `debut` = index du premier jeton exécuté (`segment.length` si le segment n'est fait que
@@ -624,7 +625,7 @@ const AFFECTATION_RE = /^[A-Za-z_][A-Za-z0-9_]*=/
 function epluchageTete(segment) {
   const enrobeurs = []
   const affectations = []
-  const affecte = (t) => affectations.push(t.slice(0, t.indexOf('=')))
+  const affecte = (t) => affectations.push(t.slice(0, t.indexOf('=')).replace(/[+]$/, ''))
   let i = 0
   for (;;) {
     const t = segment[i]
@@ -754,15 +755,23 @@ function pipelinesDeJetons(command, profondeur = 0, { scripts = scriptsNpm(), bu
 /** Têtes POSIX qui affectent leurs arguments `NOM[=val]` : `export` (sauf `-n`), et `declare`/`typeset`/
  *  `local` avec ou sans `-x` — une variable déjà exportée le reste (`man bash`, ENVIRONMENT). */
 const AFFECTEURS = new Map([['export', (args) => !args.includes('-n')], ...['declare', 'typeset', 'local'].map((t) => [t, () => true])])
-const NOM_EXPORTE_RE = /^([A-Za-z_][A-Za-z0-9_]*)(?:=|$)/
-/** PowerShell : `$env:NOM = …`, `$env:NOM=…`, `${env:NOM} = …` ; `Set-Item`/`New-Item` (alias `si`,
- *  `ni`) sur le lecteur `env:` (`about_Environment_Variables`). */
-const ENV_POWERSHELL_RE = /^\$\{?env:([A-Za-z_][A-Za-z0-9_]*)\}?(=.*)?$/i
-const ECRIVAINS_ENV_POWERSHELL = new Set(['set-item', 'si', 'new-item', 'ni'])
+const NOM_EXPORTE_RE = /^([A-Za-z_][A-Za-z0-9_]*)(?:[+]?=|$)/
+/** PowerShell : `$env:NOM = …`, `$env:NOM += …`, `${env:NOM} = …` ; `Set-Item`/`New-Item` (alias `si`,
+ *  `ni`), `Set-Content`/`Add-Content` sur le lecteur `env:` ; `[Environment]::SetEnvironmentVariable`
+ *  (`about_Environment_Variables`). */
+const ENV_POWERSHELL_RE = /^\$\{?env:([A-Za-z_][A-Za-z0-9_]*)\}?([+]?=.*)?$/i
+const ECRIVAINS_ENV_POWERSHELL = new Set(['set-item', 'si', 'new-item', 'ni', 'set-content', 'add-content'])
+const SET_ENVIRONMENT_VARIABLE_RE = /SetEnvironmentVariable[(]([^,)]*)/i
+const NOM_LITTERAL_RE = /^[A-Za-z_][A-Za-z0-9_]*$/
+
+/** Ce qu'`affectationsDuSegment` rend pour une écriture d'environnement dont le NOM n'est pas littéral
+ *  (`export "$X=…"`, `SetEnvironmentVariable($n, …)`, `Set-Item ('env:'+$n)`) : nul ne sait ce qu'elle pose. */
+export const NOM_NON_LITTERAL = '<nom non littéral>'
 const LECTEUR_ENV_RE = /^env:[\\/]?([A-Za-z_][A-Za-z0-9_]*)$/i
 
 /** Les noms de variables d'environnement qu'un segment épluché POSE pour les segments suivants :
- *  `export`, `declare`/`typeset`/`local` (`AFFECTEURS`), `$env:NOM = …`, `Set-Item env:NOM`. */
+ *  `export`, `declare`/`typeset`/`local` (`AFFECTEURS`), `$env:NOM = …`, `Set-Item env:NOM`,
+ *  `SetEnvironmentVariable(NOM, …)` ; `NOM_NON_LITTERAL` quand la syntaxe écrit un nom calculé. */
 function affectationsDuSegment(textes) {
   if (textes.length === 0) return []
   const tete = basenameExecutable(textes[0])
@@ -770,11 +779,15 @@ function affectationsDuSegment(textes) {
   const affecte = AFFECTEURS.get(tete)
   if (affecte) {
     if (!affecte(args)) return []
-    return args.filter((a) => !a.startsWith('-')).map((a) => NOM_EXPORTE_RE.exec(a)?.[1]).filter(Boolean)
+    return args.filter((a) => !a.startsWith('-')).map((a) => NOM_EXPORTE_RE.exec(a)?.[1] ?? NOM_NON_LITTERAL)
   }
   const ps = ENV_POWERSHELL_RE.exec(textes[0])
-  if (ps && (ps[2] !== undefined || args[0] === '=')) return [ps[1]]
-  if (ECRIVAINS_ENV_POWERSHELL.has(tete)) return args.map((a) => LECTEUR_ENV_RE.exec(a)?.[1]).filter(Boolean)
+  if (ps && (ps[2] !== undefined || args[0] === '=' || args[0] === '+=')) return [ps[1]]
+  if (ECRIVAINS_ENV_POWERSHELL.has(tete)) {
+    return args.filter((a) => /env:/i.test(a)).map((a) => LECTEUR_ENV_RE.exec(a)?.[1] ?? NOM_NON_LITTERAL)
+  }
+  const appel = SET_ENVIRONMENT_VARIABLE_RE.exec(textes.join(' '))
+  if (appel) return [NOM_LITTERAL_RE.test(appel[1].trim()) ? appel[1].trim() : NOM_NON_LITTERAL]
   return []
 }
 
@@ -790,12 +803,34 @@ export function affectationsDEnvironnement(command, options) {
 
 const IDENTIFIANT_RE = /[A-Za-z_][A-Za-z0-9_]*/g
 
+/** Drapeaux de MESSAGE dont la valeur est de la prose : `git commit -m`/`--message`, `gh … --title`/
+ *  `-t`/`--body`/`-b`. */
+const DRAPEAUX_DE_MESSAGE = { commit: ['-m', '--message'], gh: ['--title', '-t', '--body', '-b'] }
+
+/** Les jetons du segment qui ne sont pas la valeur d'un drapeau de message (`DRAPEAUX_DE_MESSAGE`),
+ *  sous ses formes `-m x`, `-mx`, `--message=x`. */
+function jetonsHorsMessages(segment) {
+  const drapeaux = gitSubcommand(segment)?.sub === 'commit' ? DRAPEAUX_DE_MESSAGE.commit
+    : basenameExecutable(segment[0] ?? '') === 'gh' ? DRAPEAUX_DE_MESSAGE.gh : []
+  const garde = []
+  for (let k = 0; k < segment.length; k++) {
+    const t = segment[k]
+    if (drapeaux.includes(t)) { k += 1; continue }
+    if (drapeaux.some((d) => t !== d && t.startsWith(d.startsWith('--') ? `${d}=` : d))) continue
+    garde.push(t)
+  }
+  return garde
+}
+
 /** Les identifiants que portent les jetons de la commande, quelle que soit la syntaxe qui les écrit :
  *  ceux des segments réellement exécutés et de leurs porteurs de chaîne (`segmentsProfonds`), et les
- *  noms affectés en tête (`affectationsDEnvironnement`), que l'épluchage retire des segments. */
-export function nomsDeLaCommande(command) {
+ *  noms affectés en tête (`affectationsDEnvironnement`), que l'épluchage retire des segments.
+ *  `horsMessages` : sans la valeur des drapeaux de message (`jetonsHorsMessages`). */
+export function nomsDeLaCommande(command, { horsMessages = false } = {}) {
   const noms = new Set(affectationsDEnvironnement(command))
-  for (const jeton of segmentsProfonds(command).flat()) for (const nom of jeton.match(IDENTIFIANT_RE) ?? []) noms.add(nom)
+  for (const segment of segmentsProfonds(command)) {
+    for (const jeton of horsMessages ? jetonsHorsMessages(segment) : segment) for (const nom of jeton.match(IDENTIFIANT_RE) ?? []) noms.add(nom)
+  }
   return [...noms]
 }
 
@@ -807,7 +842,7 @@ export function segmentsProfonds(command, profondeur = 0, options) {
   return pipelinesProfonds(command, profondeur, options).flat()
 }
 
-const GLOBAL_VALUE_FLAGS = new Set(['-C', '-c', '--config-env', '--git-dir', '--work-tree', '--namespace', '--exec-path'])
+const GLOBAL_VALUE_FLAGS = new Set(['-C', '-c', '--config-env', '--git-dir', '--work-tree', '--namespace'])
 
 /** Index de la SOUS-COMMANDE git dans un segment (`[&] git [flags globales] <sub>`), `-1` si le
  *  segment n'exécute pas `git`. Un token `&` de tête (call-operator PowerShell :
@@ -832,18 +867,14 @@ export function gitSubcommandIndex(segment, depart = 0) {
   return idx < segment.length ? idx : -1
 }
 
-/** Drapeaux globaux git qui désignent le dépôt ou l'arbre opéré (`git help git`), jumeaux de
- *  `GIT_DIR`/`GIT_WORK_TREE`. */
-const DRAPEAUX_GIT_DE_LIEU = ['--git-dir', '--work-tree']
-
-/** Les drapeaux de `DRAPEAUX_GIT_DE_LIEU` que portent, avant leur sous-commande, les segments git
- *  réellement exécutés (`segmentsProfonds`), sous forme `--git-dir x` comme `--git-dir=x`. */
-export function drapeauxGitDeLieu(command) {
+/** Les options globales que portent, avant leur sous-commande, les segments git réellement exécutés
+ *  (`segmentsProfonds`), telles qu'écrites (`--git-dir=x` comme `--git-dir`, sa valeur à part). */
+export function optionsGitGlobales(command) {
   return segmentsProfonds(command).flatMap((segment) => {
     const start = segment[0] === '&' ? 1 : 0
     if (segment.length <= start || !estGit(segment[start])) return []
     const fin = gitSubcommandIndex(segment)
-    return segment.slice(start + 1, fin === -1 ? segment.length : fin).map((t) => t.split('=')[0]).filter((t) => DRAPEAUX_GIT_DE_LIEU.includes(t))
+    return segment.slice(start + 1, fin === -1 ? segment.length : fin).filter((t) => t.startsWith('-'))
   })
 }
 
@@ -911,19 +942,23 @@ function estCiteur(segment) {
   return idx !== -1 && !SOUS_COMMANDES_GIT_EXECUTANTES.has(segment[idx])
 }
 
-/** Têtes de LECTURE (recherche, affichage, filtre de tube), et sous-commandes git qui ne font que lire. */
-const LECTEURS = new Set([
-  'grep', 'egrep', 'fgrep', 'rg', 'cat', 'head', 'tail', 'wc', 'ls', 'cut', 'sort', 'uniq', 'select-string', 'sls', 'findstr', 'select-object',
-])
 const SOUS_COMMANDES_GIT_DE_LECTURE = new Set(['grep', 'log', 'show', 'diff', 'blame'])
 
-/** `true` si chaque segment exécuté de la commande ne fait que LIRE (`LECTEURS`,
- *  `SOUS_COMMANDES_GIT_DE_LECTURE`). */
+/** Un segment qui ÉCRIT malgré une tête de lecture : redirection `>`/`>>`, sortie `-o`/`--output[=]`,
+ *  `tail -f`/`-F`/`--follow` (qui ne rend pas la main), `sed -i`/`--in-place`. */
+const ecritMalgreLaTete = (segment) => segment.slice(1).some((t) => /^>/.test(t) || t === '-o' || /^--output(=|$)/.test(t))
+  || (basenameExecutable(segment[0]) === 'tail' && segment.some((t) => t === '-f' || t === '-F' || t === '--follow'))
+  || (basenameExecutable(segment[0]) === 'sed' && segment.some((t) => /^-[a-zA-Z]*i/.test(t) || t.startsWith('--in-place')))
+
+/** `true` si chaque segment exécuté de la commande ne fait que LIRE : tête de `LECTEURS`
+ *  (`appelsRunners.mjs`) ou sous-commande de `SOUS_COMMANDES_GIT_DE_LECTURE`, sans écriture
+ *  (`ecritMalgreLaTete`). */
 export function commandeDeLecture(command) {
   const segments = segmentsLus(command)
   return segments.length > 0 && segments.every((segment) => {
     const git = gitSubcommand(segment)
-    return git ? SOUS_COMMANDES_GIT_DE_LECTURE.has(git.sub) : LECTEURS.has(basenameExecutable(segment[0]))
+    const lit = git ? SOUS_COMMANDES_GIT_DE_LECTURE.has(git.sub) : LECTEURS.test(basenameExecutable(segment[0]))
+    return lit && !ecritMalgreLaTete(segment)
   })
 }
 

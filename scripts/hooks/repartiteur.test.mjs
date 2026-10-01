@@ -320,7 +320,7 @@ test('#2224 affectation d’environnement en tête qui change le programme ou l�
       for (const [outil, entree] of [['Bash', { command }], [`${LC}ctx_shell`, { command, cwd: racine }]]) {
         const r = await raison(racine, outil, entree)
         assert.match(r, motif, `${outil} « ${command} » : ${r}`)
-        assert.match(r, /canal prescrit : la même commande sans ce nom/, `${outil} « ${command} »`)
+        assert.match(r, /canal prescrit : la même commande sans elle/, `${outil} « ${command} »`)
       }
     }
     for (const command of ['WFRP_TEST_COEURS=4 git status', 'echo PATH=x']) {
@@ -341,13 +341,13 @@ test('#2224 la table se lit par SECTION de la doc de git (« The Git Repository 
       ['BASH_ENV=./x.sh bash -c "npm test"', /BASH_ENV nommé : bash exécute ce fichier/],
       ['ENV=./x.sh sh -c "npm test"', /ENV : un shell POSIX exécute ce fichier/],
       ['git --git-dir=../autre/.git commit -m y', /git --git-dir : git opère ce dépôt/],
-      ['git --work-tree ../autre status', /git --work-tree : git opère ce dépôt/],
+      ['git --work-tree ../autre status', /git --work-tree : git prend cet arbre/],
     ]
     for (const [command, motif] of refusees) {
       for (const [outil, entree] of [['Bash', { command }], [`${LC}ctx_shell`, { command, cwd: racine }]]) {
         const r = await raison(racine, outil, entree)
         assert.match(r, motif, `${outil} « ${command} » : ${r}`)
-        assert.match(r, /canal prescrit : la même commande sans ce nom/, `${outil} « ${command} »`)
+        assert.match(r, /canal prescrit : la même commande sans elle/, `${outil} « ${command} »`)
       }
     }
     for (const command of [
@@ -375,7 +375,7 @@ test('#2224 un nom distinctif se ferme par NOM, quelle que soit la syntaxe qui l
     for (const [outil, command] of ecritures) {
       const r = await raison(racine, outil, { command })
       assert.match(r, /(GIT_DIR|git_dir|NODE_OPTIONS) nommé/, `${outil} « ${command} » : ${r}`)
-      assert.match(r, /canal prescrit : la même commande sans ce nom/, `${outil} « ${command} »`)
+      assert.match(r, /canal prescrit : (la même commande sans elle|le message dans un fichier)/, `${outil} « ${command} »`)
     }
     for (const command of ['git grep -n GIT_DIR', 'rg NODE_OPTIONS scripts', 'grep -rn npm_config_prefix . | head -3']) {
       const r = await raison(racine, 'Bash', { command })
@@ -384,20 +384,27 @@ test('#2224 un nom distinctif se ferme par NOM, quelle que soit la syntaxe qui l
   })
 })
 
-test('#2224 `git -c` et `--config-env` : non jugeables, jumeaux de GIT_CONFIG_PARAMETERS ; le canal nomme le remplaçant d’une clé d’éditeur', async () => {
+test('#2224 `git -c` et `--config-env` : non jugeables, jumeaux de GIT_CONFIG_PARAMETERS ; le canal d’un `-c` d’éditeur dépend de l’OUTIL', async () => {
   await dansUnDepot(async (racine) => {
-    const refusees = [
-      ['git -c core.editor=true rebase --continue', /`-c core[.]editor` : `GIT_EDITOR=true` en tête/],
-      ['git -c sequence.editor=x rebase -i HEAD~2', /`-c sequence[.]editor` : `GIT_SEQUENCE_EDITOR=true` en tête/],
-      ['git -c core.hooksPath=/dev/null commit -m y', /`-c core[.]hookspath` : la même commande sans `-c` ; une configuration durable passe par `git config`/],
-      ['git --config-env=core.hooksPath=X commit -m y', /git -c core[.]hookspath : git lit une configuration/],
-      ['git --config-env core.hooksPath=X commit -m y', /git -c core[.]hookspath : git lit une configuration/],
-      ['sh -c "git -c core.editor=true commit --amend"', /git -c core[.]editor/],
+    const SANS_C = /canal prescrit : la même commande sans `-c` [(]`GIT_EDITOR` est déjà posé[)]/
+    const PAR_BASH = /canal prescrit : passer par Bash ou PowerShell, où `GIT_EDITOR` est déjà posé/
+    const NO_EDIT = /canal prescrit : `--no-edit` à la place de `-c`/
+    const CONFIG = /canal prescrit : la même commande sans `-c` ; une configuration durable passe par `git config`/
+    const cas = [
+      ['git -c core.editor=true rebase --continue', SANS_C, PAR_BASH],
+      ['git -c sequence.editor=x rebase -i HEAD~2', SANS_C, PAR_BASH],
+      ['git -c core.editor=true commit --amend', NO_EDIT, NO_EDIT],
+      ['sh -c "git -c core.editor=true commit --amend"', NO_EDIT, NO_EDIT],
+      ['git -c core.hooksPath=/dev/null commit -m y', CONFIG, CONFIG],
+      ['git --config-env=core.hooksPath=X commit -m y', CONFIG, CONFIG],
+      ['git --config-env core.hooksPath=X commit -m y', CONFIG, CONFIG],
     ]
-    for (const [command, motif] of refusees) {
-      for (const [outil, entree] of [['Bash', { command }], [`${LC}ctx_shell`, { command, cwd: racine }]]) {
+    for (const [command, bash, leanCtx] of cas) {
+      for (const [outil, entree, canal] of [['Bash', { command }, bash], ['PowerShell', { command }, bash], [`${LC}ctx_shell`, { command, cwd: racine }, leanCtx]]) {
         const r = await raison(racine, outil, entree)
-        assert.match(r, motif, `${outil} « ${command} » : ${r}`)
+        assert.match(r, /git -c (core|sequence)[.](editor|hookspath) : git lit une configuration/, `${outil} « ${command} » : ${r}`)
+        assert.match(r, canal, `${outil} « ${command} » : ${r}`)
+        assert.doesNotMatch(r, /GIT_EDITOR=true/, `${outil} « ${command} » : aucun canal en ligne que lean-ctx bloque`)
       }
     }
     for (const command of ['GIT_EDITOR=true git status', 'GIT_SEQUENCE_EDITOR=true git status', 'git -ccore.editor=true status']) {
@@ -412,6 +419,62 @@ test('#2224 `declare`/`typeset`/`local` de `PATH` ou `ENV`, avec ou sans `-x` : 
       assert.match(await raison(racine, 'Bash', { command }), /(PATH|ENV) : /, command)
     }
     assert.equal(await decision(racine, 'Bash', { command: 'declare WFRP_TEST_COEURS=4; npm test' }), null)
+  })
+})
+
+// Sondes 4 et 5 du juge de diff #2224 : famille au critère du ticket, `+=`, nom non littéral, prose, lecture.
+test('#2224 sondes du juge : chaque commande rend sa décision et son canal', async () => {
+  await dansUnDepot(async (racine) => {
+    const LIEU = /canal prescrit : la même commande sans elle [(]`cd` ou `git -C` vers le dépôt visé[)][.]$/
+    const SANS = /canal prescrit : la même commande sans elle[.]$/
+    const PROSE = /canal prescrit : le message dans un fichier : `git commit -F <fichier>`, `gh … --body-file <fichier>`[.]$/
+    const NOM = /canal prescrit : un nom de variable littéral[.]$/
+    const RECHERCHE = /canal prescrit : `ctx_search`/
+    const cas = [
+      ['Bash', 'git --namespace=x commit -m y', LIEU],
+      ['Bash', 'git --namespace x commit -m y', LIEU],
+      ['Bash', 'GIT_NAMESPACE=x git commit -m y', LIEU],
+      ['Bash', 'GIT_EXEC_PATH=/tmp git commit -m y', SANS],
+      ['Bash', 'git --exec-path=/tmp commit -m y', SANS],
+      ['Bash', 'HOME=/tmp/h git commit -m y', SANS],
+      ['Bash', 'XDG_CONFIG_HOME=/tmp/x git commit -m y', SANS],
+      ['PowerShell', "$env:HOME='./h'; git commit -m y", SANS],
+      ['Bash', 'PATH+=:/tmp git commit -m y', SANS],
+      ['Bash', 'export PATH+=:/tmp; git commit -m y', SANS],
+      ['PowerShell', "$env:PATH += ';./faux'; git commit -m y", SANS],
+      ['Bash', 'GIT_DIR+=x git commit -m y', LIEU],
+      ['Bash', 'X=GIT_DIR; export "$X=y"; git commit -m y', NOM],
+      ['Bash', 'export $X=y; git commit -m y', NOM],
+      ['PowerShell', "[Environment]::SetEnvironmentVariable('GIT_'+'DIR','x'); git commit -m y", NOM],
+      ['PowerShell', '[Environment]::SetEnvironmentVariable($n, "x"); git commit -m y', NOM],
+      ['PowerShell', "Set-Item -Path ('env:GIT'+'_DIR') -Value x; git commit -m y", NOM],
+      ['PowerShell', "Set-Content -Path ('env:'+$n) -Value x; git commit -m y", NOM],
+      ['Bash', 'git commit -m "fix: GIT_DIR herite"', PROSE],
+      ['Bash', 'git commit --message="fix: NODE_OPTIONS" -q', PROSE],
+      ['Bash', 'gh issue comment 1 --body "GIT_CONFIG_PARAMETERS est pose par git -c"', PROSE],
+      ['Bash', 'gh issue create --title "NODE_OPTIONS" --body-file x.md', PROSE],
+      ['Bash', 'GIT_DIR=x git commit -m "GIT_DIR"', LIEU],
+      ['Bash', 'NODE_OPTIONS=--require=x node a.mjs', SANS],
+      ['Bash', 'grep -rn GIT_DIR scripts', RECHERCHE],
+      ['Bash', 'sed -n 1,5p GIT_DIR.txt', RECHERCHE],
+      ['Bash', 'sort -o out.txt GIT_DIR.txt', LIEU],
+      ['Bash', 'tail -f GIT_DIR.log', LIEU],
+      ['Bash', 'ls GIT_DIR > f.txt', LIEU],
+      ['Bash', 'grep GIT_DIR scripts/x.mjs >> f.txt', LIEU],
+      ['Bash', 'grep GIT_DIR x | tee f.txt', LIEU],
+      ['Bash', 'git log --output=f.txt -S GIT_DIR', LIEU],
+      ['Bash', 'sed -i s/a/b/ GIT_DIR.txt', LIEU],
+    ]
+    for (const [outil, command, canal] of cas) {
+      const r = await raison(racine, outil, { command })
+      assert.match(r, canal, `${outil} « ${command} » : ${r}`)
+    }
+    for (const [outil, command] of [
+      ['Bash', 'gh issue comment 1 --body-file x.md'], ['Bash', 'echo PATH'], ['Bash', 'git --exec-path'], ['Bash', 'GIT_EDITOR=true git commit --amend'],
+      ['PowerShell', "$env:GIT_EDITOR='true'; git rebase --continue"], ['Bash', 'cd .. && git -C .wt-2224 status'],
+    ]) {
+      assert.equal(await decision(racine, outil, { command }), null, `${outil} « ${command} »`)
+    }
   })
 })
 
@@ -433,7 +496,7 @@ test('#2224 affectation HORS préfixe qui change l’environnement des segments 
       for (const [outil, entree] of [[shell, { command }], [`${LC}ctx_shell`, { command, cwd: racine }]]) {
         const r = await raison(racine, outil, entree)
         assert.match(r, motif, `${outil} « ${command} » : ${r}`)
-        assert.match(r, /canal prescrit : la même commande sans ce nom/, `${outil} « ${command} »`)
+        assert.match(r, /canal prescrit : la même commande sans elle/, `${outil} « ${command} »`)
       }
     }
     for (const [shell, command] of [
