@@ -75,7 +75,7 @@ import { GameOpEditor } from '../editor/GameOpEditor';
 import { ReglagesApparence, MonsterPartsFields } from '../editor/MonsterPartsFields';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
 import type { GameOp } from '../../engine/ops';
-import { species, careers, levelsForCareer, stars, mutations, rigSpeciesId, allAxes, charAbr, spells, etats, memoParVersion } from '../../data';
+import { species, careers, levelsForCareer, stars, mutations, rigSpeciesId, allAxes, charAbr, spells, etats, memoParVersion, findPsychologyById } from '../../data';
 import { makePregens } from '../../data/pregens';
 import { toMoney } from '../../engine/money';
 import { RoseAxes } from '../RoseAxes';
@@ -401,13 +401,9 @@ function SourceRefFieldDemo() {
 }
 
 function DescRefFieldDemo() {
-  // Adresse RÉELLE : LDB 21 § terreur-indice, premier bloc. Le chapitre arrive par son adresse-URL
-  // (assets émis par `wfrp:prose-source`) — hors serveur, le champ affiche son erreur nommée.
-  const [adresse, setAdresse] = useState<DescRef | undefined>({
-    book: 'livre-de-base',
-    ch: '21',
-    parts: [{ kind: 'blocs', sec: 'terreur-indice', secOcc: 1, b0: 0, b1: 0, sum: 'a919b4ef91a1dd3c' }],
-  });
+  // Adresse RÉELLE : celle que porte la Terreur (`psychology.json`). Le chapitre arrive par son
+  // adresse-URL (assets émis par `wfrp:prose-source`) — hors serveur, le champ affiche son erreur nommée.
+  const [adresse, setAdresse] = useState<DescRef | undefined>(() => findPsychologyById('terreur')?.descRef);
   return <DescRefField label="Adresse de la prose" value={adresse} onChange={setAdresse} />;
 }
 

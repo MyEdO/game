@@ -7,8 +7,8 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
-  type ChapitreParse, type DescRef, type Fragment, type FragmentBlocs, type FragmentCellule, type Unite,
-  aligner, empreinteDe, estErreur, findAllRuns, findCells, joinNorm, memeTexte, normText, parseChapitre,
+  type ChapitreParse, type DescRef, type Fragment, type Unite,
+  MIN_FRAGMENT, aligner, estErreur, fragmentBlocs, fragmentCellule, findAllRuns, findCells, joinNorm, memeTexte, normText, parseChapitre,
   resoudreAdresse, tablesOf, unitesDe, unitesDuBloc, unitesDuTexte,
 } from './decoupe.ts';
 import { adressesDuDepot } from '../../../scripts/source/adresses.mjs';
@@ -49,13 +49,8 @@ function unites(chapitre: ChapitreParse, frag: Fragment): Unite[] {
 const assemble = (us: Unite[]): string => us.map((u) => u.sep + u.md).join('');
 const normDe = (us: readonly Unite[]): string => joinNorm(us.map((u) => u.norm));
 
-/** Fragment estampillé de son empreinte réelle. */
-function estampille<T extends Fragment>(chapitre: ChapitreParse, frag: Omit<T, 'sum'>): T {
-  const brouillon = { ...frag, sum: '' } as T;
-  const sum = empreinteDe(chapitre, brouillon);
-  if (typeof sum !== 'string') throw new Error(`${sum.error} : ${sum.detail}`);
-  return { ...brouillon, sum };
-}
+/** Verdict de `judge` sur une desc PARTIE STRICTE d'un bloc. */
+const SOUS_BLOC = { verdict: 'ECHEC', reason: 'sous-bloc (desc = fragment d\'un bloc)' };
 
 /** Fixture : un bloc-table à bannière, une légende et sa table (mêmes clés), une cellule à `<br>`, un
  *  bloc à ligne vide interne (marqueur de page seul sur sa ligne), un bloc de prose. */
@@ -87,10 +82,9 @@ const FIXTURE = [
 ].join('\n');
 const CHAPITRE = parseChapitre(FIXTURE);
 const ESSAIS = CHAPITRE.sections.find((s) => s.slug === 'essais')!;
-const blocs = (b0: number, b1: number) =>
-  estampille<FragmentBlocs>(CHAPITRE, { kind: 'blocs', sec: 'essais', secOcc: 1, b0, b1 });
+const blocs = (b0: number, b1: number) => fragmentBlocs(CHAPITRE, { sec: 'essais', secOcc: 1, b0, b1 });
 const cellule = (row: string, col: string, table: string) =>
-  estampille<FragmentCellule>(CHAPITRE, { kind: 'cellule', sec: 'essais', secOcc: 1, row, col, table });
+  fragmentCellule(CHAPITRE, { sec: 'essais', secOcc: 1, row, col, table });
 const [CLE_ESSAIS, CLE_RECHUTES] = tablesOf(ESSAIS).map((t) => t.cle!);
 
 const ADRESSES = adressesDuDepot()
@@ -217,7 +211,7 @@ describe('4. forges : une adresse qui ne rend pas le texte porte sa `verificatio
 
 describe('5-6. verdicts du dépôt', () => {
   it('Z1 : `regles:surincantation-des-sorts-d-augure` est un « sous-bloc »', () => {
-    expect(judge(entree('regles', 'surincantation-des-sorts-d-augure'))).toEqual({ verdict: 'ECHEC', reason: 'sous-bloc (desc = fragment d\'un bloc)' });
+    expect(judge(entree('regles', 'surincantation-des-sorts-d-augure'))).toEqual(SOUS_BLOC);
   });
 
   it.each(['saltimbanque', 'chansonnier', 'ratisseur-de-plages'])('`careers:%s` reste un MONTAGE', (id) => {
@@ -227,23 +221,20 @@ describe('5-6. verdicts du dépôt', () => {
   });
 });
 
-describe('8. plancher de « sous-bloc » : strictement plus de 40 caractères', () => {
+describe('8. plancher de « sous-bloc » : `MIN_FRAGMENT` caractères au moins', () => {
   const MALEPIERRE = String(entree('trappings', 'malepierre-brute').desc);
 
-  it('`malepierre-brute` (40 caractères, incluse dans un bloc) reste « introuvable »', () => {
-    expect(normText(MALEPIERRE)).toHaveLength(40);
-    expect(judge(entree('trappings', 'malepierre-brute')).reason).toBe(`introuvable: « ${normText(MALEPIERRE)} »`);
+  it('`malepierre-brute` (`MIN_FRAGMENT` caractères, incluse dans un bloc) : « sous-bloc »', () => {
+    expect(normText(MALEPIERRE)).toHaveLength(MIN_FRAGMENT);
+    expect(judge(entree('trappings', 'malepierre-brute'))).toEqual(SOUS_BLOC);
   });
 
-  it('41 caractères inclus dans un bloc : « sous-bloc »', () => {
+  it('un caractère de moins, inclus dans un bloc : « introuvable »', () => {
     const cible = normText(MALEPIERRE);
-    const bloc = chapitresDuLivre(LDB).flatMap((ch) => chapitreDe(LDB, ch).sections.flatMap((s) => s.blocks))
-      .map((b) => normText(b.md)).find((n) => n.includes(cible))!;
-    const i = bloc.indexOf(cible);
-    const t41 = [0, 1, 2, 3, 4].map((k) => bloc.slice(Math.max(0, i - k), Math.max(0, i - k) + 41))
-      .find((t) => normText(t).length === 41) ?? '';
-    expect(normText(t41)).toHaveLength(41);
-    expect(judge({ source: { book: LDB }, desc: t41 })).toEqual({ verdict: 'ECHEC', reason: 'sous-bloc (desc = fragment d\'un bloc)' });
+    const court = [0, 1, 2, 3, 4].map((k) => cible.slice(k, k + MIN_FRAGMENT - 1))
+      .find((t) => normText(t).length === MIN_FRAGMENT - 1) ?? '';
+    expect(normText(court)).toHaveLength(MIN_FRAGMENT - 1);
+    expect(judge({ source: { book: LDB }, desc: court }).reason).toBe(`introuvable: « ${normText(court)} »`);
   });
 });
 
