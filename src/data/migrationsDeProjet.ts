@@ -91,8 +91,6 @@ function migreChoix(scenes: unknown): unknown {
  * scène neuve recevrait aujourd'hui — si l'auteur ré-édite sa semence, ses vieux projets doivent
  * continuer à se rendre à l'identique. C'est aussi ce que mesurent la parité avec les scripts de
  * dépôt (`scripts/migrations/2026-09-07-1691-…mjs`, `2026-09-09-1715-…mjs`), eux aussi gelés.
- * La forme `as const satisfies Fige<…Defaults>` est le SIGNAL que `matieres-en-donnee.test.ts` lit
- * comme une semence d'authoring plutôt qu'une émission de matière.
  */
 const SEMENCE_RELIEF_1691 = {
   cliff: 'terre', ramp: 'terre', deck: 'pierre', pilier: 'pilier',
