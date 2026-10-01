@@ -1,6 +1,7 @@
 /**
- * Lectures qui donnent au code du dépôt la graphie de chemin de l'HÔTE (#1801) : un dérivé qui la
- * rend diverge d'une plateforme à l'autre.
+ * Lectures qui donnent au code du dépôt la graphie de chemin de l'HÔTE, là où le rendu sous win32
+ * (`scripts/docs/lib/plateforme-win32.mjs`, #1801) ne peut pas lui substituer celle de Windows :
+ * ses hooks de résolution ESM ne voient ni l'initialisation d'`import.meta`, ni le chargeur CJS.
  *
  * La lecture porte sur l'AST (`globalesNode.mjs`, qui définit les valeurs, les formes lues et ce qui
  * est HORS DE PORTÉE) : un commentaire ou une chaîne n'est pas du code. Est une lecture d'hôte :
@@ -23,7 +24,7 @@ const TERMES = [/dirname|filename/, /['"`](?:node:)?(?:path|url)(?:\/(?:posix|wi
 const MODULE_DE_CHEMIN = /^module:(?:path|url)(?:\/(?:posix|win32))?$/
 
 /**
- * Lectures d'hôte d'une source.
+ * Lectures d'hôte que le rendu sous win32 ne simule pas, dans une source.
  * @param {string} source texte du fichier
  * @param {string} [chemin] nom du fichier, qui fixe le dialecte de parse
  * @returns {{ ligne: number, extrait: string }[]} `ligne` 1-based, valable pour la source d'origine

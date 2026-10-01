@@ -70,6 +70,9 @@ export function syncBaseline(counts, baseline) {
 function main() {
   // Binaire knip lancé par `node` directement (pas `npx`) : sur Windows un `spawnSync('npx.cmd')`
   // sans `shell` rend un statut nul et une sortie VIDE — un faux vert silencieux.
+  // `--no-gitignore` : les cibles de CODE (`src/**/*.generated.ts`, `genererCode` de
+  // scripts/docs/build-all.mjs) sont gitignorées (#2203 A2) mais produites avant la gate ; sans le
+  // drapeau, knip ne les lit pas et tout module qu'elles seules importent passe pour mort.
   const r = spawnSync(
     process.execPath,
     [
@@ -77,6 +80,7 @@ function main() {
       '--include',
       'exports,types,nsExports,nsTypes',
       '--no-progress',
+      '--no-gitignore',
       '--reporter',
       'json',
     ],

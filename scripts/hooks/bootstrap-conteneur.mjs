@@ -13,7 +13,7 @@
 //
 // Chaque prérequis de la table PREREQUIS porte son propre CONSTAT (`manque`) et son BUDGET de temps :
 // le hook est rejouable sans effet, un prérequis de plus s'ajoute en une entrée, et `BUDGET_TOTAL`
-// est la SOURCE UNIQUE du `timeout` déclaré aux surfaces. Le hook n'échoue JAMAIS la session : ce
+// (`bootstrap-budget.mjs`, que `PREREQUIS` lit) est la SOURCE UNIQUE du `timeout` déclaré aux surfaces. Le hook n'échoue JAMAIS la session : ce
 // qu'il n'a pas pu poser, il le NOMME sur sa sortie, qui entre au contexte de la session. Sous un Node
 // que refuse la porte (`scripts/node-requis.mjs`), il sort par elle avant tout constat : un
 // `SessionStart` en sortie 2 ne montre son stderr qu'à l'utilisateur, et chaque hook `PreToolUse`
@@ -21,16 +21,16 @@
 // garde ne le déclenche pas.
 import '../node-requis.mjs'
 import { spawn, spawnSync } from 'node:child_process'
-import { closeSync, existsSync, mkdirSync, openSync } from 'node:fs'
+import { closeSync, existsSync, mkdirSync, openSync, readFileSync, rmSync, statSync, writeSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { SOURCES_LUES } from '../docs/build-all.mjs'
 import { approfondir, depotDe, dossierDesHooks, estSuperficiel, reussi } from '../guards/lib/gitPorte.mjs'
+import { BUDGETS_DE_POSE, BUDGET_CONSTAT, BUDGET_TOTAL } from './bootstrap-budget.mjs'
+
+export { BUDGET_CONSTAT, BUDGET_TOTAL }
 
 /** Marqueur d'un conteneur distant Claude Code (`CLAUDE_CODE_REMOTE=true`). */
 export const estConteneurDistant = (env) => env.CLAUDE_CODE_REMOTE === 'true'
-
-/** Budget d'un CONSTAT : trois commandes courtes (`git rev-parse`, `git config`, `gh --version`). */
-export const BUDGET_CONSTAT = 10
 
 /** Plafond d'un rapport d'échec entrant au contexte de la session. */
 const PLAFOND_RAPPORT = 400
@@ -59,23 +59,70 @@ export function lancer(exe, args, { budget = BUDGET_CONSTAT, ...options } = {}) 
 /** Journal du `docs:build` DÉTACHÉ d'un conteneur neuf, relatif à la racine. */
 export const JOURNAL_DOCS = 'node_modules/.cache/bootstrap-docs-build.log'
 
-/** Lance `docs:build` DÉTACHÉ (il dépasse le budget du hook), sortie dans `JOURNAL_DOCS` ; rend la
- *  forme de `lancer`, `valeur` = le pid. */
+/** VERROU du `docs:build` détaché, relatif à la racine : créé exclusif (`wx`), il porte le pid du build. */
+export const VERROU_DOCS = 'node_modules/.cache/bootstrap-docs-build.pid'
+
+/** Délai au-delà duquel un verrou sans pid lisible est ABANDONNÉ (hook tué entre création et écriture). */
+const ABANDON_VERROU_MS = 10_000
+
+/** `pid` désigne-t-il un processus vivant ? Un refus de signal (`EPERM`) prouve qu'il existe. */
+const pidVivant = (pid) => {
+  try {
+    process.kill(pid, 0)
+    return true
+  } catch (e) {
+    return e.code === 'EPERM'
+  }
+}
+
+/** Le pid du build qui TIENT le verrou, ou `null` s'il est périmé : pid mort, ou illisible et abandonné. */
+function tenantDuVerrou(verrou) {
+  const pid = Number(readFileSync(verrou, 'utf8').trim())
+  if (Number.isInteger(pid) && pid > 0) return pidVivant(pid) ? pid : null
+  return Date.now() - statSync(verrou).mtimeMs < ABANDON_VERROU_MS ? 0 : null
+}
+
+/**
+ * Lance `docs:build` DÉTACHÉ (il dépasse le budget du hook), sortie dans `JOURNAL_DOCS` ; rend la
+ * forme de `lancer`, `valeur` = le pid. Deux sessions ouvertes avant la fin du build : le verrou
+ * `VERROU_DOCS` tenu par un build VIVANT, il n'est ni relancé ni son journal tronqué — `valeur` est le
+ * pid du build en cours. Un verrou périmé se retire, puis se reprend.
+ */
 export function docsBuildDetache(racine) {
   const journal = join(racine, JOURNAL_DOCS)
+  const verrou = join(racine, VERROU_DOCS)
   mkdirSync(dirname(journal), { recursive: true })
-  const fd = openSync(journal, 'w')
-  try {
-    const enfant = spawn(process.execPath, [join(racine, 'scripts', 'docs', 'build-all.mjs'), '--quiet'], {
-      cwd: racine, detached: true, stdio: ['ignore', fd, fd], windowsHide: true,
-    })
-    enfant.unref()
-    return { ok: true, valeur: String(enfant.pid ?? ''), rapport: '' }
-  } catch (e) {
-    return { ok: false, valeur: '', rapport: borner(e.message) }
-  } finally {
-    closeSync(fd)
+  let tenu
+  for (let essai = 0; tenu === undefined; essai++) {
+    try {
+      tenu = openSync(verrou, 'wx')
+    } catch (e) {
+      if (e.code !== 'EEXIST' || essai > 0) return { ok: false, valeur: '', rapport: borner(e.message) }
+      const tenant = tenantDuVerrou(verrou)
+      if (tenant !== null) return { ok: true, valeur: tenant ? String(tenant) : '', rapport: '' }
+      rmSync(verrou, { force: true })
+    }
   }
+  let pid
+  try {
+    const fd = openSync(journal, 'w')
+    try {
+      const enfant = spawn(process.execPath, [join(racine, 'scripts', 'docs', 'build-all.mjs'), '--quiet'], {
+        cwd: racine, detached: true, stdio: ['ignore', fd, fd], windowsHide: true,
+      })
+      enfant.unref()
+      pid = String(enfant.pid ?? '')
+      writeSync(tenu, pid)
+    } finally {
+      closeSync(fd)
+    }
+  } catch (e) {
+    closeSync(tenu)
+    rmSync(verrou, { force: true })
+    return { ok: false, valeur: '', rapport: borner(e.message) }
+  }
+  closeSync(tenu)
+  return { ok: true, valeur: pid, rapport: '' }
 }
 
 /** Les GESTES des prérequis — ceux de l'hôte au dépôt (`gitPorte.mjs`), la mesure des docs dérivés et
@@ -105,7 +152,7 @@ export const PREREQUIS = [
     manque: ({ depot, gestes }) => gestes.estSuperficiel(depot) === true,
     poser: ({ depot, gestes, budget }) => renduDeGit(gestes.approfondir(depot, { timeout: budget * 1000 })),
     geste: 'git fetch --unshallow origin',
-    budget: 90,
+    budget: BUDGETS_DE_POSE.histoire,
   },
   {
     nom: 'hooks git du dépôt',
@@ -116,7 +163,7 @@ export const PREREQUIS = [
     poser: ({ racine, run, budget }) =>
       run('npm', ['install', '--no-audit', '--no-fund'], { cwd: racine, budget }),
     geste: 'npm install',
-    budget: 90,
+    budget: BUDGETS_DE_POSE.hooks,
   },
   {
     nom: 'docs dérivés',
@@ -125,7 +172,7 @@ export const PREREQUIS = [
     manque: ({ racine, gestes }) => !gestes.docsMesures(racine),
     poser: ({ racine, gestes }) => gestes.docsBuildDetache(racine),
     geste: `npm run docs:build, détaché (journal ${JOURNAL_DOCS})`,
-    budget: 5,
+    budget: BUDGETS_DE_POSE.docs,
   },
   {
     nom: 'exécutable gh',
@@ -140,13 +187,10 @@ export const PREREQUIS = [
       return { ...pose, rapport: [maj.ok ? '' : `apt-get update : ${maj.rapport}`, pose.rapport].filter(Boolean).join(' — ') }
     },
     geste: 'apt-get update puis apt-get install -y gh',
-    budget: 90,
+    budget: BUDGETS_DE_POSE.gh,
   },
 ]
 
-/** Budget de bout en bout du hook, en secondes : les constats de toute la table, plus les poses.
- *  C'est la valeur que le `timeout` déclaré aux surfaces doit couvrir — jamais un nombre recopié. */
-export const BUDGET_TOTAL = PREREQUIS.reduce((somme, p) => somme + p.budget + BUDGET_CONSTAT, 0)
 
 /**
  * Joue la table sur `contexte` et rend les lignes à écrire. Silence complet quand tout était déjà

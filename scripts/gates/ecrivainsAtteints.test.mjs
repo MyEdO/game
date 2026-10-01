@@ -37,9 +37,13 @@ const ATTENDU = {
     'scripts/gates/classerPush.test.mjs',
     'scripts/guards/lib/memoryLinks.test.mjs',
     // +1 le 2026-10-01 (#2203) : `bootstrap-conteneur.mjs` lance `docs:build` détaché et ouvre son
-    // journal sous `node_modules/.cache` ; son banc INJECTE ce geste (`GESTES_DU_CONTENEUR`) — l'arbre
-    // n'est jamais écrit.
+    // journal et son verrou sous `node_modules/.cache` ; son banc INJECTE ce geste (`GESTES_DU_CONTENEUR`)
+    // — l'arbre n'est jamais écrit.
     'scripts/hooks/bootstrap-conteneur.mjs',
+    // +1 le 2026-10-01 (#2203) : le banc du VERROU de `docsBuildDetache` forge une racine JETABLE
+    // (`mkdtempSync` + `writeFileSync` d'un faux build sous `os.tmpdir()`, `rmSync` en finally) — un
+    // build détaché se lance sur un vrai fichier ; l'arbre n'est jamais écrit.
+    'scripts/hooks/bootstrap-conteneur.test.mjs',
     // +1 le 2026-09-20 (#1825) : le banc de l'ENVELOPPE de jeu d'un workflow écrit ses
     // scripts JOUETS sous un `mkdtempSync` de os.tmpdir() (`rmSync` en finally) — l'enveloppe
     // charge un FICHIER, un script jouet ne se fabrique pas autrement ; l'arbre n'est jamais écrit.
@@ -291,7 +295,10 @@ const ATTENDU = {
     // sous os.tmpdir().
     'scripts/docs/lib/enregistreur-lectures.mjs',
     'scripts/docs/lib/enregistreur-lectures.test.mjs',
-    // −1 le 2026-10-01 (#2203) : la simulation win32 et son banc sont supprimés.
+    // +1 le 2026-09-23 (#1801) : le banc de la simulation win32 forge un dépôt JETABLE (`mkdtempSync`
+    // + `mkdirSync`/`writeFileSync` sous `os.tmpdir()`, `rmSync` en finally) — ce que voit un module
+    // selon son LIEU exige de vrais fichiers à charger ; l'arbre n'est jamais écrit.
+    'scripts/docs/lib/plateforme-win32.test.mjs',
     // +1 le 2026-09-07 (#1709) : `build-all-check.test.mjs` et `check-plans-anchors.test.mjs`
     // prennent leurs dépôts jetables à la fixture partagée, qui n'écrit que sous `os.tmpdir()`.
     'scripts/guards/lib/depotGabarit.mjs',
@@ -421,7 +428,7 @@ const ATTENDU = {
   // `build-implemente.mjs` (frontière du bloc de champ généré, source unique, #925) ; la réécriture
   // des fiches de ce module vit derrière sa porte `import.meta.main` (`main` de build-implemente.mjs).
   // Mesurée par `scripts/docs/lib/enregistreur-lectures.mjs` en `--import` sur le CLI : ZÉRO écriture.
-  // −1 le 2026-10-01 (#2203) : `build-implemente.mjs` n'importe plus la primitive d'écriture des dérivés.
+  // −1 le 2026-10-01 (#2203).
   'raw:check-code-refs': ['scripts/raw/build-implemente.mjs'],
   // La garde des renvois d'ancre de l'Atlas (#1824) n'atteint AUCUN module écrivain : elle lit les
   // pages, calcule leurs ancres et rend son verdict — l'outil qui répare vit à côté

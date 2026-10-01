@@ -12,6 +12,7 @@
   ],
   "ignore": [
     "server/**",
+    "scripts/data/.out/**",
     "dist/**",
     "public/**"
   ],

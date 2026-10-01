@@ -23,7 +23,8 @@
 // Un générateur `runner: 'tsx'` se lance par `node --import tsx/esm` (`tsx/dist/cli.mjs` re-spawne un
 // processus) ; un dumper passe par `resoudreOutilLocal` + `envIsole`, qui transmettent l'env.
 import { execFileSync } from 'node:child_process'
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { binLocal, envIsole, resoudreOutilLocal } from '../lancer-local.mjs'
@@ -277,6 +278,33 @@ export async function rendreCible(cible, generateurs = GENERATORS) {
   const texte = (await renduDe(g)).get(cible)
   if (texte === undefined) throw new Error(`rendreCible : ${g.script} ne rend pas ${cible}`)
   return texte
+}
+
+/** Point d'entrée de `mesurerRendu` : il joue `rendre()`, sans écrire. */
+const RENDRE_SEUL = fileURLToPath(new URL('lib/rendre-seul.mjs', import.meta.url))
+
+/**
+ * Les lectures MESURÉES du rendu de `g` dans `cwd` — son `rendre()` sous l'enregistreur, aucune cible
+ * écrite : l'entrée `{ cibles, fichiers, dossiers }` que `docs:build` consigne pour `g` dans
+ * `SOURCES_LUES`, sans rien produire.
+ */
+export function mesurerRendu(g, cwd) {
+  const racineLectures = mkdtempSync(path.join(tmpdir(), 'mesure-rendu-'))
+  try {
+    const ignores = path.join(racineLectures, 'ignores.json')
+    writeFileSync(ignores, JSON.stringify([...ignoresGit(cwd)]))
+    const lectures = path.join(racineLectures, 'lectures')
+    mkdirSync(lectures)
+    const ecrites = ciblesSurDisque(g.targets, cwd)
+    const cibles = [...new Set([...ecrites, ...ciblesSurDisque(g.injecte ?? [], cwd)])].sort()
+    const tsxEsm = g.runner === 'tsx' ? tsxEsmDe(cwd) : null
+    const { args, env } = commandeDe({ runner: g.runner, script: RENDRE_SEUL }, { cwd, check: false, tsxEsm, lectures, ignores, cibles })
+    execFileSync(process.execPath, [...args, g.script], { cwd, env, stdio: ['ignore', 'ignore', 'inherit'] })
+    const lues = fusionnerLectures(lectures)
+    return { cibles: ecrites.filter(estUnDocMarkdown), fichiers: lues.fichiers, dossiers: [...lues.dossiers.keys()] }
+  } finally {
+    rmSync(racineLectures, { recursive: true, force: true })
+  }
 }
 
 /** `cible` est-elle PRODUITE par son générateur : une clé de son rendu, jamais un chemin que son

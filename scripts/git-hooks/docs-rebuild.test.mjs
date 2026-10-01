@@ -1,6 +1,6 @@
 // Porte des hooks post-merge / post-rewrite et de l'étape docs de `ops:publier` : « ce lot peut-il
 // avoir périmé un doc dérivé ? ». La réponse se DÉRIVE de la mesure, donc elle se teste sur une
-// mesure FORGÉE (volet pur) puis sur celle de l'arbre (volet classes, #1773).
+// mesure FORGÉE (volet pur) puis sur celle que RENDENT les générateurs de l'arbre (volet classes, #1773).
 //   node --test scripts/git-hooks/docs-rebuild.test.mjs
 import test from 'node:test'
 import assert from 'node:assert/strict'
@@ -9,7 +9,8 @@ import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
 import { readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { envDeDepotForge, instanceDeDepot, sousGitFeint } from '../guards/lib/depotGabarit.mjs'
-import { planDuCheckout, sourcesMesurees, touchedFiles, touchesDocSources } from './docs-rebuild.mjs'
+import { GENERATORS, mesurerRendu } from '../docs/build-all.mjs'
+import { planDuCheckout, touchedFiles, touchesDocSources } from './docs-rebuild.mjs'
 
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 
@@ -44,9 +45,16 @@ test('FAIL-CLOSED : lot inconnu ou mesure illisible → on régénère ; lot vid
   assert.equal(touchesDocSources([], MESURE), false)
 })
 
-test('les classes que la liste de préfixes d’avant #1773 RATAIT sont vues sur la mesure de l’arbre', () => {
-  const mesure = sourcesMesurees(RACINE)
-  assert.ok(mesure && Object.keys(mesure).length > 10, 'la mesure de l’arbre doit être lisible')
+/** Les générateurs dont le rendu lit chaque classe jugée ci-dessous — mémoire, workflows, fiches de
+ *  l'Atlas et `scripts/raw/`, `src/`, tsconfig —, les moins coûteux à mesurer. */
+const MESURES = [
+  'scripts/docs/build-doctrines.mjs', 'scripts/docs/build-reprise.mjs', 'scripts/raw/build-atlas-index.mjs',
+  'scripts/docs/build-usages-jets.mjs', 'scripts/docs/build-donnees.mjs',
+]
+
+test('les classes que la liste de préfixes d’avant #1773 RATAIT sont vues sur la mesure RENDUE par les générateurs', () => {
+  const mesure = Object.fromEntries(MESURES.map((script) => [script, mesurerRendu(GENERATORS.find((g) => g.script === script), RACINE)]))
+  for (const [script, { fichiers }] of Object.entries(mesure)) assert.ok(fichiers.length > 1, `${script} : mesure aveugle`)
   // `.claude/memory/user-*.md` alimente `docs/doctrines.md` : une fiche NEUVE compte (frère d'une
   // source lue), et `.github/workflows` est un dossier mesuré — deux classes hors des préfixes.
   assert.equal(touchesDocSources(['.claude/memory/user-x.md'], mesure), true)

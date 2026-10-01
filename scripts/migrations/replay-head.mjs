@@ -29,12 +29,14 @@
  * ENTRÉES : l'arbre git du sha demandé (aucune lecture du working tree).
  */
 import { spawnSync } from 'node:child_process'
-import { mkdirSync, rmSync } from 'node:fs'
+import { existsSync, mkdirSync, rmSync, symlinkSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve, sep } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { PERIMETRE, rejouer } from './replay.mjs'
 import { blobsDe, comparer, empreinteDe, rapportDEcart } from './lib/empreinteRejeu.mjs'
 import { listerDossier } from '../guards/lib/lister.mjs'
+import { GENERATORS, estCiblePure, genererCode } from '../docs/build-all.mjs'
 
 /** Racine de TOUS les exports — PARTAGÉE entre processus. Le préfixe est court (MAX_PATH) et
  *  l'effacement ne s'autorise QUE sous lui : un `rmSync` récursif ne se pointe pas sur un chemin
@@ -70,6 +72,28 @@ export const CHEMINS_EXPORTES = {
     'de la destination — un export privé de ce fichier rend le même LF, mesuré sous `core.autocrlf=true`',
 }
 
+/** Les dépendances de l'outillage qui rejoue : le `node_modules` de CE dépôt. */
+const DEPENDANCES = fileURLToPath(new URL('../../node_modules', import.meta.url))
+
+/**
+ * Rend l'export `dossier` JOUABLE : `DEPENDANCES` y est LIÉ (jonction, jamais copie), puis ses cibles
+ * de CODE sont produites (`genererCode`, scripts/docs/build-all.mjs) — elles ne sont pas commitées
+ * (#2203 A2), des migrations les LISENT, et leur phase TypeScript se lance par `tsx`. Seuls jouent les
+ * générateurs que l'export PORTE : un sha antérieur à l'un d'eux n'en a pas les cibles. `effacerExport`
+ * ne suit pas le lien (`rmSync` récursif efface la jonction, jamais sa cible : mesuré sous win32).
+ * @param {string} dossier
+ */
+export function preparerExport(dossier) {
+  symlinkSync(DEPENDANCES, join(dossier, 'node_modules'), 'junction')
+  const generateurs = GENERATORS.filter((g) => existsSync(join(dossier, g.script)))
+  if (genererCode({ cwd: dossier, quiet: true, generateurs }) !== 0)
+    throw new Error(`export ${dossier} : cibles de code NON produites (genererCode)`)
+}
+
+/** `empreinte` hors cibles PURES (`estCiblePure`) : produites dans l'export, jamais commitées — ni
+ *  l'une ni l'autre moitié de la comparaison ne les juge. */
+const horsCiblesPures = (empreinte) => new Map([...empreinte].filter(([chemin]) => !estCiblePure(chemin, GENERATORS)))
+
 /** `git <args>` dans `cwd`, avec un environnement optionnel. */
 const git = (args, { cwd, env }) => spawnSync('git', args, { cwd, env, encoding: 'utf8', maxBuffer: 1 << 28 })
 
@@ -101,6 +125,7 @@ export function exporter({ depot, sha, dossier }) {
       maxBuffer: 1 << 28,
     })
     if (ecrit.status !== 0) throw new Error(`git checkout-index a rendu ${ecrit.status} : ${(ecrit.stderr || '').trim()}`)
+    preparerExport(dossier)
     return { fichiers }
   } finally {
     rmSync(index, { force: true })
@@ -151,8 +176,8 @@ export function rejeuSurExport({ cwd = process.cwd(), sha = 'HEAD', ecrire = con
     rouges.push(...joue.rouges)
 
     const ecart = chrono('empreinte', () => {
-      const avant = blobsDe(cwd, resolu, PERIMETRE)
-      const apres = empreinteDe(dossier, PERIMETRE)
+      const avant = horsCiblesPures(blobsDe(cwd, resolu, PERIMETRE))
+      const apres = horsCiblesPures(empreinteDe(dossier, PERIMETRE))
       return { ecart: comparer(avant, apres), total: avant.size }
     })
     const rapport = rapportDEcart(ecart.ecart, ecart.total)

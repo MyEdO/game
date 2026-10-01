@@ -55,12 +55,15 @@ const lireDuDisque = (chemin) => {
 
 test('fautesDeCitations : le symbole à ±2 lignes du site passe ; au-delà, ou site hors fichier, faute nommée', () => {
   const source = ['a', 'b', 'function cible() {', 'c', 'd', 'e', 'f'].join('\n')
-  const lire = (c) => (c === 'src/x.ts' ? source : null)
-  assert.deepEqual(fautesDeCitations('d.md', '`cible` vit en `src/x.ts:1`', lire), [])
-  assert.deepEqual(fautesDeCitations('d.md', '`cible` vit en `src/x.ts:5`', lire), [])
-  assert.deepEqual(fautesDeCitations('d.md', '`cible` vit en `src/x.ts:6`', lire), ['d.md:1 — `src/x.ts:6` ne porte aucun de `cible` à ±2 lignes'])
-  assert.deepEqual(fautesDeCitations('d.md', 'site `src/x.ts:9`', lire), ['d.md:1 — cite `src/x.ts:9`, hors des 7 lignes du fichier'])
-  assert.deepEqual(fautesDeCitations('d.md', 'site `src/y.ts:1`', lire), ['d.md:1 — cite `src/y.ts:1`, absent du disque'])
+  const [doc, x, y] = ['d.md', 'src/x.ts', 'src/y.ts']
+  // Un site `fichier:ligne` se COMPOSE : la garde `refsDeLigne` refuse sa forme littérale.
+  const site = (fichier, ligne) => [fichier, ligne].join(':')
+  const lire = (c) => (c === x ? source : null)
+  assert.deepEqual(fautesDeCitations(doc, `\`cible\` vit en \`${site(x, 1)}\``, lire), [])
+  assert.deepEqual(fautesDeCitations(doc, `\`cible\` vit en \`${site(x, 5)}\``, lire), [])
+  assert.deepEqual(fautesDeCitations(doc, `\`cible\` vit en \`${site(x, 6)}\``, lire), [`${site(doc, 1)} — \`${site(x, 6)}\` ne porte aucun de \`cible\` à ±2 lignes`])
+  assert.deepEqual(fautesDeCitations(doc, `site \`${site(x, 9)}\``, lire), [`${site(doc, 1)} — cite \`${site(x, 9)}\`, hors des 7 lignes du fichier`])
+  assert.deepEqual(fautesDeCitations(doc, `site \`${site(y, 1)}\``, lire), [`${site(doc, 1)} — cite \`${site(y, 1)}\`, absent du disque`])
 })
 
 test('chaque doc RENDU par `GENERATORS` cite des sites qui portent leur symbole (±2 lignes)', async () => {

@@ -1,8 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { existsSync, readFileSync, statSync } from 'node:fs';
+import { readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { listerArbre } from '../scripts/guards/lib/lister.mjs';
+import { GENERATORS, estCiblePure, renduDe } from '../scripts/docs/build-all.mjs';
 
 /**
  * Garde « angle mort de recherche » — les outils de lecture/recherche lean-ctx (`ctx_search` et
@@ -11,9 +12,11 @@ import { listerArbre } from '../scripts/guards/lib/lister.mjs';
  * nommé, et toute preuve d'existence/absence sur lui se fait au grep natif.
  *
  * PÉRIMÈTRE MESURÉ (par `fs`, taille en octets, seuil 524288) :
- *   1. `docs/raw/**` — tous fichiers ; comparé à la liste ANNONCÉE dans `docs/raw/00-index.md`
- *      (section « Fichiers au-dessus du seuil d'outillage »). Les deux sens sont rouges : au-dessus
- *      du seuil mais non annoncé, et annoncé mais repassé sous le seuil (ou disparu).
+ *   1. `docs/raw/**` — tous fichiers, une cible PURE de `GENERATORS` à son RENDU (`renduDe`), jamais
+ *      au disque (#2203 A2 : absente d'un clone neuf) ; comparé à la liste ANNONCÉE dans
+ *      `docs/raw/00-index.md` (section « Fichiers au-dessus du seuil d'outillage »). Les deux sens
+ *      sont rouges : au-dessus du seuil mais non annoncé, et annoncé mais repassé sous le seuil (ou
+ *      ni au disque ni rendu).
  *   2. `src/data/**` — tous fichiers ; comparé à la liste GELÉE `FROZEN_SRC_DATA` ci-dessous.
  *   3. `Source/**` (extension `.md` seulement) — comparé à la liste GELÉE `FROZEN_SOURCE_MD`.
  *
@@ -56,6 +59,17 @@ function oversizeIn(dir: string, opts: { ext?: RegExp; skipDirs?: string[] } = {
   return out.sort();
 }
 
+/** `docs/raw/**` au-dessus du seuil : les fichiers commités au disque, et les cibles pures de
+ *  `GENERATORS` à la taille de leur rendu. */
+async function oversizeAtlas(): Promise<string[]> {
+  const auDisque = oversizeIn('docs/raw').filter((f) => !estCiblePure(f, GENERATORS));
+  const rendus: string[] = [];
+  for (const g of GENERATORS.filter((x) => x.targets.some((t) => t.startsWith('docs/raw/'))))
+    for (const [cible, texte] of await renduDe(g))
+      if (cible.startsWith('docs/raw/') && Buffer.byteLength(texte, 'utf8') > SEUIL_OCTETS) rendus.push(cible);
+  return [...auDisque, ...rendus].sort();
+}
+
 /** Noms de fichiers `.md` annoncés par la section dédiée de `docs/raw/00-index.md` (items de liste). */
 function annoncesDeLIndex(): string[] {
   const lignes = readFileSync(INDEX_PATH, 'utf8').split('\n');
@@ -76,8 +90,8 @@ function annoncesDeLIndex(): string[] {
 }
 
 describe('angle mort de recherche — fichiers > 512 Ko', () => {
-  it('docs/raw : tout fichier au-dessus du seuil est ANNONCÉ dans 00-index.md', () => {
-    const mesures = oversizeIn('docs/raw');
+  it('docs/raw : tout fichier au-dessus du seuil est ANNONCÉ dans 00-index.md', async () => {
+    const mesures = await oversizeAtlas();
     const annonces = annoncesDeLIndex();
     const manquants = mesures.filter((f) => !annonces.includes(f));
     expect(
@@ -88,17 +102,15 @@ describe('angle mort de recherche — fichiers > 512 Ko', () => {
     ).toEqual([]);
   });
 
-  it("docs/raw : rien d'ANNONCÉ ne repasse sous le seuil (l'annonce ne doit pas mentir)", () => {
-    const mesures = oversizeIn('docs/raw');
+  it("docs/raw : rien d'ANNONCÉ ne repasse sous le seuil (l'annonce ne doit pas mentir)", async () => {
+    const mesures = await oversizeAtlas();
     const annonces = annoncesDeLIndex();
     const fantomes = annonces.filter((f) => !mesures.includes(f));
     expect(
       fantomes,
-      `annonce mensongère dans docs/raw/00-index.md : ce(s) fichier(s) sont sous 512 Ko ou ` +
-        `absents du disque — les retirer de la section « Fichiers au-dessus du seuil d'outillage »`,
+      `annonce mensongère dans docs/raw/00-index.md : ce(s) fichier(s) sont sous 512 Ko, ou ni ` +
+        `au disque ni rendus — les retirer de la section « Fichiers au-dessus du seuil d'outillage »`,
     ).toEqual([]);
-    for (const f of annonces)
-      expect(existsSync(join(ROOT, f)), `annoncé mais introuvable : ${f}`).toBe(true);
   });
 
   it('src/data : la liste gelée égale la mesure', () => {

@@ -2,11 +2,14 @@
 // qui est posé, ce qui est rapporté quand la pose échoue — et son CÂBLAGE sur la surface Claude.
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import {
-  BUDGET_CONSTAT, BUDGET_TOTAL, GESTES_DU_CONTENEUR, PREREQUIS, bootstrap, estConteneurDistant, lancer, mettreEnConformite,
+  BUDGET_CONSTAT, BUDGET_TOTAL, GESTES_DU_CONTENEUR, JOURNAL_DOCS, PREREQUIS, VERROU_DOCS, bootstrap, docsBuildDetache,
+  estConteneurDistant, lancer, mettreEnConformite,
 } from './bootstrap-conteneur.mjs'
 import { depotDe } from '../guards/lib/gitPorte.mjs'
 import { HOOKS_DE_SESSION, SURFACE_CLAUDE, SURFACE_CODEX, aplatirHooks } from '../agents/compat-core.mjs'
@@ -117,6 +120,14 @@ test('un prérequis n’est jamais posé sans son constat (table rejouable à vi
 // la valeur COMPARÉE rendait les constats faux — `npm install` à chaque démarrage d'un côté, dépôt
 // superficiel conservé EN SILENCE de l'autre. Les constats git sont des questions de l'hôte
 // (`gitPorte.mjs`), qui ne lisent que stdout.
+/** Les gestes git RÉELS du conteneur ; les docs dérivés, eux, sont MESURÉS présents — jamais la mesure
+ *  de l'arbre qui joue le test, jamais un `docs:build` détaché lancé par le banc. */
+const GESTES_GIT_REELS = {
+  ...GESTES_DU_CONTENEUR,
+  docsMesures: () => true,
+  docsBuildDetache: () => assert.fail('docs:build détaché lancé par le banc'),
+}
+
 test('la VALEUR mesurée ne lit que stdout — un bruit sur stderr ne fausse aucun constat', () => {
   const vu = lancer(process.execPath, [
     '-e', "process.stdout.write('scripts/git-hooks\\n'); process.stderr.write('warning: bruit\\n')",
@@ -128,14 +139,14 @@ test('la VALEUR mesurée ne lit que stdout — un bruit sur stderr ne fausse auc
   const reponses = { 'rev-parse': 'false\n', config: 'scripts/git-hooks\n' }
   const depot = depotDe(REPO, { spawn: (_git, args) => ({ status: 0, stdout: reponses[args.find((a) => a in reponses)], stderr: 'warning: bruit\n' }) })
   const run = (exe) => (exe === 'gh' ? { ok: true, valeur: 'gh version 2.45.0', rapport: '' } : assert.fail(`${exe} lancé`))
-  assert.deepEqual(mettreEnConformite({ racine: REPO, run, gestes: GESTES_DU_CONTENEUR, pannes: [], depot }), [], 'hooks vivants : rien à poser')
+  assert.deepEqual(mettreEnConformite({ racine: REPO, run, gestes: GESTES_GIT_REELS, pannes: [], depot }), [], 'hooks vivants : rien à poser')
 })
 
 test('une PANNE de git se NOMME, et le prérequis qu’elle empêche de mesurer n’est pas posé', () => {
   const pannes = []
   const depot = depotDe(REPO, { spawn: () => ({ status: 128, stdout: '', stderr: 'fatal: dépôt illisible\n' }), enPanne: (r) => pannes.push(r) })
   const run = (exe) => (exe === 'gh' ? { ok: true, valeur: 'gh version 2.45.0', rapport: '' } : assert.fail(`${exe} lancé`))
-  assert.deepEqual(mettreEnConformite({ racine: REPO, run, gestes: GESTES_DU_CONTENEUR, pannes, depot }), [
+  assert.deepEqual(mettreEnConformite({ racine: REPO, run, gestes: GESTES_GIT_REELS, pannes, depot }), [
     '[conteneur] histoire git complète : NON MESURÉ, git indisponible — fatal: dépôt illisible',
     '[conteneur] hooks git du dépôt : NON MESURÉ, git indisponible — fatal: dépôt illisible',
   ])
@@ -180,4 +191,58 @@ test('la table couvre les trois manques MESURÉS au conteneur du 2026-09-18, plu
     PREREQUIS.map((p) => p.geste),
     ['git fetch --unshallow origin', 'npm install', 'npm run docs:build, détaché (journal node_modules/.cache/bootstrap-docs-build.log)', 'apt-get update puis apt-get install -y gh'],
   )
+})
+
+/** Racine jetable dont `scripts/docs/build-all.mjs` est un FAUX build : il journalise `debut`, puis vit
+ *  au plus 20 s (borne), le temps que le banc le juge en cours. */
+function racineDeBuild() {
+  const racine = mkdtempSync(join(tmpdir(), 'docs-detache-'))
+  mkdirSync(join(racine, 'scripts', 'docs'), { recursive: true })
+  writeFileSync(join(racine, 'scripts', 'docs', 'build-all.mjs'), "process.stdout.write('debut\\n')\nsetTimeout(() => {}, 20000)\n")
+  return racine
+}
+
+const attendre = async (condition, quoi) => {
+  for (let i = 0; i < 100; i++) {
+    if (condition()) return
+    await new Promise((r) => setTimeout(r, 100))
+  }
+  assert.fail(`${quoi} : non atteint en 10 s`)
+}
+
+const tuer = (pid) => {
+  try { process.kill(Number(pid)) } catch { /* déjà mort */ }
+}
+
+const vivant = (pid) => {
+  try { process.kill(Number(pid), 0); return true } catch { return false }
+}
+
+test('docs:build détaché : un build VIVANT n’est ni relancé ni son journal tronqué ; mort, le verrou se reprend', async () => {
+  const racine = racineDeBuild()
+  const lances = []
+  try {
+    const premier = docsBuildDetache(racine)
+    lances.push(premier.valeur)
+    assert.equal(premier.ok, true, premier.rapport)
+    const journal = join(racine, JOURNAL_DOCS)
+    await attendre(() => readFileSync(journal, 'utf8').includes('debut'), 'le build journalise')
+    const second = docsBuildDetache(racine)
+    lances.push(second.valeur)
+    assert.deepEqual(second, { ok: true, valeur: premier.valeur, rapport: '' }, 'le build en cours est rendu, jamais relancé')
+    assert.match(readFileSync(journal, 'utf8'), /debut/, 'le journal du build en cours n’est pas tronqué')
+    tuer(premier.valeur)
+    await attendre(() => !vivant(premier.valeur), 'le build meurt')
+    const repris = docsBuildDetache(racine)
+    lances.push(repris.valeur)
+    assert.equal(repris.ok, true, repris.rapport)
+    assert.notEqual(repris.valeur, premier.valeur, 'verrou périmé : un build neuf le reprend')
+    assert.equal(readFileSync(join(racine, VERROU_DOCS), 'utf8'), repris.valeur)
+  } finally {
+    for (const pid of lances) tuer(pid)
+    await attendre(() => lances.every((pid) => !vivant(pid)), 'les builds du banc meurent')
+    // Sous win32, la racine reste tenue tant que la boucle n'a pas recueilli la fin des enfants tués :
+    // l'effacement ASYNCHRONE réessaie (borné) en la laissant tourner.
+    await rm(racine, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 })
+  }
 })
