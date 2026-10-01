@@ -43,8 +43,8 @@ const cumulDe = (diff) => bilanDesStocks(diff, REPLI)
 test('C : deux commits CLIQUETÉS +2 chacun passent — le cumul +4 ne demande pas un cliquet +4', () => {
   const refus = refusDeLaPlage({
     commits: [
-      { sha: 'aaa1111', contre: [{ diff: diffDe([A, B]), images: REPLI }], message: 'T1\n\nCLIQUET: scripts/x.test.mjs +2 — fixtures du test neuf, motif assez long' },
-      { sha: 'bbb2222', contre: [{ diff: diffDe([C, D]), images: REPLI }], message: 'T2\n\nCLIQUET: scripts/x.test.mjs +2 — seconde fournée, motif suffisamment long aussi' },
+      { sha: 'aaa1111', diff: diffDe([A, B]), images: REPLI, message: 'T1\n\nCLIQUET: scripts/x.test.mjs +2 — fixtures du test neuf, motif assez long' },
+      { sha: 'bbb2222', diff: diffDe([C, D]), images: REPLI, message: 'T2\n\nCLIQUET: scripts/x.test.mjs +2 — seconde fournée, motif suffisamment long aussi' },
     ],
     cumul: cumulDe(diffDe([A, B, C, D])),
   })
@@ -53,8 +53,8 @@ test('C : deux commits CLIQUETÉS +2 chacun passent — le cumul +4 ne demande p
 
 test('C : un stock ajouté puis RETIRÉ dans la plage ne refuse rien — le filtre cumulé l\'écarte', () => {
   const commits = [
-    { sha: 'aaa1111', contre: [{ diff: diffDe([A, B]), images: REPLI }], message: 'ajoute' },
-    { sha: 'bbb2222', contre: [{ diff: diffDe([], [A, B]), images: REPLI }], message: 'retire' },
+    { sha: 'aaa1111', diff: diffDe([A, B]), images: REPLI, message: 'ajoute' },
+    { sha: 'bbb2222', diff: diffDe([], [A, B]), images: REPLI, message: 'retire' },
   ]
   assert.equal(
     refusDeLaPlage({ commits, cumul: cumulDe(diffDe([A, B])) }).length, 1,
@@ -70,9 +70,9 @@ test('C : un stock ajouté puis RETIRÉ dans la plage ne refuse rien — le filt
 test('C : un commit du MILIEU sans cliquet est refusé, et le refus le NOMME', () => {
   const refus = refusDeLaPlage({
     commits: [
-      { sha: 'aaa1111', contre: [{ diff: diffDe([]), images: REPLI }], message: 'socle' },
-      { sha: 'bbb2222', contre: [{ diff: diffDe([A, B]), images: REPLI }], message: 'lot sans cliquet' },
-      { sha: 'ccc3333', contre: [{ diff: diffDe([]), images: REPLI }], message: 'tête innocente' },
+      { sha: 'aaa1111', diff: diffDe([]), images: REPLI, message: 'socle' },
+      { sha: 'bbb2222', diff: diffDe([A, B]), images: REPLI, message: 'lot sans cliquet' },
+      { sha: 'ccc3333', diff: diffDe([]), images: REPLI, message: 'tête innocente' },
     ],
     cumul: cumulDe(diffDe([A, B])),
   })
@@ -604,7 +604,7 @@ test('RECLASSEMENT au commit : chaque FORME lit l’arbre que le commit emporte 
 
 test('RECLASSEMENT (D3″) : un rebase qui fait disparaître le franchissement rend la ligne INVALIDE — refus bruyant', () => {
   const vide = { manifeste: [], partagees: [], reutilises: new Set(), lire: () => null }
-  const commits = [{ sha: 'c1'.padEnd(40, '0'), message: RECLASSE, cotes: () => [{ base: vide, commit: vide }] }]
+  const commits = [{ sha: 'c1'.padEnd(40, '0'), message: RECLASSE, cotes: () => ({ base: vide, commit: vide }) }]
   assert.deepEqual(reclassementsDeLaPlage({ commits }), [{ sha: commits[0].sha, ecarts: [{ module: CONSOLE, n: null, declare: 3 }] }])
   const horsFrontiere = [{ ...commits[0], cotes: () => null }]
   assert.deepEqual(reclassementsDeLaPlage({ commits: horsFrontiere }), [{ sha: commits[0].sha, ecarts: [{ module: CONSOLE, n: null, declare: 3 }] }],
@@ -1008,7 +1008,7 @@ const site = (fichier, ref, valeur) => ({ fichier, ref, occurrence: 1, pdfChars:
 const stockJson = (entrees) => texteDeStock('test', entrees)
 const SITES = [site('src/a.ts', 'r1', 1), site('src/b.ts', 'r2', 2), site('src/c.ts', 'r3', 3), site('src/b.ts', 'r4', 4)]
 
-test('#2223 ENTRÉES : changer la VALEUR d’une entrée ne fait rien naître — champ d’un site, valeur d’une paire de Map', () => {
+test('#2223 ENTRÉES : réécrire une entrée sans changer son fichier ne fait rien naître — champ d’un site, extension ajoutée dans une paire de Map', () => {
   const REGISTRE = 'scripts/guards/lib/x.mjs'
   const paire = (valeur) => `export const TYPES = new Map([['BoneId', '${valeur}']])\n`
   const d = depotDeChantier({ [STOCK_JSON]: stockJson(SITES), [REGISTRE]: paire('src/os/bones') })
@@ -1051,5 +1051,21 @@ test('#2223 FUSION : un conflit résolu sur le manifeste se lit contre les paren
     assert.deepEqual([vu.indisponible, vu.reclassements, vu.refus], [null, [], []])
   } finally {
     rmSync(d.repo, { recursive: true, force: true })
+  }
+})
+
+test('#2223 RECLASSEMENT d’une FUSION à trois voies : les DEUX côtés franchissent la console, la fusion n’ajoute rien — aucune ligne exigée', () => {
+  const d = depotCss()
+  try {
+    d.git('checkout', '-q', '-b', 'chantier')
+    d.commettre({ 'src/ui/Ecran2.tsx': importeur('Ecran2') }, RECLASSE)
+    d.git('checkout', '-q', 'main')
+    d.commettre({ 'src/ui/Ecran3.tsx': importeur('Ecran3') }, RECLASSE)
+    d.git('checkout', '-q', 'chantier')
+    d.git('merge', '-q', '--no-ff', '--no-commit', 'main')
+    const fusion = d.commettre({ [MANIFESTE]: manifesteAvec(PRIMITIVE_CONSOLE, { id: 'b' }) }, 'fusion de main, manifeste retouché')
+    assert.deepEqual(croissancesDeLaPlage({ cwd: d.racine, debut: d.base, fin: fusion }).reclassements, [])
+  } finally {
+    rmSync(d.racine, { recursive: true, force: true })
   }
 })

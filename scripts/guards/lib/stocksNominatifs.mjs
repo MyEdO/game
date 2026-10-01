@@ -195,14 +195,22 @@ const ENTREE_EN_QUEUE = new RegExp(String.raw`^\s*\[[^\n]*${JETON}\s*\][,;]?\s*(
 /** Le premier fichier qu'une ligne d'entrée NOMME, entre quotes, sans son suffixe `:ligne`/`:symbole`. */
 const FICHIER_NOMME = new RegExp(String.raw`['"\`]((?:${CHEMIN}|${NOM_NU}|${CHEMIN_SOURCE})(?=${SUFFIXE_JETON}['"\`]))`);
 
+/** Extension de fichier qu'une identité d'entrée ignore : `src/x` et `src/x.ts` nomment le même. */
+const EXTENSION = /\.(?:ts|tsx|mjs|mts|json|md|css)$/;
+
+/** Un chemin NOMMÉ ramené à son identité : sans suffixe `:ligne`/`:symbole`, sans extension (#2223). */
+const cheminNormalise = (chemin) => chemin.replace(/:[\w.|:-]+$/, '').replace(EXTENSION, '');
+
 /**
- * La CLÉ d'une entrée (#1806 D5″) : le fichier qu'elle nomme, ou son texte entier quand aucun
- * littéral n'en nomme un.
- * @param {string} texte @returns {string}
+ * La CLÉ d'une entrée (#1806 D5″), SEULE fonction d'identité de la porte — voie image comme repli de
+ * ligne : le fichier qu'elle nomme, normalisé (`cheminNormalise`), ou son texte entier quand aucun
+ * littéral n'en nomme un. Une clé de dictionnaire n'est l'identité que si elle nomme elle-même un
+ * fichier : c'est alors le premier littéral de la ligne.
+ * @param {string} texte la ligne NOMMANTE de l'entrée @returns {string}
  */
 export function fichierNommePar(texte) {
   const m = FICHIER_NOMME.exec(texte);
-  return m ? m[1].replace(/:[\w.|:-]+$/, '') : texte;
+  return m ? cheminNormalise(m[1]) : texte;
 }
 
 /** Le fichier peut-il porter un stock ? */
@@ -344,12 +352,8 @@ function cleDe(ts, prop) {
  * coïncident sur une entrée d'une seule ligne ; sur une entrée multiligne, c'est `nomme` qui porte
  * l'information, et c'est elle que la porte cite en exemple.
  *
- * Chaque entrée porte aussi sa `cle`, l'IDENTITÉ sous laquelle la porte la compte (#2223) :
- *   · une entrée de DICTIONNAIRE — propriété d'objet, paire `[clé, valeur]` d'un `new Map([ … ])` —
- *     s'identifie par la clé que le dictionnaire déclare : réécrire sa valeur ne fait naître aucune
- *     entrée ;
- *   · toute autre entrée, par le fichier qu'elle nomme (`fichierNommePar`, #1806 D5″).
- * Une clé qui nomme un fichier se lit comme lui, sans son suffixe `:ligne`/`:symbole`.
+ * Chaque entrée porte aussi sa `cle`, l'IDENTITÉ sous laquelle la porte la compte : `fichierNommePar`
+ * de sa ligne nommante (#1806 D5″, #2223), pour une liste, un dictionnaire ou une `Map`.
  * @param {string} source @param {string} chemin
  * @returns {{ ligne: number, nomme: number, cle: string }[] | null}
  */
@@ -359,11 +363,13 @@ export function entreesNominatives(source, chemin) {
   const { ts, sf } = img;
   const locales = lignesLocales(img);
   const ligneDe = (node) => sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1;
+  const textes = sf.text.split('\n');
   /** @type {Map<number, { nomme: number, cle: string }>} ligne de l'entrée → ligne nommante, identité. */
   const lignes = new Map();
-  const poser = (porteur, nommant, cle) => {
+  const poser = (porteur, nommant) => {
     const ligne = ligneDe(porteur);
-    if (!lignes.has(ligne)) lignes.set(ligne, { nomme: ligneDe(nommant), cle: cleDuTexte(cle) });
+    const nomme = ligneDe(nommant);
+    if (!lignes.has(ligne)) lignes.set(ligne, { nomme, cle: fichierNommePar(textes[nomme - 1] ?? '') });
   };
   const litteral = (n) => n && (ts.isArrayLiteralExpression(n) || ts.isObjectLiteralExpression(n));
   const parcourir = (node) => {
@@ -372,58 +378,30 @@ export function entreesNominatives(source, chemin) {
       return;
     }
     if (ts.isArrayLiteralExpression(node)) {
-      const paires = estArgumentDeMap(ts, node);
       for (const element of node.elements) {
         const nommant = noeudQuiNomme(ts, element);
-        if (!nommant) continue;
-        const cleDeLaPaire = paires ? cleDePaire(ts, element) : null;
-        poser(element, nommant, cleDeLaPaire ?? texteDuLitteral(ts, nommant));
+        if (nommant) poser(element, nommant);
       }
       return;
     }
     for (const prop of node.properties) {
       const cle = cleDe(ts, prop);
       if (cle === 'foyer') continue;
-      if (cle !== null && NOMME.test(cle)) { poser(prop, prop.name ?? prop, cle); continue; }
+      if (cle !== null && NOMME.test(cle)) { poser(prop, prop.name ?? prop); continue; }
       if (litteral(prop.initializer)) { parcourir(prop.initializer); continue; }
       const nommant = noeudQuiNomme(ts, prop);
-      if (nommant) poser(prop, nommant, cle ?? texteDuLitteral(ts, nommant));
+      if (nommant) poser(prop, nommant);
     }
   };
   ts.forEachChild(sf, parcourir);
   return [...lignes].sort((a, b) => a[0] - b[0]).map(([ligne, { nomme, cle }]) => ({ ligne, nomme, cle }));
 }
 
-/** Le texte d'un littéral nommant (`noeudQuiNomme`) : sa valeur, ou un gabarit sans ses substitutions. */
-function texteDuLitteral(ts, n) {
-  return ts.isTemplateExpression(n) ? texteDeGabarit(ts, n) : n.text;
-}
-
-/** Le tableau est-il l'argument d'un `new Map(…)` — une liste de paires `[clé, valeur]` ? */
-function estArgumentDeMap(ts, tableau) {
-  const appel = tableau.parent;
-  return Boolean(appel && ts.isNewExpression(appel) && ts.isIdentifier(appel.expression)
-    && appel.expression.text === 'Map' && appel.arguments?.[0] === tableau);
-}
-
-/** La clé littérale d'une paire `[clé, valeur]`, ou `null` si l'élément n'en est pas une. */
-function cleDePaire(ts, element) {
-  if (!ts.isArrayLiteralExpression(element) || element.elements.length !== 2) return null;
-  const cle = element.elements[0];
-  return ts.isStringLiteral(cle) || ts.isNoSubstitutionTemplateLiteral(cle) || ts.isNumericLiteral(cle) ? cle.text : null;
-}
-
-/** L'identité d'une entrée lue sur son texte NU : le fichier qu'il nomme (`fichierNommePar`), sinon lui. */
-function cleDuTexte(texte) {
-  const m = FICHIER_NOMME.exec(`"${texte}"`);
-  return m ? m[1].replace(/:[\w.|:-]+$/, '') : texte;
-}
-
 /** Entrées d'une image de fichier (`entreesNominatives`), chacune avec le `texte` de sa ligne
  *  nommante, ou `null` quand l'image ne se lit pas (lecteur absent, fichier supprimé, binaire,
  *  dialecte inconnu) : le REPLI de ligne juge alors, et l'entrée COMPTE.
  *  @returns {{ ligne: number, nomme: number, cle: string, texte: string }[] | null} */
-function entreesDeLImage(lire, fichier) {
+export function entreesDeLImage(lire, fichier) {
   if (typeof lire !== 'function') return null;
   let source;
   try { source = lire(fichier); } catch { return null; }
@@ -438,27 +416,104 @@ function entreesDeLImage(lire, fichier) {
 const lignesDEntrees = (entrees) => entrees && new Map(entrees.map((e) => [e.ligne, e.nomme]));
 
 /**
- * Ce qui NAÎT et ce qui MEURT entre deux images, en ENTRÉES identifiées par leur `cle` (#2223) :
- * une entrée du post-image ne naît que si le pré-image n'en porte plus aucune de même clé à apparier
- * — à texte égal d'abord, puis à clé seule. Réordonner, réindenter ou réécrire la valeur d'une
- * entrée ne fait rien naître.
+ * L'APPARIEMENT des entrées de deux images (#2223) : une entrée d'`apres` s'apparie à une entrée
+ * d'`avant` de même `cle`, à texte égal d'abord, puis à clé seule (une valeur réécrite). Les objets
+ * rendus sont ceux reçus : `paires` = `[avant, apres]`.
+ * @template {{ cle: string, texte: string }} E
+ * @param {E[]} avant @param {E[]} apres
+ * @returns {{ paires: [E, E][], nees: E[], mortes: E[] }}
+ */
+function apparier(avant, apres) {
+  /** @type {Map<string, E[]>} */
+  const restantes = new Map();
+  for (const e of avant) (restantes.get(e.cle) ?? restantes.set(e.cle, []).get(e.cle)).push(e);
+  const paires = [];
+  const aTexteInegal = apres.filter((e) => {
+    const memes = restantes.get(e.cle) ?? [];
+    const i = memes.findIndex((m) => m.texte === e.texte);
+    if (i < 0) return true;
+    paires.push([memes.splice(i, 1)[0], e]);
+    return false;
+  });
+  const nees = aTexteInegal.filter((e) => {
+    const [a] = (restantes.get(e.cle) ?? []).splice(0, 1);
+    if (a) paires.push([a, e]);
+    return !a;
+  });
+  return { paires, nees, mortes: [...restantes.values()].flat() };
+}
+
+const vueDEntree = ({ cle, texte }) => ({ cle, texte });
+
+/**
+ * Ce qui NAÎT et ce qui MEURT entre deux images, en ENTRÉES identifiées par leur `cle` (#2223,
+ * `apparier`). Réordonner, réindenter ou réécrire la valeur d'une entrée ne fait rien naître.
  * @param {{ cle: string, texte: string }[]} pre @param {{ cle: string, texte: string }[]} post
  * @returns {{ nees: { cle: string, texte: string }[], mortes: { cle: string, texte: string }[] }}
  */
 function ecartDEntrees(pre, post) {
-  /** @type {Map<string, { cle: string, texte: string }[]>} */
-  const restantes = new Map();
-  for (const e of pre) (restantes.get(e.cle) ?? restantes.set(e.cle, []).get(e.cle)).push(e);
-  const aTexteInegal = post.filter((e) => {
-    const memes = restantes.get(e.cle) ?? [];
-    const i = memes.findIndex((m) => m.texte === e.texte);
-    if (i < 0) return true;
-    memes.splice(i, 1);
-    return false;
-  });
-  const nees = aTexteInegal.filter((e) => !(restantes.get(e.cle) ?? []).splice(0, 1).length);
-  const vue = ({ cle, texte }) => ({ cle, texte });
-  return { nees: nees.map(vue), mortes: [...restantes.values()].flat().map(vue) };
+  const { nees, mortes } = apparier(pre, post);
+  return { nees: nees.map(vueDEntree), mortes: mortes.map(vueDEntree) };
+}
+
+/**
+ * Ce qu'une FUSION fait naître et mourir, en ENTRÉES, contre la fusion automatique de ses deux
+ * parents (#2223), PUR. Une entrée de la `base` commune que l'un des côtés a retirée est retirée de la
+ * fusion automatique : la fusion qui la garde la fait NAÎTRE (résurrection, retrait contre retouche
+ * compris), celle qui retire une entrée gardée des deux côtés la fait MOURIR. Les entrées nées d'un
+ * côté ou de l'autre (le même texte des deux côtés compte une fois) sont celles de la fusion
+ * automatique : la fusion ne fait naître que ce qu'elle ajoute à leur multiensemble (`ecartDEntrees`).
+ * @param {{ base: { cle: string, texte: string }[], parents: [{ cle: string, texte: string }[], { cle: string, texte: string }[]], fusion: { cle: string, texte: string }[] }} p
+ * @returns {{ nees: { cle: string, texte: string }[], mortes: { cle: string, texte: string }[] }}
+ */
+export function apportDeFusion({ base, parents: [p1, p2], fusion }) {
+  const [c1, c2, cm] = [p1, p2, fusion].map((cote) => apparier(base, cote))
+  const gardees = (c) => new Map(c.paires)
+  const [g1, g2, gm] = [c1, c2, cm].map(gardees)
+  const nees = []
+  const mortes = []
+  for (const e of base) {
+    const automatique = g1.has(e) && g2.has(e)
+    if (gm.has(e) && !automatique) nees.push(gm.get(e))
+    if (!gm.has(e) && automatique) mortes.push(e)
+  }
+  const nesDesCotes = [...c1.nees, ...c2.nees.filter((e) => !c1.nees.some((d) => d.cle === e.cle && d.texte === e.texte))]
+  const propres = ecartDEntrees(nesDesCotes, cm.nees)
+  return { nees: [...nees.map(vueDEntree), ...propres.nees], mortes: [...mortes.map(vueDEntree), ...propres.mortes] }
+}
+
+/**
+ * Bilan d'une FUSION, porteur par porteur, PUR (#2223) : `apportDeFusion` sur les images de chacun
+ * des `fichiers` — la fusion, ses deux parents, leur base commune —, rendu comme `bilanDesStocks`.
+ * Une image absente (`null`) n'a aucune entrée ; une image hors `DIALECTE` non plus (les familles de
+ * `PORTEURS` sont toutes dans un dialecte).
+ * @param {{ fichiers: string[], lire: { fusion: (c: string) => string | null, parents: [(c: string) => string | null, (c: string) => string | null], commune: (c: string) => string | null } }} p
+ * @returns {ReturnType<typeof bilanDesStocks>}
+ */
+export function bilanDeFusion({ fichiers, lire }) {
+  return fichiers.filter(estPorteurDeStock).sort(parUnitesDeCode).map((fichier) => {
+    const entrees = (l) => entreesDeLImage(l, fichier) ?? []
+    const { nees, mortes } = apportDeFusion({
+      base: entrees(lire.commune),
+      parents: [entrees(lire.parents[0]), entrees(lire.parents[1])],
+      fusion: entrees(lire.fusion),
+    })
+    return bilanDuPorteur(fichier, nees, mortes, new Map())
+  })
+}
+
+/** Le bilan d'un porteur : `parCle` = clé → nées moins mortes, les mortes reportées par `renommages`
+ *  (chemin au parent ↦ chemin au commit, normalisés comme une clé). */
+function bilanDuPorteur(fichier, retenues, perdues, renommages) {
+  /** @type {Map<string, number>} clé → croissance nette */
+  const parCle = new Map();
+  const reportees = new Map([...renommages].map(([a, b]) => [cheminNormalise(a), cheminNormalise(b)]));
+  for (const { cle: k } of retenues) parCle.set(k, (parCle.get(k) ?? 0) + 1);
+  for (const { cle: k } of perdues) {
+    const reportee = reportees.get(k) ?? k;
+    parCle.set(reportee, (parCle.get(reportee) ?? 0) - 1);
+  }
+  return { fichier, retenues, perdues, parCle };
 }
 
 /** En-têtes de diff qui ne portent ni contenu ni numérotation. Ceux qui en portent sont lus AVANT :
@@ -671,16 +726,7 @@ export function bilanDesStocks(diffU0, images) {
     })
     .sort((a, b) => parUnitesDeCode(a.fichier, b.fichier));
   apparierLesDeplacements(lus);
-  return lus.map(({ fichier, retenues, perdues }) => {
-    /** @type {Map<string, number>} clé → croissance nette */
-    const parCle = new Map();
-    for (const { cle: k } of retenues) parCle.set(k, (parCle.get(k) ?? 0) + 1);
-    for (const { cle: k } of perdues) {
-      const reportee = renommages.get(k) ?? k;
-      parCle.set(reportee, (parCle.get(reportee) ?? 0) - 1);
-    }
-    return { fichier, retenues, perdues, parCle };
-  });
+  return lus.map(({ fichier, retenues, perdues }) => bilanDuPorteur(fichier, retenues, perdues, renommages));
 }
 
 /** Croissance d'un porteur lue sur ses clés : la somme des nets POSITIFS (#1806 D5″). */
