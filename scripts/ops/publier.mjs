@@ -11,9 +11,9 @@
 // `.github/workflows/ci.yml` les joue toutes, et le ruleset `main` (`scripts/ops/ruleset-main.mjs`)
 // n'admet rien hors de la file. SEPT étapes — preflight, docs, push-branche, pr, file, pilotage, fin :
 // preflight (une saleté faite UNIQUEMENT de DÉRIVÉS ne refuse pas : l'étape `docs` la commet ; les
-// compteurs de version contre `origin/main` n'y sont qu'un AVERTISSEMENT), docs (`docs:build`, puis
-// commit des MIXTES et des miroirs d'agents sales — la plage sans source de doc saute la
-// RÉGÉNÉRATION, jamais le COMMIT), push de la branche, PR créée, attente
+// compteurs de version contre `origin/main` n'y sont qu'un AVERTISSEMENT), docs (`build-all.mjs
+// --mixtes`, puis commit des MIXTES et des miroirs d'agents sales — la plage sans source de mixte
+// saute la RÉGÉNÉRATION, jamais le COMMIT), push de la branche, PR créée, attente
 // bornée de la course verte de la tête, de sa demande de fusion (`sha` = la tête jugée) puis de la
 // fusion par la file, pilotage des tickets
 // cités, fin. Aucun client ne rebase sur un tronc mouvant : une PR ÉJECTÉE de la file pour un conflit
@@ -686,7 +686,7 @@ const appelGh = (racine) => (args, { input } = {}) => gh(args, racine, input)
 
 /** Les modes de `scripts/docs/build-all.mjs` que joue le train : l'étape `docs`, et les cibles de code
  *  après une fusion conclue par le fossile de la reprise. */
-const MODES_DES_DOCS = Object.freeze(['--quiet', '--code'])
+const MODES_DES_DOCS = Object.freeze(['--mixtes', '--code'])
 
 /**
  * `npm run <script>` sous `platform` : l'exécutable, son argv et `shell`. PURE. `npm` est un `.cmd`
