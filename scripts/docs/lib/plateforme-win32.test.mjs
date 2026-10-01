@@ -56,10 +56,10 @@ function ecartsDeRendu(script, hote, win32) {
 
 test('ecartsDeRendu : corps différent, cible d’un seul côté, rendu identique', () => {
   const rendu = (paires) => new Map(paires)
-  assert.deepEqual(ecartsDeRendu('g.mjs', rendu([['docs/a.md', 'a/b']]), rendu([['docs/a.md', 'a\\b']])), ['g.mjs : « docs/a.md » — le corps dépend de la plateforme'])
-  assert.deepEqual(ecartsDeRendu('g.mjs', rendu([['docs/a.md', 'x']]), rendu([])), ['g.mjs : « docs/a.md » rendue sur l’hôte seulement'])
-  assert.deepEqual(ecartsDeRendu('g.mjs', rendu([]), rendu([['docs/a.md', 'x']])), ['g.mjs : « docs/a.md » rendue sous win32 seulement'])
-  assert.deepEqual(ecartsDeRendu('g.mjs', rendu([['docs/a.md', 'x']]), rendu([['docs/a.md', 'x']])), [])
+  assert.deepEqual(ecartsDeRendu('g.mjs', rendu([['cible-a.md', 'a/b']]), rendu([['cible-a.md', 'a\\b']])), ['g.mjs : « cible-a.md » — le corps dépend de la plateforme'])
+  assert.deepEqual(ecartsDeRendu('g.mjs', rendu([['cible-a.md', 'x']]), rendu([])), ['g.mjs : « cible-a.md » rendue sur l’hôte seulement'])
+  assert.deepEqual(ecartsDeRendu('g.mjs', rendu([]), rendu([['cible-a.md', 'x']])), ['g.mjs : « cible-a.md » rendue sous win32 seulement'])
+  assert.deepEqual(ecartsDeRendu('g.mjs', rendu([['cible-a.md', 'x']]), rendu([['cible-a.md', 'x']])), [])
 })
 
 test('chaque générateur de `GENERATORS` rend le MÊME corps sur l’hôte et sous win32', { timeout: 900_000 }, async (t) => {
