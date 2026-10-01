@@ -11,6 +11,7 @@ import { dirname, join } from 'node:path'
 import { refusDeLaPlage, raisonDeRefusDePlage, croissancesDeLaPlage, reclassementsDeLaPlage, SHA_NUL } from './plageStock.mjs'
 import { TRONC } from './gitPorte.mjs'
 import { bilanDesStocks } from './stocksNominatifs.mjs'
+import { texteDeStock } from './stockDeSites.mjs'
 import { instanceDeDepot, sousGitFeint } from './depotGabarit.mjs'
 
 const PORTEUR = 'scripts/x.test.mjs'
@@ -1004,7 +1005,7 @@ test('SEUL : le cumul d’une fusion jugée seule est SON apport, pas le diff de
 /** Un stock de sites JSON (`FORMAT_JSON`) de quatre champs par entrée. */
 const STOCK_JSON = 'scripts/raw/x-stock.json'
 const site = (fichier, ref, valeur) => ({ fichier, ref, occurrence: 1, pdfChars: valeur })
-const stockJson = (entrees) => `${JSON.stringify({ quoi: 'test', entrees }, null, 2)}\n`
+const stockJson = (entrees) => texteDeStock('test', entrees)
 const SITES = [site('src/a.ts', 'r1', 1), site('src/b.ts', 'r2', 2), site('src/c.ts', 'r3', 3), site('src/b.ts', 'r4', 4)]
 
 test('#2223 ENTRÉES : changer la VALEUR d’une entrée ne fait rien naître — champ d’un site, valeur d’une paire de Map', () => {
