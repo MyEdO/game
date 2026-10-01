@@ -25,7 +25,7 @@ test('epiqueLiee : `ops:suivi -- N` par npm comme en direct ; rien sinon', () =>
 test('epiqueLiee : #2233 — un segment précédé d’un `cd`, ou suivi d’une redirection et d’un tube, lie quand même', () => {
   assert.equal(epiqueLiee('npm run ops:suivi -- 2189 2>&1 | tail -4'), 2189)
   assert.equal(epiqueLiee('cd x && npm run ops:suivi -- 2189'), 2189)
-  assert.equal(epiqueLiee('cd /c/Users/gauch/PhpstormProjects/Foundry/Game && npm run ops:suivi -- 2189 2>&1 | tail -4; tail -2 .git/suivi/.journal'), 2189)
+  assert.equal(epiqueLiee('cd /depot/Game && npm run ops:suivi -- 2189 2>&1 | tail -4; tail -2 .git/suivi/.journal'), 2189)
   assert.equal(epiqueLiee('node scripts/ops/suivi.mjs 2189 --sans-fetch > sortie.txt 2>/dev/null'), 2189)
 })
 
