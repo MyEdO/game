@@ -10,7 +10,7 @@
 import { z } from 'zod';
 import './locale-fr';
 import { IDS_PAR_ESPACE } from '../_ids.generated';
-import { baseDe, cleDesSpecs, cleFiltree, lireCleDEspace } from './cle-d-espace';
+import { baseDe, cleDesSpecs, cleFiltree, lireCleDEspace, porteLeChampMarqueur } from './cle-d-espace';
 import { idsVivants } from './idsVivants';
 
 declare const marqueDeType: unique symbol;
@@ -130,27 +130,73 @@ function cleDeSousListe(type: TypeEntite, valeur: string, site: string): string 
   return cleFiltree(espace, { champ, vaut: valeur });
 }
 
+/** Sous-liste MARQUÉE : l'espace d'un type PRIVÉ des entrées qui portent l'un de ses marqueurs
+ *  (paramètre `espace.marqueurs` du def) — `INSTANCIABLE_PAR_ID` (`grammaire/sousListes.ts`). */
+type SousListeMarquee = { readonly horsMarqueurs: readonly string[] };
+
 /**
  * SOUS-LISTE qu'une feuille `idDe` retient de l'espace de son type : une chaîne, la sous-liste
- * DISCRIMINÉE de cette valeur (`idDe('material', 'prop')`) ; `{ horsMarqueur }`, l'espace PRIVÉ de sa
- * sous-liste MARQUÉE (celle que lit `porteLeMarqueur`) — `idDe('trapping', { horsMarqueur: 'service' })`.
+ * DISCRIMINÉE de cette valeur (`idDe('material', 'prop')`) ; une `SousListeMarquee`, l'espace PRIVÉ des
+ * sous-listes MARQUÉES qu'elle nomme (celles que lit `porteLeMarqueur`) — `idDe('trapping', INSTANCIABLE_PAR_ID)`.
  */
-type SousListe = string | { readonly horsMarqueur: string };
+type SousListe = string | SousListeMarquee;
 
 /** Clé de la sous-liste marquée `marqueur` de l'espace d'un type (paramètre `espace.marqueurs` du def). */
 const cleDuMarqueur = (type: TypeEntite, marqueur: string): string => cleFiltree(espaceDe(type), { champ: marqueur });
 
+/** Refus d'une référence à l'entrée `id` qui porte le marqueur `marqueur`, ou `null` sans marqueur. */
+const refusDeMarqueur = (type: TypeEntite, id: string, marqueur: string | undefined): string | null =>
+  marqueur === undefined
+    ? null
+    : `« ${id} » porte le marqueur « ${marqueur} » : cette référence l'exclut du catalogue des ${TYPES[type].catalogue} (${espaceDe(type)}).`;
+
+/** Le refus d'un id PRÉSENT dans l'espace de son type par une sous-liste marquée — `null` s'il est ADMIS. */
+function refusDuMarqueur(type: TypeEntite, sousListe: SousListeMarquee, site: string, id: string): string | null {
+  return refusDeMarqueur(type, id, sousListe.horsMarqueurs.find((m) => idsDesignes(cleDuMarqueur(type, m), site).has(id)));
+}
+
+/** Le premier marqueur de la sous-liste que porte l'ENTRÉE (`porteLeChampMarqueur`), `undefined` sinon. */
+const marqueurDeLEntree = (sousListe: SousListeMarquee, entree: object): string | undefined =>
+  sousListe.horsMarqueurs.find((m) => porteLeChampMarqueur(entree as Readonly<Record<string, unknown>>, m));
+
+/** Le refus d'un id par une sous-liste DISCRIMINÉE — `null` s'il est ADMIS. */
+const refusDeLaDiscriminee = (type: TypeEntite, sousListe: string, site: string, id: string): string | null =>
+  idsDesignes(cleDeSousListe(type, sousListe, site), site).has(id)
+    ? null
+    : `« ${id} » est hors de la sous-liste « ${sousListe} » du catalogue des ${TYPES[type].catalogue} (${espaceDe(type)}).`;
+
+/** Le refus d'une sous-liste, jugé sur l'ENTRÉE résolue (objet du catalogue ou de la campagne) — la
+ *  marquée sur ses champs (`marqueurDeLEntree`), la discriminée sur son id —, lu par le sélecteur qui
+ *  résout une saisie hors du registre (`ui/compendium/RefField.tsx`). */
+export function refusDeLEntree(type: TypeEntite, sousListe: SousListe, entree: { readonly id: string }): string | null {
+  return typeof sousListe === 'string'
+    ? refusDeLaDiscriminee(type, sousListe, `refusDeLEntree('${type}')`, entree.id)
+    : refusDeMarqueur(type, entree.id, marqueurDeLEntree(sousListe, entree));
+}
+
 /** Le refus d'un id par une feuille `idDe(type, sousListe?)` — `null` s'il est ADMIS —, lu à chaque validation. */
 function refusDe(type: TypeEntite, sousListe: SousListe | undefined, site: string, id: string): string | null {
-  if (sousListe === undefined) return idsDesignes(espaceDe(type), site).has(id) ? null : refMorte(type, id);
-  if (typeof sousListe === 'string')
-    return idsDesignes(cleDeSousListe(type, sousListe, site), site).has(id)
-      ? null
-      : `« ${id} » est hors de la sous-liste « ${sousListe} » du catalogue des ${TYPES[type].catalogue} (${espaceDe(type)}).`;
+  if (typeof sousListe === 'string') return refusDeLaDiscriminee(type, sousListe, site, id);
   if (!idsDesignes(espaceDe(type), site).has(id)) return refMorte(type, id);
-  return idsDesignes(cleDuMarqueur(type, sousListe.horsMarqueur), site).has(id)
-    ? `« ${id} » porte le marqueur « ${sousListe.horsMarqueur} » : cette référence l'exclut du catalogue des ${TYPES[type].catalogue} (${espaceDe(type)}).`
-    : null;
+  return sousListe === undefined ? null : refusDuMarqueur(type, sousListe, site, id);
+}
+
+/**
+ * L'ENTRÉE résolue appartient-elle à la sous-liste marquée ? Le runtime juge l'entrée elle-même (objet
+ * du catalogue OU de la campagne, `state/campaignData.ts`) par `porteLeChampMarqueur`, le prédicat
+ * qui bâtit les clés `<espace>?<marqueur>` que `refusDuMarqueur` lit au schéma.
+ */
+export function dansLaSousListe(sousListe: SousListeMarquee, entree: object): boolean {
+  return marqueurDeLEntree(sousListe, entree) === undefined;
+}
+
+/** Les ids ADMIS par `idDe(type, sousListe)`, dans l'ordre de la donnée, lus au registre (régime
+ *  vivant compris, `lireLEspace`) — les options d'un sélecteur et les producteurs qui énumèrent la
+ *  sous-liste. */
+export function idsDeLaSousListe(type: TypeEntite, sousListe: SousListe): readonly string[] {
+  const site = `idsDeLaSousListe('${type}')`;
+  if (typeof sousListe === 'string') return [...idsDesignes(cleDeSousListe(type, sousListe, site), site)];
+  return [...idsDesignes(espaceDe(type), site)].filter((id) => refusDuMarqueur(type, sousListe, site, id) === null);
 }
 
 /** Ids admis de `type` — l'ensemble que juge `idDe(type)`. */
@@ -216,13 +262,24 @@ const REPERE_OP: unique symbol = Symbol('repère de nœud d’op');
 /** Un `mesureDuParse` est-il en cours ? Le temps SYNCHRONE de l'appel, qui seul l'écrit, et jamais ailleurs : aucun export n'expose l'état. */
 let parseDeMesure = false;
 
-/** Les feuilles construites par `idDe`, avec le type qu'elles référencent — ce que la garde du masquage
- *  (`parse-de-mesure.test.ts`) instrumente. */
-const FEUILLES_D_ID = new WeakMap<object, TypeEntite>();
+/** Ce qu'une feuille `idDe` déclare : le type référencé, sa sous-liste, et `ouverte` (un id absent de
+ *  l'espace est admis sans être une référence du type). */
+export interface FeuilleDId {
+  readonly type: TypeEntite;
+  readonly sousListe?: SousListe;
+  readonly ouverte: boolean;
+}
+
+/** Les feuilles construites par `idDe`, avec leur déclaration — ce que la garde du masquage
+ *  (`parse-de-mesure.test.ts`) instrumente et ce que lit un sélecteur (`declarationDeFeuilleDId`). */
+const FEUILLES_D_ID = new WeakMap<object, FeuilleDId>();
+
+/** La déclaration (`FeuilleDId`) d'une feuille construite par `idDe`, `undefined` si le nœud n'en est pas une. */
+export const declarationDeFeuilleDId = (noeud: unknown): FeuilleDId | undefined =>
+  typeof noeud === 'object' && noeud !== null ? FEUILLES_D_ID.get(noeud) : undefined;
 
 /** Le type référencé par une feuille construite par `idDe`, `undefined` si le nœud n'en est pas une. */
-export const typeDeFeuilleDId = (noeud: unknown): TypeEntite | undefined =>
-  typeof noeud === 'object' && noeud !== null ? FEUILLES_D_ID.get(noeud) : undefined;
+export const typeDeFeuilleDId = (noeud: unknown): TypeEntite | undefined => declarationDeFeuilleDId(noeud)?.type;
 
 /** Les espaces que les feuilles `idDe` et les `porteLeMarqueur` construits désignent : une clé d'espace
  *  (sous-liste marquée comprise), ou `<espace>\0<valeur>` pour une sous-liste discriminée — la cible que
@@ -249,23 +306,30 @@ export const estFeuilleDId = (noeud: unknown): boolean => typeDeFeuilleDId(noeud
  * REPÈRE, que le volet SLOTS de `docs/structures-donnees.md` lit comme le côté DÉCLARÉ.
  *
  * La liste admise se LIT À CHAQUE VALIDATION, parce que le registre a deux régimes déclarés
- * (`_ids.generated.ts`) : le fichier généré figé au commit, et le RECALCUL en mémoire de l'éditeur
- * (`CodexEdit.save` → `validateDataset`), qui remplace l'entrée du dataset. Les schémas, eux, se
+ * (`_ids.generated.ts`) : le fichier généré figé au commit, et le RECALCUL sur les racines vivantes,
+ * refait par version du dataset à toute écriture du seam (`src/data/overrides.ts`). Les schémas, eux, se
  * construisent UNE fois au chargement du module : une lecture faite à la construction rendrait une
  * entité créée au Compendium invalide pour toute donnée qui la référence. La construction ne lit pas
  * la table (`idsVivants.ts`, en-tête) : un espace désigné et absent LÈVE au parse, et
  * `espaces-contrat.test.ts` exige la cible de chaque désignation (`espacesDesignes`).
+ *
+ * `ouverte` : le porteur admet aussi un id ABSENT de l'espace, que son runtime résout ailleurs (Effet
+ * `giveTrapping` : objets de la campagne, `state/campaignData.ts`, sinon objet `custom`) ; un id
+ * PRÉSENT reste jugé par la sous-liste. Un id absent n'émet aucun repère : il n'est pas une référence
+ * du type.
  */
-export function idDe<T extends TypeEntite>(type: T, sousListe?: SousListe): z.ZodType<Id<T>, string> {
+export function idDe<T extends TypeEntite>(type: T, sousListe?: SousListe, options?: { readonly ouverte?: boolean }): z.ZodType<Id<T>, string> {
+  const ouverte = options?.ouverte === true;
   const site =
-    sousListe === undefined
-      ? `idDe('${type}')`
+    (sousListe === undefined
+      ? `idDe('${type}'`
       : typeof sousListe === 'string'
-        ? `idDe('${type}', '${sousListe}')`
-        : `idDe('${type}', { horsMarqueur: '${sousListe.horsMarqueur}' })`;
+        ? `idDe('${type}', '${sousListe}'`
+        : `idDe('${type}', { horsMarqueurs: [${sousListe.horsMarqueurs.map((m) => `'${m}'`).join(', ')}] }`) + (ouverte ? ', { ouverte: true })' : ')');
   const feuille = z
     .string()
     .superRefine((v, ctx) => {
+      if (ouverte && !idsDesignes(espaceDe(type), site).has(v)) return;
       const refus = refusDe(type, sousListe, site, v);
       if (refus === null) {
         if (parseDeMesure) ctx.addIssue({ code: 'custom', message: `repère de ${site}`, params: { [REPERE]: type }, continue: true });
@@ -274,11 +338,11 @@ export function idDe<T extends TypeEntite>(type: T, sousListe?: SousListe): z.Zo
       ctx.addIssue({ code: 'custom', message: refus });
     })
     .transform((v) => v as Id<T>);
-  FEUILLES_D_ID.set(feuille, type);
+  FEUILLES_D_ID.set(feuille, sousListe === undefined ? { type, ouverte } : { type, sousListe, ouverte });
   if (typeof sousListe === 'string') DESIGNATIONS.add(`${espaceDe(type)}\u0000${sousListe}`);
   else {
     DESIGNATIONS.add(espaceDe(type));
-    if (sousListe !== undefined) DESIGNATIONS.add(cleDuMarqueur(type, sousListe.horsMarqueur));
+    for (const m of sousListe?.horsMarqueurs ?? []) DESIGNATIONS.add(cleDuMarqueur(type, m));
   }
   return feuille;
 }
@@ -406,8 +470,8 @@ export function reperesDuParse(schema: z.ZodType, donnee: unknown): readonly Rep
  * `z.array(idDe(...))` écrit au site en serait une seconde, sur le ticket même qui chasse les
  * divergences de forme). `min` borne la liste quand le porteur EXIGE au moins une référence :
  * `ShipCrewHit.crewTarget.stations` vise au moins une présence, une liste vide ne désignant
- * personne. `sousListe` restreint chaque référence comme `idDe` (`merchants.json › curated` exclut les
- * tarifs de service). Le retour n'est PAS érasé en `z.ZodType` — sinon `.min()` ne survivrait pas à
+ * personne. `sousListe` restreint chaque référence comme `idDe` (`merchants.json › curated` lit
+ * `INSTANCIABLE_PAR_ID`). Le retour n'est PAS érasé en `z.ZodType` — sinon `.min()` ne survivrait pas à
  * l'appel, et le site le réécrirait à la main.
  */
 export function refs<T extends TypeEntite>(type: T, opts?: { min?: number; sousListe?: SousListe }): z.ZodArray<z.ZodType<Id<T>, string>> {

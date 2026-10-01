@@ -11,10 +11,11 @@
 // foyer (`{ ...FORMULE_DE_CHEBYSHEV, foyer: 'src/engine/grid.ts' }`) :
 //  - les constructions génériques `FORMULE_DE_CHEBYSHEV`, `ECHAPPEUR_DE_LITTERAL`,
 //    `CONSTRUCTION_DE_PROGRAMME`, `ECRITURE_DE_STOCK_JSON` et `CONSTRUCTION_DE_TABLE_TOTALE` ;
-//  - trois fabriques : `recopieDeCanon` (un canon, ses membres, six formes de recopie, paramètres
+//  - quatre fabriques : `recopieDeCanon` (un canon, ses membres, six formes de recopie, paramètres
 //    `complet` et `formes`, la forme `membres de type` lisant un type littéral comme une `interface`),
-//    `cleEnLigne` (la clé d'un site de stock écrite en ligne) et `comparaisonDAppel` (le rendu d'une
-//    fonction déclarée comparé en ligne) ;
+//    `cleEnLigne` (la clé d'un site de stock écrite en ligne), `lectureBruteDeCollection` (la
+//    collection lue hors de sa vue, admise à des SITES nommés par `englobanteDe`) et
+//    `comparaisonDAppel` (le rendu d'une fonction déclarée comparé en ligne) ;
 //  - `estAppelDeclare`, la reconnaissance d'un appel à une fonction déclarée par son module, sur la
 //    liaison `origineImportee` et la table `tableDesExports` ;
 //  - `estTableTotale`, la reconnaissance d'une table totale déclarée, que lit aussi
@@ -558,6 +559,72 @@ export function cleEnLigne({ nom, champsDeGroupe, occurrence, separateur, separa
       if (texte == null) return null;
       const lues = regles.filter(([, rx]) => rx.test(texte)).map(([regle]) => regle);
       return lues.length ? `${nom} : ${lues.join(', ')} ${JSON.stringify(texte)}` : null;
+    },
+  };
+}
+
+/** La chaîne des déclarations NOMMÉES qui englobent `n` (fonction, méthode, variable liée à une
+ *  fonction), de la plus externe à la plus interne, jointe par ` › ` ; `(module)` au niveau du fichier.
+ *  @param {ts.Node} n @returns {string} */
+function englobanteDe(n) {
+  const noms = [];
+  for (let p = n.parent; p; p = p.parent) {
+    if ((ts.isFunctionDeclaration(p) || ts.isMethodDeclaration(p)) && p.name) noms.unshift(p.name.getText());
+    else if (ts.isVariableDeclaration(p) && ts.isIdentifier(p.name) && p.initializer && (ts.isArrowFunction(sansEnveloppe(p.initializer)) || ts.isFunctionExpression(sansEnveloppe(p.initializer))))
+      noms.unshift(p.name.text);
+  }
+  return noms.length ? noms.join(' › ') : '(module)';
+}
+
+/**
+ * La LECTURE BRUTE d'une collection dont une VUE est le canon (#1988) : hors de son foyer, le code lit
+ * la vue, jamais la collection. Formes reconnues :
+ *  - une LIAISON à l'un des exports `liaisons` (`{ module, exporte }`, module relatif à la racine) :
+ *    import nommé (renommé ou non, `import type` compris), `ns.<exporte>` sur un `import * as ns`,
+ *    réexportation `export { <exporte> } from` ;
+ *  - l'IMPORT d'un fichier dont le nom est `json` ;
+ *  - un APPEL à l'une des `fonctions` du `seam` (`estAppelDeclare`) dont le premier argument est le
+ *    littéral `dataset`, ou n'est pas un littéral de chaîne.
+ * `sitesAdmis` (`{ rel, englobante, appele }`, `englobanteDe`) : un appel au seam ADMIS à ce site, et à
+ * lui seul — jamais un fichier. HORS DE PORTÉE : l'accès calculé (`ns['<exporte>']`), la
+ * déstructuration d'un espace de noms, `import()` dynamique, `export * from`.
+ * @param {{ nom: string, liaisons: readonly { module: string, exporte: string }[], json: string,
+ *   seam: { module: string, fonctions: readonly string[] }, dataset: string,
+ *   sitesAdmis?: readonly { rel: string, englobante: string, appele: string }[] }} p
+ * @returns {{ nom: string, indice: (texte: string) => boolean, reconnait: (noeud: ts.Node, sf: ts.SourceFile) => string | null }}
+ */
+export function lectureBruteDeCollection({ nom, liaisons, json, seam, dataset, sitesAdmis = [] }) {
+  const exportes = new Set(liaisons.map((l) => l.exporte));
+  const lie = (module, exporte) => liaisons.some((l) => l.module === module && l.exporte === exporte);
+  const fonctions = { [seam.module]: seam.fonctions };
+  return {
+    nom,
+    indice: (texte) => [...exportes, json, ...seam.fonctions].some((m) => texte.includes(m)),
+    reconnait: (n, sf) => {
+      if (ts.isImportDeclaration(n) && ts.isStringLiteral(n.moduleSpecifier) && n.moduleSpecifier.text.split('/').pop() === json)
+        return `import de \`${json}\``;
+      if (ts.isImportSpecifier(n)) {
+        const o = origineImportee(n.name.text, sf);
+        return o && lie(o.module, o.nom) ? `\`${o.nom}\` importé de \`${o.module}\`` : null;
+      }
+      if (ts.isPropertyAccessExpression(n) && ts.isIdentifier(n.expression) && exportes.has(n.name.text)) {
+        const o = origineImportee(n.expression.text, sf);
+        return o?.nom === '*' && lie(o.module, n.name.text) ? `\`${n.expression.text}.${n.name.text}\` sur l'espace de noms de \`${o.module}\`` : null;
+      }
+      if (ts.isExportSpecifier(n) && n.parent.parent.moduleSpecifier && ts.isStringLiteral(n.parent.parent.moduleSpecifier)) {
+        const module = moduleDe(n.parent.parent.moduleSpecifier.text, sf);
+        const exporte = (n.propertyName ?? n.name).text;
+        return module && lie(module, exporte) ? `\`${exporte}\` réexporté de \`${module}\`` : null;
+      }
+      if (!ts.isCallExpression(n)) return null;
+      const appele = estAppelDeclare(n, sf, fonctions);
+      if (!appele) return null;
+      const arg = n.arguments[0] && sansEnveloppe(n.arguments[0]);
+      const litteral = arg && ts.isStringLiteralLike(arg);
+      if (litteral && arg.text !== dataset) return null;
+      const englobante = englobanteDe(n);
+      if (sitesAdmis.some((s) => s.rel === sf.fileName && s.englobante === englobante && s.appele === appele)) return null;
+      return litteral ? `\`${appele}('${dataset}')\` dans \`${englobante}\`` : `\`${appele}\` à argument non littéral dans \`${englobante}\``;
     },
   };
 }

@@ -49,7 +49,7 @@ import { setAiTrace } from './ai';
 import { viewYawDeg } from './stageYaw';
 import { gearFromEffects, nePeutPasDifferer } from './combatEffects';
 import { pushChoice } from './rollSeam';
-import { trappings, findCreatureById, findTraitById } from '../data';
+import { trappingsInstanciables, findCreatureById, findTraitById } from '../data';
 import { creatureToCombatant } from './spawn';
 import type { PendingBladeTrap } from './pendings';
 import { bus, EVT } from './bus';
@@ -1211,7 +1211,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       let lootNote = '';
       if (opts?.withQualityLoot) {
         const pv = useGame.getState().pendingVictory;
-        const t = trappings.find((x) => x.qualities?.length);
+        const t = trappingsInstanciables().find((x) => x.qualities?.length);
         if (pv && t) {
           const { gear } = gearFromEffects([{ type: 'giveTrapping', trappingId: t.id }]);
           useGame.setState({ pendingVictory: { ...pv, gear: [...(pv.gear ?? []), ...gear] } });

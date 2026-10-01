@@ -10,19 +10,17 @@ import React from 'react';
 import { RigSprite, rigComposition } from '../src/gameIso/rig/composeRig';
 import { defsGlobaux } from '../src/gameIso/sprites';
 import { bouclierDeDessin, equipDe, weaponFamily } from '../src/gameIso/rig/parts/equipment';
-import trappings from '../src/data/trappings.json';
-import { weaponGroups } from '../src/data';
+import { trappingsInstanciables, weaponGroups } from '../src/data';
 import { assertWardrobeId } from './_lib-wardrobe';
 import type { Weapon } from '../src/engine/types';
 import { asRigSpeciesId } from '../src/gameIso/rig/appearance';
 
 // Groupes de COMBAT du registre canonique (`weaponGroups.json` — `combat` renseigné) : le
-// générateur lit les IDS, `label` ne sert qu'au titre de rubrique. `trappings.json` porte lui aussi
-// l'id en `subType` — l'ancienne liste de LIBELLÉS ne croisait plus rien (planche vide, #1338).
+// générateur lit les IDS, `label` ne sert qu'au titre de rubrique ; une arme porte l'id de son Groupe
+// en `subType` (#1338).
 const GROUPS = weaponGroups.filter((g) => g.combat === 'melee' || g.combat === 'ranged');
-type Trapping = { label: string; categorie?: string; subType?: string };
 const GROUP_IDS = new Set(GROUPS.map((g) => g.id));
-const all = (trappings as Trapping[]).filter(
+const all = trappingsInstanciables().filter(
   (t) => (t.categorie === 'melee' || t.categorie === 'ranged') && t.subType != null && GROUP_IDS.has(t.subType),
 );
 if (!all.length)

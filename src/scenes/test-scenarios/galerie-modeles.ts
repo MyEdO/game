@@ -1,5 +1,5 @@
 import { pregenParty, PREGEN } from '../../data/pregens';
-import { creatures, careers, tailleDuProfil, trappings } from '../../data/index';
+import { creatures, careers, tailleDuProfil, trappingsInstanciables } from '../../data/index';
 import { arena } from './_shared';
 import type { TestScenario } from './_shared';
 import type { Scene, SceneEntity } from '../../state/scene';
@@ -10,7 +10,7 @@ import { sizeFootprint } from '../../state/footprint';
  * Galerie EN JEU (exploration, SANS combat) de TOUS les modèles rendus par le monde de campagne :
  * - les créatures du bestiaire (`creatures`), routées vers leur rendu (rig / gabarit / sprite) ;
  * - **toutes les carrières** (`careers`) — un rig humain portant les vêtements de chaque carrière ;
- * - **toutes les armes** (`trappings` mêlée + distance) — un rig humain tenant chaque arme ;
+ * - **toutes les armes** (`trappingsInstanciables` mêlée + distance) — un rig humain tenant chaque arme ;
  * - quelques **mutants modulaires**, et une **démo Monstrueuse 4×4**.
  *
  * **Placement par EMPREINTE (Taille)** : chaque modèle réserve un bloc N×N + une marge, et la ligne
@@ -82,7 +82,7 @@ function construireScene(): Scene {
   newSection();
 
   // 3) Toutes les armes — rig humain tenant chaque arme (mêlée + distance).
-  const weapons = trappings.filter((t) => t.categorie === 'melee' || t.categorie === 'ranged');
+  const weapons = trappingsInstanciables().filter((t) => t.categorie === 'melee' || t.categorie === 'ranged');
   for (const w of weapons) {
     place({ id: `wp-${n++}`, kind: 'personnage', ref: 'humain', label: `Arme — ${w.label}`, weapon: w.id }, 1);
   }
