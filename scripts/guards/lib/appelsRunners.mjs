@@ -6,7 +6,7 @@
 // recherche de texte n'est pas un appel.
 
 /** Lecteurs de texte : un segment qui commence par l'un d'eux MENTIONNE, il n'appelle pas. */
-export const LECTEURS = /^(?:grep|rg|cat|echo|type|findstr|Select-String|sed|awk|head|tail)\b/i
+export const LECTEURS = /^(?:grep|egrep|fgrep|rg|cat|echo|type|findstr|Select-String|sls|Select-Object|sed|awk|head|tail|ls|wc|cut|sort|uniq)(?=\s|$)/i
 /** Appel d'un exécutable local `outil`, sous ses graphies (`npx`, `node`, chemin, `.cmd`, `.js`, `.mjs`). */
 export const appelDe = (outil) =>
   new RegExp(`^(?:npx\\s+|node\\s+)?(?:\\S*[\\\\/])?${outil}(?:\\.cmd|\\.js|\\.mjs)?(?=\\s|$)`)

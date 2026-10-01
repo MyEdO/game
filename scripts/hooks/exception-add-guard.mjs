@@ -107,14 +107,14 @@ export function readWrite(input) {
   return { file, before, after, isWrite: true, exists }
 }
 
-/** L'avertissement pour UNE écriture, `null` sans ajout. */
-function avertissement(ecrit) {
-  const chemin = cheminDEcriture(ecrit)
+/** L'avertissement pour UNE écriture, `null` sans ajout ; un relatif se résout contre `base`. */
+function avertissement(ecrit, base) {
+  const chemin = cheminDEcriture(ecrit, { base })
   const w = readWrite(chemin ? { ...ecrit, file_path: chemin.reel } : ecrit)
   const decision = w ? evaluate(w) : null
   return decision && !chemin?.horsContenu ? decision : null
 }
 
-const evaluer = (entree) => ecrituresDe(entree).map(avertissement)
+const evaluer = (entree, { dir }) => ecrituresDe(entree).map((ecrit) => avertissement(ecrit, dir))
 
 export const garde = { nom: 'exception-add', outils: OUTILS_ECRITURE, evaluer }

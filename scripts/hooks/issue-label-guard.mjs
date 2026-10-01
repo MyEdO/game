@@ -189,7 +189,7 @@ export function contexteEmission(command, options) {
   return notes.length > 0 ? notes.join('\n') : null
 }
 
-/** Le refus, sinon le contexte d'émission. `npm run <x>` se résout dans le répertoire cible du contexte
+/** Le refus, sinon le contexte d'émission. `npm run <x>` se résout dans la racine npm du contexte
  *  (portée posée par le répartiteur). */
 function evaluer(entree) {
   const command = commandeDe(entree)

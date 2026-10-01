@@ -117,14 +117,15 @@ export function evaluate(input, lireDisque = () => '') {
 
 const lire = (chemin) => { try { return readFileSync(chemin, 'utf8') } catch { return '' } }
 
-/** Le refus pour UNE écriture (`ecrituresDe`), `null` sans en-tête de supersession. */
-function refus(input) {
+/** Le refus pour UNE écriture (`ecrituresDe`), `null` sans en-tête de supersession ; un relatif se
+ *  résout contre `base`. */
+function refus(input, base) {
   // La fiche se juge sous son chemin RÉEL : la mémoire de session s'écrit par une jonction (#1973).
-  const chemin = cheminDEcriture(input)
+  const chemin = cheminDEcriture(input, { base })
   const decision = chemin ? evaluate({ ...input, file_path: chemin.reel }, lire) : null
   return decision && !chemin.horsContenu ? verdictDe(decision) : null
 }
 
-const evaluer = (entree) => ecrituresDe(entree).map(refus)
+const evaluer = (entree, { dir }) => ecrituresDe(entree).map((input) => refus(input, dir))
 
 export const garde = { nom: 'memoire-tombale', outils: OUTILS_ECRITURE, evaluer }

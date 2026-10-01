@@ -24,12 +24,12 @@ function depotDeChantier(params) {
 }
 
 /** Décision rendue par le point d'entrée réel de la porte pour un payload `ctx_shell` donné (`null`
- *  si le hook se tait). */
-function decisionOf(command, cwd, env = process.env) {
-  const payload = JSON.stringify({
-    session_id: 'test', hook_event_name: 'PreToolUse',
-    tool_name: 'mcp__lean-ctx__ctx_shell', tool_input: { command, cwd },
-  })
+ *  si le hook se tait) ; `Bash` sous `outil: 'Bash'`, jugé au `cwd` de l'entrée de hook — le canal d'un
+ *  répertoire HORS de tout arbre, où un `cwd` de `ctx_shell` n'est pas jugeable (#2224). */
+function decisionOf(command, cwd, env = process.env, { outil = 'ctx_shell' } = {}) {
+  const payload = JSON.stringify(outil === 'Bash'
+    ? { session_id: 'test', hook_event_name: 'PreToolUse', cwd, tool_name: 'Bash', tool_input: { command } }
+    : { session_id: 'test', hook_event_name: 'PreToolUse', cwd, tool_name: 'mcp__lean-ctx__ctx_shell', tool_input: { command, cwd } })
   const run = lancerHook('solde-ticket-hook.mjs', payload, { env })
   assert.equal(run.code, 0, `le hook a quitté en ${run.code} : ${run.err}`)
   if (!run.specifique) return null
@@ -65,9 +65,10 @@ test('DRIVER : un message -F est lu dans le répertoire où le commit S\'EXÉCUT
 test('DRIVER : hors des gestes jugés, silence même hors dépôt ; un commit hors dépôt nomme « hors dépôt »', () => {
   const base = mkdtempSync(join(tmpdir(), 'hors-depot-'))
   try {
-    assert.equal(decisionOf('ls -la', base), null, 'une commande de lecture n’a rien à faire juger')
-    assert.equal(decisionOf('wc -c note.md', base), null)
-    const out = decisionOf('git commit -m "fix(x): refs #1729"', base)
+    const bash = { outil: 'Bash' }
+    assert.equal(decisionOf('ls -la', base, process.env, bash), null, 'une commande de lecture n’a rien à faire juger')
+    assert.equal(decisionOf('wc -c note.md', base, process.env, bash), null)
+    const out = decisionOf('git commit -m "fix(x): refs #1729"', base, process.env, bash)
     assert.ok(out, 'un commit, lui, se juge — et git n’a rien pu lire ici')
     assert.equal(out.decision, 'deny')
     assert.match(out.reason, /hors dépôt/)
@@ -97,7 +98,7 @@ test('DRIVER : Bash lancé hors dépôt — `mv` et `git diff --cached` se taise
 test('DRIVER : un -F introuvable est fail-CLOSED (jamais un silence)', () => {
   const base = mkdtempSync(join(tmpdir(), 'solde-guard-'))
   try {
-    const out = decisionOf('git commit -F absent.txt', base)
+    const out = decisionOf('git commit -F absent.txt', base, process.env, { outil: 'Bash' })
     assert.ok(out, 'aucune décision sur un -F illisible')
     assert.equal(out.decision, 'deny')
     assert.match(out.reason, /illisible/)
@@ -111,7 +112,7 @@ test('DRIVER : un -F introuvable est fail-CLOSED (jamais un silence)', () => {
 test('DRIVER : tout refus porte la cible écartée, le `-F illisible` compris', () => {
   const base = mkdtempSync(join(tmpdir(), 'solde-guard-'))
   try {
-    const out = decisionOf('cd .wt-jamais-cree && git commit -F absent.txt', base)
+    const out = decisionOf('cd .wt-jamais-cree && git commit -F absent.txt', base, process.env, { outil: 'Bash' })
     assert.ok(out, 'aucune décision sur un -F illisible')
     assert.equal(out.decision, 'deny')
     assert.match(out.reason, /illisible/)
