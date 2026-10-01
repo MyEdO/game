@@ -36,7 +36,7 @@ import {
   refusDeCouverture,
   tuerArbre,
 } from './toutes.mjs'
-import { gatesDeCi } from './gatesDeCi.mjs'
+import { LANE_LOCALE_DE_JOB, gatesDeCi } from './gatesDeCi.mjs'
 import { refusVerrou } from '../test/verrou.mjs'
 import { coeurs, repartitionWorkers } from '../test/partition.mjs'
 
@@ -56,12 +56,27 @@ function ciDeJobs(jobs) {
   return fichier
 }
 
-test('les lanes SONT les jobs de ci.yml : chaque gate dans la lane de son job, une seule fois', () => {
+test('les lanes SONT les jobs de ci.yml : chaque gate dans la lane de son job (ou celle que LANE_LOCALE_DE_JOB lui donne), une seule fois', () => {
   assert.deepEqual(refusDeCouverture(NOMS), [], 'ECRIT_LU ne couvre pas ci.yml')
   assert.deepEqual(LANES.flatMap((l) => l.gates).sort(), [...NOMS].sort())
   for (const lane of LANES)
-    for (const nom of lane.gates) assert.equal(GATES.find((g) => g.nom === nom).job, lane.nom, `${nom} hors de la lane de son job`)
-  assert.ok(LANES.length >= 2 && LANES.length <= PLAFOND_LANES, `lanes lues : ${LANES.map((l) => l.nom).join(', ')}`)
+    for (const nom of lane.gates) {
+      const { job } = GATES.find((g) => g.nom === nom)
+      assert.equal(LANE_LOCALE_DE_JOB[job]?.lane ?? job, lane.nom, `${nom} hors de la lane de son job ${job}`)
+    }
+  assert.deepEqual(LANES.map((l) => l.nom), ['docs', 'types', 'suite'])
+  for (const [job, { raison }] of Object.entries(LANE_LOCALE_DE_JOB)) {
+    assert.ok(GATES.some((g) => g.job === job), `LANE_LOCALE_DE_JOB nomme ${job}, qu’aucun job de gates de ci.yml ne porte`)
+    assert.ok(raison.length > 40, `${job} : raison absente ou creuse`)
+  }
+})
+
+test('LANE_LOCALE_DE_JOB rattache un job à la lane d’un AUTRE ; vers une lane qu’aucun job ne porte, REFUS nommé', () => {
+  const gates = gatesDeCi({ fichier: ciDeJobs([['a', ['x']], ['a-bis', ['y']], ['b', ['z']]]) })
+  const table = { 'a-bis': { lane: 'a', raison: 'r' } }
+  assert.deepEqual(lanesDeCi(gates, table), [{ nom: 'a', gates: ['x', 'y'] }, { nom: 'b', gates: ['z'] }])
+  assert.throws(() => lanesDeCi(gates, { 'a-bis': { lane: 'c', raison: 'r' } }), /le job a-bis rejoint la lane c .* qu’aucun job de gates de ci\.yml ne porte/)
+  assert.throws(() => lanesDeCi(gates, { 'a-bis': { lane: 'a-bis', raison: 'r' } }), /le job a-bis rejoint la lane a-bis/)
 })
 
 test('une gate jouée par DEUX jobs fait LEVER `gatesDeCi` — elle serait jouée deux fois', () => {

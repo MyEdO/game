@@ -24,7 +24,7 @@ import {
   gatesSautables,
 } from './classerPush.mjs'
 import { envDeDepotForge, sousGitFeint } from '../guards/lib/depotGabarit.mjs'
-import { blocsDeJobs, contextesRequis, gatesDeCi, stepsCi, CI_SEULEMENT } from './gatesDeCi.mjs'
+import { gatesDeCi, jobsRequis, stepsCi, CI_SEULEMENT } from './gatesDeCi.mjs'
 import { stepsDu } from './workflowsDuDepot.mjs'
 import { corpusParGate, inerte } from './ecrivainsAtteints.mjs'
 import { ECRIT_LU } from './toutes.mjs'
@@ -104,9 +104,9 @@ test('chaque step CI_SEULEMENT porte la condition SSI il est dans CI_SEULEMENT_P
 })
 
 test('chaque job à check requis ouvre sur le PROLOGUE, et le rejeu des migrations porte sa condition', () => {
-  const requis = contextesRequis({ cwd: RACINE })
-  assert.ok(requis.length >= 2, `jobs requis lus : ${requis.join(', ')}`)
-  for (const { job, texte } of blocsDeJobs({ cwd: RACINE }).filter((b) => requis.includes(b.job))) {
+  const requis = jobsRequis({ cwd: RACINE })
+  assert.ok(requis.length >= 2, `jobs requis lus : ${requis.map((b) => b.job).join(', ')}`)
+  for (const { job, texte } of requis) {
     const [checkout, prologue] = stepsDu(texte)
     assert.match(checkout?.bloc ?? '', /uses: actions\/checkout@/, `${job} : le premier step n’est pas le checkout`)
     assert.equal(prologue?.id, ID_PROLOGUE, `${job} : le second step n’est pas le prologue (id « ${ID_PROLOGUE} »)`)

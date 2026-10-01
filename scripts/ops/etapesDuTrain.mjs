@@ -19,7 +19,7 @@ import { numerosCites, numerosFermes } from '../guards/lib/fermetures.mjs'
 import { DEPOT } from '../guards/lib/ticketsGh.mjs'
 import { refusDeSujet } from '../guards/lib/sujetDeCommit.mjs'
 import { marqueDe } from '../guards/lib/plageFermante.mjs'
-import { estCiblePure } from '../docs/build-all.mjs'
+import { estCiblePure, perimetreDesMixtes } from '../docs/build-all.mjs'
 import { MANAGED_ROOTS } from '../agents/compat-core.mjs'
 import { sourcesMesurees, touchesDocSources } from '../git-hooks/docs-rebuild.mjs'
 import { resoudreOutilLocal } from '../lancer-local.mjs'
@@ -466,7 +466,9 @@ export const ETAPES = [
   },
   {
     // Les MIXTES (`injecte` des `generators`) et les miroirs d'agents : régénérés, puis commis. Une
-    // saleté de dérivés laissée par un hook (post-merge, post-rewrite) est commise ici aussi.
+    // saleté de dérivés laissée par un hook (post-merge, post-rewrite) est commise ici aussi. Le train
+    // ne régénère que ce qu'il commet : `--mixtes`, si la plage touche une source de `perimetreDesMixtes`
+    // (#2193).
     nom: 'docs',
     // La tête ENREGISTRÉE sur l'étape, jamais `journal.tete` — celui-ci avance à la fusion d'une
     // reprise, et un `docs` vert d'avant serait alors sauté à tort ; un dérivé sali depuis la rejoue.
@@ -480,14 +482,15 @@ export const ETAPES = [
       // La saleté est lue AVANT toute décision de saut : `touchesDocSources` ne court-circuite que la
       // RÉGÉNÉRATION, jamais le COMMIT.
       const salesAvant = ctx.questions.cheminsSales()
-      const regenerer = touchesDocSources(touches, sourcesMesurees(racine))
-      if (!regenerer && !salesAvant.length) return { ok: true, dit: 'aucune source de doc dans la plage, arbre propre : docs inchangés' }
+      const seulement = perimetreDesMixtes(ctx.generators).map((g) => g.script)
+      const regenerer = touchesDocSources(touches, sourcesMesurees(racine), { seulement })
+      if (!regenerer && !salesAvant.length) return { ok: true, dit: 'aucune source de mixte dans la plage, arbre propre : docs inchangés' }
       if (regenerer) {
-        const passe = ctx.docs('--quiet')
+        const passe = ctx.docs('--mixtes')
         if (passe.status !== 0)
           return {
             ok: false,
-            raison: `\`docs:build\` a rendu ${passe.status ?? passe.signal} : dérivés possiblement incohérents (rien n'a été staged ni commité)${passe.stderr ? `\n${finDeSortie(passe.stderr)}` : ''}`,
+            raison: `\`build-all --mixtes\` a rendu ${passe.status ?? passe.signal} : dérivés possiblement incohérents (rien n'a été staged ni commité)${passe.stderr ? `\n${finDeSortie(passe.stderr)}` : ''}`,
           }
       }
       const agents = synchroniserAgents(ctx)
