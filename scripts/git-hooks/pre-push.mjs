@@ -26,12 +26,15 @@
 // STDIN (githooks(5)) : une ligne `<ref locale> <sha local> <ref distante> <sha distant>` par ref.
 // `git push --dry-run` joue AUSSI ce hook (mesuré : 2 invocations par push réel, 1 par dry-run) :
 // une lecture ne se distingue pas d'un push, la porte juge les deux pareil.
+// Porte de version de Node en PREMIER import (`scripts/node-requis.mjs`).
+import '../node-requis.mjs'
 import { readFileSync } from 'node:fs'
 import { enteteArbre } from '../guards/lib/enteteArbre.mjs'
 import { TRONC, depotDe, estAncetre, origineDe, urlOrigineAcceptee } from '../guards/lib/gitPorte.mjs'
 import { DEPOT } from '../guards/lib/ticketsGh.mjs'
 import { croissancesDeLaPlage, raisonDeRefusDePlage } from '../guards/lib/plageStock.mjs'
 import { raisonDeRefusDeReclassement } from '../guards/lib/reclassementCss.mjs'
+import { journaliserLeHook } from './journal.mjs'
 
 const ZERO = '0'.repeat(40)
 
@@ -110,6 +113,7 @@ export function jugerPush({ cwd, stdin }) {
 }
 
 if (import.meta.main) {
+  const journal = journaliserLeHook('pre-push')
   const cwd = process.cwd()
   const stdin = (() => {
     try {
@@ -121,6 +125,7 @@ if (import.meta.main) {
   const { refus, notes } = jugerPush({ cwd, stdin })
   for (const n of notes) process.stderr.write(`[pre-push] ${n}\n`)
   if (refus.length) {
+    journal.refuser(...refus)
     process.stderr.write(`[pre-push] ${enteteArbre(cwd)}\n`)
     process.stderr.write(`pre-push REFUSÉ :\n${refus.map((r) => (r.startsWith('  ') ? r : `  ${r}`)).join('\n')}\n`)
     process.exit(1)

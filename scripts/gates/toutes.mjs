@@ -44,7 +44,7 @@ import { fileURLToPath } from 'node:url'
 import { availableParallelism } from 'node:os'
 import { join } from 'node:path'
 import { enteteArbre } from '../guards/lib/enteteArbre.mjs'
-import { gatesDeCi } from './gatesDeCi.mjs'
+import { LANE_LOCALE_DE_JOB, gatesDeCi } from './gatesDeCi.mjs'
 import {
   compterRejeux,
   execFileResilient,
@@ -466,28 +466,37 @@ export const PLAFOND_LANES = 3
 
 /**
  * Les LANES du rejeu local, DÉRIVÉES de `ci.yml` : une lane par job de gates, ses gates dans l'ordre
- * du fichier (`job` de `gatesDeCi`, qui écarte déjà `JOBS_HORS_REJEU_LOCAL`). Une lane est une
- * SÉRIE ; les lanes tournent ensemble, sur une machine qui les porte (`lanesPortees`). Elles ne
- * portent que des LECTEURS, et la morsure `conflitsEntreLanes` le verrouille.
- * Au-delà de `PLAFOND_LANES` jobs, REFUS nommé : aucun regroupement silencieux.
+ * du fichier (`job` de `gatesDeCi`, qui écarte déjà `JOBS_HORS_REJEU_LOCAL`) — sauf un job de
+ * `LANE_LOCALE_DE_JOB` (scripts/gates/gatesDeCi.mjs), dont les gates rejoignent la lane qu'il nomme,
+ * qui doit être celle d'un job de gates. Une lane est une SÉRIE ; les lanes tournent ensemble, sur une
+ * machine qui les porte (`lanesPortees`). Elles ne portent que des LECTEURS, et la morsure
+ * `conflitsEntreLanes` le verrouille.
+ * Au-delà de `PLAFOND_LANES` lanes, REFUS nommé : aucun regroupement silencieux.
  *
  * QUI EST LE MUR : chaque run le mesure et l'imprime au résumé (`lanes : docs … · types … · suite …`),
  * et pose la durée de chaque gate dans `node_modules/.cache/gates/durees.json`.
  * PURE. REND `[{ nom, gates }]`.
  */
-export function lanesDeCi(gates) {
-  const parJob = new Map()
+export function lanesDeCi(gates, laneDeJob = LANE_LOCALE_DE_JOB) {
+  const propres = new Set(gates.map((g) => g.job).filter((job) => !(job in laneDeJob)))
+  const parLane = new Map()
   for (const { nom, job } of gates) {
-    if (!parJob.has(job)) parJob.set(job, [])
-    parJob.get(job).push(nom)
+    const lane = laneDeJob[job]?.lane ?? job
+    if (!propres.has(lane))
+      throw new Error(
+        `ci.yml : le job ${job} rejoint la lane ${lane} (LANE_LOCALE_DE_JOB, scripts/gates/gatesDeCi.mjs), ` +
+          'qu’aucun job de gates de ci.yml ne porte',
+      )
+    if (!parLane.has(lane)) parLane.set(lane, [])
+    parLane.get(lane).push(nom)
   }
-  if (parJob.size > PLAFOND_LANES)
+  if (parLane.size > PLAFOND_LANES)
     throw new Error(
-      `ci.yml porte ${parJob.size} jobs de gates (${[...parJob.keys()].join(', ')}) : le rejeu local en tient ` +
-        `${PLAFOND_LANES} au plus (PLAFOND_LANES, scripts/gates/toutes.mjs) — déclare sa règle de repli ` +
-        'avant d’ajouter un job',
+      `ci.yml porte ${parLane.size} jobs de gates (${[...parLane.keys()].join(', ')}) : le rejeu local en tient ` +
+        `${PLAFOND_LANES} au plus (PLAFOND_LANES, scripts/gates/toutes.mjs) — rattache-le à une lane ` +
+        '(LANE_LOCALE_DE_JOB, scripts/gates/gatesDeCi.mjs) avant d’ajouter un job',
     )
-  return [...parJob].map(([nom, noms]) => ({ nom, gates: noms }))
+  return [...parLane].map(([nom, noms]) => ({ nom, gates: noms }))
 }
 
 /**

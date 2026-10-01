@@ -52,12 +52,12 @@ test('le driver appelé comme git l’appelle : exit 1 sur un sujet long, exit 0
   try {
     const fichier = join(dir, 'COMMIT_EDITMSG')
     writeFileSync(fichier, `${SUJET_LONG}\n\n# Please enter the commit message\n`, 'utf8')
-    const rouge = spawnSync(process.execPath, [DRIVER, fichier], { encoding: 'utf8' })
+    const rouge = spawnSync(process.execPath, [DRIVER, fichier], { cwd: dir, encoding: 'utf8' })
     assert.equal(rouge.status, 1)
     assert.match(rouge.stderr, /SUJET de commit de \d+ caractères/)
 
     writeFileSync(fichier, 'fix(x): refs #1728 — porte au message\n\ncorps très long ' + 'x'.repeat(500) + '\n', 'utf8')
-    assert.equal(spawnSync(process.execPath, [DRIVER, fichier], { encoding: 'utf8' }).status, 0)
+    assert.equal(spawnSync(process.execPath, [DRIVER, fichier], { cwd: dir, encoding: 'utf8' }).status, 0)
   } finally {
     rmSync(dir, { recursive: true, force: true })
   }

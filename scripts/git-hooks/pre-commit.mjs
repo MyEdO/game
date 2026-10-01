@@ -3,7 +3,8 @@
 // CE QUI EST JOUÉ ICI : les scanners de commentaires/code sur le contenu de l'INDEX, `validate-data`,
 // `check-doc-refs` + `check-plans-anchors`, `raw:implemente`, `build-doctrines`,
 // `compile-dessin-quad`,
-// `test:raw`, `test:recette`, `agents:check`, et le LINT des fichiers stagés (≈ 4 s / 20 fichiers).
+// `test:raw`, `test:recette`, `agents:check` — chacun armé sur SES sources stagées —, et le LINT des
+// fichiers stagés (≈ 4 s / 20 fichiers).
 // CE QUI N'EST PAS JOUÉ ICI : ni typecheck, ni suite Vitest, ni les scanners de corpus entier — ils
 // coûtent des dizaines de secondes et restent à la CI. La durée totale est imprimée en fin de hook.
 // Contrat : BLOQUE (exit 1) sur pierre tombale et logique-par-label (dette neuve au-dessus du stock) ;
@@ -13,14 +14,13 @@
 // tranchés en une ligne compacte. `check-doc-refs` tourne si un docs/*.md à plat est stagé (racine ou
 // docs/raw/, les fiches régénérables — #487).
 // Testabilité : des chemins passés en arguments remplacent la liste stagée (aucun toucher à l'index).
+// Porte de version de Node en PREMIER import (`scripts/node-requis.mjs`) : la clôture STATIQUE ne porte
+// ni module TypeScript ni attribut d'import ; `commentPoison.mjs`, qui en porte, se charge après elle.
+import '../node-requis.mjs';
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import {
-  scanTombstones, scanExcuses, scanRawClaims, scanDecisionClaims, scanLegacyVocabHorsStock, EXCUSE_GUARD_ACTIVE,
-  estFichierScanne, loadDecisionsBaseline, partitionBaseline, formatBaselineReport,
-} from '../guards/lib/commentPoison.mjs';
 import { contexteDeLaGarde, corpusDeLaGarde, scanLabelLogicFichier, dettesParVolet, ecartsAuxDettesDeLibelle, clesInterditesAuStock } from '../guards/lib/labelLogic.mjs';
 import { emojisIn } from '../guards/lib/emojiAffordance.mjs';
 import { scanHardcode } from '../guards/lib/hardcode.mjs';
@@ -36,8 +36,15 @@ import { cheminsMalNormalises, raisonDeRefusEol } from '../guards/lib/eolStage.m
 import { defautsDeForme, familleDe, raisonDeRefusDeForme } from '../guards/memoire-forme.mjs';
 import { INDEX, arbrePrincipal, ceQuEmporteLIndex, depotDe, eolsDe, lireEnLot, racineDe, raisonCourte } from '../guards/lib/gitPorte.mjs';
 import { estFichierVitest } from '../guards/lib/fichierVitest.mjs';
+import { sourceDuCheck } from '../agents/compat-cli.mjs';
+import { journaliserLeHook } from './journal.mjs';
 
 const DEBUT_MS = Date.now();
+const journal = journaliserLeHook('pre-commit');
+const {
+  scanTombstones, scanExcuses, scanRawClaims, scanDecisionClaims, scanLegacyVocabHorsStock, EXCUSE_GUARD_ACTIVE,
+  estFichierScanne, loadDecisionsBaseline, partitionBaseline, formatBaselineReport,
+} = await import('../guards/lib/commentPoison.mjs');
 
 // Deux racines DISTINCTES, jamais interchangeables. `core.hooksPath` vaut `scripts/git-hooks` RELATIF
 // (`git config --show-origin --get-all core.hooksPath` → `.git/config`, valeur relative), donc le
@@ -384,17 +391,18 @@ if (aLinter.length) {
   for (const d of defauts) offenders.push(`${d.site} [lint ${d.gravite}] ${d.regle} — ${d.message}`);
 }
 
-try {
-  execFileSync('npm', ['run', 'agents:check'], {
-    cwd: ROOT,
-    stdio: 'inherit',
-    shell: process.platform === 'win32',
-  });
-} catch (e) {
-  const panne = codeDePanne(e);
-  offenders.push(panne
-    ? `agents:check — porte en PANNE : ${panne} (le garde n'a pas tourné : c'est le LANCEMENT qui a échoué)`
-    : 'agents:check en échec (adaptateurs Claude/Codex divergents — lancer `npm run agents:sync`)');
+// #2194 — `agents:check` s'arme sur SES sources (`sourceDuCheck`, scripts/agents/compat-cli.mjs) : ce
+// qu'il lit, son code, et `package.json` qui le déclare. Même patron diff-scopé que `test:recette`.
+const estSourceDuCheck = sourceDuCheck(ROOT);
+if (staged.some(estSourceDuCheck)) {
+  try {
+    execFileSync('npm', ['run', 'agents:check'], { cwd: ROOT, stdio: 'inherit', shell: process.platform === 'win32' });
+  } catch (e) {
+    const panne = codeDePanne(e);
+    offenders.push(panne
+      ? `agents:check — porte en PANNE : ${panne} (le garde n'a pas tourné : c'est le LANCEMENT qui a échoué)`
+      : 'agents:check en échec (adaptateurs Claude/Codex divergents — lancer `npm run agents:sync`)');
+  }
 }
 
 // Canal non bloquant : la baseline nominative sépare le DÉJÀ TRANCHÉ (compact, une ligne par site)
@@ -407,6 +415,7 @@ if (rapport.length) {
 }
 process.stderr.write(`[pre-commit] ${staged.length} fichier(s) stagé(s), ${aLinter.length} linté(s) — ${((Date.now() - DEBUT_MS) / 1000).toFixed(1)} s\n`);
 if (offenders.length) {
+  journal.refuser(...offenders);
   process.stderr.write(`pre-commit REFUSÉ — poison détecté (mêmes gardes que la CI, cf. scripts/guards/lib/) :\n${offenders.map((o) => `  ${o}`).join('\n')}\n`);
   process.exit(1);
 }

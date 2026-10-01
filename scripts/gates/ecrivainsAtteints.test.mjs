@@ -69,6 +69,12 @@ const ATTENDU = {
     // (`mkdtempSync` + `writeFileSync` sous os.tmpdir(), `rmSync` en finally) — la lecture du lot doit
     // tomber pour prouver le FAIL-CLOSED ; l'arbre versionné n'est jamais écrit.
     'scripts/git-hooks/docs-rebuild.test.mjs',
+    // +1 le 2026-10-01 (#2194) : le journal des hooks git écrit sous `node_modules/.cache/hooks-git` du
+    // cwd du hook ; les bancs qui JOUENT un hook (pre-commit, commit-msg, node-requis) le lancent avec
+    // `cwd` = un dépôt ou un dossier JETABLE sous os.tmpdir(), et son banc INJECTE l'écriture. Mesure
+    // du 2026-10-01 : `git status --short --ignored` identique avant et après, sur ce worktree et sur
+    // l'arbre principal, et aucun `node_modules/.cache/hooks-git` créé.
+    'scripts/git-hooks/journal.mjs',
     // −1 le 2026-09-30 (#2203) : `merge-docs.test.mjs` n'écrit plus — ses fixtures de catalogue
     // partent avec la famille `docs-catalogue`.
     'scripts/git-hooks/merge-docs.mjs',
@@ -215,6 +221,10 @@ const ATTENDU = {
     'scripts/gates/toutes.mjs',
     'scripts/guards/lib/depotGabarit.mjs',
     'scripts/guards/lib/purgerPerimes.mjs',
+    // +1 le 2026-10-01 (#2194) : `etapesDuTrain.mjs` importe de `docs-rebuild.mjs` deux fonctions PURES
+    // (`sourcesMesurees`, `touchesDocSources`) ; le journal des hooks git n'y est armé que par `main`,
+    // derrière sa porte `import.meta.main` — jamais depuis la gate.
+    'scripts/git-hooks/journal.mjs',
     'scripts/ops/chantier.test.mjs',
     // +1 le 2026-09-27 (#1806) : le banc du point fixe de la CLÔTURE des étapes porte `writeFileSync(`
     // dans le TEXTE d'un module fictif, lu par un `disque` injecté EN MÉMOIRE (`sources`, une `Map`) ;
