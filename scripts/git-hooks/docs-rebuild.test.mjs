@@ -46,6 +46,34 @@ test('FAIL-CLOSED : lot inconnu ou mesure illisible → on régénère ; lot vid
   assert.equal(touchesDocSources([], MESURE), false)
 })
 
+test('un fichier dans un dossier NEUF sous un dossier LISTÉ fait régénérer : tout ANCÊTRE compte (#2193)', () => {
+  const mesure = { 'g/a.mjs': { cibles: [], fichiers: ['scripts/a.mjs', 'scripts/b.mjs'], dossiers: ['src'] } }
+  assert.equal(touchesDocSources(['src/nouveau-dossier/x.ts'], mesure), true)
+  assert.equal(touchesDocSources(['src/nouveau/plus/bas/x.ts'], mesure), true)
+})
+
+/** Une mesure FORGÉE à deux générateurs : `g/m.mjs` (le périmètre restreint) et `g/p.mjs` (hors). */
+const MESURE_DEUX = {
+  'g/m.mjs': { cibles: [], fichiers: ['src/m.ts', 'scripts/m.mjs'], dossiers: ['data'] },
+  'g/p.mjs': { cibles: [], fichiers: ['notes/p.md', 'scripts/p.mjs'], dossiers: ['.github/workflows'] },
+}
+
+test('`seulement` restreint la mesure aux entrées de ses générateurs : une source d’un AUTRE ne fait pas régénérer', () => {
+  assert.equal(touchesDocSources(['notes/p.md'], MESURE_DEUX), true)
+  assert.equal(touchesDocSources(['notes/p.md'], MESURE_DEUX, { seulement: ['g/m.mjs'] }), false)
+  assert.equal(touchesDocSources(['.github/workflows/ci.yml'], MESURE_DEUX, { seulement: ['g/m.mjs'] }), false)
+  assert.equal(touchesDocSources(['src/m.ts'], MESURE_DEUX, { seulement: ['g/m.mjs'] }), true)
+  assert.equal(touchesDocSources(['data/neuf.json'], MESURE_DEUX, { seulement: ['g/m.mjs'] }), true)
+})
+
+test('`seulement` : un membre SANS entrée dans la mesure fait régénérer (fermé par défaut)', () => {
+  assert.equal(touchesDocSources(['public/x.svg'], MESURE_DEUX, { seulement: ['g/m.mjs', 'g/absent.mjs'] }), true)
+})
+
+test('`seulement` : un chemin hors de toute source du périmètre ne fait pas régénérer', () => {
+  assert.equal(touchesDocSources(['public/x.svg'], MESURE_DEUX, { seulement: ['g/m.mjs'] }), false)
+})
+
 /** Les générateurs dont le rendu lit chaque classe jugée ci-dessous — mémoire, workflows, fiches de
  *  l'Atlas et `scripts/raw/`, `src/`, tsconfig —, les moins coûteux à mesurer. */
 const MESURES = [
