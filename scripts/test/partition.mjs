@@ -1,6 +1,7 @@
 // Logique PURE du lanceur de suite `scripts/test/run.mjs` : partition des fichiers de test par
 // environnement, répartition des workers, routage des filtres. Aucun spawn ; le seul accès disque
 // est la mesure système `mesureMemoireDisponibleMo`.
+import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import os from 'node:os'
 import { relative, isAbsolute, join } from 'node:path'
@@ -400,3 +401,57 @@ export const DRAPEAUX_RESTRICTIFS = [
 /** Une suite est COMPLÈTE quand aucun fichier ne la filtre et qu'aucun drapeau ne la restreint. */
 export const suiteComplete = (filtres, argv) =>
   filtres.length === 0 && !argv.some((a) => DRAPEAUX_RESTRICTIFS.includes(a.split('=')[0]))
+
+/** Variable d'environnement qui demande UNE partie de la suite, `i/K` — posée par le job matrice
+ *  `suite` de `.github/workflows/ci.yml`. */
+export const VARIABLE_PARTIE = 'WFRP_TEST_PARTIE'
+
+/** Partie demandée : `null` quand la variable est ABSENTE, `{ i, k }` pour `i/K` avec 1 ≤ i ≤ K, sinon
+ *  `{ refus }` nommé. Une valeur vide est MAL FORMÉE, jamais absente. */
+export function partieDe(valeur) {
+  if (valeur === undefined) return null
+  const m = /^([1-9]\d*)\/([1-9]\d*)$/.exec(valeur)
+  if (m && Number(m[1]) <= Number(m[2])) return { i: Number(m[1]), k: Number(m[2]) }
+  return { refus: `${VARIABLE_PARTIE} mal formée : « ${valeur} » — attendu i/K, deux entiers avec 1 ≤ i ≤ K` }
+}
+
+/** Refus de jouer une partie sous ces arguments, ou `null`. Une partie est COMPLÈTE sur sa tranche :
+ *  aucun filtre de fichier ni drapeau restrictif (`suiteComplete`), et aucun drapeau global à un seul
+ *  processus (`DRAPEAUX_MONO`), dont la config ou la racine contrediraient celle de la tranche. */
+export function refusDePartie({ filtres, argv }) {
+  if (filtres.length)
+    return `${VARIABLE_PARTIE} combinée à un filtre de fichier (${filtres.join(', ')}) : une partie se joue sur sa tranche ENTIÈRE`
+  const nom = (a) => a.split('=')[0]
+  const restrictif = argv.find((a) => DRAPEAUX_RESTRICTIFS.includes(nom(a)))
+  if (restrictif) return `${VARIABLE_PARTIE} combinée au drapeau restrictif ${restrictif} : une partie se joue sur sa tranche ENTIÈRE`
+  const global = argv.find((a) => a.startsWith('-') && DRAPEAUX_MONO.includes(nom(a)))
+  if (global) return `${VARIABLE_PARTIE} combinée au drapeau ${global}, global à un seul processus Vitest : la tranche porte sa propre config`
+  return null
+}
+
+/** Partie (1..K) d'un fichier de test : empreinte SHA-1 de son chemin relatif POSIX, modulo K. Elle ne
+ *  dépend que de CE chemin : un fichier ajouté n'en déplace aucun autre, quand une tranche contiguë de
+ *  la liste triée déplacerait ses frontières. */
+export function partieDuFichier(chemin, k) {
+  return (createHash('sha1').update(chemin).digest().readUInt32BE(0) % k) + 1
+}
+
+const parUniteDeCode = (a, b) => (a < b ? -1 : a > b ? 1 : 0)
+
+/** Empreinte d'une liste de chemins TRIÉE : 12 hex de son SHA-1. */
+const empreinteDe = (chemins) => createHash('sha1').update(chemins.join('\n')).digest('hex').slice(0, 12)
+
+/** Tranche de la partie `{ i, k }` : les chemins relatifs POSIX dont `partieDuFichier` vaut `i`, triés
+ *  par unité de code, l'empreinte de cette tranche, et celle de la liste ENTIÈRE (`empreinteListe`),
+ *  commune aux K parties d'une même énumération. */
+export function trancher(chemins, { i, k }) {
+  const fichiers = chemins.filter((c) => partieDuFichier(c, k) === i).sort(parUniteDeCode)
+  return { fichiers, empreinte: empreinteDe(fichiers), empreinteListe: empreinteDe([...chemins].sort(parUniteDeCode)) }
+}
+
+/** Refus d'un registre de passage DOM ABSENT au terme d'une suite complète verte, ou `null`. Seul un
+ *  fichier jsdom l'écrit (`src/test-setup.ts`) : son absence ne se tolère que si aucun n'a joué. */
+export function refusRegistreDomAbsent(jsdomJoues) {
+  if (jsdomJoues === 0) return null
+  return `[test] registre de passage de la barrière DOM ABSENT après ${jsdomJoues} fichier(s) jsdom joué(s) : la péremption du stock des fuites DOM n'est pas jugée`
+}

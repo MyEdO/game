@@ -229,7 +229,7 @@ const EXEMPTIONS_DU_MUR = [
   'scripts/docs/lib/enregistreur-lectures.mjs:111', 'scripts/docs/lib/enregistreur-lectures.mjs:119',
   'scripts/docs/lib/enregistreur-lectures.mjs:123', 'scripts/docs/lib/enregistreur-lectures.mjs:133',
   'scripts/docs/lib/enregistreur-lectures.mjs:139',
-  'scripts/test/partition.mjs:172', 'scripts/test/partition.mjs:177',
+  'scripts/test/partition.mjs:173', 'scripts/test/partition.mjs:178',
 ]
 
 /** Sonde des commentaires ESLint qui ÉTEIGNENT l'une de ces règles, lus par la grammaire d'ESLint

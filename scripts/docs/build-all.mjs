@@ -1,5 +1,6 @@
 // scripts/docs/build-all.mjs — produit TOUS les dérivés (`npm run docs:build`), ou leurs seules cibles
-// de CODE (`--code`, `npm run gen`).
+// de CODE (`--code`, `npm run gen`), ou les seuls MIXTES et leurs préalables (`--mixtes`, l'étape
+// `docs` du train, #2193).
 // SOURCE UNIQUE de la liste des dérivés : `GENERATORS`. Une cible de `targets` sort EN ENTIER de son
 // générateur : elle n'est PAS commitée (#2203 A2 — `ciblesPures`, bloc de `.gitignore`, garde
 // scripts/docs/cibles-pures.test.mjs) et se produit là où on la lit. Ses cibles de CODE (`ciblesDeCode`)
@@ -95,8 +96,17 @@ export const estCiblePure = (chemin, generateurs) =>
 
 /** Les générateurs qui écrivent au moins une cible de CODE (une cible qui n'est pas un doc Markdown,
  *  `estUnDocMarkdown`) : ceux que `genererCode` joue, dans l'ordre de `GENERATORS`. */
-export const generateursDeCode = (generateurs = GENERATORS) =>
-  generateurs.filter((g) => g.targets.some((t) => !estUnDocMarkdown(t)))
+export const generateursDeCode = (generateurs = GENERATORS) => generateurs.filter(ecritDuCode)
+
+const ecritDuCode = (g) => g.targets.some((t) => !estUnDocMarkdown(t))
+
+/** Le PÉRIMÈTRE de `--mixtes`, dans l'ordre de `generateurs` : les générateurs à `injecte` non vide, et
+ *  leurs préalables, les générateurs de CODE (`generateursDeCode`) — `build-implemente.mjs` traverse les
+ *  sorties gitignorées de `gen-registry.mjs`, que la mesure ne voit pas (`ignoresGit`) (#2193).
+ *  `generateurs` sans défaut : l'étape `docs` du train l'importe, et `GENERATORS` n'entre pas dans sa
+ *  clôture. */
+export const perimetreDesMixtes = (generateurs) =>
+  generateurs.filter((g) => ecritDuCode(g) || (g.injecte ?? []).length > 0)
 
 /**
  * Produit les cibles de CODE (`generateursDeCode`), en écriture, sans enregistreur : LA
@@ -105,14 +115,27 @@ export const generateursDeCode = (generateurs = GENERATORS) =>
  * d'un générateur VERT. REND le code de sortie : 0, ou 1 au premier rouge, nommé.
  */
 export function genererCode({ cwd, quiet = false, generateurs = GENERATORS }) {
-  const deCode = generateursDeCode(generateurs)
-  const tsxEsm = tsxEsmPour(deCode, cwd)
-  for (const g of deCode) {
+  return ecrireSansMesure(generateursDeCode(generateurs), { cwd, quiet, nom: 'gen', perimes: 'les cibles de code' })
+}
+
+/**
+ * `--mixtes` : `perimetreDesMixtes`, en écriture, sans enregistreur — comme `--only`, il ne réécrit pas
+ * `SOURCES_LUES`, dont il effacerait la mesure des générateurs non joués. REND le code de sortie : 0,
+ * ou 1 au premier rouge, nommé.
+ */
+export function genererMixtes({ cwd, quiet = false, generateurs = GENERATORS }) {
+  return ecrireSansMesure(perimetreDesMixtes(generateurs), { cwd, quiet, nom: 'docs:mixtes', perimes: 'les mixtes' })
+}
+
+/** `liste` jouée en écriture, dans son ordre, sans enregistreur ; ARRÊT au premier rouge, nommé par `nom`. */
+function ecrireSansMesure(liste, { cwd, quiet, nom, perimes }) {
+  const tsxEsm = tsxEsmPour(liste, cwd)
+  for (const g of liste) {
     try {
       run(g, { cwd, quiet, mode: 'ecrire', tsxEsm })
     } catch (e) {
       transmettreDiagnostic(e, quiet)
-      process.stderr.write(`gen — ARRÊT sur ${g.script} (${natureDuRouge(issueDe(e))}) : les cibles de code ne sont PAS à jour.\n`)
+      process.stderr.write(`${nom} — ARRÊT sur ${g.script} (${natureDuRouge(issueDe(e))}) : ${perimes} ne sont PAS à jour.\n`)
       return 1
     }
   }
@@ -393,7 +416,8 @@ function argumentsDe(argv, drapeau) {
 }
 
 /**
- * `docs:build` (écriture, puis les vérificateurs purs), `--code` (`genererCode`) ou `--check`
+ * `docs:build` (écriture, puis les vérificateurs purs), `--code` (`genererCode`), `--mixtes`
+ * (`genererMixtes`) ou `--check`
  * (vérification). REND (promesse) le code de sortie.
  * En écriture, le premier rouge ARRÊTE : un générateur rouge laisse docs/ à moitié régénéré, et
  * enchaîner les suivants fabriquerait un lot incohérent que le hook annoncerait « à committer ».
@@ -408,6 +432,7 @@ export async function executer({
 }) {
   const quiet = argv.includes('--quiet')
   if (argv.includes('--code')) return genererCode({ cwd, quiet, generateurs })
+  if (argv.includes('--mixtes')) return genererMixtes({ cwd, quiet, generateurs })
   const check = argv.includes('--check')
   const only = argumentsDe(argv, '--only')
   const seulement = only && new Set(only)

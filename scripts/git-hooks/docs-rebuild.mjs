@@ -46,6 +46,13 @@ export function sourcesMesurees(racine) {
 
 const parentDe = (chemin) => (chemin.includes('/') ? chemin.slice(0, chemin.lastIndexOf('/')) : '')
 
+/** Les dossiers qui contiennent `chemin`, du parent à la racine (`''`) comprise. */
+function ancetresDe(chemin) {
+  const ancetres = [parentDe(chemin)]
+  while (ancetres.at(-1) !== '') ancetres.push(parentDe(ancetres.at(-1)))
+  return ancetres
+}
+
 /**
  * Vrai si le lot peut avoir périmé un doc dérivé. La réponse se DÉRIVE de la mesure
  * (`docs/.sources-lues.json`), jamais d'une liste de préfixes écrite à la main : 49 sources mesurées
@@ -54,17 +61,21 @@ const parentDe = (chemin) => (chemin.includes('/') ? chemin.slice(0, chemin.last
  * `tsconfig.json`, et le dossier LISTÉ
  * `.github/workflows` (#1773). Quatre façons, pour un lot, de périmer un doc dérivé :
  *   1. le chemin EST une source lue, ou une cible ;
- *   2. son dossier parent est un dossier LISTÉ ;
+ *   2. un de ses ANCÊTRES est un dossier LISTÉ — un fichier posé dans un dossier NEUF change le
+ *      listing du premier ancêtre qui existait (#2193) ;
  *   3. son dossier parent contient déjà une source lue — c'est le frère AJOUTÉ ou RETIRÉ d'une
  *      source, que la mesure d'un générateur qui énumère sans lister ne peut pas dire autrement ;
  *   4. il vit sous `docs/` : les dérivés eux-mêmes.
  * FAIL-CLOSED : lot inconnu (pas d'ORIG_HEAD) ou mesure illisible → on régénère.
+ * `seulement` (des `script` de `GENERATORS`) restreint la mesure aux entrées de ces générateurs ; un
+ * membre SANS entrée fait régénérer, comme une mesure illisible (#2193).
  */
-export function touchesDocSources(chemins, mesure) {
+export function touchesDocSources(chemins, mesure, { seulement = null } = {}) {
   if (chemins === null || mesure === null) return true
+  if (seulement && seulement.some((script) => !Object.hasOwn(mesure, script))) return true
   const fichiers = new Set()
   const dossiers = new Set()
-  for (const e of Object.values(mesure)) {
+  for (const e of seulement ? seulement.map((script) => mesure[script]) : Object.values(mesure)) {
     for (const f of e.fichiers ?? []) fichiers.add(f)
     for (const c of e.cibles ?? []) fichiers.add(c)
     for (const d of e.dossiers ?? []) dossiers.add(d)
@@ -73,7 +84,7 @@ export function touchesDocSources(chemins, mesure) {
   return chemins.some((brut) => {
     const chemin = brut.split('\\').join('/')
     const parent = parentDe(chemin)
-    return fichiers.has(chemin) || chemin.startsWith('docs/') || dossiers.has(parent) ||
+    return fichiers.has(chemin) || chemin.startsWith('docs/') || ancetresDe(chemin).some((a) => dossiers.has(a)) ||
       (parent !== '' && dossiersDeSources.has(parent))
   })
 }

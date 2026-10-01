@@ -17,7 +17,7 @@ import { readFileSync } from 'node:fs';
 import { listerProjetsLivres, PROJETS_LIVRES } from '../../guards/lib/projetsLivres.mjs';
 import { join } from 'node:path';
 import {
-  talents, spells, careerLevels, species, creatures, mutations, stars, trappings, gods, effectTables,
+  talents, spells, careerLevels, species, creatures, mutations, stars, trappingsInstanciables, gods, effectTables,
   findTalentById, specPoolOf,
   type AdvancementRef, type TalentData,
 } from '../../../src/data/index';
@@ -63,7 +63,7 @@ export function computeObtainability(root: string): ObtainabilityResult {
 
   for (const m of mutations) walkNode(m, (n) => { if (n.op === 'grantTalent') addTalentSource((n.talent as { id: string }).id, `mutation:${m.id}`); });
   for (const s of stars) walkNode(s, (n) => { if (n.op === 'grantTalent') addTalentSource((n.talent as { id: string }).id, `etoile:${s.id}`); });
-  for (const tr of trappings) walkNode(tr, (n) => { if (n.op === 'grantTalent') addTalentSource((n.talent as { id: string }).id, `possession:${tr.id}`); });
+  for (const tr of trappingsInstanciables()) walkNode(tr, (n) => { if (n.op === 'grantTalent') addTalentSource((n.talent as { id: string }).id, `possession:${tr.id}`); });
   for (const sp of spells) walkNode(sp, (n) => { if (n.op === 'grantTalent') addTalentSource((n.talent as { id: string }).id, `sort:${sp.id}`); });
   for (const t of effectTables) walkNode(t, (n) => { if (n.op === 'grantTalent') addTalentSource((n.talent as { id: string }).id, `table:${t.id}`); });
 

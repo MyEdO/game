@@ -17,6 +17,7 @@ import { proseDeScene } from '../grammaire/prose';
 import { chaosAlignSchema, enumNomme, exposureLevelSchema, hitLocationSchema, moneyPartialSchema, refTestDeCorruption, surchargePaletteSchema } from '../grammaire/valeurs';
 import { conditionSchema, effectOpSchema, extendedTestSchema, gameOpSchema, noeudTest } from '../grammaire/mecanique';
 import { idDe, refOuSpec } from '../grammaire/ref';
+import { INSTANCIABLE_PAR_ID } from '../grammaire/sousListes';
 import { listeCle } from '../grammaire/collection-cle';
 import { customStatblockSchema, ptSchema, wallSideSchema } from './communs';
 import { waterAppliesToSchema } from '../defs/water-exposure';
@@ -128,13 +129,17 @@ export const setObjectiveSchema = z.strictObject({
 /** Retire un objectif de la pile : `id` précis, ou TOUS si absent (fin d'acte). */
 export const clearObjectiveSchema = z.strictObject({ type: z.literal('clearObjective'), id: z.string().optional() });
 
-/** Donne un objet à un héros (défaut : le premier). `trappingId` = objet de CATALOGUE à stats (réf
- *  `TrappingData.id`) ; `custom` = objet HORS-base (nom libre — trinket/quête/pièces de monstre) sans
+/** Objet donné par `giveTrapping` : feuille OUVERTE de `INSTANCIABLE_PAR_ID`, FORME DE SORTIE déclarée
+ *  nue (patron `sortSchema`) — `Effect` est un `z.infer` écrit par l'éditeur et par la console. */
+const objetDonneSchema: z.ZodType<string, string> = idDe('trapping', INSTANCIABLE_PAR_ID, { ouverte: true });
+
+/** Donne un objet à un héros (défaut : le premier). `trappingId` = objet à stats de la campagne
+ *  (`narratif.objets`) ou du catalogue, feuille OUVERTE de `INSTANCIABLE_PAR_ID` ; `custom` = objet HORS-base (nom libre — trinket/quête/pièces de monstre) sans
  *  stats. L'objet arrive NON équipé. Champs MAGIQUES optionnels (butin/quête) : `qualities` AJOUTÉES
  *  (Atout/Défaut), `identified:false` = qualités masquées jusqu'à Évaluation (#2), `skin` = recoloration. */
 export const giveTrappingSchema = z.strictObject({
   type: z.literal('giveTrapping'),
-  trappingId: z.string().optional(),
+  trappingId: objetDonneSchema.optional(),
   custom: z.string().optional(),
   heroId: z.string().optional(),
   qualities: z.array(z.string()).optional(),

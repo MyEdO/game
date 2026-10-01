@@ -223,11 +223,14 @@ const cleOuEntree = (cle, entree) => (entree?.fichier || entree?.ref ? cle : JSO
  * VERDICT d'un volet à stock de sites : les deux sens, en phrases prêtes à afficher. Le calcul est
  * celui de `ecartsDeStock` ; ce qui vit ici est le REMÈDE — ce que le lecteur doit faire de chaque
  * ligne. Le PLAFOND n'y est pas : il vit dans le test de la garde.
- * ANGLE MORT DIT, À LA PORTE DE PLAGE : un ÉCHANGE EN PLACE à total constant — réécrire le `fichier`
- * ou la `ref` d'une entrée existante pour couvrir un site neuf pendant qu'un autre est soldé, dans le
- * MÊME commit — rend `[]` à `croissanceDesStocks` : le stock ne peut pas CROÎTRE ainsi, mais ce solde
- * et ce neuf ne se déclarent pas. Cette garde-ci, elle, les voit toujours (la clé a changé des deux
- * côtés) : c'est la SUITE qui tient ce cas, pas la porte de plage.
+ * ANGLE MORT DIT, À LA PORTE DE PLAGE : un ÉCHANGE EN PLACE à total constant sous le MÊME fichier,
+ * extension comprise — réécrire la `ref` d'une entrée existante pour couvrir un site neuf pendant qu'un
+ * autre est soldé, dans le MÊME commit — rend `[]` à `croissanceDesStocks`, qui identifie toute entrée
+ * par le fichier qu'elle nomme (`fichierNommePar`) : ce solde et ce neuf ne se déclarent pas. Repointer
+ * le `fichier` vers un autre chemin, `criticals.json` vers `criticals.ts` compris, fait naître une
+ * entrée ; seul `p` sans extension repointé vers `p.<ext>` n'en fait naître aucune. Cette garde-ci,
+ * elle, voit toujours l'échange (la clé a changé des deux côtés) : c'est la SUITE qui tient ce cas, pas
+ * la porte de plage.
  * @param {{ sites: import('./stock.mjs').Site[], stock: Iterable<object>, ou?: string }} p
  *   `ou` nomme le fichier de stock dans le remède.
  */

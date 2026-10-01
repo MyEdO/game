@@ -8,7 +8,7 @@ import { tableTotale } from '../../src/lib/tableTotale.ts'
 import test, { after, describe } from 'node:test'
 import assert from 'node:assert/strict'
 import { execFileSync, spawnSync } from 'node:child_process'
-import { existsSync, mkdtempSync, readFileSync, rmSync, utimesSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, utimesSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -21,7 +21,7 @@ import { DEPOT } from '../guards/lib/ticketsGh.mjs'
 import { COMPTEURS, messageDeCollision } from '../guards/lib/compteursDeVersion.mjs'
 import { refusDesCompteurs } from '../guards/lib/compteursDuDepot.mjs'
 import { envDeDepotForge, envGitFeint, instanceDeDepot, sousLEnvDeLUtilisatrice } from '../guards/lib/depotGabarit.mjs'
-import { GENERATORS } from '../docs/build-all.mjs'
+import { GENERATORS, perimetreDesMixtes } from '../docs/build-all.mjs'
 import {
   CODE_ARRET_MOTEUR,
   CODE_BORNE_DEPASSEE,
@@ -390,7 +390,7 @@ test('le contexte du train ne porte que des QUESTIONS et des gestes NOMMÉS aux 
   assert.equal(ctx.generators, GENERATORS)
   for (const script of ['x; git add -A', 'x && git commit -m libre', 'a b', '$(git add -A)', '', 7])
     assert.throws(() => ctx.npm(script), /ctx\.npm : un NOM de script/, JSON.stringify(script))
-  for (const mode of ['--check; git add -A', '--check', '--write', undefined])
+  for (const mode of ['--check; git add -A', '--check', '--write', '--quiet', undefined])
     assert.throws(() => ctx.docs(mode), /ctx\.docs : mode de build-all inconnu/, JSON.stringify(mode))
   for (const sha of ['HEAD', 'a'.repeat(39), `${'a'.repeat(40)}\n`, ['a'.repeat(40)], undefined])
   {
@@ -683,25 +683,64 @@ test('étape `docs` : un dérivé MIXTE sali depuis la rejoue, même verte sur l
   assert.equal(vert(['src/state/cascade.ts']), true, 'un manuscrit sale n’est pas l’affaire de l’étape')
 })
 
-test('étape `docs` : `docs:build` ROUGE est un refus nommé par la fin de sa sortie — rien de commité', () => {
+test('étape `docs` : `build-all --mixtes` ROUGE est un refus nommé par la fin de sa sortie — rien de commité', () => {
   const docs = ETAPES.find((e) => e.nom === 'docs')
   const gestes = []
-  const ctx = {
-    racine: RACINE,
-    generators: GENERATORS,
-    journaliser: () => {},
-    docs: (mode) => { gestes.push(['docs', mode]); return { status: 1, stderr: 'docs:build — ARRÊT sur g/a.mjs (sortie 1)' } },
-    npm: (script) => { gestes.push(['npm', script]); return { status: 0 } },
-    commit: () => assert.fail('aucun commit sur un docs:build rouge'),
-    questions: {
-      ceQuiChange: () => ({ chemins: () => ['src/data/careers.json'] }),
-      cheminsSales: () => [],
-    },
+  const racine = mkdtempSync(join(tmpdir(), 'etape-docs-'))
+  try {
+    const ctx = {
+      racine,
+      generators: GENERATORS,
+      journaliser: () => {},
+      docs: (mode) => { gestes.push(['docs', mode]); return { status: 1, stderr: 'docs:mixtes — ARRÊT sur g/a.mjs (sortie 1)' } },
+      npm: (script) => { gestes.push(['npm', script]); return { status: 0 } },
+      commit: () => assert.fail('aucun commit sur un `--mixtes` rouge'),
+      questions: {
+        ceQuiChange: () => ({ chemins: () => ['src/data/careers.json'] }),
+        cheminsSales: () => [],
+      },
+    }
+    const vu = docs.jouer(ctx, { base: 'b'.repeat(40), tete: 'a'.repeat(40) })
+    assert.equal(vu.ok, false)
+    assert.equal(vu.raison, "`build-all --mixtes` a rendu 1 : dérivés possiblement incohérents (rien n'a été staged ni commité)\ndocs:mixtes — ARRÊT sur g/a.mjs (sortie 1)")
+    assert.deepEqual(gestes, [['docs', '--mixtes']])
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
   }
-  const vu = docs.jouer(ctx, { base: 'b'.repeat(40), tete: 'a'.repeat(40) })
-  assert.equal(vu.ok, false)
-  assert.equal(vu.raison, "`docs:build` a rendu 1 : dérivés possiblement incohérents (rien n'a été staged ni commité)\ndocs:build — ARRÊT sur g/a.mjs (sortie 1)")
-  assert.deepEqual(gestes, [['docs', '--quiet']])
+})
+
+test('étape `docs` : la sélection se restreint à `perimetreDesMixtes` — la source d’un AUTRE générateur ne régénère rien', () => {
+  const docs = ETAPES.find((e) => e.nom === 'docs')
+  const membres = perimetreDesMixtes(GENERATORS)
+  const autre = GENERATORS.find((g) => !membres.includes(g))
+  const entree = (fichiers) => ({ cibles: [], fichiers, dossiers: [] })
+  const mesure = {
+    ...Object.fromEntries(membres.map((g) => [g.script, entree(['src/mixte.ts', g.script])])),
+    [autre.script]: entree(['notes/autre.md', autre.script]),
+  }
+  const racine = mkdtempSync(join(tmpdir(), 'etape-docs-'))
+  try {
+    mkdirSync(join(racine, 'docs'))
+    writeFileSync(join(racine, 'docs', '.sources-lues.json'), JSON.stringify(mesure))
+    const jouer = (chemins) => {
+      const gestes = []
+      const vu = docs.jouer({
+        racine,
+        generators: GENERATORS,
+        journaliser: () => {},
+        docs: (mode) => { gestes.push(['docs', mode]); return { status: 1, stderr: '' } },
+        npm: (script) => { gestes.push(['npm', script]); return { status: 0 } },
+        commit: () => assert.fail('aucun commit'),
+        questions: { ceQuiChange: () => ({ chemins: () => chemins }), cheminsSales: () => [] },
+      }, { base: 'b'.repeat(40), tete: 'a'.repeat(40) })
+      return { vu, gestes }
+    }
+    const horsPerimetre = jouer(['notes/autre.md'])
+    assert.deepEqual([horsPerimetre.vu.ok, horsPerimetre.vu.dit, horsPerimetre.gestes], [true, 'aucune source de mixte dans la plage, arbre propre : docs inchangés', []])
+    assert.deepEqual(jouer(['src/mixte.ts']).gestes, [['docs', '--mixtes']])
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
 })
 
 // ── synchroniserAgents ─────────────────────────────────────────────────────────────────

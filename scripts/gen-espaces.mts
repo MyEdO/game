@@ -140,9 +140,10 @@ async function rendu(): Promise<{ textes: Map<string, string>; table: Map<string
     ` *\n` +
     ` * Deux RÉGIMES de lecture, tous deux déclarés :\n` +
     ` *  - CI / DEV / test : ce fichier généré, figé au commit — une référence morte casse au parse ;\n` +
-    ` *  - APPLICATION (éditeur compris, \`CodexEdit.save\` → \`validateDataset\`) : les ids se lisent sur les\n` +
-    ` *    RACINES VIVANTES (\`src/data/overrides.ts\` pose le régime vivant, \`grammaire/idsVivants.ts\` le\n` +
-    ` *    sert à \`ref.ts\`), par le même calcul (\`idsDeLEspace\`), dans l'ordre de la donnée.\n` +
+    ` *  - APPLICATION (éditeur compris) : les ids se lisent sur les RACINES VIVANTES, recalculés par version\n` +
+    ` *    du dataset à toute écriture du seam (\`src/data/overrides.ts\` pose le régime vivant,\n` +
+    ` *    \`grammaire/idsVivants.ts\` le sert à \`ref.ts\`), par le même calcul (\`idsDeLEspace\`), dans l'ordre\n` +
+    ` *    de la donnée.\n` +
     ` */\n` +
     `const IDS = {\n` +
     [...table].map(([cle, ids]) => `  ${litteralJs(cle)}: [${ids.map(litteralJs).join(', ')}],\n`).join('') +
