@@ -1,5 +1,5 @@
 /**
- * Chaque compteur de version persisté, dérivé de sa table (`versionCourante`, #2226), garde son type
+ * Chaque version de forme persistée, dérivée de sa table (`versionCourante`, #2226), garde son type
  * LITTÉRAL : une valeur d'une autre version ne compile pas.
  */
 import { describe, expectTypeOf, it } from 'vitest';

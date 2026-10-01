@@ -17,6 +17,8 @@ export const COMMANDE_ARBRE_INCHANGE = 'git status --porcelain && test -z "$(git
  * forme fait LEVER `gatesDeCi`, au lieu d'être ignoré en silence.
  */
 export const CI_SEULEMENT = {
+  'node scripts/ops/sonde-collision-2226.mjs':
+    'sonde temporaire #2226 DoD12 : collision TS1117 sur merge_group ; retrait après archivage du run rouge, avant publication',
   'npm --prefix server ci': 'install serveur — posée une fois localement par `npm install`',
   [COMMANDE_ARBRE_INCHANGE]:
     'le lanceur local juge le même invariant par `photoArbre` (scripts/gates/toutes.mjs)',

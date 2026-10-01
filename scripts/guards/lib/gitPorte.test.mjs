@@ -2,7 +2,7 @@
 // c'est le CLASSEMENT des sorties de git qui doit être juste, et git seul dit ce qu'il écrit.
 // Sonde d'origine (2026-09-05) : 13 cas, dont deux motifs que la première liste ne portait pas
 // (`bad object`, `Invalid revision range`) et qui auraient classé « git en panne » deux absences.
-import { test } from 'node:test'
+import { after, test } from 'node:test'
 import { Buffer } from 'node:buffer'
 import assert from 'node:assert/strict'
 import { DEPOT } from './ticketsGh.mjs'
@@ -752,10 +752,13 @@ test('config HOSTILE : chaque lecteur de l’hôte rend sous les réglages de l�
 
 // ── Les ÉCRIVAINS : la configuration de l'utilisateur fait foi (#1806, juge du lot #85, H2 point 5) ──
 
+/** Le cwd de l'ESPION : un répertoire neuf et vide, propre à ce banc, jeté en fin de fichier. */
+let cwdEspion
 /** Un dépôt ESPION : chaque argv reçu par git est journalisé dans `vus`, et git répond 0 à vide. */
 function espion() {
+  if (!cwdEspion) { cwdEspion = mkdtempSync(join(tmpdir(), 'espion-')); after(() => jeter(cwdEspion)) }
   const vus = []
-  const d = depotDe(tmpdir(), { spawn: (_git, args) => { vus.push(args); return { status: 0, stdout: '', stderr: '' } } })
+  const d = depotDe(cwdEspion, { spawn: (_git, args) => { vus.push(args); return { status: 0, stdout: '', stderr: '' } } })
   return { d, vus }
 }
 

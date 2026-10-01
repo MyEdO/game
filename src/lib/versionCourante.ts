@@ -1,7 +1,7 @@
 /**
- * La VERSION COURANTE d'une forme persistée, DÉRIVÉE de sa table de montées (#2226) : un littéral objet
- * keyé par la version de DÉPART de chaque montée, clés numériques contiguës. La version courante est la
- * plus grande clé + 1, en valeur comme en type littéral. Deux branches qui ajoutent la même montée
+ * La VERSION COURANTE d'une forme persistée, DÉRIVÉE de sa table de migrations (#2226) : un littéral objet
+ * keyé par la version de DÉPART de chaque migration, clés numériques contiguës. La version courante est la
+ * plus grande clé + 1, en valeur comme en type littéral. Deux branches qui ajoutent la même migration
  * ajoutent la même clé : conflit de fusion, ou TS1117 au typecheck de l'arbre fusionné.
  */
 
@@ -16,7 +16,7 @@ type Tuple<N extends number, A extends unknown[] = []> = A['length'] extends N ?
 
 type Suivant<N extends number> = [...Tuple<N>, unknown]['length'] & number;
 
-/** La version courante d'une table de montées `T`, en type littéral ; `number` pour une table typée
+/** La version courante d'une table de migrations `T`, en type littéral ; `number` pour une table typée
  *  `Record<number, …>`, dont les clés ne sont pas connues. */
 export type VersionCourante<T extends object> = number extends Extract<keyof T, number>
   ? number

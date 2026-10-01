@@ -11,7 +11,7 @@ const CHAINE = {
 } satisfies MigrationMap;
 
 describe('migrateDoc — une issue, et un refus NOMMÉ', () => {
-  it('un document à monter traverse la chaîne jusqu’à la version courante de la table, chaque pas posant `version`', () => {
+  it('un document à migrer traverse la chaîne jusqu’à la version courante de la table, chaque pas posant `version`', () => {
     expect(migrateDoc({ version: 1 }, CHAINE)).toEqual({ ok: true, doc: { version: 3, deux: true } });
     expect(migrateDoc({ version: 3 }, CHAINE)).toEqual({ ok: true, doc: { version: 3 } });
   });

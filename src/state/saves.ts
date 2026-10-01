@@ -14,7 +14,8 @@
  * Les règles maison (surcharges de `policy.ts`, hors GameState) voyagent à part dans `rules` :
  * une save reste portable d'une machine à l'autre AVEC ses règles (le localStorage ne suffit pas).
  *
- * POLITIQUE DE VERSION (arbitrage utilisateur 2026-08-17) — deux filets DISTINCTS :
+ * POLITIQUE DE VERSION (2026-08-17, `.claude/memory/user-arbitrage-saves-reset-pas-migration.md`) — deux
+ * filets DISTINCTS :
  * 1. Champs manquants (donnée AJOUTÉE depuis la save) : tolérés gratuitement par le zustand `set`
  *    au chargement (`applyLoadedSave`, `store.ts`) — un champ absent du snapshot chargé garde sa
  *    valeur d'`initialFields` (`stateFields.ts`), jamais `undefined`.
@@ -28,8 +29,8 @@ import type { Scene } from './scene';
 import { stockageWeb } from '../lib/stockageWeb';
 import { versionCourante } from '../lib/versionCourante';
 
-/** Montées de la forme persistée, keyées par version de DÉPART (#2226). */
-const MONTEES_DE_SAVE = {
+/** Migrations de la forme persistée, keyées par version de DÉPART (#2226). */
+const MIGRATIONS_DE_SAVE = {
   // 32 → 33 (L2 #1548, geste modèle) : une personne se RÉFÉRENCE. Le document de scène (`scene`) perd
   // les deux pseudo-PNJ écrits en clair — l'effet `medicalAid` porte seulement son `entityId` (la
   // Guérison et le Bonus d'Int se lisent sur la fiche du PNJ), et les adversaires de `startPursuit`
@@ -111,11 +112,6 @@ const MONTEES_DE_SAVE = {
   // `routeTriggeredTest` : un objet sans `kind`, ni Test ouvert ni séquelle posée. La save se jette
   // (politique 2 ci-dessus).
   43: '#1657 amputation différée en nœuds `test`',
-  // 44 → 45 (#1657 B3-2) : le `kind` d'étape `riverSplinterDodge` SORT du vocabulaire — le coup à
-  // l'équipage d'un Critique de bateau passe par la porte (`triggeredBatchTest`). `pendingCascade` est
-  // persisté : une save de 44 prise sur une journée fluviale dont l'esquive d'éclats est ouverte
-  // rouvrirait avec une étape dont plus aucun applier n'est enregistré — le jet se validerait sans
-  // conséquence, en silence. La save se jette (politique 2 ci-dessus).
   44: '#1657 `riverSplinterDodge` hors du vocabulaire',
   // 45 → 46 (#1657 B3-3, corrige #1685) : les étapes d'entretien PERSISTÉES (`pendingCascade`,
   // `deferredUpkeepQueue` — cycle de maladie, Exposition, Récupération, contagion, convalescence)
@@ -130,11 +126,6 @@ const MONTEES_DE_SAVE = {
   // marquage : à la première réconciliation, la cible (1) et les pions dérivés comptés (0) divergent — le
   // porteur regagne un Inconscient/Exténué par-dessus celui qu'il a déjà. La save se jette (politique 2).
   46: '#1599 États dérivés marqués',
-  // 47 → 48 (#1599) : la suspension d'un fait passif est GÉNÉRALE — l'`ActiveEffect` porte
-  // `suppressedSource` (identité Codex) là où il portait `suppressedSymptom` (id nu). Une save de 47 rouvre
-  // avec des fenêtres de suspension (Racine de terre, fenêtre de Détermination) que plus aucun lecteur ne
-  // voit : le symptôme réémet ses passifs et l'État qu'il porte revient, sans que rien ne le dise. La save
-  // se jette (politique 2 ci-dessus).
   47: '#1599 suspension par `suppressedSource`',
   // 48 → 49 (#1695) : un État « pour la durée du Sort » (LDB 48 l.495) est PORTÉ par l'effet actif du sort
   // (`ActiveEffect.passive`) au lieu d'être copié sur le pion (`ConditionInstance.roundsLeft`). Une save de
@@ -214,7 +205,7 @@ const MONTEES_DE_SAVE = {
   59: '#1920 clé d’enjeu de modale en id',
 } as const;
 
-export const SAVE_VERSION = versionCourante(MONTEES_DE_SAVE);
+export const SAVE_VERSION = versionCourante(MIGRATIONS_DE_SAVE);
 
 export interface SaveMeta {
   version: number;

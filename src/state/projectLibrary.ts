@@ -2,13 +2,13 @@ import { parseProject, exigerUnRefus, refusDeForme, type ProjectDoc } from './wo
 import type { PROJECT_MIGRATIONS } from '../data/migrationsDeProjet';
 import type { NarratifBlock } from './campaignNarratif';
 import type { GameState } from './store';
-import { accesBase, idbDisponible, type MonteesIdb } from '../lib/indexedDb';
+import { accesBase, idbDisponible, type MigrationsIdb } from '../lib/indexedDb';
 import { stockageWeb } from '../lib/stockageWeb';
 
 /** Un projet éditeur SÉRIALISÉ en localStorage. Même forme que `ProjectDoc` (SOURCE UNIQUE du schéma
  *  de projet, jamais un littéral `schema`/champs dupliqués), mais RELÂCHÉE pour le stock legacy : un
  *  projet enregistré à un format antérieur peut manquer de `narratif`, de `type` ou d'identité. Son
- *  `schema` est le courant ou tout format que `PROJECT_MIGRATIONS` sait monter. La montée au format
+ *  `schema` est le courant ou tout format que `PROJECT_MIGRATIONS` sait migrer. La migration au format
  *  courant se fait au CHARGEMENT via `parseProject`, jamais dans ce module — et c'est là, pas ici,
  *  que l'absence d'identité se fait REFUSER. */
 export type StoredProject = Omit<ProjectDoc, 'schema' | 'narratif' | 'type' | 'id' | 'label' | 'versionContenu'> & {
@@ -131,19 +131,19 @@ const LOCAL_MIRROR_ENTRY_LIMIT = 500_000;
 
 const STORE = 'projects';
 
-/** Montées de `wfrp4-library`. */
-export const MONTEES_BIBLIOTHEQUE = {
+/** Migrations de `wfrp4-library`. */
+export const MIGRATIONS_BIBLIOTHEQUE = {
   0: (db) => {
     db.createObjectStore(STORE, { keyPath: 'id' });
   },
-} satisfies MonteesIdb;
+} satisfies MigrationsIdb;
 
 /** Bibliothèque persistée : source de vérité IndexedDB (base `wfrp4-library`) + un MIROIR localStorage
  *  tenu à jour à chaque écriture (borné PAR PROJET par `LOCAL_MIRROR_ENTRY_LIMIT`). `initLibrary`
  *  réconcilie les deux par id à chaque démarrage — c'est CE mécanisme, rejoué à chaque boot (jamais un
  *  flag one-shot), qui absorbe aussi bien la migration initiale que la reprise d'une écriture IndexedDB
  *  précédemment en échec (#776). */
-const bibliotheque = accesBase({ nom: 'wfrp4-library', montees: MONTEES_BIBLIOTHEQUE });
+const bibliotheque = accesBase({ nom: 'wfrp4-library', migrations: MIGRATIONS_BIBLIOTHEQUE });
 const projets = bibliotheque.magasin<SavedProject, string>(STORE);
 
 /** Cache mémoire = source SYNC servie au picker/éditeur/tests. `null` tant qu'`initLibrary` n'a rien chargé. */

@@ -158,7 +158,7 @@ src/lib/                     Couche NEUTRE, en amont de `engine`, `data`, `state
                             `espacesExtensibles`. Module PUR, sans import : Node nu le charge aussi, par
                             son chemin relatif, extension comprise.
                             `indexedDb.ts` : bases IndexedDB (disponibilité, ouverture bornée #776 par
-                            `{ nom, montees }`, une connexion par opération) et leur poignée
+                            `{ nom, migrations }`, une connexion par opération) et leur poignée
                             `accesBase` (magasins typés, `vider`) ; doublure `indexedDb.testkit.ts`
                             (`brancherBasesSimulees`).
                             `stockageWeb.ts` : accès protégé au `localStorage` et au `sessionStorage`
@@ -166,7 +166,7 @@ src/lib/                     Couche NEUTRE, en amont de `engine`, `data`, `state
                             `fileIo.ts` : téléchargement d'un texte (`downloadText`), nom de fichier
                             sûr (`fileSlug`).
                             `versionCourante.ts` : la version courante d'une forme persistée, dérivée
-                            de sa table de montées keyée par version de DÉPART, en valeur et en type
+                            de sa table de migrations keyée par version de DÉPART, en valeur et en type
                             littéral (#2226).
 src/geometry/                Géométrie/simulation PURE partagée `state` ⇄ `gameIso` (#161 : `state` en a
                             besoin pour SA PROPRE logique — curseur de combat, IA, cadence des beats —

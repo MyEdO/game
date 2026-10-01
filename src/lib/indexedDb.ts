@@ -6,24 +6,24 @@
  *
  * Politique de connexion : chaque opération ouvre sa connexion et la FERME à son règlement
  * (`avecConnexion`) ; une ouverture réussie APRÈS le règlement de `ouvrirBase` est
- * refermée aussitôt. Aucune connexion ne survit à son opération, donc aucune ne bloque la montée de
+ * refermée aussitôt. Aucune connexion ne survit à son opération, donc aucune ne bloque la migration de
  * version d'un autre onglet.
  */
 import { versionCourante } from './versionCourante';
 
-/** Les montées d'une base (`onupgradeneeded`), keyées par version de DÉPART, 0 pour une base neuve :
+/** Les migrations d'une base (`onupgradeneeded`), keyées par version de DÉPART, 0 pour une base neuve :
  *  la version de la base en dérive (`versionCourante`, #2226). */
-export type MonteesIdb = Readonly<Record<number, (db: IDBDatabase) => void>>;
+export type MigrationsIdb = Readonly<Record<number, (db: IDBDatabase) => void>>;
 
-/** Une base : son nom et ses montées. */
+/** Une base : son nom et ses migrations. */
 export interface BaseIdb {
   readonly nom: string;
-  readonly montees: MonteesIdb;
+  readonly migrations: MigrationsIdb;
 }
 
-/** Joue sur `db`, en cours de montée, les montées de `montees` depuis `ancienneVersion`. */
-export function monterBase(montees: MonteesIdb, db: IDBDatabase, ancienneVersion: number): void {
-  for (let v = ancienneVersion; v < versionCourante(montees); v++) montees[v](db);
+/** Joue sur `db`, en cours de migration, les migrations de `migrations` depuis `ancienneVersion`. */
+export function migrerBase(migrations: MigrationsIdb, db: IDBDatabase, ancienneVersion: number): void {
+  for (let v = ancienneVersion; v < versionCourante(migrations); v++) migrations[v](db);
 }
 
 /** #776 */
@@ -51,7 +51,7 @@ export function idbDisponible(): boolean {
  *  une connexion qui aboutit après ce règlement est refermée. */
 function ouvrirBase(base: BaseIdb): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    const req = ouverture(base.nom, versionCourante(base.montees));
+    const req = ouverture(base.nom, versionCourante(base.migrations));
     let regle = false;
     const regler = (geste: () => void): boolean => {
       if (regle) return false;
@@ -61,7 +61,7 @@ function ouvrirBase(base: BaseIdb): Promise<IDBDatabase> {
       return true;
     };
     const timer = setTimeout(() => regler(() => reject(new Error('IndexedDB open : délai dépassé'))), IDB_OPEN_TIMEOUT_MS);
-    req.onupgradeneeded = (e) => monterBase(base.montees, req.result, e.oldVersion);
+    req.onupgradeneeded = (e) => migrerBase(base.migrations, req.result, e.oldVersion);
     req.onblocked = () => regler(() => reject(new Error('IndexedDB open : bloqué par une autre connexion ouverte')));
     req.onsuccess = () => {
       if (!regler(() => resolve(req.result))) req.result.close();

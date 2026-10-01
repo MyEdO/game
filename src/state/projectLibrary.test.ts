@@ -10,9 +10,9 @@ import {
   documentDeLEntree,
   campagneDeLEntree,
   playerEntryError,
-  MONTEES_BIBLIOTHEQUE,
+  MIGRATIONS_BIBLIOTHEQUE,
 } from './projectLibrary';
-import { __setOuvertureIdbForTest, monterBase } from '../lib/indexedDb';
+import { __setOuvertureIdbForTest, migrerBase } from '../lib/indexedDb';
 import { baseSimulee, brancherBasesSimulees } from '../lib/indexedDb.testkit';
 import { Scene, emptyScene } from './scene';
 import { parseProject, CURRENT_PROJECT_SCHEMA, ProjetRefuse } from './worldMap';
@@ -562,10 +562,10 @@ describe('campagneDeLEntree — la campagne LANCÉE depuis une entrée, par la p
   });
 });
 
-describe('MONTEES_BIBLIOTHEQUE — montée de `wfrp4-library`', () => {
+describe('MIGRATIONS_BIBLIOTHEQUE — migration de `wfrp4-library`', () => {
   it('base neuve : crée `projects` keyé id', () => {
     const base = baseSimulee();
-    monterBase(MONTEES_BIBLIOTHEQUE, base.db, 0);
+    migrerBase(MIGRATIONS_BIBLIOTHEQUE, base.db, 0);
     expect([...base.magasins.keys()]).toEqual(['projects']);
     expect(base.magasins.get('projects')?.keyPath).toBe('id');
   });

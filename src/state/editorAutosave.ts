@@ -1,5 +1,5 @@
 import type { Scene } from './scene';
-import { accesBase, type MonteesIdb } from '../lib/indexedDb';
+import { accesBase, type MigrationsIdb } from '../lib/indexedDb';
 import { CURRENT_PROJECT_SCHEMA, migreSceneDeProjet, exigerUnRefus, type ProjetRefuse, type ProjectDoc } from './worldMap';
 
 /**
@@ -19,7 +19,7 @@ export interface EditorAutosaveRecord {
   savedAt: number;
 }
 
-/** Ce que l'éditeur peut faire d'un enregistrement relu : le reprendre, sa scène montée au format
+/** Ce que l'éditeur peut faire d'un enregistrement relu : le reprendre, sa scène migrée au format
  *  courant, ou l'ÉCARTER sur le refus MESURÉ de la porte (cause, fautes et leur lieu), que l'écran
  *  traduit (`refusDeLaPorteDuProjet`, `ui/editor/ProjectModals.tsx`). */
 export type RepriseLocale =
@@ -28,14 +28,14 @@ export type RepriseLocale =
 
 const STORE = 'autosave';
 
-/** Montées de `wfrp4-editor-autosave`. */
-export const MONTEES_AUTOSAVE = {
+/** Migrations de `wfrp4-editor-autosave`. */
+export const MIGRATIONS_AUTOSAVE = {
   0: (db) => {
     db.createObjectStore(STORE, { keyPath: 'sceneId' });
   },
-} satisfies MonteesIdb;
+} satisfies MigrationsIdb;
 
-const base = accesBase({ nom: 'wfrp4-editor-autosave', montees: MONTEES_AUTOSAVE });
+const base = accesBase({ nom: 'wfrp4-editor-autosave', migrations: MIGRATIONS_AUTOSAVE });
 const sauvegardes = base.magasin<EditorAutosaveRecord, string>(STORE);
 
 /** Lecture — `null` si aucune sauvegarde automatique pour cette scène, ou si IndexedDB est

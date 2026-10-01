@@ -1,6 +1,6 @@
 // CLIQUET du ruleset `main` (node --test, sans réseau) : le corps est PUR, et les contextes de check
 // se lisent DANS `ci.yml` — jamais recopiés. Le corps POSÉ lit le `ci.yml` du TRONC ; les gardes de
-// forme des jobs (aucun check requis sautable, plafond par job, compteurs de la file) lisent l'arbre,
+// forme des jobs (aucun check requis sautable, plafond par job) lisent l'arbre,
 // là où la forme se change. Lancé par `npm run test:ops`.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'

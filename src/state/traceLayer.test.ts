@@ -7,9 +7,9 @@ import {
   panelExpandedSave,
   __resetTraceLayerForTest,
   type TraceLayerRecord,
-  MONTEES_CALQUES,
+  MIGRATIONS_CALQUES,
 } from './traceLayer';
-import { __setOuvertureIdbForTest, monterBase } from '../lib/indexedDb';
+import { __setOuvertureIdbForTest, migrerBase } from '../lib/indexedDb';
 import { baseSimulee, brancherBasesSimulees, type BasesSimulees } from '../lib/indexedDb.testkit';
 import { identityTransform } from './traceCalibration';
 
@@ -118,10 +118,10 @@ describe('panelExpanded — repli/dépli du panneau, PAR SCÈNE (survit à un ch
   });
 });
 
-describe('MONTEES_CALQUES — montée de `wfrp4-trace-layers` vers v2 (#830)', () => {
+describe('MIGRATIONS_CALQUES — migration de `wfrp4-trace-layers` vers v2 (#830)', () => {
   it('base neuve (v0) : crée `layers` keyé (sceneId, z) et `panelExpanded` keyé sceneId', () => {
     const base = baseSimulee();
-    monterBase(MONTEES_CALQUES, base.db, 0);
+    migrerBase(MIGRATIONS_CALQUES, base.db, 0);
     expect(base.magasins.get('layers')?.keyPath).toEqual(['sceneId', 'z']);
     expect(base.magasins.get('panelExpanded')?.keyPath).toBe('sceneId');
   });
@@ -130,7 +130,7 @@ describe('MONTEES_CALQUES — montée de `wfrp4-trace-layers` vers v2 (#830)', (
     const base = baseSimulee({ layers: { keyPath: 'sceneId' }, panelExpanded: { keyPath: 'sceneId' } });
     base.magasins.get('layers')!.contenu.set('scene-1', record('scene-1'));
     base.magasins.get('panelExpanded')!.contenu.set('scene-1', { sceneId: 'scene-1', expanded: false });
-    monterBase(MONTEES_CALQUES, base.db, 1);
+    migrerBase(MIGRATIONS_CALQUES, base.db, 1);
     expect(base.magasins.get('layers')?.keyPath).toEqual(['sceneId', 'z']);
     expect(base.magasins.get('layers')?.contenu.size).toBe(0);
     expect(base.magasins.get('panelExpanded')?.contenu.size).toBe(1);
@@ -138,7 +138,7 @@ describe('MONTEES_CALQUES — montée de `wfrp4-trace-layers` vers v2 (#830)', (
 
   it('v1 sans `panelExpanded` → v2 : le magasin du panneau est créé', () => {
     const base = baseSimulee({ layers: { keyPath: 'sceneId' } });
-    monterBase(MONTEES_CALQUES, base.db, 1);
+    migrerBase(MIGRATIONS_CALQUES, base.db, 1);
     expect(base.magasins.get('panelExpanded')?.keyPath).toBe('sceneId');
   });
 
