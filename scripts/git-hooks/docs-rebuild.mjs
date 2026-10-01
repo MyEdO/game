@@ -4,11 +4,15 @@
 // qui ont bougé.
 // Il ne touche JAMAIS l'index (aucun `git add`/`commit`) : la décision de committer reste humaine.
 // Silencieux quand rien de pertinent n'a bougé (aucune source de doc dans le lot fusionné/rebasé).
+// Premier argument : le nom du hook qui le lance, journalisé (`journal.mjs`).
+// Porte de version de Node en PREMIER import (`scripts/node-requis.mjs`).
+import '../node-requis.mjs'
 import { execFileSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { genererCode, SOURCES_LUES } from '../docs/build-all.mjs'
 import { ceQuiChange, depotDe, etatDeLArbre, racineDe, shaDe } from '../guards/lib/gitPorte.mjs'
+import { journaliserLeHook } from './journal.mjs'
 
 /** Fichiers du lot que le hook vient de recevoir (`de`..`a`, ORIG_HEAD..HEAD par défaut). Sans `de`,
  *  ou git indisponible : `null` (= inconnu, on régénère). */
@@ -74,12 +78,12 @@ export function touchesDocSources(chemins, mesure) {
   })
 }
 
-function main(argv = process.argv.slice(2)) {
+function main([hook, avant, apres] = process.argv.slice(2)) {
+  journaliserLeHook(hook)
   const cwd = racineDe(depotDe(process.cwd()))
   if (!cwd) return
   genererCode({ cwd, quiet: true })
-  if (argv[0] === '--checkout') {
-    const [, avant, apres] = argv
+  if (hook === 'post-checkout') {
     const mesure = sourcesMesurees(cwd)
     const plan = planDuCheckout({ avant, apres, mesure, lot: avant === apres || mesure === null ? [] : touchedFiles(cwd, { de: avant, a: apres }) })
     if (plan === 'consigne') process.stderr.write(CONSIGNE_SANS_MESURE)

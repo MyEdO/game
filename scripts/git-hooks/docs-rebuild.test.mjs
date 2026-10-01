@@ -96,7 +96,8 @@ test('post-checkout : HEAD immobile → rien ; sans mesure → consigne ; sinon 
   assert.equal(planDuCheckout({ avant: a, apres: b, mesure: MESURE, lot: null }), 'regenerer', 'lot inconnu : on régénère')
 })
 
-test('CÂBLAGE : post-checkout passe ses deux HEAD à docs-rebuild.mjs --checkout', () => {
-  const hook = readFileSync(join(RACINE, 'scripts', 'git-hooks', 'post-checkout'), 'utf8')
-  assert.match(hook, /docs-rebuild\.mjs" --checkout "\$1" "\$2"/)
+test('CÂBLAGE : chaque post-hook passe son NOM à docs-rebuild.mjs, post-checkout aussi ses deux HEAD', () => {
+  const lire = (hook) => readFileSync(join(RACINE, 'scripts', 'git-hooks', hook), 'utf8')
+  assert.match(lire('post-checkout'), /docs-rebuild\.mjs" post-checkout "\$1" "\$2"/)
+  for (const hook of ['post-merge', 'post-rewrite']) assert.match(lire(hook), new RegExp(`docs-rebuild\\.mjs" ${hook} `), hook)
 })
