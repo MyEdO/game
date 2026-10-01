@@ -273,10 +273,17 @@ test('extractTargetDir : un `cd` ou un `git -C` DANS un sous-shell désigne le m
   assert.equal(extractTargetDir('sh -c "git -C wt commit -m x"', base, 'linux', TOUT_EXISTE), resolve(base, 'wt'))
 })
 
-test('extractTargetDir : `git -C` prime sur `cd`, et sans ni l\'un ni l\'autre le cwd est inchangé', () => {
+test('extractTargetDir : `git -C` se résout là où tourne son segment, après les `cd` ; ses `-C` se composent comme git', () => {
   const base = resolve('/base')
-  assert.equal(extractTargetDir('cd a && git -C b commit -m x', base, 'linux', TOUT_EXISTE), resolve(base, 'b'))
-  assert.equal(extractTargetDir('git commit -m x', base, 'linux', TOUT_EXISTE), base)
+  const lieu = (command) => extractTargetDir(command, base, 'linux', TOUT_EXISTE)
+  assert.equal(lieu('cd a && git -C b commit -m x'), resolve(base, 'a', 'b'))
+  assert.equal(lieu('git -C b commit -m x && cd a'), resolve(base, 'b'))
+  assert.equal(lieu('git -C a -C b commit -m x'), resolve(base, 'a', 'b'))
+  assert.equal(lieu('cd a && git -C b -C ' + resolve('/abs') + ' commit -m x'), resolve('/abs'))
+  assert.equal(lieu('cd a && git -C "" commit -m x'), resolve(base, 'a'))
+  assert.equal(lieu('git -Cb commit -m x'), base, '`-Cb` : git le refuse, ce n’est pas un lieu')
+  assert.equal(lieu('git.exe -C b commit -m x'), resolve(base, 'b'), 'tête lue par `estGit`')
+  assert.equal(lieu('git commit -m x'), base)
 })
 
 /** Dépôt jetable avec un worktree LIÉ, posé DANS l'instance : la garde s'y joue comme dans un arbre

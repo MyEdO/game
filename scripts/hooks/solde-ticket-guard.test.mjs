@@ -2882,7 +2882,7 @@ test('natureDeLArbre : `.git` DOSSIER = principal, `.git` FICHIER = worktree li�
 // ── Chemin d'écriture résolu UNE fois ; hors du contenu versionné sur preuve positive seulement (#1973) ────
 /** Graphie MSYS (`/c/Users/…`) d'un chemin win32 absolu. */
 const versMsys = (p) => '/' + p[0].toLowerCase() + p.slice(2).replace(/\\/g, '/')
-const ecriture = (file_path, opts) => cheminDEcriture({ file_path }, opts)
+const ecriture = (file_path, opts) => cheminDEcriture({ file_path }, { base: tmpdir(), ...opts })
 
 test('cheminDEcriture : dans un dépôt, racine + relatif, contenu versionné — graphie native ou MSYS', () => {
   const { racine } = instanceDeDepot()
@@ -2893,7 +2893,7 @@ test('cheminDEcriture : dans un dépôt, racine + relatif, contenu versionné �
     assert.equal(natif.relatif, 'src/data/x.json')
     assert.notEqual(natif.racine, null)
     if (process.platform === 'win32') assert.deepEqual(ecriture(versMsys(cible)), natif, 'MSYS = natif')
-    assert.equal(cheminDEcriture({ path: cible }).horsContenu, false, '`path` quand `file_path` manque')
+    assert.equal(cheminDEcriture({ path: cible }, { base: racine }).horsContenu, false, '`path` quand `file_path` manque')
   } finally {
     rmSync(racine, { recursive: true, force: true })
   }
@@ -2936,7 +2936,7 @@ test('cheminDEcriture : IGNORÉ par git → `horsContenu` ; un fichier SUIVI qu�
 })
 
 test('cheminDEcriture : sans preuve positive, le hook garde — aucun chemin, lecteur absent', () => {
-  assert.equal(cheminDEcriture({}), null)
+  assert.equal(cheminDEcriture({}, { base: tmpdir() }), null)
   assert.equal(ecriture(''), null)
   const absent = process.platform === 'win32'
     ? [...'ZYXWVUTSRQPONMLKJIHGFE'].find((l) => !existsSync(`${l}:\\`))

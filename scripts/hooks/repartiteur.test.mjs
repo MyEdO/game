@@ -255,18 +255,19 @@ test('#2224 cwd d’un shell lean-ctx dans un worktree de l’arbre principal : 
   })
 })
 
-test('#2224 cwd MSYS dans l’arbre : jugé comme son chemin natif', { skip: process.platform !== 'win32' && 'graphie MSYS : win32 seulement' }, async () => {
+test('#2224 cwd MSYS d’un shell lean-ctx : lu sous la racine du disque courant par lean-ctx, donc non jugeable ; sa graphie native est jugée', { skip: process.platform !== 'win32' && 'graphie MSYS : win32 seulement' }, async () => {
   await dansUnDepot(async (racine) => {
     const ui = join(racine, 'src', 'ui')
     const msys = ui.replace(/^([A-Za-z]):[\\/]/, (_, d) => `/${d.toLowerCase()}/`).replace(/\\/g, '/')
-    assert.equal(construireContexte({ tool_name: `${LC}ctx_shell`, cwd: racine, tool_input: { command: 'ls', cwd: msys } }).dir, resolve(ui))
+    const contexte = construireContexte({ tool_name: `${LC}ctx_shell`, cwd: racine, tool_input: { command: 'ls', cwd: msys } })
+    assert.equal(contexte.dir, null)
+    assert.match(contexte.nonJugeable.raison, /`cwd` inexistant tel que lean-ctx le lit/)
     for (const command of ['npm run gates', 'git status']) {
-      assert.deepEqual(
-        await sortie(racine, `${LC}ctx_shell`, { command, cwd: msys }, CODEUR),
-        await sortie(racine, `${LC}ctx_shell`, { command, cwd: ui }, CODEUR),
-        command,
-      )
+      const r = await raison(racine, `${LC}ctx_shell`, { command, cwd: msys }, CODEUR)
+      assert.match(r, /appel non jugeable .*`cwd` inexistant tel que lean-ctx le lit.*canal prescrit : passer `cwd` ABSOLU/, `${command} : ${r}`)
     }
+    assert.equal(await decision(racine, `${LC}ctx_shell`, { command: 'git status', cwd: ui }, CODEUR), null, 'graphie native : jugée, rien à dire')
+    assert.equal(await decision(racine, `${LC}ctx_shell`, { command: 'npm run gates', cwd: ui }, CODEUR), 'deny', 'graphie native : la porte des gates juge')
   })
 })
 
@@ -278,6 +279,8 @@ test('#2224 schéma fermé du shell lean-ctx : `env` et toute clé inconnue → 
     ]) {
       const r = await raison(racine, `${LC}ctx_shell`, entree)
       assert.match(r, new RegExp(`clé hors du schéma admis du shell \\(${LC}ctx_shell : ${cle}\\)`), `${nom} : ${r}`)
+      assert.match(r, /— canal prescrit : le même appel sans cette clé [(]admises : command, cwd,/, `${nom} : ${r}`)
+      assert.doesNotMatch(r, /ctx_shell pour une commande/, `${nom} : consigne circulaire`)
     }
     const admises = { command: 'git status', cwd: racine, raw: true, inline: true, timeout_ms: 1000, run_in_background: false }
     assert.equal(await decision(racine, `${LC}ctx_shell`, admises), null)
@@ -295,6 +298,14 @@ test('#2224 écriture lean-ctx à `path` relatif → refus, canal « `path` abso
   })
 })
 
+test('#2224 un chemin d’écriture relatif se résout contre le `dir` du contexte, jamais contre le cwd du processus', async () => {
+  await dansUnDepot(async (racine) => {
+    const ecrit = { file_path: 'data/x.json', content: '{}' }
+    const vu = await sortie(racine, 'Write', ecrit, { cwd: join(racine, 'src') })
+    assert.match(vu?.additionalContext ?? '', /Donnée app-owned éditée [(]src[/]data[/]x[.]json[)]/)
+  })
+})
+
 test('#2224 affectation d’environnement en tête qui change le programme ou l’index → refus, Bash comme ctx_shell ; les autres passent', async () => {
   await dansUnDepot(async (racine) => {
     const refusees = [
@@ -309,13 +320,98 @@ test('#2224 affectation d’environnement en tête qui change le programme ou l�
       for (const [outil, entree] of [['Bash', { command }], [`${LC}ctx_shell`, { command, cwd: racine }]]) {
         const r = await raison(racine, outil, entree)
         assert.match(r, motif, `${outil} « ${command} » : ${r}`)
-        assert.match(r, /canal prescrit : la même commande sans cette affectation/, `${outil} « ${command} »`)
+        assert.match(r, /canal prescrit : la même commande sans ce nom/, `${outil} « ${command} »`)
       }
     }
-    for (const command of ['WFRP_TEST_COEURS=4 git status', 'echo GIT_INDEX_FILE=x']) {
+    for (const command of ['WFRP_TEST_COEURS=4 git status', 'echo PATH=x']) {
       assert.equal(await decision(racine, 'Bash', { command }), null, command)
       assert.equal(await decision(racine, `${LC}ctx_shell`, { command, cwd: racine }), null, command)
     }
+  })
+})
+
+test('#2224 la table se lit par SECTION de la doc de git (« The Git Repository », `GIT_CONFIG*`) ; `PATH`/`ENV` par syntaxe ; drapeaux git de lieu jumeaux ; `git -C` reste jugé', async () => {
+  await dansUnDepot(async (racine) => {
+    const refusees = [
+      ['GIT_COMMON_DIR=../x/.git git status', /GIT_COMMON_DIR nommé : git prend dans l’environnement le dépôt/],
+      ['GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.hooksPath GIT_CONFIG_VALUE_0=x git commit -m y', /GIT_CONFIG_KEY_0 nommé : git lit dans l’environnement une configuration/],
+      ['GIT_CONFIG_PARAMETERS=x git status', /GIT_CONFIG_PARAMETERS nommé/],
+      ['GIT_OBJECT_DIRECTORY=x git status', /GIT_OBJECT_DIRECTORY nommé/],
+      ['PATH=./faux:$PATH npm test', /PATH : le shell cherche le programme/],
+      ['BASH_ENV=./x.sh bash -c "npm test"', /BASH_ENV nommé : bash exécute ce fichier/],
+      ['ENV=./x.sh sh -c "npm test"', /ENV : un shell POSIX exécute ce fichier/],
+      ['git --git-dir=../autre/.git commit -m y', /git --git-dir : git opère ce dépôt/],
+      ['git --work-tree ../autre status', /git --work-tree : git opère ce dépôt/],
+    ]
+    for (const [command, motif] of refusees) {
+      for (const [outil, entree] of [['Bash', { command }], [`${LC}ctx_shell`, { command, cwd: racine }]]) {
+        const r = await raison(racine, outil, entree)
+        assert.match(r, motif, `${outil} « ${command} » : ${r}`)
+        assert.match(r, /canal prescrit : la même commande sans ce nom/, `${outil} « ${command} »`)
+      }
+    }
+    for (const command of [
+      'git -C src status', 'git log --oneline -- src/git-dir.ts', 'GIT_EDITOR=true git status', 'GIT_TRACE=1 git status',
+      'GIT_AUTHOR_NAME=x git status', 'grep -rn PATH src', 'ls $ENV',
+    ]) {
+      assert.equal(await decision(racine, 'Bash', { command }), null, command)
+      assert.equal(await decision(racine, `${LC}ctx_shell`, { command, cwd: racine }), null, command)
+    }
+  })
+})
+
+test('#2224 un nom distinctif se ferme par NOM, quelle que soit la syntaxe qui l’écrit ; une lecture qui le nomme est renvoyée à `ctx_search`', async () => {
+  await dansUnDepot(async (racine) => {
+    const ecritures = [
+      ['Bash', 'cmd /c "set GIT_DIR=x && git status"'],
+      ['PowerShell', "$env:GIT_DIR += 'x'; git status"],
+      ['PowerShell', '$env:git_dir = "x"; git status'],
+      ['PowerShell', 'Set-Content env:GIT_DIR x; git status'],
+      ['PowerShell', "[Environment]::SetEnvironmentVariable('GIT_DIR', 'x'); git status"],
+      ['PowerShell', 'Rename-Item env:FOO GIT_DIR; git status'],
+      ['PowerShell', 'Copy-Item env:PATH env:GIT_DIR; git status'],
+      ['Bash', 'git commit -m "touche NODE_OPTIONS"'],
+    ]
+    for (const [outil, command] of ecritures) {
+      const r = await raison(racine, outil, { command })
+      assert.match(r, /(GIT_DIR|git_dir|NODE_OPTIONS) nommé/, `${outil} « ${command} » : ${r}`)
+      assert.match(r, /canal prescrit : la même commande sans ce nom/, `${outil} « ${command} »`)
+    }
+    for (const command of ['git grep -n GIT_DIR', 'rg NODE_OPTIONS scripts', 'grep -rn npm_config_prefix . | head -3']) {
+      const r = await raison(racine, 'Bash', { command })
+      assert.match(r, /nommé .*canal prescrit : `ctx_search`/, `« ${command} » : ${r}`)
+    }
+  })
+})
+
+test('#2224 `git -c` et `--config-env` : non jugeables, jumeaux de GIT_CONFIG_PARAMETERS ; le canal nomme le remplaçant d’une clé d’éditeur', async () => {
+  await dansUnDepot(async (racine) => {
+    const refusees = [
+      ['git -c core.editor=true rebase --continue', /`-c core[.]editor` : `GIT_EDITOR=true` en tête/],
+      ['git -c sequence.editor=x rebase -i HEAD~2', /`-c sequence[.]editor` : `GIT_SEQUENCE_EDITOR=true` en tête/],
+      ['git -c core.hooksPath=/dev/null commit -m y', /`-c core[.]hookspath` : la même commande sans `-c` ; une configuration durable passe par `git config`/],
+      ['git --config-env=core.hooksPath=X commit -m y', /git -c core[.]hookspath : git lit une configuration/],
+      ['git --config-env core.hooksPath=X commit -m y', /git -c core[.]hookspath : git lit une configuration/],
+      ['sh -c "git -c core.editor=true commit --amend"', /git -c core[.]editor/],
+    ]
+    for (const [command, motif] of refusees) {
+      for (const [outil, entree] of [['Bash', { command }], [`${LC}ctx_shell`, { command, cwd: racine }]]) {
+        const r = await raison(racine, outil, entree)
+        assert.match(r, motif, `${outil} « ${command} » : ${r}`)
+      }
+    }
+    for (const command of ['GIT_EDITOR=true git status', 'GIT_SEQUENCE_EDITOR=true git status', 'git -ccore.editor=true status']) {
+      assert.equal(await decision(racine, 'Bash', { command }), null, command)
+    }
+  })
+})
+
+test('#2224 `declare`/`typeset`/`local` de `PATH` ou `ENV`, avec ou sans `-x` : relevés par la syntaxe', async () => {
+  await dansUnDepot(async (racine) => {
+    for (const command of ['declare PATH=./faux:$PATH; npm test', 'typeset PATH=./faux; npm test', 'local -x PATH=./faux; npm test', 'declare ENV=./x.sh; sh -c "npm test"']) {
+      assert.match(await raison(racine, 'Bash', { command }), /(PATH|ENV) : /, command)
+    }
+    assert.equal(await decision(racine, 'Bash', { command: 'declare WFRP_TEST_COEURS=4; npm test' }), null)
   })
 })
 
@@ -337,12 +433,12 @@ test('#2224 affectation HORS préfixe qui change l’environnement des segments 
       for (const [outil, entree] of [[shell, { command }], [`${LC}ctx_shell`, { command, cwd: racine }]]) {
         const r = await raison(racine, outil, entree)
         assert.match(r, motif, `${outil} « ${command} » : ${r}`)
-        assert.match(r, /canal prescrit : la même commande sans cette affectation/, `${outil} « ${command} »`)
+        assert.match(r, /canal prescrit : la même commande sans ce nom/, `${outil} « ${command} »`)
       }
     }
     for (const [shell, command] of [
-      ['Bash', 'export WFRP_TEST_COEURS=4; git status'], ['Bash', 'echo export GIT_DIR=x'], ['Bash', 'declare GIT_DIR=x; echo $GIT_DIR'],
-      ['Bash', 'export -n GIT_DIR; git status'], ['PowerShell', 'echo $env:GIT_DIR'], ['PowerShell', "$env:WFRP_TEST_COEURS = '4'; git status"],
+      ['Bash', 'export WFRP_TEST_COEURS=4; git status'], ['Bash', 'echo export PATH=x'], ['PowerShell', 'echo $env:PATH'],
+      ['PowerShell', "$env:WFRP_TEST_COEURS = '4'; git status"],
     ]) {
       assert.equal(await decision(racine, shell, { command }), null, `${shell} « ${command} »`)
       assert.equal(await decision(racine, `${LC}ctx_shell`, { command, cwd: racine }), null, `ctx_shell « ${command} »`)

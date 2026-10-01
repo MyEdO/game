@@ -9,7 +9,7 @@
 // lieu NON JUGEABLE (#2224) est refusé avec le canal que ce contexte prescrit. Canal prescrit :
 // `~/.claude/CLAUDE.md` (« Project edits: `ctx_read(mode="anchored")` → `ctx_patch` »).
 import {
-  LECTURE, LECTURES_LIBRES, MOTIF_LEAN_CTX, OUTILS_ECRITURE, OUTILS_SHELL, PASSERELLE, SHELL, actionRefusee, cheminVise,
+  CLES_SHELL, LECTURE, LECTURES_LIBRES, MOTIF_LEAN_CTX, OUTILS_ECRITURE, OUTILS_SHELL, PASSERELLE, SHELL, actionRefusee, cheminVise,
   clesHorsSchemaShell, clesNonAdmises, ecrituresDe, entreeDOutil, familleLeanCtx, lotAmbigu, nomLeanCtx, outilAppele, remplaceResoluble,
 } from '../guards/lib/contratGarde.mjs'
 
@@ -31,7 +31,7 @@ function evaluer(entree, contexte) {
     if (famille === LECTURE) return actionRefusee(nu, entree) ? refus(`action refusée (${outil})`) : null
     if (famille === SHELL) {
       const horsSchema = clesHorsSchemaShell(entreeDOutil(entree))
-      if (horsSchema.length) return refus(`clé hors du schéma admis du shell (${outil} : ${horsSchema.join(', ')})`)
+      if (horsSchema.length) return { decision: 'deny', raison: `⛔ clé hors du schéma admis du shell (${outil} : ${horsSchema.join(', ')}) — canal prescrit : le même appel sans cette clé (admises : ${CLES_SHELL.join(', ')}).` }
     } else {
       const horsSchema = clesNonAdmises(entreeDOutil(entree))
       if (horsSchema.length) return refus(`clé hors du schéma MCP de son op (${outil} : ${horsSchema.join(', ')})`)

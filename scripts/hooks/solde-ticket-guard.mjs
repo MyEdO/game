@@ -126,7 +126,7 @@
 import { Buffer } from 'node:buffer'
 import { existsSync, readFileSync, statSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { dirname, join, relative, resolve, sep } from 'node:path'
+import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { croissancesNonCouvertes, estPorteurDeStock, raisonDeRefus } from '../guards/lib/stocksNominatifs.mjs'
 import {
   deplaceLaFrontiere, lignesDeReclassement, raisonDeRefusDeReclassement, reclassementsNonDeclares,
@@ -751,9 +751,9 @@ function pipelinesDeJetons(command, profondeur = 0, { scripts = scriptsNpm(), bu
   return pipelines
 }
 
-/** Têtes POSIX qui exportent leurs arguments `NOM[=val]` : `export` (sauf `-n`), et `declare`/`typeset`/
- *  `local` sous un drapeau qui porte `x` (`help declare`). */
-const EXPORTEURS = new Map([['export', () => true], ...['declare', 'typeset', 'local'].map((t) => [t, (args) => args.some((a) => /^-[a-z]*x/.test(a))])])
+/** Têtes POSIX qui affectent leurs arguments `NOM[=val]` : `export` (sauf `-n`), et `declare`/`typeset`/
+ *  `local` avec ou sans `-x` — une variable déjà exportée le reste (`man bash`, ENVIRONMENT). */
+const AFFECTEURS = new Map([['export', (args) => !args.includes('-n')], ...['declare', 'typeset', 'local'].map((t) => [t, () => true])])
 const NOM_EXPORTE_RE = /^([A-Za-z_][A-Za-z0-9_]*)(?:=|$)/
 /** PowerShell : `$env:NOM = …`, `$env:NOM=…`, `${env:NOM} = …` ; `Set-Item`/`New-Item` (alias `si`,
  *  `ni`) sur le lecteur `env:` (`about_Environment_Variables`). */
@@ -762,14 +762,14 @@ const ECRIVAINS_ENV_POWERSHELL = new Set(['set-item', 'si', 'new-item', 'ni'])
 const LECTEUR_ENV_RE = /^env:[\\/]?([A-Za-z_][A-Za-z0-9_]*)$/i
 
 /** Les noms de variables d'environnement qu'un segment épluché POSE pour les segments suivants :
- *  `export`/`declare -x`, `$env:NOM = …`, `Set-Item env:NOM`. */
+ *  `export`, `declare`/`typeset`/`local` (`AFFECTEURS`), `$env:NOM = …`, `Set-Item env:NOM`. */
 function affectationsDuSegment(textes) {
   if (textes.length === 0) return []
   const tete = basenameExecutable(textes[0])
   const args = textes.slice(1)
-  const exporte = EXPORTEURS.get(tete)
-  if (exporte) {
-    if (!exporte(args) || args.includes('-n')) return []
+  const affecte = AFFECTEURS.get(tete)
+  if (affecte) {
+    if (!affecte(args)) return []
     return args.filter((a) => !a.startsWith('-')).map((a) => NOM_EXPORTE_RE.exec(a)?.[1]).filter(Boolean)
   }
   const ps = ENV_POWERSHELL_RE.exec(textes[0])
@@ -788,6 +788,17 @@ export function affectationsDEnvironnement(command, options) {
   return affectations
 }
 
+const IDENTIFIANT_RE = /[A-Za-z_][A-Za-z0-9_]*/g
+
+/** Les identifiants que portent les jetons de la commande, quelle que soit la syntaxe qui les écrit :
+ *  ceux des segments réellement exécutés et de leurs porteurs de chaîne (`segmentsProfonds`), et les
+ *  noms affectés en tête (`affectationsDEnvironnement`), que l'épluchage retire des segments. */
+export function nomsDeLaCommande(command) {
+  const noms = new Set(affectationsDEnvironnement(command))
+  for (const jeton of segmentsProfonds(command).flat()) for (const nom of jeton.match(IDENTIFIANT_RE) ?? []) noms.add(nom)
+  return [...noms]
+}
+
 /** Liste PLATE des segments RÉELLEMENT exécutés par la commande — l'aplati de `pipelinesProfonds`,
  *  dans le même ordre (un segment enrobé précède son enrobeur : `cmd /c mklink …` rend `mklink …`
  *  puis `cmd /c …`).
@@ -796,7 +807,7 @@ export function segmentsProfonds(command, profondeur = 0, options) {
   return pipelinesProfonds(command, profondeur, options).flat()
 }
 
-const GLOBAL_VALUE_FLAGS = new Set(['-C', '-c', '--git-dir', '--work-tree', '--namespace', '--exec-path'])
+const GLOBAL_VALUE_FLAGS = new Set(['-C', '-c', '--config-env', '--git-dir', '--work-tree', '--namespace', '--exec-path'])
 
 /** Index de la SOUS-COMMANDE git dans un segment (`[&] git [flags globales] <sub>`), `-1` si le
  *  segment n'exécute pas `git`. Un token `&` de tête (call-operator PowerShell :
@@ -819,6 +830,41 @@ export function gitSubcommandIndex(segment, depart = 0) {
     break
   }
   return idx < segment.length ? idx : -1
+}
+
+/** Drapeaux globaux git qui désignent le dépôt ou l'arbre opéré (`git help git`), jumeaux de
+ *  `GIT_DIR`/`GIT_WORK_TREE`. */
+const DRAPEAUX_GIT_DE_LIEU = ['--git-dir', '--work-tree']
+
+/** Les drapeaux de `DRAPEAUX_GIT_DE_LIEU` que portent, avant leur sous-commande, les segments git
+ *  réellement exécutés (`segmentsProfonds`), sous forme `--git-dir x` comme `--git-dir=x`. */
+export function drapeauxGitDeLieu(command) {
+  return segmentsProfonds(command).flatMap((segment) => {
+    const start = segment[0] === '&' ? 1 : 0
+    if (segment.length <= start || !estGit(segment[start])) return []
+    const fin = gitSubcommandIndex(segment)
+    return segment.slice(start + 1, fin === -1 ? segment.length : fin).map((t) => t.split('=')[0]).filter((t) => DRAPEAUX_GIT_DE_LIEU.includes(t))
+  })
+}
+
+/** Les clés (en minuscules) que posent les flags globaux `-c <clé>=<val>` et `--config-env <clé>=<var>`
+ *  (ou `--config-env=<clé>=<var>`) des segments git réellement exécutés (`git help git`, `-c`,
+ *  `--config-env`) ; les formes collées `-c<clé>` et `--config-env<clé>` sont refusées par git
+ *  (« unknown option », mesuré git 2.51, #2224). */
+export function configsGitDeLaCommande(command) {
+  return segmentsProfonds(command).flatMap((segment) => {
+    const start = segment[0] === '&' ? 1 : 0
+    if (segment.length <= start || !estGit(segment[start])) return []
+    const fin = gitSubcommandIndex(segment)
+    const globaux = segment.slice(start + 1, fin === -1 ? segment.length : fin)
+    const cles = []
+    for (let k = 0; k < globaux.length; k++) {
+      const t = globaux[k]
+      const valeur = t === '-c' || t === '--config-env' ? globaux[++k] : t.startsWith('--config-env=') ? t.slice('--config-env='.length) : undefined
+      if (valeur) cles.push(valeur.split('=')[0].toLowerCase())
+    }
+    return cles
+  })
 }
 
 /** `true` si le jeton nomme l'exécutable `git` (`basenameExecutable`), lu tel quel (`C:\Git\git.exe`)
@@ -863,6 +909,22 @@ function estCiteur(segment) {
   if (tete !== 'git') return CITEURS.has(tete)
   const idx = gitSubcommandIndex(segment)
   return idx !== -1 && !SOUS_COMMANDES_GIT_EXECUTANTES.has(segment[idx])
+}
+
+/** Têtes de LECTURE (recherche, affichage, filtre de tube), et sous-commandes git qui ne font que lire. */
+const LECTEURS = new Set([
+  'grep', 'egrep', 'fgrep', 'rg', 'cat', 'head', 'tail', 'wc', 'ls', 'cut', 'sort', 'uniq', 'select-string', 'sls', 'findstr', 'select-object',
+])
+const SOUS_COMMANDES_GIT_DE_LECTURE = new Set(['grep', 'log', 'show', 'diff', 'blame'])
+
+/** `true` si chaque segment exécuté de la commande ne fait que LIRE (`LECTEURS`,
+ *  `SOUS_COMMANDES_GIT_DE_LECTURE`). */
+export function commandeDeLecture(command) {
+  const segments = segmentsLus(command)
+  return segments.length > 0 && segments.every((segment) => {
+    const git = gitSubcommand(segment)
+    return git ? SOUS_COMMANDES_GIT_DE_LECTURE.has(git.sub) : LECTEURS.has(basenameExecutable(segment[0]))
+  })
 }
 
 /** Bornes PARTAGÉES par toute la récursion d'une analyse : `reste` = segments que la RÉ-ANALYSE des
@@ -2053,17 +2115,19 @@ export function versCheminNatif(chemin, platform = process.platform) {
   return m ? `${m[1].toUpperCase()}:/${m[2]}` : chemin
 }
 
-/** Valeur du flag global `git -C <path>` d'un segment, ou `null` (segment non-git, ou sans `-C`). */
-function valeurGitDashC(segment) {
+/** Les valeurs des flags globaux `git -C <path>` d'un segment, dans l'ordre ; `[]` hors git. Git les
+ *  compose (`git help git`, `-C` : « each subsequent non-absolute -C <path> is interpreted relative to
+ *  the preceding -C <path> ») et laisse le répertoire inchangé sous `-C ""` ; la forme collée `-Cx`
+ *  est refusée par git (« unknown option », mesuré git 2.51, #2224). */
+function valeursGitDashC(segment) {
   const start = segment[0] === '&' ? 1 : 0
-  if (basenameExecutable(segment[start]) !== 'git') return null
-  for (let k = start + 1; k < segment.length; k++) {
-    const t = segment[k]
-    if (!t.startsWith('-')) return null
-    if (t === '-C') return segment[k + 1] ?? null
-    if (GLOBAL_VALUE_FLAGS.has(t)) k += 1
+  if (segment.length <= start || !estGit(segment[start])) return []
+  const valeurs = []
+  for (let k = start + 1; k < segment.length && segment[k].startsWith('-'); k++) {
+    if (segment[k] === '-C' && segment[k + 1]) valeurs.push(segment[k + 1])
+    if (GLOBAL_VALUE_FLAGS.has(segment[k])) k += 1
   }
-  return null
+  return valeurs
 }
 
 /** Commandes qui CHANGENT le répertoire courant, dans les deux shells où ce hook est câblé : POSIX
@@ -2076,24 +2140,23 @@ const CHANGEMENTS_DE_REPERTOIRE = new Set(['cd', 'chdir', 'pushd', 'set-location
  *  hook — le texte ne désigne aucun répertoire. */
 const VARIABLE_NON_EXPANSEE_RE = /[$%]/
 
-/** Chemin que la COMMANDE nomme, TEL QU'ÉCRIT (`brut`) et résolu contre `cwd` (`resolu`) : `git -C
- *  <path>` en priorité, sinon le dernier `cd`/`Set-Location` du pipeline. `null` si aucun. */
+/** Chemin que la COMMANDE nomme, TEL QU'ÉCRIT (`brut` ; un relatif hérite de la variable non expansée
+ *  du lieu qu'il prolonge) et résolu (`resolu`) : le lieu du premier `git -C <path>` en priorité, ses `-C` composés
+ *  depuis le répertoire où tourne SON segment, sinon le dernier `cd`/`Set-Location`. `null` si aucun.
+ *  Les `cd` se PLIENT dans l'ordre : chacun se résout contre le répertoire où le précédent a mené. */
 function cheminNommeParLaCommande(command, cwd, platform) {
-  const segments = segmentsLus(command)
-  for (const segment of segments) {
-    const dashC = valeurGitDashC(segment)
-    if (dashC) return { brut: dashC, resolu: resolve(cwd, versCheminNatif(dashC, platform)) }
+  const pas = (depuis, brut) => {
+    const natif = versCheminNatif(brut, platform)
+    const herite = !isAbsolute(natif) && VARIABLE_NON_EXPANSEE_RE.test(depuis?.brut ?? '')
+    return { brut: herite ? depuis.brut : brut, resolu: resolve(depuis?.resolu ?? cwd, natif) }
   }
-  // Les `cd` se PLIENT dans l'ordre : `cd <wt> && cd .. && git …` s'exécute dans le PARENT du
-  // worktree, pas dedans. Retenir le premier faisait dire « worktree » à un geste qui n'y est plus
-  // (mesuré 2026-09-04) — chaque `cd` se résout contre le répertoire où le précédent a mené.
-  let nomme = null
-  for (const segment of segments) {
-    if (CHANGEMENTS_DE_REPERTOIRE.has(basenameExecutable(segment[0])) && segment[1]) {
-      nomme = { brut: segment[1], resolu: resolve(nomme?.resolu ?? cwd, versCheminNatif(segment[1], platform)) }
-    }
+  let lieu = null
+  for (const segment of segmentsLus(command)) {
+    const dashC = valeursGitDashC(segment)
+    if (dashC.length) return dashC.reduce(pas, lieu)
+    if (CHANGEMENTS_DE_REPERTOIRE.has(basenameExecutable(segment[0])) && segment[1]) lieu = pas(lieu, segment[1])
   }
-  return nomme
+  return lieu
 }
 
 /**
@@ -2625,7 +2688,8 @@ export function natureDeLArbre(dir = process.cwd()) {
 }
 
 /** Racine de l'arbre git qui contient `dir` — le premier dossier porté par un `.git` en remontant —,
- *  ou `null` s'il n'y en a aucun. */
+ *  ou `null` s'il n'y en a aucun. Lue sur le disque, pas par `racineDe` (`gitPorte.mjs`) : elle répond
+ *  sans git, et pour une cible qui n'existe pas encore. */
 function racineDeLArbre(dir = process.cwd()) {
   let courant = resolve(dir)
   for (;;) {
@@ -2639,7 +2703,8 @@ function racineDeLArbre(dir = process.cwd()) {
 /**
  * Le chemin d'un `tool_input` d'écriture (`file_path`, sinon `path`), résolu UNE fois à l'entrée d'un
  * hook : toute la suite (périmètre, lecture disque, message) travaille sur lui, jamais sur le brut
- * (#1973). Graphie MSYS `/x/…` rendue native (`versCheminNatif`), relatif résolu contre `base`, puis :
+ * (#1973). Graphie MSYS `/x/…` rendue native (`versCheminNatif`), relatif résolu contre `base` (le `dir`
+ * du contexte, `construireContexte`, `scripts/hooks/repartiteur.mjs`), puis :
  * `reel` = `canoniser` (jonctions et liens suivis, fichier à créer compris) ; `racine` = l'arbre git
  * qui le contient, ou `null` ; `relatif` = POSIX sous `racine`, ou `reel` entier sans arbre.
  * `horsContenu` : le fichier n'est pas du contenu VERSIONNÉ du dépôt, et les hooks d'écriture s'y
@@ -2652,7 +2717,7 @@ function racineDeLArbre(dir = process.cwd()) {
  * le hook a quelque chose à dire. `null` quand le `tool_input` ne porte aucun chemin.
  * @returns {{ reel: string, racine: string|null, relatif: string, readonly horsContenu: boolean } | null}
  */
-export function cheminDEcriture(toolInput, { base = process.cwd(), platform = process.platform } = {}) {
+export function cheminDEcriture(toolInput, { base, platform = process.platform }) {
   const brut = cheminVise(toolInput)
   if (typeof brut !== 'string' || brut === '') return null
   const absolu = resolve(base, versCheminNatif(brut, platform))
