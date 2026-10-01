@@ -145,7 +145,7 @@ import { estFichierVitest } from '../guards/lib/fichierVitest.mjs'
 import { motifRattachement, numerosCites, numerosDeLaChaine, numerosFermes, numerosNusEnumeres } from '../guards/lib/fermetures.mjs'
 import {
   DOSSIERS_DE_SUBSTANCE, estCheminDeSubstance, fenetreDeRevue, memeSha, mesureDuPalier,
-  nomDArchiveDeRevue, problemesDeRevue, revuesNeuves,
+  nomDArchiveDeRevue, nomDeRevue, problemesDeRevue, revuesNeuves,
 } from '../guards/lib/revuePalier.mjs'
 import { coupeAuMot } from '../../src/lib/coupeAuMot.mjs'
 import { OUTILS_SHELL, cheminVise, commandeDe, decisionCumulee, verdictDe } from '../guards/lib/contratGarde.mjs'
@@ -1494,9 +1494,9 @@ export function validateSolde(content, today, {
 }
 
 /**
- * Valide le CONTENU d'une revue adversariale de PALIER (cumul de fermetures). La revue doit être
- * NOMMABLE : sa date et la base de sa fenêtre forment le nom du fichier
- * (`.claude/soldes/revue-palier-<date>-<base>.md`), et `verdictDeNom` vérifie qu'ils se répondent.
+ * Valide le CONTENU d'une revue adversariale de PALIER (cumul de fermetures) : nommable
+ * (`problemesDeRevue`, scripts/guards/lib/revuePalier.mjs), ligne `verdict:`, synthèse
+ * ≥ `MIN_REVUE_PALIER_LEN`, date du jour. Le NOM du fichier se juge dans `problemesDeRevueNeuve`.
  */
 export function validateRevuePalier(content, today) {
   if (!content) return { ok: false, problems: ['fichier absent'] }
@@ -1591,7 +1591,7 @@ export function evaluate({
       return {
         reason:
           `⚠ Revue de palier NON CONFORME : ${revue.chemin} — ${problemes.join(' ; ')}. Une revue entre `
-          + "dans l'histoire sous le nom de ce qu'elle juge (`revue-palier-<date>-<base>.md`), avec sa "
+          + `dans l'histoire sous le nom de ce qu'elle juge (\`${nomDeRevue('<date>', '<base>', '<tête>')}\`), avec sa `
           + `ligne "verdict: CONFIRMÉ|PARTIEL|RÉFUTÉ", ≥${MIN_REVUE_PALIER_LEN} caractères de synthèse sur `
           + 'le CUMUL, sa date du jour en 1re ligne et sa fenêtre `<base>..<tête>`.',
       }
@@ -1633,9 +1633,9 @@ export function evaluate({
           ? `${enRade.join(', ')} est écrite et stagée mais NON EMPORTÉE par ce commit : une commande `
             + `par pathspec n'emporte QUE les chemins nommés — y AJOUTER ${enRade.join(', ')}. `
           : '')
-        + `Sinon, l'écrire et la STAGER sous .claude/soldes/revue-palier-${today}-${tete}.md `
+        + `Sinon, l'écrire et la STAGER sous .claude/soldes/${nomDeRevue(today, tete, '<tête>')} `
         + `(ligne "verdict: CONFIRMÉ|PARTIEL|RÉFUTÉ", ≥${MIN_REVUE_PALIER_LEN} caractères de synthèse sur `
-        + `le CUMUL, date du jour en 1re ligne, fenêtre \`${tete}..<tête>\` — la date et la base `
+        + `le CUMUL, date du jour en 1re ligne, fenêtre \`${tete}..<tête>\` — la date et les DEUX bornes `
         + 'NOMMENT le fichier).',
     }
   }
