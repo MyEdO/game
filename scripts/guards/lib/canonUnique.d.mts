@@ -55,6 +55,10 @@ export function cleEnLigne(p: {
   separateurDeRemede: string;
   fonctionsDeCle: Readonly<Record<string, readonly string[]>>;
 }): Construction & { readonly indice: (texte: string) => boolean };
+export function comparaisonDAppel(p: {
+  nom: string;
+  fonctions: Readonly<Record<string, readonly string[]>>;
+}): Construction & { readonly indice: (texte: string) => boolean };
 export function scanConstructionsReservees(fichier: FichierLu, constructions: readonly ConstructionGardee[]): Trouvaille[];
 export function constructionsReserveesDuCorpus(
   corpus: readonly FichierLu[],

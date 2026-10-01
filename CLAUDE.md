@@ -11,7 +11,7 @@ Un **jeu de rôle vidéoludique 100 % web, en français**, type *Neverwinter Nig
 (tactique tour par tour, vue isométrique), basé sur **Warhammer Fantasy Roleplay 4e** : 4 aventuriers
 à travers la campagne **L'Ennemi Intérieur**.
 
-Ce dossier EST un vrai projet logiciel (`cgauche/game`) : commits + push attendus, tronc `main`
+Ce dossier EST un vrai projet logiciel (`MyEdO/game`) : commits + push attendus, tronc `main`
 (trunk-based). Le `Foundry/CLAUDE.md` parent ne s'applique PAS ici.
 
 Mémoire committée `.claude/memory/` (index `MEMORY.md` + fiches) : injectée en session locale, à LIRE
