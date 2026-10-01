@@ -246,10 +246,14 @@ test('specificateursDe : chaque nature d’acquisition est lue ; une chaîne, un
     "const d = await import(\n  './dynamique').then((m) => m.x)",
     "const r = require('./requis')",
     "const c = createRequire(import.meta.url)('./createRequire')",
+    "const m = module.require('./moduleRequire')",
+    "import e = require('./importEquals')",
+    "import type te = require('./importEqualsType')",
     '',
   ].join('\n')), [
     'statique ./statique', 'statique ./reexport', 'statique ./effet', 'type ./typeSeul', 'type ./typeReexport',
     'type ./positionType', 'dynamique ./dynamique', 'require ./requis', 'require ./createRequire',
+    'require ./moduleRequire', 'require ./importEquals', 'type ./importEqualsType',
   ])
   assert.deepEqual(lu('a.tsx', [
     "const chaine = \"import { x } from '../../src/chaine'\"",
@@ -257,7 +261,7 @@ test('specificateursDe : chaque nature d’acquisition est lue ; une chaîne, un
     "const interpole = `${a} import { x } from '../../src/interpole' ${b}`",
     "// import x from './commentaire'",
     "/* from './bloc' */",
-    "const re = /from './regex'/",
+    "const re = /from '.\\/regex'/",
     "const j = <div>{\"from './jsx'\"}</div>",
     'const variable = await import(chemin)',
     "const autreNom = req('./req')",
@@ -280,5 +284,37 @@ test('A4 : un membre HORS de `racine` lève en nommant importeur et spécificate
     assert.deepEqual([...clotureDImports([join(racine, 'src', 'fixture.ts')], { racine })], ['src/fixture.ts'])
   } finally {
     rmSync(externe, { recursive: true, force: true })
+  }
+})
+
+test('specificateursDe : un texte qui ne se parse pas LÈVE, en nommant le fichier et la première erreur — jamais une lecture partielle', () => {
+  // `<T>y` en `.mjs` ouvre un élément JSX jamais fermé : l'import qui suit était avalé en silence.
+  assert.throws(() => specificateursDe('scripts/a.mjs', "import { a } from './avant'\nconst x = <T>y\nimport { b } from './apres'\n"),
+    /specificateursDe : scripts\/a\.mjs ne se parse pas, ligne \d+ : /)
+})
+
+test('cache de marche : partagé entre le défaut et `dynamiques: false`, il rend les deux clôtures justes ; sous un autre régime, il LÈVE', () => {
+  const racine = mkdtempSync(join(tmpdir(), 'import-graph-'))
+  const autre = mkdtempSync(join(tmpdir(), 'import-graph-'))
+  try {
+    mkdirSync(join(racine, 'scripts'), { recursive: true })
+    writeFileSync(join(racine, 'scripts', 'a.mjs'), "import './statique.mjs'\nconst d = await import('./dynamique.mjs')\n")
+    for (const f of ['statique', 'dynamique']) writeFileSync(join(racine, 'scripts', `${f}.mjs`), 'export const x = 1\n')
+    const depart = [join(racine, 'scripts', 'a.mjs')]
+    const defaut = ['scripts/a.mjs', 'scripts/dynamique.mjs', 'scripts/statique.mjs']
+    const statique = ['scripts/a.mjs', 'scripts/statique.mjs']
+    for (const ordre of [[false, true], [true, false]]) {
+      const cache = new Map()
+      for (const dynamiques of ordre)
+        assert.deepEqual([...clotureDImports(depart, { racine, cache, dynamiques })].sort(), dynamiques ? defaut : statique,
+          `cache partagé, marche ${dynamiques ? 'par défaut' : 'statique'} après l’autre régime de \`dynamiques\``)
+    }
+    const cache = new Map()
+    clotureDImports(depart, { racine, cache })
+    assert.throws(() => clotureDImports(depart, { racine, cache, typesEffaces: true }), /cache rempli sous le régime « typage, racine .* réutilisé sous « typesEffaces, racine /)
+    assert.throws(() => clotureDImports([], { racine: autre, cache }), /cache rempli sous le régime .* réutilisé sous/)
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+    rmSync(autre, { recursive: true, force: true })
   }
 })

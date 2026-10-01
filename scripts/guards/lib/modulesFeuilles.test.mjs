@@ -48,6 +48,8 @@ const GRAPHIES = [
   ['require nu', "const { geste } = require('./geste.mjs')\n"],
   ['createRequire chaîné', "const { geste } = createRequire(import.meta.url)('./geste.mjs')\n"],
   ['createRequire lié à `require`', "const require = createRequire(import.meta.url)\nconst m = require('./geste')\n"],
+  ['import x = require', "import geste = require('./geste.mjs')\n"],
+  ['module.require', "const { geste } = module.require('./geste.mjs')\n"],
 ]
 
 for (const [graphie, code] of GRAPHIES) {
@@ -108,9 +110,9 @@ test('importsResolus : l’extraction vient de la primitive, jamais d’une rege
   try {
     const abs = join(racine, 'scripts/ops/tiers.mjs').split('\\').join('/')
     const vus = importsResolus(abs, "import {\n  geste,\n} from './geste.mjs'\nconst d = import('./geste')\n")
-    assert.deepEqual(vus.map((v) => v.specificateur), ['./geste.mjs', './geste'])
+    assert.deepEqual(vus.map((v) => v.spec), ['./geste.mjs', './geste'])
     // Deux graphies, UN seul fichier : c'est la résolution qui le dit.
-    assert.equal(new Set(vus.map((v) => v.resolu)).size, 1)
+    assert.equal(new Set(vus.map((v) => v.cible)).size, 1)
   } finally {
     rmSync(racine, { recursive: true, force: true })
   }

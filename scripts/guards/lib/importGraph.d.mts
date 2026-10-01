@@ -4,11 +4,15 @@ export interface Specificateur {
   nature: 'statique' | 'dynamique' | 'type' | 'require';
 }
 export function specificateursDe(fichier: string, texte: string): Specificateur[];
-/** Un arc résolu de la marche : le spécificateur écrit, et le fichier absolu POSIX qu'il désigne. */
-export interface Arc {
-  spec: string;
+/** Un arc résolu : le spécificateur écrit, sa nature, et le fichier absolu POSIX qu'il désigne. */
+export interface Arc extends Specificateur {
   cible: string;
 }
+export function arcsDe(
+  abs: string,
+  texte: string,
+  options?: { existe?: (abs: string) => boolean; alias?: readonly Alias[] },
+): Arc[];
 export function estModule(chemin: string): boolean;
 export function pathspecsDeModules(dossier: string): string[];
 export function sourceALExecution(fichier: string, texte: string): string;

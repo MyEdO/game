@@ -22,7 +22,7 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { INDEX, depotDe, listerImage } from './gitPorte.mjs'
-import { resolveImport, specificateursDe } from './importGraph.mjs'
+import { arcsDe } from './importGraph.mjs'
 
 /** L'arbre lu par défaut : celui où VIT ce module. */
 export const RACINE = fileURLToPath(new URL('../../..', import.meta.url))
@@ -56,8 +56,8 @@ export function sourcesSuivies(racine = RACINE) {
 }
 
 /**
- * Les spécificateurs relatifs qu'un texte source acquiert, RÉSOLUS vers des fichiers réels : toutes
- * les natures de `specificateursDe` (`importGraph.mjs`), jamais une regex de plus. `require` y est
+ * Les ARCS qu'un texte source acquiert (`arcsDe`, `importGraph.mjs`) : toutes les natures du lecteur
+ * canonique, jamais une regex de plus. `require` y est
  * VIVANT — `createRequire(import.meta.url)` charge le compilateur TypeScript dans `dialecte.mjs` — et
  * atteindrait une feuille aussi sûrement qu'un `import`.
  * HORS DE PORTÉE, et d'aucune lecture statique : un spécificateur passé par VARIABLE
@@ -65,20 +65,13 @@ export function sourcesSuivies(racine = RACINE) {
  * sous un AUTRE nom (`const req = createRequire(…)` puis `req('./x')`), dont l'appelé n'est plus
  * un jeton connu. C'est pourquoi l'invariant des feuilles se mesure sur l'ensemble des sources
  * SUIVIES et non sur une liste de suspects.
- * `resolveImport` ramène toute graphie d'un spécificateur relatif au MÊME fichier, donc une source
- * qui acquiert deux fois la même cible ne rend qu'une entrée par graphie écrite, jamais une par
+ * La résolution ramène toute graphie d'un spécificateur relatif au MÊME fichier, donc une source
+ * qui acquiert deux fois la même cible ne rend qu'un arc par graphie écrite, jamais un par
  * extension possible.
  * @param {string} fichierAbsolu @param {string} texte
- * @returns {{specificateur:string, resolu:string}[]}
+ * @returns {import('./importGraph.mjs').Arc[]}
  */
-export function importsResolus(fichierAbsolu, texte) {
-  const vus = []
-  for (const { spec: specificateur } of specificateursDe(fichierAbsolu, texte)) {
-    const resolu = resolveImport(fichierAbsolu, specificateur)
-    if (resolu) vus.push({ specificateur, resolu })
-  }
-  return vus
-}
+export const importsResolus = (fichierAbsolu, texte) => arcsDe(fichierAbsolu, texte)
 
 /**
  * Qui importe une feuille — la mesure, nominative. Une feuille dont le MODULE est introuvable rend
@@ -105,8 +98,8 @@ export function manquementsDeFeuilles({ racine = RACINE, sources, feuilles = FEU
     } catch {
       continue
     }
-    for (const { specificateur, resolu } of importsResolus(absolu(source), texte)) {
-      const feuille = parCible.get(resolu)
+    for (const { spec: specificateur, cible } of importsResolus(absolu(source), texte)) {
+      const feuille = parCible.get(cible)
       if (feuille)
         manquements.push(
           `${source} importe la FEUILLE ${feuille.module} (« ${specificateur} ») — elle ${feuille.pourquoi} : ` +
