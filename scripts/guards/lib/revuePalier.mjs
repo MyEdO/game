@@ -68,7 +68,16 @@ export function problemesDeRevue(texte) {
 export function nomDArchiveDeRevue(texte, dateDeRepli = null) {
   const { date, base, tete } = fenetreDeRevue(texte)
   const jour = date ?? dateDeRepli
-  if (!jour) return null
+  return jour ? nomDeRevue(jour, base, tete) : null
+}
+
+/**
+ * Le nom d'archive de la revue datée `jour` dont la fenêtre est `base..tete`. PUR — la SEULE règle de
+ * formatage du nom : `nomDArchiveDeRevue` la lit sur un contenu, et un message qui PRESCRIT un nom la
+ * lit sur ce qu'il connaît (une borne inconnue s'y passe en gabarit, `'<tête>'`).
+ * @returns {string}
+ */
+export function nomDeRevue(jour, base = null, tete = null) {
   if (!base) return `revue-palier-${jour}.md`
   return tete ? `revue-palier-${jour}-${base}-${tete}.md` : `revue-palier-${jour}-${base}.md`
 }
@@ -85,7 +94,7 @@ export function nomsDArchiveAcceptes(texte, dateDeRepli = null) {
   const jour = date ?? dateDeRepli
   if (!jour) return []
   const courant = nomDArchiveDeRevue(texte, dateDeRepli)
-  const anterieurs = base ? [`revue-palier-${jour}-${base}.md`, `revue-palier-${jour}.md`] : [`revue-palier-${jour}.md`]
+  const anterieurs = base ? [nomDeRevue(jour, base), nomDeRevue(jour)] : [nomDeRevue(jour)]
   return [...new Set([courant, ...anterieurs].filter(Boolean))]
 }
 

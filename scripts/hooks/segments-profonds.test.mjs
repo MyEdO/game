@@ -339,7 +339,7 @@ test('refus de PALIER : le message NOMME la MESURE (compte, tête, archive) — 
   assert.match(d.reason, /11 commits de substance depuis 2c11fdd9a/)
   assert.match(d.reason, /revue-palier-82e95be10\.md/)
   assert.match(d.reason, /2c11fdd9a\.\.<tête>/, 'le refus doit dire la fenêtre attendue de la revue à écrire')
-  assert.match(d.reason, /revue-palier-2026-09-02-2c11fdd9a\.md/, 'et le NOM du fichier à écrire')
+  assert.match(d.reason, /revue-palier-2026-09-02-2c11fdd9a-<tête>\.md/, 'et le NOM du fichier à écrire, aux DEUX bornes')
 })
 
 test('refus de PALIER : un palier INMESURABLE refuse aussi — jamais un silence', () => {
