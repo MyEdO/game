@@ -13,7 +13,7 @@ import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
 import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { dirname, join, relative, resolve } from 'node:path'
+import { dirname, join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { SURFACE_CLAUDE, SURFACE_CODEX, aplatirHooks } from './agents/compat-core.mjs'
 import { scriptKindDe, typescript } from './guards/lib/dialecte.mjs'
@@ -84,15 +84,11 @@ function arbreIntenable() {
   return racine
 }
 
-/** Chemin POSIX relatif à `RACINE` d'un membre de clôture (rendu relatif au cwd s'il y vit). */
-const depuisRacine = (membre) => relative(RACINE, resolve(membre)).replaceAll('\\', '/')
-
 /** L'arbre intenable, plus la clôture d'imports de chaque module lancé, les hooks shell réels et le
  *  `node_modules` réel. */
 function arbreDesModules() {
   const racine = arbreIntenable()
-  for (const membre of clotureDImports(MODULES_LANCES.map((m) => join(RACINE, m)))) {
-    const rel = depuisRacine(membre)
+  for (const rel of clotureDImports(MODULES_LANCES, { racine: RACINE })) {
     mkdirSync(dirname(join(racine, rel)), { recursive: true })
     copyFileSync(join(RACINE, rel), join(racine, rel))
   }
@@ -179,8 +175,7 @@ test('clôture STATIQUE de `npm run gates`, des `.mjs` des hooks shell, des pilo
   const cache = new Map()
   const fautes = []
   for (const module of MODULES_LANCES) {
-    for (const membre of clotureDImports([join(RACINE, module)], { cache, dynamiques: false })) {
-      const rel = depuisRacine(membre)
+    for (const rel of clotureDImports([module], { racine: RACINE, cache, dynamiques: false })) {
       if (/\.[cm]?tsx?$/.test(rel)) {
         fautes.push(`${module} > ${rel} : module TypeScript`)
         continue

@@ -20,13 +20,13 @@ import { closureOf, clotureDImports, directImportsOf } from './importGraph.mjs';
  * l'atteignent. Un module compté par exactement 1 système est « domanial » (single-system) ; un
  * module compté par ≥2 est de l'infra partagée légitime.
  * @param {{ id: string, modules: string[] }[]} systemes
- * @param {Map<string, string[]|null>} [cache] enfants résolus, partageable (`clotureDImports`)
+ * @param {Map<string, { spec: string, cible: string }[]|null>} [cache] enfants résolus, partageable (`clotureDImports`)
  * @returns {Map<string, string[]>} module (chemin POSIX) -> liste des ids système qui l'atteignent
  */
 export function computeOwnerSystems(systemes, cache = new Map()) {
   const owners = new Map();
   for (const s of systemes) {
-    for (const rel of closureOf(s.modules, cache)) {
+    for (const rel of closureOf(s.modules, { cache })) {
       const list = owners.get(rel) ?? [];
       list.push(s.id);
       owners.set(rel, list);
@@ -85,7 +85,7 @@ export function scanAllPrimitives(primitives, systemes, readFile = (p) => readFi
  * propriétaire est HÉRITÉ de la primitive elle-même (le seul système qui la pose) et ne dit rien du
  * domaine de `target`.
  * @param {string[]} roots racines du système @param {string} primitiveFile @param {string} target
- * @param {Map<string, string[]|null>} cache
+ * @param {Map<string, { spec: string, cible: string }[]|null>} cache
  * @returns {boolean}
  */
 function atteintSansLaPrimitive(roots, primitiveFile, target, cache) {

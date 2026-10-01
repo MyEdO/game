@@ -11,9 +11,10 @@
  * FAÇADE qui a déménagé (`state/buildings.ts`, patron `state/terrain/index.ts` #1690), le store n'a pas
  * traversé la frontière pour aller la chercher.
  *
- * MÉCANIQUE réutilisée, jamais un 2ᵉ parseur d'imports : `IMPORT_RE` + `resolveImport`
+ * MÉCANIQUE réutilisée, jamais un 2ᵉ parseur d'imports : `specificateursDe` + `resolveImport`
  * (`scripts/guards/lib/importGraph.mjs`, partagés avec `genericDomainImport` et le graphe des
- * systèmes). Sont vus les imports statiques, dynamiques (`import('…')`) et à effet de bord.
+ * systèmes). Sont vus les imports statiques, de type, dynamiques (`import('…')`), à effet de bord et
+ * `require`.
  *
  * PÉRIMÈTRE : les sources de PRODUCTION de `src/state/**`. Les `*.test.ts(x)` sont hors scan — un test
  * de state compose légitimement un builder ou un écran pour mesurer un bout-en-bout (26 imports de
@@ -23,7 +24,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { fileURLToPath } from 'node:url';
-import { IMPORT_RE, resolveImport } from '../../scripts/guards/lib/importGraph.mjs';
+import { resolveImport, specificateursDe } from '../../scripts/guards/lib/importGraph.mjs';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { estFichierVitest } from '../../scripts/guards/lib/fichierVitest.mjs';
 import { detenteur } from '../detenteur.testkit';
@@ -43,8 +44,7 @@ function sourcesDeState(): { chemin: string; texte: string }[] {
  *  PUR : le texte est un paramètre, si bien que le cas planté ci-dessous n'a besoin d'aucun fichier. */
 export function importsDuRendu(fichierAbs: string, texte: string): { spec: string; cible: string }[] {
   const out: { spec: string; cible: string }[] = [];
-  for (const m of texte.matchAll(IMPORT_RE)) {
-    const spec = m[1] ?? m[2] ?? m[3];
+  for (const { spec } of specificateursDe(fichierAbs, texte)) {
     const cible = resolveImport(fichierAbs, spec);
     if (cible && cible.startsWith(RENDU)) out.push({ spec, cible: cible.slice(SRC.length) });
   }

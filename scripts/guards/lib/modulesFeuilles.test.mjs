@@ -44,8 +44,7 @@ const GRAPHIES = [
   ['chemin écrit autrement', "import { geste } from '../ops/./geste.mjs'\n"],
   ['effet de bord', "import './geste.mjs'\n"],
   ['import de type', "import type { geste } from './geste.mjs'\n"],
-  // COMPLÉMENT `REQUIRE_RE` (#1813) : `IMPORT_RE` ne voit que les imports ES, et `createRequire` est
-  // une graphie VIVANTE de ce dépôt (`dialecte.mjs:13`, `stocksNominatifs.mjs:208`).
+  // `require` (#1813) : `createRequire` est une graphie VIVANTE de ce dépôt (`dialecte.mjs`).
   ['require nu', "const { geste } = require('./geste.mjs')\n"],
   ['createRequire chaîné', "const { geste } = createRequire(import.meta.url)('./geste.mjs')\n"],
   ['createRequire lié à `require`', "const require = createRequire(import.meta.url)\nconst m = require('./geste')\n"],

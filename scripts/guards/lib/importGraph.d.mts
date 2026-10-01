@@ -1,4 +1,14 @@
-export const IMPORT_RE: RegExp;
+/** Un spécificateur qu'un module écrit, et la nature de l'acquisition. */
+export interface Specificateur {
+  spec: string;
+  nature: 'statique' | 'dynamique' | 'type' | 'require';
+}
+export function specificateursDe(fichier: string, texte: string): Specificateur[];
+/** Un arc résolu de la marche : le spécificateur écrit, et le fichier absolu POSIX qu'il désigne. */
+export interface Arc {
+  spec: string;
+  cible: string;
+}
 export function estModule(chemin: string): boolean;
 export function pathspecsDeModules(dossier: string): string[];
 export function sourceALExecution(fichier: string, texte: string): string;
@@ -15,9 +25,15 @@ export function resolveImport(
 ): string | null;
 export function clotureDImports(
   roots: string[],
-  options?: { retenir?: (abs: string) => boolean; cache?: Map<string, string[] | null>; typesEffaces?: boolean },
+  options?: {
+    racine?: string;
+    retenir?: (abs: string) => boolean;
+    cache?: Map<string, Arc[] | null>;
+    typesEffaces?: boolean;
+    dynamiques?: boolean;
+  },
 ): Set<string>;
-export function closureOf(roots: string[], cache?: Map<string, string[] | null>): Set<string>;
+export function closureOf(roots: string[], options?: { racine?: string; cache?: Map<string, Arc[] | null> }): Set<string>;
 export function directImportsOf(
   fromFile: string,
   contenu: string,
