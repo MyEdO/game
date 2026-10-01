@@ -18,8 +18,10 @@ concurrency:
   cancel-in-progress: true
 
 # UN JOB VÉRIFIANT = UN GROUPE de gates qui tourne en PARALLÈLE des autres (#2178) ; le rejeu local
-# `npm run gates` en DÉRIVE ses lanes (`lanesDeCi`, scripts/gates/toutes.mjs), et la table
-# `ECRIT_LU` y verrouille qu'aucun groupe n'écrit ce qu'un autre lit (`conflitsEntreLanes`).
+# `npm run gates` en DÉRIVE ses lanes (`lanesDeCi`, scripts/gates/toutes.mjs) : un job par lane, sauf
+# ceux que `LANE_LOCALE_DE_JOB` (scripts/gates/gatesDeCi.mjs) rattache à la lane d'un autre, et la
+# table `ECRIT_LU` y verrouille qu'aucun groupe n'écrit ce qu'un autre lit (`conflitsEntreLanes`). Le
+# job matrice `suite` joue la gate `test` en parties disjointes ; le rejeu local la joue entière.
 #
 # AUCUN job vérifiant ne porte de `needs:` ni d'`if:` de niveau job : « A job that is skipped will
 # report its status as "Success". It will not prevent a pull request from merging, even if it is a
@@ -67,8 +69,6 @@ jobs:
         run: npm run docs:build
       - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run agents:check
-      - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
-        run: npm run test:docs
       - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run build
       - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
@@ -95,8 +95,24 @@ jobs:
         if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: git status --porcelain && test -z "$(git status --porcelain)"
 
-  # Lectures du même graphe TypeScript et gates courtes. `test:hooks` n'y fait aucune écriture d'arbre
-  # SUIVIE (sa seule écriture réelle, le journal gitignoré, est en `ecritFerme` d'`ECRIT_LU`).
+  # `test:docs` hors du chemin critique de `docs` (#2178), sur l'arbre du COMMIT, sans `docs:build` :
+  # un test qui lit une cible PURE la rend (`renduDe`, `rendreCible` de scripts/docs/build-all.mjs).
+  docs-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: prologue
+        uses: ./.github/actions/prologue
+      - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
+        run: npm run test:docs
+      - name: Arbre inchangé
+        if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
+        run: git status --porcelain && test -z "$(git status --porcelain)"
+
+  # Lectures du même graphe TypeScript et gates courtes.
   types:
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -117,8 +133,6 @@ jobs:
       - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run test:agents
       - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
-        run: npm run test:hooks
-      - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run test:ops
       - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run test:runner
@@ -138,10 +152,36 @@ jobs:
         if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: git status --porcelain && test -z "$(git status --porcelain)"
 
-  # La suite : la seule gate à saturer la machine, seule dans son job.
-  suite:
+  # `test:hooks` hors du chemin critique de `types` (#2178). Il ne fait aucune écriture d'arbre SUIVIE
+  # (sa seule écriture réelle, le journal gitignoré, est en `ecritFerme` d'`ECRIT_LU`).
+  types-hooks:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: prologue
+        uses: ./.github/actions/prologue
+      - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
+        run: npm run test:hooks
+      - name: Arbre inchangé
+        if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
+        run: git status --porcelain && test -z "$(git status --porcelain)"
+
+  # La suite : la seule gate à saturer la machine, en parties DISJOINTES dont l'union est la suite
+  # (`WFRP_TEST_PARTIE`, scripts/test/run.mjs), une par job de la matrice. K = la longueur de la liste.
+  # `fail-fast: false` : un rouge n'annule pas ses sœurs (`matriceDe`, scripts/gates/gatesDeCi.mjs).
+  suite:
+    name: suite ${{ matrix.partie }}/${{ strategy.job-total }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        partie: [1, 2, 3]
+    env:
+      WFRP_TEST_PARTIE: ${{ matrix.partie }}/${{ strategy.job-total }}
     steps:
       - uses: actions/checkout@v4
         with:

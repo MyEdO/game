@@ -36,6 +36,26 @@ export const JOBS_HORS_REJEU_LOCAL = {
     '`npm run migrations:replay:head`',
 }
 
+/**
+ * Jobs de `ci.yml` qui ne sont PAS une lane du rejeu local : leurs gates se rejouent dans la lane d'un
+ * AUTRE job (`lanesDeCi`, scripts/gates/toutes.mjs), avec leur raison. Nominatif : un job absent d'ici
+ * est sa propre lane, et `PLAFOND_LANES` refuse le job de trop.
+ */
+export const LANE_LOCALE_DE_JOB = {
+  'types-hooks': {
+    lane: 'types',
+    raison:
+      '`test:hooks` (159-161 s dans `types`, issuecomment-5924305772 de #2178) a son job pour raccourcir le ' +
+      'chemin critique de la CI ; le rejeu local tient `PLAFOND_LANES` lanes, et `types` le porte',
+  },
+  'docs-tests': {
+    lane: 'docs',
+    raison:
+      '`test:docs` a son job pour raccourcir le chemin critique de la CI (#2178) ; le rejeu local tient ' +
+      '`PLAFOND_LANES` lanes, et `docs` le porte',
+  },
+}
+
 /** Nom de gate d'une commande de step : `npm test` → `test`, `npm run <x>` → `<x>`, sinon `null`. */
 export function nomDeGate(commande) {
   if (/^npm test$/.test(commande)) return 'test'
@@ -124,8 +144,9 @@ export function stepsCi({ cwd = process.cwd(), fichier } = {}) {
  * lanceur. Un step qui n'est ni `npm test`/`npm run <x>` ni une entrée de `CI_SEULEMENT`, ou qui
  * porte une clé non inerte, LÈVE : le classement est une décision, pas un silence.
  * `si` est la condition `if` écrite sur le step, telle quelle — la porte du classement du push la lit.
- * Une gate présente dans DEUX jobs LÈVE : `job` est son groupe (`lanesDeCi`, scripts/gates/toutes.mjs),
- * et une gate n'en a qu'un.
+ * Une gate présente dans DEUX jobs LÈVE : `job` est son groupe, et une gate n'en a qu'un. La lane locale
+ * de ce groupe est le job lui-même, ou celle que `LANE_LOCALE_DE_JOB` lui donne (`lanesDeCi`,
+ * scripts/gates/toutes.mjs).
  * REND `[{ nom, commande, job, si }]`.
  */
 export function gatesDeCi({ cwd = process.cwd(), fichier } = {}) {
@@ -191,8 +212,61 @@ export function blocsDeJobs({ cwd = process.cwd(), fichier, texte } = {}) {
  *  change le nom de son check, et le ruleset doit suivre le fichier. */
 export const jobsCi = (source = {}) => blocsDeJobs(source).map((b) => b.job)
 
-/** Contextes de check requis = les jobs de `ci.yml` SANS `if:` ni `needs:` de niveau job (les citations
- *  GitHub vivent en tête de `jobs:` dans `ci.yml`) — celui de
- *  l'arbre (`cwd`/`fichier`) ou un `texte` lu ailleurs (`ciDuTronc`, scripts/ops/ruleset-main.mjs). */
-export const contextesRequis = (source = {}) =>
-  blocsDeJobs(source).filter((b) => !('if' in b.cles) && !('needs' in b.cles)).map((b) => b.job)
+/** Valeur d'un scalaire YAML d'une ligne, guillemets retirés. */
+const scalaire = (v) => v.replace(/^(['"])(.*)\1$/, '$2')
+
+/**
+ * Matrice d'un bloc de job : `null` sans `strategy:`, sinon `{ cle, valeurs }`. Seule forme lue : une
+ * clé, une liste en ligne, et `fail-fast: false` — sans lui, le premier rouge ANNULE les jobs sœurs
+ * (`fail-fast` « defaults to `true` », section-using-a-build-matrix-for-your-jobs-failfast.md) et leurs
+ * verdicts sont perdus. Toute autre forme LÈVE : le nom de ses checks ne serait pas lu.
+ */
+export function matriceDe({ job, texte }) {
+  const lignes = texte.split('\n')
+  const i = lignes.findIndex((l) => /^ {4}strategy:\s*$/.test(l))
+  if (i === -1) return null
+  const fin = lignes.findIndex((l, j) => j > i && /^ {0,4}\S/.test(l))
+  const corps = lignes.slice(i + 1, fin === -1 ? undefined : fin).filter((l) => l.trim() && !/^\s*#/.test(l))
+  const attendu = /^ {6}(fail-fast: false|matrix:)\s*$|^ {8}([A-Za-z][A-Za-z0-9_-]*): \[([^\]]*)\]\s*$/
+  const formes = corps.map((l) => attendu.exec(l))
+  const cles = formes.filter((m) => m?.[2])
+  if (formes.some((m) => !m) || cles.length !== 1 || !corps.some((l) => /fail-fast: false/.test(l)) || !corps.some((l) => /^ {6}matrix:/.test(l)))
+    throw new Error(
+      `ci.yml / job ${job} : \`strategy\` hors de la forme lue (\`fail-fast: false\` + \`matrix:\` d'UNE clé à liste en ligne) — ` +
+        'ses checks ne se nomment pas, ou une sœur rouge annulerait les autres',
+    )
+  const [, , cle, liste] = cles[0]
+  return { cle, valeurs: liste.split(',').map((v) => scalaire(v.trim())).filter(Boolean) }
+}
+
+/**
+ * Contextes de check d'UN job : son `name:` (à défaut son id), déplié sur sa matrice. Un check-run de
+ * workflow porte le nom du job (« The name format is `<job name>` », troubleshooting-rules.md:36), et
+ * `jobs.<job_id>.name` lit les contextes `matrix` et `strategy` (contexts.md:101). Seules expressions
+ * évaluées : `${{ matrix.<clé> }}` et `${{ strategy.job-total }}` ; un job matrice dont le `name:` ne
+ * porte pas `${{ matrix.<clé> }}` LÈVE — le nom que GitHub lui donnerait alors n'est pas documenté.
+ */
+export function contextesDuJob(bloc) {
+  const nom = bloc.cles.name === undefined ? bloc.job : scalaire(bloc.cles.name)
+  const matrice = matriceDe(bloc)
+  const evaluer = (valeur) => {
+    const rendu = nom
+      .replaceAll(`\${{ matrix.${matrice?.cle} }}`, valeur)
+      .replaceAll('${{ strategy.job-total }}', String(matrice?.valeurs.length))
+    if (rendu.includes('${{'))
+      throw new Error(`ci.yml / job ${bloc.job} : expression non évaluée dans \`name: ${nom}\` — son check ne se nomme pas`)
+    return rendu
+  }
+  if (!matrice) return [evaluer('')]
+  if (!nom.includes(`\${{ matrix.${matrice.cle} }}`))
+    throw new Error(`ci.yml / job ${bloc.job} : job matrice dont le \`name:\` ne porte pas \`\${{ matrix.${matrice.cle} }}\``)
+  return matrice.valeurs.map(evaluer)
+}
+
+/** Blocs des jobs de `ci.yml` à check REQUIS : SANS `if:` ni `needs:` de niveau job (les citations
+ *  GitHub vivent en tête de `jobs:` dans `ci.yml`) — de l'arbre (`cwd`/`fichier`) ou d'un `texte` lu
+ *  ailleurs (`ciALaRef`, scripts/ops/ruleset-main.mjs). */
+export const jobsRequis = (source = {}) => blocsDeJobs(source).filter((b) => !('if' in b.cles) && !('needs' in b.cles))
+
+/** Contextes de check requis = les checks des `jobsRequis`, matrices dépliées (`contextesDuJob`). */
+export const contextesRequis = (source = {}) => jobsRequis(source).flatMap(contextesDuJob)

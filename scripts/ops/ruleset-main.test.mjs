@@ -11,9 +11,11 @@ import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import {
   DECLENCHEUR_DE_FILE, DELAI_DE_REPONSE_MINUTES, NOM, PARAMETRES_DE_FILE, PARAMETRES_DE_PR,
-  corpsDuRuleset, ciDuTronc, executer, refusDeFile, refusGh,
+  corpsDuRuleset, ciALaRef, executer, refDe, refusDeFile, refusGh,
 } from './ruleset-main.mjs'
-import { TIMEOUT_JOB_MINUTES, blocsDeJobs, contextesRequis, jobsCi } from '../gates/gatesDeCi.mjs'
+import {
+  TIMEOUT_JOB_MINUTES, blocsDeJobs, contextesDuJob, contextesRequis, jobsCi, jobsRequis, matriceDe,
+} from '../gates/gatesDeCi.mjs'
 import { declencheursDe, stepsDu } from '../gates/workflowsDuDepot.mjs'
 import { gabaritDeDepot } from '../guards/lib/depotGabarit.mjs'
 
@@ -35,10 +37,43 @@ const lireCi = () => CI_DU_TRONC
 /** Le `ci.yml` d'un tronc SANS déclencheur `merge_group`. */
 const CI_SANS_FILE = 'on:\n  push:\njobs:\n  verif:\n    runs-on: x\n'
 
-test('les contextes requis de l’ARBRE sont TOUS ses jobs, dans l’ordre du fichier', () => {
-  const noms = jobsCi({ cwd: RACINE })
-  assert.deepEqual(contextesRequis({ cwd: RACINE }), noms)
-  assert.ok(noms.length >= 2, 'moins de deux jobs : la garde ne mesure plus rien')
+test('les contextes requis de l’ARBRE sont les checks de TOUS ses jobs, dans l’ordre du fichier', () => {
+  const blocs = blocsDeJobs({ cwd: RACINE })
+  assert.deepEqual(jobsRequis({ cwd: RACINE }).map((b) => b.job), jobsCi({ cwd: RACINE }))
+  assert.deepEqual(contextesRequis({ cwd: RACINE }), blocs.flatMap(contextesDuJob))
+  assert.ok(blocs.length >= 2, 'moins de deux jobs : la garde ne mesure plus rien')
+})
+
+test('le job `suite` de l’ARBRE est une matrice : un check par partie, `WFRP_TEST_PARTIE` dérivée de la matrice', () => {
+  const suite = blocsDeJobs({ cwd: RACINE }).find((b) => b.job === 'suite')
+  const { cle, valeurs } = matriceDe(suite)
+  assert.ok(valeurs.length >= 2, `matrice de suite : ${valeurs.join(', ')}`)
+  assert.deepEqual(valeurs, valeurs.map((_, i) => String(i + 1)), 'les parties sont 1..K, dans l’ordre')
+  assert.deepEqual(contextesDuJob(suite), valeurs.map((v) => `suite ${v}/${valeurs.length}`))
+  assert.match(suite.texte, new RegExp(`^ {4}env:\\n {6}WFRP_TEST_PARTIE: \\$\\{\\{ matrix\\.${cle} \\}\\}/\\$\\{\\{ strategy\\.job-total \\}\\}$`, 'm'),
+    'la partie i/K vient de la plateforme, K déclaré une seule fois (la liste de la matrice)')
+})
+
+/** Un `ci.yml` à un job `lot`, dont `entete` porte les lignes de niveau job. */
+const ciAJob = (entete) => `on:\n  merge_group:\njobs:\n  lot:\n${entete}    runs-on: x\n    steps:\n      - run: npm test\n`
+const MATRICE = '    strategy:\n      fail-fast: false\n      matrix:\n        partie: [1, 2, 3]\n'
+
+test('une MATRICE se déplie : un contexte par valeur, `name:` évalué sur `matrix` et `strategy.job-total`', () => {
+  assert.deepEqual(contextesRequis({ texte: ciAJob(`    name: s \${{ matrix.partie }}/\${{ strategy.job-total }}\n${MATRICE}`) }), ['s 1/3', 's 2/3', 's 3/3'])
+  assert.deepEqual(contextesRequis({ texte: ciAJob(`    name: "p-\${{ matrix.partie }}"\n${MATRICE}`) }), ['p-1', 'p-2', 'p-3'])
+  assert.deepEqual(contextesRequis({ texte: ciAJob('    name: Mon job\n') }), ['Mon job'], 'un `name:` sans matrice est le check')
+  assert.deepEqual(contextesRequis({ texte: ciAJob('') }), ['lot'])
+})
+
+test('une matrice hors de la forme lue LÈVE : `fail-fast: false` absent, `name:` sans `matrix`, expression inconnue', () => {
+  const sansFailFast = MATRICE.replace('      fail-fast: false\n', '')
+  assert.throws(() => contextesRequis({ texte: ciAJob(`    name: s \${{ matrix.partie }}\n${sansFailFast}`) }), /`strategy` hors de la forme lue/)
+  assert.throws(() => contextesRequis({ texte: ciAJob(`    name: s \${{ matrix.partie }}\n${MATRICE.replace('fail-fast: false', 'fail-fast: true')}`) }), /`strategy` hors de la forme lue/)
+  assert.throws(() => contextesRequis({ texte: ciAJob(`    name: s \${{ matrix.partie }}\n${MATRICE}        os: [a, b]\n`) }), /`strategy` hors de la forme lue/)
+  assert.throws(() => contextesRequis({ texte: ciAJob(`    name: s\n${MATRICE}`) }), /job matrice dont le `name:` ne porte pas `\$\{\{ matrix\.partie \}\}`/)
+  assert.throws(() => contextesRequis({ texte: ciAJob(MATRICE) }), /job matrice dont le `name:` ne porte pas/)
+  assert.throws(() => contextesRequis({ texte: ciAJob(`    name: s \${{ matrix.partie }} \${{ github.ref }}\n${MATRICE}`) }), /expression non évaluée/)
+  assert.throws(() => contextesRequis({ texte: ciAJob('    name: s ${{ github.ref }}\n') }), /expression non évaluée/)
 })
 
 test('le corps POSÉ lit les jobs du `ci.yml` du TRONC, jamais ceux de l’arbre', () => {
@@ -49,10 +84,34 @@ test('le corps POSÉ lit les jobs du `ci.yml` du TRONC, jamais ceux de l’arbre
     'un check exigé que `main` ne produit pas encore bloquerait toute entrée dans `main`')
 })
 
-test('`ciDuTronc` lit `origin/main:.github/workflows/ci.yml` par la couture git, et lève sur un tronc illisible', () => {
+test('`ciALaRef` lit `<ref>:.github/workflows/ci.yml` par la couture git (`origin/main` par défaut), et lève sur une ref illisible', () => {
   const { racine: troncSansCi } = gabaritDeDepot({ fichiers: { LISEZMOI: 'x\n' }, refs: { 'refs/remotes/origin/main': 'HEAD' } })
-  assert.throws(() => ciDuTronc(troncSansCi), /^Error: origin\/main:\.github\/workflows\/ci\.yml illisible/)
-  assert.match(ciDuTronc(RACINE), /^jobs:\s*$/m)
+  assert.throws(() => ciALaRef(undefined, troncSansCi), /^Error: origin\/main:\.github\/workflows\/ci\.yml illisible/)
+  assert.throws(() => ciALaRef('HEAD', troncSansCi), /^Error: HEAD:\.github\/workflows\/ci\.yml illisible/)
+  const { racine: sansTronc } = gabaritDeDepot({ fichiers: { '.github/workflows/ci.yml': 'jobs:\n  alpha:\n' } })
+  assert.match(ciALaRef('HEAD', sansTronc), /^ {2}alpha:$/m, 'la ref lue est CELLE demandée, jamais le tronc')
+  assert.match(ciALaRef(undefined, RACINE), /^jobs:\s*$/m)
+  assert.match(ciALaRef('HEAD', RACINE), /^jobs:\s*$/m)
+})
+
+test('`--depuis <ref>` : le corps lit le `ci.yml` de CETTE ref ; sans valeur, REFUS avant toute lecture', () => {
+  assert.deepEqual(refDe([]), { ref: 'origin/main' })
+  assert.deepEqual(refDe(['--dry-run', '--depuis', 'chantier/2178-1b']), { ref: 'chantier/2178-1b' })
+  for (const argv of [['--depuis'], ['--depuis', '--dry-run']]) assert.match(refDe(argv).refus, /`--depuis` sans ref/)
+  const lues = []
+  const dit = []
+  const code = executer({
+    argv: ['--dry-run', '--depuis', 'chantier/lot'],
+    runner: () => { throw new Error('aucun appel gh en --dry-run') },
+    lireCi: (ref) => { lues.push(ref); return CI_DU_TRONC },
+    sortie: (s) => dit.push(s),
+  })
+  assert.equal(code, 0)
+  assert.deepEqual(lues, ['chantier/lot'])
+  assert.match(dit.join(''), /checks requis posés, lus à chantier\/lot:\.github\/workflows\/ci\.yml : verif, migrations/)
+  const journal = []
+  assert.equal(executer({ argv: ['--depuis'], lireCi: () => assert.fail('lu malgré le refus'), sortie: () => {}, journal: (s) => journal.push(s) }), 1)
+  assert.match(journal.join(''), /`--depuis` sans ref/)
 })
 
 test('un job NEUF devient un check requis sans qu’on touche au script', () => {
@@ -103,8 +162,7 @@ test('`ci.yml` de l’ARBRE déclenche sur `merge_group`, jamais sur `push` de `
 })
 
 test('un job REQUIS juge les compteurs de version sur le commit de file, par un `if:` de STEP sur `merge_group`', () => {
-  const requis = new Set(contextesRequis({ cwd: RACINE }))
-  const steps = JOBS.filter((b) => requis.has(b.job))
+  const steps = jobsRequis({ cwd: RACINE })
     .flatMap((b) => stepsDu(b.texte).map((s) => ({ job: b.job, ...s })))
     .filter((s) => /^\s*-?\s*run: node scripts\/ops\/compteurs-de-file\.mjs\s*$/m.test(s.bloc))
   assert.equal(steps.length, 1, 'aucun (ou plusieurs) step « compteurs-de-file » dans un job requis')

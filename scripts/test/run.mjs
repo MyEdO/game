@@ -6,6 +6,9 @@
 // split 97,8 s (−23 %), mêmes 1 451 fichiers. La parité porte sur les FICHIERS : sous
 // `isolate:false` le groupement change, et un flake d'ordre (`bascule-de-vue`) change de verdict.
 //
+// `WFRP_TEST_PARTIE=i/K` ne joue que la tranche `i` de la suite (`trancher`, partition.mjs), sous
+// le même choix partagé/mono : c'est le job matrice `suite` de `.github/workflows/ci.yml`.
+//
 // La sortie des enfants est relayée telle quelle ET tee-ée AU FIL DE L'EAU dans
 // `node_modules/.cache/vitest-run-<pid>.txt` : un run tué (timeout, coupure) laisse quand même son
 // début, et le fichier porte LUI-MÊME son `status:` — seul artefact hors du pont d'outillage.
@@ -25,8 +28,13 @@ import {
   compterSentinelles,
   enteteCapture,
   envEnfant,
+  partieDe,
   partitionner,
   porteBilan,
+  refusDePartie,
+  refusRegistreDomAbsent,
+  trancher,
+  VARIABLE_PARTIE,
   repartitionWorkers,
   resumeLancement,
   SENTINELLES,
@@ -85,6 +93,13 @@ const posix = (p) => p.split(path.sep).join('/')
 const DEBUT = Date.now()
 const ARGV = process.argv.slice(2)
 const { filtres, mono } = separerArguments(ARGV, (t) => fs.existsSync(path.resolve(RACINE, t)))
+const COMPLETE = suiteComplete(filtres, ARGV)
+const PARTIE = partieDe(process.env[VARIABLE_PARTIE])
+const refusPartie = PARTIE?.refus ?? (PARTIE ? refusDePartie({ filtres, argv: ARGV }) : null)
+if (refusPartie) {
+  console.error(`[test] REFUS — ${refusPartie}`)
+  process.exit(2)
+}
 // Verrou de SUITE à l'échelle machine (#1679 L1c-M7) : deux suites COMPLÈTES concurrentes se volent
 // cœurs et mémoire. Un run FILTRÉ reste libre — il est court et ne sature rien — à condition que
 // CHAQUE filtre nomme un FICHIER : un filtre-DOSSIER (`npm test src`) est une suite déguisée.
@@ -234,8 +249,27 @@ function lancementUnique(args) {
   })
 }
 
+/** Config Vitest générée dans l'atelier : celle de `vite.config.ts`, `include` REMPLACÉ par `inclus`. */
+function ecrireConfig(nom, inclus) {
+  const config = path.join(ATELIER, `vitest.${nom}.config.ts`)
+  fs.writeFileSync(
+    config,
+    `// Généré par scripts/test/run.mjs à chaque lancement — jamais édité, jamais committé.\n` +
+      `import base from ${JSON.stringify(posix(path.join(RACINE, 'vite.config.ts')))};\n` +
+      // `mergeConfig` CONCATÈNE les `include` (mesuré 2026-08-23) : l'étalement explicite est
+      // le seul moyen de REMPLACER la liste du fichier de base.
+      `export default { ...base, root: ${JSON.stringify(posix(RACINE))}, ` +
+      `test: { ...base.test, include: ${JSON.stringify(inclus)} } };\n`,
+  )
+  return config
+}
+
+/** Fichiers jsdom de l'ensemble joué, comptés dès que la liste est énumérée — toujours pour une suite
+ *  COMPLÈTE : le verdict d'un registre DOM absent en dépend (`refusRegistreDomAbsent`). */
+let jsdomJoues = null
+
 async function principal() {
-  if (mono || !WORKERS.split) return lancementUnique(ARGV)
+  if (!PARTIE && !COMPLETE && (mono || !WORKERS.split)) return lancementUnique(ARGV)
 
   balayerAteliersMorts()
   fs.mkdirSync(ATELIER, { recursive: true })
@@ -255,8 +289,31 @@ async function principal() {
     for (const l of sortie.split('\n')) observer(l, true)
     return inventaire.status ?? 1
   }
-  const fichiers = JSON.parse(fs.readFileSync(liste, 'utf8')).map((e) => e.file)
+  const tous = JSON.parse(fs.readFileSync(liste, 'utf8')).map((e) => e.file)
+  let fichiers = tous
+  let args = ARGV
+  if (PARTIE) {
+    const tranche = trancher(tous.map((f) => posix(path.relative(RACINE, f))), PARTIE)
+    const ligne =
+      `[partie] ${PARTIE.i}/${PARTIE.k} : ${tranche.fichiers.length} fichier(s) sur ${tous.length}` +
+      ` · empreinte ${tranche.empreinte}\n`
+    process.stdout.write(ligne)
+    ecrireCapture(ligne)
+    const suspects = cheminsGlobSuspects(tranche.fichiers)
+    if (suspects.length) {
+      const refus = `[partie] chemin à métacaractère de glob, tranche inexprimable en \`include\` : ${suspects[0]}`
+      process.stderr.write(`${refus}\n`)
+      ecrireCapture(`${refus}\n`)
+      observer(refus, true)
+      return 1
+    }
+    const garde = new Set(tranche.fichiers)
+    fichiers = tous.filter((f) => garde.has(posix(path.relative(RACINE, f))))
+    args = ['--config', ecrireConfig('partie', tranche.fichiers), ...ARGV]
+  }
   const partition = partitionner(fichiers, (f) => fs.readFileSync(f, 'utf8'))
+  jsdomJoues = partition.jsdom.length
+  if (mono || !WORKERS.split) return lancementUnique(args)
 
   const cotes = cotesRequis(filtres, partition, RACINE)
   const suspects = cheminsGlobSuspects(fichiers)
@@ -266,7 +323,7 @@ async function principal() {
         `[split] chemin à métacaractère de glob, partage impossible : ${suspects[0]}\n`,
       )
     }
-    return lancementUnique(ARGV)
+    return lancementUnique(args)
   }
 
   partageEffectif = true
@@ -274,17 +331,7 @@ async function principal() {
   const enfants = []
 
   const lancer = (cote) => {
-    const inclus = partition[cote].map((f) => posix(path.relative(RACINE, f)))
-    const config = path.join(ATELIER, `vitest.${cote}.config.ts`)
-    fs.writeFileSync(
-      config,
-      `// Généré par scripts/test/run.mjs à chaque lancement — jamais édité, jamais committé.\n` +
-        `import base from ${JSON.stringify(posix(path.join(RACINE, 'vite.config.ts')))};\n` +
-        // `mergeConfig` CONCATÈNE les `include` (mesuré 2026-08-23) : l'étalement explicite est
-        // le seul moyen de REMPLACER la liste du fichier de base.
-        `export default { ...base, root: ${JSON.stringify(posix(RACINE))}, ` +
-        `test: { ...base.test, include: ${JSON.stringify(inclus)} } };\n`,
-    )
+    const config = ecrireConfig(cote, partition[cote].map((f) => posix(path.relative(RACINE, f))))
     const p = spawn(process.execPath, argumentsEnfant(VITEST, config, WORKERS[cote], ARGV), {
       cwd: RACINE,
       env: ENV,
@@ -346,17 +393,22 @@ ecrireCapture(diagnostic)
 // joué sans fuir » se mesure : le stock est en extinction, une ligne qui ne protège plus rien masque
 // la fuite suivante du même fichier. Jugée AVANT le résumé et le `status:` : ils portent le code de
 // sortie du processus, ils ne peuvent pas dire 0 quand la porte rend 1.
-if (code === 0 && suiteComplete(filtres, ARGV)) {
+// Un registre ABSENT ne se tolère que si aucun fichier jsdom n'a joué (`refusRegistreDomAbsent`).
+if (code === 0 && COMPLETE) {
+  let message
   try {
     const lignes = fs.readFileSync(ENV.WFRP_DOM_RESIDU_REGISTRE, 'utf8').split('\n').filter(Boolean)
-    const message = messagePeremption(entreesPerimees(lignes))
-    if (message) {
-      process.stderr.write(`${message}\n`)
-      ecrireCapture(`${message}\n`)
-      code = 1
-    }
+    message = messagePeremption(entreesPerimees(lignes))
   } catch (e) {
-    process.stderr.write(`[test] péremption du stock des fuites DOM non jugée : ${e.message}\n`)
+    message =
+      e.code === 'ENOENT'
+        ? refusRegistreDomAbsent(jsdomJoues)
+        : `[test] registre de passage de la barrière DOM illisible : ${e.message}`
+  }
+  if (message) {
+    process.stderr.write(`${message}\n`)
+    ecrireCapture(`${message}\n`)
+    code = 1
   }
 }
 process.stdout.write(
