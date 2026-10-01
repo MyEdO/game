@@ -286,10 +286,10 @@ test('#2224 schéma fermé du shell lean-ctx : `env` et toute clé inconnue → 
 
 test('#2224 écriture lean-ctx à `path` relatif → refus, canal « `path` absolu » ; absolu : rien du canal', async () => {
   await dansUnDepot(async (racine) => {
-    const r = await raison(racine, `${LC}ctx_patch`, { op: 'create', path: 'docs/x.md', new_text: 'x' })
-    assert.match(r, /`path` relatif \(docs\/x\.md\)/)
+    const r = await raison(racine, `${LC}ctx_patch`, { op: 'create', path: 'notes/x.md', new_text: 'x' })
+    assert.match(r, /`path` relatif \(notes\/x\.md\)/)
     assert.match(r, /canal prescrit : un `path` absolu/)
-    const lot = await raison(racine, `${LC}ctx_patch`, { path: 'docs/x.md', ops: [{ op: 'set_line', line: 1, hash: '00', new_text: 'b' }] })
+    const lot = await raison(racine, `${LC}ctx_patch`, { path: 'notes/x.md', ops: [{ op: 'set_line', line: 1, hash: '00', new_text: 'b' }] })
     assert.match(lot, /`path` relatif/)
     assert.equal(await decision(racine, `${LC}ctx_patch`, { op: 'create', path: join(racine, 'docs', 'x.md'), new_text: 'x' }), null)
   })
