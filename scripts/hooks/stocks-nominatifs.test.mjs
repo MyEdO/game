@@ -8,8 +8,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
-import { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { readFileSync, readdirSync } from 'node:fs'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { dirname, join } from 'node:path'
 import {
@@ -525,13 +524,13 @@ test('croissance par CLÉ (#1806 D5″, sonde `j3-cliquet-net.mjs`) : X +3 derri
     'témoin positif : X +3 sans sortie de Q, même compte')
 })
 
-test('fichierNommePar : la clé d’une entrée est le fichier qu’elle nomme, sans `:ligne`, `:symbole`, balise ni extension', () => {
-  assert.equal(fichierNommePar("  { fichier: 'src/ui/styles/x.css', ref: '.e :: color', occurrence: 1 },"), 'src/ui/styles/x')
-  assert.equal(fichierNommePar("  ['CritEscalation', 'onRepeat', 'src/x.ts:325'],"), 'src/x')
-  assert.equal(fichierNommePar(ENTREE_B), 'src/ui/CampaignView.test')
-  assert.equal(fichierNommePar("  'criticals.json': 'raison',"), 'criticals')
-  assert.equal(fichierNommePar('  "Source/Warhammer v4 - Livre de base/08 - Statut.md",'), 'Source/Warhammer v4 - Livre de base/08 - Statut')
-  assert.equal(fichierNommePar("  ['BoneId', 'src/gameIso/rig/bones'],"), fichierNommePar("  ['BoneId', 'src/gameIso/rig/bones.ts'],"), 'extension absente = même chemin avec extension (#2223)')
+test('fichierNommePar : la clé d’une entrée est le fichier qu’elle nomme, extension comprise, sans `:ligne`, `:symbole` ni balise', () => {
+  assert.equal(fichierNommePar("  { fichier: 'src/ui/styles/x.css', ref: '.e :: color', occurrence: 1 },"), 'src/ui/styles/x.css')
+  assert.equal(fichierNommePar("  ['CritEscalation', 'onRepeat', 'src/x.ts:325'],"), 'src/x.ts')
+  assert.equal(fichierNommePar(ENTREE_B), 'src/ui/CampaignView.test.tsx')
+  assert.equal(fichierNommePar("  'criticals.json': 'raison',"), 'criticals.json')
+  assert.equal(fichierNommePar('  "Source/Warhammer v4 - Livre de base/08 - Statut.md",'), 'Source/Warhammer v4 - Livre de base/08 - Statut.md')
+  assert.equal(fichierNommePar("  ['BoneId', 'src/gameIso/rig/bones'],"), 'src/gameIso/rig/bones', 'sans extension écrite, aucune n’est ajoutée (#2223)')
   assert.equal(fichierNommePar('  { "chapitre": "LDB 8" },'), '  { "chapitre": "LDB 8" },', 'sans fichier nommé, le texte entier est la clé')
 })
 
@@ -929,7 +928,7 @@ test('naissance — un `*-stock.json` qui naît compte ses entrées sur l’imag
 test('image — une extension hors de `DIALECTE` n’a pas d’image : `entreesNominatives` rend `null`', () => {
   const stock = "export const STOCK = [{ fichier: 'src/a.ts', ref: 'r', occurrence: 1 }]\n"
   assert.equal(entreesNominatives(stock, 'scripts/x.yaml'), null)
-  assert.deepEqual(entreesNominatives(stock, 'scripts/x.mjs'), [{ ligne: 1, nomme: 1, cle: 'src/a' }])
+  assert.deepEqual(entreesNominatives(stock, 'scripts/x.mjs'), [{ ligne: 1, nomme: 1, cle: 'src/a.ts' }])
 })
 
 test('porteurs réels — l’image lit des entrées, et jamais moins que le repli de ligne', (t) => {
@@ -1292,21 +1291,20 @@ test('argument — la forme VÉCUE, dans un `describe` comme au module, ne compt
 
 // ── #2223 : l'IDENTITÉ d'une entrée est le fichier nommé (#1806 D5″), une seule fonction ─────────────
 
-/** `croissanceDesStocks` d'une RÉÉCRITURE réelle de `pre` en `post` (diff de git, deux images lisibles). */
+/** `croissanceDesStocks` d'une RÉÉCRITURE de `pre` en `post`, deux images lisibles : le diff, en
+ *  MÉMOIRE, est le hunk `-U0` qui reste une fois ôtés les préfixe et suffixe de lignes communs — il ne
+ *  sert qu'à désigner le porteur touché, les images jugent. */
 function croissanceReelle(pre, post, fichier = 'scripts/guards/lib/x.mjs') {
-  const dir = mkdtempSync(join(tmpdir(), 'identite-'))
-  try {
-    writeFileSync(join(dir, 'a'), pre)
-    writeFileSync(join(dir, 'b'), post)
-    let brut = ''
-    try { execFileSync('git', ['diff', '--no-index', '-U0', '--no-color', 'a', 'b'], { cwd: dir, encoding: 'utf8' }) } catch (e) { brut = e.stdout }
-    const diff = brut.split('\n').map((l) => (l.startsWith('diff --git') ? `diff --git a/${fichier} b/${fichier}`
-      : l.startsWith('--- ') ? `--- a/${fichier}` : l.startsWith('+++ ') ? `+++ b/${fichier}` : l)).join('\n')
-    assert.ok(diff.includes('@@'), 'témoin : la réécriture produit un diff')
-    return croissanceDesStocks(diff, { lirePostImage: () => post, lirePreImage: () => pre }).map((c) => c.net)
-  } finally {
-    rmSync(dir, { recursive: true, force: true })
-  }
+  const [a, b] = [pre, post].map((t) => t.split('\n'))
+  let tete = 0
+  while (tete < a.length && tete < b.length && a[tete] === b[tete]) tete += 1
+  let queue = 0
+  while (queue < a.length - tete && queue < b.length - tete && a.at(-1 - queue) === b.at(-1 - queue)) queue += 1
+  const [retirees, ajoutees] = [a.slice(tete, a.length - queue), b.slice(tete, b.length - queue)]
+  assert.ok(retirees.length + ajoutees.length > 0, 'témoin : la réécriture change une ligne')
+  const diff = [`diff --git a/${fichier} b/${fichier}`, `--- a/${fichier}`, `+++ b/${fichier}`,
+    `@@ -${tete + 1},${retirees.length} +${tete + 1},${ajoutees.length} @@`, ...retirees.map((l) => `-${l}`), ...ajoutees.map((l) => `+${l}`)].join('\n')
+  return croissanceDesStocks(diff, { lirePostImage: () => post, lirePreImage: () => pre }).map((c) => c.net)
 }
 const dictionnaire = (ligne) => `export const T = {\n  ${ligne}\n}\n`
 const carte = (ligne) => `export const M = new Map([\n  ${ligne}\n])\n`
@@ -1335,6 +1333,26 @@ test('#2223 IDENTITÉ — repli MIXTE : image post lisible, pré-image `null`, u
     'l’entrée retirée (repli de ligne) et l’ajoutée (image) ont la même identité')
   assert.deepEqual(croissanceDesStocks(diff.replace("+  'src/os/bones.ts',", "+  'src/os/autre.ts',"), { lirePostImage: () => post.replace('bones.ts', 'autre.ts'), lirePreImage: () => null })
     .map((c) => c.net), [1], 'témoin positif : un autre fichier naît')
+})
+
+const liste = (ligne) => `export const L = [\n  ${ligne}\n]\n`
+
+test('#2223 IDENTITÉ — l’extension fait partie du fichier nommé : deux chemins à extension sont deux fichiers', () => {
+  assert.deepEqual(croissanceReelle(liste("'src/a.ts',"), liste("'src/a.json',")), [1], 'a.ts → a.json')
+  assert.deepEqual(croissanceReelle(liste("'src/ui/X.css',"), liste("'src/ui/X.tsx',")), [1], 'X.css → X.tsx')
+  assert.deepEqual(croissanceReelle(liste("'src/ui/editor/vue.ts',"), liste("'src/ui/editor/vue.tsx',")), [1], 'vue.ts → vue.tsx')
+})
+
+test('#2223 IDENTITÉ — un stock de structures repointé de `criticals.json` vers `criticals.ts` fait naître une entrée', () => {
+  const ligne = (dataset, champ) =>
+    `{ concept: "reference", dataset: "${dataset}", champ: "${champ}", signature: "versTraumaId+…", statut: "divergente", strate: "Référence", occurrences: 2 },`
+  assert.deepEqual(croissanceReelle(liste(ligne('criticals.json', 'apresDelai')), liste(ligne('criticals.ts', 'champNeuf'))), [1])
+  assert.deepEqual(croissanceReelle(liste(ligne('criticals.json', 'apresDelai')), liste(ligne('criticals.json', 'champNeuf'))), [],
+    'témoin : le même fichier, un autre champ, ne fait rien naître')
+})
+
+test('#2223 IDENTITÉ — second rang : l’extension RETIRÉE d’un chemin ne fait rien naître non plus', () => {
+  assert.deepEqual(croissanceReelle(liste("'src/os/bones.ts',"), liste("'src/os/bones',")), [])
 })
 
 // ── #2223 : `apportDeFusion`, la fusion automatique en ENTRÉES, une branche par test ─────────────────
@@ -1370,4 +1388,12 @@ test('#2223 FUSION (entrées) — gardée des deux côtés, retirée par la fusi
 test('#2223 FUSION (entrées) — née d’un côté, retirée par la fusion : elle meurt', () => {
   const q = e("'src/q.ts',")
   assert.deepEqual(nets(apportDeFusion({ base: [], parents: [[q], []], fusion: [] })), [[], ["'src/q.ts',"]])
+})
+
+test('#2223 FUSION (entrées) — les nées des deux côtés forment un MULTIENSEMBLE : deux copies d’un côté, une de l’autre, deux gardées, rien', () => {
+  const k = e("'src/k.ts:1',")
+  const [k1, k2, k3, k4, k5] = [1, 2, 3, 4, 5].map(() => ({ ...k }))
+  assert.deepEqual(nets(apportDeFusion({ base: [], parents: [[k1], [k2, k3]], fusion: [k4, k5] })), [[], []])
+  assert.deepEqual(nets(apportDeFusion({ base: [], parents: [[k1], [k2, k3]], fusion: [k4, k5, { ...k }] })), [["'src/k.ts:1',"], []],
+    'témoin positif : une troisième copie naît')
 })

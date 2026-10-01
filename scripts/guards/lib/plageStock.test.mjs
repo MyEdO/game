@@ -8,7 +8,7 @@ import { execFileSync } from 'node:child_process'
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
-import { refusDeLaPlage, raisonDeRefusDePlage, croissancesDeLaPlage, reclassementsDeLaPlage, SHA_NUL } from './plageStock.mjs'
+import { refusDeLaPlage, raisonDeRefusDePlage, croissancesDeLaPlage, franchisDuCommit, reclassementsDeLaPlage, SHA_NUL } from './plageStock.mjs'
 import { TRONC } from './gitPorte.mjs'
 import { bilanDesStocks } from './stocksNominatifs.mjs'
 import { texteDeStock } from './stockDeSites.mjs'
@@ -1067,5 +1067,35 @@ test('#2223 RECLASSEMENT d’une FUSION à trois voies : les DEUX côtés franch
     assert.deepEqual(croissancesDeLaPlage({ cwd: d.racine, debut: d.base, fin: fusion }).reclassements, [])
   } finally {
     rmSync(d.racine, { recursive: true, force: true })
+  }
+})
+
+test('#2223 RECLASSEMENT d’une FUSION à trois voies : une exemption RESSUSCITÉE (base exemptée, `^1` libère, `^2` garde, fusion exempte) est franchie, payée contre `^1`', () => {
+  const Q = 'src/ui/styles/ecran-q.css'
+  const cote = (exempte) => ({
+    manifeste: [{ id: 'sans-css' }, ...(exempte ? [{ id: Q, fichier: `${Q}.tsx`, css: Q }] : [])],
+    partagees: [], reutilises: new Set(exempte ? [`${Q}.tsx`] : []), lire: (f) => (f === Q ? '.e { color: red; border: 0; font-size: 3px; gap: 3px }' : null),
+  })
+  const [libre, exempte] = [cote(false), cote(true)]
+  assert.deepEqual(franchisDuCommit({ base: exempte, commit: exempte, parents: [libre, exempte] }).map((f) => [f.module, f.n]), [[Q, 4]])
+  assert.deepEqual(franchisDuCommit({ base: exempte, commit: exempte, parents: [exempte, exempte] }), [], 'témoin : gardée des deux côtés, rien n’est franchi')
+  assert.deepEqual(franchisDuCommit({ base: libre, commit: exempte, parents: [libre, exempte] }), [], 'témoin : `^2` l’exempte seul, la fusion automatique aussi')
+})
+
+test('#2223 FUSION : un porteur SUPPRIMÉ par le tronc, enrichi par le chantier, gardé par la résolution — ses entrées ressuscitées sont refusées', () => {
+  const d = depotDeChantier({ [PORTEUR]: sourceStock([A, B, C]) })
+  try {
+    d.poser({ [PORTEUR]: sourceStock([A, B, C, D]) }, `ajoute d\n\nCLIQUET: ${PORTEUR} +1 — le chantier ajoute une entrée, refs #2223`)
+    d.git('checkout', '-q', '-b', 'tronc', d.debut)
+    const supprime = d.poser({ [PORTEUR]: null }, 'le tronc supprime le porteur')
+    d.git('update-ref', 'refs/remotes/origin/main', supprime)
+    d.git('checkout', '-q', 'chantier')
+    assert.throws(() => d.git('merge', '-q', '--no-ff', '--no-verify', 'tronc'), 'témoin : modify/delete EN CONFLIT')
+    d.git('add', PORTEUR)
+    d.git('commit', '-q', '--no-verify', '-m', 'fusion qui garde le porteur')
+    const fin = d.git('rev-parse', 'HEAD').trim()
+    assert.deepEqual(refusDe(d.plage(fin)), [[fin, PORTEUR, 3]])
+  } finally {
+    rmSync(d.repo, { recursive: true, force: true })
   }
 })

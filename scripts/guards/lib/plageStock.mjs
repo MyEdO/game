@@ -80,18 +80,21 @@ export const bilanDuCommit = ({ diff, images, fusion = null }) => (fusion ? bila
 
 /**
  * Franchissements d'un commit, PUR : `franchisDesCotes(base, commit)` ; pour une FUSION (`parents` =
- * les côtés de `^1` et `^2`, `base` = celui de leur base commune), à TROIS VOIES (#2223) : un module
- * que la fusion automatique de ses parents exempte déjà — le côté qui a changé son exemption, l'autre
- * sinon — n'est pas franchi par la fusion.
+ * les côtés de `^1` et `^2`, `base` = celui de leur base commune), à TROIS VOIES (#2223) : la fusion
+ * franchit les modules qu'elle exempte et que la fusion automatique de ses parents n'exempte pas — le
+ * côté qui a changé son exemption fait foi, l'autre sinon. Chacun se paie contre le parent qui l'a
+ * libéré : le premier qui ne l'exempte pas.
  * @param {{ base: Parameters<typeof franchisDesCotes>[0], commit: Parameters<typeof franchisDesCotes>[1], parents?: Parameters<typeof franchisDesCotes>[0][] }} cotes
  * @returns {ReturnType<typeof franchisDesCotes>}
  */
 export function franchisDuCommit({ base, commit, parents = [] }) {
-  const franchis = franchisDesCotes(base, commit)
-  if (!parents.length) return franchis
+  if (!parents.length) return franchisDesCotes(base, commit)
   const [exB, ex1, ex2] = [base, ...parents].map(modulesExemptes)
   const exempteALaFusionAutomatique = (m) => (ex1.has(m) === exB.has(m) ? ex2.has(m) : ex1.has(m))
-  return franchis.filter((f) => !exempteALaFusionAutomatique(f.module))
+  const liberateur = (m) => (ex1.has(m) ? 1 : 0)
+  return parents
+    .flatMap((parent, i) => franchisDesCotes(parent, commit).filter((f) => !exempteALaFusionAutomatique(f.module) && liberateur(f.module) === i))
+    .sort((a, b) => (a.module < b.module ? -1 : a.module > b.module ? 1 : 0))
 }
 
 /**
@@ -172,9 +175,11 @@ const restreinte = (fait, chemins) => {
  * FUSION, `fait` = ce qu'elle fait contre la base commune de ses deux parents (l'arbre vide sans ancêtre
  * commun), `parents` et `commune` = les arbres de la fusion à trois voies, le tout restreint aux chemins
  * que la fusion touche ELLE-MÊME — ceux où elle s'écarte de la fusion automatique
- * (`ceQueFaitLeCommit(…).chemins()`, des NOMS : aucun texte à marqueurs n'est lu).
+ * (`ceQueFaitLeCommit(…).chemins()`, des NOMS : aucun texte à marqueurs n'est lu). `fusion.juges` y
+ * ajoute les chemins qu'un parent supprime et que la fusion garde : l'arbre automatique d'un conflit
+ * modify/delete garde le côté modifié, et la résolution qui le reprend ne s'en écarte pas.
  * @param {import('./gitPorte.mjs').Depot} depot @param {string} sha
- * @returns {{ fait: ReturnType<typeof ceQuiChange>, fusion: { parents: string[], commune: string } | null }}
+ * @returns {{ fait: ReturnType<typeof ceQuiChange>, fusion: { parents: string[], commune: string, juges: string[] } | null }}
  * @throws {GitIndisponible} propagée de `ceQueFaitLeCommit` (fusion à plus de deux parents, git
  *   sans `merge-tree --write-tree --stdin`).
  */
@@ -183,7 +188,12 @@ function lecturesDuCommit(depot, sha) {
   const parents = parentsDe(depot, sha) ?? []
   if (parents.length < 2) return { fait, fusion: null }
   const commune = baseCommune(depot, parents[0], parents[1]) ?? arbreVide(depot)
-  return { fait: restreinte(ceQuiChange(depot, commune, sha), fait.chemins()), fusion: { parents, commune } }
+  const supprimesDeLaFusion = new Set(ceQuiChange(depot, commune, sha).chemins('D'))
+  const gardes = parents.flatMap((p) => ceQuiChange(depot, commune, p).chemins('D')).filter((c) => !supprimesDeLaFusion.has(c))
+  return {
+    fait: restreinte(ceQuiChange(depot, commune, sha), fait.chemins()),
+    fusion: { parents, commune, juges: [...new Set([...fait.chemins(), ...gardes])] },
+  }
 }
 
 /**
@@ -234,7 +244,7 @@ export function croissancesDeLaPlage({ cwd = process.cwd(), debut, fin, vers = n
         sha,
         message: messages.get(sha) ?? '',
         ...(fusion
-          ? { fusion: { fichiers: fait.chemins(), lire: { fusion: texteA(sha), parents: fusion.parents.map(texteA), commune: texteA(fusion.commune) } } }
+          ? { fusion: { fichiers: fusion.juges, lire: { fusion: texteA(sha), parents: fusion.parents.map(texteA), commune: texteA(fusion.commune) } } }
           : { diff: fait.diff(), images: { lirePostImage: texteA(sha), lirePreImage: fait.lirePreImage, renommages: fait.renommages() } }),
         cotes: () => (deplaceLaFrontiere({ chemins: fait.chemins(), nesOuMorts: () => fait.chemins('AD'), base, commit, racine: cwd })
           ? { base: cote(base), commit: cote(commit), ...(fusion ? { parents: fusion.parents.map((p) => cote(source(p))) } : {}) }

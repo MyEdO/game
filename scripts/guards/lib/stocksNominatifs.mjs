@@ -184,7 +184,7 @@ const NOMME_FICHIER = new RegExp(String.raw`^(?:${CHEMIN_FICHIER}|${NOM_NU}|${CH
 
 /**
  * Une ENTRÉE littérale de stock, DEUX formes — la ligne entière fait foi dans les deux cas :
- *   · le jeton OUVRE la ligne : élément de liste/Set (`'src/x.test.ts',`), clé d'objet
+ *   · le jeton OUVRE la ligne : élément de liste/Set (`'src/x.test.ts',`), propriété d'objet
  *     (`'criticals.json': 'raison',`), ou tuple dont il est la clé (`['src/x.ts', { n: 32, … }],`) ;
  *   · le jeton FERME un tuple crocheté (`['CritEscalation', 'onRepeat', 'src/x.ts:325'],`) —
  *     forme réelle des stocks de sites de ce dépôt, que la première ne voit pas.
@@ -195,17 +195,17 @@ const ENTREE_EN_QUEUE = new RegExp(String.raw`^\s*\[[^\n]*${JETON}\s*\][,;]?\s*(
 /** Le premier fichier qu'une ligne d'entrée NOMME, entre quotes, sans son suffixe `:ligne`/`:symbole`. */
 const FICHIER_NOMME = new RegExp(String.raw`['"\`]((?:${CHEMIN}|${NOM_NU}|${CHEMIN_SOURCE})(?=${SUFFIXE_JETON}['"\`]))`);
 
-/** Extension de fichier qu'une identité d'entrée ignore : `src/x` et `src/x.ts` nomment le même. */
-const EXTENSION = /\.(?:ts|tsx|mjs|mts|json|md|css)$/;
+/** Un chemin NOMMÉ ramené à son identité : sans suffixe `:ligne`/`:symbole`, extension comprise (#2223). */
+const cheminNormalise = (chemin) => chemin.replace(/:[\w.|:-]+$/, '');
 
-/** Un chemin NOMMÉ ramené à son identité : sans suffixe `:ligne`/`:symbole`, sans extension (#2223). */
-const cheminNormalise = (chemin) => chemin.replace(/:[\w.|:-]+$/, '').replace(EXTENSION, '');
+/** L'extension finale d'un chemin (`.ts`, `.json`…), celle qui distingue `p` de `p.<ext>`. */
+const EXTENSION = /\.[^./]+$/;
 
 /**
  * La CLÉ d'une entrée (#1806 D5″), SEULE fonction d'identité de la porte — voie image comme repli de
  * ligne : le fichier qu'elle nomme, normalisé (`cheminNormalise`), ou son texte entier quand aucun
- * littéral n'en nomme un. Une clé de dictionnaire n'est l'identité que si elle nomme elle-même un
- * fichier : c'est alors le premier littéral de la ligne.
+ * littéral n'en nomme un. Une propriété de dictionnaire n'est l'identité que si son nom nomme lui-même
+ * un fichier : c'est alors le premier littéral de la ligne.
  * @param {string} texte la ligne NOMMANTE de l'entrée @returns {string}
  */
 export function fichierNommePar(texte) {
@@ -278,7 +278,7 @@ export function porteeDeModule(source, chemin) {
   return (ligne) => !locales.has(ligne);
 }
 
-/** Le littéral de chaîne du sous-arbre qui NOMME un fichier, ou `null`. La CLÉ d'une propriété en
+/** Le littéral de chaîne du sous-arbre qui NOMME un fichier, ou `null`. Le NOM d'une propriété en
  *  fait partie : c'est elle que porte le registre `AUTO_RESOLUS` (`'criticals.json': …`). Rendre le
  *  NŒUD, et pas un booléen, donne à l'appelant la LIGNE où le fichier est nommé — celle qu'une
  *  entrée multiligne doit citer en exemple. */
@@ -286,7 +286,7 @@ function noeudQuiNomme(ts, node, motif = NOMME) {
   let trouve = null;
   const visiter = (n) => {
     if (trouve) return;
-    if (ts.isPropertyAssignment(n) && cleDe(ts, n) === 'foyer') return;
+    if (ts.isPropertyAssignment(n) && nomDePropriete(ts, n) === 'foyer') return;
     if (ts.isStringLiteral(n) || ts.isNoSubstitutionTemplateLiteral(n)) {
       if (motif.test(n.text)) trouve = n;
       return;
@@ -334,8 +334,8 @@ function estParametreDAppel(ts, node) {
   return !nommeUnFichier(ts, node, NOMME_FICHIER);
 }
 
-/** La CLÉ d'une propriété, telle qu'écrite, ou `null` si elle est calculée. */
-function cleDe(ts, prop) {
+/** Le NOM d'une propriété, tel qu'écrit, ou `null` s'il est calculé. */
+function nomDePropriete(ts, prop) {
   const nom = prop.name;
   if (!nom) return null;
   if (ts.isStringLiteral(nom) || ts.isNoSubstitutionTemplateLiteral(nom) || ts.isIdentifier(nom)) return nom.text;
@@ -385,9 +385,9 @@ export function entreesNominatives(source, chemin) {
       return;
     }
     for (const prop of node.properties) {
-      const cle = cleDe(ts, prop);
-      if (cle === 'foyer') continue;
-      if (cle !== null && NOMME.test(cle)) { poser(prop, prop.name ?? prop); continue; }
+      const nom = nomDePropriete(ts, prop);
+      if (nom === 'foyer') continue;
+      if (nom !== null && NOMME.test(nom)) { poser(prop, prop.name ?? prop); continue; }
       if (litteral(prop.initializer)) { parcourir(prop.initializer); continue; }
       const nommant = noeudQuiNomme(ts, prop);
       if (nommant) poser(prop, nommant);
@@ -401,7 +401,7 @@ export function entreesNominatives(source, chemin) {
  *  nommante, ou `null` quand l'image ne se lit pas (lecteur absent, fichier supprimé, binaire,
  *  dialecte inconnu) : le REPLI de ligne juge alors, et l'entrée COMPTE.
  *  @returns {{ ligne: number, nomme: number, cle: string, texte: string }[] | null} */
-export function entreesDeLImage(lire, fichier) {
+function entreesDeLImage(lire, fichier) {
   if (typeof lire !== 'function') return null;
   let source;
   try { source = lire(fichier); } catch { return null; }
@@ -415,10 +415,15 @@ export function entreesDeLImage(lire, fichier) {
 /** `ligne` → `nomme` d'une image lue (`entreesDeLImage`), ou `null`. */
 const lignesDEntrees = (entrees) => entrees && new Map(entrees.map((e) => [e.ligne, e.nomme]));
 
+/** `sans` nomme-t-il le fichier `avec` privé de son extension, `sans` n'en ayant aucune ? */
+const extensionAjoutee = (sans, avec) => !EXTENSION.test(sans) && avec.replace(EXTENSION, '') === sans && avec !== sans;
+
 /**
  * L'APPARIEMENT des entrées de deux images (#2223) : une entrée d'`apres` s'apparie à une entrée
- * d'`avant` de même `cle`, à texte égal d'abord, puis à clé seule (une valeur réécrite). Les objets
- * rendus sont ceux reçus : `paires` = `[avant, apres]`.
+ * d'`avant` de même `cle`, à texte égal d'abord, puis à clé seule (une valeur réécrite). Au SECOND
+ * RANG, une morte et une née qui restent s'apparient quand l'une nomme `p` sans extension et l'autre
+ * `p.<ext>` (`extensionAjoutee`, dans les deux sens) ; deux chemins à extension ne s'apparient jamais.
+ * Les objets rendus sont ceux reçus : `paires` = `[avant, apres]`.
  * @template {{ cle: string, texte: string }} E
  * @param {E[]} avant @param {E[]} apres
  * @returns {{ paires: [E, E][], nees: E[], mortes: E[] }}
@@ -435,12 +440,19 @@ function apparier(avant, apres) {
     paires.push([memes.splice(i, 1)[0], e]);
     return false;
   });
-  const nees = aTexteInegal.filter((e) => {
+  const aCleInegale = aTexteInegal.filter((e) => {
     const [a] = (restantes.get(e.cle) ?? []).splice(0, 1);
     if (a) paires.push([a, e]);
     return !a;
   });
-  return { paires, nees, mortes: [...restantes.values()].flat() };
+  const mortes = [...restantes.values()].flat();
+  const nees = aCleInegale.filter((e) => {
+    const i = mortes.findIndex((m) => extensionAjoutee(m.cle, e.cle) || extensionAjoutee(e.cle, m.cle));
+    if (i < 0) return true;
+    paires.push([mortes.splice(i, 1)[0], e]);
+    return false;
+  });
+  return { paires, nees, mortes };
 }
 
 const vueDEntree = ({ cle, texte }) => ({ cle, texte });
@@ -463,6 +475,10 @@ function ecartDEntrees(pre, post) {
  * compris), celle qui retire une entrée gardée des deux côtés la fait MOURIR. Les entrées nées d'un
  * côté ou de l'autre (le même texte des deux côtés compte une fois) sont celles de la fusion
  * automatique : la fusion ne fait naître que ce qu'elle ajoute à leur multiensemble (`ecartDEntrees`).
+ * Ce multiensemble est l'UNION des deux côtés : une copie née de `^1` en consomme une née de `^2` de
+ * même clé et même texte, une pour une, comme dans `apparier`.
+ * CONTRAT : les entrées de `base` sont des objets DISTINCTS — l'appariement les reconnaît par
+ * identité d'objet, et deux entrées partageant un objet n'en feraient qu'une.
  * @param {{ base: { cle: string, texte: string }[], parents: [{ cle: string, texte: string }[], { cle: string, texte: string }[]], fusion: { cle: string, texte: string }[] }} p
  * @returns {{ nees: { cle: string, texte: string }[], mortes: { cle: string, texte: string }[] }}
  */
@@ -477,7 +493,13 @@ export function apportDeFusion({ base, parents: [p1, p2], fusion }) {
     if (gm.has(e) && !automatique) nees.push(gm.get(e))
     if (!gm.has(e) && automatique) mortes.push(e)
   }
-  const nesDesCotes = [...c1.nees, ...c2.nees.filter((e) => !c1.nees.some((d) => d.cle === e.cle && d.texte === e.texte))]
+  const deUn = [...c1.nees]
+  const nesDesCotes = [...c1.nees, ...c2.nees.filter((e) => {
+    const i = deUn.findIndex((d) => d.cle === e.cle && d.texte === e.texte)
+    if (i < 0) return true
+    deUn.splice(i, 1)
+    return false
+  })]
   const propres = ecartDEntrees(nesDesCotes, cm.nees)
   return { nees: [...nees.map(vueDEntree), ...propres.nees], mortes: [...mortes.map(vueDEntree), ...propres.mortes] }
 }
@@ -717,12 +739,11 @@ export function bilanDesStocks(diffU0, images) {
       const surPre = lignesDEntrees(pre);
       const estEntree = (entrees) => (t) => (entrees ? entrees.has(t.ligne) : estEntreeNominative(t.texte));
       const identifiee = (texte) => ({ cle: fichierNommePar(texte), texte });
-      return {
-        fichier,
-        disparu,
-        retenues: ajoutees.filter(estEntree(surPost)).map(texteDEntree(ajoutees, surPost)).map(identifiee),
-        perdues: retirees.filter(estEntree(surPre)).map(texteDEntree(retirees, surPre)).map(identifiee),
-      };
+      const { nees, mortes } = ecartDEntrees(
+        retirees.filter(estEntree(surPre)).map(texteDEntree(retirees, surPre)).map(identifiee),
+        ajoutees.filter(estEntree(surPost)).map(texteDEntree(ajoutees, surPost)).map(identifiee),
+      );
+      return { fichier, disparu, retenues: nees, perdues: mortes };
     })
     .sort((a, b) => parUnitesDeCode(a.fichier, b.fichier));
   apparierLesDeplacements(lus);
