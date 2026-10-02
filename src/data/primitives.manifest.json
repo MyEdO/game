@@ -1471,10 +1471,10 @@
   {
     "id": "grapheDImports",
     "type": "primitives.manifest",
-    "label": "specificateursDe/arcsDe/resolveImport/estModule/sourceALExecution/clotureDImports",
+    "label": "sitesDeModule/liaisonsDe/chargementsDe/specificateursDe/arcsDe/resolveImport/estModule/sourceALExecution/clotureDImports",
     "fichier": "scripts/guards/lib/importGraph.mjs",
-    "concept": "acquisitions littérales avec leurs positions, résolution et clôture des imports, lecture après effacement des types",
-    "perimetre": "toute lecture de spécificateurs ou marche d'import dans les gardes et générateurs",
+    "concept": "sites de module et liaisons avec noms, rôles et positions, chargements littéraux ou calculés, résolution et clôture des imports, lecture après effacement des types",
+    "perimetre": "toute lecture de noms, de chargements ou de spécificateurs de module, ou marche d'import dans les gardes et générateurs",
     "verrou": "importGraph.test.mjs"
   },
   {

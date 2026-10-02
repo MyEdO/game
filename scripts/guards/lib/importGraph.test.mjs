@@ -24,9 +24,302 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { aliasDe, arcsDe, clotureDImports, closureOf, directImportsOf, estModule, resolveImport, specificateursDe } from './importGraph.mjs'
+import { aliasDe, arcsDe, chargementsDe, clotureDImports, closureOf, directImportsOf, estModule, liaisonsDe, resolveImport, sitesDeModule, specificateursDe } from './importGraph.mjs'
+import { ast, typescript } from './dialecte.mjs'
 
 const RACINE = fileURLToPath(new URL('../../..', import.meta.url))
+
+const nomsDeLiaison = ({ forme, typeSeul, local, importe, exporte }) => ({
+  forme, typeSeul, local: local?.nom ?? null, importe: importe?.nom ?? null, exporte: exporte?.nom ?? null,
+})
+
+test('L3 imports : défaut, noms aliasés, types effectifs individuels et namespace', () => {
+  const texte = [
+    'import Defaut, {',
+    '  a as localA,',
+    '  type T as LocalT,',
+    '  b,',
+    "} from './mixte';",
+    "import type DefType from './type';",
+    "import * as Ns from './espace';",
+    "import type * as Types from './types';",
+  ].join('\n')
+  const sites = sitesDeModule('a.ts', texte)
+  assert.deepEqual(sites.map(({ genre, nature, acquisition, spec, clause, niveauModule }) =>
+    ({ genre, nature, acquisition, spec, clause, niveauModule })), [
+    { genre: 'import', nature: 'statique', acquisition: true, spec: './mixte', clause: true, niveauModule: true },
+    { genre: 'import', nature: 'type', acquisition: true, spec: './type', clause: true, niveauModule: true },
+    { genre: 'import', nature: 'statique', acquisition: true, spec: './espace', clause: true, niveauModule: true },
+    { genre: 'import', nature: 'type', acquisition: true, spec: './types', clause: true, niveauModule: true },
+  ])
+  assert.deepEqual(liaisonsDe('a.ts', texte).map(nomsDeLiaison), [
+    { forme: 'defaut', typeSeul: false, local: 'Defaut', importe: 'default', exporte: null },
+    { forme: 'nommee', typeSeul: false, local: 'localA', importe: 'a', exporte: null },
+    { forme: 'nommee', typeSeul: true, local: 'LocalT', importe: 'T', exporte: null },
+    { forme: 'nommee', typeSeul: false, local: 'b', importe: 'b', exporte: null },
+    { forme: 'defaut', typeSeul: true, local: 'DefType', importe: 'default', exporte: null },
+    { forme: 'espace', typeSeul: false, local: 'Ns', importe: '*', exporte: null },
+    { forme: 'espace', typeSeul: true, local: 'Types', importe: '*', exporte: null },
+  ])
+  const [defaut, nommee, type] = liaisonsDe('a.ts', texte)
+  assert.equal(defaut.importe.position, null)
+  for (const [role, token, ligne] of [[defaut.local, 'Defaut', 1], [nommee.importe, 'a', 2], [nommee.local, 'localA', 2], [type.importe, 'T', 3], [type.local, 'LocalT', 3]]) {
+    assert.equal(texte.slice(role.position.debut, role.position.fin), token)
+    assert.equal(role.position.ligne, ligne)
+    assert.equal(role.position.noeud.getText(), token)
+  }
+  assert.equal(type.spec, './mixte')
+  assert.equal(type.nature, 'statique')
+  assert.equal(type.genre, 'import')
+  assert.equal(type.clause, true)
+  assert.equal(type.niveauModule, true)
+  assert.equal(type.texte, sites[0].texte)
+})
+
+test('L3 exports : rôles de réexport, étoile, namespace et export local sans acquisition', () => {
+  const texte = [
+    "export { a as renomme, type T, default as choisi } from './m';",
+    "export type { U as V } from './types';",
+    "export * from './etoile';",
+    "export * as Ns from './ns';",
+    'export { local as publie, type LocalT };',
+  ].join('\n')
+  const sites = sitesDeModule('a.ts', texte)
+  assert.deepEqual(sites.map(({ acquisition, spec, clause }) => ({ acquisition, spec, clause })), [
+    { acquisition: true, spec: './m', clause: true },
+    { acquisition: true, spec: './types', clause: true },
+    { acquisition: true, spec: './etoile', clause: false },
+    { acquisition: true, spec: './ns', clause: true },
+    { acquisition: false, spec: null, clause: true },
+  ])
+  const liaisons = liaisonsDe('a.ts', texte)
+  assert.deepEqual(liaisons.map(nomsDeLiaison), [
+    { forme: 'nommee', typeSeul: false, local: null, importe: 'a', exporte: 'renomme' },
+    { forme: 'nommee', typeSeul: true, local: null, importe: 'T', exporte: 'T' },
+    { forme: 'nommee', typeSeul: false, local: null, importe: 'default', exporte: 'choisi' },
+    { forme: 'nommee', typeSeul: true, local: null, importe: 'U', exporte: 'V' },
+    { forme: 'etoile', typeSeul: false, local: null, importe: '*', exporte: '*' },
+    { forme: 'espace', typeSeul: false, local: null, importe: '*', exporte: 'Ns' },
+    { forme: 'nommee', typeSeul: false, local: 'local', importe: null, exporte: 'publie' },
+    { forme: 'nommee', typeSeul: true, local: 'LocalT', importe: null, exporte: 'LocalT' },
+  ])
+  for (const liaison of liaisons) for (const role of [liaison.local, liaison.importe, liaison.exporte].filter(Boolean)) {
+    assert.ok(role.position)
+    assert.equal(texte.slice(role.position.debut, role.position.fin), role.nom)
+  }
+  assert.deepEqual(specificateursDe('a.ts', texte).map(({ spec }) => spec), ['./m', './types', './etoile', './ns'])
+  assert.equal(chargementsDe('a.ts', texte).length, 4)
+})
+
+test('L3 import nu et clause vide : même acquisition, clauses distinctes sans liaison', () => {
+  const sites = sitesDeModule('a.ts', "import './nu'; import {} from './vide'; export {};")
+  assert.deepEqual(sites.map(({ acquisition, spec, clause, liaisons }) => ({ acquisition, spec, clause, liaisons })), [
+    { acquisition: true, spec: './nu', clause: false, liaisons: [] },
+    { acquisition: true, spec: './vide', clause: true, liaisons: [] },
+    { acquisition: false, spec: null, clause: true, liaisons: [] },
+  ])
+})
+
+test('L3 equals : référence interne distincte des acquisitions externes littérales ou calculées', () => {
+  const texte = [
+    'import Interne = Namespace.member;',
+    "import Externe = require('./externe');",
+    "import type TypeExterne = require('./type');",
+    'import Calcule = require(chemin);',
+  ].join('\n')
+  const sites = sitesDeModule('a.ts', texte)
+  assert.deepEqual(sites.map(({ genre, nature, acquisition, spec, clause }) => ({ genre, nature, acquisition, spec, clause })), [
+    { genre: 'importEquals', nature: 'statique', acquisition: false, spec: null, clause: true },
+    { genre: 'importEquals', nature: 'require', acquisition: true, spec: './externe', clause: true },
+    { genre: 'importEquals', nature: 'type', acquisition: true, spec: './type', clause: true },
+    { genre: 'importEquals', nature: 'require', acquisition: true, spec: null, clause: true },
+  ])
+  const liaisons = liaisonsDe('a.ts', texte)
+  assert.deepEqual(liaisons.map(nomsDeLiaison), [
+    { forme: 'equals', typeSeul: false, local: 'Interne', importe: 'Namespace.member', exporte: null },
+    { forme: 'equals', typeSeul: false, local: 'Externe', importe: '*', exporte: null },
+    { forme: 'equals', typeSeul: true, local: 'TypeExterne', importe: '*', exporte: null },
+    { forme: 'equals', typeSeul: false, local: 'Calcule', importe: '*', exporte: null },
+  ])
+  assert.equal(texte.slice(liaisons[0].importe.position.debut, liaisons[0].importe.position.fin), 'Namespace.member')
+  for (const liaison of liaisons.slice(1)) assert.equal(liaison.importe.position, null)
+  assert.deepEqual(chargementsDe('a.ts', texte).map(({ spec }) => spec), ['./externe', './type', null])
+  assert.deepEqual(specificateursDe('a.ts', texte).map(({ spec }) => spec), ['./externe', './type'])
+})
+
+test('L3 equals exporté : rôle exporté sur le nom local réel, sans modifier origine ni acquisition', () => {
+  const texte = [
+    'export import AliasInterne = Namespace.member;',
+    "export import AliasExterne = require('./x');",
+    "export import type AliasType = require('./types');",
+    'import Interne = Namespace.member;',
+    "import Externe = require('./x');",
+    "import type TypeExterne = require('./types');",
+  ].join('\n')
+  const sf = ast({ rel: 'a.ts', text: texte })
+  assert.equal(sf.parseDiagnostics.length, 0)
+  const sites = sitesDeModule('a.ts', sf)
+  const liaisons = liaisonsDe('a.ts', sf)
+  assert.deepEqual(liaisons.map(nomsDeLiaison), [
+    { forme: 'equals', typeSeul: false, local: 'AliasInterne', importe: 'Namespace.member', exporte: 'AliasInterne' },
+    { forme: 'equals', typeSeul: false, local: 'AliasExterne', importe: '*', exporte: 'AliasExterne' },
+    { forme: 'equals', typeSeul: true, local: 'AliasType', importe: '*', exporte: 'AliasType' },
+    { forme: 'equals', typeSeul: false, local: 'Interne', importe: 'Namespace.member', exporte: null },
+    { forme: 'equals', typeSeul: false, local: 'Externe', importe: '*', exporte: null },
+    { forme: 'equals', typeSeul: true, local: 'TypeExterne', importe: '*', exporte: null },
+  ])
+  assert.deepEqual(sites.map(({ genre, nature, acquisition, spec, clause }) => ({ genre, nature, acquisition, spec, clause })), [
+    { genre: 'importEquals', nature: 'statique', acquisition: false, spec: null, clause: true },
+    { genre: 'importEquals', nature: 'require', acquisition: true, spec: './x', clause: true },
+    { genre: 'importEquals', nature: 'type', acquisition: true, spec: './types', clause: true },
+    { genre: 'importEquals', nature: 'statique', acquisition: false, spec: null, clause: true },
+    { genre: 'importEquals', nature: 'require', acquisition: true, spec: './x', clause: true },
+    { genre: 'importEquals', nature: 'type', acquisition: true, spec: './types', clause: true },
+  ])
+  for (const [i, liaison] of liaisons.slice(0, 3).entries()) {
+    assert.deepEqual(liaison.exporte.position, liaison.local.position)
+    assert.equal(liaison.exporte.position.noeud, sf.statements[i].name)
+    assert.equal(liaison.exporte.position.ligne, i + 1)
+    assert.equal(texte.slice(liaison.exporte.position.debut, liaison.exporte.position.fin), liaison.exporte.nom)
+  }
+  assert.equal(liaisons[0].importe.position.noeud, sf.statements[0].moduleReference)
+  assert.equal(liaisons[1].importe.position, null)
+  assert.equal(liaisons[2].importe.position, null)
+})
+
+test('L3 chargements : expressions non littérales, import de type et fournisseur createRequire nu ou imbriqué', () => {
+  const texte = [
+    "const a = import('./dynamique');",
+    'const b = import(chemin);',
+    "const c = require('./requis');",
+    'const d = require(chemin);',
+    'const e = module.require(chemin);',
+    "const f = createRequire('./base')('./cible');",
+    'export const fourni = createRequire;',
+    "let t: import('./type').T;",
+  ].join('\n')
+  const charges = chargementsDe('a.ts', texte)
+  assert.deepEqual(charges.map(({ genre, nature, acquisition, spec }) => ({ genre, nature, acquisition, spec })), [
+    { genre: 'appel', nature: 'dynamique', acquisition: true, spec: './dynamique' },
+    { genre: 'appel', nature: 'dynamique', acquisition: true, spec: null },
+    { genre: 'appel', nature: 'require', acquisition: true, spec: './requis' },
+    { genre: 'appel', nature: 'require', acquisition: true, spec: null },
+    { genre: 'appel', nature: 'require', acquisition: true, spec: null },
+    { genre: 'appel', nature: 'require', acquisition: true, spec: './cible' },
+    { genre: 'fournisseur', nature: 'require', acquisition: false, spec: null },
+    { genre: 'fournisseur', nature: 'require', acquisition: false, spec: null },
+    { genre: 'importType', nature: 'type', acquisition: true, spec: './type' },
+  ])
+  assert.deepEqual(charges.filter(({ genre }) => genre === 'fournisseur').map(({ texte }) => texte), ['createRequire', 'createRequire'])
+  assert.deepEqual(specificateursDe('a.ts', texte).map(({ spec }) => spec), ['./dynamique', './requis', './cible', './type'])
+  assert.equal(liaisonsDe('a.ts', texte).length, 0)
+  assert.ok(charges.every(({ niveauModule }) => niveauModule === false))
+})
+
+test('L3 AST réutilisé sans parents : identité, positions de tokens et niveau module', () => {
+  const texte = "import { a as b } from './m';\nnamespace N { import X = Lib.x; export { X }; }"
+  const sf = ast({ rel: 'a.ts', text: texte })
+  const ts = typescript()
+  const deparenter = (n) => { n.parent = undefined; ts.forEachChild(n, deparenter) }
+  deparenter(sf)
+  const sites = sitesDeModule('a.ts', sf)
+  assert.deepEqual(sites.map(({ genre, niveauModule }) => ({ genre, niveauModule })), [
+    { genre: 'import', niveauModule: true },
+    { genre: 'importEquals', niveauModule: false },
+    { genre: 'export', niveauModule: false },
+  ])
+  assert.equal(sites[0].noeud, sf.statements[0])
+  assert.equal(Object.isFrozen(sf), false)
+  assert.equal(Object.isFrozen(sites[0].noeud), false)
+  assert.equal(sites[0].liaisons[0].local.position.noeud, sf.statements[0].importClause.namedBindings.elements[0].name)
+  assert.equal(sites[0].noeud.parent, undefined)
+  assert.equal(sites[0].liaisons[0].local.position.noeud.parent, undefined)
+  assert.equal(sites[0].texte, texte.slice(sites[0].debut, sites[0].fin))
+  assert.deepEqual(liaisonsDe('a.ts', sf).map(nomsDeLiaison), liaisonsDe('a.ts', texte).map(nomsDeLiaison))
+  assert.deepEqual(specificateursDe('a.ts', sf), specificateursDe('a.ts', texte))
+  assert.equal(chargementsDe('a.ts', sf)[0].noeud, sf.statements[0])
+})
+
+test('L3 fournisseur : toute occurrence identifiant, sans confondre une chaîne', () => {
+  const texte = "import { createRequire as creer } from 'node:module'; const createRequire = 1; const x = obj.createRequire; const s = 'createRequire';"
+  const fournisseurs = chargementsDe('a.ts', texte).filter(({ genre }) => genre === 'fournisseur')
+  assert.equal(fournisseurs.length, 3)
+  assert.ok(fournisseurs.every(({ acquisition, spec, nature, texte }) => !acquisition && spec === null && nature === 'require' && texte === 'createRequire'))
+})
+
+test('L3 noms littéraux : noms sémantiques et positions des tokens cités', () => {
+  const texte = "import { 'a-b' as local } from './m'; export { local as 'c-d' };"
+  const [importe, exporte] = liaisonsDe('a.ts', texte)
+  assert.equal(importe.importe.nom, 'a-b')
+  assert.equal(texte.slice(importe.importe.position.debut, importe.importe.position.fin), "'a-b'")
+  assert.equal(exporte.exporte.nom, 'c-d')
+  assert.equal(texte.slice(exporte.exporte.position.debut, exporte.exporte.position.fin), "'c-d'")
+  assert.equal(exporte.local.nom, 'local')
+  assert.equal(exporte.importe, null)
+  assert.equal(Object.hasOwn(importe, 'liaisons'), false)
+})
+
+test('L3 positions : CRLF, CR, U+2028 et U+2029, alias multiligne et texte exact', () => {
+  const texte = "// entête\r\nimport {\r a as\u2028 b\u2029 } from './m';"
+  const [site] = sitesDeModule('a.ts', texte)
+  assert.equal(site.debut, 11)
+  assert.equal(site.fin, texte.length)
+  assert.equal(site.ligne, 2)
+  assert.equal(site.texte, texte.slice(11))
+  const [{ local, importe }] = site.liaisons
+  assert.deepEqual([importe.position.ligne, local.position.ligne], [3, 4])
+  assert.equal(texte.slice(importe.position.debut, importe.position.fin), 'a')
+  assert.equal(texte.slice(local.position.debut, local.position.fin), 'b')
+})
+
+test('L3 projections : compatibilité stricte des spécificateurs/arcs et arbre virtuel sans disque', () => {
+  const entree = join(RACINE, 'virtuel', 'a.ts')
+  const texte = "import { x } from './x.mjs';"
+  const spec = specificateursDe(entree, texte)
+  assert.deepEqual(Object.keys(spec[0]).sort(), ['debut', 'fin', 'ligne', 'nature', 'spec', 'texte'])
+  const explicite = join(RACINE, 'virtuel', 'x.mjs').replace(/\\/g, '/')
+  const source = join(RACINE, 'virtuel', 'x.mts').replace(/\\/g, '/')
+  const existe = (abs) => [explicite, source].includes(abs)
+  assert.deepEqual(arcsDe(entree, texte, { existe, alias: [] }), [{ ...spec[0], cible: explicite }])
+  assert.equal(resolveImport(entree, './x.mjs', (abs) => abs === source, []), source)
+  const aucun = arcsDe(join(RACINE, 'src', 'audio', 'music.ts'), "import './types';", { existe: () => false, alias: [] })
+  assert.deepEqual(aucun, [])
+})
+
+test('L3 cohérence .cts : une source substituée de .cjs reste un module à parcourir', () => {
+  const entree = join(RACINE, 'virtuel', 'a.ts')
+  const cible = join(RACINE, 'virtuel', 'c.cts').replace(/\\/g, '/')
+  const resolu = resolveImport(entree, './c.cjs', (abs) => abs === cible, [])
+  assert.equal(resolu, cible)
+  assert.equal(estModule(resolu), true)
+  const racine = mkdtempSync(join(tmpdir(), 'import-cts-'))
+  try {
+    writeFileSync(join(racine, 'a.ts'), "import './c.cjs';")
+    writeFileSync(join(racine, 'c.cts'), "import './runtime'; import type { T } from './type';")
+    writeFileSync(join(racine, 'runtime.ts'), 'export const x = 1;')
+    writeFileSync(join(racine, 'type.ts'), 'export type T = number;')
+    assert.deepEqual([...clotureDImports(['a.ts'], { racine })].sort(), ['a.ts', 'c.cts', 'runtime.ts', 'type.ts'])
+    assert.deepEqual([...clotureDImports(['a.ts'], { racine, typesEffaces: true })].sort(), ['a.ts', 'c.cts', 'runtime.ts'])
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+test('L3 négatifs : chaînes, commentaires, regex, JSX et acquisitions non reconnues', () => {
+  const texte = [
+    "const a = \"import { createRequire } from './chaine'\";",
+    "const b = `require('./gabarit')`;",
+    "// export { createRequire } from './commentaire';",
+    "/* import('./bloc'); */",
+    "const r = /createRequire\\('regex'\\)/;",
+    "const j = <div title=\"createRequire\">require('./jsx')</div>;",
+    "const x = req('./autre');",
+  ].join('\n')
+  assert.deepEqual(sitesDeModule('a.tsx', texte), [])
+  assert.deepEqual(liaisonsDe('a.tsx', texte), [])
+  assert.deepEqual(chargementsDe('a.tsx', texte), [])
+  assert.throws(() => sitesDeModule('a.mjs', "const x = <T>y; import './apres';"), /ne se parse pas, ligne/)
+})
 
 test('les noms à points sans extension résolvent leurs modules et propagent arcs et clôture', () => {
   const racine = mkdtempSync(join(tmpdir(), 'import-points-'))
@@ -353,7 +646,7 @@ test('A4 : un membre HORS de `racine` lève en nommant importeur et spécificate
 test('specificateursDe : un texte qui ne se parse pas LÈVE, en nommant le fichier et la première erreur — jamais une lecture partielle', () => {
   // `<T>y` en `.mjs` ouvre un élément JSX jamais fermé : l'import qui suit était avalé en silence.
   assert.throws(() => specificateursDe('scripts/a.mjs', "import { a } from './avant'\nconst x = <T>y\nimport { b } from './apres'\n"),
-    /specificateursDe : scripts\/a\.mjs ne se parse pas, ligne \d+ : /)
+    /sitesDeModule : scripts\/a\.mjs ne se parse pas, ligne \d+ : /)
 })
 
 test('cache de marche : partagé entre le défaut et `dynamiques: false`, il rend les deux clôtures justes ; sous un autre régime, il LÈVE', () => {

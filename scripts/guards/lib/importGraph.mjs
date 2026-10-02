@@ -1,5 +1,5 @@
 // Mécanique de graphe d'imports PARTAGÉE : le
-// LECTEUR d'imports du dépôt (`specificateursDe`, sur l'arbre syntaxique), la résolution d'un
+// lecteur de sites et liaisons de module (`sitesDeModule`, sur l'arbre syntaxique), la résolution d'un
 // spécificateur vers un fichier source réel (`resolveImport`, `arcsDe`) et la marche transitive depuis
 // un jeu de modules racines (`clotureDImports`, bornée par le prédicat de l'appelant ; `closureOf` la
 // borne à `src/`). Jamais un 2ᵉ parseur d'imports. Module ESM pur (node nu).
@@ -8,12 +8,9 @@ import { readFileSync, existsSync, statSync } from 'node:fs';
 import { dirname, isAbsolute, relative, resolve, sep } from 'node:path';
 import { ast, typescript } from './dialecte.mjs';
 
-// Extensions de MODULE que le dépôt écrit réellement : les libs de garde et les générateurs vivent en
-// `.mjs` (109 imports relatifs de `src/**` vers `scripts/**` mesurés le 2026-09-02), donc `.mjs`/`.cjs`
-// font partie de ce qu'un spécificateur relatif peut désigner ici.
-const EXTS = ['.ts', '.tsx', '.mts', '.mjs', '.cjs', '.js'];
+const EXTS = ['.ts', '.tsx', '.mts', '.cts', '.mjs', '.cjs', '.js'];
 
-/** Un MODULE de code : un chemin qu'`EXTS` termine — le seul que lit `specificateursDe` en importeur. */
+/** Chemin de module de code reconnu par `EXTS`. */
 export const estModule = (chemin) => EXTS.some((ext) => chemin.endsWith(ext));
 
 /** Les pathspecs git des modules de code sous `dossier` (`EXTS`). @param {string} dossier */
@@ -28,53 +25,90 @@ const estRequire = (ts, appele) =>
   (ts.isCallExpression(appele) && ts.isIdentifier(appele.expression) && appele.expression.text === 'createRequire');
 
 /**
- * Les spécificateurs qu'un module ÉCRIT, lus sur son arbre syntaxique (`dialecte.mjs`, `ast`) — le
- * SEUL lecteur d'imports du dépôt : une chaîne, un gabarit, un commentaire, une regex littérale ou du
- * JSX ne sont pas des nœuds d'import. `nature` : `statique` (`import`/`export … from`, effet de bord
- * compris), `type` (`import type`, `export type`, `import type x = require('…')`, `import('…')` en
- * position de type), `dynamique` (`import('…')`), `require` (`require('…')`, `module.require('…')`,
- * `createRequire(…)('…')`, `import x = require('…')`). Seul un spécificateur LITTÉRAL se lit.
- * `declare module '…'` et `/// <reference …>` ne sont pas des acquisitions : ils ne sont pas suivis.
- * Un texte qui ne se parse pas LÈVE : une lecture partielle tairait les imports qui suivent l'erreur.
- * @param {string} fichier chemin (son extension choisit le dialecte) @param {string} texte
- * @returns {{ spec: string, nature: 'statique' | 'dynamique' | 'type' | 'require', ligne: number, debut: number, fin: number, texte: string }[]}
+ * Sites de module, liaisons et rôles lus dans un seul parcours AST. Le source texte est parsé par
+ * `ast` ; un SourceFile fourni est réutilisé, ses nœuds et diagnostics conservés. Les positions
+ * utilisent cet arbre explicitement, y compris sans parents. Un nom synthétique porte position:null.
+ * @param {string} fichier
+ * @param {string | import('typescript').SourceFile} source
  */
-export function specificateursDe(fichier, texte) {
+export function sitesDeModule(fichier, source) {
   const ts = typescript();
-  const litteral = (n) => (n && ts.isStringLiteralLike(n) ? n.text : null);
-  const vus = [];
-  const ajouter = (n, spec, nature) => {
-    const debut = n.getStart(arbre);
-    const fin = n.getEnd();
-    vus.push({ spec, nature, ligne: arbre.getLineAndCharacterOfPosition(debut).line + 1, debut, fin, texte: texte.slice(debut, fin) });
-  };
-  const visiter = (n) => {
-    if (ts.isImportDeclaration(n) || ts.isExportDeclaration(n)) {
-      const spec = litteral(n.moduleSpecifier);
-      const typeSeul = ts.isImportDeclaration(n) ? n.importClause?.isTypeOnly : n.isTypeOnly;
-      if (spec !== null) ajouter(n, spec, typeSeul ? 'type' : 'statique');
-    } else if (ts.isImportEqualsDeclaration(n) && ts.isExternalModuleReference(n.moduleReference)) {
-      const spec = litteral(n.moduleReference.expression);
-      if (spec !== null) ajouter(n, spec, n.isTypeOnly ? 'type' : 'require');
-    } else if (ts.isImportTypeNode(n)) {
-      const spec = ts.isLiteralTypeNode(n.argument) ? litteral(n.argument.literal) : null;
-      if (spec !== null) ajouter(n, spec, 'type');
-    } else if (ts.isCallExpression(n)) {
-      const spec = litteral(n.arguments[0]);
-      if (spec !== null && n.expression.kind === ts.SyntaxKind.ImportKeyword) ajouter(n, spec, 'dynamique');
-      else if (spec !== null && estRequire(ts, n.expression)) ajouter(n, spec, 'require');
-    }
-    ts.forEachChild(n, visiter);
-  };
-  const arbre = ast({ rel: fichier, text: texte });
+  const arbre = typeof source === 'string' ? ast({ rel: fichier, text: source }) : source;
+  const texte = arbre.text;
   const [faute] = arbre.parseDiagnostics ?? [];
   if (faute) {
     const ligne = arbre.getLineAndCharacterOfPosition(faute.start).line + 1;
-    throw new Error(`specificateursDe : ${fichier} ne se parse pas, ligne ${ligne} : ${ts.flattenDiagnosticMessageText(faute.messageText, ' ')}`);
+    throw new Error(`sitesDeModule : ${fichier} ne se parse pas, ligne ${ligne} : ${ts.flattenDiagnosticMessageText(faute.messageText, ' ')}`);
   }
+  const litteral = (n) => (n && ts.isStringLiteralLike(n) ? n.text : null);
+  const position = (noeud) => {
+    const debut = noeud.getStart(arbre);
+    return { noeud, debut, fin: noeud.getEnd(), ligne: arbre.getLineAndCharacterOfPosition(debut).line + 1 };
+  };
+  const nom = (noeud) => noeud ? { nom: noeud.text ?? noeud.getText(arbre), position: position(noeud) } : null;
+  const synthetique = (nom) => ({ nom, position: null });
+  const etoile = (noeud) => nom(noeud.getChildren(arbre).find((n) => n.kind === ts.SyntaxKind.AsteriskToken));
+  const liaison = (forme, typeSeul, local, importe, exporte) => ({ forme, typeSeul: !!typeSeul, local, importe, exporte });
+  const tetes = new Set(arbre.statements);
+  const vus = [];
+  const ajouter = (noeud, genre, nature, acquisition, spec, clause = false, liaisons = []) => {
+    const p = position(noeud);
+    vus.push({ genre, nature, acquisition, spec, clause, niveauModule: tetes.has(noeud), ...p, texte: texte.slice(p.debut, p.fin), liaisons });
+  };
+  const visiter = (n) => {
+    if (ts.isImportDeclaration(n)) {
+      const clause = n.importClause;
+      const liaisons = [];
+      if (clause?.name) liaisons.push(liaison('defaut', clause.isTypeOnly, nom(clause.name), synthetique('default'), null));
+      const noms = clause?.namedBindings;
+      if (noms && ts.isNamespaceImport(noms)) liaisons.push(liaison('espace', clause.isTypeOnly, nom(noms.name), etoile(noms), null));
+      else if (noms) for (const e of noms.elements)
+        liaisons.push(liaison('nommee', clause.isTypeOnly || e.isTypeOnly, nom(e.name), nom(e.propertyName ?? e.name), null));
+      ajouter(n, 'import', clause?.isTypeOnly ? 'type' : 'statique', true, litteral(n.moduleSpecifier), !!clause, liaisons);
+    } else if (ts.isExportDeclaration(n)) {
+      const acquisition = !!n.moduleSpecifier;
+      const clause = n.exportClause;
+      const liaisons = [];
+      if (!clause) {
+        const role = etoile(n);
+        liaisons.push(liaison('etoile', n.isTypeOnly, null, role, role));
+      } else if (ts.isNamespaceExport(clause))
+        liaisons.push(liaison('espace', n.isTypeOnly, null, etoile(clause), nom(clause.name)));
+      else for (const e of clause.elements) {
+        const origine = nom(e.propertyName ?? e.name);
+        liaisons.push(liaison('nommee', n.isTypeOnly || e.isTypeOnly, acquisition ? null : origine, acquisition ? origine : null, nom(e.name)));
+      }
+      ajouter(n, 'export', n.isTypeOnly ? 'type' : 'statique', acquisition, acquisition ? litteral(n.moduleSpecifier) : null, !!clause, liaisons);
+    } else if (ts.isImportEqualsDeclaration(n)) {
+      const externe = ts.isExternalModuleReference(n.moduleReference);
+      const importe = externe ? synthetique('*') : nom(n.moduleReference);
+      const exporte = n.modifiers?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword) ? nom(n.name) : null;
+      ajouter(n, 'importEquals', n.isTypeOnly ? 'type' : externe ? 'require' : 'statique', externe,
+        externe ? litteral(n.moduleReference.expression) : null, true,
+        [liaison('equals', n.isTypeOnly, nom(n.name), importe, exporte)]);
+    } else if (ts.isImportTypeNode(n)) {
+      const spec = ts.isLiteralTypeNode(n.argument) ? litteral(n.argument.literal) : null;
+      ajouter(n, 'importType', 'type', true, spec);
+    } else if (ts.isCallExpression(n)) {
+      const spec = litteral(n.arguments[0]);
+      if (n.expression.kind === ts.SyntaxKind.ImportKeyword) ajouter(n, 'appel', 'dynamique', true, spec);
+      else if (estRequire(ts, n.expression)) ajouter(n, 'appel', 'require', true, spec);
+    } else if (ts.isIdentifier(n) && n.text === 'createRequire') ajouter(n, 'fournisseur', 'require', false, null);
+    ts.forEachChild(n, visiter);
+  };
   visiter(arbre);
   return vus;
 }
+
+export const liaisonsDe = (fichier, source) => sitesDeModule(fichier, source)
+  .flatMap(({ liaisons, ...site }) => liaisons.map((liaison) => ({ ...site, ...liaison })));
+
+export const chargementsDe = (fichier, source) => sitesDeModule(fichier, source)
+  .filter(({ acquisition, genre }) => acquisition || genre === 'fournisseur');
+
+export const specificateursDe = (fichier, source) => sitesDeModule(fichier, source)
+  .filter(({ acquisition, spec }) => acquisition && spec !== null)
+  .map(({ spec, nature, ligne, debut, fin, texte }) => ({ spec, nature, ligne, debut, fin, texte }));
 
 /** Le `tsconfig.json` d'un dépôt, à sa racine. */
 export const CHEMIN_TSCONFIG = 'tsconfig.json';
