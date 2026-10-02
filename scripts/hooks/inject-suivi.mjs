@@ -106,5 +106,8 @@ if (import.meta.main) {
     entree = null
   }
   const vu = dossierDesSuivis(process.cwd())
-  if (vu.disponible) process.stdout.write(texteDInjection({ entree, dossier: vu.valeur, maintenant: new Date() }))
+  if (vu.disponible) {
+    const texte = texteDInjection({ entree, dossier: vu.valeur, maintenant: new Date() })
+    if (texte) process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: texte } }))
+  }
 }
