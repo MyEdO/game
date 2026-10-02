@@ -17,7 +17,7 @@ import { dirname, join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { SURFACE_CLAUDE, SURFACE_CODEX, aplatirHooks } from './agents/compat-core.mjs'
 import { scriptKindDe, typescript } from './guards/lib/dialecte.mjs'
-import { clotureDImports } from './guards/lib/importGraph.mjs'
+import { clotureDImports, estModule } from './guards/lib/importGraph.mjs'
 import { listerDossier } from './guards/lib/lister.mjs'
 import { CODE_DE_REFUS, refusDeVersion } from './node-requis.mjs'
 
@@ -180,7 +180,7 @@ test('clôture STATIQUE de `npm run gates`, des `.mjs` des hooks shell, des pilo
         fautes.push(`${module} > ${rel} : module TypeScript`)
         continue
       }
-      if (!/\.[cm]?js$/.test(rel)) continue
+      if (!estModule(rel)) continue
       const chemin = join(RACINE, rel)
       const source = ts.createSourceFile(chemin, readFileSync(chemin, 'utf8'), ts.ScriptTarget.Latest, true, scriptKindDe(chemin))
       for (const s of source.statements) {

@@ -24,9 +24,72 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { aliasDe, clotureDImports, closureOf, directImportsOf, resolveImport, specificateursDe } from './importGraph.mjs'
+import { aliasDe, arcsDe, clotureDImports, closureOf, directImportsOf, estModule, resolveImport, specificateursDe } from './importGraph.mjs'
 
 const RACINE = fileURLToPath(new URL('../../..', import.meta.url))
+
+test('les noms à points sans extension résolvent leurs modules et propagent arcs et clôture', () => {
+  const racine = mkdtempSync(join(tmpdir(), 'import-points-'))
+  try {
+    const entree = join(racine, 'a.ts')
+    const texte = "import './props.types'; import './_registry.generated'; import './dossier.points';"
+    writeFileSync(entree, texte)
+    writeFileSync(join(racine, 'props.types.ts'), 'export const x = 1')
+    writeFileSync(join(racine, '_registry.generated.ts'), 'export const x = 1')
+    mkdirSync(join(racine, 'dossier.points'))
+    writeFileSync(join(racine, 'dossier.points', 'index.ts'), "import '../suite';")
+    writeFileSync(join(racine, 'suite.ts'), 'export const x = 1')
+    const cibles = ['props.types.ts', '_registry.generated.ts', 'dossier.points/index.ts']
+    for (const [spec, cible] of [['./props.types', cibles[0]], ['./_registry.generated', cibles[1]], ['./dossier.points', cibles[2]]])
+      assert.equal(resolveImport(entree, spec), join(racine, cible).replace(/\\/g, '/'))
+    assert.deepEqual(arcsDe(entree, texte).map(({ cible }) => cible), cibles.map((cible) => join(racine, cible).replace(/\\/g, '/')))
+    assert.deepEqual([...clotureDImports(['a.ts'], { racine })].sort(), ['a.ts', ...cibles, 'suite.ts'].sort())
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+test('le fichier explicite et la substitution JS→TS précèdent le repli des noms à points', () => {
+  const racine = mkdtempSync(join(tmpdir(), 'import-priorite-'))
+  try {
+    const entree = join(racine, 'a.ts')
+    for (const nom of ['style.css', 'style.css.ts', 'image.svg', 'image.svg.ts', 'x.js', 'x.ts', 'x.js.ts', 'y.ts', 'y.js.ts'])
+      writeFileSync(join(racine, nom), '')
+    for (const [spec, cible] of [['./style.css', 'style.css'], ['./image.svg', 'image.svg'], ['./x.js', 'x.js'], ['./y.js', 'y.ts']])
+      assert.equal(resolveImport(entree, spec), join(racine, cible).replace(/\\/g, '/'))
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+test('les sites portent les positions exactes du texte fourni, propagées aux arcs', () => {
+  const fichier = join(RACINE, 'src', 'entree.ts')
+  const texte = "// entête\r\n  import {\r\n x } from './a';\r\nconst p = import('./b');"
+  const sites = specificateursDe(fichier, texte)
+  assert.deepEqual(sites.map(({ spec, ligne, texte }) => ({ spec, ligne, texte })), [
+    { spec: './a', ligne: 2, texte: "import {\r\n x } from './a';" },
+    { spec: './b', ligne: 4, texte: "import('./b')" },
+  ])
+  for (const site of sites) assert.equal(texte.slice(site.debut, site.fin), site.texte)
+  assert.deepEqual(arcsDe(fichier, texte, { existe: () => true, alias: [] }),
+    sites.map((site) => ({ ...site, cible: resolveImport(fichier, site.spec, () => true, []) })))
+})
+
+test('les ressources explicites se résolvent sans devenir des modules à parser', () => {
+  const racine = mkdtempSync(join(tmpdir(), 'import-ressources-'))
+  try {
+    writeFileSync(join(racine, 'a.mjs'), "import './style.css'; import './image.svg'; import './dossier.css';")
+    writeFileSync(join(racine, 'style.css'), '.x { color: red; }')
+    writeFileSync(join(racine, 'image.svg'), '<svg/>')
+    mkdirSync(join(racine, 'dossier.css'))
+    assert.equal(resolveImport(join(racine, 'a.mjs'), './dossier.css'), null)
+    assert.deepEqual([...clotureDImports(['a.mjs'], { racine })].sort(), ['a.mjs', 'image.svg', 'style.css'])
+    assert.equal(estModule('style.css'), false)
+    assert.equal(estModule('image.svg'), false)
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
 
 test('un import relatif `.mjs` d’une lib de garde se résout vers son fichier (site réel)', () => {
   const depuis = join(RACINE, 'src', 'data', 'entity-orphans.test.ts')

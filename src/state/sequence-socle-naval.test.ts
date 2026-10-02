@@ -15,6 +15,7 @@
 import { fixtureText } from '../i18n/fixtureText';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { readFileSync } from 'node:fs';
+import { specificateursDe } from '../../scripts/guards/lib/importGraph.mjs';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
 import { combatStakeRef } from '../data';
@@ -26,14 +27,15 @@ import {
 
 /** LA STRUCTURE = le contrat + son implémentation légère. Les deux sont sous garde. */
 const FICHIERS = ['./sequenceContract.ts', './sequenceCore.ts'];
-const SOURCE = FICHIERS.map((f) => readFileSync(new URL(f, import.meta.url), 'utf-8')).join('\n');
+const SOURCES = FICHIERS.map((fichier) => ({ fichier, texte: readFileSync(new URL(fichier, import.meta.url), 'utf-8') }));
+const SOURCE = SOURCES.map(({ texte }) => texte).join('\n');
 
 /** Le CODE seul (commentaires retirés) — la prose des fichiers NOMME leurs clients, le code ne doit pas. */
 const CODE = SOURCE.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 
 describe('Structure d’orchestrateur — garde structurelle (elle ne connaît aucun de ses systèmes)', () => {
   it('aucun import d’un domaine : ni poursuite, ni jeux de taverne', () => {
-    const imports = [...CODE.matchAll(/from\s+'([^']+)'/g)].map((m) => m[1]);
+    const imports = SOURCES.flatMap(({ fichier, texte }) => specificateursDe(fichier, texte).map(({ spec }) => spec));
     expect(imports).not.toContain('./pursuitFlow');
     expect(imports).not.toContain('./tavernFlow');
     expect(imports).not.toContain('../engine/pursuit');
