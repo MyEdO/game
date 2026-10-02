@@ -57,8 +57,8 @@ export function repoProgram(root, choisirRootNames, recouvrement = {}) {
 
 /** Programme bâti sur des sources EN MÉMOIRE, bibliothèque standard comprise, sans disque (un import ne
  *  se résout qu'entre ces sources) : morsures de garde, sondes de type, texte déjà lu d'un générateur.
- *  `files` : chemins RELATIFS (ex. `src/state/scene.ts`) → contenu. */
-export function virtualProgram(files) {
+ *  `files` : chemins RELATIFS (ex. `src/state/scene.ts`) → contenu ; `allowJs` admet les sources JS. */
+export function virtualProgram(files, { allowJs = false } = {}) {
   const options = {
     target: ts.ScriptTarget.ES2020,
     module: ts.ModuleKind.ESNext,
@@ -66,6 +66,7 @@ export function virtualProgram(files) {
     strict: true,
     noEmit: true,
     skipLibCheck: true,
+    allowJs,
   };
   const libName = norm(ts.getDefaultLibFilePath(options));
   // Tout le RÉPERTOIRE de `lib` est lisible, pas le seul `lib.*.full.d.ts` : ce fichier n'est qu'une
