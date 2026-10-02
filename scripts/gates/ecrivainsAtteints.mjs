@@ -2,18 +2,16 @@
 // scripts LOCAUX qu'elle atteint (imports transitifs depuis la commande dépliée) et qui portent un
 // appel d'ÉCRITURE de fichier.
 //
-// À quoi ça sert : `ECRIT_LU` (scripts/gates/toutes.mjs) est ce qui autorise deux gates à tourner en
-// même temps. Une table qui se démode en silence est pire que pas de table — le cas est vécu :
-// `test:hooks` mutait `scripts/hooks/ecrans-ui.json` (un fichier COMMITTÉ) sans que rien ne le dise,
-// et le `finally` censé le remettre a échoué sous charge le 2026-09-04.
+// `ECRIT_LU` (scripts/gates/toutes.mjs) autorise deux gates à tourner en même temps.
 //
 // CE QUE ÇA MESURE, ET CE QUE ÇA NE MESURE PAS : le grain est le SCRIPT, pas la ligne — une gate qui
 // se met à atteindre un module écrivain de plus est vue ; une écriture NEUVE dans un module qui en
-// portait déjà ne l'est pas. La lecture statique ne suit ni `require`, ni un chemin calculé, ni ce
+// portait déjà ne l'est pas. La lecture statique ne suit ni un chemin calculé, ni ce
 // qu'un outil externe (eslint, knip, tsc, vitest) fait de son côté — d'où les entrées `lit`/`ecrit`
 // de la table, qui restent une MESURE, pas une déduction.
-import { existsSync, readFileSync, statSync } from 'node:fs'
-import { dirname, join, relative, resolve } from 'node:path'
+import { existsSync, readFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { clotureDImports } from '../guards/lib/importGraph.mjs'
 import { gatesDeCi } from './gatesDeCi.mjs'
 import { GATES, listerTests, testsDe } from './testsParGate.mjs'
 
@@ -38,64 +36,9 @@ function fichiersDe(commande, racine, gate) {
   return out
 }
 
-/** Extensions essayées, dans l'ordre de Vite 5 (`DEFAULT_EXTENSIONS`, node_modules/vite/dist/node/constants.js). */
-const EXTENSIONS = ['.mjs', '.js', '.mts', '.ts', '.jsx', '.tsx', '.json']
-
-/** `true` si le chemin est un FICHIER existant (un dossier n'en est pas un). */
-const estFichier = (p) => {
-  try {
-    return statSync(p).isFile()
-  } catch {
-    return false
-  }
-}
-
-/** Résout un spécificateur RELATIF vers un FICHIER du dépôt, ou `null` — dans l'ordre de Vite 5
- *  (`tryCleanFsResolve`) : le fichier nommé, puis `base.<ext>`, puis `base/index.<ext>`. */
-function resoudre(depuis, specificateur, racine) {
-  if (!specificateur.startsWith('.')) return null
-  const base = resolve(dirname(depuis), specificateur)
-  const candidats = [base, ...EXTENSIONS.map((e) => `${base}${e}`), ...EXTENSIONS.map((e) => join(base, `index${e}`))]
-  const trouve = candidats.find(estFichier)
-  return trouve ? relative(racine, trouve).split('\\').join('/') : null
-}
-
-/** Déclaration d'import/export dont la clause est entre accolades (`import { a, type B } from '…'`). */
-const ACCOLADES = /\b(?:import|export)\s*\{([^}]*)\}\s*from\s*['"][^'"]+['"]/g
-/** Déclaration de TYPE seul par mot-clé (`import type X from '…'`, `export type { X } from '…'`). */
-const TYPE_SEUL = /\b(?:import|export)\s+type\b[^;'"]*?\bfrom\s*['"][^'"]+['"]/g
-
-/** Le texte d'un module sans ses imports/exports de TYPE seul : ils s'effacent à la compilation,
- *  n'exécutent ni ne lisent rien. Un import dont TOUS les spécificateurs sont des types en est un ;
- *  un import mixte (`{ type X, y }`) reste. */
-export function sansImportsDeType(texte) {
-  return texte.replace(TYPE_SEUL, '').replace(ACCOLADES, (decl, clause) => {
-    const specs = clause.split(',').map((s) => s.trim()).filter(Boolean)
-    return specs.length && specs.every((s) => /^type\s/.test(s)) ? '' : decl
-  })
-}
-
 /** Fermeture transitive des imports locaux, depuis des graines relatives à la racine. */
 export function transitif(graines, racine) {
-  const vus = new Set()
-  const pile = [...graines]
-  while (pile.length) {
-    const fichier = pile.pop()
-    if (!fichier || vus.has(fichier)) continue
-    vus.add(fichier)
-    let texte
-    try {
-      texte = sansImportsDeType(readFileSync(join(racine, fichier), 'utf8'))
-    } catch {
-      continue
-    }
-    for (const motif of [/from\s+['"]([^'"]+)['"]/g, /import\(\s*['"]([^'"]+)['"]/g])
-      for (const m of texte.matchAll(motif)) {
-        const cible = resoudre(join(racine, fichier), m[1], racine)
-        if (cible && !vus.has(cible)) pile.push(cible)
-      }
-  }
-  return [...vus]
+  return [...clotureDImports(graines, { racine, typesEffaces: true })]
 }
 
 /** `true` si ce script porte au moins un appel d'écriture hors commentaire et hors import. */

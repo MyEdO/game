@@ -1469,6 +1469,15 @@
     "verrou": "sourceCorpus.test.mjs"
   },
   {
+    "id": "grapheDImports",
+    "type": "primitives.manifest",
+    "label": "specificateursDe/arcsDe/resolveImport/estModule/sourceALExecution/clotureDImports",
+    "fichier": "scripts/guards/lib/importGraph.mjs",
+    "concept": "acquisitions littérales avec leurs positions, résolution et clôture des imports, lecture après effacement des types",
+    "perimetre": "toute lecture de spécificateurs ou marche d'import dans les gardes et générateurs",
+    "verrou": "importGraph.test.mjs"
+  },
+  {
     "id": "constructionsReservees",
     "type": "primitives.manifest",
     "label": "scanConstructionsReservees/FORMULE_DE_CHEBYSHEV/ECHAPPEUR_DE_LITTERAL/CONSTRUCTION_DE_PROGRAMME/ECRITURE_DE_STOCK_JSON/CONSTRUCTION_DE_TABLE_TOTALE/recopieDeCanon/cleEnLigne/lectureBruteDeCollection/comparaisonDAppel/constructionDeFragment/estAppelDeclare/origineImportee",

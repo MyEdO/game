@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { readCorpus } from '../../../scripts/guards/lib/sourceCorpus.mjs';
 import { estFichierVitest, estSuiteVitest } from '../../../scripts/guards/lib/fichierVitest.mjs';
+import { specificateursDe } from '../../../scripts/guards/lib/importGraph.mjs';
 
 /**
  * LE HARNAIS DE BANC RESTE DANS LES BANCS — `stage/banc-volumique.ts` est le SEUL fichier non-`.test.`
@@ -37,7 +38,7 @@ import { estFichierVitest, estSuiteVitest } from '../../../scripts/guards/lib/fi
  * PÉRIMÈTRE : `src/**` en entier pour les faits 1, 3, 4, 5 et 6 ; `src/gameIso/**` pour le fait 2 (le
  * harnais est un harnais de rendu ; hors de `gameIso`, `src/test-setup.ts` est le point d'entrée
  * légitime).
- * ANGLE MORT ASSUMÉ : le scan est TEXTUEL, sur les lignes d'`import` (faits 1, 2, 4), sur la forme
+ * Les imports littéraux (faits 1, 2, 4) se lisent sur l'AST. Le scan est TEXTUEL sur la forme
  * de DÉCLARATION `class X implements StageRenderer` (fait 3) et sur l'occurrence textuelle de `brancherArdoise(`
  * (fait 4), sur l'élément `<GameStage3D` et sur la pose de son renderer (`setStageRendererFactory(`,
  * fait 5 — le seul signal d'un montage INDIRECT). Un `await import()` dynamique au chemin composé à l'exécution, une ré-exportation du
@@ -70,26 +71,15 @@ const texte = (rel: string): string => sources(SRC).find((f) => f.rel === rel)!.
  *  (#1788) : toute garde dont le périmètre est « la production » le consomme. */
 const production = (dir: string) => sources(dir).filter(({ rel }) => !estFichierVitest(rel) && rel !== HARNAIS);
 
-/** Les lignes d'`import`/`export … from` d'une source, avec leur numéro (1-based). */
-export function lignesDImport(source: string): { n: number; texte: string }[] {
-  const out: { n: number; texte: string }[] = [];
-  source.split(/\r?\n/).forEach((ligne, i) => {
-    if (/^\s*(import|export)\b[^;]*\bfrom\s*['"]/.test(ligne) || /^\s*import\s*['"]/.test(ligne)) {
-      out.push({ n: i + 1, texte: ligne.trim() });
-    }
-  });
-  return out;
-}
-
 /** `fichier:ligne` de chaque import dont le spécifieur contient `motif`. */
 export function importeurs(source: string, label: string, motif: RegExp): string[] {
-  return lignesDImport(source)
-    .filter(({ texte }) => motif.test(texte.replace(/^.*from\s*/, '')) || motif.test(texte))
-    .map(({ n, texte }) => `${label}:${n} → ${texte}`);
+  return specificateursDe(label, source)
+    .filter(({ spec }) => motif.test(spec))
+    .map(({ ligne, texte }) => `${label}:${ligne} → ${texte}`);
 }
 
-const SPEC_HARNAIS = /['"][^'"]*banc-volumique['"]/;
-const SPEC_VITEST = /['"]vitest['"]/;
+const SPEC_HARNAIS = /(?:^|\/)banc-volumique$/;
+const SPEC_VITEST = /^vitest$/;
 
 /** La forme d'une DÉCLARATION de classe portant la clause `implements StageRenderer` — ancrée en
  *  début de ligne : une mention en prose ou dans une chaîne (les cas plantés de ce fichier) n'en est
@@ -159,6 +149,12 @@ function testsDuDepot(): { chemin: string; source: string }[] {
 }
 
 describe('le harnais de banc volumique reste dans les bancs (#1401)', () => {
+  it('les diagnostics portent le site multiligne et le prédicat ne lit que le spécificateur', () => {
+    const source = "// import 'vitest';\nimport {\n  it\n} from 'vitest';\nimport { vitest } from './sain';"
+    expect(importeurs(source, 'fixture.ts', SPEC_VITEST)).toEqual([
+      "fixture.ts:2 → import {\n  it\n} from 'vitest';",
+    ]);
+  });
   it('cas planté : un import du harnais depuis un fichier de production est détecté (preuve TDD)', () => {
     const planté = ['const x = 1;', "import { BancRenderer } from './banc-volumique';"].join('\n');
     expect(importeurs(planté, 'planté.ts', SPEC_HARNAIS)).toEqual([

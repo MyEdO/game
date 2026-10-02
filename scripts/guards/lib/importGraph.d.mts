@@ -2,6 +2,10 @@
 export interface Specificateur {
   spec: string;
   nature: 'statique' | 'dynamique' | 'type' | 'require';
+  ligne: number;
+  debut: number;
+  fin: number;
+  texte: string;
 }
 export function specificateursDe(fichier: string, texte: string): Specificateur[];
 /** Un arc résolu : le spécificateur écrit, sa nature, et le fichier absolu POSIX qu'il désigne. */

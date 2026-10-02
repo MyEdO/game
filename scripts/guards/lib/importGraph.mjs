@@ -1,10 +1,10 @@
-// Mécanique de graphe d'imports PARTAGÉE (extraite de `scripts/docs/build-systemes.mjs`, #298) : le
+// Mécanique de graphe d'imports PARTAGÉE : le
 // LECTEUR d'imports du dépôt (`specificateursDe`, sur l'arbre syntaxique), la résolution d'un
 // spécificateur vers un fichier source réel (`resolveImport`, `arcsDe`) et la marche transitive depuis
 // un jeu de modules racines (`clotureDImports`, bornée par le prédicat de l'appelant ; `closureOf` la
 // borne à `src/`). Jamais un 2ᵉ parseur d'imports. Module ESM pur (node nu).
 
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, statSync } from 'node:fs';
 import { dirname, isAbsolute, relative, resolve, sep } from 'node:path';
 import { ast, typescript } from './dialecte.mjs';
 
@@ -37,27 +37,32 @@ const estRequire = (ts, appele) =>
  * `declare module '…'` et `/// <reference …>` ne sont pas des acquisitions : ils ne sont pas suivis.
  * Un texte qui ne se parse pas LÈVE : une lecture partielle tairait les imports qui suivent l'erreur.
  * @param {string} fichier chemin (son extension choisit le dialecte) @param {string} texte
- * @returns {{ spec: string, nature: 'statique' | 'dynamique' | 'type' | 'require' }[]}
+ * @returns {{ spec: string, nature: 'statique' | 'dynamique' | 'type' | 'require', ligne: number, debut: number, fin: number, texte: string }[]}
  */
 export function specificateursDe(fichier, texte) {
   const ts = typescript();
   const litteral = (n) => (n && ts.isStringLiteralLike(n) ? n.text : null);
   const vus = [];
+  const ajouter = (n, spec, nature) => {
+    const debut = n.getStart(arbre);
+    const fin = n.getEnd();
+    vus.push({ spec, nature, ligne: arbre.getLineAndCharacterOfPosition(debut).line + 1, debut, fin, texte: texte.slice(debut, fin) });
+  };
   const visiter = (n) => {
     if (ts.isImportDeclaration(n) || ts.isExportDeclaration(n)) {
       const spec = litteral(n.moduleSpecifier);
       const typeSeul = ts.isImportDeclaration(n) ? n.importClause?.isTypeOnly : n.isTypeOnly;
-      if (spec !== null) vus.push({ spec, nature: typeSeul ? 'type' : 'statique' });
+      if (spec !== null) ajouter(n, spec, typeSeul ? 'type' : 'statique');
     } else if (ts.isImportEqualsDeclaration(n) && ts.isExternalModuleReference(n.moduleReference)) {
       const spec = litteral(n.moduleReference.expression);
-      if (spec !== null) vus.push({ spec, nature: n.isTypeOnly ? 'type' : 'require' });
+      if (spec !== null) ajouter(n, spec, n.isTypeOnly ? 'type' : 'require');
     } else if (ts.isImportTypeNode(n)) {
       const spec = ts.isLiteralTypeNode(n.argument) ? litteral(n.argument.literal) : null;
-      if (spec !== null) vus.push({ spec, nature: 'type' });
+      if (spec !== null) ajouter(n, spec, 'type');
     } else if (ts.isCallExpression(n)) {
       const spec = litteral(n.arguments[0]);
-      if (spec !== null && n.expression.kind === ts.SyntaxKind.ImportKeyword) vus.push({ spec, nature: 'dynamique' });
-      else if (spec !== null && estRequire(ts, n.expression)) vus.push({ spec, nature: 'require' });
+      if (spec !== null && n.expression.kind === ts.SyntaxKind.ImportKeyword) ajouter(n, spec, 'dynamique');
+      else if (spec !== null && estRequire(ts, n.expression)) ajouter(n, spec, 'require');
     }
     ts.forEachChild(n, visiter);
   };
@@ -128,12 +133,17 @@ export const aliasDuDepot = (racine = '.') => {
   return aliasParRacine.get(abs);
 };
 
-/** Extensions qu'un spécificateur peut porter LUI-MÊME (le chemin désigne alors le fichier). */
-const EXTS_EXPLICITES = [...EXTS, '.json'];
 /** Source TypeScript d'un spécificateur à extension JS émise : `./x.mjs` désigne `x.mts` quand
  *  `x.mjs` n'existe pas (TypeScript, `moduleResolution: "bundler"`, Handbook « Modules Reference »,
  *  extension substitution) — la forme de `src/**` vers `scripts/docs/lib/*.mts`. */
 const EXTS_TS_DE = { '.js': ['.ts', '.tsx'], '.mjs': ['.mts'], '.cjs': ['.cts'] };
+const fichierExiste = (chemin) => {
+  try {
+    return statSync(chemin).isFile();
+  } catch {
+    return false;
+  }
+};
 
 /**
  * Résout un spécificateur d'import RELATIF (`./foo`, `../bar`) vers un fichier source réel :
@@ -148,21 +158,22 @@ const EXTS_TS_DE = { '.js': ['.ts', '.tsx'], '.mjs': ['.mts'], '.cjs': ['.cts'] 
  * @param {readonly { prefixe: string, vers: string }[]} [alias]
  * @returns {string|null}
  */
-export function resolveImport(fromFile, spec, existe = existsSync, alias = aliasDuDepot()) {
+export function resolveImport(fromFile, spec, existe = fichierExiste, alias = aliasDuDepot()) {
   const a = spec.startsWith('.') ? null : alias.find(({ prefixe }) => spec.startsWith(prefixe));
   if (!spec.startsWith('.') && !a) return null;
   const base = a ? `${a.vers}${spec.slice(a.prefixe.length)}` : resolve(dirname(fromFile), spec).split('\\').join('/');
-  if (EXTS_EXPLICITES.some((e) => spec.endsWith(e))) {
+  if (/\.[^./]+$/.test(spec)) {
     if (existe(base)) return base;
     const [, radical, ext] = /^(.*)(\.[^./]+)$/.exec(base);
-    return (EXTS_TS_DE[ext] ?? []).map((e) => radical + e).find((f) => existe(f)) ?? null;
+    const source = (EXTS_TS_DE[ext] ?? []).map((e) => radical + e).find((f) => existe(f));
+    if (source) return source;
   }
   for (const ext of EXTS) if (existe(base + ext)) return base + ext;
   for (const ext of EXTS) if (existe(`${base}/index${ext}`)) return `${base}/index${ext}`;
   return null;
 }
 
-/** @typedef {{ spec: string, nature: 'statique' | 'dynamique' | 'type' | 'require', cible: string }} Arc */
+/** @typedef {{ spec: string, nature: 'statique' | 'dynamique' | 'type' | 'require', ligne: number, debut: number, fin: number, texte: string, cible: string }} Arc */
 
 /**
  * Les ARCS d'un module : ses spécificateurs (`specificateursDe`) résolus (`resolveImport`) contre
@@ -172,11 +183,11 @@ export function resolveImport(fromFile, spec, existe = existsSync, alias = alias
  * @param {{ existe?: (abs: string) => boolean, alias?: readonly { prefixe: string, vers: string }[] }} [options]
  * @returns {Arc[]}
  */
-export function arcsDe(abs, texte, { existe = existsSync, alias = aliasDuDepot() } = {}) {
+export function arcsDe(abs, texte, { existe = fichierExiste, alias = aliasDuDepot() } = {}) {
   const arcs = [];
-  for (const { spec, nature } of specificateursDe(abs, texte)) {
-    const cible = resolveImport(abs, spec, existe, alias);
-    if (cible) arcs.push({ spec, nature, cible });
+  for (const site of specificateursDe(abs, texte)) {
+    const cible = resolveImport(abs, site.spec, existe, alias);
+    if (cible) arcs.push({ ...site, cible });
   }
   return arcs;
 }

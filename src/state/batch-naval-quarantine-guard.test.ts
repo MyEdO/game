@@ -23,10 +23,17 @@ const QUARANTINED_FILES = [
 ];
 
 describe('quarantaine d’import — batch générique de cascade dé-navalisé (#328)', () => {
+  it('les acquisitions navales littérales sont vues, les commentaires et chaînes restent inertes', () => {
+    const source = "/* import './shipCrew'; */\nconst texte = \"import './shipCrew'\";\nimport './shipCrew';\nconst p = import('./shipManeuver');";
+    expect(scanBatchNavalQuarantine('fixture.ts', source)).toEqual([
+      { line: 3, source: './shipCrew' },
+      { line: 4, source: './shipManeuver' },
+    ]);
+  });
   for (const rel of QUARANTINED_FILES) {
     it(`${rel} n’importe RIEN de shipCrew/shipManeuver/crewMorale/crew-roles`, () => {
       const contenu = readFileSync(`${ROOT}/${rel}`, 'utf8');
-      const offenders = scanBatchNavalQuarantine(contenu).map((f) => `${rel}:${f.line} importe de '${f.source}'`);
+      const offenders = scanBatchNavalQuarantine(rel, contenu).map((f) => `${rel}:${f.line} importe de '${f.source}'`);
       expect(
         offenders,
         'Couplage naval ré-introduit dans la machinerie de batch générique — le flux propriétaire doit ' +
@@ -40,12 +47,12 @@ describe('quarantaine d’import — batch générique de cascade dé-navalisé 
       "import { crewRoleValue } from '../engine/crewMorale';\n" +
       "import type { CrewRoleRoll } from './shipManeuver';\n" +
       "import { findCrewRoleById } from '../data/crew-roles.json';\n";
-    const found = scanBatchNavalQuarantine(fake).map((f) => f.source);
+    const found = scanBatchNavalQuarantine('fixture.ts', fake).map((f) => f.source);
     expect(found).toEqual(['../engine/crewMorale', './shipManeuver', '../data/crew-roles.json']);
   });
 
   it('FAIL-CLOSED : un import NEUTRE (pendings, tests) n’est PAS matché', () => {
-    expect(scanBatchNavalQuarantine("import type { CascadeStep } from './pendings';")).toEqual([]);
-    expect(scanBatchNavalQuarantine("import { rollTest } from '../engine/tests';")).toEqual([]);
+    expect(scanBatchNavalQuarantine('fixture.ts', "import type { CascadeStep } from './pendings';")).toEqual([]);
+    expect(scanBatchNavalQuarantine('fixture.ts', "import { rollTest } from '../engine/tests';")).toEqual([]);
   });
 });

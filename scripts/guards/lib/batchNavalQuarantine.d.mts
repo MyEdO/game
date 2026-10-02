@@ -3,4 +3,4 @@ export interface NavalImportFinding {
   line: number;
   source: string;
 }
-export function scanBatchNavalQuarantine(contenu: string): NavalImportFinding[];
+export function scanBatchNavalQuarantine(fichier: string, contenu: string): NavalImportFinding[];

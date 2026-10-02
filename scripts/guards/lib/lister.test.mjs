@@ -31,7 +31,7 @@ import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { listerDossier, listerArbre, parUnitesDeCode, parLibelle, correspondGlob } from './lister.mjs'
-import { clotureDImports } from './importGraph.mjs'
+import { clotureDImports, estModule } from './importGraph.mjs'
 import { norm } from '../../../src/lib/normalize.ts'
 import { scriptKindDe } from './dialecte.mjs'
 import { ciblesSurDisque, GENERATORS, NON_GENERATOR_CHECKS } from '../../docs/build-all.mjs'
@@ -180,11 +180,8 @@ test('CLÔTURE — aucun module atteint par une racine du registre, hors des glo
     )
   }
 
-  // Une table `.json` de la clôture n'a pas de code à linter (dialecte `JSON`, `dialecte.mjs`) ; la
-  // source du mur, exemptée au fichier, n'est pas relintée.
-  const JSON_ = scriptKindDe('.json')
   const horsDuMur = cloture.filter(
-    (rel) => scriptKindDe(rel) !== JSON_ && !blocsDuMur().every((c) => couvre(c, rel)) && !blocsDuMur().some((c) => exempte(c, rel)),
+    (rel) => estModule(rel) && !blocsDuMur().every((c) => couvre(c, rel)) && !blocsDuMur().some((c) => exempte(c, rel)),
   )
   assert.ok(horsDuMur.includes('src/data/index.ts'), 'le témoin `src/data/index.ts` n’est plus linté par ce volet')
   const sonde = sondeDesDirectives(Object.keys(REGLES_ORDRE_TOTAL))

@@ -27,7 +27,7 @@ import { isBuiltin } from 'node:module'
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { scriptKindDe, typescript } from '../guards/lib/dialecte.mjs'
-import { clotureDImports, resolveImport } from '../guards/lib/importGraph.mjs'
+import { clotureDImports, estModule, resolveImport } from '../guards/lib/importGraph.mjs'
 
 const RACINE = fileURLToPath(new URL('../..', import.meta.url))
 const ETAPES = fileURLToPath(new URL('./etapesDuTrain.mjs', import.meta.url))
@@ -291,7 +291,7 @@ function lanceursDeLaCloture(cloture, disque = DISQUE) {
 }
 
 const clotureDesEtapes = () =>
-  [...clotureDImports([ETAPES], { racine: RACINE })].map((rel) => resolve(RACINE, rel)).filter((f) => /\.m?[jt]s$/.test(f))
+  [...clotureDImports([ETAPES], { racine: RACINE })].map((rel) => resolve(RACINE, rel)).filter(estModule)
 
 test('le point fixe voit les lanceurs de la clôture : questions et écrivains de l’hôte, `coursesCi`, `execFileResilient`, `appelGhRunner`', () => {
   const { exportsLanceurs, locaux } = lanceursDeLaCloture(clotureDesEtapes())
