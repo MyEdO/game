@@ -1,3 +1,4 @@
+import type { JSX } from 'react';
 import { useEffect, type ReactNode } from 'react';
 import { useGame } from '../state/store';
 import { availableResistance, resistanceImproves } from '../engine/menace';

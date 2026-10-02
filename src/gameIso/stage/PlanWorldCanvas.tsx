@@ -1,3 +1,4 @@
+import type { JSX } from 'react';
 /**
  * MATIÈRE DU PLAN (#1176, P3-4) — le canevas 2D qui porte l'instantané volumique du plan de station,
  * sous la surcouche SVG de `gameIso/TopoScene` (même conteneur, même boîte à 100 %×100 %, donc le

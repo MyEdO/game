@@ -1,3 +1,4 @@
+import type { JSX } from 'react';
 import type { ReactNode } from 'react';
 import type { ViewMode } from '../geometry/iso';
 import type { Combatant } from '../engine/types';

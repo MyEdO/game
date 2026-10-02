@@ -22,7 +22,7 @@
  *
  * COUCHE : il vit sous `gameIso/` parce qu'il CUIT des scènes — un objet de rendu, pas de donnée.
  */
-import { bench, describe } from 'vitest';
+import { test } from 'vitest';
 import { props } from '../../data/index';
 import { indexParId } from '../../data/versionDataset';
 import { bakerLesScenes, scenesDeLaDiligence } from './versionDataset.fixture';
@@ -38,22 +38,23 @@ const fige = (id: string) => FIGE.get(id);
 /** Lectures par itération de banc : assez pour que la boucle domine le coût d'appel du banc. */
 const N = 100_000;
 
-describe('lecture d’index : le contrôle de fraîcheur, par lecture', () => {
-  bench(`index VIVANT — ${N} lectures`, () => {
-    for (let i = 0; i < N; i++) vivant(cles[i % cles.length]);
-  });
-
-  bench(`Map FIGÉE à l’import — ${N} lectures`, () => {
-    for (let i = 0; i < N; i++) fige(cles[i % cles.length]);
-  });
+test('lecture d’index : le contrôle de fraîcheur, par lecture', async ({ bench }) => {
+  await bench.compare(
+    bench(`index VIVANT — ${N} lectures`, () => {
+      for (let i = 0; i < N; i++) vivant(cles[i % cles.length]);
+    }),
+    bench(`Map FIGÉE à l’import — ${N} lectures`, () => {
+      for (let i = 0; i < N; i++) fige(cles[i % cles.length]);
+    }),
+  );
 });
 
-describe('bake réel (Diligence) — l’échelle à laquelle ce surcoût se compare', () => {
+test('bake réel (Diligence) — l’échelle à laquelle ce surcoût se compare', async ({ bench }) => {
   // La MÊME fixture que le contrat : c'est `versionDataset.bake.test.ts` qui prouve que ce bake émet
   // bien des scènes et du décor, donc qu'il y a ici du travail à chronométrer.
   const scenes = scenesDeLaDiligence();
 
-  bench(`bake de ${scenes.length} scènes (sols + décor)`, () => {
+  await bench(`bake de ${scenes.length} scènes (sols + décor)`, () => {
     bakerLesScenes(scenes);
-  });
+  }).run();
 });
