@@ -6,11 +6,6 @@
  * sert JAMAIS du rendu. L'en-tête de `state/sceneEdit.ts` porte la même consigne en prose (« NE JAMAIS
  * importer `../ui/` ni `../gameIso/` ici ») — la prose ne refuse rien, ce test refuse.
  *
- * L'occasion mesurée : la dérivation des toitures avait besoin de la couverture du TYPE de bâtiment
- * (`buildings.json › roofMaterial`), dont la façade vivait dans `gameIso/catalog/buildings` ; c'est la
- * FAÇADE qui a déménagé (`state/buildings.ts`, patron `state/terrain/index.ts` #1690), le store n'a pas
- * traversé la frontière pour aller la chercher.
- *
  * MÉCANIQUE réutilisée, jamais un 2ᵉ parseur d'imports : `arcsDe`
  * (`scripts/guards/lib/importGraph.mjs`, partagé avec `genericDomainImport` et le graphe des
  * systèmes). Sont vus les imports statiques, de type, dynamiques (`import('…')`), à effet de bord et
@@ -58,7 +53,15 @@ describe('frontière state → gameIso (CLAUDE.md règle 3)', () => {
   it('cas planté : un import du rendu est VU, un import de state ne l’est pas (preuve TDD)', () => {
     const faux = `${STATE}/sonde-plantee.ts`;
     expect(importsDuRendu(faux, "import { buildRoofs } from '../gameIso/builders/roofs';")).toEqual([
-      { spec: '../gameIso/builders/roofs', nature: 'statique', cible: `${RENDU}builders/roofs.ts` },
+      {
+        spec: '../gameIso/builders/roofs',
+        nature: 'statique',
+        debut: 0,
+        fin: 55,
+        ligne: 1,
+        texte: "import { buildRoofs } from '../gameIso/builders/roofs';",
+        cible: `${RENDU}builders/roofs.ts`,
+      },
     ]);
     expect(importsDuRendu(faux, "const m = await import('../gameIso/builders/roofs');")).toHaveLength(1);
     expect(importsDuRendu(faux, "import { roofHidden } from './buildings';")).toEqual([]);
