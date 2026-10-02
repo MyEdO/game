@@ -28,7 +28,7 @@ const CLOTURE = { when: { kind: 'flag' as const, expr: 'chapitre-clos' }, titre:
 const narratifClos: NarratifBlock = { affaires: [], indices: [], presetsPnj: [], objets: [], cloture: CLOTURE };
 
 const get = () => useGame.getState();
-const set = (p: Parameters<typeof useGame.setState>[0]) => useGame.setState(p);
+const set = useGame.setState;
 
 beforeEach(() => {
   useGame.getState().startScene(testScene());

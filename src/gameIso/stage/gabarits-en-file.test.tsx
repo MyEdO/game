@@ -1,3 +1,4 @@
+import type { JSX } from 'react';
 // @vitest-environment jsdom
 /**
  * GABARITS DU MONDE CUIT EN FILE (#1399) — les images de FACE (colombage `faceBake`) et de PÉRIODE

@@ -19,6 +19,7 @@
 // Un script lancé seul (`npm run docs:check`) n'est pas couvert. `.npmrc` `node-options` le
 // couvrirait, mais npm y REMPLACE le `NODE_OPTIONS` de l'appelant.
 import { readFileSync } from 'node:fs'
+import semver from 'semver'
 
 /**
  * Code de sortie du refus : 2, le seul qui BLOQUE un hook d'agent `PreToolUse` (tout autre code non
@@ -26,30 +27,19 @@ import { readFileSync } from 'node:fs'
  */
 export const CODE_DE_REFUS = 2
 
-const FORME = /^\s*>=\s*v?(\d+)\.(\d+)\.(\d+)\s*$/
-
 /**
  * Message de refus, ou `null` si `version` satisfait `plage`. PUR.
- * Seule la forme `>=M.m.p` se lit : toute autre plage (ou son absence) est un refus qui la nomme.
  * @param {string | undefined} plage valeur de `engines.node`
  * @param {string} version `process.versions.node`
  * @returns {string | null}
  */
 export function refusDeVersion(plage, version) {
-  const exigee = FORME.exec(plage ?? '')
-  if (!exigee) {
-    return `[node-requis] package.json engines.node « ${plage} » : seule la forme \`>=M.m.p\` est lue par scripts/node-requis.mjs.`
+  if (typeof plage !== 'string' || !plage.trim() || !semver.validRange(plage)) {
+    return `[node-requis] package.json engines.node illisible : « ${plage} ».`
   }
-  const courante = /^v?(\d+)\.(\d+)\.(\d+)/.exec(version)
-  if (!courante) return `[node-requis] version de Node illisible : « ${version} ».`
-  for (let i = 1; i <= 3; i += 1) {
-    const ecart = Number(courante[i]) - Number(exigee[i])
-    if (ecart > 0) return null
-    if (ecart < 0) {
-      return `[node-requis] Node ${version} ne satisfait pas package.json engines.node « ${plage.trim()} » : installe un Node conforme.`
-    }
-  }
-  return null
+  if (!semver.valid(version)) return `[node-requis] version de Node illisible : « ${version} ».`
+  return semver.satisfies(version, plage) ? null
+    : `[node-requis] Node ${version} ne satisfait pas package.json engines.node « ${plage.trim()} » : installe un Node conforme.`
 }
 
 const { engines } = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'))

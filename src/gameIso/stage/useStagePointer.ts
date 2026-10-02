@@ -93,7 +93,7 @@ export function useStagePointer({
   activeZ = 0,
   aretes,
 }: {
-  svgRef: RefObject<SVGSVGElement>;
+  svgRef: RefObject<SVGSVGElement | null>;
   dims: Dims;
   zoom: number;
   /** Caméra du RENDU COURANT (réf mise à jour par l'hôte du monde après le calcul du focal — les handlers

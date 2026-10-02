@@ -66,7 +66,7 @@ export function resetDismissLayers(): void {
 /** SURFACE d'une couche, inscrite à son ouverture : sa boîte. Registre côté DOM : la pile
  *  (`src/state/dismissStack.ts`) ne porte aucun élément, elle dit seulement qui est au-dessus. */
 export interface SurfaceDeCouche {
-  readonly boite: RefObject<HTMLElement>;
+  readonly boite: RefObject<HTMLElement | null>;
 }
 
 /** DÉCLARATION d'une couche, lue à son ouverture : son identifiant STABLE, sa NATURE et son PLAN

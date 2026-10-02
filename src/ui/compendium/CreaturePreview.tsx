@@ -1,3 +1,4 @@
+import type { JSX } from 'react';
 /**
  * Aperçu RENDU d'une créature depuis sa donnée (id + apparence) — face + profil. Rendu par le MÊME
  * chemin que le jeu (entityRigProfile/resolveRig pour les bipèdes, gabarit pour les non-bipèdes), pour

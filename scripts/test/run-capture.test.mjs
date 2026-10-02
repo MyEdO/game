@@ -201,25 +201,25 @@ test('diagnostic : un run de DÉTRESSE compte ses six sentinelles, même ordre d
   }
 })
 
-test('bornes de charge : paire injectée par défaut, JAMAIS doublée si l’appelant borne', () => {
+test('plafond de charge : injecté par défaut, jamais doublé si l’appelant borne', () => {
   // Un dépôt par lancement : la capture est nommée par PID, deux runs y déposeraient deux fichiers.
   const sansBorne = fauxDepot(VITEST_VERT)
   const petiteMachine = fauxDepot(VITEST_VERT)
   const avecBorne = fauxDepot(VITEST_VERT)
   const memoirePauvre = fauxDepot(VITEST_VERT)
   try {
-    assert.deepEqual(lance(sansBorne, [], 16).argv.slice(0, 3), ['run', '--minWorkers=1', '--maxWorkers=4'])
+    assert.deepEqual(lance(sansBorne, [], 16).argv.slice(0, 2), ['run', '--maxWorkers=4'])
     // Plafond `min(4, cœurs − 1)` sur le chemin RÉEL du lanceur, pas seulement dans la fonction pure.
-    assert.deepEqual(lance(petiteMachine, [], 4).argv.slice(0, 3), ['run', '--minWorkers=1', '--maxWorkers=3'])
+    assert.deepEqual(lance(petiteMachine, [], 4).argv.slice(0, 2), ['run', '--maxWorkers=3'])
     // La mémoire disponible borne sur le chemin RÉEL : 5 000 Mo ne portent pas un worker, le plancher en sert un.
-    assert.deepEqual(lance(memoirePauvre, [], 16, 5000).argv.slice(0, 3), ['run', '--minWorkers=1', '--maxWorkers=1'])
+    assert.deepEqual(lance(memoirePauvre, [], 16, 5000).argv.slice(0, 2), ['run', '--maxWorkers=1'])
 
-    const borne = lance(avecBorne, ['--minWorkers=2'], 16)
+    const borne = lance(avecBorne, ['--maxWorkers=2'], 16)
     assert.equal(borne.run.status, 0, `run en échec : ${borne.run.stdout}${borne.run.stderr}`)
     const mins = borne.argv.filter((a) => /^--min-?[wW]orkers(=|$)/.test(a))
-    assert.equal(mins.length, 1, `--minWorkers en double : ${borne.argv.join(' ')}`)
+    assert.equal(mins.length, 0, `borne minimum non supportée : ${borne.argv.join(' ')}`)
     const maxs = borne.argv.filter((a) => /^--max-?[wW]orkers(=|$)/.test(a))
-    assert.equal(maxs.length, 0, `borne injectée par-dessus : ${borne.argv.join(' ')}`)
+    assert.equal(maxs.length, 1, `borne injectée par-dessus : ${borne.argv.join(' ')}`)
   } finally {
     for (const base of [sansBorne, petiteMachine, avecBorne, memoirePauvre]) rmSync(base, { recursive: true, force: true })
   }

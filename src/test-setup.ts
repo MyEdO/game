@@ -205,15 +205,15 @@ type RacineReact = { render(children: unknown): void; unmount(): void };
  *  already be working » sous son propre `act()` (#1724). */
 const racinesRendues = new Map<RacineReact, string>();
 let racinesInstrumentees = false;
-/** File d'`act()` de react (`ReactCurrentActQueue`) : `current` reste non nulle tant qu'un `act()`
+/** File d'`act()` de react : `actQueue` reste non nulle tant qu'un `act()`
  *  n'a pas rendu la main — un `act()` asynchrone jamais attendu la laisse ouverte. */
-let fileAct: { current: unknown } | null = null;
+let fileAct: { actQueue: unknown } | null = null;
 /** File déjà DITE : une file ouverte reste ouverte aux tests suivants, elle ne se redit pas. */
 let fileActSignalee: unknown = null;
 
 /** Vrai tant que la file d'`act()` de react n'est pas rendue — le lecteur que les bancs mesurent. */
 export function fileActOuverte(): boolean {
-  return fileAct !== null && fileAct.current !== null;
+  return fileAct !== null && fileAct.actQueue !== null;
 }
 
 /**
@@ -235,18 +235,15 @@ export async function instrumenterRacines(): Promise<void> {
   racinesInstrumentees = true;
   const [{ createRoot }, react] = await Promise.all([import('react-dom/client'), import('react')]);
   const internes = (react as unknown as {
-    __SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED?: { ReactCurrentActQueue?: { current: unknown } };
-  }).__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
-  fileAct = internes?.ReactCurrentActQueue ?? null;
-  // FAIL-LOUD : sans cette file, le volet « act() en vol » rendrait vert pour toujours sans que rien
-  // ne le dise. React 19 déplace l'interne (`__CLIENT_INTERNALS_…`, `ReactSharedInternals.actQueue`) :
-  // le recâblage se fait ici, il ne se devine pas au silence d'un banc.
-  if (fileAct === null) {
+    __CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE?: { actQueue: unknown };
+  }).__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE;
+  if (!internes || !Object.prototype.hasOwnProperty.call(internes, 'actQueue')) {
     throw new Error(
       `Barrière des act() : file d'act introuvable dans react ${(react as { version?: string }).version ?? '(version inconnue)'}`
-      + ` — recâbler \`fileAct\` sur l'interne de cette version (18 : __SECRET_INTERNALS_… puis ReactCurrentActQueue).`,
+      + ' — champ actQueue absent.',
     );
   }
+  fileAct = internes;
   const proto = Object.getPrototypeOf(
     createRoot(document.createElement('div')) as unknown as RacineReact,
   ) as RacineReact;
@@ -284,7 +281,7 @@ export function messageRacineMontee(fichiers: readonly string[]): string | null 
  *  Portée MESURÉE : ce volet ne sait nommer que le fichier COURANT — l'objet de module `react` est un
  *  espace de noms ESM que vitest rend non redéfinissable (« Cannot redefine property: act »), donc
  *  aucune enveloppe ne peut retenir qui a OUVERT la file. La file ouverte le restant aux tests
- *  suivants, elle se dit UNE fois (identité de `fileAct.current` mémorisée) : le premier accusé est le
+ *  suivants, elle se dit UNE fois (identité de `fileAct.actQueue` mémorisée) : le premier accusé est le
  *  plus proche de l'ouvreur, jamais toute la file d'attente derrière lui. */
 export function messageActEnVol(fichier: string, enVol: boolean): string | null {
   if (!enVol) return null;
@@ -366,9 +363,9 @@ afterEach(() => {
   // fautif est alors innocenté et sa victime accusée — l'inverse de ce que cette barrière promet.
   const racinesFuites = fichiersDesRacinesRendues();
   racinesRendues.clear();
-  const fileOuverte = fileAct !== null && fileAct.current !== null;
-  const fileNeuve = fileOuverte && fileAct!.current !== fileActSignalee;
-  if (fileOuverte) fileActSignalee = fileAct!.current;
+  const fileOuverte = fileAct !== null && fileAct.actQueue !== null;
+  const fileNeuve = fileOuverte && fileAct!.actQueue !== fileActSignalee;
+  if (fileOuverte) fileActSignalee = fileAct!.actQueue;
   // REGISTRE DES SCÈNES (`state/store`) : vidé APRÈS CHAQUE test —
   // aucune scène enregistrée par un test (`registerScene`/`loadProject`) ne traverse vers un autre
   // fichier du worker (`isolate:false`). Portée exacte : en-tête §1 + `state/scene-registry-isolation.test.ts`.

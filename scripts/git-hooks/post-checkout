@@ -4,5 +4,5 @@
 # (docs-rebuild.mjs post-checkout ; #2203 A2). Contrat de post-hook : ne fait jamais échouer
 # l'opération qui vient d'avoir lieu.
 [ "${3:-}" = "1" ] || exit 0
-node "$(dirname "$0")/docs-rebuild.mjs" post-checkout "$1" "$2" || true
+"${npm_node_execpath:-node}" "$(dirname "$0")/docs-rebuild.mjs" post-checkout "$1" "$2" || true
 exit 0
