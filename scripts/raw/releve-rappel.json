@@ -1,0 +1,1989 @@
+{
+  "date": "2026-10-01",
+  "consigne": "est attendue toute section de RÈGLE (hors `horsRegle` et hors `entites`) dont le texte définit, modifie, déclenche ou consomme <le système>",
+  "juge": "juge-rappel-lot7 (Opus, lecture au Source CRB @ c6d89e044)",
+  "systemes": {
+    "poison": {
+      "termes": [
+        "poison",
+        "poisons",
+        "Poisoned",
+        "poisoning",
+        "venom",
+        "toxin",
+        "antidote",
+        "dose",
+        "Trade (Poisoner)"
+      ],
+      "attendus": [
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "024",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "getting-help",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 2,
+                "sum": "75527eb6021dec9d"
+              }
+            ]
+          },
+          "ref": "024 l.140",
+          "titre": "Getting Help",
+          "role": "modifie",
+          "preuve": "Characters cannot normally help resist disease, poison, fear, hazards, or physically assist if they aren't close enough."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "028",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "carousing",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 4,
+                "sum": "821e406428746151"
+              }
+            ]
+          },
+          "ref": "028 l.210",
+          "titre": "Carousing",
+          "role": "déclenche",
+          "preuve": "Pass a Consume Alcohol Test or also gain a Poisoned Condition (see page 186)."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "029",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "hiding-clues",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 8,
+                "sum": "d1918ae3d32f3832"
+              }
+            ]
+          },
+          "ref": "029 l.11",
+          "titre": "HIDING CLUES",
+          "role": "consomme",
+          "preuve": "An Average (+2 SL) Animal Care Test, or Challenging (+0 SL) if a subtle poison or illness was the cause."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "031",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "concocting-poison",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 6,
+                "sum": "83f882f1b13d02ce"
+              }
+            ]
+          },
+          "ref": "031 l.68",
+          "titre": "Concocting Poison",
+          "role": "définit",
+          "preuve": "A Simple Trade (Poisoner) Test makes 1 dose of herbal poison or Dexterity Bonus doses of alchemical poison; the Difficulty is the same as the Test to resist it."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "039",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "symptoms",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 0,
+                "sum": "85663d034cc2f1f4"
+              }
+            ]
+          },
+          "ref": "039 l.143",
+          "titre": "Symptoms",
+          "role": "déclenche",
+          "preuve": "You can also suffer a Symptom from other causes, such as a curse, poison, or untreated Wound."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "040",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "poisons",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 1,
+                "sum": "f185508d507b4bd6"
+              }
+            ]
+          },
+          "ref": "040 l.5",
+          "titre": "POISONS",
+          "role": "définit",
+          "preuve": "Poisoning is almost always handled by having the affected Character make an Endurance Test to avoid or mitigate the effects of the poison."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "040",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "dosage",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 3,
+                "sum": "71107523c8ea3d50"
+              }
+            ]
+          },
+          "ref": "040 l.11",
+          "titre": "Dosage",
+          "role": "définit",
+          "preuve": "For every additional dose applied, the Difficulty of the Endurance Test required to resist the poison worsens by 1 step."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "042",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "blinded",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 1,
+                "sum": "c5cc30047f5afaef"
+              }
+            ]
+          },
+          "ref": "042 l.61",
+          "titre": "Blinded",
+          "role": "modifie",
+          "preuve": "However, if you have received a *Blinded* Condition as a result of imbibing a poison or an injury, it may persist for a longer period."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "042",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "fatigued",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 2,
+                "sum": "bf095f7053e21eff"
+              }
+            ]
+          },
+          "ref": "042 l.93",
+          "titre": "Fatigued",
+          "role": "modifie",
+          "preuve": "One inflicted by a day's hard labour, a forced march, or ingesting poison requires a night's sleep"
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "042",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "poisoned",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 2,
+                "sum": "b45fd2bad7594fad"
+              }
+            ]
+          },
+          "ref": "042 l.101",
+          "titre": "Poisoned",
+          "role": "définit",
+          "preuve": "While *Poisoned*, you suffer a -1 SL penalty to all Tests and lose 1 Wound at the end of each Round, ignoring Toughness Bonus and Armour Points."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "046",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "36-39-marvellous-miracle-cures",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 0,
+                "sum": "8defb68e7dc23279"
+              }
+            ]
+          },
+          "ref": "046 l.45",
+          "titre": "36–39: Marvellous Miracle Cures",
+          "role": "déclenche",
+          "preuve": "For each item bought this way, the GM rolls a d10: on a 1 or 2, it is actually a Poison (page 313) of the GM's choosing."
+        }
+      ],
+      "ecartees": [
+        {
+          "ref": "039 l.147",
+          "titre": "Blight",
+          "raison": "« as deadly poisons flood your body » est une image : Blight est un Symptom de maladie, sans renvoi aux règles du poison"
+        },
+        {
+          "ref": "042 l.17",
+          "titre": "COMPLETE CONDITION LIST",
+          "raison": "liste de noms de Conditions : nomme Poisoned sans le définir ni le déclencher (la définition est 042 § Poisoned)"
+        },
+        {
+          "ref": "048 l.88",
+          "titre": "Consult an Expert",
+          "raison": "exemple narratif d'expert (« Apothecary Generals can identify even the rarest poisons ») sans effet de règle"
+        },
+        {
+          "ref": "048 l.123",
+          "titre": "CUSTOM GEAR",
+          "raison": "exemple d'objet commandé (« a rare and virulent poison ») : règle de la Commission, pas du poison"
+        },
+        {
+          "ref": "080 l.81",
+          "titre": "BITTER BREW",
+          "raison": "accroche d'aventure (« a spate of poisonings »), aucune règle"
+        },
+        {
+          "ref": "081 l.13",
+          "titre": "TRAPPING LISTS",
+          "raison": "table des renvois du Consumer Guide (« Poisons: Page 313 ») vers le catalogue 096 (entités)"
+        },
+        {
+          "ref": "091 l.5",
+          "titre": "TOOLS AND KITS",
+          "raison": "fiche d'équipement (Antitoxin Kit : « removes all Poisoned Conditions ») : catalogue d'entités 091, hors consigne ; porteur réel côté entite"
+        },
+        {
+          "ref": "091 l.27",
+          "titre": "GUILDERS",
+          "raison": "table de prix (Antitoxin Kit) : catalogue d'entités"
+        }
+      ]
+    },
+    "portee-a-distance": {
+      "termes": [
+        "Ranged Attack",
+        "Ranged Test",
+        "ranged weapon",
+        "Ranged (",
+        "Ranged Combat",
+        "range",
+        "range bands",
+        "Point Blank",
+        "Short",
+        "Long",
+        "Extreme",
+        "Shooting into a Group",
+        "Shooting into Melee",
+        "aiming",
+        "Aimed Shots",
+        "missiles",
+        "Misfire",
+        "Scatter",
+        "Ballistic Skill",
+        "Blackpowder",
+        "Crossbow",
+        "Throwing"
+      ],
+      "attendus": [
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "024",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "darkness-and-tests",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 0,
+                "sum": "833e245d73fce156"
+              }
+            ]
+          },
+          "ref": "024 l.27",
+          "titre": "DARKNESS AND TESTS",
+          "role": "modifie",
+          "preuve": "If your target is in darkness, Melee Tests, Ranged Tests, and Perception Tests based on sight incur Disadvantage."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "024",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "difficulty-and-character-modifiers",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 5,
+                "sum": "b1cc90528b615bf5"
+              }
+            ]
+          },
+          "ref": "024 l.54",
+          "titre": "DIFFICULTY AND CHARACTER MODIFIERS",
+          "role": "définit",
+          "preuve": "Typical Ranged and Melee attack Tests, climbing a stone wall"
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "036",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "attacking",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 0,
+                "sum": "35589621d3422312"
+              }
+            ]
+          },
+          "ref": "036 l.5",
+          "titre": "ATTACKING",
+          "role": "définit",
+          "preuve": "To make a Ranged Attack, your target must be within your weapon's range (see **Chapter 11: Consumer Guide**) and in your line of sight."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "036",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "1-roll-to-hit",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 3,
+                "sum": "2e36d59c70a6e717"
+              }
+            ]
+          },
+          "ref": "036 l.9",
+          "titre": "1: Roll to Hit",
+          "role": "définit",
+          "preuve": "**Ranged:** Make a Ranged Test using your weapon. On a success, you hit. On a failure, your attack misses."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "036",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "3-determine-damage",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 2,
+                "sum": "afdf2989cd37d9d0"
+              }
+            ]
+          },
+          "ref": "036 l.38",
+          "titre": "3: Determine Damage",
+          "role": "définit",
+          "preuve": "For Ranged Attacks, use the SL of your successful Ranged Test."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "036",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "critical-hits",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 1,
+                "sum": "2bf5964521893f70"
+              }
+            ]
+          },
+          "ref": "036 l.72",
+          "titre": "Critical Hits",
+          "role": "consomme",
+          "preuve": "Any successful Melee or Ranged Test that rolls a double is a Critical Hit, even if you are defending in an Opposed Test."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "036",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "fumbles",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 3,
+                "sum": "02f7be57e340b184"
+              }
+            ]
+          },
+          "ref": "036 l.78",
+          "titre": "Fumbles",
+          "role": "consomme",
+          "preuve": "Any failed Melee or Ranged Test that rolls a double is a Fumble."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "036",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "misfires",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 0,
+                "sum": "69c23e7e12084607"
+              }
+            ]
+          },
+          "ref": "036 l.102",
+          "titre": "Misfires!",
+          "role": "modifie",
+          "preuve": "If you are using a Blackpowder, Engineering, or Explosive weapon and roll 99 or 00, your weapon Misfires: roll on the **Misfire Table** instead of the **Oops! Table**."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "036",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "ranged-combat",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 3,
+                "sum": "c08e43f612ade333"
+              }
+            ]
+          },
+          "ref": "036 l.106",
+          "titre": "Ranged Combat",
+          "role": "définit",
+          "preuve": "You cannot make Ranged Attacks while Engaged, unless your weapon has the Pistol Quality (see page 305)."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "036",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "weapon-groups",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 3,
+                "sum": "3bf2f511c3d61662"
+              }
+            ]
+          },
+          "ref": "036 l.121",
+          "titre": "Weapon Groups",
+          "role": "définit",
+          "preuve": "Ranged Weapons are typically more complicated, and you cannot make Ranged Attacks with a weapon from a Weapon Group you have no Advances in, save for a few exceptions:"
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "036",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "combat-modifiers",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 5,
+                "sum": "b6b07a69ce682c16"
+              }
+            ]
+          },
+          "ref": "036 l.149",
+          "titre": "Combat Modifiers",
+          "role": "modifie",
+          "preuve": "Range is Short (+1 SL) or Point Blank (+2 SL) | Range is Long (-1 SL), or Extreme (-2 SL)"
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "036",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "aimed-shots",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 0,
+                "sum": "0a1f2567c7ecfe66"
+              }
+            ]
+          },
+          "ref": "036 l.175",
+          "titre": "Aimed Shots",
+          "role": "modifie",
+          "preuve": "If you spend an Action aiming at your target, you gain +1 SL on your next ranged attack against them."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "036",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "helpless-targets",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 2,
+                "sum": "7b12e45add93d973"
+              }
+            ]
+          },
+          "ref": "036 l.183",
+          "titre": "Helpless Targets",
+          "role": "modifie",
+          "preuve": "When making a Melee Attack (or a Ranged Attack at Point Blank Range) against a sleeping, unconscious, or otherwise Helpless target, you choose the result of your attack roll instead of rolling."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "036",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "shooting-into-a-group",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 0,
+                "sum": "b2092977aca5a57c"
+              }
+            ]
+          },
+          "ref": "036 l.199",
+          "titre": "Shooting into a Group",
+          "role": "modifie",
+          "preuve": "Shooting into a group of half a dozen or more grants Advantage, but you cannot choose which member of the group you hit, including any allies mixed into the fray."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "036",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "shooting-into-melee",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 1,
+                "sum": "3984fcc3c4863e54"
+              }
+            ]
+          },
+          "ref": "036 l.203",
+          "titre": "Shooting into Melee",
+          "role": "modifie",
+          "preuve": "Ranged attacks against Engaged targets suffer Disadvantage."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "036",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "scatter",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 3,
+                "sum": "10c83c4a49ad07d9"
+              }
+            ]
+          },
+          "ref": "036 l.250",
+          "titre": "Scatter",
+          "role": "consomme",
+          "preuve": "On a failed Ranged (Throwing) Test, roll 1d10 and consult the following diagram to see where your weapon lands."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "037",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "exposure",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 2,
+                "sum": "8416163651ef09f5"
+              }
+            ]
+          },
+          "ref": "037 l.55",
+          "titre": "Exposure",
+          "role": "modifie",
+          "preuve": "**Cold:** Your first failure inflicts Disadvantage on Tests based on Ballistic Skill, Agility, and Dexterity."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "038",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "inflicting-critical-wounds-with-critical-hits",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 2,
+                "sum": "5cd7a02d89dad218"
+              }
+            ]
+          },
+          "ref": "038 l.49",
+          "titre": "Inflicting Critical Wounds with Critical Hits",
+          "role": "consomme",
+          "preuve": "Any Critical on a Melee or Ranged Test, whether attacking or defending, is a Critical Hit and inflicts a Critical Wound."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "038",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "pulling-your-blows",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 4,
+                "sum": "cedadec46b9e6097"
+              }
+            ]
+          },
+          "ref": "038 l.57",
+          "titre": "PULLING YOUR BLOWS",
+          "role": "modifie",
+          "preuve": "You may not pull blows with missiles, Spells, Miracles, or weapons that cause *Ablaze* Conditions."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "041",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "hatred-target",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 1,
+                "sum": "f480ce31f73a745e"
+              }
+            ]
+          },
+          "ref": "041 l.37",
+          "titre": "Hatred (Target)",
+          "role": "modifie",
+          "preuve": "You always gain a bonus of +1 SL on Melee and Ranged Tests against the specified group"
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "042",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "blinded",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 1,
+                "sum": "c5cc30047f5afaef"
+              }
+            ]
+          },
+          "ref": "042 l.61",
+          "titre": "Blinded",
+          "role": "modifie",
+          "preuve": "you cannot see, and cannot undertake any task that requires sight, such as reading or making Ranged Attacks."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "048",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "combat-training",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 0,
+                "sum": "5c344df549ea7f78"
+              }
+            ]
+          },
+          "ref": "048 l.76",
+          "titre": "Combat Training",
+          "role": "modifie",
+          "preuve": "After undertaking this Endeavour, you may reroll one Melee or Ranged Skill Test in your next adventure."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "076",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "momentum",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 1,
+                "sum": "cd0422d876760407"
+              }
+            ]
+          },
+          "ref": "076 l.81",
+          "titre": "Momentum",
+          "role": "déclenche",
+          "preuve": "Ranged attacks that inflict a Wound, for example, or anything that inflicts a Condition can also remove Momentum."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "086",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "ranged-weapon-groups",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 1,
+                "sum": "2c331cc207a0f931"
+              }
+            ]
+          },
+          "ref": "086 l.104",
+          "titre": "Ranged Weapon Groups",
+          "role": "définit",
+          "preuve": "Ranged weapons are difficult to master. You cannot attempt a Ranged Test for a weapon you do not have the correct speciality for."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "086",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "blackpowder-and-explosives",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 0,
+                "sum": "4364841ba6a0ccfc"
+              }
+            ]
+          },
+          "ref": "086 l.110",
+          "titre": "Blackpowder and Explosives",
+          "role": "modifie",
+          "preuve": "Those with *Ranged (Engineering)* can use Blackpowder and Explosive weapons without penalty."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "086",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "crossbows-and-throwing",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 0,
+                "sum": "4b35ad522b12d0bb"
+              }
+            ]
+          },
+          "ref": "086 l.114",
+          "titre": "Crossbows and Throwing",
+          "role": "modifie",
+          "preuve": "You can use Crossbow and Throwing weapons with *Ballistic Skill*, but Ballistic Skill Tests suffer from –1 SL."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "086",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "engineering",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 0,
+                "sum": "c828bd51a46277dc"
+              }
+            ]
+          },
+          "ref": "086 l.118",
+          "titre": "Engineering",
+          "role": "modifie",
+          "preuve": "You can use all Engineering weapons with *Ranged (Blackpowder)*, but Ranged (Blackpowder) Tests suffer from a penalty of –2 SL."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "086",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "weapon-range",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 0,
+                "sum": "566a2e9a6023a81f"
+              }
+            ]
+          },
+          "ref": "086 l.122",
+          "titre": "Weapon Range",
+          "role": "définit",
+          "preuve": "A weapon's range is its Medium range in yards. **Chapter 5: Rules** presents modifiers if a weapon is at Point Blank, Short, Long, or Extreme range."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "086",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "calculating-range-bands",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 3,
+                "sum": "f746b149febd5fc8"
+              }
+            ]
+          },
+          "ref": "086 l.126",
+          "titre": "CALCULATING RANGE BANDS",
+          "role": "définit",
+          "preuve": "**Point Blank** = 4 yards **Short** = Range ÷ 2"
+        }
+      ],
+      "ecartees": [
+        {
+          "ref": "024 l.87",
+          "titre": "SUMMARY & OUTCOME",
+          "raison": "faux candidat (« thrown in » dans la table des résultats)"
+        },
+        {
+          "ref": "024 l.120",
+          "titre": "Criticals and Fumbles",
+          "raison": "renvoi seul (« work a little differently when making Melee or Ranged Tests in combat — see page 165 ») : la règle vit en 036 § Critical Hits / § Fumbles"
+        },
+        {
+          "ref": "030 l.25",
+          "titre": "Foraging",
+          "raison": "un arc comme OUTIL de chasse réduit la Difficulté d'Outdoor Survival : pas une attaque à distance"
+        },
+        {
+          "ref": "035 l.41",
+          "titre": "Charging",
+          "raison": "« Run range » = allure de course, pas une portée de tir"
+        },
+        {
+          "ref": "035 l.45",
+          "titre": "Disengaging",
+          "raison": "« retreating to attack at range » : permission narrative après Disengage, aucune règle de tir"
+        },
+        {
+          "ref": "035 l.55",
+          "titre": "Fleeing",
+          "raison": "faux candidat (« throwing yourself »)"
+        },
+        {
+          "ref": "046 l.97",
+          "titre": "95–97: Riots",
+          "raison": "faux candidat (aucun tir)"
+        },
+        {
+          "ref": "048 l.123",
+          "titre": "CUSTOM GEAR",
+          "raison": "faux candidat (« generally range from »)"
+        },
+        {
+          "ref": "076 l.51",
+          "titre": "How Do You Folks Know Each Other?",
+          "raison": "faux candidat (« thrown together »)"
+        },
+        {
+          "ref": "076 l.125",
+          "titre": "Awarding XP",
+          "raison": "faux candidat (« Aim for »)"
+        },
+        {
+          "ref": "076 l.144",
+          "titre": "The Dangerous Business of Getting from Here to There",
+          "raison": "faux candidat (« Throw in »)"
+        },
+        {
+          "ref": "076 l.181",
+          "titre": "Sights and Sounds of the Empire",
+          "raison": "table de rencontres (« Warning Shot », « shooting contest ») : décor, aucune règle"
+        },
+        {
+          "ref": "084 l.15",
+          "titre": "Durable",
+          "raison": "faux candidat (renvoi à Trap Blade p.305)"
+        },
+        {
+          "ref": "086 l.5",
+          "titre": "WEAPONS",
+          "raison": "format du catalogue d'armes (« Reach/Range: … the range of the weapon in yards ») : en-tête de catalogue d'entités"
+        },
+        {
+          "ref": "086 l.141",
+          "titre": "BLACKPOWDER AMMUNITION",
+          "raison": "tables AMMUNITION / RANGED WEAPONS : catalogue d'entités (portées par arme)"
+        },
+        {
+          "ref": "086 l.208",
+          "titre": "Blackpowder",
+          "raison": "Weapon Quality (entité)"
+        },
+        {
+          "ref": "086 l.232",
+          "titre": "Impale",
+          "raison": "Weapon Quality (entité)"
+        },
+        {
+          "ref": "086 l.254",
+          "titre": "Pistol",
+          "raison": "Weapon Quality (entité) ; « it does not use range modifiers »"
+        },
+        {
+          "ref": "086 l.266",
+          "titre": "Repeater (Rating)",
+          "raison": "Weapon Quality (entité)"
+        },
+        {
+          "ref": "086 l.292",
+          "titre": "Imprecise",
+          "raison": "Weapon Flaw (entité)"
+        },
+        {
+          "ref": "086 l.296",
+          "titre": "Reload (Rating)",
+          "raison": "Weapon Flaw (entité)"
+        }
+      ]
+    },
+    "advantage": {
+      "termes": [
+        "Advantage",
+        "Disadvantage"
+      ],
+      "attendus": [
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "024",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "darkness-and-tests",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 0,
+                "sum": "833e245d73fce156"
+              }
+            ]
+          },
+          "ref": "024 l.27",
+          "titre": "DARKNESS AND TESTS",
+          "role": "déclenche",
+          "preuve": "If your target is in darkness, Melee Tests, Ranged Tests, and Perception Tests based on sight incur Disadvantage."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "024",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "advantage-and-disadvantage",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 1,
+                "sum": "d4648b29f693d252"
+              }
+            ]
+          },
+          "ref": "024 l.48",
+          "titre": "ADVANTAGE AND DISADVANTAGE",
+          "role": "définit",
+          "preuve": "When making a Test with Advantage, you may reverse the digits of a roll if that would improve your result, so a 71 could become a 17."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "024",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "rolling-with-advantage",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 1,
+                "sum": "30e061a7d923fe0a"
+              }
+            ]
+          },
+          "ref": "024 l.128",
+          "titre": "Rolling with Advantage",
+          "role": "définit",
+          "preuve": "Disadvantage works the same way, but you must reverse the results if they would be worse."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "024",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "getting-help",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 2,
+                "sum": "75527eb6021dec9d"
+              }
+            ]
+          },
+          "ref": "024 l.140",
+          "titre": "Getting Help",
+          "role": "déclenche",
+          "preuve": "The character with the highest Skill (or Characteristic) makes the Test with Advantage."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "025",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "spend-a-fortune-point-to",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 0,
+                "sum": "ff4d888ac3d7936f"
+              }
+            ]
+          },
+          "ref": "025 l.9",
+          "titre": "Spend a Fortune Point to:",
+          "role": "déclenche",
+          "preuve": "Gain Advantage on a Test before rolling."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "027",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "sneaking-around",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 5,
+                "sum": "d3950a41eee7ffc0"
+              }
+            ]
+          },
+          "ref": "027 l.31",
+          "titre": "Sneaking Around",
+          "role": "déclenche",
+          "preuve": "A suitable distraction, such as a modest fire, a street brawl, or a blathering guest (page 115), grants Advantage on Stealth Tests."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "027",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "silent-takedowns",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 2,
+                "sum": "c3663679b1c8055e"
+              }
+            ]
+          },
+          "ref": "027 l.82",
+          "titre": "Silent Takedowns",
+          "role": "déclenche",
+          "preuve": "Characters with the *Strike to Stun* Talent gain Advantage on this Test."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "027",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "gambling-and-cheating",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 2,
+                "sum": "caf6b7bd760ce96a"
+              }
+            ]
+          },
+          "ref": "027 l.90",
+          "titre": "Gambling and Cheating",
+          "role": "déclenche",
+          "preuve": "Success grants Advantage on your next Gamble Test in that game."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "027",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "a-sleight-of-hand-test-to-cheat-at-cards",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 7,
+                "sum": "2c900d1c5ba34d4f"
+              }
+            ]
+          },
+          "ref": "027 l.110",
+          "titre": "A Sleight of Hand Test to cheat at cards.",
+          "role": "déclenche",
+          "preuve": "**Success (+1 to +2 SL):** You pocket a pair of useful cards, granting you Advantage on your next Gamble Test."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "027",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "spotting-a-trap",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 1,
+                "sum": "9569d1d40f81af67"
+              }
+            ]
+          },
+          "ref": "027 l.128",
+          "titre": "Spotting a Trap",
+          "role": "déclenche",
+          "preuve": "If a Character specifically checks a small area, such as a door or hallway, for a trap, they gain Advantage on the associated Perception Test."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "027",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "disarming-a-trap",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 0,
+                "sum": "3c0eb89e83f72b7d"
+              }
+            ]
+          },
+          "ref": "027 l.138",
+          "titre": "Disarming a Trap",
+          "role": "déclenche",
+          "preuve": "You have Advantage on Tests to disarm a trap you set."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "027",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "picking-locks",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 9,
+                "sum": "02e9b0d331ea4fda"
+              }
+            ]
+          },
+          "ref": "027 l.146",
+          "titre": "Picking Locks",
+          "role": "déclenche",
+          "preuve": "Improvised tools, such as a hairpin or nail, impose Disadvantage."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "028",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "status-and-social-standing",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 9,
+                "sum": "48fdee6107474e14"
+              }
+            ]
+          },
+          "ref": "028 l.17",
+          "titre": "Status and Social Standing",
+          "role": "déclenche",
+          "preuve": "This could yield useful information or grant Advantage on a future Test."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "028",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "status-and-social-tests",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 5,
+                "sum": "bf7e0b8c15faa8f7"
+              }
+            ]
+          },
+          "ref": "028 l.74",
+          "titre": "Status and Social Tests",
+          "role": "déclenche",
+          "preuve": "Characters gain Advantage on Leadership Tests made to command those of lower Status."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "028",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "befriend-someone-useful",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 0,
+                "sum": "febf5265f0ba0030"
+              }
+            ]
+          },
+          "ref": "028 l.116",
+          "titre": "Befriend Someone Useful",
+          "role": "déclenche",
+          "preuve": "On a success, you gain Advantage on future Charm Tests with that NPC."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "032",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "riding-a-mount",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 1,
+                "sum": "2730284c26253a4d"
+              }
+            ]
+          },
+          "ref": "032 l.53",
+          "titre": "Riding a Mount",
+          "role": "déclenche",
+          "preuve": "Apply Disadvantage to every Test involving them, and most likely they will simply flee regardless of the rider's wishes."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "032",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "obstacles",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 2,
+                "sum": "9b5b3e12f05733d3"
+              }
+            ]
+          },
+          "ref": "032 l.110",
+          "titre": "Obstacles",
+          "role": "déclenche",
+          "preuve": "Characters may also make use of appropriate Trappings to gain Advantage on their Tests"
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "035",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "disengaging",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 3,
+                "sum": "ce4aa20bd108f724"
+              }
+            ]
+          },
+          "ref": "035 l.45",
+          "titre": "Disengaging",
+          "role": "déclenche",
+          "preuve": "While Outnumbered (page 167), make this Test with Disadvantage."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "036",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "combat-modifiers",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 5,
+                "sum": "b6b07a69ce682c16"
+              }
+            ]
+          },
+          "ref": "036 l.149",
+          "titre": "Combat Modifiers",
+          "role": "modifie",
+          "preuve": "If an attacker gains Advantage on a Melee Test due to outnumbering their target, the defender does not automatically suffer Disadvantage on a Melee Test made to parry that blow simply because they are outnumbered."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "036",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "shooting-into-a-group",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 0,
+                "sum": "b2092977aca5a57c"
+              }
+            ]
+          },
+          "ref": "036 l.199",
+          "titre": "Shooting into a Group",
+          "role": "déclenche",
+          "preuve": "Shooting into a group of half a dozen or more grants Advantage, but you cannot choose which member of the group you hit, including any allies mixed into the fray."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "036",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "shooting-into-melee",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 1,
+                "sum": "3984fcc3c4863e54"
+              }
+            ]
+          },
+          "ref": "036 l.203",
+          "titre": "Shooting into Melee",
+          "role": "déclenche",
+          "preuve": "Ranged attacks against Engaged targets suffer Disadvantage."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "036",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "mounted-combat",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 2,
+                "sum": "2f1a4e02ddc87f87"
+              }
+            ]
+          },
+          "ref": "036 l.237",
+          "titre": "Mounted Combat",
+          "role": "déclenche",
+          "preuve": "Any Melee Test made with a Cavalry weapon by a rider against a target smaller than their mount gains Advantage."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "037",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "gaining-momentum",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 1,
+                "sum": "716ca41ea3305ba3"
+              }
+            ]
+          },
+          "ref": "037 l.11",
+          "titre": "Gaining Momentum",
+          "role": "déclenche",
+          "preuve": "When you have Momentum, you gain Advantage (page 130) on any Melee Test you make."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "037",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "exposure",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 2,
+                "sum": "8416163651ef09f5"
+              }
+            ]
+          },
+          "ref": "037 l.55",
+          "titre": "Exposure",
+          "role": "déclenche",
+          "preuve": "**Cold:** Your first failure inflicts Disadvantage on Tests based on Ballistic Skill, Agility, and Dexterity."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "037",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "thirst-and-starvation",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 2,
+                "sum": "4c4fe4cf63ac38d6"
+              }
+            ]
+          },
+          "ref": "037 l.63",
+          "titre": "Thirst and Starvation",
+          "role": "déclenche",
+          "preuve": "The first failed Test inflicts Disadvantage on Tests based on Intelligence, Willpower, and Fellowship."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "038",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "sudden-death",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 9,
+                "sum": "3053e159f3bd251a"
+              }
+            ]
+          },
+          "ref": "038 l.96",
+          "titre": "Sudden Death",
+          "role": "déclenche",
+          "preuve": "Pass an Average (+2 SL) Endurance Test or suffer Disadvantage on Tests based on Agility until the end of your Turn."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "038",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "minor",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 3,
+                "sum": "e0dcb48b679a6a98"
+              }
+            ]
+          },
+          "ref": "038 l.218",
+          "titre": "Minor",
+          "role": "déclenche",
+          "preuve": "you suffer Disadvantage on Tests based on Strength and Agility, and halve your Movement."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "038",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "ear",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 0,
+                "sum": "fe53867d5f5d85da"
+              }
+            ]
+          },
+          "ref": "038 l.264",
+          "titre": "Ear",
+          "role": "déclenche",
+          "preuve": "Should you have the bad luck to lose both your ears, you suffer Disadvantage on all hearing-based Perception Tests."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "038",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "eye",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 0,
+                "sum": "4977132780a2d442"
+              }
+            ]
+          },
+          "ref": "038 l.268",
+          "titre": "Eye",
+          "role": "déclenche",
+          "preuve": "Should you have the misfortune to lose both eyes, you suffer Disadvantage on all Tests influenced by sight and opponents gain Advantage on Tests made to hit you in melee."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "038",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "foot",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 0,
+                "sum": "3439167119c1ebcc"
+              }
+            ]
+          },
+          "ref": "038 l.276",
+          "titre": "Foot",
+          "role": "déclenche",
+          "preuve": "and suffer Disadvantage on all Dodge and Athletics Tests."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "038",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "hand",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 0,
+                "sum": "fb063123bb2cf95e"
+              }
+            ]
+          },
+          "ref": "038 l.280",
+          "titre": "Hand",
+          "role": "déclenche",
+          "preuve": "You suffer Disadvantage on all Tests that typically rely on the use of two hands and you cannot wield two-handed weapons"
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "038",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "nose",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 0,
+                "sum": "6b46d16fd7d77f3a"
+              }
+            ]
+          },
+          "ref": "038 l.288",
+          "titre": "Nose",
+          "role": "déclenche",
+          "preuve": "All Tests involving the sense of smell suffer Disadvantage."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "039",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "black-plague",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 5,
+                "sum": "424dc00d93af9c76"
+              }
+            ]
+          },
+          "ref": "039 l.25",
+          "titre": "Black Plague",
+          "role": "déclenche",
+          "preuve": "Those who have already survived a bout of the Black Plague Test only once each day, and then with Advantage."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "041",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "animosity-target",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 1,
+                "sum": "060ad051dcd32032"
+              }
+            ]
+          },
+          "ref": "041 l.17",
+          "titre": "Animosity (Target)",
+          "role": "déclenche",
+          "preuve": "You have Disadvantage on all Fellowship based Tests while interacting with that group."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "041",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "fear-rating",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 1,
+                "sum": "ae41478352e147f4"
+              }
+            ]
+          },
+          "ref": "041 l.23",
+          "titre": "Fear (Rating)",
+          "role": "déclenche",
+          "preuve": "Melee Attacks made against you by the source of your *Fear* benefit from Advantage."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "042",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "besmirched",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 1,
+                "sum": "37a261222b1124db"
+              }
+            ]
+          },
+          "ref": "042 l.47",
+          "titre": "Besmirched",
+          "role": "déclenche",
+          "preuve": "Until you have a chance to clean yourself, you suffer Disadvantage to all Fellowship Tests."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "042",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "blinded",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 1,
+                "sum": "c5cc30047f5afaef"
+              }
+            ]
+          },
+          "ref": "042 l.61",
+          "titre": "Blinded",
+          "role": "déclenche",
+          "preuve": "Melee Attacks against you benefit from Advantage, unless your foe is also *Blinded.*"
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "042",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "prone",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 1,
+                "sum": "00eceecaa2060fe7"
+              }
+            ]
+          },
+          "ref": "042 l.109",
+          "titre": "Prone",
+          "role": "déclenche",
+          "preuve": "You suffer Disadvantage to all Tests involving movement of any kind, and Melee Attacks against you benefit from Advantage."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "046",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "01-02-grand-procession",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 0,
+                "sum": "faf8ed3ab39905b5"
+              }
+            ]
+          },
+          "ref": "046 l.9",
+          "titre": "01–02: Grand Procession",
+          "role": "déclenche",
+          "preuve": "may choose to make a single Test with Advantage during the next adventure."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "046",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "31-35-festivities",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 0,
+                "sum": "3a3549e2ef4ee417"
+              }
+            ]
+          },
+          "ref": "046 l.41",
+          "titre": "31–35: Festivities",
+          "role": "déclenche",
+          "preuve": "any Gossip Tests made during this downtime benefit from Advantage"
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "046",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "53-55-religious-mania",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 0,
+                "sum": "b78c87afae945124"
+              }
+            ]
+          },
+          "ref": "046 l.61",
+          "titre": "53–55: Religious Mania",
+          "role": "déclenche",
+          "preuve": "Any Pray Tests made during this Downtime benefit from Advantage."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "046",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "95-97-riots",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 0,
+                "sum": "2d0a78a78153074a"
+              }
+            ]
+          },
+          "ref": "046 l.97",
+          "titre": "95–97: Riots",
+          "role": "déclenche",
+          "preuve": "Players attempting a *Foment Dissent* Endeavour benefit from Advantage on any related Tests."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "047",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "48-51-a-useful-connection",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 0,
+                "sum": "b3ff93855803d030"
+              }
+            ]
+          },
+          "ref": "047 l.49",
+          "titre": "48–51: A Useful Connection",
+          "role": "déclenche",
+          "preuve": "undertake the Commission Endeavour, or undertake the Research Lore Endeavour, with Advantage on any associated Tests."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "047",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "57-59-arcane-auction",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 0,
+                "sum": "194c6c13a4799d8a"
+              }
+            ]
+          },
+          "ref": "047 l.57",
+          "titre": "57–59: Arcane Auction",
+          "role": "déclenche",
+          "preuve": "may undertake the *Research Lore* Endeavour without using one of your Endeavours, making any required Test with Advantage."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "047",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "60-67-oi-you-spilled-my-pint",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 0,
+                "sum": "9d3a18c3fa0da5e6"
+              }
+            ]
+          },
+          "ref": "047 l.61",
+          "titre": "60–67: Oi! You spilled my pint!",
+          "role": "déclenche",
+          "preuve": "during the next adventure, you suffer Disadvantage on social Tests with members of that group."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "048",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "study-a-mark",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 1,
+                "sum": "738dce069e529389"
+              }
+            ]
+          },
+          "ref": "048 l.210",
+          "titre": "Study a Mark",
+          "role": "déclenche",
+          "preuve": "If you succeed, you may gain Advantage on a Test concerning your mark once during your next adventure."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "076",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "advantage-and-disadvantage",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 2,
+                "sum": "c8f15786b2548d41"
+              }
+            ]
+          },
+          "ref": "076 l.95",
+          "titre": "Advantage and Disadvantage",
+          "role": "modifie",
+          "preuve": "The GM should almost never grant Advantage or inflict Disadvantage when the rules do not specifically call for it."
+        },
+        {
+          "adresse": {
+            "book": "core-rulebook-5e",
+            "ch": "085",
+            "parts": [
+              {
+                "kind": "blocs",
+                "sec": "overburdened",
+                "secOcc": 1,
+                "b0": 0,
+                "b1": 2,
+                "sum": "9abdddbc5f48ec6b"
+              }
+            ]
+          },
+          "ref": "085 l.34",
+          "titre": "Overburdened",
+          "role": "déclenche",
+          "preuve": "Endurance Tests to resist the *Fatigued* Condition incur Disadvantage while Overburdened."
+        }
+      ],
+      "ecartees": [
+        {
+          "ref": "033 l.37",
+          "titre": "Surprise",
+          "raison": "« can give you a decisive advantage » : mot courant, minuscule ; Surprise donne la Condition Surprised (042 § Surprised : « gains a bonus of +2 SL »), aucun Advantage de règle"
+        },
+        {
+          "ref": "082 l.29",
+          "titre": "Criminal Coinage",
+          "raison": "« take any advantage they can » : mot courant"
+        },
+        {
+          "ref": "086 l.204",
+          "titre": "Weapon Qualities",
+          "raison": "« specific advantages over others » : mot courant, en-tête du catalogue des Weapon Qualities (entités)"
+        },
+        {
+          "ref": "086 l.270",
+          "titre": "Trap Blade",
+          "raison": "Weapon Quality (entité) ; « you can lose Advantage » emploie Advantage comme RESSOURCE (sens 4e), incohérent avec 024 § ADVANTAGE AND DISADVANTAGE"
+        }
+      ]
+    }
+  }
+}

@@ -23,7 +23,7 @@ import { CLASSES as CLASSES_IMPLEMENTE } from './build-implemente.mjs'
 import { CLASSES as CLASSES_ENTITE } from './check-entity-in-chapter.mjs'
 import { CLASSES as CLASSES_INDEX } from './build-atlas-index.mjs'
 import { CLASSES as CLASSES_CROISSANCE } from '../migrations/lib/croissance.mjs'
-import { refRe, refFolioRe, allAbbrAlternation, span, refNums, isRangeSuffix, bookOf, chapterFile, BOOKS, booksDe, cataloguesDe, classeDePage, CLASSES_DE_PAGE, coeursDe, coeurDe, coeursDuRegistre, estHorsRegle, horsRegleDe, livreDuDossier, livreDuSigle, livreExtraitDe, livresDeCatalogue, livresDeCoeur, motifHorsRegle, niveauDeSectionDe, niveauxDeSectionDe, pagesDeLAtlas, RAWDOC_AUTHOR_META, RAWDOC_META_GENERATED, sigleDe, siglesDeCoeur, teneurDe, teneursDe } from './_lib.mjs'
+import { refRe, refFolioRe, allAbbrAlternation, span, refNums, isRangeSuffix, bookOf, chapterFile, BOOKS, booksDe, cataloguesDe, classeDePage, CLASSES_DE_PAGE, coeursDe, coeurDe, coeursDuRegistre, entitesDe, estHorsRegle, horsRegleDe, livreDuDossier, livreDuSigle, livreExtraitDe, livresDeCatalogue, livresDeCoeur, motifHorsRegle, niveauDeSectionDe, niveauxDeSectionDe, pagesDeLAtlas, plagesDEntites, RAWDOC_AUTHOR_META, RAWDOC_META_GENERATED, sigleDe, siglesDeCoeur, teneurDe, teneursDe } from './_lib.mjs'
 import booksData from '../../src/data/books.json' with { type: 'json' }
 
 // Des sigles RÉELS, pris au registre par leur RÉGIME (livre de cœur) — jamais recopiés : le test dit
@@ -145,6 +145,14 @@ test('estHorsRegle/motifHorsRegle : le MOTIF est la donnée, lu par SIGLE et par
 test('horsRegleDe : une entrée dont le `book` n’est AUCUN livre du registre n’entre pas — jamais une clé `undefined`', () => {
   const h = horsRegleDe({ horsRegle: [{ book: 'livre-fantome', ch: 1, motif: 'x' }] }, REGISTRE_PROPRIETES)
   assert.equal(h.size, 0)
+})
+
+test('entitesDe/plagesDEntites : les plages d’un livre par SIGLE, dans l’ORDRE DU FICHIER, bornes `{ slug, occ }` comprises', () => {
+  const borne = { slug: 'premier-talent', occ: 1 }
+  const e = entitesDe({ entites: [{ book: 'r', ch: 4, from: borne, motif: 'talents' }, { book: 'r', ch: 2, motif: 'sorts' }, { book: 'livre-fantome', ch: 1, motif: 'x' }] }, REGISTRE_PROPRIETES)
+  assert.deepEqual(plagesDEntites('R', e), [{ ch: 4, from: borne, motif: 'talents' }, { ch: 2, motif: 'sorts' }])
+  assert.deepEqual(plagesDEntites('C', e), [], 'un livre sans plage n’en porte aucune')
+  assert.deepEqual([...e.keys()], ['R'], 'un `book` hors registre n’entre pas — jamais une clé `undefined`')
 })
 
 test('cataloguesDe/livresDeCatalogue : un catalogue rend ses livres dans l’ORDRE DU FICHIER, plages comprises', () => {
