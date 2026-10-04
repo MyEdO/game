@@ -53,12 +53,12 @@ function migreProse(v: unknown, dansNodes: boolean): unknown {
   const estNoeud = dansNodes && Array.isArray(o.choices);
   const estEffetNarratif = typeof o.type === 'string' && EFFETS_A_PROSE.has(o.type);
   if (estNoeud || estEffetNarratif) o = renommeCle(o, 'text', 'desc');
-  // Prose ABSENTE = clé absente (les snapshots d'`ItemInstance` embarqués portaient `desc: null`).
+  // #1467
   if (o.desc === null) { const { desc: _nul, ...reste } = o; o = reste; }
   return o;
 }
 
-/** Les CHOIX d'un dialogue : `text` y était un LIBELLÉ, pas de la prose. */
+// #1467
 function migreChoix(scenes: unknown): unknown {
   if (!Array.isArray(scenes)) return scenes;
   return scenes.map((s) => {
@@ -177,8 +177,7 @@ const porteDesPlaces = (ent: Record<string, unknown>): boolean =>
 /** Un décor qui ne NOMME aucun type — la population que le bump 11 → 12 nomme explicitement. */
 const decorSansType = (ent: Record<string, unknown>): boolean => ent.kind === 'prop' && ent.ref === undefined;
 
-/** Le type que le rendu DONNAIT à un décor sans `ref` avant #877. Ce littéral ne vit QUE dans la
- *  migration 11 → 12 : une migration FIGE un passé, elle ne pose pas un défaut. */
+// #877
 const REF_DU_RENDU_AVANT_877 = 'tonneau';
 
 /** Un personnage qui ne NOMME aucune fiche (`typeNonNomme`) — la population que le bump 12 → 13 nomme. */
@@ -192,10 +191,7 @@ const profilDeLEspece = (ent: Record<string, unknown>): string | undefined => {
   return typeof species === 'string' ? findSpeciesById(species)?.profilStandard?.id : undefined;
 };
 
-/** Le statbloc que la branche `!ref` de `spawnEnemy` posait avant #1882 (`state/spawn.ts`) : même
- *  libellé, même profil. Porté par l'entité, il passe par la branche `statblock`, qui reçoit
- *  l'`appearance` : la forme du corps suit alors l'espèce authorée (`bodyShapeForSpecies`). Ce littéral ne
- *  vit QUE dans la migration 12 → 13. */
+// #1882
 const FICHE_DU_SPAWN_AVANT_1882 = (): Record<string, unknown> => ({ type: 'statblock', label: 'Ennemi', char: { B: 10 } });
 
 /** Un porteur VIDE (`ref: ''`, `presetId: ''`) n'est pas un porteur (`typeNonNomme`) : le bump 12 → 13 le
@@ -272,13 +268,7 @@ function denudeSortsDePreset(narratif: unknown): unknown {
   return { ...nb, presetsPnj };
 }
 
-/** Migrations SÉQUENTIELLES de ProjectDoc : la clé N met à niveau un schema N → N+1. `2` injecte le
- *  bloc `narratif` vide (#765 — un projet schema 2 est un paquet SANS narratif). `3` porte les
- *  RÔLES DE PROSE du lot #1467 L1b V-P2 : c'est la MÊME transformation que les migrations de dépôt
- *  (`scripts/migrations/2026-08-27-l1b-3{a,b,g,h}-*.mjs`), appliquée au CHARGEMENT — sans elle, un
- *  projet exporté avant ce lot (bibliothèque utilisateur, `.json` portable) mourrait sur le schéma.
- *  Ajouter ici la migration N→N+1 pour tout futur bump, plutôt que de refuser en silence des projets
- *  antérieurs valides : `SCHEMA_PROJET` en dérive. */
+// #765 · #1467
 export const PROJECT_MIGRATIONS = {
   2: (doc) => ({ ...doc, narratif: NARRATIF_VIDE_2_VERS_3() }),
   3: (doc) => {
@@ -297,15 +287,7 @@ export const PROJECT_MIGRATIONS = {
       : doc.meta;
     return { ...doc, scenes, ...(doc.meta !== undefined ? { meta } : {}) };
   },
-  /**
-   * `4` APLATIT l'enveloppe (#1467 L1b V-formeProjet) : les champs de la poche `meta` remontent à la
-   * RACINE et `version` y devient `versionContenu`. Le renommage n'est pas cosmétique, et le risque
-   * MESURÉ n'est pas un refus : `parseProject` pose `version: obj.schema` EN DERNIER dans le spread,
-   * donc un `version` de CONTENU à la racine serait ÉCRASÉ par le numéro de forme, puis PURGÉ avec la
-   * clé de travail avant le retour. Gardé sous le nom `version`, le numéro de l'auteur ne survivrait
-   * donc JAMAIS à un chargement — perte SILENCIEUSE (aucune erreur), et `importDecision` comparerait
-   * 0 à 0 pour l'éternité. Le nom distinct est ce qui met le numéro hors de portée de l'écrasement.
-   */
+  // #1467
   4: (doc) => {
     const { meta, ...reste } = doc;
     if (!meta || typeof meta !== 'object') return reste;
@@ -316,14 +298,7 @@ export const PROJECT_MIGRATIONS = {
       ...(versionContenu !== undefined ? { versionContenu } : {}),
     };
   },
-  /**
-   * `5` donne au LIBELLÉ sa graphie canonique (#1467 L1b V-P7) : la clé `nom` d'une scène et de la
-   * carte du monde devient `label`, à sa POSITION exacte. Les deux portaient un libellé d'affichage
-   * pur — l'identité est `id`, présente sur les deux depuis toujours. Le même passage pose le `type`
-   * des statblocs EMBARQUÉS (`scenes[].entities[].statblock`) : un document embarqué s'annonce dans
-   * la donnée, et le schéma l'EXIGE désormais (`defs-scenes/communs.ts`) — sans ce passage, tout
-   * projet antérieur (bibliothèque utilisateur, `.json` portable) mourrait au parse.
-   */
+  // #1467
   5: (doc) => {
     const scenes = Array.isArray(doc.scenes)
       ? doc.scenes.map((s) => {
@@ -341,16 +316,7 @@ export const PROJECT_MIGRATIONS = {
       ...(doc.worldMap !== undefined ? { worldMap } : {}),
     };
   },
-  /**
-   * `6` fait S'ANNONCER le document et ses scènes (#1552) : `type: 'projet'` à la racine,
-   * `type: 'scene'` sur chaque scène embarquée — même geste que le `type: 'statblock'` de la 5→6, et
-   * même raison : un document embarqué s'annonce dans la donnée, et le schéma l'EXIGE désormais.
-   * Le même passage pose la PROVENANCE quand le document n'en porte aucune : `maison`, la seule
-   * que la migration puisse DIRE sans inventer (un folio ne se devine pas ; le document en porte
-   * un, ou il dit qu'il n'en a pas). L'IDENTITÉ, elle, ne se fabrique pas : un projet antérieur
-   * sans `id`/`label`/`versionContenu` ressort tel quel de la migration et se fait REFUSER par le
-   * schéma, qui NOMME les champs manquants (arbitrage 2026-08-31 : un projet se nomme).
-   */
+  // #1552
   6: (doc) => {
     const scenes = Array.isArray(doc.scenes)
       ? doc.scenes.map((s) => (s && typeof s === 'object' && !('type' in s) ? { type: 'scene', ...(s as object) } : s))
@@ -365,100 +331,40 @@ export const PROJECT_MIGRATIONS = {
       ...provenance,
     };
   },
-  /**
-   * `7` pose les MATIÈRES DE RELIEF de chaque scène (#1691) : `reliefDefaults`, EXIGÉ par
-   * `sceneSchema` depuis que `gameIso/builders/floors.ts` ne choisit plus aucune matière. Les valeurs
-   * posées sont `SEMENCE_RELIEF_1691` — exactement ce que le builder choisissait en dur avant le
-   * lot, donc un projet de bibliothèque utilisateur se rend à l'identique après migration. La clé va
-   * à la POSITION que la création lui donne (`emptyScene`) : juste avant `layers`. Une scène qui en
-   * porte déjà un traverse INTACTE (un document hybride n'est pas réécrit par cette migration ; c'est
-   * le schéma qui juge sa forme).
-   * Pendant applicatif du script de dépôt `scripts/migrations/2026-09-07-1691-relief-defaults-scenes.mjs`
-   * (parité mesurée par `projet-migration-7-vers-8.test.ts`).
-   */
+  // #1691
   7: (doc) => ({
     ...doc,
     ...(doc.scenes !== undefined
       ? { scenes: poseSurChaqueScene(doc.scenes, 'reliefDefaults', () => ({ ...SEMENCE_RELIEF_1691 }), { avant: 'layers' }) }
       : {}),
   }),
-  /**
-   * `8` pose la TOITURE PAR DÉFAUT de chaque scène (#1715) : `roofDefaults`, EXIGÉ par `sceneSchema`
-   * depuis que la dérivation des masses ne choisit plus ni couverture, ni pente de référence, ni
-   * borne de comble (`toitureEffective`, `state/sceneEdit.ts`). Les valeurs posées sont
-   * `SEMENCE_TOITURE_1715` — exactement ce que la dérivation appliquait en dur avant le lot, donc un
-   * projet de bibliothèque utilisateur se rend à l'identique après migration. La clé va à la POSITION
-   * que la création lui donne (`emptyScene`) : juste après `reliefDefaults`. Une scène qui en porte
-   * déjà une traverse INTACTE.
-   * Pendant applicatif du script de dépôt `scripts/migrations/2026-09-09-1715-roof-defaults-scenes.mjs`
-   * (parité mesurée par `projet-migration-8-vers-9.test.ts`).
-   */
+  // #1715
   8: (doc) => ({
     ...doc,
     ...(doc.scenes !== undefined
       ? { scenes: poseSurChaqueScene(doc.scenes, 'roofDefaults', () => ({ ...SEMENCE_TOITURE_1715 }), { apres: 'reliefDefaults' }) }
       : {}),
   }),
-  /**
-   * `9` ACTIVE les décors qui étaient assis-ables AVANT le lot #1687 : `usable: {}` sur chaque entité
-   * dont le TYPE porte des `seatSlots`. Depuis ce lot, l'assise d'un siège autonome est une propriété
-   * de l'INSTANCE, activée par l'auteur (verbatim utilisateur 2026-09-09 : « on doit pouvoir
-   * s'assoire sur une chaise si dans l'éditeur on l'active ») : sans ce passage, les meubles à places
-   * d'un projet de bibliothèque utilisateur deviendraient MUETS. Une entité qui porte déjà `usable`
-   * traverse INTACTE.
-   * Pendant applicatif du script de dépôt `scripts/migrations/2026-09-10-1687-usable-sieges.mjs`
-   * (parité mesurée par `projet-migration-9-vers-10.test.ts`).
-   */
+  // #1687
   9: (doc) => ({
     ...doc,
     ...(doc.scenes !== undefined
       ? { scenes: poseSurChaqueEntite(doc.scenes, 'usable', () => ({}), porteDesPlaces) }
       : {}),
   }),
-  /**
-   * `10` donne à l'enveloppe `usable` ses deux faits NOMMÉS (#1687) : la fouille quitte le champ
-   * `interact`, que le schéma ne connaît plus, pour devenir une ACTION AUTHORÉE du vocabulaire ouvert
-   * (`usable.actions`), et l'enveloppe VIDE posée par la 9→10 — qui disait « assise activée » par sa
-   * seule PRÉSENCE — dit désormais `assise: true`. Sans ce passage, un projet de bibliothèque
-   * utilisateur serait REFUSÉ au parse sur sa première clé `interact` (`strictObject`) et ses meubles
-   * à places redeviendraient muets.
-   * Pendant applicatif du script de dépôt `scripts/migrations/2026-09-11-1687-actions-authorees.mjs`
-   * (parité mesurée par `projet-migration-10-vers-11.test.ts`).
-   */
+  // #1687
   10: (doc) => ({
     ...doc,
     ...(doc.scenes !== undefined ? { scenes: migreActionsAuthorees(doc.scenes) } : {}),
   }),
-  /**
-   * `11` NOMME le type de tout décor qui n'en nommait aucun (#877) : `ref` devient REQUISE sur une
-   * entité `kind:'prop'` et résolue au registre `props.json` (`defs-scenes/scene.ts`). Avant ce lot,
-   * le MONDE remplaçait la ref absente par un littéral en dur ; la migration ÉCRIT ce que le monde
-   * DESSINAIT, donc le décor de scène d'un projet de bibliothèque utilisateur ressort inchangé. Le
-   * backend SPRITE, qui ne dessinait RIEN d'une ref absente, s'ALIGNE dessus — c'est la divergence
-   * qui meurt, pas le dessin. Sans ce passage, le projet serait REFUSÉ au parse sur son premier
-   * décor sans type.
-   * Une entité qui porte déjà `ref` traverse INTACTE, et un décor à ref MORTE n'est pas de ce ressort :
-   * il se fait NOMMER par le schéma, jamais remplacer.
-   * Pendant applicatif du script de dépôt `scripts/migrations/2026-09-21-877-ref-de-decor-nommee.mjs`
-   * (parité mesurée par `projet-migration-11-vers-12.test.ts`).
-   */
+  // #877
   11: (doc) => ({
     ...doc,
     ...(doc.scenes !== undefined
       ? { scenes: poseSurChaqueEntite(doc.scenes, 'ref', () => REF_DU_RENDU_AVANT_877, decorSansType) }
       : {}),
   }),
-  /**
-   * `12` NOMME la fiche de tout personnage qui n'en nommait aucune (#1882) : un porteur (`ref`,
-   * `statblock` ou `presetId`) devient REQUIS sur une entité `kind:'personnage'`
-   * (`PORTEURS_DU_TYPE`, `defs-scenes/scene.ts`). L'espèce authorée porte un profil standard
-   * (`LDB 77 l.7`, `species.json`) → `ref` = ce profil ; sinon (espèce absente, id de rig, espèce
-   * sans profil) → le statbloc de la branche `!ref` d'avant #1882, écrit en `statblock` explicite
-   * (`FICHE_DU_SPAWN_AVANT_1882` : libellé et profil identiques, forme du corps de l'espèce). Sans ce passage, le
-   * projet serait REFUSÉ au parse sur son premier personnage sans fiche.
-   * Pendant applicatif du script de dépôt `scripts/migrations/2026-09-23-1882-fiche-de-personnage-nommee.mjs`
-   * (parité mesurée par `projet-migration-12-vers-13.test.ts`).
-   */
+  // #1882 · LDB 77 l.7
   12: (doc) => ({
     ...doc,
     ...(doc.scenes !== undefined
@@ -472,43 +378,16 @@ export const PROJECT_MIGRATIONS = {
       }
       : {}),
   }),
-  /** 13 → 14 (#1882) : `livingRefSchema.creatureId`, `givePossession.ref.vehicleId` et `setVessel.vehicleId` exigent un id RÉSOLU
-   *  (`idDe`). Avant, l'effet neuf (`make`, éditeur) semait `''` : ce vide reçoit ce que l'outil sème
-   *  aujourd'hui (`creatureSemee`, `vehiculeSeme`, `navireSeme`). Pendant applicatif du script de dépôt
-   *  `scripts/migrations/2026-09-24-1882-refs-vivantes-semees.mjs` (parité : `projet-migration-13-vers-14.test.ts`). */
+  // #1882
   13: (doc) => semeLesRefsVides(doc) as typeof doc,
-  /**
-   * `14` DÉNUDE la référence de sort d'un preset de PNJ (#1897) : `narratif.presetsPnj[].profil` reprend
-   * le def créature, dont `spells` adopte `refs('spell')` — `{ id }` devient l'id nu, À SA PLACE. Sans ce
-   * passage, un projet de bibliothèque utilisateur serait REFUSÉ au parse sur son premier sort de preset.
-   * Un élément déjà nu traverse INTACT ; ce qui ne se dénude pas SANS PERTE (`{ id, spec }`, `{ id: '' }`)
-   * et ce qui n'est pas une liste traversent tels quels (`parseProject` les refuse ensuite, en les nommant).
-   * Pendant applicatif du script de dépôt `scripts/migrations/2026-09-24-1897-projet-sorts-de-preset-ids-nus.mjs`,
-   * qui refuse les mêmes formes : parité mesurée par `projet-migration-14-vers-15.test.ts`, qui joue la
-   * MÊME fixture par les deux.
-   */
+  // #1897
   14: (doc) => ({
     ...doc,
     ...(doc.narratif !== undefined ? { narratif: denudeSortsDePreset(doc.narratif) } : {}),
   }),
-  /**
-   * `15` fait désigner à chaque id de sort FUSIONNÉ par #1897 l'entrée qui l'a absorbé
-   * (`SORTS_FUSIONNES_1897`, table GELÉE), à toute place de sort du document — primitive
-   * `remapSortsFusionnesDeep` (`src/data/sortsFusionnes.ts`), la même que `ROSTER_MIGRATIONS[4]`. Sans ce
-   * passage, un projet de bibliothèque utilisateur qui cite un sort fusionné serait REFUSÉ au parse
-   * (`idDe('spell')`).
-   * Pendant applicatif du script de dépôt `scripts/migrations/2026-09-24-1897-projet-sorts-fusionnes.mjs`
-   * (parité mesurée par `projet-migration-15-vers-16.test.ts`, qui joue la MÊME fixture par les deux).
-   */
+  // #1897
   15: (doc) => remapSortsFusionnesDeep(doc) as Record<string, unknown>,
-  /**
-   * `16` écrit la référence de Talent des ops `grantTalent` / `grantCareerTalent` à la graphie
-   * `talent: { id, spec? }` (#1473, train 2a) — primitive `graphieOpsDeTalentDeep`
-   * (`src/data/graphieOpsDeTalent.ts`). Sans ce passage, un projet de bibliothèque utilisateur qui porte
-   * une op de Talent serait REFUSÉ au parse (op typée, `grammaire/mecanique.ts`).
-   * Pendant applicatif du script de dépôt `scripts/migrations/2026-09-24-2a-1473-projet-graphie-ops-de-talent.mjs`
-   * (parité mesurée par `projet-migration-16-vers-17.test.ts`, qui joue la MÊME fixture par les deux).
-   */
+  // #1473
   16: (doc) => graphieOpsDeTalentDeep(doc) as Record<string, unknown>,
 } satisfies MigrationMap;
 

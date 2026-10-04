@@ -17,8 +17,6 @@ export const COMMANDE_ARBRE_INCHANGE = 'git status --porcelain && test -z "$(git
  * forme fait LEVER `gatesDeCi`, au lieu d'être ignoré en silence.
  */
 export const CI_SEULEMENT = {
-  'node scripts/ops/sonde-collision-2226.mjs':
-    'sonde temporaire #2226 DoD12 : collision TS1117 sur merge_group ; retrait après archivage du run rouge, avant publication',
   'npm --prefix server ci': 'install serveur — posée une fois localement par `npm install`',
   [COMMANDE_ARBRE_INCHANGE]:
     'le lanceur local juge le même invariant par `photoArbre` (scripts/gates/toutes.mjs)',
@@ -77,7 +75,7 @@ export const texteDeCi = ({ cwd, fichier } = {}) => readFileSync(cheminCi({ cwd,
 
 /**
  * Plafond de durée de CHAQUE job de `ci.yml`, en minutes — la clé `timeout-minutes` de niveau JOB,
- * jamais de step. Course la plus longue mesurée : 18,5 min sur 40 runs (audit CI du 2026-09-29, #2178).
+ * jamais de step. #2178
  * Sans plafond, un job bloqué tient son runner jusqu'au défaut de GitHub (360 min).
  */
 export const TIMEOUT_JOB_MINUTES = 30
