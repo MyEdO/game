@@ -9,4 +9,5 @@ export interface ContexteDeScanRng {
   resolveurs: Record<string, string[]> | null;
 }
 export function contexteDeScanRng(): ContexteDeScanRng;
-export function scanBattleRngEngineLeak(relPath: string, contenu: string, ctx?: ContexteDeScanRng): EngineLeakFinding[];
+export function scanBattleRngEngineLeak(relPath: string, contenu: string, ctx?: ContexteDeScanRng, sourceFile?: SourceFile): EngineLeakFinding[];
+import type { SourceFile } from 'typescript/unstable/ast';

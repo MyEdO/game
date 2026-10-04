@@ -339,7 +339,7 @@
     "fichier": "src/gameIso/rig/bodyPlan.ts",
     "concept": "résolution rendu + dispatch backend",
     "perimetre": "tout rendu iso/POV/portrait",
-    "verrou": "eslint.config.js"
+    "verrou": "oxlint.config.mjs"
   },
   {
     "id": "masterDetail",
@@ -1453,9 +1453,9 @@
   {
     "id": "ast",
     "type": "primitives.manifest",
-    "label": "ast",
+    "label": "analyserCorpus/analyserTexte/ast",
     "fichier": "scripts/guards/lib/dialecte.mjs",
-    "concept": "AST d'un fichier lu, dans le dialecte de son extension",
+    "concept": "analyses syntaxiques natives par corpus, diagnostics séparés et libération de session",
     "perimetre": "toute garde qui parse un fichier",
     "verrou": "—"
   },
@@ -1489,9 +1489,9 @@
   {
     "id": "tsProgram",
     "type": "primitives.manifest",
-    "label": "repoProgram/virtualProgram/parsedProgram/VIRTUAL_ROOT",
+    "label": "repoProgram/virtualProgram/libererSessions/VIRTUAL_ROOT",
     "fichier": "scripts/guards/lib/tsProgram.mjs",
-    "concept": "fabriques de ts.Program : dépôt avec recouvrement, sources en mémoire, arbre déjà parsé",
+    "concept": "sessions natives Program et Checker avec libération explicite et collective conservant toutes les erreurs : dépôt recouvert ou sources virtuelles isolées",
     "perimetre": "toute garde ou tout générateur qui a besoin d'un vérificateur de types",
     "verrou": "ts-program-fabrique-guard.test.ts, analyse-retention-guard.test.ts"
   },
@@ -1546,8 +1546,8 @@
     "label": "parUnitesDeCode/parLibelle/replier",
     "fichier": "src/lib/ordre.mjs",
     "concept": "comparateurs d'ORDRE TOTAL sans locale ni ICU : parUnitesDeCode pour un chemin, un id ou une clé ; parLibelle pour un libellé lu par le joueur (marques, casse, ligatures et ponctuation repliées, départage par unités de code) ; replier replie un libellé comparé, et le composent norm (src/lib/normalize.ts), la recherche et l'auto-liage du Codex, dialogueLibelle, parseSizeLabel et skillSpecWalk (par norm)",
-    "perimetre": "tout tri de chaînes sous le mur de l'ordre total : ses globs (eslint.config.js) et la clôture des générateurs de dérivés (scripts/guards/lib/lister.test.mjs, volet (c)) ; un module d'UI qu'aucun générateur n'atteint garde la collation du navigateur ; scripts/guards/lib/lister.mjs les ré-exporte",
-    "verrou": "mur de l'ordre total d'eslint.config.js (localeCompare, toLocale*, Intl refusés) ; scripts/guards/lib/lister.test.mjs, volet (c), sur la clôture des générateurs"
+    "perimetre": "tout tri de chaînes sous le mur de l'ordre total : ses globs (oxlint.config.mjs) et la clôture des générateurs de dérivés (scripts/guards/lib/lister.test.mjs, volet (c)) ; un module d'UI qu'aucun générateur n'atteint garde la collation du navigateur ; scripts/guards/lib/lister.mjs les ré-exporte",
+    "verrou": "mur de l'ordre total d'oxlint.config.mjs (localeCompare, toLocale*, Intl refusés) ; scripts/guards/lib/lister.test.mjs, volet (c), sur la clôture des générateurs"
   },
   {
     "id": "stockageWeb",

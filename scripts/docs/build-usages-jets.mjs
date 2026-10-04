@@ -15,6 +15,7 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
 import { shellZones, rowZones, scanRollShellUsage } from './lib/rollShellUsage.mjs'
+import { analyserCorpus } from '../guards/lib/dialecte.mjs'
 import { estFichierVitest } from '../guards/lib/fichierVitest.mjs'
 
 /** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire. */
@@ -38,10 +39,8 @@ function rendu() {
 
   // --- population des consommateurs, DÉCOUVERTE ---------------------------------------------------
   const consumers = []
-  for (const { rel, text } of prodFiles('src')) {
-    if (rel === SHELL_FILE) continue // la coquille n'est pas son propre consommateur
-    if (!/RollShell/.test(text)) continue
-    const { sites, rowKeys } = scanRollShellUsage(rel, text, rowNames)
+  for (const { fichier: { rel, text }, sourceFile } of analyserCorpus(prodFiles('src').filter(({ rel, text }) => rel !== SHELL_FILE && /RollShell/.test(text)))) {
+    const { sites, rowKeys } = scanRollShellUsage(rel, text, rowNames, sourceFile)
     if (!sites.length) continue
     const props = new Map() // nom de zone -> formes vues
     const spreads = new Set()

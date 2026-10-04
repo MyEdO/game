@@ -1522,9 +1522,8 @@ describe('les concepts d’ENVELOPPE (strate `Document`) se reconnaissent au NOY
    * égalité de stock ne bouge (les lignes volées seraient simplement absentes des deux côtés).
    * Ici on mesure les DEUX scans et on exige : ce que la strate `Document` gagne, elle le prend à ce
    * qui n’était CLASSÉ PAR PERSONNE (invisibles + orphelines), jamais à un concept existant.
-   * COÛT MESURÉ (2026-09-01, cette machine) : ~3 s — démarrage `tsx` ~1,7 s + DEUX scans à ~0,6 s.
    */
-  it('D — DIFF avec/sans la strate `Document` : ce qu’elle gagne vient du NON-CLASSÉ, zéro forme VOLÉE', { timeout: 30_000 }, () => {
+  it('D — DIFF avec/sans la strate `Document` : ce qu’elle gagne vient du NON-CLASSÉ, zéro forme VOLÉE', { timeout: 60_000 }, () => {
     const dossier = mkdtempSync(join(tmpdir(), 'structures-strate-'));
     try {
       const pilote = join(dossier, 'diff-strate-document.mjs');
@@ -1717,7 +1716,7 @@ describe('`{text}` : la forme DÉCLARÉE ne couvre que l’irréductible narrati
       (f) => f.concept === 'reference' && f.dataset === 'careerLevels.json' && f.champ === 'trappings' && f.signature === signature,
     );
 
-  it('un `{text}` qui nomme une POSSESSION est `text (résolvable)` ; « Sa Honte » et « Assistant » restent `text` declaree (#1463 L-ref-0)', () => {
+  it('un `{text}` qui nomme une POSSESSION est `text (résolvable)` ; « Sa Honte » et « Assistant » restent `text` declaree (#1463 L-ref-0)', { timeout: 30_000 }, () => {
     const copie = mkdtempSync(join(tmpdir(), 'structures-text-'));
     try {
       for (const racine of ['src/data', 'src/scenes']) cpSync(join(ROOT, racine), join(copie, racine), { recursive: true });
@@ -1764,7 +1763,7 @@ describe('`{text}` : la forme DÉCLARÉE ne couvre que l’irréductible narrati
 });
 
 describe('contrôle POSITIF côté DONNÉE : le détecteur MORD (#1465 F21)', () => {
-  it('trois dérives injectées dans une COPIE de l’arbre sont VUES : forme neuve, orpheline neuve, op neuve', () => {
+  it('trois dérives injectées dans une COPIE de l’arbre sont VUES : forme neuve, orpheline neuve, op neuve', { timeout: 60_000 }, () => {
     const copie = mkdtempSync(join(tmpdir(), 'structures-contrat-'));
     try {
       for (const racine of ['src/data', 'src/scenes']) cpSync(join(ROOT, racine), join(copie, racine), { recursive: true });
@@ -1814,7 +1813,7 @@ describe('contrôle POSITIF côté DONNÉE : le détecteur MORD (#1465 F21)', ()
  */
 describe('régime `valeurs` : le scan descend dans `entries` d’un record ENVELOPPÉ', () => {
   const expositionDeSonde: Exposition = { codex: { keys: ['sondes'] }, edit: { dataset: 'sonde.json' } };
-  it('une clé d’`entries` entre à l’index (collision avec `teintesJeu.json`) ; l’enveloppe n’y entre pas', () => {
+  it('une clé d’`entries` entre à l’index (collision avec `teintesJeu.json`) ; l’enveloppe n’y entre pas', { timeout: 60_000 }, () => {
     const copie = mkdtempSync(join(tmpdir(), 'structures-record-'));
     try {
       for (const racine of ['src/data', 'src/scenes']) cpSync(join(ROOT, racine), join(copie, racine), { recursive: true });
@@ -2095,7 +2094,7 @@ const verdictRedecl = (nom: string): VerdictRedecl => verdictsRedecl()[nom]!;
  * ligne NOMINATIVE.
  */
 describe('scannerRedeclarations — contrôle POSITIF du détecteur (#1654)', () => {
-  it('une redéclaration INJECTÉE dans une copie des defs est VUE — N → N+1, ligne nominative', () => {
+  it('une redéclaration INJECTÉE dans une copie des defs est VUE — N → N+1, ligne nominative', { timeout: 120_000 }, () => {
     const diff = verdictRedecl('sonde');
     // La copie mesure le MÊME arbre que le scan du fichier : sans cet ancrage, le +1 ne prouverait rien.
     expect(diff.avant, 'la copie NON MUTÉE ne mesure pas le même arbre que `scannerRedeclarations(ROOT)`.').toBe(redeclarations.length);

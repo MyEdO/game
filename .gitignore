@@ -72,6 +72,7 @@ wrangler-*.err
 
 # Patches transitoires (transfert manuel entre sessions) — intégrés puis supprimés
 *.patch
+!/patches/typescript+7.0.2.patch
 
 # Bundles git transitoires (transfert de sessions cloud) : intégrés par merge puis supprimés
 *.bundle

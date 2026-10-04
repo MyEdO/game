@@ -1,3 +1,4 @@
+import { ast } from './dialecte.mjs';
 // Mécanique de scan du garde-fou « écriture du z sur `sceneEdit.ts` » (#835 FU-1/FU-3) — la racine
 // mesurée du ticket est qu'une primitive d'écriture (`addTrigger`, `addRestZone`, `addEffectZone`,
 // `addEnemyMember`, `pasteEntity`…) peut pousser un élément FRAIS dans une collection dont le
@@ -7,8 +8,7 @@
 // couche. Ce scanner détecte, par AST réelle (compilateur TypeScript), toute fonction EXPORTÉE de
 // `sceneEdit.ts` qui pousse dans une collection z-portante sans déclarer de paramètre nommé `z`.
 // Module ESM pur — consommé par `src/state/scene-edit-z-write-guard.test.ts`.
-import ts from 'typescript';
-import { scriptKindDe } from './dialecte.mjs';
+import * as ts from 'typescript/unstable/ast';
 
 /** Collections dont l'ÉLÉMENT porte un `z` au modèle (`scene.ts`) — `roofs` (FU-2) et `architecture`
  *  (masses/façades, déjà z-obligatoires en signature) restent HORS de ce périmètre : ce garde ne
@@ -16,7 +16,7 @@ import { scriptKindDe } from './dialecte.mjs';
 export const Z_BEARING_PROPS = new Set(['entities', 'triggers', 'restZones', 'effectZones']);
 
 /** Déroule les enrobages transparents (parenthèses, `!`, `as …`) et le membre GAUCHE d'un `??`/`||`
- *  (`scene.effectZones ?? []` → `scene.effectZones`). @returns {import('typescript').Expression} */
+ *  (`scene.effectZones ?? []` → `scene.effectZones`). @returns {import('typescript/unstable/ast').Expression} */
 function unwrapToRoot(expr) {
   let e = expr;
   for (;;) {
@@ -41,7 +41,7 @@ function sceneZBearingProp(expr) {
 }
 
 function hasZParam(fnNode) {
-  return (fnNode.parameters ?? []).some((p) => ts.isIdentifier(p.name) && p.name.text === 'z');
+  return (fnNode.parameters ?? []).some((p) => ('name' in p && ts.isIdentifier(p.name)) && p.name.text === 'z');
 }
 
 /** Une fonction pousse-t-elle un élément FRAIS dans une collection z-portante ? Détecté par un
@@ -60,7 +60,7 @@ function findZBearingPush(fnNode) {
         }
       }
     }
-    ts.forEachChild(node, visit);
+    node.forEachChild(visit);
   };
   visit(fnNode.body ?? fnNode);
   return hit;
@@ -78,7 +78,7 @@ function isExported(node) {
  */
 export function scanSceneEditZWrites(contenu) {
   const findings = [];
-  const sf = ts.createSourceFile('sceneEdit.ts', contenu, ts.ScriptTarget.Latest, true, scriptKindDe('sceneEdit.ts'));
+  const sf = ast({ rel: 'sceneEdit.ts', text: contenu });
   const lineOf = (pos) => sf.getLineAndCharacterOfPosition(pos).line + 1;
 
   for (const stmt of sf.statements) {

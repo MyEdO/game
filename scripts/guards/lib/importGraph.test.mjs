@@ -18,16 +18,56 @@
 //   6. le LECTEUR (`specificateursDe`) lit l'arbre syntaxique : une chaîne, un gabarit, un commentaire,
 //      une regex littérale ou du JSX n'est pas un import ;
 //   7. la marche rend des chemins RELATIFS à `racine`, et un membre hors de `racine` lève.
-import { test } from 'node:test'
+import { test, mock } from 'node:test'
+import { API } from 'typescript/unstable/sync'
 import assert from 'node:assert/strict'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { aliasDe, arcsDe, chargementsDe, clotureDImports, closureOf, directImportsOf, estModule, liaisonsDe, resolveImport, sitesDeModule, specificateursDe } from './importGraph.mjs'
-import { ast, typescript } from './dialecte.mjs'
+import { aliasDe, arcsDe, chargementsDe, clotureDImports, closureOf, directImportsOf, estModule, liaisonsDe, resolveImport, sitesDeModule, specificateursDe, sourceALExecution } from './importGraph.mjs'
+import { ast, analyserTexte } from './dialecte.mjs'
 
 const RACINE = fileURLToPath(new URL('../../..', import.meta.url))
+
+test('effacement bundler : TSX/mts/cts, config héritée et erreurs refusées', () => {
+  for (const verbatimModuleSyntax of [false, true]) {
+    const racine = mkdtempSync(join(tmpdir(), 'imports-emission-'))
+    try {
+      writeFileSync(join(racine, 'base.json'), JSON.stringify({ compilerOptions: { verbatimModuleSyntax, jsx: 'preserve' } }))
+      writeFileSync(join(racine, 'tsconfig.json'), JSON.stringify({ extends: './base.json' }))
+      const code = "import { Shape } from './shape'; import { type X, value } from './mixed'; import './effect'; const shape: Shape = {}; export const out = value; import('./dynamic');"
+      for (const ext of ['tsx', 'mts', 'cts']) {
+        const emission = sourceALExecution(`a.${ext}`, code + (ext === 'tsx' ? ' export const vue = <div/>;' : ''), { racine })
+        const specs = specificateursDe('emission.js', emission).map(site => site.spec)
+        assert.deepEqual(specs, [...(verbatimModuleSyntax ? ['./shape'] : []), './mixed', './effect', './dynamic'])
+        assert.equal(/\btype X\b/.test(emission), false)
+      }
+      assert.throws(() => sourceALExecution('invalide.ts', 'const x = ;', { racine }), /sourceALExecution : invalide.ts/)
+    } finally { rmSync(racine, { recursive: true, force: true }) }
+  }
+})
+
+test('frontières : une session par niveau manquant, cycles et cache partagé sans reparse', () => {
+  const racine = mkdtempSync(join(tmpdir(), 'imports-batch-'))
+  const close = API.prototype.close
+  const spy = mock.method(API.prototype, 'close', function () { return close.call(this) })
+  try {
+    for (const [nom, texte] of Object.entries({
+      'a.ts': "import './b'; import './c';",
+      'b.ts': "import './d';",
+      'c.ts': "import './d';",
+      'd.ts': "import './a';",
+    })) writeFileSync(join(racine, nom), texte)
+    const cache = new Map()
+    const marche = () => clotureDImports(['a.ts', 'a.ts', 'absent.ts'], { racine, cache })
+    assert.deepEqual([...marche()].sort(), ['a.ts', 'b.ts', 'c.ts', 'd.ts'])
+    assert.equal(spy.mock.callCount(), 3)
+    assert.equal(cache.get(resolve(racine, 'absent.ts').replaceAll('\\', '/')), null)
+    assert.deepEqual([...marche()].sort(), ['a.ts', 'b.ts', 'c.ts', 'd.ts'])
+    assert.equal(spy.mock.callCount(), 3)
+  } finally { spy.mock.restore(); rmSync(racine, { recursive: true, force: true }) }
+})
 
 const nomsDeLiaison = ({ forme, typeSeul, local, importe, exporte }) => ({
   forme, typeSeul, local: local?.nom ?? null, importe: importe?.nom ?? null, exporte: exporte?.nom ?? null,
@@ -157,7 +197,7 @@ test('L3 equals exporté : rôle exporté sur le nom local réel, sans modifier 
     "import type TypeExterne = require('./types');",
   ].join('\n')
   const sf = ast({ rel: 'a.ts', text: texte })
-  assert.equal(sf.parseDiagnostics.length, 0)
+  assert.equal(analyserTexte({ rel: 'a.ts', text: texte }).diagnostics.length, 0)
   const sites = sitesDeModule('a.ts', sf)
   const liaisons = liaisonsDe('a.ts', sf)
   assert.deepEqual(liaisons.map(nomsDeLiaison), [
@@ -219,8 +259,7 @@ test('L3 chargements : expressions non littérales, import de type et fournisseu
 test('L3 AST réutilisé sans parents : identité, positions de tokens et niveau module', () => {
   const texte = "import { a as b } from './m';\nnamespace N { import X = Lib.x; export { X }; }"
   const sf = ast({ rel: 'a.ts', text: texte })
-  const ts = typescript()
-  const deparenter = (n) => { n.parent = undefined; ts.forEachChild(n, deparenter) }
+  const deparenter = (n) => { n.parent = undefined; n.forEachChild(deparenter) }
   deparenter(sf)
   const sites = sitesDeModule('a.ts', sf)
   assert.deepEqual(sites.map(({ genre, niveauModule }) => ({ genre, niveauModule })), [

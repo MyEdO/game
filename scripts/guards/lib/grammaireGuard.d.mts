@@ -17,4 +17,5 @@ export interface ReglesGrammaire {
   sansRedeclaration?: boolean;
 }
 
-export function scan(rel: string, contenu: string, regles: ReglesGrammaire): TrouvailleGrammaire[];
+export function scan(rel: string, contenu: string, regles: ReglesGrammaire, sourceFile?: SourceFile): TrouvailleGrammaire[];
+import type { SourceFile } from 'typescript/unstable/ast';

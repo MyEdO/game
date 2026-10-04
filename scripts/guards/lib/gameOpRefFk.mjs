@@ -1,3 +1,4 @@
+import { TypeFlags } from 'typescript/unstable/sync';
 // Mécanique du garde-fou « les références portées par les `GameOp` de la DONNÉE COMMITÉE résolvent »
 // (#847). `applyOps` (`src/engine/ops.ts`) empile sans valider : un `talentId` fantôme produit une op
 // silencieusement inerte, un `ref` fantôme un refus au spawn (`RefIrresoluble`, `src/state/spawn.ts`).
@@ -47,8 +48,8 @@
 // Module ESM pur — consommé par `src/data/refs-migrated.test.ts`.
 import { parUnitesDeCode } from './lister.mjs';
 import path from 'node:path';
-import ts from 'typescript';
-import { repoProgram } from './tsProgram.mjs';
+import * as ts from 'typescript/unstable/ast';
+import { repoProgram, libererSessions } from './tsProgram.mjs';
 
 /** Nom du type dont l'union fournit le périmètre, et le fichier qui le déclare. */
 const OPS_FILE = 'src/engine/ops.ts';
@@ -128,8 +129,8 @@ function opsProgram(root) {
 
 /** Le type admet-il une `string` OUVERTE (≠ union de littéraux, déjà close par `tsc`) ? */
 function admitsOpenString(type) {
-  const parts = type.isUnion() ? type.types : [type];
-  return parts.some((t) => (t.flags & ts.TypeFlags.String) !== 0);
+  const parts = type.isUnionType() ? type.getTypes() : [type];
+  return parts.some((t) => (t.flags & TypeFlags.String) !== 0);
 }
 
 /**
@@ -138,39 +139,43 @@ function admitsOpenString(type) {
  */
 export function gameOpStringFields(root) {
   const { program, entry } = opsProgram(root);
-  const checker = program.getTypeChecker();
-  const sf = program.getSourceFile(entry);
-  if (!sf) throw new Error(`${OPS_FILE} absent du programme`);
-  let alias;
-  sf.forEachChild((n) => {
-    if (ts.isTypeAliasDeclaration(n) && n.name.text === OPS_TYPE) alias = n;
-  });
-  if (!alias) throw new Error(`type ${OPS_TYPE} introuvable dans ${OPS_FILE}`);
-  const union = checker.getTypeAtLocation(alias.name);
-  const members = union.isUnion() ? union.types : [union];
-  const out = new Map();
-  for (const member of members) {
-    const opSym = member.getProperty('op');
-    if (!opSym) continue;
-    const opType = checker.getTypeOfSymbolAtLocation(opSym, alias);
-    if (!opType.isStringLiteral()) continue;
-    const op = opType.value;
-    for (const prop of member.getProperties()) {
-      if (prop.name === 'op') continue;
-      const type = checker.getTypeOfSymbolAtLocation(prop, alias);
-      const parts = type.isUnion() ? type.types : [type];
-      const scalar = admitsOpenString(type);
-      let array = false;
-      for (const part of parts) {
-        if (!checker.isArrayType(part)) continue;
-        const el = checker.getTypeArguments(part)[0];
-        if (el && admitsOpenString(el)) array = true;
+  const erreurs = [];
+  try {
+    const checker = program.checker;
+    const sf = program.program.getSourceFile(entry);
+    if (!sf) throw new Error(`${OPS_FILE} absent du programme`);
+    let alias;
+    sf.forEachChild((n) => {
+      if (ts.isTypeAliasDeclaration(n) && n.name.text === OPS_TYPE) alias = n;
+    });
+    if (!alias) throw new Error(`type ${OPS_TYPE} introuvable dans ${OPS_FILE}`);
+    const union = checker.getTypeAtLocation(alias.name);
+    const members = union.isUnionType() ? union.getTypes() : [union];
+    const out = new Map();
+    for (const member of members) {
+      const opSym = checker.getPropertyOfType(member, 'op');
+      if (!opSym) continue;
+      const opType = checker.getTypeOfSymbolAtLocation(opSym, alias);
+      if (!opType.isStringLiteralType()) continue;
+      const op = opType.value;
+      for (const prop of checker.getPropertiesOfType(member)) {
+        if (prop.name === 'op') continue;
+        const type = checker.getTypeOfSymbolAtLocation(prop, alias);
+        const parts = type.isUnionType() ? type.getTypes() : [type];
+        const scalar = admitsOpenString(type);
+        let array = false;
+        for (const part of parts) {
+          if (!checker.isArrayType(part)) continue;
+          const el = checker.getTypeArguments(part)[0];
+          if (el && admitsOpenString(el)) array = true;
+        }
+        if (!scalar && !array) continue;
+        out.set(`${op}.${prop.name}`, { key: `${op}.${prop.name}`, op, field: prop.name, array });
       }
-      if (!scalar && !array) continue;
-      out.set(`${op}.${prop.name}`, { key: `${op}.${prop.name}`, op, field: prop.name, array });
     }
-  }
-  return [...out.values()].sort((a, b) => parUnitesDeCode(a.key, b.key));
+    return [...out.values()].sort((a, b) => parUnitesDeCode(a.key, b.key));
+  } catch (erreur) { erreurs.push(erreur); }
+  finally { libererSessions([program], erreurs); }
 }
 
 /**

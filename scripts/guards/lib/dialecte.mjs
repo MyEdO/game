@@ -1,52 +1,52 @@
-// Dialecte de parse d'un fichier — source UNIQUE de « extension → `ts.ScriptKind` » (#1679), et
-// l'arbre syntaxique d'un fichier lu (`ast`), seule écriture de `createSourceFile` des
-// modules de #1903 (les autres parses du dépôt : #2012).
-// Chaque garde AST recopiait sa propre table (14 sites, de 2 à 3 branches) : une extension neuve
-// (`.mts` d'un script d'outillage, `.cts`) entrait alors en `TS` ici et en `JS` là, et un scan
-// silencieusement faux ne se voit pas — l'AST se construit quand même.
-//
-// Le compilateur est chargé À LA DEMANDE (`createRequire`) : cette lib est atteinte par le garde
-// PreToolUse, qui tourne à CHAQUE commande du canal — un `import` de tête ferait payer le
-// chargement de `typescript` à un `ls` — et par des migrations datées, rejouées sur un export sans
-// `node_modules` (`scripts/migrations/replay-head.mjs`). `typescript()` est le SEUL chargeur du
-// compilateur des libs atteintes par ce garde ou par une migration datée.
+import { createRequire } from 'node:module';
+import path from 'node:path';
+import { virtualProgram, VIRTUAL_ROOT, libererSessions } from './tsProgram.mjs';
 
-import { createRequire } from 'node:module'
+const require = createRequire(import.meta.url);
+let compilateur;
+export const typescript = () => (compilateur ??= require('typescript/unstable/ast'));
+const DIALECTE = { ts: 'TS', mts: 'TS', cts: 'TS', tsx: 'TSX', js: 'JS', mjs: 'JS', cjs: 'JS', jsx: 'JSX', json: 'JSON' };
 
-let compilateur = null
-/** Le compilateur TypeScript du dépôt, chargé au PREMIER appel. */
-export const typescript = () => (compilateur ??= createRequire(import.meta.url)('typescript'))
-
-/** Extension → dialecte. Un `.mjs`/`.cjs` se lit en JS, une table `.json` en JSON. */
-const DIALECTE = { ts: 'TS', mts: 'TS', cts: 'TS', tsx: 'TSX', js: 'JS', mjs: 'JS', cjs: 'JS', jsx: 'JSX', json: 'JSON' }
-
-/**
- * `ts.ScriptKind` du fichier, d'après sa seule extension.
- * @param {string} fichier chemin ou nom de fichier (séparateur POSIX ou Windows).
- * @param {{ inconnu?: 'TS' | 'refus' }} [options] extension hors table : `'TS'` (défaut — le corpus
- *   des gardes est du TypeScript) ou `'refus'`, qui rend `null` pour que l'appelant ne parse pas.
- * @returns {number | null} valeur de `ts.ScriptKind`, ou `null` sous `inconnu: 'refus'`.
- */
 export function scriptKindDe(fichier, { inconnu = 'TS' } = {}) {
-  const nom = String(fichier ?? '').replace(/\\/g, '/').split('/').pop() ?? ''
-  const ext = nom.includes('.') ? nom.split('.').pop().toLowerCase() : ''
-  const dialecte = DIALECTE[ext] ?? (inconnu === 'refus' ? null : inconnu)
-  // eslint-disable-next-line murs/dialecte -- la source elle-même : la table du dialecte vit ici
-  return dialecte === null ? null : typescript().ScriptKind[dialecte]
+  const nom = String(fichier ?? '').replaceAll('\\', '/').split('/').pop() ?? '';
+  const ext = nom.includes('.') ? nom.split('.').pop().toLowerCase() : '';
+  const dialecte = DIALECTE[ext] ?? (inconnu === 'refus' ? null : inconnu);
+  return dialecte === null ? null : typescript().ScriptKind[dialecte];
 }
 
-/**
- * Arbre syntaxique d'un fichier lu, dans le dialecte de son extension (`scriptKindDe`), nœuds
- * parentés, bâti à chaque appel : aucune rétention (`tsProgram.mjs`, en-tête). Un appelant qui relit
- * le même fichier dans une même passe tient l'arbre lui-même.
- * @param {{ rel: string, text: string }} fichier
- * @param {{ inconnu?: 'TS' | 'refus' }} [options] sous `inconnu: 'refus'`, une extension hors table
- *   rend `null`, sans parser.
- * @returns {import('typescript').SourceFile | null}
- */
-export function ast(fichier, { inconnu = 'TS' } = {}) {
-  const kind = scriptKindDe(fichier.rel, { inconnu })
-  if (kind === null) return null
-  const ts = typescript()
-  return ts.createSourceFile(fichier.rel, fichier.text, ts.ScriptTarget.Latest, true, kind)
+export function* analyserCorpus(fichiers, options = {}) {
+  const entrees = Array.from(fichiers, (fichier) => {
+    const kind = scriptKindDe(fichier.rel, options);
+    const ext = String(fichier.rel).replaceAll('\\', '/').split('.').pop().toLowerCase();
+    return { fichier, chemin: path.resolve(`${fichier.rel}${Object.hasOwn(DIALECTE, ext) ? '' : '.ts'}`).replaceAll('\\', '/'), kind };
+  });
+  const chemins = new Map();
+  for (const { fichier, chemin, kind } of entrees) {
+    if (kind === null) continue;
+    if (chemins.has(chemin)) throw new Error(`analyserCorpus : chemins de parse en collision : ${chemins.get(chemin)} et ${fichier.rel} (${chemin})`);
+    chemins.set(chemin, fichier.rel);
+  }
+  const sources = Object.fromEntries(entrees.filter(e => e.kind !== null).map(e => [e.chemin, e.fichier.text]));
+  let session;
+  const erreurs = [];
+  try {
+    if (Object.keys(sources).length) session = virtualProgram(sources, { noLib: true, noResolve: true, allowJs: true, jsx: 'preserve', resolveJsonModule: true });
+    for (const { fichier, chemin, kind } of entrees) {
+      if (kind === null) { yield { fichier, sourceFile: null, diagnostics: [] }; continue; }
+      const nom = path.resolve(VIRTUAL_ROOT, chemin).replaceAll('\\', '/');
+      const sourceFile = session.program.getSourceFile(nom);
+      if (!sourceFile) throw new Error(`Arbre TypeScript introuvable : ${fichier.rel}`);
+      const diagnostics = session.program.getSyntacticDiagnostics(nom).map(d => ({ ...d, fileName: fichier.rel }));
+      yield { fichier, sourceFile, diagnostics };
+    }
+  } catch (erreur) { erreurs.push(erreur); }
+  finally { libererSessions(session ? [session] : [], erreurs); }
+}
+
+export function analyserTexte(fichier, options) {
+  for (const analyse of analyserCorpus([fichier], options)) return analyse;
+}
+
+export function ast(fichier, options) {
+  return analyserTexte(fichier, options).sourceFile;
 }

@@ -28,8 +28,8 @@
 //  - un paramètre SANS annotation explicite (`rng = defaultRNG`, type inféré par le compilateur) —
 //    invisible à un scan lexical de l'AST syntaxique seul ;
 //  - une réexportation `export * from` (angle mort de `tableDesExports`).
-import tsModule from 'typescript';
-import { ast } from './dialecte.mjs';
+import * as tsModule from 'typescript/unstable/ast';
+import { ast, analyserCorpus } from './dialecte.mjs';
 import { estAppelDeclare, tableDesExports } from './canonUnique.mjs';
 import { readCorpus } from './sourceCorpus.mjs';
 // Vue CODE SEUL du texte (primitive PARTAGÉE) : la ligne rapportée ne porte que du code, lignes
@@ -43,7 +43,7 @@ const ts = tsModule;
 /** Le `battleRng` vivant, par son module. */
 const RNG_VIVANT = { 'src/state/battleRng.ts': ['battleRng'] };
 
-/** Le type référence-t-il (nu ou en union/intersection) l'identifiant `RNG` ? @param {import('typescript').TypeNode | undefined} t @returns {boolean} */
+/** Le type référence-t-il (nu ou en union/intersection) l'identifiant `RNG` ? @param {import('typescript/unstable/ast').TypeNode | undefined} t @returns {boolean} */
 function typeReferencesRng(t) {
   if (!t) return false;
   if (ts.isParenthesizedTypeNode(t)) return typeReferencesRng(t.type);
@@ -75,9 +75,9 @@ function resolveursARng(ctx) {
   const moteur = readCorpus(['src/engine']);
   const exporte = (n) => n.modifiers?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword);
   const noms = new Set();
-  for (const fichier of moteur) {
-    for (const st of ast(fichier).statements) {
-      /** @type {[string, import('typescript').NodeArray<import('typescript').ParameterDeclaration>][]} */
+  for (const { sourceFile } of analyserCorpus(moteur)) {
+    for (const st of sourceFile.statements) {
+      /** @type {[string, import('typescript/unstable/ast').NodeArray<import('typescript/unstable/ast').ParameterDeclaration>][]} */
       const decls = [];
       if (ts.isFunctionDeclaration(st) && st.name && exporte(st)) decls.push([st.name.text, st.parameters]);
       if (ts.isVariableStatement(st) && exporte(st)) {
@@ -107,9 +107,9 @@ function resolveursARng(ctx) {
  * @param {{ resolveurs: Record<string, string[]> | null }} [ctx] contexte du passage (`contexteDeScanRng`)
  * @returns {{ line: number, name: string, detail: string }[]}
  */
-export function scanBattleRngEngineLeak(relPath, contenu, ctx = contexteDeScanRng()) {
+export function scanBattleRngEngineLeak(relPath, contenu, ctx = contexteDeScanRng(), sourceFile) {
   if (!/\bbattleRng\b/.test(contenu) || !/\bresolve[A-Z]/.test(contenu)) return [];
-  const sf = ast({ rel: relPath, text: contenu });
+  const sf = sourceFile ?? ast({ rel: relPath, text: contenu });
   const table = resolveursARng(ctx);
   /** @type {{ line: number, name: string }[]} */
   const appels = [];
@@ -120,9 +120,9 @@ export function scanBattleRngEngineLeak(relPath, contenu, ctx = contexteDeScanRn
       const name = estAppelDeclare(node, sf, table);
       if (name) appels.push({ line: sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1, name });
     }
-    ts.forEachChild(node, visit);
+    node.forEachChild(visit);
   };
-  ts.forEachChild(sf, visit);
+  sf.forEachChild(visit);
   if (!vivant) return [];
   const lignes = codeSeul(contenu).split('\n');
   /** @type {Map<string, { line: number, name: string, detail: string }>} */

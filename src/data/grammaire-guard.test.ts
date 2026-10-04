@@ -24,6 +24,7 @@ import { envDeDepotForge } from '../../scripts/guards/lib/depotGabarit.mjs';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { neufsDe } from '../../scripts/migrations/replay.mjs';
 import { scan } from '../../scripts/guards/lib/grammaireGuard.mjs';
+import { analyserCorpus } from '../../scripts/guards/lib/dialecte.mjs';
 import { GRAMMAIRE_STOCK } from '../../scripts/guards/lib/grammaireStock.mjs';
 import { ecartsDeStock } from '../../scripts/guards/lib/stock.mjs';
 import { defDe, descendre, enfantsDe } from './schemas/grammaire/descente';
@@ -144,8 +145,8 @@ function trouvailles(): { cle: string; ligne: number }[] {
   const regles = { signatures: signaturesDeLaGrammaire(), alias: ALIAS };
   const out: { cle: string; ligne: number }[] = [];
   const relever = (fichiers: readonly { rel: string; text: string }[], sansRedeclaration: boolean) => {
-    for (const f of fichiers)
-      for (const t of scan(f.rel, f.text, { ...regles, sansRedeclaration }))
+    for (const { fichier: f, sourceFile } of analyserCorpus(fichiers))
+      for (const t of scan(f.rel, f.text, { ...regles, sansRedeclaration }, sourceFile!))
         out.push({ cle: `${f.rel}:${t.symbole}${t.champ ? '.' + t.champ : ''}|${t.motif}|${t.detail}`, ligne: t.ligne });
   };
   relever(readCorpus(PERIMETRE), false);

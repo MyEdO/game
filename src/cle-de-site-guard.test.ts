@@ -19,6 +19,8 @@
  * unité, jamais sous un foyer.
  */
 import { describe, it, expect } from 'vitest';
+import * as ts from 'typescript/unstable/ast';
+import { ast } from '../scripts/guards/lib/dialecte.mjs';
 import {
   cleEnLigne, constructionsReserveesDuCorpus, recopieDeCanon, scanConstructionsReservees,
 } from '../scripts/guards/lib/canonUnique.mjs';
@@ -101,5 +103,36 @@ describe('clé de site (#1903)', () => {
   it('le foyer', () => {
     expect(fixture("const k = 'f :: a.md :: r :: 1';", 'scripts/guards/lib/stock.test.mjs')).toEqual([]);
     expect(fixture('type Y = { file: string; ref: string };', STOCK)).toEqual([]);
+  });
+
+  it('les types JSDoc @type, @returns et @template sont ignorés ; les types de code restent vus', () => {
+    const jsdoc = [
+      '/** @type {{ fichier: string, ref: string, occurrence: number }} */',
+      'const entree = {};',
+      '/** @returns {{ file: string, ref: string, row: number }} */',
+      'function lire() { return {}; }',
+      '/** @template {{ fichier: string, ref: string, occurrence: number }} T */',
+      'function identite(x) { return x; }',
+    ].join('\n');
+    const sf = ast({ rel: 'src/fixture.mjs', text: jsdoc })!;
+    const typesDocumentaires: ts.Node[] = [];
+    const visiter = (n: ts.Node) => {
+      if (ts.isTypeLiteralNode(n)) typesDocumentaires.push(n);
+      n.forEachChild(visiter);
+    };
+    visiter(sf);
+    expect(typesDocumentaires).toHaveLength(3);
+    expect(typesDocumentaires.every((n) => (n.flags & ts.NodeFlags.JSDoc) !== 0)).toBe(true);
+    expect(fixture(jsdoc, 'src/fixture.mjs')).toEqual([]);
+    expect(fixture(jsdoc + '\n/** Entrée du code. */\ninterface Entree { fichier: string; ref: string; occurrence: number }\n/** Site du code. */\ntype Observe = { file: string; ref: string; row: number };')).toEqual(['clé de site', 'Site']);
+  });
+
+  it('le corpus exclut les sous-arbres JSDoc des tags @typedef, @param et @satisfies', () => {
+    const corpus = [
+      { rel: 'src/typedef.mjs', text: '/** @typedef {{ fichier: string, ref: string, occurrence: number }} Entree */\nconst x = 1;' },
+      { rel: 'src/param.mjs', text: '/** @param {{ file: string, ref: string, row: number }} x */\nfunction lire(x) { return x; }' },
+      { rel: 'src/satisfies.mjs', text: '/** @satisfies {{ fichier: string, ref: string, occurrence: number }} */\nconst x = {};' },
+    ];
+    expect(constructionsReserveesDuCorpus(corpus, CLE_DE_SITE)).toEqual([]);
   });
 });

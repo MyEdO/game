@@ -20,7 +20,7 @@
  */
 import { readFileSync, existsSync } from 'node:fs'
 import { parUnitesDeCode, listerDossier } from '../guards/lib/lister.mjs'
-import ts from 'typescript'
+import * as ts from 'typescript/unstable/ast'
 import { loadSource, firstSentence } from './lib/jsdocUnion.mjs'
 import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
 

@@ -1,4 +1,4 @@
-import type ts from 'typescript';
+import type * as ts from 'typescript/unstable/ast';
 import type { CorpusFile } from './sourceCorpus.mjs';
 
 /** Fichier lu, tel que rendu par `readCorpus` (`sourceCorpus.mjs`) ou fabriqué par une fixture. */
@@ -47,7 +47,7 @@ export function constructionDeFragment(p: {
   designationLiee?: readonly string[];
   constructeurs: Readonly<Record<string, readonly string[]>>;
 }): Construction & { readonly indice: (texte: string) => boolean };
-export function origineImportee(identifiant: string, sf: ts.SourceFile): { module: string; nom: string } | null;
+export function origineImportee(identifiant: string | ts.Expression, sf: ts.SourceFile): { module: string; nom: string } | null;
 export function estAppelDeclare(
   appel: ts.CallExpression,
   sf: ts.SourceFile,

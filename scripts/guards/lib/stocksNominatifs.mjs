@@ -256,14 +256,14 @@ function lignesLocales({ ts, sf, texte }) {
       visiter(node.expression);
       for (const arg of node.arguments ?? []) {
         // Une fonction imbriquée est déjà couverte par l'englobante : la descente s'arrête là.
-        if (ts.isFunctionLike(arg)) marquer(arg);
+        if (ts.isFunctionLikeDeclaration(arg)) marquer(arg);
         else visiter(arg);
       }
       return;
     }
-    ts.forEachChild(node, visiter);
+    node.forEachChild(visiter);
   };
-  ts.forEachChild(sf, visiter);
+  sf.forEachChild(visiter);
   return locales;
 }
 
@@ -298,7 +298,7 @@ function noeudQuiNomme(ts, node, motif = NOMME) {
       if (motif.test(n.head.text) || motif.test(texteDeGabarit(ts, n))) trouve = n;
       return;
     }
-    ts.forEachChild(n, visiter);
+    n.forEachChild(visiter);
   };
   visiter(node);
   return trouve;
@@ -374,7 +374,7 @@ export function entreesNominatives(source, chemin) {
   const litteral = (n) => n && (ts.isArrayLiteralExpression(n) || ts.isObjectLiteralExpression(n));
   const parcourir = (node) => {
     if (!litteral(node) || locales.has(ligneDe(node)) || estParametreDAppel(ts, node)) {
-      ts.forEachChild(node, parcourir);
+      node.forEachChild(parcourir);
       return;
     }
     if (ts.isArrayLiteralExpression(node)) {
@@ -393,7 +393,7 @@ export function entreesNominatives(source, chemin) {
       if (nommant) poser(prop, nommant);
     }
   };
-  ts.forEachChild(sf, parcourir);
+  sf.forEachChild(parcourir);
   return [...lignes].sort((a, b) => a[0] - b[0]).map(([ligne, { nomme, cle }]) => ({ ligne, nomme, cle }));
 }
 

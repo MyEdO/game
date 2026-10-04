@@ -1,4 +1,6 @@
-import type { Declaration, Node, Program, SourceFile, TypeChecker } from 'typescript';
+import type { Declaration, Node, SourceFile } from 'typescript/unstable/ast';
+import type { Checker } from 'typescript/unstable/sync';
+import type { SessionProgramme } from './tsProgram.mjs';
 
 /** Un champ du document de scène, dérivé du type `Scene`. */
 export interface SceneField {
@@ -29,26 +31,26 @@ export const FOSSILES: string[];
 
 /** Gate `@fossile` : un tag hors registre, une entrée sans tag — les deux sens sont des rouges. */
 export function fossileAudit(
-  program: Program,
+  program: SessionProgramme,
   root: string
 ): { taguesHorsListe: string[]; entreesSansTag: string[] };
 
 /** Ensemble d'IDENTITÉS du document : les déclarations de propriété des shapes atteints depuis
  *  `sceneSchema`, nœuds-frontière exclus. */
-export function documentDeclarations(program: Program, root: string): Set<Node>;
+export function documentDeclarations(program: SessionProgramme, root: string): Set<Node>;
 
 /** Le Program du périmètre de cette garde, bâti à chaque appel : l'appelant le tient et le libère. */
-export function programmeDuPerimetre(root: string): Program;
-export function sceneScope(program: Program, root: string): SceneField[];
+export function programmeDuPerimetre(root: string): SessionProgramme;
+export function sceneScope(program: SessionProgramme, root: string): SceneField[];
 /** Portées d'exécution atteintes depuis `src/ui/**` par fermeture transitive des appels. */
-export function uiReachableScopes(checker: TypeChecker, program: Program, root: string): Set<Node>;
+export function uiReachableScopes(checker: Checker, program: SessionProgramme, root: string): Set<Node>;
 export function fieldsWrittenIn(
-  checker: TypeChecker,
+  checker: Checker,
   sourceFile: SourceFile,
   declToId: Map<Declaration, string>,
   fieldNames: Set<string>,
   creditable?: (node: Node) => boolean
 ): Set<string>;
 /** `program` absent : bâti pour CET appel (~8 s). */
-export function auditSceneFieldEditability(root: string, program?: Program): FieldEditability[];
+export function auditSceneFieldEditability(root: string, program?: SessionProgramme): FieldEditability[];
 export function orphanFields(rows: FieldEditability[]): FieldEditability[];

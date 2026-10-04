@@ -1,6 +1,19 @@
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { fileURLToPath } from 'node:url';
 import { detenteur, enCollecte } from './detenteur.testkit';
+
+const registre = await vi.hoisted(async () => {
+  const precharge = await import('./detenteur.testkit');
+  vi.resetModules();
+  return { precharge, capter: undefined as ((fn: () => void) => void) | undefined };
+});
+vi.mock('vitest', async importOriginal => {
+  const original = await importOriginal<typeof import('vitest')>();
+  return { ...original, afterAll: (...args: Parameters<typeof original.afterAll>) => {
+    if (registre.capter) registre.capter(args[0] as () => void);
+    else original.afterAll(...args);
+  } };
+});
 
 /* Portée MODULE. Sous `sequence.hooks: 'stack'` (défaut de vitest), les `afterAll` d'une même portée
  * s'exécutent dans l'ordre INVERSE de leur enregistrement : celui-ci, posé AVANT l'appel de
@@ -11,6 +24,49 @@ afterAll(() => {
 });
 const lireModule = detenteur(() => ({ n: ++batiModule }));
 const collecteDuModule = enCollecte();
+
+describe('destructeur du détenteur', () => {
+  let liberations = 0;
+  let constructions = 0;
+  describe('valeur utilisée', () => {
+    const lire = detenteur(() => ({ n: ++constructions }), valeur => { liberations += valeur.n; });
+    it('conserve la valeur jusqu’à la fin de portée', () => {
+      expect(lire()).toBe(lire());
+      expect(liberations).toBe(0);
+    });
+  });
+  describe('valeur inutilisée', () => {
+    detenteur(() => ({ n: ++constructions }), () => { liberations += 100; });
+    it('ne construit rien', () => { expect(constructions).toBe(1); });
+  });
+  it('libère exactement la valeur construite', () => { expect(liberations).toBe(1); });
+
+  it('une fabrique échouée ne se libère pas ; une destruction échouée abandonne la valeur', () => {
+    expect(detenteur).not.toBe(registre.precharge.detenteur);
+    expect(enCollecte).not.toBe(registre.precharge.enCollecte);
+    const etat = (globalThis as { __vitest_worker__?: { current?: unknown } }).__vitest_worker__!;
+    const courant = etat.current;
+    const hooks: (() => void)[] = [];
+    registre.capter = fn => { hooks.push(fn); };
+    let constructions = 0;
+    let destructions = 0;
+    try {
+      etat.current = { type: 'suite', file: { filepath: fileURLToPath(import.meta.url).replace(/\\/g, '/') } };
+      const echoue = detenteur(() => { throw new Error('fabrique'); }, () => { destructions++; });
+      const lire = detenteur(() => ({ n: ++constructions }), () => { destructions++; throw new Error('destruction'); });
+      expect(hooks).toHaveLength(2);
+      expect(echoue).toThrow('fabrique');
+      hooks[0]();
+      expect(destructions).toBe(0);
+      expect(lire().n).toBe(1);
+      expect(hooks[1]).toThrow('destruction');
+      expect(destructions).toBe(1);
+      hooks[1]();
+      expect(destructions).toBe(1);
+      expect(lire().n).toBe(2);
+    } finally { registre.capter = undefined; etat.current = courant; }
+  });
+});
 
 describe('detenteur — lecteur paresseux, libéré au `afterAll` de la portée qui l’appelle (#1801)', () => {
   it('portée module : bâtit au premier appel, puis rend la MÊME valeur', () => {
