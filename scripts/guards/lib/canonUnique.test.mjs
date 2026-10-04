@@ -43,7 +43,8 @@ test('locals, déstructurations, captures masquées et module homonyme sont oppo
 });
 test('liaisonImportee distingue les symboles locaux des alias non résolus', () => {
   const sf = ast({ rel: 'scripts/probe.ts', text: "import { f as first } from 'one'; import { f as second } from 'two'; first(); second(); function h(first) { first(); }" });
-  assert.deepEqual(calls(sf).map((n) => canon.liaisonImportee(n.expression, sf)), [
+  const contexte = canon.contexteImports(sf);
+  assert.deepEqual(calls(sf).map((n) => canon.liaisonImportee(n.expression, sf, contexte)), [
     { spec: 'one', nom: 'f' }, { spec: 'two', nom: 'f' }, null,
   ]);
 });
@@ -72,8 +73,9 @@ test('appel déclaré et seam utilisent la portée de chaque occurrence', () => 
   assert.equal(scan(`${prefix}read('items');`, collection()).length, 1);
   assert.equal(scan(`${prefix}function f(read) { read('items'); }`, collection()).length, 0);
   const sf = ast({ rel: 'scripts/probe.ts', text: prefix + "read('items'); function f(read) { read('items'); }" });
-  assert.deepEqual(calls(sf).map((n) => canon.estAppelDeclare(n, sf, { 'src/data/index.ts': ['read'] })), ['read', null]);
-  assert.deepEqual(canon.origineImportee('read', sf), { module: 'src/data/index.ts', nom: 'read' });
+  const contexte = canon.contexteImports(sf);
+  assert.deepEqual(calls(sf).map((n) => canon.estAppelDeclare(n, sf, { 'src/data/index.ts': ['read'] }, contexte)), ['read', null]);
+  assert.deepEqual(canon.origineImportee('read', sf, contexte), { module: 'src/data/index.ts', nom: 'read' });
 });
 test('fragment : import de tête side-effect et type, niveau imbriqué opposé', () => {
   const c = canon.constructionDeFragment({ nom: 'FRAGMENT', natures: ['fragment'], designation: [], designationLiee: ['value'], constructeurs: { 'src/data/index.ts': ['build'] } });
@@ -84,7 +86,7 @@ test('fragment : import de tête side-effect et type, niveau imbriqué opposé',
 test('contexte du scan reste paresseux et partagé dans ce seul appel', () => {
   const contexts = [];
   const c = { nom: 'OBSERVATION', reconnait: (n, sf, contexte) => { contexts.push(contexte); return null; } };
-  scan('const first = 1;', c);
+  canon.scanConstructionsReservees({ rel: 'scripts/probe.ts', text: 'const first = 1;' }, [c, { ...c, nom: 'AUTRE' }]);
   const first = contexts[0];
   assert.ok(contexts.every((ctx) => ctx === first));
   contexts.length = 0;
@@ -93,4 +95,50 @@ test('contexte du scan reste paresseux et partagé dans ce seul appel', () => {
   assert.equal(first.sites(), first.sites());
   assert.equal(first.liaisons(), first.liaisons());
   assert.equal(first.checker(), first.checker());
+});
+
+test('index local : ordre, doublons, imports de tête et tableaux stables', () => {
+  const sf = ast({ rel: 'scripts/probe.ts', text: "import { a as same, b as same } from 'one'; import same from 'two'; import * as ns from 'three'; import type { T as type } from 'four'; export { a as same } from 'five'; namespace N { import { a as inner } from 'six'; } import eq = require('seven');" });
+  const contexte = canon.contexteImports(sf);
+  assert.equal(contexte.source, sf);
+  assert.throws(() => { contexte.source = ast({ rel: sf.fileName, text: '' }); }, TypeError);
+  const same = contexte.liaisonsDuNom('same');
+  assert.deepEqual(same.map((l) => [l.spec, l.importe.nom]), [['one', 'a'], ['one', 'b'], ['two', 'default']]);
+  assert.equal(contexte.liaisonsDuNom('same'), same);
+  assert.equal(contexte.liaisonsDuNom('ns')[0].importe.nom, '*');
+  assert.equal(contexte.liaisonsDuNom('type')[0].typeSeul, true);
+  for (const nom of ['absent', 'inner', 'eq']) {
+    assert.deepEqual(contexte.liaisonsDuNom(nom), []);
+    assert.equal(contexte.liaisonsDuNom(nom), contexte.liaisonsDuNom(nom));
+  }
+});
+
+test('origine de tête indexée sans checker, questions lexicales avec checker partagé', () => {
+  const sf = ast({ rel: 'scripts/probe.ts', text: "import { read, read as alias } from '../src/data/index'; import * as ns from '../src/data/index'; read(); alias(); ns.read(); function f(read) { read(); }" });
+  const contexte = canon.contexteImports(sf);
+  const tete = { ...contexte, checker: () => assert.fail('origine de tête sans checker') };
+  for (const nom of ['read', 'alias']) assert.deepEqual(canon.origineImportee(nom, sf, tete), { module: 'src/data/index.ts', nom: 'read' });
+  assert.equal(canon.origineImportee('absent', sf, tete), null);
+  const verificateurs = new Set();
+  const lexical = { ...contexte, checker: () => { const c = contexte.checker(); verificateurs.add(c); return c; } };
+  assert.deepEqual(calls(sf).map((n) => canon.estAppelDeclare(n, sf, { 'src/data/index.ts': ['read'] }, lexical)), ['read', 'read', 'read', null]);
+  assert.equal(verificateurs.size, 1);
+});
+
+test('contexte absent ou issu d’un autre AST homonyme refusé avant toute question', () => {
+  const fichier = { rel: 'scripts/probe.ts', text: "import { read } from '../src/data/index'; read();" };
+  const sf = ast(fichier);
+  const autre = ast(fichier);
+  const contexte = canon.contexteImports(sf);
+  const etranger = canon.contexteImports(autre);
+  assert.notEqual(contexte.source, etranger.source);
+  assert.notEqual(contexte.checker(), etranger.checker());
+  const [appel] = calls(sf);
+  for (const ctx of [undefined, etranger]) {
+    const refuse = (e) => e instanceof TypeError && /contexte.*SourceFile/.test(e.message);
+    assert.throws(() => canon.liaisonImportee(appel.expression, sf, ctx), refuse);
+    assert.throws(() => canon.origineImportee('absent', sf, ctx), refuse);
+    assert.throws(() => canon.estAppelDeclare(appel, sf, {}, ctx), refuse);
+  }
+  assert.deepEqual(canon.liaisonImportee(appel.expression, sf, contexte), { spec: '../src/data/index', nom: 'read' });
 });

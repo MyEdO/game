@@ -1480,9 +1480,9 @@
   {
     "id": "constructionsReservees",
     "type": "primitives.manifest",
-    "label": "scanConstructionsReservees/FORMULE_DE_CHEBYSHEV/ECHAPPEUR_DE_LITTERAL/CONSTRUCTION_DE_PROGRAMME/ECRITURE_DE_STOCK_JSON/CONSTRUCTION_DE_TABLE_TOTALE/recopieDeCanon/cleEnLigne/lectureBruteDeCollection/comparaisonDAppel/constructionDeFragment/estAppelDeclare/origineImportee/liaisonImportee",
+    "label": "scanConstructionsReservees/FORMULE_DE_CHEBYSHEV/ECHAPPEUR_DE_LITTERAL/CONSTRUCTION_DE_PROGRAMME/ECRITURE_DE_STOCK_JSON/CONSTRUCTION_DE_TABLE_TOTALE/recopieDeCanon/cleEnLigne/lectureBruteDeCollection/comparaisonDAppel/constructionDeFragment/estAppelDeclare/origineImportee/liaisonImportee/contexteImports",
     "fichier": "scripts/guards/lib/canonUnique.mjs",
-    "concept": "construction réservée à son foyer : le scan unique, ses constructions déclarées, les fabriques de recopie d'un canon, de clé en ligne, de lecture brute d'une collection (admise à des sites nommés par leur déclaration englobante), de comparaison en ligne du rendu d'une fonction déclarée et de construction d'un fragment d'adresse hors de ses constructeurs, l'appel à une fonction déclarée et la liaison d'import canonique par symbole local dans la portée de chaque occurrence, avec contexte paresseux limité au scan",
+    "concept": "construction réservée à son foyer : le scan unique, ses constructions déclarées, les fabriques de recopie d'un canon, de clé en ligne, de lecture brute d'une collection (admise à des sites nommés par leur déclaration englobante), de comparaison en ligne du rendu d'une fonction déclarée et de construction d'un fragment d'adresse hors de ses constructeurs, l'appel à une fonction déclarée et la liaison d'import canonique par symbole local dans la portée de chaque occurrence ; contexteImports obligatoire partagé par parcours, lié à l'identité du SourceFile, index des imports de tête par nom local et checker paresseux",
     "perimetre": "toute garde de canon unique",
     "verrou": "canonUnique.test.mjs, unions-canon.test.ts, grid.test.ts, cle-de-site-guard.test.ts, texte-normalise-guard.test.ts, ts-program-fabrique-guard.test.ts, trappings-vue-guard.test.ts, construction-de-fragment-guard.test.ts"
   },

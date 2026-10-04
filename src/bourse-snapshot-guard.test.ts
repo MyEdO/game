@@ -1,12 +1,33 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { SNAPSHOT_DE_BOURSE } from '../scripts/guards/lib/bourseSnapshot.mjs';
 import { scanConstructionsReservees, constructionsReserveesDuCorpus } from '../scripts/guards/lib/canonUnique.mjs';
 import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
+import * as programmes from '../scripts/guards/lib/tsProgram.mjs';
 
 const imports = "import { useGame } from '../state/store'; import { partyMoneyTotal } from '../state/bourseFlow';";
 const scan = (text: string) => scanConstructionsReservees({ rel: 'src/ui/sonde.tsx', text }, [SNAPSHOT_DE_BOURSE]);
 
 describe('snapshot de bourse — allocation hors sélecteur Zustand', () => {
+  it('partage un programme entre appels directs, alias et namespace sans confondre les masquages', () => {
+    const programmesCrees = vi.spyOn(programmes, 'parsedProgram');
+    const texte = [
+      imports,
+      "import { useGame as jeu } from '../state/store'; import { partyMoneyTotal as total } from '../state/bourseFlow';",
+      "import * as store from '../state/store'; import * as bourse from '../state/bourseFlow';",
+      'useGame(s => partyMoneyTotal(() => s));',
+      'jeu(s => total(() => s));',
+      'store.useGame(s => bourse.partyMoneyTotal(() => s));',
+      'function masque(useGame, partyMoneyTotal) { useGame(s => partyMoneyTotal(() => s)); }',
+      'function masqueTotal(partyMoneyTotal) { useGame(s => partyMoneyTotal(() => s)); }',
+    ].join('\n');
+    try {
+      expect(scan(texte)).toHaveLength(3);
+      expect(programmesCrees).toHaveBeenCalledTimes(1);
+      expect(scan(texte)).toHaveLength(3);
+      expect(programmesCrees).toHaveBeenCalledTimes(2);
+    } finally { programmesCrees.mockRestore(); }
+  });
+
   it.each([
     imports + 'useGame(s => partyMoneyTotal(() => s));',
     imports + 'useGame((s) => { return (partyMoneyTotal(() => s)); });',
