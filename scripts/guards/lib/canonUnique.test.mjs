@@ -3,7 +3,6 @@ import assert from 'node:assert/strict';
 import ts from 'typescript';
 import { ast } from './dialecte.mjs';
 import * as canon from './canonUnique.mjs';
-import { AVAILABILITIES } from '../../../src/engine/types.ts';
 
 const scan = (text, construction = canon.CONSTRUCTION_DE_PROGRAMME) => canon.scanConstructionsReservees({ rel: 'scripts/probe.ts', text }, [construction]);
 const calls = (sf) => {
@@ -20,10 +19,10 @@ test('appel namespace : le paramètre homonyme ne provient pas du compilateur', 
   assert.equal(scan("import * as ts from 'typescript'; function f(ts) { ts.createProgram({}); }").length, 0);
 });
 test('extract masqué ne blanchit pas une recopie de canon', () => {
-  const c = canon.recopieDeCanon({ nom: 'PALIER', membres: AVAILABILITIES });
+  const c = canon.recopieDeCanon({ nom: 'PALIER', membres: ['a', 'b'] });
   const prefix = "import { availabilitySchema as schema } from '../src/data/schemas/grammaire/valeurs';";
-  assert.equal(scan(`${prefix} schema.extract(['Commune', 'Rare']);`, c).length, 0);
-  assert.equal(scan(`${prefix} function f(schema) { schema.extract(['Commune', 'Rare']); }`, c).length, 1);
+  assert.equal(scan(`${prefix} schema.extract(['a', 'b']);`, c).length, 0);
+  assert.equal(scan(`${prefix} function f(schema) { schema.extract(['a', 'b']); }`, c).length, 1);
 });
 test('imports nommés, alias, défaut, namespace et captures restent reconnus', () => {
   for (const text of [
