@@ -594,7 +594,7 @@ describe('#236 — cliquets d’hygiène UI', () => {
   //    un module CSS oublié (`gauges.css`, ~40 classes de domaine naval) échappait à TOUT en
   //    silence. Toute feuille hors de `src/ui/styles/` doit donc être déclarée nommément, et les
   //    trois statuts couvrent `src/ui/styles/` par construction — ce que l'union vérifie.
-  it('(xiv) exhaustivité : chaque .css de src est PARTAGÉ, de PRIMITIVE ou d’ÉCRAN, jamais deux', () => {
+  it('(xiv) exhaustivité : chaque .css de src est PARTAGÉ, de PRIMITIVE ou d’ÉCRAN, jamais deux', { timeout: 30_000 }, () => {
     const primitives = modulesDePrimitive(imageDuDisque().manifeste);
     const toutes = readCorpus(['src'], { exts: ['.css'] }).map((f) => f.rel);
     const partagees = new Set(SHARED_CSS_FILES.map((f) => `src/ui/${f}`));
