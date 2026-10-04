@@ -1,4 +1,5 @@
 // node --test scripts/test/gitDeBanc.test.mjs
+import { tableTotale } from '../../src/lib/tableTotale.ts'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { rmSync } from 'node:fs'
@@ -17,7 +18,7 @@ function dansUneInstance(fn) {
 
 /** `fn()` sous `process.env` augmenté de `vars`, restauré à la sortie. */
 function sousEnv(vars, fn) {
-  const avant = Object.fromEntries(Object.keys(vars).map((k) => [k, process.env[k]]))
+  const avant = tableTotale(Object.keys(vars), (k) => process.env[k])
   Object.assign(process.env, vars)
   try {
     return fn()
