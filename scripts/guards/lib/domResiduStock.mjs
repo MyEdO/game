@@ -56,10 +56,7 @@ export function messagePeremption(perimees) {
 
 /** @type {ReadonlySet<string>} */
 export const DOM_RESIDU_STOCK = new Set([
-  // 2026-09-01 — population MESURÉE en mode collecte sur `src/ui` (250 fichiers) PUIS sur les 49
-  // fichiers à docblock jsdom hors `src/ui` : 12 fuites. Lot d'extinction #1619. Le nœud noté est
-  // celui resté enfant de `document.body`.
-  'src/ui/CampaignView.test.tsx', // <div>
+  // #1619
   'src/ui/compendium/codex-edit-cases-a-cocher.test.tsx', // <div class="codex-edit-form">
   'src/ui/jetProps/defense-forcage-annule.test.tsx', // <div>
   'src/gameIso/stage/plan-volumique.test.tsx', // <div>

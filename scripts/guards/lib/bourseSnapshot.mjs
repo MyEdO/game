@@ -1,7 +1,6 @@
 /**
  * Retours directs de partyMoneyTotal dans un sélecteur inline de useGame ; imports renommés inclus.
  * Variables locales intermédiaires et sélecteurs prédéfinis restent hors de cette construction.
- * Le masquage lexical d'une liaison importée reste une limite de estAppelDeclare.
  * Les agrégats convertis en scalaire, comme Council avec toBrass, sont autorisés.
  */
 import ts from 'typescript';
@@ -18,13 +17,13 @@ const sansParentheses = (n) => {
 export const SNAPSHOT_DE_BOURSE = {
   nom: 'snapshot-de-bourse-alloue',
   indice: (texte) => texte.includes('partyMoneyTotal'),
-  reconnait(n, sf) {
-    if (!ts.isCallExpression(n) || !estAppelDeclare(n, sf, STORE)) return null;
+  reconnait(n, sf, contexte) {
+    if (!ts.isCallExpression(n) || !estAppelDeclare(n, sf, STORE, contexte)) return null;
     const selector = sansParentheses(n.arguments[0]);
     if (!selector || (!ts.isArrowFunction(selector) && !ts.isFunctionExpression(selector))) return null;
     const estTotal = (expression) => {
       const appel = sansParentheses(expression);
-      return appel && ts.isCallExpression(appel) && !!estAppelDeclare(appel, sf, BOURSE);
+      return appel && ts.isCallExpression(appel) && !!estAppelDeclare(appel, sf, BOURSE, contexte);
     };
     if (!ts.isBlock(selector.body)) return estTotal(selector.body) ? 'partyMoneyTotal rendu directement par useGame' : null;
     let alloue = false;

@@ -62,7 +62,8 @@ const GARDE = {
       'reste vue par le volet `alias`.',
     'un schéma construit DYNAMIQUEMENT (fabrique qui reçoit sa `shape` en paramètre, `z.object(shape)` sans ' +
       'littéral) est invisible : le scan lit une FORME écrite, pas un objet calculé au chargement.',
-    'le récepteur d’un `.extend` n’est reconnu que s’il est un IDENTIFIANT importé d’un module de grammaire ' +
+    'le récepteur d’un `.extend` n’est reconnu que s’il est un IDENTIFIANT lié lexicalement à un import nommé ' +
+      'd’un module de grammaire (alias et import type compris ; défaut et namespace exclus) ' +
       '(ou une const locale en `…Schema` d’un module de grammaire) : `picked.partial().extend(…)` dans une ' +
       'fabrique générique (`variantOf`, `valeurs.ts`) échappe au scan, son récepteur étant un paramètre.',
     'le périmètre est celui de l’invariant (defs, defs-scenes, state, + grammaire pour `.extend`) : une ' +
@@ -138,6 +139,41 @@ function signaturesDeLaGrammaire(
 /** GRAPHIES HISTORIQUES de référence (invariant #1466, corps du ticket) : une clé qui désigne une
  *  entité sous son ancien nom, là où la grammaire écrit `ref(type)`. */
 const ALIAS = ['skillId', 'talentId', 'trappingId', 'traitId', 'skill', 'ref', 'wildcard', 'specOptions'];
+
+describe('liaison lexicale des extensions de grammaire', () => {
+  const regles = { signatures: [], alias: [] };
+  it.each([
+    ["import { refSchema } from '../grammaire/reference';", 'refSchema', true],
+    ["import { refSchema as porte } from '../grammaire/reference';", 'porte', true],
+    ["import type { refSchema as porte } from '../grammaire/reference';", 'porte', true],
+    ["import { type refSchema as porte } from '../grammaire/reference';", 'porte', true],
+    ["import { default as porte } from '../grammaire/reference';", 'porte', true],
+    ["import porte from '../grammaire/reference';", 'porte', false],
+    ["import * as porte from '../grammaire/reference';", 'porte', false],
+    ["import { porte } from '../autre/reference';", 'porte', false],
+  ] as const)('%s conserve sa famille syntaxique', (entete, recepteur, attendue) => {
+    expect(scan('src/data/schemas/defs/sonde.ts', `${entete}\nconst x = ${recepteur}.partial().extend({});`, regles)
+      .map((t) => t.motif)).toEqual(attendue ? ['extend'] : []);
+  });
+
+  it('les paramètres et blocs homonymes ne sont pas des occurrences importées', () => {
+    const text = [
+      "import { refSchema as porte } from '../grammaire/reference';",
+      'const vrai = porte.extend({});',
+      'function masque(porte) { return porte.extend({}); }',
+      '{ const porte = local; const autre = porte.extend({}); }',
+    ].join('\n');
+    expect(scan('src/data/schemas/defs/sonde.ts', text, regles)).toEqual([
+      { ligne: 2, symbole: 'vrai', champ: '', motif: 'extend', detail: 'porte.extend(…)' },
+    ]);
+  });
+
+  it('les schémas locaux du module de grammaire gardent leur règle syntaxique', () => {
+    const text = 'const porteSchema = local; const vrai = porteSchema.extend({}); const non = local.extend({});';
+    expect(scan('src/data/schemas/grammaire/sonde.ts', text, regles).map((t) => t.symbole)).toEqual(['vrai']);
+    expect(scan('src/data/schemas/defs/sonde.ts', text, regles)).toEqual([]);
+  });
+});
 
 /** Toutes les trouvailles du périmètre, clé `<fichier>:<symbole>[.<champ>]|<motif>|<detail>`. */
 function trouvailles(): { cle: string; ligne: number }[] {
@@ -330,10 +366,7 @@ describe('la garde elle-même — jouée sur un fichier-jouet (preuve de câblag
     expect(motifs).toContain('cSchema|extend');
   });
 
-  // #1467 L1b V-FLIP-ENTITE-b — la fabrique `document()` passe ses CHAMPS en 3ᵉ argument, sans
-  // fabrique zod autour. Tant que le scan ne visitait que `z.object`/`z.strictObject`/`z.looseObject`,
-  // l'adoption FAISAIT DISPARAÎTRE les trouvailles d'un def : perte de COUVERTURE que le cliquet
-  // décroissant lisait comme un solde. Les deux graphies réelles de `champs` sont couvertes.
+  // #1467 L1b V-FLIP-ENTITE-b
   it('les CHAMPS passés à `document()` sont scannés — littéral INLINE', () => {
     const jouet = [
       "import { z } from 'zod';",
