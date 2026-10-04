@@ -88,6 +88,12 @@ test('chaque gate porte la condition du classement SSI elle est sautable', () =>
   assert.deepEqual(ecarts, [])
 })
 
+test('un push de mod (`.claude/skills/<x>/`) est documentaire pour le produit, mais `mods:check` n’est jamais sautée (#2278)', () => {
+  assert.equal(classer(['.claude/skills/harnais/hooks/register.ts']).produit, false)
+  assert.ok(gates.some((g) => g.nom === 'mods:check'), '`mods:check` absente de ci.yml')
+  assert.equal(sautables.has('mods:check'), false)
+})
+
 test('chaque step CI_SEULEMENT porte la condition SSI il est dans CI_SEULEMENT_PRODUIT', () => {
   const ecarts = []
   for (const { job, commande, si } of stepsCi({ cwd: RACINE })) {

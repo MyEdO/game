@@ -157,7 +157,19 @@ export const ECRIT_LU = {
       'jetable (`instanceDeDepot`, sous os.tmpdir(), `rmSync` en finally), et le second y écrit `.git/suivi` ' +
       '(suivi et journal `.journal`) ; `ops/suivi.mjs`, que le lien de session importe, n’écrit que derrière sa porte ' +
       '`import.meta.main` — sonde `git status --porcelain --ignored` avant/après identique, sur le worktree et ' +
-      'sur l’arbre principal',
+      'sur l’arbre principal ; +3 écrivains le 2026-10-04 (#2278) : `guards/lib/modSansRegle.test.mjs` et ' +
+      '`mods/verifier.test.mjs` forgent leurs mods sous `mkdtempSync` de os.tmpdir() (`rmSync` en `t.after`), et ' +
+      '`mods/verifier.mjs`, que le second importe, copie sous un `mkdtempSync` de os.tmpdir() effacé en finally',
+  },
+  'mods:check': {
+    ecrit: [],
+    lit: ['.claude/skills/', 'scripts/mods/'],
+    raison:
+      'découvre les mods sous .claude/skills/ (`racinesDeMods`, scripts/guards/lib/modSansRegle.mjs, que la racine ' +
+      'scripts/mods/ atteint) ; chaque mod est COPIÉ sous `mkdtempSync` de os.tmpdir() avant `claude -p`, qui y pose ' +
+      'ses types, puis `tsc --project <copie>` (noEmit du tsconfig posé par le moteur) et `claude plugin test <copie>` ; ' +
+      '`claude plugin validate --strict` lit la source sans l’écrire ; le temporaire est effacé en finally (scripts/mods/verifier.mjs). ' +
+      'Le CLI vit hors de l’arbre (PATH, ou cache npm de `npx`)',
   },
   'test:ops': {
     ecrit: [],

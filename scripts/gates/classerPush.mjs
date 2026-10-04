@@ -20,9 +20,12 @@ import { TRONC, baseCommune, ceQuiChange, depotDe, fetchOrigin, reussi, shaDe } 
  */
 export const DOCUMENTAIRE = {
   '.claude/':
-    'instructions, mémoire, soldes et workflows d’agent — côté SOURCE de la compat d’agents que ' +
-    '`agents:check` compare (scripts/agents/compat-cli.mjs) ; aucun module de src/ ni server/src/ ' +
-    'ne lit ce dossier hors test (sonde 2026-09-16 : 3 mentions, toutes en commentaire)',
+    'documentaire pour le PRODUIT : instructions, mémoire, soldes et workflows d’agent — côté SOURCE de ' +
+    'la compat d’agents que `agents:check` compare (scripts/agents/compat-cli.mjs) ; aucun module de src/ ' +
+    'ni server/src/ ne lit ce dossier hors test (sonde 2026-09-16 : 3 mentions, toutes en commentaire). ' +
+    'Les mods (`.claude/skills/<x>/` qui porte `.claude-plugin/plugin.json`) sont exécutés par le moteur ' +
+    'Claude Code, pas par le produit : leur gate `mods:check` LIT `.claude/skills/`, qui chevauche ce ' +
+    'préfixe, donc `gatesSautables` ne la saute jamais (#2278)',
   '.agents/':
     'miroir de la compat d’agents, écrit par `agents:sync` et comparé par `agents:check` — aucune ' +
     'lecture depuis src/ ni server/src/ (sonde 2026-09-16 : 0 mention)',

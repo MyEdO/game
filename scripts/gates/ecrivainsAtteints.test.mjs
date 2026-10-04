@@ -200,7 +200,16 @@ const ATTENDU = {
     'scripts/ops/suivi.mjs',
     'scripts/raw/build-implemente.mjs',
     'scripts/test/verrou.mjs',
+    // +3 le 2026-10-04 (#2278) : la garde des mods forge son `.claude/skills` sous `mkdtempSync` de
+    // os.tmpdir() (`rmSync` en `t.after`) ; le banc de la porte `mods:check` forge ses mods de même, et la
+    // porte qu'il importe copie chaque mod sous un `mkdtempSync` de os.tmpdir(), effacé en finally.
+    'scripts/guards/lib/modSansRegle.test.mjs',
+    'scripts/mods/verifier.mjs',
+    'scripts/mods/verifier.test.mjs',
   ],
+  // +1 le 2026-10-04 (#2278) : la porte copie chaque mod sous un `mkdtempSync` de os.tmpdir(), effacé en
+  // finally ; l'arbre n'est jamais écrit.
+  'mods:check': ['scripts/mods/verifier.mjs'],
   'test:ops': [
     // +1 le 2026-09-07 (#1709) : `fermer-depuis-main.test.mjs` et `faits-de-palier.test.mjs`
     // prennent leurs dépôts jetables à la fixture partagée, qui n'écrit que sous `os.tmpdir()`.

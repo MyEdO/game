@@ -146,6 +146,11 @@ scripts/migrations/         Migrations de donnée REJOUABLES (une par lot, daté
                             jetable de la tête, mesuré par EMPREINTE (`lib/empreinteRejeu.mjs` —
                             hors dépôt, `git diff` bascule en `--no-index` et rend un faux vert), et
                             le hook `pre-push` l'arme dès que la plage poussée touche le périmètre
+.claude/skills/<mod>/       Mod Claude Code (une racine qui porte `.claude-plugin/plugin.json`) : `hooks/**`
+                            en `.ts`, couture `hooks/ops.ts` ; chargé par le moteur, jamais par le produit
+                            (§ Mods Claude Code)
+scripts/mods/               Porte `mods:check` (`verifier.mjs`) : validation stricte, types posés par le
+                            moteur, `tsc` et bancs de chaque mod, sur une copie sous os.tmpdir()
 src/lib/                     Couche NEUTRE, en amont de `engine`, `data`, `state` et `ui` : ce que
                             plusieurs couches emploient sans qu’aucune ne le possède. `normalize.ts` :
                             normalisation d'un nom (`norm`).
@@ -459,6 +464,25 @@ server/                     Worker Cloudflare du relay coop (Durable Object « R
 art-ref/                    Illustrations extraites des PDFs + mapping.json (GITIGNORÉ — droits Cubicle 7)
 ```
 
+## Mods Claude Code (#2278)
+
+- **Chargement** : un mod vit sous `.claude/skills/<mod>/` avec `.claude-plugin/plugin.json` ; le
+  moteur Claude Code le charge seul, pour chaque session et chaque worktree (voie skills-dir, sonde S1 :
+  https://github.com/MyEdO/game/issues/2278#issuecomment-5983827521). Il n'a ni Node ni DOM : il voit le
+  dépôt par `$.process.run(argv, init)` et rien d'autre.
+- **Un mod REND, les scripts MESURENT.** La couture `hooks/ops.ts` lance un script du dépôt avec
+  `--json` et lit sa sortie ; tout autre module rend ce qu'elle lui passe. Le régime se lit par un
+  LECTEUR `--json` en lecture seule, jamais par `ops:suivi -- N`, qui mesure puis réécrit le suivi.
+- **Garde** `modSansRegle` (`scripts/guards/lib/modSansRegle.mjs`, jouée par `test:hooks`) : hors
+  couture, aucun seuil, aucun parsing, aucun accès à `$` hors de `ACCES_PERMIS`, aucun `ask`, aucune
+  invalidation du prompt ; dans la couture, `$.process.run`, `$.plugin.root`, `$.ui.log` (échec
+  journalisé) et `JSON.parse` seulement.
+- **Porte** `mods:check` (`scripts/mods/verifier.mjs`, job `types-hooks`) : son `lit` couvre
+  `.claude/skills/`, elle n'est jamais sautée sur un push documentaire (`gatesSautables`,
+  `scripts/gates/classerPush.mjs`).
+- **Version épinglée** : `VERSION_CLAUDE` de `scripts/mods/verifier.mjs`. L'API des mods est
+  « EARLY ACCESS » : elle se monte avec Claude Code, à la main, porte rejouée.
+
 ## Coop en ligne — limitations connues (traçabilité #254)
 
 Deux restrictions posées en 0cd24a01 (#232/#91) sans ticket au moment du commit — RESTENT en l'état
@@ -529,6 +553,9 @@ Deux restrictions posées en 0cd24a01 (#232/#91) sans ticket au moment du commit
   premier flag) — aucun dossier propre à cliqueter isolément. Activation = chantier dédié
   multi-session (refonte des accès indexés / des types optionnels site par site), pas une purge
   mécanique comme le cran 1. Différé, pas écarté.
+- **Second projet tsc : les mods** (`.claude/skills/<mod>/`). Leur `tsconfig.json` n'est pas commité :
+  le moteur le pose avec ses types (`claude -p --plugin-dir`), et il active `noUncheckedIndexedAccess`
+  que la racine désactive. `mods:check` le joue sur une copie (`scripts/mods/verifier.mjs`).
 
 ## Direction visuelle & apparence
 
