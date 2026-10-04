@@ -1,8 +1,10 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
-import { readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
+import { canoniser, relatifSousRacine } from '../../docs/lib/chemin-mesure.mjs'
 import { envDeDepotForge, instanceDeDepot } from './depotGabarit.mjs'
 import { repoProgram } from './tsProgram.mjs'
 
@@ -40,7 +42,10 @@ for (const cas of [
   { nom: 'fusion sans conflit avec clés dupliquées', a: { position: 'debut', branche: 'a' }, b: { position: 'fin', branche: 'b' }, statut: 0, collisions: 3 },
   { nom: 'ajouts identiques', a: { position: 'fin', branche: 'identique' }, b: { position: 'fin', branche: 'identique' }, statut: 0, collisions: 0 },
 ]) test(`deux branches : ${cas.nom}, trois formes réelles de tables`, (t) => {
+  const racineCanonique = canoniser(RACINE)
+  assert.equal(relatifSousRacine(racineCanonique, tmpdir()), null, 'os.tmpdir() doit être hors RACINE avant instanceDeDepot')
   const { racine, sha: base } = instanceDeDepot({ fichiers: { [FICHIER]: texteDe() } })
+  const cible = join(racine, FICHIER)
   const git = (args, statut = 0) => {
     const vu = spawnSync('git', args, { cwd: racine, env: envDeDepotForge(), encoding: 'utf8' })
     assert.ifError(vu.error)
@@ -48,9 +53,11 @@ for (const cas of [
     return vu.stdout.trim()
   }
   try {
+    assert.equal(relatifSousRacine(racineCanonique, racine), null, racine)
+    assert.equal(relatifSousRacine(racineCanonique, cible), null, cible)
     const branche = (nom, ajout) => {
       git(['switch', '-c', nom, base])
-      writeFileSync(join(racine, FICHIER), texteDe(ajout))
+      writeFileSync(cible, texteDe(ajout))
       git(['add', '--', FICHIER])
       git(['commit', '-q', '-m', nom])
       return git(['rev-parse', 'HEAD'])
@@ -79,5 +86,6 @@ for (const cas of [
     }
   } finally {
     rmSync(racine, { recursive: true, force: true })
+    assert.equal(existsSync(racine), false, racine)
   }
 })
