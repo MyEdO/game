@@ -311,7 +311,9 @@ export const SLOTS_SANS_DECLARATION = [
   { dataset: "trappings.json", champ: "shape", occurrences: 43, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "trappings.json", champ: "siegeRig", occurrences: 18, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "trappings.json", champ: "subject", occurrences: 2, lot: "L2/L3 #1473", date: "2026-08-26" },
-  { dataset: "trappings.json", champ: "subType", occurrences: 441, lot: "L2/L3 #1473", date: "2026-08-26" },
+  // 441 → 442 (#1988 B4a-i, 2026-10-04) : l'entrée `pieces-de-creature` (`ZI 13 l.282-284`, folio 99)
+  // porte le `subType` requis (`src/data/schemas/defs/trappings.ts:99`) — MÊME champ déjà stocké.
+  { dataset: "trappings.json", champ: "subType", occurrences: 442, lot: "L2/L3 #1473", date: "2026-10-04" },
   { dataset: "trappings.json", champ: "weaponGroup", occurrences: 22, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "traumas.json", champ: "byProsthesis", occurrences: 3, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "traumas.json", champ: "escalade", occurrences: 3, lot: "L2/L3 #1473", date: "2026-08-26" },

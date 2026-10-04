@@ -17,6 +17,7 @@ import { findCreatureById, refEntiteResolue, structures } from './data';
 
 /** Les réfs MORTES que leur test PROUVE (refus, repli signalé) — `fichier|ligne du site` (texte, espaces réduits). */
 const MORTES_PROUVEES = new Set<string>([
+  "src/engine/pieces-de-creature.test.ts|expect(effet({ trappingId: PIECES_DE_CREATURE_TRAPPING_ID, creatureId: 'creature-inexistante' }).success).toBe(false);",
   "src/gameIso/tokenBodyKind.test.ts|const r = tokenBodyKind({ kind: 'sceneEntity', ent: ent({ id: 'e', kind: 'personnage', ref: 'ref-totalement-inconnue' }) });",
   "src/scenes/migrations-format-projet.test.ts|{ id: 't', flow: { kind: 'do', effect: { type: 'startPursuit', foes: [{ ref: { creatureId: '' } }] } } },",
   "src/state/give-possession-effect.test.ts|expect(refs({ type: 'givePossession', nature: 'bete', ref: { creatureId: '' } } as never, ctx)).toEqual([{ level: 'error', message: 'Possession → créature inexistante « (aucune) »' }]);",

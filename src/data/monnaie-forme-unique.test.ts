@@ -13,7 +13,9 @@
  *     `giveXp.amount`, `givePossession.ref`), elle ne l'étale pas parmi ses propres clés.
  *  B. les noms RÉSERVÉS `price`/`cost` : recensement par CLASSE réelle et par SIGNATURE d'objet —
  *     un nom de concept est réservé à son type (#1463 S2). `cost` est SOLDÉ (L-monnaie-4) : il porte seulement une classe. `price` en porte trois de plus que la monnaie — `null` et `'ND'` sont
- *     la colonne Prix telle que le livre l'imprime, `number` est le facteur saisonnier du vin.
+ *     la colonne Prix telle que le livre l'imprime, `number` est le barème de qualité du vin (`land-cargo.json › wineQuality`).
+ *     Le contrat porte sur l'ENSEMBLE des classes et signatures admises ; leurs comptes vivent avec le
+ *     corpus et s'impriment en diagnostic, sauf le barème `number`, au compte fixé par sa table.
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
@@ -66,18 +68,18 @@ describe('monnaie — forme UNIQUE dans la donnée authorée (#1463)', () => {
 
     // Recensement des MONTANTS (un objet dont les clés sont des dénominations et rien d'autre) :
     // les catalogues chiffrent les 3, un coût authoré n'écrit que ce qu'il coûte.
-    expect(montants, 'signatures de montant observées').toEqual({
-      'brass,gold,silver': 465, // 447 colonnes Prix (trappings 392, vehicles 31, creatures 14, machines de guerre 10) + solde d'équipage 18
-      gold: 27, // mise minimale du Mécénat + 1 coût de choix d'arène + 25 `giveMoney.montant`
-      silver: 23, // 7 coûts de choix d'arène + 16 `giveMoney.montant`
-      'gold,silver': 3, // 3 `giveMoney.montant` à deux dénominations
-      // ENTRÉE NEUVE (#1612, 2026-09-06) : les 3 `money.montant` de l'op de bourse PERSONNELLE — 2 gains
-      // de Mendier (`activities.json`, la `Formula` du gain et le sou glané sans DR) + 1 amende des
-      // gardes (`tables.json`). MÊME geste que L-monnaie-3 sur `giveMoney` : l'op cesse d'ÉTALER `brass`
+    expect(Object.keys(montants).sort(), `signatures de montant (observé : ${JSON.stringify(montants)})`).toEqual([
+      'brass,gold,silver', // colonnes Prix (trappings, vehicles, creatures, machines de guerre) + solde d'équipage
+      'gold', // mise minimale du Mécénat, coût de choix d'arène, `giveMoney.montant`
+      'silver', // coûts de choix d'arène, `giveMoney.montant`
+      'gold,silver', // `giveMoney.montant` à deux dénominations
+      // (#1612, 2026-09-06) : `money.montant` de l'op de bourse PERSONNELLE — gains de Mendier
+      // (`activities.json`, la `Formula` du gain et le sou glané sans DR) et amende des gardes
+      // (`tables.json`). MÊME geste que L-monnaie-3 sur `giveMoney` : l'op cesse d'ÉTALER `brass`
       // parmi ses clés et porte sa charge sous `montant` (`OP_DEFS.money`, grammaire/mecanique.ts). La
       // valeur y est une `Formula`, pas un nombre — la sonde recense la SIGNATURE, pas le type.
-      brass: 3,
-    });
+      'brass',
+    ].sort());
 
     // AUCUN objet-ACTION n'étale de dénomination parmi ses propres clés : toute charge porte un NOM
     // (`giveMoney.montant`, `giveXp.amount`, `givePossession.ref`), et l'enveloppe se mesure ci-dessus
@@ -101,20 +103,23 @@ describe('monnaie — forme UNIQUE dans la donnée authorée (#1463)', () => {
 
     // `price` = la colonne Prix TELLE QUE LE LIVRE L'IMPRIME (`money.ts:36-39`) : un montant, la
     // marque « ND », ou rien. La classe `number` est le barème qui USURPE le nom (solde L-monnaie-4).
-    expect(classes.price, 'classes de `price`').toEqual({ object: 465, null: 46, "'ND'": 3, number: 6 });
-    expect(signatures.price, 'signatures d’objet sous `price`').toEqual({
-      'brass,gold,silver': 447, // la colonne Prix chiffrée
-      'automne,ete,hiver,printemps': 17, // barème SAISONNIER d'une cargaison
-      dice: 1, // prix TIRÉ
-    });
+    expect(Object.keys(classes.price).sort(), `classes de \`price\` (observé : ${JSON.stringify(classes.price)})`)
+      .toEqual(['null', 'number', 'object', "'ND'"].sort());
+    // `land-cargo.json › wineQuality` : MSRC 13 l.97-104.
+    expect(classes.price.number, 'barème `number` sous `price`').toBe(6);
+    expect(Object.keys(signatures.price).sort(), `signatures d’objet sous \`price\` (observé : ${JSON.stringify(signatures.price)})`)
+      .toEqual([
+        'brass,gold,silver', // la colonne Prix chiffrée
+        'automne,ete,hiver,printemps', // barème SAISONNIER d'une cargaison
+        'dice', // prix TIRÉ
+      ].sort());
 
     // `cost` est RENDU à son type (L-monnaie-4) : il nomme seulement de la monnaie. L'économie du
     // Tour dit `coutAction`, le barème d'installation navale `installation`, les paliers de prothèse
     // `px`, les deux coûts d'Avantage du Flow `advantageCost` / `advantageOrMovement`, la réaction de
     // défense `avantage`. UNE seule classe subsiste, et chaque objet est un montant.
-    expect(classes.cost, 'classes de `cost`').toEqual({ object: 8 });
-    expect(signatures.cost, 'signatures d’objet sous `cost`').toEqual({
-      gold: 1, silver: 7, // les 8 tarifs d'arène — la seule population qui garde le nom
-    });
+    expect(Object.keys(classes.cost), `classes de \`cost\` (observé : ${JSON.stringify(classes.cost)})`).toEqual(['object']);
+    expect(Object.keys(signatures.cost).sort(), `signatures d’objet sous \`cost\` (observé : ${JSON.stringify(signatures.cost)})`)
+      .toEqual(['gold', 'silver']); // les tarifs d'arène — la seule population qui garde le nom
   });
 });

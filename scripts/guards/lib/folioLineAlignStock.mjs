@@ -68,8 +68,6 @@ export const FOLIO_LINE_ALIGN_RATCHET = [
   { fichier: 'src/data/flow-stakes.json', ref: 'heal-bleed', occurrence: 1 },
   { fichier: 'src/data/flow-stakes.json', ref: 'heal-wounds', occurrence: 1 },
   { fichier: 'src/data/flow-stakes.json', ref: 'shanty-roll', occurrence: 1 },
-  { fichier: 'src/data/regles.json', ref: 'exposition-hydrique', occurrence: 1 },
-  { fichier: 'src/data/regles.json', ref: 'tests-opposes', occurrence: 1 },
   { fichier: 'src/data/voyage-stakes.json', ref: 'crew-progression', occurrence: 1 },
   { fichier: 'src/data/voyage-stakes.json', ref: 'crew-tourbillon', occurrence: 1 },
   { fichier: 'src/data/voyage-stakes.json', ref: 'river-capsize', occurrence: 1 },

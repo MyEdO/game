@@ -138,7 +138,9 @@ const FOLIO_TITLE_RATCHET_MAX = 0;
 /**
  * Plafond des entrées IRRÉSOLUES — ni desc verbatim, ni titre de section : ce que la garde ne PEUT
  * pas juger. 488 au relevé du 2026-09-23 (#1897), `normMap` lisant le `<br>` d'une cellule de table
- * comme une espace et la voie desc situant une tête de chapitre par `preMarkerRange`, dont
+ * comme une espace et la voie desc situant une tête de chapitre par `preMarkerRange` ; 486 au relevé
+ * du 2026-10-05 (#1988), une `descRef` à plusieurs parts se prouvant par sa première part
+ * (`texteDePreuve`, `folioIntegrity.mjs`) — 3 prouvées, `regles.json` 7 → 4 ; dont
  * `trappings.json` 93, `mutations.json` 69, `careers.json` 49, `gods.json` 37, `sea-events.json` 34
  * (la liste complète est rendue par le dernier `it` de ce bloc). C'est la
  * POPULATION auditée qui le fixe : l'audit ne voit qu'une entrée à `desc`, et chaque famille qui y
@@ -151,7 +153,7 @@ const FOLIO_TITLE_RATCHET_MAX = 0;
  *    contenants`, `69 - Outils professionnels et Ateliers` et `72 - Herbes et potions` (verdict
  *    `sans-marqueur`).
  */
-const UNRESOLVED_MAX = 488;
+const UNRESOLVED_MAX = 486;
 
 describe('intégrité du folio — voie TITRE de section, et skip BRUYANT de ce qui reste (#1200)', () => {
   const { titleViolations, noteAuthored, unresolved, stats, total } = AUDIT;
@@ -223,6 +225,18 @@ const ADRESSE_TERREUR = {
 
 const SOURCE_TERREUR = { book: 'livre-de-base', page: 191 };
 
+/** Adresse à DEUX parts, disjointes au Source : LDB 12 l.155 (folio 153) et l.160 (folio 154). */
+const ADRESSE_OPPOSES = {
+  book: 'livre-de-base',
+  ch: '12',
+  parts: [
+    { kind: 'blocs', sec: 'tests-opposes', secOcc: 1, b0: 0, b1: 0, sum: 'd73b0ef23d9b933f' },
+    { kind: 'blocs', sec: 'tests-opposes', secOcc: 1, b0: 2, b1: 2, sum: '7bba537353082018' },
+  ],
+};
+
+const SOURCE_OPPOSES = { book: 'livre-de-base', page: 153 };
+
 describe('preuve de folio sur la prose ADRESSÉE — même hôte, même verdict (#1389)', () => {
   it('une entrée adressée entre au dénominateur avec le texte que son adresse RÉSOUT', () => {
     const inline = citedEntriesOf([{ id: 'sonde-terreur', label: 'Terreur', desc: PASSAGE_TERREUR, source: SOURCE_TERREUR }]);
@@ -238,6 +252,20 @@ describe('preuve de folio sur la prose ADRESSÉE — même hôte, même verdict 
       id: 'sonde-terreur',
       descRef: { ...ADRESSE_TERREUR, parts: [{ ...ADRESSE_TERREUR.parts[0], sum: '0'.repeat(16) }] },
       source: SOURCE_TERREUR,
+    };
+    expect(() => citedEntriesOf([faux])).toThrow(/empreinte-divergente/);
+  });
+
+  it('une adresse à DEUX parts se prouve par sa PREMIÈRE part, celle du folio cité (#1988)', () => {
+    const [prouvee] = citedEntriesOf([{ id: 'sonde-opposes', label: 'Tests opposés', descRef: ADRESSE_OPPOSES, source: SOURCE_OPPOSES }]);
+    expect(auditFolio(prouvee).verdict).toBe('folio-ok');
+  });
+
+  it('FAIL-CLOSED : une part SUIVANTE morte LÈVE, la preuve par la première part ne la masque pas', () => {
+    const faux = {
+      id: 'sonde-opposes',
+      descRef: { ...ADRESSE_OPPOSES, parts: [ADRESSE_OPPOSES.parts[0], { ...ADRESSE_OPPOSES.parts[1], sum: '0'.repeat(16) }] },
+      source: SOURCE_OPPOSES,
     };
     expect(() => citedEntriesOf([faux])).toThrow(/empreinte-divergente/);
   });

@@ -453,6 +453,14 @@ export function auditFolioByTitle({ book, page, label }) {
   return { verdict: 'titre-ment', ranges, ecart, proche }
 }
 
+/** Texte de preuve de folio d'une prose ADRESSÉE : sa PREMIÈRE part, celle que `source.page` cite,
+ *  résolue par `resoudreProse` ; l'adresse ENTIÈRE est résolue d'abord, pour que toute part morte LÈVE.
+ *  @param {{ descRef: { parts: object[] } }} rec @returns {string} */
+function texteDePreuve(rec) {
+  resoudreProse(rec)
+  return resoudreProse({ ...rec, descRef: { ...rec.descRef, parts: rec.descRef.parts.slice(0, 1) } }).md
+}
+
 /** Entrées d'un dataset portant `source.book` + `source.page` + `desc`, à TOUTE profondeur : la moitié
  *  des datasets n'est pas un tableau racine (`criticals.json` groupe par localisation, `sea-events.json`
  *  par rubrique…) — s'arrêter au 1er niveau laissait 180 entrées citées hors de tout scan.
@@ -465,6 +473,7 @@ export function auditFolioByTitle({ book, page, label }) {
  *  MÊME dénominateur, avec le texte que son adresse RÉSOUT — la preuve de folio se fait sur le texte
  *  résolu, `auditFolio` ne voit aucune différence. `resoudreProse` est FAIL-CLOSED : une adresse morte
  *  ou une empreinte divergente LÈVE ici aussi, plutôt que de retirer l'entrée de l'audit en silence.
+ *  Texte de preuve d'une adresse : `texteDePreuve` (#1988).
  *  @param {unknown} data @returns {{ id: string, book: string, page: number, desc: string, label: string | undefined, note: string | undefined }[]} */
 export function citedEntriesOf(data) {
   /** @type {{ id: string, book: string, page: number, desc: string, label: string | undefined, note: string | undefined }[]} */
@@ -486,7 +495,7 @@ export function citedEntriesOf(data) {
         : typeof rec.desc === 'string'
           ? rec.desc
           : rec.descRef !== undefined
-            ? resoudreProse(rec).md
+            ? texteDePreuve(rec)
             : null
       if (cite && prose !== null) {
         out.push({
