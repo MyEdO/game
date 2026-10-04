@@ -4,6 +4,7 @@ import assert from 'node:assert/strict'
 import { mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
+import { tableTotale } from '../../src/lib/tableTotale.ts'
 import { racinesDeMods } from '../guards/lib/modSansRegle.mjs'
 import {
   CLES_RETIREES, ENTETE_TYPES, ETAPES, TYPES, VERSION_CLAUDE, envNettoye, resoudreClaude, verifier,
@@ -103,7 +104,7 @@ test('preuve POSITIVE des types : fichier absent → rouge ; mauvaise version en
 test('`claude -p` part sous un env NETTOYÉ : identifiants retirés, HOME et profils vers le temporaire, cwd = ce HOME', (t) => {
   const mod = modForge(jetable(t, 'mods-src-'), 'm')
   const { lancer, appels } = lanceurFactice()
-  const env = { GARDEE: 'oui', ...Object.fromEntries(CLES_RETIREES.map((c) => [c, 'secret'])) }
+  const env = { GARDEE: 'oui', ...tableTotale(CLES_RETIREES, () => 'secret') }
   verifier([mod], { lancer, racineTemp: jetable(t, 'mods-tmp-'), env })
   const p = appels.find((a) => a.etape === 'types')
   for (const cle of CLES_RETIREES) assert.equal(p.options.env[cle], undefined, `${cle} retirée`)

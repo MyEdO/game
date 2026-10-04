@@ -24,22 +24,29 @@ function skillsForges(t, fichiers) {
 const MANIFESTE = '{ "name": "m", "version": "0.0.1" }'
 
 const OPS_CONFORME = [
-  "import type { Api } from 'claude-code'",
-  'export async function lire($: Api, argv: string[]) {',
-  "  const r = await $.process.run(['node', `${$.plugin.root}/../../scripts/x.mjs`, ...argv, '--json'])",
-  '  if (r.exitCode) $.ui.log(r.stderr)',
-  '  return JSON.parse(r.stdout)',
+  'export type Lu<T> = { ok: true, valeur: T } | { ok: false, motif: string }',
+  'export function appel(racinePlugin: string, script: string, args: string[]) {',
+  "  const depot = `${racinePlugin}/../../..`",
+  "  return [['node', `${depot}/scripts/ops/${script}.mjs`, ...args, '--json'], { cwd: depot, timeoutMs: 10_000 }] as const",
+  '}',
+  'export function lire<T>(resultat: { exitCode: number, stdout: string }): Lu<T> {',
+  "  if (resultat.exitCode) return { ok: false, motif: 'script en échec' }",
+  '  const valeur = JSON.parse(resultat.stdout)',
+  "  return typeof valeur === 'object' && valeur ? { ok: true, valeur } : { ok: false, motif: 'forme inattendue' }",
   '}',
 ].join('\n')
 
 const REGISTER_CONFORME = [
   "import type { Register } from 'claude-code'",
-  "import { lire } from './ops'",
+  "import { appel, lire } from './ops'",
   'export const register: Register = (on) => {',
   "  on('session.start', async ($, e, next) => {",
   "    $.clock.every(() => $.ui.invalidate('suivi'), 30000)",
-  "    $.state.set('suivi', await lire($, ['--session', $.session.id()]))",
-  "    $.ui.log('suivi lu')",
+  "    const lu = lire(await $.process.run(...appel($.plugin.root, 'suivi', ['--session', $.session.id()])))",
+  "    const autre = lire(await $.process.run(",
+  "      ...appel( $.plugin.root , 'suivi', ['--etat'])))",
+  "    if (lu.ok) $.state.set('suivi', lu.valeur)",
+  "    else $.ui.log(lu.motif)",
   '    return next(e)',
   '  })',
   '}',
@@ -62,7 +69,6 @@ test('fautesDeModule : un seuil, `$` affecté, un accès hors liste, du parsing,
     ["const d = 'ask'", true, 'littéral `ask`'],
     ["await $.fs.read('x')", true, '`$.fs.read` hors couture'],
     ['const o = JSON.parse(t)', true, '`JSON.parse` hors couture'],
-    ["await $.process.run(['node'])", true, '`$.process.run` hors couture'],
     ["t.split(',')", true, '`.split(`'],
     ['t.match(m)', true, '`.match(`'],
     ['t.replaceAll(a, b)', true, '`.replaceAll(`'],
@@ -74,6 +80,7 @@ test('fautesDeModule : un seuil, `$` affecté, un accès hors liste, du parsing,
     ["$.state.get('suivi')", false, '`$.state.<méthode>`'],
     ['$.clock.every(f, 30000)', false, '`$.clock.every`'],
     ["$.session.append('x')", false, '`$.session.append`'],
+    ["$.ui.log('x')", false, '`$.ui.log`'],
     ['// if (n > 3) $.fs.read(JSON.parse(x))', false, 'commentaire'],
     ["const t = 'n > 3, $.fs.read, a.split(b)'", false, 'chaîne'],
   ]
@@ -82,17 +89,37 @@ test('fautesDeModule : un seuil, `$` affecté, un accès hors liste, du parsing,
   }
 })
 
-test('fautesDeModule : dans la couture, seuls `$.process.run`, `$.plugin.root`, `$.ui.log` et `JSON.parse`', () => {
+test('fautesDeModule : un script se lance par l’IDIOME `$.process.run(...appel($.plugin.root, …)` et par lui seul', () => {
+  const idiome = [
+    "await $.process.run(...appel($.plugin.root, 'suivi', []))",
+    "await $.process.run( ... appel ( $.plugin.root , 'suivi', []))",
+    "await $.process.run(\n  ...appel($.plugin.root, 'suivi', []))",
+  ]
+  for (const source of idiome) assert.deepEqual(fautesDeModule(source), [], `idiome — ${source}`)
+  const hors = [
+    ["await $.process.run(['node', 'scripts/ops/suivi.mjs'])", 'lancement direct'],
+    ['const racine = $.plugin.root', '`$.plugin.root` hors idiome'],
+    ["await $.process.run(...appel(racine, 'suivi', []))", 'idiome sans `$.plugin.root`'],
+    ["await $.process.run(...autre($.plugin.root, 'suivi', []))", 'idiome sur un autre formateur'],
+  ]
+  for (const [source, quoi] of hors) {
+    assert.ok(fautesDeModule(source).some((f) => f.motif === 'lancement hors idiome'), `${quoi} — ${source}`)
+  }
+})
+
+test('fautesDeModule : la couture est PURE — aucun `$`, `JSON.parse` permis là seulement', () => {
   assert.deepEqual(fautesDeModule(OPS_CONFORME, { couture: true }), [])
   const cas = [
-    ["$.ui.resolve('x')", '`$.ui.resolve`'],
-    ["$.state.set('x', 1)", '`$.state`'],
-    ["await $.fs.read('x')", '`$.fs.read`'],
+    ["await $.process.run(['node'])", '`$.process.run`'],
+    ['const r = $.plugin.root', '`$.plugin.root`'],
+    ["$.ui.log('x')", '`$.ui.log`'],
+    ['export function f($: Api) {}', '`$` en paramètre'],
     ['if (r.exitCode > 0) f()', 'seuil'],
     ["r.stdout.split('\\n')", 'parsing'],
     ["return { ask: 'q' }", '`ask`'],
   ]
   for (const [source, quoi] of cas) assert.ok(fautesDeModule(source, { couture: true }).length > 0, `${quoi} dans la couture — ${source}`)
+  assert.deepEqual(fautesDeModule('const n = `${a}`', { couture: true }), [], 'le `${` d’un gabarit n’est pas `$`')
 })
 
 test('fautesDeModule : chaque faute est rapportée à SA ligne, texte source et motif inclus', () => {
@@ -126,15 +153,20 @@ test('modsSansRegle : un mod conforme est VERT, ses bancs `*.test.ts` sont hors 
 test('modsSansRegle : les fautes d’un mod sont NOMMÉES (fichier, ligne) ; un `.tsx` est refusé ; une racine sans plugin.json est hors champ', (t) => {
   const skills = skillsForges(t, {
     'mal/.claude-plugin/plugin.json': MANIFESTE,
-    [`mal/${COUTURE}`]: OPS_CONFORME,
+    [`mal/${COUTURE}`]: `${OPS_CONFORME}\nexport const r = ($: any) => $.plugin.root`,
     'mal/hooks/seuil.ts': 'export const f = (n: number) => n > 3',
     'mal/hooks/sous/lire.ts': "export const g = ($: any) => $.process.run(['node'])",
     'mal/hooks/vue.tsx': 'export const V = () => h("div")',
     'skill-nu/hooks/x.ts': 'if (n > 3) f()',
   })
   assert.deepEqual(
-    modsSansRegle(skills).map((f) => `${f.fichier}:${f.ligne}`),
-    ['mal/hooks/seuil.ts:1', 'mal/hooks/sous/lire.ts:1', 'mal/hooks/vue.tsx:0'],
+    modsSansRegle(skills).map((f) => `${f.fichier}:${f.ligne} ${f.motif}`),
+    [
+      'mal/hooks/ops.ts:11 `$` dans la couture : elle est pure',
+      'mal/hooks/seuil.ts:1 seuil (comparaison ou arithmétique contre un littéral numérique)',
+      'mal/hooks/sous/lire.ts:1 lancement hors idiome',
+      'mal/hooks/vue.tsx:0 module JSX : un mod s’écrit en `.ts` avec `h()`',
+    ],
   )
 })
 
@@ -142,7 +174,8 @@ test('aucun mod de .claude/skills/ ne porte une règle du régime (#2278)', () =
   assert.deepEqual(
     modsSansRegle(SKILLS).map((f) => `.claude/skills/${f.fichier}:${f.ligne} ${f.motif} — ${f.texte}`),
     [],
-    'un mod REND, les scripts MESURENT : la mesure et sa règle vivent dans un script lu par la couture ' +
-      `\`${COUTURE}\` (sortie --json) ; un accès au moteur neuf s’ajoute à ACCES_PERMIS (scripts/guards/lib/modSansRegle.mjs)`,
+    'un mod REND, les scripts MESURENT : la mesure et sa règle vivent dans un script lancé par ' +
+      `\`$.process.run(...appel($.plugin.root, …)\` et lu par la couture pure \`${COUTURE}\` (sortie --json) ; ` +
+      'un accès au moteur neuf s’ajoute à ACCES_PERMIS (scripts/guards/lib/modSansRegle.mjs)',
   )
 })

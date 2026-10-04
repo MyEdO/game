@@ -470,13 +470,18 @@ art-ref/                    Illustrations extraites des PDFs + mapping.json (GIT
   moteur Claude Code le charge seul, pour chaque session et chaque worktree (voie skills-dir, sonde S1 :
   https://github.com/MyEdO/game/issues/2278#issuecomment-5983827521). Il n'a ni Node ni DOM : il voit le
   dépôt par `$.process.run(argv, init)` et rien d'autre.
-- **Un mod REND, les scripts MESURENT.** La couture `hooks/ops.ts` lance un script du dépôt avec
-  `--json` et lit sa sortie ; tout autre module rend ce qu'elle lui passe. Le régime se lit par un
-  LECTEUR `--json` en lecture seule, jamais par `ops:suivi -- N`, qui mesure puis réécrit le suivi.
+- **Un mod REND, les scripts MESURENT.** La couture `hooks/ops.ts` est PURE : `appel(racinePlugin,
+  script, args)` forme le tuple `[argv, init]` d'un script `scripts/ops/<script>.mjs` lancé avec
+  `--json`, et `lire(resultat)` en valide la sortie. Un module de fonction lance le script par
+  l'idiome UNIQUE `$.process.run(...appel($.plugin.root, …)`. Raison, `claude plugin validate` 2.1.289 :
+  « $ is followed only into a function declared in this same file, never across an import ; $ is
+  always spelled $.noun.event(...) at the call site » — la couture ne peut pas recevoir `$`. Le
+  régime se lit par un LECTEUR `--json` en lecture seule, jamais par `ops:suivi -- N`, qui mesure
+  puis réécrit le suivi.
 - **Garde** `modSansRegle` (`scripts/guards/lib/modSansRegle.mjs`, jouée par `test:hooks`) : hors
-  couture, aucun seuil, aucun parsing, aucun accès à `$` hors de `ACCES_PERMIS`, aucun `ask`, aucune
-  invalidation du prompt ; dans la couture, `$.process.run`, `$.plugin.root`, `$.ui.log` (échec
-  journalisé) et `JSON.parse` seulement.
+  couture, aucun seuil, aucun parsing, aucun accès à `$` hors de `ACCES_PERMIS`, `$.process.run` et
+  `$.plugin.root` dans l'idiome seulement, aucun `ask`, aucune invalidation du prompt ; dans la
+  couture, aucun `$`, et `JSON.parse` permis là seulement.
 - **Porte** `mods:check` (`scripts/mods/verifier.mjs`, job `types-hooks`) : son `lit` couvre
   `.claude/skills/`, elle n'est jamais sautée sur un push documentaire (`gatesSautables`,
   `scripts/gates/classerPush.mjs`).
