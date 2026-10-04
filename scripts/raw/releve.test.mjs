@@ -6,6 +6,7 @@ import { readFileSync } from 'node:fs'
 import { ORIGINES, cleDAdresse, livreDuReleve, nomme, preparerLivre, releve, sortDeLEntree } from './releve.mjs'
 import { paquet, releveDesTermes, taillesDuPaquet } from './paquet.mjs'
 import { estErreur, graphieDuFichier, parseChapitre, resoudreAdresse } from '../../src/data/source/decoupe.ts'
+import { tableTotale } from '../../src/lib/tableTotale.ts'
 
 const chapitre = (fichier, lignes) => ({ fichier, parse: parseChapitre(lignes.join('\n')) })
 const ancre = (folio) => `<span id="page-${folio - 1}-0" data-folio="${folio}"></span>`
@@ -120,7 +121,7 @@ test('#1887 : CRB — relevé de « poison », « ranged », « advantage » : o
       const rang = CRB.indexe.chapitres.get(it.fichier).sections.findIndex((s) => s.slug === f.sec && s.occ === f.secOcc)
       assert.notEqual(CRB.natures.get(it.fichier)[rang], 'horsRegle', it.ref)
     }
-    const par = (liste) => Object.fromEntries(ORIGINES.map((o) => [o, liste.filter((it) => it.origines.includes(o)).length]))
+    const par = (liste) => tableTotale(ORIGINES, (o) => liste.filter((it) => it.origines.includes(o)).length)
     t.diagnostic(`« ${terme} » : regle ${r.regle.length} ${JSON.stringify(par(r.regle))}, entite ${r.entite.length}, ambigus ${r.ambigus.length}, introuvables ${r.introuvables.length}`)
   }
 })

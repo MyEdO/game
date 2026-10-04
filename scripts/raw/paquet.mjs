@@ -10,6 +10,7 @@
 import { ORIGINES, cleDAdresse, livreDuReleve, releve } from './releve.mjs'
 import { estErreur, resoudreAdresse } from '../../src/data/source/decoupe.ts'
 import { parUnitesDeCode } from '../../src/lib/ordre.mjs'
+import { tableTotale } from '../../src/lib/tableTotale.ts'
 
 /** Les sections relevées de plusieurs termes, fusionnées par adresse, origines marquées du terme. */
 function fusion(liste) {
@@ -93,7 +94,7 @@ export function paquet(livre, termes, options = {}) {
  *  section à plusieurs origines compte dans chacune). */
 export function taillesDuPaquet(livre, termes, options = {}) {
   const regle = replier(releveDesTermes(livre, termes, options).regle)
-  const parOrigine = Object.fromEntries(ORIGINES.map((o) => [o, 0]))
+  const parOrigine = tableTotale(ORIGINES, () => 0)
   for (const it of regle) {
     const n = texteDe(livre, it).length
     for (const o of new Set(it.origines.map((x) => x.origine))) parOrigine[o] += n
