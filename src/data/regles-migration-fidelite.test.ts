@@ -1,5 +1,5 @@
 /**
- * FIDÉLITÉ DE LA MIGRATION #1887 — `regles.json` est ce que le script committé
+ * FIDÉLITÉ DE LA MIGRATION #1887 — sur les champs qu'elle écrit (`desc`, `descRef`), `regles.json` est ce que le script committé
  * `scripts/migrations/2026-09-28-1887-regles-desc-vers-descref.mjs` rend, rejoué sur la pré-image
  * contre le `Source/` de l'arbre : aucune `desc` n'a été retouchée hors du script.
  *
@@ -18,6 +18,9 @@ const RACINE = fileURLToPath(new URL('../../', import.meta.url));
 const MIGRATION = 'scripts/migrations/2026-09-28-1887-regles-desc-vers-descref.mjs';
 const git = (...args: string[]) => execFileSync('git', args, { cwd: RACINE, encoding: 'utf8', maxBuffer: 1 << 26 });
 
+type Fiche = { id: string; desc?: unknown; descRef?: unknown };
+const projection = ({ id, desc, descRef }: Fiche) => ({ id, desc, descRef });
+
 function preImage(): string {
   const ajout = git('log', '--diff-filter=A', '--format=%H', '--', MIGRATION).trim().split('\n').filter(Boolean).pop();
   return git('show', `${ajout ? `${ajout}^` : 'HEAD'}:${FICHIER}`);
@@ -31,9 +34,13 @@ describe('migration #1887 regles — aller-retour et rejeu', () => {
 
     const aller = migrer(avant);
     expect(aller.echecs).toEqual([]);
-    // Les fiches que la pré-image porte : une fiche AJOUTÉE après la migration n'est pas de son ressort.
+    // Les fiches que la pré-image porte, projetées sur les SEULS champs que la migration écrit
+    // (`desc` retiré, `descRef` posé, `migrer` l.95-96) : une fiche AJOUTÉE après elle, ou un autre
+    // champ corrigé après elle, n'est pas de son ressort.
     const ids = new Set((JSON.parse(avant) as { id: string }[]).map((e) => e.id));
-    expect(JSON.parse(aller.texte)).toEqual((JSON.parse(arbre) as { id: string }[]).filter((e) => ids.has(e.id)));
+    expect((JSON.parse(aller.texte) as Fiche[]).map(projection)).toEqual(
+      (JSON.parse(arbre) as Fiche[]).filter((e) => ids.has(e.id)).map(projection),
+    );
 
     const rejeu = migrer(arbre);
     expect(rejeu.echecs).toEqual([]);
