@@ -209,12 +209,15 @@ export const ECRIT_LU = {
       'scripts/raw/', 'scripts/gen-registry.mjs', 'Source/',
     ],
     raison:
-      'fixtures sous os.tmpdir() ; lit les docs et la mémoire RÉELS (les gardes de liens et de références les ' +
+      'fixtures sous os.tmpdir() ; `build-passifs.test.mjs` crée ses instances jetables après avoir prouvé ' +
+      'os.tmpdir() hors racine canonique par `canoniser` et `relatifSousRacine`, puis exige l’instance hors ' +
+      'arbre ; son finally supprime l’instance et exige son absence. TMP/TEMP dans la racine est refusé ' +
+      'avant `instanceDeDepot` ; lit les docs et la mémoire RÉELS (les gardes de liens et de références les ' +
       'parcourent en place) ' +
       'et scripts/guards/lib/ (`check-plans-anchors.test.mjs` lit le code de `lister.mjs` et importe ' +
       '`depotGabarit.mjs`), sans rien y écrire ; LIT les trois modules du lanceur local que `build-all.mjs` ' +
-      'ramène (sonde 2026-09-08, 50 lectures) ; LIT src/ et docs/ depuis le 2026-09-14 (#1759) : ' +
-      '`enregistreur-lectures.test.mjs`, venu de test:hooks avec sa racine `scripts/docs`, joue de VRAIS ' +
+      'ramène (sonde 2026-09-08, 50 lectures) ; LIT src/ et docs/ : ' +
+      '`enregistreur-lectures.test.mjs`, avec sa racine `scripts/docs`, joue de VRAIS ' +
       'générateurs en `--check` (build-index-moteur, build-donnees, build-structures) sur l’arbre réel — ils ' +
       'COMPARENT sans écrire, et leurs lectures passent par la sortie de mesure du test, sous os.tmpdir() ; ' +
       'LIT CLAUDE.md sur l’arbre RÉEL : `routingTableSlice` (manual-docs-ratchet.test.mjs) ancre la table de routage ' +

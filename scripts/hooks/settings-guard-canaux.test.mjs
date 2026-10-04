@@ -201,12 +201,12 @@ test('cas plantés : le préfixe magique et le texte libre sont refusés, mcp__*
   assert.equal(valide('Write|mcp__autre__.*'), false, 'un motif non déclaré')
 })
 
-/** Lance le point d'entrée RÉEL avec le payload que `mcp__lean-ctx__ctx_shell` produit, et rend sa
- *  décision (`'deny'`, ou `null` s'il se tait). */
-function decisionOf(script, command) {
+/** Lance le point d'entrée RÉEL avec le payload que l'outil `outil` produit (`ctx_shell` par défaut),
+ *  et rend sa décision (`'deny'`, ou `null` s'il se tait). */
+function decisionOf(script, command, outil = 'mcp__lean-ctx__ctx_shell') {
   const run = lancerHook(script, {
     session_id: 'test', hook_event_name: 'PreToolUse',
-    tool_name: 'mcp__lean-ctx__ctx_shell', tool_input: { command, cwd: REPO },
+    tool_name: outil, tool_input: outil === 'Bash' ? { command } : { command, cwd: REPO },
   })
   assert.equal(run.code, 0, `${script} a quitté en ${run.code} : ${run.err}`)
   return run.specifique?.permissionDecision ?? null
@@ -219,6 +219,7 @@ test('DRIVER : les gardes de commande décident bien sur un payload ctx_shell (c
   assert.equal(decisionOf('repartiteur.mjs', 'gh issue create --title "X" --body "y"'), 'deny')
   assert.equal(decisionOf('repartiteur.mjs', 'git show --stat -- 21d0153b7'), 'deny')
   assert.equal(decisionOf('repartiteur.mjs', 'npx vitest run | tail -20'), 'deny')
+  assert.equal(decisionOf('repartiteur.mjs', 'taskkill //F //IM grep.exe', 'Bash'), 'deny')
 })
 
 test('DRIVER : une commande anodine passe par les deux points d’entrée sans décision', () => {
