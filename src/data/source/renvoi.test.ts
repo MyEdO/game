@@ -168,7 +168,7 @@ describe('resoudreRenvoi — cas canoniques du CRB', () => {
   it('toute résolution porte la page que le livre dit ; une `DescRef` n’existe qu’aux niveaux section et table', () => {
     for (const r of tous) {
       expect(r.resolution.page).toEqual({ book: CRB, page: r.renvoi.folio });
-      const prouve = ['table', 'section-adjacente', 'section-phrase'].includes(r.resolution.niveau);
+      const prouve = ['table', 'section-adjacente', 'section-englobante', 'section-phrase'].includes(r.resolution.niveau);
       expect(r.resolution.cible == null, `${r.fichier} p.${r.renvoi.folio} ${r.resolution.niveau}`).toBe(!prouve);
     }
   });
@@ -179,9 +179,17 @@ describe('resoudreRenvoi — cas canoniques du CRB', () => {
     expect(cible(r)).toEqual({ ch: '041', sec: 'fear-rating', secOcc: 1 });
   });
 
-  it('liste de pages : 081 « Weapons: Page 301, 303 » atteint les deux pages', () => {
-    expect(site('081', 301, 'Weapons:').resolution).toMatchObject({ niveau: 'page', page: { book: CRB, page: 301 } });
+  it('liste de pages : 081 « Weapons: Page 301, 303 » atteint les deux pages ; p.301, HAND WEAPONS (seul titre du folio) contient la clause', () => {
+    const p301 = site('081', 301, 'Weapons:');
+    expect(p301.resolution.niveau).toBe('section-englobante');
+    expect(cible(p301)).toEqual({ ch: '086', sec: 'hand-weapons', secOcc: 1 });
     expect(site('081', 303, 'Weapons:').resolution).toMatchObject({ niveau: 'page', page: { book: CRB, page: 303 } });
+  });
+
+  it('section-englobante à deux titres : 081 « Armour: Page 307 » → ambigu, les deux candidats nommés', () => {
+    expect(site('081', 307, 'Armour:').resolution).toMatchObject({
+      niveau: 'ambigu', cible: null, candidats: ['087 - Armour.md § Armour and Size', '087 - Armour.md § QUICK ARMOUR'],
+    });
   });
 
   it('même titre deux fois dans un fichier (titre et intitulé de sa table) → la première, l’englobante', () => {
@@ -282,5 +290,49 @@ describe('resoudreRenvoi — tables TITRÉES (`tablesOf`)', () => {
     const livre2 = indexerLivre('fixture', 'VO', [{ fichier: '01 - Fixture.md', parse: parseChapitre(deux) }]);
     const r = (t: string) => resoudreRenvoi(livre2, renvoisDe(t, 'VO')[0]).niveau;
     expect([r('Roll on the Brawl Table (page 10).'), r('Roll on the Brawl Table (page 11).')]).toEqual(['ambigu', 'table']);
+  });
+});
+
+describe('resoudreRenvoi — section-englobante', () => {
+  const md = [
+    '# <span id="page-9-0" data-folio="10"></span>**Selection of Poisons**', '', 'A list of venoms, each with its price.', '',
+    '# **Concocting Poison**', '', 'Brewing a venom takes a full day of work.', '',
+    '# **Weapon Reach**', '', 'Longer blades keep a foe at bay in melee.', '',
+    '# **Ranged Weapon Reach**', '', 'Bows and slings strike from far away.', '',
+    '# **Strike a Foe**', '', 'Any blow that lands on a foe counts as a strike.',
+  ].join('\n');
+  const fixture = indexerLivre('fixture', 'VO', [{ fichier: '01 - Fixture.md', parse: parseChapitre(md) }]);
+  const resoudre = (clause: string, phrase = clause) => resoudreRenvoi(fixture, { folio: 10, fin: null, debut: 0, clause, phrase });
+
+  it('rôle 1 de `nommes` (titre dans la clause) : « *Selections of Poisons* » au pluriel et en emphase nomme le titre', () => {
+    const r = resoudre('Roll on the *Selections of Poisons*');
+    expect([r.niveau, r.cible!.parts[0].sec]).toEqual(['section-adjacente', 'selection-of-poisons']);
+  });
+
+  it('rôle 2 de `nommes` (clause dans un titre) : borné par mots, « Poiso » n’est contenu dans aucun titre', () => {
+    expect(resoudre('Poiso').niveau).toBe('page');
+  });
+
+  it('UN titre du folio contient la clause → section-englobante, sa cible', () => {
+    const r = resoudre('Selection');
+    expect([r.niveau, r.cible!.parts[0].sec]).toEqual(['section-englobante', 'selection-of-poisons']);
+  });
+
+  it('plusieurs titres la contiennent → ambigu, les candidats nommés', () => {
+    expect(resoudre('Poisons')).toMatchObject({
+      niveau: 'ambigu', cible: null, candidats: ['01 - Fixture.md § Selection of Poisons', '01 - Fixture.md § Concocting Poison'],
+    });
+  });
+
+  it('un titre DANS la clause prime : section-adjacente, jamais englobante', () => {
+    expect(resoudre('see Weapon Reach').niveau).toBe('section-adjacente');
+  });
+
+  it('englobante avant section-phrase : la clause contenue dans un titre l’emporte sur un titre de la phrase', () => {
+    expect(resoudre('Ranged', 'Ranged rules, see Concocting Poison').niveau).toBe('section-englobante');
+  });
+
+  it('une clause de moins de deux caractères n’est contenue dans aucun titre (« a » dans « Strike a Foe »)', () => {
+    expect(resoudre('a').niveau).toBe('page');
   });
 });
