@@ -9,13 +9,15 @@ import { DEPOT } from '../guards/lib/ticketsGh.mjs'
 import { execFileSync } from 'node:child_process'
 import * as FS from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { envDeDepotForge, instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import { GESTES_DU_BOARD, indexerIssues, mesurer } from './board.mjs'
 import {
   HEURES_PEREMPTION, LIGNES_D_UN_TICKET_FERME, MARQUE_DEBUT, MARQUE_FIN, PLAFOND_INJECTION, digestDuSuivi, ecrireSuivi,
   gabaritDuSuivi, horodatage, lireHorodatage, listerSuivis, mesureProfilee, renduDuSuivi,
-  suivre, texteDeLaListe, ticketsPrevus, zonesDe,
+  suivre, texteDeLaListe, ticketsPrevus, zonesDe, JOURNAL, argumentsDuSuivi, editer, editionDuSuivi, etatDeSession,
+  etatDuSuivi, ligneDeJournal, lignesDEtat, lignesDuJournal,
 } from './suivi.mjs'
 
 const REEL = FS.readFileSync(new URL('./fixtures/suivi-1816.md', import.meta.url), 'utf8')
@@ -492,4 +494,190 @@ test('T3 — zone ÉCRITE intacte à l’octet quand la zone porte « À condens
 test('T4 — digestDuSuivi porte la puce « À condenser » de la zone mesurée', () => {
   const vu = digest(rendre(A_CONDENSER, MESURE_FERMES))
   assert.ok(vu.includes(`**À condenser**\n\n${PUCE_10}`), vu)
+})
+
+// ————————————————————————————— #2279 : état structuré, lecteur, édition —————————————————————————————
+
+const ZONE_DATEE = (quand) => [MARQUE_DEBUT, `> Zone MESURÉE par \`npm run ops:suivi -- 9\` le ${horodatage(quand)} : x`, '| t |', MARQUE_FIN]
+const PLAN = [
+  '# Suivi #9', '', '## Objectif', 'livrer', '', '## En cours',
+  '   - [ ] étape d’avant tout item',
+  '1. [x] #3 fait',
+  '   - [x] faite',
+  '2. #4 ouvert, en cours',
+  '   - [x] brief écrit',
+  '   - [ ] juge du brief',
+  '   - [ ] juge du diff',
+  '   note libre',
+  '3. #5 suivant',
+  '<!-- 4. #6 commenté -->',
+  '', ...ZONE_DATEE(new Date(2026, 9, 4, 10, 0)), '',
+].join('\n')
+
+test('#2279 — etatDuSuivi : titre, Objectif, items (ticket, libellé, fait), étapes et leur état, étapes hors item, zone datée PÉRIMÉE', () => {
+  const etat = etatDuSuivi(PLAN, { maintenant: new Date(2026, 9, 5, 11, 0) })
+  assert.equal(etat.refus, null)
+  assert.equal(etat.titre.texte, 'Suivi #9')
+  assert.deepEqual(etat.sections.map((s) => s.nature), ['objectif', 'en-cours'])
+  assert.deepEqual(etat.sections[0].objectif.map((l) => l.ligne), ['livrer'])
+  const [enCours] = etat.sections.slice(1)
+  assert.deepEqual(enCours.etapesHorsItem.map((e) => [e.texte, e.ouverte]), [['étape d’avant tout item', true]])
+  assert.deepEqual(enCours.items.map((it) => [it.ticket, it.libelle, it.fait]), [[3, '#3 fait', true], [4, '#4 ouvert, en cours', false], [5, '#5 suivant', false]])
+  assert.deepEqual(enCours.items[1].etapes.map((e) => [e.texte, e.ouverte]), [['brief écrit', false], ['juge du brief', true], ['juge du diff', true]])
+  assert.equal(PLAN.split('\n')[enCours.items[1].fin], '   note libre', 'la fin d’un item : sa dernière ligne indentée')
+  assert.equal(etat.zone.date.getTime(), new Date(2026, 9, 4, 10, 0).getTime())
+  assert.equal(etat.zone.perimee, true)
+  assert.equal(etatDuSuivi(PLAN, { maintenant: new Date(2026, 9, 4, 12, 0) }).zone.perimee, false)
+})
+
+test('#2279 — lignesDEtat : item en cours, prochain geste, ouverts ; âge pour le bandeau, date pour l’ajout ; absent dit tel quel', () => {
+  const lu = { epique: 9, chemin: '/s/9.md', texte: PLAN }
+  const maintenant = new Date(2026, 9, 4, 13, 30)
+  assert.deepEqual(lignesDEtat(lu, { maintenant, age: true }), [
+    '[suivi #9] en cours : #4 ouvert, en cours',
+    '  prochain geste : juge du brief',
+    '  ouverts : 2 item(s), 3 étape(s) · mesurée il y a 3 h',
+  ])
+  assert.equal(lignesDEtat(lu, { maintenant, age: false })[2], '  ouverts : 2 item(s), 3 étape(s) · mesurée le 2026-10-04 10:00')
+  assert.deepEqual(lignesDEtat({ ...lu, texte: null }, { maintenant, age: true }), ['[suivi #9] lié à cette session, mais absent : /s/9.md'])
+  assert.deepEqual(lignesDEtat({ ...lu, texte: '# T\n## En cours\n1. [x] #1 fait\n' }, { maintenant, age: true }),
+    ['[suivi #9] aucun item ouvert', '  ouverts : 0 item(s), 0 étape(s) · jamais mesurée'])
+})
+
+test('#2279 — argumentsDuSuivi : forme historique, lecteur, édition (texte cité ou découpé) ; toute autre forme refusée', () => {
+  assert.deepEqual(argumentsDuSuivi([]), { numero: null, creer: false, sansFetch: false, session: null, json: false, depuis: null, geste: null })
+  assert.equal(argumentsDuSuivi(['1816', '--creer']).numero, 1816)
+  assert.deepEqual(argumentsDuSuivi(['--session', 'abc', '--json']), { numero: null, creer: false, sansFetch: false, session: 'abc', json: true, depuis: null, geste: null })
+  const cite = argumentsDuSuivi(['9', '--session', 'abc', '--json', '--ajouter-item', '#12 un libellé'])
+  assert.deepEqual([cite.numero, cite.geste], [9, { quoi: 'ajouter-item', texte: '#12 un libellé' }])
+  assert.deepEqual(argumentsDuSuivi(['9', '--session', 'abc', '--json', '--ajouter-item', '#12', 'un', 'libellé']).geste, cite.geste)
+  assert.deepEqual(argumentsDuSuivi(['9', '--json', '--session', 'abc', '--cocher', '4', 'juge du']).geste, { quoi: 'cocher', ticket: 4, texte: 'juge du' })
+  assert.equal(argumentsDuSuivi(['--session', 'abc', '--depuis', 'k1', '--json']).depuis, 'k1')
+  for (const refuse of [
+    ['--creer'], ['1', '2'], ['0'], ['--session', 'abc'], ['--json'], ['--session', '--json'], ['--session', 'abc', '--json', '--creer'],
+    ['9', '--session', 'abc', '--json'], ['--session', 'abc', '--json', '--cocher', '4', 'x'], ['9', '--session', 'abc', '--cocher', '4', 'x'],
+    ['9', '--session', 'abc', '--json', '--cocher', 'x'], ['9', '--session', 'abc', '--json', '--ajouter-etape', '0', 'x'], ['1816', '--bogue'],
+    ['--depuis', 'k1'], ['1816', '--depuis', 'k1'], ['--session', 'abc', '--json', '--depuis'], ['--session', 'abc', '--json', '--depuis', '--x'],
+    ['9', '--session', 'abc', '--json', '--depuis', 'k1', '--cocher', '4', 'x'],
+  ]) assert.equal(argumentsDuSuivi(refuse), null, refuse.join(' '))
+})
+
+test('#2279 — editionDuSuivi : ajouter un item, une étape, cocher ; zone mesurée et commentaires intacts à l’octet, LF et CRLF', () => {
+  for (const fin of ['\n', '\r\n']) {
+    const texte = PLAN.split('\n').join(fin)
+    const zone = (t) => { const z = zonesDe(t); return z.lignes.slice(z.debut, z.fin + 1).join('') }
+    const item = editionDuSuivi(texte, { quoi: 'ajouter-item', texte: '#7 nouveau' })
+    assert.equal(item.ok, true)
+    assert.equal(item.texte, texte.replace(`3. #5 suivant${fin}`, `3. #5 suivant${fin}4. #7 nouveau${fin}`))
+    const etape = editionDuSuivi(texte, { quoi: 'ajouter-etape', ticket: 4, texte: 'publier' })
+    assert.equal(etape.texte, texte.replace(`   note libre${fin}`, `   note libre${fin}   - [ ] publier${fin}`))
+    const coche = editionDuSuivi(texte, { quoi: 'cocher', ticket: 4, texte: 'juge du b' })
+    assert.equal(coche.texte, texte.replace('   - [ ] juge du brief', '   - [x] juge du brief'))
+    for (const { texte: apres } of [item, etape, coche]) {
+      assert.equal(zone(apres), zone(texte))
+      assert.ok(apres.includes(`<!-- 4. #6 commenté -->${fin}`))
+    }
+  }
+})
+
+test('#2279 — editionDuSuivi : refus NOMMÉS — texte vide, item sans ticket ou déjà présent, item absent, aucune étape, étape ambiguë, suivi illisible', () => {
+  const refus = (geste, texte = PLAN) => { const r = editionDuSuivi(texte, geste); assert.equal(r.ok, false, JSON.stringify(geste)); return r.refus }
+  assert.match(refus({ quoi: 'ajouter-item', texte: '  ' }), /texte vide/)
+  assert.match(refus({ quoi: 'ajouter-item', texte: 'sans ticket' }), /item sans ticket/)
+  assert.match(refus({ quoi: 'ajouter-item', texte: '#4 doublon' }), /item #4 déjà présent \(l\.10\)/)
+  assert.match(refus({ quoi: 'ajouter-etape', ticket: 6, texte: 'x' }), /item #6 absent/)
+  assert.match(refus({ quoi: 'cocher', ticket: 4, texte: 'brief écrit' }), /aucune étape ouverte de l'item #4/)
+  assert.match(refus({ quoi: 'cocher', ticket: 4, texte: 'juge du' }), /étape ambiguë : 2 étapes ouvertes de l'item #4 .*\(l\.12, l\.13\)/)
+  assert.match(refus({ quoi: 'ajouter-item', texte: '#7 x' }, '# T\n'), /section `## En cours` absente/)
+})
+
+/** Un dossier de suivis jetable : `9.md` (PLAN), sans journal. */
+function dossierDeSuivis() {
+  const dossier = dossierJetable()
+  FS.writeFileSync(join(dossier, '9.md'), PLAN)
+  return dossier
+}
+
+test('#2279 — editer : écrit, lie la session UNE fois, rend l’état ; un refus ne touche ni le suivi ni le journal', () => {
+  const dossier = dossierDeSuivis()
+  const maintenant = new Date(2026, 9, 4, 13, 30)
+  const journal = () => lignesDuJournal(FS.readFileSync(join(dossier, JOURNAL), 'utf8')).map((l) => [l.session, l.epique])
+  try {
+    const absent = editer({ numero: 8, dossier, session: 's', geste: { quoi: 'ajouter-item', texte: '#1 x' }, maintenant })
+    assert.deepEqual([absent.code, absent.stdout], [1, ''])
+    assert.match(absent.stderr, /suivi #8 absent/)
+    const refuse = editer({ numero: 9, dossier, session: 's', geste: { quoi: 'cocher', ticket: 4, texte: 'juge du' }, maintenant })
+    assert.equal(refuse.code, 1)
+    assert.match(refuse.stderr, /étape ambiguë/)
+    assert.equal(FS.readFileSync(join(dossier, '9.md'), 'utf8'), PLAN)
+    assert.equal(FS.existsSync(join(dossier, JOURNAL)), false)
+    const fait = editer({ numero: 9, dossier, session: 's', geste: { quoi: 'cocher', ticket: 4, texte: 'juge du b' }, maintenant })
+    assert.equal(fait.code, 0, fait.stderr)
+    assert.deepEqual(JSON.parse(fait.stdout), etatDeSession({ session: 's', dossier, maintenant }))
+    assert.equal(JSON.parse(fait.stdout).suivis[0].lignes[1], '  prochain geste : juge du diff')
+    editer({ numero: 9, dossier, session: 's', geste: { quoi: 'ajouter-etape', ticket: 5, texte: 'brief' }, maintenant })
+    assert.deepEqual(journal(), [['s', 9]], 'le lien n’est tracé qu’une fois')
+    assert.deepEqual(restes(dossier), [])
+  } finally { FS.rmSync(dossier, { recursive: true, force: true }) }
+})
+
+test('#2279 — etatDeSession : sans lien, bandeau et ajout vides, l’index en contexte ; lié, la clé suit l’ÉTAT, jamais l’heure de relecture', () => {
+  const dossier = dossierDeSuivis()
+  try {
+    const seul = etatDeSession({ session: 's', dossier, maintenant: new Date() })
+    assert.deepEqual([seul.suivis, seul.ajout], [[], ''])
+    assert.match(seul.contexte, /^\[suivi\] session sans suivi lié/)
+    FS.writeFileSync(join(dossier, JOURNAL), ligneDeJournal({ iso: 'x', session: 's', epique: 9 }))
+    const a = etatDeSession({ session: 's', dossier, maintenant: new Date(2026, 9, 4, 13, 30) })
+    const b = etatDeSession({ session: 's', dossier, maintenant: new Date(2026, 9, 4, 15, 50) })
+    assert.deepEqual(a.suivis.map((s) => [s.epique, s.chemin]), [[9, join(dossier, '9.md')]])
+    assert.match(a.contexte, /^\[suivi #9\] /)
+    assert.equal(a.ajout, ['[suivi] état relu le 2026-10-04 13:30', '[suivi #9] en cours : #4 ouvert, en cours',
+      '  prochain geste : juge du brief', '  ouverts : 2 item(s), 3 étape(s) · mesurée le 2026-10-04 10:00'].join('\n'))
+    assert.doesNotMatch(a.ajout, /npm run|lire |relancer|mets|mettre/)
+    assert.notEqual(a.ajout, b.ajout)
+    assert.equal(a.cle, b.cle, 'même état, même clé')
+    assert.notEqual(a.cle, seul.cle)
+    FS.writeFileSync(join(dossier, '9.md'), editionDuSuivi(PLAN, { quoi: 'cocher', ticket: 4, texte: 'juge du b' }).texte)
+    assert.notEqual(etatDeSession({ session: 's', dossier, maintenant: new Date(2026, 9, 4, 13, 30) }).cle, a.cle, 'état changé, clé changée')
+  } finally { FS.rmSync(dossier, { recursive: true, force: true }) }
+})
+
+test('#2279 — CLI `--session <id> --json` sur un dépôt FORGÉ : l’état de la session, en LECTURE SEULE', () => {
+  const { racine } = instanceDeDepot({ commit: false })
+  const dossier = join(racine, '.git', 'suivi')
+  try {
+    FS.mkdirSync(dossier, { recursive: true })
+    FS.writeFileSync(join(dossier, '9.md'), PLAN)
+    FS.writeFileSync(join(dossier, JOURNAL), ligneDeJournal({ iso: 'x', session: 's', epique: 9 }))
+    const avant = FS.readdirSync(dossier).map((n) => [n, FS.statSync(join(dossier, n)).mtimeMs])
+    const sortie = execFileSync(process.execPath, [fileURLToPath(new URL('./suivi.mjs', import.meta.url)), '--session', 's', '--json'], { cwd: racine, encoding: 'utf8' })
+    const etat = JSON.parse(sortie)
+    assert.deepEqual(Object.keys(etat), ['session', 'suivis', 'contexte', 'ajout', 'cle'])
+    assert.equal(etat.session, 's')
+    assert.equal(etat.suivis[0].lignes[0], '[suivi #9] en cours : #4 ouvert, en cours')
+    const vu = dirname(etat.suivis[0].chemin)
+    assert.equal(FS.realpathSync(vu), FS.realpathSync(dossier), 'le dossier des suivis du dépôt forgé')
+    assert.equal(etat.contexte, etatDeSession({ session: 's', dossier: vu, maintenant: new Date() }).contexte)
+    assert.deepEqual(FS.readdirSync(dossier).map((n) => [n, FS.statSync(join(dossier, n)).mtimeMs]), avant, 'rien n’est écrit')
+  } finally {
+    FS.rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+test('#2279 — etatDeSession `depuis` : ajout VIDE quand la clé d’état vaut `depuis`, rendu dès qu’elle change ; la clé, elle, est rendue toujours', () => {
+  const dossier = dossierDeSuivis()
+  try {
+    FS.writeFileSync(join(dossier, JOURNAL), ligneDeJournal({ iso: 'x', session: 's', epique: 9 }))
+    const maintenant = new Date(2026, 9, 4, 13, 30)
+    const premier = etatDeSession({ session: 's', dossier, maintenant })
+    assert.notEqual(premier.ajout, '')
+    const inchange = etatDeSession({ session: 's', dossier, maintenant, depuis: premier.cle })
+    assert.deepEqual([inchange.ajout, inchange.cle], ['', premier.cle])
+    assert.equal(etatDeSession({ session: 's', dossier, maintenant, depuis: 'autre' }).ajout, premier.ajout)
+    FS.writeFileSync(join(dossier, '9.md'), editionDuSuivi(PLAN, { quoi: 'cocher', ticket: 4, texte: 'juge du b' }).texte)
+    const change = etatDeSession({ session: 's', dossier, maintenant, depuis: premier.cle })
+    assert.match(change.ajout, /prochain geste : juge du diff/)
+    assert.notEqual(change.cle, premier.cle)
+  } finally { FS.rmSync(dossier, { recursive: true, force: true }) }
 })

@@ -105,10 +105,17 @@ export function transformGuide(text) {
   return `${GENERATED_PREFIX}CLAUDE.md -->\n${body}`;
 }
 
+/** Le manifeste qui fait d'une racine `.claude/skills/<x>/` un mod Claude Code (#2278), sans miroir Codex. */
+const MANIFESTE_DE_MOD = '.claude-plugin/plugin.json';
+
 export function transformSkillTree(sourceFiles) {
   const outputs = new Map();
+  const mods = [...sourceFiles.keys()]
+    .filter((source) => source.startsWith('.claude/skills/') && source.endsWith(`/${MANIFESTE_DE_MOD}`))
+    .map((source) => source.slice(0, -MANIFESTE_DE_MOD.length))
+    .filter((racine) => racine.split('/').length === 4);
   for (const [source, bytes] of sourceFiles) {
-    if (!source.startsWith('.claude/skills/')) continue;
+    if (!source.startsWith('.claude/skills/') || mods.some((racine) => source.startsWith(racine))) continue;
     const destination = source.replace(/^\.claude\/skills\//, '.agents/skills/');
     if (!source.endsWith('/SKILL.md')) {
       outputs.set(destination, Buffer.from(bytes));
@@ -206,12 +213,13 @@ export const ENTREES_OUTIL = [
  * (`scripts/hooks/bootstrap-conteneur.mjs`) : sur la surface Codex, ce hook ne pourrait que naître
  * et rendre une liste vide. Un spawn qui ne mesure rien n'est pas une parité, c'est un mort.
  *
- * Le suivi de vague (`scripts/hooks/inject-suivi.mjs`, #2132) se relit sur les deux surfaces.
+ * Le suivi de vague (`scripts/hooks/inject-suivi.mjs`, #2132) : surface Codex seule. Côté Claude, le mod
+ * `harnais` (`.claude/skills/harnais/hooks/suivi.ts`, #2279) le porte : une seule injection par surface.
  */
 export const HOOKS_DE_SESSION = [
   { phase: 'SessionStart', script: 'inject-project-credo.mjs', arguments: ['codex'], surfaces: [SURFACE_CODEX], timeout: 10, statusMessage: 'Injection du credo de travail' },
   { phase: 'SessionStart', script: 'bootstrap-conteneur.mjs', arguments: [], surfaces: [SURFACE_CLAUDE], timeout: TIMEOUT_DU_HOOK, statusMessage: 'Conformité du conteneur distant (hooks git, docs, gh)' },
-  { phase: 'SessionStart', script: 'inject-suivi.mjs', arguments: [], surfaces: [SURFACE_CLAUDE, SURFACE_CODEX], timeout: 10, statusMessage: 'Suivi de vague de la session' },
+  { phase: 'SessionStart', script: 'inject-suivi.mjs', arguments: [], surfaces: [SURFACE_CODEX], timeout: 10, statusMessage: 'Suivi de vague de la session' },
 ];
 
 /**

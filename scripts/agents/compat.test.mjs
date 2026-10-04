@@ -111,6 +111,16 @@ test('préserve le frontmatter, adapte le corps et copie les ressources', () => 
   assert.deepEqual(out.get('.agents/skills/demo/assets/icon.bin'), Buffer.from([0, 255, 1]));
 });
 
+test('un MOD (racine de `.claude/skills/` qui porte `.claude-plugin/plugin.json`) n’a pas de miroir ; un skill voisin, si (#2278)', () => {
+  const out = transformSkillTree(new Map([
+    ['.claude/skills/mod/.claude-plugin/plugin.json', Buffer.from('{ "name": "mod" }')],
+    ['.claude/skills/mod/hooks/register.ts', Buffer.from('export const register = () => {}')],
+    ['.claude/skills/demo/SKILL.md', Buffer.from('---\nname: demo\ndescription: Démo\n---\nCorps\n')],
+    ['.claude/skills/demo/exemples/.claude-plugin/plugin.json', Buffer.from('{}')],
+  ]));
+  assert.deepEqual([...out.keys()].sort(), ['.agents/skills/demo/SKILL.md', '.agents/skills/demo/exemples/.claude-plugin/plugin.json']);
+});
+
 test('refuse orphelin manuel et accepte ressource sous skill marqué', () => {
   const expected = buildExpectedOutputs(new Map([
     ['CLAUDE.md', Buffer.from('# CLAUDE.md\n')],
@@ -175,12 +185,12 @@ test('CONTRAT — un hook de session n’est porté QUE par ses surfaces', () =>
   }
 });
 
-test('CÂBLAGE — le suivi de vague est injecté au SessionStart des DEUX surfaces, générées et commitées (#2132)', async () => {
+test('CÂBLAGE — le suivi de vague est injecté au SessionStart de Codex seul, généré et commité ; Claude le porte par le mod harnais (#2132, #2279)', async () => {
   for (const surface of [SURFACE_CLAUDE, SURFACE_CODEX]) {
     const commitees = JSON.parse(await readFile(new URL(`../../${surface}`, import.meta.url), 'utf8'));
     for (const [origine, valeur] of [['générées', { hooks: hooksAttendus(REGISTRES, surface) }], ['commitées', commitees]]) {
       const portes = aplatirHooks(valeur, surface).filter((h) => h.phase === 'SessionStart' && h.script === 'inject-suivi.mjs');
-      assert.equal(portes.length, 1, `${origine} ${surface}`);
+      assert.equal(portes.length, surface === SURFACE_CODEX ? 1 : 0, `${origine} ${surface}`);
     }
   }
 });
