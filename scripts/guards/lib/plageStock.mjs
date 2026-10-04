@@ -1,10 +1,5 @@
 // STOCKS NOMINATIFS SUR UNE PLAGE de commits — la porte a posteriori du PUSH.
 //
-// Le garde au commit et la mesure du DERNIER commit ne voient qu'une tête : sur un push en lot,
-// tout commit qui n'est pas la tête est invisible, et la croissance de `429b9a1a2` a traversé les
-// deux portes six heures après leur pose (revue de palier n°2, 2026-09-03). Cette lib juge la PLAGE
-// réellement poussée.
-//
 // La plage d'un PUSH est ce qu'il APPORTE au tronc : l'appelant passe la ref poussée (`vers`), et un
 // commit déjà sur le tronc n'y est pas rejugé (stocks-nominatifs.test.mjs:33-36). Une FENÊTRE mesurée
 // (palier) ne passe pas de `vers`. Le tronc est lu tel que le dépôt qui juge le connaît : un
