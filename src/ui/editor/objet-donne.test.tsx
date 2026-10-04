@@ -3,7 +3,7 @@
  * Effet `giveTrapping` à l'éditeur (#1988) : options = objets du PROJET édité (`Ctx.objets`) puis du
  * catalogue qu'admet la feuille (`giveTrappingSchema.shape.trappingId`) ; la saisie, par id OU par
  * libellé, se résout dans ce même univers, entrées refusées comprises — jamais par la campagne jouée.
- * Résolue hors de `INSTANCIABLE_PAR_ID` : refus affiché, rien d'écrit ; non résolue : `custom`.
+ * Résolue hors de `DONNABLE` : refus affiché, rien d'écrit ; non résolue : `custom`.
  */
 import { describe, it, expect, beforeAll } from 'vitest';
 import { act, type ReactElement } from 'react';
@@ -13,7 +13,7 @@ import { RefField } from '../compendium/RefField';
 import { CIBLES_D_EFFET_DE_SCENE } from '../../state/combatEffects';
 import { trappings, type TrappingData } from '../../data';
 import { dansLaSousListe, idsDeLaSousListe } from '../../data/schemas/grammaire/ref';
-import { INSTANCIABLE_PAR_ID } from '../../data/schemas/grammaire/sousListes';
+import { DONNABLE } from '../../data/schemas/grammaire/sousListes';
 import type { Effect } from '../../state/scene';
 
 beforeAll(() => {
@@ -21,7 +21,7 @@ beforeAll(() => {
 });
 
 const OBJET_DU_PROJET: TrappingData = { ...trappings.find((t) => t.id === 'dague')!, id: 'projet-sceau-du-comte', label: 'Sceau du comte' };
-const SERVICE = trappings.find((t) => !dansLaSousListe(INSTANCIABLE_PAR_ID, t))!;
+const SERVICE = trappings.find((t) => !dansLaSousListe(DONNABLE, t))!;
 const ctx = (objets: readonly TrappingData[]): Ctx => ({ encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE, objets });
 const effetVide = { type: 'giveTrapping', custom: '' } as Effect;
 
@@ -65,7 +65,7 @@ const REFUS_DU_SERVICE = `« ${SERVICE.id} » porte le marqueur « service » : 
 
 describe('Effet `giveTrapping` — sélecteur d’objet', () => {
   it('les options sont les objets du projet admis, puis les libellés des ids admis par la feuille (aucun tarif de service)', () => {
-    const admis = new Set(idsDeLaSousListe('trapping', INSTANCIABLE_PAR_ID));
+    const admis = new Set(idsDeLaSousListe('trapping', DONNABLE));
     const catalogue = trappings.filter((t) => admis.has(t.id)).map((t) => t.label);
     expect(saisir('').options.sort()).toEqual([...catalogue].sort());
     expect(saisir('', [OBJET_DU_PROJET]).options.sort()).toEqual([...catalogue, OBJET_DU_PROJET.label].sort());

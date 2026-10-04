@@ -42,6 +42,7 @@ export function amputations(fiches: typeof regles): string[] {
       if (!t || /^#|<span/.test(t) || FIN.test(t)) continue;
       let j = i;
       while (j < L.length && !/\S/.test(L[j])) j++;
+      if (/^#/.test((L[j] ?? '').trim())) continue; // un titre ouvre une section : il ne continue aucune phrase
       const tete = (L[j] ?? '').replace(/^.*<\/span>/, '').trim().split(' ').slice(0, 3).join(' ');
       if (tete && !r.desc.includes(tete)) out.push(`${r.id} : l.${i} se termine sur « …${t.slice(-24)} », la suite « ${tete}… » manque à la desc`);
     }

@@ -1104,9 +1104,12 @@ export interface ItemInstance {
   /** À répétition (Indice) (LDB 62 l.229/231) : munitions restantes dans le chargeur de CETTE arme. */
   chambered?: number;
   /** `id` du trapping de catalogue dont l'objet dérive (`TrappingData.id`) — réf STABLE posée par
-   *  `itemFromTrappingById`. ABSENT = objet CUSTOM (hors-base : `customTrapping`, pièces de monstre…).
+   *  `itemFromTrappingById` et `pieceDeCreature`. ABSENT : `customTrapping`, `weaponItem` (#1988).
    *  Source de re-dérivation (arme dérivée de prothèse, prix de revente, réparation) — ≠ name-match. */
   trappingId?: string;
+  /** ZI 13 l.294, l.319 — id de `creatures.json` dont la pièce provient : présent SI ET SEULEMENT SI
+   *  l'entrée `trappingId` porte `exigeUneCreature` (posé par `pieceDeCreature`). */
+  creatureId?: string;
   /** Spécialisation de CETTE possession, telle que le livre l'imprime entre parenthèses — `LDB 08`
    *  l.1130 « outils de la profession (Maréchal-ferrant) ». DONNÉE, pas affichage : elle vit sur
    *  l'OBJET parce que deux « Outils professionnels » du même sac doivent rester DISCERNABLES (le
@@ -1234,11 +1237,10 @@ export interface ItemInstance {
   /** Arme INVOQUÉE temporaire (op `grantWeapon`) : objet ordinaire mais TENU d'office (injecté en
    *  tête de `c.weapons` par recomputeLoadout) et retiré à l'expiration du Sort. */
   conjured?: boolean;
-  /** Silhouette de RENDU forcée (libellé d'arme du catalogue) — propagée à `Weapon.form`. */
+  /** Silhouette de RENDU forcée : id de trapping du catalogue (`grantWeapon.form`, `grammaire/mecanique.ts`) — propagée à `Weapon.form`. */
   form?: string;
-  /** Valeur de marché PRÉ-CALCULÉE (butin récolté : pièces de monstre, Précieuses Entrailles ZI) —
-   *  rareté × dangerosité × Taille × Conservation déjà nettes. Revendu en DIRECT (sans le taux de
-   *  revente catalogue), cf. `merchantFlow.sellGain`. Absent pour un objet ordinaire (prix = catalogue). */
+  /** Valeur propre de l'instance, lue par `merchantFlow.valeurPropre` : carte marine (MDG 15 l.290,
+   *  `seaActivities.ts`) ; pièce récoltée HÉRITÉE sans `trappingId` (#1988, montée de fin de train). */
   price?: import('./money').Money;
   // Les capacités FONCTIONNELLES de catégorie (weatherProtection/isShelter/isRations/isGrimoire/
   // preventForcedDrop) ne sont PAS propagées sur l'instance : elles sont lues DEPUIS le catalogue par

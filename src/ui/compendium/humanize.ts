@@ -21,7 +21,7 @@ import { estCausePersistante, type GameOp, type Formula, type ResolveWindow } fr
 import type { Camp, Relation } from '../../engine/relations';
 import { CHAR_LABELS, HIT_LOCATION_LABELS, type CharKey, type ArmourBypass } from '../../engine/types';
 import { formatTrait, formatWardSave, traitLabelById } from '../../engine/traits/dispatch';
-import { giveTrappingLabel } from '../../engine/items';
+import { libelleDuDon } from '../../engine/items';
 import { traumaLabelOf } from '../../engine/trauma';
 import { formatMoney } from '../../engine/money';
 import { rule, ruleDef } from '../../engine/policy';
@@ -425,7 +425,7 @@ export function humanizeOp(o: GameOp): string {
     case 'ignoreAnimosity': return `ignore ses Animosités et Préjugés`;
     case 'testMod': return `${o.amount >= 0 ? 'gagne' : 'subit'} ${o.amount >= 0 ? '+' : ''}${o.amount} aux Tests${o.char ? ` de ${CHAR_LABELS[o.char]}` : ''}`;
     case 'weatherWard': return `est immunisé aux intempéries`;
-    case 'giveTrapping': return `reçoit ${o.count && o.count > 1 ? `${o.count}× ` : ''}${giveTrappingLabel(o)}`;
+    case 'giveTrapping': return `reçoit ${libelleDuDon(o)}`;
     case 'grantWeapon': return `invoque ${o.label} (Dégâts ${o.plusBF ? 'BF+' : ''}${humanizeFormula(o.damage)})`;
     case 'grantNaturalWeapon': return `gagne l'arme naturelle ${o.label} (${o.plusBF !== false ? 'BF+' : ''}${humanizeFormula(o.damage)})`;
     case 'grantFreeAttack': return `peut porter une attaque gratuite`;

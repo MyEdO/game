@@ -9,7 +9,7 @@ import { t } from '../i18n';
 import type { RigSpeciesId } from '../gameIso/rig/appearance';
 import type { Sexe, SourceRef, SecondaryRef, RaceKey, RefCareerId, DescRef } from './schemas/grammaire/valeurs';
 import { dansLaSousListe, lireLEspace, porteLeMarqueur, type RefASpecialisation, type RefDesignee, type TypeEntite } from './schemas/grammaire/ref';
-import { INSTANCIABLE_PAR_ID } from './schemas/grammaire/sousListes';
+import { INSTANCIABLE_PAR_ID, RECOLTABLE } from './schemas/grammaire/sousListes';
 import type { IdsParEspace } from './schemas/_ids.generated';
 import { symptomSeveritySchema } from './schemas/grammaire/valeurs';
 import { SOURCES_DE_SPECS, type SourceDeSpecs } from './schemas/grammaire/sourcesDeSpecs';
@@ -1320,6 +1320,9 @@ export interface TrappingData {
    *  `INSTANCIABLE_PAR_ID` (`schemas/grammaire/sousListes.ts`), hors de `trappingsInstanciables` ;
    *  reste la source de PRIX de son consommateur (référencée par id) et visible au Codex/Compendium. */
   service?: boolean;
+  /** ZI 13 l.294, l.319 — marqueur exclu de `INSTANCIABLE_PAR_ID` (`schemas/grammaire/sousListes.ts`) :
+   *  l'instance naît par `pieceDeCreature` (`engine/items.ts`), qui pose `ItemInstance.creatureId`. */
+  exigeUneCreature?: boolean;
 }
 /** Groupe d'objet (taxonomie `subType` id-ifiée) : Groupe d'ARME (Base, Escrime, Deux-mains, Armes
  *  d'hast…), famille de MUNITION (Arc, Arbalète, Poudre noire…), type d'ARMURE (Plate, Mailles, Cuir
@@ -3051,6 +3054,9 @@ export const premierOffert = (catalogue: readonly { id: string }[], quoi: string
 /** Ce qu'un effet NEUF sème avant tout choix d'auteur (`givePossession`, `startPursuit`) — et ce que
  *  reçoit un `creatureId`/`vehicleId` VIDE semé avant #1882 (`PROJECT_MIGRATIONS[13]`). */
 export const creatureSemee = (): string => premierOffert(creatures, 'Créature semée par un effet neuf');
+/** La créature que sème un don de pièce (`giveTrapping.creatureId`) : la première de `RECOLTABLE`. */
+export const creatureRecoltableSemee = (): string =>
+  premierOffert(creatures.filter((c) => dansLaSousListe(RECOLTABLE, c)), 'Créature récoltable semée par un don de pièce');
 export const vehiculeSeme = (): string => premierOffert(vehicles, 'Véhicule semé par un effet neuf');
 export const navireSeme = (): string => premierOffert(vehicles.filter((v) => v.ship), 'Navire semé par un effet neuf');
 /** La Taille que porte un Talent du catalogue (`TalentData.size`) : la lecture que les primitives de Taille

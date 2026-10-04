@@ -31,7 +31,9 @@ describe('migration #1887 regles — aller-retour et rejeu', () => {
 
     const aller = migrer(avant);
     expect(aller.echecs).toEqual([]);
-    expect(aller.texte).toBe(arbre);
+    // Les fiches que la pré-image porte : une fiche AJOUTÉE après la migration n'est pas de son ressort.
+    const ids = new Set((JSON.parse(avant) as { id: string }[]).map((e) => e.id));
+    expect(JSON.parse(aller.texte)).toEqual((JSON.parse(arbre) as { id: string }[]).filter((e) => ids.has(e.id)));
 
     const rejeu = migrer(arbre);
     expect(rejeu.echecs).toEqual([]);

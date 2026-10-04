@@ -145,6 +145,9 @@ describe('trappings — Disponibilité : les 4 classes, la marque « ND », ou r
         // donne ni prix ni Disponibilité nulle part), sel sacré (MDG 10 l.112-122, prose seule),
         // carte marine (MDG 15 l.290 — produite par une Activité, sa valeur est PAR INSTANCE).
         'malepierre-brute', 'malepierre-raffinee', 'sel-sacre', 'carte-marine',
+        // Pièces de créature brutes (ZI 13 l.284-299) : le coût se lit par créature, la Disponibilité
+        // n'est imprimée nulle part (ZI 13 l.416 : Recherche d'un acheteur, #2137).
+        'pieces-de-creature',
         // Artefacts magiques (VDM 12) : le chapitre ne tabule ni Prix ni Disponibilité pour eux — ni
         // pour les potions (il chiffre le COÛT DES INGRÉDIENTS d'une cuvée, pas un prix de vente), ni
         // pour les grimoires nommés, les pierres de pouvoir et les objets maudits. Seules les robes de

@@ -12078,6 +12078,23 @@
     }
   },
   {
+    "id": "pieces-de-creature",
+    "type": "trappings",
+    "label": "Pièces de créature brutes",
+    "categorie": "trapping",
+    "subType": "possessions-diverses",
+    "enc": 1,
+    "availability": null,
+    "qualities": [],
+    "price": null,
+    "exigeUneCreature": true,
+    "source": {
+      "book": "zoo-imperial",
+      "page": 99,
+      "note": "ZI 13 l.282-284"
+    }
+  },
+  {
     "id": "peau-de-phoque",
     "type": "trappings",
     "label": "Peau de phoque",

@@ -16,11 +16,13 @@ import { EMPTY_FLOW } from '../../state/flow';
 import { EFFECT_HANDLERS, EFFECT_GROUP_ORDER, CIBLES_PAR_RACINE, type RacineDeCatalogue, type TableDeCibles } from '../../state/combatEffects';
 import { DAY_PHASES, DayPhaseId, IMPERIAL_MONTHS, type ScheduleSpec } from '../../engine/clock';
 import { diseaseDefs } from '../../engine/disease';
-import { spells, trappingDesObjetsPuisDuCatalogue, refLabel, WATER_EXPOSURE, vehicles, findVehicleById, crewRoles, memoParVersion, creatureSemee, vehiculeSeme, libelleOuAbsence, type TrappingData } from '../../data';
+import { spells, trappingDesObjetsPuisDuCatalogue, refLabel, WATER_EXPOSURE, vehicles, findVehicleById, crewRoles, memoParVersion, creatureSemee, creatureRecoltableSemee, vehiculeSeme, libelleOuAbsence, type TrappingData } from '../../data';
 import { useMemo } from 'react';
 import { giveTrappingSchema } from '../../data/schemas/defs-scenes/effets';
 import { MANANN_FACTORS, findManannFactor } from '../../engine/seaVoyage';
-import { giveTrappingLabel } from '../../engine/items';
+import { libelleDuDon } from '../../engine/items';
+import { lEntreePorte } from '../../data/schemas/grammaire/ref';
+import { EXIGE_UNE_CREATURE } from '../../data/schemas/grammaire/sousListes';
 import { FlowEditor } from './FlowEditor';
 import { AddMenu, TypeMenu, pickable, type TypeMenuGroup } from './AddMenu';
 import { GameOpEditor, opSummary } from './GameOpEditor';
@@ -176,7 +178,7 @@ export function effectSummary(effect: Effect, ctx: Pick<Ctx, 'scenes' | 'cibles'
     case 'document': return `Document : ${e.title || '(sans titre)'}`;
     case 'revealClue': return `Indice : ${e.indiceId || '?'}${e.stade ? ` → stade ${e.stade}` : ''}`;
     case 'discreditClue': return `Fausse piste : ${e.indiceId || '?'}`;
-    case 'giveTrapping': return `Objet : ${giveTrappingLabel(e, (id) => trappingDesObjetsPuisDuCatalogue(new Map(ctx.objets.map((o) => [o.id, o])), id)) || '?'}${e.qualities?.length ? ` (+${e.qualities.length} qualité(s))` : ''}`;
+    case 'giveTrapping': return `Objet : ${libelleDuDon(e, (id) => trappingDesObjetsPuisDuCatalogue(new Map(ctx.objets.map((o) => [o.id, o])), id)) || '?'}${e.qualities?.length ? ` (+${e.qualities.length} qualité(s))` : ''}`;
     case 'givePossession': {
       const natureLabel = e.nature === 'bete' ? 'Bête' : e.nature === 'serviteur' ? 'Serviteur' : 'Véhicule';
       const refLabelStr = e.nature === 'vehicule'
@@ -277,23 +279,45 @@ export function newEffect(type: Effect['type']): Effect {
 
 /** Objet donné par l'Effet `giveTrapping` : le sélecteur résout la saisie dans les objets du projet puis le
  *  catalogue, sous la feuille `giveTrappingSchema.shape.trappingId` (`RefField`, `entreesEnTete`) ; l'id
- *  émis qui se résout (`trappingDesObjetsPuisDuCatalogue`) est un `trappingId`, toute autre saisie un `custom`. */
-function ObjetDonneField({ objets, value, upd }: { objets: readonly TrappingData[]; value: string | undefined; upd: (patch: object) => void }) {
+ *  émis qui se résout (`trappingDesObjetsPuisDuCatalogue`) est un `trappingId`, toute autre saisie un `custom`.
+ *  Une entrée qui porte `EXIGE_UNE_CREATURE` SÈME `creatureId` (`creatureRecoltableSemee`) et montre son
+ *  sélecteur, sous la feuille `giveTrappingSchema.shape.creatureId` ; la bascule retour l'efface. */
+function ObjetDonneField({ objets, don, upd }: {
+  objets: readonly TrappingData[];
+  don: { trappingId?: string; custom?: string; creatureId?: string };
+  upd: (patch: object) => void;
+}) {
   const parId = useMemo(() => new Map(objets.map((o) => [o.id, o])), [objets]);
+  const entree = don.trappingId ? trappingDesObjetsPuisDuCatalogue(parId, don.trappingId) : undefined;
   return (
-    <RefField
-      cfg={{ ds: 'trappings', freeText: true }}
-      noeud={giveTrappingSchema.shape.trappingId}
-      entreesEnTete={objets}
-      value={value}
-      onChange={(v) => {
-        const val = v as string | undefined;
-        upd(val && trappingDesObjetsPuisDuCatalogue(parId, val) ? { trappingId: val, custom: undefined } : { custom: val, trappingId: undefined });
-      }}
-    />
+    <>
+      <RefField
+        cfg={{ ds: 'trappings', freeText: true }}
+        noeud={giveTrappingSchema.shape.trappingId}
+        entreesEnTete={objets}
+        value={don.trappingId ?? don.custom}
+        onChange={(v) => {
+          const val = v as string | undefined;
+          const choisie = val ? trappingDesObjetsPuisDuCatalogue(parId, val) : undefined;
+          if (!choisie) {
+            upd({ custom: val, trappingId: undefined, creatureId: undefined });
+            return;
+          }
+          upd({ trappingId: val, custom: undefined, creatureId: lEntreePorte(choisie)(EXIGE_UNE_CREATURE) ? (don.creatureId ?? creatureRecoltableSemee()) : undefined });
+        }}
+      />
+      {entree && lEntreePorte(entree)(EXIGE_UNE_CREATURE) && (
+        <RefField
+          cfg={{ ds: 'creatures', single: true }}
+          label="Créature"
+          noeud={giveTrappingSchema.shape.creatureId}
+          value={don.creatureId}
+          onChange={(v) => upd({ creatureId: v as string })}
+        />
+      )}
+    </>
   );
 }
-
 /** Corps DÉPLIÉ d'un effet (feuille `do` d'un Flow) : menu de type + champs spécifiques. */
 export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChange: (e: Effect) => void; ctx: Ctx }) {
   const e = effect as any;
@@ -347,7 +371,8 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
         )}
         {effect.type === 'giveTrapping' && (
           <>
-            <ObjetDonneField objets={ctx.objets} value={e.trappingId ?? e.custom} upd={upd} />
+            <ObjetDonneField objets={ctx.objets} don={e} upd={upd} />
+            <label className="dr">Nombre <NumberField variant="nu" label="Nombre d’objets donnés" min={1} value={e.count ?? 1} onChange={(count) => upd({ count })} /></label>
             <input
               placeholder="Qualités magiques ajoutées (virgules, ex. De plaies atroces)"
               value={(e.qualities ?? []).join(', ')}

@@ -7,7 +7,7 @@ import { weaponFromId } from '../../../engine/creatureEquip';
 import { viewOrFront } from './types';
 import type { Combatant, Weapon, ItemInstance } from '../../../engine/types';
 import { findMutationById, trappings } from '../../../data';
-import { itemFromGive, recomputeLoadout, weaponFromItem } from '../../../engine/items';
+import { itemFromTrappingById, recomputeLoadout, weaponFromItem } from '../../../engine/items';
 import { weaponGroup } from '../../../engine/weaponGroup';
 
 const wep = (name: string, type: 'melee' | 'ranged', q: { id: string; value?: number }[] = [], subType?: string): Weapon =>
@@ -56,11 +56,11 @@ describe('isShield', () => {
     const armes = trappings.filter((t) => (t.categorie === 'melee' || t.categorie === 'ranged') && /bouclier/i.test(t.label));
     expect(armes.map((t) => t.id)).toContain('bouclier');
     for (const t of armes) {
-      const w = weaponFromItem(itemFromGive({ trappingId: t.id }));
+      const w = weaponFromItem(itemFromTrappingById(t.id)!);
       expect(isShield(w), t.id).toBe(true);
       expect(viewOrFront(shieldPart(w), 'front'), t.id).toContain('<');
     }
-    expect(isShield(itemFromGive({ trappingId: 'bouclier-de-la-forge' }))).toBe(false);
+    expect(isShield(itemFromTrappingById('bouclier-de-la-forge')!)).toBe(false);
   });
 });
 
@@ -142,7 +142,7 @@ describe('equipPorte', () => {
   it('chaque trapping d’arme à Groupe (`subType`) garde son Groupe jusqu’à l’arme tenue par le héros (#602)', () => {
     const tenues: string[] = [], enPoste: string[] = [], perdues: string[] = [];
     for (const t of trappings.filter((x) => (x.categorie === 'melee' || x.categorie === 'ranged') && x.subType)) {
-      const it = itemFromGive({ trappingId: t.id });
+      const it = itemFromTrappingById(t.id)!;
       it.equipped = true;
       const c = { id: 'h', label: 'Héros', items: [it], loadouts: [{ id: 'lo', main: it.uid }], activeLoadoutId: 'lo' } as unknown as Combatant;
       recomputeLoadout(c);

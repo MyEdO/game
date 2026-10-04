@@ -616,7 +616,7 @@ export const STRUCTURES_FORMES = [
   { concept: "reference", dataset: "trappings.json", champ: "shape", signature: "id-nu", statut: "historique", strate: "Référence", occurrences: 43, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "trappings.json", champ: "siegeRig", signature: "id-nu", statut: "historique", strate: "Référence", occurrences: 18, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "trappings.json", champ: "subject", signature: "condition+…", statut: "divergente", strate: "Référence", occurrences: 2, lot: "L3 #1463", date: "2026-08-23" },
-  { concept: "reference", dataset: "trappings.json", champ: "subType", signature: "id-nu", statut: "historique", strate: "Référence", occurrences: 441, lot: "L3 #1463", date: "2026-08-30", motif: "SOUS-TYPE d’objet" },
+  { concept: "reference", dataset: "trappings.json", champ: "subType", signature: "id-nu", statut: "historique", strate: "Référence", occurrences: 442, lot: "L3 #1463", date: "2026-08-30", motif: "SOUS-TYPE d’objet" }, // +1 : Pièces de créature brutes, ZI 13 folio 99 (#1988)
   { concept: "reference", dataset: "trappings.json", champ: "weaponGroup", signature: "id-nu", statut: "historique", strate: "Référence", occurrences: 22, lot: "L3 #1463", date: "2026-08-30", motif: "référence de GROUPE d’armes" },
   { concept: "reference", dataset: "traumas.json", champ: "byProsthesis", signature: "art,trappingId", statut: "divergente", strate: "Référence", occurrences: 1, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "traumas.json", champ: "byProsthesis", signature: "trappingId+…", statut: "divergente", strate: "Référence", occurrences: 2, lot: "L3 #1463", date: "2026-08-23" },
@@ -759,7 +759,7 @@ export const STRUCTURES_DEFAUT = [
  *  prescrit hors de cette vague. La ligne se RÉÉCRIT donc au fil des lots, elle ne se retire pas. */
 export const STRUCTURES_HOMONYMES = [
   { cle: "char", classes: ["object","string"], occurrences: 886, lot: "L4 #1463", date: "2026-08-23" }, // 863 → 886 (#680, 2026-09-29) : +23, presets de PNJ de la vague 1 (diligence-projet.json › presetsPnj[].profil, entrées partielles de creatures.json) ; +3 : profils vides Mouton + Cochon (object) + Trait Entêté (string), EDOC 07 folios 22 et 24 (#673) ; +1 : Chien de trait, EDOC 07 folio 22, #673 ; −2 (#1657 B2c) : les 2 `crewTest.char` de `river-criticals.json` adoptent `characteristic`, la clé de `flowTestSchema` (le fichier en sort avec ZERO `char` — pas d'état mixte, #1658)
-  { cle: "price", classes: ["null","number","object","string"], occurrences: 520, lot: "L4 #1463", date: "2026-08-23" }, // +1 : Anneau d'Opsianon, EDO 11 folio 148 (#672) ; +3 : achat Chien + Mouton + Cochon, EDOC 07 folio 24 (#673) ; +1 : Chien de trait, EDOC 07 folio 22, #673
+  { cle: "price", classes: ["null","number","object","string"], occurrences: 521, lot: "L4 #1463", date: "2026-08-23" }, // +1 : Pièces de créature brutes, ZI 13 folio 99 (#1988) ; +1 : Anneau d'Opsianon, EDO 11 folio 148 (#672) ; +3 : achat Chien + Mouton + Cochon, EDOC 07 folio 24 (#673) ; +1 : Chien de trait, EDOC 07 folio 22, #673
   { cle: "count", classes: ["number","object"], occurrences: 92, lot: "L4 #1463", date: "2026-08-23" },
   { cle: "talent", classes: ["object","string"], occurrences: 79, lot: "L3 #1463", date: "2026-08-23" }, // #1473 train 2a : la clé `talent` des ops de Talent (objet, `refOuSpec`) rejoint les 79 `talent: "<id>"` à chaîne nue.
 ];

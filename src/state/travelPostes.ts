@@ -41,7 +41,7 @@ import { weatherTestMods } from '../engine/weatherTestMod'; // CANAL UNIQUE « T
 import { hasCoat, partyHasTent, applyExposureFailure, isWeatherWarded, exposureFirstFailChars } from '../engine/exposure';
 import { rationCount } from '../engine/provisions';
 import { contractDiseaseOnce } from '../engine/disease';
-import { itemFromGive, autoStowNewItem } from '../engine/items';
+import { itemFromTrappingById, autoStowNewItem } from '../engine/items';
 import { effectiveSkillCharKey } from '../engine/skills';
 import type { Difficulty, Combatant } from '../engine/types';
 import type { ModLine } from '../engine/combat';
@@ -319,7 +319,8 @@ registerCascadeApplier('stageAggregate', (get, set, step) => {
     for (const h of party.filter((x) => !x.dead && !x.outOfRencontre)) {
       if (remaining <= 0) break;
       if (rationCount(h) >= 1) continue;
-      const ration = itemFromGive({ trappingId: 'ration' });
+      const ration = itemFromTrappingById('ration');
+      if (!ration) throw new Error('travelPostes: le trapping « ration » est absent du catalogue.');
       h.items = [...(h.items ?? []), ration];
       autoStowNewItem(h, ration); // #204 : rangement par défaut
       remaining -= 1;

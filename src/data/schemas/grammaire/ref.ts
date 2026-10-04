@@ -130,9 +130,10 @@ function cleDeSousListe(type: TypeEntite, valeur: string, site: string): string 
   return cleFiltree(espace, { champ, vaut: valeur });
 }
 
-/** Sous-liste MARQUÉE : l'espace d'un type PRIVÉ des entrées qui portent l'un de ses marqueurs
- *  (paramètre `espace.marqueurs` du def) — `INSTANCIABLE_PAR_ID` (`grammaire/sousListes.ts`). */
-type SousListeMarquee = { readonly horsMarqueurs: readonly string[] };
+/** Sous-liste MARQUÉE (paramètre `espace.marqueurs` du def, `grammaire/sousListes.ts`) : l'espace d'un
+ *  type PRIVÉ des entrées qui portent l'un de ses marqueurs (`horsMarqueurs`, `INSTANCIABLE_PAR_ID`), ou
+ *  RÉDUIT aux entrées qui portent son marqueur (`avecMarqueur`, `RECOLTABLE`). */
+type SousListeMarquee = { readonly horsMarqueurs: readonly string[] } | { readonly avecMarqueur: string };
 
 /**
  * SOUS-LISTE qu'une feuille `idDe` retient de l'espace de son type : une chaîne, la sous-liste
@@ -144,20 +145,30 @@ type SousListe = string | SousListeMarquee;
 /** Clé de la sous-liste marquée `marqueur` de l'espace d'un type (paramètre `espace.marqueurs` du def). */
 const cleDuMarqueur = (type: TypeEntite, marqueur: string): string => cleFiltree(espaceDe(type), { champ: marqueur });
 
-/** Refus d'une référence à l'entrée `id` qui porte le marqueur `marqueur`, ou `null` sans marqueur. */
-const refusDeMarqueur = (type: TypeEntite, id: string, marqueur: string | undefined): string | null =>
-  marqueur === undefined
-    ? null
-    : `« ${id} » porte le marqueur « ${marqueur} » : cette référence l'exclut du catalogue des ${TYPES[type].catalogue} (${espaceDe(type)}).`;
+/** Le marqueur qui retire une entrée de la sous-liste marquée, selon `porte` (l'entrée porte-t-elle ce
+ *  marqueur ?) : le premier marqueur EXCLU qu'elle porte, ou le marqueur EXIGÉ qu'elle ne porte pas —
+ *  `undefined` si elle y appartient. */
+const marqueurFautif = (sousListe: SousListeMarquee, porte: (marqueur: string) => boolean): string | undefined =>
+  'avecMarqueur' in sousListe ? (porte(sousListe.avecMarqueur) ? undefined : sousListe.avecMarqueur) : sousListe.horsMarqueurs.find(porte);
+
+/** Refus d'une référence à l'entrée `id` par une sous-liste marquée (`marqueurFautif`), ou `null` si elle l'admet. */
+function refusDeMarqueur(type: TypeEntite, id: string, sousListe: SousListeMarquee, porte: (marqueur: string) => boolean): string | null {
+  const marqueur = marqueurFautif(sousListe, porte);
+  if (marqueur === undefined) return null;
+  const catalogue = `catalogue des ${TYPES[type].catalogue} (${espaceDe(type)})`;
+  return 'avecMarqueur' in sousListe
+    ? `« ${id} » ne porte pas le marqueur « ${marqueur} » : cette référence n'admet que les entrées du ${catalogue} qui le portent.`
+    : `« ${id} » porte le marqueur « ${marqueur} » : cette référence l'exclut du ${catalogue}.`;
+}
 
 /** Le refus d'un id PRÉSENT dans l'espace de son type par une sous-liste marquée — `null` s'il est ADMIS. */
 function refusDuMarqueur(type: TypeEntite, sousListe: SousListeMarquee, site: string, id: string): string | null {
-  return refusDeMarqueur(type, id, sousListe.horsMarqueurs.find((m) => idsDesignes(cleDuMarqueur(type, m), site).has(id)));
+  return refusDeMarqueur(type, id, sousListe, (m) => idsDesignes(cleDuMarqueur(type, m), site).has(id));
 }
 
-/** Le premier marqueur de la sous-liste que porte l'ENTRÉE (`porteLeChampMarqueur`), `undefined` sinon. */
-const marqueurDeLEntree = (sousListe: SousListeMarquee, entree: object): string | undefined =>
-  sousListe.horsMarqueurs.find((m) => porteLeChampMarqueur(entree as Readonly<Record<string, unknown>>, m));
+/** L'ENTRÉE porte-t-elle le marqueur (`porteLeChampMarqueur`) ? Lu par le runtime sur une entrée RÉSOLUE. */
+export const lEntreePorte = (entree: object) => (marqueur: string): boolean =>
+  porteLeChampMarqueur(entree as Readonly<Record<string, unknown>>, marqueur);
 
 /** Le refus d'un id par une sous-liste DISCRIMINÉE — `null` s'il est ADMIS. */
 const refusDeLaDiscriminee = (type: TypeEntite, sousListe: string, site: string, id: string): string | null =>
@@ -171,7 +182,7 @@ const refusDeLaDiscriminee = (type: TypeEntite, sousListe: string, site: string,
 export function refusDeLEntree(type: TypeEntite, sousListe: SousListe, entree: { readonly id: string }): string | null {
   return typeof sousListe === 'string'
     ? refusDeLaDiscriminee(type, sousListe, `refusDeLEntree('${type}')`, entree.id)
-    : refusDeMarqueur(type, entree.id, marqueurDeLEntree(sousListe, entree));
+    : refusDeMarqueur(type, entree.id, sousListe, lEntreePorte(entree));
 }
 
 /** Le refus d'un id par une feuille `idDe(type, sousListe?)` — `null` s'il est ADMIS —, lu à chaque validation. */
@@ -187,7 +198,7 @@ function refusDe(type: TypeEntite, sousListe: SousListe | undefined, site: strin
  * qui bâtit les clés `<espace>?<marqueur>` que `refusDuMarqueur` lit au schéma.
  */
 export function dansLaSousListe(sousListe: SousListeMarquee, entree: object): boolean {
-  return marqueurDeLEntree(sousListe, entree) === undefined;
+  return marqueurFautif(sousListe, lEntreePorte(entree)) === undefined;
 }
 
 /** Les ids ADMIS par `idDe(type, sousListe)`, dans l'ordre de la donnée, lus au registre (régime
@@ -325,7 +336,9 @@ export function idDe<T extends TypeEntite>(type: T, sousListe?: SousListe, optio
       ? `idDe('${type}'`
       : typeof sousListe === 'string'
         ? `idDe('${type}', '${sousListe}'`
-        : `idDe('${type}', { horsMarqueurs: [${sousListe.horsMarqueurs.map((m) => `'${m}'`).join(', ')}] }`) + (ouverte ? ', { ouverte: true })' : ')');
+        : 'avecMarqueur' in sousListe
+          ? `idDe('${type}', { avecMarqueur: '${sousListe.avecMarqueur}' }`
+          : `idDe('${type}', { horsMarqueurs: [${sousListe.horsMarqueurs.map((m) => `'${m}'`).join(', ')}] }`) + (ouverte ? ', { ouverte: true })' : ')');
   const feuille = z
     .string()
     .superRefine((v, ctx) => {
@@ -342,7 +355,8 @@ export function idDe<T extends TypeEntite>(type: T, sousListe?: SousListe, optio
   if (typeof sousListe === 'string') DESIGNATIONS.add(`${espaceDe(type)}\u0000${sousListe}`);
   else {
     DESIGNATIONS.add(espaceDe(type));
-    for (const m of sousListe?.horsMarqueurs ?? []) DESIGNATIONS.add(cleDuMarqueur(type, m));
+    const marqueurs = sousListe === undefined ? [] : 'avecMarqueur' in sousListe ? [sousListe.avecMarqueur] : sousListe.horsMarqueurs;
+    for (const m of marqueurs) DESIGNATIONS.add(cleDuMarqueur(type, m));
   }
   return feuille;
 }

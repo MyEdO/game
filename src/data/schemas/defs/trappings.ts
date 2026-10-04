@@ -182,6 +182,8 @@ const doc = document(
     passive: z.array(gameOpSchema).optional(),
     /** Tarif de SERVICE (LDB 66 l.12-14 : chambre/écurie) — pas un objet possédable, cf. `TrappingData.service`. */
     service: z.boolean().optional(),
+    /** ZI 13 l.294, l.319 — cf. `TrappingData.exigeUneCreature`. */
+    exigeUneCreature: z.boolean().optional(),
   },
   {
     hands: { label: 'Mains requises', hint: '1 ou 2 mains pour manier l’objet' },
@@ -281,14 +283,18 @@ const doc = document(
       label: 'Objet-service',
       hint: 'Marque un tarif de service (chambre, écurie…), pas un objet possédable',
     },
+    exigeUneCreature: {
+      label: 'Exige une créature',
+      hint: 'Pièces récoltées sur une créature : l’objet ne se donne qu’avec la créature dont il provient',
+    },
   },
   {
     codex: { keys: ['trappings', 'siegeEngines'] },
     edit: { dataset: 'trappings' },
   },
   // `categorie` : univers des sources `weaponsMelee`/`weaponsRanged` (`grammaire/sourcesDeSpecs.ts`).
-  // `service` : marqueur de la sous-liste `INSTANCIABLE_PAR_ID` (`grammaire/sousListes.ts`).
-  { exiges: ['source'], espace: { discriminant: 'categorie', marqueurs: ['service'] } },
+  // `service`, `exigeUneCreature` : marqueurs des sous-listes `DONNABLE` et `INSTANCIABLE_PAR_ID` (`grammaire/sousListes.ts`).
+  { exiges: ['source'], espace: { discriminant: 'categorie', marqueurs: ['service', 'exigeUneCreature'] } },
 );
 
 export const schema = doc.schema;

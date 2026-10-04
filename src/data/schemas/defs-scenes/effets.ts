@@ -15,9 +15,9 @@
 import { z } from 'zod';
 import { proseDeScene } from '../grammaire/prose';
 import { chaosAlignSchema, enumNomme, exposureLevelSchema, hitLocationSchema, moneyPartialSchema, refTestDeCorruption, surchargePaletteSchema } from '../grammaire/valeurs';
-import { conditionSchema, effectOpSchema, extendedTestSchema, gameOpSchema, noeudTest } from '../grammaire/mecanique';
-import { idDe, refOuSpec } from '../grammaire/ref';
-import { INSTANCIABLE_PAR_ID } from '../grammaire/sousListes';
+import { compteDObjetsSchema, conditionSchema, effectOpSchema, extendedTestSchema, gameOpSchema, noeudTest } from '../grammaire/mecanique';
+import { idDe, porteLeMarqueur, refOuSpec } from '../grammaire/ref';
+import { DONNABLE, EXIGE_UNE_CREATURE, RECOLTABLE } from '../grammaire/sousListes';
 import { listeCle } from '../grammaire/collection-cle';
 import { customStatblockSchema, ptSchema, wallSideSchema } from './communs';
 import { waterAppliesToSchema } from '../defs/water-exposure';
@@ -129,31 +129,44 @@ export const setObjectiveSchema = z.strictObject({
 /** Retire un objectif de la pile : `id` précis, ou TOUS si absent (fin d'acte). */
 export const clearObjectiveSchema = z.strictObject({ type: z.literal('clearObjective'), id: z.string().optional() });
 
-/** Objet donné par `giveTrapping` : feuille OUVERTE de `INSTANCIABLE_PAR_ID`, FORME DE SORTIE déclarée
+/** Objet donné par `giveTrapping` : feuille OUVERTE de `DONNABLE`, FORME DE SORTIE déclarée
  *  nue (patron `sortSchema`) — `Effect` est un `z.infer` écrit par l'éditeur et par la console. */
-const objetDonneSchema: z.ZodType<string, string> = idDe('trapping', INSTANCIABLE_PAR_ID, { ouverte: true });
+const objetDonneSchema: z.ZodType<string, string> = idDe('trapping', DONNABLE, { ouverte: true });
+/** Créature d'une pièce donnée : feuille de `RECOLTABLE`. */
+const creatureDeLaPieceSchema: z.ZodType<string, string> = idDe('creature', RECOLTABLE);
+/** L'entrée du registre porte-t-elle `EXIGE_UNE_CREATURE` ? */
+const exigeUneCreature = porteLeMarqueur('trapping', EXIGE_UNE_CREATURE);
 
-/** Donne un objet à un héros (défaut : le premier). `trappingId` = objet à stats de la campagne
- *  (`narratif.objets`) ou du catalogue, feuille OUVERTE de `INSTANCIABLE_PAR_ID` ; `custom` = objet HORS-base (nom libre — trinket/quête/pièces de monstre) sans
- *  stats. L'objet arrive NON équipé. Champs MAGIQUES optionnels (butin/quête) : `qualities` AJOUTÉES
- *  (Atout/Défaut), `identified:false` = qualités masquées jusqu'à Évaluation (#2), `skin` = recoloration. */
-export const giveTrappingSchema = z.strictObject({
-  type: z.literal('giveTrapping'),
-  trappingId: objetDonneSchema.optional(),
-  custom: z.string().optional(),
-  heroId: z.string().optional(),
-  qualities: z.array(z.string()).optional(),
-  identified: z.boolean().optional(),
-  skin: surchargePaletteSchema.optional(),
-  /** Aura détectée / Détection déjà tentée (Talent Détection d'artefact, `LDB 10`) / jour de la
-   *  dernière Évaluation ratée — posés par la fenêtre de loot AVANT attribution, propagés sur
-   *  l'ItemInstance à la remise. */
-  magicKnown: z.boolean().optional(),
-  detectTried: z.boolean().optional(),
-  appraiseTriedDay: z.number().optional(),
-  /** Valeur de marché propre posée sur l'instance (ex. pièces de monstre récoltées, `ZI`). */
-  price: moneyPartialSchema.optional(),
-});
+/** Donne `count` objets (défaut 1) à un héros (défaut : le premier). `trappingId` = objet à stats de la
+ *  campagne (`narratif.objets`) ou du catalogue, feuille OUVERTE de `DONNABLE` ; `custom` = objet HORS-base
+ *  (nom libre) sans stats ; `creatureId` présent SI ET SEULEMENT SI l'entrée porte `EXIGE_UNE_CREATURE`
+ *  (ZI 13 l.294, l.319). L'objet arrive NON équipé. Champs MAGIQUES optionnels (butin/quête) : `qualities`
+ *  AJOUTÉES, `identified:false` = qualités masquées jusqu'à Évaluation (#2), `skin` = recoloration. */
+export const giveTrappingSchema = z
+  .strictObject({
+    type: z.literal('giveTrapping'),
+    trappingId: objetDonneSchema.optional(),
+    custom: z.string().optional(),
+    creatureId: creatureDeLaPieceSchema.optional(),
+    count: compteDObjetsSchema.optional(),
+    heroId: z.string().optional(),
+    qualities: z.array(z.string()).optional(),
+    identified: z.boolean().optional(),
+    skin: surchargePaletteSchema.optional(),
+    /** Aura détectée / Détection déjà tentée (Talent Détection d'artefact, `LDB 10`) / jour de la
+     *  dernière Évaluation ratée — posés par la fenêtre de loot AVANT attribution, propagés sur
+     *  l'ItemInstance à la remise. */
+    magicKnown: z.boolean().optional(),
+    detectTried: z.boolean().optional(),
+    appraiseTriedDay: z.number().optional(),
+  })
+  .superRefine((v, ctx) => {
+    const marquee = v.trappingId !== undefined && exigeUneCreature(v.trappingId);
+    if (marquee && v.creatureId === undefined)
+      ctx.addIssue({ code: 'custom', message: `giveTrapping : « ${v.trappingId} » porte \`${EXIGE_UNE_CREATURE}\` et exige \`creatureId\``, path: ['creatureId'] });
+    if (!marquee && v.creatureId !== undefined)
+      ctx.addIssue({ code: 'custom', message: `giveTrapping : \`creatureId\` n'est admis que sur une entrée qui porte \`${EXIGE_UNE_CREATURE}\``, path: ['creatureId'] });
+  });
 
 /** Donne une POSSESSION (bête/serviteur/véhicule — le SOCLE POSSESSIONS #615, registre
  *  `GameState.possessions`) à un héros propriétaire (défaut : le premier — même patron que

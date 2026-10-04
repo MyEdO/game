@@ -1583,6 +1583,86 @@
     }
   },
   {
+    "id": "precieuses-entrailles-valeur",
+    "type": "regles",
+    "label": "Précieuses entrailles — qu'est-ce que ça vaut ?",
+    "descRef": {
+      "book": "zoo-imperial",
+      "ch": "13",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "cout-de-base",
+          "secOcc": 1,
+          "b0": 0,
+          "b1": 2,
+          "sum": "1fe62aba8334aa5f"
+        },
+        {
+          "kind": "blocs",
+          "sec": "dangerosite",
+          "secOcc": 1,
+          "b0": 0,
+          "b1": 2,
+          "sum": "021532d20291d5f9"
+        }
+      ]
+    },
+    "source": {
+      "book": "zoo-imperial",
+      "page": 99,
+      "note": "ZI 13 l.276-300"
+    }
+  },
+  {
+    "id": "precieuses-entrailles-quantite",
+    "type": "regles",
+    "label": "Précieuses entrailles — quantité exploitable",
+    "descRef": {
+      "book": "zoo-imperial",
+      "ch": "13",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "quantite-exploitable",
+          "secOcc": 1,
+          "b0": 0,
+          "b1": 1,
+          "sum": "d2d740d8a3776fad"
+        }
+      ]
+    },
+    "source": {
+      "book": "zoo-imperial",
+      "page": 99,
+      "note": "ZI 13 l.302-310"
+    }
+  },
+  {
+    "id": "precieuses-entrailles-conservation",
+    "type": "regles",
+    "label": "Précieuses entrailles — degré de conservation",
+    "descRef": {
+      "book": "zoo-imperial",
+      "ch": "13",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "degre-de-conservation",
+          "secOcc": 1,
+          "b0": 0,
+          "b1": 6,
+          "sum": "877377472f966b74"
+        }
+      ]
+    },
+    "source": {
+      "book": "zoo-imperial",
+      "page": 101,
+      "note": "ZI 13 l.388-406"
+    }
+  },
+  {
     "id": "tests-opposes",
     "type": "regles",
     "label": "Tests opposés",

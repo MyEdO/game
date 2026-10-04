@@ -135,7 +135,8 @@ const doc = document(
     codex: { keys: ['creatures'] },
     edit: { dataset: 'creatures' },
   },
-  { exiges: ['source'] },
+  // `harvest` : marqueur de la sous-liste `RECOLTABLE` (`grammaire/sousListes.ts`).
+  { exiges: ['source'], espace: { marqueurs: ['harvest'] } },
 );
 
 export const schema = doc.schema;

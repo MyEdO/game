@@ -21,6 +21,7 @@ import { rollStock, fullStock, availabilitySearchBonus, barterRatio, availabilit
 import type { Availability } from '../engine/types';
 import { t, t as msg } from '../i18n'; // `msg` : alias local — `t` est aussi le nom d'un trapping résolu dans ce flux
 import { priceToMoney, add as moneyAdd, canAfford, fromBrass, toBrass, formatMoney, statusBudgetBrass, type StatusTier, type Money } from '../engine/money';
+import { harvestProfileFor, valeurDUnePiece } from '../engine/harvest';
 import { bourseOf, payWithAllocation, payFromGroup, soloPayer, creditBourse } from './bourseFlow';
 import { actorStatus } from '../engine/social';
 import { MINUTES_PER_DAY } from '../engine/clock';
@@ -585,31 +586,37 @@ export function confirmDistribution(get: Get, set: Set): void {
   }
 }
 
-/** Gain de revente d'un objet (catalogue × qualité × resaleRate × facteur de Marchandage). SOURCE UNIQUE
- *  du prix de vente — partagée par `confirmSell` ET l'aperçu UI (pas de formule dupliquée).
- *  Option 2 (LDB 59 l.54) : ¼ par défaut (resaleRate/2) ; ½ si le Marchandage de vente est GAGNÉ. */
+/** Valeur PROPRE d'une instance, revendue sans le taux de revente du catalogue : une pièce de créature
+ *  (`creatureId`), sa valeur Fraîche (`valeurDUnePiece`, ZI 13 l.294 ; degré figé : #2137) ; sinon
+ *  `ItemInstance.price` (carte marine MDG 15 l.290) ; sinon `null`. Une pièce dont la créature n'a plus de
+ *  profil de récolte (Compendium) n'a pas de valeur propre. */
+export function valeurPropre(item: ItemInstance): Money | null {
+  if (item.creatureId !== undefined) {
+    const p = harvestProfileFor(item.creatureId);
+    return p ? valeurDUnePiece(p, 'Frais') : null;
+  }
+  return item.price ?? null;
+}
+
+/** Gain de revente d'un objet (catalogue × qualité × resaleRate × facteur de Marchandage, LDB 59 l.54 ;
+ *  valeur propre, `valeurPropre`). SOURCE UNIQUE du prix de vente — partagée par `confirmSell` ET l'aperçu UI. */
 export function sellGain(item: ItemInstance, m: MerchantState): ReturnType<typeof fromBrass> {
   const sellFactor = m.bargainSell ? bargainSellFactor(m.bargainSell.won, m.bargainSell.drNet, m.bargainSell.negotiator) : 0.5;
-  // « Baisse des prix » (LDB 59 l.60) : chaque division du prix par deux monte la Disponibilité d'un
-  // acheteur d'un cran — appliquée au gain FINAL (le vendeur accepte moins pour écouler un objet rare).
+  // LDB 59 l.60.
   const halve = (b: number) => priceAfterHalvings(b, m.sellHalvings?.[item.uid] ?? 0);
-  // Objet PRÉ-VALUÉ (pièces de monstre récoltées, ZI Précieuses Entrailles) : sa valeur de marché est
-  // déjà nette (rareté × dangerosité × Taille × Conservation) → revendu en DIRECT, sans le taux de revente
-  // catalogue. Le Marchandage de vente joue quand même (sellFactor/0.5 : ×1 par défaut, ×plus si gagné).
-  if (item.price) return fromBrass(halve(Math.round(toBrass(item.price) * (sellFactor / 0.5))));
+  const propre = valeurPropre(item);
+  // #2137 constat 5.
+  if (propre !== null) return fromBrass(halve(Math.round(toBrass(propre) * (sellFactor / 0.5))));
   const t = item.trappingId ? findTrappingById(item.trappingId) : undefined;
   const base = t ? toBrass(priceToMoney(t.price)) * craftPriceFactor(item) : 0;
   return fromBrass(halve(Math.round(base * m.resaleRate * sellFactor)));
 }
 
-/** Refus de VENTE d'une instance, avec sa RAISON (null = vendable). LDB 59 l.54 : « Vous vérifiez
- *  d'abord la Disponibilité pour un acheteur de la même façon que vous vérifiez un stock » — sans
- *  Disponibilité au catalogue, cette vérification n'a pas d'entrée et l'objet est hors commerce
- *  (`isTradable`). Deux cas restent vendables : l'objet CUSTOM (hors catalogue, il n'a pas de ligne à
- *  consulter) et l'instance PRÉ-VALUÉE (`item.price` : pièces de monstre récoltées ZI, Carte marine
- *  MDG 15 l.290 « une carte qui peut être reproduite et vendue ») — elle porte sa propre valeur. */
+/** Refus de VENTE d'une instance, avec sa RAISON (null = vendable) — LDB 59 l.54, `isTradable`. Vendables
+ *  hors Disponibilité : l'objet CUSTOM (sans ligne de catalogue) et l'instance à valeur propre
+ *  (`valeurPropre` ; carte marine MDG 15 l.290). */
 export function sellRefusal(item: ItemInstance): string | null {
-  if (item.price) return null;
+  if (valeurPropre(item) !== null) return null;
   const t = item.trappingId ? findTrappingById(item.trappingId) : undefined;
   if (!t || isTradable(t.availability)) return null;
   return outOfTradeReason(t.label);

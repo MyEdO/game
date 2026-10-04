@@ -83,7 +83,7 @@ import { bonus, effectiveChar } from '../../engine/characteristics';
 import { skillBaseValue } from '../../engine/skills';
 import { formatDice, type DiceSpec } from '../../engine/dice';
 import { formatDiseaseTime } from '../../engine/disease';
-import { costPerEnc } from '../../engine/harvest';
+import { valeurDUnePiece } from '../../engine/harvest';
 import { formatMoney, priceToMoney, type Money } from '../../engine/money';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
 import { passiveSection, effectsSection, careerGrantSection, spellFlowSection, capabilitySection } from './describe';
@@ -1696,7 +1696,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       meta: facts(
         // pastille d'en-tête TOUJOURS visible : marque l'individu nommé (lu via `isNamed`, jamais via `title`).
         isNamed(c) ? fact('Type', 'Individu nommé') : null,
-        c.harvest ? fact('Récolte (1 Enc)', formatMoney(costPerEnc(c.harvest))) : null,
+        c.harvest ? fact('Récolte (1 Enc)', formatMoney(valeurDUnePiece(c.harvest, 'Conservé'))) : null,
       ),
       sections: sections(
         { title: 'Caractéristiques', layout: 'grid', rows: kvRows(Object.entries(c.char)) },
@@ -1713,7 +1713,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
               rows: [
                 { t: 'kv', k: 'Rareté', v: c.harvest.rarity },
                 { t: 'kv', k: 'Dangerosité', v: c.harvest.danger },
-                { t: 'kv', k: 'Valeur (1 Enc, conservé)', v: formatMoney(costPerEnc(c.harvest)) },
+                { t: 'kv', k: 'Valeur (1 Enc, conservé)', v: formatMoney(valeurDUnePiece(c.harvest, 'Conservé')) },
                 { t: 'text', text: c.harvest.uses, porteur: { chemin: 'harvest.uses' } },
               ],
             }

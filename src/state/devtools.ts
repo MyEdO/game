@@ -69,6 +69,7 @@ import { emptyNarratif } from './campaignNarratif';
 import { makeShowcaseParty } from '../data/pregens';
 import { hoverTargeting } from './targeting';
 import { maneuverShip } from './shipManeuver';
+import { itemLabel } from '../engine/items';
 import { etageActif, getViewZ, setViewZ } from './viewLevel';
 import { setRevealAll, computeStateVisible } from './visionState';
 import { doorIsOpen, emptyScene } from './scene';
@@ -168,7 +169,7 @@ function routesRendues(map: WorldMap, sceneId: string | undefined): { route: Map
  *                           Corruption) puis termine le combat en LAISSANT la cascade ouverte (influençable)
  *   __wfrp.healParty()    → groupe à neuf (PB max, états/critiques/maladies purgés)
  *   __wfrp.give(co)       → crédite la bourse (couronnes d'or) ; __wfrp.xp(n) → +PX au groupe
- *   __wfrp.giveTrapping(heroId, trappingId, qty?) → donne un objet de catalogue à un héros (VRAI
+ *   __wfrp.giveTrapping(heroId, trappingId, qty?, creatureId?) → donne un objet de catalogue à un héros (VRAI
  *                           pipeline giveTrapping : item bien formé, qualités comprises)
  *   __wfrp.disease(heroId, maladieId, { phase? }) → contracte une maladie via le VRAI cycle
  *                           (contractDisease + tickDisease de l'incubation) ; `phase:'active'` la déclare
@@ -1312,21 +1313,22 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
     },
 
     /** RECETTE : donne un objet de CATALOGUE à un héros (défaut : le premier), par le VRAI pipeline
-     *  `giveTrapping` du store (`applyEffects` → `itemFromGive` : item bien formé, qualités du catalogue,
+     *  `giveTrapping` du store (`applyEffects` → `instancesDeDon` : item bien formé, qualités du catalogue,
      *  rangement/Encombrement recalculés). `qty` (optionnel) fixe la quantité de l'instance reçue —
-     *  ex. `__wfrp.giveTrapping('hero-1', 'boulet-et-poudre', 6)` pour charger le coffre d'un canon. */
-    giveTrapping: (heroId: string | undefined, trappingId: string, qty?: number) => {
+     *  ex. `__wfrp.giveTrapping('hero-1', 'boulet-et-poudre', 6)` pour charger le coffre d'un canon.
+     *  `creatureId` : la créature d'une pièce (`giveTrapping('hero-1', 'pieces-de-creature', undefined, 'griffon')`). */
+    giveTrapping: (heroId: string | undefined, trappingId: string, qty?: number, creatureId?: string) => {
       const s = g();
       const hero = heroId ? s.party.find((h) => h.id === heroId) : s.party[0];
       if (!hero) return `✗ héros « ${heroId ?? '(défaut)'} » introuvable — ${s.party.map((h) => h.id).join(', ')}`;
       // Une feuille `giveTrapping` LITTÉRALE ne porte aucun canal de dés (#1508) : la relecture de
       // l'objet donné qui suit ne peut donc pas passer devant un dé — et si ça changeait, ça lèverait.
-      nePeutPasDifferer(applyEffects(() => useGame.getState(), useGame.setState, [{ type: 'giveTrapping', trappingId, heroId: hero.id }]), 'devtools.giveTrapping');
+      nePeutPasDifferer(applyEffects(() => useGame.getState(), useGame.setState, [{ type: 'giveTrapping', trappingId, heroId: hero.id, ...(creatureId ? { creatureId } : {}) }]), 'devtools.giveTrapping');
       const after = useGame.getState().party.find((h) => h.id === hero.id);
       const it = [...(after?.items ?? [])].reverse().find((i) => i.trappingId === trappingId);
       if (!it) return `✗ don échoué (trappingId « ${trappingId} » inconnu au catalogue ?)`;
       if (qty != null) { it.qty = qty; useGame.setState((st) => ({ party: [...st.party] })); }
-      return `✓ ${after!.label} reçoit « ${it.label} »${qty != null ? ` ×${qty}` : ''}`;
+      return `✓ ${after!.label} reçoit « ${itemLabel(it)} »${qty != null ? ` ×${qty}` : ''}`;
     },
 
     /**

@@ -11,7 +11,7 @@ import { applyEnchants } from './weaponDamage';
 import type { TriggeredEffect } from './flowCore';
 import { cannotWieldTwoHanded, handAmputated } from './trauma';
 import { mutationArmourBonus, nonDeviatableMutationAP } from './corruption';
-import { findTrappingById, findTraitById, qualityInstance, refLabel, type TrappingRef, type TrappingData } from '../data';
+import { findCreatureById, findTrappingById, findTraitById, qualityInstance, refLabel, type TrappingRef, type TrappingData } from '../data';
 import { t } from '../i18n';
 
 /** Résolveur d'une Possession par id STABLE — signature de `findTrappingById`. Injecté aux coutures
@@ -19,8 +19,9 @@ import { t } from '../i18n';
  *  #767) SANS que le moteur importe le store : il reçoit la fonction, reste PUR (règle stricte 3). */
 export type TrappingResolver = (id: string) => TrappingData | undefined;
 import { slugId } from '../data/slug';
-import { dansLaSousListe } from '../data/schemas/grammaire/ref';
-import { INSTANCIABLE_PAR_ID } from '../data/schemas/grammaire/sousListes';
+import { lEntreePorte, refusDeLEntree } from '../data/schemas/grammaire/ref';
+import { EXIGE_UNE_CREATURE, INSTANCIABLE_PAR_ID, RECOLTABLE } from '../data/schemas/grammaire/sousListes';
+import { PIECES_DE_CREATURE_TRAPPING_ID } from './harvest';
 import { craftEncDelta } from './qualities/craftEconomy';
 import { hasQuality, qualityIndice, resolveQualities, magazineSize } from './qualities/dispatch';
 import { itemCapability } from './capabilities';
@@ -240,12 +241,19 @@ function kindOf(categorie: string): ItemKind {
 
 /** Construit une instance d'objet depuis le catalogue par son `id` STABLE. Pose `trappingId` (réf
  *  de re-dérivation). Id inconnu → null (objet hors-base → `customTrapping`). L'entrée RÉSOLUE hors de
- *  `INSTANCIABLE_PAR_ID` lève (`dansLaSousListe`). */
+ *  `INSTANCIABLE_PAR_ID` lève (`refusDeLEntree`) ; une pièce de créature naît par `pieceDeCreature`. */
 export function itemFromTrappingById(id: string, resolveTrapping: TrappingResolver = findTrappingById): ItemInstance | null {
   const t = resolveTrapping(id);
   if (!t) return null;
-  if (!dansLaSousListe(INSTANCIABLE_PAR_ID, t))
-    throw new Error(`itemFromTrappingById: "${t.id}" porte un marqueur hors de INSTANCIABLE_PAR_ID (${INSTANCIABLE_PAR_ID.horsMarqueurs.join(', ')}) : pas un objet possédable.`);
+  const refus = refusDeLEntree('trapping', INSTANCIABLE_PAR_ID, t);
+  if (refus !== null)
+    throw new Error(`itemFromTrappingById: hors de INSTANCIABLE_PAR_ID — ${refus}${lEntreePorte(t)(EXIGE_UNE_CREATURE) ? ' Une pièce de créature naît par `pieceDeCreature` (`instancesDeDon`).' : ''}`);
+  return instanceDeLEntree(t);
+}
+
+/** Instance d'une entrée RÉSOLUE du catalogue, sans jugement de sous-liste — la primitive PRIVÉE commune
+ *  de `itemFromTrappingById` et `pieceDeCreature`. */
+function instanceDeLEntree(t: TrappingData): ItemInstance {
   const kind = kindOf(t.categorie);
   const locs =
     t.loc != null
@@ -321,48 +329,118 @@ export function itemFromTrappingRef(
   return it;
 }
 
-/** Objet « custom » minimal (trinket / objet de quête) quand le nom n'est PAS un vrai trapping de la
- *  base : permet de donner un objet au groupe via `giveTrapping` sans entrée de données (cf. retrait de
- *  l'inventaire de groupe — « donner un objet = un trapping custom OU réel »). kind `misc`, sans stats. */
+/** Objet CUSTOM d'un don `giveTrapping.custom` (nom libre hors catalogue) : kind `misc`, sans stats (#1988). */
 export function customTrapping(name: string): ItemInstance {
   return { uid: newUid(), label: name, kind: 'misc', qualities: [], enc: 0, equipped: false };
 }
 
-/** Résout l'ItemInstance d'un Effet `giveTrapping` : objet de CATALOGUE (`trappingId`) sinon objet CUSTOM
- *  (`custom`, nom libre hors-base). SOURCE UNIQUE (applyEffects + ramassage de prop). `source` (optionnel) =
- *  entité déclenchante (sort/talent/…) — stampée sur l'instance pour l'ancrage de règle (`ItemInstance.source`). */
-export function itemFromGive(give: { trappingId?: string; custom?: string }, source?: EffectSource, resolveTrapping: TrappingResolver = findTrappingById): ItemInstance {
-  const it = (give.trappingId ? itemFromTrappingById(give.trappingId, resolveTrapping) : null) ?? customTrapping(give.custom ?? give.trappingId ?? 'Objet');
-  if (source) it.source = source;
-  return it;
+/** ZI 13 l.282, l.294 — UNE pièce de l'entrée RÉSOLUE `t` (qui porte `EXIGE_UNE_CREATURE`) tirée de
+ *  `creatureId`, jugée par la sous-liste `RECOLTABLE` — la primitive PRIVÉE de `pieceDeCreature` et
+ *  `instanceDuDon`. */
+function pieceDe(t: TrappingData, creatureId: string): ItemInstance {
+  const c = findCreatureById(creatureId);
+  const refus = c ? refusDeLEntree('creature', RECOLTABLE, c) : `« ${creatureId} » est absente du catalogue des créatures.`;
+  if (refus !== null) throw new Error(`pieceDe: hors de RECOLTABLE — ${refus}`);
+  return { ...instanceDeLEntree(t), creatureId };
 }
 
-/** Fusionne les qualités MAGIQUES ajoutées d'un `giveTrapping` (`give.qualities` = ids de scène) aux
- *  qualités de base d'un objet — SOURCE UNIQUE du merge (apply giveTrapping + affichage du butin). */
-export function withGiveQualities(base: QualityInstance[], give: { qualities?: string[] }): QualityInstance[] {
+/** ZI 13 l.282, l.294 — UNE pièce de créature brute (`PIECES_DE_CREATURE_TRAPPING_ID`) de `creatureId`. */
+export function pieceDeCreature(creatureId: string, resolveTrapping: TrappingResolver = findTrappingById): ItemInstance {
+  const t = resolveTrapping(PIECES_DE_CREATURE_TRAPPING_ID);
+  if (!t || !lEntreePorte(t)(EXIGE_UNE_CREATURE))
+    throw new Error(`pieceDeCreature: l'entrée « ${PIECES_DE_CREATURE_TRAPPING_ID} » ${t ? `ne porte pas \`${EXIGE_UNE_CREATURE}\`` : 'est absente du catalogue'}.`);
+  return pieceDe(t, creatureId);
+}
+
+/** Un DON d'objet, forme STRUCTURELLE commune de l'Effet `giveTrapping` (`defs-scenes/effets.ts`) et de
+ *  l'op `giveTrapping` (`grammaire/mecanique.ts`) — le moteur n'importe rien de `state`. */
+interface DonDObjet {
+  trappingId?: string;
+  custom?: string;
+  creatureId?: string;
+  qualities?: string[];
+  identified?: boolean;
+  skin?: ItemInstance['skin'];
+  magicKnown?: boolean;
+  detectTried?: boolean;
+  appraiseTriedDay?: number;
+}
+
+/** L'instance d'UN don, branchée sur le MARQUEUR de l'entrée résolue : une entrée `EXIGE_UNE_CREATURE`
+ *  naît par `pieceDe`, toute autre par le catalogue, un id non résolu en `customTrapping`. Toute
+ *  discordance entre l'entrée et `creatureId` (régime vivant du Compendium) lève avec son nom. */
+function instanceDuDon(don: DonDObjet, resoudre: TrappingResolver): ItemInstance {
+  const t = don.trappingId ? resoudre(don.trappingId) : undefined;
+  if (t && lEntreePorte(t)(EXIGE_UNE_CREATURE)) {
+    if (!don.creatureId) throw new Error(`instancesDeDon: « ${t.id} » porte \`${EXIGE_UNE_CREATURE}\` et le don n'a pas de \`creatureId\`.`);
+    return pieceDe(t, don.creatureId);
+  }
+  if (don.creatureId) throw new Error(`instancesDeDon: \`creatureId\` « ${don.creatureId} » sur « ${don.trappingId ?? don.custom ?? ''} », entrée sans \`${EXIGE_UNE_CREATURE}\`.`);
+  return (t ? itemFromTrappingById(t.id, resoudre) : null) ?? customTrapping(don.custom ?? don.trappingId ?? 'Objet');
+}
+
+/** Les `n` instances d'un DON d'objet — SOURCE UNIQUE : l'apply de l'Effet `giveTrapping`
+ *  (`state/combatEffects.ts`), le ramassage en combat (`state/combatSlice.ts › battlePickup`), l'op
+ *  `giveTrapping` (`ops.ts`) et l'affichage du butin (`giveTrappingQualities`). `source` = entité
+ *  déclenchante, stampée sur chaque instance (`ItemInstance.source`) ; `resoudre` = résolveur
+ *  campagne-d'abord du state (`campaignData.trappingById`, #767). Les champs de butin du don (qualités
+ *  ajoutées, identification, skin, aura, tentatives) sont portés par chaque instance. */
+export function instancesDeDon(
+  don: DonDObjet,
+  n: number,
+  { source, resoudre = findTrappingById }: { source?: EffectSource; resoudre?: TrappingResolver } = {},
+): ItemInstance[] {
+  return Array.from({ length: n }, () => {
+    const it = instanceDuDon(don, resoudre);
+    if (source) it.source = source;
+    it.qualities = withGiveQualities(it.qualities, don);
+    if (don.identified === false) it.identified = false;
+    if (don.skin) it.skin = don.skin;
+    if (don.magicKnown) it.magicKnown = true;
+    if (don.detectTried) it.detectTried = true;
+    if (don.appraiseTriedDay != null) it.appraiseTriedDay = don.appraiseTriedDay;
+    return it;
+  });
+}
+
+/** Fusionne les qualités ajoutées d'un don (`giveTrapping.qualities`) aux qualités de base d'un objet. */
+function withGiveQualities(base: QualityInstance[], give: { qualities?: string[] }): QualityInstance[] {
   return give.qualities?.length ? [...base, ...give.qualities.map((id) => ({ id }))] : base;
 }
 
-/** Qualités RÉSOLUES d'un `giveTrapping` = qualités de la def du catalogue (`itemFromGive`) + qualités
- *  magiques ajoutées. Même liste que l'objet effectivement reçu (apply) → sert l'AFFICHAGE des chips de
- *  butin, qu'elles vivent dans la def (objet catalogué) ou sur l'Effet (magique). */
-export function giveTrappingQualities(give: { trappingId?: string; custom?: string; qualities?: string[] }, resolveTrapping: TrappingResolver = findTrappingById): QualityInstance[] {
-  const resolved = resolveQualities(itemFromGive(give, undefined, resolveTrapping)).map((r) => ({ id: r.id, ...(r.indice != null ? { value: r.indice } : {}) }));
-  return withGiveQualities(resolved, give);
+/** Qualités RÉSOLUES de l'objet qu'un don remet (`instancesDeDon`) — l'affichage des chips de butin
+ *  (`GearAssignList`) lit la même instance que l'apply. */
+export function giveTrappingQualities(give: DonDObjet, resolveTrapping: TrappingResolver = findTrappingById): QualityInstance[] {
+  const [it] = instancesDeDon(give, 1, { resoudre: resolveTrapping });
+  return resolveQualities(it).map((r) => ({ id: r.id, ...(r.indice != null ? { value: r.indice } : {}) }));
 }
 
-/** Libellé d'affichage d'un Effet `giveTrapping` (catalogue → label, sinon nom custom). */
-export function giveTrappingLabel(give: { trappingId?: string; custom?: string }, resolveTrapping: TrappingResolver = findTrappingById): string {
-  return give.trappingId ? (resolveTrapping(give.trappingId)?.label ?? give.trappingId) : (give.custom ?? 'Objet');
+/** Libellé de catalogue « Base (spec) » (`refLabel`) d'une instance ou d'un don ; la spécialisation d'une
+ *  pièce est sa créature (ZI 13 l.294, l.319), résolue par id à l'affichage. */
+const libelleDeCatalogue = (trappingId: string, spec: string | undefined, creatureId: string | undefined): string =>
+  refLabel('trappings', { id: trappingId, spec: creatureId ? refLabel('creatures', { id: creatureId }) : spec });
+
+/** Libellé d'affichage d'un don `giveTrapping` (catalogue ou objet de campagne → label, sinon nom custom). */
+export function giveTrappingLabel(give: { trappingId?: string; custom?: string; creatureId?: string }, resolveTrapping: TrappingResolver = findTrappingById): string {
+  if (!give.trappingId) return give.custom ?? 'Objet';
+  if (give.creatureId) return libelleDeCatalogue(give.trappingId, undefined, give.creatureId);
+  return resolveTrapping(give.trappingId)?.label ?? give.trappingId;
+}
+
+/** Libellé d'un DON `giveTrapping` (Effet ou op) : « N× » au-delà d'un objet, puis `giveTrappingLabel` —
+ *  SOURCE UNIQUE du journal, du butin, du ramassage, du résumé de l'éditeur et de l'op. */
+export function libelleDuDon(don: { trappingId?: string; custom?: string; creatureId?: string; count?: number }, resoudre: TrappingResolver = findTrappingById): string {
+  const n = don.count ?? 1;
+  return `${n > 1 ? `${n}× ` : ''}${giveTrappingLabel(don, resoudre)}`;
 }
 
 /** Libellé D'AFFICHAGE d'une instance d'objet, DÉRIVÉ de son id STABLE (`trappingId` → libellé FR du
- *  catalogue via `refLabel`) — id = logique, label = affichage. Repli sur `name` pour un objet CUSTOM
- *  hors-base (nom libre — trinket/quête/pièces de monstre, sans `trappingId`). SOURCE UNIQUE de l'affichage
- *  du nom d'un objet catalogué (fiche/sac/pickers) : un objet CATALOGUÉ ne rend jamais son id brut, même si
- *  son champ `label` a dérivé (save ancienne, donnée fautive). */
-export function itemLabel(it: Pick<ItemInstance, 'trappingId' | 'label' | 'spec'>): string {
-  return it.trappingId ? refLabel('trappings', { id: it.trappingId, spec: it.spec }) : it.label;
+ *  catalogue via `refLabel`) — id = logique, label = affichage. Repli sur `label` pour un objet CUSTOM
+ *  (`customTrapping`) ou une instance sans `trappingId` (#1988). SOURCE UNIQUE de l'affichage du nom d'un
+ *  objet catalogué (fiche/sac/pickers) : un objet CATALOGUÉ ne rend jamais son id brut, même si son champ
+ *  `label` a dérivé (save ancienne, donnée fautive). */
+export function itemLabel(it: Pick<ItemInstance, 'trappingId' | 'label' | 'spec' | 'creatureId'>): string {
+  return it.trappingId ? libelleDeCatalogue(it.trappingId, it.spec, it.creatureId) : it.label;
 }
 
 /** Limite d'Encombrement = (Bonus de Force + Bonus d'Endurance) × facteur (ogre ADE II 2 l.708 :

@@ -25,13 +25,13 @@ import { easeDifficulty } from '../engine/tests';
 import { restoreFortune } from '../engine/fortune';
 import { hasTalent } from '../engine/magic';
 import { traumaOnImpossibleAmbition } from '../engine/psychology';
-import { recomputeLoadout, itemFromGive, giveTrappingLabel, withGiveQualities, autoStowNewItem } from '../engine/items';
+import { recomputeLoadout, instancesDeDon, libelleDuDon, autoStowNewItem } from '../engine/items';
 import { trappingById, indiceById } from './campaignData';
 import { revealClue, discreditClue } from './clues';
 import { creatureSemee, navireSeme, findCreatureById, findVehicleById, refLabel, WATER_EXPOSURE, diseaseLabel, nightStakeRef, combatStakeRef, flowStakeRef } from '../data';
 import { MORALE_BASE } from '../engine/crewMorale';
 import { clampSaboteurDR } from './shipCrew';
-import { harvestSizeOf, harvestYield } from '../engine/harvest';
+import { harvestSizeOf, harvestYield, PIECES_DE_CREATURE_TRAPPING_ID } from '../engine/harvest';
 import { applySummon } from './summonFlow';
 import { contractDisease, applyContraction, diseaseDefs } from '../engine/disease';
 import { memoParVersion } from '../data/versionDataset';
@@ -156,7 +156,7 @@ export function entityPickables(ent: SceneEntity, flags: Drapeaux = {}): { key: 
   for (const a of actionsAuthorees(ent, flags))
     flowEffects(a.flow).forEach((e, i) => {
       if (flags[cleFeuilleRamassee(ent.id, a.id, i)]) return; // déjà pris, un objet à la fois
-      if (e.type === 'giveTrapping') out.push({ key: `${a.id}:eff:${i}`, label: giveTrappingLabel(e, trappingById) });
+      if (e.type === 'giveTrapping') out.push({ key: `${a.id}:eff:${i}`, label: libelleDuDon(e, trappingById) });
       else if (e.type === 'giveMoney') out.push({ key: `${a.id}:eff:${i}`, label: 'Argent' });
     });
   return out;
@@ -229,7 +229,7 @@ export function gearFromEffects(effects: Effect[]): { gear: LootGear[]; rest: Ef
   const gear: LootGear[] = [];
   const rest: Effect[] = [];
   for (const e of effects) {
-    if (e.type === 'giveTrapping' && !e.heroId) gear.push({ label: giveTrappingLabel(e, trappingById), magic: !!e.qualities?.length || e.identified === false, effect: e });
+    if (e.type === 'giveTrapping' && !e.heroId) gear.push({ label: libelleDuDon(e, trappingById), magic: !!e.qualities?.length || e.identified === false, effect: e });
     else rest.push(e);
   }
   return { gear, rest };
@@ -280,27 +280,24 @@ export function assignGearAt(get: Get, set: SetFn, key: 'pendingLoot' | 'pending
   set({ [key]: { ...bucket, gear: bucket.gear.filter((_, i) => i !== index) } });
 }
 
-/** Récolte « Précieuses Entrailles » (ZI) d'une créature vaincue (écran de victoire) : un nœud Flow
- *  `test` de Savoir (Bêtes) → `giveTrapping` — la réussite donne les pièces fraîches à pleine quantité,
- *  l'échec une quantité réduite (un cran de Taille en moins). Les pièces portent leur valeur de marché
- *  (`giveTrapping.price`), revendable au marchand / composant ZI. */
+/** ZI 13 l.302-316 — récolte d'une créature vaincue (écran de victoire) : un nœud Flow `test` de Savoir
+ *  → `giveTrapping` de `count` pièces (`PIECES_DE_CREATURE_TRAPPING_ID`, `creatureId`) ; le cran fixe
+ *  de l'échec : #1136. */
 export function harvestVictoryCreature(get: Get, set: SetFn, creatureId: string) {
   const c = findCreatureById(creatureId);
-  const p = c?.harvest;
-  if (!c || !p) return;
-  const name = c.label; // affichage depuis le record (résolu par id)
+  if (!c?.harvest) return;
   const pv = get().pendingVictory;
   if (pv?.harvested?.includes(creatureId)) return; // déjà récolté
   const size = harvestSizeOf(c);
-  const full = harvestYield(p, size, 0, 'Frais');
-  const lo = harvestYield(p, size, -1, 'Frais');
-  const part = (enc: number) => t('eff.harvestPart', { creature: name, enc }); // objet CUSTOM (hors catalogue)
-  const titre = stepDetail(t('eff.harvest'), dataLabel(name));
+  const encPlein = harvestYield(size, 0);
+  const encEchec = harvestYield(size, -1);
+  const pieces = (count: number): Effect[] => [{ type: 'giveTrapping', trappingId: PIECES_DE_CREATURE_TRAPPING_ID, creatureId, count }];
+  const titre = stepDetail(t('eff.harvest'), dataLabel(c.label));
   if (pv) set({ pendingVictory: { ...pv, harvested: [...(pv.harvested ?? []), creatureId] } }); // grise le bouton
   jouerFlowEntier(runFlow(get, set, testFlow(
-    { skill: { id: 'savoir', spec: 'betes-sauvages' }, difficulty: 'intermediaire', label: titre, stake: combatStakeRef('harvestCreature', { values: { encPlein: full.enc, encEchec: lo.enc } }) },
-    flowFromEffects([{ type: 'giveTrapping', custom: part(full.enc), price: full.total }]),
-    flowFromEffects([{ type: 'giveTrapping', custom: part(lo.enc), price: lo.total }]),
+    { skill: { id: 'savoir', spec: 'betes-sauvages' }, difficulty: 'intermediaire', label: titre, stake: combatStakeRef('harvestCreature', { values: { encPlein, encEchec } }) },
+    flowFromEffects(pieces(encPlein)),
+    flowFromEffects(pieces(encEchec)),
   ), titre));
 }
 
@@ -1439,26 +1436,19 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     group: 'Récompenses', label: 'Donner un objet (équipement/potion/babiole — réel ou custom)', icon: 'item/misc',
     make: () => ({ type: 'giveTrapping', custom: '' }),
     apply: (e, env) => {
-      // Objet de CATALOGUE (`trappingId`) sinon objet CUSTOM (`custom`, misc) — source unique itemFromGive.
       // Résolveur campagne-D'ABORD (`campaignData.trappingById`) : un objet de `narratif.objets` gagne (#767).
-      const it = itemFromGive(e, undefined, trappingById);
-      // Butin MAGIQUE (optionnel) : qualités ajoutées, objet non identifié (qualités masquées jusqu'à
-      // Évaluation, #2), skin légendaire. Les qualités restent ACTIVES mécaniquement (registre).
-      it.qualities = withGiveQualities(it.qualities, e); // def du catalogue + magiques (ids de scène)
-      if (e.identified === false) it.identified = false;
-      if (e.skin) it.skin = e.skin;
-      if (e.magicKnown) it.magicKnown = true; // aura détectée en fenêtre de loot → suit l'objet
-      if (e.detectTried) it.detectTried = true;
-      if (e.appraiseTriedDay != null) it.appraiseTriedDay = e.appraiseTriedDay;
-      if (e.price) it.price = { gold: e.price.gold ?? 0, silver: e.price.silver ?? 0, brass: e.price.brass ?? 0 };
+      const its = instancesDeDon(e, e.count ?? 1, { resoudre: trappingById });
       const who = env.mutateHero(e.heroId, (h) => {
         const clone: Combatant = structuredClone(h);
-        clone.items = [...(clone.items ?? []), it]; // arrive NON équipé
-        autoStowNewItem(clone, it); // #204 : rangement par défaut (contenant avec le plus de place libre)
+        for (const it of its) {
+          clone.items = [...(clone.items ?? []), it]; // arrive NON équipé
+          autoStowNewItem(clone, it); // #204 : rangement par défaut
+        }
         recomputeLoadout(clone); // met à jour l'encombrement
         return clone;
       });
-      env.log(who ? t('eff.recover', { name: who.label, item: it.label }) : t('eff.recoverSansHeros', { item: it.label }));
+      const item = libelleDuDon(e, trappingById);
+      env.log(who ? t('eff.recover', { name: who.label, item }) : t('eff.recoverSansHeros', { item }));
     },
   },
   givePossession: {

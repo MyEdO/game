@@ -38,6 +38,10 @@ export const zoneShapeSchema = enumNomme({ disc: 'disque', wall: 'mur' });
 /** `PerSL` (`src/engine/ops.ts:146`) — échelle « par +N DR » d'un payload d'op. */
 export const perSLSchema = z.strictObject({ every: z.number(), amount: z.number(), onFailure: z.boolean().optional() });
 
+/** Nombre d'instances d'un don d'objet (`instancesDeDon`, `engine/items.ts`) : le MÊME schéma pour l'op
+ *  `giveTrapping` et l'Effet `giveTrapping` (`defs-scenes/effets.ts`). */
+export const compteDObjetsSchema = z.number().int().min(1);
+
 /** SENS engagé par un Test (`FlowTest.sense` — Perception : vue ou ouïe) ; le libellé est celui de la
  *  phrase qui le montre au joueur (op `senseLoss` : « perd la vue »). */
 export const senseSchema = enumNomme({ vue: 'la vue', ouie: "l'ouïe" });
@@ -204,7 +208,7 @@ const DECLARATIONS_D_OPS = {
     op: z.literal('giveTrapping'),
     trappingId: idDe('trapping', INSTANCIABLE_PAR_ID).optional(),
     custom: z.string().optional(),
-    count: z.number().optional(),
+    count: compteDObjetsSchema.optional(),
     perSL: perSLSchema.optional(),
   }),
   /** `summon` — la créature invoquée se nomme par un id du bestiaire (`idDe('creature')`) : une op

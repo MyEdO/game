@@ -84,7 +84,7 @@ const CLES: Record<string, string> = {
   "skills": '7938829857c61067',
   "talents": 'ea025260f80f752b',
   "axes": '30e5605961af8d47',
-  "trappings": '711648dd06d431df',
+  "trappings": 'aa802708fdf3199b',
   "siegeEngines": 'a7d8202fa83a7827',
   "weaponGroups": 'cf4eb9c47b2e73f0',
   "qualities": '61b2f19869aadceb',
@@ -221,7 +221,7 @@ const CLES: Record<string, string> = {
   "crewMoraleFactors": '91a12d65f9274e14',
   "crewMoraleBands": '817ce48b209e1729',
   "steamBreakdowns": '0241598713ede3cd',
-  "regles": 'e56e2e1f0a37237f',
+  "regles": 'dd478ed38ff4c01c',
 };
 
 /** Union des clés PRÉSENTES par catégorie (diagnostic lisible — un item isolé qui gagne une clé que

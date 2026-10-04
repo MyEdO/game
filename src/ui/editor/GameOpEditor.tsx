@@ -27,7 +27,7 @@ import { findFallTable, fallTables } from '../../data/shipCriticals';
 import { terrainLabel, terrainsElectifs } from '../../state/terrain';
 import { RefField } from '../compendium/RefField';
 import type { DatasetKey } from '../../data/overrides';
-import { giveTrappingLabel } from '../../engine/items';
+import { libelleDuDon } from '../../engine/items';
 import { parseTraitInstance, formatTrait, formatWardSave } from '../../engine/traits/dispatch';
 import { traumaLabelOf } from '../../engine/trauma';
 import { ACTE_DE_DEVERROUILLAGE } from '../../engine/conditions';
@@ -807,7 +807,7 @@ export function opSummary(o: GameOp): string {
     case 'reduceToZero': return 'Blessures à 0';
     case 'banish': return 'retirée du jeu';
     case 'martyr': return 'reçoit les Dégâts';
-    case 'giveTrapping': return `${o.count && o.count > 1 ? `${o.count}× ` : ''}${giveTrappingLabel(o)}`;
+    case 'giveTrapping': return libelleDuDon(o);
     case 'perRound': return `${o.ops.length} op(s) chaque Round`;
     case 'summon': return `${formulaSummary(o.count)}× ${o.ref}${o.allyOfCaster === false ? ' (hostile)' : ''}`;
     case 'scheduleRespawn': return `${o.ref} dans ${formulaSummary(o.delayDays)} j${o.cancelFlag ? ` (sauf « ${o.cancelFlag} »)` : ''}`;

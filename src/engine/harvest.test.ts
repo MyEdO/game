@@ -1,42 +1,46 @@
 import { describe, it, expect } from 'vitest';
-import { harvestProfileFor, harvestSizeOf, harvestYield, costPerEnc } from './harvest';
-import { formatMoney } from './money';
+import { harvestProfileFor, harvestSizeOf, harvestYield, valeurDUnePiece } from './harvest';
+import { formatMoney, fromBrass, toBrass } from './money';
 import { findCreatureById } from '../data';
 
 describe('harvest — Précieuses Entrailles (ZI)', () => {
-  it('profil porté par la créature (creatures.json), coût = rareté × dangerosité', () => {
-    const p = harvestProfileFor('cockatrice')!; // Exotique, Menaçante
+  it('ZI 13 l.337, l.342, l.381 : valeur Conservée d’une pièce = coût du tableau', () => {
+    const p = harvestProfileFor('cockatrice')!;
     expect(p.rarity).toBe('Exotique');
     expect(p.danger).toBe('Menaçante');
-    expect(formatMoney(costPerEnc(p))).toBe('6 CO');
+    expect(formatMoney(valeurDUnePiece(p, 'Conservé'))).toBe('6 CO');
+    expect(formatMoney(valeurDUnePiece(harvestProfileFor('dragon-de-la-foret')!, 'Conservé'))).toBe('9 CO');
+    expect(formatMoney(valeurDUnePiece(harvestProfileFor('troll-des-rivieres')!, 'Conservé'))).toBe('1 CO');
   });
 
-  it('exemple du livre : cockatrice Grande → 4 Enc, 24 CO (Conservé), 3 CO (Pourri)', () => {
+  it('ZI 13 l.402-405 : une pièce de cockatrice par degré — ×2, standard, moitié, 1/8 (Exotique)', () => {
     const p = harvestProfileFor('cockatrice')!;
-    const conserve = harvestYield(p, 'Grande', 0, 'Conservé');
-    expect(conserve.enc).toBe(4);
-    expect(formatMoney(conserve.total)).toBe('24 CO');
-    expect(formatMoney(harvestYield(p, 'Grande', 0, 'Pourri').total)).toBe('3 CO'); // 1/8, Exotique
+    expect(formatMoney(valeurDUnePiece(p, 'Frais'))).toBe('12 CO');
+    expect(formatMoney(valeurDUnePiece(p, 'Conservé'))).toBe('6 CO');
+    expect(formatMoney(valeurDUnePiece(p, 'Faisandé'))).toBe('3 CO');
+    expect(formatMoney(valeurDUnePiece(p, 'Pourri'))).toBe('15/–');
   });
 
-  it('Frais double le prix standard', () => {
+  it('ZI 13 l.414 : cockatrice Grande → 4 Enc, 24 CO (Conservé), 3 CO (Pourri)', () => {
     const p = harvestProfileFor('cockatrice')!;
-    expect(formatMoney(harvestYield(p, 'Grande', 0, 'Frais').total)).toBe('48 CO');
+    const enc = harvestYield('Grande', 0);
+    expect(enc).toBe(4);
+    expect(formatMoney(fromBrass(enc * toBrass(valeurDUnePiece(p, 'Conservé'))))).toBe('24 CO');
+    expect(formatMoney(fromBrass(enc * toBrass(valeurDUnePiece(p, 'Pourri'))))).toBe('3 CO');
   });
 
   it('chaque DR d’échec au Savoir retire un cran de quantité', () => {
-    const p = harvestProfileFor('cockatrice')!;
-    expect(harvestYield(p, 'Grande', 0, 'Conservé').enc).toBe(4); // Grande
-    expect(harvestYield(p, 'Grande', -1, 'Conservé').enc).toBe(2); // → Moyenne
-    expect(harvestYield(p, 'Grande', -2, 'Conservé').enc).toBe(1); // → Inf. Moyenne
-    expect(harvestYield(p, 'Grande', -5, 'Conservé').enc).toBe(1); // plancher
+    expect(harvestYield('Grande', 0)).toBe(4); // Grande
+    expect(harvestYield('Grande', -1)).toBe(2); // → Moyenne
+    expect(harvestYield('Grande', -2)).toBe(1); // → Inf. Moyenne
+    expect(harvestYield('Grande', -5)).toBe(1); // plancher
   });
 
-  it('Pourri : les pièces non Exotiques/Uniques ne valent plus rien', () => {
+  it('ZI 13 l.400 : une pièce Pourrie hors Exotique/Unique vaut 0 (#2137)', () => {
     const troll = harvestProfileFor('troll-des-rivieres')!; // Rare
-    expect(formatMoney(harvestYield(troll, 'Grande', 0, 'Pourri').total)).toBe('0 sc');
-    const dragon = harvestProfileFor('dragon-de-la-foret')!; // Exotique
-    expect(harvestYield(dragon, 'Énorme', 0, 'Pourri').total.gold).toBeGreaterThan(0);
+    expect(formatMoney(valeurDUnePiece(troll, 'Faisandé'))).toBe('10/–');
+    expect(formatMoney(valeurDUnePiece(troll, 'Pourri'))).toBe('0 sc');
+    expect(formatMoney(valeurDUnePiece(harvestProfileFor('dragon-de-la-foret')!, 'Pourri'))).toBe('1 CO 2/6');
   });
 
   it('Taille de récolte : catégorie lue au Trait `taille` par son id (bestiaire RÉEL)', () => {

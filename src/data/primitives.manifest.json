@@ -408,18 +408,36 @@
   {
     "id": "sousListesNommees",
     "type": "primitives.manifest",
-    "label": "INSTANCIABLE_PAR_ID",
+    "label": "DONNABLE/INSTANCIABLE_PAR_ID/RECOLTABLE",
     "fichier": "src/data/schemas/grammaire/sousListes.ts",
-    "concept": "sous-liste marquée déclarée UNE fois (module feuille sans import) : les trappings que le moteur instancie par leur seul id",
-    "perimetre": "feuilles `idDe`/`refs` des trappings instanciés (op et Effet `giveTrapping`, `grantWeapon.form`, `merchants.curated`), `itemFromTrappingById`, `trappingsInstanciables`",
-    "verrou": "src/data/trappings-instanciables.test.ts"
+    "concept": "sous-listes marquées déclarées UNE fois (module feuille sans import), chaque marqueur écrit une fois et composé : les trappings qu'un don remet (`DONNABLE`), ceux que le moteur instancie par leur seul id (`INSTANCIABLE_PAR_ID` = `DONNABLE` hors `exigeUneCreature`), les créatures à profil de récolte (`RECOLTABLE`, inclusion `avecMarqueur`)",
+    "perimetre": "feuilles `idDe`/`refs` des trappings instanciés (op `giveTrapping`, `grantWeapon.form`, `merchants.curated`) et donnés (Effet `giveTrapping`), `creatureId` d'un don de pièce, `itemFromTrappingById`, `trappingsInstanciables`",
+    "verrou": "src/data/trappings-instanciables.test.ts, src/engine/pieces-de-creature.test.ts"
+  },
+  {
+    "id": "fabriqueDeDon",
+    "type": "primitives.manifest",
+    "label": "instancesDeDon/pieceDeCreature",
+    "fichier": "src/engine/items.ts",
+    "concept": "les `n` instances d'un don d'objet (Effet ou op `giveTrapping`), branchées sur le marqueur de l'entrée résolue : une pièce de créature naît par `pieceDeCreature` (avec `creatureId`), tout autre objet par le catalogue ; les champs de butin du don sont portés par chaque instance",
+    "perimetre": "apply de l'Effet `giveTrapping`, ramassage en combat (`battlePickup`), op `giveTrapping`, affichage des qualités du butin (`giveTrappingQualities`)",
+    "verrou": "src/engine/pieces-de-creature.test.ts"
+  },
+  {
+    "id": "valeurDUnePiece",
+    "type": "primitives.manifest",
+    "label": "valeurDUnePiece",
+    "fichier": "src/engine/harvest.ts",
+    "concept": "valeur d'UNE pièce de créature (1 Enc) à un Degré de conservation (ZI 13 l.280-300, l.400-405)",
+    "perimetre": "vente (`valeurPropre`, `sellGain`, `sellRefusal`), Codex des créatures",
+    "verrou": "src/engine/pieces-de-creature.test.ts"
   },
   {
     "id": "jugementDeSousListe",
     "type": "primitives.manifest",
-    "label": "dansLaSousListe/idsDeLaSousListe/declarationDeFeuilleDId/refusDeLEntree",
+    "label": "dansLaSousListe/idsDeLaSousListe/declarationDeFeuilleDId/refusDeLEntree/lEntreePorte",
     "fichier": "src/data/schemas/grammaire/ref.ts",
-    "concept": "une sous-liste de feuille `idDe` jugée partout par la même définition : sur l'ENTRÉE résolue (`dansLaSousListe`, `refusDeLEntree`, via `porteLeChampMarqueur`), en ids admis du registre (`idsDeLaSousListe`), en déclaration d'une feuille (`declarationDeFeuilleDId`)",
+    "concept": "une sous-liste de feuille `idDe` jugée partout par la même définition : sur l'ENTRÉE résolue (`dansLaSousListe`, `refusDeLEntree`, via `porteLeChampMarqueur`), un marqueur lu sur l'entrée par le runtime (`lEntreePorte`), en ids admis du registre (`idsDeLaSousListe`), en déclaration d'une feuille (`declarationDeFeuilleDId`)",
     "perimetre": "producteurs d'ids qui énumèrent une sous-liste (Sorts mineurs de la création), instanciation d'un trapping, sélecteurs du Codex et de l'éditeur",
     "verrou": "src/data/trappings-instanciables.test.ts, src/engine/petty-spells-sous-liste.test.ts, src/ui/compendium/ref-field-sous-liste.test.tsx"
   },

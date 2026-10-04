@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { GearAssignList } from './GearAssignList';
 import type { LootGear } from '../state/store';
 import type { Combatant } from '../engine/types';
+import { gearFromEffects } from '../state/combatEffects';
 
 const hero = (id: string, name: string) =>
   ({ id, name, kind: 'hero', wounds: { current: 10, max: 12 }, conditions: [], advantage: 0, weapons: [], skills: [], talents: [], items: [], movement: 4,
@@ -39,5 +40,12 @@ describe('GearAssignList (butin attribuable)', () => {
     const html = render([{ label: 'Hallebarde', magic: true, effect: { type: 'giveTrapping', trappingId: 'hallebarde', qualities: ['empaleuse'], identified: false } }]);
     expect(html).toContain('non identifié');
     expect(html).not.toContain('entity-chip'); // ni def ni magiques tant que non révélé
+  });
+
+  it('don de pièces de créature (#1988 B4a-i) : la ligne du butin (`gearFromEffects`) se rend, sans lever', () => {
+    const { gear } = gearFromEffects([{ type: 'giveTrapping', trappingId: 'pieces-de-creature', creatureId: 'griffon', count: 3 }]);
+    const html = render(gear);
+    expect(html).toContain('3× Pièces de créature brutes (Griffon)');
+    expect(html).not.toContain('entity-chip');
   });
 });

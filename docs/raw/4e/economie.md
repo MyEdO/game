@@ -367,7 +367,7 @@ Test de **Ragot Complexe (−10)** dans une auberge → lancer d100 sur l'Index 
 
 ## Voir aussi
 
-- **Équipement** (`docs/raw/` à venir) — prix individuels des armes, armures, trappings (LDB 62–63 + AA)
+- **Équipement** (`equipement.md`) — prix individuels des armes, armures, trappings (LDB 62–63 + AA)
 - **Compétences** (`competences.md`) — fiches Évaluation, Marchandage, Ragot, Métier
 - **Activités** (LDB 23 p.196/199) — *Artisanat* et *Passer Commande* pour les objets Exotiques
 - **Statut social** (LDB 8) — simplification des achats par Statut

@@ -1,9 +1,4 @@
-// Précieuses Entrailles (ZI « Le Zoo Impérial », appendice) : récolte de « pièces de
-// monstre » sur un cadavre de créature. Moteur PUR — la valeur d'une pièce dépend de la
-// rareté et de la dangerosité de la bête (coût de base par Enc), de sa Taille (quantité
-// exploitable), du Test de Savoir (chaque DR d'échec retire un cran de quantité) et du
-// Degré de Conservation depuis la mort. Le profil de récolte (rareté/dangerosité/usages)
-// est porté par la créature (`CreatureData.harvest`) — pas de table parallèle.
+// ZI 13 l.251-406 (« Précieuses entrailles ») — profil porté par `CreatureData.harvest`.
 import type { CreatureData, HarvestRarity, HarvestDanger } from '../data';
 import { findCreatureById, tailleDuProfil } from '../data';
 import { fromBrass, type Money, PA_PER_SC, PA_PER_CO } from './money';
@@ -16,20 +11,23 @@ export type Conservation = 'Frais' | 'Conservé' | 'Faisandé' | 'Pourri';
 export type HarvestSize = 'InfMoyenne' | 'Moyenne' | 'Grande' | 'Énorme' | 'Monstrueuse';
 export type HarvestProfile = NonNullable<CreatureData['harvest']>;
 
-// Coût de base pour 1 Enc de pièces brutes (ZI), en sous de cuivre — via la monnaie canon.
+/** Id de trapping des pièces de créature brutes (`trappings.json`) — la seule graphie de cette référence. */
+export const PIECES_DE_CREATURE_TRAPPING_ID = 'pieces-de-creature';
+
+// ZI 13 l.284-287 ; Unique « 5+ CO » : #2137.
 const RARITY_BASE: Record<Rarity, number> = {
   Commune: 80,
-  Limitée: 10 * PA_PER_SC, // 10/-
-  Rare: 1 * PA_PER_CO, // 1 CO
-  Exotique: 3 * PA_PER_CO, // 3 CO
-  Unique: 5 * PA_PER_CO, // 5 CO
+  Limitée: 10 * PA_PER_SC,
+  Rare: 1 * PA_PER_CO,
+  Exotique: 3 * PA_PER_CO,
+  Unique: 5 * PA_PER_CO,
 };
-// Multiplicateur de dangerosité (le coût « par Enc » du tableau du livre = base × ce facteur).
+// ZI 13 l.294-299.
 const DANGER_MULT: Record<Danger, number> = { Inoffensive: 0.5, Inquiétante: 1, Menaçante: 2, Mortelle: 3 };
-// Quantité exploitable (Enc) selon la Taille du cadavre.
+// ZI 13 l.304-310.
 const SIZE_QTY: Record<HarvestSize, number> = { InfMoyenne: 1, Moyenne: 2, Grande: 4, Énorme: 8, Monstrueuse: 16 };
 const SIZE_LADDER: HarvestSize[] = ['InfMoyenne', 'Moyenne', 'Grande', 'Énorme', 'Monstrueuse'];
-// Modificateur de prix selon le Degré de Conservation (Conservé = standard du tableau).
+// ZI 13 l.402-405.
 const CONSERV_MULT: Record<Conservation, number> = { Frais: 2, Conservé: 1, Faisandé: 0.5, Pourri: 0.125 };
 
 /** Profil de récolte d'une créature par son `id` (ou undefined si non répertoriée). */
@@ -49,45 +47,27 @@ const HARVEST_SIZE_BY_CATEGORY: Record<SizeCategory, HarvestSize> = {
   monstrueuse: 'Monstrueuse',
 };
 
-/** Taille de récolte d'un cadavre : la Taille de son profil (`tailleDuProfil`, `src/data/index.ts`).
- *  Sans Taille, la catégorie retombe sur Moyenne — ARBITRAGE de ce projet (standard
- *  implicite des espèces sans Trait, cf. `src/engine/size.ts`), la table ZI ne dit rien du cas. */
+/** ZI 13 l.304-310 — Taille de récolte d'un cadavre : la Taille de son profil (`tailleDuProfil`,
+ *  `src/data/index.ts`) ; sans Taille : `effectiveSize` (`src/engine/size.ts`). */
 export function harvestSizeOf(creature: { traits?: TraitList; talents?: readonly { id: string }[] }): HarvestSize {
   return HARVEST_SIZE_BY_CATEGORY[tailleDuProfil(creature)];
 }
 
-/** Coût de base d'1 Enc de pièces de cette créature = rareté × dangerosité. */
-export function costPerEnc(p: HarvestProfile): Money {
-  return fromBrass(RARITY_BASE[p.rarity] * DANGER_MULT[p.danger]);
-}
-
-export interface HarvestResult {
-  /** Encombrement de pièces récoltées (après réduction au Savoir). */
-  enc: number;
-  /** Coût de base d'1 Enc, avant Conservation. */
-  perEnc: Money;
-  /** Valeur totale, Conservation incluse. */
-  total: Money;
+/** ZI 13 l.280-300, l.400-405 — valeur d'UNE pièce (1 Enc) de cette créature à ce Degré de conservation.
+ *  SOURCE UNIQUE : la vente (`state/merchantFlow.ts › valeurPropre`), le Codex. */
+export function valeurDUnePiece(p: HarvestProfile, conservation: Conservation): Money {
+  // Pourri : ZI 13 l.400, l.405 ; #2137.
+  if (conservation === 'Pourri' && p.rarity !== 'Exotique' && p.rarity !== 'Unique') return fromBrass(0);
+  return fromBrass(RARITY_BASE[p.rarity] * DANGER_MULT[p.danger] * CONSERV_MULT[conservation]);
 }
 
 /**
- * Récolte des pièces d'un cadavre.
- * @param savoirDR  DR du Test de Savoir (Bêtes/Remèdes/Magie). ≥0 = réussite (quantité pleine) ;
- *                  chaque DR négatif retire 1 cran sur l'échelle de Taille.
+ * ZI 13 l.302-316 — quantité exploitable (Enc) d'un cadavre de cette Taille de récolte.
+ * @param savoirDR  DR du Test de Savoir ; le cran par DR d'échec : #1136.
  */
-export function harvestYield(
-  p: HarvestProfile,
-  size: HarvestSize,
-  savoirDR: number,
-  conservation: Conservation = 'Frais',
-): HarvestResult {
+export function harvestYield(size: HarvestSize, savoirDR: number): number {
   let idx = SIZE_LADDER.indexOf(size);
   if (idx < 0) idx = SIZE_LADDER.indexOf('Moyenne');
-  if (savoirDR < 0) idx = Math.max(0, idx + savoirDR); // un cran de moins par DR d'échec
-  const enc = SIZE_QTY[SIZE_LADDER[idx]];
-  const perEncBrass = RARITY_BASE[p.rarity] * DANGER_MULT[p.danger];
-  // Pourri : seules les pièces Exotiques/Uniques conservent de la valeur.
-  const noValue = conservation === 'Pourri' && p.rarity !== 'Exotique' && p.rarity !== 'Unique';
-  const mult = noValue ? 0 : CONSERV_MULT[conservation];
-  return { enc, perEnc: fromBrass(perEncBrass), total: fromBrass(enc * perEncBrass * mult) };
+  if (savoirDR < 0) idx = Math.max(0, idx + savoirDR);
+  return SIZE_QTY[SIZE_LADDER[idx]];
 }

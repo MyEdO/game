@@ -58,7 +58,7 @@ import { dispellableSpellsOn, dissipateSpell } from '../engine/dispel';
 import { effectiveChar, bonus } from '../engine/characteristics';
 import { isFrenzyCapable, isFrenzied, spendResolveForPsychImmunity, animositeOrHaine } from '../engine/psychology';
 import { weaponLoaded, reloadProgressOf } from '../engine/weaponLoad';
-import { recomputeLoadout, itemFromGive, loadedAmmo, loadWeapon, unloadWeapon, setReloadProgress, setAmmoChoice, consumeAmmo, loadoutSetActive, loadoutLabel, mannedPosteWeapon, autoStowNewItem } from '../engine/items';
+import { recomputeLoadout, instancesDeDon, libelleDuDon, loadedAmmo, loadWeapon, unloadWeapon, setReloadProgress, setAmmoChoice, consumeAmmo, loadoutSetActive, loadoutLabel, mannedPosteWeapon, autoStowNewItem } from '../engine/items';
 import { trappingById } from './campaignData';
 import { canPushback, canStrikeFirst, reloadDRTarget } from '../engine/qualities/dispatch';
 import { talentFearIndice, canPreemptRanged, reloadDRBonus, reloadGrantsAssessAdvantage, hasCommandTeam, retreatAdvantageCost, keptAdvantageOnDisengage, hasFocusHarmony } from '../engine/combatFeatures/dispatch';
@@ -2320,19 +2320,23 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!eff) return;
       let label: string; // assigné dans chaque branche atteignant l'usage (le cas `else` renvoie)
       if (eff.type === 'giveTrapping') {
-        const it = itemFromGive(eff, undefined, trappingById); // catalogue, campagne-d'abord (#767), sinon objet custom
-        label = it.label;
+        const its = instancesDeDon(eff, eff.count ?? 1, { resoudre: trappingById }); // campagne-d'abord (#767)
+        label = libelleDuDon(eff, trappingById);
         // ajout NON équipé au combattant actif (clone battle) ET au membre party (persiste post-combat).
-        active.items = [...(active.items ?? []), it];
-        autoStowNewItem(active, it); // #204 : rangement par défaut
+        for (const it of its) {
+          active.items = [...(active.items ?? []), it];
+          autoStowNewItem(active, it); // #204 : rangement par défaut
+        }
         recomputeLoadout(active);
         set((s) => ({
           party: s.party.map((h) => {
             if (h.id !== active.id) return h;
             const clone: Combatant = structuredClone(h);
-            const itCopy = structuredClone(it);
-            clone.items = [...(clone.items ?? []), itCopy];
-            autoStowNewItem(clone, itCopy); // #204 : rangement par défaut
+            for (const it of its) {
+              const itCopy = structuredClone(it);
+              clone.items = [...(clone.items ?? []), itCopy];
+              autoStowNewItem(clone, itCopy); // #204 : rangement par défaut
+            }
             recomputeLoadout(clone);
             return clone;
           }),
