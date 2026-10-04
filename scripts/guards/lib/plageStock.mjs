@@ -41,9 +41,8 @@
 // échoue). Elle reste PURE dans son cœur (`refusDeLaPlage`, `reclassementsDeLaPlage`) : les lectures
 // git passent par les questions du dépôt de `cwd` (`depotDe`, `gitPorte.mjs`).
 import { GitIndisponible, TRONC, arbreVide, baseCommune, ceQueFaitLeCommit, ceQuiChange, depotDe, journalDe, lireEnLot, parentsDe, shasDe } from './gitPorte.mjs'
-import { bilanDeFusion, bilanDesStocks, croissanceDesCles, nonCouvertesDuBilan } from './stocksNominatifs.mjs'
-import { modulesExemptes } from './cssCouches.mjs'
-import { deplaceLaFrontiere, ecartsDeReclassement, franchisDesCotes, lignesDeReclassement } from './reclassementCss.mjs'
+import { bilanDeFusion, bilanDesStocks, croissanceDesCles, gesteSurLesCommitsFautifs, nonCouvertesDuBilan } from './stocksNominatifs.mjs'
+import { deplaceLaFrontiere, ecartsDeReclassement, franchisDuCommit, lignesDeReclassement } from './reclassementCss.mjs'
 import { coteCss, sourceGit } from './cssImages.mjs'
 
 /** Le sha nul que git écrit sur stdin du pre-push pour une branche NEUVE. */
@@ -79,31 +78,12 @@ export function bilanSoustrait(de, moins = []) {
 export const bilanDuCommit = ({ diff, images, fusion = null }) => (fusion ? bilanDeFusion(fusion) : bilanDesStocks(diff, images))
 
 /**
- * Franchissements d'un commit, PUR : `franchisDesCotes(base, commit)` ; pour une FUSION (`parents` =
- * les côtés de `^1` et `^2`, `base` = celui de leur base commune), à TROIS VOIES (#2223) : la fusion
- * franchit les modules qu'elle exempte et que la fusion automatique de ses parents n'exempte pas — le
- * côté qui a changé son exemption fait foi, l'autre sinon. Chacun se paie contre le parent qui l'a
- * libéré : le premier qui ne l'exempte pas.
- * @param {{ base: Parameters<typeof franchisDesCotes>[0], commit: Parameters<typeof franchisDesCotes>[1], parents?: Parameters<typeof franchisDesCotes>[0][] }} cotes
- * @returns {ReturnType<typeof franchisDesCotes>}
- */
-export function franchisDuCommit({ base, commit, parents = [] }) {
-  if (!parents.length) return franchisDesCotes(base, commit)
-  const [exB, ex1, ex2] = [base, ...parents].map(modulesExemptes)
-  const exempteALaFusionAutomatique = (m) => (ex1.has(m) === exB.has(m) ? ex2.has(m) : ex1.has(m))
-  const liberateur = (m) => (ex1.has(m) ? 1 : 0)
-  return parents
-    .flatMap((parent, i) => franchisDesCotes(parent, commit).filter((f) => !exempteALaFusionAutomatique(f.module) && liberateur(f.module) === i))
-    .sort((a, b) => (a.module < b.module ? -1 : a.module > b.module ? 1 : 0))
-}
-
-/**
  * Refus d'une plage, PUR. `commits` = `[{ sha, message, diff, images, fusion }]` (`bilanDuCommit`) dans
  * l'ordre de l'histoire, les seuls commits JUGÉS ;
  * `cumul` = le bilan cumulé SIGNÉ de la plage (`bilanDesStocks`, `bilanSoustrait`).
  * Chaque `images` porte un `lirePostImage` : `bilanDesStocks` refuse nommément sinon.
  * @param {{ commits?: object[], cumul: { fichier: string, parCle: Map<string, number> }[] }} p
- * @returns {{ sha: string, fichier: string, net: number, declare: number | null, exemples: string[] }[]}
+ * @returns {{ sha: string, fusion: boolean, fichier: string, net: number, declare: number | null, exemples: string[] }[]}
  * @throws {TypeError} sans `cumul` : un filtre absent rendrait zéro refus, un verdict qui ment.
  * @throws {Error} propagé de `bilanDesStocks` : sans lecteur d'image post, le compte ment.
  */
@@ -113,7 +93,7 @@ export function refusDeLaPlage({ commits = [], cumul } = {}) {
   const refus = []
   for (const { sha, message, ...lu } of commits) {
     for (const c of nonCouvertesDuBilan(bilanDuCommit(lu), message)) {
-      if (enCroissance.has(c.fichier)) refus.push({ sha, fichier: c.fichier, net: c.net, declare: c.declare, exemples: c.exemples })
+      if (enCroissance.has(c.fichier)) refus.push({ sha, fusion: Boolean(lu.fusion), fichier: c.fichier, net: c.net, declare: c.declare, exemples: c.exemples })
     }
   }
   return refus
@@ -124,23 +104,23 @@ export function refusDeLaPlage({ commits = [], cumul } = {}) {
  * à trois voies (`franchisDuCommit`, #2223). `cotes()` rend `{ base, commit, parents? }` (`coteCss`),
  * ou `null` si le commit ne touche pas la frontière ; une image illisible est un refus NOMMÉ par son
  * commit, jamais une levée.
- * @param {{ commits?: { sha: string, message: string, cotes: () => ({ base: object, commit: object, parents?: object[] } | null) }[] }} p
- * @returns {({ sha: string, ecarts: ReturnType<typeof ecartsDeReclassement> } | { sha: string, illisible: string })[]}
+ * @param {{ commits?: { sha: string, message: string, fusion?: object | null, cotes: () => ({ base: object, commit: object, parents?: object[] } | null) }[] }} p
+ * @returns {({ sha: string, fusion: boolean, ecarts: ReturnType<typeof ecartsDeReclassement> } | { sha: string, fusion: boolean, illisible: string })[]}
  */
 export function reclassementsDeLaPlage({ commits = [] } = {}) {
   const refus = []
-  for (const { sha, message, cotes } of commits) {
+  for (const { sha, message, cotes, fusion = null } of commits) {
     let lus
     try {
       lus = cotes()
     } catch (e) {
-      refus.push({ sha, illisible: e.message })
+      refus.push({ sha, fusion: Boolean(fusion), illisible: e.message })
       continue
     }
     const lignes = lignesDeReclassement(message)
     if (!lus && !lignes.length) continue
     const ecarts = ecartsDeReclassement(lus ? franchisDuCommit(lus) : [], lignes)
-    if (ecarts.length) refus.push({ sha, ecarts })
+    if (ecarts.length) refus.push({ sha, fusion: Boolean(fusion), ecarts })
   }
   return refus
 }
@@ -149,11 +129,11 @@ export function reclassementsDeLaPlage({ commits = [] } = {}) {
 export function raisonDeRefusDePlage(refus) {
   const lignes = refus.map((r) => {
     const declare = r.declare === null ? '' : ` (le message annonce \`+${r.declare}\`)`;
-    return `${r.sha.slice(0, 9)} ${r.fichier} +${r.net} entrée(s)${declare} — ex. ${r.exemples.join(' · ')}`
+    return `${r.sha.slice(0, 9)}${r.fusion ? ' (fusion)' : ''} ${r.fichier} +${r.net} entrée(s)${declare} — ex. ${r.exemples.join(' · ')}`
   })
   return (
-    `⛔ STOCK NOMINATIF qui GRANDIT dans la plage poussée : ${lignes.join(' || ')}. Geste : ` +
-    '`git rebase -i` pour porter `CLIQUET: <fichier> +N — <motif>` au message du commit fautif, ' +
+    `⛔ STOCK NOMINATIF qui GRANDIT dans la plage poussée : ${lignes.join(' || ')}. Geste : porter ` +
+    `\`CLIQUET: <fichier> +N — <motif>\` au message du commit fautif — ${gesteSurLesCommitsFautifs(refus)} —, ` +
     "ou retirer l'entrée (un stock nominatif est une DETTE vers zéro, jamais un registre). `+N` " +
     "compte les ENTRÉES du stock — ses éléments —, jamais ce qu'elles dénombrent."
   )
@@ -186,14 +166,39 @@ const restreinte = (fait, chemins) => {
 function lecturesDuCommit(depot, sha) {
   const fait = ceQueFaitLeCommit(depot, sha)
   const parents = parentsDe(depot, sha) ?? []
-  if (parents.length < 2) return { fait, fusion: null }
+  return parents.length < 2 ? { fait, fusion: null } : lecturesDeFusion(depot, { apres: sha, parents, fait })
+}
+
+/**
+ * Les lectures d'une FUSION de `parents` dont l'image est `apres` — un commit (`lecturesDuCommit`), ou
+ * l'INDEX / l'arbre SUIVI de la fusion EN COURS que le hook de commit juge (`ceQueFaitLaFusionEnCours`) :
+ * `fait` = ce qu'elle fait contre leur base commune, restreint aux chemins où `apres` s'écarte de la
+ * fusion automatique (`fait` reçu) ; `fusion` = `{ parents, commune, juges }` (`lecturesDuCommit`).
+ * @param {import('./gitPorte.mjs').Depot} depot
+ * @param {{ apres: string, parents: string[], fait: ReturnType<typeof ceQuiChange>, lireDepuis?: (depuis: string) => ReturnType<typeof ceQuiChange> }} p
+ */
+export function lecturesDeFusion(depot, { apres, parents, fait, lireDepuis = (depuis) => ceQuiChange(depot, depuis, apres) }) {
   const commune = baseCommune(depot, parents[0], parents[1]) ?? arbreVide(depot)
-  const supprimesDeLaFusion = new Set(ceQuiChange(depot, commune, sha).chemins('D'))
+  const changement = lireDepuis(commune)
+  const supprimesDeLaFusion = new Set(changement.chemins('D'))
   const gardes = parents.flatMap((p) => ceQuiChange(depot, commune, p).chemins('D')).filter((c) => !supprimesDeLaFusion.has(c))
   return {
-    fait: restreinte(ceQuiChange(depot, commune, sha), fait.chemins()),
+    fait: restreinte(changement, fait.chemins()),
     fusion: { parents, commune, juges: [...new Set([...fait.chemins(), ...gardes])] },
   }
+}
+
+/**
+ * L'entrée de `bilanDeFusion` d'une fusion lue (`lecturesDeFusion`) : ses porteurs jugés, les textes
+ * de ses parents et de leur base commune (`lireEnLot`), celui de la fusion par `lireLaFusion`.
+ * @param {import('./gitPorte.mjs').Depot} depot
+ * @param {{ parents: string[], commune: string, juges: string[] }} fusion
+ * @param {(chemin: string) => string | null} lireLaFusion
+ * @returns {Parameters<typeof bilanDeFusion>[0]}
+ */
+export function entreeDeFusion(depot, { parents, commune, juges }, lireLaFusion) {
+  const texteA = (arbre) => (f) => lireEnLot(depot, arbre, [f]).get(f) ?? null
+  return { fichiers: juges, lire: { fusion: lireLaFusion, parents: parents.map(texteA), commune: texteA(commune) } }
 }
 
 /**
@@ -244,7 +249,7 @@ export function croissancesDeLaPlage({ cwd = process.cwd(), debut, fin, vers = n
         sha,
         message: messages.get(sha) ?? '',
         ...(fusion
-          ? { fusion: { fichiers: fusion.juges, lire: { fusion: texteA(sha), parents: fusion.parents.map(texteA), commune: texteA(fusion.commune) } } }
+          ? { fusion: entreeDeFusion(depot, fusion, texteA(sha)) }
           : { diff: fait.diff(), images: { lirePostImage: texteA(sha), lirePreImage: fait.lirePreImage, renommages: fait.renommages() } }),
         cotes: () => (deplaceLaFrontiere({ chemins: fait.chemins(), nesOuMorts: () => fait.chemins('AD'), base, commit, racine: cwd })
           ? { base: cote(base), commit: cote(commit), ...(fusion ? { parents: fusion.parents.map((p) => cote(source(p))) } : {}) }
