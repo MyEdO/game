@@ -6,18 +6,18 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { DEPOT } from '../guards/lib/ticketsGh.mjs'
-import { execFileSync } from 'node:child_process'
+import { execFileSync, spawn } from 'node:child_process'
 import * as FS from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { envDeDepotForge, instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import { GESTES_DU_BOARD, indexerIssues, mesurer } from './board.mjs'
 import {
   HEURES_PEREMPTION, LIGNES_D_UN_TICKET_FERME, MARQUE_DEBUT, MARQUE_FIN, PLAFOND_INJECTION, digestDuSuivi, ecrireSuivi,
   gabaritDuSuivi, horodatage, lireHorodatage, listerSuivis, mesureProfilee, renduDuSuivi,
   suivre, texteDeLaListe, ticketsPrevus, zonesDe, JOURNAL, argumentsDuSuivi, editer, editionDuSuivi, etatDeSession,
-  etatDuSuivi, ligneDeJournal, lignesDEtat, lignesDuJournal,
+  ESSAIS_D_EDITION, structureDuSuivi, ligneDeJournal, lignesDeSituation, lignesDuJournal,
 } from './suivi.mjs'
 
 const REEL = FS.readFileSync(new URL('./fixtures/suivi-1816.md', import.meta.url), 'utf8')
@@ -131,12 +131,12 @@ test('écriture : texte changé → refus, cible intacte, aucun temporaire ; sin
   try {
     const cible = join(dossier, '7.md')
     FS.writeFileSync(cible, 'édité ailleurs')
-    const refus = ecrireSuivi({ cible, contenu: 'neuf', attendu: 'lu avant', pid: 11 })
+    const refus = ecrireSuivi({ cible, contenu: 'neuf', attendu: 'lu avant', geste: 'la mesure', pid: 11 })
     assert.equal(refus.ok, false)
     assert.match(refus.refus, /a changé pendant la mesure/)
     assert.equal(FS.readFileSync(cible, 'utf8'), 'édité ailleurs')
     assert.deepEqual(restes(dossier), [])
-    assert.deepEqual(ecrireSuivi({ cible, contenu: 'neuf', attendu: 'édité ailleurs', pid: 11 }), { ok: true })
+    assert.deepEqual(ecrireSuivi({ cible, contenu: 'neuf', attendu: 'édité ailleurs', geste: 'la mesure', pid: 11 }), { ok: true })
     assert.equal(FS.readFileSync(cible, 'utf8'), 'neuf')
     assert.deepEqual(restes(dossier), [])
   } finally { FS.rmSync(dossier, { recursive: true, force: true }) }
@@ -149,12 +149,12 @@ test('écriture : rename en EPERM/EACCES/EBUSY → refus « tenu », sans tempor
     FS.writeFileSync(cible, 'avant')
     const jette = (code) => ({ ...FS, renameSync: () => { throw Object.assign(new Error(code), { code }) } })
     for (const code of ['EPERM', 'EACCES', 'EBUSY']) {
-      const vu = ecrireSuivi({ cible, contenu: 'neuf', attendu: 'avant', fs: jette(code), pid: 12 })
+      const vu = ecrireSuivi({ cible, contenu: 'neuf', attendu: 'avant', geste: 'la mesure', fs: jette(code), pid: 12 })
       assert.deepEqual([vu.ok, /suivi tenu par un autre processus/.test(vu.refus)], [false, true], code)
       assert.equal(FS.readFileSync(cible, 'utf8'), 'avant')
       assert.deepEqual(restes(dossier), [], code)
     }
-    assert.throws(() => ecrireSuivi({ cible, contenu: 'neuf', attendu: 'avant', fs: jette('ENOSPC'), pid: 12 }), /ENOSPC/)
+    assert.throws(() => ecrireSuivi({ cible, contenu: 'neuf', attendu: 'avant', geste: 'la mesure', fs: jette('ENOSPC'), pid: 12 }), /ENOSPC/)
     assert.deepEqual(restes(dossier), [])
   } finally { FS.rmSync(dossier, { recursive: true, force: true }) }
 })
@@ -168,13 +168,13 @@ test('écriture : temporaire non écrit, ou cible disparue → refus NOMMÉ, san
       ...FS,
       writeFileSync: (chemin) => { FS.writeFileSync(chemin, 'part'); throw Object.assign(new Error('ENOSPC'), { code: 'ENOSPC' }) },
     }
-    const nonEcrit = ecrireSuivi({ cible, contenu: 'neuf', attendu: 'avant', fs: plein, pid: 13 })
+    const nonEcrit = ecrireSuivi({ cible, contenu: 'neuf', attendu: 'avant', geste: 'la mesure', fs: plein, pid: 13 })
     assert.equal(nonEcrit.ok, false)
     assert.match(nonEcrit.refus, /temporaire .*\.7\.md\.13\.tmp non écrit \(ENOSPC\)/)
     assert.equal(FS.readFileSync(cible, 'utf8'), 'avant')
     assert.deepEqual(restes(dossier), [])
     FS.rmSync(cible)
-    const disparue = ecrireSuivi({ cible, contenu: 'neuf', attendu: 'avant', pid: 13 })
+    const disparue = ecrireSuivi({ cible, contenu: 'neuf', attendu: 'avant', geste: 'la mesure', pid: 13 })
     assert.equal(disparue.ok, false)
     assert.match(disparue.refus, /7\.md a disparu pendant la mesure/)
     assert.equal(FS.existsSync(cible), false, 'une cible disparue n’est pas recréée')
@@ -192,7 +192,7 @@ test('écriture : temporaire non écrit ET non supprimable → refus qui nomme l
       writeFileSync: (chemin) => { FS.writeFileSync(chemin, 'part'); throw Object.assign(new Error('ENOSPC'), { code: 'ENOSPC' }) },
       rmSync: () => { throw Object.assign(new Error('EPERM'), { code: 'EPERM' }) },
     }
-    const vu = ecrireSuivi({ cible, contenu: 'neuf', attendu: 'avant', fs: tenu, pid: 14 })
+    const vu = ecrireSuivi({ cible, contenu: 'neuf', attendu: 'avant', geste: 'la mesure', fs: tenu, pid: 14 })
     assert.equal(vu.ok, false)
     assert.match(vu.refus, /non écrit \(ENOSPC\).*temporaire RESTANT, non supprimé \(EPERM\) : .*\.7\.md\.14\.tmp$/)
     assert.equal(FS.readFileSync(cible, 'utf8'), 'avant')
@@ -216,7 +216,7 @@ test('écriture : une erreur RELANCÉE garde son code, et son message nomme le t
     for (const [nom, fs] of Object.entries(cas)) {
       const code = nom.endsWith('EACCES') ? 'EACCES' : 'ENOENT'
       assert.throws(
-        () => ecrireSuivi({ cible, contenu: 'neuf', attendu: 'avant', fs, pid: 15 }),
+        () => ecrireSuivi({ cible, contenu: 'neuf', attendu: 'avant', geste: 'la mesure', fs, pid: 15 }),
         (e) => e.code === code && e.message === `${code}${suffixe}`,
         nom,
       )
@@ -514,33 +514,33 @@ const PLAN = [
   '', ...ZONE_DATEE(new Date(2026, 9, 4, 10, 0)), '',
 ].join('\n')
 
-test('#2279 — etatDuSuivi : titre, Objectif, items (ticket, libellé, fait), étapes et leur état, étapes hors item, zone datée PÉRIMÉE', () => {
-  const etat = etatDuSuivi(PLAN, { maintenant: new Date(2026, 9, 5, 11, 0) })
-  assert.equal(etat.refus, null)
-  assert.equal(etat.titre.texte, 'Suivi #9')
-  assert.deepEqual(etat.sections.map((s) => s.nature), ['objectif', 'en-cours'])
-  assert.deepEqual(etat.sections[0].objectif.map((l) => l.ligne), ['livrer'])
-  const [enCours] = etat.sections.slice(1)
+test('#2279 — structureDuSuivi : titre, Objectif, items (ticket, libellé, fait), étapes et leur état, étapes hors item, zone datée PÉRIMÉE', () => {
+  const structure = structureDuSuivi(PLAN, { maintenant: new Date(2026, 9, 5, 11, 0) })
+  assert.equal(structure.refus, null)
+  assert.equal(structure.titre.texte, 'Suivi #9')
+  assert.deepEqual(structure.sections.map((s) => s.nature), ['objectif', 'en-cours'])
+  assert.deepEqual(structure.sections[0].objectif.map((l) => l.ligne), ['livrer'])
+  const [enCours] = structure.sections.slice(1)
   assert.deepEqual(enCours.etapesHorsItem.map((e) => [e.texte, e.ouverte]), [['étape d’avant tout item', true]])
   assert.deepEqual(enCours.items.map((it) => [it.ticket, it.libelle, it.fait]), [[3, '#3 fait', true], [4, '#4 ouvert, en cours', false], [5, '#5 suivant', false]])
   assert.deepEqual(enCours.items[1].etapes.map((e) => [e.texte, e.ouverte]), [['brief écrit', false], ['juge du brief', true], ['juge du diff', true]])
   assert.equal(PLAN.split('\n')[enCours.items[1].fin], '   note libre', 'la fin d’un item : sa dernière ligne indentée')
-  assert.equal(etat.zone.date.getTime(), new Date(2026, 9, 4, 10, 0).getTime())
-  assert.equal(etat.zone.perimee, true)
-  assert.equal(etatDuSuivi(PLAN, { maintenant: new Date(2026, 9, 4, 12, 0) }).zone.perimee, false)
+  assert.equal(structure.zone.date.getTime(), new Date(2026, 9, 4, 10, 0).getTime())
+  assert.equal(structure.zone.perimee, true)
+  assert.equal(structureDuSuivi(PLAN, { maintenant: new Date(2026, 9, 4, 12, 0) }).zone.perimee, false)
 })
 
-test('#2279 — lignesDEtat : item en cours, prochain geste, ouverts ; âge pour le bandeau, date pour l’ajout ; absent dit tel quel', () => {
+test('#2279 — lignesDeSituation : item en cours, prochain geste, ouverts ; âge pour le bandeau, date pour l’ajout ; absent dit tel quel', () => {
   const lu = { epique: 9, chemin: '/s/9.md', texte: PLAN }
   const maintenant = new Date(2026, 9, 4, 13, 30)
-  assert.deepEqual(lignesDEtat(lu, { maintenant, age: true }), [
+  assert.deepEqual(lignesDeSituation(lu, { maintenant, age: true }), [
     '[suivi #9] en cours : #4 ouvert, en cours',
     '  prochain geste : juge du brief',
     '  ouverts : 2 item(s), 3 étape(s) · mesurée il y a 3 h',
   ])
-  assert.equal(lignesDEtat(lu, { maintenant, age: false })[2], '  ouverts : 2 item(s), 3 étape(s) · mesurée le 2026-10-04 10:00')
-  assert.deepEqual(lignesDEtat({ ...lu, texte: null }, { maintenant, age: true }), ['[suivi #9] lié à cette session, mais absent : /s/9.md'])
-  assert.deepEqual(lignesDEtat({ ...lu, texte: '# T\n## En cours\n1. [x] #1 fait\n' }, { maintenant, age: true }),
+  assert.equal(lignesDeSituation(lu, { maintenant, age: false })[2], '  ouverts : 2 item(s), 3 étape(s) · mesurée le 2026-10-04 10:00')
+  assert.deepEqual(lignesDeSituation({ ...lu, texte: null }, { maintenant, age: true }), ['[suivi #9] lié à cette session, mais absent : /s/9.md'])
+  assert.deepEqual(lignesDeSituation({ ...lu, texte: '# T\n## En cours\n1. [x] #1 fait\n' }, { maintenant, age: true }),
     ['[suivi #9] aucun item ouvert', '  ouverts : 0 item(s), 0 étape(s) · jamais mesurée'])
 })
 
@@ -551,14 +551,16 @@ test('#2279 — argumentsDuSuivi : forme historique, lecteur, édition (texte ci
   const cite = argumentsDuSuivi(['9', '--session', 'abc', '--json', '--ajouter-item', '#12 un libellé'])
   assert.deepEqual([cite.numero, cite.geste], [9, { quoi: 'ajouter-item', texte: '#12 un libellé' }])
   assert.deepEqual(argumentsDuSuivi(['9', '--session', 'abc', '--json', '--ajouter-item', '#12', 'un', 'libellé']).geste, cite.geste)
-  assert.deepEqual(argumentsDuSuivi(['9', '--json', '--session', 'abc', '--cocher', '4', 'juge du']).geste, { quoi: 'cocher', ticket: 4, texte: 'juge du' })
+  assert.deepEqual(argumentsDuSuivi(['9', '--json', '--session', 'abc', '--ticket', '4', '--cocher', 'juge', 'du']).geste, { quoi: 'cocher', ticket: 4, texte: 'juge du' })
   assert.equal(argumentsDuSuivi(['--session', 'abc', '--depuis', 'k1', '--json']).depuis, 'k1')
   for (const refuse of [
     ['--creer'], ['1', '2'], ['0'], ['--session', 'abc'], ['--json'], ['--session', '--json'], ['--session', 'abc', '--json', '--creer'],
-    ['9', '--session', 'abc', '--json'], ['--session', 'abc', '--json', '--cocher', '4', 'x'], ['9', '--session', 'abc', '--cocher', '4', 'x'],
-    ['9', '--session', 'abc', '--json', '--cocher', 'x'], ['9', '--session', 'abc', '--json', '--ajouter-etape', '0', 'x'], ['1816', '--bogue'],
+    ['9', '--session', 'abc', '--json'], ['--session', 'abc', '--json', '--ticket', '4', '--cocher', 'x'], ['9', '--session', 'abc', '--ticket', '4', '--cocher', 'x'],
+    ['9', '--session', 'abc', '--json', '--cocher', 'x'], ['9', '--session', 'abc', '--json', '--ticket', '0', '--ajouter-etape', 'x'], ['1816', '--bogue'],
+    ['9', '--session', 'abc', '--json', '--ticket', '4', '--ajouter-item', '#4 x'], ['9', '--ticket', '4'], ['--session', 'abc', '--json', '--ticket', '4'],
+    ['9', '--session', 'abc', '--json', '--ticket', 'x', '--cocher', 'y'], ['9', '--session', 'abc', '--json', '--ticket', '--cocher', 'y'],
     ['--depuis', 'k1'], ['1816', '--depuis', 'k1'], ['--session', 'abc', '--json', '--depuis'], ['--session', 'abc', '--json', '--depuis', '--x'],
-    ['9', '--session', 'abc', '--json', '--depuis', 'k1', '--cocher', '4', 'x'],
+    ['9', '--session', 'abc', '--json', '--depuis', 'k1', '--ticket', '4', '--cocher', 'x'],
   ]) assert.equal(argumentsDuSuivi(refuse), null, refuse.join(' '))
 })
 
@@ -632,7 +634,7 @@ test('#2279 — etatDeSession : sans lien, bandeau et ajout vides, l’index en 
     const b = etatDeSession({ session: 's', dossier, maintenant: new Date(2026, 9, 4, 15, 50) })
     assert.deepEqual(a.suivis.map((s) => [s.epique, s.chemin]), [[9, join(dossier, '9.md')]])
     assert.match(a.contexte, /^\[suivi #9\] /)
-    assert.equal(a.ajout, ['[suivi] état relu le 2026-10-04 13:30', '[suivi #9] en cours : #4 ouvert, en cours',
+    assert.equal(a.ajout, ['[suivi] situation relue le 2026-10-04 13:30', '[suivi #9] en cours : #4 ouvert, en cours',
       '  prochain geste : juge du brief', '  ouverts : 2 item(s), 3 étape(s) · mesurée le 2026-10-04 10:00'].join('\n'))
     assert.doesNotMatch(a.ajout, /npm run|lire |relancer|mets|mettre/)
     assert.notEqual(a.ajout, b.ajout)
@@ -680,4 +682,103 @@ test('#2279 — etatDeSession `depuis` : ajout VIDE quand la clé d’état vaut
     assert.match(change.ajout, /prochain geste : juge du diff/)
     assert.notEqual(change.cle, premier.cle)
   } finally { FS.rmSync(dossier, { recursive: true, force: true }) }
+})
+
+// ————————————————————— #2279, correction n° 2 : verrou, structure vérifiée, formes historiques —————————————————————
+
+test('#2279 B1 — N `editer` en PARALLÈLE (processus distincts) : aucune édition perdue, chaque succès est dans le fichier', async () => {
+  const module = pathToFileURL(fileURLToPath(new URL('./suivi.mjs', import.meta.url))).href
+  const lancer = (dossier, k) => new Promise((fini) => {
+    const code = `const { editer } = await import(${JSON.stringify(module)}); const r = editer({ numero: 9, dossier: ${JSON.stringify(dossier)}, `
+      + `session: 's${k}', geste: { quoi: 'ajouter-etape', ticket: 5, texte: 'étape ${k}' } }); process.stdout.write(String(r.code))`
+    const enfant = spawn(process.execPath, ['--input-type=module', '-e', code], { stdio: ['ignore', 'pipe', 'inherit'] })
+    let sortie = ''
+    enfant.stdout.on('data', (d) => { sortie += d })
+    enfant.on('close', () => fini({ k, code: sortie.trim() }))
+  })
+  for (let essai = 0; essai < 6; essai += 1) {
+    const dossier = dossierDeSuivis()
+    try {
+      const codes = await Promise.all(Array.from({ length: 6 }, (_, k) => lancer(dossier, k)))
+      const texte = FS.readFileSync(join(dossier, '9.md'), 'utf8')
+      for (const { k, code } of codes) assert.equal(code, '0', `essai ${essai}, édition ${k} : refusée`)
+      for (const { k } of codes) assert.ok(texte.includes(`   - [ ] étape ${k}\n`), `essai ${essai} : l’édition ${k} a réussi mais n’est pas dans le fichier`)
+      assert.deepEqual(FS.readdirSync(dossier).filter((n) => n.startsWith('.9.md')), [], 'ni temporaire ni verrou restant')
+    } finally { FS.rmSync(dossier, { recursive: true, force: true }) }
+  }
+})
+
+test('#2279 B1 — un verrou tenu par un processus VIVANT : écriture refusée et rejouable ; tenu par un mort, repris', () => {
+  const dossier = dossierDeSuivis()
+  const cible = join(dossier, '9.md')
+  const verrou = join(dossier, '.9.md.verrou')
+  try {
+    FS.writeFileSync(verrou, JSON.stringify({ pid: process.ppid, commande: 'autre', cwd: dossier, date: 'x' }))
+    const refus = ecrireSuivi({ cible, contenu: 'neuf', attendu: PLAN, geste: 'la mesure' })
+    assert.deepEqual([refus.ok, refus.rejouable], [false, true])
+    assert.match(refus.refus, /en cours d'écriture par un autre processus/)
+    assert.equal(FS.readFileSync(cible, 'utf8'), PLAN)
+    FS.writeFileSync(verrou, JSON.stringify({ pid: 2 ** 30, commande: 'mort', cwd: dossier, date: 'x' }))
+    assert.deepEqual(ecrireSuivi({ cible, contenu: 'neuf', attendu: PLAN, geste: 'la mesure' }), { ok: true })
+    assert.equal(FS.existsSync(verrou), false, 'le verrou repris est libéré')
+  } finally { FS.rmSync(dossier, { recursive: true, force: true }) }
+})
+
+test('#2279 B1 — `editer` sur un verrou qui ne se libère pas : refus nommé après ESSAIS_D_EDITION essais, sans écrire', () => {
+  const dossier = dossierDeSuivis()
+  try {
+    FS.writeFileSync(join(dossier, '.9.md.verrou'), JSON.stringify({ pid: process.ppid, commande: 'autre', cwd: dossier, date: 'x' }))
+    const vu = editer({ numero: 9, dossier, session: 's', geste: { quoi: 'ajouter-etape', ticket: 5, texte: 'brief' } })
+    assert.equal(vu.code, 1)
+    assert.match(vu.stderr, new RegExp(`en cours d'écriture par un autre processus.*\\(${ESSAIS_D_EDITION} essais\\)`))
+    assert.equal(FS.readFileSync(join(dossier, '9.md'), 'utf8'), PLAN)
+    assert.equal(FS.existsSync(join(dossier, JOURNAL)), false)
+  } finally { FS.rmSync(dossier, { recursive: true, force: true }) }
+})
+
+test('#2279 B2 — une édition ne porte qu’UNE ligne : `\\n` et `\\r` refusés, marqueur de zone et faux titre compris', () => {
+  for (const [geste, quoi] of [
+    [{ quoi: 'ajouter-item', texte: `#12 libellé\n${MARQUE_DEBUT}` }, 'marqueur de zone'],
+    [{ quoi: 'ajouter-etape', ticket: 4, texte: 'z\n## Faux titre' }, 'faux titre'],
+    [{ quoi: 'cocher', ticket: 4, texte: 'juge du b\r' }, 'retour chariot'],
+  ]) {
+    const r = editionDuSuivi(PLAN, geste)
+    assert.equal(r.ok, false, quoi)
+    assert.match(r.refus, /texte sur plusieurs lignes/, quoi)
+  }
+})
+
+test('#2279 B2 — la structure relue doit être celle d’avant plus l’élément visé : insertion dans un commentaire ouvert (C1), case derrière un commentaire (R2), refusées', () => {
+  const ouvert = PLAN.replace('3. #5 suivant', '3. #5 suivant <!-- note ouverte').replace('<!-- 4. #6 commenté -->', 'suite -->')
+  for (const [texte, geste, quoi] of [
+    [ouvert, { quoi: 'ajouter-item', texte: '#7 nouveau' }, 'item dans un commentaire ouvert'],
+    [ouvert, { quoi: 'ajouter-etape', ticket: 5, texte: 'étape' }, 'étape dans un commentaire ouvert'],
+    [PLAN.replace('   - [ ] juge du brief', '   <!-- [ ] --> - [ ] juge du brief'), { quoi: 'cocher', ticket: 4, texte: 'juge du b' }, 'case derrière un commentaire'],
+    [PLAN, { quoi: 'ajouter-etape', ticket: 4, texte: 'cachée <!-- jamais fermée' }, 'étape qui ouvre un commentaire'],
+  ]) {
+    const r = editionDuSuivi(texte, geste)
+    assert.equal(r.ok, false, quoi)
+    assert.match(r.refus, /ne serait pas lue telle quelle/, quoi)
+  }
+})
+
+test('#2279 R1 — les formes HISTORIQUES des arguments gardent leur sens (2 380 formes énumérées, 52 acceptées hier)', () => {
+  const historique = (argv) => {
+    const numeros = argv.filter((a) => /^\d+$/.test(a)).map(Number)
+    const valides = argv.every((a) => a === '--creer' || a === '--sans-fetch' || /^\d+$/.test(a))
+    if (argv.length && (!valides || numeros.length !== 1 || numeros[0] < 1)) return null
+    return { numero: numeros[0] ?? null, creer: argv.includes('--creer'), sansFetch: argv.includes('--sans-fetch') }
+  }
+  const jetons = ['5', '0', '12', '--creer', '--sans-fetch', '--json', '--session', 'abc', '--depuis', 'k', '--x', '-5', '05']
+  const formes = [[]]
+  for (const a of jetons) { formes.push([a]); for (const b of jetons) { formes.push([a, b]); for (const c of jetons) formes.push([a, b, c]) } }
+  let acceptees = 0
+  for (const forme of formes) {
+    const avant = historique(forme)
+    if (avant === null) continue
+    acceptees += 1
+    const neuf = argumentsDuSuivi(forme)
+    assert.deepEqual(neuf, { ...avant, session: null, json: false, depuis: null, geste: null }, JSON.stringify(forme))
+  }
+  assert.deepEqual([formes.length, acceptees], [2380, 52])
 })

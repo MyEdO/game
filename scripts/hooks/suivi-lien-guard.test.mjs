@@ -100,10 +100,10 @@ test('un lien DÉJÀ au journal pour cette session et cette épique n’est pas 
   }
 })
 
-test('#2279 — l’édition `<N> --session … --json --geste …` lie la session à N, texte cité ou non ; le lecteur `--session … --json [--depuis …]` ne lie rien et n’avertit pas', async () => {
+test('#2279 — l’édition `<N> --session … --json [--ticket M] --geste …` lie la session à N, texte cité ou non ; le lecteur `--session … --json [--depuis …]` ne lie rien et n’avertit pas', async () => {
   assert.equal(epiqueLiee('node scripts/ops/suivi.mjs 2279 --session abc --json --ajouter-item "#12 un libellé"'), 2279)
-  assert.equal(epiqueLiee('npm run ops:suivi -- 2279 --session abc --json --cocher 12 "brief écrit"'), 2279)
-  assert.equal(epiqueLiee('npm run ops:suivi -- 2279 --session abc --json --ajouter-etape 12 juge'), 2279)
+  assert.equal(epiqueLiee('npm run ops:suivi -- 2279 --session abc --json --ticket 12 --cocher "brief écrit"'), 2279)
+  assert.equal(epiqueLiee('npm run ops:suivi -- 2279 --session abc --json --ticket 12 --ajouter-etape juge'), 2279)
   assert.equal(epiqueLiee('npm run ops:suivi -- --session abc --json'), null)
   const { racine } = instanceDeDepot({ commit: false, fichiers: { 'package.json': JSON.stringify({ scripts: SCRIPTS }) } })
   const shell = (command) => repartir({ PreToolUse: [garde] }, JSON.stringify({
@@ -112,7 +112,7 @@ test('#2279 — l’édition `<N> --session … --json --geste …` lie la sessi
   try {
     assert.deepEqual(await shell('npm run ops:suivi -- --session abc --json'), { sortie: null, traces: [] })
     assert.deepEqual(await shell('npm run ops:suivi -- --session abc --json --depuis 0123abcd'), { sortie: null, traces: [] }, '--depuis : ni lien, ni avertissement')
-    const lie = await shell('npm run ops:suivi -- 2279 --session abc --json --cocher 12 "brief écrit"')
+    const lie = await shell('npm run ops:suivi -- 2279 --session abc --json --ticket 12 --cocher "brief écrit"')
     assert.deepEqual(lignesDuJournal(lie.traces[0].ligne).map((l) => [l.session, l.epique]), [['s', 2279]])
   } finally {
     FS.rmSync(racine, { recursive: true, force: true })

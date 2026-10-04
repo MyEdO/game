@@ -200,14 +200,13 @@ const ATTENDU = {
     'scripts/ops/suivi.mjs',
     'scripts/raw/build-implemente.mjs',
     'scripts/test/verrou.mjs',
-    // +3 le 2026-10-04 (#2278) : la garde des mods forge son `.claude/skills` sous `mkdtempSync` de
-    // os.tmpdir() (`rmSync` en `t.after`) ; le banc de la porte `mods:check` forge ses mods de même, et la
-    // porte qu'il importe copie chaque mod sous un `mkdtempSync` de os.tmpdir(), effacé en finally.
-    'scripts/guards/lib/modSansRegle.test.mjs',
+    // +2 le 2026-10-04 (#2278) : le banc de la garde `mods:check` forge ses mods sous `mkdtempSync` de
+    // os.tmpdir() (`rmSync` en `t.after`), et la garde qu'il importe copie chaque mod sous un `mkdtempSync`
+    // de os.tmpdir(), effacé en finally.
     'scripts/mods/verifier.mjs',
     'scripts/mods/verifier.test.mjs',
   ],
-  // +1 le 2026-10-04 (#2278) : la porte copie chaque mod sous un `mkdtempSync` de os.tmpdir(), effacé en
+  // +1 le 2026-10-04 (#2278) : la garde copie chaque mod sous un `mkdtempSync` de os.tmpdir(), effacé en
   // finally ; l'arbre n'est jamais écrit.
   'mods:check': ['scripts/mods/verifier.mjs'],
   'test:ops': [
@@ -259,6 +258,11 @@ const ATTENDU = {
     // atteint depuis `50b1a3e92` (#1776), qui a retiré son import de `publier.mjs` — mesurés par `ecrivainsParGate`.
     'scripts/ops/suivi.mjs',
     'scripts/ops/suivi.test.mjs',
+    // +1 le 2026-10-05 (#2279) : `suivi.mjs` écrit chaque suivi sous le verrou exclusif `.<N>.md.verrou`
+    // voisin (`ecrireSuivi`, `prendreVerrou` de `scripts/test/verrou.mjs`, `openSync(chemin, 'wx')` puis
+    // `rmSync`), donc sous `.git/suivi` derrière la porte `import.meta.main` de `suivi.mjs`, et sous le
+    // `mkdtempSync` d'os.tmpdir() de `suivi.test.mjs` ; l'arbre n'est jamais écrit.
+    'scripts/test/verrou.mjs',
     // +2 le 2026-09-04 (#1679 L2bis) : `faits-de-palier.mjs` écrit le JSON des faits (`--sortie`,
     // défaut sous os.tmpdir()) pour qu'un workflow n'ait pas à le recopier dans chaque prompt, et son
     // test fabrique un dépôt jetable sous os.tmpdir() — aucune écriture DANS l'arbre.

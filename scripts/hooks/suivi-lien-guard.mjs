@@ -1,6 +1,6 @@
 // LIEN DE SESSION du suivi de vague (#2132) : `npm run ops:suivi -- <N>` lie la session qui le
 // lance à l'épique `<N>`. Le lien est une ligne du JOURNAL `<dossierDesSuivis>/.journal`
-// (`JOURNAL`, `ligneDeJournal` : `scripts/ops/suivi.mjs`), qu'écrivent le `trace` du répartiteur
+// (`JOURNAL`, `ligneDeLien` : `scripts/ops/suivi.mjs`), qu'écrivent le `trace` du répartiteur
 // (`scripts/guards/lib/contratGarde.mjs`) et l'édition `editer` de `suivi.mjs` (#2279) ; `etatDeSession`
 // le relit pour choisir les suivis à mettre en contexte. Une ligne TSV par lien : iso, session_id, épique.
 //
@@ -18,7 +18,7 @@
 import * as FS from 'node:fs'
 import { join } from 'node:path'
 import { OUTILS_SHELL, commandeDe } from '../guards/lib/contratGarde.mjs'
-import { JOURNAL, argumentsDuSuivi, dossierDesSuivis, epiquesLiees, ligneDeJournal, lignesDuJournal, relire } from '../ops/suivi.mjs'
+import { JOURNAL, argumentsDuSuivi, dossierDesSuivis, ligneDeLien, relire } from '../ops/suivi.mjs'
 import { finAvantOperateur, segmentsProfonds } from './solde-ticket-guard.mjs'
 
 /** Un segment qui lance `scripts/ops/suivi.mjs`, et ses arguments. */
@@ -68,8 +68,7 @@ export const garde = {
     const vu = dossierDesSuivis(contexte.dir)
     if (!vu.disponible) return null
     const fichier = join(vu.valeur, JOURNAL)
-    if (epiquesLiees(lignesDuJournal(relire(fichier, FS) ?? ''), entree.session_id).includes(epique)) return null
-    const ligne = ligneDeJournal({ iso: new Date().toISOString(), session: entree.session_id, epique })
-    return { trace: { fichier, ligne } }
+    const ligne = ligneDeLien({ journal: relire(fichier, FS) ?? '', session: entree.session_id, epique, iso: new Date().toISOString() })
+    return ligne ? { trace: { fichier, ligne } } : null
   },
 }

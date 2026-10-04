@@ -1,5 +1,5 @@
 // COUTURE du mod `harnais` (#2278), PURE : l'appel d'un script du dépôt et la lecture de sa sortie JSON
-// (garde scripts/guards/lib/modSansRegle.mjs). Le moteur ne suit `$` dans aucun import : le lancement
+// (mur `murs/mod-sans-regle`, `VERROU_MOD_COUTURE` d'eslint.config.js). Le moteur ne suit `$` dans aucun import : le lancement
 // s'écrit au site d'appel, `lire(await $.process.run(...appel($.plugin.root, <script>, <args>)))`.
 import type { ProcessRunInit, ProcessRunResult } from 'claude-code'
 

@@ -149,8 +149,9 @@ scripts/migrations/         Migrations de donnée REJOUABLES (une par lot, daté
 .claude/skills/<mod>/       Mod Claude Code (une racine qui porte `.claude-plugin/plugin.json`) : `hooks/**`
                             en `.ts`, couture `hooks/ops.ts` ; chargé par le moteur, jamais par le produit
                             (§ Mods Claude Code)
-scripts/mods/               Porte `mods:check` (`verifier.mjs`) : validation stricte, types posés par le
-                            moteur, `tsc` et bancs de chaque mod, sur une copie sous os.tmpdir()
+scripts/mods/               Garde `mods:check` (`verifier.mjs`) : validation stricte, types posés par le
+                            moteur, `tsc` et bancs de chaque mod, sur une copie sous os.tmpdir() ;
+                            racine d'un mod (`racines.mjs`) ; banc du mur des mods (`murDeMod.test.mjs`)
 src/lib/                     Couche NEUTRE, en amont de `engine`, `data`, `state` et `ui` : ce que
                             plusieurs couches emploient sans qu’aucune ne le possède. `normalize.ts` :
                             normalisation d'un nom (`norm`).
@@ -478,15 +479,33 @@ art-ref/                    Illustrations extraites des PDFs + mapping.json (GIT
   always spelled $.noun.event(...) at the call site » — la couture ne peut pas recevoir `$`. Le
   régime se lit par un LECTEUR `--json` en lecture seule, jamais par `ops:suivi -- N`, qui mesure
   puis réécrit le suivi.
-- **Garde** `modSansRegle` (`scripts/guards/lib/modSansRegle.mjs`, jouée par `test:hooks`) : hors
-  couture, aucun seuil, aucun parsing, aucun accès à `$` hors de `ACCES_PERMIS`, `$.process.run` et
-  `$.plugin.root` dans l'idiome seulement, aucun `ask`, aucune invalidation du prompt ; dans la
-  couture, aucun `$`, et `JSON.parse` permis là seulement.
-- **Porte** `mods:check` (`scripts/mods/verifier.mjs`, job `types-hooks`) : son `lit` couvre
-  `.claude/skills/`, elle n'est jamais sautée sur un push documentaire (`gatesSautables`,
-  `scripts/gates/classerPush.mjs`).
+- **Mur** `murs/mod-sans-regle` (`VERROU_MOD` d'`eslint.config.js`, joué par la garde `lint`, banc
+  `scripts/mods/murDeMod.test.mjs` sur la config résolue) : son périmètre est l'`include` du tsconfig
+  que pose le moteur (`hooks`, `types`, `tests` de chaque `.claude/skills/<x>/`, en `.ts`/`.mts`),
+  hors bancs `*.test.ts` ; le reste de `.claude/` reste ignoré, et tout module hors `.ts` (`.js`, `.mjs`,
+  `.cjs`, `.cts`, `.jsx`, `.tsx`, bancs compris) y est refusé.
+  Hors couture, `$` n'a que trois places : objet d'un accès ni calculé ni optionnel à liste blanche
+  (`ui.resolve`, `ui.log`, `ui.invalidate`, `state.*`, `session.id`, `session.append`,
+  `tool.register`, `clock.every`) ou de l'idiome, argument d'une fonction appelée par son nom,
+  paramètre. Y sont refusés : un `appel` qui ne soit l'import de `./ops` ; le seuil (opérateur
+  relationnel, arithmétique sur un non-littéral, égalité ou `case` numérique, `Math`, `++`/`--`) ;
+  le parsing (méthodes de découpe et de recherche de chaîne, `parseInt`, `parseFloat`, `Number`,
+  `RegExp`, littéral regex, `JSON.parse`) ; `ask` en clé ou en littéral ; `$.ui.invalidate` hors de
+  `'ui.render'` (`RenderEventName`, types 2.1.289). Dans la couture : aucun `$`, seuil, `Math` et
+  parsing refusés, sauf `JSON.parse` et l'égalité. Le mur NE GARDE PAS l'évasion délibérée (`'a' +
+  'sk'`, clé calculée) ni la localité d'une fonction qui reçoit `$` : le moteur refuse `$` passé à
+  une fonction importée, et la garde `mods:check` le prouve par `claude plugin validate --strict`.
+- **Garde** `mods:check` (`scripts/mods/verifier.mjs`, job `types-hooks`) : un mod sans banc
+  `*.test.ts` est rouge ; sur une COPIE sans les artefacts du moteur (`.claude-plugin/types`,
+  `tsconfig.json`), validation stricte, types posés par `claude -p` à la version exacte, `tsc`, bancs ;
+  le CLI tourne sous un env en liste blanche (`ENV_HERITE`) et un HOME temporaire, lancé par l'hôte
+  de processus (`scripts/guards/lib/spawnResilient.mjs`). Une racine de mod est du PRODUIT pour le
+  classement du push (`classer`, `scripts/gates/classerPush.mjs`) ; les `lit` de `lint` et de
+  `mods:check` couvrent `.claude/skills/`, elles ne sont jamais sautées.
+- **knip** ne mesure pas les mods (`ignore` de `knip.json`, périmètre du mur) : projet à part, dont le
+  module `claude-code` est fourni par le moteur, vérifié par la garde `mods:check`.
 - **Version épinglée** : `VERSION_CLAUDE` de `scripts/mods/verifier.mjs`. L'API des mods est
-  « EARLY ACCESS » : elle se monte avec Claude Code, à la main, porte rejouée.
+  « EARLY ACCESS » : elle se monte avec Claude Code, à la main, garde rejouée.
 
 ## Coop en ligne — limitations connues (traçabilité #254)
 

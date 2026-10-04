@@ -1,6 +1,7 @@
 import { Buffer } from 'node:buffer';
 import { matcherDOutils } from '../guards/lib/contratGarde.mjs';
 import { TIMEOUT_DU_HOOK } from '../hooks/bootstrap-prerequis.mjs';
+import { racinesDeModsParmi } from '../mods/racines.mjs';
 
 export const GENERATED_PREFIX = '<!-- GENERATED: agents:sync; source=';
 const utf8 = new TextDecoder('utf-8', { fatal: true });
@@ -105,15 +106,10 @@ export function transformGuide(text) {
   return `${GENERATED_PREFIX}CLAUDE.md -->\n${body}`;
 }
 
-/** Le manifeste qui fait d'une racine `.claude/skills/<x>/` un mod Claude Code (#2278), sans miroir Codex. */
-const MANIFESTE_DE_MOD = '.claude-plugin/plugin.json';
-
 export function transformSkillTree(sourceFiles) {
   const outputs = new Map();
-  const mods = [...sourceFiles.keys()]
-    .filter((source) => source.startsWith('.claude/skills/') && source.endsWith(`/${MANIFESTE_DE_MOD}`))
-    .map((source) => source.slice(0, -MANIFESTE_DE_MOD.length))
-    .filter((racine) => racine.split('/').length === 4);
+  // Un mod Claude Code (#2278) n'a pas de miroir Codex.
+  const mods = racinesDeModsParmi(sourceFiles.keys());
   for (const [source, bytes] of sourceFiles) {
     if (!source.startsWith('.claude/skills/') || mods.some((racine) => source.startsWith(racine))) continue;
     const destination = source.replace(/^\.claude\/skills\//, '.agents/skills/');

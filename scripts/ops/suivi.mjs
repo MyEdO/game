@@ -40,22 +40,26 @@
 // LE PROFIL. Chaque geste injectable de la mesure (`GESTES_DU_BOARD`, `inv`, `issues`) est
 // chronométré ; le `reste` est le total moins leur somme.
 //
-// LA RELECTURE SANS MÉMOIRE (#2132, #2279). `etatDuSuivi` est l'état STRUCTURÉ d'un suivi ; ses
-// projections ne mesurent rien. `digestDuSuivi` : titre, Objectif, items et étapes ouvertes, zone mesurée
+// LA RELECTURE SANS MÉMOIRE (#2132, #2279). `structureDuSuivi` est la STRUCTURE lue d'un suivi ; ses
+// projections ne mesurent rien. La SITUATION d'un suivi lié (`lignesDeSituation`) : item en cours, prochain
+// geste, éléments ouverts, mesure. `digestDuSuivi` : titre, Objectif, items et étapes ouvertes, zone mesurée
 // datée, coupé à `PLAFOND_INJECTION`. `etatDeSession` : pour les suivis liés à une session au JOURNAL
 // `<dossier>/.journal`, le `contexte` (digests, sinon l'index des suivis récents), les lignes du bandeau,
-// la ligne d'`ajout` et sa `cle` — ce que rendent le hook de session (`scripts/hooks/inject-suivi.mjs`,
+// la situation datée à `ajouter` et sa `cle` — ce que rendent le hook de session (`scripts/hooks/inject-suivi.mjs`,
 // surface Codex) et le mod `harnais` (`.claude/skills/harnais/hooks/suivi.ts`), qui lit `--session <id> --json`.
 // `dossierDesSuivis` est le dossier que ce script, le hook de session et le lien de session
 // (`scripts/hooks/suivi-lien-guard.mjs`) partagent.
 //
 // L'ÉDITION (#2279). `--ajouter-item`, `--ajouter-etape`, `--cocher` éditent la zone ÉCRITE d'un suivi
-// (`editionDuSuivi`), jamais la zone mesurée, par `ecrireSuivi` ; ils lient la session `--session` à
-// l'épique au journal (`ligneDeJournal`), puis rendent `etatDeSession` en JSON.
+// (`editionDuSuivi`, qui refuse toute édition dont la structure relue n'est pas celle d'avant plus
+// l'élément visé), jamais la zone mesurée ; ils rejouent l'édition sur le texte frais quand l'écriture la
+// refuse (`ESSAIS_D_EDITION`), lient la session `--session` à l'épique (`ligneDeLien`), puis rendent
+// `etatDeSession` en JSON. Toute écriture d'un suivi, mesure comme édition, passe sous le verrou
+// exclusif `.<N>.md.verrou` (`prendreVerrou`, scripts/test/verrou.mjs).
 //
 // Usage : `npm run ops:suivi -- <N> [--creer] [--sans-fetch]` · sans `<N>` : la liste des suivis ·
 // `--session <id> --json [--depuis <cle>]` : l'état de la session, en lecture seule · `<N> --session <id> --json
-// --ajouter-item <#M libellé…> | --ajouter-etape <M> <texte…> | --cocher <M> <début du texte…>` : l'édition.
+// [--ticket <M>] --ajouter-item <#M libellé…> | --ajouter-etape <texte…> | --cocher <début du texte…>` : l'édition.
 import * as FS from 'node:fs'
 import { createHash } from 'node:crypto'
 import { join } from 'node:path'
@@ -66,6 +70,7 @@ import { coupeAuMot } from '../../src/lib/coupeAuMot.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
 import { BASE, GESTES_DU_BOARD, JOURS_FUSION_RECENTE, issuesDeGh, mesurer, urlDuTicket } from './board.mjs'
 import { inventaire } from './worktrees.mjs'
+import { prendreVerrou } from '../test/verrou.mjs'
 
 export const MARQUE_DEBUT = '<!-- suivi:mesure:debut -->'
 export const MARQUE_FIN = '<!-- suivi:mesure:fin -->'
@@ -98,6 +103,10 @@ export const HEURES_INDEX = 72
 export const PART_D_UN_DIGEST = 400
 /** Largeur maximale (caractères) d'une ligne du bandeau et de l'ajout. Valeur maison. */
 export const LARGEUR_D_UNE_LIGNE = 160
+/** Essais d'une édition dont l'écriture est refusée (verrou pris, texte changé) avant le refus. Valeur maison. */
+export const ESSAIS_D_EDITION = 20
+/** Pause (ms) entre deux essais d'une édition. Valeur maison. */
+export const PAUSE_ENTRE_ESSAIS_MS = 25
 /** Nom du journal des liens de session, dans le dossier des suivis (le listage, `^\d+\.md$`, l'ignore). */
 export const JOURNAL = '.journal'
 
@@ -366,7 +375,7 @@ function plafonner(lignes, plafond, fin) {
  * @param {string} texte
  * @param {{maintenant?: Date}} [params] sans `maintenant`, ni âge ni péremption
  */
-export function etatDuSuivi(texte, { maintenant } = {}) {
+export function structureDuSuivi(texte, { maintenant } = {}) {
   const vues = zonesDe(texte)
   const zones = vues.ok ? vues : { lignes: lignesDe(texte), debut: -1, fin: -1 }
   let titre = null
@@ -409,14 +418,14 @@ export function etatDuSuivi(texte, { maintenant } = {}) {
   }
 }
 
-/** Les items des sections `## En cours` d'un `etatDuSuivi`, dans l'ordre. PURE. */
-const itemsDe = (etat) => etat.sections.flatMap((s) => s.items)
-/** Les étapes OUVERTES des sections `## En cours` d'un `etatDuSuivi`, dans l'ordre. PURE. */
-const etapesOuvertesDe = (etat) => etat.sections.flatMap((s) => [...s.etapesHorsItem, ...s.items.flatMap((it) => it.etapes)])
+/** Les items des sections `## En cours` d'un `structureDuSuivi`, dans l'ordre. PURE. */
+const itemsDe = (structure) => structure.sections.flatMap((s) => s.items)
+/** Les étapes OUVERTES des sections `## En cours` d'un `structureDuSuivi`, dans l'ordre. PURE. */
+const etapesOuvertesDe = (structure) => structure.sections.flatMap((s) => [...s.etapesHorsItem, ...s.items.flatMap((it) => it.etapes)])
   .filter((e) => e.ouverte)
 
 /**
- * Le DIGEST d'un suivi, projection texte de `etatDuSuivi` : son titre, son `## Objectif`, les items de
+ * Le DIGEST d'un suivi, projection texte de `structureDuSuivi` : son titre, son `## Objectif`, les items de
  * `## En cours` (sauf ceux cochés `[x]`) et leurs étapes `[ ]`, dans l'ordre du texte, puis la zone
  * mesurée — PÉRIMÉE au-delà de `HEURES_PEREMPTION`, ou « jamais rafraîchie ». Coupé à `plafond`
  * caractères, terminé par « tronqué, lire <chemin> ». PURE.
@@ -425,20 +434,20 @@ const etapesOuvertesDe = (etat) => etat.sections.flatMap((s) => [...s.etapesHors
  * @returns {string}
  */
 export function digestDuSuivi(texte, { epique, chemin, mtime, maintenant, plafond = PLAFOND_INJECTION }) {
-  const etat = etatDuSuivi(texte, { maintenant })
+  const structure = structureDuSuivi(texte, { maintenant })
   const sortie = [`[suivi #${epique}] ${chemin} — écrit le ${horodatage(mtime)}`]
-  if (etat.refus) sortie.push(`⚠ ${etat.refus}`)
-  const plan = etat.sections.flatMap((s) => [s, ...s.objectif, ...s.items.filter((it) => !it.fait)])
-  sortie.push(...[...(etat.titre ? [etat.titre] : []), ...plan, ...etapesOuvertesDe(etat)].sort((a, b) => a.i - b.i).map((e) => e.ligne))
+  if (structure.refus) sortie.push(`⚠ ${structure.refus}`)
+  const plan = structure.sections.flatMap((s) => [s, ...s.objectif, ...s.items.filter((it) => !it.fait)])
+  sortie.push(...[...(structure.titre ? [structure.titre] : []), ...plan, ...etapesOuvertesDe(structure)].sort((a, b) => a.i - b.i).map((e) => e.ligne))
   const rafraichir = `\`npm run ops:suivi -- ${epique}\``
   sortie.push('', '## Zone mesurée')
-  if (!etat.zone.date) {
+  if (!structure.zone.date) {
     sortie.push(`zone mesurée jamais rafraîchie : ${rafraichir}`)
   } else {
-    if (etat.zone.perimee) {
-      sortie.push(`**PÉRIMÉE** : mesurée il y a ${Math.floor(etat.zone.heures)} h (au-delà de ${HEURES_PEREMPTION} h) — ${rafraichir}`)
+    if (structure.zone.perimee) {
+      sortie.push(`**PÉRIMÉE** : mesurée il y a ${Math.floor(structure.zone.heures)} h (au-delà de ${HEURES_PEREMPTION} h) — ${rafraichir}`)
     }
-    sortie.push(...etat.zone.lignes)
+    sortie.push(...structure.zone.lignes)
   }
   return plafonner(sortie, plafond, `… tronqué, lire ${chemin}`)
 }
@@ -461,8 +470,12 @@ export function lignesDuJournal(texte) {
 export const epiquesLiees = (lignes, session) =>
   [...new Set(lignes.filter((l) => l.session === session).map((l) => l.epique))]
 
-/** Le titre d'un suivi (`etatDuSuivi`), `''` sans titre. PURE. */
-const titreDuSuivi = (texte) => etatDuSuivi(texte).titre?.texte ?? ''
+/** La ligne qui lie `session` à `epique` dans le texte du `journal`, `null` si le lien y est déjà. PURE. */
+export const ligneDeLien = ({ journal, session, epique, iso }) =>
+  (epiquesLiees(lignesDuJournal(journal), session).includes(epique) ? null : ligneDeJournal({ iso, session, epique }))
+
+/** Le titre d'un suivi (`structureDuSuivi`), `''` sans titre. PURE. */
+const titreDuSuivi = (texte) => structureDuSuivi(texte).titre?.texte ?? ''
 
 /** La ligne d'un suivi lié mais absent. PURE. */
 const ligneAbsente = (epique, chemin) => `[suivi #${epique}] lié à cette session, mais absent : ${chemin}`
@@ -478,20 +491,20 @@ const age = (heures) => (heures < 1 ? `${Math.floor(heures * 60)} min` : `${Math
  * @param {{maintenant: Date, age: boolean}} params
  * @returns {string[]}
  */
-export function lignesDEtat({ epique, chemin, texte }, { maintenant, age: enAge }) {
+export function lignesDeSituation({ epique, chemin, texte }, { maintenant, age: enAge }) {
   if (texte === null) return [coupeAuMot(ligneAbsente(epique, chemin), LARGEUR_D_UNE_LIGNE)]
-  const etat = etatDuSuivi(texte, { maintenant })
+  const structure = structureDuSuivi(texte, { maintenant })
   const tete = `[suivi #${epique}]`
-  const ouverts = itemsDe(etat).filter((it) => !it.fait)
+  const ouverts = itemsDe(structure).filter((it) => !it.fait)
   const prochaine = ouverts[0]?.etapes.find((e) => e.ouverte)
-  const { date, heures, perimee } = etat.zone
+  const { date, heures, perimee } = structure.zone
   const quand = () => (enAge ? `il y a ${age(heures)}` : `le ${horodatage(date)}`)
   const mesure = date ? `${perimee ? 'PÉRIMÉE, ' : ''}mesurée ${quand()}` : 'jamais mesurée'
   return [
-    ...(etat.refus ? [`${tete} ⚠ ${etat.refus}`] : []),
+    ...(structure.refus ? [`${tete} ⚠ ${structure.refus}`] : []),
     ouverts.length ? `${tete} en cours : ${ouverts[0].libelle}` : `${tete} aucun item ouvert`,
     ...(prochaine ? [`  prochain geste : ${prochaine.texte}`] : []),
-    `  ouverts : ${ouverts.length} item(s), ${etapesOuvertesDe(etat).length} étape(s) · ${mesure}`,
+    `  ouverts : ${ouverts.length} item(s), ${etapesOuvertesDe(structure).length} étape(s) · ${mesure}`,
   ].map((l) => coupeAuMot(l, LARGEUR_D_UNE_LIGNE))
 }
 
@@ -499,15 +512,32 @@ export function lignesDEtat({ epique, chemin, texte }, { maintenant, age: enAge 
 const cite = (texte) => `« ${coupeAuMot(texte, 80)} »`
 
 /**
- * Le texte d'un suivi après UNE édition de sa zone ÉCRITE ; la zone mesurée, les commentaires HTML et
- * les blocs de code ne sont jamais touchés (`etatDuSuivi` ne les voit pas), les autres lignes ressortent
- * à l'octet, une ligne ajoutée prend la fin de ligne du fichier. Gestes :
+ * La FORME d'une structure de suivi, sans ses indices de ligne : titre, sections, items, étapes, zone
+ * mesurée. Ce qu'une édition préserve, à l'élément visé près. PURE.
+ */
+const formeDe = (structure) => ({
+  titre: structure.titre?.ligne ?? null,
+  sections: structure.sections.map((s) => ({
+    ligne: s.ligne,
+    objectif: s.objectif.map((l) => l.ligne),
+    etapesHorsItem: s.etapesHorsItem.map(({ texte, ouverte }) => ({ texte, ouverte })),
+    items: s.items.map(({ ligne, ticket, fait, etapes }) => ({ ligne, ticket, fait, etapes: etapes.map(({ texte, ouverte }) => ({ texte, ouverte })) })),
+  })),
+  zone: structure.zone.lignes,
+})
+
+/**
+ * Le texte d'un suivi après UNE édition de sa zone ÉCRITE, les autres lignes à l'octet, une ligne ajoutée
+ * à la fin de ligne du fichier. Gestes :
  * - `ajouter-item` : `<n>. <texte>` après la dernière ligne de la première section `## En cours`, `<n>`
  *   suivant le numéro de son dernier item ; `texte` porte un `#M` (le ticket de l'item) absent des items ;
  * - `ajouter-etape` : `- [ ] <texte>` après la dernière ligne de l'item du ticket `ticket`, à
  *   l'indentation de sa première étape (trois espaces sans étape) ;
  * - `cocher` : `[ ]` → `[x]` sur la SEULE étape ouverte de l'item `ticket` dont le texte commence par `texte`.
- * Refus nommé : texte vide, item absent ou déjà présent, item sans ticket, aucune étape ou plusieurs. PURE.
+ * La structure relue après (`structureDuSuivi`, `zonesDe`) doit valoir celle d'avant plus EXACTEMENT
+ * l'élément visé (item visible, étape visible sous son item, étape fermée) ; sinon refus, rien n'est rendu.
+ * Refus nommé : texte vide ou sur plusieurs lignes, item absent ou déjà présent, item sans ticket, aucune
+ * étape ou plusieurs, structure déformée. PURE.
  * @param {string} texte
  * @param {{quoi: 'ajouter-item'|'ajouter-etape'|'cocher', ticket?: number, texte: string}} geste
  * @returns {{ok: true, texte: string} | {ok: false, refus: string}}
@@ -516,41 +546,57 @@ export function editionDuSuivi(texte, geste) {
   const refus = (motif) => ({ ok: false, refus: motif })
   const prevus = ticketsPrevus(texte)
   if (prevus.refus) return refus(prevus.refus)
+  if (/[\r\n]/.test(String(geste.texte ?? ''))) return refus(`${geste.quoi} : texte sur plusieurs lignes — une édition porte UNE ligne`)
   const ecrit = String(geste.texte ?? '').trim()
   if (!ecrit) return refus(`${geste.quoi} : texte vide`)
-  const etat = etatDuSuivi(texte)
-  const items = itemsDe(etat)
+  const structure = structureDuSuivi(texte)
+  const attendue = formeDe(structure)
   const lignes = lignesDe(texte)
   const fin = /\r\n/.test(texte) ? '\r\n' : '\n'
+  const verifie = (nouveau) => {
+    const zones = zonesDe(nouveau)
+    if (!zones.ok) return refus(`${geste.quoi} : l'édition casserait la zone mesurée (${zones.refus})`)
+    if (JSON.stringify(formeDe(structureDuSuivi(nouveau))) !== JSON.stringify(attendue)) {
+      return refus(`${geste.quoi} : l'édition ne serait pas lue telle quelle (commentaire HTML, bloc de code ou ligne qui change la structure) — rien n'est écrit`)
+    }
+    return { ok: true, texte: nouveau }
+  }
   const inserer = (i, ligne) => {
     const avant = lignes.slice(0, i + 1)
     if (!avant[i].endsWith('\n')) avant[i] += fin
-    return { ok: true, texte: [...avant, `${ligne}${fin}`, ...lignes.slice(i + 1)].join('') }
+    return verifie([...avant, `${ligne}${fin}`, ...lignes.slice(i + 1)].join(''))
   }
+  const enCours = structure.sections.map((s, rang) => ({ s, rang })).filter(({ s }) => s.nature === 'en-cours')
   if (geste.quoi === 'ajouter-item') {
     const [premier] = numerosDeLaChaine(ecrit)
     if (premier === undefined || Number(premier) < 1) return refus(`item sans ticket : ${cite(ecrit)} — un item porte un #N`)
     const ticket = Number(premier)
-    const deja = items.find((it) => it.ticket === ticket)
+    const deja = itemsDe(structure).find((it) => it.ticket === ticket)
     if (deja) return refus(`item #${ticket} déjà présent (l.${deja.i + 1}) : ${cite(deja.ligne)}`)
-    const section = etat.sections.find((s) => s.nature === 'en-cours')
+    const { s: section, rang } = enCours[0]
     const dernier = section.items.at(-1)
-    return inserer(section.fin, `${dernier ? Number(/^\d+/.exec(dernier.ligne)[0]) + 1 : 1}. ${ecrit}`)
+    const ligne = `${dernier ? Number(/^\d+/.exec(dernier.ligne)[0]) + 1 : 1}. ${ecrit}`
+    attendue.sections[rang].items.push({ ligne, ticket, fait: ITEM_FAIT.test(ligne), etapes: [] })
+    return inserer(section.fin, ligne)
   }
-  const item = items.find((it) => it.ticket === geste.ticket)
-  if (!item) return refus(`item #${geste.ticket} absent de \`## En cours\``)
+  const lieu = enCours.flatMap(({ s, rang }) => s.items.map((item, k) => ({ item, rang, k }))).find(({ item }) => item.ticket === geste.ticket)
+  if (!lieu) return refus(`item #${geste.ticket} absent de \`## En cours\``)
+  const { item, rang, k } = lieu
+  const vise = attendue.sections[rang].items[k]
   if (geste.quoi === 'ajouter-etape') {
     const retrait = item.etapes.length ? /^\s+/.exec(item.etapes[0].ligne)[0] : '   '
+    vise.etapes.push({ texte: ecrit, ouverte: true })
     return inserer(item.fin, `${retrait}- [ ] ${ecrit}`)
   }
-  const candidates = item.etapes.filter((e) => e.ouverte && e.texte.startsWith(ecrit))
+  const candidates = item.etapes.map((e, rangEtape) => ({ e, rangEtape })).filter(({ e }) => e.ouverte && e.texte.startsWith(ecrit))
   if (!candidates.length) return refus(`aucune étape ouverte de l'item #${geste.ticket} ne commence par ${cite(ecrit)}`)
   if (candidates.length > 1) {
     return refus(`étape ambiguë : ${candidates.length} étapes ouvertes de l'item #${geste.ticket} commencent par ${cite(ecrit)}`
-      + ` (${candidates.map((e) => `l.${e.i + 1}`).join(', ')})`)
+      + ` (${candidates.map(({ e }) => `l.${e.i + 1}`).join(', ')})`)
   }
-  const [etape] = candidates
-  return { ok: true, texte: lignes.map((l, i) => (i === etape.i ? l.replace('[ ]', '[x]') : l)).join('') }
+  const [{ e: etape, rangEtape }] = candidates
+  vise.etapes[rangEtape].ouverte = false
+  return verifie(lignes.map((l, i) => (i === etape.i ? l.replace('[ ]', '[x]') : l)).join(''))
 }
 
 // ————————————————————————————————— mesure, écriture, CLI —————————————————————————————————
@@ -606,20 +652,34 @@ export function relire(cible, fs) {
  * erreur est relancée, temporaire supprimé. Un temporaire que le nettoyage ne peut pas supprimer
  * est NOMMÉ dans le refus (`listerSuivis` le retrouve en orphelin), sans jamais masquer l'erreur
  * d'origine. Une cible retirée entre sa relecture et le `rename` est recréée par ce `rename`, avec
- * le contenu rendu.
- * @param {{cible: string, contenu: string, attendu: string, fs?: typeof FS, pid?: number}} params
- * @returns {{ok: true} | {ok: false, refus: string}}
+ * le contenu rendu. La relecture, la comparaison et le `rename` se font sous le verrou EXCLUSIF
+ * `.<N>.md.verrou` voisin (`prendreVerrou`) ; un verrou tenu par un processus vivant est un refus.
+ * `rejouable` dit qu'un refus tient à un autre écrivain (verrou pris, texte changé) : le même geste,
+ * rejoué sur le texte frais, peut passer. `geste` nomme ce pendant quoi le texte a changé.
+ * @param {{cible: string, contenu: string, attendu: string, geste: string, fs?: typeof FS, pid?: number}} params
+ * @returns {{ok: true} | {ok: false, refus: string, rejouable: boolean}}
  */
-export function ecrireSuivi({ cible, contenu, attendu, fs = FS, pid = process.pid }) {
+export function ecrireSuivi({ cible, contenu, attendu, geste, fs = FS, pid = process.pid }) {
   const dossier = join(cible, '..')
   const nom = cible.replace(/\\/g, '/').split('/').pop()
+  const verrou = prendreVerrou({ chemin: join(dossier, `.${nom}.verrou`), pid, commande: 'scripts/ops/suivi.mjs', cwd: dossier, env: {} })
+  if (verrou.etat !== 'pris') return { ok: false, refus: `${cible} est en cours d'écriture par un autre processus : rien n'est écrit`, rejouable: true }
+  try {
+    return ecrireSousVerrou({ cible, contenu, attendu, geste, fs, pid, dossier, nom })
+  } finally {
+    verrou.liberer()
+  }
+}
+
+/** Le corps de `ecrireSuivi`, verrou tenu. */
+function ecrireSousVerrou({ cible, contenu, attendu, geste, fs, pid, dossier, nom }) {
   const temporaire = join(dossier, `.${nom}.${pid}.tmp`)
-  const refuser = (refus) => {
+  const refuser = (refus, rejouable = false) => {
     try {
       fs.rmSync(temporaire, { force: true })
-      return { ok: false, refus }
+      return { ok: false, refus, rejouable }
     } catch (nettoyage) {
-      return { ok: false, refus: `${refus} ; temporaire RESTANT, non supprimé (${nettoyage?.code ?? nettoyage?.message}) : ${temporaire}` }
+      return { ok: false, refus: `${refus} ; temporaire RESTANT, non supprimé (${nettoyage?.code ?? nettoyage?.message}) : ${temporaire}`, rejouable: false }
     }
   }
   const relancee = (e) => {
@@ -638,14 +698,14 @@ export function ecrireSuivi({ cible, contenu, attendu, fs = FS, pid = process.pi
   } catch (e) {
     throw relancee(e)
   }
-  if (actuel === null) return refuser(`${cible} a disparu pendant la mesure : rien n'est écrit`)
-  if (actuel !== attendu) return refuser(`${cible} a changé pendant la mesure : rien n'est écrit, relancer`)
+  if (actuel === null) return refuser(`${cible} a disparu pendant ${geste} : rien n'est écrit`)
+  if (actuel !== attendu) return refuser(`${cible} a changé pendant ${geste} : rien n'est écrit, relancer`, true)
   try {
     fs.renameSync(temporaire, cible)
     return { ok: true }
   } catch (e) {
     if (!TENU.has(e?.code)) throw relancee(e)
-    return refuser(`suivi tenu par un autre processus (${e.code} au rename de ${cible}), relancer`)
+    return refuser(`suivi tenu par un autre processus (${e.code} au rename de ${cible}), relancer`, true)
   }
 }
 
@@ -746,7 +806,7 @@ function contexteDeSession({ lus, dossier, maintenant, fs = FS }) {
 
 /**
  * L'ÉTAT d'une session, prêt à rendre, sans rien mesurer ni écrire : par suivi lié, ses `lignes` de
- * bandeau (`lignesDEtat`, âge de la mesure) ; le `contexte` (`contexteDeSession`) ; l'`ajout`, l'état
+ * bandeau (`lignesDeSituation`, âge de la mesure) ; le `contexte` (`contexteDeSession`) ; l'`ajout`, l'état
  * daté des suivis liés (`''` sans lien, ou quand la `cle` vaut `depuis`) ; la `cle`, condensé de cet état hors
  * de sa date de relecture.
  * @param {{session: string, dossier: string, maintenant: Date, depuis?: string|null, fs?: typeof FS}} params
@@ -754,20 +814,21 @@ function contexteDeSession({ lus, dossier, maintenant, fs = FS }) {
  */
 export function etatDeSession({ session, dossier, maintenant, depuis = null, fs = FS }) {
   const lus = suivisLies({ session, dossier, fs })
-  const etat = lus.flatMap((lu) => lignesDEtat(lu, { maintenant, age: false }))
-  const cle = createHash('sha256').update(etat.join('\n')).digest('hex').slice(0, 16)
+  const situation = lus.flatMap((lu) => lignesDeSituation(lu, { maintenant, age: false }))
+  const cle = createHash('sha256').update(situation.join('\n')).digest('hex').slice(0, 16)
   return {
     session,
-    suivis: lus.map((lu) => ({ epique: lu.epique, chemin: lu.chemin, lignes: lignesDEtat(lu, { maintenant, age: true }) })),
+    suivis: lus.map((lu) => ({ epique: lu.epique, chemin: lu.chemin, lignes: lignesDeSituation(lu, { maintenant, age: true }) })),
     contexte: contexteDeSession({ lus, dossier, maintenant, fs }),
-    ajout: etat.length && cle !== depuis ? [`[suivi] état relu le ${horodatage(maintenant)}`, ...etat].join('\n') : '',
+    ajout: situation.length && cle !== depuis ? [`[suivi] situation relue le ${horodatage(maintenant)}`, ...situation].join('\n') : '',
     cle,
   }
 }
 
 /**
- * L'édition entière d'un suivi : relecture, `editionDuSuivi`, écriture atomique (`ecrireSuivi`), lien de
- * `session` à l'épique au `JOURNAL` s'il n'y est pas, puis `etatDeSession` en JSON sur stdout. Rend le
+ * L'édition entière d'un suivi : relecture, `editionDuSuivi`, écriture atomique sous verrou (`ecrireSuivi`),
+ * rejouée sur le texte frais tant que l'écriture la refuse pour un autre écrivain (`ESSAIS_D_EDITION` au
+ * plus), lien de `session` à l'épique (`ligneDeLien`), puis `etatDeSession` en JSON sur stdout. Rend le
  * code de sortie et les deux flux, sans rien imprimer.
  * @param {{numero: number, dossier: string, session: string, geste: Parameters<typeof editionDuSuivi>[1],
  *   fs?: typeof FS, pid?: number, maintenant?: Date}} params
@@ -776,16 +837,20 @@ export function etatDeSession({ session, dossier, maintenant, depuis = null, fs 
 export function editer({ numero, dossier, session, geste, fs = FS, pid = process.pid, maintenant = new Date() }) {
   const refus = (motif) => ({ code: 1, stdout: '', stderr: `[suivi] ${motif}\n` })
   const cible = join(dossier, `${numero}.md`)
-  const texte = relire(cible, fs)
-  if (texte === null) return refus(`suivi #${numero} absent (${cible}) — \`npm run ops:suivi -- ${numero} --creer\` le pose`)
-  const edite = editionDuSuivi(texte, geste)
-  if (!edite.ok) return refus(`${cible} : ${edite.refus}`)
-  const ecrit = ecrireSuivi({ cible, contenu: edite.texte, attendu: texte, fs, pid })
-  if (!ecrit.ok) return refus(ecrit.refus)
-  const journal = join(dossier, JOURNAL)
-  if (!epiquesLiees(lignesDuJournal(relire(journal, fs) ?? ''), session).includes(numero)) {
-    fs.appendFileSync(journal, ligneDeJournal({ iso: maintenant.toISOString(), session, epique: numero }))
+  for (let essai = 1; ; essai += 1) {
+    const texte = relire(cible, fs)
+    if (texte === null) return refus(`suivi #${numero} absent (${cible}) — \`npm run ops:suivi -- ${numero} --creer\` le pose`)
+    const edite = editionDuSuivi(texte, geste)
+    if (!edite.ok) return refus(`${cible} : ${edite.refus}`)
+    const ecrit = ecrireSuivi({ cible, contenu: edite.texte, attendu: texte, geste: `l'édition « ${geste.quoi} »`, fs, pid })
+    if (ecrit.ok) break
+    if (!ecrit.rejouable) return refus(ecrit.refus)
+    if (essai >= ESSAIS_D_EDITION) return refus(`${ecrit.refus} (${ESSAIS_D_EDITION} essais)`)
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, PAUSE_ENTRE_ESSAIS_MS)
   }
+  const journal = join(dossier, JOURNAL)
+  const lien = ligneDeLien({ journal: relire(journal, fs) ?? '', session, epique: numero, iso: maintenant.toISOString() })
+  if (lien) fs.appendFileSync(journal, lien)
   return { code: 0, stdout: `${JSON.stringify(etatDeSession({ session, dossier, maintenant, fs }))}\n`, stderr: '' }
 }
 
@@ -821,7 +886,7 @@ export function suivre({ numero, dossier, creer = false, sansFetch = false, fs =
   }
 
   const contenu = renduDuSuivi({ texte, mesure: vu, epique: numero, maintenant })
-  const ecrit = ecrireSuivi({ cible, contenu, attendu: texte, fs, pid })
+  const ecrit = ecrireSuivi({ cible, contenu, attendu: texte, geste: 'la mesure', fs, pid })
   if (!ecrit.ok) {
     return { code: 1, stdout: '', stderr: `[suivi] ${ecrit.refus}\n${vu.ok ? '' : `[suivi] mesure refusée : ${vu.refus}\n`}` }
   }
@@ -839,7 +904,7 @@ export function dossierDesSuivis(cwd) {
   return vu.disponible ? { ...vu, valeur: join(vu.valeur, '.git', 'suivi') } : vu
 }
 
-/** Les gestes d'édition, et s'ils prennent un ticket `M` avant leur texte. */
+/** Les gestes d'édition, et s'ils exigent `--ticket <M>` (l'item visé). */
 const GESTES = {
   '--ajouter-item': { quoi: 'ajouter-item', ticket: false },
   '--ajouter-etape': { quoi: 'ajouter-etape', ticket: true },
@@ -852,9 +917,10 @@ const NUMERO = /^\d+$/
  * - aucun (la liste des suivis), ou UN numéro `>= 1` et, au choix, `--creer` et `--sans-fetch` ;
  * - `--session <id> --json [--depuis <cle>]` : l'état de la session (`etatDeSession`), `ajout` vide si sa
  *   clé vaut `<cle>` ;
- * - `<N> --session <id> --json` puis, en DERNIER, un geste d'édition (`GESTES`) : `--ajouter-item
- *   <texte…>`, `--ajouter-etape <M> <texte…>`, `--cocher <M> <texte…>`. Le texte est TOUT ce qui suit,
- *   joint d'une espace : un argument cité ou ses mots découpés (`appelsDuSuivi`) rendent le même geste.
+ * - `<N> --session <id> --json [--ticket <M>]` puis, en DERNIER, un geste d'édition (`GESTES`) :
+ *   `--ajouter-item <texte…>`, `--ajouter-etape <texte…>`, `--cocher <texte…>` ; `--ticket` est exigé par
+ *   les gestes qui visent un item, refusé par les autres. Le texte est TOUT ce qui suit le geste, joint
+ *   d'une espace : un argument cité ou ses mots découpés (`appelsDuSuivi`) rendent le même geste.
  * @param {string[]} argv
  * @returns {{numero: number|null, creer: boolean, sansFetch: boolean, session: string|null, json: boolean,
  *   depuis: string|null, geste: {quoi: string, ticket?: number, texte: string}|null} | null}
@@ -862,14 +928,6 @@ const NUMERO = /^\d+$/
 export function argumentsDuSuivi(argv) {
   const k = argv.findIndex((a) => Object.hasOwn(GESTES, a))
   const tete = k < 0 ? argv : argv.slice(0, k)
-  let geste = null
-  if (k >= 0) {
-    const { quoi, ticket } = GESTES[argv[k]]
-    const reste = argv.slice(k + 1)
-    if (!ticket) geste = { quoi, texte: reste.join(' ') }
-    else if (NUMERO.test(reste[0] ?? '') && Number(reste[0]) >= 1) geste = { quoi, ticket: Number(reste[0]), texte: reste.slice(1).join(' ') }
-    else return null
-  }
   const valeurDe = (drapeau, argv) => {
     const k = argv.indexOf(drapeau)
     if (k < 0) return { valeur: null, reste: argv }
@@ -877,8 +935,16 @@ export function argumentsDuSuivi(argv) {
     return { valeur: valeur && !valeur.startsWith('--') ? valeur : '', reste: [...argv.slice(0, k), ...argv.slice(k + 2)] }
   }
   const { valeur: session, reste: sansSession } = valeurDe('--session', tete)
-  const { valeur: depuis, reste: restants } = valeurDe('--depuis', sansSession)
-  if (session === '' || depuis === '') return null
+  const { valeur: depuis, reste: sansDepuis } = valeurDe('--depuis', sansSession)
+  const { valeur: ticket, reste: restants } = valeurDe('--ticket', sansDepuis)
+  if (session === '' || depuis === '' || ticket === '') return null
+  if (ticket !== null && (!NUMERO.test(ticket) || Number(ticket) < 1)) return null
+  let geste = null
+  if (k >= 0) {
+    const { quoi, ticket: exige } = GESTES[argv[k]]
+    if (exige !== (ticket !== null)) return null
+    geste = { quoi, ...(exige ? { ticket: Number(ticket) } : {}), texte: argv.slice(k + 1).join(' ') }
+  } else if (ticket !== null) return null
   if (!restants.every((a) => a === '--creer' || a === '--sans-fetch' || a === '--json' || NUMERO.test(a))) return null
   const numeros = restants.filter((a) => NUMERO.test(a)).map(Number)
   if (numeros.length > 1 || numeros.some((n) => n < 1)) return null
@@ -894,8 +960,8 @@ export function argumentsDuSuivi(argv) {
 
 /** L'usage, pour un refus d'arguments. */
 const USAGE = '`npm run ops:suivi -- <N> [--creer] [--sans-fetch]`, sans argument pour la liste des suivis, '
-  + '`--session <id> --json [--depuis <cle>]` pour l\'état de la session, `<N> --session <id> --json --ajouter-item <#M libellé…> | '
-  + '--ajouter-etape <M> <texte…> | --cocher <M> <début du texte…>` pour l\'édition'
+  + '`--session <id> --json [--depuis <cle>]` pour l\'état de la session, `<N> --session <id> --json [--ticket <M>] '
+  + '--ajouter-item <#M libellé…> | --ajouter-etape <texte…> | --cocher <début du texte…>` pour l\'édition'
 
 function main() {
   const argv = process.argv.slice(2)

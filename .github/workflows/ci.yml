@@ -142,7 +142,7 @@ jobs:
         run: npm run test:recette
       - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run typecheck
-      - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
+      - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run lint
       - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm --prefix server ci
@@ -154,7 +154,7 @@ jobs:
 
   # `test:hooks` hors du chemin critique de `types` (#2178). Il ne fait aucune écriture d'arbre SUIVIE
   # (sa seule écriture réelle, le journal gitignoré, est en `ecritFerme` d'`ECRIT_LU`).
-  # `mods:check` (#2278, scripts/mods/verifier.mjs) : la porte des mods Claude Code de .claude/skills/,
+  # `mods:check` (#2278, scripts/mods/verifier.mjs) : la garde des mods Claude Code de .claude/skills/,
   # jouée sur des copies sous os.tmpdir() ; son `lit` chevauche `.claude/`, elle n'est jamais sautée.
   types-hooks:
     runs-on: ubuntu-latest

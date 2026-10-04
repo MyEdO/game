@@ -34,7 +34,7 @@ export const RACINES = Object.freeze({
   'test:agents': Object.freeze(['scripts/agents']),
   'test:hooks': Object.freeze([
     'scripts/hooks', 'scripts/git-hooks', 'scripts/guards', 'scripts/gates', 'scripts/migrations',
-    // Le banc de la porte `mods:check` (lanceur factice) joue avec la garde `modSansRegle` (scripts/guards/lib), dans le job de `mods:check`.
+    // Les bancs de la garde `mods:check` (lanceur factice) et du mur `murs/mod-sans-regle` (config ESLint résolue).
     'scripts/mods',
   ]),
   'test:docs': Object.freeze(['scripts/docs']),

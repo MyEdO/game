@@ -157,18 +157,19 @@ export const ECRIT_LU = {
       'jetable (`instanceDeDepot`, sous os.tmpdir(), `rmSync` en finally), et le second y écrit `.git/suivi` ' +
       '(suivi et journal `.journal`) ; `ops/suivi.mjs`, que le lien de session importe, n’écrit que derrière sa porte ' +
       '`import.meta.main` — sonde `git status --porcelain --ignored` avant/après identique, sur le worktree et ' +
-      'sur l’arbre principal ; +3 écrivains le 2026-10-04 (#2278) : `guards/lib/modSansRegle.test.mjs` et ' +
-      '`mods/verifier.test.mjs` forgent leurs mods sous `mkdtempSync` de os.tmpdir() (`rmSync` en `t.after`), et ' +
-      '`mods/verifier.mjs`, que le second importe, copie sous un `mkdtempSync` de os.tmpdir() effacé en finally',
+      'sur l’arbre principal ; +2 écrivains le 2026-10-04 (#2278) : ' +
+      '`mods/verifier.test.mjs` forge ses mods sous `mkdtempSync` de os.tmpdir() (`rmSync` en `t.after`), et ' +
+      '`mods/verifier.mjs`, qu’il importe, copie sous un `mkdtempSync` de os.tmpdir() effacé en finally',
   },
   'mods:check': {
     ecrit: [],
-    lit: ['.claude/skills/', 'scripts/mods/'],
+    lit: ['.claude/skills/', 'scripts/mods/', 'scripts/guards/lib/lister.mjs', 'scripts/guards/lib/spawnResilient.mjs'],
     raison:
-      'découvre les mods sous .claude/skills/ (`racinesDeMods`, scripts/guards/lib/modSansRegle.mjs, que la racine ' +
-      'scripts/mods/ atteint) ; chaque mod est COPIÉ sous `mkdtempSync` de os.tmpdir() avant `claude -p`, qui y pose ' +
-      'ses types, puis `tsc --project <copie>` (noEmit du tsconfig posé par le moteur) et `claude plugin test <copie>` ; ' +
-      '`claude plugin validate --strict` lit la source sans l’écrire ; le temporaire est effacé en finally (scripts/mods/verifier.mjs). ' +
+      'découvre les mods sous .claude/skills/ (`racinesDeMods`, scripts/mods/racines.mjs, par `listerDossier` de ' +
+      'scripts/guards/lib/lister.mjs) et lance par l’hôte de processus (scripts/guards/lib/spawnResilient.mjs) ; chaque ' +
+      'mod est COPIÉ, sans les artefacts du moteur, sous `mkdtempSync` de os.tmpdir() : `claude plugin validate --strict`, ' +
+      '`claude -p` qui y pose ses types, `tsc --project <copie>` (noEmit du tsconfig posé par le moteur) et ' +
+      '`claude plugin test` portent sur la COPIE ; le temporaire est effacé en finally (scripts/mods/verifier.mjs). ' +
       'Le CLI vit hors de l’arbre (PATH, ou cache npm de `npx`)',
   },
   'test:ops': {
@@ -184,7 +185,9 @@ export const ECRIT_LU = {
       'part par un fichier de os.tmpdir(), depuis `executer`, que les tests n’appellent jamais), ' +
       '`faits-de-palier.mjs` (le JSON des faits va à `--sortie`, sous os.tmpdir() par défaut — ' +
       '`sortieParDefaut`) et `suivi.mjs` (il écrit `.git/suivi/<N>.md`, dans le répertoire git COMMUN et ' +
-      'non dans l’arbre, sous sa porte ; ses tests lui passent un dossier de `mkdtempSync`) ; ' +
+      'non dans l’arbre, sous sa porte ; ses tests lui passent un dossier de `mkdtempSync`), et `test/verrou.mjs` ' +
+      'qu’il atteint (+1 écrivain le 2026-10-05, #2279 : le verrou `.<N>.md.verrou` voisin du suivi, dans ce même ' +
+      'dossier, sous cette même porte, et sous `mkdtempSync` en test) ; ' +
       'LIT .github/workflows/ parce que `CHEMIN` de `canari.test.mjs` et le test « les contextes se LISENT ' +
       'dans le ci.yml réel » de `ruleset-main.test.mjs` lisent les workflows RÉELS, et ' +
       'scripts/guards/lib/ par le stock de `fermetures-non-citees.mjs` ; LIT tout fichier JavaScript suivi ' +
@@ -262,10 +265,12 @@ export const ECRIT_LU = {
   },
   lint: {
     ecrit: [],
-    lit: ['src/', 'scripts/', 'server/', 'eslint.config.js', 'package.json', 'kill-pid.mjs'],
+    lit: ['src/', 'scripts/', 'server/', 'eslint.config.js', 'package.json', 'kill-pid.mjs', '.claude/skills/'],
     raison:
       '`eslint .` sans `--fix` ni `--cache` ; LIT sa config à plat, package.json et le seul module de ' +
-      'racine qu’il ramène — aucune lecture sous docs/ ni .claude/ (sonde 2026-09-08, 4 009 lectures)',
+      'racine qu’il ramène — aucune lecture sous docs/ (sonde 2026-09-08, 4 009 lectures) ; sous .claude/, ' +
+      'le seul périmètre du mur des mods (`GLOBS_DE_MOD`, eslint.config.js, #2278), sous .claude/skills/ : ' +
+      'son `lit` chevauche `.claude/`, la gate n’est jamais sautée',
   },
   test: {
     ecrit: [],

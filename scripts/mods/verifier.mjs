@@ -1,82 +1,119 @@
-// PORTE `mods:check` (#2278) : chaque mod Claude Code du dépôt (`racinesDeMods`,
-// scripts/guards/lib/modSansRegle.mjs) passe, sur une COPIE temporaire, la validation stricte du
-// moteur, la pose de ses types, `tsc` sur ces types et ses bancs. Sondes S3, S5, S6 :
-// https://github.com/MyEdO/game/issues/2278#issuecomment-5983827521 ; design jugé :
-// https://github.com/MyEdO/game/issues/2278#issuecomment-5983917564
+// GARDE `mods:check` (#2278) : chaque mod Claude Code du dépôt (`racinesDeMods`, scripts/mods/racines.mjs)
+// exige au moins un banc `*.test.ts`, puis passe, sur une COPIE temporaire filtrée des artefacts du moteur
+// (`.claude-plugin/types`, `tsconfig.json`), la validation stricte du moteur, la pose de ses types à la
+// version épinglée, `tsc` sur ces types et ses bancs. Le CLI tourne sous un env en liste BLANCHE et un
+// HOME temporaire. Sondes S3, S5, S6 : https://github.com/MyEdO/game/issues/2278#issuecomment-5983827521 ;
+// design jugé : issuecomment-5983917564, amendement n° 2 : issuecomment-5984597607.
 //
 // Usage : `node scripts/mods/verifier.mjs [<dossier de mod>…]` — sans argument, les mods de
-// `.claude/skills/`. Rien n'est écrit dans l'arbre : tout vit sous `os.tmpdir()`, effacé en fin de course.
-import { spawnSync } from 'node:child_process'
+// `.claude/skills/`. Le CLI ne lit ni n'écrit l'arbre : la source est copiée sous `os.tmpdir()`, et le
+// temporaire est effacé en fin de course.
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { homedir, tmpdir } from 'node:os'
-import { basename, join, resolve } from 'node:path'
+import { basename, dirname, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { MANIFESTE, racinesDeMods } from '../guards/lib/modSansRegle.mjs'
+import { listerArbre } from '../guards/lib/lister.mjs'
+import { execFileResilient } from '../guards/lib/spawnResilient.mjs'
+import { MANIFESTE, racinesDeMods } from './racines.mjs'
 
 /** Version ÉPINGLÉE du CLI Claude Code : l'API des mods est « EARLY ACCESS », elle se monte à la main. */
 export const VERSION_CLAUDE = '2.1.289'
 
-/** Variables d'identifiants RETIRÉES de l'env de `claude -p` : sans elles, aucun tour de modèle ne part. */
-export const CLES_RETIREES = Object.freeze([
-  'ANTHROPIC_API_KEY',
-  'ANTHROPIC_AUTH_TOKEN',
-  'CLAUDE_CODE_OAUTH_TOKEN',
-  'CLAUDE_CODE_USE_BEDROCK',
-  'CLAUDE_CODE_USE_VERTEX',
-])
+/** Le paquet npm du CLI épinglé, lancé par `npx` quand le `claude` du PATH n'est pas à la version. */
+export const PAQUET_CLAUDE = `@anthropic-ai/claude-code@${VERSION_CLAUDE}`
+
+/**
+ * Les SEULES variables héritées par un processus de la gate, chacune pour sa raison ; HOME et les
+ * profils Windows sont redirigés vers le temporaire (`envBlanc`), le cache npm est posé à part.
+ */
+export const ENV_HERITE = Object.freeze({
+  PATH: 'trouver `claude`, `node` et ce que lance `npx` (win32 et Linux)',
+  Path: 'graphie win32 de PATH, telle que la rend `process.env` énuméré',
+  PATHEXT: 'win32 : les extensions exécutables que `npx` résout pour un bin de paquet',
+  SystemRoot: 'win32 : sans elle, le réseau et la cryptographie de node échouent (`npx` télécharge le CLI)',
+  SYSTEMROOT: 'graphie majuscule de SystemRoot',
+  windir: 'win32 : dossier système lu par les processus fils de `npx`',
+  ComSpec: 'win32 : l’interpréteur que `npm` lance pour un script de cycle de vie',
+  TEMP: 'win32 : le dossier temporaire du processus',
+  TMP: 'win32 : le dossier temporaire du processus',
+  TMPDIR: 'Linux : le dossier temporaire du processus',
+})
+
+/** Les profils redirigés vers le HOME temporaire : aucune config ni identifiant de l'hôte n'est lu. */
+export const PROFILS = Object.freeze(['HOME', 'USERPROFILE', 'APPDATA', 'LOCALAPPDATA'])
 
 /** Les étapes d'un mod, dans l'ordre. */
-export const ETAPES = Object.freeze(['validate', 'copie', 'types', 'tsc', 'test'])
+export const ETAPES = Object.freeze(['bancs', 'copie', 'validate', 'types', 'tsc', 'test'])
 
 const RACINE = fileURLToPath(new URL('../../', import.meta.url))
 const TSC = join(RACINE, 'node_modules', 'typescript', 'bin', 'tsc')
-/** Borne d'un processus fils : l'installation `npx` du CLI compte dedans. */
+/** Borne d'un processus fils : l'installation `npx` du CLI compte dedans. Valeur maison. */
 const BORNE_MS = 10 * 60 * 1000
 
 /** La première ligne attendue des types posés par le moteur. */
 export const ENTETE_TYPES = `// Written by Claude Code ${VERSION_CLAUDE}.`
 /** Les types posés par `--plugin-dir`, relatifs à la racine du mod. */
 export const TYPES = join('.claude-plugin', 'types', 'claude-code', 'index.d.ts')
+/** Les artefacts que le moteur pose dans un mod au chargement : jamais copiés depuis la source. */
+export const ARTEFACTS = Object.freeze([join('.claude-plugin', 'types'), 'tsconfig.json'])
 
 /**
- * Lanceur par défaut : `argv` sans shell, sauf `npx` sous win32 (un `.cmd`).
- * @param {string[]} argv
- * @param {{ cwd?: string, env?: NodeJS.ProcessEnv }} [options]
- * @returns {{ status: number | null, sortie: string }}
- */
-export function lancerParDefaut(argv, { cwd = RACINE, env = process.env } = {}) {
-  const r = spawnSync(argv[0], argv.slice(1), {
-    cwd, env, encoding: 'utf8', timeout: BORNE_MS, maxBuffer: 64 * 1024 * 1024,
-    shell: process.platform === 'win32' && argv[0] === 'npx',
-  })
-  return { status: r.status, sortie: `${r.stdout ?? ''}${r.stderr ?? ''}${r.error ? `\n${r.error.message}` : ''}` }
-}
-
-/**
- * Le préfixe d'argv du CLI épinglé : le `claude` du PATH s'il est à `VERSION_CLAUDE`, sinon `npx`
- * de la même version.
- * @param {typeof lancerParDefaut} lancer
- * @returns {string[]}
- */
-export function resoudreClaude(lancer) {
-  const r = lancer(['claude', '--version'])
-  return r.status === 0 && r.sortie.startsWith(VERSION_CLAUDE)
-    ? ['claude']
-    : ['npx', '-y', `@anthropic-ai/claude-code@${VERSION_CLAUDE}`]
-}
-
-/**
- * L'env de `claude -p` : identifiants retirés, HOME et profils Windows vers `home`, cache npm gardé
- * (sans lui, `npx` réinstallerait le CLI sous `home`).
+ * L'env d'un processus de la gate : `ENV_HERITE` seul, profils vers `home`, cache npm gardé (sans lui,
+ * `npx` réinstallerait le CLI sous `home`).
  * @param {NodeJS.ProcessEnv} base
  * @param {string} home
  * @returns {NodeJS.ProcessEnv}
  */
-export function envNettoye(base, home) {
+export function envBlanc(base, home) {
   const cacheNpm = base.npm_config_cache
     ?? (process.platform === 'win32' && base.LOCALAPPDATA ? join(base.LOCALAPPDATA, 'npm-cache') : join(homedir(), '.npm'))
-  const env = Object.fromEntries(Object.entries(base).filter(([cle]) => !CLES_RETIREES.includes(cle)))
-  return { ...env, HOME: home, USERPROFILE: home, APPDATA: home, LOCALAPPDATA: home, npm_config_cache: cacheNpm }
+  const herite = Object.fromEntries(Object.entries(base).filter(([cle]) => Object.hasOwn(ENV_HERITE, cle)))
+  return { ...herite, ...Object.fromEntries(PROFILS.map((cle) => [cle, home])), npm_config_cache: cacheNpm }
+}
+
+/**
+ * Lance `argv` sans shell par l'hôte de processus (`execFileResilient`, scripts/guards/lib/spawnResilient.mjs,
+ * #2073) : un argument à espace passe tel quel. Un code non nul est un résultat, pas une exception.
+ * @param {string[]} argv
+ * @param {{ cwd: string, env: NodeJS.ProcessEnv }} options
+ * @returns {{ status: number | null, sortie: string }}
+ */
+export function lancer(argv, { cwd, env }) {
+  try {
+    const sortie = execFileResilient(argv[0], argv.slice(1), {
+      cwd, env, encoding: 'utf8', timeout: BORNE_MS, maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe'],
+    }, { site: 'mods:check' })
+    return { status: 0, sortie }
+  } catch (e) {
+    const status = typeof e.status === 'number' ? e.status : null
+    return { status, sortie: `${e.stdout ?? ''}${e.stderr ?? ''}${status === null ? `\n${e.message}` : ''}` }
+  }
+}
+
+/**
+ * Le `npx-cli.js` de la distribution de node qui exécute ce script, lancé par `node` : ni `.cmd` ni shell
+ * sous win32. Dossier de `node` sous win32 (`node_modules/npm`), `../lib/node_modules/npm` sous Linux.
+ * @param {string} [node]
+ * @returns {string | null}
+ */
+export function npxCli(node = process.execPath) {
+  const dossier = dirname(node)
+  return [join(dossier, 'node_modules', 'npm', 'bin', 'npx-cli.js'), join(dossier, '..', 'lib', 'node_modules', 'npm', 'bin', 'npx-cli.js')]
+    .find((chemin) => existsSync(chemin)) ?? null
+}
+
+/**
+ * Le préfixe d'argv du CLI épinglé : le `claude` du PATH s'il rend EXACTEMENT `VERSION_CLAUDE`, sinon
+ * `npx` de la même version, sinon `null`.
+ * @param {typeof lancer} lanceur
+ * @param {{ cwd: string, env: NodeJS.ProcessEnv }} options
+ * @param {string | null} npx
+ * @returns {string[] | null}
+ */
+export function resoudreClaude(lanceur, options, npx) {
+  const r = lanceur(['claude', '--version'], options)
+  if (r.status === 0 && r.sortie.trim().split(/\s+/)[0] === VERSION_CLAUDE) return ['claude']
+  return npx ? [process.execPath, npx, '-y', PAQUET_CLAUDE] : null
 }
 
 /**
@@ -92,35 +129,43 @@ export function preuveDesTypes(copie) {
   return entete === ENTETE_TYPES ? null : `${TYPES} : 1re ligne « ${entete} », attendu « ${ENTETE_TYPES} »`
 }
 
+/** `true` si `chemin`, sous `source`, est un artefact du moteur (`ARTEFACTS`) ou sous l'un d'eux. */
+const estArtefact = (source, chemin) => {
+  const rel = relative(source, chemin)
+  return ARTEFACTS.some((a) => rel === a || rel.startsWith(`${a}${sep}`))
+}
+
 /**
  * Vérifie UN mod, étape par étape ; la première étape rouge arrête ce mod.
  * @param {string} source racine du mod
- * @param {{ lancer: typeof lancerParDefaut, claude: string[], racineTemp?: string, env?: NodeJS.ProcessEnv }} contexte
+ * @param {{ lanceur: typeof lancer, claude: string[], racineTemp: string, env: NodeJS.ProcessEnv }} contexte
  * @returns {{ mod: string, etape: string, sortie: string } | null} le rouge NOMMÉ, ou `null`
  */
-export function verifierMod(source, { lancer, claude, racineTemp = tmpdir(), env = process.env }) {
+export function verifierMod(source, { lanceur, claude, racineTemp, env }) {
   const mod = basename(source)
+  const rouge = (etape, sortie) => ({ mod, etape, sortie: sortie.trim() })
+  const bancs = listerArbre(source, { filtre: (rel) => rel.endsWith('.test.ts'), absent: 'vide' })
+  if (bancs.length === 0) return rouge('bancs', `aucun banc \`*.test.ts\` sous ${source} : un mod se livre avec ses bancs, joués par \`claude plugin test\``)
   const temp = mkdtempSync(join(racineTemp, 'mod-'))
   const copie = join(temp, mod)
   const home = join(temp, 'home')
-  const rouge = (etape, sortie) => ({ mod, etape, sortie: sortie.trim() })
-  const echoue = (r) => r.status !== 0
+  const options = { cwd: home, env: envBlanc(env, home) }
   try {
-    let r = lancer([...claude, 'plugin', 'validate', '--strict', source], { cwd: RACINE, env })
-    if (echoue(r)) return rouge('validate', r.sortie)
     try {
-      cpSync(source, copie, { recursive: true })
+      cpSync(source, copie, { recursive: true, filter: (chemin) => !estArtefact(source, chemin) })
       mkdirSync(home)
     } catch (e) {
       return rouge('copie', e.message)
     }
-    r = lancer([...claude, '-p', 'OK', '--max-turns', '1', '--plugin-dir', copie], { cwd: home, env: envNettoye(env, home) })
+    let r = lanceur([...claude, 'plugin', 'validate', '--strict', copie], options)
+    if (r.status !== 0) return rouge('validate', r.sortie)
+    r = lanceur([...claude, '-p', 'OK', '--max-turns', '1', '--plugin-dir', copie], options)
     const manque = preuveDesTypes(copie)
     if (manque) return rouge('types', `${manque}\n${r.sortie}`)
-    r = lancer([process.execPath, TSC, '--project', copie], { cwd: RACINE, env })
-    if (echoue(r)) return rouge('tsc', r.sortie)
-    r = lancer([...claude, 'plugin', 'test', copie], { cwd: RACINE, env })
-    if (echoue(r)) return rouge('test', r.sortie)
+    r = lanceur([process.execPath, TSC, '--project', copie], { ...options, cwd: RACINE })
+    if (r.status !== 0) return rouge('tsc', r.sortie)
+    r = lanceur([...claude, 'plugin', 'test', copie], options)
+    if (r.status !== 0) return rouge('test', r.sortie)
     return null
   } finally {
     rmSync(temp, { recursive: true, force: true })
@@ -130,13 +175,19 @@ export function verifierMod(source, { lancer, claude, racineTemp = tmpdir(), env
 /**
  * Vérifie des mods ; le CLI n'est résolu que s'il y en a un.
  * @param {string[]} mods racines de mod
- * @param {{ lancer?: typeof lancerParDefaut, racineTemp?: string, env?: NodeJS.ProcessEnv }} [contexte]
+ * @param {{ lanceur?: typeof lancer, racineTemp?: string, env?: NodeJS.ProcessEnv, npx?: string | null }} [contexte]
  * @returns {{ mod: string, etape: string, sortie: string }[]} les rouges
  */
-export function verifier(mods, { lancer = lancerParDefaut, racineTemp, env } = {}) {
+export function verifier(mods, { lanceur = lancer, racineTemp = tmpdir(), env = process.env, npx = npxCli() } = {}) {
   if (mods.length === 0) return []
-  const claude = resoudreClaude(lancer)
-  return mods.flatMap((source) => verifierMod(source, { lancer, claude, racineTemp, env }) ?? [])
+  const temp = mkdtempSync(join(racineTemp, 'claude-'))
+  try {
+    const claude = resoudreClaude(lanceur, { cwd: temp, env: envBlanc(env, temp) }, npx)
+    if (!claude) return mods.map((source) => ({ mod: basename(source), etape: 'cli', sortie: `ni \`claude\` ${VERSION_CLAUDE} au PATH, ni \`npx-cli.js\` près de ${process.execPath}` }))
+    return mods.flatMap((source) => verifierMod(source, { lanceur, claude, racineTemp, env }) ?? [])
+  } finally {
+    rmSync(temp, { recursive: true, force: true })
+  }
 }
 
 if (import.meta.main) {
