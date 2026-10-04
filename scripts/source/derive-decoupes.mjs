@@ -22,7 +22,8 @@ import { readFileSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
-  aligner, cellRefFor, estErreur, findCells, findRuns, joinNorm, unitesDeLAdresse, unitesDuBloc, unitesDuTexte,
+  MIN_FRAGMENT, aligner, cellRefFor, estErreur, findCells, findRuns, joinNorm, unitesDeLAdresse, unitesDuBloc,
+  unitesDuTexte,
 } from '../../src/data/source/decoupe.ts'
 import { chapitresDe, lireChapitre } from './lecteur-fs.mjs'
 import { sigleDe } from '../raw/_lib.mjs'
@@ -39,9 +40,6 @@ function chapitresDuLivre(bookId) {
   }
   return out
 }
-
-/** Plancher de « sous-bloc » : longueur de la chaîne de la desc préparée, STRICTEMENT dépassée. */
-const PLANCHER_SOUS_BLOC = 40
 
 /** La chaîne que portent des unités préparées : la cible des chercheurs. */
 const chaineDe = (unites) => joinNorm(unites.map((u) => u.norm))
@@ -141,7 +139,7 @@ export function judge(entry) {
     return { verdict: 'ECHEC', reason: 'cellule sans clé de ligne adressable' }
   }
 
-  const sub = texte.length > PLANCHER_SOUS_BLOC && chapitres.some(({ chapitre }) =>
+  const sub = texte.length >= MIN_FRAGMENT && chapitres.some(({ chapitre }) =>
     chapitre.sections.some((s) => s.blocks.some((_, b) => partieStricteDuBloc(s, b, unites))))
   const orpheline = unites.find((u) => !chapitres.some(({ chapitre }) => findRuns(chapitre, u.norm)))
   return {

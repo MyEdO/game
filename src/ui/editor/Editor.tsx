@@ -1179,6 +1179,7 @@ export function Editor({
         scene={scene}
         otherScenes={otherScenes}
         worldMap={worldMap}
+        objets={narratif.objets}
         setScene={setScene}
         warnings={warnings}
         onSelectWarning={selectWarning}
@@ -1244,7 +1245,7 @@ export function Editor({
         </Modal>
       )}
       {worldOpen && (
-        <WorldMapEditor map={worldMap} setMap={setWorldMap} scenes={[scene, ...otherScenes]} onClose={() => setWorldOpen(false)} activeAxes={activeAxes} setActiveAxes={setActiveAxes} />
+        <WorldMapEditor map={worldMap} setMap={setWorldMap} scenes={[scene, ...otherScenes]} objets={narratif.objets} onClose={() => setWorldOpen(false)} activeAxes={activeAxes} setActiveAxes={setActiveAxes} />
       )}
       {narratifOpen && (
         <NarratifEditor narratif={narratif} onChange={setNarratif} onClose={() => setNarratifOpen(false)} />

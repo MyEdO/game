@@ -1,3 +1,4 @@
+import type { JSX } from 'react';
 // @vitest-environment jsdom
 /**
  * #1993 — un porteur RENOMMÉ reste le même porteur : l'état de ses champs (texte d'un `JsonField` en
@@ -154,7 +155,7 @@ function Dock({ initiale, onglet, trig0 = null, dlg0 = null }: { initiale: Scene
   sceneVue = scene;
   return (
     <LogicDock
-      scene={scene} otherScenes={[]} worldMap={null} setScene={setScene}
+      scene={scene} otherScenes={[]} worldMap={null} objets={[]} setScene={setScene}
       warnings={[]} onSelectWarning={() => undefined}
       tab={onglet} setTab={() => undefined} height={400} setHeight={() => undefined}
       trigSel={trigSel} setTrigSel={setTrigSel} dlgSel={dlgSel} setDlgSel={setDlgSel} encSel={encSel} setEncSel={setEncSel}

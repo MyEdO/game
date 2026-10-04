@@ -40,6 +40,13 @@ export const ECHAPPEUR_DE_LITTERAL: Construction;
 export const CONSTRUCTION_DE_PROGRAMME: Construction;
 export const ECRITURE_DE_STOCK_JSON: Construction;
 export const CONSTRUCTION_DE_TABLE_TOTALE: Construction;
+export function constructionDeFragment(p: {
+  nom: string;
+  natures: readonly string[];
+  designation: readonly string[];
+  designationLiee?: readonly string[];
+  constructeurs: Readonly<Record<string, readonly string[]>>;
+}): Construction & { readonly indice: (texte: string) => boolean };
 export function origineImportee(identifiant: string, sf: ts.SourceFile): { module: string; nom: string } | null;
 export function estAppelDeclare(
   appel: ts.CallExpression,
@@ -54,6 +61,20 @@ export function cleEnLigne(p: {
   separateur: string;
   separateurDeRemede: string;
   fonctionsDeCle: Readonly<Record<string, readonly string[]>>;
+}): Construction & { readonly indice: (texte: string) => boolean };
+/** Un site où l'appel au seam est ADMIS : fichier, déclarations englobantes (`englobanteDe`), fonction appelée. */
+export interface SiteAdmis {
+  readonly rel: string;
+  readonly englobante: string;
+  readonly appele: string;
+}
+export function lectureBruteDeCollection(p: {
+  nom: string;
+  liaisons: readonly { readonly module: string; readonly exporte: string }[];
+  json: string;
+  seam: { readonly module: string; readonly fonctions: readonly string[] };
+  dataset: string;
+  sitesAdmis?: readonly SiteAdmis[];
 }): Construction & { readonly indice: (texte: string) => boolean };
 export function comparaisonDAppel(p: {
   nom: string;

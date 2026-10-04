@@ -38,7 +38,7 @@ test('coteCss : un composant présent sur le DISQUE mais absent de l’arbre jug
   assert.deepEqual(reutilises(sourceDe(textes, IMPORTEURS)), [])
 })
 
-test('coteCss : les arcs sont ceux d’`IMPORT_RE` sur le fichier ENTIER — plusieurs lignes, commentaire, `/` final, `import(` puis `.then(` ; un littéral ne compte pas', () => {
+test('coteCss : les arcs sont ceux de `specificateursDe` sur le fichier ENTIER — plusieurs lignes, commentaire, `/` final, `import(` puis `.then(` ; un littéral ne compte pas', () => {
   const formes = [
     "import {\n  RollShell,\n} from\n  './RollShell'\n",
     "import {\n  RollShell,\n} from\n  './RollShell' // primitive\n",

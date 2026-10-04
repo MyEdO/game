@@ -6,8 +6,8 @@ import { readFileSync } from 'node:fs'
 import os from 'node:os'
 import { relative, isAbsolute, join } from 'node:path'
 
-/** Docblock d'environnement — copie VERBATIM de la regex que Vitest 2.1.9 applique lui-même dans
- *  `groupFilesByEnv` (node_modules/vitest/dist/chunks/resolveConfig.rBxzbVsl.js:6559). Vitest la
+/** Docblock d'environnement — copie VERBATIM de la regex que Vitest 5.0.3 applique lui-même dans
+ *  `detectCodeBlock` (node_modules/vitest/dist/chunks/index.DpLw24bj.js:6034). Vitest la
  *  cherche dans le fichier ENTIER (pas de borne de tête) et hors de tout parseur de commentaire :
  *  une occurrence dans une chaîne compte. La partition doit décider comme lui, sinon un fichier
  *  jsdom atterrit dans le processus node — d'où la copie plutôt qu'une variante « propre ». */
@@ -164,7 +164,7 @@ export function capacite(cpus, memoireMo) {
 }
 
 /** Filtrage positionnel de Vitest — reproduction de `filterFiles`
- *  (node_modules/vitest/dist/chunks/cli-api.DqsSTaIi.js:10044) : chemins relatifs à la racine,
+ *  (node_modules/vitest/dist/chunks/index.DpLw24bj.js:12279-12284) : chemins relatifs à la racine,
  *  comparaison insensible à la casse, filtres passés en `/` sous Windows. */
 export function filtrerFichiers(fichiers, filtres, racine, plateforme = process.platform) {
   if (!filtres.length) return fichiers
@@ -236,9 +236,6 @@ export function argumentsEnfant(vitest, config, workers, argv) {
     config,
     '--maxWorkers',
     String(workers),
-    // `--maxWorkers` sans `--minWorkers` découvre 0 fichier (mesuré 2026-08-23).
-    '--minWorkers',
-    '1',
     // Un filtre qui ne touche qu'un côté laisse l'autre sans fichier : ce n'est pas un échec.
     '--passWithNoTests',
     ...argv,
@@ -267,13 +264,11 @@ export function cheminsGlobSuspects(chemins) {
  *  (`argumentsEnfant`). */
 export const maxWorkersMono = (cpus) => Math.max(1, Math.min(4, cpus - 1))
 
-/** Bornes à injecter devant l'argv de l'appelant : rien si l'appelant borne DÉJÀ lui-même — un
- *  `--minWorkers` en double fait sortir cac en 148 ms (« Expected a single value », mesuré
- *  2026-08-30). Les deux graphies acceptées par cac (`--minWorkers`, `--min-workers`) comptent. */
+/** Plafond à injecter devant l'argv de l'appelant : rien si l'appelant borne déjà lui-même. */
 export function bornesWorkers(argv, cpus) {
   const nom = (a) => a.split('=')[0].toLowerCase().replace(/-/g, '')
-  const borne = argv.some((a) => a.startsWith('-') && ['minworkers', 'maxworkers'].includes(nom(a)))
-  return borne ? [] : ['--minWorkers=1', `--maxWorkers=${maxWorkersMono(cpus)}`]
+  const borne = argv.some((a) => a.startsWith('-') && nom(a) === 'maxworkers')
+  return borne ? [] : [`--maxWorkers=${maxWorkersMono(cpus)}`]
 }
 
 /** Environnement des processus Vitest : sortie SANS séquence ANSI. `FORCE_COLOR` est SUPPRIMÉ, pas
@@ -333,7 +328,7 @@ export const SENTINELLES = [
 ]
 
 /** Tas utilisé d'un worker en fin de fichier, en Mo — fragment VERBATIM du reporter sous
- *  `logHeapUsage` (node_modules/vitest/dist/chunks/index.DsZFoqi9.js:3452). */
+ *  `logHeapUsage` (node_modules/vitest/dist/chunks/index.DpLw24bj.js:16353). */
 export const TAS_UTILISE = /(\d+) MB heap used/
 
 /** Part de `TAS_WORKER_MO` dont le bloc `[diag]` alerte. Paramètre maison. */

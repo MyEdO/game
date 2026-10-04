@@ -468,11 +468,13 @@ test('aucun banc ne SURCHARGE `PATH` pour caler un binaire — win32 ne lance pa
 test('sousGitFeint : la feinte vaut dans CE processus pendant `fn`, et se retire même sur une levée', () => {
   const { racine } = instanceDeDepot({ fichiers: { 'a.txt': 'a\n' } })
   try {
-    const depot = depotDe(racine)
+    const depot = depotDe(racine, { env: envDeDepotForge })
+    const avant = shaDe(depot, 'HEAD')
+    assert.match(avant, /^[0-9a-f]{40}$/)
     assert.throws(() => sousGitFeint([{ si: ['rev-parse'], status: 128, stderr: 'fatal: panne simulée\n' }], () => shaDe(depot, 'HEAD')),
       (e) => e instanceof GitIndisponible && e.raison === 'fatal: panne simulée')
     assert.equal(process.env[ENV_GIT_FEINT], undefined)
-    assert.match(shaDe(depot, 'HEAD'), /^[0-9a-f]{40}$/)
+    assert.equal(shaDe(depot, 'HEAD'), avant)
     assert.deepEqual(envGitFeint([{ si: [], status: 1 }]), { [ENV_GIT_FEINT]: '[{"si":[],"status":1}]' })
     assert.throws(() => sousGitFeint([], async () => shaDe(depot, 'HEAD')), /sousGitFeint : `fn` rend une promesse/)
     assert.equal(process.env[ENV_GIT_FEINT], undefined, 'la feinte est retirée après le refus')

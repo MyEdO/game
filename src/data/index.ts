@@ -8,7 +8,8 @@ import type { PlayerText } from '../i18n/playerText';
 import { t } from '../i18n';
 import type { RigSpeciesId } from '../gameIso/rig/appearance';
 import type { Sexe, SourceRef, SecondaryRef, RaceKey, RefCareerId, DescRef } from './schemas/grammaire/valeurs';
-import { lireLEspace, porteLeMarqueur, type RefASpecialisation, type RefDesignee, type TypeEntite } from './schemas/grammaire/ref';
+import { dansLaSousListe, lireLEspace, porteLeMarqueur, type RefASpecialisation, type RefDesignee, type TypeEntite } from './schemas/grammaire/ref';
+import { INSTANCIABLE_PAR_ID } from './schemas/grammaire/sousListes';
 import type { IdsParEspace } from './schemas/_ids.generated';
 import { symptomSeveritySchema } from './schemas/grammaire/valeurs';
 import { SOURCES_DE_SPECS, type SourceDeSpecs } from './schemas/grammaire/sourcesDeSpecs';
@@ -476,7 +477,7 @@ const STAKE_ENTRY_POOLS: Record<string, (id: string) => boolean> = {
   // ou un Talent replierait en silence sur le foyer de son `kind`.
   talents: (id) => talents.some((t) => t.id === id),
   traits: (id) => traits.some((t) => t.id === id),
-  trappings: (id) => trappings.some((t) => t.id === id),
+  trappings: (id) => findTrappingById(id) !== undefined,
   qualities: (id) => qualities.some((q) => q.id === id),
   etats: (id) => etats.some((e) => e.id === id),
   creatures: (id) => creatures.some((c) => c.id === id),
@@ -1315,10 +1316,9 @@ export interface TrappingData {
    *  appliqués tant que l'objet est PORTÉ ou TENU (collecteur `passiveMods`). Ex. Bésicles → `skillMod`
    *  +20 Langue/Perception (LDB 67). */
   passive?: import('../engine/ops').GameOp[];
-  /** Tarif d'un SERVICE (LDB 66 l.12-14 : chambre/écurie…), pas un objet possédable — Enc « – » dans la
-   *  source (≠ 0, RAW ne le compte même pas comme non-encombrant). N'entre JAMAIS en stock marchand
-   *  (`computeFreshStockLines`), ni en inventaire (`itemFromTrappingById` refuse bruyamment) ; reste
-   *  la source de PRIX pour son consommateur (référencée par id) et visible au Codex/Compendium. */
+  /** Tarif d'un SERVICE (LDB 66 l.12-14), pas un objet possédable : marqueur de la sous-liste
+   *  `INSTANCIABLE_PAR_ID` (`schemas/grammaire/sousListes.ts`), hors de `trappingsInstanciables` ;
+   *  reste la source de PRIX de son consommateur (référencée par id) et visible au Codex/Compendium. */
   service?: boolean;
 }
 /** Groupe d'objet (taxonomie `subType` id-ifiée) : Groupe d'ARME (Base, Escrime, Deux-mains, Armes
@@ -2454,6 +2454,10 @@ export const trappings = trappingsJson as TrappingData[];
  *  (Palette/Inspecteur/StatusBar) ET la catégorie Codex « Engins de siège », plus aucun
  *  `trappings.filter(siegeRig)` dupliqué ailleurs. */
 export const siegeEngines = memoParVersion('trappings', () => trappings.filter((t) => !!t.siegeRig));
+/** Trappings que le moteur INSTANCIE par leur id (`INSTANCIABLE_PAR_ID`, `dansLaSousListe`) : la vue que
+ *  lit tout producteur d'ids d'objet (fabrication, commande, stock marchand, conjuration, armes
+ *  choisissables, galeries). Le catalogue brut ne se lit qu'aux sites que nomme `trappings-vue-guard.test.ts`. */
+export const trappingsInstanciables = memoParVersion('trappings', () => trappings.filter((t) => dansLaSousListe(INSTANCIABLE_PAR_ID, t)));
 /** Véhicules / embarcations à coque — FOYER UNIQUE app-owned (data-driven). Trois facettes par
  *  enregistrement (achat / voyage / coque) ; cf. `VehicleData`. La facette `travel` est lue par
  *  `engine/travel` ; les facettes `purchase`/`hull` par le marché et les incidents/combat. */
@@ -3284,9 +3288,15 @@ const possessionParId = indexParId('trappings', trappings);
 export function findTrappingById(id: string): TrappingData | undefined {
   return possessionParId(id);
 }
+/** Possession résolue par id STABLE parmi des `objets` d'abord (objets d'une campagne, #767), puis au
+ *  catalogue (`findTrappingById`) — SEULE définition de la chaîne, lue par le jeu (`trappingById`,
+ *  `state/campaignData.ts`) et par l'éditeur (objets du projet édité, `ui/editor/EffectList.tsx`). */
+export function trappingDesObjetsPuisDuCatalogue(objets: ReadonlyMap<string, TrappingData>, id: string): TrappingData | undefined {
+  return objets.get(id) ?? findTrappingById(id);
+}
 /** ARMES choisissables `{ id, label }` : toute Possession `melee`/`ranged` hors « Mains nues »
  *  (`TrappingData.unarmed`), triée au libellé. `id` = `trappingId` STABLE (`weaponFromId`). */
-export const armesChoisissables = memoParVersion('trappings', () => trappings
+export const armesChoisissables = memoParVersion('trappings', () => trappingsInstanciables()
   .filter((t) => (t.categorie === 'melee' || t.categorie === 'ranged') && !t.unarmed)
   .map((t) => ({ id: t.id, label: t.label }))
   .sort((a, b) => parLibelle(a.label, b.label)));

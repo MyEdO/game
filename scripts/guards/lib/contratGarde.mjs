@@ -165,6 +165,15 @@ export const lotAmbigu = (input) =>
     input.ops.some((op) => !op || typeof op !== 'object' || Array.isArray(op)) ||
     new Set(input.ops.map((op) => op.path ?? input.path)).size > 1)
 
+/** Les clés du schéma MCP de la famille SHELL que les gardes de commande savent juger, lean-ctx
+ *  `LEAN_CTX_VERSION` (schéma de `ctx_shell`) : la seule déclaration. Toute autre clé est refusée
+ *  (`scripts/hooks/canal-outil-guard.mjs`), `env` compris, comme toute clé d'une version future. */
+export const CLES_SHELL = Object.freeze(['command', 'cwd', 'raw', 'inline', 'timeout_ms', 'run_in_background', 'background_action', 'job_id'])
+
+/** Les clés de l'entrée d'un outil SHELL hors de `CLES_SHELL`. */
+export const clesHorsSchemaShell = (input) =>
+  input !== null && typeof input === 'object' ? Object.keys(input).filter((cle) => !CLES_SHELL.includes(cle)) : []
+
 const opCtxPatch = (formes, { neuf = 'new_text', remplace = null, enLot = true } = {}) =>
   Object.freeze({ formes: Object.freeze(formes.map((forme) => Object.freeze(forme))), neuf, remplace, enLot })
 

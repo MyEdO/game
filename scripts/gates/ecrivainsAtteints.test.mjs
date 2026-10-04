@@ -16,8 +16,9 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
-import { corpusParGate, ecrivainsParGate, sansImportsDeType, transitif } from './ecrivainsAtteints.mjs'
-import { statSync } from 'node:fs'
+import { corpusParGate, ecrivainsParGate, transitif } from './ecrivainsAtteints.mjs'
+import { mkdtempSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { ECRIT_LU } from './toutes.mjs'
 
@@ -35,6 +36,8 @@ const ATTENDU = {
     // éprouver `merge-base` et le CLI ; la garde des liens de mémoire, venue de `src/` en node:test,
     // forge ses fiches sous un `mkdtempSync` de os.tmpdir() — l'arbre du dépôt n'est jamais écrit.
     'scripts/gates/classerPush.test.mjs',
+    // #1964 — +1 le 2026-10-01 : fixtures sous os.tmpdir(), supprimées en finally.
+    'scripts/gates/ecrivainsAtteints.test.mjs',
     'scripts/guards/lib/memoryLinks.test.mjs',
     // +1 le 2026-10-01 (#2203) : `bootstrap-conteneur.mjs` lance `docs:build` détaché et ouvre son
     // journal et son verrou sous `node_modules/.cache` ; son banc INJECTE ce geste (`GESTES_DU_CONTENEUR`)
@@ -521,14 +524,37 @@ test('le corpus de chaque gate ne compte que des FICHIERS', () => {
   }
 })
 
-test('un import de TYPE seul n’entre pas au corpus, un import mixte y entre', () => {
-  assert.equal(sansImportsDeType("import type { A } from './a'\n").trim(), '')
-  assert.equal(sansImportsDeType("export type { A } from './a'\n").trim(), '')
-  assert.equal(sansImportsDeType("import { type A, type B } from './a'\n").trim(), '')
-  assert.equal(sansImportsDeType("import { type A, b } from './a'"), "import { type A, b } from './a'")
-  assert.equal(sansImportsDeType("import { a } from './a'"), "import { a } from './a'")
+test('les imports effacés n’entrent pas au corpus réel', () => {
   // `renvoi.ts` n'importe `valeurs.ts` que pour le TYPE `SourceRef`, et `decoupe.ts` pour du code.
   const corpus = transitif(['src/data/source/renvoi.ts'], RACINE)
   assert.ok(corpus.includes('src/data/source/decoupe.ts'))
   assert.ok(!corpus.includes('src/data/schemas/grammaire/valeurs.ts'))
+})
+
+test('R3 : le corpus suit les acquisitions exécutées et ignore le texte inerte', () => {
+  const racine = mkdtempSync(join(tmpdir(), 'ecrivains-imports-'))
+  try {
+    writeFileSync(join(racine, 'a.ts'), 'export const b = 1; export type A = number; export type B = string;')
+    const cas = [
+      ["import type { A } from './a';", false],
+      ["export type { A } from './a';", false],
+      ["import { type A, type B } from './a';", false],
+      ["import { type A, b } from './a';", false],
+      ["import { type A, b } from './a'; console.log(b);", true],
+      ["import './a';", true],
+      ["export { b } from './a';", true],
+      ["const p = import('./a');", true],
+      ["const p = require('./a');", true],
+      ["/* import './a'; */ const s = \"from './a'\";", false],
+    ]
+    for (const [source, atteint] of cas) {
+      writeFileSync(join(racine, 'entree.ts'), source)
+      assert.deepEqual(transitif(['entree.ts'], racine).sort(), atteint ? ['a.ts', 'entree.ts'] : ['entree.ts'], source)
+    }
+    assert.deepEqual(transitif(['absent.mjs'], racine), [])
+    writeFileSync(join(racine, 'invalide.mjs'), 'const = ;')
+    assert.throws(() => transitif(['invalide.mjs'], racine), /invalide\.mjs ne se parse pas/)
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
 })

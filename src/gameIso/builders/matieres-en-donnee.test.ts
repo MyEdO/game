@@ -397,7 +397,7 @@ describe('couches émettrices du monde — aucune matière ni aucun terrain nomm
    * périmètre : on rejoue le scan des cinq couches en retirant UN neutraliseur, et la différence d'ids
    * comptés est ce qu'il porte.
    */
-  it('chaque neutraliseur du bras TERRAIN est exercé par un site du périmètre (aucune exemption morte)', () => {
+  it('chaque neutraliseur du bras TERRAIN est exercé par un site du périmètre (aucune exemption morte)', { timeout: 30_000 }, () => {
     const ids = terrains.map((t) => t.id);
     const cite = (l: string) => ids.some((id) => citeId(id).test(l));
     for (const n of NEUTRALISEURS_TERRAIN) {

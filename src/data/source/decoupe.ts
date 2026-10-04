@@ -2,7 +2,7 @@
 // Une adresse rend la prose VERBATIM du livre sans la dupliquer ailleurs : un fragment de BLOCS
 // — { sec, secOcc, b0, b1 } — désigne une suite contiguë de blocs d'une section ; sa sœur, le
 // fragment de CELLULE — { sec, secOcc, row, col } — rend une case de table par CLÉ (jamais par
-// indice). Une `DescRef` monte jusqu'à trois fragments d'un même chapitre.
+// indice). Une `DescRef` monte jusqu'à `MAX_FRAGMENTS` fragments d'un même chapitre.
 //
 // Module PUR : aucune entrée/sortie, aucun registre de livres — le chapitre lui arrive déjà lu
 // (`scripts/source/lecteur-fs.mjs`). Il est chargé tel quel par Node nu (`scripts/source/*.mjs`) et
@@ -83,7 +83,7 @@ export interface FragmentCellule {
 
 export type Fragment = FragmentBlocs | FragmentCellule;
 
-/** Adresse complète d'une prose : jusqu'à trois fragments d'un même chapitre d'un même livre. */
+/** Adresse complète d'une prose : jusqu'à `MAX_FRAGMENTS` fragments d'un même chapitre d'un même livre. */
 export interface DescRef { book: string; ch: string; parts: Fragment[] }
 
 /* ─── LE NUMÉRO DE CHAPITRE — sa maison UNIQUE (#1739) ───────────────────────────────────────
@@ -241,11 +241,11 @@ export interface Resolu { md: string; folios: number[] }
 
 export const estErreur = <T extends object>(r: T | ErreurResolution): r is ErreurResolution => 'error' in r;
 
-/** Longueur normalisée minimale d'un fragment de BLOCS en montage (en deçà, l'adresse n'est pas
- *  discriminante). Une `cellule` n'y est pas soumise — voir la règle D, `resoudreAdresse`. */
-const MIN_FRAGMENT = 40;
+/** Longueur normalisée minimale d'un texte DISCRIMINANT (en deçà, l'adresse n'est pas discriminante).
+ *  Une `cellule` n'y est pas soumise — voir la règle D, `resoudreAdresse`. */
+export const MIN_FRAGMENT = 40;
 /** Nombre maximal de fragments d'une adresse. */
-const MAX_FRAGMENTS = 3;
+export const MAX_FRAGMENTS = 3;
 /** Longueur d'amorce testée avant de tenter un run complet (filtre bon marché). */
 const PROBE = 24;
 
@@ -632,13 +632,13 @@ export function tablesOf(section: Section): TableDeSection[] {
 interface LigneTrouvee { block: Bloc; table?: string; headers: string[]; row: string[]; cols: number[] }
 
 /** Recherche d'une CLÉ DÉJÀ NORMALISÉE : la case (ou l'en-tête) brute vaut-elle `cle` ? La clé ne se
- *  renormalise pas à chaque case. Préfiltre par égalité de chaîne, #1887 6a-2a′. */
+ *  renormalise pas à chaque case. Préfiltre par égalité de chaîne, #2253. */
 const caseVautCle = (brute: string, cle: string): boolean => normText(brute) === cle;
 
 /**
  * Lignes d'une section dont une cellule vaut `target` (déjà normalisé, `caseVautCle`), dans la table
  * de clé `table` si elle est donnée. Une ligne qui répond dans plusieurs de ses colonnes ne compte
- * qu'une fois. Préfiltre des chercheurs, #1887 6a-2a′.
+ * qu'une fois. Préfiltre des chercheurs, #2253.
  */
 function rowsMatching(section: Section, target: string, table?: string): LigneTrouvee[] {
   const out: LigneTrouvee[] = [];
@@ -664,11 +664,14 @@ export function tablesDeLaLigne(section: Section, row: string, table?: string): 
   return tablesOf(section).filter((t) => blocs.has(t.block));
 }
 
-/** Désignation lisible d'un fragment, portée par ses erreurs. */
-const ouDe = (frag: Fragment): string =>
+/** Désignation lisible d'un fragment, portée par ses erreurs et par les rapports de l'outillage. */
+export const ouDe = (frag: Fragment): string =>
   frag.kind === 'cellule'
     ? `§${frag.sec}#${frag.secOcc}${frag.table == null ? '' : ` table[${frag.table}]`} [${frag.row}]×[${frag.col}]`
     : `§${frag.sec}#${frag.secOcc} blocs ${frag.b0}-${frag.b1}`;
+
+/** Désignation lisible d'une adresse entière, ses fragments joints par ` + `. */
+export const ouDeLAdresse = (ref: DescRef): string => `${ref.book} ch.${ref.ch} ${ref.parts.map(ouDe).join(' + ')}`;
 
 /**
  * Md de BLOCS rendu AFFICHABLE : sur une ligne de TABLE seulement, le `<br>` compte pour une espace.
@@ -781,6 +784,52 @@ export function empreinteDe(chapitre: ChapitreParse, frag: Fragment): string | E
   return estErreur(res) ? res : sumOf(res.md);
 }
 
+/** Le fragment scellé (`sum` posé par `empreinteDe`), ou l'erreur de sa résolution. */
+function scelleOuErreur<F extends Fragment>(chapitre: ChapitreParse, frag: F): F | ErreurResolution {
+  const sum = empreinteDe(chapitre, frag);
+  return typeof sum === 'string' ? { ...frag, sum } : sum;
+}
+
+/** SCELLE un fragment sur un chapitre : son `sum` est l'empreinte du texte qu'il résout, jamais une
+ *  saisie ; vide quand il ne résout pas, et `resoudreFragment` dit alors pourquoi. */
+export function scelle<F extends Fragment>(chapitre: ChapitreParse, frag: F): F {
+  const s = scelleOuErreur(chapitre, frag);
+  return estErreur(s) ? { ...frag, sum: '' } : s;
+}
+
+/** Ce que désigne un fragment de BLOCS : sa section et ses bornes. */
+export type ChoixDeBlocs = Pick<FragmentBlocs, 'sec' | 'secOcc' | 'b0' | 'b1'>;
+
+/** Ce que désigne un fragment de CELLULE : sa section, sa clé de ligne, son en-tête de colonne et,
+ *  posée, la clé de sa table. */
+export type ChoixDeCellule = Pick<FragmentCellule, 'sec' | 'secOcc' | 'row' | 'col' | 'table'>;
+
+/** Le fragment de BLOCS non scellé d'un choix. */
+const blocsDe = ({ sec, secOcc, b0, b1 }: ChoixDeBlocs): FragmentBlocs => ({ kind: 'blocs', sec, secOcc, b0, b1, sum: '' });
+
+/** Le fragment de BLOCS d'un choix, scellé (`scelle`). */
+export const fragmentBlocs = (chapitre: ChapitreParse, choix: ChoixDeBlocs): FragmentBlocs =>
+  scelle(chapitre, blocsDe(choix));
+
+/** Le fragment de CELLULE d'un choix, scellé (`scelle`) ; sans clé de table, il n'en porte aucune. */
+export function fragmentCellule(chapitre: ChapitreParse, { sec, secOcc, row, col, table }: ChoixDeCellule): FragmentCellule {
+  return scelle(chapitre, { kind: 'cellule', sec, secOcc, row, col, ...(table == null ? {} : { table }), sum: '' });
+}
+
+/** Ce qu'adresse `adresseDe` : une section, ou une table de section. */
+export interface CibleDAdresse { section: Section; table?: TableDeSection }
+
+/** Adresse d'une cible — section entière, ou légende et bloc d'une table — dans le chapitre `ch` du
+ *  livre `book`, empreinte calculée au texte résolu ; l'erreur de résolution sinon (section sans bloc). */
+export function adresseDe(
+  { book, ch }: Pick<DescRef, 'book' | 'ch'>, chapitre: ChapitreParse, { section, table }: CibleDAdresse,
+): DescRef | ErreurResolution {
+  const b1 = table ? section.blocks.indexOf(table.block) : section.blocks.length - 1;
+  const b0 = table ? section.blocks.indexOf(table.legende ?? table.block) : 0;
+  const frag = scelleOuErreur(chapitre, blocsDe({ sec: section.slug, secOcc: section.occ, b0, b1 }));
+  return estErreur(frag) ? frag : { book, ch, parts: [frag] };
+}
+
 /** Bloc d'un chapitre vu à plat : son adresse de section, son rang, son texte normalisé. */
 export interface BlocPlat { sec: string; secOcc: number; idx: number; md: string; norm: string }
 
@@ -806,7 +855,7 @@ export function blocsPlats(chapitre: ChapitreParse): BlocPlat[] {
  * PRÉFILTRE des chercheurs de blocs : toutes les positions du chapitre où un run contigu de blocs a
  * une chaîne jointe (`joinNorm`) ÉGALE à `target`. Les `startsWith` sont ses coupes, l'égalité sa
  * décision de candidat ; pour `judge`, la décision d'adresse reste `aligner`. Son COMPTE décide
- * l'unicité d'un fragment de blocs (`occurrences`, règle D). #1887 6a-2a′.
+ * l'unicité d'un fragment de blocs (`occurrences`, règle D). #2253.
  */
 function runsPrefiltre(blocks: BlocPlat[], target: string): { i: number; j: number }[] {
   const probe = target.slice(0, PROBE);
@@ -832,21 +881,17 @@ function runEnFragments(
   blocks: BlocPlat[],
   run: { i: number; j: number },
 ): FragmentBlocs[] {
-  const frags: FragmentBlocs[] = [];
+  const choix: ChoixDeBlocs[] = [];
   for (let k = run.i; k <= run.j; k++) {
     const b = blocks[k];
-    const last = frags[frags.length - 1];
+    const last = choix[choix.length - 1];
     if (last && last.sec === b.sec && last.secOcc === b.secOcc && b.idx === last.b1 + 1) {
       last.b1 = b.idx;
     } else {
-      frags.push({ kind: 'blocs', sec: b.sec, secOcc: b.secOcc, b0: b.idx, b1: b.idx, sum: '' });
+      choix.push({ sec: b.sec, secOcc: b.secOcc, b0: b.idx, b1: b.idx });
     }
   }
-  for (const f of frags) {
-    const sum = empreinteDe(chapitre, f);
-    if (typeof sum === 'string') f.sum = sum;
-  }
-  return frags;
+  return choix.map((c) => fragmentBlocs(chapitre, c));
 }
 
 /**
@@ -908,12 +953,10 @@ export function cellRefFor(chapitre: ChapitreParse, hit: CelluleTrouvee): Fragme
   for (const table of hit.table == null ? [undefined] : [undefined, hit.table]) {
     for (const { c } of candidates) {
       if (rowsMatching(section, normText(c), table).length !== 1) continue;
-      const frag: FragmentCellule = { kind: 'cellule', sec: hit.sec, secOcc: hit.secOcc, row: c, col, ...(table == null ? {} : { table }), sum: '' };
-      const sum = empreinteDe(chapitre, frag);
-      if (typeof sum !== 'string') continue;
-      const res = resoudreFragment(chapitre, { ...frag, sum });
+      const frag = fragmentCellule(chapitre, { sec: hit.sec, secOcc: hit.secOcc, row: c, col, table });
+      const res = resoudreFragment(chapitre, frag);
       if (estErreur(res) || !memeTexte(res.md, vise)) continue;
-      return { ...frag, sum };
+      return frag;
     }
   }
   return null;
@@ -953,8 +996,8 @@ export function blocsCouverts(chapitre: ChapitreParse, frag: Fragment): Set<numb
  * Deux fragments d'un MONTAGE se recouvrent-ils ? Un montage cite des passages DISTINCTS : deux
  * fragments d'une MÊME section dont les blocs couverts se croisent (le cas dégénéré étant le fragment
  * répété, et le cas mixte la table entière PUIS une de ses cellules) rendraient le même texte deux
- * fois, et l'adresse dirait plus que le livre. Verrou STRUCTUREL, au même étage que le plafond de
- * trois fragments : ni l'éditeur ni une migration ne peuvent le contourner.
+ * fois, et l'adresse dirait plus que le livre. Verrou STRUCTUREL, au même étage que le plafond
+ * `MAX_FRAGMENTS` : ni l'éditeur ni une migration ne peuvent le contourner.
  *
  * L'erreur DÉSIGNE LE SECOND des deux (`fragment: j`) : c'est celui qu'on vient d'ajouter ou de
  * déplacer dans la quasi-totalité des gestes d'édition, donc celui à corriger ; son détail nomme le
@@ -991,7 +1034,7 @@ function chevauchementDe(chapitre: ChapitreParse, ref: DescRef): ErreurResolutio
 
 /**
  * Résout une adresse complète : chaque fragment, joints par une ligne vide, folios en union
- * ordonnée. Un montage (2 fragments et plus) plafonne à trois fragments.
+ * ordonnée. Un montage (2 fragments et plus) plafonne à `MAX_FRAGMENTS`.
  *
  * RÈGLE D — le plancher de longueur et l'unicité ne valent que pour un fragment `blocs`. Un fragment
  * de blocs désigne son texte PAR CE TEXTE : trop court ou répété ailleurs, il retomberait sur un

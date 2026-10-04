@@ -1,3 +1,4 @@
+import type { JSX } from 'react';
 /**
  * Gabarit de ZONE D'EFFET (LDB 47 l.15/28) : pendant la POSE (rayon FINAL surincanté, le gabarit suit
  * le curseur) — ou aperçu au rayon initial si un sort de ZdE est sélectionné sans modale (re-cliquer

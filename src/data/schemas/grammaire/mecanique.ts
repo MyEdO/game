@@ -13,6 +13,7 @@ import { ARG_TEMPLATE, INDICE_TEMPLATE, type Condition, type EffectOp, type Effe
 import { chaosAlignSchema, charKeySchema, deDeTableSchema, diceSpecSchema, difficultySchema, enumNomme, exposureLevelSchema, formulaSchema, hitLocationSchema, ouReserve, plageSchema, reachSchema, refTestDeCorruption, sizeCategorySchema, surchargePaletteSchema, symptomSeveritySchema } from './valeurs';
 import { traitInstanceSchema } from './reference';
 import { idDe, marquerOpAtteinte, ref, refs, refOuSpec, type RegimeDePorteur, type TypeEntite } from './ref';
+import { INSTANCIABLE_PAR_ID } from './sousListes';
 
 /** Catégorie d'armure ignorée d'un `ArmourBypass` (`engine/armourBypass.bypassedAP`) ; `nonMetal` : LDB 62 l.270. */
 export const armourBypassCategorieSchema = enumNomme({
@@ -201,7 +202,7 @@ const DECLARATIONS_D_OPS = {
   suppressSymptom: z.strictObject({ op: z.literal('suppressSymptom'), symptomId: idDe('symptome') }),
   giveTrapping: z.strictObject({
     op: z.literal('giveTrapping'),
-    trappingId: idDe('trapping').optional(),
+    trappingId: idDe('trapping', INSTANCIABLE_PAR_ID).optional(),
     custom: z.string().optional(),
     count: z.number().optional(),
     perSL: perSLSchema.optional(),
@@ -325,7 +326,7 @@ const DECLARATIONS_D_OPS = {
     hands: z.union([z.literal(1), z.literal(2)]).optional(),
     onHitEffects: z.array(z.lazy(() => triggeredEffectSchema)).optional(),
     skin: surchargePaletteSchema.optional(),
-    form: idDe('trapping').optional(),
+    form: idDe('trapping', INSTANCIABLE_PAR_ID).optional(),
     chooseForm: z.boolean().optional(),
   }),
   rollThreshold: z.strictObject({

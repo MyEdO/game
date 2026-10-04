@@ -1,3 +1,4 @@
+import type { JSX } from 'react';
 /**
  * PANNEAU LOGIQUE — dock bas repliable/redimensionnable remplaçant les 3 modales du POC
  * (Triggers / Dialogues / Rencontres) + l'onglet Validation. MASTER-DÉTAIL : liste à gauche,
@@ -8,6 +9,7 @@ import { useRef } from 'react';
 import { Scene, Trigger, EncounterDef, Dialogue, WallSide } from '../../state/scene';
 import { wallSideSchema } from '../../data/schemas/defs-scenes/communs';
 import type { WorldMap } from '../../state/worldMap';
+import type { TrappingData } from '../../data';
 import type { ThreatTier } from '../../engine/advantagePool';
 import { EMPTY_FLOW } from '../../state/flow';
 import type { Warning } from '../../state/validateScene';
@@ -32,6 +34,7 @@ export function LogicDock({
   scene,
   otherScenes,
   worldMap,
+  objets,
   setScene,
   warnings,
   onSelectWarning,
@@ -52,6 +55,8 @@ export function LogicDock({
   otherScenes: Scene[];
   /** Carte du monde du projet (id + label des lieux) pour `openPort` — absente ⇒ fallback texte. */
   worldMap: WorldMap | null;
+  /** Objets du projet (`narratif.objets`) — résolus avant le catalogue par l'Effet `giveTrapping`. */
+  objets: readonly TrappingData[];
   setScene: (s: Scene) => void;
   warnings: Warning[];
   onSelectWarning: (w: Warning) => void;
@@ -72,7 +77,7 @@ export function LogicDock({
   /** Couche (z) en cours d'édition — toute logique créée depuis le dock s'y pose. */
   currentLayer: number;
 }) {
-  const ctx: Ctx = { encounters: scene.encounters, dialogues: scene.dialogues, ...effectCtxOf(scene, otherScenes, worldMap ?? undefined) };
+  const ctx: Ctx = { encounters: scene.encounters, dialogues: scene.dialogues, ...effectCtxOf(scene, otherScenes, worldMap ?? undefined, objets) };
   const dragRef = useRef<{ sy: number; sh: number } | null>(null);
 
   const errors = warnings.filter((w) => w.level === 'error').length;

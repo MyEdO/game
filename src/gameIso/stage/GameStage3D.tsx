@@ -1,3 +1,4 @@
+import type { JSX } from 'react';
 /**
  * MONDE VOLUMIQUE de l'écran de jeu (#1176) — la couche MONDE, rendue en three.
  * CONSOMMATEUR
@@ -735,23 +736,23 @@ export function GameStage3D({ scene, mpt, frame, tintAt, keepEl, nappeVue, els, 
   planRetenu.current = nappesAuMonde ? retainBrumeSheets(planRetenu.current, scene, mpt, nappesAuMonde) : null;
   const planNappes = planRetenu.current?.plan ?? null;
 
-  const three = useRef<THREE.Scene>();
-  const monde = useRef<THREE.Group>();
-  const touffes = useRef<THREE.Group>();
-  const panneaux = useRef<THREE.Group>();
-  const lampes = useRef<THREE.Group>();
-  const flaques = useRef<THREE.Group>();
-  const intemperies = useRef<THREE.Group>();
-  const brumes = useRef<THREE.Group>();
-  const marques = useRef<THREE.Group>();
-  const marquesDyn = useRef<THREE.Group>();
-  const halosGroupe = useRef<THREE.Group>();
-  const decalques = useRef<THREE.Group>();
+  const three = useRef<THREE.Scene | undefined>(undefined);
+  const monde = useRef<THREE.Group | undefined>(undefined);
+  const touffes = useRef<THREE.Group | undefined>(undefined);
+  const panneaux = useRef<THREE.Group | undefined>(undefined);
+  const lampes = useRef<THREE.Group | undefined>(undefined);
+  const flaques = useRef<THREE.Group | undefined>(undefined);
+  const intemperies = useRef<THREE.Group | undefined>(undefined);
+  const brumes = useRef<THREE.Group | undefined>(undefined);
+  const marques = useRef<THREE.Group | undefined>(undefined);
+  const marquesDyn = useRef<THREE.Group | undefined>(undefined);
+  const halosGroupe = useRef<THREE.Group | undefined>(undefined);
+  const decalques = useRef<THREE.Group | undefined>(undefined);
   /** LES DEUX CAMÉRAS DE L'ÉCRAN (#1404) — une par regard, montées avec la scène et REPOSÉES à chaque
    *  image (`reposerAffineCamera`/`reposerPovCamera`). Elles ne portent aucune ressource GPU : rien à
    *  libérer, rien à recompiler — la seule chose qu'une image en changeait était leur IDENTITÉ. */
-  const camAffine = useRef<StretchedOrthographicCamera>();
-  const camPov = useRef<THREE.PerspectiveCamera>();
+  const camAffine = useRef<StretchedOrthographicCamera | undefined>(undefined);
+  const camPov = useRef<THREE.PerspectiveCamera | undefined>(undefined);
   /** Le CIEL de la première personne (#1404) : une `DataTexture` montée pour la vie de l'écran, dont
    *  les texels se réécrivent au palier (`reposerCiel`). */
   const cielRef = useRef<THREE.DataTexture | null>(null);

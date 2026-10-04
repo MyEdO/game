@@ -11,10 +11,12 @@
 // foyer (`{ ...FORMULE_DE_CHEBYSHEV, foyer: 'src/engine/grid.ts' }`) :
 //  - les constructions génériques `FORMULE_DE_CHEBYSHEV`, `ECHAPPEUR_DE_LITTERAL`,
 //    `CONSTRUCTION_DE_PROGRAMME`, `ECRITURE_DE_STOCK_JSON` et `CONSTRUCTION_DE_TABLE_TOTALE` ;
-//  - trois fabriques : `recopieDeCanon` (un canon, ses membres, six formes de recopie, paramètres
+//  - cinq fabriques : `recopieDeCanon` (un canon, ses membres, six formes de recopie, paramètres
 //    `complet` et `formes`, la forme `membres de type` lisant un type littéral comme une `interface`),
-//    `cleEnLigne` (la clé d'un site de stock écrite en ligne) et `comparaisonDAppel` (le rendu d'une
-//    fonction déclarée comparé en ligne) ;
+//    `cleEnLigne` (la clé d'un site de stock écrite en ligne), `lectureBruteDeCollection` (la
+//    collection lue hors de sa vue, admise à des SITES nommés par `englobanteDe`),
+//    `comparaisonDAppel` (le rendu d'une fonction déclarée comparé en ligne) et `constructionDeFragment`
+//    (un fragment d'adresse bâti hors de ses constructeurs) ;
 //  - `estAppelDeclare`, la reconnaissance d'un appel à une fonction déclarée par son module, sur la
 //    liaison `origineImportee` et la table `tableDesExports` ;
 //  - `estTableTotale`, la reconnaissance d'une table totale déclarée, que lit aussi
@@ -383,6 +385,65 @@ export const CONSTRUCTION_DE_TABLE_TOTALE = Object.freeze({
   },
 });
 
+/** La propriété `nom` d'un objet littéral, écrite `nom: …` ou `nom` seul.
+ * @param {ts.ObjectLiteralExpression} o @param {string} nom @returns {ts.ObjectLiteralElementLike | undefined} */
+const proprieteDe = (o, nom) =>
+  o.properties.find((p) => (ts.isPropertyAssignment(p) || ts.isShorthandPropertyAssignment(p)) && keyName(p.name) === nom);
+
+/**
+ * Mécanique de la CONSTRUCTION d'un fragment d'adresse de prose (#1887), construction réservée à ses
+ * constructeurs. Trois formes d'objet littéral :
+ *  - un `kind` qui vaut l'une des `natures` ;
+ *  - une propagation qui pose `sum` en ligne ;
+ *  - une propagation qui pose un champ de `designation` (ou de `designationLiee`, dans un fichier qui
+ *    importe un module des `constructeurs`), hors argument direct d'un des `constructeurs`
+ *    (`estAppelDeclare`) : la recopie qui change ce qu'un fragment désigne garde un `sum` périmé.
+ * La déclaration y joint son foyer.
+ * @param {{ nom: string, natures: readonly string[], designation: readonly string[],
+ *   designationLiee?: readonly string[], constructeurs: Readonly<Record<string, readonly string[]>> }} p
+ * @returns {{ nom: string, indice: (texte: string) => boolean, reconnait: (noeud: ts.Node, sf: ts.SourceFile) => string | null }}
+ */
+export function constructionDeFragment({ nom, natures, designation, designationLiee = [], constructeurs }) {
+  const lesNatures = new Set(natures);
+  const motif = (mots) => mots.map(echapperRegex).join('|');
+  const indice = new RegExp(`\\bsum\\b|['"](?:${motif(natures)})['"]|\\b(?:${motif([...designation, ...designationLiee])})\\b`);
+  const modules = new Set(Object.keys(constructeurs));
+  /** @type {WeakMap<ts.SourceFile, boolean>} */
+  const lies = new WeakMap();
+  /** Le fichier importe-t-il l'un des modules des `constructeurs` ? @param {ts.SourceFile} sf */
+  const lie = (sf) => {
+    if (!lies.has(sf)) {
+      lies.set(sf, sf.statements.some((st) => ts.isImportDeclaration(st) && ts.isStringLiteral(st.moduleSpecifier)
+        && modules.has(moduleDe(st.moduleSpecifier.text, sf) ?? '')));
+    }
+    return lies.get(sf);
+  };
+  /** L'objet est-il l'argument direct d'un appel à l'un des `constructeurs` ?
+   * @param {ts.Node} o @param {ts.SourceFile} sf */
+  const argumentDeConstructeur = (o, sf) => {
+    let p = o.parent;
+    while (p && (ts.isParenthesizedExpression(p) || ts.isAsExpression(p) || ts.isSatisfiesExpression(p))) p = p.parent;
+    return !!p && ts.isCallExpression(p) && estAppelDeclare(p, sf, constructeurs) != null;
+  };
+  return {
+    nom,
+    indice: (texte) => indice.test(texte),
+    reconnait: (n, sf) => {
+      if (!ts.isObjectLiteralExpression(n)) return null;
+      const kind = proprieteDe(n, 'kind');
+      const nature = kind && ts.isPropertyAssignment(kind) ? sansEnveloppe(kind.initializer) : null;
+      if (nature && ts.isStringLiteralLike(nature) && lesNatures.has(nature.text)) {
+        return `${nom} : fragment « ${nature.text} » littéral`;
+      }
+      if (!n.properties.some(ts.isSpreadAssignment)) return null;
+      if (proprieteDe(n, 'sum')) return `${nom} : empreinte \`sum\` posée en ligne sur une recopie`;
+      const lus = designationLiee.length && lie(sf) ? [...designation, ...designationLiee] : designation;
+      const poses = lus.filter((c) => proprieteDe(n, c));
+      return poses.length && !argumentDeConstructeur(n, sf) ? `${nom} : recopie qui pose ${poses.join(', ')} hors constructeur` : null;
+    },
+  };
+}
+
 /** L'import de tête de `sf` qui lie le nom LOCAL `identifiant` : son spécificateur, non résolu, et le
  *  nom qu'il importe (`'default'`, `'*'`, ou le nom exporté).
  * @param {string} identifiant @param {ts.SourceFile} sf @returns {{ spec: string, nom: string } | null} */
@@ -558,6 +619,72 @@ export function cleEnLigne({ nom, champsDeGroupe, occurrence, separateur, separa
       if (texte == null) return null;
       const lues = regles.filter(([, rx]) => rx.test(texte)).map(([regle]) => regle);
       return lues.length ? `${nom} : ${lues.join(', ')} ${JSON.stringify(texte)}` : null;
+    },
+  };
+}
+
+/** La chaîne des déclarations NOMMÉES qui englobent `n` (fonction, méthode, variable liée à une
+ *  fonction), de la plus externe à la plus interne, jointe par ` › ` ; `(module)` au niveau du fichier.
+ *  @param {ts.Node} n @returns {string} */
+function englobanteDe(n) {
+  const noms = [];
+  for (let p = n.parent; p; p = p.parent) {
+    if ((ts.isFunctionDeclaration(p) || ts.isMethodDeclaration(p)) && p.name) noms.unshift(p.name.getText());
+    else if (ts.isVariableDeclaration(p) && ts.isIdentifier(p.name) && p.initializer && (ts.isArrowFunction(sansEnveloppe(p.initializer)) || ts.isFunctionExpression(sansEnveloppe(p.initializer))))
+      noms.unshift(p.name.text);
+  }
+  return noms.length ? noms.join(' › ') : '(module)';
+}
+
+/**
+ * La LECTURE BRUTE d'une collection dont une VUE est le canon (#1988) : hors de son foyer, le code lit
+ * la vue, jamais la collection. Formes reconnues :
+ *  - une LIAISON à l'un des exports `liaisons` (`{ module, exporte }`, module relatif à la racine) :
+ *    import nommé (renommé ou non, `import type` compris), `ns.<exporte>` sur un `import * as ns`,
+ *    réexportation `export { <exporte> } from` ;
+ *  - l'IMPORT d'un fichier dont le nom est `json` ;
+ *  - un APPEL à l'une des `fonctions` du `seam` (`estAppelDeclare`) dont le premier argument est le
+ *    littéral `dataset`, ou n'est pas un littéral de chaîne.
+ * `sitesAdmis` (`{ rel, englobante, appele }`, `englobanteDe`) : un appel au seam ADMIS à ce site, et à
+ * lui seul — jamais un fichier. HORS DE PORTÉE : l'accès calculé (`ns['<exporte>']`), la
+ * déstructuration d'un espace de noms, `import()` dynamique, `export * from`.
+ * @param {{ nom: string, liaisons: readonly { module: string, exporte: string }[], json: string,
+ *   seam: { module: string, fonctions: readonly string[] }, dataset: string,
+ *   sitesAdmis?: readonly { rel: string, englobante: string, appele: string }[] }} p
+ * @returns {{ nom: string, indice: (texte: string) => boolean, reconnait: (noeud: ts.Node, sf: ts.SourceFile) => string | null }}
+ */
+export function lectureBruteDeCollection({ nom, liaisons, json, seam, dataset, sitesAdmis = [] }) {
+  const exportes = new Set(liaisons.map((l) => l.exporte));
+  const lie = (module, exporte) => liaisons.some((l) => l.module === module && l.exporte === exporte);
+  const fonctions = { [seam.module]: seam.fonctions };
+  return {
+    nom,
+    indice: (texte) => [...exportes, json, ...seam.fonctions].some((m) => texte.includes(m)),
+    reconnait: (n, sf) => {
+      if (ts.isImportDeclaration(n) && ts.isStringLiteral(n.moduleSpecifier) && n.moduleSpecifier.text.split('/').pop() === json)
+        return `import de \`${json}\``;
+      if (ts.isImportSpecifier(n)) {
+        const o = origineImportee(n.name.text, sf);
+        return o && lie(o.module, o.nom) ? `\`${o.nom}\` importé de \`${o.module}\`` : null;
+      }
+      if (ts.isPropertyAccessExpression(n) && ts.isIdentifier(n.expression) && exportes.has(n.name.text)) {
+        const o = origineImportee(n.expression.text, sf);
+        return o?.nom === '*' && lie(o.module, n.name.text) ? `\`${n.expression.text}.${n.name.text}\` sur l'espace de noms de \`${o.module}\`` : null;
+      }
+      if (ts.isExportSpecifier(n) && n.parent.parent.moduleSpecifier && ts.isStringLiteral(n.parent.parent.moduleSpecifier)) {
+        const module = moduleDe(n.parent.parent.moduleSpecifier.text, sf);
+        const exporte = (n.propertyName ?? n.name).text;
+        return module && lie(module, exporte) ? `\`${exporte}\` réexporté de \`${module}\`` : null;
+      }
+      if (!ts.isCallExpression(n)) return null;
+      const appele = estAppelDeclare(n, sf, fonctions);
+      if (!appele) return null;
+      const arg = n.arguments[0] && sansEnveloppe(n.arguments[0]);
+      const litteral = arg && ts.isStringLiteralLike(arg);
+      if (litteral && arg.text !== dataset) return null;
+      const englobante = englobanteDe(n);
+      if (sitesAdmis.some((s) => s.rel === sf.fileName && s.englobante === englobante && s.appele === appele)) return null;
+      return litteral ? `\`${appele}('${dataset}')\` dans \`${englobante}\`` : `\`${appele}\` à argument non littéral dans \`${englobante}\``;
     },
   };
 }

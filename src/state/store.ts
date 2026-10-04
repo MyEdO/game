@@ -1829,8 +1829,6 @@ function sasseoirA(get: Get, set: Set, entityId: string): void {
 }
 
 export const useGame = create<GameState>((set, get) => ({
-  // Actions de combat inline — extraites dans `combatSlice.ts`, spreadées EN TÊTE (mêmes `get`/`set`).
-  // Surface IDENTIQUE : cette tranche ne porte que des ACTIONS ; l'état reste assemblé plus bas (forme à plat).
   ...createCombatSlice(get, set),
   screen: 'menu',
   compendiumFocus: null,

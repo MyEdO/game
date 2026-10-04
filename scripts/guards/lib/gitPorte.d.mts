@@ -10,7 +10,7 @@ export type Depot = Readonly<{ cwd: string; [MARQUE_DEPOT]: true }>;
 /** Le dépôt git de `cwd`. */
 export function depotDe(
   cwd: string,
-  opts?: { env?: NodeJS.ProcessEnv; enPanne?: (raison: string) => void },
+  opts?: { env?: NodeJS.ProcessEnv | (() => NodeJS.ProcessEnv); enPanne?: (raison: string) => void },
 ): Depot;
 /** La racine de l'arbre de travail, `null` hors d'un arbre. */
 export function racineDe(depot: Depot): string | null;

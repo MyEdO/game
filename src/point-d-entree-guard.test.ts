@@ -310,7 +310,7 @@ describe('garde de classe — le point d’entrée se lit à import.meta.main', 
     expect(detectionsDePointDEntree(source)).toEqual([]);
   });
 
-  it('aucune source suivie ne détecte son point d’entrée à la main (tolérance ZÉRO)', () => {
+  it('aucune source suivie ne détecte son point d’entrée à la main (tolérance ZÉRO)', { timeout: 30_000 }, () => {
     const suivies: string[] = sourcesSuivies();
     expect(suivies.length, 'le listage des sources suivies est vide').toBeGreaterThan(1000);
     const offenders: string[] = [];

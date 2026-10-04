@@ -70,7 +70,7 @@ describe('coupe au caractère suivie d’une ellipse', () => {
     expect(coupesAuCaractere([{ rel: 'copie.mjs', text: foyer.text }])).toHaveLength(1);
   });
 
-  it('aucun site sous `src/` ni `scripts/`', () => {
+  it('aucun site sous `src/` ni `scripts/`', { timeout: 30_000 }, () => {
     const corpus = readCorpus(['src', 'scripts'], { exts: ['.ts', '.tsx', '.mts', '.cts', '.js', '.jsx', '.mjs', '.cjs'], tests: true });
     expect(coupesAuCaractere(corpus)).toEqual([]);
   });

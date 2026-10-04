@@ -13,7 +13,8 @@ import { listerDossier } from '../../../scripts/guards/lib/lister.mjs';
 import {
   type ChapitreParse, type Fragment, type FragmentBlocs, type FragmentCellule, type Resolu,
   type Section, type TableParse,
-  blocsCouverts, blocsPlats, cellRefFor, empreinteDe, estErreur, estGraphieDeChapitre, estSeparateur,
+  adresseDe, blocsCouverts, blocsPlats, cellRefFor, estErreur, estGraphieDeChapitre, estSeparateur,
+  fragmentBlocs, fragmentCellule, scelle,
   estNomDExtraction, estNumeroDeChapitre, fichierDuChapitre, findCells, graphieDeChapitre,
   graphieDuFichier, largeurDeChapitre, normText, numeroDuFichier, parseChapitre, parseTable,
   prefixesDeChapitres, resoudreAdresse, resoudreFragment, stripSpans, sumOf, tablesOf, titreDuFichier,
@@ -55,12 +56,9 @@ function chapitreDe(bookId: string, ch: string): ChapitreParse {
 const sectionOf = (ch: string, slug: string, occ = 1) =>
   chapitreDe(LDB, ch).sections.find((s) => s.slug === slug && s.occ === occ)!;
 
-/** Fragment estampillé de son empreinte RÉELLE (ce que fait un producteur d'adresse). */
-function estampille<T extends Fragment>(chapitre: ChapitreParse, frag: Omit<T, 'sum'>): T {
-  const brouillon = { ...frag, sum: '' } as T;
-  const sum = empreinteDe(chapitre, brouillon);
-  return { ...brouillon, sum: typeof sum === 'string' ? sum : '' };
-}
+/** Fragment forgé, estampillé de son empreinte RÉELLE (`scelle`). */
+const estampille = <T extends Fragment>(chapitre: ChapitreParse, frag: Omit<T, 'sum'>): T =>
+  scelle(chapitre, { ...frag, sum: '' } as T);
 
 /** Résout un fragment de blocs du LDB, empreinte posée à la volée. */
 function blocs(ch: string, sec: string, b0: number, b1: number, opts: { secOcc?: number; sum?: string } = {}) {
@@ -597,7 +595,7 @@ describe('parseTable — la bannière de table, absorbée SOUS GARDE', () => {
   });
 });
 
-describe('estSeparateur — la ligne délimiteuse de table, prédicat UNIQUE (#1887 6a-2a′)', () => {
+describe('estSeparateur — la ligne délimiteuse de table, prédicat UNIQUE (#1887)', () => {
   it.each([
     ['|-|-|', true],
     ['|:---:|--|', true],
@@ -722,5 +720,50 @@ describe('FragmentCellule.table (#1739) — une clé de ligne ambiguë entre tab
     expect(cellRefFor(chapitre(), hit)).toMatchObject({ row: '05 or less', col: 'Effect', table: 'major miscast table#1' });
     const [unique] = findCells(chapitreDe(LDB, '19'), normText('+1 Mouvement'));
     expect(cellRefFor(chapitreDe(LDB, '19'), unique)).not.toHaveProperty('table');
+  });
+});
+
+describe('constructeurs d’adresse (#1887) — `scelle`, `fragmentBlocs`, `fragmentCellule`, `adresseDe`', () => {
+  const chapitre = parseChapitre([
+    '# Titre', '', '## Vide', '', '## Avec table', '', 'Intro.', '', '**Tableau des tests**', '',
+    '| Clé | Valeur |', '|---|---|', '| a | 1 |', '| b | 2 |', '', 'Après.',
+  ].join('\n'));
+  const section = (slug: string) => chapitre.sections.find((s) => s.slug === slug)!;
+  const sumDe = (r: Resolu | { error: string }) => sumOf((r as Resolu).md);
+
+  it('`fragmentBlocs` scelle le fragment sur le texte qu’il résout ; vide quand il ne résout pas', () => {
+    const f = fragmentBlocs(chapitre, { sec: 'avec-table', secOcc: 1, b0: 0, b1: 1 });
+    expect(f).toEqual({ kind: 'blocs', sec: 'avec-table', secOcc: 1, b0: 0, b1: 1, sum: sumDe(resoudreFragment(chapitre, f)) });
+    expect((resoudreFragment(chapitre, f) as Resolu).md).toBe('Intro.\n\n**Tableau des tests**');
+    expect(fragmentBlocs(chapitre, { sec: 'avec-table', secOcc: 1, b0: 0, b1: 9 }).sum).toBe('');
+  });
+
+  it('`fragmentCellule` part d’un choix ; sans clé de table, il n’en porte aucune', () => {
+    const f = fragmentCellule(chapitre, { sec: 'avec-table', secOcc: 1, row: 'b', col: 'Valeur' });
+    expect(f).not.toHaveProperty('table');
+    expect((resoudreFragment(chapitre, f) as Resolu).md).toBe('2');
+    const t = fragmentCellule(chapitre, { sec: 'avec-table', secOcc: 1, row: 'b', col: 'Valeur', table: 'tableau des tests#1' });
+    expect(Object.keys(t)).toEqual(['kind', 'sec', 'secOcc', 'row', 'col', 'table', 'sum']);
+    expect(estErreur(resoudreFragment(chapitre, t))).toBe(false);
+  });
+
+  it('`scelle` repose l’empreinte d’un fragment au texte du jour', () => {
+    const f = fragmentBlocs(chapitre, { sec: 'avec-table', secOcc: 1, b0: 3, b1: 3 });
+    expect(scelle(chapitre, { ...f, sum: '0000000000000000' })).toEqual(f);
+  });
+
+  it('`adresseDe` : la section entière, ou la légende et le bloc de sa table', () => {
+    const s = section('avec-table');
+    const [table] = tablesOf(s);
+    const entiere = adresseDe({ book: LDB, ch: '07' }, chapitre, { section: s });
+    expect(entiere).toEqual({ book: LDB, ch: '07', parts: [fragmentBlocs(chapitre, { sec: 'avec-table', secOcc: 1, b0: 0, b1: 3 })] });
+    const deTable = adresseDe({ book: LDB, ch: '07' }, chapitre, { section: s, table });
+    expect(deTable).toEqual({ book: LDB, ch: '07', parts: [fragmentBlocs(chapitre, { sec: 'avec-table', secOcc: 1, b0: 1, b1: 2 })] });
+  });
+
+  it('`adresseDe` d’une section SANS bloc rend l’erreur de résolution, nommée, sans lever', () => {
+    const r = adresseDe({ book: LDB, ch: '07' }, chapitre, { section: section('vide') });
+    expect(r).toMatchObject({ error: 'bornes-hors-limites' });
+    expect((r as { detail: string }).detail).toMatch(/§vide#1 .*\(section : 0 blocs\)/);
   });
 });

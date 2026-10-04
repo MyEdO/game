@@ -1,7 +1,7 @@
 /**
  * Éditeur d'une ADRESSE DE PROSE (`descRef`, #1389 — épique #1388) : l'entrée ne recopie pas le texte
  * du livre, elle DÉSIGNE le passage. Le champ compose l'adresse de haut en bas — livre, chapitre,
- * section, puis un à trois fragments — et montre à chaque geste le texte que l'adresse RÉSOUT.
+ * section, puis un à `MAX_FRAGMENTS` fragments — et montre à chaque geste le texte que l'adresse RÉSOUT.
  *
  * L'empreinte `sum` n'est JAMAIS saisie : elle est RECALCULÉE par `empreinteDe` à chaque changement de
  * fragment. Un auteur ne peut donc pas écrire une empreinte fausse, et une adresse qui ne résout pas
@@ -19,21 +19,25 @@ import { books } from '../../data';
 import { estExtrait } from '../../data/schemas/grammaire/livres-extraits';
 import { chargerChapitre, chargerManifeste, type ChapitreManifeste, type Manifeste } from '../../data/source/chapitres';
 import {
+  MAX_FRAGMENTS,
+  MIN_FRAGMENT,
   blocsCouverts,
-  empreinteDe,
   estErreur,
+  fragmentBlocs,
+  fragmentCellule,
   graphieDeChapitre,
   largeurDeChapitre,
   memeTexte,
   resoudreAdresse,
   resoudreFragment,
+  scelle,
   tablesDeLaLigne,
   tablesOf,
   type ChapitreParse,
   type CodeErreur,
   type DescRef,
   type Fragment,
-  type FragmentCellule,
+  type FragmentBlocs,
   type Section,
   type TableDeSection,
 } from '../../data/source/decoupe';
@@ -57,10 +61,10 @@ export const PHRASE_REFUS = {
   'ligne-ambigue': 'Plusieurs lignes de la section portent cette clé — prenez une clé qui ne désigne qu’une ligne.',
   'table-sans-en-tetes': 'La table de cette section n’a pas d’en-têtes : une cellule ne s’y adresse pas — passez en « blocs ».',
   'colonne-inconnue': 'Cette colonne n’existe pas dans la table — choisissez un en-tête de la liste.',
-  'fragment-trop-court': 'Ce fragment est trop court pour un montage : il en faut au moins 40 caractères — étendez les bornes de blocs.',
+  'fragment-trop-court': `Ce fragment est trop court pour un montage : il en faut au moins ${MIN_FRAGMENT} caractères — étendez les bornes de blocs.`,
   'fragment-ambigu': 'Ce texte apparaît plusieurs fois dans le chapitre : l’adresse désignerait un autre passage — étendez le fragment.',
   'fragments-chevauchants': 'Deux fragments de ce montage citent le même passage — déplacez l’un d’eux sur d’autres blocs.',
-  'montage-hors-plafond': 'Une adresse monte trois fragments au plus — retirez-en un.',
+  'montage-hors-plafond': `Une adresse monte ${MAX_FRAGMENTS} fragments au plus — retirez-en un.`,
 } satisfies Record<CodeErreur, string>;
 
 /** `ligne-ambigue` quand la rangée PROPOSE le choix de la table : le remède est ce choix. */
@@ -78,7 +82,7 @@ const RAISON_EPUISE = 'Ce chapitre n’a aucun bloc adressable de plus.';
 function raisonDeNaissance({ error, fragment }: { error: CodeErreur; fragment?: number }): string {
   const n = (fragment ?? 0) + 1;
   if (error === 'fragment-trop-court') {
-    return `Ajouter un fragment rendrait le fragment ${n} trop court pour un montage (40 caractères au minimum) : étendez d’abord ses bornes de blocs.`;
+    return `Ajouter un fragment rendrait le fragment ${n} trop court pour un montage (${MIN_FRAGMENT} caractères au minimum) : étendez d’abord ses bornes de blocs.`;
   }
   if (error === 'fragment-ambigu') {
     return `Ajouter un fragment rendrait le fragment ${n} ambigu — son texte apparaît ailleurs dans le chapitre : étendez d’abord ses bornes de blocs.`;
@@ -92,18 +96,10 @@ const CHARGEURS_REELS: ChargeursSource = { chapitre: chargerChapitre, manifeste:
 
 /** Seuil au-delà duquel une liste (sections, chapitres) reçoit son champ de filtre. */
 const SECTIONS_A_FILTRER = 30;
-/** Plafond de fragments d'une adresse (`descRefSchema`, `grammaire/valeurs.ts`). */
-const MAX_FRAGMENTS = 3;
 
 /** Adresse d'une section : c'est `slug#occ` que le fragment STOCKE, le titre n'est qu'un guide. */
 const cleSection = (slug: string, occ: number) => `${slug}#${occ}`;
 
-/** Le fragment de cellule SANS discriminant de table (`FragmentCellule.table`). */
-function sansTable(x: FragmentCellule): FragmentCellule {
-  const reste = { ...x };
-  delete reste.table;
-  return reste;
-}
 /** Libellé d'une table TITRÉE : son titre, et son rang quand la section en porte plusieurs de ce titre. */
 function libelleTable(t: TableDeSection, toutes: TableDeSection[]): string {
   const memes = toutes.filter((u) => u.cle != null && memeTexte(u.table.titre ?? '', t.table.titre ?? ''));
@@ -265,9 +261,7 @@ export function DescRefField({ label, sujet, value, onChange, chargeurs }: {
     let naissance: { error: CodeErreur; fragment?: number } | null = null;
     // C'est le RÉSOLVEUR qui tranche, jamais une seconde copie de ses seuils.
     const tient = (f: Fragment): boolean => {
-      const sum = empreinteDe(chapitre, f);
-      if (typeof sum !== 'string') return false;
-      const res = resoudreAdresse(chapitre, { book, ch, parts: [...parts, { ...f, sum }] });
+      const res = resoudreAdresse(chapitre, { book, ch, parts: [...parts, f] });
       if (!estErreur(res)) return true;
       // L'adresse était DÉJÀ fautive : le candidat n'y est pour rien, et elle ne doit pas condamner
       // tous les candidats. La faute d'avant SURVIT forcément à l'ajout, et à l'identique — d'où le
@@ -282,11 +276,12 @@ export function DescRefField({ label, sujet, value, onChange, chargeurs }: {
       if (res.fragment !== parts.length) naissance = { error: res.error, fragment: res.fragment };
       return false;
     };
-    const libreDans = (s: Section): number | null => {
+    const libreDans = (s: Section): FragmentBlocs | null => {
       const pris = couverts.get(s) ?? new Set<number>();
       for (let i = 0; i < s.blocks.length; i++) {
         if (pris.has(i)) continue;
-        if (tient({ kind: 'blocs', sec: s.slug, secOcc: s.occ, b0: i, b1: i, sum: '' })) return i;
+        const f = fragmentBlocs(chapitre, { sec: s.slug, secOcc: s.occ, b0: i, b1: i });
+        if (tient(f)) return f;
       }
       return null;
     };
@@ -301,22 +296,15 @@ export function DescRefField({ label, sujet, value, onChange, chargeurs }: {
     ];
     for (const s of ordre) {
       const libre = libreDans(s);
-      if (libre != null) return { frag: { kind: 'blocs', sec: s.slug, secOcc: s.occ, b0: libre, b1: libre, sum: '' } };
+      if (libre) return { frag: libre };
     }
     return { frag: null, raison: naissance ? raisonDeNaissance(naissance) : RAISON_EPUISE };
   };
 
-  /** SCELLE un fragment sur le chapitre chargé — `sum` ne vient jamais d'une saisie. */
-  const sceller = (f: Fragment): Fragment => {
-    if (!chapitre) return f;
-    const sum = empreinteDe(chapitre, f);
-    return { ...f, sum: typeof sum === 'string' ? sum : '' };
-  };
-
   /**
    * Pose l'adresse TELLE QU'ELLE EST : aucune empreinte n'est recalculée ici. Le scellement se fait au
-   * point du geste (`majeur` pour le fragment muté, `sceller` pour un fragment neuf), et le
-   * rescellement GLOBAL n'a qu'une porte, le bouton « Resceller après relecture ».
+   * point du geste (les constructeurs `fragmentBlocs` et `fragmentCellule` scellent le fragment qu'ils
+   * bâtissent), et le rescellement GLOBAL n'a qu'une porte, le bouton « Resceller après relecture ».
    *
    * C'est le cœur du contrat : si poser rescellait tout, un geste sur le fragment 1 reposerait
    * l'empreinte d'un fragment 2 divergent — l'avertissement et le bouton disparaîtraient, et l'adresse
@@ -324,9 +312,11 @@ export function DescRefField({ label, sujet, value, onChange, chargeurs }: {
    */
   const poser = (suite: Fragment[]) => { onChange({ book, ch, parts: suite }); };
 
-  /** Remplace le fragment `i` par le résultat de `muter`, et rescelle CE fragment-là seulement. */
-  const majeur = (i: number, muter: (f: Fragment) => Fragment) =>
-    poser(parts.map((f, j) => (j === i ? sceller(muter(f)) : f)));
+  /** Remplace le fragment `i` par celui que `rebatir` construit sur le chapitre chargé : CE fragment-là
+   *  seul est rescellé. Sans chapitre chargé, aucun geste. */
+  const majeur = (i: number, rebatir: (f: Fragment, c: ChapitreParse) => Fragment) => {
+    if (chapitre) poser(parts.map((f, j) => (j === i ? rebatir(f, chapitre) : f)));
+  };
 
   // AMORCE : choisir un livre puis un chapitre laissait une adresse VIDE, sans un mot. Dès que le
   // chapitre chargé EST celui de l'adresse courante et que l'adresse n'a aucun fragment, le champ en
@@ -337,7 +327,7 @@ export function DescRefField({ label, sujet, value, onChange, chargeurs }: {
     if (!chapitre || parts.length > 0) return;
     const neuf = fragmentNeuf();
     if (!neuf.frag) return;
-    onChange({ book, ch, parts: [sceller(neuf.frag)] });
+    onChange({ book, ch, parts: [neuf.frag] });
     // Les dépendances utiles sont le CHAPITRE chargé et le fait que l'adresse soit vide :
     // `fragmentNeuf` et `onChange` sont refabriqués à chaque rendu et relanceraient l'effet en boucle.
   }, [chapitre, parts.length]);
@@ -472,7 +462,7 @@ export function DescRefField({ label, sujet, value, onChange, chargeurs }: {
               value={cleSection(f.sec, f.secOcc)}
               onChange={(e) => {
                 const s = sections.find((x) => cleSection(x.slug, x.occ) === e.target.value);
-                if (s) majeur(i, (x) => ({ ...x, sec: s.slug, secOcc: s.occ }));
+                if (s) majeur(i, (x, c) => scelle(c, { ...x, sec: s.slug, secOcc: s.occ }));
               }}
             >
               {!section && (
@@ -498,7 +488,7 @@ export function DescRefField({ label, sujet, value, onChange, chargeurs }: {
                   ariaLabel: nomme(`Fragment ${i + 1} en blocs`),
                   selected: f.kind === 'blocs',
                   title: 'Une suite contiguë de blocs de la section',
-                  onSelect: () => majeur(i, (x) => ({ kind: 'blocs', sec: x.sec, secOcc: x.secOcc, b0: 0, b1: 0, sum: '' })),
+                  onSelect: () => majeur(i, (x, c) => fragmentBlocs(c, { sec: x.sec, secOcc: x.secOcc, b0: 0, b1: 0 })),
                 },
                 {
                   key: 'cellule',
@@ -509,15 +499,13 @@ export function DescRefField({ label, sujet, value, onChange, chargeurs }: {
                     ? 'Cette section ne contient aucune table : il n’y a pas de cellule à adresser.'
                     : undefined,
                   title: tables.length === 0 ? undefined : 'Une case de table, désignée par sa clé de ligne et son en-tête de colonne',
-                  onSelect: () => majeur(i, (x) => ({
-                    kind: 'cellule',
+                  onSelect: () => majeur(i, (x, c) => fragmentCellule(c, {
                     sec: x.sec,
                     secOcc: x.secOcc,
                     row: tables[0]?.rows[0]?.[0] ?? '',
                     // La première colonne est la colonne-CLÉ (`1d100`, `Résultat`) : l'adresser rendrait
                     // la clé elle-même. Défaut = la première colonne qui porte du contenu.
                     col: tables[0]?.headers[1] ?? tables[0]?.headers[0] ?? '',
-                    sum: '',
                   })),
                 },
               ]}
@@ -526,10 +514,10 @@ export function DescRefField({ label, sujet, value, onChange, chargeurs }: {
               <>
                 <NumberField variant="champ" label="premier bloc" ariaLabel={nomme(`premier bloc du fragment ${i + 1}`)} width={84}
                   min={0} max={dernierBloc} value={f.b0}
-                  onChange={(n) => majeur(i, (x) => (x.kind === 'blocs' ? { ...x, b0: n, b1: Math.max(n, x.b1) } : x))} />
+                  onChange={(n) => majeur(i, (x, c) => (x.kind === 'blocs' ? fragmentBlocs(c, { ...x, b0: n, b1: Math.max(n, x.b1) }) : x))} />
                 <NumberField variant="champ" label="dernier bloc" ariaLabel={nomme(`dernier bloc du fragment ${i + 1}`)} width={84}
                   min={f.b0} max={dernierBloc} value={f.b1}
-                  onChange={(n) => majeur(i, (x) => (x.kind === 'blocs' ? { ...x, b1: n } : x))} />
+                  onChange={(n) => majeur(i, (x, c) => (x.kind === 'blocs' ? fragmentBlocs(c, { ...x, b1: n }) : x))} />
                 <em className="de-hint">0 à {dernierBloc}</em>
               </>
             ) : tables.length === 0 ? (
@@ -539,14 +527,14 @@ export function DescRefField({ label, sujet, value, onChange, chargeurs }: {
               <>
                 <label className="de-cell"><span>ligne</span>
                   <select aria-label={nomme(`Fragment ${i + 1} — ligne de la table`)} value={f.row}
-                    onChange={(e) => majeur(i, (x) => (x.kind === 'cellule' ? { ...sansTable(x), row: e.target.value } : x))}>
+                    onChange={(e) => majeur(i, (x, c) => (x.kind === 'cellule' ? fragmentCellule(c, { ...x, row: e.target.value, table: undefined }) : x))}>
                     {avecCourante(lignes, f.row).map((v) => <option key="courante" value={v}>{v} — ligne absente de la section</option>)}
                     {lignes.map((v, k) => <option key={k} value={v}>{v}</option>)}
                   </select>
                 </label>
                 <label className="de-cell"><span>colonne</span>
                   <select aria-label={nomme(`Fragment ${i + 1} — colonne de la table`)} value={f.col}
-                    onChange={(e) => majeur(i, (x) => (x.kind === 'cellule' ? { ...x, col: e.target.value } : x))}>
+                    onChange={(e) => majeur(i, (x, c) => (x.kind === 'cellule' ? fragmentCellule(c, { ...x, col: e.target.value }) : x))}>
                     {avecCourante(colonnes, f.col).map((v) => <option key="courante" value={v}>{v} — colonne absente de la section</option>)}
                     {colonnes.map((v, k) => <option key={k} value={v}>{v}</option>)}
                   </select>
@@ -554,7 +542,7 @@ export function DescRefField({ label, sujet, value, onChange, chargeurs }: {
                 {choixDeTable && (
                   <label className="de-cell"><span>table</span>
                     <select aria-label={nomme(`Fragment ${i + 1} — table de la ligne`)} value={f.table ?? ''}
-                      onChange={(e) => majeur(i, (x) => (x.kind !== 'cellule' ? x : e.target.value ? { ...x, table: e.target.value } : sansTable(x)))}>
+                      onChange={(e) => majeur(i, (x, c) => (x.kind === 'cellule' ? fragmentCellule(c, { ...x, table: e.target.value || undefined }) : x))}>
                       <option value="">—</option>
                       {f.table != null && avecCourante(tablesTitreesDeLaLigne.map((t) => t.cle ?? ''), f.table).map((v) => <option key="courante" value={v}>{tableAbsente(v)}</option>)}
                       {tablesTitreesDeLaLigne.map((t) => <option key={t.cle} value={t.cle}>{libelleTable(t, tablesSection)}</option>)}
@@ -577,7 +565,7 @@ export function DescRefField({ label, sujet, value, onChange, chargeurs }: {
             <button className="btn small danger" aria-label={nomme(`Retirer le fragment ${i + 1}`)} title={nomme(`Retirer le fragment ${i + 1}`)}
               onClick={() => poser(parts.filter((_, j) => j !== i))}>✕</button>
             {/* L'erreur vit DANS la rangée qu'elle DÉSIGNE — la sienne, ou celle que l'erreur de
-                montage nomme (`ErreurResolution.fragment`) : avec trois fragments, un message en pied
+                montage nomme (`ErreurResolution.fragment`) : sur un montage, un message en pied
                 de champ ne dirait pas lequel corriger. */}
             {(() => {
               const err = erreurDeRangee(i);
@@ -603,7 +591,7 @@ export function DescRefField({ label, sujet, value, onChange, chargeurs }: {
         // TROIS raisons distinctes, jamais confondues : le plafond, le chapitre épuisé, et la faute
         // que l'ajout FERAIT NAÎTRE sur un fragment sain (`raisonDeNaissance`) — celle-là nomme le
         // fragment à corriger, là où « chapitre épuisé » enverrait chercher au mauvais endroit.
-        const raison = plafond ? 'Une adresse monte trois fragments au plus.' : neuf!.frag ? RAISON_EPUISE : neuf!.raison;
+        const raison = plafond ? PHRASE_REFUS['montage-hors-plafond'] : neuf!.frag ? RAISON_EPUISE : neuf!.raison;
         return (
           <div className="de-reflrow">
             <GatedAction
@@ -614,7 +602,7 @@ export function DescRefField({ label, sujet, value, onChange, chargeurs }: {
               reason={raison}
               primary={false}
               btnClassName="small"
-              onClick={() => { if (neuf?.frag) poser([...parts, sceller(neuf.frag)]); }}
+              onClick={() => { if (neuf?.frag) poser([...parts, neuf.frag]); }}
             />
           </div>
         );
@@ -650,7 +638,7 @@ export function DescRefField({ label, sujet, value, onChange, chargeurs }: {
           l'adressage existe pour empêcher. */}
       {rescellable && (
         <button className="btn small" aria-label={nomme('Resceller après relecture')} title="Repose l’empreinte de chaque fragment sur le texte du livre TEL QU’IL EST AUJOURD’HUI — à ne faire qu’après avoir relu le passage."
-          onClick={() => poser(parts.map(sceller))}>
+          onClick={() => { if (chapitre) poser(parts.map((f) => scelle(chapitre, f))); }}>
           Resceller après relecture
         </button>
       )}

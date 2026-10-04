@@ -18,7 +18,7 @@ import { initialNet, type NetState } from '../state/netFlow';
 import { Combatant } from '../engine/types';
 import { t } from '../i18n';
 
-/** Fake Storage minimal — l'environnement de test est `node` (pas de localStorage). */
+/** Storage isolé pour chaque fixture. */
 function fakeStorage(): Storage {
   const m = new Map<string, string>();
   return {
@@ -44,10 +44,10 @@ const noop = () => {};
 
 describe('HeroSelector — sélecteur dédié (écran plein-champ) : recrutement & remplacement', () => {
   beforeEach(() => {
-    (globalThis as { localStorage?: Storage }).localStorage = fakeStorage();
+    vi.stubGlobal('localStorage', fakeStorage());
   });
   afterEach(() => {
-    delete (globalThis as { localStorage?: Storage }).localStorage;
+    vi.unstubAllGlobals();
   });
 
   it('recrutement : écran ScreenShell (voile plein champ) + onglets + cartes-portraits des pré-tirés', () => {
@@ -81,10 +81,10 @@ describe('HeroSelector — sélecteur dédié (écran plein-champ) : recrutement
 
 describe('PartyScreen — LA COMPAGNIE SEULE (aucune galerie inline) : coop, hôte attribue', () => {
   beforeEach(() => {
-    (globalThis as { localStorage?: Storage }).localStorage = fakeStorage();
+    vi.stubGlobal('localStorage', fakeStorage());
   });
   afterEach(() => {
-    delete (globalThis as { localStorage?: Storage }).localStorage;
+    vi.unstubAllGlobals();
   });
 
   const render = (party: Combatant[], net: NetState, inProgress = false, campaign?: { name: string; canChange?: boolean }) =>
@@ -199,10 +199,10 @@ describe('PartyScreen — LA COMPAGNIE SEULE (aucune galerie inline) : coop, hô
 
 describe('PartyScreen — présentation par le PERSONNAGE (plus de bouton « Qui est-ce ? »)', () => {
   beforeEach(() => {
-    (globalThis as { localStorage?: Storage }).localStorage = fakeStorage();
+    vi.stubGlobal('localStorage', fakeStorage());
   });
   afterEach(() => {
-    delete (globalThis as { localStorage?: Storage }).localStorage;
+    vi.unstubAllGlobals();
   });
 
   const render = (party: Combatant[], net: NetState) =>

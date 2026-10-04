@@ -1,3 +1,4 @@
+import type { JSX } from 'react';
 /**
  * OVERLAY DEBUG (recette `__wfrp.labels`) — annotation PARTAGÉE de la carte, rendue EN DERNIER dans le
  * groupe caméra (au-dessus de TOUTE la scène) et UNIQUEMENT quand le flag est ON (zéro coût off).

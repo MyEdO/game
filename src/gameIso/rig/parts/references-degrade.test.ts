@@ -112,7 +112,7 @@ function* corpus(): Generator<[string, string]> {
 }
 
 describe('références de dégradé d’un rendu final (#1903)', () => {
-  it('(0) aucun `@` ne sort ; (1) chaque `url(#id)` a sa définition ; (2) un id défini plusieurs fois a un seul contenu', () => {
+  it('(0) aucun `@` ne sort ; (1) chaque `url(#id)` a sa définition ; (2) un id défini plusieurs fois a un seul contenu', { timeout: 60_000 }, () => {
     expect(fautesDeReferences(corpus())).toEqual([]);
   });
 

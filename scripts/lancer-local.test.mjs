@@ -52,13 +52,7 @@ test('env de l’enfant : le PATH est posé sur la clé EXISTANTE (win32 écrit 
  *  périme : au premier module partagé neuf, l'enfant meurt en `ERR_MODULE_NOT_FOUND` et les cas
  *  rougissent sur une cause qui ne se nomme pas. */
 function modulesDuLanceur() {
-  const precedent = process.cwd()
-  process.chdir(RACINE)
-  try {
-    return [...clotureDImports(['scripts/lancer-local.mjs'])].sort()
-  } finally {
-    process.chdir(precedent)
-  }
+  return [...clotureDImports(['scripts/lancer-local.mjs'], { racine: RACINE })].sort()
 }
 
 /** Faux arbre : le lanceur et TOUT ce qu'il importe, et rien d'autre — pas de `node_modules`. */

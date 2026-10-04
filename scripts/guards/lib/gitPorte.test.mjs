@@ -15,10 +15,10 @@ import {
   BorneAbsente, ENV_GIT_FEINT, GitIndisponible, INDEX, MARQUE_FEINTE, OPTIONS_DE_L_HOTE, SUIVI, TRAVAIL, abandonnerFusion, ajouterOrigine, ajouterWorktree, approfondir, arbrePrincipal, arbreVide, attributDe,
   baseCommune, brancheDe, branchesDe, ceQuEmporteLIndex, ceQueFaitLeCommit, ceQuiChange, cheminGit, cheminsEnConflit, classer, combienDe, commitDe, conclureFusionSansChemins,
   depotDe, divergenceDe, dossierDesHooks, elaguerWorktrees, eolsDe, estDansHead, estIgnore, estSuperficiel, etatDeLArbre, enfantsDirects, estAncetre, estRepertoire,
-  fetchOrigin, fichiersDuGrep, fusionDeTextes, fusionnesEnCours, initialiserDepot, journalDe, lireEnLot, listerImage, natureDuChemin, origineDe, poserRef, pousser,
+  fetchOrigin, fichiersDuGrep, fusionDeTextes, fusionnesEnCours, initialiserDepot, journalDe, lireEnLot, listerImage, natureDuChemin, origineDe, parentsDe, poserRef, pousser,
   fusionner, racineDe, raisonCourte, rebaseEntame, reglerDepot, retirerWorktree, reussi, shaDe, shasDe, supprimerBranche, urlOrigineAcceptee, worktreesDe,
 } from './gitPorte.mjs'
-import { envDeDepotForge, envDeLUtilisatrice, instanceDeDepot } from './depotGabarit.mjs'
+import { envDeDepotForge, envDeLUtilisatrice, instanceDeDepot, sousGitFeint } from './depotGabarit.mjs'
 import { sourceGit } from './cssImages.mjs'
 import { listerDossier, parUnitesDeCode } from './lister.mjs'
 
@@ -45,6 +45,86 @@ const depotFeint = (cwd, repondre, enPanne) => depotDe(cwd, { enPanne, spawn: (_
 
 /** Un git MUET : code 1, rien sur aucun flux. */
 const muet = (cwd = tmpdir()) => depotFeint(cwd, () => ({ status: 1, stdout: '', stderr: '' }))
+
+test('env fournisseur : une résolution par interrogation, objet partagé avec les rejeux et la feinte', () => {
+  let resolutions = 0
+  let fourni
+  const vus = []
+  const d = depotDe(tmpdir(), {
+    env: () => {
+      resolutions += 1
+      fourni = { ...envDeDepotForge(), [ENV_GIT_FEINT]: JSON.stringify([{ si: ['--git-path', 'feint'], status: 0, stdout: 'feinte\n' }]) }
+      return fourni
+    },
+    attendre: () => {},
+    spawn: (_git, _args, options) => {
+      vus.push(options.env)
+      return vus.length < 3 ? { status: STATUS_DLL_INIT_FAILED, stdout: '', stderr: '' } : { status: 0, stdout: 'réel\n', stderr: '' }
+    },
+  })
+  assert.equal(cheminGit(d, 'réel'), 'réel')
+  assert.equal(resolutions, 1)
+  assert.equal(vus.length, 3)
+  assert.ok(vus.every((env) => env === fourni))
+  const avant = fourni
+  assert.equal(cheminGit(d, 'feint'), 'feinte')
+  assert.equal(resolutions, 2)
+  assert.notEqual(fourni, avant)
+  assert.equal(vus.length, 3, 'la décision de feinte lit le fournisseur, sans spawn')
+})
+
+test('env fournisseur : absence, promesse et retour invalide sont nommés sans repli ni enPanne', () => {
+  for (const retour of [undefined, null, 42, 'env', [], new Date(0), new Map(), { LANG: 1 }, Promise.resolve({}), { then: () => {} }]) {
+    let resolutions = 0
+    const pannes = []
+    const d = depotDe(tmpdir(), {
+      env: () => { resolutions += 1; return retour },
+      spawn: () => assert.fail('aucun processus pour un fournisseur invalide'),
+      enPanne: (raison) => pannes.push(raison),
+    })
+    assert.throws(() => cheminGit(d, 'x'), (e) => e instanceof TypeError && /gitPorte.*fournisseur.*env/i.test(e.message))
+    assert.equal(resolutions, 1)
+    assert.deepEqual(pannes, [])
+  }
+})
+
+const reponseDeFusion = (args, version = 'git version 2.45.1\n') => ({
+  status: 0,
+  stdout: args.includes('version') ? version
+    : args.includes('rev-list') ? 'abc p1 p2\n'
+      : args.includes('hash-object') ? 'vide\n'
+        : args.includes('merge-tree') ? '1\0arbre\0' : '',
+  stderr: '',
+})
+
+test('env fournisseur : versions ancienne/récente dans les deux ordres, même poignée et retour hors contexte', () => {
+  for (const ordre of [['2.39', '2.45'], ['2.45', '2.39']]) {
+    const d = depotDe(tmpdir(), { env: envDeDepotForge, spawn: (_git, args) => reponseDeFusion(args) })
+    const lireFusion = () => ceQueFaitLeCommit(d, 'abc').chemins()
+    assert.deepEqual(lireFusion(), [])
+    for (const version of ordre) {
+      sousGitFeint([{ si: ['version'], status: 0, stdout: `git version ${version}.0\n` }], () => {
+        if (version === '2.39') assert.throws(lireFusion, (e) => e instanceof GitIndisponible && /git 2\.39 ne sait pas/.test(e.raison))
+        else assert.deepEqual(lireFusion(), [])
+      })
+      assert.deepEqual(lireFusion(), [], 'hors contexte la version du lanceur fait de nouveau foi')
+    }
+  }
+})
+
+test('env objet ou défaut : cache de version historique et environnement de lancement conservés', () => {
+  for (const env of [undefined, envDeDepotForge()]) {
+    let versions = 0
+    const d = depotDe(tmpdir(), { env, spawn: (_git, args, options) => {
+      assert.equal(options.env, env)
+      if (args.includes('version')) versions += 1
+      return reponseDeFusion(args)
+    } })
+    assert.deepEqual(ceQueFaitLeCommit(d, 'abc').chemins(), [])
+    assert.deepEqual(ceQueFaitLeCommit(d, 'abc').chemins(), [])
+    assert.equal(versions, 1)
+  }
+})
 
 // Le SPAWN QUI N'A PAS DÉMARRÉ (#1729) : node écrit le même « spawnSync git ENOENT » quand le
 // binaire manque et quand le `cwd` demandé n'existe pas. Le second est le cas RÉEL mesuré : une
@@ -755,39 +835,45 @@ test('config HOSTILE : chaque lecteur de l’hôte rend sous les réglages de l�
 /** Le cwd de l'ESPION : un répertoire neuf et vide, propre à ce banc, jeté en fin de fichier. */
 let cwdEspion
 /** Un dépôt ESPION : chaque argv reçu par git est journalisé dans `vus`, et git répond 0 à vide. */
-function espion() {
-  if (!cwdEspion) { cwdEspion = mkdtempSync(join(tmpdir(), 'espion-')); after(() => jeter(cwdEspion)) }
+function espion(cwd) {
+  if (!cwd) {
+    if (!cwdEspion) { cwdEspion = mkdtempSync(join(tmpdir(), 'espion-')); after(() => jeter(cwdEspion)) }
+    cwd = cwdEspion
+  }
   const vus = []
-  const d = depotDe(cwdEspion, { spawn: (_git, args) => { vus.push(args); return { status: 0, stdout: '', stderr: '' } } })
+  const d = depotDe(cwd, { spawn: (_git, args) => { vus.push(args); return { status: 0, stdout: '', stderr: '' } } })
   return { d, vus }
 }
 
 test('ÉCRIVAINS : l’argv EXACT que git reçoit de chacun — aucune option de l’hôte, aucun geste forçant', () => {
-  const { d, vus } = espion()
-  const ecrivains = [
-    ['fetchOrigin', () => fetchOrigin(d), [['fetch', '--quiet', '--no-tags', 'origin', '+refs/heads/main:refs/remotes/origin/main']]],
-    ['approfondir', () => approfondir(d), [['fetch', '--unshallow', 'origin']]],
-    ['initialiserDepot', () => initialiserDepot(d, { branche: 'main' }), [['init', '-q', '-b', 'main']]],
-    ['reglerDepot', () => reglerDepot(d, 'user.name', 'x'), [['config', '--local', '--', 'user.name', 'x']]],
-    ['ajouterOrigine', () => ajouterOrigine(d, '/o'), [['remote', 'add', '--', 'origin', '/o']]],
-    ['poserRef', () => poserRef(d, 'refs/x', 'abc'), [['update-ref', '--', 'refs/x', 'abc']]],
-    // `a.txt` est absent du disque de l'espion : `commitDe` demande d'abord à l'INDEX s'il y nomme un répertoire.
-    ['commitDe', () => commitDe(d, { message: 'm', chemins: ['a.txt'] }), [[...OPTIONS_DE_L_HOTE, 'ls-files', '-z', '--cached', '--', 'a.txt'], ['--literal-pathspecs', 'add', '--', 'a.txt'], ['--literal-pathspecs', 'commit', '-q', '-F', '-', '--', 'a.txt']]],
-    ['commitDe vide', () => commitDe(d, { message: 'm', chemins: [], vide: true }), [['commit', '-q', '--allow-empty', '--only', '-F', '-']]],
-    ['fusionner', () => fusionner(d, { de: 'origin/main', message: 'm #1' }), [['merge', '--no-ff', '-m', 'm #1', 'origin/main']]],
-    ['abandonnerFusion', () => abandonnerFusion(d), [['merge', '--abort']]],
-    ['conclureFusionSansChemins', () => conclureFusionSansChemins(d, { chemins: ['a.txt'], message: 'm' }), [['--literal-pathspecs', 'rm', '-q', '--cached', '--', 'a.txt'], ['commit', '-q', '-F', '-']]],
-    ['pousser', () => pousser(d, { vers: 'refs/heads/x', bail: true }), [['push', '--force-with-lease', 'origin', 'HEAD:refs/heads/x']]],
-    ['ajouterWorktree', () => ajouterWorktree(d, { chemin: '/w', branche: 'b', depuis: 'origin/main' }), [['worktree', 'add', '-b', 'b', '--', '/w', 'origin/main']]],
-    ['retirerWorktree', () => retirerWorktree(d, '/w'), [['worktree', 'remove', '--', '/w']]],
-    ['supprimerBranche', () => supprimerBranche(d, 'b'), [['branch', '-d', '--', 'b']]],
-    ['elaguerWorktrees', () => elaguerWorktrees(d), [['worktree', 'prune']]],
-  ]
-  for (const [nom, ecrire, argv] of ecrivains) {
-    vus.length = 0
-    assert.equal(reussi(ecrire()), true, nom)
-    assert.deepEqual(vus, argv, nom)
-  }
+  const { racine } = instanceDeDepot({ fichiers: {}, commit: false })
+  try {
+    const { d, vus } = espion(racine)
+    assert.equal(existsSync(join(racine, 'a.txt')), false)
+    const ecrivains = [
+      ['fetchOrigin', () => fetchOrigin(d), [['fetch', '--quiet', '--no-tags', 'origin', '+refs/heads/main:refs/remotes/origin/main']]],
+      ['approfondir', () => approfondir(d), [['fetch', '--unshallow', 'origin']]],
+      ['initialiserDepot', () => initialiserDepot(d, { branche: 'main' }), [['init', '-q', '-b', 'main']]],
+      ['reglerDepot', () => reglerDepot(d, 'user.name', 'x'), [['config', '--local', '--', 'user.name', 'x']]],
+      ['ajouterOrigine', () => ajouterOrigine(d, '/o'), [['remote', 'add', '--', 'origin', '/o']]],
+      ['poserRef', () => poserRef(d, 'refs/x', 'abc'), [['update-ref', '--', 'refs/x', 'abc']]],
+      ['commitDe', () => commitDe(d, { message: 'm', chemins: ['a.txt'] }), [[...OPTIONS_DE_L_HOTE, 'ls-files', '-z', '--cached', '--', 'a.txt'], ['--literal-pathspecs', 'add', '--', 'a.txt'], ['--literal-pathspecs', 'commit', '-q', '-F', '-', '--', 'a.txt']]],
+      ['commitDe vide', () => commitDe(d, { message: 'm', chemins: [], vide: true }), [['commit', '-q', '--allow-empty', '--only', '-F', '-']]],
+      ['fusionner', () => fusionner(d, { de: 'origin/main', message: 'm #1' }), [['merge', '--no-ff', '-m', 'm #1', 'origin/main']]],
+      ['abandonnerFusion', () => abandonnerFusion(d), [['merge', '--abort']]],
+      ['conclureFusionSansChemins', () => conclureFusionSansChemins(d, { chemins: ['a.txt'], message: 'm' }), [['--literal-pathspecs', 'rm', '-q', '--cached', '--', 'a.txt'], ['commit', '-q', '-F', '-']]],
+      ['pousser', () => pousser(d, { vers: 'refs/heads/x', bail: true }), [['push', '--force-with-lease', 'origin', 'HEAD:refs/heads/x']]],
+      ['ajouterWorktree', () => ajouterWorktree(d, { chemin: '/w', branche: 'b', depuis: 'origin/main' }), [['worktree', 'add', '-b', 'b', '--', '/w', 'origin/main']]],
+      ['retirerWorktree', () => retirerWorktree(d, '/w'), [['worktree', 'remove', '--', '/w']]],
+      ['supprimerBranche', () => supprimerBranche(d, 'b'), [['branch', '-d', '--', 'b']]],
+      ['elaguerWorktrees', () => elaguerWorktrees(d), [['worktree', 'prune']]],
+    ]
+    for (const [nom, ecrire, argv] of ecrivains) {
+      vus.length = 0
+      assert.equal(reussi(ecrire()), true, nom)
+      assert.deepEqual(vus, argv, nom)
+    }
+  } finally { jeter(racine) }
 })
 
 test('commitDe : sans `chemins`, ou à chemins vides hors `vide`, LÈVE avant tout spawn — ni `add -A`, ni commit de tout l’index', () => {
@@ -909,6 +995,25 @@ test('fusionDeTextes : la fusion à trois de `merge-file`, conflit dit par le co
 
 // ── Les BORNES : ni drapeau, ni absence confondue avec le vide (#1806) ──────────────────────────
 
+test('parentsDe : les parents de fusion sont ordonnés et un commit racine n’a pas de parent', () => {
+  const { racine, sha: socle } = instanceDeDepot({ fichiers: { 'v.txt': 'V = 60\n', 'a.txt': 'a\n' }, message: 'socle' })
+  try {
+    const g = (...a) => execFileSync('git', a, { cwd: racine, env: envDeDepotForge(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()
+    const ecrire = (fichier, texte, message) => { writeFileSync(join(racine, fichier), texte); g('add', fichier); g('commit', '-q', '-m', message); return g('rev-parse', 'HEAD') }
+    const d = forge(racine)
+    g('checkout', '-q', '-b', 'cote')
+    ecrire('v.txt', 'V = 61\n', 'cote')
+    const autre = ecrire('a.txt', 'b\n', 'autre')
+    g('checkout', '-q', 'main')
+    const tronc = ecrire('v.txt', 'V = 62\n', 'tronc')
+    g('checkout', '-q', 'cote')
+    try { g('merge', '-q', '--no-ff', 'main') } catch {}
+    const fusion = ecrire('v.txt', 'V = 62\n', 'fusion résolue côté tronc')
+    assert.deepEqual(parentsDe(d, fusion), [autre, tronc])
+    assert.deepEqual(parentsDe(d, socle), [], 'un commit racine n’a pas de parent')
+  } finally { jeter(racine) }
+})
+
 /** Chaque question et chaque écrivain de l'hôte à qui l'on passe `b` pour révision, ref, nom ou
  *  chemin positionnel. */
 const gestesALaBorne = (d, b) => ({
@@ -927,6 +1032,7 @@ const gestesALaBorne = (d, b) => ({
   ceQueFaitLeCommit: () => ceQueFaitLeCommit(d, b),
   listerImage: () => listerImage(d, b),
   lireEnLot: () => lireEnLot(d, b, ['a.txt']),
+  parentsDe: () => parentsDe(d, b),
   fichiersDuGrep: () => fichiersDuGrep(d, [b], 'a', []),
   initialiserDepot: () => initialiserDepot(d, { branche: b }),
   reglerDepot: () => reglerDepot(d, b, 'x'),
@@ -1075,11 +1181,11 @@ test('une BORNE ABSENTE : `null` (ou `absent`, `false`) pour une question qui le
     const d = depotDe(racine, { env: envDeDepotForge(), enPanne: (r) => pannes.push(r) })
     const F = 'f'.repeat(40)
     const attendus = {
-      shasDe: null, journalDe: null, combienDe: null, divergenceDe: null, baseCommune: null, shaDe: null,
+      shasDe: null, journalDe: null, combienDe: null, divergenceDe: null, baseCommune: null, shaDe: null, parentsDe: null,
       estAncetre: { disponible: true, absent: true }, estDansHead: false,
     }
     const questions = Object.entries(gestesALaBorne(d, F)).filter(([nom]) => !/^(initialiserDepot|reglerDepot|poserRef|fusionner|ajouterWorktree|supprimerBranche|pousser|fetchOrigin)/.test(nom))
-    assert.equal(questions.length, 16)
+    assert.equal(questions.length, 17)
     for (const [nom, question] of questions) {
       if (nom in attendus) assert.deepEqual(question(), attendus[nom], nom)
       else assert.throws(question, (e) => e instanceof BorneAbsente && e.bornes.includes(F), nom)

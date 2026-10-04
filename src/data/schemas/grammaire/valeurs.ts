@@ -13,7 +13,7 @@ import { listeCle, marquerCollection, marqueDeListe } from './collection-cle';
 import { estEspeceDessinee, messageDEspeceInconnue, sexeDeCoiffure } from './art';
 import { libelleDeValeur } from './meta';
 import { descendre } from './descente';
-import { estGraphieDeChapitre } from '../../source/decoupe';
+import { MAX_FRAGMENTS, estGraphieDeChapitre } from '../../source/decoupe';
 
 /**
  * ENUM NOMMÉ (#1694) — la FABRIQUE d'un univers fermé dont chaque valeur porte son libellé FR SUR LE
@@ -254,11 +254,11 @@ export function adresseUnPassage(ref: unknown): boolean {
 
 /**
  * ADRESSE DE PROSE (#1389, épique #1388 §2.2) — ce qu'une entrée porte À LA PLACE de la prose
- * recopiée du livre : le livre, le chapitre, et jusqu'à TROIS fragments d'un même chapitre.
+ * recopiée du livre : le livre, le chapitre, et jusqu'à `MAX_FRAGMENTS` fragments d'un même chapitre.
  *
  * Les verrous sont STRUCTURELS : un seul chapitre par construction (`ch` est à la racine), au plus
- * trois fragments (un montage plus long n'est plus une citation mais une réécriture), et chaque
- * fragment porte son empreinte `sum` — sans elle, une ré-extraction du livre changerait le texte
+ * `MAX_FRAGMENTS` fragments (un montage plus long n'est plus une citation mais une réécriture), et
+ * chaque fragment porte son empreinte `sum` — sans elle, une ré-extraction du livre changerait le texte
  * rendu en silence. Les verrous de COHÉRENCE (exclusivité avec `desc`, résolubilité du livre,
  * accord avec `source`) vivent dans `grammaire/prose.ts`, avec le champ qui les porte.
  */
@@ -273,7 +273,7 @@ export const descRefSchema = z
     ch: z.string().refine(estGraphieDeChapitre, {
       message: 'adresse de prose : `ch` est la graphie d’un numéro de CHAPITRE — des chiffres, deux au minimum, et pas `00` (l’index n’est pas un chapitre).',
     }),
-    parts: z.array(z.discriminatedUnion('kind', [fragmentBlocsSchema, fragmentCelluleSchema])).min(MIN_FRAGMENTS).max(3),
+    parts: z.array(z.discriminatedUnion('kind', [fragmentBlocsSchema, fragmentCelluleSchema])).min(MIN_FRAGMENTS).max(MAX_FRAGMENTS),
   })
   .superRefine((v, ctx) => {
     v.parts.forEach((p, i) => {

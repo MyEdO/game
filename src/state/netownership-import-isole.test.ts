@@ -13,59 +13,32 @@
  */
 import { describe, it, expect } from 'vitest';
 import { spawnSync } from 'node:child_process';
-import { readFileSync, existsSync } from 'node:fs';
-import { dirname, join, resolve, relative } from 'node:path';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import ts from 'typescript';
+import { arcsDe, estModule, sourceALExecution } from '../../scripts/guards/lib/importGraph.mjs';
+import { canoniser } from '../../scripts/docs/lib/chemin-mesure.mjs';
 
 const RACINE = fileURLToPath(new URL('../..', import.meta.url));
 const ENTREE = join(RACINE, 'src', 'state', 'netOwnership.ts');
 const LOURD = join(RACINE, 'src', 'state', 'combatOrParty.ts');
 const STORE = join(RACINE, 'src', 'state', 'store.ts');
 
-/**
- * Specifiers d'un module chargés À L'EXÉCUTION, lus sur l'AST TypeScript — un `import`/`export … from`
- * qui n'est pas `type`, et les `import()` DYNAMIQUES. L'AST est indispensable ici : une lecture par
- * regex confond `import('./x').T` (position de TYPE, `ImportTypeNode`, effacé) avec un vrai
- * `await import('./x')` (`CallExpression`) — mesuré sur `pendings.ts`, qui type un champ par
- * `import('./restFlow').PendingRest` et paraissait donc charger tout le graphe de voyage.
- * Un `import { type A } from 'x'` non marqué `type` AU NIVEAU DE LA CLAUSE compte comme runtime :
- * le module y est bien évalué pour ses effets de bord.
- */
-function specifiersRuntime(fichier: string): string[] {
-  const sf = ts.createSourceFile(fichier, readFileSync(fichier, 'utf8'), ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
-  const out: string[] = [];
-  const litt = (n: ts.Node | undefined): void => { if (n && ts.isStringLiteral(n)) out.push(n.text); };
-  const walk = (n: ts.Node): void => {
-    if (ts.isImportDeclaration(n) && !n.importClause?.isTypeOnly) litt(n.moduleSpecifier);
-    else if (ts.isExportDeclaration(n) && !n.isTypeOnly) litt(n.moduleSpecifier);
-    else if (ts.isCallExpression(n) && n.expression.kind === ts.SyntaxKind.ImportKeyword) litt(n.arguments[0]);
-    ts.forEachChild(n, walk);
-  };
-  walk(sf);
-  return out;
-}
-
-/** Résout un specifier RELATIF vers un fichier du dépôt ; `undefined` pour un paquet npm (hors sujet). */
-function resoudre(depuis: string, spec: string): string | undefined {
-  if (!spec.startsWith('.')) return undefined;
-  const base = resolve(dirname(depuis), spec);
-  for (const c of [`${base}.ts`, `${base}.tsx`, `${base}.json`, join(base, 'index.ts'), join(base, 'index.tsx'), base]) {
-    if (/\.(ts|tsx|json)$/.test(c) && existsSync(c)) return c;
-  }
-  return undefined;
-}
+const cheminCanonique = (fichier: string) => canoniser(fichier).replace(/\\/g, '/');
 
 /** Chemin d'import RUNTIME de `depuis` vers `cible`, ou `null` s'il n'y en a pas (BFS = le plus court). */
 function chemin(depuis: string, cible: string): string[] | null {
+  depuis = cheminCanonique(depuis);
+  cible = cheminCanonique(cible);
   const vus = new Map<string, string[]>([[depuis, [depuis]]]);
   const file = [depuis];
   while (file.length) {
     const f = file.shift()!;
-    if (f.endsWith('.json')) continue;
-    for (const spec of specifiersRuntime(f)) {
-      const suiv = resoudre(f, spec);
-      if (!suiv || vus.has(suiv)) continue;
+    if (!estModule(f)) continue;
+    for (const arc of arcsDe(f, sourceALExecution(f, readFileSync(f, 'utf8')))) {
+      const suiv = cheminCanonique(arc.cible);
+      if (vus.has(suiv)) continue;
       const route = [...vus.get(f)!, suiv];
       if (suiv === cible) return route;
       vus.set(suiv, route);
@@ -78,6 +51,34 @@ function chemin(depuis: string, cible: string): string[] | null {
 const lisible = (route: string[] | null) => route?.map((f) => relative(RACINE, f).replace(/\\/g, '/')) ?? null;
 
 describe('#1054 — `netOwnership` s’importe SEUL', () => {
+  it('le BFS suit require et import dynamique, efface les types et rend le chemin le plus court', () => {
+    const racine = mkdtempSync(join(tmpdir(), 'netownership-bfs-'));
+    try {
+      const fichier = (nom: string) => join(racine, `${nom}.ts`);
+      const route = (...noms: string[]) => noms.map((nom) => cheminCanonique(fichier(nom)));
+      writeFileSync(fichier('entree'), [
+        "require('./court');",
+        "import './long';",
+        "import('./dynamique');",
+        "import type { T } from './typeExplicite';",
+        "import { U } from './typeImplicite';",
+        'let u: U;',
+      ].join('\n'));
+      writeFileSync(fichier('long'), "import './pont';");
+      writeFileSync(fichier('pont'), "import './cible';");
+      writeFileSync(fichier('court'), "require('./cible');");
+      writeFileSync(fichier('dynamique'), "import('./finDynamique');");
+      for (const nom of ['cible', 'finDynamique', 'typeExplicite', 'typeImplicite'])
+        writeFileSync(fichier(nom), 'export type T = number; export type U = number;');
+      expect(chemin(fichier('entree'), fichier('cible'))).toEqual(route('entree', 'court', 'cible'));
+      expect(chemin(fichier('entree'), fichier('finDynamique'))).toEqual(route('entree', 'dynamique', 'finDynamique'));
+      expect(chemin(fichier('entree'), fichier('typeExplicite'))).toBeNull();
+      expect(chemin(fichier('entree'), fichier('typeImplicite'))).toBeNull();
+    } finally {
+      rmSync(racine, { recursive: true, force: true });
+    }
+  });
+
   it('(a) chemin RÉEL : un process qui importe le module seul sort 0 et lit la table', () => {
     const r = spawnSync(
       process.execPath,

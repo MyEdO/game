@@ -263,9 +263,6 @@ describe('RÉVÉLATION en cours de partie — la vue se re-cadre pour que le lie
   });
 });
 
-/** Identifiants générés par `useId` (React 18 : `:r…:`) : propres à chaque montage, hors du rendu jugé. */
-const sansIdsGeneres = (html: string): string => html.replace(/:r[0-9a-z]+:/g, ':id:');
-
 describe('non-régression — un paquet RÉEL sans `when` rend à l’identique avec et sans gating', () => {
   it('loup-et-saumure : le rendu est le même que le flag narratif soit posé ou non', async () => {
     const map = parseProject(loupEtSaumureProjet as unknown).worldMap!;
@@ -273,14 +270,18 @@ describe('non-régression — un paquet RÉEL sans `when` rend à l’identique 
 
     useGame.setState({ worldMap: map, flags: {} });
     await monter({ hereSceneId: premier.scene });
-    const nu = sansIdsGeneres(container.innerHTML);
+    const nu = container.innerHTML;
 
-    await act(async () => root.unmount());
-    root = createRoot(container);
-    useGame.setState({ worldMap: map, flags: { 'un-flag-quelconque': true } });
-    await monter({ hereSceneId: premier.scene });
+    await act(async () => useGame.setState({ flags: { 'un-flag-quelconque': true } }));
 
-    expect(sansIdsGeneres(container.innerHTML)).toBe(nu);
+    expect(container.innerHTML).toBe(nu);
+    for (const el of container.querySelectorAll('[aria-labelledby], [aria-describedby]')) {
+      for (const attr of ['aria-labelledby', 'aria-describedby']) {
+        for (const id of (el.getAttribute(attr) ?? '').split(/\s+/).filter(Boolean)) {
+          expect(document.getElementById(id), `lien ${attr} vers ${id}`).not.toBeNull();
+        }
+      }
+    }
     for (const p of map.places) expect(container.textContent).toContain(p.label);
   });
 });

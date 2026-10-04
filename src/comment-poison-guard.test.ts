@@ -972,13 +972,6 @@ const TEST_DECISION_SITES: BaselineEntry[] = [
     date: '2026-08-17',
   },
   {
-    fichier: 'src/ui/saveload-message-obsolete.test.tsx',
-    motif: 'message joueur d’une save jetée',
-    ancre: 'arbitrage utilisateur 2026-08-17 : une save',
-    raison: 'même verbatim, même fiche mémoire : l’écran doit DIRE le rejet que l’arbitrage ordonne',
-    date: '2026-08-17',
-  },
-  {
     fichier: 'src/data/schemas/defs-scenes/projet-schema.test.ts',
     motif: 'identité requise d’un projet (#1552)',
     ancre: 'arbitrage utilisateur 2026-08-31 (AskUser, verbatim choisi)',

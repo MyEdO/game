@@ -287,7 +287,7 @@ const doc = document(
     edit: { dataset: 'trappings' },
   },
   // `categorie` : univers des sources `weaponsMelee`/`weaponsRanged` (`grammaire/sourcesDeSpecs.ts`).
-  // `service` : exclu de `merchants.json › curated` (`defs/merchants.ts`, `idDe` `horsMarqueur`).
+  // `service` : marqueur de la sous-liste `INSTANCIABLE_PAR_ID` (`grammaire/sousListes.ts`).
   { exiges: ['source'], espace: { discriminant: 'categorie', marqueurs: ['service'] } },
 );
 
