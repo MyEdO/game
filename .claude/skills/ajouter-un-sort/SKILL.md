@@ -8,5 +8,5 @@ description: À utiliser quand on ajoute ou cure un sort (effets, métadonnées 
 Lire **`docs/ajouter-un-sort.md`** — tout vit en DONNÉE (`spells.json` : desc VERBATIM du Source
 règle stricte 5, effets en Flow/GameOp[], métadonnées de résolution) ; la classification
 mécanique/partiel/narratif vient de `spellSupport` (`engine/spellspec.ts`). Tableau de bord :
-`docs/sorts-implementation.md` (auto-généré — régénérer via `scripts/gen-sorts-doc.mts` après
+`docs/sorts-implementation.md` (auto-généré — régénérer via `npm run docs:sorts` après
 curation, jamais éditer à la main).

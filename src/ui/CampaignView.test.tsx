@@ -1,10 +1,5 @@
 // @vitest-environment jsdom
-/**
- * #1176 — le lacet de caméra est LIBRE : l'appui bref pousse d'un PAS FIN, la touche TENUE fait
- * tourner en continu, et une perte de focus (Alt-Tab, onglet caché) arrête tout net.
- * Monté pour de VRAI (patron `createRoot`/`act` du repo) : c'est l'ÉCRAN qui est jugé, pas le prédicat
- * — la pure mécanique du lacet, elle, vit dans `src/state/lacet-libre.test.ts`.
- */
+/** #1176 */
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
@@ -57,17 +52,10 @@ beforeEach(() => {
 });
 
 describe('CampaignView — plus aucun interrupteur de voie de rendu à l’écran (#1176 C5a)', () => {
-  it('ni hors POV, ni en POV : le jeu n’a qu’un monde', () => {
-    for (const pov of [false, true]) {
-      const el = monter(pov);
-      expect(el.querySelector('[aria-label="Monde volumique (DEV)"]')).toBeNull();
-      expect(el.querySelector('[aria-label="Monde en couches SVG (DEV)"]')).toBeNull();
-      act(() => { root.unmount(); });
-      host.remove();
-      host = document.createElement('div'); // l'`afterEach` démonte le dernier montage
-      document.body.appendChild(host);
-      root = createRoot(host);
-    }
+  it.each([false, true])('POV=%s : le jeu n’a qu’un monde', (pov) => {
+    const el = monter(pov);
+    expect(el.querySelector('[aria-label="Monde volumique (DEV)"]')).toBeNull();
+    expect(el.querySelector('[aria-label="Monde en couches SVG (DEV)"]')).toBeNull();
   });
 });
 

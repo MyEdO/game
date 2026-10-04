@@ -836,7 +836,8 @@ sert d'arbitre — jamais comme source de la donnée affichée, qui reste recoll
   invisibles à la garde ; ils se tranchent à la page, pas au stock.
   `npx tsx scripts/guards/lib/regenStock.mts scripts/raw/check-source-puces.mjs` régénère le stock après une correction.
 - `node scripts/raw/check-renvois.mjs` (#1393) — les renvois « page N » du texte, résolus en ADRESSE
-  par `src/data/source/renvoi.ts` (niveaux `table`, `section-adjacente`, `section-phrase`, `page`),
+  par `src/data/source/renvoi.ts` (niveaux `table`, `section-adjacente`, `section-englobante` — aucun
+  titre dans la clause, un seul titre du folio la CONTIENT, plusieurs → `ambigu` —, `section-phrase`, `page`),
   pour tout livre extrait dont la `language` a ses motifs (`MOTIFS_DE_RENVOI`, construits par comptage
   du corpus — une langue neuve se mesure avant de s'y ajouter). Stock nominatif décroissant
   `scripts/raw/renvois-stock.json` : les renvois `ambigu` et `introuvable`, clé

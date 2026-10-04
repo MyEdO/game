@@ -165,11 +165,13 @@ test('motifDeCitation : un nom du manifeste en mot entier après `/`, ou un spé
   assert.equal(motifDeCitation([{ id: 'sans-fichier' }]), null)
 })
 
-test('le refus nomme chaque écart, le commit, et le geste `rebase -i` sur une plage', () => {
+test('le refus nomme chaque écart, le commit, et le geste de sa sorte sur une plage — jamais `rebase -i`', () => {
   const ecarts = ecartsDeReclassement([{ module: Q, identite: 3, espacement: 1, n: 4 }], [{ fichier: P, n: 2 }])
   const raison = raisonDeRefusDeReclassement([{ sha: 'c1aaaaaaaaaa', ecarts }])
   assert.match(raison, /c1aaaaaaa src\/ui\/styles\/ecran-q\.css : franchi au prix 4, aucune ligne, src\/ui\/styles\/prim-p\.css : ligne `\+2` sans franchissement/)
-  assert.match(raison, /git rebase -i/)
+  assert.match(raison, /commit simple : `git commit --amend` s’il est la tête/)
+  assert.doesNotMatch(raison, /rebase -i|FUSION/)
+  assert.match(raisonDeRefusDeReclassement([{ sha: 'c3cccccccccc', fusion: true, ecarts }]), /c3ccccccc \(fusion\) .*FUSION : `git commit --amend` de la fusion si elle est la tête ; sinon refaire la fusion/)
   assert.match(raison, /quittent le stock \(xxi\)/)
   assert.match(raisonDeRefusDeReclassement([{ sha: 'c2bbbbbbbbbb', illisible: 'manifeste illisible' }]), /c2bbbbbbb injugeable : manifeste illisible/)
   assert.doesNotMatch(raisonDeRefusDeReclassement([{ ecarts }]), /rebase/)

@@ -217,17 +217,18 @@ export const OPTIONS_DE_L_HOTE = Object.freeze([
 const MARQUE_DEPOT = Symbol('Depot')
 
 /** L'état de chaque DÉPÔT (`depotDe`), privé : son lanceur, et la version de git lue une fois
- *  (`exigerMergeTree`). L'appelant d'une question ne tient jamais git. */
+ *  (`exigerMergeTree`) hors fournisseur d'environnement. L'appelant d'une question ne tient jamais git. */
 const lanceurs = new WeakMap()
 
 /**
  * Le DÉPÔT git de `cwd` : une poignée OPAQUE que chaque question et chaque écrivain de l'hôte prend
  * en premier paramètre ; la commande, ses drapeaux et sa forme restent à l'hôte. `env` : l'environnement
- * du processus (`envDeDepotForge`, `depotGabarit.mjs`), celui du parent par défaut ; `spawn`/`attendre` :
+ * du processus (`envDeDepotForge`, `depotGabarit.mjs`), objet ou fournisseur synchrone résolu une fois
+ * par interrogation, celui du parent par défaut ; `spawn`/`attendre` :
  * injectables (mesure) ; `enPanne(raison)` : sans lui, une INDISPONIBILITÉ JETTE (`GitIndisponible`),
  * avec lui la lecture la lui confie et rend `null`.
  * @param {string} cwd
- * @param {{ env?: NodeJS.ProcessEnv, spawn?: Function, attendre?: Function, enPanne?: (raison: string) => void }} [opts]
+ * @param {{ env?: NodeJS.ProcessEnv | (() => NodeJS.ProcessEnv), spawn?: Function, attendre?: Function, enPanne?: (raison: string) => void }} [opts]
  * @returns {Depot}
  */
 export function depotDe(cwd, { env, spawn, attendre, enPanne } = {}) {
@@ -292,9 +293,16 @@ function feinteDeGit(env, argv, site, journal = process.stderr) {
  *  lecture, `[]` pour un écrivain, qui garde la configuration de l'utilisateur. */
 function interroger(depot, args, { entree, timeout, options = OPTIONS_DE_L_HOTE } = {}) {
   const { cwd, env, spawn, attendre } = lanceurDe(depot)
+  const fournisseur = typeof env === 'function'
+  const environnement = fournisseur ? env() : env
+  if (fournisseur && (typeof environnement?.then === 'function'
+    || Object.prototype.toString.call(environnement) !== '[object Object]'
+    || Object.values(environnement).some((valeur) => valeur !== undefined && typeof valeur !== 'string'))) {
+    throw new TypeError('gitPorte : fournisseur env — un objet environnement synchrone est attendu, sans promesse ni valeur absente ou invalide')
+  }
   const argv = [...options, ...args]
   const site = `git ${args[0]}`
-  const vu = feinteDeGit(env ?? process.env, argv, site) ?? lancer('git', argv, { cwd, env, spawn, attendre, entree, timeout, site })
+  const vu = feinteDeGit(environnement ?? process.env, argv, site) ?? lancer('git', argv, { cwd, env: environnement, spawn, attendre, entree, timeout, site })
   return classer(vu, { cwd })
 }
 
@@ -601,8 +609,9 @@ const GIT_MERGE_TREE = Object.freeze([2, 40])
  */
 function exigerMergeTree(depot) {
   const etat = lanceurDe(depot)
-  if (etat.version === undefined) etat.version = lire(depot, ['version'])
-  const brut = etat.version
+  const fournisseur = typeof etat.env === 'function'
+  if (!fournisseur && etat.version === undefined) etat.version = lire(depot, ['version'])
+  const brut = fournisseur ? lire(depot, ['version']) : etat.version
   const m = /(\d+)\.(\d+)/.exec(String(brut ?? ''))
   const exige = GIT_MERGE_TREE.join('.')
   if (!m) throw new GitIndisponible(`version de git illisible (« ${String(brut ?? '').trim()} ») : git merge-tree --write-tree --stdin exige git ${exige}`)
@@ -645,7 +654,18 @@ function baseDuCommit(depot, sha) {
   const [, ...parents] = ligne.trim().split(/\s+/)
   if (parents.length === 0) return arbreVide(depot)
   if (parents.length === 1) return parents[0]
-  if (parents.length > 2) throw new GitIndisponible(`fusion ${sha.slice(0, 9)} à ${parents.length} parents : aucune fusion automatique ne rejoue sa base`)
+  return fusionAutomatique(depot, parents, `fusion ${sha.slice(0, 9)}`)
+}
+
+/**
+ * La FUSION AUTOMATIQUE de deux `parents` : l'arbre que git fusionne TOUT SEUL (`baseDuCommit`), `null`
+ * quand git ne le rend pas. `nom` nomme la fusion dans la levée.
+ * @param {Depot} depot @param {string[]} parents @param {string} nom
+ * @returns {string | null}
+ * @throws {GitIndisponible} plus de deux parents, ou git plus ancien que `GIT_MERGE_TREE`.
+ */
+function fusionAutomatique(depot, parents, nom) {
+  if (parents.length > 2) throw new GitIndisponible(`${nom} à ${parents.length} parents : aucune fusion automatique ne rejoue sa base`)
   exigerMergeTree(depot)
   const vide = arbreVide(depot)
   if (!vide) return null
@@ -719,6 +739,18 @@ const RIEN = Object.freeze({
 export function ceQueFaitLeCommit(depot, sha) {
   const base = baseDuCommit(depot, sha)
   return base ? changeEntre(depot, base, sha) : RIEN
+}
+
+/**
+ * CE QUE FAIT LA FUSION EN COURS : ce qui change de la fusion automatique de ses `parents` (HEAD puis
+ * `fusionnesEnCours`, `fusionAutomatique`) à l'image `apres` qui la conclut (`INDEX` ou `SUIVI`) — la
+ * lecture de `ceQueFaitLeCommit` d'une fusion, avant que son commit existe. Base `null` : tout est vide.
+ * @param {Depot} depot @param {string[]} parents @param {string} apres
+ * @throws {GitIndisponible} propagée de `fusionAutomatique`.
+ */
+export function ceQueFaitLaFusionEnCours(depot, parents, apres) {
+  const base = fusionAutomatique(depot, parents, 'fusion en cours')
+  return base ? changeEntre(depot, base, apres) : RIEN
 }
 
 /**
