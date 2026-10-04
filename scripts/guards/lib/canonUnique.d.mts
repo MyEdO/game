@@ -1,5 +1,17 @@
 import type ts from 'typescript';
 import type { CorpusFile } from './sourceCorpus.mjs';
+import type { sitesDeModule, liaisonsDe } from './importGraph.mjs';
+
+export interface ContexteImports {
+  readonly source: ts.SourceFile;
+  readonly sites: () => ReturnType<typeof sitesDeModule>;
+  readonly liaisons: () => ReturnType<typeof liaisonsDe>;
+  readonly liaisonsDuNom: (nom: string) => ReturnType<typeof liaisonsDe>;
+  readonly checker: () => ts.TypeChecker;
+  readonly module: (spec: string) => string | null;
+}
+
+export function contexteImports(sf: ts.SourceFile): ContexteImports;
 
 /** Fichier lu, tel que rendu par `readCorpus` (`sourceCorpus.mjs`) ou fabriqué par une fixture. */
 type FichierLu = Pick<CorpusFile, 'rel' | 'text'>;
@@ -10,7 +22,7 @@ export interface Construction {
   /** Faux quand la construction ne peut pas apparaître dans le texte du fichier : le scan ne parse pas. */
   readonly indice?: (texte: string) => boolean;
   /** La phrase de la trouvaille sur ce nœud, ou `null`. */
-  readonly reconnait: (noeud: ts.Node, sf: ts.SourceFile) => string | null;
+  readonly reconnait: (noeud: ts.Node, sf: ts.SourceFile, contexte: ContexteImports) => string | null;
 }
 
 /** Construction DÉCLARÉE : sa mécanique et son périmètre, lu par `sAppliqueA` (`sourceCorpus.mjs`). */
@@ -47,11 +59,13 @@ export function constructionDeFragment(p: {
   designationLiee?: readonly string[];
   constructeurs: Readonly<Record<string, readonly string[]>>;
 }): Construction & { readonly indice: (texte: string) => boolean };
-export function origineImportee(identifiant: string, sf: ts.SourceFile): { module: string; nom: string } | null;
+export function origineImportee(identifiant: string, sf: ts.SourceFile, contexte: ContexteImports): { module: string; nom: string } | null;
+export function liaisonImportee(occurrence: ts.Identifier, sf: ts.SourceFile, contexte: ContexteImports): { spec: string; nom: string } | null;
 export function estAppelDeclare(
   appel: ts.CallExpression,
   sf: ts.SourceFile,
   fonctions: Readonly<Record<string, readonly string[]>>,
+  contexte: ContexteImports,
 ): string | null;
 export function tableDesExports(fichiers: readonly FichierLu[], noms: Iterable<string>): Record<string, string[]>;
 export function cleEnLigne(p: {
