@@ -18,6 +18,7 @@ import {
   validateRefFile,
   evaluateAntiEsquive,
   evaluatePorteDuTicket,
+  valeurParametre,
   argumentChaine,
   messagesDesCommits,
   analyzeDiffDuCommit,
@@ -3557,4 +3558,18 @@ test('garde.evaluer : une panne de lecture git portée par `contexte.pannes` est
   } finally {
     rmSync(racine, { recursive: true, force: true })
   }
+})
+
+test('valeurParametre : le nom EXACT gagne, un préfixe strict ambigu est refusé, la casse est libre', () => {
+  const noms = ['Query', 'QueryDialect', 'Filter']
+  const args = (p) => [p, 'v']
+  assert.equal(valeurParametre(args('-Query'), 'Query', noms), 'v')
+  assert.equal(valeurParametre(args('-QUERY'), 'Query', noms), 'v')
+  assert.equal(valeurParametre(args('-query'), 'Query', noms), 'v')
+  assert.equal(valeurParametre(args('-Quer'), 'Query', noms), '')
+  assert.equal(valeurParametre(args('-Quer'), 'QueryDialect', noms), '')
+  assert.equal(valeurParametre(args('-QueryD'), 'QueryDialect', noms), 'v')
+  assert.equal(valeurParametre(args('-QueryD'), 'Query', noms), '')
+  assert.equal(valeurParametre(args('-querydialect'), 'QueryDialect', noms), 'v')
+  assert.equal(valeurParametre(args('-Fil'), 'Filter', noms), 'v')
 })

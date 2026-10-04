@@ -219,6 +219,71 @@ test('PASSE : `kill -n <signal>`, `pkill -P <pid>` sans motif, et toute simulati
   ]) assert.ok(tue(cmd).includes(graphie), `${cmd} : le refus nomme « ${graphie} »`)
 })
 
+// Seconde sonde du juge de diff #2173, promue (D1 à D4).
+test('DENY : Remove-CimInstance en aval d\'un listeur, et l\'arrêt CIM qui porte sa propre requête Win32_Process', () => {
+  for (const [cmd, graphie] of [
+    ["Get-CimInstance -ClassName Win32_Process -Filter \"Name='node.exe'\" | Remove-CimInstance", 'Get-CimInstance … | Remove-CimInstance'],
+    ['gcim Win32_Process | ? Name -eq node.exe | rcim', 'gcim … | rcim'],
+    ["Remove-CimInstance -Query \"SELECT * FROM Win32_Process WHERE Name='node.exe'\"", 'Remove-CimInstance Win32_Process'],
+    ["rcim -Query \"SELECT * FROM Win32_Process\"", 'rcim Win32_Process'],
+    ["Invoke-CimMethod -Query \"SELECT * FROM Win32_Process WHERE Name='node.exe'\" -MethodName Terminate", 'Invoke-CimMethod Win32_Process'],
+    ["Get-CimInstance -Query \"SELECT * FROM Win32_Process WHERE Name='node.exe'\" | Invoke-CimMethod -MethodName Terminate", 'Get-CimInstance … | Invoke-CimMethod'],
+    ["Get-WmiObject -Query \"SELECT * FROM Win32_Process WHERE Name='node.exe'\" | Remove-WmiObject", 'Get-WmiObject … | Remove-WmiObject'],
+  ]) assert.ok(tue(cmd).includes(graphie), `${cmd} : le refus nomme « ${graphie} »`)
+})
+
+test('PASSE : l\'arrêt CIM/WMI borné à un PID par -Filter ou -Query, une autre méthode, une simulation', () => {
+  for (const cmd of [
+    'Get-CimInstance Win32_Process -Filter "ProcessId=1234" | Remove-CimInstance',
+    'Get-WmiObject -Query "SELECT * FROM Win32_Process WHERE ProcessId = 1234" | Remove-WmiObject',
+    'Remove-CimInstance -Query "SELECT * FROM Win32_Process WHERE ProcessId=1234"',
+    'Invoke-CimMethod -Query "SELECT * FROM Win32_Process WHERE ProcessId=1234" -MethodName Terminate',
+    'Get-CimInstance -Query "SELECT * FROM Win32_Process WHERE ProcessId=1234" | Invoke-CimMethod -MethodName Terminate',
+    "Invoke-CimMethod -Query \"SELECT * FROM Win32_Process WHERE Name='node.exe'\" -MethodName GetOwner",
+    "Remove-CimInstance -Query \"SELECT * FROM Win32_Process WHERE Name='node.exe'\" -WhatIf",
+  ]) assert.equal(evaluate(cmd), null, cmd)
+})
+
+test('DENY : un arrêt sans PID littéral alimenté par un tube (ps -W, tasklist, Get-Process), et `kill -n <nom>`', () => {
+  for (const [cmd, graphie] of [
+    ["ps -W | grep node | awk '{print $1}' | xargs -I{} taskkill //F //PID {}", 'ps … | taskkill'],
+    ['tasklist //FO CSV | grep node | cut -d, -f2 | xargs -n1 taskkill //F //PID', 'tasklist … | taskkill'],
+    ['tasklist | findstr node | xargs taskkill //F //PID $p', 'tasklist … | taskkill'],
+    ["ps -W | grep node | awk '{print $1}' | xargs kill -f", 'ps … | kill'],
+    ['Get-Process node | Select-Object -ExpandProperty Id | Stop-Process', 'Get-Process … | Stop-Process'],
+    ['kill -n TERMINATOR 1', 'kill -Name'],
+  ]) assert.ok(tue(cmd).includes(graphie), `${cmd} : le refus nomme « ${graphie} »`)
+})
+
+test('PASSE : taskkill à PID littéral derrière un tube, tasklist borné à un PID, un listeur seul', () => {
+  for (const cmd of [
+    "ps -W | grep node | awk '{print $1}' | xargs -I{} taskkill //F //PID 1234",
+    'tasklist //FI "PID eq 1234" | xargs -n1 taskkill //F //PID',
+    'tasklist //FO CSV | grep node', 'ps -W | grep node', 'taskkill //PID $pid //F',
+    'tasklist //FI "IMAGENAME eq node.exe" //FI "PID eq 1234" | xargs taskkill //F //PID',
+  ]) assert.equal(evaluate(cmd), null, cmd)
+})
+
+test('DENY : pkill par parent quand le parent est le PID 1 ; PASSE pour tout autre parent', () => {
+  for (const cmd of ['pkill -P 1', 'pkill -P1', 'pkill --parent=1', 'pkill --parent 1', 'pkill -9 -P 1234,1']) {
+    assert.ok(tue(cmd).includes('pkill'), cmd)
+  }
+  for (const cmd of ['pkill -P1234', 'pkill --parent=1234', 'pkill --parent 1234', 'pkill -P 1234,5678']) {
+    assert.equal(evaluate(cmd), null, cmd)
+  }
+})
+
+test('DENY : wmic dont la clause where, lue en entier, ne se réduit pas à un PID ; PASSE sinon', () => {
+  for (const cmd of [
+    "wmic process where processid=1234 or name='node.exe' delete",
+    "wmic process where \"processid=1234 or name='node.exe'\" call terminate",
+  ]) assert.ok(tue(cmd).includes('wmic process'), cmd)
+  for (const cmd of [
+    'wmic process where processid=1234 delete', 'wmic process where "processid = 1234" call terminate',
+    'wmic process where (processid=1234) delete', 'wmic process 1234 delete',
+  ]) assert.equal(evaluate(cmd), null, cmd)
+})
+
 // Sonde du juge de diff #2173, promue.
 test('PASSE : les faux positifs de la sonde du juge', () => {
   for (const cmd of [
