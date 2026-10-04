@@ -27,6 +27,12 @@ const PRODUCTEUR = [
   'function voisin() { function produire() { return []; } }',
 ].join('\n')
 
+function ligneAncree(texte, ancre) {
+  const lignes = texte.split('\n').flatMap((ligne, i) => ligne.startsWith(ancre) ? [i + 1] : [])
+  assert.equal(lignes.length, 1, `ancre absente ou ambiguë : ${ancre}`)
+  return lignes[0]
+}
+
 function trauma({ importee = "import { produire } from './source';", appel = 'produire', local = '', masque = false } = {}) {
   return [
     importee,
@@ -102,9 +108,10 @@ for (const [famille, chemin, entete] of [
     jouer(fichiers(tr, { [chemin]: PRODUCTEUR }), (sortie) => {
       const doc = documentDe(sortie)
       const nom = alias ? '`produire` (appelé `emettre`)' : '`produire`'
-      assert.ok(doc.includes(`| ${nom} | \`${chemin}:2\` | Produit la source canonique. |`))
+      const ligneProducteur = ligneAncree(PRODUCTEUR, 'export function produire')
+      assert.ok(doc.includes(`| ${nom} | \`${chemin}:${ligneProducteur}\` | Produit la source canonique. |`))
       assert.ok(!doc.includes('Source imbriquée indésirable.'))
-      const ligne = tr.split('\n').findIndex((l) => l.includes(`...${alias ? 'emettre' : 'produire'} (`)) + 1
+      const ligne = ligneAncree(tr, `  out.push(...${alias ? 'emettre' : 'produire'} (`)
       assert.ok(doc.includes(`| \`src/engine/trauma.ts:${ligne}\` | — | \`${alias ? 'emettre' : 'produire'}\` |`))
       assert.match(doc, /3 membres/)
       assert.match(doc, /5 branches/)
@@ -117,7 +124,7 @@ test('producteur local : une déclaration imbriquée homonyme ne remplace pas ce
   const tr = trauma({ importee: '', local: PRODUCTEUR })
   jouer(fichiers(tr, {}), (sortie) => {
     const doc = documentDe(sortie)
-    const ligne = tr.split('\n').findIndex((l) => l.startsWith('export function produire')) + 1
+    const ligne = ligneAncree(tr, 'export function produire')
     assert.ok(doc.includes(`| \`produire\` | \`src/engine/trauma.ts:${ligne}\` | Produit la source canonique. |`))
   })
 })
@@ -125,7 +132,8 @@ test('producteur local : une déclaration imbriquée homonyme ne remplace pas ce
 test('producteur variable nommé : citation de la déclaration de module', () => {
   const source = '/** Produit une variable canonique. */\nexport const produire = () => [];\n'
   jouer(fichiers(trauma(), { 'src/engine/source.ts': source }), (sortie) => {
-    assert.ok(documentDe(sortie).includes('| `produire` | `src/engine/source.ts:2` | Produit une variable canonique. |'))
+    const ligne = ligneAncree(source, 'export const produire')
+    assert.ok(documentDe(sortie).includes(`| \`produire\` | \`src/engine/source.ts:${ligne}\` | Produit une variable canonique. |`))
   })
 })
 
@@ -152,7 +160,8 @@ for (const prive of [false, true]) {
       assert.ok(symbole.flags & ts.SymbolFlags.Alias)
       assert.equal(checker.getAliasedSymbol(symbole).declarations[0], sf.statements[0])
       const doc = documentDe(sortie)
-      assert.ok(doc.includes(`| \`interne\` (appelé \`produire\`${prive ? ', `emettre`' : ''}) | \`src/engine/source.ts:2\` | Source interne canonique. |`))
+      const ligne = ligneAncree(source, 'function interne')
+      assert.ok(doc.includes(`| \`interne\` (appelé \`produire\`${prive ? ', `emettre`' : ''}) | \`src/engine/source.ts:${ligne}\` | Source interne canonique. |`))
       assert.ok(!doc.includes('Privé homonyme indésirable.'))
     })
   })
