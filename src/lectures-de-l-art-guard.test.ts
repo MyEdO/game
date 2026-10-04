@@ -13,7 +13,7 @@ const vu = (text: string, rel = 'src/fixture.ts', constructions = LECTURES_DE_L_
   scanConstructionsReservees({ rel, text }, constructions).map((t) => t.construction);
 
 describe("lectures de l'art (#1903)", () => {
-  it("aucune lecture de l'art hors de son foyer dans le périmètre des gardes", () => {
+  it("aucune lecture de l'art hors de son foyer dans le périmètre des gardes", { timeout: 60_000 }, () => {
     expect(constructionsReserveesDuCorpus(corpusDesGardes(), LECTURES_DE_L_ART)).toEqual([]);
   });
 

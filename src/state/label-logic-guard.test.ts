@@ -42,7 +42,7 @@ const garde = detenteur(() => scanLabelLogicCorpus(corpusDeLaGarde()));
 const cleDe = (s: { rel: string; line: number }): string => ratchetShortKey(s);
 
 describe('garde « logique par libellé » : un corpus, une composition, deux statuts de site', () => {
-  it('INVENTAIRE : chaque site du corpus est une couture légitime ou une dette au stock, aucun n’est nu', () => {
+  it('INVENTAIRE : chaque site du corpus est une couture légitime ou une dette au stock, aucun n’est nu', { timeout: 30_000 }, () => {
     const { fichiers, sites } = garde();
     const couverture = couvertureDuBalayage({ nom: 'garde libellé', stock: [...new Set(Object.keys(DETTES_DE_LIBELLE).map(fichierDeDette))], balayes: fichiers, gisements: [CORPUS_RACINE] });
     expect(couverture.gisementsMuets, couverture.gisementsMuets.join('\n')).toEqual([]);

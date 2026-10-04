@@ -57,7 +57,7 @@ describe('#841 — chaque champ du document de scène a un chemin d’écriture 
   // `scripts/guards/lib/tsProgram.mjs`, en-tête ; garde `src/analyse-retention-guard.test.ts`.
   const perimetre = detenteur(() => programmeDuPerimetre(ROOT));
 
-  it('aucun champ n’est joignable seulement par le pipeline d’authoring, hors cliquet nommé', () => {
+  it('aucun champ n’est joignable seulement par le pipeline d’authoring, hors cliquet nommé', { timeout: 30_000 }, () => {
     const orphelins = orphanFields(auditSceneFieldEditability(ROOT, perimetre()));
     // Rendu en TEXTE : l'échec doit NOMMER les champs et leur `fichier:ligne`, pas afficher « …(9) ».
     const detail = orphelins

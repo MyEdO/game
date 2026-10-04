@@ -2,7 +2,7 @@ import type { JSX } from 'react';
 // @vitest-environment jsdom
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from '../state/store';
 import { SaveLoadModal } from './SaveLoadModal';
 import { ManannPriestModal } from './ManannPriestModal';
@@ -48,7 +48,7 @@ let host: HTMLDivElement;
 let root: Root;
 
 beforeEach(() => {
-  (globalThis as { localStorage?: Storage }).localStorage = fakeStorage();
+  vi.stubGlobal('localStorage', fakeStorage());
   useGame.setState({
     party: [HERO],
     battle: null,
@@ -64,7 +64,7 @@ beforeEach(() => {
 afterEach(() => {
   act(() => root.unmount());
   host.remove();
-  delete (globalThis as { localStorage?: Storage }).localStorage;
+  vi.unstubAllGlobals();
   useGame.setState({ pendingManannPriest: null, pendingShoreLeave: null, pendingRenounce: null });
 });
 

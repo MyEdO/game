@@ -159,6 +159,7 @@ afterEach(() => {
   if (root) { act(() => root!.unmount()); root = null; }
   if (hôte) { hôte.remove(); hôte = null; }
   battre = null;
+  setStageRendererFactory(() => new BancRenderer());
 });
 
 describe('#1399 — les gabarits du monde cuit passent par la file', () => {
@@ -376,33 +377,39 @@ describe('#1399 — une cuisson EN VOL ne survit pas au changement de scène', (
   });
 });
 
-describe('#1399 — StrictMode : ce que coûte le rendu JETÉ', () => {
-  it('la cuisson du monde est payée DEUX fois (dev), et la géométrie jetée n’atteint aucune image', async () => {
+describe('#1399 — StrictMode : la géométrie cuite est celle des images dessinées', () => {
+  it('chaque image du monde utilise la géométrie unique, jusque dans les battements suivants', async () => {
     const cuisson = vi.spyOn(sceneMeshes, 'bakeWorldGeometry');
+    const captures: Set<THREE.BufferGeometry>[] = [];
+    setStageRendererFactory(() => new BancRenderer((scène) => {
+      const géométries = new Set<THREE.BufferGeometry>();
+      scène.traverse((o) => {
+        const mesh = o as THREE.Mesh;
+        if (mesh.geometry?.userData.surfaceGroups) géométries.add(mesh.geometry);
+      });
+      captures.push(géométries);
+    }));
     monterSync(true);
-    // Les DEUX cuissons du double rendu de montage et au moins une image dessinée : le fait attendu,
-    // jamais une fenêtre de 60 ms.
-    await attendreQue(() => cuisson.mock.calls.length >= 2 && scènes.length > 0, PLAFOND_ATTENTE_MS, () => battre?.());
-    // Sortie au PLUS TÔT, encore : une TROISIÈME cuisson tardive tomberait après elle. On bat quelques
-    // images de plus — un fait, jamais une durée — avant d'affirmer le compte.
-    const fenêtre = scènes.length + IMAGES_APRES_LE_FAIT;
-    await attendreQue(() => scènes.length >= fenêtre, PLAFOND_ATTENTE_MS, () => battre?.());
-    expect(scènes.length, `PRÉMISSE : la pompe d'images du banc doit battre après le fait — ${scènes.length} image(s) pour ${fenêtre} attendues`)
+    await attendreQue(() => cuisson.mock.calls.length > 0 && captures.some((géométries) => géométries.size > 0), PLAFOND_ATTENTE_MS, () => battre?.());
+    const fenêtre = captures.length + IMAGES_APRES_LE_FAIT;
+    await attendreQue(() => captures.length >= fenêtre && captures.slice(-IMAGES_APRES_LE_FAIT).every((géométries) => géométries.size > 0), PLAFOND_ATTENTE_MS, () => battre?.());
+    expect(captures.length, `images dessinées : ${captures.length} pour ${fenêtre} attendues`)
       .toBeGreaterThanOrEqual(fenêtre);
 
-    // FAIT ÉTABLI : `memoByRefDeps` est keyé sur un jeton d'INSTANCE (`useRef({}).current`), et le
-    // double rendu de montage de StrictMode en fabrique DEUX — deux slots WeakMap indépendants, donc
-    // deux cuissons, sans collision ni écrasement.
-    expect(cuisson.mock.calls.length, 'le double rendu de StrictMode ne cuit pas deux fois : le fait a changé').toBe(2);
-    const jetée = cuisson.mock.results[0].value.geometry as THREE.BufferGeometry;
-    const gardée = cuisson.mock.results[1].value.geometry as THREE.BufferGeometry;
-    expect(jetée, 'PRÉMISSE : deux cuissons, deux géométries distinctes').not.toBe(gardée);
-
-    // …et la géométrie du rendu jeté n'est montée dans AUCUNE scène dessinée : elle n'est jamais
-    // téléversée, donc rien n'est à libérer côté GPU — elle part au ramasse-miettes avec son jeton.
-    let montée = false;
-    for (const scène of scènes) scène.traverse((o) => { if ((o as THREE.Mesh).geometry === jetée) montée = true; });
-    expect(montée, 'la géométrie jetée est montée : c’est une fuite GPU, elle doit être libérée').toBe(false);
-    expect(scènes.length, 'PRÉMISSE : des images ont bien été dessinées').toBeGreaterThan(0);
+    expect(cuisson.mock.calls.length, 'une cuisson pour la même instance de scène').toBe(1);
+    const géométrie = cuisson.mock.results[0].value.geometry as THREE.BufferGeometry;
+    for (const géométries of captures) {
+      expect(géométries.size, 'au plus une géométrie cuite par image, avant ou après installation').toBeLessThanOrEqual(1);
+      if (géométries.size > 0) expect([...géométries][0], 'chaque image du monde sert la géométrie cuite').toBe(géométrie);
+    }
+    const premières = captures.slice(0, captures.findIndex((géométries) => géométries.size > 0));
+    expect(premières.length, 'images avant installation du monde').toBeGreaterThan(0);
+    for (const géométries of premières) expect(géométries.size).toBe(0);
+    const dernières = captures.slice(-IMAGES_APRES_LE_FAIT);
+    expect(dernières.length).toBe(IMAGES_APRES_LE_FAIT);
+    for (const géométries of dernières) {
+      expect(géométries.size, 'le monde reste installé dans les battements suivants').toBe(1);
+      expect([...géométries][0]).toBe(géométrie);
+    }
   });
 });

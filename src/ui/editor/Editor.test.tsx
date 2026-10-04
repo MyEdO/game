@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import { __resetAutosaveForTest, autosaveSave } from '../../state/editorAutosave';
 import { __resetLibraryForTest, initLibrary, type SavedProject } from '../../state/projectLibrary';
 import { __setOuvertureIdbForTest } from '../../lib/indexedDb';
@@ -750,19 +750,13 @@ describe('Editor v2 — sauvegarde locale de secours (#834 audit)', () => {
 });
 
 describe('Editor v2 — #811 échec de sauvegarde REMONTÉ à l’auteur', () => {
-  let originalLocalStorage: Storage | undefined;
-
-  beforeEach(() => {
-    originalLocalStorage = (globalThis as { localStorage?: Storage }).localStorage;
-  });
-
   afterEach(() => {
     __setOuvertureIdbForTest(null);
-    (globalThis as { localStorage?: Storage }).localStorage = originalLocalStorage;
+    vi.unstubAllGlobals();
   });
 
   it('« Fichier → Enregistrer » dont projectSave échoue affiche l’échec à l’auteur (pas seulement journalisé)', async () => {
-    delete (globalThis as { localStorage?: Storage }).localStorage; // aucun filet miroir
+    vi.stubGlobal('localStorage', undefined);
     brancherBasesSimulees().base(BIBLIOTHEQUE).panne = (q) => (q.geste === 'put' ? new DOMException('put refusé (quota simulé)', 'QuotaExceededError') : null);
 
     const container = document.createElement('div');

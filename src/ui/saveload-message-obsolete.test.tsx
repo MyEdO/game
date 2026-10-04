@@ -1,21 +1,10 @@
 // @vitest-environment jsdom
 import { StrictMode, act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SaveLoadModal } from './SaveLoadModal';
 import { SAVE_VERSION, takeObsoleteNotice } from '../state/saves';
 
-/**
- * L'ÉCRAN DIT LA VÉRITÉ quand une sauvegarde est jetée (arbitrage utilisateur 2026-08-17 : une save
- * d'une autre version se jette, elle ne se migre pas). Ce fichier mesure l'AFFICHAGE, pas le
- * mécanisme : le témoin posé par `readSlot` doit ARRIVER À L'ŒIL du joueur, avec le mot juste selon
- * la cause (antérieure / plus récente / illisible).
- *
- * Le montage se fait sous `<React.StrictMode>` — le montage RÉEL du jeu (`src/main.tsx`) : le corps
- * de composant y est joué DEUX fois et les effets montés deux fois. Un témoin consommé DANS le corps
- * (initialiseur de `useState`) est vidé par la 1re passe et perdu par la 2e — c'est un effet de bord
- * non idempotent en rendu, et le message n'atteindrait jamais l'écran du joueur réel.
- */
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 function fakeStorage(): Storage {
@@ -46,14 +35,14 @@ function monter(): string {
 }
 
 beforeEach(() => {
-  (globalThis as { localStorage?: Storage }).localStorage = fakeStorage();
+  vi.stubGlobal('localStorage', fakeStorage());
   takeObsoleteNotice(); // témoin remis à zéro entre les cas
 });
 
 afterEach(() => {
   if (root) { act(() => root!.unmount()); root = null; }
   if (container) { container.remove(); container = null; }
-  delete (globalThis as { localStorage?: Storage }).localStorage;
+  vi.unstubAllGlobals();
 });
 
 describe('écran de chargement — une sauvegarde jetée le DIT au joueur (sous StrictMode)', () => {
