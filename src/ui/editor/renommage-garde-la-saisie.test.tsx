@@ -1,3 +1,4 @@
+import type { JSX } from 'react';
 // @vitest-environment jsdom
 /**
  * #1993 — un porteur RENOMMÉ reste le même porteur : l'état de ses champs (texte d'un `JsonField` en

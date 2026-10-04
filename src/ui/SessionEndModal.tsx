@@ -6,10 +6,7 @@ import { Grid } from './Layout';
 type HeroKey = 'ambitionShort' | 'ambitionLong' | 'motivation';
 
 /**
- * CORPS de la FIN DE SÉANCE (LDB 05 Ambitions + LDB 17 Détermination) — le groupe coche les Ambitions
- * accomplies (personnelles et de groupe) et les héros ayant agi selon leur Motivation. « Terminer
- * la séance » octroie les PX d'Ambition (+50 court / +500 long) et regagne la Détermination via
- * `store.endSession`, puis restaure la Chance pour la prochaine séance. Responsive (`Grid`).
+ * LDB 05 Ambitions ; LDB 17 Détermination.
  *
  * PUR : ni voile ni piège Tab — il se monte tel quel DANS un écran plein-champ qui porte déjà les
  * siens (récap de fin de chapitre, #717) comme dans sa modale ci-dessous. `apercu` le rend INERTE
@@ -24,7 +21,7 @@ type HeroKey = 'ambitionShort' | 'ambitionLong' | 'motivation';
  * `ScreenShell` `footer`).
  */
 export function useSessionEnd({ onDone, onCancel, apercu }: { onDone: () => void; onCancel: () => void; apercu?: boolean }): { corps: ReactNode; gestes: ReactNode } {
-  const party = useGame((s) => s.party.filter((h) => h.kind === 'hero'));
+  const party = useGame((s) => s.party).filter((h) => h.kind === 'hero');
   const endSession = useGame((s) => s.endSession);
   const [heroes, setHeroes] = useState<Record<string, Partial<Record<HeroKey, boolean>>>>({});
   const [group, setGroup] = useState<{ ambitionShort?: boolean; ambitionLong?: boolean }>({});

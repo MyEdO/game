@@ -1,3 +1,4 @@
+import type { JSX } from 'react';
 /**
  * SURCOUCHE DES JETONS du stage (#1176, P3-0f puis P3-5c) — ce qui se peint AU-DESSUS du canevas, dans
  * le SVG : le CHROME d'écran (barre de PV, icônes d'États, pastille d'état de FIN) et, sous le verdict

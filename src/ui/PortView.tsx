@@ -110,8 +110,8 @@ export function EscaleTab({ vessel, isGuest, pendingShoreLeave, pendingManannPri
 /**
  * ESCALE-HUB (#228, MDG 15) — LE point d'entrée de port unifié : en-tête enrichi (`PortHeader` : nom du
  * port, ses 5 indices de l'Index des ports, la desc du catalogue `naval-ports.json` si le lieu porte une
- * `ref`), puis trois onglets. Chantier (Réparer MDG 13 l.643 / Caréner Salissures l.150-159 /
- * Améliorations MDG 12) · Cargaison (commerce maritime l.309-399) · Escale (`EscaleTab` : événements
+ * `ref`), puis trois onglets. MDG 13 l.643,150-159 · MDG 12 · MDG 15 l.309-399.
+ * Escale (`EscaleTab` : événements
  * d'escale en cours surfacés + recrutement salarié). Overlay plein écran (patron `WorldMapView`),
  * sections en `Split`/`Grid` (responsive ≤900/700/560), français, aucun texte tuto
  * (les `desc` sont du VERBATIM). `initialTab` : levier de test (rendu statique) ; défaut = Chantier.
@@ -119,7 +119,8 @@ export function EscaleTab({ vessel, isGuest, pendingShoreLeave, pendingManannPri
 export function PortView({ initialTab = 'coque' }: { initialTab?: 'coque' | 'cargaison' | 'escale' } = {}) {
   const port = useGame((s) => s.port);
   const vessel = useGame((s) => s.vessel);
-  const money = useGame((s) => partyMoneyTotal(() => s));
+  const party = useGame((s) => s.party);
+  const money = useMemo(() => partyMoneyTotal(useGame.getState), [party]);
   const close = useGame((s) => s.closePort);
   const buy = useGame((s) => s.portBuyCargo);
   const sell = useGame((s) => s.portSellCargo);

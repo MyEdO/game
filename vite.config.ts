@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite';
+import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath, URL } from 'node:url';
@@ -17,8 +17,6 @@ import { RACINES_DE_LA_SUITE } from './scripts/guards/lib/racinesDeLaSuite.mjs';
 function registryGen() {
   const dirs = (REGISTRIES as { dir: string }[]).map((r) => r.dir.replace(/\\/g, '/'));
   const touched = (f: string) => dirs.some((d) => f.replace(/\\/g, '/').includes(d));
-  // Par son CLI (`--code`) : Vite empaquette sa config par esbuild, qui n'avale pas le shebang de
-  // scripts/lancer-local.mjs qu'importe build-all.mjs.
   const produire = () => {
     const r = spawnSync(process.execPath, ['scripts/docs/build-all.mjs', '--code', '--quiet'], {
       cwd: fileURLToPath(new URL('.', import.meta.url)), stdio: 'inherit',
@@ -60,20 +58,15 @@ export default defineConfig({
     },
   },
   build: {
-    rollupOptions: {
+    rolldownOptions: {
       output: {
-        // Dépendances stables (React/Zustand…) → chunk vendor bien caché.
-        // L'éditeur et le rendu de jeu sortent déjà en chunks async (React.lazy, ui/App.tsx).
-        manualChunks(id) {
-          // `three` a son PROPRE chunk : `vendor` est préchargé par index.html (modulepreload), donc
-          // tout ce qui y entre est payé au MENU. Le moteur volumique n'est atteint que par les écrans
-          // async (CampaignView, Editor) — mesuré : sorti de `vendor`, il quitte le préchargement.
-          if (id.includes('node_modules/three/')) return 'three';
-          if (id.includes('node_modules')) return 'vendor';
-          // Tables de règles générées (~1 Mo) : chunk séparé, cacheable indépendamment du
-          // code applicatif (changer le code ne réinvalide pas les données). Encore chargées
-          // au démarrage (le moteur pur les importe) — le découplage paresseux reste à faire.
-          if (id.includes('/src/data/') && id.endsWith('.json')) return 'gamedata';
+        codeSplitting: {
+          includeDependenciesRecursively: false,
+          groups: [
+            { name: 'three', test: /node_modules[\\/]three[\\/]/, priority: 20 },
+            { name: 'vendor', test: /node_modules/, priority: 10 },
+            { name: 'gamedata', test: /[\\/]src[\\/]data[\\/].*\.json$/ },
+          ],
         },
       },
     },
@@ -96,10 +89,9 @@ export default defineConfig({
     restoreMocks: true,
     // Troisième effet : un worker garde ce que ses fichiers ont retenu, et V8 taille le tas de CHAQUE
     // processus sur la machine entière — plusieurs workers saturent alors la mémoire (#1801). La borne
-    // et ses mesures : `TAS_WORKER_MO` de scripts/test/partition.mjs. `pool: 'forks'` est le défaut de
-    // Vitest 2.1.9, déclaré parce que `poolOptions.forks` n'agit que sous lui.
+    // et ses mesures : `TAS_WORKER_MO` de scripts/test/partition.mjs.
     pool: 'forks',
-    poolOptions: { forks: { execArgv: [`--max-old-space-size=${TAS_WORKER_MO}`] } },
+    execArgv: [`--max-old-space-size=${TAS_WORKER_MO}`],
     // Tas de chaque worker en fin de fichier : relevé par le bloc `[diag]` du lanceur (scripts/test/run.mjs).
     logHeapUsage: true,
     // Paramètre de BANC calé sur le test volumique le plus lourd mesuré en CI (#1619) — le contrat des tests ne change pas.

@@ -113,7 +113,7 @@ describe('le LIEU d’une faute — un élément de liste à clé se nomme par s
     const arete = z.strictObject({ x: z.number(), y: z.number(), door: z.boolean().optional() });
     const murs = z.strictObject({ walls: listeCle(arete, { nom: 'x,y', de: (w) => `${w.x},${w.y}` }) });
     const lus = (walls: unknown[]) => validateDocument(murs, { walls })!.map((f) => `${cheminLisible(f.lieu)}: ${f.message}`);
-    expect(lus([{ x: 1, y: 2 }, { x: 3, y: 4, door: 'oui' }])).toEqual(['walls « 3,4 » › door: Entrée invalide : booléen attendu, chaîne reçu']);
+    expect(lus([{ x: 1, y: 2 }, { x: 3, y: 4, door: 'oui' }])).toEqual(['walls « 3,4 » › door: Entrée invalide : booléen attendu, chaîne de caractères reçu']);
     expect(lus([{ x: 1, y: 2 }, { x: 1, y: 2, door: true }])).toEqual([
       'walls « 1,2 »: « 1,2 » dupliqué : « x,y » identifie l’élément dans sa liste, il y est unique.',
     ]);

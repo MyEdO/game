@@ -1524,7 +1524,7 @@ describe('les concepts d’ENVELOPPE (strate `Document`) se reconnaissent au NOY
    * qui n’était CLASSÉ PAR PERSONNE (invisibles + orphelines), jamais à un concept existant.
    * COÛT MESURÉ (2026-09-01, cette machine) : ~3 s — démarrage `tsx` ~1,7 s + DEUX scans à ~0,6 s.
    */
-  it('D — DIFF avec/sans la strate `Document` : ce qu’elle gagne vient du NON-CLASSÉ, zéro forme VOLÉE', () => {
+  it('D — DIFF avec/sans la strate `Document` : ce qu’elle gagne vient du NON-CLASSÉ, zéro forme VOLÉE', { timeout: 30_000 }, () => {
     const dossier = mkdtempSync(join(tmpdir(), 'structures-strate-'));
     try {
       const pilote = join(dossier, 'diff-strate-document.mjs');

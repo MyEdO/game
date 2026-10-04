@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, type MockInstance } from 'vitest';
 import { resolveRender } from './bodyPlan';
 import { entityRigProfileFor } from './enemyProfile';
 import { tokenBodyKind } from '../tokenBodyKind';
@@ -16,8 +16,8 @@ import { emptyScene, type SceneEntity } from '../../state/scene';
 const ent = (id: string): SceneEntity => ({ id, kind: 'personnage', pos: { x: 0, y: 0 }, label: 'Sans espèce', statblock: { type: 'statblock', label: 'Sans espèce', char: { B: 10 } } });
 
 describe('diagnostics de rendu — une fois par sujet, jamais par frame (#936)', () => {
-  let err: ReturnType<typeof vi.spyOn>;
-  let warn: ReturnType<typeof vi.spyOn>;
+  let err: MockInstance<typeof console.error>;
+  let warn: MockInstance<typeof console.warn>;
   beforeEach(() => {
     resetDiagOnce();
     err = vi.spyOn(console, 'error').mockImplementation(() => {});

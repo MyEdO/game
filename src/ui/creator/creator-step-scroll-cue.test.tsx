@@ -4,7 +4,7 @@
  * `docs/charte-ui.md` § « Cue de bord de rail scrollable ») : le sélecteur canonique
  * `.creator-step > .master-detail-list::before/::after` (`src/ui/styles/creator.css`) doit
  * ATTEINDRE un vrai conteneur `overflow-y` (jamais un wrapper `display: contents` des slots
- * de l'ossature, `creator-step.css:11-15`) et le pseudo doit rester à sa hauteur DÉCLARÉE
+ * de l'ossature, `creator-step.css`, `.creator-step-action`/`.creator-step-choice`/`.creator-step-desc`) et le pseudo doit rester à sa hauteur DÉCLARÉE
  * (`flex-shrink: 0` — sans lui, un rail flex-column très en overflow écrase le pseudo à 0,
  * régression mesurée en recette navigateur #535).
  */
@@ -31,8 +31,9 @@ describe('CreatorStepFrame — cue de bord de rail scrollable (#535)', () => {
     const html = renderToStaticMarkup(
       <CreatorStepFrame d={ready()} step={0} zones={{ action: <div>action</div>, choice: <div>choice</div> }} />,
     );
-    document.body.innerHTML = html;
-    const step = document.body.querySelector('.creator-step')!;
+    const host = document.createElement('div');
+    host.innerHTML = html;
+    const step = host.querySelector('.creator-step')!;
     expect(step).toBeTruthy();
     const rail = step.querySelector(':scope > .master-detail-list');
     expect(rail, "`.creator-step > .master-detail-list` introuvable — le sélecteur CSS du cue de bord n'atteint plus le rail réel").toBeTruthy();
