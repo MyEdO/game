@@ -98,10 +98,7 @@
 //   · un stock de DOSSIERS passé en ARGUMENT est HORS DE VUE, et c'est le prix payé pour cesser de
 //     compter une marche d'arbre migrée : `registre(['src/ui', 'src/state'])` écrit au module ne
 //     rend aucune entrée, là où `const R = ['src/ui', 'src/state']` en rend deux. Le REPLI de ligne,
-//     lui, ne les voit dans aucun des deux cas. Ce qui a fait la frontière : la ligne
-//     `for (const { rel, text } of readCorpus(['src/ui']))` de `6382c792d` et les quatre
-//     `readCorpus([ … ])` de `cc71eb45c` ont coûté trois runs de gates et cinq cliquets qui NIENT
-//     leur propre croissance (« aucun stock ne grandit ») ;
+//     lui, ne les voit dans aucun des deux cas ;
 //   · un ARGUMENT qui NOMME un fichier reste compté : les sept façades d'une ligne de la sonde du
 //     juge (2026-09-07) — `defineStock`, `registre`, `Array.from`, `[].concat`, identité,
 //     `Object.freeze(registre([ … ]))`, `table({ 'src/a.ts': 1 })` — rendent chacune leurs entrées ;
@@ -620,11 +617,7 @@ function texteDEntree(touchees, entrees) {
  * @returns {{ fichier: string, ajoutees: number, retirees: number, net: number, exemples: string[] }[]}
  *   trié par fichier ; `net` = la croissance par clé ; `exemples` = jusqu'à 3 entrées ajoutées sous
  *   une clé qui croît, citées par leur ligne NOMMANTE (`texteDEntree`) telle qu'écrite.
- * @throws {TypeError} si le diff n'est pas une CHAÎNE : la signature est POSITIONNELLE, et un appel
- *   en objet (`croissanceDesStocks({ diff })`) stringifiait `[object Object]` — donc `[]` sur TOUS
- *   les commits, y compris sur des croissances réelles. Un juge a publié ce faux zéro le 2026-09-04
- *   (revue de palier n°4, trouvaille 5) : la lib ne peut pas distinguer un diff vide d'un appel mal
- *   formé, elle refuse donc de deviner.
+ * @throws {TypeError} si le diff n'est pas une chaîne.
  * @throws {Error} si `images.lirePostImage` n'est pas une fonction : sans image, une entrée que le
  *   repli de ligne ne sait pas lire (entrée-objet JSON, propriété dont la clé ne nomme pas de
  *   fichier) ne se compte pas, et l'appelant reçoit un zéro qui ment. Un lecteur qui rend `null`
@@ -842,6 +835,22 @@ export function croissancesNonCouvertes({ diff, message }, images) {
 export function nonCouvertesDuBilan(bilan, message) {
   const mesures = croissancesDuBilan(bilan).map((c) => ({ ...c, n: c.net }));
   return mesuresNonCouvertes(mesures, cliquetsDuMessage(message)).map(({ n: _n, ...c }) => c);
+}
+
+/**
+ * Le geste qui porte une ligne (`CLIQUET:`, `RECLASSEMENT:`) au message des commits d'une PLAGE à qui
+ * un refus est attribué, selon qu'ils sont des FUSIONS (`fusion`) ou des commits simples : chaque sorte
+ * présente a le sien, sans `rebase -i`.
+ * @param {{ fusion: boolean }[]} refus @returns {string}
+ */
+export function gesteSurLesCommitsFautifs(refus) {
+  const gestes = [];
+  if (refus.some((r) => !r.fusion)) {
+    gestes.push('commit simple : `git commit --amend` s’il est la tête ; plus bas, reconstruire la pile depuis son parent '
+      + '(`git cherry-pick` du commit, `git commit --amend`, puis `git cherry-pick` des suivants)');
+  }
+  if (refus.some((r) => r.fusion)) gestes.push('FUSION : `git commit --amend` de la fusion si elle est la tête ; sinon refaire la fusion');
+  return gestes.join(' ; ');
 }
 
 /** Refus lisible d'une croissance : ce qui a grossi, de combien, trois exemples, et le geste. */

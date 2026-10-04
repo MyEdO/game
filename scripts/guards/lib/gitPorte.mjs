@@ -654,7 +654,18 @@ function baseDuCommit(depot, sha) {
   const [, ...parents] = ligne.trim().split(/\s+/)
   if (parents.length === 0) return arbreVide(depot)
   if (parents.length === 1) return parents[0]
-  if (parents.length > 2) throw new GitIndisponible(`fusion ${sha.slice(0, 9)} à ${parents.length} parents : aucune fusion automatique ne rejoue sa base`)
+  return fusionAutomatique(depot, parents, `fusion ${sha.slice(0, 9)}`)
+}
+
+/**
+ * La FUSION AUTOMATIQUE de deux `parents` : l'arbre que git fusionne TOUT SEUL (`baseDuCommit`), `null`
+ * quand git ne le rend pas. `nom` nomme la fusion dans la levée.
+ * @param {Depot} depot @param {string[]} parents @param {string} nom
+ * @returns {string | null}
+ * @throws {GitIndisponible} plus de deux parents, ou git plus ancien que `GIT_MERGE_TREE`.
+ */
+function fusionAutomatique(depot, parents, nom) {
+  if (parents.length > 2) throw new GitIndisponible(`${nom} à ${parents.length} parents : aucune fusion automatique ne rejoue sa base`)
   exigerMergeTree(depot)
   const vide = arbreVide(depot)
   if (!vide) return null
@@ -728,6 +739,18 @@ const RIEN = Object.freeze({
 export function ceQueFaitLeCommit(depot, sha) {
   const base = baseDuCommit(depot, sha)
   return base ? changeEntre(depot, base, sha) : RIEN
+}
+
+/**
+ * CE QUE FAIT LA FUSION EN COURS : ce qui change de la fusion automatique de ses `parents` (HEAD puis
+ * `fusionnesEnCours`, `fusionAutomatique`) à l'image `apres` qui la conclut (`INDEX` ou `SUIVI`) — la
+ * lecture de `ceQueFaitLeCommit` d'une fusion, avant que son commit existe. Base `null` : tout est vide.
+ * @param {Depot} depot @param {string[]} parents @param {string} apres
+ * @throws {GitIndisponible} propagée de `fusionAutomatique`.
+ */
+export function ceQueFaitLaFusionEnCours(depot, parents, apres) {
+  const base = fusionAutomatique(depot, parents, 'fusion en cours')
+  return base ? changeEntre(depot, base, apres) : RIEN
 }
 
 /**
