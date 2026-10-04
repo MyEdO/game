@@ -1,3 +1,4 @@
+import type { JSX } from 'react';
 // @vitest-environment jsdom
 /**
  * #1993 F6 — dans un formulaire d'édition, chaque contrôle porte un nom accessible, UNIQUE, dérivé de

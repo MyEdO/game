@@ -12,7 +12,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from 'nod
 import { tmpdir } from 'node:os';
 import { join, dirname, relative, resolve } from 'node:path';
 import { createServer } from 'vite';
-import { parseChapitre, empreinteDe, type ChapitreParse, type FragmentBlocs } from './decoupe.ts';
+import { parseChapitre, fragmentBlocs, type ChapitreParse, type FragmentBlocs } from './decoupe.ts';
 // @ts-expect-error - plugin ESM JS (pas de types) — même convention que `vite.config.ts`
 import { proseSource, titreDeChapitre } from '../../../scripts/source/prose-source-plugin.mjs';
 // @ts-expect-error - résolveur ESM JS (pas de types) — même convention que `vite.config.ts`
@@ -82,14 +82,11 @@ function corpusDe(chapitre: string) {
 }
 
 /** Adresse du premier bloc d'une section du chapitre de fixture, empreinte POSÉE. */
-function adresseDe(chapitre: string, titre: string): { book: string; ch: string; parts: FragmentBlocs[] } {
+function adresseDuTitre(chapitre: string, titre: string): { book: string; ch: string; parts: FragmentBlocs[] } {
   const parse = parseChapitre(readFileSync(chapitre, 'utf8'));
   const section = parse.sections.find((s) => s.title === titre);
   if (!section) throw new Error(`fixture sans section « ${titre} »`);
-  const frag: FragmentBlocs = { kind: 'blocs', sec: section.slug, secOcc: section.occ, b0: 0, b1: 0, sum: '' };
-  const sum = empreinteDe(parse, frag);
-  if (typeof sum !== 'string') throw new Error(`fixture non résoluble : ${sum.error} — ${sum.detail}`);
-  return { book: LIVRE, ch: CH, parts: [{ ...frag, sum }] };
+  return { book: LIVRE, ch: CH, parts: [fragmentBlocs(parse, { sec: section.slug, secOcc: section.occ, b0: 0, b1: 0 })] };
 }
 
 /** Le `this` que Rollup donne à un hook : `error` LÈVE (c'est ce qui rend le module rouge). */
@@ -112,7 +109,7 @@ describe('plugin `wfrp:prose-source` — transform', () => {
   it('injecte le `desc` que l’adresse résout, et laisse `descRef` en place', () => {
     const { chapitre } = fixture();
     const plugin = proseSource({ corpus: corpusDe(chapitre) });
-    const code = JSON.stringify([{ id: 'terreur', descRef: adresseDe(chapitre, 'Terreur') }]);
+    const code = JSON.stringify([{ id: 'terreur', descRef: adresseDuTitre(chapitre, 'Terreur') }]);
     const out = plugin.transform.call(contexte().hook, code, ID);
     const entree = JSON.parse(out.code)[0];
     expect(entree.desc).toContain('La Terreur est une réaction à quelque chose d\'horrible');
@@ -129,14 +126,14 @@ describe('plugin `wfrp:prose-source` — transform', () => {
   it('ne touche pas un id à QUERY : `?raw` sert la FORME DISQUE', () => {
     const { chapitre } = fixture();
     const plugin = proseSource({ corpus: corpusDe(chapitre) });
-    const code = JSON.stringify([{ id: 'terreur', descRef: adresseDe(chapitre, 'Terreur') }]);
+    const code = JSON.stringify([{ id: 'terreur', descRef: adresseDuTitre(chapitre, 'Terreur') }]);
     expect(plugin.transform.call(contexte().hook, code, `${ID}?raw`)).toBeNull();
   });
 
   it('FAIL-CLOSED : une empreinte divergente fait échouer le module, nommément', () => {
     const { chapitre } = fixture();
     const plugin = proseSource({ corpus: corpusDe(chapitre) });
-    const adresse = adresseDe(chapitre, 'Terreur');
+    const adresse = adresseDuTitre(chapitre, 'Terreur');
     adresse.parts[0].sum = '0000000000000000';
     const ctx = contexte();
     expect(() => plugin.transform.call(ctx.hook, JSON.stringify([{ id: 'terreur', descRef: adresse }]), ID)).toThrow();
@@ -147,7 +144,7 @@ describe('plugin `wfrp:prose-source` — transform', () => {
   it('est BYTE-STABLE : deux passes rendent le même module', () => {
     const { chapitre } = fixture();
     const plugin = proseSource({ corpus: corpusDe(chapitre) });
-    const code = JSON.stringify([{ id: 'terreur', descRef: adresseDe(chapitre, 'Terreur') }]);
+    const code = JSON.stringify([{ id: 'terreur', descRef: adresseDuTitre(chapitre, 'Terreur') }]);
     const a = plugin.transform.call(contexte().hook, code, ID);
     const b = plugin.transform.call(contexte().hook, code, ID);
     expect(a.code).toBe(b.code);
@@ -158,7 +155,7 @@ describe('plugin `wfrp:prose-source` — projets de campagne LIVRÉS (#680)', ()
   /** Un projet dont un preset ADRESSE sa prose — `desc` en plus si donné (la paire interdite). */
   const projetAdresse = (chapitre: string, desc?: string): string =>
     JSON.stringify({
-      narratif: { presetsPnj: [{ id: 'p', profil: { ...(desc === undefined ? {} : { desc }), descRef: adresseDe(chapitre, 'Terreur') } }] },
+      narratif: { presetsPnj: [{ id: 'p', profil: { ...(desc === undefined ? {} : { desc }), descRef: adresseDuTitre(chapitre, 'Terreur') } }] },
     });
 
   it('un `<x>-projet.json` de `src/scenes`, à toute profondeur, est matérialisé', () => {
@@ -459,7 +456,7 @@ describe('plugin `wfrp:prose-source` — serveur de dev', () => {
   it('un chapitre RÉÉCRIT invalide les modules JSON qui en dépendent et fait recharger la page', async () => {
     const { racine, chapitre } = fixture();
     const fichierJson = join(racine, 'src', 'data', 'psychology.json');
-    writeFileSync(fichierJson, JSON.stringify([{ id: 'terreur', descRef: adresseDe(chapitre, 'Terreur') }]), 'utf8');
+    writeFileSync(fichierJson, JSON.stringify([{ id: 'terreur', descRef: adresseDuTitre(chapitre, 'Terreur') }]), 'utf8');
 
     const server = await createServer({
       configFile: false,
@@ -522,7 +519,7 @@ describe('`materialiser` — pendant Node du transform', () => {
     // chaînes) : s'il était recopié, il écraserait la prose matérialisée — en silence, et seulement
     // quand il SUIT `descRef` dans l'ordre des clés.
     const { chapitre } = fixture();
-    const racine = [{ id: 'terreur', descRef: adresseDe(chapitre, 'Terreur'), desc: null }];
+    const racine = [{ id: 'terreur', descRef: adresseDuTitre(chapitre, 'Terreur'), desc: null }];
     const res = materialiser(racine, { lecteur: corpusDe(chapitre).lire, chemin: () => null });
     expect(res.materialises).toBe(1);
     expect(res.racine[0].desc).toContain('La Terreur est une réaction à quelque chose d\'horrible');

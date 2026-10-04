@@ -1,3 +1,4 @@
+import type { JSX } from 'react';
 /**
  * Inspecteur v2 — volet droit DOCKÉ (fini la modale du POC qui masquait le canvas) :
  * la sélection s'édite EN PLACE, en sections repliables `.fold`, pendant que la carte reste
@@ -28,7 +29,7 @@ import { FACADE_APPEARANCE_IDS } from '../../gameIso/catalog/facades';
 import { MERCHANTS } from '../../state/merchants/index';
 import { TAVERN_GAMES } from '../../engine/tavernGame';
 import { allMusicDefs } from '../../audio/music';
-import { findCreatureById, creatureLabel, lightLevels, lightTones, findVehicleById, findPropById, matieresCouvrantes, matieresDe, structureAppearances, refEstVolumique, siegeEngines } from '../../data';
+import { findCreatureById, creatureLabel, lightLevels, lightTones, findVehicleById, findPropById, matieresCouvrantes, matieresDe, structureAppearances, refEstVolumique, siegeEngines, type TrappingData } from '../../data';
 import { poseToitureDeCorps, rederiveRoofMasses, renameActionAuthoree, toitureEffective, TypeNonNomme } from '../../state/sceneEdit';
 import { activitiesFor } from '../../engine/activities';
 import { hintDeValeur, libelleDeValeur, valeursDe } from '../../data/schemas/grammaire/meta';
@@ -368,7 +369,7 @@ export function Inspector({
           </div>
 
           {ent && refusPatch?.id === ent.id && <p className="chip tone-danger" role="alert">{refusPatch.message}</p>}
-          {ent && <EntityPanel ent={ent} scene={scene} otherScenes={otherScenes} worldMap={worldMap} setScene={setScene} updateSel={updateSel} removeSel={removeSel} />}
+          {ent && <EntityPanel ent={ent} scene={scene} otherScenes={otherScenes} worldMap={worldMap} objets={narratif.objets} setScene={setScene} updateSel={updateSel} removeSel={removeSel} />}
 
           {sel?.type === 'architectureBody' && architectureBody && toiture && (
             <>
@@ -1340,6 +1341,7 @@ function EntityPanel({
   scene,
   otherScenes,
   worldMap,
+  objets,
   setScene,
   updateSel,
   removeSel,
@@ -1348,6 +1350,8 @@ function EntityPanel({
   scene: Scene;
   otherScenes: Scene[];
   worldMap: WorldMap | null;
+  /** Objets du projet (`narratif.objets`) — résolus avant le catalogue par l'Effet `giveTrapping`. */
+  objets: readonly TrappingData[];
   setScene: (s: Scene) => void;
   updateSel: (patch: Partial<SceneEntity>) => void;
   removeSel: () => void;
@@ -1594,7 +1598,7 @@ function EntityPanel({
             ent={ent}
             scene={scene}
             updateSel={updateSel}
-            flowCtx={{ encounters: scene.encounters, dialogues: scene.dialogues, ...effectCtxOf(scene, otherScenes, worldMap ?? undefined) }}
+            flowCtx={{ encounters: scene.encounters, dialogues: scene.dialogues, ...effectCtxOf(scene, otherScenes, worldMap ?? undefined, objets) }}
           />
         </Fold>
       )}

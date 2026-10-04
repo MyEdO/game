@@ -16,7 +16,7 @@
  *
  * Le montage est celui du contrat : `arete-dans-la-chaine.fixture.ts`.
  */
-import { bench, describe } from 'vitest';
+import { test } from 'vitest';
 import { areteSousLePixel, resoudrePixel } from './pickResolve';
 import { etat, montage } from './arete-dans-la-chaine.fixture';
 
@@ -27,12 +27,13 @@ const beaucoup = Array.from({ length: 89 }, (_, i) => aretes[i % aretes.length])
 /** Un pixel hors cadre : aucune arête ne le prend, les 89 sont donc toutes balayées. */
 const loin = { x: 1e5, y: 1e5 };
 
-describe('survol : le balayage d’arêtes contre la chaîne qui le porte', () => {
-  bench('balayage de 89 arêtes, aucune sous le pixel', () => {
-    areteSousLePixel(loin, beaucoup);
-  });
-
-  bench('chaîne de prise SANS étage d’arête (la référence : ce que le survol payait déjà)', () => {
-    resoudrePixel(etat(scene), null, () => loin, sansAretes);
-  });
+test('survol : le balayage d’arêtes contre la chaîne qui le porte', async ({ bench }) => {
+  await bench.compare(
+    bench('balayage de 89 arêtes, aucune sous le pixel', () => {
+      areteSousLePixel(loin, beaucoup);
+    }),
+    bench('chaîne de prise SANS étage d’arête (la référence : ce que le survol payait déjà)', () => {
+      resoudrePixel(etat(scene), null, () => loin, sansAretes);
+    }),
+  );
 });

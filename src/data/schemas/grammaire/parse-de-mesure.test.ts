@@ -10,7 +10,8 @@
 import { describe, expect, it } from 'vitest';
 import { execFileSync } from 'node:child_process';
 import { z } from 'zod';
-import { estFeuilleDId, familleDuRepere, idDe, mesureDuParse, reperesDuParse } from './ref';
+import { familleDuRepere, idDe, idsDe, mesureDuParse, reperesDuParse, declarationDeFeuilleDId, type FeuilleDId } from './ref';
+import { INSTANCIABLE_PAR_ID } from './sousListes';
 import { famillesConstruites, gameOpSchema } from './mecanique';
 import { refTestDeCorruption } from './valeurs';
 import { descendre } from './descente';
@@ -92,7 +93,8 @@ describe('le mode de mesure est BORNÉ à l’appel de `reperesDuParse`', () => 
 // document est parsé deux fois (normal, mesure) sous des schémas instrumentés LE TEMPS DU TEST, rien
 // n'étant posé dans le code de production. Trois fautes, nommées par le path de schéma du nœud :
 //  - AVALEMENT : un nœud rend un résultat sans issue alors qu'un enfant lui a rendu des repères seuls ;
-//  - SAUT : une feuille validée au parse normal n'est plus exécutée au parse de mesure ;
+//  - SAUT : une feuille validée au parse normal n'est plus exécutée au parse de mesure (un id ABSENT
+//    de l'espace d'une feuille OUVERTE n'est pas une référence : il n'émet aucun repère, et ne compte pas) ;
 //  - COUVERTURE : un repère rendu vient d'une feuille que la marche instrumentée n'a pas atteinte.
 // Les deux familles de repère y passent : la référence (feuille `idDe`) et le nœud d'op (`emetteursDOp`,
 // `marquerOpAtteinte`), chacune reconnue par `familleDuRepere`.
@@ -127,6 +129,9 @@ interface Sonde {
   avalements: string[];
 }
 
+/** La valeur validée par la feuille est-elle une RÉFÉRENCE ? Non pour un id absent de l'espace d'une feuille ouverte. */
+const estUneReference = (feuille: FeuilleDId, valeur: unknown): boolean => !feuille.ouverte || idsDe(feuille.type).has(String(valeur));
+
 /** Instrumente les nœuds atteints depuis les racines ; rend la sonde et la remise à l'identique. */
 function instrumenter(racines: readonly (readonly [string, unknown])[]): { sonde: Sonde; restaurer: () => void } {
   const sonde: Sonde = { mesure: false, pile: [], validees: { normal: new Map(), mesure: new Map() }, emis: new WeakSet(), nbEmis: 0, nbOpsEmis: 0, avalements: [] };
@@ -140,7 +145,7 @@ function instrumenter(racines: readonly (readonly [string, unknown])[]): { sonde
     const zod = (noeud as AvecRun)._zod;
     const run = zod.run;
     originaux.push([zod, run]);
-    const feuille = estFeuilleDId(noeud);
+    const feuille = declarationDeFeuilleDId(noeud);
     const emetteurDOp = emetteurs.has(noeud);
     zod.run = (charge, ctx) => {
       const avant = charge.issues.length;
@@ -155,7 +160,7 @@ function instrumenter(racines: readonly (readonly [string, unknown])[]): { sonde
       }
       if (r instanceof Promise) throw new Error(`${nom} : parse ASYNC, hors du parse de mesure`);
       const nouvelles = r.issues.slice(avant);
-      if (feuille) {
+      if (feuille && estUneReference(feuille, valeur)) {
         const validee = sonde.mesure ? nouvelles.length > 0 && nouvelles.every((i) => i.params !== undefined) : nouvelles.length === 0;
         if (validee) {
           const cle = `${nom} « ${String(valeur)} »`;
@@ -247,6 +252,25 @@ describe('GARDE DU MASQUAGE — aucun nœud ne perd au parse de mesure une réf�
     expect(masquagesDuTemoin(s, { a: COMPETENCE, b: COMPETENCE })).toEqual([
       `témoin SAUT : témoin.b « ${COMPETENCE} » validée 1× au parse normal, 0× au parse de mesure`,
     ]);
+  });
+
+  describe('feuille OUVERTE (`idDe(type, sousListe, { ouverte: true })`)', () => {
+    const ouverte = z.strictObject({ k: idDe('trapping', INSTANCIABLE_PAR_ID, { ouverte: true }) });
+    const OBJET = IDS_PAR_ESPACE['trappings.json'].find((id) => !IDS_PAR_ESPACE['trappings.json?service'].includes(id))!;
+
+    it('un id PRÉSENT rend 1 repère, sans faute', () => {
+      expect(reperesDuParse(ouverte, { k: OBJET })).toEqual([{ path: ['k'], type: 'trapping', parCle: false }]);
+      expect(masquagesDuTemoin(ouverte, { k: OBJET })).toEqual([]);
+    });
+
+    it('un id ABSENT de l’espace rend 0 repère et 0 faute', () => {
+      expect(reperesDuParse(ouverte, { k: 'objet-de-campagne' })).toEqual([]);
+      expect(masquagesDuTemoin(ouverte, { k: 'objet-de-campagne' })).toEqual([]);
+    });
+
+    it('un id PRÉSENT hors de la sous-liste est refusé', () => {
+      expect(ouverte.safeParse({ k: IDS_PAR_ESPACE['trappings.json?service'][0] }).success).toBe(false);
+    });
   });
 
   it('G — union dont une branche postérieure OPAQUE avale un nœud d’op atteint', () => {

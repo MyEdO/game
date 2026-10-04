@@ -300,9 +300,9 @@ export const ECRIT_LU = {
     raison:
       '`gen && vite build` : le typage est jugé par la gate `typecheck` (step `npm run typecheck` de ci.yml, avant `build`), ' +
       '`build` juge que le bundle se construit, et `dist/` n’est lu par aucune gate ; LIT tsconfig.json ' +
-      'parce que l’esbuild de Vite y relit `target`/`jsx`/`useDefineForClassFields` pour transformer ' +
-      'chaque module TS (les `meaningfulFields` que Vite 5.4 recopie dans `tsconfigRaw`) — `paths`, lui, ' +
-      'n’en vient pas : l’alias `@` est déclaré dans `resolve.alias` de vite.config.ts ; LIT Source/ parce que le plugin ' +
+      'parce que `transformWithOxc` de Vite 8.3.2 résout la configuration TypeScript pendant la transformation ' +
+      'des modules (node_modules/vite/dist/node/chunks/node.js, `transformWithOxc` → `getTSConfigResolutionCache`) — l’alias `@`, lui, ' +
+      'est déclaré dans `resolve.alias` de vite.config.ts ; LIT Source/ parce que le plugin ' +
       '`wfrp:prose-source` (scripts/source/prose-source-plugin.mjs) y résout la prose que les entrées ADRESSENT ' +
       '— la sonde du 2026-09-08 n’a compté AUCUNE lecture sous Source/ sur un build complet (2 056 lectures) : ' +
       'la déclaration reste, une sur-déclaration ne peut que RESSERRER les lanes ; LIT aussi index.html ' +

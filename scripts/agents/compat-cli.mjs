@@ -24,7 +24,7 @@ export const DOSSIERS_LUS = ['.claude/skills', '.agents/skills', '.claude/agents
  */
 export function sourceDuCheck(racine) {
   const racines = [MODULE_REL, ...ENTREES_OUTIL.map(({ module }) => `${DOSSIER_DES_REGISTRES}/${module}`)].map((rel) => join(racine, rel));
-  const code = [...clotureDImports(racines)].map((membre) => posix(relative(racine, resolve(membre))));
+  const code = clotureDImports(racines, { racine });
   const fichiers = new Set([...FICHIERS_LUS, ...code, 'package.json']);
   return (rel) => {
     const chemin = posix(rel);

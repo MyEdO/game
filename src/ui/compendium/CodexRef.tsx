@@ -1,3 +1,4 @@
+import type { JSX } from 'react';
 /**
  * CodexRef — primitive PARTAGÉE de référence contextuelle. Enrobe un libellé d'entité (talent,
  * compétence, équipement, état, sort, trait, signe…) : au survol/focus, son infobulle montre sa

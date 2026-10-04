@@ -17,6 +17,7 @@ import { mkdtempSync, writeFileSync, rmSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import { tmpdir } from 'node:os'
 import { join, posix, resolve, win32 } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import {
   segmentsProfonds,
@@ -38,6 +39,7 @@ import { evaluate as evaluateGates } from './codeur-gates-guard.mjs'
 // Lecteurs Windows et racines de profil ASSEMBLÉS à l'exécution : ce fichier ne porte aucun chemin
 // absolu littéral, il reste donc soumis à `src/portable-paths-guard.test.ts` comme `scripts/**`.
 const BS = String.fromCharCode(92)
+const REPO = fileURLToPath(new URL('../..', import.meta.url))
 const LECTEUR_C = 'C' + ':'
 const LECTEUR_D = 'D' + ':'
 const PROFIL_WIN = ['/c/Users', 'x'].join('/')
@@ -271,10 +273,17 @@ test('extractTargetDir : un `cd` ou un `git -C` DANS un sous-shell désigne le m
   assert.equal(extractTargetDir('sh -c "git -C wt commit -m x"', base, 'linux', TOUT_EXISTE), resolve(base, 'wt'))
 })
 
-test('extractTargetDir : `git -C` prime sur `cd`, et sans ni l\'un ni l\'autre le cwd est inchangé', () => {
+test('extractTargetDir : `git -C` se résout là où tourne son segment, après les `cd` ; ses `-C` se composent comme git', () => {
   const base = resolve('/base')
-  assert.equal(extractTargetDir('cd a && git -C b commit -m x', base, 'linux', TOUT_EXISTE), resolve(base, 'b'))
-  assert.equal(extractTargetDir('git commit -m x', base, 'linux', TOUT_EXISTE), base)
+  const lieu = (command) => extractTargetDir(command, base, 'linux', TOUT_EXISTE)
+  assert.equal(lieu('cd a && git -C b commit -m x'), resolve(base, 'a', 'b'))
+  assert.equal(lieu('git -C b commit -m x && cd a'), resolve(base, 'b'))
+  assert.equal(lieu('git -C a -C b commit -m x'), resolve(base, 'a', 'b'))
+  assert.equal(lieu('cd a && git -C b -C ' + resolve('/abs') + ' commit -m x'), resolve('/abs'))
+  assert.equal(lieu('cd a && git -C "" commit -m x'), resolve(base, 'a'))
+  assert.equal(lieu('git -Cb commit -m x'), base, '`-Cb` : git le refuse, ce n’est pas un lieu')
+  assert.equal(lieu('git.exe -C b commit -m x'), resolve(base, 'b'), 'tête lue par `estGit`')
+  assert.equal(lieu('git commit -m x'), base)
 })
 
 /** Dépôt jetable avec un worktree LIÉ, posé DANS l'instance : la garde s'y joue comme dans un arbre
@@ -290,9 +299,9 @@ function depotAvecWorktree() {
 
 // ── Driver : le JSON rendu au hook ────────────────────────────────────────────────────────────────
 /** Sortie BRUTE d'un point d'entrée réel pour un payload de hook. */
-function sortieDriver(script, command, cwd) {
+function sortieDriver(script, command, cwd = REPO) {
   const run = lancerHook(script, {
-    session_id: 'test', hook_event_name: 'PreToolUse',
+    session_id: 'test', hook_event_name: 'PreToolUse', cwd,
     tool_name: 'mcp__lean-ctx__ctx_shell', tool_input: { command, cwd },
   })
   assert.equal(run.code, 0, `le hook a quitté en ${run.code} : ${run.err}`)

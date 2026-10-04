@@ -88,7 +88,7 @@ export const cibleEmbarquee = (box: HTMLElement): HTMLElement | null => {
  *   congédiement de toute la session.
  *  @param etape l'étape courante du dialogue (`useFocusEmprunte`). */
 export function useModalA11y(
-  boxRef: RefObject<HTMLDivElement>,
+  boxRef: RefObject<HTMLDivElement | null>,
   onClose?: OnDismiss,
   { kind = 'modale', plan = 'application', actif = true, etape }: { kind?: string; plan?: LayerPlan; actif?: boolean; etape?: string | number } = {},
 ) {

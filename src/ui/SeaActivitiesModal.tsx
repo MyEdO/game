@@ -17,18 +17,11 @@ import { NumberField } from './NumberField';
 import { Icon } from './Icon';
 import { Grid } from './Layout';
 
-/**
- * ACTIVITÉS EN MER (MDG 15 l.266-306) — modale hebdomadaire (semaine de 8 jours, l.268) : chaque
- * héros vivant choisit AU PLUS une Activité du catalogue 'mer' (source UNIQUE `activities.json`, rail
- * réutilisé de l'interlude). Le Commerce d'opportunité (l.276) expose une mise en CO plafonnée par
- * l'Encombrement libre du navire et la bourse ; la Cartographie (l.292) expose une Planque gratuite
- * plafonnée par la bourse. « Entretien du navire » n'est PAS ici (déjà câblé au Test d'équipage
- * nocturne). Responsive : une carte par héros (`Grid` → 1 colonne ≤700px).
- */
+/** MDG 15 l.266-306 */
 export function SeaActivitiesModal() {
   const pending = useGame((s) => s.pendingSeaActivities);
   const party = useGame((s) => s.party);
-  const money = useGame((s) => partyMoneyTotal(() => s));
+  const money = useMemo(() => partyMoneyTotal(useGame.getState), [party]);
   const confirm = useGame((s) => s.seaActivitiesConfirm);
   const vessel = useGame((s) => s.vessel);
   const freeEnc = vessel
@@ -61,9 +54,7 @@ export function SeaActivitiesModal() {
           const pick = picks[h.id];
           const chosen = pick?.activityId ?? '';
           const chosenDef = chosen ? catalog.find((d) => d.id === chosen) : undefined;
-          // Planque de la Cartographie : DÉBIT solo du cartographe (soloPayer, seaActivities.ts) —
-          // le plafond est SA bourse, pas le total du groupe (le Commerce d'opportunité, lui, est
-          // un investissement de GROUPE plafonné par `investCap`).
+          // MDG 15 l.276,292
           const stashCap = Math.floor(toBrass(bourseOf(h)) / PA_PER_CO);
           return (
             <section key={h.id} className="panel sea-act-hero">

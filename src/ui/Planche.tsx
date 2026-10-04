@@ -43,7 +43,7 @@ export function Planche({
   const corpsRef = useRef<HTMLDivElement>(null);
   const memoireRef = useRef(memoire);
   memoireRef.current = memoire;
-  const cleVue = useRef<string>();
+  const cleVue = useRef<string | undefined>(undefined);
   /** Position de la barre d'onglets dans la planche défilante (haut de la colonne principale). */
   const barre = () => {
     const l = layoutRef.current, m = mainRef.current;

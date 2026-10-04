@@ -1,3 +1,4 @@
+import type { JSX } from 'react';
 import { Fragment } from 'react';
 import { spellMoney, type Money } from '../engine/money';
 

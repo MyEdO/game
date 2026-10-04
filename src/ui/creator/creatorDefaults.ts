@@ -37,7 +37,8 @@ import {
   SPECIES_SKILLS_PLUS5,
   SPECIES_SKILLS_PLUS3,
 } from './draft';
-import { species, careersForSpecies, levelsForCareer, spells } from '../../data';
+import { species, careersForSpecies, levelsForCareer } from '../../data';
+import { idsDeLaSousListe } from '../../data/schemas/grammaire/ref';
 import type { CharKey } from '../../engine/types';
 import { talentMaxReached } from '../../engine/careerSlots';
 import { designer, libreDEspece, speciesSkillDefaults } from '../../engine/character';
@@ -124,7 +125,7 @@ function fillSkills(d: CreatorDraft): CreatorDraft {
   // Sorts de Magie mineure inclus au Talent : les N premiers.
   const quota = pettySpellQuota(cur);
   if (quota && cur.pettySpells.length !== quota) {
-    const minors = spells.filter((s) => s.family === 'mineure').map((s) => s.id);
+    const minors = idsDeLaSousListe('spell', 'mineure');
     cur = { ...cur, pettySpells: minors.slice(0, quota) };
   }
   return cur;

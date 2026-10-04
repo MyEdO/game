@@ -4,9 +4,9 @@
 import { OUTILS_ECRITURE, ecrituresDe } from '../guards/lib/contratGarde.mjs'
 import { cheminDEcriture } from './solde-ticket-guard.mjs'
 
-/** Le rappel pour UNE écriture, `null` hors donnée app-owned. */
-function rappel(ecrit) {
-  const chemin = cheminDEcriture(ecrit)
+/** Le rappel pour UNE écriture, `null` hors donnée app-owned ; un relatif se résout contre `base`. */
+function rappel(ecrit, base) {
+  const chemin = cheminDEcriture(ecrit, { base })
   if (chemin === null || !/(^|\/)src\/data\/[^/]+\.json$/.test(chemin.relatif) || chemin.horsContenu) return null
   const rel = chemin.relatif.slice(chemin.relatif.lastIndexOf('src/data/'))
   return {
@@ -22,6 +22,6 @@ function rappel(ecrit) {
   }
 }
 
-const evaluer = (entree) => ecrituresDe(entree).map(rappel)
+const evaluer = (entree, { dir }) => ecrituresDe(entree).map((ecrit) => rappel(ecrit, dir))
 
 export const garde = { nom: 'data-edit', outils: OUTILS_ECRITURE, evaluer }

@@ -32,22 +32,13 @@ import { execFileSync } from 'node:child_process'
 import { readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import {
-  estErreur, findAllRuns, findCells, cellRefFor, normText, parseChapitre,
+  estErreur, findAllRuns, findCells, cellRefFor, normText, ouDe, ouDeLAdresse, parseChapitre,
   resoudreAdresse, resoudreFragment,
 } from '../../src/data/source/decoupe.ts'
 import { RACINES_PAR_DEFAUT, RACINE_DEPOT, adressesDuDepot } from './adresses.mjs'
 import { lireChapitre } from './lecteur-fs.mjs'
 import { cheminChapitre } from './resoudre.mjs'
 import { ancresDObjet, jsonIndente, remplacerAncre } from './reecriture-ancree.mjs'
-
-/** Désignation lisible d'un fragment — même forme que les détails d'erreur du parseur. */
-const ouDe = (frag) =>
-  frag.kind === 'cellule'
-    ? `§${frag.sec}#${frag.secOcc} [${frag.row}]×[${frag.col}]`
-    : `§${frag.sec}#${frag.secOcc} blocs ${frag.b0}-${frag.b1}`
-
-/** Adresse entière en une ligne lisible. */
-const adresseLisible = (ref) => `${ref.book} ch.${ref.ch} ${ref.parts.map(ouDe).join(' + ')}`
 
 /** Chemin de chapitre en séparateurs POSIX : c'est la forme que `git show` attend. */
 const versPosix = (chemin) => String(chemin).split('\\').join('/')
@@ -138,7 +129,7 @@ function relocaliser(courant, origine, ref, depuis) {
   }
   const rendu = resoudreAdresse(courant, nouvelle)
   if (estErreur(rendu)) {
-    return { verdict: 'IRRÉCUPÉRABLE', raison: `l'adresse proposée (${adresseLisible(nouvelle)}) ne résout pas : ${rendu.error} — ${rendu.detail}` }
+    return { verdict: 'IRRÉCUPÉRABLE', raison: `l'adresse proposée (${ouDeLAdresse(nouvelle)}) ne résout pas : ${rendu.error} — ${rendu.detail}` }
   }
   if (rendu.md !== attendu.md) {
     return {
@@ -146,7 +137,7 @@ function relocaliser(courant, origine, ref, depuis) {
       raison: `l'adresse proposée rend un AUTRE texte que l'original (${attendu.md.length} car. attendus, ${rendu.md.length} rendus)`,
     }
   }
-  return { verdict: 'RECALÉE', nouvelle, proposition: adresseLisible(nouvelle) }
+  return { verdict: 'RECALÉE', nouvelle, proposition: ouDeLAdresse(nouvelle) }
 }
 
 /**

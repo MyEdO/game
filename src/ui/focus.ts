@@ -62,7 +62,7 @@ export const focusSansIntention = (): boolean => sansIntention;
  *  ref=…>}`) n'a pas d'élément au premier rendu, et l'objet `ref` ne change jamais d'identité — sans
  *  cette dépendance l'effet sortirait à vide une fois pour toutes (#1752). */
 export function useFocusEmprunte(
-  boxRef: RefObject<HTMLElement>,
+  boxRef: RefObject<HTMLElement | null>,
   actif: boolean,
   cible: (box: HTMLElement) => HTMLElement | null,
   etape?: string | number,

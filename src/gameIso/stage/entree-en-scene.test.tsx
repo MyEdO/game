@@ -1,3 +1,4 @@
+import type { JSX } from 'react';
 // @vitest-environment jsdom
 /**
  * ENTRÉE EN SCÈNE (#1372) — le MONTAGE d'une scène ne rasterise plus en rafale, et ce qu'on regarde

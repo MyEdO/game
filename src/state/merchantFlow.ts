@@ -24,7 +24,7 @@ import { priceToMoney, add as moneyAdd, canAfford, fromBrass, toBrass, formatMon
 import { bourseOf, payWithAllocation, payFromGroup, soloPayer, creditBourse } from './bourseFlow';
 import { actorStatus } from '../engine/social';
 import { MINUTES_PER_DAY } from '../engine/clock';
-import { findTrappingById, trappings, findVehicleById, findCreatureById, vehicles, creatures, combatStakeRef, type TrappingData } from '../data/index';
+import { findTrappingById, trappingsInstanciables, findVehicleById, findCreatureById, vehicles, creatures, combatStakeRef, type TrappingData } from '../data/index';
 import { slugId } from '../data/slug';
 import { MERCHANTS } from './merchants/index';
 import { FLOWS } from './rollFlowSpecs';
@@ -191,8 +191,7 @@ function computeFreshStockLines(
 ): { stock: { id: string; qty: number }[]; tested: StockLine[] } {
   const guild = !!marketRule(ent, 'guild');
   const marketMode = marketRule(ent, 'marketMode') as string;
-  const cat: CatalogItem[] = trappings
-    .filter((t) => !t.service) // tarif de service (chambre/écurie, LDB 66 l.12-14) : jamais en stock, pas un objet
+  const cat: CatalogItem[] = trappingsInstanciables()
     .filter((t) => (!arch.category.categories || arch.category.categories.includes(t.categorie)) && (!arch.category.subTypes || (t.subType != null && arch.category.subTypes.includes(t.subType))))
     .map((t) => {
       const base: CatalogItem['availability'] = isTradable(t.availability) ? t.availability : null;

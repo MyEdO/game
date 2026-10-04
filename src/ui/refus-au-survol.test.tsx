@@ -1,3 +1,4 @@
+import type { JSX } from 'react';
 /**
  * CONTRAT POSITIF de la RAISON D'UN REFUS (#1689 T2) — la loi de `docs/charte-ui.md` § « Raison d'un
  * refus » (arbitrage user 2026-08-24 : « Je n'ai jamais validé ces "textes" impossible a lire sous le
