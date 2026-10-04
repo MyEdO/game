@@ -4,14 +4,14 @@
 // trois autres lecteurs de la grammaire de fermeture qu'il confronte.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { execFileSync } from 'node:child_process'
 import { mkdirSync, writeFileSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 import {
   fermeturesDeLaPlage, decisionPour, marqueDe, commitsDeLaPlage, soldeDuCommit,
   avertissementRapportee, motifDePlageIllisible, posteUnSolde,
 } from '../guards/lib/plageFermante.mjs'
-import { envDeDepotForge, instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
+import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
+import { gitDe } from '../test/gitDeBanc.mjs'
 import { extractClosedIssues } from '../hooks/solde-ticket-guard.mjs'
 import { fermeturesDesCommits } from './faits-de-palier.mjs'
 import { numerosFermes } from '../guards/lib/fermetures.mjs'
@@ -115,7 +115,7 @@ test('une issue déjà fermée ailleurs s’AVERTIT : le job ne rougit pas sur u
 test('plage dont la BASE est hors de l’histoire, ou dont une BORNE est INCONNUE du dépôt : des motifs NOMMÉS, jamais une exception brute de git', () => {
   const { racine: depot, sha: base } = instanceDeDepot({ fichiers: { 'a.txt': 'a' }, message: 'base' })
   try {
-    const git = (...args) => execFileSync('git', args, { cwd: depot, encoding: 'utf8', env: envDeDepotForge() })
+    const git = gitDe(depot)
     git('checkout', '-q', '-b', 'divergente')
     writeFileSync(join(depot, 'a.txt'), 'c')
     git('commit', '-q', '-am', 'divergente')
@@ -150,7 +150,7 @@ test('plage dont la BASE est hors de l’histoire, ou dont une BORNE est INCONNU
 test('la plage se lit dans l’histoire, et le solde est celui que le COMMIT emporte', () => {
   const { racine: depot, sha: base } = instanceDeDepot({ fichiers: { 'a.txt': 'a' }, message: 'base' })
   try {
-    const git = (...args) => execFileSync('git', args, { cwd: depot, encoding: 'utf8' })
+    const git = gitDe(depot)
     mkdirSync(join(depot, '.claude', 'soldes'), { recursive: true })
     writeFileSync(join(depot, '.claude', 'soldes', '42.md'), 'VERIFIE: le solde emporté\n')
     writeFileSync(join(depot, 'a.txt'), 'b')

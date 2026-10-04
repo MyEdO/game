@@ -7,7 +7,7 @@
 import { tableTotale } from '../../src/lib/tableTotale.ts'
 import test, { after, describe } from 'node:test'
 import assert from 'node:assert/strict'
-import { execFileSync, spawnSync } from 'node:child_process'
+import { spawnSync } from 'node:child_process'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, utimesSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -89,6 +89,7 @@ import {
   verdictDesRuns,
 } from './etapesDuTrain.mjs'
 import { refusDuCommitDeFile } from './compteurs-de-file.mjs'
+import { gitDe } from '../test/gitDeBanc.mjs'
 
 const NOMS = ETAPES.map((e) => e.nom)
 
@@ -457,7 +458,7 @@ test('`pousser` refuse tout push vers `main`, sous ses deux noms, bail ou non, A
 test('ÉCRIVAIN sous config HOSTILE : le commit du train est signé par l’identité de l’UTILISATRICE', () => {
   const { racine } = instanceDeDepot({ fichiers: { 'a.txt': 'a\n' }, message: 'socle' })
   const mesure = mkdtempSync(join(tmpdir(), 'train-hostile-'))
-  const g = (...a) => execFileSync('git', a, { cwd: racine, env: envDeDepotForge(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()
+  const g = gitDe(racine, { net: true })
   try {
     g('config', '--local', '--unset', 'user.name')
     g('config', '--local', '--unset', 'user.email')
@@ -1417,7 +1418,7 @@ describe('compteurs de version : la valeur que la tête publie est-elle déjà P
   const forger = (script, base = 60) => {
     const { racine } = instanceDeDepot({ fichiers: { 'a.txt': 'a\n', ...fichiersDeCompteurs(base) } })
     racines.push(racine)
-    const g = (...args) => execFileSync('git', args, { cwd: racine, env: envDeDepotForge(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()
+    const g = gitDe(racine, { net: true })
     const ecrire = (texte) => { writeFileSync(join(racine, saves.fichier), texte); g('add', '--', saves.fichier) }
     const outils = {
       g,
