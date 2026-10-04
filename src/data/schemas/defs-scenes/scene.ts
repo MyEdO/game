@@ -17,7 +17,7 @@
  * `id` ET `label`, et le jeu résout une scène PAR ID — `sceneRegistry` (`src/state/store.ts:182-183`,
  * `registerScene`), le delta d'instance persisté par `sceneId` (`src/state/sceneInstance.ts:9`),
  * l'effet `transition: { scene }` et `worldMap.places[].scene`. Le `type` est posé sur la donnée
- * existante par `PROJECT_MIGRATIONS[6]` (`src/state/worldMap.ts`, `schema` 6 → 7).
+ * existante par `PROJECT_MIGRATIONS[6]` (`src/data/migrationsDeProjet.ts`, `schema` 6 → 7).
  */
 import { tableTotale } from '../../../lib/tableTotale';
 import { z } from 'zod';

@@ -6,7 +6,7 @@
  *
  * Primitive PARTAGÉE, chargée par Node nu (aucun import) : migration de dépôt
  * `scripts/migrations/2026-09-24-1473-graphie-ops-de-talent.mjs`, `PROJECT_MIGRATIONS[16]`
- * (`src/state/worldMap.ts`), `ROSTER_MIGRATIONS[6]` et le repli de `rosterLoad` (`src/state/roster.ts`).
+ * (`src/data/migrationsDeProjet.ts`), `ROSTER_MIGRATIONS[6]` et le repli de `rosterLoad` (`src/state/roster.ts`).
  */
 const OPS_DE_TALENT: ReadonlySet<string> = new Set(['grantTalent', 'grantCareerTalent']);
 

@@ -6,7 +6,7 @@
  * `text` des effets `journal`/`document`/`setObjective` → `desc`, `meta.description` → `desc`, et la
  * prose absente devient une clé absente). Un changement de forme se BUMPE : sans lui, un projet
  * exporté avant ce lot (bibliothèque utilisateur, `.json` portable) mourrait sur ~200 lignes zod, ce
- * que le site interdit explicitement (`src/state/worldMap.ts` : « Ajouter ici la migration N→N+1 …
+ * que le site interdit explicitement (`src/data/migrationsDeProjet.ts` : « Ajouter ici la migration N→N+1 …
  * plutôt que de refuser en silence des projets antérieurs valides »).
  *
  * Le CHARGEMENT porte la migration mécanique 3→4 (`PROJECT_MIGRATIONS[3]`) ; CE script fait le

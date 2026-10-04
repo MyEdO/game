@@ -3,7 +3,7 @@
  *
  * DEUX gestes, un seul passage : chaque Scène reçoit `reliefDefaults`, et le document passe en
  * `schema: 8` — le champ étant EXIGÉ, la FORME du document change, et un projet antérieur se rattrape au
- * chargement par `PROJECT_MIGRATIONS[7]` (`src/state/worldMap.ts`), pendant applicatif de ce script.
+ * chargement par `PROJECT_MIGRATIONS[7]` (`src/data/migrationsDeProjet.ts`), pendant applicatif de ce script.
  *
  * Chaque Scène des projets livrés reçoit `reliefDefaults` : la matière de CHAQUE partie de relief que
  * le builder de sols émet (falaise, rampe, dalle de tablier, pilier). Le champ est EXIGÉ par le schéma

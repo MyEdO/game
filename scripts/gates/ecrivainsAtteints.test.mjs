@@ -136,6 +136,8 @@ const ATTENDU = {
     // en sortie) qui sortent avec le code du loader ; l'arbre n'est jamais écrit.
     'scripts/guards/lib/spawnResilient.test.mjs',
     'scripts/guards/lib/stockDeSites.test.mjs',
+    // #2226
+    'scripts/guards/lib/versionsDerivees-collision.test.mjs',
     // +4 −1 le 2026-09-26 (#1973), net +3 : les hooks d'écriture se taisent hors de tout dépôt et lisent
     // le disque au chemin RÉEL ; quatre bancs le mesurent sous `os.tmpdir()` (`rmSync` en finally,
     // l'arbre versionné n'est jamais écrit). Data-edit ne pose que des DOSSIERS (`instanceDeDepot`,

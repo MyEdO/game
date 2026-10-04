@@ -118,7 +118,11 @@ export const ECRIT_LU = {
     raison:
       'le registre d’écrans que `new-src-file-guard.test.mjs` éprouve est INJECTABLE (`WFRP_REGISTRE_ECRANS`, ' +
       '`cheminRegistre` de scripts/hooks/new-src-file-guard.mjs) et le test en écrit une COPIE sous os.tmpdir() ; ' +
-      'le reste des fixtures vit sous os.tmpdir() ; LIT src/ massivement (3 888 chemins) — les gardes de la ' +
+      'le reste des fixtures vit sous os.tmpdir() ; `guards/lib/versionsDerivees-collision.test.mjs` écrit ses ' +
+      'trois cas Git dans une instance jetable : `canoniser` et `relatifSousRacine` prouvent os.tmpdir() hors ' +
+      'de la racine avant `instanceDeDepot`, puis l’instance et le fichier écrit hors arbre ; le finally ' +
+      'supprime l’instance et exige son absence. TMP/TEMP dans la racine est refusé avant création ; ' +
+      'LIT src/ massivement (3 888 chemins) — les gardes de la ' +
       'gate balaient l’arbre réel (stocks nominatifs, garde des nouveaux fichiers, budget de contexte) ; ' +
       'LIT docs/ sur deux sites : le listing de docs/raw, et docs/.sources-lues.json (banc de ' +
       'scripts/git-hooks/, sélection de `docs-rebuild.mjs`) ; ' +

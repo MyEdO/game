@@ -32,8 +32,8 @@
  * `JSON.stringify(doc, null, 1) + '\n'`. Forme vérifiée AVANT toute écriture : non canonique =
  * sortie 1, jamais un reflow silencieux.
  * POSITION : `ref` va en QUEUE de l'entité — la place que l'éditeur donne à un champ posé sur une
- * entité existante (`editEntity`), et celle que pose `poseSurChaqueEntite` (`src/state/worldMap.ts`).
- * Pendant de chargement : `PROJECT_MIGRATIONS[11]` (`src/state/worldMap.ts`). Aucune mesure ne joue
+ * entité existante (`editEntity`), et celle que pose `poseSurChaqueEntite` (`src/data/migrationsDeProjet.ts`).
+ * Pendant de chargement : `PROJECT_MIGRATIONS[11]` (`src/data/migrationsDeProjet.ts`). Aucune mesure ne joue
  * les deux sur un même document : chacun est confronté à SA fixture, qui récite la même POSITION —
  * `src/state/projet-migration-11-vers-12.test.ts` (chargement), `lib/877-ref-de-decor-portes.test.mjs`
  * (dépôt).

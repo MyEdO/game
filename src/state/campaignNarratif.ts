@@ -92,7 +92,7 @@ export interface NarratifBlock {
   cloture?: ClotureBlock;
 }
 
-/** Narratif vide — posé par `newProject` et par la migration 2→3 (`worldMap.ts`, `PROJECT_MIGRATIONS`). */
+/** Narratif vide — posé par `newProject`. */
 export function emptyNarratif(): NarratifBlock {
   return { affaires: [], indices: [], presetsPnj: [], objets: [] };
 }

@@ -1,6 +1,6 @@
 /**
  * CONTRAT — toute place de sort du document de PROJET est une forme que `remapSortsFusionnesDeep`
- * réécrit (#1897, `PROJECT_MIGRATIONS[15]`, `src/state/worldMap.ts`).
+ * réécrit (#1897, `PROJECT_MIGRATIONS[15]`, `src/data/migrationsDeProjet.ts`).
  *
  * Deux mesures. Le SCHÉMA : chaque feuille `idDe('spell')` que `projetSchema` et les payloads d'op
  * (`OP_DEFS`, lus par le raffinement de `gameOpSchema`) déclarent, sous la clé de son PORTEUR, en chaîne

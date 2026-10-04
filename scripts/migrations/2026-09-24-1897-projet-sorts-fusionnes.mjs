@@ -5,7 +5,7 @@
  * primitive `remapSortsFusionnesDeep` (`src/data/sortsFusionnes.ts`, table GELÉE `SORTS_FUSIONNES_1897`)
  * — la MÊME que celle du migrateur de chargement, jamais un second calcul.
  *
- * Pendant de DÉPÔT du migrateur de chargement `PROJECT_MIGRATIONS[15]` (`src/state/worldMap.ts`), qui
+ * Pendant de DÉPÔT du migrateur de chargement `PROJECT_MIGRATIONS[15]` (`src/data/migrationsDeProjet.ts`), qui
  * rattrape les `.json` de bibliothèque utilisateur. Parité mesurée par
  * `src/state/projet-migration-15-vers-16.test.ts`, qui joue la MÊME fixture par les deux.
  *
