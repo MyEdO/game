@@ -217,17 +217,18 @@ export const OPTIONS_DE_L_HOTE = Object.freeze([
 const MARQUE_DEPOT = Symbol('Depot')
 
 /** L'état de chaque DÉPÔT (`depotDe`), privé : son lanceur, et la version de git lue une fois
- *  (`exigerMergeTree`). L'appelant d'une question ne tient jamais git. */
+ *  (`exigerMergeTree`) hors fournisseur d'environnement. L'appelant d'une question ne tient jamais git. */
 const lanceurs = new WeakMap()
 
 /**
  * Le DÉPÔT git de `cwd` : une poignée OPAQUE que chaque question et chaque écrivain de l'hôte prend
  * en premier paramètre ; la commande, ses drapeaux et sa forme restent à l'hôte. `env` : l'environnement
- * du processus (`envDeDepotForge`, `depotGabarit.mjs`), celui du parent par défaut ; `spawn`/`attendre` :
+ * du processus (`envDeDepotForge`, `depotGabarit.mjs`), objet ou fournisseur synchrone résolu une fois
+ * par interrogation, celui du parent par défaut ; `spawn`/`attendre` :
  * injectables (mesure) ; `enPanne(raison)` : sans lui, une INDISPONIBILITÉ JETTE (`GitIndisponible`),
  * avec lui la lecture la lui confie et rend `null`.
  * @param {string} cwd
- * @param {{ env?: NodeJS.ProcessEnv, spawn?: Function, attendre?: Function, enPanne?: (raison: string) => void }} [opts]
+ * @param {{ env?: NodeJS.ProcessEnv | (() => NodeJS.ProcessEnv), spawn?: Function, attendre?: Function, enPanne?: (raison: string) => void }} [opts]
  * @returns {Depot}
  */
 export function depotDe(cwd, { env, spawn, attendre, enPanne } = {}) {
@@ -292,9 +293,16 @@ function feinteDeGit(env, argv, site, journal = process.stderr) {
  *  lecture, `[]` pour un écrivain, qui garde la configuration de l'utilisateur. */
 function interroger(depot, args, { entree, timeout, options = OPTIONS_DE_L_HOTE } = {}) {
   const { cwd, env, spawn, attendre } = lanceurDe(depot)
+  const fournisseur = typeof env === 'function'
+  const environnement = fournisseur ? env() : env
+  if (fournisseur && (typeof environnement?.then === 'function'
+    || Object.prototype.toString.call(environnement) !== '[object Object]'
+    || Object.values(environnement).some((valeur) => valeur !== undefined && typeof valeur !== 'string'))) {
+    throw new TypeError('gitPorte : fournisseur env — un objet environnement synchrone est attendu, sans promesse ni valeur absente ou invalide')
+  }
   const argv = [...options, ...args]
   const site = `git ${args[0]}`
-  const vu = feinteDeGit(env ?? process.env, argv, site) ?? lancer('git', argv, { cwd, env, spawn, attendre, entree, timeout, site })
+  const vu = feinteDeGit(environnement ?? process.env, argv, site) ?? lancer('git', argv, { cwd, env: environnement, spawn, attendre, entree, timeout, site })
   return classer(vu, { cwd })
 }
 
@@ -601,8 +609,9 @@ const GIT_MERGE_TREE = Object.freeze([2, 40])
  */
 function exigerMergeTree(depot) {
   const etat = lanceurDe(depot)
-  if (etat.version === undefined) etat.version = lire(depot, ['version'])
-  const brut = etat.version
+  const fournisseur = typeof etat.env === 'function'
+  if (!fournisseur && etat.version === undefined) etat.version = lire(depot, ['version'])
+  const brut = fournisseur ? lire(depot, ['version']) : etat.version
   const m = /(\d+)\.(\d+)/.exec(String(brut ?? ''))
   const exige = GIT_MERGE_TREE.join('.')
   if (!m) throw new GitIndisponible(`version de git illisible (« ${String(brut ?? '').trim()} ») : git merge-tree --write-tree --stdin exige git ${exige}`)
