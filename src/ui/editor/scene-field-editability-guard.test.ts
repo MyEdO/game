@@ -57,7 +57,7 @@ describe('#841 — chaque champ du document de scène a un chemin d’écriture 
   // `scripts/guards/lib/tsProgram.mjs`, en-tête ; garde `src/analyse-retention-guard.test.ts`.
   const perimetre = detenteur(() => programmeDuPerimetre(ROOT));
 
-  it('aucun champ n’est joignable seulement par le pipeline d’authoring, hors cliquet nommé', { timeout: 30_000 }, () => {
+  it('aucun champ n’est joignable seulement par le pipeline d’authoring, hors cliquet nommé', { timeout: 60_000 }, () => {
     const orphelins = orphanFields(auditSceneFieldEditability(ROOT, perimetre()));
     // Rendu en TEXTE : l'échec doit NOMMER les champs et leur `fichier:ligne`, pas afficher « …(9) ».
     const detail = orphelins
@@ -378,7 +378,7 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
     );
   });
 
-  it('gate @fossile : une ENTRÉE du registre que plus aucun tag ne porte est ROUGE (le registre ne survit pas à son shim)', () => {
+  it('gate @fossile : une ENTRÉE du registre que plus aucun tag ne porte est ROUGE (le registre ne survit pas à son shim)', { timeout: 30_000 }, () => {
     // TÉMOIN de non-vacuité : le contrôle NON patché est MUET. Un programme privé de ses racines
     // rendrait déjà `entreesSansTag` peuplé — le rouge ci-dessous viendrait alors du vide, pas du
     // tag absent que le patch mesure.

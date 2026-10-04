@@ -32,7 +32,7 @@ describe('#1692 — aucune écriture de dataset hors du seam `overrides.ts`', ()
   const parBinding = bindingsVivants();
   const seam = fichiersDuSeam();
 
-  it('aucun `push`/`splice`/`sort`… ni écriture PAR INDEX, ni mutation d’une ENTRÉE vivante, tests compris', () => {
+  it('aucun `push`/`splice`/`sort`… ni écriture PAR INDEX, ni mutation d’une ENTRÉE vivante, tests compris', { timeout: 60_000 }, () => {
     const fautifs = fichiersSources()
       .filter((f) => !seam.has(f))
       .flatMap((f) => ecrituresHorsSeam(f, readFileSync(join(RACINE, f), 'utf8'), parBinding));

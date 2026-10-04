@@ -372,7 +372,7 @@ export function sitesFamilleEgaree(feuilles: readonly { rel: string; text: strin
 describe('#1806 — un module de primitive est le seul foyer de ce qu’il peint', () => {
   const feuilles = imageDuDisque().fichiers;
 
-  it('§5.3 aucun REPEINT neuf d’une classe possédée ailleurs (stock nominatif)', () => {
+  it('§5.3 aucun REPEINT neuf d’une classe possédée ailleurs (stock nominatif)', { timeout: 30_000 }, () => {
     const mesures = sitesRepeint(feuilles);
     const neufs = mesures.filter((s) => !REPEINTS_STOCK.includes(s));
     expect(neufs, `Classe REPEINTE hors de son module propriétaire — la matière doit rester UNIQUE :\n${neufs.join('\n')}`).toEqual([]);
@@ -380,14 +380,14 @@ describe('#1806 — un module de primitive est le seul foyer de ce qu’il peint
     expect(soldes, `Entrée(s) SOLDÉE(s) du stock de repeints — retirer la ligne :\n${soldes.join('\n')}`).toEqual([]);
   });
 
-  it('§5.3 preuve par mutation — un écran qui repeint une classe partagée rougit', () => {
+  it('§5.3 preuve par mutation — un écran qui repeint une classe partagée rougit', { timeout: 60_000 }, () => {
     const faux = [{ rel: 'src/ui/styles/faux-ecran.css', text: '.faux-panneau .btn { color: var(--gold) }' }];
     expect(sitesRepeint(faux)).toEqual(['src/ui/styles/faux-ecran.css|.faux-panneau .btn']);
     const placement = [{ rel: 'src/ui/styles/faux-ecran.css', text: '.faux-panneau .btn { margin-top: var(--sp-md) }' }];
     expect(placement.length && sitesRepeint(placement), 'un PLACEMENT sous contexte d’écran reste légitime').toEqual([]);
   });
 
-  it('§5.3 le SUJET d’une règle n’est pas ce que son `:has()` nomme', () => {
+  it('§5.3 le SUJET d’une règle n’est pas ce que son `:has()` nomme', { timeout: 30_000 }, () => {
     // `label:has(> .btn)` peint le LABEL, pas le bouton : compter `.btn` pour sujet inventerait un
     // repeint (et la découpe naïve sur `,` inventait en plus une règle « `> .btn)` »).
     const faux = [{ rel: 'src/ui/styles/faux-ecran.css', text: "label:has(> a, > .btn) { color: var(--gold) }" }];

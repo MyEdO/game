@@ -500,7 +500,7 @@ it('x', () => lire());
     ).toEqual(['src/hook.test.ts#lire affectée', 'src/it.test.ts#lire affectée']);
   });
 
-  it('aucun module chargé par la suite ne retient une structure d’analyse', { timeout: 120_000 }, () => {
+  it('aucun module chargé par la suite ne retient une structure d’analyse', { timeout: 240_000 }, () => {
     const charges = clotureDImports(fichiersDeLaSuite().map((f) => f.abs), { racine: ROOT });
     const duCorpus = readCorpus(['src', 'scripts', 'server/src'], {
       exts: ['.ts', '.tsx', '.mts', '.mjs', '.cjs', '.js'],

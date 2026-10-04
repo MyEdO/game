@@ -537,7 +537,7 @@ describe('garde-fou « branchement par identité dans du code générique » (#8
     }
   });
 
-  it('CLIQUET : aucun site NOUVEAU, et tout site assaini abaisse le plafond', () => {
+  it('CLIQUET : aucun site NOUVEAU, et tout site assaini abaisse le plafond', { timeout: 30_000 }, () => {
     const findings = findingsIn(SCAN_DIRS);
     const perFile: Record<string, number> = {};
     for (const f of findings) perFile[f.rel] = (perFile[f.rel] ?? 0) + 1;

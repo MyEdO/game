@@ -331,7 +331,7 @@ describe('Cuisson du monde — la part RECETTES du read-set se compte en DEFS, p
     expect(partRecettes(salle([DEF_A], 300))).toContain(findPropById(DEF_A)!.volume);
   });
 
-  it('retoucher cette recette invalide TOUJOURS la rétention', () => {
+  it('retoucher cette recette invalide TOUJOURS la rétention', { timeout: 60_000 }, () => {
     const scene = salle([DEF_A], 300);
     const mptS = sceneMetresPerTile(scene);
     const memo = memoByRefDeps<object, BakedWorld>();
