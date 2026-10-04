@@ -1,13 +1,49 @@
+import type { Node, SourceFile } from 'typescript';
+
+export type NatureDeModule = 'statique' | 'dynamique' | 'type' | 'require';
+export type GenreDeModule = 'import' | 'export' | 'importEquals' | 'importType' | 'appel' | 'fournisseur';
+export interface PositionDeModule {
+  readonly noeud: Node;
+  debut: number;
+  fin: number;
+  ligne: number;
+}
+export interface NomDeModule {
+  nom: string;
+  position: PositionDeModule | null;
+}
+export interface LiaisonDeModule {
+  forme: 'nommee' | 'defaut' | 'espace' | 'etoile' | 'equals';
+  typeSeul: boolean;
+  local: NomDeModule | null;
+  importe: NomDeModule | null;
+  exporte: NomDeModule | null;
+}
+export interface SiteDeModule extends PositionDeModule {
+  genre: GenreDeModule;
+  nature: NatureDeModule;
+  acquisition: boolean;
+  spec: string | null;
+  clause: boolean;
+  niveauModule: boolean;
+  texte: string;
+  liaisons: LiaisonDeModule[];
+}
+export type LiaisonSituee = Omit<SiteDeModule, 'liaisons'> & LiaisonDeModule;
+export function sitesDeModule(fichier: string, source: string | SourceFile): SiteDeModule[];
+export function liaisonsDe(fichier: string, source: string | SourceFile): LiaisonSituee[];
+export function chargementsDe(fichier: string, source: string | SourceFile): SiteDeModule[];
+
 /** Un spécificateur qu'un module écrit, et la nature de l'acquisition. */
 export interface Specificateur {
   spec: string;
-  nature: 'statique' | 'dynamique' | 'type' | 'require';
+  nature: NatureDeModule;
   ligne: number;
   debut: number;
   fin: number;
   texte: string;
 }
-export function specificateursDe(fichier: string, texte: string): Specificateur[];
+export function specificateursDe(fichier: string, source: string | SourceFile): Specificateur[];
 /** Un arc résolu : le spécificateur écrit, sa nature, et le fichier absolu POSIX qu'il désigne. */
 export interface Arc extends Specificateur {
   cible: string;
