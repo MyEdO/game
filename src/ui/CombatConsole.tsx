@@ -480,7 +480,7 @@ export function CombatConsole() {
   const battle = useGame((s) => s.battle);
   const party = useGame((s) => s.party);
   const net = useGame((s) => s.net);
-  // Heure de jeu : le QUART courant borne la chanson de marin (une par quart, MDG 09 l.40).
+  // MDG 09 l.40.
   const gameTime = useGame((s) => s.gameTime);
   const pendingRoundStart = useGame((s) => s.pendingRoundStart);
   // Intention LOCALE armée (spec zone 4) : elle allume SA case. Jamais un intent réseau — c'est un

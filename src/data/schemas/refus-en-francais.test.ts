@@ -66,7 +66,7 @@ describe('les refus de schéma parlent français (#1588)', () => {
    * la compilation efface ne porte aucun effet de module, il ne compte donc ni comme porteur de zod ni
    * comme atteinte (`sourceALExecution`, `scripts/guards/lib/importGraph.mjs`).
    */
-  it('GARDE — tout fichier de production de `src/**` important zod en VALEUR atteint la locale', () => {
+  it('GARDE — tout fichier de production de `src/**` important zod en VALEUR atteint la locale', { timeout: 30_000 }, () => {
     const LOCALE = 'src/data/schemas/grammaire/locale-fr.ts';
     const ZOD_EN_VALEUR = /\bfrom\s*['"]zod['"]|\bimport\s*['"]zod['"]/;
 

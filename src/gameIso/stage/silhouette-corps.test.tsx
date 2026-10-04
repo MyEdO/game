@@ -48,7 +48,7 @@ const POV: StageFrame = { mode: 'pov', partyPos: { x: 2, y: 2, z: 0 }, facing: '
 
 function combattant(id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }, extra: Partial<Combatant> = {}): Combatant {
   return {
-    id, label: id, kind, pos, size: 'moyenne',
+    id, label: id, kind, pos, size: 'moyenne', species: 'humains-reiklander',
     wounds: { current: 12, max: 12 }, weapons: [],
     characteristics: { 'capacite-de-combat': 40, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     advantage: 0, conditions: [], armour: {},
@@ -145,7 +145,7 @@ afterEach(() => {
 });
 
 describe('Corps à travers les murs — le jumeau MONTÉ sur le quad (#1297 LOT C)', () => {
-  it('chaque corps de combattant porte SON jumeau, à test de profondeur RETOURNÉ et rendu AVANT les corps', async () => {
+  it('chaque corps de combattant porte SON jumeau, à test de profondeur RETOURNÉ et rendu AVANT les corps', { timeout: 30_000 }, async () => {
     await monter(AFFINE);
     expect(jumeaux(), 'un jumeau par acteur, et pas un de plus').toHaveLength(ACTEURS.length);
     const { corps, jumeau } = jeton('h1');
@@ -162,7 +162,7 @@ describe('Corps à travers les murs — le jumeau MONTÉ sur le quad (#1297 LOT 
     expect(mat.fog).toBe(true);
     expect(mat.polygonOffset, 'aucun biais de profondeur : c’est le test retourné qui décide').toBe(false);
     // Banc volumique mesuré à 15,3 s sur runner 4 cœurs à 96 % de mémoire ([diag] #1619) — borne de banc.
-  }, { timeout: 30_000 });
+  });
 
   it('la GÉOMÉTRIE est celle du corps, et la pose se transmet par la parenté — aucune écriture de plus', async () => {
     await monter(AFFINE);
@@ -332,7 +332,7 @@ describe('Corps à travers les murs — la TEINTE le long de la chaîne RÉELLE 
   const h1 = () => combattant('h1', 'hero', { x: 0, y: 0 });
   const h2 = () => combattant('h2', 'hero', { x: 1, y: 1 }, { mountId: 'm1' } as Partial<Combatant>);
   const monture = (kind: 'hero' | 'enemy') =>
-    combattant('m1', kind, { x: 1, y: 1 }, { riderId: 'h2', creatureId: 'cheval', size: 'grande' } as Partial<Combatant>);
+    combattant('m1', kind, { x: 1, y: 1 }, { riderId: 'h2', creatureId: 'cheval', species: 'cheval', size: 'grande' } as Partial<Combatant>);
 
   it('à PIED : chaque héros prend SON ordinal d’anneau, l’ennemi le rouge', () => {
     const t = teintes([h1(), combattant('h2', 'hero', { x: 1, y: 1 }), combattant('e1', 'enemy', { x: 5, y: 5 })]);

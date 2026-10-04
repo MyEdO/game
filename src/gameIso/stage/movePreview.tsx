@@ -1,3 +1,4 @@
+import type { JSX } from 'react';
 /**
  * Tracé d'un DÉPLACEMENT (chemin + case d'arrivée + badge d'action) — source unique du rendu, partagée
  * entre l'aperçu tap-1 (battle.preview, tactile), l'aperçu au SURVOL (desktop), l'aperçu hors combat et

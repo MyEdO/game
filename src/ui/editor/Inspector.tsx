@@ -1,3 +1,4 @@
+import type { JSX } from 'react';
 /**
  * Inspecteur v2 — volet droit DOCKÉ (fini la modale du POC qui masquait le canvas) :
  * la sélection s'édite EN PLACE, en sections repliables `.fold`, pendant que la carte reste

@@ -1,3 +1,4 @@
+import type { JSX } from 'react';
 // @vitest-environment jsdom
 /**
  * UN BATTEMENT, UNE IMAGE (#1378) — l'écran volumique monté sous ses TROIS motifs continus à la fois :

@@ -1,3 +1,4 @@
+import type { JSX } from 'react';
 /**
  * ÉDITEUR DE FLOW — la « liste de blocs imbriqués » (façon RPG Maker / ink) qui authore la LOGIQUE
  * d'un trigger / choix de dialogue / piège / sort : une séquence de blocs

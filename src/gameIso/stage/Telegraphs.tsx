@@ -1,3 +1,4 @@
+import type { JSX } from 'react';
 /**
  * Télégraphes ENNEMIS (IA) : déplacement (chemin + destination en rouge, montré avant le glissé),
  * visée (réticule + ligne — PLEINE en mêlée, pointillée tir/sort) et ZONE (disque Chebyshev peint

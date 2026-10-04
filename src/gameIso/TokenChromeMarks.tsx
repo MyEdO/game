@@ -1,3 +1,4 @@
+import type { JSX } from 'react';
 /**
  * PEINTRE UNIQUE du chrome d'écran d'un jeton (#1176, P3-0f) : la barre de PV, la rangée d'icônes
  * d'états/buffs avec son report « +N », et la pastille d'état de FIN (#237).

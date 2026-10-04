@@ -81,7 +81,7 @@ export type VueDePlateau = {
   targeting: ReturnType<typeof cameraTargeting>;
   anyWalking: boolean;
   camTransform: string;
-  camGRef: React.RefObject<SVGGElement>;
+  camGRef: React.RefObject<SVGGElement | null>;
   /** Ref-callback du SVG : elle pose l'élément vivant chez l'hôte (picking ET molette). */
   poserSvg: (el: SVGSVGElement | null) => void;
   pointeur: ReturnType<typeof useStagePointer>;

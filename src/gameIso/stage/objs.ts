@@ -1,3 +1,4 @@
+import type { JSX } from 'react';
 /**
  * Objets du TRI DE PROFONDEUR global du stage iso + fusion statique/dynamique.
  * Fix du `objs.sort` à 60 Hz : les couches STATIQUES (sols/murs/décor/toits/props/figurants/

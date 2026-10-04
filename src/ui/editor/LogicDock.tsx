@@ -1,3 +1,4 @@
+import type { JSX } from 'react';
 /**
  * PANNEAU LOGIQUE — dock bas repliable/redimensionnable remplaçant les 3 modales du POC
  * (Triggers / Dialogues / Rencontres) + l'onglet Validation. MASTER-DÉTAIL : liste à gauche,

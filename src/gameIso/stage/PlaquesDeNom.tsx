@@ -1,3 +1,4 @@
+import type { JSX } from 'react';
 /**
  * PLAQUES DE NOM (#1687) — le NOM des utilisables que la frame montre, posé au-dessus d'eux dans le
  * SVG du plateau. C'est le second peintre de la MÊME liste que les anneaux du monde volumique

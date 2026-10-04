@@ -1,3 +1,4 @@
+import type { JSX } from 'react';
 /**
  * Constructeur d'effets réutilisable (triggers, dialogues, rencontres, props interactifs).
  * Un effet = une action de gameplay (journal, flag, objet, argent, combat, transition, test…).

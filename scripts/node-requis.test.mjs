@@ -59,16 +59,25 @@ test('refus : version inférieure sur le majeur, le mineur ou le correctif', () 
   }
 })
 
-test('accord : version égale ou supérieure, préfixe `v` et suffixe de pré-version tolérés', () => {
-  for (const version of ['22.18.0', '22.18.1', '22.23.2', '23.0.0', 'v24.1.0', '25.0.0-nightly2026']) {
+test('accord : version égale ou supérieure, préfixe `v` toléré', () => {
+  for (const version of ['22.18.0', '22.18.1', '22.23.2', '23.0.0', 'v24.1.0']) {
     assert.equal(refusDeVersion('>=22.18.0', version), null, version)
   }
 })
 
-test('plage absente ou hors forme `>=M.m.p` : refus qui la nomme', () => {
-  for (const plage of [undefined, '^22.18.0', '>=22.18', '>=22.18.0 <23', '22.18.0']) {
-    assert.match(refusDeVersion(plage, '22.23.2'), /forme `>=M\.m\.p`/, String(plage))
+test('plage absente, vide ou invalide : refus qui la nomme', () => {
+  for (const plage of [undefined, '', ' ', 'invalide']) {
+    assert.match(refusDeVersion(plage, '22.23.2'), /engines.node illisible/, String(plage))
   }
+})
+
+test('plage composée : seuls les moteurs compatibles avec les dépendances sont admis', () => {
+  const plage = '^22.22.2 || ^24.15.0 || >=26.0.0'
+  for (const version of ['22.22.2', '22.23.0', '24.15.0', '26.0.0', '27.0.0'])
+    assert.equal(refusDeVersion(plage, version), null, version)
+  for (const version of ['22.22.1', '24.14.0', '23.0.0', '25.0.0', '26.0.0-nightly2026'])
+    assert.match(refusDeVersion(plage, version), /ne satisfait pas/, version)
+  assert.match(refusDeVersion(plage, 'illisible'), /version de Node illisible/)
 })
 
 /** Arbre à l'exigence intenable : `package.json` qui la porte, `.npmrc` et porte réels. */
@@ -81,6 +90,7 @@ function arbreIntenable() {
   )
   copyFileSync(join(RACINE, '.npmrc'), join(racine, '.npmrc'))
   copyFileSync(join(RACINE, 'scripts', 'node-requis.mjs'), join(racine, 'scripts', 'node-requis.mjs'))
+  symlinkSync(join(RACINE, 'node_modules'), join(racine, 'node_modules'), 'junction')
   return racine
 }
 
@@ -93,7 +103,6 @@ function arbreDesModules() {
     copyFileSync(join(RACINE, rel), join(racine, rel))
   }
   for (const hook of HOOKS_SHELL) copyFileSync(join(DOSSIER_HOOKS, hook), join(racine, 'scripts', 'git-hooks', hook))
-  symlinkSync(join(RACINE, 'node_modules'), join(racine, 'node_modules'), 'junction')
   return racine
 }
 
@@ -124,6 +133,15 @@ test('câblage des hooks shell de `scripts/git-hooks/` : chacun lance un `.mjs` 
   for (const [hook, modules] of MODULES_PAR_HOOK) assert.ok(modules.length, `${hook} ne lance aucun \`.mjs\` lisible`)
   const racine = arbreDesModules()
   try {
+    const sonde = spawnSync('sh', ['-c', 'node -p process.versions.node'], {
+      cwd: racine,
+      env: { ...envNu(), NODE_OPTIONS: '--no-experimental-strip-types' },
+      encoding: 'utf8',
+    })
+    assert.equal(sonde.status, 0, sonde.stdout + sonde.stderr)
+    const versionShell = sonde.stdout.trim()
+    assert.match(versionShell, /^\d+\.\d+\.\d+$/)
+    const refusShell = new RegExp(`Node ${versionShell.replace(/\./g, '\\.')} ne satisfait pas package\\.json engines\\.node « ${EXIGENCE_INTENABLE} »`)
     for (const hook of HOOKS_SHELL) {
       const r = spawnSync('sh', [join('scripts', 'git-hooks', hook), ...(ARGUMENTS_D_UN_GESTE[hook] ?? [])], {
         cwd: racine,
@@ -131,7 +149,7 @@ test('câblage des hooks shell de `scripts/git-hooks/` : chacun lance un `.mjs` 
         encoding: 'utf8',
       })
       assert.equal(r.status, estPostHook(hook) ? 0 : CODE_DE_REFUS, `${hook} : ${r.stdout}${r.stderr}`)
-      assert.match(r.stderr, REFUS, hook)
+      assert.match(r.stderr, refusShell, hook)
       assert.equal(r.stdout, '', hook)
     }
   } finally {

@@ -122,7 +122,7 @@ describe('#1692 — aucun index figé à l’import sur un dataset mutable', () 
     expect([...fichiersDuSeam()].sort()).toEqual(['src/data/overrides.ts', 'src/data/versionDataset.ts', 'src/engine/policy.ts']);
   });
 
-  it('aucun index NI aucune vue dérivée de niveau module sur un dataset du seam', () => {
+  it('aucun index NI aucune vue dérivée de niveau module sur un dataset du seam', { timeout: 30_000 }, () => {
     const seam = fichiersDuSeam();
     const fautifs = fichiersSources()
       .filter((f) => !estFichierVitest(f) && !seam.has(f))

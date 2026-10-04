@@ -1,3 +1,4 @@
+import type { JSX } from 'react';
 import { BONE_IDS, SLOT_BONES, SLOT_LAYER, splitPartBehind, type BoneId, type Skeleton, type Slot, type RigOverlay } from './bones';
 import { baseSkeleton, applyBuild, referenceSkeleton, groundSkeleton, profileNarrow, baseSpeciesOf } from './skeletons';
 import { bipedDef } from './creatures';
