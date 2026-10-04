@@ -1,10 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, rmdirSync, unlinkSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join, relative, resolve } from 'node:path';
+import { existsSync } from 'node:fs';
+import { relative, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { typescript } from './dialecte.mjs';
-import { virtualProgram, VIRTUAL_ROOT } from './tsProgram.mjs';
+import { repoProgram, virtualProgram, VIRTUAL_ROOT } from './tsProgram.mjs';
 
 const chemin = (f) => resolve(VIRTUAL_ROOT, f).replaceAll('\\', '/');
 
@@ -79,21 +79,21 @@ test('virtualProgram sépare le symbole importé de son homonyme local', () => {
 
 test('virtualProgram ne lit pas un module réel absent des images fournies', () => {
   const ts = typescript();
-  const dossier = mkdtempSync(join(tmpdir(), 'ts-program-images-'));
-  const reel = join(dossier, 'module-reel.mjs');
-  writeFileSync(reel, 'export const valeur = 1;');
-  try {
-    const porteur = join(relative(VIRTUAL_ROOT, dossier), 'porteur-en-memoire.ts');
-    const program = virtualProgram({
-      [porteur]: "import { valeur as nombre } from './module-reel.mjs'; export const result = nombre;",
-    }, { allowJs: true });
-    assert.equal(Boolean(program.getSourceFile(reel.replaceAll('\\', '/'))), false);
-    assert.equal(aliasCible(program, porteur, 'nombre').declarations, undefined);
-    assert.ok(ts.getPreEmitDiagnostics(program).some((d) => d.code === 2307));
-  } finally {
-    unlinkSync(reel);
-    rmdirSync(dossier);
-  }
+  const root = fileURLToPath(new URL('../../../', import.meta.url));
+  const porteur = chemin(fileURLToPath(new URL('porteur-en-memoire.ts', import.meta.url)));
+  const modules = ['tsProgram.mjs', 'tsProgram.d.mts'].map((nom) => chemin(fileURLToPath(new URL(nom, import.meta.url))));
+  for (const module of modules) assert.ok(existsSync(module), module);
+  const texte = "import { virtualProgram as fabrique } from './tsProgram.mjs'; export const result = fabrique;";
+  const disque = repoProgram(root, () => [porteur], { [relative(root, porteur)]: texte });
+  const cible = aliasCible(disque, porteur, 'fabrique');
+  assert.ok(cible.declarations?.length);
+  const origine = cible.declarations[0].getSourceFile();
+  assert.ok(modules.includes(chemin(origine.fileName)), origine.fileName);
+  assert.equal(disque.getSourceFile(origine.fileName), origine);
+  const program = virtualProgram({ [relative(VIRTUAL_ROOT, porteur)]: texte }, { allowJs: true });
+  for (const module of modules) assert.equal(program.getSourceFile(module), undefined, module);
+  assert.equal(aliasCible(program, porteur, 'fabrique').declarations, undefined);
+  assert.ok(ts.getPreEmitDiagnostics(program).some((d) => d.code === 2307 && d.file?.fileName === porteur));
 });
 
 test('virtualProgram conserve le programme TypeScript par défaut', () => {

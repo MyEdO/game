@@ -1357,9 +1357,9 @@ for (const option of ['-i', '--include', '-a']) {
       assert.notEqual(resultat?.decision, 'deny', JSON.stringify(resultat))
       const refus = await auHook(d.repo, commande(''))
       assert.equal(refus?.decision, 'deny')
-      assert.match(refus.raison, /scripts\/x\.test\.mjs : \+1 entrée/)
-      assert.match(refus.raison, /scripts\/inclus\.test\.mjs : \+1 entrée/)
-      if (option !== '-a') assert.match(refus.raison, /scripts\/autre\.test\.mjs : \+1 entrée/)
+      assert.ok(refus.raison.includes(`${PORTEUR} : +1 entrée`))
+      assert.ok(refus.raison.includes(`${inclus} : +1 entrée`))
+      if (option !== '-a') assert.ok(refus.raison.includes(`${autre} : +1 entrée`))
       const { diffDuCommit } = await import('../../hooks/solde-ticket-guard.mjs')
       const lu = diffDuCommit(commande(lignes), d.repo)
       assert.equal(lu.contenu(autre), sourceStock(option === '-a' ? SIX : [...SIX, ent('src/index.ts')]))
@@ -1385,7 +1385,7 @@ test('#2223 HOOK sous MERGE_HEAD : main ajoute +1 déclaré, la conclusion une e
     for (const lignes of ['', cliquet(PORTEUR, 2)]) {
       const refus = await auHook(d.repo, commandeDeFusion(lignes))
       assert.equal(refus?.decision, 'deny', JSON.stringify(lignes))
-      assert.match(refus.raison, /scripts\/x\.test\.mjs : \+1 entrée\(s\) nette\(s\)/)
+      assert.ok(refus.raison.includes(`${PORTEUR} : +1 entrée(s) nette(s)`))
     }
     const fin = d.poser({}, `fusion de main${cliquet(PORTEUR, 1)}`)
     assert.deepEqual(d.juger(d.debut, fin), [], 'la plage rend le même verdict sur la fusion posée')
@@ -1434,7 +1434,7 @@ test('#2223 REFUS d’une plage : le geste suit la sorte du commit fautif — fu
     const { refus } = croissancesDeLaPlage({ cwd: repo, debut: socle, fin: fusion })
     assert.deepEqual(refus.map((r) => [r.sha, r.fusion]), [[fusion, true]])
     const raison = raisonDeRefusDePlage(refus)
-    assert.match(raison, /\(fusion\) scripts\/x\.test\.mjs \+1/)
+    assert.ok(raison.includes(`(fusion) ${PORTEUR} +1`))
     assert.match(raison, /FUSION : `git commit --amend` de la fusion si elle est la tête ; sinon refaire la fusion/)
     assert.doesNotMatch(raison, /commit simple|rebase -i/)
   } finally {
