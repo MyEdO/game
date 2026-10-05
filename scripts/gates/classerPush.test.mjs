@@ -415,11 +415,14 @@ test('ÉCHEC — `merge-base` sans ancêtre commun, le tronc présent : classeme
   }
 })
 
-test('ÉCHEC — une PANNE de git au merge-base : classement CONSERVATEUR, et la panne est NOMMÉE', () => {
+for (const [nom, stderr] of [
+  ['retour de ligne final', 'fatal: panne simulée\n'],
+  ['cause tardive multiligne', `${'note de refus\n'.repeat(50)}fatal: cause tardive de la panne\n`],
+]) test(`ÉCHEC — une PANNE de git au merge-base : classement CONSERVATEUR, et la panne est NOMMÉE — ${nom}`, () => {
   const { racine } = depotJetable()
   try {
-    const v = sousGitFeint([{ si: ['merge-base'], status: 128, stderr: 'fatal: panne simulée\n' }], () => classerPush({ sha: 'HEAD', cwd: racine }))
-    assert.deepEqual([v.produit, v.base, v.motifs], [true, null, ['merge-base origin/main en échec — git indisponible : fatal: panne simulée : conservateur']])
+    const v = sousGitFeint([{ si: ['merge-base'], status: 128, stderr }], () => classerPush({ sha: 'HEAD', cwd: racine }))
+    assert.deepEqual([v.produit, v.base, v.motifs], [true, null, [`merge-base origin/main en échec — git indisponible : ${stderr} : conservateur`]])
   } finally {
     rmSync(racine, { recursive: true, force: true })
   }

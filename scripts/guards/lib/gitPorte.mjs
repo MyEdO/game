@@ -1,7 +1,7 @@
 // LECTURES GIT DES PORTES — l'hôte UNIQUE de la forme d'union et des commandes git que les portes
 // (pre-push, garde de solde, revue de palier, stocks de plage, faits de palier, closer) exécutent.
 //
-// COMBIEN D'ISSUES A UNE LECTURE GIT ? TROIS, et les confondre a deux ans de conséquences :
+// COMBIEN D'ISSUES A UNE LECTURE GIT ? TROIS :
 //   1. `{ disponible: true, valeur }`      — git a répondu ;
 //   2. `{ disponible: true, absent: true }` — l'OBJET demandé n'existe pas (`git show` d'une
 //      pre-image de fichier AJOUTÉ rend `128` et `fatal: path 'neuf.txt' exists on disk, but not in
@@ -1121,11 +1121,14 @@ export function estDansHead(depot, sha) {
  */
 export function arbrePrincipal(depot) {
   const { cwd } = depot
-  const refus = (motif) => indisponible(`arbre principal non résolu : ${motif}${motif.includes(cwd) ? '' : ` (depuis ${cwd})`}`)
+  const refus = (motif, details = {}) => {
+    const flux = [details.diagnostic?.stdout, details.diagnostic?.stderr].filter((texte) => texte && !motif.includes(texte)).join('\n')
+    return indisponible(`arbre principal non résolu : ${motif}${motif.includes(cwd) ? '' : ` (depuis ${cwd})`}${flux ? ` — ${flux}` : ''}`, details)
+  }
   const vu = interroger(depot, ['rev-parse', '--path-format=absolute', '--git-common-dir'])
-  if (!vu.disponible) return { ...vu, raison: refus(vu.raison).raison }
-  if (vu.absent) return refus("git n'y connaît pas de dépôt")
-  if (vu.valeur.status !== 0) return refus(`git rev-parse --git-common-dir rend ${vu.valeur.status}`)
+  if (!vu.disponible) return refus(vu.raison, vu)
+  if (vu.absent) return refus("git n'y connaît pas de dépôt", { issue: 'refus', diagnostic: vu.diagnostic })
+  if (vu.valeur.status !== 0) return refus(`git rev-parse --git-common-dir rend ${vu.valeur.status}`, { issue: 'refus', diagnostic: vu.valeur })
   const brut = String(vu.valeur.stdout).trim()
   const compare = normaliserRacine(brut)
   if (!compare) return refus('git rev-parse --git-common-dir rend une réponse vide')
@@ -1317,8 +1320,12 @@ export function worktreesDe(depot) {
  */
 export function fusionDeTextes(depot, fichiers, labels) {
   const vu = interroger(depot, ['merge-file', '-p', '-L', labels.ours, '-L', labels.base, '-L', labels.theirs, '--', fichiers.ours, fichiers.base, fichiers.theirs])
-  if (!vu.disponible) throw new GitIndisponible(vu)
-  if (vu.absent || vu.valeur.status >= 255) throw new Error(`git merge-file en échec (${vu.absent ? 'objet absent' : vu.valeur.status})`)
+  if (!vu.disponible || vu.absent || vu.valeur.status >= 255) {
+    const raison = !vu.disponible ? vu.raison : `git merge-file en échec (${vu.absent ? 'objet absent' : vu.valeur.status})`
+    const diagnostic = vu.disponible && !vu.absent ? vu.valeur : vu.diagnostic
+    const flux = [diagnostic?.stdout, diagnostic?.stderr].filter((texte) => texte && !raison.includes(texte)).join('\n')
+    throw new GitIndisponible(indisponible(`${raison}${flux ? ` — ${flux}` : ''}`, { issue: vu.disponible ? 'refus' : vu.issue, diagnostic }))
+  }
   return { texte: vu.valeur.stdout, conflit: vu.valeur.status > 0 }
 }
 

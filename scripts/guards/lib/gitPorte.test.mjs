@@ -1,7 +1,5 @@
 // L'UNION À TROIS ISSUES, mesurée contre git RÉEL sur un dépôt jetable — jamais sur un double :
 // c'est le CLASSEMENT des sorties de git qui doit être juste, et git seul dit ce qu'il écrit.
-// Sonde d'origine (2026-09-05) : 13 cas, dont deux motifs que la première liste ne portait pas
-// (`bad object`, `Invalid revision range`) et qui auraient classé « git en panne » deux absences.
 import { after, test } from 'node:test'
 import { Buffer } from 'node:buffer'
 import assert from 'node:assert/strict'
@@ -371,6 +369,35 @@ test('arbrePrincipal : deux refus NOMMÉS, jamais un repli sur le cwd', () => {
   const code = arbrePrincipal(depotFeint('/x', () => ({ status: 128, stdout: '', stderr: '' })))
   assert.equal(code.disponible, false)
   assert.match(code.raison, /rend 128/)
+})
+
+for (const [nom, reponse, issue, motif] of [
+  ['objet absent', { status: 128, stdout: `${'note stdout\n'.repeat(50)}cause stdout tardive`, stderr: `${'note stderr\n'.repeat(50)}fatal: bad revision — cause stderr tardive` }, 'refus', "git n'y connaît pas de dépôt"],
+  ['code nonzero et stderr vide', { status: 17, stdout: `${'note stdout\n'.repeat(50)}cause stdout tardive`, stderr: '' }, 'refus', 'rend 17'],
+  ['lancement', { status: null, stdout: 'flux de lancement', stderr: 'cause de lancement', error: new Error('spawnSync git ENOENT') }, 'lancement', 'git introuvable'],
+  ['interruption', { status: null, stdout: 'flux interrompu', stderr: 'cause interruption', signal: 'SIGTERM' }, 'interruption', 'SIGTERM'],
+]) test(`arbrePrincipal : diagnostic complet — ${nom}`, () => {
+  const vu = arbrePrincipal(depotFeint(tmpdir(), () => reponse))
+  assert.equal(vu.disponible, false)
+  assert.equal(vu.issue, issue)
+  assert.ok(vu.raison.startsWith('arbre principal non résolu :'))
+  assert.ok(vu.raison.includes(motif))
+  assert.equal(vu.diagnostic.status, reponse.status)
+  for (const flux of ['stdout', 'stderr']) {
+    assert.equal(vu.diagnostic[flux], reponse[flux])
+    if (reponse[flux]) assert.ok(vu.raison.includes(reponse[flux]), `${flux} intégral dans le refus`)
+  }
+  if (reponse.error) assert.equal(vu.diagnostic.error, reponse.error)
+  if (reponse.signal) assert.equal(vu.diagnostic.signal, reponse.signal)
+})
+
+test('arbrePrincipal : refus structurel sans fait de processus inventé', () => {
+  for (const reponse of [undefined, { status: 0, stdout: '', stderr: '' }, { status: 0, stdout: '/depot.git', stderr: '' }]) {
+    const vu = arbrePrincipal(depotFeint(tmpdir(), () => reponse))
+    assert.equal(vu.disponible, false)
+    assert.equal(vu.issue, 'mesure')
+    assert.equal(Object.hasOwn(vu, 'diagnostic'), false)
+  }
 })
 
 test('arbrePrincipal : sous un cwd de plus de 200 caractères, le refus garde son MOTIF (git réel)', () => {
@@ -1064,6 +1091,35 @@ test('conclureFusionSansChemins : une fusion en CONFLIT sur des chemins nommés 
 test('pousser : tout push vers le tronc est REFUSÉ avant tout spawn, sous ses deux noms, bail ou non', () => {
   const d = depotDe(tmpdir(), { spawn: () => assert.fail('aucun git ne doit partir') })
   for (const vers of ['main', 'refs/heads/main']) for (const bail of [true, false]) assert.throws(() => pousser(d, { vers, bail }), /main n’avance que par la file de fusion/)
+})
+
+for (const [nom, reponse, issue, motif] of [
+  ['objet absent', { status: 128, stdout: `${'note stdout\n'.repeat(50)}cause stdout tardive`, stderr: `${'note stderr\n'.repeat(50)}fatal: bad object — cause stderr tardive` }, 'refus', 'objet absent'],
+  ['255 et stderr vide', { status: 255, stdout: `${'note stdout\n'.repeat(50)}cause stdout tardive`, stderr: '' }, 'refus', '255'],
+  ['256 avec stderr', { status: 256, stdout: `${'note stdout\n'.repeat(50)}cause stdout tardive`, stderr: `${'note stderr\n'.repeat(50)}cause stderr tardive` }, 'refus', 'cause stderr tardive'],
+  ['interruption', { status: null, stdout: 'flux interrompu', stderr: 'cause interruption', signal: 'SIGTERM' }, 'interruption', 'SIGTERM'],
+]) test(`fusionDeTextes : diagnostic complet — ${nom}`, () => {
+  const d = depotFeint(tmpdir(), () => reponse)
+  assert.throws(() => fusionDeTextes(d, { ours: 'o', base: 'b', theirs: 't' }, { ours: 'nous', base: 'base', theirs: 'eux' }), (e) => {
+    assert.ok(e instanceof Error)
+    assert.ok(e instanceof GitIndisponible)
+    assert.equal(e.issue, issue)
+    assert.ok(e.message.includes(motif))
+    assert.equal(e.diagnostic.status, reponse.status)
+    for (const flux of ['stdout', 'stderr']) {
+      assert.equal(e.diagnostic[flux], reponse[flux])
+      if (reponse[flux]) assert.ok(e.message.includes(reponse[flux]), `${flux} intégral dans l'erreur`)
+    }
+    if (reponse.signal) assert.equal(e.diagnostic.signal, reponse.signal)
+    return true
+  })
+})
+
+test('fusionDeTextes : codes propre et conflictuels inchangés', () => {
+  for (const status of [0, 1, 254]) {
+    const d = depotFeint(tmpdir(), () => ({ status, stdout: 'texte fusionné complet', stderr: '' }))
+    assert.deepEqual(fusionDeTextes(d, { ours: 'o', base: 'b', theirs: 't' }, { ours: 'nous', base: 'base', theirs: 'eux' }), { texte: 'texte fusionné complet', conflit: status > 0 })
+  }
 })
 
 test('fusionDeTextes : la fusion à trois de `merge-file`, conflit dit par le code de sortie, style `merge`', () => {
